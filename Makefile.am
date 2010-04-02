@@ -20,9 +20,9 @@
 AM_CPPFLAGS = -I $(top_srcdir)/libsigrok \
 	-DFIRMWARE_DIR='"$(FIRMWARE_DIR)"'
 
-lib_LTLIBRARIES = libbackend.la
+lib_LTLIBRARIES = libsigrok.la
 
-libbackend_la_SOURCES = \
+libsigrok_la_SOURCES = \
 	backend.c \
 	datastore.c \
 	device.c \
@@ -41,7 +41,7 @@ libbackend_la_SOURCES = \
 	output/output_text.c \
 	output/output.c
 
-libbackend_la_LIBADD = $(LIBOBJS)
+libsigrok_la_LIBADD = $(LIBOBJS)
 
 include_HEADERS = sigrok.h
 
