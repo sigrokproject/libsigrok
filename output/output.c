@@ -21,12 +21,14 @@
 
 extern struct output_format output_text_binary;
 extern struct output_format output_text_hex;
+extern struct output_format output_vcd;
 
 
 struct output_format *output_module_list[] = {
 	&output_text_binary,
 	&output_text_hex,
-	NULL
+	&output_vcd,
+	NULL,
 };
 
 

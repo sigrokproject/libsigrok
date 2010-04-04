@@ -39,6 +39,7 @@ libsigrok_la_SOURCES = \
 	hardware/zeroplus-logic-cube/gl_usb.h \
 	hardware/zeroplus-logic-cube/zeroplus.c \
 	output/output_text.c \
+	output/output_vcd.c \
 	output/output.c
 
 libsigrok_la_LIBADD = $(LIBOBJS)
