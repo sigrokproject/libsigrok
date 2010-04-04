@@ -162,7 +162,7 @@ static int data_binary(struct output *o, char *data_in, uint64_t length_in, char
 	else
 		outbuf[0] = 0;
 
-	if(length_in > ctx->unitsize) {
+	if(length_in >= ctx->unitsize) {
 		for(offset = 0; offset <= length_in - ctx->unitsize; offset += ctx->unitsize) {
 			memcpy(&sample, data_in + offset, ctx->unitsize);
 			for(p = 0; p < ctx->num_enabled_probes; p++) {
