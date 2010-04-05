@@ -27,11 +27,27 @@
 #include <glib.h>
 #include <libusb.h>
 
-/* Returned status/error codes */
-#define SIGROK_STATUS_DISABLED		0
-#define SIGROK_OK			1
-#define SIGROK_NOK			2
-#define SIGROK_ERR_BADVALUE		20
+/*
+ * Status/error codes returned by libsigrok functions.
+ *
+ * All possible return codes of libsigrok functions must be listed here.
+ * Functions should never return hardcoded numbers as status, but rather
+ * use these #defines instead. All error codes are negative numbers.
+ *
+ * The error codes are globally unique in libsigrok, i.e. if one of the
+ * libsigrok function returns a "malloc error" it must be exactly the same
+ * return value as used for all other functions to indicate "malloc error".
+ * There must be no functions which indicate two different errors via the
+ * same return code.
+ *
+ * Also, for compatibility reasons, no defined return codes are ever removed
+ * or reused for different #defines later. You can only add new #defines and
+ * return codes, but never remove or redefine existing ones.
+ */
+#define SIGROK_OK			0  /* No error */
+#define SIGROK_ERR			-1 /* Generic/unspecified error */
+#define SIGROK_ERR_MALLOC		-2 /* Malloc/calloc/realloc error */
+#define SIGROK_ERR_SAMPLERATE		-3 /* Incorrect samplerate */
 
 /* Handy little macros */
 #define KHZ(n) (n * 1000)

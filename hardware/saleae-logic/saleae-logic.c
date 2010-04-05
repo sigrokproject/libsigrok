@@ -352,7 +352,7 @@ static int configure_probes(GSList *probes)
 					trigger_value[stage] |= probe_bit;
 				stage++;
 				if(stage > NUM_TRIGGER_STAGES)
-					return SIGROK_NOK;
+					return SIGROK_ERR;
 			}
 		}
 	}
@@ -450,19 +450,19 @@ static int hw_opendev(int device_index)
 
 	if( !(sdi = sl_open_device(device_index)) ) {
 		g_warning("unable to open device");
-		return SIGROK_NOK;
+		return SIGROK_ERR;
 	}
 
 	err = libusb_claim_interface(sdi->usb->devhdl, USB_INTERFACE);
 	if(err != 0) {
 		g_warning("Unable to claim interface: %d", err);
-		return SIGROK_NOK;
+		return SIGROK_ERR;
 	}
 
 	if(cur_samplerate == 0) {
 		/* sample rate hasn't been set; default to the slowest it has */
-		if(hw_set_configuration(device_index, HWCAP_SAMPLERATE, &supported_samplerates[0]) == SIGROK_NOK)
-			return SIGROK_NOK;
+		if(hw_set_configuration(device_index, HWCAP_SAMPLERATE, &supported_samplerates[0]) == SIGROK_ERR)
+			return SIGROK_ERR;
 	}
 
 	return SIGROK_OK;
@@ -562,7 +562,7 @@ static int set_configuration_samplerate(struct sigrok_device_instance *sdi, uint
 			break;
 	}
 	if(supported_samplerates[i] == 0)
-		return SIGROK_ERR_BADVALUE;
+		return SIGROK_ERR_SAMPLERATE;
 
 	divider = (uint8_t) (48 / (float) (samplerate/1000000)) - 1;
 
@@ -572,7 +572,7 @@ static int set_configuration_samplerate(struct sigrok_device_instance *sdi, uint
 	ret = libusb_bulk_transfer(sdi->usb->devhdl, 1 | LIBUSB_ENDPOINT_OUT, buf, 2, &result, 500);
 	if(ret != 0) {
 		g_warning("failed to set samplerate: %d", ret);
-		return SIGROK_NOK;
+		return SIGROK_ERR;
 	}
 	cur_samplerate = samplerate;
 
@@ -587,7 +587,7 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 	uint64_t *tmp_u64;
 
 	if( !(sdi = get_sigrok_device_instance(device_instances, device_index)) )
-		return SIGROK_NOK;
+		return SIGROK_ERR;
 
 	if(capability == HWCAP_SAMPLERATE) {
 		tmp_u64 = value;
@@ -600,7 +600,7 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 		ret = SIGROK_OK;
 	}
 	else
-		ret = SIGROK_NOK;
+		ret = SIGROK_ERR;
 
 	return ret;
 }
@@ -757,12 +757,12 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	unsigned char *buf;
 
 	if( !(sdi = get_sigrok_device_instance(device_instances, device_index)))
-		return SIGROK_NOK;
+		return SIGROK_ERR;
 
 	packet = g_malloc(sizeof(struct datafeed_packet));
 	header = g_malloc(sizeof(struct datafeed_header));
 	if(!packet || !header)
-		return SIGROK_NOK;
+		return SIGROK_ERR;
 
 	/* start with 2K transfer, subsequently increased to 4K */
 	size = 2048;
@@ -775,7 +775,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 			/* TODO: free them all */
 			libusb_free_transfer(transfer);
 			g_free(buf);
-			return SIGROK_NOK;
+			return SIGROK_ERR;
 		}
 		size = 4096;
 	}

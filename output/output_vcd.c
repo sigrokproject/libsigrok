@@ -57,6 +57,8 @@ static int init(struct output *o)
 	char sbuf[10], wbuf[1000];
 
 	ctx = malloc(sizeof(struct context));
+	if (ctx == NULL)
+		return SIGROK_ERR_MALLOC;
 	o->internal = ctx;
 	ctx->num_enabled_probes = 0;
 	for (l = o->device->probes; l; l = l->next) {
@@ -71,7 +73,10 @@ static int init(struct output *o)
 	/* TODO: Allow for configuration via o->param. */
 
 	ctx->header = calloc(1, MAX_HEADER_LEN + 1);
+	if (ctx->header == NULL)
+		return SIGROK_ERR_MALLOC;
 	num_probes = g_slist_length(o->device->probes);
+	/* TODO: Handle num_probes == 0, too many probes, etc. */
 	samplerate = *((uint64_t *) o->device->plugin->get_device_info(
 			o->device->plugin_index, DI_CUR_SAMPLERATE));
 
@@ -97,8 +102,11 @@ static int init(struct output *o)
 	b = snprintf(ctx->header, MAX_HEADER_LEN, vcd_header, "TODO: Date",
 		     PACKAGE_STRING, ctx->num_enabled_probes, num_probes,
 		     (char *)&sbuf, 1, "ns", PACKAGE, (char *)&wbuf);
+	/* TODO: Handle snprintf errors. */
 
 	ctx->prevbits = calloc(sizeof(int), num_probes);
+	if (ctx->prevbits == NULL)
+		return SIGROK_ERR_MALLOC;
 
 	return 0;
 }
@@ -117,6 +125,8 @@ static int event(struct output *o, int event_type, char **data_out,
 	case DF_END:
 		outlen = strlen("$dumpoff\n$end\n");
 		outbuf = malloc(outlen + 1);
+		if (outbuf == NULL)
+			return SIGROK_ERR_MALLOC;
 		snprintf(outbuf, outlen, "$dumpoff\n$end\n");
 		*data_out = outbuf;
 		*length_out = outlen;
@@ -139,6 +149,8 @@ static int data(struct output *o, char *data_in, uint64_t length_in,
 	ctx = o->internal;
 	outsize = strlen(ctx->header);
 	outbuf = calloc(1, outsize + 1 + 10000); // FIXME: Use realloc().
+	if (outbuf == NULL)
+		return SIGROK_ERR_MALLOC;
 	if (ctx->header) {
 		/* The header is still here, this must be the first packet. */
 		strncpy(outbuf, ctx->header, outsize);

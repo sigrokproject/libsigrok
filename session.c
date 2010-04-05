@@ -223,27 +223,27 @@ int session_save(char *filename)
 	unlink(filename);
 
 	if( !(zipfile = zip_open(filename, ZIP_CREATE, &error)) )
-		return SIGROK_NOK;
+		return SIGROK_ERR;
 
 	/* version */
 	version[0] = '1';
 	if( !(src = zip_source_buffer(zipfile, version, 1, 0)) )
-		return SIGROK_NOK;
+		return SIGROK_ERR;
 	if(zip_add(zipfile, "version", src) == -1) {
 		g_message("error saving version into zipfile: %s", zip_strerror(zipfile));
-		return SIGROK_NOK;
+		return SIGROK_ERR;
 	}
 
 	/* metadata */
 	strcpy(metafile, "sigrok-meta-XXXXXX");
 	if( (tmpfile = g_mkstemp(metafile)) == -1)
-		return SIGROK_NOK;
+		return SIGROK_ERR;
 	close(tmpfile);
 	make_metadata(metafile);
 	if( !(src = zip_source_file(zipfile, metafile, 0, -1)) )
-		return SIGROK_NOK;
+		return SIGROK_ERR;
 	if(zip_add(zipfile, "metadata", src) == -1)
-		return SIGROK_NOK;
+		return SIGROK_ERR;
 	unlink(metafile);
 
 	/* raw */
@@ -259,26 +259,18 @@ int session_save(char *filename)
 				bufcnt += DATASTORE_CHUNKSIZE;
 			}
 			if( !(src = zip_source_buffer(zipfile, buf, ds->num_units * ds->ds_unitsize, TRUE)) )
-				return SIGROK_NOK;
+				return SIGROK_ERR;
 			snprintf(rawname, 15, "raw-%d", devcnt);
 			if(zip_add(zipfile, rawname, src) == -1)
-				return SIGROK_NOK;
+				return SIGROK_ERR;
 		}
 		devcnt++;
 	}
 
 	if( (ret = zip_close(zipfile)) == -1) {
 		g_message("error saving zipfile: %s", zip_strerror(zipfile));
-		return SIGROK_NOK;
+		return SIGROK_ERR;
 	}
 
 	return SIGROK_OK;
 }
-
-
-
-
-
-
-
-

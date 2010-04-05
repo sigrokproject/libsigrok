@@ -242,7 +242,7 @@ static int configure_probes(GSList *probes)
 					trigger_value[stage] |= probe_bit;
 				stage++;
 				if(stage > NUM_TRIGGER_STAGES)
-					return SIGROK_NOK;
+					return SIGROK_ERR;
 			}
 		}
 	}
@@ -304,13 +304,13 @@ static int hw_opendev(int device_index)
 
 	if( !(sdi = zp_open_device(device_index)) ) {
 		g_warning("unable to open device");
-		return SIGROK_NOK;
+		return SIGROK_ERR;
 	}
 
 	err = libusb_claim_interface(sdi->usb->devhdl, USB_INTERFACE);
 	if(err != 0) {
 		g_warning("Unable to claim interface: %d", err);
-		return SIGROK_NOK;
+		return SIGROK_ERR;
 	}
 	analyzer_reset(sdi->usb->devhdl);
 	analyzer_initialize(sdi->usb->devhdl);
@@ -331,8 +331,8 @@ static int hw_opendev(int device_index)
 
 	if(cur_samplerate == 0) {
 		/* sample rate hasn't been set; default to the slowest it has */
-		if(hw_set_configuration(device_index, HWCAP_SAMPLERATE, &samplerates.low) == SIGROK_NOK)
-			return SIGROK_NOK;
+		if(hw_set_configuration(device_index, HWCAP_SAMPLERATE, &samplerates.low) == SIGROK_ERR)
+			return SIGROK_ERR;
 	}
 
 	return SIGROK_OK;
@@ -442,7 +442,7 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 	uint64_t *tmp_u64;
 
 	if( !(sdi = get_sigrok_device_instance(device_instances, device_index)) )
-		return SIGROK_NOK;
+		return SIGROK_ERR;
 
 	switch (capability) {
 		case HWCAP_SAMPLERATE:
@@ -457,7 +457,7 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 			return SIGROK_OK;
 
 		default:
-			return SIGROK_NOK;
+			return SIGROK_ERR;
 	}
 }
 
@@ -471,7 +471,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	unsigned char *buf;
 
 	if( !(sdi = get_sigrok_device_instance(device_instances, device_index)))
-		return SIGROK_NOK;
+		return SIGROK_ERR;
 
 	analyzer_start(sdi->usb->devhdl);
 	g_message("Waiting for data");
@@ -493,7 +493,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 
 	buf = g_malloc(PACKET_SIZE);
 	if (!buf)
-		return SIGROK_NOK;
+		return SIGROK_ERR;
 	analyzer_read_start(sdi->usb->devhdl);
 	/* send the incoming transfer to the session bus */
 	for(packet_num = 0; packet_num < (memory_size * 4 / PACKET_SIZE); packet_num++) {
