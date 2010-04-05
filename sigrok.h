@@ -81,7 +81,7 @@ struct datafeed_packet {
 struct datafeed_header {
 	int feed_version;
 	struct timeval starttime;
-	uint64_t rate;
+	uint64_t samplerate;
 	int protocol_id;
 	int num_probes;
 };
@@ -197,7 +197,7 @@ void device_trigger_set(struct device *device, int probenum, char *trigger);
 enum {
 	HWCAP_DUMMY,		// used to terminate lists
 	HWCAP_LOGIC_ANALYZER,
-	HWCAP_SAMPLERATE,       // change sample rate
+	HWCAP_SAMPLERATE,       // change samplerate
 	HWCAP_PROBECONFIG,      // configure probe mask
 	HWCAP_CAPTURE_RATIO,    // set pre-trigger / post-trigger ratio
 	HWCAP_LIMIT_MSEC,	// set a time limit for sample acquisition
@@ -263,12 +263,12 @@ enum {
 	DI_INSTANCE,
 	/* The number of probes connected to this device */
 	DI_NUM_PROBES,
-	/* Sample rates supported by this device, (struct samplerates) */
+	/* Samplerates supported by this device, (struct samplerates) */
 	DI_SAMPLERATES,
 	/* Types of trigger supported, out of "01crf" (char *) */
 	DI_TRIGGER_TYPES,
-	/* The currently set sample rate in Hz (uint64_t) */
-	DI_CUR_SAMPLE_RATE,
+	/* The currently set samplerate in Hz (uint64_t) */
+	DI_CUR_SAMPLERATE,
 };
 
 /* a device supports either a range of samplerates with steps of a given

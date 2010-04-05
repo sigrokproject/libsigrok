@@ -92,7 +92,7 @@ static struct samplerates samplerates = {
 };
 
 /* TODO: all of these should go in a device-specific struct */
-static uint64_t cur_sample_rate = 0;
+static uint64_t cur_samplerate = 0;
 static uint64_t limit_samples = 0;
 static uint8_t probe_mask = 0, \
 		trigger_mask[NUM_TRIGGER_STAGES] = {0}, \
@@ -459,7 +459,7 @@ static int hw_opendev(int device_index)
 		return SIGROK_NOK;
 	}
 
-	if(cur_sample_rate == 0) {
+	if(cur_samplerate == 0) {
 		/* sample rate hasn't been set; default to the slowest it has */
 		if(hw_set_configuration(device_index, HWCAP_SAMPLERATE, &supported_samplerates[0]) == SIGROK_NOK)
 			return SIGROK_NOK;
@@ -523,8 +523,8 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 	case DI_TRIGGER_TYPES:
 		info = TRIGGER_TYPES;
 		break;
-	case DI_CUR_SAMPLE_RATE:
-		info = &cur_sample_rate;
+	case DI_CUR_SAMPLERATE:
+		info = &cur_samplerate;
 		break;
 	}
 
@@ -566,7 +566,7 @@ static int set_configuration_samplerate(struct sigrok_device_instance *sdi, uint
 
 	divider = (uint8_t) (48 / (float) (samplerate/1000000)) - 1;
 
-	g_message("setting sample rate to %"PRIu64" Hz (divider %d)", samplerate, divider);
+	g_message("setting samplerate to %"PRIu64" Hz (divider %d)", samplerate, divider);
 	buf[0] = 0x01;
 	buf[1] = divider;
 	ret = libusb_bulk_transfer(sdi->usb->devhdl, 1 | LIBUSB_ENDPOINT_OUT, buf, 2, &result, 500);
@@ -574,7 +574,7 @@ static int set_configuration_samplerate(struct sigrok_device_instance *sdi, uint
 		g_warning("failed to set samplerate: %d", ret);
 		return SIGROK_NOK;
 	}
-	cur_sample_rate = samplerate;
+	cur_samplerate = samplerate;
 
 	return SIGROK_OK;
 }
@@ -790,7 +790,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	packet->payload = (unsigned char *) header;
 	header->feed_version = 1;
 	gettimeofday(&header->starttime, NULL);
-	header->rate = cur_sample_rate;
+	header->samplerate = cur_samplerate;
 	header->protocol_id = PROTO_RAW;
 	header->num_probes = NUM_PROBES;
 	session_bus(session_device_id, packet);

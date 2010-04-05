@@ -74,7 +74,7 @@ static void init(struct output *o)
 	ctx->header = calloc(1, MAX_HEADER_LEN + 1);
 	num_probes = g_slist_length(o->device->probes);
 	samplerate = *((uint64_t *) o->device->plugin->get_device_info(
-			o->device->plugin_index, DI_CUR_SAMPLE_RATE));
+			o->device->plugin_index, DI_CUR_SAMPLERATE));
 
 	/* Samplerate string */
 	if (samplerate >= GHZ(1))

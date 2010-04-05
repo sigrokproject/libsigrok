@@ -344,7 +344,7 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 	case DI_TRIGGER_TYPES:
 		info = (char *) TRIGGER_TYPES;
 		break;
-	case DI_CUR_SAMPLE_RATE:
+	case DI_CUR_SAMPLERATE:
 		info = &cur_samplerate;
 		break;
 	}
@@ -596,7 +596,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	packet->payload = (unsigned char *) header;
 	header->feed_version = 1;
 	gettimeofday(&header->starttime, NULL);
-	header->rate = cur_samplerate;
+	header->samplerate = cur_samplerate;
 	header->protocol_id = PROTO_RAW;
 	header->num_probes = NUM_PROBES;
 	session_bus(session_device_id, packet);

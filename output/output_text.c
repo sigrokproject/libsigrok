@@ -93,7 +93,7 @@ static void init(struct output *o, int default_spl)
 
 	ctx->header = malloc(512);
 	num_probes = g_slist_length(o->device->probes);
-	samplerate = *((uint64_t *) o->device->plugin->get_device_info(o->device->plugin_index, DI_CUR_SAMPLE_RATE));
+	samplerate = *((uint64_t *) o->device->plugin->get_device_info(o->device->plugin_index, DI_CUR_SAMPLERATE));
 	snprintf(ctx->header, 512, "Acquisition with %d/%d probes at ", ctx->num_enabled_probes, num_probes);
 	if(samplerate >= GHZ(1))
 		snprintf(ctx->header + strlen(ctx->header), 512, "%"PRIu64" GHz", samplerate / 1000000000);
