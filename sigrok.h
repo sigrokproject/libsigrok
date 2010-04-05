@@ -99,7 +99,7 @@ struct output {
 struct output_format {
 	char *extension;
 	char *description;
-	void (*init) (struct output *o);
+	int (*init) (struct output *o);
 	int (*data) (struct output *o, char *data_in, uint64_t length_in,
 		     char **data_out, uint64_t *length_out);
 	int (*event) (struct output *o, int event_type, char **data_out,

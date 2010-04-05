@@ -66,7 +66,7 @@ static void flush_linebufs(struct context *ctx, GSList *probes, char *outbuf)
 }
 
 
-static void init(struct output *o, int default_spl)
+static int init(struct output *o, int default_spl)
 {
 	struct context *ctx;
 	struct probe *probe;
@@ -109,6 +109,7 @@ static void init(struct output *o, int default_spl)
 	ctx->linebuf = calloc(1, num_probes * ctx->linebuf_len);
 	ctx->linevalues = calloc(1, num_probes);
 
+	return 0;
 }
 
 
@@ -137,10 +138,10 @@ static int event(struct output *o, int event_type, char **data_out, uint64_t *le
 }
 
 
-static void init_binary(struct output *o)
+static int init_binary(struct output *o)
 {
 
-	init(o, DEFAULT_BPL_BIN);
+	return init(o, DEFAULT_BPL_BIN);
 
 }
 
@@ -199,10 +200,10 @@ static int data_binary(struct output *o, char *data_in, uint64_t length_in, char
 }
 
 
-static void init_hex(struct output *o)
+static int init_hex(struct output *o)
 {
 
-	init(o, DEFAULT_BPL_BIN);
+	return init(o, DEFAULT_BPL_BIN);
 
 }
 

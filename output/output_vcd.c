@@ -30,7 +30,6 @@ struct context {
 	char *probelist[65];
 	int *prevbits;
 	char *header;
-	char *data;
 };
 
 const char *vcd_header = "\
@@ -44,7 +43,7 @@ $upscope $end\n\
 $enddefinitions $end\n\
 $dumpvars\n";
 
-static void init(struct output *o)
+static int init(struct output *o)
 {
 /* Maximum header length */
 #define MAX_HEADER_LEN 2048
@@ -100,6 +99,8 @@ static void init(struct output *o)
 		     (char *)&sbuf, 1, "ns", PACKAGE, (char *)&wbuf);
 
 	ctx->prevbits = calloc(sizeof(int), num_probes);
+
+	return 0;
 }
 
 static int event(struct output *o, int event_type, char **data_out,

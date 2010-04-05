@@ -23,11 +23,9 @@
 
 
 
-static void init(struct output *o)
+static int init(struct output *o)
 {
-
-
-
+	return 0;
 }
 
 
