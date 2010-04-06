@@ -92,10 +92,10 @@ static int init(struct output *o)
 
 	/* Wires / channels */
 	wbuf[0] = '\0';
-	for (i = 0; i < num_probes; i++) {
+	for (i = 0; i < ctx->num_enabled_probes; i++) {
 		c = (char *)&wbuf + strlen((char *)&wbuf);
-		sprintf(c, "$var wire 1 %c channel%i $end\n",
-			 (char)('!' + i), i);
+		sprintf(c, "$var wire 1 %c channel%s $end\n",
+			 (char)('!' + i), ctx->probelist[i]);
 	}
 
 	/* TODO: date: File or signals? Make y/n configurable. */
@@ -127,7 +127,7 @@ static int event(struct output *o, int event_type, char **data_out,
 		outbuf = malloc(outlen + 1);
 		if (outbuf == NULL)
 			return SIGROK_ERR_MALLOC;
-		snprintf(outbuf, outlen, "$dumpoff\n$end\n");
+		snprintf(outbuf, outlen + 1, "$dumpoff\n$end\n");
 		*data_out = outbuf;
 		*length_out = outlen;
 		free(o->internal);
