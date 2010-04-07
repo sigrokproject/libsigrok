@@ -21,7 +21,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <glib.h>
-#include "sigrok.h"
+#include <sigrok.h>
 
 #define DEFAULT_BPL_BIN 64
 #define DEFAULT_BPL_HEX 256
@@ -73,6 +73,7 @@ static int init(struct output *o, int default_spl)
 	GSList *l;
 	uint64_t samplerate;
 	int num_probes;
+	char *samplerate_s;
 
 	ctx = malloc(sizeof(struct context));
 	o->internal = ctx;
@@ -95,15 +96,11 @@ static int init(struct output *o, int default_spl)
 	num_probes = g_slist_length(o->device->probes);
 	samplerate = *((uint64_t *) o->device->plugin->get_device_info(o->device->plugin_index, DI_CUR_SAMPLERATE));
 	snprintf(ctx->header, 512, "Acquisition with %d/%d probes at ", ctx->num_enabled_probes, num_probes);
-	if(samplerate >= GHZ(1))
-		snprintf(ctx->header + strlen(ctx->header), 512, "%"PRIu64" GHz", samplerate / 1000000000);
-	else if(samplerate >= MHZ(1))
-		snprintf(ctx->header + strlen(ctx->header), 512, "%"PRIu64" MHz", samplerate / 1000000);
-	else if(samplerate >= KHZ(1))
-		snprintf(ctx->header + strlen(ctx->header), 512, "%"PRIu64" KHz", samplerate / 1000);
-	else
-		snprintf(ctx->header + strlen(ctx->header), 512, "%"PRIu64" Hz", samplerate);
-	snprintf(ctx->header + strlen(ctx->header), 512, "\n");
+
+	if ((samplerate_s = sigrok_samplerate_string(samplerate)) == NULL)
+		return -1; // FIXME
+	snprintf(ctx->header + strlen(ctx->header), 512, "%s\n", samplerate_s);
+	free(samplerate_s);
 
 	ctx->linebuf_len = ctx->samples_per_line * 2;
 	ctx->linebuf = calloc(1, num_probes * ctx->linebuf_len);

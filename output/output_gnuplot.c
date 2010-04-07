@@ -49,8 +49,8 @@ static int init(struct output *o)
 	GSList *l;
 	uint64_t samplerate;
 	int i, b, num_probes;
-	char *c;
-	char sbuf[10], wbuf[1000];
+	char *c, *samplerate_s;
+	char wbuf[1000];
 
 	ctx = malloc(sizeof(struct context));
 	if (ctx == NULL)
@@ -75,16 +75,9 @@ static int init(struct output *o)
 	/* TODO: Handle num_probes == 0, too many probes, etc. */
 	samplerate = *((uint64_t *) o->device->plugin->get_device_info(
 			o->device->plugin_index, DI_CUR_SAMPLERATE));
-
-	/* Samplerate string */
-	if (samplerate >= GHZ(1))
-		snprintf(sbuf, 10, "%"PRIu64" GHz", samplerate / 1000000000);
-	else if (samplerate >= MHZ(1))
-		snprintf(sbuf, 10, "%"PRIu64" MHz", samplerate / 1000000);
-	else if (samplerate >= KHZ(1))
-		snprintf(sbuf, 10, "%"PRIu64" KHz", samplerate / 1000);
-	else
-		snprintf(sbuf, 10, "%"PRIu64" Hz", samplerate);
+  
+	if ((samplerate_s = sigrok_samplerate_string(samplerate)) == NULL)
+		return -1; // FIXME
 
 	/* Columns / channels */
 	wbuf[0] = '\0';
@@ -97,7 +90,9 @@ static int init(struct output *o)
 	/* TODO: Timescale */
 	b = snprintf(ctx->header, MAX_HEADER_LEN, gnuplot_header,
 		     PACKAGE_STRING, "TODO", ctx->num_enabled_probes,
-		     num_probes, (char *)&sbuf, 1, "ns", (char *)&wbuf);
+		     num_probes, samplerate_s, 1, "ns", (char *)&wbuf);
+
+	free(samplerate_s);
 
 	/* TODO: Handle snprintf errors. */
 

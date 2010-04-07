@@ -41,6 +41,7 @@ libsigrok_la_SOURCES = \
 	output/output_text.c \
 	output/output_vcd.c \
 	output/output_gnuplot.c \
+	output/common.c \
 	output/output.c
 
 libsigrok_la_LIBADD = $(LIBOBJS)

@@ -18,10 +18,7 @@
  */
 
 #include <stdint.h>
-
 #include "sigrok.h"
-
-
 
 static int init(struct output *o)
 {

@@ -127,6 +127,8 @@ int filter_probes(int in_unitsize, int out_unitsize, int *probelist,
 		  char *data_in, uint64_t length_in, char **data_out,
 		  uint64_t *length_out);
 
+char *sigrok_samplerate_string(uint64_t samplerate);
+
 /*--- analyzer.c ------------------------------------------------------------*/
 
 struct analyzer {
