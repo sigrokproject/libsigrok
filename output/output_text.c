@@ -151,7 +151,7 @@ static int data_binary(struct output *o, char *data_in, uint64_t length_in, char
 	char *outbuf;
 
 	ctx = o->internal;
-	outsize = length_in / ctx->unitsize * ctx->num_enabled_probes * 3 + 512;
+	outsize = length_in / ctx->unitsize * ctx->num_enabled_probes * ctx->samples_per_line + 512;
 	outbuf = calloc(1, outsize+1);
 	if(ctx->header) {
 		/* the header is still in here, we must be on the first data packet */
@@ -213,7 +213,7 @@ static int data_hex(struct output *o, char *data_in, uint64_t length_in, char **
 	char *outbuf;
 
 	ctx = o->internal;
-	outsize = length_in / ctx->unitsize * ctx->num_enabled_probes * 3 + 512;
+	outsize = length_in / ctx->unitsize * ctx->num_enabled_probes * ctx->samples_per_line + 512;
 	outbuf = calloc(1, outsize+1);
 	if(ctx->header) {
 		/* the header is still in here, we must be on the first data packet */
