@@ -164,7 +164,7 @@ static int configure_probes(GSList *probes)
 			stage++;
 			if(stage > 3)
 				/* TODO: only supporting parallel mode, with up to 4 stages */
-				return SIGROK_NOK;
+				return SIGROK_ERR;
 		}
 	}
 
@@ -575,41 +575,41 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	if(trigger_mask[0]) {
 		/* trigger masks */
 		if(send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_MASK_0, trigger_mask[0]) != SIGROK_OK)
-			return SIGROK_NOK;
+			return SIGROK_ERR;
 		if(send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_MASK_1, trigger_mask[1]) != SIGROK_OK)
-			return SIGROK_NOK;
+			return SIGROK_ERR;
 		if(send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_MASK_2, trigger_mask[2]) != SIGROK_OK)
-			return SIGROK_NOK;
+			return SIGROK_ERR;
 		if(send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_MASK_3, trigger_mask[3]) != SIGROK_OK)
-			return SIGROK_NOK;
+			return SIGROK_ERR;
 
 		if(send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_VALUE_0, trigger_value[0]) != SIGROK_OK)
-			return SIGROK_NOK;
+			return SIGROK_ERR;
 		if(send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_VALUE_1, trigger_value[1]) != SIGROK_OK)
-			return SIGROK_NOK;
+			return SIGROK_ERR;
 		if(send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_VALUE_2, trigger_value[2]) != SIGROK_OK)
-			return SIGROK_NOK;
+			return SIGROK_ERR;
 		if(send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_VALUE_3, trigger_value[3]) != SIGROK_OK)
-			return SIGROK_NOK;
+			return SIGROK_ERR;
 
 		/* trigger configuration */
 		/* TODO: the start flag should only be on the last used stage I think... */
 		if(send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_CONFIG_0, 0x00000008) != SIGROK_OK)
-			return SIGROK_NOK;
+			return SIGROK_ERR;
 		if(send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_CONFIG_1, 0x00000000) != SIGROK_OK)
-			return SIGROK_NOK;
+			return SIGROK_ERR;
 		if(send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_CONFIG_2, 0x00000000) != SIGROK_OK)
-			return SIGROK_NOK;
+			return SIGROK_ERR;
 		if(send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_CONFIG_3, 0x00000000) != SIGROK_OK)
-			return SIGROK_NOK;
+			return SIGROK_ERR;
 		delaycount = limit_samples / 4 * (capture_ratio / 100);
 	} else {
 		if(send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_MASK_0, trigger_mask[0]) != SIGROK_OK)
-			return SIGROK_NOK;
+			return SIGROK_ERR;
 		if(send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_VALUE_0, trigger_value[0]) != SIGROK_OK)
-			return SIGROK_NOK;
+			return SIGROK_ERR;
 		if(send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_CONFIG_0, 0x00000008) != SIGROK_OK)
-			return SIGROK_NOK;
+			return SIGROK_ERR;
 		delaycount = limit_samples / 4;
 	}
 
@@ -645,7 +645,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 
 	data = flag_reg << 24;
 	if(send_longcommand(sdi->serial->fd, CMD_SET_FLAGS, data) != SIGROK_OK)
-		return SIGROK_NOK;
+		return SIGROK_ERR;
 
 	/* start acquisition on the device */
 	if(send_shortcommand(sdi->serial->fd, CMD_RUN) != SIGROK_OK)
