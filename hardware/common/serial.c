@@ -18,6 +18,7 @@
  */
 
 #include <glob.h>
+#include <string.h>
 #include <glib.h>
 
 
@@ -46,7 +47,7 @@ GSList *list_serial_ports(void)
 		if(!glob(serial_port_glob[i], 0, NULL, &g))
 		{
 			for(j = 0; j < g.gl_pathc; j++)
-				ports = g_slist_append(ports, g_strdup(g.gl_pathv[j]));
+				ports = g_slist_append(ports, strdup(g.gl_pathv[j]));
 			globfree(&g);
 		}
 	}
