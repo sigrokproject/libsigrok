@@ -304,14 +304,15 @@ int upload_firmware(libusb_device *dev)
 
 static void close_device(struct sigrok_device_instance *sdi)
 {
-	if (sdi->usb->devhdl) {
-		g_message("closing device %d on %d.%d interface %d", sdi->index,
-			  sdi->usb->bus, sdi->usb->address, USB_INTERFACE);
-		libusb_release_interface(sdi->usb->devhdl, USB_INTERFACE);
-		libusb_close(sdi->usb->devhdl);
-		sdi->usb->devhdl = NULL;
-		sdi->status = ST_INACTIVE;
-	}
+	if (sdi->usb->devhdl == NULL)
+		return;
+
+	g_message("closing device %d on %d.%d interface %d", sdi->index,
+		  sdi->usb->bus, sdi->usb->address, USB_INTERFACE);
+	libusb_release_interface(sdi->usb->devhdl, USB_INTERFACE);
+	libusb_close(sdi->usb->devhdl);
+	sdi->usb->devhdl = NULL;
+	sdi->status = ST_INACTIVE;
 }
 
 static int configure_probes(GSList * probes)
@@ -386,41 +387,34 @@ static int hw_init(char *deviceinfo)
 			continue;
 		}
 
-		if (des.idVendor == USB_VENDOR && des.idProduct == USB_PRODUCT) {
-			/* Definitely a Saleae Logic... */
+		if (des.idVendor != USB_VENDOR || des.idProduct != USB_PRODUCT)
+			continue; /* Not a Saleae Logic... */
 
-			sdi = sigrok_device_instance_new(devcnt,
-					ST_INITIALIZING, USB_VENDOR_NAME,
-					USB_MODEL_NAME, USB_MODEL_VERSION);
-			if (!sdi)
-				return 0;
-			device_instances =
-			    g_slist_append(device_instances, sdi);
+		sdi = sigrok_device_instance_new(devcnt, ST_INITIALIZING,
+			USB_VENDOR_NAME, USB_MODEL_NAME, USB_MODEL_VERSION);
+		if (!sdi)
+			return 0;
+		device_instances = g_slist_append(device_instances, sdi);
 
-			if (check_conf_profile(devlist[i]) == 0) {
-				if (upload_firmware(devlist[i]) > 0)
-					/*
-					 * Continue on the off chance that the
-					 * device is in a working state.
-					 * TODO: Could maybe try a USB reset,
-					 * or uploading the firmware again.
-					 */
-					g_warning("firmware upload failed for device %d", devcnt);
+		if (check_conf_profile(devlist[i]) == 0) {
+			/*
+			 * Continue on the off chance that the device is in a
+			 * working state. TODO: Could maybe try a USB reset,
+			 * or uploading the firmware again.
+			 */
+			if (upload_firmware(devlist[i]) > 0)
+				g_warning("firmware upload failed for device %d", devcnt);
 
-				sdi->usb = usb_device_instance_new
-				  (libusb_get_bus_number(devlist[i]), 0, NULL);
-			} else {
-				/*
-				 * Already has the firmware on it, so fix the
-				 * new address.
-				 */
-				sdi->usb = usb_device_instance_new
-				    (libusb_get_bus_number(devlist[i]),
-				     libusb_get_device_address(devlist[i]),
-				     NULL);
-			}
-			devcnt++;
+			sdi->usb = usb_device_instance_new
+			  (libusb_get_bus_number(devlist[i]), 0, NULL);
+		} else {
+			/* Already has the firmware, so fix the new address. */
+			sdi->usb = usb_device_instance_new
+			    (libusb_get_bus_number(devlist[i]),
+			     libusb_get_device_address(devlist[i]),
+			     NULL);
 		}
+		devcnt++;
 	}
 	libusb_free_device_list(devlist, 1);
 
@@ -617,118 +611,117 @@ void receive_transfer(struct libusb_transfer *transfer)
 	int cur_buflen, trigger_offset, i;
 	unsigned char *cur_buf, *new_buf;
 
-	if (transfer == NULL) {
-		/* hw_stop_acquisition() is telling us to stop. */
+	/* hw_stop_acquisition() is telling us to stop. */
+	if (transfer == NULL)
 		num_samples = -1;
+
+	/*
+	 * If acquisition has already ended, just free any queued up
+	 * transfer that come in.
+	 */
+	if (num_samples == -1) {
+		libusb_free_transfer(transfer);
+		return;
 	}
 
-	if (num_samples == -1) {
-		/*
-		 * Acquisition has already ended, just free any queued up
-		 * transfer that come in.
-		 */
-		libusb_free_transfer(transfer);
-	} else {
-		g_message("receive_transfer(): status %d received %d bytes",
-			  transfer->status, transfer->actual_length);
+	g_message("receive_transfer(): status %d received %d bytes",
+		  transfer->status, transfer->actual_length);
 
-		/* Save incoming transfer before reusing the transfer struct. */
-		cur_buf = transfer->buffer;
-		cur_buflen = transfer->actual_length;
-		user_data = transfer->user_data;
+	/* Save incoming transfer before reusing the transfer struct. */
+	cur_buf = transfer->buffer;
+	cur_buflen = transfer->actual_length;
+	user_data = transfer->user_data;
 
-		/* Fire off a new request. */
-		new_buf = g_malloc(4096);
-		transfer->buffer = new_buf;
-		transfer->length = 4096;
-		if (libusb_submit_transfer(transfer) != 0) {
-			/* TODO: Stop session? */
-			g_warning("eek");
-		}
+	/* Fire off a new request. */
+	new_buf = g_malloc(4096);
+	transfer->buffer = new_buf;
+	transfer->length = 4096;
+	if (libusb_submit_transfer(transfer) != 0) {
+		/* TODO: Stop session? */
+		g_warning("eek");
+	}
 
-		if (cur_buflen == 0) {
-			empty_transfer_count++;
-			if (empty_transfer_count > MAX_EMPTY_TRANSFERS) {
-				/* The FX2 gave up. End the acquisition, the
-				 * frontend will work out that the samplecount
-				 * is short.
-				 */
-				packet.type = DF_END;
-				session_bus(user_data, &packet);
-				num_samples = -1;
-			}
-			return;
-		} else {
-			empty_transfer_count = 0;
-		}
-
-		trigger_offset = 0;
-		if (trigger_stage >= 0) {
-			for (i = 0; i < cur_buflen; i++) {
-				if ((cur_buf[i] & trigger_mask[trigger_stage])
-				    == trigger_value[trigger_stage]) {
-					/* Match on this trigger stage. */
-					trigger_buffer[trigger_stage] =
-					    cur_buf[i];
-					trigger_stage++;
-					if (trigger_stage == NUM_TRIGGER_STAGES
-					    || trigger_mask[trigger_stage] == 0) {
-						/* Match on all trigger stages, we're done */
-						trigger_offset = i + 1;
-
-						/* TODO: Send pre-trigger buffer to session bus. Tell the frontend we hit the trigger here. */
-						packet.type = DF_TRIGGER;
-						packet.length = 0;
-						session_bus(user_data, &packet);
-
-						/* Send the samples that triggered it, since we're skipping past them. */
-						packet.type = DF_LOGIC8;
-						packet.length = trigger_stage;
-						packet.payload = trigger_buffer;
-						session_bus(user_data, &packet);
-						break;
-
-						trigger_stage = TRIGGER_FIRED;
-					}
-				} else if (trigger_stage > 0) {
-					/*
-					 * We had a match before, but not in the next sample. However, we may
-					 * have a match on this stage in the next bit -- trigger on 0001 will
-					 * fail on seeing 00001, so we need to go back to stage 0 -- but at
-					 * the next sample from the one that matched originally, which the
-					 * counter increment at the end of the loop takes care of.
-					 */
-					i -= trigger_stage;
-					if (i < -1)
-						/* Oops, went back past this buffer. */
-						i = -1;
-					/* Reset trigger stage. */
-					trigger_stage = 0;
-				}
-			}
-		}
-
-		if (trigger_stage == TRIGGER_FIRED) {
-			/* Send the incoming transfer to the session bus. */
-			packet.type = DF_LOGIC8;
-			packet.length = cur_buflen - trigger_offset;
-			packet.payload = cur_buf + trigger_offset;
-			session_bus(user_data, &packet);
-			g_free(cur_buf);
-
-			num_samples += cur_buflen;
-			if (num_samples > limit_samples) {
-				/* End the acquisition. */
-				packet.type = DF_END;
-				session_bus(user_data, &packet);
-				num_samples = -1;
-			}
-		} else {
+	if (cur_buflen == 0) {
+		empty_transfer_count++;
+		if (empty_transfer_count > MAX_EMPTY_TRANSFERS) {
 			/*
-			 * TODO: Buffer pre-trigger data in capture
-			 * ratio-sized buffer.
+			 * The FX2 gave up. End the acquisition, the frontend
+			 * will work out that the samplecount is short.
 			 */
+			packet.type = DF_END;
+			session_bus(user_data, &packet);
+			num_samples = -1;
 		}
+		return;
+	} else {
+		empty_transfer_count = 0;
+	}
+
+	trigger_offset = 0;
+	if (trigger_stage >= 0) {
+		for (i = 0; i < cur_buflen; i++) {
+			if ((cur_buf[i] & trigger_mask[trigger_stage])
+			    == trigger_value[trigger_stage]) {
+				/* Match on this trigger stage. */
+				trigger_buffer[trigger_stage] = cur_buf[i];
+				trigger_stage++;
+				if (trigger_stage == NUM_TRIGGER_STAGES
+				    || trigger_mask[trigger_stage] == 0) {
+					/* Match on all trigger stages, we're done */
+					trigger_offset = i + 1;
+
+					/* TODO: Send pre-trigger buffer to session bus. Tell the frontend we hit the trigger here. */
+					packet.type = DF_TRIGGER;
+					packet.length = 0;
+					session_bus(user_data, &packet);
+
+					/* Send the samples that triggered it, since we're skipping past them. */
+					packet.type = DF_LOGIC8;
+					packet.length = trigger_stage;
+					packet.payload = trigger_buffer;
+					session_bus(user_data, &packet);
+					break;
+
+					trigger_stage = TRIGGER_FIRED;
+				}
+			} else if (trigger_stage > 0) {
+				/*
+				 * We had a match before, but not in the next sample. However, we may
+				 * have a match on this stage in the next bit -- trigger on 0001 will
+				 * fail on seeing 00001, so we need to go back to stage 0 -- but at
+				 * the next sample from the one that matched originally, which the
+				 * counter increment at the end of the loop takes care of.
+				 */
+				i -= trigger_stage;
+				if (i < -1)
+					/* Oops, went back past this buffer. */
+					i = -1;
+				/* Reset trigger stage. */
+				trigger_stage = 0;
+			}
+		}
+	}
+
+	if (trigger_stage == TRIGGER_FIRED) {
+		/* Send the incoming transfer to the session bus. */
+		packet.type = DF_LOGIC8;
+		packet.length = cur_buflen - trigger_offset;
+		packet.payload = cur_buf + trigger_offset;
+		session_bus(user_data, &packet);
+		g_free(cur_buf);
+
+		num_samples += cur_buflen;
+		if (num_samples > limit_samples) {
+			/* End the acquisition. */
+			packet.type = DF_END;
+			session_bus(user_data, &packet);
+			num_samples = -1;
+		}
+	} else {
+		/*
+		 * TODO: Buffer pre-trigger data in capture
+		 * ratio-sized buffer.
+		 */
 	}
 }
 
