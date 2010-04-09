@@ -36,13 +36,12 @@ int ezusb_reset(struct libusb_device_handle *hdl, int set_clear)
 	g_message("setting CPU reset mode %s...", set_clear ? "on" : "off");
 	buf[0] = set_clear ? 1 : 0;
 	err = libusb_control_transfer(hdl, LIBUSB_REQUEST_TYPE_VENDOR, 0xa0,
-								  0xe600, 0x0000, buf, 1, 100);
-	if(err < 0)
+				      0xe600, 0x0000, buf, 1, 100);
+	if (err < 0)
 		g_warning("Unable to send control request: %d", err);
 
 	return err;
 }
-
 
 int ezusb_install_firmware(libusb_device_handle *hdl, const char *filename)
 {
@@ -51,23 +50,22 @@ int ezusb_install_firmware(libusb_device_handle *hdl, const char *filename)
 	unsigned char buf[4096];
 
 	g_message("Uploading firmware at %s", filename);
-	if((fw = fopen(filename, "r")) == NULL)
-	{
-		g_warning("Unable to open firmware file %s for reading: %s", filename, strerror(errno));
+	if ((fw = fopen(filename, "r")) == NULL) {
+		g_warning("Unable to open firmware file %s for reading: %s",
+			  filename, strerror(errno));
 		return 1;
 	}
 
 	result = 0;
 	offset = 0;
-	while(1)
-	{
+	while (1) {
 		chunksize = fread(buf, 1, 4096, fw);
-		if(chunksize == 0)
+		if (chunksize == 0)
 			break;
-		err = libusb_control_transfer(hdl, LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_ENDPOINT_OUT, 0xa0,
-									  offset, 0x0000, buf, chunksize, 100);
-		if(err < 0)
-		{
+		err = libusb_control_transfer(hdl, LIBUSB_REQUEST_TYPE_VENDOR |
+				LIBUSB_ENDPOINT_OUT, 0xa0, offset, 0x0000,
+				buf, chunksize, 100);
+		if (err < 0) {
 			g_warning("Unable to send firmware to device: %d", err);
 			result = 1;
 			break;
@@ -80,5 +78,3 @@ int ezusb_install_firmware(libusb_device_handle *hdl, const char *filename)
 
 	return result;
 }
-
-
