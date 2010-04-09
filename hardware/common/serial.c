@@ -19,7 +19,16 @@
 
 #include <glob.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <termios.h>
+#include <stdlib.h>
 #include <glib.h>
+
+#include "sigrok.h"
+
 
 
 char *serial_port_glob[] = {
@@ -53,6 +62,64 @@ GSList *list_serial_ports(void)
 	}
 
 	return ports;
+}
+
+
+int serial_open(const char *pathname, int flags)
+{
+
+	return open(pathname, flags);
+}
+
+
+int serial_close(int fd)
+{
+
+	return close(fd);
+}
+
+
+void *serial_backup_params(int fd)
+{
+	struct termios *term;
+
+	term = malloc(sizeof(struct termios));
+	tcgetattr(fd, term);
+
+	return term;
+}
+
+
+void serial_restore_params(int fd, void *backup)
+{
+
+	tcsetattr(fd, TCSADRAIN, (struct termios *) backup);
+
+}
+
+
+/* flowcontrol 1 = rts/cts  2 = xon/xoff */
+int serial_set_params(int fd, int speed, int bits, int parity, int stopbits, int flowcontrol)
+{
+	struct termios term;
+
+	/* only supporting what we need really -- currently just the OLS driver */
+	if(speed != 115200 || bits != 8 || parity != 0 || stopbits != 1 || flowcontrol != 2)
+		return SIGROK_ERR;
+
+	if(tcgetattr(fd, &term) < 0)
+		return SIGROK_ERR;
+	if(cfsetispeed(&term, B115200) < 0)
+		return SIGROK_ERR;
+	term.c_cflag &= ~CSIZE;
+	term.c_cflag |= CS8;
+	term.c_cflag &= ~CSTOPB;
+	term.c_cflag |= IXON | IXOFF;
+	term.c_iflag |= IGNPAR;
+	if(tcsetattr(fd, TCSADRAIN, &term) < 0)
+		return SIGROK_ERR;
+
+	return SIGROK_OK;
 }
 
 

@@ -190,9 +190,8 @@ static int hw_init(char *deviceinfo)
 	struct sigrok_device_instance *sdi;
 	GSList *ports, *l;
 	GPollFD *fds;
-	struct termios term, *prev_termios;
 	int devcnt, final_devcnt, num_ports, fd, ret, i;
-	char buf[8], **device_names;
+	char buf[8], **device_names, **serial_params;
 
 	if(deviceinfo)
 		ports = g_slist_append(NULL, strdup(deviceinfo));
@@ -203,7 +202,7 @@ static int hw_init(char *deviceinfo)
 	num_ports = g_slist_length(ports);
 	fds = calloc(1, num_ports * sizeof(GPollFD));
 	device_names = malloc(num_ports * (sizeof(char *)));
-	prev_termios = malloc(num_ports * sizeof(struct termios));
+	serial_params = malloc(num_ports * (sizeof(char *)));
 	devcnt = 0;
 	for(l = ports; l; l = l->next) {
 		/* The discovery procedure is like this: first send the Reset command (0x00) 5 times,
@@ -213,28 +212,22 @@ static int hw_init(char *deviceinfo)
 		 * first, then wait for all of them to respond with g_poll().
 		 */
 		g_message("probing %s...", (char *) l->data);
-		fd = open(l->data, O_RDWR | O_NONBLOCK);
+		fd = serial_open(l->data, O_RDWR | O_NONBLOCK);
 		if(fd != -1) {
-			tcgetattr(fd, &prev_termios[devcnt]);
-			tcgetattr(fd, &term);
-			cfsetispeed(&term, SERIAL_SPEED);
-			term.c_cflag &= ~CSIZE;
-			term.c_cflag |= CS8;
-			term.c_cflag &= ~CSTOPB;
-			term.c_cflag |= IXON | IXOFF;
-			term.c_iflag |= IGNPAR;
-			tcsetattr(fd, TCSADRAIN, &term);
+			serial_params[devcnt] = serial_backup_params(fd);
+			serial_set_params(fd, 115200, 8, 0, 1, 2);
 			ret = SIGROK_OK;
 			for(i = 0; i < 5; i++) {
 				if( (ret = send_shortcommand(fd, CMD_RESET)) != SIGROK_OK) {
-					/* serial port is not writable... restore port settings */
-					tcsetattr(fd, TCSADRAIN, &prev_termios[devcnt]);
-					close(fd);
+					/* serial port is not writable */
 					break;
 				}
 			}
-			if(ret != SIGROK_OK)
+			if(ret != SIGROK_OK) {
+				serial_restore_params(fd, serial_params[devcnt]);
+				serial_close(fd);
 				continue;
+			}
 			send_shortcommand(fd, CMD_ID);
 			fds[devcnt].fd = fd;
 			fds[devcnt].events = G_IO_IN;
@@ -262,7 +255,7 @@ static int hw_init(char *deviceinfo)
 					sdi->serial = serial_device_instance_new(device_names[i], -1);
 					device_instances = g_slist_append(device_instances, sdi);
 					final_devcnt++;
-					close(fds[i].fd);
+					serial_close(fds[i].fd);
 					fds[i].fd = 0;
 				}
 			}
@@ -270,14 +263,15 @@ static int hw_init(char *deviceinfo)
 		}
 
 		if(fds[i].fd != 0) {
-			tcsetattr(fds[i].fd, TCSADRAIN, &prev_termios[i]);
-			close(fds[i].fd);
+			serial_restore_params(fds[i].fd, serial_params[i]);
+			serial_close(fds[i].fd);
 		}
+		free(serial_params[i]);
 	}
 
 	free(fds);
 	free(device_names);
-	free(prev_termios);
+	free(serial_params);
 	g_slist_free(ports);
 
 	cur_samplerate = samplerates.low;
@@ -293,7 +287,7 @@ static int hw_opendev(int device_index)
 	if(!(sdi = get_sigrok_device_instance(device_instances, device_index)))
 		return SIGROK_ERR;
 
-	sdi->serial->fd = open(sdi->serial->port, O_RDWR);
+	sdi->serial->fd = serial_open(sdi->serial->port, O_RDWR);
 	if(sdi->serial->fd == -1)
 		return SIGROK_ERR;
 
@@ -311,7 +305,7 @@ static void hw_closedev(int device_index)
 		return;
 
 	if(sdi->serial->fd != -1) {
-		close(sdi->serial->fd);
+		serial_close(sdi->serial->fd);
 		sdi->serial->fd = -1;
 		sdi->status = ST_INACTIVE;
 	}
@@ -328,7 +322,7 @@ static void hw_cleanup(void)
 	for(l = device_instances; l; l = l->next) {
 		sdi = l->data;
 		if(sdi->serial->fd != -1)
-			close(sdi->serial->fd);
+			serial_close(sdi->serial->fd);
 		sigrok_device_instance_free(sdi);
 	}
 	g_slist_free(device_instances);
@@ -546,7 +540,7 @@ static int receive_data(int fd, int revents, void *user_data)
 		/* this is the main loop telling us a timeout was reached, or we've
 		 * acquired all the samples we asked for -- we're done */
 		tcflush(fd, TCIOFLUSH);
-		close(fd);
+		serial_close(fd);
 		packet.type = DF_END;
 		packet.length = 0;
 		session_bus(user_data, &packet);
