@@ -159,6 +159,74 @@ int check_conf_profile(libusb_device *dev)
 	return ret;
 }
 
+static int opendev2(int device_index, struct sigrok_device_instance **sdi,
+		    libusb_device *dev, struct libusb_device_descriptor *des,
+		    int *skip)
+{
+	int err;
+
+	if ((err = libusb_get_device_descriptor(dev, des))) {
+		g_warning("failed to get device descriptor: %d", err);
+		return -1;
+	}
+
+	if (des->idVendor != USB_VENDOR || des->idProduct != USB_PRODUCT)
+		return 0;
+
+	if (*skip != device_index) {
+		/* Skip devices of this type that aren't the one we want. */
+		*skip += 1;
+		return 0;
+	}
+
+	/*
+	 * Should check the bus here, since we know that already. But what are
+	 * we going to do if it doesn't match after the right number of skips?
+	 */
+	if (!(err = libusb_open(dev, &((*sdi)->usb->devhdl)))) {
+		(*sdi)->usb->address = libusb_get_device_address(dev);
+		(*sdi)->status = ST_ACTIVE;
+		g_message("opened device %d on %d.%d interface %d",
+			  (*sdi)->index, (*sdi)->usb->bus,
+			  (*sdi)->usb->address, USB_INTERFACE);
+	} else {
+		g_warning("failed to open device: %d", err);
+		*sdi = NULL;
+	}
+
+	return 0;
+}
+
+static int opendev3(int device_index, struct sigrok_device_instance **sdi,
+		    libusb_device *dev, struct libusb_device_descriptor *des)
+{
+	int err;
+
+	if ((err = libusb_get_device_descriptor(dev, des))) {
+		g_warning("failed to get device descriptor: %d", err);
+		return -1;
+	}
+
+	if (des->idVendor != USB_VENDOR || des->idProduct != USB_PRODUCT)
+		return 0;
+
+	if (libusb_get_bus_number(dev) == (*sdi)->usb->bus
+	    && libusb_get_device_address(dev) == (*sdi)->usb->address) {
+		/* Found it. */
+		if (!(err = libusb_open(dev, &((*sdi)->usb->devhdl)))) {
+			(*sdi)->status = ST_ACTIVE;
+			g_message("opened device %d on %d.%d interface %d",
+				  (*sdi)->index, (*sdi)->usb->bus,
+				  (*sdi)->usb->address, USB_INTERFACE);
+		} else {
+			g_warning("failed to open device: %d", err);
+			*sdi = NULL;
+		}
+	}
+
+	return 0;
+}
+
 struct sigrok_device_instance *sl_open_device(int device_index)
 {
 	struct sigrok_device_instance *sdi;
@@ -179,43 +247,9 @@ struct sigrok_device_instance *sl_open_device(int device_index)
 		 */
 		skip = 0;
 		for (i = 0; devlist[i]; i++) {
-			if ((err = libusb_get_device_descriptor(devlist[i], &des))) {
-				g_warning("failed to get device descriptor: %d",
-					  err);
-				continue;
-			}
-
-			if (des.idVendor == USB_VENDOR
-			    && des.idProduct == USB_PRODUCT) {
-				if (skip != device_index) {
-					/*
-					 * Skip past devices of this type that
-					 * aren't the one we want.
-					 */
-					skip++;
-					continue;
-				}
-
-				/*
-				 * Should check the bus here, since we know
-				 * that already... but what are we going to do
-				 * if it doesn't match after the right number
-				 * of skips?
-				 */
-				if (!(err = libusb_open(devlist[i],
-						 &(sdi->usb->devhdl)))) {
-					sdi->usb->address = libusb_get_device_address(devlist [i]);
-					sdi->status = ST_ACTIVE;
-					g_message("opened device %d on %d.%d "
-					     "interface %d",
-					     sdi->index, sdi->usb->bus,
-					     sdi->usb->address, USB_INTERFACE);
-				} else {
-					g_warning("failed to open device: %d",
-						  err);
-					sdi = NULL;
-				}
-			}
+			/* TODO: Error handling. */
+			err = opendev2(device_index, &sdi, devlist[i], &des,
+				       &skip);
 		}
 	} else if (sdi->status == ST_INACTIVE) {
 		/*
@@ -224,34 +258,8 @@ struct sigrok_device_instance *sl_open_device(int device_index)
 		 */
 		libusb_get_device_list(usb_context, &devlist);
 		for (i = 0; devlist[i]; i++) {
-			if ((err =
-			     libusb_get_device_descriptor(devlist[i], &des))) {
-				g_warning("failed to get device descriptor: %d",
-					  err);
-				continue;
-			}
-
-			if (des.idVendor == USB_VENDOR
-			    && des.idProduct == USB_PRODUCT) {
-				if (libusb_get_bus_number(devlist[i]) ==
-				    sdi->usb->bus
-				    && libusb_get_device_address(devlist[i]) ==
-				    sdi->usb->address) {
-					/* Found it. */
-					if (!(err = libusb_open(devlist[i],
-						    &(sdi->usb->devhdl)))) {
-						sdi->status = ST_ACTIVE;
-						g_message("opened device %d on "
-						     "%d.%d interface %d",
-						     sdi->index, sdi->usb->bus,
-						     sdi->usb->address,
-						     USB_INTERFACE);
-					} else {
-						g_warning("failed to open device: %d", err);
-						sdi = NULL;
-					}
-				}
-			}
+			/* TODO: Error handling. */
+			err = opendev3(device_index, &sdi, devlist[i], &des);
 		}
 	} else {
 		/* Status must be ST_ACTIVE, i.e. already in use... */
