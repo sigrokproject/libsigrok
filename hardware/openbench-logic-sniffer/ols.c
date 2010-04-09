@@ -448,7 +448,7 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 
 static int receive_data(int fd, int revents, void *user_data)
 {
-	static int num_transfers = 0;
+	static unsigned int num_transfers = 0;
 	static int num_bytes = 0;
 	static char last_sample[4] = {0xff};
 	static unsigned char sample[4] = {0}, tmp_sample[4];
@@ -671,6 +671,9 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 static void hw_stop_acquisition(int device_index, gpointer session_device_id)
 {
 	struct datafeed_packet packet;
+
+	/* QUICK HACK */
+	device_index = device_index;
 
 	packet.type = DF_END;
 	packet.length = 0;

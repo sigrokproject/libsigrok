@@ -54,8 +54,13 @@ void datastore_destroy(struct datastore *ds)
 
 void datastore_put(struct datastore *ds, void *data, unsigned int length, int in_unitsize, int *probelist)
 {
-	int capacity, stored, size, num_chunks, chunk_bytes_free, chunk_offset;
+	unsigned int stored;
+	int capacity, size, num_chunks, chunk_bytes_free, chunk_offset;
 	gpointer chunk;
+
+	/* QUICK HACK */
+	in_unitsize = in_unitsize;
+	probelist = probelist;
 
 	if(ds->chunklist == NULL)
 		chunk = new_chunk(&ds);
@@ -73,7 +78,7 @@ void datastore_put(struct datastore *ds, void *data, unsigned int length, int in
 			chunk_offset = 0;
 		}
 
-		if(length - stored > chunk_bytes_free)
+		if(length - stored > (unsigned int)chunk_bytes_free)
 			size = chunk_bytes_free;
 		else
 			/* last part, won't fill up this chunk */

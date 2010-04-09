@@ -66,7 +66,7 @@ static GSList *device_instances = NULL;
  * upgrade -- this is like a global lock. No device will open until a proper
  * delay after the last device was upgraded.
  */
-GTimeVal firmware_updated = { 0 };
+GTimeVal firmware_updated = { 0, 0 };
 
 static libusb_context *usb_context = NULL;
 
@@ -197,8 +197,8 @@ static int opendev2(int device_index, struct sigrok_device_instance **sdi,
 	return 0;
 }
 
-static int opendev3(int device_index, struct sigrok_device_instance **sdi,
-		    libusb_device *dev, struct libusb_device_descriptor *des)
+static int opendev3(struct sigrok_device_instance **sdi, libusb_device *dev,
+		    struct libusb_device_descriptor *des)
 {
 	int err;
 
@@ -259,7 +259,7 @@ struct sigrok_device_instance *sl_open_device(int device_index)
 		libusb_get_device_list(usb_context, &devlist);
 		for (i = 0; devlist[i]; i++) {
 			/* TODO: Error handling. */
-			err = opendev3(device_index, &sdi, devlist[i], &des);
+			err = opendev3(&sdi, devlist[i], &des);
 		}
 	} else {
 		/* Status must be ST_ACTIVE, i.e. already in use... */
@@ -355,6 +355,9 @@ static int hw_init(char *deviceinfo)
 	struct libusb_device_descriptor des;
 	libusb_device **devlist;
 	int err, devcnt, i;
+
+	/* QUICK HACK */
+	deviceinfo = deviceinfo;
 
 	if (libusb_init(&usb_context) != 0) {
 		g_warning("Failed to initialize USB.");
@@ -581,13 +584,18 @@ static int receive_data(int fd, int revents, void *user_data)
 {
 	struct timeval tv;
 
+	/* QUICK HACK */
+	fd = fd;
+	revents = revents;
+	user_data = user_data;
+
 	tv.tv_sec = tv.tv_usec = 0;
 	libusb_handle_events_timeout(usb_context, &tv);
 
 	return TRUE;
 }
 
-static void trigger_helper(int i, unsigned char *cur_buf, int cur_buflen,
+static void trigger_helper(int i, unsigned char *cur_buf,
 			   struct datafeed_packet *packet, void *user_data,
 			   int *trigger_offset)
 {
@@ -698,8 +706,8 @@ void receive_transfer(struct libusb_transfer *transfer)
 	trigger_offset = 0;
 	if (trigger_stage >= 0) {
 		for (i = 0; i < cur_buflen; i++) {
-			trigger_helper(i, cur_buf, cur_buflen, &packet,
-				       user_data, &trigger_offset);
+			trigger_helper(i, cur_buf, &packet, user_data,
+				       &trigger_offset);
 		}
 	}
 
@@ -712,7 +720,7 @@ void receive_transfer(struct libusb_transfer *transfer)
 		g_free(cur_buf);
 
 		num_samples += cur_buflen;
-		if (num_samples > limit_samples) {
+		if ((unsigned int)num_samples > limit_samples) {
 			/* End the acquisition. */
 			packet.type = DF_END;
 			session_bus(user_data, &packet);
@@ -786,6 +794,9 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 static void hw_stop_acquisition(int device_index, gpointer session_device_id)
 {
 	struct datafeed_packet packet;
+
+	/* QUICK HACK */
+	device_index = device_index;
 
 	packet.type = DF_END;
 	session_bus(session_device_id, &packet);

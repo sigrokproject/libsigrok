@@ -25,8 +25,8 @@
 #include "config.h"
 
 struct context {
-	int num_enabled_probes;
-	int unitsize;
+	unsigned int num_enabled_probes;
+	unsigned int unitsize;
 	char *probelist[65];
 	char *header;
 };
@@ -48,7 +48,8 @@ static int init(struct output *o)
 	struct probe *probe;
 	GSList *l;
 	uint64_t samplerate;
-	int i, b, num_probes;
+	unsigned int i;
+	int b, num_probes;
 	char *c, *samplerate_s;
 	char wbuf[1000];
 
@@ -128,7 +129,7 @@ static int data(struct output *o, char *data_in, uint64_t length_in,
 		char **data_out, uint64_t *length_out)
 {
 	struct context *ctx;
-	int offset, outsize, p, curbit;
+	unsigned int offset, outsize, p, curbit;
 	uint64_t sample, count = 0;
 	char *outbuf, *c;
 

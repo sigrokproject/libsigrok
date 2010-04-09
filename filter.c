@@ -29,7 +29,8 @@
 int filter_probes(int in_unitsize, int out_unitsize, int *probelist,
 		char *data_in, uint64_t length_in, char **data_out, uint64_t *length_out)
 {
-	int num_enabled_probes, in_offset, out_offset, out_bit, i;
+	unsigned int in_offset, out_offset;
+	int num_enabled_probes, out_bit, i;
 	uint64_t sample_in, sample_out;
 
 	*data_out = malloc(length_in);

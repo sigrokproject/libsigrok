@@ -48,7 +48,7 @@ GSList *list_serial_ports(void)
 {
 	glob_t g;
 	GSList *ports;
-	int i, j;
+	unsigned int i, j;
 
 	ports = NULL;
 	for(i = 0; serial_port_glob[i]; i++)

@@ -28,12 +28,15 @@
 struct session *session;
 
 
-struct session *session_load(char *filename)
+struct session *session_load(const char *filename)
 {
 	struct session *session;
 
 	/* TODO: implement */
 	session = NULL;
+
+	/* QUICK HACK */
+	filename = filename;
 
 	return session;
 }

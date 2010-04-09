@@ -137,7 +137,8 @@ struct sigrok_device_instance *zp_open_device(int device_index)
 	struct sigrok_device_instance *sdi;
 	libusb_device **devlist;
 	struct libusb_device_descriptor des;
-	int err, i, j;
+	unsigned int j;
+	int err, i;
 
 	if(!(sdi = get_sigrok_device_instance(device_instances, device_index)))
 		return NULL;
@@ -262,6 +263,9 @@ static int hw_init(char *deviceinfo)
 	struct libusb_device_descriptor des;
 	libusb_device **devlist;
 	int err, devcnt, i;
+
+	/* QUICK HACK */
+	deviceinfo = deviceinfo;
 
 	if(libusb_init(&usb_context) != 0) {
 		g_warning("Failed to initialize USB.");
@@ -416,12 +420,11 @@ static int hw_get_status(int device_index)
 
 static int *hw_get_capabilities(void)
 {
-
 	return capabilities;
 }
 
 // XXX this will set the same samplerate for all devices
-int set_configuration_samplerate(struct sigrok_device_instance *sdi, uint64_t samplerate)
+static int set_configuration_samplerate(uint64_t samplerate)
 {
 	g_message("%s(%llu)", __FUNCTION__, samplerate);
 	if (samplerate > MHZ(1))
@@ -447,7 +450,7 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 	switch (capability) {
 		case HWCAP_SAMPLERATE:
 			tmp_u64 = value;
-			return set_configuration_samplerate(sdi, *tmp_u64);
+			return set_configuration_samplerate(*tmp_u64);
 
 		case HWCAP_PROBECONFIG:
 			return configure_probes( (GSList *) value);
@@ -467,7 +470,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	struct datafeed_packet packet;
 	struct datafeed_header header;
 	int res;
-	int packet_num;
+	unsigned int packet_num;
 	unsigned char *buf;
 
 	if( !(sdi = get_sigrok_device_instance(device_instances, device_index)))

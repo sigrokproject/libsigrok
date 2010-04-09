@@ -27,9 +27,9 @@
 #define DEFAULT_BPL_HEX 256
 
 struct context {
-	int num_enabled_probes;
+	unsigned int num_enabled_probes;
 	int samples_per_line;
-	int unitsize;
+	unsigned int unitsize;
 	int line_offset;
 	int linebuf_len;
 	char *probelist[65];
@@ -40,7 +40,7 @@ struct context {
 };
 
 
-static void flush_linebufs(struct context *ctx, GSList *probes, char *outbuf)
+static void flush_linebufs(struct context *ctx, char *outbuf)
 {
 	static int max_probename_len = 0;
 	int len, i;
@@ -123,7 +123,7 @@ static int event(struct output *o, int event_type, char **data_out, uint64_t *le
 	case DF_END:
 		outsize = ctx->num_enabled_probes * (ctx->samples_per_line + 20) + 512;
 		outbuf = calloc(1, outsize);
-		flush_linebufs(ctx, o->device->probes, outbuf);
+		flush_linebufs(ctx, outbuf);
 		*data_out = outbuf;
 		*length_out = strlen(outbuf);
 		free(o->internal);
@@ -146,7 +146,7 @@ static int init_binary(struct output *o)
 static int data_binary(struct output *o, char *data_in, uint64_t length_in, char **data_out, uint64_t *length_out)
 {
 	struct context *ctx;
-	int outsize, offset, p;
+	unsigned int outsize, offset, p;
 	uint64_t sample;
 	char *outbuf;
 
@@ -183,7 +183,7 @@ static int data_binary(struct output *o, char *data_in, uint64_t length_in, char
 
 			/* end of line */
 			if(ctx->spl_cnt >= ctx->samples_per_line) {
-				flush_linebufs(ctx, o->device->probes, outbuf);
+				flush_linebufs(ctx, outbuf);
 				ctx->line_offset = ctx->spl_cnt = 0;
 			}
 		}
@@ -208,7 +208,7 @@ static int init_hex(struct output *o)
 static int data_hex(struct output *o, char *data_in, uint64_t length_in, char **data_out, uint64_t *length_out)
 {
 	struct context *ctx;
-	int outsize, offset, p;
+	unsigned int outsize, offset, p;
 	uint64_t sample;
 	char *outbuf;
 
@@ -244,7 +244,7 @@ static int data_hex(struct output *o, char *data_in, uint64_t length_in, char **
 
 		/* end of line */
 		if(ctx->spl_cnt >= ctx->samples_per_line) {
-			flush_linebufs(ctx, o->device->probes, outbuf);
+			flush_linebufs(ctx, outbuf);
 			ctx->line_offset = ctx->spl_cnt = 0;
 		}
 	}

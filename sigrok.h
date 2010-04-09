@@ -369,7 +369,7 @@ struct session {
 };
 
 /* Session setup */
-struct session *session_load(char *filename);
+struct session *session_load(const char *filename);
 struct session *session_new(void);
 void session_destroy(void);
 void session_device_clear(void);

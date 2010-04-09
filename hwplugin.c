@@ -137,6 +137,8 @@ struct usb_device_instance *usb_device_instance_new(uint8_t bus, uint8_t address
 
 void usb_device_instance_free(struct usb_device_instance *usb)
 {
+	/* QUICK HACK */
+	usb = usb;
 
 	/* nothing to do for this device instance type */
 

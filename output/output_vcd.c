@@ -137,7 +137,8 @@ static int data(struct output *o, char *data_in, uint64_t length_in,
 		char **data_out, uint64_t *length_out)
 {
 	struct context *ctx;
-	int offset, outsize, p, curbit, prevbit;
+	unsigned int offset, outsize;
+	int p, curbit, prevbit;
 	uint64_t sample, prevsample;
 	char *outbuf, *c;
 

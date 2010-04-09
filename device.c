@@ -97,7 +97,7 @@ struct device *device_new(struct device_plugin *plugin, int plugin_index)
 
 void device_clear(struct device *device)
 {
-	int probenum;
+	unsigned int probenum;
 
 	/* TODO: plugin-specific clear call? */
 
@@ -110,7 +110,7 @@ void device_clear(struct device *device)
 
 void device_destroy(struct device *device)
 {
-	int probenum;
+	unsigned int probenum;
 
 	/* TODO: plugin-specific destroy call, need to decrease refcount in plugin */
 
@@ -201,7 +201,7 @@ void device_probe_name(struct device *device, int probenum, char *name)
 void device_trigger_clear(struct device *device)
 {
 	struct probe *p;
-	int probenum;
+	unsigned int probenum;
 
 	if(device->probes)
 		for(probenum = 1; probenum <= g_slist_length(device->probes); probenum++)
