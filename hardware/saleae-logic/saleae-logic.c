@@ -277,7 +277,8 @@ int upload_firmware(libusb_device *dev)
 {
 	int ret;
 
-	if (ret = ezusb_upload_firmware(dev, USB_CONFIGURATION, FIRMWARE) != 0)
+	ret = ezusb_upload_firmware(dev, USB_CONFIGURATION, FIRMWARE);
+	if (ret != 0)
 		return 1;
 
 	/* Remember when the last firmware update was done. */
@@ -586,6 +587,59 @@ static int receive_data(int fd, int revents, void *user_data)
 	return TRUE;
 }
 
+static void trigger_helper(int i, unsigned char *cur_buf, int cur_buflen,
+			   struct datafeed_packet *packet, void *user_data,
+			   int *trigger_offset)
+{
+	if ((cur_buf[i] & trigger_mask[trigger_stage])
+	    == trigger_value[trigger_stage]) {
+		/* Match on this trigger stage. */
+		trigger_buffer[trigger_stage] = cur_buf[i];
+		trigger_stage++;
+		if (trigger_stage == NUM_TRIGGER_STAGES
+		    || trigger_mask[trigger_stage] == 0) {
+			/* Match on all trigger stages, we're done. */
+			*trigger_offset = i + 1;
+
+			/*
+			 * TODO: Send pre-trigger buffer to session bus.
+			 * Tell the frontend we hit the trigger here.
+			 */
+			packet->type = DF_TRIGGER;
+			packet->length = 0;
+			session_bus(user_data, packet);
+
+			/*
+			 * Send the samples that triggered it, since we're
+			 * skipping past them.
+			 */
+			packet->type = DF_LOGIC8;
+			packet->length = trigger_stage;
+			packet->payload = trigger_buffer;
+			session_bus(user_data, packet);
+			// break; // FIXME???
+
+			trigger_stage = TRIGGER_FIRED;
+		}
+		return;
+	}
+
+	/*
+	 * We had a match before, but not in the next sample. However, we may
+	 * have a match on this stage in the next bit -- trigger on 0001 will
+	 * fail on seeing 00001, so we need to go back to stage 0 -- but at
+	 * the next sample from the one that matched originally, which the
+	 * counter increment at the end of the loop takes care of.
+	 */
+	if (trigger_stage > 0) {
+		i -= trigger_stage;
+		if (i < -1)
+			i = -1; /* Oops, went back past this buffer. */
+		/* Reset trigger stage. */
+		trigger_stage = 0;
+	}
+}
+
 void receive_transfer(struct libusb_transfer *transfer)
 {
 	static int num_samples = 0;
@@ -644,45 +698,8 @@ void receive_transfer(struct libusb_transfer *transfer)
 	trigger_offset = 0;
 	if (trigger_stage >= 0) {
 		for (i = 0; i < cur_buflen; i++) {
-			if ((cur_buf[i] & trigger_mask[trigger_stage])
-			    == trigger_value[trigger_stage]) {
-				/* Match on this trigger stage. */
-				trigger_buffer[trigger_stage] = cur_buf[i];
-				trigger_stage++;
-				if (trigger_stage == NUM_TRIGGER_STAGES
-				    || trigger_mask[trigger_stage] == 0) {
-					/* Match on all trigger stages, we're done */
-					trigger_offset = i + 1;
-
-					/* TODO: Send pre-trigger buffer to session bus. Tell the frontend we hit the trigger here. */
-					packet.type = DF_TRIGGER;
-					packet.length = 0;
-					session_bus(user_data, &packet);
-
-					/* Send the samples that triggered it, since we're skipping past them. */
-					packet.type = DF_LOGIC8;
-					packet.length = trigger_stage;
-					packet.payload = trigger_buffer;
-					session_bus(user_data, &packet);
-					break;
-
-					trigger_stage = TRIGGER_FIRED;
-				}
-			} else if (trigger_stage > 0) {
-				/*
-				 * We had a match before, but not in the next sample. However, we may
-				 * have a match on this stage in the next bit -- trigger on 0001 will
-				 * fail on seeing 00001, so we need to go back to stage 0 -- but at
-				 * the next sample from the one that matched originally, which the
-				 * counter increment at the end of the loop takes care of.
-				 */
-				i -= trigger_stage;
-				if (i < -1)
-					/* Oops, went back past this buffer. */
-					i = -1;
-				/* Reset trigger stage. */
-				trigger_stage = 0;
-			}
+			trigger_helper(i, cur_buf, cur_buflen, &packet,
+				       user_data, &trigger_offset);
 		}
 	}
 
