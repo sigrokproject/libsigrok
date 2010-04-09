@@ -394,6 +394,8 @@ int session_save(char *filename);
 
 int ezusb_reset(struct libusb_device_handle *hdl, int set_clear);
 int ezusb_install_firmware(libusb_device_handle *hdl, char *filename);
+int ezusb_upload_firmware(libusb_device *dev, int configuration,
+                          const char *filename);
 
 GSList *list_serial_ports(void);
 int serial_open(const char *pathname, int flags);

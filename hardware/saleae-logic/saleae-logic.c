@@ -275,34 +275,10 @@ struct sigrok_device_instance *sl_open_device(int device_index)
 
 int upload_firmware(libusb_device *dev)
 {
-	struct libusb_device_handle *hdl;
-	int err;
+	int ret;
 
-	g_message("uploading firmware to device on %d.%d",
-		  libusb_get_bus_number(dev), libusb_get_device_address(dev));
-
-	err = libusb_open(dev, &hdl);
-	if (err != 0) {
-		g_warning("failed to open device: %d", err);
+	if (ret = ezusb_upload_firmware(dev, USB_CONFIGURATION, FIRMWARE) != 0)
 		return 1;
-	}
-
-	err = libusb_set_configuration(hdl, USB_CONFIGURATION);
-	if (err != 0) {
-		g_warning("Unable to set configuration: %d", err);
-		return 1;
-	}
-
-	if ((ezusb_reset(hdl, 1)) < 0)
-		return 1;
-
-	if (ezusb_install_firmware(hdl, FIRMWARE) != 0)
-		return 1;
-
-	if ((ezusb_reset(hdl, 0)) < 0)
-		return 1;
-
-	libusb_close(hdl);
 
 	/* Remember when the last firmware update was done. */
 	g_get_current_time(&firmware_updated);

@@ -78,3 +78,38 @@ int ezusb_install_firmware(libusb_device_handle *hdl, const char *filename)
 
 	return result;
 }
+
+int ezusb_upload_firmware(libusb_device *dev, int configuration,
+			  const char *filename)
+{
+	struct libusb_device_handle *hdl;
+	int err;
+
+	g_message("uploading firmware to device on %d.%d",
+		  libusb_get_bus_number(dev), libusb_get_device_address(dev));
+
+	err = libusb_open(dev, &hdl);
+	if (err != 0) {
+		g_warning("failed to open device: %d", err);
+		return 1;
+	}
+
+	err = libusb_set_configuration(hdl, configuration);
+	if (err != 0) {
+		g_warning("Unable to set configuration: %d", err);
+		return 1;
+	}
+
+	if ((ezusb_reset(hdl, 1)) < 0)
+		return 1;
+
+	if (ezusb_install_firmware(hdl, filename) != 0)
+		return 1;
+
+	if ((ezusb_reset(hdl, 0)) < 0)
+		return 1;
+
+	libusb_close(hdl);
+
+	return 0;
+}
