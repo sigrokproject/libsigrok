@@ -108,12 +108,12 @@ static struct samplerates samplerates = {
 /* TODO: all of these should go in a device-specific struct */
 static uint64_t cur_samplerate = 0;
 static uint64_t limit_samples = 0;
-uint8_t num_channels = 32; // XXX this is not getting initialized before it is needed :(
+int num_channels = 32; // XXX this is not getting initialized before it is needed :(
 uint64_t memory_size = 0;
-static uint8_t probe_mask = 0, \
-		trigger_mask[NUM_TRIGGER_STAGES] = {0}, \
-		trigger_value[NUM_TRIGGER_STAGES] = {0}, \
-		trigger_buffer[NUM_TRIGGER_STAGES] = {0};;
+static uint8_t probe_mask = 0;
+static uint8_t trigger_mask[NUM_TRIGGER_STAGES] = {0};
+static uint8_t trigger_value[NUM_TRIGGER_STAGES] = {0};
+// static uint8_t trigger_buffer[NUM_TRIGGER_STAGES] = {0};
 
 
 static int hw_set_configuration(int device_index, int capability, void *value);
