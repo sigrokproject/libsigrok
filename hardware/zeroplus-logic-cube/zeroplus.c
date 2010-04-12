@@ -156,7 +156,7 @@ struct sigrok_device_instance *zp_open_device(int device_index)
 			if(des.idVendor == USB_VENDOR) {
 				if(libusb_get_bus_number(devlist[i]) == sdi->usb->bus &&
 						libusb_get_device_address(devlist[i]) == sdi->usb->address) {
-							for (j = 0; j < sizeof(zeroplus_models) / sizeof(zeroplus_models[0]); j++) {
+							for (j = 0; j < ARRAY_SIZE(zeroplus_models); j++) {
 								if (des.idProduct == zeroplus_models[j].pid) {
 									g_message("Found PID=%04X (%s)", des.idProduct, zeroplus_models[j].model_name);
 									num_channels = zeroplus_models[j].channels;

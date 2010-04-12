@@ -54,6 +54,10 @@
 #define MHZ(n) (n * 1000000)
 #define GHZ(n) (n * 1000000000)
 
+#ifndef ARRAY_SIZE
+#define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
+#endif
+
 /* Data types, used by hardware plugins for set_configuration() */
 enum {
 	T_UINT64,
