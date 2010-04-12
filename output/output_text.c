@@ -258,8 +258,8 @@ static int data_hex(struct output *o, char *data_in, uint64_t length_in, char **
 
 
 struct output_format output_text_binary = {
-	"bin",
-	"Text (binary)",
+	"bits",
+	"Text (bits)",
 	init_binary,
 	data_binary,
 	event
