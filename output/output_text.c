@@ -23,8 +23,8 @@
 #include <glib.h>
 #include <sigrok.h>
 
-#define DEFAULT_BPL_BIN 64
-#define DEFAULT_BPL_HEX 256
+#define DEFAULT_BPL_BITS 64
+#define DEFAULT_BPL_HEX  256
 
 struct context {
 	unsigned int num_enabled_probes;
@@ -135,15 +135,15 @@ static int event(struct output *o, int event_type, char **data_out, uint64_t *le
 }
 
 
-static int init_binary(struct output *o)
+static int init_bits(struct output *o)
 {
 
-	return init(o, DEFAULT_BPL_BIN);
+	return init(o, DEFAULT_BPL_BITS);
 
 }
 
 
-static int data_binary(struct output *o, char *data_in, uint64_t length_in, char **data_out, uint64_t *length_out)
+static int data_bits(struct output *o, char *data_in, uint64_t length_in, char **data_out, uint64_t *length_out)
 {
 	struct context *ctx;
 	unsigned int outsize, offset, p;
@@ -200,7 +200,7 @@ static int data_binary(struct output *o, char *data_in, uint64_t length_in, char
 static int init_hex(struct output *o)
 {
 
-	return init(o, DEFAULT_BPL_BIN);
+	return init(o, DEFAULT_BPL_BITS);
 
 }
 
@@ -257,11 +257,11 @@ static int data_hex(struct output *o, char *data_in, uint64_t length_in, char **
 
 
 
-struct output_format output_text_binary = {
+struct output_format output_text_bits = {
 	"bits",
 	"Text (bits)",
-	init_binary,
-	data_binary,
+	init_bits,
+	data_bits,
 	event
 };
 

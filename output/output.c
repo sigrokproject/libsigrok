@@ -19,14 +19,14 @@
 
 #include "sigrok.h"
 
-extern struct output_format output_text_binary;
+extern struct output_format output_text_bits;
 extern struct output_format output_text_hex;
 extern struct output_format output_binary;
 extern struct output_format output_vcd;
 extern struct output_format output_gnuplot;
 
 struct output_format *output_module_list[] = {
-	&output_text_binary,
+	&output_text_bits,
 	&output_text_hex,
 	&output_binary,
 	&output_vcd,
