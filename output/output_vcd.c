@@ -81,17 +81,17 @@ static int init(struct output *o)
 			o->device->plugin_index, DI_CUR_SAMPLERATE));
 
 	if ((samplerate_s = sigrok_samplerate_string(samplerate)) == NULL)
-		return -1; // FIXME
+		return -1; /* FIXME */
 
 	/* Wires / channels */
 	wbuf[0] = '\0';
 	for (i = 0; i < ctx->num_enabled_probes; i++) {
 		c = (char *)&wbuf + strlen((char *)&wbuf);
 		sprintf(c, "$var wire 1 %c channel%s $end\n",
-			 (char)('!' + i), ctx->probelist[i]);
+			(char)('!' + i), ctx->probelist[i]);
 	}
 
-	/* TODO: date: File or signals? Make y/n configurable. */
+	/* TODO: Date: File or signals? Make y/n configurable. */
 	b = snprintf(ctx->header, MAX_HEADER_LEN, vcd_header, "TODO: Date",
 		     PACKAGE_STRING, ctx->num_enabled_probes, num_probes,
 		     samplerate_s, 1, "ns", PACKAGE, (char *)&wbuf);
@@ -114,7 +114,7 @@ static int event(struct output *o, int event_type, char **data_out,
 	int outlen;
 
 	ctx = o->internal;
-	switch(event_type) {
+	switch (event_type) {
 	case DF_TRIGGER:
 		break;
 	case DF_END:
@@ -144,7 +144,7 @@ static int data(struct output *o, char *data_in, uint64_t length_in,
 
 	ctx = o->internal;
 	outsize = strlen(ctx->header);
-	outbuf = calloc(1, outsize + 1 + 10000); // FIXME: Use realloc().
+	outbuf = calloc(1, outsize + 1 + 10000); /* FIXME: Use realloc(). */
 	if (outbuf == NULL)
 		return SIGROK_ERR_MALLOC;
 	if (ctx->header) {
@@ -159,15 +159,17 @@ static int data(struct output *o, char *data_in, uint64_t length_in,
 	/* TODO: Are disabled probes handled correctly? */
 
 	for (offset = 0; offset <= length_in - ctx->unitsize;
-						offset += ctx->unitsize) {
+	     offset += ctx->unitsize) {
 		memcpy(&sample, data_in + offset, ctx->unitsize);
 		for (p = 0; p < ctx->num_enabled_probes; p++) {
 			curbit = (sample & ((uint64_t) (1 << p))) != 0;
 			if (offset == 0) {
 				prevbit = ~curbit;
 			} else {
-				memcpy(&prevsample, data_in + offset - 1, ctx->unitsize);
-				prevbit = (prevsample & ((uint64_t) (1 << p))) != 0;
+				memcpy(&prevsample, data_in + offset - 1,
+				       ctx->unitsize);
+				prevbit =
+				    (prevsample & ((uint64_t) (1 << p))) != 0;
 			}
 
 			if (prevbit != curbit) {
@@ -176,11 +178,12 @@ static int data(struct output *o, char *data_in, uint64_t length_in,
 				sprintf(c, "#%i\n", offset * 1 /* TODO */);
 
 				c = outbuf + strlen(outbuf);
-				sprintf(c, "%i%c\n", curbit, (char)('!' + p /* FIXME? */));
+				sprintf(c, "%i%c\n", curbit,
+					(char)('!' + p /* FIXME? */));
 			}
 		}
 
-		/* TODO: Do a realloc() here if strlen(outbuf) is almost "full"... */
+		/* TODO: Use realloc() if strlen(outbuf) is almost "full"... */
 	}
 
 	*data_out = outbuf;

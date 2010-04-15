@@ -76,9 +76,9 @@ static int init(struct output *o)
 	/* TODO: Handle num_probes == 0, too many probes, etc. */
 	samplerate = *((uint64_t *) o->device->plugin->get_device_info(
 			o->device->plugin_index, DI_CUR_SAMPLERATE));
-  
+
 	if ((samplerate_s = sigrok_samplerate_string(samplerate)) == NULL)
-		return -1; // FIXME
+		return -1; /* FIXME */
 
 	/* Columns / channels */
 	wbuf[0] = '\0';
@@ -108,11 +108,11 @@ static int event(struct output *o, int event_type, char **data_out,
 	int outlen = 1; /* FIXME */
 
 	ctx = o->internal;
-	switch(event_type) {
+	switch (event_type) {
 	case DF_TRIGGER:
 		break;
 	case DF_END:
-		outbuf = calloc(1, 1); // FIXME
+		outbuf = calloc(1, 1); /* FIXME */
 		if (outbuf == NULL)
 			return SIGROK_ERR_MALLOC;
 		*data_out = outbuf;
@@ -135,7 +135,7 @@ static int data(struct output *o, char *data_in, uint64_t length_in,
 
 	ctx = o->internal;
 	outsize = strlen(ctx->header);
-	outbuf = calloc(1, outsize + 1 + 10000); // FIXME: Use realloc().
+	outbuf = calloc(1, outsize + 1 + 10000); /* FIXME: Use realloc(). */
 	if (outbuf == NULL)
 		return SIGROK_ERR_MALLOC;
 	if (ctx->header) {
@@ -150,12 +150,12 @@ static int data(struct output *o, char *data_in, uint64_t length_in,
 	/* TODO: Are disabled probes handled correctly? */
 
 	for (offset = 0; offset <= length_in - ctx->unitsize;
-						offset += ctx->unitsize) {
+	     offset += ctx->unitsize) {
 		memcpy(&sample, data_in + offset, ctx->unitsize);
 
 		/* The first column is a counter (needed for gnuplot). */
 		c = outbuf + strlen(outbuf);
-		sprintf(c, "%"PRIu64"\t\t", count++);
+		sprintf(c, "%" PRIu64 "\t\t", count++);
 
 		/* The next columns are the values of all channels. */
 		for (p = 0; p < ctx->num_enabled_probes; p++) {

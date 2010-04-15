@@ -18,36 +18,29 @@
  */
 
 #include <stdint.h>
-#include "sigrok.h"
+#include <sigrok.h>
 
 static int init(struct output *o)
 {
 	return 0;
 }
 
-
-static int data(struct output *o, char *data_in, uint64_t length_in, char **data_out, uint64_t *length_out)
+static int data(struct output *o, char *data_in, uint64_t length_in,
+		char **data_out, uint64_t *length_out)
 {
-
 	return SIGROK_OK;
 }
 
-
-static int event(struct output *o, int event_type, char **data_out, uint64_t *length_out)
+static int event(struct output *o, int event_type, char **data_out,
+		 uint64_t *length_out)
 {
-
 	return SIGROK_OK;
 }
-
-
-
 
 struct output_format output_foo = {
 	"foo",
 	"The foo format",
 	init,
 	data,
-	event
+	event,
 };
-
-

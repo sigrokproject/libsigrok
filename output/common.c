@@ -42,13 +42,13 @@ char *sigrok_samplerate_string(uint64_t samplerate)
 		return NULL;
 
 	if (samplerate >= GHZ(1))
-		r = snprintf(o, 30, "%"PRIu64" GHz", samplerate / 1000000000);
+		r = snprintf(o, 30, "%" PRIu64 " GHz", samplerate / 1000000000);
 	else if (samplerate >= MHZ(1))
-		r = snprintf(o, 30, "%"PRIu64" MHz", samplerate / 1000000);
+		r = snprintf(o, 30, "%" PRIu64 " MHz", samplerate / 1000000);
 	else if (samplerate >= KHZ(1))
-		r = snprintf(o, 30, "%"PRIu64" KHz", samplerate / 1000);
+		r = snprintf(o, 30, "%" PRIu64 " KHz", samplerate / 1000);
 	else
-		r = snprintf(o, 30, "%"PRIu64" Hz", samplerate);
+		r = snprintf(o, 30, "%" PRIu64 " Hz", samplerate);
 
 	if (r < 0) {
 		/* Something went wrong... */

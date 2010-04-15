@@ -43,7 +43,7 @@ static int event(struct output *o, int event_type, char **data_out,
 	o = o;
 	event_type = event_type;
 
-	switch(event_type) {
+	switch (event_type) {
 	case DF_TRIGGER:
 		break;
 	case DF_END:
