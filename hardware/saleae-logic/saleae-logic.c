@@ -44,7 +44,7 @@
 #define NUM_SIMUL_TRANSFERS		10
 #define MAX_EMPTY_TRANSFERS		(NUM_SIMUL_TRANSFERS * 2)
 
-/* software trigger implementation: positive values indicate trigger stage */
+/* Software trigger implementation: positive values indicate trigger stage. */
 #define TRIGGER_FIRED			-1
 
 /* There is only one model Saleae Logic, and this is what it supports: */
@@ -98,12 +98,14 @@ static uint8_t probe_mask = 0;
 static uint8_t trigger_mask[NUM_TRIGGER_STAGES] = { 0 };
 static uint8_t trigger_value[NUM_TRIGGER_STAGES] = { 0 };
 static uint8_t trigger_buffer[NUM_TRIGGER_STAGES] = { 0 };
+
 int trigger_stage = TRIGGER_FIRED;
 
 static int hw_set_configuration(int device_index, int capability, void *value);
 
-/* returns 1 if the device's configuration profile match the Logic firmware's
- * configuration, 0 otherwise
+/*
+ * Returns 1 if the device's configuration profile match the Logic firmware's
+ * configuration, 0 otherwise.
  */
 int check_conf_profile(libusb_device *dev)
 {
@@ -300,7 +302,7 @@ static void close_device(struct sigrok_device_instance *sdi)
 	sdi->status = ST_INACTIVE;
 }
 
-static int configure_probes(GSList * probes)
+static int configure_probes(GSList *probes)
 {
 	struct probe *probe;
 	GSList *l;
@@ -391,16 +393,16 @@ static int hw_init(char *deviceinfo)
 			 * or uploading the firmware again.
 			 */
 			if (upload_firmware(devlist[i]) > 0)
-				g_warning("firmware upload failed for device %d", devcnt);
+				g_warning("firmware upload failed for "
+					  "device %d", devcnt);
 
 			sdi->usb = usb_device_instance_new
-			  (libusb_get_bus_number(devlist[i]), 0, NULL);
+				(libusb_get_bus_number(devlist[i]), 0, NULL);
 		} else {
 			/* Already has the firmware, so fix the new address. */
 			sdi->usb = usb_device_instance_new
 			    (libusb_get_bus_number(devlist[i]),
-			     libusb_get_device_address(devlist[i]),
-			     NULL);
+			     libusb_get_device_address(devlist[i]), NULL);
 		}
 		devcnt++;
 	}
@@ -446,7 +448,7 @@ static int hw_opendev(int device_index)
 	if (cur_samplerate == 0) {
 		/* Samplerate hasn't been set; default to the slowest one. */
 		if (hw_set_configuration(device_index, HWCAP_SAMPLERATE,
-		     &supported_samplerates[0]) == SIGROK_ERR)
+		    &supported_samplerates[0]) == SIGROK_ERR)
 			return SIGROK_ERR;
 	}
 
