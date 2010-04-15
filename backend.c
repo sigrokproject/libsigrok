@@ -18,23 +18,14 @@
  */
 
 #include <glib.h>
-#include "sigrok.h"
+#include <sigrok.h>
 
 int sigrok_init(void)
 {
-	int ret;
-
-	ret = load_hwplugins();
-
-	return ret;
+	return load_hwplugins();
 }
-
 
 void sigrok_cleanup(void)
 {
-
 	device_close_all();
-
 }
-
-

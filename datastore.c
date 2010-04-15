@@ -21,11 +21,9 @@
 #include <stdint.h>
 #include <string.h>
 #include <glib.h>
-#include "sigrok.h"
+#include <sigrok.h>
 
 static gpointer new_chunk(struct datastore **ds);
-
-
 
 struct datastore *datastore_new(int unitsize)
 {
@@ -39,20 +37,18 @@ struct datastore *datastore_new(int unitsize)
 	return ds;
 }
 
-
 void datastore_destroy(struct datastore *ds)
 {
 	GSList *chunk;
 
-	for(chunk = ds->chunklist; chunk; chunk = chunk->next)
+	for (chunk = ds->chunklist; chunk; chunk = chunk->next)
 		g_free(chunk->data);
 	g_slist_free(ds->chunklist);
 	g_free(ds);
-
 }
 
-
-void datastore_put(struct datastore *ds, void *data, unsigned int length, int in_unitsize, int *probelist)
+void datastore_put(struct datastore *ds, void *data, unsigned int length,
+		   int in_unitsize, int *probelist)
 {
 	unsigned int stored;
 	int capacity, size, num_chunks, chunk_bytes_free, chunk_offset;
@@ -62,35 +58,36 @@ void datastore_put(struct datastore *ds, void *data, unsigned int length, int in
 	in_unitsize = in_unitsize;
 	probelist = probelist;
 
-	if(ds->chunklist == NULL)
+	if (ds->chunklist == NULL)
 		chunk = new_chunk(&ds);
 	else
 		chunk = g_slist_last(ds->chunklist)->data;
+
 	num_chunks = g_slist_length(ds->chunklist);
 	capacity = (num_chunks * DATASTORE_CHUNKSIZE);
 	chunk_bytes_free = capacity - (ds->ds_unitsize * ds->num_units);
-	chunk_offset = capacity - (DATASTORE_CHUNKSIZE * (num_chunks - 1)) - chunk_bytes_free;
+	chunk_offset = capacity - (DATASTORE_CHUNKSIZE * (num_chunks - 1))
+		       - chunk_bytes_free;
 	stored = 0;
-	while(stored < length) {
-		if(chunk_bytes_free == 0) {
+	while (stored < length) {
+		if (chunk_bytes_free == 0) {
 			chunk = new_chunk(&ds);
 			chunk_bytes_free = DATASTORE_CHUNKSIZE;
 			chunk_offset = 0;
 		}
 
-		if(length - stored > (unsigned int)chunk_bytes_free)
+		if (length - stored > (unsigned int)chunk_bytes_free)
 			size = chunk_bytes_free;
 		else
-			/* last part, won't fill up this chunk */
+			/* Last part, won't fill up this chunk. */
 			size = length - stored;
+
 		memcpy(chunk + chunk_offset, data + stored, size);
 		chunk_bytes_free -= size;
 		stored += size;
 	}
 	ds->num_units += stored / ds->ds_unitsize;
-
 }
-
 
 static gpointer new_chunk(struct datastore **ds)
 {
@@ -101,5 +98,3 @@ static gpointer new_chunk(struct datastore **ds)
 
 	return chunk;
 }
-
-

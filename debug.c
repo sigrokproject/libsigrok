@@ -18,22 +18,19 @@
  */
 
 #include <stdio.h>
-#include "sigrok.h"
+#include <sigrok.h>
 
 void hexdump(unsigned char *address, int length)
 {
 	int i;
 
-	for(i = 0; i < length; i++)
-	{
-		if((i & 0x0f) == 0)
-		{
-			if(i)
+	for (i = 0; i < length; i++) {
+		if ((i & 0x0f) == 0) {
+			if (i)
 				printf("\n");
 			printf("%.4x   ", i);
 		}
 		printf("%.2x ", address[i]);
 	}
 	printf("\n");
-
 }

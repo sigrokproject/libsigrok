@@ -76,7 +76,7 @@ struct protocol {
 };
 
 /*
- * datafeed
+ * Datafeed
  */
 
 /* datafeed_packet.type values */
@@ -107,7 +107,7 @@ struct datafeed_header {
 };
 
 /*
- * output
+ * Output
  */
 struct output {
 	struct output_format *format;
@@ -217,13 +217,13 @@ void device_trigger_set(struct device *device, int probenum, char *trigger);
 
 /* Hardware plugin capabilities */
 enum {
-	HWCAP_DUMMY,		// used to terminate lists
+	HWCAP_DUMMY,		/* Used to terminate lists */
 	HWCAP_LOGIC_ANALYZER,
-	HWCAP_SAMPLERATE,       // change samplerate
-	HWCAP_PROBECONFIG,      // configure probe mask
-	HWCAP_CAPTURE_RATIO,    // set pre-trigger / post-trigger ratio
-	HWCAP_LIMIT_MSEC,	// set a time limit for sample acquisition
-	HWCAP_LIMIT_SAMPLES,	// set a limit on number of samples
+	HWCAP_SAMPLERATE,	/* Change samplerate */
+	HWCAP_PROBECONFIG,	/* Configure probe mask */
+	HWCAP_CAPTURE_RATIO,	/* Set pre-trigger / post-trigger ratio */
+	HWCAP_LIMIT_MSEC,	/* Set a time limit for sample acquisition */
+	HWCAP_LIMIT_SAMPLES,	/* Set a limit on number of samples */
 };
 
 struct hwcap_option {
@@ -293,8 +293,9 @@ enum {
 	DI_CUR_SAMPLERATE,
 };
 
-/* a device supports either a range of samplerates with steps of a given
- * granularity, or is limited to a set of defined samplerates. use either
+/*
+ * A device supports either a range of samplerates with steps of a given
+ * granularity, or is limited to a set of defined samplerates. Use either
  * step or list, but not both.
  */
 struct samplerates {
@@ -305,13 +306,13 @@ struct samplerates {
 };
 
 struct device_plugin {
-	/* plugin-specific */
+	/* Plugin-specific */
 	char *name;
 	int api_version;
 	int (*init) (char *deviceinfo);
 	void (*cleanup) (void);
 
-	/* device-specific */
+	/* Device-specific */
 	int (*open) (int device_index);
 	void (*close) (int device_index);
 	void *(*get_device_info) (int device_index, int device_info_id);
@@ -337,7 +338,8 @@ GSList *list_hwplugins(void);
 /* Generic device instances */
 struct sigrok_device_instance *sigrok_device_instance_new(int index,
 	int status, char *vendor, char *model, char *version);
-struct sigrok_device_instance *get_sigrok_device_instance(GSList *device_instances, int device_index);
+struct sigrok_device_instance *get_sigrok_device_instance(
+			GSList *device_instances, int device_index);
 void sigrok_device_instance_free(struct sigrok_device_instance *sdi);
 
 /* USB-specific instances */
@@ -352,7 +354,8 @@ void serial_device_instance_free(struct serial_device_instance *serial);
 int find_hwcap(int *capabilities, int hwcap);
 struct hwcap_option *find_hwcap_option(int hwcap);
 void source_remove(int fd);
-void source_add(int fd, int events, int timeout, receive_data_callback rcv_cb, void *user_data);
+void source_add(int fd, int events, int timeout, receive_data_callback rcv_cb,
+		void *user_data);
 
 /*--- session.c -------------------------------------------------------------*/
 
@@ -367,7 +370,7 @@ struct session {
 	GSList *devices;
 	/* List of struct analyzer* */
 	GSList *analyzers;
-	/* datafeed callbacks */
+	/* Datafeed callbacks */
 	GSList *datafeed_callbacks;
 	GTimeVal starttime;
 };
@@ -406,6 +409,7 @@ int serial_open(const char *pathname, int flags);
 int serial_close(int fd);
 void *serial_backup_params(int fd);
 void serial_restore_params(int fd, void *backup);
-int serial_set_params(int fd, int speed, int bits, int parity, int stopbits, int flowcontrol);
+int serial_set_params(int fd, int speed, int bits, int parity, int stopbits,
+		      int flowcontrol);
 
 #endif

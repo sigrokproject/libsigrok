@@ -19,12 +19,11 @@
 
 #include <stdio.h>
 #include <glib.h>
-#include "sigrok.h"
+#include <sigrok.h>
 
 extern struct sigrok_global *global;
 
 GSList *devices = NULL;
-
 
 void device_scan(void)
 {
@@ -34,44 +33,35 @@ void device_scan(void)
 
 	plugins = list_hwplugins();
 
-	/* initialize all plugins first. Since the init() call may involve
+	/*
+	 * Initialize all plugins first. Since the init() call may involve
 	 * a firmware upload and associated delay, we may as well get all
 	 * of these out of the way first.
 	 */
-	for(l = plugins; l; l = l->next)
-	{
+	for (l = plugins; l; l = l->next) {
 		plugin = l->data;
 		g_message("initializing %s plugin", plugin->name);
 		num_devices = plugin->init(NULL);
-		for(i = 0; i < num_devices; i++)
-		{
+		for (i = 0; i < num_devices; i++)
 			device_new(plugin, i);
-		}
 	}
-
 }
-
 
 void device_close_all(void)
 {
 	struct device *device;
 
-	while(devices)
-	{
+	while (devices) {
 		device = devices->data;
 		device->plugin->close(device->plugin_index);
 		device_destroy(device);
 	}
-
 }
-
 
 GSList *device_list(void)
 {
-
 	return devices;
 }
-
 
 struct device *device_new(struct device_plugin *plugin, int plugin_index)
 {
@@ -84,70 +74,65 @@ struct device *device_new(struct device_plugin *plugin, int plugin_index)
 	device->plugin_index = plugin_index;
 	devices = g_slist_append(devices, device);
 
-	num_probes = (int) device->plugin->get_device_info(device->plugin_index, DI_NUM_PROBES);
-	for(i = 0; i < num_probes; i++)
-	{
-		snprintf(probename, 16, "%d", i+1);
+	num_probes = (int)device->plugin->get_device_info(device->plugin_index,
+							  DI_NUM_PROBES);
+	for (i = 0; i < num_probes; i++) {
+		snprintf(probename, 16, "%d", i + 1);
 		device_probe_add(device, probename);
 	}
 
 	return device;
 }
 
-
 void device_clear(struct device *device)
 {
-	unsigned int probenum;
+	unsigned int pnum;
 
-	/* TODO: plugin-specific clear call? */
+	/* TODO: Plugin-specific clear call? */
 
-	if(device->probes)
-		for(probenum = 1; probenum <= g_slist_length(device->probes); probenum++)
-			device_probe_clear(device, probenum);
+	if (!device->probes)
+		return;
 
+	for (pnum = 1; pnum <= g_slist_length(device->probes); pnum++)
+		device_probe_clear(device, pnum);
 }
-
 
 void device_destroy(struct device *device)
 {
-	unsigned int probenum;
+	unsigned int pnum;
 
-	/* TODO: plugin-specific destroy call, need to decrease refcount in plugin */
+	/*
+	 * TODO: Plugin-specific destroy call, need to decrease refcount
+	 * in plugin.
+	 */
 
 	devices = g_slist_remove(devices, device);
-	if(device->probes)
-	{
-		for(probenum = 1; probenum <= g_slist_length(device->probes); probenum++)
-			device_probe_clear(device, probenum);
+	if (device->probes) {
+		for (pnum = 1; pnum <= g_slist_length(device->probes); pnum++)
+			device_probe_clear(device, pnum);
 		g_slist_free(device->probes);
 	}
 	g_free(device);
-
 }
-
 
 void device_probe_clear(struct device *device, int probenum)
 {
 	struct probe *p;
 
 	p = probe_find(device, probenum);
-	if(!p)
+	if (!p)
 		return;
 
-	if(p->name)
-	{
+	if (p->name) {
 		g_free(p->name);
 		p->name = NULL;
 	}
 
-	if(p->trigger)
-	{
+	if (p->trigger) {
 		g_free(p->trigger);
 		p->trigger = NULL;
 	}
-
 }
-
 
 void device_probe_add(struct device *device, char *name)
 {
@@ -159,9 +144,7 @@ void device_probe_add(struct device *device, char *name)
 	p->name = g_strdup(name);
 	p->trigger = NULL;
 	device->probes = g_slist_append(device->probes, p);
-
 }
-
 
 struct probe *probe_find(struct device *device, int probenum)
 {
@@ -169,11 +152,9 @@ struct probe *probe_find(struct device *device, int probenum)
 	struct probe *p, *found_probe;
 
 	found_probe = NULL;
-	for(l = device->probes; l; l = l->next)
-	{
+	for (l = device->probes; l; l = l->next) {
 		p = l->data;
-		if(p->index == probenum)
-		{
+		if (p->index == probenum) {
 			found_probe = p;
 			break;
 		}
@@ -182,54 +163,46 @@ struct probe *probe_find(struct device *device, int probenum)
 	return found_probe;
 }
 
-
 void device_probe_name(struct device *device, int probenum, char *name)
 {
 	struct probe *p;
 
 	p = probe_find(device, probenum);
-	if(!p)
+	if (!p)
 		return;
 
-	if(p->name)
+	if (p->name)
 		g_free(p->name);
 	p->name = g_strdup(name);
-
 }
-
 
 void device_trigger_clear(struct device *device)
 {
 	struct probe *p;
-	unsigned int probenum;
+	unsigned int pnum;
 
-	if(device->probes)
-		for(probenum = 1; probenum <= g_slist_length(device->probes); probenum++)
-		{
-			p = probe_find(device, probenum);
-			if(p && p->trigger)
-			{
-				g_free(p->trigger);
-				p->trigger = NULL;
-			}
+	if (!device->probes)
+		return;
+
+	for (pnum = 1; pnum <= g_slist_length(device->probes); pnum++) {
+		p = probe_find(device, pnum);
+		if (p && p->trigger) {
+			g_free(p->trigger);
+			p->trigger = NULL;
 		}
-
+	}
 }
-
 
 void device_trigger_set(struct device *device, int probenum, char *trigger)
 {
 	struct probe *p;
 
 	p = probe_find(device, probenum);
-	if(!p)
+	if (!p)
 		return;
 
-	if(p->trigger)
+	if (p->trigger)
 		g_free(p->trigger);
 
 	p->trigger = g_strdup(trigger);
-
 }
-
-
