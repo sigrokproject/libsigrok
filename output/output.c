@@ -17,7 +17,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "sigrok.h"
+#include <sigrok.h>
 
 extern struct output_format output_text_bits;
 extern struct output_format output_text_hex;

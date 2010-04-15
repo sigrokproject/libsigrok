@@ -23,8 +23,8 @@
 #include <inttypes.h>
 #include <glib.h>
 #include <libusb.h>
+#include <sigrok.h>
 #include "config.h"
-#include "sigrok.h"
 
 #define USB_VENDOR			0x0925
 #define USB_PRODUCT			0x3881

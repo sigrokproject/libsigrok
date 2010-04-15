@@ -140,6 +140,54 @@ static unsigned int get_memory_size(int type)
 		return 0;
 }
 
+static int opendev3(struct sigrok_device_instance **sdi, libusb_device *dev,
+		    struct libusb_device_descriptor *des)
+{
+	int j, err;
+
+	if ((err = libusb_get_device_descriptor(dev, des))) {
+		g_warning("failed to get device descriptor: %d", err);
+		return -1;
+	}
+
+	if (des.idVendor != USB_VENDOR)
+		return 0;
+
+	if (libusb_get_bus_number(dev) == (*sdi)->usb->bus
+	    && libusb_get_device_address(dev) == (*sdi)->usb->address) {
+
+		for (j = 0; j < ARRAY_SIZE(zeroplus_models); j++) {
+			if (!(des.idProduct == zeroplus_models[j].pid))
+				continue;
+
+			g_message("Found PID=%04X (%s)", des.idProduct,
+				  zeroplus_models[j].model_name);
+			num_channels = zeroplus_models[j].channels;
+			memory_size = zeroplus_models[j].sample_depth * 1024;
+			break;
+		}
+
+		if (num_channels == 0) {
+			g_warning("Unknown ZeroPlus device %04X",
+				  des.idProduct);
+			return -2;
+		}
+
+		/* Found it. */
+		if (!(err = libusb_open(dev, &((*sdi)->usb->devhdl)))) {
+			(*sdi)->status = ST_ACTIVE;
+			g_message("opened device %d on %d.%d interface %d",
+			     (*sdi)->index, (*sdi)->usb->bus,
+			     (*sdi)->usb->address, USB_INTERFACE);
+		} else {
+			g_warning("failed to open device: %d", err);
+			*sdi = NULL;
+		}
+	}
+
+	return 0;
+}
+
 struct sigrok_device_instance *zp_open_device(int device_index)
 {
 	struct sigrok_device_instance *sdi;
@@ -156,59 +204,8 @@ struct sigrok_device_instance *zp_open_device(int device_index)
 		/* Find the device by vendor, product, bus and address. */
 		libusb_get_device_list(usb_context, &devlist);
 		for (i = 0; devlist[i]; i++) {
-			if ((err = libusb_get_device_descriptor(devlist[i],
-			     &des))) {
-				g_warning("failed to get device descriptor:"
-					  "%d", err);
-				continue;
-			}
-
-			if (des.idVendor == USB_VENDOR) {
-				if (libusb_get_bus_number(devlist[i]) ==
-				    sdi->usb->bus
-				    && libusb_get_device_address(devlist[i]) ==
-				    sdi->usb->address) {
-					for (j = 0;
-					     j < ARRAY_SIZE(zeroplus_models);
-					     j++) {
-						if (des.idProduct ==
-						    zeroplus_models[j].pid) {
-							g_message
-							    ("Found PID=%04X (%s)",
-							     des.idProduct,
-							     zeroplus_models[j].
-							     model_name);
-							num_channels =
-							    zeroplus_models[j].
-							    channels;
-							memory_size =
-							    zeroplus_models[j].
-							    sample_depth * 1024;
-							break;
-						}
-					}
-					if (num_channels == 0) {
-						g_warning
-						    ("Unknown ZeroPlus device %04X",
-						     des.idProduct);
-						continue;
-					}
-					/* Found it */
-					if (!(err = libusb_open(devlist[i],
-						 &(sdi->usb->devhdl)))) {
-						sdi->status = ST_ACTIVE;
-						g_message("opened device %d on"
-						     " %d.%d interface %d",
-						     sdi->index, sdi->usb->bus,
-						     sdi->usb->address,
-						     USB_INTERFACE);
-					} else {
-						g_warning("failed to open "
-							  "device: %d", err);
-						sdi = NULL;
-					}
-				}
-			}
+			/* TODO: Error handling. */
+			err = opendev3(&sdi, devlist[i], &des);
 		}
 	} else {
 		/* Status must be ST_ACTIVE, i.e. already in use... */
@@ -224,14 +221,15 @@ struct sigrok_device_instance *zp_open_device(int device_index)
 
 static void close_device(struct sigrok_device_instance *sdi)
 {
-	if (sdi->usb->devhdl) {
-		g_message("closing device %d on %d.%d interface %d", sdi->index,
-			  sdi->usb->bus, sdi->usb->address, USB_INTERFACE);
-		libusb_release_interface(sdi->usb->devhdl, USB_INTERFACE);
-		libusb_close(sdi->usb->devhdl);
-		sdi->usb->devhdl = NULL;
-		sdi->status = ST_INACTIVE;
-	}
+	if (!sdi->usb->devhdl)
+		return;
+
+	g_message("closing device %d on %d.%d interface %d", sdi->index,
+		  sdi->usb->bus, sdi->usb->address, USB_INTERFACE);
+	libusb_release_interface(sdi->usb->devhdl, USB_INTERFACE);
+	libusb_close(sdi->usb->devhdl);
+	sdi->usb->devhdl = NULL;
+	sdi->status = ST_INACTIVE;
 }
 
 static int configure_probes(GSList *probes)
@@ -347,7 +345,8 @@ static int hw_opendev(int device_index)
 	analyzer_set_memory_size(MEMORY_SIZE_512K);
 	// analyzer_set_freq(g_freq, g_freq_scale);
 	analyzer_set_trigger_count(1);
-	// analyzer_set_ramsize_trigger_address((((100 - g_pre_trigger) * get_memory_size(g_memory_size)) / 100) >> 2);
+	// analyzer_set_ramsize_trigger_address((((100 - g_pre_trigger)
+	// * get_memory_size(g_memory_size)) / 100) >> 2);
 	analyzer_set_ramsize_trigger_address(
 		(100 * get_memory_size(MEMORY_SIZE_512K) / 100) >> 2);
 
@@ -361,7 +360,7 @@ static int hw_opendev(int device_index)
 	analyzer_set_compression(COMPRESSION_NONE);
 
 	if (cur_samplerate == 0) {
-		/* Sample rate hasn't been set. Default to the slowest one. */
+		/* Samplerate hasn't been set. Default to the slowest one. */
 		if (hw_set_configuration(device_index, HWCAP_SAMPLERATE,
 		     &samplerates.low) == SIGROK_ERR)
 			return SIGROK_ERR;
@@ -382,11 +381,11 @@ static void hw_cleanup(void)
 {
 	GSList *l;
 
-	/* Properly close all devices. */
+	/* Properly close all devices... */
 	for (l = device_instances; l; l = l->next)
 		close_device((struct sigrok_device_instance *)l->data);
 
-	/* And free all their memory. */
+	/* ...and free all their memory. */
 	for (l = device_instances; l; l = l->next)
 		g_free(l->data);
 	g_slist_free(device_instances);
@@ -400,12 +399,11 @@ static void hw_cleanup(void)
 static void *hw_get_device_info(int device_index, int device_info_id)
 {
 	struct sigrok_device_instance *sdi;
-	void *info;
+	void *info = NULL;
 
 	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
 		return NULL;
 
-	info = NULL;
 	switch (device_info_id) {
 	case DI_INSTANCE:
 		info = sdi;
@@ -522,7 +520,10 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	for (packet_num = 0; packet_num < (memory_size * 4 / PACKET_SIZE);
 	     packet_num++) {
 		res = analyzer_read_data(sdi->usb->devhdl, buf, PACKET_SIZE);
-		// g_message("Tried to read %llx bytes, actually read %x bytes", PACKET_SIZE, res);
+#if 0
+		g_message("Tried to read %llx bytes, actually read %x bytes",
+			  PACKET_SIZE, res);
+#endif
 
 		packet.type = DF_LOGIC32;
 		packet.length = PACKET_SIZE;
