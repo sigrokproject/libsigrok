@@ -26,10 +26,7 @@
 #include <termios.h>
 #include <stdlib.h>
 #include <glib.h>
-
-#include "sigrok.h"
-
-
+#include <sigrok.h>
 
 char *serial_port_glob[] = {
 	/* Linux */
@@ -40,9 +37,8 @@ char *serial_port_glob[] = {
 	"/dev/ttys*",
 	"/dev/tty.USB-*",
 	"/dev/tty.Modem-*",
-	NULL
+	NULL,
 };
-
 
 GSList *list_serial_ports(void)
 {
@@ -51,12 +47,11 @@ GSList *list_serial_ports(void)
 	unsigned int i, j;
 
 	ports = NULL;
-	for(i = 0; serial_port_glob[i]; i++)
-	{
-		if(!glob(serial_port_glob[i], 0, NULL, &g))
-		{
-			for(j = 0; j < g.gl_pathc; j++)
-				ports = g_slist_append(ports, strdup(g.gl_pathv[j]));
+	for (i = 0; serial_port_glob[i]; i++) {
+		if (!glob(serial_port_glob[i], 0, NULL, &g)) {
+			for (j = 0; j < g.gl_pathc; j++)
+				ports = g_slist_append(ports,
+						       strdup(g.gl_pathv[j]));
 			globfree(&g);
 		}
 	}
@@ -64,20 +59,15 @@ GSList *list_serial_ports(void)
 	return ports;
 }
 
-
 int serial_open(const char *pathname, int flags)
 {
-
 	return open(pathname, flags);
 }
 
-
 int serial_close(int fd)
 {
-
 	return close(fd);
 }
-
 
 void *serial_backup_params(int fd)
 {
@@ -89,37 +79,33 @@ void *serial_backup_params(int fd)
 	return term;
 }
 
-
 void serial_restore_params(int fd, void *backup)
 {
-
-	tcsetattr(fd, TCSADRAIN, (struct termios *) backup);
-
+	tcsetattr(fd, TCSADRAIN, (struct termios *)backup);
 }
 
-
 /* flowcontrol 1 = rts/cts  2 = xon/xoff */
-int serial_set_params(int fd, int speed, int bits, int parity, int stopbits, int flowcontrol)
+int serial_set_params(int fd, int speed, int bits, int parity, int stopbits,
+		      int flowcontrol)
 {
 	struct termios term;
 
-	/* only supporting what we need really -- currently just the OLS driver */
-	if(speed != 115200 || bits != 8 || parity != 0 || stopbits != 1 || flowcontrol != 2)
+	/* Only supporting what we need really, currently the OLS driver. */
+	if (speed != 115200 || bits != 8 || parity != 0 || stopbits != 1
+	    || flowcontrol != 2)
 		return SIGROK_ERR;
 
-	if(tcgetattr(fd, &term) < 0)
+	if (tcgetattr(fd, &term) < 0)
 		return SIGROK_ERR;
-	if(cfsetispeed(&term, B115200) < 0)
+	if (cfsetispeed(&term, B115200) < 0)
 		return SIGROK_ERR;
 	term.c_cflag &= ~CSIZE;
 	term.c_cflag |= CS8;
 	term.c_cflag &= ~CSTOPB;
 	term.c_cflag |= IXON | IXOFF;
 	term.c_iflag |= IGNPAR;
-	if(tcsetattr(fd, TCSADRAIN, &term) < 0)
+	if (tcsetattr(fd, TCSADRAIN, &term) < 0)
 		return SIGROK_ERR;
 
 	return SIGROK_OK;
 }
-
-

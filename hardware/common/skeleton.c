@@ -21,77 +21,53 @@
 
 static int hw_init(char *deviceinfo)
 {
-
 }
-
 
 static int hw_opendev(int device_index)
 {
-
 }
-
 
 static void hw_closedev(int device_index)
 {
-
 }
-
 
 static void hw_cleanup(void)
 {
-
 }
-
 
 static char *hw_get_identifier(int device_index)
 {
-
 }
-
 
 static char *hw_get_device_info(int device_index, int device_info_id)
 {
-
 }
-
 
 static int hw_get_status(int device_index)
 {
-
 }
-
 
 static int *hw_get_capabilities(void)
 {
-
 }
-
 
 static int hw_set_configuration(int device_index, int capability, char *value)
 {
-
 }
-
 
 static int hw_start_acquisition(int device_index, gpointer session_device_id)
 {
-
 }
-
 
 static void hw_stop_acquisition(int device_index, gpointer session_device_id)
 {
-
 }
-
-
 
 struct device_plugin skeleton_plugin_info = {
 	"skeleton",
 	1,
 	hw_init,
 	hw_cleanup,
-
 	hw_opendev,
 	hw_closedev,
 	hw_get_device_info,
@@ -99,6 +75,5 @@ struct device_plugin skeleton_plugin_info = {
 	hw_get_capabilities,
 	hw_set_configuration,
 	hw_start_acquisition,
-	hw_stop_acquisition
+	hw_stop_acquisition,
 };
-
