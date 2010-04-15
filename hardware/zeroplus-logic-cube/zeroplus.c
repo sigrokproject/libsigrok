@@ -143,33 +143,34 @@ static unsigned int get_memory_size(int type)
 static int opendev3(struct sigrok_device_instance **sdi, libusb_device *dev,
 		    struct libusb_device_descriptor *des)
 {
-	int j, err;
+	unsigned int i;
+	int err;
 
 	if ((err = libusb_get_device_descriptor(dev, des))) {
 		g_warning("failed to get device descriptor: %d", err);
 		return -1;
 	}
 
-	if (des.idVendor != USB_VENDOR)
+	if (des->idVendor != USB_VENDOR)
 		return 0;
 
 	if (libusb_get_bus_number(dev) == (*sdi)->usb->bus
 	    && libusb_get_device_address(dev) == (*sdi)->usb->address) {
 
-		for (j = 0; j < ARRAY_SIZE(zeroplus_models); j++) {
-			if (!(des.idProduct == zeroplus_models[j].pid))
+		for (i = 0; i < ARRAY_SIZE(zeroplus_models); i++) {
+			if (!(des->idProduct == zeroplus_models[i].pid))
 				continue;
 
-			g_message("Found PID=%04X (%s)", des.idProduct,
-				  zeroplus_models[j].model_name);
-			num_channels = zeroplus_models[j].channels;
-			memory_size = zeroplus_models[j].sample_depth * 1024;
+			g_message("Found PID=%04X (%s)", des->idProduct,
+				  zeroplus_models[i].model_name);
+			num_channels = zeroplus_models[i].channels;
+			memory_size = zeroplus_models[i].sample_depth * 1024;
 			break;
 		}
 
 		if (num_channels == 0) {
 			g_warning("Unknown ZeroPlus device %04X",
-				  des.idProduct);
+				  des->idProduct);
 			return -2;
 		}
 
@@ -193,7 +194,6 @@ struct sigrok_device_instance *zp_open_device(int device_index)
 	struct sigrok_device_instance *sdi;
 	libusb_device **devlist;
 	struct libusb_device_descriptor des;
-	unsigned int j;
 	int err, i;
 
 	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
