@@ -102,6 +102,7 @@ static uint8_t trigger_buffer[NUM_TRIGGER_STAGES] = { 0 };
 int trigger_stage = TRIGGER_FIRED;
 
 static int hw_set_configuration(int device_index, int capability, void *value);
+static void hw_stop_acquisition(int device_index, gpointer session_device_id);
 
 /*
  * Returns 1 if the device's configuration profile match the Logic firmware's
@@ -668,7 +669,8 @@ void receive_transfer(struct libusb_transfer *transfer)
 	 * transfer that come in.
 	 */
 	if (num_samples == -1) {
-		libusb_free_transfer(transfer);
+		if (transfer)
+			libusb_free_transfer(transfer);
 		return;
 	}
 
@@ -696,9 +698,7 @@ void receive_transfer(struct libusb_transfer *transfer)
 			 * The FX2 gave up. End the acquisition, the frontend
 			 * will work out that the samplecount is short.
 			 */
-			packet.type = DF_END;
-			session_bus(user_data, &packet);
-			num_samples = -1;
+			hw_stop_acquisition(-1, user_data);
 		}
 		return;
 	} else {
@@ -723,10 +723,7 @@ void receive_transfer(struct libusb_transfer *transfer)
 
 		num_samples += cur_buflen;
 		if ((unsigned int)num_samples > limit_samples) {
-			/* End the acquisition. */
-			packet.type = DF_END;
-			session_bus(user_data, &packet);
-			num_samples = -1;
+			hw_stop_acquisition(-1, user_data);
 		}
 	} else {
 		/*
@@ -773,7 +770,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 
 	lupfd = libusb_get_pollfds(usb_context);
 	for (i = 0; lupfd[i]; i++)
-		source_add(lupfd[i]->fd, lupfd[i]->events, -1, receive_data,
+		source_add(lupfd[i]->fd, lupfd[i]->events, 40, receive_data,
 			   NULL);
 	free(lupfd);
 
