@@ -24,34 +24,21 @@
 #include <sigrok.h>
 #include "config.h"
 
-static int init(struct output *o)
-{
-	/* Prevent compiler warnings. */
-	o = o;
-
-	/* Nothing so far, but we might want to add stuff here later. */
-	return 0;
-}
 
 static int event(struct output *o, int event_type, char **data_out,
 		 uint64_t *length_out)
 {
-	char *outbuf;
-	int outlen = 1; /* FIXME */
 
 	/* Prevent compiler warnings. */
 	o = o;
 	event_type = event_type;
+	data_out = data_out;
 
 	switch (event_type) {
 	case DF_TRIGGER:
 		break;
 	case DF_END:
-		outbuf = calloc(1, outlen); /* FIXME */
-		if (outbuf == NULL)
-			return SIGROK_ERR_MALLOC;
-		*data_out = outbuf;
-		*length_out = outlen;
+		*length_out = 0;
 		break;
 	}
 
@@ -84,7 +71,7 @@ static int data(struct output *o, char *data_in, uint64_t length_in,
 struct output_format output_binary = {
 	"binary",
 	"Raw binary",
-	init,
+	NULL,
 	data,
 	event,
 };
