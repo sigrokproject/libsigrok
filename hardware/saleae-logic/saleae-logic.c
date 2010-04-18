@@ -542,7 +542,7 @@ static int set_configuration_samplerate(struct sigrok_device_instance *sdi,
 	if (supported_samplerates[i] == 0)
 		return SIGROK_ERR_SAMPLERATE;
 
-	divider = (uint8_t) (48 / (float)(samplerate / 1000000)) - 1;
+	divider = (uint8_t) (48 / (samplerate / 1000000.0)) - 1;
 
 	g_message("setting samplerate to %" PRIu64 " Hz (divider %d)",
 		  samplerate, divider);
