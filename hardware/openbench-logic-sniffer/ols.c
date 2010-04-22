@@ -24,11 +24,17 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#ifndef _WIN32
 #include <termios.h>
+#endif
 #include <string.h>
 #include <sys/time.h>
 #include <inttypes.h>
+#ifdef _WIN32
+/* TODO */
+#else
 #include <arpa/inet.h>
+#endif
 #include <glib.h>
 #include <sigrok.h>
 
@@ -219,7 +225,12 @@ static int hw_init(char *deviceinfo)
 		 * respond with g_poll().
 		 */
 		g_message("probing %s...", (char *)l->data);
+#ifdef _WIN32
+		// FIXME
+		// hdl = serial_open(l->data, 0);
+#else
 		fd = serial_open(l->data, O_RDWR | O_NONBLOCK);
+#endif
 		if (fd != -1) {
 			serial_params[devcnt] = serial_backup_params(fd);
 			serial_set_params(fd, 115200, 8, 0, 1, 2);
@@ -401,7 +412,12 @@ static int set_configuration_samplerate(struct sigrok_device_instance *sdi,
 		flag_reg &= ~FLAG_DEMUX;
 		divider = (CLOCK_RATE / samplerate) - 1;
 	}
+#ifdef _WIN32
+	// FIXME
+	// divider = htonl(divider);
+#else
 	divider = htonl(divider);
+#endif
 
 	g_message("setting samplerate to %" PRIu64 " Hz (divider %u, demux %s)",
 		  samplerate, divider, flag_reg & FLAG_DEMUX ? "on" : "off");
@@ -560,7 +576,10 @@ static int receive_data(int fd, int revents, void *user_data)
 		 * This is the main loop telling us a timeout was reached, or
 		 * we've acquired all the samples we asked for -- we're done.
 		 */
+#ifndef _WIN32
+		/* TODO: Move to serial.c? */
 		tcflush(fd, TCIOFLUSH);
+#endif
 		serial_close(fd);
 		packet.type = DF_END;
 		packet.length = 0;
