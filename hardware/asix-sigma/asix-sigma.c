@@ -26,8 +26,7 @@
 #include <ftdi.h>
 #include <string.h>
 #include <zlib.h>
-
-#include "sigrok.h"
+#include <sigrok.h>
 #include "asix-sigma.h"
 
 #define USB_VENDOR			0xa600
@@ -67,27 +66,44 @@ static int capabilities[] = {
 	0,
 };
 
-static int sigma_read(void* buf, size_t size)
+/* Force the FPGA to reboot. */
+static uint8_t suicide[] = {
+	0x84, 0x84, 0x88, 0x84, 0x88, 0x84, 0x88, 0x84,
+};
+
+/* Prepare to upload firmware (FPGA specific). */
+static uint8_t init[] = {
+	0x03, 0x03, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
+};
+
+/* Initialize the logic analyzer mode. */
+static uint8_t logic_mode_start[] = {
+	0x00, 0x40, 0x0f, 0x25, 0x35, 0x40,
+	0x2a, 0x3a, 0x40, 0x03, 0x20, 0x38,
+};
+
+static int sigma_read(void *buf, size_t size)
 {
 	int ret;
-	ret = ftdi_read_data(&ftdic, (unsigned char*) buf, size);
+
+	ret = ftdi_read_data(&ftdic, (unsigned char *)buf, size);
 	if (ret < 0) {
 		g_warning("ftdi_read_data failed: %s",
-			ftdi_get_error_string(&ftdic));
+			  ftdi_get_error_string(&ftdic));
 	}
 
 	return ret;
 }
 
-static int sigma_write(void* buf, size_t size)
+static int sigma_write(void *buf, size_t size)
 {
 	int ret;
-	ret = ftdi_write_data(&ftdic, (unsigned char*) buf, size);
+
+	ret = ftdi_write_data(&ftdic, (unsigned char *)buf, size);
 	if (ret < 0) {
 		g_warning("ftdi_write_data failed: %s",
-			ftdi_get_error_string(&ftdic));
-	}
-	else if ((size_t) ret != size) {
+			  ftdi_get_error_string(&ftdic));
+	} else if ((size_t) ret != size) {
 		g_warning("ftdi_write_data did not complete write\n");
 	}
 
@@ -103,7 +119,7 @@ static int sigma_write_register(uint8_t reg, uint8_t *data, size_t len)
 	buf[idx++] = REG_ADDR_LOW | (reg & 0xf);
 	buf[idx++] = REG_ADDR_HIGH | (reg >> 4);
 
-	for (i=0; i<len; ++i) {
+	for (i = 0; i < len; ++i) {
 		buf[idx++] = REG_DATA_LOW | (data[i] & 0xf);
 		buf[idx++] = REG_DATA_HIGH_WRITE | (data[i] >> 4);
 	}
@@ -119,9 +135,9 @@ static int sigma_set_register(uint8_t reg, uint8_t value)
 static int sigma_read_register(uint8_t reg, uint8_t *data, size_t len)
 {
 	uint8_t buf[3];
+
 	buf[0] = REG_ADDR_LOW | (reg & 0xf);
 	buf[1] = REG_ADDR_HIGH | (reg >> 4);
-
 	buf[2] = REG_READ_ADDR;
 
 	sigma_write(buf, sizeof(buf));
@@ -132,6 +148,7 @@ static int sigma_read_register(uint8_t reg, uint8_t *data, size_t len)
 static uint8_t sigma_get_register(uint8_t reg)
 {
 	uint8_t value;
+
 	if (1 != sigma_read_register(reg, &value, 1)) {
 		g_warning("Sigma_get_register: 1 byte expected");
 		return 0;
@@ -152,7 +169,6 @@ static int sigma_read_pos(uint32_t *stoppos, uint32_t *triggerpos)
 		REG_READ_ADDR | NEXT_REG,
 		REG_READ_ADDR | NEXT_REG,
 	};
-
 	uint8_t result[6];
 
 	sigma_write(buf, sizeof(buf));
@@ -171,23 +187,23 @@ static int sigma_read_dram(uint16_t startchunk, size_t numchunks, uint8_t *data)
 	uint8_t buf[4096];
 	int idx = 0;
 
-	/* Send the startchunk. Index start with 1 */
+	/* Send the startchunk. Index start with 1. */
 	buf[0] = startchunk >> 8;
 	buf[1] = startchunk & 0xff;
 	sigma_write_register(WRITE_MEMROW, buf, 2);
 
-	/* Read the DRAM */
+	/* Read the DRAM. */
 	buf[idx++] = REG_DRAM_BLOCK;
 	buf[idx++] = REG_DRAM_WAIT_ACK;
 
 	for (i = 0; i < numchunks; ++i) {
-		/* Alternate bit to copy from dram to cache */
-		if (i != numchunks-1)
-			buf[idx++] = REG_DRAM_BLOCK | (((i+1) % 2) << 4);
+		/* Alternate bit to copy from DRAM to cache. */
+		if (i != (numchunks - 1))
+			buf[idx++] = REG_DRAM_BLOCK | (((i + 1) % 2) << 4);
 
 		buf[idx++] = REG_DRAM_BLOCK_DATA | ((i % 2) << 4);
 
-		if (i != numchunks-1)
+		if (i != (numchunks - 1))
 			buf[idx++] = REG_DRAM_WAIT_ACK;
 	}
 
@@ -196,12 +212,11 @@ static int sigma_read_dram(uint16_t startchunk, size_t numchunks, uint8_t *data)
 	return sigma_read(data, numchunks * CHUNK_SIZE);
 }
 
-
-/* Generate the bitbang stream for programming the FPGA */
+/* Generate the bitbang stream for programming the FPGA. */
 static int bin2bitbang(const char *filename,
-		       unsigned char **buf, size_t* buf_size)
+		       unsigned char **buf, size_t *buf_size)
 {
-	FILE *f = fopen(filename, "r");
+	FILE *f;
 	long file_size;
 	unsigned long offset = 0;
 	unsigned char *p;
@@ -209,8 +224,10 @@ static int bin2bitbang(const char *filename,
 	uLongf csize, fwsize;
 	const int buffer_size = 65536;
 	size_t i;
-	int c, ret;
+	int c, ret, bit, v;
+	uint32_t imm = 0x3f6df2ab;
 
+	f = fopen(filename, "r");
 	if (!f) {
 		g_warning("fopen(\"%s\", \"r\")", filename);
 		return -1;
@@ -226,7 +243,6 @@ static int bin2bitbang(const char *filename,
 
 	fseek(f, 0, SEEK_SET);
 
-
 	compressed_buf = g_malloc(file_size);
 	firmware = g_malloc(buffer_size);
 
@@ -235,7 +251,6 @@ static int bin2bitbang(const char *filename,
 		return -1;
 	}
 
-	uint32_t imm = 0x3f6df2ab;
 	csize = 0;
 	while ((c = getc(f)) != EOF) {
 		imm = (imm + 0xa853753) % 177 + (imm * 0x8034052);
@@ -256,7 +271,7 @@ static int bin2bitbang(const char *filename,
 
 	*buf_size = fwsize * 2 * 8;
 
-	*buf = p = (unsigned char*) g_malloc(*buf_size);
+	*buf = p = (unsigned char *)g_malloc(*buf_size);
 
 	if (!p) {
 		g_warning("Error allocating buffers");
@@ -264,9 +279,8 @@ static int bin2bitbang(const char *filename,
 	}
 
 	for (i = 0; i < fwsize; ++i) {
-		int bit;
 		for (bit = 7; bit >= 0; --bit) {
-			int v = firmware[i] & 1 << bit ? 0x40 : 0x00;
+			v = firmware[i] & 1 << bit ? 0x40 : 0x00;
 			p[offset++] = v | 0x01;
 			p[offset++] = v;
 		}
@@ -277,8 +291,8 @@ static int bin2bitbang(const char *filename,
 	if (offset != *buf_size) {
 		g_free(*buf);
 		g_warning("Error reading firmware %s "
-			"offset=%ld, file_size=%ld, buf_size=%zd\n",
-			filename, offset, file_size, *buf_size);
+			  "offset=%ld, file_size=%ld, buf_size=%zd\n",
+			  filename, offset, file_size, *buf_size);
 
 		return -1;
 	}
@@ -294,11 +308,12 @@ static int hw_init(char *deviceinfo)
 
 	ftdi_init(&ftdic);
 
-	/* Look for SIGMAs */
-	if (ftdi_usb_open_desc(&ftdic, USB_VENDOR, USB_PRODUCT, USB_DESCRIPTION, NULL) < 0)
+	/* Look for SIGMAs. */
+	if (ftdi_usb_open_desc(&ftdic, USB_VENDOR, USB_PRODUCT,
+			       USB_DESCRIPTION, NULL) < 0)
 		return 0;
 
-	/* Register SIGMA device */
+	/* Register SIGMA device. */
 	sdi = sigrok_device_instance_new(0, ST_INITIALIZING,
 			USB_VENDOR_NAME, USB_MODEL_NAME, USB_MODEL_VERSION);
 	if (!sdi)
@@ -306,12 +321,11 @@ static int hw_init(char *deviceinfo)
 
 	device_instances = g_slist_append(device_instances, sdi);
 
-	/* We will open the device again when we need it */
+	/* We will open the device again when we need it. */
 	ftdi_usb_close(&ftdic);
 
 	return 1;
 }
-
 
 static int hw_opendev(int device_index)
 {
@@ -322,101 +336,81 @@ static int hw_opendev(int device_index)
 	struct sigrok_device_instance *sdi;
 	unsigned char result[32];
 
-	/* Make sure it's an ASIX SIGMA */
+	/* Make sure it's an ASIX SIGMA. */
 	if ((ret = ftdi_usb_open_desc(&ftdic,
 		USB_VENDOR, USB_PRODUCT, USB_DESCRIPTION, NULL)) < 0) {
-
 		g_warning("ftdi_usb_open failed: %s",
-			ftdi_get_error_string(&ftdic));
-
+			  ftdi_get_error_string(&ftdic));
 		return 0;
 	}
 
 	if ((ret = ftdi_set_bitmode(&ftdic, 0xdf, BITMODE_BITBANG)) < 0) {
 		g_warning("ftdi_set_bitmode failed: %s",
-			ftdi_get_error_string(&ftdic));
-
+			  ftdi_get_error_string(&ftdic));
 		return 0;
 	}
 
-	/* Four times the speed of sigmalogan - Works well */
+	/* Four times the speed of sigmalogan - Works well. */
 	if ((ret = ftdi_set_baudrate(&ftdic, 750000)) < 0) {
 		g_warning("ftdi_set_baudrate failed: %s",
-			ftdi_get_error_string(&ftdic));
-
+			  ftdi_get_error_string(&ftdic));
 		return 0;
 	}
 
-	/* Force the FPGA to reboot */
-	unsigned char suicide[] = {
-		0x84, 0x84, 0x88, 0x84, 0x88, 0x84, 0x88, 0x84,
-	};
-
+	/* Force the FPGA to reboot. */
 	sigma_write(suicide, sizeof(suicide));
 	sigma_write(suicide, sizeof(suicide));
 	sigma_write(suicide, sizeof(suicide));
 	sigma_write(suicide, sizeof(suicide));
 
-	/* Prepare to upload firmware (FPGA specific) */
-	unsigned char init[] = {
-		0x03, 0x03, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01
-	};
-
+	/* Prepare to upload firmware (FPGA specific). */
 	sigma_write(init, sizeof(init));
 
 	ftdi_usb_purge_buffers(&ftdic);
 
-	/* Wait until the FPGA asserts INIT_B */
+	/* Wait until the FPGA asserts INIT_B. */
 	while (1) {
 		ret = sigma_read(result, 1);
 		if (result[0] & 0x20)
 			break;
 	}
 
-	/* Prepare firmware */
+	/* Prepare firmware. */
 	if (-1 == bin2bitbang(FIRMWARE, &buf, &buf_size)) {
 		g_warning("An error occured while reading the firmware: %s",
-			FIRMWARE);
-
+			  FIRMWARE);
 		return SIGROK_ERR;
 	}
 
-	/* Upload firmare */
+	/* Upload firmare. */
 	sigma_write(buf, buf_size);
 
 	g_free(buf);
 
 	if ((ret = ftdi_set_bitmode(&ftdic, 0x00, BITMODE_RESET)) < 0) {
 		g_warning("ftdi_set_bitmode failed: %s",
-			ftdi_get_error_string(&ftdic));
-
+			  ftdi_get_error_string(&ftdic));
 		return SIGROK_ERR;
 	}
 
 	ftdi_usb_purge_buffers(&ftdic);
 
-	/* Discard garbage */
+	/* Discard garbage. */
 	while (1 == sigma_read(&pins, 1))
 		;
 
-	/* Initialize the logic analyzer mode */
-	unsigned char logic_mode_start[] = {
-		0x00, 0x40, 0x0f, 0x25, 0x35, 0x40,
-		0x2a, 0x3a, 0x40, 0x03, 0x20, 0x38
-	};
-
+	/* Initialize the logic analyzer mode. */
 	sigma_write(logic_mode_start, sizeof(logic_mode_start));
 
-	/* Expect a 3 byte reply */
+	/* Expect a 3 byte reply. */
 	ret = sigma_read(result, 3);
 	if (ret != 3 ||
 	    result[0] != 0xa6 || result[1] != 0x55 || result[2] != 0xaa) {
-
-		g_warning("Sigma configuration failed. Invalid reply received.");
+		g_warning("Configuration failed. Invalid reply received.");
 		return SIGROK_ERR;
 	}
 
-	/* Works like a charm */
+	/* Works like a charm... */
 
 	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
 		return SIGROK_ERR;
@@ -428,7 +422,6 @@ static int hw_opendev(int device_index)
 	return SIGROK_OK;
 }
 
-
 static void hw_closedev(int device_index)
 {
 	device_index = device_index;
@@ -436,11 +429,9 @@ static void hw_closedev(int device_index)
 	ftdi_usb_close(&ftdic);
 }
 
-
 static void hw_cleanup(void)
 {
 }
-
 
 static void *hw_get_device_info(int device_index, int device_info_id)
 {
@@ -463,7 +454,7 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 		info = &samplerates;
 		break;
 	case DI_TRIGGER_TYPES:
-		info = 0;//TRIGGER_TYPES;
+		info = 0;	//TRIGGER_TYPES;
 		break;
 	case DI_CUR_SAMPLERATE:
 		info = &cur_samplerate;
@@ -472,7 +463,6 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 
 	return info;
 }
-
 
 static int hw_get_status(int device_index)
 {
@@ -484,7 +474,6 @@ static int hw_get_status(int device_index)
 	else
 		return ST_NOT_FOUND;
 }
-
 
 static int *hw_get_capabilities(void)
 {
@@ -501,7 +490,7 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 		return SIGROK_ERR;
 
 	if (capability == HWCAP_SAMPLERATE) {
-		tmp_u64 = (uint64_t*) value;
+		tmp_u64 = (uint64_t *) value;
 		/* Only 200 MHz implemented */
 		ret = SIGROK_OK;
 	} else if (capability == HWCAP_PROBECONFIG) {
@@ -516,67 +505,65 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 	return ret;
 }
 
-
 /*
-   Decode chunk of 1024 bytes, 64 clusters, 7 events per cluster.
-   Each event is 20ns apart, and can contain multiple samples.
-   For 200 MHz, an event contains 4 samples for each channel, spread 5 ns apart
+ * Decode chunk of 1024 bytes, 64 clusters, 7 events per cluster.
+ * Each event is 20ns apart, and can contain multiple samples.
+ * For 200 MHz, an event contains 4 samples for each channel,
+ * spread 5 ns apart.
  */
 static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 			   uint8_t *lastsample, void *user_data)
 {
 	const int samples_per_event = 4;
-	uint16_t tsdiff;
-	uint16_t ts;
-
+	uint16_t tsdiff, ts;
 	uint8_t samples[65536 * samples_per_event];
-
 	struct datafeed_packet packet;
-
-	int i, j, k;
-	size_t n = 0;
-
+	int i, j, k, numpad, tosend;
+	size_t n = 0, sent = 0;
 	int clustersize = EVENTS_PER_CLUSTER * samples_per_event; /* 4 for 200 MHz */
+	uint16_t *event;
 
 	/* For each ts */
 	for (i = 0; i < 64; ++i) {
-		ts = *(uint16_t*) &buf[i*16];
+		ts = *(uint16_t *) &buf[i * 16];
 		tsdiff = ts - *lastts;
 		*lastts = ts;
 
-		/* Pad last sample up to current point */
-		int numpad = tsdiff * samples_per_event - clustersize;
+		/* Pad last sample up to current point. */
+		numpad = tsdiff * samples_per_event - clustersize;
 		if (numpad > 0) {
 			memset(samples, *lastsample,
-			       tsdiff*samples_per_event - clustersize);
-			n = tsdiff*samples_per_event - clustersize;
+			       tsdiff * samples_per_event - clustersize);
+			n = tsdiff * samples_per_event - clustersize;
 		}
 
-		uint16_t *event = (uint16_t*) &buf[i*16+2];
+		event = (uint16_t *) &buf[i * 16 + 2];
 
-		/* For each sample in cluster */
+		/* For each sample in cluster. */
 		for (j = 0; j < 7; ++j) {
 			for (k = 0; k < samples_per_event; ++k) {
-				/* Extract samples from bytestream.
-				   Samples are packed together in a short */
+				/*
+				 * Extract samples from bytestream.
+				 * Samples are packed together in a short.
+				 */
 				samples[n++] =
-					((!!(event[j] & (1 << (k+0x0)))) << 0) |
-					((!!(event[j] & (1 << (k+0x4)))) << 1) |
-					((!!(event[j] & (1 << (k+0x8)))) << 2) |
-					((!!(event[j] & (1 << (k+0xc)))) << 3);
+				    ((!!(event[j] & (1 << (k + 0x0)))) << 0) |
+				    ((!!(event[j] & (1 << (k + 0x4)))) << 1) |
+				    ((!!(event[j] & (1 << (k + 0x8)))) << 2) |
+				    ((!!(event[j] & (1 << (k + 0xc)))) << 3);
 			}
 		}
 
-		*lastsample = samples[n-1];
+		*lastsample = samples[n - 1];
 
-		/* Send to sigrok */
-		size_t sent = 0;
+		/* Send to sigrok. */
+		sent = 0;
 		while (sent < n) {
-			int tosend = MIN(4096, n-sent);
+			tosend = MIN(4096, n - sent);
 
 			packet.type = DF_LOGIC8;
 			packet.length = tosend;
-			packet.payload = samples+sent;
+			packet.payload = samples + sent;
 			session_bus(user_data, &packet);
 
 			sent += tosend;
@@ -589,59 +576,52 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 static int receive_data(int fd, int revents, void *user_data)
 {
 	struct datafeed_packet packet;
-
 	const int chunks_per_read = 32;
 	unsigned char buf[chunks_per_read * CHUNK_SIZE];
-	int bufsz;
-
-	uint32_t triggerpos, stoppos;
-	int numchunks;
+	int bufsz, numchunks, curchunk, i, newchunks;
+	uint32_t triggerpos, stoppos, running_msec;
 	struct timeval tv;
-	uint32_t running_msec;
-
 	uint16_t lastts = 0;
 	uint8_t lastsample = 0;
-	int curchunk, i;
 
 	fd = fd;
 	revents = revents;
 
-	/* Get the current position */
+	/* Get the current position. */
 	sigma_read_pos(&stoppos, &triggerpos);
 	numchunks = stoppos / 512;
 
-	/* Check if the has expired, or memory is full */
+	/* Check if the has expired, or memory is full. */
 	gettimeofday(&tv, 0);
 	running_msec = (tv.tv_sec - start_tv.tv_sec) * 1000 +
-		(tv.tv_usec - start_tv.tv_usec) / 1000;
+		       (tv.tv_usec - start_tv.tv_usec) / 1000;
 
 	if (running_msec < limit_msec && numchunks < 32767)
 		return FALSE;
 
-	/* Stop Acqusition */
+	/* Stop acqusition. */
 	sigma_set_register(WRITE_MODE, 0x11);
 
-	/* Set SDRAM Read Enable */
+	/* Set SDRAM Read Enable. */
 	sigma_set_register(WRITE_MODE, 0x02);
 
-	/* Get the current position */
+	/* Get the current position. */
 	sigma_read_pos(&stoppos, &triggerpos);
 
-	/* Download sample data */
+	/* Download sample data. */
 	for (curchunk = 0; curchunk < numchunks;) {
-		int newchunks = MIN(chunks_per_read, numchunks - curchunk);
+		newchunks = MIN(chunks_per_read, numchunks - curchunk);
 
 		g_message("Downloading sample data: %.0f %%",
-				100.0 * curchunk / numchunks);
+			  100.0 * curchunk / numchunks);
 
 		bufsz = sigma_read_dram(curchunk, newchunks, buf);
 
-		/* Find first ts */
-		if (curchunk == 0) {
-			lastts = *(uint16_t*) buf - 1;
-		}
+		/* Find first ts. */
+		if (curchunk == 0)
+			lastts = *(uint16_t *) buf - 1;
 
-		/* Decode chunks and send them to sigrok */
+		/* Decode chunks and send them to sigrok. */
 		for (i = 0; i < newchunks; ++i) {
 			decode_chunk_ts(buf + (i * CHUNK_SIZE),
 					&lastts, &lastsample, user_data);
@@ -663,6 +643,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	struct sigrok_device_instance *sdi;
 	struct datafeed_packet packet;
 	struct datafeed_header header;
+	uint8_t trigger_option[2] = { 0x38, 0x00 };
 
 	session_device_id = session_device_id;
 
@@ -671,29 +652,27 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 
 	device_index = device_index;
 
-	/* Setup trigger (by trigger-in) */
+	/* Setup trigger (by trigger-in). */
 	sigma_set_register(WRITE_TRIGGER_SELECT1, 0x20);
 
-	/* More trigger setup */
-	uint8_t trigger_option[2] = { 0x38, 0x00 };
+	/* More trigger setup. */
 	sigma_write_register(WRITE_TRIGGER_OPTION,
-			trigger_option, sizeof(trigger_option));
+			     trigger_option, sizeof(trigger_option));
 
-	/* Trigger normal (falling edge) */
+	/* Trigger normal (falling edge). */
 	sigma_set_register(WRITE_TRIGGER_SELECT1, 0x08);
 
-	/* Enable pins (200 MHz, 4 pins) */
+	/* Enable pins (200 MHz, 4 pins). */
 	sigma_set_register(WRITE_CLOCK_SELECT, 0xf0);
 
-	/* Setup maximum post trigger time */
+	/* Setup maximum post trigger time. */
 	sigma_set_register(WRITE_POST_TRIGGER, 0xff);
 
-	/* Start Acqusition (Software trigger start) */
+	/* Start acqusition (software trigger start). */
 	gettimeofday(&start_tv, 0);
 	sigma_set_register(WRITE_MODE, 0x0d);
 
-
-	/* Add capture source */
+	/* Add capture source. */
 	source_add(0, G_IO_IN, 10, receive_data, session_device_id);
 
 	receive_data(0, 1, session_device_id);
@@ -712,27 +691,23 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	return SIGROK_OK;
 }
 
-
 static void hw_stop_acquisition(int device_index, gpointer session_device_id)
 {
 	device_index = device_index;
 	session_device_id = session_device_id;
 
-	/* Stop Acqusition */
+	/* Stop acquisition. */
 	sigma_set_register(WRITE_MODE, 0x11);
 
 	// XXX Set some state to indicate that data should be sent to sigrok
 	//     Now, we just wait for timeout
 }
 
-
-
 struct device_plugin asix_sigma_plugin_info = {
 	"asix-sigma",
 	1,
 	hw_init,
 	hw_cleanup,
-
 	hw_opendev,
 	hw_closedev,
 	hw_get_device_info,
@@ -742,5 +717,3 @@ struct device_plugin asix_sigma_plugin_info = {
 	hw_start_acquisition,
 	hw_stop_acquisition
 };
-
-// vim:noexpandtab:ts=8 sts=8 sw=8

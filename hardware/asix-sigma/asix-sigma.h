@@ -22,8 +22,7 @@
 #ifndef ASIX_SIGMA_H
 #define ASIX_SIGMA_H
 
-enum sigma_write_register
-{
+enum sigma_write_register {
 	WRITE_CLOCK_SELECT	= 0,
 	WRITE_TRIGGER_SELECT0	= 1,
 	WRITE_TRIGGER_SELECT1	= 2,
@@ -33,11 +32,10 @@ enum sigma_write_register
 	WRITE_TRIGGER_OPTION	= 6,
 	WRITE_PIN_VIEW		= 7,
 
-	WRITE_TEST		= 15
+	WRITE_TEST		= 15,
 };
 
-enum sigma_read_register
-{
+enum sigma_read_register {
 	READ_ID			= 0,
 	READ_TRIGGER_POS_LOW	= 1,
 	READ_TRIGGER_POS_HIGH	= 2,
@@ -52,7 +50,7 @@ enum sigma_read_register
 	READ_BLOCK_LAST_TS_HIGH	= 11,
 	READ_PIN_VIEW		= 12,
 
-	READ_TEST		= 15
+	READ_TEST		= 15,
 };
 
 #define REG_ADDR_LOW		(0 << 4)
