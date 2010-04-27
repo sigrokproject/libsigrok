@@ -33,6 +33,8 @@ libsigrok_la_SOURCES = \
 	hardware/common/serial.c \
 	hardware/openbench-logic-sniffer/ols.c \
 	hardware/saleae-logic/saleae-logic.c \
+	hardware/asix-sigma/asix-sigma.c \
+	hardware/asix-sigma/asix-sigma.h \
 	hardware/zeroplus-logic-cube/analyzer.c \
 	hardware/zeroplus-logic-cube/analyzer.h \
 	hardware/zeroplus-logic-cube/gl_usb.c \
