@@ -1,13 +1,9 @@
 /*
  * This file is part of the sigrok project.
  *
- * ASIX Sigma Logic Analyzer Driver
- *
- * Copyright (C) 2010
- *
- *	Håvard Espeland   <gus@ping.uio.no>,
- *	Martin Stensgård  <mastensg@ping.uio.no>
- *	Carl Henrik Lunde <chlunde@ping.uio.no>
+ * Copyright (C) 2010 Håvard Espeland <gus@ping.uio.no>,
+ * Copyright (C) 2010 Martin Stensgård <mastensg@ping.uio.no>
+ * Copyright (C) 2010 Carl Henrik Lunde <chlunde@ping.uio.no>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,6 +17,10 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/*
+ * ASIX Sigma Logic Analyzer Driver
  */
 
 #include <ftdi.h>
