@@ -86,11 +86,11 @@ static uint8_t logic_mode_start[] = {
 
 static const char *firmware_files[] =
 {
-	"asix-sigma-50.firmware",	/* Supports fractions (8 bits) */
-	"asix-sigma-100.firmware",	/* 100 MHz */
-	"asix-sigma-200.firmware",	/* 200 MHz */
-	"asix-sigma-50sync.firmware",	/* Asynchronous sampling */
-	"asix-sigma-phasor.firmware",	/* Frequency counter */
+	"asix-sigma-50.fw",	/* 50 MHz, supports 8 bit fractions */
+	"asix-sigma-100.fw",	/* 100 MHz */
+	"asix-sigma-200.fw",	/* 200 MHz */
+	"asix-sigma-50sync.fw",	/* Asynchronous sampling */
+	"asix-sigma-phasor.fw",	/* Frequency counter */
 };
 
 static int sigma_read(void* buf, size_t size)
