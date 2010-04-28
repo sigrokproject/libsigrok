@@ -35,7 +35,6 @@
 #define USB_VENDOR_NAME			"ASIX"
 #define USB_MODEL_NAME			"SIGMA"
 #define USB_MODEL_VERSION		""
-#define FIRMWARE			FIRMWARE_DIR "/asix-sigma-200.firmware"
 
 static GSList *device_instances = NULL;
 
@@ -47,12 +46,14 @@ static struct timeval start_tv;
 static int cur_firmware = -1;
 
 static uint64_t supported_samplerates[] = {
+	MHZ(50),
+	MHZ(100),
 	MHZ(200),
 	0,
 };
 
 static struct samplerates samplerates = {
-	MHZ(200),
+	MHZ(50),
 	MHZ(200),
 	0,
 	supported_samplerates,
@@ -86,9 +87,9 @@ static uint8_t logic_mode_start[] = {
 static const char *firmware_files[] =
 {
 	"asix-sigma-50.firmware",	/* Supports fractions (8 bits) */
-	"asix-sigma-50sync.firmware",	/* Asynchronous sampling */
 	"asix-sigma-100.firmware",	/* 100 MHz */
 	"asix-sigma-200.firmware",	/* 200 MHz */
+	"asix-sigma-50sync.firmware",	/* Asynchronous sampling */
 	"asix-sigma-phasor.firmware",	/* Frequency counter */
 };
 
@@ -344,7 +345,7 @@ static int upload_firmware(int firmware_idx)
 	unsigned char pins;
 	size_t buf_size;
 	unsigned char result[32];
-	char firmware_file[64];
+	char firmware_path[128];
 
 	/* Make sure it's an ASIX SIGMA. */
 	if ((ret = ftdi_usb_open_desc(&ftdic,
@@ -386,12 +387,12 @@ static int upload_firmware(int firmware_idx)
 	}
 
 	/* Prepare firmware */
-	snprintf(firmware_file, sizeof(firmware_file), "%s/%s", FIRMWARE_DIR,
+	snprintf(firmware_path, sizeof(firmware_path), "%s/%s", FIRMWARE_DIR,
 		 firmware_files[firmware_idx]);
 
-	if (-1 == bin2bitbang(firmware_file, &buf, &buf_size)) {
+	if (-1 == bin2bitbang(firmware_path, &buf, &buf_size)) {
 		g_warning("An error occured while reading the firmware: %s",
-			  FIRMWARE);
+			  firmware_path);
 		return SIGROK_ERR;
 	}
 
@@ -453,7 +454,7 @@ static int hw_opendev(int device_index)
 
 static int set_samplerate(struct sigrok_device_instance *sdi, uint64_t samplerate)
 {
-	int i;
+	int i, ret;
 
 	sdi = sdi;
 
@@ -464,13 +465,20 @@ static int set_samplerate(struct sigrok_device_instance *sdi, uint64_t samplerat
 	if (supported_samplerates[i] == 0)
 		return SIGROK_ERR_SAMPLERATE;
 
-	cur_samplerate = samplerate;
+	if (samplerate <= MHZ(50)) {
+		ret = upload_firmware(0);
+		// XXX: Setup divider
+	}
+	if (samplerate == MHZ(100))
+		ret = upload_firmware(1);
+	else if (samplerate == MHZ(200))
+		ret = upload_firmware(2);
 
-	upload_firmware(3);
+	cur_samplerate = samplerate;
 
 	g_message("Firmware uploaded");
 
-	return SIGROK_OK;
+	return ret;
 }
 
 static void hw_closedev(int device_index)
@@ -535,8 +543,6 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 {
 	struct sigrok_device_instance *sdi;
 	int ret;
-
-	fprintf(stderr, "Set config: %d\n", capability);
 
 	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
 		return SIGROK_ERR;
@@ -701,6 +707,11 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 		return SIGROK_ERR;
 
 	device_index = device_index;
+
+	if (cur_firmware == -1) {
+		/* Samplerate has not been set. Default to 200 MHz */
+		set_samplerate(sdi, 200);
+	}
 
 	/* Setup trigger (by trigger-in). */
 	sigma_set_register(WRITE_TRIGGER_SELECT1, 0x20);
