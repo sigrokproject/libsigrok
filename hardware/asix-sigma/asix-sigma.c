@@ -44,6 +44,7 @@ static struct ftdi_context ftdic;
 static uint64_t cur_samplerate = MHZ(200);
 static uint32_t limit_msec = 0;
 static struct timeval start_tv;
+static int cur_firmware = -1;
 
 static uint64_t supported_samplerates[] = {
 	MHZ(200),
@@ -82,7 +83,16 @@ static uint8_t logic_mode_start[] = {
 	0x2a, 0x3a, 0x40, 0x03, 0x20, 0x38,
 };
 
-static int sigma_read(void *buf, size_t size)
+static const char *firmware_files[] =
+{
+	"asix-sigma-50.firmware",	/* Supports fractions (8 bits) */
+	"asix-sigma-50sync.firmware",	/* Asynchronous sampling */
+	"asix-sigma-100.firmware",	/* 100 MHz */
+	"asix-sigma-200.firmware",	/* 200 MHz */
+	"asix-sigma-phasor.firmware",	/* Frequency counter */
+};
+
+static int sigma_read(void* buf, size_t size)
 {
 	int ret;
 
@@ -327,14 +337,14 @@ static int hw_init(char *deviceinfo)
 	return 1;
 }
 
-static int hw_opendev(int device_index)
+static int upload_firmware(int firmware_idx)
 {
 	int ret;
 	unsigned char *buf;
 	unsigned char pins;
 	size_t buf_size;
-	struct sigrok_device_instance *sdi;
 	unsigned char result[32];
+	char firmware_file[64];
 
 	/* Make sure it's an ASIX SIGMA. */
 	if ((ret = ftdi_usb_open_desc(&ftdic,
@@ -375,8 +385,11 @@ static int hw_opendev(int device_index)
 			break;
 	}
 
-	/* Prepare firmware. */
-	if (-1 == bin2bitbang(FIRMWARE, &buf, &buf_size)) {
+	/* Prepare firmware */
+	snprintf(firmware_file, sizeof(firmware_file), "%s/%s", FIRMWARE_DIR,
+		 firmware_files[firmware_idx]);
+
+	if (-1 == bin2bitbang(firmware_file, &buf, &buf_size)) {
 		g_warning("An error occured while reading the firmware: %s",
 			  FIRMWARE);
 		return SIGROK_ERR;
@@ -388,7 +401,7 @@ static int hw_opendev(int device_index)
 	g_free(buf);
 
 	if ((ret = ftdi_set_bitmode(&ftdic, 0x00, BITMODE_RESET)) < 0) {
-		g_warning("ftdi_set_bitmode failed: %s",
+				    g_warning("ftdi_set_bitmode failed: %s",
 			  ftdi_get_error_string(&ftdic));
 		return SIGROK_ERR;
 	}
@@ -410,12 +423,50 @@ static int hw_opendev(int device_index)
 		return SIGROK_ERR;
 	}
 
-	/* Works like a charm... */
+	cur_firmware = firmware_idx;
+
+	return SIGROK_OK;
+}
+
+static int hw_opendev(int device_index)
+{
+	struct sigrok_device_instance *sdi;
+	int ret;
+
+	/* Make sure it's an ASIX SIGMA */
+	if ((ret = ftdi_usb_open_desc(&ftdic,
+		USB_VENDOR, USB_PRODUCT, USB_DESCRIPTION, NULL)) < 0) {
+
+		g_warning("ftdi_usb_open failed: %s",
+			ftdi_get_error_string(&ftdic));
+
+		return 0;
+	}
 
 	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
 		return SIGROK_ERR;
 
 	sdi->status = ST_ACTIVE;
+
+	return SIGROK_OK;
+}
+
+static int set_samplerate(struct sigrok_device_instance *sdi, uint64_t samplerate)
+{
+	int i;
+
+	sdi = sdi;
+
+	for (i = 0; supported_samplerates[i]; i++) {
+		if (supported_samplerates[i] == samplerate)
+			break;
+	}
+	if (supported_samplerates[i] == 0)
+		return SIGROK_ERR_SAMPLERATE;
+
+	cur_samplerate = samplerate;
+
+	upload_firmware(3);
 
 	g_message("Firmware uploaded");
 
@@ -484,15 +535,14 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 {
 	struct sigrok_device_instance *sdi;
 	int ret;
-	uint64_t *tmp_u64;
+
+	fprintf(stderr, "Set config: %d\n", capability);
 
 	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
 		return SIGROK_ERR;
 
 	if (capability == HWCAP_SAMPLERATE) {
-		tmp_u64 = (uint64_t *) value;
-		/* Only 200 MHz implemented */
-		ret = SIGROK_OK;
+		ret = set_samplerate(sdi, *(uint64_t*) value);
 	} else if (capability == HWCAP_PROBECONFIG) {
 		ret = SIGROK_OK;
 	} else if (capability == HWCAP_LIMIT_MSEC) {
