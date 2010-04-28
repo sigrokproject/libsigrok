@@ -99,7 +99,7 @@ static const char *firmware_files[] =
 	"asix-sigma-phasor.fw",	/* Frequency counter */
 };
 
-static int sigma_read(void* buf, size_t size)
+static int sigma_read(void *buf, size_t size)
 {
 	int ret;
 
@@ -392,7 +392,7 @@ static int upload_firmware(int firmware_idx)
 			break;
 	}
 
-	/* Prepare firmware */
+	/* Prepare firmware. */
 	snprintf(firmware_path, sizeof(firmware_path), "%s/%s", FIRMWARE_DIR,
 		 firmware_files[firmware_idx]);
 
@@ -408,7 +408,7 @@ static int upload_firmware(int firmware_idx)
 	g_free(buf);
 
 	if ((ret = ftdi_set_bitmode(&ftdic, 0x00, BITMODE_RESET)) < 0) {
-				    g_warning("ftdi_set_bitmode failed: %s",
+		g_warning("ftdi_set_bitmode failed: %s",
 			  ftdi_get_error_string(&ftdic));
 		return SIGROK_ERR;
 	}
@@ -440,7 +440,7 @@ static int hw_opendev(int device_index)
 	struct sigrok_device_instance *sdi;
 	int ret;
 
-	/* Make sure it's an ASIX SIGMA */
+	/* Make sure it's an ASIX SIGMA. */
 	if ((ret = ftdi_usb_open_desc(&ftdic,
 		USB_VENDOR, USB_PRODUCT, USB_DESCRIPTION, NULL)) < 0) {
 
@@ -723,6 +723,8 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	struct datafeed_packet packet;
 	struct datafeed_header header;
 	uint8_t trigger_option[2] = { 0x38, 0x00 };
+	struct clockselect_50 clockselect;
+	int frac;
 
 	session_device_id = session_device_id;
 
@@ -731,10 +733,9 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 
 	device_index = device_index;
 
-	if (cur_firmware == -1) {
-		/* Samplerate has not been set. Default to 200 MHz */
+	/* If the samplerate has not been set, default to 200 MHz. */
+	if (cur_firmware == -1)
 		set_samplerate(sdi, 200);
-	}
 
 	/* Setup trigger (by trigger-in). */
 	sigma_set_register(WRITE_TRIGGER_SELECT1, 0x20);
@@ -755,24 +756,19 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 		sigma_set_register(WRITE_CLOCK_SELECT, 0x00);
 	else {
 		/*
-		 * 50 MHz mode (or fraction thereof)
-		 * Any fraction down to 50 MHz / 256 can be used,
-		 * but is not suppoted by Sigrok API.
+		 * 50 MHz mode (or fraction thereof). Any fraction down to
+		 * 50 MHz / 256 can be used, but is not suppoted by sigrok API.
 		 */
+		frac = MHZ(50) / cur_samplerate - 1;
 
-		int frac = MHZ(50) / cur_samplerate - 1;
-
-		struct clockselect_50 clockselect = {
-			.async = 0,
-			.fraction = frac,
-			.disabled_probes = 0,
-		};
+		clockselect.async = 0;
+		clockselect.fraction = frac;
+		clockselect.disabled_probes = 0;
 
 		sigma_write_register(WRITE_CLOCK_SELECT,
-				    (uint8_t *) &clockselect,
-				    sizeof(clockselect));
+				     (uint8_t *) &clockselect,
+				     sizeof(clockselect));
 	}
-
 
 	/* Setup maximum post trigger time. */
 	sigma_set_register(WRITE_POST_TRIGGER, 0xff);
@@ -824,5 +820,5 @@ struct device_plugin asix_sigma_plugin_info = {
 	hw_get_capabilities,
 	hw_set_configuration,
 	hw_start_acquisition,
-	hw_stop_acquisition
+	hw_stop_acquisition,
 };
