@@ -40,10 +40,12 @@ static GSList *device_instances = NULL;
 
 // XXX These should be per device
 static struct ftdi_context ftdic;
-static uint64_t cur_samplerate = MHZ(200);
+static uint64_t cur_samplerate = 0;
 static uint32_t limit_msec = 0;
 static struct timeval start_tv;
 static int cur_firmware = -1;
+static int num_probes = 0;
+static int samples_per_event = 0;
 
 static uint64_t supported_samplerates[] = {
 	MHZ(50),
@@ -467,14 +469,20 @@ static int set_samplerate(struct sigrok_device_instance *sdi, uint64_t samplerat
 
 	if (samplerate <= MHZ(50)) {
 		ret = upload_firmware(0);
+		num_probes = 16;
 		// XXX: Setup divider
 	}
-	if (samplerate == MHZ(100))
+	if (samplerate == MHZ(100)) {
 		ret = upload_firmware(1);
-	else if (samplerate == MHZ(200))
+		num_probes = 8;
+	}
+	else if (samplerate == MHZ(200)) {
 		ret = upload_firmware(2);
+		num_probes = 4;
+	}
 
 	cur_samplerate = samplerate;
+	samples_per_event = 16 / num_probes;
 
 	g_message("Firmware uploaded");
 
@@ -564,20 +572,23 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 /*
  * Decode chunk of 1024 bytes, 64 clusters, 7 events per cluster.
  * Each event is 20ns apart, and can contain multiple samples.
- * For 200 MHz, an event contains 4 samples for each channel,
- * spread 5 ns apart.
+ *
+ * For 200 MHz, events contain 4 samples for each channel, spread 5 ns apart.
+ * For 100 MHz, events contain 2 samples for each channel, spread 10 ns apart.
+ * For 50 MHz and below, events contain one sample for each channel,
+ * spread 20 ns apart.
  */
 static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
-			   uint8_t *lastsample, void *user_data)
+			   uint16_t *lastsample, void *user_data)
 {
-	const int samples_per_event = 4;
 	uint16_t tsdiff, ts;
-	uint8_t samples[65536 * samples_per_event];
+	uint16_t samples[65536 * samples_per_event];
 	struct datafeed_packet packet;
-	int i, j, k, numpad, tosend;
+	int i, j, k, l, numpad, tosend;
 	size_t n = 0, sent = 0;
-	int clustersize = EVENTS_PER_CLUSTER * samples_per_event; /* 4 for 200 MHz */
+	int clustersize = EVENTS_PER_CLUSTER * samples_per_event;
 	uint16_t *event;
+	uint16_t cur_sample;
 
 	/* For each ts */
 	for (i = 0; i < 64; ++i) {
@@ -588,25 +599,29 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 		/* Pad last sample up to current point. */
 		numpad = tsdiff * samples_per_event - clustersize;
 		if (numpad > 0) {
-			memset(samples, *lastsample,
-			       tsdiff * samples_per_event - clustersize);
-			n = tsdiff * samples_per_event - clustersize;
+			for (j = 0; j < numpad; ++j)
+				samples[j] = *lastsample;
+
+			n = numpad;
 		}
 
 		event = (uint16_t *) &buf[i * 16 + 2];
 
-		/* For each sample in cluster. */
+		cur_sample = 0;
+
+		/* For each event in cluster. */
 		for (j = 0; j < 7; ++j) {
+
+			/* For each sample in event. */
 			for (k = 0; k < samples_per_event; ++k) {
-				/*
-				 * Extract samples from bytestream.
-				 * Samples are packed together in a short.
-				 */
-				samples[n++] =
-				    ((!!(event[j] & (1 << (k + 0x0)))) << 0) |
-				    ((!!(event[j] & (1 << (k + 0x4)))) << 1) |
-				    ((!!(event[j] & (1 << (k + 0x8)))) << 2) |
-				    ((!!(event[j] & (1 << (k + 0xc)))) << 3);
+				cur_sample = 0;
+
+				/* For each probe. */
+				for (l = 0; l < num_probes; ++l)
+					cur_sample |= (!!(event[j] &
+						      (1 << (l * 2 + k)))) << l;
+
+				samples[n++] = cur_sample;
 			}
 		}
 
@@ -615,10 +630,10 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 		/* Send to sigrok. */
 		sent = 0;
 		while (sent < n) {
-			tosend = MIN(4096, n - sent);
+			tosend = MIN(2048, n - sent);
 
-			packet.type = DF_LOGIC8;
-			packet.length = tosend;
+			packet.type = DF_LOGIC16;
+			packet.length = tosend * sizeof(uint16_t);
 			packet.payload = samples + sent;
 			session_bus(user_data, &packet);
 
@@ -626,7 +641,7 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 		}
 	}
 
-	return 0;
+	return SIGROK_OK;
 }
 
 static int receive_data(int fd, int revents, void *user_data)
@@ -638,7 +653,7 @@ static int receive_data(int fd, int revents, void *user_data)
 	uint32_t triggerpos, stoppos, running_msec;
 	struct timeval tv;
 	uint16_t lastts = 0;
-	uint8_t lastsample = 0;
+	uint16_t lastsample = 0;
 
 	fd = fd;
 	revents = revents;
@@ -663,6 +678,9 @@ static int receive_data(int fd, int revents, void *user_data)
 
 	/* Get the current position. */
 	sigma_read_pos(&stoppos, &triggerpos);
+
+	/* Read mode status. We will care for this later. */
+	sigma_get_register(READ_MODE);
 
 	/* Download sample data. */
 	for (curchunk = 0; curchunk < numchunks;) {
