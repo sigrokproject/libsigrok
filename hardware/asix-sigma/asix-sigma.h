@@ -71,4 +71,10 @@ enum sigma_read_register {
 
 #define CHUNK_SIZE		1024
 
+struct clockselect_50 {
+	uint8_t async;
+	uint8_t fraction;
+	uint16_t disabled_probes;
+};
+
 #endif

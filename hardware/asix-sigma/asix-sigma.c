@@ -48,6 +48,10 @@ static int num_probes = 0;
 static int samples_per_event = 0;
 
 static uint64_t supported_samplerates[] = {
+	KHZ(250),
+	MHZ(1),
+	MHZ(10),
+	MHZ(25),
 	MHZ(50),
 	MHZ(100),
 	MHZ(200),
@@ -55,7 +59,7 @@ static uint64_t supported_samplerates[] = {
 };
 
 static struct samplerates samplerates = {
-	MHZ(50),
+	KHZ(250),
 	MHZ(200),
 	0,
 	supported_samplerates,
@@ -470,7 +474,7 @@ static int set_samplerate(struct sigrok_device_instance *sdi, uint64_t samplerat
 	if (samplerate <= MHZ(50)) {
 		ret = upload_firmware(0);
 		num_probes = 16;
-		// XXX: Setup divider
+		// XXX: Setup divider if < 50 MHz
 	}
 	if (samplerate == MHZ(100)) {
 		ret = upload_firmware(1);
@@ -515,7 +519,7 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 		info = sdi;
 		break;
 	case DI_NUM_PROBES:
-		info = GINT_TO_POINTER(4);
+		info = GINT_TO_POINTER(16);
 		break;
 	case DI_SAMPLERATES:
 		info = &samplerates;
@@ -618,8 +622,9 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 
 				/* For each probe. */
 				for (l = 0; l < num_probes; ++l)
-					cur_sample |= (!!(event[j] &
-						      (1 << (l * 2 + k)))) << l;
+					cur_sample |= (!!(event[j] & (1 << (l *
+						      samples_per_event + k))))
+						      << l;
 
 				samples[n++] = cur_sample;
 			}
@@ -741,8 +746,33 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	/* Trigger normal (falling edge). */
 	sigma_set_register(WRITE_TRIGGER_SELECT1, 0x08);
 
-	/* Enable pins (200 MHz, 4 pins). */
-	sigma_set_register(WRITE_CLOCK_SELECT, 0xf0);
+	/* Set clock select register. */
+	if (cur_samplerate == MHZ(200))
+		/* Enable 4 probes. */
+		sigma_set_register(WRITE_CLOCK_SELECT, 0xf0);
+	else if (cur_samplerate == MHZ(100))
+		/* Enable 8 probes. */
+		sigma_set_register(WRITE_CLOCK_SELECT, 0x00);
+	else {
+		/*
+		 * 50 MHz mode (or fraction thereof)
+		 * Any fraction down to 50 MHz / 256 can be used,
+		 * but is not suppoted by Sigrok API.
+		 */
+
+		int frac = MHZ(50) / cur_samplerate - 1;
+
+		struct clockselect_50 clockselect = {
+			.async = 0,
+			.fraction = frac,
+			.disabled_probes = 0,
+		};
+
+		sigma_write_register(WRITE_CLOCK_SELECT,
+				    (uint8_t *) &clockselect,
+				    sizeof(clockselect));
+	}
+
 
 	/* Setup maximum post trigger time. */
 	sigma_set_register(WRITE_POST_TRIGGER, 0xff);
@@ -764,7 +794,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	gettimeofday(&header.starttime, NULL);
 	header.samplerate = cur_samplerate;
 	header.protocol_id = PROTO_RAW;
-	header.num_probes = 4;
+	header.num_probes = num_probes;
 	session_bus(session_device_id, &packet);
 
 	return SIGROK_OK;
