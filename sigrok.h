@@ -107,6 +107,25 @@ struct datafeed_header {
 };
 
 /*
+ * Input
+ */
+struct input {
+	struct input_format *format;
+	void *param;
+	void *internal;
+};
+
+struct input_format {
+	char *extension;
+	char *description;
+	int (*format_match) (char *filename);
+	int (*in_loadfile) (char *filename);
+};
+
+struct input_format **input_list(void);
+
+
+/*
  * Output
  */
 struct output {
@@ -127,6 +146,8 @@ struct output_format {
 };
 
 struct output_format **output_list(void);
+
+
 int filter_probes(int in_unitsize, int out_unitsize, int *probelist,
 		  char *data_in, uint64_t length_in, char **data_out,
 		  uint64_t *length_out);
