@@ -35,6 +35,7 @@
 #define USB_VENDOR_NAME			"ASIX"
 #define USB_MODEL_NAME			"SIGMA"
 #define USB_MODEL_VERSION		""
+#define TRIGGER_TYPES			"rf"
 
 static GSList *device_instances = NULL;
 
@@ -46,6 +47,11 @@ static struct timeval start_tv;
 static int cur_firmware = -1;
 static int num_probes = 0;
 static int samples_per_event = 0;
+static int capture_ratio = 50;
+
+/* Single-pin trigger support */
+static uint8_t triggerpin = 1;
+static uint8_t triggerfall = 0;
 
 static uint64_t supported_samplerates[] = {
 	KHZ(200),
@@ -71,6 +77,8 @@ static struct samplerates samplerates = {
 static int capabilities[] = {
 	HWCAP_LOGIC_ANALYZER,
 	HWCAP_SAMPLERATE,
+	HWCAP_CAPTURE_RATIO,
+	HWCAP_PROBECONFIG,
 
 	/* These are really implemented in the driver, not the hardware. */
 	HWCAP_LIMIT_MSEC,
@@ -197,6 +205,13 @@ static int sigma_read_pos(uint32_t *stoppos, uint32_t *triggerpos)
 
 	*triggerpos = result[0] | (result[1] << 8) | (result[2] << 16);
 	*stoppos = result[3] | (result[4] << 8) | (result[5] << 16);
+
+	/* Not really sure why this must be done, but according to spec. */
+	if ((--*stoppos & 0x1ff) == 0x1ff)
+		stoppos -= 64;
+
+	if ((*--triggerpos & 0x1ff) == 0x1ff)
+		triggerpos -= 64;
 
 	return 1;
 }
@@ -495,6 +510,39 @@ static int set_samplerate(struct sigrok_device_instance *sdi, uint64_t samplerat
 	return ret;
 }
 
+/* Only trigger on single pin supported (in 100-200 MHz modes) */
+static int configure_probes(GSList *probes)
+{
+	struct probe *probe;
+	GSList *l;
+	int trigger_set = 0;
+
+	for (l = probes; l; l = l->next) {
+		probe = (struct probe *)l->data;
+
+		if (!probe->enabled || !probe->trigger)
+			continue;
+
+		if (trigger_set) {
+			g_warning("Asix Sigma only supports a single pin trigger"
+				  " in 100 and 200 MHz mode.");
+
+			return SIGROK_ERR;
+		}
+
+		/* Found trigger */
+		if (probe->trigger[0] == 'f')
+			triggerfall = 1;
+		else
+			triggerfall = 0;
+
+		triggerpin = probe->index - 1;
+		trigger_set = 1;
+	}
+
+	return SIGROK_OK;
+}
+
 static void hw_closedev(int device_index)
 {
 	device_index = device_index;
@@ -527,7 +575,7 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 		info = &samplerates;
 		break;
 	case DI_TRIGGER_TYPES:
-		info = 0;
+		info = (char *)TRIGGER_TYPES;
 		break;
 	case DI_CUR_SAMPLERATE:
 		info = &cur_samplerate;
@@ -564,10 +612,15 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 	if (capability == HWCAP_SAMPLERATE) {
 		ret = set_samplerate(sdi, *(uint64_t*) value);
 	} else if (capability == HWCAP_PROBECONFIG) {
-		ret = SIGROK_OK;
+		ret = configure_probes(value);
 	} else if (capability == HWCAP_LIMIT_MSEC) {
 		limit_msec = strtoull(value, NULL, 10);
 		ret = SIGROK_OK;
+	} else if (capability == HWCAP_CAPTURE_RATIO) {
+		capture_ratio = strtoull(value, NULL, 10);
+		ret = SIGROK_OK;
+	} else if (capability == HWCAP_PROBECONFIG) {
+		ret = configure_probes((GSList *) value);
 	} else {
 		ret = SIGROK_ERR;
 	}
@@ -585,7 +638,7 @@ static int hw_set_configuration(int device_index, int capability, void *value)
  * spread 20 ns apart.
  */
 static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
-			   uint16_t *lastsample, void *user_data)
+			   uint16_t *lastsample, int triggerpos, void *user_data)
 {
 	uint16_t tsdiff, ts;
 	uint16_t samples[65536 * samples_per_event];
@@ -595,6 +648,11 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 	int clustersize = EVENTS_PER_CLUSTER * samples_per_event;
 	uint16_t *event;
 	uint16_t cur_sample;
+	int triggerts = -1;
+
+	/* Find in which cluster the trigger occured */
+	if (triggerpos != -1)
+		triggerts = (triggerpos / 7);
 
 	/* For each ts */
 	for (i = 0; i < 64; ++i) {
@@ -611,8 +669,21 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 			n = numpad;
 		}
 
-		event = (uint16_t *) &buf[i * 16 + 2];
+		/* Send samples between previous and this timestamp to sigrok. */
+		sent = 0;
+		while (sent < n) {
+			tosend = MIN(2048, n - sent);
 
+			packet.type = DF_LOGIC16;
+			packet.length = tosend * sizeof(uint16_t);
+			packet.payload = samples + sent;
+			session_bus(user_data, &packet);
+
+			sent += tosend;
+		}
+		n = 0;
+
+		event = (uint16_t *) &buf[i * 16 + 2];
 		cur_sample = 0;
 
 		/* For each event in cluster. */
@@ -634,18 +705,39 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 
 		*lastsample = samples[n - 1];
 
-		/* Send to sigrok. */
+		/* Send data up to trigger point (if triggered) */
 		sent = 0;
-		while (sent < n) {
-			tosend = MIN(2048, n - sent);
+		if (i == triggerts) {
+			/*
+			 * Trigger is presumptively only accurate to event, i.e.
+			 * for 100 and 200 MHz, where multiple samples are coded
+			 * in a single event, the trigger does not match the
+			 * exact sample.
+			 */
+			tosend = (triggerpos % 7) - 3;
 
-			packet.type = DF_LOGIC16;
-			packet.length = tosend * sizeof(uint16_t);
-			packet.payload = samples + sent;
+			if (tosend > 0) {
+				packet.type = DF_LOGIC16;
+				packet.length = tosend * sizeof(uint16_t);
+				packet.payload = samples;
+				session_bus(user_data, &packet);
+
+				sent += tosend;
+			}
+
+			packet.type = DF_TRIGGER;
+			packet.length = 0;
+			packet.payload = 0;
 			session_bus(user_data, &packet);
-
-			sent += tosend;
 		}
+
+		/* Send rest of the chunk to sigrok */
+		tosend = n - sent;
+
+		packet.type = DF_LOGIC16;
+		packet.length = tosend * sizeof(uint16_t);
+		packet.payload = samples + sent;
+		session_bus(user_data, &packet);
 	}
 
 	return SIGROK_OK;
@@ -661,6 +753,8 @@ static int receive_data(int fd, int revents, void *user_data)
 	struct timeval tv;
 	uint16_t lastts = 0;
 	uint16_t lastsample = 0;
+	uint8_t modestatus;
+	int triggerchunk = -1;
 
 	fd = fd;
 	revents = revents;
@@ -686,8 +780,11 @@ static int receive_data(int fd, int revents, void *user_data)
 	/* Get the current position. */
 	sigma_read_pos(&stoppos, &triggerpos);
 
-	/* Read mode status. We will care for this later. */
-	sigma_get_register(READ_MODE);
+	/* Check if trigger has fired */
+	modestatus = sigma_get_register(READ_MODE);
+	if (modestatus & 0x20) {
+		triggerchunk = triggerpos / 512;
+	}
 
 	/* Download sample data. */
 	for (curchunk = 0; curchunk < numchunks;) {
@@ -704,8 +801,14 @@ static int receive_data(int fd, int revents, void *user_data)
 
 		/* Decode chunks and send them to sigrok. */
 		for (i = 0; i < newchunks; ++i) {
-			decode_chunk_ts(buf + (i * CHUNK_SIZE),
-					&lastts, &lastsample, user_data);
+			if (curchunk + i == triggerchunk)
+				decode_chunk_ts(buf + (i * CHUNK_SIZE),
+						&lastts, &lastsample,
+						triggerpos & 0x1ff, user_data);
+			else
+				decode_chunk_ts(buf + (i * CHUNK_SIZE),
+						&lastts, &lastsample,
+						-1, user_data);
 		}
 
 		curchunk += newchunks;
@@ -724,9 +827,10 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	struct sigrok_device_instance *sdi;
 	struct datafeed_packet packet;
 	struct datafeed_header header;
-	uint8_t trigger_option[2] = { 0x38, 0x00 };
 	struct clockselect_50 clockselect;
 	int frac;
+	uint8_t triggerselect;
+	struct triggerinout triggerinout_conf;
 
 	session_device_id = session_device_id;
 
@@ -739,15 +843,34 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	if (cur_firmware == -1)
 		set_samplerate(sdi, MHZ(50));
 
-	/* Setup trigger (by trigger-in). */
+	/* Enter trigger programming mode */
 	sigma_set_register(WRITE_TRIGGER_SELECT1, 0x20);
 
-	/* More trigger setup. */
-	sigma_write_register(WRITE_TRIGGER_OPTION,
-			     trigger_option, sizeof(trigger_option));
+	/* 100 and 200 MHz mode */
+	if (cur_samplerate >= MHZ(100)) {
+		sigma_set_register(WRITE_TRIGGER_SELECT1, 0x81);
 
-	/* Trigger normal (falling edge). */
-	sigma_set_register(WRITE_TRIGGER_SELECT1, 0x08);
+		triggerselect = (1 << LEDSEL1) | (triggerfall << 3) |
+					(triggerpin & 0x7);
+
+	/* All other modes */
+	} else if (cur_samplerate <= MHZ(50)) {
+		sigma_set_register(WRITE_TRIGGER_SELECT1, 0x20);
+
+		triggerselect = (1 << LEDSEL1) | (1 << LEDSEL0);
+	}
+
+	/* Setup trigger in and out pins to default values */
+	memset(&triggerinout_conf, 0, sizeof(struct triggerinout));
+	triggerinout_conf.trgout_bytrigger = 1;
+	triggerinout_conf.trgout_enable = 1;
+
+	sigma_write_register(WRITE_TRIGGER_OPTION,
+			     (uint8_t *) &triggerinout_conf,
+			     sizeof(struct triggerinout));
+
+	/* Go back to normal mode */
+	sigma_set_register(WRITE_TRIGGER_SELECT1, triggerselect);
 
 	/* Set clock select register. */
 	if (cur_samplerate == MHZ(200))
@@ -773,16 +896,11 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	}
 
 	/* Setup maximum post trigger time. */
-	sigma_set_register(WRITE_POST_TRIGGER, 0xff);
+	sigma_set_register(WRITE_POST_TRIGGER, (capture_ratio * 256) / 100);
 
 	/* Start acqusition (software trigger start). */
 	gettimeofday(&start_tv, 0);
 	sigma_set_register(WRITE_MODE, 0x0d);
-
-	/* Add capture source. */
-	source_add(0, G_IO_IN, 10, receive_data, session_device_id);
-
-	receive_data(0, 1, session_device_id);
 
 	/* Send header packet to the session bus. */
 	packet.type = DF_HEADER;
@@ -794,6 +912,9 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	header.protocol_id = PROTO_RAW;
 	header.num_probes = num_probes;
 	session_bus(session_device_id, &packet);
+
+	/* Add capture source. */
+	source_add(0, G_IO_IN, 10, receive_data, session_device_id);
 
 	return SIGROK_OK;
 }

@@ -65,6 +65,9 @@ enum sigma_read_register {
 #define REG_DRAM_BLOCK_BEGIN	(8 << 4)
 #define REG_DRAM_BLOCK_DATA	(10 << 4)
 
+#define LEDSEL0			6
+#define LEDSEL1			7
+
 #define NEXT_REG		1
 
 #define EVENTS_PER_CLUSTER	7
@@ -75,6 +78,28 @@ struct clockselect_50 {
 	uint8_t async;
 	uint8_t fraction;
 	uint16_t disabled_probes;
+};
+
+/* The effect of all these are still a bit unclear. */
+struct triggerinout {
+	uint8_t trgout_resistor_enable : 1;
+	uint8_t trgout_resistor_pullup : 1;
+	uint8_t reserved1 : 1;
+	uint8_t trgout_bytrigger : 1;
+	uint8_t trgout_byevent : 1;
+	uint8_t trgout_bytriggerin : 1;
+	uint8_t reserved2 : 2;
+
+	/* Should be set same as the first two */
+	uint8_t trgout_resistor_enable2 : 1;
+	uint8_t trgout_resistor_pullup2 : 1;
+
+	uint8_t reserved3 : 1;
+	uint8_t trgout_long : 1;
+	uint8_t trgout_pin : 1; /* Use 1k resistor. Pullup? */
+	uint8_t trgin_negate : 1;
+	uint8_t trgout_enable : 1;
+	uint8_t trgin_enable : 1;
 };
 
 #endif
