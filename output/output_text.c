@@ -37,6 +37,7 @@ struct context {
 	int spl_cnt;
 	uint8_t *linevalues;
 	char *header;
+	int mark_trigger;
 };
 
 static void flush_linebufs(struct context *ctx, char *outbuf)
@@ -60,6 +61,12 @@ static void flush_linebufs(struct context *ctx, char *outbuf)
 		sprintf(outbuf + strlen(outbuf), "%*s:%s\n", max_probename_len,
 			ctx->probelist[i], ctx->linebuf + i * ctx->linebuf_len);
 	}
+
+	/* Mark trigger with ^ */
+	if (ctx->mark_trigger != -1)
+		sprintf(outbuf + strlen(outbuf), "T:%*s^\n",
+			ctx->mark_trigger + (ctx->mark_trigger / 8), "");
+
 	memset(ctx->linebuf, 0, i * ctx->linebuf_len);
 }
 
@@ -86,6 +93,7 @@ static int init(struct output *o, int default_spl)
 	ctx->unitsize = (ctx->num_enabled_probes + 7) / 8;
 	ctx->line_offset = 0;
 	ctx->spl_cnt = 0;
+	ctx->mark_trigger = -1;
 
 	if (o->param && o->param[0])
 		ctx->samples_per_line = strtoul(o->param, NULL, 10);
@@ -121,6 +129,7 @@ static int event(struct output *o, int event_type, char **data_out,
 	ctx = o->internal;
 	switch (event_type) {
 	case DF_TRIGGER:
+		ctx->mark_trigger = ctx->spl_cnt;
 		break;
 	case DF_END:
 		outsize = ctx->num_enabled_probes
@@ -189,6 +198,7 @@ static int data_bits(struct output *o, char *data_in, uint64_t length_in,
 			if (ctx->spl_cnt >= ctx->samples_per_line) {
 				flush_linebufs(ctx, outbuf);
 				ctx->line_offset = ctx->spl_cnt = 0;
+				ctx->mark_trigger = -1;
 			}
 		}
 	} else
