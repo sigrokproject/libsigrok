@@ -48,8 +48,11 @@ static int num_probes = 0;
 static int samples_per_event = 0;
 
 static uint64_t supported_samplerates[] = {
+	KHZ(200),
 	KHZ(250),
+	KHZ(500),
 	MHZ(1),
+	MHZ(5),
 	MHZ(10),
 	MHZ(25),
 	MHZ(50),
@@ -59,7 +62,7 @@ static uint64_t supported_samplerates[] = {
 };
 
 static struct samplerates samplerates = {
-	KHZ(250),
+	KHZ(200),
 	MHZ(200),
 	0,
 	supported_samplerates,
@@ -95,7 +98,7 @@ static const char *firmware_files[] =
 	"asix-sigma-50.fw",	/* 50 MHz, supports 8 bit fractions */
 	"asix-sigma-100.fw",	/* 100 MHz */
 	"asix-sigma-200.fw",	/* 200 MHz */
-	"asix-sigma-50sync.fw",	/* Asynchronous sampling */
+	"asix-sigma-50sync.fw",	/* Synchronous clock from pin */
 	"asix-sigma-phasor.fw",	/* Frequency counter */
 };
 
@@ -474,7 +477,6 @@ static int set_samplerate(struct sigrok_device_instance *sdi, uint64_t samplerat
 	if (samplerate <= MHZ(50)) {
 		ret = upload_firmware(0);
 		num_probes = 16;
-		// XXX: Setup divider if < 50 MHz
 	}
 	if (samplerate == MHZ(100)) {
 		ret = upload_firmware(1);
@@ -525,7 +527,7 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 		info = &samplerates;
 		break;
 	case DI_TRIGGER_TYPES:
-		info = 0;	//TRIGGER_TYPES;
+		info = 0;
 		break;
 	case DI_CUR_SAMPLERATE:
 		info = &cur_samplerate;
@@ -733,9 +735,9 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 
 	device_index = device_index;
 
-	/* If the samplerate has not been set, default to 200 MHz. */
+	/* If the samplerate has not been set, default to 50 MHz. */
 	if (cur_firmware == -1)
-		set_samplerate(sdi, 200);
+		set_samplerate(sdi, MHZ(50));
 
 	/* Setup trigger (by trigger-in). */
 	sigma_set_register(WRITE_TRIGGER_SELECT1, 0x20);
