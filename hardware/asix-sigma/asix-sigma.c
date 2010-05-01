@@ -49,7 +49,7 @@ static int num_probes = 0;
 static int samples_per_event = 0;
 static int capture_ratio = 50;
 
-/* Single-pin trigger support */
+/* Single-pin trigger support. */
 static uint8_t triggerpin = 1;
 static uint8_t triggerfall = 0;
 
@@ -80,7 +80,6 @@ static int capabilities[] = {
 	HWCAP_CAPTURE_RATIO,
 	HWCAP_PROBECONFIG,
 
-	/* These are really implemented in the driver, not the hardware. */
 	HWCAP_LIMIT_MSEC,
 	0,
 };
@@ -101,8 +100,7 @@ static uint8_t logic_mode_start[] = {
 	0x2a, 0x3a, 0x40, 0x03, 0x20, 0x38,
 };
 
-static const char *firmware_files[] =
-{
+static const char *firmware_files[] = {
 	"asix-sigma-50.fw",	/* 50 MHz, supports 8 bit fractions */
 	"asix-sigma-100.fw",	/* 100 MHz */
 	"asix-sigma-200.fw",	/* 200 MHz */
@@ -510,12 +508,18 @@ static int set_samplerate(struct sigrok_device_instance *sdi, uint64_t samplerat
 	return ret;
 }
 
-/* Only trigger on single pin supported (in 100-200 MHz modes) */
+/* Only trigger on single pin supported (in 100-200 MHz modes). */
 static int configure_probes(GSList *probes)
 {
 	struct probe *probe;
 	GSList *l;
 	int trigger_set = 0;
+
+	if (cur_samplerate <= MHZ(50)) {
+		g_warning("Trigger support only implemented "
+			  "in 100 and 200 MHz mode.");
+		return SIGROK_ERR;
+	}
 
 	for (l = probes; l; l = l->next) {
 		probe = (struct probe *)l->data;
@@ -524,13 +528,12 @@ static int configure_probes(GSList *probes)
 			continue;
 
 		if (trigger_set) {
-			g_warning("Asix Sigma only supports a single pin trigger"
-				  " in 100 and 200 MHz mode.");
-
+			g_warning("Asix Sigma only supports a single pin trigger "
+				  "in 100 and 200 MHz mode.");
 			return SIGROK_ERR;
 		}
 
-		/* Found trigger */
+		/* Found trigger. */
 		if (probe->trigger[0] == 'f')
 			triggerfall = 1;
 		else
@@ -650,11 +653,11 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 	uint16_t cur_sample;
 	int triggerts = -1;
 
-	/* Find in which cluster the trigger occured */
+	/* Find in which cluster the trigger occured. */
 	if (triggerpos != -1)
 		triggerts = (triggerpos / 7);
 
-	/* For each ts */
+	/* For each ts. */
 	for (i = 0; i < 64; ++i) {
 		ts = *(uint16_t *) &buf[i * 16];
 		tsdiff = ts - *lastts;
@@ -705,7 +708,7 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 
 		*lastsample = samples[n - 1];
 
-		/* Send data up to trigger point (if triggered) */
+		/* Send data up to trigger point (if triggered). */
 		sent = 0;
 		if (i == triggerts) {
 			/*
@@ -731,7 +734,7 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 			session_bus(user_data, &packet);
 		}
 
-		/* Send rest of the chunk to sigrok */
+		/* Send rest of the chunk to sigrok. */
 		tosend = n - sent;
 
 		packet.type = DF_LOGIC16;
@@ -780,7 +783,7 @@ static int receive_data(int fd, int revents, void *user_data)
 	/* Get the current position. */
 	sigma_read_pos(&stoppos, &triggerpos);
 
-	/* Check if trigger has fired */
+	/* Check if trigger has fired. */
 	modestatus = sigma_get_register(READ_MODE);
 	if (modestatus & 0x20) {
 		triggerchunk = triggerpos / 512;
@@ -814,7 +817,7 @@ static int receive_data(int fd, int revents, void *user_data)
 		curchunk += newchunks;
 	}
 
-	/* End of data */
+	/* End of data. */
 	packet.type = DF_END;
 	packet.length = 0;
 	session_bus(user_data, &packet);
@@ -843,24 +846,24 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	if (cur_firmware == -1)
 		set_samplerate(sdi, MHZ(50));
 
-	/* Enter trigger programming mode */
+	/* Enter trigger programming mode. */
 	sigma_set_register(WRITE_TRIGGER_SELECT1, 0x20);
 
-	/* 100 and 200 MHz mode */
+	/* 100 and 200 MHz mode. */
 	if (cur_samplerate >= MHZ(100)) {
 		sigma_set_register(WRITE_TRIGGER_SELECT1, 0x81);
 
 		triggerselect = (1 << LEDSEL1) | (triggerfall << 3) |
 					(triggerpin & 0x7);
 
-	/* All other modes */
+	/* All other modes. */
 	} else if (cur_samplerate <= MHZ(50)) {
 		sigma_set_register(WRITE_TRIGGER_SELECT1, 0x20);
 
 		triggerselect = (1 << LEDSEL1) | (1 << LEDSEL0);
 	}
 
-	/* Setup trigger in and out pins to default values */
+	/* Setup trigger in and out pins to default values. */
 	memset(&triggerinout_conf, 0, sizeof(struct triggerinout));
 	triggerinout_conf.trgout_bytrigger = 1;
 	triggerinout_conf.trgout_enable = 1;
@@ -869,7 +872,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 			     (uint8_t *) &triggerinout_conf,
 			     sizeof(struct triggerinout));
 
-	/* Go back to normal mode */
+	/* Go back to normal mode. */
 	sigma_set_register(WRITE_TRIGGER_SELECT1, triggerselect);
 
 	/* Set clock select register. */
@@ -882,7 +885,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	else {
 		/*
 		 * 50 MHz mode (or fraction thereof). Any fraction down to
-		 * 50 MHz / 256 can be used, but is not suppoted by sigrok API.
+		 * 50 MHz / 256 can be used, but is not supported by sigrok API.
 		 */
 		frac = MHZ(50) / cur_samplerate - 1;
 
@@ -898,7 +901,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	/* Setup maximum post trigger time. */
 	sigma_set_register(WRITE_POST_TRIGGER, (capture_ratio * 256) / 100);
 
-	/* Start acqusition (software trigger start). */
+	/* Start acqusition. */
 	gettimeofday(&start_tv, 0);
 	sigma_set_register(WRITE_MODE, 0x0d);
 
