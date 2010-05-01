@@ -35,7 +35,7 @@
 #define USB_VENDOR_NAME			"ASIX"
 #define USB_MODEL_NAME			"SIGMA"
 #define USB_MODEL_VERSION		""
-#define TRIGGER_TYPES			"rf"
+#define TRIGGER_TYPES			"rf10"
 
 static GSList *device_instances = NULL;
 
@@ -49,9 +49,13 @@ static int num_probes = 0;
 static int samples_per_event = 0;
 static int capture_ratio = 50;
 
-/* Single-pin trigger support. */
+/* Single-pin trigger support (100 and 200 MHz).*/
 static uint8_t triggerpin = 1;
 static uint8_t triggerfall = 0;
+
+/* Simple trigger support (<= 50 MHz). */
+static uint16_t triggermask = 1;
+static uint16_t triggervalue = 1;
 
 static uint64_t supported_samplerates[] = {
 	KHZ(200),
@@ -243,6 +247,64 @@ static int sigma_read_dram(uint16_t startchunk, size_t numchunks, uint8_t *data)
 	sigma_write(buf, idx);
 
 	return sigma_read(data, numchunks * CHUNK_SIZE);
+}
+
+/* Upload trigger look-up tables to Sigma */
+static int sigma_write_trigger_lut(struct triggerlut *lut)
+{
+	int i;
+	uint8_t tmp[2];
+	uint16_t bit;
+
+	/* Transpose the table and send to Sigma. */
+	for (i = 0; i < 16; ++i) {
+		bit = 1 << i;
+
+		tmp[0] = tmp[1] = 0;
+
+		if (lut->m2d[0] & bit)
+			tmp[0] |= 0x01;
+		if (lut->m2d[1] & bit)
+			tmp[0] |= 0x02;
+		if (lut->m2d[2] & bit)
+			tmp[0] |= 0x04;
+		if (lut->m2d[3] & bit)
+			tmp[0] |= 0x08;
+
+		if (lut->m3 & bit)
+			tmp[0] |= 0x10;
+		if (lut->m3s & bit)
+			tmp[0] |= 0x20;
+		if (lut->m4 & bit)
+			tmp[0] |= 0x40;
+
+		if (lut->m0d[0] & bit)
+			tmp[1] |= 0x01;
+		if (lut->m0d[1] & bit)
+			tmp[1] |= 0x02;
+		if (lut->m0d[2] & bit)
+			tmp[1] |= 0x04;
+		if (lut->m0d[3] & bit)
+			tmp[1] |= 0x08;
+
+		if (lut->m1d[0] & bit)
+			tmp[1] |= 0x10;
+		if (lut->m1d[1] & bit)
+			tmp[1] |= 0x20;
+		if (lut->m1d[2] & bit)
+			tmp[1] |= 0x40;
+		if (lut->m1d[3] & bit)
+			tmp[1] |= 0x80;
+
+		sigma_write_register(WRITE_TRIGGER_SELECT0, tmp, sizeof(tmp));
+		sigma_set_register(WRITE_TRIGGER_SELECT1, 0x30 | i);
+	}
+
+	/* Send the parameters */
+	sigma_write_register(WRITE_TRIGGER_SELECT0, (uint8_t *) &lut->params,
+			     sizeof(lut->params));
+
+	return SIGROK_OK;
 }
 
 /* Generate the bitbang stream for programming the FPGA. */
@@ -515,11 +577,8 @@ static int configure_probes(GSList *probes)
 	GSList *l;
 	int trigger_set = 0;
 
-	if (cur_samplerate <= MHZ(50)) {
-		g_warning("Trigger support only implemented "
-			  "in 100 and 200 MHz mode.");
-		return SIGROK_ERR;
-	}
+	triggermask = 0;
+	triggervalue = 0;
 
 	for (l = probes; l; l = l->next) {
 		probe = (struct probe *)l->data;
@@ -527,20 +586,43 @@ static int configure_probes(GSList *probes)
 		if (!probe->enabled || !probe->trigger)
 			continue;
 
-		if (trigger_set) {
-			g_warning("Asix Sigma only supports a single pin trigger "
-				  "in 100 and 200 MHz mode.");
-			return SIGROK_ERR;
+		if (cur_samplerate >= MHZ(100)) {
+			/* Fast trigger support */
+			if (trigger_set) {
+				g_warning("Asix Sigma only supports a single pin trigger "
+						"in 100 and 200 MHz mode.");
+				return SIGROK_ERR;
+			}
+			if (probe->trigger[0] == 'f')
+				triggerfall = 1;
+			else if (probe->trigger[0] == 'r')
+				triggerfall = 0;
+			else {
+				g_warning("Asix Sigma only supports "
+					  "rising/falling trigger in 100 "
+					  "and 200 MHz mode.");
+				return SIGROK_ERR;
+			}
+
+			triggerpin = probe->index - 1;
+		} else {
+			/* Normal trigger support */
+			triggermask |= 1 << (probe->index - 1);
+
+			if (probe->trigger[0] == '1')
+				triggervalue |= 1 << (probe->index - 1);
+			else if (probe->trigger[0] == '0')
+				triggervalue |= 0 << (probe->index - 1);
+			else {
+				g_warning("Asix Sigma only supports "
+					  "trigger values in <= 50"
+					  " MHz mode.");
+				return SIGROK_ERR;
+			}
+
 		}
 
-		/* Found trigger. */
-		if (probe->trigger[0] == 'f')
-			triggerfall = 1;
-		else
-			triggerfall = 0;
-
-		triggerpin = probe->index - 1;
-		trigger_set = 1;
+		++trigger_set;
 	}
 
 	return SIGROK_OK;
@@ -652,10 +734,20 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 	uint16_t *event;
 	uint16_t cur_sample;
 	int triggerts = -1;
+	int triggeroff = 0;
 
-	/* Find in which cluster the trigger occured. */
-	if (triggerpos != -1)
-		triggerts = (triggerpos / 7);
+	if (triggerpos != -1) {
+		if (cur_samplerate <= MHZ(50))
+			triggerpos -= EVENTS_PER_CLUSTER;
+		else
+			triggeroff = 3;
+
+		if (triggerpos < 0)
+			triggerpos = 0;
+
+		/* Find in which cluster the trigger occured. */
+		triggerts = triggerpos / 7;
+	}
 
 	/* For each ts. */
 	for (i = 0; i < 64; ++i) {
@@ -706,8 +798,6 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 			}
 		}
 
-		*lastsample = samples[n - 1];
-
 		/* Send data up to trigger point (if triggered). */
 		sent = 0;
 		if (i == triggerts) {
@@ -717,7 +807,7 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 			 * in a single event, the trigger does not match the
 			 * exact sample.
 			 */
-			tosend = (triggerpos % 7) - 3;
+			tosend = (triggerpos % 7) - triggeroff;
 
 			if (tosend > 0) {
 				packet.type = DF_LOGIC16;
@@ -741,6 +831,8 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 		packet.length = tosend * sizeof(uint16_t);
 		packet.payload = samples + sent;
 		session_bus(user_data, &packet);
+
+		*lastsample = samples[n - 1];
 	}
 
 	return SIGROK_OK;
@@ -825,6 +917,46 @@ static int receive_data(int fd, int revents, void *user_data)
 	return TRUE;
 }
 
+/*
+ * Build trigger LUTs used by 50 MHz and lower sample rates for supporting
+ * simple pin change and state triggers. Only two transitions (rise/fall) can be
+ * set at any time, but a full mask and value can be set (0/1).
+ */
+static int build_basic_trigger(struct triggerlut *lut)
+{
+	int i, j, k, bit;
+
+	memset(lut, 0, sizeof(struct triggerlut));
+
+	/* Unknown */
+	lut->m4 = 0xa000;
+
+	/* Set the LUT for controlling value/maske trigger */
+	for (i = 0; i < 4; ++i) {
+		lut->m2d[i] = 0xffff;
+
+		for (j = 0; j < 16; ++j)
+
+			for (k = 0; k < 4; ++k) {
+				bit = 1 << (i * 4 + k);
+
+				if ((triggermask & bit) &&
+				    (triggervalue & bit) != (j & (1 << k))) {
+					lut->m2d[i] &= ~(1 << j);
+				}
+			}
+	}
+
+
+	/* Unused when not triggering on transitions */
+	lut->m3 = 0xffff;
+
+	/* Triggertype: event */
+	lut->params.selres = 3;
+
+	return SIGROK_OK;
+}
+
 static int hw_start_acquisition(int device_index, gpointer session_device_id)
 {
 	struct sigrok_device_instance *sdi;
@@ -834,6 +966,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	int frac;
 	uint8_t triggerselect;
 	struct triggerinout triggerinout_conf;
+	struct triggerlut lut;
 
 	session_device_id = session_device_id;
 
@@ -858,7 +991,9 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 
 	/* All other modes. */
 	} else if (cur_samplerate <= MHZ(50)) {
-		sigma_set_register(WRITE_TRIGGER_SELECT1, 0x20);
+		build_basic_trigger(&lut);
+
+		sigma_write_trigger_lut(&lut);
 
 		triggerselect = (1 << LEDSEL1) | (1 << LEDSEL0);
 	}

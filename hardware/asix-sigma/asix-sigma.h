@@ -102,4 +102,24 @@ struct triggerinout {
 	uint8_t trgin_enable : 1;
 };
 
+struct triggerlut {
+	/* The actual LUTs. */
+	uint16_t m0d[4], m1d[4], m2d[4];
+	uint16_t m3, m3s, m4;
+
+	/* Paramters should be sent as a single register write. */
+	struct {
+		uint8_t selc : 2;
+		uint8_t selpresc : 6;
+
+		uint8_t selinc : 2;
+		uint8_t selres : 2;
+		uint8_t sela : 2;
+		uint8_t selb : 2;
+
+		uint16_t cmpb;
+		uint16_t cmpa;
+	} params;
+};
+
 #endif
