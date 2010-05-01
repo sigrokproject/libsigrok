@@ -37,7 +37,7 @@
 #define NUM_PROBES			8
 #define NUM_TRIGGER_STAGES		4
 #define TRIGGER_TYPES			"01"
-#define FIRMWARE			FIRMWARE_DIR "/saleae-logic.firmware"
+#define FIRMWARE			FIRMWARE_DIR "/saleae-logic.fw"
 
 /* delay in ms */
 #define FIRMWARE_RENUM_DELAY		2000
