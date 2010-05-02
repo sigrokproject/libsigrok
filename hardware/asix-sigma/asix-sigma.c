@@ -1158,7 +1158,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	}
 
 	/* Setup maximum post trigger time. */
-	sigma_set_register(WRITE_POST_TRIGGER, (capture_ratio * 256) / 100);
+	sigma_set_register(WRITE_POST_TRIGGER, (capture_ratio * 255) / 100);
 
 	/* Start acqusition. */
 	gettimeofday(&start_tv, 0);
