@@ -932,21 +932,24 @@ static int build_basic_trigger(struct triggerlut *lut)
 	lut->m4 = 0xa000;
 
 	/* Set the LUT for controlling value/maske trigger */
+
+	/* For each quad probe. */
 	for (i = 0; i < 4; ++i) {
 		lut->m2d[i] = 0xffff;
 
+		/* For each bit in LUT. */
 		for (j = 0; j < 16; ++j)
 
+			/* For each probe in quad. */
 			for (k = 0; k < 4; ++k) {
 				bit = 1 << (i * 4 + k);
 
 				if ((triggermask & bit) &&
-				    (triggervalue & bit) != (j & (1 << k))) {
+				    ((!(triggervalue & bit)) !=
+				     (!(j & (1 << k)))))
 					lut->m2d[i] &= ~(1 << j);
-				}
 			}
 	}
-
 
 	/* Unused when not triggering on transitions */
 	lut->m3 = 0xffff;
