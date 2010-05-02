@@ -48,7 +48,6 @@ static int cur_firmware = -1;
 static int num_probes = 0;
 static int samples_per_event = 0;
 static int capture_ratio = 50;
-
 static struct sigma_trigger trigger;
 
 static uint64_t supported_samplerates[] = {
@@ -243,7 +242,7 @@ static int sigma_read_dram(uint16_t startchunk, size_t numchunks, uint8_t *data)
 	return sigma_read(data, numchunks * CHUNK_SIZE);
 }
 
-/* Upload trigger look-up tables to Sigma */
+/* Upload trigger look-up tables to Sigma. */
 static int sigma_write_trigger_lut(struct triggerlut *lut)
 {
 	int i;
@@ -745,6 +744,7 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 	int triggerts = -1;
 	int triggeroff = 0;
 
+	/* Check if trigger is in this chunk. */
 	if (triggerpos != -1) {
 		if (cur_samplerate <= MHZ(50))
 			triggerpos -= EVENTS_PER_CLUSTER;
@@ -811,11 +811,12 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 		sent = 0;
 		if (i == triggerts) {
 			/*
-			 * Trigger is presumptively only accurate to event, i.e.
-			 * for 100 and 200 MHz, where multiple samples are coded
-			 * in a single event, the trigger does not match the
-			 * exact sample.
+			 * Trigger is presumptively not accurate to sample.
+			 * However, it always trigger before the actual event,
+			 * so it would be possible to forward to correct position
+			 * here by manually checking for trigger condition.
 			 */
+
 			tosend = (triggerpos % 7) - triggeroff;
 
 			if (tosend > 0) {
@@ -945,7 +946,7 @@ static void build_lut_entry(uint16_t value, uint16_t mask, uint16_t *entry)
 				/* Set bit in entry */
 				if ((mask & bit) &&
 				    ((!(value & bit)) !=
-				     (!(j & (1 << k)))))
+				    (!(j & (1 << k)))))
 					entry[i] &= ~(1 << j);
 			}
 	}
@@ -1039,7 +1040,7 @@ static void add_trigger_function(enum triggerop oper, enum triggerfunc func,
 static int build_basic_trigger(struct triggerlut *lut)
 {
 	int i,j;
-	uint16_t masks[2] = {0, 0};
+	uint16_t masks[2] = { 0, 0 };
 
 	memset(lut, 0, sizeof(struct triggerlut));
 
