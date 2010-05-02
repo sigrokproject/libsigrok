@@ -49,13 +49,7 @@ static int num_probes = 0;
 static int samples_per_event = 0;
 static int capture_ratio = 50;
 
-/* Single-pin trigger support (100 and 200 MHz).*/
-static uint8_t triggerpin = 1;
-static uint8_t triggerfall = 0;
-
-/* Simple trigger support (<= 50 MHz). */
-static uint16_t triggermask = 1;
-static uint16_t triggervalue = 1;
+static struct sigma_trigger trigger;
 
 static uint64_t supported_samplerates[] = {
 	KHZ(200),
@@ -570,15 +564,21 @@ static int set_samplerate(struct sigrok_device_instance *sdi, uint64_t samplerat
 	return ret;
 }
 
-/* Only trigger on single pin supported (in 100-200 MHz modes). */
+/*
+ * In 100 and 200 MHz mode, only a single pin rising/falling can be
+ * set as trigger. In other modes, two rising/falling triggers can be set,
+ * in addition to value/mask trigger for any number of probes.
+ *
+ * The Sigma supports complex triggers using boolean expressions, but this
+ * has not been implemented yet.
+ */
 static int configure_probes(GSList *probes)
 {
 	struct probe *probe;
 	GSList *l;
 	int trigger_set = 0;
 
-	triggermask = 0;
-	triggervalue = 0;
+	memset(&trigger, 0, sizeof(struct sigma_trigger));
 
 	for (l = probes; l; l = l->next) {
 		probe = (struct probe *)l->data;
@@ -587,16 +587,16 @@ static int configure_probes(GSList *probes)
 			continue;
 
 		if (cur_samplerate >= MHZ(100)) {
-			/* Fast trigger support */
+			/* Fast trigger support. */
 			if (trigger_set) {
 				g_warning("Asix Sigma only supports a single pin trigger "
 						"in 100 and 200 MHz mode.");
 				return SIGROK_ERR;
 			}
 			if (probe->trigger[0] == 'f')
-				triggerfall = 1;
+				trigger.fast_fall = 1;
 			else if (probe->trigger[0] == 'r')
-				triggerfall = 0;
+				trigger.fast_fall = 0;
 			else {
 				g_warning("Asix Sigma only supports "
 					  "rising/falling trigger in 100 "
@@ -604,25 +604,34 @@ static int configure_probes(GSList *probes)
 				return SIGROK_ERR;
 			}
 
-			triggerpin = probe->index - 1;
-		} else {
-			/* Normal trigger support */
-			triggermask |= 1 << (probe->index - 1);
+			trigger.fast_pin = probe->index - 1;
 
-			if (probe->trigger[0] == '1')
-				triggervalue |= 1 << (probe->index - 1);
-			else if (probe->trigger[0] == '0')
-				triggervalue |= 0 << (probe->index - 1);
-			else {
-				g_warning("Asix Sigma only supports "
-					  "trigger values in <= 50"
-					  " MHz mode.");
-				return SIGROK_ERR;
+			++trigger_set;
+		} else {
+			/* Simple trigger support (event). */
+			if (probe->trigger[0] == '1') {
+				trigger.simplevalue |= 1 << (probe->index - 1);
+				trigger.simplemask |= 1 << (probe->index - 1);
+			}
+			else if (probe->trigger[0] == '0') {
+				trigger.simplevalue |= 0 << (probe->index - 1);
+				trigger.simplemask |= 1 << (probe->index - 1);
+			}
+			else if (probe->trigger[0] == 'f') {
+				trigger.fallingmask |= 1 << (probe->index - 1);
+				++trigger_set;
+			}
+			else if (probe->trigger[0] == 'r') {
+				trigger.risingmask |= 1 << (probe->index - 1);
+				++trigger_set;
 			}
 
+			if (trigger_set > 2) {
+				g_warning("Asix Sigma only supports 2 rising/"
+					  "falling triggers.");
+				return SIGROK_ERR;
+			}
 		}
-
-		++trigger_set;
 	}
 
 	return SIGROK_OK;
@@ -917,25 +926,14 @@ static int receive_data(int fd, int revents, void *user_data)
 	return TRUE;
 }
 
-/*
- * Build trigger LUTs used by 50 MHz and lower sample rates for supporting
- * simple pin change and state triggers. Only two transitions (rise/fall) can be
- * set at any time, but a full mask and value can be set (0/1).
- */
-static int build_basic_trigger(struct triggerlut *lut)
+/* Build a LUT entry used by the trigger functions. */
+static void build_lut_entry(uint16_t value, uint16_t mask, uint16_t *entry)
 {
 	int i, j, k, bit;
 
-	memset(lut, 0, sizeof(struct triggerlut));
-
-	/* Unknown */
-	lut->m4 = 0xa000;
-
-	/* Set the LUT for controlling value/maske trigger */
-
 	/* For each quad probe. */
 	for (i = 0; i < 4; ++i) {
-		lut->m2d[i] = 0xffff;
+		entry[i] = 0xffff;
 
 		/* For each bit in LUT. */
 		for (j = 0; j < 16; ++j)
@@ -944,17 +942,140 @@ static int build_basic_trigger(struct triggerlut *lut)
 			for (k = 0; k < 4; ++k) {
 				bit = 1 << (i * 4 + k);
 
-				if ((triggermask & bit) &&
-				    ((!(triggervalue & bit)) !=
+				/* Set bit in entry */
+				if ((mask & bit) &&
+				    ((!(value & bit)) !=
 				     (!(j & (1 << k)))))
-					lut->m2d[i] &= ~(1 << j);
+					entry[i] &= ~(1 << j);
+			}
+	}
+}
+
+/* Add a logical function to LUT mask. */
+static void add_trigger_function(enum triggerop oper, enum triggerfunc func,
+				 int index, int neg, uint16_t *mask)
+{
+	int i, j;
+	int x[2][2], tmp, a, b, aset, bset, rset;
+
+	memset(x, 0, 4 * sizeof(int));
+
+	/* Trigger detect condition. */
+	switch (oper) {
+	case OP_LEVEL:
+		x[0][1] = 1;
+		x[1][1] = 1;
+		break;
+	case OP_NOT:
+		x[0][0] = 1;
+		x[1][0] = 1;
+		break;
+	case OP_RISE:
+		x[0][1] = 1;
+		break;
+	case OP_FALL:
+		x[1][0] = 1;
+		break;
+	case OP_RISEFALL:
+		x[0][1] = 1;
+		x[1][0] = 1;
+		break;
+	case OP_NOTRISE:
+		x[1][1] = 1;
+		x[0][0] = 1;
+		x[1][0] = 1;
+		break;
+	case OP_NOTFALL:
+		x[1][1] = 1;
+		x[0][0] = 1;
+		x[0][1] = 1;
+		break;
+	case OP_NOTRISEFALL:
+		x[1][1] = 1;
+		x[0][0] = 1;
+		break;
+	}
+
+	/* Transpose if neg is set. */
+	if (neg) {
+		for (i = 0; i < 2; ++i)
+			for (j = 0; j < 2; ++j) {
+				tmp = x[i][j];
+				x[i][j] = x[1-i][1-j];
+				x[1-i][1-j] = tmp;
 			}
 	}
 
-	/* Unused when not triggering on transitions */
-	lut->m3 = 0xffff;
+	/* Update mask with function. */
+	for (i = 0; i < 16; ++i) {
+		a = (i >> (2 * index + 0)) & 1;
+		b = (i >> (2 * index + 1)) & 1;
 
-	/* Triggertype: event */
+		aset = (*mask >> i) & 1;
+		bset = x[b][a];
+
+		if (func == FUNC_AND || func == FUNC_NAND)
+			rset = aset & bset;
+		else if (func == FUNC_OR || func == FUNC_NOR)
+			rset = aset | bset;
+		else if (func == FUNC_XOR || func == FUNC_NXOR)
+			rset = aset ^ bset;
+
+		if (func == FUNC_NAND || func == FUNC_NOR || func == FUNC_NXOR)
+			rset = !rset;
+
+		*mask &= ~(1 << i);
+
+		if (rset)
+			*mask |= 1 << i;
+	}
+}
+
+/*
+ * Build trigger LUTs used by 50 MHz and lower sample rates for supporting
+ * simple pin change and state triggers. Only two transitions (rise/fall) can be
+ * set at any time, but a full mask and value can be set (0/1).
+ */
+static int build_basic_trigger(struct triggerlut *lut)
+{
+	int i,j;
+	uint16_t masks[2] = {0, 0};
+
+	memset(lut, 0, sizeof(struct triggerlut));
+
+	/* Contant for simple triggers. */
+	lut->m4 = 0xa000;
+
+	/* Value/mask trigger support. */
+	build_lut_entry(trigger.simplevalue, trigger.simplemask, lut->m2d);
+
+	/* Rise/fall trigger support. */
+	for (i = 0, j = 0; i < 16; ++i) {
+		if (trigger.risingmask & (1 << i) ||
+		    trigger.fallingmask & (1 << i))
+			masks[j++] = 1 << i;
+	}
+
+	build_lut_entry(masks[0], masks[0], lut->m0d);
+	build_lut_entry(masks[1], masks[1], lut->m1d);
+
+	/* Add glue logic */
+	if (masks[0] || masks[1]) {
+		/* Transition trigger. */
+		if (masks[0] & trigger.risingmask)
+			add_trigger_function(OP_RISE, FUNC_OR, 0, 0, &lut->m3);
+		if (masks[0] & trigger.fallingmask)
+			add_trigger_function(OP_FALL, FUNC_OR, 0, 0, &lut->m3);
+		if (masks[1] & trigger.risingmask)
+			add_trigger_function(OP_RISE, FUNC_OR, 1, 0, &lut->m3);
+		if (masks[1] & trigger.fallingmask)
+			add_trigger_function(OP_FALL, FUNC_OR, 1, 0, &lut->m3);
+	} else {
+		/* Only value/mask trigger. */
+		lut->m3 = 0xffff;
+	}
+
+	/* Triggertype: event. */
 	lut->params.selres = 3;
 
 	return SIGROK_OK;
@@ -989,8 +1110,8 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	if (cur_samplerate >= MHZ(100)) {
 		sigma_set_register(WRITE_TRIGGER_SELECT1, 0x81);
 
-		triggerselect = (1 << LEDSEL1) | (triggerfall << 3) |
-					(triggerpin & 0x7);
+		triggerselect = (1 << LEDSEL1) | (trigger.fast_fall << 3) |
+					(trigger.fast_pin & 0x7);
 
 	/* All other modes. */
 	} else if (cur_samplerate <= MHZ(50)) {
