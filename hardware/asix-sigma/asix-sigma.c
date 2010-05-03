@@ -49,6 +49,7 @@ static int num_probes = 0;
 static int samples_per_event = 0;
 static int capture_ratio = 50;
 static struct sigma_trigger trigger;
+static struct sigma_state sigma;
 
 static uint64_t supported_samplerates[] = {
 	KHZ(200),
@@ -104,6 +105,8 @@ static const char *firmware_files[] = {
 	"asix-sigma-50sync.fw",	/* Synchronous clock from pin */
 	"asix-sigma-phasor.fw",	/* Frequency counter */
 };
+
+static void hw_stop_acquisition(int device_index, gpointer session_device_id);
 
 static int sigma_read(void *buf, size_t size)
 {
@@ -529,7 +532,8 @@ static int hw_opendev(int device_index)
 	return SIGROK_OK;
 }
 
-static int set_samplerate(struct sigrok_device_instance *sdi, uint64_t samplerate)
+static int set_samplerate(struct sigrok_device_instance *sdi,
+			  uint64_t samplerate)
 {
 	int i, ret;
 
@@ -557,6 +561,7 @@ static int set_samplerate(struct sigrok_device_instance *sdi, uint64_t samplerat
 
 	cur_samplerate = samplerate;
 	samples_per_event = 16 / num_probes;
+	sigma.state = SIGMA_IDLE;
 
 	g_message("Firmware uploaded");
 
@@ -590,8 +595,9 @@ static int configure_probes(GSList *probes)
 		if (cur_samplerate >= MHZ(100)) {
 			/* Fast trigger support. */
 			if (trigger_set) {
-				g_warning("Asix Sigma only supports a single pin trigger "
-						"in 100 and 200 MHz mode.");
+				g_warning("Asix Sigma only supports a single "
+						"pin trigger in 100 and 200 "
+						"MHz mode.");
 				return SIGROK_ERR;
 			}
 			if (probe->trigger[0] == 'f')
@@ -853,76 +859,74 @@ static int receive_data(int fd, int revents, void *user_data)
 	struct datafeed_packet packet;
 	const int chunks_per_read = 32;
 	unsigned char buf[chunks_per_read * CHUNK_SIZE];
-	int bufsz, numchunks, curchunk, i, newchunks;
-	uint32_t triggerpos, stoppos, running_msec;
+	int bufsz, numchunks, i, newchunks;
+	uint32_t running_msec;
 	struct timeval tv;
-	uint16_t lastts = 0;
-	uint16_t lastsample = 0;
-	uint8_t modestatus;
-	int triggerchunk = -1;
 
 	fd = fd;
 	revents = revents;
 
-	/* Get the current position. */
-	sigma_read_pos(&stoppos, &triggerpos);
-	numchunks = stoppos / 512;
+	numchunks = sigma.stoppos / 512;
 
-	/* Check if the has expired, or memory is full. */
-	gettimeofday(&tv, 0);
-	running_msec = (tv.tv_sec - start_tv.tv_sec) * 1000 +
-		       (tv.tv_usec - start_tv.tv_usec) / 1000;
-
-	if (running_msec < limit_msec && numchunks < 32767)
+	if (sigma.state == SIGMA_IDLE)
 		return FALSE;
 
-	/* Stop acqusition. */
-	sigma_set_register(WRITE_MODE, 0x11);
+	if (sigma.state == SIGMA_CAPTURE) {
 
-	/* Set SDRAM Read Enable. */
-	sigma_set_register(WRITE_MODE, 0x02);
+		/* Check if the timer has expired, or memory is full. */
+		gettimeofday(&tv, 0);
+		running_msec = (tv.tv_sec - start_tv.tv_sec) * 1000 +
+			(tv.tv_usec - start_tv.tv_usec) / 1000;
 
-	/* Get the current position. */
-	sigma_read_pos(&stoppos, &triggerpos);
+		if (running_msec < limit_msec && numchunks < 32767)
+			return FALSE;
 
-	/* Check if trigger has fired. */
-	modestatus = sigma_get_register(READ_MODE);
-	if (modestatus & 0x20) {
-		triggerchunk = triggerpos / 512;
-	}
+		hw_stop_acquisition(-1, user_data);
 
-	/* Download sample data. */
-	for (curchunk = 0; curchunk < numchunks;) {
-		newchunks = MIN(chunks_per_read, numchunks - curchunk);
+		return FALSE;
+
+	} else if (sigma.state == SIGMA_DOWNLOAD) {
+		if (sigma.chunks_downloaded >= numchunks) {
+			/* End of samples. */
+			packet.type = DF_END;
+			packet.length = 0;
+			session_bus(user_data, &packet);
+
+			sigma.state = SIGMA_IDLE;
+
+			return TRUE;
+		}
+
+		newchunks = MIN(chunks_per_read,
+				numchunks - sigma.chunks_downloaded);
 
 		g_message("Downloading sample data: %.0f %%",
-			  100.0 * curchunk / numchunks);
+			  100.0 * sigma.chunks_downloaded / numchunks);
 
-		bufsz = sigma_read_dram(curchunk, newchunks, buf);
+		bufsz = sigma_read_dram(sigma.chunks_downloaded,
+					newchunks, buf);
 
 		/* Find first ts. */
-		if (curchunk == 0)
-			lastts = *(uint16_t *) buf - 1;
+		if (sigma.chunks_downloaded == 0) {
+			sigma.lastts = *(uint16_t *) buf - 1;
+			sigma.lastsample = 0;
+		}
 
 		/* Decode chunks and send them to sigrok. */
 		for (i = 0; i < newchunks; ++i) {
-			if (curchunk + i == triggerchunk)
+			if (sigma.chunks_downloaded + i == sigma.triggerchunk)
 				decode_chunk_ts(buf + (i * CHUNK_SIZE),
-						&lastts, &lastsample,
-						triggerpos & 0x1ff, user_data);
+						&sigma.lastts, &sigma.lastsample,
+						sigma.triggerpos & 0x1ff,
+						user_data);
 			else
 				decode_chunk_ts(buf + (i * CHUNK_SIZE),
-						&lastts, &lastsample,
+						&sigma.lastts, &sigma.lastsample,
 						-1, user_data);
 		}
 
-		curchunk += newchunks;
+		sigma.chunks_downloaded += newchunks;
 	}
-
-	/* End of data. */
-	packet.type = DF_END;
-	packet.length = 0;
-	session_bus(user_data, &packet);
 
 	return TRUE;
 }
@@ -1190,19 +1194,38 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	/* Add capture source. */
 	source_add(0, G_IO_IN, 10, receive_data, session_device_id);
 
+	sigma.state = SIGMA_CAPTURE;
+
 	return SIGROK_OK;
 }
 
 static void hw_stop_acquisition(int device_index, gpointer session_device_id)
 {
+	uint8_t modestatus;
+
 	device_index = device_index;
 	session_device_id = session_device_id;
 
 	/* Stop acquisition. */
 	sigma_set_register(WRITE_MODE, 0x11);
 
-	// XXX Set some state to indicate that data should be sent to sigrok
-	//     Now, we just wait for timeout
+	/* Set SDRAM Read Enable. */
+	sigma_set_register(WRITE_MODE, 0x02);
+
+	/* Get the current position. */
+	sigma_read_pos(&sigma.stoppos, &sigma.triggerpos);
+
+	/* Check if trigger has fired. */
+	modestatus = sigma_get_register(READ_MODE);
+	if (modestatus & 0x20) {
+		sigma.triggerchunk = sigma.triggerpos / 512;
+
+	} else
+		sigma.triggerchunk = -1;
+
+	sigma.chunks_downloaded = 0;
+
+	sigma.state = SIGMA_DOWNLOAD;
 }
 
 struct device_plugin asix_sigma_plugin_info = {

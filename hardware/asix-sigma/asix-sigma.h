@@ -157,4 +157,20 @@ enum triggerfunc {
 	FUNC_NXOR,
 };
 
+struct sigma_state {
+	enum {
+		SIGMA_UNINITIALIZED = 0,
+		SIGMA_IDLE,
+		SIGMA_CAPTURE,
+		SIGMA_DOWNLOAD,
+	} state;
+
+	uint32_t stoppos, triggerpos;
+	uint16_t lastts;
+	uint16_t lastsample;
+
+	int triggerchunk;
+	int chunks_downloaded;
+};
+
 #endif
