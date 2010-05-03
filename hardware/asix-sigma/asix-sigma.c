@@ -747,8 +747,8 @@ static int get_trigger_offset(uint16_t *samples, uint16_t last_sample,
 			continue;
 
 		/* Falling edge. */
-		if ((last_sample & t->fallingmask) != t->fallingmask || (samples[i] &
-		    t->fallingmask) != 0)
+		if ((last_sample & t->fallingmask) != t->fallingmask ||
+		    (samples[i] & t->fallingmask) != 0)
 			continue;
 
 		break;
@@ -779,14 +779,11 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 	uint16_t *event;
 	uint16_t cur_sample;
 	int triggerts = -1;
-	int triggeroff = 0;
 
 	/* Check if trigger is in this chunk. */
 	if (triggerpos != -1) {
 		if (cur_samplerate <= MHZ(50))
 			triggerpos -= EVENTS_PER_CLUSTER - 1;
-		else
-			triggeroff = 3;
 
 		if (triggerpos < 0)
 			triggerpos = 0;
@@ -853,7 +850,8 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 			 * the actual event. We therefore look at the next
 			 * samples to pinpoint the exact position of the trigger.
 			 */
-			tosend = get_trigger_offset(samples, *lastsample, &trigger);
+			tosend = get_trigger_offset(samples, *lastsample,
+						    &trigger);
 
 			if (tosend > 0) {
 				packet.type = DF_LOGIC16;
