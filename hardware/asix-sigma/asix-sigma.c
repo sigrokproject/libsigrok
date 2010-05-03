@@ -727,6 +727,37 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 	return ret;
 }
 
+/* Software trigger to determine exact trigger position. */
+static int get_trigger_offset(uint16_t *samples, uint16_t last_sample,
+			      struct sigma_trigger *t)
+{
+	int i;
+
+	for (i = 0; i < 8; ++i) {
+		if (i > 0)
+			last_sample = samples[i-1];
+
+		/* Simple triggers. */
+		if ((samples[i] & t->simplemask) != t->simplevalue)
+			continue;
+
+		/* Rising edge. */
+		if ((last_sample & t->risingmask) != 0 || (samples[i] &
+		    t->risingmask) != t->risingmask)
+			continue;
+
+		/* Falling edge. */
+		if ((last_sample & t->fallingmask) != t->fallingmask || (samples[i] &
+		    t->fallingmask) != 0)
+			continue;
+
+		break;
+	}
+
+	/* If we did not match, return original trigger pos. */
+	return i & 0x7;
+}
+
 /*
  * Decode chunk of 1024 bytes, 64 clusters, 7 events per cluster.
  * Each event is 20ns apart, and can contain multiple samples.
@@ -753,7 +784,7 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 	/* Check if trigger is in this chunk. */
 	if (triggerpos != -1) {
 		if (cur_samplerate <= MHZ(50))
-			triggerpos -= EVENTS_PER_CLUSTER;
+			triggerpos -= EVENTS_PER_CLUSTER - 1;
 		else
 			triggeroff = 3;
 
@@ -817,13 +848,12 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 		sent = 0;
 		if (i == triggerts) {
 			/*
-			 * Trigger is presumptively not accurate to sample.
-			 * However, it always trigger before the actual event,
-			 * so it would be possible to forward to correct position
-			 * here by manually checking for trigger condition.
+			 * Trigger is not always accurate to sample because of
+			 * pipeline delay. However, it always triggers before
+			 * the actual event. We therefore look at the next
+			 * samples to pinpoint the exact position of the trigger.
 			 */
-
-			tosend = (triggerpos % 7) - triggeroff;
+			tosend = get_trigger_offset(samples, *lastsample, &trigger);
 
 			if (tosend > 0) {
 				packet.type = DF_LOGIC16;
