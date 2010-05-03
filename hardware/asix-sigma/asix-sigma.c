@@ -576,11 +576,13 @@ static int configure_probes(GSList *probes)
 	struct probe *probe;
 	GSList *l;
 	int trigger_set = 0;
+	int probebit;
 
 	memset(&trigger, 0, sizeof(struct sigma_trigger));
 
 	for (l = probes; l; l = l->next) {
 		probe = (struct probe *)l->data;
+		probebit = 1 << (probe->index - 1);
 
 		if (!probe->enabled || !probe->trigger)
 			continue;
@@ -593,9 +595,9 @@ static int configure_probes(GSList *probes)
 				return SIGROK_ERR;
 			}
 			if (probe->trigger[0] == 'f')
-				trigger.fast_fall = 1;
+				trigger.fallingmask |= probebit;
 			else if (probe->trigger[0] == 'r')
-				trigger.fast_fall = 0;
+				trigger.risingmask |= probebit;
 			else {
 				g_warning("Asix Sigma only supports "
 					  "rising/falling trigger in 100 "
@@ -603,25 +605,23 @@ static int configure_probes(GSList *probes)
 				return SIGROK_ERR;
 			}
 
-			trigger.fast_pin = probe->index - 1;
-
 			++trigger_set;
 		} else {
 			/* Simple trigger support (event). */
 			if (probe->trigger[0] == '1') {
-				trigger.simplevalue |= 1 << (probe->index - 1);
-				trigger.simplemask |= 1 << (probe->index - 1);
+				trigger.simplevalue |= probebit;
+				trigger.simplemask |= probebit;
 			}
 			else if (probe->trigger[0] == '0') {
-				trigger.simplevalue |= 0 << (probe->index - 1);
-				trigger.simplemask |= 1 << (probe->index - 1);
+				trigger.simplevalue &= ~probebit;
+				trigger.simplemask |= probebit;
 			}
 			else if (probe->trigger[0] == 'f') {
-				trigger.fallingmask |= 1 << (probe->index - 1);
+				trigger.fallingmask |= probebit;
 				++trigger_set;
 			}
 			else if (probe->trigger[0] == 'r') {
-				trigger.risingmask |= 1 << (probe->index - 1);
+				trigger.risingmask |= probebit;
 				++trigger_set;
 			}
 
@@ -1092,6 +1092,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	uint8_t triggerselect;
 	struct triggerinout triggerinout_conf;
 	struct triggerlut lut;
+	int triggerpin;
 
 	session_device_id = session_device_id;
 
@@ -1111,8 +1112,18 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	if (cur_samplerate >= MHZ(100)) {
 		sigma_set_register(WRITE_TRIGGER_SELECT1, 0x81);
 
-		triggerselect = (1 << LEDSEL1) | (trigger.fast_fall << 3) |
-					(trigger.fast_pin & 0x7);
+		/* Find which pin to trigger on from mask. */
+		for (triggerpin = 0; triggerpin < 8; ++triggerpin)
+			if ((trigger.risingmask | trigger.fallingmask) &
+			    (1 << triggerpin))
+				break;
+
+		/* Set trigger pin and light LED on trigger. */
+		triggerselect = (1 << LEDSEL1) | (triggerpin & 0x7);
+
+		/* Default rising edge. */
+		if (trigger.fallingmask)
+			triggerselect |= 1 << 3;
 
 	/* All other modes. */
 	} else if (cur_samplerate <= MHZ(50)) {

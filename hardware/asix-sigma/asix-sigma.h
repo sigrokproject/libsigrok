@@ -124,17 +124,13 @@ struct triggerlut {
 
 /* Trigger configuration */
 struct sigma_trigger {
-	/* Single-pin trigger support (100 and 200 MHz).*/
-	uint8_t fast_pin;
-	uint8_t fast_fall;
+	/* Only two probes can be used in mask. */
+	uint16_t risingmask;
+	uint16_t fallingmask;
 
 	/* Simple trigger support (<= 50 MHz). */
 	uint16_t simplemask;
 	uint16_t simplevalue;
-
-	/* Only two probes can be used in mask */
-	uint16_t risingmask;
-	uint16_t fallingmask;
 
 	/* TODO: Advanced trigger support (boolean expressions). */
 };
