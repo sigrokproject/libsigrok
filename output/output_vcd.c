@@ -143,7 +143,9 @@ static int data(struct output *o, char *data_in, uint64_t length_in,
 	char *outbuf, *c;
 
 	ctx = o->internal;
-	outsize = strlen(ctx->header);
+	outsize = 0;
+	if (ctx->header)
+		outsize = strlen(ctx->header);
 	outbuf = calloc(1, outsize + 1 + 10000); /* FIXME: Use realloc(). */
 	if (outbuf == NULL)
 		return SIGROK_ERR_MALLOC;
