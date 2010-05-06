@@ -29,7 +29,7 @@ void device_scan(void)
 {
 	GSList *plugins, *l;
 	struct device_plugin *plugin;
-	int num_devices, i;
+	int num_devices, num_probes, i;
 
 	plugins = list_hwplugins();
 
@@ -42,8 +42,10 @@ void device_scan(void)
 		plugin = l->data;
 		g_message("initializing %s plugin", plugin->name);
 		num_devices = plugin->init(NULL);
-		for (i = 0; i < num_devices; i++)
-			device_new(plugin, i);
+		for (i = 0; i < num_devices; i++) {
+			num_probes = (int)plugin->get_device_info(i, DI_NUM_PROBES);
+			device_new(plugin, i, num_probes);
+		}
 	}
 }
 
@@ -53,7 +55,8 @@ void device_close_all(void)
 
 	while (devices) {
 		device = devices->data;
-		device->plugin->close(device->plugin_index);
+		if (device->plugin)
+			device->plugin->close(device->plugin_index);
 		device_destroy(device);
 	}
 }
@@ -63,10 +66,10 @@ GSList *device_list(void)
 	return devices;
 }
 
-struct device *device_new(struct device_plugin *plugin, int plugin_index)
+struct device *device_new(struct device_plugin *plugin, int plugin_index, int num_probes)
 {
 	struct device *device;
-	int num_probes, i;
+	int i;
 	char probename[16];
 
 	device = g_malloc0(sizeof(struct device));
@@ -74,8 +77,6 @@ struct device *device_new(struct device_plugin *plugin, int plugin_index)
 	device->plugin_index = plugin_index;
 	devices = g_slist_append(devices, device);
 
-	num_probes = (int)device->plugin->get_device_info(device->plugin_index,
-							  DI_NUM_PROBES);
 	for (i = 0; i < num_probes; i++) {
 		snprintf(probename, 16, "%d", i + 1);
 		device_probe_add(device, probename);
