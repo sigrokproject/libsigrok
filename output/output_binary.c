@@ -59,9 +59,7 @@ static int data(struct output *o, char *data_in, uint64_t length_in,
 	if (outbuf == NULL)
 		return SIGROK_ERR_MALLOC;
 
-	/* TODO: Are disabled probes handled correctly? */
 	memcpy(outbuf, data_in, length_in);
-
 	*data_out = outbuf;
 	*length_out = outsize;
 
