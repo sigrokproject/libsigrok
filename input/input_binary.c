@@ -37,37 +37,42 @@ static int format_match(char *filename)
 }
 
 
-/* TODO: number of probes hardcoded to 8 */
 static int in_loadfile(char *filename)
 {
 	struct datafeed_header header;
 	struct datafeed_packet packet;
+	struct device *device;
 	char buffer[CHUNKSIZE];
-	int fd, size;
+	int fd, size, num_probes;
 
 	if( (fd = open(filename, O_RDONLY)) == -1)
 		return SIGROK_ERR;
 
+	/* TODO: number of probes hardcoded to 8 */
+	num_probes = 8;
+	device = device_new(NULL, 0, num_probes);
+
 	header.feed_version = 1;
-	header.num_probes = 8;
+	header.num_probes = num_probes;
 	header.protocol_id = PROTO_RAW;
 	header.samplerate = 0;
 	gettimeofday(&header.starttime, NULL);
 	packet.type = DF_HEADER;
 	packet.length = sizeof(struct datafeed_header);
 	packet.payload = &header;
-	session_bus(NULL, &packet);
+	session_bus(device, &packet);
 
 	packet.type = DF_LOGIC8;
 	packet.payload = buffer;
 	while( (size = read(fd, buffer, CHUNKSIZE)) > 0) {
 		packet.length = size;
-		session_bus(NULL, &packet);
+		session_bus(device, &packet);
 	}
 	close(fd);
 
 	packet.type = DF_END;
-	session_bus(NULL, &packet);
+	packet.length = 0;
+	session_bus(device, &packet);
 
 
 	return SIGROK_OK;
