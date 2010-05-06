@@ -100,17 +100,25 @@ static int init(struct output *o, int default_spl)
 	else
 		ctx->samples_per_line = default_spl;
 
-	ctx->header = malloc(512);
-	num_probes = g_slist_length(o->device->probes);
-	samplerate = *((uint64_t *) o->device->plugin->get_device_info(
-			o->device->plugin_index, DI_CUR_SAMPLERATE));
-	snprintf(ctx->header, 512, "Acquisition with %d/%d probes at ",
-		 ctx->num_enabled_probes, num_probes);
+	if (o->device->plugin) {
+		ctx->header = malloc(512);
+		num_probes = g_slist_length(o->device->probes);
+		samplerate = *((uint64_t *) o->device->plugin->get_device_info(
+				o->device->plugin_index, DI_CUR_SAMPLERATE));
+		snprintf(ctx->header, 512, "Acquisition with %d/%d probes at ",
+			 ctx->num_enabled_probes, num_probes);
 
-	if ((samplerate_s = sigrok_samplerate_string(samplerate)) == NULL)
-		return -1; /* FIXME */
-	snprintf(ctx->header + strlen(ctx->header), 512, "%s\n", samplerate_s);
-	free(samplerate_s);
+		if ((samplerate_s = sigrok_samplerate_string(samplerate)) == NULL)
+			return -1; /* FIXME */
+		snprintf(ctx->header + strlen(ctx->header), 512, "%s\n", samplerate_s);
+		free(samplerate_s);
+	} else {
+		/*
+		 * device has no plugin: this is just a dummy device, the data
+		 * comes from a file.
+		 */
+		ctx->header = NULL;
+	}
 
 	ctx->linebuf_len = ctx->samples_per_line * 2;
 	ctx->linebuf = calloc(1, num_probes * ctx->linebuf_len);

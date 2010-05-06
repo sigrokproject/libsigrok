@@ -34,14 +34,17 @@ struct context {
 
 const char *vcd_header = "\
 $date\n  %s\n$end\n\
-$version\n  %s\n$end\n\
-$comment\n  Acquisition with %d/%d probes at %s\n$end\n\
+$version\n  %s\n$end\n%s\
 $timescale\n  %i %s\n$end\n\
 $scope module %s $end\n\
 %s\
 $upscope $end\n\
 $enddefinitions $end\n\
 $dumpvars\n";
+
+const char *vcd_header_comment = "\
+$comment\n  Acquisition with %d/%d probes at %s\n$end\n";
+
 
 static int init(struct output *o)
 {
@@ -54,7 +57,7 @@ static int init(struct output *o)
 	uint64_t samplerate;
 	int i, b, num_probes;
 	char *c, *samplerate_s;
-	char wbuf[1000];
+	char wbuf[1000], comment[128];
 
 	ctx = malloc(sizeof(struct context));
 	if (ctx == NULL)
@@ -76,12 +79,19 @@ static int init(struct output *o)
 	if (ctx->header == NULL)
 		return SIGROK_ERR_MALLOC;
 	num_probes = g_slist_length(o->device->probes);
-	/* TODO: Handle num_probes == 0, too many probes, etc. */
-	samplerate = *((uint64_t *) o->device->plugin->get_device_info(
-			o->device->plugin_index, DI_CUR_SAMPLERATE));
 
-	if ((samplerate_s = sigrok_samplerate_string(samplerate)) == NULL)
-		return -1; /* FIXME */
+	if (o->device->plugin) {
+		/* TODO: Handle num_probes == 0, too many probes, etc. */
+		samplerate = *((uint64_t *) o->device->plugin->get_device_info(
+				o->device->plugin_index, DI_CUR_SAMPLERATE));
+		if ((samplerate_s = sigrok_samplerate_string(samplerate)) == NULL)
+			return SIGROK_ERR;
+		snprintf(comment, 127, vcd_header_comment, ctx->num_enabled_probes,
+				num_probes, samplerate_s);
+		free(samplerate_s);
+	}
+	else
+		comment[0] = '\0';
 
 	/* Wires / channels */
 	wbuf[0] = '\0';
@@ -93,11 +103,8 @@ static int init(struct output *o)
 
 	/* TODO: Date: File or signals? Make y/n configurable. */
 	b = snprintf(ctx->header, MAX_HEADER_LEN, vcd_header, "TODO: Date",
-		     PACKAGE_STRING, ctx->num_enabled_probes, num_probes,
-		     samplerate_s, 1, "ns", PACKAGE, (char *)&wbuf);
+			PACKAGE_STRING, comment, 1, "ns", PACKAGE, (char *)&wbuf);
 	/* TODO: Handle snprintf errors. */
-
-	free(samplerate_s);
 
 	ctx->prevbits = calloc(sizeof(int), num_probes);
 	if (ctx->prevbits == NULL)
