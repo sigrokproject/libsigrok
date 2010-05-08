@@ -45,7 +45,6 @@ $dumpvars\n";
 const char *vcd_header_comment = "\
 $comment\n  Acquisition with %d/%d probes at %s\n$end\n";
 
-
 static int init(struct output *o)
 {
 /* Maximum header length */
@@ -59,8 +58,7 @@ static int init(struct output *o)
 	char *c, *samplerate_s;
 	char wbuf[1000], comment[128];
 
-	ctx = malloc(sizeof(struct context));
-	if (ctx == NULL)
+	if (!(ctx = calloc(1, sizeof(struct context))))
 		return SIGROK_ERR_MALLOC;
 	o->internal = ctx;
 	ctx->num_enabled_probes = 0;
@@ -75,42 +73,51 @@ static int init(struct output *o)
 
 	/* TODO: Allow for configuration via o->param. */
 
-	ctx->header = calloc(1, MAX_HEADER_LEN + 1);
-	if (ctx->header == NULL)
+	if (!(ctx->header = calloc(1, MAX_HEADER_LEN + 1))) {
+		free(ctx);
 		return SIGROK_ERR_MALLOC;
+	}
 	num_probes = g_slist_length(o->device->probes);
 
+	comment[0] = '\0';
 	if (o->device->plugin) {
 		/* TODO: Handle num_probes == 0, too many probes, etc. */
+		/* TODO: Error handling. */
 		samplerate = *((uint64_t *) o->device->plugin->get_device_info(
 				o->device->plugin_index, DI_CUR_SAMPLERATE));
-		if ((samplerate_s = sigrok_samplerate_string(samplerate)) == NULL)
+		if (!((samplerate_s = sigrok_samplerate_string(samplerate)))) {
+			free(ctx->header);
+			free(ctx);
 			return SIGROK_ERR;
-		snprintf(comment, 127, vcd_header_comment, ctx->num_enabled_probes,
-				num_probes, samplerate_s);
+		}
+		/* TODO: Handle sprintf() errors. */
+		snprintf(comment, 127, vcd_header_comment,
+			 ctx->num_enabled_probes, num_probes, samplerate_s);
 		free(samplerate_s);
 	}
-	else
-		comment[0] = '\0';
 
 	/* Wires / channels */
 	wbuf[0] = '\0';
 	for (i = 0; i < ctx->num_enabled_probes; i++) {
 		c = (char *)&wbuf + strlen((char *)&wbuf);
+		/* TODO: Needs fixing for very large number of probes. */
+		/* TODO: Handle sprintf() errors. */
 		sprintf(c, "$var wire 1 %c channel%s $end\n",
 			(char)('!' + i), ctx->probelist[i]);
 	}
 
 	/* TODO: Date: File or signals? Make y/n configurable. */
 	b = snprintf(ctx->header, MAX_HEADER_LEN, vcd_header, "TODO: Date",
-			PACKAGE_STRING, comment, 1, "ns", PACKAGE, (char *)&wbuf);
-	/* TODO: Handle snprintf errors. */
+		     PACKAGE_STRING, comment, 1, "ns", PACKAGE, (char *)&wbuf);
+	/* TODO: Handle snprintf() errors. */
 
-	ctx->prevbits = calloc(sizeof(int), num_probes);
-	if (ctx->prevbits == NULL)
+	if (!(ctx->prevbits = calloc(sizeof(int), num_probes))) {
+		free(ctx->header);
+		free(ctx);
 		return SIGROK_ERR_MALLOC;
+	}
 
-	return 0;
+	return SIGROK_OK;
 }
 
 static int event(struct output *o, int event_type, char **data_out,
@@ -123,12 +130,14 @@ static int event(struct output *o, int event_type, char **data_out,
 	ctx = o->internal;
 	switch (event_type) {
 	case DF_TRIGGER:
+		/* TODO */
 		break;
 	case DF_END:
 		outlen = strlen("$dumpoff\n$end\n");
-		outbuf = malloc(outlen + 1);
-		if (outbuf == NULL)
+		if (!(outbuf = malloc(outlen + 1)))
 			return SIGROK_ERR_MALLOC;
+		/* TODO: Bug? Drop the + 1? */
+		/* TODO: Handle snprintf() errors. */
 		snprintf(outbuf, outlen + 1, "$dumpoff\n$end\n");
 		*data_out = outbuf;
 		*length_out = outlen;
@@ -153,16 +162,17 @@ static int data(struct output *o, char *data_in, uint64_t length_in,
 	outsize = 0;
 	if (ctx->header)
 		outsize = strlen(ctx->header);
-	outbuf = calloc(1, outsize + 1 + 10000); /* FIXME: Use realloc(). */
-	if (outbuf == NULL)
-		return SIGROK_ERR_MALLOC;
+
+	/* FIXME: Use realloc(). */
+	if (!(outbuf = calloc(1, outsize + 1 + 10000)))
+		return SIGROK_ERR_MALLOC; /* TODO: free()? What to free? */
+
+	outbuf[0] = '\0';
 	if (ctx->header) {
 		/* The header is still here, this must be the first packet. */
 		strncpy(outbuf, ctx->header, outsize);
 		free(ctx->header);
 		ctx->header = NULL;
-	} else {
-		outbuf[0] = 0;
 	}
 
 	/* TODO: Are disabled probes handled correctly? */
@@ -187,8 +197,7 @@ static int data(struct output *o, char *data_in, uint64_t length_in,
 				sprintf(c, "#%i\n", offset * 1 /* TODO */);
 
 				c = outbuf + strlen(outbuf);
-				sprintf(c, "%i%c\n", curbit,
-					(char)('!' + p /* FIXME? */));
+				sprintf(c, "%i%c\n", curbit, (char)('!' + p));
 			}
 		}
 
