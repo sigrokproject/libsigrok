@@ -25,24 +25,22 @@
 
 static gpointer new_chunk(struct datastore **ds);
 
-/* TODO: Return int as error status, and the struct as param. */
-struct datastore *datastore_new(int unitsize)
+int datastore_new(int unitsize, struct datastore **ds)
 {
-	struct datastore *ds;
+	if (!ds)
+		return SIGROK_ERR;
 
 	if (unitsize <= 0)
-		// return SIGROK_ERR;
-		return NULL; /* FIXME */
+		return SIGROK_ERR; /* TODO: Different error? */
 
-	if (!(ds = g_malloc(sizeof(struct datastore))))
-		// return SIGROK_ERR_MALLOC;
-		return NULL; /* FIXME */
+	if (!(*ds = g_malloc(sizeof(struct datastore))))
+		return SIGROK_ERR_MALLOC;
 
-	ds->ds_unitsize = unitsize;
-	ds->num_units = 0;
-	ds->chunklist = NULL;
+	(*ds)->ds_unitsize = unitsize;
+	(*ds)->num_units = 0;
+	(*ds)->chunklist = NULL;
 
-	return ds;
+	return SIGROK_OK;
 }
 
 int datastore_destroy(struct datastore *ds)

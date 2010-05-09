@@ -182,7 +182,7 @@ struct datastore {
 	GSList *chunklist;
 };
 
-struct datastore *datastore_new(int unitsize);
+int datastore_new(int unitsize, struct datastore **ds);
 int datastore_destroy(struct datastore *ds);
 void datastore_put(struct datastore *ds, void *data, unsigned int length,
 		   int in_unitsize, int *probelist);
