@@ -33,7 +33,7 @@ struct context {
 };
 
 const char *vcd_header = "\
-$date\n  %s\n$end\n\
+$date\n  %s$end\n\
 $version\n  %s\n$end\n%s\
 $timescale\n  %i %s\n$end\n\
 $scope module %s $end\n\
@@ -57,6 +57,7 @@ static int init(struct output *o)
 	int i, b, num_probes;
 	char *c, *samplerate_s;
 	char wbuf[1000], comment[128];
+	time_t t;
 
 	if (!(ctx = calloc(1, sizeof(struct context))))
 		return SIGROK_ERR_MALLOC;
@@ -107,7 +108,8 @@ static int init(struct output *o)
 	}
 
 	/* TODO: Date: File or signals? Make y/n configurable. */
-	b = snprintf(ctx->header, MAX_HEADER_LEN, vcd_header, "TODO: Date",
+	t = time(NULL);
+	b = snprintf(ctx->header, MAX_HEADER_LEN, vcd_header, ctime(&t),
 		     PACKAGE_STRING, comment, 1, "ns", PACKAGE, (char *)&wbuf);
 	/* TODO: Handle snprintf() errors. */
 
