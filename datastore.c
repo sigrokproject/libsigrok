@@ -25,11 +25,19 @@
 
 static gpointer new_chunk(struct datastore **ds);
 
+/* TODO: Return int as error status, and the struct as param. */
 struct datastore *datastore_new(int unitsize)
 {
 	struct datastore *ds;
 
-	ds = g_malloc(sizeof(struct datastore));
+	if (unitsize <= 0)
+		// return SIGROK_ERR;
+		return NULL; /* FIXME */
+
+	if (!(ds = g_malloc(sizeof(struct datastore))))
+		// return SIGROK_ERR_MALLOC;
+		return NULL; /* FIXME */
+
 	ds->ds_unitsize = unitsize;
 	ds->num_units = 0;
 	ds->chunklist = NULL;
@@ -37,14 +45,19 @@ struct datastore *datastore_new(int unitsize)
 	return ds;
 }
 
-void datastore_destroy(struct datastore *ds)
+int datastore_destroy(struct datastore *ds)
 {
 	GSList *chunk;
 
+	if (!ds)
+		return SIGROK_ERR;
+	
 	for (chunk = ds->chunklist; chunk; chunk = chunk->next)
 		g_free(chunk->data);
 	g_slist_free(ds->chunklist);
 	g_free(ds);
+
+	return SIGROK_OK;
 }
 
 void datastore_put(struct datastore *ds, void *data, unsigned int length,
@@ -93,7 +106,9 @@ static gpointer new_chunk(struct datastore **ds)
 {
 	gpointer chunk;
 
-	chunk = g_malloc(DATASTORE_CHUNKSIZE * (*ds)->ds_unitsize);
+	if (!(chunk = malloc(DATASTORE_CHUNKSIZE * (*ds)->ds_unitsize)))
+		return NULL;
+
 	(*ds)->chunklist = g_slist_append((*ds)->chunklist, chunk);
 
 	return chunk;

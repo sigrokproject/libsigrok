@@ -178,12 +178,12 @@ void sigrok_cleanup(void);
 struct datastore {
 	/* Size in bytes of the number of units stored in this datastore */
 	int ds_unitsize;
-	unsigned int num_units;
+	unsigned int num_units; /* TODO: uint64_t */
 	GSList *chunklist;
 };
 
 struct datastore *datastore_new(int unitsize);
-void datastore_destroy(struct datastore *ds);
+int datastore_destroy(struct datastore *ds);
 void datastore_put(struct datastore *ds, void *data, unsigned int length,
 		   int in_unitsize, int *probelist);
 
