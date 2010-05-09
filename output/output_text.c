@@ -63,7 +63,7 @@ static void flush_linebufs(struct context *ctx, char *outbuf)
 			ctx->probelist[i], ctx->linebuf + i * ctx->linebuf_len);
 	}
 
-	/* Mark trigger with ^ */
+	/* Mark trigger with a ^ character. */
 	if (ctx->mark_trigger != -1)
 		sprintf(outbuf + strlen(outbuf), "T:%*s^\n",
 			ctx->mark_trigger + (ctx->mark_trigger / 8), "");
@@ -80,7 +80,9 @@ static int init(struct output *o, int default_spl)
 	int num_probes;
 	char *samplerate_s;
 
-	ctx = malloc(sizeof(struct context));
+	if (!(ctx = calloc(1, sizeof(struct context))))
+		return SIGROK_ERR_MALLOC;
+
 	o->internal = ctx;
 	ctx->num_enabled_probes = 0;
 
@@ -101,25 +103,41 @@ static int init(struct output *o, int default_spl)
 	else
 		ctx->samples_per_line = default_spl;
 
-	ctx->header = malloc(512);
+	if (!(ctx->header = malloc(512))) {
+		free(ctx);
+		return SIGROK_ERR_MALLOC;
+	}
+
 	snprintf(ctx->header, 511, "%s\n", PACKAGE_STRING);
 	if (o->device->plugin) {
 		num_probes = g_slist_length(o->device->probes);
 		samplerate = *((uint64_t *) o->device->plugin->get_device_info(
 				o->device->plugin_index, DI_CUR_SAMPLERATE));
-		if ((samplerate_s = sigrok_samplerate_string(samplerate)) == NULL)
+		if (!(samplerate_s = sigrok_samplerate_string(samplerate))) {
+			free(ctx->header);
+			free(ctx);
 			return SIGROK_ERR;
-		snprintf(ctx->header + strlen(ctx->header), 511 - strlen(ctx->header),
-				"Acquisition with %d/%d probes at %s\n", ctx->num_enabled_probes,
-				num_probes, samplerate_s);
+		}
+		snprintf(ctx->header + strlen(ctx->header),
+			 511 - strlen(ctx->header),
+			 "Acquisition with %d/%d probes at %s\n",
+			 ctx->num_enabled_probes, num_probes, samplerate_s);
 		free(samplerate_s);
 	}
 
 	ctx->linebuf_len = ctx->samples_per_line * 2;
-	ctx->linebuf = calloc(1, num_probes * ctx->linebuf_len);
-	ctx->linevalues = calloc(1, num_probes);
+	if (!(ctx->linebuf = calloc(1, num_probes * ctx->linebuf_len))) {
+		free(ctx->header);
+		free(ctx);
+		return SIGROK_ERR_MALLOC;
+	}
+	if (!(ctx->linevalues = calloc(1, num_probes))) {
+		free(ctx->header);
+		free(ctx);
+		return SIGROK_ERR_MALLOC;
+	}
 
-	return 0;
+	return SIGROK_OK;
 }
 
 static int event(struct output *o, int event_type, char **data_out,
@@ -137,7 +155,8 @@ static int event(struct output *o, int event_type, char **data_out,
 	case DF_END:
 		outsize = ctx->num_enabled_probes
 				* (ctx->samples_per_line + 20) + 512;
-		outbuf = calloc(1, outsize);
+		if (!(outbuf = calloc(1, outsize)))
+			return SIGROK_ERR_MALLOC;
 		flush_linebufs(ctx, outbuf);
 		*data_out = outbuf;
 		*length_out = strlen(outbuf);
@@ -165,14 +184,17 @@ static int data_bits(struct output *o, char *data_in, uint64_t length_in,
 	ctx = o->internal;
 	outsize = length_in / ctx->unitsize * ctx->num_enabled_probes *
 		  ctx->samples_per_line + 512;
-	outbuf = calloc(1, outsize + 1);
+
+	if (!(outbuf = calloc(1, outsize + 1)))
+		return SIGROK_ERR_MALLOC;
+
+	outbuf[0] = '\0';
 	if (ctx->header) {
 		/* The header is still here, this must be the first packet. */
 		strncpy(outbuf, ctx->header, outsize);
 		free(ctx->header);
 		ctx->header = NULL;
-	} else
-		outbuf[0] = 0;
+	}
 
 	if (length_in >= ctx->unitsize) {
 		for (offset = 0; offset <= length_in - ctx->unitsize;
@@ -204,8 +226,9 @@ static int data_bits(struct output *o, char *data_in, uint64_t length_in,
 				ctx->mark_trigger = -1;
 			}
 		}
-	} else
+	} else {
 		g_message("short buffer (length_in=%" PRIu64 ")", length_in);
+	}
 
 	*data_out = outbuf;
 	*length_out = strlen(outbuf);
@@ -229,14 +252,17 @@ static int data_hex(struct output *o, char *data_in, uint64_t length_in,
 	ctx = o->internal;
 	outsize = length_in / ctx->unitsize * ctx->num_enabled_probes *
 		  ctx->samples_per_line + 512;
-	outbuf = calloc(1, outsize + 1);
+
+	if (!(outbuf = calloc(1, outsize + 1)))
+		return SIGROK_ERR_MALLOC;
+
+	outbuf[0] = '\0';
 	if (ctx->header) {
 		/* The header is still here, this must be the first packet. */
 		strncpy(outbuf, ctx->header, outsize);
 		free(ctx->header);
 		ctx->header = NULL;
-	} else
-		outbuf[0] = 0;
+	}
 
 	ctx->line_offset = 0;
 	for (offset = 0; offset <= length_in - ctx->unitsize;
