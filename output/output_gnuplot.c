@@ -41,7 +41,6 @@ const char *gnuplot_header = "\
 const char *gnuplot_header_comment = "\
 # Comment: Acquisition with %d/%d probes at %s\n";
 
-
 static int init(struct output *o)
 {
 /* Maximum header length */
@@ -56,9 +55,9 @@ static int init(struct output *o)
 	char *c, *samplerate_s;
 	char wbuf[1000], comment[128];
 
-	ctx = malloc(sizeof(struct context));
-	if (ctx == NULL)
+	if (!(ctx = calloc(1, sizeof(struct context))))
 		return SIGROK_ERR_MALLOC;
+
 	o->internal = ctx;
 	ctx->num_enabled_probes = 0;
 	for (l = o->device->probes; l; l = l->next) {
@@ -72,22 +71,27 @@ static int init(struct output *o)
 
 	/* TODO: Allow for configuration via o->param. */
 
-	ctx->header = calloc(1, MAX_HEADER_LEN + 1);
-	if (ctx->header == NULL)
+	if (!(ctx->header = calloc(1, MAX_HEADER_LEN + 1))) {
+		free(ctx);
 		return SIGROK_ERR_MALLOC;
+	}
+
 	num_probes = g_slist_length(o->device->probes);
 	/* TODO: Handle num_probes == 0, too many probes, etc. */
+
+	comment[0] = '\0';
 	if (o->device->plugin) {
 		samplerate = *((uint64_t *) o->device->plugin->get_device_info(
 				o->device->plugin_index, DI_CUR_SAMPLERATE));
-		if ((samplerate_s = sigrok_samplerate_string(samplerate)) == NULL)
+		if (!(samplerate_s = sigrok_samplerate_string(samplerate))) {
+			free(ctx->header);
+			free(ctx);
 			return SIGROK_ERR;
-		snprintf(comment, 127, gnuplot_header_comment, ctx->num_enabled_probes,
-			     num_probes, samplerate_s);
+		}
+		snprintf(comment, 127, gnuplot_header_comment,
+			 ctx->num_enabled_probes, num_probes, samplerate_s);
 		free(samplerate_s);
 	}
-	else
-		comment[0] = '\0';
 
 	/* Columns / channels */
 	wbuf[0] = '\0';
@@ -116,6 +120,7 @@ static int event(struct output *o, int event_type, char **data_out,
 	ctx = o->internal;
 	switch (event_type) {
 	case DF_TRIGGER:
+		/* TODO */
 		break;
 	case DF_END:
 		outbuf = calloc(1, 1); /* FIXME */
@@ -140,20 +145,20 @@ static int data(struct output *o, char *data_in, uint64_t length_in,
 	char *outbuf, *c;
 
 	ctx = o->internal;
-
 	outsize = 0;
 	if (ctx->header)
 		outsize = strlen(ctx->header);
-	outbuf = calloc(1, outsize + 1 + 10000); /* FIXME: Use realloc(). */
-	if (outbuf == NULL)
-		return SIGROK_ERR_MALLOC;
+
+	/* FIXME: Use realloc(). */
+	if (!(outbuf = calloc(1, outsize + 1 + 10000)))
+		return SIGROK_ERR_MALLOC; /* TODO: free()? What to free? */
+
+	outbuf[0] = '\0';
 	if (ctx->header) {
 		/* The header is still here, this must be the first packet. */
 		strncpy(outbuf, ctx->header, outsize);
 		free(ctx->header);
 		ctx->header = NULL;
-	} else {
-		outbuf[0] = 0;
 	}
 
 	/* TODO: Are disabled probes handled correctly? */
