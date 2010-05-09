@@ -175,7 +175,7 @@ static int data(struct output *o, char *data_in, uint64_t length_in,
 
 		/* The next columns are the values of all channels. */
 		for (p = 0; p < ctx->num_enabled_probes; p++) {
-			curbit = (sample & ((uint64_t) (1 << p))) != 0;
+			curbit = (sample & ((uint64_t) (1 << p))) >> p;
 			c = outbuf + strlen(outbuf);
 			sprintf(c, "%d ", curbit);
 		}

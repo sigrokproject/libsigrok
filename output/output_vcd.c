@@ -183,22 +183,20 @@ static int data(struct output *o, char *data_in, uint64_t length_in,
 	for (i = 0; i <= length_in - ctx->unitsize; i += ctx->unitsize) {
 		samplecount++;
 		memcpy(&sample, data_in + i, ctx->unitsize);
-		for (p = 0; p < ctx->num_enabled_probes; p++) {
-			curbit = (sample & ((uint64_t) (1 << p))) != 0;
-			if (i == 0) {
-				prevbit = ~curbit;
-			} else {
-				memcpy(&prevsample, data_in + i - 1,
-				       ctx->unitsize);
-				prevbit =
-				    (prevsample & ((uint64_t) (1 << p))) != 0;
-			}
+		if (i == 0)
+			prevsample = sample;
+		else
+			memcpy(&prevsample, data_in + i - 1, ctx->unitsize);
 
-			/* VCD only contains deltas/changes. */
+		for (p = 0; p < ctx->num_enabled_probes; p++) {
+			curbit = (sample & ((uint64_t) (1 << p))) >> p;
+			prevbit = (prevsample & ((uint64_t) (1 << p))) >> p;
+
+			/* VCD only contains deltas/changes of signals. */
 			if (prevbit == curbit)
 				continue;
 
-			/* FIXME: Only once per sample? */
+			/* Output which signal changed to which value. */
 			c = outbuf + strlen(outbuf);
 			sprintf(c, "#%" PRIu64 "\n%i%c\n", samplecount,
 				curbit, (char)('!' + p));
