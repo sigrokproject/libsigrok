@@ -24,20 +24,18 @@
 #include <sigrok.h>
 #include "config.h"
 
-
 static int event(struct output *o, int event_type, char **data_out,
 		 uint64_t *length_out)
 {
-
 	/* Prevent compiler warnings. */
 	o = o;
-	event_type = event_type;
-	data_out = data_out;
 
 	switch (event_type) {
 	case DF_TRIGGER:
+		/* TODO? Ignore? */
 		break;
 	case DF_END:
+		*data_out = NULL;
 		*length_out = 0;
 		break;
 	}
@@ -48,20 +46,17 @@ static int event(struct output *o, int event_type, char **data_out,
 static int data(struct output *o, char *data_in, uint64_t length_in,
 		char **data_out, uint64_t *length_out)
 {
-	uint64_t outsize;
 	char *outbuf;
 
 	/* Prevent compiler warnings. */
 	o = o;
 
-	outsize = length_in;
-	outbuf = calloc(1, outsize);
-	if (outbuf == NULL)
+	if (!(outbuf = calloc(1, length_in)))
 		return SIGROK_ERR_MALLOC;
 
 	memcpy(outbuf, data_in, length_in);
 	*data_out = outbuf;
-	*length_out = outsize;
+	*length_out = length_in;
 
 	return SIGROK_OK;
 }
