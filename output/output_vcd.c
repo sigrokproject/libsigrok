@@ -153,7 +153,7 @@ static int data(struct output *o, char *data_in, uint64_t length_in,
 		char **data_out, uint64_t *length_out)
 {
 	struct context *ctx;
-	unsigned int offset, outsize;
+	unsigned int i, outsize;
 	int p, curbit, prevbit;
 	uint64_t sample, prevsample;
 	char *outbuf, *c;
@@ -177,28 +177,27 @@ static int data(struct output *o, char *data_in, uint64_t length_in,
 
 	/* TODO: Are disabled probes handled correctly? */
 
-	for (offset = 0; offset <= length_in - ctx->unitsize;
-	     offset += ctx->unitsize) {
-		memcpy(&sample, data_in + offset, ctx->unitsize);
+	for (i = 0; i <= length_in - ctx->unitsize; i += ctx->unitsize) {
+		memcpy(&sample, data_in + i, ctx->unitsize);
 		for (p = 0; p < ctx->num_enabled_probes; p++) {
 			curbit = (sample & ((uint64_t) (1 << p))) != 0;
-			if (offset == 0) {
+			if (i == 0) {
 				prevbit = ~curbit;
 			} else {
-				memcpy(&prevsample, data_in + offset - 1,
+				memcpy(&prevsample, data_in + i - 1,
 				       ctx->unitsize);
 				prevbit =
 				    (prevsample & ((uint64_t) (1 << p))) != 0;
 			}
 
-			if (prevbit != curbit) {
-				/* FIXME: Only once per sample? */
-				c = outbuf + strlen(outbuf);
-				sprintf(c, "#%i\n", offset * 1 /* TODO */);
+			/* VCD only contains deltas/changes. */
+			if (prevbit == curbit)
+				continue;
 
-				c = outbuf + strlen(outbuf);
-				sprintf(c, "%i%c\n", curbit, (char)('!' + p));
-			}
+			/* FIXME: Only once per sample? */
+			/* TODO: Is 'i' correct here? */
+			c = outbuf + strlen(outbuf);
+			sprintf(c, "#%i\n%i%c\n", i, curbit, (char)('!' + p));
 		}
 
 		/* TODO: Use realloc() if strlen(outbuf) is almost "full"... */

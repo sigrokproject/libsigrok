@@ -140,7 +140,7 @@ static int data(struct output *o, char *data_in, uint64_t length_in,
 		char **data_out, uint64_t *length_out)
 {
 	struct context *ctx;
-	unsigned int offset, outsize, p, curbit;
+	unsigned int i, outsize, p, curbit;
 	uint64_t sample, count = 0;
 	char *outbuf, *c;
 
@@ -163,9 +163,8 @@ static int data(struct output *o, char *data_in, uint64_t length_in,
 
 	/* TODO: Are disabled probes handled correctly? */
 
-	for (offset = 0; offset <= length_in - ctx->unitsize;
-	     offset += ctx->unitsize) {
-		memcpy(&sample, data_in + offset, ctx->unitsize);
+	for (i = 0; i <= length_in - ctx->unitsize; i += ctx->unitsize) {
+		memcpy(&sample, data_in + i, ctx->unitsize);
 
 		/* The first column is a counter (needed for gnuplot). */
 		c = outbuf + strlen(outbuf);
