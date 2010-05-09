@@ -153,7 +153,7 @@ static int data(struct output *o, char *data_in, uint64_t length_in,
 		outsize = strlen(ctx->header);
 
 	/* FIXME: Use realloc(). */
-	if (!(outbuf = calloc(1, outsize + 1 + 10000)))
+	if (!(outbuf = calloc(1, outsize + 1 + 1000000)))
 		return SIGROK_ERR_MALLOC; /* TODO: free()? What to free? */
 
 	outbuf[0] = '\0';
