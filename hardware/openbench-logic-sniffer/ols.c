@@ -257,8 +257,8 @@ static int hw_init(char *deviceinfo)
 		free(l->data);
 	}
 
-	/* 2ms should do (enough time for 28 bytes to go over the bus). */
-	usleep(2000);
+	/* 2ms isn't enough for reliable transfer with pl2303, let's try 10 */
+	usleep(10000);
 
 	final_devcnt = 0;
 	g_poll(fds, devcnt, 1);
