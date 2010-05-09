@@ -60,12 +60,11 @@ GSList *list_serial_ports(void)
 
 	ports = NULL;
 	for (i = 0; serial_port_glob[i]; i++) {
-		if (!glob(serial_port_glob[i], 0, NULL, &g)) {
-			for (j = 0; j < g.gl_pathc; j++)
-				ports = g_slist_append(ports,
-						       strdup(g.gl_pathv[j]));
-			globfree(&g);
-		}
+		if (glob(serial_port_glob[i], 0, NULL, &g))
+			continue;
+		for (j = 0; j < g.gl_pathc; j++)
+			ports = g_slist_append(ports, strdup(g.gl_pathv[j]));
+		globfree(&g);
 	}
 
 	return ports;
