@@ -117,8 +117,6 @@ static int event(struct output *o, int event_type, char **data_out,
 		 uint64_t *length_out)
 {
 	struct context *ctx;
-	char *outbuf;
-	int outlen = 1; /* FIXME */
 
 	ctx = o->internal;
 	switch (event_type) {
@@ -126,11 +124,8 @@ static int event(struct output *o, int event_type, char **data_out,
 		/* TODO */
 		break;
 	case DF_END:
-		outbuf = calloc(1, 1); /* FIXME */
-		if (outbuf == NULL)
-			return SIGROK_ERR_MALLOC;
-		*data_out = outbuf;
-		*length_out = outlen;
+		*data_out = NULL;
+		*length_out = 0;
 		free(o->internal);
 		o->internal = NULL;
 		break;
