@@ -143,7 +143,8 @@ static int data(struct output *o, char *data_in, uint64_t length_in,
 {
 	struct context *ctx;
 	unsigned int i, outsize, p, curbit;
-	uint64_t sample, count = 0;
+	uint64_t sample;
+	static uint64_t samplecount = 0;
 	char *outbuf, *c;
 
 	ctx = o->internal;
@@ -170,7 +171,7 @@ static int data(struct output *o, char *data_in, uint64_t length_in,
 
 		/* The first column is a counter (needed for gnuplot). */
 		c = outbuf + strlen(outbuf);
-		sprintf(c, "%" PRIu64 "\t\t", count++);
+		sprintf(c, "%" PRIu64 "\t\t", samplecount++);
 
 		/* The next columns are the values of all channels. */
 		for (p = 0; p < ctx->num_enabled_probes; p++) {

@@ -158,6 +158,7 @@ static int data(struct output *o, char *data_in, uint64_t length_in,
 	unsigned int i, outsize;
 	int p, curbit, prevbit;
 	uint64_t sample, prevsample;
+	static uint64_t samplecount = 0;
 	char *outbuf, *c;
 
 	ctx = o->internal;
@@ -180,6 +181,7 @@ static int data(struct output *o, char *data_in, uint64_t length_in,
 	/* TODO: Are disabled probes handled correctly? */
 
 	for (i = 0; i <= length_in - ctx->unitsize; i += ctx->unitsize) {
+		samplecount++;
 		memcpy(&sample, data_in + i, ctx->unitsize);
 		for (p = 0; p < ctx->num_enabled_probes; p++) {
 			curbit = (sample & ((uint64_t) (1 << p))) != 0;
@@ -197,9 +199,9 @@ static int data(struct output *o, char *data_in, uint64_t length_in,
 				continue;
 
 			/* FIXME: Only once per sample? */
-			/* TODO: Is 'i' correct here? */
 			c = outbuf + strlen(outbuf);
-			sprintf(c, "#%i\n%i%c\n", i, curbit, (char)('!' + p));
+			sprintf(c, "#%" PRIu64 "\n%i%c\n", samplecount,
+				curbit, (char)('!' + p));
 		}
 
 		/* TODO: Use realloc() if strlen(outbuf) is almost "full"... */
