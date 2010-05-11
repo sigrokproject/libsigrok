@@ -53,3 +53,6 @@ libsigrok_la_LIBADD = $(LIBOBJS)
 
 include_HEADERS = sigrok.h
 
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = libsigrok.pc
+
