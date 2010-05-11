@@ -23,7 +23,6 @@
 #include <dirent.h>
 #include <string.h>
 #include <glib.h>
-#include <gmodule.h>
 #include <sigrok.h>
 
 source_callback_add source_cb_add = NULL;
