@@ -30,6 +30,7 @@ libsigrok_la_SOURCES = \
 	hwplugin.c \
 	filter.c \
 	hardware/common/ezusb.c \
+	hardware/common/misc.c \
 	hardware/common/serial.c \
 	hardware/openbench-logic-sniffer/ols.c \
 	hardware/saleae-logic/saleae-logic.c \

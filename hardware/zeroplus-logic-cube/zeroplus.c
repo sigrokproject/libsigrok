@@ -140,7 +140,7 @@ static unsigned int get_memory_size(int type)
 		return 0;
 }
 
-static int opendev3(struct sigrok_device_instance **sdi, libusb_device *dev,
+static int opendev4(struct sigrok_device_instance **sdi, libusb_device *dev,
 		    struct libusb_device_descriptor *des)
 {
 	unsigned int i;
@@ -205,7 +205,7 @@ struct sigrok_device_instance *zp_open_device(int device_index)
 		libusb_get_device_list(usb_context, &devlist);
 		for (i = 0; devlist[i]; i++) {
 			/* TODO: Error handling. */
-			err = opendev3(&sdi, devlist[i], &des);
+			err = opendev4(&sdi, devlist[i], &des);
 		}
 	} else {
 		/* Status must be ST_ACTIVE, i.e. already in use... */

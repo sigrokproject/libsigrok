@@ -433,4 +433,13 @@ void serial_restore_params(int fd, void *backup);
 int serial_set_params(int fd, int speed, int bits, int parity, int stopbits,
 		      int flowcontrol);
 
+/* libsigrok/hardware/common/misc.c */
+/* TODO: Should not be public. */
+int opendev2(int device_index, struct sigrok_device_instance **sdi,
+	     libusb_device *dev, struct libusb_device_descriptor *des,
+	     int *skip, uint16_t vid, uint16_t pid, int interface);
+int opendev3(struct sigrok_device_instance **sdi, libusb_device *dev,
+	     struct libusb_device_descriptor *des,
+	     uint16_t vid, uint16_t pid, int interface);
+
 #endif
