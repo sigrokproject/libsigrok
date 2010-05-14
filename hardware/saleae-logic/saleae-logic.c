@@ -166,7 +166,7 @@ int check_conf_profile(libusb_device *dev)
 
 static int opendev2(int device_index, struct sigrok_device_instance **sdi,
 		    libusb_device *dev, struct libusb_device_descriptor *des,
-		    int *skip)
+		    int *skip, uint16_t vid, uint16_t pid, int interface)
 {
 	int err;
 
@@ -175,7 +175,7 @@ static int opendev2(int device_index, struct sigrok_device_instance **sdi,
 		return -1;
 	}
 
-	if (des->idVendor != USB_VENDOR || des->idProduct != USB_PRODUCT)
+	if (des->idVendor != vid || des->idProduct != pid)
 		return 0;
 
 	if (*skip != device_index) {
@@ -193,7 +193,7 @@ static int opendev2(int device_index, struct sigrok_device_instance **sdi,
 		(*sdi)->status = ST_ACTIVE;
 		g_message("opened device %d on %d.%d interface %d",
 			  (*sdi)->index, (*sdi)->usb->bus,
-			  (*sdi)->usb->address, USB_INTERFACE);
+			  (*sdi)->usb->address, interface);
 	} else {
 		g_warning("failed to open device: %d", err);
 		*sdi = NULL;
@@ -203,7 +203,8 @@ static int opendev2(int device_index, struct sigrok_device_instance **sdi,
 }
 
 static int opendev3(struct sigrok_device_instance **sdi, libusb_device *dev,
-		    struct libusb_device_descriptor *des)
+		    struct libusb_device_descriptor *des,
+		    uint16_t vid, uint16_t pid, int interface)
 {
 	int err;
 
@@ -212,7 +213,7 @@ static int opendev3(struct sigrok_device_instance **sdi, libusb_device *dev,
 		return -1;
 	}
 
-	if (des->idVendor != USB_VENDOR || des->idProduct != USB_PRODUCT)
+	if (des->idVendor != vid || des->idProduct != pid)
 		return 0;
 
 	if (libusb_get_bus_number(dev) == (*sdi)->usb->bus
@@ -222,7 +223,7 @@ static int opendev3(struct sigrok_device_instance **sdi, libusb_device *dev,
 			(*sdi)->status = ST_ACTIVE;
 			g_message("opened device %d on %d.%d interface %d",
 				  (*sdi)->index, (*sdi)->usb->bus,
-				  (*sdi)->usb->address, USB_INTERFACE);
+				  (*sdi)->usb->address, interface);
 		} else {
 			g_warning("failed to open device: %d", err);
 			*sdi = NULL;
@@ -254,7 +255,8 @@ struct sigrok_device_instance *sl_open_device(int device_index)
 		for (i = 0; devlist[i]; i++) {
 			/* TODO: Error handling. */
 			err = opendev2(device_index, &sdi, devlist[i], &des,
-				       &skip);
+				       &skip, USB_VENDOR, USB_PRODUCT,
+				       USB_INTERFACE);
 		}
 	} else if (sdi->status == ST_INACTIVE) {
 		/*
@@ -264,7 +266,8 @@ struct sigrok_device_instance *sl_open_device(int device_index)
 		libusb_get_device_list(usb_context, &devlist);
 		for (i = 0; devlist[i]; i++) {
 			/* TODO: Error handling. */
-			err = opendev3(&sdi, devlist[i], &des);
+			err = opendev3(&sdi, devlist[i], &des, USB_VENDOR,
+				       USB_PRODUCT, USB_INTERFACE);
 		}
 	} else {
 		/* Status must be ST_ACTIVE, i.e. already in use... */
