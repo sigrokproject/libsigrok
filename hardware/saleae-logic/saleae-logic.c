@@ -104,9 +104,11 @@ int trigger_stage = TRIGGER_FIRED;
 static int hw_set_configuration(int device_index, int capability, void *value);
 static void hw_stop_acquisition(int device_index, gpointer session_device_id);
 
-/*
- * Returns 1 if the device's configuration profile match the Logic firmware's
- * configuration, 0 otherwise.
+/**
+ * Check the USB configuration to determine if this is a Saleae Logic.
+ *
+ * @return 1 if the device's configuration profile match the Logic firmware's
+ *         configuration, 0 otherwise.
  */
 int check_conf_profile(libusb_device *dev)
 {
