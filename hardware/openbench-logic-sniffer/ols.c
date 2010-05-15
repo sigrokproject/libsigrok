@@ -448,7 +448,8 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 	} else if (capability == HWCAP_PROBECONFIG) {
 		ret = configure_probes((GSList *) value);
 	} else if (capability == HWCAP_LIMIT_SAMPLES) {
-		limit_samples = strtoull(value, NULL, 10);
+		tmp_u64 = value;
+		limit_samples = *tmp_u64;
 		ret = SIGROK_OK;
 	} else if (capability == HWCAP_CAPTURE_RATIO) {
 		capture_ratio = strtol(value, NULL, 10);

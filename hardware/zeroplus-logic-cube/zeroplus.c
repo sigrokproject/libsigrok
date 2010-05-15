@@ -472,7 +472,8 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 	case HWCAP_PROBECONFIG:
 		return configure_probes((GSList *) value);
 	case HWCAP_LIMIT_SAMPLES:
-		limit_samples = strtoull(value, NULL, 10);
+		tmp_u64 = value;
+		limit_samples = *tmp_u64;
 		return SIGROK_OK;
 	default:
 		return SIGROK_ERR;
