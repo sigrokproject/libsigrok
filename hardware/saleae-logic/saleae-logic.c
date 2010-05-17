@@ -259,16 +259,17 @@ static int configure_probes(GSList *probes)
 			continue;
 		probe_bit = 1 << (probe->index - 1);
 		probe_mask |= probe_bit;
-		if (probe->trigger) {
-			stage = 0;
-			for (tc = probe->trigger; *tc; tc++) {
-				trigger_mask[stage] |= probe_bit;
-				if (*tc == '1')
-					trigger_value[stage] |= probe_bit;
-				stage++;
-				if (stage > NUM_TRIGGER_STAGES)
-					return SIGROK_ERR;
-			}
+		if (!(probe->trigger))
+			continue;
+
+		stage = 0;
+		for (tc = probe->trigger; *tc; tc++) {
+			trigger_mask[stage] |= probe_bit;
+			if (*tc == '1')
+				trigger_value[stage] |= probe_bit;
+			stage++;
+			if (stage > NUM_TRIGGER_STAGES)
+				return SIGROK_ERR;
 		}
 	}
 
