@@ -37,7 +37,7 @@ GSList *plugins;
  */
 struct hwcap_option hwcap_options[] = {
 	{HWCAP_SAMPLERATE, T_UINT64, "Sample rate", "samplerate"},
-	{0, 0, NULL, NULL}
+	{0, 0, NULL, NULL},
 };
 
 extern struct device_plugin saleae_logic_plugin_info;
@@ -45,13 +45,14 @@ extern struct device_plugin ols_plugin_info;
 extern struct device_plugin zeroplus_logic_cube_plugin_info;
 extern struct device_plugin asix_sigma_plugin_info;
 
+/* TODO: No linked list needed, this can be a simple array. */
 int load_hwplugins(void)
 {
 	plugins =
-	    g_slist_append(plugins, (gpointer *) &saleae_logic_plugin_info);
-	plugins = g_slist_append(plugins, (gpointer *) &ols_plugin_info);
+	    g_slist_append(plugins, (gpointer *)&saleae_logic_plugin_info);
+	plugins = g_slist_append(plugins, (gpointer *)&ols_plugin_info);
 	plugins = g_slist_append(plugins,
-			   (gpointer *) &zeroplus_logic_cube_plugin_info);
+			   (gpointer *)&zeroplus_logic_cube_plugin_info);
 	plugins = g_slist_append(plugins, (gpointer *)&asix_sigma_plugin_info);
 
 	return SIGROK_OK;
@@ -63,12 +64,11 @@ GSList *list_hwplugins(void)
 }
 
 struct sigrok_device_instance *sigrok_device_instance_new(int index, int status,
-				char *vendor, char *model, char *version)
+		const char *vendor, const char *model, const char *version)
 {
 	struct sigrok_device_instance *sdi;
 
-	sdi = malloc(sizeof(struct sigrok_device_instance));
-	if (!sdi)
+	if (!(sdi = malloc(sizeof(struct sigrok_device_instance))))
 		return NULL;
 
 	sdi->index = index;
@@ -88,7 +88,6 @@ struct sigrok_device_instance *get_sigrok_device_instance(
 	struct sigrok_device_instance *sdi;
 	GSList *l;
 
-	sdi = NULL;
 	for (l = device_instances; l; l = l->next) {
 		sdi = (struct sigrok_device_instance *)(l->data);
 		if (sdi->index == device_index)
@@ -108,7 +107,9 @@ void sigrok_device_instance_free(struct sigrok_device_instance *sdi)
 	case SERIAL_INSTANCE:
 		serial_device_instance_free(sdi->serial);
 		break;
+	default:
 		/* No specific type, nothing extra to free. */
+		break;
 	}
 
 	free(sdi->vendor);
@@ -122,13 +123,12 @@ struct usb_device_instance *usb_device_instance_new(uint8_t bus,
 {
 	struct usb_device_instance *udi;
 
-	udi = malloc(sizeof(struct usb_device_instance));
-	if (!udi)
+	if (!(udi = malloc(sizeof(struct usb_device_instance))))
 		return NULL;
 
 	udi->bus = bus;
 	udi->address = address;
-	udi->devhdl = hdl;
+	udi->devhdl = hdl; /* TODO: Check if this is NULL? */
 
 	return udi;
 }
@@ -141,12 +141,12 @@ void usb_device_instance_free(struct usb_device_instance *usb)
 	/* Nothing to do for this device instance type. */
 }
 
-struct serial_device_instance *serial_device_instance_new(char *port, int fd)
+struct serial_device_instance *serial_device_instance_new(
+						const char *port, int fd)
 {
 	struct serial_device_instance *serial;
 
-	serial = malloc(sizeof(struct serial_device_instance));
-	if (!serial)
+	if (!(serial = malloc(sizeof(struct serial_device_instance))))
 		return NULL;
 
 	serial->port = strdup(port);
@@ -164,27 +164,24 @@ int find_hwcap(int *capabilities, int hwcap)
 {
 	int i;
 
-	for (i = 0; capabilities[i]; i++)
+	for (i = 0; capabilities[i]; i++) {
 		if (capabilities[i] == hwcap)
 			return TRUE;
+	}
 
 	return FALSE;
 }
 
 struct hwcap_option *find_hwcap_option(int hwcap)
 {
-	struct hwcap_option *hwo;
 	int i;
 
-	hwo = NULL;
 	for (i = 0; hwcap_options[i].capability; i++) {
-		if (hwcap_options[i].capability == hwcap) {
-			hwo = &hwcap_options[i];
-			break;
-		}
+		if (hwcap_options[i].capability == hwcap)
+			return &hwcap_options[i];
 	}
 
-	return hwo;
+	return NULL;
 }
 
 void source_remove(int fd)
