@@ -35,11 +35,7 @@ static void hw_cleanup(void)
 {
 }
 
-static char *hw_get_identifier(int device_index)
-{
-}
-
-static char *hw_get_device_info(int device_index, int device_info_id)
+static void *hw_get_device_info(int device_index, int device_info_id)
 {
 }
 
@@ -51,7 +47,7 @@ static int *hw_get_capabilities(void)
 {
 }
 
-static int hw_set_configuration(int device_index, int capability, char *value)
+static int hw_set_configuration(int device_index, int capability, void *value)
 {
 }
 
