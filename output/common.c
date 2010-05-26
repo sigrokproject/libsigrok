@@ -26,7 +26,7 @@
 /**
  * Convert a numeric samplerate value to its "natural" string representation.
  *
- * E.g. a value of 3000000 would be converted to "3 MHz", 20000 to "20 KHz".
+ * E.g. a value of 3000000 would be converted to "3 MHz", 20000 to "20 kHz".
  *
  * @param samplerate The samplerate in Hz.
  * @return A malloc()ed string representation of the samplerate value,
@@ -46,7 +46,7 @@ char *sigrok_samplerate_string(uint64_t samplerate)
 	else if (samplerate >= MHZ(1))
 		r = snprintf(o, 30, "%" PRIu64 " MHz", samplerate / 1000000);
 	else if (samplerate >= KHZ(1))
-		r = snprintf(o, 30, "%" PRIu64 " KHz", samplerate / 1000);
+		r = snprintf(o, 30, "%" PRIu64 " kHz", samplerate / 1000);
 	else
 		r = snprintf(o, 30, "%" PRIu64 " Hz", samplerate);
 

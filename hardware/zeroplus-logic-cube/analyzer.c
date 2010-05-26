@@ -194,7 +194,7 @@ static int __analyzer_set_freq(libusb_device_handle *devh, int freq, int scale)
 		reg0 = 5;
 		reg2 = 64;
 		break;
-	case FREQ_SCALE_KHZ: /* KHz */
+	case FREQ_SCALE_KHZ: /* kHz */
 		if (freq >= 500 && freq < 1000) {
 			reg0 = freq * 0.01;
 			divisor = 5;
