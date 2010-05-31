@@ -34,8 +34,6 @@ libsigrok_la_SOURCES = \
 	hardware/common/serial.c \
 	hardware/openbench-logic-sniffer/ols.c \
 	hardware/saleae-logic/saleae-logic.c \
-	hardware/asix-sigma/asix-sigma.c \
-	hardware/asix-sigma/asix-sigma.h \
 	hardware/zeroplus-logic-cube/analyzer.c \
 	hardware/zeroplus-logic-cube/analyzer.h \
 	hardware/zeroplus-logic-cube/gl_usb.c \
@@ -49,6 +47,16 @@ libsigrok_la_SOURCES = \
 	output/output_gnuplot.c \
 	output/common.c \
 	output/output.c
+
+if LA_ASIX_SIGMA
+libsigrok_la_SOURCES += \
+	hardware/asix-sigma/asix-sigma.c \
+	hardware/asix-sigma/asix-sigma.h
+else
+EXTRA_DIST = \
+	hardware/asix-sigma/asix-sigma.c \
+	hardware/asix-sigma/asix-sigma.h
+endif
 
 libsigrok_la_LIBADD = $(LIBOBJS)
 

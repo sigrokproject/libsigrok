@@ -43,7 +43,9 @@ struct hwcap_option hwcap_options[] = {
 extern struct device_plugin saleae_logic_plugin_info;
 extern struct device_plugin ols_plugin_info;
 extern struct device_plugin zeroplus_logic_cube_plugin_info;
+#ifdef HAVE_LA_ASIX_SIGMA
 extern struct device_plugin asix_sigma_plugin_info;
+#endif
 
 /* TODO: No linked list needed, this can be a simple array. */
 int load_hwplugins(void)
@@ -53,7 +55,9 @@ int load_hwplugins(void)
 	plugins = g_slist_append(plugins, (gpointer *)&ols_plugin_info);
 	plugins = g_slist_append(plugins,
 			   (gpointer *)&zeroplus_logic_cube_plugin_info);
+#ifdef HAVE_LA_ASIX_SIGMA
 	plugins = g_slist_append(plugins, (gpointer *)&asix_sigma_plugin_info);
+#endif
 
 	return SIGROK_OK;
 }
