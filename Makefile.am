@@ -32,13 +32,6 @@ libsigrok_la_SOURCES = \
 	hardware/common/ezusb.c \
 	hardware/common/misc.c \
 	hardware/common/serial.c \
-	hardware/openbench-logic-sniffer/ols.c \
-	hardware/saleae-logic/saleae-logic.c \
-	hardware/zeroplus-logic-cube/analyzer.c \
-	hardware/zeroplus-logic-cube/analyzer.h \
-	hardware/zeroplus-logic-cube/gl_usb.c \
-	hardware/zeroplus-logic-cube/gl_usb.h \
-	hardware/zeroplus-logic-cube/zeroplus.c \
 	input/input_binary.c \
 	input/input.c \
 	output/output_binary.c \
@@ -56,6 +49,34 @@ else
 EXTRA_DIST = \
 	hardware/asix-sigma/asix-sigma.c \
 	hardware/asix-sigma/asix-sigma.h
+endif
+
+if LA_OLS
+libsigrok_la_SOURCES += hardware/openbench-logic-sniffer/ols.c
+else
+EXTRA_DIST = hardware/openbench-logic-sniffer/ols.c
+endif
+
+if LA_SALEAE_LOGIC
+libsigrok_la_SOURCES += hardware/saleae-logic/saleae-logic.c
+else
+EXTRA_DIST = hardware/saleae-logic/saleae-logic.c
+endif
+
+if LA_ZEROPLUS_LOGIC_CUBE
+libsigrok_la_SOURCES += \
+	hardware/zeroplus-logic-cube/analyzer.c \
+	hardware/zeroplus-logic-cube/analyzer.h \
+	hardware/zeroplus-logic-cube/gl_usb.c \
+	hardware/zeroplus-logic-cube/gl_usb.h \
+	hardware/zeroplus-logic-cube/zeroplus.c
+else
+EXTRA_DIST = \
+	hardware/zeroplus-logic-cube/analyzer.c \
+	hardware/zeroplus-logic-cube/analyzer.h \
+	hardware/zeroplus-logic-cube/gl_usb.c \
+	hardware/zeroplus-logic-cube/gl_usb.h \
+	hardware/zeroplus-logic-cube/zeroplus.c
 endif
 
 libsigrok_la_LIBADD = $(LIBOBJS)
