@@ -24,6 +24,7 @@
 #include <string.h>
 #include <glib.h>
 #include <sigrok.h>
+#include "config.h"
 
 source_callback_add source_cb_add = NULL;
 source_callback_remove source_cb_remove = NULL;
