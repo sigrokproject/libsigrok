@@ -38,6 +38,7 @@ GSList *plugins;
  */
 struct hwcap_option hwcap_options[] = {
 	{HWCAP_SAMPLERATE, T_UINT64, "Sample rate", "samplerate"},
+	{HWCAP_CAPTURE_RATIO, T_UINT64, "Pre-trigger capture ratio", "captureratio"},
 	{0, 0, NULL, NULL},
 };
 
