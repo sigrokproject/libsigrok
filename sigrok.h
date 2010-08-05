@@ -242,7 +242,7 @@ enum {
 	HWCAP_LOGIC_ANALYZER,
 	HWCAP_SAMPLERATE,	/* Change samplerate */
 	HWCAP_PROBECONFIG,	/* Configure probe mask */
-	HWCAP_CAPTURE_RATIO,	/* Set pre-trigger / post-trigger ratio */
+	HWCAP_CAPTURE_RATIO,	/* Set pre/post-trigger capture ratio */
 	HWCAP_LIMIT_MSEC,	/* Set a time limit for sample acquisition */
 	HWCAP_LIMIT_SAMPLES,	/* Set a limit on number of samples */
 };

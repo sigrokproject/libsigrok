@@ -104,9 +104,11 @@ static uint64_t limit_samples = 0;
  * 0 means no pre-trigger data.
  */
 static int capture_ratio = 0;
+static int trigger_at = -1;
 static uint32_t probe_mask = 0xffffffff;
 static uint32_t trigger_mask[4] = { 0, 0, 0, 0 };
 static uint32_t trigger_value[4] = { 0, 0, 0, 0 };
+static int num_stages = 0;
 
 static int send_shortcommand(int fd, uint8_t command)
 {
@@ -149,6 +151,7 @@ static int configure_probes(GSList *probes)
 		trigger_value[i] = 0;
 	}
 
+	num_stages = 0;
 	for (l = probes; l; l = l->next) {
 		probe = (struct probe *)l->data;
 		if (!probe->enabled)
@@ -161,7 +164,7 @@ static int configure_probes(GSList *probes)
 		probe_bit = 1 << (probe->index - 1);
 		probe_mask |= probe_bit;
 
-		if (probe->trigger)
+		if (!probe->trigger)
 			continue;
 
 		/* Configure trigger mask and value. */
@@ -178,20 +181,35 @@ static int configure_probes(GSList *probes)
 				 */
 				return SIGROK_ERR;
 		}
+		if (stage > num_stages)
+			num_stages = stage;
 	}
 
 	return SIGROK_OK;
 }
 
-static void byteswap(uint32_t * in)
+static uint32_t reverse16(uint32_t in)
 {
 	uint32_t out;
 
-	out = (*in & 0xff) << 8;
-	out |= (*in & 0xff00) >> 8;
-	out |= (*in & 0xff0000) << 8;
-	out |= (*in & 0xff000000) >> 8;
-	*in = out;
+	out = (in & 0xff) << 8;
+	out |= (in & 0xff00) >> 8;
+	out |= (in & 0xff0000) << 8;
+	out |= (in & 0xff000000) >> 8;
+
+	return out;
+}
+
+static uint32_t reverse32(uint32_t in)
+{
+	uint32_t out;
+
+	out = (in & 0xff) << 24;
+	out |= (in & 0xff00) << 8;
+	out |= (in & 0xff0000) >> 8;
+	out |= (in & 0xff000000) >> 24;
+
+	return out;
 }
 
 static int hw_init(char *deviceinfo)
@@ -412,18 +430,11 @@ static int set_configuration_samplerate(struct sigrok_device_instance *sdi,
 		flag_reg &= ~FLAG_DEMUX;
 		divider = (CLOCK_RATE / samplerate) - 1;
 	}
-#ifdef _WIN32
-	// FIXME
-	// divider = htonl(divider);
-#else
-	divider = htonl(divider);
-#endif
 
 	g_message("setting samplerate to %" PRIu64 " Hz (divider %u, demux %s)",
-		  samplerate, divider, flag_reg & FLAG_DEMUX ? "on" : "off");
+			samplerate, divider, flag_reg & FLAG_DEMUX ? "on" : "off");
 
-	if (send_longcommand(sdi->serial->fd, CMD_SET_DIVIDER,
-	    divider) != SIGROK_OK)
+	if (send_longcommand(sdi->serial->fd, CMD_SET_DIVIDER, reverse32(divider)) != SIGROK_OK)
 		return SIGROK_ERR;
 	cur_samplerate = samplerate;
 
@@ -442,23 +453,29 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 	if (sdi->status != ST_ACTIVE)
 		return SIGROK_ERR;
 
-	if (capability == HWCAP_SAMPLERATE) {
+	switch (capability) {
+	case HWCAP_SAMPLERATE:
 		tmp_u64 = value;
 		ret = set_configuration_samplerate(sdi, *tmp_u64);
-	} else if (capability == HWCAP_PROBECONFIG) {
+		break;
+	case HWCAP_PROBECONFIG:
 		ret = configure_probes((GSList *) value);
-	} else if (capability == HWCAP_LIMIT_SAMPLES) {
+		break;
+	case HWCAP_LIMIT_SAMPLES:
 		tmp_u64 = value;
 		limit_samples = *tmp_u64;
 		ret = SIGROK_OK;
-	} else if (capability == HWCAP_CAPTURE_RATIO) {
-		capture_ratio = strtol(value, NULL, 10);
+		break;
+	case HWCAP_CAPTURE_RATIO:
+		tmp_u64 = value;
+		capture_ratio = *tmp_u64;
 		if (capture_ratio < 0 || capture_ratio > 100) {
 			capture_ratio = 0;
 			ret = SIGROK_ERR;
 		} else
 			ret = SIGROK_OK;
-	} else {
+		break;
+	default:
 		ret = SIGROK_ERR;
 	}
 
@@ -472,7 +489,8 @@ static int receive_data(int fd, int revents, void *user_data)
 	static char last_sample[4] = { 0xff, 0xff, 0xff, 0xff };
 	static unsigned char sample[4] = { 0, 0, 0, 0 };
 	static unsigned char tmp_sample[4];
-	int count, buflen, num_channels, i, j;
+	static unsigned char *raw_sample_buf = NULL;
+	int count, buflen, num_channels, offset, i, j;
 	struct datafeed_packet packet;
 	unsigned char byte, *buffer;
 
@@ -484,7 +502,10 @@ static int receive_data(int fd, int revents, void *user_data)
 		 * finished. We'll double that to 30ms to be sure...
 		 */
 		source_remove(fd);
-		source_add(fd, G_IO_IN, 100, receive_data, user_data);
+		source_add(fd, G_IO_IN, 30, receive_data, user_data);
+		raw_sample_buf = malloc(limit_samples * 4);
+		/* fill with 1010... for debugging */
+		memset(raw_sample_buf, 0x82, limit_samples * 4);
 	}
 
 	num_channels = 0;
@@ -499,7 +520,9 @@ static int receive_data(int fd, int revents, void *user_data)
 			return FALSE;
 
 		sample[num_bytes++] = byte;
+//		g_message("received byte 0x%.2x", byte);
 		if (num_bytes == num_channels) {
+//			g_message("received sample 0x%.*x", num_bytes * 2, (int) *sample);
 			/* Got a full sample. */
 			if (flag_reg & FLAG_RLE) {
 				/*
@@ -514,8 +537,7 @@ static int receive_data(int fd, int revents, void *user_data)
 					buffer = g_malloc(count);
 					buflen = 0;
 					for (i = 0; i < count; i++) {
-						memcpy(buffer + buflen,
-						       last_sample, 4);
+						memcpy(buffer + buflen, last_sample, 4);
 						buflen += 4;
 					}
 				} else {
@@ -547,7 +569,7 @@ static int receive_data(int fd, int revents, void *user_data)
 				j = 0;
 				memset(tmp_sample, 0, 4);
 				for (i = 0; i < 4; i++) {
-					if ((flag_reg & (8 >> i)) == 0) {
+					if (((flag_reg >> 2) & (1 << i)) == 0) {
 						/*
 						 * This channel group was
 						 * enabled, copy from received
@@ -557,13 +579,22 @@ static int receive_data(int fd, int revents, void *user_data)
 					}
 				}
 				memcpy(sample, tmp_sample, 4);
+//				g_message("full sample 0x%.8x", (int) *sample);
 			}
 
-			/* Send it all to the session bus. */
-			packet.type = DF_LOGIC32;
-			packet.length = buflen;
-			packet.payload = buffer;
-			session_bus(user_data, &packet);
+			/* the OLS sends its sample buffer backwards.
+			 * store it in reverse order here, so we can dump
+			 * this on the session bus later.
+			 */
+			offset = (limit_samples - num_transfers) * 4;
+			memcpy(raw_sample_buf + offset, sample, 4);
+
+//			/* Send it all to the session bus. */
+//			packet.type = DF_LOGIC32;
+//			packet.length = buflen;
+//			packet.payload = buffer;
+//			session_bus(user_data, &packet);
+
 			if (buffer == sample)
 				memcpy(last_sample, buffer, num_channels);
 			else
@@ -576,7 +607,36 @@ static int receive_data(int fd, int revents, void *user_data)
 		/*
 		 * This is the main loop telling us a timeout was reached, or
 		 * we've acquired all the samples we asked for -- we're done.
+		 * Send the (properly-ordered) buffer to the frontend.
 		 */
+		if (trigger_at != -1) {
+			/* a trigger was set up, so we need to tell the frontend
+			 * about it.
+			 */
+			if (trigger_at > 0) {
+				/* there are pre-trigger samples, send those first */
+				packet.type = DF_LOGIC32;
+				packet.length = trigger_at * 4;
+				packet.payload = raw_sample_buf;
+				session_bus(user_data, &packet);
+			}
+
+			packet.type = DF_TRIGGER;
+			packet.length = 0;
+			session_bus(user_data, &packet);
+
+			packet.type = DF_LOGIC32;
+			packet.length = (limit_samples * 4) - (trigger_at * 4);
+			packet.payload = raw_sample_buf + trigger_at * 4;
+			session_bus(user_data, &packet);
+		} else {
+			packet.type = DF_LOGIC32;
+			packet.length = limit_samples * 4;
+			packet.payload = raw_sample_buf;
+			session_bus(user_data, &packet);
+		}
+		free(raw_sample_buf);
+
 #ifndef _WIN32
 		/* TODO: Move to serial.c? */
 		tcflush(fd, TCIOFLUSH);
@@ -596,6 +656,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	struct datafeed_packet *packet;
 	struct datafeed_header *header;
 	struct sigrok_device_instance *sdi;
+	uint32_t trigger_config[4];
 	uint32_t data;
 	uint16_t readcount, delaycount;
 	uint8_t changrp_mask;
@@ -606,52 +667,54 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	if (sdi->status != ST_ACTIVE)
 		return SIGROK_ERR;
 
+	readcount = limit_samples / 4;
+
+	memset(trigger_config, 0, 16);
+	trigger_config[num_stages-1] |= 0x08;
 	if (trigger_mask[0]) {
-		/* Trigger masks */
+		delaycount = readcount * (1 - capture_ratio / 100.0);
+		trigger_at = (readcount - delaycount) * 4 - num_stages;
+		g_message("ta %d", trigger_at);
+
 		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_MASK_0,
-		     trigger_mask[0]) != SIGROK_OK)
+			reverse32(trigger_mask[0])) != SIGROK_OK)
 			return SIGROK_ERR;
-		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_MASK_1,
-		     trigger_mask[1]) != SIGROK_OK)
+		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_VALUE_0,
+			reverse32(trigger_value[0])) != SIGROK_OK)
 			return SIGROK_ERR;
-		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_MASK_2,
-		     trigger_mask[2]) != SIGROK_OK)
-			return SIGROK_ERR;
-		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_MASK_3,
-		     trigger_mask[3]) != SIGROK_OK)
+		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_CONFIG_0,
+			trigger_config[0]) != SIGROK_OK)
 			return SIGROK_ERR;
 
-		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_VALUE_0,
-		     trigger_value[0]) != SIGROK_OK)
+		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_MASK_1,
+			reverse32(trigger_mask[1])) != SIGROK_OK)
 			return SIGROK_ERR;
 		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_VALUE_1,
-		     trigger_value[1]) != SIGROK_OK)
-			return SIGROK_ERR;
-		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_VALUE_2,
-		     trigger_value[2]) != SIGROK_OK)
-			return SIGROK_ERR;
-		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_VALUE_3,
-		     trigger_value[3]) != SIGROK_OK)
-			return SIGROK_ERR;
-
-		/* Trigger configuration */
-		/*
-		 * TODO: The start flag should only be on the last used
-		 * stage I think...
-		 */
-		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_CONFIG_0,
-		     0x00000008) != SIGROK_OK)
+			reverse32(trigger_value[1])) != SIGROK_OK)
 			return SIGROK_ERR;
 		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_CONFIG_1,
-		     0x00000000) != SIGROK_OK)
+			trigger_config[1]) != SIGROK_OK)
+			return SIGROK_ERR;
+
+		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_MASK_2,
+			reverse32(trigger_mask[2])) != SIGROK_OK)
+			return SIGROK_ERR;
+		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_VALUE_2,
+			reverse32(trigger_value[2])) != SIGROK_OK)
 			return SIGROK_ERR;
 		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_CONFIG_2,
-		     0x00000000) != SIGROK_OK)
+			trigger_config[2]) != SIGROK_OK)
+			return SIGROK_ERR;
+
+		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_MASK_3,
+			reverse32(trigger_mask[3])) != SIGROK_OK)
+			return SIGROK_ERR;
+		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_VALUE_3,
+			reverse32(trigger_value[3])) != SIGROK_OK)
 			return SIGROK_ERR;
 		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_CONFIG_3,
-		     0x00000000) != SIGROK_OK)
+			trigger_config[3]) != SIGROK_OK)
 			return SIGROK_ERR;
-		delaycount = limit_samples / 4 * (capture_ratio / 100);
 	} else {
 		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_MASK_0,
 		     trigger_mask[0]) != SIGROK_OK)
@@ -662,41 +725,33 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_CONFIG_0,
 		     0x00000008) != SIGROK_OK)
 			return SIGROK_ERR;
-		delaycount = limit_samples / 4;
+		delaycount = readcount;
 	}
 
 	set_configuration_samplerate(sdi, cur_samplerate);
 
 	/* Send sample limit and pre/post-trigger capture ratio. */
-	readcount = limit_samples / 4;
-	if (flag_reg & FLAG_DEMUX) {
-		data = (delaycount - 8) & 0xfff8 << 13;
-		data |= (readcount - 4) & 0xffff;
-	} else {
-		flag_reg |= FLAG_FILTER;
-		data = (readcount - 1) << 16;
-		data |= (delaycount - 1);
-	}
-	/* TODO: htonl()? */
-	byteswap(&data);
-	if (send_longcommand(sdi->serial->fd, CMD_CAPTURE_SIZE,
-	    data) != SIGROK_OK)
+	data = ((readcount - 1) & 0xffff) << 16;
+	data |= (delaycount - 1) & 0xffff;
+	if (send_longcommand(sdi->serial->fd, CMD_CAPTURE_SIZE, reverse16(data)) != SIGROK_OK)
 		return SIGROK_ERR;
 
 	/*
 	 * Enable/disable channel groups in the flag register according to the
-	 * probe mask. The register stores them backwards, hence shift right
-	 * from 1000.
+	 * probe mask.
 	 */
 	changrp_mask = 0;
 	for (i = 0; i < 4; i++) {
 		if (probe_mask & (0xff << (i * 8)))
-			changrp_mask |= (8 >> i);
+			changrp_mask |= (1 << i);
 	}
+	g_message("changrp_mask 0x%.2x", changrp_mask);
 
 	/* The flag register wants them here, and 1 means "disable channel". */
 	flag_reg |= ~(changrp_mask << 2) & 0x3c;
+	g_message("flag_reg 0x%.2x", flag_reg & 0x3c);
 
+	flag_reg |= FLAG_FILTER;
 	data = flag_reg << 24;
 	if (send_longcommand(sdi->serial->fd, CMD_SET_FLAGS, data) != SIGROK_OK)
 		return SIGROK_ERR;
