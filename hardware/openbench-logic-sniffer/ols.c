@@ -114,7 +114,7 @@ static int send_shortcommand(int fd, uint8_t command)
 {
 	char buf[1];
 
-	g_message("ols: sending cmd 0x%.2x", command);
+	g_debug("ols: sending cmd 0x%.2x", command);
 	buf[0] = command;
 	if (write(fd, buf, 1) != 1)
 		return SIGROK_ERR;
@@ -126,7 +126,7 @@ static int send_longcommand(int fd, uint8_t command, uint32_t data)
 {
 	char buf[5];
 
-	g_message("ols: sending cmd 0x%.2x data 0x%.8x", command, data);
+	g_debug("ols: sending cmd 0x%.2x data 0x%.8x", command, data);
 	buf[0] = command;
 	buf[1] = (data & 0xff000000) >> 24;
 	buf[2] = (data & 0xff0000) >> 16;
@@ -520,9 +520,9 @@ static int receive_data(int fd, int revents, void *user_data)
 			return FALSE;
 
 		sample[num_bytes++] = byte;
-//		g_message("received byte 0x%.2x", byte);
+		g_debug("received byte 0x%.2x", byte);
 		if (num_bytes == num_channels) {
-//			g_message("received sample 0x%.*x", num_bytes * 2, (int) *sample);
+			g_debug("received sample 0x%.*x", num_bytes * 2, (int) *sample);
 			/* Got a full sample. */
 			if (flag_reg & FLAG_RLE) {
 				/*
@@ -579,7 +579,7 @@ static int receive_data(int fd, int revents, void *user_data)
 					}
 				}
 				memcpy(sample, tmp_sample, 4);
-//				g_message("full sample 0x%.8x", (int) *sample);
+				g_debug("full sample 0x%.8x", (int) *sample);
 			}
 
 			/* the OLS sends its sample buffer backwards.
@@ -588,12 +588,6 @@ static int receive_data(int fd, int revents, void *user_data)
 			 */
 			offset = (limit_samples - num_transfers) * 4;
 			memcpy(raw_sample_buf + offset, sample, 4);
-
-//			/* Send it all to the session bus. */
-//			packet.type = DF_LOGIC32;
-//			packet.length = buflen;
-//			packet.payload = buffer;
-//			session_bus(user_data, &packet);
 
 			if (buffer == sample)
 				memcpy(last_sample, buffer, num_channels);
