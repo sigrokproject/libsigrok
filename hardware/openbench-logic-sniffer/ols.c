@@ -586,7 +586,7 @@ static int receive_data(int fd, int revents, void *user_data)
 			 * store it in reverse order here, so we can dump
 			 * this on the session bus later.
 			 */
-			offset = (limit_samples - num_transfers) * 4;
+			offset = (limit_samples - num_transfers / num_channels) * 4;
 			memcpy(raw_sample_buf + offset, sample, 4);
 
 			if (buffer == sample)
