@@ -340,7 +340,6 @@ static int hw_opendev(int device_index)
 	}
 	analyzer_reset(sdi->usb->devhdl);
 	analyzer_initialize(sdi->usb->devhdl);
-	analyzer_configure(sdi->usb->devhdl);
 
 	analyzer_set_memory_size(MEMORY_SIZE_512K);
 	// analyzer_set_freq(g_freq, g_freq_scale);
@@ -491,6 +490,9 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 
 	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
 		return SIGROK_ERR;
+
+	/* push configured settings to device */
+	analyzer_configure(sdi->usb->devhdl);
 
 	analyzer_start(sdi->usb->devhdl);
 	g_message("Waiting for data");
