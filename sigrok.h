@@ -429,6 +429,7 @@ int ezusb_upload_firmware(libusb_device *dev, int configuration,
 GSList *list_serial_ports(void);
 int serial_open(const char *pathname, int flags);
 int serial_close(int fd);
+int serial_flush(int fd);
 void *serial_backup_params(int fd);
 void serial_restore_params(int fd, void *backup);
 int serial_set_params(int fd, int speed, int bits, int parity, int stopbits,

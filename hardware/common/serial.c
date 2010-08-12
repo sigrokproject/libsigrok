@@ -98,8 +98,7 @@ int serial_close(int fd)
 int serial_flush(int fd)
 {
 
-	tcflush(fd, TCIOFLUSH);
-
+	return tcflush(fd, TCIOFLUSH);
 }
 
 void *serial_backup_params(int fd)
