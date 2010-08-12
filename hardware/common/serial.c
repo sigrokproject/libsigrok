@@ -95,6 +95,13 @@ int serial_close(int fd)
 #endif
 }
 
+int serial_flush(int fd)
+{
+
+	tcflush(fd, TCIOFLUSH);
+
+}
+
 void *serial_backup_params(int fd)
 {
 #ifdef _WIN32

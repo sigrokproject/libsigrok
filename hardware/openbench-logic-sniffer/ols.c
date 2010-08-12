@@ -42,7 +42,6 @@
 #define NUM_TRIGGER_STAGES		4
 #define TRIGGER_TYPES			"01"
 #define SERIAL_SPEED			B115200
-/* TODO: SERIAL_ bits, parity, stop bit */
 #define CLOCK_RATE			100000000
 
 /* Command opcodes */
@@ -243,12 +242,7 @@ static int hw_init(char *deviceinfo)
 		 * respond with g_poll().
 		 */
 		g_message("probing %s...", (char *)l->data);
-#ifdef _WIN32
-		// FIXME
-		// hdl = serial_open(l->data, 0);
-#else
 		fd = serial_open(l->data, O_RDWR | O_NONBLOCK);
-#endif
 		if (fd != -1) {
 			serial_params[devcnt] = serial_backup_params(fd);
 			serial_set_params(fd, 115200, 8, 0, 1, 2);
@@ -631,10 +625,7 @@ static int receive_data(int fd, int revents, void *user_data)
 		}
 		free(raw_sample_buf);
 
-#ifndef _WIN32
-		/* TODO: Move to serial.c? */
-		tcflush(fd, TCIOFLUSH);
-#endif
+		serial_flush(fd);
 		serial_close(fd);
 		packet.type = DF_END;
 		packet.length = 0;
