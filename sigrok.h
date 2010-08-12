@@ -94,7 +94,7 @@ enum {
 
 struct datafeed_packet {
 	uint16_t type;
-	uint16_t length;
+	uint64_t length;
 	void *payload;
 };
 
