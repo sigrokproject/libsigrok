@@ -151,8 +151,6 @@ int gl_open(int vid)
 	if (ret < 0)
 		return GL_ELIBUSB;
 
-	libusb_set_debug(NULL, 0);
-
 	if (libusb_get_device_list(NULL, &devs) < 0) {
 		ret = GL_EOPEN;
 		goto gl_open_error;

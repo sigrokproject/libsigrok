@@ -303,7 +303,6 @@ static int hw_init(char *deviceinfo)
 		g_warning("Failed to initialize USB.");
 		return 0;
 	}
-	libusb_set_debug(usb_context, 3);
 
 	/* Find all Saleae Logic devices and upload firmware to all of them. */
 	devcnt = 0;
