@@ -241,7 +241,7 @@ static int hw_init(char *deviceinfo)
 		 * we do all the sending first, then wait for all of them to
 		 * respond with g_poll().
 		 */
-		g_message("probing %s...", (char *)l->data);
+		g_message("ols: probing %s...", (char *)l->data);
 		fd = serial_open(l->data, O_RDWR | O_NONBLOCK);
 		if (fd != -1) {
 			serial_params[devcnt] = serial_backup_params(fd);
@@ -287,7 +287,7 @@ static int hw_init(char *deviceinfo)
 					else
 						sdi = sigrok_device_instance_new
 						    (final_devcnt, ST_INACTIVE,
-						     "Sump", "Logic Analyzer",
+						     "Openbench", "Logic Sniffer",
 						     "v1.0");
 					sdi->serial = serial_device_instance_new
 					    (device_names[i], -1);
@@ -425,7 +425,7 @@ static int set_configuration_samplerate(struct sigrok_device_instance *sdi,
 		divider = (CLOCK_RATE / samplerate) - 1;
 	}
 
-	g_message("setting samplerate to %" PRIu64 " Hz (divider %u, demux %s)",
+	g_message("ols: setting samplerate to %" PRIu64 " Hz (divider %u, demux %s)",
 			samplerate, divider, flag_reg & FLAG_DEMUX ? "on" : "off");
 
 	if (send_longcommand(sdi->serial->fd, CMD_SET_DIVIDER, reverse32(divider)) != SIGROK_OK)
@@ -458,6 +458,7 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 	case HWCAP_LIMIT_SAMPLES:
 		tmp_u64 = value;
 		limit_samples = *tmp_u64;
+		g_message("ols: sample limit %" PRIu64, limit_samples);
 		ret = SIGROK_OK;
 		break;
 	case HWCAP_CAPTURE_RATIO:
@@ -514,9 +515,9 @@ static int receive_data(int fd, int revents, void *user_data)
 			return FALSE;
 
 		sample[num_bytes++] = byte;
-		g_debug("received byte 0x%.2x", byte);
+		g_debug("ols: received byte 0x%.2x", byte);
 		if (num_bytes == num_channels) {
-			g_debug("received sample 0x%.*x", num_bytes * 2, (int) *sample);
+			g_debug("ols: received sample 0x%.*x", num_bytes * 2, (int) *sample);
 			/* Got a full sample. */
 			if (flag_reg & FLAG_RLE) {
 				/*
@@ -573,7 +574,7 @@ static int receive_data(int fd, int revents, void *user_data)
 					}
 				}
 				memcpy(sample, tmp_sample, 4);
-				g_debug("full sample 0x%.8x", (int) *sample);
+				g_debug("ols: full sample 0x%.8x", (int) *sample);
 			}
 
 			/* the OLS sends its sample buffer backwards.
@@ -659,7 +660,6 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	if (trigger_mask[0]) {
 		delaycount = readcount * (1 - capture_ratio / 100.0);
 		trigger_at = (readcount - delaycount) * 4 - num_stages;
-		g_message("ta %d", trigger_at);
 
 		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_MASK_0,
 			reverse32(trigger_mask[0])) != SIGROK_OK)
@@ -730,12 +730,9 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 		if (probe_mask & (0xff << (i * 8)))
 			changrp_mask |= (1 << i);
 	}
-	g_message("changrp_mask 0x%.2x", changrp_mask);
 
 	/* The flag register wants them here, and 1 means "disable channel". */
 	flag_reg |= ~(changrp_mask << 2) & 0x3c;
-	g_message("flag_reg 0x%.2x", flag_reg & 0x3c);
-
 	flag_reg |= FLAG_FILTER;
 	data = flag_reg << 24;
 	if (send_longcommand(sdi->serial->fd, CMD_SET_FLAGS, data) != SIGROK_OK)
@@ -781,7 +778,7 @@ static void hw_stop_acquisition(int device_index, gpointer session_device_id)
 }
 
 struct device_plugin ols_plugin_info = {
-	"sump",
+	"ols",
 	1,
 	hw_init,
 	hw_cleanup,

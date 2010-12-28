@@ -231,7 +231,7 @@ static void close_device(struct sigrok_device_instance *sdi)
 	if (sdi->usb->devhdl == NULL)
 		return;
 
-	g_message("closing device %d on %d.%d interface %d", sdi->index,
+	g_message("saleae: closing device %d on %d.%d interface %d", sdi->index,
 		  sdi->usb->bus, sdi->usb->address, USB_INTERFACE);
 	libusb_release_interface(sdi->usb->devhdl, USB_INTERFACE);
 	libusb_close(sdi->usb->devhdl);
@@ -364,7 +364,7 @@ static int hw_opendev(int device_index)
 		timediff = cur - upd;
 		if (timediff < FIRMWARE_RENUM_DELAY) {
 			timediff = FIRMWARE_RENUM_DELAY - timediff;
-			g_message("waiting %d ms for device to reset",
+			g_message("saleae: waiting %d ms for device to reset",
 				  timediff);
 			g_usleep(timediff * 1000);
 			firmware_updated.tv_sec = 0;
@@ -480,7 +480,7 @@ static int set_configuration_samplerate(struct sigrok_device_instance *sdi,
 
 	divider = (uint8_t) (48 / (samplerate / 1000000.0)) - 1;
 
-	g_message("setting samplerate to %" PRIu64 " Hz (divider %d)",
+	g_message("saleae: setting samplerate to %" PRIu64 " Hz (divider %d)",
 		  samplerate, divider);
 	buf[0] = 0x01;
 	buf[1] = divider;
@@ -558,7 +558,7 @@ void receive_transfer(struct libusb_transfer *transfer)
 		return;
 	}
 
-	g_message("receive_transfer(): status %d received %d bytes",
+	g_message("saleae: receive_transfer(): status %d received %d bytes",
 		  transfer->status, transfer->actual_length);
 
 	/* Save incoming transfer before reusing the transfer struct. */
