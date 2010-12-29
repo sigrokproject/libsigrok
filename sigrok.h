@@ -210,6 +210,7 @@ struct device {
 	struct datastore *datastore;
 };
 
+#define MAX_PROBENAME_LEN 32
 struct probe {
 	int index;
 	gboolean enabled;

@@ -69,6 +69,7 @@ static void flush_linebufs(struct context *ctx, char *outbuf)
 			ctx->mark_trigger + (ctx->mark_trigger / 8), "");
 
 	memset(ctx->linebuf, 0, i * ctx->linebuf_len);
+
 }
 
 static int init(struct output *o, int default_spl)
@@ -180,12 +181,13 @@ static int data_bits(struct output *o, char *data_in, uint64_t length_in,
 {
 	struct context *ctx;
 	unsigned int outsize, offset, p;
+	int max_linelen;
 	uint64_t sample;
 	char *outbuf;
 
 	ctx = o->internal;
-	outsize = length_in / ctx->unitsize * ctx->num_enabled_probes *
-		  ctx->samples_per_line + 4096;
+	max_linelen = MAX_PROBENAME_LEN + 3 + ctx->samples_per_line + ctx->samples_per_line / 8;
+	outsize = length_in / ctx->unitsize * ctx->num_enabled_probes / ctx->samples_per_line * max_linelen + 512;
 
 	if (!(outbuf = calloc(1, outsize + 1)))
 		return SIGROK_ERR_MALLOC;
@@ -248,12 +250,13 @@ static int data_hex(struct output *o, char *data_in, uint64_t length_in,
 {
 	struct context *ctx;
 	unsigned int outsize, offset, p;
+	int max_linelen;
 	uint64_t sample;
 	char *outbuf;
 
 	ctx = o->internal;
-	outsize = length_in / ctx->unitsize * ctx->num_enabled_probes *
-		  ctx->samples_per_line + 4096;
+	max_linelen = MAX_PROBENAME_LEN + 3 + ctx->samples_per_line + ctx->samples_per_line / 2;
+	outsize = length_in / ctx->unitsize * ctx->num_enabled_probes / ctx->samples_per_line * max_linelen + 512;
 
 	if (!(outbuf = calloc(1, outsize + 1)))
 		return SIGROK_ERR_MALLOC;
