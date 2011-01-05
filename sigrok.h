@@ -49,6 +49,11 @@
 #define SIGROK_ERR_MALLOC		-2 /* Malloc/calloc/realloc error */
 #define SIGROK_ERR_SAMPLERATE		-3 /* Incorrect samplerate */
 
+/* limited by uint64_t */
+#define MAX_NUM_PROBES 64
+#define MAX_PROBENAME_LEN 32
+
+
 /* Handy little macros */
 #define KHZ(n) ((n) * 1000)
 #define MHZ(n) ((n) * 1000000)
@@ -153,6 +158,7 @@ int filter_probes(int in_unitsize, int out_unitsize, int *probelist,
 		  uint64_t *length_out);
 
 char *sigrok_samplerate_string(uint64_t samplerate);
+char *sigrok_period_string(uint64_t frequency);
 
 /*--- analyzer.c ------------------------------------------------------------*/
 
@@ -210,7 +216,6 @@ struct device {
 	struct datastore *datastore;
 };
 
-#define MAX_PROBENAME_LEN 32
 struct probe {
 	int index;
 	gboolean enabled;
