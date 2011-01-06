@@ -42,6 +42,7 @@ struct hwcap_option hwcap_options[] = {
 	{0, 0, NULL, NULL},
 };
 
+extern struct device_plugin demo_plugin_info;
 #ifdef HAVE_LA_SALEAE_LOGIC
 extern struct device_plugin saleae_logic_plugin_info;
 #endif
@@ -58,6 +59,7 @@ extern struct device_plugin asix_sigma_plugin_info;
 /* TODO: No linked list needed, this can be a simple array. */
 int load_hwplugins(void)
 {
+	plugins = g_slist_append(plugins, (gpointer *)&demo_plugin_info);
 #ifdef HAVE_LA_SALEAE_LOGIC
 	plugins =
 	    g_slist_append(plugins, (gpointer *)&saleae_logic_plugin_info);

@@ -32,6 +32,7 @@ libsigrok_la_SOURCES = \
 	hardware/common/ezusb.c \
 	hardware/common/misc.c \
 	hardware/common/serial.c \
+	hardware/demo/demo.c \
 	input/input_binary.c \
 	input/input.c \
 	output/output_binary.c \
