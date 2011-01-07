@@ -22,22 +22,17 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/time.h>
-
 #include <sigrok.h>
 
 #define CHUNKSIZE 4096
 
-
-static int format_match(char *filename)
+static int format_match(const char *filename)
 {
-
 	filename = NULL;
-
 	return TRUE;
 }
 
-
-static int in_loadfile(char *filename)
+static int in_loadfile(const char *filename)
 {
 	struct datafeed_header header;
 	struct datafeed_packet packet;
@@ -45,10 +40,10 @@ static int in_loadfile(char *filename)
 	char buffer[CHUNKSIZE];
 	int fd, size, num_probes;
 
-	if( (fd = open(filename, O_RDONLY)) == -1)
+	if ((fd = open(filename, O_RDONLY)) == -1)
 		return SIGROK_ERR;
 
-	/* TODO: number of probes hardcoded to 8 */
+	/* TODO: Number of probes is hardcoded to 8. */
 	num_probes = 8;
 	device = device_new(NULL, 0, num_probes);
 
@@ -64,7 +59,7 @@ static int in_loadfile(char *filename)
 
 	packet.type = DF_LOGIC8;
 	packet.payload = buffer;
-	while( (size = read(fd, buffer, CHUNKSIZE)) > 0) {
+	while ((size = read(fd, buffer, CHUNKSIZE)) > 0) {
 		packet.length = size;
 		session_bus(device, &packet);
 	}
@@ -74,15 +69,12 @@ static int in_loadfile(char *filename)
 	packet.length = 0;
 	session_bus(device, &packet);
 
-
 	return SIGROK_OK;
 }
 
-
 struct input_format input_binary = {
-		"binary",
-		"Raw binary",
-		format_match,
-		in_loadfile
+	"binary",
+	"Raw binary",
+	format_match,
+	in_loadfile,
 };
-

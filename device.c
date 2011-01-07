@@ -43,7 +43,8 @@ void device_scan(void)
 		g_message("initializing %s plugin", plugin->name);
 		num_devices = plugin->init(NULL);
 		for (i = 0; i < num_devices; i++) {
-			num_probes = (int)plugin->get_device_info(i, DI_NUM_PROBES);
+			num_probes = (int)plugin->get_device_info(i,
+							DI_NUM_PROBES);
 			device_new(plugin, i, num_probes);
 		}
 	}
@@ -66,7 +67,8 @@ GSList *device_list(void)
 	return devices;
 }
 
-struct device *device_new(struct device_plugin *plugin, int plugin_index, int num_probes)
+struct device *device_new(struct device_plugin *plugin, int plugin_index,
+			  int num_probes)
 {
 	struct device *device;
 	int i;

@@ -118,8 +118,8 @@ struct input {
 struct input_format {
 	char *extension;
 	char *description;
-	int (*format_match) (char *filename);
-	int (*in_loadfile) (char *filename);
+	int (*format_match) (const char *filename);
+	int (*in_loadfile) (const char *filename);
 };
 
 struct input_format **input_list(void);

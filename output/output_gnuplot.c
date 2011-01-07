@@ -67,8 +67,9 @@ static int init(struct output *o)
 	ctx->num_enabled_probes = 0;
 	for (l = o->device->probes; l; l = l->next) {
 		probe = l->data;
-		if (probe->enabled)
-			ctx->probelist[ctx->num_enabled_probes++] = probe->name;
+		if (!probe->enabled)
+			continue;
+		ctx->probelist[ctx->num_enabled_probes++] = probe->name;
 	}
 
 	ctx->probelist[ctx->num_enabled_probes] = 0;

@@ -22,14 +22,12 @@
 extern struct input_format input_binary;
 
 struct input_format *input_module_list[] = {
-
-	/* this one has to be last, because it will take any input */
+	/* This one has to be last, because it will take any input. */
 	&input_binary,
 	NULL,
 };
 
 struct input_format **input_list(void)
 {
-
 	return input_module_list;
 }
