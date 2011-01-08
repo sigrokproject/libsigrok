@@ -21,9 +21,15 @@
 noinst_LTLIBRARIES = libsigrokhwcommon.la
 
 libsigrokhwcommon_la_SOURCES = \
-	ezusb.c \
-	misc.c \
-	serial.c
+	misc.c
+
+if LA_SALEAE_LOGIC
+libsigrokhwcommon_la_SOURCES += ezusb.c
+endif
+
+if LA_OLS
+libsigrokhwcommon_la_SOURCES += serial.c
+endif
 
 libsigrokhwcommon_la_CFLAGS = \
 	-I$(top_srcdir)/libsigrok
