@@ -19,9 +19,12 @@
  */
 
 #include <stdlib.h>
+#include <unistd.h>
 #include <string.h>
 #include <sigrok.h>
 #include "config.h"
+
+#define BUFSIZE 			4096
 
 #define NUM_PROBES			8
 #define NUM_TRIGGER_STAGES		4
@@ -29,6 +32,16 @@
 
 /* Software trigger implementation: positive values indicate trigger stage. */
 #define TRIGGER_FIRED			-1
+
+#define USB_MODEL_NAME			"Demo Driver"
+#define USB_VENDOR_NAME			"Sigrok project"
+#define USB_MODEL_VERSION		"v1.0"
+
+#define GENMODE_RANDOM			1
+#define GENMODE_INC			2
+
+static GThread *my_thread;
+static int thread_running;
 
 static int capabilities[] = {
 	HWCAP_LOGIC_ANALYZER,
@@ -54,6 +67,19 @@ static struct samplerates samplerates = {
 	supported_samplerates,
 };
 
+struct databag {
+	int pipe_fds[2];
+	uint8_t sample_generator;
+	uint8_t thread_running;
+	uint64_t samples_counter;
+	int device_index;
+	int loop_sleep;
+	gpointer session_device_id;
+};
+
+/* List of struct sigrok_device_instance, maintained by opendev()/closedev(). */
+static GSList *device_instances = NULL;
+
 /* TODO: All of these should go in a device-specific struct. */
 static uint64_t cur_samplerate = 0;
 static uint64_t limit_samples = 0;
@@ -67,61 +93,21 @@ static uint64_t limit_samples = 0;
 static int hw_set_configuration(int device_index, int capability, void *value);
 static void hw_stop_acquisition(int device_index, gpointer session_device_id);
 
-#if 0
-static int configure_probes(GSList *probes)
-{
-	struct probe *probe;
-	GSList *l;
-	int probe_bit, stage, i;
-	char *tc;
-
-	probe_mask = 0;
-	for (i = 0; i < NUM_TRIGGER_STAGES; i++) {
-		trigger_mask[i] = 0;
-		trigger_value[i] = 0;
-	}
-
-	stage = -1;
-	for (l = probes; l; l = l->next) {
-		probe = (struct probe *)l->data;
-		if (!(probe->enabled))
-			continue;
-		probe_bit = 1 << (probe->index - 1);
-		probe_mask |= probe_bit;
-		if (!(probe->trigger))
-			continue;
-
-		stage = 0;
-		for (tc = probe->trigger; *tc; tc++) {
-			trigger_mask[stage] |= probe_bit;
-			if (*tc == '1')
-				trigger_value[stage] |= probe_bit;
-			stage++;
-			if (stage > NUM_TRIGGER_STAGES)
-				return SIGROK_ERR;
-		}
-	}
-
-	if (stage == -1)
-		/*
-		 * We didn't configure any triggers, make sure acquisition
-		 * doesn't wait for any.
-		 */
-		trigger_stage = TRIGGER_FIRED;
-	else
-		trigger_stage = 0;
-
-	return SIGROK_OK;
-}
-#endif
-
 static int hw_init(char *deviceinfo)
 {
 	/* Avoid compiler warning. */
 	deviceinfo = deviceinfo;
 
-	/* Nothing needed so far. */
-	return 1; /* FIXME? */
+	struct sigrok_device_instance *sdi;
+
+	sdi = sigrok_device_instance_new(0, ST_ACTIVE,
+		 USB_VENDOR_NAME, USB_MODEL_NAME, USB_MODEL_VERSION);
+
+	if (!sdi)
+		return 0;
+	device_instances = g_slist_append(device_instances, sdi);
+
+	return 1;
 }
 
 static int hw_opendev(int device_index)
@@ -148,15 +134,18 @@ static void hw_cleanup(void)
 
 static void *hw_get_device_info(int device_index, int device_info_id)
 {
-	void *info = NULL;
-
 	/* Avoid compiler warning. */
 	device_index = device_index;
 
+	struct sigrok_device_instance *sdi;
+	void *info = NULL;
+
+	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
+		return NULL;
+
 	switch (device_info_id) {
 	case DI_INSTANCE:
-		/// info = sdi;
-		/* TODO */
+		info = sdi;
 		break;
 	case DI_NUM_PROBES:
 		info = GINT_TO_POINTER(NUM_PROBES);
@@ -179,7 +168,6 @@ static int hw_get_status(int device_index)
 {
 	/* Avoid compiler warning. */
 	device_index = device_index;
-
 	return 0; /* FIXME */
 }
 
@@ -191,18 +179,20 @@ static int *hw_get_capabilities(void)
 static int hw_set_configuration(int device_index, int capability, void *value)
 {
 	int ret;
+	uint64_t *tmp_u64;
 
 	/* Avoid compiler warning. */
 	device_index = device_index;
 
 	if (capability == HWCAP_SAMPLERATE) {
-		cur_samplerate = *(uint64_t *)value;
+		cur_samplerate = *(uint64_t *) value;
 		ret = SIGROK_OK;
 	} else if (capability == HWCAP_PROBECONFIG) {
-		// ret = configure_probes((GSList *) value);
-		ret = SIGROK_ERR;
+		// ret = configure_probes((GSList *) value); FIXME
+		ret = SIGROK_OK;
 	} else if (capability == HWCAP_LIMIT_SAMPLES) {
-		limit_samples = strtoull(value, NULL, 10);
+		tmp_u64 = value;
+		limit_samples = *tmp_u64;
 		ret = SIGROK_OK;
 	} else {
 		ret = SIGROK_ERR;
@@ -211,14 +201,109 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 	return ret;
 }
 
+static void samples_generator(uint8_t *buf, uint64_t sz, void *data)
+{
+	struct databag *mydata = data;
+	uint64_t i;
+	uint8_t val;
+
+	memset(buf, 0, sz);
+
+	switch (mydata->sample_generator) {
+	case GENMODE_RANDOM: /* Random */
+		for (i = 0; i < sz; i++) {
+			val = rand() & 0xff;
+			*(buf + i) = val;
+		}
+		break;
+	case GENMODE_INC: /* Simple increment */
+		for (i = 0; i < sz; i++)
+			*(buf + i) = i;
+		break;
+	}
+}
+
+/* Thread function */
+static void thread_func(void *data)
+{
+	struct databag *mydata = data;
+	uint8_t buf[BUFSIZE];
+	uint64_t nb_to_send = 0;
+
+	while (thread_running) {
+		nb_to_send = limit_samples - mydata->samples_counter;
+
+		if (nb_to_send == 0) {
+			close(mydata->pipe_fds[1]);
+			thread_running = 0;
+			hw_stop_acquisition(mydata->device_index,
+					    mydata->session_device_id);
+		} else if (nb_to_send > BUFSIZE) {
+			nb_to_send = BUFSIZE;
+		}
+
+		samples_generator(buf, nb_to_send, data);
+		mydata->samples_counter += nb_to_send;
+
+		write(mydata->pipe_fds[1], &buf, nb_to_send);
+		g_usleep(mydata->loop_sleep);
+	}
+}
+
+/* Callback handling data */
+static int receive_data(int fd, int revents, void *user_data)
+{
+	struct datafeed_packet packet;
+	/* uint16_t samples[1000]; */
+	char c[BUFSIZE];
+	uint64_t z;
+
+	/* Avoid compiler warnings. */
+	revents = revents;
+
+	z = read(fd, &c, BUFSIZE);
+	if (z > 0) {
+		packet.type = DF_LOGIC8;
+		packet.length = z;
+		packet.payload = c;
+		session_bus(user_data, &packet);
+	}
+	return TRUE;
+}
+
 static int hw_start_acquisition(int device_index, gpointer session_device_id)
 {
 	struct datafeed_packet *packet;
 	struct datafeed_header *header;
 	unsigned char *buf;
+	struct databag *mydata;
 
-	/* Avoid compiler warning. */
-	device_index = device_index;
+	mydata = malloc(sizeof(struct databag));
+	/* TODO: Error handling. */
+
+	mydata->sample_generator = GENMODE_RANDOM;
+	mydata->session_device_id = session_device_id;
+	mydata->device_index = device_index;
+	mydata->samples_counter = 0;
+	mydata->loop_sleep = 100000;
+
+	if (pipe(mydata->pipe_fds)) {
+		fprintf(stderr, "Pipe failed.\n");
+		return SIGROK_ERR_MALLOC; /* FIXME */
+
+	}
+	source_add(mydata->pipe_fds[0], G_IO_IN | G_IO_ERR, 40, receive_data,
+		   session_device_id);
+
+	/* Run the demo thread. */
+	g_thread_init(NULL);
+	thread_running = 1;
+	my_thread =
+	    g_thread_create((GThreadFunc)thread_func, mydata, TRUE, NULL);
+	if (!my_thread) {
+		fprintf(stderr, "demo: Thread creation failed.\n");
+		return SIGROK_ERR_MALLOC; /* FIXME */
+	}
 
 	packet = malloc(sizeof(struct datafeed_packet));
 	header = malloc(sizeof(struct datafeed_header));
@@ -244,62 +329,6 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	return SIGROK_OK;
 }
 
-#if 0
-void receive_transfer(struct libusb_transfer *transfer)
-{
-	static int num_samples = 0;
-	static int empty_transfer_count = 0;
-	struct datafeed_packet packet;
-	void *user_data;
-	int cur_buflen, trigger_offset, i;
-	unsigned char *cur_buf, *new_buf;
-
-	g_message("receive_transfer(): status %d received %d bytes",
-		  transfer->status, transfer->actual_length);
-
-	/* Save incoming transfer before reusing the transfer struct. */
-	cur_buf = transfer->buffer;
-	cur_buflen = transfer->actual_length;
-	user_data = transfer->user_data;
-
-	/* Fire off a new request. */
-	new_buf = g_malloc(4096);
-	transfer->buffer = new_buf;
-	transfer->length = 4096;
-	if (libusb_submit_transfer(transfer) != 0) {
-		/* TODO: Stop session? */
-		g_warning("eek");
-	}
-
-	trigger_offset = 0;
-	if (trigger_stage >= 0) {
-		for (i = 0; i < cur_buflen; i++) {
-			trigger_helper(i, cur_buf, &packet, user_data,
-				       &trigger_offset);
-		}
-	}
-
-	if (trigger_stage == TRIGGER_FIRED) {
-		/* Send the incoming transfer to the session bus. */
-		packet.type = DF_LOGIC8;
-		packet.length = cur_buflen - trigger_offset;
-		packet.payload = cur_buf + trigger_offset;
-		session_bus(user_data, &packet);
-		free(cur_buf);
-
-		num_samples += cur_buflen;
-		if ((unsigned int)num_samples > limit_samples) {
-			hw_stop_acquisition(-1, user_data);
-		}
-	} else {
-		/*
-		 * TODO: Buffer pre-trigger data in capture
-		 * ratio-sized buffer.
-		 */
-	}
-}
-#endif
-
 /* This stops acquisition on ALL devices, ignoring device_index. */
 static void hw_stop_acquisition(int device_index, gpointer session_device_id)
 {
@@ -308,12 +337,9 @@ static void hw_stop_acquisition(int device_index, gpointer session_device_id)
 	/* QUICK HACK */
 	device_index = device_index;
 
+	/* Send last packet. */
 	packet.type = DF_END;
 	session_bus(session_device_id, &packet);
-
-	/// receive_transfer(NULL);
-
-	/* TODO: Need to cancel and free any queued up transfers. */
 }
 
 struct device_plugin demo_plugin_info = {
