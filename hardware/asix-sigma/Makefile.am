@@ -17,6 +17,8 @@
 ## along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##
 
+if LA_ASIX_SIGMA
+
 AM_CPPFLAGS = -DFIRMWARE_DIR='"$(FIRMWARE_DIR)"'
 
 # Local lib, this is NOT meant to be installed!
@@ -28,4 +30,6 @@ libsigrokhwasixsigma_la_SOURCES = \
 
 libsigrokhwasixsigma_la_CFLAGS = \
 	-I$(top_srcdir)/libsigrok
+
+endif
 

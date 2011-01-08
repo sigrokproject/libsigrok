@@ -17,6 +17,8 @@
 ## along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##
 
+if LA_SALEAE_LOGIC
+
 AM_CPPFLAGS = -DFIRMWARE_DIR='"$(FIRMWARE_DIR)"'
 
 # Local lib, this is NOT meant to be installed!
@@ -27,4 +29,6 @@ libsigrokhwsaleaelogic_la_SOURCES = \
 
 libsigrokhwsaleaelogic_la_CFLAGS = \
 	-I$(top_srcdir)/libsigrok
+
+endif
 

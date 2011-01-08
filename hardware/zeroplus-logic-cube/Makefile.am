@@ -17,6 +17,8 @@
 ## along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##
 
+if LA_ZEROPLUS_LOGIC_CUBE
+
 # Local lib, this is NOT meant to be installed!
 noinst_LTLIBRARIES = libsigrokhwzeroplus.la
 
@@ -29,4 +31,6 @@ libsigrokhwzeroplus_la_SOURCES = \
 
 libsigrokhwzeroplus_la_CFLAGS = \
 	-I$(top_srcdir)/libsigrok
+
+endif
 
