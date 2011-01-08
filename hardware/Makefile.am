@@ -1,7 +1,7 @@
 ##
 ## This file is part of the sigrok project.
 ##
-## Copyright (C) 2010 Bert Vermeulen <bert@biot.com>
+## Copyright (C) 2011 Uwe Hermann <uwe@hermann-uwe.de>
 ##
 ## This program is free software: you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -17,29 +17,35 @@
 ## along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##
 
-AM_CPPFLAGS = -I $(top_srcdir)/libsigrok \
-	      -DFIRMWARE_DIR='"$(FIRMWARE_DIR)"'
+SUBDIRS = \
+	asix-sigma \
+	common \
+	demo \
+	openbench-logic-sniffer \
+	saleae-logic \
+	zeroplus-logic-cube
 
-SUBDIRS = hardware input output
+noinst_LTLIBRARIES = libsigrokhardware.la
 
-lib_LTLIBRARIES = libsigrok.la
+libsigrokhardware_la_SOURCES =
 
-libsigrok_la_SOURCES = \
-	backend.c \
-	datastore.c \
-	device.c \
-	session.c \
-	hwplugin.c \
-	filter.c
+libsigrokhardware_la_LIBADD = \
+	common/libsigrokhwcommon.la \
+	demo/libsigrokhwdemo.la
 
-libsigrok_la_LIBADD = \
-	$(LIBOBJS) \
-	hardware/libsigrokhardware.la \
-	input/libsigrokinput.la \
-	output/libsigrokoutput.la
+if LA_ASIX_SIGMA
+libsigrokhardware_la_LIBADD += asix-sigma/libsigrokhwasixsigma.la
+endif
 
-include_HEADERS = sigrok.h
+if LA_OLS
+libsigrokhardware_la_LIBADD += openbench-logic-sniffer/libsigrokhwols.la
+endif
 
-pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = libsigrok.pc
+if LA_SALEAE_LOGIC
+libsigrokhardware_la_LIBADD += saleae-logic/libsigrokhwsaleaelogic.la
+endif
+
+if LA_ZEROPLUS_LOGIC_CUBE
+libsigrokhardware_la_LIBADD += zeroplus-logic-cube/libsigrokhwzeroplus.la
+endif
 

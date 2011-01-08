@@ -1,7 +1,7 @@
 ##
 ## This file is part of the sigrok project.
 ##
-## Copyright (C) 2010 Bert Vermeulen <bert@biot.com>
+## Copyright (C) 2011 Uwe Hermann <uwe@hermann-uwe.de>
 ##
 ## This program is free software: you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -17,29 +17,19 @@
 ## along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##
 
-AM_CPPFLAGS = -I $(top_srcdir)/libsigrok \
-	      -DFIRMWARE_DIR='"$(FIRMWARE_DIR)"'
+AM_CPPFLAGS = -DFIRMWARE_DIR='"$(FIRMWARE_DIR)"'
 
-SUBDIRS = hardware input output
+# Local lib, this is NOT meant to be installed!
+noinst_LTLIBRARIES = libsigrokoutput.la
 
-lib_LTLIBRARIES = libsigrok.la
+libsigrokoutput_la_SOURCES = \
+	output_binary.c \
+	output_text.c \
+	output_vcd.c \
+	output_gnuplot.c \
+	common.c \
+	output.c
 
-libsigrok_la_SOURCES = \
-	backend.c \
-	datastore.c \
-	device.c \
-	session.c \
-	hwplugin.c \
-	filter.c
-
-libsigrok_la_LIBADD = \
-	$(LIBOBJS) \
-	hardware/libsigrokhardware.la \
-	input/libsigrokinput.la \
-	output/libsigrokoutput.la
-
-include_HEADERS = sigrok.h
-
-pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = libsigrok.pc
+libsigrokoutput_la_CFLAGS = \
+	-I$(top_srcdir)/libsigrok
 
