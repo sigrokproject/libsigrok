@@ -43,8 +43,9 @@ void device_scan(void)
 		g_message("initializing %s plugin", plugin->name);
 		num_devices = plugin->init(NULL);
 		for (i = 0; i < num_devices; i++) {
-			num_probes = (int)plugin->get_device_info(i,
-							DI_NUM_PROBES);
+			num_probes
+			  = (int)(unsigned long)plugin->get_device_info(i,
+			    DI_NUM_PROBES);
 			device_new(plugin, i, num_probes);
 		}
 	}
