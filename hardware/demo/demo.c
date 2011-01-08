@@ -33,9 +33,9 @@
 /* Software trigger implementation: positive values indicate trigger stage. */
 #define TRIGGER_FIRED			-1
 
-#define USB_MODEL_NAME			"Demo Driver"
-#define USB_VENDOR_NAME			"Sigrok project"
-#define USB_MODEL_VERSION		"v1.0"
+#define USB_MODEL_NAME			"demodevice"
+#define USB_VENDOR_NAME			"demovendor"
+#define USB_MODEL_VERSION		"1.0"
 
 #define GENMODE_RANDOM			1
 #define GENMODE_INC			2
@@ -134,9 +134,6 @@ static void hw_cleanup(void)
 
 static void *hw_get_device_info(int device_index, int device_info_id)
 {
-	/* Avoid compiler warning. */
-	device_index = device_index;
-
 	struct sigrok_device_instance *sdi;
 	void *info = NULL;
 
@@ -168,6 +165,7 @@ static int hw_get_status(int device_index)
 {
 	/* Avoid compiler warning. */
 	device_index = device_index;
+
 	return 0; /* FIXME */
 }
 
@@ -201,23 +199,20 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 	return ret;
 }
 
-static void samples_generator(uint8_t *buf, uint64_t sz, void *data)
+static void samples_generator(uint8_t *buf, uint64_t size, void *data)
 {
 	struct databag *mydata = data;
 	uint64_t i;
-	uint8_t val;
 
-	memset(buf, 0, sz);
+	memset(buf, 0, size);
 
 	switch (mydata->sample_generator) {
 	case GENMODE_RANDOM: /* Random */
-		for (i = 0; i < sz; i++) {
-			val = rand() & 0xff;
-			*(buf + i) = val;
-		}
+		for (i = 0; i < size; i++)
+			*(buf + i) = (uint8_t)(rand() & 0xff);
 		break;
 	case GENMODE_INC: /* Simple increment */
-		for (i = 0; i < sz; i++)
+		for (i = 0; i < size; i++)
 			*(buf + i) = i;
 		break;
 	}
@@ -279,7 +274,8 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	struct databag *mydata;
 
 	mydata = malloc(sizeof(struct databag));
-	/* TODO: Error handling. */
+	if (!mydata)
+		return SIGROK_ERR_MALLOC;
 
 	mydata->sample_generator = GENMODE_RANDOM;
 	mydata->session_device_id = session_device_id;
