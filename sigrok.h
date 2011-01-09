@@ -63,6 +63,10 @@
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 #endif
 
+#ifndef ARRAY_AND_SIZE
+#define ARRAY_AND_SIZE(a) (a), ARRAY_SIZE(a)
+#endif
+
 /* Data types, used by hardware plugins for set_configuration() */
 enum {
 	T_UINT64,
