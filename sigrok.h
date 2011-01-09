@@ -269,6 +269,7 @@ struct sigrok_device_instance {
 	char *vendor;
 	char *model;
 	char *version;
+	void *priv;
 	union {
 		struct usb_device_instance *usb;
 		struct serial_device_instance *serial;
