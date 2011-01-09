@@ -95,7 +95,6 @@ enum {
 	DF_TRIGGER,
 	DF_LOGIC,
 	DF_PD,
-	DF_PA,
 };
 
 struct datafeed_packet {
@@ -145,6 +144,7 @@ struct output {
 struct output_format {
 	char *extension;
 	char *description;
+	int df_type;
 	int (*init) (struct output *o);
 	int (*data) (struct output *o, char *data_in, uint64_t length_in,
 		     char **data_out, uint64_t *length_out);

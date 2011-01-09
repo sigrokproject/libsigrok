@@ -40,6 +40,7 @@ static int event(struct output *o, int event_type, char **data_out,
 struct output_format output_foo = {
 	"foo",
 	"The foo format",
+	DF_LOGIC,
 	init,
 	data,
 	event,

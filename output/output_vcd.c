@@ -217,6 +217,7 @@ static int data(struct output *o, char *data_in, uint64_t length_in,
 struct output_format output_vcd = {
 	"vcd",
 	"Value Change Dump (VCD)",
+	DF_LOGIC,
 	init,
 	data,
 	event,

@@ -307,6 +307,7 @@ static int data_hex(struct output *o, char *data_in, uint64_t length_in,
 struct output_format output_text_bits = {
 	"bits",
 	"Text (bits)",
+	DF_LOGIC,
 	init_bits,
 	data_bits,
 	event,
@@ -315,6 +316,7 @@ struct output_format output_text_bits = {
 struct output_format output_text_hex = {
 	"hex",
 	"Text (hexadecimal)",
+	DF_LOGIC,
 	init_hex,
 	data_hex,
 	event,

@@ -193,6 +193,7 @@ static int data(struct output *o, char *data_in, uint64_t length_in,
 struct output_format output_gnuplot = {
 	"gnuplot",
 	"Gnuplot",
+	DF_LOGIC,
 	init,
 	data,
 	event,
