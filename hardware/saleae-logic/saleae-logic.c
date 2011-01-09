@@ -613,8 +613,9 @@ void receive_transfer(struct libusb_transfer *transfer)
 					 * Send the samples that triggered it, since we're
 					 * skipping past them.
 					 */
-					packet.type = DF_LOGIC8;
+					packet.type = DF_LOGIC;
 					packet.length = trigger_stage;
+					packet.unitsize = 1;
 					packet.payload = trigger_buffer;
 					session_bus(user_data, &packet);
 
@@ -645,8 +646,9 @@ void receive_transfer(struct libusb_transfer *transfer)
 
 	if (trigger_stage == TRIGGER_FIRED) {
 		/* Send the incoming transfer to the session bus. */
-		packet.type = DF_LOGIC8;
+		packet.type = DF_LOGIC;
 		packet.length = cur_buflen - trigger_offset;
+		packet.unitsize = 1;
 		packet.payload = cur_buf + trigger_offset;
 		session_bus(user_data, &packet);
 		g_free(cur_buf);

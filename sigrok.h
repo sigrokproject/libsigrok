@@ -89,17 +89,15 @@ enum {
 	DF_HEADER,
 	DF_END,
 	DF_TRIGGER,
-	DF_LOGIC8,
-	DF_LOGIC16,
-	DF_LOGIC24,
-	DF_LOGIC32,
-	DF_LOGIC48,
-	DF_LOGIC64,
+	DF_LOGIC,
+	DF_PD,
+	DF_PA,
 };
 
 struct datafeed_packet {
 	uint16_t type;
 	uint64_t length;
+	uint16_t unitsize;
 	void *payload;
 };
 

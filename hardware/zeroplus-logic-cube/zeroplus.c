@@ -528,8 +528,9 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 			  PACKET_SIZE, res);
 #endif
 
-		packet.type = DF_LOGIC32;
+		packet.type = DF_LOGIC;
 		packet.length = PACKET_SIZE;
+		packet.unitsize = 4;
 		packet.payload = buf;
 		session_bus(session_device_id, &packet);
 	}

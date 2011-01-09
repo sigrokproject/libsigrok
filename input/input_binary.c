@@ -57,7 +57,8 @@ static int in_loadfile(const char *filename)
 	packet.payload = &header;
 	session_bus(device, &packet);
 
-	packet.type = DF_LOGIC8;
+	packet.type = DF_LOGIC;
+	packet.unitsize = 1;
 	packet.payload = buffer;
 	while ((size = read(fd, buffer, CHUNKSIZE)) > 0) {
 		packet.length = size;

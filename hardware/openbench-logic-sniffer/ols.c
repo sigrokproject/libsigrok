@@ -604,8 +604,9 @@ static int receive_data(int fd, int revents, void *user_data)
 			 */
 			if (trigger_at > 0) {
 				/* there are pre-trigger samples, send those first */
-				packet.type = DF_LOGIC32;
+				packet.type = DF_LOGIC;
 				packet.length = trigger_at * 4;
+				packet.unitsize = 4;
 				packet.payload = raw_sample_buf;
 				session_bus(user_data, &packet);
 			}
@@ -614,13 +615,15 @@ static int receive_data(int fd, int revents, void *user_data)
 			packet.length = 0;
 			session_bus(user_data, &packet);
 
-			packet.type = DF_LOGIC32;
+			packet.type = DF_LOGIC;
 			packet.length = (limit_samples * 4) - (trigger_at * 4);
+			packet.unitsize = 4;
 			packet.payload = raw_sample_buf + trigger_at * 4;
 			session_bus(user_data, &packet);
 		} else {
-			packet.type = DF_LOGIC32;
+			packet.type = DF_LOGIC;
 			packet.length = limit_samples * 4;
+			packet.unitsize = 4;
 			packet.payload = raw_sample_buf;
 			session_bus(user_data, &packet);
 		}

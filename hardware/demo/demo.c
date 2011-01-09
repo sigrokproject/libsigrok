@@ -258,8 +258,9 @@ static int receive_data(int fd, int revents, void *user_data)
 
 	z = read(fd, &c, BUFSIZE);
 	if (z > 0) {
-		packet.type = DF_LOGIC8;
+		packet.type = DF_LOGIC;
 		packet.length = z;
+		packet.unitsize = 1;
 		packet.payload = c;
 		session_bus(user_data, &packet);
 	}

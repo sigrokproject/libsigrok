@@ -812,8 +812,9 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 		while (sent < n) {
 			tosend = MIN(2048, n - sent);
 
-			packet.type = DF_LOGIC16;
+			packet.type = DF_LOGIC;
 			packet.length = tosend * sizeof(uint16_t);
+			packet.unitsize = 2;
 			packet.payload = samples + sent;
 			session_bus(user_data, &packet);
 
@@ -854,8 +855,9 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 						    &trigger);
 
 			if (tosend > 0) {
-				packet.type = DF_LOGIC16;
+				packet.type = DF_LOGIC;
 				packet.length = tosend * sizeof(uint16_t);
+				packet.unitsize = 2;
 				packet.payload = samples;
 				session_bus(user_data, &packet);
 
@@ -871,8 +873,9 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 		/* Send rest of the chunk to sigrok. */
 		tosend = n - sent;
 
-		packet.type = DF_LOGIC16;
+		packet.type = DF_LOGIC;
 		packet.length = tosend * sizeof(uint16_t);
+		packet.unitsize = 2;
 		packet.payload = samples + sent;
 		session_bus(user_data, &packet);
 
