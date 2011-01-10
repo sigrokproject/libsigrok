@@ -124,7 +124,10 @@ void serial_restore_params(int fd, void *backup)
 #endif
 }
 
-/* flowcontrol 1 = rts/cts  2 = xon/xoff */
+/*
+ * flowcontrol 1 = rts/cts  2 = xon/xoff
+ * parity 0 = none, 1 = even, 2 = odd
+ */
 int serial_set_params(int fd, int speed, int bits, int parity, int stopbits,
 		      int flowcontrol)
 {
@@ -165,21 +168,81 @@ int serial_set_params(int fd, int speed, int bits, int parity, int stopbits,
 	}
 #else
 	struct termios term;
+	speed_t baud;
 
-	/* Only supporting what we need really, currently the OLS driver. */
-	if (speed != 115200 || bits != 8 || parity != 0 || stopbits != 1
-	    || flowcontrol != 2)
+	switch (speed) {
+	case 9600:
+		baud = B9600;
+		break;
+	case 38400:
+		baud = B38400;
+		break;
+	case 57600:
+		baud = B57600;
+		break;
+	case 115200:
+		baud = B115200;
+		break;
+	case 460800:
+		baud = B460800;
+		break;
+	default:
 		return SIGROK_ERR;
+	}
 
 	if (tcgetattr(fd, &term) < 0)
 		return SIGROK_ERR;
-	if (cfsetispeed(&term, B115200) < 0)
+	if (cfsetispeed(&term, baud) < 0)
 		return SIGROK_ERR;
+
 	term.c_cflag &= ~CSIZE;
-	term.c_cflag |= CS8;
+	switch (bits) {
+	case 8:
+		term.c_cflag |= CS8;
+		break;
+	case 7:
+		term.c_cflag |= CS7;
+		break;
+	default:
+		return SIGROK_ERR;
+	}
+
 	term.c_cflag &= ~CSTOPB;
-	term.c_cflag |= IXON | IXOFF;
-	term.c_iflag |= IGNPAR;
+	switch (stopbits) {
+	case 1:
+		break;
+	case 2:
+		term.c_cflag |= CSTOPB;
+	default:
+		return SIGROK_ERR;
+	}
+
+	term.c_cflag &= ~(IXON | IXOFF | CRTSCTS);
+	switch (flowcontrol) {
+	case 2:
+		term.c_cflag |= IXON | IXOFF;
+		break;
+	case 1:
+		term.c_cflag |= CRTSCTS;
+	default:
+		return SIGROK_ERR;
+	}
+
+	term.c_iflag &= ~(IGNPAR | PARODD | PARENB);
+	switch (parity) {
+	case 0:
+		term.c_iflag |= IGNPAR;
+		break;
+	case 1:
+		term.c_iflag |= PARENB;
+		break;
+	case 2:
+		term.c_iflag |= PARENB | PARODD;
+		break;
+	default:
+		return SIGROK_ERR;
+	}
+
 	if (tcsetattr(fd, TCSADRAIN, &term) < 0)
 		return SIGROK_ERR;
 #endif
