@@ -27,6 +27,7 @@
 #include <glib.h>
 #include <libusb.h>
 
+
 /*
  * Status/error codes returned by libsigrok functions.
  *
@@ -44,10 +45,10 @@
  * or reused for different #defines later. You can only add new #defines and
  * return codes, but never remove or redefine existing ones.
  */
-#define SIGROK_OK			 0 /* No error */
-#define SIGROK_ERR			-1 /* Generic/unspecified error */
-#define SIGROK_ERR_MALLOC		-2 /* Malloc/calloc/realloc error */
-#define SIGROK_ERR_SAMPLERATE		-3 /* Incorrect samplerate */
+#define SIGROK_OK                 0 /* No error */
+#define SIGROK_ERR               -1 /* Generic/unspecified error */
+#define SIGROK_ERR_MALLOC        -2 /* Malloc/calloc/realloc error */
+#define SIGROK_ERR_SAMPLERATE    -3 /* Incorrect samplerate */
 
 /* limited by uint64_t */
 #define MAX_NUM_PROBES 64
@@ -69,7 +70,11 @@
 #define ARRAY_AND_SIZE(a) (a), ARRAY_SIZE(a)
 #endif
 
-/* Data types, used by hardware plugins for set_configuration() */
+
+typedef int (*receive_data_callback) (int fd, int revents, void *user_data);
+
+
+/* Data types used by hardware plugins for set_configuration() */
 enum {
 	T_UINT64,
 	T_CHAR,
@@ -86,9 +91,7 @@ struct protocol {
 	int stackindex;
 };
 
-/*
- * Datafeed
- */
+
 
 /* datafeed_packet.type values */
 enum {
@@ -116,9 +119,8 @@ struct datafeed_header {
 	int num_logic_probes;
 };
 
-/*
- * Input
- */
+
+
 struct input {
 	struct input_format *format;
 	void *param;
@@ -132,12 +134,8 @@ struct input_format {
 	int (*in_loadfile) (const char *filename);
 };
 
-struct input_format **input_list(void);
 
 
-/*
- * Output
- */
 struct output {
 	struct output_format *format;
 	struct device *device;
@@ -156,17 +154,6 @@ struct output_format {
 		      uint64_t *length_out);
 };
 
-struct output_format **output_list(void);
-
-
-int filter_probes(int in_unitsize, int out_unitsize, int *probelist,
-		  char *data_in, uint64_t length_in, char **data_out,
-		  uint64_t *length_out);
-
-char *sigrok_samplerate_string(uint64_t samplerate);
-char *sigrok_period_string(uint64_t frequency);
-
-/*--- analyzer.c ------------------------------------------------------------*/
 
 struct analyzer {
 	char *name;
@@ -177,12 +164,6 @@ struct analyzer {
 	 */
 };
 
-/*--- backend.c -------------------------------------------------------------*/
-
-int sigrok_init(void);
-void sigrok_cleanup(void);
-
-/*--- datastore.c -----------------------------------------------------------*/
 
 /* Size of a chunk in units */
 #define DATASTORE_CHUNKSIZE 512000
@@ -194,16 +175,6 @@ struct datastore {
 	GSList *chunklist;
 };
 
-int datastore_new(int unitsize, struct datastore **ds);
-int datastore_destroy(struct datastore *ds);
-void datastore_put(struct datastore *ds, void *data, unsigned int length,
-		   int in_unitsize, int *probelist);
-
-/*--- debug.c ---------------------------------------------------------------*/
-
-void hexdump(unsigned char *address, int length);
-
-/*--- device.c --------------------------------------------------------------*/
 
 /*
  * This represents a generic device connected to the system.
@@ -237,22 +208,6 @@ struct probe {
 
 extern GSList *devices;
 
-void device_scan(void);
-void device_close_all(void);
-GSList *device_list(void);
-struct device *device_new(struct device_plugin *plugin, int plugin_index, int num_probes);
-void device_clear(struct device *device);
-void device_destroy(struct device *dev);
-
-void device_probe_clear(struct device *device, int probenum);
-void device_probe_add(struct device *device, char *name);
-struct probe *probe_find(struct device *device, int probenum);
-void device_probe_name(struct device *device, int probenum, char *name);
-
-void device_trigger_clear(struct device *device);
-void device_trigger_set(struct device *device, int probenum, char *trigger);
-
-/*--- hwplugin.c ------------------------------------------------------------*/
 
 /* Hardware plugin capabilities */
 enum {
@@ -271,6 +226,7 @@ struct hwcap_option {
 	char *description;
 	char *shortname;
 };
+
 
 struct sigrok_device_instance {
 	int index;
@@ -370,42 +326,6 @@ struct gsource_fd {
 	GSource *timeout_source;
 };
 
-typedef int (*receive_data_callback) (int fd, int revents, void *user_data);
-
-int load_hwplugins(void);
-GSList *list_hwplugins(void);
-
-/* Generic device instances */
-struct sigrok_device_instance *sigrok_device_instance_new(int index,
-       int status, const char *vendor, const char *model, const char *version);
-struct sigrok_device_instance *get_sigrok_device_instance(
-			GSList *device_instances, int device_index);
-void sigrok_device_instance_free(struct sigrok_device_instance *sdi);
-
-/* USB-specific instances */
-struct usb_device_instance *usb_device_instance_new(uint8_t bus,
-		uint8_t address, struct libusb_device_handle *hdl);
-void usb_device_instance_free(struct usb_device_instance *usb);
-
-/* Serial-specific instances */
-struct serial_device_instance *serial_device_instance_new(
-					const char *port, int fd);
-void serial_device_instance_free(struct serial_device_instance *serial);
-
-int find_hwcap(int *capabilities, int hwcap);
-struct hwcap_option *find_hwcap_option(int hwcap);
-void source_remove(int fd);
-void source_add(int fd, int events, int timeout, receive_data_callback rcv_cb,
-		void *user_data);
-
-/*--- session.c -------------------------------------------------------------*/
-
-typedef void (*source_callback_remove) (int fd);
-typedef void (*source_callback_add) (int fd, int events, int timeout,
-		receive_data_callback callback, void *user_data);
-typedef void (*datafeed_callback) (struct device *device,
-				 struct datafeed_packet *packet);
-
 struct session {
 	/* List of struct device* */
 	GSList *devices;
@@ -416,51 +336,5 @@ struct session {
 	GTimeVal starttime;
 };
 
-/* Session setup */
-struct session *session_load(const char *filename);
-struct session *session_new(void);
-void session_destroy(void);
-void session_device_clear(void);
-int session_device_add(struct device *device);
-
-/* Protocol analyzers setup */
-void session_pa_clear(void);
-void session_pa_add(struct analyzer *pa);
-
-/* Datafeed setup */
-void session_datafeed_callback_clear(void);
-void session_datafeed_callback_add(datafeed_callback callback);
-
-/* Session control */
-int session_start(void);
-void session_stop(void);
-void session_bus(struct device *device, struct datafeed_packet *packet);
-void make_metadata(char *filename);
-int session_save(char *filename);
-
-/*--- hwcommon.c ------------------------------------------------------------*/
-
-int ezusb_reset(struct libusb_device_handle *hdl, int set_clear);
-int ezusb_install_firmware(libusb_device_handle *hdl, char *filename);
-int ezusb_upload_firmware(libusb_device *dev, int configuration,
-                          const char *filename);
-
-GSList *list_serial_ports(void);
-int serial_open(const char *pathname, int flags);
-int serial_close(int fd);
-int serial_flush(int fd);
-void *serial_backup_params(int fd);
-void serial_restore_params(int fd, void *backup);
-int serial_set_params(int fd, int speed, int bits, int parity, int stopbits,
-		      int flowcontrol);
-
-/* libsigrok/hardware/common/misc.c */
-/* TODO: Should not be public. */
-int opendev2(int device_index, struct sigrok_device_instance **sdi,
-	     libusb_device *dev, struct libusb_device_descriptor *des,
-	     int *skip, uint16_t vid, uint16_t pid, int interface);
-int opendev3(struct sigrok_device_instance **sdi, libusb_device *dev,
-	     struct libusb_device_descriptor *des,
-	     uint16_t vid, uint16_t pid, int interface);
-
+#include "sigrok-proto.h"
 #endif
