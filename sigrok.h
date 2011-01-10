@@ -211,13 +211,14 @@ extern GSList *devices;
 
 /* Hardware plugin capabilities */
 enum {
-	HWCAP_DUMMY,		/* Used to terminate lists */
+	HWCAP_DUMMY,             /* Used to terminate lists */
 	HWCAP_LOGIC_ANALYZER,
-	HWCAP_SAMPLERATE,	/* Change samplerate */
-	HWCAP_PROBECONFIG,	/* Configure probe mask */
-	HWCAP_CAPTURE_RATIO,	/* Set pre/post-trigger capture ratio */
-	HWCAP_LIMIT_MSEC,	/* Set a time limit for sample acquisition */
-	HWCAP_LIMIT_SAMPLES,	/* Set a limit on number of samples */
+	HWCAP_SAMPLERATE,        /* Change samplerate */
+	HWCAP_PROBECONFIG,       /* Configure probe mask */
+	HWCAP_CAPTURE_RATIO,     /* Set pre/post-trigger capture ratio */
+	HWCAP_LIMIT_MSEC,        /* Set a time limit for sample acquisition */
+	HWCAP_LIMIT_SAMPLES,     /* Set a limit on number of samples */
+	HWCAP_CONTINUOUS,
 };
 
 struct hwcap_option {

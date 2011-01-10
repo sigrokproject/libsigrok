@@ -26,26 +26,26 @@
 #include <sigrok.h>
 #include "config.h"
 
-#define USB_VENDOR			0x0925
+#define USB_VENDOR	            0x0925
 #define USB_PRODUCT			0x3881
-#define USB_VENDOR_NAME			"Saleae"
-#define USB_MODEL_NAME			"Logic"
-#define USB_MODEL_VERSION		""
+#define USB_VENDOR_NAME        "Saleae"
+#define USB_MODEL_NAME         "Logic"
+#define USB_MODEL_VERSION      ""
 
-#define USB_INTERFACE			0
-#define USB_CONFIGURATION		1
-#define NUM_PROBES			8
-#define NUM_TRIGGER_STAGES		4
-#define TRIGGER_TYPES			"01"
-#define FIRMWARE			FIRMWARE_DIR "/saleae-logic.fw"
+#define USB_INTERFACE          0
+#define USB_CONFIGURATION      1
+#define NUM_PROBES             8
+#define NUM_TRIGGER_STAGES     4
+#define TRIGGER_TYPES          "01"
+#define FIRMWARE               FIRMWARE_DIR "/saleae-logic.fw"
 
 /* delay in ms */
-#define FIRMWARE_RENUM_DELAY		2000
-#define NUM_SIMUL_TRANSFERS		10
-#define MAX_EMPTY_TRANSFERS		(NUM_SIMUL_TRANSFERS * 2)
+#define FIRMWARE_RENUM_DELAY   2000
+#define NUM_SIMUL_TRANSFERS    10
+#define MAX_EMPTY_TRANSFERS    (NUM_SIMUL_TRANSFERS * 2)
 
 /* Software trigger implementation: positive values indicate trigger stage. */
-#define TRIGGER_FIRED			-1
+#define TRIGGER_FIRED          -1
 
 /* There is only one model Saleae Logic, and this is what it supports: */
 static int capabilities[] = {
@@ -54,6 +54,7 @@ static int capabilities[] = {
 
 	/* These are really implemented in the driver, not the hardware. */
 	HWCAP_LIMIT_SAMPLES,
+	HWCAP_CONTINUOUS,
 	0,
 };
 
@@ -654,7 +655,7 @@ void receive_transfer(struct libusb_transfer *transfer)
 		g_free(cur_buf);
 
 		num_samples += cur_buflen;
-		if ((unsigned int)num_samples > limit_samples) {
+		if (limit_samples && (unsigned int) num_samples > limit_samples) {
 			hw_stop_acquisition(-1, user_data);
 		}
 	} else {
