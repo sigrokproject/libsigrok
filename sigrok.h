@@ -110,7 +110,8 @@ struct datafeed_header {
 	struct timeval starttime;
 	uint64_t samplerate;
 	int protocol_id;
-	int num_probes;
+	int num_analog_probes;
+	int num_logic_probes;
 };
 
 /*
@@ -219,8 +220,14 @@ struct device {
 	struct datastore *datastore;
 };
 
+enum {
+	PROBE_TYPE_LOGIC,
+	PROBE_TYPE_ANALOG,
+};
+
 struct probe {
 	int index;
+	int type;
 	gboolean enabled;
 	char *name;
 	char *trigger;
