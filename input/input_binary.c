@@ -48,7 +48,8 @@ static int in_loadfile(const char *filename)
 	device = device_new(NULL, 0, num_probes);
 
 	header.feed_version = 1;
-	header.num_probes = num_probes;
+	header.num_logic_probes = num_probes;
+	header.num_analog_probes = 0; /* FIXME */
 	header.protocol_id = PROTO_RAW;
 	header.samplerate = 0;
 	gettimeofday(&header.starttime, NULL);

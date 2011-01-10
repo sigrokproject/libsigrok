@@ -713,7 +713,8 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	gettimeofday(&header->starttime, NULL);
 	header->samplerate = cur_samplerate;
 	header->protocol_id = PROTO_RAW;
-	header->num_probes = NUM_PROBES;
+	header->num_logic_probes = NUM_PROBES;
+	header->num_analog_probes = 0;
 	session_bus(session_device_id, packet);
 	g_free(header);
 	g_free(packet);
