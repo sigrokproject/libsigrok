@@ -38,7 +38,7 @@ libsigrok_la_LIBADD = \
 	input/libsigrokinput.la \
 	output/libsigrokoutput.la
 
-include_HEADERS = sigrok.h
+include_HEADERS = sigrok.h sigrok-proto.h
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libsigrok.pc
