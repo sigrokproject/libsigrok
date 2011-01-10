@@ -1,4 +1,6 @@
 /*
+ * This file is part of the sigrok project.
+ *
  * Copyright (C) 2010 Sven Peter <sven@fail0verflow.com>
  * Copyright (C) 2010 Haxx Enterprises <bushing@gmail.com>
  * All rights reserved.
