@@ -55,6 +55,10 @@ extern struct device_plugin zeroplus_logic_cube_plugin_info;
 #ifdef HAVE_LA_ASIX_SIGMA
 extern struct device_plugin asix_sigma_plugin_info;
 #endif
+#ifdef HAVE_LA_LINK_MSO19
+extern struct device_plugin link_mso19_plugin_info;
+#endif
+
 
 /* TODO: No linked list needed, this can be a simple array. */
 int load_hwplugins(void)
@@ -73,6 +77,9 @@ int load_hwplugins(void)
 #endif
 #ifdef HAVE_LA_ASIX_SIGMA
 	plugins = g_slist_append(plugins, (gpointer *)&asix_sigma_plugin_info);
+#endif
+#ifdef HAVE_LA_LINK_MSO19
+	plugins = g_slist_append(plugins, (gpointer *)&link_mso19_plugin_info);
 #endif
 
 	return SIGROK_OK;
@@ -97,6 +104,7 @@ struct sigrok_device_instance *sigrok_device_instance_new(int index, int status,
 	sdi->vendor = strdup(vendor);
 	sdi->model = strdup(model);
 	sdi->version = strdup(version);
+	sdi->priv = NULL;
 	sdi->usb = NULL;
 
 	return sdi;
