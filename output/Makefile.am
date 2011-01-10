@@ -27,6 +27,7 @@ libsigrokoutput_la_SOURCES = \
 	output_text.c \
 	output_vcd.c \
 	output_gnuplot.c \
+	output_analog.c \
 	common.c \
 	output.c
 

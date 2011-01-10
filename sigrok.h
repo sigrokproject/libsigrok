@@ -94,6 +94,7 @@ enum {
 	DF_END,
 	DF_TRIGGER,
 	DF_LOGIC,
+	DF_ANALOG,
 	DF_PD,
 };
 
