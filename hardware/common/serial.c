@@ -228,16 +228,17 @@ int serial_set_params(int fd, int speed, int bits, int parity, int stopbits,
 		return SIGROK_ERR;
 	}
 
-	term.c_iflag &= ~(IGNPAR | PARODD | PARENB);
+	term.c_iflag &= ~IGNPAR;
+	term.c_cflag &= ~(PARODD | PARENB);
 	switch (parity) {
 	case 0:
 		term.c_iflag |= IGNPAR;
 		break;
 	case 1:
-		term.c_iflag |= PARENB;
+		term.c_cflag |= PARENB;
 		break;
 	case 2:
-		term.c_iflag |= PARENB | PARODD;
+		term.c_cflag |= PARENB | PARODD;
 		break;
 	default:
 		return SIGROK_ERR;
