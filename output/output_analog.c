@@ -216,7 +216,7 @@ static int event(struct output *o, int event_type, char **data_out,
 
 struct output_format output_analog = {
 	"analog",
-	"Analog data",
+	"Analog data (takes argument, default 10)",
 	DF_ANALOG,
 	init,
 	data,
