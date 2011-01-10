@@ -24,6 +24,7 @@
 #include <config.h>
 
 
+#define DEFAULT_SAMPLES_PER_LINE 10
 /* -10.25 */
 #define VALUE_LEN 6
 
@@ -89,9 +90,15 @@ static int init(struct output *o)
 	}
 
 	o->internal = ctx;
-	ctx->samples_per_line = 5;
 	ctx->num_enabled_probes = 0;
 	ctx->mark_trigger = -1;
+	if (o->param && o->param[0]) {
+		ctx->samples_per_line = strtoul(o->param, NULL, 10);
+		if (ctx->samples_per_line < 1)
+			return SIGROK_ERR;
+	} else
+		ctx->samples_per_line = DEFAULT_SAMPLES_PER_LINE;
+
 	for (l = o->device->probes; l; l = l->next) {
 		probe = l->data;
 		if (!probe->enabled)
