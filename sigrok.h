@@ -123,15 +123,16 @@ struct datafeed_header {
 
 struct input {
 	struct input_format *format;
-	void *param;
-	void *internal;
+	char *param;
+	struct device *vdevice;
 };
 
 struct input_format {
 	char *extension;
 	char *description;
 	int (*format_match) (const char *filename);
-	int (*in_loadfile) (const char *filename);
+	int (*init) (struct input *in);
+	int (*loadfile) (struct input *in, const char *filename);
 };
 
 
