@@ -51,11 +51,14 @@ char *serial_port_glob[] = {
 
 GSList *list_serial_ports(void)
 {
+	GSList *ports;
+
 #ifdef _WIN32
 	/* TODO */
+	ports = NULL;
+	ports = g_slist_append(ports, strdup("COM1"));
 #else
 	glob_t g;
-	GSList *ports;
 	unsigned int i, j;
 
 	ports = NULL;
@@ -66,9 +69,9 @@ GSList *list_serial_ports(void)
 			ports = g_slist_append(ports, strdup(g.gl_pathv[j]));
 		globfree(&g);
 	}
+#endif
 
 	return ports;
-#endif
 }
 
 int serial_open(const char *pathname, int flags)
@@ -86,11 +89,17 @@ int serial_open(const char *pathname, int flags)
 #endif
 }
 
+/*
+ * Close the serial port.
+ * Returns 0 upon success, -1 upon failure.
+ */
 int serial_close(int fd)
 {
 #ifdef _WIN32
-	CloseHandle(hdl);
+	/* Returns non-zero upon success, 0 upon failure. */
+	return (CloseHandle(hdl) == 0) ? -1 : 0;
 #else
+	/* Returns 0 upon success, -1 upon failure. */
 	return close(fd);
 #endif
 }
@@ -103,13 +112,46 @@ int serial_flush(int fd)
 {
 #ifdef _WIN32
 	/* Returns non-zero upon success, 0 upon failure. */
-	if (PurgeComm(hdl, PURGE_RXCLEAR | PURGE_TXCLEAR) == 0)
-		return -1;
-	else
-		return 0;
+	return (PurgeComm(hdl, PURGE_RXCLEAR | PURGE_TXCLEAR) == 0) ? -1 : 0;
 #else
 	/* Returns 0 upon success, -1 upon failure. */
 	return tcflush(fd, TCIOFLUSH);
+#endif
+}
+
+/*
+ * Write a number of bytes to the specified serial port.
+ * Returns the number of bytes written, or -1 upon failure.
+ */
+int serial_write(int fd, const void *buf, size_t count)
+{
+#ifdef _WIN32
+	DWORD tmp = 0;
+
+	/* FIXME */
+	/* Returns non-zero upon success, 0 upon failure. */
+	WriteFile(hdl, buf, count, &tmp, NULL);
+#else
+	/* Returns the number of bytes written, or -1 upon failure. */
+	return write(fd, buf, count);
+#endif
+}
+
+/*
+ * Read a number of bytes from the specified serial port.
+ * Returns the number of bytes read, or -1 upon failure.
+ */
+int serial_read(int fd, void *buf, size_t count)
+{
+#ifdef _WIN32
+	DWORD tmp = 0;
+
+	/* FIXME */
+	/* Returns non-zero upon success, 0 upon failure. */
+	return ReadFile(hdl, buf, count, &tmp, NULL);
+#else
+	/* Returns the number of bytes read, or -1 upon failure. */
+	return read(fd, buf, count);
 #endif
 }
 
@@ -137,8 +179,10 @@ void serial_restore_params(int fd, void *backup)
 }
 
 /*
- * flowcontrol 1 = rts/cts  2 = xon/xoff
- * parity 0 = none, 1 = even, 2 = odd
+ * Set serial parameters.
+ *
+ * flowcontrol: 1 = rts/cts, 2 = xon/xoff
+ * parity: 0 = none, 1 = even, 2 = odd
  */
 int serial_set_params(int fd, int speed, int bits, int parity, int stopbits,
 		      int flowcontrol)
@@ -148,6 +192,7 @@ int serial_set_params(int fd, int speed, int bits, int parity, int stopbits,
 
 	if (!GetCommState(hdl, &dcb)) {
 		/* TODO: Error handling. */
+		return SIGROK_ERR;
 	}
 
 	/* TODO: Rename 'speed' to 'baudrate'. */
@@ -178,6 +223,7 @@ int serial_set_params(int fd, int speed, int bits, int parity, int stopbits,
 
 	if (!SetCommState(hdl, &dcb)) {
 		/* TODO: Error handling. */
+		return SIGROK_ERR;
 	}
 #else
 	struct termios term;

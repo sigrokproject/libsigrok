@@ -83,7 +83,7 @@ static int mso_send_control_message(struct sigrok_device_instance *sdi,
 
 	w = 0;
 	while (w < s) {
-		ret = write(fd, buf + w, s - w);
+		ret = serial_write(fd, buf + w, s - w);
 		if (ret < 0) {
 			ret = SIGROK_ERR;
 			goto free;
@@ -145,7 +145,7 @@ static int mso_check_trigger(struct sigrok_device_instance *sdi,
 		return ret;
 
 	buf[0] = 0;
-	if (read(sdi->serial->fd, buf, 1) != 1) /* FIXME: Need timeout */
+	if (serial_read(sdi->serial->fd, buf, 1) != 1) /* FIXME: Need timeout */
 		ret = SIGROK_ERR;
 	*info = buf[0];
 
@@ -611,7 +611,7 @@ static int receive_data(int fd, int revents, void *user_data)
 
 	revents = revents;
 
-	s = read(fd, in, sizeof(in));
+	s = serial_read(fd, in, sizeof(in));
 	if (s <= 0)
 		return FALSE;
 

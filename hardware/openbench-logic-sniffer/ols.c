@@ -119,7 +119,7 @@ static int send_shortcommand(int fd, uint8_t command)
 
 	g_debug("ols: sending cmd 0x%.2x", command);
 	buf[0] = command;
-	if (write(fd, buf, 1) != 1)
+	if (serial_write(fd, buf, 1) != 1)
 		return SIGROK_ERR;
 
 	return SIGROK_OK;
@@ -135,7 +135,7 @@ static int send_longcommand(int fd, uint8_t command, uint32_t data)
 	buf[2] = (data & 0xff0000) >> 16;
 	buf[3] = (data & 0xff00) >> 8;
 	buf[4] = data & 0xff;
-	if (write(fd, buf, 5) != 5)
+	if (serial_write(fd, buf, 5) != 5)
 		return SIGROK_ERR;
 
 	return SIGROK_OK;
@@ -280,7 +280,7 @@ static int hw_init(char *deviceinfo)
 	g_poll(fds, devcnt, 1);
 	for (i = 0; i < devcnt; i++) {
 		if (fds[i].revents == G_IO_IN) {
-			if (read(fds[i].fd, buf, 4) == 4) {
+			if (serial_read(fds[i].fd, buf, 4) == 4) {
 				if (!strncmp(buf, "1SLO", 4)
 				    || !strncmp(buf, "1ALS", 4)) {
 					if (!strncmp(buf, "1SLO", 4))
@@ -515,7 +515,7 @@ static int receive_data(int fd, int revents, void *user_data)
 
 	if (revents == G_IO_IN
 	    && num_transfers / num_channels <= limit_samples) {
-		if (read(fd, &byte, 1) != 1)
+		if (serial_read(fd, &byte, 1) != 1)
 			return FALSE;
 
 		sample[num_bytes++] = byte;
