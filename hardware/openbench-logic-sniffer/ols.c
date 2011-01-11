@@ -38,6 +38,10 @@
 #include <glib.h>
 #include <sigrok.h>
 
+#ifdef _WIN32
+#define O_NONBLOCK FIONBIO
+#endif
+
 #define NUM_PROBES			32
 #define NUM_TRIGGER_STAGES		4
 #define TRIGGER_TYPES			"01"

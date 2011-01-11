@@ -95,10 +95,22 @@ int serial_close(int fd)
 #endif
 }
 
+/*
+ * Flush serial port buffers (if any).
+ * Returns 0 upon success, -1 upon failure.
+ */
 int serial_flush(int fd)
 {
-
+#ifdef _WIN32
+	/* Returns non-zero upon success, 0 upon failure. */
+	if (PurgeComm(hdl, PURGE_RXCLEAR | PURGE_TXCLEAR) == 0)
+		return -1;
+	else
+		return 0;
+#else
+	/* Returns 0 upon success, -1 upon failure. */
 	return tcflush(fd, TCIOFLUSH);
+#endif
 }
 
 void *serial_backup_params(int fd)
@@ -140,6 +152,7 @@ int serial_set_params(int fd, int speed, int bits, int parity, int stopbits,
 
 	/* TODO: Rename 'speed' to 'baudrate'. */
 	switch(speed) {
+	/* TODO: Support for higher baud rates. */
 	case 115200:
 		dcb.BaudRate = CBR_115200;
 		break;
