@@ -48,6 +48,7 @@ static int capabilities[] = {
 	HWCAP_LOGIC_ANALYZER,
 	HWCAP_SAMPLERATE,
 	HWCAP_LIMIT_SAMPLES,
+	HWCAP_CONTINUOUS
 };
 
 /* Random selection of samplerates this "device" shall support. */
@@ -83,7 +84,7 @@ static GSList *device_instances = NULL;
 
 /* TODO: All of these should go in a device-specific struct. */
 static uint64_t cur_samplerate = 0;
-static uint64_t limit_samples = 0;
+static uint64_t limit_samples = -1;
 // static uint8_t probe_mask = 0;
 // static uint8_t trigger_mask[NUM_TRIGGER_STAGES] = { 0 };
 // static uint8_t trigger_value[NUM_TRIGGER_STAGES] = { 0 };
@@ -227,7 +228,10 @@ static void thread_func(void *data)
 	uint64_t nb_to_send = 0;
 
 	while (thread_running) {
-		nb_to_send = limit_samples - mydata->samples_counter;
+		if (limit_samples)
+			nb_to_send = limit_samples - mydata->samples_counter;
+		else
+			nb_to_send = BUFSIZE;  // CONTINUOUS MODE
 
 		if (nb_to_send == 0) {
 			close(mydata->pipe_fds[1]);
