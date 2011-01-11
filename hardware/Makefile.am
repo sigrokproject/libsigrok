@@ -31,8 +31,11 @@ noinst_LTLIBRARIES = libsigrokhardware.la
 libsigrokhardware_la_SOURCES =
 
 libsigrokhardware_la_LIBADD = \
-	common/libsigrokhwcommon.la \
-	demo/libsigrokhwdemo.la
+	common/libsigrokhwcommon.la
+
+if LA_DEMO
+libsigrokhardware_la_LIBADD += demo/libsigrokhwdemo.la
+endif
 
 if LA_ASIX_SIGMA
 libsigrokhardware_la_LIBADD += asix-sigma/libsigrokhwasixsigma.la

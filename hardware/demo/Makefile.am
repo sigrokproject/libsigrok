@@ -17,6 +17,8 @@
 ## along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##
 
+if LA_DEMO
+
 # Local lib, this is NOT meant to be installed!
 noinst_LTLIBRARIES = libsigrokhwdemo.la
 
@@ -25,4 +27,6 @@ libsigrokhwdemo_la_SOURCES = \
 
 libsigrokhwdemo_la_CFLAGS = \
 	-I$(top_srcdir)/libsigrok
+
+endif
 
