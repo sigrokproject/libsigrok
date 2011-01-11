@@ -112,8 +112,8 @@ static int init(struct output *o, int default_spl)
 	}
 
 	snprintf(ctx->header, 511, "%s\n", PACKAGE_STRING);
+	num_probes = g_slist_length(o->device->probes);
 	if (o->device->plugin) {
-		num_probes = g_slist_length(o->device->probes);
 		samplerate = *((uint64_t *) o->device->plugin->get_device_info(
 				o->device->plugin_index, DI_CUR_SAMPLERATE));
 		if (!(samplerate_s = sigrok_samplerate_string(samplerate))) {
@@ -154,6 +154,8 @@ static int event(struct output *o, int event_type, char **data_out,
 	switch (event_type) {
 	case DF_TRIGGER:
 		ctx->mark_trigger = ctx->spl_cnt;
+		*data_out = NULL;
+		*length_out = 0;
 		break;
 	case DF_END:
 		outsize = ctx->num_enabled_probes
@@ -165,6 +167,10 @@ static int event(struct output *o, int event_type, char **data_out,
 		*length_out = strlen(outbuf);
 		free(o->internal);
 		o->internal = NULL;
+		break;
+	default:
+		*data_out = NULL;
+		*length_out = 0;
 		break;
 	}
 
