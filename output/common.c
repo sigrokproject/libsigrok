@@ -64,7 +64,7 @@ char *sigrok_samplerate_string(uint64_t samplerate)
  * Convert a numeric samplerate value to the "natural" string representation
  * of its period.
  *
- * E.g. a value of 3000000 would be converted to "3 µs", 20000 to "50 ms".
+ * E.g. a value of 3000000 would be converted to "3 us", 20000 to "50 ms".
  *
  * @param frequency The frequency in Hz.
  * @return A malloc()ed string representation of the frequency value,
@@ -82,7 +82,7 @@ char *sigrok_period_string(uint64_t frequency)
 	if (frequency >= GHZ(1))
 		r = snprintf(o, 30, "%" PRIu64 " ns", frequency / 1000000000);
 	else if (frequency >= MHZ(1))
-		r = snprintf(o, 30, "%" PRIu64 " µs", frequency / 1000000);
+		r = snprintf(o, 30, "%" PRIu64 " us", frequency / 1000000);
 	else if (frequency >= KHZ(1))
 		r = snprintf(o, 30, "%" PRIu64 " ms", frequency / 1000);
 	else
