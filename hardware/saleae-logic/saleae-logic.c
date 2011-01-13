@@ -297,7 +297,7 @@ static int hw_init(char *deviceinfo)
 	libusb_device **devlist;
 	int err, devcnt, i;
 
-	/* QUICK HACK */
+	/* Avoid compiler warnings. */
 	deviceinfo = deviceinfo;
 
 	if (libusb_init(&usb_context) != 0) {
@@ -525,7 +525,7 @@ static int receive_data(int fd, int revents, void *user_data)
 {
 	struct timeval tv;
 
-	/* QUICK HACK */
+	/* Avoid compiler warnings. */
 	fd = fd;
 	revents = revents;
 	user_data = user_data;
@@ -728,7 +728,7 @@ static void hw_stop_acquisition(int device_index, gpointer session_device_id)
 {
 	struct datafeed_packet packet;
 
-	/* QUICK HACK */
+	/* Avoid compiler warnings. */
 	device_index = device_index;
 
 	packet.type = DF_END;

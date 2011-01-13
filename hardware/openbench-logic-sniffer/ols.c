@@ -777,7 +777,7 @@ static void hw_stop_acquisition(int device_index, gpointer session_device_id)
 {
 	struct datafeed_packet packet;
 
-	/* QUICK HACK */
+	/* Avoid compiler warnings. */
 	device_index = device_index;
 
 	packet.type = DF_END;

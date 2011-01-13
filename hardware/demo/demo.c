@@ -97,7 +97,7 @@ static void hw_stop_acquisition(int device_index, gpointer session_device_id);
 
 static int hw_init(char *deviceinfo)
 {
-	/* Avoid compiler warning. */
+	/* Avoid compiler warnings. */
 	deviceinfo = deviceinfo;
 
 	struct sigrok_device_instance *sdi;
@@ -114,7 +114,7 @@ static int hw_init(char *deviceinfo)
 
 static int hw_opendev(int device_index)
 {
-	/* Avoid compiler warning. */
+	/* Avoid compiler warnings. */
 	device_index = device_index;
 
 	/* Nothing needed so far. */
@@ -123,7 +123,7 @@ static int hw_opendev(int device_index)
 
 static void hw_closedev(int device_index)
 {
-	/* Avoid compiler warning. */
+	/* Avoid compiler warnings. */
 	device_index = device_index;
 
 	/* Nothing needed so far. */
@@ -165,7 +165,7 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 
 static int hw_get_status(int device_index)
 {
-	/* Avoid compiler warning. */
+	/* Avoid compiler warnings. */
 	device_index = device_index;
 
 	return 0; /* FIXME */
@@ -181,7 +181,7 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 	int ret;
 	uint64_t *tmp_u64;
 
-	/* Avoid compiler warning. */
+	/* Avoid compiler warnings. */
 	device_index = device_index;
 
 	if (capability == HWCAP_SAMPLERATE) {
@@ -337,7 +337,7 @@ static void hw_stop_acquisition(int device_index, gpointer session_device_id)
 {
 	struct datafeed_packet packet;
 
-	/* QUICK HACK */
+	/* Avoid compiler warnings. */
 	device_index = device_index;
 
 	/* Send last packet. */

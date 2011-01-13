@@ -280,7 +280,7 @@ static int hw_init(char *deviceinfo)
 	libusb_device **devlist;
 	int err, devcnt, i;
 
-	/* QUICK HACK */
+	/* Avoid compiler warnings. */
 	deviceinfo = deviceinfo;
 
 	if (libusb_init(&usb_context) != 0) {

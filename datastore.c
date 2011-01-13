@@ -65,7 +65,7 @@ void datastore_put(struct datastore *ds, void *data, unsigned int length,
 	int capacity, size, num_chunks, chunk_bytes_free, chunk_offset;
 	gpointer chunk;
 
-	/* QUICK HACK */
+	/* Avoid compiler warnings. */
 	in_unitsize = in_unitsize;
 	probelist = probelist;
 

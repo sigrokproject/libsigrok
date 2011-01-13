@@ -31,11 +31,11 @@ struct session *session_load(const char *filename)
 {
 	struct session *session;
 
+	/* Avoid compiler warnings. */
+	filename = filename;
+
 	/* TODO: Implement. */
 	session = NULL;
-
-	/* QUICK HACK */
-	filename = filename;
 
 	return session;
 }
