@@ -135,7 +135,9 @@ static int event(struct output *o, int event_type, char **data_out,
 	ctx = o->internal;
 	switch (event_type) {
 	case DF_TRIGGER:
-		/* TODO */
+		/* TODO: can a trigger mark be in a VCD file? */
+		*data_out = NULL;
+		*length_out = 0;
 		break;
 	case DF_END:
 		outlen = strlen("$dumpoff\n$end\n");
@@ -148,6 +150,10 @@ static int event(struct output *o, int event_type, char **data_out,
 		*length_out = outlen;
 		free(o->internal);
 		o->internal = NULL;
+		break;
+	default:
+		*data_out = NULL;
+		*length_out = 0;
 		break;
 	}
 

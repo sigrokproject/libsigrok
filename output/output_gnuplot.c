@@ -127,15 +127,16 @@ static int event(struct output *o, int event_type, char **data_out,
 	ctx = o->internal;
 	switch (event_type) {
 	case DF_TRIGGER:
-		/* TODO */
+		/* TODO: can a trigger mark be in a gnuplot data file? */
 		break;
 	case DF_END:
-		*data_out = NULL;
-		*length_out = 0;
 		free(o->internal);
 		o->internal = NULL;
 		break;
 	}
+
+	*data_out = NULL;
+	*length_out = 0;
 
 	return SIGROK_OK;
 }

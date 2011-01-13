@@ -24,24 +24,6 @@
 #include <sigrok.h>
 #include "config.h"
 
-static int event(struct output *o, int event_type, char **data_out,
-		 uint64_t *length_out)
-{
-	/* Prevent compiler warnings. */
-	o = o;
-
-	switch (event_type) {
-	case DF_TRIGGER:
-		/* TODO? Ignore? */
-		break;
-	case DF_END:
-		*data_out = NULL;
-		*length_out = 0;
-		break;
-	}
-
-	return SIGROK_OK;
-}
 
 static int data(struct output *o, char *data_in, uint64_t length_in,
 		char **data_out, uint64_t *length_out)
@@ -67,5 +49,5 @@ struct output_format output_binary = {
 	DF_LOGIC,
 	NULL,
 	data,
-	event,
+	NULL,
 };
