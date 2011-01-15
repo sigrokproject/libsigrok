@@ -643,8 +643,13 @@ static int configure_probes(struct sigrok_device_instance *sdi, GSList *probes)
 				++trigger_set;
 			}
 
-			if (trigger_set > 2) {
-				g_warning("Asix Sigma only supports 2 rising/"
+                        /*
+                         * Actually, Sigma supports 2 rising/falling triggers,
+                         * but they are ORed and the current trigger syntax
+                         * does not permit ORed triggers.
+                         */
+			if (trigger_set > 1) {
+				g_warning("Asix Sigma only supports 1 rising/"
 					  "falling triggers.");
 				return SIGROK_ERR;
 			}
