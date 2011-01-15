@@ -30,7 +30,6 @@
 /* size of chunks to send through the session bus */
 #define BUFSIZE                4096
 
-
 enum {
 	GENMODE_RANDOM,
 	GENMODE_INC,
@@ -56,10 +55,10 @@ static int capabilities[] = {
 	HWCAP_CONTINUOUS
 };
 
-static char *patternmodes[] = {
+static const char *patternmodes[] = {
 	"random",
 	"incremental",
-	NULL
+	NULL,
 };
 
 /* List of struct sigrok_device_instance, maintained by opendev()/closedev(). */
@@ -67,7 +66,6 @@ static GSList *device_instances = NULL;
 static uint64_t cur_samplerate = 0;
 static uint64_t limit_samples = -1;
 static int default_genmode = GENMODE_RANDOM;
-
 
 static void hw_stop_acquisition(int device_index, gpointer session_device_id);
 
@@ -145,7 +143,6 @@ static int hw_get_status(int device_index)
 
 static int *hw_get_capabilities(void)
 {
-
 	return capabilities;
 }
 
@@ -159,7 +156,7 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 	device_index = device_index;
 
 	if (capability == HWCAP_PROBECONFIG) {
-		/* nothing to do */
+		/* Nothing to do. */
 		ret = SIGROK_OK;
 	} else if (capability == HWCAP_LIMIT_SAMPLES) {
 		tmp_u64 = value;
@@ -213,7 +210,7 @@ static void thread_func(void *data)
 		if (limit_samples)
 			nb_to_send = limit_samples - mydata->samples_counter;
 		else
-			nb_to_send = BUFSIZE;  // CONTINUOUS MODE
+			nb_to_send = BUFSIZE;  /* Continuous mode */
 
 		if (nb_to_send == 0) {
 			close(mydata->pipe_fds[1]);
@@ -236,7 +233,6 @@ static void thread_func(void *data)
 static int receive_data(int fd, int revents, void *user_data)
 {
 	struct datafeed_packet packet;
-	/* uint16_t samples[1000]; */
 	char c[BUFSIZE];
 	uint64_t z;
 
@@ -315,7 +311,6 @@ static void hw_stop_acquisition(int device_index, gpointer session_device_id)
 	/* Send last packet. */
 	packet.type = DF_END;
 	session_bus(session_device_id, &packet);
-
 }
 
 struct device_plugin demo_plugin_info = {
