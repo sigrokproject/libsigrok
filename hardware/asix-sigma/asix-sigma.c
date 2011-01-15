@@ -644,9 +644,15 @@ static int configure_probes(GSList *probes)
 
 static void hw_closedev(int device_index)
 {
-	device_index = device_index;
+	struct sigrok_device_instance *sdi;
 
-	ftdi_usb_close(&ftdic);
+	if ((sdi = get_sigrok_device_instance(device_instances, device_index)))
+	{
+		if (sdi->status == ST_ACTIVE)
+			ftdi_usb_close(&ftdic);
+
+		sdi->status = ST_INACTIVE;
+	}
 }
 
 static void hw_cleanup(void)
