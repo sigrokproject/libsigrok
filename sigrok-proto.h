@@ -32,10 +32,6 @@ int datastore_destroy(struct datastore *ds);
 void datastore_put(struct datastore *ds, void *data, unsigned int length,
 		   int in_unitsize, int *probelist);
 
-/*--- debug.c ---------------------------------------------------------------*/
-
-void hexdump(unsigned char *address, int length);
-
 /*--- device.c --------------------------------------------------------------*/
 
 void device_scan(void);
