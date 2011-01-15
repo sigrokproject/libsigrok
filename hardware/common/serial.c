@@ -31,13 +31,14 @@
 #include <stdlib.h>
 #include <glib.h>
 #include <sigrok.h>
+#include <sigrok-internal.h>
 
 // FIXME: Must be moved, or rather passed as function argument.
 #ifdef _WIN32
 HANDLE hdl;
 #endif
 
-char *serial_port_glob[] = {
+const char *serial_port_glob[] = {
 	/* Linux */
 	"/dev/ttyS*",
 	"/dev/ttyUSB*",

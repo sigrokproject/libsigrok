@@ -37,6 +37,7 @@
 #endif
 #include <glib.h>
 #include <sigrok.h>
+#include <sigrok-internal.h>
 
 #ifdef _WIN32
 #define O_NONBLOCK FIONBIO
