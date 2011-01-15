@@ -213,10 +213,16 @@ extern GSList *devices;
 /* Hardware plugin capabilities */
 enum {
 	HWCAP_DUMMY,             /* Used to terminate lists */
+	/* device classes */
 	HWCAP_LOGIC_ANALYZER,
+
+	/* device options */
 	HWCAP_SAMPLERATE,        /* Change samplerate */
 	HWCAP_PROBECONFIG,       /* Configure probe mask */
 	HWCAP_CAPTURE_RATIO,     /* Set pre/post-trigger capture ratio */
+	HWCAP_PATTERN_MODE,      /* Pattern generator mode */
+
+	/* acquisition modes */
 	HWCAP_LIMIT_MSEC,        /* Set a time limit for sample acquisition */
 	HWCAP_LIMIT_SAMPLES,     /* Set a limit on number of samples */
 	HWCAP_CONTINUOUS,
@@ -289,6 +295,8 @@ enum {
 	DI_TRIGGER_TYPES,
 	/* The currently set samplerate in Hz (uint64_t) */
 	DI_CUR_SAMPLERATE,
+	/* Supported pattern generator modes */
+	DI_PATTERNMODES,
 };
 
 /*

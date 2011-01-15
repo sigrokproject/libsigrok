@@ -39,6 +39,7 @@ GSList *plugins;
 struct hwcap_option hwcap_options[] = {
 	{HWCAP_SAMPLERATE, T_UINT64, "Sample rate", "samplerate"},
 	{HWCAP_CAPTURE_RATIO, T_UINT64, "Pre-trigger capture ratio", "captureratio"},
+	{HWCAP_PATTERN_MODE, T_CHAR, "Pattern generator mode", "patternmode"},
 	{0, 0, NULL, NULL},
 };
 
@@ -105,9 +106,9 @@ struct sigrok_device_instance *sigrok_device_instance_new(int index, int status,
 	sdi->index = index;
 	sdi->status = status;
 	sdi->instance_type = -1;
-	sdi->vendor = strdup(vendor);
-	sdi->model = strdup(model);
-	sdi->version = strdup(version);
+	sdi->vendor = vendor ? strdup(vendor) : strdup("(unknown)");
+	sdi->model = model ? strdup(model) : NULL;
+	sdi->version = version ? strdup(version) : NULL;
 	sdi->priv = NULL;
 	sdi->usb = NULL;
 
