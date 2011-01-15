@@ -31,6 +31,7 @@
 #define BUFSIZE                4096
 
 enum {
+	GENMODE_DEFAULT,
 	GENMODE_RANDOM,
 	GENMODE_INC,
 };
@@ -61,11 +62,22 @@ static const char *patternmodes[] = {
 	NULL,
 };
 
+static uint8_t genmode_default[] = {
+	0x4c, 0x92, 0x92, 0x92, 0x64, 0x00, 0x00, 0x00,
+	0x82, 0xfe, 0xfe, 0x82, 0x00, 0x00, 0x00, 0x00,
+	0x7c, 0x82, 0x82, 0x92, 0x74, 0x00, 0x00, 0x00,
+	0xfe, 0x12, 0x12, 0x32, 0xcc, 0x00, 0x00, 0x00,
+	0x7c, 0x82, 0x82, 0x82, 0x7c, 0x00, 0x00, 0x00,
+	0xfe, 0x10, 0x28, 0x44, 0x82, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0xbe, 0xbe, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+};
+
 /* List of struct sigrok_device_instance, maintained by opendev()/closedev(). */
 static GSList *device_instances = NULL;
 static uint64_t cur_samplerate = 0;
 static uint64_t limit_samples = -1;
-static int default_genmode = GENMODE_RANDOM;
+static int default_genmode = GENMODE_DEFAULT;
 
 static void hw_stop_acquisition(int device_index, gpointer session_device_id);
 
@@ -183,11 +195,19 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 static void samples_generator(uint8_t *buf, uint64_t size, void *data)
 {
 	struct databag *mydata = data;
-	uint64_t i;
+	uint64_t p, i;
 
 	memset(buf, 0, size);
 
 	switch (mydata->sample_generator) {
+	case GENMODE_DEFAULT:
+		p = 0;
+		for (i = 0; i < size; i++) {
+			*(buf + i) = ~(genmode_default[p] >> 1);
+			if (++p == 64)
+				p = 0;
+		}
+		break;
 	case GENMODE_RANDOM: /* Random */
 		for (i = 0; i < size; i++)
 			*(buf + i) = (uint8_t)(rand() & 0xff);
