@@ -35,8 +35,8 @@
 #define TRIGGER_FIRED			-1
 
 #define USB_MODEL_NAME			"demodevice"
-#define USB_VENDOR_NAME			"demovendor"
-#define USB_MODEL_VERSION		"1.0"
+#define USB_VENDOR_NAME			"sigrok"
+#define USB_MODEL_VERSION		"v1.0"
 
 #define GENMODE_RANDOM			1
 #define GENMODE_INC			2
