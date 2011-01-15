@@ -20,29 +20,29 @@
 #ifndef SIGROK_SIGROK_PROTO_H
 #define SIGROK_SIGROK_PROTO_H
 
-int filter_probes(int in_unitsize, int out_unitsize, int *probelist,
-		  char *data_in, uint64_t length_in, char **data_out,
-		  uint64_t *length_out);
-
-char *sigrok_samplerate_string(uint64_t samplerate);
-char *sigrok_period_string(uint64_t frequency);
-
 /*--- backend.c -------------------------------------------------------------*/
 
 int sigrok_init(void);
 void sigrok_cleanup(void);
 
+/*--- datastore.c -----------------------------------------------------------*/
+
+int datastore_new(int unitsize, struct datastore **ds);
+int datastore_destroy(struct datastore *ds);
+void datastore_put(struct datastore *ds, void *data, unsigned int length,
+		   int in_unitsize, int *probelist);
+
 /*--- debug.c ---------------------------------------------------------------*/
 
 void hexdump(unsigned char *address, int length);
 
-struct input_format **input_list(void);
-struct output_format **output_list(void);
+/*--- device.c --------------------------------------------------------------*/
 
 void device_scan(void);
 void device_close_all(void);
 GSList *device_list(void);
-struct device *device_new(struct device_plugin *plugin, int plugin_index, int num_probes);
+struct device *device_new(struct device_plugin *plugin, int plugin_index,
+			  int num_probes);
 void device_clear(struct device *device);
 void device_destroy(struct device *dev);
 
@@ -53,6 +53,14 @@ void device_probe_name(struct device *device, int probenum, char *name);
 
 void device_trigger_clear(struct device *device);
 void device_trigger_set(struct device *device, int probenum, char *trigger);
+
+/*--- filter.c --------------------------------------------------------------*/
+
+int filter_probes(int in_unitsize, int out_unitsize, int *probelist,
+		  char *data_in, uint64_t length_in, char **data_out,
+		  uint64_t *length_out);
+
+/*--- hwplugin.c ------------------------------------------------------------*/
 
 int load_hwplugins(void);
 GSList *list_hwplugins(void);
@@ -110,14 +118,15 @@ void session_bus(struct device *device, struct datafeed_packet *packet);
 void make_metadata(char *filename);
 int session_save(char *filename);
 
-/*--- hwcommon.c ------------------------------------------------------------*/
+/*--- hardware/common/ezusb.c -----------------------------------------------*/
 
 int ezusb_reset(struct libusb_device_handle *hdl, int set_clear);
 int ezusb_install_firmware(libusb_device_handle *hdl, char *filename);
 int ezusb_upload_firmware(libusb_device *dev, int configuration,
                           const char *filename);
 
-/* libsigrok/hardware/common/misc.c */
+/*--- hardware/common/misc.c ------------------------------------------------*/
+
 /* TODO: Should not be public. */
 int opendev2(int device_index, struct sigrok_device_instance **sdi,
 	     libusb_device *dev, struct libusb_device_descriptor *des,
@@ -126,11 +135,17 @@ int opendev3(struct sigrok_device_instance **sdi, libusb_device *dev,
 	     struct libusb_device_descriptor *des,
 	     uint16_t vid, uint16_t pid, int interface);
 
-/*--- datastore.c -----------------------------------------------------------*/
+/*--- input/input.c ---------------------------------------------------------*/
 
-int datastore_new(int unitsize, struct datastore **ds);
-int datastore_destroy(struct datastore *ds);
-void datastore_put(struct datastore *ds, void *data, unsigned int length,
-		   int in_unitsize, int *probelist);
+struct input_format **input_list(void);
+
+/*--- output/output.c -------------------------------------------------------*/
+
+struct output_format **output_list(void);
+
+/*--- output/common.c -------------------------------------------------------*/
+
+char *sigrok_samplerate_string(uint64_t samplerate);
+char *sigrok_period_string(uint64_t frequency);
 
 #endif
