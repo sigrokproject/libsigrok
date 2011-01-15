@@ -25,7 +25,7 @@
 #include "config.h"
 
 #define DEFAULT_BPL_BITS 64
-#define DEFAULT_BPL_HEX  256
+#define DEFAULT_BPL_HEX  192
 
 struct context {
 	unsigned int num_enabled_probes;
@@ -247,7 +247,7 @@ static int data_bits(struct output *o, char *data_in, uint64_t length_in,
 
 static int init_hex(struct output *o)
 {
-	return init(o, DEFAULT_BPL_BITS);
+	return init(o, DEFAULT_BPL_HEX);
 }
 
 static int data_hex(struct output *o, char *data_in, uint64_t length_in,
@@ -321,7 +321,7 @@ struct output_format output_text_bits = {
 
 struct output_format output_text_hex = {
 	"hex",
-	"Hexadecimal (takes argument, default 256)",
+	"Hexadecimal (takes argument, default 192)",
 	DF_LOGIC,
 	init_hex,
 	data_hex,
