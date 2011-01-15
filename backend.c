@@ -25,6 +25,7 @@ int sigrok_init(void)
 	return load_hwplugins();
 }
 
+/* TODO: Should return int to be able to report back error codes. */
 void sigrok_cleanup(void)
 {
 	device_close_all();

@@ -27,7 +27,6 @@
 #include <glib.h>
 #include <libusb.h>
 
-
 /*
  * Status/error codes returned by libsigrok functions.
  *
@@ -54,7 +53,6 @@
 #define MAX_NUM_PROBES 64
 #define MAX_PROBENAME_LEN 32
 
-
 /* Handy little macros */
 #define KHZ(n) ((n) * 1000)
 #define MHZ(n) ((n) * 1000000)
@@ -70,9 +68,7 @@
 #define ARRAY_AND_SIZE(a) (a), ARRAY_SIZE(a)
 #endif
 
-
 typedef int (*receive_data_callback) (int fd, int revents, void *user_data);
-
 
 /* Data types used by hardware plugins for set_configuration() */
 enum {
@@ -90,8 +86,6 @@ struct protocol {
 	int id;
 	int stackindex;
 };
-
-
 
 /* datafeed_packet.type values */
 enum {
@@ -119,8 +113,6 @@ struct datafeed_header {
 	int num_logic_probes;
 };
 
-
-
 struct input {
 	struct input_format *format;
 	char *param;
@@ -134,8 +126,6 @@ struct input_format {
 	int (*init) (struct input *in);
 	int (*loadfile) (struct input *in, const char *filename);
 };
-
-
 
 struct output {
 	struct output_format *format;
@@ -155,7 +145,6 @@ struct output_format {
 		      uint64_t *length_out);
 };
 
-
 struct analyzer {
 	char *name;
 	char *filename;
@@ -164,7 +153,6 @@ struct analyzer {
 	 * TODO: Input and output format?
 	 */
 };
-
 
 /* Size of a chunk in units */
 #define DATASTORE_CHUNKSIZE 512000
@@ -175,7 +163,6 @@ struct datastore {
 	unsigned int num_units; /* TODO: uint64_t */
 	GSList *chunklist;
 };
-
 
 /*
  * This represents a generic device connected to the system.
@@ -209,7 +196,6 @@ struct probe {
 
 extern GSList *devices;
 
-
 /* Hardware plugin capabilities */
 enum {
 	HWCAP_DUMMY,             /* Used to terminate lists */
@@ -234,7 +220,6 @@ struct hwcap_option {
 	char *description;
 	char *shortname;
 };
-
 
 struct sigrok_device_instance {
 	int index;

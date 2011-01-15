@@ -62,7 +62,6 @@ extern struct device_plugin asix_sigma_plugin_info;
 extern struct device_plugin link_mso19_plugin_info;
 #endif
 
-
 /* TODO: No linked list needed, this can be a simple array. */
 int load_hwplugins(void)
 {

@@ -49,7 +49,7 @@ int datastore_destroy(struct datastore *ds)
 
 	if (!ds)
 		return SIGROK_ERR;
-	
+
 	for (chunk = ds->chunklist; chunk; chunk = chunk->next)
 		g_free(chunk->data);
 	g_slist_free(ds->chunklist);

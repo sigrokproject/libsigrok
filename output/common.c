@@ -38,7 +38,7 @@ char *sigrok_samplerate_string(uint64_t samplerate)
 	int r;
 
 	o = malloc(30 + 1); /* Enough for a uint64_t as string + " GHz". */
-	if (o == NULL)
+	if (!o)
 		return NULL;
 
 	if (samplerate >= GHZ(1))
@@ -59,7 +59,6 @@ char *sigrok_samplerate_string(uint64_t samplerate)
 	return o;
 }
 
-
 /**
  * Convert a numeric samplerate value to the "natural" string representation
  * of its period.
@@ -76,7 +75,7 @@ char *sigrok_period_string(uint64_t frequency)
 	int r;
 
 	o = malloc(30 + 1); /* Enough for a uint64_t as string + " ms". */
-	if (o == NULL)
+	if (!o)
 		return NULL;
 
 	if (frequency >= GHZ(1))
@@ -96,4 +95,3 @@ char *sigrok_period_string(uint64_t frequency)
 
 	return o;
 }
-
