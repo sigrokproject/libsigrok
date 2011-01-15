@@ -173,4 +173,18 @@ struct sigma_state {
 	int chunks_downloaded;
 };
 
+struct sigma {
+	struct ftdi_context ftdic;
+	uint64_t cur_samplerate;
+	uint32_t limit_msec;
+	struct timeval start_tv;
+	int cur_firmware;
+	int num_probes;
+	int samples_per_event;
+	int capture_ratio;
+	struct sigma_trigger trigger;
+	struct sigma_state state;
+	gpointer session_id;
+};
+
 #endif
