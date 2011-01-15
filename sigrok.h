@@ -347,4 +347,5 @@ struct session {
 };
 
 #include "sigrok-proto.h"
+
 #endif

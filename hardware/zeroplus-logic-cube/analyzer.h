@@ -29,8 +29,8 @@
  *  THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef ANALYZER_H__
-#define ANALYZER_H__
+#ifndef SIGROK_ZEROPLUS_ANALYZER_H
+#define SIGROK_ZEROPLUS_ANALYZER_H
 
 #include <libusb.h>
 

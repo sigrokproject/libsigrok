@@ -17,9 +17,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
-#ifndef SIGROK_PROTO_H_
-#define SIGROK_PROTO_H_
+#ifndef SIGROK_SIGROK_PROTO_H
+#define SIGROK_SIGROK_PROTO_H
 
 int filter_probes(int in_unitsize, int out_unitsize, int *probelist,
 		  char *data_in, uint64_t length_in, char **data_out,
@@ -27,7 +26,6 @@ int filter_probes(int in_unitsize, int out_unitsize, int *probelist,
 
 char *sigrok_samplerate_string(uint64_t samplerate);
 char *sigrok_period_string(uint64_t frequency);
-
 
 /*--- backend.c -------------------------------------------------------------*/
 
@@ -146,5 +144,4 @@ int datastore_destroy(struct datastore *ds);
 void datastore_put(struct datastore *ds, void *data, unsigned int length,
 		   int in_unitsize, int *probelist);
 
-
-#endif /* SIGROK_PROTO_H_ */
+#endif

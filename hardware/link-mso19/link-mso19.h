@@ -17,8 +17,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LINK_MSO19_H
-#define LINK_MSO19_H
+#ifndef SIGROK_LINK_MSO19_H
+#define SIGROK_LINK_MSO19_H
 
 /* our private per-instance data */
 struct mso {

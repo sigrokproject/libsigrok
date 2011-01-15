@@ -29,8 +29,8 @@
  *  THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef GL_H__
-#define GL_G__
+#ifndef SIGROK_ZEROPLUS_GL_H
+#define SIGROK_ZEROPLUS_GL_H
 
 #include <libusb.h>
 
