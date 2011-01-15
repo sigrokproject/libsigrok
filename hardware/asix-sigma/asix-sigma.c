@@ -938,7 +938,7 @@ static int receive_data(int fd, int revents, void *user_data)
 	fd = fd;
 	revents = revents;
 
-	numchunks = sigma->state.stoppos / 512;
+	numchunks = (sigma->state.stoppos + 511) / 512;
 
 	if (sigma->state.state == SIGMA_IDLE)
 		return FALSE;
