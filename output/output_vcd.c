@@ -32,6 +32,8 @@ struct context {
 	int *prevbits;
 	GString *header;
 	uint64_t prevsample;
+	int period;
+	uint64_t samplerate;
 };
 
 const char *vcd_header = "\
@@ -52,8 +54,7 @@ static int init(struct output *o)
 	struct context *ctx;
 	struct probe *probe;
 	GSList *l;
-	uint64_t samplerate;
-	int num_probes, period, i;
+	int num_probes, i;
 	char *samplerate_s, *frequency_s, *timestamp;
 	time_t t;
 
@@ -91,9 +92,9 @@ static int init(struct output *o)
 			PACKAGE, PACKAGE_VERSION);
 
 	if (o->device->plugin) {
-		samplerate = *((uint64_t *) o->device->plugin->get_device_info(
+		ctx->samplerate = *((uint64_t *) o->device->plugin->get_device_info(
 				o->device->plugin_index, DI_CUR_SAMPLERATE));
-		if (!((samplerate_s = sigrok_samplerate_string(samplerate)))) {
+		if (!((samplerate_s = sigrok_samplerate_string(ctx->samplerate)))) {
 			g_string_free(ctx->header, TRUE);
 			free(ctx);
 			return SIGROK_ERR;
@@ -105,13 +106,13 @@ static int init(struct output *o)
 
 	/* timescale */
 	/* VCD can only handle 1/10/100 (s - fs), so scale up first */
-	if (samplerate > MHZ(1))
-		period = GHZ(1);
-	else if (samplerate > KHZ(1))
-		period = MHZ(1);
+	if (ctx->samplerate > MHZ(1))
+		ctx->period = GHZ(1);
+	else if (ctx->samplerate > KHZ(1))
+		ctx->period = MHZ(1);
 	else
-		period = KHZ(1);
-	if (!(frequency_s = sigrok_period_string(period))) {
+		ctx->period = KHZ(1);
+	if (!(frequency_s = sigrok_period_string(ctx->period))) {
 		g_string_free(ctx->header, TRUE);
 		free(ctx);
 		return SIGROK_ERR;
@@ -197,7 +198,6 @@ static int data(struct output *o, char *data_in, uint64_t length_in,
 			first_sample = 0;
 		}
 
-
 		for (p = 0; p < ctx->num_enabled_probes; p++) {
 			curbit = (sample & ((uint64_t) (1 << p))) >> p;
 			prevbit = (ctx->prevsample & ((uint64_t) (1 << p))) >> p;
@@ -207,8 +207,9 @@ static int data(struct output *o, char *data_in, uint64_t length_in,
 				continue;
 
 			/* Output which signal changed to which value. */
-			g_string_append_printf(out, "#%" PRIu64 "\n%i%c\n", samplecount,
-					curbit, (char)('!' + p));
+			g_string_append_printf(out, "#%" PRIu64 "\n%i%c\n",
+					(long)(((float)samplecount / ctx->samplerate)
+					* ctx->period), curbit, (char)('!' + p));
 		}
 
 		ctx->prevsample = sample;
