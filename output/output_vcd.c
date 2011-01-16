@@ -31,6 +31,7 @@ struct context {
 	char *probelist[65];
 	int *prevbits;
 	GString *header;
+	uint64_t prevsample;
 };
 
 const char *vcd_header = "\
@@ -169,9 +170,10 @@ static int data(struct output *o, char *data_in, uint64_t length_in,
 	struct context *ctx;
 	unsigned int i;
 	int p, curbit, prevbit;
-	uint64_t sample, prevsample;
+	uint64_t sample;
 	static uint64_t samplecount = 0;
 	GString *out;
+	int first_sample = 0;
 
 	ctx = o->internal;
 	out = g_string_sized_new(512);
@@ -181,19 +183,24 @@ static int data(struct output *o, char *data_in, uint64_t length_in,
 		g_string_append(out, ctx->header->str);
 		g_string_free(ctx->header, TRUE);
 		ctx->header = NULL;
+		first_sample = 1;
 	}
 
 	for (i = 0; i <= length_in - ctx->unitsize; i += ctx->unitsize) {
 		samplecount++;
+
 		memcpy(&sample, data_in + i, ctx->unitsize);
-		if (i == 0)
-			prevsample = sample;
-		else
-			memcpy(&prevsample, data_in + i - 1, ctx->unitsize);
+
+		if (first_sample) {
+			/* First packet. We neg to make sure sample is stored. */
+			ctx->prevsample = ~sample;
+			first_sample = 0;
+		}
+
 
 		for (p = 0; p < ctx->num_enabled_probes; p++) {
 			curbit = (sample & ((uint64_t) (1 << p))) >> p;
-			prevbit = (prevsample & ((uint64_t) (1 << p))) >> p;
+			prevbit = (ctx->prevsample & ((uint64_t) (1 << p))) >> p;
 
 			/* VCD only contains deltas/changes of signals. */
 			if (prevbit == curbit)
@@ -203,6 +210,8 @@ static int data(struct output *o, char *data_in, uint64_t length_in,
 			g_string_append_printf(out, "#%" PRIu64 "\n%i%c\n", samplecount,
 					curbit, (char)('!' + p));
 		}
+
+		ctx->prevsample = sample;
 	}
 
 	*data_out = out->str;
