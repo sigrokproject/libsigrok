@@ -809,7 +809,8 @@ static int get_trigger_offset(uint16_t *samples, uint16_t last_sample,
  * spread 20 ns apart.
  */
 static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
-			   uint16_t *lastsample, int triggerpos, void *user_data)
+			   uint16_t *lastsample, int triggerpos,
+			   uint16_t limit_chunk, void *user_data)
 {
 	struct sigrok_device_instance *sdi = user_data;
 	struct sigma *sigma = sdi->priv;
@@ -840,6 +841,10 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 		ts = *(uint16_t *) &buf[i * 16];
 		tsdiff = ts - *lastts;
 		*lastts = ts;
+
+		/* Decode partial chunk. */
+		if (limit_chunk && ts > limit_chunk)
+			return SIGROK_OK;
 
 		/* Pad last sample up to current point. */
 		numpad = tsdiff * sigma->samples_per_event - clustersize;
@@ -991,20 +996,29 @@ static int receive_data(int fd, int revents, void *user_data)
 
 		/* Decode chunks and send them to sigrok. */
 		for (i = 0; i < newchunks; ++i) {
+			int limit_chunk = 0;
+
+			/* The last chunk may potentially be only in part. */
+			if (sigma->state.chunks_downloaded == numchunks - 1)
+			{
+				/* Find the last valid timestamp */
+				limit_chunk = sigma->state.stoppos % 512 + sigma->state.lastts;
+			}
+
 			if (sigma->state.chunks_downloaded + i == sigma->state.triggerchunk)
 				decode_chunk_ts(buf + (i * CHUNK_SIZE),
 						&sigma->state.lastts,
 						&sigma->state.lastsample,
 						sigma->state.triggerpos & 0x1ff,
-						user_data);
+						limit_chunk, user_data);
 			else
 				decode_chunk_ts(buf + (i * CHUNK_SIZE),
 						&sigma->state.lastts,
 						&sigma->state.lastsample,
-						-1, user_data);
-		}
+						-1, limit_chunk, user_data);
 
-		sigma->state.chunks_downloaded += newchunks;
+			++sigma->state.chunks_downloaded;
+		}
 	}
 
 	return TRUE;
