@@ -2,6 +2,7 @@
  * This file is part of the sigrok project.
  *
  * Copyright (C) 2010 Uwe Hermann <uwe@hermann-uwe.de>
+ * Copyright (C) 2011 Bert Vermeulen <bert@biot.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,13 +30,13 @@ struct context {
 	int unitsize;
 	char *probelist[65];
 	int *prevbits;
-	char *header;
+	GString *header;
 };
 
 const char *vcd_header = "\
-$date\n  %s$end\n\
-$version\n  %s\n$end\n%s\
-$timescale\n  %i %s\n$end\n\
+$date %s $end\n\
+$version %s $end\n%s\
+$timescale %s $end\n\
 $scope module %s $end\n\
 %s\
 $upscope $end\n\
@@ -47,16 +48,12 @@ $comment\n  Acquisition with %d/%d probes at %s\n$end\n";
 
 static int init(struct output *o)
 {
-/* Maximum header length */
-#define MAX_HEADER_LEN 2048
-
 	struct context *ctx;
 	struct probe *probe;
 	GSList *l;
 	uint64_t samplerate;
-	int i, b, num_probes;
-	char *c, *samplerate_s;
-	char wbuf[1000], comment[128];
+	int num_probes, period, i;
+	char *samplerate_s, *frequency_s, *timestamp;
 	time_t t;
 
 	if (!(ctx = calloc(1, sizeof(struct context))))
@@ -71,53 +68,70 @@ static int init(struct output *o)
 			continue;
 		ctx->probelist[ctx->num_enabled_probes++] = probe->name;
 	}
+	if (ctx->num_enabled_probes > 94) {
+		g_warning("VCD only supports 94 probes.");
+		return SIGROK_ERR;
+	}
 
 	ctx->probelist[ctx->num_enabled_probes] = 0;
 	ctx->unitsize = (ctx->num_enabled_probes + 7) / 8;
-
-	/* TODO: Allow for configuration via o->param. */
-
-	if (!(ctx->header = calloc(1, MAX_HEADER_LEN + 1))) {
-		free(ctx);
-		return SIGROK_ERR_MALLOC;
-	}
+	ctx->header = g_string_sized_new(512);
 	num_probes = g_slist_length(o->device->probes);
 
-	comment[0] = '\0';
+	/* timestamp */
+	t = time(NULL);
+	timestamp = strdup(ctime(&t));
+	timestamp[strlen(timestamp)-1] = 0;
+	g_string_printf(ctx->header, "$date %s $end\n", timestamp);
+	free(timestamp);
+
+	/* generator */
+	g_string_append_printf(ctx->header, "$version %s %s $end\n",
+			PACKAGE, PACKAGE_VERSION);
+
 	if (o->device->plugin) {
-		/* TODO: Handle num_probes == 0, too many probes, etc. */
-		/* TODO: Error handling. */
 		samplerate = *((uint64_t *) o->device->plugin->get_device_info(
 				o->device->plugin_index, DI_CUR_SAMPLERATE));
 		if (!((samplerate_s = sigrok_samplerate_string(samplerate)))) {
-			free(ctx->header);
+			g_string_free(ctx->header, TRUE);
 			free(ctx);
 			return SIGROK_ERR;
 		}
-		/* TODO: Handle sprintf() errors. */
-		snprintf(comment, 127, vcd_header_comment,
-			 ctx->num_enabled_probes, num_probes, samplerate_s);
+		g_string_append_printf(ctx->header, vcd_header_comment,
+				 ctx->num_enabled_probes, num_probes, samplerate_s);
 		free(samplerate_s);
 	}
 
+	/* timescale */
+	/* VCD can only handle 1/10/100 (s - fs), so scale up first */
+	if (samplerate > MHZ(1))
+		period = GHZ(1);
+	else if (samplerate > KHZ(1))
+		period = MHZ(1);
+	else
+		period = KHZ(1);
+	if (!(frequency_s = sigrok_period_string(period))) {
+		g_string_free(ctx->header, TRUE);
+		free(ctx);
+		return SIGROK_ERR;
+	}
+	g_string_append_printf(ctx->header, "$timescale %s $end\n", frequency_s);
+	free(frequency_s);
+
+	/* scope */
+	g_string_append_printf(ctx->header, "$scope module %s $end\n", PACKAGE);
+
 	/* Wires / channels */
-	wbuf[0] = '\0';
 	for (i = 0; i < ctx->num_enabled_probes; i++) {
-		c = (char *)&wbuf + strlen((char *)&wbuf);
-		/* TODO: Needs fixing for very large number of probes. */
-		/* TODO: Handle sprintf() errors. */
-		sprintf(c, "$var wire 1 %c channel%s $end\n",
-			(char)('!' + i), ctx->probelist[i]);
+		g_string_append_printf(ctx->header, "$var wire 1 %c %s $end\n",
+				(char)('!' + i), ctx->probelist[i]);
 	}
 
-	/* TODO: Date: File or signals? Make y/n configurable. */
-	t = time(NULL);
-	b = snprintf(ctx->header, MAX_HEADER_LEN, vcd_header, ctime(&t),
-		     PACKAGE_STRING, comment, 1, "ns", PACKAGE, (char *)&wbuf);
-	/* TODO: Handle snprintf() errors. */
+	g_string_append(ctx->header, "$upscope $end\n"
+			"$enddefinitions $end\n$dumpvars\n");
 
 	if (!(ctx->prevbits = calloc(sizeof(int), num_probes))) {
-		free(ctx->header);
+		g_string_free(ctx->header, TRUE);
 		free(ctx);
 		return SIGROK_ERR_MALLOC;
 	}
@@ -130,24 +144,13 @@ static int event(struct output *o, int event_type, char **data_out,
 {
 	struct context *ctx;
 	char *outbuf;
-	int outlen;
 
 	ctx = o->internal;
 	switch (event_type) {
-	case DF_TRIGGER:
-		/* TODO: can a trigger mark be in a VCD file? */
-		*data_out = NULL;
-		*length_out = 0;
-		break;
 	case DF_END:
-		outlen = strlen("$dumpoff\n$end\n");
-		if (!(outbuf = malloc(outlen + 1)))
-			return SIGROK_ERR_MALLOC;
-		/* TODO: Bug? Drop the + 1? */
-		/* TODO: Handle snprintf() errors. */
-		snprintf(outbuf, outlen + 1, "$dumpoff\n$end\n");
+		outbuf = strdup("$dumpoff\n$end\n");
 		*data_out = outbuf;
-		*length_out = outlen;
+		*length_out = strlen(outbuf);
 		free(o->internal);
 		o->internal = NULL;
 		break;
@@ -164,30 +167,21 @@ static int data(struct output *o, char *data_in, uint64_t length_in,
 		char **data_out, uint64_t *length_out)
 {
 	struct context *ctx;
-	unsigned int i, outsize;
+	unsigned int i;
 	int p, curbit, prevbit;
 	uint64_t sample, prevsample;
 	static uint64_t samplecount = 0;
-	char *outbuf, *c;
+	GString *out;
 
 	ctx = o->internal;
-	outsize = 0;
-	if (ctx->header)
-		outsize = strlen(ctx->header);
+	out = g_string_sized_new(512);
 
-	/* FIXME: Use realloc(). */
-	if (!(outbuf = calloc(1, outsize + 1 + 10000)))
-		return SIGROK_ERR_MALLOC; /* TODO: free()? What to free? */
-
-	outbuf[0] = '\0';
 	if (ctx->header) {
 		/* The header is still here, this must be the first packet. */
-		strncpy(outbuf, ctx->header, outsize);
-		free(ctx->header);
+		g_string_append(out, ctx->header->str);
+		g_string_free(ctx->header, TRUE);
 		ctx->header = NULL;
 	}
-
-	/* TODO: Are disabled probes handled correctly? */
 
 	for (i = 0; i <= length_in - ctx->unitsize; i += ctx->unitsize) {
 		samplecount++;
@@ -206,16 +200,14 @@ static int data(struct output *o, char *data_in, uint64_t length_in,
 				continue;
 
 			/* Output which signal changed to which value. */
-			c = outbuf + strlen(outbuf);
-			sprintf(c, "#%" PRIu64 "\n%i%c\n", samplecount,
-				curbit, (char)('!' + p));
+			g_string_append_printf(out, "#%" PRIu64 "\n%i%c\n", samplecount,
+					curbit, (char)('!' + p));
 		}
-
-		/* TODO: Use realloc() if strlen(outbuf) is almost "full"... */
 	}
 
-	*data_out = outbuf;
-	*length_out = strlen(outbuf);
+	*data_out = out->str;
+	*length_out = out->len;
+	g_string_free(out, FALSE);
 
 	return SIGROK_OK;
 }
