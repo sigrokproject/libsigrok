@@ -253,7 +253,7 @@ static void thread_func(void *data)
 		mydata->samples_counter += nb_to_send;
 
 		g_io_channel_write_chars(channels[1], (gchar *)&buf,
-					 nb_to_send, &bytes_written, NULL);
+				nb_to_send, (gsize *)&bytes_written, NULL);
 
 		g_usleep(mydata->loop_sleep);
 	}
@@ -267,6 +267,7 @@ static int receive_data(int fd, int revents, void *user_data)
 	uint64_t z;
 
 	/* Avoid compiler warnings. */
+	fd = fd;
 	revents = revents;
 
 	g_io_channel_read_chars(channels[0], (gchar *)&c, BUFSIZE, &z, NULL);
