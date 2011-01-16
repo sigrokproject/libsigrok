@@ -23,6 +23,11 @@
 #include <unistd.h>
 #include <string.h>
 #include <sigrok.h>
+#ifdef _WIN32
+#include <io.h>
+#include <fcntl.h>
+#define pipe(fds) _pipe(fds, 4096, _O_BINARY)
+#endif
 #include "config.h"
 
 #define NUM_PROBES             8
@@ -35,6 +40,8 @@ enum {
 	GENMODE_RANDOM,
 	GENMODE_INC,
 };
+
+GIOChannel *channels[2];
 
 struct databag {
 	int pipe_fds[2];
@@ -225,6 +232,7 @@ static void thread_func(void *data)
 	struct databag *mydata = data;
 	uint8_t buf[BUFSIZE];
 	uint64_t nb_to_send = 0;
+	int bytes_written;
 
 	while (thread_running) {
 		if (limit_samples)
@@ -244,7 +252,9 @@ static void thread_func(void *data)
 		samples_generator(buf, nb_to_send, data);
 		mydata->samples_counter += nb_to_send;
 
-		write(mydata->pipe_fds[1], &buf, nb_to_send);
+		g_io_channel_write_chars(channels[1], (gchar *)&buf,
+					 nb_to_send, &bytes_written, NULL);
+
 		g_usleep(mydata->loop_sleep);
 	}
 }
@@ -259,7 +269,8 @@ static int receive_data(int fd, int revents, void *user_data)
 	/* Avoid compiler warnings. */
 	revents = revents;
 
-	z = read(fd, &c, BUFSIZE);
+	g_io_channel_read_chars(channels[0], (gchar *)&c, BUFSIZE, &z, NULL);
+
 	if (z > 0) {
 		packet.type = DF_LOGIC;
 		packet.length = z;
@@ -288,6 +299,17 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 
 	if (pipe(mydata->pipe_fds))
 		return SIGROK_ERR;
+
+	channels[0] = g_io_channel_unix_new(mydata->pipe_fds[0]);
+	channels[1] = g_io_channel_unix_new(mydata->pipe_fds[1]);
+
+	/* Set channel encoding to binary (default is UTF-8). */
+	g_io_channel_set_encoding(channels[0], NULL, NULL);
+	g_io_channel_set_encoding(channels[1], NULL, NULL);
+
+	/* Make channels to unbuffered. */
+	g_io_channel_set_buffered(channels[0], FALSE);
+	g_io_channel_set_buffered(channels[1], FALSE);
 
 	source_add(mydata->pipe_fds[0], G_IO_IN | G_IO_ERR, 40, receive_data,
 		   session_device_id);
