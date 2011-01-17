@@ -43,42 +43,43 @@
 #define O_NONBLOCK FIONBIO
 #endif
 
-#define NUM_PROBES			32
-#define NUM_TRIGGER_STAGES		4
-#define TRIGGER_TYPES			"01"
-#define SERIAL_SPEED			B115200
-#define CLOCK_RATE			100000000
+#define NUM_PROBES             32
+#define NUM_TRIGGER_STAGES     4
+#define TRIGGER_TYPES          "01"
+#define SERIAL_SPEED           B115200
+#define CLOCK_RATE             MHZ(100)
+#define MIN_NUM_SAMPLES        4
 
 /* Command opcodes */
-#define CMD_RESET			0x00
-#define CMD_ID				0x02
-#define CMD_SET_FLAGS			0x82
-#define CMD_SET_DIVIDER			0x80
-#define CMD_RUN				0x01
-#define CMD_CAPTURE_SIZE		0x81
-#define CMD_SET_TRIGGER_MASK_0		0xc0
-#define CMD_SET_TRIGGER_MASK_1		0xc4
-#define CMD_SET_TRIGGER_MASK_2		0xc8
-#define CMD_SET_TRIGGER_MASK_3		0xcc
-#define CMD_SET_TRIGGER_VALUE_0		0xc1
-#define CMD_SET_TRIGGER_VALUE_1		0xc5
-#define CMD_SET_TRIGGER_VALUE_2		0xc9
-#define CMD_SET_TRIGGER_VALUE_3		0xcd
-#define CMD_SET_TRIGGER_CONFIG_0	0xc2
-#define CMD_SET_TRIGGER_CONFIG_1	0xc6
-#define CMD_SET_TRIGGER_CONFIG_2	0xca
-#define CMD_SET_TRIGGER_CONFIG_3	0xce
+#define CMD_RESET                  0x00
+#define CMD_ID                     0x02
+#define CMD_SET_FLAGS              0x82
+#define CMD_SET_DIVIDER            0x80
+#define CMD_RUN                    0x01
+#define CMD_CAPTURE_SIZE           0x81
+#define CMD_SET_TRIGGER_MASK_0     0xc0
+#define CMD_SET_TRIGGER_MASK_1     0xc4
+#define CMD_SET_TRIGGER_MASK_2     0xc8
+#define CMD_SET_TRIGGER_MASK_3     0xcc
+#define CMD_SET_TRIGGER_VALUE_0    0xc1
+#define CMD_SET_TRIGGER_VALUE_1    0xc5
+#define CMD_SET_TRIGGER_VALUE_2    0xc9
+#define CMD_SET_TRIGGER_VALUE_3    0xcd
+#define CMD_SET_TRIGGER_CONFIG_0   0xc2
+#define CMD_SET_TRIGGER_CONFIG_1   0xc6
+#define CMD_SET_TRIGGER_CONFIG_2   0xca
+#define CMD_SET_TRIGGER_CONFIG_3   0xce
 
 /* Bitmasks for CMD_FLAGS */
-#define FLAG_DEMUX			0x01
-#define FLAG_FILTER			0x02
-#define FLAG_CHANNELGROUP_1		0x04
-#define FLAG_CHANNELGROUP_2		0x08
-#define FLAG_CHANNELGROUP_3		0x10
-#define FLAG_CHANNELGROUP_4		0x20
-#define FLAG_CLOCK_EXTERNAL		0x40
-#define FLAG_CLOCK_INVERTED		0x80
-#define FLAG_RLE			0x0100
+#define FLAG_DEMUX                 0x01
+#define FLAG_FILTER                0x02
+#define FLAG_CHANNELGROUP_1        0x04
+#define FLAG_CHANNELGROUP_2        0x08
+#define FLAG_CHANNELGROUP_3        0x10
+#define FLAG_CHANNELGROUP_4        0x20
+#define FLAG_CLOCK_EXTERNAL        0x40
+#define FLAG_CLOCK_INVERTED        0x80
+#define FLAG_RLE                   0x0100
 
 static int capabilities[] = {
 	HWCAP_LOGIC_ANALYZER,
@@ -462,6 +463,8 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 		break;
 	case HWCAP_LIMIT_SAMPLES:
 		tmp_u64 = value;
+		if (*tmp_u64 < MIN_NUM_SAMPLES)
+			return SIGROK_ERR;
 		limit_samples = *tmp_u64;
 		g_message("ols: sample limit %" PRIu64, limit_samples);
 		ret = SIGROK_OK;
