@@ -2,6 +2,7 @@
  * This file is part of the sigrok project.
  *
  * Copyright (C) 2010 Bert Vermeulen <bert@biot.com>
+ * Copyright (C) 2011 Håvard Espeland <gus@ping.uio.no>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,6 +27,7 @@
 
 #define DEFAULT_BPL_BITS 64
 #define DEFAULT_BPL_HEX  192
+#define DEFAULT_BPL_ASCII 74
 
 struct context {
 	unsigned int num_enabled_probes;
@@ -39,6 +41,7 @@ struct context {
 	uint8_t *linevalues;
 	char *header;
 	int mark_trigger;
+	uint64_t prevsample;
 };
 
 static void flush_linebufs(struct context *ctx, char *outbuf)
@@ -210,6 +213,10 @@ static int data_bits(struct output *o, char *data_in, uint64_t length_in,
 		strncpy(outbuf, ctx->header, outsize);
 		free(ctx->header);
 		ctx->header = NULL;
+
+		/* Ensure first transition. */
+		memcpy(&ctx->prevsample, data_in, ctx->unitsize);
+		ctx->prevsample = ~ctx->prevsample;
 	}
 
 	if (length_in >= ctx->unitsize) {
@@ -314,6 +321,93 @@ static int data_hex(struct output *o, char *data_in, uint64_t length_in,
 	return SIGROK_OK;
 }
 
+static int init_ascii(struct output *o)
+{
+	return init(o, DEFAULT_BPL_ASCII);
+}
+
+static int data_ascii(struct output *o, char *data_in, uint64_t length_in,
+		     char **data_out, uint64_t *length_out)
+{
+	struct context *ctx;
+	unsigned int outsize, offset, p;
+	int max_linelen;
+	uint64_t sample;
+	char *outbuf, c;
+
+	ctx = o->internal;
+	max_linelen = MAX_PROBENAME_LEN + 3 + ctx->samples_per_line
+			+ ctx->samples_per_line / 8;
+        /*
+         * Calculate space needed for probes. Set aside 512 bytes for
+         * extra output, e.g. trigger.
+         */
+	outsize = 512 + (1 + (length_in / ctx->unitsize) / ctx->samples_per_line)
+            * (ctx->num_enabled_probes * max_linelen);
+
+	if (!(outbuf = calloc(1, outsize + 1)))
+		return SIGROK_ERR_MALLOC;
+
+	outbuf[0] = '\0';
+	if (ctx->header) {
+		/* The header is still here, this must be the first packet. */
+		strncpy(outbuf, ctx->header, outsize);
+		free(ctx->header);
+		ctx->header = NULL;
+	}
+
+	if (length_in >= ctx->unitsize) {
+		for (offset = 0; offset <= length_in - ctx->unitsize;
+		     offset += ctx->unitsize) {
+			memcpy(&sample, data_in + offset, ctx->unitsize);
+
+			for (p = 0; p < ctx->num_enabled_probes; p++) {
+				uint64_t curbit = (sample & ((uint64_t) 1 << p));
+				uint64_t prevbit = (ctx->prevsample &
+						((uint64_t) 1 << p));
+
+				if (curbit < prevbit) {
+					/* XXX: Does not draw \ at EOL. */
+					ctx->linebuf[p * ctx->linebuf_len +
+						ctx->line_offset-1] = '\\';
+				}
+
+				if (curbit > prevbit)
+					c = '/';
+				else
+				{
+					if (curbit)
+						c = '"';
+					else
+						c = '.';
+				}
+
+				ctx->linebuf[p * ctx->linebuf_len +
+					     ctx->line_offset] = c;
+			}
+			ctx->line_offset++;
+			ctx->spl_cnt++;
+
+			/* End of line. */
+			if (ctx->spl_cnt >= ctx->samples_per_line) {
+				flush_linebufs(ctx, outbuf);
+				ctx->line_offset = ctx->spl_cnt = 0;
+				ctx->mark_trigger = -1;
+			}
+
+			ctx->prevsample = sample;
+		}
+	} else {
+		g_message("short buffer (length_in=%" PRIu64 ")", length_in);
+	}
+
+	*data_out = outbuf;
+	*length_out = strlen(outbuf);
+
+	return SIGROK_OK;
+}
+
+
 struct output_format output_text_bits = {
 	"bits",
 	"Bits (takes argument, default 64)",
@@ -329,5 +423,14 @@ struct output_format output_text_hex = {
 	DF_LOGIC,
 	init_hex,
 	data_hex,
+	event,
+};
+
+struct output_format output_text_ascii = {
+	"ascii",
+	"ASCII (takes argument, default 74)",
+	DF_LOGIC,
+	init_ascii,
+	data_ascii,
 	event,
 };
