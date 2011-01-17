@@ -51,15 +51,14 @@ struct databag {
 	int device_index;
 	int loop_sleep;
 	gpointer session_device_id;
+	GTimer *timer;
 };
-
-static GThread *my_thread;
-static int thread_running;
 
 static int capabilities[] = {
 	HWCAP_LOGIC_ANALYZER,
 	HWCAP_PATTERN_MODE,
 	HWCAP_LIMIT_SAMPLES,
+	HWCAP_LIMIT_MSEC,
 	HWCAP_CONTINUOUS
 };
 
@@ -83,8 +82,11 @@ static uint8_t genmode_default[] = {
 /* List of struct sigrok_device_instance, maintained by opendev()/closedev(). */
 static GSList *device_instances = NULL;
 static uint64_t cur_samplerate = 0;
-static uint64_t limit_samples = -1;
+static uint64_t limit_samples = 0;
+static uint64_t limit_msec = 0;
 static int default_genmode = GENMODE_DEFAULT;
+static GThread *my_thread;
+static int thread_running;
 
 static void hw_stop_acquisition(int device_index, gpointer session_device_id);
 
@@ -181,6 +183,10 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 		tmp_u64 = value;
 		limit_samples = *tmp_u64;
 		ret = SIGROK_OK;
+	} else if (capability == HWCAP_LIMIT_MSEC) {
+		tmp_u64 = value;
+		limit_msec = *tmp_u64;
+		ret = SIGROK_OK;
 	} else if (capability == HWCAP_PATTERN_MODE) {
 		stropt = value;
 		if (!strcmp(stropt, "random")) {
@@ -233,12 +239,19 @@ static void thread_func(void *data)
 	uint8_t buf[BUFSIZE];
 	uint64_t nb_to_send = 0;
 	int bytes_written;
+	unsigned int msec_elapsed;
 
 	while (thread_running) {
 		if (limit_samples)
 			nb_to_send = limit_samples - mydata->samples_counter;
 		else
 			nb_to_send = BUFSIZE;  /* Continuous mode */
+
+		if (limit_msec) {
+			msec_elapsed = g_timer_elapsed(mydata->timer, NULL) * 1000;
+			if (msec_elapsed > limit_msec)
+				nb_to_send = 0;
+		}
 
 		if (nb_to_send == 0) {
 			close(mydata->pipe_fds[1]);
@@ -317,6 +330,8 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 
 	/* Run the demo thread. */
 	g_thread_init(NULL);
+	if (limit_msec)
+		mydata->timer = g_timer_new();
 	thread_running = 1;
 	my_thread =
 	    g_thread_create((GThreadFunc)thread_func, mydata, TRUE, NULL);
