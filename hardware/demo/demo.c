@@ -283,7 +283,8 @@ static int receive_data(int fd, int revents, void *user_data)
 	fd = fd;
 	revents = revents;
 
-	g_io_channel_read_chars(channels[0], (gchar *)&c, BUFSIZE, &z, NULL);
+	g_io_channel_read_chars(channels[0], (gchar *)&c, BUFSIZE,
+				(gsize *)&z, NULL);
 
 	if (z > 0) {
 		packet.type = DF_LOGIC;
