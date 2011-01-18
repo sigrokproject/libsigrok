@@ -333,7 +333,7 @@ static int data_ascii(struct output *o, char *data_in, uint64_t length_in,
 	unsigned int outsize, offset, p;
 	int max_linelen;
 	uint64_t sample;
-	char *outbuf, c;
+	char *outbuf;
 
 	ctx = o->internal;
 	max_linelen = MAX_PROBENAME_LEN + 3 + ctx->samples_per_line
@@ -361,32 +361,27 @@ static int data_ascii(struct output *o, char *data_in, uint64_t length_in,
 		     offset += ctx->unitsize) {
 			memcpy(&sample, data_in + offset, ctx->unitsize);
 
+			char tmpval[ctx->num_enabled_probes];
+
 			for (p = 0; p < ctx->num_enabled_probes; p++) {
 				uint64_t curbit = (sample & ((uint64_t) 1 << p));
 				uint64_t prevbit = (ctx->prevsample &
 						((uint64_t) 1 << p));
 
-				if (curbit < prevbit) {
-					/* XXX: Does not draw \ at EOL. */
+				if (curbit < prevbit && ctx->line_offset > 0) {
 					ctx->linebuf[p * ctx->linebuf_len +
 						ctx->line_offset-1] = '\\';
 				}
 
-				if (curbit > prevbit)
-					c = '/';
-				else
-				{
+				if (curbit > prevbit) {
+					tmpval[p] = '/';
+				} else {
 					if (curbit)
-						c = '"';
+						tmpval[p] = '"';
 					else
-						c = '.';
+						tmpval[p] = '.';
 				}
-
-				ctx->linebuf[p * ctx->linebuf_len +
-					     ctx->line_offset] = c;
 			}
-			ctx->line_offset++;
-			ctx->spl_cnt++;
 
 			/* End of line. */
 			if (ctx->spl_cnt >= ctx->samples_per_line) {
@@ -394,6 +389,14 @@ static int data_ascii(struct output *o, char *data_in, uint64_t length_in,
 				ctx->line_offset = ctx->spl_cnt = 0;
 				ctx->mark_trigger = -1;
 			}
+
+			for (p = 0; p < ctx->num_enabled_probes; p++) {
+				ctx->linebuf[p * ctx->linebuf_len +
+					     ctx->line_offset] = tmpval[p];
+			}
+
+			ctx->line_offset++;
+			ctx->spl_cnt++;
 
 			ctx->prevsample = sample;
 		}
