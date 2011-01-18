@@ -760,11 +760,17 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 	} else if (capability == HWCAP_PROBECONFIG) {
 		ret = configure_probes(sdi, value);
 	} else if (capability == HWCAP_LIMIT_MSEC) {
-		sigma->limit_msec = strtoull(value, NULL, 10);
-		ret = SIGROK_OK;
+		sigma->limit_msec = *(uint64_t*) value;
+		if (sigma->limit_msec > 0)
+			ret = SIGROK_OK;
+		else
+			ret = SIGROK_ERR;
 	} else if (capability == HWCAP_CAPTURE_RATIO) {
-		sigma->capture_ratio = strtoull(value, NULL, 10);
-		ret = SIGROK_OK;
+		sigma->capture_ratio = *(uint64_t*) value;
+		if (sigma->capture_ratio < 0 || sigma->capture_ratio > 100)
+			ret = SIGROK_ERR;
+		else
+			ret = SIGROK_OK;
 	} else {
 		ret = SIGROK_ERR;
 	}
@@ -951,7 +957,7 @@ static int receive_data(int fd, int revents, void *user_data)
 	const int chunks_per_read = 32;
 	unsigned char buf[chunks_per_read * CHUNK_SIZE];
 	int bufsz, numchunks, i, newchunks;
-	uint32_t running_msec;
+	uint64_t running_msec;
 	struct timeval tv;
 
 	fd = fd;
