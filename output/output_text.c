@@ -29,6 +29,12 @@
 #define DEFAULT_BPL_HEX  192
 #define DEFAULT_BPL_ASCII 74
 
+enum outputmode {
+	MODE_BITS = 1,
+	MODE_HEX,
+	MODE_ASCII,
+};
+
 struct context {
 	unsigned int num_enabled_probes;
 	int samples_per_line;
@@ -42,6 +48,7 @@ struct context {
 	char *header;
 	int mark_trigger;
 	uint64_t prevsample;
+	enum outputmode mode;
 };
 
 static void flush_linebufs(struct context *ctx, char *outbuf)
@@ -68,13 +75,20 @@ static void flush_linebufs(struct context *ctx, char *outbuf)
 
 	/* Mark trigger with a ^ character. */
 	if (ctx->mark_trigger != -1)
+	{
+		int space_offset = ctx->mark_trigger / 8;
+
+		if (ctx->mode == MODE_ASCII)
+			space_offset = 0;
+
 		sprintf(outbuf + strlen(outbuf), "T:%*s^\n",
-			ctx->mark_trigger + (ctx->mark_trigger / 8), "");
+			ctx->mark_trigger + space_offset, "");
+	}
 
 	memset(ctx->linebuf, 0, i * ctx->linebuf_len);
 }
 
-static int init(struct output *o, int default_spl)
+static int init(struct output *o, int default_spl, enum outputmode mode)
 {
 	struct context *ctx;
 	struct probe *probe;
@@ -101,6 +115,7 @@ static int init(struct output *o, int default_spl)
 	ctx->line_offset = 0;
 	ctx->spl_cnt = 0;
 	ctx->mark_trigger = -1;
+	ctx->mode = mode;
 
 	if (o->param && o->param[0]) {
 		ctx->samples_per_line = strtoul(o->param, NULL, 10);
@@ -182,7 +197,7 @@ static int event(struct output *o, int event_type, char **data_out,
 
 static int init_bits(struct output *o)
 {
-	return init(o, DEFAULT_BPL_BITS);
+	return init(o, DEFAULT_BPL_BITS, MODE_BITS);
 }
 
 static int data_bits(struct output *o, char *data_in, uint64_t length_in,
@@ -258,7 +273,7 @@ static int data_bits(struct output *o, char *data_in, uint64_t length_in,
 
 static int init_hex(struct output *o)
 {
-	return init(o, DEFAULT_BPL_HEX);
+	return init(o, DEFAULT_BPL_HEX, MODE_HEX);
 }
 
 static int data_hex(struct output *o, char *data_in, uint64_t length_in,
@@ -323,7 +338,7 @@ static int data_hex(struct output *o, char *data_in, uint64_t length_in,
 
 static int init_ascii(struct output *o)
 {
-	return init(o, DEFAULT_BPL_ASCII);
+	return init(o, DEFAULT_BPL_ASCII, MODE_ASCII);
 }
 
 static int data_ascii(struct output *o, char *data_in, uint64_t length_in,
