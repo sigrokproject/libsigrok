@@ -407,6 +407,7 @@ static int hw_init(char *deviceinfo)
 	sigma->num_probes = 0;
 	sigma->samples_per_event = 0;
 	sigma->capture_ratio = 50;
+	sigma->use_triggers = 0;
 
 	/* Register SIGMA device. */
 	sdi = sigrok_device_instance_new(0, ST_INITIALIZING,
@@ -654,6 +655,9 @@ static int configure_probes(struct sigrok_device_instance *sdi, GSList *probes)
 				return SIGROK_ERR;
 			}
 		}
+
+		if (trigger_set)
+			sigma->use_triggers = 1;
 	}
 
 	return SIGROK_OK;
@@ -913,10 +917,13 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 				sent += tosend;
 			}
 
-			packet.type = DF_TRIGGER;
-			packet.length = 0;
-			packet.payload = 0;
-			session_bus(sigma->session_id, &packet);
+			/* Only send trigger if explicitly enabled. */
+			if (sigma->use_triggers) {
+				packet.type = DF_TRIGGER;
+				packet.length = 0;
+				packet.payload = 0;
+				session_bus(sigma->session_id, &packet);
+			}
 		}
 
 		/* Send rest of the chunk to sigrok. */

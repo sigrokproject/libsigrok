@@ -183,6 +183,7 @@ struct sigma {
 	int samples_per_event;
 	int capture_ratio;
 	struct sigma_trigger trigger;
+	int use_triggers;
 	struct sigma_state state;
 	gpointer session_id;
 };
