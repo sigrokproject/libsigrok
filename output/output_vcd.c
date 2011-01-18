@@ -208,7 +208,7 @@ static int data(struct output *o, char *data_in, uint64_t length_in,
 
 			/* Output which signal changed to which value. */
 			g_string_append_printf(out, "#%" PRIu64 "\n%i%c\n",
-					(long)(((float)samplecount / ctx->samplerate)
+					(uint64_t)(((float)samplecount / ctx->samplerate)
 					* ctx->period), curbit, (char)('!' + p));
 		}
 
