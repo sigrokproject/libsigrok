@@ -922,11 +922,13 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 		/* Send rest of the chunk to sigrok. */
 		tosend = n - sent;
 
-		packet.type = DF_LOGIC;
-		packet.length = tosend * sizeof(uint16_t);
-		packet.unitsize = 2;
-		packet.payload = samples + sent;
-		session_bus(sigma->session_id, &packet);
+		if (tosend > 0) {
+			packet.type = DF_LOGIC;
+			packet.length = tosend * sizeof(uint16_t);
+			packet.unitsize = 2;
+			packet.payload = samples + sent;
+			session_bus(sigma->session_id, &packet);
+		}
 
 		*lastsample = samples[n - 1];
 	}
