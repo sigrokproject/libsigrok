@@ -282,13 +282,13 @@ static void thread_func(void *data)
 /* Callback handling data */
 static int receive_data(int fd, int revents, void *user_data)
 {
-struct datafeed_packet packet;
-char c[BUFSIZE];
-uint64_t z;
+	struct datafeed_packet packet;
+	char c[BUFSIZE];
+	uint64_t z;
 
-/* Avoid compiler warnings. */
-fd = fd;
-revents = revents;
+	/* Avoid compiler warnings. */
+	fd = fd;
+	revents = revents;
 
 	do {
 		g_io_channel_read_chars(channels[0],
