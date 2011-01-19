@@ -243,9 +243,11 @@ int serial_set_params(int fd, int speed, int bits, int parity, int stopbits,
 	case 115200:
 		baud = B115200;
 		break;
+/* removed for 0.1 release
 	case 460800:
 		baud = B460800;
 		break;
+*/
 	default:
 		return SIGROK_ERR;
 	}
