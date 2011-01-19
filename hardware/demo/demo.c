@@ -49,7 +49,6 @@ struct databag {
 	uint8_t thread_running;
 	uint64_t samples_counter;
 	int device_index;
-	int loop_sleep;
 	gpointer session_device_id;
 	GTimer *timer;
 };
@@ -81,7 +80,7 @@ static uint8_t genmode_default[] = {
 
 /* List of struct sigrok_device_instance, maintained by opendev()/closedev(). */
 static GSList *device_instances = NULL;
-static uint64_t cur_samplerate = 0;
+static uint64_t cur_samplerate = KHZ(200);
 static uint64_t limit_samples = 0;
 static uint64_t limit_msec = 0;
 static int default_genmode = GENMODE_DEFAULT;
@@ -239,60 +238,83 @@ static void thread_func(void *data)
 	uint8_t buf[BUFSIZE];
 	uint64_t nb_to_send = 0;
 	int bytes_written;
-	unsigned int msec_elapsed;
+
+	double time_cur, time_last, time_diff;
+
+	time_last = g_timer_elapsed(mydata->timer, NULL);
 
 	while (thread_running) {
-		if (limit_samples)
-			nb_to_send = limit_samples - mydata->samples_counter;
-		else
-			nb_to_send = BUFSIZE;  /* Continuous mode */
+		/* Rate control */
+		time_cur = g_timer_elapsed(mydata->timer, NULL);
 
-		if (limit_msec) {
-			msec_elapsed = g_timer_elapsed(mydata->timer, NULL) * 1000;
-			if (msec_elapsed > limit_msec)
-				nb_to_send = 0;
+		time_diff = time_cur - time_last;
+		time_last = time_cur;
+
+		nb_to_send = cur_samplerate * time_diff;
+
+		if (limit_samples)
+			nb_to_send = MIN(nb_to_send,
+					limit_samples - mydata->samples_counter);
+
+		/* Make sure we don't overflow. */
+		nb_to_send = MIN(nb_to_send, BUFSIZE);
+
+		if (nb_to_send) {
+			samples_generator(buf, nb_to_send, data);
+			mydata->samples_counter += nb_to_send;
+
+			g_io_channel_write_chars(channels[1], (gchar *)&buf,
+					nb_to_send, (gsize *)&bytes_written, NULL);
 		}
 
-		if (nb_to_send == 0) {
+		/* Check if we're done. */
+		if ((limit_msec && time_cur * 1000 > limit_msec) ||
+		    (limit_samples && mydata->samples_counter >= limit_samples))
+		{
 			close(mydata->pipe_fds[1]);
 			thread_running = 0;
-			hw_stop_acquisition(mydata->device_index,
-					    mydata->session_device_id);
-		} else if (nb_to_send > BUFSIZE) {
-			nb_to_send = BUFSIZE;
 		}
 
-		samples_generator(buf, nb_to_send, data);
-		mydata->samples_counter += nb_to_send;
-
-		g_io_channel_write_chars(channels[1], (gchar *)&buf,
-				nb_to_send, (gsize *)&bytes_written, NULL);
-
-		g_usleep(mydata->loop_sleep);
+		g_usleep(10);
 	}
 }
 
 /* Callback handling data */
 static int receive_data(int fd, int revents, void *user_data)
 {
-	struct datafeed_packet packet;
-	char c[BUFSIZE];
-	uint64_t z;
+struct datafeed_packet packet;
+char c[BUFSIZE];
+uint64_t z;
 
-	/* Avoid compiler warnings. */
-	fd = fd;
-	revents = revents;
+/* Avoid compiler warnings. */
+fd = fd;
+revents = revents;
 
-	g_io_channel_read_chars(channels[0], (gchar *)&c, BUFSIZE,
-				(gsize *)&z, NULL);
+	do {
+		g_io_channel_read_chars(channels[0],
+				        (gchar *)&c, BUFSIZE, &z, NULL);
 
-	if (z > 0) {
-		packet.type = DF_LOGIC;
-		packet.length = z;
-		packet.unitsize = 1;
-		packet.payload = c;
+		if (z > 0) {
+			packet.type = DF_LOGIC;
+			packet.length = z;
+			packet.unitsize = 1;
+			packet.payload = c;
+			session_bus(user_data, &packet);
+		}
+	} while (z > 0);
+
+	if (!thread_running && z <= 0)
+	{
+		/* Make sure we don't receive more packets */
+		g_io_channel_close(channels[0]);
+
+		/* Send last packet. */
+		packet.type = DF_END;
 		session_bus(user_data, &packet);
+
+		return FALSE;
 	}
+
 	return TRUE;
 }
 
@@ -310,7 +332,6 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	mydata->session_device_id = session_device_id;
 	mydata->device_index = device_index;
 	mydata->samples_counter = 0;
-	mydata->loop_sleep = 100000;
 
 	if (pipe(mydata->pipe_fds))
 		return SIGROK_ERR;
@@ -331,8 +352,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 
 	/* Run the demo thread. */
 	g_thread_init(NULL);
-	if (limit_msec)
-		mydata->timer = g_timer_new();
+	mydata->timer = g_timer_new();
 	thread_running = 1;
 	my_thread =
 	    g_thread_create((GThreadFunc)thread_func, mydata, TRUE, NULL);
@@ -362,14 +382,12 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 
 static void hw_stop_acquisition(int device_index, gpointer session_device_id)
 {
-	struct datafeed_packet packet;
-
 	/* Avoid compiler warnings. */
 	device_index = device_index;
+	session_device_id = session_device_id;
 
-	/* Send last packet. */
-	packet.type = DF_END;
-	session_bus(session_device_id, &packet);
+	/* Stop generate thread. */
+	thread_running = 0;
 }
 
 struct device_plugin demo_plugin_info = {
