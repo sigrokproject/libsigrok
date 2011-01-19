@@ -20,6 +20,8 @@
 #ifndef SIGROK_SIGROK_INTERNAL_H
 #define SIGROK_SIGROK_INTERNAL_H
 
+/*--- hardware/common/serial.c ----------------------------------------------*/
+
 GSList *list_serial_ports(void);
 int serial_open(const char *pathname, int flags);
 int serial_close(int fd);
@@ -30,5 +32,21 @@ void *serial_backup_params(int fd);
 void serial_restore_params(int fd, void *backup);
 int serial_set_params(int fd, int speed, int bits, int parity, int stopbits,
 		      int flowcontrol);
+
+/*--- hardware/common/ezusb.c -----------------------------------------------*/
+
+int ezusb_reset(struct libusb_device_handle *hdl, int set_clear);
+int ezusb_install_firmware(libusb_device_handle *hdl, char *filename);
+int ezusb_upload_firmware(libusb_device *dev, int configuration,
+			  const char *filename);
+
+/*--- hardware/common/misc.c ------------------------------------------------*/
+
+int opendev2(int device_index, struct sigrok_device_instance **sdi,
+	     libusb_device *dev, struct libusb_device_descriptor *des,
+	     int *skip, uint16_t vid, uint16_t pid, int interface);
+int opendev3(struct sigrok_device_instance **sdi, libusb_device *dev,
+	     struct libusb_device_descriptor *des,
+	     uint16_t vid, uint16_t pid, int interface);
 
 #endif

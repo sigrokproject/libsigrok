@@ -114,23 +114,6 @@ void session_bus(struct device *device, struct datafeed_packet *packet);
 void make_metadata(char *filename);
 int session_save(char *filename);
 
-/*--- hardware/common/ezusb.c -----------------------------------------------*/
-
-int ezusb_reset(struct libusb_device_handle *hdl, int set_clear);
-int ezusb_install_firmware(libusb_device_handle *hdl, char *filename);
-int ezusb_upload_firmware(libusb_device *dev, int configuration,
-                          const char *filename);
-
-/*--- hardware/common/misc.c ------------------------------------------------*/
-
-/* TODO: Should not be public. */
-int opendev2(int device_index, struct sigrok_device_instance **sdi,
-	     libusb_device *dev, struct libusb_device_descriptor *des,
-	     int *skip, uint16_t vid, uint16_t pid, int interface);
-int opendev3(struct sigrok_device_instance **sdi, libusb_device *dev,
-	     struct libusb_device_descriptor *des,
-	     uint16_t vid, uint16_t pid, int interface);
-
 /*--- input/input.c ---------------------------------------------------------*/
 
 struct input_format **input_list(void);

@@ -24,6 +24,7 @@
 #include <glib.h>
 #include <libusb.h>
 #include <sigrok.h>
+#include <sigrok-internal.h>
 #include "config.h"
 
 #define USB_VENDOR	            0x0925
