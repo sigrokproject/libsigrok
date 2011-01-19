@@ -21,6 +21,7 @@ SUBDIRS = \
 	asix-sigma \
 	common \
 	demo \
+	link-mso19 \
 	openbench-logic-sniffer \
 	saleae-logic \
 	zeroplus-logic-cube
@@ -40,9 +41,9 @@ if LA_ASIX_SIGMA
 libsigrokhardware_la_LIBADD += asix-sigma/libsigrokhwasixsigma.la
 endif
 
-# if LA_LINK_MSO19
-# libsigrokhardware_la_LIBADD += link-mso19/libsigrokhwlinkmso19.la
-# endif
+if LA_LINK_MSO19
+libsigrokhardware_la_LIBADD += link-mso19/libsigrokhwlinkmso19.la
+endif
 
 if LA_OLS
 libsigrokhardware_la_LIBADD += openbench-logic-sniffer/libsigrokhwols.la

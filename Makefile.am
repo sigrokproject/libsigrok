@@ -22,8 +22,7 @@ AM_CPPFLAGS = -I $(top_srcdir)/libsigrok \
 
 SUBDIRS = hardware input output
 
-# lib_LTLIBRARIES = libsigrok.la
-noinst_LTLIBRARIES = libsigrok.la
+lib_LTLIBRARIES = libsigrok.la
 
 libsigrok_la_SOURCES = \
 	backend.c \
@@ -39,10 +38,9 @@ libsigrok_la_LIBADD = \
 	input/libsigrokinput.la \
 	output/libsigrokoutput.la
 
-# include_HEADERS = sigrok.h sigrok-proto.h
-# noinst_HEADERS = sigrok-internal.h
-noinst_HEADERS = sigrok.h sigrok-proto.h sigrok-internal.h
+include_HEADERS = sigrok.h sigrok-proto.h
+noinst_HEADERS = sigrok-internal.h
 
-# pkgconfigdir = $(libdir)/pkgconfig
-# pkgconfig_DATA = libsigrok.pc
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = libsigrok.pc
 
