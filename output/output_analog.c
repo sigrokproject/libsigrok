@@ -1,7 +1,8 @@
 /*
  * This file is part of the sigrok project.
  *
- * Copyright (C) 2011 Bert Vermeulen <bert@biot.com>
+ * Copyright (C) 2010 Bert Vermeulen <bert@biot.com>
+ * Copyright (C) 2011 Håvard Espeland <gus@ping.uio.no>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,30 +18,38 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdint.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
+#include <glib.h>
 #include <sigrok.h>
-#include <config.h>
+#include "config.h"
 
+#define DEFAULT_BPL_BITS 64
+#define DEFAULT_BPL_HEX  192
+#define DEFAULT_BPL_ASCII 74
 
-#define DEFAULT_SAMPLES_PER_LINE 10
-/* -10.25 */
-#define VALUE_LEN 6
+enum outputmode {
+	MODE_BITS = 1,
+	MODE_HEX,
+	MODE_ASCII,
+};
 
 struct context {
-	char *header;
 	unsigned int num_enabled_probes;
-	char *probelist[MAX_NUM_PROBES];
 	int samples_per_line;
 	unsigned int unitsize;
 	int line_offset;
 	int linebuf_len;
+	char *probelist[65];
 	char *linebuf;
 	int spl_cnt;
+	uint8_t *linevalues;
+	char *header;
 	int mark_trigger;
+	uint64_t prevsample;
+	enum outputmode mode;
 };
-
 
 static void flush_linebufs(struct context *ctx, char *outbuf)
 {
@@ -66,13 +75,20 @@ static void flush_linebufs(struct context *ctx, char *outbuf)
 
 	/* Mark trigger with a ^ character. */
 	if (ctx->mark_trigger != -1)
+	{
+		int space_offset = ctx->mark_trigger / 8;
+
+		if (ctx->mode == MODE_ASCII)
+			space_offset = 0;
+
 		sprintf(outbuf + strlen(outbuf), "T:%*s^\n",
-			ctx->mark_trigger * (VALUE_LEN+1), "");
+			ctx->mark_trigger + space_offset, "");
+	}
 
 	memset(ctx->linebuf, 0, i * ctx->linebuf_len);
 }
 
-static int init(struct output *o)
+static int init(struct output *o, int default_spl, enum outputmode mode)
 {
 	struct context *ctx;
 	struct probe *probe;
@@ -84,20 +100,8 @@ static int init(struct output *o)
 	if (!(ctx = calloc(1, sizeof(struct context))))
 		return SIGROK_ERR_MALLOC;
 
-	if (!(ctx->header = malloc(512))) {
-		free(ctx);
-		return SIGROK_ERR_MALLOC;
-	}
-
 	o->internal = ctx;
 	ctx->num_enabled_probes = 0;
-	ctx->mark_trigger = -1;
-	if (o->param && o->param[0]) {
-		ctx->samples_per_line = strtoul(o->param, NULL, 10);
-		if (ctx->samples_per_line < 1)
-			return SIGROK_ERR;
-	} else
-		ctx->samples_per_line = DEFAULT_SAMPLES_PER_LINE;
 
 	for (l = o->device->probes; l; l = l->next) {
 		probe = l->data;
@@ -105,11 +109,29 @@ static int init(struct output *o)
 			continue;
 		ctx->probelist[ctx->num_enabled_probes++] = probe->name;
 	}
-	ctx->unitsize = sizeof(double) * ctx->num_enabled_probes;
+
+	ctx->probelist[ctx->num_enabled_probes] = 0;
+	ctx->unitsize = (ctx->num_enabled_probes + 7) / 8;
+	ctx->line_offset = 0;
+	ctx->spl_cnt = 0;
+	ctx->mark_trigger = -1;
+	ctx->mode = mode;
+
+	if (o->param && o->param[0]) {
+		ctx->samples_per_line = strtoul(o->param, NULL, 10);
+		if (ctx->samples_per_line < 1)
+			return SIGROK_ERR;
+	} else
+		ctx->samples_per_line = default_spl;
+
+	if (!(ctx->header = malloc(512))) {
+		free(ctx);
+		return SIGROK_ERR_MALLOC;
+	}
 
 	snprintf(ctx->header, 511, "%s\n", PACKAGE_STRING);
+	num_probes = g_slist_length(o->device->probes);
 	if (o->device->plugin) {
-		num_probes = g_slist_length(o->device->probes);
 		samplerate = *((uint64_t *) o->device->plugin->get_device_info(
 				o->device->plugin_index, DI_CUR_SAMPLERATE));
 		if (!(samplerate_s = sigrok_samplerate_string(samplerate))) {
@@ -124,30 +146,220 @@ static int init(struct output *o)
 		free(samplerate_s);
 	}
 
-	ctx->linebuf_len = MAX_PROBENAME_LEN + ctx->samples_per_line * VALUE_LEN
-			+ ctx->samples_per_line + 4;
-	if (!(ctx->linebuf = calloc(1, ctx->num_enabled_probes * ctx->linebuf_len))) {
+	ctx->linebuf_len = ctx->samples_per_line * 2 + 4;
+	if (!(ctx->linebuf = calloc(1, num_probes * ctx->linebuf_len))) {
+		free(ctx->header);
+		free(ctx);
+		return SIGROK_ERR_MALLOC;
+	}
+	if (!(ctx->linevalues = calloc(1, num_probes))) {
 		free(ctx->header);
 		free(ctx);
 		return SIGROK_ERR_MALLOC;
 	}
 
-	return 0;
+	return SIGROK_OK;
 }
 
-static int data(struct output *o, char *data_in, uint64_t length_in,
-		char **data_out, uint64_t *length_out)
+static int event(struct output *o, int event_type, char **data_out,
+		 uint64_t *length_out)
 {
 	struct context *ctx;
-	double probe_sample;
-	unsigned int max_linelen, outsize, offset, p;
-	char *outbuf, s[VALUE_LEN+2];
+	int outsize;
+	char *outbuf;
 
 	ctx = o->internal;
-	max_linelen = MAX_PROBENAME_LEN + 3 + ctx->samples_per_line * VALUE_LEN
+	switch (event_type) {
+	case DF_TRIGGER:
+		ctx->mark_trigger = ctx->spl_cnt;
+		*data_out = NULL;
+		*length_out = 0;
+		break;
+	case DF_END:
+		outsize = ctx->num_enabled_probes
+				* (ctx->samples_per_line + 20) + 512;
+		if (!(outbuf = calloc(1, outsize)))
+			return SIGROK_ERR_MALLOC;
+		flush_linebufs(ctx, outbuf);
+		*data_out = outbuf;
+		*length_out = strlen(outbuf);
+		free(o->internal);
+		o->internal = NULL;
+		break;
+	default:
+		*data_out = NULL;
+		*length_out = 0;
+		break;
+	}
+
+	return SIGROK_OK;
+}
+
+static int init_bits(struct output *o)
+{
+	return init(o, DEFAULT_BPL_BITS, MODE_BITS);
+}
+
+static int data_bits(struct output *o, char *data_in, uint64_t length_in,
+		     char **data_out, uint64_t *length_out)
+{
+	struct context *ctx;
+	unsigned int outsize, offset, p;
+	int max_linelen;
+	uint64_t sample;
+	char *outbuf, c;
+
+	ctx = o->internal;
+	max_linelen = MAX_PROBENAME_LEN + 3 + ctx->samples_per_line
 			+ ctx->samples_per_line / 8;
+        /*
+         * Calculate space needed for probes. Set aside 512 bytes for
+         * extra output, e.g. trigger.
+         */
+	outsize = 512 + (1 + (length_in / ctx->unitsize) / ctx->samples_per_line)
+            * (ctx->num_enabled_probes * max_linelen);
+
+	if (!(outbuf = calloc(1, outsize + 1)))
+		return SIGROK_ERR_MALLOC;
+
+	outbuf[0] = '\0';
+	if (ctx->header) {
+		/* The header is still here, this must be the first packet. */
+		strncpy(outbuf, ctx->header, outsize);
+		free(ctx->header);
+		ctx->header = NULL;
+
+		/* Ensure first transition. */
+		memcpy(&ctx->prevsample, data_in, ctx->unitsize);
+		ctx->prevsample = ~ctx->prevsample;
+	}
+
+	if (length_in >= ctx->unitsize) {
+		for (offset = 0; offset <= length_in - ctx->unitsize;
+		     offset += ctx->unitsize) {
+			memcpy(&sample, data_in + offset, ctx->unitsize);
+			for (p = 0; p < ctx->num_enabled_probes; p++) {
+				c = (sample & ((uint64_t) 1 << p)) ? '1' : '0';
+				ctx->linebuf[p * ctx->linebuf_len +
+					     ctx->line_offset] = c;
+			}
+			ctx->line_offset++;
+			ctx->spl_cnt++;
+
+			/* Add a space every 8th bit. */
+			if ((ctx->spl_cnt & 7) == 0) {
+				for (p = 0; p < ctx->num_enabled_probes; p++)
+					ctx->linebuf[p * ctx->linebuf_len +
+						     ctx->line_offset] = ' ';
+				ctx->line_offset++;
+			}
+
+			/* End of line. */
+			if (ctx->spl_cnt >= ctx->samples_per_line) {
+				flush_linebufs(ctx, outbuf);
+				ctx->line_offset = ctx->spl_cnt = 0;
+				ctx->mark_trigger = -1;
+			}
+		}
+	} else {
+		g_message("short buffer (length_in=%" PRIu64 ")", length_in);
+	}
+
+	*data_out = outbuf;
+	*length_out = strlen(outbuf);
+
+	return SIGROK_OK;
+}
+
+static int init_hex(struct output *o)
+{
+	return init(o, DEFAULT_BPL_HEX, MODE_HEX);
+}
+
+static int data_hex(struct output *o, char *data_in, uint64_t length_in,
+		    char **data_out, uint64_t *length_out)
+{
+	struct context *ctx;
+	unsigned int outsize, offset, p;
+	int max_linelen;
+	uint64_t sample;
+	char *outbuf;
+
+	ctx = o->internal;
+	max_linelen = MAX_PROBENAME_LEN + 3 + ctx->samples_per_line
+			+ ctx->samples_per_line / 2;
 	outsize = length_in / ctx->unitsize * ctx->num_enabled_probes
 			/ ctx->samples_per_line * max_linelen + 512;
+
+	if (!(outbuf = calloc(1, outsize + 1)))
+		return SIGROK_ERR_MALLOC;
+
+	outbuf[0] = '\0';
+	if (ctx->header) {
+		/* The header is still here, this must be the first packet. */
+		strncpy(outbuf, ctx->header, outsize);
+		free(ctx->header);
+		ctx->header = NULL;
+	}
+
+	ctx->line_offset = 0;
+	for (offset = 0; offset <= length_in - ctx->unitsize;
+	     offset += ctx->unitsize) {
+		memcpy(&sample, data_in + offset, ctx->unitsize);
+		for (p = 0; p < ctx->num_enabled_probes; p++) {
+			ctx->linevalues[p] <<= 1;
+			if (sample & ((uint64_t) 1 << p))
+				ctx->linevalues[p] |= 1;
+			sprintf(ctx->linebuf + (p * ctx->linebuf_len) +
+				ctx->line_offset, "%.2x", ctx->linevalues[p]);
+		}
+		ctx->spl_cnt++;
+
+		/* Add a space after every complete hex byte. */
+		if ((ctx->spl_cnt & 7) == 0) {
+			for (p = 0; p < ctx->num_enabled_probes; p++)
+				ctx->linebuf[p * ctx->linebuf_len +
+					     ctx->line_offset + 2] = ' ';
+			ctx->line_offset += 3;
+		}
+
+		/* End of line. */
+		if (ctx->spl_cnt >= ctx->samples_per_line) {
+			flush_linebufs(ctx, outbuf);
+			ctx->line_offset = ctx->spl_cnt = 0;
+		}
+	}
+
+	*data_out = outbuf;
+	*length_out = strlen(outbuf);
+
+	return SIGROK_OK;
+}
+
+static int init_ascii(struct output *o)
+{
+	return init(o, DEFAULT_BPL_ASCII, MODE_ASCII);
+}
+
+static int data_ascii(struct output *o, char *data_in, uint64_t length_in,
+		     char **data_out, uint64_t *length_out)
+{
+	struct context *ctx;
+	unsigned int outsize, offset, p;
+	int max_linelen;
+	uint64_t sample;
+	char *outbuf;
+
+	ctx = o->internal;
+	max_linelen = MAX_PROBENAME_LEN + 3 + ctx->samples_per_line
+			+ ctx->samples_per_line / 8;
+        /*
+         * Calculate space needed for probes. Set aside 512 bytes for
+         * extra output, e.g. trigger.
+         */
+	outsize = 512 + (1 + (length_in / ctx->unitsize) / ctx->samples_per_line)
+            * (ctx->num_enabled_probes * max_linelen);
+
 	if (!(outbuf = calloc(1, outsize + 1)))
 		return SIGROK_ERR_MALLOC;
 
@@ -162,12 +374,28 @@ static int data(struct output *o, char *data_in, uint64_t length_in,
 	if (length_in >= ctx->unitsize) {
 		for (offset = 0; offset <= length_in - ctx->unitsize;
 		     offset += ctx->unitsize) {
+			memcpy(&sample, data_in + offset, ctx->unitsize);
+
+			char tmpval[ctx->num_enabled_probes];
+
 			for (p = 0; p < ctx->num_enabled_probes; p++) {
-				memcpy(&probe_sample, data_in + offset * p, sizeof(double));
-				snprintf(s, VALUE_LEN+2, "% 6.2f ", probe_sample);
-				strcat(ctx->linebuf + p * ctx->linebuf_len + ctx->line_offset, s);
-				ctx->line_offset += strlen(s);
-				ctx->spl_cnt++;
+				uint64_t curbit = (sample & ((uint64_t) 1 << p));
+				uint64_t prevbit = (ctx->prevsample &
+						((uint64_t) 1 << p));
+
+				if (curbit < prevbit && ctx->line_offset > 0) {
+					ctx->linebuf[p * ctx->linebuf_len +
+						ctx->line_offset-1] = '\\';
+				}
+
+				if (curbit > prevbit) {
+					tmpval[p] = '/';
+				} else {
+					if (curbit)
+						tmpval[p] = '"';
+					else
+						tmpval[p] = '.';
+				}
 			}
 
 			/* End of line. */
@@ -177,7 +405,15 @@ static int data(struct output *o, char *data_in, uint64_t length_in,
 				ctx->mark_trigger = -1;
 			}
 
+			for (p = 0; p < ctx->num_enabled_probes; p++) {
+				ctx->linebuf[p * ctx->linebuf_len +
+					     ctx->line_offset] = tmpval[p];
+			}
 
+			ctx->line_offset++;
+			ctx->spl_cnt++;
+
+			ctx->prevsample = sample;
 		}
 	} else {
 		g_message("short buffer (length_in=%" PRIu64 ")", length_in);
@@ -189,37 +425,30 @@ static int data(struct output *o, char *data_in, uint64_t length_in,
 	return SIGROK_OK;
 }
 
-static int event(struct output *o, int event_type, char **data_out,
-		 uint64_t *length_out)
-{
-	struct context *ctx;
 
-	ctx = o->internal;
-	switch (event_type) {
-	case DF_TRIGGER:
-		ctx->mark_trigger = ctx->spl_cnt;
-		break;
-	case DF_END:
-		if (ctx->header)
-			free(ctx->header);
-		free(ctx->linebuf);
-		free(o->internal);
-		o->internal = NULL;
-		break;
-	}
-
-	*data_out = NULL;
-	*length_out = 0;
-
-	return SIGROK_OK;
-}
-
-struct output_format output_analog = {
-	"analog",
-	"Analog data (takes argument, default 10)",
-	DF_ANALOG,
-	init,
-	data,
+struct output_format output_text_bits = {
+	"bits",
+	"Bits (takes argument, default 64)",
+	DF_LOGIC,
+	init_bits,
+	data_bits,
 	event,
 };
 
+struct output_format output_text_hex = {
+	"hex",
+	"Hexadecimal (takes argument, default 192)",
+	DF_LOGIC,
+	init_hex,
+	data_hex,
+	event,
+};
+
+struct output_format output_text_ascii = {
+	"ascii",
+	"ASCII (takes argument, default 74)",
+	DF_LOGIC,
+	init_ascii,
+	data_ascii,
+	event,
+};
