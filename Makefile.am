@@ -20,7 +20,7 @@
 AM_CPPFLAGS = -I $(top_srcdir)/libsigrok \
 	      -DFIRMWARE_DIR='"$(FIRMWARE_DIR)"'
 
-SUBDIRS = hardware input output
+SUBDIRS = hardware input output firmware
 
 lib_LTLIBRARIES = libsigrok.la
 
