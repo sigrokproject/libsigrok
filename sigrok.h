@@ -27,6 +27,10 @@
 #include <glib.h>
 #include <libusb.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * Status/error codes returned by libsigrok functions.
  *
@@ -332,5 +336,9 @@ struct session {
 };
 
 #include "sigrok-proto.h"
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
