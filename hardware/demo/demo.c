@@ -19,6 +19,8 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
+//#define DEMO_ANALOG
+
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
@@ -30,10 +32,18 @@
 #endif
 #include "config.h"
 
+#ifdef DEMO_ANALOG
+#define NUM_PROBES             9
+#else
 #define NUM_PROBES             8
+#endif
 #define DEMONAME               "Demo device"
 /* size of chunks to send through the session bus */
+#ifdef DEMO_ANALOG
+#define BUFSIZE		       32768
+#else
 #define BUFSIZE                4096
+#endif
 
 enum {
 	GENMODE_DEFAULT,
@@ -67,6 +77,7 @@ static const char *patternmodes[] = {
 	NULL,
 };
 
+#ifndef DEMO_ANALOG
 static uint8_t genmode_default[] = {
 	0x4c, 0x92, 0x92, 0x92, 0x64, 0x00, 0x00, 0x00,
 	0x82, 0xfe, 0xfe, 0x82, 0x00, 0x00, 0x00, 0x00,
@@ -77,6 +88,7 @@ static uint8_t genmode_default[] = {
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	0xbe, 0xbe, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 };
+#endif
 
 /* List of struct sigrok_device_instance, maintained by opendev()/closedev(). */
 static GSList *device_instances = NULL;
@@ -208,6 +220,35 @@ static void samples_generator(uint8_t *buf, uint64_t size, void *data)
 {
 	struct databag *mydata = data;
 	uint64_t p, i;
+#ifdef DEMO_ANALOG
+	/*
+	 * We will simulate a device with 8 logic probes and 1 analog probe.
+	 * This fictional device sends the data packed: 8 bits for 8 logic
+	 * probes and 16 bits for the analog probe, in this order.
+	 * Total of 24 bits.
+	 * I could just generate a properly formatted DF_ANALOG packet here,
+	 * but I will leave the formatting to receive_data() to make its code
+	 * more like a real hardware driver.
+	 */
+	memset(buf, 0, size * 3);
+
+	switch (mydata->sample_generator) {
+	default:
+	case GENMODE_DEFAULT:
+	case GENMODE_RANDOM:
+		for (i = 0; i < size * 3; i += 3) {
+			*(buf + i) = (uint8_t)(rand() & 0xff);
+			*(uint16_t *) (buf + i + 1) = (uint16_t)(rand() & 0xffff);
+		}
+		break;
+	case GENMODE_INC:
+		for (i = 0; i < size * 3; i += 3) {
+			*(buf + i) = i / 3;
+			*(uint16_t *)(buf + i + 1) = i / 3 * 256 * 10;
+		}
+		break;
+	}
+#else
 
 	memset(buf, 0, size);
 
@@ -229,6 +270,7 @@ static void samples_generator(uint8_t *buf, uint64_t size, void *data)
 			*(buf + i) = i;
 		break;
 	}
+#endif
 }
 
 /* Thread function */
@@ -257,14 +299,22 @@ static void thread_func(void *data)
 					limit_samples - mydata->samples_counter);
 
 		/* Make sure we don't overflow. */
+#ifdef DEMO_ANALOG
+		nb_to_send = MIN(nb_to_send, BUFSIZE / 3);
+#else
 		nb_to_send = MIN(nb_to_send, BUFSIZE);
+#endif
 
 		if (nb_to_send) {
 			samples_generator(buf, nb_to_send, data);
 			mydata->samples_counter += nb_to_send;
-
-			g_io_channel_write_chars(channels[1], (gchar *)&buf,
-					nb_to_send, (gsize *)&bytes_written, NULL);
+#ifdef DEMO_ANALOG
+			g_io_channel_write_chars(channels[1], (gchar *) &buf,
+				nb_to_send * 3, (gsize *) &bytes_written, NULL);
+#else
+			g_io_channel_write_chars(channels[1], (gchar *) &buf,
+				nb_to_send, (gsize *) &bytes_written, NULL);
+#endif
 		}
 
 		/* Check if we're done. */
@@ -285,6 +335,13 @@ static int receive_data(int fd, int revents, void *user_data)
 	struct datafeed_packet packet;
 	char c[BUFSIZE];
 	uint64_t z;
+#ifdef DEMO_ANALOG
+	struct analog_sample *sample;
+	unsigned int i, x;
+	int sample_size = sizeof(struct analog_sample) +
+		(NUM_PROBES * sizeof(struct analog_probe));
+	char *buf;
+#endif
 
 	/* Avoid compiler warnings. */
 	fd = fd;
@@ -292,14 +349,51 @@ static int receive_data(int fd, int revents, void *user_data)
 
 	do {
 		g_io_channel_read_chars(channels[0],
-				        (gchar *)&c, BUFSIZE, &z, NULL);
+				        (gchar *) &c, BUFSIZE, (gsize *) &z, NULL);
 
 		if (z > 0) {
+#ifdef DEMO_ANALOG
+			packet.type = DF_ANALOG;
+
+			packet.length = (z / 3) * sample_size;
+			packet.unitsize = sample_size;
+
+			buf = malloc(sample_size * packet.length);
+			if (!buf)
+				return FALSE;
+
+			/* Craft our packet. */
+			for (i = 0; i < z / 3; i++) {
+				sample = (struct analog_sample *) (buf + (i * sample_size));
+				sample->num_probes = NUM_PROBES;
+
+				/* 8 Logic probes */
+				for (x = 0; x < NUM_PROBES - 1; x++) {
+					sample->probes[x].val =
+						(c[i * 3] >> x) & 1;
+					sample->probes[x].res = 1;
+				}
+
+				/* 1 Analog probe, 16 bit adc */
+				for (; x < NUM_PROBES; x++) {
+					sample->probes[x].val =
+						*(uint16_t *) (c + i * 3 + 1);
+					sample->probes[x].val &= ((1 << 16) - 1);
+					sample->probes[x].res = 16;
+				}
+
+			}
+
+			packet.payload = buf;
+			session_bus(user_data, &packet);
+			free(buf);
+#else
 			packet.type = DF_LOGIC;
 			packet.length = z;
 			packet.unitsize = 1;
 			packet.payload = c;
 			session_bus(user_data, &packet);
+#endif
 		}
 	} while (z > 0);
 
@@ -367,6 +461,10 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	packet->type = DF_HEADER;
 	packet->length = sizeof(struct datafeed_header);
 	packet->payload = (unsigned char *)header;
+#ifdef DEMO_ANALOG
+	packet->unitsize = sizeof(struct analog_sample) +
+		(NUM_PROBES * sizeof(struct analog_probe));
+#endif
 	header->feed_version = 1;
 	gettimeofday(&header->starttime, NULL);
 	header->samplerate = cur_samplerate;
