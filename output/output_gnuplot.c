@@ -191,11 +191,155 @@ static int data(struct output *o, char *data_in, uint64_t length_in,
 	return SIGROK_OK;
 }
 
+static int analog_init(struct output *o)
+{
+	struct context *ctx;
+	struct probe *probe;
+	GSList *l;
+	uint64_t samplerate;
+	unsigned int i;
+	int b, num_probes;
+	char *c, *frequency_s;
+	char wbuf[1000], comment[128];
+	time_t t;
+
+	if (!(ctx = calloc(1, sizeof(struct context))))
+		return SIGROK_ERR_MALLOC;
+
+	if (!(ctx->header = calloc(1, MAX_HEADER_LEN + 1))) {
+		free(ctx);
+		return SIGROK_ERR_MALLOC;
+	}
+
+	o->internal = ctx;
+	ctx->num_enabled_probes = 0;
+	for (l = o->device->probes; l; l = l->next) {
+		probe = l->data;
+		if (!probe->enabled)
+			continue;
+		ctx->probelist[ctx->num_enabled_probes++] = probe->name;
+	}
+	ctx->probelist[ctx->num_enabled_probes] = 0;
+//	ctx->unitsize = (ctx->num_enabled_probes + 7) / 8;
+	ctx->unitsize = sizeof(struct analog_sample) +
+			(ctx->num_enabled_probes * sizeof(struct analog_probe));
+
+	num_probes = g_slist_length(o->device->probes);
+	comment[0] = '\0';
+	if (o->device->plugin) {
+		samplerate = *((uint64_t *) o->device->plugin->get_device_info(
+				o->device->plugin_index, DI_CUR_SAMPLERATE));
+		if (!(frequency_s = sigrok_samplerate_string(samplerate))) {
+			free(ctx->header);
+			free(ctx);
+			return SIGROK_ERR;
+		}
+		snprintf(comment, 127, gnuplot_header_comment,
+			ctx->num_enabled_probes, num_probes, frequency_s);
+		free(frequency_s);
+	}
+
+	/* Columns / channels */
+	wbuf[0] = '\0';
+	for (i = 0; i < ctx->num_enabled_probes; i++) {
+		c = (char *)&wbuf + strlen((char *)&wbuf);
+		sprintf(c, "# %d\t\t%s\n", i + 1, ctx->probelist[i]);
+	}
+
+	if (!(frequency_s = sigrok_period_string(samplerate))) {
+		free(ctx->header);
+		free(ctx);
+		return SIGROK_ERR;
+	}
+	t = time(NULL);
+	b = snprintf(ctx->header, MAX_HEADER_LEN, gnuplot_header,
+		     PACKAGE_STRING, ctime(&t), comment, frequency_s,
+		     (char *)&wbuf);
+	free(frequency_s);
+
+	if (b < 0) {
+		free(ctx->header);
+		free(ctx);
+		return SIGROK_ERR;
+	}
+
+	return 0;
+}
+
+static int analog_data(struct output *o, char *data_in, uint64_t length_in,
+		char **data_out, uint64_t *length_out)
+{
+	struct context *ctx;
+	unsigned int max_linelen, outsize, p, curbit, i;
+//	uint64_t sample;
+	static uint64_t samplecount = 0;
+	char *outbuf, *c;
+	struct analog_sample *sample;
+
+	ctx = o->internal;
+//	max_linelen = 16 + ctx->num_enabled_probes * 2;
+	max_linelen = 16 + ctx->num_enabled_probes * 30;
+	outsize = length_in / ctx->unitsize * max_linelen;
+	if (ctx->header)
+		outsize += strlen(ctx->header);
+
+	if (!(outbuf = calloc(1, outsize)))
+		return SIGROK_ERR_MALLOC;
+
+	outbuf[0] = '\0';
+	if (ctx->header) {
+		/* The header is still here, this must be the first packet. */
+		strncpy(outbuf, ctx->header, outsize);
+		free(ctx->header);
+		ctx->header = NULL;
+	}
+
+	for (i = 0; i <= length_in - ctx->unitsize; i += ctx->unitsize) {
+//		memcpy(&sample, data_in + i, ctx->unitsize);
+		sample = (struct analog_sample *) (data_in + i);
+
+		/* The first column is a counter (needed for gnuplot). */
+		c = outbuf + strlen(outbuf);
+		sprintf(c, "%" PRIu64 "\t", samplecount++);
+
+		/* The next columns are the values of all channels. */
+		for (p = 0; p < ctx->num_enabled_probes; p++) {
+//			curbit = (sample & ((uint64_t) (1 << p))) >> p;
+			c = outbuf + strlen(outbuf);
+//			sprintf(c, "%d ", curbit);
+			/*
+			 * FIXME: Should be doing proper raw->voltage conversion
+			 * here, casting to int16_t isn't it. Remember that if
+			 * res = 1 conversion isn't necessary.
+			 */
+			sprintf(c, "%f ", (double) ((int16_t) (sample->probes[p].val &
+					((1 << sample->probes[p].res) - 1))));
+		}
+
+		c = outbuf + strlen(outbuf);
+		sprintf(c, "\n");
+	}
+
+	*data_out = outbuf;
+	*length_out = strlen(outbuf);
+
+	return SIGROK_OK;
+}
+
 struct output_format output_gnuplot = {
 	"gnuplot",
 	"Gnuplot",
 	DF_LOGIC,
 	init,
 	data,
+	event,
+};
+
+struct output_format output_analog_gnuplot = {
+	"analog_gnuplot",
+	"Gnuplot analog",
+	DF_ANALOG,
+	analog_init,
+	analog_data,
 	event,
 };
