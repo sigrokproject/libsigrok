@@ -3,6 +3,7 @@
  *
  * Copyright (C) 2010 Bert Vermeulen <bert@biot.com>
  * Copyright (C) 2011 Håvard Espeland <gus@ping.uio.no>
+ * Copyright (C) 2011 Daniel Ribeiro <drwyrm@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -47,7 +48,7 @@ struct context {
 	uint8_t *linevalues;
 	char *header;
 	int mark_trigger;
-	uint64_t prevsample;
+//	struct analog_sample *prevsample;
 	enum outputmode mode;
 };
 
@@ -111,7 +112,8 @@ static int init(struct output *o, int default_spl, enum outputmode mode)
 	}
 
 	ctx->probelist[ctx->num_enabled_probes] = 0;
-	ctx->unitsize = (ctx->num_enabled_probes + 7) / 8;
+	ctx->unitsize = sizeof(struct analog_sample) +
+		(ctx->num_enabled_probes * sizeof(struct analog_probe));
 	ctx->line_offset = 0;
 	ctx->spl_cnt = 0;
 	ctx->mark_trigger = -1;
@@ -206,7 +208,7 @@ static int data_bits(struct output *o, char *data_in, uint64_t length_in,
 	struct context *ctx;
 	unsigned int outsize, offset, p;
 	int max_linelen;
-	uint64_t sample;
+	struct analog_sample *sample;
 	char *outbuf, c;
 
 	ctx = o->internal;
@@ -230,16 +232,26 @@ static int data_bits(struct output *o, char *data_in, uint64_t length_in,
 		ctx->header = NULL;
 
 		/* Ensure first transition. */
-		memcpy(&ctx->prevsample, data_in, ctx->unitsize);
-		ctx->prevsample = ~ctx->prevsample;
+//		memcpy(&ctx->prevsample, data_in, ctx->unitsize);
+//		ctx->prevsample = ~ctx->prevsample;
 	}
 
 	if (length_in >= ctx->unitsize) {
 		for (offset = 0; offset <= length_in - ctx->unitsize;
 		     offset += ctx->unitsize) {
-			memcpy(&sample, data_in + offset, ctx->unitsize);
+			sample = (struct analog_sample *) (data_in + offset);
 			for (p = 0; p < ctx->num_enabled_probes; p++) {
-				c = (sample & ((uint64_t) 1 << p)) ? '1' : '0';
+				int val = sample->probes[p].val;
+				int res = sample->probes[p].res;
+				if (res == 1)
+					c = '0' + (val & ((1 << res) - 1));
+				else
+					/*
+					 * Scale analog resolution down so it
+					 * fits 25 letters
+					 */
+					c = 'A' + (((val & ((1 << res) - 1)) /
+							(res * res)) / 10);
 				ctx->linebuf[p * ctx->linebuf_len +
 					     ctx->line_offset] = c;
 			}
@@ -270,7 +282,7 @@ static int data_bits(struct output *o, char *data_in, uint64_t length_in,
 
 	return SIGROK_OK;
 }
-
+#if 0
 static int init_hex(struct output *o)
 {
 	return init(o, DEFAULT_BPL_HEX, MODE_HEX);
@@ -424,31 +436,32 @@ static int data_ascii(struct output *o, char *data_in, uint64_t length_in,
 
 	return SIGROK_OK;
 }
+#endif
 
-
-struct output_format output_text_bits = {
-	"bits",
+struct output_format output_analog_bits = {
+	"analog_bits",
 	"Bits (takes argument, default 64)",
-	DF_LOGIC,
+	DF_ANALOG,
 	init_bits,
 	data_bits,
 	event,
 };
-
-struct output_format output_text_hex = {
-	"hex",
+#if 0
+struct output_format output_analog_hex = {
+	"analog_hex",
 	"Hexadecimal (takes argument, default 192)",
-	DF_LOGIC,
+	DF_ANALOG,
 	init_hex,
 	data_hex,
 	event,
 };
 
-struct output_format output_text_ascii = {
-	"ascii",
+struct output_format output_analog_ascii = {
+	"analog_ascii",
 	"ASCII (takes argument, default 74)",
-	DF_LOGIC,
+	DF_ANALOG,
 	init_ascii,
 	data_ascii,
 	event,
 };
+#endif

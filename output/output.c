@@ -26,7 +26,7 @@ extern struct output_format output_binary;
 extern struct output_format output_vcd;
 extern struct output_format output_ols;
 extern struct output_format output_gnuplot;
-extern struct output_format output_analog;
+extern struct output_format output_analog_bits;
 
 struct output_format *output_module_list[] = {
 	&output_text_bits,
@@ -36,7 +36,7 @@ struct output_format *output_module_list[] = {
 	&output_vcd,
 	&output_ols,
 	&output_gnuplot,
-	&output_analog,
+	&output_analog_bits,
 	NULL,
 };
 
