@@ -163,6 +163,11 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 	case DI_PATTERNMODES:
 		info = &patternmodes;
 		break;
+#ifdef DEMO_ANALOG
+	case DI_PROBE_TYPE:
+		info = GINT_TO_POINTER(PROBE_TYPE_ANALOG);
+		break;
+#endif
 	}
 
 	return info;

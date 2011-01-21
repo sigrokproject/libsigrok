@@ -190,6 +190,7 @@ struct device {
 	struct device_plugin *plugin;
 	/* A plugin may handle multiple devices of the same type */
 	int plugin_index;
+	uint8_t probe_type;
 	/* List of struct probe* */
 	GSList *probes;
 	/* Data acquired by this device, if any */
@@ -203,7 +204,6 @@ enum {
 
 struct probe {
 	int index;
-	int type;
 	gboolean enabled;
 	char *name;
 	char *trigger;
@@ -297,6 +297,8 @@ enum {
 	DI_CUR_SAMPLERATE,
 	/* Supported pattern generator modes */
 	DI_PATTERNMODES,
+	/* Probes type, DF_ANALOG needs this to be PROBE_TYPE_ANALOG */
+	DI_PROBE_TYPE,
 };
 
 /*

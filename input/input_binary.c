@@ -51,7 +51,7 @@ static int init(struct input *in)
 		num_probes = DEFAULT_NUM_PROBES;
 
 	/* create a virtual device */
-	in->vdevice = device_new(NULL, 0, num_probes);
+	in->vdevice = device_new(NULL, 0, num_probes, PROBE_TYPE_LOGIC);
 
 	return SIGROK_OK;
 }
