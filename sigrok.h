@@ -117,6 +117,17 @@ struct datafeed_header {
 	int num_logic_probes;
 };
 
+struct analog_probe {
+	uint8_t att;
+	uint8_t res;
+	uint64_t val;
+};
+
+struct analog_sample {
+	uint16_t num_probes;
+	struct analog_probe probes[];
+};
+
 struct input {
 	struct input_format *format;
 	char *param;
