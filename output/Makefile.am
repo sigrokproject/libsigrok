@@ -22,11 +22,14 @@ noinst_LTLIBRARIES = libsigrokoutput.la
 
 libsigrokoutput_la_SOURCES = \
 	output_binary.c \
-	output_text.c \
 	output_vcd.c \
 	output_ols.c \
 	output_gnuplot.c \
 	output_analog.c \
+	text/text.c \
+	text/bits.c \
+	text/hex.c \
+	text/ascii.c \
 	common.c \
 	output.c
 
