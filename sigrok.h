@@ -119,12 +119,12 @@ struct datafeed_header {
 
 struct analog_probe {
 	uint8_t att;
-	uint8_t res;
-	uint64_t val;
+	uint8_t res;	/* Needs to be a power of 2, FIXME */
+	uint16_t val;	/* Max hardware ADC width is 16bits */
 };
 
 struct analog_sample {
-	uint16_t num_probes;
+	uint8_t num_probes; /* Max hardware probes is 256 */
 	struct analog_probe probes[];
 };
 
