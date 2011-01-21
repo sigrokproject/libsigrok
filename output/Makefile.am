@@ -17,8 +17,6 @@
 ## along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##
 
-AM_CPPFLAGS = -DFIRMWARE_DIR='"$(FIRMWARE_DIR)"'
-
 # Local lib, this is NOT meant to be installed!
 noinst_LTLIBRARIES = libsigrokoutput.la
 

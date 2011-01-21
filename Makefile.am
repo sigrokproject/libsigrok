@@ -17,8 +17,7 @@
 ## along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##
 
-AM_CPPFLAGS = -I $(top_srcdir)/libsigrok \
-	      -DFIRMWARE_DIR='"$(FIRMWARE_DIR)"'
+AM_CPPFLAGS = -I $(top_srcdir)/libsigrok
 
 SUBDIRS = hardware input output firmware
 

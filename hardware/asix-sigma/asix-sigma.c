@@ -27,6 +27,7 @@
 #include <string.h>
 #include <zlib.h>
 #include <sigrok.h>
+#include <config.h>
 #include "asix-sigma.h"
 
 #define USB_VENDOR			0xa600
