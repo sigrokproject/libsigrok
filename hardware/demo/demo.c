@@ -19,12 +19,13 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-//#define DEMO_ANALOG
+#define DEMO_ANALOG
 
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <sigrok.h>
+#include <math.h>
 #ifdef _WIN32
 #include <io.h>
 #include <fcntl.h>
@@ -49,6 +50,7 @@ enum {
 	GENMODE_DEFAULT,
 	GENMODE_RANDOM,
 	GENMODE_INC,
+	GENMODE_SINE,
 };
 
 GIOChannel *channels[2];
@@ -74,6 +76,7 @@ static int capabilities[] = {
 static const char *patternmodes[] = {
 	"random",
 	"incremental",
+	"sine",
 	NULL,
 };
 
@@ -206,6 +209,9 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 		} else if (!strcmp(stropt, "incremental")) {
 			default_genmode = GENMODE_INC;
 			ret = SIGROK_OK;
+		} else if (!strcmp(stropt, "sine")) {
+			default_genmode = GENMODE_SINE;
+			ret = SIGROK_OK;
 		} else {
 			ret = SIGROK_ERR;
 		}
@@ -235,6 +241,13 @@ static void samples_generator(uint8_t *buf, uint64_t size, void *data)
 	switch (mydata->sample_generator) {
 	default:
 	case GENMODE_DEFAULT:
+	case GENMODE_SINE:
+		for (i = 0; i < size * 3; i += 3) {
+			*(buf + i) = i / 3;
+			*(uint16_t *) (buf + i + 1) =
+				(uint16_t) (sin(i / 3) * 256 * 30);
+		}
+		break;
 	case GENMODE_RANDOM:
 		for (i = 0; i < size * 3; i += 3) {
 			*(buf + i) = (uint8_t)(rand() & 0xff);
