@@ -29,7 +29,7 @@ void device_scan(void)
 {
 	GSList *plugins, *l;
 	struct device_plugin *plugin;
-	int num_devices, num_probes, i, probe_type;
+	int num_devices, num_probes, i;
 
 	plugins = list_hwplugins();
 
@@ -46,13 +46,7 @@ void device_scan(void)
 			num_probes
 			  = (int)(unsigned long)plugin->get_device_info(i,
 			    DI_NUM_PROBES);
-			probe_type = (int)(unsigned long)
-				plugin->get_device_info(i, DI_PROBE_TYPE);
-
-			if (probe_type != PROBE_TYPE_ANALOG)
-				probe_type = PROBE_TYPE_LOGIC;
-
-			device_new(plugin, i, num_probes, probe_type);
+			device_new(plugin, i, num_probes);
 		}
 	}
 }
@@ -75,7 +69,7 @@ GSList *device_list(void)
 }
 
 struct device *device_new(struct device_plugin *plugin, int plugin_index,
-			  int num_probes, int probe_type)
+			  int num_probes)
 {
 	struct device *device;
 	int i;
@@ -84,7 +78,6 @@ struct device *device_new(struct device_plugin *plugin, int plugin_index,
 	device = g_malloc0(sizeof(struct device));
 	device->plugin = plugin;
 	device->plugin_index = plugin_index;
-	device->probe_type = probe_type;
 	devices = g_slist_append(devices, device);
 
 	for (i = 0; i < num_probes; i++) {

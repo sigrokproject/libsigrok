@@ -38,7 +38,7 @@ void device_scan(void);
 void device_close_all(void);
 GSList *device_list(void);
 struct device *device_new(struct device_plugin *plugin, int plugin_index,
-			  int num_probes, int probe_type);
+			  int num_probes);
 void device_clear(struct device *device);
 void device_destroy(struct device *dev);
 
