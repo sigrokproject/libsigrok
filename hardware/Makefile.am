@@ -33,12 +33,12 @@ libsigrokhardware_la_SOURCES =
 libsigrokhardware_la_LIBADD = \
 	common/libsigrokhwcommon.la
 
-if LA_DEMO
-libsigrokhardware_la_LIBADD += demo/libsigrokhwdemo.la
-endif
-
 if LA_ASIX_SIGMA
 libsigrokhardware_la_LIBADD += asix-sigma/libsigrokhwasixsigma.la
+endif
+
+if LA_DEMO
+libsigrokhardware_la_LIBADD += demo/libsigrokhwdemo.la
 endif
 
 if LA_LINK_MSO19
