@@ -18,6 +18,7 @@
 ##
 
 SUBDIRS = \
+	alsa \
 	asix-sigma \
 	common \
 	demo \
@@ -32,6 +33,10 @@ libsigrokhardware_la_SOURCES =
 
 libsigrokhardware_la_LIBADD = \
 	common/libsigrokhwcommon.la
+
+if LA_DEMO
+libsigrokhardware_la_LIBADD += alsa/libsigrokhwalsa.la
+endif
 
 if LA_ASIX_SIGMA
 libsigrokhardware_la_LIBADD += asix-sigma/libsigrokhwasixsigma.la

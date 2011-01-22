@@ -1,0 +1,339 @@
+/*
+ * This file is part of the sigrok project.
+ *
+ * Copyright (C) 2011 Daniel Ribeiro <drwyrm@gmail.com>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+ */
+
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <sigrok.h>
+#include <alsa/asoundlib.h>
+#include "config.h"
+
+#define NUM_PROBES 2
+#define SAMPLE_WIDTH 16
+#define AUDIO_DEV "plughw:0,0"
+
+static int capabilities[] = {
+	HWCAP_SAMPLERATE,
+	HWCAP_LIMIT_SAMPLES,
+	HWCAP_CONTINUOUS,
+};
+
+static GSList *device_instances = NULL;
+
+struct alsa {
+	uint64_t cur_rate;
+	uint64_t limit_samples;
+	snd_pcm_t *capture_handle;
+	snd_pcm_hw_params_t *hw_params;
+	gpointer session_id;
+};
+
+static int hw_init(char *deviceinfo)
+{
+	struct sigrok_device_instance *sdi;
+	struct alsa *alsa;
+
+	/* Avoid compiler warnings. */
+	deviceinfo = deviceinfo;
+
+	alsa = malloc(sizeof(struct alsa));
+	if (!alsa)
+		return 0;
+	memset(alsa, 0, sizeof(struct alsa));
+
+	sdi = sigrok_device_instance_new(0, ST_ACTIVE, "alsa", NULL, NULL);
+	if (!sdi)
+		goto free_alsa;
+
+	sdi->priv = alsa;
+
+	device_instances = g_slist_append(device_instances, sdi);
+
+	return 1;
+free_alsa:
+	free(alsa);
+	return 0;
+}
+
+static int hw_opendev(int device_index)
+{
+	struct sigrok_device_instance *sdi;
+	struct alsa *alsa;
+	int err;
+
+	if (!(sdi = get_sigrok_device_instance(device_instances, 0)))
+		return SIGROK_ERR;
+	alsa = sdi->priv;
+
+	err = snd_pcm_open(&alsa->capture_handle, AUDIO_DEV,
+					SND_PCM_STREAM_CAPTURE, 0);
+	if (err < 0) {
+		g_warning("cannot open audio device %s (%s)", AUDIO_DEV,
+				snd_strerror(err));
+		return SIGROK_ERR;
+	}
+
+	err = snd_pcm_hw_params_malloc(&alsa->hw_params);
+	if (err < 0) {
+		g_warning("cannot allocate hardware parameter structure (%s)",
+				snd_strerror(err));
+		return SIGROK_ERR;
+	}
+
+	err = snd_pcm_hw_params_any(alsa->capture_handle, alsa->hw_params);
+	if (err < 0) {
+		g_warning("cannot initialize hardware parameter structure (%s)",
+				snd_strerror(err));
+		return SIGROK_ERR;
+	}
+
+	return SIGROK_OK;
+}
+
+static void hw_closedev(int device_index)
+{
+	struct sigrok_device_instance *sdi;
+	struct alsa *alsa;
+
+	if (!(sdi = get_sigrok_device_instance(device_instances, 0)))
+		return;
+	alsa = sdi->priv;
+	if (!alsa)
+		return;
+
+	if (alsa->hw_params)
+		snd_pcm_hw_params_free(alsa->hw_params);
+	if (alsa->capture_handle)
+		snd_pcm_close(alsa->capture_handle);
+}
+
+static void hw_cleanup(void)
+{
+	struct sigrok_device_instance *sdi;
+
+	if (!(sdi = get_sigrok_device_instance(device_instances, 0)))
+		return;
+
+	free(sdi->priv);
+	sigrok_device_instance_free(sdi);
+}
+
+static void *hw_get_device_info(int device_index, int device_info_id)
+{
+	struct sigrok_device_instance *sdi;
+	struct alsa *alsa;
+	void *info = NULL;
+
+	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
+		return NULL;
+	alsa = sdi->priv;
+
+	switch (device_info_id) {
+	case DI_INSTANCE:
+		info = sdi;
+		break;
+	case DI_NUM_PROBES:
+		info = GINT_TO_POINTER(NUM_PROBES);
+		break;
+	case DI_CUR_SAMPLERATE:
+		info = &alsa->cur_rate;
+		break;
+	case DI_PROBE_TYPE:
+		info = GINT_TO_POINTER(PROBE_TYPE_ANALOG);
+		break;
+	}
+
+	return info;
+}
+
+static int hw_get_status(int device_index)
+{
+	/* Avoid compiler warnings. */
+	device_index = device_index;
+
+	return ST_ACTIVE;
+}
+
+static int *hw_get_capabilities(void)
+{
+	return capabilities;
+}
+
+static int hw_set_configuration(int device_index, int capability, void *value)
+{
+	struct sigrok_device_instance *sdi;
+	struct alsa *alsa;
+
+	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
+		return SIGROK_ERR;
+	alsa = sdi->priv;
+
+	switch (capability) {
+	case HWCAP_PROBECONFIG:
+		return SIGROK_OK;
+	case HWCAP_SAMPLERATE:
+		alsa->cur_rate = *(uint64_t *) value;
+		return SIGROK_OK;
+	case HWCAP_LIMIT_SAMPLES:
+		alsa->limit_samples = *(uint64_t *) value;
+		return SIGROK_OK;
+	default:
+		return SIGROK_ERR;
+	}
+}
+
+/*
+ * FIXME: This is incomplete, i couldn't get poll() to work with alsa fds yet.
+ */
+static int receive_data(int fd, int revents, void *user_data)
+{
+	struct sigrok_device_instance *sdi = user_data;
+	struct alsa *alsa = sdi->priv;
+	struct datafeed_packet packet;
+	char buf[128];
+	int i, err;
+
+	g_warning("entered receive_data");
+
+	for (i = 0; i < 10; i++) {
+		if ((err = snd_pcm_readi(alsa->capture_handle, buf, 128)) != 128) {
+			g_warning("read from audio interface failed (%s)\n",
+				 snd_strerror(err));
+			return FALSE;
+		}
+		g_warning("data read ok");
+	}
+
+	return TRUE;
+}
+
+static int hw_start_acquisition(int device_index, gpointer session_device_id)
+{
+	struct sigrok_device_instance *sdi;
+	struct alsa *alsa;
+	struct datafeed_packet packet;
+	struct datafeed_header header;
+	struct pollfd *ufds;
+	int count;
+	int err;
+
+	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
+		return SIGROK_ERR;
+	alsa = sdi->priv;
+
+	err = snd_pcm_hw_params_set_access(alsa->capture_handle,
+			alsa->hw_params, SND_PCM_ACCESS_RW_INTERLEAVED);
+	if (err < 0) {
+		g_warning("cannot set access type (%s)", snd_strerror(err));
+		return SIGROK_ERR;
+	}
+
+	/* FIXME: Hardcoded for 16bits */
+	err = snd_pcm_hw_params_set_format(alsa->capture_handle,
+			alsa->hw_params, SND_PCM_FORMAT_S16_LE);
+	if (err < 0) {
+		g_warning("cannot set sample format (%s)", snd_strerror(err));
+		return SIGROK_ERR;
+	}
+
+	err = snd_pcm_hw_params_set_rate_near(alsa->capture_handle,
+			alsa->hw_params, (unsigned int *) &alsa->cur_rate, 0);
+	if (err < 0) {
+		g_warning("cannot set sample rate (%s)", snd_strerror(err));
+		return SIGROK_ERR;
+	}
+
+	err = snd_pcm_hw_params_set_channels(alsa->capture_handle,
+			alsa->hw_params, NUM_PROBES);
+	if (err < 0) {
+		g_warning("cannot set channel count (%s)", snd_strerror(err));
+		return SIGROK_ERR;
+	}
+
+	err = snd_pcm_hw_params(alsa->capture_handle, alsa->hw_params);
+	if (err < 0) {
+		g_warning("cannot set parameters (%s)", snd_strerror(err));
+		return SIGROK_ERR;
+	}
+
+	err = snd_pcm_prepare(alsa->capture_handle);
+	if (err < 0) {
+		g_warning("cannot prepare audio interface for use (%s)",
+				snd_strerror(err));
+		return SIGROK_ERR;
+	}
+
+	count = snd_pcm_poll_descriptors_count(alsa->capture_handle);
+	if (count < 1) {
+		g_warning("Unable to obtain poll descriptors count");
+		return SIGROK_ERR;
+	}
+
+	ufds = malloc(count * sizeof(struct pollfd));
+	if (!ufds)
+		return SIGROK_ERR_MALLOC;
+
+	err = snd_pcm_poll_descriptors(alsa->capture_handle, ufds, count);
+	if (err < 0) {
+		g_warning("Unable to obtain poll descriptors (%s)",
+				snd_strerror(err));
+		free(ufds);
+		return SIGROK_ERR;
+	}
+
+	alsa->session_id = session_device_id;
+	source_add(ufds[0].fd, ufds[0].revents, -1, receive_data, sdi);
+
+	packet.type = DF_HEADER;
+	packet.length = sizeof(struct datafeed_header);
+	packet.payload = (unsigned char *) &header;
+	header.feed_version = 1;
+	gettimeofday(&header.starttime, NULL);
+	header.samplerate = alsa->cur_rate;
+	header.num_analog_probes = NUM_PROBES;
+	header.num_logic_probes = 0;
+	header.protocol_id = PROTO_RAW;
+	session_bus(session_device_id, &packet);
+	free(ufds);
+
+	return SIGROK_OK;
+}
+
+static void hw_stop_acquisition(int device_index, gpointer session_device_id)
+{
+	/* Avoid compiler warnings. */
+	device_index = device_index;
+	session_device_id = session_device_id;
+}
+
+struct device_plugin alsa_plugin_info = {
+	"alsa",
+	1,
+	hw_init,
+	hw_cleanup,
+	hw_opendev,
+	hw_closedev,
+	hw_get_device_info,
+	hw_get_status,
+	hw_get_capabilities,
+	hw_set_configuration,
+	hw_start_acquisition,
+	hw_stop_acquisition,
+};
