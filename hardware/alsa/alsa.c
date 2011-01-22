@@ -199,27 +199,56 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 	}
 }
 
-/*
- * FIXME: This is incomplete, i couldn't get poll() to work with alsa fds yet.
- */
 static int receive_data(int fd, int revents, void *user_data)
 {
 	struct sigrok_device_instance *sdi = user_data;
 	struct alsa *alsa = sdi->priv;
 	struct datafeed_packet packet;
-	char buf[128];
-	int i, err;
+	struct analog_sample *sample;
+	unsigned int sample_size = sizeof(struct analog_sample) +
+		(NUM_PROBES * sizeof(struct analog_probe));
+	char *outb;
+	char inb[4096];
+	int i, x, count;
 
-	g_warning("entered receive_data");
-
-	for (i = 0; i < 10; i++) {
-		if ((err = snd_pcm_readi(alsa->capture_handle, buf, 128)) != 128) {
-			g_warning("read from audio interface failed (%s)\n",
-				 snd_strerror(err));
+	do {
+		memset(inb, 0, sizeof(inb));
+		count = snd_pcm_readi(alsa->capture_handle, inb,
+			MIN(4096/4, alsa->limit_samples));
+		if (count < 1) {
+			g_warning("Failed to read samples");
 			return FALSE;
 		}
-		g_warning("data read ok");
-	}
+
+		outb = malloc(sample_size * count);
+		if (!outb)
+			return FALSE;
+
+		for (i = 0; i < count; i++) {
+			sample = (struct analog_sample *)
+						(outb + (i * sample_size));
+			sample->num_probes = NUM_PROBES;
+
+			for (x = 0; x < NUM_PROBES; x++) {
+				sample->probes[x].val =
+					*(uint16_t *) (inb + (i * 4) + (x * 2));
+				sample->probes[x].val &= ((1 << 16) - 1);
+				sample->probes[x].res = 16;
+			}
+		}
+
+		packet.type = DF_ANALOG;
+		packet.length = count * sample_size;
+		packet.unitsize = sample_size;
+		packet.payload = outb;
+		session_bus(user_data, &packet);
+		free(outb);
+		alsa->limit_samples -= count;
+
+	} while (alsa->limit_samples > 0);
+
+	packet.type = DF_END;
+	session_bus(user_data, &packet);
 
 	return TRUE;
 }
@@ -299,7 +328,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	}
 
 	alsa->session_id = session_device_id;
-	source_add(ufds[0].fd, ufds[0].revents, -1, receive_data, sdi);
+	source_add(ufds[0].fd, ufds[0].events, 10, receive_data, sdi);
 
 	packet.type = DF_HEADER;
 	packet.length = sizeof(struct datafeed_header);
