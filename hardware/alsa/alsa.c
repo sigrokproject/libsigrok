@@ -78,7 +78,7 @@ static int hw_opendev(int device_index)
 	struct alsa *alsa;
 	int err;
 
-	if (!(sdi = get_sigrok_device_instance(device_instances, 0)))
+	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
 		return SIGROK_ERR;
 	alsa = sdi->priv;
 
@@ -112,7 +112,7 @@ static void hw_closedev(int device_index)
 	struct sigrok_device_instance *sdi;
 	struct alsa *alsa;
 
-	if (!(sdi = get_sigrok_device_instance(device_instances, 0)))
+	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
 		return;
 	alsa = sdi->priv;
 	if (!alsa)
@@ -210,6 +210,9 @@ static int receive_data(int fd, int revents, void *user_data)
 	char *outb;
 	char inb[4096];
 	int i, x, count;
+
+	fd = fd;
+	revents = revents;
 
 	do {
 		memset(inb, 0, sizeof(inb));
