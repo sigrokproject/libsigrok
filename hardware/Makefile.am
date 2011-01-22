@@ -34,7 +34,7 @@ libsigrokhardware_la_SOURCES =
 libsigrokhardware_la_LIBADD = \
 	common/libsigrokhwcommon.la
 
-if LA_DEMO
+if LA_ALSA
 libsigrokhardware_la_LIBADD += alsa/libsigrokhwalsa.la
 endif
 
