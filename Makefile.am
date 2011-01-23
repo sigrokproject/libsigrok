@@ -37,6 +37,8 @@ libsigrok_la_LIBADD = \
 	input/libsigrokinput.la \
 	output/libsigrokoutput.la
 
+libsigrok_la_LDFLAGS = $(SIGROK_LT_LDFLAGS)
+
 include_HEADERS = sigrok.h sigrok-proto.h
 noinst_HEADERS = sigrok-internal.h
 
