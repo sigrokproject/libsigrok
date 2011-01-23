@@ -155,9 +155,9 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 	case DI_CUR_SAMPLERATE:
 		info = &alsa->cur_rate;
 		break;
-	case DI_PROBE_TYPE:
-		info = GINT_TO_POINTER(PROBE_TYPE_ANALOG);
-		break;
+	// case DI_PROBE_TYPE:
+	// 	info = GINT_TO_POINTER(PROBE_TYPE_ANALOG);
+	// 	break;
 	}
 
 	return info;
