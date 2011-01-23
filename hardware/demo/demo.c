@@ -284,7 +284,7 @@ static int receive_data(int fd, int revents, void *user_data)
 {
 	struct datafeed_packet packet;
 	char c[BUFSIZE];
-	uint64_t z;
+	gsize z;
 
 	/* Avoid compiler warnings. */
 	fd = fd;
