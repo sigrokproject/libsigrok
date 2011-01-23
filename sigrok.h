@@ -78,6 +78,7 @@ typedef int (*receive_data_callback) (int fd, int revents, void *user_data);
 enum {
 	T_UINT64,
 	T_CHAR,
+	T_NULL,
 };
 
 enum {
