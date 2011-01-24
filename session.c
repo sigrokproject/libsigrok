@@ -23,6 +23,8 @@
 #include <string.h>
 #include <zip.h>
 #include <sigrok.h>
+#include <config.h>
+
 
 /* There can only be one session at a time. */
 struct session *session;
@@ -51,7 +53,7 @@ void session_destroy(void)
 {
 	g_slist_free(session->devices);
 
-	/* TODO: Loop over protocols and free them. */
+	/* TODO: Loop over protocol decoders and free them. */
 
 	g_free(session);
 }
@@ -66,11 +68,15 @@ int session_device_add(struct device *device)
 {
 	int ret;
 
-	ret = device->plugin->open(device->plugin_index);
-	if (ret == SIGROK_OK)
-		session->devices = g_slist_append(session->devices, device);
+	if (device->plugin && device->plugin->open) {
+		ret = device->plugin->open(device->plugin_index);
+		if (ret != SIGROK_OK)
+			return ret;
+	}
 
-	return ret;
+	session->devices = g_slist_append(session->devices, device);
+
+	return SIGROK_OK;
 }
 
 void session_pa_clear(void)
@@ -125,7 +131,8 @@ void session_stop(void)
 	g_message("stopping acquisition");
 	for (l = session->devices; l; l = l->next) {
 		device = l->data;
-		device->plugin->stop_acquisition(device->plugin_index, device);
+		if (device->plugin)
+			device->plugin->stop_acquisition(device->plugin_index, device);
 	}
 }
 
@@ -135,7 +142,7 @@ void session_bus(struct device *device, struct datafeed_packet *packet)
 	datafeed_callback cb;
 
 	/*
-	 * TODO: Send packet through PA pipe, and send the output of that to
+	 * TODO: Send packet through PD pipe, and send the output of that to
 	 * the callbacks as well.
 	 */
 	for (l = session->datafeed_callbacks; l; l = l->next) {
@@ -144,92 +151,75 @@ void session_bus(struct device *device, struct datafeed_packet *packet)
 	}
 }
 
-void make_metadata(char *filename)
-{
-	GSList *l, *p;
-	struct device *device;
-	struct probe *probe;
-	FILE *f;
-	int devcnt;
-
-	f = fopen(filename, "wb");
-
-	/* General */
-
-	/* Devices */
-	devcnt = 1;
-	for (l = session->devices; l; l = l->next) {
-		device = l->data;
-		fprintf(f, "[device]\n");
-		fprintf(f, "driver = %s\n", device->plugin->name);
-
-		if (device->datastore)
-			fprintf(f, "capturefile = raw-%d\n", devcnt);
-
-		for (p = device->probes; p; p = p->next) {
-			probe = p->data;
-			if (probe->enabled) {
-				fprintf(f, "probe %d", probe->index);
-				if (probe->name)
-					fprintf(f, " name \"%s\"", probe->name);
-				if (probe->trigger)
-					fprintf(f, " trigger \"%s\"",
-						probe->trigger);
-				fprintf(f, "\n");
-			}
-		}
-		devcnt++;
-	}
-
-	/* TODO: Protocol analyzers */
-
-	fclose(f);
-}
-
 int session_save(char *filename)
 {
-	GSList *l, *d;
+	GSList *l, *p, *d;
+	FILE *meta;
 	struct device *device;
+	struct probe *probe;
 	struct datastore *ds;
 	struct zip *zipfile;
-	struct zip_source *src;
+	struct zip_source *versrc, *metasrc, *logicsrc;
 	int bufcnt, devcnt, tmpfile, ret, error;
-	char version[1], rawname[16], metafile[32], *buf;
+	char version[1], rawname[16], metafile[32], *newfn, *buf;
+
+	newfn = g_malloc(strlen(filename) + 10);
+	strcpy(newfn, filename);
+	if (strstr(filename, ".sigrok") != filename+strlen(filename)-7)
+		strcat(newfn, ".sigrok");
 
 	/* Quietly delete it first, libzip wants replace ops otherwise. */
-	unlink(filename);
-
-	if (!(zipfile = zip_open(filename, ZIP_CREATE, &error)))
+	unlink(newfn);
+	if (!(zipfile = zip_open(newfn, ZIP_CREATE, &error)))
 		return SIGROK_ERR;
+	g_free(newfn);
 
-	/* Version */
+	/* "version" */
 	version[0] = '1';
-	if (!(src = zip_source_buffer(zipfile, version, 1, 0)))
+	if (!(versrc = zip_source_buffer(zipfile, version, 1, 0)))
 		return SIGROK_ERR;
-	if (zip_add(zipfile, "version", src) == -1) {
+	if (zip_add(zipfile, "version", versrc) == -1) {
 		g_message("error saving version into zipfile: %s",
 			  zip_strerror(zipfile));
 		return SIGROK_ERR;
 	}
 
-	/* Metadata */
+	/* init "metadata" */
 	strcpy(metafile, "sigrok-meta-XXXXXX");
 	if ((tmpfile = g_mkstemp(metafile)) == -1)
 		return SIGROK_ERR;
 	close(tmpfile);
-	make_metadata(metafile);
-	if (!(src = zip_source_file(zipfile, metafile, 0, -1)))
-		return SIGROK_ERR;
-	if (zip_add(zipfile, "metadata", src) == -1)
-		return SIGROK_ERR;
-	unlink(metafile);
+	meta = fopen(metafile, "wb");
+	fprintf(meta, "sigrok version = %s\n", PACKAGE_VERSION);
+	/* TODO: save protocol decoders used */
 
-	/* Raw */
+	/* all datastores in all devices */
 	devcnt = 1;
 	for (l = session->devices; l; l = l->next) {
 		device = l->data;
+		/* metadata */
+		fprintf(meta, "[device]\n");
+		if (device->plugin)
+			fprintf(meta, "driver = %s\n", device->plugin->name);
+
 		ds = device->datastore;
 		if (ds) {
+			/* metadata */
+			fprintf(meta, "capturefile = logic-%d\n", devcnt);
+			for (p = device->probes; p; p = p->next) {
+				probe = p->data;
+				if (probe->enabled) {
+					fprintf(meta, "probe %d", probe->index);
+					if (probe->name)
+						fprintf(meta, " name \"%s\"", probe->name);
+					if (probe->trigger)
+						fprintf(meta, " trigger \"%s\"",
+							probe->trigger);
+					fprintf(meta, "\n");
+				}
+			}
+
+			/* dump datastore into logic-n */
 			buf = malloc(ds->num_units * ds->ds_unitsize +
 				   DATASTORE_CHUNKSIZE);
 			bufcnt = 0;
@@ -238,20 +228,28 @@ int session_save(char *filename)
 				       DATASTORE_CHUNKSIZE);
 				bufcnt += DATASTORE_CHUNKSIZE;
 			}
-			if (!(src = zip_source_buffer(zipfile, buf,
+			if (!(logicsrc = zip_source_buffer(zipfile, buf,
 				       ds->num_units * ds->ds_unitsize, TRUE)))
 				return SIGROK_ERR;
-			snprintf(rawname, 15, "raw-%d", devcnt);
-			if (zip_add(zipfile, rawname, src) == -1)
+			snprintf(rawname, 15, "logic-%d", devcnt);
+			if (zip_add(zipfile, rawname, logicsrc) == -1)
 				return SIGROK_ERR;
 		}
 		devcnt++;
 	}
+	fclose(meta);
+
+	if (!(metasrc = zip_source_file(zipfile, metafile, 0, -1)))
+		return SIGROK_ERR;
+	if (zip_add(zipfile, "metadata", metasrc) == -1)
+		return SIGROK_ERR;
 
 	if ((ret = zip_close(zipfile)) == -1) {
 		g_message("error saving zipfile: %s", zip_strerror(zipfile));
 		return SIGROK_ERR;
 	}
+
+	unlink(metafile);
 
 	return SIGROK_OK;
 }
