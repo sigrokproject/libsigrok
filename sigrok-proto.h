@@ -35,6 +35,7 @@ void datastore_put(struct datastore *ds, void *data, unsigned int length,
 /*--- device.c --------------------------------------------------------------*/
 
 void device_scan(void);
+int device_plugin_init(struct device_plugin *plugin);
 void device_close_all(void);
 GSList *device_list(void);
 struct device *device_new(struct device_plugin *plugin, int plugin_index,

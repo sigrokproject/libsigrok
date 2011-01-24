@@ -29,7 +29,6 @@ void device_scan(void)
 {
 	GSList *plugins, *l;
 	struct device_plugin *plugin;
-	int num_devices, num_probes, i;
 
 	plugins = list_hwplugins();
 
@@ -40,15 +39,23 @@ void device_scan(void)
 	 */
 	for (l = plugins; l; l = l->next) {
 		plugin = l->data;
-		g_message("initializing %s plugin", plugin->name);
-		num_devices = plugin->init(NULL);
-		for (i = 0; i < num_devices; i++) {
-			num_probes
-			  = (int)(unsigned long)plugin->get_device_info(i,
-			    DI_NUM_PROBES);
-			device_new(plugin, i, num_probes);
-		}
+		device_plugin_init(plugin);
 	}
+
+}
+
+int device_plugin_init(struct device_plugin *plugin)
+{
+	int num_devices, num_probes, i;
+
+	g_message("initializing %s plugin", plugin->name);
+	num_devices = plugin->init(NULL);
+	for (i = 0; i < num_devices; i++) {
+		num_probes = (int)plugin->get_device_info(i, DI_NUM_PROBES);
+		device_new(plugin, i, num_probes);
+	}
+
+	return num_devices;
 }
 
 void device_close_all(void)
@@ -65,6 +72,10 @@ void device_close_all(void)
 
 GSList *device_list(void)
 {
+
+	if (!devices)
+		device_scan();
+
 	return devices;
 }
 
