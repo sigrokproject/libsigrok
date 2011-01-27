@@ -270,7 +270,7 @@ static int analog_data(struct output *o, char *data_in, uint64_t length_in,
 		char **data_out, uint64_t *length_out)
 {
 	struct context *ctx;
-	unsigned int max_linelen, outsize, p, curbit, i;
+	unsigned int max_linelen, outsize, p, /* curbit, */ i;
 //	uint64_t sample;
 	static uint64_t samplecount = 0;
 	char *outbuf, *c;
