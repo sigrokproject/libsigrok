@@ -78,7 +78,7 @@ static int hw_opendev(int device_index)
 	struct alsa *alsa;
 	int err;
 
-	if (!(sdi = get_sr_device_instance(device_instances, device_index)))
+	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
 		return SR_ERR;
 	alsa = sdi->priv;
 
@@ -112,7 +112,7 @@ static void hw_closedev(int device_index)
 	struct sr_device_instance *sdi;
 	struct alsa *alsa;
 
-	if (!(sdi = get_sr_device_instance(device_instances, device_index)))
+	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
 		return;
 	alsa = sdi->priv;
 	if (!alsa)
@@ -128,7 +128,7 @@ static void hw_cleanup(void)
 {
 	struct sr_device_instance *sdi;
 
-	if (!(sdi = get_sr_device_instance(device_instances, 0)))
+	if (!(sdi = sr_get_device_instance(device_instances, 0)))
 		return;
 
 	free(sdi->priv);
@@ -141,7 +141,7 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 	struct alsa *alsa;
 	void *info = NULL;
 
-	if (!(sdi = get_sr_device_instance(device_instances, device_index)))
+	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
 		return NULL;
 	alsa = sdi->priv;
 
@@ -181,7 +181,7 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 	struct sr_device_instance *sdi;
 	struct alsa *alsa;
 
-	if (!(sdi = get_sr_device_instance(device_instances, device_index)))
+	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
 		return SR_ERR;
 	alsa = sdi->priv;
 
@@ -266,7 +266,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	int count;
 	int err;
 
-	if (!(sdi = get_sr_device_instance(device_instances, device_index)))
+	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
 		return SR_ERR;
 	alsa = sdi->priv;
 

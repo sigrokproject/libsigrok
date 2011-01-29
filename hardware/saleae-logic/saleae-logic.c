@@ -173,7 +173,7 @@ struct sr_device_instance *sl_open_device(int device_index)
 	struct libusb_device_descriptor des;
 	int err, skip, i;
 
-	if (!(sdi = get_sr_device_instance(device_instances, device_index)))
+	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
 		return NULL;
 
 	libusb_get_device_list(usb_context, &devlist);
@@ -398,7 +398,7 @@ static void hw_closedev(int device_index)
 {
 	struct sr_device_instance *sdi;
 
-	if ((sdi = get_sr_device_instance(device_instances, device_index)))
+	if ((sdi = sr_get_device_instance(device_instances, device_index)))
 		close_device(sdi);
 }
 
@@ -426,7 +426,7 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 	struct sr_device_instance *sdi;
 	void *info = NULL;
 
-	if (!(sdi = get_sr_device_instance(device_instances, device_index)))
+	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
 		return NULL;
 
 	switch (device_info_id) {
@@ -454,7 +454,7 @@ static int hw_get_status(int device_index)
 {
 	struct sr_device_instance *sdi;
 
-	sdi = get_sr_device_instance(device_instances, device_index);
+	sdi = sr_get_device_instance(device_instances, device_index);
 	if (sdi)
 		return sdi->status;
 	else
@@ -503,7 +503,7 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 	int ret;
 	uint64_t *tmp_u64;
 
-	if (!(sdi = get_sr_device_instance(device_instances, device_index)))
+	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
 		return SR_ERR;
 
 	if (capability == HWCAP_SAMPLERATE) {
@@ -677,7 +677,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	int size, i;
 	unsigned char *buf;
 
-	if (!(sdi = get_sr_device_instance(device_instances, device_index)))
+	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
 		return SR_ERR;
 
 	packet = g_malloc(sizeof(struct datafeed_packet));

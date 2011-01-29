@@ -132,7 +132,7 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 	struct sr_device_instance *sdi;
 	void *info = NULL;
 
-	if (!(sdi = get_sr_device_instance(device_instances, device_index)))
+	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
 		return NULL;
 
 	switch (device_info_id) {

@@ -481,7 +481,7 @@ static int hw_opendev(int device_index)
 	struct mso *mso;
 	int ret = SR_ERR;
 
-	if (!(sdi = get_sr_device_instance(device_instances, device_index)))
+	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
 		return ret;
 
 	mso = sdi->priv;
@@ -519,7 +519,7 @@ static void hw_closedev(int device_index)
 {
 	struct sr_device_instance *sdi;
 
-	if (!(sdi = get_sr_device_instance(device_instances, device_index)))
+	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
 		return;
 
 	if (sdi->serial->fd != -1) {
@@ -535,7 +535,7 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 	struct mso *mso;
 	void *info = NULL;
 
-	if (!(sdi = get_sr_device_instance(device_instances, device_index)))
+	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
 		return NULL;
 	mso = sdi->priv;
 
@@ -563,7 +563,7 @@ static int hw_get_status(int device_index)
 {
 	struct sr_device_instance *sdi;
 
-	if (!(sdi = get_sr_device_instance(device_instances, device_index)))
+	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
 		return ST_NOT_FOUND;
 
 	return sdi->status;
@@ -578,7 +578,7 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 {
 	struct sr_device_instance *sdi;
 
-	if (!(sdi = get_sr_device_instance(device_instances, device_index)))
+	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
 		return SR_ERR;
 
 	switch (capability) {
@@ -672,7 +672,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	struct datafeed_header header;
 	int ret = SR_ERR;
 
-	if (!(sdi = get_sr_device_instance(device_instances, device_index)))
+	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
 		return ret;
 	mso = sdi->priv;
 

@@ -328,7 +328,7 @@ static int hw_opendev(int device_index)
 {
 	struct sr_device_instance *sdi;
 
-	if (!(sdi = get_sr_device_instance(device_instances, device_index)))
+	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
 		return SR_ERR;
 
 	sdi->serial->fd = serial_open(sdi->serial->port, O_RDWR);
@@ -344,7 +344,7 @@ static void hw_closedev(int device_index)
 {
 	struct sr_device_instance *sdi;
 
-	if (!(sdi = get_sr_device_instance(device_instances, device_index)))
+	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
 		return;
 
 	if (sdi->serial->fd != -1) {
@@ -375,7 +375,7 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 	struct sr_device_instance *sdi;
 	void *info;
 
-	if (!(sdi = get_sr_device_instance(device_instances, device_index)))
+	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
 		return NULL;
 
 	info = NULL;
@@ -404,7 +404,7 @@ static int hw_get_status(int device_index)
 {
 	struct sr_device_instance *sdi;
 
-	if (!(sdi = get_sr_device_instance(device_instances, device_index)))
+	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
 		return ST_NOT_FOUND;
 
 	return sdi->status;
@@ -447,7 +447,7 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 	int ret;
 	uint64_t *tmp_u64;
 
-	if (!(sdi = get_sr_device_instance(device_instances, device_index)))
+	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
 		return SR_ERR;
 
 	if (sdi->status != ST_ACTIVE)
@@ -658,7 +658,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	uint16_t readcount, delaycount;
 	uint8_t changrp_mask;
 
-	if (!(sdi = get_sr_device_instance(device_instances, device_index)))
+	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
 		return SR_ERR;
 
 	if (sdi->status != ST_ACTIVE)

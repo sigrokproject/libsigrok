@@ -119,8 +119,8 @@ struct sr_device_instance *sr_device_instance_new(int index, int status,
 	return sdi;
 }
 
-struct sr_device_instance *get_sr_device_instance(
-				GSList *device_instances, int device_index)
+struct sr_device_instance *sr_get_device_instance(GSList *device_instances,
+						  int device_index)
 {
 	struct sr_device_instance *sdi;
 	GSList *l;

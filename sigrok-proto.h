@@ -65,8 +65,8 @@ GSList *list_hwplugins(void);
 /* Generic device instances */
 struct sr_device_instance *sr_device_instance_new(int index,
        int status, const char *vendor, const char *model, const char *version);
-struct sr_device_instance *get_sr_device_instance(
-			GSList *device_instances, int device_index);
+struct sr_device_instance *sr_get_device_instance(GSList *device_instances,
+						  int device_index);
 void sr_device_instance_free(struct sr_device_instance *sdi);
 
 /* USB-specific instances */
