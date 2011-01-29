@@ -59,7 +59,7 @@ static int capabilities[] = {
 	0,
 };
 
-/* List of struct sigrok_device_instance, maintained by opendev()/closedev(). */
+/* List of struct sr_device_instance, maintained by opendev()/closedev(). */
 static GSList *device_instances = NULL;
 
 /*
@@ -166,14 +166,14 @@ int check_conf_profile(libusb_device *dev)
 	return ret;
 }
 
-struct sigrok_device_instance *sl_open_device(int device_index)
+struct sr_device_instance *sl_open_device(int device_index)
 {
-	struct sigrok_device_instance *sdi;
+	struct sr_device_instance *sdi;
 	libusb_device **devlist;
 	struct libusb_device_descriptor des;
 	int err, skip, i;
 
-	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
+	if (!(sdi = get_sr_device_instance(device_instances, device_index)))
 		return NULL;
 
 	libusb_get_device_list(usb_context, &devlist);
@@ -228,7 +228,7 @@ int upload_firmware(libusb_device *dev)
 	return 0;
 }
 
-static void close_device(struct sigrok_device_instance *sdi)
+static void close_device(struct sr_device_instance *sdi)
 {
 	if (sdi->usb->devhdl == NULL)
 		return;
@@ -293,7 +293,7 @@ static int configure_probes(GSList *probes)
 
 static int hw_init(char *deviceinfo)
 {
-	struct sigrok_device_instance *sdi;
+	struct sr_device_instance *sdi;
 	struct libusb_device_descriptor des;
 	libusb_device **devlist;
 	int err, devcnt, i;
@@ -319,7 +319,7 @@ static int hw_init(char *deviceinfo)
 		if (des.idVendor != USB_VENDOR || des.idProduct != USB_PRODUCT)
 			continue; /* Not a Saleae Logic... */
 
-		sdi = sigrok_device_instance_new(devcnt, ST_INITIALIZING,
+		sdi = sr_device_instance_new(devcnt, ST_INITIALIZING,
 			USB_VENDOR_NAME, USB_MODEL_NAME, USB_MODEL_VERSION);
 		if (!sdi)
 			return 0;
@@ -353,7 +353,7 @@ static int hw_init(char *deviceinfo)
 static int hw_opendev(int device_index)
 {
 	GTimeVal cur_time;
-	struct sigrok_device_instance *sdi;
+	struct sr_device_instance *sdi;
 	int timediff, err;
 	unsigned int cur, upd;
 
@@ -396,9 +396,9 @@ static int hw_opendev(int device_index)
 
 static void hw_closedev(int device_index)
 {
-	struct sigrok_device_instance *sdi;
+	struct sr_device_instance *sdi;
 
-	if ((sdi = get_sigrok_device_instance(device_instances, device_index)))
+	if ((sdi = get_sr_device_instance(device_instances, device_index)))
 		close_device(sdi);
 }
 
@@ -408,7 +408,7 @@ static void hw_cleanup(void)
 
 	/* Properly close all devices... */
 	for (l = device_instances; l; l = l->next)
-		close_device((struct sigrok_device_instance *)l->data);
+		close_device((struct sr_device_instance *)l->data);
 
 	/* ...and free all their memory. */
 	for (l = device_instances; l; l = l->next)
@@ -423,10 +423,10 @@ static void hw_cleanup(void)
 
 static void *hw_get_device_info(int device_index, int device_info_id)
 {
-	struct sigrok_device_instance *sdi;
+	struct sr_device_instance *sdi;
 	void *info = NULL;
 
-	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
+	if (!(sdi = get_sr_device_instance(device_instances, device_index)))
 		return NULL;
 
 	switch (device_info_id) {
@@ -452,9 +452,9 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 
 static int hw_get_status(int device_index)
 {
-	struct sigrok_device_instance *sdi;
+	struct sr_device_instance *sdi;
 
-	sdi = get_sigrok_device_instance(device_instances, device_index);
+	sdi = get_sr_device_instance(device_instances, device_index);
 	if (sdi)
 		return sdi->status;
 	else
@@ -466,7 +466,7 @@ static int *hw_get_capabilities(void)
 	return capabilities;
 }
 
-static int set_configuration_samplerate(struct sigrok_device_instance *sdi,
+static int set_configuration_samplerate(struct sr_device_instance *sdi,
 					uint64_t samplerate)
 {
 	uint8_t divider;
@@ -499,11 +499,11 @@ static int set_configuration_samplerate(struct sigrok_device_instance *sdi,
 
 static int hw_set_configuration(int device_index, int capability, void *value)
 {
-	struct sigrok_device_instance *sdi;
+	struct sr_device_instance *sdi;
 	int ret;
 	uint64_t *tmp_u64;
 
-	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
+	if (!(sdi = get_sr_device_instance(device_instances, device_index)))
 		return SR_ERR;
 
 	if (capability == HWCAP_SAMPLERATE) {
@@ -669,7 +669,7 @@ void receive_transfer(struct libusb_transfer *transfer)
 
 static int hw_start_acquisition(int device_index, gpointer session_device_id)
 {
-	struct sigrok_device_instance *sdi;
+	struct sr_device_instance *sdi;
 	struct datafeed_packet *packet;
 	struct datafeed_header *header;
 	struct libusb_transfer *transfer;
@@ -677,7 +677,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	int size, i;
 	unsigned char *buf;
 
-	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
+	if (!(sdi = get_sr_device_instance(device_instances, device_index)))
 		return SR_ERR;
 
 	packet = g_malloc(sizeof(struct datafeed_packet));

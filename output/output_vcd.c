@@ -94,7 +94,7 @@ static int init(struct sr_output *o)
 	if (o->device->plugin) {
 		ctx->samplerate = *((uint64_t *) o->device->plugin->get_device_info(
 				o->device->plugin_index, DI_CUR_SAMPLERATE));
-		if (!((samplerate_s = sigrok_samplerate_string(ctx->samplerate)))) {
+		if (!((samplerate_s = sr_samplerate_string(ctx->samplerate)))) {
 			g_string_free(ctx->header, TRUE);
 			free(ctx);
 			return SR_ERR;
@@ -112,7 +112,7 @@ static int init(struct sr_output *o)
 		ctx->period = MHZ(1);
 	else
 		ctx->period = KHZ(1);
-	if (!(frequency_s = sigrok_period_string(ctx->period))) {
+	if (!(frequency_s = sr_period_string(ctx->period))) {
 		g_string_free(ctx->header, TRUE);
 		free(ctx);
 		return SR_ERR;

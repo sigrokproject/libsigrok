@@ -105,7 +105,7 @@ static int init(struct sr_output *o)
 	if (o->device->plugin) {
 		samplerate = *((uint64_t *) o->device->plugin->get_device_info(
 				o->device->plugin_index, DI_CUR_SAMPLERATE));
-		if (!(frequency_s = sigrok_samplerate_string(samplerate))) {
+		if (!(frequency_s = sr_samplerate_string(samplerate))) {
 			free(ctx->header);
 			free(ctx);
 			return SR_ERR;
@@ -122,7 +122,7 @@ static int init(struct sr_output *o)
 		sprintf(c, "# %d\t\t%s\n", i + 1, ctx->probelist[i]);
 	}
 
-	if (!(frequency_s = sigrok_period_string(samplerate))) {
+	if (!(frequency_s = sr_period_string(samplerate))) {
 		free(ctx->header);
 		free(ctx);
 		return SR_ERR;

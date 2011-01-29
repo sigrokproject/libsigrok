@@ -78,7 +78,7 @@ static uint8_t genmode_default[] = {
 	0xbe, 0xbe, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 };
 
-/* List of struct sigrok_device_instance, maintained by opendev()/closedev(). */
+/* List of struct sr_device_instance, maintained by opendev()/closedev(). */
 static GSList *device_instances = NULL;
 static uint64_t cur_samplerate = KHZ(200);
 static uint64_t limit_samples = 0;
@@ -91,12 +91,12 @@ static void hw_stop_acquisition(int device_index, gpointer session_device_id);
 
 static int hw_init(char *deviceinfo)
 {
-	struct sigrok_device_instance *sdi;
+	struct sr_device_instance *sdi;
 
 	/* Avoid compiler warnings. */
 	deviceinfo = deviceinfo;
 
-	sdi = sigrok_device_instance_new(0, ST_ACTIVE, DEMONAME, NULL, NULL);
+	sdi = sr_device_instance_new(0, ST_ACTIVE, DEMONAME, NULL, NULL);
 	if (!sdi)
 		return 0;
 
@@ -129,10 +129,10 @@ static void hw_cleanup(void)
 
 static void *hw_get_device_info(int device_index, int device_info_id)
 {
-	struct sigrok_device_instance *sdi;
+	struct sr_device_instance *sdi;
 	void *info = NULL;
 
-	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
+	if (!(sdi = get_sr_device_instance(device_instances, device_index)))
 		return NULL;
 
 	switch (device_info_id) {

@@ -32,7 +32,7 @@
  * @return A malloc()ed string representation of the samplerate value,
  *         or NULL upon errors. The caller is responsible to free() the memory.
  */
-char *sigrok_samplerate_string(uint64_t samplerate)
+char *sr_samplerate_string(uint64_t samplerate)
 {
 	char *o;
 	int r;
@@ -69,7 +69,7 @@ char *sigrok_samplerate_string(uint64_t samplerate)
  * @return A malloc()ed string representation of the frequency value,
  *         or NULL upon errors. The caller is responsible to free() the memory.
  */
-char *sigrok_period_string(uint64_t frequency)
+char *sr_period_string(uint64_t frequency)
 {
 	char *o;
 	int r;

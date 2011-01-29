@@ -47,7 +47,7 @@ struct alsa {
 
 static int hw_init(char *deviceinfo)
 {
-	struct sigrok_device_instance *sdi;
+	struct sr_device_instance *sdi;
 	struct alsa *alsa;
 
 	/* Avoid compiler warnings. */
@@ -58,7 +58,7 @@ static int hw_init(char *deviceinfo)
 		return 0;
 	memset(alsa, 0, sizeof(struct alsa));
 
-	sdi = sigrok_device_instance_new(0, ST_ACTIVE, "alsa", NULL, NULL);
+	sdi = sr_device_instance_new(0, ST_ACTIVE, "alsa", NULL, NULL);
 	if (!sdi)
 		goto free_alsa;
 
@@ -74,11 +74,11 @@ free_alsa:
 
 static int hw_opendev(int device_index)
 {
-	struct sigrok_device_instance *sdi;
+	struct sr_device_instance *sdi;
 	struct alsa *alsa;
 	int err;
 
-	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
+	if (!(sdi = get_sr_device_instance(device_instances, device_index)))
 		return SR_ERR;
 	alsa = sdi->priv;
 
@@ -109,10 +109,10 @@ static int hw_opendev(int device_index)
 
 static void hw_closedev(int device_index)
 {
-	struct sigrok_device_instance *sdi;
+	struct sr_device_instance *sdi;
 	struct alsa *alsa;
 
-	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
+	if (!(sdi = get_sr_device_instance(device_instances, device_index)))
 		return;
 	alsa = sdi->priv;
 	if (!alsa)
@@ -126,22 +126,22 @@ static void hw_closedev(int device_index)
 
 static void hw_cleanup(void)
 {
-	struct sigrok_device_instance *sdi;
+	struct sr_device_instance *sdi;
 
-	if (!(sdi = get_sigrok_device_instance(device_instances, 0)))
+	if (!(sdi = get_sr_device_instance(device_instances, 0)))
 		return;
 
 	free(sdi->priv);
-	sigrok_device_instance_free(sdi);
+	sr_device_instance_free(sdi);
 }
 
 static void *hw_get_device_info(int device_index, int device_info_id)
 {
-	struct sigrok_device_instance *sdi;
+	struct sr_device_instance *sdi;
 	struct alsa *alsa;
 	void *info = NULL;
 
-	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
+	if (!(sdi = get_sr_device_instance(device_instances, device_index)))
 		return NULL;
 	alsa = sdi->priv;
 
@@ -178,10 +178,10 @@ static int *hw_get_capabilities(void)
 
 static int hw_set_configuration(int device_index, int capability, void *value)
 {
-	struct sigrok_device_instance *sdi;
+	struct sr_device_instance *sdi;
 	struct alsa *alsa;
 
-	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
+	if (!(sdi = get_sr_device_instance(device_instances, device_index)))
 		return SR_ERR;
 	alsa = sdi->priv;
 
@@ -201,7 +201,7 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 
 static int receive_data(int fd, int revents, void *user_data)
 {
-	struct sigrok_device_instance *sdi = user_data;
+	struct sr_device_instance *sdi = user_data;
 	struct alsa *alsa = sdi->priv;
 	struct datafeed_packet packet;
 	struct analog_sample *sample;
@@ -258,7 +258,7 @@ static int receive_data(int fd, int revents, void *user_data)
 
 static int hw_start_acquisition(int device_index, gpointer session_device_id)
 {
-	struct sigrok_device_instance *sdi;
+	struct sr_device_instance *sdi;
 	struct alsa *alsa;
 	struct datafeed_packet packet;
 	struct datafeed_header header;
@@ -266,7 +266,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	int count;
 	int err;
 
-	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
+	if (!(sdi = get_sr_device_instance(device_instances, device_index)))
 		return SR_ERR;
 	alsa = sdi->priv;
 

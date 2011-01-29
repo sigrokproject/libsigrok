@@ -219,7 +219,7 @@ static uint32_t reverse32(uint32_t in)
 
 static int hw_init(char *deviceinfo)
 {
-	struct sigrok_device_instance *sdi;
+	struct sr_device_instance *sdi;
 	GSList *ports, *l;
 	GPollFD *fds;
 	int devcnt, final_devcnt, num_ports, fd, ret, i;
@@ -286,12 +286,12 @@ static int hw_init(char *deviceinfo)
 				if (!strncmp(buf, "1SLO", 4)
 				    || !strncmp(buf, "1ALS", 4)) {
 					if (!strncmp(buf, "1SLO", 4))
-						sdi = sigrok_device_instance_new
+						sdi = sr_device_instance_new
 						    (final_devcnt, ST_INACTIVE,
 						     "Openbench",
 						     "Logic Sniffer", "v1.0");
 					else
-						sdi = sigrok_device_instance_new
+						sdi = sr_device_instance_new
 						    (final_devcnt, ST_INACTIVE,
 						     "Openbench", "Logic Sniffer",
 						     "v1.0");
@@ -326,9 +326,9 @@ static int hw_init(char *deviceinfo)
 
 static int hw_opendev(int device_index)
 {
-	struct sigrok_device_instance *sdi;
+	struct sr_device_instance *sdi;
 
-	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
+	if (!(sdi = get_sr_device_instance(device_instances, device_index)))
 		return SR_ERR;
 
 	sdi->serial->fd = serial_open(sdi->serial->port, O_RDWR);
@@ -342,9 +342,9 @@ static int hw_opendev(int device_index)
 
 static void hw_closedev(int device_index)
 {
-	struct sigrok_device_instance *sdi;
+	struct sr_device_instance *sdi;
 
-	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
+	if (!(sdi = get_sr_device_instance(device_instances, device_index)))
 		return;
 
 	if (sdi->serial->fd != -1) {
@@ -357,14 +357,14 @@ static void hw_closedev(int device_index)
 static void hw_cleanup(void)
 {
 	GSList *l;
-	struct sigrok_device_instance *sdi;
+	struct sr_device_instance *sdi;
 
 	/* Properly close all devices. */
 	for (l = device_instances; l; l = l->next) {
 		sdi = l->data;
 		if (sdi->serial->fd != -1)
 			serial_close(sdi->serial->fd);
-		sigrok_device_instance_free(sdi);
+		sr_device_instance_free(sdi);
 	}
 	g_slist_free(device_instances);
 	device_instances = NULL;
@@ -372,10 +372,10 @@ static void hw_cleanup(void)
 
 static void *hw_get_device_info(int device_index, int device_info_id)
 {
-	struct sigrok_device_instance *sdi;
+	struct sr_device_instance *sdi;
 	void *info;
 
-	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
+	if (!(sdi = get_sr_device_instance(device_instances, device_index)))
 		return NULL;
 
 	info = NULL;
@@ -402,9 +402,9 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 
 static int hw_get_status(int device_index)
 {
-	struct sigrok_device_instance *sdi;
+	struct sr_device_instance *sdi;
 
-	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
+	if (!(sdi = get_sr_device_instance(device_instances, device_index)))
 		return ST_NOT_FOUND;
 
 	return sdi->status;
@@ -415,7 +415,7 @@ static int *hw_get_capabilities(void)
 	return capabilities;
 }
 
-static int set_configuration_samplerate(struct sigrok_device_instance *sdi,
+static int set_configuration_samplerate(struct sr_device_instance *sdi,
 					uint64_t samplerate)
 {
 	uint32_t divider;
@@ -443,11 +443,11 @@ static int set_configuration_samplerate(struct sigrok_device_instance *sdi,
 
 static int hw_set_configuration(int device_index, int capability, void *value)
 {
-	struct sigrok_device_instance *sdi;
+	struct sr_device_instance *sdi;
 	int ret;
 	uint64_t *tmp_u64;
 
-	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
+	if (!(sdi = get_sr_device_instance(device_instances, device_index)))
 		return SR_ERR;
 
 	if (sdi->status != ST_ACTIVE)
@@ -652,13 +652,13 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	int i;
 	struct datafeed_packet *packet;
 	struct datafeed_header *header;
-	struct sigrok_device_instance *sdi;
+	struct sr_device_instance *sdi;
 	uint32_t trigger_config[4];
 	uint32_t data;
 	uint16_t readcount, delaycount;
 	uint8_t changrp_mask;
 
-	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
+	if (!(sdi = get_sr_device_instance(device_instances, device_index)))
 		return SR_ERR;
 
 	if (sdi->status != ST_ACTIVE)

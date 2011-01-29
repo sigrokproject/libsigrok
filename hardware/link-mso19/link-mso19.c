@@ -58,7 +58,7 @@ static struct samplerates samplerates = {
 
 static GSList *device_instances = NULL;
 
-static int mso_send_control_message(struct sigrok_device_instance *sdi,
+static int mso_send_control_message(struct sr_device_instance *sdi,
 		uint16_t payload[], int n)
 {
 	int fd = sdi->serial->fd;
@@ -98,7 +98,7 @@ ret:
 	return ret;
 }
 
-static int mso_reset_adc(struct sigrok_device_instance *sdi)
+static int mso_reset_adc(struct sr_device_instance *sdi)
 {
 	struct mso *mso = sdi->priv;
 	uint16_t ops[2];
@@ -110,7 +110,7 @@ static int mso_reset_adc(struct sigrok_device_instance *sdi)
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
 }
 
-static int mso_reset_fsm(struct sigrok_device_instance *sdi)
+static int mso_reset_fsm(struct sr_device_instance *sdi)
 {
 	struct mso *mso = sdi->priv;
 	uint16_t ops[1];
@@ -121,7 +121,7 @@ static int mso_reset_fsm(struct sigrok_device_instance *sdi)
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
 }
 
-static int mso_toggle_led(struct sigrok_device_instance *sdi, int state)
+static int mso_toggle_led(struct sr_device_instance *sdi, int state)
 {
 	struct mso *mso = sdi->priv;
 	uint16_t ops[1];
@@ -134,7 +134,7 @@ static int mso_toggle_led(struct sigrok_device_instance *sdi, int state)
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
 }
 
-static int mso_check_trigger(struct sigrok_device_instance *sdi,
+static int mso_check_trigger(struct sr_device_instance *sdi,
 		uint8_t *info)
 {
 	uint16_t ops[] = { mso_trans(REG_TRIGGER, 0) };
@@ -153,14 +153,14 @@ static int mso_check_trigger(struct sigrok_device_instance *sdi,
 	return ret;
 }
 
-static int mso_read_buffer(struct sigrok_device_instance *sdi)
+static int mso_read_buffer(struct sr_device_instance *sdi)
 {
 	uint16_t ops[] = { mso_trans(REG_BUFFER, 0) };
 
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
 }
 
-static int mso_arm(struct sigrok_device_instance *sdi)
+static int mso_arm(struct sr_device_instance *sdi)
 {
 	struct mso *mso = sdi->priv;
 	uint16_t ops[] = {
@@ -172,7 +172,7 @@ static int mso_arm(struct sigrok_device_instance *sdi)
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
 }
 
-static int mso_force_capture(struct sigrok_device_instance *sdi)
+static int mso_force_capture(struct sr_device_instance *sdi)
 {
 	struct mso *mso = sdi->priv;
 	uint16_t ops[] = {
@@ -183,7 +183,7 @@ static int mso_force_capture(struct sigrok_device_instance *sdi)
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
 }
 
-static int mso_dac_out(struct sigrok_device_instance *sdi, uint16_t val)
+static int mso_dac_out(struct sr_device_instance *sdi, uint16_t val)
 {
 	struct mso *mso = sdi->priv;
 	uint16_t ops[] = {
@@ -195,7 +195,7 @@ static int mso_dac_out(struct sigrok_device_instance *sdi, uint16_t val)
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
 }
 
-static int mso_clkrate_out(struct sigrok_device_instance *sdi, uint16_t val)
+static int mso_clkrate_out(struct sr_device_instance *sdi, uint16_t val)
 {
 	uint16_t ops[] = {
 		mso_trans(REG_CLKRATE1, (val >> 8) & 0xff),
@@ -205,7 +205,7 @@ static int mso_clkrate_out(struct sigrok_device_instance *sdi, uint16_t val)
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
 }
 
-static int mso_configure_rate(struct sigrok_device_instance *sdi,
+static int mso_configure_rate(struct sr_device_instance *sdi,
 		uint32_t rate)
 {
 	struct mso *mso = sdi->priv;
@@ -232,7 +232,7 @@ static inline uint16_t mso_calc_raw_from_mv(struct mso *mso)
 			 mso->vbit));
 }
 
-static int mso_configure_trigger(struct sigrok_device_instance *sdi)
+static int mso_configure_trigger(struct sr_device_instance *sdi)
 {
 	struct mso *mso = sdi->priv;
 	uint16_t ops[16];
@@ -302,7 +302,7 @@ static int mso_configure_trigger(struct sigrok_device_instance *sdi)
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
 }
 
-static int mso_configure_threshold_level(struct sigrok_device_instance *sdi)
+static int mso_configure_threshold_level(struct sr_device_instance *sdi)
 {
 	struct mso *mso = sdi->priv;
 
@@ -350,7 +350,7 @@ static int mso_parse_serial(const char *iSerial, const char *iProduct,
 
 static int hw_init(char *deviceinfo)
 {
-	struct sigrok_device_instance *sdi;
+	struct sr_device_instance *sdi;
 	int devcnt = 0;
 	struct udev *udev;
 	struct udev_enumerate *enumerate;
@@ -425,7 +425,7 @@ static int hw_init(char *deviceinfo)
 		/* hardware initial state */
 		mso->ctlbase = 0;
 
-		sdi = sigrok_device_instance_new(devcnt, ST_INITIALIZING,
+		sdi = sr_device_instance_new(devcnt, ST_INITIALIZING,
 			manufacturer, product, hwrev);
 		if (!sdi) {
 			g_warning("Unable to create device instance for %s",
@@ -445,7 +445,7 @@ static int hw_init(char *deviceinfo)
 		continue;
 
 err_device_instance_free:
-		sigrok_device_instance_free(sdi);
+		sr_device_instance_free(sdi);
 err_free_mso:
 		free(mso);
 	}
@@ -460,7 +460,7 @@ ret:
 static void hw_cleanup(void)
 {
 	GSList *l;
-	struct sigrok_device_instance *sdi;
+	struct sr_device_instance *sdi;
 
 	/* Properly close all devices. */
 	for (l = device_instances; l; l = l->next) {
@@ -469,7 +469,7 @@ static void hw_cleanup(void)
 			serial_close(sdi->serial->fd);
 		if (sdi->priv != NULL)
 			free(sdi->priv);
-		sigrok_device_instance_free(sdi);
+		sr_device_instance_free(sdi);
 	}
 	g_slist_free(device_instances);
 	device_instances = NULL;
@@ -477,11 +477,11 @@ static void hw_cleanup(void)
 
 static int hw_opendev(int device_index)
 {
-	struct sigrok_device_instance *sdi;
+	struct sr_device_instance *sdi;
 	struct mso *mso;
 	int ret = SR_ERR;
 
-	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
+	if (!(sdi = get_sr_device_instance(device_instances, device_index)))
 		return ret;
 
 	mso = sdi->priv;
@@ -517,9 +517,9 @@ static int hw_opendev(int device_index)
 
 static void hw_closedev(int device_index)
 {
-	struct sigrok_device_instance *sdi;
+	struct sr_device_instance *sdi;
 
-	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
+	if (!(sdi = get_sr_device_instance(device_instances, device_index)))
 		return;
 
 	if (sdi->serial->fd != -1) {
@@ -531,11 +531,11 @@ static void hw_closedev(int device_index)
 
 static void *hw_get_device_info(int device_index, int device_info_id)
 {
-	struct sigrok_device_instance *sdi;
+	struct sr_device_instance *sdi;
 	struct mso *mso;
 	void *info = NULL;
 
-	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
+	if (!(sdi = get_sr_device_instance(device_instances, device_index)))
 		return NULL;
 	mso = sdi->priv;
 
@@ -561,9 +561,9 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 
 static int hw_get_status(int device_index)
 {
-	struct sigrok_device_instance *sdi;
+	struct sr_device_instance *sdi;
 
-	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
+	if (!(sdi = get_sr_device_instance(device_instances, device_index)))
 		return ST_NOT_FOUND;
 
 	return sdi->status;
@@ -576,9 +576,9 @@ static int *hw_get_capabilities(void)
 
 static int hw_set_configuration(int device_index, int capability, void *value)
 {
-	struct sigrok_device_instance *sdi;
+	struct sr_device_instance *sdi;
 
-	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
+	if (!(sdi = get_sr_device_instance(device_instances, device_index)))
 		return SR_ERR;
 
 	switch (capability) {
@@ -603,7 +603,7 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 /* FIXME: Pass errors? */
 static int receive_data(int fd, int revents, void *user_data)
 {
-	struct sigrok_device_instance *sdi = user_data;
+	struct sr_device_instance *sdi = user_data;
 	struct mso *mso = sdi->priv;
 	struct datafeed_packet packet;
 	uint8_t in[1024], logic_out[1024];
@@ -666,13 +666,13 @@ static int receive_data(int fd, int revents, void *user_data)
 
 static int hw_start_acquisition(int device_index, gpointer session_device_id)
 {
-	struct sigrok_device_instance *sdi;
+	struct sr_device_instance *sdi;
 	struct mso *mso;
 	struct datafeed_packet packet;
 	struct datafeed_header header;
 	int ret = SR_ERR;
 
-	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
+	if (!(sdi = get_sr_device_instance(device_instances, device_index)))
 		return ret;
 	mso = sdi->priv;
 

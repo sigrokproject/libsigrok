@@ -110,7 +110,7 @@ int init(struct sr_output *o, int default_spl, enum outputmode mode)
 	if (o->device->plugin) {
 		samplerate = *((uint64_t *) o->device->plugin->get_device_info(
 				o->device->plugin_index, DI_CUR_SAMPLERATE));
-		if (!(samplerate_s = sigrok_samplerate_string(samplerate))) {
+		if (!(samplerate_s = sr_samplerate_string(samplerate))) {
 			free(ctx->header);
 			free(ctx);
 			return SR_ERR;

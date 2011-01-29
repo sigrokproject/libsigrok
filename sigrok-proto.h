@@ -22,8 +22,8 @@
 
 /*--- backend.c -------------------------------------------------------------*/
 
-int sigrok_init(void);
-void sigrok_cleanup(void);
+int sr_init(void);
+void sr_cleanup(void);
 
 /*--- datastore.c -----------------------------------------------------------*/
 
@@ -63,11 +63,11 @@ int load_hwplugins(void);
 GSList *list_hwplugins(void);
 
 /* Generic device instances */
-struct sigrok_device_instance *sigrok_device_instance_new(int index,
+struct sr_device_instance *sr_device_instance_new(int index,
        int status, const char *vendor, const char *model, const char *version);
-struct sigrok_device_instance *get_sigrok_device_instance(
+struct sr_device_instance *get_sr_device_instance(
 			GSList *device_instances, int device_index);
-void sigrok_device_instance_free(struct sigrok_device_instance *sdi);
+void sr_device_instance_free(struct sr_device_instance *sdi);
 
 /* USB-specific instances */
 struct usb_device_instance *usb_device_instance_new(uint8_t bus,
@@ -130,7 +130,7 @@ struct sr_output_format **sr_output_list(void);
 
 /*--- output/common.c -------------------------------------------------------*/
 
-char *sigrok_samplerate_string(uint64_t samplerate);
-char *sigrok_period_string(uint64_t frequency);
+char *sr_samplerate_string(uint64_t samplerate);
+char *sr_period_string(uint64_t frequency);
 
 #endif

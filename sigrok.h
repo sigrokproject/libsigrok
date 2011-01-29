@@ -237,7 +237,7 @@ struct hwcap_option {
 	char *shortname;
 };
 
-struct sigrok_device_instance {
+struct sr_device_instance {
 	int index;
 	int status;
 	int instance_type;
@@ -251,7 +251,7 @@ struct sigrok_device_instance {
 	};
 };
 
-/* sigrok_device_instance types */
+/* sr_device_instance types */
 enum {
 	USB_INSTANCE,
 	SERIAL_INSTANCE,
@@ -286,7 +286,7 @@ enum {
 
 /* Device info IDs */
 enum {
-	/* struct sigrok_device_instance for this specific device */
+	/* struct sr_device_instance for this specific device */
 	DI_INSTANCE,
 	/* The number of probes connected to this device */
 	DI_NUM_PROBES,

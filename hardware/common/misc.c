@@ -22,7 +22,7 @@
 #include <libusb.h>
 #include <sigrok.h>
 
-int opendev2(int device_index, struct sigrok_device_instance **sdi,
+int opendev2(int device_index, struct sr_device_instance **sdi,
 	     libusb_device *dev, struct libusb_device_descriptor *des,
 	     int *skip, uint16_t vid, uint16_t pid, int interface)
 {
@@ -60,7 +60,7 @@ int opendev2(int device_index, struct sigrok_device_instance **sdi,
 	return 0;
 }
 
-int opendev3(struct sigrok_device_instance **sdi, libusb_device *dev,
+int opendev3(struct sr_device_instance **sdi, libusb_device *dev,
 	     struct libusb_device_descriptor *des,
 	     uint16_t vid, uint16_t pid, int interface)
 {

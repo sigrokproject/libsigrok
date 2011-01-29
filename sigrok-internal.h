@@ -42,10 +42,10 @@ int ezusb_upload_firmware(libusb_device *dev, int configuration,
 
 /*--- hardware/common/misc.c ------------------------------------------------*/
 
-int opendev2(int device_index, struct sigrok_device_instance **sdi,
+int opendev2(int device_index, struct sr_device_instance **sdi,
 	     libusb_device *dev, struct libusb_device_descriptor *des,
 	     int *skip, uint16_t vid, uint16_t pid, int interface);
-int opendev3(struct sigrok_device_instance **sdi, libusb_device *dev,
+int opendev3(struct sr_device_instance **sdi, libusb_device *dev,
 	     struct libusb_device_descriptor *des,
 	     uint16_t vid, uint16_t pid, int interface);
 

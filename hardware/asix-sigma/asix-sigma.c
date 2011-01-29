@@ -387,7 +387,7 @@ static int bin2bitbang(const char *filename,
 
 static int hw_init(char *deviceinfo)
 {
-	struct sigrok_device_instance *sdi;
+	struct sr_device_instance *sdi;
 	struct sigma *sigma = g_malloc(sizeof(struct sigma));
 
 	deviceinfo = deviceinfo;
@@ -411,7 +411,7 @@ static int hw_init(char *deviceinfo)
 	sigma->use_triggers = 0;
 
 	/* Register SIGMA device. */
-	sdi = sigrok_device_instance_new(0, ST_INITIALIZING,
+	sdi = sr_device_instance_new(0, ST_INITIALIZING,
 			USB_VENDOR_NAME, USB_MODEL_NAME, USB_MODEL_VERSION);
 	if (!sdi)
 		goto free;
@@ -522,11 +522,11 @@ static int upload_firmware(int firmware_idx, struct sigma *sigma)
 
 static int hw_opendev(int device_index)
 {
-	struct sigrok_device_instance *sdi;
+	struct sr_device_instance *sdi;
 	struct sigma *sigma;
 	int ret;
 
-	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
+	if (!(sdi = get_sr_device_instance(device_instances, device_index)))
 		return SR_ERR;
 
 	sigma = sdi->priv;
@@ -546,7 +546,7 @@ static int hw_opendev(int device_index)
 	return SR_OK;
 }
 
-static int set_samplerate(struct sigrok_device_instance *sdi,
+static int set_samplerate(struct sr_device_instance *sdi,
 			  uint64_t samplerate)
 {
 	int i, ret;
@@ -589,7 +589,7 @@ static int set_samplerate(struct sigrok_device_instance *sdi,
  * The Sigma supports complex triggers using boolean expressions, but this
  * has not been implemented yet.
  */
-static int configure_probes(struct sigrok_device_instance *sdi, GSList *probes)
+static int configure_probes(struct sr_device_instance *sdi, GSList *probes)
 {
 	struct sigma *sigma = sdi->priv;
 	struct probe *probe;
@@ -666,10 +666,10 @@ static int configure_probes(struct sigrok_device_instance *sdi, GSList *probes)
 
 static void hw_closedev(int device_index)
 {
-	struct sigrok_device_instance *sdi;
+	struct sr_device_instance *sdi;
 	struct sigma *sigma;
 
-	if ((sdi = get_sigrok_device_instance(device_instances, device_index)))
+	if ((sdi = get_sr_device_instance(device_instances, device_index)))
 	{
 		sigma = sdi->priv;
 		if (sdi->status == ST_ACTIVE)
@@ -682,14 +682,14 @@ static void hw_closedev(int device_index)
 static void hw_cleanup(void)
 {
 	GSList *l;
-	struct sigrok_device_instance *sdi;
+	struct sr_device_instance *sdi;
 
 	/* Properly close all devices. */
 	for (l = device_instances; l; l = l->next) {
 		sdi = l->data;
 		if (sdi->priv != NULL)
 			free(sdi->priv);
-		sigrok_device_instance_free(sdi);
+		sr_device_instance_free(sdi);
 	}
 	g_slist_free(device_instances);
 	device_instances = NULL;
@@ -697,11 +697,11 @@ static void hw_cleanup(void)
 
 static void *hw_get_device_info(int device_index, int device_info_id)
 {
-	struct sigrok_device_instance *sdi;
+	struct sr_device_instance *sdi;
 	struct sigma *sigma;
 	void *info = NULL;
 
-	if (!(sdi = get_sigrok_device_instance(device_instances, device_index))) {
+	if (!(sdi = get_sr_device_instance(device_instances, device_index))) {
 		fprintf(stderr, "It's NULL.\n");
 		return NULL;
 	}
@@ -731,9 +731,9 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 
 static int hw_get_status(int device_index)
 {
-	struct sigrok_device_instance *sdi;
+	struct sr_device_instance *sdi;
 
-	sdi = get_sigrok_device_instance(device_instances, device_index);
+	sdi = get_sr_device_instance(device_instances, device_index);
 	if (sdi)
 		return sdi->status;
 	else
@@ -747,11 +747,11 @@ static int *hw_get_capabilities(void)
 
 static int hw_set_configuration(int device_index, int capability, void *value)
 {
-	struct sigrok_device_instance *sdi;
+	struct sr_device_instance *sdi;
 	struct sigma *sigma;
 	int ret;
 
-	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
+	if (!(sdi = get_sr_device_instance(device_instances, device_index)))
 		return SR_ERR;
 
 	sigma = sdi->priv;
@@ -823,7 +823,7 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 			   uint16_t *lastsample, int triggerpos,
 			   uint16_t limit_chunk, void *user_data)
 {
-	struct sigrok_device_instance *sdi = user_data;
+	struct sr_device_instance *sdi = user_data;
 	struct sigma *sigma = sdi->priv;
 	uint16_t tsdiff, ts;
 	uint16_t samples[65536 * sigma->samples_per_event];
@@ -952,7 +952,7 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 
 static int receive_data(int fd, int revents, void *user_data)
 {
-	struct sigrok_device_instance *sdi = user_data;
+	struct sr_device_instance *sdi = user_data;
 	struct sigma *sigma = sdi->priv;
 	struct datafeed_packet packet;
 	const int chunks_per_read = 32;
@@ -1198,7 +1198,7 @@ static int build_basic_trigger(struct triggerlut *lut, struct sigma *sigma)
 
 static int hw_start_acquisition(int device_index, gpointer session_device_id)
 {
-	struct sigrok_device_instance *sdi;
+	struct sr_device_instance *sdi;
 	struct sigma *sigma;
 	struct datafeed_packet packet;
 	struct datafeed_header header;
@@ -1211,7 +1211,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 
 	session_device_id = session_device_id;
 
-	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
+	if (!(sdi = get_sr_device_instance(device_instances, device_index)))
 		return SR_ERR;
 
 	sigma = sdi->priv;
@@ -1316,11 +1316,11 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 
 static void hw_stop_acquisition(int device_index, gpointer session_device_id)
 {
-	struct sigrok_device_instance *sdi;
+	struct sr_device_instance *sdi;
 	struct sigma *sigma;
 	uint8_t modestatus;
 
-	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
+	if (!(sdi = get_sr_device_instance(device_instances, device_index)))
 		return;
 
 	sigma = sdi->priv;

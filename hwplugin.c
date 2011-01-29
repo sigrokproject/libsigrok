@@ -99,12 +99,12 @@ GSList *list_hwplugins(void)
 	return plugins;
 }
 
-struct sigrok_device_instance *sigrok_device_instance_new(int index, int status,
+struct sr_device_instance *sr_device_instance_new(int index, int status,
 		const char *vendor, const char *model, const char *version)
 {
-	struct sigrok_device_instance *sdi;
+	struct sr_device_instance *sdi;
 
-	if (!(sdi = malloc(sizeof(struct sigrok_device_instance))))
+	if (!(sdi = malloc(sizeof(struct sr_device_instance))))
 		return NULL;
 
 	sdi->index = index;
@@ -119,14 +119,14 @@ struct sigrok_device_instance *sigrok_device_instance_new(int index, int status,
 	return sdi;
 }
 
-struct sigrok_device_instance *get_sigrok_device_instance(
+struct sr_device_instance *get_sr_device_instance(
 				GSList *device_instances, int device_index)
 {
-	struct sigrok_device_instance *sdi;
+	struct sr_device_instance *sdi;
 	GSList *l;
 
 	for (l = device_instances; l; l = l->next) {
-		sdi = (struct sigrok_device_instance *)(l->data);
+		sdi = (struct sr_device_instance *)(l->data);
 		if (sdi->index == device_index)
 			return sdi;
 	}
@@ -135,7 +135,7 @@ struct sigrok_device_instance *get_sigrok_device_instance(
 	return NULL;
 }
 
-void sigrok_device_instance_free(struct sigrok_device_instance *sdi)
+void sr_device_instance_free(struct sr_device_instance *sdi)
 {
 	switch (sdi->instance_type) {
 	case USB_INSTANCE:
