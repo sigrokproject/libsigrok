@@ -91,7 +91,7 @@ int load_hwplugins(void)
 #endif
 
 
-	return SIGROK_OK;
+	return SR_OK;
 }
 
 GSList *list_hwplugins(void)

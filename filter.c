@@ -36,7 +36,7 @@ int filter_probes(int in_unitsize, int out_unitsize, int *probelist,
 	uint64_t sample_in, sample_out;
 
 	if (!(*data_out = malloc(length_in)))
-		return SIGROK_ERR_MALLOC;
+		return SR_ERR_MALLOC;
 
 	num_enabled_probes = 0;
 	for (i = 0; probelist[i]; i++)
@@ -46,7 +46,7 @@ int filter_probes(int in_unitsize, int out_unitsize, int *probelist,
 		/* All probes are used -- no need to compress anything. */
 		memcpy(*data_out, data_in, length_in);
 		*length_out = length_in;
-		return SIGROK_OK;
+		return SR_OK;
 	}
 
 	/* If we reached this point, not all probes are used, so "compress". */
@@ -65,5 +65,5 @@ int filter_probes(int in_unitsize, int out_unitsize, int *probelist,
 	}
 	*length_out = out_offset;
 
-	return SIGROK_OK;
+	return SR_OK;
 }

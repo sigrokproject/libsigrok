@@ -122,9 +122,9 @@ static int send_shortcommand(int fd, uint8_t command)
 	g_debug("ols: sending cmd 0x%.2x", command);
 	buf[0] = command;
 	if (serial_write(fd, buf, 1) != 1)
-		return SIGROK_ERR;
+		return SR_ERR;
 
-	return SIGROK_OK;
+	return SR_OK;
 }
 
 static int send_longcommand(int fd, uint8_t command, uint32_t data)
@@ -138,9 +138,9 @@ static int send_longcommand(int fd, uint8_t command, uint32_t data)
 	buf[3] = (data & 0xff00) >> 8;
 	buf[4] = data & 0xff;
 	if (serial_write(fd, buf, 5) != 5)
-		return SIGROK_ERR;
+		return SR_ERR;
 
-	return SIGROK_OK;
+	return SR_OK;
 }
 
 static int configure_probes(GSList *probes)
@@ -184,13 +184,13 @@ static int configure_probes(GSList *probes)
 				 * TODO: Only supporting parallel mode, with
 				 * up to 4 stages.
 				 */
-				return SIGROK_ERR;
+				return SR_ERR;
 		}
 		if (stage > num_stages)
 			num_stages = stage;
 	}
 
-	return SIGROK_OK;
+	return SR_OK;
 }
 
 static uint32_t reverse16(uint32_t in)
@@ -252,15 +252,15 @@ static int hw_init(char *deviceinfo)
 		if (fd != -1) {
 			serial_params[devcnt] = serial_backup_params(fd);
 			serial_set_params(fd, 115200, 8, 0, 1, 2);
-			ret = SIGROK_OK;
+			ret = SR_OK;
 			for (i = 0; i < 5; i++) {
 				if ((ret = send_shortcommand(fd,
-					CMD_RESET)) != SIGROK_OK) {
+					CMD_RESET)) != SR_OK) {
 					/* Serial port is not writable. */
 					break;
 				}
 			}
-			if (ret != SIGROK_OK) {
+			if (ret != SR_OK) {
 				serial_restore_params(fd,
 					serial_params[devcnt]);
 				serial_close(fd);
@@ -329,15 +329,15 @@ static int hw_opendev(int device_index)
 	struct sigrok_device_instance *sdi;
 
 	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
-		return SIGROK_ERR;
+		return SR_ERR;
 
 	sdi->serial->fd = serial_open(sdi->serial->port, O_RDWR);
 	if (sdi->serial->fd == -1)
-		return SIGROK_ERR;
+		return SR_ERR;
 
 	sdi->status = ST_ACTIVE;
 
-	return SIGROK_OK;
+	return SR_OK;
 }
 
 static void hw_closedev(int device_index)
@@ -421,7 +421,7 @@ static int set_configuration_samplerate(struct sigrok_device_instance *sdi,
 	uint32_t divider;
 
 	if (samplerate < samplerates.low || samplerate > samplerates.high)
-		return SIGROK_ERR_SAMPLERATE;
+		return SR_ERR_SAMPLERATE;
 
 	if (samplerate > CLOCK_RATE) {
 		flag_reg |= FLAG_DEMUX;
@@ -434,11 +434,11 @@ static int set_configuration_samplerate(struct sigrok_device_instance *sdi,
 	g_message("ols: setting samplerate to %" PRIu64 " Hz (divider %u, demux %s)",
 			samplerate, divider, flag_reg & FLAG_DEMUX ? "on" : "off");
 
-	if (send_longcommand(sdi->serial->fd, CMD_SET_DIVIDER, reverse32(divider)) != SIGROK_OK)
-		return SIGROK_ERR;
+	if (send_longcommand(sdi->serial->fd, CMD_SET_DIVIDER, reverse32(divider)) != SR_OK)
+		return SR_ERR;
 	cur_samplerate = samplerate;
 
-	return SIGROK_OK;
+	return SR_OK;
 }
 
 static int hw_set_configuration(int device_index, int capability, void *value)
@@ -448,10 +448,10 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 	uint64_t *tmp_u64;
 
 	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
-		return SIGROK_ERR;
+		return SR_ERR;
 
 	if (sdi->status != ST_ACTIVE)
-		return SIGROK_ERR;
+		return SR_ERR;
 
 	switch (capability) {
 	case HWCAP_SAMPLERATE:
@@ -464,22 +464,22 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 	case HWCAP_LIMIT_SAMPLES:
 		tmp_u64 = value;
 		if (*tmp_u64 < MIN_NUM_SAMPLES)
-			return SIGROK_ERR;
+			return SR_ERR;
 		limit_samples = *tmp_u64;
 		g_message("ols: sample limit %" PRIu64, limit_samples);
-		ret = SIGROK_OK;
+		ret = SR_OK;
 		break;
 	case HWCAP_CAPTURE_RATIO:
 		tmp_u64 = value;
 		capture_ratio = *tmp_u64;
 		if (capture_ratio < 0 || capture_ratio > 100) {
 			capture_ratio = 0;
-			ret = SIGROK_ERR;
+			ret = SR_ERR;
 		} else
-			ret = SIGROK_OK;
+			ret = SR_OK;
 		break;
 	default:
-		ret = SIGROK_ERR;
+		ret = SR_ERR;
 	}
 
 	return ret;
@@ -659,10 +659,10 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	uint8_t changrp_mask;
 
 	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
-		return SIGROK_ERR;
+		return SR_ERR;
 
 	if (sdi->status != ST_ACTIVE)
-		return SIGROK_ERR;
+		return SR_ERR;
 
 	readcount = limit_samples / 4;
 
@@ -673,54 +673,54 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 		trigger_at = (readcount - delaycount) * 4 - num_stages;
 
 		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_MASK_0,
-			reverse32(trigger_mask[0])) != SIGROK_OK)
-			return SIGROK_ERR;
+			reverse32(trigger_mask[0])) != SR_OK)
+			return SR_ERR;
 		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_VALUE_0,
-			reverse32(trigger_value[0])) != SIGROK_OK)
-			return SIGROK_ERR;
+			reverse32(trigger_value[0])) != SR_OK)
+			return SR_ERR;
 		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_CONFIG_0,
-			trigger_config[0]) != SIGROK_OK)
-			return SIGROK_ERR;
+			trigger_config[0]) != SR_OK)
+			return SR_ERR;
 
 		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_MASK_1,
-			reverse32(trigger_mask[1])) != SIGROK_OK)
-			return SIGROK_ERR;
+			reverse32(trigger_mask[1])) != SR_OK)
+			return SR_ERR;
 		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_VALUE_1,
-			reverse32(trigger_value[1])) != SIGROK_OK)
-			return SIGROK_ERR;
+			reverse32(trigger_value[1])) != SR_OK)
+			return SR_ERR;
 		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_CONFIG_1,
-			trigger_config[1]) != SIGROK_OK)
-			return SIGROK_ERR;
+			trigger_config[1]) != SR_OK)
+			return SR_ERR;
 
 		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_MASK_2,
-			reverse32(trigger_mask[2])) != SIGROK_OK)
-			return SIGROK_ERR;
+			reverse32(trigger_mask[2])) != SR_OK)
+			return SR_ERR;
 		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_VALUE_2,
-			reverse32(trigger_value[2])) != SIGROK_OK)
-			return SIGROK_ERR;
+			reverse32(trigger_value[2])) != SR_OK)
+			return SR_ERR;
 		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_CONFIG_2,
-			trigger_config[2]) != SIGROK_OK)
-			return SIGROK_ERR;
+			trigger_config[2]) != SR_OK)
+			return SR_ERR;
 
 		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_MASK_3,
-			reverse32(trigger_mask[3])) != SIGROK_OK)
-			return SIGROK_ERR;
+			reverse32(trigger_mask[3])) != SR_OK)
+			return SR_ERR;
 		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_VALUE_3,
-			reverse32(trigger_value[3])) != SIGROK_OK)
-			return SIGROK_ERR;
+			reverse32(trigger_value[3])) != SR_OK)
+			return SR_ERR;
 		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_CONFIG_3,
-			trigger_config[3]) != SIGROK_OK)
-			return SIGROK_ERR;
+			trigger_config[3]) != SR_OK)
+			return SR_ERR;
 	} else {
 		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_MASK_0,
-		     trigger_mask[0]) != SIGROK_OK)
-			return SIGROK_ERR;
+		     trigger_mask[0]) != SR_OK)
+			return SR_ERR;
 		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_VALUE_0,
-		     trigger_value[0]) != SIGROK_OK)
-			return SIGROK_ERR;
+		     trigger_value[0]) != SR_OK)
+			return SR_ERR;
 		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_CONFIG_0,
-		     0x00000008) != SIGROK_OK)
-			return SIGROK_ERR;
+		     0x00000008) != SR_OK)
+			return SR_ERR;
 		delaycount = readcount;
 	}
 
@@ -729,8 +729,8 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	/* Send sample limit and pre/post-trigger capture ratio. */
 	data = ((readcount - 1) & 0xffff) << 16;
 	data |= (delaycount - 1) & 0xffff;
-	if (send_longcommand(sdi->serial->fd, CMD_CAPTURE_SIZE, reverse16(data)) != SIGROK_OK)
-		return SIGROK_ERR;
+	if (send_longcommand(sdi->serial->fd, CMD_CAPTURE_SIZE, reverse16(data)) != SR_OK)
+		return SR_ERR;
 
 	/*
 	 * Enable/disable channel groups in the flag register according to the
@@ -746,12 +746,12 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	flag_reg |= ~(changrp_mask << 2) & 0x3c;
 	flag_reg |= FLAG_FILTER;
 	data = flag_reg << 24;
-	if (send_longcommand(sdi->serial->fd, CMD_SET_FLAGS, data) != SIGROK_OK)
-		return SIGROK_ERR;
+	if (send_longcommand(sdi->serial->fd, CMD_SET_FLAGS, data) != SR_OK)
+		return SR_ERR;
 
 	/* Start acquisition on the device. */
-	if (send_shortcommand(sdi->serial->fd, CMD_RUN) != SIGROK_OK)
-		return SIGROK_ERR;
+	if (send_shortcommand(sdi->serial->fd, CMD_RUN) != SR_OK)
+		return SR_ERR;
 
 	source_add(sdi->serial->fd, G_IO_IN, -1, receive_data,
 		   session_device_id);
@@ -760,7 +760,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	packet = g_malloc(sizeof(struct datafeed_packet));
 	header = g_malloc(sizeof(struct datafeed_header));
 	if (!packet || !header)
-		return SIGROK_ERR;
+		return SR_ERR;
 	packet->type = DF_HEADER;
 	packet->length = sizeof(struct datafeed_header);
 	packet->payload = (unsigned char *)header;
@@ -774,7 +774,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	g_free(header);
 	g_free(packet);
 
-	return SIGROK_OK;
+	return SR_OK;
 }
 
 static void hw_stop_acquisition(int device_index, gpointer session_device_id)

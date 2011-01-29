@@ -111,7 +111,7 @@ static int hw_opendev(int device_index)
 	device_index = device_index;
 
 	/* Nothing needed so far. */
-	return SIGROK_OK;
+	return SR_OK;
 }
 
 static void hw_closedev(int device_index)
@@ -177,28 +177,28 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 
 	if (capability == HWCAP_PROBECONFIG) {
 		/* Nothing to do. */
-		ret = SIGROK_OK;
+		ret = SR_OK;
 	} else if (capability == HWCAP_LIMIT_SAMPLES) {
 		tmp_u64 = value;
 		limit_samples = *tmp_u64;
-		ret = SIGROK_OK;
+		ret = SR_OK;
 	} else if (capability == HWCAP_LIMIT_MSEC) {
 		tmp_u64 = value;
 		limit_msec = *tmp_u64;
-		ret = SIGROK_OK;
+		ret = SR_OK;
 	} else if (capability == HWCAP_PATTERN_MODE) {
 		stropt = value;
 		if (!strcmp(stropt, "random")) {
 			default_genmode = GENMODE_RANDOM;
-			ret = SIGROK_OK;
+			ret = SR_OK;
 		} else if (!strcmp(stropt, "incremental")) {
 			default_genmode = GENMODE_INC;
-			ret = SIGROK_OK;
+			ret = SR_OK;
 		} else {
-			ret = SIGROK_ERR;
+			ret = SR_ERR;
 		}
 	} else {
-		ret = SIGROK_ERR;
+		ret = SR_ERR;
 	}
 
 	return ret;
@@ -326,7 +326,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 
 	mydata = malloc(sizeof(struct databag));
 	if (!mydata)
-		return SIGROK_ERR_MALLOC;
+		return SR_ERR_MALLOC;
 
 	mydata->sample_generator = default_genmode;
 	mydata->session_device_id = session_device_id;
@@ -334,7 +334,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	mydata->samples_counter = 0;
 
 	if (pipe(mydata->pipe_fds))
-		return SIGROK_ERR;
+		return SR_ERR;
 
 	channels[0] = g_io_channel_unix_new(mydata->pipe_fds[0]);
 	channels[1] = g_io_channel_unix_new(mydata->pipe_fds[1]);
@@ -357,12 +357,12 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	my_thread =
 	    g_thread_create((GThreadFunc)thread_func, mydata, TRUE, NULL);
 	if (!my_thread)
-		return SIGROK_ERR;
+		return SR_ERR;
 
 	packet = malloc(sizeof(struct datafeed_packet));
 	header = malloc(sizeof(struct datafeed_header));
 	if (!packet || !header)
-		return SIGROK_ERR_MALLOC;
+		return SR_ERR_MALLOC;
 
 	packet->type = DF_HEADER;
 	packet->length = sizeof(struct datafeed_header);
@@ -377,7 +377,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	free(header);
 	free(packet);
 
-	return SIGROK_OK;
+	return SR_OK;
 }
 
 static void hw_stop_acquisition(int device_index, gpointer session_device_id)

@@ -79,7 +79,7 @@ static int hw_opendev(int device_index)
 	int err;
 
 	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
-		return SIGROK_ERR;
+		return SR_ERR;
 	alsa = sdi->priv;
 
 	err = snd_pcm_open(&alsa->capture_handle, AUDIO_DEV,
@@ -87,24 +87,24 @@ static int hw_opendev(int device_index)
 	if (err < 0) {
 		g_warning("cannot open audio device %s (%s)", AUDIO_DEV,
 				snd_strerror(err));
-		return SIGROK_ERR;
+		return SR_ERR;
 	}
 
 	err = snd_pcm_hw_params_malloc(&alsa->hw_params);
 	if (err < 0) {
 		g_warning("cannot allocate hardware parameter structure (%s)",
 				snd_strerror(err));
-		return SIGROK_ERR;
+		return SR_ERR;
 	}
 
 	err = snd_pcm_hw_params_any(alsa->capture_handle, alsa->hw_params);
 	if (err < 0) {
 		g_warning("cannot initialize hardware parameter structure (%s)",
 				snd_strerror(err));
-		return SIGROK_ERR;
+		return SR_ERR;
 	}
 
-	return SIGROK_OK;
+	return SR_OK;
 }
 
 static void hw_closedev(int device_index)
@@ -182,20 +182,20 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 	struct alsa *alsa;
 
 	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
-		return SIGROK_ERR;
+		return SR_ERR;
 	alsa = sdi->priv;
 
 	switch (capability) {
 	case HWCAP_PROBECONFIG:
-		return SIGROK_OK;
+		return SR_OK;
 	case HWCAP_SAMPLERATE:
 		alsa->cur_rate = *(uint64_t *) value;
-		return SIGROK_OK;
+		return SR_OK;
 	case HWCAP_LIMIT_SAMPLES:
 		alsa->limit_samples = *(uint64_t *) value;
-		return SIGROK_OK;
+		return SR_OK;
 	default:
-		return SIGROK_ERR;
+		return SR_ERR;
 	}
 }
 
@@ -267,14 +267,14 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	int err;
 
 	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
-		return SIGROK_ERR;
+		return SR_ERR;
 	alsa = sdi->priv;
 
 	err = snd_pcm_hw_params_set_access(alsa->capture_handle,
 			alsa->hw_params, SND_PCM_ACCESS_RW_INTERLEAVED);
 	if (err < 0) {
 		g_warning("cannot set access type (%s)", snd_strerror(err));
-		return SIGROK_ERR;
+		return SR_ERR;
 	}
 
 	/* FIXME: Hardcoded for 16bits */
@@ -282,52 +282,52 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 			alsa->hw_params, SND_PCM_FORMAT_S16_LE);
 	if (err < 0) {
 		g_warning("cannot set sample format (%s)", snd_strerror(err));
-		return SIGROK_ERR;
+		return SR_ERR;
 	}
 
 	err = snd_pcm_hw_params_set_rate_near(alsa->capture_handle,
 			alsa->hw_params, (unsigned int *) &alsa->cur_rate, 0);
 	if (err < 0) {
 		g_warning("cannot set sample rate (%s)", snd_strerror(err));
-		return SIGROK_ERR;
+		return SR_ERR;
 	}
 
 	err = snd_pcm_hw_params_set_channels(alsa->capture_handle,
 			alsa->hw_params, NUM_PROBES);
 	if (err < 0) {
 		g_warning("cannot set channel count (%s)", snd_strerror(err));
-		return SIGROK_ERR;
+		return SR_ERR;
 	}
 
 	err = snd_pcm_hw_params(alsa->capture_handle, alsa->hw_params);
 	if (err < 0) {
 		g_warning("cannot set parameters (%s)", snd_strerror(err));
-		return SIGROK_ERR;
+		return SR_ERR;
 	}
 
 	err = snd_pcm_prepare(alsa->capture_handle);
 	if (err < 0) {
 		g_warning("cannot prepare audio interface for use (%s)",
 				snd_strerror(err));
-		return SIGROK_ERR;
+		return SR_ERR;
 	}
 
 	count = snd_pcm_poll_descriptors_count(alsa->capture_handle);
 	if (count < 1) {
 		g_warning("Unable to obtain poll descriptors count");
-		return SIGROK_ERR;
+		return SR_ERR;
 	}
 
 	ufds = malloc(count * sizeof(struct pollfd));
 	if (!ufds)
-		return SIGROK_ERR_MALLOC;
+		return SR_ERR_MALLOC;
 
 	err = snd_pcm_poll_descriptors(alsa->capture_handle, ufds, count);
 	if (err < 0) {
 		g_warning("Unable to obtain poll descriptors (%s)",
 				snd_strerror(err));
 		free(ufds);
-		return SIGROK_ERR;
+		return SR_ERR;
 	}
 
 	alsa->session_id = session_device_id;
@@ -345,7 +345,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	session_bus(session_device_id, &packet);
 	free(ufds);
 
-	return SIGROK_OK;
+	return SR_OK;
 }
 
 static void hw_stop_acquisition(int device_index, gpointer session_device_id)

@@ -294,7 +294,7 @@ static int sigma_write_trigger_lut(struct triggerlut *lut, struct sigma *sigma)
 	sigma_write_register(WRITE_TRIGGER_SELECT0, (uint8_t *) &lut->params,
 			     sizeof(lut->params), sigma);
 
-	return SIGROK_OK;
+	return SR_OK;
 }
 
 /* Generate the bitbang stream for programming the FPGA. */
@@ -484,7 +484,7 @@ static int upload_firmware(int firmware_idx, struct sigma *sigma)
 	if (-1 == bin2bitbang(firmware_path, &buf, &buf_size)) {
 		g_warning("An error occured while reading the firmware: %s",
 			  firmware_path);
-		return SIGROK_ERR;
+		return SR_ERR;
 	}
 
 	/* Upload firmare. */
@@ -495,7 +495,7 @@ static int upload_firmware(int firmware_idx, struct sigma *sigma)
 	if ((ret = ftdi_set_bitmode(&sigma->ftdic, 0x00, BITMODE_RESET)) < 0) {
 		g_warning("ftdi_set_bitmode failed: %s",
 			  ftdi_get_error_string(&sigma->ftdic));
-		return SIGROK_ERR;
+		return SR_ERR;
 	}
 
 	ftdi_usb_purge_buffers(&sigma->ftdic);
@@ -512,12 +512,12 @@ static int upload_firmware(int firmware_idx, struct sigma *sigma)
 	if (ret != 3 ||
 	    result[0] != 0xa6 || result[1] != 0x55 || result[2] != 0xaa) {
 		g_warning("Configuration failed. Invalid reply received.");
-		return SIGROK_ERR;
+		return SR_ERR;
 	}
 
 	sigma->cur_firmware = firmware_idx;
 
-	return SIGROK_OK;
+	return SR_OK;
 }
 
 static int hw_opendev(int device_index)
@@ -527,7 +527,7 @@ static int hw_opendev(int device_index)
 	int ret;
 
 	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
-		return SIGROK_ERR;
+		return SR_ERR;
 
 	sigma = sdi->priv;
 
@@ -543,7 +543,7 @@ static int hw_opendev(int device_index)
 
 	sdi->status = ST_ACTIVE;
 
-	return SIGROK_OK;
+	return SR_OK;
 }
 
 static int set_samplerate(struct sigrok_device_instance *sdi,
@@ -557,7 +557,7 @@ static int set_samplerate(struct sigrok_device_instance *sdi,
 			break;
 	}
 	if (supported_samplerates[i] == 0)
-		return SIGROK_ERR_SAMPLERATE;
+		return SR_ERR_SAMPLERATE;
 
 	if (samplerate <= MHZ(50)) {
 		ret = upload_firmware(0, sigma);
@@ -612,7 +612,7 @@ static int configure_probes(struct sigrok_device_instance *sdi, GSList *probes)
 				g_warning("Asix Sigma only supports a single "
 						"pin trigger in 100 and 200 "
 						"MHz mode.");
-				return SIGROK_ERR;
+				return SR_ERR;
 			}
 			if (probe->trigger[0] == 'f')
 				sigma->trigger.fallingmask |= probebit;
@@ -622,7 +622,7 @@ static int configure_probes(struct sigrok_device_instance *sdi, GSList *probes)
 				g_warning("Asix Sigma only supports "
 					  "rising/falling trigger in 100 "
 					  "and 200 MHz mode.");
-				return SIGROK_ERR;
+				return SR_ERR;
 			}
 
 			++trigger_set;
@@ -653,7 +653,7 @@ static int configure_probes(struct sigrok_device_instance *sdi, GSList *probes)
 			if (trigger_set > 1) {
 				g_warning("Asix Sigma only supports 1 rising/"
 					  "falling triggers.");
-				return SIGROK_ERR;
+				return SR_ERR;
 			}
 		}
 
@@ -661,7 +661,7 @@ static int configure_probes(struct sigrok_device_instance *sdi, GSList *probes)
 			sigma->use_triggers = 1;
 	}
 
-	return SIGROK_OK;
+	return SR_OK;
 }
 
 static void hw_closedev(int device_index)
@@ -752,7 +752,7 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 	int ret;
 
 	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
-		return SIGROK_ERR;
+		return SR_ERR;
 
 	sigma = sdi->priv;
 
@@ -763,17 +763,17 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 	} else if (capability == HWCAP_LIMIT_MSEC) {
 		sigma->limit_msec = *(uint64_t*) value;
 		if (sigma->limit_msec > 0)
-			ret = SIGROK_OK;
+			ret = SR_OK;
 		else
-			ret = SIGROK_ERR;
+			ret = SR_ERR;
 	} else if (capability == HWCAP_CAPTURE_RATIO) {
 		sigma->capture_ratio = *(uint64_t*) value;
 		if (sigma->capture_ratio < 0 || sigma->capture_ratio > 100)
-			ret = SIGROK_ERR;
+			ret = SR_ERR;
 		else
-			ret = SIGROK_OK;
+			ret = SR_OK;
 	} else {
-		ret = SIGROK_ERR;
+		ret = SR_ERR;
 	}
 
 	return ret;
@@ -855,7 +855,7 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 
 		/* Decode partial chunk. */
 		if (limit_chunk && ts > limit_chunk)
-			return SIGROK_OK;
+			return SR_OK;
 
 		/* Pad last sample up to current point. */
 		numpad = tsdiff * sigma->samples_per_event - clustersize;
@@ -947,7 +947,7 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 		*lastsample = samples[n - 1];
 	}
 
-	return SIGROK_OK;
+	return SR_OK;
 }
 
 static int receive_data(int fd, int revents, void *user_data)
@@ -1193,7 +1193,7 @@ static int build_basic_trigger(struct triggerlut *lut, struct sigma *sigma)
 	/* Triggertype: event. */
 	lut->params.selres = 3;
 
-	return SIGROK_OK;
+	return SR_OK;
 }
 
 static int hw_start_acquisition(int device_index, gpointer session_device_id)
@@ -1212,7 +1212,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	session_device_id = session_device_id;
 
 	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
-		return SIGROK_ERR;
+		return SR_ERR;
 
 	sigma = sdi->priv;
 
@@ -1311,7 +1311,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 
 	sigma->state.state = SIGMA_CAPTURE;
 
-	return SIGROK_OK;
+	return SR_OK;
 }
 
 static void hw_stop_acquisition(int device_index, gpointer session_device_id)

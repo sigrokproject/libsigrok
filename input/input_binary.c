@@ -46,14 +46,14 @@ static int init(struct input *in)
 	if (in->param && in->param[0]) {
 		num_probes = strtoul(in->param, NULL, 10);
 		if (num_probes < 1)
-			return SIGROK_ERR;
+			return SR_ERR;
 	} else
 		num_probes = DEFAULT_NUM_PROBES;
 
 	/* create a virtual device */
 	in->vdevice = device_new(NULL, 0, num_probes);
 
-	return SIGROK_OK;
+	return SR_OK;
 }
 
 static int loadfile(struct input *in, const char *filename)
@@ -64,7 +64,7 @@ static int loadfile(struct input *in, const char *filename)
 	int fd, size, num_probes;
 
 	if ((fd = open(filename, O_RDONLY)) == -1)
-		return SIGROK_ERR;
+		return SR_ERR;
 
 	num_probes = g_slist_length(in->vdevice->probes);
 
@@ -95,7 +95,7 @@ static int loadfile(struct input *in, const char *filename)
 	packet.length = 0;
 	session_bus(in->vdevice, &packet);
 
-	return SIGROK_OK;
+	return SR_OK;
 }
 
 struct input_format input_binary = {

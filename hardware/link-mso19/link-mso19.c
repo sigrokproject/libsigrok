@@ -86,12 +86,12 @@ static int mso_send_control_message(struct sigrok_device_instance *sdi,
 	while (w < s) {
 		ret = serial_write(fd, buf + w, s - w);
 		if (ret < 0) {
-			ret = SIGROK_ERR;
+			ret = SR_ERR;
 			goto free;
 		}
 		w += ret;
 	}
-	ret = SIGROK_OK;
+	ret = SR_OK;
 free:
 	free(buf);
 ret:
@@ -142,12 +142,12 @@ static int mso_check_trigger(struct sigrok_device_instance *sdi,
 	int ret;
 
 	ret = mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
-	if (info == NULL || ret != SIGROK_OK)
+	if (info == NULL || ret != SR_OK)
 		return ret;
 
 	buf[0] = 0;
 	if (serial_read(sdi->serial->fd, buf, 1) != 1) /* FIXME: Need timeout */
-		ret = SIGROK_ERR;
+		ret = SR_ERR;
 	*info = buf[0];
 
 	return ret;
@@ -210,13 +210,13 @@ static int mso_configure_rate(struct sigrok_device_instance *sdi,
 {
 	struct mso *mso = sdi->priv;
 	unsigned int i;
-	int ret = SIGROK_ERR;
+	int ret = SR_ERR;
 
 	for (i = 0; i < ARRAY_SIZE(rate_map); i++) {
 		if (rate_map[i].rate == rate) {
 			mso->slowmode = rate_map[i].slowmode;
 			ret = mso_clkrate_out(sdi, rate_map[i].val);
-			if (ret == SIGROK_OK)
+			if (ret == SR_OK)
 				mso->cur_rate = rate;
 			return ret;
 		}
@@ -325,7 +325,7 @@ static int mso_parse_serial(const char *iSerial, const char *iProduct,
 	/* parse iSerial */
 	if (iSerial[0] != '4' || sscanf(iSerial, "%5u%3u%3u%1u%1u%6u",
 				&u1, &u2, &u3, &u4, &u5, &u6) != 6)
-		return SIGROK_ERR;
+		return SR_ERR;
 	mso->hwmodel = u4;
 	mso->hwrev = u5;
 	mso->serial = u6;
@@ -345,7 +345,7 @@ static int mso_parse_serial(const char *iSerial, const char *iProduct,
 	 * I will not implement it yet
 	 */
 
-	return SIGROK_OK;
+	return SR_OK;
 }
 
 static int hw_init(char *deviceinfo)
@@ -418,7 +418,7 @@ static int hw_init(char *deviceinfo)
 			continue;
 		memset(mso, 0, sizeof(struct mso));
 
-		if (mso_parse_serial(iSerial, iProduct, mso) != SIGROK_OK) {
+		if (mso_parse_serial(iSerial, iProduct, mso) != SR_OK) {
 			g_warning("Invalid iSerial: %s", iSerial);
 			goto err_free_mso;
 		}
@@ -479,7 +479,7 @@ static int hw_opendev(int device_index)
 {
 	struct sigrok_device_instance *sdi;
 	struct mso *mso;
-	int ret = SIGROK_ERR;
+	int ret = SR_ERR;
 
 	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
 		return ret;
@@ -490,7 +490,7 @@ static int hw_opendev(int device_index)
 		return ret;
 
 	ret = serial_set_params(sdi->serial->fd, 460800, 8, 0, 1, 2);
-	if (ret != SIGROK_OK)
+	if (ret != SR_OK)
 		return ret;
 
 	sdi->status = ST_ACTIVE;
@@ -501,18 +501,18 @@ static int hw_opendev(int device_index)
 //	g_warning("trigger state: %c", mso->trigger_state);
 
 	ret = mso_reset_adc(sdi);
-	if (ret != SIGROK_OK)
+	if (ret != SR_OK)
 		return ret;
 
 	mso_check_trigger(sdi, &mso->trigger_state);
 //	g_warning("trigger state: %c", mso->trigger_state);
 
 //	ret = mso_reset_fsm(sdi);
-//	if (ret != SIGROK_OK)
+//	if (ret != SR_OK)
 //		return ret;
 
-//	return SIGROK_ERR;
-	return SIGROK_OK;
+//	return SR_ERR;
+	return SR_OK;
 }
 
 static void hw_closedev(int device_index)
@@ -579,7 +579,7 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 	struct sigrok_device_instance *sdi;
 
 	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
-		return SIGROK_ERR;
+		return SR_ERR;
 
 	switch (capability) {
 	case HWCAP_SAMPLERATE:
@@ -587,7 +587,7 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 	case HWCAP_PROBECONFIG:
 	case HWCAP_LIMIT_SAMPLES:
 	default:
-		return SIGROK_OK; /* FIXME */
+		return SR_OK; /* FIXME */
 	}
 
 }
@@ -670,7 +670,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	struct mso *mso;
 	struct datafeed_packet packet;
 	struct datafeed_header header;
-	int ret = SIGROK_ERR;
+	int ret = SR_ERR;
 
 	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
 		return ret;
@@ -678,7 +678,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 
 	/* FIXME: No need to do full reconfigure every time */
 //	ret = mso_reset_fsm(sdi);
-//	if (ret != SIGROK_OK)
+//	if (ret != SR_OK)
 //		return ret;
 
 	/* FIXME: ACDC Mode */
@@ -686,20 +686,20 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 //	mso->ctlbase |= mso->acdcmode;
 
 	ret = mso_configure_rate(sdi, mso->cur_rate);
-	if (ret != SIGROK_OK)
+	if (ret != SR_OK)
 		return ret;
 
 	/* set dac offset */
 	ret = mso_dac_out(sdi, mso->dac_offset);
-	if (ret != SIGROK_OK)
+	if (ret != SR_OK)
 		return ret;
 
 	ret = mso_configure_threshold_level(sdi);
-	if (ret != SIGROK_OK)
+	if (ret != SR_OK)
 		return ret;
 
 	ret = mso_configure_trigger(sdi);
-	if (ret != SIGROK_OK)
+	if (ret != SR_OK)
 		return ret;
 
 	/* FIXME: trigger_position */
@@ -709,17 +709,17 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 
 	/* with trigger */
 	ret = mso_arm(sdi);
-	if (ret != SIGROK_OK)
+	if (ret != SR_OK)
 		return ret;
 
 	/* without trigger */
 //	ret = mso_force_capture(sdi);
-//	if (ret != SIGROK_OK)
+//	if (ret != SR_OK)
 //		return ret;
 
 	mso_check_trigger(sdi, &mso->trigger_state);
 	ret = mso_check_trigger(sdi, NULL);
-	if (ret != SIGROK_OK)
+	if (ret != SR_OK)
 		return ret;
 
 	mso->session_id = session_device_id;

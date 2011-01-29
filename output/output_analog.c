@@ -99,7 +99,7 @@ static int init(struct output *o, int default_spl, enum outputmode mode)
 	char *samplerate_s;
 
 	if (!(ctx = calloc(1, sizeof(struct context))))
-		return SIGROK_ERR_MALLOC;
+		return SR_ERR_MALLOC;
 
 	o->internal = ctx;
 	ctx->num_enabled_probes = 0;
@@ -122,13 +122,13 @@ static int init(struct output *o, int default_spl, enum outputmode mode)
 	if (o->param && o->param[0]) {
 		ctx->samples_per_line = strtoul(o->param, NULL, 10);
 		if (ctx->samples_per_line < 1)
-			return SIGROK_ERR;
+			return SR_ERR;
 	} else
 		ctx->samples_per_line = default_spl;
 
 	if (!(ctx->header = malloc(512))) {
 		free(ctx);
-		return SIGROK_ERR_MALLOC;
+		return SR_ERR_MALLOC;
 	}
 
 	snprintf(ctx->header, 511, "%s\n", PACKAGE_STRING);
@@ -139,7 +139,7 @@ static int init(struct output *o, int default_spl, enum outputmode mode)
 		if (!(samplerate_s = sigrok_samplerate_string(samplerate))) {
 			free(ctx->header);
 			free(ctx);
-			return SIGROK_ERR;
+			return SR_ERR;
 		}
 		snprintf(ctx->header + strlen(ctx->header),
 			 511 - strlen(ctx->header),
@@ -152,15 +152,15 @@ static int init(struct output *o, int default_spl, enum outputmode mode)
 	if (!(ctx->linebuf = calloc(1, num_probes * ctx->linebuf_len))) {
 		free(ctx->header);
 		free(ctx);
-		return SIGROK_ERR_MALLOC;
+		return SR_ERR_MALLOC;
 	}
 	if (!(ctx->linevalues = calloc(1, num_probes))) {
 		free(ctx->header);
 		free(ctx);
-		return SIGROK_ERR_MALLOC;
+		return SR_ERR_MALLOC;
 	}
 
-	return SIGROK_OK;
+	return SR_OK;
 }
 
 static int event(struct output *o, int event_type, char **data_out,
@@ -181,7 +181,7 @@ static int event(struct output *o, int event_type, char **data_out,
 		outsize = ctx->num_enabled_probes
 				* (ctx->samples_per_line + 20) + 512;
 		if (!(outbuf = calloc(1, outsize)))
-			return SIGROK_ERR_MALLOC;
+			return SR_ERR_MALLOC;
 		flush_linebufs(ctx, outbuf);
 		*data_out = outbuf;
 		*length_out = strlen(outbuf);
@@ -194,7 +194,7 @@ static int event(struct output *o, int event_type, char **data_out,
 		break;
 	}
 
-	return SIGROK_OK;
+	return SR_OK;
 }
 
 static int init_bits(struct output *o)
@@ -222,7 +222,7 @@ static int data_bits(struct output *o, char *data_in, uint64_t length_in,
             * (ctx->num_enabled_probes * max_linelen);
 
 	if (!(outbuf = calloc(1, outsize + 1)))
-		return SIGROK_ERR_MALLOC;
+		return SR_ERR_MALLOC;
 
 	outbuf[0] = '\0';
 	if (ctx->header) {
@@ -280,7 +280,7 @@ static int data_bits(struct output *o, char *data_in, uint64_t length_in,
 	*data_out = outbuf;
 	*length_out = strlen(outbuf);
 
-	return SIGROK_OK;
+	return SR_OK;
 }
 #if 0
 static int init_hex(struct output *o)
@@ -304,7 +304,7 @@ static int data_hex(struct output *o, char *data_in, uint64_t length_in,
 			/ ctx->samples_per_line * max_linelen + 512;
 
 	if (!(outbuf = calloc(1, outsize + 1)))
-		return SIGROK_ERR_MALLOC;
+		return SR_ERR_MALLOC;
 
 	outbuf[0] = '\0';
 	if (ctx->header) {
@@ -345,7 +345,7 @@ static int data_hex(struct output *o, char *data_in, uint64_t length_in,
 	*data_out = outbuf;
 	*length_out = strlen(outbuf);
 
-	return SIGROK_OK;
+	return SR_OK;
 }
 
 static int init_ascii(struct output *o)
@@ -373,7 +373,7 @@ static int data_ascii(struct output *o, char *data_in, uint64_t length_in,
             * (ctx->num_enabled_probes * max_linelen);
 
 	if (!(outbuf = calloc(1, outsize + 1)))
-		return SIGROK_ERR_MALLOC;
+		return SR_ERR_MALLOC;
 
 	outbuf[0] = '\0';
 	if (ctx->header) {
@@ -434,7 +434,7 @@ static int data_ascii(struct output *o, char *data_in, uint64_t length_in,
 	*data_out = outbuf;
 	*length_out = strlen(outbuf);
 
-	return SIGROK_OK;
+	return SR_OK;
 }
 #endif
 

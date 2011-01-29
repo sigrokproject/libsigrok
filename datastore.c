@@ -28,19 +28,19 @@ static gpointer new_chunk(struct datastore **ds);
 int datastore_new(int unitsize, struct datastore **ds)
 {
 	if (!ds)
-		return SIGROK_ERR;
+		return SR_ERR;
 
 	if (unitsize <= 0)
-		return SIGROK_ERR; /* TODO: Different error? */
+		return SR_ERR; /* TODO: Different error? */
 
 	if (!(*ds = g_malloc(sizeof(struct datastore))))
-		return SIGROK_ERR_MALLOC;
+		return SR_ERR_MALLOC;
 
 	(*ds)->ds_unitsize = unitsize;
 	(*ds)->num_units = 0;
 	(*ds)->chunklist = NULL;
 
-	return SIGROK_OK;
+	return SR_OK;
 }
 
 int datastore_destroy(struct datastore *ds)
@@ -48,14 +48,14 @@ int datastore_destroy(struct datastore *ds)
 	GSList *chunk;
 
 	if (!ds)
-		return SIGROK_ERR;
+		return SR_ERR;
 
 	for (chunk = ds->chunklist; chunk; chunk = chunk->next)
 		g_free(chunk->data);
 	g_slist_free(ds->chunklist);
 	g_free(ds);
 
-	return SIGROK_OK;
+	return SR_OK;
 }
 
 void datastore_put(struct datastore *ds, void *data, unsigned int length,

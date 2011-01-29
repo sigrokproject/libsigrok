@@ -261,12 +261,12 @@ static int configure_probes(GSList *probes)
 					trigger_value[stage] |= probe_bit;
 				stage++;
 				if (stage > NUM_TRIGGER_STAGES)
-					return SIGROK_ERR;
+					return SR_ERR;
 			}
 		}
 	}
 
-	return SIGROK_OK;
+	return SR_OK;
 }
 
 /*
@@ -330,13 +330,13 @@ static int hw_opendev(int device_index)
 
 	if (!(sdi = zp_open_device(device_index))) {
 		g_warning("unable to open device");
-		return SIGROK_ERR;
+		return SR_ERR;
 	}
 
 	err = libusb_claim_interface(sdi->usb->devhdl, USB_INTERFACE);
 	if (err != 0) {
 		g_warning("Unable to claim interface: %d", err);
-		return SIGROK_ERR;
+		return SR_ERR;
 	}
 	analyzer_reset(sdi->usb->devhdl);
 	analyzer_initialize(sdi->usb->devhdl);
@@ -361,11 +361,11 @@ static int hw_opendev(int device_index)
 	if (cur_samplerate == 0) {
 		/* Samplerate hasn't been set. Default to the slowest one. */
 		if (hw_set_configuration(device_index, HWCAP_SAMPLERATE,
-		     &samplerates.low) == SIGROK_ERR)
-			return SIGROK_ERR;
+		     &samplerates.low) == SR_ERR)
+			return SR_ERR;
 	}
 
-	return SIGROK_OK;
+	return SR_OK;
 }
 
 static void hw_closedev(int device_index)
@@ -453,7 +453,7 @@ static int set_configuration_samplerate(uint64_t samplerate)
 
 	cur_samplerate = samplerate;
 
-	return SIGROK_OK;
+	return SR_OK;
 }
 
 static int hw_set_configuration(int device_index, int capability, void *value)
@@ -462,7 +462,7 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 	uint64_t *tmp_u64;
 
 	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
-		return SIGROK_ERR;
+		return SR_ERR;
 
 	switch (capability) {
 	case HWCAP_SAMPLERATE:
@@ -473,9 +473,9 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 	case HWCAP_LIMIT_SAMPLES:
 		tmp_u64 = value;
 		limit_samples = *tmp_u64;
-		return SIGROK_OK;
+		return SR_OK;
 	default:
-		return SIGROK_ERR;
+		return SR_ERR;
 	}
 }
 
@@ -489,7 +489,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	unsigned char *buf;
 
 	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
-		return SIGROK_ERR;
+		return SR_ERR;
 
 	/* push configured settings to device */
 	analyzer_configure(sdi->usb->devhdl);
@@ -518,7 +518,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 
 	buf = g_malloc(PACKET_SIZE);
 	if (!buf)
-		return SIGROK_ERR;
+		return SR_ERR;
 	analyzer_read_start(sdi->usb->devhdl);
 	/* Send the incoming transfer to the session bus. */
 	for (packet_num = 0; packet_num < (memory_size * 4 / PACKET_SIZE);
@@ -541,7 +541,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	packet.type = DF_END;
 	session_bus(session_device_id, &packet);
 
-	return SIGROK_OK;
+	return SR_OK;
 }
 
 /* This stops acquisition on ALL devices, ignoring device_index. */

@@ -193,7 +193,7 @@ int serial_set_params(int fd, int speed, int bits, int parity, int stopbits,
 
 	if (!GetCommState(hdl, &dcb)) {
 		/* TODO: Error handling. */
-		return SIGROK_ERR;
+		return SR_ERR;
 	}
 
 	/* TODO: Rename 'speed' to 'baudrate'. */
@@ -224,7 +224,7 @@ int serial_set_params(int fd, int speed, int bits, int parity, int stopbits,
 
 	if (!SetCommState(hdl, &dcb)) {
 		/* TODO: Error handling. */
-		return SIGROK_ERR;
+		return SR_ERR;
 	}
 #else
 	struct termios term;
@@ -247,13 +247,13 @@ int serial_set_params(int fd, int speed, int bits, int parity, int stopbits,
 		baud = B460800;
 		break;
 	default:
-		return SIGROK_ERR;
+		return SR_ERR;
 	}
 
 	if (tcgetattr(fd, &term) < 0)
-		return SIGROK_ERR;
+		return SR_ERR;
 	if (cfsetispeed(&term, baud) < 0)
-		return SIGROK_ERR;
+		return SR_ERR;
 
 	term.c_cflag &= ~CSIZE;
 	switch (bits) {
@@ -264,7 +264,7 @@ int serial_set_params(int fd, int speed, int bits, int parity, int stopbits,
 		term.c_cflag |= CS7;
 		break;
 	default:
-		return SIGROK_ERR;
+		return SR_ERR;
 	}
 
 	term.c_cflag &= ~CSTOPB;
@@ -274,7 +274,7 @@ int serial_set_params(int fd, int speed, int bits, int parity, int stopbits,
 	case 2:
 		term.c_cflag |= CSTOPB;
 	default:
-		return SIGROK_ERR;
+		return SR_ERR;
 	}
 
 	term.c_cflag &= ~(IXON | IXOFF | CRTSCTS);
@@ -285,7 +285,7 @@ int serial_set_params(int fd, int speed, int bits, int parity, int stopbits,
 	case 1:
 		term.c_cflag |= CRTSCTS;
 	default:
-		return SIGROK_ERR;
+		return SR_ERR;
 	}
 
 	term.c_iflag &= ~IGNPAR;
@@ -301,12 +301,12 @@ int serial_set_params(int fd, int speed, int bits, int parity, int stopbits,
 		term.c_cflag |= PARENB | PARODD;
 		break;
 	default:
-		return SIGROK_ERR;
+		return SR_ERR;
 	}
 
 	if (tcsetattr(fd, TCSADRAIN, &term) < 0)
-		return SIGROK_ERR;
+		return SR_ERR;
 #endif
 
-	return SIGROK_OK;
+	return SR_OK;
 }

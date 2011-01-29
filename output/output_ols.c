@@ -79,11 +79,11 @@ static int init(struct output *o)
 	time_t t;
 
 	if (!(ctx = calloc(1, sizeof(struct context))))
-		return SIGROK_ERR_MALLOC;
+		return SR_ERR_MALLOC;
 
 	if (!(ctx->header = calloc(1, MAX_HEADER_LEN + 1))) {
 		free(ctx);
-		return SIGROK_ERR_MALLOC;
+		return SR_ERR_MALLOC;
 	}
 
 	o->internal = ctx;
@@ -108,7 +108,7 @@ static int init(struct output *o)
 		if (!(frequency_s = sigrok_samplerate_string(samplerate))) {
 			free(ctx->header);
 			free(ctx);
-			return SIGROK_ERR;
+			return SR_ERR;
 		}
 		snprintf(comment, 127, ols_header_comment,
 			 ctx->num_enabled_probes, num_probes, frequency_s);
@@ -125,7 +125,7 @@ static int init(struct output *o)
 	if (!(frequency_s = sigrok_period_string(samplerate))) {
 		free(ctx->header);
 		free(ctx);
-		return SIGROK_ERR;
+		return SR_ERR;
 	}
 
 	t = time(NULL);
@@ -149,7 +149,7 @@ static int init(struct output *o)
 	if (b < 0) {
 		free(ctx->header);
 		free(ctx);
-		return SIGROK_ERR;
+		return SR_ERR;
 	}
 
 	return 0;
@@ -174,7 +174,7 @@ static int event(struct output *o, int event_type, char **data_out,
 	*data_out = NULL;
 	*length_out = 0;
 
-	return SIGROK_OK;
+	return SR_OK;
 }
 
 static int data(struct output *o, char *data_in, uint64_t length_in,
@@ -193,7 +193,7 @@ static int data(struct output *o, char *data_in, uint64_t length_in,
 		outsize += strlen(ctx->header);
 
 	if (!(outbuf = calloc(1, outsize)))
-		return SIGROK_ERR_MALLOC;
+		return SR_ERR_MALLOC;
 
 	outbuf[0] = '\0';
 	if (ctx->header) {
@@ -215,7 +215,7 @@ static int data(struct output *o, char *data_in, uint64_t length_in,
 	*data_out = outbuf;
 	*length_out = strlen(outbuf);
 
-	return SIGROK_OK;
+	return SR_OK;
 }
 
 struct output_format output_ols = {

@@ -48,10 +48,10 @@ extern "C" {
  * or reused for different #defines later. You can only add new #defines and
  * return codes, but never remove or redefine existing ones.
  */
-#define SIGROK_OK                 0 /* No error */
-#define SIGROK_ERR               -1 /* Generic/unspecified error */
-#define SIGROK_ERR_MALLOC        -2 /* Malloc/calloc/realloc error */
-#define SIGROK_ERR_SAMPLERATE    -3 /* Incorrect samplerate */
+#define SR_OK                 0 /* No error */
+#define SR_ERR               -1 /* Generic/unspecified error */
+#define SR_ERR_MALLOC        -2 /* Malloc/calloc/realloc error */
+#define SR_ERR_SAMPLERATE    -3 /* Incorrect samplerate */
 
 /* limited by uint64_t */
 #define MAX_NUM_PROBES 64

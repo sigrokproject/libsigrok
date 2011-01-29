@@ -34,13 +34,13 @@ static int data(struct output *o, char *data_in, uint64_t length_in,
 	o = o;
 
 	if (!(outbuf = calloc(1, length_in)))
-		return SIGROK_ERR_MALLOC;
+		return SR_ERR_MALLOC;
 
 	memcpy(outbuf, data_in, length_in);
 	*data_out = outbuf;
 	*length_out = length_in;
 
-	return SIGROK_OK;
+	return SR_OK;
 }
 
 struct output_format output_binary = {

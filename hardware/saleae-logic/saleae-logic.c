@@ -271,7 +271,7 @@ static int configure_probes(GSList *probes)
 				trigger_value[stage] |= probe_bit;
 			stage++;
 			if (stage > NUM_TRIGGER_STAGES)
-				return SIGROK_ERR;
+				return SR_ERR;
 		}
 	}
 
@@ -284,7 +284,7 @@ static int configure_probes(GSList *probes)
 	else
 		trigger_stage = 0;
 
-	return SIGROK_OK;
+	return SR_OK;
 }
 
 /*
@@ -375,23 +375,23 @@ static int hw_opendev(int device_index)
 
 	if (!(sdi = sl_open_device(device_index))) {
 		g_warning("unable to open device");
-		return SIGROK_ERR;
+		return SR_ERR;
 	}
 
 	err = libusb_claim_interface(sdi->usb->devhdl, USB_INTERFACE);
 	if (err != 0) {
 		g_warning("Unable to claim interface: %d", err);
-		return SIGROK_ERR;
+		return SR_ERR;
 	}
 
 	if (cur_samplerate == 0) {
 		/* Samplerate hasn't been set; default to the slowest one. */
 		if (hw_set_configuration(device_index, HWCAP_SAMPLERATE,
-		    &supported_samplerates[0]) == SIGROK_ERR)
-			return SIGROK_ERR;
+		    &supported_samplerates[0]) == SR_ERR)
+			return SR_ERR;
 	}
 
-	return SIGROK_OK;
+	return SR_OK;
 }
 
 static void hw_closedev(int device_index)
@@ -478,7 +478,7 @@ static int set_configuration_samplerate(struct sigrok_device_instance *sdi,
 			break;
 	}
 	if (supported_samplerates[i] == 0)
-		return SIGROK_ERR_SAMPLERATE;
+		return SR_ERR_SAMPLERATE;
 
 	divider = (uint8_t) (48 / (samplerate / 1000000.0)) - 1;
 
@@ -490,11 +490,11 @@ static int set_configuration_samplerate(struct sigrok_device_instance *sdi,
 				   buf, 2, &result, 500);
 	if (ret != 0) {
 		g_warning("failed to set samplerate: %d", ret);
-		return SIGROK_ERR;
+		return SR_ERR;
 	}
 	cur_samplerate = samplerate;
 
-	return SIGROK_OK;
+	return SR_OK;
 }
 
 static int hw_set_configuration(int device_index, int capability, void *value)
@@ -504,7 +504,7 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 	uint64_t *tmp_u64;
 
 	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
-		return SIGROK_ERR;
+		return SR_ERR;
 
 	if (capability == HWCAP_SAMPLERATE) {
 		tmp_u64 = value;
@@ -514,9 +514,9 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 	} else if (capability == HWCAP_LIMIT_SAMPLES) {
 		tmp_u64 = value;
 		limit_samples = *tmp_u64;
-		ret = SIGROK_OK;
+		ret = SR_OK;
 	} else {
-		ret = SIGROK_ERR;
+		ret = SR_ERR;
 	}
 
 	return ret;
@@ -678,12 +678,12 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	unsigned char *buf;
 
 	if (!(sdi = get_sigrok_device_instance(device_instances, device_index)))
-		return SIGROK_ERR;
+		return SR_ERR;
 
 	packet = g_malloc(sizeof(struct datafeed_packet));
 	header = g_malloc(sizeof(struct datafeed_header));
 	if (!packet || !header)
-		return SIGROK_ERR;
+		return SR_ERR;
 
 	/* Start with 2K transfer, subsequently increased to 4K. */
 	size = 2048;
@@ -697,7 +697,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 			/* TODO: Free them all. */
 			libusb_free_transfer(transfer);
 			g_free(buf);
-			return SIGROK_ERR;
+			return SR_ERR;
 		}
 		size = 4096;
 	}
@@ -721,7 +721,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	g_free(header);
 	g_free(packet);
 
-	return SIGROK_OK;
+	return SR_OK;
 }
 
 /* This stops acquisition on ALL devices, ignoring device_index. */

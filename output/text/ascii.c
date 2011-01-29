@@ -50,7 +50,7 @@ int data_ascii(struct output *o, char *data_in, uint64_t length_in,
             * (ctx->num_enabled_probes * max_linelen);
 
 	if (!(outbuf = calloc(1, outsize + 1)))
-		return SIGROK_ERR_MALLOC;
+		return SR_ERR_MALLOC;
 
 	outbuf[0] = '\0';
 	if (ctx->header) {
@@ -111,7 +111,7 @@ int data_ascii(struct output *o, char *data_in, uint64_t length_in,
 	*data_out = outbuf;
 	*length_out = strlen(outbuf);
 
-	return SIGROK_OK;
+	return SR_OK;
 }
 
 

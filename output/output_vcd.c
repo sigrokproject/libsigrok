@@ -59,7 +59,7 @@ static int init(struct output *o)
 	time_t t;
 
 	if (!(ctx = calloc(1, sizeof(struct context))))
-		return SIGROK_ERR_MALLOC;
+		return SR_ERR_MALLOC;
 
 	o->internal = ctx;
 	ctx->num_enabled_probes = 0;
@@ -72,7 +72,7 @@ static int init(struct output *o)
 	}
 	if (ctx->num_enabled_probes > 94) {
 		g_warning("VCD only supports 94 probes.");
-		return SIGROK_ERR;
+		return SR_ERR;
 	}
 
 	ctx->probelist[ctx->num_enabled_probes] = 0;
@@ -97,7 +97,7 @@ static int init(struct output *o)
 		if (!((samplerate_s = sigrok_samplerate_string(ctx->samplerate)))) {
 			g_string_free(ctx->header, TRUE);
 			free(ctx);
-			return SIGROK_ERR;
+			return SR_ERR;
 		}
 		g_string_append_printf(ctx->header, vcd_header_comment,
 				 ctx->num_enabled_probes, num_probes, samplerate_s);
@@ -115,7 +115,7 @@ static int init(struct output *o)
 	if (!(frequency_s = sigrok_period_string(ctx->period))) {
 		g_string_free(ctx->header, TRUE);
 		free(ctx);
-		return SIGROK_ERR;
+		return SR_ERR;
 	}
 	g_string_append_printf(ctx->header, "$timescale %s $end\n", frequency_s);
 	free(frequency_s);
@@ -135,10 +135,10 @@ static int init(struct output *o)
 	if (!(ctx->prevbits = calloc(sizeof(int), num_probes))) {
 		g_string_free(ctx->header, TRUE);
 		free(ctx);
-		return SIGROK_ERR_MALLOC;
+		return SR_ERR_MALLOC;
 	}
 
-	return SIGROK_OK;
+	return SR_OK;
 }
 
 static int event(struct output *o, int event_type, char **data_out,
@@ -162,7 +162,7 @@ static int event(struct output *o, int event_type, char **data_out,
 		break;
 	}
 
-	return SIGROK_OK;
+	return SR_OK;
 }
 
 static int data(struct output *o, char *data_in, uint64_t length_in,
@@ -219,7 +219,7 @@ static int data(struct output *o, char *data_in, uint64_t length_in,
 	*length_out = out->len;
 	g_string_free(out, FALSE);
 
-	return SIGROK_OK;
+	return SR_OK;
 }
 
 struct output_format output_vcd = {

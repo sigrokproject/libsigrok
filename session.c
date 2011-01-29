@@ -89,13 +89,13 @@ int session_device_add(struct device *device)
 
 	if (device->plugin && device->plugin->open) {
 		ret = device->plugin->open(device->plugin_index);
-		if (ret != SIGROK_OK)
+		if (ret != SR_OK)
 			return ret;
 	}
 
 	session->devices = g_slist_append(session->devices, device);
 
-	return SIGROK_OK;
+	return SR_OK;
 }
 
 void session_pa_clear(void)
@@ -135,7 +135,7 @@ int session_start(void)
 	for (l = session->devices; l; l = l->next) {
 		device = l->data;
 		if ((ret = device->plugin->start_acquisition(
-				device->plugin_index, device)) != SIGROK_OK)
+				device->plugin_index, device)) != SR_OK)
 			break;
 	}
 
@@ -244,23 +244,23 @@ int session_save(char *filename)
 	/* Quietly delete it first, libzip wants replace ops otherwise. */
 	unlink(newfn);
 	if (!(zipfile = zip_open(newfn, ZIP_CREATE, &error)))
-		return SIGROK_ERR;
+		return SR_ERR;
 	g_free(newfn);
 
 	/* "version" */
 	version[0] = '1';
 	if (!(versrc = zip_source_buffer(zipfile, version, 1, 0)))
-		return SIGROK_ERR;
+		return SR_ERR;
 	if (zip_add(zipfile, "version", versrc) == -1) {
 		g_message("error saving version into zipfile: %s",
 			  zip_strerror(zipfile));
-		return SIGROK_ERR;
+		return SR_ERR;
 	}
 
 	/* init "metadata" */
 	strcpy(metafile, "sigrok-meta-XXXXXX");
 	if ((tmpfile = g_mkstemp(metafile)) == -1)
-		return SIGROK_ERR;
+		return SR_ERR;
 	close(tmpfile);
 	meta = fopen(metafile, "wb");
 	fprintf(meta, "sigrok version = %s\n", PACKAGE_VERSION);
@@ -303,28 +303,28 @@ int session_save(char *filename)
 			}
 			if (!(logicsrc = zip_source_buffer(zipfile, buf,
 				       ds->num_units * ds->ds_unitsize, TRUE)))
-				return SIGROK_ERR;
+				return SR_ERR;
 			snprintf(rawname, 15, "logic-%d", devcnt);
 			if (zip_add(zipfile, rawname, logicsrc) == -1)
-				return SIGROK_ERR;
+				return SR_ERR;
 		}
 		devcnt++;
 	}
 	fclose(meta);
 
 	if (!(metasrc = zip_source_file(zipfile, metafile, 0, -1)))
-		return SIGROK_ERR;
+		return SR_ERR;
 	if (zip_add(zipfile, "metadata", metasrc) == -1)
-		return SIGROK_ERR;
+		return SR_ERR;
 
 	if ((ret = zip_close(zipfile)) == -1) {
 		g_message("error saving zipfile: %s", zip_strerror(zipfile));
-		return SIGROK_ERR;
+		return SR_ERR;
 	}
 
 	unlink(metafile);
 
-	return SIGROK_OK;
+	return SR_OK;
 }
 
 void session_source_add(int fd, int events, int timeout,
