@@ -605,7 +605,7 @@ static int receive_data(int fd, int revents, void *user_data)
 {
 	struct sr_device_instance *sdi = user_data;
 	struct mso *mso = sdi->priv;
-	struct datafeed_packet packet;
+	struct sr_datafeed_packet packet;
 	uint8_t in[1024], logic_out[1024];
 	double analog_out[1024];
 	size_t i, s;
@@ -668,8 +668,8 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 {
 	struct sr_device_instance *sdi;
 	struct mso *mso;
-	struct datafeed_packet packet;
-	struct datafeed_header header;
+	struct sr_datafeed_packet packet;
+	struct sr_datafeed_header header;
 	int ret = SR_ERR;
 
 	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
@@ -726,7 +726,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	source_add(sdi->serial->fd, G_IO_IN, -1, receive_data, sdi);
 
 	packet.type = DF_HEADER;
-	packet.length = sizeof(struct datafeed_header);
+	packet.length = sizeof(struct sr_datafeed_header);
 	packet.payload = (unsigned char *) &header;
 	header.feed_version = 1;
 	gettimeofday(&header.starttime, NULL);
@@ -742,7 +742,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 /* FIXME */
 static void hw_stop_acquisition(int device_index, gpointer session_device_id)
 {
-	struct datafeed_packet packet;
+	struct sr_datafeed_packet packet;
 
 	device_index = device_index;
 

@@ -541,7 +541,7 @@ void receive_transfer(struct libusb_transfer *transfer)
 {
 	static int num_samples = 0;
 	static int empty_transfer_count = 0;
-	struct datafeed_packet packet;
+	struct sr_datafeed_packet packet;
 	void *user_data;
 	int cur_buflen, trigger_offset, i;
 	unsigned char *cur_buf, *new_buf;
@@ -670,8 +670,8 @@ void receive_transfer(struct libusb_transfer *transfer)
 static int hw_start_acquisition(int device_index, gpointer session_device_id)
 {
 	struct sr_device_instance *sdi;
-	struct datafeed_packet *packet;
-	struct datafeed_header *header;
+	struct sr_datafeed_packet *packet;
+	struct sr_datafeed_header *header;
 	struct libusb_transfer *transfer;
 	const struct libusb_pollfd **lupfd;
 	int size, i;
@@ -680,8 +680,8 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
 		return SR_ERR;
 
-	packet = g_malloc(sizeof(struct datafeed_packet));
-	header = g_malloc(sizeof(struct datafeed_header));
+	packet = g_malloc(sizeof(struct sr_datafeed_packet));
+	header = g_malloc(sizeof(struct sr_datafeed_header));
 	if (!packet || !header)
 		return SR_ERR;
 
@@ -709,7 +709,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	free(lupfd);
 
 	packet->type = DF_HEADER;
-	packet->length = sizeof(struct datafeed_header);
+	packet->length = sizeof(struct sr_datafeed_header);
 	packet->payload = (unsigned char *)header;
 	header->feed_version = 1;
 	gettimeofday(&header->starttime, NULL);
@@ -727,7 +727,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 /* This stops acquisition on ALL devices, ignoring device_index. */
 static void hw_stop_acquisition(int device_index, gpointer session_device_id)
 {
-	struct datafeed_packet packet;
+	struct sr_datafeed_packet packet;
 
 	/* Avoid compiler warnings. */
 	device_index = device_index;

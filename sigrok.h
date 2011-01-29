@@ -92,7 +92,7 @@ struct protocol {
 	int stackindex;
 };
 
-/* datafeed_packet.type values */
+/* sr_datafeed_packet.type values */
 enum {
 	DF_HEADER,
 	DF_END,
@@ -102,14 +102,14 @@ enum {
 	DF_PD,
 };
 
-struct datafeed_packet {
+struct sr_datafeed_packet {
 	uint16_t type;
 	uint64_t length;
 	uint16_t unitsize;
 	void *payload;
 };
 
-struct datafeed_header {
+struct sr_datafeed_header {
 	int feed_version;
 	struct timeval starttime;
 	uint64_t samplerate;

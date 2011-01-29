@@ -58,8 +58,8 @@ static int init(struct sr_input *in)
 
 static int loadfile(struct sr_input *in, const char *filename)
 {
-	struct datafeed_header header;
-	struct datafeed_packet packet;
+	struct sr_datafeed_header header;
+	struct sr_datafeed_packet packet;
 	char buffer[CHUNKSIZE];
 	int fd, size, num_probes;
 
@@ -76,7 +76,7 @@ static int loadfile(struct sr_input *in, const char *filename)
 	header.samplerate = 0;
 	gettimeofday(&header.starttime, NULL);
 	packet.type = DF_HEADER;
-	packet.length = sizeof(struct datafeed_header);
+	packet.length = sizeof(struct sr_datafeed_header);
 	packet.payload = &header;
 	session_bus(in->vdevice, &packet);
 

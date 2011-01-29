@@ -482,8 +482,8 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 static int hw_start_acquisition(int device_index, gpointer session_device_id)
 {
 	struct sr_device_instance *sdi;
-	struct datafeed_packet packet;
-	struct datafeed_header header;
+	struct sr_datafeed_packet packet;
+	struct sr_datafeed_header header;
 	int res;
 	unsigned int packet_num;
 	unsigned char *buf;
@@ -506,7 +506,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 		  analyzer_get_trigger_address(sdi->usb->devhdl));
 
 	packet.type = DF_HEADER;
-	packet.length = sizeof(struct datafeed_header);
+	packet.length = sizeof(struct sr_datafeed_header);
 	packet.payload = (unsigned char *)&header;
 	header.feed_version = 1;
 	gettimeofday(&header.starttime, NULL);
@@ -547,7 +547,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 /* This stops acquisition on ALL devices, ignoring device_index. */
 static void hw_stop_acquisition(int device_index, gpointer session_device_id)
 {
-	struct datafeed_packet packet;
+	struct sr_datafeed_packet packet;
 	struct sr_device_instance *sdi;
 
 	packet.type = DF_END;

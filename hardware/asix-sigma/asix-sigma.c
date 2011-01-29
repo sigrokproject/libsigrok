@@ -827,7 +827,7 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 	struct sigma *sigma = sdi->priv;
 	uint16_t tsdiff, ts;
 	uint16_t samples[65536 * sigma->samples_per_event];
-	struct datafeed_packet packet;
+	struct sr_datafeed_packet packet;
 	int i, j, k, l, numpad, tosend;
 	size_t n = 0, sent = 0;
 	int clustersize = EVENTS_PER_CLUSTER * sigma->samples_per_event;
@@ -954,7 +954,7 @@ static int receive_data(int fd, int revents, void *user_data)
 {
 	struct sr_device_instance *sdi = user_data;
 	struct sigma *sigma = sdi->priv;
-	struct datafeed_packet packet;
+	struct sr_datafeed_packet packet;
 	const int chunks_per_read = 32;
 	unsigned char buf[chunks_per_read * CHUNK_SIZE];
 	int bufsz, numchunks, i, newchunks;
@@ -1200,8 +1200,8 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 {
 	struct sr_device_instance *sdi;
 	struct sigma *sigma;
-	struct datafeed_packet packet;
-	struct datafeed_header header;
+	struct sr_datafeed_packet packet;
+	struct sr_datafeed_header header;
 	struct clockselect_50 clockselect;
 	int frac;
 	uint8_t triggerselect;
@@ -1296,7 +1296,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 
 	/* Send header packet to the session bus. */
 	packet.type = DF_HEADER;
-	packet.length = sizeof(struct datafeed_header);
+	packet.length = sizeof(struct sr_datafeed_header);
 	packet.payload = &header;
 	header.feed_version = 1;
 	gettimeofday(&header.starttime, NULL);

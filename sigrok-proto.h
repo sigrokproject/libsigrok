@@ -91,7 +91,7 @@ typedef void (*source_callback_remove) (int fd);
 typedef void (*source_callback_add) (int fd, int events, int timeout,
 		receive_data_callback callback, void *user_data);
 typedef void (*datafeed_callback) (struct device *device,
-				 struct datafeed_packet *packet);
+				 struct sr_datafeed_packet *packet);
 
 /* Session setup */
 struct session *session_load(const char *filename);
@@ -113,7 +113,7 @@ int session_start(void);
 void session_run(void);
 void session_halt(void);
 void session_stop(void);
-void session_bus(struct device *device, struct datafeed_packet *packet);
+void session_bus(struct device *device, struct sr_datafeed_packet *packet);
 void make_metadata(char *filename);
 int session_save(char *filename);
 void session_source_add(int fd, int events, int timeout,

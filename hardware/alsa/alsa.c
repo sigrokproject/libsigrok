@@ -203,7 +203,7 @@ static int receive_data(int fd, int revents, void *user_data)
 {
 	struct sr_device_instance *sdi = user_data;
 	struct alsa *alsa = sdi->priv;
-	struct datafeed_packet packet;
+	struct sr_datafeed_packet packet;
 	struct analog_sample *sample;
 	unsigned int sample_size = sizeof(struct analog_sample) +
 		(NUM_PROBES * sizeof(struct analog_probe));
@@ -260,8 +260,8 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 {
 	struct sr_device_instance *sdi;
 	struct alsa *alsa;
-	struct datafeed_packet packet;
-	struct datafeed_header header;
+	struct sr_datafeed_packet packet;
+	struct sr_datafeed_header header;
 	struct pollfd *ufds;
 	int count;
 	int err;
@@ -334,7 +334,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	source_add(ufds[0].fd, ufds[0].events, 10, receive_data, sdi);
 
 	packet.type = DF_HEADER;
-	packet.length = sizeof(struct datafeed_header);
+	packet.length = sizeof(struct sr_datafeed_header);
 	packet.payload = (unsigned char *) &header;
 	header.feed_version = 1;
 	gettimeofday(&header.starttime, NULL);

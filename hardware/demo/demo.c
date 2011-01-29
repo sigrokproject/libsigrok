@@ -282,7 +282,7 @@ static void thread_func(void *data)
 /* Callback handling data */
 static int receive_data(int fd, int revents, void *user_data)
 {
-	struct datafeed_packet packet;
+	struct sr_datafeed_packet packet;
 	char c[BUFSIZE];
 	gsize z;
 
@@ -320,8 +320,8 @@ static int receive_data(int fd, int revents, void *user_data)
 
 static int hw_start_acquisition(int device_index, gpointer session_device_id)
 {
-	struct datafeed_packet *packet;
-	struct datafeed_header *header;
+	struct sr_datafeed_packet *packet;
+	struct sr_datafeed_header *header;
 	struct databag *mydata;
 
 	mydata = malloc(sizeof(struct databag));
@@ -359,13 +359,13 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	if (!my_thread)
 		return SR_ERR;
 
-	packet = malloc(sizeof(struct datafeed_packet));
-	header = malloc(sizeof(struct datafeed_header));
+	packet = malloc(sizeof(struct sr_datafeed_packet));
+	header = malloc(sizeof(struct sr_datafeed_header));
 	if (!packet || !header)
 		return SR_ERR_MALLOC;
 
 	packet->type = DF_HEADER;
-	packet->length = sizeof(struct datafeed_header);
+	packet->length = sizeof(struct sr_datafeed_header);
 	packet->payload = (unsigned char *)header;
 	header->feed_version = 1;
 	gettimeofday(&header->starttime, NULL);

@@ -494,7 +494,7 @@ static int receive_data(int fd, int revents, void *user_data)
 	static unsigned char tmp_sample[4];
 	static unsigned char *raw_sample_buf = NULL;
 	int count, buflen, num_channels, offset, i, j;
-	struct datafeed_packet packet;
+	struct sr_datafeed_packet packet;
 	unsigned char byte, *buffer;
 
 	if (num_transfers++ == 0) {
@@ -650,8 +650,8 @@ static int receive_data(int fd, int revents, void *user_data)
 static int hw_start_acquisition(int device_index, gpointer session_device_id)
 {
 	int i;
-	struct datafeed_packet *packet;
-	struct datafeed_header *header;
+	struct sr_datafeed_packet *packet;
+	struct sr_datafeed_header *header;
 	struct sr_device_instance *sdi;
 	uint32_t trigger_config[4];
 	uint32_t data;
@@ -757,12 +757,12 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 		   session_device_id);
 
 	/* Send header packet to the session bus. */
-	packet = g_malloc(sizeof(struct datafeed_packet));
-	header = g_malloc(sizeof(struct datafeed_header));
+	packet = g_malloc(sizeof(struct sr_datafeed_packet));
+	header = g_malloc(sizeof(struct sr_datafeed_header));
 	if (!packet || !header)
 		return SR_ERR;
 	packet->type = DF_HEADER;
-	packet->length = sizeof(struct datafeed_header);
+	packet->length = sizeof(struct sr_datafeed_header);
 	packet->payload = (unsigned char *)header;
 	header->feed_version = 1;
 	gettimeofday(&header->starttime, NULL);
@@ -779,7 +779,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 
 static void hw_stop_acquisition(int device_index, gpointer session_device_id)
 {
-	struct datafeed_packet packet;
+	struct sr_datafeed_packet packet;
 
 	/* Avoid compiler warnings. */
 	device_index = device_index;

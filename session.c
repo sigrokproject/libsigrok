@@ -209,7 +209,7 @@ void session_stop(void)
 
 }
 
-void session_bus(struct device *device, struct datafeed_packet *packet)
+void session_bus(struct device *device, struct sr_datafeed_packet *packet)
 {
 	GSList *l;
 	datafeed_callback cb;
