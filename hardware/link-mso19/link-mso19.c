@@ -752,10 +752,10 @@ static void hw_stop_acquisition(int device_index, gpointer session_device_id)
 
 struct device_plugin link_mso19_plugin_info = {
 	.name = "link-mso19",
+	.longname = "Link Instruments MSO-19",
 	.api_version = 1,
 	.init = hw_init,
 	.cleanup = hw_cleanup,
-
 	.open = hw_opendev,
 	.close = hw_closedev,
 	.get_device_info = hw_get_device_info,

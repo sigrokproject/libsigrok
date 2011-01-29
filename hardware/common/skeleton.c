@@ -61,6 +61,7 @@ static void hw_stop_acquisition(int device_index, gpointer session_device_id)
 
 struct device_plugin skeleton_plugin_info = {
 	"skeleton",
+	"Skeleton driver",
 	1,
 	hw_init,
 	hw_cleanup,

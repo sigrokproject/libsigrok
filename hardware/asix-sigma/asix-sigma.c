@@ -1351,6 +1351,7 @@ static void hw_stop_acquisition(int device_index, gpointer session_device_id)
 
 struct device_plugin asix_sigma_plugin_info = {
 	"asix-sigma",
+	"ASIX SIGMA",
 	1,
 	hw_init,
 	hw_cleanup,

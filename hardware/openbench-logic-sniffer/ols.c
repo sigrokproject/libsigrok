@@ -791,6 +791,7 @@ static void hw_stop_acquisition(int device_index, gpointer session_device_id)
 
 struct device_plugin ols_plugin_info = {
 	"ols",
+	"Openbench Logic Sniffer",
 	1,
 	hw_init,
 	hw_cleanup,

@@ -562,6 +562,7 @@ static void hw_stop_acquisition(int device_index, gpointer session_device_id)
 
 struct device_plugin zeroplus_logic_cube_plugin_info = {
 	"zeroplus-logic-cube",
+	"Zeroplus Logic Cube LAP-C series",
 	1,
 	hw_init,
 	hw_cleanup,

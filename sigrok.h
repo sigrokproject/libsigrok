@@ -315,6 +315,7 @@ struct samplerates {
 struct device_plugin {
 	/* Plugin-specific */
 	char *name;
+	char *longname;
 	int api_version;
 	int (*init) (char *deviceinfo);
 	void (*cleanup) (void);

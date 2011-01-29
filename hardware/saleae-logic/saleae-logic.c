@@ -742,10 +742,10 @@ static void hw_stop_acquisition(int device_index, gpointer session_device_id)
 
 struct device_plugin saleae_logic_plugin_info = {
 	"saleae-logic",
+	"Saleae Logic",
 	1,
 	hw_init,
 	hw_cleanup,
-
 	hw_opendev,
 	hw_closedev,
 	hw_get_device_info,
