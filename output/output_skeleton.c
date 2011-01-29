@@ -20,24 +20,24 @@
 #include <stdint.h>
 #include <sigrok.h>
 
-static int init(struct output *o)
+static int init(struct sr_output *o)
 {
 	return 0;
 }
 
-static int data(struct output *o, char *data_in, uint64_t length_in,
+static int data(struct sr_output *o, char *data_in, uint64_t length_in,
 		char **data_out, uint64_t *length_out)
 {
 	return SR_OK;
 }
 
-static int event(struct output *o, int event_type, char **data_out,
+static int event(struct sr_output *o, int event_type, char **data_out,
 		 uint64_t *length_out)
 {
 	return SR_OK;
 }
 
-struct output_format output_foo = {
+struct sr_output_format output_foo = {
 	"foo",
 	"The foo format",
 	DF_LOGIC,

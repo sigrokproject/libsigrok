@@ -19,15 +19,15 @@
 
 #include <sigrok.h>
 
-extern struct input_format input_binary;
+extern struct sr_input_format input_binary;
 
-struct input_format *input_module_list[] = {
+static struct sr_input_format *input_module_list[] = {
 	/* This one has to be last, because it will take any input. */
 	&input_binary,
 	NULL,
 };
 
-struct input_format **input_list(void)
+struct sr_input_format **sr_input_list(void)
 {
 	return input_module_list;
 }

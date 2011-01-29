@@ -48,21 +48,21 @@ struct context {
 };
 
 void flush_linebufs(struct context *ctx, char *outbuf);
-int init(struct output *o, int default_spl, enum outputmode mode);
-int event(struct output *o, int event_type, char **data_out,
+int init(struct sr_output *o, int default_spl, enum outputmode mode);
+int event(struct sr_output *o, int event_type, char **data_out,
 		 uint64_t *length_out);
 
 
-int init_bits(struct output *o);
-int data_bits(struct output *o, char *data_in, uint64_t length_in,
+int init_bits(struct sr_output *o);
+int data_bits(struct sr_output *o, char *data_in, uint64_t length_in,
 		     char **data_out, uint64_t *length_out);
 
-int init_hex(struct output *o);
-int data_hex(struct output *o, char *data_in, uint64_t length_in,
+int init_hex(struct sr_output *o);
+int data_hex(struct sr_output *o, char *data_in, uint64_t length_in,
 		     char **data_out, uint64_t *length_out);
 
-int init_ascii(struct output *o);
-int data_ascii(struct output *o, char *data_in, uint64_t length_in,
+int init_ascii(struct sr_output *o);
+int data_ascii(struct sr_output *o, char *data_in, uint64_t length_in,
 		     char **data_out, uint64_t *length_out);
 
 

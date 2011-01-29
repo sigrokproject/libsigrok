@@ -25,12 +25,12 @@
 #include "text.h"
 
 
-int init_hex(struct output *o)
+int init_hex(struct sr_output *o)
 {
 	return init(o, DEFAULT_BPL_HEX, MODE_HEX);
 }
 
-int data_hex(struct output *o, char *data_in, uint64_t length_in,
+int data_hex(struct sr_output *o, char *data_in, uint64_t length_in,
 		    char **data_out, uint64_t *length_out)
 {
 	struct context *ctx;
@@ -91,7 +91,7 @@ int data_hex(struct output *o, char *data_in, uint64_t length_in,
 }
 
 
-struct output_format output_text_hex = {
+struct sr_output_format output_text_hex = {
 	"hex",
 	"Hexadecimal (takes argument, default 192)",
 	DF_LOGIC,

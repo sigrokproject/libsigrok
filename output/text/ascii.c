@@ -25,12 +25,12 @@
 #include "text.h"
 
 
-int init_ascii(struct output *o)
+int init_ascii(struct sr_output *o)
 {
 	return init(o, DEFAULT_BPL_ASCII, MODE_ASCII);
 }
 
-int data_ascii(struct output *o, char *data_in, uint64_t length_in,
+int data_ascii(struct sr_output *o, char *data_in, uint64_t length_in,
 		     char **data_out, uint64_t *length_out)
 {
 	struct context *ctx;
@@ -115,7 +115,7 @@ int data_ascii(struct output *o, char *data_in, uint64_t length_in,
 }
 
 
-struct output_format output_text_ascii = {
+struct sr_output_format output_text_ascii = {
 	"ascii",
 	"ASCII (takes argument, default 74)",
 	DF_LOGIC,

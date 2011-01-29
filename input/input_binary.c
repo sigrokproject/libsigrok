@@ -39,7 +39,7 @@ static int format_match(const char *filename)
 	return TRUE;
 }
 
-static int init(struct input *in)
+static int init(struct sr_input *in)
 {
 	int num_probes;
 
@@ -56,7 +56,7 @@ static int init(struct input *in)
 	return SR_OK;
 }
 
-static int loadfile(struct input *in, const char *filename)
+static int loadfile(struct sr_input *in, const char *filename)
 {
 	struct datafeed_header header;
 	struct datafeed_packet packet;
@@ -98,7 +98,7 @@ static int loadfile(struct input *in, const char *filename)
 	return SR_OK;
 }
 
-struct input_format input_binary = {
+struct sr_input_format input_binary = {
 	"binary",
 	"Raw binary",
 	format_match,

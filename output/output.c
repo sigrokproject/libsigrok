@@ -19,17 +19,17 @@
 
 #include <sigrok.h>
 
-extern struct output_format output_text_bits;
-extern struct output_format output_text_hex;
-extern struct output_format output_text_ascii;
-extern struct output_format output_binary;
-extern struct output_format output_vcd;
-extern struct output_format output_ols;
-extern struct output_format output_gnuplot;
-extern struct output_format output_analog_bits;
-extern struct output_format output_analog_gnuplot;
+extern struct sr_output_format output_text_bits;
+extern struct sr_output_format output_text_hex;
+extern struct sr_output_format output_text_ascii;
+extern struct sr_output_format output_binary;
+extern struct sr_output_format output_vcd;
+extern struct sr_output_format output_ols;
+extern struct sr_output_format output_gnuplot;
+extern struct sr_output_format output_analog_bits;
+extern struct sr_output_format output_analog_gnuplot;
 
-struct output_format *output_module_list[] = {
+static struct sr_output_format *output_module_list[] = {
 	&output_text_bits,
 	&output_text_hex,
 	&output_text_ascii,
@@ -42,7 +42,7 @@ struct output_format *output_module_list[] = {
 	NULL,
 };
 
-struct output_format **output_list(void)
+struct sr_output_format **sr_output_list(void)
 {
 	return output_module_list;
 }

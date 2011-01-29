@@ -122,11 +122,11 @@ void session_source_remove(int fd);
 
 /*--- input/input.c ---------------------------------------------------------*/
 
-struct input_format **input_list(void);
+struct sr_input_format **sr_input_list(void);
 
 /*--- output/output.c -------------------------------------------------------*/
 
-struct output_format **output_list(void);
+struct sr_output_format **sr_output_list(void);
 
 /*--- output/common.c -------------------------------------------------------*/
 

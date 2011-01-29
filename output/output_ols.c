@@ -66,7 +66,7 @@ struct context {
 const char *ols_header_comment = "\
 # Comment: Acquisition with %d/%d probes at %s";
 
-static int init(struct output *o)
+static int init(struct sr_output *o)
 {
 	struct context *ctx;
 	struct probe *probe;
@@ -155,7 +155,7 @@ static int init(struct output *o)
 	return 0;
 }
 
-static int event(struct output *o, int event_type, char **data_out,
+static int event(struct sr_output *o, int event_type, char **data_out,
 		 uint64_t *length_out)
 {
 	struct context *ctx;
@@ -177,7 +177,7 @@ static int event(struct output *o, int event_type, char **data_out,
 	return SR_OK;
 }
 
-static int data(struct output *o, char *data_in, uint64_t length_in,
+static int data(struct sr_output *o, char *data_in, uint64_t length_in,
 		char **data_out, uint64_t *length_out)
 {
 	struct context *ctx;
@@ -218,7 +218,7 @@ static int data(struct output *o, char *data_in, uint64_t length_in,
 	return SR_OK;
 }
 
-struct output_format output_ols = {
+struct sr_output_format output_ols = {
 	"ols",
 	"OpenBench Logic Sniffer",
 	DF_LOGIC,

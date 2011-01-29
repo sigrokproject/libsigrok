@@ -25,12 +25,12 @@
 #include "text.h"
 
 
-int init_bits(struct output *o)
+int init_bits(struct sr_output *o)
 {
 	return init(o, DEFAULT_BPL_BITS, MODE_BITS);
 }
 
-int data_bits(struct output *o, char *data_in, uint64_t length_in,
+int data_bits(struct sr_output *o, char *data_in, uint64_t length_in,
 		     char **data_out, uint64_t *length_out)
 {
 	struct context *ctx;
@@ -102,7 +102,7 @@ int data_bits(struct output *o, char *data_in, uint64_t length_in,
 }
 
 
-struct output_format output_text_bits = {
+struct sr_output_format output_text_bits = {
 	"bits",
 	"Bits (takes argument, default 64)",
 	DF_LOGIC,

@@ -129,35 +129,35 @@ struct analog_sample {
 	struct analog_probe probes[];
 };
 
-struct input {
-	struct input_format *format;
+struct sr_input {
+	struct sr_input_format *format;
 	char *param;
 	struct device *vdevice;
 };
 
-struct input_format {
+struct sr_input_format {
 	char *extension;
 	char *description;
 	int (*format_match) (const char *filename);
-	int (*init) (struct input *in);
-	int (*loadfile) (struct input *in, const char *filename);
+	int (*init) (struct sr_input *in);
+	int (*loadfile) (struct sr_input *in, const char *filename);
 };
 
-struct output {
-	struct output_format *format;
+struct sr_output {
+	struct sr_output_format *format;
 	struct device *device;
 	char *param;
 	void *internal;
 };
 
-struct output_format {
+struct sr_output_format {
 	char *extension;
 	char *description;
 	int df_type;
-	int (*init) (struct output *o);
-	int (*data) (struct output *o, char *data_in, uint64_t length_in,
+	int (*init) (struct sr_output *o);
+	int (*data) (struct sr_output *o, char *data_in, uint64_t length_in,
 		     char **data_out, uint64_t *length_out);
-	int (*event) (struct output *o, int event_type, char **data_out,
+	int (*event) (struct sr_output *o, int event_type, char **data_out,
 		      uint64_t *length_out);
 };
 

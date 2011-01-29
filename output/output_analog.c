@@ -89,7 +89,7 @@ static void flush_linebufs(struct context *ctx, char *outbuf)
 	memset(ctx->linebuf, 0, i * ctx->linebuf_len);
 }
 
-static int init(struct output *o, int default_spl, enum outputmode mode)
+static int init(struct sr_output *o, int default_spl, enum outputmode mode)
 {
 	struct context *ctx;
 	struct probe *probe;
@@ -163,7 +163,7 @@ static int init(struct output *o, int default_spl, enum outputmode mode)
 	return SR_OK;
 }
 
-static int event(struct output *o, int event_type, char **data_out,
+static int event(struct sr_output *o, int event_type, char **data_out,
 		 uint64_t *length_out)
 {
 	struct context *ctx;
@@ -197,12 +197,12 @@ static int event(struct output *o, int event_type, char **data_out,
 	return SR_OK;
 }
 
-static int init_bits(struct output *o)
+static int init_bits(struct sr_output *o)
 {
 	return init(o, DEFAULT_BPL_BITS, MODE_BITS);
 }
 
-static int data_bits(struct output *o, char *data_in, uint64_t length_in,
+static int data_bits(struct sr_output *o, char *data_in, uint64_t length_in,
 		     char **data_out, uint64_t *length_out)
 {
 	struct context *ctx;
@@ -283,12 +283,12 @@ static int data_bits(struct output *o, char *data_in, uint64_t length_in,
 	return SR_OK;
 }
 #if 0
-static int init_hex(struct output *o)
+static int init_hex(struct sr_output *o)
 {
 	return init(o, DEFAULT_BPL_HEX, MODE_HEX);
 }
 
-static int data_hex(struct output *o, char *data_in, uint64_t length_in,
+static int data_hex(struct sr_output *o, char *data_in, uint64_t length_in,
 		    char **data_out, uint64_t *length_out)
 {
 	struct context *ctx;
@@ -348,12 +348,12 @@ static int data_hex(struct output *o, char *data_in, uint64_t length_in,
 	return SR_OK;
 }
 
-static int init_ascii(struct output *o)
+static int init_ascii(struct sr_output *o)
 {
 	return init(o, DEFAULT_BPL_ASCII, MODE_ASCII);
 }
 
-static int data_ascii(struct output *o, char *data_in, uint64_t length_in,
+static int data_ascii(struct sr_output *o, char *data_in, uint64_t length_in,
 		     char **data_out, uint64_t *length_out)
 {
 	struct context *ctx;
@@ -438,7 +438,7 @@ static int data_ascii(struct output *o, char *data_in, uint64_t length_in,
 }
 #endif
 
-struct output_format output_analog_bits = {
+struct sr_output_format output_analog_bits = {
 	"analog_bits",
 	"Bits (takes argument, default 64)",
 	DF_ANALOG,
@@ -447,7 +447,7 @@ struct output_format output_analog_bits = {
 	event,
 };
 #if 0
-struct output_format output_analog_hex = {
+struct sr_output_format output_analog_hex = {
 	"analog_hex",
 	"Hexadecimal (takes argument, default 192)",
 	DF_ANALOG,
@@ -456,7 +456,7 @@ struct output_format output_analog_hex = {
 	event,
 };
 
-struct output_format output_analog_ascii = {
+struct sr_output_format output_analog_ascii = {
 	"analog_ascii",
 	"ASCII (takes argument, default 74)",
 	DF_ANALOG,

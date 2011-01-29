@@ -25,7 +25,7 @@
 #include "config.h"
 
 
-static int data(struct output *o, char *data_in, uint64_t length_in,
+static int data(struct sr_output *o, char *data_in, uint64_t length_in,
 		char **data_out, uint64_t *length_out)
 {
 	char *outbuf;
@@ -43,7 +43,7 @@ static int data(struct output *o, char *data_in, uint64_t length_in,
 	return SR_OK;
 }
 
-struct output_format output_binary = {
+struct sr_output_format output_binary = {
 	"binary",
 	"Raw binary",
 	DF_LOGIC,

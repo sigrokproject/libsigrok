@@ -46,7 +46,7 @@ const char *gnuplot_header = "\
 const char *gnuplot_header_comment = "\
 # Comment: Acquisition with %d/%d probes at %s\n";
 
-static int init(struct output *o)
+static int init(struct sr_output *o)
 {
 	struct context *ctx;
 	struct probe *probe;
@@ -119,7 +119,7 @@ static int init(struct output *o)
 	return 0;
 }
 
-static int event(struct output *o, int event_type, char **data_out,
+static int event(struct sr_output *o, int event_type, char **data_out,
 		 uint64_t *length_out)
 {
 	struct context *ctx;
@@ -141,7 +141,7 @@ static int event(struct output *o, int event_type, char **data_out,
 	return SR_OK;
 }
 
-static int data(struct output *o, char *data_in, uint64_t length_in,
+static int data(struct sr_output *o, char *data_in, uint64_t length_in,
 		char **data_out, uint64_t *length_out)
 {
 	struct context *ctx;
@@ -191,7 +191,7 @@ static int data(struct output *o, char *data_in, uint64_t length_in,
 	return SR_OK;
 }
 
-static int analog_init(struct output *o)
+static int analog_init(struct sr_output *o)
 {
 	struct context *ctx;
 	struct probe *probe;
@@ -266,7 +266,7 @@ static int analog_init(struct output *o)
 	return 0;
 }
 
-static int analog_data(struct output *o, char *data_in, uint64_t length_in,
+static int analog_data(struct sr_output *o, char *data_in, uint64_t length_in,
 		char **data_out, uint64_t *length_out)
 {
 	struct context *ctx;
@@ -326,7 +326,7 @@ static int analog_data(struct output *o, char *data_in, uint64_t length_in,
 	return SR_OK;
 }
 
-struct output_format output_gnuplot = {
+struct sr_output_format output_gnuplot = {
 	"gnuplot",
 	"Gnuplot",
 	DF_LOGIC,
@@ -335,7 +335,7 @@ struct output_format output_gnuplot = {
 	event,
 };
 
-struct output_format output_analog_gnuplot = {
+struct sr_output_format output_analog_gnuplot = {
 	"analog_gnuplot",
 	"Gnuplot analog",
 	DF_ANALOG,

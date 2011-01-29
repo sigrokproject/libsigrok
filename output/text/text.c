@@ -64,7 +64,7 @@ void flush_linebufs(struct context *ctx, char *outbuf)
 	memset(ctx->linebuf, 0, i * ctx->linebuf_len);
 }
 
-int init(struct output *o, int default_spl, enum outputmode mode)
+int init(struct sr_output *o, int default_spl, enum outputmode mode)
 {
 	struct context *ctx;
 	struct probe *probe;
@@ -137,7 +137,7 @@ int init(struct output *o, int default_spl, enum outputmode mode)
 	return SR_OK;
 }
 
-int event(struct output *o, int event_type, char **data_out,
+int event(struct sr_output *o, int event_type, char **data_out,
 		 uint64_t *length_out)
 {
 	struct context *ctx;
