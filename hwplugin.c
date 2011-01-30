@@ -139,10 +139,10 @@ void sr_device_instance_free(struct sr_device_instance *sdi)
 {
 	switch (sdi->instance_type) {
 	case USB_INSTANCE:
-		usb_device_instance_free(sdi->usb);
+		sr_usb_device_instance_free(sdi->usb);
 		break;
 	case SERIAL_INSTANCE:
-		serial_device_instance_free(sdi->serial);
+		sr_serial_device_instance_free(sdi->serial);
 		break;
 	default:
 		/* No specific type, nothing extra to free. */
@@ -155,12 +155,12 @@ void sr_device_instance_free(struct sr_device_instance *sdi)
 	free(sdi);
 }
 
-struct usb_device_instance *usb_device_instance_new(uint8_t bus,
+struct sr_usb_device_instance *sr_usb_device_instance_new(uint8_t bus,
 			uint8_t address, struct libusb_device_handle *hdl)
 {
-	struct usb_device_instance *udi;
+	struct sr_usb_device_instance *udi;
 
-	if (!(udi = malloc(sizeof(struct usb_device_instance))))
+	if (!(udi = malloc(sizeof(struct sr_usb_device_instance))))
 		return NULL;
 
 	udi->bus = bus;
@@ -170,7 +170,7 @@ struct usb_device_instance *usb_device_instance_new(uint8_t bus,
 	return udi;
 }
 
-void usb_device_instance_free(struct usb_device_instance *usb)
+void sr_usb_device_instance_free(struct sr_usb_device_instance *usb)
 {
 	/* Avoid compiler warnings. */
 	usb = usb;
@@ -178,12 +178,12 @@ void usb_device_instance_free(struct usb_device_instance *usb)
 	/* Nothing to do for this device instance type. */
 }
 
-struct serial_device_instance *serial_device_instance_new(
+struct sr_serial_device_instance *sr_serial_device_instance_new(
 						const char *port, int fd)
 {
-	struct serial_device_instance *serial;
+	struct sr_serial_device_instance *serial;
 
-	if (!(serial = malloc(sizeof(struct serial_device_instance))))
+	if (!(serial = malloc(sizeof(struct sr_serial_device_instance))))
 		return NULL;
 
 	serial->port = strdup(port);
@@ -192,7 +192,7 @@ struct serial_device_instance *serial_device_instance_new(
 	return serial;
 }
 
-void serial_device_instance_free(struct serial_device_instance *serial)
+void sr_serial_device_instance_free(struct sr_serial_device_instance *serial)
 {
 	free(serial->port);
 }

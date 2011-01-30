@@ -436,7 +436,7 @@ static int hw_init(char *deviceinfo)
 		/* save a pointer to our private instance data */
 		sdi->priv = mso;
 
-		sdi->serial = serial_device_instance_new(path, -1);
+		sdi->serial = sr_serial_device_instance_new(path, -1);
 		if (!sdi->serial)
 			goto err_device_instance_free;
 

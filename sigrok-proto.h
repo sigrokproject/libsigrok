@@ -70,14 +70,14 @@ struct sr_device_instance *sr_get_device_instance(GSList *device_instances,
 void sr_device_instance_free(struct sr_device_instance *sdi);
 
 /* USB-specific instances */
-struct usb_device_instance *usb_device_instance_new(uint8_t bus,
+struct sr_usb_device_instance *sr_usb_device_instance_new(uint8_t bus,
 		uint8_t address, struct libusb_device_handle *hdl);
-void usb_device_instance_free(struct usb_device_instance *usb);
+void sr_usb_device_instance_free(struct sr_usb_device_instance *usb);
 
 /* Serial-specific instances */
-struct serial_device_instance *serial_device_instance_new(
+struct sr_serial_device_instance *sr_serial_device_instance_new(
 					const char *port, int fd);
-void serial_device_instance_free(struct serial_device_instance *serial);
+void sr_serial_device_instance_free(struct sr_serial_device_instance *serial);
 
 int find_hwcap(int *capabilities, int hwcap);
 struct hwcap_option *find_hwcap_option(int hwcap);

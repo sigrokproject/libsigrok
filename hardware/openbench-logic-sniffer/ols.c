@@ -96,7 +96,7 @@ static struct samplerates samplerates = {
 	0,
 };
 
-/* List of struct serial_device_instance */
+/* List of struct sr_serial_device_instance */
 static GSList *device_instances = NULL;
 
 /* Current state of the flag register */
@@ -295,7 +295,7 @@ static int hw_init(char *deviceinfo)
 						    (final_devcnt, ST_INACTIVE,
 						     "Openbench", "Logic Sniffer",
 						     "v1.0");
-					sdi->serial = serial_device_instance_new
+					sdi->serial = sr_serial_device_instance_new
 					    (device_names[i], -1);
 					device_instances =
 					    g_slist_append(device_instances, sdi);

@@ -335,11 +335,11 @@ static int hw_init(char *deviceinfo)
 				g_warning("firmware upload failed for "
 					  "device %d", devcnt);
 
-			sdi->usb = usb_device_instance_new
+			sdi->usb = sr_usb_device_instance_new
 				(libusb_get_bus_number(devlist[i]), 0, NULL);
 		} else {
 			/* Already has the firmware, so fix the new address. */
-			sdi->usb = usb_device_instance_new
+			sdi->usb = sr_usb_device_instance_new
 			    (libusb_get_bus_number(devlist[i]),
 			     libusb_get_device_address(devlist[i]), NULL);
 		}

@@ -246,8 +246,8 @@ struct sr_device_instance {
 	char *version;
 	void *priv;
 	union {
-		struct usb_device_instance *usb;
-		struct serial_device_instance *serial;
+		struct sr_usb_device_instance *usb;
+		struct sr_serial_device_instance *serial;
 	};
 };
 
@@ -257,13 +257,13 @@ enum {
 	SERIAL_INSTANCE,
 };
 
-struct usb_device_instance {
+struct sr_usb_device_instance {
 	uint8_t bus;
 	uint8_t address;
 	struct libusb_device_handle *devhdl;
 };
 
-struct serial_device_instance {
+struct sr_serial_device_instance {
 	char *port;
 	int fd;
 };

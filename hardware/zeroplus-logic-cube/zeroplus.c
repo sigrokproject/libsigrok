@@ -312,7 +312,7 @@ static int hw_init(char *deviceinfo)
 				return 0;
 			device_instances =
 			    g_slist_append(device_instances, sdi);
-			sdi->usb = usb_device_instance_new(
+			sdi->usb = sr_usb_device_instance_new(
 				libusb_get_bus_number(devlist[i]),
 				libusb_get_device_address(devlist[i]), NULL);
 			devcnt++;
