@@ -750,7 +750,7 @@ static void hw_stop_acquisition(int device_index, gpointer session_device_id)
 	session_bus(session_device_id, &packet);
 }
 
-struct device_plugin link_mso19_plugin_info = {
+struct sr_device_plugin link_mso19_plugin_info = {
 	.name = "link-mso19",
 	.longname = "Link Instruments MSO-19",
 	.api_version = 1,

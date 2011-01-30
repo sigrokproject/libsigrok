@@ -740,7 +740,7 @@ static void hw_stop_acquisition(int device_index, gpointer session_device_id)
 	/* TODO: Need to cancel and free any queued up transfers. */
 }
 
-struct device_plugin saleae_logic_plugin_info = {
+struct sr_device_plugin saleae_logic_plugin_info = {
 	"saleae-logic",
 	"Saleae Logic",
 	1,

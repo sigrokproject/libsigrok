@@ -35,21 +35,21 @@ void datastore_put(struct datastore *ds, void *data, unsigned int length,
 /*--- device.c --------------------------------------------------------------*/
 
 void device_scan(void);
-int device_plugin_init(struct device_plugin *plugin);
+int device_plugin_init(struct sr_device_plugin *plugin);
 void device_close_all(void);
 GSList *device_list(void);
-struct device *device_new(struct device_plugin *plugin, int plugin_index,
-			  int num_probes);
-void device_clear(struct device *device);
-void device_destroy(struct device *dev);
+struct sr_device *device_new(struct sr_device_plugin *plugin, int plugin_index,
+			     int num_probes);
+void device_clear(struct sr_device *device);
+void device_destroy(struct sr_device *dev);
 
-void device_probe_clear(struct device *device, int probenum);
-void device_probe_add(struct device *device, char *name);
-struct probe *probe_find(struct device *device, int probenum);
-void device_probe_name(struct device *device, int probenum, char *name);
+void device_probe_clear(struct sr_device *device, int probenum);
+void device_probe_add(struct sr_device *device, char *name);
+struct probe *probe_find(struct sr_device *device, int probenum);
+void device_probe_name(struct sr_device *device, int probenum, char *name);
 
-void device_trigger_clear(struct device *device);
-void device_trigger_set(struct device *device, int probenum, char *trigger);
+void device_trigger_clear(struct sr_device *device);
+void device_trigger_set(struct sr_device *device, int probenum, char *trigger);
 
 /*--- filter.c --------------------------------------------------------------*/
 
@@ -90,7 +90,7 @@ void source_add(int fd, int events, int timeout, receive_data_callback rcv_cb,
 typedef void (*source_callback_remove) (int fd);
 typedef void (*source_callback_add) (int fd, int events, int timeout,
 		receive_data_callback callback, void *user_data);
-typedef void (*datafeed_callback) (struct device *device,
+typedef void (*datafeed_callback) (struct sr_device *device,
 				 struct sr_datafeed_packet *packet);
 
 /* Session setup */
@@ -98,7 +98,7 @@ struct session *session_load(const char *filename);
 struct session *session_new(void);
 void session_destroy(void);
 void session_device_clear(void);
-int session_device_add(struct device *device);
+int session_device_add(struct sr_device *device);
 
 /* Protocol analyzers setup */
 void session_pa_clear(void);
@@ -113,7 +113,7 @@ int session_start(void);
 void session_run(void);
 void session_halt(void);
 void session_stop(void);
-void session_bus(struct device *device, struct sr_datafeed_packet *packet);
+void session_bus(struct sr_device *device, struct sr_datafeed_packet *packet);
 void make_metadata(char *filename);
 int session_save(char *filename);
 void session_source_add(int fd, int events, int timeout,

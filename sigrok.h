@@ -132,7 +132,7 @@ struct analog_sample {
 struct sr_input {
 	struct sr_input_format *format;
 	char *param;
-	struct device *vdevice;
+	struct sr_device *vdevice;
 };
 
 struct sr_input_format {
@@ -145,7 +145,7 @@ struct sr_input_format {
 
 struct sr_output {
 	struct sr_output_format *format;
-	struct device *device;
+	struct sr_device *device;
 	char *param;
 	void *internal;
 };
@@ -186,9 +186,9 @@ struct datastore {
  * to the device index within that plugin; it may be handling more than one
  * device. All relevant plugin calls take a device_index parameter for this.
  */
-struct device {
+struct sr_device {
 	/* Which plugin handles this device */
-	struct device_plugin *plugin;
+	struct sr_device_plugin *plugin;
 	/* A plugin may handle multiple devices of the same type */
 	int plugin_index;
 	/* List of struct probe* */
@@ -312,7 +312,7 @@ struct samplerates {
 	uint64_t *list;
 };
 
-struct device_plugin {
+struct sr_device_plugin {
 	/* Plugin-specific */
 	char *name;
 	char *longname;
@@ -339,7 +339,7 @@ struct gsource_fd {
 };
 
 struct session {
-	/* List of struct device* */
+	/* List of struct sr_device* */
 	GSList *devices;
 	/* List of struct analyzer* */
 	GSList *analyzers;

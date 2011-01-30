@@ -28,7 +28,7 @@ GSList *devices = NULL;
 void device_scan(void)
 {
 	GSList *plugins, *l;
-	struct device_plugin *plugin;
+	struct sr_device_plugin *plugin;
 
 	plugins = list_hwplugins();
 
@@ -44,7 +44,7 @@ void device_scan(void)
 
 }
 
-int device_plugin_init(struct device_plugin *plugin)
+int device_plugin_init(struct sr_device_plugin *plugin)
 {
 	int num_devices, num_probes, i;
 
@@ -60,7 +60,7 @@ int device_plugin_init(struct device_plugin *plugin)
 
 void device_close_all(void)
 {
-	struct device *device;
+	struct sr_device *device;
 
 	while (devices) {
 		device = devices->data;
@@ -79,14 +79,14 @@ GSList *device_list(void)
 	return devices;
 }
 
-struct device *device_new(struct device_plugin *plugin, int plugin_index,
-			  int num_probes)
+struct sr_device *device_new(struct sr_device_plugin *plugin, int plugin_index,
+			     int num_probes)
 {
-	struct device *device;
+	struct sr_device *device;
 	int i;
 	char probename[16];
 
-	device = g_malloc0(sizeof(struct device));
+	device = g_malloc0(sizeof(struct sr_device));
 	device->plugin = plugin;
 	device->plugin_index = plugin_index;
 	devices = g_slist_append(devices, device);
@@ -99,7 +99,7 @@ struct device *device_new(struct device_plugin *plugin, int plugin_index,
 	return device;
 }
 
-void device_clear(struct device *device)
+void device_clear(struct sr_device *device)
 {
 	unsigned int pnum;
 
@@ -112,7 +112,7 @@ void device_clear(struct device *device)
 		device_probe_clear(device, pnum);
 }
 
-void device_destroy(struct device *device)
+void device_destroy(struct sr_device *device)
 {
 	unsigned int pnum;
 
@@ -130,7 +130,7 @@ void device_destroy(struct device *device)
 	g_free(device);
 }
 
-void device_probe_clear(struct device *device, int probenum)
+void device_probe_clear(struct sr_device *device, int probenum)
 {
 	struct probe *p;
 
@@ -149,7 +149,7 @@ void device_probe_clear(struct device *device, int probenum)
 	}
 }
 
-void device_probe_add(struct device *device, char *name)
+void device_probe_add(struct sr_device *device, char *name)
 {
 	struct probe *p;
 
@@ -161,7 +161,7 @@ void device_probe_add(struct device *device, char *name)
 	device->probes = g_slist_append(device->probes, p);
 }
 
-struct probe *probe_find(struct device *device, int probenum)
+struct probe *probe_find(struct sr_device *device, int probenum)
 {
 	GSList *l;
 	struct probe *p, *found_probe;
@@ -178,7 +178,7 @@ struct probe *probe_find(struct device *device, int probenum)
 	return found_probe;
 }
 
-void device_probe_name(struct device *device, int probenum, char *name)
+void device_probe_name(struct sr_device *device, int probenum, char *name)
 {
 	struct probe *p;
 
@@ -191,7 +191,7 @@ void device_probe_name(struct device *device, int probenum, char *name)
 	p->name = g_strdup(name);
 }
 
-void device_trigger_clear(struct device *device)
+void device_trigger_clear(struct sr_device *device)
 {
 	struct probe *p;
 	unsigned int pnum;
@@ -208,7 +208,7 @@ void device_trigger_clear(struct device *device)
 	}
 }
 
-void device_trigger_set(struct device *device, int probenum, char *trigger)
+void device_trigger_set(struct sr_device *device, int probenum, char *trigger)
 {
 	struct probe *p;
 

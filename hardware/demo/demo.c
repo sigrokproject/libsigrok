@@ -390,7 +390,7 @@ static void hw_stop_acquisition(int device_index, gpointer session_device_id)
 	thread_running = 0;
 }
 
-struct device_plugin demo_plugin_info = {
+struct sr_device_plugin demo_plugin_info = {
 	"demo",
 	"Demo driver and pattern generator",
 	1,

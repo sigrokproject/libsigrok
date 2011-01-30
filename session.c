@@ -83,7 +83,7 @@ void session_device_clear(void)
 	session->devices = NULL;
 }
 
-int session_device_add(struct device *device)
+int session_device_add(struct sr_device *device)
 {
 	int ret;
 
@@ -127,7 +127,7 @@ void session_datafeed_callback_add(datafeed_callback callback)
 
 int session_start(void)
 {
-	struct device *device;
+	struct sr_device *device;
 	GSList *l;
 	int ret;
 
@@ -196,7 +196,7 @@ void session_halt(void)
 
 void session_stop(void)
 {
-	struct device *device;
+	struct sr_device *device;
 	GSList *l;
 
 	g_message("stopping session");
@@ -209,7 +209,7 @@ void session_stop(void)
 
 }
 
-void session_bus(struct device *device, struct sr_datafeed_packet *packet)
+void session_bus(struct sr_device *device, struct sr_datafeed_packet *packet)
 {
 	GSList *l;
 	datafeed_callback cb;
@@ -228,7 +228,7 @@ int session_save(char *filename)
 {
 	GSList *l, *p, *d;
 	FILE *meta;
-	struct device *device;
+	struct sr_device *device;
 	struct probe *probe;
 	struct datastore *ds;
 	struct zip *zipfile;

@@ -41,25 +41,25 @@ struct hwcap_option hwcap_options[] = {
 };
 
 #ifdef HAVE_LA_DEMO
-extern struct device_plugin demo_plugin_info;
+extern struct sr_device_plugin demo_plugin_info;
 #endif
 #ifdef HAVE_LA_SALEAE_LOGIC
-extern struct device_plugin saleae_logic_plugin_info;
+extern struct sr_device_plugin saleae_logic_plugin_info;
 #endif
 #ifdef HAVE_LA_OLS
-extern struct device_plugin ols_plugin_info;
+extern struct sr_device_plugin ols_plugin_info;
 #endif
 #ifdef HAVE_LA_ZEROPLUS_LOGIC_CUBE
-extern struct device_plugin zeroplus_logic_cube_plugin_info;
+extern struct sr_device_plugin zeroplus_logic_cube_plugin_info;
 #endif
 #ifdef HAVE_LA_ASIX_SIGMA
-extern struct device_plugin asix_sigma_plugin_info;
+extern struct sr_device_plugin asix_sigma_plugin_info;
 #endif
 #ifdef HAVE_LA_LINK_MSO19
-extern struct device_plugin link_mso19_plugin_info;
+extern struct sr_device_plugin link_mso19_plugin_info;
 #endif
 #ifdef HAVE_LA_ALSA
-extern struct device_plugin alsa_plugin_info;
+extern struct sr_device_plugin alsa_plugin_info;
 #endif
 
 
