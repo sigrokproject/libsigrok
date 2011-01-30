@@ -62,13 +62,13 @@ model_t zeroplus_models[] = {
 };
 
 static int capabilities[] = {
-	HWCAP_LOGIC_ANALYZER,
-	HWCAP_SAMPLERATE,
-	HWCAP_PROBECONFIG,
-	HWCAP_CAPTURE_RATIO,
+	SR_HWCAP_LOGIC_ANALYZER,
+	SR_HWCAP_SAMPLERATE,
+	SR_HWCAP_PROBECONFIG,
+	SR_HWCAP_CAPTURE_RATIO,
 
 	/* These are really implemented in the driver, not the hardware. */
-	HWCAP_LIMIT_SAMPLES,
+	SR_HWCAP_LIMIT_SAMPLES,
 	0,
 };
 
@@ -176,7 +176,7 @@ static int opendev4(struct sr_device_instance **sdi, libusb_device *dev,
 
 		/* Found it. */
 		if (!(err = libusb_open(dev, &((*sdi)->usb->devhdl)))) {
-			(*sdi)->status = ST_ACTIVE;
+			(*sdi)->status = SR_ST_ACTIVE;
 			g_message("opened device %d on %d.%d interface %d",
 			     (*sdi)->index, (*sdi)->usb->bus,
 			     (*sdi)->usb->address, USB_INTERFACE);
@@ -200,7 +200,7 @@ struct sr_device_instance *zp_open_device(int device_index)
 		return NULL;
 
 	libusb_get_device_list(usb_context, &devlist);
-	if (sdi->status == ST_INACTIVE) {
+	if (sdi->status == SR_ST_INACTIVE) {
 		/* Find the device by vendor, product, bus and address. */
 		libusb_get_device_list(usb_context, &devlist);
 		for (i = 0; devlist[i]; i++) {
@@ -208,12 +208,12 @@ struct sr_device_instance *zp_open_device(int device_index)
 			err = opendev4(&sdi, devlist[i], &des);
 		}
 	} else {
-		/* Status must be ST_ACTIVE, i.e. already in use... */
+		/* Status must be SR_ST_ACTIVE, i.e. already in use... */
 		sdi = NULL;
 	}
 	libusb_free_device_list(devlist, 1);
 
-	if (sdi && sdi->status != ST_ACTIVE)
+	if (sdi && sdi->status != SR_ST_ACTIVE)
 		sdi = NULL;
 
 	return sdi;
@@ -229,7 +229,7 @@ static void close_device(struct sr_device_instance *sdi)
 	libusb_release_interface(sdi->usb->devhdl, USB_INTERFACE);
 	libusb_close(sdi->usb->devhdl);
 	sdi->usb->devhdl = NULL;
-	sdi->status = ST_INACTIVE;
+	sdi->status = SR_ST_INACTIVE;
 }
 
 static int configure_probes(GSList *probes)
@@ -306,7 +306,7 @@ static int hw_init(char *deviceinfo)
 			 * the zeroplus range?
 			 */
 			sdi = sr_device_instance_new(devcnt,
-					ST_INACTIVE, USB_VENDOR_NAME,
+					SR_ST_INACTIVE, USB_VENDOR_NAME,
 					USB_MODEL_NAME, USB_MODEL_VERSION);
 			if (!sdi)
 				return 0;
@@ -360,7 +360,7 @@ static int hw_opendev(int device_index)
 
 	if (cur_samplerate == 0) {
 		/* Samplerate hasn't been set. Default to the slowest one. */
-		if (hw_set_configuration(device_index, HWCAP_SAMPLERATE,
+		if (hw_set_configuration(device_index, SR_HWCAP_SAMPLERATE,
 		     &samplerates.low) == SR_ERR)
 			return SR_ERR;
 	}
@@ -404,19 +404,19 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 		return NULL;
 
 	switch (device_info_id) {
-	case DI_INSTANCE:
+	case SR_DI_INSTANCE:
 		info = sdi;
 		break;
-	case DI_NUM_PROBES:
+	case SR_DI_NUM_PROBES:
 		info = GINT_TO_POINTER(num_channels);
 		break;
-	case DI_SAMPLERATES:
+	case SR_DI_SAMPLERATES:
 		info = &samplerates;
 		break;
-	case DI_TRIGGER_TYPES:
+	case SR_DI_TRIGGER_TYPES:
 		info = TRIGGER_TYPES;
 		break;
-	case DI_CUR_SAMPLERATE:
+	case SR_DI_CUR_SAMPLERATE:
 		info = &cur_samplerate;
 		break;
 	}
@@ -432,7 +432,7 @@ static int hw_get_status(int device_index)
 	if (sdi)
 		return sdi->status;
 	else
-		return ST_NOT_FOUND;
+		return SR_ST_NOT_FOUND;
 }
 
 static int *hw_get_capabilities(void)
@@ -465,12 +465,12 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 		return SR_ERR;
 
 	switch (capability) {
-	case HWCAP_SAMPLERATE:
+	case SR_HWCAP_SAMPLERATE:
 		tmp_u64 = value;
 		return set_configuration_samplerate(*tmp_u64);
-	case HWCAP_PROBECONFIG:
+	case SR_HWCAP_PROBECONFIG:
 		return configure_probes((GSList *) value);
-	case HWCAP_LIMIT_SAMPLES:
+	case SR_HWCAP_LIMIT_SAMPLES:
 		tmp_u64 = value;
 		limit_samples = *tmp_u64;
 		return SR_OK;
@@ -505,13 +505,13 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	g_message("Trigger address = 0x%x",
 		  analyzer_get_trigger_address(sdi->usb->devhdl));
 
-	packet.type = DF_HEADER;
+	packet.type = SR_DF_HEADER;
 	packet.length = sizeof(struct sr_datafeed_header);
 	packet.payload = (unsigned char *)&header;
 	header.feed_version = 1;
 	gettimeofday(&header.starttime, NULL);
 	header.samplerate = cur_samplerate;
-	header.protocol_id = PROTO_RAW;
+	header.protocol_id = SR_PROTO_RAW;
 	header.num_logic_probes = num_channels;
 	header.num_analog_probes = 0;
 	session_bus(session_device_id, &packet);
@@ -529,7 +529,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 			  PACKET_SIZE, res);
 #endif
 
-		packet.type = DF_LOGIC;
+		packet.type = SR_DF_LOGIC;
 		packet.length = PACKET_SIZE;
 		packet.unitsize = 4;
 		packet.payload = buf;
@@ -538,7 +538,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	analyzer_read_stop(sdi->usb->devhdl);
 	g_free(buf);
 
-	packet.type = DF_END;
+	packet.type = SR_DF_END;
 	session_bus(session_device_id, &packet);
 
 	return SR_OK;
@@ -550,7 +550,7 @@ static void hw_stop_acquisition(int device_index, gpointer session_device_id)
 	struct sr_datafeed_packet packet;
 	struct sr_device_instance *sdi;
 
-	packet.type = DF_END;
+	packet.type = SR_DF_END;
 	session_bus(session_device_id, &packet);
 
 	if (!(sdi = sr_get_device_instance(device_instances, device_index)))

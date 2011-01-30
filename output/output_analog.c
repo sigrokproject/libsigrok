@@ -135,7 +135,7 @@ static int init(struct sr_output *o, int default_spl, enum outputmode mode)
 	num_probes = g_slist_length(o->device->probes);
 	if (o->device->plugin) {
 		samplerate = *((uint64_t *) o->device->plugin->get_device_info(
-				o->device->plugin_index, DI_CUR_SAMPLERATE));
+				o->device->plugin_index, SR_DI_CUR_SAMPLERATE));
 		if (!(samplerate_s = sr_samplerate_string(samplerate))) {
 			free(ctx->header);
 			free(ctx);
@@ -172,12 +172,12 @@ static int event(struct sr_output *o, int event_type, char **data_out,
 
 	ctx = o->internal;
 	switch (event_type) {
-	case DF_TRIGGER:
+	case SR_DF_TRIGGER:
 		ctx->mark_trigger = ctx->spl_cnt;
 		*data_out = NULL;
 		*length_out = 0;
 		break;
-	case DF_END:
+	case SR_DF_END:
 		outsize = ctx->num_enabled_probes
 				* (ctx->samples_per_line + 20) + 512;
 		if (!(outbuf = calloc(1, outsize)))
@@ -441,7 +441,7 @@ static int data_ascii(struct sr_output *o, char *data_in, uint64_t length_in,
 struct sr_output_format output_analog_bits = {
 	"analog_bits",
 	"Bits (takes argument, default 64)",
-	DF_ANALOG,
+	SR_DF_ANALOG,
 	init_bits,
 	data_bits,
 	event,
@@ -450,7 +450,7 @@ struct sr_output_format output_analog_bits = {
 struct sr_output_format output_analog_hex = {
 	"analog_hex",
 	"Hexadecimal (takes argument, default 192)",
-	DF_ANALOG,
+	SR_DF_ANALOG,
 	init_hex,
 	data_hex,
 	event,
@@ -459,7 +459,7 @@ struct sr_output_format output_analog_hex = {
 struct sr_output_format output_analog_ascii = {
 	"analog_ascii",
 	"ASCII (takes argument, default 74)",
-	DF_ANALOG,
+	SR_DF_ANALOG,
 	init_ascii,
 	data_ascii,
 	event,

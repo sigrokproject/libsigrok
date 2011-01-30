@@ -62,12 +62,12 @@ static struct samplerates samplerates = {
 };
 
 static int capabilities[] = {
-	HWCAP_LOGIC_ANALYZER,
-	HWCAP_SAMPLERATE,
-	HWCAP_CAPTURE_RATIO,
-	HWCAP_PROBECONFIG,
+	SR_HWCAP_LOGIC_ANALYZER,
+	SR_HWCAP_SAMPLERATE,
+	SR_HWCAP_CAPTURE_RATIO,
+	SR_HWCAP_PROBECONFIG,
 
-	HWCAP_LIMIT_MSEC,
+	SR_HWCAP_LIMIT_MSEC,
 	0,
 };
 
@@ -411,7 +411,7 @@ static int hw_init(char *deviceinfo)
 	sigma->use_triggers = 0;
 
 	/* Register SIGMA device. */
-	sdi = sr_device_instance_new(0, ST_INITIALIZING,
+	sdi = sr_device_instance_new(0, SR_ST_INITIALIZING,
 			USB_VENDOR_NAME, USB_MODEL_NAME, USB_MODEL_VERSION);
 	if (!sdi)
 		goto free;
@@ -541,7 +541,7 @@ static int hw_opendev(int device_index)
 		return 0;
 	}
 
-	sdi->status = ST_ACTIVE;
+	sdi->status = SR_ST_ACTIVE;
 
 	return SR_OK;
 }
@@ -672,10 +672,10 @@ static void hw_closedev(int device_index)
 	if ((sdi = sr_get_device_instance(device_instances, device_index)))
 	{
 		sigma = sdi->priv;
-		if (sdi->status == ST_ACTIVE)
+		if (sdi->status == SR_ST_ACTIVE)
 			ftdi_usb_close(&sigma->ftdic);
 
-		sdi->status = ST_INACTIVE;
+		sdi->status = SR_ST_INACTIVE;
 	}
 }
 
@@ -709,19 +709,19 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 	sigma = sdi->priv;
 
 	switch (device_info_id) {
-	case DI_INSTANCE:
+	case SR_DI_INSTANCE:
 		info = sdi;
 		break;
-	case DI_NUM_PROBES:
+	case SR_DI_NUM_PROBES:
 		info = GINT_TO_POINTER(16);
 		break;
-	case DI_SAMPLERATES:
+	case SR_DI_SAMPLERATES:
 		info = &samplerates;
 		break;
-	case DI_TRIGGER_TYPES:
+	case SR_DI_TRIGGER_TYPES:
 		info = (char *)TRIGGER_TYPES;
 		break;
-	case DI_CUR_SAMPLERATE:
+	case SR_DI_CUR_SAMPLERATE:
 		info = &sigma->cur_samplerate;
 		break;
 	}
@@ -737,7 +737,7 @@ static int hw_get_status(int device_index)
 	if (sdi)
 		return sdi->status;
 	else
-		return ST_NOT_FOUND;
+		return SR_ST_NOT_FOUND;
 }
 
 static int *hw_get_capabilities(void)
@@ -756,17 +756,17 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 
 	sigma = sdi->priv;
 
-	if (capability == HWCAP_SAMPLERATE) {
+	if (capability == SR_HWCAP_SAMPLERATE) {
 		ret = set_samplerate(sdi, *(uint64_t*) value);
-	} else if (capability == HWCAP_PROBECONFIG) {
+	} else if (capability == SR_HWCAP_PROBECONFIG) {
 		ret = configure_probes(sdi, value);
-	} else if (capability == HWCAP_LIMIT_MSEC) {
+	} else if (capability == SR_HWCAP_LIMIT_MSEC) {
 		sigma->limit_msec = *(uint64_t*) value;
 		if (sigma->limit_msec > 0)
 			ret = SR_OK;
 		else
 			ret = SR_ERR;
-	} else if (capability == HWCAP_CAPTURE_RATIO) {
+	} else if (capability == SR_HWCAP_CAPTURE_RATIO) {
 		sigma->capture_ratio = *(uint64_t*) value;
 		if (sigma->capture_ratio < 0 || sigma->capture_ratio > 100)
 			ret = SR_ERR;
@@ -871,7 +871,7 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 		while (sent < n) {
 			tosend = MIN(2048, n - sent);
 
-			packet.type = DF_LOGIC;
+			packet.type = SR_DF_LOGIC;
 			packet.length = tosend * sizeof(uint16_t);
 			packet.unitsize = 2;
 			packet.payload = samples + sent;
@@ -915,7 +915,7 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 						    &sigma->trigger);
 
 			if (tosend > 0) {
-				packet.type = DF_LOGIC;
+				packet.type = SR_DF_LOGIC;
 				packet.length = tosend * sizeof(uint16_t);
 				packet.unitsize = 2;
 				packet.payload = samples;
@@ -926,7 +926,7 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 
 			/* Only send trigger if explicitly enabled. */
 			if (sigma->use_triggers) {
-				packet.type = DF_TRIGGER;
+				packet.type = SR_DF_TRIGGER;
 				packet.length = 0;
 				packet.payload = 0;
 				session_bus(sigma->session_id, &packet);
@@ -937,7 +937,7 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 		tosend = n - sent;
 
 		if (tosend > 0) {
-			packet.type = DF_LOGIC;
+			packet.type = SR_DF_LOGIC;
 			packet.length = tosend * sizeof(uint16_t);
 			packet.unitsize = 2;
 			packet.payload = samples + sent;
@@ -986,7 +986,7 @@ static int receive_data(int fd, int revents, void *user_data)
 	} else if (sigma->state.state == SIGMA_DOWNLOAD) {
 		if (sigma->state.chunks_downloaded >= numchunks) {
 			/* End of samples. */
-			packet.type = DF_END;
+			packet.type = SR_DF_END;
 			packet.length = 0;
 			session_bus(sigma->session_id, &packet);
 
@@ -1295,13 +1295,13 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	sigma->session_id = session_device_id;
 
 	/* Send header packet to the session bus. */
-	packet.type = DF_HEADER;
+	packet.type = SR_DF_HEADER;
 	packet.length = sizeof(struct sr_datafeed_header);
 	packet.payload = &header;
 	header.feed_version = 1;
 	gettimeofday(&header.starttime, NULL);
 	header.samplerate = sigma->cur_samplerate;
-	header.protocol_id = PROTO_RAW;
+	header.protocol_id = SR_PROTO_RAW;
 	header.num_logic_probes = sigma->num_probes;
 	header.num_analog_probes = 0;
 	session_bus(session_device_id, &packet);

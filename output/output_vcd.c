@@ -93,7 +93,7 @@ static int init(struct sr_output *o)
 
 	if (o->device->plugin) {
 		ctx->samplerate = *((uint64_t *) o->device->plugin->get_device_info(
-				o->device->plugin_index, DI_CUR_SAMPLERATE));
+				o->device->plugin_index, SR_DI_CUR_SAMPLERATE));
 		if (!((samplerate_s = sr_samplerate_string(ctx->samplerate)))) {
 			g_string_free(ctx->header, TRUE);
 			free(ctx);
@@ -149,7 +149,7 @@ static int event(struct sr_output *o, int event_type, char **data_out,
 
 	ctx = o->internal;
 	switch (event_type) {
-	case DF_END:
+	case SR_DF_END:
 		outbuf = strdup("$dumpoff\n$end\n");
 		*data_out = outbuf;
 		*length_out = strlen(outbuf);
@@ -225,7 +225,7 @@ static int data(struct sr_output *o, char *data_in, uint64_t length_in,
 struct sr_output_format output_vcd = {
 	"vcd",
 	"Value Change Dump (VCD)",
-	DF_LOGIC,
+	SR_DF_LOGIC,
 	init,
 	data,
 	event,

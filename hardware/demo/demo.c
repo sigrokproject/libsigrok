@@ -54,11 +54,11 @@ struct databag {
 };
 
 static int capabilities[] = {
-	HWCAP_LOGIC_ANALYZER,
-	HWCAP_PATTERN_MODE,
-	HWCAP_LIMIT_SAMPLES,
-	HWCAP_LIMIT_MSEC,
-	HWCAP_CONTINUOUS
+	SR_HWCAP_LOGIC_ANALYZER,
+	SR_HWCAP_PATTERN_MODE,
+	SR_HWCAP_LIMIT_SAMPLES,
+	SR_HWCAP_LIMIT_MSEC,
+	SR_HWCAP_CONTINUOUS,
 };
 
 static const char *patternmodes[] = {
@@ -96,7 +96,7 @@ static int hw_init(char *deviceinfo)
 	/* Avoid compiler warnings. */
 	deviceinfo = deviceinfo;
 
-	sdi = sr_device_instance_new(0, ST_ACTIVE, DEMONAME, NULL, NULL);
+	sdi = sr_device_instance_new(0, SR_ST_ACTIVE, DEMONAME, NULL, NULL);
 	if (!sdi)
 		return 0;
 
@@ -136,16 +136,16 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 		return NULL;
 
 	switch (device_info_id) {
-	case DI_INSTANCE:
+	case SR_DI_INSTANCE:
 		info = sdi;
 		break;
-	case DI_NUM_PROBES:
+	case SR_DI_NUM_PROBES:
 		info = GINT_TO_POINTER(NUM_PROBES);
 		break;
-	case DI_CUR_SAMPLERATE:
+	case SR_DI_CUR_SAMPLERATE:
 		info = &cur_samplerate;
 		break;
-	case DI_PATTERNMODES:
+	case SR_DI_PATTERNMODES:
 		info = &patternmodes;
 		break;
 	}
@@ -158,7 +158,7 @@ static int hw_get_status(int device_index)
 	/* Avoid compiler warnings. */
 	device_index = device_index;
 
-	return ST_ACTIVE;
+	return SR_ST_ACTIVE;
 }
 
 static int *hw_get_capabilities(void)
@@ -175,18 +175,18 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 	/* Avoid compiler warnings. */
 	device_index = device_index;
 
-	if (capability == HWCAP_PROBECONFIG) {
+	if (capability == SR_HWCAP_PROBECONFIG) {
 		/* Nothing to do. */
 		ret = SR_OK;
-	} else if (capability == HWCAP_LIMIT_SAMPLES) {
+	} else if (capability == SR_HWCAP_LIMIT_SAMPLES) {
 		tmp_u64 = value;
 		limit_samples = *tmp_u64;
 		ret = SR_OK;
-	} else if (capability == HWCAP_LIMIT_MSEC) {
+	} else if (capability == SR_HWCAP_LIMIT_MSEC) {
 		tmp_u64 = value;
 		limit_msec = *tmp_u64;
 		ret = SR_OK;
-	} else if (capability == HWCAP_PATTERN_MODE) {
+	} else if (capability == SR_HWCAP_PATTERN_MODE) {
 		stropt = value;
 		if (!strcmp(stropt, "random")) {
 			default_genmode = GENMODE_RANDOM;
@@ -295,7 +295,7 @@ static int receive_data(int fd, int revents, void *user_data)
 				        (gchar *)&c, BUFSIZE, &z, NULL);
 
 		if (z > 0) {
-			packet.type = DF_LOGIC;
+			packet.type = SR_DF_LOGIC;
 			packet.length = z;
 			packet.unitsize = 1;
 			packet.payload = c;
@@ -309,7 +309,7 @@ static int receive_data(int fd, int revents, void *user_data)
 		g_io_channel_close(channels[0]);
 
 		/* Send last packet. */
-		packet.type = DF_END;
+		packet.type = SR_DF_END;
 		session_bus(user_data, &packet);
 
 		return FALSE;
@@ -364,13 +364,13 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	if (!packet || !header)
 		return SR_ERR_MALLOC;
 
-	packet->type = DF_HEADER;
+	packet->type = SR_DF_HEADER;
 	packet->length = sizeof(struct sr_datafeed_header);
 	packet->payload = (unsigned char *)header;
 	header->feed_version = 1;
 	gettimeofday(&header->starttime, NULL);
 	header->samplerate = cur_samplerate;
-	header->protocol_id = PROTO_RAW;
+	header->protocol_id = SR_PROTO_RAW;
 	header->num_logic_probes = NUM_PROBES;
 	header->num_analog_probes = 0;
 	session_bus(session_device_id, packet);

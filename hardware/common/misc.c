@@ -48,7 +48,7 @@ int opendev2(int device_index, struct sr_device_instance **sdi,
 	 */
 	if (!(err = libusb_open(dev, &((*sdi)->usb->devhdl)))) {
 		(*sdi)->usb->address = libusb_get_device_address(dev);
-		(*sdi)->status = ST_ACTIVE;
+		(*sdi)->status = SR_ST_ACTIVE;
 		g_message("opened device %d on %d.%d interface %d",
 			  (*sdi)->index, (*sdi)->usb->bus,
 			  (*sdi)->usb->address, interface);
@@ -78,7 +78,7 @@ int opendev3(struct sr_device_instance **sdi, libusb_device *dev,
 	    && libusb_get_device_address(dev) == (*sdi)->usb->address) {
 		/* Found it. */
 		if (!(err = libusb_open(dev, &((*sdi)->usb->devhdl)))) {
-			(*sdi)->status = ST_ACTIVE;
+			(*sdi)->status = SR_ST_ACTIVE;
 			g_message("opened device %d on %d.%d interface %d",
 				  (*sdi)->index, (*sdi)->usb->bus,
 				  (*sdi)->usb->address, interface);

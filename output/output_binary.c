@@ -46,7 +46,7 @@ static int data(struct sr_output *o, char *data_in, uint64_t length_in,
 struct sr_output_format output_binary = {
 	"binary",
 	"Raw binary",
-	DF_LOGIC,
+	SR_DF_LOGIC,
 	NULL,
 	data,
 	NULL,

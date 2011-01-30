@@ -30,9 +30,9 @@
 #define AUDIO_DEV "plughw:0,0"
 
 static int capabilities[] = {
-	HWCAP_SAMPLERATE,
-	HWCAP_LIMIT_SAMPLES,
-	HWCAP_CONTINUOUS,
+	SR_HWCAP_SAMPLERATE,
+	SR_HWCAP_LIMIT_SAMPLES,
+	SR_HWCAP_CONTINUOUS,
 };
 
 static GSList *device_instances = NULL;
@@ -58,7 +58,7 @@ static int hw_init(char *deviceinfo)
 		return 0;
 	memset(alsa, 0, sizeof(struct alsa));
 
-	sdi = sr_device_instance_new(0, ST_ACTIVE, "alsa", NULL, NULL);
+	sdi = sr_device_instance_new(0, SR_ST_ACTIVE, "alsa", NULL, NULL);
 	if (!sdi)
 		goto free_alsa;
 
@@ -146,17 +146,17 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 	alsa = sdi->priv;
 
 	switch (device_info_id) {
-	case DI_INSTANCE:
+	case SR_DI_INSTANCE:
 		info = sdi;
 		break;
-	case DI_NUM_PROBES:
+	case SR_DI_NUM_PROBES:
 		info = GINT_TO_POINTER(NUM_PROBES);
 		break;
-	case DI_CUR_SAMPLERATE:
+	case SR_DI_CUR_SAMPLERATE:
 		info = &alsa->cur_rate;
 		break;
-	// case DI_PROBE_TYPE:
-	// 	info = GINT_TO_POINTER(PROBE_TYPE_ANALOG);
+	// case SR_DI_PROBE_TYPE:
+	// 	info = GINT_TO_POINTER(SR_PROBE_TYPE_ANALOG);
 	// 	break;
 	}
 
@@ -168,7 +168,7 @@ static int hw_get_status(int device_index)
 	/* Avoid compiler warnings. */
 	device_index = device_index;
 
-	return ST_ACTIVE;
+	return SR_ST_ACTIVE;
 }
 
 static int *hw_get_capabilities(void)
@@ -186,12 +186,12 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 	alsa = sdi->priv;
 
 	switch (capability) {
-	case HWCAP_PROBECONFIG:
+	case SR_HWCAP_PROBECONFIG:
 		return SR_OK;
-	case HWCAP_SAMPLERATE:
+	case SR_HWCAP_SAMPLERATE:
 		alsa->cur_rate = *(uint64_t *) value;
 		return SR_OK;
-	case HWCAP_LIMIT_SAMPLES:
+	case SR_HWCAP_LIMIT_SAMPLES:
 		alsa->limit_samples = *(uint64_t *) value;
 		return SR_OK;
 	default:
@@ -240,7 +240,7 @@ static int receive_data(int fd, int revents, void *user_data)
 			}
 		}
 
-		packet.type = DF_ANALOG;
+		packet.type = SR_DF_ANALOG;
 		packet.length = count * sample_size;
 		packet.unitsize = sample_size;
 		packet.payload = outb;
@@ -250,7 +250,7 @@ static int receive_data(int fd, int revents, void *user_data)
 
 	} while (alsa->limit_samples > 0);
 
-	packet.type = DF_END;
+	packet.type = SR_DF_END;
 	session_bus(user_data, &packet);
 
 	return TRUE;
@@ -333,7 +333,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	alsa->session_id = session_device_id;
 	source_add(ufds[0].fd, ufds[0].events, 10, receive_data, sdi);
 
-	packet.type = DF_HEADER;
+	packet.type = SR_DF_HEADER;
 	packet.length = sizeof(struct sr_datafeed_header);
 	packet.payload = (unsigned char *) &header;
 	header.feed_version = 1;
@@ -341,7 +341,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	header.samplerate = alsa->cur_rate;
 	header.num_analog_probes = NUM_PROBES;
 	header.num_logic_probes = 0;
-	header.protocol_id = PROTO_RAW;
+	header.protocol_id = SR_PROTO_RAW;
 	session_bus(session_device_id, &packet);
 	free(ufds);
 

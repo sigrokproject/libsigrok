@@ -118,7 +118,7 @@ int data_ascii(struct sr_output *o, char *data_in, uint64_t length_in,
 struct sr_output_format output_text_ascii = {
 	"ascii",
 	"ASCII (takes argument, default 74)",
-	DF_LOGIC,
+	SR_DF_LOGIC,
 	init_ascii,
 	data_ascii,
 	event,

@@ -36,13 +36,13 @@
 #define USB_PRODUCT "f190"
 
 static int capabilities[] = {
-	HWCAP_LOGIC_ANALYZER,
-//	HWCAP_OSCILLOSCOPE,
-//	HWCAP_PAT_GENERATOR,
+	SR_HWCAP_LOGIC_ANALYZER,
+//	SR_HWCAP_OSCILLOSCOPE,
+//	SR_HWCAP_PAT_GENERATOR,
 
-	HWCAP_SAMPLERATE,
-//	HWCAP_CAPTURE_RATIO,
-	HWCAP_LIMIT_SAMPLES,
+	SR_HWCAP_SAMPLERATE,
+//	SR_HWCAP_CAPTURE_RATIO,
+	SR_HWCAP_LIMIT_SAMPLES,
 	0,
 };
 
@@ -425,7 +425,7 @@ static int hw_init(char *deviceinfo)
 		/* hardware initial state */
 		mso->ctlbase = 0;
 
-		sdi = sr_device_instance_new(devcnt, ST_INITIALIZING,
+		sdi = sr_device_instance_new(devcnt, SR_ST_INITIALIZING,
 			manufacturer, product, hwrev);
 		if (!sdi) {
 			g_warning("Unable to create device instance for %s",
@@ -493,7 +493,7 @@ static int hw_opendev(int device_index)
 	if (ret != SR_OK)
 		return ret;
 
-	sdi->status = ST_ACTIVE;
+	sdi->status = SR_ST_ACTIVE;
 
 	/* FIXME: discard serial buffer */
 
@@ -525,7 +525,7 @@ static void hw_closedev(int device_index)
 	if (sdi->serial->fd != -1) {
 		serial_close(sdi->serial->fd);
 		sdi->serial->fd = -1;
-		sdi->status = ST_INACTIVE;
+		sdi->status = SR_ST_INACTIVE;
 	}
 }
 
@@ -540,19 +540,19 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 	mso = sdi->priv;
 
 	switch (device_info_id) {
-	case DI_INSTANCE:
+	case SR_DI_INSTANCE:
 		info = sdi;
 		break;
-	case DI_NUM_PROBES: /* FIXME: How to report analog probe? */
+	case SR_DI_NUM_PROBES: /* FIXME: How to report analog probe? */
 		info = GINT_TO_POINTER(8);
 		break;
-	case DI_SAMPLERATES:
+	case SR_DI_SAMPLERATES:
 		info = &samplerates;
 		break;
-	case DI_TRIGGER_TYPES:
+	case SR_DI_TRIGGER_TYPES:
 		info = "01"; /* FIXME */
 		break;
-	case DI_CUR_SAMPLERATE:
+	case SR_DI_CUR_SAMPLERATE:
 		info = &mso->cur_rate;
 		break;
 	}
@@ -564,7 +564,7 @@ static int hw_get_status(int device_index)
 	struct sr_device_instance *sdi;
 
 	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
-		return ST_NOT_FOUND;
+		return SR_ST_NOT_FOUND;
 
 	return sdi->status;
 }
@@ -582,10 +582,10 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 		return SR_ERR;
 
 	switch (capability) {
-	case HWCAP_SAMPLERATE:
+	case SR_HWCAP_SAMPLERATE:
 		return mso_configure_rate(sdi, *(uint64_t *) value);
-	case HWCAP_PROBECONFIG:
-	case HWCAP_LIMIT_SAMPLES:
+	case SR_HWCAP_PROBECONFIG:
+	case SR_HWCAP_LIMIT_SAMPLES:
 	default:
 		return SR_OK; /* FIXME */
 	}
@@ -645,20 +645,20 @@ static int receive_data(int fd, int revents, void *user_data)
 			((mso->buffer[i * 3 + 2] & 0x3f) << 2);
 	}
 
-	packet.type = DF_LOGIC;
+	packet.type = SR_DF_LOGIC;
 	packet.length = 1024;
 	packet.unitsize = 1;
 	packet.payload = logic_out;
 	session_bus(mso->session_id, &packet);
 
 
-	packet.type = DF_ANALOG;
+	packet.type = SR_DF_ANALOG;
 	packet.length = 1024;
 	packet.unitsize = sizeof(double);
 	packet.payload = analog_out;
 	session_bus(mso->session_id, &packet);
 
-	packet.type = DF_END;
+	packet.type = SR_DF_END;
 	session_bus(mso->session_id, &packet);
 
 	return TRUE;
@@ -725,7 +725,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	mso->session_id = session_device_id;
 	source_add(sdi->serial->fd, G_IO_IN, -1, receive_data, sdi);
 
-	packet.type = DF_HEADER;
+	packet.type = SR_DF_HEADER;
 	packet.length = sizeof(struct sr_datafeed_header);
 	packet.payload = (unsigned char *) &header;
 	header.feed_version = 1;
@@ -733,7 +733,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	header.samplerate = mso->cur_rate;
 	header.num_analog_probes = 1;
 	header.num_logic_probes = 8;
-	header.protocol_id = PROTO_RAW;
+	header.protocol_id = SR_PROTO_RAW;
 	session_bus(session_device_id, &packet);
 
 	return ret;
@@ -746,7 +746,7 @@ static void hw_stop_acquisition(int device_index, gpointer session_device_id)
 
 	device_index = device_index;
 
-	packet.type = DF_END;
+	packet.type = SR_DF_END;
 	session_bus(session_device_id, &packet);
 }
 

@@ -105,7 +105,7 @@ int data_bits(struct sr_output *o, char *data_in, uint64_t length_in,
 struct sr_output_format output_text_bits = {
 	"bits",
 	"Bits (takes argument, default 64)",
-	DF_LOGIC,
+	SR_DF_LOGIC,
 	init_bits,
 	data_bits,
 	event,

@@ -81,7 +81,7 @@ static int init(struct sr_output *o)
 	comment[0] = '\0';
 	if (o->device->plugin) {
 		samplerate = *((uint64_t *) o->device->plugin->get_device_info(
-				o->device->plugin_index, DI_CUR_SAMPLERATE));
+				o->device->plugin_index, SR_DI_CUR_SAMPLERATE));
 		if (!(frequency_s = sr_samplerate_string(samplerate))) {
 			free(ctx->header);
 			free(ctx);
@@ -126,10 +126,10 @@ static int event(struct sr_output *o, int event_type, char **data_out,
 
 	ctx = o->internal;
 	switch (event_type) {
-	case DF_TRIGGER:
+	case SR_DF_TRIGGER:
 		/* TODO: can a trigger mark be in a gnuplot data file? */
 		break;
-	case DF_END:
+	case SR_DF_END:
 		free(o->internal);
 		o->internal = NULL;
 		break;
@@ -228,7 +228,7 @@ static int analog_init(struct sr_output *o)
 	comment[0] = '\0';
 	if (o->device->plugin) {
 		samplerate = *((uint64_t *) o->device->plugin->get_device_info(
-				o->device->plugin_index, DI_CUR_SAMPLERATE));
+				o->device->plugin_index, SR_DI_CUR_SAMPLERATE));
 		if (!(frequency_s = sr_samplerate_string(samplerate))) {
 			free(ctx->header);
 			free(ctx);
@@ -329,7 +329,7 @@ static int analog_data(struct sr_output *o, char *data_in, uint64_t length_in,
 struct sr_output_format output_gnuplot = {
 	"gnuplot",
 	"Gnuplot",
-	DF_LOGIC,
+	SR_DF_LOGIC,
 	init,
 	data,
 	event,
@@ -338,7 +338,7 @@ struct sr_output_format output_gnuplot = {
 struct sr_output_format output_analog_gnuplot = {
 	"analog_gnuplot",
 	"Gnuplot analog",
-	DF_ANALOG,
+	SR_DF_ANALOG,
 	analog_init,
 	analog_data,
 	event,

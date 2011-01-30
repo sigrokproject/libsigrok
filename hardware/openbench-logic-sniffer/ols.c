@@ -82,10 +82,10 @@
 #define FLAG_RLE                   0x0100
 
 static int capabilities[] = {
-	HWCAP_LOGIC_ANALYZER,
-	HWCAP_SAMPLERATE,
-	HWCAP_CAPTURE_RATIO,
-	HWCAP_LIMIT_SAMPLES,
+	SR_HWCAP_LOGIC_ANALYZER,
+	SR_HWCAP_SAMPLERATE,
+	SR_HWCAP_CAPTURE_RATIO,
+	SR_HWCAP_LIMIT_SAMPLES,
 	0,
 };
 
@@ -287,12 +287,12 @@ static int hw_init(char *deviceinfo)
 				    || !strncmp(buf, "1ALS", 4)) {
 					if (!strncmp(buf, "1SLO", 4))
 						sdi = sr_device_instance_new
-						    (final_devcnt, ST_INACTIVE,
+						    (final_devcnt, SR_ST_INACTIVE,
 						     "Openbench",
 						     "Logic Sniffer", "v1.0");
 					else
 						sdi = sr_device_instance_new
-						    (final_devcnt, ST_INACTIVE,
+						    (final_devcnt, SR_ST_INACTIVE,
 						     "Openbench", "Logic Sniffer",
 						     "v1.0");
 					sdi->serial = sr_serial_device_instance_new
@@ -335,7 +335,7 @@ static int hw_opendev(int device_index)
 	if (sdi->serial->fd == -1)
 		return SR_ERR;
 
-	sdi->status = ST_ACTIVE;
+	sdi->status = SR_ST_ACTIVE;
 
 	return SR_OK;
 }
@@ -350,7 +350,7 @@ static void hw_closedev(int device_index)
 	if (sdi->serial->fd != -1) {
 		serial_close(sdi->serial->fd);
 		sdi->serial->fd = -1;
-		sdi->status = ST_INACTIVE;
+		sdi->status = SR_ST_INACTIVE;
 	}
 }
 
@@ -380,19 +380,19 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 
 	info = NULL;
 	switch (device_info_id) {
-	case DI_INSTANCE:
+	case SR_DI_INSTANCE:
 		info = sdi;
 		break;
-	case DI_NUM_PROBES:
+	case SR_DI_NUM_PROBES:
 		info = GINT_TO_POINTER(NUM_PROBES);
 		break;
-	case DI_SAMPLERATES:
+	case SR_DI_SAMPLERATES:
 		info = &samplerates;
 		break;
-	case DI_TRIGGER_TYPES:
+	case SR_DI_TRIGGER_TYPES:
 		info = (char *)TRIGGER_TYPES;
 		break;
-	case DI_CUR_SAMPLERATE:
+	case SR_DI_CUR_SAMPLERATE:
 		info = &cur_samplerate;
 		break;
 	}
@@ -405,7 +405,7 @@ static int hw_get_status(int device_index)
 	struct sr_device_instance *sdi;
 
 	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
-		return ST_NOT_FOUND;
+		return SR_ST_NOT_FOUND;
 
 	return sdi->status;
 }
@@ -450,18 +450,18 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
 		return SR_ERR;
 
-	if (sdi->status != ST_ACTIVE)
+	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR;
 
 	switch (capability) {
-	case HWCAP_SAMPLERATE:
+	case SR_HWCAP_SAMPLERATE:
 		tmp_u64 = value;
 		ret = set_configuration_samplerate(sdi, *tmp_u64);
 		break;
-	case HWCAP_PROBECONFIG:
+	case SR_HWCAP_PROBECONFIG:
 		ret = configure_probes((GSList *) value);
 		break;
-	case HWCAP_LIMIT_SAMPLES:
+	case SR_HWCAP_LIMIT_SAMPLES:
 		tmp_u64 = value;
 		if (*tmp_u64 < MIN_NUM_SAMPLES)
 			return SR_ERR;
@@ -469,7 +469,7 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 		g_message("ols: sample limit %" PRIu64, limit_samples);
 		ret = SR_OK;
 		break;
-	case HWCAP_CAPTURE_RATIO:
+	case SR_HWCAP_CAPTURE_RATIO:
 		tmp_u64 = value;
 		capture_ratio = *tmp_u64;
 		if (capture_ratio < 0 || capture_ratio > 100) {
@@ -612,24 +612,24 @@ static int receive_data(int fd, int revents, void *user_data)
 			 */
 			if (trigger_at > 0) {
 				/* there are pre-trigger samples, send those first */
-				packet.type = DF_LOGIC;
+				packet.type = SR_DF_LOGIC;
 				packet.length = trigger_at * 4;
 				packet.unitsize = 4;
 				packet.payload = raw_sample_buf;
 				session_bus(user_data, &packet);
 			}
 
-			packet.type = DF_TRIGGER;
+			packet.type = SR_DF_TRIGGER;
 			packet.length = 0;
 			session_bus(user_data, &packet);
 
-			packet.type = DF_LOGIC;
+			packet.type = SR_DF_LOGIC;
 			packet.length = (limit_samples * 4) - (trigger_at * 4);
 			packet.unitsize = 4;
 			packet.payload = raw_sample_buf + trigger_at * 4;
 			session_bus(user_data, &packet);
 		} else {
-			packet.type = DF_LOGIC;
+			packet.type = SR_DF_LOGIC;
 			packet.length = limit_samples * 4;
 			packet.unitsize = 4;
 			packet.payload = raw_sample_buf;
@@ -639,7 +639,7 @@ static int receive_data(int fd, int revents, void *user_data)
 
 		serial_flush(fd);
 		serial_close(fd);
-		packet.type = DF_END;
+		packet.type = SR_DF_END;
 		packet.length = 0;
 		session_bus(user_data, &packet);
 	}
@@ -661,7 +661,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
 		return SR_ERR;
 
-	if (sdi->status != ST_ACTIVE)
+	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR;
 
 	readcount = limit_samples / 4;
@@ -761,13 +761,13 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	header = g_malloc(sizeof(struct sr_datafeed_header));
 	if (!packet || !header)
 		return SR_ERR;
-	packet->type = DF_HEADER;
+	packet->type = SR_DF_HEADER;
 	packet->length = sizeof(struct sr_datafeed_header);
 	packet->payload = (unsigned char *)header;
 	header->feed_version = 1;
 	gettimeofday(&header->starttime, NULL);
 	header->samplerate = cur_samplerate;
-	header->protocol_id = PROTO_RAW;
+	header->protocol_id = SR_PROTO_RAW;
 	header->num_logic_probes = NUM_PROBES;
 	header->num_analog_probes = 0;
 	session_bus(session_device_id, packet);
@@ -784,7 +784,7 @@ static void hw_stop_acquisition(int device_index, gpointer session_device_id)
 	/* Avoid compiler warnings. */
 	device_index = device_index;
 
-	packet.type = DF_END;
+	packet.type = SR_DF_END;
 	packet.length = 0;
 	session_bus(session_device_id, &packet);
 }

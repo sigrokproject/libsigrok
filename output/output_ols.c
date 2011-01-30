@@ -104,7 +104,7 @@ static int init(struct sr_output *o)
 
 	if (o->device->plugin) {
 		samplerate = *((uint64_t *) o->device->plugin->get_device_info(
-				o->device->plugin_index, DI_CUR_SAMPLERATE));
+				o->device->plugin_index, SR_DI_CUR_SAMPLERATE));
 		if (!(frequency_s = sr_samplerate_string(samplerate))) {
 			free(ctx->header);
 			free(ctx);
@@ -162,10 +162,10 @@ static int event(struct sr_output *o, int event_type, char **data_out,
 
 	ctx = o->internal;
 	switch (event_type) {
-	case DF_TRIGGER:
+	case SR_DF_TRIGGER:
 		/* TODO */
 		break;
-	case DF_END:
+	case SR_DF_END:
 		free(o->internal);
 		o->internal = NULL;
 		break;
@@ -221,7 +221,7 @@ static int data(struct sr_output *o, char *data_in, uint64_t length_in,
 struct sr_output_format output_ols = {
 	"ols",
 	"OpenBench Logic Sniffer",
-	DF_LOGIC,
+	SR_DF_LOGIC,
 	init,
 	data,
 	event,

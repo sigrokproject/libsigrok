@@ -94,7 +94,7 @@ int data_hex(struct sr_output *o, char *data_in, uint64_t length_in,
 struct sr_output_format output_text_hex = {
 	"hex",
 	"Hexadecimal (takes argument, default 192)",
-	DF_LOGIC,
+	SR_DF_LOGIC,
 	init_hex,
 	data_hex,
 	event,

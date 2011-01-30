@@ -40,7 +40,7 @@ static int event(struct sr_output *o, int event_type, char **data_out,
 struct sr_output_format output_foo = {
 	"foo",
 	"The foo format",
-	DF_LOGIC,
+	SR_DF_LOGIC,
 	init,
 	data,
 	event,

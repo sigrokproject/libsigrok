@@ -76,13 +76,13 @@ typedef int (*receive_data_callback) (int fd, int revents, void *user_data);
 
 /* Data types used by hardware plugins for set_configuration() */
 enum {
-	T_UINT64,
-	T_CHAR,
-	T_NULL,
+	SR_T_UINT64,
+	SR_T_CHAR,
+	SR_T_NULL,
 };
 
 enum {
-	PROTO_RAW,
+	SR_PROTO_RAW,
 };
 
 /* (Unused) protocol decoder stack entry */
@@ -94,12 +94,12 @@ struct protocol {
 
 /* sr_datafeed_packet.type values */
 enum {
-	DF_HEADER,
-	DF_END,
-	DF_TRIGGER,
-	DF_LOGIC,
-	DF_ANALOG,
-	DF_PD,
+	SR_DF_HEADER,
+	SR_DF_END,
+	SR_DF_TRIGGER,
+	SR_DF_LOGIC,
+	SR_DF_ANALOG,
+	SR_DF_PD,
 };
 
 struct sr_datafeed_packet {
@@ -198,8 +198,8 @@ struct sr_device {
 };
 
 enum {
-	PROBE_TYPE_LOGIC,
-	PROBE_TYPE_ANALOG,
+	SR_PROBE_TYPE_LOGIC,
+	SR_PROBE_TYPE_ANALOG,
 };
 
 struct probe {
@@ -214,20 +214,20 @@ extern GSList *devices;
 
 /* Hardware plugin capabilities */
 enum {
-	HWCAP_DUMMY,             /* Used to terminate lists */
+	SR_HWCAP_DUMMY,             /* Used to terminate lists */
 	/* device classes */
-	HWCAP_LOGIC_ANALYZER,
+	SR_HWCAP_LOGIC_ANALYZER,
 
 	/* device options */
-	HWCAP_SAMPLERATE,        /* Change samplerate */
-	HWCAP_PROBECONFIG,       /* Configure probe mask */
-	HWCAP_CAPTURE_RATIO,     /* Set pre/post-trigger capture ratio */
-	HWCAP_PATTERN_MODE,      /* Pattern generator mode */
+	SR_HWCAP_SAMPLERATE,        /* Change samplerate */
+	SR_HWCAP_PROBECONFIG,       /* Configure probe mask */
+	SR_HWCAP_CAPTURE_RATIO,     /* Set pre/post-trigger capture ratio */
+	SR_HWCAP_PATTERN_MODE,      /* Pattern generator mode */
 
 	/* acquisition modes */
-	HWCAP_LIMIT_MSEC,        /* Set a time limit for sample acquisition */
-	HWCAP_LIMIT_SAMPLES,     /* Set a limit on number of samples */
-	HWCAP_CONTINUOUS,
+	SR_HWCAP_LIMIT_MSEC,        /* Set a time limit for sample acquisition */
+	SR_HWCAP_LIMIT_SAMPLES,     /* Set a limit on number of samples */
+	SR_HWCAP_CONTINUOUS,
 };
 
 struct hwcap_option {
@@ -253,8 +253,8 @@ struct sr_device_instance {
 
 /* sr_device_instance types */
 enum {
-	USB_INSTANCE,
-	SERIAL_INSTANCE,
+	SR_USB_INSTANCE,
+	SR_SERIAL_INSTANCE,
 };
 
 struct sr_usb_device_instance {
@@ -270,13 +270,13 @@ struct sr_serial_device_instance {
 
 /* Device instance status */
 enum {
-	ST_NOT_FOUND,
+	SR_ST_NOT_FOUND,
 	/* Found, but still booting */
-	ST_INITIALIZING,
+	SR_ST_INITIALIZING,
 	/* Live, but not in use */
-	ST_INACTIVE,
+	SR_ST_INACTIVE,
 	/* Actively in use in a session */
-	ST_ACTIVE,
+	SR_ST_ACTIVE,
 };
 
 /*
@@ -287,17 +287,17 @@ enum {
 /* Device info IDs */
 enum {
 	/* struct sr_device_instance for this specific device */
-	DI_INSTANCE,
+	SR_DI_INSTANCE,
 	/* The number of probes connected to this device */
-	DI_NUM_PROBES,
+	SR_DI_NUM_PROBES,
 	/* Samplerates supported by this device, (struct samplerates) */
-	DI_SAMPLERATES,
+	SR_DI_SAMPLERATES,
 	/* Types of trigger supported, out of "01crf" (char *) */
-	DI_TRIGGER_TYPES,
+	SR_DI_TRIGGER_TYPES,
 	/* The currently set samplerate in Hz (uint64_t) */
-	DI_CUR_SAMPLERATE,
+	SR_DI_CUR_SAMPLERATE,
 	/* Supported pattern generator modes */
-	DI_PATTERNMODES,
+	SR_DI_PATTERNMODES,
 };
 
 /*

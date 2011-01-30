@@ -34,9 +34,9 @@ GSList *plugins;
  * options.
  */
 struct hwcap_option hwcap_options[] = {
-	{HWCAP_SAMPLERATE, T_UINT64, "Sample rate", "samplerate"},
-	{HWCAP_CAPTURE_RATIO, T_UINT64, "Pre-trigger capture ratio", "captureratio"},
-	{HWCAP_PATTERN_MODE, T_CHAR, "Pattern generator mode", "patternmode"},
+	{SR_HWCAP_SAMPLERATE, SR_T_UINT64, "Sample rate", "samplerate"},
+	{SR_HWCAP_CAPTURE_RATIO, SR_T_UINT64, "Pre-trigger capture ratio", "captureratio"},
+	{SR_HWCAP_PATTERN_MODE, SR_T_CHAR, "Pattern generator mode", "patternmode"},
 	{0, 0, NULL, NULL},
 };
 
@@ -138,10 +138,10 @@ struct sr_device_instance *sr_get_device_instance(GSList *device_instances,
 void sr_device_instance_free(struct sr_device_instance *sdi)
 {
 	switch (sdi->instance_type) {
-	case USB_INSTANCE:
+	case SR_USB_INSTANCE:
 		sr_usb_device_instance_free(sdi->usb);
 		break;
-	case SERIAL_INSTANCE:
+	case SR_SERIAL_INSTANCE:
 		sr_serial_device_instance_free(sdi->serial);
 		break;
 	default:

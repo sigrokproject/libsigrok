@@ -72,16 +72,16 @@ static int loadfile(struct sr_input *in, const char *filename)
 	header.feed_version = 1;
 	header.num_logic_probes = num_probes;
 	header.num_analog_probes = 0;
-	header.protocol_id = PROTO_RAW;
+	header.protocol_id = SR_PROTO_RAW;
 	header.samplerate = 0;
 	gettimeofday(&header.starttime, NULL);
-	packet.type = DF_HEADER;
+	packet.type = SR_DF_HEADER;
 	packet.length = sizeof(struct sr_datafeed_header);
 	packet.payload = &header;
 	session_bus(in->vdevice, &packet);
 
 	/* chop up the input file into chunks and feed it into the session bus */
-	packet.type = DF_LOGIC;
+	packet.type = SR_DF_LOGIC;
 	packet.unitsize = (num_probes + 7) / 8;
 	packet.payload = buffer;
 	while ((size = read(fd, buffer, CHUNKSIZE)) > 0) {
@@ -91,7 +91,7 @@ static int loadfile(struct sr_input *in, const char *filename)
 	close(fd);
 
 	/* end of stream */
-	packet.type = DF_END;
+	packet.type = SR_DF_END;
 	packet.length = 0;
 	session_bus(in->vdevice, &packet);
 

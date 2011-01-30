@@ -50,12 +50,12 @@
 
 /* There is only one model Saleae Logic, and this is what it supports: */
 static int capabilities[] = {
-	HWCAP_LOGIC_ANALYZER,
-	HWCAP_SAMPLERATE,
+	SR_HWCAP_LOGIC_ANALYZER,
+	SR_HWCAP_SAMPLERATE,
 
 	/* These are really implemented in the driver, not the hardware. */
-	HWCAP_LIMIT_SAMPLES,
-	HWCAP_CONTINUOUS,
+	SR_HWCAP_LIMIT_SAMPLES,
+	SR_HWCAP_CONTINUOUS,
 	0,
 };
 
@@ -177,7 +177,7 @@ struct sr_device_instance *sl_open_device(int device_index)
 		return NULL;
 
 	libusb_get_device_list(usb_context, &devlist);
-	if (sdi->status == ST_INITIALIZING) {
+	if (sdi->status == SR_ST_INITIALIZING) {
 		/*
 		 * This device was renumerating last time we touched it.
 		 * opendev() guarantees we've waited long enough for it to
@@ -191,7 +191,7 @@ struct sr_device_instance *sl_open_device(int device_index)
 				       &skip, USB_VENDOR, USB_PRODUCT,
 				       USB_INTERFACE);
 		}
-	} else if (sdi->status == ST_INACTIVE) {
+	} else if (sdi->status == SR_ST_INACTIVE) {
 		/*
 		 * This device is fully enumerated, so we need to find this
 		 * device by vendor, product, bus and address.
@@ -203,12 +203,12 @@ struct sr_device_instance *sl_open_device(int device_index)
 				       USB_PRODUCT, USB_INTERFACE);
 		}
 	} else {
-		/* Status must be ST_ACTIVE, i.e. already in use... */
+		/* Status must be SR_ST_ACTIVE, i.e. already in use... */
 		sdi = NULL;
 	}
 	libusb_free_device_list(devlist, 1);
 
-	if (sdi && sdi->status != ST_ACTIVE)
+	if (sdi && sdi->status != SR_ST_ACTIVE)
 		sdi = NULL;
 
 	return sdi;
@@ -238,7 +238,7 @@ static void close_device(struct sr_device_instance *sdi)
 	libusb_release_interface(sdi->usb->devhdl, USB_INTERFACE);
 	libusb_close(sdi->usb->devhdl);
 	sdi->usb->devhdl = NULL;
-	sdi->status = ST_INACTIVE;
+	sdi->status = SR_ST_INACTIVE;
 }
 
 static int configure_probes(GSList *probes)
@@ -319,7 +319,7 @@ static int hw_init(char *deviceinfo)
 		if (des.idVendor != USB_VENDOR || des.idProduct != USB_PRODUCT)
 			continue; /* Not a Saleae Logic... */
 
-		sdi = sr_device_instance_new(devcnt, ST_INITIALIZING,
+		sdi = sr_device_instance_new(devcnt, SR_ST_INITIALIZING,
 			USB_VENDOR_NAME, USB_MODEL_NAME, USB_MODEL_VERSION);
 		if (!sdi)
 			return 0;
@@ -386,7 +386,7 @@ static int hw_opendev(int device_index)
 
 	if (cur_samplerate == 0) {
 		/* Samplerate hasn't been set; default to the slowest one. */
-		if (hw_set_configuration(device_index, HWCAP_SAMPLERATE,
+		if (hw_set_configuration(device_index, SR_HWCAP_SAMPLERATE,
 		    &supported_samplerates[0]) == SR_ERR)
 			return SR_ERR;
 	}
@@ -430,19 +430,19 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 		return NULL;
 
 	switch (device_info_id) {
-	case DI_INSTANCE:
+	case SR_DI_INSTANCE:
 		info = sdi;
 		break;
-	case DI_NUM_PROBES:
+	case SR_DI_NUM_PROBES:
 		info = GINT_TO_POINTER(NUM_PROBES);
 		break;
-	case DI_SAMPLERATES:
+	case SR_DI_SAMPLERATES:
 		info = &samplerates;
 		break;
-	case DI_TRIGGER_TYPES:
+	case SR_DI_TRIGGER_TYPES:
 		info = TRIGGER_TYPES;
 		break;
-	case DI_CUR_SAMPLERATE:
+	case SR_DI_CUR_SAMPLERATE:
 		info = &cur_samplerate;
 		break;
 	}
@@ -458,7 +458,7 @@ static int hw_get_status(int device_index)
 	if (sdi)
 		return sdi->status;
 	else
-		return ST_NOT_FOUND;
+		return SR_ST_NOT_FOUND;
 }
 
 static int *hw_get_capabilities(void)
@@ -506,12 +506,12 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
 		return SR_ERR;
 
-	if (capability == HWCAP_SAMPLERATE) {
+	if (capability == SR_HWCAP_SAMPLERATE) {
 		tmp_u64 = value;
 		ret = set_configuration_samplerate(sdi, *tmp_u64);
-	} else if (capability == HWCAP_PROBECONFIG) {
+	} else if (capability == SR_HWCAP_PROBECONFIG) {
 		ret = configure_probes((GSList *) value);
-	} else if (capability == HWCAP_LIMIT_SAMPLES) {
+	} else if (capability == SR_HWCAP_LIMIT_SAMPLES) {
 		tmp_u64 = value;
 		limit_samples = *tmp_u64;
 		ret = SR_OK;
@@ -607,7 +607,7 @@ void receive_transfer(struct libusb_transfer *transfer)
 					 * TODO: Send pre-trigger buffer to session bus.
 					 * Tell the frontend we hit the trigger here.
 					 */
-					packet.type = DF_TRIGGER;
+					packet.type = SR_DF_TRIGGER;
 					packet.length = 0;
 					session_bus(user_data, &packet);
 
@@ -615,7 +615,7 @@ void receive_transfer(struct libusb_transfer *transfer)
 					 * Send the samples that triggered it, since we're
 					 * skipping past them.
 					 */
-					packet.type = DF_LOGIC;
+					packet.type = SR_DF_LOGIC;
 					packet.length = trigger_stage;
 					packet.unitsize = 1;
 					packet.payload = trigger_buffer;
@@ -648,7 +648,7 @@ void receive_transfer(struct libusb_transfer *transfer)
 
 	if (trigger_stage == TRIGGER_FIRED) {
 		/* Send the incoming transfer to the session bus. */
-		packet.type = DF_LOGIC;
+		packet.type = SR_DF_LOGIC;
 		packet.length = cur_buflen - trigger_offset;
 		packet.unitsize = 1;
 		packet.payload = cur_buf + trigger_offset;
@@ -708,13 +708,13 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 			   NULL);
 	free(lupfd);
 
-	packet->type = DF_HEADER;
+	packet->type = SR_DF_HEADER;
 	packet->length = sizeof(struct sr_datafeed_header);
 	packet->payload = (unsigned char *)header;
 	header->feed_version = 1;
 	gettimeofday(&header->starttime, NULL);
 	header->samplerate = cur_samplerate;
-	header->protocol_id = PROTO_RAW;
+	header->protocol_id = SR_PROTO_RAW;
 	header->num_logic_probes = NUM_PROBES;
 	header->num_analog_probes = 0;
 	session_bus(session_device_id, packet);
@@ -732,7 +732,7 @@ static void hw_stop_acquisition(int device_index, gpointer session_device_id)
 	/* Avoid compiler warnings. */
 	device_index = device_index;
 
-	packet.type = DF_END;
+	packet.type = SR_DF_END;
 	session_bus(session_device_id, &packet);
 
 	receive_transfer(NULL);
