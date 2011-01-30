@@ -110,10 +110,15 @@ void session_datafeed_callback_add(datafeed_callback callback);
 
 /* Session control */
 int session_start(void);
+void session_run(void);
+void session_halt(void);
 void session_stop(void);
 void session_bus(struct device *device, struct datafeed_packet *packet);
 void make_metadata(char *filename);
 int session_save(char *filename);
+void session_source_add(int fd, int events, int timeout,
+	        receive_data_callback callback, void *user_data);
+void session_source_remove(int fd);
 
 /*--- input/input.c ---------------------------------------------------------*/
 

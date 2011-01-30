@@ -22,12 +22,31 @@
 #include <unistd.h>
 #include <string.h>
 #include <zip.h>
+#include <glib.h>
 #include <sigrok.h>
 #include <config.h>
 
 
 /* There can only be one session at a time. */
 struct session *session;
+int num_sources = 0;
+/* These live in hwplugin.c, for the frontend to override. */
+extern source_callback_add source_cb_add;
+extern source_callback_remove source_cb_remove;
+
+struct source {
+	int fd;
+	int events;
+	int timeout;
+	receive_data_callback cb;
+	void *user_data;
+};
+
+struct source *sources = NULL;
+int source_timeout = -1;
+
+
+
 
 struct session *session_load(const char *filename)
 {
@@ -112,7 +131,7 @@ int session_start(void)
 	GSList *l;
 	int ret;
 
-	g_message("starting acquisition");
+	g_message("starting session");
 	for (l = session->devices; l; l = l->next) {
 		device = l->data;
 		if ((ret = device->plugin->start_acquisition(
@@ -123,17 +142,71 @@ int session_start(void)
 	return ret;
 }
 
+void session_run(void)
+{
+	GPollFD *fds, my_gpollfd;
+	int ret, i;
+
+	g_message("running session");
+	session->running = TRUE;
+	fds = NULL;
+	while (session->running) {
+		if (fds)
+			free(fds);
+
+		/* Construct g_poll()'s array. */
+		fds = malloc(sizeof(GPollFD) * num_sources);
+		for (i = 0; i < num_sources; i++) {
+#ifdef _WIN32
+			g_io_channel_win32_make_pollfd(&channels[0],
+					sources[i].events, &my_gpollfd);
+#else
+			my_gpollfd.fd = sources[i].fd;
+			my_gpollfd.events = sources[i].events;
+			fds[i] = my_gpollfd;
+#endif
+		}
+
+		ret = g_poll(fds, num_sources, source_timeout);
+
+		for (i = 0; i < num_sources; i++) {
+			if (fds[i].revents > 0 || (ret == 0
+				&& source_timeout == sources[i].timeout)) {
+				/*
+				 * Invoke the source's callback on an event,
+				 * or if the poll timeout out and this source
+				 * asked for that timeout.
+				 */
+				sources[i].cb(fds[i].fd, fds[i].revents,
+					      sources[i].user_data);
+			}
+		}
+	}
+	free(fds);
+
+}
+
+void session_halt(void)
+{
+
+	g_message("halting session");
+	session->running = FALSE;
+
+}
+
 void session_stop(void)
 {
 	struct device *device;
 	GSList *l;
 
-	g_message("stopping acquisition");
+	g_message("stopping session");
+	session->running = FALSE;
 	for (l = session->devices; l; l = l->next) {
 		device = l->data;
 		if (device->plugin)
 			device->plugin->stop_acquisition(device->plugin_index, device);
 	}
+
 }
 
 void session_bus(struct device *device, struct datafeed_packet *packet)
@@ -253,3 +326,54 @@ int session_save(char *filename)
 
 	return SIGROK_OK;
 }
+
+void session_source_add(int fd, int events, int timeout,
+	        receive_data_callback callback, void *user_data)
+{
+	struct source *new_sources, *s;
+
+	new_sources = calloc(1, sizeof(struct source) * (num_sources + 1));
+
+	if (sources) {
+		memcpy(new_sources, sources,
+		       sizeof(struct source) * num_sources);
+		free(sources);
+	}
+
+	s = &new_sources[num_sources++];
+	s->fd = fd;
+	s->events = events;
+	s->timeout = timeout;
+	s->cb = callback;
+	s->user_data = user_data;
+	sources = new_sources;
+
+	if (timeout != source_timeout && timeout > 0
+	    && (source_timeout == -1 || timeout < source_timeout))
+		source_timeout = timeout;
+}
+
+void session_source_remove(int fd)
+{
+	struct source *new_sources;
+	int old, new;
+
+	if (!sources)
+		return;
+
+	new_sources = calloc(1, sizeof(struct source) * num_sources);
+	for (old = 0; old < num_sources; old++)
+		if (sources[old].fd != fd)
+			memcpy(&new_sources[new++], &sources[old],
+			       sizeof(struct source));
+
+	if (old != new) {
+		free(sources);
+		sources = new_sources;
+		num_sources--;
+	} else {
+		/* Target fd was not found. */
+		free(new_sources);
+	}
+}
+

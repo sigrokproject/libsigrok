@@ -26,9 +26,6 @@
 #include <sigrok.h>
 #include "config.h"
 
-source_callback_add source_cb_add = NULL;
-source_callback_remove source_cb_remove = NULL;
-
 /* The list of loaded plugins lives here. */
 GSList *plugins;
 
@@ -224,15 +221,19 @@ struct hwcap_option *find_hwcap_option(int hwcap)
 	return NULL;
 }
 
+/* unnecessary level of indirection follows. */
+
 void source_remove(int fd)
 {
-	if (source_cb_remove)
-		source_cb_remove(fd);
+
+	session_source_remove(fd);
+
 }
 
 void source_add(int fd, int events, int timeout, receive_data_callback rcv_cb,
 		void *user_data)
 {
-	if (source_cb_add)
-		source_cb_add(fd, events, timeout, rcv_cb, user_data);
+
+	session_source_add(fd, events, timeout, rcv_cb, user_data);
+
 }

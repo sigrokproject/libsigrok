@@ -342,9 +342,10 @@ struct session {
 	GSList *devices;
 	/* List of struct analyzer* */
 	GSList *analyzers;
-	/* Datafeed callbacks */
+	/* list of receive_data_callback */
 	GSList *datafeed_callbacks;
 	GTimeVal starttime;
+	gboolean running;
 };
 
 #include "sigrok-proto.h"
