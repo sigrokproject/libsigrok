@@ -331,13 +331,6 @@ struct sr_device_plugin {
 	void (*stop_acquisition) (int device_index, gpointer session_device_id);
 };
 
-struct gsource_fd {
-	GSource source;
-	GPollFD gpfd;
-	/* Not really using this */
-	GSource *timeout_source;
-};
-
 struct session {
 	/* List of struct sr_device* */
 	GSList *devices;
