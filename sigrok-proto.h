@@ -132,5 +132,8 @@ struct sr_output_format **sr_output_list(void);
 
 char *sr_samplerate_string(uint64_t samplerate);
 char *sr_period_string(uint64_t frequency);
+char **sr_parse_triggerstring(struct sr_device *device, const char *triggerstring);
+uint64_t sr_parse_sizestring(const char *sizestring);
+uint64_t sr_parse_timestring(const char *timestring);
 
 #endif

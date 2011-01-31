@@ -30,7 +30,6 @@ libsigrokoutput_la_SOURCES = \
 	text/bits.c \
 	text/hex.c \
 	text/ascii.c \
-	common.c \
 	output.c
 
 libsigrokoutput_la_CFLAGS = \

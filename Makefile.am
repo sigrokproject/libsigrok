@@ -29,7 +29,8 @@ libsigrok_la_SOURCES = \
 	device.c \
 	session.c \
 	hwplugin.c \
-	filter.c
+	filter.c \
+	strutil.c
 
 libsigrok_la_LIBADD = \
 	$(LIBOBJS) \
