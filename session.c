@@ -201,7 +201,7 @@ void session_stop(void)
 	session->running = FALSE;
 	for (l = session->devices; l; l = l->next) {
 		device = l->data;
-		if (device->plugin)
+		if (device->plugin && device->plugin->stop_acquisition)
 			device->plugin->stop_acquisition(device->plugin_index, device);
 	}
 

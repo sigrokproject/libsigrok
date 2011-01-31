@@ -146,18 +146,13 @@ static int hw_opendev(int device_index)
 	return SR_OK;
 }
 
-static void hw_closedev(int device_index)
-{
-
-	/* avoid compiler warning */
-	device_index = device_index;
-
-}
-
 static void *hw_get_device_info(int device_index, int device_info_id)
 {
 	struct session_vdevice *vdevice;
 	void *info;
+
+	if (device_info_id != SR_DI_CUR_SAMPLERATE)
+		return NULL;
 
 	if (!(vdevice = get_vdevice_by_index(device_index)))
 		return NULL;
@@ -275,19 +270,6 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	return SR_OK;
 }
 
-static void hw_stop_acquisition(int device_index, gpointer session_device_id)
-{
-	struct session_vdevice *vdevice;
-
-	/* avoid compiler warning */
-	session_device_id = session_device_id;
-
-//	vdevice = get_vdevice_by_index(device_index);
-//	zip_fclose(vdevice->capfile);
-//	zip_close(vdevice->archive);
-
-}
-
 
 struct sr_device_plugin session_driver = {
 	"session",
@@ -296,11 +278,11 @@ struct sr_device_plugin session_driver = {
 	hw_init,
 	hw_cleanup,
 	hw_opendev,
-	hw_closedev,
+	NULL,
 	hw_get_device_info,
 	hw_get_status,
 	hw_get_capabilities,
 	hw_set_configuration,
 	hw_start_acquisition,
-	hw_stop_acquisition,
+	NULL
 };
