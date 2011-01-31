@@ -26,6 +26,8 @@
 #include <sigrok.h>
 #include <config.h>
 
+/* demo.c */
+extern GIOChannel channels[2];
 
 /* There can only be one session at a time. */
 struct session *session;
