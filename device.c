@@ -162,7 +162,6 @@ void device_probe_add(struct sr_device *device, char *name)
 		snprintf(probename, 16, "%d", probenum);
 		p->name = g_strdup(probename);
 	}
-	p->name = g_strdup(name);
 	p->trigger = NULL;
 	device->probes = g_slist_append(device->probes, p);
 }
