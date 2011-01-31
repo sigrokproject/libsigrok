@@ -50,6 +50,7 @@ void device_probe_name(struct sr_device *device, int probenum, char *name);
 
 void device_trigger_clear(struct sr_device *device);
 void device_trigger_set(struct sr_device *device, int probenum, char *trigger);
+gboolean device_has_hwcap(struct sr_device *device, int hwcap);
 
 /*--- filter.c --------------------------------------------------------------*/
 
@@ -94,7 +95,7 @@ typedef void (*datafeed_callback) (struct sr_device *device,
 				 struct sr_datafeed_packet *packet);
 
 /* Session setup */
-struct session *session_load(const char *filename);
+int session_load(const char *filename);
 struct session *session_new(void);
 void session_destroy(void);
 void session_device_clear(void);

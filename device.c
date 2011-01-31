@@ -84,17 +84,14 @@ struct sr_device *device_new(struct sr_device_plugin *plugin, int plugin_index,
 {
 	struct sr_device *device;
 	int i;
-	char probename[16];
 
 	device = g_malloc0(sizeof(struct sr_device));
 	device->plugin = plugin;
 	device->plugin_index = plugin_index;
 	devices = g_slist_append(devices, device);
 
-	for (i = 0; i < num_probes; i++) {
-		snprintf(probename, 16, "%d", i + 1);
-		device_probe_add(device, probename);
-	}
+	for (i = 0; i < num_probes; i++)
+		device_probe_add(device, NULL);
 
 	return device;
 }
@@ -152,10 +149,19 @@ void device_probe_clear(struct sr_device *device, int probenum)
 void device_probe_add(struct sr_device *device, char *name)
 {
 	struct probe *p;
+	char probename[16];
+	int probenum;
 
+	probenum = g_slist_length(device->probes) + 1;
 	p = g_malloc0(sizeof(struct probe));
-	p->index = g_slist_length(device->probes) + 1;
+	p->index = probenum;
 	p->enabled = TRUE;
+	if (name) {
+		p->name = g_strdup(name);
+	} else {
+		snprintf(probename, 16, "%d", probenum);
+		p->name = g_strdup(probename);
+	}
 	p->name = g_strdup(name);
 	p->trigger = NULL;
 	device->probes = g_slist_append(device->probes, p);
@@ -178,6 +184,7 @@ struct probe *probe_find(struct sr_device *device, int probenum)
 	return found_probe;
 }
 
+/* TODO: return SIGROK_ERR if probenum not found */
 void device_probe_name(struct sr_device *device, int probenum, char *name)
 {
 	struct probe *p;
@@ -191,6 +198,7 @@ void device_probe_name(struct sr_device *device, int probenum, char *name)
 	p->name = g_strdup(name);
 }
 
+/* TODO: return SIGROK_ERR if probenum not found */
 void device_trigger_clear(struct sr_device *device)
 {
 	struct probe *p;
@@ -208,6 +216,7 @@ void device_trigger_clear(struct sr_device *device)
 	}
 }
 
+/* TODO: return SIGROK_ERR if probenum not found */
 void device_trigger_set(struct sr_device *device, int probenum, char *trigger)
 {
 	struct probe *p;
@@ -220,4 +229,17 @@ void device_trigger_set(struct sr_device *device, int probenum, char *trigger)
 		g_free(p->trigger);
 
 	p->trigger = g_strdup(trigger);
+
+}
+
+gboolean device_has_hwcap(struct sr_device *device, int hwcap)
+{
+	int *capabilities, i;
+
+	if ((capabilities = device->plugin->get_capabilities()))
+		for (i = 0; capabilities[i]; i++)
+			if (capabilities[i] == hwcap)
+				return TRUE;
+
+	return FALSE;
 }

@@ -21,20 +21,12 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include <zip.h>
 #include <glib.h>
 #include <sigrok.h>
 #include <config.h>
 
 /* demo.c */
 extern GIOChannel channels[2];
-
-/* There can only be one session at a time. */
-struct session *session;
-int num_sources = 0;
-/* These live in hwplugin.c, for the frontend to override. */
-extern source_callback_add source_cb_add;
-extern source_callback_remove source_cb_remove;
 
 struct source {
 	int fd;
@@ -44,24 +36,13 @@ struct source {
 	void *user_data;
 };
 
+/* There can only be one session at a time. */
+struct session *session;
+int num_sources = 0;
+
 struct source *sources = NULL;
 int source_timeout = -1;
 
-
-
-
-struct session *session_load(const char *filename)
-{
-	struct session *session;
-
-	/* Avoid compiler warnings. */
-	filename = filename;
-
-	/* TODO: Implement. */
-	session = NULL;
-
-	return session;
-}
 
 struct session *session_new(void)
 {
@@ -127,30 +108,11 @@ void session_datafeed_callback_add(datafeed_callback callback)
 	    g_slist_append(session->datafeed_callbacks, callback);
 }
 
-int session_start(void)
-{
-	struct sr_device *device;
-	GSList *l;
-	int ret;
-
-	g_message("starting session");
-	for (l = session->devices; l; l = l->next) {
-		device = l->data;
-		if ((ret = device->plugin->start_acquisition(
-				device->plugin_index, device)) != SR_OK)
-			break;
-	}
-
-	return ret;
-}
-
-void session_run(void)
+static void session_run_poll()
 {
 	GPollFD *fds, my_gpollfd;
 	int ret, i;
 
-	g_message("running session");
-	session->running = TRUE;
 	fds = NULL;
 	while (session->running) {
 		if (fds)
@@ -180,7 +142,7 @@ void session_run(void)
 				 * asked for that timeout.
 				 */
 				sources[i].cb(fds[i].fd, fds[i].revents,
-					      sources[i].user_data);
+						  sources[i].user_data);
 			}
 		}
 	}
@@ -188,10 +150,44 @@ void session_run(void)
 
 }
 
+int session_start(void)
+{
+	struct sr_device *device;
+	GSList *l;
+	int ret;
+
+	g_message("session: starting");
+	for (l = session->devices; l; l = l->next) {
+		device = l->data;
+		if ((ret = device->plugin->start_acquisition(
+				device->plugin_index, device)) != SR_OK)
+			break;
+	}
+
+	return ret;
+}
+
+void session_run(void)
+{
+
+	g_message("session: running");
+	session->running = TRUE;
+
+	/* do we have real sources? */
+	if (num_sources == 1 && sources[0].fd == -1)
+		/* dummy source, freewheel over it */
+		while (session->running)
+			sources[0].cb(-1, 0, sources[0].user_data);
+	else
+		/* real sources, use g_poll() main loop */
+		session_run_poll();
+
+}
+
 void session_halt(void)
 {
 
-	g_message("halting session");
+	g_message("session: halting");
 	session->running = FALSE;
 
 }
@@ -201,7 +197,7 @@ void session_stop(void)
 	struct sr_device *device;
 	GSList *l;
 
-	g_message("stopping session");
+	g_message("session: stopping");
 	session->running = FALSE;
 	for (l = session->devices; l; l = l->next) {
 		device = l->data;
@@ -224,109 +220,6 @@ void session_bus(struct sr_device *device, struct sr_datafeed_packet *packet)
 		cb = l->data;
 		cb(device, packet);
 	}
-}
-
-int session_save(char *filename)
-{
-	GSList *l, *p, *d;
-	FILE *meta;
-	struct sr_device *device;
-	struct probe *probe;
-	struct datastore *ds;
-	struct zip *zipfile;
-	struct zip_source *versrc, *metasrc, *logicsrc;
-	int bufcnt, devcnt, tmpfile, ret, error;
-	char version[1], rawname[16], metafile[32], *newfn, *buf;
-
-	newfn = g_malloc(strlen(filename) + 10);
-	strcpy(newfn, filename);
-	if (strstr(filename, ".sigrok") != filename+strlen(filename)-7)
-		strcat(newfn, ".sigrok");
-
-	/* Quietly delete it first, libzip wants replace ops otherwise. */
-	unlink(newfn);
-	if (!(zipfile = zip_open(newfn, ZIP_CREATE, &error)))
-		return SR_ERR;
-	g_free(newfn);
-
-	/* "version" */
-	version[0] = '1';
-	if (!(versrc = zip_source_buffer(zipfile, version, 1, 0)))
-		return SR_ERR;
-	if (zip_add(zipfile, "version", versrc) == -1) {
-		g_message("error saving version into zipfile: %s",
-			  zip_strerror(zipfile));
-		return SR_ERR;
-	}
-
-	/* init "metadata" */
-	strcpy(metafile, "sigrok-meta-XXXXXX");
-	if ((tmpfile = g_mkstemp(metafile)) == -1)
-		return SR_ERR;
-	close(tmpfile);
-	meta = fopen(metafile, "wb");
-	fprintf(meta, "sigrok version = %s\n", PACKAGE_VERSION);
-	/* TODO: save protocol decoders used */
-
-	/* all datastores in all devices */
-	devcnt = 1;
-	for (l = session->devices; l; l = l->next) {
-		device = l->data;
-		/* metadata */
-		fprintf(meta, "[device]\n");
-		if (device->plugin)
-			fprintf(meta, "driver = %s\n", device->plugin->name);
-
-		ds = device->datastore;
-		if (ds) {
-			/* metadata */
-			fprintf(meta, "capturefile = logic-%d\n", devcnt);
-			for (p = device->probes; p; p = p->next) {
-				probe = p->data;
-				if (probe->enabled) {
-					fprintf(meta, "probe %d", probe->index);
-					if (probe->name)
-						fprintf(meta, " name \"%s\"", probe->name);
-					if (probe->trigger)
-						fprintf(meta, " trigger \"%s\"",
-							probe->trigger);
-					fprintf(meta, "\n");
-				}
-			}
-
-			/* dump datastore into logic-n */
-			buf = malloc(ds->num_units * ds->ds_unitsize +
-				   DATASTORE_CHUNKSIZE);
-			bufcnt = 0;
-			for (d = ds->chunklist; d; d = d->next) {
-				memcpy(buf + bufcnt, d->data,
-				       DATASTORE_CHUNKSIZE);
-				bufcnt += DATASTORE_CHUNKSIZE;
-			}
-			if (!(logicsrc = zip_source_buffer(zipfile, buf,
-				       ds->num_units * ds->ds_unitsize, TRUE)))
-				return SR_ERR;
-			snprintf(rawname, 15, "logic-%d", devcnt);
-			if (zip_add(zipfile, rawname, logicsrc) == -1)
-				return SR_ERR;
-		}
-		devcnt++;
-	}
-	fclose(meta);
-
-	if (!(metasrc = zip_source_file(zipfile, metafile, 0, -1)))
-		return SR_ERR;
-	if (zip_add(zipfile, "metadata", metasrc) == -1)
-		return SR_ERR;
-
-	if ((ret = zip_close(zipfile)) == -1) {
-		g_message("error saving zipfile: %s", zip_strerror(zipfile));
-		return SR_ERR;
-	}
-
-	unlink(metafile);
-
-	return SR_OK;
 }
 
 void session_source_add(int fd, int events, int timeout,

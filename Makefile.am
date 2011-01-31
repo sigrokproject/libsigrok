@@ -28,6 +28,8 @@ libsigrok_la_SOURCES = \
 	datastore.c \
 	device.c \
 	session.c \
+	session_file.c \
+	session_driver.c \
 	hwplugin.c \
 	filter.c \
 	strutil.c

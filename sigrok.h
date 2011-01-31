@@ -224,6 +224,11 @@ enum {
 	SR_HWCAP_CAPTURE_RATIO,     /* Set pre/post-trigger capture ratio */
 	SR_HWCAP_PATTERN_MODE,      /* Pattern generator mode */
 
+	/* special stuff */
+	SR_HWCAP_CAPTUREFILE,       /* capturefile to inject */
+	SR_HWCAP_CAPTURE_UNITSIZE,  /* unitsize of capturefile data */
+	SR_HWCAP_CAPTURE_NUM_PROBES,/* set number of probes */
+
 	/* acquisition modes */
 	SR_HWCAP_LIMIT_MSEC,        /* Set a time limit for sample acquisition */
 	SR_HWCAP_LIMIT_SAMPLES,     /* Set a limit on number of samples */
