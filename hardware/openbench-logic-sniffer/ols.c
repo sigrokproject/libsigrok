@@ -321,7 +321,7 @@ static int hw_init(char *deviceinfo)
 	free(serial_params);
 	g_slist_free(ports);
 
-	cur_samplerate = samplerates.low;
+	cur_samplerate = KHZ(200);
 
 	return final_devcnt;
 }
