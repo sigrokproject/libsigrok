@@ -79,7 +79,7 @@ static int init(struct sr_output *o)
 
 	num_probes = g_slist_length(o->device->probes);
 	comment[0] = '\0';
-	if (o->device->plugin) {
+	if (o->device->plugin && device_has_hwcap(o->device, SR_HWCAP_SAMPLERATE)) {
 		samplerate = *((uint64_t *) o->device->plugin->get_device_info(
 				o->device->plugin_index, SR_DI_CUR_SAMPLERATE));
 		if (!(frequency_s = sr_samplerate_string(samplerate))) {
@@ -226,7 +226,7 @@ static int analog_init(struct sr_output *o)
 
 	num_probes = g_slist_length(o->device->probes);
 	comment[0] = '\0';
-	if (o->device->plugin) {
+	if (o->device->plugin && device_has_hwcap(o->device, SR_HWCAP_SAMPLERATE)) {
 		samplerate = *((uint64_t *) o->device->plugin->get_device_info(
 				o->device->plugin_index, SR_DI_CUR_SAMPLERATE));
 		if (!(frequency_s = sr_samplerate_string(samplerate))) {
