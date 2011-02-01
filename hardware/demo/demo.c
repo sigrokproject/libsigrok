@@ -206,14 +206,14 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 
 static void samples_generator(uint8_t *buf, uint64_t size, void *data)
 {
+	static uint64_t p = 0;
 	struct databag *mydata = data;
-	uint64_t p, i;
+	uint64_t i;
 
 	memset(buf, 0, size);
 
 	switch (mydata->sample_generator) {
 	case GENMODE_DEFAULT:
-		p = 0;
 		for (i = 0; i < size; i++) {
 			*(buf + i) = ~(genmode_default[p] >> 1);
 			if (++p == 64)
@@ -352,6 +352,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 
 	/* Run the demo thread. */
 	g_thread_init(NULL);
+	/* this needs to be done between g_thread_init() and g_thread_create() */
 	mydata->timer = g_timer_new();
 	thread_running = 1;
 	my_thread =
