@@ -147,18 +147,12 @@ int session_save(char *filename)
 	struct zip_source *versrc, *metasrc, *logicsrc;
 	int bufcnt, devcnt, tmpfile, ret, error, probecnt;
 	uint64_t samplerate;
-	char version[1], rawname[16], metafile[32], *newfn, *buf, *s;
-
-	newfn = g_malloc(strlen(filename) + 10);
-	strcpy(newfn, filename);
-	if (strstr(filename, ".sigrok") != filename+strlen(filename)-7)
-		strcat(newfn, ".sigrok");
+	char version[1], rawname[16], metafile[32], *buf, *s;
 
 	/* Quietly delete it first, libzip wants replace ops otherwise. */
-	unlink(newfn);
-	if (!(zipfile = zip_open(newfn, ZIP_CREATE, &error)))
+	unlink(filename);
+	if (!(zipfile = zip_open(filename, ZIP_CREATE, &error)))
 		return SR_ERR;
-	g_free(newfn);
 
 	/* "version" */
 	version[0] = '1';
