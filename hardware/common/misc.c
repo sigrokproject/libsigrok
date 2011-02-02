@@ -17,10 +17,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "config.h"
 #include <stdint.h>
 #include <glib.h>
+#ifdef HAVE_LIBUSB_1_0
 #include <libusb.h>
+#endif
 #include <sigrok.h>
+
+#ifdef HAVE_LIBUSB_1_0
 
 int opendev2(int device_index, struct sr_device_instance **sdi,
 	     libusb_device *dev, struct libusb_device_descriptor *des,
@@ -90,3 +95,5 @@ int opendev3(struct sr_device_instance **sdi, libusb_device *dev,
 
 	return 0;
 }
+
+#endif

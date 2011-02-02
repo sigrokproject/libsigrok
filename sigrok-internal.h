@@ -35,18 +35,22 @@ int serial_set_params(int fd, int speed, int bits, int parity, int stopbits,
 
 /*--- hardware/common/ezusb.c -----------------------------------------------*/
 
+#ifdef HAVE_LIBUSB_1_0
 int ezusb_reset(struct libusb_device_handle *hdl, int set_clear);
 int ezusb_install_firmware(libusb_device_handle *hdl, char *filename);
 int ezusb_upload_firmware(libusb_device *dev, int configuration,
 			  const char *filename);
+#endif
 
 /*--- hardware/common/misc.c ------------------------------------------------*/
 
+#ifdef HAVE_LIBUSB_1_0
 int opendev2(int device_index, struct sr_device_instance **sdi,
 	     libusb_device *dev, struct libusb_device_descriptor *des,
 	     int *skip, uint16_t vid, uint16_t pid, int interface);
 int opendev3(struct sr_device_instance **sdi, libusb_device *dev,
 	     struct libusb_device_descriptor *des,
 	     uint16_t vid, uint16_t pid, int interface);
+#endif
 
 #endif

@@ -17,14 +17,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "config.h"
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <zip.h>
 #include <glib.h>
 #include <sigrok.h>
-#include <config.h>
-
 
 extern struct session *session;
 extern struct sr_device_plugin session_driver;

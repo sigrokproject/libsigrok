@@ -17,6 +17,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "config.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
@@ -25,7 +26,6 @@
 #include <libusb.h>
 #include <sigrok.h>
 #include <sigrok-internal.h>
-#include "config.h"
 
 #define USB_VENDOR	            0x0925
 #define USB_PRODUCT			0x3881

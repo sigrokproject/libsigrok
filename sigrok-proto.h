@@ -71,9 +71,11 @@ struct sr_device_instance *sr_get_device_instance(GSList *device_instances,
 void sr_device_instance_free(struct sr_device_instance *sdi);
 
 /* USB-specific instances */
+#ifdef HAVE_LIBUSB_1_0
 struct sr_usb_device_instance *sr_usb_device_instance_new(uint8_t bus,
 		uint8_t address, struct libusb_device_handle *hdl);
 void sr_usb_device_instance_free(struct sr_usb_device_instance *usb);
+#endif
 
 /* Serial-specific instances */
 struct sr_serial_device_instance *sr_serial_device_instance_new(

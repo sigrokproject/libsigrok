@@ -17,6 +17,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "config.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/types.h>
@@ -24,7 +25,6 @@
 #include <string.h>
 #include <glib.h>
 #include <sigrok.h>
-#include "config.h"
 
 /* The list of loaded plugins lives here. */
 GSList *plugins;
@@ -138,9 +138,11 @@ struct sr_device_instance *sr_get_device_instance(GSList *device_instances,
 void sr_device_instance_free(struct sr_device_instance *sdi)
 {
 	switch (sdi->instance_type) {
+#ifdef HAVE_LIBUSB_1_0
 	case SR_USB_INSTANCE:
 		sr_usb_device_instance_free(sdi->usb);
 		break;
+#endif
 	case SR_SERIAL_INSTANCE:
 		sr_serial_device_instance_free(sdi->serial);
 		break;
@@ -154,6 +156,8 @@ void sr_device_instance_free(struct sr_device_instance *sdi)
 	free(sdi->version);
 	free(sdi);
 }
+
+#ifdef HAVE_LIBUSB_1_0
 
 struct sr_usb_device_instance *sr_usb_device_instance_new(uint8_t bus,
 			uint8_t address, struct libusb_device_handle *hdl)
@@ -177,6 +181,8 @@ void sr_usb_device_instance_free(struct sr_usb_device_instance *usb)
 
 	/* Nothing to do for this device instance type. */
 }
+
+#endif
 
 struct sr_serial_device_instance *sr_serial_device_instance_new(
 						const char *port, int fd)

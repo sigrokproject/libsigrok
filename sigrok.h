@@ -25,7 +25,9 @@
 #include <stdint.h>
 #include <inttypes.h>
 #include <glib.h>
+#ifdef HAVE_LIBUSB_1_0
 #include <libusb.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -262,11 +264,13 @@ enum {
 	SR_SERIAL_INSTANCE,
 };
 
+#ifdef HAVE_LIBUSB_1_0
 struct sr_usb_device_instance {
 	uint8_t bus;
 	uint8_t address;
 	struct libusb_device_handle *devhdl;
 };
+#endif
 
 struct sr_serial_device_instance {
 	char *port;
