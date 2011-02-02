@@ -23,7 +23,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #ifdef _WIN32
-#include <conio.h>
+#include <windows.h>
 #else
 #include <glob.h>
 #include <termios.h>
