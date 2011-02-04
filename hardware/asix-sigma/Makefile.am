@@ -19,6 +19,8 @@
 
 if LA_ASIX_SIGMA
 
+AM_CPPFLAGS = -DFIRMWARE_DIR='"$(FIRMWARE_DIR)"'
+
 # Local lib, this is NOT meant to be installed!
 noinst_LTLIBRARIES = libsigrokhwasixsigma.la
 
