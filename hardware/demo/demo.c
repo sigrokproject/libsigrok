@@ -176,7 +176,11 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 	device_index = device_index;
 
 	if (capability == SR_HWCAP_PROBECONFIG) {
-		/* Nothing to do. */
+		/* Nothing to do, but must be supported */
+		ret = SR_OK;
+	} else if (capability == SR_HWCAP_SAMPLERATE) {
+		tmp_u64 = value;
+		cur_samplerate = *tmp_u64;
 		ret = SR_OK;
 	} else if (capability == SR_HWCAP_LIMIT_SAMPLES) {
 		tmp_u64 = value;
