@@ -50,7 +50,7 @@ int ezusb_install_firmware(libusb_device_handle *hdl, const char *filename)
 	unsigned char buf[4096];
 
 	g_message("Uploading firmware at %s", filename);
-	if ((fw = fopen(filename, "r")) == NULL) {
+	if ((fw = fopen(filename, "rb")) == NULL) {
 		g_warning("Unable to open firmware file %s for reading: %s",
 			  filename, strerror(errno));
 		return 1;
