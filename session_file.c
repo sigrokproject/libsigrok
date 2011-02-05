@@ -168,7 +168,7 @@ int session_save(char *filename)
 	if ((tmpfile = g_mkstemp(metafile)) == -1)
 		return SR_ERR;
 	close(tmpfile);
-	meta = fopen(metafile, "wb");
+	meta = g_fopen(metafile, "wb");
 	fprintf(meta, "[global]\n");
 	fprintf(meta, "sigrok version = %s\n", PACKAGE_VERSION);
 	/* TODO: save protocol decoders used */

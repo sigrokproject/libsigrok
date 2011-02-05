@@ -312,9 +312,9 @@ static int bin2bitbang(const char *filename,
 	int c, ret, bit, v;
 	uint32_t imm = 0x3f6df2ab;
 
-	f = fopen(filename, "rb");
+	f = g_fopen(filename, "rb");
 	if (!f) {
-		g_warning("fopen(\"%s\", \"rb\")", filename);
+		g_warning("g_fopen(\"%s\", \"rb\")", filename);
 		return -1;
 	}
 
