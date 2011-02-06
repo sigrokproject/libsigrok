@@ -23,6 +23,7 @@
 #include <unistd.h>
 #include <zip.h>
 #include <glib.h>
+#include <glib/gstdio.h>
 #include <sigrok.h>
 
 extern struct session *session;

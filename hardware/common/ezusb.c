@@ -23,6 +23,7 @@
 
 #include <libusb.h>
 #include <glib.h>
+#include <glib/gstdio.h>
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>

@@ -24,6 +24,8 @@
  */
 
 #include "config.h"
+#include <glib.h>
+#include <glib/gstdio.h>
 #include <ftdi.h>
 #include <string.h>
 #include <zlib.h>
