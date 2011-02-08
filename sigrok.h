@@ -175,7 +175,7 @@ struct analyzer {
 /* Size of a chunk in units */
 #define DATASTORE_CHUNKSIZE 512000
 
-struct datastore {
+struct sr_datastore {
 	/* Size in bytes of the number of units stored in this datastore */
 	int ds_unitsize;
 	unsigned int num_units; /* TODO: uint64_t */
@@ -196,7 +196,7 @@ struct sr_device {
 	/* List of struct sr_probe* */
 	GSList *probes;
 	/* Data acquired by this device, if any */
-	struct datastore *datastore;
+	struct sr_datastore *datastore;
 };
 
 enum {

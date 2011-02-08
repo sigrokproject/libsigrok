@@ -23,9 +23,9 @@
 #include <glib.h>
 #include <sigrok.h>
 
-static gpointer new_chunk(struct datastore **ds);
+static gpointer new_chunk(struct sr_datastore **ds);
 
-int datastore_new(int unitsize, struct datastore **ds)
+int sr_datastore_new(int unitsize, struct sr_datastore **ds)
 {
 	if (!ds)
 		return SR_ERR;
@@ -33,7 +33,7 @@ int datastore_new(int unitsize, struct datastore **ds)
 	if (unitsize <= 0)
 		return SR_ERR; /* TODO: Different error? */
 
-	if (!(*ds = g_malloc(sizeof(struct datastore))))
+	if (!(*ds = g_malloc(sizeof(struct sr_datastore))))
 		return SR_ERR_MALLOC;
 
 	(*ds)->ds_unitsize = unitsize;
@@ -43,7 +43,7 @@ int datastore_new(int unitsize, struct datastore **ds)
 	return SR_OK;
 }
 
-int datastore_destroy(struct datastore *ds)
+int sr_datastore_destroy(struct sr_datastore *ds)
 {
 	GSList *chunk;
 
@@ -58,8 +58,8 @@ int datastore_destroy(struct datastore *ds)
 	return SR_OK;
 }
 
-void datastore_put(struct datastore *ds, void *data, unsigned int length,
-		   int in_unitsize, int *probelist)
+void sr_datastore_put(struct sr_datastore *ds, void *data, unsigned int length,
+		      int in_unitsize, int *probelist)
 {
 	unsigned int stored;
 	int capacity, size, num_chunks, chunk_bytes_free, chunk_offset;
@@ -100,7 +100,7 @@ void datastore_put(struct datastore *ds, void *data, unsigned int length,
 	ds->num_units += stored / ds->ds_unitsize;
 }
 
-static gpointer new_chunk(struct datastore **ds)
+static gpointer new_chunk(struct sr_datastore **ds)
 {
 	gpointer chunk;
 

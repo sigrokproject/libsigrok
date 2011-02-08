@@ -142,7 +142,7 @@ int sr_session_save(char *filename)
 	FILE *meta;
 	struct sr_device *device;
 	struct sr_probe *probe;
-	struct datastore *ds;
+	struct sr_datastore *ds;
 	struct zip *zipfile;
 	struct zip_source *versrc, *metasrc, *logicsrc;
 	int bufcnt, devcnt, tmpfile, ret, error, probecnt;

@@ -27,10 +27,10 @@ void sr_exit(void);
 
 /*--- datastore.c -----------------------------------------------------------*/
 
-int datastore_new(int unitsize, struct datastore **ds);
-int datastore_destroy(struct datastore *ds);
-void datastore_put(struct datastore *ds, void *data, unsigned int length,
-		   int in_unitsize, int *probelist);
+int sr_datastore_new(int unitsize, struct sr_datastore **ds);
+int sr_datastore_destroy(struct sr_datastore *ds);
+void sr_datastore_put(struct sr_datastore *ds, void *data, unsigned int length,
+		      int in_unitsize, int *probelist);
 
 /*--- device.c --------------------------------------------------------------*/
 
@@ -38,8 +38,8 @@ void sr_device_scan(void);
 int sr_device_plugin_init(struct sr_device_plugin *plugin);
 void sr_device_close_all(void);
 GSList *sr_device_list(void);
-struct sr_device *sr_device_new(struct sr_device_plugin *plugin, int plugin_index,
-			     int num_probes);
+struct sr_device *sr_device_new(struct sr_device_plugin *plugin,
+				int plugin_index, int num_probes);
 void sr_device_clear(struct sr_device *device);
 void sr_device_destroy(struct sr_device *dev);
 
@@ -49,7 +49,8 @@ struct sr_probe *probe_find(struct sr_device *device, int probenum);
 void sr_device_probe_name(struct sr_device *device, int probenum, char *name);
 
 void sr_device_trigger_clear(struct sr_device *device);
-void sr_device_trigger_set(struct sr_device *device, int probenum, char *trigger);
+void sr_device_trigger_set(struct sr_device *device, int probenum,
+			   char *trigger);
 gboolean sr_device_has_hwcap(struct sr_device *device, int hwcap);
 
 /*--- filter.c --------------------------------------------------------------*/
@@ -116,7 +117,8 @@ int sr_session_start(void);
 void sr_session_run(void);
 void sr_session_halt(void);
 void sr_session_stop(void);
-void sr_session_bus(struct sr_device *device, struct sr_datafeed_packet *packet);
+void sr_session_bus(struct sr_device *device,
+		    struct sr_datafeed_packet *packet);
 void make_metadata(char *filename);
 int sr_session_save(char *filename);
 void sr_session_source_add(int fd, int events, int timeout,
@@ -135,7 +137,8 @@ struct sr_output_format **sr_output_list(void);
 
 char *sr_samplerate_string(uint64_t samplerate);
 char *sr_period_string(uint64_t frequency);
-char **sr_parse_triggerstring(struct sr_device *device, const char *triggerstring);
+char **sr_parse_triggerstring(struct sr_device *device,
+			      const char *triggerstring);
 uint64_t sr_parse_sizestring(const char *sizestring);
 uint64_t sr_parse_timestring(const char *timestring);
 
