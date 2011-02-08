@@ -94,7 +94,7 @@ int sr_session_load(const char *filename)
 			for (j = 0; keys[j]; j++) {
 				val = g_key_file_get_string(kf, sections[i], keys[j], NULL);
 				if (!strcmp(keys[j], "capturefile")) {
-					device = device_new(&session_driver, devcnt, 0);
+					device = sr_device_new(&session_driver, devcnt, 0);
 					if (devcnt == 0)
 						/* first device, init the plugin */
 						device->plugin->init((char *)filename);
@@ -111,16 +111,16 @@ int sr_session_load(const char *filename)
 					total_probes = strtoull(val, NULL, 10);
 					device->plugin->set_configuration(devcnt, SR_HWCAP_CAPTURE_NUM_PROBES, &total_probes);
 					for (p = 1; p <= total_probes; p++)
-						device_probe_add(device, NULL);
+						sr_device_probe_add(device, NULL);
 				} else if (!strncmp(keys[j], "probe", 5)) {
 					if (!device)
 						continue;
 					enabled_probes++;
 					tmp_u64 = strtoul(keys[j]+5, NULL, 10);
-					device_probe_name(device, tmp_u64, val);
+					sr_device_probe_name(device, tmp_u64, val);
 				} else if (!strncmp(keys[j], "trigger", 7)) {
 					probenum = strtoul(keys[j]+7, NULL, 10);
-					device_trigger_set(device, probenum, val);
+					sr_device_trigger_set(device, probenum, val);
 				}
 			}
 			g_strfreev(keys);
@@ -189,7 +189,7 @@ int sr_session_save(char *filename)
 			fprintf(meta, "capturefile = logic-%d\n", devcnt);
 			fprintf(meta, "unitsize = %d\n", ds->ds_unitsize);
 			fprintf(meta, "total probes = %d\n", g_slist_length(device->probes));
-			if (device_has_hwcap(device, SR_HWCAP_SAMPLERATE)) {
+			if (sr_device_has_hwcap(device, SR_HWCAP_SAMPLERATE)) {
 				samplerate = *((uint64_t *) device->plugin->get_device_info(
 						device->plugin_index, SR_DI_CUR_SAMPLERATE));
 				s = sr_samplerate_string(samplerate);

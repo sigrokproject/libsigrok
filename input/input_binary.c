@@ -51,7 +51,7 @@ static int init(struct sr_input *in)
 		num_probes = DEFAULT_NUM_PROBES;
 
 	/* create a virtual device */
-	in->vdevice = device_new(NULL, 0, num_probes);
+	in->vdevice = sr_device_new(NULL, 0, num_probes);
 
 	return SR_OK;
 }

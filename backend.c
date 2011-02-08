@@ -28,5 +28,5 @@ int sr_init(void)
 /* TODO: Should return int to be able to report back error codes. */
 void sr_exit(void)
 {
-	device_close_all();
+	sr_device_close_all();
 }

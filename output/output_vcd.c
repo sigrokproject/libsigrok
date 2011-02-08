@@ -91,7 +91,7 @@ static int init(struct sr_output *o)
 	g_string_append_printf(ctx->header, "$version %s %s $end\n",
 			PACKAGE, PACKAGE_VERSION);
 
-	if (o->device->plugin && device_has_hwcap(o->device, SR_HWCAP_SAMPLERATE)) {
+	if (o->device->plugin && sr_device_has_hwcap(o->device, SR_HWCAP_SAMPLERATE)) {
 		ctx->samplerate = *((uint64_t *) o->device->plugin->get_device_info(
 				o->device->plugin_index, SR_DI_CUR_SAMPLERATE));
 		if (!((samplerate_s = sr_samplerate_string(ctx->samplerate)))) {

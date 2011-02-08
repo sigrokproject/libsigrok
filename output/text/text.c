@@ -107,7 +107,7 @@ int init(struct sr_output *o, int default_spl, enum outputmode mode)
 
 	snprintf(ctx->header, 511, "%s\n", PACKAGE_STRING);
 	num_probes = g_slist_length(o->device->probes);
-	if (o->device->plugin || device_has_hwcap(o->device, SR_HWCAP_SAMPLERATE)) {
+	if (o->device->plugin || sr_device_has_hwcap(o->device, SR_HWCAP_SAMPLERATE)) {
 		samplerate = *((uint64_t *) o->device->plugin->get_device_info(
 				o->device->plugin_index, SR_DI_CUR_SAMPLERATE));
 		if (!(samplerate_s = sr_samplerate_string(samplerate))) {

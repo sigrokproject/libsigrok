@@ -48,7 +48,7 @@ static void make_header(struct sr_output *o)
 
 	ctx = o->internal;
 
-	if (o->device->plugin && device_has_hwcap(o->device, SR_HWCAP_SAMPLERATE))
+	if (o->device->plugin && sr_device_has_hwcap(o->device, SR_HWCAP_SAMPLERATE))
 		samplerate = *((uint64_t *) o->device->plugin->get_device_info(
 				o->device->plugin_index, SR_DI_CUR_SAMPLERATE));
 	else

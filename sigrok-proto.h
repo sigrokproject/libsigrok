@@ -34,23 +34,23 @@ void datastore_put(struct datastore *ds, void *data, unsigned int length,
 
 /*--- device.c --------------------------------------------------------------*/
 
-void device_scan(void);
-int device_plugin_init(struct sr_device_plugin *plugin);
-void device_close_all(void);
-GSList *device_list(void);
-struct sr_device *device_new(struct sr_device_plugin *plugin, int plugin_index,
+void sr_device_scan(void);
+int sr_device_plugin_init(struct sr_device_plugin *plugin);
+void sr_device_close_all(void);
+GSList *sr_device_list(void);
+struct sr_device *sr_device_new(struct sr_device_plugin *plugin, int plugin_index,
 			     int num_probes);
-void device_clear(struct sr_device *device);
-void device_destroy(struct sr_device *dev);
+void sr_device_clear(struct sr_device *device);
+void sr_device_destroy(struct sr_device *dev);
 
-void device_probe_clear(struct sr_device *device, int probenum);
-void device_probe_add(struct sr_device *device, char *name);
+void sr_device_probe_clear(struct sr_device *device, int probenum);
+void sr_device_probe_add(struct sr_device *device, char *name);
 struct sr_probe *probe_find(struct sr_device *device, int probenum);
-void device_probe_name(struct sr_device *device, int probenum, char *name);
+void sr_device_probe_name(struct sr_device *device, int probenum, char *name);
 
-void device_trigger_clear(struct sr_device *device);
-void device_trigger_set(struct sr_device *device, int probenum, char *trigger);
-gboolean device_has_hwcap(struct sr_device *device, int hwcap);
+void sr_device_trigger_clear(struct sr_device *device);
+void sr_device_trigger_set(struct sr_device *device, int probenum, char *trigger);
+gboolean sr_device_has_hwcap(struct sr_device *device, int hwcap);
 
 /*--- filter.c --------------------------------------------------------------*/
 

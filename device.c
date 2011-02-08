@@ -25,7 +25,7 @@ extern struct sr_global *global;
 
 GSList *devices = NULL;
 
-void device_scan(void)
+void sr_device_scan(void)
 {
 	GSList *plugins, *l;
 	struct sr_device_plugin *plugin;
@@ -39,12 +39,12 @@ void device_scan(void)
 	 */
 	for (l = plugins; l; l = l->next) {
 		plugin = l->data;
-		device_plugin_init(plugin);
+		sr_device_plugin_init(plugin);
 	}
 
 }
 
-int device_plugin_init(struct sr_device_plugin *plugin)
+int sr_device_plugin_init(struct sr_device_plugin *plugin)
 {
 	int num_devices, num_probes, i;
 
@@ -52,13 +52,13 @@ int device_plugin_init(struct sr_device_plugin *plugin)
 	num_devices = plugin->init(NULL);
 	for (i = 0; i < num_devices; i++) {
 		num_probes = (int)plugin->get_device_info(i, SR_DI_NUM_PROBES);
-		device_new(plugin, i, num_probes);
+		sr_device_new(plugin, i, num_probes);
 	}
 
 	return num_devices;
 }
 
-void device_close_all(void)
+void sr_device_close_all(void)
 {
 	struct sr_device *device;
 
@@ -66,20 +66,20 @@ void device_close_all(void)
 		device = devices->data;
 		if (device->plugin && device->plugin->close)
 			device->plugin->close(device->plugin_index);
-		device_destroy(device);
+		sr_device_destroy(device);
 	}
 }
 
-GSList *device_list(void)
+GSList *sr_device_list(void)
 {
 
 	if (!devices)
-		device_scan();
+		sr_device_scan();
 
 	return devices;
 }
 
-struct sr_device *device_new(struct sr_device_plugin *plugin, int plugin_index,
+struct sr_device *sr_device_new(struct sr_device_plugin *plugin, int plugin_index,
 			     int num_probes)
 {
 	struct sr_device *device;
@@ -91,12 +91,12 @@ struct sr_device *device_new(struct sr_device_plugin *plugin, int plugin_index,
 	devices = g_slist_append(devices, device);
 
 	for (i = 0; i < num_probes; i++)
-		device_probe_add(device, NULL);
+		sr_device_probe_add(device, NULL);
 
 	return device;
 }
 
-void device_clear(struct sr_device *device)
+void sr_device_clear(struct sr_device *device)
 {
 	unsigned int pnum;
 
@@ -106,10 +106,10 @@ void device_clear(struct sr_device *device)
 		return;
 
 	for (pnum = 1; pnum <= g_slist_length(device->probes); pnum++)
-		device_probe_clear(device, pnum);
+		sr_device_probe_clear(device, pnum);
 }
 
-void device_destroy(struct sr_device *device)
+void sr_device_destroy(struct sr_device *device)
 {
 	unsigned int pnum;
 
@@ -121,13 +121,13 @@ void device_destroy(struct sr_device *device)
 	devices = g_slist_remove(devices, device);
 	if (device->probes) {
 		for (pnum = 1; pnum <= g_slist_length(device->probes); pnum++)
-			device_probe_clear(device, pnum);
+			sr_device_probe_clear(device, pnum);
 		g_slist_free(device->probes);
 	}
 	g_free(device);
 }
 
-void device_probe_clear(struct sr_device *device, int probenum)
+void sr_device_probe_clear(struct sr_device *device, int probenum)
 {
 	struct sr_probe *p;
 
@@ -146,7 +146,7 @@ void device_probe_clear(struct sr_device *device, int probenum)
 	}
 }
 
-void device_probe_add(struct sr_device *device, char *name)
+void sr_device_probe_add(struct sr_device *device, char *name)
 {
 	struct sr_probe *p;
 	char probename[16];
@@ -184,7 +184,7 @@ struct sr_probe *probe_find(struct sr_device *device, int probenum)
 }
 
 /* TODO: return SIGROK_ERR if probenum not found */
-void device_probe_name(struct sr_device *device, int probenum, char *name)
+void sr_device_probe_name(struct sr_device *device, int probenum, char *name)
 {
 	struct sr_probe *p;
 
@@ -198,7 +198,7 @@ void device_probe_name(struct sr_device *device, int probenum, char *name)
 }
 
 /* TODO: return SIGROK_ERR if probenum not found */
-void device_trigger_clear(struct sr_device *device)
+void sr_device_trigger_clear(struct sr_device *device)
 {
 	struct sr_probe *p;
 	unsigned int pnum;
@@ -216,7 +216,7 @@ void device_trigger_clear(struct sr_device *device)
 }
 
 /* TODO: return SIGROK_ERR if probenum not found */
-void device_trigger_set(struct sr_device *device, int probenum, char *trigger)
+void sr_device_trigger_set(struct sr_device *device, int probenum, char *trigger)
 {
 	struct sr_probe *p;
 
@@ -231,7 +231,7 @@ void device_trigger_set(struct sr_device *device, int probenum, char *trigger)
 
 }
 
-gboolean device_has_hwcap(struct sr_device *device, int hwcap)
+gboolean sr_device_has_hwcap(struct sr_device *device, int hwcap)
 {
 	int *capabilities, i;
 
