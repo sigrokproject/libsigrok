@@ -68,7 +68,7 @@ static GSList *device_instances = NULL;
  * upgrade -- this is like a global lock. No device will open until a proper
  * delay after the last device was upgraded.
  */
-GTimeVal firmware_updated = { 0, 0 };
+static GTimeVal firmware_updated = { 0, 0 };
 
 static libusb_context *usb_context = NULL;
 
@@ -101,7 +101,7 @@ static uint8_t trigger_mask[NUM_TRIGGER_STAGES] = { 0 };
 static uint8_t trigger_value[NUM_TRIGGER_STAGES] = { 0 };
 static uint8_t trigger_buffer[NUM_TRIGGER_STAGES] = { 0 };
 
-int trigger_stage = TRIGGER_FIRED;
+static int trigger_stage = TRIGGER_FIRED;
 
 static int hw_set_configuration(int device_index, int capability, void *value);
 static void hw_stop_acquisition(int device_index, gpointer session_device_id);
@@ -112,7 +112,7 @@ static void hw_stop_acquisition(int device_index, gpointer session_device_id);
  * @return 1 if the device's configuration profile match the Logic firmware's
  *         configuration, 0 otherwise.
  */
-int check_conf_profile(libusb_device *dev)
+static int check_conf_profile(libusb_device *dev)
 {
 	struct libusb_device_descriptor des;
 	struct libusb_config_descriptor *conf_dsc = NULL;
@@ -166,7 +166,7 @@ int check_conf_profile(libusb_device *dev)
 	return ret;
 }
 
-struct sr_device_instance *sl_open_device(int device_index)
+static struct sr_device_instance *sl_open_device(int device_index)
 {
 	struct sr_device_instance *sdi;
 	libusb_device **devlist;
@@ -214,7 +214,7 @@ struct sr_device_instance *sl_open_device(int device_index)
 	return sdi;
 }
 
-int upload_firmware(libusb_device *dev)
+static int upload_firmware(libusb_device *dev)
 {
 	int ret;
 
