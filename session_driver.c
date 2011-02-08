@@ -90,7 +90,7 @@ static int feed_chunk(int fd, int revents, void *user_data)
 			packet.length = ret;
 			packet.unitsize = vdevice->unitsize;
 			packet.payload = buf;
-			session_bus(user_data, &packet);
+			sr_session_bus(user_data, &packet);
 		} else {
 			/* done with this capture file */
 			zip_fclose(vdevice->capfile);
@@ -103,7 +103,7 @@ static int feed_chunk(int fd, int revents, void *user_data)
 	if (!got_data) {
 		packet.type = SR_DF_END;
 		packet.length = 0;
-		session_bus(user_data, &packet);
+		sr_session_bus(user_data, &packet);
 	}
 
 	return TRUE;
@@ -247,7 +247,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	}
 
 	/* freewheeling source */
-	session_source_add(-1, 0, 0, feed_chunk, session_device_id);
+	sr_session_source_add(-1, 0, 0, feed_chunk, session_device_id);
 
 	/* Send header packet to the session bus. */
 	packet = g_malloc(sizeof(struct sr_datafeed_packet));
@@ -263,7 +263,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	header->protocol_id = SR_PROTO_RAW;
 	header->num_logic_probes = vdevice->num_probes;
 	header->num_analog_probes = 0;
-	session_bus(session_device_id, packet);
+	sr_session_bus(session_device_id, packet);
 	g_free(header);
 	g_free(packet);
 
@@ -284,5 +284,5 @@ struct sr_device_plugin session_driver = {
 	hw_get_capabilities,
 	hw_set_configuration,
 	hw_start_acquisition,
-	NULL
+	NULL,
 };

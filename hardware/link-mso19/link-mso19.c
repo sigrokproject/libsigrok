@@ -649,17 +649,17 @@ static int receive_data(int fd, int revents, void *user_data)
 	packet.length = 1024;
 	packet.unitsize = 1;
 	packet.payload = logic_out;
-	session_bus(mso->session_id, &packet);
+	sr_session_bus(mso->session_id, &packet);
 
 
 	packet.type = SR_DF_ANALOG;
 	packet.length = 1024;
 	packet.unitsize = sizeof(double);
 	packet.payload = analog_out;
-	session_bus(mso->session_id, &packet);
+	sr_session_bus(mso->session_id, &packet);
 
 	packet.type = SR_DF_END;
-	session_bus(mso->session_id, &packet);
+	sr_session_bus(mso->session_id, &packet);
 
 	return TRUE;
 }
@@ -734,7 +734,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	header.num_analog_probes = 1;
 	header.num_logic_probes = 8;
 	header.protocol_id = SR_PROTO_RAW;
-	session_bus(session_device_id, &packet);
+	sr_session_bus(session_device_id, &packet);
 
 	return ret;
 }
@@ -747,7 +747,7 @@ static void hw_stop_acquisition(int device_index, gpointer session_device_id)
 	device_index = device_index;
 
 	packet.type = SR_DF_END;
-	session_bus(session_device_id, &packet);
+	sr_session_bus(session_device_id, &packet);
 }
 
 struct sr_device_plugin link_mso19_plugin_info = {

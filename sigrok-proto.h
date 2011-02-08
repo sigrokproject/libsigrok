@@ -97,31 +97,31 @@ typedef void (*datafeed_callback) (struct sr_device *device,
 				 struct sr_datafeed_packet *packet);
 
 /* Session setup */
-int session_load(const char *filename);
-struct sr_session *session_new(void);
-void session_destroy(void);
-void session_device_clear(void);
-int session_device_add(struct sr_device *device);
+int sr_session_load(const char *filename);
+struct sr_session *sr_session_new(void);
+void sr_session_destroy(void);
+void sr_session_device_clear(void);
+int sr_session_device_add(struct sr_device *device);
 
 /* Protocol analyzers setup */
-void session_pa_clear(void);
-void session_pa_add(struct analyzer *pa);
+void sr_session_pa_clear(void);
+void sr_session_pa_add(struct analyzer *pa);
 
 /* Datafeed setup */
-void session_datafeed_callback_clear(void);
-void session_datafeed_callback_add(datafeed_callback callback);
+void sr_session_datafeed_callback_clear(void);
+void sr_session_datafeed_callback_add(datafeed_callback callback);
 
 /* Session control */
-int session_start(void);
-void session_run(void);
-void session_halt(void);
-void session_stop(void);
-void session_bus(struct sr_device *device, struct sr_datafeed_packet *packet);
+int sr_session_start(void);
+void sr_session_run(void);
+void sr_session_halt(void);
+void sr_session_stop(void);
+void sr_session_bus(struct sr_device *device, struct sr_datafeed_packet *packet);
 void make_metadata(char *filename);
-int session_save(char *filename);
-void session_source_add(int fd, int events, int timeout,
+int sr_session_save(char *filename);
+void sr_session_source_add(int fd, int events, int timeout,
 	        receive_data_callback callback, void *user_data);
-void session_source_remove(int fd);
+void sr_session_source_remove(int fd);
 
 /*--- input/input.c ---------------------------------------------------------*/
 

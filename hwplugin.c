@@ -231,15 +231,11 @@ struct hwcap_option *find_hwcap_option(int hwcap)
 
 void source_remove(int fd)
 {
-
-	session_source_remove(fd);
-
+	sr_session_source_remove(fd);
 }
 
 void source_add(int fd, int events, int timeout, receive_data_callback rcv_cb,
 		void *user_data)
 {
-
-	session_source_add(fd, events, timeout, rcv_cb, user_data);
-
+	sr_session_source_add(fd, events, timeout, rcv_cb, user_data);
 }

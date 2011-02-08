@@ -44,14 +44,14 @@ struct source *sources = NULL;
 int source_timeout = -1;
 
 
-struct sr_session *session_new(void)
+struct sr_session *sr_session_new(void)
 {
 	session = calloc(1, sizeof(struct sr_session));
 
 	return session;
 }
 
-void session_destroy(void)
+void sr_session_destroy(void)
 {
 	g_slist_free(session->devices);
 
@@ -60,13 +60,13 @@ void session_destroy(void)
 	g_free(session);
 }
 
-void session_device_clear(void)
+void sr_session_device_clear(void)
 {
 	g_slist_free(session->devices);
 	session->devices = NULL;
 }
 
-int session_device_add(struct sr_device *device)
+int sr_session_device_add(struct sr_device *device)
 {
 	int ret;
 
@@ -81,7 +81,7 @@ int session_device_add(struct sr_device *device)
 	return SR_OK;
 }
 
-void session_pa_clear(void)
+void sr_session_pa_clear(void)
 {
 	/*
 	 * The protocols are pointers to the global set of PA plugins,
@@ -91,24 +91,24 @@ void session_pa_clear(void)
 	session->analyzers = NULL;
 }
 
-void session_pa_add(struct analyzer *an)
+void sr_session_pa_add(struct analyzer *an)
 {
 	session->analyzers = g_slist_append(session->analyzers, an);
 }
 
-void session_datafeed_callback_clear(void)
+void sr_session_datafeed_callback_clear(void)
 {
 	g_slist_free(session->datafeed_callbacks);
 	session->datafeed_callbacks = NULL;
 }
 
-void session_datafeed_callback_add(datafeed_callback callback)
+void sr_session_datafeed_callback_add(datafeed_callback callback)
 {
 	session->datafeed_callbacks =
 	    g_slist_append(session->datafeed_callbacks, callback);
 }
 
-static void session_run_poll()
+static void sr_session_run_poll()
 {
 	GPollFD *fds, my_gpollfd;
 	int ret, i;
@@ -150,7 +150,7 @@ static void session_run_poll()
 
 }
 
-int session_start(void)
+int sr_session_start(void)
 {
 	struct sr_device *device;
 	GSList *l;
@@ -167,7 +167,7 @@ int session_start(void)
 	return ret;
 }
 
-void session_run(void)
+void sr_session_run(void)
 {
 
 	g_message("session: running");
@@ -180,11 +180,11 @@ void session_run(void)
 			sources[0].cb(-1, 0, sources[0].user_data);
 	else
 		/* real sources, use g_poll() main loop */
-		session_run_poll();
+		sr_session_run_poll();
 
 }
 
-void session_halt(void)
+void sr_session_halt(void)
 {
 
 	g_message("session: halting");
@@ -192,7 +192,7 @@ void session_halt(void)
 
 }
 
-void session_stop(void)
+void sr_session_stop(void)
 {
 	struct sr_device *device;
 	GSList *l;
@@ -207,7 +207,7 @@ void session_stop(void)
 
 }
 
-void session_bus(struct sr_device *device, struct sr_datafeed_packet *packet)
+void sr_session_bus(struct sr_device *device, struct sr_datafeed_packet *packet)
 {
 	GSList *l;
 	datafeed_callback cb;
@@ -222,7 +222,7 @@ void session_bus(struct sr_device *device, struct sr_datafeed_packet *packet)
 	}
 }
 
-void session_source_add(int fd, int events, int timeout,
+void sr_session_source_add(int fd, int events, int timeout,
 	        receive_data_callback callback, void *user_data)
 {
 	struct source *new_sources, *s;
@@ -248,7 +248,7 @@ void session_source_add(int fd, int events, int timeout,
 		source_timeout = timeout;
 }
 
-void session_source_remove(int fd)
+void sr_session_source_remove(int fd)
 {
 	struct source *new_sources;
 	int old, new;

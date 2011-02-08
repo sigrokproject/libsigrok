@@ -303,7 +303,7 @@ static int receive_data(int fd, int revents, void *user_data)
 			packet.length = z;
 			packet.unitsize = 1;
 			packet.payload = c;
-			session_bus(user_data, &packet);
+			sr_session_bus(user_data, &packet);
 		}
 	} while (z > 0);
 
@@ -314,7 +314,7 @@ static int receive_data(int fd, int revents, void *user_data)
 
 		/* Send last packet. */
 		packet.type = SR_DF_END;
-		session_bus(user_data, &packet);
+		sr_session_bus(user_data, &packet);
 
 		return FALSE;
 	}
@@ -378,7 +378,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	header->protocol_id = SR_PROTO_RAW;
 	header->num_logic_probes = NUM_PROBES;
 	header->num_analog_probes = 0;
-	session_bus(session_device_id, packet);
+	sr_session_bus(session_device_id, packet);
 	free(header);
 	free(packet);
 

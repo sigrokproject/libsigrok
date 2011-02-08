@@ -78,7 +78,7 @@ static int loadfile(struct sr_input *in, const char *filename)
 	packet.type = SR_DF_HEADER;
 	packet.length = sizeof(struct sr_datafeed_header);
 	packet.payload = &header;
-	session_bus(in->vdevice, &packet);
+	sr_session_bus(in->vdevice, &packet);
 
 	/* chop up the input file into chunks and feed it into the session bus */
 	packet.type = SR_DF_LOGIC;
@@ -86,14 +86,14 @@ static int loadfile(struct sr_input *in, const char *filename)
 	packet.payload = buffer;
 	while ((size = read(fd, buffer, CHUNKSIZE)) > 0) {
 		packet.length = size;
-		session_bus(in->vdevice, &packet);
+		sr_session_bus(in->vdevice, &packet);
 	}
 	close(fd);
 
 	/* end of stream */
 	packet.type = SR_DF_END;
 	packet.length = 0;
-	session_bus(in->vdevice, &packet);
+	sr_session_bus(in->vdevice, &packet);
 
 	return SR_OK;
 }

@@ -877,7 +877,7 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 			packet.length = tosend * sizeof(uint16_t);
 			packet.unitsize = 2;
 			packet.payload = samples + sent;
-			session_bus(sigma->session_id, &packet);
+			sr_session_bus(sigma->session_id, &packet);
 
 			sent += tosend;
 		}
@@ -921,7 +921,7 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 				packet.length = tosend * sizeof(uint16_t);
 				packet.unitsize = 2;
 				packet.payload = samples;
-				session_bus(sigma->session_id, &packet);
+				sr_session_bus(sigma->session_id, &packet);
 
 				sent += tosend;
 			}
@@ -931,7 +931,7 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 				packet.type = SR_DF_TRIGGER;
 				packet.length = 0;
 				packet.payload = 0;
-				session_bus(sigma->session_id, &packet);
+				sr_session_bus(sigma->session_id, &packet);
 			}
 		}
 
@@ -943,7 +943,7 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 			packet.length = tosend * sizeof(uint16_t);
 			packet.unitsize = 2;
 			packet.payload = samples + sent;
-			session_bus(sigma->session_id, &packet);
+			sr_session_bus(sigma->session_id, &packet);
 		}
 
 		*lastsample = samples[n - 1];
@@ -990,7 +990,7 @@ static int receive_data(int fd, int revents, void *user_data)
 			/* End of samples. */
 			packet.type = SR_DF_END;
 			packet.length = 0;
-			session_bus(sigma->session_id, &packet);
+			sr_session_bus(sigma->session_id, &packet);
 
 			sigma->state.state = SIGMA_IDLE;
 
@@ -1306,7 +1306,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	header.protocol_id = SR_PROTO_RAW;
 	header.num_logic_probes = sigma->num_probes;
 	header.num_analog_probes = 0;
-	session_bus(session_device_id, &packet);
+	sr_session_bus(session_device_id, &packet);
 
 	/* Add capture source. */
 	source_add(0, G_IO_IN, 10, receive_data, sdi);

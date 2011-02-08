@@ -609,7 +609,7 @@ void receive_transfer(struct libusb_transfer *transfer)
 					 */
 					packet.type = SR_DF_TRIGGER;
 					packet.length = 0;
-					session_bus(user_data, &packet);
+					sr_session_bus(user_data, &packet);
 
 					/*
 					 * Send the samples that triggered it, since we're
@@ -619,7 +619,7 @@ void receive_transfer(struct libusb_transfer *transfer)
 					packet.length = trigger_stage;
 					packet.unitsize = 1;
 					packet.payload = trigger_buffer;
-					session_bus(user_data, &packet);
+					sr_session_bus(user_data, &packet);
 
 					trigger_stage = TRIGGER_FIRED;
 					break;
@@ -652,7 +652,7 @@ void receive_transfer(struct libusb_transfer *transfer)
 		packet.length = cur_buflen - trigger_offset;
 		packet.unitsize = 1;
 		packet.payload = cur_buf + trigger_offset;
-		session_bus(user_data, &packet);
+		sr_session_bus(user_data, &packet);
 		g_free(cur_buf);
 
 		num_samples += cur_buflen;
@@ -717,7 +717,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	header->protocol_id = SR_PROTO_RAW;
 	header->num_logic_probes = NUM_PROBES;
 	header->num_analog_probes = 0;
-	session_bus(session_device_id, packet);
+	sr_session_bus(session_device_id, packet);
 	g_free(header);
 	g_free(packet);
 
@@ -733,7 +733,7 @@ static void hw_stop_acquisition(int device_index, gpointer session_device_id)
 	device_index = device_index;
 
 	packet.type = SR_DF_END;
-	session_bus(session_device_id, &packet);
+	sr_session_bus(session_device_id, &packet);
 
 	receive_transfer(NULL);
 

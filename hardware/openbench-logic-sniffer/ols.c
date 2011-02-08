@@ -618,24 +618,24 @@ static int receive_data(int fd, int revents, void *user_data)
 				packet.length = trigger_at * 4;
 				packet.unitsize = 4;
 				packet.payload = raw_sample_buf;
-				session_bus(user_data, &packet);
+				sr_session_bus(user_data, &packet);
 			}
 
 			packet.type = SR_DF_TRIGGER;
 			packet.length = 0;
-			session_bus(user_data, &packet);
+			sr_session_bus(user_data, &packet);
 
 			packet.type = SR_DF_LOGIC;
 			packet.length = (limit_samples * 4) - (trigger_at * 4);
 			packet.unitsize = 4;
 			packet.payload = raw_sample_buf + trigger_at * 4;
-			session_bus(user_data, &packet);
+			sr_session_bus(user_data, &packet);
 		} else {
 			packet.type = SR_DF_LOGIC;
 			packet.length = limit_samples * 4;
 			packet.unitsize = 4;
 			packet.payload = raw_sample_buf;
-			session_bus(user_data, &packet);
+			sr_session_bus(user_data, &packet);
 		}
 		free(raw_sample_buf);
 
@@ -643,7 +643,7 @@ static int receive_data(int fd, int revents, void *user_data)
 		serial_close(fd);
 		packet.type = SR_DF_END;
 		packet.length = 0;
-		session_bus(user_data, &packet);
+		sr_session_bus(user_data, &packet);
 	}
 
 	return TRUE;
@@ -772,7 +772,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	header->protocol_id = SR_PROTO_RAW;
 	header->num_logic_probes = NUM_PROBES;
 	header->num_analog_probes = 0;
-	session_bus(session_device_id, packet);
+	sr_session_bus(session_device_id, packet);
 	g_free(header);
 	g_free(packet);
 
@@ -788,7 +788,7 @@ static void hw_stop_acquisition(int device_index, gpointer session_device_id)
 
 	packet.type = SR_DF_END;
 	packet.length = 0;
-	session_bus(session_device_id, &packet);
+	sr_session_bus(session_device_id, &packet);
 }
 
 struct sr_device_plugin ols_plugin_info = {

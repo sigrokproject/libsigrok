@@ -30,7 +30,7 @@ extern struct sr_session *session;
 extern struct sr_device_plugin session_driver;
 
 
-int session_load(const char *filename)
+int sr_session_load(const char *filename)
 {
 	GKeyFile *kf;
 	GPtrArray *capturefiles;
@@ -77,7 +77,7 @@ int session_load(const char *filename)
 		return SR_ERR;
 	}
 
-	session = session_new();
+	session = sr_session_new();
 
 	devcnt = 0;
 	capturefiles = g_ptr_array_new_with_free_func(g_free);
@@ -98,7 +98,7 @@ int session_load(const char *filename)
 					if (devcnt == 0)
 						/* first device, init the plugin */
 						device->plugin->init((char *)filename);
-					session_device_add(device);
+					sr_session_device_add(device);
 					device->plugin->set_configuration(devcnt, SR_HWCAP_CAPTUREFILE, val);
 					g_ptr_array_add(capturefiles, val);
 				} else if (!strcmp(keys[j], "samplerate")) {
@@ -136,7 +136,7 @@ int session_load(const char *filename)
 	return SR_OK;
 }
 
-int session_save(char *filename)
+int sr_session_save(char *filename)
 {
 	GSList *l, *p, *d;
 	FILE *meta;

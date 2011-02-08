@@ -244,14 +244,14 @@ static int receive_data(int fd, int revents, void *user_data)
 		packet.length = count * sample_size;
 		packet.unitsize = sample_size;
 		packet.payload = outb;
-		session_bus(user_data, &packet);
+		sr_session_bus(user_data, &packet);
 		free(outb);
 		alsa->limit_samples -= count;
 
 	} while (alsa->limit_samples > 0);
 
 	packet.type = SR_DF_END;
-	session_bus(user_data, &packet);
+	sr_session_bus(user_data, &packet);
 
 	return TRUE;
 }
@@ -342,7 +342,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	header.num_analog_probes = NUM_PROBES;
 	header.num_logic_probes = 0;
 	header.protocol_id = SR_PROTO_RAW;
-	session_bus(session_device_id, &packet);
+	sr_session_bus(session_device_id, &packet);
 	free(ufds);
 
 	return SR_OK;

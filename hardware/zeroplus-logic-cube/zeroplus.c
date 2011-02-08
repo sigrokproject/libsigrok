@@ -514,7 +514,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	header.protocol_id = SR_PROTO_RAW;
 	header.num_logic_probes = num_channels;
 	header.num_analog_probes = 0;
-	session_bus(session_device_id, &packet);
+	sr_session_bus(session_device_id, &packet);
 
 	buf = g_malloc(PACKET_SIZE);
 	if (!buf)
@@ -533,13 +533,13 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 		packet.length = PACKET_SIZE;
 		packet.unitsize = 4;
 		packet.payload = buf;
-		session_bus(session_device_id, &packet);
+		sr_session_bus(session_device_id, &packet);
 	}
 	analyzer_read_stop(sdi->usb->devhdl);
 	g_free(buf);
 
 	packet.type = SR_DF_END;
-	session_bus(session_device_id, &packet);
+	sr_session_bus(session_device_id, &packet);
 
 	return SR_OK;
 }
@@ -551,7 +551,7 @@ static void hw_stop_acquisition(int device_index, gpointer session_device_id)
 	struct sr_device_instance *sdi;
 
 	packet.type = SR_DF_END;
-	session_bus(session_device_id, &packet);
+	sr_session_bus(session_device_id, &packet);
 
 	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
 		return; /* TODO: Cry? */
