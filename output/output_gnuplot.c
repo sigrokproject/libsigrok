@@ -49,7 +49,7 @@ const char *gnuplot_header_comment = "\
 static int init(struct sr_output *o)
 {
 	struct context *ctx;
-	struct probe *probe;
+	struct sr_probe *probe;
 	GSList *l;
 	uint64_t samplerate;
 	unsigned int i;
@@ -194,7 +194,7 @@ static int data(struct sr_output *o, char *data_in, uint64_t length_in,
 static int analog_init(struct sr_output *o)
 {
 	struct context *ctx;
-	struct probe *probe;
+	struct sr_probe *probe;
 	GSList *l;
 	uint64_t samplerate;
 	unsigned int i;

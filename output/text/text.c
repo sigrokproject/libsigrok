@@ -67,7 +67,7 @@ void flush_linebufs(struct context *ctx, char *outbuf)
 int init(struct sr_output *o, int default_spl, enum outputmode mode)
 {
 	struct context *ctx;
-	struct probe *probe;
+	struct sr_probe *probe;
 	GSList *l;
 	uint64_t samplerate;
 	int num_probes;

@@ -193,7 +193,7 @@ struct sr_device {
 	struct sr_device_plugin *plugin;
 	/* A plugin may handle multiple devices of the same type */
 	int plugin_index;
-	/* List of struct probe* */
+	/* List of struct sr_probe* */
 	GSList *probes;
 	/* Data acquired by this device, if any */
 	struct datastore *datastore;
@@ -204,7 +204,7 @@ enum {
 	SR_PROBE_TYPE_ANALOG,
 };
 
-struct probe {
+struct sr_probe {
 	int index;
 	int type;
 	gboolean enabled;

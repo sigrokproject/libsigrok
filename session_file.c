@@ -39,7 +39,7 @@ int session_load(const char *filename)
 	struct zip_stat zs;
 	struct session *session;
 	struct sr_device *device;
-	struct probe *probe;
+	struct sr_probe *probe;
 	int ret, err, probenum, devcnt, i, j;
 	uint64_t tmp_u64, total_probes, enabled_probes, p;
 	char **sections, **keys, *metafile, *val, c;
@@ -141,7 +141,7 @@ int session_save(char *filename)
 	GSList *l, *p, *d;
 	FILE *meta;
 	struct sr_device *device;
-	struct probe *probe;
+	struct sr_probe *probe;
 	struct datastore *ds;
 	struct zip *zipfile;
 	struct zip_source *versrc, *metasrc, *logicsrc;

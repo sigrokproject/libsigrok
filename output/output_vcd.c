@@ -52,7 +52,7 @@ $comment\n  Acquisition with %d/%d probes at %s\n$end\n";
 static int init(struct sr_output *o)
 {
 	struct context *ctx;
-	struct probe *probe;
+	struct sr_probe *probe;
 	GSList *l;
 	int num_probes, i;
 	char *samplerate_s, *frequency_s, *timestamp;

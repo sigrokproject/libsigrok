@@ -147,7 +147,7 @@ static int send_longcommand(int fd, uint8_t command, uint32_t data)
 
 static int configure_probes(GSList *probes)
 {
-	struct probe *probe;
+	struct sr_probe *probe;
 	GSList *l;
 	int probe_bit, stage, i;
 	char *tc;
@@ -160,7 +160,7 @@ static int configure_probes(GSList *probes)
 
 	num_stages = 0;
 	for (l = probes; l; l = l->next) {
-		probe = (struct probe *)l->data;
+		probe = (struct sr_probe *)l->data;
 		if (!probe->enabled)
 			continue;
 

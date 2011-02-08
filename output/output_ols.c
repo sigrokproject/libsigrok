@@ -71,7 +71,7 @@ static void make_header(struct sr_output *o)
 static int init(struct sr_output *o)
 {
 	struct context *ctx;
-	struct probe *probe;
+	struct sr_probe *probe;
 	GSList *l;
 	int num_enabled_probes;
 

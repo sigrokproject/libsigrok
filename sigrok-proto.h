@@ -45,7 +45,7 @@ void device_destroy(struct sr_device *dev);
 
 void device_probe_clear(struct sr_device *device, int probenum);
 void device_probe_add(struct sr_device *device, char *name);
-struct probe *probe_find(struct sr_device *device, int probenum);
+struct sr_probe *probe_find(struct sr_device *device, int probenum);
 void device_probe_name(struct sr_device *device, int probenum, char *name);
 
 void device_trigger_clear(struct sr_device *device);

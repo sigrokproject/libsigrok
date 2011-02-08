@@ -129,7 +129,7 @@ void device_destroy(struct sr_device *device)
 
 void device_probe_clear(struct sr_device *device, int probenum)
 {
-	struct probe *p;
+	struct sr_probe *p;
 
 	p = probe_find(device, probenum);
 	if (!p)
@@ -148,12 +148,12 @@ void device_probe_clear(struct sr_device *device, int probenum)
 
 void device_probe_add(struct sr_device *device, char *name)
 {
-	struct probe *p;
+	struct sr_probe *p;
 	char probename[16];
 	int probenum;
 
 	probenum = g_slist_length(device->probes) + 1;
-	p = g_malloc0(sizeof(struct probe));
+	p = g_malloc0(sizeof(struct sr_probe));
 	p->index = probenum;
 	p->enabled = TRUE;
 	if (name) {
@@ -166,10 +166,10 @@ void device_probe_add(struct sr_device *device, char *name)
 	device->probes = g_slist_append(device->probes, p);
 }
 
-struct probe *probe_find(struct sr_device *device, int probenum)
+struct sr_probe *probe_find(struct sr_device *device, int probenum)
 {
 	GSList *l;
-	struct probe *p, *found_probe;
+	struct sr_probe *p, *found_probe;
 
 	found_probe = NULL;
 	for (l = device->probes; l; l = l->next) {
@@ -186,7 +186,7 @@ struct probe *probe_find(struct sr_device *device, int probenum)
 /* TODO: return SIGROK_ERR if probenum not found */
 void device_probe_name(struct sr_device *device, int probenum, char *name)
 {
-	struct probe *p;
+	struct sr_probe *p;
 
 	p = probe_find(device, probenum);
 	if (!p)
@@ -200,7 +200,7 @@ void device_probe_name(struct sr_device *device, int probenum, char *name)
 /* TODO: return SIGROK_ERR if probenum not found */
 void device_trigger_clear(struct sr_device *device)
 {
-	struct probe *p;
+	struct sr_probe *p;
 	unsigned int pnum;
 
 	if (!device->probes)
@@ -218,7 +218,7 @@ void device_trigger_clear(struct sr_device *device)
 /* TODO: return SIGROK_ERR if probenum not found */
 void device_trigger_set(struct sr_device *device, int probenum, char *trigger)
 {
-	struct probe *p;
+	struct sr_probe *p;
 
 	p = probe_find(device, probenum);
 	if (!p)

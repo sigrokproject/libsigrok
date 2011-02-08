@@ -99,7 +99,7 @@ char *sr_period_string(uint64_t frequency)
 char **sr_parse_triggerstring(struct sr_device *device, const char *triggerstring)
 {
 	GSList *l;
-	struct probe *probe;
+	struct sr_probe *probe;
 	int max_probes, probenum, i;
 	char **tokens, **triggerlist, *trigger, *tc, *trigger_types;
 	gboolean error;
@@ -117,7 +117,7 @@ char **sr_parse_triggerstring(struct sr_device *device, const char *triggerstrin
 			/* Named probe */
 			probenum = 0;
 			for (l = device->probes; l; l = l->next) {
-				probe = (struct probe *)l->data;
+				probe = (struct sr_probe *)l->data;
 				if (probe->enabled
 				    && !strncmp(probe->name, tokens[i],
 						strlen(probe->name))) {

@@ -594,7 +594,7 @@ static int set_samplerate(struct sr_device_instance *sdi,
 static int configure_probes(struct sr_device_instance *sdi, GSList *probes)
 {
 	struct sigma *sigma = sdi->priv;
-	struct probe *probe;
+	struct sr_probe *probe;
 	GSList *l;
 	int trigger_set = 0;
 	int probebit;
@@ -602,7 +602,7 @@ static int configure_probes(struct sr_device_instance *sdi, GSList *probes)
 	memset(&sigma->trigger, 0, sizeof(struct sigma_trigger));
 
 	for (l = probes; l; l = l->next) {
-		probe = (struct probe *)l->data;
+		probe = (struct sr_probe *)l->data;
 		probebit = 1 << (probe->index - 1);
 
 		if (!probe->enabled || !probe->trigger)

@@ -234,7 +234,7 @@ static void close_device(struct sr_device_instance *sdi)
 
 static int configure_probes(GSList *probes)
 {
-	struct probe *probe;
+	struct sr_probe *probe;
 	GSList *l;
 	int probe_bit, stage, i;
 	char *tc;
@@ -247,7 +247,7 @@ static int configure_probes(GSList *probes)
 
 	stage = -1;
 	for (l = probes; l; l = l->next) {
-		probe = (struct probe *)l->data;
+		probe = (struct sr_probe *)l->data;
 		if (probe->enabled == FALSE)
 			continue;
 		probe_bit = 1 << (probe->index - 1);
