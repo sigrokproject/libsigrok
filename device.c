@@ -131,7 +131,7 @@ void sr_device_probe_clear(struct sr_device *device, int probenum)
 {
 	struct sr_probe *p;
 
-	p = probe_find(device, probenum);
+	p = sr_device_probe_find(device, probenum);
 	if (!p)
 		return;
 
@@ -166,7 +166,7 @@ void sr_device_probe_add(struct sr_device *device, char *name)
 	device->probes = g_slist_append(device->probes, p);
 }
 
-struct sr_probe *probe_find(struct sr_device *device, int probenum)
+struct sr_probe *sr_device_probe_find(struct sr_device *device, int probenum)
 {
 	GSList *l;
 	struct sr_probe *p, *found_probe;
@@ -188,7 +188,7 @@ void sr_device_probe_name(struct sr_device *device, int probenum, char *name)
 {
 	struct sr_probe *p;
 
-	p = probe_find(device, probenum);
+	p = sr_device_probe_find(device, probenum);
 	if (!p)
 		return;
 
@@ -207,7 +207,7 @@ void sr_device_trigger_clear(struct sr_device *device)
 		return;
 
 	for (pnum = 1; pnum <= g_slist_length(device->probes); pnum++) {
-		p = probe_find(device, pnum);
+		p = sr_device_probe_find(device, pnum);
 		if (p && p->trigger) {
 			g_free(p->trigger);
 			p->trigger = NULL;
@@ -220,7 +220,7 @@ void sr_device_trigger_set(struct sr_device *device, int probenum, char *trigger
 {
 	struct sr_probe *p;
 
-	p = probe_find(device, probenum);
+	p = sr_device_probe_find(device, probenum);
 	if (!p)
 		return;
 
