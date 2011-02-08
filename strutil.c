@@ -60,7 +60,7 @@ char *sr_samplerate_string(uint64_t samplerate)
 }
 
 /**
- * Convert a numeric samplerate value to the "natural" string representation
+ * Convert a numeric frequency value to the "natural" string representation
  * of its period.
  *
  * E.g. a value of 3000000 would be converted to "3 us", 20000 to "50 ms".
@@ -96,7 +96,15 @@ char *sr_period_string(uint64_t frequency)
 	return o;
 }
 
-char **sr_parse_triggerstring(struct sr_device *device, const char *triggerstring)
+/**
+ * TODO
+ *
+ * @param device TODO
+ * @param triggerstring TODO
+ * @return TODO
+ */
+char **sr_parse_triggerstring(struct sr_device *device,
+			      const char *triggerstring)
 {
 	GSList *l;
 	struct sr_probe *probe;
@@ -161,6 +169,21 @@ char **sr_parse_triggerstring(struct sr_device *device, const char *triggerstrin
 	return triggerlist;
 }
 
+/**
+ * Convert a "natural" string representation of a size value to uint64_t.
+ *
+ * E.g. a value of "3k" or "3 K" would be converted to 3000, a value
+ * of "15M" would be converted to 15000000.
+ *
+ * Value representations other than decimal (such as hex or octal) are not
+ * supported. Only 'k' (kilo), 'm' (mega), 'g' (giga) suffixes are supported.
+ * Spaces (but not other whitespace) between value and suffix are allowed.
+ *
+ * @param sizestring A string containing a (decimal) size value.
+ * @return The string's size value as uint64_t.
+ *
+ * TODO: Error handling.
+ */
 uint64_t sr_parse_sizestring(const char *sizestring)
 {
 	int multiplier;
@@ -197,6 +220,25 @@ uint64_t sr_parse_sizestring(const char *sizestring)
 	return val;
 }
 
+/**
+ * Convert a "natural" string representation of a time value to an
+ * uint64_t value in milliseconds.
+ *
+ * E.g. a value of "3s" or "3 s" would be converted to 3000, a value
+ * of "15ms" would be converted to 15.
+ *
+ * Value representations other than decimal (such as hex or octal) are not
+ * supported. Only lower-case "s" and "ms" time suffixes are supported.
+ * Spaces (but not other whitespace) between value and suffix are allowed.
+ *
+ * @param timestring A string containing a (decimal) time value.
+ * @return The string's time value as uint64_t, in milliseconds.
+ *
+ * TODO: Error handling.
+ * TODO: Add support for "m" (minutes) and others.
+ * TODO: picoseconds?
+ * TODO: Allow both lower-case and upper-case.
+ */
 uint64_t sr_parse_timestring(const char *timestring)
 {
 	uint64_t time_msec;
@@ -219,4 +261,3 @@ uint64_t sr_parse_timestring(const char *timestring)
 
 	return time_msec;
 }
-
