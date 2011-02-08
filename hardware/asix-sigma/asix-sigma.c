@@ -56,7 +56,7 @@ static uint64_t supported_samplerates[] = {
 	0,
 };
 
-static struct samplerates samplerates = {
+static struct sr_samplerates samplerates = {
 	KHZ(200),
 	MHZ(200),
 	0,

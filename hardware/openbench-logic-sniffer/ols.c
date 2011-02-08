@@ -91,7 +91,7 @@ static int capabilities[] = {
 	0,
 };
 
-static struct samplerates samplerates = {
+static struct sr_samplerates samplerates = {
 	10,
 	MHZ(200),
 	1,

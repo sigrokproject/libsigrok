@@ -299,7 +299,7 @@ enum {
 	SR_DI_INSTANCE,
 	/* The number of probes connected to this device */
 	SR_DI_NUM_PROBES,
-	/* Samplerates supported by this device, (struct samplerates) */
+	/* Samplerates supported by this device, (struct sr_samplerates) */
 	SR_DI_SAMPLERATES,
 	/* Types of trigger supported, out of "01crf" (char *) */
 	SR_DI_TRIGGER_TYPES,
@@ -314,7 +314,7 @@ enum {
  * granularity, or is limited to a set of defined samplerates. Use either
  * step or list, but not both.
  */
-struct samplerates {
+struct sr_samplerates {
 	uint64_t low;
 	uint64_t high;
 	uint64_t step;

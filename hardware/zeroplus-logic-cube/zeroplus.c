@@ -108,7 +108,7 @@ static uint64_t supported_samplerates[] = {
 	0,
 };
 
-static struct samplerates samplerates = {
+static struct sr_samplerates samplerates = {
 	0, 0, 0,
 	supported_samplerates,
 };
