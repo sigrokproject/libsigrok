@@ -98,7 +98,7 @@ typedef void (*datafeed_callback) (struct sr_device *device,
 
 /* Session setup */
 int session_load(const char *filename);
-struct session *session_new(void);
+struct sr_session *session_new(void);
 void session_destroy(void);
 void session_device_clear(void);
 int session_device_add(struct sr_device *device);

@@ -26,7 +26,7 @@
 #include <glib/gstdio.h>
 #include <sigrok.h>
 
-extern struct session *session;
+extern struct sr_session *session;
 extern struct sr_device_plugin session_driver;
 
 
@@ -37,7 +37,7 @@ int session_load(const char *filename)
 	struct zip *archive;
 	struct zip_file *zf;
 	struct zip_stat zs;
-	struct session *session;
+	struct sr_session *session;
 	struct sr_device *device;
 	struct sr_probe *probe;
 	int ret, err, probenum, devcnt, i, j;

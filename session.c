@@ -37,16 +37,16 @@ struct source {
 };
 
 /* There can only be one session at a time. */
-struct session *session;
+struct sr_session *session;
 int num_sources = 0;
 
 struct source *sources = NULL;
 int source_timeout = -1;
 
 
-struct session *session_new(void)
+struct sr_session *session_new(void)
 {
-	session = calloc(1, sizeof(struct session));
+	session = calloc(1, sizeof(struct sr_session));
 
 	return session;
 }

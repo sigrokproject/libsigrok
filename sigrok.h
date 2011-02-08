@@ -340,7 +340,7 @@ struct sr_device_plugin {
 	void (*stop_acquisition) (int device_index, gpointer session_device_id);
 };
 
-struct session {
+struct sr_session {
 	/* List of struct sr_device* */
 	GSList *devices;
 	/* List of struct analyzer* */
