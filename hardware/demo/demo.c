@@ -55,10 +55,18 @@ struct databag {
 
 static int capabilities[] = {
 	SR_HWCAP_LOGIC_ANALYZER,
+	SR_HWCAP_SAMPLERATE,
 	SR_HWCAP_PATTERN_MODE,
 	SR_HWCAP_LIMIT_SAMPLES,
 	SR_HWCAP_LIMIT_MSEC,
 	SR_HWCAP_CONTINUOUS,
+};
+
+static struct sr_samplerates samplerates = {
+	1,
+	GHZ(1),
+	1,
+	NULL,
 };
 
 static const char *patternmodes[] = {
@@ -141,6 +149,9 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 		break;
 	case SR_DI_NUM_PROBES:
 		info = GINT_TO_POINTER(NUM_PROBES);
+		break;
+	case SR_DI_SAMPLERATES:
+		info = &samplerates;
 		break;
 	case SR_DI_CUR_SAMPLERATE:
 		info = &cur_samplerate;
