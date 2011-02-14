@@ -43,7 +43,7 @@ static int init(struct sr_output *o)
 	struct sr_probe *probe;
 	GSList *l;
 	uint64_t samplerate;
-	int num_enabled_probes, i;
+	int num_enabled_probes;
 
 	if (!(ctx = g_malloc(sizeof(struct context))))
 		return SR_ERR_MALLOC;
@@ -70,8 +70,6 @@ static int init(struct sr_output *o)
 	g_string_append_printf(ctx->header, ";EnabledChannels: -1\n");
 	g_string_append_printf(ctx->header, ";Compressed: true\n");
 	g_string_append_printf(ctx->header, ";CursorEnabled: false\n");
-	for (i = 0; i < 10; i++)
-		g_string_append_printf(ctx->header, ";Cursor%d: 0\n", i);
 
 	return SR_OK;
 }
