@@ -237,7 +237,7 @@ enum {
 	SR_HWCAP_CONTINUOUS,
 };
 
-struct hwcap_option {
+struct sr_hwcap_option {
 	int capability;
 	int type;
 	char *description;

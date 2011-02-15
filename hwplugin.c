@@ -33,7 +33,8 @@ GSList *plugins;
  * This enumerates which plugin capabilities correspond to user-settable
  * options.
  */
-struct hwcap_option hwcap_options[] = {
+/* TODO: This shouldn't be a global. */
+struct sr_hwcap_option sr_hwcap_options[] = {
 	{SR_HWCAP_SAMPLERATE, SR_T_UINT64, "Sample rate", "samplerate"},
 	{SR_HWCAP_CAPTURE_RATIO, SR_T_UINT64, "Pre-trigger capture ratio", "captureratio"},
 	{SR_HWCAP_PATTERN_MODE, SR_T_CHAR, "Pattern generator mode", "patternmode"},
@@ -203,7 +204,7 @@ void sr_serial_device_instance_free(struct sr_serial_device_instance *serial)
 	free(serial->port);
 }
 
-int find_hwcap(int *capabilities, int hwcap)
+int sr_find_hwcap(int *capabilities, int hwcap)
 {
 	int i;
 
@@ -215,13 +216,13 @@ int find_hwcap(int *capabilities, int hwcap)
 	return FALSE;
 }
 
-struct hwcap_option *find_hwcap_option(int hwcap)
+struct sr_hwcap_option *sr_find_hwcap_option(int hwcap)
 {
 	int i;
 
-	for (i = 0; hwcap_options[i].capability; i++) {
-		if (hwcap_options[i].capability == hwcap)
-			return &hwcap_options[i];
+	for (i = 0; sr_hwcap_options[i].capability; i++) {
+		if (sr_hwcap_options[i].capability == hwcap)
+			return &sr_hwcap_options[i];
 	}
 
 	return NULL;
