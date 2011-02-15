@@ -51,7 +51,7 @@ typedef struct {
  * Note -- 16032, 16064 and 16128 *usually* -- but not always -- have the
  * same 128K sample depth.
  */
-model_t zeroplus_models[] = {
+static model_t zeroplus_models[] = {
 	{0x7009, "LAP-C(16064)",  16, 64,   100},
 	{0x700A, "LAP-C(16128)",  16, 128,  200},
 	{0x700B, "LAP-C(32128)",  32, 128,  200},
@@ -116,8 +116,8 @@ static struct sr_samplerates samplerates = {
 /* TODO: All of these should go in a device-specific struct. */
 static uint64_t cur_samplerate = 0;
 static uint64_t limit_samples = 0;
-int num_channels = 32; /* TODO: This isn't initialized before it's needed :( */
-uint64_t memory_size = 0;
+static int num_channels = 32; /* TODO: This isn't initialized before it's needed :( */
+static uint64_t memory_size = 0;
 static uint8_t probe_mask = 0;
 static uint8_t trigger_mask[NUM_TRIGGER_STAGES] = { 0 };
 static uint8_t trigger_value[NUM_TRIGGER_STAGES] = { 0 };
@@ -189,7 +189,7 @@ static int opendev4(struct sr_device_instance **sdi, libusb_device *dev,
 	return 0;
 }
 
-struct sr_device_instance *zp_open_device(int device_index)
+static struct sr_device_instance *zp_open_device(int device_index)
 {
 	struct sr_device_instance *sdi;
 	libusb_device **devlist;

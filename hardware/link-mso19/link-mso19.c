@@ -224,7 +224,6 @@ static int mso_configure_rate(struct sr_device_instance *sdi,
 	return ret;
 }
 
-
 static inline uint16_t mso_calc_raw_from_mv(struct mso *mso)
 {
 	return (uint16_t) (0x200 -
@@ -589,7 +588,6 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 	default:
 		return SR_OK; /* FIXME */
 	}
-
 }
 
 #define MSO_TRIGGER_UNKNOWN	'!'

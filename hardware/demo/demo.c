@@ -41,6 +41,7 @@ enum {
 	GENMODE_INC,
 };
 
+/* FIXME: Should not be global. */
 GIOChannel *channels[2];
 
 struct databag {
