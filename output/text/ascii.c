@@ -40,7 +40,7 @@ int data_ascii(struct sr_output *o, const char *data_in, uint64_t length_in,
 	char *outbuf;
 
 	ctx = o->internal;
-	max_linelen = MAX_PROBENAME_LEN + 3 + ctx->samples_per_line
+	max_linelen = SR_MAX_PROBENAME_LEN + 3 + ctx->samples_per_line
 			+ ctx->samples_per_line / 8;
         /*
          * Calculate space needed for probes. Set aside 512 bytes for

@@ -55,9 +55,8 @@ extern "C" {
 #define SR_ERR_MALLOC        -2 /* Malloc/calloc/realloc error */
 #define SR_ERR_SAMPLERATE    -3 /* Incorrect samplerate */
 
-/* limited by uint64_t */
-#define MAX_NUM_PROBES 64
-#define MAX_PROBENAME_LEN 32
+#define SR_MAX_NUM_PROBES 	64 /* Limited by uint64_t. */
+#define SR_MAX_PROBENAME_LEN	32
 
 /* Handy little macros */
 #define KHZ(n) ((n) * 1000)

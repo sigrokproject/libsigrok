@@ -40,7 +40,7 @@ int data_hex(struct sr_output *o, const char *data_in, uint64_t length_in,
 	char *outbuf;
 
 	ctx = o->internal;
-	max_linelen = MAX_PROBENAME_LEN + 3 + ctx->samples_per_line
+	max_linelen = SR_MAX_PROBENAME_LEN + 3 + ctx->samples_per_line
 			+ ctx->samples_per_line / 2;
 	outsize = length_in / ctx->unitsize * ctx->num_enabled_probes
 			/ ctx->samples_per_line * max_linelen + 512;

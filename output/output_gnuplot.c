@@ -27,11 +27,13 @@
 struct context {
 	unsigned int num_enabled_probes;
 	unsigned int unitsize;
-	char *probelist[MAX_NUM_PROBES+1];
+	char *probelist[SR_MAX_NUM_PROBES + 1];
 	char *header;
 };
 
-#define MAX_HEADER_LEN   1024 + (MAX_NUM_PROBES * (MAX_PROBENAME_LEN + 10))
+#define MAX_HEADER_LEN \
+	(1024 + (SR_MAX_NUM_PROBES * (SR_MAX_PROBENAME_LEN + 10)))
+
 const char *gnuplot_header = "\
 # Sample data in space-separated columns format usable by gnuplot\n\
 #\n\
