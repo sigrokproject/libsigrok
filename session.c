@@ -102,7 +102,7 @@ void sr_session_datafeed_callback_clear(void)
 	session->datafeed_callbacks = NULL;
 }
 
-void sr_session_datafeed_callback_add(datafeed_callback callback)
+void sr_session_datafeed_callback_add(sr_datafeed_callback callback)
 {
 	session->datafeed_callbacks =
 	    g_slist_append(session->datafeed_callbacks, callback);
@@ -210,7 +210,7 @@ void sr_session_stop(void)
 void sr_session_bus(struct sr_device *device, struct sr_datafeed_packet *packet)
 {
 	GSList *l;
-	datafeed_callback cb;
+	sr_datafeed_callback cb;
 
 	/*
 	 * TODO: Send packet through PD pipe, and send the output of that to

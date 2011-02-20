@@ -91,8 +91,8 @@ void sr_source_add(int fd, int events, int timeout,
 
 /*--- session.c -------------------------------------------------------------*/
 
-typedef void (*datafeed_callback) (struct sr_device *device,
-				 struct sr_datafeed_packet *packet);
+typedef void (*sr_datafeed_callback) (struct sr_device *device,
+				      struct sr_datafeed_packet *packet);
 
 /* Session setup */
 int sr_session_load(const char *filename);
@@ -107,7 +107,7 @@ void sr_session_pa_add(struct analyzer *pa);
 
 /* Datafeed setup */
 void sr_session_datafeed_callback_clear(void);
-void sr_session_datafeed_callback_add(datafeed_callback callback);
+void sr_session_datafeed_callback_add(sr_datafeed_callback callback);
 
 /* Session control */
 int sr_session_start(void);
