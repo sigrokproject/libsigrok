@@ -1309,7 +1309,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	sr_session_bus(session_device_id, &packet);
 
 	/* Add capture source. */
-	source_add(0, G_IO_IN, 10, receive_data, sdi);
+	sr_source_add(0, G_IO_IN, 10, receive_data, sdi);
 
 	sigma->state.state = SIGMA_CAPTURE;
 

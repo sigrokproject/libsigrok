@@ -704,8 +704,8 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 
 	lupfd = libusb_get_pollfds(usb_context);
 	for (i = 0; lupfd[i]; i++)
-		source_add(lupfd[i]->fd, lupfd[i]->events, 40, receive_data,
-			   NULL);
+		sr_source_add(lupfd[i]->fd, lupfd[i]->events, 40, receive_data,
+			      NULL);
 	free(lupfd);
 
 	packet->type = SR_DF_HEADER;

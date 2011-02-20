@@ -721,7 +721,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 		return ret;
 
 	mso->session_id = session_device_id;
-	source_add(sdi->serial->fd, G_IO_IN, -1, receive_data, sdi);
+	sr_source_add(sdi->serial->fd, G_IO_IN, -1, receive_data, sdi);
 
 	packet.type = SR_DF_HEADER;
 	packet.length = sizeof(struct sr_datafeed_header);

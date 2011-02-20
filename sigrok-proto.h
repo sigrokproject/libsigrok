@@ -85,9 +85,9 @@ void sr_serial_device_instance_free(struct sr_serial_device_instance *serial);
 
 int sr_find_hwcap(int *capabilities, int hwcap);
 struct sr_hwcap_option *sr_find_hwcap_option(int hwcap);
-void source_remove(int fd);
-void source_add(int fd, int events, int timeout, receive_data_callback rcv_cb,
-		void *user_data);
+void sr_source_remove(int fd);
+void sr_source_add(int fd, int events, int timeout,
+		   receive_data_callback rcv_cb, void *user_data);
 
 /*--- session.c -------------------------------------------------------------*/
 

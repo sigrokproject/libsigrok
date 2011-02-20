@@ -506,8 +506,8 @@ static int receive_data(int fd, int revents, void *user_data)
 		 * longer than it takes to send a byte, that means it's
 		 * finished. We'll double that to 30ms to be sure...
 		 */
-		source_remove(fd);
-		source_add(fd, G_IO_IN, 30, receive_data, user_data);
+		sr_source_remove(fd);
+		sr_source_add(fd, G_IO_IN, 30, receive_data, user_data);
 		raw_sample_buf = malloc(limit_samples * 4);
 		/* fill with 1010... for debugging */
 		memset(raw_sample_buf, 0x82, limit_samples * 4);
@@ -755,8 +755,8 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	if (send_shortcommand(sdi->serial->fd, CMD_RUN) != SR_OK)
 		return SR_ERR;
 
-	source_add(sdi->serial->fd, G_IO_IN, -1, receive_data,
-		   session_device_id);
+	sr_source_add(sdi->serial->fd, G_IO_IN, -1, receive_data,
+		      session_device_id);
 
 	/* Send header packet to the session bus. */
 	packet = g_malloc(sizeof(struct sr_datafeed_packet));

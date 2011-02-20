@@ -363,8 +363,8 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	g_io_channel_set_buffered(channels[0], FALSE);
 	g_io_channel_set_buffered(channels[1], FALSE);
 
-	source_add(mydata->pipe_fds[0], G_IO_IN | G_IO_ERR, 40, receive_data,
-		   session_device_id);
+	sr_source_add(mydata->pipe_fds[0], G_IO_IN | G_IO_ERR, 40,
+		      receive_data, session_device_id);
 
 	/* Run the demo thread. */
 	g_thread_init(NULL);

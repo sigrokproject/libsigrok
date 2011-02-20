@@ -331,7 +331,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	}
 
 	alsa->session_id = session_device_id;
-	source_add(ufds[0].fd, ufds[0].events, 10, receive_data, sdi);
+	sr_source_add(ufds[0].fd, ufds[0].events, 10, receive_data, sdi);
 
 	packet.type = SR_DF_HEADER;
 	packet.length = sizeof(struct sr_datafeed_header);

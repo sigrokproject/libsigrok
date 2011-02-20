@@ -230,13 +230,13 @@ struct sr_hwcap_option *sr_find_hwcap_option(int hwcap)
 
 /* unnecessary level of indirection follows. */
 
-void source_remove(int fd)
+void sr_source_remove(int fd)
 {
 	sr_session_source_remove(fd);
 }
 
-void source_add(int fd, int events, int timeout, receive_data_callback rcv_cb,
-		void *user_data)
+void sr_source_add(int fd, int events, int timeout,
+		   receive_data_callback rcv_cb, void *user_data)
 {
 	sr_session_source_add(fd, events, timeout, rcv_cb, user_data);
 }
