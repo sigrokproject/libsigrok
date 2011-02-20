@@ -103,7 +103,7 @@ int sr_session_device_add(struct sr_device *device);
 
 /* Protocol analyzers setup */
 void sr_session_pa_clear(void);
-void sr_session_pa_add(struct analyzer *pa);
+void sr_session_pa_add(struct sr_analyzer *pa);
 
 /* Datafeed setup */
 void sr_session_datafeed_callback_clear(void);

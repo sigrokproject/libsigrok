@@ -48,7 +48,7 @@ struct context {
 	uint8_t *linevalues;
 	char *header;
 	int mark_trigger;
-//	struct analog_sample *prevsample;
+//	struct sr_analog_sample *prevsample;
 	enum outputmode mode;
 };
 
@@ -112,8 +112,8 @@ static int init(struct sr_output *o, int default_spl, enum outputmode mode)
 	}
 
 	ctx->probelist[ctx->num_enabled_probes] = 0;
-	ctx->unitsize = sizeof(struct analog_sample) +
-		(ctx->num_enabled_probes * sizeof(struct analog_probe));
+	ctx->unitsize = sizeof(struct sr_analog_sample) +
+		(ctx->num_enabled_probes * sizeof(struct sr_analog_probe));
 	ctx->line_offset = 0;
 	ctx->spl_cnt = 0;
 	ctx->mark_trigger = -1;
@@ -208,7 +208,7 @@ static int data_bits(struct sr_output *o, char *data_in, uint64_t length_in,
 	struct context *ctx;
 	unsigned int outsize, offset, p;
 	int max_linelen;
-	struct analog_sample *sample;
+	struct sr_analog_sample *sample;
 	char *outbuf, c;
 
 	ctx = o->internal;
@@ -239,7 +239,7 @@ static int data_bits(struct sr_output *o, char *data_in, uint64_t length_in,
 	if (length_in >= ctx->unitsize) {
 		for (offset = 0; offset <= length_in - ctx->unitsize;
 		     offset += ctx->unitsize) {
-			sample = (struct analog_sample *) (data_in + offset);
+			sample = (struct sr_analog_sample *) (data_in + offset);
 			for (p = 0; p < ctx->num_enabled_probes; p++) {
 				int val = sample->probes[p].val;
 				int res = sample->probes[p].res;

@@ -91,7 +91,7 @@ void sr_session_pa_clear(void)
 	session->analyzers = NULL;
 }
 
-void sr_session_pa_add(struct analyzer *an)
+void sr_session_pa_add(struct sr_analyzer *an)
 {
 	session->analyzers = g_slist_append(session->analyzers, an);
 }

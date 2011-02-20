@@ -232,8 +232,8 @@ static int analog_init(struct sr_output *o)
 	}
 	ctx->probelist[ctx->num_enabled_probes] = 0;
 //	ctx->unitsize = (ctx->num_enabled_probes + 7) / 8;
-	ctx->unitsize = sizeof(struct analog_sample) +
-			(ctx->num_enabled_probes * sizeof(struct analog_probe));
+	ctx->unitsize = sizeof(struct sr_analog_sample) +
+			(ctx->num_enabled_probes * sizeof(struct sr_analog_probe));
 
 	num_probes = g_slist_length(o->device->probes);
 	comment[0] = '\0';
@@ -285,7 +285,7 @@ static int analog_data(struct sr_output *o, char *data_in, uint64_t length_in,
 //	uint64_t sample;
 	static uint64_t samplecount = 0;
 	char *outbuf, *c;
-	struct analog_sample *sample;
+	struct sr_analog_sample *sample;
 
 	ctx = o->internal;
 //	max_linelen = 16 + ctx->num_enabled_probes * 2;
@@ -307,7 +307,7 @@ static int analog_data(struct sr_output *o, char *data_in, uint64_t length_in,
 
 	for (i = 0; i <= length_in - ctx->unitsize; i += ctx->unitsize) {
 //		memcpy(&sample, data_in + i, ctx->unitsize);
-		sample = (struct analog_sample *) (data_in + i);
+		sample = (struct sr_analog_sample *) (data_in + i);
 
 		/* The first column is a counter (needed for gnuplot). */
 		c = outbuf + strlen(outbuf);

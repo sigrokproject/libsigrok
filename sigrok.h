@@ -88,7 +88,7 @@ enum {
 };
 
 /* (Unused) protocol decoder stack entry */
-struct protocol {
+struct sr_protocol {
 	char *name;
 	int id;
 	int stackindex;
@@ -120,15 +120,15 @@ struct sr_datafeed_header {
 	int num_logic_probes;
 };
 
-struct analog_probe {
+struct sr_analog_probe {
 	uint8_t att;
 	uint8_t res;	/* Needs to be a power of 2, FIXME */
 	uint16_t val;	/* Max hardware ADC width is 16bits */
 };
 
-struct analog_sample {
+struct sr_analog_sample {
 	uint8_t num_probes; /* Max hardware probes is 256 */
-	struct analog_probe probes[];
+	struct sr_analog_probe probes[];
 };
 
 struct sr_input {
@@ -163,7 +163,7 @@ struct sr_output_format {
 		      uint64_t *length_out);
 };
 
-struct analyzer {
+struct sr_analyzer {
 	char *name;
 	char *filename;
 	/*

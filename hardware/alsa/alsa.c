@@ -204,9 +204,9 @@ static int receive_data(int fd, int revents, void *user_data)
 	struct sr_device_instance *sdi = user_data;
 	struct alsa *alsa = sdi->priv;
 	struct sr_datafeed_packet packet;
-	struct analog_sample *sample;
-	unsigned int sample_size = sizeof(struct analog_sample) +
-		(NUM_PROBES * sizeof(struct analog_probe));
+	struct sr_analog_sample *sample;
+	unsigned int sample_size = sizeof(struct sr_analog_sample) +
+		(NUM_PROBES * sizeof(struct sr_analog_probe));
 	char *outb;
 	char inb[4096];
 	int i, x, count;
@@ -228,7 +228,7 @@ static int receive_data(int fd, int revents, void *user_data)
 			return FALSE;
 
 		for (i = 0; i < count; i++) {
-			sample = (struct analog_sample *)
+			sample = (struct sr_analog_sample *)
 						(outb + (i * sample_size));
 			sample->num_probes = NUM_PROBES;
 
