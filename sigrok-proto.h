@@ -91,9 +91,6 @@ void sr_source_add(int fd, int events, int timeout,
 
 /*--- session.c -------------------------------------------------------------*/
 
-typedef void (*source_callback_remove) (int fd);
-typedef void (*source_callback_add) (int fd, int events, int timeout,
-		receive_data_callback callback, void *user_data);
 typedef void (*datafeed_callback) (struct sr_device *device,
 				 struct sr_datafeed_packet *packet);
 
