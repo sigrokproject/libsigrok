@@ -119,7 +119,6 @@ void sr_session_halt(void);
 void sr_session_stop(void);
 void sr_session_bus(struct sr_device *device,
 		    struct sr_datafeed_packet *packet);
-void make_metadata(char *filename);
 int sr_session_save(char *filename);
 void sr_session_source_add(int fd, int events, int timeout,
 	        receive_data_callback callback, void *user_data);
