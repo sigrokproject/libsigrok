@@ -30,8 +30,8 @@ int init_hex(struct sr_output *o)
 	return init(o, DEFAULT_BPL_HEX, MODE_HEX);
 }
 
-int data_hex(struct sr_output *o, char *data_in, uint64_t length_in,
-		    char **data_out, uint64_t *length_out)
+int data_hex(struct sr_output *o, const char *data_in, uint64_t length_in,
+	     char **data_out, uint64_t *length_out)
 {
 	struct context *ctx;
 	unsigned int outsize, offset, p;

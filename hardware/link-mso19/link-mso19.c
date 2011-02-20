@@ -347,7 +347,7 @@ static int mso_parse_serial(const char *iSerial, const char *iProduct,
 	return SR_OK;
 }
 
-static int hw_init(char *deviceinfo)
+static int hw_init(const char *deviceinfo)
 {
 	struct sr_device_instance *sdi;
 	int devcnt = 0;

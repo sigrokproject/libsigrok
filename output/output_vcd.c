@@ -165,7 +165,7 @@ static int event(struct sr_output *o, int event_type, char **data_out,
 	return SR_OK;
 }
 
-static int data(struct sr_output *o, char *data_in, uint64_t length_in,
+static int data(struct sr_output *o, const char *data_in, uint64_t length_in,
 		char **data_out, uint64_t *length_out)
 {
 	struct context *ctx;

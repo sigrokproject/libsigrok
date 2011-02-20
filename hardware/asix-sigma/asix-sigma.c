@@ -387,7 +387,7 @@ static int bin2bitbang(const char *filename,
 	return 0;
 }
 
-static int hw_init(char *deviceinfo)
+static int hw_init(const char *deviceinfo)
 {
 	struct sr_device_instance *sdi;
 	struct sigma *sigma = g_malloc(sizeof(struct sigma));

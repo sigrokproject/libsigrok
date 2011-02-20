@@ -45,7 +45,7 @@ struct alsa {
 	gpointer session_id;
 };
 
-static int hw_init(char *deviceinfo)
+static int hw_init(const char *deviceinfo)
 {
 	struct sr_device_instance *sdi;
 	struct alsa *alsa;

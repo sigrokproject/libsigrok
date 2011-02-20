@@ -98,7 +98,7 @@ static int thread_running;
 
 static void hw_stop_acquisition(int device_index, gpointer session_device_id);
 
-static int hw_init(char *deviceinfo)
+static int hw_init(const char *deviceinfo)
 {
 	struct sr_device_instance *sdi;
 

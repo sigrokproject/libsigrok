@@ -25,7 +25,7 @@ static int init(struct sr_output *o)
 	return 0;
 }
 
-static int data(struct sr_output *o, char *data_in, uint64_t length_in,
+static int data(struct sr_output *o, const char *data_in, uint64_t length_in,
 		char **data_out, uint64_t *length_out)
 {
 	return SR_OK;

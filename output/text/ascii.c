@@ -30,8 +30,8 @@ int init_ascii(struct sr_output *o)
 	return init(o, DEFAULT_BPL_ASCII, MODE_ASCII);
 }
 
-int data_ascii(struct sr_output *o, char *data_in, uint64_t length_in,
-		     char **data_out, uint64_t *length_out)
+int data_ascii(struct sr_output *o, const char *data_in, uint64_t length_in,
+	       char **data_out, uint64_t *length_out)
 {
 	struct context *ctx;
 	unsigned int outsize, offset, p;

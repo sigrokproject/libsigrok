@@ -219,7 +219,7 @@ static uint32_t reverse32(uint32_t in)
 	return out;
 }
 
-static int hw_init(char *deviceinfo)
+static int hw_init(const char *deviceinfo)
 {
 	struct sr_device_instance *sdi;
 	GSList *ports, *l;

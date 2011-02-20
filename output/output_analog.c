@@ -202,8 +202,8 @@ static int init_bits(struct sr_output *o)
 	return init(o, DEFAULT_BPL_BITS, MODE_BITS);
 }
 
-static int data_bits(struct sr_output *o, char *data_in, uint64_t length_in,
-		     char **data_out, uint64_t *length_out)
+static int data_bits(struct sr_output *o, const char *data_in,
+		     uint64_t length_in, char **data_out, uint64_t *length_out)
 {
 	struct context *ctx;
 	unsigned int outsize, offset, p;
@@ -288,8 +288,8 @@ static int init_hex(struct sr_output *o)
 	return init(o, DEFAULT_BPL_HEX, MODE_HEX);
 }
 
-static int data_hex(struct sr_output *o, char *data_in, uint64_t length_in,
-		    char **data_out, uint64_t *length_out)
+static int data_hex(struct sr_output *o, const char *data_in,
+		    uint64_t length_in, char **data_out, uint64_t *length_out)
 {
 	struct context *ctx;
 	unsigned int outsize, offset, p;
@@ -353,8 +353,8 @@ static int init_ascii(struct sr_output *o)
 	return init(o, DEFAULT_BPL_ASCII, MODE_ASCII);
 }
 
-static int data_ascii(struct sr_output *o, char *data_in, uint64_t length_in,
-		     char **data_out, uint64_t *length_out)
+static int data_ascii(struct sr_output *o, const char *data_in,
+		      uint64_t length_in, char **data_out, uint64_t *length_out)
 {
 	struct context *ctx;
 	unsigned int outsize, offset, p;

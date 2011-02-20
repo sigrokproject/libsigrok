@@ -273,7 +273,7 @@ static int configure_probes(GSList *probes)
  * API callbacks
  */
 
-static int hw_init(char *deviceinfo)
+static int hw_init(const char *deviceinfo)
 {
 	struct sr_device_instance *sdi;
 	struct libusb_device_descriptor des;

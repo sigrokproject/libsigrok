@@ -157,8 +157,8 @@ struct sr_output_format {
 	char *description;
 	int df_type;
 	int (*init) (struct sr_output *o);
-	int (*data) (struct sr_output *o, char *data_in, uint64_t length_in,
-		     char **data_out, uint64_t *length_out);
+	int (*data) (struct sr_output *o, const char *data_in,
+		     uint64_t length_in, char **data_out, uint64_t *length_out);
 	int (*event) (struct sr_output *o, int event_type, char **data_out,
 		      uint64_t *length_out);
 };
@@ -326,7 +326,7 @@ struct sr_device_plugin {
 	char *name;
 	char *longname;
 	int api_version;
-	int (*init) (char *deviceinfo);
+	int (*init) (const char *deviceinfo);
 	void (*cleanup) (void);
 
 	/* Device-specific */

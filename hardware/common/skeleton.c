@@ -19,7 +19,7 @@
 
 #include <sigrok.h>
 
-static int hw_init(char *deviceinfo)
+static int hw_init(const char *deviceinfo)
 {
 }
 

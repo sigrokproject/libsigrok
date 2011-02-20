@@ -111,7 +111,7 @@ static int feed_chunk(int fd, int revents, void *user_data)
 
 /* driver callbacks */
 
-static int hw_init(char *deviceinfo)
+static int hw_init(const char *deviceinfo)
 {
 
 	sessionfile = g_strdup(deviceinfo);

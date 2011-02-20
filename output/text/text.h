@@ -17,7 +17,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 #ifndef TEXT_H_
 #define TEXT_H_
 
@@ -54,16 +53,15 @@ int event(struct sr_output *o, int event_type, char **data_out,
 
 
 int init_bits(struct sr_output *o);
-int data_bits(struct sr_output *o, char *data_in, uint64_t length_in,
+int data_bits(struct sr_output *o, const char *data_in, uint64_t length_in,
 		     char **data_out, uint64_t *length_out);
 
 int init_hex(struct sr_output *o);
-int data_hex(struct sr_output *o, char *data_in, uint64_t length_in,
+int data_hex(struct sr_output *o, const char *data_in, uint64_t length_in,
 		     char **data_out, uint64_t *length_out);
 
 int init_ascii(struct sr_output *o);
-int data_ascii(struct sr_output *o, char *data_in, uint64_t length_in,
+int data_ascii(struct sr_output *o, const char *data_in, uint64_t length_in,
 		     char **data_out, uint64_t *length_out);
 
-
-#endif /* TEXT_H_ */
+#endif
