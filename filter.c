@@ -28,7 +28,7 @@
  * unused probes removed.
  */
 int filter_probes(int in_unitsize, int out_unitsize, int *probelist,
-		  char *data_in, uint64_t length_in, char **data_out,
+		  const char *data_in, uint64_t length_in, char **data_out,
 		  uint64_t *length_out)
 {
 	unsigned int in_offset, out_offset;

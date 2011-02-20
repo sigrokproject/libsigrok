@@ -44,19 +44,20 @@ void sr_device_clear(struct sr_device *device);
 void sr_device_destroy(struct sr_device *dev);
 
 void sr_device_probe_clear(struct sr_device *device, int probenum);
-void sr_device_probe_add(struct sr_device *device, char *name);
+void sr_device_probe_add(struct sr_device *device, const char *name);
 struct sr_probe *sr_device_probe_find(struct sr_device *device, int probenum);
-void sr_device_probe_name(struct sr_device *device, int probenum, char *name);
+void sr_device_probe_name(struct sr_device *device, int probenum,
+			  const char *name);
 
 void sr_device_trigger_clear(struct sr_device *device);
 void sr_device_trigger_set(struct sr_device *device, int probenum,
-			   char *trigger);
+			   const char *trigger);
 gboolean sr_device_has_hwcap(struct sr_device *device, int hwcap);
 
 /*--- filter.c --------------------------------------------------------------*/
 
 int filter_probes(int in_unitsize, int out_unitsize, int *probelist,
-		  char *data_in, uint64_t length_in, char **data_out,
+		  const char *data_in, uint64_t length_in, char **data_out,
 		  uint64_t *length_out);
 
 /*--- hwplugin.c ------------------------------------------------------------*/
@@ -118,7 +119,7 @@ void sr_session_halt(void);
 void sr_session_stop(void);
 void sr_session_bus(struct sr_device *device,
 		    struct sr_datafeed_packet *packet);
-int sr_session_save(char *filename);
+int sr_session_save(const char *filename);
 void sr_session_source_add(int fd, int events, int timeout,
 	        receive_data_callback callback, void *user_data);
 void sr_session_source_remove(int fd);

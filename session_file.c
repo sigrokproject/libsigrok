@@ -136,7 +136,7 @@ int sr_session_load(const char *filename)
 	return SR_OK;
 }
 
-int sr_session_save(char *filename)
+int sr_session_save(const char *filename)
 {
 	GSList *l, *p, *d;
 	FILE *meta;
