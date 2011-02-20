@@ -62,7 +62,7 @@ int filter_probes(int in_unitsize, int out_unitsize, int *probelist,
 /*--- hwplugin.c ------------------------------------------------------------*/
 
 int load_hwplugins(void);
-GSList *list_hwplugins(void);
+GSList *sr_list_hwplugins(void);
 
 /* Generic device instances */
 struct sr_device_instance *sr_device_instance_new(int index,

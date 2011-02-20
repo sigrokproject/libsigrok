@@ -95,7 +95,7 @@ int load_hwplugins(void)
 	return SR_OK;
 }
 
-GSList *list_hwplugins(void)
+GSList *sr_list_hwplugins(void)
 {
 	return plugins;
 }

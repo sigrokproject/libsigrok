@@ -30,7 +30,7 @@ void sr_device_scan(void)
 	GSList *plugins, *l;
 	struct sr_device_plugin *plugin;
 
-	plugins = list_hwplugins();
+	plugins = sr_list_hwplugins();
 
 	/*
 	 * Initialize all plugins first. Since the init() call may involve
