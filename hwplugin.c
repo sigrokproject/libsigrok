@@ -236,7 +236,7 @@ void sr_source_remove(int fd)
 }
 
 void sr_source_add(int fd, int events, int timeout,
-		   receive_data_callback rcv_cb, void *user_data)
+		   sr_receive_data_callback rcv_cb, void *user_data)
 {
 	sr_session_source_add(fd, events, timeout, rcv_cb, user_data);
 }

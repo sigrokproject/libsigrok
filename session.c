@@ -32,7 +32,7 @@ struct source {
 	int fd;
 	int events;
 	int timeout;
-	receive_data_callback cb;
+	sr_receive_data_callback cb;
 	void *user_data;
 };
 
@@ -223,7 +223,7 @@ void sr_session_bus(struct sr_device *device, struct sr_datafeed_packet *packet)
 }
 
 void sr_session_source_add(int fd, int events, int timeout,
-	        receive_data_callback callback, void *user_data)
+	        sr_receive_data_callback callback, void *user_data)
 {
 	struct source *new_sources, *s;
 

@@ -87,7 +87,7 @@ int sr_find_hwcap(int *capabilities, int hwcap);
 struct sr_hwcap_option *sr_find_hwcap_option(int hwcap);
 void sr_source_remove(int fd);
 void sr_source_add(int fd, int events, int timeout,
-		   receive_data_callback rcv_cb, void *user_data);
+		   sr_receive_data_callback rcv_cb, void *user_data);
 
 /*--- session.c -------------------------------------------------------------*/
 
@@ -118,7 +118,7 @@ void sr_session_bus(struct sr_device *device,
 		    struct sr_datafeed_packet *packet);
 int sr_session_save(const char *filename);
 void sr_session_source_add(int fd, int events, int timeout,
-	        receive_data_callback callback, void *user_data);
+	        sr_receive_data_callback callback, void *user_data);
 void sr_session_source_remove(int fd);
 
 /*--- input/input.c ---------------------------------------------------------*/

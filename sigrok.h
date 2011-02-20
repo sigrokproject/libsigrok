@@ -74,7 +74,7 @@ extern "C" {
 #define ARRAY_AND_SIZE(a) (a), ARRAY_SIZE(a)
 #endif
 
-typedef int (*receive_data_callback) (int fd, int revents, void *user_data);
+typedef int (*sr_receive_data_callback) (int fd, int revents, void *user_data);
 
 /* Data types used by hardware plugins for set_configuration() */
 enum {
@@ -345,7 +345,7 @@ struct sr_session {
 	GSList *devices;
 	/* List of struct analyzer* */
 	GSList *analyzers;
-	/* list of receive_data_callback */
+	/* list of sr_receive_data_callback */
 	GSList *datafeed_callbacks;
 	GTimeVal starttime;
 	gboolean running;
