@@ -25,12 +25,13 @@ libsigrokoutput_la_SOURCES = \
 	output_vcd.c \
 	output_ols.c \
 	output_gnuplot.c \
-	output_analog.c \
 	text/text.c \
 	text/bits.c \
 	text/hex.c \
 	text/ascii.c \
 	output.c
+
+# Temporarily disabled: output_analog.c
 
 libsigrokoutput_la_CFLAGS = \
 	-I$(top_srcdir)/libsigrok
