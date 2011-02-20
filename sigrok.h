@@ -66,14 +66,6 @@ extern "C" {
 
 #define HZ_TO_NS(n) (1000000000 / (n))
 
-#ifndef ARRAY_SIZE
-#define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
-#endif
-
-#ifndef ARRAY_AND_SIZE
-#define ARRAY_AND_SIZE(a) (a), ARRAY_SIZE(a)
-#endif
-
 typedef int (*sr_receive_data_callback) (int fd, int revents, void *user_data);
 
 /* Data types used by hardware plugins for set_configuration() */

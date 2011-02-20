@@ -20,6 +20,16 @@
 #ifndef SIGROK_SIGROK_INTERNAL_H
 #define SIGROK_SIGROK_INTERNAL_H
 
+/*--- Macros ----------------------------------------------------------------*/
+
+#ifndef ARRAY_SIZE
+#define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
+#endif
+
+#ifndef ARRAY_AND_SIZE
+#define ARRAY_AND_SIZE(a) (a), ARRAY_SIZE(a)
+#endif
+
 /*--- hwplugin.c ------------------------------------------------------------*/
 
 int load_hwplugins(void);
