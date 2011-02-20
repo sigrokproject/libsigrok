@@ -20,6 +20,10 @@
 #ifndef SIGROK_SIGROK_INTERNAL_H
 #define SIGROK_SIGROK_INTERNAL_H
 
+/*--- hwplugin.c ------------------------------------------------------------*/
+
+int load_hwplugins(void);
+
 /*--- hardware/common/serial.c ----------------------------------------------*/
 
 GSList *list_serial_ports(void);

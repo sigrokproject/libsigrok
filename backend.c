@@ -19,6 +19,7 @@
 
 #include <glib.h>
 #include <sigrok.h>
+#include <sigrok-internal.h>
 
 int sr_init(void)
 {
