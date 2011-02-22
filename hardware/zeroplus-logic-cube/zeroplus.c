@@ -90,22 +90,22 @@ static libusb_context *usb_context = NULL;
 static uint64_t supported_samplerates[] = {
 	100,
 	500,
-	KHZ(1),
-	KHZ(5),
-	KHZ(25),
-	KHZ(50),
-	KHZ(100),
-	KHZ(200),
-	KHZ(400),
-	KHZ(800),
-	MHZ(1),
-	MHZ(10),
-	MHZ(25),
-	MHZ(50),
-	MHZ(80),
-	MHZ(100),
-	MHZ(150),
-	MHZ(200),
+	SR_KHZ(1),
+	SR_KHZ(5),
+	SR_KHZ(25),
+	SR_KHZ(50),
+	SR_KHZ(100),
+	SR_KHZ(200),
+	SR_KHZ(400),
+	SR_KHZ(800),
+	SR_MHZ(1),
+	SR_MHZ(10),
+	SR_MHZ(25),
+	SR_MHZ(50),
+	SR_MHZ(80),
+	SR_MHZ(100),
+	SR_MHZ(150),
+	SR_MHZ(200),
 	0,
 };
 
@@ -445,10 +445,10 @@ static int *hw_get_capabilities(void)
 static int set_configuration_samplerate(uint64_t samplerate)
 {
 	g_message("%s(%" PRIu64 ")", __FUNCTION__, samplerate);
-	if (samplerate > MHZ(1))
-		analyzer_set_freq(samplerate / MHZ(1), FREQ_SCALE_MHZ);
-	else if (samplerate > KHZ(1))
-		analyzer_set_freq(samplerate / KHZ(1), FREQ_SCALE_KHZ);
+	if (samplerate > SR_MHZ(1))
+		analyzer_set_freq(samplerate / SR_MHZ(1), FREQ_SCALE_MHZ);
+	else if (samplerate > SR_KHZ(1))
+		analyzer_set_freq(samplerate / SR_KHZ(1), FREQ_SCALE_KHZ);
 	else
 		analyzer_set_freq(samplerate, FREQ_SCALE_HZ);
 

@@ -49,7 +49,7 @@
 #define NUM_TRIGGER_STAGES     4
 #define TRIGGER_TYPES          "01"
 #define SERIAL_SPEED           B115200
-#define CLOCK_RATE             MHZ(100)
+#define CLOCK_RATE             SR_MHZ(100)
 #define MIN_NUM_SAMPLES        4
 
 /* Command opcodes */
@@ -93,7 +93,7 @@ static int capabilities[] = {
 
 static struct sr_samplerates samplerates = {
 	10,
-	MHZ(200),
+	SR_MHZ(200),
 	1,
 	0,
 };
@@ -321,7 +321,7 @@ static int hw_init(const char *deviceinfo)
 	free(serial_params);
 	g_slist_free(ports);
 
-	cur_samplerate = KHZ(200);
+	cur_samplerate = SR_KHZ(200);
 
 	return final_devcnt;
 }

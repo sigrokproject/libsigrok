@@ -43,22 +43,22 @@
 static GSList *device_instances = NULL;
 
 static uint64_t supported_samplerates[] = {
-	KHZ(200),
-	KHZ(250),
-	KHZ(500),
-	MHZ(1),
-	MHZ(5),
-	MHZ(10),
-	MHZ(25),
-	MHZ(50),
-	MHZ(100),
-	MHZ(200),
+	SR_KHZ(200),
+	SR_KHZ(250),
+	SR_KHZ(500),
+	SR_MHZ(1),
+	SR_MHZ(5),
+	SR_MHZ(10),
+	SR_MHZ(25),
+	SR_MHZ(50),
+	SR_MHZ(100),
+	SR_MHZ(200),
 	0,
 };
 
 static struct sr_samplerates samplerates = {
-	KHZ(200),
-	MHZ(200),
+	SR_KHZ(200),
+	SR_MHZ(200),
 	0,
 	supported_samplerates,
 };
@@ -561,15 +561,15 @@ static int set_samplerate(struct sr_device_instance *sdi,
 	if (supported_samplerates[i] == 0)
 		return SR_ERR_SAMPLERATE;
 
-	if (samplerate <= MHZ(50)) {
+	if (samplerate <= SR_MHZ(50)) {
 		ret = upload_firmware(0, sigma);
 		sigma->num_probes = 16;
 	}
-	if (samplerate == MHZ(100)) {
+	if (samplerate == SR_MHZ(100)) {
 		ret = upload_firmware(1, sigma);
 		sigma->num_probes = 8;
 	}
-	else if (samplerate == MHZ(200)) {
+	else if (samplerate == SR_MHZ(200)) {
 		ret = upload_firmware(2, sigma);
 		sigma->num_probes = 4;
 	}
@@ -608,7 +608,7 @@ static int configure_probes(struct sr_device_instance *sdi, GSList *probes)
 		if (!probe->enabled || !probe->trigger)
 			continue;
 
-		if (sigma->cur_samplerate >= MHZ(100)) {
+		if (sigma->cur_samplerate >= SR_MHZ(100)) {
 			/* Fast trigger support. */
 			if (trigger_set) {
 				g_warning("Asix Sigma only supports a single "
@@ -839,7 +839,7 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 
 	/* Check if trigger is in this chunk. */
 	if (triggerpos != -1) {
-		if (sigma->cur_samplerate <= MHZ(50))
+		if (sigma->cur_samplerate <= SR_MHZ(50))
 			triggerpos -= EVENTS_PER_CLUSTER - 1;
 
 		if (triggerpos < 0)
@@ -1220,13 +1220,13 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 
 	/* If the samplerate has not been set, default to 200 KHz. */
 	if (sigma->cur_firmware == -1)
-		set_samplerate(sdi, KHZ(200));
+		set_samplerate(sdi, SR_KHZ(200));
 
 	/* Enter trigger programming mode. */
 	sigma_set_register(WRITE_TRIGGER_SELECT1, 0x20, sigma);
 
 	/* 100 and 200 MHz mode. */
-	if (sigma->cur_samplerate >= MHZ(100)) {
+	if (sigma->cur_samplerate >= SR_MHZ(100)) {
 		sigma_set_register(WRITE_TRIGGER_SELECT1, 0x81, sigma);
 
 		/* Find which pin to trigger on from mask. */
@@ -1243,7 +1243,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 			triggerselect |= 1 << 3;
 
 	/* All other modes. */
-	} else if (sigma->cur_samplerate <= MHZ(50)) {
+	} else if (sigma->cur_samplerate <= SR_MHZ(50)) {
 		build_basic_trigger(&lut, sigma);
 
 		sigma_write_trigger_lut(&lut, sigma);
@@ -1264,10 +1264,10 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	sigma_set_register(WRITE_TRIGGER_SELECT1, triggerselect, sigma);
 
 	/* Set clock select register. */
-	if (sigma->cur_samplerate == MHZ(200))
+	if (sigma->cur_samplerate == SR_MHZ(200))
 		/* Enable 4 probes. */
 		sigma_set_register(WRITE_CLOCK_SELECT, 0xf0, sigma);
-	else if (sigma->cur_samplerate == MHZ(100))
+	else if (sigma->cur_samplerate == SR_MHZ(100))
 		/* Enable 8 probes. */
 		sigma_set_register(WRITE_CLOCK_SELECT, 0x00, sigma);
 	else {
@@ -1275,7 +1275,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 		 * 50 MHz mode (or fraction thereof). Any fraction down to
 		 * 50 MHz / 256 can be used, but is not supported by sigrok API.
 		 */
-		frac = MHZ(50) / sigma->cur_samplerate - 1;
+		frac = SR_MHZ(50) / sigma->cur_samplerate - 1;
 
 		clockselect.async = 0;
 		clockselect.fraction = frac;

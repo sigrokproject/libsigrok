@@ -73,22 +73,22 @@ static GTimeVal firmware_updated = { 0, 0 };
 static libusb_context *usb_context = NULL;
 
 static uint64_t supported_samplerates[] = {
-	KHZ(200),
-	KHZ(250),
-	KHZ(500),
-	MHZ(1),
-	MHZ(2),
-	MHZ(4),
-	MHZ(8),
-	MHZ(12),
-	MHZ(16),
-	MHZ(24),
+	SR_KHZ(200),
+	SR_KHZ(250),
+	SR_KHZ(500),
+	SR_MHZ(1),
+	SR_MHZ(2),
+	SR_MHZ(4),
+	SR_MHZ(8),
+	SR_MHZ(12),
+	SR_MHZ(16),
+	SR_MHZ(24),
 	0,
 };
 
 static struct sr_samplerates samplerates = {
-	KHZ(200),
-	MHZ(24),
+	SR_KHZ(200),
+	SR_MHZ(24),
 	0,
 	supported_samplerates,
 };

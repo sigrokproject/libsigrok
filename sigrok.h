@@ -59,11 +59,11 @@ extern "C" {
 #define SR_MAX_PROBENAME_LEN	32
 
 /* Handy little macros */
-#define KHZ(n) ((n) * 1000)
-#define MHZ(n) ((n) * 1000000)
-#define GHZ(n) ((n) * 1000000000)
+#define SR_KHZ(n) ((n) * 1000)
+#define SR_MHZ(n) ((n) * 1000000)
+#define SR_GHZ(n) ((n) * 1000000000)
 
-#define HZ_TO_NS(n) (1000000000 / (n))
+#define SR_HZ_TO_NS(n) (1000000000 / (n))
 
 typedef int (*sr_receive_data_callback) (int fd, int revents, void *user_data);
 

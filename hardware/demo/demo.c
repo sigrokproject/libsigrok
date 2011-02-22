@@ -65,7 +65,7 @@ static int capabilities[] = {
 
 static struct sr_samplerates samplerates = {
 	1,
-	GHZ(1),
+	SR_GHZ(1),
 	1,
 	NULL,
 };
@@ -89,7 +89,7 @@ static uint8_t genmode_default[] = {
 
 /* List of struct sr_device_instance, maintained by opendev()/closedev(). */
 static GSList *device_instances = NULL;
-static uint64_t cur_samplerate = KHZ(200);
+static uint64_t cur_samplerate = SR_KHZ(200);
 static uint64_t limit_samples = 0;
 static uint64_t limit_msec = 0;
 static int default_genmode = GENMODE_DEFAULT;

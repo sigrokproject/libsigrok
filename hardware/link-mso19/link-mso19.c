@@ -47,13 +47,34 @@ static int capabilities[] = {
 };
 
 static uint64_t supported_samplerates[] = {
-	100, 200, 500, KHZ(1), KHZ(2), KHZ(5), KHZ(10), KHZ(20),
-	KHZ(50), KHZ(100), KHZ(200), KHZ(500), MHZ(1), MHZ(2), MHZ(5),
-	MHZ(10), MHZ(20), MHZ(50), MHZ(100), MHZ(200), 0
+	100,
+	200,
+	500,
+	SR_KHZ(1),
+	SR_KHZ(2),
+	SR_KHZ(5),
+	SR_KHZ(10),
+	SR_KHZ(20),
+	SR_KHZ(50),
+	SR_KHZ(100),
+	SR_KHZ(200),
+	SR_KHZ(500),
+	SR_MHZ(1),
+	SR_MHZ(2),
+	SR_MHZ(5),
+	SR_MHZ(10),
+	SR_MHZ(20),
+	SR_MHZ(50),
+	SR_MHZ(100),
+	SR_MHZ(200),
+	0,
 };
 
 static struct sr_samplerates samplerates = {
-	100, MHZ(200), 0, supported_samplerates,
+	100,
+	SR_MHZ(200),
+	0,
+	supported_samplerates,
 };
 
 static GSList *device_instances = NULL;
@@ -283,7 +304,7 @@ static int mso_configure_trigger(struct sr_device_instance *sdi)
 	ops[2] = mso_trans(3, dso_trigger & 0xff);
 	ops[3] = mso_trans(4, (dso_trigger >> 8) & 0xff);
 	ops[4] = mso_trans(11,
-			mso->dso_trigger_width / HZ_TO_NS(mso->cur_rate));
+			mso->dso_trigger_width / SR_HZ_TO_NS(mso->cur_rate));
 	ops[5] = mso_trans(15, (2 | mso->slowmode));
 
 	/* FIXME SPI/I2C Triggers */

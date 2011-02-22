@@ -41,11 +41,11 @@ char *sr_samplerate_string(uint64_t samplerate)
 	if (!o)
 		return NULL;
 
-	if (samplerate >= GHZ(1))
+	if (samplerate >= SR_GHZ(1))
 		r = snprintf(o, 30, "%" PRIu64 " GHz", samplerate / 1000000000);
-	else if (samplerate >= MHZ(1))
+	else if (samplerate >= SR_MHZ(1))
 		r = snprintf(o, 30, "%" PRIu64 " MHz", samplerate / 1000000);
-	else if (samplerate >= KHZ(1))
+	else if (samplerate >= SR_KHZ(1))
 		r = snprintf(o, 30, "%" PRIu64 " kHz", samplerate / 1000);
 	else
 		r = snprintf(o, 30, "%" PRIu64 " Hz", samplerate);
@@ -78,11 +78,11 @@ char *sr_period_string(uint64_t frequency)
 	if (!o)
 		return NULL;
 
-	if (frequency >= GHZ(1))
+	if (frequency >= SR_GHZ(1))
 		r = snprintf(o, 30, "%" PRIu64 " ns", frequency / 1000000000);
-	else if (frequency >= MHZ(1))
+	else if (frequency >= SR_MHZ(1))
 		r = snprintf(o, 30, "%" PRIu64 " us", frequency / 1000000);
-	else if (frequency >= KHZ(1))
+	else if (frequency >= SR_KHZ(1))
 		r = snprintf(o, 30, "%" PRIu64 " ms", frequency / 1000);
 	else
 		r = snprintf(o, 30, "%" PRIu64 " s", frequency);
@@ -198,15 +198,15 @@ uint64_t sr_parse_sizestring(const char *sizestring)
 			break;
 		case 'k':
 		case 'K':
-			multiplier = KHZ(1);
+			multiplier = SR_KHZ(1);
 			break;
 		case 'm':
 		case 'M':
-			multiplier = MHZ(1);
+			multiplier = SR_MHZ(1);
 			break;
 		case 'g':
 		case 'G':
-			multiplier = GHZ(1);
+			multiplier = SR_GHZ(1);
 			break;
 		default:
 			val = 0;

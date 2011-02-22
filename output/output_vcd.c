@@ -106,12 +106,12 @@ static int init(struct sr_output *o)
 
 	/* timescale */
 	/* VCD can only handle 1/10/100 (s - fs), so scale up first */
-	if (ctx->samplerate > MHZ(1))
-		ctx->period = GHZ(1);
-	else if (ctx->samplerate > KHZ(1))
-		ctx->period = MHZ(1);
+	if (ctx->samplerate > SR_MHZ(1))
+		ctx->period = SR_GHZ(1);
+	else if (ctx->samplerate > SR_KHZ(1))
+		ctx->period = SR_MHZ(1);
 	else
-		ctx->period = KHZ(1);
+		ctx->period = SR_KHZ(1);
 	if (!(frequency_s = sr_period_string(ctx->period))) {
 		g_string_free(ctx->header, TRUE);
 		free(ctx);
