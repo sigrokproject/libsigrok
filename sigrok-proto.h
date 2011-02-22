@@ -101,9 +101,11 @@ void sr_session_destroy(void);
 void sr_session_device_clear(void);
 int sr_session_device_add(struct sr_device *device);
 
+#if 0
 /* Protocol analyzers setup */
 void sr_session_pa_clear(void);
 void sr_session_pa_add(struct sr_analyzer *pa);
+#endif
 
 /* Datafeed setup */
 void sr_session_datafeed_callback_clear(void);

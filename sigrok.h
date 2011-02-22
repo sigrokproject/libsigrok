@@ -79,12 +79,14 @@ enum {
 	SR_PROTO_RAW,
 };
 
+#if 0
 /* (Unused) protocol decoder stack entry */
 struct sr_protocol {
 	char *name;
 	int id;
 	int stackindex;
 };
+#endif
 
 /* sr_datafeed_packet.type values */
 enum {
@@ -112,6 +114,7 @@ struct sr_datafeed_header {
 	int num_logic_probes;
 };
 
+#if 0
 struct sr_analog_probe {
 	uint8_t att;
 	uint8_t res;	/* Needs to be a power of 2, FIXME */
@@ -122,6 +125,7 @@ struct sr_analog_sample {
 	uint8_t num_probes; /* Max hardware probes is 256 */
 	struct sr_analog_probe probes[];
 };
+#endif
 
 struct sr_input {
 	struct sr_input_format *format;
@@ -155,6 +159,7 @@ struct sr_output_format {
 		      uint64_t *length_out);
 };
 
+#if 0
 struct sr_analyzer {
 	char *name;
 	char *filename;
@@ -163,6 +168,7 @@ struct sr_analyzer {
 	 * TODO: Input and output format?
 	 */
 };
+#endif
 
 struct sr_datastore {
 	/* Size in bytes of the number of units stored in this datastore */
@@ -201,6 +207,7 @@ struct sr_probe {
 	char *trigger;
 };
 
+/* TODO: Get rid of this global variable. */
 extern GSList *devices;
 
 /* Hardware plugin capabilities */

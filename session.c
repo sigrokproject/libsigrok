@@ -81,6 +81,7 @@ int sr_session_device_add(struct sr_device *device)
 	return SR_OK;
 }
 
+#if 0
 void sr_session_pa_clear(void)
 {
 	/*
@@ -95,6 +96,7 @@ void sr_session_pa_add(struct sr_analyzer *an)
 {
 	session->analyzers = g_slist_append(session->analyzers, an);
 }
+#endif
 
 void sr_session_datafeed_callback_clear(void)
 {
