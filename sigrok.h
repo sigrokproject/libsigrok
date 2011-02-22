@@ -164,9 +164,6 @@ struct sr_analyzer {
 	 */
 };
 
-/* Size of a chunk in units */
-#define DATASTORE_CHUNKSIZE 512000
-
 struct sr_datastore {
 	/* Size in bytes of the number of units stored in this datastore */
 	int ds_unitsize;

@@ -30,6 +30,9 @@
 #define ARRAY_AND_SIZE(a) (a), ARRAY_SIZE(a)
 #endif
 
+/* Size of a datastore chunk in units */
+#define DATASTORE_CHUNKSIZE 512000
+
 /*--- hwplugin.c ------------------------------------------------------------*/
 
 int load_hwplugins(void);

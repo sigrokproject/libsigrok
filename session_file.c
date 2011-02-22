@@ -25,10 +25,10 @@
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <sigrok.h>
+#include <sigrok-internal.h>
 
 extern struct sr_session *session;
 extern struct sr_device_plugin session_driver;
-
 
 int sr_session_load(const char *filename)
 {
@@ -242,4 +242,3 @@ int sr_session_save(const char *filename)
 
 	return SR_OK;
 }
-

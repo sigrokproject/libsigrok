@@ -22,6 +22,7 @@
 #include <string.h>
 #include <glib.h>
 #include <sigrok.h>
+#include <sigrok-internal.h>
 
 static gpointer new_chunk(struct sr_datastore **ds);
 
