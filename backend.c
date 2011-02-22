@@ -21,13 +21,24 @@
 #include <sigrok.h>
 #include <sigrok-internal.h>
 
+/**
+ * Initialize libsigrok.
+ *
+ * @return SR_OK upon success, a (negative) error code otherwise.
+ */
 int sr_init(void)
 {
 	return load_hwplugins();
 }
 
-/* TODO: Should return int to be able to report back error codes. */
-void sr_exit(void)
+/**
+ * Shutdown libsigrok.
+ *
+ * @return SR_OK upon success, a (negative) error code otherwise.
+ */
+int sr_exit(void)
 {
 	sr_device_close_all();
+
+	return SR_OK;
 }
