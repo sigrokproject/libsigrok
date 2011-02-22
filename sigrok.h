@@ -59,6 +59,7 @@ extern "C" {
 #define SR_MAX_PROBENAME_LEN	32
 
 /* Handy little macros */
+#define SR_HZ(n)  (n)
 #define SR_KHZ(n) ((n) * 1000)
 #define SR_MHZ(n) ((n) * 1000000)
 #define SR_GHZ(n) ((n) * 1000000000)

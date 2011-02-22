@@ -88,8 +88,8 @@ static libusb_context *usb_context = NULL;
  * that high.
  */
 static uint64_t supported_samplerates[] = {
-	100,
-	500,
+	SR_HZ(100),
+	SR_HZ(500),
 	SR_KHZ(1),
 	SR_KHZ(5),
 	SR_KHZ(25),
@@ -110,7 +110,9 @@ static uint64_t supported_samplerates[] = {
 };
 
 static struct sr_samplerates samplerates = {
-	0, 0, 0,
+	SR_HZ(0),
+	SR_HZ(0),
+	SR_HZ(0),
 	supported_samplerates,
 };
 

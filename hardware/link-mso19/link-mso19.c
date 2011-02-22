@@ -47,9 +47,9 @@ static int capabilities[] = {
 };
 
 static uint64_t supported_samplerates[] = {
-	100,
-	200,
-	500,
+	SR_HZ(100),
+	SR_HZ(200),
+	SR_HZ(500),
 	SR_KHZ(1),
 	SR_KHZ(2),
 	SR_KHZ(5),
@@ -71,9 +71,9 @@ static uint64_t supported_samplerates[] = {
 };
 
 static struct sr_samplerates samplerates = {
-	100,
+	SR_HZ(100),
 	SR_MHZ(200),
-	0,
+	SR_HZ(0),
 	supported_samplerates,
 };
 

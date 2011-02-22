@@ -92,10 +92,10 @@ static int capabilities[] = {
 };
 
 static struct sr_samplerates samplerates = {
-	10,
+	SR_HZ(10),
 	SR_MHZ(200),
-	1,
-	0,
+	SR_HZ(1),
+	NULL,
 };
 
 /* List of struct sr_serial_device_instance */
