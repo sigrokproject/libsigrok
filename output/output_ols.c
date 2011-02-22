@@ -37,7 +37,6 @@ struct context {
 	unsigned int unitsize;
 };
 
-
 static int init(struct sr_output *o)
 {
 	struct context *ctx;

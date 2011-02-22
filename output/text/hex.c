@@ -24,7 +24,6 @@
 #include <sigrok.h>
 #include "text.h"
 
-
 int init_hex(struct sr_output *o)
 {
 	return init(o, DEFAULT_BPL_HEX, MODE_HEX);
@@ -90,7 +89,6 @@ int data_hex(struct sr_output *o, const char *data_in, uint64_t length_in,
 	return SR_OK;
 }
 
-
 struct sr_output_format output_text_hex = {
 	"hex",
 	"Hexadecimal (takes argument, default 192)",
@@ -99,4 +97,3 @@ struct sr_output_format output_text_hex = {
 	data_hex,
 	event,
 };
-

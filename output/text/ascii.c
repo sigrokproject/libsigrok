@@ -24,7 +24,6 @@
 #include <sigrok.h>
 #include "text.h"
 
-
 int init_ascii(struct sr_output *o)
 {
 	return init(o, DEFAULT_BPL_ASCII, MODE_ASCII);
@@ -114,7 +113,6 @@ int data_ascii(struct sr_output *o, const char *data_in, uint64_t length_in,
 	return SR_OK;
 }
 
-
 struct sr_output_format output_text_ascii = {
 	"ascii",
 	"ASCII (takes argument, default 74)",
@@ -123,4 +121,3 @@ struct sr_output_format output_text_ascii = {
 	data_ascii,
 	event,
 };
-

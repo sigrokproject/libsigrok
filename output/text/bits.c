@@ -24,7 +24,6 @@
 #include <sigrok.h>
 #include "text.h"
 
-
 int init_bits(struct sr_output *o)
 {
 	return init(o, DEFAULT_BPL_BITS, MODE_BITS);
@@ -101,7 +100,6 @@ int data_bits(struct sr_output *o, const char *data_in, uint64_t length_in,
 	return SR_OK;
 }
 
-
 struct sr_output_format output_text_bits = {
 	"bits",
 	"Bits (takes argument, default 64)",
@@ -110,4 +108,3 @@ struct sr_output_format output_text_bits = {
 	data_bits,
 	event,
 };
-

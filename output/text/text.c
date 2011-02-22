@@ -26,7 +26,6 @@
 #include "config.h"
 #include "text.h"
 
-
 void flush_linebufs(struct context *ctx, char *outbuf)
 {
 	static int max_probename_len = 0;
@@ -170,4 +169,3 @@ int event(struct sr_output *o, int event_type, char **data_out,
 
 	return SR_OK;
 }
-

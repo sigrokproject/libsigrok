@@ -46,7 +46,7 @@ $upscope $end\n\
 $enddefinitions $end\n\
 $dumpvars\n";
 
-const char *vcd_header_comment = "\
+static const char *vcd_header_comment = "\
 $comment\n  Acquisition with %d/%d probes at %s\n$end\n";
 
 static int init(struct sr_output *o)
