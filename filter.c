@@ -22,10 +22,21 @@
 #include <string.h>
 #include <sigrok.h>
 
-/*
+/**
+ * Remove unused probes from samples.
+ *
  * Convert sample from maximum probes -- the way the hardware driver sent
  * it -- to a sample taking up only as much space as required, with
  * unused probes removed.
+ *
+ * @param in_unitsize The unit size of the input (data_in).
+ * @param out_unitsize The unit size of the output (data_out).
+ * @param probelist Pointer to a list of integers (probe numbers).
+ * @param data_in The input data.
+ * @param length_in The input data length.
+ * @param data_out The output data.
+ * @param length_out The output data length.
+ * @return SR_OK upon success, SR_ERR_MALLOC upon memory allocation errors.
  */
 int sr_filter_probes(int in_unitsize, int out_unitsize, int *probelist,
 		     const char *data_in, uint64_t length_in, char **data_out,
