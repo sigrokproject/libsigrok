@@ -36,16 +36,6 @@ struct context {
 	uint64_t samplerate;
 };
 
-const char *vcd_header = "\
-$date %s $end\n\
-$version %s $end\n%s\
-$timescale %s $end\n\
-$scope module %s $end\n\
-%s\
-$upscope $end\n\
-$enddefinitions $end\n\
-$dumpvars\n";
-
 static const char *vcd_header_comment = "\
 $comment\n  Acquisition with %d/%d probes at %s\n$end\n";
 
