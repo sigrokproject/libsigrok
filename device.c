@@ -238,7 +238,7 @@ gboolean sr_device_has_hwcap(struct sr_device *device, int hwcap)
 	int *capabilities, i;
 
 	if (!device || !device->plugin)
-		return;
+		return FALSE;
 
 	if ((capabilities = device->plugin->get_capabilities()))
 		for (i = 0; capabilities[i]; i++)
