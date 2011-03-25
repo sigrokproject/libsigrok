@@ -1205,11 +1205,10 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_header header;
 	struct clockselect_50 clockselect;
-	int frac;
+	int frac, triggerpin, ret;
 	uint8_t triggerselect;
 	struct triggerinout triggerinout_conf;
 	struct triggerlut lut;
-	int triggerpin;
 
 	session_device_id = session_device_id;
 
@@ -1219,8 +1218,10 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	sigma = sdi->priv;
 
 	/* If the samplerate has not been set, default to 200 KHz. */
-	if (sigma->cur_firmware == -1)
-		set_samplerate(sdi, SR_KHZ(200));
+	if (sigma->cur_firmware == -1) {
+		if ((ret = set_samplerate(sdi, SR_KHZ(200))) != SR_OK)
+			return ret;
+	}
 
 	/* Enter trigger programming mode. */
 	sigma_set_register(WRITE_TRIGGER_SELECT1, 0x20, sigma);
