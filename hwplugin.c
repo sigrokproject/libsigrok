@@ -111,8 +111,8 @@ struct sr_device_instance *sr_device_instance_new(int index, int status,
 	sdi->index = index;
 	sdi->status = status;
 	sdi->instance_type = -1;
-	sdi->vendor = vendor ? strdup(vendor) : strdup("(unknown)");
-	sdi->model = model ? strdup(model) : NULL;
+	sdi->vendor = vendor ? strdup(vendor) : NULL;
+	sdi->model = model ? strdup(model) : strdup("(unknown)");
 	sdi->version = version ? strdup(version) : NULL;
 	sdi->priv = NULL;
 	sdi->usb = NULL;
