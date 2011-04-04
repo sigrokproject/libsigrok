@@ -20,6 +20,7 @@
 SUBDIRS = \
 	alsa \
 	asix-sigma \
+	chronovu-la8 \
 	common \
 	demo \
 	link-mso19 \
@@ -40,6 +41,10 @@ endif
 
 if LA_ASIX_SIGMA
 libsigrokhardware_la_LIBADD += asix-sigma/libsigrokhwasixsigma.la
+endif
+
+if LA_CHRONOVU_LA8
+libsigrokhardware_la_LIBADD += chronovu-la8/libsigrokhwchronovula8.la
 endif
 
 if LA_DEMO
