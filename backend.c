@@ -38,7 +38,8 @@ int sr_init(void)
  */
 int sr_exit(void)
 {
-	sr_device_close_all();
+
+	sr_cleanup_hwplugins();
 
 	return SR_OK;
 }

@@ -482,7 +482,7 @@ static void hw_cleanup(void)
 	GSList *l;
 	struct sr_device_instance *sdi;
 
-	/* Properly close all devices. */
+	/* Properly close and free all devices. */
 	for (l = device_instances; l; l = l->next) {
 		sdi = l->data;
 		if (sdi->serial->fd != -1)

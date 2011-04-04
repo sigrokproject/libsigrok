@@ -107,20 +107,47 @@ GSList *sr_list_hwplugins(void)
 	return plugins;
 }
 
+int sr_init_hwplugins(struct sr_device_plugin *plugin)
+{
+	int num_devices, num_probes, i;
+
+	g_message("initializing %s plugin", plugin->name);
+	num_devices = plugin->init(NULL);
+	for (i = 0; i < num_devices; i++) {
+		num_probes = (int)plugin->get_device_info(i, SR_DI_NUM_PROBES);
+		sr_device_new(plugin, i, num_probes);
+	}
+
+	return num_devices;
+}
+
+void sr_cleanup_hwplugins(void)
+{
+	struct sr_device_plugin *plugin;
+	GSList *l;
+
+	for (l = plugins; l; l = l->next) {
+		plugin = l->data;
+		if (plugin->cleanup)
+			plugin->cleanup();
+	}
+
+}
+
 struct sr_device_instance *sr_device_instance_new(int index, int status,
 		const char *vendor, const char *model, const char *version)
 {
 	struct sr_device_instance *sdi;
 
-	if (!(sdi = malloc(sizeof(struct sr_device_instance))))
+	if (!(sdi = g_malloc(sizeof(struct sr_device_instance))))
 		return NULL;
 
 	sdi->index = index;
 	sdi->status = status;
 	sdi->instance_type = -1;
-	sdi->vendor = vendor ? strdup(vendor) : NULL;
-	sdi->model = model ? strdup(model) : strdup("(unknown)");
-	sdi->version = version ? strdup(version) : NULL;
+	sdi->vendor = vendor ? g_strdup(vendor) : NULL;
+	sdi->model = model ? g_strdup(model) : NULL;
+	sdi->version = version ? g_strdup(version) : NULL;
 	sdi->priv = NULL;
 	sdi->usb = NULL;
 
@@ -159,10 +186,14 @@ void sr_device_instance_free(struct sr_device_instance *sdi)
 		break;
 	}
 
-	free(sdi->vendor);
-	free(sdi->model);
-	free(sdi->version);
-	free(sdi);
+	if (sdi->priv)
+		g_free(sdi->priv);
+
+	g_free(sdi->vendor);
+	g_free(sdi->model);
+	g_free(sdi->version);
+	g_free(sdi);
+
 }
 
 #ifdef HAVE_LIBUSB_1_0

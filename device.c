@@ -26,6 +26,7 @@ extern struct sr_global *global;
 
 GSList *devices = NULL;
 
+
 void sr_device_scan(void)
 {
 	GSList *plugins, *l;
@@ -40,41 +41,9 @@ void sr_device_scan(void)
 	 */
 	for (l = plugins; l; l = l->next) {
 		plugin = l->data;
-		sr_device_plugin_init(plugin);
+		sr_init_hwplugins(plugin);
 	}
 
-}
-
-int sr_device_plugin_init(struct sr_device_plugin *plugin)
-{
-	int num_devices, num_probes, i;
-
-	sr_info("initializing %s plugin", plugin->name);
-	num_devices = plugin->init(NULL);
-	for (i = 0; i < num_devices; i++) {
-		num_probes = (int)plugin->get_device_info(i, SR_DI_NUM_PROBES);
-		sr_device_new(plugin, i, num_probes);
-	}
-
-	return num_devices;
-}
-
-void sr_device_close_all(void)
-{
-	int ret;
-	struct sr_device *device;
-
-	while (devices) {
-		device = devices->data;
-		if (device->plugin && device->plugin->closedev) {
-			ret = device->plugin->closedev(device->plugin_index);
-			if (ret != SR_OK) {
-				sr_err("dev: %s: could not close device %d",
-				       __func__, device->plugin_index);
-			}
-		}
-		sr_device_destroy(device);
-	}
 }
 
 GSList *sr_device_list(void)
@@ -111,31 +80,11 @@ void sr_device_clear(struct sr_device *device)
 {
 	unsigned int pnum;
 
-	/* TODO: Plugin-specific clear call? */
-
 	if (!device->probes)
 		return;
 
 	for (pnum = 1; pnum <= g_slist_length(device->probes); pnum++)
 		sr_device_probe_clear(device, pnum);
-}
-
-void sr_device_destroy(struct sr_device *device)
-{
-	unsigned int pnum;
-
-	/*
-	 * TODO: Plugin-specific destroy call, need to decrease refcount
-	 * in plugin.
-	 */
-
-	devices = g_slist_remove(devices, device);
-	if (device->probes) {
-		for (pnum = 1; pnum <= g_slist_length(device->probes); pnum++)
-			sr_device_probe_clear(device, pnum);
-		g_slist_free(device->probes);
-	}
-	g_free(device);
 }
 
 void sr_device_probe_clear(struct sr_device *device, int probenum)

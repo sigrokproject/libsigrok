@@ -54,6 +54,7 @@ struct sr_session *sr_session_new(void)
 
 void sr_session_destroy(void)
 {
+
 	g_slist_free(session->devices);
 
 	/* TODO: Loop over protocol decoders and free them. */
