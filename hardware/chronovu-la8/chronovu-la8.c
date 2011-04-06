@@ -197,22 +197,22 @@ static int la8_write(struct la8 *la8, uint8_t *buf, int size)
 
 	if (!la8) {
 		g_warning("la8: %s: la8 was NULL", __func__);
-		return SR_ERR;
+		return SR_ERR_ARG;
 	}
 
 	if (!la8->ftdic) {
 		g_warning("la8: %s: la8->ftdic was NULL", __func__);
-		return SR_ERR;
+		return SR_ERR_ARG;
 	}
 
 	if (!buf) {
 		g_warning("la8: %s: buf was NULL", __func__);
-		return SR_ERR;
+		return SR_ERR_ARG;
 	}
 
 	if (size < 0) {
 		g_warning("la8: %s: size was < 0", __func__);
-		return SR_ERR;
+		return SR_ERR_ARG;
 	}
 
 	bytes_written = ftdi_write_data(la8->ftdic, buf, size);
@@ -244,22 +244,22 @@ static int la8_read(struct la8 *la8, uint8_t *buf, int size)
 
 	if (!la8) {
 		g_warning("la8: %s: la8 was NULL", __func__);
-		return SR_ERR;
+		return SR_ERR_ARG;
 	}
 
 	if (!la8->ftdic) {
 		g_warning("la8: %s: la8->ftdic was NULL", __func__);
-		return SR_ERR;
+		return SR_ERR_ARG;
 	}
 
 	if (!buf) {
 		g_warning("la8: %s: buf was NULL", __func__);
-		return SR_ERR;
+		return SR_ERR_ARG;
 	}
 
 	if (size <= 0) {
 		g_warning("la8: %s: size was <= 0", __func__);
-		return SR_ERR;
+		return SR_ERR_ARG;
 	}
 
 	bytes_read = ftdi_read_data(la8->ftdic, buf, size);
@@ -281,12 +281,12 @@ static int la8_close(struct la8 *la8)
 
 	if (!la8) {
 		g_warning("la8: %s: la8 was NULL", __func__);
-		return SR_ERR;
+		return SR_ERR_ARG;
 	}
 
 	if (!la8->ftdic) {
 		g_warning("la8: %s: la8->ftdic was NULL", __func__);
-		return SR_ERR;
+		return SR_ERR_ARG;
 	}
 
 	if ((ret = ftdi_usb_close(la8->ftdic)) < 0) {
@@ -313,12 +313,12 @@ static int la8_close_usb_reset_sequencer(struct la8 *la8)
 
 	if (!la8) {
 		g_warning("la8: %s: la8 was NULL", __func__);
-		return SR_ERR;
+		return SR_ERR_ARG;
 	}
 
 	if (!la8->ftdic) {
 		g_warning("la8: %s: la8->ftdic was NULL", __func__);
-		return SR_ERR;
+		return SR_ERR_ARG;
 	}
 
 	if (la8->ftdic->usb_dev) {
@@ -366,12 +366,12 @@ static int la8_reset(struct la8 *la8)
 
 	if (!la8) {
 		g_warning("la8: %s: la8 was NULL", __func__);
-		return SR_ERR;
+		return SR_ERR_ARG;
 	}
 
 	if (!la8->ftdic) {
 		g_warning("la8: %s: la8->ftdic was NULL", __func__);
-		return SR_ERR;
+		return SR_ERR_ARG;
 	}
 
 	g_debug("la8: resetting the device");
@@ -505,12 +505,12 @@ static int hw_opendev(int device_index)
 
 	if (!(sdi = sr_get_device_instance(device_instances, device_index))) {
 		g_warning("la8: %s: sdi was NULL", __func__);
-		return SR_ERR;
+		return SR_ERR; /* TODO: SR_ERR_ARG? */
 	}
 
 	if (!(la8 = sdi->priv)) {
 		g_warning("la8: %s: sdi->priv was NULL", __func__);
-		return SR_ERR;
+		return SR_ERR; /* TODO: SR_ERR_ARG? */
 	}
 
 	g_debug("la8: opening device");
@@ -561,12 +561,12 @@ static int set_samplerate(struct sr_device_instance *sdi, uint64_t samplerate)
 
 	if (!sdi) {
 		g_warning("la8: %s: sdi was NULL", __func__);
-		return SR_ERR;
+		return SR_ERR_ARG;
 	}
 
 	if (!(la8 = sdi->priv)) {
 		g_warning("la8: %s: sdi->priv was NULL", __func__);
-		return SR_ERR;
+		return SR_ERR_ARG;
 	}
 
 	g_debug("la8: setting samplerate");
@@ -711,12 +711,12 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 
 	if (!(sdi = sr_get_device_instance(device_instances, device_index))) {
 		g_warning("la8: %s: sdi was NULL", __func__);
-		return SR_ERR;
+		return SR_ERR; /* TODO: SR_ERR_ARG? */
 	}
 
 	if (!(la8 = sdi->priv)) {
 		g_warning("la8: %s: sdi->priv was NULL", __func__);
-		return SR_ERR;
+		return SR_ERR; /* TODO: SR_ERR_ARG? */
 	}
 
 	switch (capability) {
@@ -770,12 +770,12 @@ static int la8_read_block(struct la8 *la8)
 
 	if (!la8) {
 		g_warning("la8: %s: la8 was NULL", __func__);
-		return SR_ERR;
+		return SR_ERR_ARG;
 	}
 
 	if (!la8->ftdic) {
 		g_warning("la8: %s: la8->ftdic was NULL", __func__);
-		return SR_ERR;
+		return SR_ERR_ARG;
 	}
 
 	// g_debug("la8: %s: reading block %d", __func__, la8->block_counter);
@@ -879,17 +879,17 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 
 	if (!(sdi = sr_get_device_instance(device_instances, device_index))) {
 		g_warning("la8: %s: sdi was NULL", __func__);
-		return SR_ERR;
+		return SR_ERR; /* TODO: SR_ERR_ARG? */
 	}
 
 	if (!(la8 = sdi->priv)) {
 		g_warning("la8: %s: sdi->priv was NULL", __func__);
-		return SR_ERR;
+		return SR_ERR; /* TODO: SR_ERR_ARG? */
 	}
 
 	if (!la8->ftdic) {
 		g_warning("la8: %s: la8->ftdic was NULL", __func__);
-		return SR_ERR;
+		return SR_ERR_ARG;
 	}
 
 	la8->divcount = samplerate_to_divcount(la8->cur_samplerate);
