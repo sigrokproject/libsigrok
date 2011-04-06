@@ -99,9 +99,9 @@ static int loadfile(struct sr_input *in, const char *filename)
 }
 
 struct sr_input_format input_binary = {
-	"binary",
-	"Raw binary",
-	format_match,
-	init,
-	loadfile,
+	.extension = "binary",
+	.description = "Raw binary",
+	.format_match = format_match,
+	.init = init,
+	.loadfile = loadfile,
 };

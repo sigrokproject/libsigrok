@@ -38,10 +38,10 @@ static int event(struct sr_output *o, int event_type, char **data_out,
 }
 
 struct sr_output_format output_foo = {
-	"foo",
-	"The foo format",
-	SR_DF_LOGIC,
-	init,
-	data,
-	event,
+	.extension = "foo",
+	.description = "The foo format",
+	.df_type = SR_DF_LOGIC,
+	.init = init,
+	.data = data,
+	.event = event,
 };

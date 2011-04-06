@@ -194,12 +194,12 @@ static int data(struct sr_output *o, const char *data_in, uint64_t length_in,
 }
 
 struct sr_output_format output_gnuplot = {
-	"gnuplot",
-	"Gnuplot",
-	SR_DF_LOGIC,
-	init,
-	data,
-	event,
+	.extension = "gnuplot",
+	.description = "Gnuplot",
+	.df_type = SR_DF_LOGIC,
+	.init = init,
+	.data = data,
+	.event = event,
 };
 
 /* Temporarily disabled. */
@@ -340,11 +340,11 @@ static int analog_data(struct sr_output *o, char *data_in, uint64_t length_in,
 }
 
 struct sr_output_format output_analog_gnuplot = {
-	"analog_gnuplot",
-	"Gnuplot analog",
-	SR_DF_ANALOG,
-	analog_init,
-	analog_data,
-	event,
+	.extension = "analog_gnuplot",
+	.description = "Gnuplot analog",
+	.df_type = SR_DF_ANALOG,
+	.init = analog_init,
+	.data = analog_data,
+	.event = event,
 };
 #endif

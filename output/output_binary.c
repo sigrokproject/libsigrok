@@ -43,10 +43,10 @@ static int data(struct sr_output *o, const char *data_in, uint64_t length_in,
 }
 
 struct sr_output_format output_binary = {
-	"binary",
-	"Raw binary",
-	SR_DF_LOGIC,
-	NULL,
-	data,
-	NULL,
+	.extension = "binary",
+	.description = "Raw binary",
+	.df_type = SR_DF_LOGIC,
+	.init = NULL,
+	.data = data,
+	.event = NULL,
 };

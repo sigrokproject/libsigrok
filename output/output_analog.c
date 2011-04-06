@@ -439,29 +439,29 @@ static int data_ascii(struct sr_output *o, const char *data_in,
 #endif
 
 struct sr_output_format output_analog_bits = {
-	"analog_bits",
-	"Bits (takes argument, default 64)",
-	SR_DF_ANALOG,
-	init_bits,
-	data_bits,
-	event,
+	.extension = "analog_bits",
+	.description = "Bits (takes argument, default 64)",
+	.df_type = SR_DF_ANALOG,
+	.init = init_bits,
+	.data = data_bits,
+	.event = event,
 };
 #if 0
 struct sr_output_format output_analog_hex = {
-	"analog_hex",
-	"Hexadecimal (takes argument, default 192)",
-	SR_DF_ANALOG,
-	init_hex,
-	data_hex,
-	event,
+	.extension = "analog_hex",
+	.description = "Hexadecimal (takes argument, default 192)",
+	.df_type = SR_DF_ANALOG,
+	.init = init_hex,
+	.data = data_hex,
+	.event = event,
 };
 
 struct sr_output_format output_analog_ascii = {
-	"analog_ascii",
-	"ASCII (takes argument, default 74)",
-	SR_DF_ANALOG,
-	init_ascii,
-	data_ascii,
-	event,
+	.extension = "analog_ascii",
+	.description = "ASCII (takes argument, default 74)",
+	.df_type = SR_DF_ANALOG,
+	.init = init_ascii,
+	.data = data_ascii,
+	.event = event,
 };
 #endif

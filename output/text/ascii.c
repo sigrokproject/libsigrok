@@ -114,10 +114,10 @@ int data_ascii(struct sr_output *o, const char *data_in, uint64_t length_in,
 }
 
 struct sr_output_format output_text_ascii = {
-	"ascii",
-	"ASCII (takes argument, default 74)",
-	SR_DF_LOGIC,
-	init_ascii,
-	data_ascii,
-	event,
+	.extension = "ascii",
+	.description = "ASCII (takes argument, default 74)",
+	.df_type = SR_DF_LOGIC,
+	.init = init_ascii,
+	.data = data_ascii,
+	.event = event,
 };

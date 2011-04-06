@@ -124,10 +124,10 @@ static int data(struct sr_output *o, const char *data_in, uint64_t length_in,
 }
 
 struct sr_output_format output_ols = {
-	"ols",
-	"OpenBench Logic Sniffer",
-	SR_DF_LOGIC,
-	init,
-	data,
-	event,
+	.extension = "ols",
+	.description = "OpenBench Logic Sniffer",
+	.df_type = SR_DF_LOGIC,
+	.init = init,
+	.data = data,
+	.event = event,
 };

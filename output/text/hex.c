@@ -90,10 +90,10 @@ int data_hex(struct sr_output *o, const char *data_in, uint64_t length_in,
 }
 
 struct sr_output_format output_text_hex = {
-	"hex",
-	"Hexadecimal (takes argument, default 192)",
-	SR_DF_LOGIC,
-	init_hex,
-	data_hex,
-	event,
+	.extension = "hex",
+	.description = "Hexadecimal (takes argument, default 192)",
+	.df_type = SR_DF_LOGIC,
+	.init = init_hex,
+	.data = data_hex,
+	.event = event,
 };
