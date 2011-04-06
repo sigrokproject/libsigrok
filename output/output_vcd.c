@@ -213,7 +213,7 @@ static int data(struct sr_output *o, const char *data_in, uint64_t length_in,
 }
 
 struct sr_output_format output_vcd = {
-	.extension = "vcd",
+	.id = "vcd",
 	.description = "Value Change Dump (VCD)",
 	.df_type = SR_DF_LOGIC,
 	.init = init,

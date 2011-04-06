@@ -90,7 +90,7 @@ int data_hex(struct sr_output *o, const char *data_in, uint64_t length_in,
 }
 
 struct sr_output_format output_text_hex = {
-	.extension = "hex",
+	.id = "hex",
 	.description = "Hexadecimal (takes argument, default 192)",
 	.df_type = SR_DF_LOGIC,
 	.init = init_hex,

@@ -135,7 +135,7 @@ struct sr_input {
 };
 
 struct sr_input_format {
-	char *extension;
+	char *id;
 	char *description;
 	int (*format_match) (const char *filename);
 	int (*init) (struct sr_input *in);
@@ -150,7 +150,7 @@ struct sr_output {
 };
 
 struct sr_output_format {
-	char *extension;
+	char *id;
 	char *description;
 	int df_type;
 	int (*init) (struct sr_output *o);

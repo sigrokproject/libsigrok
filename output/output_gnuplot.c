@@ -194,7 +194,7 @@ static int data(struct sr_output *o, const char *data_in, uint64_t length_in,
 }
 
 struct sr_output_format output_gnuplot = {
-	.extension = "gnuplot",
+	.id = "gnuplot",
 	.description = "Gnuplot",
 	.df_type = SR_DF_LOGIC,
 	.init = init,
@@ -340,7 +340,7 @@ static int analog_data(struct sr_output *o, char *data_in, uint64_t length_in,
 }
 
 struct sr_output_format output_analog_gnuplot = {
-	.extension = "analog_gnuplot",
+	.id = "analog_gnuplot",
 	.description = "Gnuplot analog",
 	.df_type = SR_DF_ANALOG,
 	.init = analog_init,

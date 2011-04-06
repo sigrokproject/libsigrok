@@ -38,7 +38,7 @@ static int event(struct sr_output *o, int event_type, char **data_out,
 }
 
 struct sr_output_format output_foo = {
-	.extension = "foo",
+	.id = "foo",
 	.description = "The foo format",
 	.df_type = SR_DF_LOGIC,
 	.init = init,
