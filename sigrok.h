@@ -53,7 +53,8 @@ extern "C" {
 #define SR_OK                 0 /* No error */
 #define SR_ERR               -1 /* Generic/unspecified error */
 #define SR_ERR_MALLOC        -2 /* Malloc/calloc/realloc error */
-#define SR_ERR_SAMPLERATE    -3 /* Incorrect samplerate */
+#define SR_ERR_ARG           -3 /* Function argument error */
+#define SR_ERR_SAMPLERATE    -4 /* Incorrect samplerate */
 
 #define SR_MAX_NUM_PROBES 	64 /* Limited by uint64_t. */
 #define SR_MAX_PROBENAME_LEN	32
