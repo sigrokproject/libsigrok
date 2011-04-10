@@ -26,6 +26,7 @@ extern struct sr_output_format output_binary;
 extern struct sr_output_format output_vcd;
 extern struct sr_output_format output_ols;
 extern struct sr_output_format output_gnuplot;
+extern struct sr_output_format output_chronovu_la8;
 /* extern struct sr_output_format output_analog_bits; */
 /* extern struct sr_output_format output_analog_gnuplot; */
 
@@ -37,6 +38,7 @@ static struct sr_output_format *output_module_list[] = {
 	&output_vcd,
 	&output_ols,
 	&output_gnuplot,
+	&output_chronovu_la8,
 	/* &output_analog_bits, */
 	/* &output_analog_gnuplot, */
 	NULL,
