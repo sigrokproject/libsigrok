@@ -60,10 +60,30 @@ static int init(struct sr_output *o)
 	char wbuf[1000], comment[128];
 	time_t t;
 
-	if (!(ctx = calloc(1, sizeof(struct context))))
+	if (!o) {
+		g_warning("gnuplot out: %s: o was NULL", __func__);
+		return SR_ERR_ARG;
+	}
+
+	if (!o->device) {
+		g_warning("gnuplot out: %s: o->device was NULL", __func__);
+		return SR_ERR_ARG;
+	}
+
+	if (!o->device->plugin) {
+		g_warning("gnuplot out: %s: o->device->plugin was NULL",
+			  __func__);
+		return SR_ERR_ARG;
+	}
+
+	if (!(ctx = calloc(1, sizeof(struct context)))) {
+		g_warning("gnuplot out: %s: ctx calloc failed", __func__);
 		return SR_ERR_MALLOC;
+	}
 
 	if (!(ctx->header = calloc(1, MAX_HEADER_LEN + 1))) {
+		g_warning("gnuplot out: %s: ctx->header calloc failed",
+			  __func__);
 		free(ctx);
 		return SR_ERR_MALLOC;
 	}
@@ -71,7 +91,7 @@ static int init(struct sr_output *o)
 	o->internal = ctx;
 	ctx->num_enabled_probes = 0;
 	for (l = o->device->probes; l; l = l->next) {
-		probe = l->data;
+		probe = l->data; /* TODO: Error checks. */
 		if (!probe->enabled)
 			continue;
 		ctx->probelist[ctx->num_enabled_probes++] = probe->name;
@@ -81,10 +101,12 @@ static int init(struct sr_output *o)
 
 	num_probes = g_slist_length(o->device->probes);
 	comment[0] = '\0';
-	if (o->device->plugin && sr_device_has_hwcap(o->device, SR_HWCAP_SAMPLERATE)) {
+	if (sr_device_has_hwcap(o->device, SR_HWCAP_SAMPLERATE)) {
 		samplerate = *((uint64_t *) o->device->plugin->get_device_info(
 				o->device->plugin_index, SR_DI_CUR_SAMPLERATE));
 		if (!(frequency_s = sr_samplerate_string(samplerate))) {
+			g_warning("gnuplot out: %s: sr_samplerate_string "
+				  "failed", __func__);
 			free(ctx->header);
 			free(ctx);
 			return SR_ERR;
@@ -102,10 +124,12 @@ static int init(struct sr_output *o)
 	}
 
 	if (!(frequency_s = sr_period_string(samplerate))) {
+		g_warning("gnuplot out: %s: sr_period_string failed", __func__);
 		free(ctx->header);
 		free(ctx);
 		return SR_ERR;
 	}
+
 	t = time(NULL);
 	b = snprintf(ctx->header, MAX_HEADER_LEN, gnuplot_header,
 		     PACKAGE_STRING, ctime(&t), comment, frequency_s,
@@ -113,6 +137,7 @@ static int init(struct sr_output *o)
 	free(frequency_s);
 
 	if (b < 0) {
+		g_warning("gnuplot out: %s: sprintf failed", __func__);
 		free(ctx->header);
 		free(ctx);
 		return SR_ERR;
@@ -126,14 +151,34 @@ static int event(struct sr_output *o, int event_type, char **data_out,
 {
 	struct context *ctx;
 
+	if (!o) {
+		g_warning("gnuplot out: %s: o was NULL", __func__);
+		return SR_ERR_ARG;
+	}
+
+	if (!data_out) {
+		g_warning("gnuplot out: %s: data_out was NULL", __func__);
+		return SR_ERR_ARG;
+	}
+
+	if (!length_out) {
+		g_warning("gnuplot out: %s: length_out was NULL", __func__);
+		return SR_ERR_ARG;
+	}
+
 	ctx = o->internal;
+
 	switch (event_type) {
 	case SR_DF_TRIGGER:
-		/* TODO: can a trigger mark be in a gnuplot data file? */
+		/* TODO: Can a trigger mark be in a gnuplot data file? */
 		break;
 	case SR_DF_END:
 		free(o->internal);
 		o->internal = NULL;
+		break;
+	default:
+		g_warning("gnuplot out: %s: unsupported event type: %d",
+		          __func__, event_type);
 		break;
 	}
 
@@ -152,14 +197,41 @@ static int data(struct sr_output *o, const char *data_in, uint64_t length_in,
 	static uint64_t samplecount = 0;
 	char *outbuf, *c;
 
+	if (!o) {
+		g_warning("gnuplot out: %s: o was NULL", __func__);
+		return SR_ERR_ARG;
+	}
+
+	if (!o->internal) {
+		g_warning("gnuplot out: %s: o->internal was NULL", __func__);
+		return SR_ERR_ARG;
+	}
+
+	if (!data_in) {
+		g_warning("gnuplot out: %s: data_in was NULL", __func__);
+		return SR_ERR_ARG;
+	}
+
+	if (!data_out) {
+		g_warning("gnuplot out: %s: data_out was NULL", __func__);
+		return SR_ERR_ARG;
+	}
+
+	if (!length_out) {
+		g_warning("gnuplot out: %s: length_out was NULL", __func__);
+		return SR_ERR_ARG;
+	}
+
 	ctx = o->internal;
 	max_linelen = 16 + ctx->num_enabled_probes * 2;
 	outsize = length_in / ctx->unitsize * max_linelen;
 	if (ctx->header)
 		outsize += strlen(ctx->header);
 
-	if (!(outbuf = calloc(1, outsize)))
+	if (!(outbuf = calloc(1, outsize))) {
+		g_warning("gnuplot out: %s: outbuf calloc failed", __func__);
 		return SR_ERR_MALLOC;
+	}
 
 	outbuf[0] = '\0';
 	if (ctx->header) {
