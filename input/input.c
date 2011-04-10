@@ -19,9 +19,11 @@
 
 #include <sigrok.h>
 
+extern struct sr_input_format input_chronovu_la8;
 extern struct sr_input_format input_binary;
 
 static struct sr_input_format *input_module_list[] = {
+	&input_chronovu_la8,
 	/* This one has to be last, because it will take any input. */
 	&input_binary,
 	NULL,

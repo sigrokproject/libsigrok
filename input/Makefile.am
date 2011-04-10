@@ -22,6 +22,7 @@ noinst_LTLIBRARIES = libsigrokinput.la
 
 libsigrokinput_la_SOURCES = \
 	input_binary.c \
+	input_chronovu_la8.c \
 	input.c
 
 libsigrokinput_la_CFLAGS = \
