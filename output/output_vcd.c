@@ -23,6 +23,7 @@
 #include <string.h>
 #include <glib.h>
 #include <sigrok.h>
+#include <sigrok-internal.h>
 #include "config.h"
 
 struct context {
@@ -61,7 +62,7 @@ static int init(struct sr_output *o)
 		ctx->probelist[ctx->num_enabled_probes++] = probe->name;
 	}
 	if (ctx->num_enabled_probes > 94) {
-		g_warning("VCD only supports 94 probes.");
+		sr_warn("VCD only supports 94 probes.");
 		return SR_ERR;
 	}
 

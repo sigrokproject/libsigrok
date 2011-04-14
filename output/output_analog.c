@@ -274,7 +274,7 @@ static int data_bits(struct sr_output *o, const char *data_in,
 			}
 		}
 	} else {
-		g_message("short buffer (length_in=%" PRIu64 ")", length_in);
+		sr_info("short buffer (length_in=%" PRIu64 ")", length_in);
 	}
 
 	*data_out = outbuf;
@@ -428,7 +428,7 @@ static int data_ascii(struct sr_output *o, const char *data_in,
 			ctx->prevsample = sample;
 		}
 	} else {
-		g_message("short buffer (length_in=%" PRIu64 ")", length_in);
+		sr_info("short buffer (length_in=%" PRIu64 ")", length_in);
 	}
 
 	*data_out = outbuf;

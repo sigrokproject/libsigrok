@@ -24,6 +24,7 @@
 #include <sys/time.h>
 #include <zip.h>
 #include <sigrok.h>
+#include <sigrok-internal.h>
 
 /* size of payloads sent across the session bus */
 #define CHUNKSIZE 4096
@@ -72,7 +73,7 @@ static int feed_chunk(int fd, int revents, void *user_data)
 	fd = fd;
 	revents = revents;
 
-	g_debug("session_driver: feed chunk");
+	sr_dbg("session_driver: feed chunk");
 
 	got_data = FALSE;
 	for (l = device_instances; l; l = l->next) {
@@ -225,24 +226,24 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	if (!(vdevice = get_vdevice_by_index(device_index)))
 		return SR_ERR;
 
-	g_message("session_driver: opening archive %s file %s",
-			sessionfile, vdevice->capturefile);
+	sr_info("session_driver: opening archive %s file %s", sessionfile,
+		vdevice->capturefile);
 
 	if (!(vdevice->archive = zip_open(sessionfile, 0, &err))) {
-		g_warning("Failed to open session file '%s': zip error %d\n",
-				sessionfile, err);
+		sr_warn("Failed to open session file '%s': zip error %d\n",
+			sessionfile, err);
 		return SR_ERR;
 	}
 
 	if (zip_stat(vdevice->archive, vdevice->capturefile, 0, &zs) == -1) {
-		g_warning("Failed to check capture file '%s' in session file '%s'.",
-				vdevice->capturefile, sessionfile);
+		sr_warn("Failed to check capture file '%s' in session file '%s'.",
+			vdevice->capturefile, sessionfile);
 		return SR_ERR;
 	}
 
 	if (!(vdevice->capfile = zip_fopen(vdevice->archive, vdevice->capturefile, 0))) {
-		g_warning("Failed to open capture file '%s' in session file '%s'.",
-				vdevice->capturefile, sessionfile);
+		sr_warn("Failed to open capture file '%s' in session file '%s'.",
+			vdevice->capturefile, sessionfile);
 		return SR_ERR;
 	}
 

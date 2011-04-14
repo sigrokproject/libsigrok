@@ -24,6 +24,7 @@
 #include <libusb.h>
 #endif
 #include <sigrok.h>
+#include <sigrok-internal.h>
 
 #ifdef HAVE_LIBUSB_1_0
 
@@ -34,7 +35,7 @@ int opendev2(int device_index, struct sr_device_instance **sdi,
 	int err;
 
 	if ((err = libusb_get_device_descriptor(dev, des))) {
-		g_warning("failed to get device descriptor: %d", err);
+		sr_warn("failed to get device descriptor: %d", err);
 		return -1;
 	}
 
@@ -54,11 +55,11 @@ int opendev2(int device_index, struct sr_device_instance **sdi,
 	if (!(err = libusb_open(dev, &((*sdi)->usb->devhdl)))) {
 		(*sdi)->usb->address = libusb_get_device_address(dev);
 		(*sdi)->status = SR_ST_ACTIVE;
-		g_message("opened device %d on %d.%d interface %d",
-			  (*sdi)->index, (*sdi)->usb->bus,
-			  (*sdi)->usb->address, interface);
+		sr_info("opened device %d on %d.%d interface %d",
+			(*sdi)->index, (*sdi)->usb->bus,
+			(*sdi)->usb->address, interface);
 	} else {
-		g_warning("failed to open device: %d", err);
+		sr_warn("failed to open device: %d", err);
 		*sdi = NULL;
 	}
 
@@ -72,7 +73,7 @@ int opendev3(struct sr_device_instance **sdi, libusb_device *dev,
 	int err;
 
 	if ((err = libusb_get_device_descriptor(dev, des))) {
-		g_warning("failed to get device descriptor: %d", err);
+		sr_warn("failed to get device descriptor: %d", err);
 		return -1;
 	}
 
@@ -84,11 +85,11 @@ int opendev3(struct sr_device_instance **sdi, libusb_device *dev,
 		/* Found it. */
 		if (!(err = libusb_open(dev, &((*sdi)->usb->devhdl)))) {
 			(*sdi)->status = SR_ST_ACTIVE;
-			g_message("opened device %d on %d.%d interface %d",
-				  (*sdi)->index, (*sdi)->usb->bus,
-				  (*sdi)->usb->address, interface);
+			sr_info("opened device %d on %d.%d interface %d",
+				(*sdi)->index, (*sdi)->usb->bus,
+				(*sdi)->usb->address, interface);
 		} else {
-			g_warning("failed to open device: %d", err);
+			sr_warn("failed to open device: %d", err);
 			*sdi = NULL;
 		}
 	}

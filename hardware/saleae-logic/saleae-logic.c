@@ -233,8 +233,8 @@ static void close_device(struct sr_device_instance *sdi)
 	if (sdi->usb->devhdl == NULL)
 		return;
 
-	g_message("saleae: closing device %d on %d.%d interface %d", sdi->index,
-		  sdi->usb->bus, sdi->usb->address, USB_INTERFACE);
+	sr_info("saleae: closing device %d on %d.%d interface %d", sdi->index,
+		sdi->usb->bus, sdi->usb->address, USB_INTERFACE);
 	libusb_release_interface(sdi->usb->devhdl, USB_INTERFACE);
 	libusb_close(sdi->usb->devhdl);
 	sdi->usb->devhdl = NULL;
@@ -302,7 +302,7 @@ static int hw_init(const char *deviceinfo)
 	deviceinfo = deviceinfo;
 
 	if (libusb_init(&usb_context) != 0) {
-		g_warning("Failed to initialize USB.");
+		sr_warn("Failed to initialize USB.");
 		return 0;
 	}
 
@@ -312,7 +312,7 @@ static int hw_init(const char *deviceinfo)
 	for (i = 0; devlist[i]; i++) {
 		err = libusb_get_device_descriptor(devlist[i], &des);
 		if (err != 0) {
-			g_warning("failed to get device descriptor: %d", err);
+			sr_warn("failed to get device descriptor: %d", err);
 			continue;
 		}
 
@@ -332,8 +332,8 @@ static int hw_init(const char *deviceinfo)
 			 * or uploading the firmware again.
 			 */
 			if (upload_firmware(devlist[i]) > 0)
-				g_warning("firmware upload failed for "
-					  "device %d", devcnt);
+				sr_warn("firmware upload failed for device %d",
+					devcnt);
 
 			sdi->usb = sr_usb_device_instance_new
 				(libusb_get_bus_number(devlist[i]), 0, NULL);
@@ -366,21 +366,21 @@ static int hw_opendev(int device_index)
 		timediff = cur - upd;
 		if (timediff < FIRMWARE_RENUM_DELAY) {
 			timediff = FIRMWARE_RENUM_DELAY - timediff;
-			g_message("saleae: waiting %d ms for device to reset",
-				  timediff);
+			sr_info("saleae: waiting %d ms for device to reset",
+				timediff);
 			g_usleep(timediff * 1000);
 			firmware_updated.tv_sec = 0;
 		}
 	}
 
 	if (!(sdi = sl_open_device(device_index))) {
-		g_warning("unable to open device");
+		sr_warn("unable to open device");
 		return SR_ERR;
 	}
 
 	err = libusb_claim_interface(sdi->usb->devhdl, USB_INTERFACE);
 	if (err != 0) {
-		g_warning("Unable to claim interface: %d", err);
+		sr_warn("Unable to claim interface: %d", err);
 		return SR_ERR;
 	}
 
@@ -482,14 +482,14 @@ static int set_configuration_samplerate(struct sr_device_instance *sdi,
 
 	divider = (uint8_t) (48 / (samplerate / 1000000.0)) - 1;
 
-	g_message("saleae: setting samplerate to %" PRIu64 " Hz (divider %d)",
-		  samplerate, divider);
+	sr_info("saleae: setting samplerate to %" PRIu64 " Hz (divider %d)",
+		samplerate, divider);
 	buf[0] = 0x01;
 	buf[1] = divider;
 	ret = libusb_bulk_transfer(sdi->usb->devhdl, 1 | LIBUSB_ENDPOINT_OUT,
 				   buf, 2, &result, 500);
 	if (ret != 0) {
-		g_warning("failed to set samplerate: %d", ret);
+		sr_warn("failed to set samplerate: %d", ret);
 		return SR_ERR;
 	}
 	cur_samplerate = samplerate;
@@ -560,8 +560,8 @@ void receive_transfer(struct libusb_transfer *transfer)
 		return;
 	}
 
-	g_message("saleae: receive_transfer(): status %d received %d bytes",
-		  transfer->status, transfer->actual_length);
+	sr_info("saleae: receive_transfer(): status %d received %d bytes",
+		transfer->status, transfer->actual_length);
 
 	/* Save incoming transfer before reusing the transfer struct. */
 	cur_buf = transfer->buffer;
@@ -574,7 +574,7 @@ void receive_transfer(struct libusb_transfer *transfer)
 	transfer->length = 4096;
 	if (libusb_submit_transfer(transfer) != 0) {
 		/* TODO: Stop session? */
-		g_warning("eek");
+		sr_warn("eek");
 	}
 
 	if (cur_buflen == 0) {

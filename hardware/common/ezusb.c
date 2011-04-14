@@ -21,6 +21,8 @@
  * Helper functions for the Cypress EZ-USB / FX2 series chips.
  */
 
+#include <sigrok.h>
+#include <sigrok-internal.h>
 #include <libusb.h>
 #include <glib.h>
 #include <glib/gstdio.h>
@@ -34,12 +36,12 @@ int ezusb_reset(struct libusb_device_handle *hdl, int set_clear)
 	int err;
 	unsigned char buf[1];
 
-	g_message("setting CPU reset mode %s...", set_clear ? "on" : "off");
+	sr_info("setting CPU reset mode %s...", set_clear ? "on" : "off");
 	buf[0] = set_clear ? 1 : 0;
 	err = libusb_control_transfer(hdl, LIBUSB_REQUEST_TYPE_VENDOR, 0xa0,
 				      0xe600, 0x0000, buf, 1, 100);
 	if (err < 0)
-		g_warning("Unable to send control request: %d", err);
+		sr_warn("Unable to send control request: %d", err);
 
 	return err;
 }
@@ -50,10 +52,10 @@ int ezusb_install_firmware(libusb_device_handle *hdl, const char *filename)
 	int offset, chunksize, err, result;
 	unsigned char buf[4096];
 
-	g_message("Uploading firmware at %s", filename);
+	sr_info("Uploading firmware at %s", filename);
 	if ((fw = g_fopen(filename, "rb")) == NULL) {
-		g_warning("Unable to open firmware file %s for reading: %s",
-			  filename, strerror(errno));
+		sr_warn("Unable to open firmware file %s for reading: %s",
+			filename, strerror(errno));
 		return 1;
 	}
 
@@ -66,15 +68,15 @@ int ezusb_install_firmware(libusb_device_handle *hdl, const char *filename)
 					      LIBUSB_ENDPOINT_OUT, 0xa0, offset,
 					      0x0000, buf, chunksize, 100);
 		if (err < 0) {
-			g_warning("Unable to send firmware to device: %d", err);
+			sr_warn("Unable to send firmware to device: %d", err);
 			result = 1;
 			break;
 		}
-		g_message("Uploaded %d bytes", chunksize);
+		sr_info("Uploaded %d bytes", chunksize);
 		offset += chunksize;
 	}
 	fclose(fw);
-	g_message("Firmware upload done");
+	sr_info("Firmware upload done");
 
 	return result;
 }
@@ -85,18 +87,18 @@ int ezusb_upload_firmware(libusb_device *dev, int configuration,
 	struct libusb_device_handle *hdl;
 	int err;
 
-	g_message("uploading firmware to device on %d.%d",
+	sr_info("uploading firmware to device on %d.%d",
 		  libusb_get_bus_number(dev), libusb_get_device_address(dev));
 
 	err = libusb_open(dev, &hdl);
 	if (err != 0) {
-		g_warning("failed to open device: %d", err);
+		sr_warn("failed to open device: %d", err);
 		return 1;
 	}
 
 	err = libusb_set_configuration(hdl, configuration);
 	if (err != 0) {
-		g_warning("Unable to set configuration: %d", err);
+		sr_warn("Unable to set configuration: %d", err);
 		return 1;
 	}
 

@@ -72,7 +72,7 @@ static int send_shortcommand(int fd, uint8_t command)
 {
 	char buf[1];
 
-	g_debug("ols: sending cmd 0x%.2x", command);
+	sr_dbg("ols: sending cmd 0x%.2x", command);
 	buf[0] = command;
 	if (serial_write(fd, buf, 1) != 1)
 		return SR_ERR;
@@ -84,7 +84,7 @@ static int send_longcommand(int fd, uint8_t command, uint32_t data)
 {
 	char buf[5];
 
-	g_debug("ols: sending cmd 0x%.2x data 0x%.8x", command, data);
+	sr_dbg("ols: sending cmd 0x%.2x data 0x%.8x", command, data);
 	buf[0] = command;
 	buf[1] = (data & 0xff000000) >> 24;
 	buf[2] = (data & 0xff0000) >> 16;
@@ -210,7 +210,8 @@ static struct sr_device_instance *get_metadata(int fd)
 			tmp_str = g_string_new("");
 			while (serial_read(fd, &tmp_c, 1) == 1 && tmp_c != '\0')
 				g_string_append_c(tmp_str, tmp_c);
-			g_debug("ols: got metadata key 0x%.2x value '%s'", key, tmp_str->str);
+			sr_dbg("ols: got metadata key 0x%.2x value '%s'",
+			       key, tmp_str->str);
 			switch (token) {
 			case 0x01:
 				/* Device name */
@@ -231,7 +232,8 @@ static struct sr_device_instance *get_metadata(int fd)
 				g_string_append(version, tmp_str->str);
 				break;
 			default:
-				g_message("ols: unknown token 0x%.2x: '%s'", token, tmp_str->str);
+				sr_info("ols: unknown token 0x%.2x: '%s'",
+					token, tmp_str->str);
 				break;
 			}
 			g_string_free(tmp_str, TRUE);
@@ -241,7 +243,8 @@ static struct sr_device_instance *get_metadata(int fd)
 			if (serial_read(fd, &tmp_int, 4) != 4)
 				break;
 			tmp_int = reverse32(tmp_int);
-			g_debug("ols: got metadata key 0x%.2x value 0x%.8x", key, tmp_int);
+			sr_dbg("ols: got metadata key 0x%.2x value 0x%.8x",
+			       key, tmp_int);
 			switch (token) {
 			case 0x00:
 				/* Number of usable probes */
@@ -264,7 +267,8 @@ static struct sr_device_instance *get_metadata(int fd)
 				ols->protocol_version = tmp_int;
 				break;
 			default:
-				g_message("ols: unknown token 0x%.2x: 0x%.8x", token, tmp_int);
+				sr_info("ols: unknown token 0x%.2x: 0x%.8x",
+					token, tmp_int);
 				break;
 			}
 			break;
@@ -272,7 +276,8 @@ static struct sr_device_instance *get_metadata(int fd)
 			/* 8-bit unsigned integer */
 			if (serial_read(fd, &tmp_c, 1) != 1)
 				break;
-			g_debug("ols: got metadata key 0x%.2x value 0x%.2x", key, tmp_c);
+			sr_dbg("ols: got metadata key 0x%.2x value 0x%.2x",
+			       key, tmp_c);
 			switch (token) {
 			case 0x00:
 				/* Number of usable probes */
@@ -283,7 +288,8 @@ static struct sr_device_instance *get_metadata(int fd)
 				ols->protocol_version = tmp_c;
 				break;
 			default:
-				g_message("ols: unknown token 0x%.2x: 0x%.2x", token, tmp_c);
+				sr_info("ols: unknown token 0x%.2x: 0x%.2x",
+					token, tmp_c);
 				break;
 			}
 			break;
@@ -333,7 +339,7 @@ static int hw_init(const char *deviceinfo)
 		 * we do all the sending first, then wait for all of them to
 		 * respond with g_poll().
 		 */
-		g_message("ols: probing %s...", (char *)l->data);
+		sr_info("ols: probing %s...", (char *)l->data);
 		fd = serial_open(l->data, O_RDWR | O_NONBLOCK);
 		if (fd != -1) {
 			serial_params[devcnt] = serial_backup_params(fd);
@@ -563,7 +569,7 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 		if (*tmp_u64 < MIN_NUM_SAMPLES)
 			return SR_ERR;
 		ols->limit_samples = *tmp_u64;
-		g_message("ols: sample limit %" PRIu64, ols->limit_samples);
+		sr_info("ols: sample limit %" PRIu64, ols->limit_samples);
 		ret = SR_OK;
 		break;
 	case SR_HWCAP_CAPTURE_RATIO:
@@ -630,10 +636,11 @@ static int receive_data(int fd, int revents, void *user_data)
 			return FALSE;
 
 		ols->sample[ols->num_bytes++] = byte;
-		g_debug("ols: received byte 0x%.2x", byte);
+		sr_dbg("ols: received byte 0x%.2x", byte);
 		if (ols->num_bytes == num_channels) {
 			/* Got a full sample. */
-			g_debug("ols: received sample 0x%.*x", ols->num_bytes * 2, (int) *ols->sample);
+			sr_dbg("ols: received sample 0x%.*x",
+			       ols->num_bytes * 2, (int) *ols->sample);
 			if (ols->flag_reg & FLAG_RLE) {
 				/*
 				 * In RLE mode -1 should never come in as a
@@ -689,7 +696,7 @@ static int receive_data(int fd, int revents, void *user_data)
 					}
 				}
 				memcpy(ols->sample, ols->tmp_sample, 4);
-				g_debug("ols: full sample 0x%.8x", (int) *ols->sample);
+				sr_dbg("ols: full sample 0x%.8x", (int) *ols->sample);
 			}
 
 			/* the OLS sends its sample buffer backwards.
@@ -833,9 +840,9 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 		delaycount = readcount;
 	}
 
-	g_message("ols: setting samplerate to %" PRIu64 " Hz (divider %u, demux %s)",
-			ols->cur_samplerate, ols->cur_samplerate_divider,
-			ols->flag_reg & FLAG_DEMUX ? "on" : "off");
+	sr_info("ols: setting samplerate to %" PRIu64 " Hz (divider %u, "
+		"demux %s)", ols->cur_samplerate, ols->cur_samplerate_divider,
+		ols->flag_reg & FLAG_DEMUX ? "on" : "off");
 	if (send_longcommand(sdi->serial->fd, CMD_SET_DIVIDER,
 			reverse32(ols->cur_samplerate_divider)) != SR_OK)
 		return SR_ERR;

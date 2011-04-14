@@ -22,6 +22,7 @@
 #include <string.h>
 #include <glib.h>
 #include <sigrok.h>
+#include <sigrok-internal.h>
 #include "text.h"
 
 int init_ascii(struct sr_output *o)
@@ -104,7 +105,7 @@ int data_ascii(struct sr_output *o, const char *data_in, uint64_t length_in,
 			ctx->prevsample = sample;
 		}
 	} else {
-		g_message("short buffer (length_in=%" PRIu64 ")", length_in);
+		sr_info("short buffer (length_in=%" PRIu64 ")", length_in);
 	}
 
 	*data_out = outbuf;

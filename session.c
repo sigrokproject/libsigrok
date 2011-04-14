@@ -24,6 +24,7 @@
 #include <string.h>
 #include <glib.h>
 #include <sigrok.h>
+#include <sigrok-internal.h>
 
 /* demo.c */
 extern GIOChannel channels[2];
@@ -158,7 +159,7 @@ int sr_session_start(void)
 	GSList *l;
 	int ret;
 
-	g_message("session: starting");
+	sr_info("session: starting");
 	for (l = session->devices; l; l = l->next) {
 		device = l->data;
 		if ((ret = device->plugin->start_acquisition(
@@ -172,7 +173,7 @@ int sr_session_start(void)
 void sr_session_run(void)
 {
 
-	g_message("session: running");
+	sr_info("session: running");
 	session->running = TRUE;
 
 	/* do we have real sources? */
@@ -189,7 +190,7 @@ void sr_session_run(void)
 void sr_session_halt(void)
 {
 
-	g_message("session: halting");
+	sr_info("session: halting");
 	session->running = FALSE;
 
 }
@@ -199,7 +200,7 @@ void sr_session_stop(void)
 	struct sr_device *device;
 	GSList *l;
 
-	g_message("session: stopping");
+	sr_info("session: stopping");
 	session->running = FALSE;
 	for (l = session->devices; l; l = l->next) {
 		device = l->data;

@@ -25,6 +25,7 @@
 #include <string.h>
 #include <glib.h>
 #include <sigrok.h>
+#include <sigrok-internal.h>
 
 /* The list of loaded plugins lives here. */
 GSList *plugins;
@@ -137,7 +138,7 @@ struct sr_device_instance *sr_get_device_instance(GSList *device_instances,
 		if (sdi->index == device_index)
 			return sdi;
 	}
-	g_warning("could not find device index %d instance", device_index);
+	sr_warn("could not find device index %d instance", device_index);
 
 	return NULL;
 }

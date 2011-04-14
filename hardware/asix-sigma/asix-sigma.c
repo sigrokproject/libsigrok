@@ -30,6 +30,7 @@
 #include <string.h>
 #include <zlib.h>
 #include <sigrok.h>
+#include <sigrok-internal.h>
 #include "asix-sigma.h"
 
 #define USB_VENDOR			0xa600
@@ -105,8 +106,8 @@ static int sigma_read(void *buf, size_t size, struct sigma *sigma)
 
 	ret = ftdi_read_data(&sigma->ftdic, (unsigned char *)buf, size);
 	if (ret < 0) {
-		g_warning("ftdi_read_data failed: %s",
-			  ftdi_get_error_string(&sigma->ftdic));
+		sr_warn("ftdi_read_data failed: %s",
+			ftdi_get_error_string(&sigma->ftdic));
 	}
 
 	return ret;
@@ -118,10 +119,10 @@ static int sigma_write(void *buf, size_t size, struct sigma *sigma)
 
 	ret = ftdi_write_data(&sigma->ftdic, (unsigned char *)buf, size);
 	if (ret < 0) {
-		g_warning("ftdi_write_data failed: %s",
-			  ftdi_get_error_string(&sigma->ftdic));
+		sr_warn("ftdi_write_data failed: %s",
+			ftdi_get_error_string(&sigma->ftdic));
 	} else if ((size_t) ret != size) {
-		g_warning("ftdi_write_data did not complete write\n");
+		sr_warn("ftdi_write_data did not complete write\n");
 	}
 
 	return ret;
@@ -169,7 +170,7 @@ static uint8_t sigma_get_register(uint8_t reg, struct sigma *sigma)
 	uint8_t value;
 
 	if (1 != sigma_read_register(reg, &value, 1, sigma)) {
-		g_warning("Sigma_get_register: 1 byte expected");
+		sr_warn("sigma_get_register: 1 byte expected");
 		return 0;
 	}
 
@@ -316,12 +317,12 @@ static int bin2bitbang(const char *filename,
 
 	f = g_fopen(filename, "rb");
 	if (!f) {
-		g_warning("g_fopen(\"%s\", \"rb\")", filename);
+		sr_warn("g_fopen(\"%s\", \"rb\")", filename);
 		return -1;
 	}
 
 	if (-1 == fseek(f, 0, SEEK_END)) {
-		g_warning("fseek on %s failed", filename);
+		sr_warn("fseek on %s failed", filename);
 		fclose(f);
 		return -1;
 	}
@@ -334,7 +335,7 @@ static int bin2bitbang(const char *filename,
 	firmware = g_malloc(buffer_size);
 
 	if (!compressed_buf || !firmware) {
-		g_warning("Error allocating buffers");
+		sr_warn("Error allocating buffers");
 		return -1;
 	}
 
@@ -350,7 +351,7 @@ static int bin2bitbang(const char *filename,
 	if (ret < 0) {
 		g_free(compressed_buf);
 		g_free(firmware);
-		g_warning("Could not unpack Sigma firmware. (Error %d)\n", ret);
+		sr_warn("Could not unpack Sigma firmware. (Error %d)\n", ret);
 		return -1;
 	}
 
@@ -361,7 +362,7 @@ static int bin2bitbang(const char *filename,
 	*buf = p = (unsigned char *)g_malloc(*buf_size);
 
 	if (!p) {
-		g_warning("Error allocating buffers");
+		sr_warn("Error allocating buffers");
 		return -1;
 	}
 
@@ -377,9 +378,9 @@ static int bin2bitbang(const char *filename,
 
 	if (offset != *buf_size) {
 		g_free(*buf);
-		g_warning("Error reading firmware %s "
-			  "offset=%ld, file_size=%ld, buf_size=%zd\n",
-			  filename, offset, file_size, *buf_size);
+		sr_warn("Error reading firmware %s "
+			"offset=%ld, file_size=%ld, buf_size=%zd\n",
+			filename, offset, file_size, *buf_size);
 
 		return -1;
 	}
@@ -443,21 +444,21 @@ static int upload_firmware(int firmware_idx, struct sigma *sigma)
 	/* Make sure it's an ASIX SIGMA. */
 	if ((ret = ftdi_usb_open_desc(&sigma->ftdic,
 		USB_VENDOR, USB_PRODUCT, USB_DESCRIPTION, NULL)) < 0) {
-		g_warning("ftdi_usb_open failed: %s",
-			  ftdi_get_error_string(&sigma->ftdic));
+		sr_warn("ftdi_usb_open failed: %s",
+			ftdi_get_error_string(&sigma->ftdic));
 		return 0;
 	}
 
 	if ((ret = ftdi_set_bitmode(&sigma->ftdic, 0xdf, BITMODE_BITBANG)) < 0) {
-		g_warning("ftdi_set_bitmode failed: %s",
-			  ftdi_get_error_string(&sigma->ftdic));
+		sr_warn("ftdi_set_bitmode failed: %s",
+			ftdi_get_error_string(&sigma->ftdic));
 		return 0;
 	}
 
 	/* Four times the speed of sigmalogan - Works well. */
 	if ((ret = ftdi_set_baudrate(&sigma->ftdic, 750000)) < 0) {
-		g_warning("ftdi_set_baudrate failed: %s",
-			  ftdi_get_error_string(&sigma->ftdic));
+		sr_warn("ftdi_set_baudrate failed: %s",
+			ftdi_get_error_string(&sigma->ftdic));
 		return 0;
 	}
 
@@ -484,8 +485,8 @@ static int upload_firmware(int firmware_idx, struct sigma *sigma)
 		 firmware_files[firmware_idx]);
 
 	if (-1 == bin2bitbang(firmware_path, &buf, &buf_size)) {
-		g_warning("An error occured while reading the firmware: %s",
-			  firmware_path);
+		sr_warn("An error occured while reading the firmware: %s",
+			firmware_path);
 		return SR_ERR;
 	}
 
@@ -495,8 +496,8 @@ static int upload_firmware(int firmware_idx, struct sigma *sigma)
 	g_free(buf);
 
 	if ((ret = ftdi_set_bitmode(&sigma->ftdic, 0x00, BITMODE_RESET)) < 0) {
-		g_warning("ftdi_set_bitmode failed: %s",
-			  ftdi_get_error_string(&sigma->ftdic));
+		sr_warn("ftdi_set_bitmode failed: %s",
+			ftdi_get_error_string(&sigma->ftdic));
 		return SR_ERR;
 	}
 
@@ -513,7 +514,7 @@ static int upload_firmware(int firmware_idx, struct sigma *sigma)
 	ret = sigma_read(result, 3, sigma);
 	if (ret != 3 ||
 	    result[0] != 0xa6 || result[1] != 0x55 || result[2] != 0xaa) {
-		g_warning("Configuration failed. Invalid reply received.");
+		sr_warn("Configuration failed. Invalid reply received.");
 		return SR_ERR;
 	}
 
@@ -537,7 +538,7 @@ static int hw_opendev(int device_index)
 	if ((ret = ftdi_usb_open_desc(&sigma->ftdic,
 		USB_VENDOR, USB_PRODUCT, USB_DESCRIPTION, NULL)) < 0) {
 
-		g_warning("ftdi_usb_open failed: %s",
+		sr_warn("ftdi_usb_open failed: %s",
 			ftdi_get_error_string(&sigma->ftdic));
 
 		return 0;
@@ -578,7 +579,7 @@ static int set_samplerate(struct sr_device_instance *sdi,
 	sigma->samples_per_event = 16 / sigma->num_probes;
 	sigma->state.state = SIGMA_IDLE;
 
-	g_message("Firmware uploaded");
+	sr_info("Firmware uploaded");
 
 	return ret;
 }
@@ -611,9 +612,8 @@ static int configure_probes(struct sr_device_instance *sdi, GSList *probes)
 		if (sigma->cur_samplerate >= SR_MHZ(100)) {
 			/* Fast trigger support. */
 			if (trigger_set) {
-				g_warning("Asix Sigma only supports a single "
-						"pin trigger in 100 and 200 "
-						"MHz mode.");
+				sr_warn("Asix Sigma only supports a single "
+					"pin trigger in 100 and 200MHz mode.");
 				return SR_ERR;
 			}
 			if (probe->trigger[0] == 'f')
@@ -621,9 +621,9 @@ static int configure_probes(struct sr_device_instance *sdi, GSList *probes)
 			else if (probe->trigger[0] == 'r')
 				sigma->trigger.risingmask |= probebit;
 			else {
-				g_warning("Asix Sigma only supports "
-					  "rising/falling trigger in 100 "
-					  "and 200 MHz mode.");
+				sr_warn("Asix Sigma only supports "
+					"rising/falling trigger in 100 "
+					"and 200MHz mode.");
 				return SR_ERR;
 			}
 
@@ -653,8 +653,8 @@ static int configure_probes(struct sr_device_instance *sdi, GSList *probes)
                          * does not permit ORed triggers.
                          */
 			if (trigger_set > 1) {
-				g_warning("Asix Sigma only supports 1 rising/"
-					  "falling triggers.");
+				sr_warn("Asix Sigma only supports 1 rising/"
+					"falling triggers.");
 				return SR_ERR;
 			}
 		}
@@ -1000,8 +1000,8 @@ static int receive_data(int fd, int revents, void *user_data)
 		newchunks = MIN(chunks_per_read,
 				numchunks - sigma->state.chunks_downloaded);
 
-		g_message("Downloading sample data: %.0f %%",
-			  100.0 * sigma->state.chunks_downloaded / numchunks);
+		sr_info("Downloading sample data: %.0f %%",
+			100.0 * sigma->state.chunks_downloaded / numchunks);
 
 		bufsz = sigma_read_dram(sigma->state.chunks_downloaded,
 					newchunks, buf, sigma);

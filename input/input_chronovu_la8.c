@@ -22,6 +22,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sigrok.h>
+#include <sigrok-internal.h>
 
 #define NUM_PACKETS		2048
 #define PACKET_SIZE		4096
@@ -48,21 +49,21 @@ static uint64_t divcount_to_samplerate(uint8_t divcount)
 static int format_match(const char *filename)
 {
 	if (!filename) {
-		g_warning("la8input: %s: filename was NULL", __func__);
+		sr_warn("la8input: %s: filename was NULL", __func__);
 		// return SR_ERR; /* FIXME */
 		return FALSE;
 	}
 
 	if (!g_file_test(filename, G_FILE_TEST_EXISTS)) {
-		g_warning("la8input: %s: input file '%s' does not exist",
-			  __func__, filename);
+		sr_warn("la8input: %s: input file '%s' does not exist",
+			__func__, filename);
 		// return SR_ERR; /* FIXME */
 		return FALSE;
 	}
 
 	if (!g_file_test(filename, G_FILE_TEST_IS_REGULAR)) {
-		g_warning("la8input: %s: input file '%s' not a regular file",
-			  __func__, filename);
+		sr_warn("la8input: %s: input file '%s' not a regular file",
+			__func__, filename);
 		// return SR_ERR; /* FIXME */
 		return FALSE;
 	}
@@ -81,7 +82,7 @@ static int init(struct sr_input *in)
 	if (in->param && in->param[0]) {
 		num_probes = strtoul(in->param, NULL, 10);
 		if (num_probes < 1) {
-			g_warning("la8input: %s: strtoul failed", __func__);
+			sr_warn("la8input: %s: strtoul failed", __func__);
 			return SR_ERR;
 		}
 	} else {
@@ -104,7 +105,7 @@ static int loadfile(struct sr_input *in, const char *filename)
 
 	/* TODO: Use glib functions! GIOChannel, g_fopen, etc. */
 	if ((fd = open(filename, O_RDONLY)) == -1) {
-		g_warning("la8input: %s: file open failed", __func__);
+		sr_warn("la8input: %s: file open failed", __func__);
 		return SR_ERR;
 	}
 
@@ -119,10 +120,10 @@ static int loadfile(struct sr_input *in, const char *filename)
 		close(fd); /* FIXME */
 		return SR_ERR;
 	}
-	g_debug("la8input: %s: samplerate is %" PRIu64, __func__, samplerate);
+	sr_dbg("la8input: %s: samplerate is %" PRIu64, __func__, samplerate);
 
 	/* Send header packet to the session bus. */
-	g_debug("la8input: %s: sending SR_DF_HEADER packet", __func__);
+	sr_dbg("la8input: %s: sending SR_DF_HEADER packet", __func__);
 	packet.type = SR_DF_HEADER;
 	packet.length = sizeof(struct sr_datafeed_header);
 	packet.unitsize = 0;
@@ -138,7 +139,7 @@ static int loadfile(struct sr_input *in, const char *filename)
 	/* TODO: Handle trigger point. */
 
 	/* Send data packets to the session bus. */
-	g_debug("la8input: %s: sending SR_DF_LOGIC data packets", __func__);
+	sr_dbg("la8input: %s: sending SR_DF_LOGIC data packets", __func__);
 	packet.type = SR_DF_LOGIC;
 	packet.unitsize = (num_probes + 7) / 8;
 	packet.payload = buf;
@@ -153,7 +154,7 @@ static int loadfile(struct sr_input *in, const char *filename)
 	close(fd); /* FIXME */
 
 	/* Send end packet to the session bus. */
-	g_debug("la8input: %s: sending SR_DF_END", __func__);
+	sr_dbg("la8input: %s: sending SR_DF_END", __func__);
 	packet.type = SR_DF_END;
 	packet.length = 0;
 	packet.unitsize = 0;

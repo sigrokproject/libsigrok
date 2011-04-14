@@ -45,25 +45,25 @@ int sr_session_load(const char *filename)
 	char **sections, **keys, *metafile, *val, c;
 
 	if (!(archive = zip_open(filename, 0, &err))) {
-		g_debug("Failed to open session file: zip error %d", err);
+		sr_dbg("Failed to open session file: zip error %d", err);
 		return SR_ERR;
 	}
 
 	/* check "version" */
 	if (!(zf = zip_fopen(archive, "version", 0))) {
-		g_debug("Not a sigrok session file.");
+		sr_dbg("Not a sigrok session file.");
 		return SR_ERR;
 	}
 	ret = zip_fread(zf, &c, 1);
 	if (ret != 1 || c != '1') {
-		g_debug("Not a valid sigrok session file.");
+		sr_dbg("Not a valid sigrok session file.");
 		return SR_ERR;
 	}
 	zip_fclose(zf);
 
 	/* read "metadata" */
 	if (zip_stat(archive, "metadata", 0, &zs) == -1) {
-		g_debug("Not a valid sigrok session file.");
+		sr_dbg("Not a valid sigrok session file.");
 		return SR_ERR;
 	}
 	metafile = g_malloc(zs.size);
@@ -73,7 +73,7 @@ int sr_session_load(const char *filename)
 
 	kf = g_key_file_new();
 	if (!g_key_file_load_from_data(kf, metafile, zs.size, 0, NULL)) {
-		g_debug("Failed to parse metadata.");
+		sr_dbg("Failed to parse metadata.");
 		return SR_ERR;
 	}
 
@@ -159,8 +159,8 @@ int sr_session_save(const char *filename)
 	if (!(versrc = zip_source_buffer(zipfile, version, 1, 0)))
 		return SR_ERR;
 	if (zip_add(zipfile, "version", versrc) == -1) {
-		g_message("error saving version into zipfile: %s",
-			  zip_strerror(zipfile));
+		sr_info("error saving version into zipfile: %s",
+			zip_strerror(zipfile));
 		return SR_ERR;
 	}
 
@@ -234,7 +234,7 @@ int sr_session_save(const char *filename)
 		return SR_ERR;
 
 	if ((ret = zip_close(zipfile)) == -1) {
-		g_message("error saving zipfile: %s", zip_strerror(zipfile));
+		sr_info("error saving zipfile: %s", zip_strerror(zipfile));
 		return SR_ERR;
 	}
 

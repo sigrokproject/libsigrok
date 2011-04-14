@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <glib.h>
 #include <sigrok.h>
+#include <sigrok-internal.h>
 
 extern struct sr_global *global;
 
@@ -48,7 +49,7 @@ int sr_device_plugin_init(struct sr_device_plugin *plugin)
 {
 	int num_devices, num_probes, i;
 
-	g_message("initializing %s plugin", plugin->name);
+	sr_info("initializing %s plugin", plugin->name);
 	num_devices = plugin->init(NULL);
 	for (i = 0; i < num_devices; i++) {
 		num_probes = (int)plugin->get_device_info(i, SR_DI_NUM_PROBES);

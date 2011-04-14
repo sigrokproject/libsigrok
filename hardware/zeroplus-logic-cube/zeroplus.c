@@ -150,7 +150,7 @@ static int opendev4(struct sr_device_instance **sdi, libusb_device *dev,
 	int err;
 
 	if ((err = libusb_get_device_descriptor(dev, des))) {
-		g_warning("failed to get device descriptor: %d", err);
+		sr_warn("failed to get device descriptor: %d", err);
 		return -1;
 	}
 
@@ -164,27 +164,26 @@ static int opendev4(struct sr_device_instance **sdi, libusb_device *dev,
 			if (!(des->idProduct == zeroplus_models[i].pid))
 				continue;
 
-			g_message("Found PID=%04X (%s)", des->idProduct,
-				  zeroplus_models[i].model_name);
+			sr_info("Found PID=%04X (%s)", des->idProduct,
+				zeroplus_models[i].model_name);
 			num_channels = zeroplus_models[i].channels;
 			memory_size = zeroplus_models[i].sample_depth * 1024;
 			break;
 		}
 
 		if (num_channels == 0) {
-			g_warning("Unknown ZeroPlus device %04X",
-				  des->idProduct);
+			sr_warn("Unknown ZeroPlus device %04X", des->idProduct);
 			return -2;
 		}
 
 		/* Found it. */
 		if (!(err = libusb_open(dev, &((*sdi)->usb->devhdl)))) {
 			(*sdi)->status = SR_ST_ACTIVE;
-			g_message("opened device %d on %d.%d interface %d",
-			     (*sdi)->index, (*sdi)->usb->bus,
-			     (*sdi)->usb->address, USB_INTERFACE);
+			sr_info("opened device %d on %d.%d interface %d",
+				(*sdi)->index, (*sdi)->usb->bus,
+				(*sdi)->usb->address, USB_INTERFACE);
 		} else {
-			g_warning("failed to open device: %d", err);
+			sr_warn("failed to open device: %d", err);
 			*sdi = NULL;
 		}
 	}
@@ -227,8 +226,8 @@ static void close_device(struct sr_device_instance *sdi)
 	if (!sdi->usb->devhdl)
 		return;
 
-	g_message("closing device %d on %d.%d interface %d", sdi->index,
-		  sdi->usb->bus, sdi->usb->address, USB_INTERFACE);
+	sr_info("closing device %d on %d.%d interface %d", sdi->index,
+		sdi->usb->bus, sdi->usb->address, USB_INTERFACE);
 	libusb_release_interface(sdi->usb->devhdl, USB_INTERFACE);
 	libusb_close(sdi->usb->devhdl);
 	sdi->usb->devhdl = NULL;
@@ -287,7 +286,7 @@ static int hw_init(const char *deviceinfo)
 	deviceinfo = deviceinfo;
 
 	if (libusb_init(&usb_context) != 0) {
-		g_warning("Failed to initialize USB.");
+		sr_warn("Failed to initialize USB.");
 		return 0;
 	}
 
@@ -298,7 +297,7 @@ static int hw_init(const char *deviceinfo)
 	for (i = 0; devlist[i]; i++) {
 		err = libusb_get_device_descriptor(devlist[i], &des);
 		if (err != 0) {
-			g_warning("failed to get device descriptor: %d", err);
+			sr_warn("failed to get device descriptor: %d", err);
 			continue;
 		}
 
@@ -332,13 +331,13 @@ static int hw_opendev(int device_index)
 	int err;
 
 	if (!(sdi = zp_open_device(device_index))) {
-		g_warning("unable to open device");
+		sr_warn("unable to open device");
 		return SR_ERR;
 	}
 
 	err = libusb_claim_interface(sdi->usb->devhdl, USB_INTERFACE);
 	if (err != 0) {
-		g_warning("Unable to claim interface: %d", err);
+		sr_warn("Unable to claim interface: %d", err);
 		return SR_ERR;
 	}
 	analyzer_reset(sdi->usb->devhdl);
@@ -446,7 +445,7 @@ static int *hw_get_capabilities(void)
 /* TODO: This will set the same samplerate for all devices. */
 static int set_configuration_samplerate(uint64_t samplerate)
 {
-	g_message("%s(%" PRIu64 ")", __FUNCTION__, samplerate);
+	sr_info("%s(%" PRIu64 ")", __FUNCTION__, samplerate);
 	if (samplerate > SR_MHZ(1))
 		analyzer_set_freq(samplerate / SR_MHZ(1), FREQ_SCALE_MHZ);
 	else if (samplerate > SR_KHZ(1))
@@ -498,15 +497,15 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	analyzer_configure(sdi->usb->devhdl);
 
 	analyzer_start(sdi->usb->devhdl);
-	g_message("Waiting for data");
+	sr_info("Waiting for data");
 	analyzer_wait_data(sdi->usb->devhdl);
 
-	g_message("Stop address    = 0x%x",
-		  analyzer_get_stop_address(sdi->usb->devhdl));
-	g_message("Now address     = 0x%x",
-		  analyzer_get_now_address(sdi->usb->devhdl));
-	g_message("Trigger address = 0x%x",
-		  analyzer_get_trigger_address(sdi->usb->devhdl));
+	sr_info("Stop address    = 0x%x",
+		analyzer_get_stop_address(sdi->usb->devhdl));
+	sr_info("Now address     = 0x%x",
+		analyzer_get_now_address(sdi->usb->devhdl));
+	sr_info("Trigger address = 0x%x",
+		analyzer_get_trigger_address(sdi->usb->devhdl));
 
 	packet.type = SR_DF_HEADER;
 	packet.length = sizeof(struct sr_datafeed_header);
@@ -528,8 +527,8 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	     packet_num++) {
 		res = analyzer_read_data(sdi->usb->devhdl, buf, PACKET_SIZE);
 #if 0
-		g_message("Tried to read %llx bytes, actually read %x bytes",
-			  PACKET_SIZE, res);
+		sr_info("Tried to read %llx bytes, actually read %x bytes",
+			PACKET_SIZE, res);
 #endif
 
 		packet.type = SR_DF_LOGIC;

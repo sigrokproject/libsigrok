@@ -22,6 +22,7 @@
 #include <string.h>
 #include <glib.h>
 #include <sigrok.h>
+#include <sigrok-internal.h>
 #include "config.h"
 
 struct context {
@@ -61,29 +62,29 @@ static int init(struct sr_output *o)
 	time_t t;
 
 	if (!o) {
-		g_warning("gnuplot out: %s: o was NULL", __func__);
+		sr_warn("gnuplot out: %s: o was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!o->device) {
-		g_warning("gnuplot out: %s: o->device was NULL", __func__);
+		sr_warn("gnuplot out: %s: o->device was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!o->device->plugin) {
-		g_warning("gnuplot out: %s: o->device->plugin was NULL",
-			  __func__);
+		sr_warn("gnuplot out: %s: o->device->plugin was NULL",
+			__func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!(ctx = calloc(1, sizeof(struct context)))) {
-		g_warning("gnuplot out: %s: ctx calloc failed", __func__);
+		sr_warn("gnuplot out: %s: ctx calloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 
 	if (!(ctx->header = calloc(1, MAX_HEADER_LEN + 1))) {
-		g_warning("gnuplot out: %s: ctx->header calloc failed",
-			  __func__);
+		sr_warn("gnuplot out: %s: ctx->header calloc failed",
+			__func__);
 		free(ctx);
 		return SR_ERR_MALLOC;
 	}
@@ -105,8 +106,8 @@ static int init(struct sr_output *o)
 		samplerate = *((uint64_t *) o->device->plugin->get_device_info(
 				o->device->plugin_index, SR_DI_CUR_SAMPLERATE));
 		if (!(frequency_s = sr_samplerate_string(samplerate))) {
-			g_warning("gnuplot out: %s: sr_samplerate_string "
-				  "failed", __func__);
+			sr_warn("gnuplot out: %s: sr_samplerate_string failed",
+				__func__);
 			free(ctx->header);
 			free(ctx);
 			return SR_ERR;
@@ -124,7 +125,7 @@ static int init(struct sr_output *o)
 	}
 
 	if (!(frequency_s = sr_period_string(samplerate))) {
-		g_warning("gnuplot out: %s: sr_period_string failed", __func__);
+		sr_warn("gnuplot out: %s: sr_period_string failed", __func__);
 		free(ctx->header);
 		free(ctx);
 		return SR_ERR;
@@ -137,7 +138,7 @@ static int init(struct sr_output *o)
 	free(frequency_s);
 
 	if (b < 0) {
-		g_warning("gnuplot out: %s: sprintf failed", __func__);
+		sr_warn("gnuplot out: %s: sprintf failed", __func__);
 		free(ctx->header);
 		free(ctx);
 		return SR_ERR;
@@ -152,17 +153,17 @@ static int event(struct sr_output *o, int event_type, char **data_out,
 	struct context *ctx;
 
 	if (!o) {
-		g_warning("gnuplot out: %s: o was NULL", __func__);
+		sr_warn("gnuplot out: %s: o was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!data_out) {
-		g_warning("gnuplot out: %s: data_out was NULL", __func__);
+		sr_warn("gnuplot out: %s: data_out was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!length_out) {
-		g_warning("gnuplot out: %s: length_out was NULL", __func__);
+		sr_warn("gnuplot out: %s: length_out was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
@@ -177,8 +178,8 @@ static int event(struct sr_output *o, int event_type, char **data_out,
 		o->internal = NULL;
 		break;
 	default:
-		g_warning("gnuplot out: %s: unsupported event type: %d",
-		          __func__, event_type);
+		sr_warn("gnuplot out: %s: unsupported event type: %d",
+			__func__, event_type);
 		break;
 	}
 
@@ -198,27 +199,27 @@ static int data(struct sr_output *o, const char *data_in, uint64_t length_in,
 	char *outbuf, *c;
 
 	if (!o) {
-		g_warning("gnuplot out: %s: o was NULL", __func__);
+		sr_warn("gnuplot out: %s: o was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!o->internal) {
-		g_warning("gnuplot out: %s: o->internal was NULL", __func__);
+		sr_warn("gnuplot out: %s: o->internal was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!data_in) {
-		g_warning("gnuplot out: %s: data_in was NULL", __func__);
+		sr_warn("gnuplot out: %s: data_in was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!data_out) {
-		g_warning("gnuplot out: %s: data_out was NULL", __func__);
+		sr_warn("gnuplot out: %s: data_out was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!length_out) {
-		g_warning("gnuplot out: %s: length_out was NULL", __func__);
+		sr_warn("gnuplot out: %s: length_out was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
@@ -229,7 +230,7 @@ static int data(struct sr_output *o, const char *data_in, uint64_t length_in,
 		outsize += strlen(ctx->header);
 
 	if (!(outbuf = calloc(1, outsize))) {
-		g_warning("gnuplot out: %s: outbuf calloc failed", __func__);
+		sr_warn("gnuplot out: %s: outbuf calloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 

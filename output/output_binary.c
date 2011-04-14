@@ -22,6 +22,7 @@
 #include <string.h>
 #include <glib.h>
 #include <sigrok.h>
+#include <sigrok-internal.h>
 #include "config.h"
 
 static int data(struct sr_output *o, const char *data_in, uint64_t length_in,
@@ -33,22 +34,22 @@ static int data(struct sr_output *o, const char *data_in, uint64_t length_in,
 	o = o;
 
 	if (!data_in) {
-		g_warning("binary output: %s: data_in was NULL", __func__);
+		sr_warn("binary output: %s: data_in was NULL", __func__);
 		return SR_ERR;
 	}
 
 	if (!length_out) {
-		g_warning("binary output: %s: length_out was NULL", __func__);
+		sr_warn("binary output: %s: length_out was NULL", __func__);
 		return SR_ERR;
 	}
 
 	if (length_in == 0) {
-		g_warning("binary output: %s: length_in was 0", __func__);
+		sr_warn("binary output: %s: length_in was 0", __func__);
 		return SR_ERR;
 	}
 
 	if (!(outbuf = calloc(1, length_in))) {
-		g_warning("binary output: %s: outbuf calloc failed", __func__);
+		sr_warn("binary output: %s: outbuf calloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 

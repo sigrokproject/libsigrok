@@ -20,6 +20,8 @@
 #ifndef SIGROK_SIGROK_INTERNAL_H
 #define SIGROK_SIGROK_INTERNAL_H
 
+#include <stdarg.h>
+
 /*--- Macros ----------------------------------------------------------------*/
 
 #ifndef ARRAY_SIZE
@@ -36,6 +38,21 @@
 /*--- hwplugin.c ------------------------------------------------------------*/
 
 int load_hwplugins(void);
+
+/*--- log.c -----------------------------------------------------------------*/
+
+/* Log levels for sr_log() and friends. */
+#define SR_LOG_NONE	0
+#define SR_LOG_DBG	1
+#define SR_LOG_INFO	2
+#define SR_LOG_WARN	3
+#define SR_LOG_ERR	4
+
+int sr_log(int loglevel, const char *format, ...);
+int sr_dbg(const char *format, ...);
+int sr_info(const char *format, ...);
+int sr_warn(const char *format, ...);
+int sr_err(const char *format, ...);
 
 /*--- hardware/common/serial.c ----------------------------------------------*/
 

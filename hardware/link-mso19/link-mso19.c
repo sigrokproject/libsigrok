@@ -386,7 +386,7 @@ static int hw_init(const char *deviceinfo)
 	 */
 	udev = udev_new();
 	if (!udev) {
-		g_warning("Failed to initialize udev.");
+		sr_warn("Failed to initialize udev.");
 		goto ret;
 	}
 	enumerate = udev_enumerate_new(udev);
@@ -406,8 +406,8 @@ static int hw_init(const char *deviceinfo)
 		parent = udev_device_get_parent_with_subsystem_devtype(
 				dev, "usb", "usb_device");
 		if (!parent) {
-			g_warning("Unable to find parent usb device for %s",
-					sysname);
+			sr_warn("Unable to find parent usb device for %s",
+				sysname);
 			continue;
 		}
 
@@ -425,7 +425,7 @@ static int hw_init(const char *deviceinfo)
 		s = strcspn(iProduct, " ");
 		if (s > sizeof(product) ||
 				strlen(iProduct) - s > sizeof(manufacturer)) {
-			g_warning("Could not parse iProduct: %s", iProduct);
+			sr_warn("Could not parse iProduct: %s", iProduct);
 			continue;
 		}
 		strncpy(product, iProduct, s);
@@ -439,7 +439,7 @@ static int hw_init(const char *deviceinfo)
 		memset(mso, 0, sizeof(struct mso));
 
 		if (mso_parse_serial(iSerial, iProduct, mso) != SR_OK) {
-			g_warning("Invalid iSerial: %s", iSerial);
+			sr_warn("Invalid iSerial: %s", iSerial);
 			goto err_free_mso;
 		}
 		/* hardware initial state */
@@ -448,8 +448,8 @@ static int hw_init(const char *deviceinfo)
 		sdi = sr_device_instance_new(devcnt, SR_ST_INITIALIZING,
 			manufacturer, product, hwrev);
 		if (!sdi) {
-			g_warning("Unable to create device instance for %s",
-					sysname);
+			sr_warn("Unable to create device instance for %s",
+				sysname);
 			goto err_free_mso;
 		}
 
@@ -518,14 +518,14 @@ static int hw_opendev(int device_index)
 	/* FIXME: discard serial buffer */
 
 	mso_check_trigger(sdi, &mso->trigger_state);
-//	g_warning("trigger state: %c", mso->trigger_state);
+//	sr_warn("trigger state: %c", mso->trigger_state);
 
 	ret = mso_reset_adc(sdi);
 	if (ret != SR_OK)
 		return ret;
 
 	mso_check_trigger(sdi, &mso->trigger_state);
-//	g_warning("trigger state: %c", mso->trigger_state);
+//	sr_warn("trigger state: %c", mso->trigger_state);
 
 //	ret = mso_reset_fsm(sdi);
 //	if (ret != SR_OK)

@@ -22,6 +22,7 @@
 #include <string.h>
 #include <glib.h>
 #include <sigrok.h>
+#include <sigrok-internal.h>
 
 struct context {
 	unsigned int num_enabled_probes;
@@ -46,8 +47,8 @@ static int is_valid_samplerate(uint64_t samplerate)
 			return 1;
 	}
 
-	g_warning("la8 out: %s: invalid samplerate (%" PRIu64 "Hz)",
-		  __func__, samplerate);
+	sr_warn("la8 out: %s: invalid samplerate (%" PRIu64 "Hz)",
+		__func__, samplerate);
 
 	return 0;
 }
@@ -65,13 +66,13 @@ static int is_valid_samplerate(uint64_t samplerate)
 static uint8_t samplerate_to_divcount(uint64_t samplerate)
 {
 	if (samplerate == 0) {
-		g_warning("la8 out: %s: samplerate was 0", __func__);
+		sr_warn("la8 out: %s: samplerate was 0", __func__);
 		return 0xff;
 	}
 
 	if (!is_valid_samplerate(samplerate)) {
-		g_warning("la8 out: %s: can't get divcount, samplerate invalid",
-			  __func__);
+		sr_warn("la8 out: %s: can't get divcount, samplerate invalid",
+			__func__);
 		return 0xff;
 	}
 
@@ -87,22 +88,22 @@ static int init(struct sr_output *o)
 	uint64_t samplerate;
 
 	if (!o) {
-		g_warning("la8 out: %s: o was NULL", __func__);
+		sr_warn("la8 out: %s: o was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!o->device) {
-		g_warning("la8 out: %s: o->device was NULL", __func__);
+		sr_warn("la8 out: %s: o->device was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!o->device->plugin) {
-		g_warning("la8 out: %s: o->device->plugin was NULL", __func__);
+		sr_warn("la8 out: %s: o->device->plugin was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!(ctx = calloc(1, sizeof(struct context)))) {
-		g_warning("la8 out: %s: ctx calloc failed", __func__);
+		sr_warn("la8 out: %s: ctx calloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 
@@ -140,38 +141,37 @@ static int event(struct sr_output *o, int event_type, char **data_out,
 	char *outbuf;
 
 	if (!o) {
-		g_warning("la8 out: %s: o was NULL", __func__);
+		sr_warn("la8 out: %s: o was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!(ctx = o->internal)) {
-		g_warning("la8 out: %s: o->internal was NULL", __func__);
+		sr_warn("la8 out: %s: o->internal was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!data_out) {
-		g_warning("la8 out: %s: data_out was NULL", __func__);
+		sr_warn("la8 out: %s: data_out was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	switch (event_type) {
 	case SR_DF_TRIGGER:
-		g_debug("la8 out: %s: SR_DF_TRIGGER event", __func__);
+		sr_dbg("la8 out: %s: SR_DF_TRIGGER event", __func__);
 		/* Save the trigger point for later (SR_DF_END). */
 		ctx->trigger_point = 0; /* TODO: Store _actual_ value. */
 		break;
 	case SR_DF_END:
-		g_debug("la8 out: %s: SR_DF_END event", __func__);
+		sr_dbg("la8 out: %s: SR_DF_END event", __func__);
 		if (!(outbuf = malloc(4 + 1))) {
-			g_warning("la8 out: %s: outbuf malloc failed",
-				  __func__);
+			sr_warn("la8 out: %s: outbuf malloc failed", __func__);
 			return SR_ERR_MALLOC;
 		}
 
 		/* One byte for the 'divcount' value. */
 		outbuf[0] = samplerate_to_divcount(ctx->samplerate);
 		// if (outbuf[0] == 0xff) {
-		// 	g_warning("la8 out: %s: invalid divcount", __func__);
+		// 	sr_warn("la8 out: %s: invalid divcount", __func__);
 		// 	return SR_ERR;
 		// }
 
@@ -187,8 +187,8 @@ static int event(struct sr_output *o, int event_type, char **data_out,
 		o->internal = NULL;
 		break;
 	default:
-		g_warning("la8 out: %s: unsupported event type: %d", __func__,
-			  event_type);
+		sr_warn("la8 out: %s: unsupported event type: %d", __func__,
+			event_type);
 		*data_out = NULL;
 		*length_out = 0;
 		break;
@@ -204,22 +204,22 @@ static int data(struct sr_output *o, const char *data_in, uint64_t length_in,
 	char *outbuf;
 
 	if (!o) {
-		g_warning("la8 out: %s: o was NULL", __func__);
+		sr_warn("la8 out: %s: o was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!(ctx = o->internal)) {
-		g_warning("la8 out: %s: o->internal was NULL", __func__);
+		sr_warn("la8 out: %s: o->internal was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!data_in) {
-		g_warning("la8 out: %s: data_in was NULL", __func__);
+		sr_warn("la8 out: %s: data_in was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!(outbuf = calloc(1, length_in))) {
-		g_warning("la8 out: %s: outbuf calloc failed", __func__);
+		sr_warn("la8 out: %s: outbuf calloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 
