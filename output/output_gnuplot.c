@@ -195,7 +195,7 @@ static int data(struct sr_output *o, const char *data_in, uint64_t length_in,
 	struct context *ctx;
 	unsigned int max_linelen, outsize, p, curbit, i;
 	uint64_t sample;
-	static uint64_t samplecount = 0;
+	static uint64_t samplecount = 0, old_sample = 0;
 	char *outbuf, *c;
 
 	if (!o) {
@@ -243,7 +243,18 @@ static int data(struct sr_output *o, const char *data_in, uint64_t length_in,
 	}
 
 	for (i = 0; i <= length_in - ctx->unitsize; i += ctx->unitsize) {
+
 		memcpy(&sample, data_in + i, ctx->unitsize);
+
+		/*
+		 * Don't output the same samples multiple times. However, make
+		 * sure to output at least the first and last sample.
+		 */
+		if (samplecount++ != 0 && sample == old_sample) {
+			if (i != (length_in - ctx->unitsize))
+				continue;
+		}
+		old_sample = sample;
 
 		/* The first column is a counter (needed for gnuplot). */
 		c = outbuf + strlen(outbuf);
