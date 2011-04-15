@@ -605,7 +605,6 @@ static void hw_closedev(int device_index)
 
 	if (sdi->status == SR_ST_ACTIVE) {
 		sr_dbg("la8: %s: status ACTIVE, closing device", __func__);
-		/* TODO: Handle or ignore errors here? */
 		(void) la8_close_usb_reset_sequencer(la8); /* Ignore errors. */
 	} else {
 		sr_dbg("la8: %s: status not ACTIVE, nothing to do", __func__);
@@ -966,9 +965,6 @@ static void hw_stop_acquisition(int device_index, gpointer session_device_id)
 		sr_warn("la8: %s: sdi->priv was NULL", __func__);
 		return;
 	}
-
-	/* Reset the LA8 sequencer and close the device. */
-	(void) la8_close_usb_reset_sequencer(la8); /* Ignore errors. */
 
 	/* Send end packet to the session bus. */
 	sr_dbg("la8: %s: sending SR_DF_END", __func__);
