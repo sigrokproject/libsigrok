@@ -408,7 +408,7 @@ static int hw_init(const char *deviceinfo)
 	deviceinfo = deviceinfo;
 
 	/* Allocate memory for our private driver context. */
-	if (!(la8 = malloc(sizeof(struct la8)))) {
+	if (!(la8 = g_try_malloc(sizeof(struct la8)))) {
 		sr_warn("la8: %s: struct la8 malloc failed", __func__);
 		ret = SR_ERR_MALLOC;
 		goto err_free_nothing;
@@ -431,14 +431,14 @@ static int hw_init(const char *deviceinfo)
 	la8->divcount = 0; /* 10ns sample period == 100MHz samplerate */
 
 	/* Allocate memory for the raw (mangled) data from the LA8. */
-	if (!(la8->mangled_buf = malloc(SDRAM_SIZE))) {
+	if (!(la8->mangled_buf = g_try_malloc(SDRAM_SIZE))) {
 		sr_warn("la8: %s: mangled_buf malloc failed", __func__);
 		ret = SR_ERR_MALLOC;
 		goto err_free_la8;
 	}
 
 	/* Allocate memory where we'll store the de-mangled data. */
-	if (!(la8->final_buf = malloc(SDRAM_SIZE))) {
+	if (!(la8->final_buf = g_try_malloc(SDRAM_SIZE))) {
 		sr_warn("la8: %s: final_buf malloc failed", __func__);
 		ret = SR_ERR_MALLOC;
 		goto err_free_mangled_buf;
@@ -486,13 +486,13 @@ static int hw_init(const char *deviceinfo)
 err_close_ftdic:
 	(void) la8_close(la8); /* Log, but ignore errors. */
 err_free_ftdic:
-	free(la8->ftdic);
+	free(la8->ftdic); /* NOT g_free()! */
 err_free_final_buf:
-	free(la8->final_buf);
+	g_free(la8->final_buf);
 err_free_mangled_buf:
-	free(la8->mangled_buf);
+	g_free(la8->mangled_buf);
 err_free_la8:
-	free(la8);
+	g_free(la8);
 err_free_nothing:
 	// return ret; /* TODO */
 	return 0;
