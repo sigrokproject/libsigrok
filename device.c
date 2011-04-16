@@ -86,7 +86,11 @@ struct sr_device *sr_device_new(struct sr_device_plugin *plugin, int plugin_inde
 	struct sr_device *device;
 	int i;
 
-	device = g_malloc0(sizeof(struct sr_device));
+	if (!(device = g_try_malloc0(sizeof(struct sr_device)))) {
+		sr_err("dev: %s: device malloc failed", __func__);
+		return NULL;
+	}
+
 	device->plugin = plugin;
 	device->plugin_index = plugin_index;
 	devices = g_slist_append(devices, device);
@@ -154,7 +158,13 @@ void sr_device_probe_add(struct sr_device *device, const char *name)
 	int probenum;
 
 	probenum = g_slist_length(device->probes) + 1;
-	p = g_malloc0(sizeof(struct sr_probe));
+
+	if (!(p = g_try_malloc0(sizeof(struct sr_probe)))) {
+		sr_err("dev: %s: p malloc failed", __func__);
+		// return SR_ERR_MALLOC;
+		return; /* FIXME: should return int. */
+	}
+
 	p->index = probenum;
 	p->enabled = TRUE;
 	if (name) {

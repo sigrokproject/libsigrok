@@ -518,9 +518,11 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	header.num_analog_probes = 0;
 	sr_session_bus(session_device_id, &packet);
 
-	buf = g_malloc(PACKET_SIZE);
-	if (!buf)
-		return SR_ERR;
+	if (!(buf = g_try_malloc(PACKET_SIZE))) {
+		sr_err("zeroplus: %s: buf malloc failed", __func__);
+		return SR_ERR_MALLOC;
+	}
+
 	analyzer_read_start(sdi->usb->devhdl);
 	/* Send the incoming transfer to the session bus. */
 	for (packet_num = 0; packet_num < (memory_size * 4 / PACKET_SIZE);

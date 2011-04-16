@@ -66,7 +66,12 @@ int sr_session_load(const char *filename)
 		sr_dbg("Not a valid sigrok session file.");
 		return SR_ERR;
 	}
-	metafile = g_malloc(zs.size);
+
+	if (!(metafile = g_try_malloc(zs.size))) {
+		sr_err("session file: %s: metafile malloc failed", __func__);
+		return SR_ERR_MALLOC;
+	}
+
 	zf = zip_fopen_index(archive, zs.index, 0);
 	zip_fread(zf, metafile, zs.size);
 	zip_fclose(zf);

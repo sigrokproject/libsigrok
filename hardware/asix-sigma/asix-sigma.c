@@ -318,25 +318,27 @@ static int bin2bitbang(const char *filename,
 	f = g_fopen(filename, "rb");
 	if (!f) {
 		sr_warn("g_fopen(\"%s\", \"rb\")", filename);
-		return -1;
+		return SR_ERR;
 	}
 
 	if (-1 == fseek(f, 0, SEEK_END)) {
 		sr_warn("fseek on %s failed", filename);
 		fclose(f);
-		return -1;
+		return SR_ERR;
 	}
 
 	file_size = ftell(f);
 
 	fseek(f, 0, SEEK_SET);
 
-	compressed_buf = g_malloc(file_size);
-	firmware = g_malloc(buffer_size);
+	if (!(compressed_buf = g_try_malloc(file_size))) {
+		sr_err("asix: %s: compressed_buf malloc failed", __func__);
+		return SR_ERR_MALLOC;
+	}
 
-	if (!compressed_buf || !firmware) {
-		sr_warn("Error allocating buffers");
-		return -1;
+	if (!(firmware = g_try_malloc(buffer_size))) {
+		sr_err("asix: %s: firmware malloc failed", __func__);
+		return SR_ERR_MALLOC;
 	}
 
 	csize = 0;
@@ -352,18 +354,17 @@ static int bin2bitbang(const char *filename,
 		g_free(compressed_buf);
 		g_free(firmware);
 		sr_warn("Could not unpack Sigma firmware. (Error %d)\n", ret);
-		return -1;
+		return SR_ERR;
 	}
 
 	g_free(compressed_buf);
 
 	*buf_size = fwsize * 2 * 8;
 
-	*buf = p = (unsigned char *)g_malloc(*buf_size);
-
+	*buf = p = (unsigned char *)g_try_malloc(*buf_size);
 	if (!p) {
-		sr_warn("Error allocating buffers");
-		return -1;
+		sr_err("asix: %s: buf/p malloc failed", __func__);
+		return SR_ERR_MALLOC;
 	}
 
 	for (i = 0; i < fwsize; ++i) {
@@ -382,21 +383,24 @@ static int bin2bitbang(const char *filename,
 			"offset=%ld, file_size=%ld, buf_size=%zd\n",
 			filename, offset, file_size, *buf_size);
 
-		return -1;
+		return SR_ERR;
 	}
 
-	return 0;
+	return SR_OK;
 }
 
 static int hw_init(const char *deviceinfo)
 {
 	struct sr_device_instance *sdi;
-	struct sigma *sigma = g_malloc(sizeof(struct sigma));
+	struct sigma *sigma;
 
+	/* Avoid compiler warnings. */
 	deviceinfo = deviceinfo;
 
-	if (!sigma)
-		return 0;
+	if (!(sigma = g_try_malloc(sizeof(struct sigma)))) {
+		sr_err("asix: %s: sigma malloc failed", __func__);
+		return 0; /* FIXME: Should be SR_ERR_MALLOC. */
+	}
 
 	ftdi_init(&sigma->ftdic);
 
@@ -484,10 +488,10 @@ static int upload_firmware(int firmware_idx, struct sigma *sigma)
 	snprintf(firmware_path, sizeof(firmware_path), "%s/%s", FIRMWARE_DIR,
 		 firmware_files[firmware_idx]);
 
-	if (-1 == bin2bitbang(firmware_path, &buf, &buf_size)) {
+	if ((ret = bin2bitbang(firmware_path, &buf, &buf_size)) != SR_OK) {
 		sr_warn("An error occured while reading the firmware: %s",
 			firmware_path);
-		return SR_ERR;
+		return ret;
 	}
 
 	/* Upload firmare. */

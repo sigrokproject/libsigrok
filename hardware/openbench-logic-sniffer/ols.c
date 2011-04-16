@@ -174,7 +174,11 @@ static struct ols_device *ols_device_new(void)
 {
 	struct ols_device *ols;
 
-	ols = g_malloc0(sizeof(struct ols_device));
+	if (!(ols = g_try_malloc0(sizeof(struct ols_device)))) {
+		sr_err("ols: %s: ols malloc failed", __func__);
+		return NULL;
+	}
+
 	ols->trigger_at = -1;
 	ols->probe_mask = 0xffffffff;
 	ols->cur_samplerate = SR_KHZ(200);
@@ -651,7 +655,12 @@ static int receive_data(int fd, int revents, void *user_data)
 				if (ols->sample[0] & 0x80
 				    && !(ols->last_sample[0] & 0x80)) {
 					count = (int)(*ols->sample) & 0x7fffffff;
-					buffer = g_malloc(count);
+					if (!(buffer = g_try_malloc(count))) {
+						sr_err("ols: %s: buffer malloc "
+						       "failed", __func__);
+						return FALSE;
+					}
+
 					buflen = 0;
 					for (i = 0; i < count; i++) {
 						memcpy(buffer + buflen, ols->last_sample, 4);
@@ -877,11 +886,17 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	sr_source_add(sdi->serial->fd, G_IO_IN, -1, receive_data,
 		      session_device_id);
 
+	if (!(packet = g_try_malloc(sizeof(struct sr_datafeed_packet)))) {
+		sr_err("ols: %s: packet malloc failed", __func__);
+		return SR_ERR_MALLOC;
+	}
+
+	if (!(header = g_try_malloc(sizeof(struct sr_datafeed_header)))) {
+		sr_err("ols: %s: header malloc failed", __func__);
+		return SR_ERR_MALLOC;
+	}
+
 	/* Send header packet to the session bus. */
-	packet = g_malloc(sizeof(struct sr_datafeed_packet));
-	header = g_malloc(sizeof(struct sr_datafeed_header));
-	if (!packet || !header)
-		return SR_ERR;
 	packet->type = SR_DF_HEADER;
 	packet->length = sizeof(struct sr_datafeed_header);
 	packet->payload = (unsigned char *)header;

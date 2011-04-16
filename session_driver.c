@@ -83,7 +83,12 @@ static int feed_chunk(int fd, int revents, void *user_data)
 			/* already done with this instance */
 			continue;
 
-		buf = g_malloc(CHUNKSIZE);
+		if (!(buf = g_try_malloc(CHUNKSIZE))) {
+			sr_err("session: %s: buf malloc failed", __func__);
+			// return SR_ERR_MALLOC;
+			return FALSE;
+		}
+
 		ret = zip_fread(vdevice->capfile, buf, CHUNKSIZE);
 		if (ret > 0) {
 			got_data = TRUE;
@@ -139,9 +144,12 @@ static int hw_opendev(int device_index)
 		NULL, NULL, NULL);
 	if (!sdi)
 		return SR_ERR;
-	sdi->priv = g_malloc0(sizeof(struct session_vdevice));
-	if (!sdi->priv)
-		return SR_ERR;
+
+	if (!(sdi->priv = g_try_malloc0(sizeof(struct session_vdevice)))) {
+		sr_err("session: %s: sdi->priv malloc failed", __func__);
+		return SR_ERR_MALLOC;
+	}
+
 	device_instances = g_slist_append(device_instances, sdi);
 
 	return SR_OK;
@@ -250,11 +258,17 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	/* freewheeling source */
 	sr_session_source_add(-1, 0, 0, feed_chunk, session_device_id);
 
+	if (!(packet = g_try_malloc(sizeof(struct sr_datafeed_packet)))) {
+		sr_err("session: %s: packet malloc failed", __func__);
+		return SR_ERR_MALLOC;
+	}
+
+	if (!(header = g_try_malloc(sizeof(struct sr_datafeed_header)))) {
+		sr_err("session: %s: header malloc failed", __func__);
+		return SR_ERR_MALLOC;
+	}
+
 	/* Send header packet to the session bus. */
-	packet = g_malloc(sizeof(struct sr_datafeed_packet));
-	header = g_malloc(sizeof(struct sr_datafeed_header));
-	if (!packet || !header)
-		return SR_ERR;
 	packet->type = SR_DF_HEADER;
 	packet->length = sizeof(struct sr_datafeed_header);
 	packet->payload = (unsigned char *)header;
@@ -270,7 +284,6 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 
 	return SR_OK;
 }
-
 
 struct sr_device_plugin session_driver = {
 	"session",

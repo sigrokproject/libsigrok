@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sigrok.h>
+#include <sigrok-internal.h>
 
 /**
  * Convert a numeric samplerate value to its "natural" string representation.
@@ -114,7 +115,12 @@ char **sr_parse_triggerstring(struct sr_device *device,
 
 	max_probes = g_slist_length(device->probes);
 	error = FALSE;
-	triggerlist = g_malloc0(max_probes * sizeof(char *));
+
+	if (!(triggerlist = g_try_malloc0(max_probes * sizeof(char *)))) {
+		sr_err("session file: %s: metafile malloc failed", __func__);
+		return NULL;
+	}
+
 	tokens = g_strsplit(triggerstring, ",", max_probes);
 	trigger_types = device->plugin->get_device_info(0, SR_DI_TRIGGER_TYPES);
 	if (trigger_types == NULL)

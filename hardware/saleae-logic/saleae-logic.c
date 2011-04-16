@@ -569,7 +569,12 @@ void receive_transfer(struct libusb_transfer *transfer)
 	user_data = transfer->user_data;
 
 	/* Fire off a new request. */
-	new_buf = g_malloc(4096);
+	if (!(new_buf = g_try_malloc(4096))) {
+		sr_err("saleae: %s: new_buf malloc failed", __func__);
+		// return SR_ERR_MALLOC;
+		return; /* FIXME */
+	}
+
 	transfer->buffer = new_buf;
 	transfer->length = 4096;
 	if (libusb_submit_transfer(transfer) != 0) {
@@ -680,15 +685,23 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
 		return SR_ERR;
 
-	packet = g_malloc(sizeof(struct sr_datafeed_packet));
-	header = g_malloc(sizeof(struct sr_datafeed_header));
-	if (!packet || !header)
-		return SR_ERR;
+	if (!(packet = g_try_malloc(sizeof(struct sr_datafeed_packet)))) {
+		sr_err("saleae: %s: packet malloc failed", __func__);
+		return SR_ERR_MALLOC;
+	}
+	
+	if (!(header = g_try_malloc(sizeof(struct sr_datafeed_header)))) {
+		sr_err("saleae: %s: header malloc failed", __func__);
+		return SR_ERR_MALLOC;
+	}
 
 	/* Start with 2K transfer, subsequently increased to 4K. */
 	size = 2048;
 	for (i = 0; i < NUM_SIMUL_TRANSFERS; i++) {
-		buf = g_malloc(size);
+		if (!(buf = g_try_malloc(size))) {
+			sr_err("saleae: %s: buf malloc failed", __func__);
+			return SR_ERR_MALLOC;
+		}
 		transfer = libusb_alloc_transfer(0);
 		libusb_fill_bulk_transfer(transfer, sdi->usb->devhdl,
 				2 | LIBUSB_ENDPOINT_IN, buf, size,

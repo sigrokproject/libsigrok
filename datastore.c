@@ -34,8 +34,10 @@ int sr_datastore_new(int unitsize, struct sr_datastore **ds)
 	if (unitsize <= 0)
 		return SR_ERR; /* TODO: Different error? */
 
-	if (!(*ds = g_malloc(sizeof(struct sr_datastore))))
+	if (!(*ds = g_try_malloc(sizeof(struct sr_datastore)))) {
+		sr_err("ds: %s: ds malloc failed", __func__);
 		return SR_ERR_MALLOC;
+	}
 
 	(*ds)->ds_unitsize = unitsize;
 	(*ds)->num_units = 0;

@@ -29,6 +29,7 @@
 #include <string.h>
 #include <glib.h>
 #include <sigrok.h>
+#include <sigrok-internal.h>
 #include "config.h"
 
 struct context {
@@ -45,8 +46,10 @@ static int init(struct sr_output *o)
 	uint64_t samplerate;
 	int num_enabled_probes;
 
-	if (!(ctx = g_malloc(sizeof(struct context))))
+	if (!(ctx = g_try_malloc(sizeof(struct context)))) {
+		sr_err("ols out: %s: ctx malloc failed", __func__);
 		return SR_ERR_MALLOC;
+	}
 	o->internal = ctx;
 
 	ctx->num_samples = 0;
