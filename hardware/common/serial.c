@@ -163,7 +163,12 @@ void *serial_backup_params(int fd)
 #else
 	struct termios *term;
 
-	term = malloc(sizeof(struct termios));
+	/* TODO: 'term' is never g_free()'d? */
+	if (!(term = g_try_malloc(sizeof(struct termios)))) {
+		sr_err("serial: %s: term malloc failed", __func__);
+		return NULL;
+	}
+
 	tcgetattr(fd, term);
 
 	return term;
