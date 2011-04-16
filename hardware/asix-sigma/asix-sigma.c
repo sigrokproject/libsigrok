@@ -333,11 +333,14 @@ static int bin2bitbang(const char *filename,
 
 	if (!(compressed_buf = g_try_malloc(file_size))) {
 		sr_err("asix: %s: compressed_buf malloc failed", __func__);
+		fclose(f);
 		return SR_ERR_MALLOC;
 	}
 
 	if (!(firmware = g_try_malloc(buffer_size))) {
 		sr_err("asix: %s: firmware malloc failed", __func__);
+		fclose(f);
+		g_free(compressed_buf);
 		return SR_ERR_MALLOC;
 	}
 
@@ -364,6 +367,8 @@ static int bin2bitbang(const char *filename,
 	*buf = p = (unsigned char *)g_try_malloc(*buf_size);
 	if (!p) {
 		sr_err("asix: %s: buf/p malloc failed", __func__);
+		g_free(compressed_buf);
+		g_free(firmware);
 		return SR_ERR_MALLOC;
 	}
 
@@ -432,7 +437,7 @@ static int hw_init(const char *deviceinfo)
 
 	return 1;
 free:
-	free(sigma);
+	g_free(sigma);
 	return 0;
 }
 
