@@ -340,9 +340,11 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	struct sr_datafeed_header *header;
 	struct databag *mydata;
 
-	mydata = malloc(sizeof(struct databag));
-	if (!mydata)
+	/* TODO: 'mydata' is never g_free()'d? */
+	if (!(mydata = g_try_malloc(sizeof(struct databag)))) {
+		sr_err("demo: %s: mydata malloc failed", __func__);
 		return SR_ERR_MALLOC;
+	}
 
 	mydata->sample_generator = default_genmode;
 	mydata->session_device_id = session_device_id;
@@ -376,10 +378,15 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	if (!my_thread)
 		return SR_ERR;
 
-	packet = malloc(sizeof(struct sr_datafeed_packet));
-	header = malloc(sizeof(struct sr_datafeed_header));
-	if (!packet || !header)
+	if (!(packet = g_try_malloc(sizeof(struct sr_datafeed_packet)))) {
+		sr_err("demo: %s: packet malloc failed", __func__);
 		return SR_ERR_MALLOC;
+	}
+
+	if (!(header = g_try_malloc(sizeof(struct sr_datafeed_header)))) {
+		sr_err("demo: %s: header malloc failed", __func__);
+		return SR_ERR_MALLOC;
+	}
 
 	packet->type = SR_DF_HEADER;
 	packet->length = sizeof(struct sr_datafeed_header);
@@ -391,8 +398,8 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	header->num_logic_probes = NUM_PROBES;
 	header->num_analog_probes = 0;
 	sr_session_bus(session_device_id, packet);
-	free(header);
-	free(packet);
+	g_free(header);
+	g_free(packet);
 
 	return SR_OK;
 }
