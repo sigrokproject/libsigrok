@@ -18,12 +18,13 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
+#include "config.h" /* Must come before sigrok.h */
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <sigrok.h>
+#include <sigrok-internal.h>
 #include <alsa/asoundlib.h>
-#include "config.h"
 
 #define NUM_PROBES 2
 #define SAMPLE_WIDTH 16
@@ -53,10 +54,10 @@ static int hw_init(const char *deviceinfo)
 	/* Avoid compiler warnings. */
 	deviceinfo = deviceinfo;
 
-	alsa = malloc(sizeof(struct alsa));
-	if (!alsa)
+	if (!(alsa = g_try_malloc0(sizeof(struct alsa)))) {
+		sr_err("alsa: %s: alsa malloc failed", __func__);
 		return 0;
-	memset(alsa, 0, sizeof(struct alsa));
+	}
 
 	sdi = sr_device_instance_new(0, SR_ST_ACTIVE, "alsa", NULL, NULL);
 	if (!sdi)
@@ -68,7 +69,7 @@ static int hw_init(const char *deviceinfo)
 
 	return 1;
 free_alsa:
-	free(alsa);
+	g_free(alsa);
 	return 0;
 }
 
@@ -86,14 +87,14 @@ static int hw_opendev(int device_index)
 					SND_PCM_STREAM_CAPTURE, 0);
 	if (err < 0) {
 		sr_warn("cannot open audio device %s (%s)", AUDIO_DEV,
-				snd_strerror(err));
+			snd_strerror(err));
 		return SR_ERR;
 	}
 
 	err = snd_pcm_hw_params_malloc(&alsa->hw_params);
 	if (err < 0) {
 		sr_warn("cannot allocate hardware parameter structure (%s)",
-				snd_strerror(err));
+			snd_strerror(err));
 		return SR_ERR;
 	}
 
@@ -223,9 +224,10 @@ static int receive_data(int fd, int revents, void *user_data)
 			return FALSE;
 		}
 
-		outb = malloc(sample_size * count);
-		if (!outb)
+		if (!(outb = g_try_malloc(sample_size * count))) {
+			sr_err("alsa: %s: outb malloc failed", __func__);
 			return FALSE;
+		}
 
 		for (i = 0; i < count; i++) {
 			sample = (struct sr_analog_sample *)
@@ -245,7 +247,7 @@ static int receive_data(int fd, int revents, void *user_data)
 		packet.unitsize = sample_size;
 		packet.payload = outb;
 		sr_session_bus(user_data, &packet);
-		free(outb);
+		g_free(outb);
 		alsa->limit_samples -= count;
 
 	} while (alsa->limit_samples > 0);
@@ -318,15 +320,16 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 		return SR_ERR;
 	}
 
-	ufds = malloc(count * sizeof(struct pollfd));
-	if (!ufds)
+	if (!(ufds = g_try_malloc(count * sizeof(struct pollfd)))) {
+		sr_warn("alsa: %s: ufds malloc failed", __func__);
 		return SR_ERR_MALLOC;
+	}
 
 	err = snd_pcm_poll_descriptors(alsa->capture_handle, ufds, count);
 	if (err < 0) {
 		sr_warn("Unable to obtain poll descriptors (%s)",
 				snd_strerror(err));
-		free(ufds);
+		g_free(ufds);
 		return SR_ERR;
 	}
 
@@ -343,7 +346,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	header.num_logic_probes = 0;
 	header.protocol_id = SR_PROTO_RAW;
 	sr_session_bus(session_device_id, &packet);
-	free(ufds);
+	g_free(ufds);
 
 	return SR_OK;
 }

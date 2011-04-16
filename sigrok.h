@@ -115,7 +115,7 @@ struct sr_datafeed_header {
 	int num_logic_probes;
 };
 
-#if 0
+#if defined(HAVE_LA_ALSA)
 struct sr_analog_probe {
 	uint8_t att;
 	uint8_t res;	/* Needs to be a power of 2, FIXME */
