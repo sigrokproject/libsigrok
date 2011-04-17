@@ -86,12 +86,16 @@ static int mso_send_control_message(struct sr_device_instance *sdi,
 	int i, w, ret, s = n * 2 + sizeof(mso_head) + sizeof(mso_foot);
 	char *p, *buf;
 
+	ret = SR_ERR;
+
 	if (fd < 0)
 		goto ret;
 
-	buf = malloc(s);
-	if (!buf)
+	if (!(buf = g_try_malloc(s))) {
+		sr_err("mso19: %s: buf malloc failed", __func__);
+		ret = SR_ERR_MALLOC;
 		goto ret;
+	}
 
 	p = buf;
 	memcpy(p, mso_head, sizeof(mso_head));
@@ -114,7 +118,7 @@ static int mso_send_control_message(struct sr_device_instance *sdi,
 	}
 	ret = SR_OK;
 free:
-	free(buf);
+	g_free(buf);
 ret:
 	return ret;
 }
@@ -433,10 +437,10 @@ static int hw_init(const char *deviceinfo)
 		strcpy(manufacturer, iProduct + s);
 		sprintf(hwrev, "r%d", mso->hwrev);
 
-		mso = malloc(sizeof(struct mso));
-		if (!mso)
-			continue;
-		memset(mso, 0, sizeof(struct mso));
+		if (!(mso = g_try_malloc0(sizeof(struct mso)))) {
+			sr_err("mso19: %s: mso malloc failed", __func__);
+			continue; /* TODO: Errors handled correctly? */
+		}
 
 		if (mso_parse_serial(iSerial, iProduct, mso) != SR_OK) {
 			sr_warn("Invalid iSerial: %s", iSerial);
