@@ -17,7 +17,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 #ifndef OLS_H_
 #define OLS_H_
 
@@ -59,7 +58,6 @@
 #define FLAG_CLOCK_EXTERNAL        0x40
 #define FLAG_CLOCK_INVERTED        0x80
 #define FLAG_RLE                   0x0100
-
 
 struct ols_device {
 	uint32_t max_samplerate;

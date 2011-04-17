@@ -46,7 +46,6 @@
 #define O_NONBLOCK FIONBIO
 #endif
 
-
 static int capabilities[] = {
 	SR_HWCAP_LOGIC_ANALYZER,
 	SR_HWCAP_SAMPLERATE,
@@ -65,8 +64,6 @@ static struct sr_samplerates samplerates = {
 
 /* List of struct sr_serial_device_instance */
 static GSList *device_instances = NULL;
-
-
 
 static int send_shortcommand(int fd, uint8_t command)
 {
@@ -174,6 +171,7 @@ static struct ols_device *ols_device_new(void)
 {
 	struct ols_device *ols;
 
+	/* TODO: Is 'ols' ever g_free()'d? */
 	if (!(ols = g_try_malloc0(sizeof(struct ols_device)))) {
 		sr_err("ols: %s: ols malloc failed", __func__);
 		return NULL;
@@ -311,7 +309,6 @@ static struct sr_device_instance *get_metadata(int fd)
 	return sdi;
 }
 
-
 static int hw_init(const char *deviceinfo)
 {
 	struct sr_device_instance *sdi;
@@ -321,6 +318,8 @@ static int hw_init(const char *deviceinfo)
 	int devcnt, final_devcnt, num_ports, fd, ret, i;
 	char buf[8], **device_names, **serial_params;
 
+	final_devcnt = 0;
+
 	if (deviceinfo)
 		ports = g_slist_append(NULL, strdup(deviceinfo));
 	else
@@ -328,9 +327,22 @@ static int hw_init(const char *deviceinfo)
 		ports = list_serial_ports();
 
 	num_ports = g_slist_length(ports);
-	fds = calloc(1, num_ports * sizeof(GPollFD));
-	device_names = malloc(num_ports * sizeof(char *));
-	serial_params = malloc(num_ports * sizeof(char *));
+
+	if (!(fds = g_try_malloc0(num_ports * sizeof(GPollFD)))) {
+		sr_err("ols: %s: fds malloc failed", __func__);
+		goto hw_init_free_ports; /* TODO: SR_ERR_MALLOC. */
+	}
+
+	if (!(device_names = g_try_malloc(num_ports * sizeof(char *)))) {
+		sr_err("ols: %s: device_names malloc failed", __func__);
+		goto hw_init_free_fds; /* TODO: SR_ERR_MALLOC. */
+	}
+
+	if (!(serial_params = g_try_malloc(num_ports * sizeof(char *)))) {
+		sr_err("ols: %s: serial_params malloc failed", __func__);
+		goto hw_init_free_device_names; /* TODO: SR_ERR_MALLOC. */
+	}
+
 	devcnt = 0;
 	for (l = ports; l; l = l->next) {
 		/* The discovery procedure is like this: first send the Reset
@@ -374,7 +386,6 @@ static int hw_init(const char *deviceinfo)
 	/* 2ms isn't enough for reliable transfer with pl2303, let's try 10 */
 	usleep(10000);
 
-	final_devcnt = 0;
 	g_poll(fds, devcnt, 1);
 
 	for (i = 0; i < devcnt; i++) {
@@ -408,7 +419,6 @@ static int hw_init(const char *deviceinfo)
 		final_devcnt++;
 		serial_close(fds[i].fd);
 		fds[i].fd = 0;
-
 	}
 
 	/* clean up after all the probing */
@@ -421,9 +431,13 @@ static int hw_init(const char *deviceinfo)
 		free(device_names[i]);
 	}
 
-	free(fds);
-	free(device_names);
-	free(serial_params);
+hw_init_free_serial_params:
+	g_free(serial_params);
+hw_init_free_device_names:
+	g_free(device_names);
+hw_init_free_fds:
+	g_free(fds);
+hw_init_free_ports:
 	g_slist_free(ports);
 
 	return final_devcnt;
@@ -623,7 +637,12 @@ static int receive_data(int fd, int revents, void *user_data)
 		 */
 		sr_source_remove(fd);
 		sr_source_add(fd, G_IO_IN, 30, receive_data, user_data);
-		ols->raw_sample_buf = malloc(ols->limit_samples * 4);
+		ols->raw_sample_buf = g_try_malloc(ols->limit_samples * 4);
+		if (!ols->raw_sample_buf) {
+			sr_err("ols: %s: ols->raw_sample_buf malloc failed",
+			       __func__);
+			return FALSE;
+		}
 		/* fill with 1010... for debugging */
 		memset(ols->raw_sample_buf, 0x82, ols->limit_samples * 4);
 	}
@@ -758,7 +777,7 @@ static int receive_data(int fd, int revents, void *user_data)
 			packet.payload = ols->raw_sample_buf;
 			sr_session_bus(user_data, &packet);
 		}
-		free(ols->raw_sample_buf);
+		g_free(ols->raw_sample_buf);
 
 		serial_flush(fd);
 		serial_close(fd);
@@ -784,6 +803,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 
 	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
 		return SR_ERR;
+
 	ols = sdi->priv;
 
 	if (sdi->status != SR_ST_ACTIVE)
@@ -893,6 +913,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 
 	if (!(header = g_try_malloc(sizeof(struct sr_datafeed_header)))) {
 		sr_err("ols: %s: header malloc failed", __func__);
+		g_free(packet);
 		return SR_ERR_MALLOC;
 	}
 
@@ -907,6 +928,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	header->num_logic_probes = NUM_PROBES;
 	header->num_analog_probes = 0;
 	sr_session_bus(session_device_id, packet);
+
 	g_free(header);
 	g_free(packet);
 
