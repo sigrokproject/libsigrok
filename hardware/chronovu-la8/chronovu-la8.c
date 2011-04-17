@@ -19,6 +19,7 @@
  */
 
 #include <ftdi.h>
+#include <glib.h>
 #include <sigrok.h>
 #include <sigrok-internal.h>
 
@@ -396,6 +397,63 @@ static int la8_reset(struct la8 *la8)
 	return SR_OK;
 }
 
+static int configure_probes(struct la8 *la8, GSList *probes)
+{
+	struct sr_probe *probe;
+	GSList *l;
+	uint8_t probe_bit;
+	char *tc;
+
+	la8->trigger_pattern = 0;
+	la8->trigger_mask = 0; /* Default to "don't care" for all probes. */
+
+	for (l = probes; l; l = l->next) {
+		probe = (struct sr_probe *)l->data;
+
+		if (!probe) {
+			sr_err("la8: %s: probe was NULL", __func__);
+			return SR_ERR;
+		}
+
+		/* Skip disabled probes. */
+		if (!probe->enabled)
+			continue;
+
+		/* Skip (enabled) probes with no configured trigger. */
+		if (!probe->trigger)
+			continue;
+
+		/* Note: Must only be run if probe->trigger != NULL. */
+		if (probe->index < 0 || probe->index > 7) {
+			sr_err("la8: %s: invalid probe index %d, must be "
+			       "between 0 and 7", __func__, probe->index);
+			return SR_ERR;
+		}
+
+		probe_bit = (1 << (probe->index - 1));
+
+		/* Configure the probe's trigger mask and trigger pattern. */
+		for (tc = probe->trigger; tc && *tc; tc++) {
+			la8->trigger_mask |= probe_bit;
+
+			/* Sanity check, LA8 only supports low/high trigger. */
+			if (*tc != '0' && *tc != '1') {
+				sr_err("la8: %s: invalid trigger '%c', only "
+				       "'0'/'1' supported", __func__, *tc);
+				return SR_ERR;
+			}
+
+			if (*tc == '1')
+				la8->trigger_pattern |= probe_bit;
+		}
+	}
+
+	sr_dbg("la8: %s: trigger_mask = 0x%x, trigger_pattern = 0x%x",
+	       __func__, la8->trigger_mask, la8->trigger_pattern);
+
+	return SR_OK;
+}
+
 static int hw_init(const char *deviceinfo)
 {
 	int ret;
@@ -730,10 +788,10 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 		sr_dbg("la8: SAMPLERATE = %" PRIu64, la8->cur_samplerate);
 		break;
 	case SR_HWCAP_PROBECONFIG:
-		/* Nothing to do, but this entry must exist. Fix this. */
-		/* TODO? */
-		sr_dbg("la8: %s: SR_HWCAP_PROBECONFIG called", __func__);
-		return SR_OK;
+		if (configure_probes(la8, (GSList *)value) != SR_OK) {
+			sr_err("la8: %s: probe config failed", __func__);
+			return SR_ERR;
+		}
 		break;
 	case SR_HWCAP_LIMIT_MSEC:
 		if (*(uint64_t *)value == 0) {
@@ -842,6 +900,7 @@ static int receive_data(int fd, int revents, void *user_data)
 	/* Get one block of data (4096 bytes). */
 	if ((ret = la8_read_block(la8)) < 0) {
 		sr_warn("la8: %s: la8_read_block error: %d", __func__, ret);
+		hw_stop_acquisition(sdi->index, user_data);
 		return FALSE;
 	}
 
