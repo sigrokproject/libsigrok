@@ -431,7 +431,6 @@ static int hw_init(const char *deviceinfo)
 		free(device_names[i]);
 	}
 
-hw_init_free_serial_params:
 	g_free(serial_params);
 hw_init_free_device_names:
 	g_free(device_names);

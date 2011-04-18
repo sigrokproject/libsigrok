@@ -23,6 +23,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <sigrok.h>
+#include <sigrok-internal.h>
 #ifdef _WIN32
 #include <io.h>
 #include <fcntl.h>
