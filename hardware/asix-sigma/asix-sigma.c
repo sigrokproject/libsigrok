@@ -20,7 +20,7 @@
  */
 
 /*
- * ASIX Sigma Logic Analyzer Driver
+ * ASIX SIGMA Logic Analyzer Driver
  */
 
 #include "config.h"
@@ -621,7 +621,7 @@ static int configure_probes(struct sr_device_instance *sdi, GSList *probes)
 		if (sigma->cur_samplerate >= SR_MHZ(100)) {
 			/* Fast trigger support. */
 			if (trigger_set) {
-				sr_warn("Asix Sigma only supports a single "
+				sr_warn("ASIX SIGMA only supports a single "
 					"pin trigger in 100 and 200MHz mode.");
 				return SR_ERR;
 			}
@@ -630,7 +630,7 @@ static int configure_probes(struct sr_device_instance *sdi, GSList *probes)
 			else if (probe->trigger[0] == 'r')
 				sigma->trigger.risingmask |= probebit;
 			else {
-				sr_warn("Asix Sigma only supports "
+				sr_warn("ASIX SIGMA only supports "
 					"rising/falling trigger in 100 "
 					"and 200MHz mode.");
 				return SR_ERR;
@@ -662,7 +662,7 @@ static int configure_probes(struct sr_device_instance *sdi, GSList *probes)
                          * does not permit ORed triggers.
                          */
 			if (trigger_set > 1) {
-				sr_warn("Asix Sigma only supports 1 rising/"
+				sr_warn("ASIX SIGMA only supports 1 rising/"
 					"falling triggers.");
 				return SR_ERR;
 			}
