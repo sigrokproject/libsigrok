@@ -50,9 +50,6 @@ struct la8 {
 	/** The current sampling limit (in number of samples). */
 	uint64_t limit_samples;
 
-	/** The number of probes. */
-	int num_probes;
-
 	/** TODO */
 	gpointer session_id;
 
@@ -477,7 +474,6 @@ static int hw_init(const char *deviceinfo)
 	la8->cur_samplerate = SR_MHZ(100); /* 100MHz == max. samplerate */
 	la8->limit_msec = 0;
 	la8->limit_samples = 0;
-	la8->num_probes = NUM_PROBES;
 	la8->session_id = NULL;
 	la8->mangled_buf = NULL;
 	la8->final_buf = NULL;
@@ -993,7 +989,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	gettimeofday(&header.starttime, NULL);
 	header.samplerate = la8->cur_samplerate;
 	header.protocol_id = SR_PROTO_RAW;
-	header.num_logic_probes = la8->num_probes;
+	header.num_logic_probes = NUM_PROBES;
 	header.num_analog_probes = 0;
 	sr_session_bus(session_device_id, &packet);
 
