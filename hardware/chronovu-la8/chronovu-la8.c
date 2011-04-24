@@ -20,6 +20,7 @@
 
 #include <ftdi.h>
 #include <glib.h>
+#include <string.h>
 #include <sigrok.h>
 #include <sigrok-internal.h>
 
@@ -54,10 +55,10 @@ struct la8 {
 	gpointer session_id;
 
 	/**
-	 * An 8MB buffer containing the (mangled) samples from the device.
+	 * An 4KB buffer containing some (mangled) samples from the device.
 	 * Format: Pretty mangled-up (due to hardware reasons), see code.
 	 */
-	uint8_t *mangled_buf;
+	uint8_t mangled_buf[4096];
 
 	/**
 	 * An 8MB buffer where we'll store the de-mangled samples.
@@ -475,7 +476,7 @@ static int hw_init(const char *deviceinfo)
 	la8->limit_msec = 0;
 	la8->limit_samples = 0;
 	la8->session_id = NULL;
-	la8->mangled_buf = NULL;
+	memset(la8->mangled_buf, 0, 4096);
 	la8->final_buf = NULL;
 	la8->trigger_pattern = 0x00; /* Value irrelevant, see trigger_mask. */
 	la8->trigger_mask = 0x00; /* All probes are "don't care". */
@@ -484,18 +485,11 @@ static int hw_init(const char *deviceinfo)
 	la8->block_counter = 0;
 	la8->divcount = 0; /* 10ns sample period == 100MHz samplerate */
 
-	/* Allocate memory for the raw (mangled) data from the LA8. */
-	if (!(la8->mangled_buf = g_try_malloc(SDRAM_SIZE))) {
-		sr_err("la8: %s: mangled_buf malloc failed", __func__);
-		ret = SR_ERR_MALLOC;
-		goto err_free_la8;
-	}
-
 	/* Allocate memory where we'll store the de-mangled data. */
 	if (!(la8->final_buf = g_try_malloc(SDRAM_SIZE))) {
 		sr_err("la8: %s: final_buf malloc failed", __func__);
 		ret = SR_ERR_MALLOC;
-		goto err_free_mangled_buf;
+		goto err_free_la8;
 	}
 
 	/* Allocate memory for the FTDI context (ftdic) and initialize it. */
@@ -543,8 +537,6 @@ err_free_ftdic:
 	free(la8->ftdic); /* NOT g_free()! */
 err_free_final_buf:
 	g_free(la8->final_buf);
-err_free_mangled_buf:
-	g_free(la8->mangled_buf);
 err_free_la8:
 	g_free(la8);
 err_free_nothing:
@@ -667,7 +659,6 @@ static void hw_closedev(int device_index)
 	sdi->status = SR_ST_INACTIVE;
 
 	sr_dbg("la8: %s: freeing sample buffers", __func__);
-	free(la8->mangled_buf);
 	free(la8->final_buf);
 }
 
