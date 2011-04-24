@@ -172,13 +172,13 @@ static int is_valid_samplerate(uint64_t samplerate)
 static uint8_t samplerate_to_divcount(uint64_t samplerate)
 {
 	if (samplerate == 0) {
-		sr_warn("la8: %s: samplerate was 0", __func__);
+		sr_err("la8: %s: samplerate was 0", __func__);
 		return 0xff;
 	}
 
 	if (!is_valid_samplerate(samplerate)) {
-		sr_warn("la8: %s: can't get divcount, samplerate invalid",
-			__func__);
+		sr_err("la8: %s: can't get divcount, samplerate invalid",
+		       __func__);
 		return 0xff;
 	}
 
@@ -198,22 +198,22 @@ static int la8_write(struct la8 *la8, uint8_t *buf, int size)
 	int bytes_written;
 
 	if (!la8) {
-		sr_warn("la8: %s: la8 was NULL", __func__);
+		sr_err("la8: %s: la8 was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!la8->ftdic) {
-		sr_warn("la8: %s: la8->ftdic was NULL", __func__);
+		sr_err("la8: %s: la8->ftdic was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!buf) {
-		sr_warn("la8: %s: buf was NULL", __func__);
+		sr_err("la8: %s: buf was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (size < 0) {
-		sr_warn("la8: %s: size was < 0", __func__);
+		sr_err("la8: %s: size was < 0", __func__);
 		return SR_ERR_ARG;
 	}
 
@@ -245,22 +245,22 @@ static int la8_read(struct la8 *la8, uint8_t *buf, int size)
 	int bytes_read;
 
 	if (!la8) {
-		sr_warn("la8: %s: la8 was NULL", __func__);
+		sr_err("la8: %s: la8 was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!la8->ftdic) {
-		sr_warn("la8: %s: la8->ftdic was NULL", __func__);
+		sr_err("la8: %s: la8->ftdic was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!buf) {
-		sr_warn("la8: %s: buf was NULL", __func__);
+		sr_err("la8: %s: buf was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (size <= 0) {
-		sr_warn("la8: %s: size was <= 0", __func__);
+		sr_err("la8: %s: size was <= 0", __func__);
 		return SR_ERR_ARG;
 	}
 
@@ -282,12 +282,12 @@ static int la8_close(struct la8 *la8)
 	int ret;
 
 	if (!la8) {
-		sr_warn("la8: %s: la8 was NULL", __func__);
+		sr_err("la8: %s: la8 was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!la8->ftdic) {
-		sr_warn("la8: %s: la8->ftdic was NULL", __func__);
+		sr_err("la8: %s: la8->ftdic was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
@@ -314,12 +314,12 @@ static int la8_close_usb_reset_sequencer(struct la8 *la8)
 	sr_dbg("la8: entering %s", __func__);
 
 	if (!la8) {
-		sr_warn("la8: %s: la8 was NULL", __func__);
+		sr_err("la8: %s: la8 was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!la8->ftdic) {
-		sr_warn("la8: %s: la8->ftdic was NULL", __func__);
+		sr_err("la8: %s: la8->ftdic was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
@@ -367,12 +367,12 @@ static int la8_reset(struct la8 *la8)
 	int bytes_read;
 
 	if (!la8) {
-		sr_warn("la8: %s: la8 was NULL", __func__);
+		sr_err("la8: %s: la8 was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!la8->ftdic) {
-		sr_warn("la8: %s: la8->ftdic was NULL", __func__);
+		sr_err("la8: %s: la8->ftdic was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
@@ -467,7 +467,7 @@ static int hw_init(const char *deviceinfo)
 
 	/* Allocate memory for our private driver context. */
 	if (!(la8 = g_try_malloc(sizeof(struct la8)))) {
-		sr_warn("la8: %s: struct la8 malloc failed", __func__);
+		sr_err("la8: %s: struct la8 malloc failed", __func__);
 		ret = SR_ERR_MALLOC;
 		goto err_free_nothing;
 	}
@@ -490,21 +490,21 @@ static int hw_init(const char *deviceinfo)
 
 	/* Allocate memory for the raw (mangled) data from the LA8. */
 	if (!(la8->mangled_buf = g_try_malloc(SDRAM_SIZE))) {
-		sr_warn("la8: %s: mangled_buf malloc failed", __func__);
+		sr_err("la8: %s: mangled_buf malloc failed", __func__);
 		ret = SR_ERR_MALLOC;
 		goto err_free_la8;
 	}
 
 	/* Allocate memory where we'll store the de-mangled data. */
 	if (!(la8->final_buf = g_try_malloc(SDRAM_SIZE))) {
-		sr_warn("la8: %s: final_buf malloc failed", __func__);
+		sr_err("la8: %s: final_buf malloc failed", __func__);
 		ret = SR_ERR_MALLOC;
 		goto err_free_mangled_buf;
 	}
 
 	/* Allocate memory for the FTDI context (ftdic) and initialize it. */
 	if (!(la8->ftdic = ftdi_new())) {
-		sr_warn("la8: %s: ftdi_new failed", __func__);
+		sr_err("la8: %s: ftdi_new failed", __func__);
 		ret = SR_ERR; /* TODO: More specific error? */
 		goto err_free_final_buf;
 	}
@@ -512,8 +512,8 @@ static int hw_init(const char *deviceinfo)
 	/* Check for the device and temporarily open it. */
 	if ((ret = ftdi_usb_open_desc(la8->ftdic, USB_VENDOR_ID,
 			USB_PRODUCT_ID, USB_DESCRIPTION, NULL)) < 0) {
-		sr_warn("la8: %s: ftdi_usb_open_desc: (%d) %s",
-			__func__, ret, ftdi_get_error_string(la8->ftdic));
+		sr_err("la8: %s: ftdi_usb_open_desc: (%d) %s",
+		       __func__, ret, ftdi_get_error_string(la8->ftdic));
 		(void) la8_close_usb_reset_sequencer(la8); /* Ignore errors. */
 		ret = SR_ERR; /* TODO: More specific error? */
 		goto err_free_ftdic;
@@ -524,7 +524,7 @@ static int hw_init(const char *deviceinfo)
 	sdi = sr_device_instance_new(0, SR_ST_INITIALIZING,
 			USB_VENDOR_NAME, USB_MODEL_NAME, USB_MODEL_VERSION);
 	if (!sdi) {
-		sr_warn("la8: %s: sr_device_instance_new failed", __func__);
+		sr_err("la8: %s: sr_device_instance_new failed", __func__);
 		ret = SR_ERR; /* TODO: More specific error? */
 		goto err_close_ftdic;
 	}
@@ -563,12 +563,12 @@ static int hw_opendev(int device_index)
 	struct la8 *la8;
 
 	if (!(sdi = sr_get_device_instance(device_instances, device_index))) {
-		sr_warn("la8: %s: sdi was NULL", __func__);
+		sr_err("la8: %s: sdi was NULL", __func__);
 		return SR_ERR; /* TODO: SR_ERR_ARG? */
 	}
 
 	if (!(la8 = sdi->priv)) {
-		sr_warn("la8: %s: sdi->priv was NULL", __func__);
+		sr_err("la8: %s: sdi->priv was NULL", __func__);
 		return SR_ERR; /* TODO: SR_ERR_ARG? */
 	}
 
@@ -577,8 +577,8 @@ static int hw_opendev(int device_index)
 	/* Open the device. */
 	if ((ret = ftdi_usb_open_desc(la8->ftdic, USB_VENDOR_ID,
 			USB_PRODUCT_ID, USB_DESCRIPTION, NULL)) < 0) {
-		sr_warn("la8: %s: ftdi_usb_open_desc: (%d) %s",
-			__func__, ret, ftdi_get_error_string(la8->ftdic));
+		sr_err("la8: %s: ftdi_usb_open_desc: (%d) %s",
+		       __func__, ret, ftdi_get_error_string(la8->ftdic));
 		(void) la8_close_usb_reset_sequencer(la8); /* Ignore errors. */
 		return SR_ERR;
 	}
@@ -586,8 +586,8 @@ static int hw_opendev(int device_index)
 
 	/* Purge RX/TX buffers in the FTDI chip. */
 	if ((ret = ftdi_usb_purge_buffers(la8->ftdic)) < 0) {
-		sr_warn("la8: %s: ftdi_usb_purge_buffers: (%d) %s",
-			__func__, ret, ftdi_get_error_string(la8->ftdic));
+		sr_err("la8: %s: ftdi_usb_purge_buffers: (%d) %s",
+		       __func__, ret, ftdi_get_error_string(la8->ftdic));
 		(void) la8_close_usb_reset_sequencer(la8); /* Ignore errors. */
 		goto err_opendev_close_ftdic;
 	}
@@ -595,8 +595,8 @@ static int hw_opendev(int device_index)
 
 	/* Enable flow control in the FTDI chip. */
 	if ((ret = ftdi_setflowctrl(la8->ftdic, SIO_RTS_CTS_HS)) < 0) {
-		sr_warn("la8: %s: ftdi_setflowcontrol: (%d) %s",
-			__func__, ret, ftdi_get_error_string(la8->ftdic));
+		sr_err("la8: %s: ftdi_setflowcontrol: (%d) %s",
+		       __func__, ret, ftdi_get_error_string(la8->ftdic));
 		(void) la8_close_usb_reset_sequencer(la8); /* Ignore errors. */
 		goto err_opendev_close_ftdic;
 	}
@@ -619,12 +619,12 @@ static int set_samplerate(struct sr_device_instance *sdi, uint64_t samplerate)
 	struct la8 *la8;
 
 	if (!sdi) {
-		sr_warn("la8: %s: sdi was NULL", __func__);
+		sr_err("la8: %s: sdi was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!(la8 = sdi->priv)) {
-		sr_warn("la8: %s: sdi->priv was NULL", __func__);
+		sr_err("la8: %s: sdi->priv was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
@@ -650,12 +650,12 @@ static void hw_closedev(int device_index)
 	struct la8 *la8;
 
 	if (!(sdi = sr_get_device_instance(device_instances, device_index))) {
-		sr_warn("la8: %s: sdi was NULL", __func__);
+		sr_err("la8: %s: sdi was NULL", __func__);
 		return;
 	}
 
 	if (!(la8 = sdi->priv)) {
-		sr_warn("la8: %s: sdi->priv was NULL", __func__);
+		sr_err("la8: %s: sdi->priv was NULL", __func__);
 		return;
 	}
 
@@ -685,13 +685,14 @@ static void hw_cleanup(void)
 	/* Properly close all devices. */
 	for (l = device_instances; l; l = l->next) {
 		if ((sdi = l->data) == NULL) {
-			sr_warn("la8: %s: sdi was NULL", __func__);
+			sr_warn("la8: %s: sdi was NULL, continuing", __func__);
 			continue;
 		}
 		if (sdi->priv != NULL)
 			free(sdi->priv);
 		else
-			sr_warn("la8: %s: sdi->priv was NULL", __func__);
+			sr_warn("la8: %s: sdi->priv was NULL, nothing "
+				"to do", __func__);
 		sr_device_instance_free(sdi); /* Returns void. */
 	}
 	g_slist_free(device_instances); /* Returns void. */
@@ -707,12 +708,12 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 	sr_dbg("la8: entering %s", __func__);
 
 	if (!(sdi = sr_get_device_instance(device_instances, device_index))) {
-		sr_warn("la8: %s: sdi was NULL", __func__);
+		sr_err("la8: %s: sdi was NULL", __func__);
 		return NULL;
 	}
 
 	if (!(la8 = sdi->priv)) {
-		sr_warn("la8: %s: sdi->priv was NULL", __func__);
+		sr_err("la8: %s: sdi->priv was NULL", __func__);
 		return NULL;
 	}
 
@@ -735,7 +736,7 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 		break;
 	default:
 		/* Unknown device info ID, return NULL. */
-		sr_warn("la8: %s: Unknown device info ID", __func__);
+		sr_err("la8: %s: Unknown device info ID", __func__);
 		info = NULL;
 		break;
 	}
@@ -772,12 +773,12 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 	sr_dbg("la8: entering %s", __func__);
 
 	if (!(sdi = sr_get_device_instance(device_instances, device_index))) {
-		sr_warn("la8: %s: sdi was NULL", __func__);
+		sr_err("la8: %s: sdi was NULL", __func__);
 		return SR_ERR; /* TODO: SR_ERR_ARG? */
 	}
 
 	if (!(la8 = sdi->priv)) {
-		sr_warn("la8: %s: sdi->priv was NULL", __func__);
+		sr_err("la8: %s: sdi->priv was NULL", __func__);
 		return SR_ERR; /* TODO: SR_ERR_ARG? */
 	}
 
@@ -795,7 +796,7 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 		break;
 	case SR_HWCAP_LIMIT_MSEC:
 		if (*(uint64_t *)value == 0) {
-			sr_warn("la8: %s: LIMIT_MSEC can't be 0", __func__);
+			sr_err("la8: %s: LIMIT_MSEC can't be 0", __func__);
 			return SR_ERR;
 		}
 		la8->limit_msec = *(uint64_t *)value;
@@ -803,7 +804,7 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 		break;
 	case SR_HWCAP_LIMIT_SAMPLES:
 		if (*(uint64_t *)value < MIN_NUM_SAMPLES) {
-			sr_warn("la8: %s: LIMIT_SAMPLES too small", __func__);
+			sr_err("la8: %s: LIMIT_SAMPLES too small", __func__);
 			return SR_ERR;
 		}
 		la8->limit_samples = *(uint64_t *)value;
@@ -811,7 +812,7 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 		break;
 	default:
 		/* Unknown capability, return SR_ERR. */
-		sr_warn("la8: %s: Unknown capability", __func__);
+		sr_err("la8: %s: Unknown capability", __func__);
 		return SR_ERR;
 		break;
 	}
@@ -831,12 +832,12 @@ static int la8_read_block(struct la8 *la8)
 	time_t now;
 
 	if (!la8) {
-		sr_warn("la8: %s: la8 was NULL", __func__);
+		sr_err("la8: %s: la8 was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!la8->ftdic) {
-		sr_warn("la8: %s: la8->ftdic was NULL", __func__);
+		sr_err("la8: %s: la8->ftdic was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
@@ -888,18 +889,18 @@ static int receive_data(int fd, int revents, void *user_data)
 	revents = revents;
 
 	if (!(sdi = user_data)) {
-		sr_warn("la8: %s: user_data was NULL", __func__);
+		sr_err("la8: %s: user_data was NULL", __func__);
 		return FALSE;
 	}
 
 	if (!(la8 = sdi->priv)) {
-		sr_warn("la8: %s: sdi->priv was NULL", __func__);
+		sr_err("la8: %s: sdi->priv was NULL", __func__);
 		return FALSE;
 	}
 
 	/* Get one block of data (4096 bytes). */
 	if ((ret = la8_read_block(la8)) < 0) {
-		sr_warn("la8: %s: la8_read_block error: %d", __func__, ret);
+		sr_err("la8: %s: la8_read_block error: %d", __func__, ret);
 		hw_stop_acquisition(sdi->index, user_data);
 		return FALSE;
 	}
@@ -941,23 +942,23 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	sr_dbg("la8: entering %s", __func__);
 
 	if (!(sdi = sr_get_device_instance(device_instances, device_index))) {
-		sr_warn("la8: %s: sdi was NULL", __func__);
+		sr_err("la8: %s: sdi was NULL", __func__);
 		return SR_ERR; /* TODO: SR_ERR_ARG? */
 	}
 
 	if (!(la8 = sdi->priv)) {
-		sr_warn("la8: %s: sdi->priv was NULL", __func__);
+		sr_err("la8: %s: sdi->priv was NULL", __func__);
 		return SR_ERR; /* TODO: SR_ERR_ARG? */
 	}
 
 	if (!la8->ftdic) {
-		sr_warn("la8: %s: la8->ftdic was NULL", __func__);
+		sr_err("la8: %s: la8->ftdic was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	la8->divcount = samplerate_to_divcount(la8->cur_samplerate);
 	if (la8->divcount == 0xff) {
-		sr_warn("la8: %s: invalid divcount/samplerate", __func__);
+		sr_err("la8: %s: invalid divcount/samplerate", __func__);
 		return SR_ERR;
 	}
 
@@ -971,10 +972,10 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	bytes_written = la8_write(la8, buf, 4);
 
 	if (bytes_written < 0) {
-		sr_warn("la8: acquisition failed to start");
+		sr_err("la8: acquisition failed to start");
 		return SR_ERR;
 	} else if (bytes_written != 4) {
-		sr_warn("la8: acquisition failed to start");
+		sr_err("la8: acquisition failed to start");
 		return SR_ERR; /* TODO: Other error and return code? */
 	}
 
@@ -1016,12 +1017,12 @@ static void hw_stop_acquisition(int device_index, gpointer session_device_id)
 	sr_dbg("la8: stopping acquisition");
 
 	if (!(sdi = sr_get_device_instance(device_instances, device_index))) {
-		sr_warn("la8: %s: sdi was NULL", __func__);
+		sr_err("la8: %s: sdi was NULL", __func__);
 		return;
 	}
 
 	if (!(la8 = sdi->priv)) {
-		sr_warn("la8: %s: sdi->priv was NULL", __func__);
+		sr_err("la8: %s: sdi->priv was NULL", __func__);
 		return;
 	}
 
