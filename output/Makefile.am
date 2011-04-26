@@ -28,6 +28,7 @@ libsigrokoutput_la_SOURCES = \
 	output_ols.c \
 	output_gnuplot.c \
 	output_chronovu_la8.c \
+	output_csv.c \
 	output.c
 
 # Temporarily disabled: output_analog.c
