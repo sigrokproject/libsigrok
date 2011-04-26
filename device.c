@@ -194,7 +194,7 @@ struct sr_probe *sr_device_probe_find(struct sr_device *device, int probenum)
 	return found_probe;
 }
 
-/* TODO: return SIGROK_ERR if probenum not found */
+/* TODO: return SR_ERR if probenum not found */
 void sr_device_probe_name(struct sr_device *device, int probenum,
 			  const char *name)
 {
@@ -209,7 +209,7 @@ void sr_device_probe_name(struct sr_device *device, int probenum,
 	p->name = g_strdup(name);
 }
 
-/* TODO: return SIGROK_ERR if probenum not found */
+/* TODO: return SR_ERR if probenum not found */
 void sr_device_trigger_clear(struct sr_device *device)
 {
 	struct sr_probe *p;
@@ -227,7 +227,7 @@ void sr_device_trigger_clear(struct sr_device *device)
 	}
 }
 
-/* TODO: return SIGROK_ERR if probenum not found */
+/* TODO: return SR_ERR if probenum not found */
 void sr_device_trigger_set(struct sr_device *device, int probenum,
 			   const char *trigger)
 {
