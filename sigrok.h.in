@@ -33,6 +33,11 @@
 extern "C" {
 #endif
 
+#define SIGROK_MAJOR_VERSION @SIGROK_MAJOR_VERSION@
+#define SIGROK_MINOR_VERSION @SIGROK_MINOR_VERSION@
+#define SIGROK_MICRO_VERSION @SIGROK_MICRO_VERSION@
+#define SIGROK_VERSION       "@SIGROK_VERSION@"
+
 /*
  * Status/error codes returned by libsigrok functions.
  *
