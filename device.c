@@ -65,8 +65,8 @@ void sr_device_close_all(void)
 
 	while (devices) {
 		device = devices->data;
-		if (device->plugin && device->plugin->close)
-			device->plugin->close(device->plugin_index);
+		if (device->plugin && device->plugin->closedev)
+			device->plugin->closedev(device->plugin_index);
 		sr_device_destroy(device);
 	}
 }

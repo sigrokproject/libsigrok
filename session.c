@@ -71,8 +71,8 @@ int sr_session_device_add(struct sr_device *device)
 {
 	int ret;
 
-	if (device->plugin && device->plugin->open) {
-		ret = device->plugin->open(device->plugin_index);
+	if (device->plugin && device->plugin->opendev) {
+		ret = device->plugin->opendev(device->plugin_index);
 		if (ret != SR_OK)
 			return ret;
 	}
