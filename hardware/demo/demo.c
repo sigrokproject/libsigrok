@@ -36,9 +36,23 @@
 /* size of chunks to send through the session bus */
 #define BUFSIZE                4096
 
+/* Supported patterns which we can generate */
 enum {
-	GENMODE_DEFAULT,
+	/**
+	 * Pattern which spells "sigrok" using '0's (with '1's as "background")
+	 * when displayed using the 'bits' output format.
+	 */
+	GENMODE_SIGROK,
+
+	/**
+	 * Pattern which consists of (pseudo-)random values on all probes.
+	 */
 	GENMODE_RANDOM,
+
+	/**
+	 * Pattern which consists of incrementing numbers.
+	 * TODO: Better description.
+	 */
 	GENMODE_INC,
 };
 
@@ -77,7 +91,7 @@ static const char *patternmodes[] = {
 	NULL,
 };
 
-static uint8_t genmode_default[] = {
+static uint8_t genmode_sigrok[] = {
 	0x4c, 0x92, 0x92, 0x92, 0x64, 0x00, 0x00, 0x00,
 	0x82, 0xfe, 0xfe, 0x82, 0x00, 0x00, 0x00, 0x00,
 	0x7c, 0x82, 0x82, 0x92, 0x74, 0x00, 0x00, 0x00,
@@ -93,7 +107,7 @@ static GSList *device_instances = NULL;
 static uint64_t cur_samplerate = SR_KHZ(200);
 static uint64_t limit_samples = 0;
 static uint64_t limit_msec = 0;
-static int default_genmode = GENMODE_DEFAULT;
+static int default_genmode = GENMODE_SIGROK;
 static GThread *my_thread;
 static int thread_running;
 
@@ -237,9 +251,9 @@ static void samples_generator(uint8_t *buf, uint64_t size, void *data)
 	memset(buf, 0, size);
 
 	switch (mydata->sample_generator) {
-	case GENMODE_DEFAULT:
+	case GENMODE_SIGROK:
 		for (i = 0; i < size; i++) {
-			*(buf + i) = ~(genmode_default[p] >> 1);
+			*(buf + i) = ~(genmode_sigrok[p] >> 1);
 			if (++p == 64)
 				p = 0;
 		}
