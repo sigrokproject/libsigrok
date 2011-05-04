@@ -121,15 +121,18 @@ static int hw_opendev(int device_index)
 	device_index = device_index;
 
 	/* Nothing needed so far. */
+
 	return SR_OK;
 }
 
-static void hw_closedev(int device_index)
+static int hw_closedev(int device_index)
 {
 	/* Avoid compiler warnings. */
 	device_index = device_index;
 
 	/* Nothing needed so far. */
+
+	return SR_OK;
 }
 
 static void hw_cleanup(void)

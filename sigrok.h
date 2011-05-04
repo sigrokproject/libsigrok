@@ -335,7 +335,7 @@ struct sr_device_plugin {
 
 	/* Device-specific */
 	int (*opendev) (int device_index);
-	void (*closedev) (int device_index);
+	int (*closedev) (int device_index);
 	void *(*get_device_info) (int device_index, int device_info_id);
 	int (*get_status) (int device_index);
 	int *(*get_capabilities) (void);

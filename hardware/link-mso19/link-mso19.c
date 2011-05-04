@@ -539,18 +539,23 @@ static int hw_opendev(int device_index)
 	return SR_OK;
 }
 
-static void hw_closedev(int device_index)
+static int hw_closedev(int device_index)
 {
 	struct sr_device_instance *sdi;
 
-	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
-		return;
+	if (!(sdi = sr_get_device_instance(device_instances, device_index))) {
+		sr_err("mso19: %s: sdi was NULL", __func__);
+		return SR_ERR; /* TODO: SR_ERR_ARG? */
+	}
 
+	/* TODO */
 	if (sdi->serial->fd != -1) {
 		serial_close(sdi->serial->fd);
 		sdi->serial->fd = -1;
 		sdi->status = SR_ST_INACTIVE;
 	}
+
+	return SR_OK;
 }
 
 static void *hw_get_device_info(int device_index, int device_info_id)

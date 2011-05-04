@@ -675,19 +675,28 @@ static int configure_probes(struct sr_device_instance *sdi, GSList *probes)
 	return SR_OK;
 }
 
-static void hw_closedev(int device_index)
+static int hw_closedev(int device_index)
 {
 	struct sr_device_instance *sdi;
 	struct sigma *sigma;
 
-	if ((sdi = sr_get_device_instance(device_instances, device_index)))
-	{
-		sigma = sdi->priv;
-		if (sdi->status == SR_ST_ACTIVE)
-			ftdi_usb_close(&sigma->ftdic);
-
-		sdi->status = SR_ST_INACTIVE;
+	if (!(sdi = sr_get_device_instance(device_instances, device_index))) {
+		sr_err("asix: %s: sdi was NULL", __func__);
+		return SR_ERR; /* TODO: SR_ERR_ARG? */
 	}
+
+	if (!(sigma = sdi->priv)) {
+		sr_err("asix: %s: sdi->priv was NULL", __func__);
+		return SR_ERR; /* TODO: SR_ERR_ARG? */
+	}
+
+	/* TODO */
+	if (sdi->status == SR_ST_ACTIVE)
+		ftdi_usb_close(&sigma->ftdic);
+
+	sdi->status = SR_ST_INACTIVE;
+
+	return SR_OK;
 }
 
 static void hw_cleanup(void)

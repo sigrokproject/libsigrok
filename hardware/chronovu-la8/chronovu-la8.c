@@ -632,25 +632,26 @@ static int set_samplerate(struct sr_device_instance *sdi, uint64_t samplerate)
 	return SR_OK;
 }
 
-static void hw_closedev(int device_index)
+static int hw_closedev(int device_index)
 {
 	struct sr_device_instance *sdi;
 	struct la8 *la8;
 
 	if (!(sdi = sr_get_device_instance(device_instances, device_index))) {
 		sr_err("la8: %s: sdi was NULL", __func__);
-		return;
+		return SR_ERR; /* TODO: SR_ERR_ARG? */
 	}
 
 	if (!(la8 = sdi->priv)) {
 		sr_err("la8: %s: sdi->priv was NULL", __func__);
-		return;
+		return SR_ERR; /* TODO: SR_ERR_ARG? */
 	}
 
 	sr_dbg("la8: closing device");
 
 	if (sdi->status == SR_ST_ACTIVE) {
 		sr_dbg("la8: %s: status ACTIVE, closing device", __func__);
+		/* TODO: Really ignore errors here, or return SR_ERR? */
 		(void) la8_close_usb_reset_sequencer(la8); /* Ignore errors. */
 	} else {
 		sr_dbg("la8: %s: status not ACTIVE, nothing to do", __func__);
@@ -660,6 +661,8 @@ static void hw_closedev(int device_index)
 
 	sr_dbg("la8: %s: freeing sample buffers", __func__);
 	free(la8->final_buf);
+
+	return SR_OK;
 }
 
 static void hw_cleanup(void)

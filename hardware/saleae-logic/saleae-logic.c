@@ -394,12 +394,19 @@ static int hw_opendev(int device_index)
 	return SR_OK;
 }
 
-static void hw_closedev(int device_index)
+static int hw_closedev(int device_index)
 {
 	struct sr_device_instance *sdi;
 
-	if ((sdi = sr_get_device_instance(device_instances, device_index)))
-		close_device(sdi);
+	if (!(sdi = sr_get_device_instance(device_instances, device_index))) {
+		sr_err("logic: %s: sdi was NULL", __func__);
+		return SR_ERR; /* TODO: SR_ERR_ARG? */
+	}
+
+	/* TODO */
+	close_device(sdi);
+
+	return SR_OK;
 }
 
 static void hw_cleanup(void)

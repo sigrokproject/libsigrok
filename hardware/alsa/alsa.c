@@ -108,21 +108,28 @@ static int hw_opendev(int device_index)
 	return SR_OK;
 }
 
-static void hw_closedev(int device_index)
+static int hw_closedev(int device_index)
 {
 	struct sr_device_instance *sdi;
 	struct alsa *alsa;
 
-	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
-		return;
-	alsa = sdi->priv;
-	if (!alsa)
-		return;
+	if (!(sdi = sr_get_device_instance(device_instances, device_index))) {
+		sr_err("alsa: %s: sdi was NULL", __func__);
+		return SR_ERR; /* TODO: SR_ERR_ARG? */
+	}
 
+	if (!(alsa = sdi->priv)) {
+		sr_err("alsa: %s: sdi->priv was NULL", __func__);
+		return SR_ERR; /* TODO: SR_ERR_ARG? */
+	}
+
+	// TODO: Return values of snd_*?
 	if (alsa->hw_params)
 		snd_pcm_hw_params_free(alsa->hw_params);
 	if (alsa->capture_handle)
 		snd_pcm_close(alsa->capture_handle);
+
+	return SR_OK;
 }
 
 static void hw_cleanup(void)

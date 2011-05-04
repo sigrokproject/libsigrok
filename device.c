@@ -61,12 +61,18 @@ int sr_device_plugin_init(struct sr_device_plugin *plugin)
 
 void sr_device_close_all(void)
 {
+	int ret;
 	struct sr_device *device;
 
 	while (devices) {
 		device = devices->data;
-		if (device->plugin && device->plugin->closedev)
-			device->plugin->closedev(device->plugin_index);
+		if (device->plugin && device->plugin->closedev) {
+			ret = device->plugin->closedev(device->plugin_index);
+			if (ret != SR_OK) {
+				sr_err("dev: %s: could not close device %d",
+				       __func__, device->plugin_index);
+			}
+		}
 		sr_device_destroy(device);
 	}
 }
