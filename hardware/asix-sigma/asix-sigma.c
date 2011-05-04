@@ -332,13 +332,13 @@ static int bin2bitbang(const char *filename,
 	fseek(f, 0, SEEK_SET);
 
 	if (!(compressed_buf = g_try_malloc(file_size))) {
-		sr_err("asix: %s: compressed_buf malloc failed", __func__);
+		sr_err("sigma: %s: compressed_buf malloc failed", __func__);
 		fclose(f);
 		return SR_ERR_MALLOC;
 	}
 
 	if (!(firmware = g_try_malloc(buffer_size))) {
-		sr_err("asix: %s: firmware malloc failed", __func__);
+		sr_err("sigma: %s: firmware malloc failed", __func__);
 		fclose(f);
 		g_free(compressed_buf);
 		return SR_ERR_MALLOC;
@@ -366,7 +366,7 @@ static int bin2bitbang(const char *filename,
 
 	*buf = p = (unsigned char *)g_try_malloc(*buf_size);
 	if (!p) {
-		sr_err("asix: %s: buf/p malloc failed", __func__);
+		sr_err("sigma: %s: buf/p malloc failed", __func__);
 		g_free(compressed_buf);
 		g_free(firmware);
 		return SR_ERR_MALLOC;
@@ -403,7 +403,7 @@ static int hw_init(const char *deviceinfo)
 	deviceinfo = deviceinfo;
 
 	if (!(sigma = g_try_malloc(sizeof(struct sigma)))) {
-		sr_err("asix: %s: sigma malloc failed", __func__);
+		sr_err("sigma: %s: sigma malloc failed", __func__);
 		return 0; /* FIXME: Should be SR_ERR_MALLOC. */
 	}
 
@@ -681,12 +681,12 @@ static int hw_closedev(int device_index)
 	struct sigma *sigma;
 
 	if (!(sdi = sr_get_device_instance(device_instances, device_index))) {
-		sr_err("asix: %s: sdi was NULL", __func__);
+		sr_err("sigma: %s: sdi was NULL", __func__);
 		return SR_ERR; /* TODO: SR_ERR_ARG? */
 	}
 
 	if (!(sigma = sdi->priv)) {
-		sr_err("asix: %s: sdi->priv was NULL", __func__);
+		sr_err("sigma: %s: sdi->priv was NULL", __func__);
 		return SR_ERR; /* TODO: SR_ERR_ARG? */
 	}
 

@@ -526,7 +526,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	sr_session_bus(session_device_id, &packet);
 
 	if (!(buf = g_try_malloc(PACKET_SIZE))) {
-		sr_err("zeroplus: %s: buf malloc failed", __func__);
+		sr_err("lap-c: %s: buf malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 
