@@ -221,24 +221,66 @@ extern GSList *devices;
 /* Hardware plugin capabilities */
 enum {
 	SR_HWCAP_DUMMY,             /* Used to terminate lists */
-	/* device classes */
+
+	/*--- Device classes ------------------------------------------------*/
+
+	/** The device can act as logic analyzer. */
 	SR_HWCAP_LOGIC_ANALYZER,
 
-	/* device options */
-	SR_HWCAP_SAMPLERATE,        /* Change samplerate */
-	SR_HWCAP_PROBECONFIG,       /* Configure probe mask */
-	SR_HWCAP_CAPTURE_RATIO,     /* Set pre/post-trigger capture ratio */
-	SR_HWCAP_PATTERN_MODE,      /* Pattern generator mode */
+	/* TODO: SR_HWCAP_SCOPE, SW_HWCAP_PATTERN_GENERATOR, etc.? */
 
-	/* special stuff */
-	SR_HWCAP_CAPTUREFILE,       /* capturefile to inject */
-	SR_HWCAP_CAPTURE_UNITSIZE,  /* unitsize of capturefile data */
-	SR_HWCAP_CAPTURE_NUM_PROBES,/* set number of probes */
+	/*--- Device options ------------------------------------------------*/
 
-	/* acquisition modes */
-	SR_HWCAP_LIMIT_MSEC,        /* Set a time limit for sample acquisition */
-	SR_HWCAP_LIMIT_SAMPLES,     /* Set a limit on number of samples */
+	/** The device supports setting/changing its samplerate. */
+	SR_HWCAP_SAMPLERATE,
+
+	/* TODO: Better description? Rename to PROBE_AND_TRIGGER_CONFIG? */
+	/** The device supports setting a probe mask. */
+	SR_HWCAP_PROBECONFIG,
+
+	/** The device supports setting a pre/post-trigger capture ratio. */
+	SR_HWCAP_CAPTURE_RATIO,
+
+	/* TODO? */
+	/** The device supports setting a pattern (pattern generator mode). */
+	SR_HWCAP_PATTERN_MODE,
+
+	/*--- Special stuff -------------------------------------------------*/
+
+	/* TODO: Better description. */
+	/** The device supports specifying a capturefile to inject. */
+	SR_HWCAP_CAPTUREFILE,
+
+	/* TODO: Better description. */
+	/** The device supports specifying the capturefile unit size. */
+	SR_HWCAP_CAPTURE_UNITSIZE,
+
+	/* TODO: Better description. */
+	/** The device supports setting the number of probes. */
+	SR_HWCAP_CAPTURE_NUM_PROBES,
+
+	/*--- Acquisition modes ---------------------------------------------*/
+
+	/**
+	 * The device supports setting a sample time limit, i.e. how long the
+	 * sample acquisition should run (in ms).
+	 */
+	SR_HWCAP_LIMIT_MSEC,
+
+	/**
+	 * The device supports setting a sample number limit, i.e. how many
+	 * samples should be acquired.
+	 */
+	SR_HWCAP_LIMIT_SAMPLES,
+
+	/**
+	 * The device supports continuous sampling, i.e. neither a time limit
+	 * nor a sample number limit has to be supplied, it will just acquire
+	 * samples continuously, until explicitly stopped by a certain command.
+	 */
 	SR_HWCAP_CONTINUOUS,
+
+	/* TODO: SR_HWCAP_JUST_SAMPLE or similar. */
 };
 
 struct sr_hwcap_option {
