@@ -185,7 +185,6 @@ static int *hw_get_capabilities(void)
 static int hw_set_configuration(int device_index, int capability, void *value)
 {
 	int ret;
-	uint64_t *tmp_u64;
 	char *stropt;
 
 	/* Avoid compiler warnings. */
@@ -195,20 +194,17 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 		/* Nothing to do, but must be supported */
 		ret = SR_OK;
 	} else if (capability == SR_HWCAP_SAMPLERATE) {
-		tmp_u64 = value;
-		cur_samplerate = *tmp_u64;
+		cur_samplerate = *(uint64_t *)value;
 		sr_dbg("demo: %s: setting samplerate to %" PRIu64, __func__,
 		       cur_samplerate);
 		ret = SR_OK;
 	} else if (capability == SR_HWCAP_LIMIT_SAMPLES) {
-		tmp_u64 = value;
-		limit_samples = *tmp_u64;
+		limit_samples = *(uint64_t *)value;
 		sr_dbg("demo: %s: setting limit_samples to %" PRIu64, __func__,
 		       limit_samples);
 		ret = SR_OK;
 	} else if (capability == SR_HWCAP_LIMIT_MSEC) {
-		tmp_u64 = value;
-		limit_msec = *tmp_u64;
+		limit_msec = *(uint64_t *)value;
 		sr_dbg("demo: %s: setting limit_msec to %" PRIu64, __func__,
 		       limit_msec);
 		ret = SR_OK;
