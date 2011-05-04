@@ -67,6 +67,13 @@ extern "C" {
 
 #define SR_HZ_TO_NS(n) (1000000000 / (n))
 
+/* libsigrok loglevels. */
+#define SR_LOG_NONE	0
+#define SR_LOG_ERR	1
+#define SR_LOG_WARN	2
+#define SR_LOG_INFO	3
+#define SR_LOG_DBG	4
+
 typedef int (*sr_receive_data_callback) (int fd, int revents, void *user_data);
 
 /* Data types used by hardware plugins for set_configuration() */

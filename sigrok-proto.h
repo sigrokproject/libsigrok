@@ -25,6 +25,11 @@
 int sr_init(void);
 int sr_exit(void);
 
+/*--- log.c -----------------------------------------------------------------*/
+
+int sr_set_loglevel(int loglevel);
+int sr_get_loglevel(void);
+
 /*--- datastore.c -----------------------------------------------------------*/
 
 int sr_datastore_new(int unitsize, struct sr_datastore **ds);

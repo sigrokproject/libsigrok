@@ -23,12 +23,49 @@
 #include <sigrok.h>
 #include <sigrok-internal.h>
 
+static int sr_loglevel = SR_LOG_WARN; /* Show errors+warnings per default. */
+
+/**
+ * Set the libsigrok loglevel.
+ *
+ * This influences the amount of log messages (debug messages, error messages,
+ * and so on) libsigrok will output. Using SR_LOG_NONE disables all messages.
+ *
+ * @param loglevel The loglevel to set (SR_LOG_NONE, SR_LOG_ERR, SR_LOG_WARN,
+ *                 SR_LOG_INFO, or SR_LOG_DBG).
+ * @return SR_OK upon success, SR_ERR_ARG upon invalid loglevel.
+ */
+int sr_set_loglevel(int loglevel)
+{
+	if (loglevel < SR_LOG_NONE || loglevel > SR_LOG_DBG) {
+		sr_err("log: %s: invalid loglevel %d", __func__, loglevel);
+		return SR_ERR_ARG;
+	}
+
+	sr_loglevel = loglevel;
+
+	sr_dbg("log: %s: libsigrok loglevel set to %d", __func__, loglevel);
+
+	return SR_OK;
+}
+
+/**
+ * Get the libsigrok loglevel.
+ *
+ * @return The currently configured libsigrok loglevel.
+ */
+int sr_get_loglevel(void)
+{
+	return sr_loglevel;
+}
+
 static int sr_logv(int loglevel, const char *format, va_list args)
 {
 	int ret;
 
-	/* Avoid compiler warnings. */
-	loglevel = loglevel;
+	/* Only output messages of at least the selected loglevel(s). */
+	if (loglevel > sr_loglevel)
+		return SR_OK; /* TODO? */
 
 	ret = vfprintf(stderr, format, args);
 	fprintf(stderr, "\n");
