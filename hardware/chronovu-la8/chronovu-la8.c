@@ -660,7 +660,7 @@ static int hw_closedev(int device_index)
 	sdi->status = SR_ST_INACTIVE;
 
 	sr_dbg("la8: %s: freeing sample buffers", __func__);
-	free(la8->final_buf);
+	g_free(la8->final_buf);
 
 	return SR_OK;
 }
