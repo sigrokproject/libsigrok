@@ -42,18 +42,18 @@ enum {
 	 * Pattern which spells "sigrok" using '0's (with '1's as "background")
 	 * when displayed using the 'bits' output format.
 	 */
-	GENMODE_SIGROK,
+	PATTERN_SIGROK,
 
 	/**
 	 * Pattern which consists of (pseudo-)random values on all probes.
 	 */
-	GENMODE_RANDOM,
+	PATTERN_RANDOM,
 
 	/**
 	 * Pattern which consists of incrementing numbers.
 	 * TODO: Better description.
 	 */
-	GENMODE_INC,
+	PATTERN_INC,
 };
 
 /* FIXME: Should not be global. */
@@ -85,13 +85,13 @@ static struct sr_samplerates samplerates = {
 	NULL,
 };
 
-static const char *patternmodes[] = {
+static const char *pattern_strings[] = {
 	"random",
 	"incremental",
 	NULL,
 };
 
-static uint8_t genmode_sigrok[] = {
+static uint8_t pattern_sigrok[] = {
 	0x4c, 0x92, 0x92, 0x92, 0x64, 0x00, 0x00, 0x00,
 	0x82, 0xfe, 0xfe, 0x82, 0x00, 0x00, 0x00, 0x00,
 	0x7c, 0x82, 0x82, 0x92, 0x74, 0x00, 0x00, 0x00,
@@ -107,7 +107,7 @@ static GSList *device_instances = NULL;
 static uint64_t cur_samplerate = SR_KHZ(200);
 static uint64_t limit_samples = 0;
 static uint64_t limit_msec = 0;
-static int default_genmode = GENMODE_SIGROK;
+static int default_pattern = PATTERN_SIGROK;
 static GThread *my_thread;
 static int thread_running;
 
@@ -176,7 +176,7 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 		info = &cur_samplerate;
 		break;
 	case SR_DI_PATTERNMODES:
-		info = &patternmodes;
+		info = &pattern_strings;
 		break;
 	}
 
@@ -225,16 +225,16 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 	} else if (capability == SR_HWCAP_PATTERN_MODE) {
 		stropt = value;
 		if (!strcmp(stropt, "random")) {
-			default_genmode = GENMODE_RANDOM;
+			default_pattern = PATTERN_RANDOM;
 			ret = SR_OK;
 		} else if (!strcmp(stropt, "incremental")) {
-			default_genmode = GENMODE_INC;
+			default_pattern = PATTERN_INC;
 			ret = SR_OK;
 		} else {
 			ret = SR_ERR;
 		}
-		sr_dbg("demo: %s: setting patternmode to %d", __func__,
-		       default_genmode);
+		sr_dbg("demo: %s: setting pattern to %d", __func__,
+		       default_pattern);
 	} else {
 		ret = SR_ERR;
 	}
@@ -251,18 +251,18 @@ static void samples_generator(uint8_t *buf, uint64_t size, void *data)
 	memset(buf, 0, size);
 
 	switch (mydata->sample_generator) {
-	case GENMODE_SIGROK:
+	case PATTERN_SIGROK:
 		for (i = 0; i < size; i++) {
-			*(buf + i) = ~(genmode_sigrok[p] >> 1);
+			*(buf + i) = ~(pattern_sigrok[p] >> 1);
 			if (++p == 64)
 				p = 0;
 		}
 		break;
-	case GENMODE_RANDOM: /* Random */
+	case PATTERN_RANDOM: /* Random */
 		for (i = 0; i < size; i++)
 			*(buf + i) = (uint8_t)(rand() & 0xff);
 		break;
-	case GENMODE_INC: /* Simple increment */
+	case PATTERN_INC: /* Simple increment */
 		for (i = 0; i < size; i++)
 			*(buf + i) = i;
 		break;
@@ -368,7 +368,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 		return SR_ERR_MALLOC;
 	}
 
-	mydata->sample_generator = default_genmode;
+	mydata->sample_generator = default_pattern;
 	mydata->session_device_id = session_device_id;
 	mydata->device_index = device_index;
 	mydata->samples_counter = 0;
