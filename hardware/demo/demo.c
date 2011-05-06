@@ -288,12 +288,10 @@ static void samples_generator(uint8_t *buf, uint64_t size, void *data)
 			*(buf + i) = i;
 		break;
 	case PATTERN_ALL_LOW: /* All probes are low */
-		for (i = 0; i < size; i++)
-			*(buf + i) = 0x00;
+		memset(buf, 0x00, size);
 		break;
 	case PATTERN_ALL_HIGH: /* All probes are high */
-		for (i = 0; i < size; i++)
-			*(buf + i) = 0xff;
+		memset(buf, 0xff, size);
 		break;
 	default:
 		/* TODO: Error handling. */
