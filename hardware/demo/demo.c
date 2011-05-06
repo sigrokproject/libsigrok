@@ -31,9 +31,13 @@
 #endif
 #include "config.h"
 
+/* TODO: Number of probes should be configurable. */
 #define NUM_PROBES             8
+
 #define DEMONAME               "Demo device"
-/* size of chunks to send through the session bus */
+
+/* The size of chunks to send through the session bus. */
+/* TODO: Should be configurable. */
 #define BUFSIZE                4096
 
 /* Supported patterns which we can generate */
@@ -44,9 +48,7 @@ enum {
 	 */
 	PATTERN_SIGROK,
 
-	/**
-	 * Pattern which consists of (pseudo-)random values on all probes.
-	 */
+	/** Pattern which consists of (pseudo-)random values on all probes. */
 	PATTERN_RANDOM,
 
 	/**
@@ -54,6 +56,12 @@ enum {
 	 * TODO: Better description.
 	 */
 	PATTERN_INC,
+
+	/** Pattern where all probes have a low logic state. */
+	PATTERN_ALL_LOW,
+
+	/** Pattern where all probes have a high logic state. */
+	PATTERN_ALL_HIGH,
 };
 
 /* FIXME: Should not be global. */
@@ -86,8 +94,11 @@ static struct sr_samplerates samplerates = {
 };
 
 static const char *pattern_strings[] = {
+	"sigrok",
 	"random",
 	"incremental",
+	"all-low",
+	"all-high",
 	NULL,
 };
 
@@ -121,8 +132,10 @@ static int hw_init(const char *deviceinfo)
 	deviceinfo = deviceinfo;
 
 	sdi = sr_device_instance_new(0, SR_ST_ACTIVE, DEMONAME, NULL, NULL);
-	if (!sdi)
+	if (!sdi) {
+		sr_err("demo: %s: sr_device_instance_new failed", __func__);
 		return 0;
+	}
 
 	device_instances = g_slist_append(device_instances, sdi);
 
@@ -159,8 +172,10 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 	struct sr_device_instance *sdi;
 	void *info = NULL;
 
-	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
+	if (!(sdi = sr_get_device_instance(device_instances, device_index))) {
+		sr_err("demo: %s: sdi was NULL", __func__);
 		return NULL;
+	}
 
 	switch (device_info_id) {
 	case SR_DI_INSTANCE:
@@ -224,12 +239,17 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 		ret = SR_OK;
 	} else if (capability == SR_HWCAP_PATTERN_MODE) {
 		stropt = value;
-		if (!strcmp(stropt, "random")) {
+		ret = SR_OK;
+		if (!strcmp(stropt, "sigrok")) {
+			default_pattern = PATTERN_SIGROK;
+		} else if (!strcmp(stropt, "random")) {
 			default_pattern = PATTERN_RANDOM;
-			ret = SR_OK;
 		} else if (!strcmp(stropt, "incremental")) {
 			default_pattern = PATTERN_INC;
-			ret = SR_OK;
+		} else if (!strcmp(stropt, "all-low")) {
+			default_pattern = PATTERN_ALL_LOW;
+		} else if (!strcmp(stropt, "all-high")) {
+			default_pattern = PATTERN_ALL_HIGH;
 		} else {
 			ret = SR_ERR;
 		}
@@ -248,10 +268,11 @@ static void samples_generator(uint8_t *buf, uint64_t size, void *data)
 	struct databag *mydata = data;
 	uint64_t i;
 
+	/* TODO: Needed? */
 	memset(buf, 0, size);
 
 	switch (mydata->sample_generator) {
-	case PATTERN_SIGROK:
+	case PATTERN_SIGROK: /* sigrok pattern */
 		for (i = 0; i < size; i++) {
 			*(buf + i) = ~(pattern_sigrok[p] >> 1);
 			if (++p == 64)
@@ -266,6 +287,17 @@ static void samples_generator(uint8_t *buf, uint64_t size, void *data)
 		for (i = 0; i < size; i++)
 			*(buf + i) = i;
 		break;
+	case PATTERN_ALL_LOW: /* All probes are low */
+		for (i = 0; i < size; i++)
+			*(buf + i) = 0x00;
+		break;
+	case PATTERN_ALL_HIGH: /* All probes are high */
+		for (i = 0; i < size; i++)
+			*(buf + i) = 0xff;
+		break;
+	default:
+		/* TODO: Error handling. */
+		break;
 	}
 }
 
@@ -276,7 +308,6 @@ static void thread_func(void *data)
 	uint8_t buf[BUFSIZE];
 	uint64_t nb_to_send = 0;
 	int bytes_written;
-
 	double time_cur, time_last, time_diff;
 
 	time_last = g_timer_elapsed(mydata->timer, NULL);
@@ -290,9 +321,10 @@ static void thread_func(void *data)
 
 		nb_to_send = cur_samplerate * time_diff;
 
-		if (limit_samples)
+		if (limit_samples) {
 			nb_to_send = MIN(nb_to_send,
-					limit_samples - mydata->samples_counter);
+				      limit_samples - mydata->samples_counter);
+		}
 
 		/* Make sure we don't overflow. */
 		nb_to_send = MIN(nb_to_send, BUFSIZE);
@@ -302,7 +334,7 @@ static void thread_func(void *data)
 			mydata->samples_counter += nb_to_send;
 
 			g_io_channel_write_chars(channels[1], (gchar *)&buf,
-					nb_to_send, (gsize *)&bytes_written, NULL);
+				nb_to_send, (gsize *)&bytes_written, NULL);
 		}
 
 		/* Check if we're done. */
@@ -341,9 +373,8 @@ static int receive_data(int fd, int revents, void *user_data)
 		}
 	} while (z > 0);
 
-	if (!thread_running && z <= 0)
-	{
-		/* Make sure we don't receive more packets */
+	if (!thread_running && z <= 0) {
+		/* Make sure we don't receive more packets. */
 		g_io_channel_close(channels[0]);
 
 		/* Send last packet. */
@@ -373,8 +404,11 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	mydata->device_index = device_index;
 	mydata->samples_counter = 0;
 
-	if (pipe(mydata->pipe_fds))
+	if (pipe(mydata->pipe_fds)) {
+		/* TODO: Better error message. */
+		sr_err("demo: %s: pipe() failed", __func__);
 		return SR_ERR;
+	}
 
 	channels[0] = g_io_channel_unix_new(mydata->pipe_fds[0]);
 	channels[1] = g_io_channel_unix_new(mydata->pipe_fds[1]);
@@ -392,13 +426,15 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 
 	/* Run the demo thread. */
 	g_thread_init(NULL);
-	/* this needs to be done between g_thread_init() and g_thread_create() */
+	/* This must to be done between g_thread_init() & g_thread_create(). */
 	mydata->timer = g_timer_new();
 	thread_running = 1;
 	my_thread =
 	    g_thread_create((GThreadFunc)thread_func, mydata, TRUE, NULL);
-	if (!my_thread)
-		return SR_ERR;
+	if (!my_thread) {
+		sr_err("demo: %s: g_thread_create failed", __func__);
+		return SR_ERR; /* TODO */
+	}
 
 	if (!(packet = g_try_malloc(sizeof(struct sr_datafeed_packet)))) {
 		sr_err("demo: %s: packet malloc failed", __func__);
