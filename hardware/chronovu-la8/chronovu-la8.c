@@ -891,6 +891,14 @@ static void send_block_to_session_bus(struct la8 *la8, int block)
 		if (la8->trigger_found)
 			break;
 
+		/*
+		 * Also, don't continue if triggers are "don't care", i.e. if
+		 * no trigger conditions were specified by the user. In that
+		 * case we don't want to send an SR_DF_TRIGGER packet at all.
+		 */
+		if (la8->trigger_mask == 0x00)
+			break;
+
 		sample = *(la8->final_buf + (block * BS) + i);
 
 		if ((sample & la8->trigger_mask) == expected_sample) {
@@ -903,7 +911,8 @@ static void send_block_to_session_bus(struct la8 *la8, int block)
 	/* If no trigger was found, send one SR_DF_LOGIC packet. */
 	if (trigger_point == -1) {
 		/* Send an SR_DF_LOGIC packet to the session bus. */
-		// sr_dbg("la8: %s: sending SR_DF_LOGIC packet", __func__);
+		// sr_dbg("la8: sending SR_DF_LOGIC packet (%d bytes) for "
+		//        "block %d", BS, block);
 		packet.type = SR_DF_LOGIC;
 		packet.length = BS;
 		packet.unitsize = 1;
@@ -924,9 +933,8 @@ static void send_block_to_session_bus(struct la8 *la8, int block)
 	/* If at least one sample is located before the trigger... */
 	if (trigger_point > 0) {
 		/* Send pre-trigger SR_DF_LOGIC packet to the session bus. */
-		sr_dbg("la8: %s: sending pre-trigger SR_DF_LOGIC packet, ",
-		       "start = %" PRIu64 ", length = %d", __func__,
-		       block * BS, trigger_point);
+		sr_dbg("la8: sending pre-trigger SR_DF_LOGIC packet, "
+			"start = %d, length = %d", block * BS, trigger_point);
 		packet.type = SR_DF_LOGIC;
 		packet.length = trigger_point;
 		packet.unitsize = 1;
@@ -935,8 +943,8 @@ static void send_block_to_session_bus(struct la8 *la8, int block)
 	}
 
 	/* Send the SR_DF_TRIGGER packet to the session bus. */
-	sr_dbg("la8: %s: sending SR_DF_TRIGGER packet, sample = %" PRIu64,
-	       __func__, (block * BS) + trigger_point);
+	sr_dbg("la8: sending SR_DF_TRIGGER packet, sample = %d",
+		(block * BS) + trigger_point);
 	packet.type = SR_DF_TRIGGER;
 	packet.length = 0;
 	packet.unitsize = 0;
@@ -946,11 +954,11 @@ static void send_block_to_session_bus(struct la8 *la8, int block)
 	/* If at least one sample is located after the trigger... */
 	if (trigger_point < (BS - 1)) {
 		/* Send post-trigger SR_DF_LOGIC packet to the session bus. */
-		sr_dbg("la8: %s: sending post-trigger SR_DF_LOGIC packet, ",
-		       "start = %" PRIu64 ", length = %d", __func__,
-		       (block * BS) + trigger_point, (BS - 1) - trigger_point);
+		sr_dbg("la8: sending post-trigger SR_DF_LOGIC packet, "
+			"start = %d, length = %d", 
+			(block * BS) + trigger_point, BS - trigger_point);
 		packet.type = SR_DF_LOGIC;
-		packet.length = (BS - 1) - trigger_point;
+		packet.length = BS - trigger_point;
 		packet.unitsize = 1;
 		packet.payload = la8->final_buf + (block * BS) + trigger_point;
 		sr_session_bus(la8->session_id, &packet);
