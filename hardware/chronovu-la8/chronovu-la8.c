@@ -36,6 +36,9 @@
 #define SDRAM_SIZE			(8 * 1024 * 1024)
 #define MIN_NUM_SAMPLES			1
 
+#define BS				4096 /* Block size */
+#define NUM_BLOCKS			2048 /* Number of blocks */
+
 static GSList *device_instances = NULL;
 
 struct la8 {
@@ -55,10 +58,10 @@ struct la8 {
 	gpointer session_id;
 
 	/**
-	 * An 4KB buffer containing some (mangled) samples from the device.
+	 * A buffer containing some (mangled) samples from the device.
 	 * Format: Pretty mangled-up (due to hardware reasons), see code.
 	 */
-	uint8_t mangled_buf[4096];
+	uint8_t mangled_buf[BS];
 
 	/**
 	 * An 8MB buffer where we'll store the de-mangled samples.
@@ -88,7 +91,7 @@ struct la8 {
 	/** TODO */
 	time_t done;
 
-	/** Counter/index for the data block (0..2047) to be read. */
+	/** Counter/index for the data block to be read. */
 	int block_counter;
 
 	/** The divcount value (determines the sample period) for the LA8. */
@@ -363,7 +366,7 @@ static int la8_close_usb_reset_sequencer(struct la8 *la8)
  */
 static int la8_reset(struct la8 *la8)
 {
-	uint8_t buf[4096];
+	uint8_t buf[BS];
 	time_t done, now;
 	int bytes_read;
 
@@ -386,7 +389,7 @@ static int la8_reset(struct la8 *la8)
 	done = 20 + time(NULL);
 	do {
 		/* TODO: Ignore errors? Check for < 0 at least! */
-		bytes_read = la8_read(la8, (uint8_t *)&buf, 4096);
+		bytes_read = la8_read(la8, (uint8_t *)&buf, BS);
 		now = time(NULL);
 	} while ((done > now) && (bytes_read > 0));
 
@@ -479,7 +482,7 @@ static int hw_init(const char *deviceinfo)
 	la8->limit_msec = 0;
 	la8->limit_samples = 0;
 	la8->session_id = NULL;
-	memset(la8->mangled_buf, 0, 4096);
+	memset(la8->mangled_buf, 0, BS);
 	la8->final_buf = NULL;
 	la8->trigger_pattern = 0x00; /* Value irrelevant, see trigger_mask. */
 	la8->trigger_mask = 0x00; /* All probes are "don't care". */
@@ -815,7 +818,7 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 }
 
 /**
- * Get a block of 4096 bytes of data from the LA8.
+ * Get a block of data from the LA8.
  *
  * @param la8 The LA8 struct containing private per-device-instance data.
  * @return SR_OK upon success, or SR_ERR upon errors.
@@ -837,20 +840,20 @@ static int la8_read_block(struct la8 *la8)
 
 	// sr_dbg("la8: %s: reading block %d", __func__, la8->block_counter);
 
-	bytes_read = la8_read(la8, la8->mangled_buf, 4096);
+	bytes_read = la8_read(la8, la8->mangled_buf, BS);
 
 	/* If first block read got 0 bytes, retry until success or timeout. */
 	if ((bytes_read == 0) && (la8->block_counter == 0)) {
 		do {
 			// sr_dbg("la8: %s: reading block 0 again", __func__);
-			bytes_read = la8_read(la8, la8->mangled_buf, 4096);
+			bytes_read = la8_read(la8, la8->mangled_buf, BS);
 			/* TODO: How to handle read errors here? */
 			now = time(NULL);
 		} while ((la8->done > now) && (bytes_read == 0));
 	}
 
 	/* Check if block read was successful or a timeout occured. */
-	if (bytes_read != 4096) {
+	if (bytes_read != BS) {
 		sr_warn("la8: %s: trigger timed out", __func__);
 		(void) la8_reset(la8); /* Ignore errors. */
 		return SR_ERR;
@@ -858,10 +861,10 @@ static int la8_read_block(struct la8 *la8)
 
 	/* De-mangle the data. */
 	// sr_dbg("la8: de-mangling samples of block %d", la8->block_counter);
-	byte_offset = la8->block_counter * 4096;
+	byte_offset = la8->block_counter * BS;
 	m = byte_offset / (1024 * 1024);
 	mi = m * (1024 * 1024);
-	for (i = 0; i < 4096; i++) {
+	for (i = 0; i < BS; i++) {
 		p = i & (1 << 0);
 		index = m * 2 + (((byte_offset + i) - mi) / 2) * 16;
 		index += (la8->divcount == 0) ? p : (1 - p);
@@ -883,12 +886,12 @@ static void send_block_to_session_bus(struct la8 *la8, int block)
 	/* Check if we can find the trigger condition in this block. */
 	trigger_point = -1;
 	expected_sample = la8->trigger_pattern & la8->trigger_mask;
-	for (i = 0; i < 4096; i++) {
+	for (i = 0; i < BS; i++) {
 		/* Don't continue if the trigger was found previously. */
 		if (la8->trigger_found)
 			break;
 
-		sample = *(la8->final_buf + (block * 4096) + i);
+		sample = *(la8->final_buf + (block * BS) + i);
 
 		if ((sample & la8->trigger_mask) == expected_sample) {
 			trigger_point = i;
@@ -899,12 +902,12 @@ static void send_block_to_session_bus(struct la8 *la8, int block)
 
 	/* If no trigger was found, send one SR_DF_LOGIC packet. */
 	if (trigger_point == -1) {
-		/* Send a 4096 byte SR_DF_LOGIC packet to the session bus. */
+		/* Send an SR_DF_LOGIC packet to the session bus. */
 		// sr_dbg("la8: %s: sending SR_DF_LOGIC packet", __func__);
 		packet.type = SR_DF_LOGIC;
-		packet.length = 4096;
+		packet.length = BS;
 		packet.unitsize = 1;
-		packet.payload = la8->final_buf + (block * 4096);
+		packet.payload = la8->final_buf + (block * BS);
 		sr_session_bus(la8->session_id, &packet);
 		return;
 	}
@@ -923,17 +926,17 @@ static void send_block_to_session_bus(struct la8 *la8, int block)
 		/* Send pre-trigger SR_DF_LOGIC packet to the session bus. */
 		sr_dbg("la8: %s: sending pre-trigger SR_DF_LOGIC packet, ",
 		       "start = %" PRIu64 ", length = %d", __func__,
-		       block * 4096, trigger_point);
+		       block * BS, trigger_point);
 		packet.type = SR_DF_LOGIC;
 		packet.length = trigger_point;
 		packet.unitsize = 1;
-		packet.payload = la8->final_buf + (block * 4096);
+		packet.payload = la8->final_buf + (block * BS);
 		sr_session_bus(la8->session_id, &packet);
 	}
 
 	/* Send the SR_DF_TRIGGER packet to the session bus. */
 	sr_dbg("la8: %s: sending SR_DF_TRIGGER packet, sample = %" PRIu64,
-	       __func__, (block * 4096) + trigger_point);
+	       __func__, (block * BS) + trigger_point);
 	packet.type = SR_DF_TRIGGER;
 	packet.length = 0;
 	packet.unitsize = 0;
@@ -941,17 +944,15 @@ static void send_block_to_session_bus(struct la8 *la8, int block)
 	sr_session_bus(la8->session_id, &packet);
 
 	/* If at least one sample is located after the trigger... */
-	if (trigger_point < (4096 - 1)) {
+	if (trigger_point < (BS - 1)) {
 		/* Send post-trigger SR_DF_LOGIC packet to the session bus. */
 		sr_dbg("la8: %s: sending post-trigger SR_DF_LOGIC packet, ",
 		       "start = %" PRIu64 ", length = %d", __func__,
-		       (block * 4096) + trigger_point,
-		       (4096 - 1) - trigger_point);
+		       (block * BS) + trigger_point, (BS - 1) - trigger_point);
 		packet.type = SR_DF_LOGIC;
-		packet.length = (4096 - 1) - trigger_point;
+		packet.length = (BS - 1) - trigger_point;
 		packet.unitsize = 1;
-		packet.payload = la8->final_buf + (block * 4096)
-				 + trigger_point;
+		packet.payload = la8->final_buf + (block * BS) + trigger_point;
 		sr_session_bus(la8->session_id, &packet);
 	}
 }
@@ -976,15 +977,15 @@ static int receive_data(int fd, int revents, void *user_data)
 		return FALSE;
 	}
 
-	/* Get one block of data (4096 bytes). */
+	/* Get one block of data. */
 	if ((ret = la8_read_block(la8)) < 0) {
 		sr_err("la8: %s: la8_read_block error: %d", __func__, ret);
 		hw_stop_acquisition(sdi->index, user_data);
 		return FALSE;
 	}
 
-	/* We need to get exactly 2048 blocks (i.e. 8MB) of data. */
-	if (la8->block_counter != 2047) {
+	/* We need to get exactly NUM_BLOCKS blocks (i.e. 8MB) of data. */
+	if (la8->block_counter != (NUM_BLOCKS - 1)) {
 		la8->block_counter++;
 		return TRUE;
 	}
@@ -992,7 +993,7 @@ static int receive_data(int fd, int revents, void *user_data)
 	sr_dbg("la8: sampling finished, sending data to session bus now");
 
 	/* All data was received and demangled, send it to the session bus. */
-	for (i = 0; i < 2048; i++)
+	for (i = 0; i < NUM_BLOCKS; i++)
 		send_block_to_session_bus(la8, i);
 
 	hw_stop_acquisition(sdi->index, user_data);
