@@ -315,7 +315,7 @@ static int la8_close_usb_reset_sequencer(struct la8 *la8)
 	uint8_t buf[8] = {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01};
 	int ret;
 
-	sr_dbg("la8: entering %s", __func__);
+	sr_spew("la8: entering %s", __func__);
 
 	if (!la8) {
 		sr_err("la8: %s: la8 was NULL", __func__);
@@ -347,7 +347,7 @@ static int la8_close_usb_reset_sequencer(struct la8 *la8)
 			sr_warn("la8: %s: ftdi_usb_close: (%d) %s", __func__,
 				ret, ftdi_get_error_string(la8->ftdic));
 	} else {
-		sr_dbg("la8: %s: usb_dev was NULL, nothing to do", __func__);
+		sr_spew("la8: %s: usb_dev was NULL, nothing to do", __func__);
 	}
 
 	ftdi_free(la8->ftdic); /* Returns void. */
@@ -464,7 +464,7 @@ static int hw_init(const char *deviceinfo)
 	struct sr_device_instance *sdi;
 	struct la8 *la8;
 
-	sr_dbg("la8: entering %s", __func__);
+	sr_spew("la8: entering %s", __func__);
 
 	/* Avoid compiler errors. */
 	deviceinfo = deviceinfo;
@@ -530,7 +530,7 @@ static int hw_init(const char *deviceinfo)
 
 	device_instances = g_slist_append(device_instances, sdi);
 
-	sr_dbg("la8: %s finished successfully", __func__);
+	sr_spew("la8: %s finished successfully", __func__);
 
 	/* Close device. We'll reopen it again when we need it. */
 	(void) la8_close(la8); /* Log, but ignore errors. */
@@ -623,7 +623,7 @@ static int set_samplerate(struct sr_device_instance *sdi, uint64_t samplerate)
 		return SR_ERR_ARG;
 	}
 
-	sr_dbg("la8: setting samplerate");
+	sr_spew("la8: setting samplerate");
 
 	fill_supported_samplerates_if_needed();
 
@@ -661,7 +661,7 @@ static int hw_closedev(int device_index)
 		/* TODO: Really ignore errors here, or return SR_ERR? */
 		(void) la8_close_usb_reset_sequencer(la8); /* Ignore errors. */
 	} else {
-		sr_dbg("la8: %s: status not ACTIVE, nothing to do", __func__);
+		sr_spew("la8: %s: status not ACTIVE, nothing to do", __func__);
 	}
 
 	sdi->status = SR_ST_INACTIVE;
@@ -677,7 +677,7 @@ static void hw_cleanup(void)
 	GSList *l;
 	struct sr_device_instance *sdi;
 
-	sr_dbg("la8: entering %s", __func__);
+	sr_spew("la8: entering %s", __func__);
 
 	/* Properly close all devices. */
 	for (l = device_instances; l; l = l->next) {
@@ -702,7 +702,7 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 	struct la8 *la8;
 	void *info;
 
-	sr_dbg("la8: entering %s", __func__);
+	sr_spew("la8: entering %s", __func__);
 
 	if (!(sdi = sr_get_device_instance(device_instances, device_index))) {
 		sr_err("la8: %s: sdi was NULL", __func__);
@@ -757,7 +757,7 @@ static int hw_get_status(int device_index)
 
 static int *hw_get_capabilities(void)
 {
-	sr_dbg("la8: entering %s", __func__);
+	sr_spew("la8: entering %s", __func__);
 
 	return capabilities;
 }
@@ -767,7 +767,7 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 	struct sr_device_instance *sdi;
 	struct la8 *la8;
 
-	sr_dbg("la8: entering %s", __func__);
+	sr_spew("la8: entering %s", __func__);
 
 	if (!(sdi = sr_get_device_instance(device_instances, device_index))) {
 		sr_err("la8: %s: sdi was NULL", __func__);
@@ -838,14 +838,14 @@ static int la8_read_block(struct la8 *la8)
 		return SR_ERR_ARG;
 	}
 
-	// sr_dbg("la8: %s: reading block %d", __func__, la8->block_counter);
+	sr_spew("la8: %s: reading block %d", __func__, la8->block_counter);
 
 	bytes_read = la8_read(la8, la8->mangled_buf, BS);
 
 	/* If first block read got 0 bytes, retry until success or timeout. */
 	if ((bytes_read == 0) && (la8->block_counter == 0)) {
 		do {
-			// sr_dbg("la8: %s: reading block 0 again", __func__);
+			sr_spew("la8: %s: reading block 0 again", __func__);
 			bytes_read = la8_read(la8, la8->mangled_buf, BS);
 			/* TODO: How to handle read errors here? */
 			now = time(NULL);
@@ -860,7 +860,7 @@ static int la8_read_block(struct la8 *la8)
 	}
 
 	/* De-mangle the data. */
-	// sr_dbg("la8: de-mangling samples of block %d", la8->block_counter);
+	sr_spew("la8: de-mangling samples of block %d", la8->block_counter);
 	byte_offset = la8->block_counter * BS;
 	m = byte_offset / (1024 * 1024);
 	mi = m * (1024 * 1024);
@@ -911,8 +911,8 @@ static void send_block_to_session_bus(struct la8 *la8, int block)
 	/* If no trigger was found, send one SR_DF_LOGIC packet. */
 	if (trigger_point == -1) {
 		/* Send an SR_DF_LOGIC packet to the session bus. */
-		// sr_dbg("la8: sending SR_DF_LOGIC packet (%d bytes) for "
-		//        "block %d", BS, block);
+		sr_spew("la8: sending SR_DF_LOGIC packet (%d bytes) for "
+		        "block %d", BS, block);
 		packet.type = SR_DF_LOGIC;
 		packet.length = BS;
 		packet.unitsize = 1;
@@ -933,7 +933,7 @@ static void send_block_to_session_bus(struct la8 *la8, int block)
 	/* If at least one sample is located before the trigger... */
 	if (trigger_point > 0) {
 		/* Send pre-trigger SR_DF_LOGIC packet to the session bus. */
-		sr_dbg("la8: sending pre-trigger SR_DF_LOGIC packet, "
+		sr_spew("la8: sending pre-trigger SR_DF_LOGIC packet, "
 			"start = %d, length = %d", block * BS, trigger_point);
 		packet.type = SR_DF_LOGIC;
 		packet.length = trigger_point;
@@ -943,7 +943,7 @@ static void send_block_to_session_bus(struct la8 *la8, int block)
 	}
 
 	/* Send the SR_DF_TRIGGER packet to the session bus. */
-	sr_dbg("la8: sending SR_DF_TRIGGER packet, sample = %d",
+	sr_spew("la8: sending SR_DF_TRIGGER packet, sample = %d",
 		(block * BS) + trigger_point);
 	packet.type = SR_DF_TRIGGER;
 	packet.length = 0;
@@ -954,7 +954,7 @@ static void send_block_to_session_bus(struct la8 *la8, int block)
 	/* If at least one sample is located after the trigger... */
 	if (trigger_point < (BS - 1)) {
 		/* Send post-trigger SR_DF_LOGIC packet to the session bus. */
-		sr_dbg("la8: sending post-trigger SR_DF_LOGIC packet, "
+		sr_spew("la8: sending post-trigger SR_DF_LOGIC packet, "
 			"start = %d, length = %d", 
 			(block * BS) + trigger_point, BS - trigger_point);
 		packet.type = SR_DF_LOGIC;
@@ -1019,7 +1019,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	uint8_t buf[4];
 	int bytes_written;
 
-	sr_dbg("la8: entering %s", __func__);
+	sr_spew("la8: entering %s", __func__);
 
 	if (!(sdi = sr_get_device_instance(device_instances, device_index))) {
 		sr_err("la8: %s: sdi was NULL", __func__);
