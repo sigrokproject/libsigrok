@@ -42,6 +42,7 @@ int load_hwplugins(void);
 /*--- log.c -----------------------------------------------------------------*/
 
 int sr_log(int loglevel, const char *format, ...);
+int sr_spew(const char *format, ...);
 int sr_dbg(const char *format, ...);
 int sr_info(const char *format, ...);
 int sr_warn(const char *format, ...);

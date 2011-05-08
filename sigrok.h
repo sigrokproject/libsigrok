@@ -73,6 +73,7 @@ extern "C" {
 #define SR_LOG_WARN	2
 #define SR_LOG_INFO	3
 #define SR_LOG_DBG	4
+#define SR_LOG_SPEW	5
 
 typedef int (*sr_receive_data_callback) (int fd, int revents, void *user_data);
 

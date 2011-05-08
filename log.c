@@ -32,12 +32,12 @@ static int sr_loglevel = SR_LOG_WARN; /* Show errors+warnings per default. */
  * and so on) libsigrok will output. Using SR_LOG_NONE disables all messages.
  *
  * @param loglevel The loglevel to set (SR_LOG_NONE, SR_LOG_ERR, SR_LOG_WARN,
- *                 SR_LOG_INFO, or SR_LOG_DBG).
+ *                 SR_LOG_INFO, SR_LOG_DBG, or SR_LOG_SPEW).
  * @return SR_OK upon success, SR_ERR_ARG upon invalid loglevel.
  */
 int sr_set_loglevel(int loglevel)
 {
-	if (loglevel < SR_LOG_NONE || loglevel > SR_LOG_DBG) {
+	if (loglevel < SR_LOG_NONE || loglevel > SR_LOG_SPEW) {
 		sr_err("log: %s: invalid loglevel %d", __func__, loglevel);
 		return SR_ERR_ARG;
 	}
@@ -80,6 +80,18 @@ int sr_log(int loglevel, const char *format, ...)
 
 	va_start(args, format);
 	ret = sr_logv(loglevel, format, args);
+	va_end(args);
+
+	return ret;
+}
+
+int sr_spew(const char *format, ...)
+{
+	int ret;
+	va_list args;
+
+	va_start(args, format);
+	ret = sr_logv(SR_LOG_SPEW, format, args);
 	va_end(args);
 
 	return ret;
