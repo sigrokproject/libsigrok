@@ -82,6 +82,9 @@ struct la8 {
 	/** Time (in seconds) before the trigger times out. */
 	uint64_t trigger_timeout;
 
+	/** Tells us whether an SR_DF_TRIGGER packet was already sent. */
+	int trigger_found;
+
 	/** TODO */
 	time_t done;
 
@@ -481,6 +484,7 @@ static int hw_init(const char *deviceinfo)
 	la8->trigger_pattern = 0x00; /* Value irrelevant, see trigger_mask. */
 	la8->trigger_mask = 0x00; /* All probes are "don't care". */
 	la8->trigger_timeout = 10; /* Default to 10s trigger timeout. */
+	la8->trigger_found = 0;
 	la8->done = 0;
 	la8->block_counter = 0;
 	la8->divcount = 0; /* 10ns sample period == 100MHz samplerate */
@@ -867,11 +871,95 @@ static int la8_read_block(struct la8 *la8)
 	return SR_OK;
 }
 
+static void send_block_to_session_bus(struct la8 *la8, int block)
+{
+	int i;
+	uint8_t sample, expected_sample;
+	struct sr_datafeed_packet packet;
+	int trigger_point; /* Relative trigger point (in this block). */
+
+	/* Note: No sanity checks on la8/block, caller is responsible. */
+
+	/* Check if we can find the trigger condition in this block. */
+	trigger_point = -1;
+	expected_sample = la8->trigger_pattern & la8->trigger_mask;
+	for (i = 0; i < 4096; i++) {
+		/* Don't continue if the trigger was found previously. */
+		if (la8->trigger_found)
+			break;
+
+		sample = *(la8->final_buf + (block * 4096) + i);
+
+		if ((sample & la8->trigger_mask) == expected_sample) {
+			trigger_point = i;
+			la8->trigger_found = 1;
+			break;
+		}
+	}
+
+	/* If no trigger was found, send one SR_DF_LOGIC packet. */
+	if (trigger_point == -1) {
+		/* Send a 4096 byte SR_DF_LOGIC packet to the session bus. */
+		// sr_dbg("la8: %s: sending SR_DF_LOGIC packet", __func__);
+		packet.type = SR_DF_LOGIC;
+		packet.length = 4096;
+		packet.unitsize = 1;
+		packet.payload = la8->final_buf + (block * 4096);
+		sr_session_bus(la8->session_id, &packet);
+		return;
+	}
+
+	/*
+	 * We found the trigger, so some special handling is needed. We have
+	 * to send an SR_DF_LOGIC packet with the samples before the trigger
+	 * (if any), then the SD_DF_TRIGGER packet itself, then another
+	 * SR_DF_LOGIC packet with the samples after the trigger (if any).
+	 */
+
+	/* TODO: Send SR_DF_TRIGGER packet before or after the actual sample? */
+
+	/* If at least one sample is located before the trigger... */
+	if (trigger_point > 0) {
+		/* Send pre-trigger SR_DF_LOGIC packet to the session bus. */
+		sr_dbg("la8: %s: sending pre-trigger SR_DF_LOGIC packet, ",
+		       "start = %" PRIu64 ", length = %d", __func__,
+		       block * 4096, trigger_point);
+		packet.type = SR_DF_LOGIC;
+		packet.length = trigger_point;
+		packet.unitsize = 1;
+		packet.payload = la8->final_buf + (block * 4096);
+		sr_session_bus(la8->session_id, &packet);
+	}
+
+	/* Send the SR_DF_TRIGGER packet to the session bus. */
+	sr_dbg("la8: %s: sending SR_DF_TRIGGER packet, sample = %" PRIu64,
+	       __func__, (block * 4096) + trigger_point);
+	packet.type = SR_DF_TRIGGER;
+	packet.length = 0;
+	packet.unitsize = 0;
+	packet.payload = NULL;
+	sr_session_bus(la8->session_id, &packet);
+
+	/* If at least one sample is located after the trigger... */
+	if (trigger_point < (4096 - 1)) {
+		/* Send post-trigger SR_DF_LOGIC packet to the session bus. */
+		sr_dbg("la8: %s: sending post-trigger SR_DF_LOGIC packet, ",
+		       "start = %" PRIu64 ", length = %d", __func__,
+		       (block * 4096) + trigger_point,
+		       (4096 - 1) - trigger_point);
+		packet.type = SR_DF_LOGIC;
+		packet.length = (4096 - 1) - trigger_point;
+		packet.unitsize = 1;
+		packet.payload = la8->final_buf + (block * 4096)
+				 + trigger_point;
+		sr_session_bus(la8->session_id, &packet);
+	}
+}
+
 static int receive_data(int fd, int revents, void *user_data)
 {
 	int i, ret;
 	struct sr_device_instance *sdi;
-	struct sr_datafeed_packet packet;
 	struct la8 *la8;
 
 	/* Avoid compiler errors. */
@@ -904,15 +992,8 @@ static int receive_data(int fd, int revents, void *user_data)
 	sr_dbg("la8: sampling finished, sending data to session bus now");
 
 	/* All data was received and demangled, send it to the session bus. */
-	for (i = 0; i < 2048; i++) {
-		/* Send a 4096 byte SR_DF_LOGIC packet to the session bus. */
-		// sr_dbg("la8: %s: sending SR_DF_LOGIC packet", __func__);
-		packet.type = SR_DF_LOGIC;
-		packet.length = 4096;
-		packet.unitsize = 1;
-		packet.payload = la8->final_buf + (i * 4096);
-		sr_session_bus(la8->session_id, &packet);
-	}
+	for (i = 0; i < 2048; i++)
+		send_block_to_session_bus(la8, i);
 
 	hw_stop_acquisition(sdi->index, user_data);
 
@@ -991,6 +1072,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	la8->done = (la8->divcount + 1) * 0.08388608 + time(NULL)
 			+ la8->trigger_timeout;
 	la8->block_counter = 0;
+	la8->trigger_found = 0;
 
 	/* Hook up a dummy handler to receive data from the LA8. */
 	sr_source_add(-1, G_IO_IN, 0, receive_data, sdi);
