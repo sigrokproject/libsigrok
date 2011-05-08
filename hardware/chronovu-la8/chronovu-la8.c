@@ -955,7 +955,7 @@ static void send_block_to_session_bus(struct la8 *la8, int block)
 	if (trigger_point < (BS - 1)) {
 		/* Send post-trigger SR_DF_LOGIC packet to the session bus. */
 		sr_spew("la8: sending post-trigger SR_DF_LOGIC packet, "
-			"start = %d, length = %d", 
+			"start = %d, length = %d",
 			(block * BS) + trigger_point, BS - trigger_point);
 		packet.type = SR_DF_LOGIC;
 		packet.length = BS - trigger_point;
