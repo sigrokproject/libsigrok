@@ -20,8 +20,7 @@
 # Local lib, this is NOT meant to be installed!
 noinst_LTLIBRARIES = libsigrokhwcommon.la
 
-libsigrokhwcommon_la_SOURCES = \
-	misc.c
+libsigrokhwcommon_la_SOURCES =
 
 if LA_SALEAE_LOGIC
 libsigrokhwcommon_la_SOURCES += ezusb.c

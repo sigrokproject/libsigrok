@@ -96,6 +96,14 @@ int ezusb_upload_firmware(libusb_device *dev, int configuration,
 		return 1;
 	}
 
+	if (libusb_kernel_driver_active(hdl, 0)) {
+		err = libusb_detach_kernel_driver(hdl, 0);
+		if (err != 0) {
+			g_warning("failed to detach kernel driver: %d", err);
+			return 1;
+		}
+	}
+
 	err = libusb_set_configuration(hdl, configuration);
 	if (err != 0) {
 		sr_warn("Unable to set configuration: %d", err);

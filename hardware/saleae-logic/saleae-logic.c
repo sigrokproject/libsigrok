@@ -27,26 +27,41 @@
 #include <sigrok.h>
 #include <sigrok-internal.h>
 
-#define USB_VENDOR	            0x0925
-#define USB_PRODUCT			0x3881
-#define USB_VENDOR_NAME        "Saleae"
-#define USB_MODEL_NAME         "Logic"
-#define USB_MODEL_VERSION      ""
-
 #define USB_INTERFACE          0
 #define USB_CONFIGURATION      1
-#define NUM_PROBES             8
 #define NUM_TRIGGER_STAGES     4
 #define TRIGGER_TYPES          "01"
 #define FIRMWARE               FIRMWARE_DIR "/saleae-logic.fw"
+#define GTV_TO_MSEC(gtv)       (gtv.tv_sec * 1000 + gtv.tv_usec / 1000)
 
 /* delay in ms */
-#define FIRMWARE_RENUM_DELAY   2000
+#define MAX_RENUM_DELAY        3000
 #define NUM_SIMUL_TRANSFERS    10
 #define MAX_EMPTY_TRANSFERS    (NUM_SIMUL_TRANSFERS * 2)
 
 /* Software trigger implementation: positive values indicate trigger stage. */
 #define TRIGGER_FIRED          -1
+
+struct fx2_device {
+	/* VID/PID when first found */
+	uint16_t orig_vid;
+	uint16_t orig_pid;
+	/* VID/PID after firmware upload */
+	uint16_t fw_vid;
+	uint16_t fw_pid;
+	char *vendor;
+	char *model;
+	char *model_version;
+	int num_probes;
+};
+
+static struct fx2_device supported_fx2[] = {
+	/* Saleae Logic */
+	{ 0x0925, 0x3881, 0x0925, 0x3881, "Saleae", "Logic", NULL, 8 },
+	/* default Cypress FX2 without EEPROM */
+	{ 0x04b4, 0x8613, 0x0925, 0x3881, "Cypress", "FX2", NULL, 16 },
+	{ 0, 0, 0, 0, NULL, NULL, NULL, 0 }
+};
 
 /* There is only one model Saleae Logic, and this is what it supports: */
 static int capabilities[] = {
@@ -68,7 +83,7 @@ static GSList *device_instances = NULL;
  * upgrade -- this is like a global lock. No device will open until a proper
  * delay after the last device was upgraded.
  */
-static GTimeVal firmware_updated = { 0, 0 };
+static GTimeVal fw_updated = { 0, 0 };
 
 static libusb_context *usb_context = NULL;
 
@@ -100,7 +115,7 @@ static uint8_t probe_mask = 0;
 static uint8_t trigger_mask[NUM_TRIGGER_STAGES] = { 0 };
 static uint8_t trigger_value[NUM_TRIGGER_STAGES] = { 0 };
 static uint8_t trigger_buffer[NUM_TRIGGER_STAGES] = { 0 };
-
+static struct fx2_device *fx2 = NULL;
 static int trigger_stage = TRIGGER_FIRED;
 
 static int hw_set_configuration(int device_index, int capability, void *value);
@@ -168,43 +183,62 @@ static int check_conf_profile(libusb_device *dev)
 
 static struct sr_device_instance *sl_open_device(int device_index)
 {
-	struct sr_device_instance *sdi;
 	libusb_device **devlist;
 	struct libusb_device_descriptor des;
+	struct sr_device_instance *sdi;
 	int err, skip, i;
 
 	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
 		return NULL;
 
+	if (sdi->status == SR_ST_ACTIVE)
+		/* already in use */
+		return NULL;
+
+	skip = 0;
 	libusb_get_device_list(usb_context, &devlist);
-	if (sdi->status == SR_ST_INITIALIZING) {
-		/*
-		 * This device was renumerating last time we touched it.
-		 * opendev() guarantees we've waited long enough for it to
-		 * have booted properly, so now we need to find it on
-		 * the bus and record its new address.
-		 */
-		skip = 0;
-		for (i = 0; devlist[i]; i++) {
-			/* TODO: Error handling. */
-			err = opendev2(device_index, &sdi, devlist[i], &des,
-				       &skip, USB_VENDOR, USB_PRODUCT,
-				       USB_INTERFACE);
+	for (i = 0; devlist[i]; i++) {
+		if ((err = libusb_get_device_descriptor(devlist[i], &des))) {
+			g_warning("failed to get device descriptor: %d", err);
+			continue;
 		}
-	} else if (sdi->status == SR_ST_INACTIVE) {
-		/*
-		 * This device is fully enumerated, so we need to find this
-		 * device by vendor, product, bus and address.
-		 */
-		libusb_get_device_list(usb_context, &devlist);
-		for (i = 0; devlist[i]; i++) {
-			/* TODO: Error handling. */
-			err = opendev3(&sdi, devlist[i], &des, USB_VENDOR,
-				       USB_PRODUCT, USB_INTERFACE);
+
+		if (des.idVendor != fx2->fw_vid || des.idProduct != fx2->fw_pid)
+			continue;
+
+		if (sdi->status == SR_ST_INITIALIZING) {
+			if (skip != device_index) {
+				/* Skip devices of this type that aren't the one we want. */
+				skip += 1;
+				continue;
+			}
+		} else if (sdi->status == SR_ST_INACTIVE) {
+			/*
+			 * This device is fully enumerated, so we need to find this
+			 * device by vendor, product, bus and address.
+			 */
+			if (libusb_get_bus_number(devlist[i]) != sdi->usb->bus
+				|| libusb_get_device_address(devlist[i]) != sdi->usb->address)
+				/* this is not the one */
+				continue;
 		}
-	} else {
-		/* Status must be SR_ST_ACTIVE, i.e. already in use... */
-		sdi = NULL;
+
+		if (!(err = libusb_open(devlist[i], &sdi->usb->devhdl))) {
+			if (sdi->usb->address == 0xff)
+				/*
+				 * first time we touch this device after firmware upload,
+				 * so we don't know the address yet.
+				 */
+				sdi->usb->address = libusb_get_device_address(devlist[i]);
+
+			sdi->status = SR_ST_ACTIVE;
+			g_message("saleae: opened device %d on %d.%d interface %d",
+				  sdi->index, sdi->usb->bus,
+				  sdi->usb->address, USB_INTERFACE);
+		} else {
+			g_warning("failed to open device: %d", err);
+			sdi = NULL;
+		}
 	}
 	libusb_free_device_list(devlist, 1);
 
@@ -223,7 +257,7 @@ static int upload_firmware(libusb_device *dev)
 		return 1;
 
 	/* Remember when the last firmware update was done. */
-	g_get_current_time(&firmware_updated);
+	g_get_current_time(&fw_updated);
 
 	return 0;
 }
@@ -296,7 +330,7 @@ static int hw_init(const char *deviceinfo)
 	struct sr_device_instance *sdi;
 	struct libusb_device_descriptor des;
 	libusb_device **devlist;
-	int err, devcnt, i;
+	int err, devcnt, i, j;
 
 	/* Avoid compiler warnings. */
 	deviceinfo = deviceinfo;
@@ -307,6 +341,7 @@ static int hw_init(const char *deviceinfo)
 	}
 
 	/* Find all Saleae Logic devices and upload firmware to all of them. */
+	fx2 = NULL;
 	devcnt = 0;
 	libusb_get_device_list(usb_context, &devlist);
 	for (i = 0; devlist[i]; i++) {
@@ -316,11 +351,19 @@ static int hw_init(const char *deviceinfo)
 			continue;
 		}
 
-		if (des.idVendor != USB_VENDOR || des.idProduct != USB_PRODUCT)
-			continue; /* Not a Saleae Logic... */
+		for (j = 0; supported_fx2[j].orig_vid; j++) {
+			if (des.idVendor == supported_fx2[j].orig_vid
+				&& des.idProduct == supported_fx2[j].orig_pid) {
+				fx2 = &supported_fx2[j];
+				break;
+			}
+		}
+		if (!fx2)
+			/* not a supported VID/PID */
+			continue;
 
 		sdi = sr_device_instance_new(devcnt, SR_ST_INITIALIZING,
-			USB_VENDOR_NAME, USB_MODEL_NAME, USB_MODEL_VERSION);
+			fx2->vendor, fx2->model, fx2->model_version);
 		if (!sdi)
 			return 0;
 		device_instances = g_slist_append(device_instances, sdi);
@@ -336,14 +379,18 @@ static int hw_init(const char *deviceinfo)
 					devcnt);
 
 			sdi->usb = sr_usb_device_instance_new
-				(libusb_get_bus_number(devlist[i]), 0, NULL);
+				(libusb_get_bus_number(devlist[i]), 0xff, NULL);
 		} else {
 			/* Already has the firmware, so fix the new address. */
+			sdi->status = SR_ST_INACTIVE;
 			sdi->usb = sr_usb_device_instance_new
 			    (libusb_get_bus_number(devlist[i]),
 			     libusb_get_device_address(devlist[i]), NULL);
 		}
 		devcnt++;
+
+		/* not supporting multiple FX2s in this driver yet */
+		break;
 	}
 	libusb_free_device_list(devlist, 1);
 
@@ -355,25 +402,30 @@ static int hw_opendev(int device_index)
 	GTimeVal cur_time;
 	struct sr_device_instance *sdi;
 	int timediff, err;
-	unsigned int cur, upd;
 
-	if (firmware_updated.tv_sec > 0) {
-		/* Firmware was recently uploaded. */
-		g_get_current_time(&cur_time);
-		cur = cur_time.tv_sec * 1000 + cur_time.tv_usec / 1000;
-		upd = firmware_updated.tv_sec * 1000 +
-		      firmware_updated.tv_usec / 1000;
-		timediff = cur - upd;
-		if (timediff < FIRMWARE_RENUM_DELAY) {
-			timediff = FIRMWARE_RENUM_DELAY - timediff;
-			sr_info("saleae: waiting %d ms for device to reset",
-				timediff);
-			g_usleep(timediff * 1000);
-			firmware_updated.tv_sec = 0;
+	/*
+	 * if the firmware was recently uploaded, wait up to MAX_RENUM_DELAY ms
+	 * for the FX2 to renumerate
+	 */
+	sdi = NULL;
+	if (fw_updated.tv_sec > 0) {
+		g_message("saleae: waiting for device to reset");
+		/* takes at least 300ms for the FX2 to be gone from the USB bus */
+		g_usleep(300*1000);
+		timediff = 0;
+		while (timediff < MAX_RENUM_DELAY) {
+			if ((sdi = sl_open_device(device_index)))
+				break;
+			g_usleep(100*1000);
+			g_get_current_time(&cur_time);
+			timediff = GTV_TO_MSEC(cur_time) - GTV_TO_MSEC(fw_updated);
 		}
+		g_message("saleae: device came back after %d ms", timediff);
+	} else {
+		sdi = sl_open_device(device_index);
 	}
 
-	if (!(sdi = sl_open_device(device_index))) {
+	if (!sdi) {
 		sr_warn("unable to open device");
 		return SR_ERR;
 	}
@@ -441,7 +493,7 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 		info = sdi;
 		break;
 	case SR_DI_NUM_PROBES:
-		info = GINT_TO_POINTER(NUM_PROBES);
+		info = GINT_TO_POINTER(fx2->num_probes);
 		break;
 	case SR_DI_SAMPLERATES:
 		info = &samplerates;
@@ -735,7 +787,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	gettimeofday(&header->starttime, NULL);
 	header->samplerate = cur_samplerate;
 	header->protocol_id = SR_PROTO_RAW;
-	header->num_logic_probes = NUM_PROBES;
+	header->num_logic_probes = fx2->num_probes;
 	header->num_analog_probes = 0;
 	sr_session_bus(session_device_id, packet);
 	g_free(header);
