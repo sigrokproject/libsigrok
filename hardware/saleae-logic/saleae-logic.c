@@ -199,7 +199,7 @@ static struct sr_device_instance *sl_open_device(int device_index)
 	libusb_get_device_list(usb_context, &devlist);
 	for (i = 0; devlist[i]; i++) {
 		if ((err = libusb_get_device_descriptor(devlist[i], &des))) {
-			g_warning("failed to get device descriptor: %d", err);
+			sr_warn("failed to get device descriptor: %d", err);
 			continue;
 		}
 
@@ -232,11 +232,11 @@ static struct sr_device_instance *sl_open_device(int device_index)
 				sdi->usb->address = libusb_get_device_address(devlist[i]);
 
 			sdi->status = SR_ST_ACTIVE;
-			g_message("saleae: opened device %d on %d.%d interface %d",
+			sr_info("saleae: opened device %d on %d.%d interface %d",
 				  sdi->index, sdi->usb->bus,
 				  sdi->usb->address, USB_INTERFACE);
 		} else {
-			g_warning("failed to open device: %d", err);
+			sr_warn("failed to open device: %d", err);
 			sdi = NULL;
 		}
 	}
@@ -409,7 +409,7 @@ static int hw_opendev(int device_index)
 	 */
 	sdi = NULL;
 	if (fw_updated.tv_sec > 0) {
-		g_message("saleae: waiting for device to reset");
+		sr_info("saleae: waiting for device to reset");
 		/* takes at least 300ms for the FX2 to be gone from the USB bus */
 		g_usleep(300*1000);
 		timediff = 0;
@@ -420,7 +420,7 @@ static int hw_opendev(int device_index)
 			g_get_current_time(&cur_time);
 			timediff = GTV_TO_MSEC(cur_time) - GTV_TO_MSEC(fw_updated);
 		}
-		g_message("saleae: device came back after %d ms", timediff);
+		sr_info("saleae: device came back after %d ms", timediff);
 	} else {
 		sdi = sl_open_device(device_index);
 	}
