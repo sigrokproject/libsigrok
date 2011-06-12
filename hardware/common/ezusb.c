@@ -31,6 +31,7 @@
 #include <string.h>
 #include "config.h"
 
+
 int ezusb_reset(struct libusb_device_handle *hdl, int set_clear)
 {
 	int err;
@@ -56,10 +57,11 @@ int ezusb_install_firmware(libusb_device_handle *hdl, const char *filename)
 	if ((fw = g_fopen(filename, "rb")) == NULL) {
 		sr_warn("Unable to open firmware file %s for reading: %s",
 			filename, strerror(errno));
-		return 1;
+		return SR_ERR;
 	}
 
-	result = offset = 0;
+	result = SR_OK;
+	offset = 0;
 	while (1) {
 		chunksize = fread(buf, 1, 4096, fw);
 		if (chunksize == 0)
@@ -69,7 +71,7 @@ int ezusb_install_firmware(libusb_device_handle *hdl, const char *filename)
 					      0x0000, buf, chunksize, 100);
 		if (err < 0) {
 			sr_warn("Unable to send firmware to device: %d", err);
-			result = 1;
+			result = SR_ERR;
 			break;
 		}
 		sr_info("Uploaded %d bytes", chunksize);
@@ -90,36 +92,33 @@ int ezusb_upload_firmware(libusb_device *dev, int configuration,
 	sr_info("uploading firmware to device on %d.%d",
 		  libusb_get_bus_number(dev), libusb_get_device_address(dev));
 
-	err = libusb_open(dev, &hdl);
-	if (err != 0) {
+	if ((err = libusb_open(dev, &hdl)) < 0) {
 		sr_warn("failed to open device: %d", err);
-		return 1;
+		return SR_ERR;
 	}
 
 	if (libusb_kernel_driver_active(hdl, 0)) {
-		err = libusb_detach_kernel_driver(hdl, 0);
-		if (err != 0) {
-			g_warning("failed to detach kernel driver: %d", err);
-			return 1;
+		if ((err = libusb_detach_kernel_driver(hdl, 0)) < 0) {
+			sr_warn("failed to detach kernel driver: %d", err);
+			return SR_ERR;
 		}
 	}
 
-	err = libusb_set_configuration(hdl, configuration);
-	if (err != 0) {
+	if ((err = libusb_set_configuration(hdl, configuration)) < 0) {
 		sr_warn("Unable to set configuration: %d", err);
-		return 1;
+		return SR_ERR;
 	}
 
 	if ((ezusb_reset(hdl, 1)) < 0)
-		return 1;
+		return SR_ERR;
 
-	if (ezusb_install_firmware(hdl, filename) != 0)
-		return 1;
+	if (ezusb_install_firmware(hdl, filename) < 0)
+		return SR_ERR;
 
 	if ((ezusb_reset(hdl, 0)) < 0)
-		return 1;
+		return SR_ERR;
 
 	libusb_close(hdl);
 
-	return 0;
+	return SR_OK;
 }

@@ -25,7 +25,8 @@ AM_CPPFLAGS = -DFIRMWARE_DIR='"$(FIRMWARE_DIR)"'
 noinst_LTLIBRARIES = libsigrokhwsaleaelogic.la
 
 libsigrokhwsaleaelogic_la_SOURCES = \
-	saleae-logic.c
+	saleae-logic.c \
+	saleae-logic.h
 
 libsigrokhwsaleaelogic_la_CFLAGS = \
 	-I$(top_srcdir)/libsigrok
