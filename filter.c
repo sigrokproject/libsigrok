@@ -39,8 +39,8 @@
  * @return SR_OK upon success, SR_ERR_MALLOC upon memory allocation errors.
  */
 int sr_filter_probes(int in_unitsize, int out_unitsize, int *probelist,
-		     const char *data_in, uint64_t length_in, char **data_out,
-		     uint64_t *length_out)
+		     const unsigned char *data_in, uint64_t length_in,
+		     char **data_out, uint64_t *length_out)
 {
 	unsigned int in_offset, out_offset;
 	int num_enabled_probes, out_bit, i;
