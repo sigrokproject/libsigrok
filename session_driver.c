@@ -60,11 +60,12 @@ static struct session_vdevice *get_vdevice_by_index(int device_index)
 	return vdevice;
 }
 
-static int feed_chunk(int fd, int revents, void *user_data)
+static int feed_chunk(int fd, int revents, void *session_data)
 {
 	struct sr_device_instance *sdi;
 	struct session_vdevice *vdevice;
 	struct sr_datafeed_packet packet;
+	struct sr_datafeed_logic logic;
 	GSList *l;
 	void *buf;
 	int ret, got_data;
@@ -93,10 +94,13 @@ static int feed_chunk(int fd, int revents, void *user_data)
 		if (ret > 0) {
 			got_data = TRUE;
 			packet.type = SR_DF_LOGIC;
-			packet.length = ret;
-			packet.unitsize = vdevice->unitsize;
-			packet.payload = buf;
-			sr_session_bus(user_data, &packet);
+			packet.timeoffset = 0;
+			packet.duration = 0;
+			packet.payload = &logic;
+			logic.length = ret;
+			logic.unitsize = vdevice->unitsize;
+			logic.data = buf;
+			sr_session_bus(session_data, &packet);
 		} else {
 			/* done with this capture file */
 			zip_fclose(vdevice->capfile);
@@ -108,8 +112,7 @@ static int feed_chunk(int fd, int revents, void *user_data)
 
 	if (!got_data) {
 		packet.type = SR_DF_END;
-		packet.length = 0;
-		sr_session_bus(user_data, &packet);
+		sr_session_bus(session_data, &packet);
 	}
 
 	return TRUE;
@@ -270,12 +273,10 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 
 	/* Send header packet to the session bus. */
 	packet->type = SR_DF_HEADER;
-	packet->length = sizeof(struct sr_datafeed_header);
 	packet->payload = (unsigned char *)header;
 	header->feed_version = 1;
 	gettimeofday(&header->starttime, NULL);
 	header->samplerate = 0;
-	header->protocol_id = SR_PROTO_RAW;
 	header->num_logic_probes = vdevice->num_probes;
 	header->num_analog_probes = 0;
 	sr_session_bus(session_device_id, packet);

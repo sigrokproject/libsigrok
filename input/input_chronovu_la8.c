@@ -99,6 +99,7 @@ static int loadfile(struct sr_input *in, const char *filename)
 {
 	struct sr_datafeed_header header;
 	struct sr_datafeed_packet packet;
+	struct sr_datafeed_logic logic;
 	uint8_t buf[PACKET_SIZE], divcount;
 	int i, fd, size, num_probes;
 	uint64_t samplerate;
@@ -125,14 +126,11 @@ static int loadfile(struct sr_input *in, const char *filename)
 	/* Send header packet to the session bus. */
 	sr_dbg("la8input: %s: sending SR_DF_HEADER packet", __func__);
 	packet.type = SR_DF_HEADER;
-	packet.length = sizeof(struct sr_datafeed_header);
-	packet.unitsize = 0;
 	packet.payload = &header;
 	header.feed_version = 1;
 	gettimeofday(&header.starttime, NULL);
 	header.num_logic_probes = num_probes;
 	header.num_analog_probes = 0;
-	header.protocol_id = SR_PROTO_RAW;
 	header.samplerate = samplerate;
 	sr_session_bus(in->vdevice, &packet);
 
@@ -141,14 +139,15 @@ static int loadfile(struct sr_input *in, const char *filename)
 	/* Send data packets to the session bus. */
 	sr_dbg("la8input: %s: sending SR_DF_LOGIC data packets", __func__);
 	packet.type = SR_DF_LOGIC;
-	packet.unitsize = (num_probes + 7) / 8;
-	packet.payload = buf;
+	packet.payload = &logic;
+	logic.unitsize = (num_probes + 7) / 8;
+	logic.data = buf;
 
 	/* Send 8MB of total data to the session bus in small chunks. */
 	for (i = 0; i < NUM_PACKETS; i++) {
 		/* TODO: Handle errors, handle incomplete reads. */
 		size = read(fd, buf, PACKET_SIZE);
-		packet.length = PACKET_SIZE;
+		logic.length = PACKET_SIZE;
 		sr_session_bus(in->vdevice, &packet);
 	}
 	close(fd); /* FIXME */
@@ -156,8 +155,6 @@ static int loadfile(struct sr_input *in, const char *filename)
 	/* Send end packet to the session bus. */
 	sr_dbg("la8input: %s: sending SR_DF_END", __func__);
 	packet.type = SR_DF_END;
-	packet.length = 0;
-	packet.unitsize = 0;
 	packet.payload = NULL;
 	sr_session_bus(in->vdevice, &packet);
 

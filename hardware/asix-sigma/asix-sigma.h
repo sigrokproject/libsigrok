@@ -176,6 +176,7 @@ struct sigma_state {
 struct sigma {
 	struct ftdi_context ftdic;
 	uint64_t cur_samplerate;
+	uint64_t period_ps;
 	uint64_t limit_msec;
 	struct timeval start_tv;
 	int cur_firmware;

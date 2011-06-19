@@ -60,6 +60,7 @@ struct fx2_device {
 	GTimeVal fw_updated;
 	/* device/capture settings */
 	uint64_t cur_samplerate;
+	uint64_t period_ps;
 	uint64_t limit_samples;
 	uint8_t probe_mask;
 	uint8_t trigger_mask[NUM_TRIGGER_STAGES];

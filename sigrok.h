@@ -123,7 +123,7 @@ struct sr_datafeed_header {
 struct sr_datafeed_logic {
 	uint64_t length;
 	uint16_t unitsize;
-	unsigned char *data;
+	void *data;
 };
 
 struct sr_datafeed_pd {

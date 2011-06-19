@@ -67,6 +67,7 @@ struct ols_device {
 
 	uint64_t cur_samplerate;
 	uint32_t cur_samplerate_divider;
+	uint64_t period_ps;
 	uint64_t limit_samples;
 	/* Current state of the flag register */
 	uint32_t flag_reg;

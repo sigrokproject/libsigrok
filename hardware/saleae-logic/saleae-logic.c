@@ -517,6 +517,7 @@ static int set_configuration_samplerate(struct sr_device_instance *sdi,
 		return SR_ERR;
 	}
 	fx2->cur_samplerate = samplerate;
+	fx2->period_ps = 1000000000000 / samplerate;
 
 	return SR_OK;
 }
@@ -565,9 +566,11 @@ static int receive_data(int fd, int revents, void *user_data)
 
 void receive_transfer(struct libusb_transfer *transfer)
 {
+	/* TODO: these statics have to move to fx2_device struct */
 	static int num_samples = 0;
 	static int empty_transfer_count = 0;
 	struct sr_datafeed_packet packet;
+	struct sr_datafeed_logic logic;
 	struct fx2_device *fx2;
 	int cur_buflen, trigger_offset, i;
 	unsigned char *cur_buf, *new_buf;
@@ -639,7 +642,9 @@ void receive_transfer(struct libusb_transfer *transfer)
 					 * Tell the frontend we hit the trigger here.
 					 */
 					packet.type = SR_DF_TRIGGER;
-					packet.length = 0;
+					packet.timeoffset = (num_samples - fx2->trigger_stage) * fx2->period_ps;
+					packet.duration = 0;
+					packet.payload = NULL;
 					sr_session_bus(fx2->session_data, &packet);
 
 					/*
@@ -647,9 +652,12 @@ void receive_transfer(struct libusb_transfer *transfer)
 					 * skipping past them.
 					 */
 					packet.type = SR_DF_LOGIC;
-					packet.length = fx2->trigger_stage;
-					packet.unitsize = 1;
-					packet.payload = fx2->trigger_buffer;
+					packet.timeoffset = (num_samples - fx2->trigger_stage) * fx2->period_ps;
+					packet.duration = fx2->trigger_stage * fx2->period_ps;
+					packet.payload = &logic;
+					logic.length = fx2->trigger_stage;
+					logic.unitsize = 1;
+					logic.data = fx2->trigger_buffer;
 					sr_session_bus(fx2->session_data, &packet);
 
 					fx2->trigger_stage = TRIGGER_FIRED;
@@ -678,9 +686,12 @@ void receive_transfer(struct libusb_transfer *transfer)
 	if (fx2->trigger_stage == TRIGGER_FIRED) {
 		/* Send the incoming transfer to the session bus. */
 		packet.type = SR_DF_LOGIC;
-		packet.length = cur_buflen - trigger_offset;
-		packet.unitsize = 1;
-		packet.payload = cur_buf + trigger_offset;
+		packet.timeoffset = num_samples * fx2->period_ps;
+		packet.duration = cur_buflen * fx2->period_ps;
+		packet.payload = &logic;
+		logic.length = cur_buflen - trigger_offset;
+		logic.unitsize = 1;
+		logic.data = cur_buf + trigger_offset;
 		sr_session_bus(fx2->session_data, &packet);
 		g_free(cur_buf);
 
@@ -716,7 +727,7 @@ static int hw_start_acquisition(int device_index, gpointer session_data)
 		sr_err("saleae: %s: packet malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
-	
+
 	if (!(header = g_try_malloc(sizeof(struct sr_datafeed_header)))) {
 		sr_err("saleae: %s: header malloc failed", __func__);
 		return SR_ERR_MALLOC;
@@ -749,12 +760,10 @@ static int hw_start_acquisition(int device_index, gpointer session_data)
 	free(lupfd);
 
 	packet->type = SR_DF_HEADER;
-	packet->length = sizeof(struct sr_datafeed_header);
-	packet->payload = (unsigned char *)header;
+	packet->payload = header;
 	header->feed_version = 1;
 	gettimeofday(&header->starttime, NULL);
 	header->samplerate = fx2->cur_samplerate;
-	header->protocol_id = SR_PROTO_RAW;
 	header->num_logic_probes = fx2->profile->num_probes;
 	header->num_analog_probes = 0;
 	sr_session_bus(session_data, packet);

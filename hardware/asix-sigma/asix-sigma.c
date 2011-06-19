@@ -98,7 +98,7 @@ static const char *firmware_files[] = {
 	"asix-sigma-phasor.fw",	/* Frequency counter */
 };
 
-static void hw_stop_acquisition(int device_index, gpointer session_device_id);
+static void hw_stop_acquisition(int device_index, gpointer session_data);
 
 static int sigma_read(void *buf, size_t size, struct sigma *sigma)
 {
@@ -415,6 +415,7 @@ static int hw_init(const char *deviceinfo)
 		goto free;
 
 	sigma->cur_samplerate = 0;
+	sigma->period_ps = 0;
 	sigma->limit_msec = 0;
 	sigma->cur_firmware = -1;
 	sigma->num_probes = 0;
@@ -585,6 +586,7 @@ static int set_samplerate(struct sr_device_instance *sdi,
 	}
 
 	sigma->cur_samplerate = samplerate;
+	sigma->period_ps = 1000000000000 / samplerate;
 	sigma->samples_per_event = 16 / sigma->num_probes;
 	sigma->state.state = SIGMA_IDLE;
 
@@ -841,13 +843,14 @@ static int get_trigger_offset(uint16_t *samples, uint16_t last_sample,
  */
 static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 			   uint16_t *lastsample, int triggerpos,
-			   uint16_t limit_chunk, void *user_data)
+			   uint16_t limit_chunk, void *session_data)
 {
-	struct sr_device_instance *sdi = user_data;
+	struct sr_device_instance *sdi = session_data;
 	struct sigma *sigma = sdi->priv;
 	uint16_t tsdiff, ts;
 	uint16_t samples[65536 * sigma->samples_per_event];
 	struct sr_datafeed_packet packet;
+	struct sr_datafeed_logic logic;
 	int i, j, k, l, numpad, tosend;
 	size_t n = 0, sent = 0;
 	int clustersize = EVENTS_PER_CLUSTER * sigma->samples_per_event;
@@ -892,9 +895,13 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 			tosend = MIN(2048, n - sent);
 
 			packet.type = SR_DF_LOGIC;
-			packet.length = tosend * sizeof(uint16_t);
-			packet.unitsize = 2;
-			packet.payload = samples + sent;
+			/* TODO: fill in timeoffset and duration */
+			packet.timeoffset = 0;
+			packet.duration = 0;
+			packet.payload = &logic;
+			logic.length = tosend * sizeof(uint16_t);
+			logic.unitsize = 2;
+			logic.data = samples + sent;
 			sr_session_bus(sigma->session_id, &packet);
 
 			sent += tosend;
@@ -936,9 +943,13 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 
 			if (tosend > 0) {
 				packet.type = SR_DF_LOGIC;
-				packet.length = tosend * sizeof(uint16_t);
-				packet.unitsize = 2;
-				packet.payload = samples;
+				/* TODO: fill in timeoffset and duration */
+				packet.timeoffset = 0;
+				packet.duration = 0;
+				packet.payload = &logic;
+				logic.length = tosend * sizeof(uint16_t);
+				logic.unitsize = 2;
+				logic.data = samples;
 				sr_session_bus(sigma->session_id, &packet);
 
 				sent += tosend;
@@ -947,8 +958,9 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 			/* Only send trigger if explicitly enabled. */
 			if (sigma->use_triggers) {
 				packet.type = SR_DF_TRIGGER;
-				packet.length = 0;
-				packet.payload = 0;
+				/* TODO: fill in timeoffset only */
+				packet.timeoffset = 0;
+				packet.duration = 0;
 				sr_session_bus(sigma->session_id, &packet);
 			}
 		}
@@ -958,9 +970,13 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 
 		if (tosend > 0) {
 			packet.type = SR_DF_LOGIC;
-			packet.length = tosend * sizeof(uint16_t);
-			packet.unitsize = 2;
-			packet.payload = samples + sent;
+			/* TODO: fill in timeoffset and duration */
+			packet.timeoffset = 0;
+			packet.duration = 0;
+			packet.payload = &logic;
+			logic.length = tosend * sizeof(uint16_t);
+			logic.unitsize = 2;
+			logic.data = samples + sent;
 			sr_session_bus(sigma->session_id, &packet);
 		}
 
@@ -970,9 +986,9 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 	return SR_OK;
 }
 
-static int receive_data(int fd, int revents, void *user_data)
+static int receive_data(int fd, int revents, void *session_data)
 {
-	struct sr_device_instance *sdi = user_data;
+	struct sr_device_instance *sdi = session_data;
 	struct sigma *sigma = sdi->priv;
 	struct sr_datafeed_packet packet;
 	const int chunks_per_read = 32;
@@ -999,7 +1015,7 @@ static int receive_data(int fd, int revents, void *user_data)
 		if (running_msec < sigma->limit_msec && numchunks < 32767)
 			return FALSE;
 
-		hw_stop_acquisition(sdi->index, user_data);
+		hw_stop_acquisition(sdi->index, session_data);
 
 		return FALSE;
 
@@ -1007,7 +1023,6 @@ static int receive_data(int fd, int revents, void *user_data)
 		if (sigma->state.chunks_downloaded >= numchunks) {
 			/* End of samples. */
 			packet.type = SR_DF_END;
-			packet.length = 0;
 			sr_session_bus(sigma->session_id, &packet);
 
 			sigma->state.state = SIGMA_IDLE;
@@ -1046,12 +1061,12 @@ static int receive_data(int fd, int revents, void *user_data)
 						&sigma->state.lastts,
 						&sigma->state.lastsample,
 						sigma->state.triggerpos & 0x1ff,
-						limit_chunk, user_data);
+						limit_chunk, session_data);
 			else
 				decode_chunk_ts(buf + (i * CHUNK_SIZE),
 						&sigma->state.lastts,
 						&sigma->state.lastsample,
-						-1, limit_chunk, user_data);
+						-1, limit_chunk, session_data);
 
 			++sigma->state.chunks_downloaded;
 		}
@@ -1216,7 +1231,7 @@ static int build_basic_trigger(struct triggerlut *lut, struct sigma *sigma)
 	return SR_OK;
 }
 
-static int hw_start_acquisition(int device_index, gpointer session_device_id)
+static int hw_start_acquisition(int device_index, gpointer session_data)
 {
 	struct sr_device_instance *sdi;
 	struct sigma *sigma;
@@ -1228,7 +1243,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	struct triggerinout triggerinout_conf;
 	struct triggerlut lut;
 
-	session_device_id = session_device_id;
+	session_data = session_data;
 
 	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
 		return SR_ERR;
@@ -1313,19 +1328,17 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	gettimeofday(&sigma->start_tv, 0);
 	sigma_set_register(WRITE_MODE, 0x0d, sigma);
 
-	sigma->session_id = session_device_id;
+	sigma->session_id = session_data;
 
 	/* Send header packet to the session bus. */
 	packet.type = SR_DF_HEADER;
-	packet.length = sizeof(struct sr_datafeed_header);
 	packet.payload = &header;
 	header.feed_version = 1;
 	gettimeofday(&header.starttime, NULL);
 	header.samplerate = sigma->cur_samplerate;
-	header.protocol_id = SR_PROTO_RAW;
 	header.num_logic_probes = sigma->num_probes;
 	header.num_analog_probes = 0;
-	sr_session_bus(session_device_id, &packet);
+	sr_session_bus(session_data, &packet);
 
 	/* Add capture source. */
 	sr_source_add(0, G_IO_IN, 10, receive_data, sdi);
@@ -1335,7 +1348,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	return SR_OK;
 }
 
-static void hw_stop_acquisition(int device_index, gpointer session_device_id)
+static void hw_stop_acquisition(int device_index, gpointer session_data)
 {
 	struct sr_device_instance *sdi;
 	struct sigma *sigma;
@@ -1346,7 +1359,7 @@ static void hw_stop_acquisition(int device_index, gpointer session_device_id)
 
 	sigma = sdi->priv;
 
-	session_device_id = session_device_id;
+	session_data = session_data;
 
 	/* Stop acquisition. */
 	sigma_set_register(WRITE_MODE, 0x11, sigma);

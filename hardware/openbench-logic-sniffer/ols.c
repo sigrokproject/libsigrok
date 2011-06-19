@@ -180,6 +180,7 @@ static struct ols_device *ols_device_new(void)
 	ols->trigger_at = -1;
 	ols->probe_mask = 0xffffffff;
 	ols->cur_samplerate = SR_KHZ(200);
+	ols->period_ps = 5000000;
 
 	return ols;
 }
@@ -553,6 +554,7 @@ static int set_configuration_samplerate(struct sr_device_instance *sdi,
 		return SR_ERR_SAMPLERATE;
 
 	ols->cur_samplerate = samplerate;
+	ols->period_ps = 1000000000000 / samplerate;
 	if (samplerate > CLOCK_RATE) {
 		ols->flag_reg |= FLAG_DEMUX;
 		ols->cur_samplerate_divider = (CLOCK_RATE * 2 / samplerate) - 1;
@@ -610,9 +612,10 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 	return ret;
 }
 
-static int receive_data(int fd, int revents, void *user_data)
+static int receive_data(int fd, int revents, void *session_data)
 {
 	struct sr_datafeed_packet packet;
+	struct sr_datafeed_logic logic;
 	struct sr_device_instance *sdi;
 	struct ols_device *ols;
 	GSList *l;
@@ -640,7 +643,7 @@ static int receive_data(int fd, int revents, void *user_data)
 		 * finished. We'll double that to 30ms to be sure...
 		 */
 		sr_source_remove(fd);
-		sr_source_add(fd, G_IO_IN, 30, receive_data, user_data);
+		sr_source_add(fd, G_IO_IN, 30, receive_data, session_data);
 		ols->raw_sample_buf = g_try_malloc(ols->limit_samples * 4);
 		if (!ols->raw_sample_buf) {
 			sr_err("ols: %s: ols->raw_sample_buf malloc failed",
@@ -759,41 +762,55 @@ static int receive_data(int fd, int revents, void *user_data)
 			if (ols->trigger_at > 0) {
 				/* there are pre-trigger samples, send those first */
 				packet.type = SR_DF_LOGIC;
-				packet.length = ols->trigger_at * 4;
-				packet.unitsize = 4;
-				packet.payload = ols->raw_sample_buf;
-				sr_session_bus(user_data, &packet);
+				packet.timeoffset = 0;
+				packet.duration = ols->trigger_at * ols->period_ps;
+				packet.payload = &logic;
+				logic.length = ols->trigger_at * 4;
+				logic.unitsize = 4;
+				logic.data = ols->raw_sample_buf;
+				sr_session_bus(session_data, &packet);
 			}
 
+			/* send the trigger */
 			packet.type = SR_DF_TRIGGER;
-			packet.length = 0;
-			sr_session_bus(user_data, &packet);
+			packet.timeoffset = ols->trigger_at * ols->period_ps;
+			packet.duration = 0;
+			sr_session_bus(session_data, &packet);
 
+			/* send post-trigger samples */
 			packet.type = SR_DF_LOGIC;
-			packet.length = (ols->limit_samples * 4) - (ols->trigger_at * 4);
-			packet.unitsize = 4;
-			packet.payload = ols->raw_sample_buf + ols->trigger_at * 4;
-			sr_session_bus(user_data, &packet);
+			packet.timeoffset = ols->trigger_at * ols->period_ps;
+			packet.duration = (ols->limit_samples - ols->trigger_at) * ols->period_ps;
+			packet.payload = &logic;
+			logic.length = (ols->limit_samples * 4) - (ols->trigger_at * 4);
+			logic.unitsize = 4;
+			logic.data = ols->raw_sample_buf + ols->trigger_at * 4;
+			sr_session_bus(session_data, &packet);
 		} else {
+			/* no trigger was used */
 			packet.type = SR_DF_LOGIC;
-			packet.length = ols->limit_samples * 4;
-			packet.unitsize = 4;
-			packet.payload = ols->raw_sample_buf;
-			sr_session_bus(user_data, &packet);
+			packet.timeoffset = 0;
+			packet.duration = ols->limit_samples * ols->period_ps;
+			packet.payload = &logic;
+			logic.length = ols->limit_samples * 4;
+			logic.unitsize = 4;
+			logic.data = ols->raw_sample_buf;
+			sr_session_bus(session_data, &packet);
 		}
 		g_free(ols->raw_sample_buf);
 
 		serial_flush(fd);
 		serial_close(fd);
 		packet.type = SR_DF_END;
-		packet.length = 0;
-		sr_session_bus(user_data, &packet);
+		packet.timeoffset = ols->limit_samples * ols->period_ps;
+		packet.duration = 0;
+		sr_session_bus(session_data, &packet);
 	}
 
 	return TRUE;
 }
 
-static int hw_start_acquisition(int device_index, gpointer session_device_id)
+static int hw_start_acquisition(int device_index, gpointer session_data)
 {
 	struct sr_datafeed_packet *packet;
 	struct sr_datafeed_header *header;
@@ -908,7 +925,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 		return SR_ERR;
 
 	sr_source_add(sdi->serial->fd, G_IO_IN, -1, receive_data,
-		      session_device_id);
+		      session_data);
 
 	if (!(packet = g_try_malloc(sizeof(struct sr_datafeed_packet)))) {
 		sr_err("ols: %s: packet malloc failed", __func__);
@@ -923,15 +940,13 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 
 	/* Send header packet to the session bus. */
 	packet->type = SR_DF_HEADER;
-	packet->length = sizeof(struct sr_datafeed_header);
 	packet->payload = (unsigned char *)header;
 	header->feed_version = 1;
 	gettimeofday(&header->starttime, NULL);
 	header->samplerate = ols->cur_samplerate;
-	header->protocol_id = SR_PROTO_RAW;
 	header->num_logic_probes = NUM_PROBES;
 	header->num_analog_probes = 0;
-	sr_session_bus(session_device_id, packet);
+	sr_session_bus(session_data, packet);
 
 	g_free(header);
 	g_free(packet);
@@ -947,7 +962,6 @@ static void hw_stop_acquisition(int device_index, gpointer session_device_id)
 	device_index = device_index;
 
 	packet.type = SR_DF_END;
-	packet.length = 0;
 	sr_session_bus(session_device_id, &packet);
 }
 

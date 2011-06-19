@@ -118,6 +118,7 @@ static struct sr_samplerates samplerates = {
 
 /* TODO: All of these should go in a device-specific struct. */
 static uint64_t cur_samplerate = 0;
+static uint64_t period_ps = 0;
 static uint64_t limit_samples = 0;
 static int num_channels = 32; /* TODO: This isn't initialized before it's needed :( */
 static uint64_t memory_size = 0;
@@ -461,6 +462,7 @@ static int set_configuration_samplerate(uint64_t samplerate)
 		analyzer_set_freq(samplerate, FREQ_SCALE_HZ);
 
 	cur_samplerate = samplerate;
+	period_ps = 1000000000000 / samplerate;
 
 	return SR_OK;
 }
@@ -488,11 +490,13 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 	}
 }
 
-static int hw_start_acquisition(int device_index, gpointer session_device_id)
+static int hw_start_acquisition(int device_index, gpointer session_data)
 {
 	struct sr_device_instance *sdi;
 	struct sr_datafeed_packet packet;
+	struct sr_datafeed_logic logic;
 	struct sr_datafeed_header header;
+	uint64_t samples_read;
 	int res;
 	unsigned int packet_num;
 	unsigned char *buf;
@@ -507,50 +511,48 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	sr_info("Waiting for data");
 	analyzer_wait_data(sdi->usb->devhdl);
 
-	sr_info("Stop address    = 0x%x",
-		analyzer_get_stop_address(sdi->usb->devhdl));
-	sr_info("Now address     = 0x%x",
-		analyzer_get_now_address(sdi->usb->devhdl));
-	sr_info("Trigger address = 0x%x",
-		analyzer_get_trigger_address(sdi->usb->devhdl));
+	sr_info("Stop address    = 0x%x", analyzer_get_stop_address(sdi->usb->devhdl));
+	sr_info("Now address     = 0x%x", analyzer_get_now_address(sdi->usb->devhdl));
+	sr_info("Trigger address = 0x%x", analyzer_get_trigger_address(sdi->usb->devhdl));
 
 	packet.type = SR_DF_HEADER;
-	packet.length = sizeof(struct sr_datafeed_header);
-	packet.payload = (unsigned char *)&header;
+	packet.payload = &header;
 	header.feed_version = 1;
 	gettimeofday(&header.starttime, NULL);
 	header.samplerate = cur_samplerate;
-	header.protocol_id = SR_PROTO_RAW;
 	header.num_logic_probes = num_channels;
 	header.num_analog_probes = 0;
-	sr_session_bus(session_device_id, &packet);
+	sr_session_bus(session_data, &packet);
 
 	if (!(buf = g_try_malloc(PACKET_SIZE))) {
 		sr_err("lap-c: %s: buf malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 
+	samples_read = 0;
 	analyzer_read_start(sdi->usb->devhdl);
 	/* Send the incoming transfer to the session bus. */
 	for (packet_num = 0; packet_num < (memory_size * 4 / PACKET_SIZE);
 	     packet_num++) {
 		res = analyzer_read_data(sdi->usb->devhdl, buf, PACKET_SIZE);
-#if 0
 		sr_info("Tried to read %llx bytes, actually read %x bytes",
 			PACKET_SIZE, res);
-#endif
 
 		packet.type = SR_DF_LOGIC;
-		packet.length = PACKET_SIZE;
-		packet.unitsize = 4;
-		packet.payload = buf;
-		sr_session_bus(session_device_id, &packet);
+		packet.timeoffset = samples_read * period_ps;
+		packet.duration = res / 4 * period_ps;
+		packet.payload = &logic;
+		logic.length = PACKET_SIZE;
+		logic.unitsize = 4;
+		logic.data = buf;
+		sr_session_bus(session_data, &packet);
+		samples_read += res / 4;
 	}
 	analyzer_read_stop(sdi->usb->devhdl);
 	g_free(buf);
 
 	packet.type = SR_DF_END;
-	sr_session_bus(session_device_id, &packet);
+	sr_session_bus(session_data, &packet);
 
 	return SR_OK;
 }

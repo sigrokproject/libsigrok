@@ -73,7 +73,7 @@ struct databag {
 	uint8_t thread_running;
 	uint64_t samples_counter;
 	int device_index;
-	gpointer session_device_id;
+	gpointer session_data;
 	GTimer *timer;
 };
 
@@ -116,13 +116,14 @@ static uint8_t pattern_sigrok[] = {
 /* List of struct sr_device_instance, maintained by opendev()/closedev(). */
 static GSList *device_instances = NULL;
 static uint64_t cur_samplerate = SR_KHZ(200);
+static uint64_t period_ps = 5000000;
 static uint64_t limit_samples = 0;
 static uint64_t limit_msec = 0;
 static int default_pattern = PATTERN_SIGROK;
 static GThread *my_thread;
 static int thread_running;
 
-static void hw_stop_acquisition(int device_index, gpointer session_device_id);
+static void hw_stop_acquisition(int device_index, gpointer session_data);
 
 static int hw_init(const char *deviceinfo)
 {
@@ -224,6 +225,7 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 		ret = SR_OK;
 	} else if (capability == SR_HWCAP_SAMPLERATE) {
 		cur_samplerate = *(uint64_t *)value;
+		period_ps = 1000000000000 / cur_samplerate;
 		sr_dbg("demo: %s: setting samplerate to %" PRIu64, __func__,
 		       cur_samplerate);
 		ret = SR_OK;
@@ -348,10 +350,12 @@ static void thread_func(void *data)
 }
 
 /* Callback handling data */
-static int receive_data(int fd, int revents, void *user_data)
+static int receive_data(int fd, int revents, void *session_data)
 {
 	struct sr_datafeed_packet packet;
-	char c[BUFSIZE];
+	struct sr_datafeed_logic logic;
+	static uint64_t samples_received = 0;
+	unsigned char c[BUFSIZE];
 	gsize z;
 
 	/* Avoid compiler warnings. */
@@ -364,10 +368,14 @@ static int receive_data(int fd, int revents, void *user_data)
 
 		if (z > 0) {
 			packet.type = SR_DF_LOGIC;
-			packet.length = z;
-			packet.unitsize = 1;
-			packet.payload = c;
-			sr_session_bus(user_data, &packet);
+			packet.payload = &logic;
+			packet.timeoffset =  samples_received * period_ps;
+			packet.duration = z * period_ps;
+			logic.length = z;
+			logic.unitsize = 1;
+			logic.data = c;
+			sr_session_bus(session_data, &packet);
+			samples_received += z;
 		}
 	} while (z > 0);
 
@@ -377,7 +385,7 @@ static int receive_data(int fd, int revents, void *user_data)
 
 		/* Send last packet. */
 		packet.type = SR_DF_END;
-		sr_session_bus(user_data, &packet);
+		sr_session_bus(session_data, &packet);
 
 		return FALSE;
 	}
@@ -385,7 +393,7 @@ static int receive_data(int fd, int revents, void *user_data)
 	return TRUE;
 }
 
-static int hw_start_acquisition(int device_index, gpointer session_device_id)
+static int hw_start_acquisition(int device_index, gpointer session_data)
 {
 	struct sr_datafeed_packet *packet;
 	struct sr_datafeed_header *header;
@@ -398,7 +406,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	}
 
 	mydata->sample_generator = default_pattern;
-	mydata->session_device_id = session_device_id;
+	mydata->session_data = session_data;
 	mydata->device_index = device_index;
 	mydata->samples_counter = 0;
 
@@ -420,7 +428,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	g_io_channel_set_buffered(channels[1], FALSE);
 
 	sr_source_add(mydata->pipe_fds[0], G_IO_IN | G_IO_ERR, 40,
-		      receive_data, session_device_id);
+		      receive_data, session_data);
 
 	/* Run the demo thread. */
 	g_thread_init(NULL);
@@ -445,26 +453,26 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	}
 
 	packet->type = SR_DF_HEADER;
-	packet->length = sizeof(struct sr_datafeed_header);
-	packet->payload = (unsigned char *)header;
+	packet->payload = header;
+	packet->timeoffset = 0;
+	packet->duration = 0;
 	header->feed_version = 1;
 	gettimeofday(&header->starttime, NULL);
 	header->samplerate = cur_samplerate;
-	header->protocol_id = SR_PROTO_RAW;
 	header->num_logic_probes = NUM_PROBES;
 	header->num_analog_probes = 0;
-	sr_session_bus(session_device_id, packet);
+	sr_session_bus(session_data, packet);
 	g_free(header);
 	g_free(packet);
 
 	return SR_OK;
 }
 
-static void hw_stop_acquisition(int device_index, gpointer session_device_id)
+static void hw_stop_acquisition(int device_index, gpointer session_data)
 {
 	/* Avoid compiler warnings. */
 	device_index = device_index;
-	session_device_id = session_device_id;
+	session_data = session_data;
 
 	/* Stop generate thread. */
 	thread_running = 0;

@@ -48,6 +48,9 @@ struct la8 {
 	/** The currently configured samplerate of the device. */
 	uint64_t cur_samplerate;
 
+	/** period in picoseconds corresponding to the samplerate */
+	uint64_t period_ps;
+
 	/** The current sampling limit (in ms). */
 	uint64_t limit_msec;
 
@@ -123,7 +126,7 @@ static int capabilities[] = {
 
 /* Function prototypes. */
 static int la8_close_usb_reset_sequencer(struct la8 *la8);
-static void hw_stop_acquisition(int device_index, gpointer session_device_id);
+static void hw_stop_acquisition(int device_index, gpointer session_data);
 static int la8_reset(struct la8 *la8);
 
 static void fill_supported_samplerates_if_needed(void)
@@ -479,6 +482,7 @@ static int hw_init(const char *deviceinfo)
 	/* Set some sane defaults. */
 	la8->ftdic = NULL;
 	la8->cur_samplerate = SR_MHZ(100); /* 100MHz == max. samplerate */
+	la8->period_ps = 10000;
 	la8->limit_msec = 0;
 	la8->limit_samples = 0;
 	la8->session_id = NULL;
@@ -633,6 +637,7 @@ static int set_samplerate(struct sr_device_instance *sdi, uint64_t samplerate)
 
 	/* Set the new samplerate. */
 	la8->cur_samplerate = samplerate;
+	la8->period_ps = 1000000000000 / samplerate;
 
 	sr_dbg("la8: samplerate set to %" PRIu64 "Hz", la8->cur_samplerate);
 
@@ -879,6 +884,7 @@ static void send_block_to_session_bus(struct la8 *la8, int block)
 	int i;
 	uint8_t sample, expected_sample;
 	struct sr_datafeed_packet packet;
+	struct sr_datafeed_logic logic;
 	int trigger_point; /* Relative trigger point (in this block). */
 
 	/* Note: No sanity checks on la8/block, caller is responsible. */
@@ -914,9 +920,12 @@ static void send_block_to_session_bus(struct la8 *la8, int block)
 		sr_spew("la8: sending SR_DF_LOGIC packet (%d bytes) for "
 		        "block %d", BS, block);
 		packet.type = SR_DF_LOGIC;
-		packet.length = BS;
-		packet.unitsize = 1;
-		packet.payload = la8->final_buf + (block * BS);
+		packet.timeoffset = block * BS * la8->period_ps;
+		packet.duration = BS * la8->period_ps;
+		packet.payload = &logic;
+		logic.length = BS;
+		logic.unitsize = 1;
+		logic.data = la8->final_buf + (block * BS);
 		sr_session_bus(la8->session_id, &packet);
 		return;
 	}
@@ -936,9 +945,12 @@ static void send_block_to_session_bus(struct la8 *la8, int block)
 		sr_spew("la8: sending pre-trigger SR_DF_LOGIC packet, "
 			"start = %d, length = %d", block * BS, trigger_point);
 		packet.type = SR_DF_LOGIC;
-		packet.length = trigger_point;
-		packet.unitsize = 1;
-		packet.payload = la8->final_buf + (block * BS);
+		packet.timeoffset = block * BS * la8->period_ps;
+		packet.duration = trigger_point * la8->period_ps;
+		packet.payload = &logic;
+		logic.length = trigger_point;
+		logic.unitsize = 1;
+		logic.data = la8->final_buf + (block * BS);
 		sr_session_bus(la8->session_id, &packet);
 	}
 
@@ -946,8 +958,8 @@ static void send_block_to_session_bus(struct la8 *la8, int block)
 	sr_spew("la8: sending SR_DF_TRIGGER packet, sample = %d",
 		(block * BS) + trigger_point);
 	packet.type = SR_DF_TRIGGER;
-	packet.length = 0;
-	packet.unitsize = 0;
+	packet.timeoffset = (block * BS + trigger_point) * la8->period_ps;
+	packet.duration = 0;
 	packet.payload = NULL;
 	sr_session_bus(la8->session_id, &packet);
 
@@ -958,14 +970,17 @@ static void send_block_to_session_bus(struct la8 *la8, int block)
 			"start = %d, length = %d",
 			(block * BS) + trigger_point, BS - trigger_point);
 		packet.type = SR_DF_LOGIC;
-		packet.length = BS - trigger_point;
-		packet.unitsize = 1;
-		packet.payload = la8->final_buf + (block * BS) + trigger_point;
+		packet.timeoffset = (block * BS + trigger_point) * la8->period_ps;
+		packet.duration = (BS - trigger_point) * la8->period_ps;
+		packet.payload = &logic;
+		logic.length = BS - trigger_point;
+		logic.unitsize = 1;
+		logic.data = la8->final_buf + (block * BS) + trigger_point;
 		sr_session_bus(la8->session_id, &packet);
 	}
 }
 
-static int receive_data(int fd, int revents, void *user_data)
+static int receive_data(int fd, int revents, void *session_data)
 {
 	int i, ret;
 	struct sr_device_instance *sdi;
@@ -975,7 +990,7 @@ static int receive_data(int fd, int revents, void *user_data)
 	fd = fd;
 	revents = revents;
 
-	if (!(sdi = user_data)) {
+	if (!(sdi = session_data)) {
 		sr_err("la8: %s: user_data was NULL", __func__);
 		return FALSE;
 	}
@@ -988,7 +1003,7 @@ static int receive_data(int fd, int revents, void *user_data)
 	/* Get one block of data. */
 	if ((ret = la8_read_block(la8)) < 0) {
 		sr_err("la8: %s: la8_read_block error: %d", __func__, ret);
-		hw_stop_acquisition(sdi->index, user_data);
+		hw_stop_acquisition(sdi->index, session_data);
 		return FALSE;
 	}
 
@@ -1004,13 +1019,13 @@ static int receive_data(int fd, int revents, void *user_data)
 	for (i = 0; i < NUM_BLOCKS; i++)
 		send_block_to_session_bus(la8, i);
 
-	hw_stop_acquisition(sdi->index, user_data);
+	hw_stop_acquisition(sdi->index, session_data);
 
 	// return FALSE; /* FIXME? */
 	return TRUE;
 }
 
-static int hw_start_acquisition(int device_index, gpointer session_device_id)
+static int hw_start_acquisition(int device_index, gpointer session_data)
 {
 	struct sr_device_instance *sdi;
 	struct la8 *la8;
@@ -1061,21 +1076,18 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 
 	sr_dbg("la8: acquisition started successfully");
 
-	la8->session_id = session_device_id;
+	la8->session_id = session_data;
 
 	/* Send header packet to the session bus. */
 	sr_dbg("la8: %s: sending SR_DF_HEADER", __func__);
 	packet.type = SR_DF_HEADER;
-	packet.length = sizeof(struct sr_datafeed_header);
-	packet.unitsize = 0;
 	packet.payload = &header;
 	header.feed_version = 1;
 	gettimeofday(&header.starttime, NULL);
 	header.samplerate = la8->cur_samplerate;
-	header.protocol_id = SR_PROTO_RAW;
 	header.num_logic_probes = NUM_PROBES;
 	header.num_analog_probes = 0;
-	sr_session_bus(session_device_id, &packet);
+	sr_session_bus(session_data, &packet);
 
 	/* Time when we should be done (for detecting trigger timeouts). */
 	la8->done = (la8->divcount + 1) * 0.08388608 + time(NULL)
@@ -1089,7 +1101,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	return SR_OK;
 }
 
-static void hw_stop_acquisition(int device_index, gpointer session_device_id)
+static void hw_stop_acquisition(int device_index, gpointer session_data)
 {
 	struct sr_device_instance *sdi;
 	struct la8 *la8;
@@ -1110,10 +1122,7 @@ static void hw_stop_acquisition(int device_index, gpointer session_device_id)
 	/* Send end packet to the session bus. */
 	sr_dbg("la8: %s: sending SR_DF_END", __func__);
 	packet.type = SR_DF_END;
-	packet.length = 0;
-	packet.unitsize = 0;
-	packet.payload = NULL;
-	sr_session_bus(session_device_id, &packet);
+	sr_session_bus(session_data, &packet);
 }
 
 struct sr_device_plugin chronovu_la8_plugin_info = {
