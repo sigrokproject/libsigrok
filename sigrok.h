@@ -84,10 +84,6 @@ enum {
 	SR_T_NULL,
 };
 
-enum {
-	SR_PROTO_RAW,
-};
-
 #if 0
 /* (Unused) protocol decoder stack entry */
 struct sr_protocol {
@@ -109,8 +105,10 @@ enum {
 
 struct sr_datafeed_packet {
 	uint16_t type;
-	uint64_t length;
-	uint16_t unitsize;
+	/* timeoffset since start, in picoseconds */
+	uint64_t timeoffset;
+	/* duration of data in this packet, in picoseconds */
+	uint64_t duration;
 	void *payload;
 };
 
@@ -118,9 +116,20 @@ struct sr_datafeed_header {
 	int feed_version;
 	struct timeval starttime;
 	uint64_t samplerate;
-	int protocol_id;
 	int num_analog_probes;
 	int num_logic_probes;
+};
+
+struct sr_datafeed_logic {
+	uint64_t length;
+	uint16_t unitsize;
+	unsigned char *data;
+};
+
+struct sr_datafeed_pd {
+	char *protocol;
+	char *annotation;
+	unsigned char *data;
 };
 
 #if defined(HAVE_LA_ALSA)
