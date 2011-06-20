@@ -248,9 +248,11 @@ int serial_set_params(int fd, int speed, int bits, int parity, int stopbits,
 	case 115200:
 		baud = B115200;
 		break;
+#ifndef __APPLE__
 	case 460800:
 		baud = B460800;
 		break;
+#endif
 	default:
 		return SR_ERR;
 	}
