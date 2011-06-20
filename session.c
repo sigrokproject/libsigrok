@@ -211,6 +211,33 @@ void sr_session_stop(void)
 
 }
 
+static void datafeed_dump(struct sr_datafeed_packet *packet)
+{
+	struct sr_datafeed_logic *logic;
+
+	switch (packet->type) {
+	case SR_DF_HEADER:
+		sr_dbg("bus: received SR_DF_HEADER");
+		break;
+	case SR_DF_TRIGGER:
+		sr_dbg("bus: received SR_DF_TRIGGER at %lu ms",
+				packet->timeoffset / 1000000);
+		break;
+	case SR_DF_LOGIC:
+		logic = packet->payload;
+		sr_dbg("bus: received SR_DF_LOGIC at %f ms duration %f ms, %"PRIu64" bytes",
+				packet->timeoffset / 1000000.0, packet->duration / 1000000.0,
+				logic->length);
+		break;
+	case SR_DF_END:
+		sr_dbg("bus: received SR_DF_END");
+		break;
+	default:
+		sr_dbg("bus: received unknown packet type %d", packet->type);
+	}
+
+}
+
 void sr_session_bus(struct sr_device *device, struct sr_datafeed_packet *packet)
 {
 	GSList *l;
@@ -222,6 +249,7 @@ void sr_session_bus(struct sr_device *device, struct sr_datafeed_packet *packet)
 	 */
 	for (l = session->datafeed_callbacks; l; l = l->next) {
 		cb = l->data;
+		datafeed_dump(packet);
 		cb(device, packet);
 	}
 }
