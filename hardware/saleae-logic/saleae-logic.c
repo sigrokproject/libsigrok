@@ -633,6 +633,7 @@ void receive_transfer(struct libusb_transfer *transfer)
 				/* Match on this trigger stage. */
 				fx2->trigger_buffer[fx2->trigger_stage] = cur_buf[i];
 				fx2->trigger_stage++;
+
 				if (fx2->trigger_stage == NUM_TRIGGER_STAGES || fx2->trigger_mask[fx2->trigger_stage] == 0) {
 					/* Match on all trigger stages, we're done. */
 					trigger_offset = i + 1;
@@ -642,7 +643,7 @@ void receive_transfer(struct libusb_transfer *transfer)
 					 * Tell the frontend we hit the trigger here.
 					 */
 					packet.type = SR_DF_TRIGGER;
-					packet.timeoffset = (num_samples - fx2->trigger_stage) * fx2->period_ps;
+					packet.timeoffset = (num_samples + i) * fx2->period_ps;
 					packet.duration = 0;
 					packet.payload = NULL;
 					sr_session_bus(fx2->session_data, &packet);
@@ -652,7 +653,7 @@ void receive_transfer(struct libusb_transfer *transfer)
 					 * skipping past them.
 					 */
 					packet.type = SR_DF_LOGIC;
-					packet.timeoffset = (num_samples - fx2->trigger_stage) * fx2->period_ps;
+					packet.timeoffset = (num_samples + i) * fx2->period_ps;
 					packet.duration = fx2->trigger_stage * fx2->period_ps;
 					packet.payload = &logic;
 					logic.length = fx2->trigger_stage;
