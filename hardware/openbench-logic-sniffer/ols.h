@@ -82,6 +82,7 @@ struct ols_device {
 	int num_stages;
 
 	unsigned int num_transfers;
+	unsigned int num_samples;
 	int num_bytes;
 	char last_sample[4];
 	unsigned char sample[4];

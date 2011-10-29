@@ -592,6 +592,9 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 		tmp_u64 = value;
 		if (*tmp_u64 < MIN_NUM_SAMPLES)
 			return SR_ERR;
+		if (*tmp_u64 > ols->max_samples) 
+			sr_warn("ols: sample limit exceeds hw max");
+
 		ols->limit_samples = *tmp_u64;
 		sr_info("ols: sample limit %" PRIu64, ols->limit_samples);
 		ret = SR_OK;
@@ -706,6 +709,7 @@ static int receive_data(int fd, int revents, void *session_data)
 				/* No compression. */
 				buffer = ols->sample;
 				buflen = 4;
+				ols->num_samples++;
 			}
 
 			if (num_channels < 4) {
@@ -767,7 +771,8 @@ static int receive_data(int fd, int revents, void *session_data)
 				packet.payload = &logic;
 				logic.length = ols->trigger_at * 4;
 				logic.unitsize = 4;
-				logic.data = ols->raw_sample_buf;
+				logic.data = ols->raw_sample_buf + 
+					(ols->limit_samples - ols->num_samples) * 4;
 				sr_session_bus(session_data, &packet);
 			}
 
@@ -780,21 +785,23 @@ static int receive_data(int fd, int revents, void *session_data)
 			/* send post-trigger samples */
 			packet.type = SR_DF_LOGIC;
 			packet.timeoffset = ols->trigger_at * ols->period_ps;
-			packet.duration = (ols->limit_samples - ols->trigger_at) * ols->period_ps;
+			packet.duration = (ols->num_samples - ols->trigger_at) * ols->period_ps;
 			packet.payload = &logic;
-			logic.length = (ols->limit_samples * 4) - (ols->trigger_at * 4);
+			logic.length = (ols->num_samples * 4) - (ols->trigger_at * 4);
 			logic.unitsize = 4;
-			logic.data = ols->raw_sample_buf + ols->trigger_at * 4;
+			logic.data = ols->raw_sample_buf + ols->trigger_at * 4 +
+				(ols->limit_samples - ols->num_samples) * 4;
 			sr_session_bus(session_data, &packet);
 		} else {
 			/* no trigger was used */
 			packet.type = SR_DF_LOGIC;
 			packet.timeoffset = 0;
-			packet.duration = ols->limit_samples * ols->period_ps;
+			packet.duration = ols->num_samples * ols->period_ps;
 			packet.payload = &logic;
-			logic.length = ols->limit_samples * 4;
+			logic.length = ols->num_samples * 4;
 			logic.unitsize = 4;
-			logic.data = ols->raw_sample_buf;
+			logic.data = ols->raw_sample_buf +
+				(ols->limit_samples - ols->num_samples) * 4;
 			sr_session_bus(session_data, &packet);
 		}
 		g_free(ols->raw_sample_buf);
@@ -802,7 +809,7 @@ static int receive_data(int fd, int revents, void *session_data)
 		serial_flush(fd);
 		serial_close(fd);
 		packet.type = SR_DF_END;
-		packet.timeoffset = ols->limit_samples * ols->period_ps;
+		packet.timeoffset = ols->num_samples * ols->period_ps;
 		packet.duration = 0;
 		sr_session_bus(session_data, &packet);
 	}
@@ -820,6 +827,7 @@ static int hw_start_acquisition(int device_index, gpointer session_data)
 	uint32_t data;
 	uint16_t readcount, delaycount;
 	uint8_t changrp_mask;
+	int num_channels;
 	int i;
 
 	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
@@ -830,7 +838,24 @@ static int hw_start_acquisition(int device_index, gpointer session_data)
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR;
 
-	readcount = ols->limit_samples / 4;
+	/*
+	 * Enable/disable channel groups in the flag register according to the
+	 * probe mask.  Calculate this here, because num_channels is needed
+	 * to limit readcount.
+	 */
+	changrp_mask = 0;
+	num_channels = 0;
+	for (i = 0; i < 4; i++) {
+		if (ols->probe_mask & (0xff << (i * 8))) {
+			changrp_mask |= (1 << i);
+			num_channels++;
+		}
+	}
+
+	/* Limit readcount to prevent reading past the end of the hardware
+	 * buffer.
+	 */
+	readcount = MIN(ols->max_samples / num_channels, ols->limit_samples) / 4;
 
 	memset(trigger_config, 0, 16);
 	trigger_config[ols->num_stages - 1] |= 0x08;
@@ -902,16 +927,6 @@ static int hw_start_acquisition(int device_index, gpointer session_data)
 	data |= (delaycount - 1) & 0xffff;
 	if (send_longcommand(sdi->serial->fd, CMD_CAPTURE_SIZE, reverse16(data)) != SR_OK)
 		return SR_ERR;
-
-	/*
-	 * Enable/disable channel groups in the flag register according to the
-	 * probe mask.
-	 */
-	changrp_mask = 0;
-	for (i = 0; i < 4; i++) {
-		if (ols->probe_mask & (0xff << (i * 8)))
-			changrp_mask |= (1 << i);
-	}
 
 	/* The flag register wants them here, and 1 means "disable channel". */
 	ols->flag_reg |= ~(changrp_mask << 2) & 0x3c;
