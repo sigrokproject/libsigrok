@@ -255,6 +255,9 @@ enum {
 	/** The device supports setting a pattern (pattern generator mode). */
 	SR_HWCAP_PATTERN_MODE,
 
+	/** The device supports Run Length Encoding. */
+	SR_HWCAP_RLE,
+
 	/*--- Special stuff -------------------------------------------------*/
 
 	/* TODO: Better description. */

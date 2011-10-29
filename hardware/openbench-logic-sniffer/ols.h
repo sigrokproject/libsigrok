@@ -83,8 +83,8 @@ struct ols_device {
 
 	unsigned int num_transfers;
 	unsigned int num_samples;
+	int rle_count;
 	int num_bytes;
-	char last_sample[4];
 	unsigned char sample[4];
 	unsigned char tmp_sample[4];
 	unsigned char *raw_sample_buf;

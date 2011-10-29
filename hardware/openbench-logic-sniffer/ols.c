@@ -51,6 +51,7 @@ static int capabilities[] = {
 	SR_HWCAP_SAMPLERATE,
 	SR_HWCAP_CAPTURE_RATIO,
 	SR_HWCAP_LIMIT_SAMPLES,
+	SR_HWCAP_RLE,
 	0,
 };
 
@@ -608,6 +609,13 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 		} else
 			ret = SR_OK;
 		break;
+	case SR_HWCAP_RLE:
+		if(strcmp(value, "on") == 0) {
+			sr_info("ols: enabling RLE");
+			ols->flag_reg |= FLAG_RLE;
+		}
+		ret = SR_OK;
+		break;
 	default:
 		ret = SR_ERR;
 	}
@@ -622,8 +630,8 @@ static int receive_data(int fd, int revents, void *session_data)
 	struct sr_device_instance *sdi;
 	struct ols_device *ols;
 	GSList *l;
-	int count, buflen, num_channels, offset, i, j;
-	unsigned char byte, *buffer;
+	int num_channels, offset, i, j;
+	unsigned char byte;
 
 	/* find this device's ols_device struct by its fd */
 	ols = NULL;
@@ -663,53 +671,41 @@ static int receive_data(int fd, int revents, void *session_data)
 			num_channels++;
 	}
 
-	if (revents == G_IO_IN
-	    && ols->num_transfers / num_channels <= ols->limit_samples) {
+	if (revents == G_IO_IN) {
 		if (serial_read(fd, &byte, 1) != 1)
 			return FALSE;
+
+		/* Ignore it if we've read enough */
+	    	if(ols->num_samples >= ols->limit_samples) 
+			return TRUE; 
 
 		ols->sample[ols->num_bytes++] = byte;
 		sr_dbg("ols: received byte 0x%.2x", byte);
 		if (ols->num_bytes == num_channels) {
 			/* Got a full sample. */
 			sr_dbg("ols: received sample 0x%.*x",
-			       ols->num_bytes * 2, (int) *ols->sample);
+			       ols->num_bytes * 2, *(int*)ols->sample);
 			if (ols->flag_reg & FLAG_RLE) {
 				/*
 				 * In RLE mode -1 should never come in as a
 				 * sample, because bit 31 is the "count" flag.
-				 * TODO: Endianness may be wrong here, could be
-				 * sample[3].
 				 */
-				if (ols->sample[0] & 0x80
-				    && !(ols->last_sample[0] & 0x80)) {
-					count = (int)(*ols->sample) & 0x7fffffff;
-					if (!(buffer = g_try_malloc(count))) {
-						sr_err("ols: %s: buffer malloc "
-						       "failed", __func__);
-						return FALSE;
-					}
-
-					buflen = 0;
-					for (i = 0; i < count; i++) {
-						memcpy(buffer + buflen, ols->last_sample, 4);
-						buflen += 4;
-					}
-				} else {
-					/*
-					 * Just a single sample, next sample
-					 * will probably be a count referring
-					 * to this -- but this one is still a
-					 * part of the stream.
+				if (ols->sample[ols->num_bytes - 1] & 0x80) {
+					ols->sample[ols->num_bytes - 1] &= 0x7F;
+					/* FIXME: This will only work on 
+					 * little-endian systems 
 					 */
-					buffer = ols->sample;
-					buflen = 4;
-				}
-			} else {
-				/* No compression. */
-				buffer = ols->sample;
-				buflen = 4;
-				ols->num_samples++;
+					ols->rle_count = *(int*)(ols->sample);
+					sr_dbg("ols: RLE count = %d", ols->rle_count);
+					ols->num_bytes = 0;
+					return TRUE;
+				} 
+			}
+			ols->num_samples += ols->rle_count + 1;
+			if(ols->num_samples > ols->limit_samples) {
+				/* Save us from overrunning the buffer */
+				ols->rle_count -= ols->num_samples - ols->limit_samples;
+				ols->num_samples = ols->limit_samples;
 			}
 
 			if (num_channels < 4) {
@@ -735,23 +731,20 @@ static int receive_data(int fd, int revents, void *session_data)
 					}
 				}
 				memcpy(ols->sample, ols->tmp_sample, 4);
-				sr_dbg("ols: full sample 0x%.8x", (int) *ols->sample);
+				sr_dbg("ols: full sample 0x%.8x", *(int*)ols->sample);
 			}
 
 			/* the OLS sends its sample buffer backwards.
 			 * store it in reverse order here, so we can dump
 			 * this on the session bus later.
 			 */
-			offset = (ols->limit_samples - ols->num_transfers / num_channels) * 4;
-			memcpy(ols->raw_sample_buf + offset, ols->sample, 4);
-
-			if (buffer == ols->sample)
-				memcpy(ols->last_sample, buffer, num_channels);
-			else
-				g_free(buffer);
+			offset = (ols->limit_samples - ols->num_samples) * 4;
+			for(i = 0; i <= ols->rle_count; i++)
+				memcpy(ols->raw_sample_buf + offset + (i*4), ols->sample, 4);
 
 			memset(ols->sample, 0, 4);
 			ols->num_bytes = 0;
+			ols->rle_count = 0;
 		}
 	} else {
 		/*
@@ -931,7 +924,8 @@ static int hw_start_acquisition(int device_index, gpointer session_data)
 	/* The flag register wants them here, and 1 means "disable channel". */
 	ols->flag_reg |= ~(changrp_mask << 2) & 0x3c;
 	ols->flag_reg |= FLAG_FILTER;
-	data = ols->flag_reg << 24;
+	ols->rle_count = 0;
+	data = (ols->flag_reg << 24) | ((ols->flag_reg << 8) & 0xff0000);
 	if (send_longcommand(sdi->serial->fd, CMD_SET_FLAGS, data) != SR_OK)
 		return SR_ERR;
 
