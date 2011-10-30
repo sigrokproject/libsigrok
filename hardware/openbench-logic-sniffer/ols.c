@@ -593,9 +593,8 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 		tmp_u64 = value;
 		if (*tmp_u64 < MIN_NUM_SAMPLES)
 			return SR_ERR;
-		if (*tmp_u64 > ols->max_samples) 
+		if (*tmp_u64 > ols->max_samples)
 			sr_warn("ols: sample limit exceeds hw max");
-
 		ols->limit_samples = *tmp_u64;
 		sr_info("ols: sample limit %" PRIu64, ols->limit_samples);
 		ret = SR_OK;
@@ -610,7 +609,7 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 			ret = SR_OK;
 		break;
 	case SR_HWCAP_RLE:
-		if(strcmp(value, "on") == 0) {
+		if (!strcmp(value, "on")) {
 			sr_info("ols: enabling RLE");
 			ols->flag_reg |= FLAG_RLE;
 		}
@@ -675,35 +674,36 @@ static int receive_data(int fd, int revents, void *session_data)
 		if (serial_read(fd, &byte, 1) != 1)
 			return FALSE;
 
-		/* Ignore it if we've read enough */
-	    	if(ols->num_samples >= ols->limit_samples) 
-			return TRUE; 
+		/* Ignore it if we've read enough. */
+		if (ols->num_samples >= ols->limit_samples)
+			return TRUE;
 
 		ols->sample[ols->num_bytes++] = byte;
 		sr_dbg("ols: received byte 0x%.2x", byte);
 		if (ols->num_bytes == num_channels) {
 			/* Got a full sample. */
 			sr_dbg("ols: received sample 0x%.*x",
-			       ols->num_bytes * 2, *(int*)ols->sample);
+			       ols->num_bytes * 2, *(int *)ols->sample);
 			if (ols->flag_reg & FLAG_RLE) {
 				/*
 				 * In RLE mode -1 should never come in as a
 				 * sample, because bit 31 is the "count" flag.
 				 */
 				if (ols->sample[ols->num_bytes - 1] & 0x80) {
-					ols->sample[ols->num_bytes - 1] &= 0x7F;
-					/* FIXME: This will only work on 
-					 * little-endian systems 
+					ols->sample[ols->num_bytes - 1] &= 0x7f;
+					/*
+					 * FIXME: This will only work on
+					 * little-endian systems.
 					 */
-					ols->rle_count = *(int*)(ols->sample);
+					ols->rle_count = *(int *)(ols->sample);
 					sr_dbg("ols: RLE count = %d", ols->rle_count);
 					ols->num_bytes = 0;
 					return TRUE;
-				} 
+				}
 			}
 			ols->num_samples += ols->rle_count + 1;
-			if(ols->num_samples > ols->limit_samples) {
-				/* Save us from overrunning the buffer */
+			if (ols->num_samples > ols->limit_samples) {
+				/* Save us from overrunning the buffer. */
 				ols->rle_count -= ols->num_samples - ols->limit_samples;
 				ols->num_samples = ols->limit_samples;
 			}
@@ -731,7 +731,7 @@ static int receive_data(int fd, int revents, void *session_data)
 					}
 				}
 				memcpy(ols->sample, ols->tmp_sample, 4);
-				sr_dbg("ols: full sample 0x%.8x", *(int*)ols->sample);
+				sr_dbg("ols: full sample 0x%.8x", *(int *)ols->sample);
 			}
 
 			/* the OLS sends its sample buffer backwards.
@@ -739,9 +739,10 @@ static int receive_data(int fd, int revents, void *session_data)
 			 * this on the session bus later.
 			 */
 			offset = (ols->limit_samples - ols->num_samples) * 4;
-			for(i = 0; i <= ols->rle_count; i++)
-				memcpy(ols->raw_sample_buf + offset + (i*4), ols->sample, 4);
-
+			for (i = 0; i <= ols->rle_count; i++) {
+				memcpy(ols->raw_sample_buf + offset + (i * 4),
+				       ols->sample, 4);
+			}
 			memset(ols->sample, 0, 4);
 			ols->num_bytes = 0;
 			ols->rle_count = 0;
@@ -764,7 +765,7 @@ static int receive_data(int fd, int revents, void *session_data)
 				packet.payload = &logic;
 				logic.length = ols->trigger_at * 4;
 				logic.unitsize = 4;
-				logic.data = ols->raw_sample_buf + 
+				logic.data = ols->raw_sample_buf +
 					(ols->limit_samples - ols->num_samples) * 4;
 				sr_session_bus(session_data, &packet);
 			}
@@ -833,7 +834,7 @@ static int hw_start_acquisition(int device_index, gpointer session_data)
 
 	/*
 	 * Enable/disable channel groups in the flag register according to the
-	 * probe mask.  Calculate this here, because num_channels is needed
+	 * probe mask. Calculate this here, because num_channels is needed
 	 * to limit readcount.
 	 */
 	changrp_mask = 0;
@@ -845,7 +846,8 @@ static int hw_start_acquisition(int device_index, gpointer session_data)
 		}
 	}
 
-	/* Limit readcount to prevent reading past the end of the hardware
+	/*
+	 * Limit readcount to prevent reading past the end of the hardware
 	 * buffer.
 	 */
 	readcount = MIN(ols->max_samples / num_channels, ols->limit_samples) / 4;
