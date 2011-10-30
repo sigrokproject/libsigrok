@@ -554,8 +554,6 @@ static int set_configuration_samplerate(struct sr_device_instance *sdi,
 	} else if (samplerate < samplerates.low || samplerate > samplerates.high)
 		return SR_ERR_SAMPLERATE;
 
-	ols->cur_samplerate = samplerate;
-	ols->period_ps = 1000000000000 / samplerate;
 	if (samplerate > CLOCK_RATE) {
 		ols->flag_reg |= FLAG_DEMUX;
 		ols->cur_samplerate_divider = (CLOCK_RATE * 2 / samplerate) - 1;
@@ -563,6 +561,17 @@ static int set_configuration_samplerate(struct sr_device_instance *sdi,
 		ols->flag_reg &= ~FLAG_DEMUX;
 		ols->cur_samplerate_divider = (CLOCK_RATE / samplerate) - 1;
 	}
+
+	/* Calculate actual samplerate used and complain if it is different
+	 * from the requested.
+	 */
+	ols->cur_samplerate = CLOCK_RATE / (ols->cur_samplerate_divider + 1);
+	if(ols->flag_reg & FLAG_DEMUX)
+		ols->cur_samplerate *= 2;
+	ols->period_ps = 1000000000000 / ols->cur_samplerate;
+	if(ols->cur_samplerate != samplerate)
+		sr_warn("ols: can't match samplerate %" PRIu64 ", using %" PRIu64, 
+			samplerate, ols->cur_samplerate);
 
 	return SR_OK;
 }
