@@ -145,8 +145,9 @@ static void sr_session_run_poll()
 				 * or if the poll timeout out and this source
 				 * asked for that timeout.
 				 */
-				sources[i].cb(fds[i].fd, fds[i].revents,
-						  sources[i].user_data);
+				if (!sources[i].cb(fds[i].fd, fds[i].revents,
+						  sources[i].user_data))
+					sr_session_source_remove(sources[i].fd);
 			}
 		}
 	}
@@ -289,7 +290,7 @@ void sr_session_source_remove(int fd)
 		return;
 
 	new_sources = calloc(1, sizeof(struct source) * num_sources);
-	for (old = 0; old < num_sources; old++)
+	for (old = 0, new = 0; old < num_sources; old++)
 		if (sources[old].fd != fd)
 			memcpy(&new_sources[new++], &sources[old],
 			       sizeof(struct source));
