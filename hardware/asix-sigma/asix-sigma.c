@@ -1038,6 +1038,8 @@ static int receive_data(int fd, int revents, void *session_data)
 
 		bufsz = sigma_read_dram(sigma->state.chunks_downloaded,
 					newchunks, buf, sigma);
+		/* TODO: Check bufsz. For now, just avoid compiler warnings. */
+		(void)bufsz;
 
 		/* Find first ts. */
 		if (sigma->state.chunks_downloaded == 0) {

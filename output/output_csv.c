@@ -126,7 +126,6 @@ static int event(struct sr_output *o, int event_type, char **data_out,
 		 uint64_t *length_out)
 {
 	struct context *ctx;
-	char *outbuf;
 
 	if (!o) {
 		sr_err("csv out: %s: o was NULL", __func__);

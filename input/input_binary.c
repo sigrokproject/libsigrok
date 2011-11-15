@@ -31,9 +31,8 @@
 
 static int format_match(const char *filename)
 {
-
 	/* suppress compiler warning */
-	filename = NULL;
+	(void)filename;
 
 	/* this module will handle anything you throw at it */
 	return TRUE;
