@@ -66,7 +66,7 @@ int gl_write_address(libusb_device_handle *devh, unsigned int address)
 					 0, packet, 1, TIMEOUT);
 	if (ret != 1)
 		sr_err("%s: libusb_control_transfer returned %d\n",
-		       __FUNCTION__, ret);
+		       __func__, ret);
 	return ret;
 }
 
@@ -79,7 +79,7 @@ int gl_write_data(libusb_device_handle *devh, unsigned int val)
 				      0, packet, 1, TIMEOUT);
 	if (ret != 1)
 		sr_err("%s: libusb_control_transfer returned %d\n",
-		       __FUNCTION__, ret);
+		       __func__, ret);
 	return ret;
 }
 
@@ -92,7 +92,7 @@ int gl_read_data(libusb_device_handle *devh)
 				      0, packet, 1, TIMEOUT);
 	if (ret != 1)
 		sr_err("%s: libusb_control_transfer returned %d, val=%hhx\n",
-		       __FUNCTION__, ret, packet[0]);
+		       __func__, ret, packet[0]);
 	return (ret == 1) ? packet[0] : ret;
 }
 
@@ -107,7 +107,7 @@ int gl_read_bulk(libusb_device_handle *devh, void *buffer, unsigned int size)
 				      0, packet, 8, TIMEOUT);
 	if (ret != 8)
 		sr_err("%s: libusb_control_transfer returned %d\n",
-		       __FUNCTION__, ret);
+		       __func__, ret);
 
 	ret = libusb_bulk_transfer(devh, ENDPOINT_BULK_IN, buffer, size,
 				   &transferred, TIMEOUT);

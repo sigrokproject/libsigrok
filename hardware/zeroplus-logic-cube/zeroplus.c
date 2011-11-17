@@ -453,7 +453,7 @@ static int *hw_get_capabilities(void)
 /* TODO: This will set the same samplerate for all devices. */
 static int set_configuration_samplerate(uint64_t samplerate)
 {
-	sr_info("%s(%" PRIu64 ")", __FUNCTION__, samplerate);
+	sr_info("%s(%" PRIu64 ")", __func__, samplerate);
 	if (samplerate > SR_MHZ(1))
 		analyzer_set_freq(samplerate / SR_MHZ(1), FREQ_SCALE_MHZ);
 	else if (samplerate > SR_KHZ(1))
