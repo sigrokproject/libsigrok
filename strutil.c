@@ -144,7 +144,7 @@ char **sr_parse_triggerstring(struct sr_device *device,
 		}
 
 		if (probenum < 1 || probenum > max_probes) {
-			printf("Invalid probe.\n");
+			sr_err("Invalid probe.\n");
 			error = TRUE;
 			break;
 		}
@@ -152,7 +152,7 @@ char **sr_parse_triggerstring(struct sr_device *device,
 		if ((trigger = strchr(tokens[i], '='))) {
 			for (tc = ++trigger; *tc; tc++) {
 				if (strchr(trigger_types, *tc) == NULL) {
-					printf("Unsupported trigger type "
+					sr_err("Unsupported trigger type "
 					       "'%c'\n", *tc);
 					error = TRUE;
 					break;

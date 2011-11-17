@@ -65,7 +65,7 @@ int gl_write_address(libusb_device_handle *devh, unsigned int address)
 	ret = libusb_control_transfer(devh, CTRL_OUT, 0xc, REQ_WRITEADDR,
 					 0, packet, 1, TIMEOUT);
 	if (ret != 1)
-		printf("%s: libusb_control_transfer returned %d\n",
+		sr_err("%s: libusb_control_transfer returned %d\n",
 		       __FUNCTION__, ret);
 	return ret;
 }
@@ -78,7 +78,7 @@ int gl_write_data(libusb_device_handle *devh, unsigned int val)
 	ret = libusb_control_transfer(devh, CTRL_OUT, 0xc, REQ_WRITEDATA,
 				      0, packet, 1, TIMEOUT);
 	if (ret != 1)
-		printf("%s: libusb_control_transfer returned %d\n",
+		sr_err("%s: libusb_control_transfer returned %d\n",
 		       __FUNCTION__, ret);
 	return ret;
 }
@@ -91,7 +91,7 @@ int gl_read_data(libusb_device_handle *devh)
 	ret = libusb_control_transfer(devh, CTRL_IN, 0xc, REQ_READDATA,
 				      0, packet, 1, TIMEOUT);
 	if (ret != 1)
-		printf("%s: libusb_control_transfer returned %d, val=%hhx\n",
+		sr_err("%s: libusb_control_transfer returned %d, val=%hhx\n",
 		       __FUNCTION__, ret, packet[0]);
 	return (ret == 1) ? packet[0] : ret;
 }
@@ -106,13 +106,13 @@ int gl_read_bulk(libusb_device_handle *devh, void *buffer, unsigned int size)
 	ret = libusb_control_transfer(devh, CTRL_OUT, 0x4, REQ_READBULK,
 				      0, packet, 8, TIMEOUT);
 	if (ret != 8)
-		printf("%s: libusb_control_transfer returned %d\n",
+		sr_err("%s: libusb_control_transfer returned %d\n",
 		       __FUNCTION__, ret);
 
 	ret = libusb_bulk_transfer(devh, ENDPOINT_BULK_IN, buffer, size,
 				   &transferred, TIMEOUT);
 	if (ret < 0)
-		fprintf(stderr, "Bulk read error %d\n", ret);
+		sr_err("Bulk read error %d\n", ret);
 	return transferred;
 }
 

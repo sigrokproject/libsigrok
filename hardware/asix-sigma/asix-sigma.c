@@ -724,7 +724,7 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 	void *info = NULL;
 
 	if (!(sdi = sr_get_device_instance(device_instances, device_index))) {
-		fprintf(stderr, "It's NULL.\n");
+		sr_err("It's NULL.\n");
 		return NULL;
 	}
 
