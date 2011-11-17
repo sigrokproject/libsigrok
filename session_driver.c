@@ -119,9 +119,11 @@ static int feed_chunk(int fd, int revents, void *session_data)
 }
 
 /* driver callbacks */
+static void hw_cleanup(void);
 
 static int hw_init(const char *deviceinfo)
 {
+	hw_cleanup();
 
 	sessionfile = g_strdup(deviceinfo);
 
@@ -134,6 +136,11 @@ static void hw_cleanup(void)
 
 	for (l = device_instances; l; l = l->next)
 		sr_device_instance_free(l->data);
+
+	g_slist_free(device_instances);
+	device_instances = NULL;
+
+	sr_session_source_remove(-1);
 
 	g_free(sessionfile);
 
