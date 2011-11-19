@@ -618,7 +618,7 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 			ret = SR_OK;
 		break;
 	case SR_HWCAP_RLE:
-		if (!strcmp(value, "on")) {
+		if (GPOINTER_TO_INT(value)) {
 			sr_info("ols: enabling RLE");
 			ols->flag_reg |= FLAG_RLE;
 		}

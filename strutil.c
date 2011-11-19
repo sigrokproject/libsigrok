@@ -267,3 +267,18 @@ uint64_t sr_parse_timestring(const char *timestring)
 
 	return time_msec;
 }
+
+gboolean sr_parse_boolstring(const char *boolstr)
+{
+	if (!boolstr)
+		return FALSE;
+
+	if (!g_strcasecmp(boolstr, "true") || 
+	    !g_strcasecmp(boolstr, "yes") ||
+	    !g_strcasecmp(boolstr, "on") ||
+	    !g_strcasecmp(boolstr, "1")) 
+		return TRUE;
+
+	return FALSE;
+}
+

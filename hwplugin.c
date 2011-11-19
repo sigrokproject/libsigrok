@@ -39,7 +39,7 @@ struct sr_hwcap_option sr_hwcap_options[] = {
 	{SR_HWCAP_SAMPLERATE, SR_T_UINT64, "Sample rate", "samplerate"},
 	{SR_HWCAP_CAPTURE_RATIO, SR_T_UINT64, "Pre-trigger capture ratio", "captureratio"},
 	{SR_HWCAP_PATTERN_MODE, SR_T_CHAR, "Pattern generator mode", "patternmode"},
-	{SR_HWCAP_RLE, SR_T_CHAR, "Run Length Encoding", "rle"},
+	{SR_HWCAP_RLE, SR_T_BOOL, "Run Length Encoding", "rle"},
 	{0, 0, NULL, NULL},
 };
 
@@ -115,7 +115,8 @@ int sr_init_hwplugins(struct sr_device_plugin *plugin)
 	g_message("initializing %s plugin", plugin->name);
 	num_devices = plugin->init(NULL);
 	for (i = 0; i < num_devices; i++) {
-		num_probes = (int)plugin->get_device_info(i, SR_DI_NUM_PROBES);
+		num_probes = GPOINTER_TO_INT(
+				plugin->get_device_info(i, SR_DI_NUM_PROBES));
 		sr_device_new(plugin, i, num_probes);
 	}
 

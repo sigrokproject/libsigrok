@@ -144,5 +144,6 @@ char **sr_parse_triggerstring(struct sr_device *device,
 			      const char *triggerstring);
 uint64_t sr_parse_sizestring(const char *sizestring);
 uint64_t sr_parse_timestring(const char *timestring);
+gboolean sr_parse_boolstring(const char *boolstring);
 
 #endif

@@ -81,7 +81,7 @@ typedef int (*sr_receive_data_callback) (int fd, int revents, void *user_data);
 enum {
 	SR_T_UINT64,
 	SR_T_CHAR,
-	SR_T_NULL,
+	SR_T_BOOL,
 };
 
 #if 0
