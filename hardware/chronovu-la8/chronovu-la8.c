@@ -475,7 +475,6 @@ static int hw_init(const char *deviceinfo)
 	/* Allocate memory for our private driver context. */
 	if (!(la8 = g_try_malloc(sizeof(struct la8)))) {
 		sr_err("la8: %s: struct la8 malloc failed", __func__);
-		ret = SR_ERR_MALLOC;
 		goto err_free_nothing;
 	}
 
@@ -499,24 +498,21 @@ static int hw_init(const char *deviceinfo)
 	/* Allocate memory where we'll store the de-mangled data. */
 	if (!(la8->final_buf = g_try_malloc(SDRAM_SIZE))) {
 		sr_err("la8: %s: final_buf malloc failed", __func__);
-		ret = SR_ERR_MALLOC;
 		goto err_free_la8;
 	}
 
 	/* Allocate memory for the FTDI context (ftdic) and initialize it. */
 	if (!(la8->ftdic = ftdi_new())) {
 		sr_err("la8: %s: ftdi_new failed", __func__);
-		ret = SR_ERR; /* TODO: More specific error? */
 		goto err_free_final_buf;
 	}
 
 	/* Check for the device and temporarily open it. */
 	if ((ret = ftdi_usb_open_desc(la8->ftdic, USB_VENDOR_ID,
 			USB_PRODUCT_ID, USB_DESCRIPTION, NULL)) < 0) {
-		sr_err("la8: %s: ftdi_usb_open_desc: (%d) %s",
+		sr_dbg("la8: %s: ftdi_usb_open_desc: (%d) %s",
 		       __func__, ret, ftdi_get_error_string(la8->ftdic));
 		(void) la8_close_usb_reset_sequencer(la8); /* Ignore errors. */
-		ret = SR_ERR; /* TODO: More specific error? */
 		goto err_free_ftdic;
 	}
 	sr_dbg("la8: found device");
@@ -526,7 +522,6 @@ static int hw_init(const char *deviceinfo)
 			USB_VENDOR_NAME, USB_MODEL_NAME, USB_MODEL_VERSION);
 	if (!sdi) {
 		sr_err("la8: %s: sr_device_instance_new failed", __func__);
-		ret = SR_ERR; /* TODO: More specific error? */
 		goto err_close_ftdic;
 	}
 
@@ -539,7 +534,6 @@ static int hw_init(const char *deviceinfo)
 	/* Close device. We'll reopen it again when we need it. */
 	(void) la8_close(la8); /* Log, but ignore errors. */
 
-	// return SR_OK; /* TODO */
 	return 1;
 
 err_close_ftdic:
@@ -551,7 +545,7 @@ err_free_final_buf:
 err_free_la8:
 	g_free(la8);
 err_free_nothing:
-	// return ret; /* TODO */
+
 	return 0;
 }
 
