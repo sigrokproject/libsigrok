@@ -21,6 +21,7 @@
 #define SIGROK_SIGROK_INTERNAL_H
 
 #include <stdarg.h>
+#include <glib.h>
 
 /*--- Macros ----------------------------------------------------------------*/
 

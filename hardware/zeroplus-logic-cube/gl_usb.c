@@ -31,6 +31,7 @@
 
 #include <libusb.h>
 #include <stdio.h>
+#include <sigrok-internal.h>
 #include "gl_usb.h"
 
 #define CTRL_IN		(LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_ENDPOINT_IN | \
