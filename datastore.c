@@ -69,8 +69,8 @@ void sr_datastore_put(struct sr_datastore *ds, void *data, unsigned int length,
 	gpointer chunk;
 
 	/* Avoid compiler warnings. */
-	in_unitsize = in_unitsize;
-	probelist = probelist;
+	(void)in_unitsize;
+	(void)probelist;
 
 	if (ds->chunklist == NULL)
 		chunk = new_chunk(&ds);

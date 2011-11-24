@@ -70,9 +70,9 @@ static int feed_chunk(int fd, int revents, void *session_data)
 	void *buf;
 	int ret, got_data;
 
-	/* avoid compiler warning */
-	fd = fd;
-	revents = revents;
+	/* Avoid compiler warnings. */
+	(void)fd;
+	(void)revents;
 
 	sr_dbg("session_driver: feed chunk");
 
@@ -183,9 +183,8 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 
 static int hw_get_status(int device_index)
 {
-
-	/* avoid compiler warning */
-	device_index = device_index;
+	/* Avoid compiler warnings. */
+	(void)device_index;
 
 	if (devices)
 		return SR_OK;
@@ -238,8 +237,8 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	struct sr_datafeed_packet *packet;
 	int err;
 
-	/* avoid compiler warning */
-	session_device_id = session_device_id;
+	/* Avoid compiler warnings. */
+	(void)session_device_id;
 
 	if (!(vdevice = get_vdevice_by_index(device_index)))
 		return SR_ERR;

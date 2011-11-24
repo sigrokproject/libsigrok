@@ -31,7 +31,7 @@ static int data(struct sr_output *o, const char *data_in, uint64_t length_in,
 	char *outbuf;
 
 	/* Prevent compiler warnings. */
-	o = o;
+	(void)o;
 
 	if (!data_in) {
 		sr_warn("binary output: %s: data_in was NULL", __func__);

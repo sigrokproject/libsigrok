@@ -400,7 +400,7 @@ static int hw_init(const char *deviceinfo)
 	struct sigma *sigma;
 
 	/* Avoid compiler warnings. */
-	deviceinfo = deviceinfo;
+	(void)deviceinfo;
 
 	if (!(sigma = g_try_malloc(sizeof(struct sigma)))) {
 		sr_err("sigma: %s: sigma malloc failed", __func__);
@@ -997,8 +997,9 @@ static int receive_data(int fd, int revents, void *session_data)
 	uint64_t running_msec;
 	struct timeval tv;
 
-	fd = fd;
-	revents = revents;
+	/* Avoid compiler warnings. */
+	(void)fd;
+	(void)revents;
 
 	numchunks = (sigma->state.stoppos + 511) / 512;
 
@@ -1245,7 +1246,8 @@ static int hw_start_acquisition(int device_index, gpointer session_data)
 	struct triggerinout triggerinout_conf;
 	struct triggerlut lut;
 
-	session_data = session_data;
+	/* Avoid compiler warnings. */
+	(void)session_data;
 
 	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
 		return SR_ERR;
@@ -1361,7 +1363,8 @@ static void hw_stop_acquisition(int device_index, gpointer session_data)
 
 	sigma = sdi->priv;
 
-	session_data = session_data;
+	/* Avoid compiler warnings. */
+	(void)session_data;
 
 	/* Stop acquisition. */
 	sigma_set_register(WRITE_MODE, 0x11, sigma);

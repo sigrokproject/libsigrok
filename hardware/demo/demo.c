@@ -130,7 +130,7 @@ static int hw_init(const char *deviceinfo)
 	struct sr_device_instance *sdi;
 
 	/* Avoid compiler warnings. */
-	deviceinfo = deviceinfo;
+	(void)deviceinfo;
 
 	sdi = sr_device_instance_new(0, SR_ST_ACTIVE, DEMONAME, NULL, NULL);
 	if (!sdi) {
@@ -146,7 +146,7 @@ static int hw_init(const char *deviceinfo)
 static int hw_opendev(int device_index)
 {
 	/* Avoid compiler warnings. */
-	device_index = device_index;
+	(void)device_index;
 
 	/* Nothing needed so far. */
 
@@ -156,7 +156,7 @@ static int hw_opendev(int device_index)
 static int hw_closedev(int device_index)
 {
 	/* Avoid compiler warnings. */
-	device_index = device_index;
+	(void)device_index;
 
 	/* Nothing needed so far. */
 
@@ -202,7 +202,7 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 static int hw_get_status(int device_index)
 {
 	/* Avoid compiler warnings. */
-	device_index = device_index;
+	(void)device_index;
 
 	return SR_ST_ACTIVE;
 }
@@ -218,7 +218,7 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 	char *stropt;
 
 	/* Avoid compiler warnings. */
-	device_index = device_index;
+	(void)device_index;
 
 	if (capability == SR_HWCAP_PROBECONFIG) {
 		/* Nothing to do, but must be supported */
@@ -359,8 +359,8 @@ static int receive_data(int fd, int revents, void *session_data)
 	gsize z;
 
 	/* Avoid compiler warnings. */
-	fd = fd;
-	revents = revents;
+	(void)fd;
+	(void)revents;
 
 	do {
 		g_io_channel_read_chars(channels[0],
@@ -471,8 +471,8 @@ static int hw_start_acquisition(int device_index, gpointer session_data)
 static void hw_stop_acquisition(int device_index, gpointer session_data)
 {
 	/* Avoid compiler warnings. */
-	device_index = device_index;
-	session_data = session_data;
+	(void)device_index;
+	(void)session_data;
 
 	/* Stop generate thread. */
 	thread_running = 0;

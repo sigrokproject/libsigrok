@@ -470,7 +470,7 @@ static int hw_init(const char *deviceinfo)
 	sr_spew("la8: entering %s", __func__);
 
 	/* Avoid compiler errors. */
-	deviceinfo = deviceinfo;
+	(void)deviceinfo;
 
 	/* Allocate memory for our private driver context. */
 	if (!(la8 = g_try_malloc(sizeof(struct la8)))) {
@@ -981,8 +981,8 @@ static int receive_data(int fd, int revents, void *session_data)
 	struct la8 *la8;
 
 	/* Avoid compiler errors. */
-	fd = fd;
-	revents = revents;
+	(void)fd;
+	(void)revents;
 
 	if (!(sdi = session_data)) {
 		sr_err("la8: %s: user_data was NULL", __func__);

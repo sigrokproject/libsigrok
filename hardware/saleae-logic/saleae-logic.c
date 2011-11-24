@@ -292,7 +292,7 @@ static int hw_init(const char *deviceinfo)
 	int err, devcnt, i, j;
 
 	/* Avoid compiler warnings. */
-	deviceinfo = deviceinfo;
+	(void)deviceinfo;
 
 	if (libusb_init(&usb_context) != 0) {
 		sr_warn("Failed to initialize USB.");
@@ -554,9 +554,9 @@ static int receive_data(int fd, int revents, void *user_data)
 	struct timeval tv;
 
 	/* Avoid compiler warnings. */
-	fd = fd;
-	revents = revents;
-	user_data = user_data;
+	(void)fd;
+	(void)revents;
+	(void)user_data;
 
 	tv.tv_sec = tv.tv_usec = 0;
 	libusb_handle_events_timeout(usb_context, &tv);
@@ -780,7 +780,7 @@ static void hw_stop_acquisition(int device_index, gpointer session_data)
 	struct sr_datafeed_packet packet;
 
 	/* Avoid compiler warnings. */
-	device_index = device_index;
+	(void)device_index;
 
 	packet.type = SR_DF_END;
 	sr_session_bus(session_data, &packet);

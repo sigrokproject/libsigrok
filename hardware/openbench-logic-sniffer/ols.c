@@ -979,7 +979,7 @@ static void hw_stop_acquisition(int device_index, gpointer session_device_id)
 	struct sr_datafeed_packet packet;
 
 	/* Avoid compiler warnings. */
-	device_index = device_index;
+	(void)device_index;
 
 	packet.type = SR_DF_END;
 	sr_session_bus(session_device_id, &packet);

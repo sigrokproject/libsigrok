@@ -284,7 +284,7 @@ static int hw_init(const char *deviceinfo)
 	int err, devcnt, i;
 
 	/* Avoid compiler warnings. */
-	deviceinfo = deviceinfo;
+	(void)deviceinfo;
 
 	if (libusb_init(&usb_context) != 0) {
 		sr_warn("Failed to initialize USB.");

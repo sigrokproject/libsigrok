@@ -218,7 +218,7 @@ struct sr_usb_device_instance *sr_usb_device_instance_new(uint8_t bus,
 void sr_usb_device_instance_free(struct sr_usb_device_instance *usb)
 {
 	/* Avoid compiler warnings. */
-	usb = usb;
+	(void)usb;
 
 	/* Nothing to do for this device instance type. */
 }
