@@ -186,19 +186,19 @@ char **sr_parse_triggerstring(struct sr_device *device,
  * Spaces (but not other whitespace) between value and suffix are allowed.
  *
  * @param sizestring A string containing a (decimal) size value.
- * @return The string's size value as uint64_t.
+ * @param size Pointer to uint64_t which will contain the string's size value.
+ * @return SR_OK or error code
  *
- * TODO: Error handling.
  */
-uint64_t sr_parse_sizestring(const char *sizestring)
+int sr_parse_sizestring(const char *sizestring, uint64_t *size)
 {
-	int multiplier;
-	uint64_t val;
+	int multiplier, done;
 	char *s;
 
-	val = strtoull(sizestring, &s, 10);
+	*size = strtoull(sizestring, &s, 10);
 	multiplier = 0;
-	while (s && *s && multiplier == 0) {
+	done = FALSE;
+	while (s && *s && multiplier == 0 && !done) {
 		switch (*s) {
 		case ' ':
 			break;
@@ -215,15 +215,18 @@ uint64_t sr_parse_sizestring(const char *sizestring)
 			multiplier = SR_GHZ(1);
 			break;
 		default:
-			val = 0;
-			multiplier = -1;
+			done = TRUE;
+			s--;
 		}
 		s++;
 	}
 	if (multiplier > 0)
-		val *= multiplier;
+		*size *= multiplier;
 
-	return val;
+	if (*s && strcasecmp(s, "Hz"))
+		return SR_ERR;
+
+	return SR_OK;
 }
 
 /**

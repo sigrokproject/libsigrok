@@ -107,7 +107,7 @@ int sr_session_load(const char *filename)
 					device->plugin->set_configuration(devcnt, SR_HWCAP_CAPTUREFILE, val);
 					g_ptr_array_add(capturefiles, val);
 				} else if (!strcmp(keys[j], "samplerate")) {
-					tmp_u64 = sr_parse_sizestring(val);
+					sr_parse_sizestring(val, &tmp_u64);
 					device->plugin->set_configuration(devcnt, SR_HWCAP_SAMPLERATE, &tmp_u64);
 				} else if (!strcmp(keys[j], "unitsize")) {
 					tmp_u64 = strtoull(val, NULL, 10);
