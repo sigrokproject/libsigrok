@@ -33,6 +33,7 @@ struct session_vdevice {
 	char *capturefile;
 	struct zip *archive;
 	struct zip_file *capfile;
+	int bytes_read;
 	uint64_t samplerate;
 	int unitsize;
 	int num_probes;
@@ -66,6 +67,7 @@ static int feed_chunk(int fd, int revents, void *session_data)
 	struct session_vdevice *vdevice;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
+	uint64_t sample_period_ps;
 	GSList *l;
 	void *buf;
 	int ret, got_data;
@@ -94,12 +96,14 @@ static int feed_chunk(int fd, int revents, void *session_data)
 		if (ret > 0) {
 			got_data = TRUE;
 			packet.type = SR_DF_LOGIC;
-			packet.timeoffset = 0;
-			packet.duration = 0;
+			sample_period_ps = 1000000000000 / vdevice->samplerate;
+			packet.timeoffset = sample_period_ps * (vdevice->bytes_read / vdevice->unitsize);
+			packet.duration = sample_period_ps * (ret / vdevice->unitsize);
 			packet.payload = &logic;
 			logic.length = ret;
 			logic.unitsize = vdevice->unitsize;
 			logic.data = buf;
+			vdevice->bytes_read += ret;
 			sr_session_bus(session_data, &packet);
 		} else {
 			/* done with this capture file */
