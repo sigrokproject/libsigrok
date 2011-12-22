@@ -60,7 +60,7 @@ gboolean sr_device_has_hwcap(struct sr_device *device, int hwcap);
 
 /*--- filter.c --------------------------------------------------------------*/
 
-int sr_filter_probes(int in_unitsize, int out_unitsize, int *probelist,
+int sr_filter_probes(int in_unitsize, int out_unitsize, const int *probelist,
 		     const unsigned char *data_in, uint64_t length_in,
 		     char **data_out, uint64_t *length_out);
 

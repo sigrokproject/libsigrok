@@ -21,6 +21,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <sigrok.h>
+#include "sigrok-internal.h"
 
 /**
  * Remove unused probes from samples.
@@ -29,16 +30,47 @@
  * it -- to a sample taking up only as much space as required, with
  * unused probes removed.
  *
- * @param in_unitsize The unit size of the input (data_in).
- * @param out_unitsize The unit size of the output (data_out).
- * @param probelist Pointer to a list of integers (probe numbers).
- * @param data_in The input data.
- * @param length_in The input data length.
- * @param data_out The output data.
- * @param length_out The output data length.
- * @return SR_OK upon success, SR_ERR_MALLOC upon memory allocation errors.
+ * The "unit size" is the number of bytes used to store probe values.
+ * For example, a unit size of 1 means one byte is used (which can store
+ * 8 probe values, each of them is 1 bit). A unit size of 2 means we can
+ * store 16 probe values, 3 means we can store 24 probe values, and so on.
+ *
+ * If the data coming from the logic analyzer has a unit size of 4 for
+ * example (as the device has 32 probes), but only 2 of them are actually
+ * used in an acquisition, this function can convert the samples to only
+ * use up 1 byte per sample (unit size = 1) instead of 4 bytes per sample.
+ *
+ * The output will contain the probe values in the order specified via the
+ * probelist. For example, if in_unitsize = 4, probelist = [5, 16, 30], and
+ * out_unitsize = 1, then the output samples (each of them one byte in size)
+ * will have the following format: bit 0 = value of probe 5, bit 1 = value
+ * of probe 16, bit 2 = value of probe 30. Unused bit(s) in the output byte(s)
+ * are zero.
+ *
+ * The caller must make sure that length_in is not bigger than the memory
+ * actually allocated for the input data (data_in), as this function does
+ * not check that.
+ *
+ * @param in_unitsize The unit size (>= 1) of the input (data_in).
+ * @param out_unitsize The unit size (>= 1) the output shall have (data_out).
+ * @param probelist Pointer to a list of integers (probe numbers). The probe
+ *                  numbers in this list are 1-based, i.e. the first probe
+ *                  is expected to be numbered 1 (not 0!). Must not be NULL.
+ * @param data_in Pointer to the input data buffer. Must not be NULL.
+ * @param length_in The input data length (>= 1), in number of bytes.
+ * @param data_out Variable which will point to the newly allocated buffer
+ *                 of output data. The caller is responsible for g_free()'ing
+ *                 the buffer when it's no longer needed. Must not be NULL.
+ * @param length_out Pointer to the variable which will contain the output
+ *                   data length (in number of bytes) when the function
+ *                   returns SR_OK. Must not be NULL.
+ *
+ * @return SR_OK upon success, SR_ERR_MALLOC upon memory allocation errors,
+ *         or SR_ERR_ARG upon invalid arguments.
+ *         If something other than SR_OK is returned, the values of
+ *         out_unitsize, data_out, and length_out are undefined.
  */
-int sr_filter_probes(int in_unitsize, int out_unitsize, int *probelist,
+int sr_filter_probes(int in_unitsize, int out_unitsize, const int *probelist,
 		     const unsigned char *data_in, uint64_t length_in,
 		     char **data_out, uint64_t *length_out)
 {
@@ -46,8 +78,30 @@ int sr_filter_probes(int in_unitsize, int out_unitsize, int *probelist,
 	int num_enabled_probes, out_bit, i;
 	uint64_t sample_in, sample_out;
 
-	if (!(*data_out = malloc(length_in)))
+	if (!probelist) {
+		sr_err("filter: %s: probelist was NULL", __func__);
+		return SR_ERR_ARG;
+	}
+
+	if (!data_in) {
+		sr_err("filter: %s: data_in was NULL", __func__);
+		return SR_ERR_ARG;
+	}
+
+	if (!data_out) {
+		sr_err("filter: %s: data_out was NULL", __func__);
+		return SR_ERR_ARG;
+	}
+
+	if (!length_out) {
+		sr_err("filter: %s: length_out was NULL", __func__);
+		return SR_ERR_ARG;
+	}
+
+	if (!(*data_out = g_try_malloc(length_in))) {
+		sr_err("filter: %s: data_out malloc failed", __func__);
 		return SR_ERR_MALLOC;
+	}
 
 	num_enabled_probes = 0;
 	for (i = 0; probelist[i]; i++)
