@@ -53,6 +53,9 @@
  *
  * @param in_unitsize The unit size (>= 1) of the input (data_in).
  * @param out_unitsize The unit size (>= 1) the output shall have (data_out).
+ *                     The requested unit size must be big enough to hold as
+ *                     much data as is specified by the number of enabled
+ *                     probes in 'probelist'.
  * @param probelist Pointer to a list of integers (probe numbers). The probe
  *                  numbers in this list are 1-based, i.e. the first probe
  *                  is expected to be numbered 1 (not 0!). Must not be NULL.
@@ -98,14 +101,26 @@ int sr_filter_probes(int in_unitsize, int out_unitsize, const int *probelist,
 		return SR_ERR_ARG;
 	}
 
-	if (!(*data_out = g_try_malloc(length_in))) {
-		sr_err("filter: %s: data_out malloc failed", __func__);
-		return SR_ERR_MALLOC;
+	if (!length_out) {
+		sr_err("filter: %s: length_out was NULL", __func__);
+		return SR_ERR_ARG;
 	}
 
 	num_enabled_probes = 0;
 	for (i = 0; probelist[i]; i++)
 		num_enabled_probes++;
+
+	/* Are there more probes than the target unit size supports? */
+	if (num_enabled_probes > out_unitsize * 8) {
+		sr_err("filter: %s: too many probes (%d) for the target unit "
+		       "size (%d)", num_enabled_probes, out_unitsize, __func__);
+		return SR_ERR_ARG;
+	}
+
+	if (!(*data_out = g_try_malloc(length_in))) {
+		sr_err("filter: %s: data_out malloc failed", __func__);
+		return SR_ERR_MALLOC;
+	}
 
 	if (num_enabled_probes == in_unitsize * 8) {
 		/* All probes are used -- no need to compress anything. */
