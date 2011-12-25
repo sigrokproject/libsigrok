@@ -34,8 +34,8 @@ int sr_get_loglevel(void);
 
 int sr_datastore_new(int unitsize, struct sr_datastore **ds);
 int sr_datastore_destroy(struct sr_datastore *ds);
-void sr_datastore_put(struct sr_datastore *ds, void *data, unsigned int length,
-		      int in_unitsize, int *probelist);
+int sr_datastore_put(struct sr_datastore *ds, void *data, unsigned int length,
+		     int in_unitsize, int *probelist);
 
 /*--- device.c --------------------------------------------------------------*/
 
