@@ -22,8 +22,6 @@
 #include <sigrok.h>
 #include <sigrok-internal.h>
 
-extern struct sr_global *global;
-
 GSList *devices = NULL;
 
 /**
