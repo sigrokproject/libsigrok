@@ -564,7 +564,7 @@ static int receive_data(int fd, int revents, void *user_data)
 	return TRUE;
 }
 
-void receive_transfer(struct libusb_transfer *transfer)
+static void receive_transfer(struct libusb_transfer *transfer)
 {
 	/* TODO: these statics have to move to fx2_device struct */
 	static int num_samples = 0;

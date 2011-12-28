@@ -47,7 +47,6 @@ static int capabilities[] = {
 	0,
 };
 
-
 static struct session_vdevice *get_vdevice_by_index(int device_index)
 {
 	struct sr_device_instance *sdi;
@@ -147,7 +146,6 @@ static void hw_cleanup(void)
 	sr_session_source_remove(-1);
 
 	g_free(sessionfile);
-
 }
 
 static int hw_opendev(int device_index)
@@ -190,7 +188,7 @@ static int hw_get_status(int device_index)
 	/* Avoid compiler warnings. */
 	(void)device_index;
 
-	if (devices)
+	if (sr_device_list() != NULL)
 		return SR_OK;
 	else
 		return SR_ERR;
@@ -198,7 +196,6 @@ static int hw_get_status(int device_index)
 
 static int *hw_get_capabilities(void)
 {
-
 	return capabilities;
 }
 
@@ -296,6 +293,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	return SR_OK;
 }
 
+/* Not static, it's used elsewhere (via 'extern'). */
 struct sr_device_plugin session_driver = {
 	"session",
 	"Session-emulating driver",

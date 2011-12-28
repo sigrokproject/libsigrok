@@ -225,9 +225,6 @@ struct sr_probe {
 	char *trigger;
 };
 
-/* TODO: Get rid of this global variable. */
-extern GSList *devices;
-
 /* Hardware plugin capabilities */
 enum {
 	SR_HWCAP_DUMMY,             /* Used to terminate lists */

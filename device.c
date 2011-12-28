@@ -22,7 +22,7 @@
 #include <sigrok.h>
 #include <sigrok-internal.h>
 
-GSList *devices = NULL;
+static GSList *devices = NULL;
 
 /**
  * Scan the system for attached logic analyzers / devices.

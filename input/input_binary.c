@@ -28,7 +28,6 @@
 #define CHUNKSIZE          4096
 #define DEFAULT_NUM_PROBES    8
 
-
 static int format_match(const char *filename)
 {
 	/* suppress compiler warning */

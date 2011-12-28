@@ -31,7 +31,6 @@
 #include <string.h>
 #include "config.h"
 
-
 int ezusb_reset(struct libusb_device_handle *hdl, int set_clear)
 {
 	int err;

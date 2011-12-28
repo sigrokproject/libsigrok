@@ -35,7 +35,7 @@
 
 // FIXME: Must be moved, or rather passed as function argument.
 #ifdef _WIN32
-HANDLE hdl;
+static HANDLE hdl;
 #endif
 
 const char *serial_port_glob[] = {

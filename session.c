@@ -38,12 +38,12 @@ struct source {
 };
 
 /* There can only be one session at a time. */
+/* 'session' is not static, it's used elsewhere (via 'extern'). */
 struct sr_session *session;
-int num_sources = 0;
+static int num_sources = 0;
 
-struct source *sources = NULL;
-int source_timeout = -1;
-
+static struct source *sources = NULL;
+static int source_timeout = -1;
 
 struct sr_session *sr_session_new(void)
 {
@@ -54,7 +54,6 @@ struct sr_session *sr_session_new(void)
 
 void sr_session_destroy(void)
 {
-
 	g_slist_free(session->devices);
 
 	/* TODO: Loop over protocol decoders and free them. */
@@ -152,7 +151,6 @@ static void sr_session_run_poll()
 		}
 	}
 	free(fds);
-
 }
 
 int sr_session_start(void)
@@ -174,7 +172,6 @@ int sr_session_start(void)
 
 void sr_session_run(void)
 {
-
 	sr_info("session: running");
 	session->running = TRUE;
 
@@ -186,15 +183,12 @@ void sr_session_run(void)
 	else
 		/* real sources, use g_poll() main loop */
 		sr_session_run_poll();
-
 }
 
 void sr_session_halt(void)
 {
-
 	sr_info("session: halting");
 	session->running = FALSE;
-
 }
 
 void sr_session_stop(void)
@@ -209,7 +203,6 @@ void sr_session_stop(void)
 		if (device->plugin && device->plugin->stop_acquisition)
 			device->plugin->stop_acquisition(device->plugin_index, device);
 	}
-
 }
 
 static void datafeed_dump(struct sr_datafeed_packet *packet)
@@ -236,7 +229,6 @@ static void datafeed_dump(struct sr_datafeed_packet *packet)
 	default:
 		sr_dbg("bus: received unknown packet type %d", packet->type);
 	}
-
 }
 
 void sr_session_bus(struct sr_device *device, struct sr_datafeed_packet *packet)
@@ -304,4 +296,3 @@ void sr_session_source_remove(int fd)
 		free(new_sources);
 	}
 }
-

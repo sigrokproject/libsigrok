@@ -284,4 +284,3 @@ gboolean sr_parse_boolstring(const char *boolstr)
 
 	return FALSE;
 }
-

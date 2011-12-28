@@ -28,7 +28,7 @@
 #include <sigrok-internal.h>
 
 /* The list of loaded plugins lives here. */
-GSList *plugins;
+static GSList *plugins;
 
 /*
  * This enumerates which plugin capabilities correspond to user-settable
@@ -68,7 +68,6 @@ extern struct sr_device_plugin link_mso19_plugin_info;
 extern struct sr_device_plugin alsa_plugin_info;
 #endif
 
-
 /* TODO: No linked list needed, this can be a simple array. */
 int load_hwplugins(void)
 {
@@ -98,7 +97,6 @@ int load_hwplugins(void)
 #ifdef HAVE_LA_ALSA
 	plugins = g_slist_append(plugins, (gpointer *)&alsa_plugin_info);
 #endif
-
 
 	return SR_OK;
 }
@@ -133,7 +131,6 @@ void sr_cleanup_hwplugins(void)
 		if (plugin->cleanup)
 			plugin->cleanup();
 	}
-
 }
 
 struct sr_device_instance *sr_device_instance_new(int index, int status,
@@ -195,7 +192,6 @@ void sr_device_instance_free(struct sr_device_instance *sdi)
 	g_free(sdi->model);
 	g_free(sdi->version);
 	g_free(sdi);
-
 }
 
 #ifdef HAVE_LIBUSB_1_0
