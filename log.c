@@ -20,8 +20,8 @@
 
 #include <stdarg.h>
 #include <stdio.h>
-#include <sigrok.h>
-#include <sigrok-internal.h>
+#include "sigrok.h"
+#include "sigrok-internal.h"
 
 static int sr_loglevel = SR_LOG_WARN; /* Show errors+warnings per default. */
 

@@ -22,14 +22,14 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include <sigrok.h>
-#include <sigrok-internal.h>
 #ifdef _WIN32
 #include <io.h>
 #include <fcntl.h>
 #define pipe(fds) _pipe(fds, 4096, _O_BINARY)
 #endif
 #include "config.h"
+#include "sigrok.h"
+#include "sigrok-internal.h"
 
 /* TODO: Number of probes should be configurable. */
 #define NUM_PROBES             8

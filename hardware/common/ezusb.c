@@ -21,8 +21,6 @@
  * Helper functions for the Cypress EZ-USB / FX2 series chips.
  */
 
-#include <sigrok.h>
-#include <sigrok-internal.h>
 #include <libusb.h>
 #include <glib.h>
 #include <glib/gstdio.h>
@@ -30,6 +28,8 @@
 #include <errno.h>
 #include <string.h>
 #include "config.h"
+#include "sigrok.h"
+#include "sigrok-internal.h"
 
 int ezusb_reset(struct libusb_device_handle *hdl, int set_clear)
 {

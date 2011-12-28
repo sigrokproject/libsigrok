@@ -29,8 +29,8 @@
 #include <ftdi.h>
 #include <string.h>
 #include <zlib.h>
-#include <sigrok.h>
-#include <sigrok-internal.h>
+#include "sigrok.h"
+#include "sigrok-internal.h"
 #include "asix-sigma.h"
 
 #define USB_VENDOR			0xa600

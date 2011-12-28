@@ -26,9 +26,9 @@
 #include <inttypes.h>
 #include <glib.h>
 #include <libudev.h>
-#include <sigrok.h>
 #include <arpa/inet.h>
-#include <sigrok-internal.h>
+#include "sigrok.h"
+#include "sigrok-internal.h"
 #include "config.h"
 #include "link-mso19.h"
 

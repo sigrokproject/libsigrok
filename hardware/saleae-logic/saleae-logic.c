@@ -24,8 +24,8 @@
 #include <inttypes.h>
 #include <glib.h>
 #include <libusb.h>
-#include <sigrok.h>
-#include <sigrok-internal.h>
+#include "sigrok.h"
+#include "sigrok-internal.h"
 #include "saleae-logic.h"
 
 static struct fx2_profile supported_fx2[] = {

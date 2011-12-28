@@ -17,7 +17,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 #ifndef SALEAE_LOGIC_H_
 #define SALEAE_LOGIC_H_
 
@@ -72,9 +71,6 @@ struct fx2_device {
 	 * on the session bus along with samples.
 	 */
 	void *session_data;
-
 };
-
-
 
 #endif /* SALEAE_LOGIC_H_ */

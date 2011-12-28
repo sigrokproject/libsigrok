@@ -19,8 +19,8 @@
 
 #include <stdio.h>
 #include <glib.h>
-#include <sigrok.h>
-#include <sigrok-internal.h>
+#include "sigrok.h"
+#include "sigrok-internal.h"
 
 static GSList *devices = NULL;
 

@@ -24,8 +24,8 @@
 #include <zip.h>
 #include <glib.h>
 #include <glib/gstdio.h>
-#include <sigrok.h>
-#include <sigrok-internal.h>
+#include "sigrok.h"
+#include "sigrok-internal.h"
 
 extern struct sr_session *session;
 extern struct sr_device_plugin session_driver;

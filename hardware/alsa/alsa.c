@@ -22,9 +22,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include <sigrok.h>
-#include <sigrok-internal.h>
 #include <alsa/asoundlib.h>
+#include "sigrok.h"
+#include "sigrok-internal.h"
 
 #define NUM_PROBES 2
 #define SAMPLE_WIDTH 16

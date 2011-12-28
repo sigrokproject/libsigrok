@@ -24,8 +24,8 @@
 #include <dirent.h>
 #include <string.h>
 #include <glib.h>
-#include <sigrok.h>
-#include <sigrok-internal.h>
+#include "sigrok.h"
+#include "sigrok-internal.h"
 
 /* The list of loaded plugins lives here. */
 static GSList *plugins;

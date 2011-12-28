@@ -20,7 +20,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-#include <sigrok.h>
+#include "sigrok.h"
 #include "sigrok-internal.h"
 
 /**
