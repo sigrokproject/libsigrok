@@ -54,18 +54,19 @@ GSList *devices = NULL;
  * After the system has been scanned for devices, the list of detected (and
  * supported) devices can be acquired via sr_device_list().
  *
- * TODO: Should return int.
  * TODO: Error checks?
  * TODO: Option to only scan for specific devices or device classes.
+ *
+ * @return SR_OK upon success, SR_ERR upon errors.
  */
-void sr_device_scan(void)
+int sr_device_scan(void)
 {
 	GSList *plugins, *l;
 	struct sr_device_plugin *plugin;
 
 	if (!(plugins = sr_list_hwplugins())) {
 		sr_err("dev: %s: no supported devices/hwplugins", __func__);
-		return; /* TODO? */
+		return SR_ERR; /* TODO: More specific error? */
 	}
 
 	/*
@@ -78,6 +79,8 @@ void sr_device_scan(void)
 		/* TODO: Handle 'plugin' being NULL. */
 		sr_init_hwplugins(plugin);
 	}
+
+	return SR_OK;
 }
 
 /**
@@ -155,20 +158,22 @@ struct sr_device *sr_device_new(struct sr_device_plugin *plugin, int plugin_inde
  * The order in which the probes are cleared is not specified. The caller
  * should not assume or rely on a specific order.
  *
- * TODO: Should return int.
  * TODO: Rename to sr_device_clear_probes() or sr_device_probe_clear_all().
  *
  * @param device The device whose probes to clear. Must not be NULL.
  *               Note: device->probes is allowed to be NULL (in that case,
  *               there are no probes, thus none have to be cleared).
+ *
+ * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments.
+ *         If something other than SR_OK is returned, 'device' is unchanged.
  */
-void sr_device_clear(struct sr_device *device)
+int sr_device_clear(struct sr_device *device)
 {
 	unsigned int pnum;
 
 	if (!device) {
 		sr_err("dev: %s: device was NULL", __func__);
-		return; /* TODO: SR_ERR_ARG. */
+		return SR_ERR_ARG;
 	}
 
 	/* Note: device->probes can be NULL, this is handled correctly. */
@@ -176,7 +181,7 @@ void sr_device_clear(struct sr_device *device)
 	for (pnum = 1; pnum <= g_slist_length(device->probes); pnum++)
 		sr_device_probe_clear(device, pnum);
 
-	/* TODO: return SR_OK; */
+	return SR_OK;
 }
 
 /**
@@ -185,27 +190,29 @@ void sr_device_clear(struct sr_device *device)
  * The probe itself still exists afterwards, but its 'name' and 'trigger'
  * fields are g_free()'d and set to NULL.
  *
- * TODO: Should return int.
- *
  * @param device The device in which the specified (to be cleared) probe
  *               resides. Must not be NULL.
  * @param probenum The number of the probe to clear.
  *                 Note that the probe numbers start at 1 (not 0!).
+ *
+ * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or SR_ERR
+ *         upon other errors.
+ *         If something other than SR_OK is returned, 'device' is unchanged.
  */
-void sr_device_probe_clear(struct sr_device *device, int probenum)
+int sr_device_probe_clear(struct sr_device *device, int probenum)
 {
 	struct sr_probe *p;
 
 	if (!device) {
 		sr_err("dev: %s: device was NULL", __func__);
-		return; /* TODO: SR_ERR_ARG. */
+		return SR_ERR_ARG;
 	}
 
 	/* TODO: Sanity check on 'probenum'. */
 
 	if (!(p = sr_device_probe_find(device, probenum))) {
 		sr_err("dev: %s: probe %d not found", __func__, probenum);
-		return; /* TODO: SR_ERR*. */
+		return SR_ERR; /* TODO: More specific error? */
 	}
 
 	/* If the probe has a name, remove it. */
@@ -220,7 +227,7 @@ void sr_device_probe_clear(struct sr_device *device, int probenum)
 		p->trigger = NULL;
 	}
 
-	/* TODO: return SR_OK; */
+	return SR_OK;
 }
 
 /**
@@ -231,7 +238,6 @@ void sr_device_probe_clear(struct sr_device *device, int probenum)
  * The 'trigger' field of the added probe is set to NULL. A trigger can be
  * added via sr_device_trigger_set().
  *
- * TODO: Should return int.
  * TODO: Are duplicate names allowed?
  * TODO: Do we enforce a maximum probe number for a device?
  * TODO: Error if the max. probe number for the specific LA is reached, e.g.
@@ -246,7 +252,7 @@ void sr_device_probe_clear(struct sr_device *device, int probenum)
  *         or SR_ERR_ARG upon invalid arguments.
  *         If something other than SR_OK is returned, 'device' is unchanged.
  */
-void sr_device_probe_add(struct sr_device *device, const char *name)
+int sr_device_probe_add(struct sr_device *device, const char *name)
 {
 	struct sr_probe *p;
 	char probename[16]; /* FIXME: Don't hardcode 16? #define? */
@@ -254,12 +260,12 @@ void sr_device_probe_add(struct sr_device *device, const char *name)
 
 	if (!device) {
 		sr_err("dev: %s: device was NULL", __func__);
-		return; /* SR_ERR_ARG; */
+		return SR_ERR_ARG;
 	}
 
 	if (!name) {
 		sr_err("dev: %s: name was NULL", __func__);
-		return; /* SR_ERR_ARG; */
+		return SR_ERR_ARG;
 	}
 
 	/* TODO: Further checks to ensure name is valid. */
@@ -268,7 +274,7 @@ void sr_device_probe_add(struct sr_device *device, const char *name)
 
 	if (!(p = g_try_malloc0(sizeof(struct sr_probe)))) {
 		sr_err("dev: %s: p malloc failed", __func__);
-		return; /* SR_ERR_MALLOC; */
+		return SR_ERR_MALLOC;
 	}
 
 	p->index = probenum;
@@ -332,7 +338,6 @@ struct sr_probe *sr_device_probe_find(struct sr_device *device, int probenum)
  * If the probe already has a different name assigned to it, it will be
  * removed, and the new name will be saved instead.
  *
- * TODO: Should return int.
  * TODO: device can be const?
  * TODO: Rename to sr_device_set_probe_name().
  *
@@ -340,21 +345,25 @@ struct sr_probe *sr_device_probe_find(struct sr_device *device, int probenum)
  * @param probenum The number of the probe whose name to set.
  *                 Note that the probe numbers start at 1 (not 0!).
  * @param name The new name that the specified probe should get.
+ *
+ * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or SR_ERR
+ *         upon other errors.
+ *         If something other than SR_OK is returned, 'device' is unchanged.
  */
-void sr_device_probe_name(struct sr_device *device, int probenum,
-			  const char *name)
+int sr_device_probe_name(struct sr_device *device, int probenum,
+			 const char *name)
 {
 	struct sr_probe *p;
 
 	if (!device) {
 		sr_err("dev: %s: device was NULL", __func__);
-		return; /* TODO: SR_ERR_ARG */
+		return SR_ERR_ARG;
 	}
 
 	p = sr_device_probe_find(device, probenum);
 	if (!p) {
 		sr_err("dev: %s: probe %d not found", __func__, probenum);
-		return; /* TODO: SR_ERR*. */
+		return SR_ERR; /* TODO: More specific error? */
 	}
 
 	/* TODO: Sanity check on 'name'. */
@@ -364,6 +373,8 @@ void sr_device_probe_name(struct sr_device *device, int probenum,
 		g_free(p->name);
 
 	p->name = g_strdup(name);
+
+	return SR_OK;
 }
 
 /**
@@ -371,24 +382,26 @@ void sr_device_probe_name(struct sr_device *device, int probenum,
  *
  * TODO: Better description.
  *
- * TODO: Should return int.
  * TODO: device can be const?
  *
  * @param device TODO
+ *
+ * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments.
+ *         If something other than SR_OK is returned, 'device' is unchanged.
  */
-void sr_device_trigger_clear(struct sr_device *device)
+int sr_device_trigger_clear(struct sr_device *device)
 {
 	struct sr_probe *p;
-	unsigned int pnum; /* TODO: uint6_t? */
+	unsigned int pnum; /* TODO: uint16_t? */
 
 	if (!device) {
 		sr_err("dev: %s: device was NULL", __func__);
-		return; /* TODO: SR_ERR_ARG */
+		return SR_ERR_ARG;
 	}
 
 	if (!device->probes) {
 		sr_err("dev: %s: device->probes was NULL", __func__);
-		return; /* TODO: SR_ERR*. */
+		return SR_ERR_ARG;
 	}
 
 	for (pnum = 1; pnum <= g_slist_length(device->probes); pnum++) {
@@ -399,6 +412,8 @@ void sr_device_trigger_clear(struct sr_device *device)
 			p->trigger = NULL;
 		}
 	}
+
+	return SR_OK;
 }
 
 /**
@@ -407,7 +422,6 @@ void sr_device_trigger_clear(struct sr_device *device)
  * TODO: Better description.
  * TODO: Describe valid format of the 'trigger' string.
  *
- * TODO: Should return int.
  * TODO: device can be const?
  *
  * @param device TODO. Must not be NULL.
@@ -415,15 +429,19 @@ void sr_device_trigger_clear(struct sr_device *device)
  *                 Note that the probe numbers start at 1 (not 0!).
  * @param trigger TODO.
  *                TODO: Is NULL allowed?
+ *
+ * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or SR_ERR
+ *         upon other errors.
+ *         If something other than SR_OK is returned, 'device' is unchanged.
  */
-void sr_device_trigger_set(struct sr_device *device, int probenum,
-			   const char *trigger)
+int sr_device_trigger_set(struct sr_device *device, int probenum,
+			  const char *trigger)
 {
 	struct sr_probe *p;
 
 	if (!device) {
 		sr_err("dev: %s: device was NULL", __func__);
-		return; /* TODO: SR_ERR_ARG */
+		return SR_ERR_ARG;
 	}
 
 	/* TODO: Sanity check on 'probenum'. */
@@ -433,7 +451,7 @@ void sr_device_trigger_set(struct sr_device *device, int probenum,
 	p = sr_device_probe_find(device, probenum);
 	if (!p) {
 		sr_err("dev: %s: probe %d not found", __func__, probenum);
-		return; /* TODO: SR_ERR*. */
+		return SR_ERR; /* TODO: More specific error? */
 	}
 
 	/* If the probe already has a trigger, kill it first. */
@@ -441,6 +459,8 @@ void sr_device_trigger_set(struct sr_device *device, int probenum,
 		g_free(p->trigger);
 
 	p->trigger = g_strdup(trigger);
+
+	return SR_OK;
 }
 
 /**
