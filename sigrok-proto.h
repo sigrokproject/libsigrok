@@ -40,12 +40,10 @@ int sr_datastore_put(struct sr_datastore *ds, void *data, unsigned int length,
 /*--- device.c --------------------------------------------------------------*/
 
 int sr_device_scan(void);
-int sr_init_hwplugins(struct sr_device_plugin *plugin);
 GSList *sr_device_list(void);
 struct sr_device *sr_device_new(const struct sr_device_plugin *plugin,
 				int plugin_index, int num_probes);
 int sr_device_clear(struct sr_device *device);
-void sr_device_destroy(struct sr_device *dev);
 int sr_device_probe_clear(struct sr_device *device, int probenum);
 int sr_device_probe_add(struct sr_device *device, const char *name);
 struct sr_probe *sr_device_probe_find(const struct sr_device *device,
@@ -66,6 +64,7 @@ int sr_filter_probes(int in_unitsize, int out_unitsize, const int *probelist,
 /*--- hwplugin.c ------------------------------------------------------------*/
 
 GSList *sr_list_hwplugins(void);
+int sr_init_hwplugins(struct sr_device_plugin *plugin);
 void sr_cleanup_hwplugins(void);
 
 /* Generic device instances */
