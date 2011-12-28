@@ -38,7 +38,6 @@ int sr_init(void)
  */
 int sr_exit(void)
 {
-
 	sr_cleanup_hwplugins();
 
 	return SR_OK;
