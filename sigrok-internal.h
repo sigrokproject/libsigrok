@@ -66,7 +66,7 @@ int serial_set_params(int fd, int speed, int bits, int parity, int stopbits,
 
 #ifdef HAVE_LIBUSB_1_0
 int ezusb_reset(struct libusb_device_handle *hdl, int set_clear);
-int ezusb_install_firmware(libusb_device_handle *hdl, char *filename);
+int ezusb_install_firmware(libusb_device_handle *hdl, const char *filename);
 int ezusb_upload_firmware(libusb_device *dev, int configuration,
 			  const char *filename);
 #endif
