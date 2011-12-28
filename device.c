@@ -104,7 +104,6 @@ GSList *sr_device_list(void)
 /**
  * Create a new device.
  *
- * TODO: 'plugin' can be const.
  * TODO: num_probes should be uint16_t.
  * TODO: Should return int, so that we can return SR_OK, SR_ERR_* etc.
  *
@@ -119,8 +118,8 @@ GSList *sr_device_list(void)
  *
  * @return Pointer to the newly allocated device, or NULL upon errors.
  */
-struct sr_device *sr_device_new(struct sr_device_plugin *plugin, int plugin_index,
-			        int num_probes)
+struct sr_device *sr_device_new(const struct sr_device_plugin *plugin,
+				int plugin_index, int num_probes)
 {
 	struct sr_device *device;
 	int i;
@@ -139,7 +138,7 @@ struct sr_device *sr_device_new(struct sr_device_plugin *plugin, int plugin_inde
 		return NULL;
 	}
 
-	device->plugin = plugin;
+	device->plugin = (struct sr_device_plugin *)plugin;
 	device->plugin_index = plugin_index;
 	devices = g_slist_append(devices, device);
 
@@ -301,13 +300,13 @@ int sr_device_probe_add(struct sr_device *device, const char *name)
  *                 Note that the probe numbers start at 1 (not 0!).
  *
  * TODO: Should return int.
- * TODO: device can be const.
  * TODO: probenum should be unsigned.
  *
  * @return A pointer to the requested probe's 'struct sr_probe', or NULL
  *         if the probe could not be found.
  */
-struct sr_probe *sr_device_probe_find(struct sr_device *device, int probenum)
+struct sr_probe *sr_device_probe_find(const struct sr_device *device,
+				      int probenum)
 {
 	GSList *l;
 	struct sr_probe *p, *found_probe;
@@ -338,7 +337,6 @@ struct sr_probe *sr_device_probe_find(struct sr_device *device, int probenum)
  * If the probe already has a different name assigned to it, it will be
  * removed, and the new name will be saved instead.
  *
- * TODO: device can be const?
  * TODO: Rename to sr_device_set_probe_name().
  *
  * @param device TODO
@@ -382,8 +380,6 @@ int sr_device_probe_name(struct sr_device *device, int probenum,
  *
  * TODO: Better description.
  *
- * TODO: device can be const?
- *
  * @param device TODO
  *
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments.
@@ -421,8 +417,6 @@ int sr_device_trigger_clear(struct sr_device *device)
  *
  * TODO: Better description.
  * TODO: Describe valid format of the 'trigger' string.
- *
- * TODO: device can be const?
  *
  * @param device TODO. Must not be NULL.
  * @param probenum The number of the probe. TODO.
@@ -467,7 +461,6 @@ int sr_device_trigger_set(struct sr_device *device, int probenum,
  * Determine whether the specified device has the specified capability.
  *
  * TODO: Should return int?
- * TODO: device can be const.
  *
  * @param device Pointer to the device to be checked. Must not be NULL.
  *               The device's 'plugin' field must not be NULL either.
@@ -478,7 +471,7 @@ int sr_device_trigger_set(struct sr_device *device, int probenum,
  *         FALSE is also returned upon invalid input parameters or other
  *         error conditions.
  */
-gboolean sr_device_has_hwcap(struct sr_device *device, int hwcap)
+gboolean sr_device_has_hwcap(const struct sr_device *device, int hwcap)
 {
 	int *capabilities, i;
 

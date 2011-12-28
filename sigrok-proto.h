@@ -42,21 +42,20 @@ int sr_datastore_put(struct sr_datastore *ds, void *data, unsigned int length,
 int sr_device_scan(void);
 int sr_init_hwplugins(struct sr_device_plugin *plugin);
 GSList *sr_device_list(void);
-struct sr_device *sr_device_new(struct sr_device_plugin *plugin,
+struct sr_device *sr_device_new(const struct sr_device_plugin *plugin,
 				int plugin_index, int num_probes);
 int sr_device_clear(struct sr_device *device);
 void sr_device_destroy(struct sr_device *dev);
-
 int sr_device_probe_clear(struct sr_device *device, int probenum);
 int sr_device_probe_add(struct sr_device *device, const char *name);
-struct sr_probe *sr_device_probe_find(struct sr_device *device, int probenum);
+struct sr_probe *sr_device_probe_find(const struct sr_device *device,
+				      int probenum);
 int sr_device_probe_name(struct sr_device *device, int probenum,
 			 const char *name);
-
 int sr_device_trigger_clear(struct sr_device *device);
 int sr_device_trigger_set(struct sr_device *device, int probenum,
 			  const char *trigger);
-gboolean sr_device_has_hwcap(struct sr_device *device, int hwcap);
+gboolean sr_device_has_hwcap(const struct sr_device *device, int hwcap);
 
 /*--- filter.c --------------------------------------------------------------*/
 
