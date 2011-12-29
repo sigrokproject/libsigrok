@@ -1,0 +1,113 @@
+##
+## This file is part of the sigrok project.
+##
+## Copyright (C) 2010 Uwe Hermann <uwe@hermann-uwe.de>
+##
+## This program is free software; you can redistribute it and/or modify
+## it under the terms of the GNU General Public License as published by
+## the Free Software Foundation; either version 2 of the License, or
+## (at your option) any later version.
+##
+## This program is distributed in the hope that it will be useful,
+## but WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+## GNU General Public License for more details.
+##
+## You should have received a copy of the GNU General Public License
+## along with this program; if not, write to the Free Software
+## Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+##
+
+##
+## Please keep this list sorted alphabetically by vendor/device name.
+##
+
+ACTION!="add|change", GOTO="sigrok_rules_end"
+SUBSYSTEM!="usb|usb_device", GOTO="sigrok_rules_end"
+
+# ASIX SIGMA
+# http://tools.asix.net/dbg_sigma.htm
+# lsusb: "a600:a000 Asix"
+ATTRS{idVendor}=="a600", ATTRS{idProduct}=="a000", MODE="664", GROUP="plugdev"
+
+# Braintechnology USB-LPS
+# http://www.braintechnology.de/braintechnology/usb_lps.html
+# lsusb: "16d0:0498" (no string for the vendor name available)
+ATTRS{idVendor}=="16d0", ATTRS{idProduct}=="0498", MODE="664", GROUP="plugdev"
+
+# Buspirate (v3)
+# http://dangerousprototypes.com/2009/11/03/bus-pirate-logic-analyzer-mode/
+# lsusb "0403:6001 Future Technology Devices International,
+#        Ltd FT232 USB-Serial (UART) IC"
+#
+# ChronoVu LA8
+# http://www.chronovu.com/
+# lsusb "0403:6001 Future Technology Devices International,
+#       Ltd FT232 USB-Serial (UART) IC"
+ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", MODE="664", GROUP="plugdev"
+
+# CWAV USBee SX
+# http://www.usbee.com/sx.html
+# lsusb: "08a9:0009" (no string for the vendor name available)
+ATTRS{idVendor}=="08a9", ATTRS{idProduct}=="0009", MODE="664", GROUP="plugdev"
+
+# Intronix Logicport LA1034
+# http://www.pctestinstruments.com/
+# lsusb: "0403:dc48 Future Technology Devices International, Ltd"
+ATTRS{idVendor}=="0403", ATTRS{idProduct}=="dc48", MODE="664", GROUP="plugdev"
+
+# Link Instruments MSO-19
+# http://www.linkinstruments.com/mso19.htm
+# lsusb: "3195:f190 Silicon Labs"
+ATTRS{idVendor}=="3195", ATTRS{idProduct}=="f190", MODE="664", GROUP="plugdev"
+
+# Microchip PICkit2
+# http://www.microchip.com/pickit2
+# lsusb: "04d8:0033 Microchip Technology, Inc. PICkit2"
+ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="0033", MODE="664", GROUP="plugdev"
+
+# RockyLogic Ant18e
+# http://www.rockylogic.com/products/ant18e.html
+# lsusb: "0403:f918 Future Technology Devices International,
+#        Ltd Ant8 Logic Probe"
+ATTRS{idVendor}=="0403", ATTRS{idProduct}=="f918", MODE="664", GROUP="plugdev"
+
+# Openbench Logic Sniffer
+# http://www.gadgetfactory.net/gf/project/butterflylogic/
+# http://dangerousprototypes.com/open-logic-sniffer/
+# lsusb: "04d8:000a Microchip Technology, Inc."
+ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="000a", MODE="664", GROUP="plugdev"
+
+# Saleae Logic
+# http://www.saleae.com/logic/
+# lsusb: "0925:3881 Lakeview Research"
+#
+# EE Electronics XLA/ESLA100 (clone of the Saleae Logic)
+# http://eeelec.com/xla/
+# lsusb: "0925:3881 Lakeview Research"
+ATTRS{idVendor}=="0925", ATTRS{idProduct}=="3881", MODE="664", GROUP="plugdev"
+
+# Cypress FX2 without EEPROM
+# lsusb: "04b4:8613 Cypress Semiconductor Corp. CY7C68013 EZ-USB FX2 USB 2.0 Development Kit"
+ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="8613", MODE="664", GROUP="plugdev"
+
+# ZEROPLUS Logic Cube LAP-C series
+# http://www.zeroplus.com.tw/logic-analyzer_en/products.php#top_c
+# lsusb: "0c12:700e Zeroplus"
+# There are various devices in the ZEROPLUS Logic Cube LAP-C series:
+# 0x7009: LAP-C(16064)
+# 0x700a: LAP-C(16128)
+# 0x700b: LAP-C(32128)
+# 0x700c: LAP-C(321000)
+# 0x700d: LAP-C(322000)
+# 0x700e: LAP-C(16032)
+# 0x7016: LAP-C(162000)
+ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="7009", MODE="664", GROUP="plugdev"
+ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="700a", MODE="664", GROUP="plugdev"
+ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="700b", MODE="664", GROUP="plugdev"
+ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="700c", MODE="664", GROUP="plugdev"
+ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="700d", MODE="664", GROUP="plugdev"
+ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="700e", MODE="664", GROUP="plugdev"
+ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="7016", MODE="664", GROUP="plugdev"
+
+LABEL="sigrok_rules_end"
