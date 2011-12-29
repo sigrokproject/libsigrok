@@ -41,6 +41,18 @@
 
 static GSList *device_instances = NULL;
 
+static const char* probe_names[NUM_PROBES + 1] = {
+	"0",
+	"1",
+	"2",
+	"3",
+	"4",
+	"5",
+	"6",
+	"7",
+	NULL,
+};
+
 struct la8 {
 	/** FTDI device context (used by libftdi). */
 	struct ftdi_context *ftdic;
@@ -725,6 +737,9 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 		break;
 	case SR_DI_NUM_PROBES:
 		info = GINT_TO_POINTER(NUM_PROBES);
+		break;
+	case SR_DI_PROBE_NAMES:
+		info = probe_names;
 		break;
 	case SR_DI_SAMPLERATES:
 		fill_supported_samplerates_if_needed();

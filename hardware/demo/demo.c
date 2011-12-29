@@ -102,6 +102,18 @@ static const char *pattern_strings[] = {
 	NULL,
 };
 
+static const char *probe_names[NUM_PROBES + 1] = {
+	"0",
+	"1",
+	"2",
+	"3",
+	"4",
+	"5",
+	"6",
+	"7",
+	NULL,
+};
+
 static uint8_t pattern_sigrok[] = {
 	0x4c, 0x92, 0x92, 0x92, 0x64, 0x00, 0x00, 0x00,
 	0x82, 0xfe, 0xfe, 0x82, 0x00, 0x00, 0x00, 0x00,
@@ -184,6 +196,9 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 		break;
 	case SR_DI_NUM_PROBES:
 		info = GINT_TO_POINTER(NUM_PROBES);
+		break;
+	case SR_DI_PROBE_NAMES:
+		info = probe_names;
 		break;
 	case SR_DI_SAMPLERATES:
 		info = &samplerates;

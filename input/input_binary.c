@@ -39,7 +39,8 @@ static int format_match(const char *filename)
 
 static int init(struct sr_input *in)
 {
-	int num_probes;
+	int num_probes, i;
+	char name[SR_MAX_PROBENAME_LEN];
 
 	if (in->param && in->param[0]) {
 		num_probes = strtoul(in->param, NULL, 10);
@@ -49,7 +50,13 @@ static int init(struct sr_input *in)
 		num_probes = DEFAULT_NUM_PROBES;
 
 	/* create a virtual device */
-	in->vdevice = sr_device_new(NULL, 0, num_probes);
+	in->vdevice = sr_device_new(NULL, 0);
+
+	for (i = 0; i < num_probes; i++)
+	{
+		snprintf(name, SR_MAX_PROBENAME_LEN, "%d", i);
+		sr_device_probe_add(in->vdevice, name); /* TODO: Check return value. */
+	}
 
 	return SR_OK;
 }

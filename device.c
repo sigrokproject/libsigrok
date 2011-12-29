@@ -117,15 +117,9 @@ GSList *sr_device_list(void)
  * @return Pointer to the newly allocated device, or NULL upon errors.
  */
 struct sr_device *sr_device_new(const struct sr_device_plugin *plugin,
-				int plugin_index, int num_probes)
+				int plugin_index)
 {
 	struct sr_device *device;
-	int i;
-
-	if (!plugin) {
-		sr_err("dev: %s: plugin was NULL", __func__);
-		return NULL; /* TODO: SR_ERR_ARG */
-	}
 
 	/* TODO: Check if plugin_index valid? */
 
@@ -139,9 +133,6 @@ struct sr_device *sr_device_new(const struct sr_device_plugin *plugin,
 	device->plugin = (struct sr_device_plugin *)plugin;
 	device->plugin_index = plugin_index;
 	devices = g_slist_append(devices, device);
-
-	for (i = 0; i < num_probes; i++)
-		sr_device_probe_add(device, NULL); /* TODO: Check return value. */
 
 	return device;
 }
@@ -252,7 +243,6 @@ int sr_device_probe_clear(struct sr_device *device, int probenum)
 int sr_device_probe_add(struct sr_device *device, const char *name)
 {
 	struct sr_probe *p;
-	char probename[16]; /* FIXME: Don't hardcode 16? #define? */
 	int probenum;
 
 	if (!device) {
@@ -278,9 +268,6 @@ int sr_device_probe_add(struct sr_device *device, const char *name)
 	p->enabled = TRUE;
 	if (name) {
 		p->name = g_strdup(name);
-	} else {
-		snprintf(probename, 16, "%d", probenum);
-		p->name = g_strdup(probename);
 	}
 	p->trigger = NULL;
 	device->probes = g_slist_append(device->probes, p);

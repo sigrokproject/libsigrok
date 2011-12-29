@@ -35,6 +35,8 @@
 #define USB_VENDOR "3195"
 #define USB_PRODUCT "f190"
 
+#define NUM_PROBES 8
+
 static int capabilities[] = {
 	SR_HWCAP_LOGIC_ANALYZER,
 //	SR_HWCAP_OSCILLOSCOPE,
@@ -44,6 +46,18 @@ static int capabilities[] = {
 //	SR_HWCAP_CAPTURE_RATIO,
 	SR_HWCAP_LIMIT_SAMPLES,
 	0,
+};
+
+static const char *probe_names[NUM_PROBES + 1] = {
+	"0",
+	"1",
+	"2",
+	"3",
+	"4",
+	"5",
+	"6",
+	"7",
+	NULL,
 };
 
 static uint64_t supported_samplerates[] = {
@@ -573,7 +587,10 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 		info = sdi;
 		break;
 	case SR_DI_NUM_PROBES: /* FIXME: How to report analog probe? */
-		info = GINT_TO_POINTER(8);
+		info = GINT_TO_POINTER(NUM_PROBES);
+		break;
+	case SR_DI_PROBE_NAMES: 
+		info = probe_names;
 		break;
 	case SR_DI_SAMPLERATES:
 		info = &samplerates;

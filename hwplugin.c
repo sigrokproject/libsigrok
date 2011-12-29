@@ -108,17 +108,31 @@ GSList *sr_list_hwplugins(void)
 
 int sr_init_hwplugins(struct sr_device_plugin *plugin)
 {
-	int num_devices, num_probes, i;
+	int num_devices, num_probes, i, j;
+	int num_initialized_devices = 0;
+	struct sr_device *device;
+	char **probe_names;
 
 	g_message("initializing %s plugin", plugin->name);
 	num_devices = plugin->init(NULL);
 	for (i = 0; i < num_devices; i++) {
 		num_probes = GPOINTER_TO_INT(
 				plugin->get_device_info(i, SR_DI_NUM_PROBES));
-		sr_device_new(plugin, i, num_probes);
+		probe_names = (char**)plugin->get_device_info(i, SR_DI_PROBE_NAMES);
+
+		if (!probe_names) {
+			sr_warn("Plugin %s does not return a list of probe names.", plugin->name);
+			continue;
+		}
+
+		device = sr_device_new(plugin, i);
+		for (j = 0; j < num_probes; j++) {
+			sr_device_probe_add(device, probe_names[j]);
+		}
+		num_initialized_devices++;
 	}
 
-	return num_devices;
+	return num_initialized_devices;
 }
 
 void sr_cleanup_hwplugins(void)

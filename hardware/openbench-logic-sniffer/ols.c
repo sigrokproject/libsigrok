@@ -55,6 +55,42 @@ static int capabilities[] = {
 	0,
 };
 
+static const char* probe_names[NUM_PROBES + 1] = {
+	"0",
+	"1",
+	"2",
+	"3",
+	"4",
+	"5",
+	"6",
+	"7",
+	"8",
+	"9",
+	"10",
+	"11",
+	"12",
+	"13",
+	"14",
+	"15",
+	"16",
+	"17",
+	"18",
+	"19",
+	"20",
+	"21",
+	"22",
+	"23",
+	"24",
+	"25",
+	"26",
+	"27",
+	"28",
+	"29",
+	"30",
+	"31",
+	NULL,
+};
+
 /* default supported samplerates, can be overridden by device metadata */
 static struct sr_samplerates samplerates = {
 	SR_HZ(10),
@@ -512,6 +548,9 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 		break;
 	case SR_DI_NUM_PROBES:
 		info = GINT_TO_POINTER(NUM_PROBES);
+		break;
+	case SR_DI_PROBE_NAMES:
+		info = probe_names;
 		break;
 	case SR_DI_SAMPLERATES:
 		info = &samplerates;

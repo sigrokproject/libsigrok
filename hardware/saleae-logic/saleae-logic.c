@@ -46,6 +46,26 @@ static int capabilities[] = {
 	0,
 };
 
+static const char* probe_names[] = {
+	"0",
+	"1",
+	"2",
+	"3",
+	"4",
+	"5",
+	"6",
+	"7",
+	"8",
+	"9",
+	"10",
+	"11",
+	"12",
+	"13",
+	"14",
+	"15",
+	NULL,
+};
+
 static uint64_t supported_samplerates[] = {
 	SR_KHZ(200),
 	SR_KHZ(250),
@@ -457,6 +477,9 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 		break;
 	case SR_DI_NUM_PROBES:
 		info = GINT_TO_POINTER(fx2->profile->num_probes);
+		break;
+	case SR_DI_PROBE_NAMES:
+		info = probe_names;
 		break;
 	case SR_DI_SAMPLERATES:
 		info = &samplerates;

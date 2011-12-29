@@ -36,6 +36,12 @@ static int capabilities[] = {
 	SR_HWCAP_CONTINUOUS,
 };
 
+static const char* probe_names[NUM_PROBES + 1] = {
+	"0",
+	"1",
+	NULL,
+};
+
 static GSList *device_instances = NULL;
 
 struct alsa {
@@ -159,6 +165,9 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 		break;
 	case SR_DI_NUM_PROBES:
 		info = GINT_TO_POINTER(NUM_PROBES);
+		break;
+	case SR_DI_PROBE_NAMES:
+		info = probe_names;
 		break;
 	case SR_DI_CUR_SAMPLERATE:
 		info = &alsa->cur_rate;

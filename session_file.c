@@ -43,6 +43,7 @@ int sr_session_load(const char *filename)
 	int ret, err, probenum, devcnt, i, j;
 	uint64_t tmp_u64, total_probes, enabled_probes, p;
 	char **sections, **keys, *metafile, *val, c;
+	char probename[SR_MAX_PROBENAME_LEN];
 
 	if (!(archive = zip_open(filename, 0, &err))) {
 		sr_dbg("Failed to open session file: zip error %d", err);
@@ -99,7 +100,7 @@ int sr_session_load(const char *filename)
 			for (j = 0; keys[j]; j++) {
 				val = g_key_file_get_string(kf, sections[i], keys[j], NULL);
 				if (!strcmp(keys[j], "capturefile")) {
-					device = sr_device_new(&session_driver, devcnt, 0);
+					device = sr_device_new(&session_driver, devcnt);
 					if (devcnt == 0)
 						/* first device, init the plugin */
 						device->plugin->init((char *)filename);
@@ -115,8 +116,10 @@ int sr_session_load(const char *filename)
 				} else if (!strcmp(keys[j], "total probes")) {
 					total_probes = strtoull(val, NULL, 10);
 					device->plugin->set_configuration(devcnt, SR_HWCAP_CAPTURE_NUM_PROBES, &total_probes);
-					for (p = 1; p <= total_probes; p++)
-						sr_device_probe_add(device, NULL);
+					for (p = 0; p < total_probes; p++) {
+						snprintf(probename, SR_MAX_PROBENAME_LEN, "%" PRIu64, p);
+						sr_device_probe_add(device, probename);
+					}
 				} else if (!strncmp(keys[j], "probe", 5)) {
 					if (!device)
 						continue;
