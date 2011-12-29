@@ -36,7 +36,7 @@ static int capabilities[] = {
 	SR_HWCAP_CONTINUOUS,
 };
 
-static const char* probe_names[NUM_PROBES + 1] = {
+static const char *probe_names[NUM_PROBES + 1] = {
 	"0",
 	"1",
 	NULL,

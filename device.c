@@ -102,7 +102,12 @@ GSList *sr_device_list(void)
 /**
  * Create a new device.
  *
- * TODO: num_probes should be uint16_t.
+ * The device is added to the (libsigrok-internal) list of devices, but
+ * additionally a pointer to the newly created device is also returned.
+ *
+ * The device has no probes attached to it yet after this call. You can
+ * use sr_device_probe_add() to add one or more probes.
+ *
  * TODO: Should return int, so that we can return SR_OK, SR_ERR_* etc.
  *
  * It is the caller's responsibility to g_free() the allocated memory when
@@ -111,8 +116,6 @@ GSList *sr_device_list(void)
  * @param plugin TODO.
  *               If 'plugin' is NULL, the created device is a "virtual" one.
  * @param plugin_index TODO
- * @param num_probes The number of probes (>= 1) this device has.
- *                   TODO: 0 allowed?
  *
  * @return Pointer to the newly allocated device, or NULL upon errors.
  */
@@ -122,8 +125,6 @@ struct sr_device *sr_device_new(const struct sr_device_plugin *plugin,
 	struct sr_device *device;
 
 	/* TODO: Check if plugin_index valid? */
-
-	/* TODO: Check if num_probes valid? */
 
 	if (!(device = g_try_malloc0(sizeof(struct sr_device)))) {
 		sr_err("dev: %s: device malloc failed", __func__);
@@ -266,9 +267,7 @@ int sr_device_probe_add(struct sr_device *device, const char *name)
 
 	p->index = probenum;
 	p->enabled = TRUE;
-	if (name) {
-		p->name = g_strdup(name);
-	}
+	p->name = g_strdup(name);
 	p->trigger = NULL;
 	device->probes = g_slist_append(device->probes, p);
 

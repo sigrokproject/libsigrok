@@ -46,7 +46,7 @@ static int capabilities[] = {
 	0,
 };
 
-static const char* probe_names[] = {
+static const char *probe_names[] = {
 	"0",
 	"1",
 	"2",

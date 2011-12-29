@@ -118,17 +118,18 @@ int sr_init_hwplugins(struct sr_device_plugin *plugin)
 	for (i = 0; i < num_devices; i++) {
 		num_probes = GPOINTER_TO_INT(
 				plugin->get_device_info(i, SR_DI_NUM_PROBES));
-		probe_names = (char**)plugin->get_device_info(i, SR_DI_PROBE_NAMES);
+		probe_names = (char **)plugin->get_device_info(i,
+							SR_DI_PROBE_NAMES);
 
 		if (!probe_names) {
-			sr_warn("Plugin %s does not return a list of probe names.", plugin->name);
+			sr_warn("hwplugin: %s: plugin %s does not return a "
+				"list of probe names", __func__, plugin->name);
 			continue;
 		}
 
 		device = sr_device_new(plugin, i);
-		for (j = 0; j < num_probes; j++) {
+		for (j = 0; j < num_probes; j++)
 			sr_device_probe_add(device, probe_names[j]);
-		}
 		num_initialized_devices++;
 	}
 

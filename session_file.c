@@ -43,7 +43,7 @@ int sr_session_load(const char *filename)
 	int ret, err, probenum, devcnt, i, j;
 	uint64_t tmp_u64, total_probes, enabled_probes, p;
 	char **sections, **keys, *metafile, *val, c;
-	char probename[SR_MAX_PROBENAME_LEN];
+	char probename[SR_MAX_PROBENAME_LEN + 1];
 
 	if (!(archive = zip_open(filename, 0, &err))) {
 		sr_dbg("Failed to open session file: zip error %d", err);

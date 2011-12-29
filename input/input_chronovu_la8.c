@@ -78,7 +78,7 @@ static int format_match(const char *filename)
 static int init(struct sr_input *in)
 {
 	int num_probes, i;
-	char name[SR_MAX_PROBENAME_LEN];
+	char name[SR_MAX_PROBENAME_LEN + 1];
 
 	if (in->param && in->param[0]) {
 		num_probes = strtoul(in->param, NULL, 10);
@@ -95,7 +95,8 @@ static int init(struct sr_input *in)
 
 	for (i = 0; i < num_probes; i++) {
 		snprintf(name, SR_MAX_PROBENAME_LEN, "%d", i);
-		sr_device_probe_add(in->vdevice, name); /* TODO: Check return value. */
+		/* TODO: Check return value. */
+		sr_device_probe_add(in->vdevice, name);
 	}
 
 	return SR_OK;

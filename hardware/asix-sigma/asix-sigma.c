@@ -58,7 +58,7 @@ static uint64_t supported_samplerates[] = {
 	0,
 };
 
-static const char* probe_names[NUM_PROBES + 1] = {
+static const char *probe_names[NUM_PROBES + 1] = {
 	"0",
 	"1",
 	"2",
