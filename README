@@ -1,0 +1,80 @@
+-------------------------------------------------------------------------------
+README
+-------------------------------------------------------------------------------
+
+The sigrok project aims at creating a portable, cross-platform,
+Free/Libre/Open-Source logic analyzer software that supports various
+logic analyzer hardware products.
+
+libsigrok is a shared library written in C which provides the basic API
+for talking to logic analyzer hardware and reading/writing the acquired data
+into various input/output file formats.
+
+
+Status and API
+--------------
+
+libsigrok is currently work in progress.
+
+IMPORTANT: The API of libsigrok is NOT yet considered stable! Please do
+           not rely on it, yet! Changes to function names, macro names etc.
+           can happen at any time without prior notice!
+
+
+Requirements
+------------
+
+ - git
+ - gcc, g++, make, ...
+ - autoconf, automake, libtool, pkg-config
+ - libglib >= 2.22.0
+ - libusb >= 1.0.5 (for most logic analyzer hardware)
+ - libzip >= 0.8
+ - zlib >= 1.2.3.1
+ - libftdi >= 0.16 (for some logic analyzer hardware)
+ - libudev >= 151 (for some logic analyzer hardware)
+
+
+Building and installing
+-----------------------
+
+In order to get the libsigrok source code and build it, run:
+
+ $ git clone git://sigrok.git.sourceforge.net/gitroot/sigrok/sigrok
+ $ cd sigrok/libsigrok
+ $ ./autogen.sh
+ $ ./configure
+ $ make
+
+For installing libsigrok:
+
+ $ make install
+
+Please see the following wiki pages for more detailed instructions:
+
+ http://sigrok.org/wiki/Linux
+ http://sigrok.org/wiki/Mac_OS_X
+ http://sigrok.org/wiki/Windows
+ http://sigrok.org/wiki/FreeBSD
+
+
+Mailing lists
+-------------
+
+There are two mailing lists for sigrok/libsigrok:
+
+ https://lists.sourceforge.net/lists/listinfo/sigrok-devel
+ https://lists.sourceforge.net/lists/listinfo/sigrok-commits
+
+
+IRC
+---
+
+You can find the sigrok developers in the #sigrok IRC channel on Freenode.
+
+
+Website
+-------
+
+http://sigrok.org
+
