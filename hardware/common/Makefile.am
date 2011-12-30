@@ -31,5 +31,5 @@ libsigrokhwcommon_la_SOURCES += serial.c
 endif
 
 libsigrokhwcommon_la_CFLAGS = \
-	-I$(top_srcdir)/libsigrok
+	-I$(top_srcdir)
 

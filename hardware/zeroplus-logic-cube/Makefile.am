@@ -30,7 +30,7 @@ libsigrokhwzeroplus_la_SOURCES = \
 	zeroplus.c
 
 libsigrokhwzeroplus_la_CFLAGS = \
-	-I$(top_srcdir)/libsigrok
+	-I$(top_srcdir)
 
 endif
 

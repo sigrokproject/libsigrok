@@ -26,7 +26,7 @@ libsigrokhwdemo_la_SOURCES = \
 	demo.c
 
 libsigrokhwdemo_la_CFLAGS = \
-	-I$(top_srcdir)/libsigrok
+	-I$(top_srcdir)
 
 endif
 

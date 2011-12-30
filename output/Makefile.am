@@ -34,7 +34,7 @@ libsigrokoutput_la_SOURCES = \
 # Temporarily disabled: output_analog.c
 
 libsigrokoutput_la_CFLAGS = \
-	-I$(top_srcdir)/libsigrok
+	-I$(top_srcdir)
 
 libsigrokoutput_la_LIBADD = \
 	text/libsigrokoutputtext.la

@@ -19,23 +19,24 @@
 
 AC_PREREQ(2.61)
 
+# TODO: Should be libsigrok, no sigrok.
 m4_define([sigrok_major_version], [0])
 m4_define([sigrok_minor_version], [2])
 m4_define([sigrok_micro_version], [0])
 m4_define([sigrok_version],
 	  [sigrok_major_version.sigrok_minor_version.sigrok_micro_version])
 
-AC_INIT([sigrok], [sigrok_version], [sigrok-devel@lists.sourceforge.net],
-	[sigrok], [http://www.sigrok.org])
+AC_INIT([libsigrok], [libsigrok_version], [sigrok-devel@lists.sourceforge.net],
+	[libsigrok], [http://www.sigrok.org])
 AC_CONFIG_HEADER([config.h])
 AC_CONFIG_MACRO_DIR([m4])
 
 AM_INIT_AUTOMAKE([-Wall -Werror foreign std-options])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
-AH_TOP([#ifndef SGIROK_CONFIG_H
-#define SIGROK_CONFIG_H    /* To stop multiple inclusions. */])
-AH_BOTTOM([#endif /* SIGROK_CONFIG_H */])
+AH_TOP([#ifndef LIBSIGROK_CONFIG_H
+#define LIBSIGROK_CONFIG_H    /* To stop multiple inclusions. */])
+AH_BOTTOM([#endif /* LIBSIGROK_CONFIG_H */])
 
 CFLAGS="-g -Wall -Wextra"
 
@@ -63,17 +64,6 @@ SIGROK_LT_AGE=0
 SIGROK_LT_VERSION="$SIGROK_LT_CURRENT:$SIGROK_LT_REVISION:$SIGROK_LT_AGE"
 SIGROK_LT_LDFLAGS="-version-info $SIGROK_LT_VERSION"
 AC_SUBST(SIGROK_LT_LDFLAGS)
-
-# Library version for libsigrokdecode.
-# Carefully read the libtool docs before updating these numbers!
-# The algorithm for determining which number to change (and how) is nontrivial!
-# http://www.gnu.org/software/libtool/manual/libtool.html#Updating-version-info
-SIGROKDECODE_LT_CURRENT=0
-SIGROKDECODE_LT_REVISION=0
-SIGROKDECODE_LT_AGE=0
-SIGROKDECODE_LT_VERSION="$SIGROKDECODE_LT_CURRENT:$SIGROKDECODE_LT_REVISION:$SIGROKDECODE_LT_AGE"
-SIGROKDECODE_LT_LDFLAGS="-version-info $SIGROKDECODE_LT_VERSION"
-AC_SUBST(SIGROKDECODE_LT_LDFLAGS)
 
 # Logic analyzer hardware support '--enable' options.
 
@@ -225,44 +215,6 @@ if test "x$LA_ALSA" != xno; then
 		LIBSIGROK_PKGLIBS="$LIBSIGROK_PKGLIBS alsa"])
 fi
 
-# Python support.
-CPPFLAGS_PYTHON=""
-LDFLAGS_PYTHON=""
-case "$build" in
-*linux*)
-	# We know that Linux has 'python3-config'.
-	CPPFLAGS_PYTHON="$(python3-config --includes)"
-	LDFLAGS_PYTHON="$(python3-config --ldflags)"
-	;;
-*darwin*)
-	# On Darwin, Macports has python3.x-config, fink has python3-config.
-	# Mac OS X (Snow Leopard) ships with 'python-config' per default, but
-	# that's Python 2.x, so not useful for us.
-	if test -x python3-config; then
-		# python3-config exists, use it.
-		CPPFLAGS_PYTHON="$(python3-config --includes)"
-		LDFLAGS_PYTHON="$(python3-config --ldflags)"
-	else
-		# No python3-config found, so try hardcoded python3.2-config.
-		CPPFLAGS_PYTHON="$(python3.2-config --includes)"
-		LDFLAGS_PYTHON="$(python3.2-config --ldflags)"
-	fi
-	;;
-*mingw*)
-	# We currently hardcode the paths to the Python 3.2 default install
-	# location as there's no 'python-config' script on Windows, it seems.
-	CPPFLAGS_PYTHON="-I/c/Python32/include"
-	LDFLAGS_PYTHON="-L/c/Python32/libs -lpython32"
-	;;
-*)
-	# Everything else is untested, we just hope 'python3-config' works.
-	CPPFLAGS_PYTHON="$(python3-config --includes)"
-	LDFLAGS_PYTHON="$(python3-config --ldflags)"
-	;;
-esac
-AC_SUBST(CPPFLAGS_PYTHON)
-AC_SUBST(LDFLAGS_PYTHON)
-
 AC_SUBST(LIBSIGROK_PKGLIBS)
 
 # Checks for header files.
@@ -285,7 +237,7 @@ AC_TYPE_SIZE_T
 AC_CHECK_FUNCS([gettimeofday memset strchr strcspn strdup strerror strncasecmp strstr strtol strtoul strtoull])
 
 AC_SUBST(FIRMWARE_DIR, "$datadir/sigrok/firmware")
-AC_SUBST(DECODERS_DIR, "$datadir/sigrok/decoders")
+### AC_SUBST(DECODERS_DIR, "$datadir/sigrok/decoders")
 AC_SUBST(MAKEFLAGS, '--no-print-directory')
 AC_SUBST(AM_LIBTOOLFLAGS, '--silent')
 
@@ -309,30 +261,23 @@ AC_DEFINE(SIGROK_VERSION, [sigrok_version],
 	  [Define to the sigrok version])
 
 AC_CONFIG_FILES([Makefile
+		 sigrok.h
+		 firmware/Makefile
+		 hardware/Makefile
+		 hardware/alsa/Makefile
+		 hardware/asix-sigma/Makefile
+		 hardware/chronovu-la8/Makefile
+		 hardware/common/Makefile
+		 hardware/demo/Makefile
+		 hardware/link-mso19/Makefile
+		 hardware/openbench-logic-sniffer/Makefile
+		 hardware/saleae-logic/Makefile
+		 hardware/zeroplus-logic-cube/Makefile
+		 input/Makefile
+		 output/Makefile
+		 output/text/Makefile
+		 libsigrok.pc
 		 contrib/Makefile
-		 contrib/nsis/Makefile
-		 contrib/nsis/sigrok.nsi
-		 libsigrok/Makefile
-		 libsigrok/sigrok.h
-		 libsigrok/firmware/Makefile
-		 libsigrok/hardware/Makefile
-		 libsigrok/hardware/alsa/Makefile
-		 libsigrok/hardware/asix-sigma/Makefile
-		 libsigrok/hardware/chronovu-la8/Makefile
-		 libsigrok/hardware/common/Makefile
-		 libsigrok/hardware/demo/Makefile
-		 libsigrok/hardware/link-mso19/Makefile
-		 libsigrok/hardware/openbench-logic-sniffer/Makefile
-		 libsigrok/hardware/saleae-logic/Makefile
-		 libsigrok/hardware/zeroplus-logic-cube/Makefile
-		 libsigrok/input/Makefile
-		 libsigrok/output/Makefile
-		 libsigrok/output/text/Makefile
-		 libsigrok/libsigrok.pc
-		 libsigrok/contrib/Makefile
-		 libsigrokdecode/Makefile
-		 libsigrokdecode/libsigrokdecode.pc
-		 libsigrokdecode/decoders/Makefile
 		])
 
 AC_OUTPUT

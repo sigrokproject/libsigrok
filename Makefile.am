@@ -19,7 +19,7 @@
 
 ACLOCAL_AMFLAGS = -I m4
 
-AM_CPPFLAGS = -I$(top_srcdir)/libsigrok
+AM_CPPFLAGS = -I$(top_srcdir)
 
 SUBDIRS = contrib hardware input output firmware
 

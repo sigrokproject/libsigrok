@@ -27,6 +27,6 @@ libsigrokhwchronovula8_la_SOURCES = \
 	chronovu-la8.c
 
 libsigrokhwchronovula8_la_CFLAGS = \
-	-I$(top_srcdir)/libsigrok
+	-I$(top_srcdir)
 
 endif

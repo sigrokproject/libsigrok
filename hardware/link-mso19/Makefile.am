@@ -26,7 +26,7 @@ libsigrokhwlinkmso19_la_SOURCES = \
 	link-mso19.c
 
 libsigrokhwlinkmso19_la_CFLAGS = \
-	-I$(top_srcdir)/libsigrok
+	-I$(top_srcdir)
 
 endif
 

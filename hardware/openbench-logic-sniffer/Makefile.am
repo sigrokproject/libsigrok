@@ -27,6 +27,6 @@ libsigrokhwols_la_SOURCES = \
 	ols.h
 
 libsigrokhwols_la_CFLAGS = \
-	-I$(top_srcdir)/libsigrok
+	-I$(top_srcdir)
 
 endif

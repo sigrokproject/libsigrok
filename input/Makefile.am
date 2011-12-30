@@ -26,5 +26,5 @@ libsigrokinput_la_SOURCES = \
 	input.c
 
 libsigrokinput_la_CFLAGS = \
-	-I$(top_srcdir)/libsigrok
+	-I$(top_srcdir)
 

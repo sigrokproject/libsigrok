@@ -29,5 +29,5 @@ libsigrokoutputtext_la_SOURCES = \
 	ascii.c
 
 libsigrokoutputtext_la_CFLAGS = \
-	-I$(top_srcdir)/libsigrok
+	-I$(top_srcdir)
 

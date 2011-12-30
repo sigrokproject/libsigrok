@@ -26,7 +26,7 @@ libsigrokhwalsa_la_SOURCES = \
 	alsa.c
 
 libsigrokhwalsa_la_CFLAGS = \
-	-I$(top_srcdir)/libsigrok
+	-I$(top_srcdir)
 
 endif
 

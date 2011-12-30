@@ -29,7 +29,7 @@ libsigrokhwsaleaelogic_la_SOURCES = \
 	saleae-logic.h
 
 libsigrokhwsaleaelogic_la_CFLAGS = \
-	-I$(top_srcdir)/libsigrok
+	-I$(top_srcdir)
 
 endif
 

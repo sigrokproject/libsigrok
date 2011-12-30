@@ -29,7 +29,7 @@ libsigrokhwasixsigma_la_SOURCES = \
 	asix-sigma.h
 
 libsigrokhwasixsigma_la_CFLAGS = \
-	-I$(top_srcdir)/libsigrok
+	-I$(top_srcdir)
 
 endif
 
