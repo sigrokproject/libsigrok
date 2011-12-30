@@ -17,6 +17,8 @@
 ## along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##
 
+ACLOCAL_AMFLAGS = -I m4
+
 AM_CPPFLAGS = -I$(top_srcdir)/libsigrok
 
 SUBDIRS = contrib hardware input output firmware
