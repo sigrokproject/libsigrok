@@ -47,19 +47,40 @@ static int capabilities[] = {
 	0,
 };
 
+/**
+ * TODO.
+ *
+ * @param device_index TODO.
+ */
 static struct session_vdevice *get_vdevice_by_index(int device_index)
 {
 	struct sr_device_instance *sdi;
 	struct session_vdevice *vdevice;
 
-	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
+	/* TODO: Sanity checks on device_index. */
+
+	if (!(sdi = sr_get_device_instance(device_instances, device_index))) {
+		sr_err("session driver: %s: device instance with device "
+		       "index %d was not found", __func__, device_index);
 		return NULL;
+	}
+
+	/* TODO: Is sdi->priv == NULL valid? */
 
 	vdevice = sdi->priv;
 
 	return vdevice;
 }
 
+/**
+ * TODO.
+ *
+ * @param fd TODO.
+ * @param revents TODO.
+ * @param session_data TODO.
+ *
+ * @return TODO.
+ */
 static int feed_chunk(int fd, int revents, void *session_data)
 {
 	struct sr_device_instance *sdi;
@@ -124,6 +145,13 @@ static int feed_chunk(int fd, int revents, void *session_data)
 /* driver callbacks */
 static void hw_cleanup(void);
 
+/**
+ * TODO.
+ *
+ * @param deviceinfo TODO.
+ *
+ * @return TODO.
+ */
 static int hw_init(const char *deviceinfo)
 {
 	hw_cleanup();
@@ -133,6 +161,10 @@ static int hw_init(const char *deviceinfo)
 	return 0;
 }
 
+/**
+ * TODO.
+ *
+ */
 static void hw_cleanup(void)
 {
 	GSList *l;
@@ -194,6 +226,12 @@ static int hw_get_status(int device_index)
 		return SR_ERR;
 }
 
+/**
+ * Get the list of hardware capabilities.
+ *
+ * @return A pointer to the (hardware) capabilities of this virtual session
+ *         driver. This could be NULL, if no such capabilities exist.
+ */
 static int *hw_get_capabilities(void)
 {
 	return capabilities;
@@ -211,9 +249,13 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 	case SR_HWCAP_SAMPLERATE:
 		tmp_u64 = value;
 		vdevice->samplerate = *tmp_u64;
+		sr_info("session driver: setting samplerate to %" PRIu64,
+		        vdevice->samplerate);
 		break;
 	case SR_HWCAP_CAPTUREFILE:
 		vdevice->capturefile = g_strdup(value);
+		sr_info("session driver: setting capturefile to %s",
+		        vdevice->capturefile);
 		break;
 	case SR_HWCAP_CAPTURE_UNITSIZE:
 		tmp_u64 = value;
@@ -224,6 +266,8 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 		vdevice->num_probes = *tmp_u64;
 		break;
 	default:
+		sr_err("session driver: %s: unknown capability %d requested",
+		       __func__, capability);
 		return SR_ERR;
 	}
 

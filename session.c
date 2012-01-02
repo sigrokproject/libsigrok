@@ -45,36 +45,108 @@ static int num_sources = 0;
 static struct source *sources = NULL;
 static int source_timeout = -1;
 
+/**
+ * Create a new session.
+ *
+ * TODO.
+ *
+ * TODO: Should return int?
+ * TODO: Should it use the file-global "session" variable or take an argument?
+ *       The same question applies to all the other session functions.
+ *
+ * @return A pointer to the newly allocated session, or NULL upon errors.
+ */
 struct sr_session *sr_session_new(void)
 {
-	session = calloc(1, sizeof(struct sr_session));
+	if (!(session = calloc(1, sizeof(struct sr_session)))) {
+		sr_err("session: %s: session malloc failed", __func__);
+		return NULL; /* TODO: SR_ERR_MALLOC? */
+	}
 
 	return session;
 }
 
+/**
+ * Destroy the current session.
+ *
+ * This frees up all memory used by the session.
+ *
+ * TODO: Should return int?
+ */
 void sr_session_destroy(void)
 {
+	if (!session) {
+		sr_warn("session: %s: session was NULL", __func__);
+		return; /* TODO: SR_ERR_BUG? */
+	}
+
 	g_slist_free(session->devices);
+
+	/* TODO: Error checks needed? */
 
 	/* TODO: Loop over protocol decoders and free them. */
 
 	g_free(session);
+
+	session = NULL;
 }
 
+/**
+ * Remove all the devices from the current session. TODO?
+ *
+ * The session itself (i.e., the struct sr_session) is not free'd and still
+ * exists after this function returns.
+ *
+ * TODO: Return int?
+ */
 void sr_session_device_clear(void)
 {
+	if (!session) {
+		sr_warn("session: %s: session was NULL", __func__);
+		return; /* TODO: SR_ERR_BUG? */
+	}
+
 	g_slist_free(session->devices);
 	session->devices = NULL;
 }
 
+/**
+ * Add a device to the current session.
+ *
+ * @param device The device to add to the current session. Must not be NULL.
+ *               Also, device->plugin and device->plugin->opendev must not
+ *               be NULL.
+ *
+ * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments.
+ */
 int sr_session_device_add(struct sr_device *device)
 {
 	int ret;
 
-	if (device->plugin && device->plugin->opendev) {
-		ret = device->plugin->opendev(device->plugin_index);
-		if (ret != SR_OK)
-			return ret;
+	if (!device) {
+		sr_err("session: %s: device was NULL", __func__);
+		return SR_ERR_ARG;
+	}
+
+	if (!device->plugin) {
+		sr_err("session: %s: device->plugin was NULL", __func__);
+		return SR_ERR_ARG;
+	}
+
+	if (!device->plugin->opendev) {
+		sr_err("session: %s: device->plugin->opendev was NULL",
+		       __func__);
+		return SR_ERR_ARG;
+	}
+
+	if (!session) {
+		sr_err("session: %s: session was NULL", __func__);
+		return SR_ERR; /* TODO: SR_ERR_BUG? */
+	}
+
+	if ((ret = device->plugin->opendev(device->plugin_index)) != SR_OK) {
+		sr_err("session: %s: opendev failed (%d)", __func__, ret);
+		return ret;
 	}
 
 	session->devices = g_slist_append(session->devices, device);
@@ -99,19 +171,48 @@ void sr_session_pa_add(struct sr_analyzer *an)
 }
 #endif
 
+/**
+ * Clear all datafeed callbacks in the current session.
+ *
+ * TODO: Should return int?
+ *
+ * TODO
+ */
 void sr_session_datafeed_callback_clear(void)
 {
+	if (!session) {
+		sr_err("session: %s: session was NULL", __func__);
+		return; /* TODO: SR_ERR_BUG? */
+	}
+
 	g_slist_free(session->datafeed_callbacks);
 	session->datafeed_callbacks = NULL;
 }
 
+/**
+ * Add a datafeed callback to the current session.
+ *
+ * TODO: Should return int?
+ *
+ * @param callback TODO
+ */
 void sr_session_datafeed_callback_add(sr_datafeed_callback callback)
 {
+	if (!session) {
+		sr_err("session: %s: session was NULL", __func__);
+		return; /* TODO: SR_ERR_BUG? */
+	}
+
+	/* TODO: Is 'callback' allowed to be NULL? */
+
 	session->datafeed_callbacks =
 	    g_slist_append(session->datafeed_callbacks, callback);
 }
 
-static void sr_session_run_poll()
+/**
+ * TODO.
+ */
+static void sr_session_run_poll(void)
 {
 	GPollFD *fds, my_gpollfd;
 	int ret, i;
@@ -122,6 +223,7 @@ static void sr_session_run_poll()
 			free(fds);
 
 		/* Construct g_poll()'s array. */
+		/* TODO: Check malloc return value. */
 		fds = malloc(sizeof(GPollFD) * num_sources);
 		for (i = 0; i < num_sources; i++) {
 #ifdef _WIN32
@@ -153,48 +255,127 @@ static void sr_session_run_poll()
 	free(fds);
 }
 
+/**
+ * Start a session.
+ *
+ * There can only be one session at a time. TODO
+ *
+ * @return SR_OK upon success, SR_ERR upon errors.
+ */
 int sr_session_start(void)
 {
 	struct sr_device *device;
 	GSList *l;
 	int ret;
 
+	if (!session) {
+		sr_err("session: %s: session was NULL; a session must be "
+		       "created first, before starting it.", __func__);
+		return SR_ERR; /* TODO: SR_ERR_BUG? */
+	}
+
+	if (!session->devices) {
+		/* TODO: Actually the case? */
+		sr_err("session: %s: session->devices was NULL; a session "
+		       "cannot be started without devices.", __func__);
+		return SR_ERR; /* TODO: SR_ERR_BUG? */
+	}
+
+	/* TODO: Check plugin_index validity? */
+
 	sr_info("session: starting");
+
 	for (l = session->devices; l; l = l->next) {
 		device = l->data;
+		/* TODO: Check for device != NULL. */
 		if ((ret = device->plugin->start_acquisition(
-				device->plugin_index, device)) != SR_OK)
+				device->plugin_index, device)) != SR_OK) {
+			sr_err("session: %s: could not start an acquisition ",
+			       "(%d)", __func__, ret);
 			break;
+		}
 	}
+
+	/* TODO: What if there are multiple devices? Which return code? */
 
 	return ret;
 }
 
+/**
+ * Run the session.
+ *
+ * TODO: Should return int.
+ * TODO: Various error checks etc.
+ *
+ * TODO.
+ */
 void sr_session_run(void)
 {
+	if (!session) {
+		sr_err("session: %s: session was NULL; a session must be "
+		       "created first, before running it.", __func__);
+		return; /* TODO: SR_ERR or SR_ERR_BUG? */
+	}
+
+	if (!session->devices) {
+		/* TODO: Actually the case? */
+		sr_err("session: %s: session->devices was NULL; a session "
+		       "cannot be run without devices.", __func__);
+		return; /* TODO: SR_ERR or SR_ERR_BUG? */
+	}
+
 	sr_info("session: running");
 	session->running = TRUE;
 
-	/* do we have real sources? */
-	if (num_sources == 1 && sources[0].fd == -1)
-		/* dummy source, freewheel over it */
+	/* Do we have real sources? */
+	if (num_sources == 1 && sources[0].fd == -1) {
+		/* Dummy source, freewheel over it. */
 		while (session->running)
 			sources[0].cb(-1, 0, sources[0].user_data);
-	else
-		/* real sources, use g_poll() main loop */
+	} else {
+		/* Real sources, use g_poll() main loop. */
 		sr_session_run_poll();
+	}
+
+	/* TODO: return SR_OK; */
 }
 
+/**
+ * Halt the current session.
+ *
+ * TODO: Return int.
+ *
+ * TODO.
+ */
 void sr_session_halt(void)
 {
+	if (!session) {
+		sr_err("session: %s: session was NULL", __func__);
+		return; /* TODO: SR_ERR; or SR_ERR_BUG? */
+	}
+
 	sr_info("session: halting");
 	session->running = FALSE;
+
+	/* TODO: return SR_OK; */
 }
 
+/**
+ * Stop the current session.
+ *
+ * TODO: Difference to halt?
+ *
+ * TODO.
+ */
 void sr_session_stop(void)
 {
 	struct sr_device *device;
 	GSList *l;
+
+	if (!session) {
+		sr_err("session: %s: session was NULL", __func__);
+		return; /* TODO: SR_ERR or SR_ERR_BUG? */
+	}
 
 	sr_info("session: stopping");
 	session->running = FALSE;
@@ -203,8 +384,18 @@ void sr_session_stop(void)
 		if (device->plugin && device->plugin->stop_acquisition)
 			device->plugin->stop_acquisition(device->plugin_index, device);
 	}
+
+	/* TODO: return SR_OK; */
 }
 
+/**
+ * TODO.
+ *
+ * TODO: Should return int?
+ * TODO: Various error checks.
+ *
+ * @param packet TODO.
+ */
 static void datafeed_dump(struct sr_datafeed_packet *packet)
 {
 	struct sr_datafeed_logic *logic;
@@ -219,22 +410,42 @@ static void datafeed_dump(struct sr_datafeed_packet *packet)
 		break;
 	case SR_DF_LOGIC:
 		logic = packet->payload;
-		sr_dbg("bus: received SR_DF_LOGIC at %f ms duration %f ms, %"PRIu64" bytes",
-				packet->timeoffset / 1000000.0, packet->duration / 1000000.0,
-				logic->length);
+		sr_dbg("bus: received SR_DF_LOGIC at %f ms duration %f ms, "
+		       "%" PRIu64 " bytes", packet->timeoffset / 1000000.0,
+		       packet->duration / 1000000.0, logic->length);
 		break;
 	case SR_DF_END:
 		sr_dbg("bus: received SR_DF_END");
 		break;
 	default:
+		/* TODO: sr_err() and abort? */
 		sr_dbg("bus: received unknown packet type %d", packet->type);
+		break;
 	}
 }
 
+/**
+ * TODO.
+ *
+ * TODO: Should return int?
+ *
+ * @param device TODO.
+ * @param packet TODO.
+ */
 void sr_session_bus(struct sr_device *device, struct sr_datafeed_packet *packet)
 {
 	GSList *l;
 	sr_datafeed_callback cb;
+
+	if (!device) {
+		sr_err("session: %s: device was NULL", __func__);
+		return; /* TODO: SR_ERR_ARG */
+	}
+
+	if (!device->plugin) {
+		sr_err("session: %s: device->plugin was NULL", __func__);
+		return; /* TODO: SR_ERR_ARG */
+	}
 
 	/*
 	 * TODO: Send packet through PD pipe, and send the output of that to
@@ -242,17 +453,44 @@ void sr_session_bus(struct sr_device *device, struct sr_datafeed_packet *packet)
 	 */
 	for (l = session->datafeed_callbacks; l; l = l->next) {
 		cb = l->data;
+		/* TODO: Check for cb != NULL. */
 		datafeed_dump(packet);
 		cb(device, packet);
 	}
+
+	/* TODO: return SR_OK; */
 }
 
+/**
+ * TODO.
+ *
+ * TODO: Should return int?
+ * TODO: Switch to g_try_malloc0() / g_free().
+ * TODO: More error checks etc.
+ *
+ * @param fd TODO.
+ * @param events TODO.
+ * @param timeout TODO.
+ * @param callback TODO.
+ * @param user_data TODO.
+ */
 void sr_session_source_add(int fd, int events, int timeout,
 	        sr_receive_data_callback callback, void *user_data)
 {
 	struct source *new_sources, *s;
 
+	if (!callback) {
+		sr_err("session: %s: callback was NULL", __func__);
+		return; /* TODO: SR_ERR_ARG */
+	}
+
+	/* Note: user_data can be NULL, that's not a bug. */
+
 	new_sources = calloc(1, sizeof(struct source) * (num_sources + 1));
+	if (!new_sources) {
+		sr_err("session: %s: new_sources malloc failed", __func__);
+		return; /* TODO: SR_ERR_MALLOC */
+	}
 
 	if (sources) {
 		memcpy(new_sources, sources,
@@ -271,21 +509,39 @@ void sr_session_source_add(int fd, int events, int timeout,
 	if (timeout != source_timeout && timeout > 0
 	    && (source_timeout == -1 || timeout < source_timeout))
 		source_timeout = timeout;
+
+	/* TODO: return SR_OK; */
 }
 
+/**
+ * Remove the source belonging to the specified file descriptor.
+ *
+ * TODO: Should return int.
+ * TODO: More error checks.
+ * TODO: Switch to g_try_malloc0() / g_free().
+ *
+ * @param fd TODO.
+ */
 void sr_session_source_remove(int fd)
 {
 	struct source *new_sources;
 	int old, new;
 
+	/* TODO */
 	if (!sources)
 		return;
 
 	new_sources = calloc(1, sizeof(struct source) * num_sources);
-	for (old = 0, new = 0; old < num_sources; old++)
+	if (!new_sources) {
+		sr_err("session: %s: new_sources malloc failed", __func__);
+		return; /* TODO: SR_ERR_MALLOC */
+	}
+
+	for (old = 0, new = 0; old < num_sources; old++) {
 		if (sources[old].fd != fd)
 			memcpy(&new_sources[new++], &sources[old],
 			       sizeof(struct source));
+	}
 
 	if (old != new) {
 		free(sources);

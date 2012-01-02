@@ -30,6 +30,15 @@
 extern struct sr_session *session;
 extern struct sr_device_plugin session_driver;
 
+/**
+ * Load the session from the specified filename.
+ *
+ * @param filename The name of the session file to load. Must not be NULL.
+ *
+ * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments,
+ *         SR_ERR_MALLOC upon memory allocation errors, or SR_ERR upon
+ *         other errors.
+ */
 int sr_session_load(const char *filename)
 {
 	GKeyFile *kf;
@@ -44,6 +53,11 @@ int sr_session_load(const char *filename)
 	uint64_t tmp_u64, total_probes, enabled_probes, p;
 	char **sections, **keys, *metafile, *val, c;
 	char probename[SR_MAX_PROBENAME_LEN + 1];
+
+	if (!filename) {
+		sr_err("session file: %s: filename was NULL", __func__);
+		return SR_ERR_ARG;
+	}
 
 	if (!(archive = zip_open(filename, 0, &err))) {
 		sr_dbg("Failed to open session file: zip error %d", err);
@@ -144,6 +158,15 @@ int sr_session_load(const char *filename)
 	return SR_OK;
 }
 
+/**
+ * Save the current session to the specified file.
+ *
+ * @param filename The name of the file where to save the current session.
+ *                 Must not be NULL.
+ *
+ * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or SR_ERR
+ *         upon other errors.
+ */
 int sr_session_save(const char *filename)
 {
 	GSList *l, *p, *d;
@@ -156,6 +179,11 @@ int sr_session_save(const char *filename)
 	int bufcnt, devcnt, tmpfile, ret, error, probecnt;
 	uint64_t samplerate;
 	char version[1], rawname[16], metafile[32], *buf, *s;
+
+	if (!filename) {
+		sr_err("session file: %s: filename was NULL", __func__);
+		return SR_ERR_ARG;
+	}
 
 	/* Quietly delete it first, libzip wants replace ops otherwise. */
 	unlink(filename);
