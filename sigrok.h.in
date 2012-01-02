@@ -84,15 +84,6 @@ enum {
 	SR_T_BOOL,
 };
 
-#if 0
-/* (Unused) protocol decoder stack entry */
-struct sr_protocol {
-	char *name;
-	int id;
-	int stackindex;
-};
-#endif
-
 /* sr_datafeed_packet.type values */
 enum {
 	SR_DF_HEADER,
@@ -176,17 +167,6 @@ struct sr_output_format {
 	int (*event) (struct sr_output *o, int event_type, char **data_out,
 		      uint64_t *length_out);
 };
-
-#if 0
-struct sr_analyzer {
-	char *name;
-	char *filename;
-	/*
-	 * TODO: Parameters? If so, configured plugins need another struct.
-	 * TODO: Input and output format?
-	 */
-};
-#endif
 
 struct sr_datastore {
 	/* Size in bytes of the number of units stored in this datastore */

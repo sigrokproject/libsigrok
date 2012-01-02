@@ -154,23 +154,6 @@ int sr_session_device_add(struct sr_device *device)
 	return SR_OK;
 }
 
-#if 0
-void sr_session_pa_clear(void)
-{
-	/*
-	 * The protocols are pointers to the global set of PA plugins,
-	 * so don't free them.
-	 */
-	g_slist_free(session->analyzers);
-	session->analyzers = NULL;
-}
-
-void sr_session_pa_add(struct sr_analyzer *an)
-{
-	session->analyzers = g_slist_append(session->analyzers, an);
-}
-#endif
-
 /**
  * Clear all datafeed callbacks in the current session.
  *
