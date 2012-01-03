@@ -23,7 +23,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/time.h>
-#include <sigrok.h>
+#include "sigrok.h"
 
 #define CHUNKSIZE          4096
 #define DEFAULT_NUM_PROBES    8

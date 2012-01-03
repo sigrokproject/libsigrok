@@ -21,7 +21,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <glib.h>
-#include <sigrok.h>
+#include "sigrok.h"
 #include "text.h"
 
 int init_hex(struct sr_output *o)

@@ -21,8 +21,8 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <sigrok.h>
-#include <sigrok-internal.h>
+#include "sigrok.h"
+#include "sigrok-internal.h"
 
 #define NUM_PACKETS		2048
 #define PACKET_SIZE		4096

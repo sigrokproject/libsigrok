@@ -22,7 +22,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <glib.h>
-#include <sigrok.h>
+#include "sigrok.h"
 #include "config.h"
 #include "text.h"
 
