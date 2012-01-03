@@ -23,12 +23,12 @@ SUBDIRS = text
 noinst_LTLIBRARIES = libsigrokoutput.la
 
 libsigrokoutput_la_SOURCES = \
-	output_binary.c \
-	output_vcd.c \
-	output_ols.c \
-	output_gnuplot.c \
-	output_chronovu_la8.c \
-	output_csv.c \
+	binary.c \
+	vcd.c \
+	ols.c \
+	gnuplot.c \
+	chronovu_la8.c \
+	csv.c \
 	output.c
 
 # Temporarily disabled: output_analog.c
