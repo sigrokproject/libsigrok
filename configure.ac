@@ -236,8 +236,7 @@ AC_TYPE_SIZE_T
 # Checks for library functions.
 AC_CHECK_FUNCS([gettimeofday memset strchr strcspn strdup strerror strncasecmp strstr strtol strtoul strtoull])
 
-AC_SUBST(FIRMWARE_DIR, "$datadir/sigrok/firmware")
-### AC_SUBST(DECODERS_DIR, "$datadir/sigrok/decoders")
+AC_SUBST(FIRMWARE_DIR, "$datadir/libsigrok/firmware")
 AC_SUBST(MAKEFLAGS, '--no-print-directory')
 AC_SUBST(AM_LIBTOOLFLAGS, '--silent')
 
