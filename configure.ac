@@ -19,12 +19,11 @@
 
 AC_PREREQ(2.61)
 
-# TODO: Should be libsigrok, no sigrok.
-m4_define([sigrok_major_version], [0])
-m4_define([sigrok_minor_version], [2])
-m4_define([sigrok_micro_version], [0])
-m4_define([sigrok_version],
-	  [sigrok_major_version.sigrok_minor_version.sigrok_micro_version])
+# libsigrok package version number (NOT the same as shared lib version!).
+m4_define([libsigrok_major_version], [0])
+m4_define([libsigrok_minor_version], [2])
+m4_define([libsigrok_micro_version], [0])
+m4_define([libsigrok_version], [libsigrok_major_version.libsigrok_minor_version.libsigrok_micro_version])
 
 AC_INIT([libsigrok], [libsigrok_version], [sigrok-devel@lists.sourceforge.net],
 	[libsigrok], [http://www.sigrok.org])
@@ -55,16 +54,16 @@ LT_INIT
 # We require at least 0.22, as "Requires.private" behaviour changed there.
 PKG_PROG_PKG_CONFIG([0.22])
 
-# Library version for libsigrok.
+# Library version for libsigrok (NOT the same as the package version).
 # Carefully read the libtool docs before updating these numbers!
 # The algorithm for determining which number to change (and how) is nontrivial!
 # http://www.gnu.org/software/libtool/manual/libtool.html#Updating-version-info
-SIGROK_LT_CURRENT=0
-SIGROK_LT_REVISION=0
-SIGROK_LT_AGE=0
-SIGROK_LT_VERSION="$SIGROK_LT_CURRENT:$SIGROK_LT_REVISION:$SIGROK_LT_AGE"
-SIGROK_LT_LDFLAGS="-version-info $SIGROK_LT_VERSION"
-AC_SUBST(SIGROK_LT_LDFLAGS)
+LIBSIGROK_LT_CURRENT=0
+LIBSIGROK_LT_REVISION=0
+LIBSIGROK_LT_AGE=0
+LIBSIGROK_LT_VERSION="$LIBSIGROK_LT_CURRENT:$LIBSIGROK_LT_REVISION:$LIBSIGROK_LT_AGE"
+LIBSIGROK_LT_LDFLAGS="-version-info $LIBSIGROK_LT_VERSION"
+AC_SUBST(LIBSIGROK_LT_LDFLAGS)
 
 # Logic analyzer hardware support '--enable' options.
 
@@ -241,24 +240,24 @@ AC_SUBST(FIRMWARE_DIR, "$datadir/libsigrok/firmware")
 AC_SUBST(MAKEFLAGS, '--no-print-directory')
 AC_SUBST(AM_LIBTOOLFLAGS, '--silent')
 
-SIGROK_MAJOR_VERSION=sigrok_major_version
-SIGROK_MINOR_VERSION=sigrok_minor_version
-SIGROK_MICRO_VERSION=sigrok_micro_version
-SIGROK_VERSION=sigrok_version
+LIBSIGROK_MAJOR_VERSION=libsigrok_major_version
+LIBSIGROK_MINOR_VERSION=libsigrok_minor_version
+LIBSIGROK_MICRO_VERSION=libsigrok_micro_version
+LIBSIGROK_VERSION=libsigrok_version
 
-AC_SUBST(SIGROK_MAJOR_VERSION)
-AC_SUBST(SIGROK_MINOR_VERSION)
-AC_SUBST(SIGROK_MICRO_VERSION)
-AC_SUBST(SIGROK_VERSION)
+AC_SUBST(LIBSIGROK_MAJOR_VERSION)
+AC_SUBST(LIBSIGROK_MINOR_VERSION)
+AC_SUBST(LIBSIGROK_MICRO_VERSION)
+AC_SUBST(LIBSIGROK_VERSION)
 
-AC_DEFINE(SIGROK_MAJOR_VERSION, [sigrok_major_version],
-	  [Define to the sigrok major version])
-AC_DEFINE(SIGROK_MINOR_VERSION, [sigrok_minor_version],
-	  [Define to the sigrok minor version])
-AC_DEFINE(SIGROK_MICRO_VERSION, [sigrok_micro_version],
-	  [Define to the sigrok micro version])
-AC_DEFINE(SIGROK_VERSION, [sigrok_version],
-	  [Define to the sigrok version])
+AC_DEFINE(LIBSIGROK_MAJOR_VERSION, [libsigrok_major_version],
+	  [Define to the libsigrok major package version])
+AC_DEFINE(LIBSIGROK_MINOR_VERSION, [libsigrok_minor_version],
+	  [Define to the libsigrok minor package version])
+AC_DEFINE(LIBSIGROK_MICRO_VERSION, [libsigrok_micro_version],
+	  [Define to the libsigrok micro package version])
+AC_DEFINE(LIBSIGROK_VERSION, [libsigrok_version],
+	  [Define to the libsigrok package version])
 
 AC_CONFIG_FILES([Makefile
 		 sigrok.h
