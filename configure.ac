@@ -282,13 +282,37 @@ AC_CONFIG_FILES([Makefile
 AC_OUTPUT
 
 echo
-echo "Building drivers:"
+echo "libsigrok configuration summary:"
 echo
-echo "ASIX SIGMA...................... " $LA_ASIX_SIGMA
-echo "ChronoVu LA8.................... " $LA_CHRONOVU_LA8
-echo "Link MSO-19..................... " $LA_LINK_MSO19
-echo "Openbench Logic Sniffer......... " $LA_OLS
-echo "Saleae Logic.................... " $LA_SALEAE_LOGIC
-echo "Zeroplus Logic Cube............. " $LA_ZEROPLUS_LOGIC_CUBE
+echo "Generic info:"
+echo
+echo "  - Package version (major.minor.micro):    $LIBSIGROK_VERSION"
+echo "  - Library version (current:revision:age): $LIBSIGROK_LT_VERSION"
+echo "  - Prefix: $prefix"
+echo
+echo "Detected libraries:"
+echo
+
+# Note: This only works for libs with pkg-config integration.
+for lib in "glib-2.0" "gthread-2.0" "libusb-1.0" "libzip" "zlib" "libftdi" "libudev" "alsa"; do
+	if `$PKG_CONFIG --exists $lib`; then
+		ver=`$PKG_CONFIG --modversion $lib`
+		answer="yes ($ver)"
+	else
+		answer="no"
+	fi
+	echo "  - $lib: $answer"
+done
+
+echo
+echo "Enabled hardware drivers:"
+echo
+echo "  - ASIX SIGMA...................... $LA_ASIX_SIGMA"
+echo "  - ChronoVu LA8.................... $LA_CHRONOVU_LA8"
+echo "  - Demo driver..................... $LA_DEMO"
+echo "  - Link MSO-19..................... $LA_LINK_MSO19"
+echo "  - Openbench Logic Sniffer......... $LA_OLS"
+echo "  - Saleae Logic.................... $LA_SALEAE_LOGIC"
+echo "  - Zeroplus Logic Cube............. $LA_ZEROPLUS_LOGIC_CUBE"
 echo
 
