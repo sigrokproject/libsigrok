@@ -284,8 +284,6 @@ AC_OUTPUT
 echo
 echo "libsigrok configuration summary:"
 echo
-echo "Generic info:"
-echo
 echo "  - Package version (major.minor.micro):    $LIBSIGROK_VERSION"
 echo "  - Library version (current:revision:age): $LIBSIGROK_LT_VERSION"
 echo "  - Prefix: $prefix"
