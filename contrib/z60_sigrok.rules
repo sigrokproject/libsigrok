@@ -25,7 +25,12 @@
 ACTION!="add|change", GOTO="sigrok_rules_end"
 SUBSYSTEM!="usb|usb_device", GOTO="sigrok_rules_end"
 
-# ASIX SIGMA
+# Acute PKLA-1216
+# http://www.acute.com.tw/product/la.php
+# lsusb: "05e3:0136 Genesys Logic, Inc."
+ATTRS{idVendor}=="05e3", ATTRS{idProduct}=="0136", MODE="664", GROUP="plugdev"
+
+# ASIX SIGMA and SIGMA2
 # http://tools.asix.net/dbg_sigma.htm
 # lsusb: "a600:a000 Asix"
 ATTRS{idVendor}=="a600", ATTRS{idProduct}=="a000", MODE="664", GROUP="plugdev"
@@ -37,19 +42,24 @@ ATTRS{idVendor}=="16d0", ATTRS{idProduct}=="0498", MODE="664", GROUP="plugdev"
 
 # Buspirate (v3)
 # http://dangerousprototypes.com/2009/11/03/bus-pirate-logic-analyzer-mode/
-# lsusb "0403:6001 Future Technology Devices International,
+# lsusb: "0403:6001 Future Technology Devices International,
 #        Ltd FT232 USB-Serial (UART) IC"
 #
 # ChronoVu LA8
 # http://www.chronovu.com/
-# lsusb "0403:6001 Future Technology Devices International,
-#       Ltd FT232 USB-Serial (UART) IC"
+# lsusb: "0403:6001 Future Technology Devices International,
+#        Ltd FT232 USB-Serial (UART) IC"
 ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", MODE="664", GROUP="plugdev"
 
 # CWAV USBee SX
 # http://www.usbee.com/sx.html
 # lsusb: "08a9:0009" (no string for the vendor name available)
 ATTRS{idVendor}=="08a9", ATTRS{idProduct}=="0009", MODE="664", GROUP="plugdev"
+
+# Ikalogic SCANALOGIC-2 PRO
+# http://www.ikalogic.com/scanalogic2/
+# lsusb: "20a0:4123"
+ATTRS{idVendor}=="20a0", ATTRS{idProduct}=="4123", MODE="664", GROUP="plugdev"
 
 # Intronix Logicport LA1034
 # http://www.pctestinstruments.com/
@@ -61,12 +71,23 @@ ATTRS{idVendor}=="0403", ATTRS{idProduct}=="dc48", MODE="664", GROUP="plugdev"
 # lsusb: "3195:f190 Silicon Labs"
 ATTRS{idVendor}=="3195", ATTRS{idProduct}=="f190", MODE="664", GROUP="plugdev"
 
+# Logic Shrimp
+# http://dangerousprototypes.com/docs/Logic_Shrimp_logic_analyzer
+# lsusb: "04d8:fa95 Microchip Technology, Inc."
+ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="fa95", MODE="664", GROUP="plugdev"
+
 # Microchip PICkit2
 # http://www.microchip.com/pickit2
 # lsusb: "04d8:0033 Microchip Technology, Inc. PICkit2"
 ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="0033", MODE="664", GROUP="plugdev"
 
-# RockyLogic Ant18e
+# MiniLA Mockup
+# http://www.mikrocontroller.net/articles/Minila_Version_MockUp
+# lsusb: "0403:6010 Future Technology Devices International, Ltd FT2232C Dual USB-UART/FIFO IC"
+ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6010", MODE="664", GROUP="plugdev"
+
+# RockyLogic Ant8 and Ant18e
+# http://www.rockylogic.com/products/ant8.html
 # http://www.rockylogic.com/products/ant18e.html
 # lsusb: "0403:f918 Future Technology Devices International,
 #        Ltd Ant8 Logic Probe"
@@ -78,14 +99,29 @@ ATTRS{idVendor}=="0403", ATTRS{idProduct}=="f918", MODE="664", GROUP="plugdev"
 # lsusb: "04d8:000a Microchip Technology, Inc."
 ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="000a", MODE="664", GROUP="plugdev"
 
+# PoLabs PoScope Basic2
+# http://www.poscope.com/poscope_basic_2
+# lsusb: "10c4:ea67 Cygnal Integrated Products, Inc."
+ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea67", MODE="664", GROUP="plugdev"
+
 # Saleae Logic
 # http://www.saleae.com/logic/
 # lsusb: "0925:3881 Lakeview Research"
 #
 # EE Electronics XLA/ESLA100 (clone of the Saleae Logic)
 # http://eeelec.com/xla/
-# lsusb: "0925:3881 Lakeview Research"
+#
+# Robomotic MiniLogic
+# http://buglogic.robomotic.com/
+#
+# Lcsoft Mini Board
+# http://sigrok.org/wiki/Lcsoft_Mini_Board
 ATTRS{idVendor}=="0925", ATTRS{idProduct}=="3881", MODE="664", GROUP="plugdev"
+
+# Saleae Logic16
+# http://www.saleae.com/logic16/
+# lsusb: "21a9:1001"
+ATTRS{idVendor}=="21a9", ATTRS{idProduct}=="1001", MODE="664", GROUP="plugdev"
 
 # Cypress FX2 without EEPROM
 # lsusb: "04b4:8613 Cypress Semiconductor Corp. CY7C68013 EZ-USB FX2 USB 2.0 Development Kit"
