@@ -17,7 +17,7 @@
 ## along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##
 
-AC_PREREQ(2.61)
+AC_PREREQ([2.61])
 
 # libsigrok package version number (NOT the same as shared lib version!).
 m4_define([libsigrok_major_version], [0])
