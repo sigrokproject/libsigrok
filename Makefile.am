@@ -51,3 +51,5 @@ noinst_HEADERS = sigrok-internal.h
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libsigrok.pc
 
+EXTRA_DIST = Doxyfile
+
