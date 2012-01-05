@@ -449,7 +449,6 @@ static int hw_init(const char *deviceinfo)
 		strncpy(product, iProduct, s);
 		product[s] = 0;
 		strcpy(manufacturer, iProduct + s);
-		sprintf(hwrev, "r%d", mso->hwrev);
 
 		if (!(mso = g_try_malloc0(sizeof(struct mso)))) {
 			sr_err("mso19: %s: mso malloc failed", __func__);
@@ -460,6 +459,7 @@ static int hw_init(const char *deviceinfo)
 			sr_warn("Invalid iSerial: %s", iSerial);
 			goto err_free_mso;
 		}
+		sprintf(hwrev, "r%d", mso->hwrev);
 		/* hardware initial state */
 		mso->ctlbase = 0;
 
