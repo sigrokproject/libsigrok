@@ -651,6 +651,7 @@ static int receive_data(int fd, int revents, void *user_data)
 	struct sr_device_instance *sdi = user_data;
 	struct mso *mso = sdi->priv;
 	struct sr_datafeed_packet packet;
+	struct sr_datafeed_logic logic;
 	uint8_t in[1024], logic_out[1024];
 	double analog_out[1024];
 	size_t i, s;
@@ -691,17 +692,20 @@ static int receive_data(int fd, int revents, void *user_data)
 	}
 
 	packet.type = SR_DF_LOGIC;
-	packet.length = 1024;
-	packet.unitsize = 1;
-	packet.payload = logic_out;
+        packet.payload = &logic;
+	logic.length = 1024;
+	logic.unitsize = 1;
+	logic.data = logic_out;
 	sr_session_bus(mso->session_id, &packet);
 
 
+        // Dont bother fixing this yet, keep it "old style"
+        /*
 	packet.type = SR_DF_ANALOG;
 	packet.length = 1024;
 	packet.unitsize = sizeof(double);
 	packet.payload = analog_out;
-	sr_session_bus(mso->session_id, &packet);
+	sr_session_bus(mso->session_id, &packet); */
 
 	packet.type = SR_DF_END;
 	sr_session_bus(mso->session_id, &packet);
@@ -771,14 +775,12 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	sr_source_add(sdi->serial->fd, G_IO_IN, -1, receive_data, sdi);
 
 	packet.type = SR_DF_HEADER;
-	packet.length = sizeof(struct sr_datafeed_header);
 	packet.payload = (unsigned char *) &header;
 	header.feed_version = 1;
 	gettimeofday(&header.starttime, NULL);
 	header.samplerate = mso->cur_rate;
 	header.num_analog_probes = 1;
 	header.num_logic_probes = 8;
-	header.protocol_id = SR_PROTO_RAW;
 	sr_session_bus(session_device_id, &packet);
 
 	return ret;
