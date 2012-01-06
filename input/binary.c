@@ -25,7 +25,7 @@
 #include <sys/time.h>
 #include "sigrok.h"
 
-#define CHUNKSIZE          4096
+#define CHUNKSIZE             (512 * 1024)
 #define DEFAULT_NUM_PROBES    8
 
 static int format_match(const char *filename)

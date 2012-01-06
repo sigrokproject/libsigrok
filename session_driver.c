@@ -27,7 +27,7 @@
 #include "sigrok-internal.h"
 
 /* size of payloads sent across the session bus */
-#define CHUNKSIZE 4096
+#define CHUNKSIZE (512 * 1024)
 
 struct session_vdevice {
 	char *capturefile;

@@ -34,7 +34,7 @@
 #endif
 
 /* Size of a datastore chunk in units */
-#define DATASTORE_CHUNKSIZE 512000
+#define DATASTORE_CHUNKSIZE (512 * 1024)
 
 /*--- hwplugin.c ------------------------------------------------------------*/
 
