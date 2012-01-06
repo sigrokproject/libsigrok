@@ -692,20 +692,20 @@ static int receive_data(int fd, int revents, void *user_data)
 	}
 
 	packet.type = SR_DF_LOGIC;
-        packet.payload = &logic;
+	packet.payload = &logic;
 	logic.length = 1024;
 	logic.unitsize = 1;
 	logic.data = logic_out;
 	sr_session_bus(mso->session_id, &packet);
 
-
-        // Dont bother fixing this yet, keep it "old style"
-        /*
+	// Dont bother fixing this yet, keep it "old style"
+	/*
 	packet.type = SR_DF_ANALOG;
 	packet.length = 1024;
 	packet.unitsize = sizeof(double);
 	packet.payload = analog_out;
-	sr_session_bus(mso->session_id, &packet); */
+	sr_session_bus(mso->session_id, &packet);
+	*/
 
 	packet.type = SR_DF_END;
 	sr_session_bus(mso->session_id, &packet);
