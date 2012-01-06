@@ -273,7 +273,7 @@ int sr_session_start(void)
 		/* TODO: Check for device != NULL. */
 		if ((ret = device->plugin->start_acquisition(
 				device->plugin_index, device)) != SR_OK) {
-			sr_err("session: %s: could not start an acquisition ",
+			sr_err("session: %s: could not start an acquisition "
 			       "(%d)", __func__, ret);
 			break;
 		}
