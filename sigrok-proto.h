@@ -100,25 +100,24 @@ typedef void (*sr_datafeed_callback) (struct sr_device *device,
 /* Session setup */
 int sr_session_load(const char *filename);
 struct sr_session *sr_session_new(void);
-void sr_session_destroy(void);
-void sr_session_device_clear(void);
+int sr_session_destroy(void);
+int sr_session_device_clear(void);
 int sr_session_device_add(struct sr_device *device);
 
 /* Datafeed setup */
-void sr_session_datafeed_callback_clear(void);
-void sr_session_datafeed_callback_add(sr_datafeed_callback callback);
+int sr_session_datafeed_callback_clear(void);
+int sr_session_datafeed_callback_add(sr_datafeed_callback callback);
 
 /* Session control */
 int sr_session_start(void);
-void sr_session_run(void);
-void sr_session_halt(void);
-void sr_session_stop(void);
-void sr_session_bus(struct sr_device *device,
-		    struct sr_datafeed_packet *packet);
+int sr_session_run(void);
+int sr_session_halt(void);
+int sr_session_stop(void);
+int sr_session_bus(struct sr_device *device, struct sr_datafeed_packet *packet);
 int sr_session_save(const char *filename);
-void sr_session_source_add(int fd, int events, int timeout,
+int sr_session_source_add(int fd, int events, int timeout,
 	        sr_receive_data_callback callback, void *user_data);
-void sr_session_source_remove(int fd);
+int sr_session_source_remove(int fd);
 
 /*--- input/input.c ---------------------------------------------------------*/
 
