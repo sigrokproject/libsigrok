@@ -117,12 +117,6 @@ struct sr_datafeed_logic {
 	void *data;
 };
 
-struct sr_datafeed_pd {
-	char *protocol;
-	char *annotation;
-	unsigned char *data;
-};
-
 #if defined(HAVE_LA_ALSA)
 struct sr_analog_probe {
 	uint8_t att;
