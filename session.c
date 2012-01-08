@@ -378,8 +378,12 @@ int sr_session_stop(void)
 	for (l = session->devices; l; l = l->next) {
 		device = l->data;
 		/* Check for device != NULL. */
-		if (device->plugin && device->plugin->stop_acquisition)
-			device->plugin->stop_acquisition(device->plugin_index, device);
+		if (device->plugin) {
+			if (device->plugin->stop_acquisition)
+				device->plugin->stop_acquisition(device->plugin_index, device);
+			if (device->plugin->cleanup)
+				device->plugin->cleanup();
+		}
 	}
 
 	return SR_OK;

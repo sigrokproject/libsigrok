@@ -154,7 +154,6 @@ static void hw_cleanup(void);
  */
 static int hw_init(const char *deviceinfo)
 {
-	hw_cleanup();
 
 	sessionfile = g_strdup(deviceinfo);
 
