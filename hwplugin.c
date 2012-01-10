@@ -113,7 +113,7 @@ int sr_init_hwplugins(struct sr_device_plugin *plugin)
 	struct sr_device *device;
 	char **probe_names;
 
-	g_message("initializing %s plugin", plugin->name);
+	sr_dbg("initializing %s plugin", plugin->name);
 	num_devices = plugin->init(NULL);
 	for (i = 0; i < num_devices; i++) {
 		num_probes = GPOINTER_TO_INT(
