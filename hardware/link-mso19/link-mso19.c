@@ -168,7 +168,7 @@ static int mso_toggle_led(struct sr_device_instance *sdi, int state)
 	struct mso *mso = sdi->priv;
 	uint16_t ops[1];
 
-	mso->ctlbase1 &= BIT_CTL1_LED;
+	mso->ctlbase1 &= ~BIT_CTL1_LED;
 	if (state)
 		mso->ctlbase1 |= BIT_CTL1_LED;
 	ops[0] = mso_trans(REG_CTL1, mso->ctlbase1);
