@@ -2,6 +2,7 @@
  * This file is part of the sigrok project.
  *
  * Copyright (C) 2011 Daniel Ribeiro <drwyrm@gmail.com>
+ * Copyright (C) 2012 Renato Caldas <rmsc@fe.up.pt>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,6 +20,36 @@
 
 #ifndef SIGROK_LINK_MSO19_H
 #define SIGROK_LINK_MSO19_H
+
+/* Structure for the pattern generator state */
+struct mso_patgen {
+	/* Pattern generator clock config */
+	uint16_t clock;
+	/* Buffer start address */
+	uint16_t start;
+	/* Buffer end address */
+	uint16_t end;
+	/* Pattern generator config */
+	uint8_t config;
+	/* Samples buffer */
+	uint8_t buffer[1024];
+	/* Input/output configuration for the samples buffer (?)*/
+	uint8_t io[1024];
+	/* Number of loops for the pattern generator */
+	uint8_t loops;
+	/* Bit enable mask for the I/O lines */
+	uint8_t mask;
+};
+
+/* Data structure for the protocol trigger state */
+struct mso_prototrig {
+	/* Word match buffer */
+	uint8_t word[4];
+	/* Masks for the wordmatch buffer */
+	uint8_t mask[4];
+	/* SPI mode 0, 1, 2, 3. Set to 0 for I2C */
+	uint8_t spimode;
+};
 
 /* our private per-instance data */
 struct mso {
