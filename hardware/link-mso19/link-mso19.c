@@ -142,9 +142,9 @@ static int mso_reset_adc(struct sr_device_instance *sdi)
 	struct mso *mso = sdi->priv;
 	uint16_t ops[2];
 
-	ops[0] = mso_trans(REG_CTL, (mso->ctlbase | BIT_CTL_RESETADC));
-	ops[1] = mso_trans(REG_CTL, mso->ctlbase);
-	mso->ctlbase |= BIT_CTL_ADC_UNKNOWN4;
+	ops[0] = mso_trans(REG_CTL1, (mso->ctlbase1 | BIT_CTL1_RESETADC));
+	ops[1] = mso_trans(REG_CTL1, mso->ctlbase1);
+	mso->ctlbase1 |= BIT_CTL1_ADC_UNKNOWN4;
 
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
 }
@@ -154,8 +154,8 @@ static int mso_reset_fsm(struct sr_device_instance *sdi)
 	struct mso *mso = sdi->priv;
 	uint16_t ops[1];
 
-	mso->ctlbase |= BIT_CTL_RESETFSM;
-	ops[0] = mso_trans(REG_CTL, mso->ctlbase);
+	mso->ctlbase1 |= BIT_CTL1_RESETFSM;
+	ops[0] = mso_trans(REG_CTL1, mso->ctlbase1);
 
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
 }
@@ -165,10 +165,10 @@ static int mso_toggle_led(struct sr_device_instance *sdi, int state)
 	struct mso *mso = sdi->priv;
 	uint16_t ops[1];
 
-	mso->ctlbase &= BIT_CTL_LED;
+	mso->ctlbase1 &= BIT_CTL1_LED;
 	if (state)
-		mso->ctlbase |= BIT_CTL_LED;
-	ops[0] = mso_trans(REG_CTL, mso->ctlbase);
+		mso->ctlbase1 |= BIT_CTL1_LED;
+	ops[0] = mso_trans(REG_CTL1, mso->ctlbase1);
 
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
 }
@@ -203,9 +203,9 @@ static int mso_arm(struct sr_device_instance *sdi)
 {
 	struct mso *mso = sdi->priv;
 	uint16_t ops[] = {
-		mso_trans(REG_CTL, mso->ctlbase | BIT_CTL_RESETFSM),
-		mso_trans(REG_CTL, mso->ctlbase | BIT_CTL_ARM),
-		mso_trans(REG_CTL, mso->ctlbase),
+		mso_trans(REG_CTL1, mso->ctlbase1 | BIT_CTL1_RESETFSM),
+		mso_trans(REG_CTL1, mso->ctlbase1 | BIT_CTL1_ARM),
+		mso_trans(REG_CTL1, mso->ctlbase1),
 	};
 
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
@@ -215,8 +215,8 @@ static int mso_force_capture(struct sr_device_instance *sdi)
 {
 	struct mso *mso = sdi->priv;
 	uint16_t ops[] = {
-		mso_trans(REG_CTL, mso->ctlbase | 8),
-		mso_trans(REG_CTL, mso->ctlbase),
+		mso_trans(REG_CTL1, mso->ctlbase1 | 8),
+		mso_trans(REG_CTL1, mso->ctlbase1),
 	};
 
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
@@ -228,7 +228,7 @@ static int mso_dac_out(struct sr_device_instance *sdi, uint16_t val)
 	uint16_t ops[] = {
 		mso_trans(REG_DAC1, (val >> 8) & 0xff),
 		mso_trans(REG_DAC2, val & 0xff),
-		mso_trans(REG_CTL, mso->ctlbase | BIT_CTL_RESETADC),
+		mso_trans(REG_CTL1, mso->ctlbase1 | BIT_CTL1_RESETADC),
 	};
 
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
@@ -253,7 +253,7 @@ static int mso_configure_rate(struct sr_device_instance *sdi,
 
 	for (i = 0; i < ARRAY_SIZE(rate_map); i++) {
 		if (rate_map[i].rate == rate) {
-			mso->slowmode = rate_map[i].slowmode;
+			mso->ctlbase2 = rate_map[i].slowmode;
 			ret = mso_clkrate_out(sdi, rate_map[i].val);
 			if (ret == SR_OK)
 				mso->cur_rate = rate;
@@ -323,7 +323,7 @@ static int mso_configure_trigger(struct sr_device_instance *sdi)
 	ops[3] = mso_trans(4, (dso_trigger >> 8) & 0xff);
 	ops[4] = mso_trans(11,
 			mso->dso_trigger_width / SR_HZ_TO_NS(mso->cur_rate));
-	ops[5] = mso_trans(15, (2 | mso->slowmode));
+	ops[5] = mso_trans(REG_CTL2, (mso->ctlbase2 | BITS_CTL2_BANK(2)));
 
 	/* FIXME SPI/I2C Triggers */
 	ops[6] = mso_trans(0, 0);
@@ -335,7 +335,7 @@ static int mso_configure_trigger(struct sr_device_instance *sdi)
 	ops[12] = mso_trans(6, 0xff);
 	ops[13] = mso_trans(7, 0xff);
 	ops[14] = mso_trans(8, mso->trigger_spimode);
-	ops[15] = mso_trans(15, mso->slowmode);
+	ops[15] = mso_trans(REG_CTL2, mso->ctlbase2);
 
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
 }
@@ -461,7 +461,7 @@ static int hw_init(const char *deviceinfo)
 		}
 		sprintf(hwrev, "r%d", mso->hwrev);
 		/* hardware initial state */
-		mso->ctlbase = 0;
+		mso->ctlbase1 = 0;
 
 		sdi = sr_device_instance_new(devcnt, SR_ST_INITIALIZING,
 			manufacturer, product, hwrev);
@@ -731,8 +731,8 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 //		return ret;
 
 	/* FIXME: ACDC Mode */
-	mso->ctlbase &= 0x7f;
-//	mso->ctlbase |= mso->acdcmode;
+	mso->ctlbase1 &= 0x7f;
+//	mso->ctlbase1 |= mso->acdcmode;
 
 	ret = mso_configure_rate(sdi, mso->cur_rate);
 	if (ret != SR_OK)

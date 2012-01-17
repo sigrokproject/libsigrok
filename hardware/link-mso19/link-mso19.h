@@ -63,8 +63,8 @@ struct mso {
 	uint16_t dac_offset;
 	uint16_t offset_range;
 	/* register cache */
-	uint8_t ctlbase;
-	uint8_t slowmode;
+	uint8_t ctlbase1;
+	uint8_t ctlbase2;
 	/* state */
 	uint8_t la_threshold;
 	uint64_t cur_rate;
@@ -91,21 +91,34 @@ struct mso {
 const char mso_head[] = { 0x40, 0x4c, 0x44, 0x53, 0x7e };
 const char mso_foot[] = { 0x7e };
 
-/* registers */
+/* bank agnostic registers */
+#define REG_CTL2		15
+
+/* bank 0 registers */
 #define REG_BUFFER		1
 #define REG_TRIGGER		2
 #define REG_CLKRATE1		9
 #define REG_CLKRATE2		10
 #define REG_DAC1		12
 #define REG_DAC2		13
-#define REG_CTL			14
+/* possibly bank agnostic: */
+#define REG_CTL1		14
 
-/* bits */
-#define BIT_CTL_RESETFSM	(1 << 0)
-#define BIT_CTL_ARM		(1 << 1)
-#define BIT_CTL_ADC_UNKNOWN4	(1 << 4) /* adc enable? */
-#define BIT_CTL_RESETADC	(1 << 6)
-#define BIT_CTL_LED		(1 << 7)
+/* bank 2 registers (SPI/I2C protocol trigger) */
+#define REG_PT_WORD(x)	       (x)
+#define REG_PT_MASK(x)	       (x+4)
+#define REG_PT_SPIMODE          8
+
+/* bits - REG_CTL1 */
+#define BIT_CTL1_RESETFSM      (1 << 0)
+#define BIT_CTL1_ARM	       (1 << 1)
+#define BIT_CTL1_ADC_UNKNOWN4  (1 << 4) /* adc enable? */
+#define BIT_CTL1_RESETADC      (1 << 6)
+#define BIT_CTL1_LED	       (1 << 7)
+
+/* bits - REG_CTL2 */
+#define BITS_CTL2_BANK(x)      (x & 0x3)
+#define BIT_CTL2_SLOWMODE      (1 << 5)
 
 struct rate_map {
 	uint32_t rate;
