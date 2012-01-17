@@ -71,13 +71,13 @@ struct mso {
 	uint8_t dso_probe_attn;
 	uint8_t trigger_chan;
 	uint8_t trigger_slope;
-	uint8_t trigger_spimode;
 	uint8_t trigger_outsrc;
 	uint8_t trigger_state;
 	uint8_t la_trigger;
 	uint8_t la_trigger_mask;
 	double dso_trigger_voltage;
 	uint16_t dso_trigger_width;
+	struct mso_prototrig protocol_trigger;
 	gpointer session_id;
 	uint16_t buffer_n;
 	char buffer[4096];

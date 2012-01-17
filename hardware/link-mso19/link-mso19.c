@@ -2,6 +2,7 @@
  * This file is part of the sigrok project.
  *
  * Copyright (C) 2011 Daniel Ribeiro <drwyrm@gmail.com>
+ * Copyright (C) 2012 Renato Caldas <rmsc@fe.up.pt>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -323,18 +324,20 @@ static int mso_configure_trigger(struct sr_device_instance *sdi)
 	ops[3] = mso_trans(4, (dso_trigger >> 8) & 0xff);
 	ops[4] = mso_trans(11,
 			mso->dso_trigger_width / SR_HZ_TO_NS(mso->cur_rate));
-	ops[5] = mso_trans(REG_CTL2, (mso->ctlbase2 | BITS_CTL2_BANK(2)));
 
-	/* FIXME SPI/I2C Triggers */
-	ops[6] = mso_trans(0, 0);
-	ops[7] = mso_trans(1, 0);
-	ops[8] = mso_trans(2, 0);
-	ops[9] = mso_trans(3, 0);
-	ops[10] = mso_trans(4, 0xff);
-	ops[11] = mso_trans(5, 0xff);
-	ops[12] = mso_trans(6, 0xff);
-	ops[13] = mso_trans(7, 0xff);
-	ops[14] = mso_trans(8, mso->trigger_spimode);
+	/* Select the SPI/I2C trigger config bank */
+	ops[5] = mso_trans(REG_CTL2, (mso->ctlbase2 | BITS_CTL2_BANK(2)));
+	/* Configure the SPI/I2C protocol trigger */
+	ops[6] = mso_trans(REG_PT_WORD(0), mso->protocol_trigger.word[0]);
+	ops[7] = mso_trans(REG_PT_WORD(1), mso->protocol_trigger.word[1]);
+	ops[8] = mso_trans(REG_PT_WORD(2), mso->protocol_trigger.word[2]);
+	ops[9] = mso_trans(REG_PT_WORD(3), mso->protocol_trigger.word[3]);
+	ops[10] = mso_trans(REG_PT_MASK(0), mso->protocol_trigger.mask[0]);
+	ops[11] = mso_trans(REG_PT_MASK(1), mso->protocol_trigger.mask[1]);
+	ops[12] = mso_trans(REG_PT_MASK(2), mso->protocol_trigger.mask[2]);
+	ops[13] = mso_trans(REG_PT_MASK(3), mso->protocol_trigger.mask[3]);
+	ops[14] = mso_trans(REG_PT_SPIMODE, mso->protocol_trigger.spimode);
+	/* Select the default config bank */
 	ops[15] = mso_trans(REG_CTL2, mso->ctlbase2);
 
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
@@ -460,8 +463,19 @@ static int hw_init(const char *deviceinfo)
 			goto err_free_mso;
 		}
 		sprintf(hwrev, "r%d", mso->hwrev);
+
 		/* hardware initial state */
 		mso->ctlbase1 = 0;
+		{
+			/* Initialize the protocol trigger configuration */
+			int i;
+			for (i = 0; i < 4; i++)
+			{
+				mso->protocol_trigger.word[i] = 0;
+				mso->protocol_trigger.mask[i] = 0xff;
+			}
+			mso->protocol_trigger.spimode = 0;
+		}
 
 		sdi = sr_device_instance_new(devcnt, SR_ST_INITIALIZING,
 			manufacturer, product, hwrev);
