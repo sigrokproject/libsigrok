@@ -200,9 +200,7 @@ void sr_device_instance_free(struct sr_device_instance *sdi)
 		break;
 	}
 
-	if (sdi->priv)
-		g_free(sdi->priv);
-
+	g_free(sdi->priv);
 	g_free(sdi->vendor);
 	g_free(sdi->model);
 	g_free(sdi->version);

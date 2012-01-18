@@ -166,8 +166,7 @@ char **sr_parse_triggerstring(struct sr_device *device,
 
 	if (error) {
 		for (i = 0; i < max_probes; i++)
-			if (triggerlist[i])
-				g_free(triggerlist[i]);
+			g_free(triggerlist[i]);
 		g_free(triggerlist);
 		triggerlist = NULL;
 	}

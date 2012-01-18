@@ -205,16 +205,12 @@ int sr_device_probe_clear(struct sr_device *device, int probenum)
 	}
 
 	/* If the probe has a name, remove it. */
-	if (p->name) {
-		g_free(p->name);
-		p->name = NULL;
-	}
+	g_free(p->name);
+	p->name = NULL;
 
 	/* If the probe has a trigger, remove it. */
-	if (p->trigger) {
-		g_free(p->trigger);
-		p->trigger = NULL;
-	}
+	g_free(p->trigger);
+	p->trigger = NULL;
 
 	return SR_OK;
 }
@@ -351,8 +347,7 @@ int sr_device_probe_name(struct sr_device *device, int probenum,
 	/* TODO: Sanity check on 'name'. */
 
 	/* If the probe already has a name, kill it first. */
-	if (p->name)
-		g_free(p->name);
+	g_free(p->name);
 
 	p->name = g_strdup(name);
 
@@ -387,7 +382,7 @@ int sr_device_trigger_clear(struct sr_device *device)
 	for (pnum = 1; pnum <= g_slist_length(device->probes); pnum++) {
 		p = sr_device_probe_find(device, pnum);
 		/* TODO: Silently ignore probes which cannot be found? */
-		if (p && p->trigger) {
+		if (p) {
 			g_free(p->trigger);
 			p->trigger = NULL;
 		}
@@ -433,8 +428,7 @@ int sr_device_trigger_set(struct sr_device *device, int probenum,
 	}
 
 	/* If the probe already has a trigger, kill it first. */
-	if (p->trigger)
-		g_free(p->trigger);
+	g_free(p->trigger);
 
 	p->trigger = g_strdup(trigger);
 
