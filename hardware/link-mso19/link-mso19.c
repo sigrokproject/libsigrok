@@ -530,7 +530,10 @@ static void hw_cleanup(void)
 		if (sdi->serial->fd != -1)
 			serial_close(sdi->serial->fd);
 		if (sdi->priv != NULL)
+		{
 			free(sdi->priv);
+			sdi->priv = NULL;
+		}
 		sr_device_instance_free(sdi);
 	}
 	g_slist_free(device_instances);
