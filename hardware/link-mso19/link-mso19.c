@@ -147,6 +147,7 @@ static int mso_reset_adc(struct sr_device_instance *sdi)
 	ops[1] = mso_trans(REG_CTL1, mso->ctlbase1);
 	mso->ctlbase1 |= BIT_CTL1_ADC_UNKNOWN4;
 
+	sr_dbg("Requesting ADC reset");
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
 }
 
@@ -158,6 +159,7 @@ static int mso_reset_fsm(struct sr_device_instance *sdi)
 	mso->ctlbase1 |= BIT_CTL1_RESETFSM;
 	ops[0] = mso_trans(REG_CTL1, mso->ctlbase1);
 
+	sr_dbg("Requesting ADC reset");
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
 }
 
@@ -171,6 +173,7 @@ static int mso_toggle_led(struct sr_device_instance *sdi, int state)
 		mso->ctlbase1 |= BIT_CTL1_LED;
 	ops[0] = mso_trans(REG_CTL1, mso->ctlbase1);
 
+	sr_dbg("Requesting LED toggle");
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
 }
 
@@ -181,6 +184,7 @@ static int mso_check_trigger(struct sr_device_instance *sdi,
 	char buf[1];
 	int ret;
 
+	sr_dbg("Requesting trigger state");
 	ret = mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
 	if (info == NULL || ret != SR_OK)
 		return ret;
@@ -190,6 +194,7 @@ static int mso_check_trigger(struct sr_device_instance *sdi,
 		ret = SR_ERR;
 	*info = buf[0];
 
+	sr_dbg("Trigger state is: 0x%x", *info);
 	return ret;
 }
 
@@ -197,6 +202,7 @@ static int mso_read_buffer(struct sr_device_instance *sdi)
 {
 	uint16_t ops[] = { mso_trans(REG_BUFFER, 0) };
 
+	sr_dbg("Requesting buffer dump");
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
 }
 
@@ -209,6 +215,7 @@ static int mso_arm(struct sr_device_instance *sdi)
 		mso_trans(REG_CTL1, mso->ctlbase1),
 	};
 
+	sr_dbg("Requesting trigger arm");
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
 }
 
@@ -220,6 +227,7 @@ static int mso_force_capture(struct sr_device_instance *sdi)
 		mso_trans(REG_CTL1, mso->ctlbase1),
 	};
 
+	sr_dbg("Requesting forced capture");
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
 }
 
@@ -232,6 +240,7 @@ static int mso_dac_out(struct sr_device_instance *sdi, uint16_t val)
 		mso_trans(REG_CTL1, mso->ctlbase1 | BIT_CTL1_RESETADC),
 	};
 
+	sr_dbg("Setting dac word to 0x%x", val);
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
 }
 
@@ -242,6 +251,7 @@ static int mso_clkrate_out(struct sr_device_instance *sdi, uint16_t val)
 		mso_trans(REG_CLKRATE2, val & 0xff),
 	};
 
+	sr_dbg("Setting clkrate word to 0x%x", val);
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
 }
 
@@ -550,18 +560,20 @@ static int hw_opendev(int device_index)
 	/* FIXME: discard serial buffer */
 
 	mso_check_trigger(sdi, &mso->trigger_state);
-//	sr_warn("trigger state: %c", mso->trigger_state);
+	sr_dbg("trigger state: 0x%x", mso->trigger_state);
 
 	ret = mso_reset_adc(sdi);
 	if (ret != SR_OK)
 		return ret;
 
 	mso_check_trigger(sdi, &mso->trigger_state);
-//	sr_warn("trigger state: %c", mso->trigger_state);
+	sr_dbg("trigger state: 0x%x", mso->trigger_state);
 
 //	ret = mso_reset_fsm(sdi);
 //	if (ret != SR_OK)
 //		return ret;
+
+	sr_dbg("Finished %s", __func__);
 
 //	return SR_ERR;
 	return SR_OK;
@@ -583,6 +595,7 @@ static int hw_closedev(int device_index)
 		sdi->status = SR_ST_INACTIVE;
 	}
 
+	sr_dbg("finished %s", __func__);
 	return SR_OK;
 }
 
