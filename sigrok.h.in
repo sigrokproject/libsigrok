@@ -211,6 +211,11 @@ enum {
 
 	/* TODO: SR_HWCAP_SCOPE, SW_HWCAP_PATTERN_GENERATOR, etc.? */
 
+	/*--- Device types --------------------------------------------------*/
+
+	/** The device is demo device. */
+	SR_HWCAP_DEMO_DEVICE,
+
 	/*--- Device options ------------------------------------------------*/
 
 	/** The device supports setting/changing its samplerate. */
