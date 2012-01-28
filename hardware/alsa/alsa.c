@@ -18,6 +18,8 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
+/* Note: This driver doesn't compile, analog support in sigrok is WIP. */
+
 #include "config.h" /* Must come before sigrok.h */
 #include <stdlib.h>
 #include <unistd.h>
@@ -29,6 +31,17 @@
 #define NUM_PROBES 2
 #define SAMPLE_WIDTH 16
 #define AUDIO_DEV "plughw:0,0"
+
+struct sr_analog_probe {
+	uint8_t att;
+	uint8_t res;    /* Needs to be a power of 2, FIXME */
+	uint16_t val;   /* Max hardware ADC width is 16bits */
+};
+
+struct sr_analog_sample {
+	uint8_t num_probes; /* Max hardware probes is 256 */
+	struct sr_analog_probe probes[];
+};
 
 static int capabilities[] = {
 	SR_HWCAP_SAMPLERATE,

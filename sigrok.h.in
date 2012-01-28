@@ -118,19 +118,6 @@ struct sr_datafeed_logic {
 	void *data;
 };
 
-#if defined(HAVE_LA_ALSA)
-struct sr_analog_probe {
-	uint8_t att;
-	uint8_t res;	/* Needs to be a power of 2, FIXME */
-	uint16_t val;	/* Max hardware ADC width is 16bits */
-};
-
-struct sr_analog_sample {
-	uint8_t num_probes; /* Max hardware probes is 256 */
-	struct sr_analog_probe probes[];
-};
-#endif
-
 struct sr_input {
 	struct sr_input_format *format;
 	char *param;
