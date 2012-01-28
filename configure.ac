@@ -17,7 +17,8 @@
 ## along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##
 
-AC_PREREQ([2.61])
+# We require at least autoconf 2.63 (AC_INIT format changed there).
+AC_PREREQ([2.63])
 
 # libsigrok package version number (NOT the same as shared lib version!).
 m4_define([libsigrok_major_version], [0])
@@ -31,7 +32,8 @@ AC_CONFIG_HEADER([config.h])
 AC_CONFIG_MACRO_DIR([autostuff])
 AC_CONFIG_AUX_DIR([autostuff])
 
-AM_INIT_AUTOMAKE([-Wall -Werror foreign std-options])
+# We require at least automake 1.11 (needed for 'silent rules').
+AM_INIT_AUTOMAKE([1.11 -Wall -Werror foreign std-options])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
 AH_TOP([#ifndef LIBSIGROK_CONFIG_H

@@ -25,8 +25,12 @@ Requirements
 ------------
 
  - git
- - gcc, g++, make, ...
- - autoconf, automake, libtool, pkg-config
+ - gcc
+ - make
+ - autoconf >= 2.63
+ - automake >= 1.11
+ - libtool
+ - pkg-config >= 0.22
  - libglib >= 2.22.0
  - libusb >= 1.0.5 (for most logic analyzer hardware)
  - libzip >= 0.8
