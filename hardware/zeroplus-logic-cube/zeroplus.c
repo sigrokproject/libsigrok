@@ -400,7 +400,7 @@ static int hw_opendev(int device_index)
 	if (cur_samplerate == 0) {
 		/* Samplerate hasn't been set. Default to the slowest one. */
 		if (hw_set_configuration(device_index, SR_HWCAP_SAMPLERATE,
-		     &samplerates.low) == SR_ERR)
+		     &samplerates.list[0]) == SR_ERR)
 			return SR_ERR;
 	}
 
@@ -492,7 +492,8 @@ static int *hw_get_capabilities(void)
 /* TODO: This will set the same samplerate for all devices. */
 static int set_configuration_samplerate(uint64_t samplerate)
 {
-	sr_info("%s(%" PRIu64 ")", __func__, samplerate);
+	sr_info("zp: Setting samplerate to %" PRIu64 "Hz.", samplerate);
+
 	if (samplerate > SR_MHZ(1))
 		analyzer_set_freq(samplerate / SR_MHZ(1), FREQ_SCALE_MHZ);
 	else if (samplerate > SR_KHZ(1))
