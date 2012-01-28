@@ -368,8 +368,6 @@ struct sr_device_plugin {
 struct sr_session {
 	/* List of struct sr_device* */
 	GSList *devices;
-	/* List of struct analyzer* */
-	GSList *analyzers;
 	/* list of sr_receive_data_callback */
 	GSList *datafeed_callbacks;
 	GTimeVal starttime;
