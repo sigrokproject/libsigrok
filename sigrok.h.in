@@ -189,7 +189,7 @@ struct sr_probe {
 
 /* Hardware plugin capabilities */
 enum {
-	SR_HWCAP_DUMMY,             /* Used to terminate lists */
+	SR_HWCAP_DUMMY = 0, /* Used to terminate lists. Must be 0! */
 
 	/*--- Device classes ------------------------------------------------*/
 
