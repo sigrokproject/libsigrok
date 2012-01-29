@@ -71,6 +71,8 @@ struct fx2_device {
 	 * on the session bus along with samples.
 	 */
 	void *session_data;
+
+	struct sr_usb_device_instance *usb;
 };
 
 #endif /* SALEAE_LOGIC_H_ */

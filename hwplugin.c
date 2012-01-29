@@ -163,7 +163,6 @@ struct sr_device_instance *sr_device_instance_new(int index, int status,
 	sdi->model = model ? g_strdup(model) : NULL;
 	sdi->version = version ? g_strdup(version) : NULL;
 	sdi->priv = NULL;
-	sdi->usb = NULL;
 
 	return sdi;
 }
@@ -186,20 +185,6 @@ struct sr_device_instance *sr_get_device_instance(GSList *device_instances,
 
 void sr_device_instance_free(struct sr_device_instance *sdi)
 {
-	switch (sdi->instance_type) {
-#ifdef HAVE_LIBUSB_1_0
-	case SR_USB_INSTANCE:
-		sr_usb_device_instance_free(sdi->usb);
-		break;
-#endif
-	case SR_SERIAL_INSTANCE:
-		sr_serial_device_instance_free(sdi->serial);
-		break;
-	default:
-		/* No specific type, nothing extra to free. */
-		break;
-	}
-
 	g_free(sdi->priv);
 	g_free(sdi->vendor);
 	g_free(sdi->model);

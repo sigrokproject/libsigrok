@@ -218,6 +218,7 @@ static struct ols_device *ols_device_new(void)
 	ols->probe_mask = 0xffffffff;
 	ols->cur_samplerate = SR_KHZ(200);
 	ols->period_ps = 5000000;
+	ols->serial = NULL;
 
 	return ols;
 }
@@ -452,7 +453,7 @@ static int hw_init(const char *deviceinfo)
 			ols->num_probes = 32;
 			sdi->priv = ols;
 		}
-		sdi->serial = sr_serial_device_instance_new(device_names[i], -1);
+		ols->serial = sr_serial_device_instance_new(device_names[i], -1);
 		device_instances = g_slist_append(device_instances, sdi);
 		final_devcnt++;
 		serial_close(fds[i].fd);
@@ -483,12 +484,15 @@ hw_init_free_ports:
 static int hw_opendev(int device_index)
 {
 	struct sr_device_instance *sdi;
+	struct ols_device *ols;
 
 	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
 		return SR_ERR;
 
-	sdi->serial->fd = serial_open(sdi->serial->port, O_RDWR);
-	if (sdi->serial->fd == -1)
+	ols = sdi->priv;
+
+	ols->serial->fd = serial_open(ols->serial->port, O_RDWR);
+	if (ols->serial->fd == -1)
 		return SR_ERR;
 
 	sdi->status = SR_ST_ACTIVE;
@@ -499,16 +503,19 @@ static int hw_opendev(int device_index)
 static int hw_closedev(int device_index)
 {
 	struct sr_device_instance *sdi;
+	struct ols_device *ols;
 
 	if (!(sdi = sr_get_device_instance(device_instances, device_index))) {
 		sr_err("ols: %s: sdi was NULL", __func__);
 		return SR_ERR; /* TODO: SR_ERR_ARG? */
 	}
 
+	ols = sdi->priv;
+
 	/* TODO */
-	if (sdi->serial->fd != -1) {
-		serial_close(sdi->serial->fd);
-		sdi->serial->fd = -1;
+	if (ols->serial->fd != -1) {
+		serial_close(ols->serial->fd);
+		ols->serial->fd = -1;
 		sdi->status = SR_ST_INACTIVE;
 	}
 
@@ -519,12 +526,15 @@ static void hw_cleanup(void)
 {
 	GSList *l;
 	struct sr_device_instance *sdi;
+	struct ols_device *ols;
 
 	/* Properly close and free all devices. */
 	for (l = device_instances; l; l = l->next) {
 		sdi = l->data;
-		if (sdi->serial->fd != -1)
-			serial_close(sdi->serial->fd);
+		ols = sdi->priv;
+		if (ols->serial->fd != -1)
+			serial_close(ols->serial->fd);
+		sr_serial_device_instance_free(ols->serial);
 		sr_device_instance_free(sdi);
 	}
 	g_slist_free(device_instances);
@@ -684,7 +694,7 @@ static int receive_data(int fd, int revents, void *session_data)
 	ols = NULL;
 	for (l = device_instances; l; l = l->next) {
 		sdi = l->data;
-		if (sdi->serial->fd == fd) {
+		if (ols->serial->fd == fd) {
 			ols = sdi->priv;
 			break;
 		}
@@ -906,53 +916,53 @@ static int hw_start_acquisition(int device_index, gpointer session_data)
 		delaycount = readcount * (1 - ols->capture_ratio / 100.0);
 		ols->trigger_at = (readcount - delaycount) * 4 - ols->num_stages;
 
-		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_MASK_0,
+		if (send_longcommand(ols->serial->fd, CMD_SET_TRIGGER_MASK_0,
 			reverse32(ols->trigger_mask[0])) != SR_OK)
 			return SR_ERR;
-		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_VALUE_0,
+		if (send_longcommand(ols->serial->fd, CMD_SET_TRIGGER_VALUE_0,
 			reverse32(ols->trigger_value[0])) != SR_OK)
 			return SR_ERR;
-		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_CONFIG_0,
+		if (send_longcommand(ols->serial->fd, CMD_SET_TRIGGER_CONFIG_0,
 			trigger_config[0]) != SR_OK)
 			return SR_ERR;
 
-		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_MASK_1,
+		if (send_longcommand(ols->serial->fd, CMD_SET_TRIGGER_MASK_1,
 			reverse32(ols->trigger_mask[1])) != SR_OK)
 			return SR_ERR;
-		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_VALUE_1,
+		if (send_longcommand(ols->serial->fd, CMD_SET_TRIGGER_VALUE_1,
 			reverse32(ols->trigger_value[1])) != SR_OK)
 			return SR_ERR;
-		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_CONFIG_1,
+		if (send_longcommand(ols->serial->fd, CMD_SET_TRIGGER_CONFIG_1,
 			trigger_config[1]) != SR_OK)
 			return SR_ERR;
 
-		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_MASK_2,
+		if (send_longcommand(ols->serial->fd, CMD_SET_TRIGGER_MASK_2,
 			reverse32(ols->trigger_mask[2])) != SR_OK)
 			return SR_ERR;
-		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_VALUE_2,
+		if (send_longcommand(ols->serial->fd, CMD_SET_TRIGGER_VALUE_2,
 			reverse32(ols->trigger_value[2])) != SR_OK)
 			return SR_ERR;
-		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_CONFIG_2,
+		if (send_longcommand(ols->serial->fd, CMD_SET_TRIGGER_CONFIG_2,
 			trigger_config[2]) != SR_OK)
 			return SR_ERR;
 
-		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_MASK_3,
+		if (send_longcommand(ols->serial->fd, CMD_SET_TRIGGER_MASK_3,
 			reverse32(ols->trigger_mask[3])) != SR_OK)
 			return SR_ERR;
-		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_VALUE_3,
+		if (send_longcommand(ols->serial->fd, CMD_SET_TRIGGER_VALUE_3,
 			reverse32(ols->trigger_value[3])) != SR_OK)
 			return SR_ERR;
-		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_CONFIG_3,
+		if (send_longcommand(ols->serial->fd, CMD_SET_TRIGGER_CONFIG_3,
 			trigger_config[3]) != SR_OK)
 			return SR_ERR;
 	} else {
-		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_MASK_0,
+		if (send_longcommand(ols->serial->fd, CMD_SET_TRIGGER_MASK_0,
 				ols->trigger_mask[0]) != SR_OK)
 			return SR_ERR;
-		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_VALUE_0,
+		if (send_longcommand(ols->serial->fd, CMD_SET_TRIGGER_VALUE_0,
 				ols->trigger_value[0]) != SR_OK)
 			return SR_ERR;
-		if (send_longcommand(sdi->serial->fd, CMD_SET_TRIGGER_CONFIG_0,
+		if (send_longcommand(ols->serial->fd, CMD_SET_TRIGGER_CONFIG_0,
 		     0x00000008) != SR_OK)
 			return SR_ERR;
 		delaycount = readcount;
@@ -961,14 +971,14 @@ static int hw_start_acquisition(int device_index, gpointer session_data)
 	sr_info("ols: setting samplerate to %" PRIu64 " Hz (divider %u, "
 		"demux %s)", ols->cur_samplerate, ols->cur_samplerate_divider,
 		ols->flag_reg & FLAG_DEMUX ? "on" : "off");
-	if (send_longcommand(sdi->serial->fd, CMD_SET_DIVIDER,
+	if (send_longcommand(ols->serial->fd, CMD_SET_DIVIDER,
 			reverse32(ols->cur_samplerate_divider)) != SR_OK)
 		return SR_ERR;
 
 	/* Send sample limit and pre/post-trigger capture ratio. */
 	data = ((readcount - 1) & 0xffff) << 16;
 	data |= (delaycount - 1) & 0xffff;
-	if (send_longcommand(sdi->serial->fd, CMD_CAPTURE_SIZE, reverse16(data)) != SR_OK)
+	if (send_longcommand(ols->serial->fd, CMD_CAPTURE_SIZE, reverse16(data)) != SR_OK)
 		return SR_ERR;
 
 	/* The flag register wants them here, and 1 means "disable channel". */
@@ -976,14 +986,14 @@ static int hw_start_acquisition(int device_index, gpointer session_data)
 	ols->flag_reg |= FLAG_FILTER;
 	ols->rle_count = 0;
 	data = (ols->flag_reg << 24) | ((ols->flag_reg << 8) & 0xff0000);
-	if (send_longcommand(sdi->serial->fd, CMD_SET_FLAGS, data) != SR_OK)
+	if (send_longcommand(ols->serial->fd, CMD_SET_FLAGS, data) != SR_OK)
 		return SR_ERR;
 
 	/* Start acquisition on the device. */
-	if (send_shortcommand(sdi->serial->fd, CMD_RUN) != SR_OK)
+	if (send_shortcommand(ols->serial->fd, CMD_RUN) != SR_OK)
 		return SR_ERR;
 
-	sr_source_add(sdi->serial->fd, G_IO_IN, -1, receive_data,
+	sr_source_add(ols->serial->fd, G_IO_IN, -1, receive_data,
 		      session_data);
 
 	if (!(packet = g_try_malloc(sizeof(struct sr_datafeed_packet)))) {

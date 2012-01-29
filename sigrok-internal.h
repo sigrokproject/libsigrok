@@ -22,6 +22,9 @@
 
 #include <stdarg.h>
 #include <glib.h>
+#ifdef HAVE_LIBUSB_1_0
+#include <libusb.h>
+#endif
 
 /*--- Macros ----------------------------------------------------------------*/
 
@@ -39,6 +42,31 @@
 /*--- hwplugin.c ------------------------------------------------------------*/
 
 int load_hwplugins(void);
+
+#ifdef HAVE_LIBUSB_1_0
+struct sr_usb_device_instance {
+	uint8_t bus;
+	uint8_t address;
+	struct libusb_device_handle *devhdl;
+};
+#endif
+
+struct sr_serial_device_instance {
+	char *port;
+	int fd;
+};
+
+#ifdef HAVE_LIBUSB_1_0
+/* USB-specific instances */
+struct sr_usb_device_instance *sr_usb_device_instance_new(uint8_t bus,
+		uint8_t address, struct libusb_device_handle *hdl);
+void sr_usb_device_instance_free(struct sr_usb_device_instance *usb);
+#endif
+
+/* Serial-specific instances */
+struct sr_serial_device_instance *sr_serial_device_instance_new(
+					const char *port, int fd);
+void sr_serial_device_instance_free(struct sr_serial_device_instance *serial);
 
 /*--- log.c -----------------------------------------------------------------*/
 

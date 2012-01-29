@@ -192,24 +192,24 @@ static int sl_open_device(int device_index)
 			 * This device is fully enumerated, so we need to find this
 			 * device by vendor, product, bus and address.
 			 */
-			if (libusb_get_bus_number(devlist[i]) != sdi->usb->bus
-				|| libusb_get_device_address(devlist[i]) != sdi->usb->address)
+			if (libusb_get_bus_number(devlist[i]) != fx2->usb->bus
+				|| libusb_get_device_address(devlist[i]) != fx2->usb->address)
 				/* this is not the one */
 				continue;
 		}
 
-		if (!(err = libusb_open(devlist[i], &sdi->usb->devhdl))) {
-			if (sdi->usb->address == 0xff)
+		if (!(err = libusb_open(devlist[i], &fx2->usb->devhdl))) {
+			if (fx2->usb->address == 0xff)
 				/*
 				 * first time we touch this device after firmware upload,
 				 * so we don't know the address yet.
 				 */
-				sdi->usb->address = libusb_get_device_address(devlist[i]);
+				fx2->usb->address = libusb_get_device_address(devlist[i]);
 
 			sdi->status = SR_ST_ACTIVE;
 			sr_info("saleae: opened device %d on %d.%d interface %d",
-				  sdi->index, sdi->usb->bus,
-				  sdi->usb->address, USB_INTERFACE);
+				  sdi->index, fx2->usb->bus,
+				  fx2->usb->address, USB_INTERFACE);
 		} else {
 			sr_warn("failed to open device: %d", err);
 		}
@@ -227,14 +227,18 @@ static int sl_open_device(int device_index)
 
 static void close_device(struct sr_device_instance *sdi)
 {
-	if (sdi->usb->devhdl == NULL)
+	struct fx2_device *fx2;
+
+	fx2 = sdi->priv;
+
+	if (fx2->usb->devhdl == NULL)
 		return;
 
 	sr_info("saleae: closing device %d on %d.%d interface %d", sdi->index,
-		sdi->usb->bus, sdi->usb->address, USB_INTERFACE);
-	libusb_release_interface(sdi->usb->devhdl, USB_INTERFACE);
-	libusb_close(sdi->usb->devhdl);
-	sdi->usb->devhdl = NULL;
+		fx2->usb->bus, fx2->usb->address, USB_INTERFACE);
+	libusb_release_interface(fx2->usb->devhdl, USB_INTERFACE);
+	libusb_close(fx2->usb->devhdl);
+	fx2->usb->devhdl = NULL;
 	sdi->status = SR_ST_INACTIVE;
 }
 
@@ -289,10 +293,11 @@ static struct fx2_device *fx2_device_new(void)
 	struct fx2_device *fx2;
 
 	if (!(fx2 = g_try_malloc0(sizeof(struct fx2_device)))) {
-		sr_err("saleae: %s: saleae malloc failed", __func__);
+		sr_err("saleae: %s: fx2 malloc failed", __func__);
 		return NULL;
 	}
 	fx2->trigger_stage = TRIGGER_FIRED;
+	fx2->usb = NULL;
 
 	return fx2;
 }
@@ -353,7 +358,7 @@ static int hw_init(const char *deviceinfo)
 		if (check_conf_profile(devlist[i])) {
 			/* Already has the firmware, so fix the new address. */
 			sdi->status = SR_ST_INACTIVE;
-			sdi->usb = sr_usb_device_instance_new
+			fx2->usb = sr_usb_device_instance_new
 			    (libusb_get_bus_number(devlist[i]),
 			     libusb_get_device_address(devlist[i]), NULL);
 		} else {
@@ -362,7 +367,7 @@ static int hw_init(const char *deviceinfo)
 				g_get_current_time(&fx2->fw_updated);
 			else
 				sr_warn("firmware upload failed for device %d", devcnt);
-			sdi->usb = sr_usb_device_instance_new
+			fx2->usb = sr_usb_device_instance_new
 				(libusb_get_bus_number(devlist[i]), 0xff, NULL);
 		}
 		devcnt++;
@@ -411,7 +416,7 @@ static int hw_opendev(int device_index)
 	}
 	fx2 = sdi->priv;
 
-	err = libusb_claim_interface(sdi->usb->devhdl, USB_INTERFACE);
+	err = libusb_claim_interface(fx2->usb->devhdl, USB_INTERFACE);
 	if (err != 0) {
 		sr_warn("Unable to claim interface: %d", err);
 		return SR_ERR;
@@ -445,14 +450,18 @@ static int hw_closedev(int device_index)
 static void hw_cleanup(void)
 {
 	GSList *l;
+	struct sr_device_instance *sdi;
+	struct fx2_device *fx2;
 
-	/* Properly close all devices... */
-	for (l = device_instances; l; l = l->next)
-		close_device((struct sr_device_instance *)l->data);
+	/* Properly close and free all devices. */
+	for (l = device_instances; l; l = l->next) {
+		sdi = l->data;
+		fx2 = sdi->priv;
+		close_device(sdi);
+		sr_usb_device_instance_free(fx2->usb);
+		sr_device_instance_free(sdi);
+	}
 
-	/* ...and free all their memory. */
-	for (l = device_instances; l; l = l->next)
-		g_free(l->data);
 	g_slist_free(device_instances);
 	device_instances = NULL;
 
@@ -533,7 +542,7 @@ static int set_configuration_samplerate(struct sr_device_instance *sdi,
 		samplerate, divider);
 	buf[0] = 0x01;
 	buf[1] = divider;
-	ret = libusb_bulk_transfer(sdi->usb->devhdl, 1 | LIBUSB_ENDPOINT_OUT,
+	ret = libusb_bulk_transfer(fx2->usb->devhdl, 1 | LIBUSB_ENDPOINT_OUT,
 				   buf, 2, &result, 500);
 	if (ret != 0) {
 		sr_warn("failed to set samplerate: %d", ret);
@@ -765,7 +774,7 @@ static int hw_start_acquisition(int device_index, gpointer session_data)
 			return SR_ERR_MALLOC;
 		}
 		transfer = libusb_alloc_transfer(0);
-		libusb_fill_bulk_transfer(transfer, sdi->usb->devhdl,
+		libusb_fill_bulk_transfer(transfer, fx2->usb->devhdl,
 				2 | LIBUSB_ENDPOINT_IN, buf, size,
 				receive_transfer, fx2, 40);
 		if (libusb_submit_transfer(transfer) != 0) {

@@ -76,18 +76,6 @@ struct sr_device_instance *sr_get_device_instance(GSList *device_instances,
 						  int device_index);
 void sr_device_instance_free(struct sr_device_instance *sdi);
 
-/* USB-specific instances */
-#ifdef HAVE_LIBUSB_1_0
-struct sr_usb_device_instance *sr_usb_device_instance_new(uint8_t bus,
-		uint8_t address, struct libusb_device_handle *hdl);
-void sr_usb_device_instance_free(struct sr_usb_device_instance *usb);
-#endif
-
-/* Serial-specific instances */
-struct sr_serial_device_instance *sr_serial_device_instance_new(
-					const char *port, int fd);
-void sr_serial_device_instance_free(struct sr_serial_device_instance *serial);
-
 int sr_find_hwcap(int *capabilities, int hwcap);
 struct sr_hwcap_option *sr_find_hwcap_option(int hwcap);
 void sr_source_remove(int fd);

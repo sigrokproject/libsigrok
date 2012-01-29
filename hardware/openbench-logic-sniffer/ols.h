@@ -88,6 +88,8 @@ struct ols_device {
 	unsigned char sample[4];
 	unsigned char tmp_sample[4];
 	unsigned char *raw_sample_buf;
+
+	struct sr_serial_device_instance *serial;
 };
 
 #endif /* OLS_H_ */
