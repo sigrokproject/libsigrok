@@ -1006,7 +1006,7 @@ static int receive_data(int fd, int revents, void *session_data)
 	(void)revents;
 
 	if (!(sdi = session_data)) {
-		sr_err("la8: %s: user_data was NULL", __func__);
+		sr_err("la8: %s: session_data was NULL", __func__);
 		return FALSE;
 	}
 
