@@ -54,6 +54,8 @@ int sr_device_trigger_clear(struct sr_device *device);
 int sr_device_trigger_set(struct sr_device *device, int probenum,
 			  const char *trigger);
 gboolean sr_device_has_hwcap(const struct sr_device *device, int hwcap);
+int sr_device_get_info(const struct sr_device *device, int id,
+					   const void **data);
 
 /*--- filter.c --------------------------------------------------------------*/
 

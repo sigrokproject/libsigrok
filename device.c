@@ -481,3 +481,32 @@ gboolean sr_device_has_hwcap(const struct sr_device *device, int hwcap)
 
 	return FALSE;
 }
+
+/**
+ * Returns information about the given device.
+ *
+ * @param device Pointer to the device to be checked. Must not be NULL.
+ *               The device's 'plugin' field must not be NULL either.
+ * @param id     The type of information.
+ * @param data   The return value. Must not be NULL.
+ *
+ * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or SR_ERR
+ *         upon other errors.
+ */
+int sr_device_get_info(const struct sr_device *device, int id,
+					   const void **data)
+{
+	if ((device == NULL) || (device->plugin == NULL))
+		return SR_ERR_ARG;
+
+	if (data == NULL)
+		return SR_ERR_ARG;
+
+	*data = device->plugin->get_device_info(device->plugin_index, id);
+
+	if (*data == NULL)
+		return SR_ERR;
+
+	return SR_OK;
+}
+
