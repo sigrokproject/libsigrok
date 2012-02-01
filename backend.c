@@ -26,7 +26,7 @@
  *
  * @return SR_OK upon success, a (negative) error code otherwise.
  */
-int sr_init(void)
+SR_API int sr_init(void)
 {
 	return load_hwplugins();
 }
@@ -36,7 +36,7 @@ int sr_init(void)
  *
  * @return SR_OK upon success, a (negative) error code otherwise.
  */
-int sr_exit(void)
+SR_API int sr_exit(void)
 {
 	sr_cleanup_hwplugins();
 

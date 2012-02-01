@@ -40,7 +40,9 @@ AH_TOP([#ifndef LIBSIGROK_CONFIG_H
 #define LIBSIGROK_CONFIG_H    /* To stop multiple inclusions. */])
 AH_BOTTOM([#endif /* LIBSIGROK_CONFIG_H */])
 
-CFLAGS="-g -Wall -Wextra"
+# Enable more compiler warnings via -Wall and -Wextra. Add -fvisibility=hidden
+# and enforce use of SR_API to explicitly mark all public API functions.
+CFLAGS="-g -Wall -Wextra -fvisibility=hidden"
 
 # Checks for programs.
 AC_PROG_CXX

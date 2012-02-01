@@ -33,7 +33,7 @@
  * @return A malloc()ed string representation of the samplerate value,
  *         or NULL upon errors. The caller is responsible to free() the memory.
  */
-char *sr_samplerate_string(uint64_t samplerate)
+SR_API char *sr_samplerate_string(uint64_t samplerate)
 {
 	char *o;
 	int r;
@@ -70,7 +70,7 @@ char *sr_samplerate_string(uint64_t samplerate)
  * @return A malloc()ed string representation of the frequency value,
  *         or NULL upon errors. The caller is responsible to free() the memory.
  */
-char *sr_period_string(uint64_t frequency)
+SR_API char *sr_period_string(uint64_t frequency)
 {
 	char *o;
 	int r;
@@ -104,8 +104,8 @@ char *sr_period_string(uint64_t frequency)
  * @param triggerstring TODO
  * @return TODO
  */
-char **sr_parse_triggerstring(struct sr_device *device,
-			      const char *triggerstring)
+SR_API char **sr_parse_triggerstring(struct sr_device *device,
+				     const char *triggerstring)
 {
 	GSList *l;
 	struct sr_probe *probe;
@@ -189,7 +189,7 @@ char **sr_parse_triggerstring(struct sr_device *device,
  * @return SR_OK or error code
  *
  */
-int sr_parse_sizestring(const char *sizestring, uint64_t *size)
+SR_API int sr_parse_sizestring(const char *sizestring, uint64_t *size)
 {
 	int multiplier, done;
 	char *s;
@@ -247,7 +247,7 @@ int sr_parse_sizestring(const char *sizestring, uint64_t *size)
  * TODO: picoseconds?
  * TODO: Allow both lower-case and upper-case.
  */
-uint64_t sr_parse_timestring(const char *timestring)
+SR_API uint64_t sr_parse_timestring(const char *timestring)
 {
 	uint64_t time_msec;
 	char *s;
@@ -270,15 +270,15 @@ uint64_t sr_parse_timestring(const char *timestring)
 	return time_msec;
 }
 
-gboolean sr_parse_boolstring(const char *boolstr)
+SR_API gboolean sr_parse_boolstring(const char *boolstr)
 {
 	if (!boolstr)
 		return FALSE;
 
-	if (!g_strcasecmp(boolstr, "true") || 
+	if (!g_strcasecmp(boolstr, "true") ||
 	    !g_strcasecmp(boolstr, "yes") ||
 	    !g_strcasecmp(boolstr, "on") ||
-	    !g_strcasecmp(boolstr, "1")) 
+	    !g_strcasecmp(boolstr, "1"))
 		return TRUE;
 
 	return FALSE;

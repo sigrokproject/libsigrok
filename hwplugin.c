@@ -17,7 +17,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/types.h>
@@ -35,7 +34,7 @@ static GSList *plugins;
  * options.
  */
 /* TODO: This shouldn't be a global. */
-struct sr_hwcap_option sr_hwcap_options[] = {
+SR_API struct sr_hwcap_option sr_hwcap_options[] = {
 	{SR_HWCAP_SAMPLERATE, SR_T_UINT64, "Sample rate", "samplerate"},
 	{SR_HWCAP_CAPTURE_RATIO, SR_T_UINT64, "Pre-trigger capture ratio", "captureratio"},
 	{SR_HWCAP_PATTERN_MODE, SR_T_CHAR, "Pattern generator mode", "patternmode"},
@@ -69,7 +68,7 @@ extern struct sr_device_plugin alsa_plugin_info;
 #endif
 
 /* TODO: No linked list needed, this can be a simple array. */
-int load_hwplugins(void)
+SR_PRIV int load_hwplugins(void)
 {
 #ifdef HAVE_LA_DEMO
 	plugins = g_slist_append(plugins, (gpointer *)&demo_plugin_info);
@@ -101,12 +100,12 @@ int load_hwplugins(void)
 	return SR_OK;
 }
 
-GSList *sr_list_hwplugins(void)
+SR_API GSList *sr_list_hwplugins(void)
 {
 	return plugins;
 }
 
-int sr_init_hwplugins(struct sr_device_plugin *plugin)
+SR_API int sr_init_hwplugins(struct sr_device_plugin *plugin)
 {
 	int num_devices, num_probes, i, j;
 	int num_initialized_devices = 0;
@@ -136,7 +135,7 @@ int sr_init_hwplugins(struct sr_device_plugin *plugin)
 	return num_initialized_devices;
 }
 
-void sr_cleanup_hwplugins(void)
+SR_API void sr_cleanup_hwplugins(void)
 {
 	struct sr_device_plugin *plugin;
 	GSList *l;
@@ -148,7 +147,7 @@ void sr_cleanup_hwplugins(void)
 	}
 }
 
-struct sr_device_instance *sr_device_instance_new(int index, int status,
+SR_API struct sr_device_instance *sr_device_instance_new(int index, int status,
 		const char *vendor, const char *model, const char *version)
 {
 	struct sr_device_instance *sdi;
@@ -167,8 +166,8 @@ struct sr_device_instance *sr_device_instance_new(int index, int status,
 	return sdi;
 }
 
-struct sr_device_instance *sr_get_device_instance(GSList *device_instances,
-						  int device_index)
+SR_API struct sr_device_instance *sr_get_device_instance(
+		GSList *device_instances, int device_index)
 {
 	struct sr_device_instance *sdi;
 	GSList *l;
@@ -183,7 +182,7 @@ struct sr_device_instance *sr_get_device_instance(GSList *device_instances,
 	return NULL;
 }
 
-void sr_device_instance_free(struct sr_device_instance *sdi)
+SR_API void sr_device_instance_free(struct sr_device_instance *sdi)
 {
 	g_free(sdi->priv);
 	g_free(sdi->vendor);
@@ -194,7 +193,7 @@ void sr_device_instance_free(struct sr_device_instance *sdi)
 
 #ifdef HAVE_LIBUSB_1_0
 
-struct sr_usb_device_instance *sr_usb_device_instance_new(uint8_t bus,
+SR_PRIV struct sr_usb_device_instance *sr_usb_device_instance_new(uint8_t bus,
 			uint8_t address, struct libusb_device_handle *hdl)
 {
 	struct sr_usb_device_instance *udi;
@@ -209,7 +208,7 @@ struct sr_usb_device_instance *sr_usb_device_instance_new(uint8_t bus,
 	return udi;
 }
 
-void sr_usb_device_instance_free(struct sr_usb_device_instance *usb)
+SR_PRIV void sr_usb_device_instance_free(struct sr_usb_device_instance *usb)
 {
 	/* Avoid compiler warnings. */
 	(void)usb;
@@ -219,7 +218,7 @@ void sr_usb_device_instance_free(struct sr_usb_device_instance *usb)
 
 #endif
 
-struct sr_serial_device_instance *sr_serial_device_instance_new(
+SR_PRIV struct sr_serial_device_instance *sr_serial_device_instance_new(
 						const char *port, int fd)
 {
 	struct sr_serial_device_instance *serial;
@@ -233,12 +232,13 @@ struct sr_serial_device_instance *sr_serial_device_instance_new(
 	return serial;
 }
 
-void sr_serial_device_instance_free(struct sr_serial_device_instance *serial)
+SR_PRIV void sr_serial_device_instance_free(
+		struct sr_serial_device_instance *serial)
 {
 	free(serial->port);
 }
 
-int sr_find_hwcap(int *capabilities, int hwcap)
+SR_API int sr_find_hwcap(int *capabilities, int hwcap)
 {
 	int i;
 
@@ -250,7 +250,7 @@ int sr_find_hwcap(int *capabilities, int hwcap)
 	return FALSE;
 }
 
-struct sr_hwcap_option *sr_find_hwcap_option(int hwcap)
+SR_API struct sr_hwcap_option *sr_find_hwcap_option(int hwcap)
 {
 	int i;
 

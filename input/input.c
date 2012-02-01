@@ -18,6 +18,7 @@
  */
 
 #include "sigrok.h"
+#include "sigrok-internal.h"
 
 extern struct sr_input_format input_chronovu_la8;
 extern struct sr_input_format input_binary;
@@ -29,7 +30,7 @@ static struct sr_input_format *input_module_list[] = {
 	NULL,
 };
 
-struct sr_input_format **sr_input_list(void)
+SR_API struct sr_input_format **sr_input_list(void)
 {
 	return input_module_list;
 }

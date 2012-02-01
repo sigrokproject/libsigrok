@@ -73,9 +73,10 @@
  *         If something other than SR_OK is returned, the values of
  *         out_unitsize, data_out, and length_out are undefined.
  */
-int sr_filter_probes(int in_unitsize, int out_unitsize, const int *probelist,
-		     const unsigned char *data_in, uint64_t length_in,
-		     char **data_out, uint64_t *length_out)
+SR_API int sr_filter_probes(int in_unitsize, int out_unitsize,
+			    const int *probelist, const unsigned char *data_in,
+			    uint64_t length_in, char **data_out,
+			    uint64_t *length_out)
 {
 	unsigned int in_offset, out_offset;
 	int num_enabled_probes, out_bit, i;

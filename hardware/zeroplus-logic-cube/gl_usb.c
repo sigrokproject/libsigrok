@@ -31,6 +31,7 @@
 
 #include <libusb.h>
 #include <stdio.h>
+#include "sigrok.h"
 #include "sigrok-internal.h"
 #include "gl_usb.h"
 

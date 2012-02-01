@@ -57,7 +57,7 @@ static GSList *devices = NULL;
  *
  * @return SR_OK upon success, SR_ERR upon errors.
  */
-int sr_device_scan(void)
+SR_API int sr_device_scan(void)
 {
 	GSList *plugins, *l;
 	struct sr_device_plugin *plugin;
@@ -91,7 +91,7 @@ int sr_device_scan(void)
  *
  * @return The list (GSList) of detected devices, or NULL if none were found.
  */
-GSList *sr_device_list(void)
+SR_API GSList *sr_device_list(void)
 {
 	if (!devices)
 		sr_device_scan();
@@ -119,8 +119,8 @@ GSList *sr_device_list(void)
  *
  * @return Pointer to the newly allocated device, or NULL upon errors.
  */
-struct sr_device *sr_device_new(const struct sr_device_plugin *plugin,
-				int plugin_index)
+SR_API struct sr_device *sr_device_new(const struct sr_device_plugin *plugin,
+				       int plugin_index)
 {
 	struct sr_device *device;
 
@@ -156,7 +156,7 @@ struct sr_device *sr_device_new(const struct sr_device_plugin *plugin,
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments.
  *         If something other than SR_OK is returned, 'device' is unchanged.
  */
-int sr_device_clear(struct sr_device *device)
+SR_API int sr_device_clear(struct sr_device *device)
 {
 	unsigned int pnum;
 
@@ -188,7 +188,7 @@ int sr_device_clear(struct sr_device *device)
  *         upon other errors.
  *         If something other than SR_OK is returned, 'device' is unchanged.
  */
-int sr_device_probe_clear(struct sr_device *device, int probenum)
+SR_API int sr_device_probe_clear(struct sr_device *device, int probenum)
 {
 	struct sr_probe *p;
 
@@ -237,7 +237,7 @@ int sr_device_probe_clear(struct sr_device *device, int probenum)
  *         or SR_ERR_ARG upon invalid arguments.
  *         If something other than SR_OK is returned, 'device' is unchanged.
  */
-int sr_device_probe_add(struct sr_device *device, const char *name)
+SR_API int sr_device_probe_add(struct sr_device *device, const char *name)
 {
 	struct sr_probe *p;
 	int probenum;
@@ -285,8 +285,8 @@ int sr_device_probe_add(struct sr_device *device, const char *name)
  * @return A pointer to the requested probe's 'struct sr_probe', or NULL
  *         if the probe could not be found.
  */
-struct sr_probe *sr_device_probe_find(const struct sr_device *device,
-				      int probenum)
+SR_API struct sr_probe *sr_device_probe_find(const struct sr_device *device,
+					     int probenum)
 {
 	GSList *l;
 	struct sr_probe *p, *found_probe;
@@ -328,8 +328,8 @@ struct sr_probe *sr_device_probe_find(const struct sr_device *device,
  *         upon other errors.
  *         If something other than SR_OK is returned, 'device' is unchanged.
  */
-int sr_device_probe_name(struct sr_device *device, int probenum,
-			 const char *name)
+SR_API int sr_device_probe_name(struct sr_device *device, int probenum,
+				const char *name)
 {
 	struct sr_probe *p;
 
@@ -364,7 +364,7 @@ int sr_device_probe_name(struct sr_device *device, int probenum,
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments.
  *         If something other than SR_OK is returned, 'device' is unchanged.
  */
-int sr_device_trigger_clear(struct sr_device *device)
+SR_API int sr_device_trigger_clear(struct sr_device *device)
 {
 	struct sr_probe *p;
 	unsigned int pnum; /* TODO: uint16_t? */
@@ -407,8 +407,8 @@ int sr_device_trigger_clear(struct sr_device *device)
  *         upon other errors.
  *         If something other than SR_OK is returned, 'device' is unchanged.
  */
-int sr_device_trigger_set(struct sr_device *device, int probenum,
-			  const char *trigger)
+SR_API int sr_device_trigger_set(struct sr_device *device, int probenum,
+				 const char *trigger)
 {
 	struct sr_probe *p;
 
@@ -449,7 +449,7 @@ int sr_device_trigger_set(struct sr_device *device, int probenum,
  *         FALSE is also returned upon invalid input parameters or other
  *         error conditions.
  */
-gboolean sr_device_has_hwcap(const struct sr_device *device, int hwcap)
+SR_API gboolean sr_device_has_hwcap(const struct sr_device *device, int hwcap)
 {
 	int *capabilities, i;
 

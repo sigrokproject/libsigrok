@@ -30,7 +30,6 @@
 #include <glib.h>
 #include "sigrok.h"
 #include "sigrok-internal.h"
-#include "config.h"
 
 struct context {
 	GString *header;

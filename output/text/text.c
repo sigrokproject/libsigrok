@@ -22,8 +22,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <glib.h>
-#include "sigrok.h"
 #include "config.h"
+#include "sigrok.h"
 #include "text.h"
 
 void flush_linebufs(struct context *ctx, char *outbuf)

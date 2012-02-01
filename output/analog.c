@@ -24,7 +24,6 @@
 #include <string.h>
 #include <glib.h>
 #include "sigrok.h"
-#include "config.h"
 
 #define DEFAULT_BPL_BITS 64
 #define DEFAULT_BPL_HEX  192

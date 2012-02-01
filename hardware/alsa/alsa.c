@@ -20,7 +20,6 @@
 
 /* Note: This driver doesn't compile, analog support in sigrok is WIP. */
 
-#include "config.h" /* Must come before sigrok.h */
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>

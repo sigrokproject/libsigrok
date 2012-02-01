@@ -22,6 +22,7 @@
 
 #include <stdarg.h>
 #include <glib.h>
+#include "config.h" /* Needed for HAVE_LIBUSB_1_0 and others. */
 #ifdef HAVE_LIBUSB_1_0
 #include <libusb.h>
 #endif
@@ -41,7 +42,7 @@
 
 /*--- hwplugin.c ------------------------------------------------------------*/
 
-int load_hwplugins(void);
+SR_PRIV int load_hwplugins(void);
 
 #ifdef HAVE_LIBUSB_1_0
 struct sr_usb_device_instance {
@@ -58,56 +59,58 @@ struct sr_serial_device_instance {
 
 #ifdef HAVE_LIBUSB_1_0
 /* USB-specific instances */
-struct sr_usb_device_instance *sr_usb_device_instance_new(uint8_t bus,
+SR_PRIV struct sr_usb_device_instance *sr_usb_device_instance_new(uint8_t bus,
 		uint8_t address, struct libusb_device_handle *hdl);
-void sr_usb_device_instance_free(struct sr_usb_device_instance *usb);
+SR_PRIV void sr_usb_device_instance_free(struct sr_usb_device_instance *usb);
 #endif
 
 /* Serial-specific instances */
-struct sr_serial_device_instance *sr_serial_device_instance_new(
+SR_PRIV struct sr_serial_device_instance *sr_serial_device_instance_new(
 					const char *port, int fd);
-void sr_serial_device_instance_free(struct sr_serial_device_instance *serial);
+SR_PRIV void sr_serial_device_instance_free(
+		struct sr_serial_device_instance *serial);
 
 /*--- log.c -----------------------------------------------------------------*/
 
-int sr_log(int loglevel, const char *format, ...);
-int sr_spew(const char *format, ...);
-int sr_dbg(const char *format, ...);
-int sr_info(const char *format, ...);
-int sr_warn(const char *format, ...);
-int sr_err(const char *format, ...);
+SR_PRIV int sr_log(int loglevel, const char *format, ...);
+SR_PRIV int sr_spew(const char *format, ...);
+SR_PRIV int sr_dbg(const char *format, ...);
+SR_PRIV int sr_info(const char *format, ...);
+SR_PRIV int sr_warn(const char *format, ...);
+SR_PRIV int sr_err(const char *format, ...);
 
 /*--- hardware/common/serial.c ----------------------------------------------*/
 
-GSList *list_serial_ports(void);
-int serial_open(const char *pathname, int flags);
-int serial_close(int fd);
-int serial_flush(int fd);
-int serial_write(int fd, const void *buf, size_t count);
-int serial_read(int fd, void *buf, size_t count);
-void *serial_backup_params(int fd);
-void serial_restore_params(int fd, void *backup);
-int serial_set_params(int fd, int speed, int bits, int parity, int stopbits,
-		      int flowcontrol);
+SR_PRIV GSList *list_serial_ports(void);
+SR_PRIV int serial_open(const char *pathname, int flags);
+SR_PRIV int serial_close(int fd);
+SR_PRIV int serial_flush(int fd);
+SR_PRIV int serial_write(int fd, const void *buf, size_t count);
+SR_PRIV int serial_read(int fd, void *buf, size_t count);
+SR_PRIV void *serial_backup_params(int fd);
+SR_PRIV void serial_restore_params(int fd, void *backup);
+SR_PRIV int serial_set_params(int fd, int speed, int bits, int parity,
+			      int stopbits, int flowcontrol);
 
 /*--- hardware/common/ezusb.c -----------------------------------------------*/
 
 #ifdef HAVE_LIBUSB_1_0
-int ezusb_reset(struct libusb_device_handle *hdl, int set_clear);
-int ezusb_install_firmware(libusb_device_handle *hdl, const char *filename);
-int ezusb_upload_firmware(libusb_device *dev, int configuration,
-			  const char *filename);
+SR_PRIV int ezusb_reset(struct libusb_device_handle *hdl, int set_clear);
+SR_PRIV int ezusb_install_firmware(libusb_device_handle *hdl,
+				   const char *filename);
+SR_PRIV int ezusb_upload_firmware(libusb_device *dev, int configuration,
+				  const char *filename);
 #endif
 
 /*--- hardware/common/misc.c ------------------------------------------------*/
 
 #ifdef HAVE_LIBUSB_1_0
-int opendev2(int device_index, struct sr_device_instance **sdi,
-	     libusb_device *dev, struct libusb_device_descriptor *des,
-	     int *skip, uint16_t vid, uint16_t pid, int interface);
-int opendev3(struct sr_device_instance **sdi, libusb_device *dev,
-	     struct libusb_device_descriptor *des,
-	     uint16_t vid, uint16_t pid, int interface);
+SR_PRIV int opendev2(int device_index, struct sr_device_instance **sdi,
+		     libusb_device *dev, struct libusb_device_descriptor *des,
+		     int *skip, uint16_t vid, uint16_t pid, int interface);
+SR_PRIV int opendev3(struct sr_device_instance **sdi, libusb_device *dev,
+		     struct libusb_device_descriptor *des,
+		     uint16_t vid, uint16_t pid, int interface);
 #endif
 
 #endif

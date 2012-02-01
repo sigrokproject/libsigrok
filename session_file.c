@@ -17,13 +17,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <zip.h>
 #include <glib.h>
 #include <glib/gstdio.h>
+#include "config.h"
 #include "sigrok.h"
 #include "sigrok-internal.h"
 
@@ -39,7 +39,7 @@ extern struct sr_device_plugin session_driver;
  *         SR_ERR_MALLOC upon memory allocation errors, or SR_ERR upon
  *         other errors.
  */
-int sr_session_load(const char *filename)
+SR_API int sr_session_load(const char *filename)
 {
 	GKeyFile *kf;
 	GPtrArray *capturefiles;

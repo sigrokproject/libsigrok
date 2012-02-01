@@ -18,6 +18,7 @@
  */
 
 #include "sigrok.h"
+#include "sigrok-internal.h"
 
 extern struct sr_output_format output_text_bits;
 extern struct sr_output_format output_text_hex;
@@ -46,7 +47,7 @@ static struct sr_output_format *output_module_list[] = {
 	NULL,
 };
 
-struct sr_output_format **sr_output_list(void)
+SR_API struct sr_output_format **sr_output_list(void)
 {
 	return output_module_list;
 }

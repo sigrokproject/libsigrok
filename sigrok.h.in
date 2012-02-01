@@ -73,6 +73,25 @@ extern "C" {
 #define SR_LOG_DBG	 4
 #define SR_LOG_SPEW	 5
 
+/*
+ * Use SR_API to mark public API symbols, and SR_PRIV for private symbols.
+ *
+ * Variables and functions marked 'static' are private already and don't
+ * need SR_PRIV. However, functions which are not static (because they need
+ * to be used in other libsigrok-internal files) but are also not meant to
+ * be part of the public libsigrok API, must use SR_PRIV.
+ *
+ * This uses the 'visibility' feature of gcc (requires gcc >= 4.0).
+ *
+ * Details: http://gcc.gnu.org/wiki/Visibility
+ */
+
+/* Marks public libsigrok API symbols. */
+#define SR_API __attribute__((visibility("default")))
+
+/* Marks private, non-public libsigrok symbols (not part of the API). */
+#define SR_PRIV __attribute__((visibility("hidden")))
+
 typedef int (*sr_receive_data_callback) (int fd, int revents, void *user_data);
 
 /* Data types used by hardware plugins for set_configuration() */

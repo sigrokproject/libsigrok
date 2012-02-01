@@ -17,7 +17,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -56,7 +55,7 @@ static int source_timeout = -1;
  *
  * @return A pointer to the newly allocated session, or NULL upon errors.
  */
-struct sr_session *sr_session_new(void)
+SR_API struct sr_session *sr_session_new(void)
 {
 	if (!(session = calloc(1, sizeof(struct sr_session)))) {
 		sr_err("session: %s: session malloc failed", __func__);
@@ -73,7 +72,7 @@ struct sr_session *sr_session_new(void)
  *
  * @return SR_OK upon success, SR_ERR_BUG if no session exists.
  */
-int sr_session_destroy(void)
+SR_API int sr_session_destroy(void)
 {
 	if (!session) {
 		sr_warn("session: %s: session was NULL", __func__);
@@ -101,7 +100,7 @@ int sr_session_destroy(void)
  *
  * @return SR_OK upon success, SR_ERR_BUG if no session exists.
  */
-int sr_session_device_clear(void)
+SR_API int sr_session_device_clear(void)
 {
 	if (!session) {
 		sr_warn("session: %s: session was NULL", __func__);
@@ -123,7 +122,7 @@ int sr_session_device_clear(void)
  *
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments.
  */
-int sr_session_device_add(struct sr_device *device)
+SR_API int sr_session_device_add(struct sr_device *device)
 {
 	int ret;
 
@@ -165,7 +164,7 @@ int sr_session_device_add(struct sr_device *device)
  *
  * @return SR_OK upon success, SR_ERR_BUG if no session exists.
  */
-int sr_session_datafeed_callback_clear(void)
+SR_API int sr_session_datafeed_callback_clear(void)
 {
 	if (!session) {
 		sr_err("session: %s: session was NULL", __func__);
@@ -184,7 +183,7 @@ int sr_session_datafeed_callback_clear(void)
  * @param callback TODO.
  * @return SR_OK upon success, SR_ERR_BUG if no session exists.
  */
-int sr_session_datafeed_callback_add(sr_datafeed_callback callback)
+SR_API int sr_session_datafeed_callback_add(sr_datafeed_callback callback)
 {
 	if (!session) {
 		sr_err("session: %s: session was NULL", __func__);
@@ -258,7 +257,7 @@ static int sr_session_run_poll(void)
  *
  * @return SR_OK upon success, SR_ERR upon errors.
  */
-int sr_session_start(void)
+SR_API int sr_session_start(void)
 {
 	struct sr_device *device;
 	GSList *l;
@@ -304,7 +303,7 @@ int sr_session_start(void)
  *
  * @return SR_OK upon success, SR_ERR_BUG upon errors.
  */
-int sr_session_run(void)
+SR_API int sr_session_run(void)
 {
 	if (!session) {
 		sr_err("session: %s: session was NULL; a session must be "
@@ -342,7 +341,7 @@ int sr_session_run(void)
  *
  * @return SR_OK upon success, SR_ERR_BUG if no session exists.
  */
-int sr_session_halt(void)
+SR_API int sr_session_halt(void)
 {
 	if (!session) {
 		sr_err("session: %s: session was NULL", __func__);
@@ -362,7 +361,7 @@ int sr_session_halt(void)
  *
  * @return SR_OK upon success, SR_ERR_BUG if no session exists.
  */
-int sr_session_stop(void)
+SR_API int sr_session_stop(void)
 {
 	struct sr_device *device;
 	GSList *l;
@@ -439,7 +438,8 @@ static int datafeed_dump(struct sr_datafeed_packet *packet)
  * @param packet TODO.
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments.
  */
-int sr_session_bus(struct sr_device *device, struct sr_datafeed_packet *packet)
+SR_API int sr_session_bus(struct sr_device *device,
+			  struct sr_datafeed_packet *packet)
 {
 	GSList *l;
 	sr_datafeed_callback cb;
@@ -487,8 +487,8 @@ int sr_session_bus(struct sr_device *device, struct sr_datafeed_packet *packet)
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or
  *         SR_ERR_MALLOC upon memory allocation errors.
  */
-int sr_session_source_add(int fd, int events, int timeout,
-	        sr_receive_data_callback callback, void *user_data)
+SR_API int sr_session_source_add(int fd, int events, int timeout,
+		sr_receive_data_callback callback, void *user_data)
 {
 	struct source *new_sources, *s;
 
@@ -537,7 +537,7 @@ int sr_session_source_add(int fd, int events, int timeout,
  *         SR_ERR_MALLOC upon memory allocation errors, SR_ERR_BUG upon
  *         internal errors.
  */
-int sr_session_source_remove(int fd)
+SR_API int sr_session_source_remove(int fd)
 {
 	struct source *new_sources;
 	int old, new;

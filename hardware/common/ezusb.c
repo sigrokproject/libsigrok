@@ -27,11 +27,10 @@
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
-#include "config.h"
 #include "sigrok.h"
 #include "sigrok-internal.h"
 
-int ezusb_reset(struct libusb_device_handle *hdl, int set_clear)
+SR_PRIV int ezusb_reset(struct libusb_device_handle *hdl, int set_clear)
 {
 	int err;
 	unsigned char buf[1];
@@ -46,7 +45,8 @@ int ezusb_reset(struct libusb_device_handle *hdl, int set_clear)
 	return err;
 }
 
-int ezusb_install_firmware(libusb_device_handle *hdl, const char *filename)
+SR_PRIV int ezusb_install_firmware(libusb_device_handle *hdl,
+				   const char *filename)
 {
 	FILE *fw;
 	int offset, chunksize, err, result;
@@ -82,8 +82,8 @@ int ezusb_install_firmware(libusb_device_handle *hdl, const char *filename)
 	return result;
 }
 
-int ezusb_upload_firmware(libusb_device *dev, int configuration,
-			  const char *filename)
+SR_PRIV int ezusb_upload_firmware(libusb_device *dev, int configuration,
+				  const char *filename)
 {
 	struct libusb_device_handle *hdl;
 	int err;

@@ -21,9 +21,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <glib.h>
+#include "config.h"
 #include "sigrok.h"
 #include "sigrok-internal.h"
-#include "config.h"
 
 struct context {
 	unsigned int num_enabled_probes;

@@ -48,7 +48,7 @@ static gpointer new_chunk(struct sr_datastore **ds);
  *         or SR_ERR_ARG upon invalid arguments. If something other than SR_OK
  *         is returned, the value of 'ds' is undefined.
  */
-int sr_datastore_new(int unitsize, struct sr_datastore **ds)
+SR_API int sr_datastore_new(int unitsize, struct sr_datastore **ds)
 {
 	if (!ds) {
 		sr_err("ds: %s: ds was NULL", __func__);
@@ -83,7 +83,7 @@ int sr_datastore_new(int unitsize, struct sr_datastore **ds)
  *
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments.
  */
-int sr_datastore_destroy(struct sr_datastore *ds)
+SR_API int sr_datastore_destroy(struct sr_datastore *ds)
 {
 	GSList *chunk;
 
@@ -129,8 +129,8 @@ int sr_datastore_destroy(struct sr_datastore *ds)
  *         or SR_ERR_ARG upon invalid arguments. If something other than SR_OK
  *         is returned, the value/state of 'ds' is undefined.
  */
-int sr_datastore_put(struct sr_datastore *ds, void *data, unsigned int length,
-		     int in_unitsize, int *probelist)
+SR_API int sr_datastore_put(struct sr_datastore *ds, void *data,
+		unsigned int length, int in_unitsize, int *probelist)
 {
 	unsigned int stored;
 	int capacity, size, num_chunks, chunk_bytes_free, chunk_offset;

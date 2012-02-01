@@ -38,7 +38,7 @@
 static HANDLE hdl;
 #endif
 
-const char *serial_port_glob[] = {
+static const char *serial_port_glob[] = {
 	/* Linux */
 	"/dev/ttyS*",
 	"/dev/ttyUSB*",
@@ -50,7 +50,7 @@ const char *serial_port_glob[] = {
 	NULL,
 };
 
-GSList *list_serial_ports(void)
+SR_PRIV GSList *list_serial_ports(void)
 {
 	GSList *ports;
 
@@ -75,7 +75,7 @@ GSList *list_serial_ports(void)
 	return ports;
 }
 
-int serial_open(const char *pathname, int flags)
+SR_PRIV int serial_open(const char *pathname, int flags)
 {
 #ifdef _WIN32
 	/* FIXME: Don't hardcode COM1. */
@@ -94,7 +94,7 @@ int serial_open(const char *pathname, int flags)
  * Close the serial port.
  * Returns 0 upon success, -1 upon failure.
  */
-int serial_close(int fd)
+SR_PRIV int serial_close(int fd)
 {
 #ifdef _WIN32
 	/* Returns non-zero upon success, 0 upon failure. */
@@ -109,7 +109,7 @@ int serial_close(int fd)
  * Flush serial port buffers (if any).
  * Returns 0 upon success, -1 upon failure.
  */
-int serial_flush(int fd)
+SR_PRIV int serial_flush(int fd)
 {
 #ifdef _WIN32
 	/* Returns non-zero upon success, 0 upon failure. */
@@ -124,7 +124,7 @@ int serial_flush(int fd)
  * Write a number of bytes to the specified serial port.
  * Returns the number of bytes written, or -1 upon failure.
  */
-int serial_write(int fd, const void *buf, size_t count)
+SR_PRIV int serial_write(int fd, const void *buf, size_t count)
 {
 #ifdef _WIN32
 	DWORD tmp = 0;
@@ -142,7 +142,7 @@ int serial_write(int fd, const void *buf, size_t count)
  * Read a number of bytes from the specified serial port.
  * Returns the number of bytes read, or -1 upon failure.
  */
-int serial_read(int fd, void *buf, size_t count)
+SR_PRIV int serial_read(int fd, void *buf, size_t count)
 {
 #ifdef _WIN32
 	DWORD tmp = 0;
@@ -156,7 +156,7 @@ int serial_read(int fd, void *buf, size_t count)
 #endif
 }
 
-void *serial_backup_params(int fd)
+SR_PRIV void *serial_backup_params(int fd)
 {
 #ifdef _WIN32
 	/* TODO */
@@ -175,7 +175,7 @@ void *serial_backup_params(int fd)
 #endif
 }
 
-void serial_restore_params(int fd, void *backup)
+SR_PRIV void serial_restore_params(int fd, void *backup)
 {
 #ifdef _WIN32
 	/* TODO */
@@ -190,8 +190,8 @@ void serial_restore_params(int fd, void *backup)
  * flowcontrol: 1 = rts/cts, 2 = xon/xoff
  * parity: 0 = none, 1 = even, 2 = odd
  */
-int serial_set_params(int fd, int speed, int bits, int parity, int stopbits,
-		      int flowcontrol)
+SR_PRIV int serial_set_params(int fd, int speed, int bits, int parity,
+			      int stopbits, int flowcontrol)
 {
 #ifdef _WIN32
 	DCB dcb;

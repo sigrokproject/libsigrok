@@ -35,7 +35,7 @@ static int sr_loglevel = SR_LOG_WARN; /* Show errors+warnings per default. */
  *                 SR_LOG_INFO, SR_LOG_DBG, or SR_LOG_SPEW).
  * @return SR_OK upon success, SR_ERR_ARG upon invalid loglevel.
  */
-int sr_set_loglevel(int loglevel)
+SR_API int sr_set_loglevel(int loglevel)
 {
 	if (loglevel < SR_LOG_NONE || loglevel > SR_LOG_SPEW) {
 		sr_err("log: %s: invalid loglevel %d", __func__, loglevel);
@@ -54,7 +54,7 @@ int sr_set_loglevel(int loglevel)
  *
  * @return The currently configured libsigrok loglevel.
  */
-int sr_get_loglevel(void)
+SR_API int sr_get_loglevel(void)
 {
 	return sr_loglevel;
 }
@@ -73,7 +73,7 @@ static int sr_logv(int loglevel, const char *format, va_list args)
 	return ret;
 }
 
-int sr_log(int loglevel, const char *format, ...)
+SR_PRIV int sr_log(int loglevel, const char *format, ...)
 {
 	int ret;
 	va_list args;
@@ -85,7 +85,7 @@ int sr_log(int loglevel, const char *format, ...)
 	return ret;
 }
 
-int sr_spew(const char *format, ...)
+SR_PRIV int sr_spew(const char *format, ...)
 {
 	int ret;
 	va_list args;
@@ -97,7 +97,7 @@ int sr_spew(const char *format, ...)
 	return ret;
 }
 
-int sr_dbg(const char *format, ...)
+SR_PRIV int sr_dbg(const char *format, ...)
 {
 	int ret;
 	va_list args;
@@ -109,7 +109,7 @@ int sr_dbg(const char *format, ...)
 	return ret;
 }
 
-int sr_info(const char *format, ...)
+SR_PRIV int sr_info(const char *format, ...)
 {
 	int ret;
 	va_list args;
@@ -121,7 +121,7 @@ int sr_info(const char *format, ...)
 	return ret;
 }
 
-int sr_warn(const char *format, ...)
+SR_PRIV int sr_warn(const char *format, ...)
 {
 	int ret;
 	va_list args;
@@ -133,7 +133,7 @@ int sr_warn(const char *format, ...)
 	return ret;
 }
 
-int sr_err(const char *format, ...)
+SR_PRIV int sr_err(const char *format, ...)
 {
 	int ret;
 	va_list args;

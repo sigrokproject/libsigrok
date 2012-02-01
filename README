@@ -25,7 +25,7 @@ Requirements
 ------------
 
  - git
- - gcc
+ - gcc (>= 4.0)
  - make
  - autoconf >= 2.63
  - automake >= 1.11

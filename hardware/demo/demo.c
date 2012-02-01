@@ -27,7 +27,6 @@
 #include <fcntl.h>
 #define pipe(fds) _pipe(fds, 4096, _O_BINARY)
 #endif
-#include "config.h"
 #include "sigrok.h"
 #include "sigrok-internal.h"
 
