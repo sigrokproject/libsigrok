@@ -1,7 +1,7 @@
 /*
  * This file is part of the sigrok project.
  *
- * Copyright (C) 2010 Bert Vermeulen <bert@biot.com>
+ * Copyright (C) 2012 Bert Vermeulen <bert@biot.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -549,7 +549,6 @@ static int set_configuration_samplerate(struct sr_device_instance *sdi,
 		return SR_ERR;
 	}
 	fx2->cur_samplerate = samplerate;
-	fx2->period_ps = 1000000000000 / samplerate;
 
 	return SR_OK;
 }
@@ -675,8 +674,6 @@ static void receive_transfer(struct libusb_transfer *transfer)
 					 * Tell the frontend we hit the trigger here.
 					 */
 					packet.type = SR_DF_TRIGGER;
-					packet.timeoffset = (num_samples + i) * fx2->period_ps;
-					packet.duration = 0;
 					packet.payload = NULL;
 					sr_session_bus(fx2->session_data, &packet);
 
@@ -685,8 +682,6 @@ static void receive_transfer(struct libusb_transfer *transfer)
 					 * skipping past them.
 					 */
 					packet.type = SR_DF_LOGIC;
-					packet.timeoffset = (num_samples + i) * fx2->period_ps;
-					packet.duration = fx2->trigger_stage * fx2->period_ps;
 					packet.payload = &logic;
 					logic.length = fx2->trigger_stage;
 					logic.unitsize = 1;
@@ -719,8 +714,6 @@ static void receive_transfer(struct libusb_transfer *transfer)
 	if (fx2->trigger_stage == TRIGGER_FIRED) {
 		/* Send the incoming transfer to the session bus. */
 		packet.type = SR_DF_LOGIC;
-		packet.timeoffset = num_samples * fx2->period_ps;
-		packet.duration = cur_buflen * fx2->period_ps;
 		packet.payload = &logic;
 		logic.length = cur_buflen - trigger_offset;
 		logic.unitsize = 1;

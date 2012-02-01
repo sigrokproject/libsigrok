@@ -60,9 +60,6 @@ struct la8 {
 	/** The currently configured samplerate of the device. */
 	uint64_t cur_samplerate;
 
-	/** period in picoseconds corresponding to the samplerate */
-	uint64_t period_ps;
-
 	/** The current sampling limit (in ms). */
 	uint64_t limit_msec;
 
@@ -493,7 +490,6 @@ static int hw_init(const char *deviceinfo)
 	/* Set some sane defaults. */
 	la8->ftdic = NULL;
 	la8->cur_samplerate = SR_MHZ(100); /* 100MHz == max. samplerate */
-	la8->period_ps = 10000;
 	la8->limit_msec = 0;
 	la8->limit_samples = 0;
 	la8->session_id = NULL;
@@ -643,7 +639,6 @@ static int set_samplerate(struct sr_device_instance *sdi, uint64_t samplerate)
 
 	/* Set the new samplerate. */
 	la8->cur_samplerate = samplerate;
-	la8->period_ps = 1000000000000 / samplerate;
 
 	sr_dbg("la8: samplerate set to %" PRIu64 "Hz", la8->cur_samplerate);
 
@@ -935,8 +930,6 @@ static void send_block_to_session_bus(struct la8 *la8, int block)
 		sr_spew("la8: sending SR_DF_LOGIC packet (%d bytes) for "
 		        "block %d", BS, block);
 		packet.type = SR_DF_LOGIC;
-		packet.timeoffset = block * BS * la8->period_ps;
-		packet.duration = BS * la8->period_ps;
 		packet.payload = &logic;
 		logic.length = BS;
 		logic.unitsize = 1;
@@ -960,8 +953,6 @@ static void send_block_to_session_bus(struct la8 *la8, int block)
 		sr_spew("la8: sending pre-trigger SR_DF_LOGIC packet, "
 			"start = %d, length = %d", block * BS, trigger_point);
 		packet.type = SR_DF_LOGIC;
-		packet.timeoffset = block * BS * la8->period_ps;
-		packet.duration = trigger_point * la8->period_ps;
 		packet.payload = &logic;
 		logic.length = trigger_point;
 		logic.unitsize = 1;
@@ -973,8 +964,6 @@ static void send_block_to_session_bus(struct la8 *la8, int block)
 	sr_spew("la8: sending SR_DF_TRIGGER packet, sample = %d",
 		(block * BS) + trigger_point);
 	packet.type = SR_DF_TRIGGER;
-	packet.timeoffset = (block * BS + trigger_point) * la8->period_ps;
-	packet.duration = 0;
 	packet.payload = NULL;
 	sr_session_bus(la8->session_id, &packet);
 
@@ -985,8 +974,6 @@ static void send_block_to_session_bus(struct la8 *la8, int block)
 			"start = %d, length = %d",
 			(block * BS) + trigger_point, BS - trigger_point);
 		packet.type = SR_DF_LOGIC;
-		packet.timeoffset = (block * BS + trigger_point) * la8->period_ps;
-		packet.duration = (BS - trigger_point) * la8->period_ps;
 		packet.payload = &logic;
 		logic.length = BS - trigger_point;
 		logic.unitsize = 1;

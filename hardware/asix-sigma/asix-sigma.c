@@ -919,9 +919,6 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 			tosend = MIN(2048, n - sent);
 
 			packet.type = SR_DF_LOGIC;
-			/* TODO: fill in timeoffset and duration */
-			packet.timeoffset = 0;
-			packet.duration = 0;
 			packet.payload = &logic;
 			logic.length = tosend * sizeof(uint16_t);
 			logic.unitsize = 2;
@@ -967,9 +964,6 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 
 			if (tosend > 0) {
 				packet.type = SR_DF_LOGIC;
-				/* TODO: fill in timeoffset and duration */
-				packet.timeoffset = 0;
-				packet.duration = 0;
 				packet.payload = &logic;
 				logic.length = tosend * sizeof(uint16_t);
 				logic.unitsize = 2;
@@ -982,9 +976,6 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 			/* Only send trigger if explicitly enabled. */
 			if (sigma->use_triggers) {
 				packet.type = SR_DF_TRIGGER;
-				/* TODO: fill in timeoffset only */
-				packet.timeoffset = 0;
-				packet.duration = 0;
 				sr_session_bus(sigma->session_id, &packet);
 			}
 		}
@@ -994,9 +985,6 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 
 		if (tosend > 0) {
 			packet.type = SR_DF_LOGIC;
-			/* TODO: fill in timeoffset and duration */
-			packet.timeoffset = 0;
-			packet.duration = 0;
 			packet.payload = &logic;
 			logic.length = tosend * sizeof(uint16_t);
 			logic.unitsize = 2;

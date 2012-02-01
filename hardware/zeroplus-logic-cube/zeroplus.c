@@ -1,7 +1,7 @@
 /*
  * This file is part of the sigrok project.
  *
- * Copyright (C) 2010 Bert Vermeulen <bert@biot.com>
+ * Copyright (C) 2012 Bert Vermeulen <bert@biot.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -155,7 +155,6 @@ static struct sr_samplerates samplerates = {
 
 struct zp {
 	uint64_t cur_samplerate;
-	uint64_t period_ps;
 	uint64_t limit_samples;
 	int num_channels; /* TODO: This isn't initialized before it's needed :( */
 	uint64_t memory_size;
@@ -353,7 +352,6 @@ static int hw_init(const char *deviceinfo)
 
 	/* Set some sane defaults. */
 	zp->cur_samplerate = 0;
-	zp->period_ps = 0;
 	zp->limit_samples = 0;
 	zp->num_channels = 32; /* TODO: This isn't initialized before it's needed :( */
 	zp->memory_size = 0;
@@ -582,7 +580,6 @@ static int set_configuration_samplerate(struct sr_device_instance *sdi,
 		analyzer_set_freq(samplerate, FREQ_SCALE_HZ);
 
 	zp->cur_samplerate = samplerate;
-	zp->period_ps = 1000000000000 / samplerate;
 
 	return SR_OK;
 }
@@ -675,8 +672,6 @@ static int hw_start_acquisition(int device_index, gpointer session_data)
 			PACKET_SIZE, res);
 
 		packet.type = SR_DF_LOGIC;
-		packet.timeoffset = samples_read * zp->period_ps;
-		packet.duration = res / 4 * zp->period_ps;
 		packet.payload = &logic;
 		logic.length = PACKET_SIZE;
 		logic.unitsize = 4;

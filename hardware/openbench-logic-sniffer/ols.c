@@ -1,7 +1,7 @@
 /*
  * This file is part of the sigrok project.
  *
- * Copyright (C) 2010 Bert Vermeulen <bert@biot.com>
+ * Copyright (C) 2012 Bert Vermeulen <bert@biot.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -217,7 +217,6 @@ static struct ols_device *ols_device_new(void)
 	ols->trigger_at = -1;
 	ols->probe_mask = 0xffffffff;
 	ols->cur_samplerate = SR_KHZ(200);
-	ols->period_ps = 5000000;
 	ols->serial = NULL;
 
 	return ols;
@@ -617,7 +616,6 @@ static int set_configuration_samplerate(struct sr_device_instance *sdi,
 	ols->cur_samplerate = CLOCK_RATE / (ols->cur_samplerate_divider + 1);
 	if(ols->flag_reg & FLAG_DEMUX)
 		ols->cur_samplerate *= 2;
-	ols->period_ps = 1000000000000 / ols->cur_samplerate;
 	if(ols->cur_samplerate != samplerate)
 		sr_warn("ols: can't match samplerate %" PRIu64 ", using %" PRIu64, 
 			samplerate, ols->cur_samplerate);
@@ -818,8 +816,6 @@ static int receive_data(int fd, int revents, void *session_data)
 			if (ols->trigger_at > 0) {
 				/* there are pre-trigger samples, send those first */
 				packet.type = SR_DF_LOGIC;
-				packet.timeoffset = 0;
-				packet.duration = ols->trigger_at * ols->period_ps;
 				packet.payload = &logic;
 				logic.length = ols->trigger_at * 4;
 				logic.unitsize = 4;
@@ -830,14 +826,10 @@ static int receive_data(int fd, int revents, void *session_data)
 
 			/* send the trigger */
 			packet.type = SR_DF_TRIGGER;
-			packet.timeoffset = ols->trigger_at * ols->period_ps;
-			packet.duration = 0;
 			sr_session_bus(session_data, &packet);
 
 			/* send post-trigger samples */
 			packet.type = SR_DF_LOGIC;
-			packet.timeoffset = ols->trigger_at * ols->period_ps;
-			packet.duration = (ols->num_samples - ols->trigger_at) * ols->period_ps;
 			packet.payload = &logic;
 			logic.length = (ols->num_samples * 4) - (ols->trigger_at * 4);
 			logic.unitsize = 4;
@@ -847,8 +839,6 @@ static int receive_data(int fd, int revents, void *session_data)
 		} else {
 			/* no trigger was used */
 			packet.type = SR_DF_LOGIC;
-			packet.timeoffset = 0;
-			packet.duration = ols->num_samples * ols->period_ps;
 			packet.payload = &logic;
 			logic.length = ols->num_samples * 4;
 			logic.unitsize = 4;
@@ -861,8 +851,6 @@ static int receive_data(int fd, int revents, void *session_data)
 		serial_flush(fd);
 		serial_close(fd);
 		packet.type = SR_DF_END;
-		packet.timeoffset = ols->num_samples * ols->period_ps;
-		packet.duration = 0;
 		sr_session_bus(session_data, &packet);
 	}
 

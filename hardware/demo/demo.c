@@ -129,7 +129,6 @@ static uint8_t pattern_sigrok[] = {
 /* List of struct sr_device_instance, maintained by opendev()/closedev(). */
 static GSList *device_instances = NULL;
 static uint64_t cur_samplerate = SR_KHZ(200);
-static uint64_t period_ps = 5000000;
 static uint64_t limit_samples = 0;
 static uint64_t limit_msec = 0;
 static int default_pattern = PATTERN_SIGROK;
@@ -241,7 +240,6 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 		ret = SR_OK;
 	} else if (capability == SR_HWCAP_SAMPLERATE) {
 		cur_samplerate = *(uint64_t *)value;
-		period_ps = 1000000000000 / cur_samplerate;
 		sr_dbg("demo: %s: setting samplerate to %" PRIu64, __func__,
 		       cur_samplerate);
 		ret = SR_OK;
@@ -385,8 +383,6 @@ static int receive_data(int fd, int revents, void *session_data)
 		if (z > 0) {
 			packet.type = SR_DF_LOGIC;
 			packet.payload = &logic;
-			packet.timeoffset =  samples_received * period_ps;
-			packet.duration = z * period_ps;
 			logic.length = z;
 			logic.unitsize = 1;
 			logic.data = c;
@@ -470,8 +466,6 @@ static int hw_start_acquisition(int device_index, gpointer session_data)
 
 	packet->type = SR_DF_HEADER;
 	packet->payload = header;
-	packet->timeoffset = 0;
-	packet->duration = 0;
 	header->feed_version = 1;
 	gettimeofday(&header->starttime, NULL);
 	header->samplerate = cur_samplerate;

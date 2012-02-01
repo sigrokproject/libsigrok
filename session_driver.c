@@ -1,7 +1,7 @@
 /*
  * This file is part of the sigrok project.
  *
- * Copyright (C) 2011 Bert Vermeulen <bert@biot.com>
+ * Copyright (C) 2012 Bert Vermeulen <bert@biot.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -87,7 +87,6 @@ static int feed_chunk(int fd, int revents, void *session_data)
 	struct session_vdevice *vdevice;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
-	uint64_t sample_period_ps;
 	GSList *l;
 	void *buf;
 	int ret, got_data;
@@ -116,9 +115,6 @@ static int feed_chunk(int fd, int revents, void *session_data)
 		if (ret > 0) {
 			got_data = TRUE;
 			packet.type = SR_DF_LOGIC;
-			sample_period_ps = 1000000000000 / vdevice->samplerate;
-			packet.timeoffset = sample_period_ps * (vdevice->bytes_read / vdevice->unitsize);
-			packet.duration = sample_period_ps * (ret / vdevice->unitsize);
 			packet.payload = &logic;
 			logic.length = ret;
 			logic.unitsize = vdevice->unitsize;

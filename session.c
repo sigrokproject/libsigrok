@@ -1,7 +1,7 @@
 /*
  * This file is part of the sigrok project.
  *
- * Copyright (C) 2010 Bert Vermeulen <bert@biot.com>
+ * Copyright (C) 2012 Bert Vermeulen <bert@biot.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -413,15 +413,12 @@ static int datafeed_dump(struct sr_datafeed_packet *packet)
 		sr_dbg("bus: received SR_DF_HEADER");
 		break;
 	case SR_DF_TRIGGER:
-		sr_dbg("bus: received SR_DF_TRIGGER at %lu ms",
-		       packet->timeoffset / 1000000);
+		sr_dbg("bus: received SR_DF_TRIGGER");
 		break;
 	case SR_DF_LOGIC:
 		logic = packet->payload;
 		/* TODO: Check for logic != NULL. */
-		sr_dbg("bus: received SR_DF_LOGIC at %f ms duration %f ms, "
-		       "%" PRIu64 " bytes", packet->timeoffset / 1000000.0,
-		       packet->duration / 1000000.0, logic->length);
+		sr_dbg("bus: received SR_DF_LOGIC %" PRIu64 " bytes", logic->length);
 		break;
 	case SR_DF_END:
 		sr_dbg("bus: received SR_DF_END");
