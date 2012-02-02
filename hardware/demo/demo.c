@@ -64,7 +64,7 @@ enum {
 };
 
 /* FIXME: Should not be global. */
-GIOChannel *channels[2];
+static GIOChannel *channels[2];
 
 struct databag {
 	int pipe_fds[2];
@@ -487,7 +487,7 @@ static void hw_stop_acquisition(int device_index, gpointer session_data)
 	thread_running = 0;
 }
 
-struct sr_device_plugin demo_plugin_info = {
+SR_PRIV struct sr_device_plugin demo_plugin_info = {
 	.name = "demo",
 	.longname = "Demo driver and pattern generator",
 	.api_version = 1,

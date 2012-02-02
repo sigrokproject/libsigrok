@@ -1022,7 +1022,7 @@ static void hw_stop_acquisition(int device_index, gpointer session_device_id)
 	sr_session_bus(session_device_id, &packet);
 }
 
-struct sr_device_plugin ols_plugin_info = {
+SR_PRIV struct sr_device_plugin ols_plugin_info = {
 	.name = "ols",
 	.longname = "Openbench Logic Sniffer",
 	.api_version = 1,

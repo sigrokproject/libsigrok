@@ -302,20 +302,20 @@ static void analyzer_set_filter(libusb_device_handle *devh)
 		gl_reg_write(devh, FILTER_STATUS + i, g_filter_status[i]);
 }
 
-void analyzer_reset(libusb_device_handle *devh)
+SR_PRIV void analyzer_reset(libusb_device_handle *devh)
 {
 	analyzer_write_status(devh, 3, STATUS_FLAG_NONE);	// reset device
 	analyzer_write_status(devh, 3, STATUS_FLAG_RESET);	// reset device
 }
 
-void analyzer_initialize(libusb_device_handle *devh)
+SR_PRIV void analyzer_initialize(libusb_device_handle *devh)
 {
 	analyzer_write_status(devh, 1, STATUS_FLAG_NONE);
 	analyzer_write_status(devh, 1, STATUS_FLAG_INIT);
 	analyzer_write_status(devh, 1, STATUS_FLAG_NONE);
 }
 
-void analyzer_wait(libusb_device_handle *devh, int set, int unset)
+SR_PRIV void analyzer_wait(libusb_device_handle *devh, int set, int unset)
 {
 	int status;
 	while (1) {
@@ -325,7 +325,7 @@ void analyzer_wait(libusb_device_handle *devh, int set, int unset)
 	}
 }
 
-void analyzer_read_start(libusb_device_handle *devh)
+SR_PRIV void analyzer_read_start(libusb_device_handle *devh)
 {
 	int i;
 
@@ -335,19 +335,19 @@ void analyzer_read_start(libusb_device_handle *devh)
 		(void)gl_reg_read(devh, READ_RAM_STATUS);
 }
 
-int analyzer_read_data(libusb_device_handle *devh, void *buffer,
+SR_PRIV int analyzer_read_data(libusb_device_handle *devh, void *buffer,
 		       unsigned int size)
 {
 	return gl_read_bulk(devh, buffer, size);
 }
 
-void analyzer_read_stop(libusb_device_handle *devh)
+SR_PRIV void analyzer_read_stop(libusb_device_handle *devh)
 {
 	analyzer_write_status(devh, 3, STATUS_FLAG_20);
 	analyzer_write_status(devh, 3, STATUS_FLAG_NONE);
 }
 
-void analyzer_start(libusb_device_handle *devh)
+SR_PRIV void analyzer_start(libusb_device_handle *devh)
 {
 	analyzer_write_status(devh, 1, STATUS_FLAG_NONE);
 	analyzer_write_status(devh, 1, STATUS_FLAG_INIT);
@@ -355,7 +355,7 @@ void analyzer_start(libusb_device_handle *devh)
 	analyzer_write_status(devh, 1, STATUS_FLAG_GO);
 }
 
-void analyzer_configure(libusb_device_handle *devh)
+SR_PRIV void analyzer_configure(libusb_device_handle *devh)
 {
 	int i;
 
@@ -405,7 +405,7 @@ void analyzer_configure(libusb_device_handle *devh)
 	__analyzer_set_compression(devh, g_compression);
 }
 
-void analyzer_add_trigger(int channel, int type)
+SR_PRIV void analyzer_add_trigger(int channel, int type)
 {
 	int i;
 
@@ -448,7 +448,7 @@ void analyzer_add_trigger(int channel, int type)
 	}
 }
 
-void analyzer_add_filter(int channel, int type)
+SR_PRIV void analyzer_add_filter(int channel, int type)
 {
 	int i;
 
@@ -479,73 +479,73 @@ void analyzer_add_filter(int channel, int type)
 	g_filter_enable = 1;
 }
 
-void analyzer_set_trigger_count(int count)
+SR_PRIV void analyzer_set_trigger_count(int count)
 {
 	g_trigger_count = count;
 }
 
-void analyzer_set_freq(int freq, int scale)
+SR_PRIV void analyzer_set_freq(int freq, int scale)
 {
 	g_freq_value = freq;
 	g_freq_scale = scale;
 }
 
-void analyzer_set_memory_size(unsigned int size)
+SR_PRIV void analyzer_set_memory_size(unsigned int size)
 {
 	g_memory_size = size;
 }
 
-void analyzer_set_ramsize_trigger_address(unsigned int address)
+SR_PRIV void analyzer_set_ramsize_trigger_address(unsigned int address)
 {
 	g_ramsize_triggerbar_addr = address;
 }
 
-void analyzer_set_triggerbar_address(unsigned int address)
+SR_PRIV void analyzer_set_triggerbar_address(unsigned int address)
 {
 	g_triggerbar_addr = address;
 }
 
-unsigned int analyzer_read_id(libusb_device_handle *devh)
+SR_PRIV unsigned int analyzer_read_id(libusb_device_handle *devh)
 {
 	return gl_reg_read(devh, DEVICE_ID1) << 8 | gl_reg_read(devh,
 								DEVICE_ID0);
 }
 
-unsigned int analyzer_get_stop_address(libusb_device_handle *devh)
+SR_PRIV unsigned int analyzer_get_stop_address(libusb_device_handle *devh)
 {
 	return gl_reg_read(devh, STOP_ADDRESS2) << 16 | gl_reg_read(devh,
 			STOP_ADDRESS1) << 8 | gl_reg_read(devh, STOP_ADDRESS0);
 }
 
-unsigned int analyzer_get_now_address(libusb_device_handle *devh)
+SR_PRIV unsigned int analyzer_get_now_address(libusb_device_handle *devh)
 {
 	return gl_reg_read(devh, NOW_ADDRESS2) << 16 | gl_reg_read(devh,
 			NOW_ADDRESS1) << 8 | gl_reg_read(devh, NOW_ADDRESS0);
 }
 
-unsigned int analyzer_get_trigger_address(libusb_device_handle *devh)
+SR_PRIV unsigned int analyzer_get_trigger_address(libusb_device_handle *devh)
 {
 	return gl_reg_read(devh, TRIGGER_ADDRESS2) << 16 | gl_reg_read(devh,
 		TRIGGER_ADDRESS1) << 8 | gl_reg_read(devh, TRIGGER_ADDRESS0);
 }
 
-void analyzer_set_compression(unsigned int type)
+SR_PRIV void analyzer_set_compression(unsigned int type)
 {
 	g_compression = type;
 }
 
-void analyzer_wait_button(libusb_device_handle *devh)
+SR_PRIV void analyzer_wait_button(libusb_device_handle *devh)
 {
 	analyzer_wait(devh, STATUS_BUTTON_PRESSED, 0);
 }
 
-void analyzer_wait_data(libusb_device_handle *devh)
+SR_PRIV void analyzer_wait_data(libusb_device_handle *devh)
 {
 	analyzer_wait(devh, STATUS_READY | 8, STATUS_BUSY);
 }
 
-int analyzer_decompress(void *input, unsigned int input_len, void *output,
-			unsigned int output_len)
+SR_PRIV int analyzer_decompress(void *input, unsigned int input_len,
+				void *output, unsigned int output_len)
 {
 	unsigned char *in = input;
 	unsigned char *out = output;

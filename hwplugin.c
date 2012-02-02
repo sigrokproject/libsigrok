@@ -58,7 +58,7 @@ extern struct sr_device_plugin zeroplus_logic_cube_plugin_info;
 extern struct sr_device_plugin asix_sigma_plugin_info;
 #endif
 #ifdef HAVE_LA_CHRONOVU_LA8
-extern struct device_plugin chronovu_la8_plugin_info;
+extern SR_PRIV struct device_plugin chronovu_la8_plugin_info;
 #endif
 #ifdef HAVE_LA_LINK_MSO19
 extern struct sr_device_plugin link_mso19_plugin_info;

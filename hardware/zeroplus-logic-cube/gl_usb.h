@@ -33,19 +33,12 @@
 #define SIGROK_ZEROPLUS_GL_H
 
 #include <libusb.h>
+#include "sigrok.h"
 
-#define GL_OK		 0
-#define GL_ELIBUSB	-1
-#define GL_EOPEN	-2
-#define GL_ESETCONFIG	-3
-#define GL_ECLAIM	-4
-
-int gl_write_address(libusb_device_handle *devh, unsigned int address);
-int gl_write_data(libusb_device_handle *devh, unsigned int val);
-int gl_read_data(libusb_device_handle *devh);
-int gl_read_bulk(libusb_device_handle *devh, void *buffer, unsigned int size);
-int gl_reg_write(libusb_device_handle *devh, unsigned int reg,
-		 unsigned int val);
-int gl_reg_read(libusb_device_handle *devh, unsigned int reg);
+SR_PRIV int gl_read_bulk(libusb_device_handle *devh, void *buffer,
+			 unsigned int size);
+SR_PRIV int gl_reg_write(libusb_device_handle *devh, unsigned int reg,
+			 unsigned int val);
+SR_PRIV int gl_reg_read(libusb_device_handle *devh, unsigned int reg);
 
 #endif

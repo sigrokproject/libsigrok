@@ -386,7 +386,7 @@ static void hw_stop_acquisition(int device_index, gpointer session_device_id)
 	session_device_id = session_device_id;
 }
 
-struct sr_device_plugin alsa_plugin_info = {
+SR_PRIV struct sr_device_plugin alsa_plugin_info = {
 	.name = "alsa",
 	.longname = "ALSA driver",
 	.api_version = 1,

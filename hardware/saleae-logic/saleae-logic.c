@@ -815,7 +815,7 @@ static void hw_stop_acquisition(int device_index, gpointer session_data)
 	/* TODO: Need to cancel and free any queued up transfers. */
 }
 
-struct sr_device_plugin saleae_logic_plugin_info = {
+SR_PRIV struct sr_device_plugin saleae_logic_plugin_info = {
 	.name = "saleae-logic",
 	.longname = "Saleae Logic",
 	.api_version = 1,

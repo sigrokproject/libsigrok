@@ -33,6 +33,7 @@
 #define SIGROK_ZEROPLUS_ANALYZER_H
 
 #include <libusb.h>
+#include "sigrok.h"
 
 #define STATUS_FLAG_NONE	0x00
 #define STATUS_FLAG_RESET	0x01
@@ -75,33 +76,33 @@ enum {
 	TRIGGER_ANYEDGE,
 };
 
-void analyzer_set_freq(int freq, int scale);
-void analyzer_set_ramsize_trigger_address(unsigned int address);
-void analyzer_set_triggerbar_address(unsigned int address);
-void analyzer_set_compression(unsigned int type);
-void analyzer_set_memory_size(unsigned int size);
-void analyzer_add_trigger(int channel, int type);
-void analyzer_set_trigger_count(int count);
-void analyzer_add_filter(int channel, int type);
+SR_PRIV void analyzer_set_freq(int freq, int scale);
+SR_PRIV void analyzer_set_ramsize_trigger_address(unsigned int address);
+SR_PRIV void analyzer_set_triggerbar_address(unsigned int address);
+SR_PRIV void analyzer_set_compression(unsigned int type);
+SR_PRIV void analyzer_set_memory_size(unsigned int size);
+SR_PRIV void analyzer_add_trigger(int channel, int type);
+SR_PRIV void analyzer_set_trigger_count(int count);
+SR_PRIV void analyzer_add_filter(int channel, int type);
 
-unsigned int analyzer_read_id(libusb_device_handle *devh);
-unsigned int analyzer_get_stop_address(libusb_device_handle *devh);
-unsigned int analyzer_get_now_address(libusb_device_handle *devh);
-unsigned int analyzer_get_trigger_address(libusb_device_handle *devh);
-int analyzer_decompress(void *input, unsigned int input_len, void *output,
-			unsigned int output_len);
+SR_PRIV unsigned int analyzer_read_id(libusb_device_handle *devh);
+SR_PRIV unsigned int analyzer_get_stop_address(libusb_device_handle *devh);
+SR_PRIV unsigned int analyzer_get_now_address(libusb_device_handle *devh);
+SR_PRIV unsigned int analyzer_get_trigger_address(libusb_device_handle *devh);
+SR_PRIV int analyzer_decompress(void *input, unsigned int input_len,
+				void *output, unsigned int output_len);
 
-void analyzer_reset(libusb_device_handle *devh);
-void analyzer_initialize(libusb_device_handle *devh);
-void analyzer_wait(libusb_device_handle *devh, int set, int unset);
-void analyzer_read_start(libusb_device_handle *devh);
-int analyzer_read_data(libusb_device_handle *devh, void *buffer,
-		       unsigned int size);
-void analyzer_read_stop(libusb_device_handle *devh);
-void analyzer_start(libusb_device_handle *devh);
-void analyzer_configure(libusb_device_handle *devh);
+SR_PRIV void analyzer_reset(libusb_device_handle *devh);
+SR_PRIV void analyzer_initialize(libusb_device_handle *devh);
+SR_PRIV void analyzer_wait(libusb_device_handle *devh, int set, int unset);
+SR_PRIV void analyzer_read_start(libusb_device_handle *devh);
+SR_PRIV int analyzer_read_data(libusb_device_handle *devh, void *buffer,
+			       unsigned int size);
+SR_PRIV void analyzer_read_stop(libusb_device_handle *devh);
+SR_PRIV void analyzer_start(libusb_device_handle *devh);
+SR_PRIV void analyzer_configure(libusb_device_handle *devh);
 
-void analyzer_wait_button(libusb_device_handle *devh);
-void analyzer_wait_data(libusb_device_handle *devh);
+SR_PRIV void analyzer_wait_button(libusb_device_handle *devh);
+SR_PRIV void analyzer_wait_data(libusb_device_handle *devh);
 
 #endif

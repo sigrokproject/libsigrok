@@ -722,7 +722,7 @@ static void hw_stop_acquisition(int device_index, gpointer session_device_id)
 	/* TODO: Need to cancel and free any queued up transfers. */
 }
 
-struct sr_device_plugin zeroplus_logic_cube_plugin_info = {
+SR_PRIV struct sr_device_plugin zeroplus_logic_cube_plugin_info = {
 	.name = "zeroplus-logic-cube",
 	.longname = "Zeroplus Logic Cube LAP-C series",
 	.api_version = 1,

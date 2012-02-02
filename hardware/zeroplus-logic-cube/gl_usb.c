@@ -39,16 +39,9 @@
 			 LIBUSB_RECIPIENT_INTERFACE)
 #define CTRL_OUT	(LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_ENDPOINT_OUT | \
 			 LIBUSB_RECIPIENT_INTERFACE)
+#define EP1_BULK_IN	(LIBUSB_ENDPOINT_IN | 1)
 
-const int PACKET_CTRL_LEN = 2;
-const int PACKET_INT_LEN = 2;
-const int PACKET_BULK_LEN = 64;
-const int INTERFACE = 0;
-const int ENDPOINT_INT_IN = 0x81;	/* Endpoint 0x81 address for IN */
-const int ENDPOINT_INT_OUT = 0x01;	/* Endpoint 1 address for OUT */
-const int ENDPOINT_BULK_IN = 0x81;	/* Endpoint 0x81 address for IN */
-const int ENDPOINT_BULK_OUT = 0x02;	/* Endpoint 1 address for OUT */
-const int TIMEOUT = 5000;		/* Timeout in ms */
+#define TIMEOUT		5000	/* Timeout in ms */
 
 enum {
 	REQ_READBULK = 0x82,
@@ -59,7 +52,7 @@ enum {
 
 static struct libusb_device_handle *g_devh = NULL;
 
-int gl_write_address(libusb_device_handle *devh, unsigned int address)
+static int gl_write_address(libusb_device_handle *devh, unsigned int address)
 {
 	unsigned char packet[8] = { address & 0xFF };
 	int ret;
@@ -72,7 +65,7 @@ int gl_write_address(libusb_device_handle *devh, unsigned int address)
 	return ret;
 }
 
-int gl_write_data(libusb_device_handle *devh, unsigned int val)
+static int gl_write_data(libusb_device_handle *devh, unsigned int val)
 {
 	unsigned char packet[8] = { val & 0xFF };
 	int ret;
@@ -85,7 +78,7 @@ int gl_write_data(libusb_device_handle *devh, unsigned int val)
 	return ret;
 }
 
-int gl_read_data(libusb_device_handle *devh)
+static int gl_read_data(libusb_device_handle *devh)
 {
 	unsigned char packet[8] = { 0 };
 	int ret;
@@ -98,7 +91,8 @@ int gl_read_data(libusb_device_handle *devh)
 	return (ret == 1) ? packet[0] : ret;
 }
 
-int gl_read_bulk(libusb_device_handle *devh, void *buffer, unsigned int size)
+SR_PRIV int gl_read_bulk(libusb_device_handle *devh, void *buffer,
+			 unsigned int size)
 {
 	unsigned char packet[8] =
 	    { 0, 0, 0, 0, size & 0xff, (size & 0xff00) >> 8,
@@ -111,14 +105,14 @@ int gl_read_bulk(libusb_device_handle *devh, void *buffer, unsigned int size)
 		sr_err("%s: libusb_control_transfer returned %d\n",
 		       __func__, ret);
 
-	ret = libusb_bulk_transfer(devh, ENDPOINT_BULK_IN, buffer, size,
+	ret = libusb_bulk_transfer(devh, EP1_BULK_IN, buffer, size,
 				   &transferred, TIMEOUT);
 	if (ret < 0)
 		sr_err("Bulk read error %d\n", ret);
 	return transferred;
 }
 
-int gl_reg_write(libusb_device_handle *devh, unsigned int reg,
+SR_PRIV int gl_reg_write(libusb_device_handle *devh, unsigned int reg,
 		 unsigned int val)
 {
 	int ret;
@@ -130,7 +124,7 @@ int gl_reg_write(libusb_device_handle *devh, unsigned int reg,
 	return ret;
 }
 
-int gl_reg_read(libusb_device_handle *devh, unsigned int reg)
+SR_PRIV int gl_reg_read(libusb_device_handle *devh, unsigned int reg)
 {
 	int ret;
 

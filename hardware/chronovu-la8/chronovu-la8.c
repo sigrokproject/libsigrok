@@ -1127,7 +1127,7 @@ static void hw_stop_acquisition(int device_index, gpointer session_data)
 	sr_session_bus(session_data, &packet);
 }
 
-struct sr_device_plugin chronovu_la8_plugin_info = {
+SR_PRIV struct sr_device_plugin chronovu_la8_plugin_info = {
 	.name = "chronovu-la8",
 	.longname = "ChronoVu LA8",
 	.api_version = 1,

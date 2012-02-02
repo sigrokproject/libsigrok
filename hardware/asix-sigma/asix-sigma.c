@@ -1399,7 +1399,7 @@ static void hw_stop_acquisition(int device_index, gpointer session_data)
 	sigma->state.state = SIGMA_DOWNLOAD;
 }
 
-struct sr_device_plugin asix_sigma_plugin_info = {
+SR_PRIV struct sr_device_plugin asix_sigma_plugin_info = {
 	.name = "asix-sigma",
 	.longname = "ASIX SIGMA",
 	.api_version = 1,
