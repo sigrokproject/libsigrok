@@ -283,8 +283,10 @@ static void close_device(struct sr_device_instance *sdi)
 	sr_info("closing device %d on %d.%d interface %d", sdi->index,
 		zp->usb->bus, zp->usb->address, USB_INTERFACE);
 	libusb_release_interface(zp->usb->devhdl, USB_INTERFACE);
+	libusb_reset_device(zp->usb->devhdl);
 	libusb_close(zp->usb->devhdl);
 	zp->usb->devhdl = NULL;
+	/* TODO: Call libusb_exit() here or only in hw_cleanup()? */
 	sdi->status = SR_ST_INACTIVE;
 }
 
@@ -367,7 +369,7 @@ static int hw_init(const char *deviceinfo)
 
 	/* Find all ZeroPlus analyzers and add them to device list. */
 	devcnt = 0;
-	libusb_get_device_list(usb_context, &devlist);
+	libusb_get_device_list(usb_context, &devlist); /* TODO: Errors. */
 
 	for (i = 0; devlist[i]; i++) {
 		err = libusb_get_device_descriptor(devlist[i], &des);
@@ -425,11 +427,19 @@ static int hw_opendev(int device_index)
 		return SR_ERR_ARG;
 	}
 
+	err = libusb_set_configuration(zp->usb->devhdl, USB_CONFIGURATION);
+	if (err < 0) {
+		sr_warn("zp: Unable to set USB configuration %d: %d",
+			USB_CONFIGURATION, err);
+		return SR_ERR;
+	}
+
 	err = libusb_claim_interface(zp->usb->devhdl, USB_INTERFACE);
 	if (err != 0) {
 		sr_warn("Unable to claim interface: %d", err);
 		return SR_ERR;
 	}
+
 	analyzer_reset(zp->usb->devhdl);
 	analyzer_initialize(zp->usb->devhdl);
 

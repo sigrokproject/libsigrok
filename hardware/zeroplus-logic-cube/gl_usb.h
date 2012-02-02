@@ -47,7 +47,5 @@ int gl_read_bulk(libusb_device_handle *devh, void *buffer, unsigned int size);
 int gl_reg_write(libusb_device_handle *devh, unsigned int reg,
 		 unsigned int val);
 int gl_reg_read(libusb_device_handle *devh, unsigned int reg);
-int gl_open(int vid);
-int gl_close(void);
 
 #endif
