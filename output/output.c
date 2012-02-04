@@ -20,17 +20,17 @@
 #include "sigrok.h"
 #include "sigrok-internal.h"
 
-extern struct sr_output_format output_text_bits;
-extern struct sr_output_format output_text_hex;
-extern struct sr_output_format output_text_ascii;
-extern struct sr_output_format output_binary;
-extern struct sr_output_format output_vcd;
-extern struct sr_output_format output_ols;
-extern struct sr_output_format output_gnuplot;
-extern struct sr_output_format output_chronovu_la8;
-extern struct sr_output_format output_csv;
-/* extern struct sr_output_format output_analog_bits; */
-/* extern struct sr_output_format output_analog_gnuplot; */
+extern SR_PRIV struct sr_output_format output_text_bits;
+extern SR_PRIV struct sr_output_format output_text_hex;
+extern SR_PRIV struct sr_output_format output_text_ascii;
+extern SR_PRIV struct sr_output_format output_binary;
+extern SR_PRIV struct sr_output_format output_vcd;
+extern SR_PRIV struct sr_output_format output_ols;
+extern SR_PRIV struct sr_output_format output_gnuplot;
+extern SR_PRIV struct sr_output_format output_chronovu_la8;
+extern SR_PRIV struct sr_output_format output_csv;
+/* extern SR_PRIV struct sr_output_format output_analog_bits; */
+/* extern SR_PRIV struct sr_output_format output_analog_gnuplot; */
 
 static struct sr_output_format *output_module_list[] = {
 	&output_text_bits,

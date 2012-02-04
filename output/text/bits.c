@@ -25,13 +25,13 @@
 #include "sigrok-internal.h"
 #include "text.h"
 
-int init_bits(struct sr_output *o)
+SR_PRIV int init_bits(struct sr_output *o)
 {
 	return init(o, DEFAULT_BPL_BITS, MODE_BITS);
 }
 
-int data_bits(struct sr_output *o, const char *data_in, uint64_t length_in,
-	      char **data_out, uint64_t *length_out)
+SR_PRIV int data_bits(struct sr_output *o, const char *data_in,
+		      uint64_t length_in, char **data_out, uint64_t *length_out)
 {
 	struct context *ctx;
 	unsigned int outsize, offset, p;
@@ -101,7 +101,7 @@ int data_bits(struct sr_output *o, const char *data_in, uint64_t length_in,
 	return SR_OK;
 }
 
-struct sr_output_format output_text_bits = {
+SR_PRIV struct sr_output_format output_text_bits = {
 	.id = "bits",
 	.description = "Bits (takes argument, default 64)",
 	.df_type = SR_DF_LOGIC,

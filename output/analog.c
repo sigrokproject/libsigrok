@@ -437,7 +437,7 @@ static int data_ascii(struct sr_output *o, const char *data_in,
 }
 #endif
 
-struct sr_output_format output_analog_bits = {
+SR_PRIV struct sr_output_format output_analog_bits = {
 	.id = "analog_bits",
 	.description = "Bits (takes argument, default 64)",
 	.df_type = SR_DF_ANALOG,
@@ -445,6 +445,7 @@ struct sr_output_format output_analog_bits = {
 	.data = data_bits,
 	.event = event,
 };
+
 #if 0
 struct sr_output_format output_analog_hex = {
 	.id = "analog_hex",

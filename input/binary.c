@@ -102,7 +102,7 @@ static int loadfile(struct sr_input *in, const char *filename)
 	return SR_OK;
 }
 
-struct sr_input_format input_binary = {
+SR_PRIV struct sr_input_format input_binary = {
 	.id = "binary",
 	.description = "Raw binary",
 	.format_match = format_match,

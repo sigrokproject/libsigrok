@@ -26,7 +26,7 @@
 #include "sigrok.h"
 #include "text.h"
 
-void flush_linebufs(struct context *ctx, char *outbuf)
+SR_PRIV void flush_linebufs(struct context *ctx, char *outbuf)
 {
 	static int max_probename_len = 0;
 	int len, i;
@@ -63,7 +63,7 @@ void flush_linebufs(struct context *ctx, char *outbuf)
 	memset(ctx->linebuf, 0, i * ctx->linebuf_len);
 }
 
-int init(struct sr_output *o, int default_spl, enum outputmode mode)
+SR_PRIV int init(struct sr_output *o, int default_spl, enum outputmode mode)
 {
 	struct context *ctx;
 	struct sr_probe *probe;
@@ -136,8 +136,8 @@ int init(struct sr_output *o, int default_spl, enum outputmode mode)
 	return SR_OK;
 }
 
-int event(struct sr_output *o, int event_type, char **data_out,
-		 uint64_t *length_out)
+SR_PRIV int event(struct sr_output *o, int event_type, char **data_out,
+		  uint64_t *length_out)
 {
 	struct context *ctx;
 	int outsize;

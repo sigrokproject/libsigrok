@@ -46,22 +46,23 @@ struct context {
 	enum outputmode mode;
 };
 
-void flush_linebufs(struct context *ctx, char *outbuf);
-int init(struct sr_output *o, int default_spl, enum outputmode mode);
-int event(struct sr_output *o, int event_type, char **data_out,
-		 uint64_t *length_out);
+SR_PRIV void flush_linebufs(struct context *ctx, char *outbuf);
+SR_PRIV int init(struct sr_output *o, int default_spl, enum outputmode mode);
+SR_PRIV int event(struct sr_output *o, int event_type, char **data_out,
+		  uint64_t *length_out);
 
+SR_PRIV int init_bits(struct sr_output *o);
+SR_PRIV int data_bits(struct sr_output *o, const char *data_in,
+		      uint64_t length_in, char **data_out,
+		      uint64_t *length_out);
 
-int init_bits(struct sr_output *o);
-int data_bits(struct sr_output *o, const char *data_in, uint64_t length_in,
-		     char **data_out, uint64_t *length_out);
+SR_PRIV int init_hex(struct sr_output *o);
+SR_PRIV int data_hex(struct sr_output *o, const char *data_in,
+		     uint64_t length_in, char **data_out, uint64_t *length_out);
 
-int init_hex(struct sr_output *o);
-int data_hex(struct sr_output *o, const char *data_in, uint64_t length_in,
-		     char **data_out, uint64_t *length_out);
-
-int init_ascii(struct sr_output *o);
-int data_ascii(struct sr_output *o, const char *data_in, uint64_t length_in,
-		     char **data_out, uint64_t *length_out);
+SR_PRIV int init_ascii(struct sr_output *o);
+SR_PRIV int data_ascii(struct sr_output *o, const char *data_in,
+		       uint64_t length_in, char **data_out,
+		       uint64_t *length_out);
 
 #endif

@@ -231,7 +231,7 @@ static int data(struct sr_output *o, const char *data_in, uint64_t length_in,
 	return SR_OK;
 }
 
-struct sr_output_format output_chronovu_la8 = {
+SR_PRIV struct sr_output_format output_chronovu_la8 = {
 	.id = "chronovu-la8",
 	.description = "ChronoVu LA8",
 	.df_type = SR_DF_LOGIC,

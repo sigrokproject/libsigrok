@@ -24,13 +24,13 @@
 #include "sigrok.h"
 #include "text.h"
 
-int init_hex(struct sr_output *o)
+SR_PRIV int init_hex(struct sr_output *o)
 {
 	return init(o, DEFAULT_BPL_HEX, MODE_HEX);
 }
 
-int data_hex(struct sr_output *o, const char *data_in, uint64_t length_in,
-	     char **data_out, uint64_t *length_out)
+SR_PRIV int data_hex(struct sr_output *o, const char *data_in,
+		     uint64_t length_in, char **data_out, uint64_t *length_out)
 {
 	struct context *ctx;
 	unsigned int outsize, offset, p;
@@ -89,7 +89,7 @@ int data_hex(struct sr_output *o, const char *data_in, uint64_t length_in,
 	return SR_OK;
 }
 
-struct sr_output_format output_text_hex = {
+SR_PRIV struct sr_output_format output_text_hex = {
 	.id = "hex",
 	.description = "Hexadecimal (takes argument, default 192)",
 	.df_type = SR_DF_LOGIC,
