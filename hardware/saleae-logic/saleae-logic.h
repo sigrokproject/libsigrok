@@ -17,8 +17,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef SALEAE_LOGIC_H_
-#define SALEAE_LOGIC_H_
+#ifndef LIBSIGROK_HARDWARE_SALEAE_LOGIC_SALEAE_LOGIC_H
+#define LIBSIGROK_HARDWARE_SALEAE_LOGIC_SALEAE_LOGIC_H
 
 #define USB_INTERFACE          0
 #define USB_CONFIGURATION      1
@@ -74,4 +74,4 @@ struct fx2_device {
 	struct sr_usb_device_instance *usb;
 };
 
-#endif /* SALEAE_LOGIC_H_ */
+#endif

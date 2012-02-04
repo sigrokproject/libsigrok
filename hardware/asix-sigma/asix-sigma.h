@@ -19,8 +19,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef SIGROK_ASIX_SIGMA_H
-#define SIGROK_ASIX_SIGMA_H
+#ifndef LIBSIGROK_HARDWARE_ASIX_SIGMA_ASIX_SIGMA_H
+#define LIBSIGROK_HARDWARE_ASIX_SIGMA_ASIX_SIGMA_H
 
 enum sigma_write_register {
 	WRITE_CLOCK_SELECT	= 0,

@@ -17,8 +17,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef OLS_H_
-#define OLS_H_
+#ifndef LIBSIGROK_HARDWARE_OPENBENCH_LOGIC_SNIFFER_OLS_H
+#define LIBSIGROK_HARDWARE_OPENBENCH_LOGIC_SNIFFER_OLS_H
 
 #define NUM_PROBES             32
 #define NUM_TRIGGER_STAGES     4
@@ -91,4 +91,4 @@ struct ols_device {
 	struct sr_serial_device_instance *serial;
 };
 
-#endif /* OLS_H_ */
+#endif

@@ -18,8 +18,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef SIGROK_LINK_MSO19_H
-#define SIGROK_LINK_MSO19_H
+#ifndef LIBSIGROK_HARDWARE_LINK_MSO19_LINK_MSO19_H
+#define LIBSIGROK_HARDWARE_LINK_MSO19_LINK_MSO19_H
 
 /* Structure for the pattern generator state */
 struct mso_patgen {

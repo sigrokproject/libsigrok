@@ -17,8 +17,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef TEXT_H_
-#define TEXT_H_
+#ifndef LIBSIGROK_OUTPUT_TEXT_TEXT_H
+#define LIBSIGROK_OUTPUT_TEXT_TEXT_H
 
 #define DEFAULT_BPL_BITS 64
 #define DEFAULT_BPL_HEX  192

@@ -17,8 +17,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef SIGROK_SIGROK_INTERNAL_H
-#define SIGROK_SIGROK_INTERNAL_H
+#ifndef LIBSIGROK_SIGROK_INTERNAL_H
+#define LIBSIGROK_SIGROK_INTERNAL_H
 
 #include <stdarg.h>
 #include <glib.h>
