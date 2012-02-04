@@ -808,7 +808,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	header.feed_version = 1;
 	gettimeofday(&header.starttime, NULL);
 	header.samplerate = mso->cur_rate;
-	header.num_analog_probes = 1;
+	// header.num_analog_probes = 1;
 	header.num_logic_probes = 8;
 	sr_session_bus(session_device_id, &packet);
 

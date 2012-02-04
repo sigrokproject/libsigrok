@@ -1002,7 +1002,6 @@ static int hw_start_acquisition(int device_index, gpointer session_data)
 	gettimeofday(&header->starttime, NULL);
 	header->samplerate = ols->cur_samplerate;
 	header->num_logic_probes = NUM_PROBES;
-	header->num_analog_probes = 0;
 	sr_session_bus(session_data, packet);
 
 	g_free(header);

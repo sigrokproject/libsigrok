@@ -107,7 +107,6 @@ enum {
 	SR_DF_END,
 	SR_DF_TRIGGER,
 	SR_DF_LOGIC,
-	SR_DF_ANALOG,
 	SR_DF_PD,
 };
 
@@ -120,7 +119,6 @@ struct sr_datafeed_header {
 	int feed_version;
 	struct timeval starttime;
 	uint64_t samplerate;
-	int num_analog_probes;
 	int num_logic_probes;
 };
 
@@ -188,7 +186,6 @@ struct sr_device {
 
 enum {
 	SR_PROBE_TYPE_LOGIC,
-	SR_PROBE_TYPE_ANALOG,
 };
 
 struct sr_probe {

@@ -137,7 +137,6 @@ static int loadfile(struct sr_input *in, const char *filename)
 	header.feed_version = 1;
 	gettimeofday(&header.starttime, NULL);
 	header.num_logic_probes = num_probes;
-	header.num_analog_probes = 0;
 	header.samplerate = samplerate;
 	sr_session_bus(in->vdevice, &packet);
 

@@ -791,7 +791,6 @@ static int hw_start_acquisition(int device_index, gpointer session_data)
 	gettimeofday(&header->starttime, NULL);
 	header->samplerate = fx2->cur_samplerate;
 	header->num_logic_probes = fx2->profile->num_probes;
-	header->num_analog_probes = 0;
 	sr_session_bus(session_data, packet);
 	g_free(header);
 	g_free(packet);
