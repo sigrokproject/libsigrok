@@ -50,8 +50,6 @@ enum {
 	REQ_WRITEDATA,
 };
 
-static struct libusb_device_handle *g_devh = NULL;
-
 static int gl_write_address(libusb_device_handle *devh, unsigned int address)
 {
 	unsigned char packet[8] = { address & 0xFF };
