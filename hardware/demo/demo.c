@@ -64,7 +64,7 @@ enum {
 };
 
 /* FIXME: Should not be global. */
-static GIOChannel *channels[2];
+SR_PRIV GIOChannel *channels[2];
 
 struct databag {
 	int pipe_fds[2];

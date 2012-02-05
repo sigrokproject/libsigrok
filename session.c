@@ -25,8 +25,8 @@
 #include "sigrok.h"
 #include "sigrok-internal.h"
 
-/* demo.c */
-extern GIOChannel channels[2];
+/* demo.c. TODO: Should not be global! */
+extern SR_PRIV GIOChannel channels[2];
 
 struct source {
 	int fd;
