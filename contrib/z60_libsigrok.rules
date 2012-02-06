@@ -1,7 +1,7 @@
 ##
 ## This file is part of the sigrok project.
 ##
-## Copyright (C) 2010 Uwe Hermann <uwe@hermann-uwe.de>
+## Copyright (C) 2010-2012 Uwe Hermann <uwe@hermann-uwe.de>
 ##
 ## This program is free software; you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -103,6 +103,16 @@ ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="000a", MODE="664", GROUP="plugdev"
 # http://www.poscope.com/poscope_basic_2
 # lsusb: "10c4:ea67 Cygnal Integrated Products, Inc."
 ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea67", MODE="664", GROUP="plugdev"
+
+# QuantAsylum QA100
+# http://www.quantasylum.com/content/Products/QA100.aspx
+# lsusb: "16c0:4e21 VOTI"
+ATTRS{idVendor}=="16c0", ATTRS{idProduct}=="4e21", MODE="664", GROUP="plugdev"
+
+# Rigol VS5202D
+# http://int.rigol.com/prodserv/Discontinued%20products/
+# lsusb: "0400:03e8 National Semiconductor Corp."
+ATTRS{idVendor}=="0400", ATTRS{idProduct}=="03e8", MODE="664", GROUP="plugdev"
 
 # Saleae Logic
 # http://www.saleae.com/logic/
