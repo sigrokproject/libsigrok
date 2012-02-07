@@ -91,6 +91,8 @@ static struct sr_samplerates samplerates = {
 static GSList *device_instances = NULL;
 static libusb_context *usb_context = NULL;
 
+static int new_saleae_logic_firmware = 0;
+
 static int hw_set_configuration(int device_index, int capability, void *value);
 static void hw_stop_acquisition(int device_index, gpointer session_device_id);
 
@@ -130,9 +132,16 @@ static int check_conf_profile(libusb_device *dev)
 			break;
 
 		intf_dsc = &(conf_dsc->interface[0].altsetting[0]);
-		if (intf_dsc->bNumEndpoints != 2)
-			/* Need 2 endpoints. */
+		if (intf_dsc->bNumEndpoints == 4) {
+			/* The new Saleae Logic firmware has 4 endpoints. */
+			new_saleae_logic_firmware = 1;
+		} else if (intf_dsc->bNumEndpoints == 2) {
+			/* The old Saleae Logic firmware has 2 endpoints. */
+			new_saleae_logic_firmware = 0;
+		} else {
+			/* Other number of endpoints -> not a Saleae Logic. */
 			break;
+		}
 
 		if ((intf_dsc->endpoint[0].bEndpointAddress & 0x8f) !=
 		    (1 | LIBUSB_ENDPOINT_OUT))
@@ -143,6 +152,8 @@ static int check_conf_profile(libusb_device *dev)
 		    (2 | LIBUSB_ENDPOINT_IN))
 			/* First endpoint should be 2 (inbound). */
 			break;
+
+		/* TODO: The new firmware has 4 endpoints... */
 
 		/* If we made it here, it must be a Saleae Logic. */
 		ret = 1;
@@ -357,6 +368,8 @@ static int hw_init(const char *deviceinfo)
 
 		if (check_conf_profile(devlist[i])) {
 			/* Already has the firmware, so fix the new address. */
+			sr_dbg("Found a Saleae Logic with %s firmware.",
+			       new_saleae_logic_firmware ? "new" : "old");
 			sdi->status = SR_ST_INACTIVE;
 			fx2->usb = sr_usb_device_instance_new
 			    (libusb_get_bus_number(devlist[i]),
@@ -520,6 +533,47 @@ static int *hw_get_capabilities(void)
 	return capabilities;
 }
 
+static uint8_t new_firmware_divider_value(uint64_t samplerate)
+{
+	switch (samplerate) {
+	case SR_MHZ(24):
+		return 0xe0;
+		break;
+	case SR_MHZ(16):
+		return 0xd5;
+		break;
+	case SR_MHZ(12):
+		return 0xe2;
+		break;
+	case SR_MHZ(8):
+		return 0xd4;
+		break;
+	case SR_MHZ(4):
+		return 0xda;
+		break;
+	case SR_MHZ(2):
+		return 0xe6;
+		break;
+	case SR_MHZ(1):
+		return 0x8e;
+		break;
+	case SR_KHZ(500):
+		return 0xfe;
+		break;
+	case SR_KHZ(250):
+		return 0x9e;
+		break;
+	case SR_KHZ(200):
+		return 0x4e;
+		break;
+	}
+
+	/* Shouldn't happen. */
+	sr_err("saleae: %s: Invalid samplerate %" PRIu64 "",
+	       __func__, samplerate);
+	return 0;
+}
+
 static int set_configuration_samplerate(struct sr_device_instance *sdi,
 					uint64_t samplerate)
 {
@@ -536,11 +590,15 @@ static int set_configuration_samplerate(struct sr_device_instance *sdi,
 	if (supported_samplerates[i] == 0)
 		return SR_ERR_SAMPLERATE;
 
-	divider = (uint8_t) (48 / (samplerate / 1000000.0)) - 1;
+	if (new_saleae_logic_firmware)
+		divider = new_firmware_divider_value(samplerate);
+	else
+		divider = (uint8_t) (48 / (samplerate / 1000000.0)) - 1;
 
 	sr_info("saleae: setting samplerate to %" PRIu64 " Hz (divider %d)",
 		samplerate, divider);
-	buf[0] = 0x01;
+
+	buf[0] = (new_saleae_logic_firmware) ? 0xd5 : 0x01;
 	buf[1] = divider;
 	ret = libusb_bulk_transfer(fx2->usb->devhdl, 1 | LIBUSB_ENDPOINT_OUT,
 				   buf, 2, &result, 500);
