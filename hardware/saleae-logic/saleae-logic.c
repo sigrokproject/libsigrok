@@ -145,12 +145,12 @@ static int check_conf_profile(libusb_device *dev)
 
 		if ((intf_dsc->endpoint[0].bEndpointAddress & 0x8f) !=
 		    (1 | LIBUSB_ENDPOINT_OUT))
-			/* First endpoint should be 1 (outbound). */
+			/* The first endpoint should be 1 (outbound). */
 			break;
 
 		if ((intf_dsc->endpoint[1].bEndpointAddress & 0x8f) !=
 		    (2 | LIBUSB_ENDPOINT_IN))
-			/* First endpoint should be 2 (inbound). */
+			/* The second endpoint should be 2 (inbound). */
 			break;
 
 		/* TODO: The new firmware has 4 endpoints... */
