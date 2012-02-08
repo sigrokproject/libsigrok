@@ -27,8 +27,15 @@ SR_API int sr_exit(void);
 
 /*--- log.c -----------------------------------------------------------------*/
 
-SR_API int sr_set_loglevel(int loglevel);
-SR_API int sr_get_loglevel(void);
+typedef int (*sr_log_handler_t)(void *data, int loglevel, const char *format,
+				 va_list args);
+
+SR_API int sr_log_loglevel_set(int loglevel);
+SR_API int sr_log_loglevel_get(void);
+SR_API int sr_log_handler_set(sr_log_handler_t handler, void *data);
+SR_API int sr_log_handler_set_default(void);
+SR_API int sr_log_logdomain_set(const char *logdomain);
+SR_API char *sr_log_logdomain_get(void);
 
 /*--- datastore.c -----------------------------------------------------------*/
 

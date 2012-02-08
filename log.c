@@ -1,7 +1,7 @@
 /*
  * This file is part of the sigrok project.
  *
- * Copyright (C) 2011 Uwe Hermann <uwe@hermann-uwe.de>
+ * Copyright (C) 2011-2012 Uwe Hermann <uwe@hermann-uwe.de>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,7 +23,25 @@
 #include "sigrok.h"
 #include "sigrok-internal.h"
 
+/* Currently selected libsigrok loglevel. Default: SR_LOG_WARN. */
 static int sr_loglevel = SR_LOG_WARN; /* Show errors+warnings per default. */
+
+/* Function prototype. */
+static int sr_logv(void *data, int loglevel, const char *format, va_list args);
+
+/* Pointer to the currently selected log handler. Default: sr_logv(). */
+static sr_log_handler_t sr_log_handler = sr_logv;
+
+/*
+ * Pointer to private data that can be passed to the log handler.
+ * This can be used (for example) by C++ GUIs to pass a "this" pointer.
+ */
+static void *sr_log_handler_data = NULL;
+
+/* Log domain (a short string that is used as prefix for all messages). */
+#define LOGDOMAIN_MAXLEN 30
+#define LOGDOMAIN_DEFAULT "sr: "
+static char sr_log_domain[LOGDOMAIN_MAXLEN + 1] = LOGDOMAIN_DEFAULT;
 
 /**
  * Set the libsigrok loglevel.
@@ -31,20 +49,24 @@ static int sr_loglevel = SR_LOG_WARN; /* Show errors+warnings per default. */
  * This influences the amount of log messages (debug messages, error messages,
  * and so on) libsigrok will output. Using SR_LOG_NONE disables all messages.
  *
+ * Note that this function itself will also output log messages. After the
+ * loglevel has changed, it will output a debug message with SR_LOG_DBG for
+ * example. Whether this message is shown depends on the (new) loglevel.
+ *
  * @param loglevel The loglevel to set (SR_LOG_NONE, SR_LOG_ERR, SR_LOG_WARN,
  *                 SR_LOG_INFO, SR_LOG_DBG, or SR_LOG_SPEW).
  * @return SR_OK upon success, SR_ERR_ARG upon invalid loglevel.
  */
-SR_API int sr_set_loglevel(int loglevel)
+SR_API int sr_log_loglevel_set(int loglevel)
 {
 	if (loglevel < SR_LOG_NONE || loglevel > SR_LOG_SPEW) {
-		sr_err("log: %s: invalid loglevel %d", __func__, loglevel);
+		sr_err("Invalid loglevel %d.", loglevel);
 		return SR_ERR_ARG;
 	}
 
 	sr_loglevel = loglevel;
 
-	sr_dbg("log: %s: libsigrok loglevel set to %d", __func__, loglevel);
+	sr_dbg("libsigrok loglevel set to %d.", loglevel);
 
 	return SR_OK;
 }
@@ -54,19 +76,110 @@ SR_API int sr_set_loglevel(int loglevel)
  *
  * @return The currently configured libsigrok loglevel.
  */
-SR_API int sr_get_loglevel(void)
+SR_API int sr_log_loglevel_get(void)
 {
 	return sr_loglevel;
 }
 
-static int sr_logv(int loglevel, const char *format, va_list args)
+/**
+ * Set the libsigrok logdomain string.
+ *
+ * @param logdomain The string to use as logdomain for libsigrok log
+ *                  messages from now on. Must not be NULL. The maximum
+ *                  length of the string is 30 characters (this does not
+ *                  include the trailing NUL-byte). Longer strings are
+ *                  silently truncated.
+ *                  In order to not use a logdomain, pass an empty string.
+ *                  The function makes its own copy of the input string, i.e.
+ *                  the caller does not need to keep it around.
+ * @return SR_OK upon success, SR_ERR_ARG upon invalid logdomain.
+ */
+SR_API int sr_log_logdomain_set(const char *logdomain)
+{
+	if (!logdomain) {
+		sr_err("log: %s: logdomain was NULL", __func__);
+		return SR_ERR_ARG;
+	}
+
+	/* TODO: Error handling. */
+	snprintf((char *)&sr_log_domain, LOGDOMAIN_MAXLEN, "%s", logdomain);
+
+	sr_dbg("Log domain set to '%s'.", (const char *)&sr_log_domain);
+
+	return SR_OK;
+}
+
+/**
+ * Get the currently configured libsigrok logdomain.
+ *
+ * @return A copy of the currently configured libsigrok logdomain
+ *         string. The caller is responsible for g_free()ing the string when
+ *         it is no longer needed.
+ */
+SR_API char *sr_log_logdomain_get(void)
+{
+	return g_strdup((const char *)&sr_log_domain);
+}
+
+/**
+ * Set the libsigrok log handler to the specified function.
+ *
+ * @param handler Function pointer to the log handler function to use.
+ *                Must not be NULL.
+ * @param data Pointer to private data to be passed on. This can be used by
+ *             the caller to pass arbitrary data to the log functions. This
+ *             pointer is only stored or passed on by libsigrok, and
+ *             is never used or interpreted in any way. The pointer is allowed
+ *             to be NULL if the caller doesn't need/want to pass any data.
+ * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments.
+ */
+SR_API int sr_log_handler_set(sr_log_handler_t handler, void *data)
+{
+	if (!handler) {
+		sr_err("log: %s: handler was NULL", __func__);
+		return SR_ERR_ARG;
+	}
+
+	/* Note: 'data' is allowed to be NULL. */
+
+	sr_log_handler = handler;
+	sr_log_handler_data = data;
+
+	return SR_OK;
+}
+
+/**
+ * Set the libsigrok log handler to the default built-in one.
+ *
+ * Additionally, the internal 'sr_log_handler_data' pointer is set to NULL.
+ *
+ * @return SR_OK upon success, a negative error code otherwise.
+ */
+SR_API int sr_log_handler_set_default(void)
+{
+	/*
+	 * Note: No log output in this function, as it should safely work
+	 * even if the currently set log handler is buggy/broken.
+	 */
+	sr_log_handler = sr_logv;
+	sr_log_handler_data = NULL;
+
+	return SR_OK;
+}
+
+static int sr_logv(void *data, int loglevel, const char *format, va_list args)
 {
 	int ret;
+
+	/* This specific log handler doesn't need the void pointer data. */
+	(void)data;
 
 	/* Only output messages of at least the selected loglevel(s). */
 	if (loglevel > sr_loglevel)
 		return SR_OK; /* TODO? */
 
+	if (sr_log_domain[0] != '\0')
+		fprintf(stderr, "%s", sr_log_domain);
 	ret = vfprintf(stderr, format, args);
 	fprintf(stderr, "\n");
 
@@ -79,7 +192,7 @@ SR_PRIV int sr_log(int loglevel, const char *format, ...)
 	va_list args;
 
 	va_start(args, format);
-	ret = sr_logv(loglevel, format, args);
+	ret = sr_log_handler(sr_log_handler_data, loglevel, format, args);
 	va_end(args);
 
 	return ret;
@@ -91,7 +204,7 @@ SR_PRIV int sr_spew(const char *format, ...)
 	va_list args;
 
 	va_start(args, format);
-	ret = sr_logv(SR_LOG_SPEW, format, args);
+	ret = sr_log_handler(sr_log_handler_data, SR_LOG_SPEW, format, args);
 	va_end(args);
 
 	return ret;
@@ -103,7 +216,7 @@ SR_PRIV int sr_dbg(const char *format, ...)
 	va_list args;
 
 	va_start(args, format);
-	ret = sr_logv(SR_LOG_DBG, format, args);
+	ret = sr_log_handler(sr_log_handler_data, SR_LOG_DBG, format, args);
 	va_end(args);
 
 	return ret;
@@ -115,7 +228,7 @@ SR_PRIV int sr_info(const char *format, ...)
 	va_list args;
 
 	va_start(args, format);
-	ret = sr_logv(SR_LOG_INFO, format, args);
+	ret = sr_log_handler(sr_log_handler_data, SR_LOG_INFO, format, args);
 	va_end(args);
 
 	return ret;
@@ -127,7 +240,7 @@ SR_PRIV int sr_warn(const char *format, ...)
 	va_list args;
 
 	va_start(args, format);
-	ret = sr_logv(SR_LOG_WARN, format, args);
+	ret = sr_log_handler(sr_log_handler_data, SR_LOG_WARN, format, args);
 	va_end(args);
 
 	return ret;
@@ -139,7 +252,7 @@ SR_PRIV int sr_err(const char *format, ...)
 	va_list args;
 
 	va_start(args, format);
-	ret = sr_logv(SR_LOG_ERR, format, args);
+	ret = sr_log_handler(sr_log_handler_data, SR_LOG_ERR, format, args);
 	va_end(args);
 
 	return ret;
