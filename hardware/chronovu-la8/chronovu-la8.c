@@ -21,6 +21,7 @@
 #include <ftdi.h>
 #include <glib.h>
 #include <string.h>
+#include <stdlib.h>
 #include "sigrok.h"
 #include "sigrok-internal.h"
 
