@@ -96,12 +96,15 @@ SR_PRIV int ezusb_upload_firmware(libusb_device *dev, int configuration,
 		return SR_ERR;
 	}
 
+/* Neither Windows/MinGW nor Darwin/Mac support these libusb-1.0 calls. */
+#if !defined(_WIN32) && !defined(__APPLE__)
 	if (libusb_kernel_driver_active(hdl, 0)) {
 		if ((err = libusb_detach_kernel_driver(hdl, 0)) < 0) {
 			sr_warn("failed to detach kernel driver: %d", err);
 			return SR_ERR;
 		}
 	}
+#endif
 
 	if ((err = libusb_set_configuration(hdl, configuration)) < 0) {
 		sr_warn("Unable to set configuration: %d", err);
