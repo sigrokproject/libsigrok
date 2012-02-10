@@ -191,9 +191,18 @@ PKG_CHECK_MODULES([libzip], [libzip >= 0.8],
 
 # zlib is only needed for some hardware drivers.
 if test "x$LA_ASIX_SIGMA" != xno; then
-	PKG_CHECK_MODULES([zlib], [zlib >= 1.2.3.1],
-		[CFLAGS="$CFLAGS $zlib_CFLAGS"; LIBS="$LIBS $zlib_LIBS";
-		LIBSIGROK_PKGLIBS="$LIBSIGROK_PKGLIBS zlib"])
+	case "$build" in
+	*freebsd*)
+		# FreeBSD has zlib, but no pkg-config file for it.
+		# Check manually, and do NOT add it to LIBSIGROK_PKGLIBS.
+		AC_CHECK_LIB(z, uncompress)
+		;;
+	*)
+		PKG_CHECK_MODULES([zlib], [zlib >= 1.2.3.1],
+			[CFLAGS="$CFLAGS $zlib_CFLAGS"; LIBS="$LIBS $zlib_LIBS";
+			LIBSIGROK_PKGLIBS="$LIBSIGROK_PKGLIBS zlib"])
+		;;
+	esac
 fi
 
 # libftdi is only needed for some hardware drivers.
