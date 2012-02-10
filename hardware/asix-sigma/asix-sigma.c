@@ -730,7 +730,7 @@ static void hw_cleanup(void)
 	for (l = device_instances; l; l = l->next) {
 		sdi = l->data;
 		if (sdi->priv != NULL)
-			free(sdi->priv);
+			g_free(sdi->priv);
 		sr_device_instance_free(sdi);
 	}
 	g_slist_free(device_instances);
