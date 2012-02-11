@@ -19,6 +19,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <inttypes.h>
 #include <glib.h>
 #include <libusb.h>
 
@@ -31,6 +32,47 @@ static struct fx2lafw_profile supported_fx2[] = {
 	/* USBee AX */
 	{ 0x08a9, 0x0014, "CWAV", "USBee AX", NULL, 8 },
 	{ 0, 0, 0, 0, 0, 0 }
+};
+
+static int fx2lafw_capabilities[] = {
+	SR_HWCAP_LOGIC_ANALYZER,
+	SR_HWCAP_SAMPLERATE,
+
+	/* These are really implemented in the driver, not the hardware. */
+	SR_HWCAP_LIMIT_SAMPLES,
+	SR_HWCAP_CONTINUOUS,
+	0
+};
+
+static const char *fx2lafw_probe_names[] = {
+	"D0",
+	"D1",
+	"D2",
+	"D3",
+	"D4",
+	"D5",
+	"D6",
+	"D7",
+	NULL
+};
+
+static uint64_t fx2lafw_supported_samplerates[] = {
+	SR_MHZ(1),
+	SR_MHZ(2),
+	SR_MHZ(3),
+	SR_MHZ(4),
+	SR_MHZ(6),
+	SR_MHZ(8),
+	SR_MHZ(12),
+	SR_MHZ(16),
+	SR_MHZ(24)
+};
+
+static struct sr_samplerates fx2lafw_samplerates = {
+	SR_MHZ(1),
+	SR_MHZ(24),
+	SR_HZ(0),
+	fx2lafw_supported_samplerates
 };
 
 static GSList *device_instances = NULL;
@@ -145,8 +187,26 @@ static int hw_cleanup(void)
 
 static void *hw_dev_info_get(int device_index, int device_info_id)
 {
-	(void)device_index;
-	(void)device_info_id;
+	struct sr_dev_inst *sdi;
+	struct fx2lafw_device *fx2lafw_dev;
+
+	if (!(sdi = sr_dev_inst_get(device_instances, device_index)))
+		return NULL;
+	fx2lafw_dev = sdi->priv;
+
+	switch (device_info_id) {
+	case SR_DI_INST:
+		return sdi;
+	case SR_DI_NUM_PROBES:
+		return GINT_TO_POINTER(fx2lafw_dev->profile->num_probes);
+	case SR_DI_PROBE_NAMES:
+		return fx2lafw_probe_names;
+	case SR_DI_SAMPLERATES:
+		return &fx2lafw_samplerates;
+	case SR_DI_TRIGGER_TYPES:
+		return TRIGGER_TYPES;
+	}
+
 	return NULL;
 }
 
@@ -158,7 +218,7 @@ static int hw_dev_status_get(int device_index)
 
 static int *hw_hwcap_get_all(void)
 {
-	return NULL;
+	return fx2lafw_capabilities;
 }
 
 static int hw_dev_config_set(int dev_index, int capability, void *value)

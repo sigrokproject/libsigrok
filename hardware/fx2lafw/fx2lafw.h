@@ -20,6 +20,8 @@
 #ifndef LIBSIGROK_HARDWARE_FX2LAFW
 #define LIBSIGROK_HARDWARE_FX2LAFW
 
+#define TRIGGER_TYPES       "01rf"
+
 struct fx2lafw_profile {
 	uint16_t vid;
 	uint16_t pid;
