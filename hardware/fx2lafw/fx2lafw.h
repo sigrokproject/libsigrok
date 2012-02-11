@@ -20,4 +20,23 @@
 #ifndef LIBSIGROK_HARDWARE_FX2LAFW
 #define LIBSIGROK_HARDWARE_FX2LAFW
 
+struct fx2lafw_profile {
+	uint16_t vid;
+	uint16_t pid;
+
+	char *vendor;
+	char *model;
+	char *model_version;
+
+	int num_probes;
+};
+
+struct fx2lafw_device {
+	struct fx2lafw_profile *profile;
+
+	void *session_data;
+
+	struct sr_usb_device_instance *usb;
+};
+
 #endif
