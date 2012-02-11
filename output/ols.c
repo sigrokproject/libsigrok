@@ -85,7 +85,7 @@ static int event(struct sr_output *o, int event_type, char **data_out,
 
 	if (ctx && event_type == SR_DF_END) {
 		g_string_free(ctx->header, TRUE);
-		free(o->internal);
+		g_free(o->internal);
 		o->internal = NULL;
 	}
 

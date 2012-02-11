@@ -49,8 +49,10 @@ static int init(struct sr_output *o)
 	char *samplerate_s, *frequency_s, *timestamp;
 	time_t t;
 
-	if (!(ctx = calloc(1, sizeof(struct context))))
+	if (!(ctx = g_try_malloc0(sizeof(struct context)))) {
+		sr_err("vcd out: %s: ctx malloc failed", __func__);
 		return SR_ERR_MALLOC;
+	}
 
 	o->internal = ctx;
 	ctx->num_enabled_probes = 0;
@@ -62,7 +64,7 @@ static int init(struct sr_output *o)
 		ctx->probelist[ctx->num_enabled_probes++] = probe->name;
 	}
 	if (ctx->num_enabled_probes > 94) {
-		sr_warn("VCD only supports 94 probes.");
+		sr_err("VCD only supports 94 probes.");
 		return SR_ERR;
 	}
 
@@ -73,10 +75,10 @@ static int init(struct sr_output *o)
 
 	/* timestamp */
 	t = time(NULL);
-	timestamp = strdup(ctime(&t));
+	timestamp = g_strdup(ctime(&t));
 	timestamp[strlen(timestamp)-1] = 0;
 	g_string_printf(ctx->header, "$date %s $end\n", timestamp);
-	free(timestamp);
+	g_free(timestamp);
 
 	/* generator */
 	g_string_append_printf(ctx->header, "$version %s %s $end\n",
@@ -87,12 +89,12 @@ static int init(struct sr_output *o)
 				o->device->plugin_index, SR_DI_CUR_SAMPLERATE));
 		if (!((samplerate_s = sr_samplerate_string(ctx->samplerate)))) {
 			g_string_free(ctx->header, TRUE);
-			free(ctx);
+			g_free(ctx);
 			return SR_ERR;
 		}
 		g_string_append_printf(ctx->header, vcd_header_comment,
 				 ctx->num_enabled_probes, num_probes, samplerate_s);
-		free(samplerate_s);
+		g_free(samplerate_s);
 	}
 
 	/* timescale */
@@ -105,11 +107,11 @@ static int init(struct sr_output *o)
 		ctx->period = SR_KHZ(1);
 	if (!(frequency_s = sr_period_string(ctx->period))) {
 		g_string_free(ctx->header, TRUE);
-		free(ctx);
+		g_free(ctx);
 		return SR_ERR;
 	}
 	g_string_append_printf(ctx->header, "$timescale %s $end\n", frequency_s);
-	free(frequency_s);
+	g_free(frequency_s);
 
 	/* scope */
 	g_string_append_printf(ctx->header, "$scope module %s $end\n", PACKAGE);
@@ -123,9 +125,10 @@ static int init(struct sr_output *o)
 	g_string_append(ctx->header, "$upscope $end\n"
 			"$enddefinitions $end\n$dumpvars\n");
 
-	if (!(ctx->prevbits = calloc(sizeof(int), num_probes))) {
+	if (!(ctx->prevbits = g_try_malloc0(sizeof(int) * num_probes))) {
 		g_string_free(ctx->header, TRUE);
-		free(ctx);
+		g_free(ctx);
+		sr_err("vcd out: %s: ctx->prevbits malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 
@@ -141,10 +144,10 @@ static int event(struct sr_output *o, int event_type, char **data_out,
 	ctx = o->internal;
 	switch (event_type) {
 	case SR_DF_END:
-		outbuf = strdup("$dumpoff\n$end\n");
+		outbuf = g_strdup("$dumpoff\n$end\n");
 		*data_out = outbuf;
 		*length_out = strlen(outbuf);
-		free(o->internal);
+		g_free(o->internal);
 		o->internal = NULL;
 		break;
 	default:

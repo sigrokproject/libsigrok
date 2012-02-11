@@ -33,22 +33,22 @@ static int data(struct sr_output *o, const char *data_in, uint64_t length_in,
 	(void)o;
 
 	if (!data_in) {
-		sr_warn("binary output: %s: data_in was NULL", __func__);
-		return SR_ERR;
+		sr_err("binary out: %s: data_in was NULL", __func__);
+		return SR_ERR_ARG;
 	}
 
 	if (!length_out) {
-		sr_warn("binary output: %s: length_out was NULL", __func__);
-		return SR_ERR;
+		sr_err("binary out: %s: length_out was NULL", __func__);
+		return SR_ERR_ARG;
 	}
 
 	if (length_in == 0) {
-		sr_warn("binary output: %s: length_in was 0", __func__);
-		return SR_ERR;
+		sr_err("binary out: %s: length_in was 0", __func__);
+		return SR_ERR_ARG;
 	}
 
-	if (!(outbuf = calloc(1, length_in))) {
-		sr_warn("binary output: %s: outbuf calloc failed", __func__);
+	if (!(outbuf = g_try_malloc0(length_in))) {
+		sr_err("binary out: %s: outbuf malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 

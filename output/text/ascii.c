@@ -50,14 +50,16 @@ SR_PRIV int data_ascii(struct sr_output *o, const char *data_in,
 	outsize = 512 + (1 + (length_in / ctx->unitsize) / ctx->samples_per_line)
             * (ctx->num_enabled_probes * max_linelen);
 
-	if (!(outbuf = calloc(1, outsize + 1)))
+	if (!(outbuf = g_try_malloc0(outsize + 1))) {
+		sr_err("ascii out: %s: outbuf malloc failed", __func__);
 		return SR_ERR_MALLOC;
+	}
 
 	outbuf[0] = '\0';
 	if (ctx->header) {
 		/* The header is still here, this must be the first packet. */
 		strncpy(outbuf, ctx->header, outsize);
-		free(ctx->header);
+		g_free(ctx->header);
 		ctx->header = NULL;
 	}
 

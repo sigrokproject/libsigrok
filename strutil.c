@@ -30,17 +30,20 @@
  * E.g. a value of 3000000 would be converted to "3 MHz", 20000 to "20 kHz".
  *
  * @param samplerate The samplerate in Hz.
- * @return A malloc()ed string representation of the samplerate value,
- *         or NULL upon errors. The caller is responsible to free() the memory.
+ * @return A g_try_malloc()ed string representation of the samplerate value,
+ *         or NULL upon errors. The caller is responsible to g_free() the
+ *         memory.
  */
 SR_API char *sr_samplerate_string(uint64_t samplerate)
 {
 	char *o;
 	int r;
 
-	o = malloc(30 + 1); /* Enough for a uint64_t as string + " GHz". */
-	if (!o)
+	/* Allocate enough for a uint64_t as string + " GHz". */
+	if (!(o = g_try_malloc0(30 + 1))) {
+		sr_err("strutil: %s: o malloc failed", __func__);
 		return NULL;
+	}
 
 	if (samplerate >= SR_GHZ(1))
 		r = snprintf(o, 30, "%" PRIu64 " GHz", samplerate / 1000000000);
@@ -53,7 +56,7 @@ SR_API char *sr_samplerate_string(uint64_t samplerate)
 
 	if (r < 0) {
 		/* Something went wrong... */
-		free(o);
+		g_free(o);
 		return NULL;
 	}
 
@@ -67,17 +70,20 @@ SR_API char *sr_samplerate_string(uint64_t samplerate)
  * E.g. a value of 3000000 would be converted to "3 us", 20000 to "50 ms".
  *
  * @param frequency The frequency in Hz.
- * @return A malloc()ed string representation of the frequency value,
- *         or NULL upon errors. The caller is responsible to free() the memory.
+ * @return A g_try_malloc()ed string representation of the frequency value,
+ *         or NULL upon errors. The caller is responsible to g_free() the
+ *         memory.
  */
 SR_API char *sr_period_string(uint64_t frequency)
 {
 	char *o;
 	int r;
 
-	o = malloc(30 + 1); /* Enough for a uint64_t as string + " ms". */
-	if (!o)
+	/* Allocate enough for a uint64_t as string + " ms". */
+	if (!(o = g_try_malloc0(30 + 1))) {
+		sr_err("strutil: %s: o malloc failed", __func__);
 		return NULL;
+	}
 
 	if (frequency >= SR_GHZ(1))
 		r = snprintf(o, 30, "%" PRIu64 " ns", frequency / 1000000000);
@@ -90,7 +96,7 @@ SR_API char *sr_period_string(uint64_t frequency)
 
 	if (r < 0) {
 		/* Something went wrong... */
-		free(o);
+		g_free(o);
 		return NULL;
 	}
 

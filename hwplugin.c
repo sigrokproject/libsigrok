@@ -152,8 +152,10 @@ SR_API struct sr_device_instance *sr_device_instance_new(int index, int status,
 {
 	struct sr_device_instance *sdi;
 
-	if (!(sdi = g_malloc(sizeof(struct sr_device_instance))))
+	if (!(sdi = g_try_malloc(sizeof(struct sr_device_instance)))) {
+		sr_err("hwplugin: %s: sdi malloc failed", __func__);
 		return NULL;
+	}
 
 	sdi->index = index;
 	sdi->status = status;
@@ -198,8 +200,10 @@ SR_PRIV struct sr_usb_device_instance *sr_usb_device_instance_new(uint8_t bus,
 {
 	struct sr_usb_device_instance *udi;
 
-	if (!(udi = malloc(sizeof(struct sr_usb_device_instance))))
+	if (!(udi = g_try_malloc(sizeof(struct sr_usb_device_instance)))) {
+		sr_err("hwplugin: %s: udi malloc failed", __func__);
 		return NULL;
+	}
 
 	udi->bus = bus;
 	udi->address = address;
@@ -223,10 +227,12 @@ SR_PRIV struct sr_serial_device_instance *sr_serial_device_instance_new(
 {
 	struct sr_serial_device_instance *serial;
 
-	if (!(serial = malloc(sizeof(struct sr_serial_device_instance))))
+	if (!(serial = g_try_malloc(sizeof(struct sr_serial_device_instance)))) {
+		sr_err("hwplugin: %s: serial malloc failed", __func__);
 		return NULL;
+	}
 
-	serial->port = strdup(port);
+	serial->port = g_strdup(port);
 	serial->fd = fd;
 
 	return serial;
@@ -235,7 +241,7 @@ SR_PRIV struct sr_serial_device_instance *sr_serial_device_instance_new(
 SR_PRIV void sr_serial_device_instance_free(
 		struct sr_serial_device_instance *serial)
 {
-	free(serial->port);
+	g_free(serial->port);
 }
 
 SR_API int sr_find_hwcap(int *capabilities, int hwcap)

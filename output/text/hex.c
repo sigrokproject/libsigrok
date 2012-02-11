@@ -22,6 +22,7 @@
 #include <string.h>
 #include <glib.h>
 #include "sigrok.h"
+#include "sigrok-internal.h"
 #include "text.h"
 
 SR_PRIV int init_hex(struct sr_output *o)
@@ -44,14 +45,16 @@ SR_PRIV int data_hex(struct sr_output *o, const char *data_in,
 	outsize = length_in / ctx->unitsize * ctx->num_enabled_probes
 			/ ctx->samples_per_line * max_linelen + 512;
 
-	if (!(outbuf = calloc(1, outsize + 1)))
+	if (!(outbuf = g_try_malloc0(outsize + 1))) {
+		sr_err("hex out: %s: outbuf malloc failed", __func__);
 		return SR_ERR_MALLOC;
+	}
 
 	outbuf[0] = '\0';
 	if (ctx->header) {
 		/* The header is still here, this must be the first packet. */
 		strncpy(outbuf, ctx->header, outsize);
-		free(ctx->header);
+		g_free(ctx->header);
 		ctx->header = NULL;
 	}
 

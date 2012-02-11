@@ -57,7 +57,7 @@ static int source_timeout = -1;
  */
 SR_API struct sr_session *sr_session_new(void)
 {
-	if (!(session = calloc(1, sizeof(struct sr_session)))) {
+	if (!(session = g_try_malloc0(sizeof(struct sr_session)))) {
 		sr_err("session: %s: session malloc failed", __func__);
 		return NULL; /* TODO: SR_ERR_MALLOC? */
 	}
@@ -75,7 +75,7 @@ SR_API struct sr_session *sr_session_new(void)
 SR_API int sr_session_destroy(void)
 {
 	if (!session) {
-		sr_warn("session: %s: session was NULL", __func__);
+		sr_err("session: %s: session was NULL", __func__);
 		return SR_ERR_BUG;
 	}
 
@@ -103,7 +103,7 @@ SR_API int sr_session_destroy(void)
 SR_API int sr_session_device_clear(void)
 {
 	if (!session) {
-		sr_warn("session: %s: session was NULL", __func__);
+		sr_err("session: %s: session was NULL", __func__);
 		return SR_ERR_BUG;
 	}
 
@@ -208,13 +208,11 @@ static int sr_session_run_poll(void)
 
 	fds = NULL;
 	while (session->running) {
-		if (fds)
-			free(fds);
+		/* TODO: Add comment. */
+		g_free(fds);
 
 		/* Construct g_poll()'s array. */
-		/* TODO: Check malloc return value. */
-		fds = malloc(sizeof(GPollFD) * num_sources);
-		if (!fds) {
+		if (!(fds = g_try_malloc(sizeof(GPollFD) * num_sources))) {
 			sr_err("session: %s: fds malloc failed", __func__);
 			return SR_ERR_MALLOC;
 		}
@@ -245,7 +243,7 @@ static int sr_session_run_poll(void)
 			}
 		}
 	}
-	free(fds);
+	g_free(fds);
 
 	return SR_OK;
 }
@@ -476,7 +474,6 @@ SR_API int sr_session_bus(struct sr_device *device,
 /**
  * TODO.
  *
- * TODO: Switch to g_try_malloc0() / g_free().
  * TODO: More error checks etc.
  *
  * @param fd TODO.
@@ -499,7 +496,7 @@ SR_API int sr_session_source_add(int fd, int events, int timeout,
 
 	/* Note: user_data can be NULL, that's not a bug. */
 
-	new_sources = calloc(1, sizeof(struct source) * (num_sources + 1));
+	new_sources = g_try_malloc0(sizeof(struct source) * (num_sources + 1));
 	if (!new_sources) {
 		sr_err("session: %s: new_sources malloc failed", __func__);
 		return SR_ERR_MALLOC;
@@ -508,7 +505,7 @@ SR_API int sr_session_source_add(int fd, int events, int timeout,
 	if (sources) {
 		memcpy(new_sources, sources,
 		       sizeof(struct source) * num_sources);
-		free(sources);
+		g_free(sources);
 	}
 
 	s = &new_sources[num_sources++];
@@ -530,7 +527,6 @@ SR_API int sr_session_source_add(int fd, int events, int timeout,
  * Remove the source belonging to the specified file descriptor.
  *
  * TODO: More error checks.
- * TODO: Switch to g_try_malloc0() / g_free().
  *
  * @param fd TODO.
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or
@@ -549,7 +545,7 @@ SR_API int sr_session_source_remove(int fd)
 
 	/* TODO: Check if 'fd' valid. */
 
-	new_sources = calloc(1, sizeof(struct source) * num_sources);
+	new_sources = g_try_malloc0(sizeof(struct source) * num_sources);
 	if (!new_sources) {
 		sr_err("session: %s: new_sources malloc failed", __func__);
 		return SR_ERR_MALLOC;
@@ -562,12 +558,12 @@ SR_API int sr_session_source_remove(int fd)
 	}
 
 	if (old != new) {
-		free(sources);
+		g_free(sources);
 		sources = new_sources;
 		num_sources--;
 	} else {
 		/* Target fd was not found. */
-		free(new_sources);
+		g_free(new_sources);
 	}
 
 	return SR_OK;

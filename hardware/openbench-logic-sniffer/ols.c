@@ -359,7 +359,7 @@ static int hw_init(const char *deviceinfo)
 	final_devcnt = 0;
 
 	if (deviceinfo)
-		ports = g_slist_append(NULL, strdup(deviceinfo));
+		ports = g_slist_append(NULL, g_strdup(deviceinfo));
 	else
 		/* No specific device given, so scan all serial ports. */
 		ports = list_serial_ports();
@@ -415,10 +415,10 @@ static int hw_init(const char *deviceinfo)
 			send_shortcommand(fd, CMD_ID);
 			fds[devcnt].fd = fd;
 			fds[devcnt].events = G_IO_IN;
-			device_names[devcnt] = strdup(l->data);
+			device_names[devcnt] = g_strdup(l->data);
 			devcnt++;
 		}
-		free(l->data);
+		g_free(l->data);
 	}
 
 	/* 2ms isn't enough for reliable transfer with pl2303, let's try 10 */
@@ -465,8 +465,8 @@ static int hw_init(const char *deviceinfo)
 			serial_restore_params(fds[i].fd, serial_params[i]);
 			serial_close(fds[i].fd);
 		}
-		free(serial_params[i]);
-		free(device_names[i]);
+		g_free(serial_params[i]);
+		g_free(device_names[i]);
 	}
 
 	g_free(serial_params);
@@ -614,11 +614,11 @@ static int set_configuration_samplerate(struct sr_device_instance *sdi,
 	 * from the requested.
 	 */
 	ols->cur_samplerate = CLOCK_RATE / (ols->cur_samplerate_divider + 1);
-	if(ols->flag_reg & FLAG_DEMUX)
+	if (ols->flag_reg & FLAG_DEMUX)
 		ols->cur_samplerate *= 2;
-	if(ols->cur_samplerate != samplerate)
-		sr_warn("ols: can't match samplerate %" PRIu64 ", using %" PRIu64, 
-			samplerate, ols->cur_samplerate);
+	if (ols->cur_samplerate != samplerate)
+		sr_err("ols: can't match samplerate %" PRIu64 ", using %"
+		       PRIu64, samplerate, ols->cur_samplerate);
 
 	return SR_OK;
 }
@@ -650,7 +650,7 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 		if (*tmp_u64 < MIN_NUM_SAMPLES)
 			return SR_ERR;
 		if (*tmp_u64 > ols->max_samples)
-			sr_warn("ols: sample limit exceeds hw max");
+			sr_err("ols: sample limit exceeds hw max");
 		ols->limit_samples = *tmp_u64;
 		sr_info("ols: sample limit %" PRIu64, ols->limit_samples);
 		ret = SR_OK;

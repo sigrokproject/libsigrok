@@ -102,8 +102,8 @@ static int init(struct sr_output *o)
 		return SR_ERR_ARG;
 	}
 
-	if (!(ctx = calloc(1, sizeof(struct context)))) {
-		sr_warn("la8 out: %s: ctx calloc failed", __func__);
+	if (!(ctx = g_try_malloc0(sizeof(struct context)))) {
+		sr_warn("la8 out: %s: ctx malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 
@@ -163,7 +163,7 @@ static int event(struct sr_output *o, int event_type, char **data_out,
 		break;
 	case SR_DF_END:
 		sr_dbg("la8 out: %s: SR_DF_END event", __func__);
-		if (!(outbuf = malloc(4 + 1))) {
+		if (!(outbuf = g_try_malloc(4 + 1))) {
 			sr_warn("la8 out: %s: outbuf malloc failed", __func__);
 			return SR_ERR_MALLOC;
 		}
@@ -183,7 +183,7 @@ static int event(struct sr_output *o, int event_type, char **data_out,
 
 		*data_out = outbuf;
 		*length_out = 4 + 1;
-		free(o->internal);
+		g_free(o->internal);
 		o->internal = NULL;
 		break;
 	default:
@@ -218,8 +218,8 @@ static int data(struct sr_output *o, const char *data_in, uint64_t length_in,
 		return SR_ERR_ARG;
 	}
 
-	if (!(outbuf = calloc(1, length_in))) {
-		sr_warn("la8 out: %s: outbuf calloc failed", __func__);
+	if (!(outbuf = g_try_malloc0(length_in))) {
+		sr_warn("la8 out: %s: outbuf malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 

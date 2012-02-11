@@ -197,7 +197,7 @@ static int opendev4(struct sr_device_instance **sdi, libusb_device *dev,
 	}
 
 	if ((err = libusb_get_device_descriptor(dev, des))) {
-		sr_warn("failed to get device descriptor: %d", err);
+		sr_err("failed to get device descriptor: %d", err);
 		return -1;
 	}
 
@@ -219,7 +219,7 @@ static int opendev4(struct sr_device_instance **sdi, libusb_device *dev,
 		}
 
 		if (zp->num_channels == 0) {
-			sr_warn("Unknown ZeroPlus device %04X", des->idProduct);
+			sr_err("Unknown ZeroPlus device %04X", des->idProduct);
 			return -2;
 		}
 
@@ -230,7 +230,7 @@ static int opendev4(struct sr_device_instance **sdi, libusb_device *dev,
 				(*sdi)->index, zp->usb->bus,
 				zp->usb->address, USB_INTERFACE);
 		} else {
-			sr_warn("failed to open device: %d", err);
+			sr_err("failed to open device: %d", err);
 			*sdi = NULL;
 		}
 	}
@@ -363,7 +363,7 @@ static int hw_init(const char *deviceinfo)
 	// memset(zp->trigger_buffer, 0, NUM_TRIGGER_STAGES);
 
 	if (libusb_init(&usb_context) != 0) {
-		sr_warn("Failed to initialize USB.");
+		sr_err("Failed to initialize USB.");
 		return 0;
 	}
 
@@ -374,7 +374,7 @@ static int hw_init(const char *deviceinfo)
 	for (i = 0; devlist[i]; i++) {
 		err = libusb_get_device_descriptor(devlist[i], &des);
 		if (err != 0) {
-			sr_warn("failed to get device descriptor: %d", err);
+			sr_err("failed to get device descriptor: %d", err);
 			continue;
 		}
 
@@ -416,7 +416,7 @@ static int hw_opendev(int device_index)
 	int err;
 
 	if (!(sdi = zp_open_device(device_index))) {
-		sr_warn("unable to open device");
+		sr_err("unable to open device");
 		return SR_ERR;
 	}
 
@@ -429,14 +429,14 @@ static int hw_opendev(int device_index)
 
 	err = libusb_set_configuration(zp->usb->devhdl, USB_CONFIGURATION);
 	if (err < 0) {
-		sr_warn("zp: Unable to set USB configuration %d: %d",
-			USB_CONFIGURATION, err);
+		sr_err("zp: Unable to set USB configuration %d: %d",
+		       USB_CONFIGURATION, err);
 		return SR_ERR;
 	}
 
 	err = libusb_claim_interface(zp->usb->devhdl, USB_INTERFACE);
 	if (err != 0) {
-		sr_warn("Unable to claim interface: %d", err);
+		sr_err("Unable to claim interface: %d", err);
 		return SR_ERR;
 	}
 

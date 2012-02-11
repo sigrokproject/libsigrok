@@ -62,30 +62,28 @@ static int init(struct sr_output *o)
 	time_t t;
 
 	if (!o) {
-		sr_warn("gnuplot out: %s: o was NULL", __func__);
+		sr_err("gnuplot out: %s: o was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!o->device) {
-		sr_warn("gnuplot out: %s: o->device was NULL", __func__);
+		sr_err("gnuplot out: %s: o->device was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!o->device->plugin) {
-		sr_warn("gnuplot out: %s: o->device->plugin was NULL",
-			__func__);
+		sr_err("gnuplot out: %s: o->device->plugin was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
-	if (!(ctx = calloc(1, sizeof(struct context)))) {
-		sr_warn("gnuplot out: %s: ctx calloc failed", __func__);
+	if (!(ctx = g_try_malloc0(sizeof(struct context)))) {
+		sr_err("gnuplot out: %s: ctx malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 
-	if (!(ctx->header = calloc(1, MAX_HEADER_LEN + 1))) {
-		sr_warn("gnuplot out: %s: ctx->header calloc failed",
-			__func__);
-		free(ctx);
+	if (!(ctx->header = g_try_malloc0(MAX_HEADER_LEN + 1))) {
+		sr_err("gnuplot out: %s: ctx->header malloc failed", __func__);
+		g_free(ctx);
 		return SR_ERR_MALLOC;
 	}
 
@@ -106,15 +104,15 @@ static int init(struct sr_output *o)
 		samplerate = *((uint64_t *) o->device->plugin->get_device_info(
 				o->device->plugin_index, SR_DI_CUR_SAMPLERATE));
 		if (!(frequency_s = sr_samplerate_string(samplerate))) {
-			sr_warn("gnuplot out: %s: sr_samplerate_string failed",
-				__func__);
-			free(ctx->header);
-			free(ctx);
+			sr_err("gnuplot out: %s: sr_samplerate_string failed",
+			       __func__);
+			g_free(ctx->header);
+			g_free(ctx);
 			return SR_ERR;
 		}
 		snprintf(comment, 127, gnuplot_header_comment,
 			ctx->num_enabled_probes, num_probes, frequency_s);
-		free(frequency_s);
+		g_free(frequency_s);
 	}
 
 	/* Columns / channels */
@@ -125,9 +123,9 @@ static int init(struct sr_output *o)
 	}
 
 	if (!(frequency_s = sr_period_string(samplerate))) {
-		sr_warn("gnuplot out: %s: sr_period_string failed", __func__);
-		free(ctx->header);
-		free(ctx);
+		sr_err("gnuplot out: %s: sr_period_string failed", __func__);
+		g_free(ctx->header);
+		g_free(ctx);
 		return SR_ERR;
 	}
 
@@ -135,12 +133,12 @@ static int init(struct sr_output *o)
 	b = snprintf(ctx->header, MAX_HEADER_LEN, gnuplot_header,
 		     PACKAGE_STRING, ctime(&t), comment, frequency_s,
 		     (char *)&wbuf);
-	free(frequency_s);
+	g_free(frequency_s);
 
 	if (b < 0) {
-		sr_warn("gnuplot out: %s: sprintf failed", __func__);
-		free(ctx->header);
-		free(ctx);
+		sr_err("gnuplot out: %s: sprintf failed", __func__);
+		g_free(ctx->header);
+		g_free(ctx);
 		return SR_ERR;
 	}
 
@@ -153,17 +151,17 @@ static int event(struct sr_output *o, int event_type, char **data_out,
 	struct context *ctx;
 
 	if (!o) {
-		sr_warn("gnuplot out: %s: o was NULL", __func__);
+		sr_err("gnuplot out: %s: o was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!data_out) {
-		sr_warn("gnuplot out: %s: data_out was NULL", __func__);
+		sr_err("gnuplot out: %s: data_out was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!length_out) {
-		sr_warn("gnuplot out: %s: length_out was NULL", __func__);
+		sr_err("gnuplot out: %s: length_out was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
@@ -174,12 +172,12 @@ static int event(struct sr_output *o, int event_type, char **data_out,
 		/* TODO: Can a trigger mark be in a gnuplot data file? */
 		break;
 	case SR_DF_END:
-		free(o->internal);
+		g_free(o->internal);
 		o->internal = NULL;
 		break;
 	default:
-		sr_warn("gnuplot out: %s: unsupported event type: %d",
-			__func__, event_type);
+		sr_err("gnuplot out: %s: unsupported event type: %d",
+		       __func__, event_type);
 		break;
 	}
 
@@ -199,27 +197,27 @@ static int data(struct sr_output *o, const char *data_in, uint64_t length_in,
 	char *outbuf, *c;
 
 	if (!o) {
-		sr_warn("gnuplot out: %s: o was NULL", __func__);
+		sr_err("gnuplot out: %s: o was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!o->internal) {
-		sr_warn("gnuplot out: %s: o->internal was NULL", __func__);
+		sr_err("gnuplot out: %s: o->internal was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!data_in) {
-		sr_warn("gnuplot out: %s: data_in was NULL", __func__);
+		sr_err("gnuplot out: %s: data_in was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!data_out) {
-		sr_warn("gnuplot out: %s: data_out was NULL", __func__);
+		sr_err("gnuplot out: %s: data_out was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!length_out) {
-		sr_warn("gnuplot out: %s: length_out was NULL", __func__);
+		sr_err("gnuplot out: %s: length_out was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
@@ -229,8 +227,8 @@ static int data(struct sr_output *o, const char *data_in, uint64_t length_in,
 	if (ctx->header)
 		outsize += strlen(ctx->header);
 
-	if (!(outbuf = calloc(1, outsize))) {
-		sr_warn("gnuplot out: %s: outbuf calloc failed", __func__);
+	if (!(outbuf = g_try_malloc0(outsize))) {
+		sr_err("gnuplot out: %s: outbuf malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 
@@ -238,7 +236,7 @@ static int data(struct sr_output *o, const char *data_in, uint64_t length_in,
 	if (ctx->header) {
 		/* The header is still here, this must be the first packet. */
 		strncpy(outbuf, ctx->header, outsize);
-		free(ctx->header);
+		g_free(ctx->header);
 		ctx->header = NULL;
 	}
 
@@ -300,11 +298,14 @@ static int analog_init(struct sr_output *o)
 	char wbuf[1000], comment[128];
 	time_t t;
 
-	if (!(ctx = calloc(1, sizeof(struct context))))
+	if (!(ctx = g_try_malloc0(sizeof(struct context)))) {
+		sr_err("gnuplot out: %s: ctx malloc failed", __func__);
 		return SR_ERR_MALLOC;
+	}
 
-	if (!(ctx->header = calloc(1, MAX_HEADER_LEN + 1))) {
-		free(ctx);
+	if (!(ctx->header = g_try_malloc0(MAX_HEADER_LEN + 1))) {
+		g_free(ctx);
+		sr_err("gnuplot out: %s: ctx->header malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 
@@ -327,13 +328,13 @@ static int analog_init(struct sr_output *o)
 		samplerate = *((uint64_t *) o->device->plugin->get_device_info(
 				o->device->plugin_index, SR_DI_CUR_SAMPLERATE));
 		if (!(frequency_s = sr_samplerate_string(samplerate))) {
-			free(ctx->header);
-			free(ctx);
+			g_free(ctx->header);
+			g_free(ctx);
 			return SR_ERR;
 		}
 		snprintf(comment, 127, gnuplot_header_comment,
 			ctx->num_enabled_probes, num_probes, frequency_s);
-		free(frequency_s);
+		g_free(frequency_s);
 	}
 
 	/* Columns / channels */
@@ -344,19 +345,19 @@ static int analog_init(struct sr_output *o)
 	}
 
 	if (!(frequency_s = sr_period_string(samplerate))) {
-		free(ctx->header);
-		free(ctx);
+		g_free(ctx->header);
+		g_free(ctx);
 		return SR_ERR;
 	}
 	t = time(NULL);
 	b = snprintf(ctx->header, MAX_HEADER_LEN, gnuplot_header,
 		     PACKAGE_STRING, ctime(&t), comment, frequency_s,
 		     (char *)&wbuf);
-	free(frequency_s);
+	g_free(frequency_s);
 
 	if (b < 0) {
-		free(ctx->header);
-		free(ctx);
+		g_free(ctx->header);
+		g_free(ctx);
 		return SR_ERR;
 	}
 
@@ -380,14 +381,16 @@ static int analog_data(struct sr_output *o, char *data_in, uint64_t length_in,
 	if (ctx->header)
 		outsize += strlen(ctx->header);
 
-	if (!(outbuf = calloc(1, outsize)))
+	if (!(outbuf = g_try_malloc0(outsize))) {
+		sr_err("gnuplot out: %s: outbuf malloc failed", __func__);
 		return SR_ERR_MALLOC;
+	}
 
 	outbuf[0] = '\0';
 	if (ctx->header) {
 		/* The header is still here, this must be the first packet. */
 		strncpy(outbuf, ctx->header, outsize);
-		free(ctx->header);
+		g_free(ctx->header);
 		ctx->header = NULL;
 	}
 

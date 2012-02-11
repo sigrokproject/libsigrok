@@ -416,7 +416,7 @@ static int hw_init(const char *deviceinfo)
 	 */
 	udev = udev_new();
 	if (!udev) {
-		sr_warn("Failed to initialize udev.");
+		sr_err("Failed to initialize udev.");
 		goto ret;
 	}
 	enumerate = udev_enumerate_new(udev);
@@ -436,8 +436,8 @@ static int hw_init(const char *deviceinfo)
 		parent = udev_device_get_parent_with_subsystem_devtype(
 				dev, "usb", "usb_device");
 		if (!parent) {
-			sr_warn("Unable to find parent usb device for %s",
-				sysname);
+			sr_err("Unable to find parent usb device for %s",
+			       sysname);
 			continue;
 		}
 
@@ -455,7 +455,7 @@ static int hw_init(const char *deviceinfo)
 		s = strcspn(iProduct, " ");
 		if (s > sizeof(product) ||
 				strlen(iProduct) - s > sizeof(manufacturer)) {
-			sr_warn("Could not parse iProduct: %s", iProduct);
+			sr_err("Could not parse iProduct: %s", iProduct);
 			continue;
 		}
 		strncpy(product, iProduct, s);
@@ -468,7 +468,7 @@ static int hw_init(const char *deviceinfo)
 		}
 
 		if (mso_parse_serial(iSerial, iProduct, mso) != SR_OK) {
-			sr_warn("Invalid iSerial: %s", iSerial);
+			sr_err("Invalid iSerial: %s", iSerial);
 			goto err_free_mso;
 		}
 		sprintf(hwrev, "r%d", mso->hwrev);
@@ -489,8 +489,8 @@ static int hw_init(const char *deviceinfo)
 		sdi = sr_device_instance_new(devcnt, SR_ST_INITIALIZING,
 			manufacturer, product, hwrev);
 		if (!sdi) {
-			sr_warn("Unable to create device instance for %s",
-				sysname);
+			sr_err("Unable to create device instance for %s",
+			       sysname);
 			goto err_free_mso;
 		}
 
@@ -508,7 +508,7 @@ static int hw_init(const char *deviceinfo)
 err_device_instance_free:
 		sr_device_instance_free(sdi);
 err_free_mso:
-		free(mso);
+		g_free(mso);
 	}
 
 	udev_enumerate_unref(enumerate);
@@ -530,7 +530,7 @@ static void hw_cleanup(void)
 			serial_close(sdi->serial->fd);
 		if (sdi->priv != NULL)
 		{
-			free(sdi->priv);
+			g_free(sdi->priv);
 			sdi->priv = NULL;
 		}
 		sr_device_instance_free(sdi);

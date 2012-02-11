@@ -107,8 +107,7 @@ static int feed_chunk(int fd, int revents, void *session_data)
 
 		if (!(buf = g_try_malloc(CHUNKSIZE))) {
 			sr_err("session: %s: buf malloc failed", __func__);
-			// return SR_ERR_MALLOC;
-			return FALSE;
+			return FALSE; /* TODO: SR_ERR_MALLOC */
 		}
 
 		ret = zip_fread(vdevice->capfile, buf, CHUNKSIZE);
@@ -287,20 +286,21 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 		vdevice->capturefile);
 
 	if (!(vdevice->archive = zip_open(sessionfile, 0, &err))) {
-		sr_warn("Failed to open session file '%s': zip error %d\n",
-			sessionfile, err);
+		sr_err("Failed to open session file '%s': zip error %d\n",
+		       sessionfile, err);
 		return SR_ERR;
 	}
 
 	if (zip_stat(vdevice->archive, vdevice->capturefile, 0, &zs) == -1) {
-		sr_warn("Failed to check capture file '%s' in session file '%s'.",
-			vdevice->capturefile, sessionfile);
+		sr_err("Failed to check capture file '%s' in session file "
+		       "'%s'.", vdevice->capturefile, sessionfile);
 		return SR_ERR;
 	}
 
-	if (!(vdevice->capfile = zip_fopen(vdevice->archive, vdevice->capturefile, 0))) {
-		sr_warn("Failed to open capture file '%s' in session file '%s'.",
-			vdevice->capturefile, sessionfile);
+	if (!(vdevice->capfile = zip_fopen(vdevice->archive,
+					   vdevice->capturefile, 0))) {
+		sr_err("Failed to open capture file '%s' in session file '%s'.",
+		       vdevice->capturefile, sessionfile);
 		return SR_ERR;
 	}
 

@@ -170,8 +170,8 @@ static int is_valid_samplerate(uint64_t samplerate)
 			return 1;
 	}
 
-	sr_warn("la8: %s: invalid samplerate (%" PRIu64 "Hz)",
-		__func__, samplerate);
+	sr_err("la8: %s: invalid samplerate (%" PRIu64 "Hz)",
+	       __func__, samplerate);
 
 	return 0;
 }
@@ -237,12 +237,12 @@ static int la8_write(struct la8 *la8, uint8_t *buf, int size)
 	bytes_written = ftdi_write_data(la8->ftdic, buf, size);
 
 	if (bytes_written < 0) {
-		sr_warn("la8: %s: ftdi_write_data: (%d) %s", __func__,
-			bytes_written, ftdi_get_error_string(la8->ftdic));
+		sr_err("la8: %s: ftdi_write_data: (%d) %s", __func__,
+		       bytes_written, ftdi_get_error_string(la8->ftdic));
 		(void) la8_close_usb_reset_sequencer(la8); /* Ignore errors. */
 	} else if (bytes_written != size) {
-		sr_warn("la8: %s: bytes to write: %d, bytes written: %d",
-			__func__, size, bytes_written);
+		sr_err("la8: %s: bytes to write: %d, bytes written: %d",
+		       __func__, size, bytes_written);
 		(void) la8_close_usb_reset_sequencer(la8); /* Ignore errors. */
 	}
 
@@ -284,11 +284,11 @@ static int la8_read(struct la8 *la8, uint8_t *buf, int size)
 	bytes_read = ftdi_read_data(la8->ftdic, buf, size);
 
 	if (bytes_read < 0) {
-		sr_warn("la8: %s: ftdi_read_data: (%d) %s", __func__,
-			bytes_read, ftdi_get_error_string(la8->ftdic));
+		sr_err("la8: %s: ftdi_read_data: (%d) %s", __func__,
+		       bytes_read, ftdi_get_error_string(la8->ftdic));
 	} else if (bytes_read != size) {
-		// sr_warn("la8: %s: bytes to read: %d, bytes read: %d",
-		//	__func__, size, bytes_read);
+		// sr_err("la8: %s: bytes to read: %d, bytes read: %d",
+		//        __func__, size, bytes_read);
 	}
 
 	return bytes_read;
@@ -309,8 +309,8 @@ static int la8_close(struct la8 *la8)
 	}
 
 	if ((ret = ftdi_usb_close(la8->ftdic)) < 0) {
-		sr_warn("la8: %s: ftdi_usb_close: (%d) %s",
-			__func__, ret, ftdi_get_error_string(la8->ftdic));
+		sr_err("la8: %s: ftdi_usb_close: (%d) %s",
+		       __func__, ret, ftdi_get_error_string(la8->ftdic));
 	}
 
 	return ret;
@@ -351,14 +351,14 @@ static int la8_close_usb_reset_sequencer(struct la8 *la8)
 
 		/* Log errors, but ignore them (i.e., don't abort). */
 		if ((ret = ftdi_usb_purge_buffers(la8->ftdic)) < 0)
-			sr_warn("la8: %s: ftdi_usb_purge_buffers: (%d) %s",
+			sr_err("la8: %s: ftdi_usb_purge_buffers: (%d) %s",
 			    __func__, ret, ftdi_get_error_string(la8->ftdic));
 		if ((ret = ftdi_usb_reset(la8->ftdic)) < 0)
-			sr_warn("la8: %s: ftdi_usb_reset: (%d) %s", __func__,
-				ret, ftdi_get_error_string(la8->ftdic));
+			sr_err("la8: %s: ftdi_usb_reset: (%d) %s", __func__,
+			       ret, ftdi_get_error_string(la8->ftdic));
 		if ((ret = ftdi_usb_close(la8->ftdic)) < 0)
-			sr_warn("la8: %s: ftdi_usb_close: (%d) %s", __func__,
-				ret, ftdi_get_error_string(la8->ftdic));
+			sr_err("la8: %s: ftdi_usb_close: (%d) %s", __func__,
+			       ret, ftdi_get_error_string(la8->ftdic));
 	} else {
 		sr_spew("la8: %s: usb_dev was NULL, nothing to do", __func__);
 	}
@@ -689,7 +689,7 @@ static void hw_cleanup(void)
 	/* Properly close all devices. */
 	for (l = device_instances; l; l = l->next) {
 		if ((sdi = l->data) == NULL) {
-			sr_warn("la8: %s: sdi was NULL, continuing", __func__);
+			sr_err("la8: %s: sdi was NULL, continuing", __func__);
 			continue;
 		}
 #if 0
@@ -698,10 +698,10 @@ static void hw_cleanup(void)
 		 * TODO: Document who is supposed to free this, and when.
 		 */
 		if (sdi->priv != NULL)
-			free(sdi->priv);
+			g_free(sdi->priv);
 		else
-			sr_warn("la8: %s: sdi->priv was NULL, nothing "
-				"to do", __func__);
+			sr_err("la8: %s: sdi->priv was NULL, nothing "
+			       "to do", __func__);
 #endif
 		sr_device_instance_free(sdi); /* Returns void. */
 	}
@@ -762,7 +762,7 @@ static int hw_get_status(int device_index)
 	struct sr_device_instance *sdi;
 
 	if (!(sdi = sr_get_device_instance(device_instances, device_index))) {
-		sr_warn("la8: %s: sdi was NULL, device not found", __func__);
+		sr_err("la8: %s: sdi was NULL, device not found", __func__);
 		return SR_ST_NOT_FOUND;
 	}
 
@@ -870,7 +870,7 @@ static int la8_read_block(struct la8 *la8)
 
 	/* Check if block read was successful or a timeout occured. */
 	if (bytes_read != BS) {
-		sr_warn("la8: %s: trigger timed out", __func__);
+		sr_err("la8: %s: trigger timed out", __func__);
 		(void) la8_reset(la8); /* Ignore errors. */
 		return SR_ERR;
 	}

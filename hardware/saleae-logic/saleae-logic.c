@@ -185,7 +185,7 @@ static int sl_open_device(int device_index)
 	libusb_get_device_list(usb_context, &devlist);
 	for (i = 0; devlist[i]; i++) {
 		if ((err = libusb_get_device_descriptor(devlist[i], &des))) {
-			sr_warn("failed to get device descriptor: %d", err);
+			sr_err("failed to get device descriptor: %d", err);
 			continue;
 		}
 
@@ -222,7 +222,7 @@ static int sl_open_device(int device_index)
 				  sdi->index, fx2->usb->bus,
 				  fx2->usb->address, USB_INTERFACE);
 		} else {
-			sr_warn("failed to open device: %d", err);
+			sr_err("failed to open device: %d", err);
 		}
 
 		/* if we made it here, we handled the device one way or another */
@@ -331,7 +331,7 @@ static int hw_init(const char *deviceinfo)
 	(void)deviceinfo;
 
 	if (libusb_init(&usb_context) != 0) {
-		sr_warn("Failed to initialize USB.");
+		sr_err("Failed to initialize USB.");
 		return 0;
 	}
 
@@ -342,7 +342,7 @@ static int hw_init(const char *deviceinfo)
 		fx2_prof = NULL;
 		err = libusb_get_device_descriptor(devlist[i], &des);
 		if (err != 0) {
-			sr_warn("failed to get device descriptor: %d", err);
+			sr_err("failed to get device descriptor: %d", err);
 			continue;
 		}
 
@@ -379,7 +379,7 @@ static int hw_init(const char *deviceinfo)
 				/* Remember when the firmware on this device was updated */
 				g_get_current_time(&fx2->fw_updated);
 			else
-				sr_warn("firmware upload failed for device %d", devcnt);
+				sr_err("firmware upload failed for device %d", devcnt);
 			fx2->usb = sr_usb_device_instance_new
 				(libusb_get_bus_number(devlist[i]), 0xff, NULL);
 		}
@@ -424,14 +424,14 @@ static int hw_opendev(int device_index)
 	}
 
 	if (err != SR_OK) {
-		sr_warn("unable to open device");
+		sr_err("unable to open device");
 		return SR_ERR;
 	}
 	fx2 = sdi->priv;
 
 	err = libusb_claim_interface(fx2->usb->devhdl, USB_INTERFACE);
 	if (err != 0) {
-		sr_warn("Unable to claim interface: %d", err);
+		sr_err("Unable to claim interface: %d", err);
 		return SR_ERR;
 	}
 
@@ -603,7 +603,7 @@ static int set_configuration_samplerate(struct sr_device_instance *sdi,
 	ret = libusb_bulk_transfer(fx2->usb->devhdl, 1 | LIBUSB_ENDPOINT_OUT,
 				   buf, 2, &result, 500);
 	if (ret != 0) {
-		sr_warn("failed to set samplerate: %d", ret);
+		sr_err("failed to set samplerate: %d", ret);
 		return SR_ERR;
 	}
 	fx2->cur_samplerate = samplerate;
@@ -689,15 +689,14 @@ static void receive_transfer(struct libusb_transfer *transfer)
 	/* Fire off a new request. */
 	if (!(new_buf = g_try_malloc(4096))) {
 		sr_err("saleae: %s: new_buf malloc failed", __func__);
-		// return SR_ERR_MALLOC;
-		return; /* FIXME */
+		return; /* TODO: SR_ERR_MALLOC */
 	}
 
 	transfer->buffer = new_buf;
 	transfer->length = 4096;
 	if (libusb_submit_transfer(transfer) != 0) {
 		/* TODO: Stop session? */
-		sr_warn("eek");
+		sr_err("eek");
 	}
 
 	if (cur_buflen == 0) {
@@ -841,7 +840,7 @@ static int hw_start_acquisition(int device_index, gpointer session_data)
 	for (i = 0; lupfd[i]; i++)
 		sr_source_add(lupfd[i]->fd, lupfd[i]->events, 40, receive_data,
 			      NULL);
-	free(lupfd);
+	free(lupfd); /* NOT g_free()! */
 
 	packet->type = SR_DF_HEADER;
 	packet->payload = header;

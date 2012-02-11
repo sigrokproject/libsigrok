@@ -230,7 +230,7 @@ int sr_session_save(const char *filename)
 						device->plugin_index, SR_DI_CUR_SAMPLERATE));
 				s = sr_samplerate_string(samplerate);
 				fprintf(meta, "samplerate = %s\n", s);
-				free(s);
+				g_free(s);
 			}
 			probecnt = 1;
 			for (p = device->probes; p; p = p->next) {
@@ -245,8 +245,14 @@ int sr_session_save(const char *filename)
 			}
 
 			/* dump datastore into logic-n */
-			buf = malloc(ds->num_units * ds->ds_unitsize +
+			buf = g_try_malloc(ds->num_units * ds->ds_unitsize +
 				   DATASTORE_CHUNKSIZE);
+			if (!buf) {
+				sr_err("session file: %s: buf malloc failed",
+				       __func__);
+				return SR_ERR_MALLOC;
+			}
+
 			bufcnt = 0;
 			for (d = ds->chunklist; d; d = d->next) {
 				memcpy(buf + bufcnt, d->data,

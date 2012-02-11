@@ -104,22 +104,22 @@ static int hw_opendev(int device_index)
 	err = snd_pcm_open(&alsa->capture_handle, AUDIO_DEV,
 					SND_PCM_STREAM_CAPTURE, 0);
 	if (err < 0) {
-		sr_warn("cannot open audio device %s (%s)", AUDIO_DEV,
-			snd_strerror(err));
+		sr_err("cannot open audio device %s (%s)", AUDIO_DEV,
+		       snd_strerror(err));
 		return SR_ERR;
 	}
 
 	err = snd_pcm_hw_params_malloc(&alsa->hw_params);
 	if (err < 0) {
-		sr_warn("cannot allocate hardware parameter structure (%s)",
-			snd_strerror(err));
+		sr_err("cannot allocate hardware parameter structure (%s)",
+		       snd_strerror(err));
 		return SR_ERR;
 	}
 
 	err = snd_pcm_hw_params_any(alsa->capture_handle, alsa->hw_params);
 	if (err < 0) {
-		sr_warn("cannot initialize hardware parameter structure (%s)",
-				snd_strerror(err));
+		sr_err("cannot initialize hardware parameter structure (%s)",
+		       snd_strerror(err));
 		return SR_ERR;
 	}
 
@@ -157,7 +157,7 @@ static void hw_cleanup(void)
 	if (!(sdi = sr_get_device_instance(device_instances, 0)))
 		return;
 
-	free(sdi->priv);
+	g_free(sdi->priv);
 	sr_device_instance_free(sdi);
 }
 
@@ -248,7 +248,7 @@ static int receive_data(int fd, int revents, void *user_data)
 		count = snd_pcm_readi(alsa->capture_handle, inb,
 			MIN(4096/4, alsa->limit_samples));
 		if (count < 1) {
-			sr_warn("Failed to read samples");
+			sr_err("Failed to read samples");
 			return FALSE;
 		}
 
@@ -303,7 +303,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	err = snd_pcm_hw_params_set_access(alsa->capture_handle,
 			alsa->hw_params, SND_PCM_ACCESS_RW_INTERLEAVED);
 	if (err < 0) {
-		sr_warn("cannot set access type (%s)", snd_strerror(err));
+		sr_err("cannot set access type (%s)", snd_strerror(err));
 		return SR_ERR;
 	}
 
@@ -311,52 +311,52 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	err = snd_pcm_hw_params_set_format(alsa->capture_handle,
 			alsa->hw_params, SND_PCM_FORMAT_S16_LE);
 	if (err < 0) {
-		sr_warn("cannot set sample format (%s)", snd_strerror(err));
+		sr_err("cannot set sample format (%s)", snd_strerror(err));
 		return SR_ERR;
 	}
 
 	err = snd_pcm_hw_params_set_rate_near(alsa->capture_handle,
 			alsa->hw_params, (unsigned int *) &alsa->cur_rate, 0);
 	if (err < 0) {
-		sr_warn("cannot set sample rate (%s)", snd_strerror(err));
+		sr_err("cannot set sample rate (%s)", snd_strerror(err));
 		return SR_ERR;
 	}
 
 	err = snd_pcm_hw_params_set_channels(alsa->capture_handle,
 			alsa->hw_params, NUM_PROBES);
 	if (err < 0) {
-		sr_warn("cannot set channel count (%s)", snd_strerror(err));
+		sr_err("cannot set channel count (%s)", snd_strerror(err));
 		return SR_ERR;
 	}
 
 	err = snd_pcm_hw_params(alsa->capture_handle, alsa->hw_params);
 	if (err < 0) {
-		sr_warn("cannot set parameters (%s)", snd_strerror(err));
+		sr_err("cannot set parameters (%s)", snd_strerror(err));
 		return SR_ERR;
 	}
 
 	err = snd_pcm_prepare(alsa->capture_handle);
 	if (err < 0) {
-		sr_warn("cannot prepare audio interface for use (%s)",
-				snd_strerror(err));
+		sr_err("cannot prepare audio interface for use (%s)",
+		       snd_strerror(err));
 		return SR_ERR;
 	}
 
 	count = snd_pcm_poll_descriptors_count(alsa->capture_handle);
 	if (count < 1) {
-		sr_warn("Unable to obtain poll descriptors count");
+		sr_err("Unable to obtain poll descriptors count");
 		return SR_ERR;
 	}
 
 	if (!(ufds = g_try_malloc(count * sizeof(struct pollfd)))) {
-		sr_warn("alsa: %s: ufds malloc failed", __func__);
+		sr_err("alsa: %s: ufds malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 
 	err = snd_pcm_poll_descriptors(alsa->capture_handle, ufds, count);
 	if (err < 0) {
-		sr_warn("Unable to obtain poll descriptors (%s)",
-				snd_strerror(err));
+		sr_err("Unable to obtain poll descriptors (%s)",
+		       snd_strerror(err));
 		g_free(ufds);
 		return SR_ERR;
 	}

@@ -24,6 +24,7 @@
 #include <glib.h>
 #include "config.h"
 #include "sigrok.h"
+#include "sigrok-internal.h"
 #include "text.h"
 
 SR_PRIV void flush_linebufs(struct context *ctx, char *outbuf)
@@ -72,8 +73,10 @@ SR_PRIV int init(struct sr_output *o, int default_spl, enum outputmode mode)
 	int num_probes;
 	char *samplerate_s;
 
-	if (!(ctx = calloc(1, sizeof(struct context))))
+	if (!(ctx = g_try_malloc0(sizeof(struct context)))) {
+		sr_err("text out: %s: ctx malloc failed", __func__);
 		return SR_ERR_MALLOC;
+	}
 
 	o->internal = ctx;
 	ctx->num_enabled_probes = 0;
@@ -99,8 +102,9 @@ SR_PRIV int init(struct sr_output *o, int default_spl, enum outputmode mode)
 	} else
 		ctx->samples_per_line = default_spl;
 
-	if (!(ctx->header = malloc(512))) {
-		free(ctx);
+	if (!(ctx->header = g_try_malloc0(512))) {
+		g_free(ctx);
+		sr_err("text out: %s: ctx->header malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 
@@ -110,26 +114,28 @@ SR_PRIV int init(struct sr_output *o, int default_spl, enum outputmode mode)
 		samplerate = *((uint64_t *) o->device->plugin->get_device_info(
 				o->device->plugin_index, SR_DI_CUR_SAMPLERATE));
 		if (!(samplerate_s = sr_samplerate_string(samplerate))) {
-			free(ctx->header);
-			free(ctx);
+			g_free(ctx->header);
+			g_free(ctx);
 			return SR_ERR;
 		}
 		snprintf(ctx->header + strlen(ctx->header),
 			 511 - strlen(ctx->header),
 			 "Acquisition with %d/%d probes at %s\n",
 			 ctx->num_enabled_probes, num_probes, samplerate_s);
-		free(samplerate_s);
+		g_free(samplerate_s);
 	}
 
 	ctx->linebuf_len = ctx->samples_per_line * 2 + 4;
-	if (!(ctx->linebuf = calloc(1, num_probes * ctx->linebuf_len))) {
-		free(ctx->header);
-		free(ctx);
+	if (!(ctx->linebuf = g_try_malloc0(num_probes * ctx->linebuf_len))) {
+		g_free(ctx->header);
+		g_free(ctx);
+		sr_err("text out: %s: ctx->linebuf malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
-	if (!(ctx->linevalues = calloc(1, num_probes))) {
-		free(ctx->header);
-		free(ctx);
+	if (!(ctx->linevalues = g_try_malloc0(num_probes))) {
+		g_free(ctx->header);
+		g_free(ctx);
+		sr_err("text out: %s: ctx->linevalues malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 
@@ -153,12 +159,14 @@ SR_PRIV int event(struct sr_output *o, int event_type, char **data_out,
 	case SR_DF_END:
 		outsize = ctx->num_enabled_probes
 				* (ctx->samples_per_line + 20) + 512;
-		if (!(outbuf = calloc(1, outsize)))
+		if (!(outbuf = g_try_malloc0(outsize))) {
+			sr_err("text out: %s: outbuf malloc failed", __func__);
 			return SR_ERR_MALLOC;
+		}
 		flush_linebufs(ctx, outbuf);
 		*data_out = outbuf;
 		*length_out = strlen(outbuf);
-		free(o->internal);
+		g_free(o->internal);
 		o->internal = NULL;
 		break;
 	default:

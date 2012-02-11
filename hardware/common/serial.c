@@ -57,7 +57,7 @@ SR_PRIV GSList *list_serial_ports(void)
 #ifdef _WIN32
 	/* TODO */
 	ports = NULL;
-	ports = g_slist_append(ports, strdup("COM1"));
+	ports = g_slist_append(ports, g_strdup("COM1"));
 #else
 	glob_t g;
 	unsigned int i, j;
@@ -67,7 +67,7 @@ SR_PRIV GSList *list_serial_ports(void)
 		if (glob(serial_port_glob[i], 0, NULL, &g))
 			continue;
 		for (j = 0; j < g.gl_pathc; j++)
-			ports = g_slist_append(ports, strdup(g.gl_pathv[j]));
+			ports = g_slist_append(ports, g_strdup(g.gl_pathv[j]));
 		globfree(&g);
 	}
 #endif
