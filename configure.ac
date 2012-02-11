@@ -99,6 +99,16 @@ if test "x$LA_CHRONOVU_LA8" = "xyes"; then
 	AC_DEFINE(HAVE_LA_CHRONOVU_LA8, 1, [ChronoVu LA8 support])
 fi
 
+# Disabled by default, unfinished.
+AC_ARG_ENABLE(fx2lafw, AC_HELP_STRING([--enable-fx2lafw],
+	      [enable open source fx2lafw driver support for fx2 devices. [default=no]]),
+	      [LA_FX2LAFW="$enableval"],
+	      [LA_FX2LAFW=no])
+AM_CONDITIONAL(LA_FX2LAFW, test x$LA_FX2LAFW = xyes)
+if test "x$LA_FX2LAFW" = "xyes"; then
+	AC_DEFINE(HAVE_LA_FX2LAFW, 1, [fx2lafw support])
+fi
+
 AC_ARG_ENABLE(demo, AC_HELP_STRING([--enable-demo],
 	      [enable demo driver support [default=yes]]),
 	      [LA_DEMO="$enableval"],
@@ -167,7 +177,8 @@ PKG_CHECK_MODULES([gthread], [gthread-2.0 >= 2.22.0],
 if test "x$LA_SALEAE_LOGIC" != xno \
    -o "x$LA_ASIX_SIGMA" != xno \
    -o "x$LA_CHRONOVU_LA8" != xno \
-   -o "x$LA_ZEROPLUS_LOGIC_CUBE" != xno; then
+   -o "x$LA_ZEROPLUS_LOGIC_CUBE" != xno \
+   -o "x$LA_FX2LAFW" != xno; then
 	case "$build" in
 	*freebsd*)
 		# FreeBSD comes with an "integrated" libusb-1.0-style USB API.
@@ -280,6 +291,7 @@ AC_CONFIG_FILES([Makefile
 		 hardware/chronovu-la8/Makefile
 		 hardware/common/Makefile
 		 hardware/demo/Makefile
+		 hardware/fx2lafw/Makefile
 		 hardware/link-mso19/Makefile
 		 hardware/openbench-logic-sniffer/Makefile
 		 hardware/saleae-logic/Makefile
@@ -320,6 +332,7 @@ echo
 echo "  - ASIX SIGMA...................... $LA_ASIX_SIGMA"
 echo "  - ChronoVu LA8.................... $LA_CHRONOVU_LA8"
 echo "  - Demo driver..................... $LA_DEMO"
+echo "  - fx2lafw......................... $LA_FX2LAFW"
 echo "  - Link MSO-19..................... $LA_LINK_MSO19"
 echo "  - Openbench Logic Sniffer......... $LA_OLS"
 echo "  - Saleae Logic.................... $LA_SALEAE_LOGIC"

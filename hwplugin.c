@@ -63,6 +63,9 @@ extern SR_PRIV struct sr_dev_plugin link_mso19_plugin_info;
 #ifdef HAVE_LA_ALSA
 extern SR_PRIV struct sr_dev_plugin alsa_plugin_info;
 #endif
+#ifdef HAVE_LA_FX2LAFW
+extern SR_PRIV struct sr_dev_plugin fx2lafw_plugin_info;
+#endif
 
 static struct sr_dev_plugin *plugins_list[] = {
 #ifdef HAVE_LA_DEMO
@@ -88,6 +91,9 @@ static struct sr_dev_plugin *plugins_list[] = {
 #endif
 #ifdef HAVE_LA_ALSA
 	&alsa_plugin_info,
+#endif
+#ifdef HAVE_LA_FX2LAFW
+	&fx2lafw_plugin_info,
 #endif
 	NULL,
 };

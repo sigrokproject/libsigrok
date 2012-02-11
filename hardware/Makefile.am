@@ -23,6 +23,7 @@ SUBDIRS = \
 	chronovu-la8 \
 	common \
 	demo \
+	fx2lafw \
 	link-mso19 \
 	openbench-logic-sniffer \
 	saleae-logic \
@@ -45,6 +46,10 @@ endif
 
 if LA_CHRONOVU_LA8
 libsigrokhardware_la_LIBADD += chronovu-la8/libsigrokhwchronovula8.la
+endif
+
+if LA_FX2LAFW
+libsigrokhardware_la_LIBADD += fx2lafw/libsigrokhwfx2lafw.la
 endif
 
 if LA_DEMO
