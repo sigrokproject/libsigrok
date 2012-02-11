@@ -212,8 +212,13 @@ static void *hw_dev_info_get(int device_index, int device_info_id)
 
 static int hw_dev_status_get(int device_index)
 {
-	(void)device_index;
-	return SR_ST_NOT_FOUND;
+	const struct sr_dev_inst *const sdi =
+		sr_dev_inst_get(device_instances, device_index);
+
+	if (!sdi)
+		return SR_ST_NOT_FOUND;
+
+	return sdi->status;
 }
 
 static int *hw_hwcap_get_all(void)
