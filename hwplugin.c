@@ -135,7 +135,7 @@ SR_API int sr_init_hwplugins(struct sr_device_plugin *plugin)
 	return num_initialized_devices;
 }
 
-SR_API void sr_cleanup_hwplugins(void)
+SR_PRIV void sr_cleanup_hwplugins(void)
 {
 	struct sr_device_plugin *plugin;
 	GSList *l;
@@ -147,7 +147,7 @@ SR_API void sr_cleanup_hwplugins(void)
 	}
 }
 
-SR_API struct sr_device_instance *sr_device_instance_new(int index, int status,
+SR_PRIV struct sr_device_instance *sr_device_instance_new(int index, int status,
 		const char *vendor, const char *model, const char *version)
 {
 	struct sr_device_instance *sdi;
@@ -168,7 +168,7 @@ SR_API struct sr_device_instance *sr_device_instance_new(int index, int status,
 	return sdi;
 }
 
-SR_API struct sr_device_instance *sr_get_device_instance(
+SR_PRIV struct sr_device_instance *sr_get_device_instance(
 		GSList *device_instances, int device_index)
 {
 	struct sr_device_instance *sdi;
@@ -184,7 +184,7 @@ SR_API struct sr_device_instance *sr_get_device_instance(
 	return NULL;
 }
 
-SR_API void sr_device_instance_free(struct sr_device_instance *sdi)
+SR_PRIV void sr_device_instance_free(struct sr_device_instance *sdi)
 {
 	g_free(sdi->priv);
 	g_free(sdi->vendor);
@@ -270,12 +270,12 @@ SR_API struct sr_hwcap_option *sr_find_hwcap_option(int hwcap)
 
 /* unnecessary level of indirection follows. */
 
-void sr_source_remove(int fd)
+SR_PRIV void sr_source_remove(int fd)
 {
 	sr_session_source_remove(fd);
 }
 
-void sr_source_add(int fd, int events, int timeout,
+SR_PRIV void sr_source_add(int fd, int events, int timeout,
 		   sr_receive_data_callback rcv_cb, void *user_data)
 {
 	sr_session_source_add(fd, events, timeout, rcv_cb, user_data);

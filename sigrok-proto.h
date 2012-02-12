@@ -74,19 +74,19 @@ SR_API int sr_filter_probes(int in_unitsize, int out_unitsize,
 
 SR_API GSList *sr_list_hwplugins(void);
 SR_API int sr_init_hwplugins(struct sr_device_plugin *plugin);
-SR_API void sr_cleanup_hwplugins(void);
+SR_PRIV void sr_cleanup_hwplugins(void);
 
 /* Generic device instances */
-SR_API struct sr_device_instance *sr_device_instance_new(int index,
+SR_PRIV struct sr_device_instance *sr_device_instance_new(int index,
        int status, const char *vendor, const char *model, const char *version);
-SR_API struct sr_device_instance *sr_get_device_instance(
+SR_PRIV struct sr_device_instance *sr_get_device_instance(
 			GSList *device_instances, int device_index);
-SR_API void sr_device_instance_free(struct sr_device_instance *sdi);
+SR_PRIV void sr_device_instance_free(struct sr_device_instance *sdi);
 
 SR_API int sr_find_hwcap(int *capabilities, int hwcap);
 SR_API struct sr_hwcap_option *sr_find_hwcap_option(int hwcap);
-SR_API void sr_source_remove(int fd);
-SR_API void sr_source_add(int fd, int events, int timeout,
+SR_PRIV void sr_source_remove(int fd);
+SR_PRIV void sr_source_add(int fd, int events, int timeout,
 			  sr_receive_data_callback rcv_cb, void *user_data);
 
 /*--- session.c -------------------------------------------------------------*/
