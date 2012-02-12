@@ -387,23 +387,14 @@ SR_API int sr_session_stop(void)
 }
 
 /**
- * TODO.
- *
- * TODO: Various error checks.
+ * @brief debug helper
  *
  * @param packet TODO.
- * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments.
+ *
  */
-static int datafeed_dump(struct sr_datafeed_packet *packet)
+static void datafeed_dump(struct sr_datafeed_packet *packet)
 {
 	struct sr_datafeed_logic *logic;
-
-	if (!packet) {
-		sr_err("session: %s: packet was NULL", __func__);
-		return SR_ERR_ARG;
-	}
-
-	/* TODO: Validity checks for packet contents. */
 
 	switch (packet->type) {
 	case SR_DF_HEADER:
@@ -421,12 +412,10 @@ static int datafeed_dump(struct sr_datafeed_packet *packet)
 		sr_dbg("bus: received SR_DF_END");
 		break;
 	default:
-		/* TODO: Abort? */
-		sr_err("bus: received unknown packet type %d", packet->type);
+		sr_dbg("bus: received unknown packet type %d", packet->type);
 		break;
 	}
 
-	return SR_OK;
 }
 
 /**
@@ -462,9 +451,10 @@ SR_API int sr_session_bus(struct sr_device *device,
 	 * the callbacks as well.
 	 */
 	for (l = session->datafeed_callbacks; l; l = l->next) {
+		if (sr_log_loglevel_get() >= SR_LOG_DBG)
+			datafeed_dump(packet);
 		cb = l->data;
 		/* TODO: Check for cb != NULL. */
-		datafeed_dump(packet);
 		cb(device, packet);
 	}
 
