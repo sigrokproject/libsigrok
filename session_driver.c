@@ -138,7 +138,7 @@ static int feed_chunk(int fd, int revents, void *session_data)
 }
 
 /* driver callbacks */
-static void hw_cleanup(void);
+static int hw_cleanup(void);
 
 /**
  * TODO.
@@ -149,7 +149,6 @@ static void hw_cleanup(void);
  */
 static int hw_init(const char *deviceinfo)
 {
-
 	sessionfile = g_strdup(deviceinfo);
 
 	return 0;
@@ -159,9 +158,11 @@ static int hw_init(const char *deviceinfo)
  * TODO.
  *
  */
-static void hw_cleanup(void)
+static int hw_cleanup(void)
 {
 	GSList *l;
+
+	/* TODO: Error handling. */
 
 	for (l = device_instances; l; l = l->next)
 		sr_device_instance_free(l->data);
@@ -172,6 +173,8 @@ static void hw_cleanup(void)
 	sr_session_source_remove(-1);
 
 	g_free(sessionfile);
+
+	return SR_OK;
 }
 
 static int hw_opendev(int device_index)

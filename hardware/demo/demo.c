@@ -174,9 +174,10 @@ static int hw_closedev(int device_index)
 	return SR_OK;
 }
 
-static void hw_cleanup(void)
+static int hw_cleanup(void)
 {
 	/* Nothing needed so far. */
+	return SR_OK;
 }
 
 static void *hw_get_device_info(int device_index, int device_info_id)

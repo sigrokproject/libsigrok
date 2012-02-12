@@ -344,7 +344,7 @@ struct sr_device_plugin {
 	char *longname;
 	int api_version;
 	int (*init) (const char *deviceinfo);
-	void (*cleanup) (void);
+	int (*cleanup) (void);
 
 	/* Device-specific */
 	int (*opendev) (int device_index);

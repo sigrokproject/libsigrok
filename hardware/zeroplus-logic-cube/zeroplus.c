@@ -485,9 +485,11 @@ static int hw_closedev(int device_index)
 	return SR_OK;
 }
 
-static void hw_cleanup(void)
+static int hw_cleanup(void)
 {
 	GSList *l;
+
+	/* TODO: Error handling. */
 
 	/* Properly close all devices... */
 	for (l = device_instances; l; l = l->next)
@@ -502,6 +504,8 @@ static void hw_cleanup(void)
 	if (usb_context)
 		libusb_exit(usb_context);
 	usb_context = NULL;
+
+	return SR_OK;
 }
 
 static void *hw_get_device_info(int device_index, int device_info_id)

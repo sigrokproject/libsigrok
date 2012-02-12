@@ -521,16 +521,29 @@ static int hw_closedev(int device_index)
 	return SR_OK;
 }
 
-static void hw_cleanup(void)
+static int hw_cleanup(void)
 {
 	GSList *l;
 	struct sr_device_instance *sdi;
 	struct ols_device *ols;
+	int ret = SR_OK;
 
 	/* Properly close and free all devices. */
 	for (l = device_instances; l; l = l->next) {
-		sdi = l->data;
-		ols = sdi->priv;
+		if (!(sdi = l->data)) {
+			/* Log error, but continue cleaning up the rest. */
+			sr_err("ols: %s: sdi was NULL, continuing", __func__);
+			ret = SR_ERR_BUG;
+			continue;
+		}
+		if (!(ols = sdi->priv)) {
+			/* Log error, but continue cleaning up the rest. */
+			sr_err("ols: %s: sdi->priv was NULL, continuing",
+			       __func__);
+			ret = SR_ERR_BUG;
+			continue;
+		}
+		/* TODO: Check for serial != NULL. */
 		if (ols->serial->fd != -1)
 			serial_close(ols->serial->fd);
 		sr_serial_device_instance_free(ols->serial);
@@ -538,6 +551,8 @@ static void hw_cleanup(void)
 	}
 	g_slist_free(device_instances);
 	device_instances = NULL;
+
+	return ret;
 }
 
 static void *hw_get_device_info(int device_index, int device_info_id)

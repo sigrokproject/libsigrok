@@ -150,15 +150,19 @@ static int hw_closedev(int device_index)
 	return SR_OK;
 }
 
-static void hw_cleanup(void)
+static int hw_cleanup(void)
 {
 	struct sr_device_instance *sdi;
 
-	if (!(sdi = sr_get_device_instance(device_instances, 0)))
-		return;
+	if (!(sdi = sr_get_device_instance(device_instances, 0))) {
+		sr_err("alsa: %s: sdi was NULL", __func__);
+		return SR_ERR_BUG;
+	}
 
 	g_free(sdi->priv);
 	sr_device_instance_free(sdi);
+
+	return SR_OK;
 }
 
 static void *hw_get_device_info(int device_index, int device_info_id)

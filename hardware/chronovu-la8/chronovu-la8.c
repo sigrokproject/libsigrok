@@ -679,17 +679,20 @@ static int hw_closedev(int device_index)
 	return SR_OK;
 }
 
-static void hw_cleanup(void)
+static int hw_cleanup(void)
 {
 	GSList *l;
 	struct sr_device_instance *sdi;
+	int ret = SR_OK;
 
 	sr_spew("la8: entering %s", __func__);
 
 	/* Properly close all devices. */
 	for (l = device_instances; l; l = l->next) {
-		if ((sdi = l->data) == NULL) {
+		if (!(sdi = l->data)) {
+			/* Log error, but continue cleaning up the rest. */
 			sr_err("la8: %s: sdi was NULL, continuing", __func__);
+			ret = SR_ERR_BUG;
 			continue;
 		}
 #if 0
@@ -707,6 +710,8 @@ static void hw_cleanup(void)
 	}
 	g_slist_free(device_instances); /* Returns void. */
 	device_instances = NULL;
+
+	return ret;
 }
 
 static void *hw_get_device_info(int device_index, int device_info_id)

@@ -518,25 +518,30 @@ ret:
 	return devcnt;
 }
 
-static void hw_cleanup(void)
+static int hw_cleanup(void)
 {
 	GSList *l;
 	struct sr_device_instance *sdi;
+	int ret = SR_OK;
 
 	/* Properly close all devices. */
 	for (l = device_instances; l; l = l->next) {
-		sdi = l->data;
+		if (!(sdi = l->data)) {
+			/* Log error, but continue cleaning up the rest. */
+			sr_err("mso19: %s: sdi was NULL, continuing", __func__);
+			ret = SR_ERR_BUG;
+			continue;
+		}
 		if (sdi->serial->fd != -1)
 			serial_close(sdi->serial->fd);
-		if (sdi->priv != NULL)
-		{
-			g_free(sdi->priv);
-			sdi->priv = NULL;
-		}
+		g_free(sdi->priv);
+		sdi->priv = NULL;
 		sr_device_instance_free(sdi);
 	}
 	g_slist_free(device_instances);
 	device_instances = NULL;
+
+	return SR_OK;
 }
 
 static int hw_opendev(int device_index)
