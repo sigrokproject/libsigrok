@@ -51,8 +51,6 @@ SR_API int sr_device_scan(void);
 SR_API GSList *sr_device_list(void);
 SR_API struct sr_device *sr_device_new(const struct sr_device_plugin *plugin,
 				       int plugin_index);
-SR_API int sr_device_clear(struct sr_device *device);
-SR_API int sr_device_probe_clear(struct sr_device *device, int probenum);
 SR_API int sr_device_probe_add(struct sr_device *device, const char *name);
 SR_API struct sr_probe *sr_device_probe_find(const struct sr_device *device,
 					     int probenum);
