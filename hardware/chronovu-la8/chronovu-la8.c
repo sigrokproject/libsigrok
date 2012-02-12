@@ -136,7 +136,7 @@ static int capabilities[] = {
 
 /* Function prototypes. */
 static int la8_close_usb_reset_sequencer(struct la8 *la8);
-static void hw_stop_acquisition(int device_index, gpointer session_data);
+static int hw_stop_acquisition(int device_index, gpointer session_data);
 static int la8_reset(struct la8 *la8);
 
 static void fill_supported_samplerates_if_needed(void)
@@ -1103,7 +1103,7 @@ static int hw_start_acquisition(int device_index, gpointer session_data)
 	return SR_OK;
 }
 
-static void hw_stop_acquisition(int device_index, gpointer session_data)
+static int hw_stop_acquisition(int device_index, gpointer session_data)
 {
 	struct sr_device_instance *sdi;
 	struct la8 *la8;
@@ -1113,18 +1113,20 @@ static void hw_stop_acquisition(int device_index, gpointer session_data)
 
 	if (!(sdi = sr_get_device_instance(device_instances, device_index))) {
 		sr_err("la8: %s: sdi was NULL", __func__);
-		return;
+		return SR_ERR_BUG;
 	}
 
 	if (!(la8 = sdi->priv)) {
 		sr_err("la8: %s: sdi->priv was NULL", __func__);
-		return;
+		return SR_ERR_BUG;
 	}
 
 	/* Send end packet to the session bus. */
 	sr_dbg("la8: %s: sending SR_DF_END", __func__);
 	packet.type = SR_DF_END;
 	sr_session_bus(session_data, &packet);
+
+	return SR_OK;
 }
 
 SR_PRIV struct sr_device_plugin chronovu_la8_plugin_info = {

@@ -134,7 +134,7 @@ static int default_pattern = PATTERN_SIGROK;
 static GThread *my_thread;
 static int thread_running;
 
-static void hw_stop_acquisition(int device_index, gpointer session_data);
+static int hw_stop_acquisition(int device_index, gpointer session_data);
 
 static int hw_init(const char *deviceinfo)
 {
@@ -476,7 +476,7 @@ static int hw_start_acquisition(int device_index, gpointer session_data)
 	return SR_OK;
 }
 
-static void hw_stop_acquisition(int device_index, gpointer session_data)
+static int hw_stop_acquisition(int device_index, gpointer session_data)
 {
 	/* Avoid compiler warnings. */
 	(void)device_index;
@@ -484,6 +484,8 @@ static void hw_stop_acquisition(int device_index, gpointer session_data)
 
 	/* Stop generate thread. */
 	thread_running = 0;
+
+	return SR_OK;
 }
 
 SR_PRIV struct sr_device_plugin demo_plugin_info = {

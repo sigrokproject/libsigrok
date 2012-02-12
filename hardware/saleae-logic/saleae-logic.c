@@ -94,7 +94,7 @@ static libusb_context *usb_context = NULL;
 static int new_saleae_logic_firmware = 0;
 
 static int hw_set_configuration(int device_index, int capability, void *value);
-static void hw_stop_acquisition(int device_index, gpointer session_device_id);
+static int hw_stop_acquisition(int device_index, gpointer session_device_id);
 
 /**
  * Check the USB configuration to determine if this is a Saleae Logic.
@@ -856,7 +856,7 @@ static int hw_start_acquisition(int device_index, gpointer session_data)
 }
 
 /* This stops acquisition on ALL devices, ignoring device_index. */
-static void hw_stop_acquisition(int device_index, gpointer session_data)
+static int hw_stop_acquisition(int device_index, gpointer session_data)
 {
 	struct sr_datafeed_packet packet;
 
@@ -869,6 +869,8 @@ static void hw_stop_acquisition(int device_index, gpointer session_data)
 	receive_transfer(NULL);
 
 	/* TODO: Need to cancel and free any queued up transfers. */
+
+	return SR_OK;
 }
 
 SR_PRIV struct sr_device_plugin saleae_logic_plugin_info = {

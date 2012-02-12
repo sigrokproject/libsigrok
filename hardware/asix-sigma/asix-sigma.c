@@ -118,7 +118,7 @@ static const char *firmware_files[] = {
 	"asix-sigma-phasor.fw",	/* Frequency counter */
 };
 
-static void hw_stop_acquisition(int device_index, gpointer session_data);
+static int hw_stop_acquisition(int device_index, gpointer session_data);
 
 static int sigma_read(void *buf, size_t size, struct sigma *sigma)
 {
@@ -1362,19 +1362,24 @@ static int hw_start_acquisition(int device_index, gpointer session_data)
 	return SR_OK;
 }
 
-static void hw_stop_acquisition(int device_index, gpointer session_data)
+static int hw_stop_acquisition(int device_index, gpointer session_data)
 {
 	struct sr_device_instance *sdi;
 	struct sigma *sigma;
 	uint8_t modestatus;
 
-	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
-		return;
-
-	sigma = sdi->priv;
-
 	/* Avoid compiler warnings. */
 	(void)session_data;
+
+	if (!(sdi = sr_get_device_instance(device_instances, device_index))) {
+		sr_err("asix: %s: sdi was NULL", __func__);
+		return SR_ERR_BUG;
+	}
+
+	if (!(sigma = sdi->priv)) {
+		sr_err("asix: %s: sdi->priv was NULL", __func__);
+		return SR_ERR_BUG;
+	}
 
 	/* Stop acquisition. */
 	sigma_set_register(WRITE_MODE, 0x11, sigma);
@@ -1387,15 +1392,16 @@ static void hw_stop_acquisition(int device_index, gpointer session_data)
 
 	/* Check if trigger has fired. */
 	modestatus = sigma_get_register(READ_MODE, sigma);
-	if (modestatus & 0x20) {
+	if (modestatus & 0x20)
 		sigma->state.triggerchunk = sigma->state.triggerpos / 512;
-
-	} else
+	else
 		sigma->state.triggerchunk = -1;
 
 	sigma->state.chunks_downloaded = 0;
 
 	sigma->state.state = SIGMA_DOWNLOAD;
+
+	return SR_OK;
 }
 
 SR_PRIV struct sr_device_plugin asix_sigma_plugin_info = {

@@ -379,11 +379,13 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	return SR_OK;
 }
 
-static void hw_stop_acquisition(int device_index, gpointer session_device_id)
+static int hw_stop_acquisition(int device_index, gpointer session_device_id)
 {
 	/* Avoid compiler warnings. */
 	device_index = device_index;
 	session_device_id = session_device_id;
+
+	return SR_OK;
 }
 
 SR_PRIV struct sr_device_plugin alsa_plugin_info = {

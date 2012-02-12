@@ -698,7 +698,7 @@ static int hw_start_acquisition(int device_index, gpointer session_data)
 }
 
 /* This stops acquisition on ALL devices, ignoring device_index. */
-static void hw_stop_acquisition(int device_index, gpointer session_device_id)
+static int hw_stop_acquisition(int device_index, gpointer session_device_id)
 {
 	struct sr_datafeed_packet packet;
 	struct sr_device_instance *sdi;
@@ -709,16 +709,18 @@ static void hw_stop_acquisition(int device_index, gpointer session_device_id)
 
 	if (!(sdi = sr_get_device_instance(device_instances, device_index))) {
 		sr_err("zp: %s: sdi was NULL", __func__);
-		return; /* FIXME */
+		return SR_ERR_BUG;
 	}
 
 	if (!(zp = sdi->priv)) {
 		sr_err("zp: %s: sdi->priv was NULL", __func__);
-		return; /* FIXME */
+		return SR_ERR_BUG;
 	}
 
 	analyzer_reset(zp->usb->devhdl);
 	/* TODO: Need to cancel and free any queued up transfers. */
+
+	return SR_OK;
 }
 
 SR_PRIV struct sr_device_plugin zeroplus_logic_cube_plugin_info = {

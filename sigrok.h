@@ -354,7 +354,7 @@ struct sr_device_plugin {
 	int *(*get_capabilities) (void);
 	int (*set_configuration) (int device_index, int capability, void *value);
 	int (*start_acquisition) (int device_index, gpointer session_device_id);
-	void (*stop_acquisition) (int device_index, gpointer session_device_id);
+	int (*stop_acquisition) (int device_index, gpointer session_device_id);
 };
 
 struct sr_session {

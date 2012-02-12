@@ -816,7 +816,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 }
 
 /* FIXME */
-static void hw_stop_acquisition(int device_index, gpointer session_device_id)
+static int hw_stop_acquisition(int device_index, gpointer session_device_id)
 {
 	struct sr_datafeed_packet packet;
 
@@ -824,6 +824,8 @@ static void hw_stop_acquisition(int device_index, gpointer session_device_id)
 
 	packet.type = SR_DF_END;
 	sr_session_bus(session_device_id, &packet);
+
+	return SR_OK;
 }
 
 SR_PRIV struct sr_device_plugin link_mso19_plugin_info = {
