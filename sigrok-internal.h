@@ -40,10 +40,6 @@
 /* Size of a datastore chunk in units */
 #define DATASTORE_CHUNKSIZE (512 * 1024)
 
-/*--- hwplugin.c ------------------------------------------------------------*/
-
-SR_PRIV int load_hwplugins(void);
-
 #ifdef HAVE_LIBUSB_1_0
 struct sr_usb_device_instance {
 	uint8_t bus;
@@ -78,6 +74,22 @@ SR_PRIV int sr_dbg(const char *format, ...);
 SR_PRIV int sr_info(const char *format, ...);
 SR_PRIV int sr_warn(const char *format, ...);
 SR_PRIV int sr_err(const char *format, ...);
+
+/*--- hwplugin.c ------------------------------------------------------------*/
+
+SR_PRIV int load_hwplugins(void);
+SR_PRIV void sr_cleanup_hwplugins(void);
+
+/* Generic device instances */
+SR_PRIV struct sr_device_instance *sr_device_instance_new(int index,
+       int status, const char *vendor, const char *model, const char *version);
+SR_PRIV struct sr_device_instance *sr_get_device_instance(
+			GSList *device_instances, int device_index);
+SR_PRIV void sr_device_instance_free(struct sr_device_instance *sdi);
+
+SR_PRIV void sr_source_remove(int fd);
+SR_PRIV void sr_source_add(int fd, int events, int timeout,
+			  sr_receive_data_callback rcv_cb, void *user_data);
 
 /*--- hardware/common/serial.c ----------------------------------------------*/
 

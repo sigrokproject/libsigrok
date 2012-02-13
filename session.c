@@ -389,7 +389,7 @@ SR_API int sr_session_stop(void)
 /**
  * @brief debug helper
  *
- * @param packet TODO.
+ * @param packet The packet to show debugging information for.
  *
  */
 static void datafeed_dump(struct sr_datafeed_packet *packet)
