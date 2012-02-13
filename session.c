@@ -47,9 +47,6 @@ static int source_timeout = -1;
 /**
  * Create a new session.
  *
- * TODO.
- *
- * TODO: Should return int?
  * TODO: Should it use the file-global "session" variable or take an argument?
  *       The same question applies to all the other session functions.
  *
@@ -160,8 +157,6 @@ SR_API int sr_session_device_add(struct sr_device *device)
 /**
  * Clear all datafeed callbacks in the current session.
  *
- * TODO.
- *
  * @return SR_OK upon success, SR_ERR_BUG if no session exists.
  */
 SR_API int sr_session_datafeed_callback_clear(void)
@@ -180,7 +175,8 @@ SR_API int sr_session_datafeed_callback_clear(void)
 /**
  * Add a datafeed callback to the current session.
  *
- * @param callback TODO.
+ * @param callback Function to call when a chunk of data is received.
+ *
  * @return SR_OK upon success, SR_ERR_BUG if no session exists.
  */
 SR_API int sr_session_datafeed_callback_add(sr_datafeed_callback callback)
@@ -251,7 +247,7 @@ static int sr_session_run_poll(void)
 /**
  * Start a session.
  *
- * There can only be one session at a time. TODO
+ * There can only be one session at a time.
  *
  * @return SR_OK upon success, SR_ERR upon errors.
  */
@@ -335,7 +331,8 @@ SR_API int sr_session_run(void)
 /**
  * Halt the current session.
  *
- * TODO.
+ * This requests the current session be stopped as soon as possible, for example
+ * on receiving an SR_DF_END packet.
  *
  * @return SR_OK upon success, SR_ERR_BUG if no session exists.
  */
@@ -355,7 +352,8 @@ SR_API int sr_session_halt(void)
 /**
  * Stop the current session.
  *
- * TODO: Difference to halt?
+ * The current session is stopped immediately, with all acquisition sessions
+ * being stopped and hardware plugins cleaned up.
  *
  * @return SR_OK upon success, SR_ERR_BUG if no session exists.
  */
@@ -387,7 +385,7 @@ SR_API int sr_session_stop(void)
 }
 
 /**
- * @brief debug helper
+ * Debug helper.
  *
  * @param packet The packet to show debugging information for.
  *
@@ -419,13 +417,15 @@ static void datafeed_dump(struct sr_datafeed_packet *packet)
 }
 
 /**
- * TODO.
+ * Send a packet to whatever is listening on the datafeed bus.
+ *
+ * Hardware drivers use this to send a data packet to the frontend.
  *
  * @param device TODO.
  * @param packet TODO.
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments.
  */
-SR_API int sr_session_bus(struct sr_device *device,
+SR_PRIV int sr_session_bus(struct sr_device *device,
 			  struct sr_datafeed_packet *packet)
 {
 	GSList *l;
@@ -446,10 +446,6 @@ SR_API int sr_session_bus(struct sr_device *device,
 		return SR_ERR_ARG;
 	}
 
-	/*
-	 * TODO: Send packet through PD pipe, and send the output of that to
-	 * the callbacks as well.
-	 */
 	for (l = session->datafeed_callbacks; l; l = l->next) {
 		if (sr_log_loglevel_get() >= SR_LOG_DBG)
 			datafeed_dump(packet);

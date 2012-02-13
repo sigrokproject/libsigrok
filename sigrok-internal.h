@@ -80,6 +80,11 @@ SR_PRIV int sr_err(const char *format, ...);
 SR_PRIV int load_hwplugins(void);
 SR_PRIV void sr_cleanup_hwplugins(void);
 
+/*--- session.c -------------------------------------------------------------*/
+
+SR_PRIV int sr_session_bus(struct sr_device *device,
+			  struct sr_datafeed_packet *packet);
+
 /* Generic device instances */
 SR_PRIV struct sr_device_instance *sr_device_instance_new(int index,
        int status, const char *vendor, const char *model, const char *version);

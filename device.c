@@ -75,7 +75,7 @@ SR_API int sr_device_scan(void)
 	for (l = plugins; l; l = l->next) {
 		plugin = l->data;
 		/* TODO: Handle 'plugin' being NULL. */
-		sr_init_hwplugins(plugin);
+		sr_init_hwplugin(plugin);
 	}
 
 	return SR_OK;

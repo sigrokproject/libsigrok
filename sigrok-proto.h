@@ -73,8 +73,8 @@ SR_API int sr_filter_probes(int in_unitsize, int out_unitsize,
 /*--- hwplugin.c ------------------------------------------------------------*/
 
 SR_API GSList *sr_list_hwplugins(void);
-SR_API int sr_init_hwplugins(struct sr_device_plugin *plugin);
-SR_API int sr_find_hwcap(int *capabilities, int hwcap);
+SR_API int sr_init_hwplugin(struct sr_device_plugin *plugin);
+SR_API gboolean sr_has_hwcap(int *capabilities, int hwcap);
 SR_API struct sr_hwcap_option *sr_find_hwcap_option(int hwcap);
 
 /*--- session.c -------------------------------------------------------------*/
@@ -98,8 +98,6 @@ SR_API int sr_session_start(void);
 SR_API int sr_session_run(void);
 SR_API int sr_session_halt(void);
 SR_API int sr_session_stop(void);
-SR_API int sr_session_bus(struct sr_device *device,
-			  struct sr_datafeed_packet *packet);
 SR_API int sr_session_save(const char *filename);
 SR_API int sr_session_source_add(int fd, int events, int timeout,
 		sr_receive_data_callback callback, void *user_data);
