@@ -416,7 +416,7 @@ SR_API gboolean sr_dev_has_hwcap(const struct sr_device *device, int hwcap)
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or SR_ERR
  *         upon other errors.
  */
-int sr_dev_get_info(const struct sr_device *device, int id,
+SR_API int sr_dev_info_get(const struct sr_device *device, int id,
 					   const void **data)
 {
 	if ((device == NULL) || (device->plugin == NULL))

@@ -28,7 +28,7 @@
  */
 SR_API int sr_init(void)
 {
-	return load_hwplugins();
+	return sr_hwplugins_load();
 }
 
 /**

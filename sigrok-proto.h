@@ -60,7 +60,7 @@ SR_API int sr_dev_trigger_clear(struct sr_device *device);
 SR_API int sr_dev_trigger_set(struct sr_device *device, int probenum,
 				 const char *trigger);
 SR_API gboolean sr_dev_has_hwcap(const struct sr_device *device, int hwcap);
-SR_API int sr_dev_get_info(const struct sr_device *device, int id,
+SR_API int sr_dev_info_get(const struct sr_device *device, int id,
 			      const void **data);
 
 /*--- filter.c --------------------------------------------------------------*/
@@ -74,8 +74,8 @@ SR_API int sr_filter_probes(int in_unitsize, int out_unitsize,
 
 SR_API GSList *sr_hwplugins_list(void);
 SR_API int sr_hwplugin_init(struct sr_device_plugin *plugin);
-SR_API gboolean sr_has_hwcap(int *capabilities, int hwcap);
-SR_API struct sr_hwcap_option *sr_find_hwcap_option(int hwcap);
+SR_API gboolean sr_hwplugin_has_hwcap(struct sr_device_plugin *plugin, int hwcap);
+SR_API struct sr_hwcap_option *sr_hwplugins_hwcap_get(int hwcap);
 
 /*--- session.c -------------------------------------------------------------*/
 

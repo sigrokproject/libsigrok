@@ -185,7 +185,7 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 	struct sr_device_instance *sdi;
 	void *info = NULL;
 
-	if (!(sdi = sr_get_dev_inst(device_instances, device_index))) {
+	if (!(sdi = sr_dev_inst_get(device_instances, device_index))) {
 		sr_err("demo: %s: sdi was NULL", __func__);
 		return NULL;
 	}

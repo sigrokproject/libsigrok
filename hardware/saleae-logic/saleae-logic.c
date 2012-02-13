@@ -173,7 +173,7 @@ static int sl_open_device(int device_index)
 	struct fx2_device *fx2;
 	int err, skip, i;
 
-	if (!(sdi = sr_get_dev_inst(device_instances, device_index)))
+	if (!(sdi = sr_dev_inst_get(device_instances, device_index)))
 		return SR_ERR;
 	fx2 = sdi->priv;
 
@@ -397,7 +397,7 @@ static int hw_opendev(int device_index)
 	struct fx2_device *fx2;
 	int timediff, err;
 
-	if (!(sdi = sr_get_dev_inst(device_instances, device_index)))
+	if (!(sdi = sr_dev_inst_get(device_instances, device_index)))
 		return SR_ERR;
 	fx2 = sdi->priv;
 
@@ -449,7 +449,7 @@ static int hw_closedev(int device_index)
 {
 	struct sr_device_instance *sdi;
 
-	if (!(sdi = sr_get_dev_inst(device_instances, device_index))) {
+	if (!(sdi = sr_dev_inst_get(device_instances, device_index))) {
 		sr_err("logic: %s: sdi was NULL", __func__);
 		return SR_ERR; /* TODO: SR_ERR_ARG? */
 	}
@@ -503,7 +503,7 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 	struct fx2_device *fx2;
 	void *info = NULL;
 
-	if (!(sdi = sr_get_dev_inst(device_instances, device_index)))
+	if (!(sdi = sr_dev_inst_get(device_instances, device_index)))
 		return NULL;
 	fx2 = sdi->priv;
 
@@ -535,7 +535,7 @@ static int hw_get_status(int device_index)
 {
 	struct sr_device_instance *sdi;
 
-	sdi = sr_get_dev_inst(device_instances, device_index);
+	sdi = sr_dev_inst_get(device_instances, device_index);
 	if (sdi)
 		return sdi->status;
 	else
@@ -632,7 +632,7 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 	int ret;
 	uint64_t *tmp_u64;
 
-	if (!(sdi = sr_get_dev_inst(device_instances, device_index)))
+	if (!(sdi = sr_dev_inst_get(device_instances, device_index)))
 		return SR_ERR;
 	fx2 = sdi->priv;
 
@@ -815,7 +815,7 @@ static int hw_start_acquisition(int device_index, gpointer session_data)
 	int size, i;
 	unsigned char *buf;
 
-	if (!(sdi = sr_get_dev_inst(device_instances, device_index)))
+	if (!(sdi = sr_dev_inst_get(device_instances, device_index)))
 		return SR_ERR;
 	fx2 = sdi->priv;
 	fx2->session_data = session_data;

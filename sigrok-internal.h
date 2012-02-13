@@ -77,7 +77,7 @@ SR_PRIV int sr_err(const char *format, ...);
 
 /*--- hwplugin.c ------------------------------------------------------------*/
 
-SR_PRIV int load_hwplugins(void);
+SR_PRIV int sr_hwplugins_load(void);
 SR_PRIV void sr_hwplugins_cleanup(void);
 
 /*--- session.c -------------------------------------------------------------*/
@@ -88,7 +88,7 @@ SR_PRIV int sr_session_bus(struct sr_device *device,
 /* Generic device instances */
 SR_PRIV struct sr_device_instance *sr_dev_inst_new(int index,
        int status, const char *vendor, const char *model, const char *version);
-SR_PRIV struct sr_device_instance *sr_get_dev_inst(
+SR_PRIV struct sr_device_instance *sr_dev_inst_get(
 			GSList *device_instances, int device_index);
 SR_PRIV void sr_dev_inst_free(struct sr_device_instance *sdi);
 

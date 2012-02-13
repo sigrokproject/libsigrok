@@ -59,7 +59,7 @@ static struct session_vdevice *get_vdevice_by_index(int device_index)
 
 	/* TODO: Sanity checks on device_index. */
 
-	if (!(sdi = sr_get_dev_inst(device_instances, device_index))) {
+	if (!(sdi = sr_dev_inst_get(device_instances, device_index))) {
 		sr_err("session driver: %s: device instance with device "
 		       "index %d was not found", __func__, device_index);
 		return NULL;

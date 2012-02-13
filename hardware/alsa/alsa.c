@@ -97,7 +97,7 @@ static int hw_opendev(int device_index)
 	struct alsa *alsa;
 	int err;
 
-	if (!(sdi = sr_get_dev_inst(device_instances, device_index)))
+	if (!(sdi = sr_dev_inst_get(device_instances, device_index)))
 		return SR_ERR;
 	alsa = sdi->priv;
 
@@ -131,7 +131,7 @@ static int hw_closedev(int device_index)
 	struct sr_device_instance *sdi;
 	struct alsa *alsa;
 
-	if (!(sdi = sr_get_dev_inst(device_instances, device_index))) {
+	if (!(sdi = sr_dev_inst_get(device_instances, device_index))) {
 		sr_err("alsa: %s: sdi was NULL", __func__);
 		return SR_ERR; /* TODO: SR_ERR_ARG? */
 	}
@@ -154,7 +154,7 @@ static int hw_cleanup(void)
 {
 	struct sr_device_instance *sdi;
 
-	if (!(sdi = sr_get_dev_inst(device_instances, 0))) {
+	if (!(sdi = sr_dev_inst_get(device_instances, 0))) {
 		sr_err("alsa: %s: sdi was NULL", __func__);
 		return SR_ERR_BUG;
 	}
@@ -171,7 +171,7 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 	struct alsa *alsa;
 	void *info = NULL;
 
-	if (!(sdi = sr_get_dev_inst(device_instances, device_index)))
+	if (!(sdi = sr_dev_inst_get(device_instances, device_index)))
 		return NULL;
 	alsa = sdi->priv;
 
@@ -214,7 +214,7 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 	struct sr_device_instance *sdi;
 	struct alsa *alsa;
 
-	if (!(sdi = sr_get_dev_inst(device_instances, device_index)))
+	if (!(sdi = sr_dev_inst_get(device_instances, device_index)))
 		return SR_ERR;
 	alsa = sdi->priv;
 
@@ -300,7 +300,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	int count;
 	int err;
 
-	if (!(sdi = sr_get_dev_inst(device_instances, device_index)))
+	if (!(sdi = sr_dev_inst_get(device_instances, device_index)))
 		return SR_ERR;
 	alsa = sdi->priv;
 

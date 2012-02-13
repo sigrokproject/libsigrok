@@ -68,7 +68,7 @@ extern struct sr_device_plugin alsa_plugin_info;
 #endif
 
 /* TODO: No linked list needed, this can be a simple array. */
-SR_PRIV int load_hwplugins(void)
+SR_PRIV int sr_hwplugins_load(void)
 {
 #ifdef HAVE_LA_DEMO
 	plugins = g_slist_append(plugins, (gpointer *)&demo_plugin_info);
@@ -187,7 +187,7 @@ SR_PRIV struct sr_device_instance *sr_dev_inst_new(int index, int status,
 	return sdi;
 }
 
-SR_PRIV struct sr_device_instance *sr_get_dev_inst(
+SR_PRIV struct sr_device_instance *sr_dev_inst_get(
 		GSList *device_instances, int device_index)
 {
 	struct sr_device_instance *sdi;
@@ -264,7 +264,7 @@ SR_PRIV void sr_serial_dev_inst_free(
 }
 
 /**
- * Find out if a list of hardware plugin capabilities has a specific cap.
+ * Find out if a hardware plugin has a specific capability.
  *
  * @param capabilities A NULL-terminated integer array of capabilities, as
  * returned by a plugin's get_capabilities() function.
@@ -272,10 +272,11 @@ SR_PRIV void sr_serial_dev_inst_free(
  *
  * @return TRUE if found, FALSE otherwise.
  */
-SR_API gboolean sr_has_hwcap(int *capabilities, int hwcap)
+SR_API gboolean sr_hwplugin_has_hwcap(struct sr_device_plugin *plugin, int hwcap)
 {
-	int i;
+	int *capabilities, i;
 
+	capabilities = plugin->get_capabilities();
 	for (i = 0; capabilities[i]; i++) {
 		if (capabilities[i] == hwcap)
 			return TRUE;
@@ -285,14 +286,14 @@ SR_API gboolean sr_has_hwcap(int *capabilities, int hwcap)
 }
 
 /**
- * Find a hardware plugin capability option parameter structure.
+ * Find a hardware plugin capability option.
  *
  * @param hwcap The capability to find
  *
  * @return A struct with information about the parameter, or NULL
  * if not found.
  */
-SR_API struct sr_hwcap_option *sr_find_hwcap_option(int hwcap)
+SR_API struct sr_hwcap_option *sr_hwplugins_hwcap_get(int hwcap)
 {
 	int i;
 
