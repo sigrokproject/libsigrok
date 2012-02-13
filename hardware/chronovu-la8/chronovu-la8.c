@@ -527,7 +527,7 @@ static int hw_init(const char *deviceinfo)
 	sr_dbg("la8: found device");
 
 	/* Register the device with libsigrok. */
-	sdi = sr_device_instance_new(0, SR_ST_INITIALIZING,
+	sdi = sr_dev_inst_new(0, SR_ST_INITIALIZING,
 			USB_VENDOR_NAME, USB_MODEL_NAME, USB_MODEL_VERSION);
 	if (!sdi) {
 		sr_err("la8: %s: sr_device_instance_new failed", __func__);
@@ -564,7 +564,7 @@ static int hw_opendev(int device_index)
 	struct sr_device_instance *sdi;
 	struct la8 *la8;
 
-	if (!(sdi = sr_get_device_instance(device_instances, device_index))) {
+	if (!(sdi = sr_get_dev_inst(device_instances, device_index))) {
 		sr_err("la8: %s: sdi was NULL", __func__);
 		return SR_ERR; /* TODO: SR_ERR_ARG? */
 	}
@@ -651,7 +651,7 @@ static int hw_closedev(int device_index)
 	struct sr_device_instance *sdi;
 	struct la8 *la8;
 
-	if (!(sdi = sr_get_device_instance(device_instances, device_index))) {
+	if (!(sdi = sr_get_dev_inst(device_instances, device_index))) {
 		sr_err("la8: %s: sdi was NULL", __func__);
 		return SR_ERR; /* TODO: SR_ERR_ARG? */
 	}
@@ -706,7 +706,7 @@ static int hw_cleanup(void)
 			sr_err("la8: %s: sdi->priv was NULL, nothing "
 			       "to do", __func__);
 #endif
-		sr_device_instance_free(sdi); /* Returns void. */
+		sr_dev_inst_free(sdi); /* Returns void. */
 	}
 	g_slist_free(device_instances); /* Returns void. */
 	device_instances = NULL;
@@ -722,7 +722,7 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 
 	sr_spew("la8: entering %s", __func__);
 
-	if (!(sdi = sr_get_device_instance(device_instances, device_index))) {
+	if (!(sdi = sr_get_dev_inst(device_instances, device_index))) {
 		sr_err("la8: %s: sdi was NULL", __func__);
 		return NULL;
 	}
@@ -766,7 +766,7 @@ static int hw_get_status(int device_index)
 {
 	struct sr_device_instance *sdi;
 
-	if (!(sdi = sr_get_device_instance(device_instances, device_index))) {
+	if (!(sdi = sr_get_dev_inst(device_instances, device_index))) {
 		sr_err("la8: %s: sdi was NULL, device not found", __func__);
 		return SR_ST_NOT_FOUND;
 	}
@@ -790,7 +790,7 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 
 	sr_spew("la8: entering %s", __func__);
 
-	if (!(sdi = sr_get_device_instance(device_instances, device_index))) {
+	if (!(sdi = sr_get_dev_inst(device_instances, device_index))) {
 		sr_err("la8: %s: sdi was NULL", __func__);
 		return SR_ERR; /* TODO: SR_ERR_ARG? */
 	}
@@ -1044,7 +1044,7 @@ static int hw_start_acquisition(int device_index, gpointer session_data)
 
 	sr_spew("la8: entering %s", __func__);
 
-	if (!(sdi = sr_get_device_instance(device_instances, device_index))) {
+	if (!(sdi = sr_get_dev_inst(device_instances, device_index))) {
 		sr_err("la8: %s: sdi was NULL", __func__);
 		return SR_ERR; /* TODO: SR_ERR_ARG? */
 	}
@@ -1116,7 +1116,7 @@ static int hw_stop_acquisition(int device_index, gpointer session_data)
 
 	sr_dbg("la8: stopping acquisition");
 
-	if (!(sdi = sr_get_device_instance(device_instances, device_index))) {
+	if (!(sdi = sr_get_dev_inst(device_instances, device_index))) {
 		sr_err("la8: %s: sdi was NULL", __func__);
 		return SR_ERR_BUG;
 	}

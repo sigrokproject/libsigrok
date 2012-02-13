@@ -444,7 +444,7 @@ static int hw_init(const char *deviceinfo)
 	sigma->use_triggers = 0;
 
 	/* Register SIGMA device. */
-	sdi = sr_device_instance_new(0, SR_ST_INITIALIZING,
+	sdi = sr_dev_inst_new(0, SR_ST_INITIALIZING,
 			USB_VENDOR_NAME, USB_MODEL_NAME, USB_MODEL_VERSION);
 	if (!sdi)
 		goto free;
@@ -559,7 +559,7 @@ static int hw_opendev(int device_index)
 	struct sigma *sigma;
 	int ret;
 
-	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
+	if (!(sdi = sr_get_dev_inst(device_instances, device_index)))
 		return SR_ERR;
 
 	sigma = sdi->priv;
@@ -702,7 +702,7 @@ static int hw_closedev(int device_index)
 	struct sr_device_instance *sdi;
 	struct sigma *sigma;
 
-	if (!(sdi = sr_get_device_instance(device_instances, device_index))) {
+	if (!(sdi = sr_get_dev_inst(device_instances, device_index))) {
 		sr_err("sigma: %s: sdi was NULL", __func__);
 		return SR_ERR; /* TODO: SR_ERR_ARG? */
 	}
@@ -736,7 +736,7 @@ static int hw_cleanup(void)
 			continue;
 		}
 		g_free(sdi->priv);
-		sr_device_instance_free(sdi);
+		sr_dev_inst_free(sdi);
 	}
 	g_slist_free(device_instances);
 	device_instances = NULL;
@@ -750,7 +750,7 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 	struct sigma *sigma;
 	void *info = NULL;
 
-	if (!(sdi = sr_get_device_instance(device_instances, device_index))) {
+	if (!(sdi = sr_get_dev_inst(device_instances, device_index))) {
 		sr_err("It's NULL.\n");
 		return NULL;
 	}
@@ -785,7 +785,7 @@ static int hw_get_status(int device_index)
 {
 	struct sr_device_instance *sdi;
 
-	sdi = sr_get_device_instance(device_instances, device_index);
+	sdi = sr_get_dev_inst(device_instances, device_index);
 	if (sdi)
 		return sdi->status;
 	else
@@ -803,7 +803,7 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 	struct sigma *sigma;
 	int ret;
 
-	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
+	if (!(sdi = sr_get_dev_inst(device_instances, device_index)))
 		return SR_ERR;
 
 	sigma = sdi->priv;
@@ -1267,7 +1267,7 @@ static int hw_start_acquisition(int device_index, gpointer session_data)
 	/* Avoid compiler warnings. */
 	(void)session_data;
 
-	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
+	if (!(sdi = sr_get_dev_inst(device_instances, device_index)))
 		return SR_ERR;
 
 	sigma = sdi->priv;
@@ -1378,7 +1378,7 @@ static int hw_stop_acquisition(int device_index, gpointer session_data)
 	/* Avoid compiler warnings. */
 	(void)session_data;
 
-	if (!(sdi = sr_get_device_instance(device_instances, device_index))) {
+	if (!(sdi = sr_get_dev_inst(device_instances, device_index))) {
 		sr_err("asix: %s: sdi was NULL", __func__);
 		return SR_ERR_BUG;
 	}

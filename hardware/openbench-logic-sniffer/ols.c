@@ -231,7 +231,7 @@ static struct sr_device_instance *get_metadata(int fd)
 	GString *tmp_str, *devicename, *version;
 	gchar tmp_c;
 
-	sdi = sr_device_instance_new(0, SR_ST_INACTIVE, NULL, NULL, NULL);
+	sdi = sr_dev_inst_new(0, SR_ST_INACTIVE, NULL, NULL, NULL);
 	ols = ols_device_new();
 	sdi->priv = ols;
 
@@ -446,13 +446,13 @@ static int hw_init(const char *deviceinfo)
 			sdi->index = final_devcnt;
 		} else {
 			/* not an OLS -- some other board that uses the sump protocol */
-			sdi = sr_device_instance_new(final_devcnt, SR_ST_INACTIVE,
+			sdi = sr_dev_inst_new(final_devcnt, SR_ST_INACTIVE,
 					"Sump", "Logic Analyzer", "v1.0");
 			ols = ols_device_new();
 			ols->num_probes = 32;
 			sdi->priv = ols;
 		}
-		ols->serial = sr_serial_device_instance_new(device_names[i], -1);
+		ols->serial = sr_serial_dev_inst_new(device_names[i], -1);
 		device_instances = g_slist_append(device_instances, sdi);
 		final_devcnt++;
 		serial_close(fds[i].fd);
@@ -485,7 +485,7 @@ static int hw_opendev(int device_index)
 	struct sr_device_instance *sdi;
 	struct ols_device *ols;
 
-	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
+	if (!(sdi = sr_get_dev_inst(device_instances, device_index)))
 		return SR_ERR;
 
 	ols = sdi->priv;
@@ -504,7 +504,7 @@ static int hw_closedev(int device_index)
 	struct sr_device_instance *sdi;
 	struct ols_device *ols;
 
-	if (!(sdi = sr_get_device_instance(device_instances, device_index))) {
+	if (!(sdi = sr_get_dev_inst(device_instances, device_index))) {
 		sr_err("ols: %s: sdi was NULL", __func__);
 		return SR_ERR; /* TODO: SR_ERR_ARG? */
 	}
@@ -546,8 +546,8 @@ static int hw_cleanup(void)
 		/* TODO: Check for serial != NULL. */
 		if (ols->serial->fd != -1)
 			serial_close(ols->serial->fd);
-		sr_serial_device_instance_free(ols->serial);
-		sr_device_instance_free(sdi);
+		sr_serial_dev_inst_free(ols->serial);
+		sr_dev_inst_free(sdi);
 	}
 	g_slist_free(device_instances);
 	device_instances = NULL;
@@ -561,7 +561,7 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 	struct ols_device *ols;
 	void *info;
 
-	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
+	if (!(sdi = sr_get_dev_inst(device_instances, device_index)))
 		return NULL;
 	ols = sdi->priv;
 
@@ -594,7 +594,7 @@ static int hw_get_status(int device_index)
 {
 	struct sr_device_instance *sdi;
 
-	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
+	if (!(sdi = sr_get_dev_inst(device_instances, device_index)))
 		return SR_ST_NOT_FOUND;
 
 	return sdi->status;
@@ -645,7 +645,7 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 	int ret;
 	uint64_t *tmp_u64;
 
-	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
+	if (!(sdi = sr_get_dev_inst(device_instances, device_index)))
 		return SR_ERR;
 	ols = sdi->priv;
 
@@ -885,7 +885,7 @@ static int hw_start_acquisition(int device_index, gpointer session_data)
 	int num_channels;
 	int i;
 
-	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
+	if (!(sdi = sr_get_dev_inst(device_instances, device_index)))
 		return SR_ERR;
 
 	ols = sdi->priv;

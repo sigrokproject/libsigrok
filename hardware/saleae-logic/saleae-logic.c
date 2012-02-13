@@ -173,7 +173,7 @@ static int sl_open_device(int device_index)
 	struct fx2_device *fx2;
 	int err, skip, i;
 
-	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
+	if (!(sdi = sr_get_dev_inst(device_instances, device_index)))
 		return SR_ERR;
 	fx2 = sdi->priv;
 
@@ -357,7 +357,7 @@ static int hw_init(const char *deviceinfo)
 			/* not a supported VID/PID */
 			continue;
 
-		sdi = sr_device_instance_new(devcnt, SR_ST_INITIALIZING,
+		sdi = sr_dev_inst_new(devcnt, SR_ST_INITIALIZING,
 			fx2_prof->vendor, fx2_prof->model, fx2_prof->model_version);
 		if (!sdi)
 			return 0;
@@ -371,7 +371,7 @@ static int hw_init(const char *deviceinfo)
 			sr_dbg("Found a Saleae Logic with %s firmware.",
 			       new_saleae_logic_firmware ? "new" : "old");
 			sdi->status = SR_ST_INACTIVE;
-			fx2->usb = sr_usb_device_instance_new
+			fx2->usb = sr_usb_dev_inst_new
 			    (libusb_get_bus_number(devlist[i]),
 			     libusb_get_device_address(devlist[i]), NULL);
 		} else {
@@ -380,7 +380,7 @@ static int hw_init(const char *deviceinfo)
 				g_get_current_time(&fx2->fw_updated);
 			else
 				sr_err("firmware upload failed for device %d", devcnt);
-			fx2->usb = sr_usb_device_instance_new
+			fx2->usb = sr_usb_dev_inst_new
 				(libusb_get_bus_number(devlist[i]), 0xff, NULL);
 		}
 		devcnt++;
@@ -397,7 +397,7 @@ static int hw_opendev(int device_index)
 	struct fx2_device *fx2;
 	int timediff, err;
 
-	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
+	if (!(sdi = sr_get_dev_inst(device_instances, device_index)))
 		return SR_ERR;
 	fx2 = sdi->priv;
 
@@ -449,7 +449,7 @@ static int hw_closedev(int device_index)
 {
 	struct sr_device_instance *sdi;
 
-	if (!(sdi = sr_get_device_instance(device_instances, device_index))) {
+	if (!(sdi = sr_get_dev_inst(device_instances, device_index))) {
 		sr_err("logic: %s: sdi was NULL", __func__);
 		return SR_ERR; /* TODO: SR_ERR_ARG? */
 	}
@@ -483,8 +483,8 @@ static int hw_cleanup(void)
 			continue;
 		}
 		close_device(sdi);
-		sr_usb_device_instance_free(fx2->usb);
-		sr_device_instance_free(sdi);
+		sr_usb_dev_inst_free(fx2->usb);
+		sr_dev_inst_free(sdi);
 	}
 
 	g_slist_free(device_instances);
@@ -503,7 +503,7 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 	struct fx2_device *fx2;
 	void *info = NULL;
 
-	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
+	if (!(sdi = sr_get_dev_inst(device_instances, device_index)))
 		return NULL;
 	fx2 = sdi->priv;
 
@@ -535,7 +535,7 @@ static int hw_get_status(int device_index)
 {
 	struct sr_device_instance *sdi;
 
-	sdi = sr_get_device_instance(device_instances, device_index);
+	sdi = sr_get_dev_inst(device_instances, device_index);
 	if (sdi)
 		return sdi->status;
 	else
@@ -632,7 +632,7 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 	int ret;
 	uint64_t *tmp_u64;
 
-	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
+	if (!(sdi = sr_get_dev_inst(device_instances, device_index)))
 		return SR_ERR;
 	fx2 = sdi->priv;
 
@@ -815,7 +815,7 @@ static int hw_start_acquisition(int device_index, gpointer session_data)
 	int size, i;
 	unsigned char *buf;
 
-	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
+	if (!(sdi = sr_get_dev_inst(device_instances, device_index)))
 		return SR_ERR;
 	fx2 = sdi->priv;
 	fx2->session_data = session_data;

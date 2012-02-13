@@ -245,7 +245,7 @@ static struct sr_device_instance *zp_open_device(int device_index)
 	struct libusb_device_descriptor des;
 	int err, i;
 
-	if (!(sdi = sr_get_device_instance(device_instances, device_index)))
+	if (!(sdi = sr_get_dev_inst(device_instances, device_index)))
 		return NULL;
 
 	libusb_get_device_list(usb_context, &devlist);
@@ -385,7 +385,7 @@ static int hw_init(const char *deviceinfo)
 			 * the zeroplus range?
 			 */
 			/* Register the device with libsigrok. */
-			sdi = sr_device_instance_new(devcnt,
+			sdi = sr_dev_inst_new(devcnt,
 					SR_ST_INACTIVE, USB_VENDOR_NAME,
 					USB_MODEL_NAME, USB_MODEL_VERSION);
 			if (!sdi) {
@@ -398,7 +398,7 @@ static int hw_init(const char *deviceinfo)
 
 			device_instances =
 			    g_slist_append(device_instances, sdi);
-			zp->usb = sr_usb_device_instance_new(
+			zp->usb = sr_usb_dev_inst_new(
 				libusb_get_bus_number(devlist[i]),
 				libusb_get_device_address(devlist[i]), NULL);
 			devcnt++;
@@ -474,7 +474,7 @@ static int hw_closedev(int device_index)
 {
 	struct sr_device_instance *sdi;
 
-	if (!(sdi = sr_get_device_instance(device_instances, device_index))) {
+	if (!(sdi = sr_get_dev_inst(device_instances, device_index))) {
 		sr_err("zp: %s: sdi was NULL", __func__);
 		return SR_ERR; /* TODO: SR_ERR_ARG? */
 	}
@@ -514,7 +514,7 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 	struct zp *zp;
 	void *info;
 
-	if (!(sdi = sr_get_device_instance(device_instances, device_index))) {
+	if (!(sdi = sr_get_dev_inst(device_instances, device_index))) {
 		sr_err("zp: %s: sdi was NULL", __func__);
 		return NULL;
 	}
@@ -557,7 +557,7 @@ static int hw_get_status(int device_index)
 {
 	struct sr_device_instance *sdi;
 
-	sdi = sr_get_device_instance(device_instances, device_index);
+	sdi = sr_get_dev_inst(device_instances, device_index);
 	if (sdi)
 		return sdi->status;
 	else
@@ -604,7 +604,7 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 	uint64_t *tmp_u64;
 	struct zp *zp;
 
-	if (!(sdi = sr_get_device_instance(device_instances, device_index))) {
+	if (!(sdi = sr_get_dev_inst(device_instances, device_index))) {
 		sr_err("zp: %s: sdi was NULL", __func__);
 		return SR_ERR;
 	}
@@ -641,7 +641,7 @@ static int hw_start_acquisition(int device_index, gpointer session_data)
 	unsigned char *buf;
 	struct zp *zp;
 
-	if (!(sdi = sr_get_device_instance(device_instances, device_index))) {
+	if (!(sdi = sr_get_dev_inst(device_instances, device_index))) {
 		sr_err("zp: %s: sdi was NULL", __func__);
 		return SR_ERR;
 	}
@@ -711,7 +711,7 @@ static int hw_stop_acquisition(int device_index, gpointer session_device_id)
 	packet.type = SR_DF_END;
 	sr_session_bus(session_device_id, &packet);
 
-	if (!(sdi = sr_get_device_instance(device_instances, device_index))) {
+	if (!(sdi = sr_get_dev_inst(device_instances, device_index))) {
 		sr_err("zp: %s: sdi was NULL", __func__);
 		return SR_ERR_BUG;
 	}

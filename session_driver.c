@@ -59,7 +59,7 @@ static struct session_vdevice *get_vdevice_by_index(int device_index)
 
 	/* TODO: Sanity checks on device_index. */
 
-	if (!(sdi = sr_get_device_instance(device_instances, device_index))) {
+	if (!(sdi = sr_get_dev_inst(device_instances, device_index))) {
 		sr_err("session driver: %s: device instance with device "
 		       "index %d was not found", __func__, device_index);
 		return NULL;
@@ -165,7 +165,7 @@ static int hw_cleanup(void)
 	/* TODO: Error handling. */
 
 	for (l = device_instances; l; l = l->next)
-		sr_device_instance_free(l->data);
+		sr_dev_inst_free(l->data);
 
 	g_slist_free(device_instances);
 	device_instances = NULL;
@@ -181,7 +181,7 @@ static int hw_opendev(int device_index)
 {
 	struct sr_device_instance *sdi;
 
-	sdi = sr_device_instance_new(device_index, SR_ST_INITIALIZING,
+	sdi = sr_dev_inst_new(device_index, SR_ST_INITIALIZING,
 		NULL, NULL, NULL);
 	if (!sdi)
 		return SR_ERR;

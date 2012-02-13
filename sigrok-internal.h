@@ -55,15 +55,15 @@ struct sr_serial_device_instance {
 
 #ifdef HAVE_LIBUSB_1_0
 /* USB-specific instances */
-SR_PRIV struct sr_usb_device_instance *sr_usb_device_instance_new(uint8_t bus,
+SR_PRIV struct sr_usb_device_instance *sr_usb_dev_inst_new(uint8_t bus,
 		uint8_t address, struct libusb_device_handle *hdl);
-SR_PRIV void sr_usb_device_instance_free(struct sr_usb_device_instance *usb);
+SR_PRIV void sr_usb_dev_inst_free(struct sr_usb_device_instance *usb);
 #endif
 
 /* Serial-specific instances */
-SR_PRIV struct sr_serial_device_instance *sr_serial_device_instance_new(
+SR_PRIV struct sr_serial_device_instance *sr_serial_dev_inst_new(
 					const char *port, int fd);
-SR_PRIV void sr_serial_device_instance_free(
+SR_PRIV void sr_serial_dev_inst_free(
 		struct sr_serial_device_instance *serial);
 
 /*--- log.c -----------------------------------------------------------------*/
@@ -86,11 +86,11 @@ SR_PRIV int sr_session_bus(struct sr_device *device,
 			  struct sr_datafeed_packet *packet);
 
 /* Generic device instances */
-SR_PRIV struct sr_device_instance *sr_device_instance_new(int index,
+SR_PRIV struct sr_device_instance *sr_dev_inst_new(int index,
        int status, const char *vendor, const char *model, const char *version);
-SR_PRIV struct sr_device_instance *sr_get_device_instance(
+SR_PRIV struct sr_device_instance *sr_get_dev_inst(
 			GSList *device_instances, int device_index);
-SR_PRIV void sr_device_instance_free(struct sr_device_instance *sdi);
+SR_PRIV void sr_dev_inst_free(struct sr_device_instance *sdi);
 
 SR_PRIV void sr_source_remove(int fd);
 SR_PRIV void sr_source_add(int fd, int events, int timeout,

@@ -143,7 +143,7 @@ static int hw_init(const char *deviceinfo)
 	/* Avoid compiler warnings. */
 	(void)deviceinfo;
 
-	sdi = sr_device_instance_new(0, SR_ST_ACTIVE, DEMONAME, NULL, NULL);
+	sdi = sr_dev_inst_new(0, SR_ST_ACTIVE, DEMONAME, NULL, NULL);
 	if (!sdi) {
 		sr_err("demo: %s: sr_device_instance_new failed", __func__);
 		return 0;
@@ -185,7 +185,7 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 	struct sr_device_instance *sdi;
 	void *info = NULL;
 
-	if (!(sdi = sr_get_device_instance(device_instances, device_index))) {
+	if (!(sdi = sr_get_dev_inst(device_instances, device_index))) {
 		sr_err("demo: %s: sdi was NULL", __func__);
 		return NULL;
 	}

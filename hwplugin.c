@@ -166,7 +166,7 @@ SR_PRIV void sr_hwplugins_cleanup(void)
 	}
 }
 
-SR_PRIV struct sr_device_instance *sr_device_instance_new(int index, int status,
+SR_PRIV struct sr_device_instance *sr_dev_inst_new(int index, int status,
 		const char *vendor, const char *model, const char *version)
 {
 	struct sr_device_instance *sdi;
@@ -187,7 +187,7 @@ SR_PRIV struct sr_device_instance *sr_device_instance_new(int index, int status,
 	return sdi;
 }
 
-SR_PRIV struct sr_device_instance *sr_get_device_instance(
+SR_PRIV struct sr_device_instance *sr_get_dev_inst(
 		GSList *device_instances, int device_index)
 {
 	struct sr_device_instance *sdi;
@@ -203,7 +203,7 @@ SR_PRIV struct sr_device_instance *sr_get_device_instance(
 	return NULL;
 }
 
-SR_PRIV void sr_device_instance_free(struct sr_device_instance *sdi)
+SR_PRIV void sr_dev_inst_free(struct sr_device_instance *sdi)
 {
 	g_free(sdi->priv);
 	g_free(sdi->vendor);
@@ -214,7 +214,7 @@ SR_PRIV void sr_device_instance_free(struct sr_device_instance *sdi)
 
 #ifdef HAVE_LIBUSB_1_0
 
-SR_PRIV struct sr_usb_device_instance *sr_usb_device_instance_new(uint8_t bus,
+SR_PRIV struct sr_usb_device_instance *sr_usb_dev_inst_new(uint8_t bus,
 			uint8_t address, struct libusb_device_handle *hdl)
 {
 	struct sr_usb_device_instance *udi;
@@ -231,7 +231,7 @@ SR_PRIV struct sr_usb_device_instance *sr_usb_device_instance_new(uint8_t bus,
 	return udi;
 }
 
-SR_PRIV void sr_usb_device_instance_free(struct sr_usb_device_instance *usb)
+SR_PRIV void sr_usb_dev_inst_free(struct sr_usb_device_instance *usb)
 {
 	/* Avoid compiler warnings. */
 	(void)usb;
@@ -241,7 +241,7 @@ SR_PRIV void sr_usb_device_instance_free(struct sr_usb_device_instance *usb)
 
 #endif
 
-SR_PRIV struct sr_serial_device_instance *sr_serial_device_instance_new(
+SR_PRIV struct sr_serial_device_instance *sr_serial_dev_inst_new(
 						const char *port, int fd)
 {
 	struct sr_serial_device_instance *serial;
@@ -257,7 +257,7 @@ SR_PRIV struct sr_serial_device_instance *sr_serial_device_instance_new(
 	return serial;
 }
 
-SR_PRIV void sr_serial_device_instance_free(
+SR_PRIV void sr_serial_dev_inst_free(
 		struct sr_serial_device_instance *serial)
 {
 	g_free(serial->port);
@@ -270,7 +270,7 @@ SR_PRIV void sr_serial_device_instance_free(
  * returned by a plugin's get_capabilities() function.
  * @param hwcap The capability to find in the list.
  *
- * @return Returns TRUE if found, FALSE otherwise.
+ * @return TRUE if found, FALSE otherwise.
  */
 SR_API gboolean sr_has_hwcap(int *capabilities, int hwcap)
 {
@@ -289,7 +289,7 @@ SR_API gboolean sr_has_hwcap(int *capabilities, int hwcap)
  *
  * @param hwcap The capability to find
  *
- * @return Returns a struct with information about the parameter, or NULL
+ * @return A struct with information about the parameter, or NULL
  * if not found.
  */
 SR_API struct sr_hwcap_option *sr_find_hwcap_option(int hwcap)
