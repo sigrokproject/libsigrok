@@ -145,9 +145,9 @@ SR_API int sr_init_hwplugin(struct sr_device_plugin *plugin)
 			continue;
 		}
 
-		device = sr_device_new(plugin, i);
+		device = sr_dev_new(plugin, i);
 		for (j = 0; j < num_probes; j++)
-			sr_device_probe_add(device, probe_names[j]);
+			sr_dev_probe_add(device, probe_names[j]);
 		num_initialized_devices++;
 	}
 

@@ -214,7 +214,7 @@ static int hw_get_status(int device_index)
 	/* Avoid compiler warnings. */
 	(void)device_index;
 
-	if (sr_device_list() != NULL)
+	if (sr_dev_list() != NULL)
 		return SR_OK;
 	else
 		return SR_ERR;

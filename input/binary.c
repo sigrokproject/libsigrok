@@ -51,12 +51,12 @@ static int init(struct sr_input *in)
 	}
 
 	/* Create a virtual device. */
-	in->vdevice = sr_device_new(NULL, 0);
+	in->vdevice = sr_dev_new(NULL, 0);
 
 	for (i = 0; i < num_probes; i++) {
 		snprintf(name, SR_MAX_PROBENAME_LEN, "%d", i);
 		/* TODO: Check return value. */
-		sr_device_probe_add(in->vdevice, name);
+		sr_dev_probe_add(in->vdevice, name);
 	}
 
 	return SR_OK;

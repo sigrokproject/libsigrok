@@ -47,20 +47,20 @@ SR_API int sr_datastore_put(struct sr_datastore *ds, void *data,
 
 /*--- device.c --------------------------------------------------------------*/
 
-SR_API int sr_device_scan(void);
-SR_API GSList *sr_device_list(void);
-SR_API struct sr_device *sr_device_new(const struct sr_device_plugin *plugin,
+SR_API int sr_dev_scan(void);
+SR_API GSList *sr_dev_list(void);
+SR_API struct sr_device *sr_dev_new(const struct sr_device_plugin *plugin,
 				       int plugin_index);
-SR_API int sr_device_probe_add(struct sr_device *device, const char *name);
-SR_API struct sr_probe *sr_device_probe_find(const struct sr_device *device,
+SR_API int sr_dev_probe_add(struct sr_device *device, const char *name);
+SR_API struct sr_probe *sr_dev_probe_find(const struct sr_device *device,
 					     int probenum);
-SR_API int sr_device_probe_name(struct sr_device *device, int probenum,
+SR_API int sr_dev_probe_name(struct sr_device *device, int probenum,
 				const char *name);
-SR_API int sr_device_trigger_clear(struct sr_device *device);
-SR_API int sr_device_trigger_set(struct sr_device *device, int probenum,
+SR_API int sr_dev_trigger_clear(struct sr_device *device);
+SR_API int sr_dev_trigger_set(struct sr_device *device, int probenum,
 				 const char *trigger);
-SR_API gboolean sr_device_has_hwcap(const struct sr_device *device, int hwcap);
-SR_API int sr_device_get_info(const struct sr_device *device, int id,
+SR_API gboolean sr_dev_has_hwcap(const struct sr_device *device, int hwcap);
+SR_API int sr_dev_get_info(const struct sr_device *device, int id,
 			      const void **data);
 
 /*--- filter.c --------------------------------------------------------------*/
