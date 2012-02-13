@@ -1,7 +1,7 @@
 /*
  * This file is part of the sigrok project.
  *
- * Copyright (C) 2010 Bert Vermeulen <bert@biot.com>
+ * Copyright (C) 2010-2012 Bert Vermeulen <bert@biot.com>
  * Copyright (C) 2011 Håvard Espeland <gus@ping.uio.no>
  * Copyright (C) 2011 Daniel Ribeiro <drwyrm@gmail.com>
  *
