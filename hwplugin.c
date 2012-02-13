@@ -108,7 +108,7 @@ SR_PRIV int load_hwplugins(void)
  *
  * @return A GSList of pointers to loaded plugins.
  */
-SR_API GSList *sr_list_hwplugins(void)
+SR_API GSList *sr_hwplugins_list(void)
 {
 
 	return plugins;
@@ -124,7 +124,7 @@ SR_API GSList *sr_list_hwplugins(void)
  *
  * @return The number of devices found and instantiated by the plugin.
  */
-SR_API int sr_init_hwplugin(struct sr_device_plugin *plugin)
+SR_API int sr_hwplugin_init(struct sr_device_plugin *plugin)
 {
 	int num_devices, num_probes, i, j;
 	int num_initialized_devices = 0;
@@ -154,7 +154,7 @@ SR_API int sr_init_hwplugin(struct sr_device_plugin *plugin)
 	return num_initialized_devices;
 }
 
-SR_PRIV void sr_cleanup_hwplugins(void)
+SR_PRIV void sr_hwplugins_cleanup(void)
 {
 	struct sr_device_plugin *plugin;
 	GSList *l;

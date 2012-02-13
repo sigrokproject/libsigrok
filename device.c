@@ -62,7 +62,7 @@ SR_API int sr_dev_scan(void)
 	GSList *plugins, *l;
 	struct sr_device_plugin *plugin;
 
-	if (!(plugins = sr_list_hwplugins())) {
+	if (!(plugins = sr_hwplugins_list())) {
 		sr_err("dev: %s: no supported devices/hwplugins", __func__);
 		return SR_ERR; /* TODO: More specific error? */
 	}
@@ -75,7 +75,7 @@ SR_API int sr_dev_scan(void)
 	for (l = plugins; l; l = l->next) {
 		plugin = l->data;
 		/* TODO: Handle 'plugin' being NULL. */
-		sr_init_hwplugin(plugin);
+		sr_hwplugin_init(plugin);
 	}
 
 	return SR_OK;

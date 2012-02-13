@@ -72,8 +72,8 @@ SR_API int sr_filter_probes(int in_unitsize, int out_unitsize,
 
 /*--- hwplugin.c ------------------------------------------------------------*/
 
-SR_API GSList *sr_list_hwplugins(void);
-SR_API int sr_init_hwplugin(struct sr_device_plugin *plugin);
+SR_API GSList *sr_hwplugins_list(void);
+SR_API int sr_hwplugin_init(struct sr_device_plugin *plugin);
 SR_API gboolean sr_has_hwcap(int *capabilities, int hwcap);
 SR_API struct sr_hwcap_option *sr_find_hwcap_option(int hwcap);
 
