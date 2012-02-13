@@ -24,6 +24,7 @@
 #include <unistd.h>
 #include <sys/time.h>
 #include "sigrok.h"
+#include "sigrok-internal.h"
 
 #define CHUNKSIZE             (512 * 1024)
 #define DEFAULT_NUM_PROBES    8
