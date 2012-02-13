@@ -54,8 +54,8 @@ extern "C" {
 #define SR_ERR_BUG           -4 /* Errors hinting at internal bugs */
 #define SR_ERR_SAMPLERATE    -5 /* Incorrect samplerate */
 
-#define SR_MAX_NUM_PROBES 	64 /* Limited by uint64_t. */
-#define SR_MAX_PROBENAME_LEN	32
+#define SR_MAX_NUM_PROBES    64 /* Limited by uint64_t. */
+#define SR_MAX_PROBENAME_LEN 32
 
 /* Handy little macros */
 #define SR_HZ(n)  (n)
@@ -66,12 +66,12 @@ extern "C" {
 #define SR_HZ_TO_NS(n) (1000000000 / (n))
 
 /* libsigrok loglevels. */
-#define SR_LOG_NONE	0 /**< Output no messages at all. */
-#define SR_LOG_ERR	1 /**< Output error messages. */
-#define SR_LOG_WARN	2 /**< Output warnings. */
-#define SR_LOG_INFO	3 /**< Output informational messages. */
-#define SR_LOG_DBG	4 /**< Output debug messages. */
-#define SR_LOG_SPEW	5 /**< Output very noisy debug messages. */
+#define SR_LOG_NONE	           0 /**< Output no messages at all. */
+#define SR_LOG_ERR            1 /**< Output error messages. */
+#define SR_LOG_WARN	           2 /**< Output warnings. */
+#define SR_LOG_INFO	           3 /**< Output informational messages. */
+#define SR_LOG_DBG            4 /**< Output debug messages. */
+#define SR_LOG_SPEW	           5 /**< Output very noisy debug messages. */
 
 /*
  * Use SR_API to mark public API symbols, and SR_PRIV for private symbols.
