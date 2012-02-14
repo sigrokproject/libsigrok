@@ -159,7 +159,6 @@ static int hw_cleanup(void)
 		return SR_ERR_BUG;
 	}
 
-	g_free(sdi->priv);
 	sr_dev_inst_free(sdi);
 
 	return SR_OK;

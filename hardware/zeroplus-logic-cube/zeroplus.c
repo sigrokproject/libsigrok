@@ -488,16 +488,15 @@ static int hw_closedev(int device_index)
 static int hw_cleanup(void)
 {
 	GSList *l;
+	struct sr_device_instance *sdi;
 
-	/* TODO: Error handling. */
-
-	/* Properly close all devices... */
-	for (l = device_instances; l; l = l->next)
-		close_device((struct sr_device_instance *)l->data);
-
-	/* ...and free all their memory. */
-	for (l = device_instances; l; l = l->next)
-		g_free(l->data);
+	for (l = device_instances; l; l = l->next) {
+		sdi = l->data;
+		/* Properly close all devices... */
+		close_device(sdi);
+		/* ...and free all their memory. */
+		sr_dev_inst_free(sdi);
+	}
 	g_slist_free(device_instances);
 	device_instances = NULL;
 

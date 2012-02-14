@@ -162,11 +162,8 @@ static int hw_cleanup(void)
 {
 	GSList *l;
 
-	/* TODO: Error handling. */
-
 	for (l = device_instances; l; l = l->next)
 		sr_dev_inst_free(l->data);
-
 	g_slist_free(device_instances);
 	device_instances = NULL;
 

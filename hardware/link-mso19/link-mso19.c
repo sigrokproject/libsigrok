@@ -522,8 +522,9 @@ static int hw_cleanup(void)
 {
 	GSList *l;
 	struct sr_device_instance *sdi;
-	int ret = SR_OK;
+	int ret;
 
+	ret = SR_OK;
 	/* Properly close all devices. */
 	for (l = device_instances; l; l = l->next) {
 		if (!(sdi = l->data)) {
@@ -534,14 +535,12 @@ static int hw_cleanup(void)
 		}
 		if (sdi->serial->fd != -1)
 			serial_close(sdi->serial->fd);
-		g_free(sdi->priv);
-		sdi->priv = NULL;
 		sr_dev_inst_free(sdi);
 	}
 	g_slist_free(device_instances);
 	device_instances = NULL;
 
-	return SR_OK;
+	return ret;
 }
 
 static int hw_opendev(int device_index)

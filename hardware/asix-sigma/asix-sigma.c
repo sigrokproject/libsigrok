@@ -735,7 +735,6 @@ static int hw_cleanup(void)
 			ret = SR_ERR_BUG;
 			continue;
 		}
-		g_free(sdi->priv);
 		sr_dev_inst_free(sdi);
 	}
 	g_slist_free(device_instances);

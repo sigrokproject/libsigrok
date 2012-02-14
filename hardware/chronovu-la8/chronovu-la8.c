@@ -695,17 +695,6 @@ static int hw_cleanup(void)
 			ret = SR_ERR_BUG;
 			continue;
 		}
-#if 0
-		/*
-		 * Fixes a segfault as it's free()d elsewhere already.
-		 * TODO: Document who is supposed to free this, and when.
-		 */
-		if (sdi->priv != NULL)
-			g_free(sdi->priv);
-		else
-			sr_err("la8: %s: sdi->priv was NULL, nothing "
-			       "to do", __func__);
-#endif
 		sr_dev_inst_free(sdi); /* Returns void. */
 	}
 	g_slist_free(device_instances); /* Returns void. */
