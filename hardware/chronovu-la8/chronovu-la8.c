@@ -328,8 +328,6 @@ static int la8_close_usb_reset_sequencer(struct la8 *la8)
 	uint8_t buf[8] = {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01};
 	int ret;
 
-	sr_spew("la8: entering %s", __func__);
-
 	if (!la8) {
 		sr_err("la8: %s: la8 was NULL", __func__);
 		return SR_ERR_ARG;
@@ -359,8 +357,6 @@ static int la8_close_usb_reset_sequencer(struct la8 *la8)
 		if ((ret = ftdi_usb_close(la8->ftdic)) < 0)
 			sr_err("la8: %s: ftdi_usb_close: (%d) %s", __func__,
 			       ret, ftdi_get_error_string(la8->ftdic));
-	} else {
-		sr_spew("la8: %s: usb_dev was NULL, nothing to do", __func__);
 	}
 
 	ftdi_free(la8->ftdic); /* Returns void. */
@@ -477,8 +473,6 @@ static int hw_init(const char *deviceinfo)
 	struct sr_device_instance *sdi;
 	struct la8 *la8;
 
-	sr_spew("la8: entering %s", __func__);
-
 	/* Avoid compiler errors. */
 	(void)deviceinfo;
 
@@ -519,8 +513,6 @@ static int hw_init(const char *deviceinfo)
 	/* Check for the device and temporarily open it. */
 	if ((ret = ftdi_usb_open_desc(la8->ftdic, USB_VENDOR_ID,
 			USB_PRODUCT_ID, USB_DESCRIPTION, NULL)) < 0) {
-		sr_dbg("la8: %s: ftdi_usb_open_desc: (%d) %s",
-		       __func__, ret, ftdi_get_error_string(la8->ftdic));
 		(void) la8_close_usb_reset_sequencer(la8); /* Ignore errors. */
 		goto err_free_ftdic;
 	}
@@ -684,8 +676,6 @@ static int hw_cleanup(void)
 	GSList *l;
 	struct sr_device_instance *sdi;
 	int ret = SR_OK;
-
-	sr_spew("la8: entering %s", __func__);
 
 	/* Properly close all devices. */
 	for (l = device_instances; l; l = l->next) {
