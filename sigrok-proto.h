@@ -72,10 +72,10 @@ SR_API int sr_filter_probes(int in_unitsize, int out_unitsize,
 
 /*--- hwplugin.c ------------------------------------------------------------*/
 
-SR_API GSList *sr_hwplugins_list(void);
-SR_API int sr_hwplugin_init(struct sr_device_plugin *plugin);
-SR_API gboolean sr_hwplugin_has_hwcap(struct sr_device_plugin *plugin, int hwcap);
-SR_API struct sr_hwcap_option *sr_hwplugins_hwcap_get(int hwcap);
+SR_API GSList *sr_hw_list(void);
+SR_API int sr_hw_init(struct sr_device_plugin *plugin);
+SR_API gboolean sr_hw_has_hwcap(struct sr_device_plugin *plugin, int hwcap);
+SR_API struct sr_hwcap_option *sr_hw_hwcap_get(int hwcap);
 
 /*--- session.c -------------------------------------------------------------*/
 

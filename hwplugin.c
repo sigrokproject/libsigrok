@@ -68,7 +68,7 @@ extern struct sr_device_plugin alsa_plugin_info;
 #endif
 
 /* TODO: No linked list needed, this can be a simple array. */
-SR_PRIV int sr_hwplugins_load(void)
+SR_PRIV int sr_hw_load_all(void)
 {
 #ifdef HAVE_LA_DEMO
 	plugins = g_slist_append(plugins, (gpointer *)&demo_plugin_info);
@@ -108,7 +108,7 @@ SR_PRIV int sr_hwplugins_load(void)
  *
  * @return A GSList of pointers to loaded plugins.
  */
-SR_API GSList *sr_hwplugins_list(void)
+SR_API GSList *sr_hw_list(void)
 {
 
 	return plugins;
@@ -124,7 +124,7 @@ SR_API GSList *sr_hwplugins_list(void)
  *
  * @return The number of devices found and instantiated by the plugin.
  */
-SR_API int sr_hwplugin_init(struct sr_device_plugin *plugin)
+SR_API int sr_hw_init(struct sr_device_plugin *plugin)
 {
 	int num_devices, num_probes, i, j;
 	int num_initialized_devices = 0;
@@ -154,7 +154,7 @@ SR_API int sr_hwplugin_init(struct sr_device_plugin *plugin)
 	return num_initialized_devices;
 }
 
-SR_PRIV void sr_hwplugins_cleanup(void)
+SR_PRIV void sr_hw_cleanup_all(void)
 {
 	struct sr_device_plugin *plugin;
 	GSList *l;
@@ -272,7 +272,7 @@ SR_PRIV void sr_serial_dev_inst_free(
  *
  * @return TRUE if found, FALSE otherwise.
  */
-SR_API gboolean sr_hwplugin_has_hwcap(struct sr_device_plugin *plugin, int hwcap)
+SR_API gboolean sr_hw_has_hwcap(struct sr_device_plugin *plugin, int hwcap)
 {
 	int *capabilities, i;
 
@@ -286,14 +286,14 @@ SR_API gboolean sr_hwplugin_has_hwcap(struct sr_device_plugin *plugin, int hwcap
 }
 
 /**
- * Find a hardware plugin capability option.
+ * Get a hardware plugin capability option.
  *
- * @param hwcap The capability to find
+ * @param hwcap The capability to get.
  *
  * @return A struct with information about the parameter, or NULL
  * if not found.
  */
-SR_API struct sr_hwcap_option *sr_hwplugins_hwcap_get(int hwcap)
+SR_API struct sr_hwcap_option *sr_hw_hwcap_get(int hwcap)
 {
 	int i;
 
