@@ -71,7 +71,7 @@ struct fx2_device {
 	 */
 	void *session_data;
 
-	struct sr_usb_device_instance *usb;
+	struct sr_usb_dev_inst *usb;
 };
 
 #endif

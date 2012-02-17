@@ -54,7 +54,7 @@ static const char *probe_names[NUM_PROBES + 1] = {
 	NULL,
 };
 
-static GSList *device_instances = NULL;
+static GSList *dev_insts = NULL;
 
 struct alsa {
 	uint64_t cur_rate;
@@ -66,7 +66,7 @@ struct alsa {
 
 static int hw_init(const char *deviceinfo)
 {
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 	struct alsa *alsa;
 
 	/* Avoid compiler warnings. */
@@ -83,7 +83,7 @@ static int hw_init(const char *deviceinfo)
 
 	sdi->priv = alsa;
 
-	device_instances = g_slist_append(device_instances, sdi);
+	dev_insts = g_slist_append(dev_insts, sdi);
 
 	return 1;
 free_alsa:
@@ -93,11 +93,11 @@ free_alsa:
 
 static int hw_opendev(int device_index)
 {
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 	struct alsa *alsa;
 	int err;
 
-	if (!(sdi = sr_dev_inst_get(device_instances, device_index)))
+	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
 		return SR_ERR;
 	alsa = sdi->priv;
 
@@ -128,10 +128,10 @@ static int hw_opendev(int device_index)
 
 static int hw_closedev(int device_index)
 {
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 	struct alsa *alsa;
 
-	if (!(sdi = sr_dev_inst_get(device_instances, device_index))) {
+	if (!(sdi = sr_dev_inst_get(dev_insts, device_index))) {
 		sr_err("alsa: %s: sdi was NULL", __func__);
 		return SR_ERR; /* TODO: SR_ERR_ARG? */
 	}
@@ -152,9 +152,9 @@ static int hw_closedev(int device_index)
 
 static int hw_cleanup(void)
 {
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 
-	if (!(sdi = sr_dev_inst_get(device_instances, 0))) {
+	if (!(sdi = sr_dev_inst_get(dev_insts, 0))) {
 		sr_err("alsa: %s: sdi was NULL", __func__);
 		return SR_ERR_BUG;
 	}
@@ -166,11 +166,11 @@ static int hw_cleanup(void)
 
 static void *hw_get_device_info(int device_index, int device_info_id)
 {
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 	struct alsa *alsa;
 	void *info = NULL;
 
-	if (!(sdi = sr_dev_inst_get(device_instances, device_index)))
+	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
 		return NULL;
 	alsa = sdi->priv;
 
@@ -210,10 +210,10 @@ static int *hw_get_capabilities(void)
 
 static int hw_set_configuration(int device_index, int capability, void *value)
 {
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 	struct alsa *alsa;
 
-	if (!(sdi = sr_dev_inst_get(device_instances, device_index)))
+	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
 		return SR_ERR;
 	alsa = sdi->priv;
 
@@ -233,7 +233,7 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 
 static int receive_data(int fd, int revents, void *user_data)
 {
-	struct sr_device_instance *sdi = user_data;
+	struct sr_dev_inst *sdi = user_data;
 	struct alsa *alsa = sdi->priv;
 	struct sr_datafeed_packet packet;
 	struct sr_analog_sample *sample;
@@ -291,7 +291,7 @@ static int receive_data(int fd, int revents, void *user_data)
 
 static int hw_start_acquisition(int device_index, gpointer session_device_id)
 {
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 	struct alsa *alsa;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_header header;
@@ -299,7 +299,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	int count;
 	int err;
 
-	if (!(sdi = sr_dev_inst_get(device_instances, device_index)))
+	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
 		return SR_ERR;
 	alsa = sdi->priv;
 

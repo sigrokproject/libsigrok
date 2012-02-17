@@ -125,8 +125,8 @@ static uint8_t pattern_sigrok[] = {
 	0xbe, 0xbe, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 };
 
-/* List of struct sr_device_instance, maintained by opendev()/closedev(). */
-static GSList *device_instances = NULL;
+/* List of struct sr_dev_inst, maintained by opendev()/closedev(). */
+static GSList *dev_insts = NULL;
 static uint64_t cur_samplerate = SR_KHZ(200);
 static uint64_t limit_samples = 0;
 static uint64_t limit_msec = 0;
@@ -138,18 +138,18 @@ static int hw_stop_acquisition(int device_index, gpointer session_data);
 
 static int hw_init(const char *deviceinfo)
 {
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 
 	/* Avoid compiler warnings. */
 	(void)deviceinfo;
 
 	sdi = sr_dev_inst_new(0, SR_ST_ACTIVE, DEMONAME, NULL, NULL);
 	if (!sdi) {
-		sr_err("demo: %s: sr_device_instance_new failed", __func__);
+		sr_err("demo: %s: sr_dev_inst_new failed", __func__);
 		return 0;
 	}
 
-	device_instances = g_slist_append(device_instances, sdi);
+	dev_insts = g_slist_append(dev_insts, sdi);
 
 	return 1;
 }
@@ -182,10 +182,10 @@ static int hw_cleanup(void)
 
 static void *hw_get_device_info(int device_index, int device_info_id)
 {
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 	void *info = NULL;
 
-	if (!(sdi = sr_dev_inst_get(device_instances, device_index))) {
+	if (!(sdi = sr_dev_inst_get(dev_insts, device_index))) {
 		sr_err("demo: %s: sdi was NULL", __func__);
 		return NULL;
 	}

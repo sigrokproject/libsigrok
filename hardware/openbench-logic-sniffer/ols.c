@@ -99,8 +99,8 @@ static struct sr_samplerates samplerates = {
 	NULL,
 };
 
-/* List of struct sr_serial_device_instance */
-static GSList *device_instances = NULL;
+/* List of struct sr_serial_dev_inst */
+static GSList *dev_insts = NULL;
 
 static int send_shortcommand(int fd, uint8_t command)
 {
@@ -222,9 +222,9 @@ static struct ols_device *ols_device_new(void)
 	return ols;
 }
 
-static struct sr_device_instance *get_metadata(int fd)
+static struct sr_dev_inst *get_metadata(int fd)
 {
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 	struct ols_device *ols;
 	uint32_t tmp_int;
 	uint8_t key, type, token;
@@ -349,7 +349,7 @@ static struct sr_device_instance *get_metadata(int fd)
 
 static int hw_init(const char *deviceinfo)
 {
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 	struct ols_device *ols;
 	GSList *ports, *l;
 	GPollFD *fds, probefd;
@@ -453,7 +453,7 @@ static int hw_init(const char *deviceinfo)
 			sdi->priv = ols;
 		}
 		ols->serial = sr_serial_dev_inst_new(device_names[i], -1);
-		device_instances = g_slist_append(device_instances, sdi);
+		dev_insts = g_slist_append(dev_insts, sdi);
 		final_devcnt++;
 		serial_close(fds[i].fd);
 		fds[i].fd = 0;
@@ -482,10 +482,10 @@ hw_init_free_ports:
 
 static int hw_opendev(int device_index)
 {
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 	struct ols_device *ols;
 
-	if (!(sdi = sr_dev_inst_get(device_instances, device_index)))
+	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
 		return SR_ERR;
 
 	ols = sdi->priv;
@@ -501,10 +501,10 @@ static int hw_opendev(int device_index)
 
 static int hw_closedev(int device_index)
 {
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 	struct ols_device *ols;
 
-	if (!(sdi = sr_dev_inst_get(device_instances, device_index))) {
+	if (!(sdi = sr_dev_inst_get(dev_insts, device_index))) {
 		sr_err("ols: %s: sdi was NULL", __func__);
 		return SR_ERR; /* TODO: SR_ERR_ARG? */
 	}
@@ -524,12 +524,12 @@ static int hw_closedev(int device_index)
 static int hw_cleanup(void)
 {
 	GSList *l;
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 	struct ols_device *ols;
 	int ret = SR_OK;
 
 	/* Properly close and free all devices. */
-	for (l = device_instances; l; l = l->next) {
+	for (l = dev_insts; l; l = l->next) {
 		if (!(sdi = l->data)) {
 			/* Log error, but continue cleaning up the rest. */
 			sr_err("ols: %s: sdi was NULL, continuing", __func__);
@@ -549,19 +549,19 @@ static int hw_cleanup(void)
 		sr_serial_dev_inst_free(ols->serial);
 		sr_dev_inst_free(sdi);
 	}
-	g_slist_free(device_instances);
-	device_instances = NULL;
+	g_slist_free(dev_insts);
+	dev_insts = NULL;
 
 	return ret;
 }
 
 static void *hw_get_device_info(int device_index, int device_info_id)
 {
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 	struct ols_device *ols;
 	void *info;
 
-	if (!(sdi = sr_dev_inst_get(device_instances, device_index)))
+	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
 		return NULL;
 	ols = sdi->priv;
 
@@ -592,9 +592,9 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 
 static int hw_get_status(int device_index)
 {
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 
-	if (!(sdi = sr_dev_inst_get(device_instances, device_index)))
+	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
 		return SR_ST_NOT_FOUND;
 
 	return sdi->status;
@@ -605,7 +605,7 @@ static int *hw_get_capabilities(void)
 	return capabilities;
 }
 
-static int set_configuration_samplerate(struct sr_device_instance *sdi,
+static int set_configuration_samplerate(struct sr_dev_inst *sdi,
 					uint64_t samplerate)
 {
 	struct ols_device *ols;
@@ -640,12 +640,12 @@ static int set_configuration_samplerate(struct sr_device_instance *sdi,
 
 static int hw_set_configuration(int device_index, int capability, void *value)
 {
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 	struct ols_device *ols;
 	int ret;
 	uint64_t *tmp_u64;
 
-	if (!(sdi = sr_dev_inst_get(device_instances, device_index)))
+	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
 		return SR_ERR;
 	ols = sdi->priv;
 
@@ -697,7 +697,7 @@ static int receive_data(int fd, int revents, void *session_data)
 {
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 	struct ols_device *ols;
 	GSList *l;
 	int num_channels, offset, i, j;
@@ -705,7 +705,7 @@ static int receive_data(int fd, int revents, void *session_data)
 
 	/* find this device's ols_device struct by its fd */
 	ols = NULL;
-	for (l = device_instances; l; l = l->next) {
+	for (l = dev_insts; l; l = l->next) {
 		sdi = l->data;
 		if (ols->serial->fd == fd) {
 			ols = sdi->priv;
@@ -876,7 +876,7 @@ static int hw_start_acquisition(int device_index, gpointer session_data)
 {
 	struct sr_datafeed_packet *packet;
 	struct sr_datafeed_header *header;
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 	struct ols_device *ols;
 	uint32_t trigger_config[4];
 	uint32_t data;
@@ -885,7 +885,7 @@ static int hw_start_acquisition(int device_index, gpointer session_data)
 	int num_channels;
 	int i;
 
-	if (!(sdi = sr_dev_inst_get(device_instances, device_index)))
+	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
 		return SR_ERR;
 
 	ols = sdi->priv;

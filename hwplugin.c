@@ -165,12 +165,12 @@ SR_PRIV void sr_hw_cleanup_all(void)
 	}
 }
 
-SR_PRIV struct sr_device_instance *sr_dev_inst_new(int index, int status,
+SR_PRIV struct sr_dev_inst *sr_dev_inst_new(int index, int status,
 		const char *vendor, const char *model, const char *version)
 {
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 
-	if (!(sdi = g_try_malloc(sizeof(struct sr_device_instance)))) {
+	if (!(sdi = g_try_malloc(sizeof(struct sr_dev_inst)))) {
 		sr_err("hwplugin: %s: sdi malloc failed", __func__);
 		return NULL;
 	}
@@ -186,14 +186,13 @@ SR_PRIV struct sr_device_instance *sr_dev_inst_new(int index, int status,
 	return sdi;
 }
 
-SR_PRIV struct sr_device_instance *sr_dev_inst_get(
-		GSList *device_instances, int device_index)
+SR_PRIV struct sr_dev_inst *sr_dev_inst_get(GSList *dev_insts, int device_index)
 {
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 	GSList *l;
 
-	for (l = device_instances; l; l = l->next) {
-		sdi = (struct sr_device_instance *)(l->data);
+	for (l = dev_insts; l; l = l->next) {
+		sdi = (struct sr_dev_inst *)(l->data);
 		if (sdi->index == device_index)
 			return sdi;
 	}
@@ -202,7 +201,7 @@ SR_PRIV struct sr_device_instance *sr_dev_inst_get(
 	return NULL;
 }
 
-SR_PRIV void sr_dev_inst_free(struct sr_device_instance *sdi)
+SR_PRIV void sr_dev_inst_free(struct sr_dev_inst *sdi)
 {
 	g_free(sdi->priv);
 	g_free(sdi->vendor);
@@ -213,12 +212,12 @@ SR_PRIV void sr_dev_inst_free(struct sr_device_instance *sdi)
 
 #ifdef HAVE_LIBUSB_1_0
 
-SR_PRIV struct sr_usb_device_instance *sr_usb_dev_inst_new(uint8_t bus,
+SR_PRIV struct sr_usb_dev_inst *sr_usb_dev_inst_new(uint8_t bus,
 			uint8_t address, struct libusb_device_handle *hdl)
 {
-	struct sr_usb_device_instance *udi;
+	struct sr_usb_dev_inst *udi;
 
-	if (!(udi = g_try_malloc(sizeof(struct sr_usb_device_instance)))) {
+	if (!(udi = g_try_malloc(sizeof(struct sr_usb_dev_inst)))) {
 		sr_err("hwplugin: %s: udi malloc failed", __func__);
 		return NULL;
 	}
@@ -230,7 +229,7 @@ SR_PRIV struct sr_usb_device_instance *sr_usb_dev_inst_new(uint8_t bus,
 	return udi;
 }
 
-SR_PRIV void sr_usb_dev_inst_free(struct sr_usb_device_instance *usb)
+SR_PRIV void sr_usb_dev_inst_free(struct sr_usb_dev_inst *usb)
 {
 	/* Avoid compiler warnings. */
 	(void)usb;
@@ -240,12 +239,12 @@ SR_PRIV void sr_usb_dev_inst_free(struct sr_usb_device_instance *usb)
 
 #endif
 
-SR_PRIV struct sr_serial_device_instance *sr_serial_dev_inst_new(
-						const char *port, int fd)
+SR_PRIV struct sr_serial_dev_inst *sr_serial_dev_inst_new(const char *port,
+							  int fd)
 {
-	struct sr_serial_device_instance *serial;
+	struct sr_serial_dev_inst *serial;
 
-	if (!(serial = g_try_malloc(sizeof(struct sr_serial_device_instance)))) {
+	if (!(serial = g_try_malloc(sizeof(struct sr_serial_dev_inst)))) {
 		sr_err("hwplugin: %s: serial malloc failed", __func__);
 		return NULL;
 	}
@@ -256,8 +255,7 @@ SR_PRIV struct sr_serial_device_instance *sr_serial_dev_inst_new(
 	return serial;
 }
 
-SR_PRIV void sr_serial_dev_inst_free(
-		struct sr_serial_device_instance *serial)
+SR_PRIV void sr_serial_dev_inst_free(struct sr_serial_dev_inst *serial)
 {
 	g_free(serial->port);
 }

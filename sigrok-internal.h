@@ -41,29 +41,29 @@
 #define DATASTORE_CHUNKSIZE (512 * 1024)
 
 #ifdef HAVE_LIBUSB_1_0
-struct sr_usb_device_instance {
+struct sr_usb_dev_inst {
 	uint8_t bus;
 	uint8_t address;
 	struct libusb_device_handle *devhdl;
 };
 #endif
 
-struct sr_serial_device_instance {
+struct sr_serial_dev_inst {
 	char *port;
 	int fd;
 };
 
 #ifdef HAVE_LIBUSB_1_0
 /* USB-specific instances */
-SR_PRIV struct sr_usb_device_instance *sr_usb_dev_inst_new(uint8_t bus,
+SR_PRIV struct sr_usb_dev_inst *sr_usb_dev_inst_new(uint8_t bus,
 		uint8_t address, struct libusb_device_handle *hdl);
-SR_PRIV void sr_usb_dev_inst_free(struct sr_usb_device_instance *usb);
+SR_PRIV void sr_usb_dev_inst_free(struct sr_usb_dev_inst *usb);
 #endif
 
 /* Serial-specific instances */
-SR_PRIV struct sr_serial_device_instance *sr_serial_dev_inst_new(
+SR_PRIV struct sr_serial_dev_inst *sr_serial_dev_inst_new(
 					const char *port, int fd);
-SR_PRIV void sr_serial_dev_inst_free(struct sr_serial_device_instance *serial);
+SR_PRIV void sr_serial_dev_inst_free(struct sr_serial_dev_inst *serial);
 
 /*--- log.c -----------------------------------------------------------------*/
 
@@ -85,11 +85,11 @@ SR_PRIV int sr_session_bus(struct sr_device *device,
 			   struct sr_datafeed_packet *packet);
 
 /* Generic device instances */
-SR_PRIV struct sr_device_instance *sr_dev_inst_new(int index,
-       int status, const char *vendor, const char *model, const char *version);
-SR_PRIV struct sr_device_instance *sr_dev_inst_get(
-			GSList *device_instances, int device_index);
-SR_PRIV void sr_dev_inst_free(struct sr_device_instance *sdi);
+SR_PRIV struct sr_dev_inst *sr_dev_inst_new(int index, int status,
+		const char *vendor, const char *model, const char *version);
+SR_PRIV struct sr_dev_inst *sr_dev_inst_get(GSList *dev_insts,
+					    int device_index);
+SR_PRIV void sr_dev_inst_free(struct sr_dev_inst *sdi);
 
 SR_PRIV void sr_source_remove(int fd);
 SR_PRIV void sr_source_add(int fd, int events, int timeout,
@@ -121,10 +121,10 @@ SR_PRIV int ezusb_upload_firmware(libusb_device *dev, int configuration,
 /*--- hardware/common/misc.c ------------------------------------------------*/
 
 #ifdef HAVE_LIBUSB_1_0
-SR_PRIV int opendev2(int device_index, struct sr_device_instance **sdi,
+SR_PRIV int opendev2(int device_index, struct sr_dev_inst **sdi,
 		     libusb_device *dev, struct libusb_device_descriptor *des,
 		     int *skip, uint16_t vid, uint16_t pid, int interface);
-SR_PRIV int opendev3(struct sr_device_instance **sdi, libusb_device *dev,
+SR_PRIV int opendev3(struct sr_dev_inst **sdi, libusb_device *dev,
 		     struct libusb_device_descriptor *des,
 		     uint16_t vid, uint16_t pid, int interface);
 #endif

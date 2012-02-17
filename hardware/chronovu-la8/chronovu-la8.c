@@ -40,7 +40,7 @@
 #define BS				4096 /* Block size */
 #define NUM_BLOCKS			2048 /* Number of blocks */
 
-static GSList *device_instances = NULL;
+static GSList *dev_insts = NULL;
 
 static const char *probe_names[NUM_PROBES + 1] = {
 	"0",
@@ -470,7 +470,7 @@ static int configure_probes(struct la8 *la8, GSList *probes)
 static int hw_init(const char *deviceinfo)
 {
 	int ret;
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 	struct la8 *la8;
 
 	/* Avoid compiler errors. */
@@ -522,13 +522,13 @@ static int hw_init(const char *deviceinfo)
 	sdi = sr_dev_inst_new(0, SR_ST_INITIALIZING,
 			USB_VENDOR_NAME, USB_MODEL_NAME, USB_MODEL_VERSION);
 	if (!sdi) {
-		sr_err("la8: %s: sr_device_instance_new failed", __func__);
+		sr_err("la8: %s: sr_dev_inst_new failed", __func__);
 		goto err_close_ftdic;
 	}
 
 	sdi->priv = la8;
 
-	device_instances = g_slist_append(device_instances, sdi);
+	dev_insts = g_slist_append(dev_insts, sdi);
 
 	sr_spew("la8: %s finished successfully", __func__);
 
@@ -553,10 +553,10 @@ err_free_nothing:
 static int hw_opendev(int device_index)
 {
 	int ret;
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 	struct la8 *la8;
 
-	if (!(sdi = sr_dev_inst_get(device_instances, device_index))) {
+	if (!(sdi = sr_dev_inst_get(dev_insts, device_index))) {
 		sr_err("la8: %s: sdi was NULL", __func__);
 		return SR_ERR; /* TODO: SR_ERR_ARG? */
 	}
@@ -608,7 +608,7 @@ err_opendev_close_ftdic:
 	return SR_ERR;
 }
 
-static int set_samplerate(struct sr_device_instance *sdi, uint64_t samplerate)
+static int set_samplerate(struct sr_dev_inst *sdi, uint64_t samplerate)
 {
 	struct la8 *la8;
 
@@ -640,10 +640,10 @@ static int set_samplerate(struct sr_device_instance *sdi, uint64_t samplerate)
 
 static int hw_closedev(int device_index)
 {
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 	struct la8 *la8;
 
-	if (!(sdi = sr_dev_inst_get(device_instances, device_index))) {
+	if (!(sdi = sr_dev_inst_get(dev_insts, device_index))) {
 		sr_err("la8: %s: sdi was NULL", __func__);
 		return SR_ERR; /* TODO: SR_ERR_ARG? */
 	}
@@ -674,11 +674,11 @@ static int hw_closedev(int device_index)
 static int hw_cleanup(void)
 {
 	GSList *l;
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 	int ret = SR_OK;
 
 	/* Properly close all devices. */
-	for (l = device_instances; l; l = l->next) {
+	for (l = dev_insts; l; l = l->next) {
 		if (!(sdi = l->data)) {
 			/* Log error, but continue cleaning up the rest. */
 			sr_err("la8: %s: sdi was NULL, continuing", __func__);
@@ -687,21 +687,21 @@ static int hw_cleanup(void)
 		}
 		sr_dev_inst_free(sdi); /* Returns void. */
 	}
-	g_slist_free(device_instances); /* Returns void. */
-	device_instances = NULL;
+	g_slist_free(dev_insts); /* Returns void. */
+	dev_insts = NULL;
 
 	return ret;
 }
 
 static void *hw_get_device_info(int device_index, int device_info_id)
 {
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 	struct la8 *la8;
 	void *info;
 
 	sr_spew("la8: entering %s", __func__);
 
-	if (!(sdi = sr_dev_inst_get(device_instances, device_index))) {
+	if (!(sdi = sr_dev_inst_get(dev_insts, device_index))) {
 		sr_err("la8: %s: sdi was NULL", __func__);
 		return NULL;
 	}
@@ -743,9 +743,9 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 
 static int hw_get_status(int device_index)
 {
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 
-	if (!(sdi = sr_dev_inst_get(device_instances, device_index))) {
+	if (!(sdi = sr_dev_inst_get(dev_insts, device_index))) {
 		sr_err("la8: %s: sdi was NULL, device not found", __func__);
 		return SR_ST_NOT_FOUND;
 	}
@@ -764,12 +764,12 @@ static int *hw_get_capabilities(void)
 
 static int hw_set_configuration(int device_index, int capability, void *value)
 {
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 	struct la8 *la8;
 
 	sr_spew("la8: entering %s", __func__);
 
-	if (!(sdi = sr_dev_inst_get(device_instances, device_index))) {
+	if (!(sdi = sr_dev_inst_get(dev_insts, device_index))) {
 		sr_err("la8: %s: sdi was NULL", __func__);
 		return SR_ERR; /* TODO: SR_ERR_ARG? */
 	}
@@ -970,7 +970,7 @@ static void send_block_to_session_bus(struct la8 *la8, int block)
 static int receive_data(int fd, int revents, void *session_data)
 {
 	int i, ret;
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 	struct la8 *la8;
 
 	/* Avoid compiler errors. */
@@ -1014,7 +1014,7 @@ static int receive_data(int fd, int revents, void *session_data)
 
 static int hw_start_acquisition(int device_index, gpointer session_data)
 {
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 	struct la8 *la8;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_header header;
@@ -1023,7 +1023,7 @@ static int hw_start_acquisition(int device_index, gpointer session_data)
 
 	sr_spew("la8: entering %s", __func__);
 
-	if (!(sdi = sr_dev_inst_get(device_instances, device_index))) {
+	if (!(sdi = sr_dev_inst_get(dev_insts, device_index))) {
 		sr_err("la8: %s: sdi was NULL", __func__);
 		return SR_ERR; /* TODO: SR_ERR_ARG? */
 	}
@@ -1089,13 +1089,13 @@ static int hw_start_acquisition(int device_index, gpointer session_data)
 
 static int hw_stop_acquisition(int device_index, gpointer session_data)
 {
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 	struct la8 *la8;
 	struct sr_datafeed_packet packet;
 
 	sr_dbg("la8: stopping acquisition");
 
-	if (!(sdi = sr_dev_inst_get(device_instances, device_index))) {
+	if (!(sdi = sr_dev_inst_get(dev_insts, device_index))) {
 		sr_err("la8: %s: sdi was NULL", __func__);
 		return SR_ERR_BUG;
 	}

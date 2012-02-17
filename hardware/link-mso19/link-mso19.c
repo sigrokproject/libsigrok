@@ -91,10 +91,10 @@ static struct sr_samplerates samplerates = {
 	supported_samplerates,
 };
 
-static GSList *device_instances = NULL;
+static GSList *dev_insts = NULL;
 
-static int mso_send_control_message(struct sr_device_instance *sdi,
-		uint16_t payload[], int n)
+static int mso_send_control_message(struct sr_dev_inst *sdi,
+				    uint16_t payload[], int n)
 {
 	int fd = sdi->serial->fd;
 	int i, w, ret, s = n * 2 + sizeof(mso_head) + sizeof(mso_foot);
@@ -137,7 +137,7 @@ ret:
 	return ret;
 }
 
-static int mso_reset_adc(struct sr_device_instance *sdi)
+static int mso_reset_adc(struct sr_dev_inst *sdi)
 {
 	struct mso *mso = sdi->priv;
 	uint16_t ops[2];
@@ -150,7 +150,7 @@ static int mso_reset_adc(struct sr_device_instance *sdi)
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
 }
 
-static int mso_reset_fsm(struct sr_device_instance *sdi)
+static int mso_reset_fsm(struct sr_dev_inst *sdi)
 {
 	struct mso *mso = sdi->priv;
 	uint16_t ops[1];
@@ -162,7 +162,7 @@ static int mso_reset_fsm(struct sr_device_instance *sdi)
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
 }
 
-static int mso_toggle_led(struct sr_device_instance *sdi, int state)
+static int mso_toggle_led(struct sr_dev_inst *sdi, int state)
 {
 	struct mso *mso = sdi->priv;
 	uint16_t ops[1];
@@ -176,8 +176,7 @@ static int mso_toggle_led(struct sr_device_instance *sdi, int state)
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
 }
 
-static int mso_check_trigger(struct sr_device_instance *sdi,
-		uint8_t *info)
+static int mso_check_trigger(struct sr_dev_inst *sdi, uint8_t *info)
 {
 	uint16_t ops[] = { mso_trans(REG_TRIGGER, 0) };
 	char buf[1];
@@ -197,7 +196,7 @@ static int mso_check_trigger(struct sr_device_instance *sdi,
 	return ret;
 }
 
-static int mso_read_buffer(struct sr_device_instance *sdi)
+static int mso_read_buffer(struct sr_dev_inst *sdi)
 {
 	uint16_t ops[] = { mso_trans(REG_BUFFER, 0) };
 
@@ -205,7 +204,7 @@ static int mso_read_buffer(struct sr_device_instance *sdi)
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
 }
 
-static int mso_arm(struct sr_device_instance *sdi)
+static int mso_arm(struct sr_dev_inst *sdi)
 {
 	struct mso *mso = sdi->priv;
 	uint16_t ops[] = {
@@ -218,7 +217,7 @@ static int mso_arm(struct sr_device_instance *sdi)
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
 }
 
-static int mso_force_capture(struct sr_device_instance *sdi)
+static int mso_force_capture(struct sr_dev_inst *sdi)
 {
 	struct mso *mso = sdi->priv;
 	uint16_t ops[] = {
@@ -230,7 +229,7 @@ static int mso_force_capture(struct sr_device_instance *sdi)
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
 }
 
-static int mso_dac_out(struct sr_device_instance *sdi, uint16_t val)
+static int mso_dac_out(struct sr_dev_inst *sdi, uint16_t val)
 {
 	struct mso *mso = sdi->priv;
 	uint16_t ops[] = {
@@ -243,7 +242,7 @@ static int mso_dac_out(struct sr_device_instance *sdi, uint16_t val)
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
 }
 
-static int mso_clkrate_out(struct sr_device_instance *sdi, uint16_t val)
+static int mso_clkrate_out(struct sr_dev_inst *sdi, uint16_t val)
 {
 	uint16_t ops[] = {
 		mso_trans(REG_CLKRATE1, (val >> 8) & 0xff),
@@ -254,8 +253,7 @@ static int mso_clkrate_out(struct sr_device_instance *sdi, uint16_t val)
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
 }
 
-static int mso_configure_rate(struct sr_device_instance *sdi,
-		uint32_t rate)
+static int mso_configure_rate(struct sr_dev_inst *sdi, uint32_t rate)
 {
 	struct mso *mso = sdi->priv;
 	unsigned int i;
@@ -280,7 +278,7 @@ static inline uint16_t mso_calc_raw_from_mv(struct mso *mso)
 			 mso->vbit));
 }
 
-static int mso_configure_trigger(struct sr_device_instance *sdi)
+static int mso_configure_trigger(struct sr_dev_inst *sdi)
 {
 	struct mso *mso = sdi->priv;
 	uint16_t ops[16];
@@ -352,7 +350,7 @@ static int mso_configure_trigger(struct sr_device_instance *sdi)
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
 }
 
-static int mso_configure_threshold_level(struct sr_device_instance *sdi)
+static int mso_configure_threshold_level(struct sr_dev_inst *sdi)
 {
 	struct mso *mso = sdi->priv;
 
@@ -360,7 +358,7 @@ static int mso_configure_threshold_level(struct sr_device_instance *sdi)
 }
 
 static int mso_parse_serial(const char *iSerial, const char *iProduct,
-		struct mso *mso)
+			    struct mso *mso)
 {
 	unsigned int u1, u2, u3, u4, u5, u6;
 
@@ -400,7 +398,7 @@ static int mso_parse_serial(const char *iSerial, const char *iProduct,
 
 static int hw_init(const char *deviceinfo)
 {
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 	int devcnt = 0;
 	struct udev *udev;
 	struct udev_enumerate *enumerate;
@@ -498,13 +496,13 @@ static int hw_init(const char *deviceinfo)
 
 		sdi->serial = sr_serial_dev_inst_new(path, -1);
 		if (!sdi->serial)
-			goto err_device_instance_free;
+			goto err_dev_inst_free;
 
-		device_instances = g_slist_append(device_instances, sdi);
+		dev_insts = g_slist_append(dev_insts, sdi);
 		devcnt++;
 		continue;
 
-err_device_instance_free:
+err_dev_inst_free:
 		sr_dev_inst_free(sdi);
 err_free_mso:
 		g_free(mso);
@@ -520,12 +518,12 @@ ret:
 static int hw_cleanup(void)
 {
 	GSList *l;
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 	int ret;
 
 	ret = SR_OK;
 	/* Properly close all devices. */
-	for (l = device_instances; l; l = l->next) {
+	for (l = dev_insts; l; l = l->next) {
 		if (!(sdi = l->data)) {
 			/* Log error, but continue cleaning up the rest. */
 			sr_err("mso19: %s: sdi was NULL, continuing", __func__);
@@ -536,19 +534,19 @@ static int hw_cleanup(void)
 			serial_close(sdi->serial->fd);
 		sr_dev_inst_free(sdi);
 	}
-	g_slist_free(device_instances);
-	device_instances = NULL;
+	g_slist_free(dev_insts);
+	dev_insts = NULL;
 
 	return ret;
 }
 
 static int hw_opendev(int device_index)
 {
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 	struct mso *mso;
 	int ret = SR_ERR;
 
-	if (!(sdi = sr_dev_inst_get(device_instances, device_index)))
+	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
 		return ret;
 
 	mso = sdi->priv;
@@ -586,9 +584,9 @@ static int hw_opendev(int device_index)
 
 static int hw_closedev(int device_index)
 {
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 
-	if (!(sdi = sr_dev_inst_get(device_instances, device_index))) {
+	if (!(sdi = sr_dev_inst_get(dev_insts, device_index))) {
 		sr_err("mso19: %s: sdi was NULL", __func__);
 		return SR_ERR; /* TODO: SR_ERR_ARG? */
 	}
@@ -606,11 +604,11 @@ static int hw_closedev(int device_index)
 
 static void *hw_get_device_info(int device_index, int device_info_id)
 {
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 	struct mso *mso;
 	void *info = NULL;
 
-	if (!(sdi = sr_dev_inst_get(device_instances, device_index)))
+	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
 		return NULL;
 	mso = sdi->priv;
 
@@ -639,9 +637,9 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 
 static int hw_get_status(int device_index)
 {
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 
-	if (!(sdi = sr_dev_inst_get(device_instances, device_index)))
+	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
 		return SR_ST_NOT_FOUND;
 
 	return sdi->status;
@@ -654,9 +652,9 @@ static int *hw_get_capabilities(void)
 
 static int hw_set_configuration(int device_index, int capability, void *value)
 {
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 
-	if (!(sdi = sr_dev_inst_get(device_instances, device_index)))
+	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
 		return SR_ERR;
 
 	switch (capability) {
@@ -680,7 +678,7 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 /* FIXME: Pass errors? */
 static int receive_data(int fd, int revents, void *user_data)
 {
-	struct sr_device_instance *sdi = user_data;
+	struct sr_dev_inst *sdi = user_data;
 	struct mso *mso = sdi->priv;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
@@ -747,13 +745,13 @@ static int receive_data(int fd, int revents, void *user_data)
 
 static int hw_start_acquisition(int device_index, gpointer session_device_id)
 {
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 	struct mso *mso;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_header header;
 	int ret = SR_ERR;
 
-	if (!(sdi = sr_dev_inst_get(device_instances, device_index)))
+	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
 		return ret;
 	mso = sdi->priv;
 

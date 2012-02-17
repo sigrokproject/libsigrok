@@ -40,7 +40,7 @@ struct session_vdevice {
 };
 
 static char *sessionfile = NULL;
-static GSList *device_instances = NULL;
+static GSList *dev_insts = NULL;
 static int capabilities[] = {
 	SR_HWCAP_CAPTUREFILE,
 	SR_HWCAP_CAPTURE_UNITSIZE,
@@ -54,12 +54,12 @@ static int capabilities[] = {
  */
 static struct session_vdevice *get_vdevice_by_index(int device_index)
 {
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 	struct session_vdevice *vdevice;
 
 	/* TODO: Sanity checks on device_index. */
 
-	if (!(sdi = sr_dev_inst_get(device_instances, device_index))) {
+	if (!(sdi = sr_dev_inst_get(dev_insts, device_index))) {
 		sr_err("session driver: %s: device instance with device "
 		       "index %d was not found", __func__, device_index);
 		return NULL;
@@ -83,7 +83,7 @@ static struct session_vdevice *get_vdevice_by_index(int device_index)
  */
 static int feed_chunk(int fd, int revents, void *session_data)
 {
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 	struct session_vdevice *vdevice;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
@@ -98,7 +98,7 @@ static int feed_chunk(int fd, int revents, void *session_data)
 	sr_dbg("session_driver: feed chunk");
 
 	got_data = FALSE;
-	for (l = device_instances; l; l = l->next) {
+	for (l = dev_insts; l; l = l->next) {
 		sdi = l->data;
 		vdevice = sdi->priv;
 		if (!vdevice)
@@ -163,10 +163,10 @@ static int hw_cleanup(void)
 {
 	GSList *l;
 
-	for (l = device_instances; l; l = l->next)
+	for (l = dev_insts; l; l = l->next)
 		sr_dev_inst_free(l->data);
-	g_slist_free(device_instances);
-	device_instances = NULL;
+	g_slist_free(dev_insts);
+	dev_insts = NULL;
 
 	sr_session_source_remove(-1);
 
@@ -177,7 +177,7 @@ static int hw_cleanup(void)
 
 static int hw_opendev(int device_index)
 {
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 
 	sdi = sr_dev_inst_new(device_index, SR_ST_INITIALIZING,
 			      NULL, NULL, NULL);
@@ -189,7 +189,7 @@ static int hw_opendev(int device_index)
 		return SR_ERR_MALLOC;
 	}
 
-	device_instances = g_slist_append(device_instances, sdi);
+	dev_insts = g_slist_append(dev_insts, sdi);
 
 	return SR_OK;
 }

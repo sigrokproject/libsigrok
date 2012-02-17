@@ -87,8 +87,8 @@ static struct sr_samplerates samplerates = {
 	supported_samplerates,
 };
 
-/* List of struct sr_device_instance, maintained by opendev()/closedev(). */
-static GSList *device_instances = NULL;
+/* List of struct sr_dev_inst, maintained by opendev()/closedev(). */
+static GSList *dev_insts = NULL;
 static libusb_context *usb_context = NULL;
 
 static int new_saleae_logic_firmware = 0;
@@ -169,11 +169,11 @@ static int sl_open_device(int device_index)
 {
 	libusb_device **devlist;
 	struct libusb_device_descriptor des;
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 	struct fx2_device *fx2;
 	int err, skip, i;
 
-	if (!(sdi = sr_dev_inst_get(device_instances, device_index)))
+	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
 		return SR_ERR;
 	fx2 = sdi->priv;
 
@@ -237,7 +237,7 @@ static int sl_open_device(int device_index)
 	return SR_OK;
 }
 
-static void close_device(struct sr_device_instance *sdi)
+static void close_device(struct sr_dev_inst *sdi)
 {
 	struct fx2_device *fx2;
 
@@ -321,7 +321,7 @@ static struct fx2_device *fx2_device_new(void)
 
 static int hw_init(const char *deviceinfo)
 {
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 	struct libusb_device_descriptor des;
 	struct fx2_profile *fx2_prof;
 	struct fx2_device *fx2;
@@ -366,7 +366,7 @@ static int hw_init(const char *deviceinfo)
 		fx2 = fx2_device_new();
 		fx2->profile = fx2_prof;
 		sdi->priv = fx2;
-		device_instances = g_slist_append(device_instances, sdi);
+		dev_insts = g_slist_append(dev_insts, sdi);
 
 		if (check_conf_profile(devlist[i])) {
 			/* Already has the firmware, so fix the new address. */
@@ -396,11 +396,11 @@ static int hw_init(const char *deviceinfo)
 static int hw_opendev(int device_index)
 {
 	GTimeVal cur_time;
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 	struct fx2_device *fx2;
 	int timediff, err;
 
-	if (!(sdi = sr_dev_inst_get(device_instances, device_index)))
+	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
 		return SR_ERR;
 	fx2 = sdi->priv;
 
@@ -450,9 +450,9 @@ static int hw_opendev(int device_index)
 
 static int hw_closedev(int device_index)
 {
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 
-	if (!(sdi = sr_dev_inst_get(device_instances, device_index))) {
+	if (!(sdi = sr_dev_inst_get(dev_insts, device_index))) {
 		sr_err("logic: %s: sdi was NULL", __func__);
 		return SR_ERR; /* TODO: SR_ERR_ARG? */
 	}
@@ -466,12 +466,12 @@ static int hw_closedev(int device_index)
 static int hw_cleanup(void)
 {
 	GSList *l;
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 	struct fx2_device *fx2;
 	int ret = SR_OK;
 
 	/* Properly close and free all devices. */
-	for (l = device_instances; l; l = l->next) {
+	for (l = dev_insts; l; l = l->next) {
 		if (!(sdi = l->data)) {
 			/* Log error, but continue cleaning up the rest. */
 			sr_err("logic: %s: sdi was NULL, continuing", __func__);
@@ -490,8 +490,8 @@ static int hw_cleanup(void)
 		sr_dev_inst_free(sdi);
 	}
 
-	g_slist_free(device_instances);
-	device_instances = NULL;
+	g_slist_free(dev_insts);
+	dev_insts = NULL;
 
 	if (usb_context)
 		libusb_exit(usb_context);
@@ -502,11 +502,11 @@ static int hw_cleanup(void)
 
 static void *hw_get_device_info(int device_index, int device_info_id)
 {
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 	struct fx2_device *fx2;
 	void *info = NULL;
 
-	if (!(sdi = sr_dev_inst_get(device_instances, device_index)))
+	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
 		return NULL;
 	fx2 = sdi->priv;
 
@@ -536,9 +536,9 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 
 static int hw_get_status(int device_index)
 {
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 
-	sdi = sr_dev_inst_get(device_instances, device_index);
+	sdi = sr_dev_inst_get(dev_insts, device_index);
 	if (sdi)
 		return sdi->status;
 	else
@@ -591,7 +591,7 @@ static uint8_t new_firmware_divider_value(uint64_t samplerate)
 	return 0;
 }
 
-static int set_configuration_samplerate(struct sr_device_instance *sdi,
+static int set_configuration_samplerate(struct sr_dev_inst *sdi,
 					uint64_t samplerate)
 {
 	struct fx2_device *fx2;
@@ -630,12 +630,12 @@ static int set_configuration_samplerate(struct sr_device_instance *sdi,
 
 static int hw_set_configuration(int device_index, int capability, void *value)
 {
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 	struct fx2_device *fx2;
 	int ret;
 	uint64_t *tmp_u64;
 
-	if (!(sdi = sr_dev_inst_get(device_instances, device_index)))
+	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
 		return SR_ERR;
 	fx2 = sdi->priv;
 
@@ -810,7 +810,7 @@ static void receive_transfer(struct libusb_transfer *transfer)
 
 static int hw_start_acquisition(int device_index, gpointer session_data)
 {
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 	struct sr_datafeed_packet *packet;
 	struct sr_datafeed_header *header;
 	struct fx2_device *fx2;
@@ -819,7 +819,7 @@ static int hw_start_acquisition(int device_index, gpointer session_data)
 	int size, i;
 	unsigned char *buf;
 
-	if (!(sdi = sr_dev_inst_get(device_instances, device_index)))
+	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
 		return SR_ERR;
 	fx2 = sdi->priv;
 	fx2->session_data = session_data;

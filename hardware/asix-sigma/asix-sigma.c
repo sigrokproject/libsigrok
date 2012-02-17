@@ -41,7 +41,7 @@
 #define TRIGGER_TYPES			"rf10"
 #define NUM_PROBES			16
 
-static GSList *device_instances = NULL;
+static GSList *dev_insts = NULL;
 
 static uint64_t supported_samplerates[] = {
 	SR_KHZ(200),
@@ -417,7 +417,7 @@ static int bin2bitbang(const char *filename,
 
 static int hw_init(const char *deviceinfo)
 {
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 	struct sigma *sigma;
 
 	/* Avoid compiler warnings. */
@@ -445,14 +445,15 @@ static int hw_init(const char *deviceinfo)
 	sigma->use_triggers = 0;
 
 	/* Register SIGMA device. */
-	sdi = sr_dev_inst_new(0, SR_ST_INITIALIZING,
-			USB_VENDOR_NAME, USB_MODEL_NAME, USB_MODEL_VERSION);
-	if (!sdi)
+	if (!(sdi = sr_dev_inst_new(0, SR_ST_INITIALIZING, USB_VENDOR_NAME,
+				    USB_MODEL_NAME, USB_MODEL_VERSION))) {
+		sr_err("sigma: %s: sdi was NULL", __func__);
 		goto free;
+	}
 
 	sdi->priv = sigma;
 
-	device_instances = g_slist_append(device_instances, sdi);
+	dev_insts = g_slist_append(dev_insts, sdi);
 
 	/* We will open the device again when we need it. */
 	ftdi_usb_close(&sigma->ftdic);
@@ -556,11 +557,11 @@ static int upload_firmware(int firmware_idx, struct sigma *sigma)
 
 static int hw_opendev(int device_index)
 {
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 	struct sigma *sigma;
 	int ret;
 
-	if (!(sdi = sr_dev_inst_get(device_instances, device_index)))
+	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
 		return SR_ERR;
 
 	sigma = sdi->priv;
@@ -580,8 +581,7 @@ static int hw_opendev(int device_index)
 	return SR_OK;
 }
 
-static int set_samplerate(struct sr_device_instance *sdi,
-			  uint64_t samplerate)
+static int set_samplerate(struct sr_dev_inst *sdi, uint64_t samplerate)
 {
 	int i, ret;
 	struct sigma *sigma = sdi->priv;
@@ -624,7 +624,7 @@ static int set_samplerate(struct sr_device_instance *sdi,
  * The Sigma supports complex triggers using boolean expressions, but this
  * has not been implemented yet.
  */
-static int configure_probes(struct sr_device_instance *sdi, GSList *probes)
+static int configure_probes(struct sr_dev_inst *sdi, GSList *probes)
 {
 	struct sigma *sigma = sdi->priv;
 	struct sr_probe *probe;
@@ -700,10 +700,10 @@ static int configure_probes(struct sr_device_instance *sdi, GSList *probes)
 
 static int hw_closedev(int device_index)
 {
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 	struct sigma *sigma;
 
-	if (!(sdi = sr_dev_inst_get(device_instances, device_index))) {
+	if (!(sdi = sr_dev_inst_get(dev_insts, device_index))) {
 		sr_err("sigma: %s: sdi was NULL", __func__);
 		return SR_ERR; /* TODO: SR_ERR_ARG? */
 	}
@@ -725,11 +725,11 @@ static int hw_closedev(int device_index)
 static int hw_cleanup(void)
 {
 	GSList *l;
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 	int ret = SR_OK;
 
 	/* Properly close all devices. */
-	for (l = device_instances; l; l = l->next) {
+	for (l = dev_insts; l; l = l->next) {
 		if (!(sdi = l->data)) {
 			/* Log error, but continue cleaning up the rest. */
 			sr_err("sigma: %s: sdi was NULL, continuing", __func__);
@@ -738,19 +738,19 @@ static int hw_cleanup(void)
 		}
 		sr_dev_inst_free(sdi);
 	}
-	g_slist_free(device_instances);
-	device_instances = NULL;
+	g_slist_free(dev_insts);
+	dev_insts = NULL;
 
 	return ret;
 }
 
 static void *hw_get_device_info(int device_index, int device_info_id)
 {
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 	struct sigma *sigma;
 	void *info = NULL;
 
-	if (!(sdi = sr_dev_inst_get(device_instances, device_index))) {
+	if (!(sdi = sr_dev_inst_get(dev_insts, device_index))) {
 		sr_err("sigma: %s: sdi was NULL", __func__);
 		return NULL;
 	}
@@ -783,9 +783,9 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 
 static int hw_get_status(int device_index)
 {
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 
-	sdi = sr_dev_inst_get(device_instances, device_index);
+	sdi = sr_dev_inst_get(dev_insts, device_index);
 	if (sdi)
 		return sdi->status;
 	else
@@ -799,11 +799,11 @@ static int *hw_get_capabilities(void)
 
 static int hw_set_configuration(int device_index, int capability, void *value)
 {
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 	struct sigma *sigma;
 	int ret;
 
-	if (!(sdi = sr_dev_inst_get(device_instances, device_index)))
+	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
 		return SR_ERR;
 
 	sigma = sdi->priv;
@@ -875,7 +875,7 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 			   uint16_t *lastsample, int triggerpos,
 			   uint16_t limit_chunk, void *session_data)
 {
-	struct sr_device_instance *sdi = session_data;
+	struct sr_dev_inst *sdi = session_data;
 	struct sigma *sigma = sdi->priv;
 	uint16_t tsdiff, ts;
 	uint16_t samples[65536 * sigma->samples_per_event];
@@ -1006,7 +1006,7 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 
 static int receive_data(int fd, int revents, void *session_data)
 {
-	struct sr_device_instance *sdi = session_data;
+	struct sr_dev_inst *sdi = session_data;
 	struct sigma *sigma = sdi->priv;
 	struct sr_datafeed_packet packet;
 	const int chunks_per_read = 32;
@@ -1254,7 +1254,7 @@ static int build_basic_trigger(struct triggerlut *lut, struct sigma *sigma)
 
 static int hw_start_acquisition(int device_index, gpointer session_data)
 {
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 	struct sigma *sigma;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_header header;
@@ -1267,7 +1267,7 @@ static int hw_start_acquisition(int device_index, gpointer session_data)
 	/* Avoid compiler warnings. */
 	(void)session_data;
 
-	if (!(sdi = sr_dev_inst_get(device_instances, device_index)))
+	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
 		return SR_ERR;
 
 	sigma = sdi->priv;
@@ -1371,14 +1371,14 @@ static int hw_start_acquisition(int device_index, gpointer session_data)
 
 static int hw_stop_acquisition(int device_index, gpointer session_data)
 {
-	struct sr_device_instance *sdi;
+	struct sr_dev_inst *sdi;
 	struct sigma *sigma;
 	uint8_t modestatus;
 
 	/* Avoid compiler warnings. */
 	(void)session_data;
 
-	if (!(sdi = sr_dev_inst_get(device_instances, device_index))) {
+	if (!(sdi = sr_dev_inst_get(dev_insts, device_index))) {
 		sr_err("sigma: %s: sdi was NULL", __func__);
 		return SR_ERR_BUG;
 	}
