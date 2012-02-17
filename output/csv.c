@@ -61,13 +61,13 @@ static int init(struct sr_output *o)
 		return SR_ERR_ARG;
 	}
 
-	if (!o->device) {
-		sr_err("csv out: %s: o->device was NULL", __func__);
+	if (!o->dev) {
+		sr_err("csv out: %s: o->dev was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
-	if (!o->device->plugin) {
-		sr_err("csv out: %s: o->device->plugin was NULL", __func__);
+	if (!o->dev->plugin) {
+		sr_err("csv out: %s: o->dev->plugin was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
@@ -80,7 +80,7 @@ static int init(struct sr_output *o)
 
 	/* Get the number of probes, their names, and the unitsize. */
 	/* TODO: Error handling. */
-	for (l = o->device->probes; l; l = l->next) {
+	for (l = o->dev->probes; l; l = l->next) {
 		probe = l->data;
 		if (!probe->enabled)
 			continue;
@@ -89,11 +89,11 @@ static int init(struct sr_output *o)
 	ctx->probelist[ctx->num_enabled_probes] = 0;
 	ctx->unitsize = (ctx->num_enabled_probes + 7) / 8;
 
-	num_probes = g_slist_length(o->device->probes);
+	num_probes = g_slist_length(o->dev->probes);
 
-	if (sr_dev_has_hwcap(o->device, SR_HWCAP_SAMPLERATE)) {
-		samplerate = *((uint64_t *) o->device->plugin->get_device_info(
-				o->device->plugin_index, SR_DI_CUR_SAMPLERATE));
+	if (sr_dev_has_hwcap(o->dev, SR_HWCAP_SAMPLERATE)) {
+		samplerate = *((uint64_t *) o->dev->plugin->get_dev_info(
+				o->dev->plugin_index, SR_DI_CUR_SAMPLERATE));
 		/* TODO: Error checks. */
 	} else {
 		samplerate = 0; /* TODO: Error or set some value? */

@@ -22,7 +22,7 @@
 #include "sigrok.h"
 #include "sigrok-internal.h"
 
-static GSList *devices = NULL;
+static GSList *devs = NULL;
 
 /**
  * Scan the system for attached logic analyzers / devices.
@@ -60,7 +60,7 @@ static GSList *devices = NULL;
 SR_API int sr_dev_scan(void)
 {
 	GSList *plugins, *l;
-	struct sr_device_plugin *plugin;
+	struct sr_dev_plugin *plugin;
 
 	if (!(plugins = sr_hw_list())) {
 		sr_err("dev: %s: no supported devices/hwplugins", __func__);
@@ -93,10 +93,10 @@ SR_API int sr_dev_scan(void)
  */
 SR_API GSList *sr_dev_list(void)
 {
-	if (!devices)
+	if (!devs)
 		sr_dev_scan();
 
-	return devices;
+	return devs;
 }
 
 /**
@@ -119,23 +119,23 @@ SR_API GSList *sr_dev_list(void)
  *
  * @return Pointer to the newly allocated device, or NULL upon errors.
  */
-SR_API struct sr_device *sr_dev_new(const struct sr_device_plugin *plugin,
-				    int plugin_index)
+SR_API struct sr_dev *sr_dev_new(const struct sr_dev_plugin *plugin,
+				 int plugin_index)
 {
-	struct sr_device *device;
+	struct sr_dev *dev;
 
 	/* TODO: Check if plugin_index valid? */
 
-	if (!(device = g_try_malloc0(sizeof(struct sr_device)))) {
-		sr_err("dev: %s: device malloc failed", __func__);
+	if (!(dev = g_try_malloc0(sizeof(struct sr_dev)))) {
+		sr_err("dev: %s: dev malloc failed", __func__);
 		return NULL;
 	}
 
-	device->plugin = (struct sr_device_plugin *)plugin;
-	device->plugin_index = plugin_index;
-	devices = g_slist_append(devices, device);
+	dev->plugin = (struct sr_dev_plugin *)plugin;
+	dev->plugin_index = plugin_index;
+	devs = g_slist_append(devs, dev);
 
-	return device;
+	return dev;
 }
 
 /**
@@ -151,22 +151,22 @@ SR_API struct sr_device *sr_dev_new(const struct sr_device_plugin *plugin,
  * TODO: Error if the max. probe number for the specific LA is reached, e.g.
  *       if the caller tries to add more probes than the device actually has.
  *
- * @param device The device to which to add a probe with the specified name.
- *               Must not be NULL.
+ * @param dev The device to which to add a probe with the specified name.
+ *            Must not be NULL.
  * @param name The name of the probe to add to this device. Must not be NULL.
  *             TODO: Maximum length, allowed characters, etc.
  *
  * @return SR_OK upon success, SR_ERR_MALLOC upon memory allocation errors,
  *         or SR_ERR_ARG upon invalid arguments.
- *         If something other than SR_OK is returned, 'device' is unchanged.
+ *         If something other than SR_OK is returned, 'dev' is unchanged.
  */
-SR_API int sr_dev_probe_add(struct sr_device *device, const char *name)
+SR_API int sr_dev_probe_add(struct sr_dev *dev, const char *name)
 {
 	struct sr_probe *p;
 	int probenum;
 
-	if (!device) {
-		sr_err("dev: %s: device was NULL", __func__);
+	if (!dev) {
+		sr_err("dev: %s: dev was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
@@ -177,7 +177,7 @@ SR_API int sr_dev_probe_add(struct sr_device *device, const char *name)
 
 	/* TODO: Further checks to ensure name is valid. */
 
-	probenum = g_slist_length(device->probes) + 1;
+	probenum = g_slist_length(dev->probes) + 1;
 
 	if (!(p = g_try_malloc0(sizeof(struct sr_probe)))) {
 		sr_err("dev: %s: p malloc failed", __func__);
@@ -188,7 +188,7 @@ SR_API int sr_dev_probe_add(struct sr_device *device, const char *name)
 	p->enabled = TRUE;
 	p->name = g_strdup(name);
 	p->trigger = NULL;
-	device->probes = g_slist_append(device->probes, p);
+	dev->probes = g_slist_append(dev->probes, p);
 
 	return SR_OK;
 }
@@ -198,7 +198,7 @@ SR_API int sr_dev_probe_add(struct sr_device *device, const char *name)
  *
  * TODO
  *
- * @param device TODO. Must not be NULL.
+ * @param dev TODO. Must not be NULL.
  * @param probenum The number of the probe whose 'struct sr_probe' we want.
  *                 Note that the probe numbers start at 1 (not 0!).
  *
@@ -208,21 +208,21 @@ SR_API int sr_dev_probe_add(struct sr_device *device, const char *name)
  * @return A pointer to the requested probe's 'struct sr_probe', or NULL
  *         if the probe could not be found.
  */
-SR_API struct sr_probe *sr_dev_probe_find(const struct sr_device *device,
-					     int probenum)
+SR_API struct sr_probe *sr_dev_probe_find(const struct sr_dev *dev,
+					  int probenum)
 {
 	GSList *l;
 	struct sr_probe *p, *found_probe;
 
-	if (!device) {
-		sr_err("dev: %s: device was NULL", __func__);
+	if (!dev) {
+		sr_err("dev: %s: dev was NULL", __func__);
 		return NULL; /* TODO: SR_ERR_ARG */
 	}
 
 	/* TODO: Sanity check on probenum. */
 
 	found_probe = NULL;
-	for (l = device->probes; l; l = l->next) {
+	for (l = dev->probes; l; l = l->next) {
 		p = l->data;
 		/* TODO: Check for p != NULL. */
 		if (p->index == probenum) {
@@ -240,28 +240,28 @@ SR_API struct sr_probe *sr_dev_probe_find(const struct sr_device *device,
  * If the probe already has a different name assigned to it, it will be
  * removed, and the new name will be saved instead.
  *
- * TODO: Rename to sr_device_set_probe_name().
+ * TODO: Rename to sr_dev_probe_name_set().
  *
- * @param device TODO
+ * @param dev TODO
  * @param probenum The number of the probe whose name to set.
  *                 Note that the probe numbers start at 1 (not 0!).
  * @param name The new name that the specified probe should get.
  *
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or SR_ERR
  *         upon other errors.
- *         If something other than SR_OK is returned, 'device' is unchanged.
+ *         If something other than SR_OK is returned, 'dev' is unchanged.
  */
-SR_API int sr_dev_probe_name(struct sr_device *device, int probenum,
-				const char *name)
+SR_API int sr_dev_probe_name(struct sr_dev *dev, int probenum,
+			     const char *name)
 {
 	struct sr_probe *p;
 
-	if (!device) {
-		sr_err("dev: %s: device was NULL", __func__);
+	if (!dev) {
+		sr_err("dev: %s: dev was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
-	p = sr_dev_probe_find(device, probenum);
+	p = sr_dev_probe_find(dev, probenum);
 	if (!p) {
 		sr_err("dev: %s: probe %d not found", __func__, probenum);
 		return SR_ERR; /* TODO: More specific error? */
@@ -282,28 +282,28 @@ SR_API int sr_dev_probe_name(struct sr_device *device, int probenum,
  *
  * TODO: Better description.
  *
- * @param device TODO
+ * @param dev TODO
  *
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments.
- *         If something other than SR_OK is returned, 'device' is unchanged.
+ *         If something other than SR_OK is returned, 'dev' is unchanged.
  */
-SR_API int sr_dev_trigger_clear(struct sr_device *device)
+SR_API int sr_dev_trigger_clear(struct sr_dev *dev)
 {
 	struct sr_probe *p;
 	unsigned int pnum; /* TODO: uint16_t? */
 
-	if (!device) {
-		sr_err("dev: %s: device was NULL", __func__);
+	if (!dev) {
+		sr_err("dev: %s: dev was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
-	if (!device->probes) {
-		sr_err("dev: %s: device->probes was NULL", __func__);
+	if (!dev->probes) {
+		sr_err("dev: %s: dev->probes was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
-	for (pnum = 1; pnum <= g_slist_length(device->probes); pnum++) {
-		p = sr_dev_probe_find(device, pnum);
+	for (pnum = 1; pnum <= g_slist_length(dev->probes); pnum++) {
+		p = sr_dev_probe_find(dev, pnum);
 		/* TODO: Silently ignore probes which cannot be found? */
 		if (p) {
 			g_free(p->trigger);
@@ -320,7 +320,7 @@ SR_API int sr_dev_trigger_clear(struct sr_device *device)
  * TODO: Better description.
  * TODO: Describe valid format of the 'trigger' string.
  *
- * @param device TODO. Must not be NULL.
+ * @param dev TODO. Must not be NULL.
  * @param probenum The number of the probe. TODO.
  *                 Note that the probe numbers start at 1 (not 0!).
  * @param trigger TODO.
@@ -328,15 +328,15 @@ SR_API int sr_dev_trigger_clear(struct sr_device *device)
  *
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or SR_ERR
  *         upon other errors.
- *         If something other than SR_OK is returned, 'device' is unchanged.
+ *         If something other than SR_OK is returned, 'dev' is unchanged.
  */
-SR_API int sr_dev_trigger_set(struct sr_device *device, int probenum,
-				 const char *trigger)
+SR_API int sr_dev_trigger_set(struct sr_dev *dev, int probenum,
+			      const char *trigger)
 {
 	struct sr_probe *p;
 
-	if (!device) {
-		sr_err("dev: %s: device was NULL", __func__);
+	if (!dev) {
+		sr_err("dev: %s: dev was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
@@ -344,7 +344,7 @@ SR_API int sr_dev_trigger_set(struct sr_device *device, int probenum,
 
 	/* TODO: Sanity check on 'trigger'. */
 
-	p = sr_dev_probe_find(device, probenum);
+	p = sr_dev_probe_find(dev, probenum);
 	if (!p) {
 		sr_err("dev: %s: probe %d not found", __func__, probenum);
 		return SR_ERR; /* TODO: More specific error? */
@@ -363,8 +363,8 @@ SR_API int sr_dev_trigger_set(struct sr_device *device, int probenum,
  *
  * TODO: Should return int?
  *
- * @param device Pointer to the device to be checked. Must not be NULL.
- *               The device's 'plugin' field must not be NULL either.
+ * @param dev Pointer to the device to be checked. Must not be NULL.
+ *            The device's 'plugin' field must not be NULL either.
  * @param hwcap The capability that should be checked (whether it's supported
  *              by the specified device).
  *
@@ -372,24 +372,24 @@ SR_API int sr_dev_trigger_set(struct sr_device *device, int probenum,
  *         FALSE is also returned upon invalid input parameters or other
  *         error conditions.
  */
-SR_API gboolean sr_dev_has_hwcap(const struct sr_device *device, int hwcap)
+SR_API gboolean sr_dev_has_hwcap(const struct sr_dev *dev, int hwcap)
 {
 	int *capabilities, i;
 
-	if (!device) {
-		sr_err("dev: %s: device was NULL", __func__);
+	if (!dev) {
+		sr_err("dev: %s: dev was NULL", __func__);
 		return FALSE; /* TODO: SR_ERR_ARG. */
 	}
 
-	if (!device->plugin) {
-		sr_err("dev: %s: device->plugin was NULL", __func__);
+	if (!dev->plugin) {
+		sr_err("dev: %s: dev->plugin was NULL", __func__);
 		return FALSE; /* TODO: SR_ERR_ARG. */
 	}
 
 	/* TODO: Sanity check on 'hwcap'. */
 
-	if (!(capabilities = device->plugin->get_capabilities())) {
-		sr_err("dev: %s: device has no capabilities", __func__);
+	if (!(capabilities = dev->plugin->get_capabilities())) {
+		sr_err("dev: %s: dev has no capabilities", __func__);
 		return FALSE; /* TODO: SR_ERR*. */
 	}
 
@@ -408,24 +408,23 @@ SR_API gboolean sr_dev_has_hwcap(const struct sr_device *device, int hwcap)
 /**
  * Returns information about the given device.
  *
- * @param device Pointer to the device to be checked. Must not be NULL.
- *               The device's 'plugin' field must not be NULL either.
+ * @param dev Pointer to the device to be checked. Must not be NULL.
+ *            The device's 'plugin' field must not be NULL either.
  * @param id The type of information.
  * @param data The return value. Must not be NULL.
  *
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or SR_ERR
  *         upon other errors.
  */
-SR_API int sr_dev_info_get(const struct sr_device *device, int id,
-					   const void **data)
+SR_API int sr_dev_info_get(const struct sr_dev *dev, int id, const void **data)
 {
-	if ((device == NULL) || (device->plugin == NULL))
+	if ((dev == NULL) || (dev->plugin == NULL))
 		return SR_ERR_ARG;
 
 	if (data == NULL)
 		return SR_ERR_ARG;
 
-	*data = device->plugin->get_device_info(device->plugin_index, id);
+	*data = dev->plugin->get_dev_info(dev->plugin_index, id);
 
 	if (*data == NULL)
 		return SR_ERR;

@@ -66,13 +66,13 @@ static int init(struct sr_output *o)
 		return SR_ERR_ARG;
 	}
 
-	if (!o->device) {
-		sr_err("gnuplot out: %s: o->device was NULL", __func__);
+	if (!o->dev) {
+		sr_err("gnuplot out: %s: o->dev was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
-	if (!o->device->plugin) {
-		sr_err("gnuplot out: %s: o->device->plugin was NULL", __func__);
+	if (!o->dev->plugin) {
+		sr_err("gnuplot out: %s: o->dev->plugin was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
@@ -89,7 +89,7 @@ static int init(struct sr_output *o)
 
 	o->internal = ctx;
 	ctx->num_enabled_probes = 0;
-	for (l = o->device->probes; l; l = l->next) {
+	for (l = o->dev->probes; l; l = l->next) {
 		probe = l->data; /* TODO: Error checks. */
 		if (!probe->enabled)
 			continue;
@@ -98,11 +98,11 @@ static int init(struct sr_output *o)
 	ctx->probelist[ctx->num_enabled_probes] = 0;
 	ctx->unitsize = (ctx->num_enabled_probes + 7) / 8;
 
-	num_probes = g_slist_length(o->device->probes);
+	num_probes = g_slist_length(o->dev->probes);
 	comment[0] = '\0';
-	if (sr_dev_has_hwcap(o->device, SR_HWCAP_SAMPLERATE)) {
-		samplerate = *((uint64_t *) o->device->plugin->get_device_info(
-				o->device->plugin_index, SR_DI_CUR_SAMPLERATE));
+	if (sr_dev_has_hwcap(o->dev, SR_HWCAP_SAMPLERATE)) {
+		samplerate = *((uint64_t *) o->dev->plugin->get_dev_info(
+				o->dev->plugin_index, SR_DI_CUR_SAMPLERATE));
 		if (!(frequency_s = sr_samplerate_string(samplerate))) {
 			sr_err("gnuplot out: %s: sr_samplerate_string failed",
 			       __func__);
@@ -311,7 +311,7 @@ static int analog_init(struct sr_output *o)
 
 	o->internal = ctx;
 	ctx->num_enabled_probes = 0;
-	for (l = o->device->probes; l; l = l->next) {
+	for (l = o->dev->probes; l; l = l->next) {
 		probe = l->data;
 		if (!probe->enabled)
 			continue;
@@ -322,11 +322,11 @@ static int analog_init(struct sr_output *o)
 	ctx->unitsize = sizeof(struct sr_analog_sample) +
 			(ctx->num_enabled_probes * sizeof(struct sr_analog_probe));
 
-	num_probes = g_slist_length(o->device->probes);
+	num_probes = g_slist_length(o->dev->probes);
 	comment[0] = '\0';
-	if (o->device->plugin && sr_dev_has_hwcap(o->device, SR_HWCAP_SAMPLERATE)) {
-		samplerate = *((uint64_t *) o->device->plugin->get_device_info(
-				o->device->plugin_index, SR_DI_CUR_SAMPLERATE));
+	if (o->dev->plugin && sr_dev_has_hwcap(o->dev, SR_HWCAP_SAMPLERATE)) {
+		samplerate = *((uint64_t *) o->dev->plugin->get_dev_info(
+				o->dev->plugin_index, SR_DI_CUR_SAMPLERATE));
 		if (!(frequency_s = sr_samplerate_string(samplerate))) {
 			g_free(ctx->header);
 			g_free(ctx);

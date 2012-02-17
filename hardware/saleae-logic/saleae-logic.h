@@ -48,13 +48,13 @@ struct fx2_profile {
 	int num_probes;
 };
 
-struct fx2_device {
+struct fx2_dev {
 	struct fx2_profile *profile;
 	/*
-	 * Since we can't keep track of a Saleae Logic device after upgrading the
-	 * firmware (it re-enumerates into a different device address after the
-	 * upgrade) this is like a global lock. No device will open until a proper
-	 * delay after the last device was upgraded.
+	 * Since we can't keep track of a Saleae Logic device after upgrading
+	 * the firmware (it re-enumerates into a different device address
+	 * after the upgrade) this is like a global lock. No device will open
+	 * until a proper delay after the last device was upgraded.
 	 */
 	GTimeVal fw_updated;
 	/* device/capture settings */

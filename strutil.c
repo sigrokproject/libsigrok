@@ -108,12 +108,12 @@ SR_API char *sr_period_string(uint64_t frequency)
 /**
  * TODO
  *
- * @param device TODO
+ * @param dev TODO
  * @param triggerstring TODO
  *
  * @return TODO
  */
-SR_API char **sr_parse_triggerstring(struct sr_device *device,
+SR_API char **sr_parse_triggerstring(struct sr_dev *dev,
 				     const char *triggerstring)
 {
 	GSList *l;
@@ -122,7 +122,7 @@ SR_API char **sr_parse_triggerstring(struct sr_device *device,
 	char **tokens, **triggerlist, *trigger, *tc, *trigger_types;
 	gboolean error;
 
-	max_probes = g_slist_length(device->probes);
+	max_probes = g_slist_length(dev->probes);
 	error = FALSE;
 
 	if (!(triggerlist = g_try_malloc0(max_probes * sizeof(char *)))) {
@@ -131,7 +131,7 @@ SR_API char **sr_parse_triggerstring(struct sr_device *device,
 	}
 
 	tokens = g_strsplit(triggerstring, ",", max_probes);
-	trigger_types = device->plugin->get_device_info(0, SR_DI_TRIGGER_TYPES);
+	trigger_types = dev->plugin->get_dev_info(0, SR_DI_TRIGGER_TYPES);
 	if (trigger_types == NULL)
 		return NULL;
 
@@ -139,7 +139,7 @@ SR_API char **sr_parse_triggerstring(struct sr_device *device,
 		if (tokens[i][0] < '0' || tokens[i][0] > '9') {
 			/* Named probe */
 			probenum = 0;
-			for (l = device->probes; l; l = l->next) {
+			for (l = dev->probes; l; l = l->next) {
 				probe = (struct sr_probe *)l->data;
 				if (probe->enabled
 				    && !strncmp(probe->name, tokens[i],

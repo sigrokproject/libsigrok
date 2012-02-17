@@ -71,14 +71,14 @@ struct databag {
 	uint8_t sample_generator;
 	uint8_t thread_running;
 	uint64_t samples_counter;
-	int device_index;
+	int dev_index;
 	gpointer session_data;
 	GTimer *timer;
 };
 
 static int capabilities[] = {
 	SR_HWCAP_LOGIC_ANALYZER,
-	SR_HWCAP_DEMO_DEVICE,
+	SR_HWCAP_DEMO_DEV,
 	SR_HWCAP_SAMPLERATE,
 	SR_HWCAP_PATTERN_MODE,
 	SR_HWCAP_LIMIT_SAMPLES,
@@ -134,14 +134,14 @@ static int default_pattern = PATTERN_SIGROK;
 static GThread *my_thread;
 static int thread_running;
 
-static int hw_stop_acquisition(int device_index, gpointer session_data);
+static int hw_stop_acquisition(int dev_index, gpointer session_data);
 
-static int hw_init(const char *deviceinfo)
+static int hw_init(const char *devinfo)
 {
 	struct sr_dev_inst *sdi;
 
 	/* Avoid compiler warnings. */
-	(void)deviceinfo;
+	(void)devinfo;
 
 	sdi = sr_dev_inst_new(0, SR_ST_ACTIVE, DEMONAME, NULL, NULL);
 	if (!sdi) {
@@ -154,20 +154,20 @@ static int hw_init(const char *deviceinfo)
 	return 1;
 }
 
-static int hw_opendev(int device_index)
+static int hw_opendev(int dev_index)
 {
 	/* Avoid compiler warnings. */
-	(void)device_index;
+	(void)dev_index;
 
 	/* Nothing needed so far. */
 
 	return SR_OK;
 }
 
-static int hw_closedev(int device_index)
+static int hw_closedev(int dev_index)
 {
 	/* Avoid compiler warnings. */
-	(void)device_index;
+	(void)dev_index;
 
 	/* Nothing needed so far. */
 
@@ -180,17 +180,17 @@ static int hw_cleanup(void)
 	return SR_OK;
 }
 
-static void *hw_get_device_info(int device_index, int device_info_id)
+static void *hw_get_dev_info(int dev_index, int dev_info_id)
 {
 	struct sr_dev_inst *sdi;
 	void *info = NULL;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, device_index))) {
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index))) {
 		sr_err("demo: %s: sdi was NULL", __func__);
 		return NULL;
 	}
 
-	switch (device_info_id) {
+	switch (dev_info_id) {
 	case SR_DI_INSTANCE:
 		info = sdi;
 		break;
@@ -214,10 +214,10 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 	return info;
 }
 
-static int hw_get_status(int device_index)
+static int hw_get_status(int dev_index)
 {
 	/* Avoid compiler warnings. */
-	(void)device_index;
+	(void)dev_index;
 
 	return SR_ST_ACTIVE;
 }
@@ -227,13 +227,13 @@ static int *hw_get_capabilities(void)
 	return capabilities;
 }
 
-static int hw_set_configuration(int device_index, int capability, void *value)
+static int hw_set_configuration(int dev_index, int capability, void *value)
 {
 	int ret;
 	char *stropt;
 
 	/* Avoid compiler warnings. */
-	(void)device_index;
+	(void)dev_index;
 
 	if (capability == SR_HWCAP_PROBECONFIG) {
 		/* Nothing to do, but must be supported */
@@ -405,7 +405,7 @@ static int receive_data(int fd, int revents, void *session_data)
 	return TRUE;
 }
 
-static int hw_start_acquisition(int device_index, gpointer session_data)
+static int hw_start_acquisition(int dev_index, gpointer session_data)
 {
 	struct sr_datafeed_packet *packet;
 	struct sr_datafeed_header *header;
@@ -419,7 +419,7 @@ static int hw_start_acquisition(int device_index, gpointer session_data)
 
 	mydata->sample_generator = default_pattern;
 	mydata->session_data = session_data;
-	mydata->device_index = device_index;
+	mydata->dev_index = dev_index;
 	mydata->samples_counter = 0;
 
 	if (pipe(mydata->pipe_fds)) {
@@ -477,10 +477,10 @@ static int hw_start_acquisition(int device_index, gpointer session_data)
 	return SR_OK;
 }
 
-static int hw_stop_acquisition(int device_index, gpointer session_data)
+static int hw_stop_acquisition(int dev_index, gpointer session_data)
 {
 	/* Avoid compiler warnings. */
-	(void)device_index;
+	(void)dev_index;
 	(void)session_data;
 
 	/* Stop generate thread. */
@@ -489,7 +489,7 @@ static int hw_stop_acquisition(int device_index, gpointer session_data)
 	return SR_OK;
 }
 
-SR_PRIV struct sr_device_plugin demo_plugin_info = {
+SR_PRIV struct sr_dev_plugin demo_plugin_info = {
 	.name = "demo",
 	.longname = "Demo driver and pattern generator",
 	.api_version = 1,
@@ -497,7 +497,7 @@ SR_PRIV struct sr_device_plugin demo_plugin_info = {
 	.cleanup = hw_cleanup,
 	.opendev = hw_opendev,
 	.closedev = hw_closedev,
-	.get_device_info = hw_get_device_info,
+	.get_dev_info = hw_get_dev_info,
 	.get_status = hw_get_status,
 	.get_capabilities = hw_get_capabilities,
 	.set_configuration = hw_set_configuration,

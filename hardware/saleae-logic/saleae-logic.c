@@ -93,8 +93,8 @@ static libusb_context *usb_context = NULL;
 
 static int new_saleae_logic_firmware = 0;
 
-static int hw_set_configuration(int device_index, int capability, void *value);
-static int hw_stop_acquisition(int device_index, gpointer session_device_id);
+static int hw_set_configuration(int dev_index, int capability, void *value);
+static int hw_stop_acquisition(int dev_index, gpointer session_dev_id);
 
 /**
  * Check the USB configuration to determine if this is a Saleae Logic.
@@ -165,15 +165,15 @@ static int check_conf_profile(libusb_device *dev)
 	return ret;
 }
 
-static int sl_open_device(int device_index)
+static int sl_open_dev(int dev_index)
 {
 	libusb_device **devlist;
 	struct libusb_device_descriptor des;
 	struct sr_dev_inst *sdi;
-	struct fx2_device *fx2;
+	struct fx2_dev *fx2;
 	int err, skip, i;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return SR_ERR;
 	fx2 = sdi->priv;
 
@@ -194,7 +194,7 @@ static int sl_open_device(int device_index)
 			continue;
 
 		if (sdi->status == SR_ST_INITIALIZING) {
-			if (skip != device_index) {
+			if (skip != dev_index) {
 				/* Skip devices of this type that aren't the one we want. */
 				skip += 1;
 				continue;
@@ -237,9 +237,9 @@ static int sl_open_device(int device_index)
 	return SR_OK;
 }
 
-static void close_device(struct sr_dev_inst *sdi)
+static void close_dev(struct sr_dev_inst *sdi)
 {
-	struct fx2_device *fx2;
+	struct fx2_dev *fx2;
 
 	fx2 = sdi->priv;
 
@@ -254,7 +254,7 @@ static void close_device(struct sr_dev_inst *sdi)
 	sdi->status = SR_ST_INACTIVE;
 }
 
-static int configure_probes(struct fx2_device *fx2, GSList *probes)
+static int configure_probes(struct fx2_dev *fx2, GSList *probes)
 {
 	struct sr_probe *probe;
 	GSList *l;
@@ -300,11 +300,11 @@ static int configure_probes(struct fx2_device *fx2, GSList *probes)
 	return SR_OK;
 }
 
-static struct fx2_device *fx2_device_new(void)
+static struct fx2_dev *fx2_dev_new(void)
 {
-	struct fx2_device *fx2;
+	struct fx2_dev *fx2;
 
-	if (!(fx2 = g_try_malloc0(sizeof(struct fx2_device)))) {
+	if (!(fx2 = g_try_malloc0(sizeof(struct fx2_dev)))) {
 		sr_err("logic: %s: fx2 malloc failed", __func__);
 		return NULL;
 	}
@@ -319,17 +319,17 @@ static struct fx2_device *fx2_device_new(void)
  * API callbacks
  */
 
-static int hw_init(const char *deviceinfo)
+static int hw_init(const char *devinfo)
 {
 	struct sr_dev_inst *sdi;
 	struct libusb_device_descriptor des;
 	struct fx2_profile *fx2_prof;
-	struct fx2_device *fx2;
+	struct fx2_dev *fx2;
 	libusb_device **devlist;
 	int err, devcnt, i, j;
 
 	/* Avoid compiler warnings. */
-	(void)deviceinfo;
+	(void)devinfo;
 
 	if (libusb_init(&usb_context) != 0) {
 		sr_err("logic: Failed to initialize USB.");
@@ -363,7 +363,7 @@ static int hw_init(const char *deviceinfo)
 			fx2_prof->vendor, fx2_prof->model, fx2_prof->model_version);
 		if (!sdi)
 			return 0;
-		fx2 = fx2_device_new();
+		fx2 = fx2_dev_new();
 		fx2->profile = fx2_prof;
 		sdi->priv = fx2;
 		dev_insts = g_slist_append(dev_insts, sdi);
@@ -393,14 +393,14 @@ static int hw_init(const char *deviceinfo)
 	return devcnt;
 }
 
-static int hw_opendev(int device_index)
+static int hw_opendev(int dev_index)
 {
 	GTimeVal cur_time;
 	struct sr_dev_inst *sdi;
-	struct fx2_device *fx2;
+	struct fx2_dev *fx2;
 	int timediff, err;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return SR_ERR;
 	fx2 = sdi->priv;
 
@@ -415,7 +415,7 @@ static int hw_opendev(int device_index)
 		g_usleep(300 * 1000);
 		timediff = 0;
 		while (timediff < MAX_RENUM_DELAY) {
-			if ((err = sl_open_device(device_index)) == SR_OK)
+			if ((err = sl_open_dev(dev_index)) == SR_OK)
 				break;
 			g_usleep(100 * 1000);
 			g_get_current_time(&cur_time);
@@ -423,7 +423,7 @@ static int hw_opendev(int device_index)
 		}
 		sr_info("logic: device came back after %d ms", timediff);
 	} else {
-		err = sl_open_device(device_index);
+		err = sl_open_dev(dev_index);
 	}
 
 	if (err != SR_OK) {
@@ -440,7 +440,7 @@ static int hw_opendev(int device_index)
 
 	if (fx2->cur_samplerate == 0) {
 		/* Samplerate hasn't been set; default to the slowest one. */
-		if (hw_set_configuration(device_index, SR_HWCAP_SAMPLERATE,
+		if (hw_set_configuration(dev_index, SR_HWCAP_SAMPLERATE,
 		    &supported_samplerates[0]) == SR_ERR)
 			return SR_ERR;
 	}
@@ -448,17 +448,17 @@ static int hw_opendev(int device_index)
 	return SR_OK;
 }
 
-static int hw_closedev(int device_index)
+static int hw_closedev(int dev_index)
 {
 	struct sr_dev_inst *sdi;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, device_index))) {
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index))) {
 		sr_err("logic: %s: sdi was NULL", __func__);
 		return SR_ERR; /* TODO: SR_ERR_ARG? */
 	}
 
 	/* TODO */
-	close_device(sdi);
+	close_dev(sdi);
 
 	return SR_OK;
 }
@@ -467,7 +467,7 @@ static int hw_cleanup(void)
 {
 	GSList *l;
 	struct sr_dev_inst *sdi;
-	struct fx2_device *fx2;
+	struct fx2_dev *fx2;
 	int ret = SR_OK;
 
 	/* Properly close and free all devices. */
@@ -485,7 +485,7 @@ static int hw_cleanup(void)
 			ret = SR_ERR_BUG;
 			continue;
 		}
-		close_device(sdi);
+		close_dev(sdi);
 		sr_usb_dev_inst_free(fx2->usb);
 		sr_dev_inst_free(sdi);
 	}
@@ -500,17 +500,17 @@ static int hw_cleanup(void)
 	return ret;
 }
 
-static void *hw_get_device_info(int device_index, int device_info_id)
+static void *hw_get_dev_info(int dev_index, int dev_info_id)
 {
 	struct sr_dev_inst *sdi;
-	struct fx2_device *fx2;
+	struct fx2_dev *fx2;
 	void *info = NULL;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return NULL;
 	fx2 = sdi->priv;
 
-	switch (device_info_id) {
+	switch (dev_info_id) {
 	case SR_DI_INSTANCE:
 		info = sdi;
 		break;
@@ -534,11 +534,11 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 	return info;
 }
 
-static int hw_get_status(int device_index)
+static int hw_get_status(int dev_index)
 {
 	struct sr_dev_inst *sdi;
 
-	sdi = sr_dev_inst_get(dev_insts, device_index);
+	sdi = sr_dev_inst_get(dev_insts, dev_index);
 	if (sdi)
 		return sdi->status;
 	else
@@ -594,7 +594,7 @@ static uint8_t new_firmware_divider_value(uint64_t samplerate)
 static int set_configuration_samplerate(struct sr_dev_inst *sdi,
 					uint64_t samplerate)
 {
-	struct fx2_device *fx2;
+	struct fx2_dev *fx2;
 	uint8_t divider;
 	int ret, result, i;
 	unsigned char buf[2];
@@ -628,14 +628,14 @@ static int set_configuration_samplerate(struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-static int hw_set_configuration(int device_index, int capability, void *value)
+static int hw_set_configuration(int dev_index, int capability, void *value)
 {
 	struct sr_dev_inst *sdi;
-	struct fx2_device *fx2;
+	struct fx2_dev *fx2;
 	int ret;
 	uint64_t *tmp_u64;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return SR_ERR;
 	fx2 = sdi->priv;
 
@@ -672,12 +672,12 @@ static int receive_data(int fd, int revents, void *user_data)
 
 static void receive_transfer(struct libusb_transfer *transfer)
 {
-	/* TODO: these statics have to move to fx2_device struct */
+	/* TODO: these statics have to move to fx2_dev struct */
 	static int num_samples = 0;
 	static int empty_transfer_count = 0;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
-	struct fx2_device *fx2;
+	struct fx2_dev *fx2;
 	int cur_buflen, trigger_offset, i;
 	unsigned char *cur_buf, *new_buf;
 
@@ -808,18 +808,18 @@ static void receive_transfer(struct libusb_transfer *transfer)
 	}
 }
 
-static int hw_start_acquisition(int device_index, gpointer session_data)
+static int hw_start_acquisition(int dev_index, gpointer session_data)
 {
 	struct sr_dev_inst *sdi;
 	struct sr_datafeed_packet *packet;
 	struct sr_datafeed_header *header;
-	struct fx2_device *fx2;
+	struct fx2_dev *fx2;
 	struct libusb_transfer *transfer;
 	const struct libusb_pollfd **lupfd;
 	int size, i;
 	unsigned char *buf;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return SR_ERR;
 	fx2 = sdi->priv;
 	fx2->session_data = session_data;
@@ -873,13 +873,13 @@ static int hw_start_acquisition(int device_index, gpointer session_data)
 	return SR_OK;
 }
 
-/* This stops acquisition on ALL devices, ignoring device_index. */
-static int hw_stop_acquisition(int device_index, gpointer session_data)
+/* This stops acquisition on ALL devices, ignoring dev_index. */
+static int hw_stop_acquisition(int dev_index, gpointer session_data)
 {
 	struct sr_datafeed_packet packet;
 
 	/* Avoid compiler warnings. */
-	(void)device_index;
+	(void)dev_index;
 
 	packet.type = SR_DF_END;
 	sr_session_bus(session_data, &packet);
@@ -891,7 +891,7 @@ static int hw_stop_acquisition(int device_index, gpointer session_data)
 	return SR_OK;
 }
 
-SR_PRIV struct sr_device_plugin saleae_logic_plugin_info = {
+SR_PRIV struct sr_dev_plugin saleae_logic_plugin_info = {
 	.name = "saleae-logic",
 	.longname = "Saleae Logic",
 	.api_version = 1,
@@ -899,7 +899,7 @@ SR_PRIV struct sr_device_plugin saleae_logic_plugin_info = {
 	.cleanup = hw_cleanup,
 	.opendev = hw_opendev,
 	.closedev = hw_closedev,
-	.get_device_info = hw_get_device_info,
+	.get_dev_info = hw_get_dev_info,
 	.get_status = hw_get_status,
 	.get_capabilities = hw_get_capabilities,
 	.set_configuration = hw_set_configuration,

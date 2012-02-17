@@ -29,7 +29,7 @@
 /* size of payloads sent across the session bus */
 #define CHUNKSIZE (512 * 1024)
 
-struct session_vdevice {
+struct session_vdev {
 	char *capturefile;
 	struct zip *archive;
 	struct zip_file *capfile;
@@ -50,26 +50,26 @@ static int capabilities[] = {
 /**
  * TODO.
  *
- * @param device_index TODO.
+ * @param dev_index TODO.
  */
-static struct session_vdevice *get_vdevice_by_index(int device_index)
+static struct session_vdev *get_vdev_by_index(int dev_index)
 {
 	struct sr_dev_inst *sdi;
-	struct session_vdevice *vdevice;
+	struct session_vdev *vdev;
 
-	/* TODO: Sanity checks on device_index. */
+	/* TODO: Sanity checks on dev_index. */
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, device_index))) {
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index))) {
 		sr_err("session driver: %s: device instance with device "
-		       "index %d was not found", __func__, device_index);
+		       "index %d was not found", __func__, dev_index);
 		return NULL;
 	}
 
 	/* TODO: Is sdi->priv == NULL valid? */
 
-	vdevice = sdi->priv;
+	vdev = sdi->priv;
 
-	return vdevice;
+	return vdev;
 }
 
 /**
@@ -84,7 +84,7 @@ static struct session_vdevice *get_vdevice_by_index(int device_index)
 static int feed_chunk(int fd, int revents, void *session_data)
 {
 	struct sr_dev_inst *sdi;
-	struct session_vdevice *vdevice;
+	struct session_vdev *vdev;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
 	GSList *l;
@@ -100,8 +100,8 @@ static int feed_chunk(int fd, int revents, void *session_data)
 	got_data = FALSE;
 	for (l = dev_insts; l; l = l->next) {
 		sdi = l->data;
-		vdevice = sdi->priv;
-		if (!vdevice)
+		vdev = sdi->priv;
+		if (!vdev)
 			/* already done with this instance */
 			continue;
 
@@ -111,21 +111,21 @@ static int feed_chunk(int fd, int revents, void *session_data)
 			return FALSE; /* TODO: SR_ERR_MALLOC */
 		}
 
-		ret = zip_fread(vdevice->capfile, buf, CHUNKSIZE);
+		ret = zip_fread(vdev->capfile, buf, CHUNKSIZE);
 		if (ret > 0) {
 			got_data = TRUE;
 			packet.type = SR_DF_LOGIC;
 			packet.payload = &logic;
 			logic.length = ret;
-			logic.unitsize = vdevice->unitsize;
+			logic.unitsize = vdev->unitsize;
 			logic.data = buf;
-			vdevice->bytes_read += ret;
+			vdev->bytes_read += ret;
 			sr_session_bus(session_data, &packet);
 		} else {
 			/* done with this capture file */
-			zip_fclose(vdevice->capfile);
-			g_free(vdevice->capturefile);
-			g_free(vdevice);
+			zip_fclose(vdev->capfile);
+			g_free(vdev->capturefile);
+			g_free(vdev);
 			sdi->priv = NULL;
 		}
 	}
@@ -144,13 +144,13 @@ static int hw_cleanup(void);
 /**
  * TODO.
  *
- * @param deviceinfo TODO.
+ * @param devinfo TODO.
  *
  * @return TODO.
  */
-static int hw_init(const char *deviceinfo)
+static int hw_init(const char *devinfo)
 {
-	sessionfile = g_strdup(deviceinfo);
+	sessionfile = g_strdup(devinfo);
 
 	return 0;
 }
@@ -175,16 +175,16 @@ static int hw_cleanup(void)
 	return SR_OK;
 }
 
-static int hw_opendev(int device_index)
+static int hw_opendev(int dev_index)
 {
 	struct sr_dev_inst *sdi;
 
-	sdi = sr_dev_inst_new(device_index, SR_ST_INITIALIZING,
+	sdi = sr_dev_inst_new(dev_index, SR_ST_INITIALIZING,
 			      NULL, NULL, NULL);
 	if (!sdi)
 		return SR_ERR;
 
-	if (!(sdi->priv = g_try_malloc0(sizeof(struct session_vdevice)))) {
+	if (!(sdi->priv = g_try_malloc0(sizeof(struct session_vdev)))) {
 		sr_err("session driver: %s: sdi->priv malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
@@ -194,26 +194,26 @@ static int hw_opendev(int device_index)
 	return SR_OK;
 }
 
-static void *hw_get_device_info(int device_index, int device_info_id)
+static void *hw_get_dev_info(int dev_index, int dev_info_id)
 {
-	struct session_vdevice *vdevice;
+	struct session_vdev *vdev;
 	void *info;
 
-	if (device_info_id != SR_DI_CUR_SAMPLERATE)
+	if (dev_info_id != SR_DI_CUR_SAMPLERATE)
 		return NULL;
 
-	if (!(vdevice = get_vdevice_by_index(device_index)))
+	if (!(vdev = get_vdev_by_index(dev_index)))
 		return NULL;
 
-	info = &vdevice->samplerate;
+	info = &vdev->samplerate;
 
 	return info;
 }
 
-static int hw_get_status(int device_index)
+static int hw_get_status(int dev_index)
 {
 	/* Avoid compiler warnings. */
-	(void)device_index;
+	(void)dev_index;
 
 	if (sr_dev_list() != NULL)
 		return SR_OK;
@@ -232,33 +232,33 @@ static int *hw_get_capabilities(void)
 	return capabilities;
 }
 
-static int hw_set_configuration(int device_index, int capability, void *value)
+static int hw_set_configuration(int dev_index, int capability, void *value)
 {
-	struct session_vdevice *vdevice;
+	struct session_vdev *vdev;
 	uint64_t *tmp_u64;
 
-	if (!(vdevice = get_vdevice_by_index(device_index)))
+	if (!(vdev = get_vdev_by_index(dev_index)))
 		return SR_ERR;
 
 	switch (capability) {
 	case SR_HWCAP_SAMPLERATE:
 		tmp_u64 = value;
-		vdevice->samplerate = *tmp_u64;
+		vdev->samplerate = *tmp_u64;
 		sr_info("session driver: setting samplerate to %" PRIu64,
-		        vdevice->samplerate);
+		        vdev->samplerate);
 		break;
 	case SR_HWCAP_CAPTUREFILE:
-		vdevice->capturefile = g_strdup(value);
+		vdev->capturefile = g_strdup(value);
 		sr_info("session driver: setting capturefile to %s",
-		        vdevice->capturefile);
+		        vdev->capturefile);
 		break;
 	case SR_HWCAP_CAPTURE_UNITSIZE:
 		tmp_u64 = value;
-		vdevice->unitsize = *tmp_u64;
+		vdev->unitsize = *tmp_u64;
 		break;
 	case SR_HWCAP_CAPTURE_NUM_PROBES:
 		tmp_u64 = value;
-		vdevice->num_probes = *tmp_u64;
+		vdev->num_probes = *tmp_u64;
 		break;
 	default:
 		sr_err("session driver: %s: unknown capability %d requested",
@@ -269,44 +269,43 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 	return SR_OK;
 }
 
-static int hw_start_acquisition(int device_index, gpointer session_device_id)
+static int hw_start_acquisition(int dev_index, gpointer session_dev_id)
 {
 	struct zip_stat zs;
-	struct session_vdevice *vdevice;
+	struct session_vdev *vdev;
 	struct sr_datafeed_header *header;
 	struct sr_datafeed_packet *packet;
 	int err;
 
 	/* Avoid compiler warnings. */
-	(void)session_device_id;
+	(void)session_dev_id;
 
-	if (!(vdevice = get_vdevice_by_index(device_index)))
+	if (!(vdev = get_vdev_by_index(dev_index)))
 		return SR_ERR;
 
 	sr_info("session_driver: opening archive %s file %s", sessionfile,
-		vdevice->capturefile);
+		vdev->capturefile);
 
-	if (!(vdevice->archive = zip_open(sessionfile, 0, &err))) {
+	if (!(vdev->archive = zip_open(sessionfile, 0, &err))) {
 		sr_err("session driver: Failed to open session file '%s': "
 		       "zip error %d\n", sessionfile, err);
 		return SR_ERR;
 	}
 
-	if (zip_stat(vdevice->archive, vdevice->capturefile, 0, &zs) == -1) {
+	if (zip_stat(vdev->archive, vdev->capturefile, 0, &zs) == -1) {
 		sr_err("session driver: Failed to check capture file '%s' in "
-		       "session file '%s'.", vdevice->capturefile, sessionfile);
+		       "session file '%s'.", vdev->capturefile, sessionfile);
 		return SR_ERR;
 	}
 
-	if (!(vdevice->capfile = zip_fopen(vdevice->archive,
-					   vdevice->capturefile, 0))) {
+	if (!(vdev->capfile = zip_fopen(vdev->archive, vdev->capturefile, 0))) {
 		sr_err("session driver: Failed to open capture file '%s' in "
-		       "session file '%s'.", vdevice->capturefile, sessionfile);
+		       "session file '%s'.", vdev->capturefile, sessionfile);
 		return SR_ERR;
 	}
 
 	/* freewheeling source */
-	sr_session_source_add(-1, 0, 0, feed_chunk, session_device_id);
+	sr_session_source_add(-1, 0, 0, feed_chunk, session_dev_id);
 
 	if (!(packet = g_try_malloc(sizeof(struct sr_datafeed_packet)))) {
 		sr_err("session driver: %s: packet malloc failed", __func__);
@@ -323,16 +322,16 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	packet->payload = (unsigned char *)header;
 	header->feed_version = 1;
 	gettimeofday(&header->starttime, NULL);
-	header->samplerate = vdevice->samplerate;
-	header->num_logic_probes = vdevice->num_probes;
-	sr_session_bus(session_device_id, packet);
+	header->samplerate = vdev->samplerate;
+	header->num_logic_probes = vdev->num_probes;
+	sr_session_bus(session_dev_id, packet);
 	g_free(header);
 	g_free(packet);
 
 	return SR_OK;
 }
 
-SR_PRIV struct sr_device_plugin session_driver = {
+SR_PRIV struct sr_dev_plugin session_driver = {
 	"session",
 	"Session-emulating driver",
 	1,
@@ -340,7 +339,7 @@ SR_PRIV struct sr_device_plugin session_driver = {
 	hw_cleanup,
 	hw_opendev,
 	NULL,
-	hw_get_device_info,
+	hw_get_dev_info,
 	hw_get_status,
 	hw_get_capabilities,
 	hw_set_configuration,

@@ -131,7 +131,7 @@ struct sr_datafeed_logic {
 struct sr_input {
 	struct sr_input_format *format;
 	char *param;
-	struct sr_device *vdevice;
+	struct sr_dev *vdev;
 };
 
 struct sr_input_format {
@@ -144,7 +144,7 @@ struct sr_input_format {
 
 struct sr_output {
 	struct sr_output_format *format;
-	struct sr_device *device;
+	struct sr_dev *dev;
 	char *param;
 	void *internal;
 };
@@ -171,11 +171,11 @@ struct sr_datastore {
  * This represents a generic device connected to the system.
  * For device-specific information, ask the plugin. The plugin_index refers
  * to the device index within that plugin; it may be handling more than one
- * device. All relevant plugin calls take a device_index parameter for this.
+ * device. All relevant plugin calls take a dev_index parameter for this.
  */
-struct sr_device {
+struct sr_dev {
 	/* Which plugin handles this device */
-	struct sr_device_plugin *plugin;
+	struct sr_dev_plugin *plugin;
 	/* A plugin may handle multiple devices of the same type */
 	int plugin_index;
 	/* List of struct sr_probe* */
@@ -210,7 +210,7 @@ enum {
 	/*--- Device types --------------------------------------------------*/
 
 	/** The device is demo device. */
-	SR_HWCAP_DEMO_DEVICE,
+	SR_HWCAP_DEMO_DEV,
 
 	/*--- Device options ------------------------------------------------*/
 
@@ -338,28 +338,28 @@ struct sr_samplerates {
 	uint64_t *list;
 };
 
-struct sr_device_plugin {
+struct sr_dev_plugin {
 	/* Plugin-specific */
 	char *name;
 	char *longname;
 	int api_version;
-	int (*init) (const char *deviceinfo);
+	int (*init) (const char *devinfo);
 	int (*cleanup) (void);
 
 	/* Device-specific */
-	int (*opendev) (int device_index);
-	int (*closedev) (int device_index);
-	void *(*get_device_info) (int device_index, int device_info_id);
-	int (*get_status) (int device_index);
+	int (*opendev) (int dev_index);
+	int (*closedev) (int dev_index);
+	void *(*get_dev_info) (int dev_index, int dev_info_id);
+	int (*get_status) (int dev_index);
 	int *(*get_capabilities) (void);
-	int (*set_configuration) (int device_index, int capability, void *value);
-	int (*start_acquisition) (int device_index, gpointer session_device_id);
-	int (*stop_acquisition) (int device_index, gpointer session_device_id);
+	int (*set_configuration) (int dev_index, int capability, void *value);
+	int (*start_acquisition) (int dev_index, gpointer session_dev_id);
+	int (*stop_acquisition) (int dev_index, gpointer session_dev_id);
 };
 
 struct sr_session {
-	/* List of struct sr_device* */
-	GSList *devices;
+	/* List of struct sr_dev* */
+	GSList *devs;
 	/* list of sr_receive_data_callback */
 	GSList *datafeed_callbacks;
 	GTimeVal starttime;

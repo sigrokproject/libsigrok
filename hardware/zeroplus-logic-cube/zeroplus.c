@@ -166,7 +166,7 @@ struct zp {
 	struct sr_usb_dev_inst *usb;
 };
 
-static int hw_set_configuration(int device_index, int capability, void *value);
+static int hw_set_configuration(int dev_index, int capability, void *value);
 
 static unsigned int get_memory_size(int type)
 {
@@ -239,14 +239,14 @@ static int opendev4(struct sr_dev_inst **sdi, libusb_device *dev,
 	return 0;
 }
 
-static struct sr_dev_inst *zp_open_device(int device_index)
+static struct sr_dev_inst *zp_open_dev(int dev_index)
 {
 	struct sr_dev_inst *sdi;
 	libusb_device **devlist;
 	struct libusb_device_descriptor des;
 	int err, i;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return NULL;
 
 	libusb_get_device_list(usb_context, &devlist);
@@ -269,7 +269,7 @@ static struct sr_dev_inst *zp_open_device(int device_index)
 	return sdi;
 }
 
-static void close_device(struct sr_dev_inst *sdi)
+static void close_dev(struct sr_dev_inst *sdi)
 {
 	struct zp *zp;
 
@@ -336,7 +336,7 @@ static int configure_probes(struct sr_dev_inst *sdi, GSList *probes)
  * API callbacks
  */
 
-static int hw_init(const char *deviceinfo)
+static int hw_init(const char *devinfo)
 {
 	struct sr_dev_inst *sdi;
 	struct libusb_device_descriptor des;
@@ -345,7 +345,7 @@ static int hw_init(const char *deviceinfo)
 	struct zp *zp;
 
 	/* Avoid compiler warnings. */
-	(void)deviceinfo;
+	(void)devinfo;
 
 	/* Allocate memory for our private driver context. */
 	if (!(zp = g_try_malloc(sizeof(struct zp)))) {
@@ -409,18 +409,18 @@ static int hw_init(const char *deviceinfo)
 	return devcnt;
 }
 
-static int hw_opendev(int device_index)
+static int hw_opendev(int dev_index)
 {
 	struct sr_dev_inst *sdi;
 	struct zp *zp;
 	int err;
 
-	if (!(sdi = zp_open_device(device_index))) {
+	if (!(sdi = zp_open_dev(dev_index))) {
 		sr_err("zp: unable to open device");
 		return SR_ERR;
 	}
 
-	/* TODO: Note: sdi is retrieved in zp_open_device(). */
+	/* TODO: Note: sdi is retrieved in zp_open_dev(). */
 
 	if (!(zp = sdi->priv)) {
 		sr_err("zp: %s: sdi->priv was NULL", __func__);
@@ -462,7 +462,7 @@ static int hw_opendev(int device_index)
 
 	if (zp->cur_samplerate == 0) {
 		/* Samplerate hasn't been set. Default to the slowest one. */
-		if (hw_set_configuration(device_index, SR_HWCAP_SAMPLERATE,
+		if (hw_set_configuration(dev_index, SR_HWCAP_SAMPLERATE,
 		     &samplerates.list[0]) == SR_ERR)
 			return SR_ERR;
 	}
@@ -470,17 +470,17 @@ static int hw_opendev(int device_index)
 	return SR_OK;
 }
 
-static int hw_closedev(int device_index)
+static int hw_closedev(int dev_index)
 {
 	struct sr_dev_inst *sdi;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, device_index))) {
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index))) {
 		sr_err("zp: %s: sdi was NULL", __func__);
 		return SR_ERR; /* TODO: SR_ERR_ARG? */
 	}
 
 	/* TODO */
-	close_device(sdi);
+	close_dev(sdi);
 
 	return SR_OK;
 }
@@ -493,7 +493,7 @@ static int hw_cleanup(void)
 	for (l = dev_insts; l; l = l->next) {
 		sdi = l->data;
 		/* Properly close all devices... */
-		close_device(sdi);
+		close_dev(sdi);
 		/* ...and free all their memory. */
 		sr_dev_inst_free(sdi);
 	}
@@ -507,13 +507,13 @@ static int hw_cleanup(void)
 	return SR_OK;
 }
 
-static void *hw_get_device_info(int device_index, int device_info_id)
+static void *hw_get_dev_info(int dev_index, int dev_info_id)
 {
 	struct sr_dev_inst *sdi;
 	struct zp *zp;
 	void *info;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, device_index))) {
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index))) {
 		sr_err("zp: %s: sdi was NULL", __func__);
 		return NULL;
 	}
@@ -523,7 +523,7 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 		return NULL;
 	}
 
-	switch (device_info_id) {
+	switch (dev_info_id) {
 	case SR_DI_INSTANCE:
 		info = sdi;
 		break;
@@ -552,11 +552,11 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 	return info;
 }
 
-static int hw_get_status(int device_index)
+static int hw_get_status(int dev_index)
 {
 	struct sr_dev_inst *sdi;
 
-	sdi = sr_dev_inst_get(dev_insts, device_index);
+	sdi = sr_dev_inst_get(dev_insts, dev_index);
 	if (sdi)
 		return sdi->status;
 	else
@@ -597,13 +597,13 @@ static int set_configuration_samplerate(struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-static int hw_set_configuration(int device_index, int capability, void *value)
+static int hw_set_configuration(int dev_index, int capability, void *value)
 {
 	struct sr_dev_inst *sdi;
 	uint64_t *tmp_u64;
 	struct zp *zp;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, device_index))) {
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index))) {
 		sr_err("zp: %s: sdi was NULL", __func__);
 		return SR_ERR;
 	}
@@ -628,7 +628,7 @@ static int hw_set_configuration(int device_index, int capability, void *value)
 	}
 }
 
-static int hw_start_acquisition(int device_index, gpointer session_data)
+static int hw_start_acquisition(int dev_index, gpointer session_data)
 {
 	struct sr_dev_inst *sdi;
 	struct sr_datafeed_packet packet;
@@ -640,7 +640,7 @@ static int hw_start_acquisition(int device_index, gpointer session_data)
 	unsigned char *buf;
 	struct zp *zp;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, device_index))) {
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index))) {
 		sr_err("zp: %s: sdi was NULL", __func__);
 		return SR_ERR;
 	}
@@ -703,17 +703,17 @@ static int hw_start_acquisition(int device_index, gpointer session_data)
 	return SR_OK;
 }
 
-/* This stops acquisition on ALL devices, ignoring device_index. */
-static int hw_stop_acquisition(int device_index, gpointer session_device_id)
+/* This stops acquisition on ALL devices, ignoring dev_index. */
+static int hw_stop_acquisition(int dev_index, gpointer session_dev_id)
 {
 	struct sr_datafeed_packet packet;
 	struct sr_dev_inst *sdi;
 	struct zp *zp;
 
 	packet.type = SR_DF_END;
-	sr_session_bus(session_device_id, &packet);
+	sr_session_bus(session_dev_id, &packet);
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, device_index))) {
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index))) {
 		sr_err("zp: %s: sdi was NULL", __func__);
 		return SR_ERR_BUG;
 	}
@@ -729,7 +729,7 @@ static int hw_stop_acquisition(int device_index, gpointer session_device_id)
 	return SR_OK;
 }
 
-SR_PRIV struct sr_device_plugin zeroplus_logic_cube_plugin_info = {
+SR_PRIV struct sr_dev_plugin zeroplus_logic_cube_plugin_info = {
 	.name = "zeroplus-logic-cube",
 	.longname = "Zeroplus Logic Cube LAP-C series",
 	.api_version = 1,
@@ -737,7 +737,7 @@ SR_PRIV struct sr_device_plugin zeroplus_logic_cube_plugin_info = {
 	.cleanup = hw_cleanup,
 	.opendev = hw_opendev,
 	.closedev = hw_closedev,
-	.get_device_info = hw_get_device_info,
+	.get_dev_info = hw_get_dev_info,
 	.get_status = hw_get_status,
 	.get_capabilities = hw_get_capabilities,
 	.set_configuration = hw_set_configuration,

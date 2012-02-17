@@ -118,7 +118,7 @@ static const char *firmware_files[] = {
 	"asix-sigma-phasor.fw",	/* Frequency counter */
 };
 
-static int hw_stop_acquisition(int device_index, gpointer session_data);
+static int hw_stop_acquisition(int dev_index, gpointer session_data);
 
 static int sigma_read(void *buf, size_t size, struct sigma *sigma)
 {
@@ -415,13 +415,13 @@ static int bin2bitbang(const char *filename,
 	return SR_OK;
 }
 
-static int hw_init(const char *deviceinfo)
+static int hw_init(const char *devinfo)
 {
 	struct sr_dev_inst *sdi;
 	struct sigma *sigma;
 
 	/* Avoid compiler warnings. */
-	(void)deviceinfo;
+	(void)devinfo;
 
 	if (!(sigma = g_try_malloc(sizeof(struct sigma)))) {
 		sr_err("sigma: %s: sigma malloc failed", __func__);
@@ -555,13 +555,13 @@ static int upload_firmware(int firmware_idx, struct sigma *sigma)
 	return SR_OK;
 }
 
-static int hw_opendev(int device_index)
+static int hw_opendev(int dev_index)
 {
 	struct sr_dev_inst *sdi;
 	struct sigma *sigma;
 	int ret;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return SR_ERR;
 
 	sigma = sdi->priv;
@@ -698,12 +698,12 @@ static int configure_probes(struct sr_dev_inst *sdi, GSList *probes)
 	return SR_OK;
 }
 
-static int hw_closedev(int device_index)
+static int hw_closedev(int dev_index)
 {
 	struct sr_dev_inst *sdi;
 	struct sigma *sigma;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, device_index))) {
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index))) {
 		sr_err("sigma: %s: sdi was NULL", __func__);
 		return SR_ERR; /* TODO: SR_ERR_ARG? */
 	}
@@ -744,20 +744,20 @@ static int hw_cleanup(void)
 	return ret;
 }
 
-static void *hw_get_device_info(int device_index, int device_info_id)
+static void *hw_get_dev_info(int dev_index, int dev_info_id)
 {
 	struct sr_dev_inst *sdi;
 	struct sigma *sigma;
 	void *info = NULL;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, device_index))) {
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index))) {
 		sr_err("sigma: %s: sdi was NULL", __func__);
 		return NULL;
 	}
 
 	sigma = sdi->priv;
 
-	switch (device_info_id) {
+	switch (dev_info_id) {
 	case SR_DI_INSTANCE:
 		info = sdi;
 		break;
@@ -781,11 +781,11 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 	return info;
 }
 
-static int hw_get_status(int device_index)
+static int hw_get_status(int dev_index)
 {
 	struct sr_dev_inst *sdi;
 
-	sdi = sr_dev_inst_get(dev_insts, device_index);
+	sdi = sr_dev_inst_get(dev_insts, dev_index);
 	if (sdi)
 		return sdi->status;
 	else
@@ -797,13 +797,13 @@ static int *hw_get_capabilities(void)
 	return capabilities;
 }
 
-static int hw_set_configuration(int device_index, int capability, void *value)
+static int hw_set_configuration(int dev_index, int capability, void *value)
 {
 	struct sr_dev_inst *sdi;
 	struct sigma *sigma;
 	int ret;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return SR_ERR;
 
 	sigma = sdi->priv;
@@ -1252,7 +1252,7 @@ static int build_basic_trigger(struct triggerlut *lut, struct sigma *sigma)
 	return SR_OK;
 }
 
-static int hw_start_acquisition(int device_index, gpointer session_data)
+static int hw_start_acquisition(int dev_index, gpointer session_data)
 {
 	struct sr_dev_inst *sdi;
 	struct sigma *sigma;
@@ -1267,7 +1267,7 @@ static int hw_start_acquisition(int device_index, gpointer session_data)
 	/* Avoid compiler warnings. */
 	(void)session_data;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return SR_ERR;
 
 	sigma = sdi->priv;
@@ -1369,7 +1369,7 @@ static int hw_start_acquisition(int device_index, gpointer session_data)
 	return SR_OK;
 }
 
-static int hw_stop_acquisition(int device_index, gpointer session_data)
+static int hw_stop_acquisition(int dev_index, gpointer session_data)
 {
 	struct sr_dev_inst *sdi;
 	struct sigma *sigma;
@@ -1378,7 +1378,7 @@ static int hw_stop_acquisition(int device_index, gpointer session_data)
 	/* Avoid compiler warnings. */
 	(void)session_data;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, device_index))) {
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index))) {
 		sr_err("sigma: %s: sdi was NULL", __func__);
 		return SR_ERR_BUG;
 	}
@@ -1411,7 +1411,7 @@ static int hw_stop_acquisition(int device_index, gpointer session_data)
 	return SR_OK;
 }
 
-SR_PRIV struct sr_device_plugin asix_sigma_plugin_info = {
+SR_PRIV struct sr_dev_plugin asix_sigma_plugin_info = {
 	.name = "asix-sigma",
 	.longname = "ASIX SIGMA",
 	.api_version = 1,
@@ -1419,7 +1419,7 @@ SR_PRIV struct sr_device_plugin asix_sigma_plugin_info = {
 	.cleanup = hw_cleanup,
 	.opendev = hw_opendev,
 	.closedev = hw_closedev,
-	.get_device_info = hw_get_device_info,
+	.get_dev_info = hw_get_dev_info,
 	.get_status = hw_get_status,
 	.get_capabilities = hw_get_capabilities,
 	.set_configuration = hw_set_configuration,

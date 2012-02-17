@@ -396,16 +396,16 @@ static int mso_parse_serial(const char *iSerial, const char *iProduct,
 	return SR_OK;
 }
 
-static int hw_init(const char *deviceinfo)
+static int hw_init(const char *devinfo)
 {
 	struct sr_dev_inst *sdi;
 	int devcnt = 0;
 	struct udev *udev;
 	struct udev_enumerate *enumerate;
-	struct udev_list_entry *devices, *dev_list_entry;
+	struct udev_list_entry *devs, *dev_list_entry;
 	struct mso *mso;
 
-	deviceinfo = deviceinfo;
+	devinfo = devinfo;
 
 	/* It's easier to map usb<->serial using udev */
 	/*
@@ -420,8 +420,8 @@ static int hw_init(const char *deviceinfo)
 	enumerate = udev_enumerate_new(udev);
 	udev_enumerate_add_match_subsystem(enumerate, "usb-serial");
 	udev_enumerate_scan_devices(enumerate);
-	devices = udev_enumerate_get_list_entry(enumerate);
-	udev_list_entry_foreach(dev_list_entry, devices) {
+	devs = udev_enumerate_get_list_entry(enumerate);
+	udev_list_entry_foreach(dev_list_entry, devs) {
 		const char *syspath, *sysname, *idVendor, *idProduct,
 			*iSerial, *iProduct;
 		char path[32], manufacturer[32], product[32], hwrev[32];
@@ -540,13 +540,13 @@ static int hw_cleanup(void)
 	return ret;
 }
 
-static int hw_opendev(int device_index)
+static int hw_opendev(int dev_index)
 {
 	struct sr_dev_inst *sdi;
 	struct mso *mso;
 	int ret = SR_ERR;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return ret;
 
 	mso = sdi->priv;
@@ -582,11 +582,11 @@ static int hw_opendev(int device_index)
 	return SR_OK;
 }
 
-static int hw_closedev(int device_index)
+static int hw_closedev(int dev_index)
 {
 	struct sr_dev_inst *sdi;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, device_index))) {
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index))) {
 		sr_err("mso19: %s: sdi was NULL", __func__);
 		return SR_ERR; /* TODO: SR_ERR_ARG? */
 	}
@@ -602,17 +602,17 @@ static int hw_closedev(int device_index)
 	return SR_OK;
 }
 
-static void *hw_get_device_info(int device_index, int device_info_id)
+static void *hw_get_dev_info(int dev_index, int dev_info_id)
 {
 	struct sr_dev_inst *sdi;
 	struct mso *mso;
 	void *info = NULL;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return NULL;
 	mso = sdi->priv;
 
-	switch (device_info_id) {
+	switch (dev_info_id) {
 	case SR_DI_INSTANCE:
 		info = sdi;
 		break;
@@ -635,11 +635,11 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 	return info;
 }
 
-static int hw_get_status(int device_index)
+static int hw_get_status(int dev_index)
 {
 	struct sr_dev_inst *sdi;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return SR_ST_NOT_FOUND;
 
 	return sdi->status;
@@ -650,11 +650,11 @@ static int *hw_get_capabilities(void)
 	return capabilities;
 }
 
-static int hw_set_configuration(int device_index, int capability, void *value)
+static int hw_set_configuration(int dev_index, int capability, void *value)
 {
 	struct sr_dev_inst *sdi;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return SR_ERR;
 
 	switch (capability) {
@@ -743,7 +743,7 @@ static int receive_data(int fd, int revents, void *user_data)
 	return TRUE;
 }
 
-static int hw_start_acquisition(int device_index, gpointer session_device_id)
+static int hw_start_acquisition(int dev_index, gpointer session_dev_id)
 {
 	struct sr_dev_inst *sdi;
 	struct mso *mso;
@@ -751,7 +751,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	struct sr_datafeed_header header;
 	int ret = SR_ERR;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return ret;
 	mso = sdi->priv;
 
@@ -801,7 +801,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	if (ret != SR_OK)
 		return ret;
 
-	mso->session_id = session_device_id;
+	mso->session_id = session_dev_id;
 	sr_source_add(sdi->serial->fd, G_IO_IN, -1, receive_data, sdi);
 
 	packet.type = SR_DF_HEADER;
@@ -811,25 +811,25 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	header.samplerate = mso->cur_rate;
 	// header.num_analog_probes = 1;
 	header.num_logic_probes = 8;
-	sr_session_bus(session_device_id, &packet);
+	sr_session_bus(session_dev_id, &packet);
 
 	return ret;
 }
 
 /* FIXME */
-static int hw_stop_acquisition(int device_index, gpointer session_device_id)
+static int hw_stop_acquisition(int dev_index, gpointer session_dev_id)
 {
 	struct sr_datafeed_packet packet;
 
-	device_index = device_index;
+	dev_index = dev_index;
 
 	packet.type = SR_DF_END;
-	sr_session_bus(session_device_id, &packet);
+	sr_session_bus(session_dev_id, &packet);
 
 	return SR_OK;
 }
 
-SR_PRIV struct sr_device_plugin link_mso19_plugin_info = {
+SR_PRIV struct sr_dev_plugin link_mso19_plugin_info = {
 	.name = "link-mso19",
 	.longname = "Link Instruments MSO-19",
 	.api_version = 1,
@@ -837,7 +837,7 @@ SR_PRIV struct sr_device_plugin link_mso19_plugin_info = {
 	.cleanup = hw_cleanup,
 	.opendev = hw_opendev,
 	.closedev = hw_closedev,
-	.get_device_info = hw_get_device_info,
+	.get_dev_info = hw_get_dev_info,
 	.get_status = hw_get_status,
 	.get_capabilities = hw_get_capabilities,
 	.set_configuration = hw_set_configuration,

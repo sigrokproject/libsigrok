@@ -92,12 +92,12 @@ static int init(struct sr_input *in)
 	}
 
 	/* Create a virtual device. */
-	in->vdevice = sr_dev_new(NULL, 0);
+	in->vdev = sr_dev_new(NULL, 0);
 
 	for (i = 0; i < num_probes; i++) {
 		snprintf(name, SR_MAX_PROBENAME_LEN, "%d", i);
 		/* TODO: Check return value. */
-		sr_dev_probe_add(in->vdevice, name);
+		sr_dev_probe_add(in->vdev, name);
 	}
 
 	return SR_OK;
@@ -118,7 +118,7 @@ static int loadfile(struct sr_input *in, const char *filename)
 		return SR_ERR;
 	}
 
-	num_probes = g_slist_length(in->vdevice->probes);
+	num_probes = g_slist_length(in->vdev->probes);
 
 	/* Seek to the end of the file, and read the divcount byte. */
 	divcount = 0x00; /* TODO: Don't hardcode! */
@@ -139,7 +139,7 @@ static int loadfile(struct sr_input *in, const char *filename)
 	gettimeofday(&header.starttime, NULL);
 	header.num_logic_probes = num_probes;
 	header.samplerate = samplerate;
-	sr_session_bus(in->vdevice, &packet);
+	sr_session_bus(in->vdev, &packet);
 
 	/* TODO: Handle trigger point. */
 
@@ -155,7 +155,7 @@ static int loadfile(struct sr_input *in, const char *filename)
 		/* TODO: Handle errors, handle incomplete reads. */
 		size = read(fd, buf, PACKET_SIZE);
 		logic.length = PACKET_SIZE;
-		sr_session_bus(in->vdevice, &packet);
+		sr_session_bus(in->vdev, &packet);
 	}
 	close(fd); /* FIXME */
 
@@ -163,7 +163,7 @@ static int loadfile(struct sr_input *in, const char *filename)
 	sr_dbg("la8 in: %s: sending SR_DF_END", __func__);
 	packet.type = SR_DF_END;
 	packet.payload = NULL;
-	sr_session_bus(in->vdevice, &packet);
+	sr_session_bus(in->vdev, &packet);
 
 	return SR_OK;
 }

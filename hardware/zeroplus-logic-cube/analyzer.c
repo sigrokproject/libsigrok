@@ -37,11 +37,11 @@ enum {
 	HARD_DATA_CHECK_SUM		= 0x00,
 	PASS_WORD,
 
-	DEVICE_ID0			= 0x10,
-	DEVICE_ID1,
+	DEV_ID0				= 0x10,
+	DEV_ID1,
 
 	START_STATUS			= 0x20,
-	DEVICE_STATUS			= 0x21,
+	DEV_STATUS			= 0x21,
 	FREQUENCY_REG0			= 0x30,
 	FREQUENCY_REG1,
 	FREQUENCY_REG2,
@@ -319,7 +319,7 @@ SR_PRIV void analyzer_wait(libusb_device_handle *devh, int set, int unset)
 {
 	int status;
 	while (1) {
-		status = gl_reg_read(devh, DEVICE_STATUS);
+		status = gl_reg_read(devh, DEV_STATUS);
 		if ((status & set) && ((status & unset) == 0))
 			return;
 	}
@@ -507,8 +507,7 @@ SR_PRIV void analyzer_set_triggerbar_address(unsigned int address)
 
 SR_PRIV unsigned int analyzer_read_id(libusb_device_handle *devh)
 {
-	return gl_reg_read(devh, DEVICE_ID1) << 8 | gl_reg_read(devh,
-								DEVICE_ID0);
+	return gl_reg_read(devh, DEV_ID1) << 8 | gl_reg_read(devh, DEV_ID0);
 }
 
 SR_PRIV unsigned int analyzer_get_stop_address(libusb_device_handle *devh)

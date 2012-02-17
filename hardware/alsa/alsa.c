@@ -64,13 +64,13 @@ struct alsa {
 	gpointer session_id;
 };
 
-static int hw_init(const char *deviceinfo)
+static int hw_init(const char *devinfo)
 {
 	struct sr_dev_inst *sdi;
 	struct alsa *alsa;
 
 	/* Avoid compiler warnings. */
-	deviceinfo = deviceinfo;
+	devinfo = devinfo;
 
 	if (!(alsa = g_try_malloc0(sizeof(struct alsa)))) {
 		sr_err("alsa: %s: alsa malloc failed", __func__);
@@ -91,13 +91,13 @@ free_alsa:
 	return 0;
 }
 
-static int hw_opendev(int device_index)
+static int hw_opendev(int dev_index)
 {
 	struct sr_dev_inst *sdi;
 	struct alsa *alsa;
 	int err;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return SR_ERR;
 	alsa = sdi->priv;
 
@@ -126,12 +126,12 @@ static int hw_opendev(int device_index)
 	return SR_OK;
 }
 
-static int hw_closedev(int device_index)
+static int hw_closedev(int dev_index)
 {
 	struct sr_dev_inst *sdi;
 	struct alsa *alsa;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, device_index))) {
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index))) {
 		sr_err("alsa: %s: sdi was NULL", __func__);
 		return SR_ERR; /* TODO: SR_ERR_ARG? */
 	}
@@ -164,17 +164,17 @@ static int hw_cleanup(void)
 	return SR_OK;
 }
 
-static void *hw_get_device_info(int device_index, int device_info_id)
+static void *hw_get_dev_info(int dev_index, int dev_info_id)
 {
 	struct sr_dev_inst *sdi;
 	struct alsa *alsa;
 	void *info = NULL;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return NULL;
 	alsa = sdi->priv;
 
-	switch (device_info_id) {
+	switch (dev_info_id) {
 	case SR_DI_INSTANCE:
 		info = sdi;
 		break;
@@ -195,10 +195,10 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 	return info;
 }
 
-static int hw_get_status(int device_index)
+static int hw_get_status(int dev_index)
 {
 	/* Avoid compiler warnings. */
-	device_index = device_index;
+	dev_index = dev_index;
 
 	return SR_ST_ACTIVE;
 }
@@ -208,12 +208,12 @@ static int *hw_get_capabilities(void)
 	return capabilities;
 }
 
-static int hw_set_configuration(int device_index, int capability, void *value)
+static int hw_set_configuration(int dev_index, int capability, void *value)
 {
 	struct sr_dev_inst *sdi;
 	struct alsa *alsa;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return SR_ERR;
 	alsa = sdi->priv;
 
@@ -289,7 +289,7 @@ static int receive_data(int fd, int revents, void *user_data)
 	return TRUE;
 }
 
-static int hw_start_acquisition(int device_index, gpointer session_device_id)
+static int hw_start_acquisition(int dev_index, gpointer session_dev_id)
 {
 	struct sr_dev_inst *sdi;
 	struct alsa *alsa;
@@ -299,7 +299,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	int count;
 	int err;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return SR_ERR;
 	alsa = sdi->priv;
 
@@ -364,7 +364,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 		return SR_ERR;
 	}
 
-	alsa->session_id = session_device_id;
+	alsa->session_id = session_dev_id;
 	sr_source_add(ufds[0].fd, ufds[0].events, 10, receive_data, sdi);
 
 	packet.type = SR_DF_HEADER;
@@ -376,22 +376,22 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	header.num_analog_probes = NUM_PROBES;
 	header.num_logic_probes = 0;
 	header.protocol_id = SR_PROTO_RAW;
-	sr_session_bus(session_device_id, &packet);
+	sr_session_bus(session_dev_id, &packet);
 	g_free(ufds);
 
 	return SR_OK;
 }
 
-static int hw_stop_acquisition(int device_index, gpointer session_device_id)
+static int hw_stop_acquisition(int dev_index, gpointer session_dev_id)
 {
 	/* Avoid compiler warnings. */
-	device_index = device_index;
-	session_device_id = session_device_id;
+	dev_index = dev_index;
+	session_dev_id = session_dev_id;
 
 	return SR_OK;
 }
 
-SR_PRIV struct sr_device_plugin alsa_plugin_info = {
+SR_PRIV struct sr_dev_plugin alsa_plugin_info = {
 	.name = "alsa",
 	.longname = "ALSA driver",
 	.api_version = 1,
@@ -399,7 +399,7 @@ SR_PRIV struct sr_device_plugin alsa_plugin_info = {
 	.cleanup = hw_cleanup,
 	.opendev = hw_opendev,
 	.closedev = hw_closedev,
-	.get_device_info = hw_get_device_info,
+	.get_dev_info = hw_get_dev_info,
 	.get_status = hw_get_status,
 	.get_capabilities = hw_get_capabilities,
 	.set_configuration = hw_set_configuration,

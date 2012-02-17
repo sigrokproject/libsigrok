@@ -130,7 +130,7 @@ static int send_longcommand(int fd, uint8_t command, uint32_t data)
 	return SR_OK;
 }
 
-static int configure_probes(struct ols_device *ols, GSList *probes)
+static int configure_probes(struct ols_dev *ols, GSList *probes)
 {
 	struct sr_probe *probe;
 	GSList *l;
@@ -204,12 +204,12 @@ static uint32_t reverse32(uint32_t in)
 	return out;
 }
 
-static struct ols_device *ols_device_new(void)
+static struct ols_dev *ols_dev_new(void)
 {
-	struct ols_device *ols;
+	struct ols_dev *ols;
 
 	/* TODO: Is 'ols' ever g_free()'d? */
-	if (!(ols = g_try_malloc0(sizeof(struct ols_device)))) {
+	if (!(ols = g_try_malloc0(sizeof(struct ols_dev)))) {
 		sr_err("ols: %s: ols malloc failed", __func__);
 		return NULL;
 	}
@@ -225,17 +225,17 @@ static struct ols_device *ols_device_new(void)
 static struct sr_dev_inst *get_metadata(int fd)
 {
 	struct sr_dev_inst *sdi;
-	struct ols_device *ols;
+	struct ols_dev *ols;
 	uint32_t tmp_int;
 	uint8_t key, type, token;
-	GString *tmp_str, *devicename, *version;
+	GString *tmp_str, *devname, *version;
 	gchar tmp_c;
 
 	sdi = sr_dev_inst_new(0, SR_ST_INACTIVE, NULL, NULL, NULL);
-	ols = ols_device_new();
+	ols = ols_dev_new();
 	sdi->priv = ols;
 
-	devicename = g_string_new("");
+	devname = g_string_new("");
 	version = g_string_new("");
 
 	key = 0xff;
@@ -255,7 +255,7 @@ static struct sr_dev_inst *get_metadata(int fd)
 			switch (token) {
 			case 0x01:
 				/* Device name */
-				devicename = g_string_append(devicename, tmp_str->str);
+				devname = g_string_append(devname, tmp_str->str);
 				break;
 			case 0x02:
 				/* FPGA firmware version */
@@ -339,27 +339,27 @@ static struct sr_dev_inst *get_metadata(int fd)
 		}
 	}
 
-	sdi->model = devicename->str;
+	sdi->model = devname->str;
 	sdi->version = version->str;
-	g_string_free(devicename, FALSE);
+	g_string_free(devname, FALSE);
 	g_string_free(version, FALSE);
 
 	return sdi;
 }
 
-static int hw_init(const char *deviceinfo)
+static int hw_init(const char *devinfo)
 {
 	struct sr_dev_inst *sdi;
-	struct ols_device *ols;
+	struct ols_dev *ols;
 	GSList *ports, *l;
 	GPollFD *fds, probefd;
 	int devcnt, final_devcnt, num_ports, fd, ret, i;
-	char buf[8], **device_names, **serial_params;
+	char buf[8], **dev_names, **serial_params;
 
 	final_devcnt = 0;
 
-	if (deviceinfo)
-		ports = g_slist_append(NULL, g_strdup(deviceinfo));
+	if (devinfo)
+		ports = g_slist_append(NULL, g_strdup(devinfo));
 	else
 		/* No specific device given, so scan all serial ports. */
 		ports = list_serial_ports();
@@ -371,14 +371,14 @@ static int hw_init(const char *deviceinfo)
 		goto hw_init_free_ports; /* TODO: SR_ERR_MALLOC. */
 	}
 
-	if (!(device_names = g_try_malloc(num_ports * sizeof(char *)))) {
-		sr_err("ols: %s: device_names malloc failed", __func__);
+	if (!(dev_names = g_try_malloc(num_ports * sizeof(char *)))) {
+		sr_err("ols: %s: dev_names malloc failed", __func__);
 		goto hw_init_free_fds; /* TODO: SR_ERR_MALLOC. */
 	}
 
 	if (!(serial_params = g_try_malloc(num_ports * sizeof(char *)))) {
 		sr_err("ols: %s: serial_params malloc failed", __func__);
-		goto hw_init_free_device_names; /* TODO: SR_ERR_MALLOC. */
+		goto hw_init_free_dev_names; /* TODO: SR_ERR_MALLOC. */
 	}
 
 	devcnt = 0;
@@ -415,7 +415,7 @@ static int hw_init(const char *deviceinfo)
 			send_shortcommand(fd, CMD_ID);
 			fds[devcnt].fd = fd;
 			fds[devcnt].events = G_IO_IN;
-			device_names[devcnt] = g_strdup(l->data);
+			dev_names[devcnt] = g_strdup(l->data);
 			devcnt++;
 		}
 		g_free(l->data);
@@ -448,11 +448,11 @@ static int hw_init(const char *deviceinfo)
 			/* not an OLS -- some other board that uses the sump protocol */
 			sdi = sr_dev_inst_new(final_devcnt, SR_ST_INACTIVE,
 					"Sump", "Logic Analyzer", "v1.0");
-			ols = ols_device_new();
+			ols = ols_dev_new();
 			ols->num_probes = 32;
 			sdi->priv = ols;
 		}
-		ols->serial = sr_serial_dev_inst_new(device_names[i], -1);
+		ols->serial = sr_serial_dev_inst_new(dev_names[i], -1);
 		dev_insts = g_slist_append(dev_insts, sdi);
 		final_devcnt++;
 		serial_close(fds[i].fd);
@@ -466,12 +466,12 @@ static int hw_init(const char *deviceinfo)
 			serial_close(fds[i].fd);
 		}
 		g_free(serial_params[i]);
-		g_free(device_names[i]);
+		g_free(dev_names[i]);
 	}
 
 	g_free(serial_params);
-hw_init_free_device_names:
-	g_free(device_names);
+hw_init_free_dev_names:
+	g_free(dev_names);
 hw_init_free_fds:
 	g_free(fds);
 hw_init_free_ports:
@@ -480,12 +480,12 @@ hw_init_free_ports:
 	return final_devcnt;
 }
 
-static int hw_opendev(int device_index)
+static int hw_opendev(int dev_index)
 {
 	struct sr_dev_inst *sdi;
-	struct ols_device *ols;
+	struct ols_dev *ols;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return SR_ERR;
 
 	ols = sdi->priv;
@@ -499,12 +499,12 @@ static int hw_opendev(int device_index)
 	return SR_OK;
 }
 
-static int hw_closedev(int device_index)
+static int hw_closedev(int dev_index)
 {
 	struct sr_dev_inst *sdi;
-	struct ols_device *ols;
+	struct ols_dev *ols;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, device_index))) {
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index))) {
 		sr_err("ols: %s: sdi was NULL", __func__);
 		return SR_ERR; /* TODO: SR_ERR_ARG? */
 	}
@@ -525,7 +525,7 @@ static int hw_cleanup(void)
 {
 	GSList *l;
 	struct sr_dev_inst *sdi;
-	struct ols_device *ols;
+	struct ols_dev *ols;
 	int ret = SR_OK;
 
 	/* Properly close and free all devices. */
@@ -555,18 +555,18 @@ static int hw_cleanup(void)
 	return ret;
 }
 
-static void *hw_get_device_info(int device_index, int device_info_id)
+static void *hw_get_dev_info(int dev_index, int dev_info_id)
 {
 	struct sr_dev_inst *sdi;
-	struct ols_device *ols;
+	struct ols_dev *ols;
 	void *info;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return NULL;
 	ols = sdi->priv;
 
 	info = NULL;
-	switch (device_info_id) {
+	switch (dev_info_id) {
 	case SR_DI_INSTANCE:
 		info = sdi;
 		break;
@@ -590,11 +590,11 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 	return info;
 }
 
-static int hw_get_status(int device_index)
+static int hw_get_status(int dev_index)
 {
 	struct sr_dev_inst *sdi;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return SR_ST_NOT_FOUND;
 
 	return sdi->status;
@@ -608,7 +608,7 @@ static int *hw_get_capabilities(void)
 static int set_configuration_samplerate(struct sr_dev_inst *sdi,
 					uint64_t samplerate)
 {
-	struct ols_device *ols;
+	struct ols_dev *ols;
 
 	ols = sdi->priv;
 	if (ols->max_samplerate) {
@@ -638,14 +638,14 @@ static int set_configuration_samplerate(struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-static int hw_set_configuration(int device_index, int capability, void *value)
+static int hw_set_configuration(int dev_index, int capability, void *value)
 {
 	struct sr_dev_inst *sdi;
-	struct ols_device *ols;
+	struct ols_dev *ols;
 	int ret;
 	uint64_t *tmp_u64;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return SR_ERR;
 	ols = sdi->priv;
 
@@ -698,12 +698,12 @@ static int receive_data(int fd, int revents, void *session_data)
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
 	struct sr_dev_inst *sdi;
-	struct ols_device *ols;
+	struct ols_dev *ols;
 	GSList *l;
 	int num_channels, offset, i, j;
 	unsigned char byte;
 
-	/* find this device's ols_device struct by its fd */
+	/* find this device's ols_dev struct by its fd */
 	ols = NULL;
 	for (l = dev_insts; l; l = l->next) {
 		sdi = l->data;
@@ -872,12 +872,12 @@ static int receive_data(int fd, int revents, void *session_data)
 	return TRUE;
 }
 
-static int hw_start_acquisition(int device_index, gpointer session_data)
+static int hw_start_acquisition(int dev_index, gpointer session_data)
 {
 	struct sr_datafeed_packet *packet;
 	struct sr_datafeed_header *header;
 	struct sr_dev_inst *sdi;
-	struct ols_device *ols;
+	struct ols_dev *ols;
 	uint32_t trigger_config[4];
 	uint32_t data;
 	uint16_t readcount, delaycount;
@@ -885,7 +885,7 @@ static int hw_start_acquisition(int device_index, gpointer session_data)
 	int num_channels;
 	int i;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return SR_ERR;
 
 	ols = sdi->priv;
@@ -1025,20 +1025,20 @@ static int hw_start_acquisition(int device_index, gpointer session_data)
 	return SR_OK;
 }
 
-static int hw_stop_acquisition(int device_index, gpointer session_device_id)
+static int hw_stop_acquisition(int dev_index, gpointer session_dev_id)
 {
 	struct sr_datafeed_packet packet;
 
 	/* Avoid compiler warnings. */
-	(void)device_index;
+	(void)dev_index;
 
 	packet.type = SR_DF_END;
-	sr_session_bus(session_device_id, &packet);
+	sr_session_bus(session_dev_id, &packet);
 
 	return SR_OK;
 }
 
-SR_PRIV struct sr_device_plugin ols_plugin_info = {
+SR_PRIV struct sr_dev_plugin ols_plugin_info = {
 	.name = "ols",
 	.longname = "Openbench Logic Sniffer",
 	.api_version = 1,
@@ -1046,7 +1046,7 @@ SR_PRIV struct sr_device_plugin ols_plugin_info = {
 	.cleanup = hw_cleanup,
 	.opendev = hw_opendev,
 	.closedev = hw_closedev,
-	.get_device_info = hw_get_device_info,
+	.get_dev_info = hw_get_dev_info,
 	.get_status = hw_get_status,
 	.get_capabilities = hw_get_capabilities,
 	.set_configuration = hw_set_configuration,

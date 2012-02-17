@@ -81,14 +81,13 @@ SR_PRIV void sr_hw_cleanup_all(void);
 
 /*--- session.c -------------------------------------------------------------*/
 
-SR_PRIV int sr_session_bus(struct sr_device *device,
+SR_PRIV int sr_session_bus(struct sr_dev *dev,
 			   struct sr_datafeed_packet *packet);
 
 /* Generic device instances */
 SR_PRIV struct sr_dev_inst *sr_dev_inst_new(int index, int status,
 		const char *vendor, const char *model, const char *version);
-SR_PRIV struct sr_dev_inst *sr_dev_inst_get(GSList *dev_insts,
-					    int device_index);
+SR_PRIV struct sr_dev_inst *sr_dev_inst_get(GSList *dev_insts, int dev_index);
 SR_PRIV void sr_dev_inst_free(struct sr_dev_inst *sdi);
 
 SR_PRIV void sr_source_remove(int fd);
@@ -121,7 +120,7 @@ SR_PRIV int ezusb_upload_firmware(libusb_device *dev, int configuration,
 /*--- hardware/common/misc.c ------------------------------------------------*/
 
 #ifdef HAVE_LIBUSB_1_0
-SR_PRIV int opendev2(int device_index, struct sr_dev_inst **sdi,
+SR_PRIV int opendev2(int dev_index, struct sr_dev_inst **sdi,
 		     libusb_device *dev, struct libusb_device_descriptor *des,
 		     int *skip, uint16_t vid, uint16_t pid, int interface);
 SR_PRIV int opendev3(struct sr_dev_inst **sdi, libusb_device *dev,

@@ -28,7 +28,7 @@
 #include "sigrok-internal.h"
 
 extern struct sr_session *session;
-extern SR_PRIV struct sr_device_plugin session_driver;
+extern SR_PRIV struct sr_dev_plugin session_driver;
 
 /**
  * Load the session from the specified filename.
@@ -47,7 +47,7 @@ SR_API int sr_session_load(const char *filename)
 	struct zip_file *zf;
 	struct zip_stat zs;
 	struct sr_session *session;
-	struct sr_device *device;
+	struct sr_dev *dev;
 	struct sr_probe *probe;
 	int ret, err, probenum, devcnt, i, j;
 	uint64_t tmp_u64, total_probes, enabled_probes, p;
@@ -109,46 +109,46 @@ SR_API int sr_session_load(const char *filename)
 			continue;
 		if (!strncmp(sections[i], "device ", 7)) {
 			/* device section */
-			device = NULL;
+			dev = NULL;
 			enabled_probes = 0;
 			keys = g_key_file_get_keys(kf, sections[i], NULL, NULL);
 			for (j = 0; keys[j]; j++) {
 				val = g_key_file_get_string(kf, sections[i], keys[j], NULL);
 				if (!strcmp(keys[j], "capturefile")) {
-					device = sr_dev_new(&session_driver, devcnt);
+					dev = sr_dev_new(&session_driver, devcnt);
 					if (devcnt == 0)
 						/* first device, init the plugin */
-						device->plugin->init((char *)filename);
-					sr_session_device_add(device);
-					device->plugin->set_configuration(devcnt, SR_HWCAP_CAPTUREFILE, val);
+						dev->plugin->init((char *)filename);
+					sr_session_dev_add(dev);
+					dev->plugin->set_configuration(devcnt, SR_HWCAP_CAPTUREFILE, val);
 					g_ptr_array_add(capturefiles, val);
 				} else if (!strcmp(keys[j], "samplerate")) {
 					sr_parse_sizestring(val, &tmp_u64);
-					device->plugin->set_configuration(devcnt, SR_HWCAP_SAMPLERATE, &tmp_u64);
+					dev->plugin->set_configuration(devcnt, SR_HWCAP_SAMPLERATE, &tmp_u64);
 				} else if (!strcmp(keys[j], "unitsize")) {
 					tmp_u64 = strtoull(val, NULL, 10);
-					device->plugin->set_configuration(devcnt, SR_HWCAP_CAPTURE_UNITSIZE, &tmp_u64);
+					dev->plugin->set_configuration(devcnt, SR_HWCAP_CAPTURE_UNITSIZE, &tmp_u64);
 				} else if (!strcmp(keys[j], "total probes")) {
 					total_probes = strtoull(val, NULL, 10);
-					device->plugin->set_configuration(devcnt, SR_HWCAP_CAPTURE_NUM_PROBES, &total_probes);
+					dev->plugin->set_configuration(devcnt, SR_HWCAP_CAPTURE_NUM_PROBES, &total_probes);
 					for (p = 0; p < total_probes; p++) {
 						snprintf(probename, SR_MAX_PROBENAME_LEN, "%" PRIu64, p);
-						sr_dev_probe_add(device, probename);
+						sr_dev_probe_add(dev, probename);
 					}
 				} else if (!strncmp(keys[j], "probe", 5)) {
-					if (!device)
+					if (!dev)
 						continue;
 					enabled_probes++;
 					tmp_u64 = strtoul(keys[j]+5, NULL, 10);
-					sr_dev_probe_name(device, tmp_u64, val);
+					sr_dev_probe_name(dev, tmp_u64, val);
 				} else if (!strncmp(keys[j], "trigger", 7)) {
 					probenum = strtoul(keys[j]+7, NULL, 10);
-					sr_dev_trigger_set(device, probenum, val);
+					sr_dev_trigger_set(dev, probenum, val);
 				}
 			}
 			g_strfreev(keys);
 			for (p = enabled_probes; p < total_probes; p++) {
-				probe = g_slist_nth_data(device->probes, p);
+				probe = g_slist_nth_data(dev->probes, p);
 				probe->enabled = FALSE;
 			}
 		}
@@ -172,7 +172,7 @@ int sr_session_save(const char *filename)
 {
 	GSList *l, *p, *d;
 	FILE *meta;
-	struct sr_device *device;
+	struct sr_dev *dev;
 	struct sr_probe *probe;
 	struct sr_datastore *ds;
 	struct zip *zipfile;
@@ -213,28 +213,28 @@ int sr_session_save(const char *filename)
 
 	/* all datastores in all devices */
 	devcnt = 1;
-	for (l = session->devices; l; l = l->next) {
-		device = l->data;
+	for (l = session->devs; l; l = l->next) {
+		dev = l->data;
 		/* metadata */
 		fprintf(meta, "[device %d]\n", devcnt);
-		if (device->plugin)
-			fprintf(meta, "driver = %s\n", device->plugin->name);
+		if (dev->plugin)
+			fprintf(meta, "driver = %s\n", dev->plugin->name);
 
-		ds = device->datastore;
+		ds = dev->datastore;
 		if (ds) {
 			/* metadata */
 			fprintf(meta, "capturefile = logic-%d\n", devcnt);
 			fprintf(meta, "unitsize = %d\n", ds->ds_unitsize);
-			fprintf(meta, "total probes = %d\n", g_slist_length(device->probes));
-			if (sr_dev_has_hwcap(device, SR_HWCAP_SAMPLERATE)) {
-				samplerate = *((uint64_t *) device->plugin->get_device_info(
-						device->plugin_index, SR_DI_CUR_SAMPLERATE));
+			fprintf(meta, "total probes = %d\n", g_slist_length(dev->probes));
+			if (sr_dev_has_hwcap(dev, SR_HWCAP_SAMPLERATE)) {
+				samplerate = *((uint64_t *) dev->plugin->get_dev_info(
+						dev->plugin_index, SR_DI_CUR_SAMPLERATE));
 				s = sr_samplerate_string(samplerate);
 				fprintf(meta, "samplerate = %s\n", s);
 				g_free(s);
 			}
 			probecnt = 1;
-			for (p = device->probes; p; p = p->next) {
+			for (p = dev->probes; p; p = p->next) {
 				probe = p->data;
 				if (probe->enabled) {
 					if (probe->name)

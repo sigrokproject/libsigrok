@@ -76,8 +76,8 @@ SR_API int sr_session_destroy(void)
 		return SR_ERR_BUG;
 	}
 
-	g_slist_free(session->devices);
-	session->devices = NULL;
+	g_slist_free(session->devs);
+	session->devs = NULL;
 
 	/* TODO: Error checks needed? */
 
@@ -97,15 +97,15 @@ SR_API int sr_session_destroy(void)
  *
  * @return SR_OK upon success, SR_ERR_BUG if no session exists.
  */
-SR_API int sr_session_device_clear(void)
+SR_API int sr_session_dev_clear(void)
 {
 	if (!session) {
 		sr_err("session: %s: session was NULL", __func__);
 		return SR_ERR_BUG;
 	}
 
-	g_slist_free(session->devices);
-	session->devices = NULL;
+	g_slist_free(session->devs);
+	session->devs = NULL;
 
 	return SR_OK;
 }
@@ -113,28 +113,27 @@ SR_API int sr_session_device_clear(void)
 /**
  * Add a device to the current session.
  *
- * @param device The device to add to the current session. Must not be NULL.
- *               Also, device->plugin and device->plugin->opendev must not
- *               be NULL.
+ * @param dev The device to add to the current session. Must not be NULL.
+ *            Also, dev->plugin and dev->plugin->opendev must not be NULL.
  *
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments.
  */
-SR_API int sr_session_device_add(struct sr_device *device)
+SR_API int sr_session_dev_add(struct sr_dev *dev)
 {
 	int ret;
 
-	if (!device) {
-		sr_err("session: %s: device was NULL", __func__);
+	if (!dev) {
+		sr_err("session: %s: dev was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
-	if (!device->plugin) {
-		sr_err("session: %s: device->plugin was NULL", __func__);
+	if (!dev->plugin) {
+		sr_err("session: %s: dev->plugin was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
-	if (!device->plugin->opendev) {
-		sr_err("session: %s: device->plugin->opendev was NULL",
+	if (!dev->plugin->opendev) {
+		sr_err("session: %s: dev->plugin->opendev was NULL",
 		       __func__);
 		return SR_ERR_ARG;
 	}
@@ -144,12 +143,12 @@ SR_API int sr_session_device_add(struct sr_device *device)
 		return SR_ERR; /* TODO: SR_ERR_BUG? */
 	}
 
-	if ((ret = device->plugin->opendev(device->plugin_index)) != SR_OK) {
+	if ((ret = dev->plugin->opendev(dev->plugin_index)) != SR_OK) {
 		sr_err("session: %s: opendev failed (%d)", __func__, ret);
 		return ret;
 	}
 
-	session->devices = g_slist_append(session->devices, device);
+	session->devs = g_slist_append(session->devs, dev);
 
 	return SR_OK;
 }
@@ -253,7 +252,7 @@ static int sr_session_run_poll(void)
  */
 SR_API int sr_session_start(void)
 {
-	struct sr_device *device;
+	struct sr_dev *dev;
 	GSList *l;
 	int ret;
 
@@ -263,9 +262,9 @@ SR_API int sr_session_start(void)
 		return SR_ERR; /* TODO: SR_ERR_BUG? */
 	}
 
-	if (!session->devices) {
+	if (!session->devs) {
 		/* TODO: Actually the case? */
-		sr_err("session: %s: session->devices was NULL; a session "
+		sr_err("session: %s: session->devs was NULL; a session "
 		       "cannot be started without devices.", __func__);
 		return SR_ERR; /* TODO: SR_ERR_BUG? */
 	}
@@ -274,11 +273,11 @@ SR_API int sr_session_start(void)
 
 	sr_info("session: starting");
 
-	for (l = session->devices; l; l = l->next) {
-		device = l->data;
-		/* TODO: Check for device != NULL. */
-		if ((ret = device->plugin->start_acquisition(
-				device->plugin_index, device)) != SR_OK) {
+	for (l = session->devs; l; l = l->next) {
+		dev = l->data;
+		/* TODO: Check for dev != NULL. */
+		if ((ret = dev->plugin->start_acquisition(
+				dev->plugin_index, dev)) != SR_OK) {
 			sr_err("session: %s: could not start an acquisition "
 			       "(%d)", __func__, ret);
 			break;
@@ -305,9 +304,9 @@ SR_API int sr_session_run(void)
 		return SR_ERR_BUG;
 	}
 
-	if (!session->devices) {
+	if (!session->devs) {
 		/* TODO: Actually the case? */
-		sr_err("session: %s: session->devices was NULL; a session "
+		sr_err("session: %s: session->devs was NULL; a session "
 		       "cannot be run without devices.", __func__);
 		return SR_ERR_BUG;
 	}
@@ -359,7 +358,7 @@ SR_API int sr_session_halt(void)
  */
 SR_API int sr_session_stop(void)
 {
-	struct sr_device *device;
+	struct sr_dev *dev;
 	GSList *l;
 
 	if (!session) {
@@ -370,14 +369,14 @@ SR_API int sr_session_stop(void)
 	sr_info("session: stopping");
 	session->running = FALSE;
 
-	for (l = session->devices; l; l = l->next) {
-		device = l->data;
-		/* Check for device != NULL. */
-		if (device->plugin) {
-			if (device->plugin->stop_acquisition)
-				device->plugin->stop_acquisition(device->plugin_index, device);
-			if (device->plugin->cleanup)
-				device->plugin->cleanup();
+	for (l = session->devs; l; l = l->next) {
+		dev = l->data;
+		/* Check for dev != NULL. */
+		if (dev->plugin) {
+			if (dev->plugin->stop_acquisition)
+				dev->plugin->stop_acquisition(dev->plugin_index, dev);
+			if (dev->plugin->cleanup)
+				dev->plugin->cleanup();
 		}
 	}
 
@@ -419,24 +418,24 @@ static void datafeed_dump(struct sr_datafeed_packet *packet)
  *
  * Hardware drivers use this to send a data packet to the frontend.
  *
- * @param device TODO.
+ * @param dev TODO.
  * @param packet TODO.
  *
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments.
  */
-SR_PRIV int sr_session_bus(struct sr_device *device,
+SR_PRIV int sr_session_bus(struct sr_dev *dev,
 			   struct sr_datafeed_packet *packet)
 {
 	GSList *l;
 	sr_datafeed_callback cb;
 
-	if (!device) {
-		sr_err("session: %s: device was NULL", __func__);
+	if (!dev) {
+		sr_err("session: %s: dev was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
-	if (!device->plugin) {
-		sr_err("session: %s: device->plugin was NULL", __func__);
+	if (!dev->plugin) {
+		sr_err("session: %s: dev->plugin was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
@@ -450,7 +449,7 @@ SR_PRIV int sr_session_bus(struct sr_device *device,
 			datafeed_dump(packet);
 		cb = l->data;
 		/* TODO: Check for cb != NULL. */
-		cb(device, packet);
+		cb(dev, packet);
 	}
 
 	return SR_OK;

@@ -43,28 +43,28 @@ SR_API struct sr_hwcap_option sr_hwcap_options[] = {
 };
 
 #ifdef HAVE_LA_DEMO
-extern struct sr_device_plugin demo_plugin_info;
+extern struct sr_dev_plugin demo_plugin_info;
 #endif
 #ifdef HAVE_LA_SALEAE_LOGIC
-extern struct sr_device_plugin saleae_logic_plugin_info;
+extern struct sr_dev_plugin saleae_logic_plugin_info;
 #endif
 #ifdef HAVE_LA_OLS
-extern struct sr_device_plugin ols_plugin_info;
+extern struct sr_dev_plugin ols_plugin_info;
 #endif
 #ifdef HAVE_LA_ZEROPLUS_LOGIC_CUBE
-extern struct sr_device_plugin zeroplus_logic_cube_plugin_info;
+extern struct sr_dev_plugin zeroplus_logic_cube_plugin_info;
 #endif
 #ifdef HAVE_LA_ASIX_SIGMA
-extern struct sr_device_plugin asix_sigma_plugin_info;
+extern struct sr_dev_plugin asix_sigma_plugin_info;
 #endif
 #ifdef HAVE_LA_CHRONOVU_LA8
-extern SR_PRIV struct device_plugin chronovu_la8_plugin_info;
+extern SR_PRIV struct dev_plugin chronovu_la8_plugin_info;
 #endif
 #ifdef HAVE_LA_LINK_MSO19
-extern struct sr_device_plugin link_mso19_plugin_info;
+extern struct sr_dev_plugin link_mso19_plugin_info;
 #endif
 #ifdef HAVE_LA_ALSA
-extern struct sr_device_plugin alsa_plugin_info;
+extern struct sr_dev_plugin alsa_plugin_info;
 #endif
 
 /* TODO: No linked list needed, this can be a simple array. */
@@ -123,19 +123,19 @@ SR_API GSList *sr_hw_list(void)
  *
  * @return The number of devices found and instantiated by the plugin.
  */
-SR_API int sr_hw_init(struct sr_device_plugin *plugin)
+SR_API int sr_hw_init(struct sr_dev_plugin *plugin)
 {
-	int num_devices, num_probes, i, j;
-	int num_initialized_devices = 0;
-	struct sr_device *device;
+	int num_devs, num_probes, i, j;
+	int num_initialized_devs = 0;
+	struct sr_dev *dev;
 	char **probe_names;
 
 	sr_dbg("initializing %s plugin", plugin->name);
-	num_devices = plugin->init(NULL);
-	for (i = 0; i < num_devices; i++) {
+	num_devs = plugin->init(NULL);
+	for (i = 0; i < num_devs; i++) {
 		num_probes = GPOINTER_TO_INT(
-				plugin->get_device_info(i, SR_DI_NUM_PROBES));
-		probe_names = (char **)plugin->get_device_info(i,
+				plugin->get_dev_info(i, SR_DI_NUM_PROBES));
+		probe_names = (char **)plugin->get_dev_info(i,
 							SR_DI_PROBE_NAMES);
 
 		if (!probe_names) {
@@ -144,18 +144,18 @@ SR_API int sr_hw_init(struct sr_device_plugin *plugin)
 			continue;
 		}
 
-		device = sr_dev_new(plugin, i);
+		dev = sr_dev_new(plugin, i);
 		for (j = 0; j < num_probes; j++)
-			sr_dev_probe_add(device, probe_names[j]);
-		num_initialized_devices++;
+			sr_dev_probe_add(dev, probe_names[j]);
+		num_initialized_devs++;
 	}
 
-	return num_initialized_devices;
+	return num_initialized_devs;
 }
 
 SR_PRIV void sr_hw_cleanup_all(void)
 {
-	struct sr_device_plugin *plugin;
+	struct sr_dev_plugin *plugin;
 	GSList *l;
 
 	for (l = plugins; l; l = l->next) {
@@ -186,17 +186,17 @@ SR_PRIV struct sr_dev_inst *sr_dev_inst_new(int index, int status,
 	return sdi;
 }
 
-SR_PRIV struct sr_dev_inst *sr_dev_inst_get(GSList *dev_insts, int device_index)
+SR_PRIV struct sr_dev_inst *sr_dev_inst_get(GSList *dev_insts, int dev_index)
 {
 	struct sr_dev_inst *sdi;
 	GSList *l;
 
 	for (l = dev_insts; l; l = l->next) {
 		sdi = (struct sr_dev_inst *)(l->data);
-		if (sdi->index == device_index)
+		if (sdi->index == dev_index)
 			return sdi;
 	}
-	sr_warn("could not find device index %d instance", device_index);
+	sr_warn("could not find device index %d instance", dev_index);
 
 	return NULL;
 }
@@ -268,7 +268,7 @@ SR_PRIV void sr_serial_dev_inst_free(struct sr_serial_dev_inst *serial)
  *
  * @return TRUE if found, FALSE otherwise.
  */
-SR_API gboolean sr_hw_has_hwcap(struct sr_device_plugin *plugin, int hwcap)
+SR_API gboolean sr_hw_has_hwcap(struct sr_dev_plugin *plugin, int hwcap)
 {
 	int *capabilities, i;
 

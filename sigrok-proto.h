@@ -49,19 +49,18 @@ SR_API int sr_datastore_put(struct sr_datastore *ds, void *data,
 
 SR_API int sr_dev_scan(void);
 SR_API GSList *sr_dev_list(void);
-SR_API struct sr_device *sr_dev_new(const struct sr_device_plugin *plugin,
-				       int plugin_index);
-SR_API int sr_dev_probe_add(struct sr_device *device, const char *name);
-SR_API struct sr_probe *sr_dev_probe_find(const struct sr_device *device,
-					     int probenum);
-SR_API int sr_dev_probe_name(struct sr_device *device, int probenum,
-				const char *name);
-SR_API int sr_dev_trigger_clear(struct sr_device *device);
-SR_API int sr_dev_trigger_set(struct sr_device *device, int probenum,
-				 const char *trigger);
-SR_API gboolean sr_dev_has_hwcap(const struct sr_device *device, int hwcap);
-SR_API int sr_dev_info_get(const struct sr_device *device, int id,
-			      const void **data);
+SR_API struct sr_dev *sr_dev_new(const struct sr_dev_plugin *plugin,
+				 int plugin_index);
+SR_API int sr_dev_probe_add(struct sr_dev *dev, const char *name);
+SR_API struct sr_probe *sr_dev_probe_find(const struct sr_dev *dev,
+					  int probenum);
+SR_API int sr_dev_probe_name(struct sr_dev *dev, int probenum,
+			     const char *name);
+SR_API int sr_dev_trigger_clear(struct sr_dev *dev);
+SR_API int sr_dev_trigger_set(struct sr_dev *dev, int probenum,
+			      const char *trigger);
+SR_API gboolean sr_dev_has_hwcap(const struct sr_dev *dev, int hwcap);
+SR_API int sr_dev_info_get(const struct sr_dev *dev, int id, const void **data);
 
 /*--- filter.c --------------------------------------------------------------*/
 
@@ -73,21 +72,21 @@ SR_API int sr_filter_probes(int in_unitsize, int out_unitsize,
 /*--- hwplugin.c ------------------------------------------------------------*/
 
 SR_API GSList *sr_hw_list(void);
-SR_API int sr_hw_init(struct sr_device_plugin *plugin);
-SR_API gboolean sr_hw_has_hwcap(struct sr_device_plugin *plugin, int hwcap);
+SR_API int sr_hw_init(struct sr_dev_plugin *plugin);
+SR_API gboolean sr_hw_has_hwcap(struct sr_dev_plugin *plugin, int hwcap);
 SR_API struct sr_hwcap_option *sr_hw_hwcap_get(int hwcap);
 
 /*--- session.c -------------------------------------------------------------*/
 
-typedef void (*sr_datafeed_callback) (struct sr_device *device,
+typedef void (*sr_datafeed_callback) (struct sr_dev *dev,
 				      struct sr_datafeed_packet *packet);
 
 /* Session setup */
 SR_API int sr_session_load(const char *filename);
 SR_API struct sr_session *sr_session_new(void);
 SR_API int sr_session_destroy(void);
-SR_API int sr_session_device_clear(void);
-SR_API int sr_session_device_add(struct sr_device *device);
+SR_API int sr_session_dev_clear(void);
+SR_API int sr_session_dev_add(struct sr_dev *dev);
 
 /* Datafeed setup */
 SR_API int sr_session_datafeed_callback_clear(void);
@@ -111,11 +110,11 @@ SR_API struct sr_input_format **sr_input_list(void);
 
 SR_API struct sr_output_format **sr_output_list(void);
 
-/*--- strutil.c -------------------------------------------------------*/
+/*--- strutil.c -------------------------------------------------------------*/
 
 SR_API char *sr_samplerate_string(uint64_t samplerate);
 SR_API char *sr_period_string(uint64_t frequency);
-SR_API char **sr_parse_triggerstring(struct sr_device *device,
+SR_API char **sr_parse_triggerstring(struct sr_dev *dev,
 				     const char *triggerstring);
 SR_API int sr_parse_sizestring(const char *sizestring, uint64_t *size);
 SR_API uint64_t sr_parse_timestring(const char *timestring);

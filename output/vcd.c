@@ -57,7 +57,7 @@ static int init(struct sr_output *o)
 	o->internal = ctx;
 	ctx->num_enabled_probes = 0;
 
-	for (l = o->device->probes; l; l = l->next) {
+	for (l = o->dev->probes; l; l = l->next) {
 		probe = l->data;
 		if (!probe->enabled)
 			continue;
@@ -71,7 +71,7 @@ static int init(struct sr_output *o)
 	ctx->probelist[ctx->num_enabled_probes] = 0;
 	ctx->unitsize = (ctx->num_enabled_probes + 7) / 8;
 	ctx->header = g_string_sized_new(512);
-	num_probes = g_slist_length(o->device->probes);
+	num_probes = g_slist_length(o->dev->probes);
 
 	/* timestamp */
 	t = time(NULL);
@@ -84,9 +84,9 @@ static int init(struct sr_output *o)
 	g_string_append_printf(ctx->header, "$version %s %s $end\n",
 			PACKAGE, PACKAGE_VERSION);
 
-	if (o->device->plugin && sr_dev_has_hwcap(o->device, SR_HWCAP_SAMPLERATE)) {
-		ctx->samplerate = *((uint64_t *) o->device->plugin->get_device_info(
-				o->device->plugin_index, SR_DI_CUR_SAMPLERATE));
+	if (o->dev->plugin && sr_dev_has_hwcap(o->dev, SR_HWCAP_SAMPLERATE)) {
+		ctx->samplerate = *((uint64_t *) o->dev->plugin->get_dev_info(
+				o->dev->plugin_index, SR_DI_CUR_SAMPLERATE));
 		if (!((samplerate_s = sr_samplerate_string(ctx->samplerate)))) {
 			g_string_free(ctx->header, TRUE);
 			g_free(ctx);
