@@ -101,7 +101,7 @@ SR_PRIV int sr_hw_load_all(void)
 }
 
 /**
- * Returns the list of loaded hardware plugins.
+ * Return the list of loaded hardware plugins.
  *
  * The list of plugins is initialized from sr_init(), and can only be reset
  * by calling sr_exit().
@@ -110,7 +110,6 @@ SR_PRIV int sr_hw_load_all(void)
  */
 SR_API GSList *sr_hw_list(void)
 {
-
 	return plugins;
 }
 
@@ -266,8 +265,7 @@ SR_PRIV void sr_serial_dev_inst_free(
 /**
  * Find out if a hardware plugin has a specific capability.
  *
- * @param capabilities A NULL-terminated integer array of capabilities, as
- * returned by a plugin's get_capabilities() function.
+ * @param plugin The hardware plugin in which to search for the capability.
  * @param hwcap The capability to find in the list.
  *
  * @return TRUE if found, FALSE otherwise.
@@ -290,8 +288,8 @@ SR_API gboolean sr_hw_has_hwcap(struct sr_device_plugin *plugin, int hwcap)
  *
  * @param hwcap The capability to get.
  *
- * @return A struct with information about the parameter, or NULL
- * if not found.
+ * @return A pointer to a struct with information about the parameter, or NULL
+ *         if the capability was not found.
  */
 SR_API struct sr_hwcap_option *sr_hw_hwcap_get(int hwcap)
 {

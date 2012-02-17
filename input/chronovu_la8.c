@@ -36,6 +36,7 @@
  * Max. value for divcount: 0xfe (2550ns sample period, 392.15kHz samplerate).
  *
  * @param divcount The divcount value as needed by the hardware.
+ *
  * @return The samplerate in Hz, or 0xffffffffffffffff upon errors.
  */
 static uint64_t divcount_to_samplerate(uint8_t divcount)

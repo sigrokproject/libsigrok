@@ -120,7 +120,7 @@ SR_API GSList *sr_dev_list(void)
  * @return Pointer to the newly allocated device, or NULL upon errors.
  */
 SR_API struct sr_device *sr_dev_new(const struct sr_device_plugin *plugin,
-				       int plugin_index)
+				    int plugin_index)
 {
 	struct sr_device *device;
 
@@ -410,8 +410,8 @@ SR_API gboolean sr_dev_has_hwcap(const struct sr_device *device, int hwcap)
  *
  * @param device Pointer to the device to be checked. Must not be NULL.
  *               The device's 'plugin' field must not be NULL either.
- * @param id     The type of information.
- * @param data   The return value. Must not be NULL.
+ * @param id The type of information.
+ * @param data The return value. Must not be NULL.
  *
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or SR_ERR
  *         upon other errors.
@@ -432,4 +432,3 @@ SR_API int sr_dev_info_get(const struct sr_device *device, int id,
 
 	return SR_OK;
 }
-

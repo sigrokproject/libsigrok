@@ -55,6 +55,7 @@ static char sr_log_domain[LOGDOMAIN_MAXLEN + 1] = LOGDOMAIN_DEFAULT;
  *
  * @param loglevel The loglevel to set (SR_LOG_NONE, SR_LOG_ERR, SR_LOG_WARN,
  *                 SR_LOG_INFO, SR_LOG_DBG, or SR_LOG_SPEW).
+ *
  * @return SR_OK upon success, SR_ERR_ARG upon invalid loglevel.
  */
 SR_API int sr_log_loglevel_set(int loglevel)
@@ -92,6 +93,7 @@ SR_API int sr_log_loglevel_get(void)
  *                  In order to not use a logdomain, pass an empty string.
  *                  The function makes its own copy of the input string, i.e.
  *                  the caller does not need to keep it around.
+ *
  * @return SR_OK upon success, SR_ERR_ARG upon invalid logdomain.
  */
 SR_API int sr_log_logdomain_set(const char *logdomain)
@@ -131,6 +133,7 @@ SR_API char *sr_log_logdomain_get(void)
  *             pointer is only stored or passed on by libsigrok, and
  *             is never used or interpreted in any way. The pointer is allowed
  *             to be NULL if the caller doesn't need/want to pass any data.
+ *
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments.
  */
 SR_API int sr_log_handler_set(sr_log_handler_t handler, void *data)

@@ -332,8 +332,7 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	return SR_OK;
 }
 
-/* Not static, it's used elsewhere (via 'extern'). */
-struct sr_device_plugin session_driver = {
+SR_PRIV struct sr_device_plugin session_driver = {
 	"session",
 	"Session-emulating driver",
 	1,

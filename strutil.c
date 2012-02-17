@@ -30,6 +30,7 @@
  * E.g. a value of 3000000 would be converted to "3 MHz", 20000 to "20 kHz".
  *
  * @param samplerate The samplerate in Hz.
+ *
  * @return A g_try_malloc()ed string representation of the samplerate value,
  *         or NULL upon errors. The caller is responsible to g_free() the
  *         memory.
@@ -70,6 +71,7 @@ SR_API char *sr_samplerate_string(uint64_t samplerate)
  * E.g. a value of 3000000 would be converted to "3 us", 20000 to "50 ms".
  *
  * @param frequency The frequency in Hz.
+ *
  * @return A g_try_malloc()ed string representation of the frequency value,
  *         or NULL upon errors. The caller is responsible to g_free() the
  *         memory.
@@ -108,6 +110,7 @@ SR_API char *sr_period_string(uint64_t frequency)
  *
  * @param device TODO
  * @param triggerstring TODO
+ *
  * @return TODO
  */
 SR_API char **sr_parse_triggerstring(struct sr_device *device,
@@ -192,8 +195,8 @@ SR_API char **sr_parse_triggerstring(struct sr_device *device,
  *
  * @param sizestring A string containing a (decimal) size value.
  * @param size Pointer to uint64_t which will contain the string's size value.
- * @return SR_OK or error code
  *
+ * @return SR_OK upon success, SR_ERR upon errors.
  */
 SR_API int sr_parse_sizestring(const char *sizestring, uint64_t *size)
 {

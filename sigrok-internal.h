@@ -63,8 +63,7 @@ SR_PRIV void sr_usb_dev_inst_free(struct sr_usb_device_instance *usb);
 /* Serial-specific instances */
 SR_PRIV struct sr_serial_device_instance *sr_serial_dev_inst_new(
 					const char *port, int fd);
-SR_PRIV void sr_serial_dev_inst_free(
-		struct sr_serial_device_instance *serial);
+SR_PRIV void sr_serial_dev_inst_free(struct sr_serial_device_instance *serial);
 
 /*--- log.c -----------------------------------------------------------------*/
 
@@ -83,7 +82,7 @@ SR_PRIV void sr_hw_cleanup_all(void);
 /*--- session.c -------------------------------------------------------------*/
 
 SR_PRIV int sr_session_bus(struct sr_device *device,
-			  struct sr_datafeed_packet *packet);
+			   struct sr_datafeed_packet *packet);
 
 /* Generic device instances */
 SR_PRIV struct sr_device_instance *sr_dev_inst_new(int index,
@@ -94,7 +93,7 @@ SR_PRIV void sr_dev_inst_free(struct sr_device_instance *sdi);
 
 SR_PRIV void sr_source_remove(int fd);
 SR_PRIV void sr_source_add(int fd, int events, int timeout,
-			  sr_receive_data_callback rcv_cb, void *user_data);
+			   sr_receive_data_callback rcv_cb, void *user_data);
 
 /*--- hardware/common/serial.c ----------------------------------------------*/
 

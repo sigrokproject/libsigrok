@@ -331,8 +331,8 @@ SR_API int sr_session_run(void)
 /**
  * Halt the current session.
  *
- * This requests the current session be stopped as soon as possible, for example
- * on receiving an SR_DF_END packet.
+ * This requests the current session be stopped as soon as possible, for
+ * example on receiving an SR_DF_END packet.
  *
  * @return SR_OK upon success, SR_ERR_BUG if no session exists.
  */
@@ -388,7 +388,6 @@ SR_API int sr_session_stop(void)
  * Debug helper.
  *
  * @param packet The packet to show debugging information for.
- *
  */
 static void datafeed_dump(struct sr_datafeed_packet *packet)
 {
@@ -422,6 +421,7 @@ static void datafeed_dump(struct sr_datafeed_packet *packet)
  *
  * @param device TODO.
  * @param packet TODO.
+ *
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments.
  */
 SR_PRIV int sr_session_bus(struct sr_device *device,
@@ -466,6 +466,7 @@ SR_PRIV int sr_session_bus(struct sr_device *device,
  * @param timeout TODO.
  * @param callback TODO.
  * @param user_data TODO.
+ *
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or
  *         SR_ERR_MALLOC upon memory allocation errors.
  */
@@ -514,6 +515,7 @@ SR_API int sr_session_source_add(int fd, int events, int timeout,
  * TODO: More error checks.
  *
  * @param fd TODO.
+ *
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or
  *         SR_ERR_MALLOC upon memory allocation errors, SR_ERR_BUG upon
  *         internal errors.

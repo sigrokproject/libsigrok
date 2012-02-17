@@ -28,7 +28,7 @@
 #include "sigrok-internal.h"
 
 extern struct sr_session *session;
-extern struct sr_device_plugin session_driver;
+extern SR_PRIV struct sr_device_plugin session_driver;
 
 /**
  * Load the session from the specified filename.

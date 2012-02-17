@@ -36,6 +36,7 @@ struct context {
  * Check if the given samplerate is supported by the LA8 hardware.
  *
  * @param samplerate The samplerate (in Hz) to check.
+ *
  * @return 1 if the samplerate is supported/valid, 0 otherwise.
  */
 static int is_valid_samplerate(uint64_t samplerate)
@@ -61,6 +62,7 @@ static int is_valid_samplerate(uint64_t samplerate)
  * Max. value for divcount: 0xfe (2550ns sample period, 392.15kHz samplerate).
  *
  * @param samplerate The samplerate in Hz.
+ *
  * @return The divcount value as needed by the hardware, or 0xff upon errors.
  */
 static uint8_t samplerate_to_divcount(uint64_t samplerate)
