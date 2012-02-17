@@ -146,7 +146,7 @@ static int mso_reset_adc(struct sr_device_instance *sdi)
 	ops[1] = mso_trans(REG_CTL1, mso->ctlbase1);
 	mso->ctlbase1 |= BIT_CTL1_ADC_UNKNOWN4;
 
-	sr_dbg("Requesting ADC reset");
+	sr_dbg("mso19: Requesting ADC reset");
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
 }
 
@@ -158,7 +158,7 @@ static int mso_reset_fsm(struct sr_device_instance *sdi)
 	mso->ctlbase1 |= BIT_CTL1_RESETFSM;
 	ops[0] = mso_trans(REG_CTL1, mso->ctlbase1);
 
-	sr_dbg("Requesting ADC reset");
+	sr_dbg("mso19: Requesting ADC reset");
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
 }
 
@@ -172,7 +172,7 @@ static int mso_toggle_led(struct sr_device_instance *sdi, int state)
 		mso->ctlbase1 |= BIT_CTL1_LED;
 	ops[0] = mso_trans(REG_CTL1, mso->ctlbase1);
 
-	sr_dbg("Requesting LED toggle");
+	sr_dbg("mso19: Requesting LED toggle");
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
 }
 
@@ -183,7 +183,7 @@ static int mso_check_trigger(struct sr_device_instance *sdi,
 	char buf[1];
 	int ret;
 
-	sr_dbg("Requesting trigger state");
+	sr_dbg("mso19: Requesting trigger state");
 	ret = mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
 	if (info == NULL || ret != SR_OK)
 		return ret;
@@ -193,7 +193,7 @@ static int mso_check_trigger(struct sr_device_instance *sdi,
 		ret = SR_ERR;
 	*info = buf[0];
 
-	sr_dbg("Trigger state is: 0x%x", *info);
+	sr_dbg("mso19: Trigger state is: 0x%x", *info);
 	return ret;
 }
 
@@ -201,7 +201,7 @@ static int mso_read_buffer(struct sr_device_instance *sdi)
 {
 	uint16_t ops[] = { mso_trans(REG_BUFFER, 0) };
 
-	sr_dbg("Requesting buffer dump");
+	sr_dbg("mso19: Requesting buffer dump");
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
 }
 
@@ -214,7 +214,7 @@ static int mso_arm(struct sr_device_instance *sdi)
 		mso_trans(REG_CTL1, mso->ctlbase1),
 	};
 
-	sr_dbg("Requesting trigger arm");
+	sr_dbg("mso19: Requesting trigger arm");
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
 }
 
@@ -226,7 +226,7 @@ static int mso_force_capture(struct sr_device_instance *sdi)
 		mso_trans(REG_CTL1, mso->ctlbase1),
 	};
 
-	sr_dbg("Requesting forced capture");
+	sr_dbg("mso19: Requesting forced capture");
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
 }
 
@@ -239,7 +239,7 @@ static int mso_dac_out(struct sr_device_instance *sdi, uint16_t val)
 		mso_trans(REG_CTL1, mso->ctlbase1 | BIT_CTL1_RESETADC),
 	};
 
-	sr_dbg("Setting dac word to 0x%x", val);
+	sr_dbg("mso19: Setting dac word to 0x%x", val);
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
 }
 
@@ -250,7 +250,7 @@ static int mso_clkrate_out(struct sr_device_instance *sdi, uint16_t val)
 		mso_trans(REG_CLKRATE2, val & 0xff),
 	};
 
-	sr_dbg("Setting clkrate word to 0x%x", val);
+	sr_dbg("mso19: Setting clkrate word to 0x%x", val);
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
 }
 
@@ -416,7 +416,7 @@ static int hw_init(const char *deviceinfo)
 	 */
 	udev = udev_new();
 	if (!udev) {
-		sr_err("Failed to initialize udev.");
+		sr_err("mso19: Failed to initialize udev.");
 		goto ret;
 	}
 	enumerate = udev_enumerate_new(udev);
@@ -436,7 +436,7 @@ static int hw_init(const char *deviceinfo)
 		parent = udev_device_get_parent_with_subsystem_devtype(
 				dev, "usb", "usb_device");
 		if (!parent) {
-			sr_err("Unable to find parent usb device for %s",
+			sr_err("mso19: Unable to find parent usb device for %s",
 			       sysname);
 			continue;
 		}
@@ -455,7 +455,7 @@ static int hw_init(const char *deviceinfo)
 		s = strcspn(iProduct, " ");
 		if (s > sizeof(product) ||
 				strlen(iProduct) - s > sizeof(manufacturer)) {
-			sr_err("Could not parse iProduct: %s", iProduct);
+			sr_err("mso19: Could not parse iProduct: %s", iProduct);
 			continue;
 		}
 		strncpy(product, iProduct, s);
@@ -468,7 +468,7 @@ static int hw_init(const char *deviceinfo)
 		}
 
 		if (mso_parse_serial(iSerial, iProduct, mso) != SR_OK) {
-			sr_err("Invalid iSerial: %s", iSerial);
+			sr_err("mso19: Invalid iSerial: %s", iSerial);
 			goto err_free_mso;
 		}
 		sprintf(hwrev, "r%d", mso->hwrev);
@@ -478,8 +478,7 @@ static int hw_init(const char *deviceinfo)
 		{
 			/* Initialize the protocol trigger configuration */
 			int i;
-			for (i = 0; i < 4; i++)
-			{
+			for (i = 0; i < 4; i++) {
 				mso->protocol_trigger.word[i] = 0;
 				mso->protocol_trigger.mask[i] = 0xff;
 			}
@@ -487,9 +486,9 @@ static int hw_init(const char *deviceinfo)
 		}
 
 		sdi = sr_dev_inst_new(devcnt, SR_ST_INITIALIZING,
-			manufacturer, product, hwrev);
+				      manufacturer, product, hwrev);
 		if (!sdi) {
-			sr_err("Unable to create device instance for %s",
+			sr_err("mso19: Unable to create device instance for %s",
 			       sysname);
 			goto err_free_mso;
 		}
@@ -566,20 +565,20 @@ static int hw_opendev(int device_index)
 	/* FIXME: discard serial buffer */
 
 	mso_check_trigger(sdi, &mso->trigger_state);
-	sr_dbg("trigger state: 0x%x", mso->trigger_state);
+	sr_dbg("mso19: trigger state: 0x%x", mso->trigger_state);
 
 	ret = mso_reset_adc(sdi);
 	if (ret != SR_OK)
 		return ret;
 
 	mso_check_trigger(sdi, &mso->trigger_state);
-	sr_dbg("trigger state: 0x%x", mso->trigger_state);
+	sr_dbg("mso19: trigger state: 0x%x", mso->trigger_state);
 
 //	ret = mso_reset_fsm(sdi);
 //	if (ret != SR_OK)
 //		return ret;
 
-	sr_dbg("Finished %s", __func__);
+	sr_dbg("mso19: Finished %s", __func__);
 
 //	return SR_ERR;
 	return SR_OK;
@@ -601,7 +600,7 @@ static int hw_closedev(int device_index)
 		sdi->status = SR_ST_INACTIVE;
 	}
 
-	sr_dbg("finished %s", __func__);
+	sr_dbg("mso19: finished %s", __func__);
 	return SR_OK;
 }
 

@@ -64,7 +64,7 @@ static int init(struct sr_output *o)
 		ctx->probelist[ctx->num_enabled_probes++] = probe->name;
 	}
 	if (ctx->num_enabled_probes > 94) {
-		sr_err("VCD only supports 94 probes.");
+		sr_err("vcd out: VCD only supports 94 probes.");
 		return SR_ERR;
 	}
 

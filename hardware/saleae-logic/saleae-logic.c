@@ -185,11 +185,12 @@ static int sl_open_device(int device_index)
 	libusb_get_device_list(usb_context, &devlist);
 	for (i = 0; devlist[i]; i++) {
 		if ((err = libusb_get_device_descriptor(devlist[i], &des))) {
-			sr_err("failed to get device descriptor: %d", err);
+			sr_err("logic: failed to get device descriptor: %d", err);
 			continue;
 		}
 
-		if (des.idVendor != fx2->profile->fw_vid || des.idProduct != fx2->profile->fw_pid)
+		if (des.idVendor != fx2->profile->fw_vid
+		    || des.idProduct != fx2->profile->fw_pid)
 			continue;
 
 		if (sdi->status == SR_ST_INITIALIZING) {
@@ -200,8 +201,8 @@ static int sl_open_device(int device_index)
 			}
 		} else if (sdi->status == SR_ST_INACTIVE) {
 			/*
-			 * This device is fully enumerated, so we need to find this
-			 * device by vendor, product, bus and address.
+			 * This device is fully enumerated, so we need to find
+			 * this device by vendor, product, bus and address.
 			 */
 			if (libusb_get_bus_number(devlist[i]) != fx2->usb->bus
 				|| libusb_get_device_address(devlist[i]) != fx2->usb->address)
@@ -218,11 +219,11 @@ static int sl_open_device(int device_index)
 				fx2->usb->address = libusb_get_device_address(devlist[i]);
 
 			sdi->status = SR_ST_ACTIVE;
-			sr_info("saleae: opened device %d on %d.%d interface %d",
-				  sdi->index, fx2->usb->bus,
-				  fx2->usb->address, USB_INTERFACE);
+			sr_info("logic: opened device %d on %d.%d interface %d",
+				sdi->index, fx2->usb->bus,
+				fx2->usb->address, USB_INTERFACE);
 		} else {
-			sr_err("failed to open device: %d", err);
+			sr_err("logic: failed to open device: %d", err);
 		}
 
 		/* if we made it here, we handled the device one way or another */
@@ -245,7 +246,7 @@ static void close_device(struct sr_device_instance *sdi)
 	if (fx2->usb->devhdl == NULL)
 		return;
 
-	sr_info("saleae: closing device %d on %d.%d interface %d", sdi->index,
+	sr_info("logic: closing device %d on %d.%d interface %d", sdi->index,
 		fx2->usb->bus, fx2->usb->address, USB_INTERFACE);
 	libusb_release_interface(fx2->usb->devhdl, USB_INTERFACE);
 	libusb_close(fx2->usb->devhdl);
@@ -304,7 +305,7 @@ static struct fx2_device *fx2_device_new(void)
 	struct fx2_device *fx2;
 
 	if (!(fx2 = g_try_malloc0(sizeof(struct fx2_device)))) {
-		sr_err("saleae: %s: fx2 malloc failed", __func__);
+		sr_err("logic: %s: fx2 malloc failed", __func__);
 		return NULL;
 	}
 	fx2->trigger_stage = TRIGGER_FIRED;
@@ -331,7 +332,7 @@ static int hw_init(const char *deviceinfo)
 	(void)deviceinfo;
 
 	if (libusb_init(&usb_context) != 0) {
-		sr_err("Failed to initialize USB.");
+		sr_err("logic: Failed to initialize USB.");
 		return 0;
 	}
 
@@ -342,7 +343,8 @@ static int hw_init(const char *deviceinfo)
 		fx2_prof = NULL;
 		err = libusb_get_device_descriptor(devlist[i], &des);
 		if (err != 0) {
-			sr_err("failed to get device descriptor: %d", err);
+			sr_err("logic: failed to get device descriptor: %d",
+			       err);
 			continue;
 		}
 
@@ -368,7 +370,7 @@ static int hw_init(const char *deviceinfo)
 
 		if (check_conf_profile(devlist[i])) {
 			/* Already has the firmware, so fix the new address. */
-			sr_dbg("Found a Saleae Logic with %s firmware.",
+			sr_dbg("logic: Found a Saleae Logic with %s firmware.",
 			       new_saleae_logic_firmware ? "new" : "old");
 			sdi->status = SR_ST_INACTIVE;
 			fx2->usb = sr_usb_dev_inst_new
@@ -379,7 +381,8 @@ static int hw_init(const char *deviceinfo)
 				/* Remember when the firmware on this device was updated */
 				g_get_current_time(&fx2->fw_updated);
 			else
-				sr_err("firmware upload failed for device %d", devcnt);
+				sr_err("logic: firmware upload failed for "
+				       "device %d", devcnt);
 			fx2->usb = sr_usb_dev_inst_new
 				(libusb_get_bus_number(devlist[i]), 0xff, NULL);
 		}
@@ -407,31 +410,31 @@ static int hw_opendev(int device_index)
 	 */
 	err = 0;
 	if (GTV_TO_MSEC(fx2->fw_updated) > 0) {
-		sr_info("saleae: waiting for device to reset");
+		sr_info("logic: waiting for device to reset");
 		/* takes at least 300ms for the FX2 to be gone from the USB bus */
-		g_usleep(300*1000);
+		g_usleep(300 * 1000);
 		timediff = 0;
 		while (timediff < MAX_RENUM_DELAY) {
 			if ((err = sl_open_device(device_index)) == SR_OK)
 				break;
-			g_usleep(100*1000);
+			g_usleep(100 * 1000);
 			g_get_current_time(&cur_time);
 			timediff = GTV_TO_MSEC(cur_time) - GTV_TO_MSEC(fx2->fw_updated);
 		}
-		sr_info("saleae: device came back after %d ms", timediff);
+		sr_info("logic: device came back after %d ms", timediff);
 	} else {
 		err = sl_open_device(device_index);
 	}
 
 	if (err != SR_OK) {
-		sr_err("unable to open device");
+		sr_err("logic: unable to open device");
 		return SR_ERR;
 	}
 	fx2 = sdi->priv;
 
 	err = libusb_claim_interface(fx2->usb->devhdl, USB_INTERFACE);
 	if (err != 0) {
-		sr_err("Unable to claim interface: %d", err);
+		sr_err("logic: Unable to claim interface: %d", err);
 		return SR_ERR;
 	}
 
@@ -471,13 +474,13 @@ static int hw_cleanup(void)
 	for (l = device_instances; l; l = l->next) {
 		if (!(sdi = l->data)) {
 			/* Log error, but continue cleaning up the rest. */
-			sr_err("fx2: %s: sdi was NULL, continuing", __func__);
+			sr_err("logic: %s: sdi was NULL, continuing", __func__);
 			ret = SR_ERR_BUG;
 			continue;
 		}
 		if (!(fx2 = sdi->priv)) {
 			/* Log error, but continue cleaning up the rest. */
-			sr_err("fx2: %s: sdi->priv was NULL, continuing",
+			sr_err("logic: %s: sdi->priv was NULL, continuing",
 			       __func__);
 			ret = SR_ERR_BUG;
 			continue;
@@ -583,7 +586,7 @@ static uint8_t new_firmware_divider_value(uint64_t samplerate)
 	}
 
 	/* Shouldn't happen. */
-	sr_err("saleae: %s: Invalid samplerate %" PRIu64 "",
+	sr_err("logic: %s: Invalid samplerate %" PRIu64 "",
 	       __func__, samplerate);
 	return 0;
 }
@@ -609,7 +612,7 @@ static int set_configuration_samplerate(struct sr_device_instance *sdi,
 	else
 		divider = (uint8_t) (48 / (samplerate / 1000000.0)) - 1;
 
-	sr_info("saleae: setting samplerate to %" PRIu64 " Hz (divider %d)",
+	sr_info("logic: setting samplerate to %" PRIu64 " Hz (divider %d)",
 		samplerate, divider);
 
 	buf[0] = (new_saleae_logic_firmware) ? 0xd5 : 0x01;
@@ -617,7 +620,7 @@ static int set_configuration_samplerate(struct sr_device_instance *sdi,
 	ret = libusb_bulk_transfer(fx2->usb->devhdl, 1 | LIBUSB_ENDPOINT_OUT,
 				   buf, 2, &result, 500);
 	if (ret != 0) {
-		sr_err("failed to set samplerate: %d", ret);
+		sr_err("logic: failed to set samplerate: %d", ret);
 		return SR_ERR;
 	}
 	fx2->cur_samplerate = samplerate;
@@ -692,7 +695,7 @@ static void receive_transfer(struct libusb_transfer *transfer)
 		return;
 	}
 
-	sr_info("saleae: receive_transfer(): status %d received %d bytes",
+	sr_info("logic: receive_transfer(): status %d received %d bytes",
 		transfer->status, transfer->actual_length);
 
 	/* Save incoming transfer before reusing the transfer struct. */
@@ -702,7 +705,7 @@ static void receive_transfer(struct libusb_transfer *transfer)
 
 	/* Fire off a new request. */
 	if (!(new_buf = g_try_malloc(4096))) {
-		sr_err("saleae: %s: new_buf malloc failed", __func__);
+		sr_err("logic: %s: new_buf malloc failed", __func__);
 		return; /* TODO: SR_ERR_MALLOC */
 	}
 
@@ -710,7 +713,8 @@ static void receive_transfer(struct libusb_transfer *transfer)
 	transfer->length = 4096;
 	if (libusb_submit_transfer(transfer) != 0) {
 		/* TODO: Stop session? */
-		sr_err("eek");
+		/* TODO: Better error message. */
+		sr_err("logic: %s: libusb_submit_transfer error", __func__);
 	}
 
 	if (cur_buflen == 0) {
@@ -821,12 +825,12 @@ static int hw_start_acquisition(int device_index, gpointer session_data)
 	fx2->session_data = session_data;
 
 	if (!(packet = g_try_malloc(sizeof(struct sr_datafeed_packet)))) {
-		sr_err("saleae: %s: packet malloc failed", __func__);
+		sr_err("logic: %s: packet malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 
 	if (!(header = g_try_malloc(sizeof(struct sr_datafeed_header)))) {
-		sr_err("saleae: %s: header malloc failed", __func__);
+		sr_err("logic: %s: header malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 
@@ -834,7 +838,7 @@ static int hw_start_acquisition(int device_index, gpointer session_data)
 	size = 2048;
 	for (i = 0; i < NUM_SIMUL_TRANSFERS; i++) {
 		if (!(buf = g_try_malloc(size))) {
-			sr_err("saleae: %s: buf malloc failed", __func__);
+			sr_err("logic: %s: buf malloc failed", __func__);
 			return SR_ERR_MALLOC;
 		}
 		transfer = libusb_alloc_transfer(0);

@@ -49,20 +49,20 @@ static uint64_t divcount_to_samplerate(uint8_t divcount)
 static int format_match(const char *filename)
 {
 	if (!filename) {
-		sr_err("la8input: %s: filename was NULL", __func__);
+		sr_err("la8 in: %s: filename was NULL", __func__);
 		// return SR_ERR; /* FIXME */
 		return FALSE;
 	}
 
 	if (!g_file_test(filename, G_FILE_TEST_EXISTS)) {
-		sr_err("la8input: %s: input file '%s' does not exist",
+		sr_err("la8 in: %s: input file '%s' does not exist",
 		       __func__, filename);
 		// return SR_ERR; /* FIXME */
 		return FALSE;
 	}
 
 	if (!g_file_test(filename, G_FILE_TEST_IS_REGULAR)) {
-		sr_err("la8input: %s: input file '%s' not a regular file",
+		sr_err("la8 in: %s: input file '%s' not a regular file",
 		       __func__, filename);
 		// return SR_ERR; /* FIXME */
 		return FALSE;
@@ -83,7 +83,7 @@ static int init(struct sr_input *in)
 	if (in->param && in->param[0]) {
 		num_probes = strtoul(in->param, NULL, 10);
 		if (num_probes < 1) {
-			sr_err("la8input: %s: strtoul failed", __func__);
+			sr_err("la8 in: %s: strtoul failed", __func__);
 			return SR_ERR;
 		}
 	} else {
@@ -113,7 +113,7 @@ static int loadfile(struct sr_input *in, const char *filename)
 
 	/* TODO: Use glib functions! GIOChannel, g_fopen, etc. */
 	if ((fd = open(filename, O_RDONLY)) == -1) {
-		sr_err("la8input: %s: file open failed", __func__);
+		sr_err("la8 in: %s: file open failed", __func__);
 		return SR_ERR;
 	}
 
@@ -128,10 +128,10 @@ static int loadfile(struct sr_input *in, const char *filename)
 		close(fd); /* FIXME */
 		return SR_ERR;
 	}
-	sr_dbg("la8input: %s: samplerate is %" PRIu64, __func__, samplerate);
+	sr_dbg("la8 in: %s: samplerate is %" PRIu64, __func__, samplerate);
 
 	/* Send header packet to the session bus. */
-	sr_dbg("la8input: %s: sending SR_DF_HEADER packet", __func__);
+	sr_dbg("la8 in: %s: sending SR_DF_HEADER packet", __func__);
 	packet.type = SR_DF_HEADER;
 	packet.payload = &header;
 	header.feed_version = 1;
@@ -143,7 +143,7 @@ static int loadfile(struct sr_input *in, const char *filename)
 	/* TODO: Handle trigger point. */
 
 	/* Send data packets to the session bus. */
-	sr_dbg("la8input: %s: sending SR_DF_LOGIC data packets", __func__);
+	sr_dbg("la8 in: %s: sending SR_DF_LOGIC data packets", __func__);
 	packet.type = SR_DF_LOGIC;
 	packet.payload = &logic;
 	logic.unitsize = (num_probes + 7) / 8;
@@ -159,7 +159,7 @@ static int loadfile(struct sr_input *in, const char *filename)
 	close(fd); /* FIXME */
 
 	/* Send end packet to the session bus. */
-	sr_dbg("la8input: %s: sending SR_DF_END", __func__);
+	sr_dbg("la8 in: %s: sending SR_DF_END", __func__);
 	packet.type = SR_DF_END;
 	packet.payload = NULL;
 	sr_session_bus(in->vdevice, &packet);

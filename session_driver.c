@@ -106,7 +106,8 @@ static int feed_chunk(int fd, int revents, void *session_data)
 			continue;
 
 		if (!(buf = g_try_malloc(CHUNKSIZE))) {
-			sr_err("session: %s: buf malloc failed", __func__);
+			sr_err("session driver: %s: buf malloc failed",
+			       __func__);
 			return FALSE; /* TODO: SR_ERR_MALLOC */
 		}
 
@@ -179,12 +180,12 @@ static int hw_opendev(int device_index)
 	struct sr_device_instance *sdi;
 
 	sdi = sr_dev_inst_new(device_index, SR_ST_INITIALIZING,
-		NULL, NULL, NULL);
+			      NULL, NULL, NULL);
 	if (!sdi)
 		return SR_ERR;
 
 	if (!(sdi->priv = g_try_malloc0(sizeof(struct session_vdevice)))) {
-		sr_err("session: %s: sdi->priv malloc failed", __func__);
+		sr_err("session driver: %s: sdi->priv malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 
@@ -286,21 +287,21 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 		vdevice->capturefile);
 
 	if (!(vdevice->archive = zip_open(sessionfile, 0, &err))) {
-		sr_err("Failed to open session file '%s': zip error %d\n",
-		       sessionfile, err);
+		sr_err("session driver: Failed to open session file '%s': "
+		       "zip error %d\n", sessionfile, err);
 		return SR_ERR;
 	}
 
 	if (zip_stat(vdevice->archive, vdevice->capturefile, 0, &zs) == -1) {
-		sr_err("Failed to check capture file '%s' in session file "
-		       "'%s'.", vdevice->capturefile, sessionfile);
+		sr_err("session driver: Failed to check capture file '%s' in "
+		       "session file '%s'.", vdevice->capturefile, sessionfile);
 		return SR_ERR;
 	}
 
 	if (!(vdevice->capfile = zip_fopen(vdevice->archive,
 					   vdevice->capturefile, 0))) {
-		sr_err("Failed to open capture file '%s' in session file '%s'.",
-		       vdevice->capturefile, sessionfile);
+		sr_err("session driver: Failed to open capture file '%s' in "
+		       "session file '%s'.", vdevice->capturefile, sessionfile);
 		return SR_ERR;
 	}
 
@@ -308,12 +309,12 @@ static int hw_start_acquisition(int device_index, gpointer session_device_id)
 	sr_session_source_add(-1, 0, 0, feed_chunk, session_device_id);
 
 	if (!(packet = g_try_malloc(sizeof(struct sr_datafeed_packet)))) {
-		sr_err("session: %s: packet malloc failed", __func__);
+		sr_err("session driver: %s: packet malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 
 	if (!(header = g_try_malloc(sizeof(struct sr_datafeed_header)))) {
-		sr_err("session: %s: header malloc failed", __func__);
+		sr_err("session driver: %s: header malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 

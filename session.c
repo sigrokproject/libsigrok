@@ -413,7 +413,6 @@ static void datafeed_dump(struct sr_datafeed_packet *packet)
 		sr_dbg("bus: received unknown packet type %d", packet->type);
 		break;
 	}
-
 }
 
 /**
@@ -426,7 +425,7 @@ static void datafeed_dump(struct sr_datafeed_packet *packet)
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments.
  */
 SR_PRIV int sr_session_bus(struct sr_device *device,
-			  struct sr_datafeed_packet *packet)
+			   struct sr_datafeed_packet *packet)
 {
 	GSList *l;
 	sr_datafeed_callback cb;

@@ -197,7 +197,7 @@ static int opendev4(struct sr_device_instance **sdi, libusb_device *dev,
 	}
 
 	if ((err = libusb_get_device_descriptor(dev, des))) {
-		sr_err("failed to get device descriptor: %d", err);
+		sr_err("zp: failed to get device descriptor: %d", err);
 		return -1;
 	}
 
@@ -211,26 +211,27 @@ static int opendev4(struct sr_device_instance **sdi, libusb_device *dev,
 			if (!(des->idProduct == zeroplus_models[i].pid))
 				continue;
 
-			sr_info("Found PID=%04X (%s)", des->idProduct,
-				zeroplus_models[i].model_name);
+			sr_info("zp: Found ZeroPlus device 0x%04x (%s)",
+				des->idProduct, zeroplus_models[i].model_name);
 			zp->num_channels = zeroplus_models[i].channels;
 			zp->memory_size = zeroplus_models[i].sample_depth * 1024;
 			break;
 		}
 
 		if (zp->num_channels == 0) {
-			sr_err("Unknown ZeroPlus device %04X", des->idProduct);
+			sr_err("zp: Unknown ZeroPlus device 0x%04x",
+			       des->idProduct);
 			return -2;
 		}
 
 		/* Found it. */
 		if (!(err = libusb_open(dev, &(zp->usb->devhdl)))) {
 			(*sdi)->status = SR_ST_ACTIVE;
-			sr_info("opened device %d on %d.%d interface %d",
+			sr_info("zp: opened device %d on %d.%d interface %d",
 				(*sdi)->index, zp->usb->bus,
 				zp->usb->address, USB_INTERFACE);
 		} else {
-			sr_err("failed to open device: %d", err);
+			sr_err("zp: failed to open device: %d", err);
 			*sdi = NULL;
 		}
 	}
@@ -280,7 +281,7 @@ static void close_device(struct sr_device_instance *sdi)
 	if (!zp->usb->devhdl)
 		return;
 
-	sr_info("closing device %d on %d.%d interface %d", sdi->index,
+	sr_info("zp: closing device %d on %d.%d interface %d", sdi->index,
 		zp->usb->bus, zp->usb->address, USB_INTERFACE);
 	libusb_release_interface(zp->usb->devhdl, USB_INTERFACE);
 	libusb_reset_device(zp->usb->devhdl);
@@ -363,7 +364,7 @@ static int hw_init(const char *deviceinfo)
 	// memset(zp->trigger_buffer, 0, NUM_TRIGGER_STAGES);
 
 	if (libusb_init(&usb_context) != 0) {
-		sr_err("Failed to initialize USB.");
+		sr_err("zp: Failed to initialize USB.");
 		return 0;
 	}
 
@@ -374,7 +375,7 @@ static int hw_init(const char *deviceinfo)
 	for (i = 0; devlist[i]; i++) {
 		err = libusb_get_device_descriptor(devlist[i], &des);
 		if (err != 0) {
-			sr_err("failed to get device descriptor: %d", err);
+			sr_err("zp: failed to get device descriptor: %d", err);
 			continue;
 		}
 
@@ -416,7 +417,7 @@ static int hw_opendev(int device_index)
 	int err;
 
 	if (!(sdi = zp_open_device(device_index))) {
-		sr_err("unable to open device");
+		sr_err("zp: unable to open device");
 		return SR_ERR;
 	}
 
@@ -436,7 +437,7 @@ static int hw_opendev(int device_index)
 
 	err = libusb_claim_interface(zp->usb->devhdl, USB_INTERFACE);
 	if (err != 0) {
-		sr_err("Unable to claim interface: %d", err);
+		sr_err("zp: Unable to claim interface: %d", err);
 		return SR_ERR;
 	}
 
@@ -654,12 +655,15 @@ static int hw_start_acquisition(int device_index, gpointer session_data)
 	analyzer_configure(zp->usb->devhdl);
 
 	analyzer_start(zp->usb->devhdl);
-	sr_info("Waiting for data");
+	sr_info("zp: Waiting for data");
 	analyzer_wait_data(zp->usb->devhdl);
 
-	sr_info("Stop address    = 0x%x", analyzer_get_stop_address(zp->usb->devhdl));
-	sr_info("Now address     = 0x%x", analyzer_get_now_address(zp->usb->devhdl));
-	sr_info("Trigger address = 0x%x", analyzer_get_trigger_address(zp->usb->devhdl));
+	sr_info("zp: Stop address    = 0x%x",
+		analyzer_get_stop_address(zp->usb->devhdl));
+	sr_info("zp: Now address     = 0x%x",
+		analyzer_get_now_address(zp->usb->devhdl));
+	sr_info("zp: Trigger address = 0x%x",
+		analyzer_get_trigger_address(zp->usb->devhdl));
 
 	packet.type = SR_DF_HEADER;
 	packet.payload = &header;
@@ -680,7 +684,7 @@ static int hw_start_acquisition(int device_index, gpointer session_data)
 	for (packet_num = 0; packet_num < (zp->memory_size * 4 / PACKET_SIZE);
 	     packet_num++) {
 		res = analyzer_read_data(zp->usb->devhdl, buf, PACKET_SIZE);
-		sr_info("Tried to read %llx bytes, actually read %x bytes",
+		sr_info("zp: Tried to read %llx bytes, actually read %x bytes",
 			PACKET_SIZE, res);
 
 		packet.type = SR_DF_LOGIC;

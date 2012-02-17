@@ -94,7 +94,8 @@ SR_PRIV int data_bits(struct sr_output *o, const char *data_in,
 			}
 		}
 	} else {
-		sr_info("short buffer (length_in=%" PRIu64 ")", length_in);
+		sr_info("bits out: short buffer (length_in=%" PRIu64 ")",
+			length_in);
 	}
 
 	*data_out = outbuf;

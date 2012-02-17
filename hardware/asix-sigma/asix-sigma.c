@@ -126,7 +126,7 @@ static int sigma_read(void *buf, size_t size, struct sigma *sigma)
 
 	ret = ftdi_read_data(&sigma->ftdic, (unsigned char *)buf, size);
 	if (ret < 0) {
-		sr_err("ftdi_read_data failed: %s",
+		sr_err("sigma: ftdi_read_data failed: %s",
 		       ftdi_get_error_string(&sigma->ftdic));
 	}
 
@@ -139,10 +139,10 @@ static int sigma_write(void *buf, size_t size, struct sigma *sigma)
 
 	ret = ftdi_write_data(&sigma->ftdic, (unsigned char *)buf, size);
 	if (ret < 0) {
-		sr_err("ftdi_write_data failed: %s",
+		sr_err("sigma: ftdi_write_data failed: %s",
 		       ftdi_get_error_string(&sigma->ftdic));
 	} else if ((size_t) ret != size) {
-		sr_err("ftdi_write_data did not complete write\n");
+		sr_err("sigma: ftdi_write_data did not complete write\n");
 	}
 
 	return ret;
@@ -190,7 +190,7 @@ static uint8_t sigma_get_register(uint8_t reg, struct sigma *sigma)
 	uint8_t value;
 
 	if (1 != sigma_read_register(reg, &value, 1, sigma)) {
-		sr_err("sigma_get_register: 1 byte expected");
+		sr_err("sigma: sigma_get_register: 1 byte expected");
 		return 0;
 	}
 
@@ -337,12 +337,12 @@ static int bin2bitbang(const char *filename,
 
 	f = g_fopen(filename, "rb");
 	if (!f) {
-		sr_err("g_fopen(\"%s\", \"rb\")", filename);
+		sr_err("sigma: g_fopen(\"%s\", \"rb\")", filename);
 		return SR_ERR;
 	}
 
 	if (-1 == fseek(f, 0, SEEK_END)) {
-		sr_err("fseek on %s failed", filename);
+		sr_err("sigma: fseek on %s failed", filename);
 		fclose(f);
 		return SR_ERR;
 	}
@@ -376,7 +376,8 @@ static int bin2bitbang(const char *filename,
 	if (ret < 0) {
 		g_free(compressed_buf);
 		g_free(firmware);
-		sr_err("Could not unpack Sigma firmware. (Error %d)\n", ret);
+		sr_err("sigma: Could not unpack Sigma firmware. "
+		       "(Error %d)\n", ret);
 		return SR_ERR;
 	}
 
@@ -404,7 +405,7 @@ static int bin2bitbang(const char *filename,
 
 	if (offset != *buf_size) {
 		g_free(*buf);
-		sr_err("Error reading firmware %s "
+		sr_err("sigma: Error reading firmware %s "
 		       "offset=%ld, file_size=%ld, buf_size=%zd\n",
 		       filename, offset, file_size, *buf_size);
 
@@ -474,20 +475,20 @@ static int upload_firmware(int firmware_idx, struct sigma *sigma)
 	/* Make sure it's an ASIX SIGMA. */
 	if ((ret = ftdi_usb_open_desc(&sigma->ftdic,
 		USB_VENDOR, USB_PRODUCT, USB_DESCRIPTION, NULL)) < 0) {
-		sr_err("ftdi_usb_open failed: %s",
+		sr_err("sigma: ftdi_usb_open failed: %s",
 		       ftdi_get_error_string(&sigma->ftdic));
 		return 0;
 	}
 
 	if ((ret = ftdi_set_bitmode(&sigma->ftdic, 0xdf, BITMODE_BITBANG)) < 0) {
-		sr_err("ftdi_set_bitmode failed: %s",
+		sr_err("sigma: ftdi_set_bitmode failed: %s",
 		       ftdi_get_error_string(&sigma->ftdic));
 		return 0;
 	}
 
 	/* Four times the speed of sigmalogan - Works well. */
 	if ((ret = ftdi_set_baudrate(&sigma->ftdic, 750000)) < 0) {
-		sr_err("ftdi_set_baudrate failed: %s",
+		sr_err("sigma: ftdi_set_baudrate failed: %s",
 		       ftdi_get_error_string(&sigma->ftdic));
 		return 0;
 	}
@@ -515,7 +516,7 @@ static int upload_firmware(int firmware_idx, struct sigma *sigma)
 		 firmware_files[firmware_idx]);
 
 	if ((ret = bin2bitbang(firmware_path, &buf, &buf_size)) != SR_OK) {
-		sr_err("An error occured while reading the firmware: %s",
+		sr_err("sigma: An error occured while reading the firmware: %s",
 		       firmware_path);
 		return ret;
 	}
@@ -526,7 +527,7 @@ static int upload_firmware(int firmware_idx, struct sigma *sigma)
 	g_free(buf);
 
 	if ((ret = ftdi_set_bitmode(&sigma->ftdic, 0x00, BITMODE_RESET)) < 0) {
-		sr_err("ftdi_set_bitmode failed: %s",
+		sr_err("sigma: ftdi_set_bitmode failed: %s",
 		       ftdi_get_error_string(&sigma->ftdic));
 		return SR_ERR;
 	}
@@ -544,7 +545,7 @@ static int upload_firmware(int firmware_idx, struct sigma *sigma)
 	ret = sigma_read(result, 3, sigma);
 	if (ret != 3 ||
 	    result[0] != 0xa6 || result[1] != 0x55 || result[2] != 0xaa) {
-		sr_err("Configuration failed. Invalid reply received.");
+		sr_err("sigma: Configuration failed. Invalid reply received.");
 		return SR_ERR;
 	}
 
@@ -568,7 +569,7 @@ static int hw_opendev(int device_index)
 	if ((ret = ftdi_usb_open_desc(&sigma->ftdic,
 		USB_VENDOR, USB_PRODUCT, USB_DESCRIPTION, NULL)) < 0) {
 
-		sr_err("ftdi_usb_open failed: %s",
+		sr_err("sigma: ftdi_usb_open failed: %s",
 		       ftdi_get_error_string(&sigma->ftdic));
 
 		return 0;
@@ -610,7 +611,7 @@ static int set_samplerate(struct sr_device_instance *sdi,
 	sigma->samples_per_event = 16 / sigma->num_probes;
 	sigma->state.state = SIGMA_IDLE;
 
-	sr_info("Firmware uploaded");
+	sr_info("sigma: Firmware uploaded");
 
 	return ret;
 }
@@ -643,7 +644,7 @@ static int configure_probes(struct sr_device_instance *sdi, GSList *probes)
 		if (sigma->cur_samplerate >= SR_MHZ(100)) {
 			/* Fast trigger support. */
 			if (trigger_set) {
-				sr_err("ASIX SIGMA only supports a single "
+				sr_err("sigma: ASIX SIGMA only supports a single "
 				       "pin trigger in 100 and 200MHz mode.");
 				return SR_ERR;
 			}
@@ -652,7 +653,7 @@ static int configure_probes(struct sr_device_instance *sdi, GSList *probes)
 			else if (probe->trigger[0] == 'r')
 				sigma->trigger.risingmask |= probebit;
 			else {
-				sr_err("ASIX SIGMA only supports "
+				sr_err("sigma: ASIX SIGMA only supports "
 				       "rising/falling trigger in 100 "
 				       "and 200MHz mode.");
 				return SR_ERR;
@@ -684,8 +685,8 @@ static int configure_probes(struct sr_device_instance *sdi, GSList *probes)
                          * does not permit ORed triggers.
                          */
 			if (trigger_set > 1) {
-				sr_err("ASIX SIGMA only supports 1 rising/"
-				       "falling triggers.");
+				sr_err("sigma: ASIX SIGMA only supports 1 "
+				       "rising/falling triggers.");
 				return SR_ERR;
 			}
 		}
@@ -731,7 +732,7 @@ static int hw_cleanup(void)
 	for (l = device_instances; l; l = l->next) {
 		if (!(sdi = l->data)) {
 			/* Log error, but continue cleaning up the rest. */
-			sr_err("asix: %s: sdi was NULL, continuing", __func__);
+			sr_err("sigma: %s: sdi was NULL, continuing", __func__);
 			ret = SR_ERR_BUG;
 			continue;
 		}
@@ -750,7 +751,7 @@ static void *hw_get_device_info(int device_index, int device_info_id)
 	void *info = NULL;
 
 	if (!(sdi = sr_dev_inst_get(device_instances, device_index))) {
-		sr_err("It's NULL.\n");
+		sr_err("sigma: %s: sdi was NULL", __func__);
 		return NULL;
 	}
 
@@ -1051,7 +1052,7 @@ static int receive_data(int fd, int revents, void *session_data)
 		newchunks = MIN(chunks_per_read,
 				numchunks - sigma->state.chunks_downloaded);
 
-		sr_info("Downloading sample data: %.0f %%",
+		sr_info("sigma: Downloading sample data: %.0f %%",
 			100.0 * sigma->state.chunks_downloaded / numchunks);
 
 		bufsz = sigma_read_dram(sigma->state.chunks_downloaded,
@@ -1378,12 +1379,12 @@ static int hw_stop_acquisition(int device_index, gpointer session_data)
 	(void)session_data;
 
 	if (!(sdi = sr_dev_inst_get(device_instances, device_index))) {
-		sr_err("asix: %s: sdi was NULL", __func__);
+		sr_err("sigma: %s: sdi was NULL", __func__);
 		return SR_ERR_BUG;
 	}
 
 	if (!(sigma = sdi->priv)) {
-		sr_err("asix: %s: sdi->priv was NULL", __func__);
+		sr_err("sigma: %s: sdi->priv was NULL", __func__);
 		return SR_ERR_BUG;
 	}
 
