@@ -270,7 +270,7 @@ enum {
 };
 
 struct sr_hwcap_option {
-	int capability;
+	int hwcap;
 	int type;
 	char *description;
 	char *shortname;
@@ -351,8 +351,8 @@ struct sr_dev_plugin {
 	int (*closedev) (int dev_index);
 	void *(*get_dev_info) (int dev_index, int dev_info_id);
 	int (*get_status) (int dev_index);
-	int *(*get_capabilities) (void);
-	int (*set_configuration) (int dev_index, int capability, void *value);
+	int *(*hwcap_get_all) (void);
+	int (*set_configuration) (int dev_index, int hwcap, void *value);
 	int (*start_acquisition) (int dev_index, gpointer session_dev_id);
 	int (*stop_acquisition) (int dev_index, gpointer session_dev_id);
 };

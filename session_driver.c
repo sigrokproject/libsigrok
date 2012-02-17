@@ -41,7 +41,7 @@ struct session_vdev {
 
 static char *sessionfile = NULL;
 static GSList *dev_insts = NULL;
-static int capabilities[] = {
+static int hwcaps[] = {
 	SR_HWCAP_CAPTUREFILE,
 	SR_HWCAP_CAPTURE_UNITSIZE,
 	0,
@@ -227,12 +227,12 @@ static int hw_get_status(int dev_index)
  * @return A pointer to the (hardware) capabilities of this virtual session
  *         driver. This could be NULL, if no such capabilities exist.
  */
-static int *hw_get_capabilities(void)
+static int *hw_hwcap_get_all(void)
 {
-	return capabilities;
+	return hwcaps;
 }
 
-static int hw_set_configuration(int dev_index, int capability, void *value)
+static int hw_set_configuration(int dev_index, int hwcap, void *value)
 {
 	struct session_vdev *vdev;
 	uint64_t *tmp_u64;
@@ -240,7 +240,7 @@ static int hw_set_configuration(int dev_index, int capability, void *value)
 	if (!(vdev = get_vdev_by_index(dev_index)))
 		return SR_ERR;
 
-	switch (capability) {
+	switch (hwcap) {
 	case SR_HWCAP_SAMPLERATE:
 		tmp_u64 = value;
 		vdev->samplerate = *tmp_u64;
@@ -262,7 +262,7 @@ static int hw_set_configuration(int dev_index, int capability, void *value)
 		break;
 	default:
 		sr_err("session driver: %s: unknown capability %d requested",
-		       __func__, capability);
+		       __func__, hwcap);
 		return SR_ERR;
 	}
 
@@ -341,7 +341,7 @@ SR_PRIV struct sr_dev_plugin session_driver = {
 	NULL,
 	hw_get_dev_info,
 	hw_get_status,
-	hw_get_capabilities,
+	hw_hwcap_get_all,
 	hw_set_configuration,
 	hw_start_acquisition,
 	NULL,

@@ -126,7 +126,7 @@ static struct sr_samplerates samplerates = {
 };
 
 /* Note: Continuous sampling is not supported by the hardware. */
-static int capabilities[] = {
+static int hwcaps[] = {
 	SR_HWCAP_LOGIC_ANALYZER,
 	SR_HWCAP_SAMPLERATE,
 	SR_HWCAP_LIMIT_MSEC, /* TODO: Not yet implemented. */
@@ -755,14 +755,14 @@ static int hw_get_status(int dev_index)
 	return sdi->status;
 }
 
-static int *hw_get_capabilities(void)
+static int *hw_hwcap_get_all(void)
 {
 	sr_spew("la8: entering %s", __func__);
 
-	return capabilities;
+	return hwcaps;
 }
 
-static int hw_set_configuration(int dev_index, int capability, void *value)
+static int hw_set_configuration(int dev_index, int hwcap, void *value)
 {
 	struct sr_dev_inst *sdi;
 	struct la8 *la8;
@@ -779,7 +779,7 @@ static int hw_set_configuration(int dev_index, int capability, void *value)
 		return SR_ERR; /* TODO: SR_ERR_ARG? */
 	}
 
-	switch (capability) {
+	switch (hwcap) {
 	case SR_HWCAP_SAMPLERATE:
 		if (set_samplerate(sdi, *(uint64_t *)value) == SR_ERR)
 			return SR_ERR;
@@ -1123,7 +1123,7 @@ SR_PRIV struct sr_dev_plugin chronovu_la8_plugin_info = {
 	.closedev = hw_closedev,
 	.get_dev_info = hw_get_dev_info,
 	.get_status = hw_get_status,
-	.get_capabilities = hw_get_capabilities,
+	.hwcap_get_all = hw_hwcap_get_all,
 	.set_configuration = hw_set_configuration,
 	.start_acquisition = hw_start_acquisition,
 	.stop_acquisition = hw_stop_acquisition,

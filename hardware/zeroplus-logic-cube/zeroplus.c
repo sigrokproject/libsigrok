@@ -63,7 +63,7 @@ static model_t zeroplus_models[] = {
 	{0x7016, "LAP-C(162000)", 16, 2048, 200},
 };
 
-static int capabilities[] = {
+static int hwcaps[] = {
 	SR_HWCAP_LOGIC_ANALYZER,
 	SR_HWCAP_SAMPLERATE,
 	SR_HWCAP_PROBECONFIG,
@@ -166,7 +166,7 @@ struct zp {
 	struct sr_usb_dev_inst *usb;
 };
 
-static int hw_set_configuration(int dev_index, int capability, void *value);
+static int hw_set_configuration(int dev_index, int hwcap, void *value);
 
 static unsigned int get_memory_size(int type)
 {
@@ -563,9 +563,9 @@ static int hw_get_status(int dev_index)
 		return SR_ST_NOT_FOUND;
 }
 
-static int *hw_get_capabilities(void)
+static int *hw_hwcap_get_all(void)
 {
-	return capabilities;
+	return hwcaps;
 }
 
 static int set_configuration_samplerate(struct sr_dev_inst *sdi,
@@ -597,7 +597,7 @@ static int set_configuration_samplerate(struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-static int hw_set_configuration(int dev_index, int capability, void *value)
+static int hw_set_configuration(int dev_index, int hwcap, void *value)
 {
 	struct sr_dev_inst *sdi;
 	uint64_t *tmp_u64;
@@ -613,7 +613,7 @@ static int hw_set_configuration(int dev_index, int capability, void *value)
 		return SR_ERR_ARG;
 	}
 
-	switch (capability) {
+	switch (hwcap) {
 	case SR_HWCAP_SAMPLERATE:
 		tmp_u64 = value;
 		return set_configuration_samplerate(sdi, *tmp_u64);
@@ -739,7 +739,7 @@ SR_PRIV struct sr_dev_plugin zeroplus_logic_cube_plugin_info = {
 	.closedev = hw_closedev,
 	.get_dev_info = hw_get_dev_info,
 	.get_status = hw_get_status,
-	.get_capabilities = hw_get_capabilities,
+	.hwcap_get_all = hw_hwcap_get_all,
 	.set_configuration = hw_set_configuration,
 	.start_acquisition = hw_start_acquisition,
 	.stop_acquisition = hw_stop_acquisition,

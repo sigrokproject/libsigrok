@@ -76,7 +76,7 @@ struct databag {
 	GTimer *timer;
 };
 
-static int capabilities[] = {
+static int hwcaps[] = {
 	SR_HWCAP_LOGIC_ANALYZER,
 	SR_HWCAP_DEMO_DEV,
 	SR_HWCAP_SAMPLERATE,
@@ -222,12 +222,12 @@ static int hw_get_status(int dev_index)
 	return SR_ST_ACTIVE;
 }
 
-static int *hw_get_capabilities(void)
+static int *hw_hwcap_get_all(void)
 {
-	return capabilities;
+	return hwcaps;
 }
 
-static int hw_set_configuration(int dev_index, int capability, void *value)
+static int hw_set_configuration(int dev_index, int hwcap, void *value)
 {
 	int ret;
 	char *stropt;
@@ -235,25 +235,25 @@ static int hw_set_configuration(int dev_index, int capability, void *value)
 	/* Avoid compiler warnings. */
 	(void)dev_index;
 
-	if (capability == SR_HWCAP_PROBECONFIG) {
+	if (hwcap == SR_HWCAP_PROBECONFIG) {
 		/* Nothing to do, but must be supported */
 		ret = SR_OK;
-	} else if (capability == SR_HWCAP_SAMPLERATE) {
+	} else if (hwcap == SR_HWCAP_SAMPLERATE) {
 		cur_samplerate = *(uint64_t *)value;
 		sr_dbg("demo: %s: setting samplerate to %" PRIu64, __func__,
 		       cur_samplerate);
 		ret = SR_OK;
-	} else if (capability == SR_HWCAP_LIMIT_SAMPLES) {
+	} else if (hwcap == SR_HWCAP_LIMIT_SAMPLES) {
 		limit_samples = *(uint64_t *)value;
 		sr_dbg("demo: %s: setting limit_samples to %" PRIu64, __func__,
 		       limit_samples);
 		ret = SR_OK;
-	} else if (capability == SR_HWCAP_LIMIT_MSEC) {
+	} else if (hwcap == SR_HWCAP_LIMIT_MSEC) {
 		limit_msec = *(uint64_t *)value;
 		sr_dbg("demo: %s: setting limit_msec to %" PRIu64, __func__,
 		       limit_msec);
 		ret = SR_OK;
-	} else if (capability == SR_HWCAP_PATTERN_MODE) {
+	} else if (hwcap == SR_HWCAP_PATTERN_MODE) {
 		stropt = value;
 		ret = SR_OK;
 		if (!strcmp(stropt, "sigrok")) {
@@ -499,7 +499,7 @@ SR_PRIV struct sr_dev_plugin demo_plugin_info = {
 	.closedev = hw_closedev,
 	.get_dev_info = hw_get_dev_info,
 	.get_status = hw_get_status,
-	.get_capabilities = hw_get_capabilities,
+	.hwcap_get_all = hw_hwcap_get_all,
 	.set_configuration = hw_set_configuration,
 	.start_acquisition = hw_start_acquisition,
 	.stop_acquisition = hw_stop_acquisition,

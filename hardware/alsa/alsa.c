@@ -42,7 +42,7 @@ struct sr_analog_sample {
 	struct sr_analog_probe probes[];
 };
 
-static int capabilities[] = {
+static int hwcaps[] = {
 	SR_HWCAP_SAMPLERATE,
 	SR_HWCAP_LIMIT_SAMPLES,
 	SR_HWCAP_CONTINUOUS,
@@ -86,6 +86,7 @@ static int hw_init(const char *devinfo)
 	dev_insts = g_slist_append(dev_insts, sdi);
 
 	return 1;
+
 free_alsa:
 	g_free(alsa);
 	return 0;
@@ -203,12 +204,12 @@ static int hw_get_status(int dev_index)
 	return SR_ST_ACTIVE;
 }
 
-static int *hw_get_capabilities(void)
+static int *hw_hwcap_get_all(void)
 {
-	return capabilities;
+	return hwcaps;
 }
 
-static int hw_set_configuration(int dev_index, int capability, void *value)
+static int hw_set_configuration(int dev_index, int hwcap, void *value)
 {
 	struct sr_dev_inst *sdi;
 	struct alsa *alsa;
@@ -217,7 +218,7 @@ static int hw_set_configuration(int dev_index, int capability, void *value)
 		return SR_ERR;
 	alsa = sdi->priv;
 
-	switch (capability) {
+	switch (hwcap) {
 	case SR_HWCAP_PROBECONFIG:
 		return SR_OK;
 	case SR_HWCAP_SAMPLERATE:
@@ -401,7 +402,7 @@ SR_PRIV struct sr_dev_plugin alsa_plugin_info = {
 	.closedev = hw_closedev,
 	.get_dev_info = hw_get_dev_info,
 	.get_status = hw_get_status,
-	.get_capabilities = hw_get_capabilities,
+	.hwcap_get_all = hw_hwcap_get_all,
 	.set_configuration = hw_set_configuration,
 	.start_acquisition = hw_start_acquisition,
 	.stop_acquisition = hw_stop_acquisition,

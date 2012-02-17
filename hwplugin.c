@@ -270,11 +270,11 @@ SR_PRIV void sr_serial_dev_inst_free(struct sr_serial_dev_inst *serial)
  */
 SR_API gboolean sr_hw_has_hwcap(struct sr_dev_plugin *plugin, int hwcap)
 {
-	int *capabilities, i;
+	int *hwcaps, i;
 
-	capabilities = plugin->get_capabilities();
-	for (i = 0; capabilities[i]; i++) {
-		if (capabilities[i] == hwcap)
+	hwcaps = plugin->hwcap_get_all();
+	for (i = 0; hwcaps[i]; i++) {
+		if (hwcaps[i] == hwcap)
 			return TRUE;
 	}
 
@@ -293,8 +293,8 @@ SR_API struct sr_hwcap_option *sr_hw_hwcap_get(int hwcap)
 {
 	int i;
 
-	for (i = 0; sr_hwcap_options[i].capability; i++) {
-		if (sr_hwcap_options[i].capability == hwcap)
+	for (i = 0; sr_hwcap_options[i].hwcap; i++) {
+		if (sr_hwcap_options[i].hwcap == hwcap)
 			return &sr_hwcap_options[i];
 	}
 

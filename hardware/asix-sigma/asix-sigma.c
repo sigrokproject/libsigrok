@@ -84,7 +84,7 @@ static struct sr_samplerates samplerates = {
 	supported_samplerates,
 };
 
-static int capabilities[] = {
+static int hwcaps[] = {
 	SR_HWCAP_LOGIC_ANALYZER,
 	SR_HWCAP_SAMPLERATE,
 	SR_HWCAP_CAPTURE_RATIO,
@@ -792,12 +792,12 @@ static int hw_get_status(int dev_index)
 		return SR_ST_NOT_FOUND;
 }
 
-static int *hw_get_capabilities(void)
+static int *hw_hwcap_get_all(void)
 {
-	return capabilities;
+	return hwcaps;
 }
 
-static int hw_set_configuration(int dev_index, int capability, void *value)
+static int hw_set_configuration(int dev_index, int hwcap, void *value)
 {
 	struct sr_dev_inst *sdi;
 	struct sigma *sigma;
@@ -808,17 +808,17 @@ static int hw_set_configuration(int dev_index, int capability, void *value)
 
 	sigma = sdi->priv;
 
-	if (capability == SR_HWCAP_SAMPLERATE) {
+	if (hwcap == SR_HWCAP_SAMPLERATE) {
 		ret = set_samplerate(sdi, *(uint64_t*) value);
-	} else if (capability == SR_HWCAP_PROBECONFIG) {
+	} else if (hwcap == SR_HWCAP_PROBECONFIG) {
 		ret = configure_probes(sdi, value);
-	} else if (capability == SR_HWCAP_LIMIT_MSEC) {
+	} else if (hwcap == SR_HWCAP_LIMIT_MSEC) {
 		sigma->limit_msec = *(uint64_t*) value;
 		if (sigma->limit_msec > 0)
 			ret = SR_OK;
 		else
 			ret = SR_ERR;
-	} else if (capability == SR_HWCAP_CAPTURE_RATIO) {
+	} else if (hwcap == SR_HWCAP_CAPTURE_RATIO) {
 		sigma->capture_ratio = *(uint64_t*) value;
 		if (sigma->capture_ratio < 0 || sigma->capture_ratio > 100)
 			ret = SR_ERR;
@@ -1421,7 +1421,7 @@ SR_PRIV struct sr_dev_plugin asix_sigma_plugin_info = {
 	.closedev = hw_closedev,
 	.get_dev_info = hw_get_dev_info,
 	.get_status = hw_get_status,
-	.get_capabilities = hw_get_capabilities,
+	.hwcap_get_all = hw_hwcap_get_all,
 	.set_configuration = hw_set_configuration,
 	.start_acquisition = hw_start_acquisition,
 	.stop_acquisition = hw_stop_acquisition,

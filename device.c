@@ -374,7 +374,7 @@ SR_API int sr_dev_trigger_set(struct sr_dev *dev, int probenum,
  */
 SR_API gboolean sr_dev_has_hwcap(const struct sr_dev *dev, int hwcap)
 {
-	int *capabilities, i;
+	int *hwcaps, i;
 
 	if (!dev) {
 		sr_err("dev: %s: dev was NULL", __func__);
@@ -388,13 +388,13 @@ SR_API gboolean sr_dev_has_hwcap(const struct sr_dev *dev, int hwcap)
 
 	/* TODO: Sanity check on 'hwcap'. */
 
-	if (!(capabilities = dev->plugin->get_capabilities())) {
+	if (!(hwcaps = dev->plugin->hwcap_get_all())) {
 		sr_err("dev: %s: dev has no capabilities", __func__);
 		return FALSE; /* TODO: SR_ERR*. */
 	}
 
-	for (i = 0; capabilities[i]; i++) {
-		if (capabilities[i] != hwcap)
+	for (i = 0; hwcaps[i]; i++) {
+		if (hwcaps[i] != hwcap)
 			continue;
 		sr_spew("dev: %s: found hwcap %d", __func__, hwcap);
 		return TRUE;
