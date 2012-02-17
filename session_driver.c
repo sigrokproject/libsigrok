@@ -232,7 +232,7 @@ static int *hw_hwcap_get_all(void)
 	return hwcaps;
 }
 
-static int hw_set_configuration(int dev_index, int hwcap, void *value)
+static int hw_config_set(int dev_index, int hwcap, void *value)
 {
 	struct session_vdev *vdev;
 	uint64_t *tmp_u64;
@@ -342,7 +342,7 @@ SR_PRIV struct sr_dev_plugin session_driver = {
 	hw_get_dev_info,
 	hw_get_status,
 	hw_hwcap_get_all,
-	hw_set_configuration,
+	hw_config_set,
 	hw_start_acquisition,
 	NULL,
 };

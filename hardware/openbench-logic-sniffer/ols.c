@@ -605,8 +605,7 @@ static int *hw_hwcap_get_all(void)
 	return hwcaps;
 }
 
-static int set_configuration_samplerate(struct sr_dev_inst *sdi,
-					uint64_t samplerate)
+static int config_set_samplerate(struct sr_dev_inst *sdi, uint64_t samplerate)
 {
 	struct ols_dev *ols;
 
@@ -638,7 +637,7 @@ static int set_configuration_samplerate(struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-static int hw_set_configuration(int dev_index, int hwcap, void *value)
+static int hw_config_set(int dev_index, int hwcap, void *value)
 {
 	struct sr_dev_inst *sdi;
 	struct ols_dev *ols;
@@ -655,7 +654,7 @@ static int hw_set_configuration(int dev_index, int hwcap, void *value)
 	switch (hwcap) {
 	case SR_HWCAP_SAMPLERATE:
 		tmp_u64 = value;
-		ret = set_configuration_samplerate(sdi, *tmp_u64);
+		ret = config_set_samplerate(sdi, *tmp_u64);
 		break;
 	case SR_HWCAP_PROBECONFIG:
 		ret = configure_probes(ols, (GSList *) value);
@@ -1049,7 +1048,7 @@ SR_PRIV struct sr_dev_plugin ols_plugin_info = {
 	.get_dev_info = hw_get_dev_info,
 	.get_status = hw_get_status,
 	.hwcap_get_all = hw_hwcap_get_all,
-	.set_configuration = hw_set_configuration,
+	.config_set = hw_config_set,
 	.start_acquisition = hw_start_acquisition,
 	.stop_acquisition = hw_stop_acquisition,
 };

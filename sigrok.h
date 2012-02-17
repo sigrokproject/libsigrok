@@ -94,7 +94,7 @@ extern "C" {
 
 typedef int (*sr_receive_data_callback) (int fd, int revents, void *user_data);
 
-/* Data types used by hardware plugins for set_configuration() */
+/* Data types used by hardware plugins for config_set() */
 enum {
 	SR_T_UINT64,
 	SR_T_CHAR,
@@ -352,7 +352,7 @@ struct sr_dev_plugin {
 	void *(*get_dev_info) (int dev_index, int dev_info_id);
 	int (*get_status) (int dev_index);
 	int *(*hwcap_get_all) (void);
-	int (*set_configuration) (int dev_index, int hwcap, void *value);
+	int (*config_set) (int dev_index, int hwcap, void *value);
 	int (*start_acquisition) (int dev_index, gpointer session_dev_id);
 	int (*stop_acquisition) (int dev_index, gpointer session_dev_id);
 };

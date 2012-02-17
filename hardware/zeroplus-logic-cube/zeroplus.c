@@ -166,7 +166,7 @@ struct zp {
 	struct sr_usb_dev_inst *usb;
 };
 
-static int hw_set_configuration(int dev_index, int hwcap, void *value);
+static int hw_config_set(int dev_index, int hwcap, void *value);
 
 static unsigned int get_memory_size(int type)
 {
@@ -462,7 +462,7 @@ static int hw_opendev(int dev_index)
 
 	if (zp->cur_samplerate == 0) {
 		/* Samplerate hasn't been set. Default to the slowest one. */
-		if (hw_set_configuration(dev_index, SR_HWCAP_SAMPLERATE,
+		if (hw_config_set(dev_index, SR_HWCAP_SAMPLERATE,
 		     &samplerates.list[0]) == SR_ERR)
 			return SR_ERR;
 	}
@@ -568,8 +568,7 @@ static int *hw_hwcap_get_all(void)
 	return hwcaps;
 }
 
-static int set_configuration_samplerate(struct sr_dev_inst *sdi,
-					uint64_t samplerate)
+static int config_set_samplerate(struct sr_dev_inst *sdi, uint64_t samplerate)
 {
 	struct zp *zp;
 
@@ -597,7 +596,7 @@ static int set_configuration_samplerate(struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-static int hw_set_configuration(int dev_index, int hwcap, void *value)
+static int hw_config_set(int dev_index, int hwcap, void *value)
 {
 	struct sr_dev_inst *sdi;
 	uint64_t *tmp_u64;
@@ -616,7 +615,7 @@ static int hw_set_configuration(int dev_index, int hwcap, void *value)
 	switch (hwcap) {
 	case SR_HWCAP_SAMPLERATE:
 		tmp_u64 = value;
-		return set_configuration_samplerate(sdi, *tmp_u64);
+		return config_set_samplerate(sdi, *tmp_u64);
 	case SR_HWCAP_PROBECONFIG:
 		return configure_probes(sdi, (GSList *)value);
 	case SR_HWCAP_LIMIT_SAMPLES:
@@ -740,7 +739,7 @@ SR_PRIV struct sr_dev_plugin zeroplus_logic_cube_plugin_info = {
 	.get_dev_info = hw_get_dev_info,
 	.get_status = hw_get_status,
 	.hwcap_get_all = hw_hwcap_get_all,
-	.set_configuration = hw_set_configuration,
+	.config_set = hw_config_set,
 	.start_acquisition = hw_start_acquisition,
 	.stop_acquisition = hw_stop_acquisition,
 };
