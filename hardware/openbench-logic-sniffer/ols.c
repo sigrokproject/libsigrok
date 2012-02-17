@@ -567,7 +567,7 @@ static void *hw_get_dev_info(int dev_index, int dev_info_id)
 
 	info = NULL;
 	switch (dev_info_id) {
-	case SR_DI_INSTANCE:
+	case SR_DI_INST:
 		info = sdi;
 		break;
 	case SR_DI_NUM_PROBES:

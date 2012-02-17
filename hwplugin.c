@@ -177,7 +177,7 @@ SR_PRIV struct sr_dev_inst *sr_dev_inst_new(int index, int status,
 
 	sdi->index = index;
 	sdi->status = status;
-	sdi->instance_type = -1;
+	sdi->inst_type = -1;
 	sdi->vendor = vendor ? g_strdup(vendor) : NULL;
 	sdi->model = model ? g_strdup(model) : NULL;
 	sdi->version = version ? g_strdup(version) : NULL;

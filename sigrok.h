@@ -279,7 +279,7 @@ struct sr_hwcap_option {
 struct sr_dev_inst {
 	int index;
 	int status;
-	int instance_type;
+	int inst_type;
 	char *vendor;
 	char *model;
 	char *version;
@@ -288,8 +288,8 @@ struct sr_dev_inst {
 
 /* sr_dev_inst types */
 enum {
-	SR_USB_INSTANCE,
-	SR_SERIAL_INSTANCE,
+	SR_USB_INST,
+	SR_SERIAL_INST,
 };
 
 /* Device instance status */
@@ -311,7 +311,7 @@ enum {
 /* Device info IDs */
 enum {
 	/* struct sr_dev_inst for this specific device */
-	SR_DI_INSTANCE,
+	SR_DI_INST,
 	/* The number of probes connected to this device */
 	SR_DI_NUM_PROBES,
 	/* The probe names on this device */
