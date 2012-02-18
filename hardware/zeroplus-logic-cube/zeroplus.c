@@ -627,7 +627,7 @@ static int hw_config_set(int dev_index, int hwcap, void *value)
 	}
 }
 
-static int hw_start_acquisition(int dev_index, gpointer session_data)
+static int hw_acquisition_start(int dev_index, gpointer session_data)
 {
 	struct sr_dev_inst *sdi;
 	struct sr_datafeed_packet packet;
@@ -703,7 +703,7 @@ static int hw_start_acquisition(int dev_index, gpointer session_data)
 }
 
 /* This stops acquisition on ALL devices, ignoring dev_index. */
-static int hw_stop_acquisition(int dev_index, gpointer session_dev_id)
+static int hw_acquisition_stop(int dev_index, gpointer session_dev_id)
 {
 	struct sr_datafeed_packet packet;
 	struct sr_dev_inst *sdi;
@@ -740,6 +740,6 @@ SR_PRIV struct sr_dev_plugin zeroplus_logic_cube_plugin_info = {
 	.get_status = hw_get_status,
 	.hwcap_get_all = hw_hwcap_get_all,
 	.config_set = hw_config_set,
-	.start_acquisition = hw_start_acquisition,
-	.stop_acquisition = hw_stop_acquisition,
+	.acquisition_start = hw_acquisition_start,
+	.acquisition_stop = hw_acquisition_stop,
 };

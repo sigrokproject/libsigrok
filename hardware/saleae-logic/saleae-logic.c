@@ -94,7 +94,7 @@ static libusb_context *usb_context = NULL;
 static int new_saleae_logic_firmware = 0;
 
 static int hw_config_set(int dev_index, int hwcap, void *value);
-static int hw_stop_acquisition(int dev_index, gpointer session_dev_id);
+static int hw_acquisition_stop(int dev_index, gpointer session_dev_id);
 
 /**
  * Check the USB configuration to determine if this is a Saleae Logic.
@@ -680,7 +680,7 @@ static void receive_transfer(struct libusb_transfer *transfer)
 	int cur_buflen, trigger_offset, i;
 	unsigned char *cur_buf, *new_buf;
 
-	/* hw_stop_acquisition() is telling us to stop. */
+	/* hw_acquisition_stop() is telling us to stop. */
 	if (transfer == NULL)
 		num_samples = -1;
 
@@ -723,7 +723,7 @@ static void receive_transfer(struct libusb_transfer *transfer)
 			 * The FX2 gave up. End the acquisition, the frontend
 			 * will work out that the samplecount is short.
 			 */
-			hw_stop_acquisition(-1, fx2->session_data);
+			hw_acquisition_stop(-1, fx2->session_data);
 		}
 		return;
 	} else {
@@ -797,7 +797,7 @@ static void receive_transfer(struct libusb_transfer *transfer)
 
 		num_samples += cur_buflen;
 		if (fx2->limit_samples && (unsigned int) num_samples > fx2->limit_samples) {
-			hw_stop_acquisition(-1, fx2->session_data);
+			hw_acquisition_stop(-1, fx2->session_data);
 		}
 	} else {
 		/*
@@ -807,7 +807,7 @@ static void receive_transfer(struct libusb_transfer *transfer)
 	}
 }
 
-static int hw_start_acquisition(int dev_index, gpointer session_data)
+static int hw_acquisition_start(int dev_index, gpointer session_data)
 {
 	struct sr_dev_inst *sdi;
 	struct sr_datafeed_packet *packet;
@@ -873,7 +873,7 @@ static int hw_start_acquisition(int dev_index, gpointer session_data)
 }
 
 /* This stops acquisition on ALL devices, ignoring dev_index. */
-static int hw_stop_acquisition(int dev_index, gpointer session_data)
+static int hw_acquisition_stop(int dev_index, gpointer session_data)
 {
 	struct sr_datafeed_packet packet;
 
@@ -902,6 +902,6 @@ SR_PRIV struct sr_dev_plugin saleae_logic_plugin_info = {
 	.get_status = hw_get_status,
 	.hwcap_get_all = hw_hwcap_get_all,
 	.config_set = hw_config_set,
-	.start_acquisition = hw_start_acquisition,
-	.stop_acquisition = hw_stop_acquisition,
+	.acquisition_start = hw_acquisition_start,
+	.acquisition_stop = hw_acquisition_stop,
 };
