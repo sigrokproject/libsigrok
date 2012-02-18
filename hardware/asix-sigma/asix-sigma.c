@@ -309,7 +309,7 @@ static int sigma_write_trigger_lut(struct triggerlut *lut, struct sigma *sigma)
 			tmp[1] |= 0x80;
 
 		sigma_write_register(WRITE_TRIGGER_SELECT0, tmp, sizeof(tmp),
-				sigma);
+				     sigma);
 		sigma_set_register(WRITE_TRIGGER_SELECT1, 0x30 | i, sigma);
 	}
 

@@ -599,7 +599,6 @@ static int set_samplerate(struct sr_dev_inst *sdi, uint64_t samplerate)
 static int hw_dev_config_set(int dev_index, int hwcap, void *value)
 {
 	struct sr_dev_inst *sdi;
-	uint64_t *tmp_u64;
 	struct zp *zp;
 
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index))) {
@@ -614,13 +613,11 @@ static int hw_dev_config_set(int dev_index, int hwcap, void *value)
 
 	switch (hwcap) {
 	case SR_HWCAP_SAMPLERATE:
-		tmp_u64 = value;
-		return set_samplerate(sdi, *tmp_u64);
+		return set_samplerate(sdi, *(uint64_t *)value);
 	case SR_HWCAP_PROBECONFIG:
 		return configure_probes(sdi, (GSList *)value);
 	case SR_HWCAP_LIMIT_SAMPLES:
-		tmp_u64 = value;
-		zp->limit_samples = *tmp_u64;
+		zp->limit_samples = *(uint64_t *)value;
 		return SR_OK;
 	default:
 		return SR_ERR;

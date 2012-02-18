@@ -632,20 +632,17 @@ static int hw_dev_config_set(int dev_index, int hwcap, void *value)
 	struct sr_dev_inst *sdi;
 	struct fx2_dev *fx2;
 	int ret;
-	uint64_t *tmp_u64;
 
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return SR_ERR;
 	fx2 = sdi->priv;
 
 	if (hwcap == SR_HWCAP_SAMPLERATE) {
-		tmp_u64 = value;
-		ret = set_samplerate(sdi, *tmp_u64);
+		ret = set_samplerate(sdi, *(uint64_t *)value);
 	} else if (hwcap == SR_HWCAP_PROBECONFIG) {
 		ret = configure_probes(fx2, (GSList *) value);
 	} else if (hwcap == SR_HWCAP_LIMIT_SAMPLES) {
-		tmp_u64 = value;
-		fx2->limit_samples = *tmp_u64;
+		fx2->limit_samples = *(uint64_t *)value;
 		ret = SR_OK;
 	} else {
 		ret = SR_ERR;

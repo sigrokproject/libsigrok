@@ -653,11 +653,10 @@ static int hw_dev_config_set(int dev_index, int hwcap, void *value)
 
 	switch (hwcap) {
 	case SR_HWCAP_SAMPLERATE:
-		tmp_u64 = value;
-		ret = set_samplerate(sdi, *tmp_u64);
+		ret = set_samplerate(sdi, *(uint64_t *)value);
 		break;
 	case SR_HWCAP_PROBECONFIG:
-		ret = configure_probes(ols, (GSList *) value);
+		ret = configure_probes(ols, (GSList *)value);
 		break;
 	case SR_HWCAP_LIMIT_SAMPLES:
 		tmp_u64 = value;
@@ -670,8 +669,7 @@ static int hw_dev_config_set(int dev_index, int hwcap, void *value)
 		ret = SR_OK;
 		break;
 	case SR_HWCAP_CAPTURE_RATIO:
-		tmp_u64 = value;
-		ols->capture_ratio = *tmp_u64;
+		ols->capture_ratio = *(uint64_t *)value;
 		if (ols->capture_ratio < 0 || ols->capture_ratio > 100) {
 			ols->capture_ratio = 0;
 			ret = SR_ERR;
