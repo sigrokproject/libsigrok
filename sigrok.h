@@ -347,10 +347,10 @@ struct sr_dev_plugin {
 	int (*cleanup) (void);
 
 	/* Device-specific */
-	int (*opendev) (int dev_index);
-	int (*closedev) (int dev_index);
+	int (*dev_open) (int dev_index);
+	int (*dev_close) (int dev_index);
 	void *(*dev_info_get) (int dev_index, int dev_info_id);
-	int (*get_status) (int dev_index);
+	int (*dev_status_get) (int dev_index);
 	int *(*hwcap_get_all) (void);
 	int (*config_set) (int dev_index, int hwcap, void *value);
 	int (*acquisition_start) (int dev_index, gpointer session_dev_id);

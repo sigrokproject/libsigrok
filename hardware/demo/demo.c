@@ -125,7 +125,7 @@ static uint8_t pattern_sigrok[] = {
 	0xbe, 0xbe, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 };
 
-/* List of struct sr_dev_inst, maintained by opendev()/closedev(). */
+/* List of struct sr_dev_inst, maintained by dev_open()/dev_close(). */
 static GSList *dev_insts = NULL;
 static uint64_t cur_samplerate = SR_KHZ(200);
 static uint64_t limit_samples = 0;
@@ -154,7 +154,7 @@ static int hw_init(const char *devinfo)
 	return 1;
 }
 
-static int hw_opendev(int dev_index)
+static int hw_dev_open(int dev_index)
 {
 	/* Avoid compiler warnings. */
 	(void)dev_index;
@@ -164,7 +164,7 @@ static int hw_opendev(int dev_index)
 	return SR_OK;
 }
 
-static int hw_closedev(int dev_index)
+static int hw_dev_close(int dev_index)
 {
 	/* Avoid compiler warnings. */
 	(void)dev_index;
@@ -214,7 +214,7 @@ static void *hw_dev_info_get(int dev_index, int dev_info_id)
 	return info;
 }
 
-static int hw_get_status(int dev_index)
+static int hw_dev_status_get(int dev_index)
 {
 	/* Avoid compiler warnings. */
 	(void)dev_index;
@@ -495,10 +495,10 @@ SR_PRIV struct sr_dev_plugin demo_plugin_info = {
 	.api_version = 1,
 	.init = hw_init,
 	.cleanup = hw_cleanup,
-	.opendev = hw_opendev,
-	.closedev = hw_closedev,
+	.dev_open = hw_dev_open,
+	.dev_close = hw_dev_close,
 	.dev_info_get = hw_dev_info_get,
-	.get_status = hw_get_status,
+	.dev_status_get = hw_dev_status_get,
 	.hwcap_get_all = hw_hwcap_get_all,
 	.config_set = hw_config_set,
 	.acquisition_start = hw_acquisition_start,

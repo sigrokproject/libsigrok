@@ -175,7 +175,7 @@ static int hw_cleanup(void)
 	return SR_OK;
 }
 
-static int hw_opendev(int dev_index)
+static int hw_dev_open(int dev_index)
 {
 	struct sr_dev_inst *sdi;
 
@@ -210,7 +210,7 @@ static void *hw_dev_info_get(int dev_index, int dev_info_id)
 	return info;
 }
 
-static int hw_get_status(int dev_index)
+static int hw_dev_status_get(int dev_index)
 {
 	/* Avoid compiler warnings. */
 	(void)dev_index;
@@ -337,10 +337,10 @@ SR_PRIV struct sr_dev_plugin session_driver = {
 	.api_version = 1,
 	.init = hw_init,
 	.cleanup = hw_cleanup,
-	.opendev = hw_opendev,
-	.closedev = NULL,
+	.dev_open = hw_dev_open,
+	.dev_close = NULL,
 	.dev_info_get = hw_dev_info_get,
-	.get_status = hw_get_status,
+	.dev_status_get = hw_dev_status_get,
 	.hwcap_get_all = hw_hwcap_get_all,
 	.config_set = hw_config_set,
 	.acquisition_start = hw_acquisition_start,

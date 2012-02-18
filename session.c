@@ -114,7 +114,7 @@ SR_API int sr_session_dev_clear(void)
  * Add a device to the current session.
  *
  * @param dev The device to add to the current session. Must not be NULL.
- *            Also, dev->plugin and dev->plugin->opendev must not be NULL.
+ *            Also, dev->plugin and dev->plugin->dev_open must not be NULL.
  *
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments.
  */
@@ -132,8 +132,8 @@ SR_API int sr_session_dev_add(struct sr_dev *dev)
 		return SR_ERR_ARG;
 	}
 
-	if (!dev->plugin->opendev) {
-		sr_err("session: %s: dev->plugin->opendev was NULL",
+	if (!dev->plugin->dev_open) {
+		sr_err("session: %s: dev->plugin->dev_open was NULL",
 		       __func__);
 		return SR_ERR_ARG;
 	}
@@ -143,8 +143,8 @@ SR_API int sr_session_dev_add(struct sr_dev *dev)
 		return SR_ERR; /* TODO: SR_ERR_BUG? */
 	}
 
-	if ((ret = dev->plugin->opendev(dev->plugin_index)) != SR_OK) {
-		sr_err("session: %s: opendev failed (%d)", __func__, ret);
+	if ((ret = dev->plugin->dev_open(dev->plugin_index)) != SR_OK) {
+		sr_err("session: %s: dev_open failed (%d)", __func__, ret);
 		return ret;
 	}
 
