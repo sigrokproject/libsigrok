@@ -136,7 +136,7 @@ static int hwcaps[] = {
 
 /* Function prototypes. */
 static int la8_close_usb_reset_sequencer(struct la8 *la8);
-static int hw_acquisition_stop(int dev_index, gpointer session_data);
+static int hw_dev_acquisition_stop(int dev_index, gpointer session_data);
 static int la8_reset(struct la8 *la8);
 
 static void fill_supported_samplerates_if_needed(void)
@@ -990,7 +990,7 @@ static int receive_data(int fd, int revents, void *session_data)
 	/* Get one block of data. */
 	if ((ret = la8_read_block(la8)) < 0) {
 		sr_err("la8: %s: la8_read_block error: %d", __func__, ret);
-		hw_acquisition_stop(sdi->index, session_data);
+		hw_dev_acquisition_stop(sdi->index, session_data);
 		return FALSE;
 	}
 
@@ -1006,13 +1006,13 @@ static int receive_data(int fd, int revents, void *session_data)
 	for (i = 0; i < NUM_BLOCKS; i++)
 		send_block_to_session_bus(la8, i);
 
-	hw_acquisition_stop(sdi->index, session_data);
+	hw_dev_acquisition_stop(sdi->index, session_data);
 
 	// return FALSE; /* FIXME? */
 	return TRUE;
 }
 
-static int hw_acquisition_start(int dev_index, gpointer session_data)
+static int hw_dev_acquisition_start(int dev_index, gpointer session_data)
 {
 	struct sr_dev_inst *sdi;
 	struct la8 *la8;
@@ -1087,7 +1087,7 @@ static int hw_acquisition_start(int dev_index, gpointer session_data)
 	return SR_OK;
 }
 
-static int hw_acquisition_stop(int dev_index, gpointer session_data)
+static int hw_dev_acquisition_stop(int dev_index, gpointer session_data)
 {
 	struct sr_dev_inst *sdi;
 	struct la8 *la8;
@@ -1125,6 +1125,6 @@ SR_PRIV struct sr_dev_plugin chronovu_la8_plugin_info = {
 	.dev_status_get = hw_dev_status_get,
 	.hwcap_get_all = hw_hwcap_get_all,
 	.config_set = hw_config_set,
-	.acquisition_start = hw_acquisition_start,
-	.acquisition_stop = hw_acquisition_stop,
+	.dev_acquisition_start = hw_dev_acquisition_start,
+	.dev_acquisition_stop = hw_dev_acquisition_stop,
 };

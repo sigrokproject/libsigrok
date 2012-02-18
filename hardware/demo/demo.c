@@ -134,7 +134,7 @@ static int default_pattern = PATTERN_SIGROK;
 static GThread *my_thread;
 static int thread_running;
 
-static int hw_acquisition_stop(int dev_index, gpointer session_data);
+static int hw_dev_acquisition_stop(int dev_index, gpointer session_data);
 
 static int hw_init(const char *devinfo)
 {
@@ -405,7 +405,7 @@ static int receive_data(int fd, int revents, void *session_data)
 	return TRUE;
 }
 
-static int hw_acquisition_start(int dev_index, gpointer session_data)
+static int hw_dev_acquisition_start(int dev_index, gpointer session_data)
 {
 	struct sr_datafeed_packet *packet;
 	struct sr_datafeed_header *header;
@@ -477,7 +477,7 @@ static int hw_acquisition_start(int dev_index, gpointer session_data)
 	return SR_OK;
 }
 
-static int hw_acquisition_stop(int dev_index, gpointer session_data)
+static int hw_dev_acquisition_stop(int dev_index, gpointer session_data)
 {
 	/* Avoid compiler warnings. */
 	(void)dev_index;
@@ -501,6 +501,6 @@ SR_PRIV struct sr_dev_plugin demo_plugin_info = {
 	.dev_status_get = hw_dev_status_get,
 	.hwcap_get_all = hw_hwcap_get_all,
 	.config_set = hw_config_set,
-	.acquisition_start = hw_acquisition_start,
-	.acquisition_stop = hw_acquisition_stop,
+	.dev_acquisition_start = hw_dev_acquisition_start,
+	.dev_acquisition_stop = hw_dev_acquisition_stop,
 };

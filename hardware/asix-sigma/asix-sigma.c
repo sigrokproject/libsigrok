@@ -118,7 +118,7 @@ static const char *firmware_files[] = {
 	"asix-sigma-phasor.fw",	/* Frequency counter */
 };
 
-static int hw_acquisition_stop(int dev_index, gpointer session_data);
+static int hw_dev_dev_acquisition_stop(int dev_index, gpointer session_data);
 
 static int sigma_read(void *buf, size_t size, struct sigma *sigma)
 {
@@ -1034,7 +1034,7 @@ static int receive_data(int fd, int revents, void *session_data)
 		if (running_msec < sigma->limit_msec && numchunks < 32767)
 			return FALSE;
 
-		hw_acquisition_stop(sdi->index, session_data);
+		hw_dev_dev_acquisition_stop(sdi->index, session_data);
 
 		return FALSE;
 
@@ -1252,7 +1252,7 @@ static int build_basic_trigger(struct triggerlut *lut, struct sigma *sigma)
 	return SR_OK;
 }
 
-static int hw_acquisition_start(int dev_index, gpointer session_data)
+static int hw_dev_dev_acquisition_start(int dev_index, gpointer session_data)
 {
 	struct sr_dev_inst *sdi;
 	struct sigma *sigma;
@@ -1369,7 +1369,7 @@ static int hw_acquisition_start(int dev_index, gpointer session_data)
 	return SR_OK;
 }
 
-static int hw_acquisition_stop(int dev_index, gpointer session_data)
+static int hw_dev_dev_acquisition_stop(int dev_index, gpointer session_data)
 {
 	struct sr_dev_inst *sdi;
 	struct sigma *sigma;
@@ -1423,6 +1423,6 @@ SR_PRIV struct sr_dev_plugin asix_sigma_plugin_info = {
 	.dev_status_get = hw_dev_status_get,
 	.hwcap_get_all = hw_hwcap_get_all,
 	.config_set = hw_config_set,
-	.acquisition_start = hw_acquisition_start,
-	.acquisition_stop = hw_acquisition_stop,
+	.dev_dev_acquisition_start = hw_dev_dev_acquisition_start,
+	.dev_dev_acquisition_stop = hw_dev_dev_acquisition_stop,
 };

@@ -276,7 +276,7 @@ SR_API int sr_session_start(void)
 	for (l = session->devs; l; l = l->next) {
 		dev = l->data;
 		/* TODO: Check for dev != NULL. */
-		if ((ret = dev->plugin->acquisition_start(
+		if ((ret = dev->plugin->dev_acquisition_start(
 				dev->plugin_index, dev)) != SR_OK) {
 			sr_err("session: %s: could not start an acquisition "
 			       "(%d)", __func__, ret);
@@ -373,8 +373,8 @@ SR_API int sr_session_stop(void)
 		dev = l->data;
 		/* Check for dev != NULL. */
 		if (dev->plugin) {
-			if (dev->plugin->acquisition_stop)
-				dev->plugin->acquisition_stop(dev->plugin_index, dev);
+			if (dev->plugin->dev_acquisition_stop)
+				dev->plugin->dev_acquisition_stop(dev->plugin_index, dev);
 			if (dev->plugin->cleanup)
 				dev->plugin->cleanup();
 		}

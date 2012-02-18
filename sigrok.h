@@ -353,8 +353,8 @@ struct sr_dev_plugin {
 	int (*dev_status_get) (int dev_index);
 	int *(*hwcap_get_all) (void);
 	int (*config_set) (int dev_index, int hwcap, void *value);
-	int (*acquisition_start) (int dev_index, gpointer session_dev_id);
-	int (*acquisition_stop) (int dev_index, gpointer session_dev_id);
+	int (*dev_acquisition_start) (int dev_index, gpointer session_dev_id);
+	int (*dev_acquisition_stop) (int dev_index, gpointer session_dev_id);
 };
 
 struct sr_session {

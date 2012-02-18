@@ -269,7 +269,7 @@ static int hw_config_set(int dev_index, int hwcap, void *value)
 	return SR_OK;
 }
 
-static int hw_acquisition_start(int dev_index, gpointer session_dev_id)
+static int hw_dev_acquisition_start(int dev_index, gpointer session_dev_id)
 {
 	struct zip_stat zs;
 	struct session_vdev *vdev;
@@ -343,6 +343,6 @@ SR_PRIV struct sr_dev_plugin session_driver = {
 	.dev_status_get = hw_dev_status_get,
 	.hwcap_get_all = hw_hwcap_get_all,
 	.config_set = hw_config_set,
-	.acquisition_start = hw_acquisition_start,
-	.acquisition_stop = NULL,
+	.dev_acquisition_start = hw_dev_acquisition_start,
+	.dev_acquisition_stop = NULL,
 };
