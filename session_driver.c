@@ -194,7 +194,7 @@ static int hw_opendev(int dev_index)
 	return SR_OK;
 }
 
-static void *hw_get_dev_info(int dev_index, int dev_info_id)
+static void *hw_dev_info_get(int dev_index, int dev_info_id)
 {
 	struct session_vdev *vdev;
 	void *info;
@@ -332,17 +332,17 @@ static int hw_start_acquisition(int dev_index, gpointer session_dev_id)
 }
 
 SR_PRIV struct sr_dev_plugin session_driver = {
-	"session",
-	"Session-emulating driver",
-	1,
-	hw_init,
-	hw_cleanup,
-	hw_opendev,
-	NULL,
-	hw_get_dev_info,
-	hw_get_status,
-	hw_hwcap_get_all,
-	hw_config_set,
-	hw_start_acquisition,
-	NULL,
+	.name = "session",
+	.longname = "Session-emulating driver",
+	.api_version = 1,
+	.init = hw_init,
+	.cleanup = hw_cleanup,
+	.opendev = hw_opendev,
+	.closedev = NULL,
+	.dev_info_get = hw_dev_info_get,
+	.get_status = hw_get_status,
+	.hwcap_get_all = hw_hwcap_get_all,
+	.config_set = hw_config_set,
+	.start_acquisition = hw_start_acquisition,
+	.stop_acquisition = NULL,
 };

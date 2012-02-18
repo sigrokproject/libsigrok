@@ -92,7 +92,7 @@ static int init(struct sr_output *o)
 	num_probes = g_slist_length(o->dev->probes);
 
 	if (sr_dev_has_hwcap(o->dev, SR_HWCAP_SAMPLERATE)) {
-		samplerate = *((uint64_t *) o->dev->plugin->get_dev_info(
+		samplerate = *((uint64_t *) o->dev->plugin->dev_info_get(
 				o->dev->plugin_index, SR_DI_CUR_SAMPLERATE));
 		/* TODO: Error checks. */
 	} else {

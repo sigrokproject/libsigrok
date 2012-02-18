@@ -131,7 +131,7 @@ SR_API char **sr_parse_triggerstring(struct sr_dev *dev,
 	}
 
 	tokens = g_strsplit(triggerstring, ",", max_probes);
-	trigger_types = dev->plugin->get_dev_info(0, SR_DI_TRIGGER_TYPES);
+	trigger_types = dev->plugin->dev_info_get(0, SR_DI_TRIGGER_TYPES);
 	if (trigger_types == NULL)
 		return NULL;
 

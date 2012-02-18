@@ -227,7 +227,7 @@ int sr_session_save(const char *filename)
 			fprintf(meta, "unitsize = %d\n", ds->ds_unitsize);
 			fprintf(meta, "total probes = %d\n", g_slist_length(dev->probes));
 			if (sr_dev_has_hwcap(dev, SR_HWCAP_SAMPLERATE)) {
-				samplerate = *((uint64_t *) dev->plugin->get_dev_info(
+				samplerate = *((uint64_t *) dev->plugin->dev_info_get(
 						dev->plugin_index, SR_DI_CUR_SAMPLERATE));
 				s = sr_samplerate_string(samplerate);
 				fprintf(meta, "samplerate = %s\n", s);

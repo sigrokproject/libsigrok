@@ -555,7 +555,7 @@ static int hw_cleanup(void)
 	return ret;
 }
 
-static void *hw_get_dev_info(int dev_index, int dev_info_id)
+static void *hw_dev_info_get(int dev_index, int dev_info_id)
 {
 	struct sr_dev_inst *sdi;
 	struct ols_dev *ols;
@@ -1045,7 +1045,7 @@ SR_PRIV struct sr_dev_plugin ols_plugin_info = {
 	.cleanup = hw_cleanup,
 	.opendev = hw_opendev,
 	.closedev = hw_closedev,
-	.get_dev_info = hw_get_dev_info,
+	.dev_info_get = hw_dev_info_get,
 	.get_status = hw_get_status,
 	.hwcap_get_all = hw_hwcap_get_all,
 	.config_set = hw_config_set,

@@ -134,8 +134,8 @@ SR_API int sr_hw_init(struct sr_dev_plugin *plugin)
 	num_devs = plugin->init(NULL);
 	for (i = 0; i < num_devs; i++) {
 		num_probes = GPOINTER_TO_INT(
-				plugin->get_dev_info(i, SR_DI_NUM_PROBES));
-		probe_names = (char **)plugin->get_dev_info(i,
+				plugin->dev_info_get(i, SR_DI_NUM_PROBES));
+		probe_names = (char **)plugin->dev_info_get(i,
 							SR_DI_PROBE_NAMES);
 
 		if (!probe_names) {

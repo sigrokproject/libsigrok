@@ -424,7 +424,7 @@ SR_API int sr_dev_info_get(const struct sr_dev *dev, int id, const void **data)
 	if (data == NULL)
 		return SR_ERR_ARG;
 
-	*data = dev->plugin->get_dev_info(dev->plugin_index, id);
+	*data = dev->plugin->dev_info_get(dev->plugin_index, id);
 
 	if (*data == NULL)
 		return SR_ERR;

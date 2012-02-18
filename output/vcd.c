@@ -85,7 +85,7 @@ static int init(struct sr_output *o)
 			PACKAGE, PACKAGE_VERSION);
 
 	if (o->dev->plugin && sr_dev_has_hwcap(o->dev, SR_HWCAP_SAMPLERATE)) {
-		ctx->samplerate = *((uint64_t *) o->dev->plugin->get_dev_info(
+		ctx->samplerate = *((uint64_t *) o->dev->plugin->dev_info_get(
 				o->dev->plugin_index, SR_DI_CUR_SAMPLERATE));
 		if (!((samplerate_s = sr_samplerate_string(ctx->samplerate)))) {
 			g_string_free(ctx->header, TRUE);

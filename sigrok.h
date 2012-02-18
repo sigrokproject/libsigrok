@@ -349,7 +349,7 @@ struct sr_dev_plugin {
 	/* Device-specific */
 	int (*opendev) (int dev_index);
 	int (*closedev) (int dev_index);
-	void *(*get_dev_info) (int dev_index, int dev_info_id);
+	void *(*dev_info_get) (int dev_index, int dev_info_id);
 	int (*get_status) (int dev_index);
 	int *(*hwcap_get_all) (void);
 	int (*config_set) (int dev_index, int hwcap, void *value);

@@ -61,7 +61,7 @@ static int init(struct sr_output *o)
 	ctx->unitsize = (num_enabled_probes + 7) / 8;
 
 	if (o->dev->plugin && sr_dev_has_hwcap(o->dev, SR_HWCAP_SAMPLERATE))
-		samplerate = *((uint64_t *) o->dev->plugin->get_dev_info(
+		samplerate = *((uint64_t *) o->dev->plugin->dev_info_get(
 				o->dev->plugin_index, SR_DI_CUR_SAMPLERATE));
 	else
 		samplerate = 0;
