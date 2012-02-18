@@ -153,7 +153,8 @@ static struct sr_samplerates samplerates = {
 	supported_samplerates,
 };
 
-struct zp {
+/* Private, per-device-instance driver context. */
+struct context {
 	uint64_t cur_samplerate;
 	uint64_t limit_samples;
 	int num_channels; /* TODO: This isn't initialized before it's needed :( */
@@ -185,13 +186,13 @@ static unsigned int get_memory_size(int type)
 static int opendev4(struct sr_dev_inst **sdi, libusb_device *dev,
 		    struct libusb_device_descriptor *des)
 {
-	struct zp *zp;
+	struct context *ctx;
 	unsigned int i;
 	int err;
 
 	/* Note: sdi is non-NULL, the caller already checked this. */
 
-	if (!(zp = (*sdi)->priv)) {
+	if (!(ctx = (*sdi)->priv)) {
 		sr_err("zp: %s: (*sdi)->priv was NULL", __func__);
 		return -1;
 	}
@@ -204,8 +205,8 @@ static int opendev4(struct sr_dev_inst **sdi, libusb_device *dev,
 	if (des->idVendor != USB_VENDOR)
 		return 0;
 
-	if (libusb_get_bus_number(dev) == zp->usb->bus
-	    && libusb_get_device_address(dev) == zp->usb->address) {
+	if (libusb_get_bus_number(dev) == ctx->usb->bus
+	    && libusb_get_device_address(dev) == ctx->usb->address) {
 
 		for (i = 0; i < ARRAY_SIZE(zeroplus_models); i++) {
 			if (!(des->idProduct == zeroplus_models[i].pid))
@@ -213,23 +214,23 @@ static int opendev4(struct sr_dev_inst **sdi, libusb_device *dev,
 
 			sr_info("zp: Found ZeroPlus device 0x%04x (%s)",
 				des->idProduct, zeroplus_models[i].model_name);
-			zp->num_channels = zeroplus_models[i].channels;
-			zp->memory_size = zeroplus_models[i].sample_depth * 1024;
+			ctx->num_channels = zeroplus_models[i].channels;
+			ctx->memory_size = zeroplus_models[i].sample_depth * 1024;
 			break;
 		}
 
-		if (zp->num_channels == 0) {
+		if (ctx->num_channels == 0) {
 			sr_err("zp: Unknown ZeroPlus device 0x%04x",
 			       des->idProduct);
 			return -2;
 		}
 
 		/* Found it. */
-		if (!(err = libusb_open(dev, &(zp->usb->devhdl)))) {
+		if (!(err = libusb_open(dev, &(ctx->usb->devhdl)))) {
 			(*sdi)->status = SR_ST_ACTIVE;
 			sr_info("zp: opened device %d on %d.%d interface %d",
-				(*sdi)->index, zp->usb->bus,
-				zp->usb->address, USB_INTERFACE);
+				(*sdi)->index, ctx->usb->bus,
+				ctx->usb->address, USB_INTERFACE);
 		} else {
 			sr_err("zp: failed to open device: %d", err);
 			*sdi = NULL;
@@ -271,41 +272,41 @@ static struct sr_dev_inst *zp_open_dev(int dev_index)
 
 static void close_dev(struct sr_dev_inst *sdi)
 {
-	struct zp *zp;
+	struct context *ctx;
 
-	if (!(zp = sdi->priv)) {
+	if (!(ctx = sdi->priv)) {
 		sr_err("zp: %s: sdi->priv was NULL", __func__);
 		return; /* FIXME */
 	}
 
-	if (!zp->usb->devhdl)
+	if (!ctx->usb->devhdl)
 		return;
 
 	sr_info("zp: closing device %d on %d.%d interface %d", sdi->index,
-		zp->usb->bus, zp->usb->address, USB_INTERFACE);
-	libusb_release_interface(zp->usb->devhdl, USB_INTERFACE);
-	libusb_reset_device(zp->usb->devhdl);
-	libusb_close(zp->usb->devhdl);
-	zp->usb->devhdl = NULL;
+		ctx->usb->bus, ctx->usb->address, USB_INTERFACE);
+	libusb_release_interface(ctx->usb->devhdl, USB_INTERFACE);
+	libusb_reset_device(ctx->usb->devhdl);
+	libusb_close(ctx->usb->devhdl);
+	ctx->usb->devhdl = NULL;
 	/* TODO: Call libusb_exit() here or only in hw_cleanup()? */
 	sdi->status = SR_ST_INACTIVE;
 }
 
 static int configure_probes(struct sr_dev_inst *sdi, GSList *probes)
 {
-	struct zp *zp;
+	struct context *ctx;
 	struct sr_probe *probe;
 	GSList *l;
 	int probe_bit, stage, i;
 	char *tc;
 
 	/* Note: sdi and sdi->priv are non-NULL, the caller checked this. */
-	zp = sdi->priv;
+	ctx = sdi->priv;
 
-	zp->probe_mask = 0;
+	ctx->probe_mask = 0;
 	for (i = 0; i < NUM_TRIGGER_STAGES; i++) {
-		zp->trigger_mask[i] = 0;
-		zp->trigger_value[i] = 0;
+		ctx->trigger_mask[i] = 0;
+		ctx->trigger_value[i] = 0;
 	}
 
 	stage = -1;
@@ -314,14 +315,14 @@ static int configure_probes(struct sr_dev_inst *sdi, GSList *probes)
 		if (probe->enabled == FALSE)
 			continue;
 		probe_bit = 1 << (probe->index - 1);
-		zp->probe_mask |= probe_bit;
+		ctx->probe_mask |= probe_bit;
 
 		if (probe->trigger) {
 			stage = 0;
 			for (tc = probe->trigger; *tc; tc++) {
-				zp->trigger_mask[stage] |= probe_bit;
+				ctx->trigger_mask[stage] |= probe_bit;
 				if (*tc == '1')
-					zp->trigger_value[stage] |= probe_bit;
+					ctx->trigger_value[stage] |= probe_bit;
 				stage++;
 				if (stage > NUM_TRIGGER_STAGES)
 					return SR_ERR;
@@ -342,26 +343,26 @@ static int hw_init(const char *devinfo)
 	struct libusb_device_descriptor des;
 	libusb_device **devlist;
 	int err, devcnt, i;
-	struct zp *zp;
+	struct context *ctx;
 
 	/* Avoid compiler warnings. */
 	(void)devinfo;
 
 	/* Allocate memory for our private driver context. */
-	if (!(zp = g_try_malloc(sizeof(struct zp)))) {
-		sr_err("zp: %s: struct zp malloc failed", __func__);
+	if (!(ctx = g_try_malloc(sizeof(struct context)))) {
+		sr_err("zp: %s: ctx malloc failed", __func__);
 		return 0;
 	}
 
 	/* Set some sane defaults. */
-	zp->cur_samplerate = 0;
-	zp->limit_samples = 0;
-	zp->num_channels = 32; /* TODO: This isn't initialized before it's needed :( */
-	zp->memory_size = 0;
-	zp->probe_mask = 0;
-	memset(zp->trigger_mask, 0, NUM_TRIGGER_STAGES);
-	memset(zp->trigger_value, 0, NUM_TRIGGER_STAGES);
-	// memset(zp->trigger_buffer, 0, NUM_TRIGGER_STAGES);
+	ctx->cur_samplerate = 0;
+	ctx->limit_samples = 0;
+	ctx->num_channels = 32; /* TODO: This isn't initialized before it's needed :( */
+	ctx->memory_size = 0;
+	ctx->probe_mask = 0;
+	memset(ctx->trigger_mask, 0, NUM_TRIGGER_STAGES);
+	memset(ctx->trigger_value, 0, NUM_TRIGGER_STAGES);
+	// memset(ctx->trigger_buffer, 0, NUM_TRIGGER_STAGES);
 
 	if (libusb_init(&usb_context) != 0) {
 		sr_err("zp: Failed to initialize USB.");
@@ -394,11 +395,11 @@ static int hw_init(const char *devinfo)
 				return 0;
 			}
 
-			sdi->priv = zp;
+			sdi->priv = ctx;
 
 			dev_insts =
 			    g_slist_append(dev_insts, sdi);
-			zp->usb = sr_usb_dev_inst_new(
+			ctx->usb = sr_usb_dev_inst_new(
 				libusb_get_bus_number(devlist[i]),
 				libusb_get_device_address(devlist[i]), NULL);
 			devcnt++;
@@ -412,7 +413,7 @@ static int hw_init(const char *devinfo)
 static int hw_dev_open(int dev_index)
 {
 	struct sr_dev_inst *sdi;
-	struct zp *zp;
+	struct context *ctx;
 	int err;
 
 	if (!(sdi = zp_open_dev(dev_index))) {
@@ -422,26 +423,26 @@ static int hw_dev_open(int dev_index)
 
 	/* TODO: Note: sdi is retrieved in zp_open_dev(). */
 
-	if (!(zp = sdi->priv)) {
+	if (!(ctx = sdi->priv)) {
 		sr_err("zp: %s: sdi->priv was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
-	err = libusb_set_configuration(zp->usb->devhdl, USB_CONFIGURATION);
+	err = libusb_set_configuration(ctx->usb->devhdl, USB_CONFIGURATION);
 	if (err < 0) {
 		sr_err("zp: Unable to set USB configuration %d: %d",
 		       USB_CONFIGURATION, err);
 		return SR_ERR;
 	}
 
-	err = libusb_claim_interface(zp->usb->devhdl, USB_INTERFACE);
+	err = libusb_claim_interface(ctx->usb->devhdl, USB_INTERFACE);
 	if (err != 0) {
 		sr_err("zp: Unable to claim interface: %d", err);
 		return SR_ERR;
 	}
 
-	analyzer_reset(zp->usb->devhdl);
-	analyzer_initialize(zp->usb->devhdl);
+	analyzer_reset(ctx->usb->devhdl);
+	analyzer_initialize(ctx->usb->devhdl);
 
 	analyzer_set_memory_size(MEMORY_SIZE_512K);
 	// analyzer_set_freq(g_freq, g_freq_scale);
@@ -460,7 +461,7 @@ static int hw_dev_open(int dev_index)
 #endif
 	analyzer_set_compression(COMPRESSION_NONE);
 
-	if (zp->cur_samplerate == 0) {
+	if (ctx->cur_samplerate == 0) {
 		/* Samplerate hasn't been set. Default to the slowest one. */
 		if (hw_dev_config_set(dev_index, SR_HWCAP_SAMPLERATE,
 		     &samplerates.list[0]) == SR_ERR)
@@ -510,7 +511,7 @@ static int hw_cleanup(void)
 static void *hw_dev_info_get(int dev_index, int dev_info_id)
 {
 	struct sr_dev_inst *sdi;
-	struct zp *zp;
+	struct context *ctx;
 	void *info;
 
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index))) {
@@ -518,7 +519,7 @@ static void *hw_dev_info_get(int dev_index, int dev_info_id)
 		return NULL;
 	}
 
-	if (!(zp = sdi->priv)) {
+	if (!(ctx = sdi->priv)) {
 		sr_err("zp: %s: sdi->priv was NULL", __func__);
 		return NULL;
 	}
@@ -528,7 +529,7 @@ static void *hw_dev_info_get(int dev_index, int dev_info_id)
 		info = sdi;
 		break;
 	case SR_DI_NUM_PROBES:
-		info = GINT_TO_POINTER(zp->num_channels);
+		info = GINT_TO_POINTER(ctx->num_channels);
 		break;
 	case SR_DI_PROBE_NAMES:
 		info = probe_names;
@@ -540,7 +541,7 @@ static void *hw_dev_info_get(int dev_index, int dev_info_id)
 		info = TRIGGER_TYPES;
 		break;
 	case SR_DI_CUR_SAMPLERATE:
-		info = &zp->cur_samplerate;
+		info = &ctx->cur_samplerate;
 		break;
 	default:
 		/* Unknown device info ID, return NULL. */
@@ -570,14 +571,14 @@ static int *hw_hwcap_get_all(void)
 
 static int set_samplerate(struct sr_dev_inst *sdi, uint64_t samplerate)
 {
-	struct zp *zp;
+	struct context *ctx;
 
 	if (!sdi) {
 		sr_err("zp: %s: sdi was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
-	if (!(zp = sdi->priv)) {
+	if (!(ctx = sdi->priv)) {
 		sr_err("zp: %s: sdi->priv was NULL", __func__);
 		return SR_ERR_ARG;
 	}
@@ -591,7 +592,7 @@ static int set_samplerate(struct sr_dev_inst *sdi, uint64_t samplerate)
 	else
 		analyzer_set_freq(samplerate, FREQ_SCALE_HZ);
 
-	zp->cur_samplerate = samplerate;
+	ctx->cur_samplerate = samplerate;
 
 	return SR_OK;
 }
@@ -599,14 +600,14 @@ static int set_samplerate(struct sr_dev_inst *sdi, uint64_t samplerate)
 static int hw_dev_config_set(int dev_index, int hwcap, void *value)
 {
 	struct sr_dev_inst *sdi;
-	struct zp *zp;
+	struct context *ctx;
 
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index))) {
 		sr_err("zp: %s: sdi was NULL", __func__);
 		return SR_ERR;
 	}
 
-	if (!(zp = sdi->priv)) {
+	if (!(ctx = sdi->priv)) {
 		sr_err("zp: %s: sdi->priv was NULL", __func__);
 		return SR_ERR_ARG;
 	}
@@ -617,7 +618,7 @@ static int hw_dev_config_set(int dev_index, int hwcap, void *value)
 	case SR_HWCAP_PROBECONFIG:
 		return configure_probes(sdi, (GSList *)value);
 	case SR_HWCAP_LIMIT_SAMPLES:
-		zp->limit_samples = *(uint64_t *)value;
+		ctx->limit_samples = *(uint64_t *)value;
 		return SR_OK;
 	default:
 		return SR_ERR;
@@ -634,38 +635,38 @@ static int hw_dev_acquisition_start(int dev_index, gpointer session_data)
 	int res;
 	unsigned int packet_num;
 	unsigned char *buf;
-	struct zp *zp;
+	struct context *ctx;
 
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index))) {
 		sr_err("zp: %s: sdi was NULL", __func__);
 		return SR_ERR;
 	}
 
-	if (!(zp = sdi->priv)) {
+	if (!(ctx = sdi->priv)) {
 		sr_err("zp: %s: sdi->priv was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	/* push configured settings to device */
-	analyzer_configure(zp->usb->devhdl);
+	analyzer_configure(ctx->usb->devhdl);
 
-	analyzer_start(zp->usb->devhdl);
+	analyzer_start(ctx->usb->devhdl);
 	sr_info("zp: Waiting for data");
-	analyzer_wait_data(zp->usb->devhdl);
+	analyzer_wait_data(ctx->usb->devhdl);
 
 	sr_info("zp: Stop address    = 0x%x",
-		analyzer_get_stop_address(zp->usb->devhdl));
+		analyzer_get_stop_address(ctx->usb->devhdl));
 	sr_info("zp: Now address     = 0x%x",
-		analyzer_get_now_address(zp->usb->devhdl));
+		analyzer_get_now_address(ctx->usb->devhdl));
 	sr_info("zp: Trigger address = 0x%x",
-		analyzer_get_trigger_address(zp->usb->devhdl));
+		analyzer_get_trigger_address(ctx->usb->devhdl));
 
 	packet.type = SR_DF_HEADER;
 	packet.payload = &header;
 	header.feed_version = 1;
 	gettimeofday(&header.starttime, NULL);
-	header.samplerate = zp->cur_samplerate;
-	header.num_logic_probes = zp->num_channels;
+	header.samplerate = ctx->cur_samplerate;
+	header.num_logic_probes = ctx->num_channels;
 	sr_session_bus(session_data, &packet);
 
 	if (!(buf = g_try_malloc(PACKET_SIZE))) {
@@ -674,11 +675,11 @@ static int hw_dev_acquisition_start(int dev_index, gpointer session_data)
 	}
 
 	samples_read = 0;
-	analyzer_read_start(zp->usb->devhdl);
+	analyzer_read_start(ctx->usb->devhdl);
 	/* Send the incoming transfer to the session bus. */
-	for (packet_num = 0; packet_num < (zp->memory_size * 4 / PACKET_SIZE);
+	for (packet_num = 0; packet_num < (ctx->memory_size * 4 / PACKET_SIZE);
 	     packet_num++) {
-		res = analyzer_read_data(zp->usb->devhdl, buf, PACKET_SIZE);
+		res = analyzer_read_data(ctx->usb->devhdl, buf, PACKET_SIZE);
 		sr_info("zp: Tried to read %llx bytes, actually read %x bytes",
 			PACKET_SIZE, res);
 
@@ -690,7 +691,7 @@ static int hw_dev_acquisition_start(int dev_index, gpointer session_data)
 		sr_session_bus(session_data, &packet);
 		samples_read += res / 4;
 	}
-	analyzer_read_stop(zp->usb->devhdl);
+	analyzer_read_stop(ctx->usb->devhdl);
 	g_free(buf);
 
 	packet.type = SR_DF_END;
@@ -704,7 +705,7 @@ static int hw_dev_acquisition_stop(int dev_index, gpointer session_dev_id)
 {
 	struct sr_datafeed_packet packet;
 	struct sr_dev_inst *sdi;
-	struct zp *zp;
+	struct context *ctx;
 
 	packet.type = SR_DF_END;
 	sr_session_bus(session_dev_id, &packet);
@@ -714,12 +715,12 @@ static int hw_dev_acquisition_stop(int dev_index, gpointer session_dev_id)
 		return SR_ERR_BUG;
 	}
 
-	if (!(zp = sdi->priv)) {
+	if (!(ctx = sdi->priv)) {
 		sr_err("zp: %s: sdi->priv was NULL", __func__);
 		return SR_ERR_BUG;
 	}
 
-	analyzer_reset(zp->usb->devhdl);
+	analyzer_reset(ctx->usb->devhdl);
 	/* TODO: Need to cancel and free any queued up transfers. */
 
 	return SR_OK;

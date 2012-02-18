@@ -56,7 +56,8 @@ static const char *probe_names[NUM_PROBES + 1] = {
 
 static GSList *dev_insts = NULL;
 
-struct alsa {
+/* Private, per-device-instance driver context. */
+struct context {
 	uint64_t cur_rate;
 	uint64_t limit_samples;
 	snd_pcm_t *capture_handle;
@@ -67,57 +68,58 @@ struct alsa {
 static int hw_init(const char *devinfo)
 {
 	struct sr_dev_inst *sdi;
-	struct alsa *alsa;
+	struct context *ctx;
 
 	/* Avoid compiler warnings. */
-	devinfo = devinfo;
+	(void)devinfo;
 
-	if (!(alsa = g_try_malloc0(sizeof(struct alsa)))) {
-		sr_err("alsa: %s: alsa malloc failed", __func__);
+	if (!(ctx = g_try_malloc0(sizeof(struct context)))) {
+		sr_err("alsa: %s: ctx malloc failed", __func__);
 		return 0;
 	}
 
-	sdi = sr_dev_inst_new(0, SR_ST_ACTIVE, "alsa", NULL, NULL);
-	if (!sdi)
-		goto free_alsa;
+	if (!(sdi = sr_dev_inst_new(0, SR_ST_ACTIVE, "alsa", NULL, NULL))) {
+		sr_err("alsa: %s: sdi was NULL", __func__);
+		goto free_ctx;
+	}
 
-	sdi->priv = alsa;
+	sdi->priv = ctx;
 
 	dev_insts = g_slist_append(dev_insts, sdi);
 
 	return 1;
 
-free_alsa:
-	g_free(alsa);
+free_ctx:
+	g_free(ctx);
 	return 0;
 }
 
 static int hw_dev_open(int dev_index)
 {
 	struct sr_dev_inst *sdi;
-	struct alsa *alsa;
+	struct context *ctx;
 	int err;
 
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return SR_ERR;
-	alsa = sdi->priv;
+	ctx = sdi->priv;
 
-	err = snd_pcm_open(&alsa->capture_handle, AUDIO_DEV,
-					SND_PCM_STREAM_CAPTURE, 0);
+	err = snd_pcm_open(&ctx->capture_handle, AUDIO_DEV,
+			   SND_PCM_STREAM_CAPTURE, 0);
 	if (err < 0) {
 		sr_err("alsa: can't open audio device %s (%s)", AUDIO_DEV,
 		       snd_strerror(err));
 		return SR_ERR;
 	}
 
-	err = snd_pcm_hw_params_malloc(&alsa->hw_params);
+	err = snd_pcm_hw_params_malloc(&ctx->hw_params);
 	if (err < 0) {
 		sr_err("alsa: can't allocate hardware parameter structure (%s)",
 		       snd_strerror(err));
 		return SR_ERR;
 	}
 
-	err = snd_pcm_hw_params_any(alsa->capture_handle, alsa->hw_params);
+	err = snd_pcm_hw_params_any(ctx->capture_handle, ctx->hw_params);
 	if (err < 0) {
 		sr_err("alsa: can't initialize hardware parameter structure "
 		       "(%s)", snd_strerror(err));
@@ -130,23 +132,23 @@ static int hw_dev_open(int dev_index)
 static int hw_dev_close(int dev_index)
 {
 	struct sr_dev_inst *sdi;
-	struct alsa *alsa;
+	struct context *ctx;
 
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index))) {
 		sr_err("alsa: %s: sdi was NULL", __func__);
 		return SR_ERR; /* TODO: SR_ERR_ARG? */
 	}
 
-	if (!(alsa = sdi->priv)) {
+	if (!(ctx = sdi->priv)) {
 		sr_err("alsa: %s: sdi->priv was NULL", __func__);
 		return SR_ERR; /* TODO: SR_ERR_ARG? */
 	}
 
 	// TODO: Return values of snd_*?
-	if (alsa->hw_params)
-		snd_pcm_hw_params_free(alsa->hw_params);
-	if (alsa->capture_handle)
-		snd_pcm_close(alsa->capture_handle);
+	if (ctx->hw_params)
+		snd_pcm_hw_params_free(ctx->hw_params);
+	if (ctx->capture_handle)
+		snd_pcm_close(ctx->capture_handle);
 
 	return SR_OK;
 }
@@ -168,12 +170,12 @@ static int hw_cleanup(void)
 static void *hw_dev_info_get(int dev_index, int dev_info_id)
 {
 	struct sr_dev_inst *sdi;
-	struct alsa *alsa;
+	struct context *ctx;
 	void *info = NULL;
 
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return NULL;
-	alsa = sdi->priv;
+	ctx = sdi->priv;
 
 	switch (dev_info_id) {
 	case SR_DI_INST:
@@ -186,7 +188,7 @@ static void *hw_dev_info_get(int dev_index, int dev_info_id)
 		info = probe_names;
 		break;
 	case SR_DI_CUR_SAMPLERATE:
-		info = &alsa->cur_rate;
+		info = &ctx->cur_rate;
 		break;
 	// case SR_DI_PROBE_TYPE:
 	// 	info = GINT_TO_POINTER(SR_PROBE_TYPE_ANALOG);
@@ -212,20 +214,20 @@ static int *hw_hwcap_get_all(void)
 static int hw_dev_config_set(int dev_index, int hwcap, void *value)
 {
 	struct sr_dev_inst *sdi;
-	struct alsa *alsa;
+	struct context *ctx;
 
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return SR_ERR;
-	alsa = sdi->priv;
+	ctx = sdi->priv;
 
 	switch (hwcap) {
 	case SR_HWCAP_PROBECONFIG:
 		return SR_OK;
 	case SR_HWCAP_SAMPLERATE:
-		alsa->cur_rate = *(uint64_t *) value;
+		ctx->cur_rate = *(uint64_t *)value;
 		return SR_OK;
 	case SR_HWCAP_LIMIT_SAMPLES:
-		alsa->limit_samples = *(uint64_t *) value;
+		ctx->limit_samples = *(uint64_t *)value;
 		return SR_OK;
 	default:
 		return SR_ERR;
@@ -235,7 +237,7 @@ static int hw_dev_config_set(int dev_index, int hwcap, void *value)
 static int receive_data(int fd, int revents, void *user_data)
 {
 	struct sr_dev_inst *sdi = user_data;
-	struct alsa *alsa = sdi->priv;
+	struct context *ctx = sdi->priv;
 	struct sr_datafeed_packet packet;
 	struct sr_analog_sample *sample;
 	unsigned int sample_size = sizeof(struct sr_analog_sample) +
@@ -249,8 +251,8 @@ static int receive_data(int fd, int revents, void *user_data)
 
 	do {
 		memset(inb, 0, sizeof(inb));
-		count = snd_pcm_readi(alsa->capture_handle, inb,
-			MIN(4096/4, alsa->limit_samples));
+		count = snd_pcm_readi(ctx->capture_handle, inb,
+			MIN(4096 / 4, ctx->limit_samples));
 		if (count < 1) {
 			sr_err("alsa: Failed to read samples");
 			return FALSE;
@@ -268,7 +270,7 @@ static int receive_data(int fd, int revents, void *user_data)
 
 			for (x = 0; x < NUM_PROBES; x++) {
 				sample->probes[x].val =
-					*(uint16_t *) (inb + (i * 4) + (x * 2));
+					*(uint16_t *)(inb + (i * 4) + (x * 2));
 				sample->probes[x].val &= ((1 << 16) - 1);
 				sample->probes[x].res = 16;
 			}
@@ -280,9 +282,9 @@ static int receive_data(int fd, int revents, void *user_data)
 		packet.payload = outb;
 		sr_session_bus(user_data, &packet);
 		g_free(outb);
-		alsa->limit_samples -= count;
+		ctx->limit_samples -= count;
 
-	} while (alsa->limit_samples > 0);
+	} while (ctx->limit_samples > 0);
 
 	packet.type = SR_DF_END;
 	sr_session_bus(user_data, &packet);
@@ -293,7 +295,7 @@ static int receive_data(int fd, int revents, void *user_data)
 static int hw_dev_acquisition_start(int dev_index, gpointer session_dev_id)
 {
 	struct sr_dev_inst *sdi;
-	struct alsa *alsa;
+	struct context *ctx;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_header header;
 	struct pollfd *ufds;
@@ -302,51 +304,51 @@ static int hw_dev_acquisition_start(int dev_index, gpointer session_dev_id)
 
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return SR_ERR;
-	alsa = sdi->priv;
+	ctx = sdi->priv;
 
-	err = snd_pcm_hw_params_set_access(alsa->capture_handle,
-			alsa->hw_params, SND_PCM_ACCESS_RW_INTERLEAVED);
+	err = snd_pcm_hw_params_set_access(ctx->capture_handle,
+			ctx->hw_params, SND_PCM_ACCESS_RW_INTERLEAVED);
 	if (err < 0) {
 		sr_err("alsa: can't set access type (%s)", snd_strerror(err));
 		return SR_ERR;
 	}
 
 	/* FIXME: Hardcoded for 16bits */
-	err = snd_pcm_hw_params_set_format(alsa->capture_handle,
-			alsa->hw_params, SND_PCM_FORMAT_S16_LE);
+	err = snd_pcm_hw_params_set_format(ctx->capture_handle,
+			ctx->hw_params, SND_PCM_FORMAT_S16_LE);
 	if (err < 0) {
 		sr_err("alsa: can't set sample format (%s)", snd_strerror(err));
 		return SR_ERR;
 	}
 
-	err = snd_pcm_hw_params_set_rate_near(alsa->capture_handle,
-			alsa->hw_params, (unsigned int *) &alsa->cur_rate, 0);
+	err = snd_pcm_hw_params_set_rate_near(ctx->capture_handle,
+			ctx->hw_params, (unsigned int *)&ctx->cur_rate, 0);
 	if (err < 0) {
 		sr_err("alsa: can't set sample rate (%s)", snd_strerror(err));
 		return SR_ERR;
 	}
 
-	err = snd_pcm_hw_params_set_channels(alsa->capture_handle,
-			alsa->hw_params, NUM_PROBES);
+	err = snd_pcm_hw_params_set_channels(ctx->capture_handle,
+			ctx->hw_params, NUM_PROBES);
 	if (err < 0) {
 		sr_err("alsa: can't set channel count (%s)", snd_strerror(err));
 		return SR_ERR;
 	}
 
-	err = snd_pcm_hw_params(alsa->capture_handle, alsa->hw_params);
+	err = snd_pcm_hw_params(ctx->capture_handle, ctx->hw_params);
 	if (err < 0) {
 		sr_err("alsa: can't set parameters (%s)", snd_strerror(err));
 		return SR_ERR;
 	}
 
-	err = snd_pcm_prepare(alsa->capture_handle);
+	err = snd_pcm_prepare(ctx->capture_handle);
 	if (err < 0) {
 		sr_err("alsa: can't prepare audio interface for use (%s)",
 		       snd_strerror(err));
 		return SR_ERR;
 	}
 
-	count = snd_pcm_poll_descriptors_count(alsa->capture_handle);
+	count = snd_pcm_poll_descriptors_count(ctx->capture_handle);
 	if (count < 1) {
 		sr_err("alsa: Unable to obtain poll descriptors count");
 		return SR_ERR;
@@ -357,7 +359,7 @@ static int hw_dev_acquisition_start(int dev_index, gpointer session_dev_id)
 		return SR_ERR_MALLOC;
 	}
 
-	err = snd_pcm_poll_descriptors(alsa->capture_handle, ufds, count);
+	err = snd_pcm_poll_descriptors(ctx->capture_handle, ufds, count);
 	if (err < 0) {
 		sr_err("alsa: Unable to obtain poll descriptors (%s)",
 		       snd_strerror(err));
@@ -365,15 +367,15 @@ static int hw_dev_acquisition_start(int dev_index, gpointer session_dev_id)
 		return SR_ERR;
 	}
 
-	alsa->session_id = session_dev_id;
+	ctx->session_id = session_dev_id;
 	sr_source_add(ufds[0].fd, ufds[0].events, 10, receive_data, sdi);
 
 	packet.type = SR_DF_HEADER;
 	packet.length = sizeof(struct sr_datafeed_header);
-	packet.payload = (unsigned char *) &header;
+	packet.payload = (unsigned char *)&header;
 	header.feed_version = 1;
 	gettimeofday(&header.starttime, NULL);
-	header.samplerate = alsa->cur_rate;
+	header.samplerate = ctx->cur_rate;
 	header.num_analog_probes = NUM_PROBES;
 	header.num_logic_probes = 0;
 	header.protocol_id = SR_PROTO_RAW;

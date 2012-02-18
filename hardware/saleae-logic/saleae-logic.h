@@ -48,7 +48,8 @@ struct fx2_profile {
 	int num_probes;
 };
 
-struct fx2_dev {
+/* Private, per-device-instance driver context. */
+struct context {
 	struct fx2_profile *profile;
 	/*
 	 * Since we can't keep track of a Saleae Logic device after upgrading

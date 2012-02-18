@@ -139,12 +139,12 @@ ret:
 
 static int mso_reset_adc(struct sr_dev_inst *sdi)
 {
-	struct mso *mso = sdi->priv;
+	struct context *ctx = sdi->priv;
 	uint16_t ops[2];
 
-	ops[0] = mso_trans(REG_CTL1, (mso->ctlbase1 | BIT_CTL1_RESETADC));
-	ops[1] = mso_trans(REG_CTL1, mso->ctlbase1);
-	mso->ctlbase1 |= BIT_CTL1_ADC_UNKNOWN4;
+	ops[0] = mso_trans(REG_CTL1, (ctx->ctlbase1 | BIT_CTL1_RESETADC));
+	ops[1] = mso_trans(REG_CTL1, ctx->ctlbase1);
+	ctx->ctlbase1 |= BIT_CTL1_ADC_UNKNOWN4;
 
 	sr_dbg("mso19: Requesting ADC reset");
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
@@ -152,11 +152,11 @@ static int mso_reset_adc(struct sr_dev_inst *sdi)
 
 static int mso_reset_fsm(struct sr_dev_inst *sdi)
 {
-	struct mso *mso = sdi->priv;
+	struct context *ctx = sdi->priv;
 	uint16_t ops[1];
 
-	mso->ctlbase1 |= BIT_CTL1_RESETFSM;
-	ops[0] = mso_trans(REG_CTL1, mso->ctlbase1);
+	ctx->ctlbase1 |= BIT_CTL1_RESETFSM;
+	ops[0] = mso_trans(REG_CTL1, ctx->ctlbase1);
 
 	sr_dbg("mso19: Requesting ADC reset");
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
@@ -164,13 +164,13 @@ static int mso_reset_fsm(struct sr_dev_inst *sdi)
 
 static int mso_toggle_led(struct sr_dev_inst *sdi, int state)
 {
-	struct mso *mso = sdi->priv;
+	struct context *ctx = sdi->priv;
 	uint16_t ops[1];
 
-	mso->ctlbase1 &= ~BIT_CTL1_LED;
+	ctx->ctlbase1 &= ~BIT_CTL1_LED;
 	if (state)
-		mso->ctlbase1 |= BIT_CTL1_LED;
-	ops[0] = mso_trans(REG_CTL1, mso->ctlbase1);
+		ctx->ctlbase1 |= BIT_CTL1_LED;
+	ops[0] = mso_trans(REG_CTL1, ctx->ctlbase1);
 
 	sr_dbg("mso19: Requesting LED toggle");
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
@@ -206,11 +206,11 @@ static int mso_read_buffer(struct sr_dev_inst *sdi)
 
 static int mso_arm(struct sr_dev_inst *sdi)
 {
-	struct mso *mso = sdi->priv;
+	struct context *ctx = sdi->priv;
 	uint16_t ops[] = {
-		mso_trans(REG_CTL1, mso->ctlbase1 | BIT_CTL1_RESETFSM),
-		mso_trans(REG_CTL1, mso->ctlbase1 | BIT_CTL1_ARM),
-		mso_trans(REG_CTL1, mso->ctlbase1),
+		mso_trans(REG_CTL1, ctx->ctlbase1 | BIT_CTL1_RESETFSM),
+		mso_trans(REG_CTL1, ctx->ctlbase1 | BIT_CTL1_ARM),
+		mso_trans(REG_CTL1, ctx->ctlbase1),
 	};
 
 	sr_dbg("mso19: Requesting trigger arm");
@@ -219,10 +219,10 @@ static int mso_arm(struct sr_dev_inst *sdi)
 
 static int mso_force_capture(struct sr_dev_inst *sdi)
 {
-	struct mso *mso = sdi->priv;
+	struct context *ctx = sdi->priv;
 	uint16_t ops[] = {
-		mso_trans(REG_CTL1, mso->ctlbase1 | 8),
-		mso_trans(REG_CTL1, mso->ctlbase1),
+		mso_trans(REG_CTL1, ctx->ctlbase1 | 8),
+		mso_trans(REG_CTL1, ctx->ctlbase1),
 	};
 
 	sr_dbg("mso19: Requesting forced capture");
@@ -231,11 +231,11 @@ static int mso_force_capture(struct sr_dev_inst *sdi)
 
 static int mso_dac_out(struct sr_dev_inst *sdi, uint16_t val)
 {
-	struct mso *mso = sdi->priv;
+	struct context *ctx = sdi->priv;
 	uint16_t ops[] = {
 		mso_trans(REG_DAC1, (val >> 8) & 0xff),
 		mso_trans(REG_DAC2, val & 0xff),
-		mso_trans(REG_CTL1, mso->ctlbase1 | BIT_CTL1_RESETADC),
+		mso_trans(REG_CTL1, ctx->ctlbase1 | BIT_CTL1_RESETADC),
 	};
 
 	sr_dbg("mso19: Setting dac word to 0x%x", val);
@@ -255,44 +255,44 @@ static int mso_clkrate_out(struct sr_dev_inst *sdi, uint16_t val)
 
 static int mso_configure_rate(struct sr_dev_inst *sdi, uint32_t rate)
 {
-	struct mso *mso = sdi->priv;
+	struct context *ctx = sdi->priv;
 	unsigned int i;
 	int ret = SR_ERR;
 
 	for (i = 0; i < ARRAY_SIZE(rate_map); i++) {
 		if (rate_map[i].rate == rate) {
-			mso->ctlbase2 = rate_map[i].slowmode;
+			ctx->ctlbase2 = rate_map[i].slowmode;
 			ret = mso_clkrate_out(sdi, rate_map[i].val);
 			if (ret == SR_OK)
-				mso->cur_rate = rate;
+				ctx->cur_rate = rate;
 			return ret;
 		}
 	}
 	return ret;
 }
 
-static inline uint16_t mso_calc_raw_from_mv(struct mso *mso)
+static inline uint16_t mso_calc_raw_from_mv(struct context *ctx)
 {
 	return (uint16_t) (0x200 -
-			((mso->dso_trigger_voltage / mso->dso_probe_attn) /
-			 mso->vbit));
+			((ctx->dso_trigger_voltage / ctx->dso_probe_attn) /
+			 ctx->vbit));
 }
 
 static int mso_configure_trigger(struct sr_dev_inst *sdi)
 {
-	struct mso *mso = sdi->priv;
+	struct context *ctx = sdi->priv;
 	uint16_t ops[16];
-	uint16_t dso_trigger = mso_calc_raw_from_mv(mso);
+	uint16_t dso_trigger = mso_calc_raw_from_mv(ctx);
 
 	dso_trigger &= 0x3ff;
-	if ((!mso->trigger_slope && mso->trigger_chan == 1) ||
-			(mso->trigger_slope &&
-			 (mso->trigger_chan == 0 ||
-			  mso->trigger_chan == 2 ||
-			  mso->trigger_chan == 3)))
+	if ((!ctx->trigger_slope && ctx->trigger_chan == 1) ||
+			(ctx->trigger_slope &&
+			 (ctx->trigger_chan == 0 ||
+			  ctx->trigger_chan == 2 ||
+			  ctx->trigger_chan == 3)))
 		dso_trigger |= 0x400;
 
-	switch (mso->trigger_chan) {
+	switch (ctx->trigger_chan) {
 	case 1:
 		dso_trigger |= 0xe000;
 	case 2:
@@ -312,7 +312,7 @@ static int mso_configure_trigger(struct sr_dev_inst *sdi)
 		break;
 	}
 
-	switch (mso->trigger_outsrc) {
+	switch (ctx->trigger_outsrc) {
 	case 1:
 		dso_trigger |= 0x800;
 		break;
@@ -325,40 +325,40 @@ static int mso_configure_trigger(struct sr_dev_inst *sdi)
 
 	}
 
-	ops[0] = mso_trans(5, mso->la_trigger);
-	ops[1] = mso_trans(6, mso->la_trigger_mask);
+	ops[0] = mso_trans(5, ctx->la_trigger);
+	ops[1] = mso_trans(6, ctx->la_trigger_mask);
 	ops[2] = mso_trans(3, dso_trigger & 0xff);
 	ops[3] = mso_trans(4, (dso_trigger >> 8) & 0xff);
 	ops[4] = mso_trans(11,
-			mso->dso_trigger_width / SR_HZ_TO_NS(mso->cur_rate));
+			ctx->dso_trigger_width / SR_HZ_TO_NS(ctx->cur_rate));
 
 	/* Select the SPI/I2C trigger config bank */
-	ops[5] = mso_trans(REG_CTL2, (mso->ctlbase2 | BITS_CTL2_BANK(2)));
+	ops[5] = mso_trans(REG_CTL2, (ctx->ctlbase2 | BITS_CTL2_BANK(2)));
 	/* Configure the SPI/I2C protocol trigger */
-	ops[6] = mso_trans(REG_PT_WORD(0), mso->protocol_trigger.word[0]);
-	ops[7] = mso_trans(REG_PT_WORD(1), mso->protocol_trigger.word[1]);
-	ops[8] = mso_trans(REG_PT_WORD(2), mso->protocol_trigger.word[2]);
-	ops[9] = mso_trans(REG_PT_WORD(3), mso->protocol_trigger.word[3]);
-	ops[10] = mso_trans(REG_PT_MASK(0), mso->protocol_trigger.mask[0]);
-	ops[11] = mso_trans(REG_PT_MASK(1), mso->protocol_trigger.mask[1]);
-	ops[12] = mso_trans(REG_PT_MASK(2), mso->protocol_trigger.mask[2]);
-	ops[13] = mso_trans(REG_PT_MASK(3), mso->protocol_trigger.mask[3]);
-	ops[14] = mso_trans(REG_PT_SPIMODE, mso->protocol_trigger.spimode);
+	ops[6] = mso_trans(REG_PT_WORD(0), ctx->protocol_trigger.word[0]);
+	ops[7] = mso_trans(REG_PT_WORD(1), ctx->protocol_trigger.word[1]);
+	ops[8] = mso_trans(REG_PT_WORD(2), ctx->protocol_trigger.word[2]);
+	ops[9] = mso_trans(REG_PT_WORD(3), ctx->protocol_trigger.word[3]);
+	ops[10] = mso_trans(REG_PT_MASK(0), ctx->protocol_trigger.mask[0]);
+	ops[11] = mso_trans(REG_PT_MASK(1), ctx->protocol_trigger.mask[1]);
+	ops[12] = mso_trans(REG_PT_MASK(2), ctx->protocol_trigger.mask[2]);
+	ops[13] = mso_trans(REG_PT_MASK(3), ctx->protocol_trigger.mask[3]);
+	ops[14] = mso_trans(REG_PT_SPIMODE, ctx->protocol_trigger.spimode);
 	/* Select the default config bank */
-	ops[15] = mso_trans(REG_CTL2, mso->ctlbase2);
+	ops[15] = mso_trans(REG_CTL2, ctx->ctlbase2);
 
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
 }
 
 static int mso_configure_threshold_level(struct sr_dev_inst *sdi)
 {
-	struct mso *mso = sdi->priv;
+	struct context *ctx = sdi->priv;
 
-	return mso_dac_out(sdi, la_threshold_map[mso->la_threshold]);
+	return mso_dac_out(sdi, la_threshold_map[ctx->la_threshold]);
 }
 
 static int mso_parse_serial(const char *iSerial, const char *iProduct,
-			    struct mso *mso)
+			    struct context *ctx)
 {
 	unsigned int u1, u2, u3, u4, u5, u6;
 
@@ -366,26 +366,26 @@ static int mso_parse_serial(const char *iSerial, const char *iProduct,
 	/* FIXME: This code is in the original app, but I think its
 	 * used only for the GUI */
 /*	if (strstr(iProduct, "REV_02") || strstr(iProduct, "REV_03"))
-		mso->num_sample_rates = 0x16;
+		ctx->num_sample_rates = 0x16;
 	else
-		mso->num_sample_rates = 0x10; */
+		ctx->num_sample_rates = 0x10; */
 
 	/* parse iSerial */
 	if (iSerial[0] != '4' || sscanf(iSerial, "%5u%3u%3u%1u%1u%6u",
 				&u1, &u2, &u3, &u4, &u5, &u6) != 6)
 		return SR_ERR;
-	mso->hwmodel = u4;
-	mso->hwrev = u5;
-	mso->serial = u6;
-	mso->vbit = u1 / 10000;
-	if (mso->vbit == 0)
-		mso->vbit = 4.19195;
-	mso->dac_offset = u2;
-	if (mso->dac_offset == 0)
-		mso->dac_offset = 0x1ff;
-	mso->offset_range = u3;
-	if (mso->offset_range == 0)
-		mso->offset_range = 0x17d;
+	ctx->hwmodel = u4;
+	ctx->hwrev = u5;
+	ctx->serial = u6;
+	ctx->vbit = u1 / 10000;
+	if (ctx->vbit == 0)
+		ctx->vbit = 4.19195;
+	ctx->dac_offset = u2;
+	if (ctx->dac_offset == 0)
+		ctx->dac_offset = 0x1ff;
+	ctx->offset_range = u3;
+	if (ctx->offset_range == 0)
+		ctx->offset_range = 0x17d;
 
 	/*
 	 * FIXME: There is more code on the original software to handle
@@ -403,7 +403,7 @@ static int hw_init(const char *devinfo)
 	struct udev *udev;
 	struct udev_enumerate *enumerate;
 	struct udev_list_entry *devs, *dev_list_entry;
-	struct mso *mso;
+	struct context *ctx;
 
 	devinfo = devinfo;
 
@@ -460,27 +460,27 @@ static int hw_init(const char *devinfo)
 		product[s] = 0;
 		strcpy(manufacturer, iProduct + s);
 
-		if (!(mso = g_try_malloc0(sizeof(struct mso)))) {
-			sr_err("mso19: %s: mso malloc failed", __func__);
+		if (!(ctx = g_try_malloc0(sizeof(struct context)))) {
+			sr_err("mso19: %s: ctx malloc failed", __func__);
 			continue; /* TODO: Errors handled correctly? */
 		}
 
-		if (mso_parse_serial(iSerial, iProduct, mso) != SR_OK) {
+		if (mso_parse_serial(iSerial, iProduct, ctx) != SR_OK) {
 			sr_err("mso19: Invalid iSerial: %s", iSerial);
-			goto err_free_mso;
+			goto err_free_ctx;
 		}
-		sprintf(hwrev, "r%d", mso->hwrev);
+		sprintf(hwrev, "r%d", ctx->hwrev);
 
 		/* hardware initial state */
-		mso->ctlbase1 = 0;
+		ctx->ctlbase1 = 0;
 		{
 			/* Initialize the protocol trigger configuration */
 			int i;
 			for (i = 0; i < 4; i++) {
-				mso->protocol_trigger.word[i] = 0;
-				mso->protocol_trigger.mask[i] = 0xff;
+				ctx->protocol_trigger.word[i] = 0;
+				ctx->protocol_trigger.mask[i] = 0xff;
 			}
-			mso->protocol_trigger.spimode = 0;
+			ctx->protocol_trigger.spimode = 0;
 		}
 
 		sdi = sr_dev_inst_new(devcnt, SR_ST_INITIALIZING,
@@ -488,11 +488,11 @@ static int hw_init(const char *devinfo)
 		if (!sdi) {
 			sr_err("mso19: Unable to create device instance for %s",
 			       sysname);
-			goto err_free_mso;
+			goto err_free_ctx;
 		}
 
 		/* save a pointer to our private instance data */
-		sdi->priv = mso;
+		sdi->priv = ctx;
 
 		sdi->serial = sr_serial_dev_inst_new(path, -1);
 		if (!sdi->serial)
@@ -504,8 +504,8 @@ static int hw_init(const char *devinfo)
 
 err_dev_inst_free:
 		sr_dev_inst_free(sdi);
-err_free_mso:
-		g_free(mso);
+err_free_ctx:
+		g_free(ctx);
 	}
 
 	udev_enumerate_unref(enumerate);
@@ -543,13 +543,13 @@ static int hw_cleanup(void)
 static int hw_dev_open(int dev_index)
 {
 	struct sr_dev_inst *sdi;
-	struct mso *mso;
+	struct context *ctx;
 	int ret = SR_ERR;
 
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return ret;
 
-	mso = sdi->priv;
+	ctx = sdi->priv;
 	sdi->serial->fd = serial_open(sdi->serial->port, O_RDWR);
 	if (sdi->serial->fd == -1)
 		return ret;
@@ -562,15 +562,15 @@ static int hw_dev_open(int dev_index)
 
 	/* FIXME: discard serial buffer */
 
-	mso_check_trigger(sdi, &mso->trigger_state);
-	sr_dbg("mso19: trigger state: 0x%x", mso->trigger_state);
+	mso_check_trigger(sdi, &ctx->trigger_state);
+	sr_dbg("mso19: trigger state: 0x%x", ctx->trigger_state);
 
 	ret = mso_reset_adc(sdi);
 	if (ret != SR_OK)
 		return ret;
 
-	mso_check_trigger(sdi, &mso->trigger_state);
-	sr_dbg("mso19: trigger state: 0x%x", mso->trigger_state);
+	mso_check_trigger(sdi, &ctx->trigger_state);
+	sr_dbg("mso19: trigger state: 0x%x", ctx->trigger_state);
 
 //	ret = mso_reset_fsm(sdi);
 //	if (ret != SR_OK)
@@ -605,12 +605,12 @@ static int hw_dev_close(int dev_index)
 static void *hw_dev_info_get(int dev_index, int dev_info_id)
 {
 	struct sr_dev_inst *sdi;
-	struct mso *mso;
+	struct context *ctx;
 	void *info = NULL;
 
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return NULL;
-	mso = sdi->priv;
+	ctx = sdi->priv;
 
 	switch (dev_info_id) {
 	case SR_DI_INST:
@@ -629,7 +629,7 @@ static void *hw_dev_info_get(int dev_index, int dev_info_id)
 		info = "01"; /* FIXME */
 		break;
 	case SR_DI_CUR_SAMPLERATE:
-		info = &mso->cur_rate;
+		info = &ctx->cur_rate;
 		break;
 	}
 	return info;
@@ -679,7 +679,7 @@ static int hw_dev_config_set(int dev_index, int hwcap, void *value)
 static int receive_data(int fd, int revents, void *user_data)
 {
 	struct sr_dev_inst *sdi = user_data;
-	struct mso *mso = sdi->priv;
+	struct context *ctx = sdi->priv;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
 	uint8_t in[1024], logic_out[1024];
@@ -693,11 +693,11 @@ static int receive_data(int fd, int revents, void *user_data)
 		return FALSE;
 
 	/* No samples */
-	if (mso->trigger_state != MSO_TRIGGER_DATAREADY) {
-		mso->trigger_state = in[0];
-		if (mso->trigger_state == MSO_TRIGGER_DATAREADY) {
+	if (ctx->trigger_state != MSO_TRIGGER_DATAREADY) {
+		ctx->trigger_state = in[0];
+		if (ctx->trigger_state == MSO_TRIGGER_DATAREADY) {
 			mso_read_buffer(sdi);
-			mso->buffer_n = 0;
+			ctx->buffer_n = 0;
 		} else {
 			mso_check_trigger(sdi, NULL);
 		}
@@ -705,20 +705,20 @@ static int receive_data(int fd, int revents, void *user_data)
 	}
 
 	/* the hardware always dumps 1024 samples, 24bits each */
-	if (mso->buffer_n < 3072) {
-		memcpy(mso->buffer + mso->buffer_n, in, s);
-		mso->buffer_n += s;
+	if (ctx->buffer_n < 3072) {
+		memcpy(ctx->buffer + ctx->buffer_n, in, s);
+		ctx->buffer_n += s;
 	}
-	if (mso->buffer_n < 3072)
+	if (ctx->buffer_n < 3072)
 		return FALSE;
 
 	/* do the conversion */
 	for (i = 0; i < 1024; i++) {
 		/* FIXME: Need to do conversion to mV */
-		analog_out[i] = (mso->buffer[i * 3] & 0x3f) |
-			((mso->buffer[i * 3 + 1] & 0xf) << 6);
-		logic_out[i] = ((mso->buffer[i * 3 + 1] & 0x30) >> 4) |
-			((mso->buffer[i * 3 + 2] & 0x3f) << 2);
+		analog_out[i] = (ctx->buffer[i * 3] & 0x3f) |
+			((ctx->buffer[i * 3 + 1] & 0xf) << 6);
+		logic_out[i] = ((ctx->buffer[i * 3 + 1] & 0x30) >> 4) |
+			((ctx->buffer[i * 3 + 2] & 0x3f) << 2);
 	}
 
 	packet.type = SR_DF_LOGIC;
@@ -726,7 +726,7 @@ static int receive_data(int fd, int revents, void *user_data)
 	logic.length = 1024;
 	logic.unitsize = 1;
 	logic.data = logic_out;
-	sr_session_bus(mso->session_id, &packet);
+	sr_session_bus(ctx->session_id, &packet);
 
 	// Dont bother fixing this yet, keep it "old style"
 	/*
@@ -734,11 +734,11 @@ static int receive_data(int fd, int revents, void *user_data)
 	packet.length = 1024;
 	packet.unitsize = sizeof(double);
 	packet.payload = analog_out;
-	sr_session_bus(mso->session_id, &packet);
+	sr_session_bus(ctx->session_id, &packet);
 	*/
 
 	packet.type = SR_DF_END;
-	sr_session_bus(mso->session_id, &packet);
+	sr_session_bus(ctx->session_id, &packet);
 
 	return TRUE;
 }
@@ -746,14 +746,14 @@ static int receive_data(int fd, int revents, void *user_data)
 static int hw_dev_acquisition_start(int dev_index, gpointer session_dev_id)
 {
 	struct sr_dev_inst *sdi;
-	struct mso *mso;
+	struct context *ctx;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_header header;
 	int ret = SR_ERR;
 
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return ret;
-	mso = sdi->priv;
+	ctx = sdi->priv;
 
 	/* FIXME: No need to do full reconfigure every time */
 //	ret = mso_reset_fsm(sdi);
@@ -761,15 +761,15 @@ static int hw_dev_acquisition_start(int dev_index, gpointer session_dev_id)
 //		return ret;
 
 	/* FIXME: ACDC Mode */
-	mso->ctlbase1 &= 0x7f;
-//	mso->ctlbase1 |= mso->acdcmode;
+	ctx->ctlbase1 &= 0x7f;
+//	ctx->ctlbase1 |= ctx->acdcmode;
 
-	ret = mso_configure_rate(sdi, mso->cur_rate);
+	ret = mso_configure_rate(sdi, ctx->cur_rate);
 	if (ret != SR_OK)
 		return ret;
 
 	/* set dac offset */
-	ret = mso_dac_out(sdi, mso->dac_offset);
+	ret = mso_dac_out(sdi, ctx->dac_offset);
 	if (ret != SR_OK)
 		return ret;
 
@@ -796,19 +796,19 @@ static int hw_dev_acquisition_start(int dev_index, gpointer session_dev_id)
 //	if (ret != SR_OK)
 //		return ret;
 
-	mso_check_trigger(sdi, &mso->trigger_state);
+	mso_check_trigger(sdi, &ctx->trigger_state);
 	ret = mso_check_trigger(sdi, NULL);
 	if (ret != SR_OK)
 		return ret;
 
-	mso->session_id = session_dev_id;
+	ctx->session_id = session_dev_id;
 	sr_source_add(sdi->serial->fd, G_IO_IN, -1, receive_data, sdi);
 
 	packet.type = SR_DF_HEADER;
 	packet.payload = (unsigned char *) &header;
 	header.feed_version = 1;
 	gettimeofday(&header.starttime, NULL);
-	header.samplerate = mso->cur_rate;
+	header.samplerate = ctx->cur_rate;
 	// header.num_analog_probes = 1;
 	header.num_logic_probes = 8;
 	sr_session_bus(session_dev_id, &packet);

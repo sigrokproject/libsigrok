@@ -120,27 +120,27 @@ static const char *firmware_files[] = {
 
 static int hw_dev_acquisition_stop(int dev_index, gpointer session_data);
 
-static int sigma_read(void *buf, size_t size, struct sigma *sigma)
+static int sigma_read(void *buf, size_t size, struct context *ctx)
 {
 	int ret;
 
-	ret = ftdi_read_data(&sigma->ftdic, (unsigned char *)buf, size);
+	ret = ftdi_read_data(&ctx->ftdic, (unsigned char *)buf, size);
 	if (ret < 0) {
 		sr_err("sigma: ftdi_read_data failed: %s",
-		       ftdi_get_error_string(&sigma->ftdic));
+		       ftdi_get_error_string(&ctx->ftdic));
 	}
 
 	return ret;
 }
 
-static int sigma_write(void *buf, size_t size, struct sigma *sigma)
+static int sigma_write(void *buf, size_t size, struct context *ctx)
 {
 	int ret;
 
-	ret = ftdi_write_data(&sigma->ftdic, (unsigned char *)buf, size);
+	ret = ftdi_write_data(&ctx->ftdic, (unsigned char *)buf, size);
 	if (ret < 0) {
 		sr_err("sigma: ftdi_write_data failed: %s",
-		       ftdi_get_error_string(&sigma->ftdic));
+		       ftdi_get_error_string(&ctx->ftdic));
 	} else if ((size_t) ret != size) {
 		sr_err("sigma: ftdi_write_data did not complete write\n");
 	}
@@ -149,7 +149,7 @@ static int sigma_write(void *buf, size_t size, struct sigma *sigma)
 }
 
 static int sigma_write_register(uint8_t reg, uint8_t *data, size_t len,
-		struct sigma *sigma)
+				struct context *ctx)
 {
 	size_t i;
 	uint8_t buf[len + 2];
@@ -163,16 +163,16 @@ static int sigma_write_register(uint8_t reg, uint8_t *data, size_t len,
 		buf[idx++] = REG_DATA_HIGH_WRITE | (data[i] >> 4);
 	}
 
-	return sigma_write(buf, idx, sigma);
+	return sigma_write(buf, idx, ctx);
 }
 
-static int sigma_set_register(uint8_t reg, uint8_t value, struct sigma *sigma)
+static int sigma_set_register(uint8_t reg, uint8_t value, struct context *ctx)
 {
-	return sigma_write_register(reg, &value, 1, sigma);
+	return sigma_write_register(reg, &value, 1, ctx);
 }
 
 static int sigma_read_register(uint8_t reg, uint8_t *data, size_t len,
-		struct sigma *sigma)
+			       struct context *ctx)
 {
 	uint8_t buf[3];
 
@@ -180,16 +180,16 @@ static int sigma_read_register(uint8_t reg, uint8_t *data, size_t len,
 	buf[1] = REG_ADDR_HIGH | (reg >> 4);
 	buf[2] = REG_READ_ADDR;
 
-	sigma_write(buf, sizeof(buf), sigma);
+	sigma_write(buf, sizeof(buf), ctx);
 
-	return sigma_read(data, len, sigma);
+	return sigma_read(data, len, ctx);
 }
 
-static uint8_t sigma_get_register(uint8_t reg, struct sigma *sigma)
+static uint8_t sigma_get_register(uint8_t reg, struct context *ctx)
 {
 	uint8_t value;
 
-	if (1 != sigma_read_register(reg, &value, 1, sigma)) {
+	if (1 != sigma_read_register(reg, &value, 1, ctx)) {
 		sr_err("sigma: sigma_get_register: 1 byte expected");
 		return 0;
 	}
@@ -198,7 +198,7 @@ static uint8_t sigma_get_register(uint8_t reg, struct sigma *sigma)
 }
 
 static int sigma_read_pos(uint32_t *stoppos, uint32_t *triggerpos,
-		struct sigma *sigma)
+			  struct context *ctx)
 {
 	uint8_t buf[] = {
 		REG_ADDR_LOW | READ_TRIGGER_POS_LOW,
@@ -212,9 +212,9 @@ static int sigma_read_pos(uint32_t *stoppos, uint32_t *triggerpos,
 	};
 	uint8_t result[6];
 
-	sigma_write(buf, sizeof(buf), sigma);
+	sigma_write(buf, sizeof(buf), ctx);
 
-	sigma_read(result, sizeof(result), sigma);
+	sigma_read(result, sizeof(result), ctx);
 
 	*triggerpos = result[0] | (result[1] << 8) | (result[2] << 16);
 	*stoppos = result[3] | (result[4] << 8) | (result[5] << 16);
@@ -230,7 +230,7 @@ static int sigma_read_pos(uint32_t *stoppos, uint32_t *triggerpos,
 }
 
 static int sigma_read_dram(uint16_t startchunk, size_t numchunks,
-		uint8_t *data, struct sigma *sigma)
+			   uint8_t *data, struct context *ctx)
 {
 	size_t i;
 	uint8_t buf[4096];
@@ -239,7 +239,7 @@ static int sigma_read_dram(uint16_t startchunk, size_t numchunks,
 	/* Send the startchunk. Index start with 1. */
 	buf[0] = startchunk >> 8;
 	buf[1] = startchunk & 0xff;
-	sigma_write_register(WRITE_MEMROW, buf, 2, sigma);
+	sigma_write_register(WRITE_MEMROW, buf, 2, ctx);
 
 	/* Read the DRAM. */
 	buf[idx++] = REG_DRAM_BLOCK;
@@ -256,13 +256,13 @@ static int sigma_read_dram(uint16_t startchunk, size_t numchunks,
 			buf[idx++] = REG_DRAM_WAIT_ACK;
 	}
 
-	sigma_write(buf, idx, sigma);
+	sigma_write(buf, idx, ctx);
 
-	return sigma_read(data, numchunks * CHUNK_SIZE, sigma);
+	return sigma_read(data, numchunks * CHUNK_SIZE, ctx);
 }
 
 /* Upload trigger look-up tables to Sigma. */
-static int sigma_write_trigger_lut(struct triggerlut *lut, struct sigma *sigma)
+static int sigma_write_trigger_lut(struct triggerlut *lut, struct context *ctx)
 {
 	int i;
 	uint8_t tmp[2];
@@ -309,13 +309,13 @@ static int sigma_write_trigger_lut(struct triggerlut *lut, struct sigma *sigma)
 			tmp[1] |= 0x80;
 
 		sigma_write_register(WRITE_TRIGGER_SELECT0, tmp, sizeof(tmp),
-				     sigma);
-		sigma_set_register(WRITE_TRIGGER_SELECT1, 0x30 | i, sigma);
+				     ctx);
+		sigma_set_register(WRITE_TRIGGER_SELECT1, 0x30 | i, ctx);
 	}
 
 	/* Send the parameters */
 	sigma_write_register(WRITE_TRIGGER_SELECT0, (uint8_t *) &lut->params,
-			     sizeof(lut->params), sigma);
+			     sizeof(lut->params), ctx);
 
 	return SR_OK;
 }
@@ -418,31 +418,31 @@ static int bin2bitbang(const char *filename,
 static int hw_init(const char *devinfo)
 {
 	struct sr_dev_inst *sdi;
-	struct sigma *sigma;
+	struct context *ctx;
 
 	/* Avoid compiler warnings. */
 	(void)devinfo;
 
-	if (!(sigma = g_try_malloc(sizeof(struct sigma)))) {
-		sr_err("sigma: %s: sigma malloc failed", __func__);
+	if (!(ctx = g_try_malloc(sizeof(struct context)))) {
+		sr_err("sigma: %s: ctx malloc failed", __func__);
 		return 0; /* FIXME: Should be SR_ERR_MALLOC. */
 	}
 
-	ftdi_init(&sigma->ftdic);
+	ftdi_init(&ctx->ftdic);
 
 	/* Look for SIGMAs. */
-	if (ftdi_usb_open_desc(&sigma->ftdic, USB_VENDOR, USB_PRODUCT,
+	if (ftdi_usb_open_desc(&ctx->ftdic, USB_VENDOR, USB_PRODUCT,
 			       USB_DESCRIPTION, NULL) < 0)
 		goto free;
 
-	sigma->cur_samplerate = 0;
-	sigma->period_ps = 0;
-	sigma->limit_msec = 0;
-	sigma->cur_firmware = -1;
-	sigma->num_probes = 0;
-	sigma->samples_per_event = 0;
-	sigma->capture_ratio = 50;
-	sigma->use_triggers = 0;
+	ctx->cur_samplerate = 0;
+	ctx->period_ps = 0;
+	ctx->limit_msec = 0;
+	ctx->cur_firmware = -1;
+	ctx->num_probes = 0;
+	ctx->samples_per_event = 0;
+	ctx->capture_ratio = 50;
+	ctx->use_triggers = 0;
 
 	/* Register SIGMA device. */
 	if (!(sdi = sr_dev_inst_new(0, SR_ST_INITIALIZING, USB_VENDOR_NAME,
@@ -451,20 +451,21 @@ static int hw_init(const char *devinfo)
 		goto free;
 	}
 
-	sdi->priv = sigma;
+	sdi->priv = ctx;
 
 	dev_insts = g_slist_append(dev_insts, sdi);
 
 	/* We will open the device again when we need it. */
-	ftdi_usb_close(&sigma->ftdic);
+	ftdi_usb_close(&ctx->ftdic);
 
 	return 1;
+
 free:
-	g_free(sigma);
+	g_free(ctx);
 	return 0;
 }
 
-static int upload_firmware(int firmware_idx, struct sigma *sigma)
+static int upload_firmware(int firmware_idx, struct context *ctx)
 {
 	int ret;
 	unsigned char *buf;
@@ -474,40 +475,40 @@ static int upload_firmware(int firmware_idx, struct sigma *sigma)
 	char firmware_path[128];
 
 	/* Make sure it's an ASIX SIGMA. */
-	if ((ret = ftdi_usb_open_desc(&sigma->ftdic,
+	if ((ret = ftdi_usb_open_desc(&ctx->ftdic,
 		USB_VENDOR, USB_PRODUCT, USB_DESCRIPTION, NULL)) < 0) {
 		sr_err("sigma: ftdi_usb_open failed: %s",
-		       ftdi_get_error_string(&sigma->ftdic));
+		       ftdi_get_error_string(&ctx->ftdic));
 		return 0;
 	}
 
-	if ((ret = ftdi_set_bitmode(&sigma->ftdic, 0xdf, BITMODE_BITBANG)) < 0) {
+	if ((ret = ftdi_set_bitmode(&ctx->ftdic, 0xdf, BITMODE_BITBANG)) < 0) {
 		sr_err("sigma: ftdi_set_bitmode failed: %s",
-		       ftdi_get_error_string(&sigma->ftdic));
+		       ftdi_get_error_string(&ctx->ftdic));
 		return 0;
 	}
 
 	/* Four times the speed of sigmalogan - Works well. */
-	if ((ret = ftdi_set_baudrate(&sigma->ftdic, 750000)) < 0) {
+	if ((ret = ftdi_set_baudrate(&ctx->ftdic, 750000)) < 0) {
 		sr_err("sigma: ftdi_set_baudrate failed: %s",
-		       ftdi_get_error_string(&sigma->ftdic));
+		       ftdi_get_error_string(&ctx->ftdic));
 		return 0;
 	}
 
 	/* Force the FPGA to reboot. */
-	sigma_write(suicide, sizeof(suicide), sigma);
-	sigma_write(suicide, sizeof(suicide), sigma);
-	sigma_write(suicide, sizeof(suicide), sigma);
-	sigma_write(suicide, sizeof(suicide), sigma);
+	sigma_write(suicide, sizeof(suicide), ctx);
+	sigma_write(suicide, sizeof(suicide), ctx);
+	sigma_write(suicide, sizeof(suicide), ctx);
+	sigma_write(suicide, sizeof(suicide), ctx);
 
 	/* Prepare to upload firmware (FPGA specific). */
-	sigma_write(init, sizeof(init), sigma);
+	sigma_write(init, sizeof(init), ctx);
 
-	ftdi_usb_purge_buffers(&sigma->ftdic);
+	ftdi_usb_purge_buffers(&ctx->ftdic);
 
 	/* Wait until the FPGA asserts INIT_B. */
 	while (1) {
-		ret = sigma_read(result, 1, sigma);
+		ret = sigma_read(result, 1, ctx);
 		if (result[0] & 0x20)
 			break;
 	}
@@ -523,34 +524,34 @@ static int upload_firmware(int firmware_idx, struct sigma *sigma)
 	}
 
 	/* Upload firmare. */
-	sigma_write(buf, buf_size, sigma);
+	sigma_write(buf, buf_size, ctx);
 
 	g_free(buf);
 
-	if ((ret = ftdi_set_bitmode(&sigma->ftdic, 0x00, BITMODE_RESET)) < 0) {
+	if ((ret = ftdi_set_bitmode(&ctx->ftdic, 0x00, BITMODE_RESET)) < 0) {
 		sr_err("sigma: ftdi_set_bitmode failed: %s",
-		       ftdi_get_error_string(&sigma->ftdic));
+		       ftdi_get_error_string(&ctx->ftdic));
 		return SR_ERR;
 	}
 
-	ftdi_usb_purge_buffers(&sigma->ftdic);
+	ftdi_usb_purge_buffers(&ctx->ftdic);
 
 	/* Discard garbage. */
-	while (1 == sigma_read(&pins, 1, sigma))
+	while (1 == sigma_read(&pins, 1, ctx))
 		;
 
 	/* Initialize the logic analyzer mode. */
-	sigma_write(logic_mode_start, sizeof(logic_mode_start), sigma);
+	sigma_write(logic_mode_start, sizeof(logic_mode_start), ctx);
 
 	/* Expect a 3 byte reply. */
-	ret = sigma_read(result, 3, sigma);
+	ret = sigma_read(result, 3, ctx);
 	if (ret != 3 ||
 	    result[0] != 0xa6 || result[1] != 0x55 || result[2] != 0xaa) {
 		sr_err("sigma: Configuration failed. Invalid reply received.");
 		return SR_ERR;
 	}
 
-	sigma->cur_firmware = firmware_idx;
+	ctx->cur_firmware = firmware_idx;
 
 	return SR_OK;
 }
@@ -558,20 +559,20 @@ static int upload_firmware(int firmware_idx, struct sigma *sigma)
 static int hw_dev_open(int dev_index)
 {
 	struct sr_dev_inst *sdi;
-	struct sigma *sigma;
+	struct context *ctx;
 	int ret;
 
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return SR_ERR;
 
-	sigma = sdi->priv;
+	ctx = sdi->priv;
 
 	/* Make sure it's an ASIX SIGMA. */
-	if ((ret = ftdi_usb_open_desc(&sigma->ftdic,
+	if ((ret = ftdi_usb_open_desc(&ctx->ftdic,
 		USB_VENDOR, USB_PRODUCT, USB_DESCRIPTION, NULL)) < 0) {
 
 		sr_err("sigma: ftdi_usb_open failed: %s",
-		       ftdi_get_error_string(&sigma->ftdic));
+		       ftdi_get_error_string(&ctx->ftdic));
 
 		return 0;
 	}
@@ -584,7 +585,7 @@ static int hw_dev_open(int dev_index)
 static int set_samplerate(struct sr_dev_inst *sdi, uint64_t samplerate)
 {
 	int i, ret;
-	struct sigma *sigma = sdi->priv;
+	struct context *ctx = sdi->priv;
 
 	for (i = 0; supported_samplerates[i]; i++) {
 		if (supported_samplerates[i] == samplerate)
@@ -594,22 +595,22 @@ static int set_samplerate(struct sr_dev_inst *sdi, uint64_t samplerate)
 		return SR_ERR_SAMPLERATE;
 
 	if (samplerate <= SR_MHZ(50)) {
-		ret = upload_firmware(0, sigma);
-		sigma->num_probes = 16;
+		ret = upload_firmware(0, ctx);
+		ctx->num_probes = 16;
 	}
 	if (samplerate == SR_MHZ(100)) {
-		ret = upload_firmware(1, sigma);
-		sigma->num_probes = 8;
+		ret = upload_firmware(1, ctx);
+		ctx->num_probes = 8;
 	}
 	else if (samplerate == SR_MHZ(200)) {
-		ret = upload_firmware(2, sigma);
-		sigma->num_probes = 4;
+		ret = upload_firmware(2, ctx);
+		ctx->num_probes = 4;
 	}
 
-	sigma->cur_samplerate = samplerate;
-	sigma->period_ps = 1000000000000 / samplerate;
-	sigma->samples_per_event = 16 / sigma->num_probes;
-	sigma->state.state = SIGMA_IDLE;
+	ctx->cur_samplerate = samplerate;
+	ctx->period_ps = 1000000000000 / samplerate;
+	ctx->samples_per_event = 16 / ctx->num_probes;
+	ctx->state.state = SIGMA_IDLE;
 
 	sr_info("sigma: Firmware uploaded");
 
@@ -626,13 +627,13 @@ static int set_samplerate(struct sr_dev_inst *sdi, uint64_t samplerate)
  */
 static int configure_probes(struct sr_dev_inst *sdi, GSList *probes)
 {
-	struct sigma *sigma = sdi->priv;
+	struct context *ctx = sdi->priv;
 	struct sr_probe *probe;
 	GSList *l;
 	int trigger_set = 0;
 	int probebit;
 
-	memset(&sigma->trigger, 0, sizeof(struct sigma_trigger));
+	memset(&ctx->trigger, 0, sizeof(struct sigma_trigger));
 
 	for (l = probes; l; l = l->next) {
 		probe = (struct sr_probe *)l->data;
@@ -641,7 +642,7 @@ static int configure_probes(struct sr_dev_inst *sdi, GSList *probes)
 		if (!probe->enabled || !probe->trigger)
 			continue;
 
-		if (sigma->cur_samplerate >= SR_MHZ(100)) {
+		if (ctx->cur_samplerate >= SR_MHZ(100)) {
 			/* Fast trigger support. */
 			if (trigger_set) {
 				sr_err("sigma: ASIX SIGMA only supports a single "
@@ -649,9 +650,9 @@ static int configure_probes(struct sr_dev_inst *sdi, GSList *probes)
 				return SR_ERR;
 			}
 			if (probe->trigger[0] == 'f')
-				sigma->trigger.fallingmask |= probebit;
+				ctx->trigger.fallingmask |= probebit;
 			else if (probe->trigger[0] == 'r')
-				sigma->trigger.risingmask |= probebit;
+				ctx->trigger.risingmask |= probebit;
 			else {
 				sr_err("sigma: ASIX SIGMA only supports "
 				       "rising/falling trigger in 100 "
@@ -663,27 +664,27 @@ static int configure_probes(struct sr_dev_inst *sdi, GSList *probes)
 		} else {
 			/* Simple trigger support (event). */
 			if (probe->trigger[0] == '1') {
-				sigma->trigger.simplevalue |= probebit;
-				sigma->trigger.simplemask |= probebit;
+				ctx->trigger.simplevalue |= probebit;
+				ctx->trigger.simplemask |= probebit;
 			}
 			else if (probe->trigger[0] == '0') {
-				sigma->trigger.simplevalue &= ~probebit;
-				sigma->trigger.simplemask |= probebit;
+				ctx->trigger.simplevalue &= ~probebit;
+				ctx->trigger.simplemask |= probebit;
 			}
 			else if (probe->trigger[0] == 'f') {
-				sigma->trigger.fallingmask |= probebit;
+				ctx->trigger.fallingmask |= probebit;
 				++trigger_set;
 			}
 			else if (probe->trigger[0] == 'r') {
-				sigma->trigger.risingmask |= probebit;
+				ctx->trigger.risingmask |= probebit;
 				++trigger_set;
 			}
 
-                        /*
-                         * Actually, Sigma supports 2 rising/falling triggers,
-                         * but they are ORed and the current trigger syntax
-                         * does not permit ORed triggers.
-                         */
+			/*
+			 * Actually, Sigma supports 2 rising/falling triggers,
+			 * but they are ORed and the current trigger syntax
+			 * does not permit ORed triggers.
+			 */
 			if (trigger_set > 1) {
 				sr_err("sigma: ASIX SIGMA only supports 1 "
 				       "rising/falling triggers.");
@@ -692,7 +693,7 @@ static int configure_probes(struct sr_dev_inst *sdi, GSList *probes)
 		}
 
 		if (trigger_set)
-			sigma->use_triggers = 1;
+			ctx->use_triggers = 1;
 	}
 
 	return SR_OK;
@@ -701,21 +702,21 @@ static int configure_probes(struct sr_dev_inst *sdi, GSList *probes)
 static int hw_dev_close(int dev_index)
 {
 	struct sr_dev_inst *sdi;
-	struct sigma *sigma;
+	struct context *ctx;
 
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index))) {
 		sr_err("sigma: %s: sdi was NULL", __func__);
 		return SR_ERR; /* TODO: SR_ERR_ARG? */
 	}
 
-	if (!(sigma = sdi->priv)) {
+	if (!(ctx = sdi->priv)) {
 		sr_err("sigma: %s: sdi->priv was NULL", __func__);
 		return SR_ERR; /* TODO: SR_ERR_ARG? */
 	}
 
 	/* TODO */
 	if (sdi->status == SR_ST_ACTIVE)
-		ftdi_usb_close(&sigma->ftdic);
+		ftdi_usb_close(&ctx->ftdic);
 
 	sdi->status = SR_ST_INACTIVE;
 
@@ -747,7 +748,7 @@ static int hw_cleanup(void)
 static void *hw_dev_info_get(int dev_index, int dev_info_id)
 {
 	struct sr_dev_inst *sdi;
-	struct sigma *sigma;
+	struct context *ctx;
 	void *info = NULL;
 
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index))) {
@@ -755,7 +756,7 @@ static void *hw_dev_info_get(int dev_index, int dev_info_id)
 		return NULL;
 	}
 
-	sigma = sdi->priv;
+	ctx = sdi->priv;
 
 	switch (dev_info_id) {
 	case SR_DI_INST:
@@ -774,7 +775,7 @@ static void *hw_dev_info_get(int dev_index, int dev_info_id)
 		info = (char *)TRIGGER_TYPES;
 		break;
 	case SR_DI_CUR_SAMPLERATE:
-		info = &sigma->cur_samplerate;
+		info = &ctx->cur_samplerate;
 		break;
 	}
 
@@ -800,27 +801,27 @@ static int *hw_hwcap_get_all(void)
 static int hw_dev_config_set(int dev_index, int hwcap, void *value)
 {
 	struct sr_dev_inst *sdi;
-	struct sigma *sigma;
+	struct context *ctx;
 	int ret;
 
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return SR_ERR;
 
-	sigma = sdi->priv;
+	ctx = sdi->priv;
 
 	if (hwcap == SR_HWCAP_SAMPLERATE) {
-		ret = set_samplerate(sdi, *(uint64_t*) value);
+		ret = set_samplerate(sdi, *(uint64_t *)value);
 	} else if (hwcap == SR_HWCAP_PROBECONFIG) {
 		ret = configure_probes(sdi, value);
 	} else if (hwcap == SR_HWCAP_LIMIT_MSEC) {
-		sigma->limit_msec = *(uint64_t*) value;
-		if (sigma->limit_msec > 0)
+		ctx->limit_msec = *(uint64_t *)value;
+		if (ctx->limit_msec > 0)
 			ret = SR_OK;
 		else
 			ret = SR_ERR;
 	} else if (hwcap == SR_HWCAP_CAPTURE_RATIO) {
-		sigma->capture_ratio = *(uint64_t*) value;
-		if (sigma->capture_ratio < 0 || sigma->capture_ratio > 100)
+		ctx->capture_ratio = *(uint64_t *)value;
+		if (ctx->capture_ratio < 0 || ctx->capture_ratio > 100)
 			ret = SR_ERR;
 		else
 			ret = SR_OK;
@@ -876,21 +877,21 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 			   uint16_t limit_chunk, void *session_data)
 {
 	struct sr_dev_inst *sdi = session_data;
-	struct sigma *sigma = sdi->priv;
+	struct context *ctx = sdi->priv;
 	uint16_t tsdiff, ts;
-	uint16_t samples[65536 * sigma->samples_per_event];
+	uint16_t samples[65536 * ctx->samples_per_event];
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
 	int i, j, k, l, numpad, tosend;
 	size_t n = 0, sent = 0;
-	int clustersize = EVENTS_PER_CLUSTER * sigma->samples_per_event;
+	int clustersize = EVENTS_PER_CLUSTER * ctx->samples_per_event;
 	uint16_t *event;
 	uint16_t cur_sample;
 	int triggerts = -1;
 
 	/* Check if trigger is in this chunk. */
 	if (triggerpos != -1) {
-		if (sigma->cur_samplerate <= SR_MHZ(50))
+		if (ctx->cur_samplerate <= SR_MHZ(50))
 			triggerpos -= EVENTS_PER_CLUSTER - 1;
 
 		if (triggerpos < 0)
@@ -911,7 +912,7 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 			return SR_OK;
 
 		/* Pad last sample up to current point. */
-		numpad = tsdiff * sigma->samples_per_event - clustersize;
+		numpad = tsdiff * ctx->samples_per_event - clustersize;
 		if (numpad > 0) {
 			for (j = 0; j < numpad; ++j)
 				samples[j] = *lastsample;
@@ -929,7 +930,7 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 			logic.length = tosend * sizeof(uint16_t);
 			logic.unitsize = 2;
 			logic.data = samples + sent;
-			sr_session_bus(sigma->session_id, &packet);
+			sr_session_bus(ctx->session_id, &packet);
 
 			sent += tosend;
 		}
@@ -942,15 +943,13 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 		for (j = 0; j < 7; ++j) {
 
 			/* For each sample in event. */
-			for (k = 0; k < sigma->samples_per_event; ++k) {
+			for (k = 0; k < ctx->samples_per_event; ++k) {
 				cur_sample = 0;
 
 				/* For each probe. */
-				for (l = 0; l < sigma->num_probes; ++l)
+				for (l = 0; l < ctx->num_probes; ++l)
 					cur_sample |= (!!(event[j] & (1 << (l *
-						      sigma->samples_per_event
-						      + k))))
-						      << l;
+					   ctx->samples_per_event + k)))) << l;
 
 				samples[n++] = cur_sample;
 			}
@@ -966,7 +965,7 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 			 * samples to pinpoint the exact position of the trigger.
 			 */
 			tosend = get_trigger_offset(samples, *lastsample,
-						    &sigma->trigger);
+						    &ctx->trigger);
 
 			if (tosend > 0) {
 				packet.type = SR_DF_LOGIC;
@@ -974,15 +973,15 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 				logic.length = tosend * sizeof(uint16_t);
 				logic.unitsize = 2;
 				logic.data = samples;
-				sr_session_bus(sigma->session_id, &packet);
+				sr_session_bus(ctx->session_id, &packet);
 
 				sent += tosend;
 			}
 
 			/* Only send trigger if explicitly enabled. */
-			if (sigma->use_triggers) {
+			if (ctx->use_triggers) {
 				packet.type = SR_DF_TRIGGER;
-				sr_session_bus(sigma->session_id, &packet);
+				sr_session_bus(ctx->session_id, &packet);
 			}
 		}
 
@@ -995,7 +994,7 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 			logic.length = tosend * sizeof(uint16_t);
 			logic.unitsize = 2;
 			logic.data = samples + sent;
-			sr_session_bus(sigma->session_id, &packet);
+			sr_session_bus(ctx->session_id, &packet);
 		}
 
 		*lastsample = samples[n - 1];
@@ -1007,7 +1006,7 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 static int receive_data(int fd, int revents, void *session_data)
 {
 	struct sr_dev_inst *sdi = session_data;
-	struct sigma *sigma = sdi->priv;
+	struct context *ctx = sdi->priv;
 	struct sr_datafeed_packet packet;
 	const int chunks_per_read = 32;
 	unsigned char buf[chunks_per_read * CHUNK_SIZE];
@@ -1019,51 +1018,49 @@ static int receive_data(int fd, int revents, void *session_data)
 	(void)fd;
 	(void)revents;
 
-	numchunks = (sigma->state.stoppos + 511) / 512;
+	numchunks = (ctx->state.stoppos + 511) / 512;
 
-	if (sigma->state.state == SIGMA_IDLE)
+	if (ctx->state.state == SIGMA_IDLE)
 		return FALSE;
 
-	if (sigma->state.state == SIGMA_CAPTURE) {
-
+	if (ctx->state.state == SIGMA_CAPTURE) {
 		/* Check if the timer has expired, or memory is full. */
 		gettimeofday(&tv, 0);
-		running_msec = (tv.tv_sec - sigma->start_tv.tv_sec) * 1000 +
-			(tv.tv_usec - sigma->start_tv.tv_usec) / 1000;
+		running_msec = (tv.tv_sec - ctx->start_tv.tv_sec) * 1000 +
+			(tv.tv_usec - ctx->start_tv.tv_usec) / 1000;
 
-		if (running_msec < sigma->limit_msec && numchunks < 32767)
+		if (running_msec < ctx->limit_msec && numchunks < 32767)
 			return FALSE;
 
 		hw_dev_acquisition_stop(sdi->index, session_data);
 
 		return FALSE;
-
-	} else if (sigma->state.state == SIGMA_DOWNLOAD) {
-		if (sigma->state.chunks_downloaded >= numchunks) {
+	} else if (ctx->state.state == SIGMA_DOWNLOAD) {
+		if (ctx->state.chunks_downloaded >= numchunks) {
 			/* End of samples. */
 			packet.type = SR_DF_END;
-			sr_session_bus(sigma->session_id, &packet);
+			sr_session_bus(ctx->session_id, &packet);
 
-			sigma->state.state = SIGMA_IDLE;
+			ctx->state.state = SIGMA_IDLE;
 
 			return TRUE;
 		}
 
 		newchunks = MIN(chunks_per_read,
-				numchunks - sigma->state.chunks_downloaded);
+				numchunks - ctx->state.chunks_downloaded);
 
 		sr_info("sigma: Downloading sample data: %.0f %%",
-			100.0 * sigma->state.chunks_downloaded / numchunks);
+			100.0 * ctx->state.chunks_downloaded / numchunks);
 
-		bufsz = sigma_read_dram(sigma->state.chunks_downloaded,
-					newchunks, buf, sigma);
+		bufsz = sigma_read_dram(ctx->state.chunks_downloaded,
+					newchunks, buf, ctx);
 		/* TODO: Check bufsz. For now, just avoid compiler warnings. */
 		(void)bufsz;
 
 		/* Find first ts. */
-		if (sigma->state.chunks_downloaded == 0) {
-			sigma->state.lastts = *(uint16_t *) buf - 1;
-			sigma->state.lastsample = 0;
+		if (ctx->state.chunks_downloaded == 0) {
+			ctx->state.lastts = *(uint16_t *) buf - 1;
+			ctx->state.lastsample = 0;
 		}
 
 		/* Decode chunks and send them to sigrok. */
@@ -1071,25 +1068,24 @@ static int receive_data(int fd, int revents, void *session_data)
 			int limit_chunk = 0;
 
 			/* The last chunk may potentially be only in part. */
-			if (sigma->state.chunks_downloaded == numchunks - 1)
-			{
+			if (ctx->state.chunks_downloaded == numchunks - 1) {
 				/* Find the last valid timestamp */
-				limit_chunk = sigma->state.stoppos % 512 + sigma->state.lastts;
+				limit_chunk = ctx->state.stoppos % 512 + ctx->state.lastts;
 			}
 
-			if (sigma->state.chunks_downloaded + i == sigma->state.triggerchunk)
+			if (ctx->state.chunks_downloaded + i == ctx->state.triggerchunk)
 				decode_chunk_ts(buf + (i * CHUNK_SIZE),
-						&sigma->state.lastts,
-						&sigma->state.lastsample,
-						sigma->state.triggerpos & 0x1ff,
+						&ctx->state.lastts,
+						&ctx->state.lastsample,
+						ctx->state.triggerpos & 0x1ff,
 						limit_chunk, session_data);
 			else
 				decode_chunk_ts(buf + (i * CHUNK_SIZE),
-						&sigma->state.lastts,
-						&sigma->state.lastsample,
+						&ctx->state.lastts,
+						&ctx->state.lastsample,
 						-1, limit_chunk, session_data);
 
-			++sigma->state.chunks_downloaded;
+			++ctx->state.chunks_downloaded;
 		}
 	}
 
@@ -1168,12 +1164,13 @@ static void add_trigger_function(enum triggerop oper, enum triggerfunc func,
 
 	/* Transpose if neg is set. */
 	if (neg) {
-		for (i = 0; i < 2; ++i)
+		for (i = 0; i < 2; ++i) {
 			for (j = 0; j < 2; ++j) {
 				tmp = x[i][j];
 				x[i][j] = x[1-i][1-j];
 				x[1-i][1-j] = tmp;
 			}
+		}
 	}
 
 	/* Update mask with function. */
@@ -1206,7 +1203,7 @@ static void add_trigger_function(enum triggerop oper, enum triggerfunc func,
  * simple pin change and state triggers. Only two transitions (rise/fall) can be
  * set at any time, but a full mask and value can be set (0/1).
  */
-static int build_basic_trigger(struct triggerlut *lut, struct sigma *sigma)
+static int build_basic_trigger(struct triggerlut *lut, struct context *ctx)
 {
 	int i,j;
 	uint16_t masks[2] = { 0, 0 };
@@ -1217,13 +1214,13 @@ static int build_basic_trigger(struct triggerlut *lut, struct sigma *sigma)
 	lut->m4 = 0xa000;
 
 	/* Value/mask trigger support. */
-	build_lut_entry(sigma->trigger.simplevalue, sigma->trigger.simplemask,
+	build_lut_entry(ctx->trigger.simplevalue, ctx->trigger.simplemask,
 			lut->m2d);
 
 	/* Rise/fall trigger support. */
 	for (i = 0, j = 0; i < 16; ++i) {
-		if (sigma->trigger.risingmask & (1 << i) ||
-		    sigma->trigger.fallingmask & (1 << i))
+		if (ctx->trigger.risingmask & (1 << i) ||
+		    ctx->trigger.fallingmask & (1 << i))
 			masks[j++] = 1 << i;
 	}
 
@@ -1233,13 +1230,13 @@ static int build_basic_trigger(struct triggerlut *lut, struct sigma *sigma)
 	/* Add glue logic */
 	if (masks[0] || masks[1]) {
 		/* Transition trigger. */
-		if (masks[0] & sigma->trigger.risingmask)
+		if (masks[0] & ctx->trigger.risingmask)
 			add_trigger_function(OP_RISE, FUNC_OR, 0, 0, &lut->m3);
-		if (masks[0] & sigma->trigger.fallingmask)
+		if (masks[0] & ctx->trigger.fallingmask)
 			add_trigger_function(OP_FALL, FUNC_OR, 0, 0, &lut->m3);
-		if (masks[1] & sigma->trigger.risingmask)
+		if (masks[1] & ctx->trigger.risingmask)
 			add_trigger_function(OP_RISE, FUNC_OR, 1, 0, &lut->m3);
-		if (masks[1] & sigma->trigger.fallingmask)
+		if (masks[1] & ctx->trigger.fallingmask)
 			add_trigger_function(OP_FALL, FUNC_OR, 1, 0, &lut->m3);
 	} else {
 		/* Only value/mask trigger. */
@@ -1255,7 +1252,7 @@ static int build_basic_trigger(struct triggerlut *lut, struct sigma *sigma)
 static int hw_dev_acquisition_start(int dev_index, gpointer session_data)
 {
 	struct sr_dev_inst *sdi;
-	struct sigma *sigma;
+	struct context *ctx;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_header header;
 	struct clockselect_50 clockselect;
@@ -1270,24 +1267,24 @@ static int hw_dev_acquisition_start(int dev_index, gpointer session_data)
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return SR_ERR;
 
-	sigma = sdi->priv;
+	ctx = sdi->priv;
 
-	/* If the samplerate has not been set, default to 200 KHz. */
-	if (sigma->cur_firmware == -1) {
+	/* If the samplerate has not been set, default to 200 kHz. */
+	if (ctx->cur_firmware == -1) {
 		if ((ret = set_samplerate(sdi, SR_KHZ(200))) != SR_OK)
 			return ret;
 	}
 
 	/* Enter trigger programming mode. */
-	sigma_set_register(WRITE_TRIGGER_SELECT1, 0x20, sigma);
+	sigma_set_register(WRITE_TRIGGER_SELECT1, 0x20, ctx);
 
 	/* 100 and 200 MHz mode. */
-	if (sigma->cur_samplerate >= SR_MHZ(100)) {
-		sigma_set_register(WRITE_TRIGGER_SELECT1, 0x81, sigma);
+	if (ctx->cur_samplerate >= SR_MHZ(100)) {
+		sigma_set_register(WRITE_TRIGGER_SELECT1, 0x81, ctx);
 
 		/* Find which pin to trigger on from mask. */
 		for (triggerpin = 0; triggerpin < 8; ++triggerpin)
-			if ((sigma->trigger.risingmask | sigma->trigger.fallingmask) &
+			if ((ctx->trigger.risingmask | ctx->trigger.fallingmask) &
 			    (1 << triggerpin))
 				break;
 
@@ -1295,14 +1292,14 @@ static int hw_dev_acquisition_start(int dev_index, gpointer session_data)
 		triggerselect = (1 << LEDSEL1) | (triggerpin & 0x7);
 
 		/* Default rising edge. */
-		if (sigma->trigger.fallingmask)
+		if (ctx->trigger.fallingmask)
 			triggerselect |= 1 << 3;
 
 	/* All other modes. */
-	} else if (sigma->cur_samplerate <= SR_MHZ(50)) {
-		build_basic_trigger(&lut, sigma);
+	} else if (ctx->cur_samplerate <= SR_MHZ(50)) {
+		build_basic_trigger(&lut, ctx);
 
-		sigma_write_trigger_lut(&lut, sigma);
+		sigma_write_trigger_lut(&lut, ctx);
 
 		triggerselect = (1 << LEDSEL1) | (1 << LEDSEL0);
 	}
@@ -1314,24 +1311,24 @@ static int hw_dev_acquisition_start(int dev_index, gpointer session_data)
 
 	sigma_write_register(WRITE_TRIGGER_OPTION,
 			     (uint8_t *) &triggerinout_conf,
-			     sizeof(struct triggerinout), sigma);
+			     sizeof(struct triggerinout), ctx);
 
 	/* Go back to normal mode. */
-	sigma_set_register(WRITE_TRIGGER_SELECT1, triggerselect, sigma);
+	sigma_set_register(WRITE_TRIGGER_SELECT1, triggerselect, ctx);
 
 	/* Set clock select register. */
-	if (sigma->cur_samplerate == SR_MHZ(200))
+	if (ctx->cur_samplerate == SR_MHZ(200))
 		/* Enable 4 probes. */
-		sigma_set_register(WRITE_CLOCK_SELECT, 0xf0, sigma);
-	else if (sigma->cur_samplerate == SR_MHZ(100))
+		sigma_set_register(WRITE_CLOCK_SELECT, 0xf0, ctx);
+	else if (ctx->cur_samplerate == SR_MHZ(100))
 		/* Enable 8 probes. */
-		sigma_set_register(WRITE_CLOCK_SELECT, 0x00, sigma);
+		sigma_set_register(WRITE_CLOCK_SELECT, 0x00, ctx);
 	else {
 		/*
 		 * 50 MHz mode (or fraction thereof). Any fraction down to
 		 * 50 MHz / 256 can be used, but is not supported by sigrok API.
 		 */
-		frac = SR_MHZ(50) / sigma->cur_samplerate - 1;
+		frac = SR_MHZ(50) / ctx->cur_samplerate - 1;
 
 		clockselect.async = 0;
 		clockselect.fraction = frac;
@@ -1339,32 +1336,32 @@ static int hw_dev_acquisition_start(int dev_index, gpointer session_data)
 
 		sigma_write_register(WRITE_CLOCK_SELECT,
 				     (uint8_t *) &clockselect,
-				     sizeof(clockselect), sigma);
+				     sizeof(clockselect), ctx);
 	}
 
 	/* Setup maximum post trigger time. */
 	sigma_set_register(WRITE_POST_TRIGGER,
-			(sigma->capture_ratio * 255) / 100, sigma);
+			(ctx->capture_ratio * 255) / 100, ctx);
 
 	/* Start acqusition. */
-	gettimeofday(&sigma->start_tv, 0);
-	sigma_set_register(WRITE_MODE, 0x0d, sigma);
+	gettimeofday(&ctx->start_tv, 0);
+	sigma_set_register(WRITE_MODE, 0x0d, ctx);
 
-	sigma->session_id = session_data;
+	ctx->session_id = session_data;
 
 	/* Send header packet to the session bus. */
 	packet.type = SR_DF_HEADER;
 	packet.payload = &header;
 	header.feed_version = 1;
 	gettimeofday(&header.starttime, NULL);
-	header.samplerate = sigma->cur_samplerate;
-	header.num_logic_probes = sigma->num_probes;
+	header.samplerate = ctx->cur_samplerate;
+	header.num_logic_probes = ctx->num_probes;
 	sr_session_bus(session_data, &packet);
 
 	/* Add capture source. */
 	sr_source_add(0, G_IO_IN, 10, receive_data, sdi);
 
-	sigma->state.state = SIGMA_CAPTURE;
+	ctx->state.state = SIGMA_CAPTURE;
 
 	return SR_OK;
 }
@@ -1372,7 +1369,7 @@ static int hw_dev_acquisition_start(int dev_index, gpointer session_data)
 static int hw_dev_acquisition_stop(int dev_index, gpointer session_data)
 {
 	struct sr_dev_inst *sdi;
-	struct sigma *sigma;
+	struct context *ctx;
 	uint8_t modestatus;
 
 	/* Avoid compiler warnings. */
@@ -1383,30 +1380,30 @@ static int hw_dev_acquisition_stop(int dev_index, gpointer session_data)
 		return SR_ERR_BUG;
 	}
 
-	if (!(sigma = sdi->priv)) {
+	if (!(ctx = sdi->priv)) {
 		sr_err("sigma: %s: sdi->priv was NULL", __func__);
 		return SR_ERR_BUG;
 	}
 
 	/* Stop acquisition. */
-	sigma_set_register(WRITE_MODE, 0x11, sigma);
+	sigma_set_register(WRITE_MODE, 0x11, ctx);
 
 	/* Set SDRAM Read Enable. */
-	sigma_set_register(WRITE_MODE, 0x02, sigma);
+	sigma_set_register(WRITE_MODE, 0x02, ctx);
 
 	/* Get the current position. */
-	sigma_read_pos(&sigma->state.stoppos, &sigma->state.triggerpos, sigma);
+	sigma_read_pos(&ctx->state.stoppos, &ctx->state.triggerpos, ctx);
 
 	/* Check if trigger has fired. */
-	modestatus = sigma_get_register(READ_MODE, sigma);
+	modestatus = sigma_get_register(READ_MODE, ctx);
 	if (modestatus & 0x20)
-		sigma->state.triggerchunk = sigma->state.triggerpos / 512;
+		ctx->state.triggerchunk = ctx->state.triggerpos / 512;
 	else
-		sigma->state.triggerchunk = -1;
+		ctx->state.triggerchunk = -1;
 
-	sigma->state.chunks_downloaded = 0;
+	ctx->state.chunks_downloaded = 0;
 
-	sigma->state.state = SIGMA_DOWNLOAD;
+	ctx->state.state = SIGMA_DOWNLOAD;
 
 	return SR_OK;
 }

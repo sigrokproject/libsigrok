@@ -51,7 +51,7 @@ struct mso_prototrig {
 	uint8_t spimode;
 };
 
-/* our private per-instance data */
+/* Private, per-device-instance driver context. */
 struct mso {
 	/* info */
 	uint8_t hwmodel;

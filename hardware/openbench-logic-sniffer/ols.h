@@ -59,7 +59,8 @@
 #define FLAG_CLOCK_INVERTED        0x80
 #define FLAG_RLE                   0x0100
 
-struct ols_dev {
+/* Private, per-device-instance driver context. */
+struct context {
 	uint32_t max_samplerate;
 	uint32_t max_samples;
 	uint32_t protocol_version;

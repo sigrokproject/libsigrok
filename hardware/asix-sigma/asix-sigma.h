@@ -173,7 +173,8 @@ struct sigma_state {
 	int chunks_downloaded;
 };
 
-struct sigma {
+/* Private, per-device-instance driver context. */
+struct context {
 	struct ftdi_context ftdic;
 	uint64_t cur_samplerate;
 	uint64_t period_ps;

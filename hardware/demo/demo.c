@@ -125,6 +125,9 @@ static uint8_t pattern_sigrok[] = {
 	0xbe, 0xbe, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 };
 
+/* Private, per-device-instance driver context. */
+/* TODO: struct context as with the other drivers. */
+
 /* List of struct sr_dev_inst, maintained by dev_open()/dev_close(). */
 static GSList *dev_insts = NULL;
 static uint64_t cur_samplerate = SR_KHZ(200);
