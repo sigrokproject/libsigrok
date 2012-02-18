@@ -650,7 +650,7 @@ static int *hw_hwcap_get_all(void)
 	return hwcaps;
 }
 
-static int hw_config_set(int dev_index, int hwcap, void *value)
+static int hw_dev_config_set(int dev_index, int hwcap, void *value)
 {
 	struct sr_dev_inst *sdi;
 
@@ -840,7 +840,7 @@ SR_PRIV struct sr_dev_plugin link_mso19_plugin_info = {
 	.dev_info_get = hw_dev_info_get,
 	.dev_status_get = hw_dev_status_get,
 	.hwcap_get_all = hw_hwcap_get_all,
-	.config_set = hw_config_set,
+	.dev_config_set = hw_dev_config_set,
 	.dev_acquisition_start = hw_dev_acquisition_start,
 	.dev_acquisition_stop = hw_dev_acquisition_stop,
 };

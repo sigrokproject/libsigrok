@@ -120,17 +120,17 @@ SR_API int sr_session_load(const char *filename)
 						/* first device, init the plugin */
 						dev->plugin->init((char *)filename);
 					sr_session_dev_add(dev);
-					dev->plugin->config_set(devcnt, SR_HWCAP_CAPTUREFILE, val);
+					dev->plugin->dev_config_set(devcnt, SR_HWCAP_CAPTUREFILE, val);
 					g_ptr_array_add(capturefiles, val);
 				} else if (!strcmp(keys[j], "samplerate")) {
 					sr_parse_sizestring(val, &tmp_u64);
-					dev->plugin->config_set(devcnt, SR_HWCAP_SAMPLERATE, &tmp_u64);
+					dev->plugin->dev_config_set(devcnt, SR_HWCAP_SAMPLERATE, &tmp_u64);
 				} else if (!strcmp(keys[j], "unitsize")) {
 					tmp_u64 = strtoull(val, NULL, 10);
-					dev->plugin->config_set(devcnt, SR_HWCAP_CAPTURE_UNITSIZE, &tmp_u64);
+					dev->plugin->dev_config_set(devcnt, SR_HWCAP_CAPTURE_UNITSIZE, &tmp_u64);
 				} else if (!strcmp(keys[j], "total probes")) {
 					total_probes = strtoull(val, NULL, 10);
-					dev->plugin->config_set(devcnt, SR_HWCAP_CAPTURE_NUM_PROBES, &total_probes);
+					dev->plugin->dev_config_set(devcnt, SR_HWCAP_CAPTURE_NUM_PROBES, &total_probes);
 					for (p = 0; p < total_probes; p++) {
 						snprintf(probename, SR_MAX_PROBENAME_LEN, "%" PRIu64, p);
 						sr_dev_probe_add(dev, probename);

@@ -93,7 +93,7 @@ static libusb_context *usb_context = NULL;
 
 static int new_saleae_logic_firmware = 0;
 
-static int hw_config_set(int dev_index, int hwcap, void *value);
+static int hw_dev_config_set(int dev_index, int hwcap, void *value);
 static int hw_dev_acquisition_stop(int dev_index, gpointer session_dev_id);
 
 /**
@@ -440,7 +440,7 @@ static int hw_dev_open(int dev_index)
 
 	if (fx2->cur_samplerate == 0) {
 		/* Samplerate hasn't been set; default to the slowest one. */
-		if (hw_config_set(dev_index, SR_HWCAP_SAMPLERATE,
+		if (hw_dev_config_set(dev_index, SR_HWCAP_SAMPLERATE,
 		    &supported_samplerates[0]) == SR_ERR)
 			return SR_ERR;
 	}
@@ -591,7 +591,7 @@ static uint8_t new_firmware_divider_value(uint64_t samplerate)
 	return 0;
 }
 
-static int config_set_samplerate(struct sr_dev_inst *sdi, uint64_t samplerate)
+static int set_samplerate(struct sr_dev_inst *sdi, uint64_t samplerate)
 {
 	struct fx2_dev *fx2;
 	uint8_t divider;
@@ -627,7 +627,7 @@ static int config_set_samplerate(struct sr_dev_inst *sdi, uint64_t samplerate)
 	return SR_OK;
 }
 
-static int hw_config_set(int dev_index, int hwcap, void *value)
+static int hw_dev_config_set(int dev_index, int hwcap, void *value)
 {
 	struct sr_dev_inst *sdi;
 	struct fx2_dev *fx2;
@@ -640,7 +640,7 @@ static int hw_config_set(int dev_index, int hwcap, void *value)
 
 	if (hwcap == SR_HWCAP_SAMPLERATE) {
 		tmp_u64 = value;
-		ret = config_set_samplerate(sdi, *tmp_u64);
+		ret = set_samplerate(sdi, *tmp_u64);
 	} else if (hwcap == SR_HWCAP_PROBECONFIG) {
 		ret = configure_probes(fx2, (GSList *) value);
 	} else if (hwcap == SR_HWCAP_LIMIT_SAMPLES) {
@@ -901,7 +901,7 @@ SR_PRIV struct sr_dev_plugin saleae_logic_plugin_info = {
 	.dev_info_get = hw_dev_info_get,
 	.dev_status_get = hw_dev_status_get,
 	.hwcap_get_all = hw_hwcap_get_all,
-	.config_set = hw_config_set,
+	.dev_config_set = hw_dev_config_set,
 	.dev_acquisition_start = hw_dev_acquisition_start,
 	.dev_acquisition_stop = hw_dev_acquisition_stop,
 };
