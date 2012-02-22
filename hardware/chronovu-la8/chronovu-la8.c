@@ -1,7 +1,7 @@
 /*
  * This file is part of the sigrok project.
  *
- * Copyright (C) 2011 Uwe Hermann <uwe@hermann-uwe.de>
+ * Copyright (C) 2011-2012 Uwe Hermann <uwe@hermann-uwe.de>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -206,24 +206,17 @@ static uint8_t samplerate_to_divcount(uint64_t samplerate)
 /**
  * Write data of a certain length to the LA8's FTDI device.
  *
- * @param ctx The struct containing private per-device-instance data.
- * @param buf The buffer containing the data to write.
- * @param size The number of bytes to write.
+ * @param ctx The struct containing private per-device-instance data. Must not
+ *            be NULL. ctx->ftdic must not be NULL either.
+ * @param buf The buffer containing the data to write. Must not be NULL.
+ * @param size The number of bytes to write. Must be >= 0.
  * @return The number of bytes written, or a negative value upon errors.
  */
 static int la8_write(struct context *ctx, uint8_t *buf, int size)
 {
 	int bytes_written;
 
-	if (!ctx) {
-		sr_err("la8: %s: ctx was NULL", __func__);
-		return SR_ERR_ARG;
-	}
-
-	if (!ctx->ftdic) {
-		sr_err("la8: %s: ctx->ftdic was NULL", __func__);
-		return SR_ERR_ARG;
-	}
+	/* Note: Caller checked that ctx and ctx->ftdic != NULL. */
 
 	if (!buf) {
 		sr_err("la8: %s: buf was NULL", __func__);
@@ -253,24 +246,18 @@ static int la8_write(struct context *ctx, uint8_t *buf, int size)
 /**
  * Read a certain amount of bytes from the LA8's FTDI device.
  *
- * @param ctx The struct containing private per-device-instance data.
- * @param buf The buffer where the received data will be stored.
- * @param size The number of bytes to read.
+ * @param ctx The struct containing private per-device-instance data. Must not
+ *            be NULL. ctx->ftdic must not be NULL either.
+ * @param buf The buffer where the received data will be stored. Must not
+ *            be NULL.
+ * @param size The number of bytes to read. Must be >= 1.
  * @return The number of bytes read, or a negative value upon errors.
  */
 static int la8_read(struct context *ctx, uint8_t *buf, int size)
 {
 	int bytes_read;
 
-	if (!ctx) {
-		sr_err("la8: %s: ctx was NULL", __func__);
-		return SR_ERR_ARG;
-	}
-
-	if (!ctx->ftdic) {
-		sr_err("la8: %s: ctx->ftdic was NULL", __func__);
-		return SR_ERR_ARG;
-	}
+	/* Note: Caller checked that ctx and ctx->ftdic != NULL. */
 
 	if (!buf) {
 		sr_err("la8: %s: buf was NULL", __func__);
@@ -417,6 +404,8 @@ static int configure_probes(struct context *ctx, GSList *probes)
 	GSList *l;
 	uint8_t probe_bit;
 	char *tc;
+
+	/* Note: Caller checked that ctx != NULL. */
 
 	ctx->trigger_pattern = 0;
 	ctx->trigger_mask = 0; /* Default to "don't care" for all probes. */
@@ -613,15 +602,9 @@ static int set_samplerate(struct sr_dev_inst *sdi, uint64_t samplerate)
 {
 	struct context *ctx;
 
-	if (!sdi) {
-		sr_err("la8: %s: sdi was NULL", __func__);
-		return SR_ERR_ARG;
-	}
+	/* Note: Caller checked that sdi and sdi->priv != NULL. */
 
-	if (!(ctx = sdi->priv)) {
-		sr_err("la8: %s: sdi->priv was NULL", __func__);
-		return SR_ERR_ARG;
-	}
+	ctx = sdi->priv;
 
 	sr_spew("la8: setting samplerate");
 
@@ -829,15 +812,7 @@ static int la8_read_block(struct context *ctx)
 	int i, byte_offset, m, mi, p, index, bytes_read;
 	time_t now;
 
-	if (!ctx) {
-		sr_err("la8: %s: ctx was NULL", __func__);
-		return SR_ERR_ARG;
-	}
-
-	if (!ctx->ftdic) {
-		sr_err("la8: %s: ctx->ftdic was NULL", __func__);
-		return SR_ERR_ARG;
-	}
+	/* Note: Caller checked that ctx and ctx->ftdic != NULL. */
 
 	sr_spew("la8: %s: reading block %d", __func__, ctx->block_counter);
 
@@ -985,6 +960,11 @@ static int receive_data(int fd, int revents, void *session_data)
 
 	if (!(ctx = sdi->priv)) {
 		sr_err("la8: %s: sdi->priv was NULL", __func__);
+		return FALSE;
+	}
+
+	if (!ctx->ftdic) {
+		sr_err("la8: %s: ctx->ftdic was NULL", __func__);
 		return FALSE;
 	}
 
