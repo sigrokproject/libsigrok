@@ -26,9 +26,6 @@
 #include "sigrok.h"
 #include "sigrok-internal.h"
 
-/* The list of loaded plugins lives here. */
-static GSList *plugins;
-
 /*
  * This enumerates which plugin capabilities correspond to user-settable
  * options.
@@ -43,62 +40,57 @@ SR_API struct sr_hwcap_option sr_hwcap_options[] = {
 };
 
 #ifdef HAVE_LA_DEMO
-extern struct sr_dev_plugin demo_plugin_info;
+extern SR_PRIV struct sr_dev_plugin demo_plugin_info;
 #endif
 #ifdef HAVE_LA_SALEAE_LOGIC
-extern struct sr_dev_plugin saleae_logic_plugin_info;
+extern SR_PRIV struct sr_dev_plugin saleae_logic_plugin_info;
 #endif
 #ifdef HAVE_LA_OLS
-extern struct sr_dev_plugin ols_plugin_info;
+extern SR_PRIV struct sr_dev_plugin ols_plugin_info;
 #endif
 #ifdef HAVE_LA_ZEROPLUS_LOGIC_CUBE
-extern struct sr_dev_plugin zeroplus_logic_cube_plugin_info;
+extern SR_PRIV struct sr_dev_plugin zeroplus_logic_cube_plugin_info;
 #endif
 #ifdef HAVE_LA_ASIX_SIGMA
-extern struct sr_dev_plugin asix_sigma_plugin_info;
+extern SR_PRIV struct sr_dev_plugin asix_sigma_plugin_info;
 #endif
 #ifdef HAVE_LA_CHRONOVU_LA8
-extern SR_PRIV struct dev_plugin chronovu_la8_plugin_info;
+extern SR_PRIV struct sr_dev_plugin chronovu_la8_plugin_info;
 #endif
 #ifdef HAVE_LA_LINK_MSO19
-extern struct sr_dev_plugin link_mso19_plugin_info;
+extern SR_PRIV struct sr_dev_plugin link_mso19_plugin_info;
 #endif
 #ifdef HAVE_LA_ALSA
-extern struct sr_dev_plugin alsa_plugin_info;
+extern SR_PRIV struct sr_dev_plugin alsa_plugin_info;
 #endif
 
-/* TODO: No linked list needed, this can be a simple array. */
-SR_PRIV int sr_hw_load_all(void)
-{
+static struct sr_dev_plugin *plugins_list[] = {
 #ifdef HAVE_LA_DEMO
-	plugins = g_slist_append(plugins, (gpointer *)&demo_plugin_info);
+	&demo_plugin_info,
 #endif
 #ifdef HAVE_LA_SALEAE_LOGIC
-	plugins =
-	    g_slist_append(plugins, (gpointer *)&saleae_logic_plugin_info);
+	&saleae_logic_plugin_info,
 #endif
 #ifdef HAVE_LA_OLS
-	plugins = g_slist_append(plugins, (gpointer *)&ols_plugin_info);
+	&ols_plugin_info,
 #endif
 #ifdef HAVE_LA_ZEROPLUS_LOGIC_CUBE
-	plugins = g_slist_append(plugins,
-			   (gpointer *)&zeroplus_logic_cube_plugin_info);
+	&zeroplus_logic_cube_plugin_info,
 #endif
 #ifdef HAVE_LA_ASIX_SIGMA
-	plugins = g_slist_append(plugins, (gpointer *)&asix_sigma_plugin_info);
+	&asix_sigma_plugin_info,
 #endif
 #ifdef HAVE_LA_CHRONOVU_LA8
-	plugins = g_slist_append(plugins, (gpointer *)&chronovu_la8_plugin_info);
+	&chronovu_la8_plugin_info,
 #endif
 #ifdef HAVE_LA_LINK_MSO19
-	plugins = g_slist_append(plugins, (gpointer *)&link_mso19_plugin_info);
+	&link_mso19_plugin_info,
 #endif
 #ifdef HAVE_LA_ALSA
-	plugins = g_slist_append(plugins, (gpointer *)&alsa_plugin_info);
+	&alsa_plugin_info,
 #endif
-
-	return SR_OK;
-}
+	NULL,
+};
 
 /**
  * Return the list of loaded hardware plugins.
@@ -106,11 +98,11 @@ SR_PRIV int sr_hw_load_all(void)
  * The list of plugins is initialized from sr_init(), and can only be reset
  * by calling sr_exit().
  *
- * @return A GSList of pointers to loaded plugins.
+ * @return Pointer to the NULL-terminated list of hardware plugin pointers.
  */
-SR_API GSList *sr_hw_list(void)
+SR_API struct sr_dev_plugin **sr_hw_list(void)
 {
-	return plugins;
+	return plugins_list;
 }
 
 /**
@@ -155,13 +147,13 @@ SR_API int sr_hw_init(struct sr_dev_plugin *plugin)
 
 SR_PRIV void sr_hw_cleanup_all(void)
 {
-	struct sr_dev_plugin *plugin;
-	GSList *l;
+	int i;
+	struct sr_dev_plugin **plugins;
 
-	for (l = plugins; l; l = l->next) {
-		plugin = l->data;
-		if (plugin->cleanup)
-			plugin->cleanup();
+	plugins = sr_hw_list();
+	for (i = 0; plugins[i]; i++) {
+		if (plugins[i]->cleanup)
+			plugins[i]->cleanup();
 	}
 }
 

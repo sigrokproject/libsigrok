@@ -59,10 +59,11 @@ static GSList *devs = NULL;
  */
 SR_API int sr_dev_scan(void)
 {
-	GSList *plugins, *l;
-	struct sr_dev_plugin *plugin;
+	int i;
+	struct sr_dev_plugin **plugins;
 
-	if (!(plugins = sr_hw_list())) {
+	plugins = sr_hw_list();
+	if (!plugins[0]) {
 		sr_err("dev: %s: no supported devices/hwplugins", __func__);
 		return SR_ERR; /* TODO: More specific error? */
 	}
@@ -72,11 +73,8 @@ SR_API int sr_dev_scan(void)
 	 * a firmware upload and associated delay, we may as well get all
 	 * of these out of the way first.
 	 */
-	for (l = plugins; l; l = l->next) {
-		plugin = l->data;
-		/* TODO: Handle 'plugin' being NULL. */
-		sr_hw_init(plugin);
-	}
+	for (i = 0; plugins[i]; i++)
+		sr_hw_init(plugins[i]);
 
 	return SR_OK;
 }

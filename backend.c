@@ -28,7 +28,7 @@
  */
 SR_API int sr_init(void)
 {
-	return sr_hw_load_all();
+	return SR_OK;
 }
 
 /**

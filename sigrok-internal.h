@@ -76,7 +76,6 @@ SR_PRIV int sr_err(const char *format, ...);
 
 /*--- hwplugin.c ------------------------------------------------------------*/
 
-SR_PRIV int sr_hw_load_all(void);
 SR_PRIV void sr_hw_cleanup_all(void);
 
 /*--- session.c -------------------------------------------------------------*/
