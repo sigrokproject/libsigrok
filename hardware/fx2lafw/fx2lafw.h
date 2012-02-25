@@ -20,7 +20,10 @@
 #ifndef LIBSIGROK_HARDWARE_FX2LAFW
 #define LIBSIGROK_HARDWARE_FX2LAFW
 
-#define TRIGGER_TYPES       "01rf"
+#define USB_INTERFACE		0
+#define USB_CONFIGURATION	1
+#define TRIGGER_TYPES		"01rf"
+#define FIRMWARE		FIRMWARE_DIR "/fx2lafw-cwav-usbeeax.fw"
 
 struct fx2lafw_profile {
 	uint16_t vid;
@@ -36,9 +39,17 @@ struct fx2lafw_profile {
 struct fx2lafw_device {
 	struct fx2lafw_profile *profile;
 
+	/*
+	 * Since we can't keep track of an fx2lafw device after upgrading
+	 * the firmware (it re-enumerates into a different device address
+	 * after the upgrade) this is like a global lock. No device will open
+	 * until a proper delay after the last device was upgraded.
+	 */
+	GTimeVal fw_updated;
+
 	void *session_data;
 
-	struct sr_usb_device_instance *usb;
+	struct sr_usb_dev_inst *usb;
 };
 
 #endif

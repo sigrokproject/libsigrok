@@ -19,6 +19,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <inttypes.h>
 #include <glib.h>
 #include <libusb.h>
@@ -77,6 +78,68 @@ static struct sr_samplerates fx2lafw_samplerates = {
 
 static GSList *dev_insts = NULL;
 static libusb_context *usb_context = NULL;
+
+/**
+ * Check the USB configuration to determine if this is an fx2lafw device.
+ *
+ * @return true if the device's configuration profile match fx2lafw
+ *         configuration, flase otherwise.
+ */
+static bool check_conf_profile(libusb_device *dev)
+{
+	struct libusb_device_descriptor des;
+	struct libusb_config_descriptor *conf_dsc = NULL;
+	const struct libusb_interface_descriptor *intf_dsc;
+	bool ret = false;
+
+	while (!ret) {
+		/* Assume it's not a Saleae Logic unless proven wrong. */
+		ret = 0;
+
+		if (libusb_get_device_descriptor(dev, &des) != 0)
+			break;
+
+		if (des.bNumConfigurations != 1)
+			/* Need exactly 1 configuration. */
+			break;
+
+		if (libusb_get_config_descriptor(dev, 0, &conf_dsc) != 0)
+			break;
+
+		if (conf_dsc->bNumInterfaces != 1)
+			/* Need exactly 1 interface. */
+			break;
+
+		if (conf_dsc->interface[0].num_altsetting != 1)
+			/* Need just one alternate setting. */
+			break;
+
+		intf_dsc = &(conf_dsc->interface[0].altsetting[0]);
+		if (intf_dsc->bNumEndpoints != 3)
+			/* Need exactly 3 end points. */
+			break;
+
+		if ((intf_dsc->endpoint[0].bEndpointAddress & 0x8f) !=
+		    (1 | LIBUSB_ENDPOINT_OUT))
+			/* The first endpoint should be 1 (outbound). */
+			break;
+
+		if ((intf_dsc->endpoint[1].bEndpointAddress & 0x8f) !=
+		    (2 | LIBUSB_ENDPOINT_IN))
+			/* The second endpoint should be 2 (inbound). */
+			break;
+
+		/* TODO: Check the debug channel... */
+
+		/* If we made it here, it must be an fx2lafw. */
+		ret = true;
+	}
+
+	if (conf_dsc)
+		libusb_free_config_descriptor(conf_dsc);
+
+	return ret;
+}
 
 static struct fx2lafw_device* fx2lafw_device_new(void)
 {
@@ -145,6 +208,24 @@ static int hw_init(const char *deviceinfo)
 		ctx->profile = fx2lafw_prof;
 		sdi->priv = ctx;
 		device_instances = g_slist_append(dev_insts, sdi);
+
+		if (check_conf_profile(devlist[i])) {
+			/* Already has the firmware, so fix the new address. */
+			sr_dbg("fx2lafw: Found a fx2lafw device.");
+			sdi->status = SR_ST_INACTIVE;
+			ctx->usb = sr_usb_dev_inst_new
+			    (libusb_get_bus_number(devlist[i]),
+			     libusb_get_device_address(devlist[i]), NULL);
+		} else {
+			if (ezusb_upload_firmware(devlist[i], USB_CONFIGURATION, FIRMWARE) == SR_OK)
+				/* Remember when the firmware on this device was updated */
+				g_get_current_time(&ctx->fw_updated);
+			else
+				sr_err("fx2lafw: firmware upload failed for "
+				       "device %d", devcnt);
+			ctx->usb = sr_usb_dev_inst_new
+				(libusb_get_bus_number(devlist[i]), 0xff, NULL);
+		}
 
 		devcnt++;
 	}
