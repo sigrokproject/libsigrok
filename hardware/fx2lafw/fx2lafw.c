@@ -141,6 +141,78 @@ static bool check_conf_profile(libusb_device *dev)
 	return ret;
 }
 
+static int fx2lafw_open_dev(int dev_index)
+{
+	libusb_device **devlist;
+	struct libusb_device_descriptor des;
+	struct sr_dev_inst *sdi;
+	struct fx2lafw_device *ctx;
+	int err, skip, i;
+
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
+		return SR_ERR;
+	ctx = sdi->priv;
+
+	if (sdi->status == SR_ST_ACTIVE)
+		/* already in use */
+		return SR_ERR;
+
+	skip = 0;
+	libusb_get_device_list(usb_context, &devlist);
+	for (i = 0; devlist[i]; i++) {
+		if ((err = libusb_get_device_descriptor(devlist[i], &des))) {
+			sr_err("fx2lafw: failed to get device descriptor: %d", err);
+			continue;
+		}
+
+		if (des.idVendor != FIRMWARE_VID
+		    || des.idProduct != FIRMWARE_PID)
+			continue;
+
+		if (sdi->status == SR_ST_INITIALIZING) {
+			if (skip != dev_index) {
+				/* Skip devices of this type that aren't the one we want. */
+				skip += 1;
+				continue;
+			}
+		} else if (sdi->status == SR_ST_INACTIVE) {
+			/*
+			 * This device is fully enumerated, so we need to find
+			 * this device by vendor, product, bus and address.
+			 */
+			if (libusb_get_bus_number(devlist[i]) != ctx->usb->bus
+				|| libusb_get_device_address(devlist[i]) != ctx->usb->address)
+				/* this is not the one */
+				continue;
+		}
+
+		if (!(err = libusb_open(devlist[i], &ctx->usb->devhdl))) {
+			if (ctx->usb->address == 0xff)
+				/*
+				 * first time we touch this device after firmware upload,
+				 * so we don't know the address yet.
+				 */
+				ctx->usb->address = libusb_get_device_address(devlist[i]);
+
+			sdi->status = SR_ST_ACTIVE;
+			sr_info("fx2lafw: opened device %d on %d.%d interface %d",
+				sdi->index, ctx->usb->bus,
+				ctx->usb->address, USB_INTERFACE);
+		} else {
+			sr_err("fx2lafw: failed to open device: %d", err);
+		}
+
+		/* if we made it here, we handled the device one way or another */
+		break;
+	}
+	libusb_free_device_list(devlist, 1);
+
+	if (sdi->status != SR_ST_ACTIVE)
+		return SR_ERR;
+
+	return SR_OK;
+}
+
 static struct fx2lafw_device* fx2lafw_device_new(void)
 {
 	struct fx2lafw_device *fx2lafw;
@@ -236,7 +308,49 @@ static int hw_init(const char *deviceinfo)
 
 static int hw_dev_open(int device_index)
 {
-	(void)device_index;
+	GTimeVal cur_time;
+	struct sr_dev_inst *sdi;
+	struct fx2lafw_device *ctx;
+	int timediff, err;
+
+	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
+		return SR_ERR;
+	ctx = sdi->priv;
+
+	/*
+	 * if the firmware was recently uploaded, wait up to MAX_RENUM_DELAY ms
+	 * for the FX2 to renumerate
+	 */
+	err = 0;
+	if (GTV_TO_MSEC(ctx->fw_updated) > 0) {
+		sr_info("fx2lafw: waiting for device to reset");
+		/* takes at least 300ms for the FX2 to be gone from the USB bus */
+		g_usleep(300 * 1000);
+		timediff = 0;
+		while (timediff < MAX_RENUM_DELAY) {
+			if ((err = fx2lafw_open_dev(device_index)) == SR_OK)
+				break;
+			g_usleep(100 * 1000);
+			g_get_current_time(&cur_time);
+			timediff = GTV_TO_MSEC(cur_time) - GTV_TO_MSEC(ctx->fw_updated);
+		}
+		sr_info("fx2lafw: device came back after %d ms", timediff);
+	} else {
+		err = fx2lafw_open_dev(device_index);
+	}
+
+	if (err != SR_OK) {
+		sr_err("fx2lafw: unable to open device");
+		return SR_ERR;
+	}
+	ctx = sdi->priv;
+
+	err = libusb_claim_interface(ctx->usb->devhdl, USB_INTERFACE);
+	if (err != 0) {
+		sr_err("fx2lafw: Unable to claim interface: %d", err);
+		return SR_ERR;
+	}
+
 	return SR_OK;
 }
 

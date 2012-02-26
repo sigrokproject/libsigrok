@@ -25,6 +25,11 @@
 #define TRIGGER_TYPES		"01rf"
 #define FIRMWARE		FIRMWARE_DIR "/fx2lafw-cwav-usbeeax.fw"
 
+#define FIRMWARE_VID		0x0925
+#define FIRMWARE_PID		0x3881
+
+#define MAX_RENUM_DELAY		3000 /* ms */
+
 struct fx2lafw_profile {
 	uint16_t vid;
 	uint16_t pid;
