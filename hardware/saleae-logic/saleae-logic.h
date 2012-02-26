@@ -25,7 +25,6 @@
 #define NUM_TRIGGER_STAGES     4
 #define TRIGGER_TYPES          "01"
 #define FIRMWARE               FIRMWARE_DIR "/saleae-logic.fw"
-#define GTV_TO_MSEC(gtv)       (gtv.tv_sec * 1000 + gtv.tv_usec / 1000)
 
 /* delay in ms */
 #define MAX_RENUM_DELAY        3000

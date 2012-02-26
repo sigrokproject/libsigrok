@@ -53,6 +53,8 @@ struct sr_serial_dev_inst {
 	int fd;
 };
 
+#define GTV_TO_MSEC(gtv)       (gtv.tv_sec * 1000 + gtv.tv_usec / 1000)
+
 #ifdef HAVE_LIBUSB_1_0
 /* USB-specific instances */
 SR_PRIV struct sr_usb_dev_inst *sr_usb_dev_inst_new(uint8_t bus,
