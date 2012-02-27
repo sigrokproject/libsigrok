@@ -188,17 +188,17 @@ static int hw_cleanup(void)
 static void *hw_dev_info_get(int device_index, int device_info_id)
 {
 	struct sr_dev_inst *sdi;
-	struct fx2lafw_device *fx2lafw_dev;
+	struct fx2lafw_device *ctx;
 
 	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
 		return NULL;
-	fx2lafw_dev = sdi->priv;
+	ctx = sdi->priv;
 
 	switch (device_info_id) {
 	case SR_DI_INST:
 		return sdi;
 	case SR_DI_NUM_PROBES:
-		return GINT_TO_POINTER(fx2lafw_dev->profile->num_probes);
+		return GINT_TO_POINTER(ctx->profile->num_probes);
 	case SR_DI_PROBE_NAMES:
 		return fx2lafw_probe_names;
 	case SR_DI_SAMPLERATES:
