@@ -75,7 +75,7 @@ static struct sr_samplerates fx2lafw_samplerates = {
 	fx2lafw_supported_samplerates
 };
 
-static GSList *device_instances = NULL;
+static GSList *dev_insts = NULL;
 static libusb_context *usb_context = NULL;
 
 static struct fx2lafw_device* fx2lafw_device_new(void)
@@ -144,7 +144,7 @@ static int hw_init(const char *deviceinfo)
 		fx2lafw_dev = fx2lafw_device_new();
 		fx2lafw_dev->profile = fx2lafw_prof;
 		sdi->priv = fx2lafw_dev;
-		device_instances = g_slist_append(device_instances, sdi);
+		device_instances = g_slist_append(dev_insts, sdi);
 
 		devcnt++;
 	}
@@ -190,7 +190,7 @@ static void *hw_dev_info_get(int device_index, int device_info_id)
 	struct sr_dev_inst *sdi;
 	struct fx2lafw_device *fx2lafw_dev;
 
-	if (!(sdi = sr_dev_inst_get(device_instances, device_index)))
+	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
 		return NULL;
 	fx2lafw_dev = sdi->priv;
 
@@ -213,7 +213,7 @@ static void *hw_dev_info_get(int device_index, int device_info_id)
 static int hw_dev_status_get(int device_index)
 {
 	const struct sr_dev_inst *const sdi =
-		sr_dev_inst_get(device_instances, device_index);
+		sr_dev_inst_get(dev_insts, device_index);
 
 	if (!sdi)
 		return SR_ST_NOT_FOUND;
