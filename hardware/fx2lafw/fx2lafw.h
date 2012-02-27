@@ -29,6 +29,8 @@
 #define FIRMWARE_PID		0x3881
 
 #define MAX_RENUM_DELAY		3000 /* ms */
+#define NUM_SIMUL_TRANSFERS	10
+#define MAX_EMPTY_TRANSFERS	(NUM_SIMUL_TRANSFERS * 2)
 
 struct fx2lafw_profile {
 	uint16_t vid;
