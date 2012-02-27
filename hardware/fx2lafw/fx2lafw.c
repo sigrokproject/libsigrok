@@ -645,8 +645,18 @@ static int hw_dev_acquisition_start(int dev_index, gpointer session_data)
 /* This stops acquisition on ALL devices, ignoring device_index. */
 static int hw_dev_acquisition_stop(int dev_index, gpointer session_data)
 {
+	struct sr_datafeed_packet packet;
+
+	/* Avoid compiler warnings. */
 	(void)dev_index;
-	(void)session_data;
+
+	packet.type = SR_DF_END;
+	sr_session_bus(session_data, &packet);
+
+	receive_transfer(NULL);
+
+	/* TODO: Need to cancel and free any queued up transfers. */
+
 	return SR_OK;
 }
 
