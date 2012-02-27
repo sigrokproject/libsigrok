@@ -99,7 +99,7 @@ static int hw_init(const char *deviceinfo)
 	struct sr_dev_inst *sdi;
 	struct libusb_device_descriptor des;
 	struct fx2lafw_profile *fx2lafw_prof;
-	struct fx2lafw_device *fx2lafw_dev;
+	struct fx2lafw_device *ctx;
 	libusb_device **devlist;
 	int err;
 	int devcnt = 0;
@@ -141,9 +141,9 @@ static int hw_init(const char *deviceinfo)
 		if(!sdi)
 			return 0;
 
-		fx2lafw_dev = fx2lafw_device_new();
-		fx2lafw_dev->profile = fx2lafw_prof;
-		sdi->priv = fx2lafw_dev;
+		ctx = fx2lafw_device_new();
+		ctx->profile = fx2lafw_prof;
+		sdi->priv = ctx;
 		device_instances = g_slist_append(dev_insts, sdi);
 
 		devcnt++;
