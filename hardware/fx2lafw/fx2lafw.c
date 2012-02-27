@@ -213,6 +213,23 @@ static int fx2lafw_open_dev(int dev_index)
 	return SR_OK;
 }
 
+static void close_dev(struct sr_dev_inst *sdi)
+{
+	struct fx2lafw_device *ctx;
+
+	ctx = sdi->priv;
+
+	if (ctx->usb->devhdl == NULL)
+		return;
+
+	sr_info("fx2lafw: closing device %d on %d.%d interface %d", sdi->index,
+		ctx->usb->bus, ctx->usb->address, USB_INTERFACE);
+	libusb_release_interface(ctx->usb->devhdl, USB_INTERFACE);
+	libusb_close(ctx->usb->devhdl);
+	ctx->usb->devhdl = NULL;
+	sdi->status = SR_ST_INACTIVE;
+}
+
 static struct fx2lafw_device* fx2lafw_device_new(void)
 {
 	struct fx2lafw_device *fx2lafw;
@@ -354,9 +371,18 @@ static int hw_dev_open(int device_index)
 	return SR_OK;
 }
 
-static int hw_dev_close(int device_index)
+static int hw_dev_close(int dev_index)
 {
-	(void)device_index;
+	struct sr_dev_inst *sdi;
+
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index))) {
+		sr_err("fx2lafw: %s: sdi was NULL", __func__);
+		return SR_ERR; /* TODO: SR_ERR_ARG? */
+	}
+
+	/* TODO */
+	close_dev(sdi);
+
 	return SR_OK;
 }
 
