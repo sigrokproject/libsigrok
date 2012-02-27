@@ -390,20 +390,36 @@ static int hw_cleanup(void)
 {
 	GSList *l;
 	struct sr_dev_inst *sdi;
+	struct fx2lafw_device *ctx;
+	int ret = SR_OK;
 
-	for(l = device_instances; l; l = l->next) {
+	for(l = dev_insts; l; l = l->next) {
+		if (!(sdi = l->data)) {
+			/* Log error, but continue cleaning up the rest. */
+			sr_err("fx2lafw: %s: sdi was NULL, continuing", __func__);
+			ret = SR_ERR_BUG;
+			continue;
+		}
+		if (!(ctx = sdi->priv)) {
+			/* Log error, but continue cleaning up the rest. */
+			sr_err("fx2lafw: %s: sdi->priv was NULL, continuing",
+			       __func__);
+			ret = SR_ERR_BUG;
+			continue;
+		}
+		close_dev(sdi);
 		sdi = l->data;
 		sr_dev_inst_free(sdi);
 	}
 
-	g_slist_free(device_instances);
-	device_instances = NULL;
+	g_slist_free(dev_insts);
+	dev_insts = NULL;
 
 	if(usb_context)
 		libusb_exit(usb_context);
 	usb_context = NULL;
 
-	return SR_OK;
+	return ret;
 }
 
 static void *hw_dev_info_get(int device_index, int device_info_id)
