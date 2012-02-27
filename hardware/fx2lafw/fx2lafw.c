@@ -19,7 +19,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <inttypes.h>
 #include <glib.h>
 #include <libusb.h>
@@ -83,15 +82,15 @@ static int hw_dev_acquisition_stop(int dev_index, gpointer session_dev_id);
 /**
  * Check the USB configuration to determine if this is an fx2lafw device.
  *
- * @return true if the device's configuration profile match fx2lafw
- *         configuration, false otherwise.
+ * @return TRUE if the device's configuration profile match fx2lafw
+ *         configuration, FALSE otherwise.
  */
-static bool check_conf_profile(libusb_device *dev)
+static gboolean check_conf_profile(libusb_device *dev)
 {
 	struct libusb_device_descriptor des;
 	struct libusb_config_descriptor *conf_dsc = NULL;
 	const struct libusb_interface_descriptor *intf_dsc;
-	bool ret = false;
+	gboolean ret = FALSE;
 
 	while (!ret) {
 		/* Assume it's not a Saleae Logic unless proven wrong. */
@@ -133,7 +132,7 @@ static bool check_conf_profile(libusb_device *dev)
 		/* TODO: Check the debug channel... */
 
 		/* If we made it here, it must be an fx2lafw. */
-		ret = true;
+		ret = TRUE;
 	}
 
 	if (conf_dsc)
