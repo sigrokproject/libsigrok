@@ -52,6 +52,9 @@ struct fx2lafw_device {
 	 */
 	GTimeVal fw_updated;
 
+	/* Device/Capture Settings */
+	uint64_t limit_samples;
+
 	void *session_data;
 
 	struct sr_usb_dev_inst *usb;

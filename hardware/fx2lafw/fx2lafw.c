@@ -463,12 +463,24 @@ static int *hw_hwcap_get_all(void)
 	return fx2lafw_capabilities;
 }
 
-static int hw_dev_config_set(int dev_index, int capability, void *value)
+static int hw_dev_config_set(int dev_index, int hwcap, void *value)
 {
-	(void)dev_index;
-	(void)capability;
-	(void)value;
-	return SR_OK;
+	struct sr_dev_inst *sdi;
+	struct fx2lafw_device *ctx;
+	int ret;
+
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
+		return SR_ERR;
+	ctx = sdi->priv;
+
+	if (hwcap == SR_HWCAP_LIMIT_SAMPLES) {
+		ctx->limit_samples = *(uint64_t *)value;
+		ret = SR_OK;
+	} else {
+		ret = SR_ERR;
+	}
+
+	return ret;
 }
 
 static int hw_dev_acquisition_start(int dev_index, gpointer session_data)
