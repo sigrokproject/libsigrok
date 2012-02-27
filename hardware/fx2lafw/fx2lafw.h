@@ -43,7 +43,7 @@ struct fx2lafw_profile {
 	int num_probes;
 };
 
-struct fx2lafw_device {
+struct context {
 	struct fx2lafw_profile *profile;
 
 	/*

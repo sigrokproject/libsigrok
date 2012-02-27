@@ -23,7 +23,6 @@
 #include <inttypes.h>
 #include <glib.h>
 #include <libusb.h>
-
 #include "config.h"
 #include "sigrok.h"
 #include "sigrok-internal.h"
@@ -42,7 +41,7 @@ static int fx2lafw_capabilities[] = {
 	/* These are really implemented in the driver, not the hardware. */
 	SR_HWCAP_LIMIT_SAMPLES,
 	SR_HWCAP_CONTINUOUS,
-	0
+	0,
 };
 
 static const char *fx2lafw_probe_names[] = {
@@ -54,7 +53,7 @@ static const char *fx2lafw_probe_names[] = {
 	"D5",
 	"D6",
 	"D7",
-	NULL
+	NULL,
 };
 
 static uint64_t fx2lafw_supported_samplerates[] = {
@@ -66,14 +65,14 @@ static uint64_t fx2lafw_supported_samplerates[] = {
 	SR_MHZ(8),
 	SR_MHZ(12),
 	SR_MHZ(16),
-	SR_MHZ(24)
+	SR_MHZ(24),
 };
 
 static struct sr_samplerates fx2lafw_samplerates = {
 	SR_MHZ(1),
 	SR_MHZ(24),
 	SR_HZ(0),
-	fx2lafw_supported_samplerates
+	fx2lafw_supported_samplerates,
 };
 
 static GSList *dev_insts = NULL;
@@ -85,7 +84,7 @@ static int hw_dev_acquisition_stop(int dev_index, gpointer session_dev_id);
  * Check the USB configuration to determine if this is an fx2lafw device.
  *
  * @return true if the device's configuration profile match fx2lafw
- *         configuration, flase otherwise.
+ *         configuration, false otherwise.
  */
 static bool check_conf_profile(libusb_device *dev)
 {
@@ -148,7 +147,7 @@ static int fx2lafw_open_dev(int dev_index)
 	libusb_device **devlist;
 	struct libusb_device_descriptor des;
 	struct sr_dev_inst *sdi;
-	struct fx2lafw_device *ctx;
+	struct context *ctx;
 	int err, skip, i;
 
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
@@ -217,7 +216,7 @@ static int fx2lafw_open_dev(int dev_index)
 
 static void close_dev(struct sr_dev_inst *sdi)
 {
-	struct fx2lafw_device *ctx;
+	struct context *ctx;
 
 	ctx = sdi->priv;
 
@@ -232,16 +231,16 @@ static void close_dev(struct sr_dev_inst *sdi)
 	sdi->status = SR_ST_INACTIVE;
 }
 
-static struct fx2lafw_device* fx2lafw_device_new(void)
+static struct context *fx2lafw_device_new(void)
 {
-	struct fx2lafw_device *fx2lafw;
+	struct context *ctx;
 
-	if (!(fx2lafw = g_try_malloc0(sizeof(struct fx2lafw_device)))) {
-		sr_err("fx2lafw: %s: fx2lafw_device malloc failed", __func__);
+	if (!(ctx = g_try_malloc0(sizeof(struct context)))) {
+		sr_err("fx2lafw: %s: ctx malloc failed", __func__);
 		return NULL;
 	}
 
-	return fx2lafw;
+	return ctx;
 }
 
 /*
@@ -253,7 +252,7 @@ static int hw_init(const char *deviceinfo)
 	struct sr_dev_inst *sdi;
 	struct libusb_device_descriptor des;
 	struct fx2lafw_profile *fx2lafw_prof;
-	struct fx2lafw_device *ctx;
+	struct context *ctx;
 	libusb_device **devlist;
 	int err;
 	int devcnt = 0;
@@ -325,14 +324,14 @@ static int hw_init(const char *deviceinfo)
 	return devcnt;
 }
 
-static int hw_dev_open(int device_index)
+static int hw_dev_open(int dev_index)
 {
 	GTimeVal cur_time;
 	struct sr_dev_inst *sdi;
-	struct fx2lafw_device *ctx;
+	struct context *ctx;
 	int timediff, err;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return SR_ERR;
 	ctx = sdi->priv;
 
@@ -347,7 +346,7 @@ static int hw_dev_open(int device_index)
 		g_usleep(300 * 1000);
 		timediff = 0;
 		while (timediff < MAX_RENUM_DELAY) {
-			if ((err = fx2lafw_open_dev(device_index)) == SR_OK)
+			if ((err = fx2lafw_open_dev(dev_index)) == SR_OK)
 				break;
 			g_usleep(100 * 1000);
 			g_get_current_time(&cur_time);
@@ -355,7 +354,7 @@ static int hw_dev_open(int device_index)
 		}
 		sr_info("fx2lafw: device came back after %d ms", timediff);
 	} else {
-		err = fx2lafw_open_dev(device_index);
+		err = fx2lafw_open_dev(dev_index);
 	}
 
 	if (err != SR_OK) {
@@ -392,7 +391,7 @@ static int hw_cleanup(void)
 {
 	GSList *l;
 	struct sr_dev_inst *sdi;
-	struct fx2lafw_device *ctx;
+	struct context *ctx;
 	int ret = SR_OK;
 
 	for(l = dev_insts; l; l = l->next) {
@@ -424,16 +423,16 @@ static int hw_cleanup(void)
 	return ret;
 }
 
-static void *hw_dev_info_get(int device_index, int device_info_id)
+static void *hw_dev_info_get(int dev_index, int dev_info_id)
 {
 	struct sr_dev_inst *sdi;
-	struct fx2lafw_device *ctx;
+	struct context *ctx;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return NULL;
 	ctx = sdi->priv;
 
-	switch (device_info_id) {
+	switch (dev_info_id) {
 	case SR_DI_INST:
 		return sdi;
 	case SR_DI_NUM_PROBES:
@@ -449,10 +448,10 @@ static void *hw_dev_info_get(int device_index, int device_info_id)
 	return NULL;
 }
 
-static int hw_dev_status_get(int device_index)
+static int hw_dev_status_get(int dev_index)
 {
 	const struct sr_dev_inst *const sdi =
-		sr_dev_inst_get(dev_insts, device_index);
+		sr_dev_inst_get(dev_insts, dev_index);
 
 	if (!sdi)
 		return SR_ST_NOT_FOUND;
@@ -468,7 +467,7 @@ static int *hw_hwcap_get_all(void)
 static int hw_dev_config_set(int dev_index, int hwcap, void *value)
 {
 	struct sr_dev_inst *sdi;
-	struct fx2lafw_device *ctx;
+	struct context *ctx;
 	int ret;
 
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
@@ -507,7 +506,7 @@ static void receive_transfer(struct libusb_transfer *transfer)
 	static int empty_transfer_count = 0;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
-	struct fx2lafw_device *ctx;
+	struct context *ctx;
 	int cur_buflen;
 	unsigned char *cur_buf, *new_buf;
 
@@ -582,7 +581,7 @@ static int hw_dev_acquisition_start(int dev_index, gpointer session_data)
 	struct sr_dev_inst *sdi;
 	struct sr_datafeed_packet *packet;
 	struct sr_datafeed_header *header;
-	struct fx2lafw_device *ctx;
+	struct context *ctx;
 	struct libusb_transfer *transfer;
 	const struct libusb_pollfd **lupfd;
 	int size, i;
@@ -642,7 +641,7 @@ static int hw_dev_acquisition_start(int dev_index, gpointer session_data)
 	return SR_OK;
 }
 
-/* This stops acquisition on ALL devices, ignoring device_index. */
+/* This stops acquisition on ALL devices, ignoring dev_index. */
 static int hw_dev_acquisition_stop(int dev_index, gpointer session_data)
 {
 	struct sr_datafeed_packet packet;
