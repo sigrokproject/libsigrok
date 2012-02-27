@@ -298,7 +298,7 @@ static int hw_init(const char *deviceinfo)
 		ctx = fx2lafw_device_new();
 		ctx->profile = fx2lafw_prof;
 		sdi->priv = ctx;
-		device_instances = g_slist_append(dev_insts, sdi);
+		dev_insts = g_slist_append(dev_insts, sdi);
 
 		if (check_conf_profile(devlist[i])) {
 			/* Already has the firmware, so fix the new address. */
