@@ -27,7 +27,8 @@
 /**
  * Convert a numeric samplerate value to its "natural" string representation.
  *
- * E.g. a value of 3000000 would be converted to "3 MHz", 20000 to "20 kHz".
+ * E.g. a value of 3000000 would be converted to "3 MHz", 20000 to "20 kHz",
+ * 31500 would become "31.5 kHz".
  *
  * @param samplerate The samplerate in Hz.
  *
@@ -38,26 +39,30 @@
 SR_API char *sr_samplerate_string(uint64_t samplerate)
 {
 	char *o;
-	int r;
+	uint64_t s = samplerate;
 
-	/* Allocate enough for a uint64_t as string + " GHz". */
-	if (!(o = g_try_malloc0(30 + 1))) {
-		sr_err("strutil: %s: o malloc failed", __func__);
-		return NULL;
+	if ((s >= SR_GHZ(1)) && (s % SR_GHZ(1) == 0)) {
+		o = g_strdup_printf("%" PRIu64 " GHz", s / SR_GHZ(1));
+	} else if ((s >= SR_GHZ(1)) && (s % SR_GHZ(1) != 0)) {
+		o = g_strdup_printf("%" PRIu64 ".%" PRIu64 " GHz",
+				    s / SR_GHZ(1), s % SR_GHZ(1));
+	} else if ((s >= SR_MHZ(1)) && (s % SR_MHZ(1) == 0)) {
+		o = g_strdup_printf("%" PRIu64 " MHz", s / SR_MHZ(1));
+	} else if ((s >= SR_MHZ(1)) && (s % SR_MHZ(1) != 0)) {
+		o = g_strdup_printf("%" PRIu64 ".%" PRIu64 " MHz",
+				    s / SR_MHZ(1), s % SR_MHZ(1));
+	} else if ((s >= SR_KHZ(1)) && (s % SR_KHZ(1) == 0)) {
+		o = g_strdup_printf("%" PRIu64 " kHz", s / SR_KHZ(1));
+	} else if ((s >= SR_KHZ(1)) && (s % SR_KHZ(1) != 0)) {
+		o = g_strdup_printf("%" PRIu64 ".%" PRIu64 " kHz",
+				    s / SR_KHZ(1), s % SR_KHZ(1));
+	} else {
+		o = g_strdup_printf("%" PRIu64 " Hz", s);
 	}
 
-	if (samplerate >= SR_GHZ(1))
-		r = snprintf(o, 30, "%" PRIu64 " GHz", samplerate / 1000000000);
-	else if (samplerate >= SR_MHZ(1))
-		r = snprintf(o, 30, "%" PRIu64 " MHz", samplerate / 1000000);
-	else if (samplerate >= SR_KHZ(1))
-		r = snprintf(o, 30, "%" PRIu64 " kHz", samplerate / 1000);
-	else
-		r = snprintf(o, 30, "%" PRIu64 " Hz", samplerate);
-
-	if (r < 0) {
-		/* Something went wrong... */
-		g_free(o);
+	if (!o) {
+		sr_err("strutil: %s: Error creating samplerate string.",
+		       __func__);
 		return NULL;
 	}
 
