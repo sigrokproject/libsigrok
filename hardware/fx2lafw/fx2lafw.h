@@ -17,8 +17,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBSIGROK_HARDWARE_FX2LAFW
-#define LIBSIGROK_HARDWARE_FX2LAFW
+#ifndef LIBSIGROK_HARDWARE_FX2LAFW_FX2LAFW_H
+#define LIBSIGROK_HARDWARE_FX2LAFW_FX2LAFW_H
 
 #define USB_INTERFACE		0
 #define USB_CONFIGURATION	1
