@@ -49,8 +49,8 @@ SR_API int sr_datastore_put(struct sr_datastore *ds, void *data,
 
 SR_API int sr_dev_scan(void);
 SR_API GSList *sr_dev_list(void);
-SR_API struct sr_dev *sr_dev_new(const struct sr_dev_plugin *plugin,
-				 int plugin_index);
+SR_API struct sr_dev *sr_dev_new(const struct sr_dev_driver *driver,
+				 int driver_index);
 SR_API int sr_dev_probe_add(struct sr_dev *dev, const char *name);
 SR_API struct sr_probe *sr_dev_probe_find(const struct sr_dev *dev,
 					  int probenum);
@@ -69,11 +69,11 @@ SR_API int sr_filter_probes(int in_unitsize, int out_unitsize,
 			    uint64_t length_in, char **data_out,
 			    uint64_t *length_out);
 
-/*--- hwplugin.c ------------------------------------------------------------*/
+/*--- hwdriver.c ------------------------------------------------------------*/
 
-SR_API struct sr_dev_plugin **sr_hw_list(void);
-SR_API int sr_hw_init(struct sr_dev_plugin *plugin);
-SR_API gboolean sr_hw_has_hwcap(struct sr_dev_plugin *plugin, int hwcap);
+SR_API struct sr_dev_driver **sr_hw_list(void);
+SR_API int sr_hw_init(struct sr_dev_driver *driver);
+SR_API gboolean sr_hw_has_hwcap(struct sr_dev_driver *driver, int hwcap);
 SR_API struct sr_hwcap_option *sr_hw_hwcap_get(int hwcap);
 
 /*--- session.c -------------------------------------------------------------*/

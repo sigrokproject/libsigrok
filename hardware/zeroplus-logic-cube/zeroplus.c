@@ -714,7 +714,7 @@ static int hw_dev_acquisition_stop(int dev_index, gpointer session_dev_id)
 	return SR_OK;
 }
 
-SR_PRIV struct sr_dev_plugin zeroplus_logic_cube_plugin_info = {
+SR_PRIV struct sr_dev_driver zeroplus_logic_cube_driver_info = {
 	.name = "zeroplus-logic-cube",
 	.longname = "Zeroplus Logic Cube LAP-C series",
 	.api_version = 1,

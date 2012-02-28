@@ -28,7 +28,7 @@
 #include "sigrok-internal.h"
 
 extern struct sr_session *session;
-extern SR_PRIV struct sr_dev_plugin session_driver;
+extern SR_PRIV struct sr_dev_driver session_driver;
 
 /**
  * Load the session from the specified filename.
@@ -116,20 +116,20 @@ SR_API int sr_session_load(const char *filename)
 				if (!strcmp(keys[j], "capturefile")) {
 					dev = sr_dev_new(&session_driver, devcnt);
 					if (devcnt == 0)
-						/* first device, init the plugin */
-						dev->plugin->init((char *)filename);
+						/* first device, init the driver */
+						dev->driver->init((char *)filename);
 					sr_session_dev_add(dev);
-					dev->plugin->dev_config_set(devcnt, SR_HWCAP_CAPTUREFILE, val);
+					dev->driver->dev_config_set(devcnt, SR_HWCAP_CAPTUREFILE, val);
 					g_ptr_array_add(capturefiles, val);
 				} else if (!strcmp(keys[j], "samplerate")) {
 					sr_parse_sizestring(val, &tmp_u64);
-					dev->plugin->dev_config_set(devcnt, SR_HWCAP_SAMPLERATE, &tmp_u64);
+					dev->driver->dev_config_set(devcnt, SR_HWCAP_SAMPLERATE, &tmp_u64);
 				} else if (!strcmp(keys[j], "unitsize")) {
 					tmp_u64 = strtoull(val, NULL, 10);
-					dev->plugin->dev_config_set(devcnt, SR_HWCAP_CAPTURE_UNITSIZE, &tmp_u64);
+					dev->driver->dev_config_set(devcnt, SR_HWCAP_CAPTURE_UNITSIZE, &tmp_u64);
 				} else if (!strcmp(keys[j], "total probes")) {
 					total_probes = strtoull(val, NULL, 10);
-					dev->plugin->dev_config_set(devcnt, SR_HWCAP_CAPTURE_NUM_PROBES, &total_probes);
+					dev->driver->dev_config_set(devcnt, SR_HWCAP_CAPTURE_NUM_PROBES, &total_probes);
 					for (p = 0; p < total_probes; p++) {
 						snprintf(probename, SR_MAX_PROBENAME_LEN, "%" PRIu64, p);
 						sr_dev_probe_add(dev, probename);
@@ -216,8 +216,8 @@ int sr_session_save(const char *filename)
 		dev = l->data;
 		/* metadata */
 		fprintf(meta, "[device %d]\n", devcnt);
-		if (dev->plugin)
-			fprintf(meta, "driver = %s\n", dev->plugin->name);
+		if (dev->driver)
+			fprintf(meta, "driver = %s\n", dev->driver->name);
 
 		ds = dev->datastore;
 		if (ds) {
@@ -226,8 +226,8 @@ int sr_session_save(const char *filename)
 			fprintf(meta, "unitsize = %d\n", ds->ds_unitsize);
 			fprintf(meta, "total probes = %d\n", g_slist_length(dev->probes));
 			if (sr_dev_has_hwcap(dev, SR_HWCAP_SAMPLERATE)) {
-				samplerate = *((uint64_t *) dev->plugin->dev_info_get(
-						dev->plugin_index, SR_DI_CUR_SAMPLERATE));
+				samplerate = *((uint64_t *) dev->driver->dev_info_get(
+						dev->driver_index, SR_DI_CUR_SAMPLERATE));
 				s = sr_samplerate_string(samplerate);
 				fprintf(meta, "samplerate = %s\n", s);
 				g_free(s);

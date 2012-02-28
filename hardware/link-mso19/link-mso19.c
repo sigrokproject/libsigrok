@@ -834,7 +834,7 @@ static int hw_dev_acquisition_stop(int dev_index, gpointer session_dev_id)
 	return SR_OK;
 }
 
-SR_PRIV struct sr_dev_plugin link_mso19_plugin_info = {
+SR_PRIV struct sr_dev_driver link_mso19_driver_info = {
 	.name = "link-mso19",
 	.longname = "Link Instruments MSO-19",
 	.api_version = 1,

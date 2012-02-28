@@ -493,7 +493,7 @@ static int hw_dev_acquisition_stop(int dev_index, gpointer session_data)
 	return SR_OK;
 }
 
-SR_PRIV struct sr_dev_plugin demo_plugin_info = {
+SR_PRIV struct sr_dev_driver demo_driver_info = {
 	.name = "demo",
 	.longname = "Demo driver and pattern generator",
 	.api_version = 1,

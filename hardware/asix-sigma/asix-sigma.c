@@ -1413,7 +1413,7 @@ static int hw_dev_acquisition_stop(int dev_index, gpointer session_data)
 	return SR_OK;
 }
 
-SR_PRIV struct sr_dev_plugin asix_sigma_plugin_info = {
+SR_PRIV struct sr_dev_driver asix_sigma_driver_info = {
 	.name = "asix-sigma",
 	.longname = "ASIX SIGMA",
 	.api_version = 1,

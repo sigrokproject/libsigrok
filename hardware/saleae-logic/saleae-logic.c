@@ -893,7 +893,7 @@ static int hw_dev_acquisition_stop(int dev_index, gpointer session_data)
 	return SR_OK;
 }
 
-SR_PRIV struct sr_dev_plugin saleae_logic_plugin_info = {
+SR_PRIV struct sr_dev_driver saleae_logic_driver_info = {
 	.name = "saleae-logic",
 	.longname = "Saleae Logic",
 	.api_version = 1,

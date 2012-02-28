@@ -331,7 +331,7 @@ static int hw_dev_acquisition_start(int dev_index, gpointer session_dev_id)
 	return SR_OK;
 }
 
-SR_PRIV struct sr_dev_plugin session_driver = {
+SR_PRIV struct sr_dev_driver session_driver = {
 	.name = "session",
 	.longname = "Session-emulating driver",
 	.api_version = 1,

@@ -98,8 +98,8 @@ static int init(struct sr_output *o)
 		return SR_ERR_ARG;
 	}
 
-	if (!o->dev->plugin) {
-		sr_warn("la8 out: %s: o->dev->plugin was NULL", __func__);
+	if (!o->dev->driver) {
+		sr_warn("la8 out: %s: o->dev->driver was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
@@ -122,8 +122,8 @@ static int init(struct sr_output *o)
 	ctx->unitsize = (ctx->num_enabled_probes + 7) / 8;
 
 	if (sr_dev_has_hwcap(o->dev, SR_HWCAP_SAMPLERATE)) {
-		samplerate = *((uint64_t *) o->dev->plugin->dev_info_get(
-				o->dev->plugin_index, SR_DI_CUR_SAMPLERATE));
+		samplerate = *((uint64_t *) o->dev->driver->dev_info_get(
+				o->dev->driver_index, SR_DI_CUR_SAMPLERATE));
 		/* TODO: Error checks. */
 	} else {
 		samplerate = 0; /* TODO: Error or set some value? */

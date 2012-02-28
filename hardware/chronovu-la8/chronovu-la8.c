@@ -1111,7 +1111,7 @@ static int hw_dev_acquisition_stop(int dev_index, gpointer session_data)
 	return SR_OK;
 }
 
-SR_PRIV struct sr_dev_plugin chronovu_la8_plugin_info = {
+SR_PRIV struct sr_dev_driver chronovu_la8_driver_info = {
 	.name = "chronovu-la8",
 	.longname = "ChronoVu LA8",
 	.api_version = 1,

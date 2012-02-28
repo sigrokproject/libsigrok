@@ -27,7 +27,7 @@
 #include "sigrok-internal.h"
 
 /*
- * This enumerates which plugin capabilities correspond to user-settable
+ * This enumerates which driver capabilities correspond to user-settable
  * options.
  */
 /* TODO: This shouldn't be a global. */
@@ -40,109 +40,109 @@ SR_API struct sr_hwcap_option sr_hwcap_options[] = {
 };
 
 #ifdef HAVE_LA_DEMO
-extern SR_PRIV struct sr_dev_plugin demo_plugin_info;
+extern SR_PRIV struct sr_dev_driver demo_driver_info;
 #endif
 #ifdef HAVE_LA_SALEAE_LOGIC
-extern SR_PRIV struct sr_dev_plugin saleae_logic_plugin_info;
+extern SR_PRIV struct sr_dev_driver saleae_logic_driver_info;
 #endif
 #ifdef HAVE_LA_OLS
-extern SR_PRIV struct sr_dev_plugin ols_plugin_info;
+extern SR_PRIV struct sr_dev_driver ols_driver_info;
 #endif
 #ifdef HAVE_LA_ZEROPLUS_LOGIC_CUBE
-extern SR_PRIV struct sr_dev_plugin zeroplus_logic_cube_plugin_info;
+extern SR_PRIV struct sr_dev_driver zeroplus_logic_cube_driver_info;
 #endif
 #ifdef HAVE_LA_ASIX_SIGMA
-extern SR_PRIV struct sr_dev_plugin asix_sigma_plugin_info;
+extern SR_PRIV struct sr_dev_driver asix_sigma_driver_info;
 #endif
 #ifdef HAVE_LA_CHRONOVU_LA8
-extern SR_PRIV struct sr_dev_plugin chronovu_la8_plugin_info;
+extern SR_PRIV struct sr_dev_driver chronovu_la8_driver_info;
 #endif
 #ifdef HAVE_LA_LINK_MSO19
-extern SR_PRIV struct sr_dev_plugin link_mso19_plugin_info;
+extern SR_PRIV struct sr_dev_driver link_mso19_driver_info;
 #endif
 #ifdef HAVE_LA_ALSA
-extern SR_PRIV struct sr_dev_plugin alsa_plugin_info;
+extern SR_PRIV struct sr_dev_driver alsa_driver_info;
 #endif
 #ifdef HAVE_LA_FX2LAFW
-extern SR_PRIV struct sr_dev_plugin fx2lafw_plugin_info;
+extern SR_PRIV struct sr_dev_driver fx2lafw_driver_info;
 #endif
 
-static struct sr_dev_plugin *plugins_list[] = {
+static struct sr_dev_driver *drivers_list[] = {
 #ifdef HAVE_LA_DEMO
-	&demo_plugin_info,
+	&demo_driver_info,
 #endif
 #ifdef HAVE_LA_SALEAE_LOGIC
-	&saleae_logic_plugin_info,
+	&saleae_logic_driver_info,
 #endif
 #ifdef HAVE_LA_OLS
-	&ols_plugin_info,
+	&ols_driver_info,
 #endif
 #ifdef HAVE_LA_ZEROPLUS_LOGIC_CUBE
-	&zeroplus_logic_cube_plugin_info,
+	&zeroplus_logic_cube_driver_info,
 #endif
 #ifdef HAVE_LA_ASIX_SIGMA
-	&asix_sigma_plugin_info,
+	&asix_sigma_driver_info,
 #endif
 #ifdef HAVE_LA_CHRONOVU_LA8
-	&chronovu_la8_plugin_info,
+	&chronovu_la8_driver_info,
 #endif
 #ifdef HAVE_LA_LINK_MSO19
-	&link_mso19_plugin_info,
+	&link_mso19_driver_info,
 #endif
 #ifdef HAVE_LA_ALSA
-	&alsa_plugin_info,
+	&alsa_driver_info,
 #endif
 #ifdef HAVE_LA_FX2LAFW
-	&fx2lafw_plugin_info,
+	&fx2lafw_driver_info,
 #endif
 	NULL,
 };
 
 /**
- * Return the list of loaded hardware plugins.
+ * Return the list of loaded hardware drivers.
  *
- * The list of plugins is initialized from sr_init(), and can only be reset
+ * The list of drivers is initialized from sr_init(), and can only be reset
  * by calling sr_exit().
  *
- * @return Pointer to the NULL-terminated list of hardware plugin pointers.
+ * @return Pointer to the NULL-terminated list of hardware driver pointers.
  */
-SR_API struct sr_dev_plugin **sr_hw_list(void)
+SR_API struct sr_dev_driver **sr_hw_list(void)
 {
-	return plugins_list;
+	return drivers_list;
 }
 
 /**
- * Initialize a hardware plugin.
+ * Initialize a hardware driver.
  *
- * The specified plugin is initialized, and all devices discovered by the
- * plugin are instantiated.
+ * The specified driver is initialized, and all devices discovered by the
+ * driver are instantiated.
  *
- * @param plugin The plugin to initialize.
+ * @param driver The driver to initialize.
  *
- * @return The number of devices found and instantiated by the plugin.
+ * @return The number of devices found and instantiated by the driver.
  */
-SR_API int sr_hw_init(struct sr_dev_plugin *plugin)
+SR_API int sr_hw_init(struct sr_dev_driver *driver)
 {
 	int num_devs, num_probes, i, j;
 	int num_initialized_devs = 0;
 	struct sr_dev *dev;
 	char **probe_names;
 
-	sr_dbg("initializing %s plugin", plugin->name);
-	num_devs = plugin->init(NULL);
+	sr_dbg("initializing %s driver", driver->name);
+	num_devs = driver->init(NULL);
 	for (i = 0; i < num_devs; i++) {
 		num_probes = GPOINTER_TO_INT(
-				plugin->dev_info_get(i, SR_DI_NUM_PROBES));
-		probe_names = (char **)plugin->dev_info_get(i,
+				driver->dev_info_get(i, SR_DI_NUM_PROBES));
+		probe_names = (char **)driver->dev_info_get(i,
 							SR_DI_PROBE_NAMES);
 
 		if (!probe_names) {
-			sr_warn("hwplugin: %s: plugin %s does not return a "
-				"list of probe names", __func__, plugin->name);
+			sr_warn("hwdriver: %s: driver %s does not return a "
+				"list of probe names", __func__, driver->name);
 			continue;
 		}
 
-		dev = sr_dev_new(plugin, i);
+		dev = sr_dev_new(driver, i);
 		for (j = 0; j < num_probes; j++)
 			sr_dev_probe_add(dev, probe_names[j]);
 		num_initialized_devs++;
@@ -154,12 +154,12 @@ SR_API int sr_hw_init(struct sr_dev_plugin *plugin)
 SR_PRIV void sr_hw_cleanup_all(void)
 {
 	int i;
-	struct sr_dev_plugin **plugins;
+	struct sr_dev_driver **drivers;
 
-	plugins = sr_hw_list();
-	for (i = 0; plugins[i]; i++) {
-		if (plugins[i]->cleanup)
-			plugins[i]->cleanup();
+	drivers = sr_hw_list();
+	for (i = 0; drivers[i]; i++) {
+		if (drivers[i]->cleanup)
+			drivers[i]->cleanup();
 	}
 }
 
@@ -169,7 +169,7 @@ SR_PRIV struct sr_dev_inst *sr_dev_inst_new(int index, int status,
 	struct sr_dev_inst *sdi;
 
 	if (!(sdi = g_try_malloc(sizeof(struct sr_dev_inst)))) {
-		sr_err("hwplugin: %s: sdi malloc failed", __func__);
+		sr_err("hwdriver: %s: sdi malloc failed", __func__);
 		return NULL;
 	}
 
@@ -216,7 +216,7 @@ SR_PRIV struct sr_usb_dev_inst *sr_usb_dev_inst_new(uint8_t bus,
 	struct sr_usb_dev_inst *udi;
 
 	if (!(udi = g_try_malloc(sizeof(struct sr_usb_dev_inst)))) {
-		sr_err("hwplugin: %s: udi malloc failed", __func__);
+		sr_err("hwdriver: %s: udi malloc failed", __func__);
 		return NULL;
 	}
 
@@ -243,7 +243,7 @@ SR_PRIV struct sr_serial_dev_inst *sr_serial_dev_inst_new(const char *port,
 	struct sr_serial_dev_inst *serial;
 
 	if (!(serial = g_try_malloc(sizeof(struct sr_serial_dev_inst)))) {
-		sr_err("hwplugin: %s: serial malloc failed", __func__);
+		sr_err("hwdriver: %s: serial malloc failed", __func__);
 		return NULL;
 	}
 
@@ -259,18 +259,18 @@ SR_PRIV void sr_serial_dev_inst_free(struct sr_serial_dev_inst *serial)
 }
 
 /**
- * Find out if a hardware plugin has a specific capability.
+ * Find out if a hardware driver has a specific capability.
  *
- * @param plugin The hardware plugin in which to search for the capability.
+ * @param driver The hardware driver in which to search for the capability.
  * @param hwcap The capability to find in the list.
  *
  * @return TRUE if found, FALSE otherwise.
  */
-SR_API gboolean sr_hw_has_hwcap(struct sr_dev_plugin *plugin, int hwcap)
+SR_API gboolean sr_hw_has_hwcap(struct sr_dev_driver *driver, int hwcap)
 {
 	int *hwcaps, i;
 
-	hwcaps = plugin->hwcap_get_all();
+	hwcaps = driver->hwcap_get_all();
 	for (i = 0; hwcaps[i]; i++) {
 		if (hwcaps[i] == hwcap)
 			return TRUE;
@@ -280,7 +280,7 @@ SR_API gboolean sr_hw_has_hwcap(struct sr_dev_plugin *plugin, int hwcap)
 }
 
 /**
- * Get a hardware plugin capability option.
+ * Get a hardware driver capability option.
  *
  * @param hwcap The capability to get.
  *

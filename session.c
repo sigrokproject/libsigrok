@@ -114,7 +114,7 @@ SR_API int sr_session_dev_clear(void)
  * Add a device to the current session.
  *
  * @param dev The device to add to the current session. Must not be NULL.
- *            Also, dev->plugin and dev->plugin->dev_open must not be NULL.
+ *            Also, dev->driver and dev->driver->dev_open must not be NULL.
  *
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments.
  */
@@ -127,13 +127,13 @@ SR_API int sr_session_dev_add(struct sr_dev *dev)
 		return SR_ERR_ARG;
 	}
 
-	if (!dev->plugin) {
-		sr_err("session: %s: dev->plugin was NULL", __func__);
+	if (!dev->driver) {
+		sr_err("session: %s: dev->driver was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
-	if (!dev->plugin->dev_open) {
-		sr_err("session: %s: dev->plugin->dev_open was NULL",
+	if (!dev->driver->dev_open) {
+		sr_err("session: %s: dev->driver->dev_open was NULL",
 		       __func__);
 		return SR_ERR_ARG;
 	}
@@ -143,7 +143,7 @@ SR_API int sr_session_dev_add(struct sr_dev *dev)
 		return SR_ERR; /* TODO: SR_ERR_BUG? */
 	}
 
-	if ((ret = dev->plugin->dev_open(dev->plugin_index)) != SR_OK) {
+	if ((ret = dev->driver->dev_open(dev->driver_index)) != SR_OK) {
 		sr_err("session: %s: dev_open failed (%d)", __func__, ret);
 		return ret;
 	}
@@ -269,15 +269,15 @@ SR_API int sr_session_start(void)
 		return SR_ERR; /* TODO: SR_ERR_BUG? */
 	}
 
-	/* TODO: Check plugin_index validity? */
+	/* TODO: Check driver_index validity? */
 
 	sr_info("session: starting");
 
 	for (l = session->devs; l; l = l->next) {
 		dev = l->data;
 		/* TODO: Check for dev != NULL. */
-		if ((ret = dev->plugin->dev_acquisition_start(
-				dev->plugin_index, dev)) != SR_OK) {
+		if ((ret = dev->driver->dev_acquisition_start(
+				dev->driver_index, dev)) != SR_OK) {
 			sr_err("session: %s: could not start an acquisition "
 			       "(%d)", __func__, ret);
 			break;
@@ -352,7 +352,7 @@ SR_API int sr_session_halt(void)
  * Stop the current session.
  *
  * The current session is stopped immediately, with all acquisition sessions
- * being stopped and hardware plugins cleaned up.
+ * being stopped and hardware drivers cleaned up.
  *
  * @return SR_OK upon success, SR_ERR_BUG if no session exists.
  */
@@ -372,11 +372,11 @@ SR_API int sr_session_stop(void)
 	for (l = session->devs; l; l = l->next) {
 		dev = l->data;
 		/* Check for dev != NULL. */
-		if (dev->plugin) {
-			if (dev->plugin->dev_acquisition_stop)
-				dev->plugin->dev_acquisition_stop(dev->plugin_index, dev);
-			if (dev->plugin->cleanup)
-				dev->plugin->cleanup();
+		if (dev->driver) {
+			if (dev->driver->dev_acquisition_stop)
+				dev->driver->dev_acquisition_stop(dev->driver_index, dev);
+			if (dev->driver->cleanup)
+				dev->driver->cleanup();
 		}
 	}
 
@@ -434,8 +434,8 @@ SR_PRIV int sr_session_bus(struct sr_dev *dev,
 		return SR_ERR_ARG;
 	}
 
-	if (!dev->plugin) {
-		sr_err("session: %s: dev->plugin was NULL", __func__);
+	if (!dev->driver) {
+		sr_err("session: %s: dev->driver was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 

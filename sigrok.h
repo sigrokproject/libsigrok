@@ -94,7 +94,7 @@ extern "C" {
 
 typedef int (*sr_receive_data_callback) (int fd, int revents, void *user_data);
 
-/* Data types used by hardware plugins for dev_config_set() */
+/* Data types used by hardware drivers for dev_config_set() */
 enum {
 	SR_T_UINT64,
 	SR_T_CHAR,
@@ -169,15 +169,15 @@ struct sr_datastore {
 
 /*
  * This represents a generic device connected to the system.
- * For device-specific information, ask the plugin. The plugin_index refers
- * to the device index within that plugin; it may be handling more than one
- * device. All relevant plugin calls take a dev_index parameter for this.
+ * For device-specific information, ask the driver. The driver_index refers
+ * to the device index within that driver; it may be handling more than one
+ * device. All relevant driver calls take a dev_index parameter for this.
  */
 struct sr_dev {
-	/* Which plugin handles this device */
-	struct sr_dev_plugin *plugin;
-	/* A plugin may handle multiple devices of the same type */
-	int plugin_index;
+	/* Which driver handles this device */
+	struct sr_dev_driver *driver;
+	/* A driver may handle multiple devices of the same type */
+	int driver_index;
 	/* List of struct sr_probe* */
 	GSList *probes;
 	/* Data acquired by this device, if any */
@@ -196,7 +196,7 @@ struct sr_probe {
 	char *trigger;
 };
 
-/* Hardware plugin capabilities */
+/* Hardware driver capabilities */
 enum {
 	SR_HWCAP_DUMMY = 0, /* Used to terminate lists. Must be 0! */
 
@@ -338,8 +338,8 @@ struct sr_samplerates {
 	uint64_t *list;
 };
 
-struct sr_dev_plugin {
-	/* Plugin-specific */
+struct sr_dev_driver {
+	/* Driver-specific */
 	char *name;
 	char *longname;
 	int api_version;

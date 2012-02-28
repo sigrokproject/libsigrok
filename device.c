@@ -60,21 +60,21 @@ static GSList *devs = NULL;
 SR_API int sr_dev_scan(void)
 {
 	int i;
-	struct sr_dev_plugin **plugins;
+	struct sr_dev_driver **drivers;
 
-	plugins = sr_hw_list();
-	if (!plugins[0]) {
-		sr_err("dev: %s: no supported devices/hwplugins", __func__);
+	drivers = sr_hw_list();
+	if (!drivers[0]) {
+		sr_err("dev: %s: no supported hardware drivers", __func__);
 		return SR_ERR; /* TODO: More specific error? */
 	}
 
 	/*
-	 * Initialize all plugins first. Since the init() call may involve
+	 * Initialize all drivers first. Since the init() call may involve
 	 * a firmware upload and associated delay, we may as well get all
 	 * of these out of the way first.
 	 */
-	for (i = 0; plugins[i]; i++)
-		sr_hw_init(plugins[i]);
+	for (i = 0; drivers[i]; i++)
+		sr_hw_init(drivers[i]);
 
 	return SR_OK;
 }
@@ -111,26 +111,26 @@ SR_API GSList *sr_dev_list(void)
  * It is the caller's responsibility to g_free() the allocated memory when
  * no longer needed. TODO: Using which API function?
  *
- * @param plugin TODO.
- *               If 'plugin' is NULL, the created device is a "virtual" one.
- * @param plugin_index TODO
+ * @param driver TODO.
+ *               If 'driver' is NULL, the created device is a "virtual" one.
+ * @param driver_index TODO
  *
  * @return Pointer to the newly allocated device, or NULL upon errors.
  */
-SR_API struct sr_dev *sr_dev_new(const struct sr_dev_plugin *plugin,
-				 int plugin_index)
+SR_API struct sr_dev *sr_dev_new(const struct sr_dev_driver *driver,
+				 int driver_index)
 {
 	struct sr_dev *dev;
 
-	/* TODO: Check if plugin_index valid? */
+	/* TODO: Check if driver_index valid? */
 
 	if (!(dev = g_try_malloc0(sizeof(struct sr_dev)))) {
 		sr_err("dev: %s: dev malloc failed", __func__);
 		return NULL;
 	}
 
-	dev->plugin = (struct sr_dev_plugin *)plugin;
-	dev->plugin_index = plugin_index;
+	dev->driver = (struct sr_dev_driver *)driver;
+	dev->driver_index = driver_index;
 	devs = g_slist_append(devs, dev);
 
 	return dev;
@@ -362,7 +362,7 @@ SR_API int sr_dev_trigger_set(struct sr_dev *dev, int probenum,
  * TODO: Should return int?
  *
  * @param dev Pointer to the device to be checked. Must not be NULL.
- *            The device's 'plugin' field must not be NULL either.
+ *            The device's 'driver' field must not be NULL either.
  * @param hwcap The capability that should be checked (whether it's supported
  *              by the specified device).
  *
@@ -379,14 +379,14 @@ SR_API gboolean sr_dev_has_hwcap(const struct sr_dev *dev, int hwcap)
 		return FALSE; /* TODO: SR_ERR_ARG. */
 	}
 
-	if (!dev->plugin) {
-		sr_err("dev: %s: dev->plugin was NULL", __func__);
+	if (!dev->driver) {
+		sr_err("dev: %s: dev->driver was NULL", __func__);
 		return FALSE; /* TODO: SR_ERR_ARG. */
 	}
 
 	/* TODO: Sanity check on 'hwcap'. */
 
-	if (!(hwcaps = dev->plugin->hwcap_get_all())) {
+	if (!(hwcaps = dev->driver->hwcap_get_all())) {
 		sr_err("dev: %s: dev has no capabilities", __func__);
 		return FALSE; /* TODO: SR_ERR*. */
 	}
@@ -407,7 +407,7 @@ SR_API gboolean sr_dev_has_hwcap(const struct sr_dev *dev, int hwcap)
  * Returns information about the given device.
  *
  * @param dev Pointer to the device to be checked. Must not be NULL.
- *            The device's 'plugin' field must not be NULL either.
+ *            The device's 'driver' field must not be NULL either.
  * @param id The type of information.
  * @param data The return value. Must not be NULL.
  *
@@ -416,13 +416,13 @@ SR_API gboolean sr_dev_has_hwcap(const struct sr_dev *dev, int hwcap)
  */
 SR_API int sr_dev_info_get(const struct sr_dev *dev, int id, const void **data)
 {
-	if ((dev == NULL) || (dev->plugin == NULL))
+	if ((dev == NULL) || (dev->driver == NULL))
 		return SR_ERR_ARG;
 
 	if (data == NULL)
 		return SR_ERR_ARG;
 
-	*data = dev->plugin->dev_info_get(dev->plugin_index, id);
+	*data = dev->driver->dev_info_get(dev->driver_index, id);
 
 	if (*data == NULL)
 		return SR_ERR;

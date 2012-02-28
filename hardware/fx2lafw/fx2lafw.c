@@ -658,7 +658,7 @@ static int hw_dev_acquisition_stop(int dev_index, gpointer session_data)
 	return SR_OK;
 }
 
-SR_PRIV struct sr_dev_plugin fx2lafw_plugin_info = {
+SR_PRIV struct sr_dev_driver fx2lafw_driver_info = {
 	.name = "fx2lafw",
 	.longname = "fx2lafw",
 	.api_version = 1,

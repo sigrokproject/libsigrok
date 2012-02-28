@@ -76,7 +76,7 @@ SR_PRIV int sr_info(const char *format, ...);
 SR_PRIV int sr_warn(const char *format, ...);
 SR_PRIV int sr_err(const char *format, ...);
 
-/*--- hwplugin.c ------------------------------------------------------------*/
+/*--- hwdriver.c ------------------------------------------------------------*/
 
 SR_PRIV void sr_hw_cleanup_all(void);
 
