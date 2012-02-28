@@ -233,7 +233,7 @@ static struct sr_dev_inst *zp_open_dev(int dev_index)
 	struct sr_dev_inst *sdi;
 	libusb_device **devlist;
 	struct libusb_device_descriptor des;
-	int err, i;
+	int i;
 
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return NULL;
@@ -244,7 +244,7 @@ static struct sr_dev_inst *zp_open_dev(int dev_index)
 		libusb_get_device_list(usb_context, &devlist);
 		for (i = 0; devlist[i]; i++) {
 			/* TODO: Error handling. */
-			err = opendev4(&sdi, devlist[i], &des);
+			opendev4(&sdi, devlist[i], &des);
 		}
 	} else {
 		/* Status must be SR_ST_ACTIVE, i.e. already in use... */

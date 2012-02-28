@@ -46,7 +46,6 @@ SR_API int sr_session_load(const char *filename)
 	struct zip *archive;
 	struct zip_file *zf;
 	struct zip_stat zs;
-	struct sr_session *session;
 	struct sr_dev *dev;
 	struct sr_probe *probe;
 	int ret, err, probenum, devcnt, i, j;
@@ -98,7 +97,7 @@ SR_API int sr_session_load(const char *filename)
 		return SR_ERR;
 	}
 
-	session = sr_session_new();
+	sr_session_new();
 
 	devcnt = 0;
 	capturefiles = g_ptr_array_new_with_free_func(g_free);

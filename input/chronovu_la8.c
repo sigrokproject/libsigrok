@@ -154,7 +154,7 @@ static int loadfile(struct sr_input *in, const char *filename)
 	for (i = 0; i < NUM_PACKETS; i++) {
 		/* TODO: Handle errors, handle incomplete reads. */
 		size = read(fd, buf, PACKET_SIZE);
-		logic.length = PACKET_SIZE;
+		logic.length = size;
 		sr_session_bus(in->vdev, &packet);
 	}
 	close(fd); /* FIXME */

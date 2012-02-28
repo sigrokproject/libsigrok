@@ -148,8 +148,6 @@ static int init(struct sr_output *o)
 static int event(struct sr_output *o, int event_type, char **data_out,
 		 uint64_t *length_out)
 {
-	struct context *ctx;
-
 	if (!o) {
 		sr_err("gnuplot out: %s: o was NULL", __func__);
 		return SR_ERR_ARG;
@@ -164,8 +162,6 @@ static int event(struct sr_output *o, int event_type, char **data_out,
 		sr_err("gnuplot out: %s: length_out was NULL", __func__);
 		return SR_ERR_ARG;
 	}
-
-	ctx = o->internal;
 
 	switch (event_type) {
 	case SR_DF_TRIGGER:

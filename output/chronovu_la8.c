@@ -86,7 +86,6 @@ static int init(struct sr_output *o)
 	struct context *ctx;
 	struct sr_probe *probe;
 	GSList *l;
-	int num_probes;
 	uint64_t samplerate;
 
 	if (!o) {
@@ -111,7 +110,7 @@ static int init(struct sr_output *o)
 
 	o->internal = ctx;
 
-	/* Get the number of probes, their names, and the unitsize. */
+	/* Get the probe names and the unitsize. */
 	/* TODO: Error handling. */
 	for (l = o->dev->probes; l; l = l->next) {
 		probe = l->data;
@@ -121,8 +120,6 @@ static int init(struct sr_output *o)
 	}
 	ctx->probelist[ctx->num_enabled_probes] = 0;
 	ctx->unitsize = (ctx->num_enabled_probes + 7) / 8;
-
-	num_probes = g_slist_length(o->dev->probes);
 
 	if (sr_dev_has_hwcap(o->dev, SR_HWCAP_SAMPLERATE)) {
 		samplerate = *((uint64_t *) o->dev->plugin->dev_info_get(

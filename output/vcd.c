@@ -138,10 +138,8 @@ static int init(struct sr_output *o)
 static int event(struct sr_output *o, int event_type, char **data_out,
 		 uint64_t *length_out)
 {
-	struct context *ctx;
 	char *outbuf;
 
-	ctx = o->internal;
 	switch (event_type) {
 	case SR_DF_END:
 		outbuf = g_strdup("$dumpoff\n$end\n");
