@@ -48,6 +48,11 @@ static int hwcaps[] = {
 	0,
 };
 
+/*
+ * Probes are numbered 0 to 7.
+ *
+ * See also: http://www.linkinstruments.com/images/mso19_1113.gif
+ */
 static const char *probe_names[NUM_PROBES + 1] = {
 	"0",
 	"1",

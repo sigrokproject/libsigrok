@@ -46,6 +46,12 @@ static int hwcaps[] = {
 	0,
 };
 
+/*
+ * Probes are numbered 1-8.
+ *
+ * TODO: FX2 eval boards with the standard Cypress VID/PID can have 16 pins
+ * or probes in theory, which is not supported by the Saleae Logic firmware.
+ */
 static const char *probe_names[] = {
 	"0",
 	"1",

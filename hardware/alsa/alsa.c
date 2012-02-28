@@ -48,6 +48,7 @@ static int hwcaps[] = {
 	SR_HWCAP_CONTINUOUS,
 };
 
+/* TODO: Which probe names/numbers to use? */
 static const char *probe_names[NUM_PROBES + 1] = {
 	"0",
 	"1",

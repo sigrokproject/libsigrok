@@ -102,6 +102,7 @@ static const char *pattern_strings[] = {
 	NULL,
 };
 
+/* We name the probes 0-7 on our demo driver. */
 static const char *probe_names[NUM_PROBES + 1] = {
 	"0",
 	"1",

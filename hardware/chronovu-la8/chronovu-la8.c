@@ -42,6 +42,7 @@
 
 static GSList *dev_insts = NULL;
 
+/* Probes are numbered 0-7. */
 static const char *probe_names[NUM_PROBES + 1] = {
 	"0",
 	"1",

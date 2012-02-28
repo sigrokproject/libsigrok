@@ -57,8 +57,12 @@ static uint64_t supported_samplerates[] = {
 	0,
 };
 
+/*
+ * Probe numbers seem to go from 1-16, according to this image:
+ * http://tools.asix.net/img/sigma_sigmacab_pins_720.jpg
+ * (the cable has two additional GND pins, and a TI and TO pin)
+ */
 static const char *probe_names[NUM_PROBES + 1] = {
-	"0",
 	"1",
 	"2",
 	"3",
@@ -74,6 +78,7 @@ static const char *probe_names[NUM_PROBES + 1] = {
 	"13",
 	"14",
 	"15",
+	"16",
 	NULL,
 };
 

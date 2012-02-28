@@ -55,6 +55,7 @@ static int hwcaps[] = {
 	0,
 };
 
+/* Probes are numbered 0-31 (on the PCB silkscreen). */
 static const char *probe_names[NUM_PROBES + 1] = {
 	"0",
 	"1",
