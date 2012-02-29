@@ -264,13 +264,24 @@ SR_PRIV void sr_serial_dev_inst_free(struct sr_serial_dev_inst *serial)
  * @param driver The hardware driver in which to search for the capability.
  * @param hwcap The capability to find in the list.
  *
- * @return TRUE if found, FALSE otherwise.
+ * @return TRUE if the specified capability exists in the specified driver,
+ *         FALSE otherwise. Also, if 'driver' is NULL or the respective driver
+ *         returns an invalid capability list, FALSE is returned.
  */
 SR_API gboolean sr_hw_has_hwcap(struct sr_dev_driver *driver, int hwcap)
 {
 	int *hwcaps, i;
 
-	hwcaps = driver->hwcap_get_all();
+	if (!driver) {
+		sr_err("hwdriver: %s: driver was NULL", __func__);
+		return FALSE;
+	}
+
+	if (!(hwcaps = driver->hwcap_get_all())) {
+		sr_err("hwdriver: %s: hwcap_get_all() returned NULL", __func__);
+		return FALSE;
+	}
+
 	for (i = 0; hwcaps[i]; i++) {
 		if (hwcaps[i] == hwcap)
 			return TRUE;
