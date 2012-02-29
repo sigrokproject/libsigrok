@@ -419,12 +419,12 @@ static void datafeed_dump(struct sr_datafeed_packet *packet)
  * Hardware drivers use this to send a data packet to the frontend.
  *
  * @param dev TODO.
- * @param packet TODO.
+ * @param packet The datafeed packet to send to the session bus.
  *
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments.
  */
-SR_PRIV int sr_session_bus(struct sr_dev *dev,
-			   struct sr_datafeed_packet *packet)
+SR_PRIV int sr_session_send(struct sr_dev *dev,
+			    struct sr_datafeed_packet *packet)
 {
 	GSList *l;
 	sr_datafeed_callback_t cb;

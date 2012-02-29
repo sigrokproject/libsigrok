@@ -834,12 +834,12 @@ static int receive_data(int fd, int revents, void *session_data)
 				logic.unitsize = 4;
 				logic.data = ctx->raw_sample_buf +
 					(ctx->limit_samples - ctx->num_samples) * 4;
-				sr_session_bus(session_data, &packet);
+				sr_session_send(session_data, &packet);
 			}
 
 			/* send the trigger */
 			packet.type = SR_DF_TRIGGER;
-			sr_session_bus(session_data, &packet);
+			sr_session_send(session_data, &packet);
 
 			/* send post-trigger samples */
 			packet.type = SR_DF_LOGIC;
@@ -848,7 +848,7 @@ static int receive_data(int fd, int revents, void *session_data)
 			logic.unitsize = 4;
 			logic.data = ctx->raw_sample_buf + ctx->trigger_at * 4 +
 				(ctx->limit_samples - ctx->num_samples) * 4;
-			sr_session_bus(session_data, &packet);
+			sr_session_send(session_data, &packet);
 		} else {
 			/* no trigger was used */
 			packet.type = SR_DF_LOGIC;
@@ -857,14 +857,14 @@ static int receive_data(int fd, int revents, void *session_data)
 			logic.unitsize = 4;
 			logic.data = ctx->raw_sample_buf +
 				(ctx->limit_samples - ctx->num_samples) * 4;
-			sr_session_bus(session_data, &packet);
+			sr_session_send(session_data, &packet);
 		}
 		g_free(ctx->raw_sample_buf);
 
 		serial_flush(fd);
 		serial_close(fd);
 		packet.type = SR_DF_END;
-		sr_session_bus(session_data, &packet);
+		sr_session_send(session_data, &packet);
 	}
 
 	return TRUE;
@@ -1015,7 +1015,7 @@ static int hw_dev_acquisition_start(int dev_index, gpointer session_data)
 	gettimeofday(&header->starttime, NULL);
 	header->samplerate = ctx->cur_samplerate;
 	header->num_logic_probes = NUM_PROBES;
-	sr_session_bus(session_data, packet);
+	sr_session_send(session_data, packet);
 
 	g_free(header);
 	g_free(packet);
@@ -1031,7 +1031,7 @@ static int hw_dev_acquisition_stop(int dev_index, gpointer session_dev_id)
 	(void)dev_index;
 
 	packet.type = SR_DF_END;
-	sr_session_bus(session_dev_id, &packet);
+	sr_session_send(session_dev_id, &packet);
 
 	return SR_OK;
 }

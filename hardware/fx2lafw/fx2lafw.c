@@ -565,7 +565,7 @@ static void receive_transfer(struct libusb_transfer *transfer)
 	logic.length = cur_buflen;
 	logic.unitsize = 1;
 	logic.data = cur_buf;
-	sr_session_bus(ctx->session_data, &packet);
+	sr_session_send(ctx->session_data, &packet);
 	g_free(cur_buf);
 
 	num_samples += cur_buflen;
@@ -633,7 +633,7 @@ static int hw_dev_acquisition_start(int dev_index, gpointer session_data)
 	gettimeofday(&header->starttime, NULL);
 	header->samplerate = 24000000UL;
 	header->num_logic_probes = ctx->profile->num_probes;
-	sr_session_bus(session_data, packet);
+	sr_session_send(session_data, packet);
 	g_free(header);
 	g_free(packet);
 
@@ -649,7 +649,7 @@ static int hw_dev_acquisition_stop(int dev_index, gpointer session_data)
 	(void)dev_index;
 
 	packet.type = SR_DF_END;
-	sr_session_bus(session_data, &packet);
+	sr_session_send(session_data, &packet);
 
 	receive_transfer(NULL);
 

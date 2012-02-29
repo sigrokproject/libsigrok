@@ -731,7 +731,7 @@ static int receive_data(int fd, int revents, void *user_data)
 	logic.length = 1024;
 	logic.unitsize = 1;
 	logic.data = logic_out;
-	sr_session_bus(ctx->session_id, &packet);
+	sr_session_send(ctx->session_id, &packet);
 
 	// Dont bother fixing this yet, keep it "old style"
 	/*
@@ -739,11 +739,11 @@ static int receive_data(int fd, int revents, void *user_data)
 	packet.length = 1024;
 	packet.unitsize = sizeof(double);
 	packet.payload = analog_out;
-	sr_session_bus(ctx->session_id, &packet);
+	sr_session_send(ctx->session_id, &packet);
 	*/
 
 	packet.type = SR_DF_END;
-	sr_session_bus(ctx->session_id, &packet);
+	sr_session_send(ctx->session_id, &packet);
 
 	return TRUE;
 }
@@ -816,7 +816,7 @@ static int hw_dev_acquisition_start(int dev_index, gpointer session_dev_id)
 	header.samplerate = ctx->cur_rate;
 	// header.num_analog_probes = 1;
 	header.num_logic_probes = 8;
-	sr_session_bus(session_dev_id, &packet);
+	sr_session_send(session_dev_id, &packet);
 
 	return ret;
 }
@@ -829,7 +829,7 @@ static int hw_dev_acquisition_stop(int dev_index, gpointer session_dev_id)
 	dev_index = dev_index;
 
 	packet.type = SR_DF_END;
-	sr_session_bus(session_dev_id, &packet);
+	sr_session_send(session_dev_id, &packet);
 
 	return SR_OK;
 }

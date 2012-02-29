@@ -752,7 +752,7 @@ static void receive_transfer(struct libusb_transfer *transfer)
 					 */
 					packet.type = SR_DF_TRIGGER;
 					packet.payload = NULL;
-					sr_session_bus(ctx->session_data, &packet);
+					sr_session_send(ctx->session_data, &packet);
 
 					/*
 					 * Send the samples that triggered it, since we're
@@ -763,7 +763,7 @@ static void receive_transfer(struct libusb_transfer *transfer)
 					logic.length = ctx->trigger_stage;
 					logic.unitsize = 1;
 					logic.data = ctx->trigger_buffer;
-					sr_session_bus(ctx->session_data, &packet);
+					sr_session_send(ctx->session_data, &packet);
 
 					ctx->trigger_stage = TRIGGER_FIRED;
 					break;
@@ -795,7 +795,7 @@ static void receive_transfer(struct libusb_transfer *transfer)
 		logic.length = cur_buflen - trigger_offset;
 		logic.unitsize = 1;
 		logic.data = cur_buf + trigger_offset;
-		sr_session_bus(ctx->session_data, &packet);
+		sr_session_send(ctx->session_data, &packet);
 		g_free(cur_buf);
 
 		num_samples += cur_buflen;
@@ -868,7 +868,7 @@ static int hw_dev_acquisition_start(int dev_index, gpointer session_data)
 	gettimeofday(&header->starttime, NULL);
 	header->samplerate = ctx->cur_samplerate;
 	header->num_logic_probes = ctx->profile->num_probes;
-	sr_session_bus(session_data, packet);
+	sr_session_send(session_data, packet);
 	g_free(header);
 	g_free(packet);
 
@@ -884,7 +884,7 @@ static int hw_dev_acquisition_stop(int dev_index, gpointer session_data)
 	(void)dev_index;
 
 	packet.type = SR_DF_END;
-	sr_session_bus(session_data, &packet);
+	sr_session_send(session_data, &packet);
 
 	receive_transfer(NULL);
 

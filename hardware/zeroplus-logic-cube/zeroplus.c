@@ -655,7 +655,7 @@ static int hw_dev_acquisition_start(int dev_index, gpointer session_data)
 	gettimeofday(&header.starttime, NULL);
 	header.samplerate = ctx->cur_samplerate;
 	header.num_logic_probes = ctx->num_channels;
-	sr_session_bus(session_data, &packet);
+	sr_session_send(session_data, &packet);
 
 	if (!(buf = g_try_malloc(PACKET_SIZE))) {
 		sr_err("zp: %s: buf malloc failed", __func__);
@@ -676,14 +676,14 @@ static int hw_dev_acquisition_start(int dev_index, gpointer session_data)
 		logic.length = PACKET_SIZE;
 		logic.unitsize = 4;
 		logic.data = buf;
-		sr_session_bus(session_data, &packet);
+		sr_session_send(session_data, &packet);
 		samples_read += res / 4;
 	}
 	analyzer_read_stop(ctx->usb->devhdl);
 	g_free(buf);
 
 	packet.type = SR_DF_END;
-	sr_session_bus(session_data, &packet);
+	sr_session_send(session_data, &packet);
 
 	return SR_OK;
 }
@@ -696,7 +696,7 @@ static int hw_dev_acquisition_stop(int dev_index, gpointer session_dev_id)
 	struct context *ctx;
 
 	packet.type = SR_DF_END;
-	sr_session_bus(session_dev_id, &packet);
+	sr_session_send(session_dev_id, &packet);
 
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index))) {
 		sr_err("zp: %s: sdi was NULL", __func__);

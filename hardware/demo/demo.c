@@ -390,7 +390,7 @@ static int receive_data(int fd, int revents, void *session_data)
 			logic.length = z;
 			logic.unitsize = 1;
 			logic.data = c;
-			sr_session_bus(session_data, &packet);
+			sr_session_send(session_data, &packet);
 			samples_received += z;
 		}
 	} while (z > 0);
@@ -401,7 +401,7 @@ static int receive_data(int fd, int revents, void *session_data)
 
 		/* Send last packet. */
 		packet.type = SR_DF_END;
-		sr_session_bus(session_data, &packet);
+		sr_session_send(session_data, &packet);
 
 		return FALSE;
 	}
@@ -474,7 +474,7 @@ static int hw_dev_acquisition_start(int dev_index, gpointer session_data)
 	gettimeofday(&header->starttime, NULL);
 	header->samplerate = cur_samplerate;
 	header->num_logic_probes = NUM_PROBES;
-	sr_session_bus(session_data, packet);
+	sr_session_send(session_data, packet);
 	g_free(header);
 	g_free(packet);
 

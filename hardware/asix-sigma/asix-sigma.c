@@ -935,7 +935,7 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 			logic.length = tosend * sizeof(uint16_t);
 			logic.unitsize = 2;
 			logic.data = samples + sent;
-			sr_session_bus(ctx->session_id, &packet);
+			sr_session_send(ctx->session_id, &packet);
 
 			sent += tosend;
 		}
@@ -978,7 +978,7 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 				logic.length = tosend * sizeof(uint16_t);
 				logic.unitsize = 2;
 				logic.data = samples;
-				sr_session_bus(ctx->session_id, &packet);
+				sr_session_send(ctx->session_id, &packet);
 
 				sent += tosend;
 			}
@@ -986,7 +986,7 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 			/* Only send trigger if explicitly enabled. */
 			if (ctx->use_triggers) {
 				packet.type = SR_DF_TRIGGER;
-				sr_session_bus(ctx->session_id, &packet);
+				sr_session_send(ctx->session_id, &packet);
 			}
 		}
 
@@ -999,7 +999,7 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 			logic.length = tosend * sizeof(uint16_t);
 			logic.unitsize = 2;
 			logic.data = samples + sent;
-			sr_session_bus(ctx->session_id, &packet);
+			sr_session_send(ctx->session_id, &packet);
 		}
 
 		*lastsample = samples[n - 1];
@@ -1044,7 +1044,7 @@ static int receive_data(int fd, int revents, void *session_data)
 		if (ctx->state.chunks_downloaded >= numchunks) {
 			/* End of samples. */
 			packet.type = SR_DF_END;
-			sr_session_bus(ctx->session_id, &packet);
+			sr_session_send(ctx->session_id, &packet);
 
 			ctx->state.state = SIGMA_IDLE;
 
@@ -1361,7 +1361,7 @@ static int hw_dev_acquisition_start(int dev_index, gpointer session_data)
 	gettimeofday(&header.starttime, NULL);
 	header.samplerate = ctx->cur_samplerate;
 	header.num_logic_probes = ctx->num_probes;
-	sr_session_bus(session_data, &packet);
+	sr_session_send(session_data, &packet);
 
 	/* Add capture source. */
 	sr_source_add(0, G_IO_IN, 10, receive_data, sdi);

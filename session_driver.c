@@ -120,7 +120,7 @@ static int feed_chunk(int fd, int revents, void *session_data)
 			logic.unitsize = vdev->unitsize;
 			logic.data = buf;
 			vdev->bytes_read += ret;
-			sr_session_bus(session_data, &packet);
+			sr_session_send(session_data, &packet);
 		} else {
 			/* done with this capture file */
 			zip_fclose(vdev->capfile);
@@ -132,7 +132,7 @@ static int feed_chunk(int fd, int revents, void *session_data)
 
 	if (!got_data) {
 		packet.type = SR_DF_END;
-		sr_session_bus(session_data, &packet);
+		sr_session_send(session_data, &packet);
 	}
 
 	return TRUE;
@@ -324,7 +324,7 @@ static int hw_dev_acquisition_start(int dev_index, gpointer session_dev_id)
 	gettimeofday(&header->starttime, NULL);
 	header->samplerate = vdev->samplerate;
 	header->num_logic_probes = vdev->num_probes;
-	sr_session_bus(session_dev_id, packet);
+	sr_session_send(session_dev_id, packet);
 	g_free(header);
 	g_free(packet);
 

@@ -139,7 +139,7 @@ static int loadfile(struct sr_input *in, const char *filename)
 	gettimeofday(&header.starttime, NULL);
 	header.num_logic_probes = num_probes;
 	header.samplerate = samplerate;
-	sr_session_bus(in->vdev, &packet);
+	sr_session_send(in->vdev, &packet);
 
 	/* TODO: Handle trigger point. */
 
@@ -155,7 +155,7 @@ static int loadfile(struct sr_input *in, const char *filename)
 		/* TODO: Handle errors, handle incomplete reads. */
 		size = read(fd, buf, PACKET_SIZE);
 		logic.length = size;
-		sr_session_bus(in->vdev, &packet);
+		sr_session_send(in->vdev, &packet);
 	}
 	close(fd); /* FIXME */
 
@@ -163,7 +163,7 @@ static int loadfile(struct sr_input *in, const char *filename)
 	sr_dbg("la8 in: %s: sending SR_DF_END", __func__);
 	packet.type = SR_DF_END;
 	packet.payload = NULL;
-	sr_session_bus(in->vdev, &packet);
+	sr_session_send(in->vdev, &packet);
 
 	return SR_OK;
 }

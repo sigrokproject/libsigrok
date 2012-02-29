@@ -912,7 +912,7 @@ static void send_block_to_session_bus(struct context *ctx, int block)
 		logic.length = BS;
 		logic.unitsize = 1;
 		logic.data = ctx->final_buf + (block * BS);
-		sr_session_bus(ctx->session_id, &packet);
+		sr_session_send(ctx->session_id, &packet);
 		return;
 	}
 
@@ -935,7 +935,7 @@ static void send_block_to_session_bus(struct context *ctx, int block)
 		logic.length = trigger_point;
 		logic.unitsize = 1;
 		logic.data = ctx->final_buf + (block * BS);
-		sr_session_bus(ctx->session_id, &packet);
+		sr_session_send(ctx->session_id, &packet);
 	}
 
 	/* Send the SR_DF_TRIGGER packet to the session bus. */
@@ -943,7 +943,7 @@ static void send_block_to_session_bus(struct context *ctx, int block)
 		(block * BS) + trigger_point);
 	packet.type = SR_DF_TRIGGER;
 	packet.payload = NULL;
-	sr_session_bus(ctx->session_id, &packet);
+	sr_session_send(ctx->session_id, &packet);
 
 	/* If at least one sample is located after the trigger... */
 	if (trigger_point < (BS - 1)) {
@@ -956,7 +956,7 @@ static void send_block_to_session_bus(struct context *ctx, int block)
 		logic.length = BS - trigger_point;
 		logic.unitsize = 1;
 		logic.data = ctx->final_buf + (block * BS) + trigger_point;
-		sr_session_bus(ctx->session_id, &packet);
+		sr_session_send(ctx->session_id, &packet);
 	}
 }
 
@@ -1071,7 +1071,7 @@ static int hw_dev_acquisition_start(int dev_index, gpointer session_data)
 	gettimeofday(&header.starttime, NULL);
 	header.samplerate = ctx->cur_samplerate;
 	header.num_logic_probes = NUM_PROBES;
-	sr_session_bus(session_data, &packet);
+	sr_session_send(session_data, &packet);
 
 	/* Time when we should be done (for detecting trigger timeouts). */
 	ctx->done = (ctx->divcount + 1) * 0.08388608 + time(NULL)
@@ -1106,7 +1106,7 @@ static int hw_dev_acquisition_stop(int dev_index, gpointer session_data)
 	/* Send end packet to the session bus. */
 	sr_dbg("la8: Sending SR_DF_END.");
 	packet.type = SR_DF_END;
-	sr_session_bus(session_data, &packet);
+	sr_session_send(session_data, &packet);
 
 	return SR_OK;
 }

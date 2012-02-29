@@ -83,7 +83,7 @@ static int loadfile(struct sr_input *in, const char *filename)
 	gettimeofday(&header.starttime, NULL);
 	packet.type = SR_DF_HEADER;
 	packet.payload = &header;
-	sr_session_bus(in->vdev, &packet);
+	sr_session_send(in->vdev, &packet);
 
 	/* chop up the input file into chunks and feed it into the session bus */
 	packet.type = SR_DF_LOGIC;
@@ -92,13 +92,13 @@ static int loadfile(struct sr_input *in, const char *filename)
 	logic.data = buffer;
 	while ((size = read(fd, buffer, CHUNKSIZE)) > 0) {
 		logic.length = size;
-		sr_session_bus(in->vdev, &packet);
+		sr_session_send(in->vdev, &packet);
 	}
 	close(fd);
 
 	/* end of stream */
 	packet.type = SR_DF_END;
-	sr_session_bus(in->vdev, &packet);
+	sr_session_send(in->vdev, &packet);
 
 	return SR_OK;
 }
