@@ -28,7 +28,7 @@ SR_API int sr_exit(void);
 /*--- log.c -----------------------------------------------------------------*/
 
 typedef int (*sr_log_handler_t)(void *data, int loglevel, const char *format,
-				 va_list args);
+				va_list args);
 
 SR_API int sr_log_loglevel_set(int loglevel);
 SR_API int sr_log_loglevel_get(void);
@@ -54,8 +54,8 @@ SR_API struct sr_dev *sr_dev_new(const struct sr_dev_driver *driver,
 SR_API int sr_dev_probe_add(struct sr_dev *dev, const char *name);
 SR_API struct sr_probe *sr_dev_probe_find(const struct sr_dev *dev,
 					  int probenum);
-SR_API int sr_dev_probe_name(struct sr_dev *dev, int probenum,
-			     const char *name);
+SR_API int sr_dev_probe_name_set(struct sr_dev *dev, int probenum,
+				 const char *name);
 SR_API int sr_dev_trigger_clear(struct sr_dev *dev);
 SR_API int sr_dev_trigger_set(struct sr_dev *dev, int probenum,
 			      const char *trigger);

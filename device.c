@@ -238,8 +238,6 @@ SR_API struct sr_probe *sr_dev_probe_find(const struct sr_dev *dev,
  * If the probe already has a different name assigned to it, it will be
  * removed, and the new name will be saved instead.
  *
- * TODO: Rename to sr_dev_probe_name_set().
- *
  * @param dev TODO
  * @param probenum The number of the probe whose name to set.
  *                 Note that the probe numbers start at 1 (not 0!).
@@ -249,8 +247,8 @@ SR_API struct sr_probe *sr_dev_probe_find(const struct sr_dev *dev,
  *         upon other errors.
  *         If something other than SR_OK is returned, 'dev' is unchanged.
  */
-SR_API int sr_dev_probe_name(struct sr_dev *dev, int probenum,
-			     const char *name)
+SR_API int sr_dev_probe_name_set(struct sr_dev *dev, int probenum,
+				 const char *name)
 {
 	struct sr_probe *p;
 
