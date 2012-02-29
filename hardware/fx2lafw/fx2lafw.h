@@ -55,6 +55,7 @@ struct context {
 	GTimeVal fw_updated;
 
 	/* Device/Capture Settings */
+	uint64_t cur_samplerate;
 	uint64_t limit_samples;
 
 	void *session_dev_id;

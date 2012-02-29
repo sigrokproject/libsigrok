@@ -442,6 +442,8 @@ static void *hw_dev_info_get(int dev_index, int dev_info_id)
 		return &fx2lafw_samplerates;
 	case SR_DI_TRIGGER_TYPES:
 		return TRIGGER_TYPES;
+	case SR_DI_CUR_SAMPLERATE:
+		return &ctx->cur_samplerate;
 	}
 
 	return NULL;
@@ -473,7 +475,12 @@ static int hw_dev_config_set(int dev_index, int hwcap, void *value)
 		return SR_ERR;
 	ctx = sdi->priv;
 
-	if (hwcap == SR_HWCAP_LIMIT_SAMPLES) {
+	if (hwcap == SR_HWCAP_SAMPLERATE) {
+		ctx->cur_samplerate = *(uint64_t *)value;
+		ret = SR_OK;
+	} else if (hwcap == SR_HWCAP_PROBECONFIG) {
+		ret = SR_OK;
+	} else if (hwcap == SR_HWCAP_LIMIT_SAMPLES) {
 		ctx->limit_samples = *(uint64_t *)value;
 		ret = SR_OK;
 	} else {
@@ -631,7 +638,7 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 	packet->payload = header;
 	header->feed_version = 1;
 	gettimeofday(&header->starttime, NULL);
-	header->samplerate = 24000000UL;
+	header->samplerate = ctx->cur_samplerate;
 	header->num_logic_probes = ctx->profile->num_probes;
 	sr_session_send(cb_data, packet);
 	g_free(header);
