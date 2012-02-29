@@ -138,7 +138,7 @@ static int default_pattern = PATTERN_SIGROK;
 static GThread *my_thread;
 static int thread_running;
 
-static int hw_dev_acquisition_stop(int dev_index, gpointer session_data);
+static int hw_dev_acquisition_stop(int dev_index, void *session_data);
 
 static int hw_init(const char *devinfo)
 {
@@ -368,7 +368,7 @@ static void thread_func(void *data)
 }
 
 /* Callback handling data */
-static int receive_data(int fd, int revents, void *session_data)
+static int receive_data(int fd, int revents, void *cb_data)
 {
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
@@ -390,7 +390,7 @@ static int receive_data(int fd, int revents, void *session_data)
 			logic.length = z;
 			logic.unitsize = 1;
 			logic.data = c;
-			sr_session_send(session_data, &packet);
+			sr_session_send(cb_data, &packet);
 			samples_received += z;
 		}
 	} while (z > 0);
@@ -401,7 +401,7 @@ static int receive_data(int fd, int revents, void *session_data)
 
 		/* Send last packet. */
 		packet.type = SR_DF_END;
-		sr_session_send(session_data, &packet);
+		sr_session_send(cb_data, &packet);
 
 		return FALSE;
 	}
@@ -409,7 +409,7 @@ static int receive_data(int fd, int revents, void *session_data)
 	return TRUE;
 }
 
-static int hw_dev_acquisition_start(int dev_index, gpointer session_data)
+static int hw_dev_acquisition_start(int dev_index, void *session_data)
 {
 	struct sr_datafeed_packet *packet;
 	struct sr_datafeed_header *header;
@@ -481,7 +481,7 @@ static int hw_dev_acquisition_start(int dev_index, gpointer session_data)
 	return SR_OK;
 }
 
-static int hw_dev_acquisition_stop(int dev_index, gpointer session_data)
+static int hw_dev_acquisition_stop(int dev_index, void *session_data)
 {
 	/* Avoid compiler warnings. */
 	(void)dev_index;

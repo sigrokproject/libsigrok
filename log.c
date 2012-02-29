@@ -27,7 +27,8 @@
 static int sr_loglevel = SR_LOG_WARN; /* Show errors+warnings per default. */
 
 /* Function prototype. */
-static int sr_logv(void *data, int loglevel, const char *format, va_list args);
+static int sr_logv(void *cb_data, int loglevel, const char *format,
+		   va_list args);
 
 /* Pointer to the currently selected log handler. Default: sr_logv(). */
 static sr_log_handler_t sr_log_handler = sr_logv;
@@ -128,25 +129,25 @@ SR_API char *sr_log_logdomain_get(void)
  *
  * @param handler Function pointer to the log handler function to use.
  *                Must not be NULL.
- * @param data Pointer to private data to be passed on. This can be used by
- *             the caller to pass arbitrary data to the log functions. This
- *             pointer is only stored or passed on by libsigrok, and
- *             is never used or interpreted in any way. The pointer is allowed
- *             to be NULL if the caller doesn't need/want to pass any data.
+ * @param cb_data Pointer to private data to be passed on. This can be used by
+ *                the caller to pass arbitrary data to the log functions. This
+ *                pointer is only stored or passed on by libsigrok, and is
+ *                never used or interpreted in any way. The pointer is allowed
+ *                to be NULL if the caller doesn't need/want to pass any data.
  *
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments.
  */
-SR_API int sr_log_handler_set(sr_log_handler_t handler, void *data)
+SR_API int sr_log_handler_set(sr_log_handler_t handler, void *cb_data)
 {
 	if (!handler) {
 		sr_err("log: %s: handler was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
-	/* Note: 'data' is allowed to be NULL. */
+	/* Note: 'cb_data' is allowed to be NULL. */
 
 	sr_log_handler = handler;
-	sr_log_handler_data = data;
+	sr_log_handler_data = cb_data;
 
 	return SR_OK;
 }
@@ -170,12 +171,12 @@ SR_API int sr_log_handler_set_default(void)
 	return SR_OK;
 }
 
-static int sr_logv(void *data, int loglevel, const char *format, va_list args)
+static int sr_logv(void *cb_data, int loglevel, const char *format, va_list args)
 {
 	int ret;
 
 	/* This specific log handler doesn't need the void pointer data. */
-	(void)data;
+	(void)cb_data;
 
 	/* Only output messages of at least the selected loglevel(s). */
 	if (loglevel > sr_loglevel)

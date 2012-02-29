@@ -123,7 +123,7 @@ static const char *firmware_files[] = {
 	"asix-sigma-phasor.fw",	/* Frequency counter */
 };
 
-static int hw_dev_acquisition_stop(int dev_index, gpointer session_data);
+static int hw_dev_acquisition_stop(int dev_index, void *session_data);
 
 static int sigma_read(void *buf, size_t size, struct context *ctx)
 {
@@ -1008,9 +1008,9 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 	return SR_OK;
 }
 
-static int receive_data(int fd, int revents, void *session_data)
+static int receive_data(int fd, int revents, void *cb_data)
 {
-	struct sr_dev_inst *sdi = session_data;
+	struct sr_dev_inst *sdi = cb_data;
 	struct context *ctx = sdi->priv;
 	struct sr_datafeed_packet packet;
 	const int chunks_per_read = 32;
@@ -1037,7 +1037,7 @@ static int receive_data(int fd, int revents, void *session_data)
 		if (running_msec < ctx->limit_msec && numchunks < 32767)
 			return FALSE;
 
-		hw_dev_acquisition_stop(sdi->index, session_data);
+		hw_dev_acquisition_stop(sdi->index, sdi);
 
 		return FALSE;
 	} else if (ctx->state.state == SIGMA_DOWNLOAD) {
@@ -1083,12 +1083,12 @@ static int receive_data(int fd, int revents, void *session_data)
 						&ctx->state.lastts,
 						&ctx->state.lastsample,
 						ctx->state.triggerpos & 0x1ff,
-						limit_chunk, session_data);
+						limit_chunk, sdi);
 			else
 				decode_chunk_ts(buf + (i * CHUNK_SIZE),
 						&ctx->state.lastts,
 						&ctx->state.lastsample,
-						-1, limit_chunk, session_data);
+						-1, limit_chunk, sdi);
 
 			++ctx->state.chunks_downloaded;
 		}
@@ -1254,7 +1254,7 @@ static int build_basic_trigger(struct triggerlut *lut, struct context *ctx)
 	return SR_OK;
 }
 
-static int hw_dev_acquisition_start(int dev_index, gpointer session_data)
+static int hw_dev_acquisition_start(int dev_index, void *session_data)
 {
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
@@ -1265,9 +1265,6 @@ static int hw_dev_acquisition_start(int dev_index, gpointer session_data)
 	uint8_t triggerselect;
 	struct triggerinout triggerinout_conf;
 	struct triggerlut lut;
-
-	/* Avoid compiler warnings. */
-	(void)session_data;
 
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return SR_ERR;
@@ -1371,7 +1368,7 @@ static int hw_dev_acquisition_start(int dev_index, gpointer session_data)
 	return SR_OK;
 }
 
-static int hw_dev_acquisition_stop(int dev_index, gpointer session_data)
+static int hw_dev_acquisition_stop(int dev_index, void *session_data)
 {
 	struct sr_dev_inst *sdi;
 	struct context *ctx;

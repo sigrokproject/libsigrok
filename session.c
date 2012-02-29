@@ -33,7 +33,7 @@ struct source {
 	int events;
 	int timeout;
 	sr_receive_data_callback_t cb;
-	void *user_data;
+	void *cb_data;
 };
 
 /* There can only be one session at a time. */
@@ -233,7 +233,7 @@ static int sr_session_run_poll(void)
 				 * asked for that timeout.
 				 */
 				if (!sources[i].cb(fds[i].fd, fds[i].revents,
-						  sources[i].user_data))
+						  sources[i].cb_data))
 					sr_session_source_remove(sources[i].fd);
 			}
 		}
@@ -318,7 +318,7 @@ SR_API int sr_session_run(void)
 	if (num_sources == 1 && sources[0].fd == -1) {
 		/* Dummy source, freewheel over it. */
 		while (session->running)
-			sources[0].cb(-1, 0, sources[0].user_data);
+			sources[0].cb(-1, 0, sources[0].cb_data);
 	} else {
 		/* Real sources, use g_poll() main loop. */
 		sr_session_run_poll();
@@ -464,13 +464,13 @@ SR_PRIV int sr_session_send(struct sr_dev *dev,
  * @param events TODO.
  * @param timeout TODO.
  * @param cb TODO.
- * @param user_data TODO.
+ * @param cb_data TODO.
  *
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or
  *         SR_ERR_MALLOC upon memory allocation errors.
  */
 SR_API int sr_session_source_add(int fd, int events, int timeout,
-		sr_receive_data_callback_t cb, void *user_data)
+		sr_receive_data_callback_t cb, void *cb_data)
 {
 	struct source *new_sources, *s;
 
@@ -479,7 +479,7 @@ SR_API int sr_session_source_add(int fd, int events, int timeout,
 		return SR_ERR_ARG;
 	}
 
-	/* Note: user_data can be NULL, that's not a bug. */
+	/* Note: cb_data can be NULL, that's not a bug. */
 
 	new_sources = g_try_malloc0(sizeof(struct source) * (num_sources + 1));
 	if (!new_sources) {
@@ -498,7 +498,7 @@ SR_API int sr_session_source_add(int fd, int events, int timeout,
 	s->events = events;
 	s->timeout = timeout;
 	s->cb = cb;
-	s->user_data = user_data;
+	s->cb_data = cb_data;
 	sources = new_sources;
 
 	if (timeout != source_timeout && timeout > 0

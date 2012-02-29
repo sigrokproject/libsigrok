@@ -691,7 +691,7 @@ static int hw_dev_config_set(int dev_index, int hwcap, void *value)
 	return ret;
 }
 
-static int receive_data(int fd, int revents, void *session_data)
+static int receive_data(int fd, int revents, void *cb_data)
 {
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
@@ -722,7 +722,7 @@ static int receive_data(int fd, int revents, void *session_data)
 		 * finished. We'll double that to 30ms to be sure...
 		 */
 		sr_source_remove(fd);
-		sr_source_add(fd, G_IO_IN, 30, receive_data, session_data);
+		sr_source_add(fd, G_IO_IN, 30, receive_data, cb_data);
 		ctx->raw_sample_buf = g_try_malloc(ctx->limit_samples * 4);
 		if (!ctx->raw_sample_buf) {
 			sr_err("ols: %s: ctx->raw_sample_buf malloc failed",
@@ -834,12 +834,12 @@ static int receive_data(int fd, int revents, void *session_data)
 				logic.unitsize = 4;
 				logic.data = ctx->raw_sample_buf +
 					(ctx->limit_samples - ctx->num_samples) * 4;
-				sr_session_send(session_data, &packet);
+				sr_session_send(cb_data, &packet);
 			}
 
 			/* send the trigger */
 			packet.type = SR_DF_TRIGGER;
-			sr_session_send(session_data, &packet);
+			sr_session_send(cb_data, &packet);
 
 			/* send post-trigger samples */
 			packet.type = SR_DF_LOGIC;
@@ -848,7 +848,7 @@ static int receive_data(int fd, int revents, void *session_data)
 			logic.unitsize = 4;
 			logic.data = ctx->raw_sample_buf + ctx->trigger_at * 4 +
 				(ctx->limit_samples - ctx->num_samples) * 4;
-			sr_session_send(session_data, &packet);
+			sr_session_send(cb_data, &packet);
 		} else {
 			/* no trigger was used */
 			packet.type = SR_DF_LOGIC;
@@ -857,20 +857,20 @@ static int receive_data(int fd, int revents, void *session_data)
 			logic.unitsize = 4;
 			logic.data = ctx->raw_sample_buf +
 				(ctx->limit_samples - ctx->num_samples) * 4;
-			sr_session_send(session_data, &packet);
+			sr_session_send(cb_data, &packet);
 		}
 		g_free(ctx->raw_sample_buf);
 
 		serial_flush(fd);
 		serial_close(fd);
 		packet.type = SR_DF_END;
-		sr_session_send(session_data, &packet);
+		sr_session_send(cb_data, &packet);
 	}
 
 	return TRUE;
 }
 
-static int hw_dev_acquisition_start(int dev_index, gpointer session_data)
+static int hw_dev_acquisition_start(int dev_index, void *session_data)
 {
 	struct sr_datafeed_packet *packet;
 	struct sr_datafeed_header *header;
@@ -1023,7 +1023,7 @@ static int hw_dev_acquisition_start(int dev_index, gpointer session_data)
 	return SR_OK;
 }
 
-static int hw_dev_acquisition_stop(int dev_index, gpointer session_dev_id)
+static int hw_dev_acquisition_stop(int dev_index, void *session_dev_id)
 {
 	struct sr_datafeed_packet packet;
 

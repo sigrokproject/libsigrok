@@ -77,7 +77,7 @@ static struct sr_samplerates fx2lafw_samplerates = {
 static GSList *dev_insts = NULL;
 static libusb_context *usb_context = NULL;
 
-static int hw_dev_acquisition_stop(int dev_index, gpointer session_dev_id);
+static int hw_dev_acquisition_stop(int dev_index, void *session_dev_id);
 
 /**
  * Check the USB configuration to determine if this is an fx2lafw device.
@@ -483,14 +483,14 @@ static int hw_dev_config_set(int dev_index, int hwcap, void *value)
 	return ret;
 }
 
-static int receive_data(int fd, int revents, void *user_data)
+static int receive_data(int fd, int revents, void *cb_data)
 {
 	struct timeval tv;
 
 	/* Avoid compiler warnings. */
 	(void)fd;
 	(void)revents;
-	(void)user_data;
+	(void)cb_data;
 
 	tv.tv_sec = tv.tv_usec = 0;
 	libusb_handle_events_timeout(usb_context, &tv);
@@ -575,7 +575,7 @@ static void receive_transfer(struct libusb_transfer *transfer)
 	}
 }
 
-static int hw_dev_acquisition_start(int dev_index, gpointer session_data)
+static int hw_dev_acquisition_start(int dev_index, void *session_data)
 {
 	struct sr_dev_inst *sdi;
 	struct sr_datafeed_packet *packet;
@@ -641,7 +641,7 @@ static int hw_dev_acquisition_start(int dev_index, gpointer session_data)
 }
 
 /* This stops acquisition on ALL devices, ignoring dev_index. */
-static int hw_dev_acquisition_stop(int dev_index, gpointer session_data)
+static int hw_dev_acquisition_stop(int dev_index, void *session_data)
 {
 	struct sr_datafeed_packet packet;
 

@@ -27,12 +27,12 @@ SR_API int sr_exit(void);
 
 /*--- log.c -----------------------------------------------------------------*/
 
-typedef int (*sr_log_handler_t)(void *data, int loglevel, const char *format,
+typedef int (*sr_log_handler_t)(void *cb_data, int loglevel, const char *format,
 				va_list args);
 
 SR_API int sr_log_loglevel_set(int loglevel);
 SR_API int sr_log_loglevel_get(void);
-SR_API int sr_log_handler_set(sr_log_handler_t handler, void *data);
+SR_API int sr_log_handler_set(sr_log_handler_t handler, void *cb_data);
 SR_API int sr_log_handler_set_default(void);
 SR_API int sr_log_logdomain_set(const char *logdomain);
 SR_API char *sr_log_logdomain_get(void);
@@ -99,7 +99,7 @@ SR_API int sr_session_halt(void);
 SR_API int sr_session_stop(void);
 SR_API int sr_session_save(const char *filename);
 SR_API int sr_session_source_add(int fd, int events, int timeout,
-		sr_receive_data_callback_t cb, void *user_data);
+		sr_receive_data_callback_t cb, void *cb_data);
 SR_API int sr_session_source_remove(int fd);
 
 /*--- input/input.c ---------------------------------------------------------*/

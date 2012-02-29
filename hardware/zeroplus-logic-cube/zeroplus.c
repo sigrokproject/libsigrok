@@ -613,7 +613,7 @@ static int hw_dev_config_set(int dev_index, int hwcap, void *value)
 	}
 }
 
-static int hw_dev_acquisition_start(int dev_index, gpointer session_data)
+static int hw_dev_acquisition_start(int dev_index, void *session_data)
 {
 	struct sr_dev_inst *sdi;
 	struct sr_datafeed_packet packet;
@@ -689,7 +689,7 @@ static int hw_dev_acquisition_start(int dev_index, gpointer session_data)
 }
 
 /* This stops acquisition on ALL devices, ignoring dev_index. */
-static int hw_dev_acquisition_stop(int dev_index, gpointer session_dev_id)
+static int hw_dev_acquisition_stop(int dev_index, void *session_dev_id)
 {
 	struct sr_datafeed_packet packet;
 	struct sr_dev_inst *sdi;

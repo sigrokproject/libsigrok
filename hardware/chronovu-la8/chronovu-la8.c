@@ -138,7 +138,7 @@ static int hwcaps[] = {
 
 /* Function prototypes. */
 static int la8_close_usb_reset_sequencer(struct context *ctx);
-static int hw_dev_acquisition_stop(int dev_index, gpointer session_data);
+static int hw_dev_acquisition_stop(int dev_index, void *session_data);
 static int la8_reset(struct context *ctx);
 
 static void fill_supported_samplerates_if_needed(void)
@@ -960,7 +960,7 @@ static void send_block_to_session_bus(struct context *ctx, int block)
 	}
 }
 
-static int receive_data(int fd, int revents, void *session_data)
+static int receive_data(int fd, int revents, void *cb_data)
 {
 	int i, ret;
 	struct sr_dev_inst *sdi;
@@ -970,8 +970,8 @@ static int receive_data(int fd, int revents, void *session_data)
 	(void)fd;
 	(void)revents;
 
-	if (!(sdi = session_data)) {
-		sr_err("la8: %s: session_data was NULL", __func__);
+	if (!(sdi = cb_data)) {
+		sr_err("la8: %s: cb_data was NULL", __func__);
 		return FALSE;
 	}
 
@@ -988,7 +988,7 @@ static int receive_data(int fd, int revents, void *session_data)
 	/* Get one block of data. */
 	if ((ret = la8_read_block(ctx)) < 0) {
 		sr_err("la8: %s: la8_read_block error: %d", __func__, ret);
-		hw_dev_acquisition_stop(sdi->index, session_data);
+		hw_dev_acquisition_stop(sdi->index, sdi);
 		return FALSE;
 	}
 
@@ -1004,13 +1004,13 @@ static int receive_data(int fd, int revents, void *session_data)
 	for (i = 0; i < NUM_BLOCKS; i++)
 		send_block_to_session_bus(ctx, i);
 
-	hw_dev_acquisition_stop(sdi->index, session_data);
+	hw_dev_acquisition_stop(sdi->index, sdi);
 
 	// return FALSE; /* FIXME? */
 	return TRUE;
 }
 
-static int hw_dev_acquisition_start(int dev_index, gpointer session_data)
+static int hw_dev_acquisition_start(int dev_index, void *session_data)
 {
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
@@ -1085,7 +1085,7 @@ static int hw_dev_acquisition_start(int dev_index, gpointer session_data)
 	return SR_OK;
 }
 
-static int hw_dev_acquisition_stop(int dev_index, gpointer session_data)
+static int hw_dev_acquisition_stop(int dev_index, void *session_data)
 {
 	struct sr_dev_inst *sdi;
 	struct context *ctx;

@@ -235,9 +235,9 @@ static int hw_dev_config_set(int dev_index, int hwcap, void *value)
 	}
 }
 
-static int receive_data(int fd, int revents, void *user_data)
+static int receive_data(int fd, int revents, void *cb_data)
 {
-	struct sr_dev_inst *sdi = user_data;
+	struct sr_dev_inst *sdi = cb_data;
 	struct context *ctx = sdi->priv;
 	struct sr_datafeed_packet packet;
 	struct sr_analog_sample *sample;
@@ -281,19 +281,19 @@ static int receive_data(int fd, int revents, void *user_data)
 		packet.length = count * sample_size;
 		packet.unitsize = sample_size;
 		packet.payload = outb;
-		sr_session_send(user_data, &packet);
+		sr_session_send(sdi, &packet);
 		g_free(outb);
 		ctx->limit_samples -= count;
 
 	} while (ctx->limit_samples > 0);
 
 	packet.type = SR_DF_END;
-	sr_session_send(user_data, &packet);
+	sr_session_send(sdi, &packet);
 
 	return TRUE;
 }
 
-static int hw_dev_acquisition_start(int dev_index, gpointer session_dev_id)
+static int hw_dev_acquisition_start(int dev_index, void *session_dev_id)
 {
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
@@ -386,7 +386,7 @@ static int hw_dev_acquisition_start(int dev_index, gpointer session_dev_id)
 	return SR_OK;
 }
 
-static int hw_dev_acquisition_stop(int dev_index, gpointer session_dev_id)
+static int hw_dev_acquisition_stop(int dev_index, void *session_dev_id)
 {
 	/* Avoid compiler warnings. */
 	dev_index = dev_index;

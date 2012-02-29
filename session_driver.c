@@ -269,7 +269,7 @@ static int hw_dev_config_set(int dev_index, int hwcap, void *value)
 	return SR_OK;
 }
 
-static int hw_dev_acquisition_start(int dev_index, gpointer session_dev_id)
+static int hw_dev_acquisition_start(int dev_index, void *session_dev_id)
 {
 	struct zip_stat zs;
 	struct session_vdev *vdev;

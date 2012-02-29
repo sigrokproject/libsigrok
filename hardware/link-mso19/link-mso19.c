@@ -681,9 +681,9 @@ static int hw_dev_config_set(int dev_index, int hwcap, void *value)
 #define MSO_TRIGGER_DATAREADY	'6'
 
 /* FIXME: Pass errors? */
-static int receive_data(int fd, int revents, void *user_data)
+static int receive_data(int fd, int revents, void *cb_data)
 {
-	struct sr_dev_inst *sdi = user_data;
+	struct sr_dev_inst *sdi = cb_data;
 	struct context *ctx = sdi->priv;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
@@ -748,7 +748,7 @@ static int receive_data(int fd, int revents, void *user_data)
 	return TRUE;
 }
 
-static int hw_dev_acquisition_start(int dev_index, gpointer session_dev_id)
+static int hw_dev_acquisition_start(int dev_index, void *session_dev_id)
 {
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
@@ -822,7 +822,7 @@ static int hw_dev_acquisition_start(int dev_index, gpointer session_dev_id)
 }
 
 /* FIXME */
-static int hw_dev_acquisition_stop(int dev_index, gpointer session_dev_id)
+static int hw_dev_acquisition_stop(int dev_index, void *session_dev_id)
 {
 	struct sr_datafeed_packet packet;
 

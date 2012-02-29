@@ -92,7 +92,7 @@ extern "C" {
 /* Marks private, non-public libsigrok symbols (not part of the API). */
 #define SR_PRIV __attribute__((visibility("hidden")))
 
-typedef int (*sr_receive_data_callback_t)(int fd, int revents, void *user_data);
+typedef int (*sr_receive_data_callback_t)(int fd, int revents, void *cb_data);
 
 /* Data types used by hardware drivers for dev_config_set() */
 enum {
@@ -353,8 +353,8 @@ struct sr_dev_driver {
 	int (*dev_status_get) (int dev_index);
 	int *(*hwcap_get_all) (void);
 	int (*dev_config_set) (int dev_index, int hwcap, void *value);
-	int (*dev_acquisition_start) (int dev_index, gpointer session_dev_id);
-	int (*dev_acquisition_stop) (int dev_index, gpointer session_dev_id);
+	int (*dev_acquisition_start) (int dev_index, void *session_dev_id);
+	int (*dev_acquisition_stop) (int dev_index, void *session_dev_id);
 };
 
 struct sr_session {
