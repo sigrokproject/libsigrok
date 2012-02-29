@@ -111,7 +111,6 @@ SR_API int sr_datastore_destroy(struct sr_datastore *ds)
  *       of struct sr_datastore (instead of hardcoding DATASTORE_CHUNKSIZE).
  * TODO: in_unitsize and probelist are unused?
  * TODO: A few of the parameters can be const.
- * TODO: Handle new_chunk() returning NULL.
  * TODO: Ideally, 'ds' should be unmodified upon errors.
  *
  * @param ds Pointer to the datastore which shall receive the data.
@@ -168,10 +167,14 @@ SR_API int sr_datastore_put(struct sr_datastore *ds, void *data,
 	}
 
 	/* Get the last chunk in the list, or create a new one if needed. */
-	if (ds->chunklist == NULL)
-		chunk = new_chunk(&ds);
-	else
+	if (ds->chunklist == NULL) {
+		if (!(chunk = new_chunk(&ds))) {
+			sr_err("ds: %s: couldn't allocate new chunk", __func__);
+			return SR_ERR_MALLOC;
+		}
+	} else {
 		chunk = g_slist_last(ds->chunklist)->data;
+	}
 
 	/* Get/calculate number of chunks, free space, etc. */
 	num_chunks = g_slist_length(ds->chunklist);
@@ -184,7 +187,11 @@ SR_API int sr_datastore_put(struct sr_datastore *ds, void *data,
 	while (stored < length) {
 		/* No more free space left, allocate a new chunk. */
 		if (chunk_bytes_free == 0) {
-			chunk = new_chunk(&ds);
+			if (!(chunk = new_chunk(&ds))) {
+				sr_err("ds: %s: couldn't allocate new chunk",
+				       __func__);
+				return SR_ERR_MALLOC;
+			}
 			chunk_bytes_free = DATASTORE_CHUNKSIZE;
 			chunk_offset = 0;
 		}
@@ -226,10 +233,7 @@ static gpointer new_chunk(struct sr_datastore **ds)
 {
 	gpointer chunk;
 
-	if (!ds) {
-		sr_err("ds: %s: ds was NULL", __func__);
-		return NULL; /* TODO: SR_ERR_ARG later? */
-	}
+	/* Note: Caller checked that ds != NULL. */
 
 	chunk = g_try_malloc0(DATASTORE_CHUNKSIZE * (*ds)->ds_unitsize);
 	if (!chunk) {
