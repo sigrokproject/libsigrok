@@ -99,14 +99,11 @@ static struct sr_dev_driver *drivers_list[] = {
 };
 
 /**
- * Return the list of loaded hardware drivers.
- *
- * The list of drivers is initialized from sr_init(), and can only be reset
- * by calling sr_exit().
+ * Return the list of supported hardware drivers.
  *
  * @return Pointer to the NULL-terminated list of hardware driver pointers.
  */
-SR_API struct sr_dev_driver **sr_hw_list(void)
+SR_API struct sr_dev_driver **sr_driver_list(void)
 {
 	return drivers_list;
 }
@@ -121,7 +118,7 @@ SR_API struct sr_dev_driver **sr_hw_list(void)
  *
  * @return The number of devices found and instantiated by the driver.
  */
-SR_API int sr_hw_init(struct sr_dev_driver *driver)
+SR_API int sr_driver_init(struct sr_dev_driver *driver)
 {
 	int num_devs, num_probes, i, j;
 	int num_initialized_devs = 0;
@@ -156,7 +153,7 @@ SR_PRIV void sr_hw_cleanup_all(void)
 	int i;
 	struct sr_dev_driver **drivers;
 
-	drivers = sr_hw_list();
+	drivers = sr_driver_list();
 	for (i = 0; drivers[i]; i++) {
 		if (drivers[i]->cleanup)
 			drivers[i]->cleanup();
@@ -268,7 +265,7 @@ SR_PRIV void sr_serial_dev_inst_free(struct sr_serial_dev_inst *serial)
  *         FALSE otherwise. Also, if 'driver' is NULL or the respective driver
  *         returns an invalid capability list, FALSE is returned.
  */
-SR_API gboolean sr_hw_has_hwcap(struct sr_dev_driver *driver, int hwcap)
+SR_API gboolean sr_driver_hwcap_exists(struct sr_dev_driver *driver, int hwcap)
 {
 	int *hwcaps, i;
 

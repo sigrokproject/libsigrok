@@ -62,7 +62,7 @@ SR_API int sr_dev_scan(void)
 	int i;
 	struct sr_dev_driver **drivers;
 
-	drivers = sr_hw_list();
+	drivers = sr_driver_list();
 	if (!drivers[0]) {
 		sr_err("dev: %s: no supported hardware drivers", __func__);
 		return SR_ERR; /* TODO: More specific error? */
@@ -74,7 +74,7 @@ SR_API int sr_dev_scan(void)
 	 * of these out of the way first.
 	 */
 	for (i = 0; drivers[i]; i++)
-		sr_hw_init(drivers[i]);
+		sr_driver_init(drivers[i]);
 
 	return SR_OK;
 }

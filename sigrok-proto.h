@@ -71,15 +71,15 @@ SR_API int sr_filter_probes(int in_unitsize, int out_unitsize,
 
 /*--- hwdriver.c ------------------------------------------------------------*/
 
-SR_API struct sr_dev_driver **sr_hw_list(void);
-SR_API int sr_hw_init(struct sr_dev_driver *driver);
-SR_API gboolean sr_hw_has_hwcap(struct sr_dev_driver *driver, int hwcap);
+SR_API struct sr_dev_driver **sr_driver_list(void);
+SR_API int sr_driver_init(struct sr_dev_driver *driver);
+SR_API gboolean sr_driver_hwcap_exists(struct sr_dev_driver *driver, int hwcap);
 SR_API struct sr_hwcap_option *sr_hw_hwcap_get(int hwcap);
 
 /*--- session.c -------------------------------------------------------------*/
 
-typedef void (*sr_datafeed_callback) (struct sr_dev *dev,
-				      struct sr_datafeed_packet *packet);
+typedef void (*sr_datafeed_callback)(struct sr_dev *dev,
+				     struct sr_datafeed_packet *packet);
 
 /* Session setup */
 SR_API int sr_session_load(const char *filename);
