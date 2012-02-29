@@ -32,7 +32,7 @@ struct source {
 	int fd;
 	int events;
 	int timeout;
-	sr_receive_data_callback cb;
+	sr_receive_data_callback_t cb;
 	void *user_data;
 };
 
@@ -174,21 +174,21 @@ SR_API int sr_session_datafeed_callback_clear(void)
 /**
  * Add a datafeed callback to the current session.
  *
- * @param callback Function to call when a chunk of data is received.
+ * @param cb Function to call when a chunk of data is received.
  *
  * @return SR_OK upon success, SR_ERR_BUG if no session exists.
  */
-SR_API int sr_session_datafeed_callback_add(sr_datafeed_callback callback)
+SR_API int sr_session_datafeed_callback_add(sr_datafeed_callback_t cb)
 {
 	if (!session) {
 		sr_err("session: %s: session was NULL", __func__);
 		return SR_ERR_BUG;
 	}
 
-	/* TODO: Is 'callback' allowed to be NULL? */
+	/* TODO: Is 'cb' allowed to be NULL? */
 
 	session->datafeed_callbacks =
-	    g_slist_append(session->datafeed_callbacks, callback);
+	    g_slist_append(session->datafeed_callbacks, cb);
 
 	return SR_OK;
 }
@@ -427,7 +427,7 @@ SR_PRIV int sr_session_bus(struct sr_dev *dev,
 			   struct sr_datafeed_packet *packet)
 {
 	GSList *l;
-	sr_datafeed_callback cb;
+	sr_datafeed_callback_t cb;
 
 	if (!dev) {
 		sr_err("session: %s: dev was NULL", __func__);
@@ -463,19 +463,19 @@ SR_PRIV int sr_session_bus(struct sr_dev *dev,
  * @param fd TODO.
  * @param events TODO.
  * @param timeout TODO.
- * @param callback TODO.
+ * @param cb TODO.
  * @param user_data TODO.
  *
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or
  *         SR_ERR_MALLOC upon memory allocation errors.
  */
 SR_API int sr_session_source_add(int fd, int events, int timeout,
-		sr_receive_data_callback callback, void *user_data)
+		sr_receive_data_callback_t cb, void *user_data)
 {
 	struct source *new_sources, *s;
 
-	if (!callback) {
-		sr_err("session: %s: callback was NULL", __func__);
+	if (!cb) {
+		sr_err("session: %s: cb was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
@@ -497,7 +497,7 @@ SR_API int sr_session_source_add(int fd, int events, int timeout,
 	s->fd = fd;
 	s->events = events;
 	s->timeout = timeout;
-	s->cb = callback;
+	s->cb = cb;
 	s->user_data = user_data;
 	sources = new_sources;
 

@@ -78,8 +78,8 @@ SR_API struct sr_hwcap_option *sr_hw_hwcap_get(int hwcap);
 
 /*--- session.c -------------------------------------------------------------*/
 
-typedef void (*sr_datafeed_callback)(struct sr_dev *dev,
-				     struct sr_datafeed_packet *packet);
+typedef void (*sr_datafeed_callback_t)(struct sr_dev *dev,
+				       struct sr_datafeed_packet *packet);
 
 /* Session setup */
 SR_API int sr_session_load(const char *filename);
@@ -90,7 +90,7 @@ SR_API int sr_session_dev_add(struct sr_dev *dev);
 
 /* Datafeed setup */
 SR_API int sr_session_datafeed_callback_clear(void);
-SR_API int sr_session_datafeed_callback_add(sr_datafeed_callback callback);
+SR_API int sr_session_datafeed_callback_add(sr_datafeed_callback_t cb);
 
 /* Session control */
 SR_API int sr_session_start(void);
@@ -99,7 +99,7 @@ SR_API int sr_session_halt(void);
 SR_API int sr_session_stop(void);
 SR_API int sr_session_save(const char *filename);
 SR_API int sr_session_source_add(int fd, int events, int timeout,
-		sr_receive_data_callback callback, void *user_data);
+		sr_receive_data_callback_t cb, void *user_data);
 SR_API int sr_session_source_remove(int fd);
 
 /*--- input/input.c ---------------------------------------------------------*/

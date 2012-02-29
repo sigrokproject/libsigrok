@@ -93,7 +93,7 @@ SR_PRIV void sr_dev_inst_free(struct sr_dev_inst *sdi);
 
 SR_PRIV void sr_source_remove(int fd);
 SR_PRIV void sr_source_add(int fd, int events, int timeout,
-			   sr_receive_data_callback rcv_cb, void *user_data);
+			   sr_receive_data_callback_t cb, void *user_data);
 
 /*--- hardware/common/serial.c ----------------------------------------------*/
 

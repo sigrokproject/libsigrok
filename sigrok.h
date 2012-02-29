@@ -92,7 +92,7 @@ extern "C" {
 /* Marks private, non-public libsigrok symbols (not part of the API). */
 #define SR_PRIV __attribute__((visibility("hidden")))
 
-typedef int (*sr_receive_data_callback) (int fd, int revents, void *user_data);
+typedef int (*sr_receive_data_callback_t)(int fd, int revents, void *user_data);
 
 /* Data types used by hardware drivers for dev_config_set() */
 enum {
@@ -360,7 +360,7 @@ struct sr_dev_driver {
 struct sr_session {
 	/* List of struct sr_dev* */
 	GSList *devs;
-	/* list of sr_receive_data_callback */
+	/* list of sr_receive_data_callback_t */
 	GSList *datafeed_callbacks;
 	GTimeVal starttime;
 	gboolean running;
