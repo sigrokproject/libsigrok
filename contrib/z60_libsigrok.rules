@@ -56,6 +56,14 @@ ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", MODE="664", GROUP="plugdev"
 # lsusb: "08a9:0009" (no string for the vendor name available)
 ATTRS{idVendor}=="08a9", ATTRS{idProduct}=="0009", MODE="664", GROUP="plugdev"
 
+# CWAV USBee AX
+# http://www.usbee.com/ax.html
+# lsusb: "08a9:0014" (no string for the vendor name available)
+#
+# EE Electronics ESLA201A
+# http://eeelec.com/xla/
+ATTRS{idVendor}=="08a9", ATTRS{idProduct}=="0014", MODE="664", GROUP="plugdev"
+
 # Ikalogic SCANALOGIC-2 PRO
 # http://www.ikalogic.com/scanalogic2/
 # lsusb: "20a0:4123"
