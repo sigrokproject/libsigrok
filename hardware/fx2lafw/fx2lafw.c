@@ -26,6 +26,7 @@
 #include "sigrok.h"
 #include "sigrok-internal.h"
 #include "fx2lafw.h"
+#include "command.h"
 
 static struct fx2lafw_profile supported_fx2[] = {
 	/* USBee AX */
@@ -590,7 +591,7 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 	struct context *ctx;
 	struct libusb_transfer *transfer;
 	const struct libusb_pollfd **lupfd;
-	int size, i;
+	int err, size, i;
 	unsigned char *buf;
 
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
@@ -606,6 +607,10 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 	if (!(header = g_try_malloc(sizeof(struct sr_datafeed_header)))) {
 		sr_err("fx2lafw: %s: header malloc failed", __func__);
 		return SR_ERR_MALLOC;
+	}
+
+	if ((err = command_start_acquisition (ctx->usb->devhdl)) != SR_OK) {
+		return err;
 	}
 
 	/* Start with 2K transfer, subsequently increased to 4K. */

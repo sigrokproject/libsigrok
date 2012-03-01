@@ -25,6 +25,8 @@ AM_CPPFLAGS = -DFIRMWARE_DIR='"$(FIRMWARE_DIR)"'
 noinst_LTLIBRARIES = libsigrokhwfx2lafw.la
 
 libsigrokhwfx2lafw_la_SOURCES = \
+	command.c \
+	command.h \
 	fx2lafw.c \
 	fx2lafw.h
 
