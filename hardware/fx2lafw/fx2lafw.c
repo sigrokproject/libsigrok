@@ -165,8 +165,8 @@ static int fx2lafw_open_dev(int dev_index)
 			continue;
 		}
 
-		if (des.idVendor != FIRMWARE_VID
-		    || des.idProduct != FIRMWARE_PID)
+		if (des.idVendor != ctx->profile->vid
+		    || des.idProduct != ctx->profile->pid)
 			continue;
 
 		if (sdi->status == SR_ST_INITIALIZING) {
