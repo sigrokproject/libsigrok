@@ -55,6 +55,8 @@ struct context {
 	uint64_t cur_samplerate;
 	uint64_t limit_samples;
 
+	int num_samples;
+
 	void *session_dev_id;
 
 	struct sr_usb_dev_inst *usb;
