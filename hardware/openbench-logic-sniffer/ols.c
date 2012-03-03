@@ -870,7 +870,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 	return TRUE;
 }
 
-static int hw_dev_acquisition_start(int dev_index, void *session_data)
+static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 {
 	struct sr_datafeed_packet *packet;
 	struct sr_datafeed_header *header;
@@ -995,7 +995,7 @@ static int hw_dev_acquisition_start(int dev_index, void *session_data)
 		return SR_ERR;
 
 	sr_source_add(ctx->serial->fd, G_IO_IN, -1, receive_data,
-		      session_data);
+		      cb_data);
 
 	if (!(packet = g_try_malloc(sizeof(struct sr_datafeed_packet)))) {
 		sr_err("ols: %s: packet malloc failed", __func__);
@@ -1015,7 +1015,7 @@ static int hw_dev_acquisition_start(int dev_index, void *session_data)
 	gettimeofday(&header->starttime, NULL);
 	header->samplerate = ctx->cur_samplerate;
 	header->num_logic_probes = NUM_PROBES;
-	sr_session_send(session_data, packet);
+	sr_session_send(cb_data, packet);
 
 	g_free(header);
 	g_free(packet);
@@ -1023,7 +1023,8 @@ static int hw_dev_acquisition_start(int dev_index, void *session_data)
 	return SR_OK;
 }
 
-static int hw_dev_acquisition_stop(int dev_index, void *session_dev_id)
+/* TODO: This stops acquisition on ALL devices, ignoring dev_index. */
+static int hw_dev_acquisition_stop(int dev_index, void *cb_data)
 {
 	struct sr_datafeed_packet packet;
 
@@ -1031,7 +1032,7 @@ static int hw_dev_acquisition_stop(int dev_index, void *session_dev_id)
 	(void)dev_index;
 
 	packet.type = SR_DF_END;
-	sr_session_send(session_dev_id, &packet);
+	sr_session_send(cb_data, &packet);
 
 	return SR_OK;
 }

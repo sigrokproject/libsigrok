@@ -63,7 +63,7 @@ struct context {
 	uint64_t limit_samples;
 	snd_pcm_t *capture_handle;
 	snd_pcm_hw_params_t *hw_params;
-	gpointer session_id;
+	void *session_dev_id;
 };
 
 static int hw_init(const char *devinfo)
@@ -293,7 +293,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 	return TRUE;
 }
 
-static int hw_dev_acquisition_start(int dev_index, void *session_dev_id)
+static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 {
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
@@ -368,7 +368,7 @@ static int hw_dev_acquisition_start(int dev_index, void *session_dev_id)
 		return SR_ERR;
 	}
 
-	ctx->session_id = session_dev_id;
+	ctx->session_dev_id = cb_data;
 	sr_source_add(ufds[0].fd, ufds[0].events, 10, receive_data, sdi);
 
 	packet.type = SR_DF_HEADER;
@@ -380,17 +380,18 @@ static int hw_dev_acquisition_start(int dev_index, void *session_dev_id)
 	header.num_analog_probes = NUM_PROBES;
 	header.num_logic_probes = 0;
 	header.protocol_id = SR_PROTO_RAW;
-	sr_session_send(session_dev_id, &packet);
+	sr_session_send(cb_data, &packet);
 	g_free(ufds);
 
 	return SR_OK;
 }
 
-static int hw_dev_acquisition_stop(int dev_index, void *session_dev_id)
+/* TODO: This stops acquisition on ALL devices, ignoring dev_index. */
+static int hw_dev_acquisition_stop(int dev_index, void *cb_data)
 {
 	/* Avoid compiler warnings. */
-	dev_index = dev_index;
-	session_dev_id = session_dev_id;
+	(void)dev_index;
+	(void)cb_data;
 
 	return SR_OK;
 }

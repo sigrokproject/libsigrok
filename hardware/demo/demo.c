@@ -72,7 +72,7 @@ struct databag {
 	uint8_t thread_running;
 	uint64_t samples_counter;
 	int dev_index;
-	gpointer session_data;
+	void *session_dev_id;
 	GTimer *timer;
 };
 
@@ -138,7 +138,7 @@ static int default_pattern = PATTERN_SIGROK;
 static GThread *my_thread;
 static int thread_running;
 
-static int hw_dev_acquisition_stop(int dev_index, void *session_data);
+static int hw_dev_acquisition_stop(int dev_index, void *cb_data);
 
 static int hw_init(const char *devinfo)
 {
@@ -409,7 +409,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 	return TRUE;
 }
 
-static int hw_dev_acquisition_start(int dev_index, void *session_data)
+static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 {
 	struct sr_datafeed_packet *packet;
 	struct sr_datafeed_header *header;
@@ -422,7 +422,7 @@ static int hw_dev_acquisition_start(int dev_index, void *session_data)
 	}
 
 	mydata->sample_generator = default_pattern;
-	mydata->session_data = session_data;
+	mydata->session_dev_id = cb_data;
 	mydata->dev_index = dev_index;
 	mydata->samples_counter = 0;
 
@@ -444,7 +444,7 @@ static int hw_dev_acquisition_start(int dev_index, void *session_data)
 	g_io_channel_set_buffered(channels[1], FALSE);
 
 	sr_source_add(mydata->pipe_fds[0], G_IO_IN | G_IO_ERR, 40,
-		      receive_data, session_data);
+		      receive_data, mydata->session_dev_id);
 
 	/* Run the demo thread. */
 	g_thread_init(NULL);
@@ -474,18 +474,19 @@ static int hw_dev_acquisition_start(int dev_index, void *session_data)
 	gettimeofday(&header->starttime, NULL);
 	header->samplerate = cur_samplerate;
 	header->num_logic_probes = NUM_PROBES;
-	sr_session_send(session_data, packet);
+	sr_session_send(mydata->session_dev_id, packet);
 	g_free(header);
 	g_free(packet);
 
 	return SR_OK;
 }
 
-static int hw_dev_acquisition_stop(int dev_index, void *session_data)
+/* TODO: This stops acquisition on ALL devices, ignoring dev_index. */
+static int hw_dev_acquisition_stop(int dev_index, void *cb_data)
 {
 	/* Avoid compiler warnings. */
 	(void)dev_index;
-	(void)session_data;
+	(void)cb_data;
 
 	/* Stop generate thread. */
 	thread_running = 0;

@@ -552,7 +552,7 @@ static void receive_transfer(struct libusb_transfer *transfer)
 			 * The FX2 gave up. End the acquisition, the frontend
 			 * will work out that the samplecount is short.
 			 */
-			hw_dev_acquisition_stop(-1, ctx->session_data);
+			hw_dev_acquisition_stop(-1, ctx->session_dev_id);
 		}
 		return;
 	} else {
@@ -565,17 +565,17 @@ static void receive_transfer(struct libusb_transfer *transfer)
 	logic.length = cur_buflen;
 	logic.unitsize = 1;
 	logic.data = cur_buf;
-	sr_session_send(ctx->session_data, &packet);
+	sr_session_send(ctx->session_dev_id, &packet);
 	g_free(cur_buf);
 
 	num_samples += cur_buflen;
 	if (ctx->limit_samples &&
 		(unsigned int) num_samples > ctx->limit_samples) {
-		hw_dev_acquisition_stop(-1, ctx->session_data);
+		hw_dev_acquisition_stop(-1, ctx->session_dev_id);
 	}
 }
 
-static int hw_dev_acquisition_start(int dev_index, void *session_data)
+static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 {
 	struct sr_dev_inst *sdi;
 	struct sr_datafeed_packet *packet;
@@ -589,7 +589,7 @@ static int hw_dev_acquisition_start(int dev_index, void *session_data)
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return SR_ERR;
 	ctx = sdi->priv;
-	ctx->session_data = session_data;
+	ctx->session_dev_id = cb_data;
 
 	if (!(packet = g_try_malloc(sizeof(struct sr_datafeed_packet)))) {
 		sr_err("fx2lafw: %s: packet malloc failed", __func__);
@@ -633,15 +633,15 @@ static int hw_dev_acquisition_start(int dev_index, void *session_data)
 	gettimeofday(&header->starttime, NULL);
 	header->samplerate = 24000000UL;
 	header->num_logic_probes = ctx->profile->num_probes;
-	sr_session_send(session_data, packet);
+	sr_session_send(session_dev_id, packet);
 	g_free(header);
 	g_free(packet);
 
 	return SR_OK;
 }
 
-/* This stops acquisition on ALL devices, ignoring dev_index. */
-static int hw_dev_acquisition_stop(int dev_index, void *session_data)
+/* TODO: This stops acquisition on ALL devices, ignoring dev_index. */
+static int hw_dev_acquisition_stop(int dev_index, void *session_dev_id)
 {
 	struct sr_datafeed_packet packet;
 
@@ -649,7 +649,7 @@ static int hw_dev_acquisition_stop(int dev_index, void *session_data)
 	(void)dev_index;
 
 	packet.type = SR_DF_END;
-	sr_session_send(session_data, &packet);
+	sr_session_send(session_dev_id, &packet);
 
 	receive_transfer(NULL);
 

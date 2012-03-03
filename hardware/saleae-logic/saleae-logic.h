@@ -69,7 +69,7 @@ struct context {
 	 * opaque session data passed in by the frontend, will be passed back
 	 * on the session bus along with samples.
 	 */
-	void *session_data;
+	void *session_dev_id;
 
 	struct sr_usb_dev_inst *usb;
 };

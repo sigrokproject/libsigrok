@@ -57,7 +57,7 @@ struct context {
 	/* Device/Capture Settings */
 	uint64_t limit_samples;
 
-	void *session_data;
+	void *session_dev_id;
 
 	struct sr_usb_dev_inst *usb;
 };

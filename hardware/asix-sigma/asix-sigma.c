@@ -123,7 +123,7 @@ static const char *firmware_files[] = {
 	"asix-sigma-phasor.fw",	/* Frequency counter */
 };
 
-static int hw_dev_acquisition_stop(int dev_index, void *session_data);
+static int hw_dev_acquisition_stop(int dev_index, void *cb_data);
 
 static int sigma_read(void *buf, size_t size, struct context *ctx)
 {
@@ -879,9 +879,9 @@ static int get_trigger_offset(uint16_t *samples, uint16_t last_sample,
  */
 static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 			   uint16_t *lastsample, int triggerpos,
-			   uint16_t limit_chunk, void *session_data)
+			   uint16_t limit_chunk, void *cb_data)
 {
-	struct sr_dev_inst *sdi = session_data;
+	struct sr_dev_inst *sdi = cb_data;
 	struct context *ctx = sdi->priv;
 	uint16_t tsdiff, ts;
 	uint16_t samples[65536 * ctx->samples_per_event];
@@ -935,7 +935,7 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 			logic.length = tosend * sizeof(uint16_t);
 			logic.unitsize = 2;
 			logic.data = samples + sent;
-			sr_session_send(ctx->session_id, &packet);
+			sr_session_send(ctx->session_dev_id, &packet);
 
 			sent += tosend;
 		}
@@ -978,7 +978,7 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 				logic.length = tosend * sizeof(uint16_t);
 				logic.unitsize = 2;
 				logic.data = samples;
-				sr_session_send(ctx->session_id, &packet);
+				sr_session_send(ctx->session_dev_id, &packet);
 
 				sent += tosend;
 			}
@@ -986,7 +986,7 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 			/* Only send trigger if explicitly enabled. */
 			if (ctx->use_triggers) {
 				packet.type = SR_DF_TRIGGER;
-				sr_session_send(ctx->session_id, &packet);
+				sr_session_send(ctx->session_dev_id, &packet);
 			}
 		}
 
@@ -999,7 +999,7 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 			logic.length = tosend * sizeof(uint16_t);
 			logic.unitsize = 2;
 			logic.data = samples + sent;
-			sr_session_send(ctx->session_id, &packet);
+			sr_session_send(ctx->session_dev_id, &packet);
 		}
 
 		*lastsample = samples[n - 1];
@@ -1044,7 +1044,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 		if (ctx->state.chunks_downloaded >= numchunks) {
 			/* End of samples. */
 			packet.type = SR_DF_END;
-			sr_session_send(ctx->session_id, &packet);
+			sr_session_send(ctx->session_dev_id, &packet);
 
 			ctx->state.state = SIGMA_IDLE;
 
@@ -1254,7 +1254,7 @@ static int build_basic_trigger(struct triggerlut *lut, struct context *ctx)
 	return SR_OK;
 }
 
-static int hw_dev_acquisition_start(int dev_index, void *session_data)
+static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 {
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
@@ -1349,7 +1349,7 @@ static int hw_dev_acquisition_start(int dev_index, void *session_data)
 	gettimeofday(&ctx->start_tv, 0);
 	sigma_set_register(WRITE_MODE, 0x0d, ctx);
 
-	ctx->session_id = session_data;
+	ctx->session_dev_id = cb_data;
 
 	/* Send header packet to the session bus. */
 	packet.type = SR_DF_HEADER;
@@ -1358,7 +1358,7 @@ static int hw_dev_acquisition_start(int dev_index, void *session_data)
 	gettimeofday(&header.starttime, NULL);
 	header.samplerate = ctx->cur_samplerate;
 	header.num_logic_probes = ctx->num_probes;
-	sr_session_send(session_data, &packet);
+	sr_session_send(ctx->session_dev_id, &packet);
 
 	/* Add capture source. */
 	sr_source_add(0, G_IO_IN, 10, receive_data, sdi);
@@ -1368,14 +1368,14 @@ static int hw_dev_acquisition_start(int dev_index, void *session_data)
 	return SR_OK;
 }
 
-static int hw_dev_acquisition_stop(int dev_index, void *session_data)
+static int hw_dev_acquisition_stop(int dev_index, void *cb_data)
 {
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
 	uint8_t modestatus;
 
 	/* Avoid compiler warnings. */
-	(void)session_data;
+	(void)cb_data;
 
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index))) {
 		sr_err("sigma: %s: sdi was NULL", __func__);

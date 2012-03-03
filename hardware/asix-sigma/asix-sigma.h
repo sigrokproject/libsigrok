@@ -187,7 +187,7 @@ struct context {
 	struct sigma_trigger trigger;
 	int use_triggers;
 	struct sigma_state state;
-	gpointer session_id;
+	void *session_dev_id;
 };
 
 #endif

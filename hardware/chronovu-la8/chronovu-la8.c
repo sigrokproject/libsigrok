@@ -70,7 +70,7 @@ struct context {
 	uint64_t limit_samples;
 
 	/** TODO */
-	gpointer session_id;
+	void *session_dev_id;
 
 	/**
 	 * A buffer containing some (mangled) samples from the device.
@@ -138,7 +138,7 @@ static int hwcaps[] = {
 
 /* Function prototypes. */
 static int la8_close_usb_reset_sequencer(struct context *ctx);
-static int hw_dev_acquisition_stop(int dev_index, void *session_data);
+static int hw_dev_acquisition_stop(int dev_index, void *cb_data);
 static int la8_reset(struct context *ctx);
 
 static void fill_supported_samplerates_if_needed(void)
@@ -479,7 +479,7 @@ static int hw_init(const char *devinfo)
 	ctx->cur_samplerate = SR_MHZ(100); /* 100MHz == max. samplerate */
 	ctx->limit_msec = 0;
 	ctx->limit_samples = 0;
-	ctx->session_id = NULL;
+	ctx->session_dev_id = NULL;
 	memset(ctx->mangled_buf, 0, BS);
 	ctx->final_buf = NULL;
 	ctx->trigger_pattern = 0x00; /* Value irrelevant, see trigger_mask. */
@@ -912,7 +912,7 @@ static void send_block_to_session_bus(struct context *ctx, int block)
 		logic.length = BS;
 		logic.unitsize = 1;
 		logic.data = ctx->final_buf + (block * BS);
-		sr_session_send(ctx->session_id, &packet);
+		sr_session_send(ctx->session_dev_id, &packet);
 		return;
 	}
 
@@ -935,7 +935,7 @@ static void send_block_to_session_bus(struct context *ctx, int block)
 		logic.length = trigger_point;
 		logic.unitsize = 1;
 		logic.data = ctx->final_buf + (block * BS);
-		sr_session_send(ctx->session_id, &packet);
+		sr_session_send(ctx->session_dev_id, &packet);
 	}
 
 	/* Send the SR_DF_TRIGGER packet to the session bus. */
@@ -943,7 +943,7 @@ static void send_block_to_session_bus(struct context *ctx, int block)
 		(block * BS) + trigger_point);
 	packet.type = SR_DF_TRIGGER;
 	packet.payload = NULL;
-	sr_session_send(ctx->session_id, &packet);
+	sr_session_send(ctx->session_dev_id, &packet);
 
 	/* If at least one sample is located after the trigger... */
 	if (trigger_point < (BS - 1)) {
@@ -956,7 +956,7 @@ static void send_block_to_session_bus(struct context *ctx, int block)
 		logic.length = BS - trigger_point;
 		logic.unitsize = 1;
 		logic.data = ctx->final_buf + (block * BS) + trigger_point;
-		sr_session_send(ctx->session_id, &packet);
+		sr_session_send(ctx->session_dev_id, &packet);
 	}
 }
 
@@ -1010,7 +1010,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 	return TRUE;
 }
 
-static int hw_dev_acquisition_start(int dev_index, void *session_data)
+static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 {
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
@@ -1061,7 +1061,7 @@ static int hw_dev_acquisition_start(int dev_index, void *session_data)
 
 	sr_dbg("la8: Acquisition started successfully.");
 
-	ctx->session_id = session_data;
+	ctx->session_dev_id = cb_data;
 
 	/* Send header packet to the session bus. */
 	sr_dbg("la8: Sending SR_DF_HEADER.");
@@ -1071,7 +1071,7 @@ static int hw_dev_acquisition_start(int dev_index, void *session_data)
 	gettimeofday(&header.starttime, NULL);
 	header.samplerate = ctx->cur_samplerate;
 	header.num_logic_probes = NUM_PROBES;
-	sr_session_send(session_data, &packet);
+	sr_session_send(ctx->session_dev_id, &packet);
 
 	/* Time when we should be done (for detecting trigger timeouts). */
 	ctx->done = (ctx->divcount + 1) * 0.08388608 + time(NULL)
@@ -1085,7 +1085,7 @@ static int hw_dev_acquisition_start(int dev_index, void *session_data)
 	return SR_OK;
 }
 
-static int hw_dev_acquisition_stop(int dev_index, void *session_data)
+static int hw_dev_acquisition_stop(int dev_index, void *cb_data)
 {
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
@@ -1106,7 +1106,7 @@ static int hw_dev_acquisition_stop(int dev_index, void *session_data)
 	/* Send end packet to the session bus. */
 	sr_dbg("la8: Sending SR_DF_END.");
 	packet.type = SR_DF_END;
-	sr_session_send(session_data, &packet);
+	sr_session_send(cb_data, &packet);
 
 	return SR_OK;
 }

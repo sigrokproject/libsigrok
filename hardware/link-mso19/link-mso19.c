@@ -731,7 +731,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 	logic.length = 1024;
 	logic.unitsize = 1;
 	logic.data = logic_out;
-	sr_session_send(ctx->session_id, &packet);
+	sr_session_send(ctx->session_dev_id, &packet);
 
 	// Dont bother fixing this yet, keep it "old style"
 	/*
@@ -739,16 +739,16 @@ static int receive_data(int fd, int revents, void *cb_data)
 	packet.length = 1024;
 	packet.unitsize = sizeof(double);
 	packet.payload = analog_out;
-	sr_session_send(ctx->session_id, &packet);
+	sr_session_send(ctx->session_dev_id, &packet);
 	*/
 
 	packet.type = SR_DF_END;
-	sr_session_send(ctx->session_id, &packet);
+	sr_session_send(ctx->session_dev_id, &packet);
 
 	return TRUE;
 }
 
-static int hw_dev_acquisition_start(int dev_index, void *session_dev_id)
+static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 {
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
@@ -806,7 +806,7 @@ static int hw_dev_acquisition_start(int dev_index, void *session_dev_id)
 	if (ret != SR_OK)
 		return ret;
 
-	ctx->session_id = session_dev_id;
+	ctx->session_dev_id = cb_data;
 	sr_source_add(sdi->serial->fd, G_IO_IN, -1, receive_data, sdi);
 
 	packet.type = SR_DF_HEADER;
@@ -816,20 +816,21 @@ static int hw_dev_acquisition_start(int dev_index, void *session_dev_id)
 	header.samplerate = ctx->cur_rate;
 	// header.num_analog_probes = 1;
 	header.num_logic_probes = 8;
-	sr_session_send(session_dev_id, &packet);
+	sr_session_send(ctx->session_dev_id, &packet);
 
 	return ret;
 }
 
-/* FIXME */
-static int hw_dev_acquisition_stop(int dev_index, void *session_dev_id)
+/* TODO: This stops acquisition on ALL devices, ignoring dev_index. */
+static int hw_dev_acquisition_stop(int dev_index, void *cb_data)
 {
 	struct sr_datafeed_packet packet;
 
-	dev_index = dev_index;
+	/* Avoid compiler warnings. */
+	(void)dev_index;
 
 	packet.type = SR_DF_END;
-	sr_session_send(session_dev_id, &packet);
+	sr_session_send(cb_data, &packet);
 
 	return SR_OK;
 }
