@@ -18,9 +18,8 @@
  */
 
 /* Protocol commands */
-#define CMD_SET_SAMPLERATE	0xb0
-#define CMD_START		0xb1
-#define CMD_STOP		0xb2
-#define CMD_GET_FW_VERSION	0xb3
+#define CMD_START		0xb0
+#define CMD_STOP		0xb1
+#define CMD_GET_FW_VERSION	0xb2
 
 int command_start_acquisition(libusb_device_handle *devhdl);
