@@ -672,26 +672,33 @@ static int receive_data(int fd, int revents, void *cb_data)
 	return TRUE;
 }
 
+static void abort_acquisition(struct context *ctx)
+{
+	struct sr_datafeed_packet packet;
+
+	packet.type = SR_DF_END;
+	sr_session_send(ctx->session_dev_id, &packet);
+
+	ctx->num_samples = -1;
+
+	/* TODO: Need to cancel and free any queued up transfers. */
+}
+
 static void receive_transfer(struct libusb_transfer *transfer)
 {
 	/* TODO: These statics have to move to the ctx struct. */
-	static int num_samples = 0;
 	static int empty_transfer_count = 0;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
-	struct context *ctx;
+	struct context *ctx = transfer->user_data;
 	int cur_buflen, trigger_offset, i;
 	unsigned char *cur_buf, *new_buf;
-
-	/* hw_dev_acquisition_stop() is telling us to stop. */
-	if (transfer == NULL)
-		num_samples = -1;
 
 	/*
 	 * If acquisition has already ended, just free any queued up
 	 * transfer that come in.
 	 */
-	if (num_samples == -1) {
+	if (ctx->num_samples == -1) {
 		if (transfer)
 			libusb_free_transfer(transfer);
 		return;
@@ -726,7 +733,7 @@ static void receive_transfer(struct libusb_transfer *transfer)
 			 * The FX2 gave up. End the acquisition, the frontend
 			 * will work out that the samplecount is short.
 			 */
-			hw_dev_acquisition_stop(-1, ctx->session_dev_id);
+			abort_acquisition(ctx);
 		}
 		return;
 	} else {
@@ -798,9 +805,9 @@ static void receive_transfer(struct libusb_transfer *transfer)
 		sr_session_send(ctx->session_dev_id, &packet);
 		g_free(cur_buf);
 
-		num_samples += cur_buflen;
-		if (ctx->limit_samples && (unsigned int) num_samples > ctx->limit_samples) {
-			hw_dev_acquisition_stop(-1, ctx->session_dev_id);
+		ctx->num_samples += cur_buflen;
+		if (ctx->limit_samples && (unsigned int)ctx->num_samples > ctx->limit_samples) {
+			abort_acquisition(ctx);
 		}
 	} else {
 		/*
@@ -825,6 +832,7 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 		return SR_ERR;
 	ctx = sdi->priv;
 	ctx->session_dev_id = cb_data;
+	ctx->num_samples = 0;
 
 	if (!(packet = g_try_malloc(sizeof(struct sr_datafeed_packet)))) {
 		sr_err("logic: %s: packet malloc failed", __func__);
@@ -878,17 +886,15 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 /* TODO: This stops acquisition on ALL devices, ignoring dev_index. */
 static int hw_dev_acquisition_stop(int dev_index, void *cb_data)
 {
-	struct sr_datafeed_packet packet;
+	struct sr_dev_inst *sdi;
 
-	/* Avoid compiler warnings. */
-	(void)dev_index;
+	/* unused parameter */
+	(void)cb_data;
 
-	packet.type = SR_DF_END;
-	sr_session_send(cb_data, &packet);
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
+		return SR_ERR;
 
-	receive_transfer(NULL);
-
-	/* TODO: Need to cancel and free any queued up transfers. */
+	abort_acquisition(sdi->priv);
 
 	return SR_OK;
 }

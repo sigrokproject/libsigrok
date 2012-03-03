@@ -65,6 +65,7 @@ struct context {
 	uint8_t trigger_value[NUM_TRIGGER_STAGES];
 	int trigger_stage;
 	uint8_t trigger_buffer[NUM_TRIGGER_STAGES];
+	int num_samples;
 	/*
 	 * opaque session data passed in by the frontend, will be passed back
 	 * on the session bus along with samples.
