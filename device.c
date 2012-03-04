@@ -55,7 +55,7 @@ static GSList *devs = NULL;
  * TODO: Error checks?
  * TODO: Option to only scan for specific devices or device classes.
  *
- * @return SR_OK upon success, SR_ERR upon errors.
+ * @return SR_OK upon success, SR_ERR_BUG upon internal errors.
  */
 SR_API int sr_dev_scan(void)
 {
@@ -65,7 +65,7 @@ SR_API int sr_dev_scan(void)
 	drivers = sr_driver_list();
 	if (!drivers[0]) {
 		sr_err("dev: %s: no supported hardware drivers", __func__);
-		return SR_ERR; /* TODO: More specific error? */
+		return SR_ERR_BUG;
 	}
 
 	/*

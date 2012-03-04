@@ -96,8 +96,7 @@ SR_API int sr_datastore_destroy(struct sr_datastore *ds)
 		g_free(chunk->data);
 	g_slist_free(ds->chunklist);
 	g_free(ds);
-
-	/* TODO: Set ds = NULL? */
+	ds = NULL;
 
 	return SR_OK;
 }

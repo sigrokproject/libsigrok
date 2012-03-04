@@ -157,7 +157,6 @@ static int hw_init(const char *devinfo)
 
 /**
  * TODO.
- *
  */
 static int hw_cleanup(void)
 {

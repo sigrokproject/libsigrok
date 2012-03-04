@@ -140,7 +140,7 @@ SR_API int sr_session_dev_add(struct sr_dev *dev)
 
 	if (!session) {
 		sr_err("session: %s: session was NULL", __func__);
-		return SR_ERR; /* TODO: SR_ERR_BUG? */
+		return SR_ERR_BUG;
 	}
 
 	if ((ret = dev->driver->dev_open(dev->driver_index)) != SR_OK) {
@@ -175,6 +175,7 @@ SR_API int sr_session_datafeed_callback_clear(void)
  * Add a datafeed callback to the current session.
  *
  * @param cb Function to call when a chunk of data is received.
+ *           Must not be NULL.
  *
  * @return SR_OK upon success, SR_ERR_BUG if no session exists.
  */
@@ -185,7 +186,10 @@ SR_API int sr_session_datafeed_callback_add(sr_datafeed_callback_t cb)
 		return SR_ERR_BUG;
 	}
 
-	/* TODO: Is 'cb' allowed to be NULL? */
+	if (!cb) {
+		sr_err("session: %s: cb was NULL", __func__);
+		return SR_ERR_ARG;
+	}
 
 	session->datafeed_callbacks =
 	    g_slist_append(session->datafeed_callbacks, cb);
@@ -259,14 +263,14 @@ SR_API int sr_session_start(void)
 	if (!session) {
 		sr_err("session: %s: session was NULL; a session must be "
 		       "created first, before starting it.", __func__);
-		return SR_ERR; /* TODO: SR_ERR_BUG? */
+		return SR_ERR_BUG;
 	}
 
 	if (!session->devs) {
 		/* TODO: Actually the case? */
 		sr_err("session: %s: session->devs was NULL; a session "
 		       "cannot be started without devices.", __func__);
-		return SR_ERR; /* TODO: SR_ERR_BUG? */
+		return SR_ERR_BUG;
 	}
 
 	/* TODO: Check driver_index validity? */
@@ -463,8 +467,8 @@ SR_PRIV int sr_session_send(struct sr_dev *dev,
  * @param fd TODO.
  * @param events TODO.
  * @param timeout TODO.
- * @param cb TODO.
- * @param cb_data TODO.
+ * @param cb Callback function to add. Must not be NULL.
+ * @param cb_data Data for the callback function. Can be NULL.
  *
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or
  *         SR_ERR_MALLOC upon memory allocation errors.
@@ -526,7 +530,7 @@ SR_API int sr_session_source_remove(int fd)
 
 	if (!sources) {
 		sr_err("session: %s: sources was NULL", __func__);
-		return SR_ERR_BUG; /* TODO: Other? */
+		return SR_ERR_BUG;
 	}
 
 	/* TODO: Check if 'fd' valid. */

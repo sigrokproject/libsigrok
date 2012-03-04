@@ -551,12 +551,12 @@ static int hw_dev_open(int dev_index)
 
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index))) {
 		sr_err("la8: %s: sdi was NULL", __func__);
-		return SR_ERR; /* TODO: SR_ERR_ARG? */
+		return SR_ERR_BUG;
 	}
 
 	if (!(ctx = sdi->priv)) {
 		sr_err("la8: %s: sdi->priv was NULL", __func__);
-		return SR_ERR; /* TODO: SR_ERR_ARG? */
+		return SR_ERR_BUG;
 	}
 
 	sr_dbg("la8: Opening LA8 device (%04x:%04x).", USB_VENDOR_ID,
@@ -633,12 +633,12 @@ static int hw_dev_close(int dev_index)
 
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index))) {
 		sr_err("la8: %s: sdi was NULL", __func__);
-		return SR_ERR; /* TODO: SR_ERR_ARG? */
+		return SR_ERR_BUG;
 	}
 
 	if (!(ctx = sdi->priv)) {
 		sr_err("la8: %s: sdi->priv was NULL", __func__);
-		return SR_ERR; /* TODO: SR_ERR_ARG? */
+		return SR_ERR_BUG;
 	}
 
 	sr_dbg("la8: Closing device.");
@@ -767,12 +767,12 @@ static int hw_dev_config_set(int dev_index, int hwcap, void *value)
 
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index))) {
 		sr_err("la8: %s: sdi was NULL", __func__);
-		return SR_ERR; /* TODO: SR_ERR_ARG? */
+		return SR_ERR_BUG;
 	}
 
 	if (!(ctx = sdi->priv)) {
 		sr_err("la8: %s: sdi->priv was NULL", __func__);
-		return SR_ERR; /* TODO: SR_ERR_ARG? */
+		return SR_ERR_BUG;
 	}
 
 	sr_spew("la8: %s: dev_index %d, hwcap %d", __func__, dev_index, hwcap);
@@ -1021,17 +1021,17 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index))) {
 		sr_err("la8: %s: sdi was NULL", __func__);
-		return SR_ERR; /* TODO: SR_ERR_ARG? */
+		return SR_ERR_BUG;
 	}
 
 	if (!(ctx = sdi->priv)) {
 		sr_err("la8: %s: sdi->priv was NULL", __func__);
-		return SR_ERR; /* TODO: SR_ERR_ARG? */
+		return SR_ERR_BUG;
 	}
 
 	if (!ctx->ftdic) {
 		sr_err("la8: %s: ctx->ftdic was NULL", __func__);
-		return SR_ERR_ARG;
+		return SR_ERR_BUG;
 	}
 
 	ctx->divcount = samplerate_to_divcount(ctx->cur_samplerate);

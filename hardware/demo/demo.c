@@ -314,7 +314,8 @@ static void samples_generator(uint8_t *buf, uint64_t size, void *data)
 		memset(buf, 0xff, size);
 		break;
 	default:
-		/* TODO: Error handling. */
+		sr_err("demo: %s: unknown pattern %d", __func__,
+		       mydata->sample_generator);
 		break;
 	}
 }

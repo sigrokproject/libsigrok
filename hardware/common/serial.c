@@ -190,7 +190,7 @@ SR_PRIV void serial_restore_params(int fd, void *backup)
  * flowcontrol: 1 = rts/cts, 2 = xon/xoff
  * parity: 0 = none, 1 = even, 2 = odd
  */
-SR_PRIV int serial_set_params(int fd, int speed, int bits, int parity,
+SR_PRIV int serial_set_params(int fd, int baudrate, int bits, int parity,
 			      int stopbits, int flowcontrol)
 {
 #ifdef _WIN32
@@ -201,8 +201,7 @@ SR_PRIV int serial_set_params(int fd, int speed, int bits, int parity,
 		return SR_ERR;
 	}
 
-	/* TODO: Rename 'speed' to 'baudrate'. */
-	switch(speed) {
+	switch (baudrate) {
 	/* TODO: Support for higher baud rates. */
 	case 115200:
 		dcb.BaudRate = CBR_115200;
@@ -235,7 +234,7 @@ SR_PRIV int serial_set_params(int fd, int speed, int bits, int parity,
 	struct termios term;
 	speed_t baud;
 
-	switch (speed) {
+	switch (baudrate) {
 	case 9600:
 		baud = B9600;
 		break;

@@ -507,7 +507,7 @@ static int hw_dev_close(int dev_index)
 
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index))) {
 		sr_err("ols: %s: sdi was NULL", __func__);
-		return SR_ERR; /* TODO: SR_ERR_ARG? */
+		return SR_ERR_BUG;
 	}
 
 	ctx = sdi->priv;
