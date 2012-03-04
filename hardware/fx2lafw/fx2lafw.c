@@ -633,7 +633,7 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 	gettimeofday(&header->starttime, NULL);
 	header->samplerate = 24000000UL;
 	header->num_logic_probes = ctx->profile->num_probes;
-	sr_session_send(session_dev_id, packet);
+	sr_session_send(cb_data, packet);
 	g_free(header);
 	g_free(packet);
 
@@ -641,7 +641,7 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 }
 
 /* TODO: This stops acquisition on ALL devices, ignoring dev_index. */
-static int hw_dev_acquisition_stop(int dev_index, void *session_dev_id)
+static int hw_dev_acquisition_stop(int dev_index, void *cb_data)
 {
 	struct sr_datafeed_packet packet;
 
@@ -649,7 +649,7 @@ static int hw_dev_acquisition_stop(int dev_index, void *session_dev_id)
 	(void)dev_index;
 
 	packet.type = SR_DF_END;
-	sr_session_send(session_dev_id, &packet);
+	sr_session_send(cb_data, &packet);
 
 	receive_transfer(NULL);
 
