@@ -117,18 +117,13 @@ static gboolean check_conf_profile(libusb_device *dev)
 			break;
 
 		intf_dsc = &(conf_dsc->interface[0].altsetting[0]);
-		if (intf_dsc->bNumEndpoints != 3)
-			/* Need exactly 3 end points. */
+		if (intf_dsc->bNumEndpoints != 2)
+			/* Need exactly 2 end points. */
 			break;
 
 		if ((intf_dsc->endpoint[0].bEndpointAddress & 0x8f) !=
-		    (1 | LIBUSB_ENDPOINT_OUT))
-			/* The first endpoint should be 1 (outbound). */
-			break;
-
-		if ((intf_dsc->endpoint[1].bEndpointAddress & 0x8f) !=
-		    (2 | LIBUSB_ENDPOINT_IN))
-			/* The second endpoint should be 2 (inbound). */
+		    (2 | LIBUSB_ENDPOINT_IN)) // 0x82
+			/* The first endpoint should be 2 (inbound). */
 			break;
 
 		/* TODO: Check the debug channel... */
