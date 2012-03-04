@@ -78,6 +78,7 @@ static struct sr_samplerates fx2lafw_samplerates = {
 static GSList *dev_insts = NULL;
 static libusb_context *usb_context = NULL;
 
+static int hw_dev_config_set(int dev_index, int hwcap, void *value);
 static int hw_dev_acquisition_stop(int dev_index, void *session_dev_id);
 
 /**
@@ -367,6 +368,13 @@ static int hw_dev_open(int dev_index)
 	if (err != 0) {
 		sr_err("fx2lafw: Unable to claim interface: %d", err);
 		return SR_ERR;
+	}
+
+	if (ctx->cur_samplerate == 0) {
+		/* Samplerate hasn't been set; default to the slowest one. */
+		if (hw_dev_config_set(dev_index, SR_HWCAP_SAMPLERATE,
+		    &fx2lafw_supported_samplerates[0]) == SR_ERR)
+			return SR_ERR;
 	}
 
 	return SR_OK;
