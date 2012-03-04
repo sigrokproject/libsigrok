@@ -625,7 +625,8 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 		return SR_ERR_MALLOC;
 	}
 
-	if ((err = command_start_acquisition (ctx->usb->devhdl)) != SR_OK) {
+	if ((err = command_start_acquisition (ctx->usb->devhdl,
+		ctx->cur_samplerate)) != SR_OK) {
 		return err;
 	}
 
