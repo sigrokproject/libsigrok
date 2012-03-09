@@ -445,6 +445,7 @@ static int hw_init(const char *devinfo)
 			/* got metadata */
 			sdi = get_metadata(fds[i].fd);
 			sdi->index = final_devcnt;
+			ctx = sdi->priv;
 		} else {
 			/* not an OLS -- some other board that uses the sump protocol */
 			sdi = sr_dev_inst_new(final_devcnt, SR_ST_INACTIVE,
@@ -705,10 +706,11 @@ static int receive_data(int fd, int revents, void *cb_data)
 	ctx = NULL;
 	for (l = dev_insts; l; l = l->next) {
 		sdi = l->data;
+		ctx = sdi->priv;
 		if (ctx->serial->fd == fd) {
-			ctx = sdi->priv;
 			break;
 		}
+		ctx = NULL;
 	}
 	if (!ctx)
 		/* Shouldn't happen. */
