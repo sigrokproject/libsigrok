@@ -620,11 +620,6 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 		return SR_ERR_MALLOC;
 	}
 
-	if ((err = command_start_acquisition (ctx->usb->devhdl,
-		ctx->cur_samplerate)) != SR_OK) {
-		return err;
-	}
-
 	/* Start with 2K transfer, subsequently increased to 4K. */
 	size = 2048;
 	for (i = 0; i < NUM_SIMUL_TRANSFERS; i++) {
@@ -660,6 +655,11 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 	sr_session_send(cb_data, packet);
 	g_free(header);
 	g_free(packet);
+
+	if ((err = command_start_acquisition (ctx->usb->devhdl,
+		ctx->cur_samplerate)) != SR_OK) {
+		return err;
+	}
 
 	return SR_OK;
 }
