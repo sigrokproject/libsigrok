@@ -106,7 +106,7 @@ static gboolean check_conf_profile(libusb_device *dev)
 	gboolean ret = FALSE;
 
 	while (!ret) {
-		/* Assume it's not a Saleae Logic unless proven wrong. */
+		/* Assume the firmware has not been loaded, unless proven wrong. */
 		ret = 0;
 
 		if (libusb_get_device_descriptor(dev, &des) != 0)
