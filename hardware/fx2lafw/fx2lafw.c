@@ -29,7 +29,9 @@
 #include "command.h"
 
 static struct fx2lafw_profile supported_fx2[] = {
-	/* USBee AX */
+	/* CWAV USBee AX
+	 * EE Electronics ESLA201A
+	 */
 	{ 0x08a9, 0x0014, "CWAV", "USBee AX", NULL, 8 },
 	{ 0, 0, 0, 0, 0, 0 }
 };
