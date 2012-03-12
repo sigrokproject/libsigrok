@@ -34,6 +34,14 @@ static const struct fx2lafw_profile supported_fx2[] = {
 	 */
 	{ 0x08a9, 0x0014, "CWAV", "USBee AX", NULL,
 		FIRMWARE_DIR "/fx2lafw-cwav-usbeeax.fw", 8 },
+
+	/* Saleae Logic
+	 * EE Electronics ESLA100
+	 * Robomotic MiniLogic
+	 */
+	{ 0x0925, 0x3881, "Saleae", "Logic", NULL,
+		FIRMWARE_DIR "/fx2lafw-saleae-logic.fw", 8 },
+
 	{ 0, 0, 0, 0, 0, 0, 0 }
 };
 
