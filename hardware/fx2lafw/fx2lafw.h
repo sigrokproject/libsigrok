@@ -23,7 +23,6 @@
 #define USB_INTERFACE		0
 #define USB_CONFIGURATION	1
 #define TRIGGER_TYPES		"01rf"
-#define FIRMWARE		FIRMWARE_DIR "/fx2lafw-cwav-usbeeax.fw"
 
 #define MAX_RENUM_DELAY		3000 /* ms */
 #define NUM_SIMUL_TRANSFERS	10
@@ -36,6 +35,8 @@ struct fx2lafw_profile {
 	const char *vendor;
 	const char *model;
 	const char *model_version;
+
+	const char *firmware;
 
 	int num_probes;
 };

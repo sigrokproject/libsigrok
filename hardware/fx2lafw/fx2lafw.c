@@ -32,8 +32,9 @@ static const struct fx2lafw_profile supported_fx2[] = {
 	/* CWAV USBee AX
 	 * EE Electronics ESLA201A
 	 */
-	{ 0x08a9, 0x0014, "CWAV", "USBee AX", NULL, 8 },
-	{ 0, 0, 0, 0, 0, 0 }
+	{ 0x08a9, 0x0014, "CWAV", "USBee AX", NULL,
+		FIRMWARE_DIR "/fx2lafw-cwav-usbeeax.fw", 8 },
+	{ 0, 0, 0, 0, 0, 0, 0 }
 };
 
 static int fx2lafw_capabilities[] = {
@@ -305,7 +306,8 @@ static int hw_init(const char *deviceinfo)
 			    (libusb_get_bus_number(devlist[i]),
 			     libusb_get_device_address(devlist[i]), NULL);
 		} else {
-			if (ezusb_upload_firmware(devlist[i], USB_CONFIGURATION, FIRMWARE) == SR_OK)
+			if (ezusb_upload_firmware(devlist[i], USB_CONFIGURATION,
+				fx2lafw_prof->firmware) == SR_OK)
 				/* Remember when the firmware on this device was updated */
 				g_get_current_time(&ctx->fw_updated);
 			else
