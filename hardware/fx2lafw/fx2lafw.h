@@ -41,7 +41,7 @@ struct fx2lafw_profile {
 };
 
 struct context {
-	struct fx2lafw_profile *profile;
+	const struct fx2lafw_profile *profile;
 
 	/*
 	 * Since we can't keep track of an fx2lafw device after upgrading

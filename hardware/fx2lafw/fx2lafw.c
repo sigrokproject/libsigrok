@@ -28,7 +28,7 @@
 #include "fx2lafw.h"
 #include "command.h"
 
-static struct fx2lafw_profile supported_fx2[] = {
+static const struct fx2lafw_profile supported_fx2[] = {
 	/* CWAV USBee AX
 	 * EE Electronics ESLA201A
 	 */
@@ -249,7 +249,7 @@ static int hw_init(const char *deviceinfo)
 {
 	struct sr_dev_inst *sdi;
 	struct libusb_device_descriptor des;
-	struct fx2lafw_profile *fx2lafw_prof;
+	const struct fx2lafw_profile *fx2lafw_prof;
 	struct context *ctx;
 	libusb_device **devlist;
 	int err;
