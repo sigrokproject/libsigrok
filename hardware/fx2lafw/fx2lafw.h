@@ -33,9 +33,9 @@ struct fx2lafw_profile {
 	uint16_t vid;
 	uint16_t pid;
 
-	char *vendor;
-	char *model;
-	char *model_version;
+	const char *vendor;
+	const char *model;
+	const char *model_version;
 
 	int num_probes;
 };
