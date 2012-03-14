@@ -285,13 +285,13 @@ static int hw_dev_config_set(int dev_index, int hwcap, void *value)
 static void samples_generator(uint8_t *buf, uint64_t size, void *data)
 {
 	static uint64_t p = 0;
-	struct databag *mydata = data;
+	struct databag *ctx = data;
 	uint64_t i;
 
 	/* TODO: Needed? */
 	memset(buf, 0, size);
 
-	switch (mydata->sample_generator) {
+	switch (ctx->sample_generator) {
 	case PATTERN_SIGROK: /* sigrok pattern */
 		for (i = 0; i < size; i++) {
 			*(buf + i) = ~(pattern_sigrok[p] >> 1);
@@ -315,7 +315,7 @@ static void samples_generator(uint8_t *buf, uint64_t size, void *data)
 		break;
 	default:
 		sr_err("demo: %s: unknown pattern %d", __func__,
-		       mydata->sample_generator);
+		       ctx->sample_generator);
 		break;
 	}
 }
@@ -323,17 +323,17 @@ static void samples_generator(uint8_t *buf, uint64_t size, void *data)
 /* Thread function */
 static void thread_func(void *data)
 {
-	struct databag *mydata = data;
+	struct databag *ctx = data;
 	uint8_t buf[BUFSIZE];
 	uint64_t nb_to_send = 0;
 	int bytes_written;
 	double time_cur, time_last, time_diff;
 
-	time_last = g_timer_elapsed(mydata->timer, NULL);
+	time_last = g_timer_elapsed(ctx->timer, NULL);
 
 	while (thread_running) {
 		/* Rate control */
-		time_cur = g_timer_elapsed(mydata->timer, NULL);
+		time_cur = g_timer_elapsed(ctx->timer, NULL);
 
 		time_diff = time_cur - time_last;
 		time_last = time_cur;
@@ -342,7 +342,7 @@ static void thread_func(void *data)
 
 		if (limit_samples) {
 			nb_to_send = MIN(nb_to_send,
-				      limit_samples - mydata->samples_counter);
+				      limit_samples - ctx->samples_counter);
 		}
 
 		/* Make sure we don't overflow. */
@@ -350,7 +350,7 @@ static void thread_func(void *data)
 
 		if (nb_to_send) {
 			samples_generator(buf, nb_to_send, data);
-			mydata->samples_counter += nb_to_send;
+			ctx->samples_counter += nb_to_send;
 
 			g_io_channel_write_chars(channels[1], (gchar *)&buf,
 				nb_to_send, (gsize *)&bytes_written, NULL);
@@ -358,9 +358,9 @@ static void thread_func(void *data)
 
 		/* Check if we're done. */
 		if ((limit_msec && time_cur * 1000 > limit_msec) ||
-		    (limit_samples && mydata->samples_counter >= limit_samples))
+		    (limit_samples && ctx->samples_counter >= limit_samples))
 		{
-			close(mydata->pipe_fds[1]);
+			close(ctx->pipe_fds[1]);
 			thread_running = 0;
 		}
 
@@ -414,27 +414,27 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 {
 	struct sr_datafeed_packet *packet;
 	struct sr_datafeed_header *header;
-	struct databag *mydata;
+	struct databag *ctx;
 
-	/* TODO: 'mydata' is never g_free()'d? */
-	if (!(mydata = g_try_malloc(sizeof(struct databag)))) {
-		sr_err("demo: %s: mydata malloc failed", __func__);
+	/* TODO: 'ctx' is never g_free()'d? */
+	if (!(ctx = g_try_malloc(sizeof(struct databag)))) {
+		sr_err("demo: %s: ctx malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 
-	mydata->sample_generator = default_pattern;
-	mydata->session_dev_id = cb_data;
-	mydata->dev_index = dev_index;
-	mydata->samples_counter = 0;
+	ctx->sample_generator = default_pattern;
+	ctx->session_dev_id = cb_data;
+	ctx->dev_index = dev_index;
+	ctx->samples_counter = 0;
 
-	if (pipe(mydata->pipe_fds)) {
+	if (pipe(ctx->pipe_fds)) {
 		/* TODO: Better error message. */
 		sr_err("demo: %s: pipe() failed", __func__);
 		return SR_ERR;
 	}
 
-	channels[0] = g_io_channel_unix_new(mydata->pipe_fds[0]);
-	channels[1] = g_io_channel_unix_new(mydata->pipe_fds[1]);
+	channels[0] = g_io_channel_unix_new(ctx->pipe_fds[0]);
+	channels[1] = g_io_channel_unix_new(ctx->pipe_fds[1]);
 
 	/* Set channel encoding to binary (default is UTF-8). */
 	g_io_channel_set_encoding(channels[0], NULL, NULL);
@@ -444,16 +444,16 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 	g_io_channel_set_buffered(channels[0], FALSE);
 	g_io_channel_set_buffered(channels[1], FALSE);
 
-	sr_source_add(mydata->pipe_fds[0], G_IO_IN | G_IO_ERR, 40,
-		      receive_data, mydata->session_dev_id);
+	sr_source_add(ctx->pipe_fds[0], G_IO_IN | G_IO_ERR, 40,
+		      receive_data, ctx->session_dev_id);
 
 	/* Run the demo thread. */
 	g_thread_init(NULL);
 	/* This must to be done between g_thread_init() & g_thread_create(). */
-	mydata->timer = g_timer_new();
+	ctx->timer = g_timer_new();
 	thread_running = 1;
 	my_thread =
-	    g_thread_create((GThreadFunc)thread_func, mydata, TRUE, NULL);
+	    g_thread_create((GThreadFunc)thread_func, ctx, TRUE, NULL);
 	if (!my_thread) {
 		sr_err("demo: %s: g_thread_create failed", __func__);
 		return SR_ERR; /* TODO */
@@ -475,7 +475,7 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 	gettimeofday(&header->starttime, NULL);
 	header->samplerate = cur_samplerate;
 	header->num_logic_probes = NUM_PROBES;
-	sr_session_send(mydata->session_dev_id, packet);
+	sr_session_send(ctx->session_dev_id, packet);
 	g_free(header);
 	g_free(packet);
 
