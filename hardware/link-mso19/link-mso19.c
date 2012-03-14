@@ -691,7 +691,8 @@ static int receive_data(int fd, int revents, void *cb_data)
 	double analog_out[1024];
 	size_t i, s;
 
-	revents = revents;
+	/* Avoid compiler warnings. */
+	(void)revents;
 
 	s = serial_read(fd, in, sizeof(in));
 	if (s <= 0)

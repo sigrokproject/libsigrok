@@ -288,8 +288,10 @@ struct sr_dev_inst {
 
 /* sr_dev_inst types */
 enum {
-	SR_USB_INST,
-	SR_SERIAL_INST,
+	/** Device instance type for USB devices. */
+	SR_INST_USB,
+	/** Device instance type for serial port devices. */
+	SR_INST_SERIAL,
 };
 
 /* Device instance status */
