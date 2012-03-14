@@ -77,11 +77,11 @@ static struct session_vdev *get_vdev_by_index(int dev_index)
  *
  * @param fd TODO.
  * @param revents TODO.
- * @param session_data TODO.
+ * @param cb_data TODO.
  *
  * @return TODO.
  */
-static int feed_chunk(int fd, int revents, void *session_data)
+static int receive_data(int fd, int revents, void *cb_data)
 {
 	struct sr_dev_inst *sdi;
 	struct session_vdev *vdev;
@@ -120,7 +120,7 @@ static int feed_chunk(int fd, int revents, void *session_data)
 			logic.unitsize = vdev->unitsize;
 			logic.data = buf;
 			vdev->bytes_read += ret;
-			sr_session_send(session_data, &packet);
+			sr_session_send(cb_data, &packet);
 		} else {
 			/* done with this capture file */
 			zip_fclose(vdev->capfile);
@@ -132,7 +132,7 @@ static int feed_chunk(int fd, int revents, void *session_data)
 
 	if (!got_data) {
 		packet.type = SR_DF_END;
-		sr_session_send(session_data, &packet);
+		sr_session_send(cb_data, &packet);
 	}
 
 	return TRUE;
@@ -268,16 +268,13 @@ static int hw_dev_config_set(int dev_index, int hwcap, void *value)
 	return SR_OK;
 }
 
-static int hw_dev_acquisition_start(int dev_index, void *session_dev_id)
+static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 {
 	struct zip_stat zs;
 	struct session_vdev *vdev;
 	struct sr_datafeed_header *header;
 	struct sr_datafeed_packet *packet;
 	int err;
-
-	/* Avoid compiler warnings. */
-	(void)session_dev_id;
 
 	if (!(vdev = get_vdev_by_index(dev_index)))
 		return SR_ERR;
@@ -304,7 +301,7 @@ static int hw_dev_acquisition_start(int dev_index, void *session_dev_id)
 	}
 
 	/* freewheeling source */
-	sr_session_source_add(-1, 0, 0, feed_chunk, session_dev_id);
+	sr_session_source_add(-1, 0, 0, receive_data, cb_data);
 
 	if (!(packet = g_try_malloc(sizeof(struct sr_datafeed_packet)))) {
 		sr_err("session driver: %s: packet malloc failed", __func__);
@@ -323,7 +320,7 @@ static int hw_dev_acquisition_start(int dev_index, void *session_dev_id)
 	gettimeofday(&header->starttime, NULL);
 	header->samplerate = vdev->samplerate;
 	header->num_logic_probes = vdev->num_probes;
-	sr_session_send(session_dev_id, packet);
+	sr_session_send(cb_data, packet);
 	g_free(header);
 	g_free(packet);
 
