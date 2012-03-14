@@ -66,7 +66,7 @@ enum {
 /* FIXME: Should not be global. */
 SR_PRIV GIOChannel *channels[2];
 
-struct databag {
+struct context {
 	int pipe_fds[2];
 	uint8_t sample_generator;
 	uint8_t thread_running;
@@ -285,7 +285,7 @@ static int hw_dev_config_set(int dev_index, int hwcap, void *value)
 static void samples_generator(uint8_t *buf, uint64_t size, void *data)
 {
 	static uint64_t p = 0;
-	struct databag *ctx = data;
+	struct context *ctx = data;
 	uint64_t i;
 
 	/* TODO: Needed? */
@@ -323,7 +323,7 @@ static void samples_generator(uint8_t *buf, uint64_t size, void *data)
 /* Thread function */
 static void thread_func(void *data)
 {
-	struct databag *ctx = data;
+	struct context *ctx = data;
 	uint8_t buf[BUFSIZE];
 	uint64_t nb_to_send = 0;
 	int bytes_written;
@@ -414,10 +414,10 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 {
 	struct sr_datafeed_packet *packet;
 	struct sr_datafeed_header *header;
-	struct databag *ctx;
+	struct context *ctx;
 
 	/* TODO: 'ctx' is never g_free()'d? */
-	if (!(ctx = g_try_malloc(sizeof(struct databag)))) {
+	if (!(ctx = g_try_malloc(sizeof(struct context)))) {
 		sr_err("demo: %s: ctx malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
