@@ -127,20 +127,25 @@ SR_API int sr_session_dev_add(struct sr_dev *dev)
 		return SR_ERR_ARG;
 	}
 
-	if (!dev->driver) {
-		sr_err("session: %s: dev->driver was NULL", __func__);
-		return SR_ERR_ARG;
+	if (!session) {
+		sr_err("session: %s: session was NULL", __func__);
+		return SR_ERR_BUG;
 	}
 
+	/* If dev->driver is NULL, this is a virtual device. */
+	if (!dev->driver) {
+		sr_dbg("session: %s: dev->driver was NULL, this seems to be "
+		       "a virtual device; continuing", __func__);
+		/* Just add the device, don't run dev_open(). */
+		session->devs = g_slist_append(session->devs, dev);
+		return SR_OK;
+	}
+
+	/* dev->driver is non-NULL (i.e. we have a real device). */
 	if (!dev->driver->dev_open) {
 		sr_err("session: %s: dev->driver->dev_open was NULL",
 		       __func__);
 		return SR_ERR_ARG;
-	}
-
-	if (!session) {
-		sr_err("session: %s: session was NULL", __func__);
-		return SR_ERR_BUG;
 	}
 
 	if ((ret = dev->driver->dev_open(dev->driver_index)) != SR_OK) {
@@ -435,11 +440,6 @@ SR_PRIV int sr_session_send(struct sr_dev *dev,
 
 	if (!dev) {
 		sr_err("session: %s: dev was NULL", __func__);
-		return SR_ERR_ARG;
-	}
-
-	if (!dev->driver) {
-		sr_err("session: %s: dev->driver was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 

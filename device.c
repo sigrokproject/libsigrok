@@ -372,13 +372,20 @@ SR_API gboolean sr_dev_has_hwcap(const struct sr_dev *dev, int hwcap)
 {
 	int *hwcaps, i;
 
+	sr_spew("dev: %s: requesting hwcap %d", __func__, hwcap);
+
 	if (!dev) {
 		sr_err("dev: %s: dev was NULL", __func__);
 		return FALSE; /* TODO: SR_ERR_ARG. */
 	}
 
+	/*
+	 * Virtual devices (which have dev->driver set to NULL) always say that
+	 * they don't have the capability (they can't call hwcap_get_all()).
+	 */
 	if (!dev->driver) {
-		sr_err("dev: %s: dev->driver was NULL", __func__);
+		sr_dbg("dev: %s: dev->driver was NULL, this seems to be "
+		       "a virtual device without capabilities", __func__);
 		return FALSE; /* TODO: SR_ERR_ARG. */
 	}
 
