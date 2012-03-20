@@ -210,7 +210,7 @@ static void *hw_dev_info_get(int dev_index, int dev_info_id)
 	case SR_DI_CUR_SAMPLERATE:
 		info = &cur_samplerate;
 		break;
-	case SR_DI_PATTERNMODES:
+	case SR_DI_PATTERNS:
 		info = &pattern_strings;
 		break;
 	}

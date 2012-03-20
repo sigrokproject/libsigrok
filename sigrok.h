@@ -324,8 +324,8 @@ enum {
 	SR_DI_TRIGGER_TYPES,
 	/* The currently set samplerate in Hz (uint64_t) */
 	SR_DI_CUR_SAMPLERATE,
-	/* Supported pattern generator modes */
-	SR_DI_PATTERNMODES,
+	/* Supported patterns (in pattern generator mode) */
+	SR_DI_PATTERNS,
 };
 
 /*

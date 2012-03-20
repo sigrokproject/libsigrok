@@ -34,7 +34,7 @@
 SR_API struct sr_hwcap_option sr_hwcap_options[] = {
 	{SR_HWCAP_SAMPLERATE, SR_T_UINT64, "Sample rate", "samplerate"},
 	{SR_HWCAP_CAPTURE_RATIO, SR_T_UINT64, "Pre-trigger capture ratio", "captureratio"},
-	{SR_HWCAP_PATTERN_MODE, SR_T_CHAR, "Pattern generator mode", "patternmode"},
+	{SR_HWCAP_PATTERN_MODE, SR_T_CHAR, "Pattern generator mode", "pattern"},
 	{SR_HWCAP_RLE, SR_T_BOOL, "Run Length Encoding", "rle"},
 	{0, 0, NULL, NULL},
 };
