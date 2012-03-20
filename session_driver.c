@@ -274,7 +274,7 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 	struct session_vdev *vdev;
 	struct sr_datafeed_header *header;
 	struct sr_datafeed_packet *packet;
-	int err;
+	int ret;
 
 	if (!(vdev = get_vdev_by_index(dev_index)))
 		return SR_ERR;
@@ -282,9 +282,9 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 	sr_info("session_driver: opening archive %s file %s", sessionfile,
 		vdev->capturefile);
 
-	if (!(vdev->archive = zip_open(sessionfile, 0, &err))) {
+	if (!(vdev->archive = zip_open(sessionfile, 0, &ret))) {
 		sr_err("session driver: Failed to open session file '%s': "
-		       "zip error %d\n", sessionfile, err);
+		       "zip error %d\n", sessionfile, ret);
 		return SR_ERR;
 	}
 

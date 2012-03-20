@@ -99,31 +99,31 @@ static int hw_dev_open(int dev_index)
 {
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
-	int err;
+	int ret;
 
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return SR_ERR;
 	ctx = sdi->priv;
 
-	err = snd_pcm_open(&ctx->capture_handle, AUDIO_DEV,
+	ret = snd_pcm_open(&ctx->capture_handle, AUDIO_DEV,
 			   SND_PCM_STREAM_CAPTURE, 0);
-	if (err < 0) {
+	if (ret < 0) {
 		sr_err("alsa: can't open audio device %s (%s)", AUDIO_DEV,
-		       snd_strerror(err));
+		       snd_strerror(ret));
 		return SR_ERR;
 	}
 
-	err = snd_pcm_hw_params_malloc(&ctx->hw_params);
-	if (err < 0) {
+	ret = snd_pcm_hw_params_malloc(&ctx->hw_params);
+	if (ret < 0) {
 		sr_err("alsa: can't allocate hardware parameter structure (%s)",
-		       snd_strerror(err));
+		       snd_strerror(ret));
 		return SR_ERR;
 	}
 
-	err = snd_pcm_hw_params_any(ctx->capture_handle, ctx->hw_params);
-	if (err < 0) {
+	ret = snd_pcm_hw_params_any(ctx->capture_handle, ctx->hw_params);
+	if (ret < 0) {
 		sr_err("alsa: can't initialize hardware parameter structure "
-		       "(%s)", snd_strerror(err));
+		       "(%s)", snd_strerror(ret));
 		return SR_ERR;
 	}
 
@@ -301,51 +301,51 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 	struct sr_datafeed_header header;
 	struct pollfd *ufds;
 	int count;
-	int err;
+	int ret;
 
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return SR_ERR;
 	ctx = sdi->priv;
 
-	err = snd_pcm_hw_params_set_access(ctx->capture_handle,
+	ret = snd_pcm_hw_params_set_access(ctx->capture_handle,
 			ctx->hw_params, SND_PCM_ACCESS_RW_INTERLEAVED);
-	if (err < 0) {
-		sr_err("alsa: can't set access type (%s)", snd_strerror(err));
+	if (ret < 0) {
+		sr_err("alsa: can't set access type (%s)", snd_strerror(ret));
 		return SR_ERR;
 	}
 
 	/* FIXME: Hardcoded for 16bits */
-	err = snd_pcm_hw_params_set_format(ctx->capture_handle,
+	ret = snd_pcm_hw_params_set_format(ctx->capture_handle,
 			ctx->hw_params, SND_PCM_FORMAT_S16_LE);
-	if (err < 0) {
-		sr_err("alsa: can't set sample format (%s)", snd_strerror(err));
+	if (ret < 0) {
+		sr_err("alsa: can't set sample format (%s)", snd_strerror(ret));
 		return SR_ERR;
 	}
 
-	err = snd_pcm_hw_params_set_rate_near(ctx->capture_handle,
+	ret = snd_pcm_hw_params_set_rate_near(ctx->capture_handle,
 			ctx->hw_params, (unsigned int *)&ctx->cur_rate, 0);
-	if (err < 0) {
-		sr_err("alsa: can't set sample rate (%s)", snd_strerror(err));
+	if (ret < 0) {
+		sr_err("alsa: can't set sample rate (%s)", snd_strerror(ret));
 		return SR_ERR;
 	}
 
-	err = snd_pcm_hw_params_set_channels(ctx->capture_handle,
+	ret = snd_pcm_hw_params_set_channels(ctx->capture_handle,
 			ctx->hw_params, NUM_PROBES);
-	if (err < 0) {
-		sr_err("alsa: can't set channel count (%s)", snd_strerror(err));
+	if (ret < 0) {
+		sr_err("alsa: can't set channel count (%s)", snd_strerror(ret));
 		return SR_ERR;
 	}
 
-	err = snd_pcm_hw_params(ctx->capture_handle, ctx->hw_params);
-	if (err < 0) {
-		sr_err("alsa: can't set parameters (%s)", snd_strerror(err));
+	ret = snd_pcm_hw_params(ctx->capture_handle, ctx->hw_params);
+	if (ret < 0) {
+		sr_err("alsa: can't set parameters (%s)", snd_strerror(ret));
 		return SR_ERR;
 	}
 
-	err = snd_pcm_prepare(ctx->capture_handle);
-	if (err < 0) {
+	ret = snd_pcm_prepare(ctx->capture_handle);
+	if (ret < 0) {
 		sr_err("alsa: can't prepare audio interface for use (%s)",
-		       snd_strerror(err));
+		       snd_strerror(ret));
 		return SR_ERR;
 	}
 
@@ -360,10 +360,10 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 		return SR_ERR_MALLOC;
 	}
 
-	err = snd_pcm_poll_descriptors(ctx->capture_handle, ufds, count);
-	if (err < 0) {
+	ret = snd_pcm_poll_descriptors(ctx->capture_handle, ufds, count);
+	if (ret < 0) {
 		sr_err("alsa: Unable to obtain poll descriptors (%s)",
-		       snd_strerror(err));
+		       snd_strerror(ret));
 		g_free(ufds);
 		return SR_ERR;
 	}

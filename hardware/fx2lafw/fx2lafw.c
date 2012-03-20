@@ -160,7 +160,7 @@ static int fx2lafw_open_dev(int dev_index)
 	struct libusb_device_descriptor des;
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
-	int err, skip, i;
+	int ret, skip, i;
 
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return SR_ERR;
@@ -173,8 +173,8 @@ static int fx2lafw_open_dev(int dev_index)
 	skip = 0;
 	libusb_get_device_list(usb_context, &devlist);
 	for (i = 0; devlist[i]; i++) {
-		if ((err = libusb_get_device_descriptor(devlist[i], &des))) {
-			sr_err("fx2lafw: failed to get device descriptor: %d", err);
+		if ((ret = libusb_get_device_descriptor(devlist[i], &des))) {
+			sr_err("fx2lafw: failed to get device descriptor: %d", ret);
 			continue;
 		}
 
@@ -199,7 +199,7 @@ static int fx2lafw_open_dev(int dev_index)
 				continue;
 		}
 
-		if (!(err = libusb_open(devlist[i], &ctx->usb->devhdl))) {
+		if (!(ret = libusb_open(devlist[i], &ctx->usb->devhdl))) {
 			if (ctx->usb->address == 0xff)
 				/*
 				 * first time we touch this device after firmware upload,
@@ -212,7 +212,7 @@ static int fx2lafw_open_dev(int dev_index)
 				sdi->index, ctx->usb->bus,
 				ctx->usb->address, USB_INTERFACE);
 		} else {
-			sr_err("fx2lafw: failed to open device: %d", err);
+			sr_err("fx2lafw: failed to open device: %d", ret);
 		}
 
 		/* if we made it here, we handled the device one way or another */
@@ -266,7 +266,7 @@ static int hw_init(const char *deviceinfo)
 	const struct fx2lafw_profile *fx2lafw_prof;
 	struct context *ctx;
 	libusb_device **devlist;
-	int err;
+	int ret;
 	int devcnt = 0;
 	int i, j;
 
@@ -282,9 +282,9 @@ static int hw_init(const char *deviceinfo)
 	libusb_get_device_list(usb_context, &devlist);
 	for (i = 0; devlist[i]; i++) {
 
-		if ((err = libusb_get_device_descriptor(
+		if ((ret = libusb_get_device_descriptor(
 			devlist[i], &des)) != 0) {
-			sr_warn("failed to get device descriptor: %d", err);
+			sr_warn("failed to get device descriptor: %d", ret);
 			continue;
 		}
 
@@ -342,7 +342,7 @@ static int hw_dev_open(int dev_index)
 	GTimeVal cur_time;
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
-	int timediff, err;
+	int timediff, ret;
 
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return SR_ERR;
@@ -352,14 +352,14 @@ static int hw_dev_open(int dev_index)
 	 * if the firmware was recently uploaded, wait up to MAX_RENUM_DELAY ms
 	 * for the FX2 to renumerate
 	 */
-	err = 0;
+	ret = 0;
 	if (GTV_TO_MSEC(ctx->fw_updated) > 0) {
 		sr_info("fx2lafw: waiting for device to reset");
 		/* takes at least 300ms for the FX2 to be gone from the USB bus */
 		g_usleep(300 * 1000);
 		timediff = 0;
 		while (timediff < MAX_RENUM_DELAY) {
-			if ((err = fx2lafw_open_dev(dev_index)) == SR_OK)
+			if ((ret = fx2lafw_open_dev(dev_index)) == SR_OK)
 				break;
 			g_usleep(100 * 1000);
 			g_get_current_time(&cur_time);
@@ -367,18 +367,18 @@ static int hw_dev_open(int dev_index)
 		}
 		sr_info("fx2lafw: device came back after %d ms", timediff);
 	} else {
-		err = fx2lafw_open_dev(dev_index);
+		ret = fx2lafw_open_dev(dev_index);
 	}
 
-	if (err != SR_OK) {
+	if (ret != SR_OK) {
 		sr_err("fx2lafw: unable to open device");
 		return SR_ERR;
 	}
 	ctx = sdi->priv;
 
-	err = libusb_claim_interface(ctx->usb->devhdl, USB_INTERFACE);
-	if (err != 0) {
-		sr_err("fx2lafw: Unable to claim interface: %d", err);
+	ret = libusb_claim_interface(ctx->usb->devhdl, USB_INTERFACE);
+	if (ret != 0) {
+		sr_err("fx2lafw: Unable to claim interface: %d", ret);
 		return SR_ERR;
 	}
 
@@ -618,7 +618,7 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 	struct context *ctx;
 	struct libusb_transfer *transfer;
 	const struct libusb_pollfd **lupfd;
-	int err, size, i;
+	int ret, size, i;
 	unsigned char *buf;
 
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
@@ -673,9 +673,9 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 	g_free(header);
 	g_free(packet);
 
-	if ((err = command_start_acquisition (ctx->usb->devhdl,
+	if ((ret = command_start_acquisition (ctx->usb->devhdl,
 		ctx->cur_samplerate)) != SR_OK) {
-		return err;
+		return ret;
 	}
 
 	return SR_OK;

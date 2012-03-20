@@ -176,7 +176,7 @@ static int opendev4(struct sr_dev_inst **sdi, libusb_device *dev,
 {
 	struct context *ctx;
 	unsigned int i;
-	int err;
+	int ret;
 
 	/* Note: sdi is non-NULL, the caller already checked this. */
 
@@ -185,8 +185,8 @@ static int opendev4(struct sr_dev_inst **sdi, libusb_device *dev,
 		return -1;
 	}
 
-	if ((err = libusb_get_device_descriptor(dev, des))) {
-		sr_err("zp: failed to get device descriptor: %d", err);
+	if ((ret = libusb_get_device_descriptor(dev, des))) {
+		sr_err("zp: failed to get device descriptor: %d", ret);
 		return -1;
 	}
 
@@ -214,13 +214,13 @@ static int opendev4(struct sr_dev_inst **sdi, libusb_device *dev,
 		}
 
 		/* Found it. */
-		if (!(err = libusb_open(dev, &(ctx->usb->devhdl)))) {
+		if (!(ret = libusb_open(dev, &(ctx->usb->devhdl)))) {
 			(*sdi)->status = SR_ST_ACTIVE;
 			sr_info("zp: opened device %d on %d.%d interface %d",
 				(*sdi)->index, ctx->usb->bus,
 				ctx->usb->address, USB_INTERFACE);
 		} else {
-			sr_err("zp: failed to open device: %d", err);
+			sr_err("zp: failed to open device: %d", ret);
 			*sdi = NULL;
 		}
 	}
@@ -330,7 +330,7 @@ static int hw_init(const char *devinfo)
 	struct sr_dev_inst *sdi;
 	struct libusb_device_descriptor des;
 	libusb_device **devlist;
-	int err, devcnt, i;
+	int ret, devcnt, i;
 	struct context *ctx;
 
 	/* Avoid compiler warnings. */
@@ -362,9 +362,9 @@ static int hw_init(const char *devinfo)
 	libusb_get_device_list(usb_context, &devlist); /* TODO: Errors. */
 
 	for (i = 0; devlist[i]; i++) {
-		err = libusb_get_device_descriptor(devlist[i], &des);
-		if (err != 0) {
-			sr_err("zp: failed to get device descriptor: %d", err);
+		ret = libusb_get_device_descriptor(devlist[i], &des);
+		if (ret != 0) {
+			sr_err("zp: failed to get device descriptor: %d", ret);
 			continue;
 		}
 
@@ -402,7 +402,7 @@ static int hw_dev_open(int dev_index)
 {
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
-	int err;
+	int ret;
 
 	if (!(sdi = zp_open_dev(dev_index))) {
 		sr_err("zp: unable to open device");
@@ -416,16 +416,16 @@ static int hw_dev_open(int dev_index)
 		return SR_ERR_ARG;
 	}
 
-	err = libusb_set_configuration(ctx->usb->devhdl, USB_CONFIGURATION);
-	if (err < 0) {
+	ret = libusb_set_configuration(ctx->usb->devhdl, USB_CONFIGURATION);
+	if (ret < 0) {
 		sr_err("zp: Unable to set USB configuration %d: %d",
-		       USB_CONFIGURATION, err);
+		       USB_CONFIGURATION, ret);
 		return SR_ERR;
 	}
 
-	err = libusb_claim_interface(ctx->usb->devhdl, USB_INTERFACE);
-	if (err != 0) {
-		sr_err("zp: Unable to claim interface: %d", err);
+	ret = libusb_claim_interface(ctx->usb->devhdl, USB_INTERFACE);
+	if (ret != 0) {
+		sr_err("zp: Unable to claim interface: %d", ret);
 		return SR_ERR;
 	}
 

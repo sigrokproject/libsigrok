@@ -48,7 +48,7 @@ SR_API int sr_session_load(const char *filename)
 	struct zip_stat zs;
 	struct sr_dev *dev;
 	struct sr_probe *probe;
-	int ret, err, probenum, devcnt, i, j;
+	int ret, probenum, devcnt, i, j;
 	uint64_t tmp_u64, total_probes, enabled_probes, p;
 	char **sections, **keys, *metafile, *val, c;
 	char probename[SR_MAX_PROBENAME_LEN + 1];
@@ -58,9 +58,9 @@ SR_API int sr_session_load(const char *filename)
 		return SR_ERR_ARG;
 	}
 
-	if (!(archive = zip_open(filename, 0, &err))) {
+	if (!(archive = zip_open(filename, 0, &ret))) {
 		sr_dbg("session file: Failed to open session file: zip "
-		       "error %d", err);
+		       "error %d", ret);
 		return SR_ERR;
 	}
 
@@ -176,7 +176,7 @@ int sr_session_save(const char *filename)
 	struct sr_datastore *ds;
 	struct zip *zipfile;
 	struct zip_source *versrc, *metasrc, *logicsrc;
-	int bufcnt, devcnt, tmpfile, ret, error, probecnt;
+	int bufcnt, devcnt, tmpfile, ret, probecnt;
 	uint64_t samplerate;
 	char version[1], rawname[16], metafile[32], *buf, *s;
 
@@ -187,7 +187,7 @@ int sr_session_save(const char *filename)
 
 	/* Quietly delete it first, libzip wants replace ops otherwise. */
 	unlink(filename);
-	if (!(zipfile = zip_open(filename, ZIP_CREATE, &error)))
+	if (!(zipfile = zip_open(filename, ZIP_CREATE, &ret)))
 		return SR_ERR;
 
 	/* "version" */
