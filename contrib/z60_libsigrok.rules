@@ -22,8 +22,8 @@
 ## Please keep this list sorted alphabetically by vendor/device name.
 ##
 
-ACTION!="add|change", GOTO="sigrok_rules_end"
-SUBSYSTEM!="usb|usb_device", GOTO="sigrok_rules_end"
+ACTION!="add|change", GOTO="libsigrok_rules_end"
+SUBSYSTEM!="usb|usb_device", GOTO="libsigrok_rules_end"
 
 # Acute PKLA-1216
 # http://www.acute.com.tw/product/la.php
@@ -62,11 +62,12 @@ ATTRS{idVendor}=="08a9", ATTRS{idProduct}=="0009", MODE="664", GROUP="plugdev"
 #
 # EE Electronics ESLA201A
 # http://eeelec.com/xla/
+# lsusb: "08a9:0014" (no string for the vendor name available)
 ATTRS{idVendor}=="08a9", ATTRS{idProduct}=="0014", MODE="664", GROUP="plugdev"
 
 # Ikalogic SCANALOGIC-2 PRO
 # http://www.ikalogic.com/scanalogic2/
-# lsusb: "20a0:4123"
+# lsusb: "20a0:4123" (no string for the vendor name available)
 ATTRS{idVendor}=="20a0", ATTRS{idProduct}=="4123", MODE="664", GROUP="plugdev"
 
 # Intronix Logicport LA1034
@@ -94,8 +95,12 @@ ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="0033", MODE="664", GROUP="plugdev"
 # lsusb: "0403:6010 Future Technology Devices International, Ltd FT2232C Dual USB-UART/FIFO IC"
 ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6010", MODE="664", GROUP="plugdev"
 
-# RockyLogic Ant8 and Ant18e
+# RockyLogic Ant8
 # http://www.rockylogic.com/products/ant8.html
+# lsusb: "0403:f918 Future Technology Devices International,
+#        Ltd Ant8 Logic Probe"
+#
+# RockyLogic Ant18e
 # http://www.rockylogic.com/products/ant18e.html
 # lsusb: "0403:f918 Future Technology Devices International,
 #        Ltd Ant8 Logic Probe"
@@ -128,20 +133,22 @@ ATTRS{idVendor}=="0400", ATTRS{idProduct}=="03e8", MODE="664", GROUP="plugdev"
 #
 # EE Electronics XLA/ESLA100 (clone of the Saleae Logic)
 # http://eeelec.com/xla/
+# lsusb: "0925:3881 Lakeview Research"
 #
 # Robomotic MiniLogic
 # http://buglogic.robomotic.com/
-#
-# Lcsoft Mini Board
-# http://sigrok.org/wiki/Lcsoft_Mini_Board
+# lsusb: "0925:3881 Lakeview Research"
 ATTRS{idVendor}=="0925", ATTRS{idProduct}=="3881", MODE="664", GROUP="plugdev"
 
 # Saleae Logic16
 # http://www.saleae.com/logic16/
-# lsusb: "21a9:1001"
+# lsusb: "21a9:1001" (no string for the vendor name available)
 ATTRS{idVendor}=="21a9", ATTRS{idProduct}=="1001", MODE="664", GROUP="plugdev"
 
-# Cypress FX2 without EEPROM
+# (All Cypress FX2 boards without EEPROM)
+#
+# Lcsoft Mini Board
+# http://sigrok.org/wiki/Lcsoft_Mini_Board
 # lsusb: "04b4:8613 Cypress Semiconductor Corp. CY7C68013 EZ-USB FX2 USB 2.0 Development Kit"
 ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="8613", MODE="664", GROUP="plugdev"
 
@@ -164,4 +171,4 @@ ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="700d", MODE="664", GROUP="plugdev"
 ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="700e", MODE="664", GROUP="plugdev"
 ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="7016", MODE="664", GROUP="plugdev"
 
-LABEL="sigrok_rules_end"
+LABEL="libsigrok_rules_end"
