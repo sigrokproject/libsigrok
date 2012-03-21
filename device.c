@@ -357,10 +357,10 @@ SR_API int sr_dev_trigger_set(struct sr_dev *dev, int probenum,
 /**
  * Determine whether the specified device has the specified capability.
  *
- * TODO: Should return int?
- *
  * @param dev Pointer to the device to be checked. Must not be NULL.
- *            The device's 'driver' field must not be NULL either.
+ *            If the device's 'driver' field is NULL (virtual device), this
+ *            function will always return FALSE (virtual devices don't have
+ *            a hardware capabilities list).
  * @param hwcap The capability that should be checked (whether it's supported
  *              by the specified device).
  *
@@ -376,7 +376,7 @@ SR_API gboolean sr_dev_has_hwcap(const struct sr_dev *dev, int hwcap)
 
 	if (!dev) {
 		sr_err("dev: %s: dev was NULL", __func__);
-		return FALSE; /* TODO: SR_ERR_ARG. */
+		return FALSE;
 	}
 
 	/*
@@ -386,14 +386,14 @@ SR_API gboolean sr_dev_has_hwcap(const struct sr_dev *dev, int hwcap)
 	if (!dev->driver) {
 		sr_dbg("dev: %s: dev->driver was NULL, this seems to be "
 		       "a virtual device without capabilities", __func__);
-		return FALSE; /* TODO: SR_ERR_ARG. */
+		return FALSE;
 	}
 
 	/* TODO: Sanity check on 'hwcap'. */
 
 	if (!(hwcaps = dev->driver->hwcap_get_all())) {
 		sr_err("dev: %s: dev has no capabilities", __func__);
-		return FALSE; /* TODO: SR_ERR*. */
+		return FALSE;
 	}
 
 	for (i = 0; hwcaps[i]; i++) {

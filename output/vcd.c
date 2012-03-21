@@ -29,7 +29,7 @@
 struct context {
 	int num_enabled_probes;
 	int unitsize;
-	char *probelist[65];
+	char *probelist[SR_MAX_NUM_PROBES + 1];
 	int *prevbits;
 	GString *header;
 	uint64_t prevsample;

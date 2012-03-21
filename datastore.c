@@ -128,15 +128,11 @@ SR_API int sr_datastore_destroy(struct sr_datastore *ds)
  *         is returned, the value/state of 'ds' is undefined.
  */
 SR_API int sr_datastore_put(struct sr_datastore *ds, void *data,
-		unsigned int length, int in_unitsize, int *probelist)
+		unsigned int length, int in_unitsize, const int *probelist)
 {
 	unsigned int stored;
 	int capacity, size, num_chunks, chunk_bytes_free, chunk_offset;
 	gpointer chunk;
-
-	/* Avoid compiler warnings. */
-	(void)in_unitsize;
-	(void)probelist;
 
 	if (!ds) {
 		sr_err("ds: %s: ds was NULL", __func__);

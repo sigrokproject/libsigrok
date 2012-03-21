@@ -145,7 +145,7 @@ SR_API int sr_session_dev_add(struct sr_dev *dev)
 	if (!dev->driver->dev_open) {
 		sr_err("session: %s: dev->driver->dev_open was NULL",
 		       __func__);
-		return SR_ERR_ARG;
+		return SR_ERR_BUG;
 	}
 
 	if ((ret = dev->driver->dev_open(dev->driver_index)) != SR_OK) {

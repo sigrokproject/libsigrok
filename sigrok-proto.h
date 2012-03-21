@@ -43,7 +43,7 @@ SR_API int sr_datastore_new(int unitsize, struct sr_datastore **ds);
 SR_API int sr_datastore_destroy(struct sr_datastore *ds);
 SR_API int sr_datastore_put(struct sr_datastore *ds, void *data,
 			    unsigned int length, int in_unitsize,
-			    int *probelist);
+			    const int *probelist);
 
 /*--- device.c --------------------------------------------------------------*/
 
