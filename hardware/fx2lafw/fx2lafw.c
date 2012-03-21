@@ -243,6 +243,50 @@ static void close_dev(struct sr_dev_inst *sdi)
 	sdi->status = SR_ST_INACTIVE;
 }
 
+static int configure_probes(struct context *ctx, GSList *probes)
+{
+	struct sr_probe *probe;
+	GSList *l;
+	int probe_bit, stage, i;
+	char *tc;
+
+	for (i = 0; i < NUM_TRIGGER_STAGES; i++) {
+		ctx->trigger_mask[i] = 0;
+		ctx->trigger_value[i] = 0;
+	}
+
+	stage = -1;
+	for (l = probes; l; l = l->next) {
+		probe = (struct sr_probe *)l->data;
+		if (probe->enabled == FALSE)
+			continue;
+		probe_bit = 1 << (probe->index - 1);
+		if (!(probe->trigger))
+			continue;
+
+		stage = 0;
+		for (tc = probe->trigger; *tc; tc++) {
+			ctx->trigger_mask[stage] |= probe_bit;
+			if (*tc == '1')
+				ctx->trigger_value[stage] |= probe_bit;
+			stage++;
+			if (stage > NUM_TRIGGER_STAGES)
+				return SR_ERR;
+		}
+	}
+
+	if (stage == -1)
+		/*
+		 * We didn't configure any triggers, make sure acquisition
+		 * doesn't wait for any.
+		 */
+		ctx->trigger_stage = TRIGGER_FIRED;
+	else
+		ctx->trigger_stage = 0;
+
+	return SR_OK;
+}
+
 static struct context *fx2lafw_device_new(void)
 {
 	struct context *ctx;
@@ -251,6 +295,8 @@ static struct context *fx2lafw_device_new(void)
 		sr_err("fx2lafw: %s: ctx malloc failed", __func__);
 		return NULL;
 	}
+
+	ctx->trigger_stage = TRIGGER_FIRED;
 
 	return ctx;
 }
@@ -500,7 +546,7 @@ static int hw_dev_config_set(int dev_index, int hwcap, void *value)
 		ctx->cur_samplerate = *(uint64_t *)value;
 		ret = SR_OK;
 	} else if (hwcap == SR_HWCAP_PROBECONFIG) {
-		ret = SR_OK;
+		ret = configure_probes(ctx, (GSList *) value);
 	} else if (hwcap == SR_HWCAP_LIMIT_SAMPLES) {
 		ctx->limit_samples = *(uint64_t *)value;
 		ret = SR_OK;
@@ -545,7 +591,7 @@ static void receive_transfer(struct libusb_transfer *transfer)
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
 	struct context *ctx = transfer->user_data;
-	int cur_buflen;
+	int cur_buflen, trigger_offset, i;
 	unsigned char *cur_buf, *new_buf;
 
 	/*
@@ -594,19 +640,81 @@ static void receive_transfer(struct libusb_transfer *transfer)
 		empty_transfer_count = 0;
 	}
 
-	/* Send the incoming transfer to the session bus. */
-	packet.type = SR_DF_LOGIC;
-	packet.payload = &logic;
-	logic.length = cur_buflen;
-	logic.unitsize = 1;
-	logic.data = cur_buf;
-	sr_session_send(ctx->session_dev_id, &packet);
-	g_free(cur_buf);
+	trigger_offset = 0;
+	if (ctx->trigger_stage >= 0) {
+		for (i = 0; i < cur_buflen; i++) {
 
-	ctx->num_samples += cur_buflen;
-	if (ctx->limit_samples &&
-		(unsigned int) ctx->num_samples > ctx->limit_samples) {
-		abort_acquisition(ctx);
+			if ((cur_buf[i] & ctx->trigger_mask[ctx->trigger_stage]) == ctx->trigger_value[ctx->trigger_stage]) {
+				/* Match on this trigger stage. */
+				ctx->trigger_buffer[ctx->trigger_stage] = cur_buf[i];
+				ctx->trigger_stage++;
+
+				if (ctx->trigger_stage == NUM_TRIGGER_STAGES || ctx->trigger_mask[ctx->trigger_stage] == 0) {
+					/* Match on all trigger stages, we're done. */
+					trigger_offset = i + 1;
+
+					/*
+					 * TODO: Send pre-trigger buffer to session bus.
+					 * Tell the frontend we hit the trigger here.
+					 */
+					packet.type = SR_DF_TRIGGER;
+					packet.payload = NULL;
+					sr_session_send(ctx->session_dev_id, &packet);
+
+					/*
+					 * Send the samples that triggered it, since we're
+					 * skipping past them.
+					 */
+					packet.type = SR_DF_LOGIC;
+					packet.payload = &logic;
+					logic.length = ctx->trigger_stage;
+					logic.unitsize = 1;
+					logic.data = ctx->trigger_buffer;
+					sr_session_send(ctx->session_dev_id, &packet);
+
+					ctx->trigger_stage = TRIGGER_FIRED;
+					break;
+				}
+				return;
+			}
+
+			/*
+			 * We had a match before, but not in the next sample. However, we may
+			 * have a match on this stage in the next bit -- trigger on 0001 will
+			 * fail on seeing 00001, so we need to go back to stage 0 -- but at
+			 * the next sample from the one that matched originally, which the
+			 * counter increment at the end of the loop takes care of.
+			 */
+			if (ctx->trigger_stage > 0) {
+				i -= ctx->trigger_stage;
+				if (i < -1)
+					i = -1; /* Oops, went back past this buffer. */
+				/* Reset trigger stage. */
+				ctx->trigger_stage = 0;
+			}
+		}
+	}
+
+	if (ctx->trigger_stage == TRIGGER_FIRED) {
+		/* Send the incoming transfer to the session bus. */
+		packet.type = SR_DF_LOGIC;
+		packet.payload = &logic;
+		logic.length = cur_buflen - trigger_offset;
+		logic.unitsize = 1;
+		logic.data = cur_buf + trigger_offset;
+		sr_session_send(ctx->session_dev_id, &packet);
+		g_free(cur_buf);
+
+		ctx->num_samples += cur_buflen;
+		if (ctx->limit_samples &&
+			(unsigned int)ctx->num_samples > ctx->limit_samples) {
+			abort_acquisition(ctx);
+		}
+	} else {
+		/*
+		 * TODO: Buffer pre-trigger data in capture
+		 * ratio-sized buffer.
+		 */
 	}
 }
 

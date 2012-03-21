@@ -22,11 +22,15 @@
 
 #define USB_INTERFACE		0
 #define USB_CONFIGURATION	1
-#define TRIGGER_TYPES		"01rf"
+#define NUM_TRIGGER_STAGES	4
+#define TRIGGER_TYPES		"01"
 
 #define MAX_RENUM_DELAY		3000 /* ms */
 #define NUM_SIMUL_TRANSFERS	32
 #define MAX_EMPTY_TRANSFERS	(NUM_SIMUL_TRANSFERS * 2)
+
+/* Software trigger implementation: positive values indicate trigger stage. */
+#define TRIGGER_FIRED          -1
 
 struct fx2lafw_profile {
 	uint16_t vid;
@@ -55,6 +59,11 @@ struct context {
 	/* Device/Capture Settings */
 	uint64_t cur_samplerate;
 	uint64_t limit_samples;
+
+	uint8_t trigger_mask[NUM_TRIGGER_STAGES];
+	uint8_t trigger_value[NUM_TRIGGER_STAGES];
+	int trigger_stage;
+	uint8_t trigger_buffer[NUM_TRIGGER_STAGES];
 
 	int num_samples;
 
