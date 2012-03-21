@@ -11,16 +11,6 @@ for talking to logic analyzer hardware and reading/writing the acquired data
 into various input/output file formats.
 
 
-Status and API
---------------
-
-libsigrok is currently work in progress.
-
-IMPORTANT: The API of libsigrok is NOT yet considered stable! Please do
-           not rely on it, yet! Changes to function names, macro names etc.
-           can happen at any time without prior notice!
-
-
 Requirements
 ------------
 
