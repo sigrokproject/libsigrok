@@ -22,7 +22,7 @@ AC_PREREQ([2.63])
 
 # libsigrok package version number (NOT the same as shared lib version!).
 m4_define([libsigrok_major_version], [0])
-m4_define([libsigrok_minor_version], [2])
+m4_define([libsigrok_minor_version], [1])
 m4_define([libsigrok_micro_version], [0])
 m4_define([libsigrok_version], [libsigrok_major_version.libsigrok_minor_version.libsigrok_micro_version])
 
