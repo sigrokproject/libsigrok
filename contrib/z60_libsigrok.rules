@@ -65,6 +65,12 @@ ATTRS{idVendor}=="08a9", ATTRS{idProduct}=="0009", MODE="664", GROUP="plugdev"
 # lsusb: "08a9:0014" (no string for the vendor name available)
 ATTRS{idVendor}=="08a9", ATTRS{idProduct}=="0014", MODE="664", GROUP="plugdev"
 
+# Hantek DSO-2090
+# http://www.hantek.com.cn/english/produce_list.asp?unid=62
+# lsusb: "04b4:2090 Cypress Semiconductor Corp."
+# lsusb after FW upload: "04b5:2090 ROHM LSI Systems USA, LLC"
+ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="2090", MODE="664", GROUP="plugdev"
+
 # Ikalogic SCANALOGIC-2 PRO
 # http://www.ikalogic.com/scanalogic2/
 # lsusb: "20a0:4123" (no string for the vendor name available)
