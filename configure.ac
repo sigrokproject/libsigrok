@@ -99,11 +99,10 @@ if test "x$LA_CHRONOVU_LA8" = "xyes"; then
 	AC_DEFINE(HAVE_LA_CHRONOVU_LA8, 1, [ChronoVu LA8 support])
 fi
 
-# Disabled by default, unfinished.
 AC_ARG_ENABLE(fx2lafw, AC_HELP_STRING([--enable-fx2lafw],
-	      [enable open source fx2lafw driver support for fx2 devices. [default=no]]),
+	      [enable fx2lafw support (for FX2 LAs). [default=yes]]),
 	      [LA_FX2LAFW="$enableval"],
-	      [LA_FX2LAFW=no])
+	      [LA_FX2LAFW=yes])
 AM_CONDITIONAL(LA_FX2LAFW, test x$LA_FX2LAFW = xyes)
 if test "x$LA_FX2LAFW" = "xyes"; then
 	AC_DEFINE(HAVE_LA_FX2LAFW, 1, [fx2lafw support])
@@ -332,7 +331,7 @@ echo
 echo "  - ASIX SIGMA...................... $LA_ASIX_SIGMA"
 echo "  - ChronoVu LA8.................... $LA_CHRONOVU_LA8"
 echo "  - Demo driver..................... $LA_DEMO"
-echo "  - fx2lafw......................... $LA_FX2LAFW"
+echo "  - fx2lafw (for FX2 LAs)........... $LA_FX2LAFW"
 echo "  - Link MSO-19..................... $LA_LINK_MSO19"
 echo "  - Openbench Logic Sniffer......... $LA_OLS"
 echo "  - Saleae Logic.................... $LA_SALEAE_LOGIC"
