@@ -120,7 +120,7 @@ SR_PRIV int data_ascii(struct sr_output *o, const char *data_in,
 
 SR_PRIV struct sr_output_format output_text_ascii = {
 	.id = "ascii",
-	.description = "ASCII (takes argument, default 74)",
+	.description = "ASCII",
 	.df_type = SR_DF_LOGIC,
 	.init = init_ascii,
 	.data = data_ascii,

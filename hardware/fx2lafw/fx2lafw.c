@@ -699,7 +699,7 @@ static int hw_dev_acquisition_stop(int dev_index, void *cb_data)
 
 SR_PRIV struct sr_dev_driver fx2lafw_driver_info = {
 	.name = "fx2lafw",
-	.longname = "fx2lafw",
+	.longname = "fx2lafw (generic driver for FX2 based LAs)",
 	.api_version = 1,
 	.init = hw_init,
 	.cleanup = hw_cleanup,
