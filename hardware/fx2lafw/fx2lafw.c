@@ -574,14 +574,24 @@ static int receive_data(int fd, int revents, void *cb_data)
 
 static void abort_acquisition(struct context *ctx)
 {
-	struct sr_datafeed_packet packet;
+	ctx->num_samples = -1;
+}
 
+void finish_acquisition(struct context *ctx)
+{
+	struct sr_datafeed_packet packet;
+	int i;
+
+	/* Terminate session */
 	packet.type = SR_DF_END;
 	sr_session_send(ctx->session_dev_id, &packet);
 
-	ctx->num_samples = -1;
-
-	/* TODO: Need to cancel and free any queued up transfers. */
+	/* Remove fds from polling */
+	const struct libusb_pollfd **const lupfd =
+		libusb_get_pollfds(usb_context);
+	for (i = 0; lupfd[i]; i++)
+		sr_source_remove(lupfd[i]->fd);
+	free(lupfd); /* NOT g_free()! */
 }
 
 static void receive_transfer(struct libusb_transfer *transfer)
@@ -601,6 +611,11 @@ static void receive_transfer(struct libusb_transfer *transfer)
 	if (ctx->num_samples == -1) {
 		if (transfer)
 			libusb_free_transfer(transfer);
+
+		ctx->submitted_transfers--;
+		if (ctx->submitted_transfers == 0)
+			finish_acquisition(ctx);
+
 		return;
 	}
 
@@ -761,6 +776,8 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 			g_free(buf);
 			return SR_ERR;
 		}
+
+		ctx->submitted_transfers++;
 		size = 4096;
 	}
 

@@ -66,6 +66,7 @@ struct context {
 	uint8_t trigger_buffer[NUM_TRIGGER_STAGES];
 
 	int num_samples;
+	int submitted_transfers;
 
 	void *session_dev_id;
 
