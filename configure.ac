@@ -67,6 +67,10 @@ LIBSIGROK_LT_REVISION=0
 LIBSIGROK_LT_AGE=0
 LIBSIGROK_LT_VERSION="$LIBSIGROK_LT_CURRENT:$LIBSIGROK_LT_REVISION:$LIBSIGROK_LT_AGE"
 LIBSIGROK_LT_LDFLAGS="-version-info $LIBSIGROK_LT_VERSION"
+AC_SUBST(LIBSIGROK_LT_CURRENT)
+AC_SUBST(LIBSIGROK_LT_REVISION)
+AC_SUBST(LIBSIGROK_LT_AGE)
+AC_SUBST(LIBSIGROK_LT_VERSION)
 AC_SUBST(LIBSIGROK_LT_LDFLAGS)
 
 # Logic analyzer hardware support '--enable' options.
@@ -272,15 +276,6 @@ AC_SUBST(LIBSIGROK_MAJOR_VERSION)
 AC_SUBST(LIBSIGROK_MINOR_VERSION)
 AC_SUBST(LIBSIGROK_MICRO_VERSION)
 AC_SUBST(LIBSIGROK_VERSION)
-
-AC_DEFINE(LIBSIGROK_MAJOR_VERSION, [libsigrok_major_version],
-	  [Define to the libsigrok major package version])
-AC_DEFINE(LIBSIGROK_MINOR_VERSION, [libsigrok_minor_version],
-	  [Define to the libsigrok minor package version])
-AC_DEFINE(LIBSIGROK_MICRO_VERSION, [libsigrok_micro_version],
-	  [Define to the libsigrok micro package version])
-AC_DEFINE(LIBSIGROK_VERSION, [libsigrok_version],
-	  [Define to the libsigrok package version])
 
 AC_CONFIG_FILES([Makefile
 		 sigrok.h

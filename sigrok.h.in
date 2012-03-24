@@ -31,6 +31,38 @@ extern "C" {
 #endif
 
 /*
+ * Package version macros (can be used for conditional compilation).
+ */
+
+/** The libsigrok package 'major' version number. */
+#define LIBSIGROK_MAJOR_VERSION @LIBSIGROK_MAJOR_VERSION@
+
+/** The libsigrok package 'minor' version number. */
+#define LIBSIGROK_MINOR_VERSION @LIBSIGROK_MINOR_VERSION@
+
+/** The libsigrok package 'micro' version number. */
+#define LIBSIGROK_MICRO_VERSION @LIBSIGROK_MICRO_VERSION@
+
+/** The libsigrok package version ("major.minor.micro") as string. */
+#define LIBSIGROK_VERSION_STRING "@LIBSIGROK_VERSION@"
+
+/*
+ * Library/libtool version macros (can be used for conditional compilation).
+ */
+
+/** The libsigrok libtool 'current' version number. */
+#define LIBSIGROK_LT_CURRENT @LIBSIGROK_LT_CURRENT@
+
+/** The libsigrok libtool 'revision' version number. */
+#define LIBSIGROK_LT_REVISION @LIBSIGROK_LT_REVISION@
+
+/** The libsigrok libtool 'age' version number. */
+#define LIBSIGROK_LT_AGE @LIBSIGROK_LT_AGE@
+
+/** The libsigrok libtool version ("current:revision:age") as string. */
+#define LIBSIGROK_LT_VERSION_STRING "@LIBSIGROK_LT_VERSION@"
+
+/*
  * Status/error codes returned by libsigrok functions.
  *
  * All possible return codes of libsigrok functions must be listed here.
