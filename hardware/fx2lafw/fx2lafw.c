@@ -610,7 +610,6 @@ static void receive_transfer(struct libusb_transfer *transfer)
 	/* Save incoming transfer before reusing the transfer struct. */
 	cur_buf = transfer->buffer;
 	cur_buflen = transfer->actual_length;
-	ctx = transfer->user_data;
 
 	/* Fire off a new request. */
 	if (!(new_buf = g_try_malloc(4096))) {
