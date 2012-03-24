@@ -283,6 +283,7 @@ AC_DEFINE(LIBSIGROK_VERSION, [libsigrok_version],
 	  [Define to the libsigrok package version])
 
 AC_CONFIG_FILES([Makefile
+		 sigrok.h
 		 firmware/Makefile
 		 hardware/Makefile
 		 hardware/alsa/Makefile
