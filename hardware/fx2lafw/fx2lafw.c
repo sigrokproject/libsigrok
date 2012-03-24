@@ -72,7 +72,7 @@ static const char *fx2lafw_probe_names[] = {
 	NULL,
 };
 
-static uint64_t fx2lafw_supported_samplerates[] = {
+static uint64_t supported_samplerates[] = {
 	SR_MHZ(1),
 	SR_MHZ(2),
 	SR_MHZ(3),
@@ -84,11 +84,11 @@ static uint64_t fx2lafw_supported_samplerates[] = {
 	SR_MHZ(24),
 };
 
-static struct sr_samplerates fx2lafw_samplerates = {
-	SR_MHZ(1),
-	SR_MHZ(24),
-	SR_HZ(0),
-	fx2lafw_supported_samplerates,
+static struct sr_samplerates samplerates = {
+	0,
+	0,
+	0,
+	supported_samplerates,
 };
 
 static GSList *dev_insts = NULL;
@@ -431,7 +431,7 @@ static int hw_dev_open(int dev_index)
 	if (ctx->cur_samplerate == 0) {
 		/* Samplerate hasn't been set; default to the slowest one. */
 		if (hw_dev_config_set(dev_index, SR_HWCAP_SAMPLERATE,
-		    &fx2lafw_supported_samplerates[0]) == SR_ERR)
+		    &supported_samplerates[0]) == SR_ERR)
 			return SR_ERR;
 	}
 
@@ -506,7 +506,7 @@ static void *hw_dev_info_get(int dev_index, int dev_info_id)
 	case SR_DI_PROBE_NAMES:
 		return fx2lafw_probe_names;
 	case SR_DI_SAMPLERATES:
-		return &fx2lafw_samplerates;
+		return &samplerates;
 	case SR_DI_TRIGGER_TYPES:
 		return TRIGGER_TYPES;
 	case SR_DI_CUR_SAMPLERATE:

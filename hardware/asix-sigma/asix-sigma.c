@@ -83,9 +83,9 @@ static const char *probe_names[NUM_PROBES + 1] = {
 };
 
 static struct sr_samplerates samplerates = {
-	SR_KHZ(200),
-	SR_MHZ(200),
-	SR_HZ(0),
+	0,
+	0,
+	0,
 	supported_samplerates,
 };
 
