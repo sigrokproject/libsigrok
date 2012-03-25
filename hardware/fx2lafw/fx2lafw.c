@@ -343,13 +343,13 @@ static int hw_init(const char *deviceinfo)
 		}
 
 		/* Skip if the device was not found */
-		if(!fx2lafw_prof)
+		if (!fx2lafw_prof)
 			continue;
 
 		sdi = sr_dev_inst_new(devcnt, SR_ST_INITIALIZING,
 			fx2lafw_prof->vendor, fx2lafw_prof->model,
 			fx2lafw_prof->model_version);
-		if(!sdi)
+		if (!sdi)
 			return 0;
 
 		ctx = fx2lafw_device_new();
@@ -460,7 +460,7 @@ static int hw_cleanup(void)
 	struct context *ctx;
 	int ret = SR_OK;
 
-	for(l = dev_insts; l; l = l->next) {
+	for (l = dev_insts; l; l = l->next) {
 		if (!(sdi = l->data)) {
 			/* Log error, but continue cleaning up the rest. */
 			sr_err("fx2lafw: %s: sdi was NULL, continuing", __func__);
@@ -482,7 +482,7 @@ static int hw_cleanup(void)
 	g_slist_free(dev_insts);
 	dev_insts = NULL;
 
-	if(usb_context)
+	if (usb_context)
 		libusb_exit(usb_context);
 	usb_context = NULL;
 
@@ -810,7 +810,7 @@ static int hw_dev_acquisition_stop(int dev_index, void *cb_data)
 {
 	struct sr_dev_inst *sdi;
 
-	/* unused parameter */
+	/* Avoid compiler warnings. */
 	(void)cb_data;
 
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
