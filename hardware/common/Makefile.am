@@ -26,6 +26,10 @@ if LA_SALEAE_LOGIC
 libsigrokhwcommon_la_SOURCES += ezusb.c
 endif
 
+if LA_FX2LAFW
+libsigrokhwcommon_la_SOURCES += ezusb.c
+endif
+
 if LA_OLS
 libsigrokhwcommon_la_SOURCES += serial.c
 endif
