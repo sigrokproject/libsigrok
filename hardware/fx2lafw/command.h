@@ -17,6 +17,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifndef LIBSIGROK_HARDWARE_FX2LAFW_COMMAND_H
+#define LIBSIGROK_HARDWARE_FX2LAFW_COMMAND_H
+
 /* Protocol commands */
 #define CMD_GET_FW_VERSION		0xb0
 #define CMD_START			0xb1
@@ -37,3 +40,5 @@ struct cmd_start_acquisition {
 
 int command_start_acquisition(libusb_device_handle *devhdl,
 			      uint64_t samplerate);
+
+#endif
