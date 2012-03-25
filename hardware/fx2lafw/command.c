@@ -22,8 +22,8 @@
 #include "sigrok.h"
 #include "sigrok-internal.h"
 
-int command_start_acquisition(libusb_device_handle *devhdl,
-			      uint64_t samplerate)
+SR_PRIV int command_start_acquisition(libusb_device_handle *devhdl,
+				      uint64_t samplerate)
 {
 	struct cmd_start_acquisition cmd;
 	int delay = 0, ret;
