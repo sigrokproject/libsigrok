@@ -29,18 +29,21 @@
 #include "command.h"
 
 static const struct fx2lafw_profile supported_fx2[] = {
-	/* CWAV USBee AX
+	/*
+	 * CWAV USBee AX
 	 * EE Electronics ESLA201A
 	 */
 	{ 0x08a9, 0x0014, "CWAV", "USBee AX", NULL,
 		FIRMWARE_DIR "/fx2lafw-cwav-usbeeax.fw", 8 },
 
-	/* CWAV USBee SX
+	/*
+	 * CWAV USBee SX
 	 */
 	{ 0x08a9, 0x0009, "CWAV", "USBee SX", NULL,
 		FIRMWARE_DIR "/fx2lafw-cwav-usbeesx.fw", 8 },
 
-	/* Saleae Logic
+	/*
+	 * Saleae Logic
 	 * EE Electronics ESLA100
 	 * Robomotic MiniLogic
 	 */
@@ -61,14 +64,14 @@ static int fx2lafw_capabilities[] = {
 };
 
 static const char *fx2lafw_probe_names[] = {
-	"D0",
-	"D1",
-	"D2",
-	"D3",
-	"D4",
-	"D5",
-	"D6",
-	"D7",
+	"0",
+	"1",
+	"2",
+	"3",
+	"4",
+	"5",
+	"6",
+	"7",
 	NULL,
 };
 
@@ -174,7 +177,8 @@ static int fx2lafw_open_dev(int dev_index)
 	libusb_get_device_list(usb_context, &devlist);
 	for (i = 0; devlist[i]; i++) {
 		if ((ret = libusb_get_device_descriptor(devlist[i], &des))) {
-			sr_err("fx2lafw: failed to get device descriptor: %d", ret);
+			sr_err("fx2lafw: Failed to get device descriptor: %d.",
+			       ret);
 			continue;
 		}
 
@@ -208,11 +212,11 @@ static int fx2lafw_open_dev(int dev_index)
 				ctx->usb->address = libusb_get_device_address(devlist[i]);
 
 			sdi->status = SR_ST_ACTIVE;
-			sr_info("fx2lafw: opened device %d on %d.%d interface %d",
-				sdi->index, ctx->usb->bus,
+			sr_info("fx2lafw: Opened device %d on %d.%d "
+				"interface %d.", sdi->index, ctx->usb->bus,
 				ctx->usb->address, USB_INTERFACE);
 		} else {
-			sr_err("fx2lafw: failed to open device: %d", ret);
+			sr_err("fx2lafw: Failed to open device: %d.", ret);
 		}
 
 		/* if we made it here, we handled the device one way or another */
@@ -235,8 +239,8 @@ static void close_dev(struct sr_dev_inst *sdi)
 	if (ctx->usb->devhdl == NULL)
 		return;
 
-	sr_info("fx2lafw: closing device %d on %d.%d interface %d", sdi->index,
-		ctx->usb->bus, ctx->usb->address, USB_INTERFACE);
+	sr_info("fx2lafw: Closing device %d on %d.%d interface %d.",
+		sdi->index, ctx->usb->bus, ctx->usb->address, USB_INTERFACE);
 	libusb_release_interface(ctx->usb->devhdl, USB_INTERFACE);
 	libusb_close(ctx->usb->devhdl);
 	ctx->usb->devhdl = NULL;
@@ -292,7 +296,7 @@ static struct context *fx2lafw_device_new(void)
 	struct context *ctx;
 
 	if (!(ctx = g_try_malloc0(sizeof(struct context)))) {
-		sr_err("fx2lafw: %s: ctx malloc failed", __func__);
+		sr_err("fx2lafw: %s: ctx malloc failed.", __func__);
 		return NULL;
 	}
 
@@ -320,17 +324,17 @@ static int hw_init(const char *deviceinfo)
 	(void)deviceinfo;
 
 	if (libusb_init(&usb_context) != 0) {
-		sr_warn("Failed to initialize USB.");
+		sr_warn("fx2lafw: Failed to initialize libusb.");
 		return 0;
 	}
 
-	/* Find all fx2lafw compatible devices and upload firware to all of them. */
+	/* Find all fx2lafw compatible devices and upload firware to them. */
 	libusb_get_device_list(usb_context, &devlist);
 	for (i = 0; devlist[i]; i++) {
 
 		if ((ret = libusb_get_device_descriptor(
-			devlist[i], &des)) != 0) {
-			sr_warn("failed to get device descriptor: %d", ret);
+		     devlist[i], &des)) != 0) {
+			sr_warn("fx2lafw: Failed to get device descriptor: %d.", ret);
 			continue;
 		}
 
@@ -359,7 +363,7 @@ static int hw_init(const char *deviceinfo)
 
 		if (check_conf_profile(devlist[i])) {
 			/* Already has the firmware, so fix the new address. */
-			sr_dbg("fx2lafw: Found a fx2lafw device.");
+			sr_dbg("fx2lafw: Found an fx2lafw device.");
 			sdi->status = SR_ST_INACTIVE;
 			ctx->usb = sr_usb_dev_inst_new
 			    (libusb_get_bus_number(devlist[i]),
@@ -370,8 +374,8 @@ static int hw_init(const char *deviceinfo)
 				/* Remember when the firmware on this device was updated */
 				g_get_current_time(&ctx->fw_updated);
 			else
-				sr_err("fx2lafw: firmware upload failed for "
-				       "device %d", devcnt);
+				sr_err("fx2lafw: Firmware upload failed for "
+				       "device %d.", devcnt);
 			ctx->usb = sr_usb_dev_inst_new
 				(libusb_get_bus_number(devlist[i]), 0xff, NULL);
 		}
@@ -400,7 +404,7 @@ static int hw_dev_open(int dev_index)
 	 */
 	ret = 0;
 	if (GTV_TO_MSEC(ctx->fw_updated) > 0) {
-		sr_info("fx2lafw: waiting for device to reset");
+		sr_info("fx2lafw: Waiting for device to reset.");
 		/* takes at least 300ms for the FX2 to be gone from the USB bus */
 		g_usleep(300 * 1000);
 		timediff = 0;
@@ -411,20 +415,20 @@ static int hw_dev_open(int dev_index)
 			g_get_current_time(&cur_time);
 			timediff = GTV_TO_MSEC(cur_time) - GTV_TO_MSEC(ctx->fw_updated);
 		}
-		sr_info("fx2lafw: device came back after %d ms", timediff);
+		sr_info("fx2lafw: Device came back after %d ms.", timediff);
 	} else {
 		ret = fx2lafw_open_dev(dev_index);
 	}
 
 	if (ret != SR_OK) {
-		sr_err("fx2lafw: unable to open device");
+		sr_err("fx2lafw: Unable to open device.");
 		return SR_ERR;
 	}
 	ctx = sdi->priv;
 
 	ret = libusb_claim_interface(ctx->usb->devhdl, USB_INTERFACE);
 	if (ret != 0) {
-		sr_err("fx2lafw: Unable to claim interface: %d", ret);
+		sr_err("fx2lafw: Unable to claim interface: %d.", ret);
 		return SR_ERR;
 	}
 
@@ -443,7 +447,7 @@ static int hw_dev_close(int dev_index)
 	struct sr_dev_inst *sdi;
 
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index))) {
-		sr_err("fx2lafw: %s: sdi was NULL", __func__);
+		sr_err("fx2lafw: %s: sdi was NULL.", __func__);
 		return SR_ERR_BUG;
 	}
 
@@ -463,7 +467,8 @@ static int hw_cleanup(void)
 	for (l = dev_insts; l; l = l->next) {
 		if (!(sdi = l->data)) {
 			/* Log error, but continue cleaning up the rest. */
-			sr_err("fx2lafw: %s: sdi was NULL, continuing", __func__);
+			sr_err("fx2lafw: %s: sdi was NULL, continuing.",
+			       __func__);
 			ret = SR_ERR_BUG;
 			continue;
 		}
@@ -619,7 +624,7 @@ static void receive_transfer(struct libusb_transfer *transfer)
 		return;
 	}
 
-	sr_info("fx2lafw: receive_transfer(): status %d received %d bytes",
+	sr_info("fx2lafw: receive_transfer(): status %d received %d bytes.",
 		transfer->status, transfer->actual_length);
 
 	/* Save incoming transfer before reusing the transfer struct. */
@@ -628,7 +633,7 @@ static void receive_transfer(struct libusb_transfer *transfer)
 
 	/* Fire off a new request. */
 	if (!(new_buf = g_try_malloc(4096))) {
-		sr_err("fx2lafw: %s: new_buf malloc failed", __func__);
+		sr_err("fx2lafw: %s: new_buf malloc failed.", __func__);
 		return; /* TODO: SR_ERR_MALLOC */
 	}
 
@@ -637,7 +642,7 @@ static void receive_transfer(struct libusb_transfer *transfer)
 	if (libusb_submit_transfer(transfer) != 0) {
 		/* TODO: Stop session? */
 		/* TODO: Better error message. */
-		sr_err("fx2lafw: %s: libusb_submit_transfer error", __func__);
+		sr_err("fx2lafw: %s: libusb_submit_transfer error.", __func__);
 	}
 
 	if (cur_buflen == 0) {
@@ -750,12 +755,12 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 	ctx->num_samples = 0;
 
 	if (!(packet = g_try_malloc(sizeof(struct sr_datafeed_packet)))) {
-		sr_err("fx2lafw: %s: packet malloc failed", __func__);
+		sr_err("fx2lafw: %s: packet malloc failed.", __func__);
 		return SR_ERR_MALLOC;
 	}
 
 	if (!(header = g_try_malloc(sizeof(struct sr_datafeed_header)))) {
-		sr_err("fx2lafw: %s: header malloc failed", __func__);
+		sr_err("fx2lafw: %s: header malloc failed.", __func__);
 		return SR_ERR_MALLOC;
 	}
 
@@ -763,7 +768,7 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 	size = 2048;
 	for (i = 0; i < NUM_SIMUL_TRANSFERS; i++) {
 		if (!(buf = g_try_malloc(size))) {
-			sr_err("fx2lafw: %s: buf malloc failed", __func__);
+			sr_err("fx2lafw: %s: buf malloc failed.", __func__);
 			return SR_ERR_MALLOC;
 		}
 		transfer = libusb_alloc_transfer(0);

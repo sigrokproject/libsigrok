@@ -39,7 +39,8 @@ SR_PRIV int command_start_acquisition(libusb_device_handle *devhdl,
 
 	/* Note: sample_delay=0 is treated as sample_delay=256. */
 	if (delay <= 0 || delay > 256) {
-		sr_err("fx2lafw: Unable to sample at %dHz", samplerate);
+		sr_err("fx2lafw: Unable to sample at %" PRIu64 "Hz.",
+		       samplerate);
 		return SR_ERR;
 	}
 
@@ -50,7 +51,7 @@ SR_PRIV int command_start_acquisition(libusb_device_handle *devhdl,
 			LIBUSB_ENDPOINT_OUT, CMD_START, 0x0000, 0x0000,
 			(unsigned char *)&cmd, sizeof(cmd), 100);
 	if (ret < 0) {
-		sr_err("fx2lafw: Unable to send start command: %d", ret);
+		sr_err("fx2lafw: Unable to send start command: %d.", ret);
 		return SR_ERR;
 	}
 
