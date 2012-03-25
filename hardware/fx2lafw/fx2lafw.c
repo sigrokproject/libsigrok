@@ -577,7 +577,7 @@ static void abort_acquisition(struct context *ctx)
 	ctx->num_samples = -1;
 }
 
-void finish_acquisition(struct context *ctx)
+static void finish_acquisition(struct context *ctx)
 {
 	struct sr_datafeed_packet packet;
 	int i;
