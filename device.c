@@ -283,7 +283,7 @@ SR_API int sr_dev_probe_name_set(struct sr_dev *dev, int probenum,
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments.
  *         If something other than SR_OK is returned, 'dev' is unchanged.
  */
-SR_API int sr_dev_trigger_clear(struct sr_dev *dev)
+SR_API int sr_dev_trigger_remove_all(struct sr_dev *dev)
 {
 	struct sr_probe *p;
 	unsigned int pnum; /* TODO: uint16_t? */
@@ -311,7 +311,10 @@ SR_API int sr_dev_trigger_clear(struct sr_dev *dev)
 }
 
 /**
- * Add a trigger to the specified device.
+ * Add a trigger to the specified device (and the specified probe).
+ *
+ * If the specified probe of this device already has a trigger, it will
+ * be silently replaced.
  *
  * TODO: Better description.
  * TODO: Describe valid format of the 'trigger' string.

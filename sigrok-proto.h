@@ -56,7 +56,7 @@ SR_API struct sr_probe *sr_dev_probe_find(const struct sr_dev *dev,
 					  int probenum);
 SR_API int sr_dev_probe_name_set(struct sr_dev *dev, int probenum,
 				 const char *name);
-SR_API int sr_dev_trigger_clear(struct sr_dev *dev);
+SR_API int sr_dev_trigger_remove_all(struct sr_dev *dev);
 SR_API int sr_dev_trigger_set(struct sr_dev *dev, int probenum,
 			      const char *trigger);
 SR_API gboolean sr_dev_has_hwcap(const struct sr_dev *dev, int hwcap);
@@ -85,11 +85,11 @@ typedef void (*sr_datafeed_callback_t)(struct sr_dev *dev,
 SR_API int sr_session_load(const char *filename);
 SR_API struct sr_session *sr_session_new(void);
 SR_API int sr_session_destroy(void);
-SR_API int sr_session_dev_clear(void);
+SR_API int sr_session_dev_remove_all(void);
 SR_API int sr_session_dev_add(struct sr_dev *dev);
 
 /* Datafeed setup */
-SR_API int sr_session_datafeed_callback_clear(void);
+SR_API int sr_session_datafeed_callback_remove_all(void);
 SR_API int sr_session_datafeed_callback_add(sr_datafeed_callback_t cb);
 
 /* Session control */

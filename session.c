@@ -97,7 +97,7 @@ SR_API int sr_session_destroy(void)
  *
  * @return SR_OK upon success, SR_ERR_BUG if no session exists.
  */
-SR_API int sr_session_dev_clear(void)
+SR_API int sr_session_dev_remove_all(void)
 {
 	if (!session) {
 		sr_err("session: %s: session was NULL", __func__);
@@ -159,11 +159,11 @@ SR_API int sr_session_dev_add(struct sr_dev *dev)
 }
 
 /**
- * Clear all datafeed callbacks in the current session.
+ * Remove all datafeed callbacks in the current session.
  *
  * @return SR_OK upon success, SR_ERR_BUG if no session exists.
  */
-SR_API int sr_session_datafeed_callback_clear(void)
+SR_API int sr_session_datafeed_callback_remove_all(void)
 {
 	if (!session) {
 		sr_err("session: %s: session was NULL", __func__);
