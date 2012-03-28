@@ -307,15 +307,15 @@ SR_API struct sr_hwcap_option *sr_hw_hwcap_get(int hwcap)
 	return NULL;
 }
 
-/* unnecessary level of indirection follows. */
+/* Unnecessary level of indirection follows. */
 
-SR_PRIV void sr_source_remove(int fd)
+SR_PRIV int sr_source_remove(int fd)
 {
-	sr_session_source_remove(fd);
+	return sr_session_source_remove(fd);
 }
 
-SR_PRIV void sr_source_add(int fd, int events, int timeout,
-		   sr_receive_data_callback_t cb, void *cb_data)
+SR_PRIV int sr_source_add(int fd, int events, int timeout,
+			  sr_receive_data_callback_t cb, void *cb_data)
 {
-	sr_session_source_add(fd, events, timeout, cb, cb_data);
+	return sr_session_source_add(fd, events, timeout, cb, cb_data);
 }
