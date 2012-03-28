@@ -30,14 +30,15 @@ SR_PRIV int init_hex(struct sr_output *o)
 	return init(o, DEFAULT_BPL_HEX, MODE_HEX);
 }
 
-SR_PRIV int data_hex(struct sr_output *o, const char *data_in,
-		     uint64_t length_in, char **data_out, uint64_t *length_out)
+SR_PRIV int data_hex(struct sr_output *o, const uint8_t *data_in,
+		     uint64_t length_in, uint8_t **data_out,
+		     uint64_t *length_out)
 {
 	struct context *ctx;
 	unsigned int outsize, offset, p;
 	int max_linelen;
 	uint64_t sample;
-	char *outbuf;
+	uint8_t *outbuf;
 
 	ctx = o->internal;
 	max_linelen = SR_MAX_PROBENAME_LEN + 3 + ctx->samples_per_line
@@ -53,7 +54,7 @@ SR_PRIV int data_hex(struct sr_output *o, const char *data_in,
 	outbuf[0] = '\0';
 	if (ctx->header) {
 		/* The header is still here, this must be the first packet. */
-		strncpy(outbuf, ctx->header, outsize);
+		strncpy((char *)outbuf, ctx->header, outsize);
 		g_free(ctx->header);
 		ctx->header = NULL;
 	}
@@ -66,7 +67,7 @@ SR_PRIV int data_hex(struct sr_output *o, const char *data_in,
 			ctx->linevalues[p] <<= 1;
 			if (sample & ((uint64_t) 1 << p))
 				ctx->linevalues[p] |= 1;
-			sprintf(ctx->linebuf + (p * ctx->linebuf_len) +
+			sprintf((char *)ctx->linebuf + (p * ctx->linebuf_len) +
 				ctx->line_offset, "%.2x", ctx->linevalues[p]);
 		}
 		ctx->spl_cnt++;
@@ -87,7 +88,7 @@ SR_PRIV int data_hex(struct sr_output *o, const char *data_in,
 	}
 
 	*data_out = outbuf;
-	*length_out = strlen(outbuf);
+	*length_out = strlen((const char *)outbuf);
 
 	return SR_OK;
 }

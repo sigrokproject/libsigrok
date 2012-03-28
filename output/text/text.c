@@ -27,7 +27,7 @@
 #include "sigrok-internal.h"
 #include "text.h"
 
-SR_PRIV void flush_linebufs(struct context *ctx, char *outbuf)
+SR_PRIV void flush_linebufs(struct context *ctx, uint8_t *outbuf)
 {
 	static int max_probename_len = 0;
 	int len, i;
@@ -45,7 +45,8 @@ SR_PRIV void flush_linebufs(struct context *ctx, char *outbuf)
 	}
 
 	for (i = 0; ctx->probelist[i]; i++) {
-		sprintf(outbuf + strlen(outbuf), "%*s:%s\n", max_probename_len,
+		sprintf((char *)outbuf + strlen((const char *)outbuf),
+			"%*s:%s\n", max_probename_len,
 			ctx->probelist[i], ctx->linebuf + i * ctx->linebuf_len);
 	}
 
@@ -57,8 +58,8 @@ SR_PRIV void flush_linebufs(struct context *ctx, char *outbuf)
 		if (ctx->mode == MODE_ASCII)
 			space_offset = 0;
 
-		sprintf(outbuf + strlen(outbuf), "T:%*s^\n",
-			ctx->mark_trigger + space_offset, "");
+		sprintf((char *)outbuf + strlen((const char *)outbuf),
+			"T:%*s^\n", ctx->mark_trigger + space_offset, "");
 	}
 
 	memset(ctx->linebuf, 0, i * ctx->linebuf_len);
@@ -142,12 +143,12 @@ SR_PRIV int init(struct sr_output *o, int default_spl, enum outputmode mode)
 	return SR_OK;
 }
 
-SR_PRIV int event(struct sr_output *o, int event_type, char **data_out,
+SR_PRIV int event(struct sr_output *o, int event_type, uint8_t **data_out,
 		  uint64_t *length_out)
 {
 	struct context *ctx;
 	int outsize;
-	char *outbuf;
+	uint8_t *outbuf;
 
 	ctx = o->internal;
 	switch (event_type) {
@@ -165,7 +166,7 @@ SR_PRIV int event(struct sr_output *o, int event_type, char **data_out,
 		}
 		flush_linebufs(ctx, outbuf);
 		*data_out = outbuf;
-		*length_out = strlen(outbuf);
+		*length_out = strlen((const char *)outbuf);
 		g_free(o->internal);
 		o->internal = NULL;
 		break;

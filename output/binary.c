@@ -24,10 +24,10 @@
 #include "sigrok.h"
 #include "sigrok-internal.h"
 
-static int data(struct sr_output *o, const char *data_in, uint64_t length_in,
-		char **data_out, uint64_t *length_out)
+static int data(struct sr_output *o, const uint8_t *data_in,
+		uint64_t length_in, uint8_t **data_out, uint64_t *length_out)
 {
-	char *outbuf;
+	uint8_t *outbuf;
 
 	/* Prevent compiler warnings. */
 	(void)o;

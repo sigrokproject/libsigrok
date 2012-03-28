@@ -118,7 +118,7 @@ static int init(struct sr_output *o)
 	/* Columns / channels */
 	wbuf[0] = '\0';
 	for (i = 0; i < ctx->num_enabled_probes; i++) {
-		c = (char *)&wbuf + strlen((char *)&wbuf);
+		c = (char *)&wbuf + strlen((const char *)&wbuf);
 		sprintf(c, "# %d\t\t%s\n", i + 1, ctx->probelist[i]);
 	}
 
@@ -145,7 +145,7 @@ static int init(struct sr_output *o)
 	return 0;
 }
 
-static int event(struct sr_output *o, int event_type, char **data_out,
+static int event(struct sr_output *o, int event_type, uint8_t **data_out,
 		 uint64_t *length_out)
 {
 	if (!o) {
@@ -183,14 +183,14 @@ static int event(struct sr_output *o, int event_type, char **data_out,
 	return SR_OK;
 }
 
-static int data(struct sr_output *o, const char *data_in, uint64_t length_in,
-		char **data_out, uint64_t *length_out)
+static int data(struct sr_output *o, const uint8_t *data_in,
+		uint64_t length_in, uint8_t **data_out, uint64_t *length_out)
 {
 	struct context *ctx;
 	unsigned int max_linelen, outsize, p, curbit, i;
 	uint64_t sample;
 	static uint64_t samplecount = 0, old_sample = 0;
-	char *outbuf, *c;
+	uint8_t *outbuf, *c;
 
 	if (!o) {
 		sr_err("gnuplot out: %s: o was NULL", __func__);
@@ -231,7 +231,7 @@ static int data(struct sr_output *o, const char *data_in, uint64_t length_in,
 	outbuf[0] = '\0';
 	if (ctx->header) {
 		/* The header is still here, this must be the first packet. */
-		strncpy(outbuf, ctx->header, outsize);
+		strncpy((char *)outbuf, ctx->header, outsize);
 		g_free(ctx->header);
 		ctx->header = NULL;
 	}
@@ -251,22 +251,22 @@ static int data(struct sr_output *o, const char *data_in, uint64_t length_in,
 		old_sample = sample;
 
 		/* The first column is a counter (needed for gnuplot). */
-		c = outbuf + strlen(outbuf);
-		sprintf(c, "%" PRIu64 "\t", samplecount++);
+		c = outbuf + strlen((const char *)outbuf);
+		sprintf((char *)c, "%" PRIu64 "\t", samplecount++);
 
 		/* The next columns are the values of all channels. */
 		for (p = 0; p < ctx->num_enabled_probes; p++) {
 			curbit = (sample & ((uint64_t) (1 << p))) >> p;
-			c = outbuf + strlen(outbuf);
-			sprintf(c, "%d ", curbit);
+			c = outbuf + strlen((const char *)outbuf);
+			sprintf((char *)c, "%d ", curbit);
 		}
 
-		c = outbuf + strlen(outbuf);
-		sprintf(c, "\n");
+		c = outbuf + strlen((const char *)outbuf);
+		sprintf((char *)c, "\n");
 	}
 
 	*data_out = outbuf;
-	*length_out = strlen(outbuf);
+	*length_out = strlen((const char *)outbuf);
 
 	return SR_OK;
 }
@@ -360,14 +360,15 @@ static int analog_init(struct sr_output *o)
 	return 0;
 }
 
-static int analog_data(struct sr_output *o, char *data_in, uint64_t length_in,
-		char **data_out, uint64_t *length_out)
+static int analog_data(struct sr_output *o, uint8_t *data_in,
+		       uint64_t length_in, uint8_t **data_out,
+		       uint64_t *length_out)
 {
 	struct context *ctx;
 	unsigned int max_linelen, outsize, p, /* curbit, */ i;
 //	uint64_t sample;
 	static uint64_t samplecount = 0;
-	char *outbuf, *c;
+	uint8_t *outbuf, *c;
 	struct sr_analog_sample *sample;
 
 	ctx = o->internal;

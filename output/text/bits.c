@@ -30,14 +30,15 @@ SR_PRIV int init_bits(struct sr_output *o)
 	return init(o, DEFAULT_BPL_BITS, MODE_BITS);
 }
 
-SR_PRIV int data_bits(struct sr_output *o, const char *data_in,
-		      uint64_t length_in, char **data_out, uint64_t *length_out)
+SR_PRIV int data_bits(struct sr_output *o, const uint8_t *data_in,
+		      uint64_t length_in, uint8_t **data_out,
+		      uint64_t *length_out)
 {
 	struct context *ctx;
 	unsigned int outsize, offset, p;
 	int max_linelen;
 	uint64_t sample;
-	char *outbuf, c;
+	uint8_t *outbuf, c;
 
 	ctx = o->internal;
 	max_linelen = SR_MAX_PROBENAME_LEN + 3 + ctx->samples_per_line
@@ -57,7 +58,7 @@ SR_PRIV int data_bits(struct sr_output *o, const char *data_in,
 	outbuf[0] = '\0';
 	if (ctx->header) {
 		/* The header is still here, this must be the first packet. */
-		strncpy(outbuf, ctx->header, outsize);
+		strncpy((char *)outbuf, ctx->header, outsize);
 		g_free(ctx->header);
 		ctx->header = NULL;
 
@@ -99,7 +100,7 @@ SR_PRIV int data_bits(struct sr_output *o, const char *data_in,
 	}
 
 	*data_out = outbuf;
-	*length_out = strlen(outbuf);
+	*length_out = strlen((const char *)outbuf);
 
 	return SR_OK;
 }

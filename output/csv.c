@@ -122,7 +122,7 @@ static int init(struct sr_output *o)
 	return 0; /* TODO: SR_OK? */
 }
 
-static int event(struct sr_output *o, int event_type, char **data_out,
+static int event(struct sr_output *o, int event_type, uint8_t **data_out,
 		 uint64_t *length_out)
 {
 	struct context *ctx;
@@ -168,8 +168,8 @@ static int event(struct sr_output *o, int event_type, char **data_out,
 	return SR_OK;
 }
 
-static int data(struct sr_output *o, const char *data_in, uint64_t length_in,
-		char **data_out, uint64_t *length_out)
+static int data(struct sr_output *o, const uint8_t *data_in,
+		uint64_t length_in, uint8_t **data_out, uint64_t *length_out)
 {
 	struct context *ctx;
 	GString *outstr;
@@ -209,7 +209,7 @@ static int data(struct sr_output *o, const char *data_in, uint64_t length_in,
 		g_string_append_printf(outstr, "\n");
 	}
 
-	*data_out = outstr->str;
+	*data_out = (uint8_t *)outstr->str;
 	*length_out = outstr->len;
 	g_string_free(outstr, FALSE);
 

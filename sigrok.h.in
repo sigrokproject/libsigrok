@@ -186,9 +186,10 @@ struct sr_output_format {
 	char *description;
 	int df_type;
 	int (*init) (struct sr_output *o);
-	int (*data) (struct sr_output *o, const char *data_in,
-		     uint64_t length_in, char **data_out, uint64_t *length_out);
-	int (*event) (struct sr_output *o, int event_type, char **data_out,
+	int (*data) (struct sr_output *o, const uint8_t *data_in,
+		     uint64_t length_in, uint8_t **data_out,
+		     uint64_t *length_out);
+	int (*event) (struct sr_output *o, int event_type, uint8_t **data_out,
 		      uint64_t *length_out);
 };
 

@@ -65,8 +65,8 @@ SR_API int sr_dev_info_get(const struct sr_dev *dev, int id, const void **data);
 /*--- filter.c --------------------------------------------------------------*/
 
 SR_API int sr_filter_probes(int in_unitsize, int out_unitsize,
-			    const int *probelist, const unsigned char *data_in,
-			    uint64_t length_in, char **data_out,
+			    const int *probelist, const uint8_t *data_in,
+			    uint64_t length_in, uint8_t **data_out,
 			    uint64_t *length_out);
 
 /*--- hwdriver.c ------------------------------------------------------------*/

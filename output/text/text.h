@@ -37,7 +37,7 @@ struct context {
 	int line_offset;
 	int linebuf_len;
 	char *probelist[SR_MAX_NUM_PROBES + 1];
-	char *linebuf;
+	uint8_t *linebuf;
 	int spl_cnt;
 	uint8_t *linevalues;
 	char *header;
@@ -46,23 +46,24 @@ struct context {
 	enum outputmode mode;
 };
 
-SR_PRIV void flush_linebufs(struct context *ctx, char *outbuf);
+SR_PRIV void flush_linebufs(struct context *ctx, uint8_t *outbuf);
 SR_PRIV int init(struct sr_output *o, int default_spl, enum outputmode mode);
-SR_PRIV int event(struct sr_output *o, int event_type, char **data_out,
+SR_PRIV int event(struct sr_output *o, int event_type, uint8_t **data_out,
 		  uint64_t *length_out);
 
 SR_PRIV int init_bits(struct sr_output *o);
-SR_PRIV int data_bits(struct sr_output *o, const char *data_in,
-		      uint64_t length_in, char **data_out,
+SR_PRIV int data_bits(struct sr_output *o, const uint8_t *data_in,
+		      uint64_t length_in, uint8_t **data_out,
 		      uint64_t *length_out);
 
 SR_PRIV int init_hex(struct sr_output *o);
-SR_PRIV int data_hex(struct sr_output *o, const char *data_in,
-		     uint64_t length_in, char **data_out, uint64_t *length_out);
+SR_PRIV int data_hex(struct sr_output *o, const uint8_t *data_in,
+		     uint64_t length_in, uint8_t **data_out,
+		     uint64_t *length_out);
 
 SR_PRIV int init_ascii(struct sr_output *o);
-SR_PRIV int data_ascii(struct sr_output *o, const char *data_in,
-		       uint64_t length_in, char **data_out,
+SR_PRIV int data_ascii(struct sr_output *o, const uint8_t *data_in,
+		       uint64_t length_in, uint8_t **data_out,
 		       uint64_t *length_out);
 
 #endif

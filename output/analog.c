@@ -42,7 +42,7 @@ struct context {
 	int line_offset;
 	int linebuf_len;
 	char *probelist[SR_MAX_NUM_PROBES + 1];
-	char *linebuf;
+	uint8_t *linebuf;
 	int spl_cnt;
 	uint8_t *linevalues;
 	char *header;
@@ -51,7 +51,7 @@ struct context {
 	enum outputmode mode;
 };
 
-static void flush_linebufs(struct context *ctx, char *outbuf)
+static void flush_linebufs(struct context *ctx, uint8_t *outbuf)
 {
 	static int max_probename_len = 0;
 	int len, i;
@@ -168,12 +168,12 @@ static int init(struct sr_output *o, int default_spl, enum outputmode mode)
 	return SR_OK;
 }
 
-static int event(struct sr_output *o, int event_type, char **data_out,
+static int event(struct sr_output *o, int event_type, uint8_t **data_out,
 		 uint64_t *length_out)
 {
 	struct context *ctx;
 	int outsize;
-	char *outbuf;
+	uint8_t *outbuf;
 
 	ctx = o->internal;
 	switch (event_type) {
@@ -210,14 +210,15 @@ static int init_bits(struct sr_output *o)
 	return init(o, DEFAULT_BPL_BITS, MODE_BITS);
 }
 
-static int data_bits(struct sr_output *o, const char *data_in,
-		     uint64_t length_in, char **data_out, uint64_t *length_out)
+static int data_bits(struct sr_output *o, const uint8_t *data_in,
+		     uint64_t length_in, uint8_t **data_out,
+		     uint64_t *length_out)
 {
 	struct context *ctx;
 	unsigned int outsize, offset, p;
 	int max_linelen;
 	struct sr_analog_sample *sample;
-	char *outbuf, c;
+	uint8_t *outbuf, c;
 
 	ctx = o->internal;
 	max_linelen = SR_MAX_PROBENAME_LEN + 3 + ctx->samples_per_line
@@ -299,14 +300,15 @@ static int init_hex(struct sr_output *o)
 	return init(o, DEFAULT_BPL_HEX, MODE_HEX);
 }
 
-static int data_hex(struct sr_output *o, const char *data_in,
-		    uint64_t length_in, char **data_out, uint64_t *length_out)
+static int data_hex(struct sr_output *o, const uint8_t *data_in,
+		    uint64_t length_in, uint8_t **data_out,
+		    uint64_t *length_out)
 {
 	struct context *ctx;
 	unsigned int outsize, offset, p;
 	int max_linelen;
 	uint64_t sample;
-	char *outbuf;
+	uint8_t *outbuf;
 
 	ctx = o->internal;
 	max_linelen = SR_MAX_PROBENAME_LEN + 3 + ctx->samples_per_line
@@ -366,14 +368,15 @@ static int init_ascii(struct sr_output *o)
 	return init(o, DEFAULT_BPL_ASCII, MODE_ASCII);
 }
 
-static int data_ascii(struct sr_output *o, const char *data_in,
-		      uint64_t length_in, char **data_out, uint64_t *length_out)
+static int data_ascii(struct sr_output *o, const uint8_t *data_in,
+		      uint64_t length_in, uint8_t **data_out,
+		      uint64_t *length_out)
 {
 	struct context *ctx;
 	unsigned int outsize, offset, p;
 	int max_linelen;
 	uint64_t sample;
-	char *outbuf;
+	uint8_t *outbuf;
 
 	ctx = o->internal;
 	max_linelen = SR_MAX_PROBENAME_LEN + 3 + ctx->samples_per_line

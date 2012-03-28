@@ -135,16 +135,16 @@ static int init(struct sr_output *o)
 	return SR_OK;
 }
 
-static int event(struct sr_output *o, int event_type, char **data_out,
+static int event(struct sr_output *o, int event_type, uint8_t **data_out,
 		 uint64_t *length_out)
 {
-	char *outbuf;
+	uint8_t *outbuf;
 
 	switch (event_type) {
 	case SR_DF_END:
-		outbuf = g_strdup("$dumpoff\n$end\n");
+		outbuf = (uint8_t *)g_strdup("$dumpoff\n$end\n");
 		*data_out = outbuf;
-		*length_out = strlen(outbuf);
+		*length_out = strlen((const char *)outbuf);
 		g_free(o->internal);
 		o->internal = NULL;
 		break;
@@ -157,8 +157,8 @@ static int event(struct sr_output *o, int event_type, char **data_out,
 	return SR_OK;
 }
 
-static int data(struct sr_output *o, const char *data_in, uint64_t length_in,
-		char **data_out, uint64_t *length_out)
+static int data(struct sr_output *o, const uint8_t *data_in,
+		uint64_t length_in, uint8_t **data_out, uint64_t *length_out)
 {
 	struct context *ctx;
 	unsigned int i;
@@ -207,7 +207,7 @@ static int data(struct sr_output *o, const char *data_in, uint64_t length_in,
 		ctx->prevsample = sample;
 	}
 
-	*data_out = out->str;
+	*data_out = (uint8_t *)out->str;
 	*length_out = out->len;
 	g_string_free(out, FALSE);
 

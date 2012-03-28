@@ -133,11 +133,11 @@ static int init(struct sr_output *o)
 	return 0; /* TODO: SR_OK? */
 }
 
-static int event(struct sr_output *o, int event_type, char **data_out,
+static int event(struct sr_output *o, int event_type, uint8_t **data_out,
 		 uint64_t *length_out)
 {
 	struct context *ctx;
-	char *outbuf;
+	uint8_t *outbuf;
 
 	if (!o) {
 		sr_warn("la8 out: %s: o was NULL", __func__);
@@ -196,11 +196,11 @@ static int event(struct sr_output *o, int event_type, char **data_out,
 	return SR_OK;
 }
 
-static int data(struct sr_output *o, const char *data_in, uint64_t length_in,
-		char **data_out, uint64_t *length_out)
+static int data(struct sr_output *o, const uint8_t *data_in,
+		uint64_t length_in, uint8_t **data_out, uint64_t *length_out)
 {
 	struct context *ctx;
-	char *outbuf;
+	uint8_t *outbuf;
 
 	if (!o) {
 		sr_warn("la8 out: %s: o was NULL", __func__);
