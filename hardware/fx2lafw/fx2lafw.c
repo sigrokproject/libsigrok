@@ -53,7 +53,7 @@ static const struct fx2lafw_profile supported_fx2[] = {
 	{ 0, 0, 0, 0, 0, 0, 0 }
 };
 
-static int fx2lafw_capabilities[] = {
+static int hwcaps[] = {
 	SR_HWCAP_LOGIC_ANALYZER,
 	SR_HWCAP_SAMPLERATE,
 
@@ -63,7 +63,10 @@ static int fx2lafw_capabilities[] = {
 	0,
 };
 
-static const char *fx2lafw_probe_names[] = {
+/*
+ * TODO: Different probe_names[] for each supported device.
+ */
+static const char *probe_names[] = {
 	"0",
 	"1",
 	"2",
@@ -98,7 +101,7 @@ static GSList *dev_insts = NULL;
 static libusb_context *usb_context = NULL;
 
 static int hw_dev_config_set(int dev_index, int hwcap, void *value);
-static int hw_dev_acquisition_stop(int dev_index, void *session_dev_id);
+static int hw_dev_acquisition_stop(int dev_index, void *cb_data);
 
 /**
  * Check the USB configuration to determine if this is an fx2lafw device.
@@ -114,38 +117,36 @@ static gboolean check_conf_profile(libusb_device *dev)
 	gboolean ret = FALSE;
 
 	while (!ret) {
-		/* Assume the firmware has not been loaded, unless proven wrong. */
-		ret = 0;
+		/* Assume the FW has not been loaded, unless proven wrong. */
+		ret = FALSE;
 
 		if (libusb_get_device_descriptor(dev, &des) != 0)
 			break;
 
+		/* Need exactly 1 configuration. */
 		if (des.bNumConfigurations != 1)
-			/* Need exactly 1 configuration. */
 			break;
 
 		if (libusb_get_config_descriptor(dev, 0, &conf_dsc) != 0)
 			break;
 
+		/* Need exactly 1 interface. */
 		if (conf_dsc->bNumInterfaces != 1)
-			/* Need exactly 1 interface. */
 			break;
 
+		/* Need just one alternate setting. */
 		if (conf_dsc->interface[0].num_altsetting != 1)
-			/* Need just one alternate setting. */
 			break;
 
+		/* Need exactly 2 endpoints. */
 		intf_dsc = &(conf_dsc->interface[0].altsetting[0]);
 		if (intf_dsc->bNumEndpoints != 2)
-			/* Need exactly 2 end points. */
 			break;
 
+		/* The first endpoint should be 2 (inbound). */
 		if ((intf_dsc->endpoint[0].bEndpointAddress & 0x8f) !=
-		    (2 | LIBUSB_ENDPOINT_IN)) // 0x82
-			/* The first endpoint should be 2 (inbound). */
+		    (2 | LIBUSB_ENDPOINT_IN))
 			break;
-
-		/* TODO: Check the debug channel... */
 
 		/* If we made it here, it must be an fx2lafw. */
 		ret = TRUE;
@@ -157,7 +158,7 @@ static gboolean check_conf_profile(libusb_device *dev)
 	return ret;
 }
 
-static int fx2lafw_open_dev(int dev_index)
+static int fx2lafw_dev_open(int dev_index)
 {
 	libusb_device **devlist;
 	struct libusb_device_descriptor des;
@@ -291,7 +292,7 @@ static int configure_probes(struct context *ctx, GSList *probes)
 	return SR_OK;
 }
 
-static struct context *fx2lafw_device_new(void)
+static struct context *fx2lafw_dev_new(void)
 {
 	struct context *ctx;
 
@@ -309,11 +310,11 @@ static struct context *fx2lafw_device_new(void)
  * API callbacks
  */
 
-static int hw_init(const char *deviceinfo)
+static int hw_init(const char *devinfo)
 {
 	struct sr_dev_inst *sdi;
 	struct libusb_device_descriptor des;
-	const struct fx2lafw_profile *fx2lafw_prof;
+	const struct fx2lafw_profile *prof;
 	struct context *ctx;
 	libusb_device **devlist;
 	int ret;
@@ -321,7 +322,7 @@ static int hw_init(const char *deviceinfo)
 	int i, j;
 
 	/* Avoid compiler warnings. */
-	(void)deviceinfo;
+	(void)devinfo;
 
 	if (libusb_init(&usb_context) != 0) {
 		sr_warn("fx2lafw: Failed to initialize libusb.");
@@ -338,26 +339,25 @@ static int hw_init(const char *deviceinfo)
 			continue;
 		}
 
-		fx2lafw_prof = NULL;
+		prof = NULL;
 		for (j = 0; supported_fx2[j].vid; j++) {
 			if (des.idVendor == supported_fx2[j].vid &&
 				des.idProduct == supported_fx2[j].pid) {
-				fx2lafw_prof = &supported_fx2[j];
+				prof = &supported_fx2[j];
 			}
 		}
 
 		/* Skip if the device was not found */
-		if (!fx2lafw_prof)
+		if (!prof)
 			continue;
 
 		sdi = sr_dev_inst_new(devcnt, SR_ST_INITIALIZING,
-			fx2lafw_prof->vendor, fx2lafw_prof->model,
-			fx2lafw_prof->model_version);
+			prof->vendor, prof->model, prof->model_version);
 		if (!sdi)
 			return 0;
 
-		ctx = fx2lafw_device_new();
-		ctx->profile = fx2lafw_prof;
+		ctx = fx2lafw_dev_new();
+		ctx->profile = prof;
 		sdi->priv = ctx;
 		dev_insts = g_slist_append(dev_insts, sdi);
 
@@ -370,7 +370,7 @@ static int hw_init(const char *deviceinfo)
 			     libusb_get_device_address(devlist[i]), NULL);
 		} else {
 			if (ezusb_upload_firmware(devlist[i], USB_CONFIGURATION,
-				fx2lafw_prof->firmware) == SR_OK)
+				prof->firmware) == SR_OK)
 				/* Remember when the firmware on this device was updated */
 				g_get_current_time(&ctx->fw_updated);
 			else
@@ -409,7 +409,7 @@ static int hw_dev_open(int dev_index)
 		g_usleep(300 * 1000);
 		timediff = 0;
 		while (timediff < MAX_RENUM_DELAY) {
-			if ((ret = fx2lafw_open_dev(dev_index)) == SR_OK)
+			if ((ret = fx2lafw_dev_open(dev_index)) == SR_OK)
 				break;
 			g_usleep(100 * 1000);
 			g_get_current_time(&cur_time);
@@ -417,7 +417,7 @@ static int hw_dev_open(int dev_index)
 		}
 		sr_info("fx2lafw: Device came back after %d ms.", timediff);
 	} else {
-		ret = fx2lafw_open_dev(dev_index);
+		ret = fx2lafw_dev_open(dev_index);
 	}
 
 	if (ret != SR_OK) {
@@ -509,7 +509,7 @@ static void *hw_dev_info_get(int dev_index, int dev_info_id)
 	case SR_DI_NUM_PROBES:
 		return GINT_TO_POINTER(ctx->profile->num_probes);
 	case SR_DI_PROBE_NAMES:
-		return fx2lafw_probe_names;
+		return probe_names;
 	case SR_DI_SAMPLERATES:
 		return &samplerates;
 	case SR_DI_TRIGGER_TYPES:
@@ -534,7 +534,7 @@ static int hw_dev_status_get(int dev_index)
 
 static int *hw_hwcap_get_all(void)
 {
-	return fx2lafw_capabilities;
+	return hwcaps;
 }
 
 static int hw_dev_config_set(int dev_index, int hwcap, void *value)
