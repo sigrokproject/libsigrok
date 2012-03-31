@@ -103,10 +103,11 @@ if test "x$LA_CHRONOVU_LA8" = "xyes"; then
 	AC_DEFINE(HAVE_LA_CHRONOVU_LA8, 1, [ChronoVu LA8 support])
 fi
 
+# Disabled per default for now, will be enabled when it's tested some more.
 AC_ARG_ENABLE(fx2lafw, AC_HELP_STRING([--enable-fx2lafw],
-	      [enable fx2lafw support (for FX2 LAs). [default=yes]]),
+	      [enable fx2lafw support (for FX2 LAs). [default=no]]),
 	      [LA_FX2LAFW="$enableval"],
-	      [LA_FX2LAFW=yes])
+	      [LA_FX2LAFW=no])
 AM_CONDITIONAL(LA_FX2LAFW, test x$LA_FX2LAFW = xyes)
 if test "x$LA_FX2LAFW" = "xyes"; then
 	AC_DEFINE(HAVE_LA_FX2LAFW, 1, [fx2lafw support])
