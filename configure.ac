@@ -21,12 +21,12 @@
 AC_PREREQ([2.63])
 
 # libsigrok package version number (NOT the same as shared lib version!).
-m4_define([libsigrok_major_version], [0])
-m4_define([libsigrok_minor_version], [1])
-m4_define([libsigrok_micro_version], [0])
-m4_define([libsigrok_version], [libsigrok_major_version.libsigrok_minor_version.libsigrok_micro_version])
+m4_define([sr_package_version_major], [0])
+m4_define([sr_package_version_minor], [1])
+m4_define([sr_package_version_micro], [0])
+m4_define([sr_package_version], [sr_package_version_major.sr_package_version_minor.sr_package_version_micro])
 
-AC_INIT([libsigrok], [libsigrok_version], [sigrok-devel@lists.sourceforge.net],
+AC_INIT([libsigrok], [sr_package_version], [sigrok-devel@lists.sourceforge.net],
 	[libsigrok], [http://www.sigrok.org])
 AC_CONFIG_HEADER([config.h])
 AC_CONFIG_MACRO_DIR([autostuff])
@@ -36,9 +36,9 @@ AC_CONFIG_AUX_DIR([autostuff])
 AM_INIT_AUTOMAKE([1.11 -Wall -Werror foreign std-options])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
-AH_TOP([#ifndef LIBSIGROK_CONFIG_H
-#define LIBSIGROK_CONFIG_H    /* To stop multiple inclusions. */])
-AH_BOTTOM([#endif /* LIBSIGROK_CONFIG_H */])
+AH_TOP([#ifndef SR_CONFIG_H
+#define SR_CONFIG_H    /* To stop multiple inclusions. */])
+AH_BOTTOM([#endif /* SR_CONFIG_H */])
 
 # Enable more compiler warnings via -Wall and -Wextra. Add -fvisibility=hidden
 # and enforce use of SR_API to explicitly mark all public API functions.
@@ -62,16 +62,16 @@ PKG_PROG_PKG_CONFIG([0.22])
 # Carefully read the libtool docs before updating these numbers!
 # The algorithm for determining which number to change (and how) is nontrivial!
 # http://www.gnu.org/software/libtool/manual/libtool.html#Updating-version-info
-LIBSIGROK_LT_CURRENT=0
-LIBSIGROK_LT_REVISION=0
-LIBSIGROK_LT_AGE=0
-LIBSIGROK_LT_VERSION="$LIBSIGROK_LT_CURRENT:$LIBSIGROK_LT_REVISION:$LIBSIGROK_LT_AGE"
-LIBSIGROK_LT_LDFLAGS="-version-info $LIBSIGROK_LT_VERSION"
-AC_SUBST(LIBSIGROK_LT_CURRENT)
-AC_SUBST(LIBSIGROK_LT_REVISION)
-AC_SUBST(LIBSIGROK_LT_AGE)
-AC_SUBST(LIBSIGROK_LT_VERSION)
-AC_SUBST(LIBSIGROK_LT_LDFLAGS)
+SR_LIB_VERSION_CURRENT=0
+SR_LIB_VERSION_REVISION=0
+SR_LIB_VERSION_AGE=0
+SR_LIB_VERSION="$SR_LIB_VERSION_CURRENT:$SR_LIB_VERSION_REVISION:$SR_LIB_VERSION_AGE"
+SR_LIB_LDFLAGS="-version-info $SR_LIB_VERSION"
+AC_SUBST(SR_LIB_VERSION_CURRENT)
+AC_SUBST(SR_LIB_VERSION_REVISION)
+AC_SUBST(SR_LIB_VERSION_AGE)
+AC_SUBST(SR_LIB_VERSION)
+AC_SUBST(SR_LIB_LDFLAGS)
 
 # Logic analyzer hardware support '--enable' options.
 
@@ -164,7 +164,7 @@ fi
 # This variable collects the pkg-config names of all detected libs.
 # It is then used to construct the "Requires.private:" field in the
 # libsigrok.pc file.
-LIBSIGROK_PKGLIBS=""
+SR_PKGLIBS=""
 
 # libglib-2.0 is always needed.
 # Note: glib-2.0 is part of the libsigrok API (hard pkg-config requirement).
@@ -174,7 +174,7 @@ AM_PATH_GLIB_2_0([2.22.0],
 # libgthread-2.0 is always needed (e.g. for the demo hardware driver).
 PKG_CHECK_MODULES([gthread], [gthread-2.0 >= 2.22.0],
 	[CFLAGS="$CFLAGS $gthread_CFLAGS"; LIBS="$LIBS $gthread_LIBS";
-	LIBSIGROK_PKGLIBS="$LIBSIGROK_PKGLIBS gthread-2.0"])
+	SR_PKGLIBS="$SR_PKGLIBS gthread-2.0"])
 
 # libusb is only needed for some hardware drivers.
 if test "x$LA_SALEAE_LOGIC" != xno \
@@ -192,7 +192,7 @@ if test "x$LA_SALEAE_LOGIC" != xno \
 		PKG_CHECK_MODULES([libusb], [libusb-1.0 >= 1.0.5],
 			[CFLAGS="$CFLAGS $libusb_CFLAGS";
 			LIBS="$LIBS $libusb_LIBS";
-			LIBSIGROK_PKGLIBS="$LIBSIGROK_PKGLIBS libusb-1.0"])
+			SR_PKGLIBS="$SR_PKGLIBS libusb-1.0"])
 		AC_CHECK_LIB(usb-1.0, libusb_init)
 		;;
 	esac
@@ -201,20 +201,20 @@ fi
 # libzip is always needed.
 PKG_CHECK_MODULES([libzip], [libzip >= 0.8],
 	[CFLAGS="$CFLAGS $libzip_CFLAGS"; LIBS="$LIBS $libzip_LIBS";
-	LIBSIGROK_PKGLIBS="$LIBSIGROK_PKGLIBS libzip"])
+	SR_PKGLIBS="$SR_PKGLIBS libzip"])
 
 # zlib is only needed for some hardware drivers.
 if test "x$LA_ASIX_SIGMA" != xno; then
 	case "$build" in
 	*freebsd*)
 		# FreeBSD has zlib, but no pkg-config file for it.
-		# Check manually, and do NOT add it to LIBSIGROK_PKGLIBS.
+		# Check manually, and do NOT add it to SR_PKGLIBS.
 		AC_CHECK_LIB(z, uncompress)
 		;;
 	*)
 		PKG_CHECK_MODULES([zlib], [zlib >= 1.2.3.1],
 			[CFLAGS="$CFLAGS $zlib_CFLAGS"; LIBS="$LIBS $zlib_LIBS";
-			LIBSIGROK_PKGLIBS="$LIBSIGROK_PKGLIBS zlib"])
+			SR_PKGLIBS="$SR_PKGLIBS zlib"])
 		;;
 	esac
 fi
@@ -225,24 +225,24 @@ if test "x$LA_ASIX_SIGMA" != xno \
 	PKG_CHECK_MODULES([libftdi], [libftdi >= 0.16],
 		[CFLAGS="$CFLAGS $libftdi_CFLAGS";
 		LIBS="$LIBS $libftdi_LIBS";
-		LIBSIGROK_PKGLIBS="$LIBSIGROK_PKGLIBS libftdi"])
+		SR_PKGLIBS="$SR_PKGLIBS libftdi"])
 fi
 
 # libudev is only needed for some hardware drivers.
 if test "x$LA_LINK_MSO19" != xno; then
 	PKG_CHECK_MODULES([libudev], [libudev >= 151],
 		[CFLAGS="$CFLAGS $libudev_CFLAGS"; LIBS="$LIBS $libudev_LIBS";
-		LIBSIGROK_PKGLIBS="$LIBSIGROK_PKGLIBS libudev"])
+		SR_PKGLIBS="$SR_PKGLIBS libudev"])
 fi
 
 # ALSA is only needed for some hardware drivers.
 if test "x$LA_ALSA" != xno; then
 	PKG_CHECK_MODULES([alsa], [alsa >= 1.0],
 		[CFLAGS="$CFLAGS $alsa_CFLAGS"; LIBS="$LIBS $alsa_LIBS";
-		LIBSIGROK_PKGLIBS="$LIBSIGROK_PKGLIBS alsa"])
+		SR_PKGLIBS="$SR_PKGLIBS alsa"])
 fi
 
-AC_SUBST(LIBSIGROK_PKGLIBS)
+AC_SUBST(SR_PKGLIBS)
 
 # Checks for header files.
 # These are already checked: inttypes.h stdint.h stdlib.h string.h unistd.h.
@@ -267,15 +267,15 @@ AC_SUBST(FIRMWARE_DIR, "$datadir/libsigrok/firmware")
 AC_SUBST(MAKEFLAGS, '--no-print-directory')
 AC_SUBST(AM_LIBTOOLFLAGS, '--silent')
 
-LIBSIGROK_MAJOR_VERSION=libsigrok_major_version
-LIBSIGROK_MINOR_VERSION=libsigrok_minor_version
-LIBSIGROK_MICRO_VERSION=libsigrok_micro_version
-LIBSIGROK_VERSION=libsigrok_version
+SR_PACKAGE_VERSION_MAJOR=sr_package_version_major
+SR_PACKAGE_VERSION_MINOR=sr_package_version_minor
+SR_PACKAGE_VERSION_MICRO=sr_package_version_micro
+SR_PACKAGE_VERSION=sr_package_version
 
-AC_SUBST(LIBSIGROK_MAJOR_VERSION)
-AC_SUBST(LIBSIGROK_MINOR_VERSION)
-AC_SUBST(LIBSIGROK_MICRO_VERSION)
-AC_SUBST(LIBSIGROK_VERSION)
+AC_SUBST(SR_PACKAGE_VERSION_MAJOR)
+AC_SUBST(SR_PACKAGE_VERSION_MINOR)
+AC_SUBST(SR_PACKAGE_VERSION_MICRO)
+AC_SUBST(SR_PACKAGE_VERSION)
 
 AC_CONFIG_FILES([Makefile
 		 sigrok.h
@@ -303,8 +303,8 @@ AC_OUTPUT
 echo
 echo "libsigrok configuration summary:"
 echo
-echo "  - Package version (major.minor.micro):    $LIBSIGROK_VERSION"
-echo "  - Library version (current:revision:age): $LIBSIGROK_LT_VERSION"
+echo "  - Package version (major.minor.micro):    $SR_PACKAGE_VERSION"
+echo "  - Library version (current:revision:age): $SR_LIB_VERSION"
 echo "  - Prefix: $prefix"
 echo
 echo "Detected libraries:"

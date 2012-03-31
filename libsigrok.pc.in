@@ -7,7 +7,7 @@ Name: libsigrok
 Description: Backend library of the sigrok logic analyzer software
 URL: http://www.sigrok.org
 Requires: glib-2.0
-Requires.private: @LIBSIGROK_PKGLIBS@
+Requires.private: @SR_PKGLIBS@
 Version: @VERSION@
 Libs: -L${libdir} -lsigrok
 Libs.private:
