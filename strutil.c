@@ -175,7 +175,7 @@ SR_API char **sr_parse_triggerstring(struct sr_dev *dev,
 		}
 
 		if (probenum < 1 || probenum > max_probes) {
-			sr_err("strutil: Invalid probe (%d).\n", probenum);
+			sr_err("strutil: Invalid probe (%d).", probenum);
 			error = TRUE;
 			break;
 		}
@@ -184,7 +184,7 @@ SR_API char **sr_parse_triggerstring(struct sr_dev *dev,
 			for (tc = ++trigger; *tc; tc++) {
 				if (strchr(trigger_types, *tc) == NULL) {
 					sr_err("strutil: Unsupported trigger "
-					       "type '%c'.\n", *tc);
+					       "type '%c'.", *tc);
 					error = TRUE;
 					break;
 				}

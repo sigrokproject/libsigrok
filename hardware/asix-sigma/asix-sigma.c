@@ -147,7 +147,7 @@ static int sigma_write(void *buf, size_t size, struct context *ctx)
 		sr_err("sigma: ftdi_write_data failed: %s",
 		       ftdi_get_error_string(&ctx->ftdic));
 	} else if ((size_t) ret != size) {
-		sr_err("sigma: ftdi_write_data did not complete write\n");
+		sr_err("sigma: ftdi_write_data did not complete write.");
 	}
 
 	return ret;
@@ -382,7 +382,7 @@ static int bin2bitbang(const char *filename,
 		g_free(compressed_buf);
 		g_free(firmware);
 		sr_err("sigma: Could not unpack Sigma firmware. "
-		       "(Error %d)\n", ret);
+		       "(Error %d).", ret);
 		return SR_ERR;
 	}
 
@@ -411,7 +411,7 @@ static int bin2bitbang(const char *filename,
 	if (offset != *buf_size) {
 		g_free(*buf);
 		sr_err("sigma: Error reading firmware %s "
-		       "offset=%ld, file_size=%ld, buf_size=%zd\n",
+		       "offset=%ld, file_size=%ld, buf_size=%zd.",
 		       filename, offset, file_size, *buf_size);
 
 		return SR_ERR;

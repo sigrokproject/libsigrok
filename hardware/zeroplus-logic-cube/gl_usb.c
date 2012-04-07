@@ -58,7 +58,7 @@ static int gl_write_address(libusb_device_handle *devh, unsigned int address)
 	ret = libusb_control_transfer(devh, CTRL_OUT, 0xc, REQ_WRITEADDR,
 					 0, packet, 1, TIMEOUT);
 	if (ret != 1)
-		sr_err("zp: %s: libusb_control_transfer returned %d\n",
+		sr_err("zp: %s: libusb_control_transfer returned %d.",
 		       __func__, ret);
 	return ret;
 }
@@ -71,7 +71,7 @@ static int gl_write_data(libusb_device_handle *devh, unsigned int val)
 	ret = libusb_control_transfer(devh, CTRL_OUT, 0xc, REQ_WRITEDATA,
 				      0, packet, 1, TIMEOUT);
 	if (ret != 1)
-		sr_err("zp: %s: libusb_control_transfer returned %d\n",
+		sr_err("zp: %s: libusb_control_transfer returned %d.",
 		       __func__, ret);
 	return ret;
 }
@@ -85,7 +85,7 @@ static int gl_read_data(libusb_device_handle *devh)
 				      0, packet, 1, TIMEOUT);
 	if (ret != 1)
 		sr_err("zp: %s: libusb_control_transfer returned %d, "
-		       "val=%hhx\n", __func__, ret, packet[0]);
+		       "val=%hhx.", __func__, ret, packet[0]);
 	return (ret == 1) ? packet[0] : ret;
 }
 
@@ -100,13 +100,13 @@ SR_PRIV int gl_read_bulk(libusb_device_handle *devh, void *buffer,
 	ret = libusb_control_transfer(devh, CTRL_OUT, 0x4, REQ_READBULK,
 				      0, packet, 8, TIMEOUT);
 	if (ret != 8)
-		sr_err("zp: %s: libusb_control_transfer returned %d\n",
+		sr_err("zp: %s: libusb_control_transfer returned %d.",
 		       __func__, ret);
 
 	ret = libusb_bulk_transfer(devh, EP1_BULK_IN, buffer, size,
 				   &transferred, TIMEOUT);
 	if (ret < 0)
-		sr_err("zp: Bulk read error %d\n", ret);
+		sr_err("zp: Bulk read error %d.", ret);
 	return transferred;
 }
 
