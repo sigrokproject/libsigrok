@@ -353,6 +353,8 @@ SR_API int sr_dev_trigger_set(struct sr_dev *dev, int probenum,
 	g_free(p->trigger);
 
 	p->trigger = g_strdup(trigger);
+	sr_dbg("dev: %s: Setting '%s' trigger for probe %d.", __func__,
+	       p->trigger, probenum);
 
 	return SR_OK;
 }

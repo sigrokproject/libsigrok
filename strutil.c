@@ -111,12 +111,25 @@ SR_API char *sr_period_string(uint64_t frequency)
 }
 
 /**
- * TODO
+ * Parse a trigger specification string.
  *
- * @param dev TODO
- * @param triggerstring TODO
+ * @param dev The device for which the trigger specification is intended.
+ * @param triggerstring The string containing the trigger specification for
+ *        one or more probes of this device. Entries for multiple probes are
+ *        comma-separated. Triggers are specified in the form key=value,
+ *        where the key is a probe number (or probe name) and the value is
+ *        the requested trigger type. Valid trigger types currently
+ *        include 'r' (rising edge), 'f' (falling edge), 'c' (any pin value
+ *        change), '0' (low value), or '1' (high value).
+ *        Example: "1=r,sck=f,miso=0,7=c"
  *
- * @return TODO
+ * @return Pointer to a list of trigger types (strings), or NULL upon errors.
+ *         The pointer list (if non-NULL) has as many entries as the
+ *         respective device has probes (all physically available probes,
+ *         not just enabled ones). Entries of the list which don't have
+ *         a trigger value set in 'triggerstring' are NULL, the other entries
+ *         contain the respective trigger type which is requested for the
+ *         respective probe (e.g. "r", "c", and so on).
  */
 SR_API char **sr_parse_triggerstring(struct sr_dev *dev,
 				     const char *triggerstring)
@@ -131,14 +144,18 @@ SR_API char **sr_parse_triggerstring(struct sr_dev *dev,
 	error = FALSE;
 
 	if (!(triggerlist = g_try_malloc0(max_probes * sizeof(char *)))) {
-		sr_err("session file: %s: metafile malloc failed", __func__);
+		sr_err("strutil: %s: triggerlist malloc failed", __func__);
 		return NULL;
 	}
 
 	tokens = g_strsplit(triggerstring, ",", max_probes);
+
 	trigger_types = dev->driver->dev_info_get(0, SR_DI_TRIGGER_TYPES);
-	if (trigger_types == NULL)
+	if (!trigger_types) {
+		sr_err("strutil: %s: Device doesn't support any triggers.",
+		       __func__);
 		return NULL;
+	}
 
 	for (i = 0; tokens[i]; i++) {
 		if (tokens[i][0] < '0' || tokens[i][0] > '9') {
@@ -158,7 +175,7 @@ SR_API char **sr_parse_triggerstring(struct sr_dev *dev,
 		}
 
 		if (probenum < 1 || probenum > max_probes) {
-			sr_err("Invalid probe.\n");
+			sr_err("strutil: Invalid probe (%d).\n", probenum);
 			error = TRUE;
 			break;
 		}
@@ -166,8 +183,8 @@ SR_API char **sr_parse_triggerstring(struct sr_dev *dev,
 		if ((trigger = strchr(tokens[i], '='))) {
 			for (tc = ++trigger; *tc; tc++) {
 				if (strchr(trigger_types, *tc) == NULL) {
-					sr_err("Unsupported trigger type "
-					       "'%c'\n", *tc);
+					sr_err("strutil: Unsupported trigger "
+					       "type '%c'.\n", *tc);
 					error = TRUE;
 					break;
 				}
