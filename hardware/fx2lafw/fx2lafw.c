@@ -175,8 +175,14 @@ static int fx2lafw_dev_open(int dev_index)
 		return SR_ERR;
 
 	skip = 0;
-	libusb_get_device_list(usb_context, &devlist);
-	for (i = 0; devlist[i]; i++) {
+	const int device_count = libusb_get_device_list(usb_context, &devlist);
+	if (device_count < 0) {
+		sr_err("fx2lafw: Failed to retrieve device list (%d)",
+			device_count);
+		return SR_ERR;
+	}
+
+	for (i = 0; i < device_count; i++) {
 		if ((ret = libusb_get_device_descriptor(devlist[i], &des))) {
 			sr_err("fx2lafw: Failed to get device descriptor: %d.",
 			       ret);
