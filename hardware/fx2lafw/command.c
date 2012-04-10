@@ -22,6 +22,23 @@
 #include "sigrok.h"
 #include "sigrok-internal.h"
 
+SR_PRIV int command_get_fw_version(libusb_device_handle *devhdl,
+				   struct version_info *vi)
+{
+	const int ret = libusb_control_transfer (devhdl,
+			LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_ENDPOINT_IN,
+			CMD_GET_FW_VERSION, 0x0000, 0x0000,
+			(unsigned char*)vi, sizeof(struct version_info),
+			100);
+
+	if(ret < 0) {
+		sr_err("fx2lafw: Unable to get version info: %d.", ret);
+		return SR_ERR;
+	}
+
+	return SR_OK;
+}
+
 SR_PRIV int command_start_acquisition(libusb_device_handle *devhdl,
 				      uint64_t samplerate)
 {

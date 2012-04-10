@@ -164,6 +164,7 @@ static int fx2lafw_dev_open(int dev_index)
 	struct libusb_device_descriptor des;
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
+	struct version_info vi;
 	int ret, skip, i;
 
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
@@ -217,16 +218,31 @@ static int fx2lafw_dev_open(int dev_index)
 				 * so we don't know the address yet.
 				 */
 				ctx->usb->address = libusb_get_device_address(devlist[i]);
-
-			sdi->status = SR_ST_ACTIVE;
-			sr_info("fx2lafw: Opened device %d on %d.%d "
-				"interface %d.", sdi->index, ctx->usb->bus,
-				ctx->usb->address, USB_INTERFACE);
 		} else {
 			sr_err("fx2lafw: Failed to open device: %d.", ret);
+			break;
 		}
 
-		/* if we made it here, we handled the device one way or another */
+		if((ret = command_get_fw_version(ctx->usb->devhdl, &vi)) != SR_OK) {
+			sr_err("fx2lafw: Failed to retrieve "
+				"firmware version information");
+			break;
+		}
+
+		if(vi.major != FX2LAFW_VERSION_MAJOR ||
+			vi.minor != FX2LAFW_VERSION_MINOR) {
+			sr_err("fx2lafw: Expected firmware version %d.%02d "
+				"got %d.%02d", FX2LAFW_VERSION_MAJOR,
+				FX2LAFW_VERSION_MINOR, vi.major, vi.minor);
+			break;
+		}
+
+		sdi->status = SR_ST_ACTIVE;
+		sr_info("fx2lafw: Opened device %d on %d.%d "
+			"interface %d, firmware version %d.%02d",
+			sdi->index, ctx->usb->bus, ctx->usb->address,
+			USB_INTERFACE, vi.major, vi.minor);
+
 		break;
 	}
 	libusb_free_device_list(devlist, 1);

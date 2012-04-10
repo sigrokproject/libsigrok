@@ -33,12 +33,20 @@
 
 #pragma pack(push, 1)
 
+struct version_info {
+	uint8_t major;
+	uint8_t minor;
+};
+
 struct cmd_start_acquisition {
 	uint8_t flags;
 	uint8_t sample_delay;
 };
 
 #pragma pack(pop)
+
+SR_PRIV int command_get_fw_version(libusb_device_handle *devhdl,
+				   struct version_info *vi);
 
 SR_PRIV int command_start_acquisition(libusb_device_handle *devhdl,
 				      uint64_t samplerate);

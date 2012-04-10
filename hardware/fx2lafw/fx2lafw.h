@@ -29,6 +29,10 @@
 #define NUM_SIMUL_TRANSFERS	32
 #define MAX_EMPTY_TRANSFERS	(NUM_SIMUL_TRANSFERS * 2)
 
+#define FX2LAFW_VERSION_MAJOR	1
+#define FX2LAFW_VERSION_MINOR	0
+
+
 /* Software trigger implementation: positive values indicate trigger stage. */
 #define TRIGGER_FIRED          -1
 
