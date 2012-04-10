@@ -25,13 +25,13 @@
 SR_PRIV int command_get_fw_version(libusb_device_handle *devhdl,
 				   struct version_info *vi)
 {
-	const int ret = libusb_control_transfer (devhdl,
-			LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_ENDPOINT_IN,
-			CMD_GET_FW_VERSION, 0x0000, 0x0000,
-			(unsigned char*)vi, sizeof(struct version_info),
-			100);
+	int ret;
 
-	if(ret < 0) {
+	ret = libusb_control_transfer(devhdl, LIBUSB_REQUEST_TYPE_VENDOR |
+		LIBUSB_ENDPOINT_IN, CMD_GET_FW_VERSION, 0x0000, 0x0000,
+		(unsigned char *)vi, sizeof(struct version_info), 100);
+
+	if (ret < 0) {
 		sr_err("fx2lafw: Unable to get version info: %d.", ret);
 		return SR_ERR;
 	}
@@ -46,10 +46,10 @@ SR_PRIV int command_start_acquisition(libusb_device_handle *devhdl,
 	int delay = 0, ret;
 
 	/* Compute the sample rate. */
-	if((SR_MHZ(48) % samplerate) == 0) {
+	if ((SR_MHZ(48) % samplerate) == 0) {
 		cmd.flags = CMD_START_FLAGS_CLK_48MHZ;
 		delay = SR_MHZ(48) / samplerate - 1;
-	} else if((SR_MHZ(30) % samplerate) == 0) {
+	} else if ((SR_MHZ(30) % samplerate) == 0) {
 		cmd.flags = CMD_START_FLAGS_CLK_30MHZ;
 		delay = SR_MHZ(30) / samplerate - 1;
 	}

@@ -223,17 +223,18 @@ static int fx2lafw_dev_open(int dev_index)
 			break;
 		}
 
-		if((ret = command_get_fw_version(ctx->usb->devhdl, &vi)) != SR_OK) {
+		ret = command_get_fw_version(ctx->usb->devhdl, &vi);
+		if (ret != SR_OK) {
 			sr_err("fx2lafw: Failed to retrieve "
-				"firmware version information");
+			       "firmware version information.");
 			break;
 		}
 
-		if(vi.major != FX2LAFW_VERSION_MAJOR ||
-			vi.minor != FX2LAFW_VERSION_MINOR) {
+		if (vi.major != FX2LAFW_VERSION_MAJOR ||
+		    vi.minor != FX2LAFW_VERSION_MINOR) {
 			sr_err("fx2lafw: Expected firmware version %d.%02d "
-				"got %d.%02d", FX2LAFW_VERSION_MAJOR,
-				FX2LAFW_VERSION_MINOR, vi.major, vi.minor);
+			       "got %d.%02d.", FX2LAFW_VERSION_MAJOR,
+			       FX2LAFW_VERSION_MINOR, vi.major, vi.minor);
 			break;
 		}
 
@@ -421,8 +422,8 @@ static int hw_dev_open(int dev_index)
 	ctx = sdi->priv;
 
 	/*
-	 * if the firmware was recently uploaded, wait up to MAX_RENUM_DELAY ms
-	 * for the FX2 to renumerate
+	 * If the firmware was recently uploaded, wait up to MAX_RENUM_DELAY ms
+	 * for the FX2 to renumerate.
 	 */
 	ret = 0;
 	if (GTV_TO_MSEC(ctx->fw_updated) > 0) {
