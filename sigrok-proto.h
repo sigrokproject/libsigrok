@@ -120,4 +120,16 @@ SR_API int sr_parse_sizestring(const char *sizestring, uint64_t *size);
 SR_API uint64_t sr_parse_timestring(const char *timestring);
 SR_API gboolean sr_parse_boolstring(const char *boolstring);
 
+/*--- version.c -------------------------------------------------------------*/
+
+SR_API int sr_package_version_major_get(void);
+SR_API int sr_package_version_minor_get(void);
+SR_API int sr_package_version_micro_get(void);
+SR_API const char *sr_package_version_string_get(void);
+
+SR_API int sr_lib_version_current_get(void);
+SR_API int sr_lib_version_revision_get(void);
+SR_API int sr_lib_version_age_get(void);
+SR_API const char *sr_lib_version_string_get(void);
+
 #endif

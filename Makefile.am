@@ -35,7 +35,8 @@ libsigrok_la_SOURCES = \
 	hwdriver.c \
 	filter.c \
 	strutil.c \
-	log.c
+	log.c \
+	version.c
 
 libsigrok_la_LIBADD = \
 	$(LIBOBJS) \
