@@ -107,7 +107,7 @@ fi
 AC_ARG_ENABLE(fx2lafw, AC_HELP_STRING([--enable-fx2lafw],
 	      [enable fx2lafw support (for FX2 LAs). [default=no]]),
 	      [LA_FX2LAFW="$enableval"],
-	      [LA_FX2LAFW=no])
+	      [LA_FX2LAFW=yes])
 AM_CONDITIONAL(LA_FX2LAFW, test x$LA_FX2LAFW = xyes)
 if test "x$LA_FX2LAFW" = "xyes"; then
 	AC_DEFINE(HAVE_LA_FX2LAFW, 1, [fx2lafw support])
@@ -144,7 +144,7 @@ fi
 AC_ARG_ENABLE(saleae-logic, AC_HELP_STRING([--enable-saleae-logic],
 	      [enable Saleae Logic support [default=yes]]),
 	      [LA_SALEAE_LOGIC="$enableval"],
-	      [LA_SALEAE_LOGIC=yes])
+	      [LA_SALEAE_LOGIC=no])
 AM_CONDITIONAL(LA_SALEAE_LOGIC, test x$LA_SALEAE_LOGIC = xyes)
 if test "x$LA_SALEAE_LOGIC" = "xyes"; then
 	AC_DEFINE(HAVE_LA_SALEAE_LOGIC, 1, [Saleae Logic support])
