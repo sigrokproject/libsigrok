@@ -26,7 +26,6 @@ SUBDIRS = \
 	fx2lafw \
 	link-mso19 \
 	openbench-logic-sniffer \
-	saleae-logic \
 	zeroplus-logic-cube
 
 noinst_LTLIBRARIES = libsigrokhardware.la
@@ -62,10 +61,6 @@ endif
 
 if LA_OLS
 libsigrokhardware_la_LIBADD += openbench-logic-sniffer/libsigrokhwols.la
-endif
-
-if LA_SALEAE_LOGIC
-libsigrokhardware_la_LIBADD += saleae-logic/libsigrokhwsaleaelogic.la
 endif
 
 if LA_ZEROPLUS_LOGIC_CUBE

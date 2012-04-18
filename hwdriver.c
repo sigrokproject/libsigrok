@@ -42,9 +42,6 @@ SR_API struct sr_hwcap_option sr_hwcap_options[] = {
 #ifdef HAVE_LA_DEMO
 extern SR_PRIV struct sr_dev_driver demo_driver_info;
 #endif
-#ifdef HAVE_LA_SALEAE_LOGIC
-extern SR_PRIV struct sr_dev_driver saleae_logic_driver_info;
-#endif
 #ifdef HAVE_LA_OLS
 extern SR_PRIV struct sr_dev_driver ols_driver_info;
 #endif
@@ -70,9 +67,6 @@ extern SR_PRIV struct sr_dev_driver fx2lafw_driver_info;
 static struct sr_dev_driver *drivers_list[] = {
 #ifdef HAVE_LA_DEMO
 	&demo_driver_info,
-#endif
-#ifdef HAVE_LA_SALEAE_LOGIC
-	&saleae_logic_driver_info,
 #endif
 #ifdef HAVE_LA_OLS
 	&ols_driver_info,

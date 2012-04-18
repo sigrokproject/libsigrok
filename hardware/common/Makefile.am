@@ -22,10 +22,6 @@ noinst_LTLIBRARIES = libsigrokhwcommon.la
 
 libsigrokhwcommon_la_SOURCES =
 
-if LA_SALEAE_LOGIC
-libsigrokhwcommon_la_SOURCES += ezusb.c
-endif
-
 if LA_FX2LAFW
 libsigrokhwcommon_la_SOURCES += ezusb.c
 endif

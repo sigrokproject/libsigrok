@@ -141,15 +141,6 @@ if test "x$LA_OLS" = "xyes"; then
 	AC_DEFINE(HAVE_LA_OLS, 1, [OpenBench Logic Sniffer (OLS) support])
 fi
 
-AC_ARG_ENABLE(saleae-logic, AC_HELP_STRING([--enable-saleae-logic],
-	      [enable Saleae Logic support [default=yes]]),
-	      [LA_SALEAE_LOGIC="$enableval"],
-	      [LA_SALEAE_LOGIC=no])
-AM_CONDITIONAL(LA_SALEAE_LOGIC, test x$LA_SALEAE_LOGIC = xyes)
-if test "x$LA_SALEAE_LOGIC" = "xyes"; then
-	AC_DEFINE(HAVE_LA_SALEAE_LOGIC, 1, [Saleae Logic support])
-fi
-
 AC_ARG_ENABLE(zeroplus-logic-cube,
 	      AC_HELP_STRING([--enable-zeroplus-logic-cube],
 	      [enable Zeroplus Logic Cube support [default=yes]]),
@@ -178,8 +169,7 @@ PKG_CHECK_MODULES([gthread], [gthread-2.0 >= 2.22.0],
 	SR_PKGLIBS="$SR_PKGLIBS gthread-2.0"])
 
 # libusb is only needed for some hardware drivers.
-if test "x$LA_SALEAE_LOGIC" != xno \
-   -o "x$LA_ASIX_SIGMA" != xno \
+if test "x$LA_ASIX_SIGMA" != xno \
    -o "x$LA_CHRONOVU_LA8" != xno \
    -o "x$LA_ZEROPLUS_LOGIC_CUBE" != xno \
    -o "x$LA_FX2LAFW" != xno; then
@@ -290,7 +280,6 @@ AC_CONFIG_FILES([Makefile
 		 hardware/fx2lafw/Makefile
 		 hardware/link-mso19/Makefile
 		 hardware/openbench-logic-sniffer/Makefile
-		 hardware/saleae-logic/Makefile
 		 hardware/zeroplus-logic-cube/Makefile
 		 input/Makefile
 		 output/Makefile
@@ -331,7 +320,6 @@ echo "  - Demo driver..................... $LA_DEMO"
 echo "  - fx2lafw (for FX2 LAs)........... $LA_FX2LAFW"
 echo "  - Link MSO-19..................... $LA_LINK_MSO19"
 echo "  - Openbench Logic Sniffer......... $LA_OLS"
-echo "  - Saleae Logic.................... $LA_SALEAE_LOGIC"
 echo "  - Zeroplus Logic Cube............. $LA_ZEROPLUS_LOGIC_CUBE"
 echo
 
