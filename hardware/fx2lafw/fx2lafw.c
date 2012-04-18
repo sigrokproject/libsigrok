@@ -79,6 +79,9 @@ static const char *probe_names[] = {
 };
 
 static uint64_t supported_samplerates[] = {
+	SR_KHZ(200),
+	SR_KHZ(250),
+	SR_KHZ(500),
 	SR_MHZ(1),
 	SR_MHZ(2),
 	SR_MHZ(3),
