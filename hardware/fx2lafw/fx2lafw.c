@@ -97,6 +97,7 @@ static uint64_t supported_samplerates[] = {
 	SR_MHZ(12),
 	SR_MHZ(16),
 	SR_MHZ(24),
+	0,
 };
 
 static struct sr_samplerates samplerates = {
