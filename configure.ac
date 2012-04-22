@@ -152,6 +152,16 @@ if test "x$LA_ZEROPLUS_LOGIC_CUBE" = "xyes"; then
 	AC_DEFINE(HAVE_LA_ZEROPLUS_LOGIC_CUBE, 1, [ZEROPLUS Logic Cube support])
 fi
 
+AC_ARG_ENABLE(hantek-dso,
+	      AC_HELP_STRING([--enable-hantek-dso],
+	      [enable Hantek DSO support [default=yes]]),
+	      [HW_HANTEK_DSO="$enableval"],
+	      [HW_HANTEK_DSO=yes])
+AM_CONDITIONAL(HW_HANTEK_DSO, test x$HW_HANTEK_DSO = xyes)
+if test "x$HW_HANTEK_DSO" = "xyes"; then
+	AC_DEFINE(HAVE_HW_HANTEK_DSO, 1, [Hantek DSO support])
+fi
+
 # Checks for libraries.
 
 # This variable collects the pkg-config names of all detected libs.
@@ -265,6 +275,7 @@ AC_CONFIG_FILES([Makefile
 		 hardware/link-mso19/Makefile
 		 hardware/openbench-logic-sniffer/Makefile
 		 hardware/zeroplus-logic-cube/Makefile
+		 hardware/hantek-dso/Makefile
 		 input/Makefile
 		 output/Makefile
 		 output/text/Makefile
@@ -305,5 +316,6 @@ echo "  - fx2lafw (for FX2 LAs)........... $LA_FX2LAFW"
 echo "  - Link MSO-19..................... $LA_LINK_MSO19"
 echo "  - Openbench Logic Sniffer......... $LA_OLS"
 echo "  - ZEROPLUS Logic Cube............. $LA_ZEROPLUS_LOGIC_CUBE"
+echo "  - Hantek DSO...................... $HW_HANTEK_DSO"
 echo
 

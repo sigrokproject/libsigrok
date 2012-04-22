@@ -1,0 +1,573 @@
+/*
+ * This file is part of the sigrok project.
+ *
+ * Copyright (C) 2012 Bert Vermeulen <bert@biot.com>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#include <stdio.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <string.h>
+#include <sys/time.h>
+#include <inttypes.h>
+#include <arpa/inet.h>
+#include <glib.h>
+#include <libusb.h>
+#include "sigrok.h"
+#include "sigrok-internal.h"
+#include "config.h"
+#include "dso.h"
+
+
+/* Max time in ms before we want to check on events */
+#define TICK    1
+
+static int capabilities[] = {
+	SR_HWCAP_OSCILLOSCOPE,
+	SR_HWCAP_CONTINUOUS,
+	0,
+};
+
+static const char *probe_names[] = {
+	"CH1",
+	"CH2",
+	NULL,
+};
+
+static struct dso_profile dev_profiles[] = {
+	{	0x04b4, 0x2090,
+		0x04b5, 0x2090,
+		"Hantek", "DSO-2090",
+		NULL, 2,
+		FIRMWARE_DIR "/hantek-dso-2090.fw" },
+	{ 0, 0, 0, 0, 0, 0, 0, 0, 0 }
+};
+
+
+SR_PRIV libusb_context *usb_context = NULL;
+SR_PRIV GSList *dev_insts = NULL;
+
+
+static struct sr_dev_inst *dso_dev_new(int index, struct dso_profile *prof)
+{
+	struct sr_dev_inst *sdi;
+	struct context *ctx;
+
+	sdi = sr_dev_inst_new(index, SR_ST_INITIALIZING,
+		prof->vendor, prof->model, prof->model_version);
+	if (!sdi)
+		return NULL;
+
+	if (!(ctx = g_try_malloc0(sizeof(struct context)))) {
+		sr_err("hantek-dso: ctx malloc failed");
+		return NULL;
+	}
+	ctx->profile = prof;
+	ctx->dev_state = IDLE;
+	ctx->timebase = DEFAULT_TIMEBASE;
+	ctx->ch1_enabled = TRUE;
+	ctx->ch2_enabled = TRUE;
+	ctx->voltage_ch1 = DEFAULT_VOLTAGE;
+	ctx->voltage_ch2 = DEFAULT_VOLTAGE;
+	ctx->coupling_ch1 = DEFAULT_COUPLING;
+	ctx->coupling_ch2 = DEFAULT_COUPLING;
+	ctx->voffset_ch1 = DEFAULT_VERT_OFFSET;
+	ctx->voffset_ch2 = DEFAULT_VERT_OFFSET;
+	ctx->voffset_trigger = DEFAULT_VERT_TRIGGERPOS;
+	ctx->selected_channel = DEFAULT_SELECTED_CHANNEL;
+	ctx->framesize = DEFAULT_FRAMESIZE;
+	ctx->triggerslope = SLOPE_POSITIVE;
+	ctx->triggersource = DEFAULT_TRIGGER_SOURCE;
+	ctx->triggerposition = DEFAULT_HORIZ_TRIGGERPOS;
+	sdi->priv = ctx;
+	dev_insts = g_slist_append(dev_insts, sdi);
+
+	return sdi;
+}
+
+static int configure_probes(struct context *ctx, GSList *probes)
+{
+	struct sr_probe *probe;
+	GSList *l;
+
+	for (l = probes; l; l = l->next) {
+		probe = (struct sr_probe *)l->data;
+		if (probe->index == 0)
+			ctx->ch1_enabled = probe->enabled;
+		else if (probe->index == 1)
+			ctx->ch2_enabled = probe->enabled;
+	}
+
+	return SR_OK;
+}
+
+static int hw_init(const char *devinfo)
+{
+	struct sr_dev_inst *sdi;
+	struct libusb_device_descriptor des;
+	struct dso_profile *prof;
+	struct context *ctx;
+	libusb_device **devlist;
+	int err, devcnt, i, j;
+
+	/* Avoid compiler warnings. */
+	(void)devinfo;
+
+	if (libusb_init(&usb_context) != 0) {
+		sr_err("hantek-dso: Failed to initialize USB.");
+		return 0;
+	}
+
+	/* Find all Hantek DSO devices and upload firmware to all of them. */
+	devcnt = 0;
+	libusb_get_device_list(usb_context, &devlist);
+	for (i = 0; devlist[i]; i++) {
+		if ((err = libusb_get_device_descriptor(devlist[i], &des))) {
+			sr_err("hantek-dso: failed to get device descriptor: %d", err);
+			continue;
+		}
+
+		prof = NULL;
+		for (j = 0; dev_profiles[j].orig_vid; j++) {
+			if (des.idVendor == dev_profiles[j].orig_vid
+				&& des.idProduct == dev_profiles[j].orig_pid) {
+				/* Device matches the pre-firmware profile. */
+				prof = &dev_profiles[j];
+				sr_dbg("hantek-dso: Found a %s %s.", prof->vendor, prof->model);
+				sdi = dso_dev_new(devcnt, prof);
+				ctx = sdi->priv;
+				if (ezusb_upload_firmware(devlist[i], USB_CONFIGURATION,
+						prof->firmware) == SR_OK)
+					/* Remember when the firmware on this device was updated */
+					g_get_current_time(&ctx->fw_updated);
+				else
+					sr_err("hantek-dso: firmware upload failed for "
+					       "device %d", devcnt);
+				/* Dummy USB address of 0xff will get overwritten later. */
+				ctx->usb = sr_usb_dev_inst_new(
+						libusb_get_bus_number(devlist[i]), 0xff, NULL);
+				devcnt++;
+				break;
+			} else if (des.idVendor == dev_profiles[j].fw_vid
+				&& des.idProduct == dev_profiles[j].fw_pid) {
+				/* Device matches the post-firmware profile. */
+				prof = &dev_profiles[j];
+				sr_dbg("hantek-dso: Found a %s %s.", prof->vendor, prof->model);
+				sdi = dso_dev_new(devcnt, prof);
+				sdi->status = SR_ST_INACTIVE;
+				ctx = sdi->priv;
+				ctx->usb = sr_usb_dev_inst_new(
+						libusb_get_bus_number(devlist[i]),
+						libusb_get_device_address(devlist[i]), NULL);
+				devcnt++;
+				break;
+			}
+		}
+		if (!prof)
+			/* not a supported VID/PID */
+			continue;
+	}
+	libusb_free_device_list(devlist, 1);
+
+	return devcnt;
+}
+
+static int hw_dev_open(int dev_index)
+{
+	GTimeVal cur_time;
+	struct sr_dev_inst *sdi;
+	struct context *ctx;
+	int timediff, err;
+
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
+		return SR_ERR_ARG;
+	ctx = sdi->priv;
+
+	/*
+	 * if the firmware was recently uploaded, wait up to MAX_RENUM_DELAY ms
+	 * for the FX2 to renumerate
+	 */
+	err = 0;
+	if (GTV_TO_MSEC(ctx->fw_updated) > 0) {
+		sr_info("hantek-dso: waiting for device to reset");
+		/* takes at least 300ms for the FX2 to be gone from the USB bus */
+		g_usleep(300 * 1000);
+		timediff = 0;
+		while (timediff < MAX_RENUM_DELAY) {
+			if ((err = dso_open(dev_index)) == SR_OK)
+				break;
+			g_usleep(100 * 1000);
+			g_get_current_time(&cur_time);
+			timediff = GTV_TO_MSEC(cur_time) - GTV_TO_MSEC(ctx->fw_updated);
+		}
+		sr_info("hantek-dso: device came back after %d ms", timediff);
+	} else {
+		err = dso_open(dev_index);
+	}
+
+	if (err != SR_OK) {
+		sr_err("hantek-dso: unable to open device");
+		return SR_ERR;
+	}
+
+	err = libusb_claim_interface(ctx->usb->devhdl, USB_INTERFACE);
+	if (err != 0) {
+		sr_err("hantek-dso: Unable to claim interface: %d", err);
+		return SR_ERR;
+	}
+
+	return SR_OK;
+}
+
+static int hw_dev_close(int dev_index)
+{
+	struct sr_dev_inst *sdi;
+
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
+		return SR_ERR_ARG;
+
+	dso_close(sdi);
+
+	return SR_OK;
+}
+
+static int hw_cleanup(void)
+{
+	GSList *l;
+	struct sr_dev_inst *sdi;
+	struct context *ctx;
+
+	/* Properly close and free all devices. */
+	for (l = dev_insts; l; l = l->next) {
+		if (!(sdi = l->data)) {
+			/* Log error, but continue cleaning up the rest. */
+			sr_err("hantek-dso: %s: sdi was NULL, continuing", __func__);
+			continue;
+		}
+		if (!(ctx = sdi->priv)) {
+			/* Log error, but continue cleaning up the rest. */
+			sr_err("hantek-dso: %s: sdi->priv was NULL, continuing", __func__);
+			continue;
+		}
+		dso_close(sdi);
+		sr_usb_dev_inst_free(ctx->usb);
+		sr_dev_inst_free(sdi);
+	}
+
+	g_slist_free(dev_insts);
+	dev_insts = NULL;
+
+	if (usb_context)
+		libusb_exit(usb_context);
+	usb_context = NULL;
+
+	return SR_OK;
+}
+
+static void *hw_get_device_info(int dev_index, int dev_info_id)
+{
+	struct sr_dev_inst *sdi;
+	struct context *ctx;
+	void *info;
+	uint64_t tmp;
+
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
+		return NULL;
+	ctx = sdi->priv;
+
+	info = NULL;
+	switch (dev_info_id) {
+	case SR_DI_INST:
+		info = sdi;
+		break;
+	case SR_DI_NUM_PROBES:
+		info = GINT_TO_POINTER(ctx->profile->num_probes);
+		break;
+	case SR_DI_PROBE_NAMES:
+		info = probe_names;
+		break;
+	/* TODO remove this */
+	case SR_DI_CUR_SAMPLERATE:
+		info = &tmp;
+		break;
+	}
+
+	return info;
+}
+
+static int hw_get_status(int device_index)
+{
+	struct sr_dev_inst *sdi;
+
+	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
+		return SR_ST_NOT_FOUND;
+
+	return sdi->status;
+}
+
+static int *hwcap_get_all(void)
+{
+
+	return capabilities;
+}
+
+static int hw_dev_config_set(int dev_index, int hwcap, void *value)
+{
+	struct sr_dev_inst *sdi;
+	struct context *ctx;
+	int tmp, ret;
+
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
+		return SR_ERR;
+
+	if (sdi->status != SR_ST_ACTIVE)
+		return SR_ERR;
+
+	ctx = sdi->priv;
+	switch (hwcap) {
+	case SR_HWCAP_PROBECONFIG:
+		ret = configure_probes(ctx, (GSList *) value);
+		break;
+	case SR_HWCAP_TRIGGERSLOPE:
+		tmp = *(int *)value;
+		if (tmp != SLOPE_NEGATIVE && tmp != SLOPE_POSITIVE)
+			ret = SR_ERR_ARG;
+		ctx->triggerslope = tmp;
+	default:
+		ret = SR_ERR_ARG;
+	}
+
+	return ret;
+}
+
+/* Called by libusb (as triggered by handle_event()) when a transfer comes in.
+ * Only channel data comes in asynchronously, and all transfers for this are
+ * queued up beforehand, so this just needs so chuck the incoming data onto
+ * the libsigrok session bus.
+ */
+static void receive_transfer(struct libusb_transfer *transfer)
+{
+	struct sr_datafeed_packet packet;
+	struct sr_datafeed_analog analog;
+	struct context *ctx;
+	float ch1, ch2;
+	int i;
+
+	ctx = transfer->user_data;
+	sr_dbg("hantek-dso: receive_transfer(): status %d received %d bytes",
+			transfer->status, transfer->actual_length);
+
+	if (transfer->actual_length == 0)
+		/* Nothing to send to the bus. */
+		return;
+
+	ctx->current_transfer += transfer->actual_length;
+	sr_dbg("hantek-dso: got %d of %d in frame", ctx->current_transfer, ctx->framesize * 2);
+	if (ctx->current_transfer >= ctx->framesize * 2) {
+		ctx->current_transfer = 0;
+		ctx->dev_state = NEW_CAPTURE;
+	}
+
+	packet.type = SR_DF_ANALOG;
+	packet.payload = &analog;
+	analog.num_samples = transfer->actual_length / 2;
+	analog.data = g_try_malloc(analog.num_samples * sizeof(float) * ctx->profile->num_probes);
+	for (i = 0; i < analog.num_samples; i++) {
+		/* Hardcoded for two channels, since the order/encoding is specific. */
+		/* TODO: support for 5xxx series 9-bit samples */
+		ch2 = (*(transfer->buffer + i * 2) / 255.0);
+		ch1 = (*(transfer->buffer + i * 2 + 1) / 255.0);
+		analog.data[i * ctx->profile->num_probes] = ch1;
+		analog.data[i * ctx->profile->num_probes + 1] = ch2;
+	}
+	g_free(transfer->buffer);
+	libusb_free_transfer(transfer);
+
+	sr_session_send(ctx->cb_data, &packet);
+
+}
+
+static int handle_event(int fd, int revents, void *cb_data)
+{
+	struct timeval tv;
+	struct context *ctx;
+	int capturestate;
+
+	/* Avoid compiler warnings. */
+	(void)fd;
+	(void)revents;
+
+	/* Always handle pending libusb events. */
+	tv.tv_sec = tv.tv_usec = 0;
+	libusb_handle_events_timeout(usb_context, &tv);
+
+	ctx = cb_data;
+	/* TODO: ugh */
+	if (ctx->dev_state == NEW_CAPTURE) {
+		if (dso_capture_start(ctx) != SR_OK)
+			return TRUE;
+		if (dso_enable_trigger(ctx) != SR_OK)
+			return TRUE;
+		if (dso_force_trigger(ctx) != SR_OK)
+			return TRUE;
+		sr_dbg("hantek-dso: successfully requested next chunk");
+		ctx->dev_state = CAPTURE;
+		return TRUE;
+	}
+	if (ctx->dev_state != CAPTURE)
+		return TRUE;
+
+	if ((capturestate = dso_get_capturestate(ctx)) == CAPTURE_UNKNOWN) {
+		/* Generated by the function, not the hardware. */
+		return TRUE;
+	}
+
+	sr_dbg("hantek-dso: capturestate %d", capturestate);
+	switch (capturestate) {
+	case CAPTURE_EMPTY:
+		if (++ctx->capture_empty_count >= MAX_CAPTURE_EMPTY) {
+			ctx->capture_empty_count = 0;
+			if (dso_capture_start(ctx) != SR_OK)
+				break;
+			if (dso_enable_trigger(ctx) != SR_OK)
+				break;
+			if (dso_force_trigger(ctx) != SR_OK)
+				break;
+			sr_dbg("hantek-dso: successfully requested next chunk");
+		}
+		break;
+	case CAPTURE_FILLING:
+		/* no data yet */
+		break;
+	case CAPTURE_READY_8BIT:
+		/* Tell the scope to send us the first frame. */
+		if (dso_get_channeldata(ctx, receive_transfer) != SR_OK)
+			break;
+//		/* Current frame is on the way, make sure the scope
+//		 * sends us the next one. */
+//		if (dso_capture_start(ctx) != SR_OK)
+//			break;
+//		if (dso_enable_trigger(ctx) != SR_OK)
+//			break;
+//		if (dso_force_trigger(ctx) != SR_OK)
+//			break;
+		ctx->dev_state = FETCH_DATA;
+		break;
+	case CAPTURE_READY_9BIT:
+		/* TODO */
+		sr_err("not yet supported");
+		break;
+	case CAPTURE_TIMEOUT:
+		/* Doesn't matter, we'll try again next time. */
+		break;
+	default:
+		sr_dbg("unknown capture state");
+	}
+
+	return TRUE;
+}
+
+static int hw_start_acquisition(int device_index, void *cb_data)
+{
+	const struct libusb_pollfd **lupfd;
+	struct sr_datafeed_packet packet;
+	struct sr_datafeed_header header;
+	struct sr_datafeed_meta_analog meta;
+	struct sr_dev_inst *sdi;
+	struct context *ctx;
+	int i;
+
+	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
+		return SR_ERR;
+
+	if (sdi->status != SR_ST_ACTIVE)
+		return SR_ERR;
+
+	ctx = sdi->priv;
+	ctx->cb_data = cb_data;
+
+	if (dso_init(ctx) != SR_OK)
+		return SR_ERR;
+
+	if (dso_capture_start(ctx) != SR_OK)
+		return SR_ERR;
+
+	ctx->dev_state = CAPTURE;
+	lupfd = libusb_get_pollfds(usb_context);
+	for (i = 0; lupfd[i]; i++)
+		sr_source_add(lupfd[i]->fd, lupfd[i]->events, TICK, handle_event,
+			      ctx);
+	free(lupfd);
+
+	/* Send header packet to the session bus. */
+	packet.type = SR_DF_HEADER;
+	packet.payload = (unsigned char *)&header;
+	header.feed_version = 1;
+	gettimeofday(&header.starttime, NULL);
+	sr_session_send(cb_data, &packet);
+
+	/* Send metadata about the SR_DF_ANALOG packets to come. */
+	packet.type = SR_DF_META_ANALOG;
+	packet.payload = &meta;
+	meta.num_probes = ctx->profile->num_probes;
+	sr_session_send(cb_data, &packet);
+
+	return SR_OK;
+}
+
+/* TODO: doesn't really cancel pending transfers so they might come in after
+ * SR_DF_END is sent.
+ */
+static int hw_stop_acquisition(int device_index, gpointer session_device_id)
+{
+	struct sr_datafeed_packet packet;
+	struct sr_dev_inst *sdi;
+	struct context *ctx;
+
+	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
+		return SR_ERR;
+
+	if (sdi->status != SR_ST_ACTIVE)
+		return SR_ERR;
+
+	ctx = sdi->priv;
+	ctx->dev_state = IDLE;
+
+	packet.type = SR_DF_END;
+	sr_session_send(session_device_id, &packet);
+
+	return SR_OK;
+}
+
+SR_PRIV struct sr_dev_driver hantek_dso_plugin_info = {
+	.name = "hantek-dso",
+	.longname = "Hantek DSO",
+	.api_version = 1,
+	.init = hw_init,
+	.cleanup = hw_cleanup,
+	.dev_open = hw_dev_open,
+	.dev_close = hw_dev_close,
+	.dev_info_get = hw_get_device_info,
+	.dev_status_get = hw_get_status,
+	.hwcap_get_all = hwcap_get_all,
+	.dev_config_set = hw_dev_config_set,
+	.dev_acquisition_start = hw_start_acquisition,
+	.dev_acquisition_stop = hw_stop_acquisition,
+};

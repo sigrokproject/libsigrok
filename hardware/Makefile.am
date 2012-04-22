@@ -26,7 +26,8 @@ SUBDIRS = \
 	fx2lafw \
 	link-mso19 \
 	openbench-logic-sniffer \
-	zeroplus-logic-cube
+	zeroplus-logic-cube \
+	hantek-dso
 
 noinst_LTLIBRARIES = libsigrokhardware.la
 
@@ -65,5 +66,9 @@ endif
 
 if LA_ZEROPLUS_LOGIC_CUBE
 libsigrokhardware_la_LIBADD += zeroplus-logic-cube/libsigrokhwzeroplus.la
+endif
+
+if HW_HANTEK_DSO
+libsigrokhardware_la_LIBADD += hantek-dso/libsigrokhw_hantek_dso.la
 endif
 
