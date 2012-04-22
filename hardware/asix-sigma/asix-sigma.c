@@ -1265,6 +1265,7 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 	struct context *ctx;
 	struct sr_datafeed_packet *packet;
 	struct sr_datafeed_header *header;
+	struct sr_datafeed_meta_logic meta;
 	struct clockselect_50 clockselect;
 	int frac, triggerpin, ret;
 	uint8_t triggerselect;
@@ -1366,17 +1367,23 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 		return SR_ERR_MALLOC;
 	}
 
-	/* Add capture source. */
-	sr_source_add(0, G_IO_IN, 10, receive_data, sdi);
-
 	/* Send header packet to the session bus. */
 	packet->type = SR_DF_HEADER;
 	packet->payload = header;
 	header->feed_version = 1;
 	gettimeofday(&header->starttime, NULL);
-	header->samplerate = ctx->cur_samplerate;
-	header->num_logic_probes = ctx->num_probes;
 	sr_session_send(ctx->session_dev_id, packet);
+
+	/* Send metadata about the SR_DF_LOGIC packets to come. */
+	packet->type = SR_DF_META_LOGIC;
+	packet->payload = &meta;
+	meta.samplerate = ctx->cur_samplerate;
+	meta.num_probes = ctx->num_probes;
+	sr_session_send(ctx->session_dev_id, packet);
+
+	/* Add capture source. */
+	sr_source_add(0, G_IO_IN, 10, receive_data, sdi);
+
 	g_free(header);
 	g_free(packet);
 

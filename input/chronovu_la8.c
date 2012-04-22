@@ -123,6 +123,7 @@ static int loadfile(struct sr_input *in, const char *filename)
 {
 	struct sr_datafeed_header header;
 	struct sr_datafeed_packet packet;
+	struct sr_datafeed_meta_logic meta;
 	struct sr_datafeed_logic logic;
 	uint8_t buf[PACKET_SIZE], divcount;
 	int i, fd, size, num_probes;
@@ -153,8 +154,13 @@ static int loadfile(struct sr_input *in, const char *filename)
 	packet.payload = &header;
 	header.feed_version = 1;
 	gettimeofday(&header.starttime, NULL);
-	header.num_logic_probes = num_probes;
-	header.samplerate = samplerate;
+	sr_session_send(in->vdev, &packet);
+
+	/* Send metadata about the SR_DF_LOGIC packets to come. */
+	packet.type = SR_DF_META_LOGIC;
+	packet.payload = &meta;
+	meta.samplerate = samplerate;
+	meta.num_probes = num_probes;
 	sr_session_send(in->vdev, &packet);
 
 	/* TODO: Handle trigger point. */

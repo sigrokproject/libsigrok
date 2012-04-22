@@ -876,6 +876,7 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 {
 	struct sr_datafeed_packet *packet;
 	struct sr_datafeed_header *header;
+	struct sr_datafeed_meta_logic meta;
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
 	uint32_t trigger_config[4];
@@ -1015,8 +1016,13 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 	packet->payload = (unsigned char *)header;
 	header->feed_version = 1;
 	gettimeofday(&header->starttime, NULL);
-	header->samplerate = ctx->cur_samplerate;
-	header->num_logic_probes = NUM_PROBES;
+	sr_session_send(cb_data, packet);
+
+	/* Send metadata about the SR_DF_LOGIC packets to come. */
+	packet->type = SR_DF_META_LOGIC;
+	packet->payload = &meta;
+	meta.samplerate = ctx->cur_samplerate;
+	meta.num_probes = NUM_PROBES;
 	sr_session_send(cb_data, packet);
 
 	g_free(header);
