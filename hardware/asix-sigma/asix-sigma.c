@@ -1261,8 +1261,8 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 {
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
-	struct sr_datafeed_packet packet;
-	struct sr_datafeed_header header;
+	struct sr_datafeed_packet *packet;
+	struct sr_datafeed_header *header;
 	struct clockselect_50 clockselect;
 	int frac, triggerpin, ret;
 	uint8_t triggerselect;
@@ -1354,17 +1354,29 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 
 	ctx->session_dev_id = cb_data;
 
-	/* Send header packet to the session bus. */
-	packet.type = SR_DF_HEADER;
-	packet.payload = &header;
-	header.feed_version = 1;
-	gettimeofday(&header.starttime, NULL);
-	header.samplerate = ctx->cur_samplerate;
-	header.num_logic_probes = ctx->num_probes;
-	sr_session_send(ctx->session_dev_id, &packet);
+	if (!(packet = g_try_malloc(sizeof(struct sr_datafeed_packet)))) {
+		sr_err("sigma: %s: packet malloc failed.", __func__);
+		return SR_ERR_MALLOC;
+	}
+
+	if (!(header = g_try_malloc(sizeof(struct sr_datafeed_header)))) {
+		sr_err("sigma: %s: header malloc failed.", __func__);
+		return SR_ERR_MALLOC;
+	}
 
 	/* Add capture source. */
 	sr_source_add(0, G_IO_IN, 10, receive_data, sdi);
+
+	/* Send header packet to the session bus. */
+	packet->type = SR_DF_HEADER;
+	packet->payload = header;
+	header->feed_version = 1;
+	gettimeofday(&header->starttime, NULL);
+	header->samplerate = ctx->cur_samplerate;
+	header->num_logic_probes = ctx->num_probes;
+	sr_session_send(ctx->session_dev_id, packet);
+	g_free(header);
+	g_free(packet);
 
 	ctx->state.state = SIGMA_CAPTURE;
 
