@@ -400,6 +400,7 @@ SR_API int sr_session_stop(void)
 static void datafeed_dump(struct sr_datafeed_packet *packet)
 {
 	struct sr_datafeed_logic *logic;
+	struct sr_datafeed_analog *analog;
 
 	switch (packet->type) {
 	case SR_DF_HEADER:
@@ -408,10 +409,21 @@ static void datafeed_dump(struct sr_datafeed_packet *packet)
 	case SR_DF_TRIGGER:
 		sr_dbg("bus: received SR_DF_TRIGGER");
 		break;
+	case SR_DF_META_LOGIC:
+		sr_dbg("bus: received SR_DF_META_LOGIC");
+		break;
 	case SR_DF_LOGIC:
 		logic = packet->payload;
 		/* TODO: Check for logic != NULL. */
 		sr_dbg("bus: received SR_DF_LOGIC %" PRIu64 " bytes", logic->length);
+		break;
+	case SR_DF_META_ANALOG:
+		sr_dbg("bus: received SR_DF_META_LOGIC");
+		break;
+	case SR_DF_ANALOG:
+		analog = packet->payload;
+		/* TODO: Check for analog != NULL. */
+		sr_dbg("bus: received SR_DF_ANALOG %d samples", analog->num_samples);
 		break;
 	case SR_DF_END:
 		sr_dbg("bus: received SR_DF_END");

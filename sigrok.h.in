@@ -150,7 +150,9 @@ enum {
 	SR_DF_END,
 	SR_DF_TRIGGER,
 	SR_DF_LOGIC,
-	SR_DF_PD,
+	SR_DF_META_LOGIC,
+	SR_DF_ANALOG,
+	SR_DF_META_ANALOG,
 };
 
 struct sr_datafeed_packet {
@@ -161,14 +163,26 @@ struct sr_datafeed_packet {
 struct sr_datafeed_header {
 	int feed_version;
 	struct timeval starttime;
+};
+
+struct sr_datafeed_meta_logic {
+	int num_probes;
 	uint64_t samplerate;
-	int num_logic_probes;
 };
 
 struct sr_datafeed_logic {
 	uint64_t length;
 	uint16_t unitsize;
 	void *data;
+};
+
+struct sr_datafeed_meta_analog {
+	int num_probes;
+};
+
+struct sr_datafeed_analog {
+	int num_samples;
+	float *data;
 };
 
 struct sr_input {
@@ -249,7 +263,8 @@ enum {
 	/** The device can act as logic analyzer. */
 	SR_HWCAP_LOGIC_ANALYZER,
 
-	/* TODO: SR_HWCAP_SCOPE, SW_HWCAP_PATTERN_GENERATOR, etc.? */
+	/** The device can act as an oscilloscope. */
+	SR_HWCAP_OSCILLOSCOPE,
 
 	/*--- Device types --------------------------------------------------*/
 
@@ -274,6 +289,9 @@ enum {
 
 	/** The device supports Run Length Encoding. */
 	SR_HWCAP_RLE,
+
+	/** The device supports setting trigger slope. */
+	SR_HWCAP_TRIGGERSLOPE,
 
 	/*--- Special stuff -------------------------------------------------*/
 
@@ -310,7 +328,6 @@ enum {
 	 */
 	SR_HWCAP_CONTINUOUS,
 
-	/* TODO: SR_HWCAP_JUST_SAMPLE or similar. */
 };
 
 struct sr_hwcap_option {
