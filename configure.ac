@@ -194,22 +194,6 @@ PKG_CHECK_MODULES([libzip], [libzip >= 0.8],
 	[CFLAGS="$CFLAGS $libzip_CFLAGS"; LIBS="$LIBS $libzip_LIBS";
 	SR_PKGLIBS="$SR_PKGLIBS libzip"])
 
-# zlib is only needed for some hardware drivers.
-if test "x$LA_ASIX_SIGMA" != xno; then
-	case "$build" in
-	*freebsd*)
-		# FreeBSD has zlib, but no pkg-config file for it.
-		# Check manually, and do NOT add it to SR_PKGLIBS.
-		AC_CHECK_LIB(z, uncompress)
-		;;
-	*)
-		PKG_CHECK_MODULES([zlib], [zlib >= 1.2.3.1],
-			[CFLAGS="$CFLAGS $zlib_CFLAGS"; LIBS="$LIBS $zlib_LIBS";
-			SR_PKGLIBS="$SR_PKGLIBS zlib"])
-		;;
-	esac
-fi
-
 # libftdi is only needed for some hardware drivers.
 if test "x$LA_ASIX_SIGMA" != xno \
      -o "x$LA_CHRONOVU_LA8" != xno; then
@@ -301,7 +285,7 @@ echo "Detected libraries:"
 echo
 
 # Note: This only works for libs with pkg-config integration.
-for lib in "glib-2.0" "gthread-2.0" "libusb-1.0" "libzip" "zlib" "libftdi" "libudev" "alsa"; do
+for lib in "glib-2.0" "gthread-2.0" "libusb-1.0" "libzip" "libftdi" "libudev" "alsa"; do
 	if `$PKG_CONFIG --exists $lib`; then
 		ver=`$PKG_CONFIG --modversion $lib`
 		answer="yes ($ver)"

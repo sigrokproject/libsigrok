@@ -24,7 +24,6 @@ Requirements
  - libglib >= 2.22.0
  - libusb >= 1.0.5 (for most logic analyzer hardware)
  - libzip >= 0.8
- - zlib >= 1.2.3.1
  - libftdi >= 0.16 (for some logic analyzer hardware)
  - libudev >= 151 (for some logic analyzer hardware)
 
