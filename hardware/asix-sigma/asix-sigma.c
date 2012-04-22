@@ -1023,10 +1023,13 @@ static int receive_data(int fd, int revents, void *cb_data)
 	(void)fd;
 	(void)revents;
 
+	/* Get the current position. */
+	sigma_read_pos(&ctx->state.stoppos, &ctx->state.triggerpos, ctx);
+
 	numchunks = (ctx->state.stoppos + 511) / 512;
 
 	if (ctx->state.state == SIGMA_IDLE)
-		return FALSE;
+		return TRUE;
 
 	if (ctx->state.state == SIGMA_CAPTURE) {
 		/* Check if the timer has expired, or memory is full. */
@@ -1035,11 +1038,11 @@ static int receive_data(int fd, int revents, void *cb_data)
 			(tv.tv_usec - ctx->start_tv.tv_usec) / 1000;
 
 		if (running_msec < ctx->limit_msec && numchunks < 32767)
-			return FALSE;
+			return TRUE; /* While capturing... */
+		else {
 
 		hw_dev_acquisition_stop(sdi->index, sdi);
 
-		return FALSE;
 	} else if (ctx->state.state == SIGMA_DOWNLOAD) {
 		if (ctx->state.chunks_downloaded >= numchunks) {
 			/* End of samples. */
