@@ -1,7 +1,7 @@
 /*
  * This file is part of the sigrok project.
  *
- * Copyright (C) 2010 Håvard Espeland <gus@ping.uio.no>,
+ * Copyright (C) 2010-2012 Håvard Espeland <gus@ping.uio.no>,
  * Copyright (C) 2010 Martin Stensgård <mastensg@ping.uio.no>
  * Copyright (C) 2010 Carl Henrik Lunde <chlunde@ping.uio.no>
  *
