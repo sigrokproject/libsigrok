@@ -398,7 +398,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 
 	if (!thread_running && z <= 0) {
 		/* Make sure we don't receive more packets. */
-		g_io_channel_close(channels[0]);
+		g_io_channel_shutdown(channels[0], FALSE, NULL);
 
 		/* Send last packet. */
 		packet.type = SR_DF_END;

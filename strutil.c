@@ -306,10 +306,10 @@ SR_API gboolean sr_parse_boolstring(const char *boolstr)
 	if (!boolstr)
 		return FALSE;
 
-	if (!g_strcasecmp(boolstr, "true") ||
-	    !g_strcasecmp(boolstr, "yes") ||
-	    !g_strcasecmp(boolstr, "on") ||
-	    !g_strcasecmp(boolstr, "1"))
+	if (!g_ascii_strncasecmp(boolstr, "true", 4) ||
+	    !g_ascii_strncasecmp(boolstr, "yes", 3) ||
+	    !g_ascii_strncasecmp(boolstr, "on", 2) ||
+	    !g_ascii_strncasecmp(boolstr, "1", 1))
 		return TRUE;
 
 	return FALSE;
