@@ -426,7 +426,7 @@ static int hw_init(const char *devinfo)
 	/* Look for SIGMAs. */
 
 	if (ftdi_usb_find_all(&ctx->ftdic, &devlist,
-			USB_VENDOR, USB_PRODUCT) < 0)
+			USB_VENDOR, USB_PRODUCT) <= 0)
 		goto free;
 
 	/* Make sure it's a version 1 or 2 SIGMA. */
