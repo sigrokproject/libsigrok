@@ -34,6 +34,7 @@
 #define USB_MODEL_NAME			"Logic Cube"
 #define USB_MODEL_VERSION		""
 
+#define NUM_PROBES			16
 #define USB_INTERFACE			0
 #define USB_CONFIGURATION		1
 #define NUM_TRIGGER_STAGES		4
@@ -78,7 +79,7 @@ static int hwcaps[] = {
  * ZEROPLUS LAP-C (16032) numbers the 16 probes A0-A7 and B0-B7.
  * We currently ignore other untested/unsupported devices here.
  */
-static const char *probe_names[] = {
+static const char *probe_names[NUM_PROBES + 1] = {
 	"A0",
 	"A1",
 	"A2",
@@ -345,7 +346,8 @@ static int hw_init(const char *devinfo)
 	/* Set some sane defaults. */
 	ctx->cur_samplerate = 0;
 	ctx->limit_samples = 0;
-	ctx->num_channels = 32; /* TODO: This isn't initialized before it's needed :( */
+	/* TODO: num_channels isn't initialized before it's needed :( */
+	ctx->num_channels = NUM_PROBES;
 	ctx->memory_size = 0;
 	ctx->probe_mask = 0;
 	memset(ctx->trigger_mask, 0, NUM_TRIGGER_STAGES);
@@ -512,24 +514,35 @@ static void *hw_dev_info_get(int dev_index, int dev_info_id)
 		return NULL;
 	}
 
+	sr_spew("zp: %s: dev_index %d, dev_info_id %d.", __func__,
+		dev_index, dev_info_id);
+
 	switch (dev_info_id) {
 	case SR_DI_INST:
 		info = sdi;
+		sr_spew("zp: %s: Returning sdi.", __func__);
 		break;
 	case SR_DI_NUM_PROBES:
 		info = GINT_TO_POINTER(ctx->num_channels);
+		sr_spew("zp: %s: Returning number of probes: %d.", __func__,
+			NUM_PROBES);
 		break;
 	case SR_DI_PROBE_NAMES:
 		info = probe_names;
+		sr_spew("zp: %s: Returning probenames.", __func__);
 		break;
 	case SR_DI_SAMPLERATES:
 		info = &samplerates;
+		sr_spew("zp: %s: Returning samplerates.", __func__);
 		break;
 	case SR_DI_TRIGGER_TYPES:
 		info = TRIGGER_TYPES;
+		sr_spew("zp: %s: Returning triggertypes: %s.", __func__, info);
 		break;
 	case SR_DI_CUR_SAMPLERATE:
 		info = &ctx->cur_samplerate;
+		sr_spew("zp: %s: Returning samplerate: %" PRIu64 "Hz.",
+			__func__, ctx->cur_samplerate);
 		break;
 	default:
 		/* Unknown device info ID, return NULL. */
