@@ -19,6 +19,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <inttypes.h>
 #include <glib.h>
 #include <libusb.h>
@@ -122,48 +123,37 @@ static int hw_dev_acquisition_stop(int dev_index, void *cb_data);
 static gboolean check_conf_profile(libusb_device *dev)
 {
 	struct libusb_device_descriptor des;
-	struct libusb_config_descriptor *conf_dsc = NULL;
-	const struct libusb_interface_descriptor *intf_dsc;
-	gboolean ret = FALSE;
+	struct libusb_device_handle *hdl;
+	gboolean ret;
+	unsigned char strdesc[64];
 
+	hdl = NULL;
+	ret = FALSE;
 	while (!ret) {
 		/* Assume the FW has not been loaded, unless proven wrong. */
-		ret = FALSE;
-
 		if (libusb_get_device_descriptor(dev, &des) != 0)
 			break;
 
-		/* Need exactly 1 configuration. */
-		if (des.bNumConfigurations != 1)
+		if (libusb_open(dev, &hdl) != 0)
 			break;
 
-		if (libusb_get_config_descriptor(dev, 0, &conf_dsc) != 0)
+		if (libusb_get_string_descriptor_ascii(hdl,
+				des.iManufacturer, strdesc, sizeof(strdesc)) < 0)
+			break;
+		if (strncmp((const char *)strdesc, "sigrok", 6))
 			break;
 
-		/* Need exactly 1 interface. */
-		if (conf_dsc->bNumInterfaces != 1)
+		if (libusb_get_string_descriptor_ascii(hdl,
+				des.iProduct, strdesc, sizeof(strdesc)) < 0)
 			break;
-
-		/* Need just one alternate setting. */
-		if (conf_dsc->interface[0].num_altsetting != 1)
-			break;
-
-		/* Need exactly 2 endpoints. */
-		intf_dsc = &(conf_dsc->interface[0].altsetting[0]);
-		if (intf_dsc->bNumEndpoints != 2)
-			break;
-
-		/* The first endpoint should be 2 (inbound). */
-		if ((intf_dsc->endpoint[0].bEndpointAddress & 0x8f) !=
-		    (2 | LIBUSB_ENDPOINT_IN))
+		if (strncmp((const char *)strdesc, "fx2lafw", 7))
 			break;
 
 		/* If we made it here, it must be an fx2lafw. */
 		ret = TRUE;
 	}
-
-	if (conf_dsc)
-		libusb_free_config_descriptor(conf_dsc);
+	if (hdl)
+		libusb_close(hdl);
 
 	return ret;
 }
