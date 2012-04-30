@@ -428,6 +428,12 @@ static void datafeed_dump(struct sr_datafeed_packet *packet)
 	case SR_DF_END:
 		sr_dbg("bus: received SR_DF_END");
 		break;
+	case SR_DF_FRAME_BEGIN:
+		sr_dbg("bus: received SR_DF_FRAME_BEGIN");
+		break;
+	case SR_DF_FRAME_END:
+		sr_dbg("bus: received SR_DF_FRAME_END");
+		break;
 	default:
 		sr_dbg("bus: received unknown packet type %d", packet->type);
 		break;

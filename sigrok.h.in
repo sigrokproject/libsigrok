@@ -153,6 +153,8 @@ enum {
 	SR_DF_META_LOGIC,
 	SR_DF_ANALOG,
 	SR_DF_META_ANALOG,
+	SR_DF_FRAME_BEGIN,
+	SR_DF_FRAME_END,
 };
 
 struct sr_datafeed_packet {
@@ -320,6 +322,12 @@ enum {
 	 * samples should be acquired.
 	 */
 	SR_HWCAP_LIMIT_SAMPLES,
+
+	/**
+	 * The device supports setting a frame limit, i.e. how many
+	 * frames should be acquired.
+	 */
+	SR_HWCAP_LIMIT_FRAMES,
 
 	/**
 	 * The device supports continuous sampling, i.e. neither a time limit
