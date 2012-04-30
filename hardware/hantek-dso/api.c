@@ -41,6 +41,7 @@
 
 static int capabilities[] = {
 	SR_HWCAP_OSCILLOSCOPE,
+	SR_HWCAP_LIMIT_SAMPLES,
 	SR_HWCAP_CONTINUOUS,
 	0,
 };
@@ -342,6 +343,9 @@ static int hw_dev_config_set(int dev_index, int hwcap, void *value)
 
 	ctx = sdi->priv;
 	switch (hwcap) {
+	case SR_HWCAP_LIMIT_FRAMES:
+		ctx->limit_frames = *(uint64_t *)value;
+		break;
 	case SR_HWCAP_PROBECONFIG:
 		ret = configure_probes(ctx, (GSList *) value);
 		break;
@@ -380,10 +384,6 @@ static void receive_transfer(struct libusb_transfer *transfer)
 
 	ctx->current_transfer += transfer->actual_length;
 	sr_dbg("hantek-dso: got %d of %d in frame", ctx->current_transfer, ctx->framesize * 2);
-	if (ctx->current_transfer >= ctx->framesize * 2) {
-		ctx->current_transfer = 0;
-		ctx->dev_state = NEW_CAPTURE;
-	}
 
 	packet.type = SR_DF_ANALOG;
 	packet.payload = &analog;
@@ -399,13 +399,28 @@ static void receive_transfer(struct libusb_transfer *transfer)
 	}
 	g_free(transfer->buffer);
 	libusb_free_transfer(transfer);
-
 	sr_session_send(ctx->cb_data, &packet);
+
+	if (ctx->current_transfer >= ctx->framesize * 2) {
+		/* That's the last chunk in this frame. */
+		packet.type = SR_DF_FRAME_END;
+		sr_session_send(ctx->cb_data, &packet);
+
+		if (ctx->limit_frames && ++ctx->num_frames == ctx->limit_frames) {
+			/* Terminate session */
+			packet.type = SR_DF_END;
+			sr_session_send(ctx->cb_data, &packet);
+		} else {
+			ctx->current_transfer = 0;
+			ctx->dev_state = NEW_CAPTURE;
+		}
+	}
 
 }
 
 static int handle_event(int fd, int revents, void *cb_data)
 {
+	struct sr_datafeed_packet packet;
 	struct timeval tv;
 	struct context *ctx;
 	int capturestate;
@@ -460,15 +475,15 @@ static int handle_event(int fd, int revents, void *cb_data)
 		/* Tell the scope to send us the first frame. */
 		if (dso_get_channeldata(ctx, receive_transfer) != SR_OK)
 			break;
-//		/* Current frame is on the way, make sure the scope
-//		 * sends us the next one. */
-//		if (dso_capture_start(ctx) != SR_OK)
-//			break;
-//		if (dso_enable_trigger(ctx) != SR_OK)
-//			break;
-//		if (dso_force_trigger(ctx) != SR_OK)
-//			break;
+
+		/* Don't hit the state machine again until we're done fetching
+		 * the data we just told the scope to send.
+		 */
 		ctx->dev_state = FETCH_DATA;
+
+		/* Tell the frontend a new frame is on the way. */
+		packet.type = SR_DF_FRAME_BEGIN;
+		sr_session_send(cb_data, &packet);
 		break;
 	case CAPTURE_READY_9BIT:
 		/* TODO */
