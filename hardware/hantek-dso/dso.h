@@ -37,7 +37,6 @@
 #define DEFAULT_TIMEBASE           TIME_1ms
 #define DEFAULT_TRIGGER_SOURCE     TRIGGER_CH1
 #define DEFAULT_COUPLING           COUPLING_AC
-#define DEFAULT_SELECTED_CHANNEL   SELECT_CH1CH2
 /* Halfway between min and max = 0V */
 #define DEFAULT_HORIZ_TRIGGERPOS   0x1400
 
@@ -123,12 +122,6 @@ enum trigger_sources {
 	TRIGGER_EXT10
 };
 
-enum selected_channels {
-	SELECT_CH1 = 0,
-	SELECT_CH2,
-	SELECT_CH1CH2
-};
-
 enum capturestates {
 	CAPTURE_EMPTY = 0,
 	CAPTURE_FILLING = 1,
@@ -194,7 +187,6 @@ struct context {
 	float voffset_ch2;
 	float voffset_trigger;
 	uint16_t channel_levels[2][9][2];
-	int selected_channel;
 	int framesize;
 	gboolean filter_ch1;
 	gboolean filter_ch2;

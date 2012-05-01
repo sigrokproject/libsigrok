@@ -253,9 +253,9 @@ SR_PRIV int dso_set_trigger_samplerate(struct context *ctx)
 	}
 	cmdstring[2] |= tmp & 0x07;
 cmdstring[2] = 0x45;
-	/* Selected channel */
-	cmdstring[3] = (ctx->selected_channel & 0x03) << 6;
-cmdstring[3] = 0x02;
+	/* Enabled channels */
+	tmp = (((ctx->ch2_enabled ? 1 : 0) << 1) + (ctx->ch1_enabled ? 1 : 0)) - 1;
+	cmdstring[3] = tmp;
 
 	/* TODO: Fast rates channel */
 	cmdstring[3] |= 0 << 5;

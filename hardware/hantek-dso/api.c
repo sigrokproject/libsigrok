@@ -92,7 +92,6 @@ static struct sr_dev_inst *dso_dev_new(int index, struct dso_profile *prof)
 	ctx->voffset_ch1 = DEFAULT_VERT_OFFSET;
 	ctx->voffset_ch2 = DEFAULT_VERT_OFFSET;
 	ctx->voffset_trigger = DEFAULT_VERT_TRIGGERPOS;
-	ctx->selected_channel = DEFAULT_SELECTED_CHANNEL;
 	ctx->framesize = DEFAULT_FRAMESIZE;
 	ctx->triggerslope = SLOPE_POSITIVE;
 	ctx->triggersource = DEFAULT_TRIGGER_SOURCE;
@@ -108,11 +107,12 @@ static int configure_probes(struct context *ctx, GSList *probes)
 	struct sr_probe *probe;
 	GSList *l;
 
+	ctx->ch1_enabled = ctx->ch2_enabled = FALSE;
 	for (l = probes; l; l = l->next) {
 		probe = (struct sr_probe *)l->data;
-		if (probe->index == 0)
+		if (probe->index == 1)
 			ctx->ch1_enabled = probe->enabled;
-		else if (probe->index == 1)
+		else if (probe->index == 2)
 			ctx->ch2_enabled = probe->enabled;
 	}
 
@@ -372,7 +372,7 @@ static void receive_transfer(struct libusb_transfer *transfer)
 	struct sr_datafeed_analog analog;
 	struct context *ctx;
 	float ch1, ch2;
-	int i;
+	int num_probes, data_offset, i;
 
 	ctx = transfer->user_data;
 	sr_dbg("hantek-dso: receive_transfer(): status %d received %d bytes",
@@ -385,17 +385,27 @@ static void receive_transfer(struct libusb_transfer *transfer)
 	ctx->current_transfer += transfer->actual_length;
 	sr_dbg("hantek-dso: got %d of %d in frame", ctx->current_transfer, ctx->framesize * 2);
 
+	num_probes = (ctx->ch1_enabled && ctx->ch2_enabled) ? 2 : 1;
 	packet.type = SR_DF_ANALOG;
 	packet.payload = &analog;
+	/* TODO: support for 5xxx series 9-bit samples */
 	analog.num_samples = transfer->actual_length / 2;
-	analog.data = g_try_malloc(analog.num_samples * sizeof(float) * ctx->profile->num_probes);
+	analog.data = g_try_malloc(analog.num_samples * sizeof(float) * num_probes);
+	data_offset = 0;
 	for (i = 0; i < analog.num_samples; i++) {
-		/* Hardcoded for two channels, since the order/encoding is specific. */
+		/* The device always sends data for both channels. If a channel
+		 * is disabled, it contains a copy of the enabled channel's
+		 * data. However, we only send the requested channels to the bus.
+		 */
 		/* TODO: support for 5xxx series 9-bit samples */
-		ch2 = (*(transfer->buffer + i * 2) / 255.0);
-		ch1 = (*(transfer->buffer + i * 2 + 1) / 255.0);
-		analog.data[i * ctx->profile->num_probes] = ch1;
-		analog.data[i * ctx->profile->num_probes + 1] = ch2;
+		if (ctx->ch1_enabled) {
+			ch1 = (*(transfer->buffer + i * 2 + 1) / 255.0);
+			analog.data[data_offset++] = ch1;
+		}
+		if (ctx->ch2_enabled) {
+			ch2 = (*(transfer->buffer + i * 2) / 255.0);
+			analog.data[data_offset++] = ch2;
+		}
 	}
 	g_free(transfer->buffer);
 	libusb_free_transfer(transfer);
@@ -408,6 +418,7 @@ static void receive_transfer(struct libusb_transfer *transfer)
 
 		if (ctx->limit_frames && ++ctx->num_frames == ctx->limit_frames) {
 			/* Terminate session */
+			/* TODO: don't leave pending USB transfers hanging */
 			packet.type = SR_DF_END;
 			sr_session_send(ctx->cb_data, &packet);
 		} else {
