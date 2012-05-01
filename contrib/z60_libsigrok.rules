@@ -51,11 +51,6 @@ ATTRS{idVendor}=="16d0", ATTRS{idProduct}=="0498", MODE="664", GROUP="plugdev"
 #        Ltd FT232 USB-Serial (UART) IC"
 ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", MODE="664", GROUP="plugdev"
 
-# CWAV USBee SX
-# http://www.usbee.com/sx.html
-# lsusb: "08a9:0009" (no string for the vendor name available)
-ATTRS{idVendor}=="08a9", ATTRS{idProduct}=="0009", MODE="664", GROUP="plugdev"
-
 # CWAV USBee AX
 # http://www.usbee.com/ax.html
 # lsusb: "08a9:0014" (no string for the vendor name available)
@@ -64,6 +59,11 @@ ATTRS{idVendor}=="08a9", ATTRS{idProduct}=="0009", MODE="664", GROUP="plugdev"
 # http://eeelec.com/xla/
 # lsusb: "08a9:0014" (no string for the vendor name available)
 ATTRS{idVendor}=="08a9", ATTRS{idProduct}=="0014", MODE="664", GROUP="plugdev"
+
+# CWAV USBee SX
+# http://www.usbee.com/sx.html
+# lsusb: "08a9:0009" (no string for the vendor name available)
+ATTRS{idVendor}=="08a9", ATTRS{idProduct}=="0009", MODE="664", GROUP="plugdev"
 
 # Hantek DSO-2090
 # http://www.hantek.com.cn/english/produce_list.asp?unid=62
@@ -80,6 +80,13 @@ ATTRS{idVendor}=="20a0", ATTRS{idProduct}=="4123", MODE="664", GROUP="plugdev"
 # http://www.pctestinstruments.com/
 # lsusb: "0403:dc48 Future Technology Devices International, Ltd"
 ATTRS{idVendor}=="0403", ATTRS{idProduct}=="dc48", MODE="664", GROUP="plugdev"
+
+# (All Cypress FX2 boards without EEPROM)
+#
+# Lcsoft Mini Board
+# http://sigrok.org/wiki/Lcsoft_Mini_Board
+# lsusb: "04b4:8613 Cypress Semiconductor Corp. CY7C68013 EZ-USB FX2 USB 2.0 Development Kit"
+ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="8613", MODE="664", GROUP="plugdev"
 
 # Link Instruments MSO-19
 # http://www.linkinstruments.com/mso19.htm
@@ -100,17 +107,6 @@ ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="0033", MODE="664", GROUP="plugdev"
 # http://www.mikrocontroller.net/articles/Minila_Version_MockUp
 # lsusb: "0403:6010 Future Technology Devices International, Ltd FT2232C Dual USB-UART/FIFO IC"
 ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6010", MODE="664", GROUP="plugdev"
-
-# RockyLogic Ant8
-# http://www.rockylogic.com/products/ant8.html
-# lsusb: "0403:f918 Future Technology Devices International,
-#        Ltd Ant8 Logic Probe"
-#
-# RockyLogic Ant18e
-# http://www.rockylogic.com/products/ant18e.html
-# lsusb: "0403:f918 Future Technology Devices International,
-#        Ltd Ant8 Logic Probe"
-ATTRS{idVendor}=="0403", ATTRS{idProduct}=="f918", MODE="664", GROUP="plugdev"
 
 # Openbench Logic Sniffer
 # http://www.gadgetfactory.net/gf/project/butterflylogic/
@@ -133,6 +129,17 @@ ATTRS{idVendor}=="16c0", ATTRS{idProduct}=="4e21", MODE="664", GROUP="plugdev"
 # lsusb: "0400:03e8 National Semiconductor Corp."
 ATTRS{idVendor}=="0400", ATTRS{idProduct}=="03e8", MODE="664", GROUP="plugdev"
 
+# RockyLogic Ant8
+# http://www.rockylogic.com/products/ant8.html
+# lsusb: "0403:f918 Future Technology Devices International,
+#        Ltd Ant8 Logic Probe"
+#
+# RockyLogic Ant18e
+# http://www.rockylogic.com/products/ant18e.html
+# lsusb: "0403:f918 Future Technology Devices International,
+#        Ltd Ant8 Logic Probe"
+ATTRS{idVendor}=="0403", ATTRS{idProduct}=="f918", MODE="664", GROUP="plugdev"
+
 # Saleae Logic
 # http://www.saleae.com/logic/
 # lsusb: "0925:3881 Lakeview Research"
@@ -154,13 +161,6 @@ ATTRS{idVendor}=="0925", ATTRS{idProduct}=="3881", MODE="664", GROUP="plugdev"
 # http://www.saleae.com/logic16/
 # lsusb: "21a9:1001" (no string for the vendor name available)
 ATTRS{idVendor}=="21a9", ATTRS{idProduct}=="1001", MODE="664", GROUP="plugdev"
-
-# (All Cypress FX2 boards without EEPROM)
-#
-# Lcsoft Mini Board
-# http://sigrok.org/wiki/Lcsoft_Mini_Board
-# lsusb: "04b4:8613 Cypress Semiconductor Corp. CY7C68013 EZ-USB FX2 USB 2.0 Development Kit"
-ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="8613", MODE="664", GROUP="plugdev"
 
 # ZEROPLUS Logic Cube LAP-C series
 # http://www.zeroplus.com.tw/logic-analyzer_en/products.php#top_c
