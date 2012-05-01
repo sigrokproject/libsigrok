@@ -144,6 +144,10 @@ ATTRS{idVendor}=="0400", ATTRS{idProduct}=="03e8", MODE="664", GROUP="plugdev"
 # Robomotic MiniLogic
 # http://buglogic.robomotic.com/
 # lsusb: "0925:3881 Lakeview Research"
+#
+# Robomotic BugLogic 3
+# http://norduino.robomotic.com/products-page/categories/buglogic3/
+# lsusb: "0925:3881 Lakeview Research"
 ATTRS{idVendor}=="0925", ATTRS{idProduct}=="3881", MODE="664", GROUP="plugdev"
 
 # Saleae Logic16
