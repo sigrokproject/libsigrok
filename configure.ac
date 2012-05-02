@@ -86,12 +86,12 @@ if test "x$LA_ALSA" = "xyes"; then
 fi
 
 AC_ARG_ENABLE(asix-sigma, AC_HELP_STRING([--enable-asix-sigma],
-	      [enable ASIX Sigma support [default=yes]]),
+	      [enable ASIX SIGMA/SIGMA2 support [default=yes]]),
 	      [LA_ASIX_SIGMA="$enableval"],
 	      [LA_ASIX_SIGMA=yes])
 AM_CONDITIONAL(LA_ASIX_SIGMA, test x$LA_ASIX_SIGMA = xyes)
 if test "x$LA_ASIX_SIGMA" = "xyes"; then
-	AC_DEFINE(HAVE_LA_ASIX_SIGMA, 1, [ASIX Sigma support])
+	AC_DEFINE(HAVE_LA_ASIX_SIGMA, 1, [ASIX SIGMA/SIGMA2 support])
 fi
 
 AC_ARG_ENABLE(chronovu-la8, AC_HELP_STRING([--enable-chronovu-la8],
@@ -298,7 +298,7 @@ done
 echo
 echo "Enabled hardware drivers:"
 echo
-echo "  - ASIX SIGMA...................... $LA_ASIX_SIGMA"
+echo "  - ASIX SIGMA/SIGMA2............... $LA_ASIX_SIGMA"
 echo "  - ChronoVu LA8.................... $LA_CHRONOVU_LA8"
 echo "  - Demo driver..................... $LA_DEMO"
 echo "  - fx2lafw (for FX2 LAs)........... $LA_FX2LAFW"

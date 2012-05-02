@@ -20,7 +20,7 @@
  */
 
 /*
- * ASIX SIGMA Logic Analyzer Driver
+ * ASIX SIGMA/SIGMA2 logic analyzer driver
  */
 
 #include <glib.h>
@@ -426,17 +426,17 @@ static int hw_init(const char *devinfo)
 	/* Look for SIGMAs. */
 
 	if (ftdi_usb_find_all(&ctx->ftdic, &devlist,
-			USB_VENDOR, USB_PRODUCT) <= 0)
+	    USB_VENDOR, USB_PRODUCT) <= 0)
 		goto free;
 
 	/* Make sure it's a version 1 or 2 SIGMA. */
 	ftdi_usb_get_strings(&ctx->ftdic, devlist->dev, NULL, 0, NULL, 0,
-		serial_txt, sizeof(serial_txt));
+			     serial_txt, sizeof(serial_txt));
 	sscanf(serial_txt, "%x", &serial);
 
-	if (serial < 0xa6010000 || serial > 0xa602ffff ) {
+	if (serial < 0xa6010000 || serial > 0xa602ffff) {
 		sr_err("sigma: Only SIGMA and SIGMA2 are supported "
-		       "in this version of Sigrok.");
+		       "in this version of sigrok.");
 		goto free;
 	}
 
@@ -1348,7 +1348,7 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 
 	/* Setup maximum post trigger time. */
 	sigma_set_register(WRITE_POST_TRIGGER,
-			(ctx->capture_ratio * 255) / 100, ctx);
+			   (ctx->capture_ratio * 255) / 100, ctx);
 
 	/* Start acqusition. */
 	gettimeofday(&ctx->start_tv, 0);
@@ -1429,7 +1429,7 @@ static int hw_dev_acquisition_stop(int dev_index, void *cb_data)
 
 SR_PRIV struct sr_dev_driver asix_sigma_driver_info = {
 	.name = "asix-sigma",
-	.longname = "ASIX SIGMA",
+	.longname = "ASIX SIGMA/SIGMA2",
 	.api_version = 1,
 	.init = hw_init,
 	.cleanup = hw_cleanup,
