@@ -47,15 +47,24 @@ static const struct fx2lafw_profile supported_fx2[] = {
 	 * Saleae Logic
 	 * EE Electronics ESLA100
 	 * Robomotic MiniLogic
+	 * Robomotic BugLogic 3
 	 */
 	{ 0x0925, 0x3881, "Saleae", "Logic", NULL,
 		FIRMWARE_DIR "/fx2lafw-saleae-logic.fw", 8 },
 
 	/*
-	 * Default Cypress FX2 without EEPROM
+	 * Default Cypress FX2 without EEPROM, e.g.:
+	 * Lcsoft Mini Board
+	 * Braintechnology USB Interface V2.x
 	 */
 	{ 0x04B4, 0x8613, "Cypress", "FX2", NULL,
 		FIRMWARE_DIR "/fx2lafw-cypress-fx2.fw", 8 },
+
+	/*
+	 * Braintechnology USB-LPS
+	 */
+	{ 0x16d0, 0x0498, "Braintechnology", "USB-LPS", NULL,
+		FIRMWARE_DIR "/fx2lafw-braintechnology-usb-lps.fw", 8 },
 
 	{ 0, 0, 0, 0, 0, 0, 0 }
 };
