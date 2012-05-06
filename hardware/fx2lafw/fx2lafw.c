@@ -175,6 +175,7 @@ static int fx2lafw_dev_open(int dev_index)
 	struct context *ctx;
 	struct version_info vi;
 	int ret, skip, i;
+	uint8_t revid;
 
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return SR_ERR;
@@ -239,19 +240,25 @@ static int fx2lafw_dev_open(int dev_index)
 			break;
 		}
 
+		ret = command_get_revid_version(ctx->usb->devhdl, &revid);
+		if (ret != SR_OK) {
+			sr_err("fx2lafw: Failed to retrieve REVID.");
+			break;
+		}
+
 		if (vi.major != FX2LAFW_VERSION_MAJOR ||
 		    vi.minor != FX2LAFW_VERSION_MINOR) {
-			sr_err("fx2lafw: Expected firmware version %d.%02d "
-			       "got %d.%02d.", FX2LAFW_VERSION_MAJOR,
+			sr_err("fx2lafw: Expected firmware version %d.%d "
+			       "got %d.%d.", FX2LAFW_VERSION_MAJOR,
 			       FX2LAFW_VERSION_MINOR, vi.major, vi.minor);
 			break;
 		}
 
 		sdi->status = SR_ST_ACTIVE;
 		sr_info("fx2lafw: Opened device %d on %d.%d "
-			"interface %d, firmware version %d.%02d",
+			"interface %d, firmware %d.%d, REVID %d.",
 			sdi->index, ctx->usb->bus, ctx->usb->address,
-			USB_INTERFACE, vi.major, vi.minor);
+			USB_INTERFACE, vi.major, vi.minor, revid);
 
 		break;
 	}

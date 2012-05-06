@@ -39,6 +39,23 @@ SR_PRIV int command_get_fw_version(libusb_device_handle *devhdl,
 	return SR_OK;
 }
 
+SR_PRIV int command_get_revid_version(libusb_device_handle *devhdl,
+				      uint8_t *revid)
+{
+	int ret;
+
+	ret = libusb_control_transfer(devhdl, LIBUSB_REQUEST_TYPE_VENDOR |
+		LIBUSB_ENDPOINT_IN, CMD_GET_REVID_VERSION, 0x0000, 0x0000,
+		revid, 1, 100);
+
+	if (ret < 0) {
+		sr_err("fx2lafw: Unable to get REVID: %d.", ret);
+		return SR_ERR;
+	}
+
+	return SR_OK;
+}
+
 SR_PRIV int command_start_acquisition(libusb_device_handle *devhdl,
 				      uint64_t samplerate)
 {

@@ -25,6 +25,7 @@
 /* Protocol commands */
 #define CMD_GET_FW_VERSION		0xb0
 #define CMD_START			0xb1
+#define CMD_GET_REVID_VERSION		0xb2
 
 #define CMD_START_FLAGS_CLK_SRC_POS	6
 
@@ -47,7 +48,8 @@ struct cmd_start_acquisition {
 
 SR_PRIV int command_get_fw_version(libusb_device_handle *devhdl,
 				   struct version_info *vi);
-
+SR_PRIV int command_get_revid_version(libusb_device_handle *devhdl,
+				      uint8_t *revid);
 SR_PRIV int command_start_acquisition(libusb_device_handle *devhdl,
 				      uint64_t samplerate);
 
