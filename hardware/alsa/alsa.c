@@ -212,7 +212,7 @@ static const int *hw_hwcap_get_all(void)
 	return hwcaps;
 }
 
-static int hw_dev_config_set(int dev_index, int hwcap, void *value)
+static int hw_dev_config_set(int dev_index, int hwcap, const void *value)
 {
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
@@ -225,10 +225,10 @@ static int hw_dev_config_set(int dev_index, int hwcap, void *value)
 	case SR_HWCAP_PROBECONFIG:
 		return SR_OK;
 	case SR_HWCAP_SAMPLERATE:
-		ctx->cur_rate = *(uint64_t *)value;
+		ctx->cur_rate = *(const uint64_t *)value;
 		return SR_OK;
 	case SR_HWCAP_LIMIT_SAMPLES:
-		ctx->limit_samples = *(uint64_t *)value;
+		ctx->limit_samples = *(const uint64_t *)value;
 		return SR_OK;
 	default:
 		return SR_ERR;

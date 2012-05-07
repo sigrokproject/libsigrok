@@ -125,7 +125,7 @@ static struct sr_samplerates samplerates = {
 static GSList *dev_insts = NULL;
 static libusb_context *usb_context = NULL;
 
-static int hw_dev_config_set(int dev_index, int hwcap, void *value);
+static int hw_dev_config_set(int dev_index, int hwcap, const void *value);
 static int hw_dev_acquisition_stop(int dev_index, void *cb_data);
 
 /**
@@ -589,7 +589,7 @@ static const int *hw_hwcap_get_all(void)
 	return hwcaps;
 }
 
-static int hw_dev_config_set(int dev_index, int hwcap, void *value)
+static int hw_dev_config_set(int dev_index, int hwcap, const void *value)
 {
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
@@ -600,12 +600,12 @@ static int hw_dev_config_set(int dev_index, int hwcap, void *value)
 	ctx = sdi->priv;
 
 	if (hwcap == SR_HWCAP_SAMPLERATE) {
-		ctx->cur_samplerate = *(uint64_t *)value;
+		ctx->cur_samplerate = *(const uint64_t *)value;
 		ret = SR_OK;
 	} else if (hwcap == SR_HWCAP_PROBECONFIG) {
 		ret = configure_probes(ctx, (GSList *) value);
 	} else if (hwcap == SR_HWCAP_LIMIT_SAMPLES) {
-		ctx->limit_samples = *(uint64_t *)value;
+		ctx->limit_samples = *(const uint64_t *)value;
 		ret = SR_OK;
 	} else {
 		ret = SR_ERR;

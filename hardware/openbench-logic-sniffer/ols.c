@@ -131,10 +131,10 @@ static int send_longcommand(int fd, uint8_t command, uint32_t data)
 	return SR_OK;
 }
 
-static int configure_probes(struct context *ctx, GSList *probes)
+static int configure_probes(struct context *ctx, const GSList *probes)
 {
-	struct sr_probe *probe;
-	GSList *l;
+	const struct sr_probe *probe;
+	const GSList *l;
 	int probe_bit, stage, i;
 	char *tc;
 
@@ -146,7 +146,7 @@ static int configure_probes(struct context *ctx, GSList *probes)
 
 	ctx->num_stages = 0;
 	for (l = probes; l; l = l->next) {
-		probe = (struct sr_probe *)l->data;
+		probe = (const struct sr_probe *)l->data;
 		if (!probe->enabled)
 			continue;
 
@@ -639,12 +639,12 @@ static int set_samplerate(struct sr_dev_inst *sdi, uint64_t samplerate)
 	return SR_OK;
 }
 
-static int hw_dev_config_set(int dev_index, int hwcap, void *value)
+static int hw_dev_config_set(int dev_index, int hwcap, const void *value)
 {
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
 	int ret;
-	uint64_t *tmp_u64;
+	const uint64_t *tmp_u64;
 
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return SR_ERR;
@@ -655,10 +655,10 @@ static int hw_dev_config_set(int dev_index, int hwcap, void *value)
 
 	switch (hwcap) {
 	case SR_HWCAP_SAMPLERATE:
-		ret = set_samplerate(sdi, *(uint64_t *)value);
+		ret = set_samplerate(sdi, *(const uint64_t *)value);
 		break;
 	case SR_HWCAP_PROBECONFIG:
-		ret = configure_probes(ctx, (GSList *)value);
+		ret = configure_probes(ctx, (const GSList *)value);
 		break;
 	case SR_HWCAP_LIMIT_SAMPLES:
 		tmp_u64 = value;
@@ -671,7 +671,7 @@ static int hw_dev_config_set(int dev_index, int hwcap, void *value)
 		ret = SR_OK;
 		break;
 	case SR_HWCAP_CAPTURE_RATIO:
-		ctx->capture_ratio = *(uint64_t *)value;
+		ctx->capture_ratio = *(const uint64_t *)value;
 		if (ctx->capture_ratio < 0 || ctx->capture_ratio > 100) {
 			ctx->capture_ratio = 0;
 			ret = SR_ERR;

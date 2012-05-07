@@ -655,7 +655,7 @@ static const int *hw_hwcap_get_all(void)
 	return hwcaps;
 }
 
-static int hw_dev_config_set(int dev_index, int hwcap, void *value)
+static int hw_dev_config_set(int dev_index, int hwcap, const void *value)
 {
 	struct sr_dev_inst *sdi;
 
@@ -664,7 +664,7 @@ static int hw_dev_config_set(int dev_index, int hwcap, void *value)
 
 	switch (hwcap) {
 	case SR_HWCAP_SAMPLERATE:
-		return mso_configure_rate(sdi, *(uint64_t *) value);
+		return mso_configure_rate(sdi, *(const uint64_t *) value);
 	case SR_HWCAP_PROBECONFIG:
 	case SR_HWCAP_LIMIT_SAMPLES:
 	default:

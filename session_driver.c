@@ -231,10 +231,10 @@ static const int *hw_hwcap_get_all(void)
 	return hwcaps;
 }
 
-static int hw_dev_config_set(int dev_index, int hwcap, void *value)
+static int hw_dev_config_set(int dev_index, int hwcap, const void *value)
 {
 	struct session_vdev *vdev;
-	uint64_t *tmp_u64;
+	const uint64_t *tmp_u64;
 
 	if (!(vdev = get_vdev_by_index(dev_index)))
 		return SR_ERR;

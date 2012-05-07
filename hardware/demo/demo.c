@@ -231,10 +231,10 @@ static const int *hw_hwcap_get_all(void)
 	return hwcaps;
 }
 
-static int hw_dev_config_set(int dev_index, int hwcap, void *value)
+static int hw_dev_config_set(int dev_index, int hwcap, const void *value)
 {
 	int ret;
-	char *stropt;
+	const char *stropt;
 
 	/* Avoid compiler warnings. */
 	(void)dev_index;
@@ -243,17 +243,17 @@ static int hw_dev_config_set(int dev_index, int hwcap, void *value)
 		/* Nothing to do, but must be supported */
 		ret = SR_OK;
 	} else if (hwcap == SR_HWCAP_SAMPLERATE) {
-		cur_samplerate = *(uint64_t *)value;
+		cur_samplerate = *(const uint64_t *)value;
 		sr_dbg("demo: %s: setting samplerate to %" PRIu64, __func__,
 		       cur_samplerate);
 		ret = SR_OK;
 	} else if (hwcap == SR_HWCAP_LIMIT_SAMPLES) {
-		limit_samples = *(uint64_t *)value;
+		limit_samples = *(const uint64_t *)value;
 		sr_dbg("demo: %s: setting limit_samples to %" PRIu64, __func__,
 		       limit_samples);
 		ret = SR_OK;
 	} else if (hwcap == SR_HWCAP_LIMIT_MSEC) {
-		limit_msec = *(uint64_t *)value;
+		limit_msec = *(const uint64_t *)value;
 		sr_dbg("demo: %s: setting limit_msec to %" PRIu64, __func__,
 		       limit_msec);
 		ret = SR_OK;

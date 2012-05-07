@@ -157,7 +157,7 @@ struct context {
 	struct sr_usb_dev_inst *usb;
 };
 
-static int hw_dev_config_set(int dev_index, int hwcap, void *value);
+static int hw_dev_config_set(int dev_index, int hwcap, const void *value);
 
 static unsigned int get_memory_size(int type)
 {
@@ -282,11 +282,11 @@ static void close_dev(struct sr_dev_inst *sdi)
 	sdi->status = SR_ST_INACTIVE;
 }
 
-static int configure_probes(struct sr_dev_inst *sdi, GSList *probes)
+static int configure_probes(struct sr_dev_inst *sdi, const GSList *probes)
 {
 	struct context *ctx;
-	struct sr_probe *probe;
-	GSList *l;
+	const struct sr_probe *probe;
+	const GSList *l;
 	int probe_bit, stage, i;
 	char *tc;
 
@@ -599,7 +599,7 @@ static int set_samplerate(struct sr_dev_inst *sdi, uint64_t samplerate)
 	return SR_OK;
 }
 
-static int hw_dev_config_set(int dev_index, int hwcap, void *value)
+static int hw_dev_config_set(int dev_index, int hwcap, const void *value)
 {
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
@@ -616,11 +616,11 @@ static int hw_dev_config_set(int dev_index, int hwcap, void *value)
 
 	switch (hwcap) {
 	case SR_HWCAP_SAMPLERATE:
-		return set_samplerate(sdi, *(uint64_t *)value);
+		return set_samplerate(sdi, *(const uint64_t *)value);
 	case SR_HWCAP_PROBECONFIG:
-		return configure_probes(sdi, (GSList *)value);
+		return configure_probes(sdi, (const GSList *)value);
 	case SR_HWCAP_LIMIT_SAMPLES:
-		ctx->limit_samples = *(uint64_t *)value;
+		ctx->limit_samples = *(const uint64_t *)value;
 		return SR_OK;
 	default:
 		return SR_ERR;

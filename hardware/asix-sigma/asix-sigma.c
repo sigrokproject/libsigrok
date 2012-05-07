@@ -633,11 +633,11 @@ static int set_samplerate(struct sr_dev_inst *sdi, uint64_t samplerate)
  * The Sigma supports complex triggers using boolean expressions, but this
  * has not been implemented yet.
  */
-static int configure_probes(struct sr_dev_inst *sdi, GSList *probes)
+static int configure_probes(struct sr_dev_inst *sdi, const GSList *probes)
 {
 	struct context *ctx = sdi->priv;
-	struct sr_probe *probe;
-	GSList *l;
+	const struct sr_probe *probe;
+	const GSList *l;
 	int trigger_set = 0;
 	int probebit;
 
@@ -806,7 +806,7 @@ static const int *hw_hwcap_get_all(void)
 	return hwcaps;
 }
 
-static int hw_dev_config_set(int dev_index, int hwcap, void *value)
+static int hw_dev_config_set(int dev_index, int hwcap, const void *value)
 {
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
@@ -818,17 +818,17 @@ static int hw_dev_config_set(int dev_index, int hwcap, void *value)
 	ctx = sdi->priv;
 
 	if (hwcap == SR_HWCAP_SAMPLERATE) {
-		ret = set_samplerate(sdi, *(uint64_t *)value);
+		ret = set_samplerate(sdi, *(const uint64_t *)value);
 	} else if (hwcap == SR_HWCAP_PROBECONFIG) {
 		ret = configure_probes(sdi, value);
 	} else if (hwcap == SR_HWCAP_LIMIT_MSEC) {
-		ctx->limit_msec = *(uint64_t *)value;
+		ctx->limit_msec = *(const uint64_t *)value;
 		if (ctx->limit_msec > 0)
 			ret = SR_OK;
 		else
 			ret = SR_ERR;
 	} else if (hwcap == SR_HWCAP_CAPTURE_RATIO) {
-		ctx->capture_ratio = *(uint64_t *)value;
+		ctx->capture_ratio = *(const uint64_t *)value;
 		if (ctx->capture_ratio < 0 || ctx->capture_ratio > 100)
 			ret = SR_ERR;
 		else
