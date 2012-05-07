@@ -59,7 +59,8 @@ SR_PRIV int command_get_revid_version(libusb_device_handle *devhdl,
 }
 
 SR_PRIV int command_start_acquisition(libusb_device_handle *devhdl,
-				      uint64_t samplerate)
+				      uint64_t samplerate,
+				      bool samplewide)
 {
 	struct cmd_start_acquisition cmd;
 	int delay = 0, ret;
@@ -88,6 +89,10 @@ SR_PRIV int command_start_acquisition(libusb_device_handle *devhdl,
 
 	cmd.sample_delay_h = (delay >> 8) & 0xff;
 	cmd.sample_delay_l = delay & 0xff;
+
+	/* Select the sampling width */
+	cmd.flags |= samplewide ? CMD_START_FLAGS_SAMPLE_16BIT :
+		CMD_START_FLAGS_SAMPLE_8BIT;
 
 	/* Send the control message. */
 	ret = libusb_control_transfer(devhdl, LIBUSB_REQUEST_TYPE_VENDOR |

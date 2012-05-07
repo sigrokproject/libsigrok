@@ -19,6 +19,7 @@
  */
 
 #include <glib.h>
+#include <stdbool.h>
 
 #ifndef LIBSIGROK_HARDWARE_FX2LAFW_FX2LAFW_H
 #define LIBSIGROK_HARDWARE_FX2LAFW_FX2LAFW_H
@@ -40,6 +41,10 @@
 /* Software trigger implementation: positive values indicate trigger stage. */
 #define TRIGGER_FIRED          -1
 
+#define DEV_CAPS_16BIT_POS	0
+
+#define DEV_CAPS_16BIT		(1 << DEV_CAPS_16BIT_POS)
+
 struct fx2lafw_profile {
 	uint16_t vid;
 	uint16_t pid;
@@ -50,7 +55,7 @@ struct fx2lafw_profile {
 
 	const char *firmware;
 
-	int num_probes;
+	uint32_t dev_caps;
 };
 
 struct context {
@@ -68,10 +73,12 @@ struct context {
 	uint64_t cur_samplerate;
 	uint64_t limit_samples;
 
-	uint8_t trigger_mask[NUM_TRIGGER_STAGES];
-	uint8_t trigger_value[NUM_TRIGGER_STAGES];
+	bool sample_wide;
+
+	uint16_t trigger_mask[NUM_TRIGGER_STAGES];
+	uint16_t trigger_value[NUM_TRIGGER_STAGES];
 	int trigger_stage;
-	uint8_t trigger_buffer[NUM_TRIGGER_STAGES];
+	uint16_t trigger_buffer[NUM_TRIGGER_STAGES];
 
 	int num_samples;
 	int submitted_transfers;

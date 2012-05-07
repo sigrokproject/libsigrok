@@ -20,6 +20,8 @@
 #ifndef LIBSIGROK_HARDWARE_FX2LAFW_COMMAND_H
 #define LIBSIGROK_HARDWARE_FX2LAFW_COMMAND_H
 
+#include <stdbool.h>
+
 #include "sigrok.h"
 
 /* Protocol commands */
@@ -27,7 +29,11 @@
 #define CMD_START			0xb1
 #define CMD_GET_REVID_VERSION		0xb2
 
+#define CMD_START_FLAGS_WIDE_POS	5
 #define CMD_START_FLAGS_CLK_SRC_POS	6
+
+#define CMD_START_FLAGS_SAMPLE_8BIT	(0 << CMD_START_FLAGS_WIDE_POS)
+#define CMD_START_FLAGS_SAMPLE_16BIT	(1 << CMD_START_FLAGS_WIDE_POS)
 
 #define CMD_START_FLAGS_CLK_30MHZ	(0 << CMD_START_FLAGS_CLK_SRC_POS)
 #define CMD_START_FLAGS_CLK_48MHZ	(1 << CMD_START_FLAGS_CLK_SRC_POS)
@@ -52,6 +58,7 @@ SR_PRIV int command_get_fw_version(libusb_device_handle *devhdl,
 SR_PRIV int command_get_revid_version(libusb_device_handle *devhdl,
 				      uint8_t *revid);
 SR_PRIV int command_start_acquisition(libusb_device_handle *devhdl,
-				      uint64_t samplerate);
+				      uint64_t samplerate,
+				      bool samplewide);
 
 #endif

@@ -36,13 +36,15 @@ static const struct fx2lafw_profile supported_fx2[] = {
 	 * ARMFLY AX-Pro
 	 */
 	{ 0x08a9, 0x0014, "CWAV", "USBee AX", NULL,
-		FIRMWARE_DIR "/fx2lafw-cwav-usbeeax.fw", 8 },
+		FIRMWARE_DIR "/fx2lafw-cwav-usbeeax.fw",
+		0 },
 
 	/*
 	 * CWAV USBee SX
 	 */
 	{ 0x08a9, 0x0009, "CWAV", "USBee SX", NULL,
-		FIRMWARE_DIR "/fx2lafw-cwav-usbeesx.fw", 8 },
+		FIRMWARE_DIR "/fx2lafw-cwav-usbeesx.fw",
+		0 },
 
 	/*
 	 * Saleae Logic
@@ -51,7 +53,8 @@ static const struct fx2lafw_profile supported_fx2[] = {
 	 * Robomotic BugLogic 3
 	 */
 	{ 0x0925, 0x3881, "Saleae", "Logic", NULL,
-		FIRMWARE_DIR "/fx2lafw-saleae-logic.fw", 8 },
+		FIRMWARE_DIR "/fx2lafw-saleae-logic.fw",
+		0 },
 
 	/*
 	 * Default Cypress FX2 without EEPROM, e.g.:
@@ -59,13 +62,15 @@ static const struct fx2lafw_profile supported_fx2[] = {
 	 * Braintechnology USB Interface V2.x
 	 */
 	{ 0x04B4, 0x8613, "Cypress", "FX2", NULL,
-		FIRMWARE_DIR "/fx2lafw-cypress-fx2.fw", 8 },
+		FIRMWARE_DIR "/fx2lafw-cypress-fx2.fw",
+		DEV_CAPS_16BIT },
 
 	/*
 	 * Braintechnology USB-LPS
 	 */
 	{ 0x16d0, 0x0498, "Braintechnology", "USB-LPS", NULL,
-		FIRMWARE_DIR "/fx2lafw-braintechnology-usb-lps.fw", 8 },
+		FIRMWARE_DIR "/fx2lafw-braintechnology-usb-lps.fw",
+		DEV_CAPS_16BIT },
 
 	{ 0, 0, 0, 0, 0, 0, 0 }
 };
@@ -92,6 +97,14 @@ static const char *probe_names[] = {
 	"5",
 	"6",
 	"7",
+	"8",
+	"9",
+	"10",
+	"11",
+	"12",
+	"13",
+	"14",
+	"15",
 	NULL,
 };
 
@@ -313,6 +326,10 @@ static int configure_probes(struct context *ctx, GSList *probes)
 		probe = (struct sr_probe *)l->data;
 		if (probe->enabled == FALSE)
 			continue;
+
+		if (probe->index > 8)
+			ctx->sample_wide = true;
+
 		probe_bit = 1 << (probe->index - 1);
 		if (!(probe->trigger))
 			continue;
@@ -559,7 +576,9 @@ static const void *hw_dev_info_get(int dev_index, int dev_info_id)
 	case SR_DI_INST:
 		return sdi;
 	case SR_DI_NUM_PROBES:
-		return GINT_TO_POINTER(ctx->profile->num_probes);
+		return GINT_TO_POINTER(
+			(ctx->profile->dev_caps & DEV_CAPS_16BIT) ?
+			16 : 8);
 	case SR_DI_PROBE_NAMES:
 		return probe_names;
 	case SR_DI_SAMPLERATES:
@@ -658,8 +677,8 @@ static void receive_transfer(struct libusb_transfer *transfer)
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
 	struct context *ctx = transfer->user_data;
-	int cur_buflen, trigger_offset, i;
-	unsigned char *cur_buf, *new_buf;
+	int trigger_offset, i;
+	uint8_t *new_buf;
 
 	/*
 	 * If acquisition has already ended, just free any queued up
@@ -680,8 +699,9 @@ static void receive_transfer(struct libusb_transfer *transfer)
 		transfer->status, transfer->actual_length);
 
 	/* Save incoming transfer before reusing the transfer struct. */
-	cur_buf = transfer->buffer;
-	cur_buflen = transfer->actual_length;
+	uint8_t *const cur_buf = transfer->buffer;
+	const int sample_width = ctx->sample_wide ? 2 : 1;
+	const int cur_sample_count = transfer->actual_length / sample_width;
 
 	/* Fire off a new request. */
 	if (!(new_buf = g_try_malloc(4096))) {
@@ -697,7 +717,7 @@ static void receive_transfer(struct libusb_transfer *transfer)
 		sr_err("fx2lafw: %s: libusb_submit_transfer error.", __func__);
 	}
 
-	if (cur_buflen == 0) {
+	if (transfer->actual_length == 0) {
 		empty_transfer_count++;
 		if (empty_transfer_count > MAX_EMPTY_TRANSFERS) {
 			/*
@@ -713,14 +733,20 @@ static void receive_transfer(struct libusb_transfer *transfer)
 
 	trigger_offset = 0;
 	if (ctx->trigger_stage >= 0) {
-		for (i = 0; i < cur_buflen; i++) {
+		for (i = 0; i < cur_sample_count; i++) {
 
-			if ((cur_buf[i] & ctx->trigger_mask[ctx->trigger_stage]) == ctx->trigger_value[ctx->trigger_stage]) {
+			const uint16_t cur_sample = ctx->sample_wide ?
+				*((const uint16_t*)cur_buf + i) :
+				*((const uint8_t*)cur_buf + i);
+
+			if ((cur_sample & ctx->trigger_mask[ctx->trigger_stage]) ==
+				ctx->trigger_value[ctx->trigger_stage]) {
 				/* Match on this trigger stage. */
-				ctx->trigger_buffer[ctx->trigger_stage] = cur_buf[i];
+				ctx->trigger_buffer[ctx->trigger_stage] = cur_sample;
 				ctx->trigger_stage++;
 
-				if (ctx->trigger_stage == NUM_TRIGGER_STAGES || ctx->trigger_mask[ctx->trigger_stage] == 0) {
+				if (ctx->trigger_stage == NUM_TRIGGER_STAGES ||
+					ctx->trigger_mask[ctx->trigger_stage] == 0) {
 					/* Match on all trigger stages, we're done. */
 					trigger_offset = i + 1;
 
@@ -768,15 +794,16 @@ static void receive_transfer(struct libusb_transfer *transfer)
 
 	if (ctx->trigger_stage == TRIGGER_FIRED) {
 		/* Send the incoming transfer to the session bus. */
+		const trigger_offset_bytes = trigger_offset * sample_width;
 		packet.type = SR_DF_LOGIC;
 		packet.payload = &logic;
-		logic.length = cur_buflen - trigger_offset;
-		logic.unitsize = 1;
-		logic.data = cur_buf + trigger_offset;
+		logic.length = transfer->actual_length - trigger_offset_bytes;
+		logic.unitsize = sample_width;
+		logic.data = cur_buf + trigger_offset_bytes;
 		sr_session_send(ctx->session_dev_id, &packet);
 		g_free(cur_buf);
 
-		ctx->num_samples += cur_buflen;
+		ctx->num_samples += cur_sample_count;
 		if (ctx->limit_samples &&
 			(unsigned int)ctx->num_samples > ctx->limit_samples) {
 			abort_acquisition(ctx);
@@ -855,14 +882,14 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 	packet->type = SR_DF_META_LOGIC;
 	packet->payload = &meta;
 	meta.samplerate = ctx->cur_samplerate;
-	meta.num_probes = ctx->profile->num_probes;
+	meta.num_probes = ctx->sample_wide ? 16 : 8;
 	sr_session_send(cb_data, packet);
 
 	g_free(header);
 	g_free(packet);
 
 	if ((ret = command_start_acquisition (ctx->usb->devhdl,
-		ctx->cur_samplerate)) != SR_OK) {
+		ctx->cur_samplerate, ctx->sample_wide)) != SR_OK) {
 		return ret;
 	}
 
