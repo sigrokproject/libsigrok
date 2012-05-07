@@ -463,7 +463,7 @@ struct sr_dev_driver {
 	/* Device-specific */
 	int (*dev_open) (int dev_index);
 	int (*dev_close) (int dev_index);
-	void *(*dev_info_get) (int dev_index, int dev_info_id);
+	const void *(*dev_info_get) (int dev_index, int dev_info_id);
 	int (*dev_status_get) (int dev_index);
 	const int *(*hwcap_get_all) (void);
 	int (*dev_config_set) (int dev_index, int hwcap, void *value);

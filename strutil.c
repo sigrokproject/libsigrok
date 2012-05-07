@@ -176,7 +176,8 @@ SR_API char **sr_parse_triggerstring(struct sr_dev *dev,
 	GSList *l;
 	struct sr_probe *probe;
 	int max_probes, probenum, i;
-	char **tokens, **triggerlist, *trigger, *tc, *trigger_types;
+	char **tokens, **triggerlist, *trigger, *tc;
+	const char *trigger_types;
 	gboolean error;
 
 	max_probes = g_slist_length(dev->probes);
