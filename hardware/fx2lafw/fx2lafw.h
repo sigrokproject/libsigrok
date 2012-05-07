@@ -17,6 +17,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <glib.h>
+
 #ifndef LIBSIGROK_HARDWARE_FX2LAFW_FX2LAFW_H
 #define LIBSIGROK_HARDWARE_FX2LAFW_FX2LAFW_H
 
@@ -32,6 +34,7 @@
 #define FX2LAFW_VERSION_MAJOR	1
 #define FX2LAFW_VERSION_MINOR	0
 
+#define MAX_SAMPLE_DELAY	(6*256)	/* 6 delay states of up to 256 clock ticks*/
 
 /* Software trigger implementation: positive values indicate trigger stage. */
 #define TRIGGER_FIRED          -1

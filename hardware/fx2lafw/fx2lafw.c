@@ -21,7 +21,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <inttypes.h>
-#include <glib.h>
 #include <libusb.h>
 #include "config.h"
 #include "sigrok.h"
@@ -95,6 +94,8 @@ static const char *probe_names[] = {
 };
 
 static uint64_t supported_samplerates[] = {
+	SR_KHZ(50),
+	SR_KHZ(100),
 	SR_KHZ(200),
 	SR_KHZ(250),
 	SR_KHZ(500),

@@ -18,6 +18,8 @@
  */
 
 #include <libusb.h>
+
+#include "fx2lafw.h"
 #include "command.h"
 #include "sigrok.h"
 #include "sigrok-internal.h"
@@ -71,14 +73,14 @@ SR_PRIV int command_start_acquisition(libusb_device_handle *devhdl,
 		delay = SR_MHZ(30) / samplerate - 1;
 	}
 
-	/* Note: sample_delay=0 is treated as sample_delay=256. */
-	if (delay <= 0 || delay > 256) {
+	if (delay <= 0 || delay > MAX_SAMPLE_DELAY) {
 		sr_err("fx2lafw: Unable to sample at %" PRIu64 "Hz.",
 		       samplerate);
 		return SR_ERR;
 	}
 
-	cmd.sample_delay = delay;
+	cmd.sample_delay_h = (delay >> 8) & 0x00FF;
+	cmd.sample_delay_l = delay & 0x00FF;
 
 	/* Send the control message. */
 	ret = libusb_control_transfer(devhdl, LIBUSB_REQUEST_TYPE_VENDOR |

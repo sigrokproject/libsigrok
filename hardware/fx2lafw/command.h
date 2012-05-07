@@ -41,7 +41,8 @@ struct version_info {
 
 struct cmd_start_acquisition {
 	uint8_t flags;
-	uint8_t sample_delay;
+	uint8_t sample_delay_h;
+	uint8_t sample_delay_l;
 };
 
 #pragma pack(pop)
