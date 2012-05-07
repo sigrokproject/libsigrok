@@ -128,7 +128,7 @@ static struct sr_samplerates samplerates = {
 };
 
 /* Note: Continuous sampling is not supported by the hardware. */
-static int hwcaps[] = {
+static const int hwcaps[] = {
 	SR_HWCAP_LOGIC_ANALYZER,
 	SR_HWCAP_SAMPLERATE,
 	SR_HWCAP_LIMIT_MSEC, /* TODO: Not yet implemented. */
@@ -753,7 +753,7 @@ static int hw_dev_status_get(int dev_index)
 	return sdi->status;
 }
 
-static int *hw_hwcap_get_all(void)
+static const int *hw_hwcap_get_all(void)
 {
 	sr_spew("la8: Returning list of device capabilities.");
 

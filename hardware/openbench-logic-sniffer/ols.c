@@ -46,7 +46,7 @@
 #define O_NONBLOCK FIONBIO
 #endif
 
-static int hwcaps[] = {
+static const int hwcaps[] = {
 	SR_HWCAP_LOGIC_ANALYZER,
 	SR_HWCAP_SAMPLERATE,
 	SR_HWCAP_CAPTURE_RATIO,
@@ -602,7 +602,7 @@ static int hw_dev_status_get(int dev_index)
 	return sdi->status;
 }
 
-static int *hw_hwcap_get_all(void)
+static const int *hw_hwcap_get_all(void)
 {
 	return hwcaps;
 }

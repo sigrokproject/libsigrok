@@ -276,7 +276,8 @@ SR_PRIV void sr_serial_dev_inst_free(struct sr_serial_dev_inst *serial)
  */
 SR_API gboolean sr_driver_hwcap_exists(struct sr_dev_driver *driver, int hwcap)
 {
-	int *hwcaps, i;
+	const int *hwcaps;
+	int i;
 
 	if (!driver) {
 		sr_err("hwdriver: %s: driver was NULL", __func__);
@@ -304,7 +305,7 @@ SR_API gboolean sr_driver_hwcap_exists(struct sr_dev_driver *driver, int hwcap)
  * @return A pointer to a struct with information about the parameter, or NULL
  *         if the capability was not found.
  */
-SR_API struct sr_hwcap_option *sr_hw_hwcap_get(int hwcap)
+SR_API const struct sr_hwcap_option *sr_hw_hwcap_get(int hwcap)
 {
 	int i;
 

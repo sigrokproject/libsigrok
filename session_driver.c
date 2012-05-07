@@ -41,7 +41,7 @@ struct session_vdev {
 
 static char *sessionfile = NULL;
 static GSList *dev_insts = NULL;
-static int hwcaps[] = {
+static const int hwcaps[] = {
 	SR_HWCAP_CAPTUREFILE,
 	SR_HWCAP_CAPTURE_UNITSIZE,
 	0,
@@ -193,7 +193,7 @@ static int hw_dev_open(int dev_index)
 	return SR_OK;
 }
 
-static void *hw_dev_info_get(int dev_index, int dev_info_id)
+static const void *hw_dev_info_get(int dev_index, int dev_info_id)
 {
 	struct session_vdev *vdev;
 	void *info;
@@ -226,7 +226,7 @@ static int hw_dev_status_get(int dev_index)
  * @return A pointer to the (hardware) capabilities of this virtual session
  *         driver. This could be NULL, if no such capabilities exist.
  */
-static int *hw_hwcap_get_all(void)
+static const int *hw_hwcap_get_all(void)
 {
 	return hwcaps;
 }

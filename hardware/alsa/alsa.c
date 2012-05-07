@@ -42,7 +42,7 @@ struct sr_analog_sample {
 	struct sr_analog_probe probes[];
 };
 
-static int hwcaps[] = {
+static const int hwcaps[] = {
 	SR_HWCAP_SAMPLERATE,
 	SR_HWCAP_LIMIT_SAMPLES,
 	SR_HWCAP_CONTINUOUS,
@@ -207,7 +207,7 @@ static int hw_dev_status_get(int dev_index)
 	return SR_ST_ACTIVE;
 }
 
-static int *hw_hwcap_get_all(void)
+static const int *hw_hwcap_get_all(void)
 {
 	return hwcaps;
 }

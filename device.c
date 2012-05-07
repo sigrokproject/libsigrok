@@ -375,7 +375,8 @@ SR_API int sr_dev_trigger_set(struct sr_dev *dev, int probenum,
  */
 SR_API gboolean sr_dev_has_hwcap(const struct sr_dev *dev, int hwcap)
 {
-	int *hwcaps, i;
+	const int *hwcaps;
+	int i;
 
 	sr_spew("dev: %s: requesting hwcap %d", __func__, hwcap);
 
