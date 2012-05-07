@@ -120,7 +120,7 @@ static uint64_t supported_samplerates[255 + 1] = { 0 };
  * Min: 1 sample per 0.01us -> sample time is 0.084s, samplerate 100MHz
  * Max: 1 sample per 2.55us -> sample time is 21.391s, samplerate 392.15kHz
  */
-static struct sr_samplerates samplerates = {
+static const struct sr_samplerates samplerates = {
 	.low  = 0,
 	.high = 0,
 	.step = 0,

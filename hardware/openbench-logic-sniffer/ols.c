@@ -93,7 +93,7 @@ static const char *probe_names[NUM_PROBES + 1] = {
 };
 
 /* default supported samplerates, can be overridden by device metadata */
-static struct sr_samplerates samplerates = {
+static const struct sr_samplerates samplerates = {
 	SR_HZ(10),
 	SR_MHZ(200),
 	SR_HZ(1),

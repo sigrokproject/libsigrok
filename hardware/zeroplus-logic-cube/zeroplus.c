@@ -114,7 +114,7 @@ static libusb_context *usb_context = NULL;
  * TODO: We shouldn't support 150MHz and 200MHz on devices that don't go up
  * that high.
  */
-static uint64_t supported_samplerates[] = {
+static const uint64_t supported_samplerates[] = {
 	SR_HZ(100),
 	SR_HZ(500),
 	SR_KHZ(1),
@@ -136,7 +136,7 @@ static uint64_t supported_samplerates[] = {
 	0,
 };
 
-static struct sr_samplerates samplerates = {
+static const struct sr_samplerates samplerates = {
 	0,
 	0,
 	0,

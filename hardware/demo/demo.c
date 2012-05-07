@@ -86,7 +86,7 @@ static const int hwcaps[] = {
 	SR_HWCAP_CONTINUOUS,
 };
 
-static struct sr_samplerates samplerates = {
+static const struct sr_samplerates samplerates = {
 	SR_HZ(1),
 	SR_GHZ(1),
 	SR_HZ(1),

@@ -95,7 +95,7 @@ static const char *probe_names[] = {
 	NULL,
 };
 
-static uint64_t supported_samplerates[] = {
+static const uint64_t supported_samplerates[] = {
 	SR_KHZ(20),
 	SR_KHZ(25),
 	SR_KHZ(50),
@@ -115,7 +115,7 @@ static uint64_t supported_samplerates[] = {
 	0,
 };
 
-static struct sr_samplerates samplerates = {
+static const struct sr_samplerates samplerates = {
 	0,
 	0,
 	0,
