@@ -77,6 +77,9 @@ SR_PRIV int command_start_acquisition(libusb_device_handle *devhdl,
 		delay = SR_MHZ(30) / samplerate - 1;
 	}
 
+	sr_info("fx2lafw: gpif delay = %d, clocksource = %sMHz", delay,
+		(cmd.flags & CMD_START_FLAGS_CLK_48MHZ) ? "48" : "30");
+
 	if (delay <= 0 || delay > MAX_SAMPLE_DELAY) {
 		sr_err("fx2lafw: Unable to sample at %" PRIu64 "Hz.",
 		       samplerate);
