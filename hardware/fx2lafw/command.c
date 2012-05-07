@@ -68,7 +68,11 @@ SR_PRIV int command_start_acquisition(libusb_device_handle *devhdl,
 	if ((SR_MHZ(48) % samplerate) == 0) {
 		cmd.flags = CMD_START_FLAGS_CLK_48MHZ;
 		delay = SR_MHZ(48) / samplerate - 1;
-	} else if ((SR_MHZ(30) % samplerate) == 0) {
+		if(delay > MAX_SAMPLE_DELAY)
+			delay = 0;
+	}
+
+	if (delay == 0 && (SR_MHZ(30) % samplerate) == 0) {
 		cmd.flags = CMD_START_FLAGS_CLK_30MHZ;
 		delay = SR_MHZ(30) / samplerate - 1;
 	}
