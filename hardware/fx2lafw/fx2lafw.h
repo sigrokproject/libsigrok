@@ -34,7 +34,8 @@
 #define FX2LAFW_VERSION_MAJOR	1
 #define FX2LAFW_VERSION_MINOR	0
 
-#define MAX_SAMPLE_DELAY	(6*256)	/* 6 delay states of up to 256 clock ticks*/
+/* 6 delay states of up to 256 clock ticks */
+#define MAX_SAMPLE_DELAY	(6 * 256)
 
 /* Software trigger implementation: positive values indicate trigger stage. */
 #define TRIGGER_FIRED          -1

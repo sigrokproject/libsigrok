@@ -68,7 +68,7 @@ SR_PRIV int command_start_acquisition(libusb_device_handle *devhdl,
 	if ((SR_MHZ(48) % samplerate) == 0) {
 		cmd.flags = CMD_START_FLAGS_CLK_48MHZ;
 		delay = SR_MHZ(48) / samplerate - 1;
-		if(delay > MAX_SAMPLE_DELAY)
+		if (delay > MAX_SAMPLE_DELAY)
 			delay = 0;
 	}
 
@@ -77,7 +77,7 @@ SR_PRIV int command_start_acquisition(libusb_device_handle *devhdl,
 		delay = SR_MHZ(30) / samplerate - 1;
 	}
 
-	sr_info("fx2lafw: gpif delay = %d, clocksource = %sMHz", delay,
+	sr_info("fx2lafw: GPIF delay = %d, clocksource = %sMHz", delay,
 		(cmd.flags & CMD_START_FLAGS_CLK_48MHZ) ? "48" : "30");
 
 	if (delay <= 0 || delay > MAX_SAMPLE_DELAY) {
@@ -86,8 +86,8 @@ SR_PRIV int command_start_acquisition(libusb_device_handle *devhdl,
 		return SR_ERR;
 	}
 
-	cmd.sample_delay_h = (delay >> 8) & 0x00FF;
-	cmd.sample_delay_l = delay & 0x00FF;
+	cmd.sample_delay_h = (delay >> 8) & 0xff;
+	cmd.sample_delay_l = delay & 0xff;
 
 	/* Send the control message. */
 	ret = libusb_control_transfer(devhdl, LIBUSB_REQUEST_TYPE_VENDOR |
