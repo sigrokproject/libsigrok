@@ -35,6 +35,9 @@
 
 #define FX2LAFW_REQUIRED_VERSION_MAJOR	1
 
+#define MAX_8BIT_SAMPLE_RATE	SR_MHZ(24)
+#define MAX_16BIT_SAMPLE_RATE	SR_MHZ(12)
+
 /* 6 delay states of up to 256 clock ticks */
 #define MAX_SAMPLE_DELAY	(6 * 256)
 

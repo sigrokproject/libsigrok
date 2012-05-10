@@ -66,6 +66,12 @@ SR_PRIV int command_start_acquisition(libusb_device_handle *devhdl,
 	int delay = 0, ret;
 
 	/* Compute the sample rate. */
+	if(samplewide && samplerate > MAX_16BIT_SAMPLE_RATE) {
+		sr_err("fx2lafw: Unable to sample at %" PRIu64 "Hz "
+			"when collecting 16-bit samples.", samplerate);
+		return SR_ERR;
+	}
+
 	if ((SR_MHZ(48) % samplerate) == 0) {
 		cmd.flags = CMD_START_FLAGS_CLK_48MHZ;
 		delay = SR_MHZ(48) / samplerate - 1;
