@@ -1,3 +1,44 @@
+0.1.1 (2012-xx-yy)
+------------------
+
+This release does NOT change the libsigrok API.
+
+ * The 'saleae-logic' driver (which depends on the Saleae firmware), has
+   been replaced with the new 'fx2lafw' driver, which uses an open-source
+   firmware for Cypress FX2 chips which is also named 'fx2lafw'.
+
+   Details: http://sigrok.org/wiki/Fx2lafw
+
+   This new driver (+ firmware) currently supports the following devices:
+
+     - Braintechnology USB-LPS
+     - EE Electronics ESLA100
+     - EE Electronics ESLA201A
+     - Robomotic MiniLogic
+     - Robomotic BugLogic 3
+     - Saleae Logic
+     - USBee AX
+     - USBee SX
+     - All Cypress FX2 eval boards with stock Cypress VID/PID, including:
+       - Lcsoft Mini Board
+       - Braintechnology USB Interface V2.x
+
+ * ASIX SIGMA driver:
+
+   - Add support for the ASIX SIGMA2. This requires the latest version of
+     the SIGMA/SIGMA2 firmware files.
+
+     Details: http://sigrok.org/wiki/Firmware
+
+   - Various bugfixes.
+
+ * ZEROPLUS Logic Cube LAP-C (16032): Fix a segfault.
+
+ * udev file: Add entries for Robomotic BugLogic 3, Velleman PCSU1000,
+   and Ideofy LA-08.
+
+ * The zlib dependency has been removed (no longer needed),
+
 0.1.0 (2012-04-17)
 ------------------
 
