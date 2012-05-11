@@ -32,6 +32,9 @@ if [ "x$OS" = "xDarwin" ]; then
 	elif [ -d /opt/local/share/aclocal ]; then
 		# Macports installs aclocal macros here
 		ACLOCAL_DIR="-I /opt/local/share/aclocal"
+	elif [ -d /usr/local/share/aclocal ]; then
+		# Homebrew installs aclocal macros here
+		ACLOCAL_DIR="-I /usr/local/share/aclocal"
 	elif [ -d /usr/share/aclocal ]; then
 		# Xcode installs aclocal macros here
 		ACLOCAL_DIR="-I /usr/share/aclocal"

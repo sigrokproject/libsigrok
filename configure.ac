@@ -35,6 +35,7 @@ AC_CONFIG_AUX_DIR([autostuff])
 # We require at least automake 1.11 (needed for 'silent rules').
 AM_INIT_AUTOMAKE([1.11 -Wall -Werror foreign std-options])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
+m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 
 AH_TOP([#ifndef SR_CONFIG_H
 #define SR_CONFIG_H    /* To stop multiple inclusions. */])
