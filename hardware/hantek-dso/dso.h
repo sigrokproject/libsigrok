@@ -34,12 +34,10 @@
 
 #define DEFAULT_VOLTAGE            VOLTAGE_2V
 #define DEFAULT_FRAMESIZE          FRAMESIZE_SMALL
-#define DEFAULT_TIMEBASE           TIME_1ms
+#define DEFAULT_TIMEBASE           TIME_400us
 #define DEFAULT_TRIGGER_SOURCE     TRIGGER_CH1
 #define DEFAULT_COUPLING           COUPLING_AC
-/* Halfway between min and max = 0V */
-#define DEFAULT_HORIZ_TRIGGERPOS   0x1400
-
+#define DEFAULT_HORIZ_TRIGGERPOS   0.5
 #define DEFAULT_VERT_OFFSET        0.5
 #define DEFAULT_VERT_TRIGGERPOS    0.0
 
@@ -117,9 +115,7 @@ enum trigger_slopes {
 enum trigger_sources {
 	TRIGGER_CH2 = 0,
 	TRIGGER_CH1,
-	TRIGGER_ALT,
 	TRIGGER_EXT,
-	TRIGGER_EXT10
 };
 
 enum capturestates {
@@ -193,7 +189,7 @@ struct context {
 	gboolean filter_trigger;
 	int triggerslope;
 	int triggersource;
-	int triggerposition;
+	float triggerposition;
 	int triggermode;
 };
 

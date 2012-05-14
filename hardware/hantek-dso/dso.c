@@ -221,8 +221,6 @@ SR_PRIV int dso_set_trigger_samplerate(struct context *ctx)
 {
 	int ret, tmp;
 	uint8_t cmdstring[12];
-	uint8_t timebasefast_small[] = {1, 2, 3, 4};
-	uint8_t timebasefast_large[] = {0, 0, 2, 3};
 	uint16_t timebase_small[] = { 0xffff, 0xfffc, 0xfff7, 0xffe8, 0xffce,
 			0xff9c, 0xff07, 0xfe0d, 0xfc19, 0xf63d, 0xec79, 0xd8f1 };
 	uint16_t timebase_large[] = { 0xffff, 0x0000, 0xfffc, 0xfff7, 0xffe8,
@@ -235,33 +233,53 @@ SR_PRIV int dso_set_trigger_samplerate(struct context *ctx)
 	cmdstring[0] = CMD_SET_TRIGGER_SAMPLERATE;
 
 	/* Trigger source */
-	cmdstring[2] = (ctx->triggersource & 0x03) << 6;
+	cmdstring[2] = (ctx->triggersource & 0x03);
 
 	/* Frame size */
-	cmdstring[2] |= (ctx->framesize == FRAMESIZE_SMALL ? 0x01 : 0x02) << 3;
+	cmdstring[2] |= (ctx->framesize == FRAMESIZE_SMALL ? 0x01 : 0x02) << 2;
 
-	/* Timebase fast (no idea what this means) */
-	if (ctx->timebase < TIME_20us)
-		tmp = 0;
-	else if (ctx->timebase > TIME_200us)
-		tmp = 4;
-	else {
-		if (ctx->framesize == FRAMESIZE_SMALL)
-			tmp = timebasefast_small[ctx->timebase - 1];
-		else
-			tmp = timebasefast_large[ctx->timebase - 1];
+	/* Timebase fast */
+	switch (ctx->framesize) {
+	case FRAMESIZE_SMALL:
+		if (ctx->timebase < TIME_20us)
+			tmp = 0;
+		else if (ctx->timebase == TIME_20us)
+			tmp = 1;
+		else if (ctx->timebase == TIME_40us)
+			tmp = 2;
+		else if (ctx->timebase == TIME_100us)
+			tmp = 3;
+		else if (ctx->timebase >= TIME_200us)
+			tmp = 4;
+		break;
+	case FRAMESIZE_LARGE:
+		if (ctx->timebase < TIME_40us) {
+			sr_err("hantek-dso: timebase < 40us only supported with 10K buffer");
+			return SR_ERR_ARG;
+		}
+		else if (ctx->timebase == TIME_40us)
+			tmp = 0;
+		else if (ctx->timebase == TIME_100us)
+			tmp = 2;
+		else if (ctx->timebase == TIME_200us)
+			tmp = 3;
+		else if (ctx->timebase >= TIME_400us)
+			tmp = 4;
+		break;
 	}
-	cmdstring[2] |= tmp & 0x07;
-cmdstring[2] = 0x45;
-	/* Enabled channels */
+	cmdstring[2] |= (tmp & 0x07) << 5;
+
+	/* Enabled channels: 00=CH1 01=CH2 10=both */
 	tmp = (((ctx->ch2_enabled ? 1 : 0) << 1) + (ctx->ch1_enabled ? 1 : 0)) - 1;
 	cmdstring[3] = tmp;
 
-	/* TODO: Fast rates channel */
-	cmdstring[3] |= 0 << 5;
+	/* Fast rates channel */
+	/* TODO: is this right? */
+	tmp = ctx->timebase < TIME_10us ? 1 : 0;
+	cmdstring[3] |= tmp << 2;
 
-	/* Trigger slope */
-	cmdstring[3] |= (ctx->triggerslope ? 1 : 0) << 4;
+	/* Trigger slope: 0=positive 1=negative */
+	cmdstring[3] |= (ctx->triggerslope == SLOPE_NEGATIVE ? 1 : 0) << 3;
 
 	/* Timebase */
 	if (ctx->timebase < TIME_100us)
@@ -274,15 +292,13 @@ cmdstring[2] = 0x45;
 		else
 			tmp = timebase_large[ctx->timebase - 3];
 	}
-tmp = 0xebff;
+	cmdstring[4] = tmp & 0xff;
+	cmdstring[5] = (tmp >> 8) & 0xff;
+
+	/* Horizontal trigger position */
+	tmp = 0x77fff + 0x8000 * ctx->triggerposition;
 	cmdstring[6] = tmp & 0xff;
 	cmdstring[7] = (tmp >> 8) & 0xff;
-
-	/* Trigger position (time) */
-	tmp = 0x77660 + ctx->triggerposition;
-tmp = 0x7006f;
-	cmdstring[8] = tmp & 0xff;
-	cmdstring[9] = (tmp >> 8) & 0xff;
 	cmdstring[10] = (tmp >> 16) & 0xff;
 
 	if (send_begin(ctx) != SR_OK)
@@ -388,7 +404,7 @@ relays[0] = 0x01;
 	if (ctx->coupling_ch2 != COUPLING_AC)
 		relays[6] = ~relays[6];
 
-	if (ctx->triggersource == TRIGGER_EXT || ctx->triggersource == TRIGGER_EXT10)
+	if (ctx->triggersource == TRIGGER_EXT)
 		relays[7] = ~relays[7];
 
 	if ((ret = libusb_control_transfer(ctx->usb->devhdl,
