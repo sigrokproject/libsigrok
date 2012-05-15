@@ -36,6 +36,12 @@ SR_API struct sr_hwcap_option sr_hwcap_options[] = {
 	{SR_HWCAP_CAPTURE_RATIO, SR_T_UINT64, "Pre-trigger capture ratio", "captureratio"},
 	{SR_HWCAP_PATTERN_MODE, SR_T_CHAR, "Pattern generator mode", "pattern"},
 	{SR_HWCAP_RLE, SR_T_BOOL, "Run Length Encoding", "rle"},
+	{SR_HWCAP_TRIGGER_SLOPE, SR_T_UINT64, "Trigger slope", "triggerslope"},
+	{SR_HWCAP_TRIGGER_SOURCE, SR_T_CHAR, "Trigger source", "triggersource"},
+	{SR_HWCAP_HORIZ_TRIGGERPOS, SR_T_FLOAT, "Horizontal trigger position",
+			"horiz_triggerpos"},
+	{SR_HWCAP_BUFFERSIZE, SR_T_UINT64, "Buffer size", "buffersize"},
+	{SR_HWCAP_TIMEBASE, SR_T_RATIONAL, "Time base", "timebase"},
 	{0, 0, NULL, NULL},
 };
 

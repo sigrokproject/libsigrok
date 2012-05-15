@@ -142,6 +142,15 @@ enum {
 	SR_T_UINT64,
 	SR_T_CHAR,
 	SR_T_BOOL,
+	SR_T_FLOAT,
+	SR_T_RATIONAL,
+};
+
+struct sr_rational {
+	/* numerator */
+	uint64_t p;
+	/* denominator */
+	uint64_t q;
 };
 
 /* sr_datafeed_packet.type values */
@@ -293,7 +302,19 @@ enum {
 	SR_HWCAP_RLE,
 
 	/** The device supports setting trigger slope. */
-	SR_HWCAP_TRIGGERSLOPE,
+	SR_HWCAP_TRIGGER_SLOPE,
+
+	/** Trigger source. */
+	SR_HWCAP_TRIGGER_SOURCE,
+
+	/** Horizontal trigger position */
+	SR_HWCAP_HORIZ_TRIGGERPOS,
+
+	/** Buffer size. */
+	SR_HWCAP_BUFFERSIZE,
+
+	/** Time base. */
+	SR_HWCAP_TIMEBASE,
 
 	/*--- Special stuff -------------------------------------------------*/
 
@@ -389,12 +410,18 @@ enum {
 	SR_DI_PROBE_NAMES,
 	/* Samplerates supported by this device, (struct sr_samplerates) */
 	SR_DI_SAMPLERATES,
-	/* Types of trigger supported, out of "01crf" (char *) */
+	/* Types of logic trigger supported, out of "01crf" (char *) */
 	SR_DI_TRIGGER_TYPES,
 	/* The currently set samplerate in Hz (uint64_t) */
 	SR_DI_CUR_SAMPLERATE,
 	/* Supported patterns (in pattern generator mode) */
 	SR_DI_PATTERNS,
+	/* Supported buffer sizes */
+	SR_DI_BUFFERSIZES,
+	/* Supported time bases */
+	SR_DI_TIMEBASES,
+	/* Supported trigger sources */
+	SR_DI_TRIGGER_SOURCES,
 };
 
 /*
