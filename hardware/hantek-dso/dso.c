@@ -338,17 +338,24 @@ SR_PRIV int dso_set_filters(struct context *ctx)
 	int ret, tmp;
 	uint8_t cmdstring[8];
 
-	sr_dbg("hantek-dso: sending CMD_SET_FILTERS");
+	sr_dbg("hantek-dso: preparing CMD_SET_FILTERS");
 
 	memset(cmdstring, 0, sizeof(cmdstring));
 	cmdstring[0] = CMD_SET_FILTERS;
 	cmdstring[1] = 0x0f;
-	if (ctx->filter_ch1)
+	if (ctx->filter_ch1) {
+		sr_dbg("hantek-dso: turning on CH1 filter");
 		cmdstring[2] |= 0x80;
-	if (ctx->filter_ch2)
+	}
+	if (ctx->filter_ch2) {
+		sr_dbg("hantek-dso: turning on CH2 filter");
 		cmdstring[2] |= 0x40;
-	if (ctx->filter_trigger)
+	}
+	if (ctx->filter_trigger) {
+		/* TODO: supported on the DSO-2090? */
+		sr_dbg("hantek-dso: turning on trigger filter");
 		cmdstring[2] |= 0x20;
+	}
 
 	if (send_begin(ctx) != SR_OK)
 		return SR_ERR;
@@ -360,6 +367,7 @@ SR_PRIV int dso_set_filters(struct context *ctx)
 		sr_err("Failed to set filters: %d", ret);
 		return SR_ERR;
 	}
+	sr_dbg("hantek-dso: sent CMD_SET_FILTERS");
 
 	return SR_OK;
 }

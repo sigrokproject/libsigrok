@@ -48,6 +48,7 @@ static int capabilities[] = {
 	SR_HWCAP_TRIGGER_SOURCE,
 	SR_HWCAP_TRIGGER_SLOPE,
 	SR_HWCAP_HORIZ_TRIGGERPOS,
+	SR_HWCAP_FILTER,
 	0,
 };
 
@@ -98,6 +99,13 @@ static char *trigger_sources[] = {
 	"CH1",
 	"CH2",
 	"EXT",
+	NULL
+};
+
+static char *filter_targets[] = {
+	"CH1",
+	"CH2",
+	/* TODO: "TRIGGER", */
 	NULL
 };
 
@@ -354,6 +362,9 @@ static void *hw_get_device_info(int dev_index, int dev_info_id)
 	case SR_DI_TRIGGER_SOURCES:
 		info = trigger_sources;
 		break;
+	case SR_DI_FILTERS:
+		info = filter_targets;
+		break;
 	/* TODO remove this */
 	case SR_DI_CUR_SAMPLERATE:
 		info = &tmp;
@@ -387,7 +398,7 @@ static int hw_dev_config_set(int dev_index, int hwcap, void *value)
 	float tmp_float;
 	uint64_t tmp_u64;
 	int ret, i;
-	char *tmp_str;
+	char *tmp_str, **targets;
 
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return SR_ERR;
@@ -451,6 +462,26 @@ static int hw_dev_config_set(int dev_index, int hwcap, void *value)
 		}
 		if (trigger_sources[i] == 0)
 			ret = SR_ERR_ARG;
+		break;
+	case SR_HWCAP_FILTER:
+		ctx->filter_ch1 = ctx->filter_ch2 = ctx->filter_trigger = 0;
+		targets = g_strsplit(value, ",", 0);
+		for (i = 0; targets[i]; i++) {
+			if (targets[i] == '\0')
+				/* Empty filter string can be used to clear them all. */
+				;
+			else if (!strcmp(targets[i], "CH1"))
+				ctx->filter_ch1 = TRUE;
+			else if (!strcmp(targets[i], "CH2"))
+				ctx->filter_ch2 = TRUE;
+			else if (!strcmp(targets[i], "TRIGGER"))
+				ctx->filter_trigger = TRUE;
+			else {
+				sr_err("invalid filter target %s", targets[i]);
+				ret = SR_ERR_ARG;
+			}
+		}
+		g_strfreev(targets);
 		break;
 	default:
 		ret = SR_ERR_ARG;
