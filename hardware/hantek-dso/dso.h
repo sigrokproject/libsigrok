@@ -34,8 +34,8 @@
 
 #define DEFAULT_VOLTAGE            VOLTAGE_2V
 #define DEFAULT_FRAMESIZE          FRAMESIZE_SMALL
-#define DEFAULT_TIMEBASE           TIME_400us
-#define DEFAULT_TRIGGER_SOURCE     TRIGGER_CH1
+#define DEFAULT_TIMEBASE           TIME_100us
+#define DEFAULT_TRIGGER_SOURCE     "CH1"
 #define DEFAULT_COUPLING           COUPLING_AC
 #define DEFAULT_HORIZ_TRIGGERPOS   0.5
 #define DEFAULT_VERT_OFFSET        0.5
@@ -188,7 +188,7 @@ struct context {
 	gboolean filter_ch2;
 	gboolean filter_trigger;
 	int triggerslope;
-	int triggersource;
+	char *triggersource;
 	float triggerposition;
 	int triggermode;
 };

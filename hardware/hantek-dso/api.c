@@ -43,6 +43,11 @@ static int capabilities[] = {
 	SR_HWCAP_OSCILLOSCOPE,
 	SR_HWCAP_LIMIT_SAMPLES,
 	SR_HWCAP_CONTINUOUS,
+	SR_HWCAP_TIMEBASE,
+	SR_HWCAP_BUFFERSIZE,
+	SR_HWCAP_TRIGGER_SOURCE,
+	SR_HWCAP_TRIGGER_SLOPE,
+	SR_HWCAP_HORIZ_TRIGGERPOS,
 	0,
 };
 
@@ -61,6 +66,40 @@ static struct dso_profile dev_profiles[] = {
 	{ 0, 0, 0, 0, 0, 0, 0, 0, 0 }
 };
 
+static uint64_t buffersizes[] = {
+	10240,
+	32768,
+	/* TODO: 65535 */
+	0
+};
+
+static struct sr_rational timebases[] = {
+	/* microseconds */
+	{ 10, 1000000 },
+	{ 20, 1000000 },
+	{ 40, 1000000 },
+	{ 100, 1000000 },
+	{ 200, 1000000 },
+	{ 400, 1000000 },
+	/* milliseconds */
+	{ 1, 1000 },
+	{ 2, 1000 },
+	{ 4, 1000 },
+	{ 10, 1000 },
+	{ 20, 1000 },
+	{ 40, 1000 },
+	{ 100, 1000 },
+	{ 200, 1000 },
+	{ 400, 1000 },
+	{0,0}
+};
+
+static char *trigger_sources[] = {
+	"CH1",
+	"CH2",
+	"EXT",
+	NULL
+};
 
 SR_PRIV libusb_context *usb_context = NULL;
 SR_PRIV GSList *dev_insts = NULL;
@@ -94,7 +133,7 @@ static struct sr_dev_inst *dso_dev_new(int index, struct dso_profile *prof)
 	ctx->voffset_trigger = DEFAULT_VERT_TRIGGERPOS;
 	ctx->framesize = DEFAULT_FRAMESIZE;
 	ctx->triggerslope = SLOPE_POSITIVE;
-	ctx->triggersource = DEFAULT_TRIGGER_SOURCE;
+	ctx->triggersource = g_strdup(DEFAULT_TRIGGER_SOURCE);
 	ctx->triggerposition = DEFAULT_HORIZ_TRIGGERPOS;
 	sdi->priv = ctx;
 	dev_insts = g_slist_append(dev_insts, sdi);
@@ -269,6 +308,8 @@ static int hw_cleanup(void)
 		}
 		dso_close(sdi);
 		sr_usb_dev_inst_free(ctx->usb);
+		g_free(ctx->triggersource);
+
 		sr_dev_inst_free(sdi);
 	}
 
@@ -304,6 +345,15 @@ static void *hw_get_device_info(int dev_index, int dev_info_id)
 	case SR_DI_PROBE_NAMES:
 		info = probe_names;
 		break;
+	case SR_DI_BUFFERSIZES:
+		info = buffersizes;
+		break;
+	case SR_DI_TIMEBASES:
+		info = timebases;
+		break;
+	case SR_DI_TRIGGER_SOURCES:
+		info = trigger_sources;
+		break;
 	/* TODO remove this */
 	case SR_DI_CUR_SAMPLERATE:
 		info = &tmp;
@@ -333,7 +383,11 @@ static int hw_dev_config_set(int dev_index, int hwcap, void *value)
 {
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
-	int tmp, ret;
+	struct sr_rational tmp_rat;
+	float tmp_float;
+	uint64_t tmp_u64;
+	int ret, i;
+	char *tmp_str;
 
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return SR_ERR;
@@ -341,6 +395,7 @@ static int hw_dev_config_set(int dev_index, int hwcap, void *value)
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR;
 
+	ret = SR_OK;
 	ctx = sdi->priv;
 	switch (hwcap) {
 	case SR_HWCAP_LIMIT_FRAMES:
@@ -349,11 +404,54 @@ static int hw_dev_config_set(int dev_index, int hwcap, void *value)
 	case SR_HWCAP_PROBECONFIG:
 		ret = configure_probes(ctx, (GSList *) value);
 		break;
-	case SR_HWCAP_TRIGGERSLOPE:
-		tmp = *(int *)value;
-		if (tmp != SLOPE_NEGATIVE && tmp != SLOPE_POSITIVE)
+	case SR_HWCAP_TRIGGER_SLOPE:
+		tmp_u64 = *(int *)value;
+		if (tmp_u64 != SLOPE_NEGATIVE && tmp_u64 != SLOPE_POSITIVE)
 			ret = SR_ERR_ARG;
-		ctx->triggerslope = tmp;
+		ctx->triggerslope = tmp_u64;
+		break;
+	case SR_HWCAP_HORIZ_TRIGGERPOS:
+		tmp_float = *(float *)value;
+		if (tmp_float < 0.0 || tmp_float > 1.0) {
+			sr_err("hantek-dso: trigger position should be between 0.0 and 1.0");
+			ret = SR_ERR_ARG;
+		} else
+			ctx->triggerposition = tmp_float;
+		break;
+	case SR_HWCAP_BUFFERSIZE:
+		tmp_u64 = *(int *)value;
+		for (i = 0; buffersizes[i]; i++) {
+			if (buffersizes[i] == tmp_u64) {
+				ctx->framesize = tmp_u64;
+				break;
+			}
+		}
+		if (buffersizes[i] == 0)
+			ret = SR_ERR_ARG;
+		break;
+	case SR_HWCAP_TIMEBASE:
+		tmp_rat = *(struct sr_rational *)value;
+		for (i = 0; timebases[i].p && timebases[i].q; i++) {
+			if (timebases[i].p == tmp_rat.p
+					&& timebases[i].q == tmp_rat.q) {
+				ctx->timebase = i;
+				break;
+			}
+		}
+		if (timebases[i].p == 0 && timebases[i].q == 0)
+			ret = SR_ERR_ARG;
+		break;
+	case SR_HWCAP_TRIGGER_SOURCE:
+		tmp_str = value;
+		for (i = 0; trigger_sources[i]; i++) {
+			if (!strcmp(tmp_str, trigger_sources[i])) {
+				ctx->triggersource = g_strdup(tmp_str);
+				break;
+			}
+		}
+		if (trigger_sources[i] == 0)
+			ret = SR_ERR_ARG;
+		break;
 	default:
 		ret = SR_ERR_ARG;
 	}
@@ -451,8 +549,8 @@ static int handle_event(int fd, int revents, void *cb_data)
 			return TRUE;
 		if (dso_enable_trigger(ctx) != SR_OK)
 			return TRUE;
-		if (dso_force_trigger(ctx) != SR_OK)
-			return TRUE;
+//		if (dso_force_trigger(ctx) != SR_OK)
+//			return TRUE;
 		sr_dbg("hantek-dso: successfully requested next chunk");
 		ctx->dev_state = CAPTURE;
 		return TRUE;
@@ -474,8 +572,8 @@ static int handle_event(int fd, int revents, void *cb_data)
 				break;
 			if (dso_enable_trigger(ctx) != SR_OK)
 				break;
-			if (dso_force_trigger(ctx) != SR_OK)
-				break;
+//			if (dso_force_trigger(ctx) != SR_OK)
+//				break;
 			sr_dbg("hantek-dso: successfully requested next chunk");
 		}
 		break;

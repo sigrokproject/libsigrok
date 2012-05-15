@@ -226,19 +226,32 @@ SR_PRIV int dso_set_trigger_samplerate(struct context *ctx)
 	uint16_t timebase_large[] = { 0xffff, 0x0000, 0xfffc, 0xfff7, 0xffe8,
 			0xffce, 0xff9d, 0xff07, 0xfe0d, 0xfc19, 0xf63d, 0xec79 };
 
-	sr_dbg("hantek-dso: sending CMD_SET_TRIGGER_SAMPLERATE");
+	sr_dbg("hantek-dso: preparing CMD_SET_TRIGGER_SAMPLERATE");
 
 	memset(cmdstring, 0, sizeof(cmdstring));
 	/* Command */
 	cmdstring[0] = CMD_SET_TRIGGER_SAMPLERATE;
 
 	/* Trigger source */
-	cmdstring[2] = (ctx->triggersource & 0x03);
+	sr_dbg("hantek-dso: trigger source %s", ctx->triggersource);
+	if (!strcmp("CH2", ctx->triggersource))
+		tmp = 0;
+	else if (!strcmp("CH1", ctx->triggersource))
+		tmp = 1;
+	else if (!strcmp("EXT", ctx->triggersource))
+		tmp = 2;
+	else {
+		sr_err("hantek-dso: invalid trigger source %s", ctx->triggersource);
+		return SR_ERR_ARG;
+	}
+	cmdstring[2] = tmp;
 
 	/* Frame size */
+	sr_dbg("hantek-dso: frame size %d", ctx->framesize);
 	cmdstring[2] |= (ctx->framesize == FRAMESIZE_SMALL ? 0x01 : 0x02) << 2;
 
 	/* Timebase fast */
+	sr_dbg("hantek-dso: time base index %d", ctx->timebase);
 	switch (ctx->framesize) {
 	case FRAMESIZE_SMALL:
 		if (ctx->timebase < TIME_20us)
@@ -270,6 +283,7 @@ SR_PRIV int dso_set_trigger_samplerate(struct context *ctx)
 	cmdstring[2] |= (tmp & 0x07) << 5;
 
 	/* Enabled channels: 00=CH1 01=CH2 10=both */
+	sr_dbg("hantek-dso: channels CH1=%d CH2=%d", ctx->ch1_enabled, ctx->ch2_enabled);
 	tmp = (((ctx->ch2_enabled ? 1 : 0) << 1) + (ctx->ch1_enabled ? 1 : 0)) - 1;
 	cmdstring[3] = tmp;
 
@@ -279,9 +293,11 @@ SR_PRIV int dso_set_trigger_samplerate(struct context *ctx)
 	cmdstring[3] |= tmp << 2;
 
 	/* Trigger slope: 0=positive 1=negative */
+	/* TODO: does this work? */
+	sr_dbg("hantek-dso: trigger slope %d", ctx->triggerslope);
 	cmdstring[3] |= (ctx->triggerslope == SLOPE_NEGATIVE ? 1 : 0) << 3;
 
-	/* Timebase */
+	/* Timebase slow */
 	if (ctx->timebase < TIME_100us)
 		tmp = 0;
 	else if (ctx->timebase > TIME_400ms)
@@ -296,6 +312,7 @@ SR_PRIV int dso_set_trigger_samplerate(struct context *ctx)
 	cmdstring[5] = (tmp >> 8) & 0xff;
 
 	/* Horizontal trigger position */
+	sr_dbg("hantek-dso: trigger position %3.2f", ctx->triggerposition);
 	tmp = 0x77fff + 0x8000 * ctx->triggerposition;
 	cmdstring[6] = tmp & 0xff;
 	cmdstring[7] = (tmp >> 8) & 0xff;
@@ -311,6 +328,7 @@ SR_PRIV int dso_set_trigger_samplerate(struct context *ctx)
 		sr_err("Failed to set trigger/samplerate: %d", ret);
 		return SR_ERR;
 	}
+	sr_dbg("hantek-dso: sent CMD_SET_TRIGGER_SAMPLERATE");
 
 	return SR_OK;
 }
@@ -404,7 +422,7 @@ relays[0] = 0x01;
 	if (ctx->coupling_ch2 != COUPLING_AC)
 		relays[6] = ~relays[6];
 
-	if (ctx->triggersource == TRIGGER_EXT)
+	if (!strcmp(ctx->triggersource, "EXT"))
 		relays[7] = ~relays[7];
 
 	if ((ret = libusb_control_transfer(ctx->usb->devhdl,
