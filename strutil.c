@@ -314,3 +314,33 @@ SR_API gboolean sr_parse_boolstring(const char *boolstr)
 
 	return FALSE;
 }
+
+SR_API int sr_parse_period(const char *periodstr, struct sr_rational *r)
+{
+	char *s;
+
+	r->p = strtoull(periodstr, &s, 10);
+	if (r->p == 0 && s == periodstr)
+		/* No digits found. */
+		return SR_ERR_ARG;
+
+	if (s && *s) {
+		while (*s == ' ')
+			s++;
+		if (!strcmp(s, "ns"))
+			r->q = 1000000000L;
+		else if (!strcmp(s, "us"))
+			r->q = 1000000;
+		else if (!strcmp(s, "ms"))
+			r->q = 1000;
+		else if (!strcmp(s, "s"))
+			r->q = 1;
+		else
+			/* Must have a time suffix. */
+			return SR_ERR_ARG;
+	}
+
+	return SR_OK;
+}
+
+
