@@ -143,7 +143,7 @@ enum {
 	SR_T_CHAR,
 	SR_T_BOOL,
 	SR_T_FLOAT,
-	SR_T_RATIONAL,
+	SR_T_RATIONAL_PERIOD,
 };
 
 struct sr_rational {

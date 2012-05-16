@@ -41,7 +41,7 @@ SR_API struct sr_hwcap_option sr_hwcap_options[] = {
 	{SR_HWCAP_HORIZ_TRIGGERPOS, SR_T_FLOAT, "Horizontal trigger position",
 			"horiz_triggerpos"},
 	{SR_HWCAP_BUFFERSIZE, SR_T_UINT64, "Buffer size", "buffersize"},
-	{SR_HWCAP_TIMEBASE, SR_T_RATIONAL, "Time base", "timebase"},
+	{SR_HWCAP_TIMEBASE, SR_T_RATIONAL_PERIOD, "Time base", "timebase"},
 	{SR_HWCAP_FILTER, SR_T_CHAR, "Filter targets", "filter"},
 	{0, 0, NULL, NULL},
 };
