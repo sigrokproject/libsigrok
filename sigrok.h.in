@@ -144,6 +144,7 @@ enum {
 	SR_T_BOOL,
 	SR_T_FLOAT,
 	SR_T_RATIONAL_PERIOD,
+	SR_T_RATIONAL_VOLT,
 };
 
 struct sr_rational {
@@ -319,6 +320,9 @@ enum {
 	/** Filter. */
 	SR_HWCAP_FILTER,
 
+	/** Volts/div. */
+	SR_HWCAP_VDIV,
+
 	/*--- Special stuff -------------------------------------------------*/
 
 	/* TODO: Better description. */
@@ -427,6 +431,8 @@ enum {
 	SR_DI_TRIGGER_SOURCES,
 	/* Supported filter targets */
 	SR_DI_FILTERS,
+	/* Valid volts/div values */
+	SR_DI_VDIVS,
 };
 
 /*
