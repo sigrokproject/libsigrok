@@ -111,6 +111,45 @@ SR_API char *sr_period_string(uint64_t frequency)
 }
 
 /**
+ * Convert a numeric frequency value to the "natural" string representation
+ * of its voltage value.
+ *
+ * E.g. a value of 300000 would be converted to "300mV", 2 to "2V".
+ *
+ * @param voltage The voltage represented as a rational number, with the
+ *                denominator a divisor of 1V.
+ *
+ * @return A g_try_malloc()ed string representation of the voltage value,
+ *         or NULL upon errors. The caller is responsible to g_free() the
+ *         memory.
+ */
+SR_API char *sr_voltage_string(struct sr_rational *voltage)
+{
+	char *o;
+	int r;
+
+	if (!(o = g_try_malloc0(30 + 1))) {
+		sr_err("strutil: %s: o malloc failed", __func__);
+		return NULL;
+	}
+
+	if (voltage->q == 1000)
+		r = snprintf(o, 30, "%" PRIu64 "mV", voltage->p);
+	else if (voltage->q == 1)
+		r = snprintf(o, 30, "%" PRIu64 "V", voltage->p);
+	else
+		r = -1;
+
+	if (r < 0) {
+		/* Something went wrong... */
+		g_free(o);
+		return NULL;
+	}
+
+	return o;
+}
+
+/**
  * Parse a trigger specification string.
  *
  * @param dev The device for which the trigger specification is intended.
@@ -337,6 +376,31 @@ SR_API int sr_parse_period(const char *periodstr, struct sr_rational *r)
 			r->q = 1;
 		else
 			/* Must have a time suffix. */
+			return SR_ERR_ARG;
+	}
+
+	return SR_OK;
+}
+
+
+SR_API int sr_parse_voltage(const char *voltstr, struct sr_rational *r)
+{
+	char *s;
+
+	r->p = strtoull(voltstr, &s, 10);
+	if (r->p == 0 && s == voltstr)
+		/* No digits found. */
+		return SR_ERR_ARG;
+
+	if (s && *s) {
+		while (*s == ' ')
+			s++;
+		if (!strcasecmp(s, "mv"))
+			r->q = 1000L;
+		else if (!strcasecmp(s, "v"))
+			r->q = 1;
+		else
+			/* Must have a base suffix. */
 			return SR_ERR_ARG;
 	}
 
