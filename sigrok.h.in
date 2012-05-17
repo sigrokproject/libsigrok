@@ -323,6 +323,9 @@ enum {
 	/** Volts/div. */
 	SR_HWCAP_VDIV,
 
+	/** Coupling. */
+	SR_HWCAP_COUPLING,
+
 	/*--- Special stuff -------------------------------------------------*/
 
 	/* TODO: Better description. */
@@ -433,6 +436,8 @@ enum {
 	SR_DI_FILTERS,
 	/* Valid volts/div values */
 	SR_DI_VDIVS,
+	/* Coupling options */
+	SR_DI_COUPLING,
 };
 
 /*

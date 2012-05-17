@@ -44,6 +44,7 @@ SR_API struct sr_hwcap_option sr_hwcap_options[] = {
 	{SR_HWCAP_TIMEBASE, SR_T_RATIONAL_PERIOD, "Time base", "timebase"},
 	{SR_HWCAP_FILTER, SR_T_CHAR, "Filter targets", "filter"},
 	{SR_HWCAP_VDIV, SR_T_RATIONAL_VOLT, "Volts/div", "vdiv"},
+	{SR_HWCAP_COUPLING, SR_T_CHAR, "Coupling", "coupling"},
 	{0, 0, NULL, NULL},
 };
 
