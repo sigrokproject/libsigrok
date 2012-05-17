@@ -445,17 +445,18 @@ SR_PRIV int dso_set_relays(struct context *ctx)
 	uint8_t relays[] = { 0x00, 0x04, 0x08, 0x02, 0x20, 0x40, 0x10, 0x01,
 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
-	sr_dbg("hantek-dso: sending CTRL_SETRELAYS");
+	sr_dbg("hantek-dso: preparing CTRL_SETRELAYS");
 
 	cv1 = ctx->voltage_ch1 / 3;
 	cv2 = ctx->voltage_ch2 / 3;
-relays[0] = 0x01;
+
 	if (cv1 > 0)
 		relays[1] = ~relays[1];
 
 	if (cv1 > 1)
 		relays[2] = ~relays[2];
 
+	sr_dbg("hantek-dso: CH1 coupling %d", ctx->coupling_ch1);
 	if (ctx->coupling_ch1 != COUPLING_AC)
 		relays[3] = ~relays[3];
 
@@ -465,6 +466,7 @@ relays[0] = 0x01;
 	if (cv2 > 1)
 		relays[5] = ~relays[5];
 
+	sr_dbg("hantek-dso: CH2 coupling %d", ctx->coupling_ch1);
 	if (ctx->coupling_ch2 != COUPLING_AC)
 		relays[6] = ~relays[6];
 
@@ -477,6 +479,7 @@ relays[0] = 0x01;
 		sr_err("failed to set relays: %d", ret);
 		return SR_ERR;
 	}
+	sr_dbg("hantek-dso: sent CTRL_SETRELAYS");
 
 	return SR_OK;
 }

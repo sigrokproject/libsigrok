@@ -72,12 +72,14 @@ enum dso_commands {
 	cmdGetLogicalData
 };
 
+/* Must match the coupling table. */
 enum couplings {
 	COUPLING_AC = 0,
 	COUPLING_DC,
-	COUPLING_OFF
+	COUPLING_GND
 };
 
+/* Must match the timebases table. */
 enum time_bases {
 	TIME_10us = 0,
 	TIME_20us,
@@ -96,7 +98,7 @@ enum time_bases {
 	TIME_400ms
 };
 
-/* Must match the vdivs table, these are just handy indexes into it. */
+/* Must match the vdivs table. */
 enum {
 	VDIV_10MV,
 	VDIV_20MV,

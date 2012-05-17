@@ -125,6 +125,13 @@ static char *filter_targets[] = {
 	NULL
 };
 
+static char *coupling[] = {
+	"AC",
+	"DC",
+	"GND",
+	NULL
+};
+
 SR_PRIV libusb_context *usb_context = NULL;
 SR_PRIV GSList *dev_insts = NULL;
 
@@ -514,6 +521,19 @@ static int hw_dev_config_set(int dev_index, int hwcap, void *value)
 			}
 		}
 		if (vdivs[i].p == 0 && vdivs[i].q == 0)
+			ret = SR_ERR_ARG;
+		break;
+	case SR_HWCAP_COUPLING:
+		/* TODO not supporting coupling per channel yet */
+		tmp_str = value;
+		for (i = 0; coupling[i]; i++) {
+			if (!strcmp(tmp_str, coupling[i])) {
+				ctx->coupling_ch1 = i;
+				ctx->coupling_ch2 = i;
+				break;
+			}
+		}
+		if (coupling[i] == 0)
 			ret = SR_ERR_ARG;
 		break;
 	default:
