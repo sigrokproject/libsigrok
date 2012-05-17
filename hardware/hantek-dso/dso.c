@@ -377,15 +377,52 @@ SR_PRIV int dso_set_voltage(struct context *ctx)
 	int ret, tmp;
 	uint8_t cmdstring[8];
 
-	sr_dbg("hantek-dso: sending CMD_SET_VOLTAGE");
+	sr_dbg("hantek-dso: preparing CMD_SET_VOLTAGE");
 
 	memset(cmdstring, 0, sizeof(cmdstring));
 	cmdstring[0] = CMD_SET_VOLTAGE;
 	cmdstring[1] = 0x0f;
-	cmdstring[2] = 0x03;
-	cmdstring[2] |= ((2 - ctx->voltage_ch1 % 3) << 6);
-	cmdstring[2] |= ((2 - ctx->voltage_ch2 % 3) << 4);
-cmdstring[2] = 0x30;
+	cmdstring[2] = 0x30;
+
+	/* CH1 volts/div is encoded in bits 0-1 */
+	sr_dbg("hantek-dso: CH1 vdiv index %d", ctx->voltage_ch1);
+	switch (ctx->voltage_ch1) {
+	case VDIV_1V:
+	case VDIV_100MV:
+	case VDIV_10MV:
+		cmdstring[2] |= 0x00;
+		break;
+	case VDIV_2V:
+	case VDIV_200MV:
+	case VDIV_20MV:
+		cmdstring[2] |= 0x01;
+		break;
+	case VDIV_5V:
+	case VDIV_500MV:
+	case VDIV_50MV:
+		cmdstring[2] |= 0x02;
+		break;
+	}
+
+	/* CH2 volts/div is encoded in bits 2-3 */
+	sr_dbg("hantek-dso: CH2 vdiv index %d", ctx->voltage_ch2);
+	switch (ctx->voltage_ch2) {
+	case VDIV_1V:
+	case VDIV_100MV:
+	case VDIV_10MV:
+		cmdstring[2] |= 0x00;
+		break;
+	case VDIV_2V:
+	case VDIV_200MV:
+	case VDIV_20MV:
+		cmdstring[2] |= 0x08;
+		break;
+	case VDIV_5V:
+	case VDIV_500MV:
+	case VDIV_50MV:
+		cmdstring[2] |= 0x04;
+		break;
+	}
 
 	if (send_begin(ctx) != SR_OK)
 		return SR_ERR;
@@ -397,6 +434,7 @@ cmdstring[2] = 0x30;
 		sr_err("Failed to set voltage: %d", ret);
 		return SR_ERR;
 	}
+	sr_dbg("hantek-dso: sent CMD_SET_VOLTAGE");
 
 	return SR_OK;
 }
@@ -557,9 +595,6 @@ SR_PRIV int dso_init(struct context *ctx)
 		return SR_ERR;
 
 	if (dso_enable_trigger(ctx) != SR_OK)
-		return SR_ERR;
-
-	if (dso_force_trigger(ctx) != SR_OK)
 		return SR_ERR;
 
 	return SR_OK;

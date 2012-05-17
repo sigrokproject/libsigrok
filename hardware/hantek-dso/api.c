@@ -49,6 +49,7 @@ static int capabilities[] = {
 	SR_HWCAP_TRIGGER_SLOPE,
 	SR_HWCAP_HORIZ_TRIGGERPOS,
 	SR_HWCAP_FILTER,
+	SR_HWCAP_VDIV,
 	0,
 };
 
@@ -92,6 +93,21 @@ static struct sr_rational timebases[] = {
 	{ 100, 1000 },
 	{ 200, 1000 },
 	{ 400, 1000 },
+	{0,0}
+};
+
+static struct sr_rational vdivs[] = {
+	/* millivolts */
+	{ 10, 1000 },
+	{ 20, 1000 },
+	{ 50, 1000 },
+	{ 100, 1000 },
+	{ 200, 1000 },
+	{ 500, 1000 },
+	/* volts */
+	{ 1, 1 },
+	{ 2, 1 },
+	{ 5, 1 },
 	{0,0}
 };
 
@@ -365,6 +381,9 @@ static void *hw_get_device_info(int dev_index, int dev_info_id)
 	case SR_DI_FILTERS:
 		info = filter_targets;
 		break;
+	case SR_DI_VDIVS:
+		info = vdivs;
+		break;
 	/* TODO remove this */
 	case SR_DI_CUR_SAMPLERATE:
 		info = &tmp;
@@ -482,6 +501,20 @@ static int hw_dev_config_set(int dev_index, int hwcap, void *value)
 			}
 		}
 		g_strfreev(targets);
+		break;
+	case SR_HWCAP_VDIV:
+		/* TODO not supporting vdiv per channel yet */
+		tmp_rat = *(struct sr_rational *)value;
+		for (i = 0; vdivs[i].p && vdivs[i].q; i++) {
+			if (vdivs[i].p == tmp_rat.p
+					&& vdivs[i].q == tmp_rat.q) {
+				ctx->voltage_ch1 = i;
+				ctx->voltage_ch2 = i;
+				break;
+			}
+		}
+		if (vdivs[i].p == 0 && vdivs[i].q == 0)
+			ret = SR_ERR_ARG;
 		break;
 	default:
 		ret = SR_ERR_ARG;

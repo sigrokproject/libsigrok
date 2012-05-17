@@ -32,7 +32,7 @@
 
 #define MAX_CAPTURE_EMPTY      3
 
-#define DEFAULT_VOLTAGE            VOLTAGE_2V
+#define DEFAULT_VOLTAGE            VDIV_500MV
 #define DEFAULT_FRAMESIZE          FRAMESIZE_SMALL
 #define DEFAULT_TIMEBASE           TIME_100us
 #define DEFAULT_TRIGGER_SOURCE     "CH1"
@@ -67,20 +67,9 @@ enum dso_commands {
 	CMD_GET_CHANNELDATA,
 	CMD_GET_CAPTURESTATE,
 	CMD_SET_VOLTAGE,
+	/* unused */
 	cmdSetLogicalData,
 	cmdGetLogicalData
-};
-
-enum voltages {
-	VOLTAGE_5V = 0,
-	VOLTAGE_2V,
-	VOLTAGE_1V,
-	VOLTAGE_500mV,
-	VOLTAGE_200mV,
-	VOLTAGE_100mV,
-	VOLTAGE_50mV,
-	VOLTAGE_20mV,
-	VOLTAGE_10mV
 };
 
 enum couplings {
@@ -105,6 +94,19 @@ enum time_bases {
 	TIME_100ms,
 	TIME_200ms,
 	TIME_400ms
+};
+
+/* Must match the vdivs table, these are just handy indexes into it. */
+enum {
+	VDIV_10MV,
+	VDIV_20MV,
+	VDIV_50MV,
+	VDIV_100MV,
+	VDIV_200MV,
+	VDIV_500MV,
+	VDIV_1V,
+	VDIV_2V,
+	VDIV_5V,
 };
 
 enum trigger_slopes {
