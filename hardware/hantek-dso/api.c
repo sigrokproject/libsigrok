@@ -50,6 +50,7 @@ static int capabilities[] = {
 	SR_HWCAP_HORIZ_TRIGGERPOS,
 	SR_HWCAP_FILTER,
 	SR_HWCAP_VDIV,
+	SR_HWCAP_COUPLING,
 	0,
 };
 
@@ -391,6 +392,9 @@ static void *hw_get_device_info(int dev_index, int dev_info_id)
 	case SR_DI_VDIVS:
 		info = vdivs;
 		break;
+	case SR_DI_COUPLING:
+		info = coupling;
+		break;
 	/* TODO remove this */
 	case SR_DI_CUR_SAMPLERATE:
 		info = &tmp;
@@ -424,7 +428,7 @@ static int hw_dev_config_set(int dev_index, int hwcap, void *value)
 	float tmp_float;
 	uint64_t tmp_u64;
 	int ret, i;
-	char *tmp_str, **targets;
+	char **targets;
 
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return SR_ERR;
@@ -479,10 +483,9 @@ static int hw_dev_config_set(int dev_index, int hwcap, void *value)
 			ret = SR_ERR_ARG;
 		break;
 	case SR_HWCAP_TRIGGER_SOURCE:
-		tmp_str = value;
 		for (i = 0; trigger_sources[i]; i++) {
-			if (!strcmp(tmp_str, trigger_sources[i])) {
-				ctx->triggersource = g_strdup(tmp_str);
+			if (!strcmp(value, trigger_sources[i])) {
+				ctx->triggersource = g_strdup(value);
 				break;
 			}
 		}
@@ -525,9 +528,8 @@ static int hw_dev_config_set(int dev_index, int hwcap, void *value)
 		break;
 	case SR_HWCAP_COUPLING:
 		/* TODO not supporting coupling per channel yet */
-		tmp_str = value;
 		for (i = 0; coupling[i]; i++) {
-			if (!strcmp(tmp_str, coupling[i])) {
+			if (!strcmp(value, coupling[i])) {
 				ctx->coupling_ch1 = i;
 				ctx->coupling_ch2 = i;
 				break;
