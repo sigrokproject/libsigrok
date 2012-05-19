@@ -39,7 +39,7 @@
 #define DEFAULT_COUPLING           COUPLING_AC
 #define DEFAULT_HORIZ_TRIGGERPOS   0.5
 #define DEFAULT_VERT_OFFSET        0.5
-#define DEFAULT_VERT_TRIGGERPOS    0.0
+#define DEFAULT_VERT_TRIGGERPOS    0.5
 
 #define MAX_VERT_TRIGGER           0xfe
 
@@ -76,6 +76,7 @@ enum dso_commands {
 enum couplings {
 	COUPLING_AC = 0,
 	COUPLING_DC,
+	/* TODO not used, how to enable? */
 	COUPLING_GND
 };
 

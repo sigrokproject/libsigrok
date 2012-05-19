@@ -26,6 +26,7 @@
 #include <string.h>
 #include <glib.h>
 #include <libusb.h>
+#include <arpa/inet.h>
 
 extern libusb_context *usb_context;
 extern GSList *dev_insts;
@@ -200,7 +201,8 @@ SR_PRIV void dso_close(struct sr_dev_inst *sdi)
 
 static int get_channel_offsets(struct context *ctx)
 {
-	int ret;
+	GString *gs;
+	int chan, v, ret;
 
 	sr_dbg("hantek-dso: getting channel offsets");
 
@@ -212,6 +214,32 @@ static int get_channel_offsets(struct context *ctx)
 	if (ret != sizeof(ctx->channel_levels)) {
 		sr_err("failed to get channel offsets: %d", ret);
 		return SR_ERR;
+	}
+
+	/* Comes in as 16-bit numbers with the second byte always 0 on
+	 * the DSO-2090. Guessing this is supposed to be big-endian,
+	 * since that's how voltage offsets are submitted back to the DSO.
+	 * Convert to host order now, so we can use them natively.
+	 */
+	for (chan = 0; chan < 2; chan++) {
+		for (v = 0; v < 9; v++) {
+			ctx->channel_levels[chan][v][0] = ntohs(ctx->channel_levels[chan][v][0]);
+			ctx->channel_levels[chan][v][1] = ntohs(ctx->channel_levels[chan][v][1]);
+		}
+	}
+
+	if (sr_log_loglevel_get() >= SR_LOG_DBG) {
+		gs = g_string_sized_new(128);
+		for (chan = 0; chan < 2; chan++) {
+			g_string_printf(gs, "hantek-dso: CH%d:", chan + 1);
+			for (v = 0; v < 9; v++) {
+				g_string_append_printf(gs, " %.4x-%.4x",
+						ctx->channel_levels[chan][v][0],
+						ctx->channel_levels[chan][v][1]);
+			}
+			sr_dbg(gs->str);
+		}
+		g_string_free(gs, TRUE);
 	}
 
 	return SR_OK;
@@ -488,31 +516,33 @@ SR_PRIV int dso_set_voffsets(struct context *ctx)
 {
 	int offset, ret;
 	uint16_t *ch_levels;
-//	uint8_t offsets[17];
-uint8_t offsets[] = {0x20,0x75,0x30,0x3f,0x20,0xbd,0x3f,0x02,0x20,0x00,0x71,0x01,0x2e,0x0b,0x3f,0x02,0x50};
-//uint8_t offsets[] = {0xff, 0x75, 0x30, 0x3f, 0x20, 0xbd,
-//		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-//};
+	uint8_t offsets[17];
 
-	sr_dbg("hantek-dso: sending CTRL_SETOFFSET");
+	sr_dbg("hantek-dso: preparing CTRL_SETOFFSET");
 
-//	memset(offsets, 0, sizeof(offsets));
-//	/* Channel 1 */
-//	ch_levels = ctx->channel_levels[0][VOLTAGE_10mV - ctx->voltage_ch1];
-//	offset = (ch_levels[1] - ch_levels[0]) * ctx->voffset_ch1 + ch_levels[0];
-//	offsets[0] = (offset >> 8) | 0x20;
-//	offsets[1] = offset & 0xff;
-//
-//	/* Channel 2 */
-//	ch_levels = ctx->channel_levels[1][VOLTAGE_10mV - ctx->voltage_ch2];
-//	offset = (ch_levels[1] - ch_levels[0]) * ctx->voffset_ch2 + ch_levels[0];
-//	offsets[2] = (offset >> 8) | 0x20;
-//	offsets[3] = offset & 0xff;
-//
-//	/* Trigger */
-//	offset = MAX_VERT_TRIGGER * ctx->voffset_trigger;
-//	offsets[4] = (offset >> 8) | 0x20;
-//	offsets[5] = offset & 0xff;
+	memset(offsets, 0, sizeof(offsets));
+	/* Channel 1 */
+	ch_levels = ctx->channel_levels[0][ctx->voltage_ch1];
+	offset = (ch_levels[1] - ch_levels[0]) * ctx->voffset_ch1 + ch_levels[0];
+	offsets[0] = (offset >> 8) | 0x20;
+	offsets[1] = offset & 0xff;
+	sr_dbg("hantek-dso: CH1 offset %3.2f (%.2x%.2x)", ctx->voffset_ch1,
+			offsets[0], offsets[1]);
+
+	/* Channel 2 */
+	ch_levels = ctx->channel_levels[1][ctx->voltage_ch2];
+	offset = (ch_levels[1] - ch_levels[0]) * ctx->voffset_ch2 + ch_levels[0];
+	offsets[2] = (offset >> 8) | 0x20;
+	offsets[3] = offset & 0xff;
+	sr_dbg("hantek-dso: CH2 offset %3.2f (%.2x%.2x)", ctx->voffset_ch2,
+			offsets[2], offsets[3]);
+
+	/* Trigger */
+	offset = MAX_VERT_TRIGGER * ctx->voffset_trigger;
+	offsets[4] = (offset >> 8) | 0x20;
+	offsets[5] = offset & 0xff;
+	sr_dbg("hantek-dso: trigger offset %3.2f (%.2x%.2x)", ctx->voffset_trigger,
+			offsets[4], offsets[5]);
 
 	if ((ret = libusb_control_transfer(ctx->usb->devhdl,
 			LIBUSB_REQUEST_TYPE_VENDOR, CTRL_SETOFFSET,
@@ -520,6 +550,7 @@ uint8_t offsets[] = {0x20,0x75,0x30,0x3f,0x20,0xbd,0x3f,0x02,0x20,0x00,0x71,0x01
 		sr_err("failed to set offsets: %d", ret);
 		return SR_ERR;
 	}
+	sr_dbg("hantek-dso: sent CTRL_SETOFFSET");
 
 	return SR_OK;
 }
