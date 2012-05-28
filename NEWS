@@ -11,6 +11,7 @@ This release does NOT change the libsigrok API.
 
    This new driver (+ firmware) currently supports the following devices:
 
+     - ARMFLY AX-Pro
      - Braintechnology USB-LPS
      - EE Electronics ESLA100
      - EE Electronics ESLA201A
@@ -35,7 +36,7 @@ This release does NOT change the libsigrok API.
  * ZEROPLUS Logic Cube LAP-C (16032): Fix a segfault.
 
  * udev file: Add entries for Robomotic BugLogic 3, Velleman PCSU1000,
-   and Ideofy LA-08.
+   and Ideofy LA-08, ARMFLY AX-Pro.
 
  * The zlib dependency has been removed (no longer needed),
 

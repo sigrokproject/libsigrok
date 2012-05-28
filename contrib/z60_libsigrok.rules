@@ -58,6 +58,10 @@ ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", MODE="664", GROUP="plugdev"
 # EE Electronics ESLA201A
 # http://eeelec.com/xla/
 # lsusb: "08a9:0014" (no string for the vendor name available)
+#
+# ARMFLY AX-Pro
+# http://www.armfly.com/product/AX-Pro/ax-pro.htm
+# lsusb: "08a9:0014" (no string for the vendor name available)
 ATTRS{idVendor}=="08a9", ATTRS{idProduct}=="0014", MODE="664", GROUP="plugdev"
 
 # CWAV USBee SX
