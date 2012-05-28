@@ -49,6 +49,9 @@ static uint64_t divcount_to_samplerate(uint8_t divcount)
 
 static int format_match(const char *filename)
 {
+	struct stat stat_buf;
+	int ret;
+
 	if (!filename) {
 		sr_err("la8 in: %s: filename was NULL", __func__);
 		// return SR_ERR; /* FIXME */
@@ -69,7 +72,19 @@ static int format_match(const char *filename)
 		return FALSE;
 	}
 
-	/* TODO: Only accept files of length 8MB + 5 bytes. */
+	/* Only accept files of length 8MB + 5 bytes. */
+	ret = stat(filename, &stat_buf);
+	if (ret != 0) {
+		sr_err("la8 in: %s: Error getting file size of '%s'",
+		       __func__, filename);
+		return FALSE;
+	}
+	if (stat_buf.st_size != (8 * 1024 * 1024 + 5)) {
+		sr_dbg("la8 in: %s: File size must be exactly 8388613 bytes ("
+		       "it actually is %d bytes in size), so this is not a "
+		       "ChronoVu LA8 file.", __func__, stat_buf.st_size);
+		return FALSE;
+	}
 
 	/* TODO: Check for divcount != 0xff. */
 
