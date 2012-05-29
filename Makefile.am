@@ -21,7 +21,7 @@ ACLOCAL_AMFLAGS = -I autostuff
 
 AM_CPPFLAGS = -I$(top_srcdir)
 
-SUBDIRS = contrib hardware input output firmware
+SUBDIRS = contrib hardware input output
 
 lib_LTLIBRARIES = libsigrok.la
 

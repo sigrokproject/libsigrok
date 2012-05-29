@@ -239,7 +239,7 @@ AC_TYPE_SIZE_T
 # Checks for library functions.
 AC_CHECK_FUNCS([gettimeofday memset strchr strcspn strdup strerror strncasecmp strstr strtol strtoul strtoull])
 
-AC_SUBST(FIRMWARE_DIR, "$datadir/libsigrok/firmware")
+AC_SUBST(FIRMWARE_DIR, "$datadir/sigrok-firmware")
 AC_SUBST(MAKEFLAGS, '--no-print-directory')
 AC_SUBST(AM_LIBTOOLFLAGS, '--silent')
 
@@ -255,7 +255,6 @@ AC_SUBST(SR_PACKAGE_VERSION)
 
 AC_CONFIG_FILES([Makefile
 		 sigrok.h
-		 firmware/Makefile
 		 hardware/Makefile
 		 hardware/alsa/Makefile
 		 hardware/asix-sigma/Makefile
