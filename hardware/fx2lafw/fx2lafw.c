@@ -415,7 +415,7 @@ static int hw_init(const char *devinfo)
 			if (ezusb_upload_firmware(devlist[i], USB_CONFIGURATION,
 				prof->firmware) == SR_OK)
 				/* Remember when the firmware on this device was updated */
-				g_get_current_time(&ctx->fw_updated);
+				ctx->fw_updated = g_get_monotonic_time();
 			else
 				sr_err("fx2lafw: Firmware upload failed for "
 				       "device %d.", devcnt);
@@ -432,10 +432,10 @@ static int hw_init(const char *devinfo)
 
 static int hw_dev_open(int dev_index)
 {
-	GTimeVal cur_time;
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
-	int timediff, ret;
+	int ret;
+	int64_t timediff_us, timediff_ms;
 
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return SR_ERR;
@@ -446,19 +446,23 @@ static int hw_dev_open(int dev_index)
 	 * for the FX2 to renumerate.
 	 */
 	ret = 0;
-	if (GTV_TO_MSEC(ctx->fw_updated) > 0) {
+
+	if (ctx->fw_updated > 0) {
 		sr_info("fx2lafw: Waiting for device to reset.");
 		/* takes at least 300ms for the FX2 to be gone from the USB bus */
 		g_usleep(300 * 1000);
-		timediff = 0;
-		while (timediff < MAX_RENUM_DELAY) {
+		timediff_ms = 0;
+		while (timediff_ms < MAX_RENUM_DELAY) {
 			if ((ret = fx2lafw_dev_open(dev_index)) == SR_OK)
 				break;
 			g_usleep(100 * 1000);
-			g_get_current_time(&cur_time);
-			timediff = GTV_TO_MSEC(cur_time) - GTV_TO_MSEC(ctx->fw_updated);
+
+			timediff_us = g_get_monotonic_time() - ctx->fw_updated;
+			timediff_ms = timediff_us / G_USEC_PER_SEC;
+			sr_spew("fx2lafw: timediff: %" PRIi64 " us.",
+				timediff_us);
 		}
-		sr_info("fx2lafw: Device came back after %d ms.", timediff);
+		sr_info("fx2lafw: Device came back after %d ms.", timediff_ms);
 	} else {
 		ret = fx2lafw_dev_open(dev_index);
 	}

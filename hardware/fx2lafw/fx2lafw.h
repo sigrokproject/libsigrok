@@ -62,7 +62,7 @@ struct context {
 	 * after the upgrade) this is like a global lock. No device will open
 	 * until a proper delay after the last device was upgraded.
 	 */
-	GTimeVal fw_updated;
+	int64_t fw_updated;
 
 	/* Device/Capture Settings */
 	uint64_t cur_samplerate;
