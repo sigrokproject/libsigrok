@@ -64,7 +64,7 @@ struct context {
 	 */
 	int64_t fw_updated;
 
-	/* Device/Capture Settings */
+	/* Device/capture settings */
 	uint64_t cur_samplerate;
 	uint64_t limit_samples;
 

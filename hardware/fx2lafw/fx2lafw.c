@@ -373,7 +373,7 @@ static int hw_init(const char *devinfo)
 		return 0;
 	}
 
-	/* Find all fx2lafw compatible devices and upload firware to them. */
+	/* Find all fx2lafw compatible devices and upload firmware to them. */
 	libusb_get_device_list(usb_context, &devlist);
 	for (i = 0; devlist[i]; i++) {
 
