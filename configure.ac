@@ -144,12 +144,12 @@ fi
 
 AC_ARG_ENABLE(zeroplus-logic-cube,
 	      AC_HELP_STRING([--enable-zeroplus-logic-cube],
-	      [enable Zeroplus Logic Cube support [default=yes]]),
+	      [enable ZEROPLUS Logic Cube support [default=yes]]),
 	      [LA_ZEROPLUS_LOGIC_CUBE="$enableval"],
 	      [LA_ZEROPLUS_LOGIC_CUBE=yes])
 AM_CONDITIONAL(LA_ZEROPLUS_LOGIC_CUBE, test x$LA_ZEROPLUS_LOGIC_CUBE = xyes)
 if test "x$LA_ZEROPLUS_LOGIC_CUBE" = "xyes"; then
-	AC_DEFINE(HAVE_LA_ZEROPLUS_LOGIC_CUBE, 1, [Zeroplus Logic Cube support])
+	AC_DEFINE(HAVE_LA_ZEROPLUS_LOGIC_CUBE, 1, [ZEROPLUS Logic Cube support])
 fi
 
 # Checks for libraries.
@@ -304,6 +304,6 @@ echo "  - Demo driver..................... $LA_DEMO"
 echo "  - fx2lafw (for FX2 LAs)........... $LA_FX2LAFW"
 echo "  - Link MSO-19..................... $LA_LINK_MSO19"
 echo "  - Openbench Logic Sniffer......... $LA_OLS"
-echo "  - Zeroplus Logic Cube............. $LA_ZEROPLUS_LOGIC_CUBE"
+echo "  - ZEROPLUS Logic Cube............. $LA_ZEROPLUS_LOGIC_CUBE"
 echo
 

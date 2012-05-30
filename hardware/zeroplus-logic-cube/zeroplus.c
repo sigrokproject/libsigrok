@@ -30,9 +30,10 @@
 #include "analyzer.h"
 
 #define USB_VENDOR			0x0c12
-#define USB_VENDOR_NAME			"Zeroplus"
-#define USB_MODEL_NAME			"Logic Cube"
-#define USB_MODEL_VERSION		""
+
+#define VENDOR_NAME			"ZEROPLUS"
+#define MODEL_NAME			"Logic Cube LAP-C"
+#define MODEL_VERSION			NULL
 
 #define NUM_PROBES			16
 #define USB_INTERFACE			0
@@ -201,7 +202,7 @@ static int opendev4(struct sr_dev_inst **sdi, libusb_device *dev,
 			if (!(des->idProduct == zeroplus_models[i].pid))
 				continue;
 
-			sr_info("zp: Found ZeroPlus device 0x%04x (%s)",
+			sr_info("zp: Found ZEROPLUS device 0x%04x (%s)",
 				des->idProduct, zeroplus_models[i].model_name);
 			ctx->num_channels = zeroplus_models[i].channels;
 			ctx->memory_size = zeroplus_models[i].sample_depth * 1024;
@@ -209,7 +210,7 @@ static int opendev4(struct sr_dev_inst **sdi, libusb_device *dev,
 		}
 
 		if (ctx->num_channels == 0) {
-			sr_err("zp: Unknown ZeroPlus device 0x%04x",
+			sr_err("zp: Unknown ZEROPLUS device 0x%04x",
 			       des->idProduct);
 			return -2;
 		}
@@ -359,7 +360,7 @@ static int hw_init(const char *devinfo)
 		return 0;
 	}
 
-	/* Find all ZeroPlus analyzers and add them to device list. */
+	/* Find all ZEROPLUS analyzers and add them to device list. */
 	devcnt = 0;
 	libusb_get_device_list(usb_context, &devlist); /* TODO: Errors. */
 
@@ -372,14 +373,14 @@ static int hw_init(const char *devinfo)
 
 		if (des.idVendor == USB_VENDOR) {
 			/*
-			 * Definitely a Zeroplus.
+			 * Definitely a ZEROPLUS.
 			 * TODO: Any way to detect specific model/version in
-			 * the zeroplus range?
+			 * the ZEROPLUS range?
 			 */
 			/* Register the device with libsigrok. */
 			if (!(sdi = sr_dev_inst_new(devcnt,
-					SR_ST_INACTIVE, USB_VENDOR_NAME,
-					USB_MODEL_NAME, USB_MODEL_VERSION))) {
+					SR_ST_INACTIVE, VENDOR_NAME,
+					MODEL_NAME, MODEL_VERSION))) {
 				sr_err("zp: %s: sr_dev_inst_new failed",
 				       __func__);
 				return 0;
@@ -729,7 +730,7 @@ static int hw_dev_acquisition_stop(int dev_index, void *cb_data)
 
 SR_PRIV struct sr_dev_driver zeroplus_logic_cube_driver_info = {
 	.name = "zeroplus-logic-cube",
-	.longname = "Zeroplus Logic Cube LAP-C series",
+	.longname = "ZEROPLUS Logic Cube LAP-C series",
 	.api_version = 1,
 	.init = hw_init,
 	.cleanup = hw_cleanup,
