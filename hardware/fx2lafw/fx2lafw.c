@@ -442,8 +442,8 @@ static int hw_dev_open(int dev_index)
 	ctx = sdi->priv;
 
 	/*
-	 * If the firmware was recently uploaded, wait up to MAX_RENUM_DELAY ms
-	 * for the FX2 to renumerate.
+	 * If the firmware was recently uploaded, wait up to MAX_RENUM_DELAY_MS
+	 * milliseconds for the FX2 to renumerate.
 	 */
 	ret = 0;
 
@@ -452,7 +452,7 @@ static int hw_dev_open(int dev_index)
 		/* takes at least 300ms for the FX2 to be gone from the USB bus */
 		g_usleep(300 * 1000);
 		timediff_ms = 0;
-		while (timediff_ms < MAX_RENUM_DELAY) {
+		while (timediff_ms < MAX_RENUM_DELAY_MS) {
 			if ((ret = fx2lafw_dev_open(dev_index)) == SR_OK)
 				break;
 			g_usleep(100 * 1000);
