@@ -55,11 +55,11 @@ ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", MODE="664", GROUP="plugdev"
 # http://www.usbee.com/ax.html
 # lsusb: "08a9:0014" (no string for the vendor name available)
 #
-# EE Electronics ESLA201A
+# EE Electronics ESLA201A (clone of the CWAV USBee AX)
 # http://eeelec.com/xla/
 # lsusb: "08a9:0014" (no string for the vendor name available)
 #
-# ARMFLY AX-Pro
+# ARMFLY AX-Pro (clone of the CWAV USBee AX)
 # http://www.armfly.com/product/AX-Pro/ax-pro.htm
 # lsusb: "08a9:0014" (no string for the vendor name available)
 ATTRS{idVendor}=="08a9", ATTRS{idProduct}=="0014", MODE="664", GROUP="plugdev"
@@ -68,6 +68,17 @@ ATTRS{idVendor}=="08a9", ATTRS{idProduct}=="0014", MODE="664", GROUP="plugdev"
 # http://www.usbee.com/sx.html
 # lsusb: "08a9:0009" (no string for the vendor name available)
 ATTRS{idVendor}=="08a9", ATTRS{idProduct}=="0009", MODE="664", GROUP="plugdev"
+
+# Cypress FX2 eval boards without EEPROM:
+#
+# Lcsoft Mini Board
+# http://sigrok.org/wiki/Lcsoft_Mini_Board
+# lsusb: "04b4:8613 Cypress Semiconductor Corp. CY7C68013 EZ-USB FX2 USB 2.0 Development Kit"
+#
+# Braintechnology USB Interface V2.x
+# http://www.braintechnology.de/braintechnology/en/usb_fastinterface27.html
+# lsusb: "04b4:8613 Cypress Semiconductor Corp. CY7C68013 EZ-USB FX2 USB 2.0 Development Kit"
+ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="8613", MODE="664", GROUP="plugdev"
 
 # Hantek DSO-2090
 # http://www.hantek.com.cn/english/produce_list.asp?unid=62
@@ -89,13 +100,6 @@ ATTRS{idVendor}=="20a0", ATTRS{idProduct}=="4123", MODE="664", GROUP="plugdev"
 # http://www.pctestinstruments.com/
 # lsusb: "0403:dc48 Future Technology Devices International, Ltd"
 ATTRS{idVendor}=="0403", ATTRS{idProduct}=="dc48", MODE="664", GROUP="plugdev"
-
-# (All Cypress FX2 boards without EEPROM)
-#
-# Lcsoft Mini Board
-# http://sigrok.org/wiki/Lcsoft_Mini_Board
-# lsusb: "04b4:8613 Cypress Semiconductor Corp. CY7C68013 EZ-USB FX2 USB 2.0 Development Kit"
-ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="8613", MODE="664", GROUP="plugdev"
 
 # Link Instruments MSO-19
 # http://www.linkinstruments.com/mso19.htm
@@ -153,15 +157,15 @@ ATTRS{idVendor}=="0403", ATTRS{idProduct}=="f918", MODE="664", GROUP="plugdev"
 # http://www.saleae.com/logic/
 # lsusb: "0925:3881 Lakeview Research"
 #
-# EE Electronics XLA/ESLA100 (clone of the Saleae Logic)
+# EE Electronics ESLA100 (clone of the Saleae Logic)
 # http://eeelec.com/xla/
 # lsusb: "0925:3881 Lakeview Research"
 #
-# Robomotic MiniLogic
+# Robomotic MiniLogic (clone of the Saleae Logic)
 # http://buglogic.robomotic.com/
 # lsusb: "0925:3881 Lakeview Research"
 #
-# Robomotic BugLogic 3
+# Robomotic BugLogic 3 (clone of the Saleae Logic)
 # http://norduino.robomotic.com/products-page/categories/buglogic3/
 # lsusb: "0925:3881 Lakeview Research"
 ATTRS{idVendor}=="0925", ATTRS{idProduct}=="3881", MODE="664", GROUP="plugdev"
