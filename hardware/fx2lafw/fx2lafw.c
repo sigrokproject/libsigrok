@@ -251,11 +251,15 @@ static int fx2lafw_dev_open(int dev_index)
 			break;
 		}
 
-		if (vi.major != FX2LAFW_VERSION_MAJOR ||
-		    vi.minor != FX2LAFW_VERSION_MINOR) {
-			sr_err("fx2lafw: Expected firmware version %d.%d "
-			       "got %d.%d.", FX2LAFW_VERSION_MAJOR,
-			       FX2LAFW_VERSION_MINOR, vi.major, vi.minor);
+		/*
+		 * Changes in major version mean incompatible/API changes, so
+		 * bail out if we encounter an incompatible version.
+		 * Different minor versions are OK, they should be compatible.
+		 */
+		if (vi.major != FX2LAFW_REQUIRED_VERSION_MAJOR) {
+			sr_err("fx2lafw: Expected firmware version %d.x, "
+			       "got %d.%d.", FX2LAFW_REQUIRED_VERSION_MAJOR,
+			       vi.major, vi.minor);
 			break;
 		}
 

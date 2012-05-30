@@ -31,8 +31,7 @@
 #define NUM_SIMUL_TRANSFERS	32
 #define MAX_EMPTY_TRANSFERS	(NUM_SIMUL_TRANSFERS * 2)
 
-#define FX2LAFW_VERSION_MAJOR	1
-#define FX2LAFW_VERSION_MINOR	0
+#define FX2LAFW_REQUIRED_VERSION_MAJOR	1
 
 /* 6 delay states of up to 256 clock ticks */
 #define MAX_SAMPLE_DELAY	(6 * 256)
