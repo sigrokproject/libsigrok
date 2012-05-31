@@ -328,7 +328,7 @@ static int configure_probes(struct context *ctx, GSList *probes)
 			continue;
 
 		if (probe->index > 8)
-			ctx->sample_wide = true;
+			ctx->sample_wide = TRUE;
 
 		probe_bit = 1 << (probe->index - 1);
 		if (!(probe->trigger))
@@ -794,7 +794,7 @@ static void receive_transfer(struct libusb_transfer *transfer)
 
 	if (ctx->trigger_stage == TRIGGER_FIRED) {
 		/* Send the incoming transfer to the session bus. */
-		const trigger_offset_bytes = trigger_offset * sample_width;
+		const int trigger_offset_bytes = trigger_offset * sample_width;
 		packet.type = SR_DF_LOGIC;
 		packet.payload = &logic;
 		logic.length = transfer->actual_length - trigger_offset_bytes;

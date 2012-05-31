@@ -19,7 +19,6 @@
  */
 
 #include <glib.h>
-#include <stdbool.h>
 
 #ifndef LIBSIGROK_HARDWARE_FX2LAFW_FX2LAFW_H
 #define LIBSIGROK_HARDWARE_FX2LAFW_FX2LAFW_H
@@ -76,7 +75,7 @@ struct context {
 	uint64_t cur_samplerate;
 	uint64_t limit_samples;
 
-	bool sample_wide;
+	gboolean sample_wide;
 
 	uint16_t trigger_mask[NUM_TRIGGER_STAGES];
 	uint16_t trigger_value[NUM_TRIGGER_STAGES];

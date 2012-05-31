@@ -20,8 +20,7 @@
 #ifndef LIBSIGROK_HARDWARE_FX2LAFW_COMMAND_H
 #define LIBSIGROK_HARDWARE_FX2LAFW_COMMAND_H
 
-#include <stdbool.h>
-
+#include <glib.h>
 #include "sigrok.h"
 
 /* Protocol commands */
@@ -58,7 +57,6 @@ SR_PRIV int command_get_fw_version(libusb_device_handle *devhdl,
 SR_PRIV int command_get_revid_version(libusb_device_handle *devhdl,
 				      uint8_t *revid);
 SR_PRIV int command_start_acquisition(libusb_device_handle *devhdl,
-				      uint64_t samplerate,
-				      bool samplewide);
+				      uint64_t samplerate, gboolean samplewide);
 
 #endif
