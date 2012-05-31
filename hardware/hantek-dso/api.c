@@ -357,7 +357,7 @@ static int hw_cleanup(void)
 	return SR_OK;
 }
 
-static void *hw_get_device_info(int dev_index, int dev_info_id)
+static const void *hw_get_device_info(int dev_index, int dev_info_id)
 {
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
@@ -416,13 +416,12 @@ static int hw_get_status(int device_index)
 	return sdi->status;
 }
 
-static int *hwcap_get_all(void)
+static const int *hwcap_get_all(void)
 {
-
 	return capabilities;
 }
 
-static int hw_dev_config_set(int dev_index, int hwcap, void *value)
+static int hw_dev_config_set(int dev_index, int hwcap, const void *value)
 {
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
