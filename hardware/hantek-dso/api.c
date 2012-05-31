@@ -35,6 +35,8 @@
 #include "config.h"
 #include "dso.h"
 
+/* FIXME: Temporary build fix, this will be removed later. */
+#define GTV_TO_MSEC(gtv)       (gtv.tv_sec * 1000 + gtv.tv_usec / 1000)
 
 /* Max time in ms before we want to check on events */
 #define TICK    1
