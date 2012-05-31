@@ -41,7 +41,7 @@
 /* Max time in ms before we want to check on events */
 #define TICK    1
 
-static int capabilities[] = {
+static const int hwcaps[] = {
 	SR_HWCAP_OSCILLOSCOPE,
 	SR_HWCAP_LIMIT_SAMPLES,
 	SR_HWCAP_CONTINUOUS,
@@ -62,23 +62,23 @@ static const char *probe_names[] = {
 	NULL,
 };
 
-static struct dso_profile dev_profiles[] = {
+static const struct dso_profile dev_profiles[] = {
 	{	0x04b4, 0x2090,
 		0x04b5, 0x2090,
 		"Hantek", "DSO-2090",
 		NULL, 2,
 		FIRMWARE_DIR "/hantek-dso-2090.fw" },
-	{ 0, 0, 0, 0, 0, 0, 0, 0, 0 }
+	{ 0, 0, 0, 0, 0, 0, 0, 0, 0 },
 };
 
-static uint64_t buffersizes[] = {
+static const uint64_t buffersizes[] = {
 	10240,
 	32768,
 	/* TODO: 65535 */
-	0
+	0,
 };
 
-static struct sr_rational timebases[] = {
+static const struct sr_rational timebases[] = {
 	/* microseconds */
 	{ 10, 1000000 },
 	{ 20, 1000000 },
@@ -96,10 +96,10 @@ static struct sr_rational timebases[] = {
 	{ 100, 1000 },
 	{ 200, 1000 },
 	{ 400, 1000 },
-	{0,0}
+	{ 0, 0},
 };
 
-static struct sr_rational vdivs[] = {
+static const struct sr_rational vdivs[] = {
 	/* millivolts */
 	{ 10, 1000 },
 	{ 20, 1000 },
@@ -111,35 +111,34 @@ static struct sr_rational vdivs[] = {
 	{ 1, 1 },
 	{ 2, 1 },
 	{ 5, 1 },
-	{0,0}
+	{ 0, 0 },
 };
 
-static char *trigger_sources[] = {
+static const char *trigger_sources[] = {
 	"CH1",
 	"CH2",
 	"EXT",
-	NULL
+	NULL,
 };
 
-static char *filter_targets[] = {
+static const char *filter_targets[] = {
 	"CH1",
 	"CH2",
 	/* TODO: "TRIGGER", */
-	NULL
+	NULL,
 };
 
-static char *coupling[] = {
+static const char *coupling[] = {
 	"AC",
 	"DC",
 	"GND",
-	NULL
+	NULL,
 };
 
 SR_PRIV libusb_context *usb_context = NULL;
 SR_PRIV GSList *dev_insts = NULL;
 
-
-static struct sr_dev_inst *dso_dev_new(int index, struct dso_profile *prof)
+static struct sr_dev_inst *dso_dev_new(int index, const struct dso_profile *prof)
 {
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
@@ -175,10 +174,10 @@ static struct sr_dev_inst *dso_dev_new(int index, struct dso_profile *prof)
 	return sdi;
 }
 
-static int configure_probes(struct context *ctx, GSList *probes)
+static int configure_probes(struct context *ctx, const GSList *probes)
 {
-	struct sr_probe *probe;
-	GSList *l;
+	const struct sr_probe *probe;
+	const GSList *l;
 
 	ctx->ch1_enabled = ctx->ch2_enabled = FALSE;
 	for (l = probes; l; l = l->next) {
@@ -196,7 +195,7 @@ static int hw_init(const char *devinfo)
 {
 	struct sr_dev_inst *sdi;
 	struct libusb_device_descriptor des;
-	struct dso_profile *prof;
+	const struct dso_profile *prof;
 	struct context *ctx;
 	libusb_device **devlist;
 	int err, devcnt, i, j;
@@ -357,11 +356,11 @@ static int hw_cleanup(void)
 	return SR_OK;
 }
 
-static const void *hw_get_device_info(int dev_index, int dev_info_id)
+static const void *hw_dev_info_get(int dev_index, int dev_info_id)
 {
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
-	void *info;
+	const void *info;
 	uint64_t tmp;
 
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
@@ -406,19 +405,19 @@ static const void *hw_get_device_info(int dev_index, int dev_info_id)
 	return info;
 }
 
-static int hw_get_status(int device_index)
+static int hw_dev_status_get(int dev_index)
 {
 	struct sr_dev_inst *sdi;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return SR_ST_NOT_FOUND;
 
 	return sdi->status;
 }
 
-static const int *hwcap_get_all(void)
+static const int *hw_hwcap_get_all(void)
 {
-	return capabilities;
+	return hwcaps;
 }
 
 static int hw_dev_config_set(int dev_index, int hwcap, const void *value)
@@ -441,19 +440,19 @@ static int hw_dev_config_set(int dev_index, int hwcap, const void *value)
 	ctx = sdi->priv;
 	switch (hwcap) {
 	case SR_HWCAP_LIMIT_FRAMES:
-		ctx->limit_frames = *(uint64_t *)value;
+		ctx->limit_frames = *(const uint64_t *)value;
 		break;
 	case SR_HWCAP_PROBECONFIG:
-		ret = configure_probes(ctx, (GSList *) value);
+		ret = configure_probes(ctx, (const GSList *)value);
 		break;
 	case SR_HWCAP_TRIGGER_SLOPE:
-		tmp_u64 = *(int *)value;
+		tmp_u64 = *(const int *)value;
 		if (tmp_u64 != SLOPE_NEGATIVE && tmp_u64 != SLOPE_POSITIVE)
 			ret = SR_ERR_ARG;
 		ctx->triggerslope = tmp_u64;
 		break;
 	case SR_HWCAP_HORIZ_TRIGGERPOS:
-		tmp_float = *(float *)value;
+		tmp_float = *(const float *)value;
 		if (tmp_float < 0.0 || tmp_float > 1.0) {
 			sr_err("hantek-dso: trigger position should be between 0.0 and 1.0");
 			ret = SR_ERR_ARG;
@@ -461,7 +460,7 @@ static int hw_dev_config_set(int dev_index, int hwcap, const void *value)
 			ctx->triggerposition = tmp_float;
 		break;
 	case SR_HWCAP_BUFFERSIZE:
-		tmp_u64 = *(int *)value;
+		tmp_u64 = *(const int *)value;
 		for (i = 0; buffersizes[i]; i++) {
 			if (buffersizes[i] == tmp_u64) {
 				ctx->framesize = tmp_u64;
@@ -472,7 +471,7 @@ static int hw_dev_config_set(int dev_index, int hwcap, const void *value)
 			ret = SR_ERR_ARG;
 		break;
 	case SR_HWCAP_TIMEBASE:
-		tmp_rat = *(struct sr_rational *)value;
+		tmp_rat = *(const struct sr_rational *)value;
 		for (i = 0; timebases[i].p && timebases[i].q; i++) {
 			if (timebases[i].p == tmp_rat.p
 					&& timebases[i].q == tmp_rat.q) {
@@ -515,7 +514,7 @@ static int hw_dev_config_set(int dev_index, int hwcap, const void *value)
 		break;
 	case SR_HWCAP_VDIV:
 		/* TODO not supporting vdiv per channel yet */
-		tmp_rat = *(struct sr_rational *)value;
+		tmp_rat = *(const struct sr_rational *)value;
 		for (i = 0; vdivs[i].p && vdivs[i].q; i++) {
 			if (vdivs[i].p == tmp_rat.p
 					&& vdivs[i].q == tmp_rat.q) {
@@ -695,7 +694,7 @@ static int handle_event(int fd, int revents, void *cb_data)
 	return TRUE;
 }
 
-static int hw_start_acquisition(int device_index, void *cb_data)
+static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 {
 	const struct libusb_pollfd **lupfd;
 	struct sr_datafeed_packet packet;
@@ -705,7 +704,7 @@ static int hw_start_acquisition(int device_index, void *cb_data)
 	struct context *ctx;
 	int i;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return SR_ERR;
 
 	if (sdi->status != SR_ST_ACTIVE)
@@ -746,13 +745,13 @@ static int hw_start_acquisition(int device_index, void *cb_data)
 /* TODO: doesn't really cancel pending transfers so they might come in after
  * SR_DF_END is sent.
  */
-static int hw_stop_acquisition(int device_index, gpointer session_device_id)
+static int hw_dev_acquisition_stop(int dev_index, void *cb_data)
 {
 	struct sr_datafeed_packet packet;
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, device_index)))
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return SR_ERR;
 
 	if (sdi->status != SR_ST_ACTIVE)
@@ -762,12 +761,12 @@ static int hw_stop_acquisition(int device_index, gpointer session_device_id)
 	ctx->dev_state = IDLE;
 
 	packet.type = SR_DF_END;
-	sr_session_send(session_device_id, &packet);
+	sr_session_send(cb_data, &packet);
 
 	return SR_OK;
 }
 
-SR_PRIV struct sr_dev_driver hantek_dso_plugin_info = {
+SR_PRIV struct sr_dev_driver hantek_dso_driver_info = {
 	.name = "hantek-dso",
 	.longname = "Hantek DSO",
 	.api_version = 1,
@@ -775,10 +774,10 @@ SR_PRIV struct sr_dev_driver hantek_dso_plugin_info = {
 	.cleanup = hw_cleanup,
 	.dev_open = hw_dev_open,
 	.dev_close = hw_dev_close,
-	.dev_info_get = hw_get_device_info,
-	.dev_status_get = hw_get_status,
-	.hwcap_get_all = hwcap_get_all,
+	.dev_info_get = hw_dev_info_get,
+	.dev_status_get = hw_dev_status_get,
+	.hwcap_get_all = hw_hwcap_get_all,
 	.dev_config_set = hw_dev_config_set,
-	.dev_acquisition_start = hw_start_acquisition,
-	.dev_acquisition_stop = hw_stop_acquisition,
+	.dev_acquisition_start = hw_dev_acquisition_start,
+	.dev_acquisition_stop = hw_dev_acquisition_stop,
 };

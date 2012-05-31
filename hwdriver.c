@@ -73,7 +73,7 @@ extern SR_PRIV struct sr_dev_driver alsa_driver_info;
 extern SR_PRIV struct sr_dev_driver fx2lafw_driver_info;
 #endif
 #ifdef HAVE_HW_HANTEK_DSO
-extern SR_PRIV struct sr_dev_driver hantek_dso_plugin_info;
+extern SR_PRIV struct sr_dev_driver hantek_dso_driver_info;
 #endif
 
 static struct sr_dev_driver *drivers_list[] = {
@@ -102,7 +102,7 @@ static struct sr_dev_driver *drivers_list[] = {
 	&fx2lafw_driver_info,
 #endif
 #ifdef HAVE_HW_HANTEK_DSO
-	&hantek_dso_plugin_info,
+	&hantek_dso_driver_info,
 #endif
 	NULL,
 };

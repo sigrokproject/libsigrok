@@ -160,7 +160,7 @@ struct dso_profile {
 };
 
 struct context {
-	struct dso_profile *profile;
+	const struct dso_profile *profile;
 	struct sr_usb_dev_inst *usb;
 	void *cb_data;
 	uint64_t limit_frames;
