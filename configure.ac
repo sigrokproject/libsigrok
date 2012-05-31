@@ -22,8 +22,8 @@ AC_PREREQ([2.63])
 
 # libsigrok package version number (NOT the same as shared lib version!).
 m4_define([sr_package_version_major], [0])
-m4_define([sr_package_version_minor], [1])
-m4_define([sr_package_version_micro], [1])
+m4_define([sr_package_version_minor], [2])
+m4_define([sr_package_version_micro], [0])
 m4_define([sr_package_version], [sr_package_version_major.sr_package_version_minor.sr_package_version_micro])
 
 AC_INIT([libsigrok], [sr_package_version], [sigrok-devel@lists.sourceforge.net],
@@ -63,7 +63,7 @@ PKG_PROG_PKG_CONFIG([0.22])
 # Carefully read the libtool docs before updating these numbers!
 # The algorithm for determining which number to change (and how) is nontrivial!
 # http://www.gnu.org/software/libtool/manual/libtool.html#Updating-version-info
-SR_LIB_VERSION_CURRENT=0
+SR_LIB_VERSION_CURRENT=1
 SR_LIB_VERSION_REVISION=0
 SR_LIB_VERSION_AGE=0
 SR_LIB_VERSION="$SR_LIB_VERSION_CURRENT:$SR_LIB_VERSION_REVISION:$SR_LIB_VERSION_AGE"
