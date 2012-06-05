@@ -443,12 +443,12 @@ SR_PRIV int dso_set_voltage(struct context *ctx)
 	case VDIV_2V:
 	case VDIV_200MV:
 	case VDIV_20MV:
-		cmdstring[2] |= 0x08;
+		cmdstring[2] |= 0x04;
 		break;
 	case VDIV_5V:
 	case VDIV_500MV:
 	case VDIV_50MV:
-		cmdstring[2] |= 0x04;
+		cmdstring[2] |= 0x08;
 		break;
 	}
 
