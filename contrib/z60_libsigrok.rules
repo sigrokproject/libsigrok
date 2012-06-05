@@ -85,6 +85,7 @@ ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="8613", MODE="664", GROUP="plugdev"
 # lsusb: "04b4:2090 Cypress Semiconductor Corp."
 # lsusb after FW upload: "04b5:2090 ROHM LSI Systems USA, LLC"
 ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="2090", MODE="664", GROUP="plugdev"
+ATTRS{idVendor}=="04b5", ATTRS{idProduct}=="2090", MODE="664", GROUP="plugdev"
 
 # Ideofy LA-08
 # http://www.ideofy.com/la-08_en
@@ -198,14 +199,6 @@ ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="700c", MODE="664", GROUP="plugdev"
 ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="700d", MODE="664", GROUP="plugdev"
 ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="700e", MODE="664", GROUP="plugdev"
 ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="7016", MODE="664", GROUP="plugdev"
-
-# Hantek DSO-2xxx series USB oscilloscope
-# http://www.hantek.com/english/produce.asp?classid=29
-# The DSO-2090 boots up with 04b4:2090 (VID belongs to Cypress), and
-# after the firmware upload to the FX2 renumerates with 04b5:2090 (VID
-# belongs to somebody else entirely).
-ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="2090", MODE="664", GROUP="plugdev"
-ATTRS{idVendor}=="04b5", ATTRS{idProduct}=="2090", MODE="664", GROUP="plugdev"
 
 
 LABEL="libsigrok_rules_end"
