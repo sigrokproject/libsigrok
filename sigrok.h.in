@@ -167,6 +167,12 @@ enum {
 	SR_DF_FRAME_END,
 };
 
+/* sr_datafeed_analog.unit values */
+enum {
+	SR_UNIT_VOLTAGE,
+	SR_UNIT_CURRENT,
+};
+
 struct sr_datafeed_packet {
 	uint16_t type;
 	void *payload;
@@ -194,6 +200,7 @@ struct sr_datafeed_meta_analog {
 
 struct sr_datafeed_analog {
 	int num_samples;
+	int unit;
 	float *data;
 };
 
