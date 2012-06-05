@@ -181,6 +181,10 @@ ATTRS{idVendor}=="21a9", ATTRS{idProduct}=="1001", MODE="664", GROUP="plugdev"
 # lsusb: "10cf:1000 Velleman Components, Inc."
 ATTRS{idVendor}=="10cf", ATTRS{idProduct}=="1000", MODE="664", GROUP="plugdev"
 
+# Victor 70C
+# http://www.china-victor.com/english/en/product_data.aspx?ClassID=168&ID=121
+ATTRS{idVendor}=="1224", ATTRS{idProduct}=="d237", MODE="664", GROUP="plugdev"
+
 # ZEROPLUS Logic Cube LAP-C series
 # http://www.zeroplus.com.tw/logic-analyzer_en/products.php#top_c
 # lsusb: "0c12:700e Zeroplus"
