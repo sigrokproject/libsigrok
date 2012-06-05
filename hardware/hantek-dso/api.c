@@ -555,7 +555,7 @@ static void receive_transfer(struct libusb_transfer *transfer)
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog analog;
 	struct context *ctx;
-	float ch1, ch2;
+	float ch1, ch2, range;
 	int num_probes, data_offset, i;
 
 	ctx = transfer->user_data;
@@ -581,14 +581,24 @@ static void receive_transfer(struct libusb_transfer *transfer)
 		/* The device always sends data for both channels. If a channel
 		 * is disabled, it contains a copy of the enabled channel's
 		 * data. However, we only send the requested channels to the bus.
+		 *
+		 * Voltage values are encoded as a value 0-255 (0-512 on the 5200*),
+		 * where the value is a point in the range represented by the vdiv
+		 * setting. There are 8 vertical divs, so e.g. 500mV/div represents
+		 * 4V peak-to-peak where 0 = -2V and 255 = +2V.
 		 */
 		/* TODO: support for 5xxx series 9-bit samples */
 		if (ctx->ch1_enabled) {
-			ch1 = (*(transfer->buffer + i * 2 + 1) / 255.0);
+			range = ((float)vdivs[ctx->voltage_ch1].p / vdivs[ctx->voltage_ch1].q) * 8;
+			ch1 = range / 255 * *(transfer->buffer + i * 2 + 1);
+			/* Value is centered around 0V. */
+			ch1 -= range / 2;
 			analog.data[data_offset++] = ch1;
 		}
 		if (ctx->ch2_enabled) {
-			ch2 = (*(transfer->buffer + i * 2) / 255.0);
+			range = ((float)vdivs[ctx->voltage_ch2].p / vdivs[ctx->voltage_ch2].q) * 8;
+			ch2 = range / 255 * *(transfer->buffer + i * 2);
+			ch2 -= range / 2;
 			analog.data[data_offset++] = ch2;
 		}
 	}
