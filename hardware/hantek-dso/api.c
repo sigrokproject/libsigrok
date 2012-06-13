@@ -27,7 +27,6 @@
 #include <string.h>
 #include <sys/time.h>
 #include <inttypes.h>
-#include <arpa/inet.h>
 #include <glib.h>
 #include <libusb.h>
 #include "sigrok.h"

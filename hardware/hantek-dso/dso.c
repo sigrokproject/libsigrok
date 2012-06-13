@@ -26,7 +26,6 @@
 #include <string.h>
 #include <glib.h>
 #include <libusb.h>
-#include <arpa/inet.h>
 
 extern libusb_context *usb_context;
 extern GSList *dev_insts;
@@ -223,8 +222,8 @@ static int get_channel_offsets(struct context *ctx)
 	 */
 	for (chan = 0; chan < 2; chan++) {
 		for (v = 0; v < 9; v++) {
-			ctx->channel_levels[chan][v][0] = ntohs(ctx->channel_levels[chan][v][0]);
-			ctx->channel_levels[chan][v][1] = ntohs(ctx->channel_levels[chan][v][1]);
+			ctx->channel_levels[chan][v][0] = g_ntohs(ctx->channel_levels[chan][v][0]);
+			ctx->channel_levels[chan][v][1] = g_ntohs(ctx->channel_levels[chan][v][1]);
 		}
 	}
 
