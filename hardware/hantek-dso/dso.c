@@ -640,7 +640,8 @@ SR_PRIV int dso_init(struct context *ctx)
 	return SR_OK;
 }
 
-SR_PRIV uint8_t dso_get_capturestate(struct context *ctx)
+SR_PRIV int dso_get_capturestate(struct context *ctx, uint8_t *capturestate,
+		uint32_t *trigger_offset)
 {
 	int ret, tmp;
 	uint8_t cmdstring[2], inbuf[512];
@@ -652,20 +653,22 @@ SR_PRIV uint8_t dso_get_capturestate(struct context *ctx)
 
 	if ((ret = send_bulkcmd(ctx, cmdstring, sizeof(cmdstring))) != SR_OK) {
 		sr_dbg("Failed to send get_capturestate command: %d", ret);
-		return CAPTURE_UNKNOWN;
+		return SR_ERR;
 	}
 
 	if ((ret = libusb_bulk_transfer(ctx->usb->devhdl,
 			DSO_EP_IN | LIBUSB_ENDPOINT_IN,
 			inbuf, 512, &tmp, 100)) != 0) {
 		sr_dbg("Failed to get capturestate: %d", ret);
-		return CAPTURE_UNKNOWN;
+		return SR_ERR;
 	}
+	*capturestate = inbuf[0];
+	*trigger_offset = (inbuf[1] << 16) | (inbuf[3] << 8) | inbuf[2];
 
-	return inbuf[0];
+	return SR_OK;
 }
 
-SR_PRIV uint8_t dso_capture_start(struct context *ctx)
+SR_PRIV int dso_capture_start(struct context *ctx)
 {
 	int ret;
 	uint8_t cmdstring[2];

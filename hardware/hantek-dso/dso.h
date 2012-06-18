@@ -203,8 +203,9 @@ SR_PRIV void dso_close(struct sr_dev_inst *sdi);
 SR_PRIV int dso_enable_trigger(struct context *ctx);
 SR_PRIV int dso_force_trigger(struct context *ctx);
 SR_PRIV int dso_init(struct context *ctx);
-SR_PRIV uint8_t dso_get_capturestate(struct context *ctx);
-SR_PRIV uint8_t dso_capture_start(struct context *ctx);
+SR_PRIV int dso_get_capturestate(struct context *ctx, uint8_t *capturestate,
+		uint32_t *trigger_offset);
+SR_PRIV int dso_capture_start(struct context *ctx);
 SR_PRIV int dso_get_channeldata(struct context *ctx, libusb_transfer_cb_fn cb);
 
 #endif
