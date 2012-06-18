@@ -468,29 +468,27 @@ SR_PRIV int dso_set_voltage(struct context *ctx)
 
 SR_PRIV int dso_set_relays(struct context *ctx)
 {
-	int ret, cv1, cv2;
-	uint8_t relays[] = { 0x00, 0x04, 0x08, 0x02, 0x20, 0x40, 0x10, 0x01,
+	GString *gs;
+	int ret, i;
+	uint8_t relays[17] = { 0x00, 0x04, 0x08, 0x02, 0x20, 0x40, 0x10, 0x01,
 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
 	sr_dbg("hantek-dso: preparing CTRL_SETRELAYS");
 
-	cv1 = ctx->voltage_ch1 / 3;
-	cv2 = ctx->voltage_ch2 / 3;
-
-	if (cv1 > 0)
+	if (ctx->voltage_ch1 < VDIV_1V)
 		relays[1] = ~relays[1];
 
-	if (cv1 > 1)
+	if (ctx->voltage_ch1 < VDIV_100MV)
 		relays[2] = ~relays[2];
 
 	sr_dbg("hantek-dso: CH1 coupling %d", ctx->coupling_ch1);
 	if (ctx->coupling_ch1 != COUPLING_AC)
 		relays[3] = ~relays[3];
 
-	if (cv2 > 0)
+	if (ctx->voltage_ch2 < VDIV_1V)
 		relays[4] = ~relays[4];
 
-	if (cv2 > 1)
+	if (ctx->voltage_ch2 < VDIV_100MV)
 		relays[5] = ~relays[5];
 
 	sr_dbg("hantek-dso: CH2 coupling %d", ctx->coupling_ch1);
@@ -500,9 +498,18 @@ SR_PRIV int dso_set_relays(struct context *ctx)
 	if (!strcmp(ctx->triggersource, "EXT"))
 		relays[7] = ~relays[7];
 
+	if (sr_log_loglevel_get() >= SR_LOG_DBG) {
+		gs = g_string_sized_new(128);
+		g_string_printf(gs, "hantek-dso: relays:");
+		for (i = 0; i < 17; i++)
+			g_string_append_printf(gs, " %.2x", relays[i]);
+		sr_dbg(gs->str);
+		g_string_free(gs, TRUE);
+	}
+
 	if ((ret = libusb_control_transfer(ctx->usb->devhdl,
 			LIBUSB_REQUEST_TYPE_VENDOR, CTRL_SETRELAYS,
-			0, 0, relays, sizeof(relays), 100)) != sizeof(relays)) {
+			0, 0, relays, 17, 100)) != sizeof(relays)) {
 		sr_err("failed to set relays: %d", ret);
 		return SR_ERR;
 	}
