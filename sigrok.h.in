@@ -170,7 +170,6 @@ enum {
 /* sr_datafeed_analog.unit values */
 enum {
 	SR_UNIT_VOLTAGE,
-	SR_UNIT_CURRENT,
 };
 
 struct sr_datafeed_packet {
