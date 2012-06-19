@@ -217,7 +217,9 @@ static int sr_session_run_poll(void)
 
 		/* Construct g_poll()'s array. */
 		if (!(fds = g_try_malloc(sizeof(GPollFD) * num_sources))) {
-			sr_err("session: %s: fds malloc failed", __func__);
+			/* Not enough memory, or num_sources was 0. */
+			sr_err("session: %s: fds malloc failed "
+			       "(num_sources was %d).", __func__, num_sources);
 			return SR_ERR_MALLOC;
 		}
 		for (i = 0; i < num_sources; i++) {

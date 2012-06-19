@@ -32,6 +32,7 @@
 #include <assert.h>
 #include "analyzer.h"
 #include "gl_usb.h"
+#include "sigrok-internal.h"
 
 enum {
 	HARD_DATA_CHECK_SUM		= 0x00,
@@ -241,6 +242,11 @@ static int __analyzer_set_freq(libusb_device_handle *devh, int freq, int scale)
 		reg2 = 64;
 		break;
 	}
+
+	sr_dbg("zp: Setting samplerate regs (freq=%d, scale=%d): "
+	       "reg0: %d, reg1: %d, reg2: %d, reg3: %d.",
+	       freq, scale, divisor, reg0, 0x02, reg2);
+
 	if (gl_reg_write(devh, FREQUENCY_REG0, divisor) < 0)
 		return -1; /* Divisor maybe? */
 

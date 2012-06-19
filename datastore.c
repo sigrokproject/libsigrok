@@ -232,7 +232,8 @@ static gpointer new_chunk(struct sr_datastore **ds)
 
 	chunk = g_try_malloc0(DATASTORE_CHUNKSIZE * (*ds)->ds_unitsize);
 	if (!chunk) {
-		sr_err("ds: %s: chunk malloc failed", __func__);
+		sr_err("ds: %s: chunk malloc failed (ds_unitsize was %u)",
+		       __func__, (*ds)->ds_unitsize);
 		return NULL; /* TODO: SR_ERR_MALLOC later? */
 	}
 
