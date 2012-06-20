@@ -162,6 +162,16 @@ if test "x$HW_HANTEK_DSO" = "xyes"; then
 	AC_DEFINE(HAVE_HW_HANTEK_DSO, 1, [Hantek DSO support])
 fi
 
+AC_ARG_ENABLE(mastech-va18b,
+	      AC_HELP_STRING([--enable-mastech-va18b],
+	      [enable Mastech VA18B support [default=yes]]),
+	      [HW_MASTECH_VA18B="$enableval"],
+	      [HW_MASTECH_VA18B=yes])
+AM_CONDITIONAL(HW_MASTECH_VA18B, test x$HW_MASTECH_VA18B = xyes)
+if test "x$HW_MASTECH_VA18B" = "xyes"; then
+	AC_DEFINE(HAVE_HW_MASTECH_VA18B, 1, [Mastech VA18B support])
+fi
+
 # Checks for libraries.
 
 # This variable collects the pkg-config names of all detected libs.
@@ -276,6 +286,7 @@ AC_CONFIG_FILES([Makefile
 		 hardware/openbench-logic-sniffer/Makefile
 		 hardware/zeroplus-logic-cube/Makefile
 		 hardware/hantek-dso/Makefile
+		 hardware/mastech-va18b/Makefile
 		 input/Makefile
 		 output/Makefile
 		 output/text/Makefile
@@ -317,5 +328,6 @@ echo "  - Link MSO-19..................... $LA_LINK_MSO19"
 echo "  - Openbench Logic Sniffer......... $LA_OLS"
 echo "  - ZEROPLUS Logic Cube............. $LA_ZEROPLUS_LOGIC_CUBE"
 echo "  - Hantek DSO...................... $HW_HANTEK_DSO"
+echo "  - Mastech VA18B................... $HW_MASTECH_VA18B"
 echo
 

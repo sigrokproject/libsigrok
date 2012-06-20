@@ -27,7 +27,8 @@ SUBDIRS = \
 	link-mso19 \
 	openbench-logic-sniffer \
 	zeroplus-logic-cube \
-	hantek-dso
+	hantek-dso \
+	mastech-va18b
 
 noinst_LTLIBRARIES = libsigrokhardware.la
 
@@ -70,5 +71,9 @@ endif
 
 if HW_HANTEK_DSO
 libsigrokhardware_la_LIBADD += hantek-dso/libsigrokhw_hantek_dso.la
+endif
+
+if HW_MASTECH_VA18B
+libsigrokhardware_la_LIBADD += mastech-va18b/libsigrokhw_mastech_va18b.la
 endif
 
