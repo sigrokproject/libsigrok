@@ -573,7 +573,8 @@ static void receive_transfer(struct libusb_transfer *transfer)
 	packet.payload = &analog;
 	/* TODO: support for 5xxx series 9-bit samples */
 	analog.num_samples = transfer->actual_length / 2;
-	analog.unit = SR_UNIT_VOLTAGE;
+	analog.mq = SR_MQ_VOLTAGE;
+	analog.unit = SR_UNIT_VOLT;
 	analog.data = g_try_malloc(analog.num_samples * sizeof(float) * num_probes);
 	data_offset = 0;
 	for (i = 0; i < analog.num_samples; i++) {

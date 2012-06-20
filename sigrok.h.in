@@ -167,9 +167,27 @@ enum {
 	SR_DF_FRAME_END,
 };
 
+/* sr_datafeed_analog.mq values */
+enum {
+	SR_MQ_VOLTAGE,
+	SR_MQ_CURRENT,
+	SR_MQ_RESISTANCE,
+	SR_MQ_CAPACITANCE,
+	SR_MQ_TEMPERATURE,
+	SR_MQ_FREQUENCY,
+	SR_MQ_DUTY_CYCLE,
+};
+
 /* sr_datafeed_analog.unit values */
 enum {
-	SR_UNIT_VOLTAGE,
+	SR_UNIT_VOLT,
+	SR_UNIT_AMPERE,
+	SR_UNIT_OHM,
+	SR_UNIT_FARAD,
+	SR_UNIT_CELSIUS,
+	SR_UNIT_KELVIN,
+	SR_UNIT_HERTZ,
+	SR_UNIT_PERCENTAGE,
 };
 
 struct sr_datafeed_packet {
@@ -199,7 +217,8 @@ struct sr_datafeed_meta_analog {
 
 struct sr_datafeed_analog {
 	int num_samples;
-	int unit;
+	int mq; /* Measured quantity (e.g. voltage, current, temperature) */
+	int unit; /* Unit in which the MQ is measured. */
 	float *data;
 };
 
