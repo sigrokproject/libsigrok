@@ -24,7 +24,9 @@ if LA_CHRONOVU_LA8
 noinst_LTLIBRARIES = libsigrokhwchronovula8.la
 
 libsigrokhwchronovula8_la_SOURCES = \
-	chronovu-la8.c
+	api.c \
+	driver.c \
+	driver.h
 
 libsigrokhwchronovula8_la_CFLAGS = \
 	-I$(top_srcdir)
