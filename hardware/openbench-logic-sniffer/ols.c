@@ -100,7 +100,7 @@ static const struct sr_samplerates samplerates = {
 	NULL,
 };
 
-/* List of struct sr_serial_dev_inst */
+/* List of struct sr_dev_inst. */
 static GSList *dev_insts = NULL;
 
 static int send_shortcommand(int fd, uint8_t command)
