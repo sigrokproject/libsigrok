@@ -766,8 +766,8 @@ static void receive_transfer(struct libusb_transfer *transfer)
 					 */
 					packet.type = SR_DF_LOGIC;
 					packet.payload = &logic;
-					logic.length = ctx->trigger_stage;
-					logic.unitsize = 1;
+					logic.unitsize = sizeof(*ctx->trigger_buffer);
+					logic.length = ctx->trigger_stage * logic.unitsize;
 					logic.data = ctx->trigger_buffer;
 					sr_session_send(ctx->session_dev_id, &packet);
 
