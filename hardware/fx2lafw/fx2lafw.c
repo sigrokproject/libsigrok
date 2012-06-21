@@ -706,6 +706,7 @@ static void receive_transfer(struct libusb_transfer *transfer)
 	/* Fire off a new request. */
 	if (!(new_buf = g_try_malloc(4096))) {
 		sr_err("fx2lafw: %s: new_buf malloc failed.", __func__);
+		libusb_free_transfer(transfer);
 		return; /* TODO: SR_ERR_MALLOC */
 	}
 
@@ -726,6 +727,7 @@ static void receive_transfer(struct libusb_transfer *transfer)
 			 */
 			abort_acquisition(ctx);
 		}
+		g_free(cur_buf);
 		return;
 	} else {
 		empty_transfer_count = 0;
@@ -801,7 +803,6 @@ static void receive_transfer(struct libusb_transfer *transfer)
 		logic.unitsize = sample_width;
 		logic.data = cur_buf + trigger_offset_bytes;
 		sr_session_send(ctx->session_dev_id, &packet);
-		g_free(cur_buf);
 
 		ctx->num_samples += cur_sample_count;
 		if (ctx->limit_samples &&
@@ -814,6 +815,7 @@ static void receive_transfer(struct libusb_transfer *transfer)
 		 * ratio-sized buffer.
 		 */
 	}
+	g_free(cur_buf);
 }
 
 static int hw_dev_acquisition_start(int dev_index, void *cb_data)
