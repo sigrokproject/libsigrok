@@ -21,7 +21,7 @@ Requirements
  - automake >= 1.11
  - libtool
  - pkg-config >= 0.22
- - libglib >= 2.22.0
+ - libglib >= 2.28.0
  - libusb >= 1.0.5 (for most logic analyzer hardware)
  - libzip >= 0.8
  - libftdi >= 0.16 (for some logic analyzer hardware)
