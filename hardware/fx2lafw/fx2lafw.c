@@ -682,6 +682,20 @@ static void finish_acquisition(struct context *ctx)
 	free(lupfd); /* NOT g_free()! */
 }
 
+static void free_transfer(struct libusb_transfer *transfer)
+{
+	struct context *ctx = transfer->user_data;
+
+	g_free(transfer->buffer);
+	transfer->buffer = NULL;
+	libusb_free_transfer(transfer);
+
+	ctx->submitted_transfers--;
+	if (ctx->submitted_transfers == 0)
+		finish_acquisition(ctx);
+
+}
+
 static void receive_transfer(struct libusb_transfer *transfer)
 {
 	/* TODO: These statics have to move to the ctx struct. */
@@ -697,13 +711,7 @@ static void receive_transfer(struct libusb_transfer *transfer)
 	 * transfer that come in.
 	 */
 	if (ctx->num_samples == -1) {
-		if (transfer)
-			libusb_free_transfer(transfer);
-
-		ctx->submitted_transfers--;
-		if (ctx->submitted_transfers == 0)
-			finish_acquisition(ctx);
-
+		free_transfer(transfer);
 		return;
 	}
 
@@ -718,7 +726,7 @@ static void receive_transfer(struct libusb_transfer *transfer)
 	/* Fire off a new request. */
 	if (!(new_buf = g_try_malloc(4096))) {
 		sr_err("fx2lafw: %s: new_buf malloc failed.", __func__);
-		libusb_free_transfer(transfer);
+		free_transfer(transfer);
 		return; /* TODO: SR_ERR_MALLOC */
 	}
 
