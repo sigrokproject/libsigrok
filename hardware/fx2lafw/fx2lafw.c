@@ -696,6 +696,30 @@ static void free_transfer(struct libusb_transfer *transfer)
 
 }
 
+static void resubmit_transfer(struct libusb_transfer *transfer)
+{
+	uint8_t *new_buf;
+
+	/* Increase buffer size to 4096 */
+	if (transfer->length != 4096) {
+		new_buf = g_try_malloc(4096);
+		/* If allocation of the new buffer fails, just vdo not bother and
+		 * continue to use the old one. */
+		if (new_buf) {
+			g_free(transfer->buffer);
+			transfer->buffer = new_buf;
+			transfer->length = 4096;
+		}
+	}
+
+	if (libusb_submit_transfer(transfer) != 0) {
+		free_transfer(transfer);
+		/* TODO: Stop session? */
+		/* TODO: Better error message. */
+		sr_err("fx2lafw: %s: libusb_submit_transfer error.", __func__);
+	}
+}
+
 static void receive_transfer(struct libusb_transfer *transfer)
 {
 	/* TODO: These statics have to move to the ctx struct. */
@@ -704,7 +728,6 @@ static void receive_transfer(struct libusb_transfer *transfer)
 	struct sr_datafeed_logic logic;
 	struct context *ctx = transfer->user_data;
 	int trigger_offset, i;
-	uint8_t *new_buf;
 
 	/*
 	 * If acquisition has already ended, just free any queued up
@@ -723,21 +746,6 @@ static void receive_transfer(struct libusb_transfer *transfer)
 	const int sample_width = ctx->sample_wide ? 2 : 1;
 	const int cur_sample_count = transfer->actual_length / sample_width;
 
-	/* Fire off a new request. */
-	if (!(new_buf = g_try_malloc(4096))) {
-		sr_err("fx2lafw: %s: new_buf malloc failed.", __func__);
-		free_transfer(transfer);
-		return; /* TODO: SR_ERR_MALLOC */
-	}
-
-	transfer->buffer = new_buf;
-	transfer->length = 4096;
-	if (libusb_submit_transfer(transfer) != 0) {
-		/* TODO: Stop session? */
-		/* TODO: Better error message. */
-		sr_err("fx2lafw: %s: libusb_submit_transfer error.", __func__);
-	}
-
 	if (transfer->actual_length == 0) {
 		empty_transfer_count++;
 		if (empty_transfer_count > MAX_EMPTY_TRANSFERS) {
@@ -746,8 +754,10 @@ static void receive_transfer(struct libusb_transfer *transfer)
 			 * will work out that the samplecount is short.
 			 */
 			abort_acquisition(ctx);
+			free_transfer(transfer);
+		} else {
+			resubmit_transfer(transfer);
 		}
-		g_free(cur_buf);
 		return;
 	} else {
 		empty_transfer_count = 0;
@@ -832,7 +842,8 @@ static void receive_transfer(struct libusb_transfer *transfer)
 		 * ratio-sized buffer.
 		 */
 	}
-	g_free(cur_buf);
+
+	resubmit_transfer(transfer);
 }
 
 static int hw_dev_acquisition_start(int dev_index, void *cb_data)
