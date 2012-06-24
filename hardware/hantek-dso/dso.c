@@ -643,7 +643,8 @@ SR_PRIV int dso_init(struct context *ctx)
 SR_PRIV int dso_get_capturestate(struct context *ctx, uint8_t *capturestate,
 		uint32_t *trigger_offset)
 {
-	int ret, tmp;
+	int ret, tmp, i;
+	unsigned int bitvalue, toff;
 	uint8_t cmdstring[2], inbuf[512];
 
 	sr_dbg("hantek-dso: sending CMD_GET_CAPTURESTATE");
@@ -663,7 +664,20 @@ SR_PRIV int dso_get_capturestate(struct context *ctx, uint8_t *capturestate,
 		return SR_ERR;
 	}
 	*capturestate = inbuf[0];
-	*trigger_offset = (inbuf[1] << 16) | (inbuf[3] << 8) | inbuf[2];
+	toff = (inbuf[1] << 16) | (inbuf[3] << 8) | inbuf[2];
+
+	/* This conversion comes from the openhantek project.
+	 * Each set bit in the 24-bit value inverts all bits with a lower
+	 * value. No idea why the device reports the trigger point this way.
+	 */
+	bitvalue = 1;
+	for (i = 0; i < 24; i++) {
+		// Each set bit inverts all bits with a lower value
+		if(toff & bitvalue)
+			toff ^= bitvalue - 1;
+		bitvalue <<= 1;
+	}
+	*trigger_offset = toff;
 
 	return SR_OK;
 }
