@@ -724,6 +724,7 @@ static void receive_transfer(struct libusb_transfer *transfer)
 {
 	/* TODO: These statics have to move to the ctx struct. */
 	static int empty_transfer_count = 0;
+	gboolean packet_has_error = FALSE;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
 	struct context *ctx = transfer->user_data;
@@ -746,7 +747,20 @@ static void receive_transfer(struct libusb_transfer *transfer)
 	const int sample_width = ctx->sample_wide ? 2 : 1;
 	const int cur_sample_count = transfer->actual_length / sample_width;
 
-	if (transfer->actual_length == 0) {
+	switch (transfer->status) {
+	case LIBUSB_TRANSFER_NO_DEVICE:
+		abort_acquisition(ctx);
+		free_transfer(transfer);
+		return;
+	case LIBUSB_TRANSFER_COMPLETED:
+	case LIBUSB_TRANSFER_TIMED_OUT: /* We may have received some data though */
+		break;
+	default:
+		packet_has_error = TRUE;
+		break;
+	}
+
+	if (transfer->actual_length == 0 || packet_has_error) {
 		empty_transfer_count++;
 		if (empty_transfer_count > MAX_EMPTY_TRANSFERS) {
 			/*
