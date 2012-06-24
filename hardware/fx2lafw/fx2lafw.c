@@ -830,8 +830,8 @@ static void receive_transfer(struct libusb_transfer *transfer)
 static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 {
 	struct sr_dev_inst *sdi;
-	struct sr_datafeed_packet *packet;
-	struct sr_datafeed_header *header;
+	struct sr_datafeed_packet packet;
+	struct sr_datafeed_header header;
 	struct sr_datafeed_meta_logic meta;
 	struct context *ctx;
 	struct libusb_transfer *transfer;
@@ -844,16 +844,6 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 	ctx = sdi->priv;
 	ctx->session_dev_id = cb_data;
 	ctx->num_samples = 0;
-
-	if (!(packet = g_try_malloc(sizeof(struct sr_datafeed_packet)))) {
-		sr_err("fx2lafw: %s: packet malloc failed.", __func__);
-		return SR_ERR_MALLOC;
-	}
-
-	if (!(header = g_try_malloc(sizeof(struct sr_datafeed_header)))) {
-		sr_err("fx2lafw: %s: header malloc failed.", __func__);
-		return SR_ERR_MALLOC;
-	}
 
 	/* Start with 2K transfer, subsequently increased to 4K. */
 	size = 2048;
@@ -883,21 +873,18 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 			      40, receive_data, NULL);
 	free(lupfd); /* NOT g_free()! */
 
-	packet->type = SR_DF_HEADER;
-	packet->payload = header;
-	header->feed_version = 1;
-	gettimeofday(&header->starttime, NULL);
-	sr_session_send(cb_data, packet);
+	packet.type = SR_DF_HEADER;
+	packet.payload = &header;
+	header.feed_version = 1;
+	gettimeofday(&header.starttime, NULL);
+	sr_session_send(cb_data, &packet);
 
 	/* Send metadata about the SR_DF_LOGIC packets to come. */
-	packet->type = SR_DF_META_LOGIC;
-	packet->payload = &meta;
+	packet.type = SR_DF_META_LOGIC;
+	packet.payload = &meta;
 	meta.samplerate = ctx->cur_samplerate;
 	meta.num_probes = ctx->sample_wide ? 16 : 8;
-	sr_session_send(cb_data, packet);
-
-	g_free(header);
-	g_free(packet);
+	sr_session_send(cb_data, &packet);
 
 	if ((ret = command_start_acquisition (ctx->usb->devhdl,
 		ctx->cur_samplerate, ctx->sample_wide)) != SR_OK) {
