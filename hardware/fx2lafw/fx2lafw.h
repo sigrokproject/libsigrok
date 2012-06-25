@@ -84,6 +84,7 @@ struct context {
 
 	int num_samples;
 	int submitted_transfers;
+	int empty_transfer_count;
 
 	void *session_dev_id;
 

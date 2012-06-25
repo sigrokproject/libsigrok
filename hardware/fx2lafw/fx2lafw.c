@@ -708,8 +708,6 @@ static void resubmit_transfer(struct libusb_transfer *transfer)
 
 static void receive_transfer(struct libusb_transfer *transfer)
 {
-	/* TODO: These statics have to move to the ctx struct. */
-	static int empty_transfer_count = 0;
 	gboolean packet_has_error = FALSE;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
@@ -747,8 +745,8 @@ static void receive_transfer(struct libusb_transfer *transfer)
 	}
 
 	if (transfer->actual_length == 0 || packet_has_error) {
-		empty_transfer_count++;
-		if (empty_transfer_count > MAX_EMPTY_TRANSFERS) {
+		ctx->empty_transfer_count++;
+		if (ctx->empty_transfer_count > MAX_EMPTY_TRANSFERS) {
 			/*
 			 * The FX2 gave up. End the acquisition, the frontend
 			 * will work out that the samplecount is short.
@@ -760,7 +758,7 @@ static void receive_transfer(struct libusb_transfer *transfer)
 		}
 		return;
 	} else {
-		empty_transfer_count = 0;
+		ctx->empty_transfer_count = 0;
 	}
 
 	trigger_offset = 0;
@@ -902,6 +900,7 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 	ctx = sdi->priv;
 	ctx->session_dev_id = cb_data;
 	ctx->num_samples = 0;
+	ctx->empty_transfer_count = 0;
 
 	const unsigned int timeout = get_timeout(ctx);
 	const unsigned int num_transfers = get_number_of_transfers(ctx);
