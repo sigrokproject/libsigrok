@@ -698,20 +698,6 @@ static void free_transfer(struct libusb_transfer *transfer)
 
 static void resubmit_transfer(struct libusb_transfer *transfer)
 {
-	uint8_t *new_buf;
-
-	/* Increase buffer size to 4096 */
-	if (transfer->length != 4096) {
-		new_buf = g_try_malloc(4096);
-		/* If allocation of the new buffer fails, just vdo not bother and
-		 * continue to use the old one. */
-		if (new_buf) {
-			g_free(transfer->buffer);
-			transfer->buffer = new_buf;
-			transfer->length = 4096;
-		}
-	}
-
 	if (libusb_submit_transfer(transfer) != 0) {
 		free_transfer(transfer);
 		/* TODO: Stop session? */
@@ -860,6 +846,44 @@ static void receive_transfer(struct libusb_transfer *transfer)
 	resubmit_transfer(transfer);
 }
 
+static unsigned int to_bytes_per_ms(unsigned int samplerate)
+{
+	return samplerate / 1000;
+}
+
+static size_t get_buffer_size(struct context *ctx)
+{
+	size_t s;
+
+	/* The buffer should be large enough to hold 10ms of data and a multiple
+	 * of 512. */
+	s = 10 * to_bytes_per_ms(ctx->cur_samplerate);
+	return (s + 511) & ~511;
+}
+
+static unsigned int get_number_of_transfers(struct context *ctx)
+{
+	unsigned int n;
+
+	/* Total buffer size should be able to hold about 500ms of data */
+	n = 500 * to_bytes_per_ms(ctx->cur_samplerate) / get_buffer_size(ctx);
+
+	if (n > NUM_SIMUL_TRANSFERS)
+		return NUM_SIMUL_TRANSFERS;
+
+	return n;
+}
+
+static unsigned int get_timeout(struct context *ctx)
+{
+	size_t total_size;
+	unsigned int timeout;
+
+	total_size = get_buffer_size(ctx) * get_number_of_transfers(ctx);
+	timeout = total_size / to_bytes_per_ms(ctx->cur_samplerate);
+	return timeout + timeout / 4; /* Leave a headroom of 25% percent */
+}
+
 static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 {
 	struct sr_dev_inst *sdi;
@@ -869,7 +893,8 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 	struct context *ctx;
 	struct libusb_transfer *transfer;
 	const struct libusb_pollfd **lupfd;
-	int ret, size, i;
+	unsigned int i;
+	int ret;
 	unsigned char *buf;
 
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
@@ -878,9 +903,11 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 	ctx->session_dev_id = cb_data;
 	ctx->num_samples = 0;
 
-	/* Start with 2K transfer, subsequently increased to 4K. */
-	size = 2048;
-	for (i = 0; i < NUM_SIMUL_TRANSFERS; i++) {
+	const unsigned int timeout = get_timeout(ctx);
+	const unsigned int num_transfers = get_number_of_transfers(ctx);
+	const size_t size = get_buffer_size(ctx);
+
+	for (i = 0; i < num_transfers; i++) {
 		if (!(buf = g_try_malloc(size))) {
 			sr_err("fx2lafw: %s: buf malloc failed.", __func__);
 			return SR_ERR_MALLOC;
@@ -888,7 +915,7 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 		transfer = libusb_alloc_transfer(0);
 		libusb_fill_bulk_transfer(transfer, ctx->usb->devhdl,
 				2 | LIBUSB_ENDPOINT_IN, buf, size,
-				receive_transfer, ctx, 40);
+				receive_transfer, ctx, timeout);
 		if (libusb_submit_transfer(transfer) != 0) {
 			/* TODO: Free them all. */
 			libusb_free_transfer(transfer);
@@ -897,13 +924,12 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 		}
 
 		ctx->submitted_transfers++;
-		size = 4096;
 	}
 
 	lupfd = libusb_get_pollfds(usb_context);
 	for (i = 0; lupfd[i]; i++)
 		sr_source_add(lupfd[i]->fd, lupfd[i]->events,
-			      40, receive_data, NULL);
+			      timeout, receive_data, NULL);
 	free(lupfd); /* NOT g_free()! */
 
 	packet.type = SR_DF_HEADER;
