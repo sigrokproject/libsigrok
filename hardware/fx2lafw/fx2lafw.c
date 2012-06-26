@@ -467,8 +467,7 @@ static int hw_dev_open(int dev_index)
 	 * If the firmware was recently uploaded, wait up to MAX_RENUM_DELAY_MS
 	 * milliseconds for the FX2 to renumerate.
 	 */
-	ret = 0;
-
+	ret = SR_ERR;
 	if (ctx->fw_updated > 0) {
 		sr_info("fx2lafw: Waiting for device to reset.");
 		/* takes at least 300ms for the FX2 to be gone from the USB bus */
@@ -480,9 +479,8 @@ static int hw_dev_open(int dev_index)
 			g_usleep(100 * 1000);
 
 			timediff_us = g_get_monotonic_time() - ctx->fw_updated;
-			timediff_ms = timediff_us / G_USEC_PER_SEC;
-			sr_spew("fx2lafw: timediff: %" PRIi64 " us.",
-				timediff_us);
+			timediff_ms = timediff_us / 1000;
+			sr_spew("fx2lafw: waited %" PRIi64 " ms", timediff_ms);
 		}
 		sr_info("fx2lafw: Device came back after %d ms.", timediff_ms);
 	} else {
