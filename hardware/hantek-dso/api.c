@@ -34,10 +34,9 @@
 #include "config.h"
 #include "dso.h"
 
-/* FIXME: Temporary build fix, this will be removed later. */
-#define GTV_TO_MSEC(gtv)       (gtv.tv_sec * 1000 + gtv.tv_usec / 1000)
 
-/* Max time in ms before we want to check on events */
+/* Max time in ms before we want to check on USB events */
+/* TODO tune this properly */
 #define TICK    1
 
 static const int hwcaps[] = {
@@ -228,7 +227,7 @@ static int hw_init(const char *devinfo)
 				if (ezusb_upload_firmware(devlist[i], USB_CONFIGURATION,
 						prof->firmware) == SR_OK)
 					/* Remember when the firmware on this device was updated */
-					g_get_current_time(&ctx->fw_updated);
+					ctx->fw_updated = g_get_monotonic_time();
 				else
 					sr_err("hantek-dso: firmware upload failed for "
 					       "device %d", devcnt);
@@ -263,33 +262,34 @@ static int hw_init(const char *devinfo)
 
 static int hw_dev_open(int dev_index)
 {
-	GTimeVal cur_time;
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
-	int timediff, err;
+	int64_t timediff_us, timediff_ms;
+	int err;
 
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return SR_ERR_ARG;
 	ctx = sdi->priv;
 
 	/*
-	 * if the firmware was recently uploaded, wait up to MAX_RENUM_DELAY ms
+	 * if the firmware was recently uploaded, wait up to MAX_RENUM_DELAY_MS
 	 * for the FX2 to renumerate
 	 */
-	err = 0;
-	if (GTV_TO_MSEC(ctx->fw_updated) > 0) {
+	err = SR_ERR;
+	if (ctx->fw_updated > 0) {
 		sr_info("hantek-dso: waiting for device to reset");
 		/* takes at least 300ms for the FX2 to be gone from the USB bus */
 		g_usleep(300 * 1000);
-		timediff = 0;
-		while (timediff < MAX_RENUM_DELAY) {
+		timediff_ms = 0;
+		while (timediff_ms < MAX_RENUM_DELAY_MS) {
 			if ((err = dso_open(dev_index)) == SR_OK)
 				break;
 			g_usleep(100 * 1000);
-			g_get_current_time(&cur_time);
-			timediff = GTV_TO_MSEC(cur_time) - GTV_TO_MSEC(ctx->fw_updated);
+			timediff_us = g_get_monotonic_time() - ctx->fw_updated;
+			timediff_ms = timediff_us / 1000;
+			sr_spew("fx2lafw: waited %" PRIi64 " ms", timediff_ms);
 		}
-		sr_info("hantek-dso: device came back after %d ms", timediff);
+		sr_info("hantek-dso: device came back after %d ms", timediff_ms);
 	} else {
 		err = dso_open(dev_index);
 	}

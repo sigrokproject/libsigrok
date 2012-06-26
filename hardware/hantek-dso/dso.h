@@ -28,7 +28,7 @@
 #define DSO_EP_OUT             0x02
 
 /* FX2 renumeration delay in ms */
-#define MAX_RENUM_DELAY        3000
+#define MAX_RENUM_DELAY_MS     3000
 
 #define MAX_CAPTURE_EMPTY      3
 
@@ -170,7 +170,7 @@ struct context {
 	 * after the upgrade) this is like a global lock. No device will open
 	 * until a proper delay after the last device was upgraded.
 	 */
-	GTimeVal fw_updated;
+	int64_t fw_updated;
 	int epin_maxpacketsize;
 	int capture_empty_count;
 	int dev_state;
