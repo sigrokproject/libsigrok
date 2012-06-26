@@ -173,9 +173,9 @@ struct context {
 	GTimeVal fw_updated;
 	int epin_maxpacketsize;
 	int capture_empty_count;
-	int current_transfer;
 	int dev_state;
 
+	/* Oscilloscope settings. */
 	int timebase;
 	gboolean ch1_enabled;
 	gboolean ch2_enabled;
@@ -188,7 +188,7 @@ struct context {
 	float voffset_ch2;
 	float voffset_trigger;
 	uint16_t channel_levels[2][9][2];
-	int framesize;
+	unsigned int framesize;
 	gboolean filter_ch1;
 	gboolean filter_ch2;
 	gboolean filter_trigger;
@@ -196,6 +196,12 @@ struct context {
 	char *triggersource;
 	float triggerposition;
 	int triggermode;
+
+	/* Frame transfer */
+	unsigned int samp_received;
+	unsigned int samp_buffered;
+	unsigned int trigger_offset;
+	unsigned char *framebuf;
 };
 
 SR_PRIV int dso_open(int dev_index);

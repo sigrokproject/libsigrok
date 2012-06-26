@@ -544,35 +544,19 @@ static int hw_dev_config_set(int dev_index, int hwcap, const void *value)
 	return ret;
 }
 
-/* Called by libusb (as triggered by handle_event()) when a transfer comes in.
- * Only channel data comes in asynchronously, and all transfers for this are
- * queued up beforehand, so this just needs so chuck the incoming data onto
- * the libsigrok session bus.
- */
-static void receive_transfer(struct libusb_transfer *transfer)
+static void send_chunk(struct context *ctx, unsigned char *buf,
+		int num_samples)
 {
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog analog;
-	struct context *ctx;
 	float ch1, ch2, range;
 	int num_probes, data_offset, i;
-
-	ctx = transfer->user_data;
-	sr_dbg("hantek-dso: receive_transfer(): status %d received %d bytes",
-			transfer->status, transfer->actual_length);
-
-	if (transfer->actual_length == 0)
-		/* Nothing to send to the bus. */
-		return;
-
-	ctx->current_transfer += transfer->actual_length;
-	sr_dbg("hantek-dso: got %d of %d in frame", ctx->current_transfer, ctx->framesize * 2);
 
 	num_probes = (ctx->ch1_enabled && ctx->ch2_enabled) ? 2 : 1;
 	packet.type = SR_DF_ANALOG;
 	packet.payload = &analog;
 	/* TODO: support for 5xxx series 9-bit samples */
-	analog.num_samples = transfer->actual_length / 2;
+	analog.num_samples = num_samples;
 	analog.mq = SR_MQ_VOLTAGE;
 	analog.unit = SR_UNIT_VOLT;
 	analog.data = g_try_malloc(analog.num_samples * sizeof(float) * num_probes);
@@ -590,24 +574,100 @@ static void receive_transfer(struct libusb_transfer *transfer)
 		/* TODO: support for 5xxx series 9-bit samples */
 		if (ctx->ch1_enabled) {
 			range = ((float)vdivs[ctx->voltage_ch1].p / vdivs[ctx->voltage_ch1].q) * 8;
-			ch1 = range / 255 * *(transfer->buffer + i * 2 + 1);
+			ch1 = range / 255 * *(buf + i * 2 + 1);
 			/* Value is centered around 0V. */
 			ch1 -= range / 2;
 			analog.data[data_offset++] = ch1;
 		}
 		if (ctx->ch2_enabled) {
 			range = ((float)vdivs[ctx->voltage_ch2].p / vdivs[ctx->voltage_ch2].q) * 8;
-			ch2 = range / 255 * *(transfer->buffer + i * 2);
+			ch2 = range / 255 * *(buf + i * 2);
 			ch2 -= range / 2;
 			analog.data[data_offset++] = ch2;
 		}
 	}
-	g_free(transfer->buffer);
-	libusb_free_transfer(transfer);
 	sr_session_send(ctx->cb_data, &packet);
 
-	if (ctx->current_transfer >= ctx->framesize * 2) {
-		/* That's the last chunk in this frame. */
+}
+
+/* Called by libusb (as triggered by handle_event()) when a transfer comes in.
+ * Only channel data comes in asynchronously, and all transfers for this are
+ * queued up beforehand, so this just needs so chuck the incoming data onto
+ * the libsigrok session bus.
+ */
+static void receive_transfer(struct libusb_transfer *transfer)
+{
+	struct sr_datafeed_packet packet;
+	struct context *ctx;
+	int num_samples, pre;
+
+	ctx = transfer->user_data;
+	sr_dbg("hantek-dso: receive_transfer(): status %d received %d bytes",
+			transfer->status, transfer->actual_length);
+
+	if (transfer->actual_length == 0)
+		/* Nothing to send to the bus. */
+		return;
+
+	num_samples = transfer->actual_length / 2;
+
+	sr_dbg("hantek-dso: got %d-%d/%d samples in frame", ctx->samp_received + 1,
+			ctx->samp_received + num_samples, ctx->framesize);
+
+	/* The device always sends a full frame, but the beginning of the frame
+	 * doesn't represent the trigger point. The offset at which the trigger
+	 * happened came in with the capture state, so we need to start sending
+	 * from there up the session bus. The samples in the frame buffer before
+	 * that trigger point came after the end of the device's frame buffer was
+	 * reached, and it wrapped around to overwrite up until the trigger point.
+	 */
+	if (ctx->samp_received < ctx->trigger_offset) {
+		/* Trigger point not yet reached. */
+		if (ctx->samp_received + num_samples < ctx->trigger_offset) {
+			/* The entire chunk is before the trigger point. */
+			memcpy(ctx->framebuf + ctx->samp_buffered * 2,
+					transfer->buffer, num_samples * 2);
+			ctx->samp_buffered += num_samples;
+		} else {
+			/* This chunk hits or overruns the trigger point.
+			 * Store the part before the trigger fired, and
+			 * send the rest up to the session bus. */
+			pre = ctx->trigger_offset - ctx->samp_received;
+			memcpy(ctx->framebuf + ctx->samp_buffered * 2,
+					transfer->buffer, pre * 2);
+			ctx->samp_buffered += pre;
+
+			/* The rest of this chunk starts with the trigger point. */
+			sr_dbg("hantek-dso: reached trigger point, %d samples buffered",
+					ctx->samp_buffered);
+
+			/* Avoid the corner case where the chunk ended at
+			 * exactly the trigger point. */
+			if (num_samples > pre)
+				send_chunk(ctx, transfer->buffer + pre * 2,
+						num_samples - pre);
+		}
+	} else {
+		/* Already past the trigger point, just send it all out. */
+		send_chunk(ctx, transfer->buffer,
+				num_samples);
+	}
+
+	ctx->samp_received += num_samples;
+
+	/* Everything in this transfer was either copied to the buffer or
+	 * sent to the session bus. */
+	g_free(transfer->buffer);
+	libusb_free_transfer(transfer);
+
+	if (ctx->samp_received >= ctx->framesize) {
+		/* That was the last chunk in this frame. Send the buffered
+		 * pre-trigger samples out now, in one big chunk. */
+		sr_dbg("hantek-dso: end of frame, sending %d pre-trigger buffered samples",
+				ctx->samp_buffered);
+		send_chunk(ctx, ctx->framebuf, ctx->samp_buffered);
+
+		/* Mark the end of this frame. */
 		packet.type = SR_DF_FRAME_END;
 		sr_session_send(ctx->cb_data, &packet);
 
@@ -617,7 +677,6 @@ static void receive_transfer(struct libusb_transfer *transfer)
 			packet.type = SR_DF_END;
 			sr_session_send(ctx->cb_data, &packet);
 		} else {
-			ctx->current_transfer = 0;
 			ctx->dev_state = NEW_CAPTURE;
 		}
 	}
@@ -629,6 +688,7 @@ static int handle_event(int fd, int revents, void *cb_data)
 	struct sr_datafeed_packet packet;
 	struct timeval tv;
 	struct context *ctx;
+	int num_probes;
 	uint32_t trigger_offset;
 	uint8_t capturestate;
 
@@ -678,6 +738,13 @@ static int handle_event(int fd, int revents, void *cb_data)
 		/* no data yet */
 		break;
 	case CAPTURE_READY_8BIT:
+		/* Remember where in the captured frame the trigger is. */
+		ctx->trigger_offset = trigger_offset;
+
+		num_probes = (ctx->ch1_enabled && ctx->ch2_enabled) ? 2 : 1;
+		ctx->framebuf = g_try_malloc(ctx->framesize * num_probes * 2);
+		ctx->samp_buffered = ctx->samp_received = 0;
+
 		/* Tell the scope to send us the first frame. */
 		if (dso_get_channeldata(ctx, receive_transfer) != SR_OK)
 			break;

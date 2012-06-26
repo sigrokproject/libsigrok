@@ -672,7 +672,7 @@ SR_PRIV int dso_get_capturestate(struct context *ctx, uint8_t *capturestate,
 	 */
 	bitvalue = 1;
 	for (i = 0; i < 24; i++) {
-		// Each set bit inverts all bits with a lower value
+		/* Each set bit inverts all bits with a lower value. */
 		if(toff & bitvalue)
 			toff ^= bitvalue - 1;
 		bitvalue <<= 1;
