@@ -61,12 +61,22 @@ static const char *probe_names[] = {
 };
 
 static const struct dso_profile dev_profiles[] = {
-	{	0x04b4, 0x2090,
-		0x04b5, 0x2090,
+	{	0x04b4, 0x2090, 0x04b5, 0x2090,
 		"Hantek", "DSO-2090",
-		NULL, 2,
-		FIRMWARE_DIR "/hantek-dso-2090.fw" },
-	{ 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+		FIRMWARE_DIR "/hantek-dso-2xxx.fw" },
+	{	0x04b4, 0x2150, 0x04b5, 0x2150,
+		"Hantek", "DSO-2150",
+		FIRMWARE_DIR "/hantek-dso-2xxx.fw" },
+	{	0x04b4, 0x2250, 0x04b5, 0x2250,
+		"Hantek", "DSO-2250",
+		FIRMWARE_DIR "/hantek-dso-2xxx.fw" },
+	{	0x04b4, 0x5200, 0x04b5, 0x5200,
+		"Hantek", "DSO-5200",
+		FIRMWARE_DIR "/hantek-dso-5xxx.fw" },
+	{	0x04b4, 0x520a, 0x04b5, 0x520a,
+		"Hantek", "DSO-5200A",
+		FIRMWARE_DIR "/hantek-dso-5xxx.fw" },
+	{ 0, 0, 0, 0, 0, 0, 0 },
 };
 
 static const uint64_t buffersizes[] = {
@@ -116,6 +126,7 @@ static const char *trigger_sources[] = {
 	"CH1",
 	"CH2",
 	"EXT",
+	/* TODO: forced */
 	NULL,
 };
 
@@ -142,7 +153,7 @@ static struct sr_dev_inst *dso_dev_new(int index, const struct dso_profile *prof
 	struct context *ctx;
 
 	sdi = sr_dev_inst_new(index, SR_ST_INITIALIZING,
-		prof->vendor, prof->model, prof->model_version);
+		prof->vendor, prof->model, NULL);
 	if (!sdi)
 		return NULL;
 
@@ -358,13 +369,11 @@ static int hw_cleanup(void)
 static const void *hw_dev_info_get(int dev_index, int dev_info_id)
 {
 	struct sr_dev_inst *sdi;
-	struct context *ctx;
 	const void *info;
 	uint64_t tmp;
 
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return NULL;
-	ctx = sdi->priv;
 
 	info = NULL;
 	switch (dev_info_id) {
@@ -372,7 +381,7 @@ static const void *hw_dev_info_get(int dev_index, int dev_info_id)
 		info = sdi;
 		break;
 	case SR_DI_NUM_PROBES:
-		info = GINT_TO_POINTER(ctx->profile->num_probes);
+		info = GINT_TO_POINTER(NUM_PROBES);
 		break;
 	case SR_DI_PROBE_NAMES:
 		info = probe_names;
@@ -814,7 +823,7 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 	/* Send metadata about the SR_DF_ANALOG packets to come. */
 	packet.type = SR_DF_META_ANALOG;
 	packet.payload = &meta;
-	meta.num_probes = ctx->profile->num_probes;
+	meta.num_probes = NUM_PROBES;
 	sr_session_send(cb_data, &packet);
 
 	return SR_OK;
