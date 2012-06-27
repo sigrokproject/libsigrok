@@ -495,7 +495,21 @@ static int hw_dev_open(int dev_index)
 
 	ret = libusb_claim_interface(ctx->usb->devhdl, USB_INTERFACE);
 	if (ret != 0) {
-		sr_err("fx2lafw: Unable to claim interface: %d.", ret);
+		switch(ret) {
+		case LIBUSB_ERROR_BUSY:
+			sr_err("fx2lafw: Unable to claim USB interface. Another "
+				"program or driver has already claimed it.");
+			break;
+
+		case LIBUSB_ERROR_NO_DEVICE:
+			sr_err("fx2lafw: Device has been disconnected.");
+			break;
+
+		default:
+			sr_err("fx2lafw: Unable to claim interface: %d.", ret);
+			break;
+		}
+
 		return SR_ERR;
 	}
 
