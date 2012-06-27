@@ -298,7 +298,7 @@ static int hw_dev_open(int dev_index)
 			g_usleep(100 * 1000);
 			timediff_us = g_get_monotonic_time() - ctx->fw_updated;
 			timediff_ms = timediff_us / 1000;
-			sr_spew("fx2lafw: waited %" PRIi64 " ms", timediff_ms);
+			sr_spew("hantek-dso: waited %" PRIi64 " ms", timediff_ms);
 		}
 		sr_info("hantek-dso: device came back after %d ms", timediff_ms);
 	} else {
