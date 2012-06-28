@@ -19,6 +19,8 @@
  */
 
 #include <stdlib.h>
+#include <string.h>
+#include <fcntl.h>
 #include "sigrok.h"
 #include "sigrok-internal.h"
 
@@ -29,6 +31,11 @@ struct context {
 	uint64_t limit_msec; /* TODO: Implement. */
 	uint64_t num_samples;
 	void *session_dev_id;
+	struct sr_serial_dev_inst *serial;
+	uint8_t bytes[14 + 1];
+	int byte_counter;
+	gboolean synchronized;
+	gboolean got_14_bytes;
 };
 
 static const int hwcaps[] = {
@@ -67,6 +74,11 @@ static int hw_init(const char *devinfo)
 	ctx->limit_msec = 0;
 	ctx->num_samples = 0;
 	ctx->session_dev_id = NULL;
+	ctx->serial = NULL;
+	memset(ctx->bytes, 0x00, 14 + 1);
+	ctx->byte_counter = 0;
+	ctx->synchronized = FALSE;
+	ctx->got_14_bytes = FALSE;
 
 	if (!(sdi = sr_dev_inst_new(devcnt, SR_ST_ACTIVE,
 				    "Mastech", "VA18B", ""))) {
@@ -75,6 +87,10 @@ static int hw_init(const char *devinfo)
 	}
 
 	sdi->priv = ctx;
+
+	/* TODO: Don't hardcode serial port. */
+	ctx->serial = sr_serial_dev_inst_new("/dev/ttyUSB0", -1);
+
 	dev_insts = g_slist_append(dev_insts, sdi);
 
 	devcnt = 1;
@@ -84,20 +100,59 @@ static int hw_init(const char *devinfo)
 
 static int hw_dev_open(int dev_index)
 {
-	/* Avoid compiler warnings. */
-	(void)dev_index;
+	struct sr_dev_inst *sdi;
+	struct context *ctx;
 
-	/* TODO. */
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index))) {
+		sr_err("va18b: %s: sdi was NULL.", __func__);
+		return SR_ERR_BUG;
+	}
+
+	if (!(ctx = sdi->priv)) {
+		sr_err("va18b: %s: sdi->priv was NULL.", __func__);
+		return SR_ERR_BUG;
+	}
+
+	sr_dbg("va18b: %s: Opening serial port '%s'.", __func__,
+	       ctx->serial->port);
+
+	/* TODO: Check for != NULL. */
+
+	/* TODO: O_NONBLOCK? */
+	ctx->serial->fd = serial_open(ctx->serial->port, O_RDWR | O_NONBLOCK);
+	if (ctx->serial->fd == -1) {
+		sr_err("va18b: %s: Couldn't open serial port '%s'.", __func__,
+		       ctx->serial->port);
+		return SR_ERR;
+	}
+
+	serial_set_params(ctx->serial->fd, 2400, 8, 0, 1, 2 /* TODO */);
 
 	return SR_OK;
 }
 
 static int hw_dev_close(int dev_index)
 {
-	/* Avoid compiler warnings. */
-	(void)dev_index;
+	struct sr_dev_inst *sdi;
+	struct context *ctx;
 
-	/* TODO. */
+	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index))) {
+		sr_err("va18b: %s: sdi was NULL.", __func__);
+		return SR_ERR_BUG;
+	}
+
+	if (!(ctx = sdi->priv)) {
+		sr_err("va18b: %s: sdi->priv was NULL.", __func__);
+		return SR_ERR_BUG;
+	}
+
+	/* TODO: Check for != NULL. */
+
+	if (ctx->serial->fd != -1) {
+		serial_close(ctx->serial->fd);
+		ctx->serial->fd = -1;
+		sdi->status = SR_ST_INACTIVE;
+	}
 
 	return SR_OK;
 }
@@ -123,7 +178,10 @@ static int hw_cleanup(void)
 			continue;
 		}
 
-		/* TODO. */
+		/* TODO: Check for serial != NULL. */
+		if (ctx->serial->fd != -1)
+			serial_close(ctx->serial->fd);
+		sr_serial_dev_inst_free(ctx->serial);
 
 		sr_dev_inst_free(sdi);
 	}
@@ -258,6 +316,40 @@ static int hw_dev_config_set(int dev_index, int hwcap, const void *value)
 	return SR_OK;
 }
 
+static uint8_t get_digit(uint8_t b1, uint8_t b2)
+{
+	uint8_t b;
+
+	b = ((b1 & 0x0f) << 4) | (b2 & 0x0f);
+	printf("0x%02x (b1: 0x%02x, b2: 0x%02x)\n", b, b1, b2);
+
+	if (b == 0x7d) {
+		printf("ret = 8\n");
+		return 0;
+	}
+	else if (b == 0x05)
+		return 1;
+	else if (b == 0x5b)
+		return 2;
+	else if (b == 0x1f)
+		return 3;
+	else if (b == 0x27)
+		return 4;
+	else if (b == 0x3e)
+		return 5;
+	else if (b == 0x7e)
+		return 6;
+	else if (b == 0x15)
+		return 7;
+	else if (b == 0x7f)
+		return 8;
+	else if (b == 0x3f)
+		return 9;
+	else
+		return 0xff; /* Error */
+
+}
+
 static int receive_data(int fd, int revents, void *cb_data)
 {
 	struct sr_dev_inst *sdi;
@@ -265,10 +357,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 	struct sr_datafeed_analog analog;
 	struct context *ctx;
 	int num_probes;
-
-	/* Avoid compiler warnings. */
-	(void)fd;
-	(void)revents;
+	uint8_t b, left_nibble, right_nibble;
 
 	if (!(sdi = cb_data)) {
 		sr_err("va18b: %s: cb_data was NULL.", __func__);
@@ -280,6 +369,59 @@ static int receive_data(int fd, int revents, void *cb_data)
 		return FALSE;
 	}
 
+	if (revents != G_IO_IN) {
+		sr_err("va18b: %s: No data?", __func__);
+		return FALSE;
+	}
+
+	if (serial_read(fd, &b, 1) != 1) {
+		sr_err("va18b: %s: Could not read a byte from serial port.",
+		       __func__);
+		return FALSE;
+	}
+
+	left_nibble = ((b & 0xf0) >> 4);
+
+	/* Upon starting, we wait until we're at byte 1. */
+	if (ctx->synchronized == FALSE && left_nibble != 1) {
+		sr_spew("va18b: Waiting for byte #1 in order to synchronize "
+			"(got byte #%d).", left_nibble);
+		return TRUE; // FALSE?
+	} else if (ctx->synchronized == FALSE && left_nibble == 1) {
+		sr_dbg("va18b: Successfully synchronized to data stream.");
+		ctx->synchronized = TRUE;
+		ctx->byte_counter = 1;
+	}
+
+	/* TODO: Check for left_nibble in (1, 14). */
+
+	ctx->bytes[ctx->byte_counter++] = b;
+
+	/// sr_dbg("va18b: bc: %d", ctx->byte_counter);
+	if (ctx->byte_counter == 14 + 1) {
+		sr_dbg("va18b: Received all 14 bytes for this packet.");
+		ctx->got_14_bytes = TRUE;
+	} else {
+		sr_spew("va18b: Didn't receive all 14 bytes, yet.");
+		return TRUE; // FALSE?
+	}
+
+	printf("0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x "
+	       "0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\n",
+	       ctx->bytes[1], ctx->bytes[2], ctx->bytes[3], ctx->bytes[4],
+	       ctx->bytes[5], ctx->bytes[6], ctx->bytes[7], ctx->bytes[8],
+	       ctx->bytes[9], ctx->bytes[10], ctx->bytes[11], ctx->bytes[12],
+	       ctx->bytes[13], ctx->bytes[14]);
+
+	printf("0x%02x %d %d %d\n",
+	       get_digit(ctx->bytes[2], ctx->bytes[3]),
+	       get_digit(ctx->bytes[4], ctx->bytes[5]),
+	       get_digit(ctx->bytes[6], ctx->bytes[7]),
+	       get_digit(ctx->bytes[8], ctx->bytes[9]));
+
+	ctx->got_14_bytes = FALSE;
+	ctx->byte_counter = 0;
+
 	sr_dbg("va18b: Sending SR_DF_ANALOG packet with 1 sample.");
 	/* TODO: timestamp. */
 	num_probes = 1;
@@ -290,7 +432,8 @@ static int receive_data(int fd, int revents, void *cb_data)
 	analog.unit = SR_UNIT_VOLT;
 	/* TODO: Check alloc return value. */
 	analog.data = g_try_malloc(analog.num_samples * sizeof(float) * num_probes);
-	analog.data[0] = rand() % 42; /* Transmit dummy data for now. */
+	// analog.data[0] = rand() % 42; /* Transmit dummy data for now. */
+	analog.data[0] = b; /* Transmit dummy data for now. */
 	sr_session_send(ctx->session_dev_id, &packet);
 
 	ctx->num_samples++;
@@ -342,7 +485,8 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 	sr_session_send(ctx->session_dev_id, &packet);
 
 	/* Hook up a dummy handler to receive data from the device. */
-	sr_source_add(-1, G_IO_IN, 0, receive_data, sdi);
+	// sr_source_add(-1, G_IO_IN, 0, receive_data, sdi);
+	sr_source_add(ctx->serial->fd, G_IO_IN, -1, receive_data, sdi);
 
 	return SR_OK;
 }

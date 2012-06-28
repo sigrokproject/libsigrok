@@ -164,9 +164,9 @@ fi
 
 AC_ARG_ENABLE(mastech-va18b,
 	      AC_HELP_STRING([--enable-mastech-va18b],
-	      [enable Mastech VA18B support [default=yes]]),
+	      [enable Mastech VA18B support [default=no]]),
 	      [HW_MASTECH_VA18B="$enableval"],
-	      [HW_MASTECH_VA18B=yes])
+	      [HW_MASTECH_VA18B=no])
 AM_CONDITIONAL(HW_MASTECH_VA18B, test x$HW_MASTECH_VA18B = xyes)
 if test "x$HW_MASTECH_VA18B" = "xyes"; then
 	AC_DEFINE(HAVE_HW_MASTECH_VA18B, 1, [Mastech VA18B support])
