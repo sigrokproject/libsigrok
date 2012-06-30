@@ -32,6 +32,11 @@ struct source {
 	int timeout;
 	sr_receive_data_callback_t cb;
 	void *cb_data;
+
+	/* This is used to keep track of the object (fd, pollfd or channel) which is
+	 * being polled and will be used to match the source when removing it again.
+	 */
+	gintptr poll_object;
 };
 
 /* There can only be one session at a time. */
@@ -459,25 +464,11 @@ SR_PRIV int sr_session_send(struct sr_dev *dev,
 	return SR_OK;
 }
 
-/**
- * TODO.
- *
- * TODO: More error checks etc.
- *
- * @param fd TODO.
- * @param events TODO.
- * @param timeout TODO.
- * @param cb Callback function to add. Must not be NULL.
- * @param cb_data Data for the callback function. Can be NULL.
- *
- * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or
- *         SR_ERR_MALLOC upon memory allocation errors.
- */
-SR_API int sr_session_source_add(int fd, int events, int timeout,
-		sr_receive_data_callback_t cb, void *cb_data)
+static int _sr_session_source_add(GPollFD *pollfd, int timeout,
+		sr_receive_data_callback_t cb, void *cb_data, gintptr poll_object)
 {
 	struct source *new_sources, *s;
-	GPollFD *new_pollfds, *p;
+	GPollFD *new_pollfds;
 
 	if (!cb) {
 		sr_err("session: %s: cb was NULL", __func__);
@@ -498,18 +489,12 @@ SR_API int sr_session_source_add(int fd, int events, int timeout,
 		return SR_ERR_MALLOC;
 	}
 
-	p = &new_pollfds[num_sources];
+	new_pollfds[num_sources] = *pollfd;
 	s = &new_sources[num_sources++];
-#ifdef _WIN32
-	g_io_channel_win32_make_pollfd(&channels[0],
-			events, p);
-#else
-	p->fd = fd;
-	p->events = events;
-#endif
 	s->timeout = timeout;
 	s->cb = cb;
 	s->cb_data = cb_data;
+	s->poll_object = poll_object;
 	pollfds = new_pollfds;
 	sources = new_sources;
 
@@ -521,17 +506,84 @@ SR_API int sr_session_source_add(int fd, int events, int timeout,
 }
 
 /**
- * Remove the source belonging to the specified file descriptor.
+ * Add a event source for a file descriptor.
  *
- * TODO: More error checks.
- *
- * @param fd TODO.
+ * @param fd The file descriptor.
+ * @param events Events to check for.
+ * @param timeout Max time to wait before the callback is called, ignored if 0.
+ * @param cb Callback function to add. Must not be NULL.
+ * @param cb_data Data for the callback function. Can be NULL.
  *
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or
- *         SR_ERR_MALLOC upon memory allocation errors, SR_ERR_BUG upon
- *         internal errors.
+ *         SR_ERR_MALLOC upon memory allocation errors.
  */
-SR_API int sr_session_source_remove(int fd)
+SR_API int sr_session_source_add(int fd, int events, int timeout,
+		sr_receive_data_callback_t cb, void *cb_data)
+{
+	GPollFD p;
+
+#ifdef _WIN32
+	g_io_channel_win32_make_pollfd(&channels[0],
+			events, &p);
+#else
+	p.fd = fd;
+	p.events = events;
+#endif
+
+	return _sr_session_source_add(&p, timeout, cb, cb_data, (gintptr)fd);
+}
+
+/**
+ * Add a event source for a GPollFD
+ *
+ * TODO: More error checks etc.
+ *
+ * @param pollfd The GPollFD.
+ * @param timeout Max time to wait before the callback is called, ignored if 0.
+ * @param cb Callback function to add. Must not be NULL.
+ * @param cb_data Data for the callback function. Can be NULL.
+ *
+ * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or
+ *         SR_ERR_MALLOC upon memory allocation errors.
+ */
+SR_API int sr_session_source_add_pollfd(GPollFD *pollfd, int timeout,
+		sr_receive_data_callback_t cb, void *cb_data)
+{
+	return _sr_session_source_add(pollfd, timeout, cb, cb_data, (gintptr)pollfd);
+}
+
+/**
+ * Add a event source for a GIOChannel
+ *
+ * TODO: More error checks etc.
+ *
+ * @param channel The GIOChannel.
+ * @param events Events to poll on.
+ * @param timeout Max time to wait before the callback is called, ignored if 0.
+ * @param cb Callback function to add. Must not be NULL.
+ * @param cb_data Data for the callback function. Can be NULL.
+ *
+ * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or
+ *         SR_ERR_MALLOC upon memory allocation errors.
+ */
+SR_API int sr_session_source_add_channel(GIOChannel *channel, int events, int timeout,
+		sr_receive_data_callback_t cb, void *cb_data)
+{
+	GPollFD p;
+
+#ifdef _WIN32
+	g_io_channel_win32_make_pollfd(channel,
+			events, &p);
+#else
+	p.fd = g_io_channel_unix_get_fd(channel);
+	p.events = events;
+#endif
+
+	return _sr_session_source_add(&p, timeout, cb, cb_data, (gintptr)channel);
+}
+
+
+static int _sr_session_source_remove(gintptr poll_object)
 {
 	struct source *new_sources;
 	GPollFD *new_pollfds;
@@ -543,7 +595,7 @@ SR_API int sr_session_source_remove(int fd)
 	}
 
 	for (old = 0; old < num_sources; old++) {
-		if (pollfds[old].fd == fd)
+		if (sources[old].poll_object == poll_object)
 			break;
 	}
 
@@ -576,4 +628,52 @@ SR_API int sr_session_source_remove(int fd)
 	sources = new_sources;
 
 	return SR_OK;
+}
+
+/*
+ * Remove the source belonging to the specified file descriptor.
+ *
+ * TODO: More error checks.
+ *
+ * @param fd: The file descriptor for which the source should be removed.
+ *
+ * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or
+ *         SR_ERR_MALLOC upon memory allocation errors, SR_ERR_BUG upon
+ *         internal errors.
+ */
+SR_API int sr_session_source_remove(int fd)
+{
+	return _sr_session_source_remove((gintptr)fd);
+}
+
+/**
+ * Remove the source belonging to the specified poll descriptor.
+ *
+ * TODO: More error checks.
+ *
+ * @param pollfd The poll descriptor for which the source should be removed.
+ *
+ * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or
+ *         SR_ERR_MALLOC upon memory allocation errors, SR_ERR_BUG upon
+ *         internal errors.
+ */
+SR_API int sr_session_source_remove_pollfd(GPollFD *pollfd)
+{
+	return _sr_session_source_remove((gintptr)pollfd);
+}
+
+/*
+ * Remove the source belonging to the specified channel.
+ *
+ * TODO: More error checks.
+ *
+ * @parama channel: The channel for which the source should be removed.
+ *
+ * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or
+ *         SR_ERR_MALLOC upon memory allocation errors, SR_ERR_BUG upon
+ *         internal errors.
+ */
+SR_API int sr_session_source_remove_channel(GIOChannel *channel)
+{
+	return _sr_session_source_remove((gintptr)channel);
 }

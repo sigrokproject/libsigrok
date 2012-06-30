@@ -100,7 +100,13 @@ SR_API int sr_session_stop(void);
 SR_API int sr_session_save(const char *filename);
 SR_API int sr_session_source_add(int fd, int events, int timeout,
 		sr_receive_data_callback_t cb, void *cb_data);
+SR_API int sr_session_source_add_pollfd(GPollFD *pollfd, int timeout,
+		sr_receive_data_callback_t cb, void *cb_data);
+SR_API int sr_session_source_add_channel(GIOChannel *channel, int events,
+		int timeout, sr_receive_data_callback_t cb, void *cb_data);
 SR_API int sr_session_source_remove(int fd);
+SR_API int sr_session_source_remove_pollfd(GPollFD *pollfd);
+SR_API int sr_session_source_remove_channel(GIOChannel *channel);
 
 /*--- input/input.c ---------------------------------------------------------*/
 
