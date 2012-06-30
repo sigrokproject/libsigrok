@@ -25,9 +25,6 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
-/* demo.c. TODO: Should not be global! */
-extern SR_PRIV GIOChannel channels[2];
-
 struct source {
 	int timeout;
 	sr_receive_data_callback_t cb;
@@ -522,13 +519,8 @@ SR_API int sr_session_source_add(int fd, int events, int timeout,
 {
 	GPollFD p;
 
-#ifdef _WIN32
-	g_io_channel_win32_make_pollfd(&channels[0],
-			events, &p);
-#else
 	p.fd = fd;
 	p.events = events;
-#endif
 
 	return _sr_session_source_add(&p, timeout, cb, cb_data, (gintptr)fd);
 }

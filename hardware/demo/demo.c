@@ -64,10 +64,10 @@ enum {
 };
 
 /* FIXME: Should not be global. */
-SR_PRIV GIOChannel *channels[2];
 
 struct context {
 	int pipe_fds[2];
+	GIOChannel *channels[2];
 	uint8_t sample_generator;
 	uint8_t thread_running;
 	uint64_t samples_counter;
@@ -354,7 +354,7 @@ static void thread_func(void *data)
 			samples_generator(buf, nb_to_send, data);
 			ctx->samples_counter += nb_to_send;
 
-			g_io_channel_write_chars(channels[1], (gchar *)&buf,
+			g_io_channel_write_chars(ctx->channels[1], (gchar *)&buf,
 				nb_to_send, (gsize *)&bytes_written, NULL);
 		}
 
@@ -373,6 +373,7 @@ static void thread_func(void *data)
 /* Callback handling data */
 static int receive_data(int fd, int revents, void *cb_data)
 {
+	struct context *ctx = cb_data;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
 	static uint64_t samples_received = 0;
@@ -384,7 +385,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 	(void)revents;
 
 	do {
-		g_io_channel_read_chars(channels[0],
+		g_io_channel_read_chars(ctx->channels[0],
 				        (gchar *)&c, BUFSIZE, &z, NULL);
 
 		if (z > 0) {
@@ -393,18 +394,18 @@ static int receive_data(int fd, int revents, void *cb_data)
 			logic.length = z;
 			logic.unitsize = 1;
 			logic.data = c;
-			sr_session_send(cb_data, &packet);
+			sr_session_send(ctx->session_dev_id, &packet);
 			samples_received += z;
 		}
 	} while (z > 0);
 
 	if (!thread_running && z <= 0) {
 		/* Make sure we don't receive more packets. */
-		g_io_channel_shutdown(channels[0], FALSE, NULL);
+		g_io_channel_shutdown(ctx->channels[0], FALSE, NULL);
 
 		/* Send last packet. */
 		packet.type = SR_DF_END;
-		sr_session_send(cb_data, &packet);
+		sr_session_send(ctx->session_dev_id, &packet);
 
 		return FALSE;
 	}
@@ -436,19 +437,19 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 		return SR_ERR;
 	}
 
-	channels[0] = g_io_channel_unix_new(ctx->pipe_fds[0]);
-	channels[1] = g_io_channel_unix_new(ctx->pipe_fds[1]);
+	ctx->channels[0] = g_io_channel_unix_new(ctx->pipe_fds[0]);
+	ctx->channels[1] = g_io_channel_unix_new(ctx->pipe_fds[1]);
 
 	/* Set channel encoding to binary (default is UTF-8). */
-	g_io_channel_set_encoding(channels[0], NULL, NULL);
-	g_io_channel_set_encoding(channels[1], NULL, NULL);
+	g_io_channel_set_encoding(ctx->channels[0], NULL, NULL);
+	g_io_channel_set_encoding(ctx->channels[1], NULL, NULL);
 
 	/* Make channels to unbuffered. */
-	g_io_channel_set_buffered(channels[0], FALSE);
-	g_io_channel_set_buffered(channels[1], FALSE);
+	g_io_channel_set_buffered(ctx->channels[0], FALSE);
+	g_io_channel_set_buffered(ctx->channels[1], FALSE);
 
-	sr_source_add(ctx->pipe_fds[0], G_IO_IN | G_IO_ERR, 40,
-		      receive_data, ctx->session_dev_id);
+	sr_session_source_add_channel(ctx->channels[0], G_IO_IN | G_IO_ERR,
+		    40, receive_data, ctx);
 
 	/* Run the demo thread. */
 	g_thread_init(NULL);
