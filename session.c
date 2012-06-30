@@ -505,16 +505,10 @@ SR_API int sr_session_source_add(int fd, int events, int timeout,
 
 	/* Note: cb_data can be NULL, that's not a bug. */
 
-	new_sources = g_try_malloc0(sizeof(struct source) * (num_sources + 1));
+	new_sources = g_try_realloc(sources, sizeof(struct source) * (num_sources + 1));
 	if (!new_sources) {
 		sr_err("session: %s: new_sources malloc failed", __func__);
 		return SR_ERR_MALLOC;
-	}
-
-	if (sources) {
-		memcpy(new_sources, sources,
-		       sizeof(struct source) * num_sources);
-		g_free(sources);
 	}
 
 	s = &new_sources[num_sources++];
@@ -553,28 +547,29 @@ SR_API int sr_session_source_remove(int fd)
 		return SR_ERR_BUG;
 	}
 
-	/* TODO: Check if 'fd' valid. */
+	for (old = 0; old < num_sources; old++) {
+		if (sources[old].fd == fd)
+			break;
+	}
 
-	new_sources = g_try_malloc0(sizeof(struct source) * num_sources);
-	if (!new_sources) {
+	/* fd not found, nothing to do */
+	if (old == num_sources)
+		return SR_OK;
+
+	num_sources -= 1;
+
+	if (old != num_sources) {
+		memmove(&sources[old], &sources[old+1],
+			(num_sources - old) * sizeof(struct source));
+	}
+
+	new_sources = g_try_realloc(sources, sizeof(struct source) * (num_sources - 1));
+	if (!new_sources && num_sources > 0) {
 		sr_err("session: %s: new_sources malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 
-	for (old = 0, new = 0; old < num_sources; old++) {
-		if (sources[old].fd != fd)
-			memcpy(&new_sources[new++], &sources[old],
-			       sizeof(struct source));
-	}
-
-	if (old != new) {
-		g_free(sources);
-		sources = new_sources;
-		num_sources--;
-	} else {
-		/* Target fd was not found. */
-		g_free(new_sources);
-	}
+	sources = new_sources;
 
 	return SR_OK;
 }
