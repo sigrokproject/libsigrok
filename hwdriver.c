@@ -45,6 +45,9 @@ SR_API struct sr_hwcap_option sr_hwcap_options[] = {
 	{SR_HWCAP_FILTER, SR_T_CHAR, "Filter targets", "filter"},
 	{SR_HWCAP_VDIV, SR_T_RATIONAL_VOLT, "Volts/div", "vdiv"},
 	{SR_HWCAP_COUPLING, SR_T_CHAR, "Coupling", "coupling"},
+	{SR_HWCAP_MODEL, SR_T_KEYVALUE, "Model", "model"},
+	{SR_HWCAP_CONN, SR_T_CHAR, "Connection", "connect"},
+	{SR_HWCAP_SERIALCOMM, SR_T_CHAR, "Serial communication", "serialcomm"},
 	{0, 0, NULL, NULL},
 };
 
@@ -78,6 +81,9 @@ extern SR_PRIV struct sr_dev_driver hantek_dso_driver_info;
 #ifdef HAVE_HW_MASTECH_VA18B
 extern SR_PRIV struct sr_dev_driver mastech_va18b_driver_info;
 #endif
+#ifdef HAVE_HW_GENERICDMM
+extern SR_PRIV struct sr_dev_driver genericdmm_driver_info;
+#endif
 
 static struct sr_dev_driver *drivers_list[] = {
 #ifdef HAVE_LA_DEMO
@@ -109,6 +115,9 @@ static struct sr_dev_driver *drivers_list[] = {
 #endif
 #ifdef HAVE_HW_MASTECH_VA18B
 	&mastech_va18b_driver_info,
+#endif
+#ifdef HAVE_HW_GENERICDMM
+	&genericdmm_driver_info,
 #endif
 	NULL,
 };
@@ -234,7 +243,7 @@ SR_PRIV struct sr_usb_dev_inst *sr_usb_dev_inst_new(uint8_t bus,
 
 	udi->bus = bus;
 	udi->address = address;
-	udi->devhdl = hdl; /* TODO: Check if this is NULL? */
+	udi->devhdl = hdl;
 
 	return udi;
 }

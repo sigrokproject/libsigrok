@@ -304,12 +304,25 @@ enum {
 	/** The device can act as an oscilloscope. */
 	SR_HWCAP_OSCILLOSCOPE,
 
-	/*--- Device types --------------------------------------------------*/
+	/** The device can act as a multimeter. */
+	SR_HWCAP_MULTIMETER,
 
-	/** The device is demo device. */
+	/** The device is a demo device. */
 	SR_HWCAP_DEMO_DEV,
 
-	/*--- Device options ------------------------------------------------*/
+
+	/*--- Device communication ------------------------------------------*/
+	/** Some drivers cannot detect the exact model they're talking to. */
+	SR_HWCAP_MODEL,
+
+	/** Specification on how to connect to a device */
+	SR_HWCAP_CONN,
+
+	/** Serial communication spec: <data bits><parity><stop bit> e.g. 8n1 */
+	SR_HWCAP_SERIALCOMM,
+
+
+	/*--- Device configuration ------------------------------------------*/
 
 	/** The device supports setting/changing its samplerate. */
 	SR_HWCAP_SAMPLERATE,
@@ -352,6 +365,7 @@ enum {
 	/** Coupling. */
 	SR_HWCAP_COUPLING,
 
+
 	/*--- Special stuff -------------------------------------------------*/
 
 	/* TODO: Better description. */
@@ -365,6 +379,7 @@ enum {
 	/* TODO: Better description. */
 	/** The device supports setting the number of probes. */
 	SR_HWCAP_CAPTURE_NUM_PROBES,
+
 
 	/*--- Acquisition modes ---------------------------------------------*/
 

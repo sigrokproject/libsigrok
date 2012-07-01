@@ -113,6 +113,16 @@ if test "x$LA_FX2LAFW" = "xyes"; then
 	AC_DEFINE(HAVE_LA_FX2LAFW, 1, [fx2lafw support])
 fi
 
+# Disabled by default for now
+AC_ARG_ENABLE(genericdmm, AC_HELP_STRING([--enable-genericdmm],
+	      [enable genericdmm support (for most DMMs). [default=no]]),
+	      [HW_GENERICDMM="$enableval"],
+	      [HW_GENERICDMM=no])
+AM_CONDITIONAL(HW_GENERICDMM, test x$HW_GENERICDMM = xyes)
+if test "x$HW_GENERICDMM" = "xyes"; then
+	AC_DEFINE(HAVE_HW_GENERICDMM, 1, [Generic DMM support])
+fi
+
 AC_ARG_ENABLE(demo, AC_HELP_STRING([--enable-demo],
 	      [enable demo driver support [default=yes]]),
 	      [LA_DEMO="$enableval"],
@@ -281,6 +291,7 @@ AC_CONFIG_FILES([Makefile
 		 hardware/common/Makefile
 		 hardware/demo/Makefile
 		 hardware/fx2lafw/Makefile
+		 hardware/genericdmm/Makefile
 		 hardware/link-mso19/Makefile
 		 hardware/openbench-logic-sniffer/Makefile
 		 hardware/zeroplus-logic-cube/Makefile
@@ -323,6 +334,7 @@ echo "  - ASIX SIGMA/SIGMA2............... $LA_ASIX_SIGMA"
 echo "  - ChronoVu LA8.................... $LA_CHRONOVU_LA8"
 echo "  - Demo driver..................... $LA_DEMO"
 echo "  - fx2lafw (for FX2 LAs)........... $LA_FX2LAFW"
+echo "  - Generic DMM..................... $HW_GENERICDMM"
 echo "  - Link MSO-19..................... $LA_LINK_MSO19"
 echo "  - Openbench Logic Sniffer......... $LA_OLS"
 echo "  - ZEROPLUS Logic Cube............. $LA_ZEROPLUS_LOGIC_CUBE"

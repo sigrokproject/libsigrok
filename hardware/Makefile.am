@@ -24,6 +24,7 @@ SUBDIRS = \
 	common \
 	demo \
 	fx2lafw \
+	genericdmm \
 	link-mso19 \
 	openbench-logic-sniffer \
 	zeroplus-logic-cube \
@@ -49,12 +50,16 @@ if LA_CHRONOVU_LA8
 libsigrokhardware_la_LIBADD += chronovu-la8/libsigrokhwchronovula8.la
 endif
 
+if LA_DEMO
+libsigrokhardware_la_LIBADD += demo/libsigrokhwdemo.la
+endif
+
 if LA_FX2LAFW
 libsigrokhardware_la_LIBADD += fx2lafw/libsigrokhwfx2lafw.la
 endif
 
-if LA_DEMO
-libsigrokhardware_la_LIBADD += demo/libsigrokhwdemo.la
+if HW_GENERICDMM
+libsigrokhardware_la_LIBADD += genericdmm/libsigrokhwgenericdmm.la
 endif
 
 if LA_LINK_MSO19
