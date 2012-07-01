@@ -398,7 +398,7 @@ static int hw_init(const char *devinfo)
 		fd = serial_open(l->data, O_RDWR | O_NONBLOCK);
 		if (fd != -1) {
 			serial_params[devcnt] = serial_backup_params(fd);
-			serial_set_params(fd, 115200, 8, 0, 1, 2);
+			serial_set_params(fd, 115200, 8, SERIAL_PARITY_NONE, 1, 2);
 			ret = SR_OK;
 			for (i = 0; i < 5; i++) {
 				if ((ret = send_shortcommand(fd,

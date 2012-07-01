@@ -297,13 +297,13 @@ SR_PRIV int serial_set_params(int fd, int baudrate, int bits, int parity,
 	term.c_iflag &= ~IGNPAR;
 	term.c_cflag &= ~(PARODD | PARENB);
 	switch (parity) {
-	case 0:
+	case SERIAL_PARITY_NONE:
 		term.c_iflag |= IGNPAR;
 		break;
-	case 1:
+	case SERIAL_PARITY_EVEN:
 		term.c_cflag |= PARENB;
 		break;
-	case 2:
+	case SERIAL_PARITY_ODD:
 		term.c_cflag |= PARENB | PARODD;
 		break;
 	default:

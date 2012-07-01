@@ -48,6 +48,9 @@ struct sr_usb_dev_inst {
 };
 #endif
 
+#define SERIAL_PARITY_NONE 0
+#define SERIAL_PARITY_EVEN 1
+#define SERIAL_PARITY_ODD  2
 struct sr_serial_dev_inst {
 	char *port;
 	int fd;
