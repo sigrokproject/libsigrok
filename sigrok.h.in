@@ -145,6 +145,7 @@ enum {
 	SR_T_FLOAT,
 	SR_T_RATIONAL_PERIOD,
 	SR_T_RATIONAL_VOLT,
+	SR_T_KEYVALUE,
 };
 
 struct sr_rational {
