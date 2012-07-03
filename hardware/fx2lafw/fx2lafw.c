@@ -662,7 +662,14 @@ static int receive_data(int fd, int revents, void *cb_data)
 
 static void abort_acquisition(struct context *ctx)
 {
+	unsigned int i;
+
 	ctx->num_samples = -1;
+
+	for (i = 0; i < ctx->num_transfers; i++) {
+		if (ctx->transfers[i])
+			libusb_cancel_transfer(ctx->transfers[i]);
+	}
 }
 
 static void finish_acquisition(struct context *ctx)
@@ -680,15 +687,26 @@ static void finish_acquisition(struct context *ctx)
 	for (i = 0; lupfd[i]; i++)
 		sr_source_remove(lupfd[i]->fd);
 	free(lupfd); /* NOT g_free()! */
+
+	ctx->num_transfers = 0;
+	g_free(ctx->transfers);
 }
 
 static void free_transfer(struct libusb_transfer *transfer)
 {
 	struct context *ctx = transfer->user_data;
+	unsigned int i;
 
 	g_free(transfer->buffer);
 	transfer->buffer = NULL;
 	libusb_free_transfer(transfer);
+
+	for (i = 0; i < ctx->num_transfers; i++) {
+		if (ctx->transfers[i] == transfer) {
+			ctx->transfers[i] = NULL;
+			break;
+		}
+	}
 
 	ctx->submitted_transfers--;
 	if (ctx->submitted_transfers == 0)
@@ -833,6 +851,8 @@ static void receive_transfer(struct libusb_transfer *transfer)
 		if (ctx->limit_samples &&
 			(unsigned int)ctx->num_samples > ctx->limit_samples) {
 			abort_acquisition(ctx);
+			free_transfer(transfer);
+			return;
 		}
 	} else {
 		/*
@@ -906,6 +926,12 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 	const unsigned int num_transfers = get_number_of_transfers(ctx);
 	const size_t size = get_buffer_size(ctx);
 
+	ctx->transfers = g_try_malloc0(sizeof(*ctx->transfers) * num_transfers);
+	if (!ctx->transfers)
+		return SR_ERR;
+
+	ctx->num_transfers = num_transfers;
+
 	for (i = 0; i < num_transfers; i++) {
 		if (!(buf = g_try_malloc(size))) {
 			sr_err("fx2lafw: %s: buf malloc failed.", __func__);
@@ -921,7 +947,7 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 			g_free(buf);
 			return SR_ERR;
 		}
-
+		ctx->transfers[i] = transfer;
 		ctx->submitted_transfers++;
 	}
 

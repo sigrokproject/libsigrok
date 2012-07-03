@@ -89,6 +89,9 @@ struct context {
 	void *session_dev_id;
 
 	struct sr_usb_dev_inst *usb;
+
+	unsigned int num_transfers;
+	struct libusb_transfer **transfers;
 };
 
 #endif
