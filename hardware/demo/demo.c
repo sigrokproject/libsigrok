@@ -248,12 +248,14 @@ static int hw_dev_config_set(int dev_index, int hwcap, const void *value)
 		       cur_samplerate);
 		ret = SR_OK;
 	} else if (hwcap == SR_HWCAP_LIMIT_SAMPLES) {
+		limit_msec = 0;
 		limit_samples = *(const uint64_t *)value;
 		sr_dbg("demo: %s: setting limit_samples to %" PRIu64, __func__,
 		       limit_samples);
 		ret = SR_OK;
 	} else if (hwcap == SR_HWCAP_LIMIT_MSEC) {
 		limit_msec = *(const uint64_t *)value;
+		limit_samples = 0;
 		sr_dbg("demo: %s: setting limit_msec to %" PRIu64, __func__,
 		       limit_msec);
 		ret = SR_OK;
