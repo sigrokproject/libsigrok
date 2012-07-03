@@ -946,9 +946,9 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 				2 | LIBUSB_ENDPOINT_IN, buf, size,
 				receive_transfer, ctx, timeout);
 		if (libusb_submit_transfer(transfer) != 0) {
-			/* TODO: Free them all. */
 			libusb_free_transfer(transfer);
 			g_free(buf);
+			abort_acquisition(ctx);
 			return SR_ERR;
 		}
 		ctx->transfers[i] = transfer;
@@ -976,6 +976,7 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 
 	if ((ret = command_start_acquisition (ctx->usb->devhdl,
 		ctx->cur_samplerate, ctx->sample_wide)) != SR_OK) {
+		abort_acquisition(ctx);
 		return ret;
 	}
 
