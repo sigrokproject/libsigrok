@@ -918,6 +918,10 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
 		return SR_ERR;
 	ctx = sdi->priv;
+
+	if (ctx->submitted_transfers != 0)
+		return SR_ERR;
+
 	ctx->session_dev_id = cb_data;
 	ctx->num_samples = 0;
 	ctx->empty_transfer_count = 0;
