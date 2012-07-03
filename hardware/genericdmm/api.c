@@ -56,14 +56,11 @@ SR_PRIV GSList *genericdmm_dev_insts = NULL;
 SR_PRIV libusb_context *genericdmm_usb_context = NULL;
 
 
-static int hw_init(const char *devinfo)
+static int hw_init(void)
 {
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
 	int devcnt = 0;
-
-	/* Avoid compiler warnings. */
-	(void)devinfo;
 
 	if (libusb_init(&genericdmm_usb_context) != 0) {
 		sr_err("genericdmm: Failed to initialize USB.");

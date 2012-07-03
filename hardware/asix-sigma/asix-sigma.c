@@ -405,16 +405,13 @@ static int bin2bitbang(const char *filename,
 	return SR_OK;
 }
 
-static int hw_init(const char *devinfo)
+static int hw_init(void)
 {
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
 	struct ftdi_device_list *devlist;
 	char serial_txt[10];
 	uint32_t serial;
-
-	/* Avoid compiler warnings. */
-	(void)devinfo;
 
 	if (!(ctx = g_try_malloc(sizeof(struct context)))) {
 		sr_err("sigma: %s: ctx malloc failed", __func__);

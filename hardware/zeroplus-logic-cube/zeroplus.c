@@ -327,16 +327,13 @@ static int configure_probes(struct sr_dev_inst *sdi, const GSList *probes)
  * API callbacks
  */
 
-static int hw_init(const char *devinfo)
+static int hw_init(void)
 {
 	struct sr_dev_inst *sdi;
 	struct libusb_device_descriptor des;
 	libusb_device **devlist;
 	int ret, devcnt, i;
 	struct context *ctx;
-
-	/* Avoid compiler warnings. */
-	(void)devinfo;
 
 	/* Allocate memory for our private driver context. */
 	if (!(ctx = g_try_malloc(sizeof(struct context)))) {

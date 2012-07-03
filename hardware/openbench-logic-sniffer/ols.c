@@ -348,7 +348,7 @@ static struct sr_dev_inst *get_metadata(int fd)
 	return sdi;
 }
 
-static int hw_init(const char *devinfo)
+static int hw_init(void)
 {
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
@@ -359,12 +359,8 @@ static int hw_init(const char *devinfo)
 
 	final_devcnt = 0;
 
-	if (devinfo)
-		ports = g_slist_append(NULL, g_strdup(devinfo));
-	else
-		/* No specific device given, so scan all serial ports. */
-		ports = list_serial_ports();
-
+	/* Scan all serial ports. */
+	ports = list_serial_ports();
 	num_ports = g_slist_length(ports);
 
 	if (!(fds = g_try_malloc0(num_ports * sizeof(GPollFD)))) {

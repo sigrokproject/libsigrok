@@ -39,15 +39,12 @@ static const uint16_t usb_pids[] = {
 /* Function prototypes. */
 static int hw_dev_acquisition_stop(int dev_index, void *cb_data);
 
-static int hw_init(const char *devinfo)
+static int hw_init(void)
 {
 	int ret;
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
 	unsigned int i;
-
-	/* Avoid compiler errors. */
-	(void)devinfo;
 
 	/* Allocate memory for our private driver context. */
 	if (!(ctx = g_try_malloc(sizeof(struct context)))) {

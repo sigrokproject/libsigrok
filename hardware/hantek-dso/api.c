@@ -200,7 +200,7 @@ static int configure_probes(struct context *ctx, const GSList *probes)
 	return SR_OK;
 }
 
-static int hw_init(const char *devinfo)
+static int hw_init(void)
 {
 	struct sr_dev_inst *sdi;
 	struct libusb_device_descriptor des;
@@ -208,9 +208,6 @@ static int hw_init(const char *devinfo)
 	struct context *ctx;
 	libusb_device **devlist;
 	int err, devcnt, i, j;
-
-	/* Avoid compiler warnings. */
-	(void)devinfo;
 
 	if (libusb_init(&usb_context) != 0) {
 		sr_err("hantek-dso: Failed to initialize USB.");

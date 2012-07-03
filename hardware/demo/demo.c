@@ -140,12 +140,9 @@ static int thread_running;
 
 static int hw_dev_acquisition_stop(int dev_index, void *cb_data);
 
-static int hw_init(const char *devinfo)
+static int hw_init(void)
 {
 	struct sr_dev_inst *sdi;
-
-	/* Avoid compiler warnings. */
-	(void)devinfo;
 
 	sdi = sr_dev_inst_new(0, SR_ST_ACTIVE, DEMONAME, NULL, NULL);
 	if (!sdi) {

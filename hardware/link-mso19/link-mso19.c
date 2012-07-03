@@ -401,7 +401,7 @@ static int mso_parse_serial(const char *iSerial, const char *iProduct,
 	return SR_OK;
 }
 
-static int hw_init(const char *devinfo)
+static int hw_init(void)
 {
 	struct sr_dev_inst *sdi;
 	int devcnt = 0;
@@ -409,8 +409,6 @@ static int hw_init(const char *devinfo)
 	struct udev_enumerate *enumerate;
 	struct udev_list_entry *devs, *dev_list_entry;
 	struct context *ctx;
-
-	devinfo = devinfo;
 
 	/* It's easier to map usb<->serial using udev */
 	/*

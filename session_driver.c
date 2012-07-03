@@ -30,6 +30,7 @@
 #define CHUNKSIZE (512 * 1024)
 
 struct session_vdev {
+	char *sessionfile;
 	char *capturefile;
 	struct zip *archive;
 	struct zip_file *capfile;
@@ -39,7 +40,6 @@ struct session_vdev {
 	int num_probes;
 };
 
-static char *sessionfile = NULL;
 static GSList *dev_insts = NULL;
 static const int hwcaps[] = {
 	SR_HWCAP_CAPTUREFILE,
@@ -148,9 +148,8 @@ static int hw_cleanup(void);
  *
  * @return TODO.
  */
-static int hw_init(const char *devinfo)
+static int hw_init(void)
 {
-	sessionfile = g_strdup(devinfo);
 
 	return 0;
 }
@@ -168,8 +167,6 @@ static int hw_cleanup(void)
 	dev_insts = NULL;
 
 	sr_session_source_remove(-1);
-
-	g_free(sessionfile);
 
 	return SR_OK;
 }
@@ -246,6 +243,11 @@ static int hw_dev_config_set(int dev_index, int hwcap, const void *value)
 		sr_info("session driver: setting samplerate to %" PRIu64,
 		        vdev->samplerate);
 		break;
+	case SR_HWCAP_SESSIONFILE:
+		vdev->sessionfile = g_strdup(value);
+		sr_info("session driver: setting sessionfile to %s",
+		        vdev->sessionfile);
+		break;
 	case SR_HWCAP_CAPTUREFILE:
 		vdev->capturefile = g_strdup(value);
 		sr_info("session driver: setting capturefile to %s",
@@ -280,24 +282,24 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 	if (!(vdev = get_vdev_by_index(dev_index)))
 		return SR_ERR;
 
-	sr_info("session_driver: opening archive %s file %s", sessionfile,
+	sr_info("session_driver: opening archive %s file %s", vdev->sessionfile,
 		vdev->capturefile);
 
-	if (!(vdev->archive = zip_open(sessionfile, 0, &ret))) {
+	if (!(vdev->archive = zip_open(vdev->sessionfile, 0, &ret))) {
 		sr_err("session driver: Failed to open session file '%s': "
-		       "zip error %d\n", sessionfile, ret);
+		       "zip error %d\n", vdev->sessionfile, ret);
 		return SR_ERR;
 	}
 
 	if (zip_stat(vdev->archive, vdev->capturefile, 0, &zs) == -1) {
 		sr_err("session driver: Failed to check capture file '%s' in "
-		       "session file '%s'.", vdev->capturefile, sessionfile);
+		       "session file '%s'.", vdev->capturefile, vdev->sessionfile);
 		return SR_ERR;
 	}
 
 	if (!(vdev->capfile = zip_fopen(vdev->archive, vdev->capturefile, 0))) {
 		sr_err("session driver: Failed to open capture file '%s' in "
-		       "session file '%s'.", vdev->capturefile, sessionfile);
+		       "session file '%s'.", vdev->capturefile, vdev->sessionfile);
 		return SR_ERR;
 	}
 

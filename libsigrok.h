@@ -337,6 +337,9 @@ enum {
 
 	/*--- Special stuff -------------------------------------------------*/
 
+	/** Session filename */
+	SR_HWCAP_SESSIONFILE,
+
 	/* TODO: Better description. */
 	/** The device supports specifying a capturefile to inject. */
 	SR_HWCAP_CAPTUREFILE,
@@ -467,7 +470,7 @@ struct sr_dev_driver {
 	char *name;
 	char *longname;
 	int api_version;
-	int (*init) (const char *devinfo);
+	int (*init) (void);
 	int (*cleanup) (void);
 
 	/* Device-specific */

@@ -382,7 +382,7 @@ static struct context *fx2lafw_dev_new(void)
  * API callbacks
  */
 
-static int hw_init(const char *devinfo)
+static int hw_init(void)
 {
 	struct sr_dev_inst *sdi;
 	struct libusb_device_descriptor des;
@@ -392,9 +392,6 @@ static int hw_init(const char *devinfo)
 	int ret;
 	int devcnt = 0;
 	int i, j;
-
-	/* Avoid compiler warnings. */
-	(void)devinfo;
 
 	if (libusb_init(&usb_context) != 0) {
 		sr_warn("fx2lafw: Failed to initialize libusb.");

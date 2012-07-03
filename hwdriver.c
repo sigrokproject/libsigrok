@@ -144,7 +144,7 @@ SR_API int sr_driver_init(struct sr_dev_driver *driver)
 	char **probe_names;
 
 	sr_dbg("initializing %s driver", driver->name);
-	num_devs = driver->init(NULL);
+	num_devs = driver->init();
 	for (i = 0; i < num_devs; i++) {
 		num_probes = GPOINTER_TO_INT(
 				driver->dev_info_get(i, SR_DI_NUM_PROBES));

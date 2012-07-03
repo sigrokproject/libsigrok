@@ -117,8 +117,9 @@ SR_API int sr_session_load(const char *filename)
 					dev = sr_dev_new(&session_driver, devcnt);
 					if (devcnt == 0)
 						/* first device, init the driver */
-						dev->driver->init((char *)filename);
+						dev->driver->init();
 					sr_session_dev_add(dev);
+					dev->driver->dev_config_set(devcnt, SR_HWCAP_SESSIONFILE, filename);
 					dev->driver->dev_config_set(devcnt, SR_HWCAP_CAPTUREFILE, val);
 					g_ptr_array_add(capturefiles, val);
 				} else if (!strcmp(keys[j], "samplerate")) {
