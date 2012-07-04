@@ -28,8 +28,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <glib.h>
-#include "sigrok.h"
-#include "sigrok-internal.h"
+#include "libsigrok.h"
+#include "libsigrok-internal.h"
 
 struct context {
 	GString *header;

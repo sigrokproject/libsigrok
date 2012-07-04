@@ -46,8 +46,9 @@ libsigrok_la_LIBADD = \
 
 libsigrok_la_LDFLAGS = $(SR_LIB_LDFLAGS)
 
-include_HEADERS = sigrok.h sigrok-proto.h
-noinst_HEADERS = sigrok-internal.h
+library_includedir = $(includedir)/libsigrok
+library_include_HEADERS = libsigrok.h proto.h version.h
+noinst_HEADERS = libsigrok-internal.h
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libsigrok.pc

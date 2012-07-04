@@ -24,8 +24,8 @@
 #include <unistd.h>
 #include <string.h>
 #include <alsa/asoundlib.h>
-#include "sigrok.h"
-#include "sigrok-internal.h"
+#include "libsigrok.h"
+#include "libsigrok-internal.h"
 
 #define NUM_PROBES 2
 #define SAMPLE_WIDTH 16

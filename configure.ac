@@ -283,7 +283,7 @@ AC_SUBST(SR_PACKAGE_VERSION_MICRO)
 AC_SUBST(SR_PACKAGE_VERSION)
 
 AC_CONFIG_FILES([Makefile
-		 sigrok.h
+		 version.h
 		 hardware/Makefile
 		 hardware/alsa/Makefile
 		 hardware/asix-sigma/Makefile

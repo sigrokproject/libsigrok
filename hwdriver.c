@@ -23,8 +23,8 @@
 #include <dirent.h>
 #include <string.h>
 #include <glib.h>
-#include "sigrok.h"
-#include "sigrok-internal.h"
+#include "libsigrok.h"
+#include "libsigrok-internal.h"
 
 /*
  * This enumerates which driver capabilities correspond to user-settable

@@ -24,8 +24,8 @@
 #include <inttypes.h>
 #include <libusb.h>
 #include "config.h"
-#include "sigrok.h"
-#include "sigrok-internal.h"
+#include "libsigrok.h"
+#include "libsigrok-internal.h"
 #include "fx2lafw.h"
 #include "command.h"
 

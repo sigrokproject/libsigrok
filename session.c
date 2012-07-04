@@ -22,8 +22,8 @@
 #include <unistd.h>
 #include <string.h>
 #include <glib.h>
-#include "sigrok.h"
-#include "sigrok-internal.h"
+#include "libsigrok.h"
+#include "libsigrok-internal.h"
 
 /* demo.c. TODO: Should not be global! */
 extern SR_PRIV GIOChannel channels[2];

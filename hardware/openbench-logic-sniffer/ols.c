@@ -38,8 +38,8 @@
 #include <arpa/inet.h>
 #endif
 #include <glib.h>
-#include "sigrok.h"
-#include "sigrok-internal.h"
+#include "libsigrok.h"
+#include "libsigrok-internal.h"
 #include "ols.h"
 
 #ifdef _WIN32

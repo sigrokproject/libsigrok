@@ -27,8 +27,8 @@
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
-#include "sigrok.h"
-#include "sigrok-internal.h"
+#include "libsigrok.h"
+#include "libsigrok-internal.h"
 
 SR_PRIV int ezusb_reset(struct libusb_device_handle *hdl, int set_clear)
 {

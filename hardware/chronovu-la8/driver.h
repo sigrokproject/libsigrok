@@ -24,8 +24,8 @@
 #include <glib.h>
 #include <ftdi.h>
 #include <stdint.h>
-#include "sigrok.h"
-#include "sigrok-internal.h"
+#include "libsigrok.h"
+#include "libsigrok-internal.h"
 
 #define USB_VENDOR_ID			0x0403
 #define USB_PRODUCT_ID			0x6001

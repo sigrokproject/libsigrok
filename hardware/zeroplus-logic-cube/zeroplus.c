@@ -25,8 +25,8 @@
 #include <glib.h>
 #include <libusb.h>
 #include "config.h"
-#include "sigrok.h"
-#include "sigrok-internal.h"
+#include "libsigrok.h"
+#include "libsigrok-internal.h"
 #include "analyzer.h"
 
 #define USB_VENDOR			0x0c12

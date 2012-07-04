@@ -29,8 +29,8 @@
 #include <inttypes.h>
 #include <glib.h>
 #include <libusb.h>
-#include "sigrok.h"
-#include "sigrok-internal.h"
+#include "libsigrok.h"
+#include "libsigrok-internal.h"
 #include "config.h"
 #include "dso.h"
 

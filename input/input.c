@@ -17,8 +17,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "sigrok.h"
-#include "sigrok-internal.h"
+#include "libsigrok.h"
+#include "libsigrok-internal.h"
 
 extern SR_PRIV struct sr_input_format input_chronovu_la8;
 extern SR_PRIV struct sr_input_format input_binary;

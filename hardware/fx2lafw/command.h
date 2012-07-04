@@ -21,7 +21,7 @@
 #define LIBSIGROK_HARDWARE_FX2LAFW_COMMAND_H
 
 #include <glib.h>
-#include "sigrok.h"
+#include "libsigrok.h"
 
 /* Protocol commands */
 #define CMD_GET_FW_VERSION		0xb0

@@ -31,38 +31,6 @@ extern "C" {
 #endif
 
 /*
- * Package version macros (can be used for conditional compilation).
- */
-
-/** The libsigrok package 'major' version number. */
-#define SR_PACKAGE_VERSION_MAJOR @SR_PACKAGE_VERSION_MAJOR@
-
-/** The libsigrok package 'minor' version number. */
-#define SR_PACKAGE_VERSION_MINOR @SR_PACKAGE_VERSION_MINOR@
-
-/** The libsigrok package 'micro' version number. */
-#define SR_PACKAGE_VERSION_MICRO @SR_PACKAGE_VERSION_MICRO@
-
-/** The libsigrok package version ("major.minor.micro") as string. */
-#define SR_PACKAGE_VERSION_STRING "@SR_PACKAGE_VERSION@"
-
-/*
- * Library/libtool version macros (can be used for conditional compilation).
- */
-
-/** The libsigrok libtool 'current' version number. */
-#define SR_LIB_VERSION_CURRENT @SR_LIB_VERSION_CURRENT@
-
-/** The libsigrok libtool 'revision' version number. */
-#define SR_LIB_VERSION_REVISION @SR_LIB_VERSION_REVISION@
-
-/** The libsigrok libtool 'age' version number. */
-#define SR_LIB_VERSION_AGE @SR_LIB_VERSION_AGE@
-
-/** The libsigrok libtool version ("current:revision:age") as string. */
-#define SR_LIB_VERSION_STRING "@SR_LIB_VERSION@"
-
-/*
  * Status/error codes returned by libsigrok functions.
  *
  * All possible return codes of libsigrok functions must be listed here.
@@ -521,7 +489,8 @@ struct sr_session {
 	gboolean running;
 };
 
-#include "sigrok-proto.h"
+#include "proto.h"
+#include "version.h"
 
 #ifdef __cplusplus
 }

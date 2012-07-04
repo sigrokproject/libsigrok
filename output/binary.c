@@ -21,8 +21,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <glib.h>
-#include "sigrok.h"
-#include "sigrok-internal.h"
+#include "libsigrok.h"
+#include "libsigrok-internal.h"
 
 static int data(struct sr_output *o, const uint8_t *data_in,
 		uint64_t length_in, uint8_t **data_out, uint64_t *length_out)

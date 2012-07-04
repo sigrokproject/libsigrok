@@ -23,8 +23,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/time.h>
-#include "sigrok.h"
-#include "sigrok-internal.h"
+#include "libsigrok.h"
+#include "libsigrok-internal.h"
 
 #define CHUNKSIZE             (512 * 1024)
 #define DEFAULT_NUM_PROBES    8

@@ -18,8 +18,8 @@
  */
 
 #include <glib.h>
-#include "sigrok.h"
-#include "sigrok-internal.h"
+#include "libsigrok.h"
+#include "libsigrok-internal.h"
 
 /**
  * Initialize libsigrok.

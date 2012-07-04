@@ -28,8 +28,8 @@
 #include <glib.h>
 #include <libudev.h>
 #include <arpa/inet.h>
-#include "sigrok.h"
-#include "sigrok-internal.h"
+#include "libsigrok.h"
+#include "libsigrok-internal.h"
 #include "link-mso19.h"
 
 #define USB_VENDOR "3195"

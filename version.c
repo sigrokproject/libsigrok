@@ -18,7 +18,7 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-#include "sigrok.h"
+#include "libsigrok.h"
 
 SR_API int sr_package_version_major_get(void)
 {

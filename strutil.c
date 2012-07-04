@@ -21,8 +21,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include "sigrok.h"
-#include "sigrok-internal.h"
+#include "libsigrok.h"
+#include "libsigrok-internal.h"
 
 /**
  * Convert a numeric samplerate value to its "natural" string representation.

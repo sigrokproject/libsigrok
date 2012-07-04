@@ -17,8 +17,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "sigrok.h"
-#include "sigrok-internal.h"
+#include "libsigrok.h"
+#include "libsigrok-internal.h"
 
 extern SR_PRIV struct sr_output_format output_text_bits;
 extern SR_PRIV struct sr_output_format output_text_hex;

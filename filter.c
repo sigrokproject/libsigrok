@@ -20,8 +20,8 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-#include "sigrok.h"
-#include "sigrok-internal.h"
+#include "libsigrok.h"
+#include "libsigrok-internal.h"
 
 /**
  * Remove unused probes from samples.

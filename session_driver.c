@@ -23,8 +23,8 @@
 #include <unistd.h>
 #include <sys/time.h>
 #include <zip.h>
-#include "sigrok.h"
-#include "sigrok-internal.h"
+#include "libsigrok.h"
+#include "libsigrok-internal.h"
 
 /* size of payloads sent across the session bus */
 #define CHUNKSIZE (512 * 1024)

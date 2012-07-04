@@ -23,8 +23,8 @@
 #include <string.h>
 #include <glib.h>
 #include "config.h"
-#include "sigrok.h"
-#include "sigrok-internal.h"
+#include "libsigrok.h"
+#include "libsigrok-internal.h"
 #include "text.h"
 
 SR_PRIV void flush_linebufs(struct context *ctx, uint8_t *outbuf)

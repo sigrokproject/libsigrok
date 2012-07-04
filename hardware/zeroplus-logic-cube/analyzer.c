@@ -32,7 +32,7 @@
 #include <assert.h>
 #include "analyzer.h"
 #include "gl_usb.h"
-#include "sigrok-internal.h"
+#include "libsigrok-internal.h"
 
 enum {
 	HARD_DATA_CHECK_SUM		= 0x00,

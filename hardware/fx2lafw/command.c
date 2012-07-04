@@ -21,8 +21,8 @@
 
 #include "fx2lafw.h"
 #include "command.h"
-#include "sigrok.h"
-#include "sigrok-internal.h"
+#include "libsigrok.h"
+#include "libsigrok-internal.h"
 
 SR_PRIV int command_get_fw_version(libusb_device_handle *devhdl,
 				   struct version_info *vi)

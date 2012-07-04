@@ -21,8 +21,8 @@
 #include <ftdi.h>
 #include <glib.h>
 #include <string.h>
-#include "sigrok.h"
-#include "sigrok-internal.h"
+#include "libsigrok.h"
+#include "libsigrok-internal.h"
 #include "driver.h"
 
 static GSList *dev_insts = NULL;

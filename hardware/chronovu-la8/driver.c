@@ -20,8 +20,8 @@
 
 #include <ftdi.h>
 #include <glib.h>
-#include "sigrok.h"
-#include "sigrok-internal.h"
+#include "libsigrok.h"
+#include "libsigrok-internal.h"
 #include "driver.h"
 
 /* Probes are numbered 0-7. */

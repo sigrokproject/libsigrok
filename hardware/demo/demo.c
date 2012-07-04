@@ -27,8 +27,8 @@
 #include <fcntl.h>
 #define pipe(fds) _pipe(fds, 4096, _O_BINARY)
 #endif
-#include "sigrok.h"
-#include "sigrok-internal.h"
+#include "libsigrok.h"
+#include "libsigrok-internal.h"
 
 /* TODO: Number of probes should be configurable. */
 #define NUM_PROBES             8
