@@ -462,7 +462,7 @@ SR_PRIV int sr_session_send(struct sr_dev *dev,
 }
 
 static int _sr_session_source_add(GPollFD *pollfd, int timeout,
-		sr_receive_data_callback_t cb, void *cb_data, gintptr poll_object)
+	sr_receive_data_callback_t cb, void *cb_data, gintptr poll_object)
 {
 	struct source *new_sources, *s;
 	GPollFD *new_pollfds;
@@ -476,7 +476,7 @@ static int _sr_session_source_add(GPollFD *pollfd, int timeout,
 
 	new_pollfds = g_try_realloc(pollfds, sizeof(GPollFD) * (num_sources + 1));
 	if (!new_pollfds) {
-		sr_err("session: %s: new_sources malloc failed", __func__);
+		sr_err("session: %s: new_pollfds malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 
@@ -526,7 +526,7 @@ SR_API int sr_session_source_add(int fd, int events, int timeout,
 }
 
 /**
- * Add a event source for a GPollFD
+ * Add an event source for a GPollFD.
  *
  * TODO: More error checks etc.
  *
@@ -541,11 +541,12 @@ SR_API int sr_session_source_add(int fd, int events, int timeout,
 SR_API int sr_session_source_add_pollfd(GPollFD *pollfd, int timeout,
 		sr_receive_data_callback_t cb, void *cb_data)
 {
-	return _sr_session_source_add(pollfd, timeout, cb, cb_data, (gintptr)pollfd);
+	return _sr_session_source_add(pollfd, timeout, cb,
+				      cb_data, (gintptr)pollfd);
 }
 
 /**
- * Add a event source for a GIOChannel
+ * Add an event source for a GIOChannel.
  *
  * TODO: More error checks etc.
  *
@@ -558,8 +559,8 @@ SR_API int sr_session_source_add_pollfd(GPollFD *pollfd, int timeout,
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or
  *         SR_ERR_MALLOC upon memory allocation errors.
  */
-SR_API int sr_session_source_add_channel(GIOChannel *channel, int events, int timeout,
-		sr_receive_data_callback_t cb, void *cb_data)
+SR_API int sr_session_source_add_channel(GIOChannel *channel, int events,
+		int timeout, sr_receive_data_callback_t cb, void *cb_data)
 {
 	GPollFD p;
 
@@ -606,7 +607,7 @@ static int _sr_session_source_remove(gintptr poll_object)
 
 	new_pollfds = g_try_realloc(sources, sizeof(GPollFD) * num_sources);
 	if (!new_pollfds && num_sources > 0) {
-		sr_err("session: %s: new_sources malloc failed", __func__);
+		sr_err("session: %s: new_pollfds malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 
@@ -627,7 +628,7 @@ static int _sr_session_source_remove(gintptr poll_object)
  *
  * TODO: More error checks.
  *
- * @param fd: The file descriptor for which the source should be removed.
+ * @param fd The file descriptor for which the source should be removed.
  *
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or
  *         SR_ERR_MALLOC upon memory allocation errors, SR_ERR_BUG upon
@@ -659,7 +660,7 @@ SR_API int sr_session_source_remove_pollfd(GPollFD *pollfd)
  *
  * TODO: More error checks.
  *
- * @parama channel: The channel for which the source should be removed.
+ * @param channel The channel for which the source should be removed.
  *
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or
  *         SR_ERR_MALLOC upon memory allocation errors, SR_ERR_BUG upon
