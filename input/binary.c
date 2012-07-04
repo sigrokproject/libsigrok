@@ -29,6 +29,10 @@
 #define CHUNKSIZE             (512 * 1024)
 #define DEFAULT_NUM_PROBES    8
 
+struct context {
+	int samplerate;
+};
+
 static int format_match(const char *filename)
 {
 	/* suppress compiler warning */
@@ -42,17 +46,37 @@ static int init(struct sr_input *in)
 {
 	int num_probes, i;
 	char name[SR_MAX_PROBENAME_LEN + 1];
+	char *param;
+	struct context *ctx;
 
-	if (in->param && in->param[0]) {
-		num_probes = strtoul(in->param, NULL, 10);
-		if (num_probes < 1)
-			return SR_ERR;
-	} else {
-		num_probes = DEFAULT_NUM_PROBES;
+	if (!(ctx = g_try_malloc0(sizeof(*ctx)))) {
+		sr_err("binary in: %s: ctx malloc failed", __func__);
+		return SR_ERR_MALLOC;
+	}
+
+	num_probes = DEFAULT_NUM_PROBES;
+	ctx->samplerate = 0;
+
+	if(in->param) {
+		param = g_hash_table_lookup(in->param, "numprobes");
+		if (param) {
+			num_probes = strtoul(param, NULL, 10);
+			if (num_probes < 1)
+				return SR_ERR;
+		}
+
+		param = g_hash_table_lookup(in->param, "samplerate");
+		if (param) {
+			ctx->samplerate = strtoul(param, NULL, 10);
+			if (ctx->samplerate < 1) {
+				return SR_ERR;
+			}
+		}
 	}
 
 	/* Create a virtual device. */
 	in->vdev = sr_dev_new(NULL, 0);
+	in->internal = ctx;
 
 	for (i = 0; i < num_probes; i++) {
 		snprintf(name, SR_MAX_PROBENAME_LEN, "%d", i);
@@ -71,6 +95,9 @@ static int loadfile(struct sr_input *in, const char *filename)
 	struct sr_datafeed_logic logic;
 	unsigned char buffer[CHUNKSIZE];
 	int fd, size, num_probes;
+	struct context *ctx;
+
+	ctx = in->internal;
 
 	if ((fd = open(filename, O_RDONLY)) == -1)
 		return SR_ERR;
@@ -87,7 +114,7 @@ static int loadfile(struct sr_input *in, const char *filename)
 	/* Send metadata about the SR_DF_LOGIC packets to come. */
 	packet.type = SR_DF_META_LOGIC;
 	packet.payload = &meta;
-	meta.samplerate = 0;
+	meta.samplerate = ctx->samplerate;
 	meta.num_probes = num_probes;
 	sr_session_send(in->vdev, &packet);
 
@@ -105,6 +132,9 @@ static int loadfile(struct sr_input *in, const char *filename)
 	/* end of stream */
 	packet.type = SR_DF_END;
 	sr_session_send(in->vdev, &packet);
+
+	g_free(ctx);
+	in->internal = NULL;
 
 	return SR_OK;
 }

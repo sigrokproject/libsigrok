@@ -96,15 +96,19 @@ static int init(struct sr_input *in)
 {
 	int num_probes, i;
 	char name[SR_MAX_PROBENAME_LEN + 1];
+	char *param;
 
-	if (in->param && in->param[0]) {
-		num_probes = strtoul(in->param, NULL, 10);
-		if (num_probes < 1) {
-			sr_err("la8 in: %s: strtoul failed", __func__);
-			return SR_ERR;
+	num_probes = DEFAULT_NUM_PROBES;
+
+	if (in->param) {
+		param = g_hash_table_lookup(in->param, "numprobes");
+		if (param) {
+			num_probes = strtoul(param, NULL, 10);
+			if (num_probes < 1) {
+				sr_err("la8 in: %s: strtoul failed", __func__);
+				return SR_ERR;
+			}
 		}
-	} else {
-		num_probes = DEFAULT_NUM_PROBES;
 	}
 
 	/* Create a virtual device. */
