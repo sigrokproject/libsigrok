@@ -662,11 +662,11 @@ static int receive_data(int fd, int revents, void *cb_data)
 
 static void abort_acquisition(struct context *ctx)
 {
-	unsigned int i;
+	int i;
 
 	ctx->num_samples = -1;
 
-	for (i = 0; i < ctx->num_transfers; i++) {
+	for (i = ctx->num_transfers - 1; i >= 0; i--) {
 		if (ctx->transfers[i])
 			libusb_cancel_transfer(ctx->transfers[i]);
 	}
