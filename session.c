@@ -321,22 +321,15 @@ SR_API int sr_session_run(void)
 /**
  * Halt the current session.
  *
- * This requests the current session be stopped as soon as possible, for
- * example on receiving an SR_DF_END packet.
+ * This function is deprecated and should not be used in new code, use
+ * sr_session_stop() instead. The behaviour of this function is identical to
+ * sr_session_stop().
  *
  * @return SR_OK upon success, SR_ERR_BUG if no session exists.
  */
 SR_API int sr_session_halt(void)
 {
-	if (!session) {
-		sr_err("session: %s: session was NULL", __func__);
-		return SR_ERR_BUG;
-	}
-
-	sr_info("session: halting");
-	session->running = FALSE;
-
-	return SR_OK;
+	return sr_session_stop();
 }
 
 /**
