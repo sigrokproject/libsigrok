@@ -350,6 +350,14 @@ static struct sr_dev_inst *get_metadata(int fd)
 
 static int hw_init(void)
 {
+
+	/* Nothing to do. */
+
+	return SR_OK;
+}
+
+static int hw_scan(void)
+{
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
 	GSList *ports, *l;
@@ -1047,6 +1055,7 @@ SR_PRIV struct sr_dev_driver ols_driver_info = {
 	.api_version = 1,
 	.init = hw_init,
 	.cleanup = hw_cleanup,
+	.scan = hw_scan,
 	.dev_open = hw_dev_open,
 	.dev_close = hw_dev_close,
 	.dev_info_get = hw_dev_info_get,

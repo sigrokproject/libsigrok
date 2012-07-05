@@ -151,7 +151,7 @@ static int hw_cleanup(void);
 static int hw_init(void)
 {
 
-	return 0;
+	return SR_OK;
 }
 
 /**

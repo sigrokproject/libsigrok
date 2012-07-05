@@ -407,6 +407,14 @@ static int bin2bitbang(const char *filename,
 
 static int hw_init(void)
 {
+
+	/* Nothing to do. */
+
+	return SR_OK;
+}
+
+static int hw_scan(void)
+{
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
 	struct ftdi_device_list *devlist;
@@ -1437,6 +1445,7 @@ SR_PRIV struct sr_dev_driver asix_sigma_driver_info = {
 	.api_version = 1,
 	.init = hw_init,
 	.cleanup = hw_cleanup,
+	.scan = hw_scan,
 	.dev_open = hw_dev_open,
 	.dev_close = hw_dev_close,
 	.dev_info_get = hw_dev_info_get,

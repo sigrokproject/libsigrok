@@ -58,14 +58,21 @@ SR_PRIV libusb_context *genericdmm_usb_context = NULL;
 
 static int hw_init(void)
 {
-	struct sr_dev_inst *sdi;
-	struct context *ctx;
-	int devcnt = 0;
 
 	if (libusb_init(&genericdmm_usb_context) != 0) {
 		sr_err("genericdmm: Failed to initialize USB.");
-		return 0;
+		return SR_ERR;
 	}
+
+
+	return SR_OK;
+}
+
+static int hw_scan(void)
+{
+	struct sr_dev_inst *sdi;
+	struct context *ctx;
+	int devcnt = 0;
 
 	if (!(ctx = g_try_malloc0(sizeof(struct context)))) {
 		sr_err("genericdmm: ctx malloc failed.");
@@ -610,6 +617,7 @@ SR_PRIV struct sr_dev_driver genericdmm_driver_info = {
 	.api_version = 1,
 	.init = hw_init,
 	.cleanup = hw_cleanup,
+	.scan = hw_scan,
 	.dev_open = hw_dev_open,
 	.dev_close = hw_dev_close,
 	.dev_info_get = hw_dev_info_get,

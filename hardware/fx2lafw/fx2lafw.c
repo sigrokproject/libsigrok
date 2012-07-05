@@ -384,21 +384,26 @@ static struct context *fx2lafw_dev_new(void)
 
 static int hw_init(void)
 {
+
+	if (libusb_init(&usb_context) != 0) {
+		sr_warn("fx2lafw: Failed to initialize libusb.");
+		return SR_ERR;
+	}
+
+	return SR_OK;
+}
+
+static int hw_scan(void)
+{
 	struct sr_dev_inst *sdi;
 	struct libusb_device_descriptor des;
 	const struct fx2lafw_profile *prof;
 	struct context *ctx;
 	libusb_device **devlist;
-	int ret;
-	int devcnt = 0;
-	int i, j;
-
-	if (libusb_init(&usb_context) != 0) {
-		sr_warn("fx2lafw: Failed to initialize libusb.");
-		return 0;
-	}
+	int devcnt, ret, i, j;
 
 	/* Find all fx2lafw compatible devices and upload firmware to them. */
+	devcnt = 0;
 	libusb_get_device_list(usb_context, &devlist);
 	for (i = 0; devlist[i]; i++) {
 
@@ -1009,6 +1014,7 @@ SR_PRIV struct sr_dev_driver fx2lafw_driver_info = {
 	.api_version = 1,
 	.init = hw_init,
 	.cleanup = hw_cleanup,
+	.scan = hw_scan,
 	.dev_open = hw_dev_open,
 	.dev_close = hw_dev_close,
 	.dev_info_get = hw_dev_info_get,

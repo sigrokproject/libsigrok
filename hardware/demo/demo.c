@@ -142,6 +142,14 @@ static int hw_dev_acquisition_stop(int dev_index, void *cb_data);
 
 static int hw_init(void)
 {
+
+	/* Nothing to do. */
+
+	return SR_OK;
+}
+
+static int hw_scan(void)
+{
 	struct sr_dev_inst *sdi;
 
 	sdi = sr_dev_inst_new(0, SR_ST_ACTIVE, DEMONAME, NULL, NULL);
@@ -510,6 +518,7 @@ SR_PRIV struct sr_dev_driver demo_driver_info = {
 	.api_version = 1,
 	.init = hw_init,
 	.cleanup = hw_cleanup,
+	.scan = hw_scan,
 	.dev_open = hw_dev_open,
 	.dev_close = hw_dev_close,
 	.dev_info_get = hw_dev_info_get,

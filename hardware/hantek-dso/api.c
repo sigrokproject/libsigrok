@@ -202,24 +202,30 @@ static int configure_probes(struct context *ctx, const GSList *probes)
 
 static int hw_init(void)
 {
+
+	if (libusb_init(&usb_context) != 0) {
+		sr_err("hantek-dso: Failed to initialize USB.");
+		return SR_ERR;
+	}
+
+	return SR_OK;
+}
+
+static int hw_scan(void)
+{
 	struct sr_dev_inst *sdi;
 	struct libusb_device_descriptor des;
 	const struct dso_profile *prof;
 	struct context *ctx;
 	libusb_device **devlist;
-	int err, devcnt, i, j;
-
-	if (libusb_init(&usb_context) != 0) {
-		sr_err("hantek-dso: Failed to initialize USB.");
-		return 0;
-	}
+	int devcnt, ret, i, j;
 
 	/* Find all Hantek DSO devices and upload firmware to all of them. */
 	devcnt = 0;
 	libusb_get_device_list(usb_context, &devlist);
 	for (i = 0; devlist[i]; i++) {
-		if ((err = libusb_get_device_descriptor(devlist[i], &des))) {
-			sr_err("hantek-dso: failed to get device descriptor: %d", err);
+		if ((ret = libusb_get_device_descriptor(devlist[i], &des))) {
+			sr_err("hantek-dso: failed to get device descriptor: %d", ret);
 			continue;
 		}
 
@@ -856,6 +862,7 @@ SR_PRIV struct sr_dev_driver hantek_dso_driver_info = {
 	.api_version = 1,
 	.init = hw_init,
 	.cleanup = hw_cleanup,
+	.scan = hw_scan,
 	.dev_open = hw_dev_open,
 	.dev_close = hw_dev_close,
 	.dev_info_get = hw_dev_info_get,
