@@ -605,7 +605,7 @@ static int _sr_session_source_remove(gintptr poll_object)
 			(num_sources - old) * sizeof(struct source));
 	}
 
-	new_pollfds = g_try_realloc(sources, sizeof(GPollFD) * num_sources);
+	new_pollfds = g_try_realloc(pollfds, sizeof(GPollFD) * num_sources);
 	if (!new_pollfds && num_sources > 0) {
 		sr_err("session: %s: new_pollfds malloc failed", __func__);
 		return SR_ERR_MALLOC;
