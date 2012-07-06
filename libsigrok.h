@@ -487,6 +487,17 @@ struct sr_session {
 	GSList *datafeed_callbacks;
 	GTimeVal starttime;
 	gboolean running;
+
+	unsigned int num_sources;
+
+	/* Both "sources" and "pollfds" are of the same size and contain pairs of
+	 * descriptor and callback function. We can not embed the GPollFD into the
+	 * source struct since we want to be able to pass the array of all poll
+	 * descriptors to g_poll.
+	 */
+	struct source *sources;
+	GPollFD *pollfds;
+	int source_timeout;
 };
 
 #include "proto.h"

@@ -39,16 +39,6 @@ struct source {
 /* There can only be one session at a time. */
 /* 'session' is not static, it's used elsewhere (via 'extern'). */
 struct sr_session *session;
-static int num_sources = 0;
-
-/* Both "sources" and "pollfds" are of the same size and contain pairs of
- * descriptor and callback function. We can not embed the GPollFD into the
- * source struct since we want to be able to pass the array of all poll
- * descriptors to g_poll.
- */
-static struct source *sources = NULL;
-static GPollFD *pollfds;
-static int source_timeout = -1;
 
 /**
  * Create a new session.
@@ -64,6 +54,8 @@ SR_API struct sr_session *sr_session_new(void)
 		sr_err("session: %s: session malloc failed", __func__);
 		return NULL; /* TODO: SR_ERR_MALLOC? */
 	}
+
+	session->source_timeout = -1;
 
 	return session;
 }
@@ -213,22 +205,23 @@ SR_API int sr_session_datafeed_callback_add(sr_datafeed_callback_t cb)
  */
 static int sr_session_run_poll(void)
 {
-	int ret, i;
+	unsigned int i;
+	int ret;
 
 	while (session->running) {
-		ret = g_poll(pollfds, num_sources, source_timeout);
+		ret = g_poll(session->pollfds, session->num_sources, session->source_timeout);
 
-		for (i = 0; i < num_sources; i++) {
-			if (pollfds[i].revents > 0 || (ret == 0
-				&& source_timeout == sources[i].timeout)) {
+		for (i = 0; i < session->num_sources; i++) {
+			if (session->pollfds[i].revents > 0 || (ret == 0
+				&& session->source_timeout == session->sources[i].timeout)) {
 				/*
 				 * Invoke the source's callback on an event,
 				 * or if the poll timeout out and this source
 				 * asked for that timeout.
 				 */
-				if (!sources[i].cb(pollfds[i].fd, pollfds[i].revents,
-						  sources[i].cb_data))
-					sr_session_source_remove(pollfds[i].fd);
+				if (!session->sources[i].cb(session->pollfds[i].fd, session->pollfds[i].revents,
+						  session->sources[i].cb_data))
+					sr_session_source_remove(session->sources[i].poll_object);
 			}
 		}
 	}
@@ -308,10 +301,10 @@ SR_API int sr_session_run(void)
 	session->running = TRUE;
 
 	/* Do we have real sources? */
-	if (num_sources == 1 && pollfds[0].fd == -1) {
+	if (session->num_sources == 1 && session->pollfds[0].fd == -1) {
 		/* Dummy source, freewheel over it. */
 		while (session->running)
-			sources[0].cb(-1, 0, sources[0].cb_data);
+			session->sources[0].cb(-1, 0, session->sources[0].cb_data);
 	} else {
 		/* Real sources, use g_poll() main loop. */
 		sr_session_run_poll();
@@ -474,30 +467,31 @@ static int _sr_session_source_add(GPollFD *pollfd, int timeout,
 
 	/* Note: cb_data can be NULL, that's not a bug. */
 
-	new_pollfds = g_try_realloc(pollfds, sizeof(GPollFD) * (num_sources + 1));
+	new_pollfds = g_try_realloc(session->pollfds, sizeof(GPollFD) * (session->num_sources + 1));
 	if (!new_pollfds) {
 		sr_err("session: %s: new_pollfds malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 
-	new_sources = g_try_realloc(sources, sizeof(struct source) * (num_sources + 1));
+	new_sources = g_try_realloc(session->sources, sizeof(struct source) *
+	(session->num_sources + 1));
 	if (!new_sources) {
 		sr_err("session: %s: new_sources malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 
-	new_pollfds[num_sources] = *pollfd;
-	s = &new_sources[num_sources++];
+	new_pollfds[session->num_sources] = *pollfd;
+	s = &new_sources[session->num_sources++];
 	s->timeout = timeout;
 	s->cb = cb;
 	s->cb_data = cb_data;
 	s->poll_object = poll_object;
-	pollfds = new_pollfds;
-	sources = new_sources;
+	session->pollfds = new_pollfds;
+	session->sources = new_sources;
 
-	if (timeout != source_timeout && timeout > 0
-	    && (source_timeout == -1 || timeout < source_timeout))
-		source_timeout = timeout;
+	if (timeout != session->source_timeout && timeout > 0
+	    && (session->source_timeout == -1 || timeout < session->source_timeout))
+		session->source_timeout = timeout;
 
 	return SR_OK;
 }
@@ -580,45 +574,45 @@ static int _sr_session_source_remove(gintptr poll_object)
 {
 	struct source *new_sources;
 	GPollFD *new_pollfds;
-	int old;
+	unsigned int old;
 
-	if (!sources) {
+	if (!session->sources || !session->num_sources) {
 		sr_err("session: %s: sources was NULL", __func__);
 		return SR_ERR_BUG;
 	}
 
-	for (old = 0; old < num_sources; old++) {
-		if (sources[old].poll_object == poll_object)
+	for (old = 0; old < session->num_sources; old++) {
+		if (session->sources[old].poll_object == poll_object)
 			break;
 	}
 
 	/* fd not found, nothing to do */
-	if (old == num_sources)
+	if (old == session->num_sources)
 		return SR_OK;
 
-	num_sources -= 1;
+	session->num_sources -= 1;
 
-	if (old != num_sources) {
-		memmove(&pollfds[old], &pollfds[old+1],
-			(num_sources - old) * sizeof(GPollFD));
-		memmove(&sources[old], &sources[old+1],
-			(num_sources - old) * sizeof(struct source));
+	if (old != session->num_sources) {
+		memmove(&session->pollfds[old], &session->pollfds[old+1],
+			(session->num_sources - old) * sizeof(GPollFD));
+		memmove(&session->sources[old], &session->sources[old+1],
+			(session->num_sources - old) * sizeof(struct source));
 	}
 
-	new_pollfds = g_try_realloc(pollfds, sizeof(GPollFD) * num_sources);
-	if (!new_pollfds && num_sources > 0) {
+	new_pollfds = g_try_realloc(session->pollfds, sizeof(GPollFD) * session->num_sources);
+	if (!new_pollfds && session->num_sources > 0) {
 		sr_err("session: %s: new_pollfds malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 
-	new_sources = g_try_realloc(sources, sizeof(struct source) * num_sources);
-	if (!new_sources && num_sources > 0) {
+	new_sources = g_try_realloc(session->sources, sizeof(struct source) * session->num_sources);
+	if (!new_sources && session->num_sources > 0) {
 		sr_err("session: %s: new_sources malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 
-	pollfds = new_pollfds;
-	sources = new_sources;
+	session->pollfds = new_pollfds;
+	session->sources = new_sources;
 
 	return SR_OK;
 }
