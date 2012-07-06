@@ -440,6 +440,8 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 	ctx->channels[0] = g_io_channel_unix_new(ctx->pipe_fds[0]);
 	ctx->channels[1] = g_io_channel_unix_new(ctx->pipe_fds[1]);
 
+	g_io_channel_set_flags(ctx->channels[0], G_IO_FLAG_NONBLOCK, NULL);
+
 	/* Set channel encoding to binary (default is UTF-8). */
 	g_io_channel_set_encoding(ctx->channels[0], NULL, NULL);
 	g_io_channel_set_encoding(ctx->channels[1], NULL, NULL);
