@@ -122,6 +122,7 @@ SR_API struct sr_output_format **sr_output_list(void);
 
 /*--- strutil.c -------------------------------------------------------------*/
 
+SR_API char *sr_si_string_u64(uint64_t x, const char *unit);
 SR_API char *sr_samplerate_string(uint64_t samplerate);
 SR_API char *sr_period_string(uint64_t frequency);
 SR_API char *sr_voltage_string(struct sr_rational *voltage);
