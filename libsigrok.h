@@ -490,6 +490,9 @@ struct sr_dev_driver {
 	int (*dev_config_set) (int dev_index, int hwcap, const void *value);
 	int (*dev_acquisition_start) (int dev_index, void *session_dev_id);
 	int (*dev_acquisition_stop) (int dev_index, void *session_dev_id);
+
+	/* Dynamic */
+	GSList *instances;
 };
 
 struct sr_session {
