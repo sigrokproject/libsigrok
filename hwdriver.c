@@ -125,47 +125,44 @@ static struct sr_dev_driver *drivers_list[] = {
  */
 SR_API struct sr_dev_driver **sr_driver_list(void)
 {
+
 	return drivers_list;
 }
 
 /**
  * Initialize a hardware driver.
  *
- * The specified driver is initialized, and all devices discovered by the
- * driver are instantiated.
- *
  * @param driver The driver to initialize.
  *
- * @return The number of devices found and instantiated by the driver.
+ * @return SR_OK if all went well, or an error code otherwise.
  */
 SR_API int sr_driver_init(struct sr_dev_driver *driver)
 {
-	int num_devs, num_probes, i, j;
-	int num_initialized_devs = 0;
-	struct sr_dev *dev;
-	char **probe_names;
 
-	sr_dbg("initializing %s driver", driver->name);
-	num_devs = driver->init();
-	for (i = 0; i < num_devs; i++) {
-		num_probes = GPOINTER_TO_INT(
-				driver->dev_info_get(i, SR_DI_NUM_PROBES));
-		probe_names = (char **)driver->dev_info_get(i,
-							SR_DI_PROBE_NAMES);
+	if (driver->init)
+		return driver->init();
 
-		if (!probe_names) {
-			sr_warn("hwdriver: %s: driver %s does not return a "
-				"list of probe names", __func__, driver->name);
-			continue;
-		}
+	return SR_OK;
+}
 
-		dev = sr_dev_new(driver, i);
-		for (j = 0; j < num_probes; j++)
-			sr_dev_probe_add(dev, probe_names[j]);
-		num_initialized_devs++;
-	}
+/**
+ * Tell a hardware driver to scan for devices.
+ *
+ * @param driver The driver.
+ * @param options A list of struct sr_hwopt options to pass to the driver's
+ * 		scanner.
+ *
+ * @return A GSList * of struct sr_dev_inst, or NULL if no devices were found.
+ * This list must be freed by the caller, but without freeing the data
+ * pointed to in the list.
+ */
+SR_API GSList *sr_driver_scan(struct sr_dev_driver *driver, GSList *options)
+{
 
-	return num_initialized_devs;
+	if (driver->scan)
+		return driver->scan(options);
+
+	return NULL;
 }
 
 SR_PRIV void sr_hw_cleanup_all(void)

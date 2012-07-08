@@ -478,7 +478,7 @@ struct sr_dev_driver {
 	int api_version;
 	int (*init) (void);
 	int (*cleanup) (void);
-	int (*scan) (void);
+	GSList *(*scan) (GSList *options);
 
 	/* Device-specific */
 	int (*dev_open) (int dev_index);
