@@ -71,9 +71,13 @@ struct context {
 
 struct dmmchip {
 	/* Optional, called once before measurement starts. */
-	int (*init) (struct context *ctx);
+	int (*init) (void);
+
+	/* Scan for devices with the given options. */
+	GSList *(*scan) (GSList *options);
+
 	/* Called whenever a chunk of data arrives. */
-	int (*data) (struct context *ctx, unsigned char *data);
+	int (*data) (struct sr_dev_inst *sdi, unsigned char *data);
 };
 
 
