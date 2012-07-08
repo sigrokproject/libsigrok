@@ -261,7 +261,24 @@ struct sr_probe {
 	char *trigger;
 };
 
-/* Hardware driver capabilities */
+struct sr_hwopt {
+	int hwopt;
+	const void *value;
+};
+
+/* Hardware driver options */
+enum {
+	/** Some drivers cannot detect the exact model they're talking to. */
+	SR_HWOPT_MODEL,
+
+	/** Specification on how to connect to a device */
+	SR_HWOPT_CONN,
+
+	/** Serial communication spec: <data bits><parity><stop bit> e.g. 8n1 */
+	SR_HWOPT_SERIALCOMM,
+};
+
+/* Hardware device capabilities */
 enum {
 	SR_HWCAP_DUMMY = 0, /* Used to terminate lists. Must be 0! */
 
@@ -278,17 +295,6 @@ enum {
 
 	/** The device is a demo device. */
 	SR_HWCAP_DEMO_DEV,
-
-
-	/*--- Device communication ------------------------------------------*/
-	/** Some drivers cannot detect the exact model they're talking to. */
-	SR_HWCAP_MODEL,
-
-	/** Specification on how to connect to a device */
-	SR_HWCAP_CONN,
-
-	/** Serial communication spec: <data bits><parity><stop bit> e.g. 8n1 */
-	SR_HWCAP_SERIALCOMM,
 
 
 	/*--- Device configuration ------------------------------------------*/

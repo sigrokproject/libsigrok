@@ -32,6 +32,11 @@
  */
 /* TODO: This shouldn't be a global. */
 SR_API struct sr_hwcap_option sr_hwcap_options[] = {
+	/* Driver scanning options. */
+	{SR_HWOPT_MODEL, SR_T_KEYVALUE, "Model", "model"},
+	{SR_HWOPT_CONN, SR_T_CHAR, "Connection", "conn"},
+	{SR_HWOPT_SERIALCOMM, SR_T_CHAR, "Serial communication", "serialcomm"},
+	/* Device instance options. */
 	{SR_HWCAP_SAMPLERATE, SR_T_UINT64, "Sample rate", "samplerate"},
 	{SR_HWCAP_CAPTURE_RATIO, SR_T_UINT64, "Pre-trigger capture ratio", "captureratio"},
 	{SR_HWCAP_PATTERN_MODE, SR_T_CHAR, "Pattern generator mode", "pattern"},
@@ -45,9 +50,6 @@ SR_API struct sr_hwcap_option sr_hwcap_options[] = {
 	{SR_HWCAP_FILTER, SR_T_CHAR, "Filter targets", "filter"},
 	{SR_HWCAP_VDIV, SR_T_RATIONAL_VOLT, "Volts/div", "vdiv"},
 	{SR_HWCAP_COUPLING, SR_T_CHAR, "Coupling", "coupling"},
-	{SR_HWCAP_MODEL, SR_T_KEYVALUE, "Model", "model"},
-	{SR_HWCAP_CONN, SR_T_CHAR, "Connection", "connect"},
-	{SR_HWCAP_SERIALCOMM, SR_T_CHAR, "Serial communication", "serialcomm"},
 	{0, 0, NULL, NULL},
 };
 
