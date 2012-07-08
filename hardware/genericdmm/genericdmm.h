@@ -40,10 +40,8 @@ struct dev_profile {
 	char *vendor;
 	char *model;
 	struct dmmchip *chip;
-	/* Only use when the VID:PID is really specific to a DMM. */
-	uint16_t vid;
-	uint16_t pid;
 	int transport;
+	struct sr_hwopt *defaults_opts;
 };
 
 struct context {
