@@ -187,6 +187,31 @@ GSList *genericdmm_connect(const char *conn, const char *serialcomm)
 	return NULL;
 }
 
+static GSList *default_scan(GSList *options)
+{
+	GSList *l, *devices;
+	struct sr_hwopt *opt;
+	const char *conn, *serialcomm;
+
+	devices = NULL;
+	conn = serialcomm = NULL;
+	for (l = options; l; l = l->next) {
+		opt = l->data;
+		switch (opt->hwopt) {
+		case SR_HWOPT_CONN:
+			conn = opt->value;
+			break;
+		case SR_HWOPT_SERIALCOMM:
+			serialcomm = opt->value;
+			break;
+		}
+	}
+	if (conn)
+		devices = genericdmm_connect(conn, serialcomm);
+
+	return devices;
+}
+
 static int hw_init(void)
 {
 
@@ -199,28 +224,89 @@ static int hw_init(void)
 	return SR_OK;
 }
 
-static int hw_scan(void)
+static GSList *hw_scan(GSList *options)
 {
-	struct sr_dev_inst *sdi;
-	struct context *ctx;
-	int devcnt = 0;
+	GSList *l, *ldef, *defopts, *newopts, *devices;
+	struct sr_hwopt *opt, *defopt;
+	struct dev_profile *pr, *profile;
+	const char *model;
 
-	if (!(ctx = g_try_malloc0(sizeof(struct context)))) {
-		sr_err("genericdmm: ctx malloc failed.");
-		return 0;
+	/* Separate model from the options list. */
+	model = NULL;
+	newopts = NULL;
+	for (l = options; l; l = l->next) {
+		opt = l->data;
+		if (opt->hwopt == SR_HWOPT_MODEL)
+			model = opt->value;
+		else
+			/* New list with references to the original data. */
+			newopts = g_slist_append(newopts, opt);
+	}
+	if (!model) {
+		sr_err("Need a model to scan for.");
+		return NULL;
 	}
 
-	devcnt = g_slist_length(genericdmm_dev_insts);
-	if (!(sdi = sr_dev_inst_new(devcnt, SR_ST_ACTIVE, "Generic DMM",
-			NULL, NULL))) {
-		sr_err("genericdmm: sr_dev_inst_new returned NULL.");
-		return 0;
+	/* Find a profile with this model name. */
+	profile = NULL;
+	for (pr = dev_profiles; pr->modelid; pr++) {
+		if (!strcmp(pr->modelid, model)) {
+			profile = pr;
+			break;
+		}
 	}
-	sdi->priv = ctx;
-	genericdmm_dev_insts = g_slist_append(genericdmm_dev_insts, sdi);
+	if (!profile) {
+		sr_err("Unknown model %s.", model);
+		return NULL;
+	}
 
-	/* Always initialized just one device instance. */
-	return 0;
+	/* Initialize the DMM chip driver. */
+	if (profile->chip->init)
+		profile->chip->init();
+
+	/* Convert the profile's default options list to a GSList. */
+	defopts = NULL;
+	for (opt = profile->defaults_opts; opt->hwopt; opt++) {
+		/* New list with references to const data in the profile. */
+		defopts = g_slist_append(defopts, opt);
+	}
+
+	/* Options given as argument to this function override the
+	 * profile's default options.
+	 */
+	for (ldef = defopts; ldef; ldef = ldef->next) {
+		defopt = ldef->data;
+		for (l = newopts; l; l = l->next) {
+			opt = l->data;
+			if (opt->hwopt == defopt->hwopt) {
+				/* Override the default, and drop it from the
+				 * options list.
+				 */
+				ldef->data = l->data;
+				newopts = g_slist_remove(newopts, opt);
+				break;
+			}
+		}
+	}
+	/* Whatever is left in newopts wasn't in the default options. */
+	defopts = g_slist_concat(defopts, newopts);
+	g_slist_free(newopts);
+
+	if (profile->chip->scan)
+		/* The DMM chip driver wants to do its own scanning. */
+		devices = profile->chip->scan(defopts);
+	else
+		devices = default_scan(defopts);
+	g_slist_free(defopts);
+
+	if (devices) {
+		/* TODO: need to fix up sdi->index fields */
+		/* Add a copy of these new devices to the driver instances. */
+		for (l = devices; l; l = l->next)
+			gdi->instances = g_slist_append(gdi->instances, l->data);
+	}
+
+	return devices;
 }
 
 static int hw_dev_open(int dev_index)
