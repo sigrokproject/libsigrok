@@ -18,8 +18,8 @@
  */
 
 
-#ifndef GENERICDMM_H_
-#define GENERICDMM_H_
+#ifndef LIBSIGROK_GENERICDMM_H
+#define LIBSIGROK_GENERICDMM_H
 
 /* SR_HWCAP_CONN takes one of these: */
 #define DMM_CONN_USB_VIDPID    "^([0--9a-z]{1,4}):([0--9a-z]{1,4})$"
@@ -79,4 +79,4 @@ struct dmmchip {
 };
 
 
-#endif /* GENERICDMM_H_ */
+#endif /* LIBSIGROK_GENERICDMM_H */
