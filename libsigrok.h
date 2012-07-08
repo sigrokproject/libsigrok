@@ -250,7 +250,7 @@ struct sr_dev {
 };
 
 enum {
-	SR_PROBE_TYPE_LOGIC,
+	SR_PROBE_LOGIC,
 };
 
 struct sr_probe {
@@ -402,6 +402,7 @@ struct sr_dev_inst {
 	char *vendor;
 	char *model;
 	char *version;
+	GSList *probes;
 	void *priv;
 };
 

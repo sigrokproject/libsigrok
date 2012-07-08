@@ -193,6 +193,7 @@ SR_PRIV struct sr_dev_inst *sr_dev_inst_new(int index, int status,
 	sdi->vendor = vendor ? g_strdup(vendor) : NULL;
 	sdi->model = model ? g_strdup(model) : NULL;
 	sdi->version = version ? g_strdup(version) : NULL;
+	sdi->probes = NULL;
 	sdi->priv = NULL;
 
 	return sdi;
@@ -220,6 +221,25 @@ SR_PRIV void sr_dev_inst_free(struct sr_dev_inst *sdi)
 	g_free(sdi->model);
 	g_free(sdi->version);
 	g_free(sdi);
+}
+
+SR_PRIV struct sr_probe *sr_probe_new(int index, int type,
+		gboolean enabled, const char *name)
+{
+	struct sr_probe *probe;
+
+	if (!(probe = g_try_malloc0(sizeof(struct sr_probe)))) {
+		sr_err("hwdriver: probe malloc failed");
+		return NULL;
+	}
+
+	probe->index = index;
+	probe->type = type;
+	probe->enabled = enabled;
+	if (name)
+		probe->name = g_strdup(name);
+
+	return probe;
 }
 
 #ifdef HAVE_LIBUSB_1_0

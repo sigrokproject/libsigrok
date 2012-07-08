@@ -91,6 +91,8 @@ SR_PRIV struct sr_dev_inst *sr_dev_inst_new(int index, int status,
 		const char *vendor, const char *model, const char *version);
 SR_PRIV struct sr_dev_inst *sr_dev_inst_get(GSList *dev_insts, int dev_index);
 SR_PRIV void sr_dev_inst_free(struct sr_dev_inst *sdi);
+SR_PRIV struct sr_probe *sr_probe_new(int index, int type,
+		gboolean enabled, const char *name);
 
 SR_PRIV int sr_source_remove(int fd);
 SR_PRIV int sr_source_add(int fd, int events, int timeout,
