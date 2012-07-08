@@ -139,9 +139,10 @@ static const struct sr_samplerates samplerates = {
 	supported_samplerates,
 };
 
-static GSList *dev_insts = NULL;
 static libusb_context *usb_context = NULL;
 
+SR_PRIV struct sr_dev_driver fx2lafw_driver_info;
+static struct sr_dev_driver *fdi = &fx2lafw_driver_info;
 static int hw_dev_config_set(int dev_index, int hwcap, const void *value);
 static int hw_dev_acquisition_stop(int dev_index, void *cb_data);
 
@@ -199,7 +200,7 @@ static int fx2lafw_dev_open(int dev_index)
 	int ret, skip, i;
 	uint8_t revid;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
+	if (!(sdi = sr_dev_inst_get(fdi->instances, dev_index)))
 		return SR_ERR;
 	ctx = sdi->priv;
 
@@ -427,6 +428,7 @@ static GSList *hw_scan(GSList *options)
 		if (!prof)
 			continue;
 
+		devcnt = g_slist_length(fdi->instances);
 		sdi = sr_dev_inst_new(devcnt, SR_ST_INITIALIZING,
 			prof->vendor, prof->model, prof->model_version);
 		if (!sdi)
@@ -444,7 +446,8 @@ static GSList *hw_scan(GSList *options)
 		ctx = fx2lafw_dev_new();
 		ctx->profile = prof;
 		sdi->priv = ctx;
-		dev_insts = g_slist_append(dev_insts, sdi);
+		fdi->instances = g_slist_append(fdi->instances, sdi);
+		devices = g_slist_append(devices, sdi);
 
 		if (check_conf_profile(devlist[i])) {
 			/* Already has the firmware, so fix the new address. */
@@ -477,7 +480,7 @@ static int hw_dev_open(int dev_index)
 	int ret;
 	int64_t timediff_us, timediff_ms;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
+	if (!(sdi = sr_dev_inst_get(fdi->instances, dev_index)))
 		return SR_ERR;
 	ctx = sdi->priv;
 
@@ -545,7 +548,7 @@ static int hw_dev_close(int dev_index)
 {
 	struct sr_dev_inst *sdi;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index))) {
+	if (!(sdi = sr_dev_inst_get(fdi->instances, dev_index))) {
 		sr_err("fx2lafw: %s: sdi was NULL.", __func__);
 		return SR_ERR_BUG;
 	}
@@ -563,7 +566,7 @@ static int hw_cleanup(void)
 	struct context *ctx;
 	int ret = SR_OK;
 
-	for (l = dev_insts; l; l = l->next) {
+	for (l = fdi->instances; l; l = l->next) {
 		if (!(sdi = l->data)) {
 			/* Log error, but continue cleaning up the rest. */
 			sr_err("fx2lafw: %s: sdi was NULL, continuing.",
@@ -583,8 +586,8 @@ static int hw_cleanup(void)
 		sr_dev_inst_free(sdi);
 	}
 
-	g_slist_free(dev_insts);
-	dev_insts = NULL;
+	g_slist_free(fdi->instances);
+	fdi->instances = NULL;
 
 	if (usb_context)
 		libusb_exit(usb_context);
@@ -598,7 +601,7 @@ static const void *hw_dev_info_get(int dev_index, int dev_info_id)
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
+	if (!(sdi = sr_dev_inst_get(fdi->instances, dev_index)))
 		return NULL;
 	ctx = sdi->priv;
 
@@ -625,7 +628,7 @@ static const void *hw_dev_info_get(int dev_index, int dev_info_id)
 static int hw_dev_status_get(int dev_index)
 {
 	const struct sr_dev_inst *const sdi =
-		sr_dev_inst_get(dev_insts, dev_index);
+		sr_dev_inst_get(fdi->instances, dev_index);
 
 	if (!sdi)
 		return SR_ST_NOT_FOUND;
@@ -644,7 +647,7 @@ static int hw_dev_config_set(int dev_index, int hwcap, const void *value)
 	struct context *ctx;
 	int ret;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
+	if (!(sdi = sr_dev_inst_get(fdi->instances, dev_index)))
 		return SR_ERR;
 	ctx = sdi->priv;
 
@@ -933,7 +936,7 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 	int ret;
 	unsigned char *buf;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
+	if (!(sdi = sr_dev_inst_get(fdi->instances, dev_index)))
 		return SR_ERR;
 	ctx = sdi->priv;
 
@@ -1009,7 +1012,7 @@ static int hw_dev_acquisition_stop(int dev_index, void *cb_data)
 	/* Avoid compiler warnings. */
 	(void)cb_data;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
+	if (!(sdi = sr_dev_inst_get(fdi->instances, dev_index)))
 		return SR_ERR;
  
 	abort_acquisition(sdi->priv);
@@ -1032,4 +1035,5 @@ SR_PRIV struct sr_dev_driver fx2lafw_driver_info = {
 	.dev_config_set = hw_dev_config_set,
 	.dev_acquisition_start = hw_dev_acquisition_start,
 	.dev_acquisition_stop = hw_dev_acquisition_stop,
+	.instances = NULL,
 };
