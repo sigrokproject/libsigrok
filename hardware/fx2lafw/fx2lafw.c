@@ -393,17 +393,22 @@ static int hw_init(void)
 	return SR_OK;
 }
 
-static int hw_scan(void)
+static GSList *hw_scan(GSList *options)
 {
-	struct sr_dev_inst *sdi;
+	GSList *devices;
 	struct libusb_device_descriptor des;
+	struct sr_dev_inst *sdi;
 	const struct fx2lafw_profile *prof;
 	struct context *ctx;
+	struct sr_probe *probe;
 	libusb_device **devlist;
-	int devcnt, ret, i, j;
+	int devcnt, num_logic_probes, ret, i, j;
+
+	/* Avoid compiler warnings. */
+	(void)options;
 
 	/* Find all fx2lafw compatible devices and upload firmware to them. */
-	devcnt = 0;
+	devices = NULL;
 	libusb_get_device_list(usb_context, &devlist);
 	for (i = 0; devlist[i]; i++) {
 
@@ -453,12 +458,10 @@ static int hw_scan(void)
 			ctx->usb = sr_usb_dev_inst_new
 				(libusb_get_bus_number(devlist[i]), 0xff, NULL);
 		}
-
-		devcnt++;
 	}
 	libusb_free_device_list(devlist, 1);
 
-	return devcnt;
+	return devices;
 }
 
 static int hw_dev_open(int dev_index)
