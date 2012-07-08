@@ -22,7 +22,7 @@
 #define LIBSIGROK_GENERICDMM_H
 
 /* SR_HWCAP_CONN takes one of these: */
-#define DMM_CONN_USB_VIDPID    "^([0--9a-z]{1,4}):([0--9a-z]{1,4})$"
+#define DMM_CONN_USB_VIDPID    "^([0-9a-z]{1,4})\\.([0-9a-z]{1,4})$"
 #define DMM_CONN_USB_BUSADDR   "^(\\d+)\\.(\\d+)$"
 #define DMM_CONN_SERIALPORT    "^([a-z0-9/\\-_]+)$"
 
