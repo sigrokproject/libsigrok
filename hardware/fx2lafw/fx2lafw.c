@@ -92,9 +92,6 @@ static const int hwcaps[] = {
 	0,
 };
 
-/*
- * TODO: Different probe_names[] for each supported device.
- */
 static const char *probe_names[] = {
 	"0",
 	"1",
@@ -434,6 +431,15 @@ static GSList *hw_scan(GSList *options)
 			prof->vendor, prof->model, prof->model_version);
 		if (!sdi)
 			return 0;
+
+		/* Fill in probelist according to this device's profile. */
+		num_logic_probes = prof->dev_caps & DEV_CAPS_16BIT ? 16 : 8;
+		for (j = 0; i < num_logic_probes; j++) {
+			if (!(probe = sr_probe_new(j, SR_PROBE_LOGIC, TRUE,
+					probe_names[j])))
+				return 0;
+			sdi->probes = g_slist_append(sdi->probes, probe);
+		}
 
 		ctx = fx2lafw_dev_new();
 		ctx->profile = prof;
