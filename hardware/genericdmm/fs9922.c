@@ -22,14 +22,7 @@
 #include "genericdmm.h"
 
 
-static int fs9922_init(struct context *ctx)
-{
-
-
-	return SR_OK;
-}
-
-static int fs9922_data(struct context *ctx, unsigned char *data)
+static int fs9922_data(struct sr_dev_inst *sdi, unsigned char *data)
 {
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog analog;
@@ -42,7 +35,6 @@ static int fs9922_data(struct context *ctx, unsigned char *data)
 
 
 SR_PRIV struct dmmchip dmmchip_fs9922 = {
-	.init = fs9922_init,
 	.data = fs9922_data,
 };
 
