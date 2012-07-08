@@ -57,8 +57,9 @@ static const char *probe_names[] = {
 	NULL,
 };
 
-/* TODO need a way to keep these local to the static library */
-SR_PRIV GSList *genericdmm_dev_insts = NULL;
+SR_PRIV struct sr_dev_driver genericdmm_driver_info;
+static struct sr_dev_driver *gdi = &genericdmm_driver_info;
+/* TODO need a way to keep this local to the static library */
 SR_PRIV libusb_context *genericdmm_usb_context = NULL;
 
 
@@ -103,7 +104,7 @@ static int hw_dev_open(int dev_index)
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
 
-	if (!(sdi = sr_dev_inst_get(genericdmm_dev_insts, dev_index))) {
+	if (!(sdi = sr_dev_inst_get(gdi->instances, dev_index))) {
 		sr_err("genericdmm: sdi was NULL.");
 		return SR_ERR_BUG;
 	}
@@ -141,7 +142,7 @@ static int hw_dev_close(int dev_index)
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
 
-	if (!(sdi = sr_dev_inst_get(genericdmm_dev_insts, dev_index))) {
+	if (!(sdi = sr_dev_inst_get(gdi->instances, dev_index))) {
 		sr_err("genericdmm: %s: sdi was NULL.", __func__);
 		return SR_ERR_BUG;
 	}
@@ -176,7 +177,7 @@ static int hw_cleanup(void)
 	struct context *ctx;
 
 	/* Properly close and free all devices. */
-	for (l = genericdmm_dev_insts; l; l = l->next) {
+	for (l = gdi->instances; l; l = l->next) {
 		if (!(sdi = l->data)) {
 			/* Log error, but continue cleaning up the rest. */
 			sr_err("genericdmm: sdi was NULL, continuing.");
@@ -204,8 +205,8 @@ static int hw_cleanup(void)
 		sr_dev_inst_free(sdi);
 	}
 
-	g_slist_free(genericdmm_dev_insts);
-	genericdmm_dev_insts = NULL;
+	g_slist_free(gdi->instances);
+	gdi->instances = NULL;
 
 	if (genericdmm_usb_context)
 		libusb_exit(genericdmm_usb_context);
@@ -219,7 +220,7 @@ static const void *hw_dev_info_get(int dev_index, int dev_info_id)
 	struct context *ctx;
 	const void *info;
 
-	if (!(sdi = sr_dev_inst_get(genericdmm_dev_insts, dev_index))) {
+	if (!(sdi = sr_dev_inst_get(gdi->instances, dev_index))) {
 		sr_err("genericdmm: sdi was NULL.");
 		return NULL;
 	}
@@ -264,7 +265,7 @@ static int hw_dev_status_get(int dev_index)
 {
 	struct sr_dev_inst *sdi;
 
-	if (!(sdi = sr_dev_inst_get(genericdmm_dev_insts, dev_index))) {
+	if (!(sdi = sr_dev_inst_get(gdi->instances, dev_index))) {
 		sr_err("genericdmm: sdi was NULL, device not found.");
 		return SR_ST_NOT_FOUND;
 	}
@@ -455,7 +456,7 @@ static int hw_dev_config_set(int dev_index, int hwcap, const void *value)
 	struct context *ctx;
 	int i;
 
-	if (!(sdi = sr_dev_inst_get(genericdmm_dev_insts, dev_index))) {
+	if (!(sdi = sr_dev_inst_get(gdi->instances, dev_index))) {
 		sr_err("genericdmm: sdi was NULL.");
 		return SR_ERR_BUG;
 	}
@@ -557,7 +558,7 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
 
-	if (!(sdi = sr_dev_inst_get(genericdmm_dev_insts, dev_index))) {
+	if (!(sdi = sr_dev_inst_get(gdi->instances, dev_index))) {
 		sr_err("genericdmm: sdi was NULL.");
 		return SR_ERR_BUG;
 	}
@@ -632,4 +633,5 @@ SR_PRIV struct sr_dev_driver genericdmm_driver_info = {
 	.dev_config_set = hw_dev_config_set,
 	.dev_acquisition_start = hw_dev_acquisition_start,
 	.dev_acquisition_stop = hw_dev_acquisition_stop,
+	.instances = NULL,
 };
