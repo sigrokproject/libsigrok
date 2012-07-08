@@ -46,9 +46,9 @@ static const int hwcaps[] = {
 	SR_HWCAP_LIMIT_SAMPLES,
 	SR_HWCAP_LIMIT_MSEC,
 	SR_HWCAP_CONTINUOUS,
-	SR_HWCAP_MODEL,
-	SR_HWCAP_CONN,
-	SR_HWCAP_SERIALCOMM,
+	SR_HWOPT_MODEL,
+	SR_HWOPT_CONN,
+	SR_HWOPT_SERIALCOMM,
 	0,
 };
 
@@ -62,6 +62,130 @@ static struct sr_dev_driver *gdi = &genericdmm_driver_info;
 /* TODO need a way to keep this local to the static library */
 SR_PRIV libusb_context *genericdmm_usb_context = NULL;
 
+
+static GSList *connect_usb(const char *conn)
+{
+	struct sr_dev_inst *sdi;
+	struct context *ctx;
+	libusb_device **devlist;
+	struct libusb_device_descriptor des;
+	GSList *devices;
+	GRegex *reg;
+	GMatchInfo *match;
+	int vid, pid, bus, addr, devcnt, err, i;
+	char *mstr;
+
+	vid = pid = bus = addr = 0;
+	reg = g_regex_new(DMM_CONN_USB_VIDPID, 0, 0, NULL);
+	if (g_regex_match(reg, conn, 0, &match)) {
+		/* Extract VID. */
+		if ((mstr = g_match_info_fetch(match, 1)))
+			vid = strtoul(mstr, NULL, 16);
+		g_free(mstr);
+
+		/* Extract PID. */
+		if ((mstr = g_match_info_fetch(match, 2)))
+			pid = strtoul(mstr, NULL, 16);
+		g_free(mstr);
+	} else {
+		g_match_info_unref(match);
+		g_regex_unref(reg);
+		reg = g_regex_new(DMM_CONN_USB_BUSADDR, 0, 0, NULL);
+		if (g_regex_match(reg, conn, 0, &match)) {
+			/* Extract bus. */
+			if ((mstr = g_match_info_fetch(match, 0)))
+				bus = strtoul(mstr, NULL, 16);
+			g_free(mstr);
+
+			/* Extract address. */
+			if ((mstr = g_match_info_fetch(match, 0)))
+				addr = strtoul(mstr, NULL, 16);
+			g_free(mstr);
+		}
+	}
+	g_match_info_unref(match);
+	g_regex_unref(reg);
+
+	if (vid + pid + bus + addr == 0)
+		return NULL;
+
+	if (bus > 64) {
+		sr_err("invalid bus");
+		return NULL;
+	}
+
+	if (addr > 127) {
+		sr_err("invalid address");
+		return NULL;
+	}
+
+	/* Looks like a valid USB device specification, but is it connected? */
+	devices = NULL;
+	libusb_get_device_list(genericdmm_usb_context, &devlist);
+	for (i = 0; devlist[i]; i++) {
+		if ((err = libusb_get_device_descriptor(devlist[i], &des))) {
+			sr_err("genericdmm: failed to get device descriptor: %d", err);
+			continue;
+		}
+
+		if (vid + pid && (des.idVendor != vid || des.idProduct != pid))
+			/* VID/PID specified, but no match. */
+			continue;
+
+		if (bus + addr && (
+				libusb_get_bus_number(devlist[i]) != bus
+				|| libusb_get_device_address(devlist[i]) != addr))
+			/* Bus/address specified, but no match. */
+			continue;
+
+		/* Found one. */
+		if (!(ctx = g_try_malloc0(sizeof(struct context)))) {
+			sr_err("genericdmm: ctx malloc failed.");
+			return 0;
+		}
+
+		devcnt = g_slist_length(gdi->instances);
+		if (!(sdi = sr_dev_inst_new(devcnt, SR_ST_ACTIVE,
+				"Generic DMM", NULL, NULL))) {
+			sr_err("genericdmm: sr_dev_inst_new returned NULL.");
+			return NULL;
+		}
+		sdi->priv = ctx;
+		ctx->usb = sr_usb_dev_inst_new(
+				libusb_get_bus_number(devlist[i]),
+				libusb_get_device_address(devlist[i]), NULL);
+		devices = g_slist_append(devices, sdi);
+	}
+	libusb_free_device_list(devlist, 1);
+
+	return devices;
+}
+
+static GSList *connect_serial(const char *conn, const char *serialcomm)
+{
+	GSList *devices;
+
+	devices = NULL;
+
+	/* TODO */
+	sr_dbg("not yet implemented");
+
+	return devices;
+}
+
+GSList *genericdmm_connect(const char *conn, const char *serialcomm)
+{
+	GSList *devices;
+
+	if (serialcomm)
+		/* Must be a serial port. */
+		return connect_serial(conn, serialcomm);
+
+	if ((devices = connect_usb(conn)))
+		return devices;
+
+	return NULL;
+}
 
 static int hw_init(void)
 {
@@ -282,179 +406,10 @@ static const int *hw_hwcap_get_all(void)
 	return hwcaps;
 }
 
-static int parse_conn_vidpid(struct sr_dev_inst *sdi, const char *conn)
-{
-	struct context *ctx;
-	libusb_device **devlist;
-	struct libusb_device_descriptor des;
-	GRegex *reg;
-	GMatchInfo *match;
-	int vid, pid, found, err, i;
-	char *vidstr, *pidstr;
-
-	found = FALSE;
-
-	reg = g_regex_new(DMM_CONN_USB_VIDPID, 0, 0, NULL);
-	if (g_regex_match(reg, conn, 0, &match)) {
-		/* Extract VID. */
-		if (!(vidstr = g_match_info_fetch(match, 0))) {
-			sr_err("failed to fetch VID from regex");
-			goto err;
-		}
-		vid = strtoul(vidstr, NULL, 16);
-		g_free(vidstr);
-		if (vid > 0xffff) {
-			sr_err("invalid VID");
-			goto err;
-		}
-
-		/* Extract PID. */
-		if (!(pidstr = g_match_info_fetch(match, 0))) {
-			sr_err("failed to fetch PID from regex");
-			goto err;
-		}
-		pid = strtoul(pidstr, NULL, 16);
-		g_free(pidstr);
-		if (pid > 0xffff) {
-			sr_err("invalid PID");
-			goto err;
-		}
-
-		/* Looks like a valid VID:PID, but is it connected? */
-		libusb_get_device_list(genericdmm_usb_context, &devlist);
-		for (i = 0; devlist[i]; i++) {
-			if ((err = libusb_get_device_descriptor(devlist[i], &des))) {
-				sr_err("genericdmm: failed to get device descriptor: %d", err);
-				goto err;
-			}
-
-			if (des.idVendor == vid && des.idProduct == pid) {
-				ctx = sdi->priv;
-				ctx->usb = sr_usb_dev_inst_new(
-						libusb_get_bus_number(devlist[i]),
-						libusb_get_device_address(devlist[i]), NULL);
-				found = TRUE;
-				break;
-			}
-		}
-		libusb_free_device_list(devlist, 1);
-	}
-
-err:
-	if (match)
-		g_match_info_unref(match);
-	g_regex_unref(reg);
-
-	return found;
-}
-
-static int parse_conn_busaddr(struct sr_dev_inst *sdi, const char *conn)
-{
-	struct context *ctx;
-	libusb_device **devlist;
-	struct libusb_device_descriptor des;
-	GRegex *reg;
-	GMatchInfo *match;
-	int bus, addr, found, err, i;
-	char *busstr, *addrstr;
-
-	found = FALSE;
-
-	reg = g_regex_new(DMM_CONN_USB_BUSADDR, 0, 0, NULL);
-	if (g_regex_match(reg, conn, 0, &match)) {
-		/* Extract bus. */
-		if (!(busstr = g_match_info_fetch(match, 0))) {
-			sr_err("failed to fetch bus from regex");
-			goto err;
-		}
-		bus = strtoul(busstr, NULL, 16);
-		g_free(busstr);
-		if (bus > 64) {
-			sr_err("invalid bus");
-			goto err;
-		}
-
-		/* Extract address. */
-		if (!(addrstr = g_match_info_fetch(match, 0))) {
-			sr_err("failed to fetch address from regex");
-			goto err;
-		}
-		addr = strtoul(addrstr, NULL, 16);
-		g_free(addrstr);
-		if (addr > 127) {
-			sr_err("invalid address");
-			goto err;
-		}
-
-		/* Looks like a valid bus/address, but is it connected? */
-		libusb_get_device_list(genericdmm_usb_context, &devlist);
-		for (i = 0; devlist[i]; i++) {
-			if ((err = libusb_get_device_descriptor(devlist[i], &des))) {
-				sr_err("genericdmm: failed to get device descriptor: %d", err);
-				goto err;
-			}
-
-			if (libusb_get_bus_number(devlist[i]) == bus
-					&& libusb_get_device_address(devlist[i]) == addr) {
-				ctx = sdi->priv;
-				ctx->usb = sr_usb_dev_inst_new(bus, addr, NULL);
-				found = TRUE;
-				break;
-			}
-		}
-		libusb_free_device_list(devlist, 1);
-	}
-
-err:
-	if (match)
-		g_match_info_unref(match);
-	g_regex_unref(reg);
-
-	return found;
-}
-
-static int parse_conn_serial(struct sr_dev_inst *sdi, const char *conn)
-{
-	int found;
-
-	found = FALSE;
-
-	/* TODO */
-
-	return found;
-}
-
-static int parse_conn(struct sr_dev_inst *sdi, const char *conn)
-{
-
-	if (parse_conn_vidpid(sdi, conn))
-		return SR_OK;
-
-	if (parse_conn_busaddr(sdi, conn))
-		return SR_OK;
-
-	if (parse_conn_serial(sdi, conn))
-		return SR_OK;
-
-	sr_err("Invalid connection specification");
-
-	return SR_ERR;
-}
-
-static int parse_serialcomm(struct sr_dev_inst *sdi, const char *conn)
-{
-
-	/* TODO */
-	/* set ctx->serial_* */
-
-	return SR_OK;
-}
-
 static int hw_dev_config_set(int dev_index, int hwcap, const void *value)
 {
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
-	int i;
 
 	if (!(sdi = sr_dev_inst_get(gdi->instances, dev_index))) {
 		sr_err("genericdmm: sdi was NULL.");
@@ -482,36 +437,6 @@ static int hw_dev_config_set(int dev_index, int hwcap, const void *value)
 		ctx->limit_samples = *(const uint64_t *)value;
 		sr_dbg("genericdmm: Setting LIMIT_SAMPLES to %" PRIu64 ".",
 		       ctx->limit_samples);
-		break;
-	case SR_HWCAP_MODEL:
-		for (i = 0; dev_profiles[i].model; i++) {
-			if (!strcasecmp(dev_profiles[i].model, value)) {
-				ctx->profile = &dev_profiles[i];
-				/* Frontends access these fields directly, so we
-				 * need to copy them over. */
-				sdi->vendor = g_strdup(dev_profiles[i].vendor);
-				sdi->model = g_strdup(dev_profiles[i].model);
-				/* This is the first time we actually know which
-				 * DMM chip we're talking to, so let's init
-				 * anything specific to it now */
-				if (ctx->profile->chip->init)
-					if (ctx->profile->chip->init(ctx) != SR_OK)
-						return SR_ERR;
-				break;
-			}
-		}
-		if (!ctx->profile) {
-			sr_err("unknown model %s", value);
-			return SR_ERR;
-		}
-		break;
-	case SR_HWCAP_CONN:
-		if (parse_conn(sdi, value) != SR_OK)
-			return SR_ERR_ARG;
-		break;
-	case SR_HWCAP_SERIALCOMM:
-		if (parse_serialcomm(sdi, value) != SR_OK)
-			return SR_ERR_ARG;
 		break;
 	default:
 		sr_err("genericdmm: Unknown capability: %d.", hwcap);
