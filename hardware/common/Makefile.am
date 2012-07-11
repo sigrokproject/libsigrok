@@ -22,11 +22,11 @@ noinst_LTLIBRARIES = libsigrokhwcommon.la
 
 libsigrokhwcommon_la_SOURCES =
 
-if LA_FX2LAFW
+if NEED_EZUSB
 libsigrokhwcommon_la_SOURCES += ezusb.c
 endif
 
-if LA_OLS
+if NEED_SERIAL
 libsigrokhwcommon_la_SOURCES += serial.c
 endif
 

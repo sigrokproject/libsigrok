@@ -247,6 +247,18 @@ if test "x$LA_ALSA" != xno; then
 		SR_PKGLIBS="$SR_PKGLIBS alsa"])
 fi
 
+# EZUSB FX2 firmware helpers only needed for some hardware drivers
+AM_CONDITIONAL(NEED_EZUSB, \
+	test "x$LA_FX2LAFW" != xno \
+	-o "x$HW_HANTEK_DSO" != xno \
+)
+
+# Serial port helpers only needed for some hardware drivers
+AM_CONDITIONAL(NEED_SERIAL, \
+	test "x$LA_OLS" != xno \
+	-o "x$HW_GENERICDMM" != xno \
+)
+
 AC_SUBST(SR_PKGLIBS)
 
 # Checks for header files.
