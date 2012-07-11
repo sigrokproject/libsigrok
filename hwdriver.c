@@ -78,9 +78,6 @@ extern SR_PRIV struct sr_dev_driver fx2lafw_driver_info;
 #ifdef HAVE_HW_HANTEK_DSO
 extern SR_PRIV struct sr_dev_driver hantek_dso_driver_info;
 #endif
-#ifdef HAVE_HW_MASTECH_VA18B
-extern SR_PRIV struct sr_dev_driver mastech_va18b_driver_info;
-#endif
 #ifdef HAVE_HW_GENERICDMM
 extern SR_PRIV struct sr_dev_driver genericdmm_driver_info;
 #endif
@@ -112,9 +109,6 @@ static struct sr_dev_driver *drivers_list[] = {
 #endif
 #ifdef HAVE_HW_HANTEK_DSO
 	&hantek_dso_driver_info,
-#endif
-#ifdef HAVE_HW_MASTECH_VA18B
-	&mastech_va18b_driver_info,
 #endif
 #ifdef HAVE_HW_GENERICDMM
 	&genericdmm_driver_info,
