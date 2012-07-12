@@ -398,6 +398,7 @@ struct sr_hwcap_option {
 };
 
 struct sr_dev_inst {
+	struct sr_dev_driver *driver;
 	int index;
 	int status;
 	int inst_type;
