@@ -267,7 +267,7 @@ static const void *hw_dev_info_get(int dev_index, int dev_info_id)
 		sr_spew("la8: %s: Returning samplerates.", __func__);
 		break;
 	case SR_DI_TRIGGER_TYPES:
-		info = (char *)TRIGGER_TYPES;
+		info = TRIGGER_TYPES;
 		sr_spew("la8: %s: Returning trigger types: %s.", __func__,
 			TRIGGER_TYPES);
 		break;
