@@ -141,4 +141,9 @@ SR_API int sr_lib_version_revision_get(void);
 SR_API int sr_lib_version_age_get(void);
 SR_API const char *sr_lib_version_string_get(void);
 
+/*--- error.c ---------------------------------------------------------------*/
+
+SR_API const char *sr_strerror(int error_code);
+SR_API const char *sr_strerror_name(int error_code);
+
 #endif

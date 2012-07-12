@@ -37,6 +37,7 @@ libsigrok_la_SOURCES = \
 	strutil.c \
 	log.c \
 	version.c
+	error.c
 
 libsigrok_la_LIBADD = \
 	$(LIBOBJS) \
