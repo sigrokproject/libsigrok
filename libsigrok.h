@@ -268,6 +268,8 @@ struct sr_hwopt {
 
 /* Hardware driver options */
 enum {
+	SR_HWOPT_DUMMY = 0, /* Used to terminate lists. Must be 0! */
+
 	/** Some drivers cannot detect the exact model they're talking to. */
 	SR_HWOPT_MODEL,
 

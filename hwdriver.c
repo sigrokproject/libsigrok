@@ -26,17 +26,17 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
-/*
- * This enumerates which driver capabilities correspond to user-settable
- * options.
- */
-/* TODO: This shouldn't be a global. */
-SR_API struct sr_hwcap_option sr_hwcap_options[] = {
-	/* Driver scanning options. */
+
+/* Driver scanning options. */
+SR_API struct sr_hwcap_option sr_drvopts[] = {
 	{SR_HWOPT_MODEL, SR_T_KEYVALUE, "Model", "model"},
 	{SR_HWOPT_CONN, SR_T_CHAR, "Connection", "conn"},
 	{SR_HWOPT_SERIALCOMM, SR_T_CHAR, "Serial communication", "serialcomm"},
-	/* Device instance options. */
+	{0, 0, NULL, NULL},
+};
+
+/* Device instance options. */
+SR_API struct sr_hwcap_option sr_hwcap_options[] = {
 	{SR_HWCAP_SAMPLERATE, SR_T_UINT64, "Sample rate", "samplerate"},
 	{SR_HWCAP_CAPTURE_RATIO, SR_T_UINT64, "Pre-trigger capture ratio", "captureratio"},
 	{SR_HWCAP_PATTERN_MODE, SR_T_CHAR, "Pattern generator mode", "pattern"},
@@ -323,6 +323,26 @@ SR_API gboolean sr_driver_hwcap_exists(struct sr_dev_driver *driver, int hwcap)
 	}
 
 	return FALSE;
+}
+
+/**
+ * Get a hardware driver option.
+ *
+ * @param hwopt The option to get.
+ *
+ * @return A pointer to a struct with information about the parameter, or NULL
+ *         if the option was not found.
+ */
+SR_API const struct sr_hwcap_option *sr_drvopt_get(int hwopt)
+{
+	int i;
+
+	for (i = 0; sr_drvopts[i].hwcap; i++) {
+		if (sr_drvopts[i].hwcap == hwopt)
+			return &sr_drvopts[i];
+	}
+
+	return NULL;
 }
 
 /**
