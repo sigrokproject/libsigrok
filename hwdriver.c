@@ -177,6 +177,32 @@ SR_PRIV void sr_hw_cleanup_all(void)
 	}
 }
 
+/**
+ * Returns information about the given driver or device instance.
+ *
+ * @param driver The sr_dev_driver struct to query.
+ * @param id The type of information, in the form of an SR_HWCAP_* option.
+ * @param data Pointer where the value. will be stored. Must not be NULL.
+ * @param sdi Pointer to the struct sr_dev_inst to be checked. Must not be NULL.
+ *
+ * @return SR_OK upon success or SR_ERR in case of error. Note SR_ERR_ARG
+ *         may be returned by the driver indicating it doesn't know that id,
+ *         but this is not to be flagged as an error by the caller; merely
+ *         as an indication that it's not applicable.
+ */
+SR_API int sr_info_get(struct sr_dev_driver *driver, int id,
+		const void **data, const struct sr_dev_inst *sdi)
+{
+	int ret;
+
+	if (driver == NULL || data == NULL)
+		return SR_ERR;
+
+	ret = driver->info_get(id, data, sdi);
+
+	return ret;
+}
+
 SR_PRIV struct sr_dev_inst *sr_dev_inst_new(int index, int status,
 		const char *vendor, const char *model, const char *version)
 {
