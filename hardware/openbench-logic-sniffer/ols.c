@@ -227,10 +227,11 @@ static struct sr_dev_inst *get_metadata(int fd)
 {
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
-	uint32_t tmp_int;
+	struct sr_probe *probe;
+	uint32_t tmp_int, ui;
 	uint8_t key, type, token;
 	GString *tmp_str, *devname, *version;
-	gchar tmp_c;
+	guchar tmp_c;
 
 	sdi = sr_dev_inst_new(0, SR_ST_INACTIVE, NULL, NULL, NULL);
 	ctx = ols_dev_new();
@@ -289,7 +290,12 @@ static struct sr_dev_inst *get_metadata(int fd)
 			switch (token) {
 			case 0x00:
 				/* Number of usable probes */
-				ctx->num_probes = tmp_int;
+				for (ui = 0; ui < tmp_int; ui++) {
+					if (!(probe = sr_probe_new(ui, SR_PROBE_LOGIC, TRUE,
+							probe_names[ui])))
+						return 0;
+					sdi->probes = g_slist_append(sdi->probes, probe);
+				}
 				break;
 			case 0x01:
 				/* Amount of sample memory available (bytes) */
@@ -322,7 +328,12 @@ static struct sr_dev_inst *get_metadata(int fd)
 			switch (token) {
 			case 0x00:
 				/* Number of usable probes */
-				ctx->num_probes = tmp_c;
+				for (ui = 0; ui < tmp_c; ui++) {
+					if (!(probe = sr_probe_new(ui, SR_PROBE_LOGIC, TRUE,
+							probe_names[ui])))
+						return 0;
+					sdi->probes = g_slist_append(sdi->probes, probe);
+				}
 				break;
 			case 0x01:
 				/* protocol version */
@@ -356,16 +367,19 @@ static int hw_init(void)
 	return SR_OK;
 }
 
-static int hw_scan(void)
+static GSList *hw_scan(GSList *options)
 {
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
-	GSList *ports, *l;
+	struct sr_probe *probe;
+	GSList *devices, *ports, *l;
 	GPollFD *fds, probefd;
-	int devcnt, final_devcnt, num_ports, fd, ret, i;
+	int devcnt, final_devcnt, num_ports, fd, ret, i, j;
 	char buf[8], **dev_names, **serial_params;
 
+	(void)options;
 	final_devcnt = 0;
+	devices = NULL;
 
 	/* Scan all serial ports. */
 	ports = list_serial_ports();
@@ -455,7 +469,12 @@ static int hw_scan(void)
 			sdi = sr_dev_inst_new(final_devcnt, SR_ST_INACTIVE,
 					"Sump", "Logic Analyzer", "v1.0");
 			ctx = ols_dev_new();
-			ctx->num_probes = 32;
+			for (j = 0; j < 32; j++) {
+				if (!(probe = sr_probe_new(j, SR_PROBE_LOGIC, TRUE,
+						probe_names[j])))
+					return 0;
+				sdi->probes = g_slist_append(sdi->probes, probe);
+			}
 			sdi->priv = ctx;
 		}
 		ctx->serial = sr_serial_dev_inst_new(dev_names[i], -1);
@@ -485,7 +504,7 @@ hw_init_free_fds:
 hw_init_free_ports:
 	g_slist_free(ports);
 
-	return final_devcnt;
+	return devices;
 }
 
 static int hw_dev_open(int dev_index)

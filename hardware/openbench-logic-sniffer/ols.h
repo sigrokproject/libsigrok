@@ -64,7 +64,6 @@ struct context {
 	uint32_t max_samplerate;
 	uint32_t max_samples;
 	uint32_t protocol_version;
-	int num_probes;
 
 	uint64_t cur_samplerate;
 	uint32_t cur_samplerate_divider;
