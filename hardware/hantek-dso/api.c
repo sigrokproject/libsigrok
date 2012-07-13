@@ -145,7 +145,8 @@ static const char *coupling[] = {
 };
 
 SR_PRIV libusb_context *usb_context = NULL;
-SR_PRIV GSList *dev_insts = NULL;
+SR_PRIV struct sr_dev_driver hantek_dso_driver_info;
+static struct sr_dev_driver *hdi = &hantek_dso_driver_info;
 
 static struct sr_dev_inst *dso_dev_new(int index, const struct dso_profile *prof)
 {
@@ -178,7 +179,7 @@ static struct sr_dev_inst *dso_dev_new(int index, const struct dso_profile *prof
 	ctx->triggersource = g_strdup(DEFAULT_TRIGGER_SOURCE);
 	ctx->triggerposition = DEFAULT_HORIZ_TRIGGERPOS;
 	sdi->priv = ctx;
-	dev_insts = g_slist_append(dev_insts, sdi);
+	hdi->instances = g_slist_append(hdi->instances, sdi);
 
 	return sdi;
 }
@@ -281,7 +282,7 @@ static int hw_dev_open(int dev_index)
 	int64_t timediff_us, timediff_ms;
 	int err;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
+	if (!(sdi = sr_dev_inst_get(hdi->instances, dev_index)))
 		return SR_ERR_ARG;
 	ctx = sdi->priv;
 
@@ -326,7 +327,7 @@ static int hw_dev_close(int dev_index)
 {
 	struct sr_dev_inst *sdi;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
+	if (!(sdi = sr_dev_inst_get(hdi->instances, dev_index)))
 		return SR_ERR_ARG;
 
 	dso_close(sdi);
@@ -341,7 +342,7 @@ static int hw_cleanup(void)
 	struct context *ctx;
 
 	/* Properly close and free all devices. */
-	for (l = dev_insts; l; l = l->next) {
+	for (l = hdi->instances; l; l = l->next) {
 		if (!(sdi = l->data)) {
 			/* Log error, but continue cleaning up the rest. */
 			sr_err("hantek-dso: %s: sdi was NULL, continuing", __func__);
@@ -359,8 +360,8 @@ static int hw_cleanup(void)
 		sr_dev_inst_free(sdi);
 	}
 
-	g_slist_free(dev_insts);
-	dev_insts = NULL;
+	g_slist_free(hdi->instances);
+	hdi->instances = NULL;
 
 	if (usb_context)
 		libusb_exit(usb_context);
@@ -375,7 +376,7 @@ static const void *hw_dev_info_get(int dev_index, int dev_info_id)
 	const void *info;
 	uint64_t tmp;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
+	if (!(sdi = sr_dev_inst_get(hdi->instances, dev_index)))
 		return NULL;
 
 	info = NULL;
@@ -420,7 +421,7 @@ static int hw_dev_status_get(int dev_index)
 {
 	struct sr_dev_inst *sdi;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
+	if (!(sdi = sr_dev_inst_get(hdi->instances, dev_index)))
 		return SR_ST_NOT_FOUND;
 
 	return sdi->status;
@@ -441,7 +442,7 @@ static int hw_dev_config_set(int dev_index, int hwcap, const void *value)
 	int ret, i;
 	char **targets;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
+	if (!(sdi = sr_dev_inst_get(hdi->instances, dev_index)))
 		return SR_ERR;
 
 	if (sdi->status != SR_ST_ACTIVE)
@@ -794,7 +795,7 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 	struct context *ctx;
 	int i;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
+	if (!(sdi = sr_dev_inst_get(hdi->instances, dev_index)))
 		return SR_ERR;
 
 	if (sdi->status != SR_ST_ACTIVE)
@@ -841,7 +842,7 @@ static int hw_dev_acquisition_stop(int dev_index, void *cb_data)
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
+	if (!(sdi = sr_dev_inst_get(hdi->instances, dev_index)))
 		return SR_ERR;
 
 	if (sdi->status != SR_ST_ACTIVE)
@@ -871,4 +872,5 @@ SR_PRIV struct sr_dev_driver hantek_dso_driver_info = {
 	.dev_config_set = hw_dev_config_set,
 	.dev_acquisition_start = hw_dev_acquisition_start,
 	.dev_acquisition_stop = hw_dev_acquisition_stop,
+	.instances = NULL,
 };
