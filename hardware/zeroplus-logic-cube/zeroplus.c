@@ -101,7 +101,8 @@ static const char *probe_names[NUM_PROBES + 1] = {
 };
 
 /* List of struct sr_dev_inst, maintained by dev_open()/dev_close(). */
-static GSList *dev_insts = NULL;
+SR_PRIV struct sr_dev_driver zeroplus_logic_cube_driver_info;
+static struct sr_dev_driver *zdi = &zeroplus_logic_cube_driver_info;
 
 static libusb_context *usb_context = NULL;
 
@@ -237,7 +238,7 @@ static struct sr_dev_inst *zp_open_dev(int dev_index)
 	struct libusb_device_descriptor des;
 	int i;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
+	if (!(sdi = sr_dev_inst_get(zdi->instances, dev_index)))
 		return NULL;
 
 	libusb_get_device_list(usb_context, &devlist);
@@ -393,8 +394,7 @@ static int hw_scan(void)
 
 			sdi->priv = ctx;
 
-			dev_insts =
-			    g_slist_append(dev_insts, sdi);
+			zdi->instances = g_slist_append(zdi->instances, sdi);
 			ctx->usb = sr_usb_dev_inst_new(
 				libusb_get_bus_number(devlist[i]),
 				libusb_get_device_address(devlist[i]), NULL);
@@ -471,7 +471,7 @@ static int hw_dev_close(int dev_index)
 {
 	struct sr_dev_inst *sdi;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index))) {
+	if (!(sdi = sr_dev_inst_get(zdi->instances, dev_index))) {
 		sr_err("zp: %s: sdi was NULL", __func__);
 		return SR_ERR; /* TODO: SR_ERR_ARG? */
 	}
@@ -487,15 +487,15 @@ static int hw_cleanup(void)
 	GSList *l;
 	struct sr_dev_inst *sdi;
 
-	for (l = dev_insts; l; l = l->next) {
+	for (l = zdi->instances; l; l = l->next) {
 		sdi = l->data;
 		/* Properly close all devices... */
 		close_dev(sdi);
 		/* ...and free all their memory. */
 		sr_dev_inst_free(sdi);
 	}
-	g_slist_free(dev_insts);
-	dev_insts = NULL;
+	g_slist_free(zdi->instances);
+	zdi->instances = NULL;
 
 	if (usb_context)
 		libusb_exit(usb_context);
@@ -510,7 +510,7 @@ static const void *hw_dev_info_get(int dev_index, int dev_info_id)
 	struct context *ctx;
 	const void *info;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index))) {
+	if (!(sdi = sr_dev_inst_get(zdi->instances, dev_index))) {
 		sr_err("zp: %s: sdi was NULL", __func__);
 		return NULL;
 	}
@@ -564,7 +564,7 @@ static int hw_dev_status_get(int dev_index)
 {
 	struct sr_dev_inst *sdi;
 
-	sdi = sr_dev_inst_get(dev_insts, dev_index);
+	sdi = sr_dev_inst_get(zdi->instances, dev_index);
 	if (sdi)
 		return sdi->status;
 	else
@@ -609,7 +609,7 @@ static int hw_dev_config_set(int dev_index, int hwcap, const void *value)
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index))) {
+	if (!(sdi = sr_dev_inst_get(zdi->instances, dev_index))) {
 		sr_err("zp: %s: sdi was NULL", __func__);
 		return SR_ERR;
 	}
@@ -645,7 +645,7 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 	unsigned char *buf;
 	struct context *ctx;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index))) {
+	if (!(sdi = sr_dev_inst_get(zdi->instances, dev_index))) {
 		sr_err("zp: %s: sdi was NULL", __func__);
 		return SR_ERR;
 	}
@@ -723,7 +723,7 @@ static int hw_dev_acquisition_stop(int dev_index, void *cb_data)
 	packet.type = SR_DF_END;
 	sr_session_send(cb_data, &packet);
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index))) {
+	if (!(sdi = sr_dev_inst_get(zdi->instances, dev_index))) {
 		sr_err("zp: %s: sdi was NULL", __func__);
 		return SR_ERR_BUG;
 	}
@@ -754,4 +754,5 @@ SR_PRIV struct sr_dev_driver zeroplus_logic_cube_driver_info = {
 	.dev_config_set = hw_dev_config_set,
 	.dev_acquisition_start = hw_dev_acquisition_start,
 	.dev_acquisition_stop = hw_dev_acquisition_stop,
+	.instances = NULL,
 };
