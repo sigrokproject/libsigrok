@@ -397,7 +397,8 @@ SR_API gboolean sr_dev_has_hwcap(const struct sr_dev *dev, int hwcap)
 
 	/* TODO: Sanity check on 'hwcap'. */
 
-	if (!(hwcaps = dev->driver->hwcap_get_all())) {
+	if (dev->driver->info_get(SR_DI_HWCAPS,
+			(const void **)&hwcaps, NULL) != SR_OK) {
 		sr_err("dev: %s: dev has no capabilities", __func__);
 		return FALSE;
 	}

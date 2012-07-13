@@ -338,10 +338,8 @@ SR_API gboolean sr_driver_hwcap_exists(struct sr_dev_driver *driver, int hwcap)
 		return FALSE;
 	}
 
-	if (!(hwcaps = driver->hwcap_get_all())) {
-		sr_err("hwdriver: %s: hwcap_get_all() returned NULL", __func__);
+	if (driver->info_get(SR_DI_HWCAPS, (const void **)&hwcaps, NULL) != SR_OK)
 		return FALSE;
-	}
 
 	for (i = 0; hwcaps[i]; i++) {
 		if (hwcaps[i] == hwcap)

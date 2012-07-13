@@ -436,7 +436,12 @@ enum {
 /* Device info IDs */
 enum {
 	/* struct sr_dev_inst for this specific device */
+	/* TODO: obsolete */
 	SR_DI_INST,
+	/* A list of options supported by the driver. */
+	SR_DI_HWOPTS,
+	/* A list of capabilities supported by the device. */
+	SR_DI_HWCAPS,
 	/* The number of probes connected to this device */
 	SR_DI_NUM_PROBES,
 	/* The probe names on this device */
@@ -492,7 +497,6 @@ struct sr_dev_driver {
 	int (*info_get) (int dev_info_id, const void **data,
 			const struct sr_dev_inst *sdi);
 	int (*dev_status_get) (int dev_index);
-	const int *(*hwcap_get_all) (void);
 	int (*dev_config_set) (int dev_index, int hwcap, const void *value);
 	int (*dev_acquisition_start) (int dev_index, void *session_dev_id);
 	int (*dev_acquisition_stop) (int dev_index, void *session_dev_id);
