@@ -596,33 +596,44 @@ static int hw_cleanup(void)
 	return ret;
 }
 
-static const void *hw_dev_info_get(int dev_index, int dev_info_id)
+static int hw_info_get(int dev_info_id, const void **data,
+		const struct sr_dev_inst *sdi)
 {
-	struct sr_dev_inst *sdi;
 	struct context *ctx;
-
-	if (!(sdi = sr_dev_inst_get(fdi->instances, dev_index)))
-		return NULL;
-	ctx = sdi->priv;
 
 	switch (dev_info_id) {
 	case SR_DI_INST:
 		return sdi;
 	case SR_DI_NUM_PROBES:
-		return GINT_TO_POINTER(
-			(ctx->profile->dev_caps & DEV_CAPS_16BIT) ?
-			16 : 8);
+		if (sdi) {
+			ctx = sdi->priv;
+			*data = GINT_TO_POINTER(
+				(ctx->profile->dev_caps & DEV_CAPS_16BIT) ?
+				16 : 8);
+		} else
+			return SR_ERR;
+		break;
 	case SR_DI_PROBE_NAMES:
-		return probe_names;
+		*data = probe_names;
+		break;
 	case SR_DI_SAMPLERATES:
-		return &samplerates;
+		*data = &samplerates;
+		break;
 	case SR_DI_TRIGGER_TYPES:
-		return TRIGGER_TYPES;
+		*data = TRIGGER_TYPES;
+		break;
 	case SR_DI_CUR_SAMPLERATE:
-		return &ctx->cur_samplerate;
+		if (sdi) {
+			ctx = sdi->priv;
+			*data = &ctx->cur_samplerate;
+		} else
+			return SR_ERR;
+		break;
+	default:
+		return SR_ERR_ARG;
 	}
 
-	return NULL;
+	return SR_OK;
 }
 
 static int hw_dev_status_get(int dev_index)
@@ -1029,7 +1040,7 @@ SR_PRIV struct sr_dev_driver fx2lafw_driver_info = {
 	.scan = hw_scan,
 	.dev_open = hw_dev_open,
 	.dev_close = hw_dev_close,
-	.dev_info_get = hw_dev_info_get,
+	.info_get = hw_info_get,
 	.dev_status_get = hw_dev_status_get,
 	.hwcap_get_all = hw_hwcap_get_all,
 	.dev_config_set = hw_dev_config_set,
