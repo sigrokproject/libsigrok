@@ -424,51 +424,32 @@ static int hw_cleanup(void)
 	return SR_OK;
 }
 
-static const void *hw_dev_info_get(int dev_index, int dev_info_id)
+static int hw_info_get(int dev_info_id, const void **data,
+		const struct sr_dev_inst *sdi)
 {
-	struct sr_dev_inst *sdi;
 	struct context *ctx;
-	const void *info;
-
-	if (!(sdi = sr_dev_inst_get(gdi->instances, dev_index))) {
-		sr_err("genericdmm: sdi was NULL.");
-		return NULL;
-	}
-
-	if (!(ctx = sdi->priv)) {
-		sr_err("genericdmm: sdi->priv was NULL.");
-		return NULL;
-	}
-
-		sr_spew("genericdmm: dev_index %d, dev_info_id %d.",
-				dev_index, dev_info_id);
 
 	switch (dev_info_id) {
 	case SR_DI_INST:
-		info = sdi;
+		*data = sdi;
 		sr_spew("genericdmm: Returning sdi.");
 		break;
 	case SR_DI_NUM_PROBES:
-		info = GINT_TO_POINTER(1);
-		sr_spew("genericdmm: Returning number of probes: 1.");
+		*data = GINT_TO_POINTER(1);
 		break;
 	case SR_DI_PROBE_NAMES:
-		info = probe_names;
-		sr_spew("genericdmm: Returning probenames.");
+		*data = probe_names;
 		break;
 	case SR_DI_CUR_SAMPLERATE:
 		/* TODO get rid of this */
-		info = NULL;
-		sr_spew("genericdmm: Returning samplerate: 0.");
+		*data = NULL;
 		break;
 	default:
 		/* Unknown device info ID. */
-		sr_err("genericdmm: Unknown device info ID: %d.", dev_info_id);
-		info = NULL;
-		break;
+		return SR_ERR_ARG;
 	}
 
-	return info;
+	return SR_OK;
 }
 
 static int hw_dev_status_get(int dev_index)
@@ -638,7 +619,7 @@ SR_PRIV struct sr_dev_driver genericdmm_driver_info = {
 	.scan = hw_scan,
 	.dev_open = hw_dev_open,
 	.dev_close = hw_dev_close,
-	.dev_info_get = hw_dev_info_get,
+	.info_get = hw_info_get,
 	.dev_status_get = hw_dev_status_get,
 	.hwcap_get_all = hw_hwcap_get_all,
 	.dev_config_set = hw_dev_config_set,
