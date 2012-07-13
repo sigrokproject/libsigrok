@@ -40,7 +40,8 @@
 #define TRIGGER_TYPES			"rf10"
 #define NUM_PROBES			16
 
-static GSList *dev_insts = NULL;
+SR_PRIV struct sr_dev_driver asix_sigma_driver_info;
+static struct sr_dev_driver *adi = &asix_sigma_driver_info;
 
 static const uint64_t supported_samplerates[] = {
 	SR_KHZ(200),
@@ -465,7 +466,7 @@ static int hw_scan(void)
 
 	sdi->priv = ctx;
 
-	dev_insts = g_slist_append(dev_insts, sdi);
+	adi->instances = g_slist_append(adi->instances, sdi);
 
 	/* We will open the device again when we need it. */
 	ftdi_list_free(&devlist);
@@ -577,7 +578,7 @@ static int hw_dev_open(int dev_index)
 	struct context *ctx;
 	int ret;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
+	if (!(sdi = sr_dev_inst_get(adi->instances, dev_index)))
 		return SR_ERR;
 
 	ctx = sdi->priv;
@@ -717,7 +718,7 @@ static int hw_dev_close(int dev_index)
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index))) {
+	if (!(sdi = sr_dev_inst_get(adi->instances, dev_index))) {
 		sr_err("sigma: %s: sdi was NULL", __func__);
 		return SR_ERR_BUG;
 	}
@@ -743,7 +744,7 @@ static int hw_cleanup(void)
 	int ret = SR_OK;
 
 	/* Properly close all devices. */
-	for (l = dev_insts; l; l = l->next) {
+	for (l = adi->instances; l; l = l->next) {
 		if (!(sdi = l->data)) {
 			/* Log error, but continue cleaning up the rest. */
 			sr_err("sigma: %s: sdi was NULL, continuing", __func__);
@@ -752,8 +753,8 @@ static int hw_cleanup(void)
 		}
 		sr_dev_inst_free(sdi);
 	}
-	g_slist_free(dev_insts);
-	dev_insts = NULL;
+	g_slist_free(adi->instances);
+	adi->instances = NULL;
 
 	return ret;
 }
@@ -764,7 +765,7 @@ static const void *hw_dev_info_get(int dev_index, int dev_info_id)
 	struct context *ctx;
 	const void *info = NULL;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index))) {
+	if (!(sdi = sr_dev_inst_get(adi->instances, dev_index))) {
 		sr_err("sigma: %s: sdi was NULL", __func__);
 		return NULL;
 	}
@@ -799,7 +800,7 @@ static int hw_dev_status_get(int dev_index)
 {
 	struct sr_dev_inst *sdi;
 
-	sdi = sr_dev_inst_get(dev_insts, dev_index);
+	sdi = sr_dev_inst_get(adi->instances, dev_index);
 	if (sdi)
 		return sdi->status;
 	else
@@ -817,7 +818,7 @@ static int hw_dev_config_set(int dev_index, int hwcap, const void *value)
 	struct context *ctx;
 	int ret;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
+	if (!(sdi = sr_dev_inst_get(adi->instances, dev_index)))
 		return SR_ERR;
 
 	ctx = sdi->priv;
@@ -1277,7 +1278,7 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 	struct triggerinout triggerinout_conf;
 	struct triggerlut lut;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
+	if (!(sdi = sr_dev_inst_get(adi->instances, dev_index)))
 		return SR_ERR;
 
 	ctx = sdi->priv;
@@ -1406,7 +1407,7 @@ static int hw_dev_acquisition_stop(int dev_index, void *cb_data)
 	/* Avoid compiler warnings. */
 	(void)cb_data;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index))) {
+	if (!(sdi = sr_dev_inst_get(adi->instances, dev_index))) {
 		sr_err("sigma: %s: sdi was NULL", __func__);
 		return SR_ERR_BUG;
 	}
@@ -1454,4 +1455,5 @@ SR_PRIV struct sr_dev_driver asix_sigma_driver_info = {
 	.dev_config_set = hw_dev_config_set,
 	.dev_acquisition_start = hw_dev_acquisition_start,
 	.dev_acquisition_stop = hw_dev_acquisition_stop,
+	.instances = NULL,
 };
