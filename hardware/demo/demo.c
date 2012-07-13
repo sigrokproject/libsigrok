@@ -130,7 +130,8 @@ static uint8_t pattern_sigrok[] = {
 /* TODO: struct context as with the other drivers. */
 
 /* List of struct sr_dev_inst, maintained by dev_open()/dev_close(). */
-static GSList *dev_insts = NULL;
+SR_PRIV struct sr_dev_driver demo_driver_info;
+static struct sr_dev_driver *ddi = &demo_driver_info;
 static uint64_t cur_samplerate = SR_KHZ(200);
 static uint64_t limit_samples = 0;
 static uint64_t limit_msec = 0;
@@ -158,7 +159,7 @@ static int hw_scan(void)
 		return 0;
 	}
 
-	dev_insts = g_slist_append(dev_insts, sdi);
+	ddi->instances = g_slist_append(ddi->instances, sdi);
 
 	return 1;
 }
@@ -194,7 +195,7 @@ static const void *hw_dev_info_get(int dev_index, int dev_info_id)
 	struct sr_dev_inst *sdi;
 	const void *info = NULL;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index))) {
+	if (!(sdi = sr_dev_inst_get(ddi->instances, dev_index))) {
 		sr_err("demo: %s: sdi was NULL", __func__);
 		return NULL;
 	}
@@ -527,4 +528,5 @@ SR_PRIV struct sr_dev_driver demo_driver_info = {
 	.dev_config_set = hw_dev_config_set,
 	.dev_acquisition_start = hw_dev_acquisition_start,
 	.dev_acquisition_stop = hw_dev_acquisition_stop,
+	.instances = NULL,
 };
