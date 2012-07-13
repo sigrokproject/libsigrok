@@ -28,7 +28,8 @@
 #include <libusb.h>
 
 extern libusb_context *usb_context;
-extern GSList *dev_insts;
+extern struct sr_dev_driver hantek_dso_driver_info;
+static struct sr_dev_driver *hdi = &hantek_dso_driver_info;
 
 
 static int send_begin(struct context *ctx)
@@ -112,7 +113,7 @@ SR_PRIV int dso_open(int dev_index)
 	struct context *ctx;
 	int err, skip, i;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
+	if (!(sdi = sr_dev_inst_get(hdi->instances, dev_index)))
 		return SR_ERR_ARG;
 	ctx = sdi->priv;
 
