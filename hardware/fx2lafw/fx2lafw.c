@@ -618,7 +618,14 @@ static int hw_info_get(int dev_info_id, const void **data,
 
 	switch (dev_info_id) {
 	case SR_DI_INST:
-		return sdi;
+		*data = sdi;
+		break;
+	case SR_DI_HWOPTS:
+		*data = NULL;
+		break;
+	case SR_DI_HWCAPS:
+		*data = hwcaps;
+		break;
 	case SR_DI_NUM_PROBES:
 		if (sdi) {
 			ctx = sdi->priv;
@@ -660,11 +667,6 @@ static int hw_dev_status_get(int dev_index)
 		return SR_ST_NOT_FOUND;
 
 	return sdi->status;
-}
-
-static const int *hw_hwcap_get_all(void)
-{
-	return hwcaps;
 }
 
 static int hw_dev_config_set(int dev_index, int hwcap, const void *value)
@@ -1057,7 +1059,6 @@ SR_PRIV struct sr_dev_driver fx2lafw_driver_info = {
 	.dev_close = hw_dev_close,
 	.info_get = hw_info_get,
 	.dev_status_get = hw_dev_status_get,
-	.hwcap_get_all = hw_hwcap_get_all,
 	.dev_config_set = hw_dev_config_set,
 	.dev_acquisition_start = hw_dev_acquisition_start,
 	.dev_acquisition_stop = hw_dev_acquisition_stop,
