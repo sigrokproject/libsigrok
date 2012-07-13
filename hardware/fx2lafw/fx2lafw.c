@@ -376,6 +376,41 @@ static struct context *fx2lafw_dev_new(void)
 	return ctx;
 }
 
+static int clear_instances(void)
+{
+	GSList *l;
+	struct sr_dev_inst *sdi;
+	struct context *ctx;
+	int ret;
+
+	ret = SR_OK;
+	for (l = fdi->instances; l; l = l->next) {
+		if (!(sdi = l->data)) {
+			/* Log error, but continue cleaning up the rest. */
+			sr_err("fx2lafw: %s: sdi was NULL, continuing.",
+				   __func__);
+			ret = SR_ERR_BUG;
+			continue;
+		}
+		if (!(ctx = sdi->priv)) {
+			/* Log error, but continue cleaning up the rest. */
+			sr_err("fx2lafw: %s: sdi->priv was NULL, continuing",
+				   __func__);
+			ret = SR_ERR_BUG;
+			continue;
+		}
+		close_dev(sdi);
+		sdi = l->data;
+		sr_dev_inst_free(sdi);
+	}
+
+	g_slist_free(fdi->instances);
+	fdi->instances = NULL;
+
+	return ret;
+}
+
+
 /*
  * API callbacks
  */
@@ -404,6 +439,9 @@ static GSList *hw_scan(GSList *options)
 
 	/* Avoid compiler warnings. */
 	(void)options;
+
+	/* This scan always invalidates any previous scans. */
+	clear_instances();
 
 	/* Find all fx2lafw compatible devices and upload firmware to them. */
 	devices = NULL;
@@ -561,33 +599,9 @@ static int hw_dev_close(int dev_index)
 
 static int hw_cleanup(void)
 {
-	GSList *l;
-	struct sr_dev_inst *sdi;
-	struct context *ctx;
-	int ret = SR_OK;
+	int ret;
 
-	for (l = fdi->instances; l; l = l->next) {
-		if (!(sdi = l->data)) {
-			/* Log error, but continue cleaning up the rest. */
-			sr_err("fx2lafw: %s: sdi was NULL, continuing.",
-			       __func__);
-			ret = SR_ERR_BUG;
-			continue;
-		}
-		if (!(ctx = sdi->priv)) {
-			/* Log error, but continue cleaning up the rest. */
-			sr_err("fx2lafw: %s: sdi->priv was NULL, continuing",
-			       __func__);
-			ret = SR_ERR_BUG;
-			continue;
-		}
-		close_dev(sdi);
-		sdi = l->data;
-		sr_dev_inst_free(sdi);
-	}
-
-	g_slist_free(fdi->instances);
-	fdi->instances = NULL;
+	ret = clear_instances();
 
 	if (usb_context)
 		libusb_exit(usb_context);
