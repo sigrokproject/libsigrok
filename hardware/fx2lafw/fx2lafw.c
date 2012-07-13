@@ -471,10 +471,11 @@ static GSList *hw_scan(GSList *options)
 			prof->vendor, prof->model, prof->model_version);
 		if (!sdi)
 			return 0;
+		sdi->driver = fdi;
 
 		/* Fill in probelist according to this device's profile. */
 		num_logic_probes = prof->dev_caps & DEV_CAPS_16BIT ? 16 : 8;
-		for (j = 0; i < num_logic_probes; j++) {
+		for (j = 0; j < num_logic_probes; j++) {
 			if (!(probe = sr_probe_new(j, SR_PROBE_LOGIC, TRUE,
 					probe_names[j])))
 				return 0;
