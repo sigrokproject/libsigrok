@@ -150,7 +150,7 @@ static GSList *connect_usb(const char *conn)
 
 		devcnt = g_slist_length(gdi->instances);
 		if (!(sdi = sr_dev_inst_new(devcnt, SR_ST_ACTIVE,
-				"Generic DMM", NULL, NULL))) {
+				NULL, NULL, NULL))) {
 			sr_err("genericdmm: sr_dev_inst_new returned NULL.");
 			return NULL;
 		}
@@ -233,6 +233,7 @@ static GSList *hw_scan(GSList *options)
 	GSList *l, *ldef, *defopts, *newopts, *devices;
 	struct sr_hwopt *opt, *defopt;
 	struct dev_profile *pr, *profile;
+	struct sr_dev_inst *sdi;
 	const char *model;
 
 	/* Separate model from the options list. */
@@ -247,7 +248,7 @@ static GSList *hw_scan(GSList *options)
 			newopts = g_slist_append(newopts, opt);
 	}
 	if (!model) {
-		sr_err("Need a model to scan for.");
+		/* This driver only works when a model is specified. */
 		return NULL;
 	}
 
@@ -305,9 +306,20 @@ static GSList *hw_scan(GSList *options)
 
 	if (devices) {
 		/* TODO: need to fix up sdi->index fields */
-		/* Add a copy of these new devices to the driver instances. */
-		for (l = devices; l; l = l->next)
+		for (l = devices; l; l = l->next) {
+			/* The default connection-based scanner doesn't really
+			 * know about profiles, so it never filled in the vendor
+			 * or model. Do that now.
+			 */
+			sdi = l->data;
+			sdi->driver = gdi;
+			if (!sdi->vendor)
+				sdi->vendor = g_strdup(profile->vendor);
+			if (!sdi->model)
+				sdi->model = g_strdup(profile->model);
+			/* Add a copy of these new devices to the driver instances. */
 			gdi->instances = g_slist_append(gdi->instances, l->data);
+		}
 	}
 
 	return devices;
