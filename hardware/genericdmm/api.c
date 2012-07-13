@@ -41,14 +41,18 @@ static struct dev_profile dev_profiles[] = {
 	{ NULL, NULL, NULL, NULL, 0, NULL }
 };
 
+static const int hwopts[] = {
+	SR_HWOPT_MODEL,
+	SR_HWOPT_CONN,
+	SR_HWOPT_SERIALCOMM,
+	0,
+};
+
 static const int hwcaps[] = {
 	SR_HWCAP_MULTIMETER,
 	SR_HWCAP_LIMIT_SAMPLES,
 	SR_HWCAP_LIMIT_MSEC,
 	SR_HWCAP_CONTINUOUS,
-	SR_HWOPT_MODEL,
-	SR_HWOPT_CONN,
-	SR_HWOPT_SERIALCOMM,
 	0,
 };
 
@@ -434,6 +438,12 @@ static int hw_info_get(int dev_info_id, const void **data,
 		*data = sdi;
 		sr_spew("genericdmm: Returning sdi.");
 		break;
+	case SR_DI_HWOPTS:
+		*data = hwopts;
+		break;
+	case SR_DI_HWCAPS:
+		*data = hwcaps;
+		break;
 	case SR_DI_NUM_PROBES:
 		*data = GINT_TO_POINTER(1);
 		break;
@@ -464,13 +474,6 @@ static int hw_dev_status_get(int dev_index)
 	sr_dbg("genericdmm: Returning status: %d.", sdi->status);
 
 	return sdi->status;
-}
-
-static const int *hw_hwcap_get_all(void)
-{
-	sr_spew("genericdmm: Returning list of device capabilities.");
-
-	return hwcaps;
 }
 
 static int hw_dev_config_set(int dev_index, int hwcap, const void *value)
@@ -621,7 +624,6 @@ SR_PRIV struct sr_dev_driver genericdmm_driver_info = {
 	.dev_close = hw_dev_close,
 	.info_get = hw_info_get,
 	.dev_status_get = hw_dev_status_get,
-	.hwcap_get_all = hw_hwcap_get_all,
 	.dev_config_set = hw_dev_config_set,
 	.dev_acquisition_start = hw_dev_acquisition_start,
 	.dev_acquisition_stop = hw_dev_acquisition_stop,
