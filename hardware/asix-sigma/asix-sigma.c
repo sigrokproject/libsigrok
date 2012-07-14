@@ -406,6 +406,31 @@ static int bin2bitbang(const char *filename,
 	return SR_OK;
 }
 
+static void clear_instances(void)
+{
+	GSList *l;
+	struct sr_dev_inst *sdi;
+	struct context *ctx;
+
+	/* Properly close all devices. */
+	for (l = adi->instances; l; l = l->next) {
+		if (!(sdi = l->data)) {
+			/* Log error, but continue cleaning up the rest. */
+			sr_err("sigma: %s: sdi was NULL, continuing", __func__);
+			continue;
+		}
+		if (sdi->priv) {
+			ctx = sdi->priv;
+			ftdi_free(&ctx->ftdic);
+			g_free(ctx);
+		}
+		sr_dev_inst_free(sdi);
+	}
+	g_slist_free(adi->instances);
+	adi->instances = NULL;
+
+}
+
 static int hw_init(void)
 {
 
@@ -414,17 +439,22 @@ static int hw_init(void)
 	return SR_OK;
 }
 
-static int hw_scan(void)
+static GSList *hw_scan(GSList *options)
 {
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
+	GSList *devices;
 	struct ftdi_device_list *devlist;
 	char serial_txt[10];
 	uint32_t serial;
 
+	(void)options;
+	devices = NULL;
+	clear_instances();
+
 	if (!(ctx = g_try_malloc(sizeof(struct context)))) {
 		sr_err("sigma: %s: ctx malloc failed", __func__);
-		return SR_ERR_MALLOC;
+		return NULL;
 	}
 
 	ftdi_init(&ctx->ftdic);
@@ -463,19 +493,19 @@ static int hw_scan(void)
 		sr_err("sigma: %s: sdi was NULL", __func__);
 		goto free;
 	}
-
-	sdi->priv = ctx;
-
+	devices = g_slist_append(devices, sdi);
 	adi->instances = g_slist_append(adi->instances, sdi);
+	sdi->priv = ctx;
 
 	/* We will open the device again when we need it. */
 	ftdi_list_free(&devlist);
 
-	return 1;
+	return devices;
 
 free:
+	ftdi_free(&ctx->ftdic);
 	g_free(ctx);
-	return 0;
+	return NULL;
 }
 
 static int upload_firmware(int firmware_idx, struct context *ctx)
@@ -739,24 +769,10 @@ static int hw_dev_close(int dev_index)
 
 static int hw_cleanup(void)
 {
-	GSList *l;
-	struct sr_dev_inst *sdi;
-	int ret = SR_OK;
 
-	/* Properly close all devices. */
-	for (l = adi->instances; l; l = l->next) {
-		if (!(sdi = l->data)) {
-			/* Log error, but continue cleaning up the rest. */
-			sr_err("sigma: %s: sdi was NULL, continuing", __func__);
-			ret = SR_ERR_BUG;
-			continue;
-		}
-		sr_dev_inst_free(sdi);
-	}
-	g_slist_free(adi->instances);
-	adi->instances = NULL;
+	clear_instances();
 
-	return ret;
+	return SR_OK;
 }
 
 static const void *hw_dev_info_get(int dev_index, int dev_info_id)
@@ -1451,7 +1467,7 @@ SR_PRIV struct sr_dev_driver asix_sigma_driver_info = {
 	.dev_close = hw_dev_close,
 	.dev_info_get = hw_dev_info_get,
 	.dev_status_get = hw_dev_status_get,
-	.hwcap_get_all = hw_hwcap_get_all,
+//	.hwcap_get_all = hw_hwcap_get_all,
 	.dev_config_set = hw_dev_config_set,
 	.dev_acquisition_start = hw_dev_acquisition_start,
 	.dev_acquisition_stop = hw_dev_acquisition_stop,
