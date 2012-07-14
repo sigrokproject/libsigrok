@@ -336,13 +336,17 @@ static int hw_init(void)
 	return SR_OK;
 }
 
-static int hw_scan(void)
+static GSList *hw_scan(GSList *options)
 {
 	struct sr_dev_inst *sdi;
 	struct libusb_device_descriptor des;
+	GSList *devices;
 	libusb_device **devlist;
 	int ret, devcnt, i;
 	struct context *ctx;
+
+	(void)options;
+	devices = NULL;
 
 	/* Allocate memory for our private driver context. */
 	if (!(ctx = g_try_malloc(sizeof(struct context)))) {
@@ -394,6 +398,7 @@ static int hw_scan(void)
 
 			sdi->priv = ctx;
 
+			devices = g_slist_append(devices, sdi);
 			zdi->instances = g_slist_append(zdi->instances, sdi);
 			ctx->usb = sr_usb_dev_inst_new(
 				libusb_get_bus_number(devlist[i]),
@@ -403,7 +408,7 @@ static int hw_scan(void)
 	}
 	libusb_free_device_list(devlist, 1);
 
-	return devcnt;
+	return devices;
 }
 
 static int hw_dev_open(int dev_index)
