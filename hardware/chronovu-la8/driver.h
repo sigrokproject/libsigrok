@@ -28,7 +28,6 @@
 #include "libsigrok-internal.h"
 
 #define USB_VENDOR_ID			0x0403
-#define USB_PRODUCT_ID			0x6001
 #define USB_DESCRIPTION			"ChronoVu LA8"
 #define USB_VENDOR_NAME			"ChronoVu"
 #define USB_MODEL_NAME			"LA8"
@@ -98,6 +97,9 @@ struct context {
 
 	/** The divcount value (determines the sample period) for the LA8. */
 	uint8_t divcount;
+
+	/** This ChronoVu LA8's USB PID (multiple versions exist). */
+	uint16_t usb_pid;
 };
 
 /* driver.c */

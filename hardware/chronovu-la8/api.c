@@ -27,6 +27,15 @@
 
 static GSList *dev_insts = NULL;
 
+/*
+ * The ChronoVu LA8 can have multiple PIDs. Older versions shipped with
+ * a standard FTDI USB VID/PID of 0403:6001, newer ones have 0403:8867.
+ */ 
+static const uint16_t usb_pids[] = {
+	0x6001,
+	0x8867,
+};
+
 /* Function prototypes. */
 static int hw_dev_acquisition_stop(int dev_index, void *cb_data);
 
@@ -35,6 +44,7 @@ static int hw_init(const char *devinfo)
 	int ret;
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
+	unsigned int i;
 
 	/* Avoid compiler errors. */
 	(void)devinfo;
@@ -74,13 +84,20 @@ static int hw_init(const char *devinfo)
 	}
 
 	/* Check for the device and temporarily open it. */
-	if ((ret = ftdi_usb_open_desc(ctx->ftdic, USB_VENDOR_ID,
-			USB_PRODUCT_ID, USB_DESCRIPTION, NULL)) < 0) {
-		(void) la8_close_usb_reset_sequencer(ctx); /* Ignore errors. */
-		goto err_free_ftdic;
+	for (i = 0; i < ARRAY_SIZE(usb_pids); i++) {
+		sr_dbg("la8: Probing for VID/PID %04x:%04x.", USB_VENDOR_ID,
+		       usb_pids[i]);
+		ret = ftdi_usb_open_desc(ctx->ftdic, USB_VENDOR_ID,
+					 usb_pids[i], USB_DESCRIPTION, NULL);
+		if (ret == 0) {
+			sr_dbg("la8: Found LA8 device (%04x:%04x).",
+			       USB_VENDOR_ID, usb_pids[i]);
+			ctx->usb_pid = usb_pids[i];
+		}
 	}
-	sr_dbg("la8: Found LA8 device (%04x:%04x).", USB_VENDOR_ID,
-	       USB_PRODUCT_ID);
+
+	if (ctx->usb_pid == 0)
+		goto err_free_ftdic;
 
 	/* Register the device with libsigrok. */
 	sdi = sr_dev_inst_new(0, SR_ST_INITIALIZING,
@@ -131,11 +148,11 @@ static int hw_dev_open(int dev_index)
 	}
 
 	sr_dbg("la8: Opening LA8 device (%04x:%04x).", USB_VENDOR_ID,
-	       USB_PRODUCT_ID);
+	       ctx->usb_pid);
 
 	/* Open the device. */
 	if ((ret = ftdi_usb_open_desc(ctx->ftdic, USB_VENDOR_ID,
-			USB_PRODUCT_ID, USB_DESCRIPTION, NULL)) < 0) {
+			ctx->usb_pid, USB_DESCRIPTION, NULL)) < 0) {
 		sr_err("la8: %s: ftdi_usb_open_desc: (%d) %s",
 		       __func__, ret, ftdi_get_error_string(ctx->ftdic));
 		(void) la8_close_usb_reset_sequencer(ctx); /* Ignore errors. */
