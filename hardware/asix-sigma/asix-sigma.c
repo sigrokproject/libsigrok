@@ -447,6 +447,7 @@ static GSList *hw_scan(GSList *options)
 	struct ftdi_device_list *devlist;
 	char serial_txt[10];
 	uint32_t serial;
+	int ret;
 
 	(void)options;
 	devices = NULL;
@@ -461,9 +462,12 @@ static GSList *hw_scan(GSList *options)
 
 	/* Look for SIGMAs. */
 
-	if (ftdi_usb_find_all(&ctx->ftdic, &devlist,
-	    USB_VENDOR, USB_PRODUCT) <= 0)
+	if ((ret = ftdi_usb_find_all(&ctx->ftdic, &devlist,
+	    USB_VENDOR, USB_PRODUCT)) <= 0) {
+		if (ret < 0)
+			sr_err("ftdi_usb_find_all(): %d", ret);
 		goto free;
+	}
 
 	/* Make sure it's a version 1 or 2 SIGMA. */
 	ftdi_usb_get_strings(&ctx->ftdic, devlist->dev, NULL, 0, NULL, 0,
@@ -503,7 +507,7 @@ static GSList *hw_scan(GSList *options)
 	return devices;
 
 free:
-	ftdi_free(&ctx->ftdic);
+	ftdi_deinit(&ctx->ftdic);
 	g_free(ctx);
 	return NULL;
 }
