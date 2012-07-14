@@ -201,6 +201,36 @@ static int configure_probes(struct context *ctx, const GSList *probes)
 	return SR_OK;
 }
 
+/* Properly close and free all devices. */
+static void clear_instances(void)
+{
+	struct sr_dev_inst *sdi;
+	struct context *ctx;
+	GSList *l;
+
+	for (l = hdi->instances; l; l = l->next) {
+		if (!(sdi = l->data)) {
+			/* Log error, but continue cleaning up the rest. */
+			sr_err("hantek-dso: %s: sdi was NULL, continuing", __func__);
+			continue;
+		}
+		if (!(ctx = sdi->priv)) {
+			/* Log error, but continue cleaning up the rest. */
+			sr_err("hantek-dso: %s: sdi->priv was NULL, continuing", __func__);
+			continue;
+		}
+		dso_close(sdi);
+		sr_usb_dev_inst_free(ctx->usb);
+		g_free(ctx->triggersource);
+
+		sr_dev_inst_free(sdi);
+	}
+
+	g_slist_free(hdi->instances);
+	hdi->instances = NULL;
+
+}
+
 static int hw_init(void)
 {
 
@@ -212,17 +242,24 @@ static int hw_init(void)
 	return SR_OK;
 }
 
-static int hw_scan(void)
+static GSList *hw_scan(GSList *options)
 {
 	struct sr_dev_inst *sdi;
-	struct libusb_device_descriptor des;
 	const struct dso_profile *prof;
 	struct context *ctx;
+	GSList *devices;
+	struct libusb_device_descriptor des;
 	libusb_device **devlist;
 	int devcnt, ret, i, j;
 
-	/* Find all Hantek DSO devices and upload firmware to all of them. */
+	(void)options;
 	devcnt = 0;
+	devices = 0;
+	hdi->instances = NULL;
+
+	clear_instances();
+
+	/* Find all Hantek DSO devices and upload firmware to all of them. */
 	libusb_get_device_list(usb_context, &devlist);
 	for (i = 0; devlist[i]; i++) {
 		if ((ret = libusb_get_device_descriptor(devlist[i], &des))) {
@@ -238,6 +275,7 @@ static int hw_scan(void)
 				prof = &dev_profiles[j];
 				sr_dbg("hantek-dso: Found a %s %s.", prof->vendor, prof->model);
 				sdi = dso_dev_new(devcnt, prof);
+				devices = g_slist_append(devices, sdi);
 				ctx = sdi->priv;
 				if (ezusb_upload_firmware(devlist[i], USB_CONFIGURATION,
 						prof->firmware) == SR_OK)
@@ -258,6 +296,7 @@ static int hw_scan(void)
 				sr_dbg("hantek-dso: Found a %s %s.", prof->vendor, prof->model);
 				sdi = dso_dev_new(devcnt, prof);
 				sdi->status = SR_ST_INACTIVE;
+				devices = g_slist_append(devices, sdi);
 				ctx = sdi->priv;
 				ctx->usb = sr_usb_dev_inst_new(
 						libusb_get_bus_number(devlist[i]),
@@ -272,7 +311,7 @@ static int hw_scan(void)
 	}
 	libusb_free_device_list(devlist, 1);
 
-	return devcnt;
+	return devices;
 }
 
 static int hw_dev_open(int dev_index)
@@ -337,31 +376,8 @@ static int hw_dev_close(int dev_index)
 
 static int hw_cleanup(void)
 {
-	GSList *l;
-	struct sr_dev_inst *sdi;
-	struct context *ctx;
 
-	/* Properly close and free all devices. */
-	for (l = hdi->instances; l; l = l->next) {
-		if (!(sdi = l->data)) {
-			/* Log error, but continue cleaning up the rest. */
-			sr_err("hantek-dso: %s: sdi was NULL, continuing", __func__);
-			continue;
-		}
-		if (!(ctx = sdi->priv)) {
-			/* Log error, but continue cleaning up the rest. */
-			sr_err("hantek-dso: %s: sdi->priv was NULL, continuing", __func__);
-			continue;
-		}
-		dso_close(sdi);
-		sr_usb_dev_inst_free(ctx->usb);
-		g_free(ctx->triggersource);
-
-		sr_dev_inst_free(sdi);
-	}
-
-	g_slist_free(hdi->instances);
-	hdi->instances = NULL;
+	clear_instances();
 
 	if (usb_context)
 		libusb_exit(usb_context);
