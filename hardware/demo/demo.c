@@ -149,9 +149,13 @@ static int hw_init(void)
 	return SR_OK;
 }
 
-static int hw_scan(void)
+static GSList *hw_scan(GSList *options)
 {
 	struct sr_dev_inst *sdi;
+	GSList *devices;
+
+	(void)options;
+	devices = NULL;
 
 	sdi = sr_dev_inst_new(0, SR_ST_ACTIVE, DEMONAME, NULL, NULL);
 	if (!sdi) {
@@ -159,9 +163,10 @@ static int hw_scan(void)
 		return 0;
 	}
 
+	devices = g_slist_append(devices, sdi);
 	ddi->instances = g_slist_append(ddi->instances, sdi);
 
-	return 1;
+	return devices;
 }
 
 static int hw_dev_open(int dev_index)
