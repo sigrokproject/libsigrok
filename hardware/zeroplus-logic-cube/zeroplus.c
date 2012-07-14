@@ -155,6 +155,7 @@ struct context {
 	uint8_t trigger_value[NUM_TRIGGER_STAGES];
 	// uint8_t trigger_buffer[NUM_TRIGGER_STAGES];
 
+	/* TODO: this belongs in the device instance */
 	struct sr_usb_dev_inst *usb;
 };
 
@@ -324,6 +325,23 @@ static int configure_probes(struct sr_dev_inst *sdi, const GSList *probes)
 	return SR_OK;
 }
 
+static void clear_instances(void)
+{
+	GSList *l;
+	struct sr_dev_inst *sdi;
+
+	for (l = zdi->instances; l; l = l->next) {
+		sdi = l->data;
+		/* Properly close all devices... */
+		close_dev(sdi);
+		/* ...and free all their memory. */
+		sr_dev_inst_free(sdi);
+	}
+	g_slist_free(zdi->instances);
+	zdi->instances = NULL;
+
+}
+
 /*
  * API callbacks
  */
@@ -331,7 +349,10 @@ static int configure_probes(struct sr_dev_inst *sdi, const GSList *probes)
 static int hw_init(void)
 {
 
-	/* Nothing to do. */
+	if (libusb_init(&usb_context) != 0) {
+		sr_err("zp: Failed to initialize USB.");
+		return 0;
+	}
 
 	return SR_OK;
 }
@@ -347,6 +368,8 @@ static GSList *hw_scan(GSList *options)
 
 	(void)options;
 	devices = NULL;
+
+	clear_instances();
 
 	/* Allocate memory for our private driver context. */
 	if (!(ctx = g_try_malloc(sizeof(struct context)))) {
@@ -364,11 +387,6 @@ static GSList *hw_scan(GSList *options)
 	memset(ctx->trigger_mask, 0, NUM_TRIGGER_STAGES);
 	memset(ctx->trigger_value, 0, NUM_TRIGGER_STAGES);
 	// memset(ctx->trigger_buffer, 0, NUM_TRIGGER_STAGES);
-
-	if (libusb_init(&usb_context) != 0) {
-		sr_err("zp: Failed to initialize USB.");
-		return 0;
-	}
 
 	/* Find all ZEROPLUS analyzers and add them to device list. */
 	devcnt = 0;
@@ -489,18 +507,8 @@ static int hw_dev_close(int dev_index)
 
 static int hw_cleanup(void)
 {
-	GSList *l;
-	struct sr_dev_inst *sdi;
 
-	for (l = zdi->instances; l; l = l->next) {
-		sdi = l->data;
-		/* Properly close all devices... */
-		close_dev(sdi);
-		/* ...and free all their memory. */
-		sr_dev_inst_free(sdi);
-	}
-	g_slist_free(zdi->instances);
-	zdi->instances = NULL;
+	clear_instances();
 
 	if (usb_context)
 		libusb_exit(usb_context);
