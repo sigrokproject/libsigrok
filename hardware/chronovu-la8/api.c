@@ -40,6 +40,31 @@ static const uint16_t usb_pids[] = {
 /* Function prototypes. */
 static int hw_dev_acquisition_stop(int dev_index, void *cb_data);
 
+static void clear_instances(void)
+{
+	GSList *l;
+	struct sr_dev_inst *sdi;
+	struct context *ctx;
+
+	/* Properly close all devices. */
+	for (l = cdi->instances; l; l = l->next) {
+		if (!(sdi = l->data)) {
+			/* Log error, but continue cleaning up the rest. */
+			sr_err("la8: %s: sdi was NULL, continuing", __func__);
+			continue;
+		}
+		if (sdi->priv) {
+			ctx = sdi->priv;
+			ftdi_free(ctx->ftdic);
+			g_free(ctx);
+		}
+		sr_dev_inst_free(sdi);
+	}
+	g_slist_free(cdi->instances);
+	cdi->instances = NULL;
+
+}
+
 static int hw_init(void)
 {
 
@@ -48,12 +73,15 @@ static int hw_init(void)
 	return SR_OK;
 }
 
-static int hw_scan(void)
+static GSList *hw_scan(GSList *options)
 {
 	int ret;
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
-	unsigned int i;
+	GSList *devices;
+
+	(void)options;
+	devices = NULL;
 
 	/* Allocate memory for our private driver context. */
 	if (!(ctx = g_try_malloc(sizeof(struct context)))) {
@@ -116,6 +144,7 @@ static int hw_scan(void)
 
 	sdi->priv = ctx;
 
+	devices = g_slist_append(devices, sdi);
 	cdi->instances = g_slist_append(cdi->instances, sdi);
 
 	sr_spew("la8: Device init successful.");
@@ -123,7 +152,7 @@ static int hw_scan(void)
 	/* Close device. We'll reopen it again when we need it. */
 	(void) la8_close(ctx); /* Log, but ignore errors. */
 
-	return 1;
+	return devices;
 
 err_close_ftdic:
 	(void) la8_close(ctx); /* Log, but ignore errors. */
@@ -135,7 +164,7 @@ err_free_ctx:
 	g_free(ctx);
 err_free_nothing:
 
-	return 0;
+	return NULL;
 }
 
 static int hw_dev_open(int dev_index)
@@ -232,24 +261,10 @@ static int hw_dev_close(int dev_index)
 
 static int hw_cleanup(void)
 {
-	GSList *l;
-	struct sr_dev_inst *sdi;
-	int ret = SR_OK;
 
-	/* Properly close all devices. */
-	for (l = cdi->instances; l; l = l->next) {
-		if (!(sdi = l->data)) {
-			/* Log error, but continue cleaning up the rest. */
-			sr_err("la8: %s: sdi was NULL, continuing", __func__);
-			ret = SR_ERR_BUG;
-			continue;
-		}
-		sr_dev_inst_free(sdi); /* Returns void. */
-	}
-	g_slist_free(cdi->instances); /* Returns void. */
-	cdi->instances = NULL;
+	clear_instances();
 
-	return ret;
+	return SR_OK;
 }
 
 static const void *hw_dev_info_get(int dev_index, int dev_info_id)
