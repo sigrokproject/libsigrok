@@ -141,7 +141,7 @@ static GSList *hw_scan(GSList *options)
 		sr_err("la8: %s: sr_dev_inst_new failed", __func__);
 		goto err_close_ftdic;
 	}
-
+	sdi->driver = cdi;
 	sdi->priv = ctx;
 
 	devices = g_slist_append(devices, sdi);
@@ -305,6 +305,8 @@ static int hw_info_get(int info_id, const void **data,
 		} else
 			return SR_ERR;
 		break;
+	default:
+		return SR_ERR_ARG;
 	}
 
 	return SR_OK;
