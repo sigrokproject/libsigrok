@@ -582,39 +582,39 @@ static int hw_cleanup(void)
 	return ret;
 }
 
-static const void *hw_dev_info_get(int dev_index, int dev_info_id)
+static int hw_info_get(int info_id, const void **data,
+       const struct sr_dev_inst *sdi)
 {
-	struct sr_dev_inst *sdi;
 	struct context *ctx;
-	const void *info;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
-		return NULL;
-	ctx = sdi->priv;
-
-	info = NULL;
-	switch (dev_info_id) {
+	switch (info_id) {
 	case SR_DI_INST:
-		info = sdi;
+		*data = sdi;
 		break;
 	case SR_DI_NUM_PROBES:
-		info = GINT_TO_POINTER(NUM_PROBES);
+		*data = GINT_TO_POINTER(1);
 		break;
 	case SR_DI_PROBE_NAMES:
-		info = probe_names;
+		*data = probe_names;
 		break;
 	case SR_DI_SAMPLERATES:
-		info = &samplerates;
+		*data = &samplerates;
 		break;
 	case SR_DI_TRIGGER_TYPES:
-		info = (char *)TRIGGER_TYPES;
+		*data = (char *)TRIGGER_TYPES;
 		break;
 	case SR_DI_CUR_SAMPLERATE:
-		info = &ctx->cur_samplerate;
+		if (sdi) {
+			ctx = sdi->priv;
+			*data = &ctx->cur_samplerate;
+		} else
+			return SR_ERR;
 		break;
+	default:
+		return SR_ERR_ARG;
 	}
 
-	return info;
+	return SR_OK;
 }
 
 static int hw_dev_status_get(int dev_index)
@@ -625,11 +625,6 @@ static int hw_dev_status_get(int dev_index)
 		return SR_ST_NOT_FOUND;
 
 	return sdi->status;
-}
-
-static const int *hw_hwcap_get_all(void)
-{
-	return hwcaps;
 }
 
 static int set_samplerate(struct sr_dev_inst *sdi, uint64_t samplerate)
@@ -1079,9 +1074,8 @@ SR_PRIV struct sr_dev_driver ols_driver_info = {
 	.scan = hw_scan,
 	.dev_open = hw_dev_open,
 	.dev_close = hw_dev_close,
-	.dev_info_get = hw_dev_info_get,
+	.info_get = hw_info_get,
 	.dev_status_get = hw_dev_status_get,
-	.hwcap_get_all = hw_hwcap_get_all,
 	.dev_config_set = hw_dev_config_set,
 	.dev_acquisition_start = hw_dev_acquisition_start,
 	.dev_acquisition_stop = hw_dev_acquisition_stop,
