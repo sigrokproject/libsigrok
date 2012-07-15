@@ -386,51 +386,46 @@ static int hw_cleanup(void)
 	return SR_OK;
 }
 
-static const void *hw_dev_info_get(int dev_index, int dev_info_id)
+static int hw_info_get(int info_id, const void **data,
+       const struct sr_dev_inst *sdi)
 {
-	struct sr_dev_inst *sdi;
-	const void *info;
 	uint64_t tmp;
 
-	if (!(sdi = sr_dev_inst_get(hdi->instances, dev_index)))
-		return NULL;
-
-	info = NULL;
-	switch (dev_info_id) {
+	switch (info_id) {
 	case SR_DI_INST:
-		info = sdi;
+		*data = sdi;
 		break;
 	case SR_DI_NUM_PROBES:
-		info = GINT_TO_POINTER(NUM_PROBES);
+		*data = GINT_TO_POINTER(NUM_PROBES);
 		break;
 	case SR_DI_PROBE_NAMES:
-		info = probe_names;
+		*data = probe_names;
 		break;
 	case SR_DI_BUFFERSIZES:
-		info = buffersizes;
+		*data = buffersizes;
 		break;
 	case SR_DI_TIMEBASES:
-		info = timebases;
+		*data = timebases;
 		break;
 	case SR_DI_TRIGGER_SOURCES:
-		info = trigger_sources;
+		*data = trigger_sources;
 		break;
 	case SR_DI_FILTERS:
-		info = filter_targets;
+		*data = filter_targets;
 		break;
 	case SR_DI_VDIVS:
-		info = vdivs;
+		*data = vdivs;
 		break;
 	case SR_DI_COUPLING:
-		info = coupling;
+		*data = coupling;
 		break;
 	/* TODO remove this */
 	case SR_DI_CUR_SAMPLERATE:
-		info = &tmp;
+		*data = &tmp;
 		break;
 	}
 
-	return info;
+	return SR_OK;
 }
 
 static int hw_dev_status_get(int dev_index)
@@ -882,9 +877,9 @@ SR_PRIV struct sr_dev_driver hantek_dso_driver_info = {
 	.scan = hw_scan,
 	.dev_open = hw_dev_open,
 	.dev_close = hw_dev_close,
-	.dev_info_get = hw_dev_info_get,
+	.info_get = hw_info_get,
 	.dev_status_get = hw_dev_status_get,
-	.hwcap_get_all = hw_hwcap_get_all,
+//	.hwcap_get_all = hw_hwcap_get_all,
 	.dev_config_set = hw_dev_config_set,
 	.dev_acquisition_start = hw_dev_acquisition_start,
 	.dev_acquisition_stop = hw_dev_acquisition_stop,
