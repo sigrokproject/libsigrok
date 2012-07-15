@@ -37,7 +37,7 @@ SR_PRIV const char *probe_names[NUM_PROBES + 1] = {
 	NULL,
 };
 
-/* This will be initialized via hw_dev_info_get()/SR_DI_SAMPLERATES. */
+/* This will be initialized via hw_info_get()/SR_DI_SAMPLERATES. */
 SR_PRIV uint64_t supported_samplerates[255 + 1] = { 0 };
 
 /*
