@@ -157,6 +157,7 @@ static struct sr_dev_inst *dso_dev_new(int index, const struct dso_profile *prof
 		prof->vendor, prof->model, NULL);
 	if (!sdi)
 		return NULL;
+	sdi->driver = hdi;
 
 	if (!(ctx = g_try_malloc0(sizeof(struct context)))) {
 		sr_err("hantek-dso: ctx malloc failed");
@@ -423,6 +424,8 @@ static int hw_info_get(int info_id, const void **data,
 	case SR_DI_CUR_SAMPLERATE:
 		*data = &tmp;
 		break;
+	default:
+		return SR_ERR_ARG;
 	}
 
 	return SR_OK;
