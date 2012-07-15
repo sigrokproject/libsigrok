@@ -413,7 +413,7 @@ static GSList *hw_scan(GSList *options)
 				       __func__);
 				return 0;
 			}
-
+			sdi->driver = zdi;
 			sdi->priv = ctx;
 
 			devices = g_slist_append(devices, sdi);
@@ -517,60 +517,51 @@ static int hw_cleanup(void)
 	return SR_OK;
 }
 
-static const void *hw_dev_info_get(int dev_index, int dev_info_id)
+static int hw_info_get(int info_id, const void **data,
+       const struct sr_dev_inst *sdi)
 {
-	struct sr_dev_inst *sdi;
 	struct context *ctx;
-	const void *info;
 
-	if (!(sdi = sr_dev_inst_get(zdi->instances, dev_index))) {
-		sr_err("zp: %s: sdi was NULL", __func__);
-		return NULL;
-	}
-
-	if (!(ctx = sdi->priv)) {
-		sr_err("zp: %s: sdi->priv was NULL", __func__);
-		return NULL;
-	}
-
-	sr_spew("zp: %s: dev_index %d, dev_info_id %d.", __func__,
-		dev_index, dev_info_id);
-
-	switch (dev_info_id) {
+	switch (info_id) {
 	case SR_DI_INST:
-		info = sdi;
+		*data = sdi;
 		sr_spew("zp: %s: Returning sdi.", __func__);
 		break;
 	case SR_DI_NUM_PROBES:
-		info = GINT_TO_POINTER(ctx->num_channels);
-		sr_spew("zp: %s: Returning number of probes: %d.", __func__,
-			NUM_PROBES);
+		if (sdi) {
+			ctx = sdi->priv;
+			*data = GINT_TO_POINTER(ctx->num_channels);
+			sr_spew("zp: %s: Returning number of channels: %d.",
+					__func__, ctx->num_channels);
+		} else
+			return SR_ERR;
 		break;
 	case SR_DI_PROBE_NAMES:
-		info = probe_names;
+		*data = probe_names;
 		sr_spew("zp: %s: Returning probenames.", __func__);
 		break;
 	case SR_DI_SAMPLERATES:
-		info = &samplerates;
+		*data = &samplerates;
 		sr_spew("zp: %s: Returning samplerates.", __func__);
 		break;
 	case SR_DI_TRIGGER_TYPES:
-		info = TRIGGER_TYPES;
-		sr_spew("zp: %s: Returning triggertypes: %s.", __func__, info);
+		*data = TRIGGER_TYPES;
+		sr_spew("zp: %s: Returning triggertypes: %s.", __func__, TRIGGER_TYPES);
 		break;
 	case SR_DI_CUR_SAMPLERATE:
-		info = &ctx->cur_samplerate;
-		sr_spew("zp: %s: Returning samplerate: %" PRIu64 "Hz.",
-			__func__, ctx->cur_samplerate);
+		if (sdi) {
+			ctx = sdi->priv;
+			*data = &ctx->cur_samplerate;
+			sr_spew("zp: %s: Returning samplerate: %" PRIu64 "Hz.",
+				__func__, ctx->cur_samplerate);
+		} else
+			return SR_ERR;
 		break;
 	default:
-		/* Unknown device info ID, return NULL. */
-		sr_err("zp: %s: Unknown device info ID", __func__);
-		info = NULL;
-		break;
+		return SR_ERR_ARG;
 	}
 
-	return info;
+	return SR_OK;
 }
 
 static int hw_dev_status_get(int dev_index)
@@ -761,9 +752,9 @@ SR_PRIV struct sr_dev_driver zeroplus_logic_cube_driver_info = {
 	.scan = hw_scan,
 	.dev_open = hw_dev_open,
 	.dev_close = hw_dev_close,
-	.dev_info_get = hw_dev_info_get,
+	.info_get = hw_info_get,
 	.dev_status_get = hw_dev_status_get,
-	.hwcap_get_all = hw_hwcap_get_all,
+//	.hwcap_get_all = hw_hwcap_get_all,
 	.dev_config_set = hw_dev_config_set,
 	.dev_acquisition_start = hw_dev_acquisition_start,
 	.dev_acquisition_stop = hw_dev_acquisition_stop,
