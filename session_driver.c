@@ -190,20 +190,27 @@ static int hw_dev_open(int dev_index)
 	return SR_OK;
 }
 
-static const void *hw_dev_info_get(int dev_index, int dev_info_id)
+static int hw_info_get(int info_id, const void **data,
+       const struct sr_dev_inst *sdi)
 {
 	struct session_vdev *vdev;
-	void *info;
 
-	if (dev_info_id != SR_DI_CUR_SAMPLERATE)
-		return NULL;
+	switch (info_id) {
+	case SR_DI_HWCAPS:
+		*data = hwcaps;
+		break;
+	case SR_DI_CUR_SAMPLERATE:
+		if (sdi) {
+			vdev = sdi->priv;
+			*data = &vdev->samplerate;
+		} else
+			return SR_ERR;
+		break;
+	default:
+		return SR_ERR_ARG;
+	}
 
-	if (!(vdev = get_vdev_by_index(dev_index)))
-		return NULL;
-
-	info = &vdev->samplerate;
-
-	return info;
+	return SR_OK;
 }
 
 static int hw_dev_status_get(int dev_index)
@@ -215,17 +222,6 @@ static int hw_dev_status_get(int dev_index)
 		return SR_OK;
 	else
 		return SR_ERR;
-}
-
-/**
- * Get the list of hardware capabilities.
- *
- * @return A pointer to the (hardware) capabilities of this virtual session
- *         driver. This could be NULL, if no such capabilities exist.
- */
-static const int *hw_hwcap_get_all(void)
-{
-	return hwcaps;
 }
 
 static int hw_dev_config_set(int dev_index, int hwcap, const void *value)
@@ -344,9 +340,8 @@ SR_PRIV struct sr_dev_driver session_driver = {
 	.cleanup = hw_cleanup,
 	.dev_open = hw_dev_open,
 	.dev_close = NULL,
-	.dev_info_get = hw_dev_info_get,
+	.info_get = hw_info_get,
 	.dev_status_get = hw_dev_status_get,
-	.hwcap_get_all = hw_hwcap_get_all,
 	.dev_config_set = hw_dev_config_set,
 	.dev_acquisition_start = hw_dev_acquisition_start,
 	.dev_acquisition_stop = NULL,
