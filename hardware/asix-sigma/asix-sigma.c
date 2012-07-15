@@ -497,6 +497,7 @@ static GSList *hw_scan(GSList *options)
 		sr_err("sigma: %s: sdi was NULL", __func__);
 		goto free;
 	}
+	sdi->driver = adi;
 	devices = g_slist_append(devices, sdi);
 	adi->instances = g_slist_append(adi->instances, sdi);
 	sdi->priv = ctx;
@@ -807,6 +808,8 @@ static int hw_info_get(int info_id, const void **data,
 		} else
 			return SR_ERR;
 		break;
+	default:
+		return SR_ERR_ARG;
 	}
 
 	return SR_OK;
