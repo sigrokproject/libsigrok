@@ -611,17 +611,14 @@ static int hw_cleanup(void)
 	return ret;
 }
 
-static int hw_info_get(int dev_info_id, const void **data,
+static int hw_info_get(int info_id, const void **data,
 		const struct sr_dev_inst *sdi)
 {
 	struct context *ctx;
 
-	switch (dev_info_id) {
+	switch (info_id) {
 	case SR_DI_INST:
 		*data = sdi;
-		break;
-	case SR_DI_HWOPTS:
-		*data = NULL;
 		break;
 	case SR_DI_HWCAPS:
 		*data = hwcaps;
