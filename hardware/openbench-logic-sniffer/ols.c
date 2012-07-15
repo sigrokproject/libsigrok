@@ -234,6 +234,7 @@ static struct sr_dev_inst *get_metadata(int fd)
 	guchar tmp_c;
 
 	sdi = sr_dev_inst_new(0, SR_ST_INACTIVE, NULL, NULL, NULL);
+	sdi->driver = odi;
 	ctx = ols_dev_new();
 	sdi->priv = ctx;
 
@@ -468,6 +469,7 @@ static GSList *hw_scan(GSList *options)
 			/* not an OLS -- some other board that uses the sump protocol */
 			sdi = sr_dev_inst_new(final_devcnt, SR_ST_INACTIVE,
 					"Sump", "Logic Analyzer", "v1.0");
+			sdi->driver = odi;
 			ctx = ols_dev_new();
 			for (j = 0; j < 32; j++) {
 				if (!(probe = sr_probe_new(j, SR_PROBE_LOGIC, TRUE,
