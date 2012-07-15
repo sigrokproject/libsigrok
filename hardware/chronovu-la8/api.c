@@ -75,10 +75,11 @@ static int hw_init(void)
 
 static GSList *hw_scan(GSList *options)
 {
-	int ret;
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
 	GSList *devices;
+	unsigned int i;
+	int ret;
 
 	(void)options;
 	devices = NULL;
