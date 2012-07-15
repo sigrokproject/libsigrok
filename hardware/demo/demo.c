@@ -162,6 +162,7 @@ static GSList *hw_scan(GSList *options)
 		sr_err("demo: %s: sr_dev_inst_new failed", __func__);
 		return 0;
 	}
+	sdi->driver = ddi;
 
 	devices = g_slist_append(devices, sdi);
 	ddi->instances = g_slist_append(ddi->instances, sdi);
@@ -218,6 +219,8 @@ static int hw_info_get(int info_id, const void **data,
 	case SR_DI_PATTERNS:
 		*data = &pattern_strings;
 		break;
+	default:
+		return SR_ERR_ARG;
 	}
 
 	return SR_OK;
