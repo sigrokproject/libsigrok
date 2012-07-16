@@ -224,13 +224,13 @@ static int hw_dev_status_get(int dev_index)
 		return SR_ERR;
 }
 
-static int hw_dev_config_set(int dev_index, int hwcap, const void *value)
+static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
+		const void *value)
 {
 	struct session_vdev *vdev;
 	const uint64_t *tmp_u64;
 
-	if (!(vdev = get_vdev_by_index(dev_index)))
-		return SR_ERR;
+	vdev = sdi->priv;
 
 	switch (hwcap) {
 	case SR_HWCAP_SAMPLERATE:

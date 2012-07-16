@@ -330,22 +330,15 @@ static int hw_dev_status_get(int dev_index)
 	return sdi->status;
 }
 
-static int hw_dev_config_set(int dev_index, int hwcap, const void *value)
+static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
+		const void *value)
 {
-	struct sr_dev_inst *sdi;
 	struct context *ctx;
-
-	if (!(sdi = sr_dev_inst_get(cdi->instances, dev_index))) {
-		sr_err("la8: %s: sdi was NULL", __func__);
-		return SR_ERR_BUG;
-	}
 
 	if (!(ctx = sdi->priv)) {
 		sr_err("la8: %s: sdi->priv was NULL", __func__);
 		return SR_ERR_BUG;
 	}
-
-	sr_spew("la8: %s: dev_index %d, hwcap %d", __func__, dev_index, hwcap);
 
 	switch (hwcap) {
 	case SR_HWCAP_SAMPLERATE:

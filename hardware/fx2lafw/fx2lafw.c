@@ -143,7 +143,8 @@ static libusb_context *usb_context = NULL;
 
 SR_PRIV struct sr_dev_driver fx2lafw_driver_info;
 static struct sr_dev_driver *fdi = &fx2lafw_driver_info;
-static int hw_dev_config_set(int dev_index, int hwcap, const void *value);
+static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
+		const void *value);
 static int hw_dev_acquisition_stop(int dev_index, void *cb_data);
 
 /**
@@ -575,7 +576,7 @@ static int hw_dev_open(int dev_index)
 
 	if (ctx->cur_samplerate == 0) {
 		/* Samplerate hasn't been set; default to the slowest one. */
-		if (hw_dev_config_set(dev_index, SR_HWCAP_SAMPLERATE,
+		if (hw_dev_config_set(sdi, SR_HWCAP_SAMPLERATE,
 		    &supported_samplerates[0]) == SR_ERR)
 			return SR_ERR;
 	}
@@ -666,14 +667,12 @@ static int hw_dev_status_get(int dev_index)
 	return sdi->status;
 }
 
-static int hw_dev_config_set(int dev_index, int hwcap, const void *value)
+static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
+		const void *value)
 {
-	struct sr_dev_inst *sdi;
 	struct context *ctx;
 	int ret;
 
-	if (!(sdi = sr_dev_inst_get(fdi->instances, dev_index)))
-		return SR_ERR;
 	ctx = sdi->priv;
 
 	if (hwcap == SR_HWCAP_SAMPLERATE) {

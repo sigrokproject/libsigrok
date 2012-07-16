@@ -378,7 +378,7 @@ SR_PRIV int configure_probes(struct context *ctx, const GSList *probes)
 	return SR_OK;
 }
 
-SR_PRIV int set_samplerate(struct sr_dev_inst *sdi, uint64_t samplerate)
+SR_PRIV int set_samplerate(const struct sr_dev_inst *sdi, uint64_t samplerate)
 {
 	struct context *ctx;
 

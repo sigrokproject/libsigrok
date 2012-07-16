@@ -116,7 +116,7 @@ SR_PRIV int la8_close(struct context *ctx);
 SR_PRIV int la8_close_usb_reset_sequencer(struct context *ctx);
 SR_PRIV int la8_reset(struct context *ctx);
 SR_PRIV int configure_probes(struct context *ctx, const GSList *probes);
-SR_PRIV int set_samplerate(struct sr_dev_inst *sdi, uint64_t samplerate);
+SR_PRIV int set_samplerate(const struct sr_dev_inst *sdi, uint64_t samplerate);
 SR_PRIV int la8_read_block(struct context *ctx);
 SR_PRIV void send_block_to_session_bus(struct context *ctx, int block);
 

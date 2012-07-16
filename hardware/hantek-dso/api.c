@@ -444,18 +444,15 @@ static int hw_dev_status_get(int dev_index)
 	return sdi->status;
 }
 
-static int hw_dev_config_set(int dev_index, int hwcap, const void *value)
+static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
+		const void *value)
 {
-	struct sr_dev_inst *sdi;
 	struct context *ctx;
 	struct sr_rational tmp_rat;
 	float tmp_float;
 	uint64_t tmp_u64;
 	int ret, i;
 	char **targets;
-
-	if (!(sdi = sr_dev_inst_get(hdi->instances, dev_index)))
-		return SR_ERR;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR;

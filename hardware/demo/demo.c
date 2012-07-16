@@ -237,13 +237,13 @@ static int hw_dev_status_get(int dev_index)
 	return SR_ST_ACTIVE;
 }
 
-static int hw_dev_config_set(int dev_index, int hwcap, const void *value)
+static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
+		const void *value)
 {
 	int ret;
 	const char *stropt;
 
-	/* Avoid compiler warnings. */
-	(void)dev_index;
+	(void)sdi;
 
 	if (hwcap == SR_HWCAP_PROBECONFIG) {
 		/* Nothing to do, but must be supported */

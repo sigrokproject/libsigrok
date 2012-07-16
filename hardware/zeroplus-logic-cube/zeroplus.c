@@ -159,7 +159,8 @@ struct context {
 	struct sr_usb_dev_inst *usb;
 };
 
-static int hw_dev_config_set(int dev_index, int hwcap, const void *value);
+static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
+		const void *value);
 
 static unsigned int get_memory_size(int type)
 {
@@ -284,7 +285,7 @@ static void close_dev(struct sr_dev_inst *sdi)
 	sdi->status = SR_ST_INACTIVE;
 }
 
-static int configure_probes(struct sr_dev_inst *sdi, const GSList *probes)
+static int configure_probes(const struct sr_dev_inst *sdi, const GSList *probes)
 {
 	struct context *ctx;
 	const struct sr_probe *probe;
@@ -482,7 +483,7 @@ static int hw_dev_open(int dev_index)
 
 	if (ctx->cur_samplerate == 0) {
 		/* Samplerate hasn't been set. Default to the slowest one. */
-		if (hw_dev_config_set(dev_index, SR_HWCAP_SAMPLERATE,
+		if (hw_dev_config_set(sdi, SR_HWCAP_SAMPLERATE,
 		     &samplerates.list[0]) == SR_ERR)
 			return SR_ERR;
 	}
@@ -578,7 +579,7 @@ static int hw_dev_status_get(int dev_index)
 		return SR_ST_NOT_FOUND;
 }
 
-static int set_samplerate(struct sr_dev_inst *sdi, uint64_t samplerate)
+static int set_samplerate(const struct sr_dev_inst *sdi, uint64_t samplerate)
 {
 	struct context *ctx;
 
@@ -606,15 +607,10 @@ static int set_samplerate(struct sr_dev_inst *sdi, uint64_t samplerate)
 	return SR_OK;
 }
 
-static int hw_dev_config_set(int dev_index, int hwcap, const void *value)
+static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
+		const void *value)
 {
-	struct sr_dev_inst *sdi;
 	struct context *ctx;
-
-	if (!(sdi = sr_dev_inst_get(zdi->instances, dev_index))) {
-		sr_err("zp: %s: sdi was NULL", __func__);
-		return SR_ERR;
-	}
 
 	if (!(ctx = sdi->priv)) {
 		sr_err("zp: %s: sdi->priv was NULL", __func__);

@@ -632,7 +632,7 @@ static int hw_dev_status_get(int dev_index)
 	return sdi->status;
 }
 
-static int set_samplerate(struct sr_dev_inst *sdi, uint64_t samplerate)
+static int set_samplerate(const struct sr_dev_inst *sdi, uint64_t samplerate)
 {
 	struct context *ctx;
 
@@ -664,15 +664,13 @@ static int set_samplerate(struct sr_dev_inst *sdi, uint64_t samplerate)
 	return SR_OK;
 }
 
-static int hw_dev_config_set(int dev_index, int hwcap, const void *value)
+static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
+		const void *value)
 {
-	struct sr_dev_inst *sdi;
 	struct context *ctx;
 	int ret;
 	const uint64_t *tmp_u64;
 
-	if (!(sdi = sr_dev_inst_get(odi->instances, dev_index)))
-		return SR_ERR;
 	ctx = sdi->priv;
 
 	if (sdi->status != SR_ST_ACTIVE)

@@ -633,7 +633,7 @@ static int hw_dev_open(int dev_index)
 	return SR_OK;
 }
 
-static int set_samplerate(struct sr_dev_inst *sdi, uint64_t samplerate)
+static int set_samplerate(const struct sr_dev_inst *sdi, uint64_t samplerate)
 {
 	int i, ret;
 	struct context *ctx = sdi->priv;
@@ -674,7 +674,7 @@ static int set_samplerate(struct sr_dev_inst *sdi, uint64_t samplerate)
  * The Sigma supports complex triggers using boolean expressions, but this
  * has not been implemented yet.
  */
-static int configure_probes(struct sr_dev_inst *sdi, const GSList *probes)
+static int configure_probes(const struct sr_dev_inst *sdi, const GSList *probes)
 {
 	struct context *ctx = sdi->priv;
 	const struct sr_probe *probe;
@@ -829,14 +829,11 @@ static int hw_dev_status_get(int dev_index)
 		return SR_ST_NOT_FOUND;
 }
 
-static int hw_dev_config_set(int dev_index, int hwcap, const void *value)
+static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
+		const void *value)
 {
-	struct sr_dev_inst *sdi;
 	struct context *ctx;
 	int ret;
-
-	if (!(sdi = sr_dev_inst_get(adi->instances, dev_index)))
-		return SR_ERR;
 
 	ctx = sdi->priv;
 
