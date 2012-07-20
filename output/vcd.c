@@ -45,6 +45,7 @@ static int init(struct sr_output *o)
 	struct context *ctx;
 	struct sr_probe *probe;
 	GSList *l;
+	uint64_t *samplerate;
 	int num_probes, i;
 	char *samplerate_s, *frequency_s, *timestamp;
 	time_t t;
@@ -57,7 +58,7 @@ static int init(struct sr_output *o)
 	o->internal = ctx;
 	ctx->num_enabled_probes = 0;
 
-	for (l = o->dev->probes; l; l = l->next) {
+	for (l = o->sdi->probes; l; l = l->next) {
 		probe = l->data;
 		if (!probe->enabled)
 			continue;
@@ -71,7 +72,7 @@ static int init(struct sr_output *o)
 	ctx->probelist[ctx->num_enabled_probes] = 0;
 	ctx->unitsize = (ctx->num_enabled_probes + 7) / 8;
 	ctx->header = g_string_sized_new(512);
-	num_probes = g_slist_length(o->dev->probes);
+	num_probes = g_slist_length(o->sdi->probes);
 
 	/* timestamp */
 	t = time(NULL);
@@ -84,9 +85,10 @@ static int init(struct sr_output *o)
 	g_string_append_printf(ctx->header, "$version %s %s $end\n",
 			PACKAGE, PACKAGE_VERSION);
 
-	if (o->dev->driver && sr_dev_has_hwcap(o->dev, SR_HWCAP_SAMPLERATE)) {
-		ctx->samplerate = *((uint64_t *) o->dev->driver->dev_info_get(
-				o->dev->driver_index, SR_DI_CUR_SAMPLERATE));
+	if (o->sdi->driver && sr_dev_has_hwcap(o->sdi, SR_HWCAP_SAMPLERATE)) {
+		o->sdi->driver->info_get(SR_DI_CUR_SAMPLERATE,
+				(const void **)&samplerate, o->sdi);
+		ctx->samplerate = *samplerate;
 		if (!((samplerate_s = sr_samplerate_string(ctx->samplerate)))) {
 			g_string_free(ctx->header, TRUE);
 			g_free(ctx);

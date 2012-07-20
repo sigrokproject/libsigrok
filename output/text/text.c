@@ -70,8 +70,8 @@ SR_PRIV int init(struct sr_output *o, int default_spl, enum outputmode mode)
 	struct context *ctx;
 	struct sr_probe *probe;
 	GSList *l;
-	uint64_t samplerate;
-	int num_probes;
+	uint64_t *samplerate;
+	int num_probes, ret;
 	char *samplerate_s;
 
 	if (!(ctx = g_try_malloc0(sizeof(struct context)))) {
@@ -82,7 +82,7 @@ SR_PRIV int init(struct sr_output *o, int default_spl, enum outputmode mode)
 	o->internal = ctx;
 	ctx->num_enabled_probes = 0;
 
-	for (l = o->dev->probes; l; l = l->next) {
+	for (l = o->sdi->probes; l; l = l->next) {
 		probe = l->data;
 		if (!probe->enabled)
 			continue;
@@ -98,26 +98,29 @@ SR_PRIV int init(struct sr_output *o, int default_spl, enum outputmode mode)
 
 	if (o->param && o->param[0]) {
 		ctx->samples_per_line = strtoul(o->param, NULL, 10);
-		if (ctx->samples_per_line < 1)
-			return SR_ERR;
+		if (ctx->samples_per_line < 1) {
+			ret = SR_ERR;
+			goto err;
+		}
 	} else
 		ctx->samples_per_line = default_spl;
 
 	if (!(ctx->header = g_try_malloc0(512))) {
-		g_free(ctx);
 		sr_err("text out: %s: ctx->header malloc failed", __func__);
-		return SR_ERR_MALLOC;
+		ret = SR_ERR_MALLOC;
+		goto err;
 	}
 
 	snprintf(ctx->header, 511, "%s\n", PACKAGE_STRING);
-	num_probes = g_slist_length(o->dev->probes);
-	if (o->dev->driver || sr_dev_has_hwcap(o->dev, SR_HWCAP_SAMPLERATE)) {
-		samplerate = *((uint64_t *) o->dev->driver->dev_info_get(
-				o->dev->driver_index, SR_DI_CUR_SAMPLERATE));
-		if (!(samplerate_s = sr_samplerate_string(samplerate))) {
-			g_free(ctx->header);
-			g_free(ctx);
-			return SR_ERR;
+	num_probes = g_slist_length(o->sdi->probes);
+	if (o->sdi->driver || sr_dev_has_hwcap(o->sdi, SR_HWCAP_SAMPLERATE)) {
+		ret = o->sdi->driver->info_get(SR_DI_CUR_SAMPLERATE,
+				(const void **)&samplerate, o->sdi);
+		if (ret != SR_OK)
+			goto err;
+		if (!(samplerate_s = sr_samplerate_string(*samplerate))) {
+			ret = SR_ERR;
+			goto err;
 		}
 		snprintf(ctx->header + strlen(ctx->header),
 			 511 - strlen(ctx->header),
@@ -128,19 +131,23 @@ SR_PRIV int init(struct sr_output *o, int default_spl, enum outputmode mode)
 
 	ctx->linebuf_len = ctx->samples_per_line * 2 + 4;
 	if (!(ctx->linebuf = g_try_malloc0(num_probes * ctx->linebuf_len))) {
-		g_free(ctx->header);
-		g_free(ctx);
 		sr_err("text out: %s: ctx->linebuf malloc failed", __func__);
-		return SR_ERR_MALLOC;
-	}
-	if (!(ctx->linevalues = g_try_malloc0(num_probes))) {
-		g_free(ctx->header);
-		g_free(ctx);
-		sr_err("text out: %s: ctx->linevalues malloc failed", __func__);
-		return SR_ERR_MALLOC;
+		ret = SR_ERR_MALLOC;
+		goto err;
 	}
 
-	return SR_OK;
+	if (!(ctx->linevalues = g_try_malloc0(num_probes))) {
+		sr_err("text out: %s: ctx->linevalues malloc failed", __func__);
+		ret = SR_ERR_MALLOC;
+	}
+
+err:
+	if (ret != SR_OK) {
+		g_free(ctx->header);
+		g_free(ctx);
+	}
+
+	return ret;
 }
 
 SR_PRIV int event(struct sr_output *o, int event_type, uint8_t **data_out,

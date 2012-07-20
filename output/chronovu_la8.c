@@ -86,20 +86,20 @@ static int init(struct sr_output *o)
 	struct context *ctx;
 	struct sr_probe *probe;
 	GSList *l;
-	uint64_t samplerate;
+	uint64_t *samplerate;
 
 	if (!o) {
 		sr_warn("la8 out: %s: o was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
-	if (!o->dev) {
-		sr_warn("la8 out: %s: o->dev was NULL", __func__);
+	if (!o->sdi) {
+		sr_warn("la8 out: %s: o->sdi was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
-	if (!o->dev->driver) {
-		sr_warn("la8 out: %s: o->dev->driver was NULL", __func__);
+	if (!o->sdi->driver) {
+		sr_warn("la8 out: %s: o->sdi->driver was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
@@ -111,8 +111,7 @@ static int init(struct sr_output *o)
 	o->internal = ctx;
 
 	/* Get the probe names and the unitsize. */
-	/* TODO: Error handling. */
-	for (l = o->dev->probes; l; l = l->next) {
+	for (l = o->sdi->probes; l; l = l->next) {
 		probe = l->data;
 		if (!probe->enabled)
 			continue;
@@ -121,16 +120,14 @@ static int init(struct sr_output *o)
 	ctx->probelist[ctx->num_enabled_probes] = 0;
 	ctx->unitsize = (ctx->num_enabled_probes + 7) / 8;
 
-	if (sr_dev_has_hwcap(o->dev, SR_HWCAP_SAMPLERATE)) {
-		samplerate = *((uint64_t *) o->dev->driver->dev_info_get(
-				o->dev->driver_index, SR_DI_CUR_SAMPLERATE));
-		/* TODO: Error checks. */
-	} else {
-		samplerate = 0; /* TODO: Error or set some value? */
-	}
-	ctx->samplerate = samplerate;
+	if (sr_dev_has_hwcap(o->sdi, SR_HWCAP_SAMPLERATE)) {
+		o->sdi->driver->info_get(SR_DI_CUR_SAMPLERATE,
+				(const void **)&samplerate, o->sdi);
+		ctx->samplerate = *samplerate;
+	} else
+		ctx->samplerate = 0;
 
-	return 0; /* TODO: SR_OK? */
+	return SR_OK;
 }
 
 static int event(struct sr_output *o, int event_type, uint8_t **data_out,

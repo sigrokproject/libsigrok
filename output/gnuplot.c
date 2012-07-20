@@ -54,7 +54,7 @@ static int init(struct sr_output *o)
 	struct context *ctx;
 	struct sr_probe *probe;
 	GSList *l;
-	uint64_t samplerate;
+	uint64_t *samplerate;
 	unsigned int i;
 	int b, num_probes;
 	char *c, *frequency_s;
@@ -66,13 +66,13 @@ static int init(struct sr_output *o)
 		return SR_ERR_ARG;
 	}
 
-	if (!o->dev) {
-		sr_err("gnuplot out: %s: o->dev was NULL", __func__);
+	if (!o->sdi) {
+		sr_err("gnuplot out: %s: o->sdi was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
-	if (!o->dev->driver) {
-		sr_err("gnuplot out: %s: o->dev->driver was NULL", __func__);
+	if (!o->sdi->driver) {
+		sr_err("gnuplot out: %s: o->sdi->driver was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
@@ -89,7 +89,7 @@ static int init(struct sr_output *o)
 
 	o->internal = ctx;
 	ctx->num_enabled_probes = 0;
-	for (l = o->dev->probes; l; l = l->next) {
+	for (l = o->sdi->probes; l; l = l->next) {
 		probe = l->data; /* TODO: Error checks. */
 		if (!probe->enabled)
 			continue;
@@ -98,12 +98,12 @@ static int init(struct sr_output *o)
 	ctx->probelist[ctx->num_enabled_probes] = 0;
 	ctx->unitsize = (ctx->num_enabled_probes + 7) / 8;
 
-	num_probes = g_slist_length(o->dev->probes);
+	num_probes = g_slist_length(o->sdi->probes);
 	comment[0] = '\0';
-	if (sr_dev_has_hwcap(o->dev, SR_HWCAP_SAMPLERATE)) {
-		samplerate = *((uint64_t *) o->dev->driver->dev_info_get(
-				o->dev->driver_index, SR_DI_CUR_SAMPLERATE));
-		if (!(frequency_s = sr_samplerate_string(samplerate))) {
+	if (sr_dev_has_hwcap(o->sdi, SR_HWCAP_SAMPLERATE)) {
+		o->sdi->driver->info_get(SR_DI_CUR_SAMPLERATE,
+				(const void **)&samplerate, o->sdi);
+		if (!(frequency_s = sr_samplerate_string(*samplerate))) {
 			sr_err("gnuplot out: %s: sr_samplerate_string failed",
 			       __func__);
 			g_free(ctx->header);
@@ -122,7 +122,7 @@ static int init(struct sr_output *o)
 		sprintf(c, "# %d\t\t%s\n", i + 1, ctx->probelist[i]);
 	}
 
-	if (!(frequency_s = sr_period_string(samplerate))) {
+	if (!(frequency_s = sr_period_string(*samplerate))) {
 		sr_err("gnuplot out: %s: sr_period_string failed", __func__);
 		g_free(ctx->header);
 		g_free(ctx);

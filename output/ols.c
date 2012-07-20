@@ -42,7 +42,7 @@ static int init(struct sr_output *o)
 	struct context *ctx;
 	struct sr_probe *probe;
 	GSList *l;
-	uint64_t samplerate;
+	uint64_t *samplerate, tmp;
 	int num_enabled_probes;
 
 	if (!(ctx = g_try_malloc(sizeof(struct context)))) {
@@ -53,21 +53,23 @@ static int init(struct sr_output *o)
 
 	ctx->num_samples = 0;
 	num_enabled_probes = 0;
-	for (l = o->dev->probes; l; l = l->next) {
+	for (l = o->sdi->probes; l; l = l->next) {
 		probe = l->data;
 		if (probe->enabled)
 			num_enabled_probes++;
 	}
 	ctx->unitsize = (num_enabled_probes + 7) / 8;
 
-	if (o->dev->driver && sr_dev_has_hwcap(o->dev, SR_HWCAP_SAMPLERATE))
-		samplerate = *((uint64_t *) o->dev->driver->dev_info_get(
-				o->dev->driver_index, SR_DI_CUR_SAMPLERATE));
-	else
-		samplerate = 0;
+	if (o->sdi->driver && sr_dev_has_hwcap(o->sdi, SR_HWCAP_SAMPLERATE))
+		o->sdi->driver->info_get(SR_DI_CUR_SAMPLERATE,
+				(const void **)&samplerate, o->sdi);
+	else {
+		tmp = 0;
+		samplerate = &tmp;
+	}
 
 	ctx->header = g_string_sized_new(512);
-	g_string_append_printf(ctx->header, ";Rate: %"PRIu64"\n", samplerate);
+	g_string_append_printf(ctx->header, ";Rate: %"PRIu64"\n", *samplerate);
 	g_string_append_printf(ctx->header, ";Channels: %d\n", num_enabled_probes);
 	g_string_append_printf(ctx->header, ";EnabledChannels: -1\n");
 	g_string_append_printf(ctx->header, ";Compressed: true\n");

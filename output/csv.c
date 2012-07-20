@@ -52,7 +52,7 @@ static int init(struct sr_output *o)
 	struct sr_probe *probe;
 	GSList *l;
 	int num_probes;
-	uint64_t samplerate;
+	uint64_t *samplerate;
 	time_t t;
 	unsigned int i;
 
@@ -61,13 +61,13 @@ static int init(struct sr_output *o)
 		return SR_ERR_ARG;
 	}
 
-	if (!o->dev) {
-		sr_err("csv out: %s: o->dev was NULL", __func__);
+	if (!o->sdi) {
+		sr_err("csv out: %s: o->sdi was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
-	if (!o->dev->driver) {
-		sr_err("csv out: %s: o->dev->driver was NULL", __func__);
+	if (!o->sdi->driver) {
+		sr_err("csv out: %s: o->sdi->driver was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
@@ -79,8 +79,7 @@ static int init(struct sr_output *o)
 	o->internal = ctx;
 
 	/* Get the number of probes, their names, and the unitsize. */
-	/* TODO: Error handling. */
-	for (l = o->dev->probes; l; l = l->next) {
+	for (l = o->sdi->probes; l; l = l->next) {
 		probe = l->data;
 		if (!probe->enabled)
 			continue;
@@ -89,19 +88,16 @@ static int init(struct sr_output *o)
 	ctx->probelist[ctx->num_enabled_probes] = 0;
 	ctx->unitsize = (ctx->num_enabled_probes + 7) / 8;
 
-	num_probes = g_slist_length(o->dev->probes);
+	num_probes = g_slist_length(o->sdi->probes);
 
-	if (sr_dev_has_hwcap(o->dev, SR_HWCAP_SAMPLERATE)) {
-		samplerate = *((uint64_t *) o->dev->driver->dev_info_get(
-				o->dev->driver_index, SR_DI_CUR_SAMPLERATE));
-		/* TODO: Error checks. */
-	} else {
-		samplerate = 0; /* TODO: Error or set some value? */
-	}
-	ctx->samplerate = samplerate;
+	if (sr_dev_has_hwcap(o->sdi, SR_HWCAP_SAMPLERATE)) {
+		o->sdi->driver->info_get(SR_DI_CUR_SAMPLERATE,
+				(const void **)&samplerate, o->sdi);
+		ctx->samplerate = *samplerate;
+	} else
+		ctx->samplerate = 0;
 
 	ctx->separator = ',';
-
 	ctx->header = g_string_sized_new(512);
 
 	t = time(NULL);
@@ -119,7 +115,7 @@ static int init(struct sr_output *o)
 		g_string_append_printf(ctx->header, "%s, ", ctx->probelist[i]);
 	g_string_append_printf(ctx->header, "\n");
 
-	return 0; /* TODO: SR_OK? */
+	return SR_OK;
 }
 
 static int event(struct sr_output *o, int event_type, uint8_t **data_out,

@@ -38,10 +38,10 @@ static int init(struct sr_output *o)
 	if (!o)
 		return SR_ERR_ARG;
 
-	if (!o->dev)
+	if (!o->sdi)
 		return SR_ERR_ARG;
 
-	if (!o->dev->driver)
+	if (!o->sdi->driver)
 		return SR_ERR_ARG;
 
 	if (!(ctx = g_try_malloc0(sizeof(struct context))))
@@ -51,7 +51,7 @@ static int init(struct sr_output *o)
 
 	/* Get the number of probes and their names. */
 	ctx->probelist = g_ptr_array_new();
-	for (l = o->dev->probes; l; l = l->next) {
+	for (l = o->sdi->probes; l; l = l->next) {
 		probe = l->data;
 		if (!probe || !probe->enabled)
 			continue;
