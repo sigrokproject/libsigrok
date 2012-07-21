@@ -329,34 +329,29 @@ SR_API int sr_dev_trigger_remove_all(struct sr_dev *dev)
  *         upon other errors.
  *         If something other than SR_OK is returned, 'dev' is unchanged.
  */
-SR_API int sr_dev_trigger_set(struct sr_dev *dev, int probenum,
-			      const char *trigger)
+SR_API int sr_dev_trigger_set(const struct sr_dev_inst *sdi, int probenum,
+		const char *trigger)
 {
-	struct sr_probe *p;
+	GSList *l;
+	struct sr_probe *probe;
+	int ret;
 
-	if (!dev) {
-		sr_err("dev: %s: dev was NULL", __func__);
+	if (!sdi)
 		return SR_ERR_ARG;
+
+	ret = SR_ERR_ARG;
+	for (l = sdi->probes; l; l = l->next) {
+		probe = l->data;
+		if (probe->index == probenum) {
+			/* If the probe already has a trigger, kill it first. */
+			g_free(probe->trigger);
+			probe->trigger = g_strdup(trigger);
+			ret = SR_OK;
+			break;
+		}
 	}
 
-	/* TODO: Sanity check on 'probenum'. */
-
-	/* TODO: Sanity check on 'trigger'. */
-
-	p = sr_dev_probe_find(dev, probenum);
-	if (!p) {
-		sr_err("dev: %s: probe %d not found", __func__, probenum);
-		return SR_ERR; /* TODO: More specific error? */
-	}
-
-	/* If the probe already has a trigger, kill it first. */
-	g_free(p->trigger);
-
-	p->trigger = g_strdup(trigger);
-	sr_dbg("dev: %s: Setting '%s' trigger for probe %d.", __func__,
-	       p->trigger, probenum);
-
-	return SR_OK;
+	return ret;
 }
 
 /**
