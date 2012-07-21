@@ -146,7 +146,8 @@ static struct sr_dev_driver *fdi = &fx2lafw_driver_info;
 static int hw_dev_close(struct sr_dev_inst *sdi);
 static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		const void *value);
-static int hw_dev_acquisition_stop(int dev_index, void *cb_data);
+static int hw_dev_acquisition_stop(const struct sr_dev_inst *sdi,
+		void *cb_data);
 
 /**
  * Check the USB configuration to determine if this is an fx2lafw device.
@@ -928,9 +929,9 @@ static unsigned int get_timeout(struct context *ctx)
 	return timeout + timeout / 4; /* Leave a headroom of 25% percent */
 }
 
-static int hw_dev_acquisition_start(int dev_index, void *cb_data)
+static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
+		void *cb_data)
 {
-	struct sr_dev_inst *sdi;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_header header;
 	struct sr_datafeed_meta_logic meta;
@@ -941,10 +942,7 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 	int ret;
 	unsigned char *buf;
 
-	if (!(sdi = sr_dev_inst_get(fdi->instances, dev_index)))
-		return SR_ERR;
 	ctx = sdi->priv;
-
 	if (ctx->submitted_transfers != 0)
 		return SR_ERR;
 
@@ -1010,16 +1008,13 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 }
 
 /* TODO: This stops acquisition on ALL devices, ignoring dev_index. */
-static int hw_dev_acquisition_stop(int dev_index, void *cb_data)
+static int hw_dev_acquisition_stop(const struct sr_dev_inst *sdi,
+		void *cb_data)
 {
-	struct sr_dev_inst *sdi;
 
 	/* Avoid compiler warnings. */
 	(void)cb_data;
 
-	if (!(sdi = sr_dev_inst_get(fdi->instances, dev_index)))
-		return SR_ERR;
- 
 	abort_acquisition(sdi->priv);
 
 	return SR_OK;

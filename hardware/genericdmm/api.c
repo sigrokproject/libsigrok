@@ -536,18 +536,13 @@ static int receive_data(int fd, int revents, void *cb_data)
 	return TRUE;
 }
 
-static int hw_dev_acquisition_start(int dev_index, void *cb_data)
+static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
+		void *cb_data)
 {
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_header header;
 	struct sr_datafeed_meta_analog meta;
-	struct sr_dev_inst *sdi;
 	struct context *ctx;
-
-	if (!(sdi = sr_dev_inst_get(gdi->instances, dev_index))) {
-		sr_err("genericdmm: sdi was NULL.");
-		return SR_ERR_BUG;
-	}
 
 	if (!(ctx = sdi->priv)) {
 		sr_err("genericdmm: sdi->priv was NULL.");
@@ -587,12 +582,13 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 	return SR_OK;
 }
 
-static int hw_dev_acquisition_stop(int dev_index, void *cb_data)
+static int hw_dev_acquisition_stop(const struct sr_dev_inst *sdi,
+		void *cb_data)
 {
 	struct sr_datafeed_packet packet;
 
 	/* Avoid compiler warnings. */
-	(void)dev_index;
+	(void)sdi;
 
 	sr_dbg("genericdmm: Stopping acquisition.");
 

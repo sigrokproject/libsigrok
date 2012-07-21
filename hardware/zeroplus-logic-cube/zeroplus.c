@@ -609,9 +609,9 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 	}
 }
 
-static int hw_dev_acquisition_start(int dev_index, void *cb_data)
+static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
+		void *cb_data)
 {
-	struct sr_dev_inst *sdi;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
 	struct sr_datafeed_header header;
@@ -621,11 +621,6 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 	unsigned int packet_num;
 	unsigned char *buf;
 	struct context *ctx;
-
-	if (!(sdi = sr_dev_inst_get(zdi->instances, dev_index))) {
-		sr_err("zp: %s: sdi was NULL", __func__);
-		return SR_ERR;
-	}
 
 	if (!(ctx = sdi->priv)) {
 		sr_err("zp: %s: sdi->priv was NULL", __func__);
@@ -691,19 +686,14 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 }
 
 /* TODO: This stops acquisition on ALL devices, ignoring dev_index. */
-static int hw_dev_acquisition_stop(int dev_index, void *cb_data)
+static int hw_dev_acquisition_stop(const struct sr_dev_inst *sdi,
+		void *cb_data)
 {
 	struct sr_datafeed_packet packet;
-	struct sr_dev_inst *sdi;
 	struct context *ctx;
 
 	packet.type = SR_DF_END;
 	sr_session_send(cb_data, &packet);
-
-	if (!(sdi = sr_dev_inst_get(zdi->instances, dev_index))) {
-		sr_err("zp: %s: sdi was NULL", __func__);
-		return SR_ERR_BUG;
-	}
 
 	if (!(ctx = sdi->priv)) {
 		sr_err("zp: %s: sdi->priv was NULL", __func__);

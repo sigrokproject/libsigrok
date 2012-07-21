@@ -123,7 +123,8 @@ static const char *firmware_files[] = {
 	"asix-sigma-phasor.fw",	/* Frequency counter */
 };
 
-static int hw_dev_acquisition_stop(int dev_index, void *cb_data);
+static int hw_dev_acquisition_stop(const struct sr_dev_inst *sdi,
+		void *cb_data);
 
 static int sigma_read(void *buf, size_t size, struct context *ctx)
 {
@@ -1053,7 +1054,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 		if (running_msec < ctx->limit_msec && numchunks < 32767)
 			return TRUE; /* While capturing... */
 		else
-			hw_dev_acquisition_stop(sdi->index, sdi);
+			hw_dev_acquisition_stop(sdi, sdi);
 
 	} else if (ctx->state.state == SIGMA_DOWNLOAD) {
 		if (ctx->state.chunks_downloaded >= numchunks) {
@@ -1269,9 +1270,9 @@ static int build_basic_trigger(struct triggerlut *lut, struct context *ctx)
 	return SR_OK;
 }
 
-static int hw_dev_acquisition_start(int dev_index, void *cb_data)
+static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
+		void *cb_data)
 {
-	struct sr_dev_inst *sdi;
 	struct context *ctx;
 	struct sr_datafeed_packet *packet;
 	struct sr_datafeed_header *header;
@@ -1281,9 +1282,6 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 	uint8_t triggerselect;
 	struct triggerinout triggerinout_conf;
 	struct triggerlut lut;
-
-	if (!(sdi = sr_dev_inst_get(adi->instances, dev_index)))
-		return SR_ERR;
 
 	ctx = sdi->priv;
 
@@ -1392,7 +1390,7 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 	sr_session_send(ctx->session_dev_id, packet);
 
 	/* Add capture source. */
-	sr_source_add(0, G_IO_IN, 10, receive_data, sdi);
+	sr_source_add(0, G_IO_IN, 10, receive_data, (void *)sdi);
 
 	g_free(header);
 	g_free(packet);
@@ -1402,19 +1400,14 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 	return SR_OK;
 }
 
-static int hw_dev_acquisition_stop(int dev_index, void *cb_data)
+static int hw_dev_acquisition_stop(const struct sr_dev_inst *sdi,
+		void *cb_data)
 {
-	struct sr_dev_inst *sdi;
 	struct context *ctx;
 	uint8_t modestatus;
 
 	/* Avoid compiler warnings. */
 	(void)cb_data;
-
-	if (!(sdi = sr_dev_inst_get(adi->instances, dev_index))) {
-		sr_err("sigma: %s: sdi was NULL", __func__);
-		return SR_ERR_BUG;
-	}
 
 	if (!(ctx = sdi->priv)) {
 		sr_err("sigma: %s: sdi->priv was NULL", __func__);

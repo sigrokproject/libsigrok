@@ -787,18 +787,15 @@ static int handle_event(int fd, int revents, void *cb_data)
 	return TRUE;
 }
 
-static int hw_dev_acquisition_start(int dev_index, void *cb_data)
+static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
+		void *cb_data)
 {
 	const struct libusb_pollfd **lupfd;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_header header;
 	struct sr_datafeed_meta_analog meta;
-	struct sr_dev_inst *sdi;
 	struct context *ctx;
 	int i;
-
-	if (!(sdi = sr_dev_inst_get(hdi->instances, dev_index)))
-		return SR_ERR;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR;
@@ -838,14 +835,11 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 /* TODO: doesn't really cancel pending transfers so they might come in after
  * SR_DF_END is sent.
  */
-static int hw_dev_acquisition_stop(int dev_index, void *cb_data)
+static int hw_dev_acquisition_stop(const struct sr_dev_inst *sdi,
+		void *cb_data)
 {
 	struct sr_datafeed_packet packet;
-	struct sr_dev_inst *sdi;
 	struct context *ctx;
-
-	if (!(sdi = sr_dev_inst_get(hdi->instances, dev_index)))
-		return SR_ERR;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR;

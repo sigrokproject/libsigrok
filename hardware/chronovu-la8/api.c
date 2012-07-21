@@ -38,7 +38,8 @@ static const uint16_t usb_pids[] = {
 };
 
 /* Function prototypes. */
-static int hw_dev_acquisition_stop(int dev_index, void *cb_data);
+static int hw_dev_acquisition_stop(const struct sr_dev_inst *sdi,
+		void *cb_data);
 
 static void clear_instances(void)
 {
@@ -396,7 +397,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 	/* Get one block of data. */
 	if ((ret = la8_read_block(ctx)) < 0) {
 		sr_err("la8: %s: la8_read_block error: %d", __func__, ret);
-		hw_dev_acquisition_stop(sdi->index, sdi);
+		hw_dev_acquisition_stop(sdi, sdi);
 		return FALSE;
 	}
 
@@ -412,26 +413,21 @@ static int receive_data(int fd, int revents, void *cb_data)
 	for (i = 0; i < NUM_BLOCKS; i++)
 		send_block_to_session_bus(ctx, i);
 
-	hw_dev_acquisition_stop(sdi->index, sdi);
+	hw_dev_acquisition_stop(sdi, sdi);
 
 	// return FALSE; /* FIXME? */
 	return TRUE;
 }
 
-static int hw_dev_acquisition_start(int dev_index, void *cb_data)
+static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
+		void *cb_data)
 {
-	struct sr_dev_inst *sdi;
 	struct context *ctx;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_header header;
 	struct sr_datafeed_meta_logic meta;
 	uint8_t buf[4];
 	int bytes_written;
-
-	if (!(sdi = sr_dev_inst_get(cdi->instances, dev_index))) {
-		sr_err("la8: %s: sdi was NULL", __func__);
-		return SR_ERR_BUG;
-	}
 
 	if (!(ctx = sdi->priv)) {
 		sr_err("la8: %s: sdi->priv was NULL", __func__);
@@ -494,23 +490,18 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 	ctx->trigger_found = 0;
 
 	/* Hook up a dummy handler to receive data from the LA8. */
-	sr_source_add(-1, G_IO_IN, 0, receive_data, sdi);
+	sr_source_add(-1, G_IO_IN, 0, receive_data, (void *)sdi);
 
 	return SR_OK;
 }
 
-static int hw_dev_acquisition_stop(int dev_index, void *cb_data)
+static int hw_dev_acquisition_stop(const struct sr_dev_inst *sdi,
+		void *cb_data)
 {
-	struct sr_dev_inst *sdi;
 	struct context *ctx;
 	struct sr_datafeed_packet packet;
 
 	sr_dbg("la8: Stopping acquisition.");
-
-	if (!(sdi = sr_dev_inst_get(cdi->instances, dev_index))) {
-		sr_err("la8: %s: sdi was NULL", __func__);
-		return SR_ERR_BUG;
-	}
 
 	if (!(ctx = sdi->priv)) {
 		sr_err("la8: %s: sdi->priv was NULL", __func__);

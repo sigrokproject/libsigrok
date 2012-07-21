@@ -71,7 +71,6 @@ struct context {
 	uint8_t sample_generator;
 	uint8_t thread_running;
 	uint64_t samples_counter;
-	int dev_index;
 	void *session_dev_id;
 	GTimer *timer;
 };
@@ -139,7 +138,8 @@ static int default_pattern = PATTERN_SIGROK;
 static GThread *my_thread;
 static int thread_running;
 
-static int hw_dev_acquisition_stop(int dev_index, void *cb_data);
+static int hw_dev_acquisition_stop(const struct sr_dev_inst *sdi,
+		void *cb_data);
 
 static int hw_init(void)
 {
@@ -419,12 +419,15 @@ static int receive_data(int fd, int revents, void *cb_data)
 	return TRUE;
 }
 
-static int hw_dev_acquisition_start(int dev_index, void *cb_data)
+static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
+		void *cb_data)
 {
 	struct sr_datafeed_packet *packet;
 	struct sr_datafeed_header *header;
 	struct sr_datafeed_meta_logic meta;
 	struct context *ctx;
+
+	(void)sdi;
 
 	/* TODO: 'ctx' is never g_free()'d? */
 	if (!(ctx = g_try_malloc(sizeof(struct context)))) {
@@ -434,7 +437,6 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 
 	ctx->sample_generator = default_pattern;
 	ctx->session_dev_id = cb_data;
-	ctx->dev_index = dev_index;
 	ctx->samples_counter = 0;
 
 	if (pipe(ctx->pipe_fds)) {
@@ -500,11 +502,11 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 	return SR_OK;
 }
 
-/* TODO: This stops acquisition on ALL devices, ignoring dev_index. */
-static int hw_dev_acquisition_stop(int dev_index, void *cb_data)
+static int hw_dev_acquisition_stop(const struct sr_dev_inst *sdi,
+		void *cb_data)
 {
 	/* Avoid compiler warnings. */
-	(void)dev_index;
+	(void)sdi;
 	(void)cb_data;
 
 	/* Stop generate thread. */
