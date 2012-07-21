@@ -315,15 +315,12 @@ static GSList *hw_scan(GSList *options)
 	return devices;
 }
 
-static int hw_dev_open(int dev_index)
+static int hw_dev_open(struct sr_dev_inst *sdi)
 {
-	struct sr_dev_inst *sdi;
 	struct context *ctx;
 	int64_t timediff_us, timediff_ms;
 	int err;
 
-	if (!(sdi = sr_dev_inst_get(hdi->instances, dev_index)))
-		return SR_ERR_ARG;
 	ctx = sdi->priv;
 
 	/*
@@ -337,7 +334,7 @@ static int hw_dev_open(int dev_index)
 		g_usleep(300 * 1000);
 		timediff_ms = 0;
 		while (timediff_ms < MAX_RENUM_DELAY_MS) {
-			if ((err = dso_open(dev_index)) == SR_OK)
+			if ((err = dso_open(sdi)) == SR_OK)
 				break;
 			g_usleep(100 * 1000);
 			timediff_us = g_get_monotonic_time() - ctx->fw_updated;
@@ -346,7 +343,7 @@ static int hw_dev_open(int dev_index)
 		}
 		sr_info("hantek-dso: device came back after %d ms", timediff_ms);
 	} else {
-		err = dso_open(dev_index);
+		err = dso_open(sdi);
 	}
 
 	if (err != SR_OK) {
@@ -363,12 +360,8 @@ static int hw_dev_open(int dev_index)
 	return SR_OK;
 }
 
-static int hw_dev_close(int dev_index)
+static int hw_dev_close(struct sr_dev_inst *sdi)
 {
-	struct sr_dev_inst *sdi;
-
-	if (!(sdi = sr_dev_inst_get(hdi->instances, dev_index)))
-		return SR_ERR_ARG;
 
 	dso_close(sdi);
 

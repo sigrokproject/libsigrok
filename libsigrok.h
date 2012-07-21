@@ -490,8 +490,8 @@ struct sr_dev_driver {
 	GSList *(*scan) (GSList *options);
 
 	/* Device-specific */
-	int (*dev_open) (int dev_index);
-	int (*dev_close) (int dev_index);
+	int (*dev_open) (struct sr_dev_inst *sdi);
+	int (*dev_close) (struct sr_dev_inst *sdi);
 	/* TODO remove this */
 	const void *(*dev_info_get) (int dev_index, int dev_info_id);
 	int (*info_get) (int dev_info_id, const void **data,

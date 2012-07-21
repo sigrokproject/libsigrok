@@ -325,15 +325,9 @@ static GSList *hw_scan(GSList *options)
 	return devices;
 }
 
-static int hw_dev_open(int dev_index)
+static int hw_dev_open(struct sr_dev_inst *sdi)
 {
-	struct sr_dev_inst *sdi;
 	struct context *ctx;
-
-	if (!(sdi = sr_dev_inst_get(gdi->instances, dev_index))) {
-		sr_err("genericdmm: sdi was NULL.");
-		return SR_ERR_BUG;
-	}
 
 	if (!(ctx = sdi->priv)) {
 		sr_err("genericdmm: sdi->priv was NULL.");
@@ -363,22 +357,14 @@ static int hw_dev_open(int dev_index)
 	return SR_OK;
 }
 
-static int hw_dev_close(int dev_index)
+static int hw_dev_close(struct sr_dev_inst *sdi)
 {
-	struct sr_dev_inst *sdi;
 	struct context *ctx;
-
-	if (!(sdi = sr_dev_inst_get(gdi->instances, dev_index))) {
-		sr_err("genericdmm: %s: sdi was NULL.", __func__);
-		return SR_ERR_BUG;
-	}
 
 	if (!(ctx = sdi->priv)) {
 		sr_err("genericdmm: %s: sdi->priv was NULL.", __func__);
 		return SR_ERR_BUG;
 	}
-
-	/* TODO: Check for != NULL. */
 
 	switch (ctx->profile->transport) {
 	case DMM_TRANSPORT_USBHID:

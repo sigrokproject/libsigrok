@@ -161,6 +161,7 @@ struct context {
 
 static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		const void *value);
+static int hw_dev_close(struct sr_dev_inst *sdi);
 
 static unsigned int get_memory_size(int type)
 {
@@ -263,28 +264,6 @@ static struct sr_dev_inst *zp_open_dev(int dev_index)
 	return sdi;
 }
 
-static void close_dev(struct sr_dev_inst *sdi)
-{
-	struct context *ctx;
-
-	if (!(ctx = sdi->priv)) {
-		sr_err("zp: %s: sdi->priv was NULL", __func__);
-		return; /* FIXME */
-	}
-
-	if (!ctx->usb->devhdl)
-		return;
-
-	sr_info("zp: closing device %d on %d.%d interface %d", sdi->index,
-		ctx->usb->bus, ctx->usb->address, USB_INTERFACE);
-	libusb_release_interface(ctx->usb->devhdl, USB_INTERFACE);
-	libusb_reset_device(ctx->usb->devhdl);
-	libusb_close(ctx->usb->devhdl);
-	ctx->usb->devhdl = NULL;
-	/* TODO: Call libusb_exit() here or only in hw_cleanup()? */
-	sdi->status = SR_ST_INACTIVE;
-}
-
 static int configure_probes(const struct sr_dev_inst *sdi, const GSList *probes)
 {
 	struct context *ctx;
@@ -334,7 +313,7 @@ static void clear_instances(void)
 	for (l = zdi->instances; l; l = l->next) {
 		sdi = l->data;
 		/* Properly close all devices... */
-		close_dev(sdi);
+		hw_dev_close(sdi);
 		/* ...and free all their memory. */
 		sr_dev_inst_free(sdi);
 	}
@@ -430,18 +409,10 @@ static GSList *hw_scan(GSList *options)
 	return devices;
 }
 
-static int hw_dev_open(int dev_index)
+static int hw_dev_open(struct sr_dev_inst *sdi)
 {
-	struct sr_dev_inst *sdi;
 	struct context *ctx;
 	int ret;
-
-	if (!(sdi = zp_open_dev(dev_index))) {
-		sr_err("zp: unable to open device");
-		return SR_ERR;
-	}
-
-	/* TODO: Note: sdi is retrieved in zp_open_dev(). */
 
 	if (!(ctx = sdi->priv)) {
 		sr_err("zp: %s: sdi->priv was NULL", __func__);
@@ -491,17 +462,25 @@ static int hw_dev_open(int dev_index)
 	return SR_OK;
 }
 
-static int hw_dev_close(int dev_index)
+static int hw_dev_close(struct sr_dev_inst *sdi)
 {
-	struct sr_dev_inst *sdi;
+	struct context *ctx;
 
-	if (!(sdi = sr_dev_inst_get(zdi->instances, dev_index))) {
-		sr_err("zp: %s: sdi was NULL", __func__);
-		return SR_ERR; /* TODO: SR_ERR_ARG? */
+	if (!(ctx = sdi->priv)) {
+		sr_err("zp: %s: sdi->priv was NULL", __func__);
+		return SR_ERR;
 	}
 
-	/* TODO */
-	close_dev(sdi);
+	if (!ctx->usb->devhdl)
+		return SR_ERR;
+
+	sr_info("zp: closing device %d on %d.%d interface %d", sdi->index,
+		ctx->usb->bus, ctx->usb->address, USB_INTERFACE);
+	libusb_release_interface(ctx->usb->devhdl, USB_INTERFACE);
+	libusb_reset_device(ctx->usb->devhdl);
+	libusb_close(ctx->usb->devhdl);
+	ctx->usb->devhdl = NULL;
+	sdi->status = SR_ST_INACTIVE;
 
 	return SR_OK;
 }

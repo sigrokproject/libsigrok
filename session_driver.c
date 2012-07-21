@@ -171,14 +171,8 @@ static int hw_cleanup(void)
 	return SR_OK;
 }
 
-static int hw_dev_open(int dev_index)
+static int hw_dev_open(struct sr_dev_inst *sdi)
 {
-	struct sr_dev_inst *sdi;
-
-	sdi = sr_dev_inst_new(dev_index, SR_ST_INITIALIZING,
-			      NULL, NULL, NULL);
-	if (!sdi)
-		return SR_ERR;
 
 	if (!(sdi->priv = g_try_malloc0(sizeof(struct session_vdev)))) {
 		sr_err("session driver: %s: sdi->priv malloc failed", __func__);

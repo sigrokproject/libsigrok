@@ -509,13 +509,9 @@ hw_init_free_ports:
 	return devices;
 }
 
-static int hw_dev_open(int dev_index)
+static int hw_dev_open(struct sr_dev_inst *sdi)
 {
-	struct sr_dev_inst *sdi;
 	struct context *ctx;
-
-	if (!(sdi = sr_dev_inst_get(odi->instances, dev_index)))
-		return SR_ERR;
 
 	ctx = sdi->priv;
 
@@ -528,19 +524,12 @@ static int hw_dev_open(int dev_index)
 	return SR_OK;
 }
 
-static int hw_dev_close(int dev_index)
+static int hw_dev_close(struct sr_dev_inst *sdi)
 {
-	struct sr_dev_inst *sdi;
 	struct context *ctx;
-
-	if (!(sdi = sr_dev_inst_get(odi->instances, dev_index))) {
-		sr_err("ols: %s: sdi was NULL", __func__);
-		return SR_ERR_BUG;
-	}
 
 	ctx = sdi->priv;
 
-	/* TODO */
 	if (ctx->serial->fd != -1) {
 		serial_close(ctx->serial->fd);
 		ctx->serial->fd = -1;

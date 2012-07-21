@@ -29,7 +29,6 @@
 
 extern libusb_context *usb_context;
 extern struct sr_dev_driver hantek_dso_driver_info;
-static struct sr_dev_driver *hdi = &hantek_dso_driver_info;
 
 
 static int send_begin(struct context *ctx)
@@ -105,16 +104,13 @@ err:
 	return mps;
 }
 
-SR_PRIV int dso_open(int dev_index)
+SR_PRIV int dso_open(struct sr_dev_inst *sdi)
 {
 	libusb_device **devlist;
 	struct libusb_device_descriptor des;
-	struct sr_dev_inst *sdi;
 	struct context *ctx;
 	int err, skip, i;
 
-	if (!(sdi = sr_dev_inst_get(hdi->instances, dev_index)))
-		return SR_ERR_ARG;
 	ctx = sdi->priv;
 
 	if (sdi->status == SR_ST_ACTIVE)
@@ -134,7 +130,7 @@ SR_PRIV int dso_open(int dev_index)
 			continue;
 
 		if (sdi->status == SR_ST_INITIALIZING) {
-			if (skip != dev_index) {
+			if (skip != sdi->index) {
 				/* Skip devices of this type that aren't the one we want. */
 				skip += 1;
 				continue;

@@ -203,7 +203,7 @@ struct context {
 	unsigned char *framebuf;
 };
 
-SR_PRIV int dso_open(int dev_index);
+SR_PRIV int dso_open(struct sr_dev_inst *sdi);
 SR_PRIV void dso_close(struct sr_dev_inst *sdi);
 SR_PRIV int dso_enable_trigger(struct context *ctx);
 SR_PRIV int dso_force_trigger(struct context *ctx);

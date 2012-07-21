@@ -170,20 +170,20 @@ static GSList *hw_scan(GSList *options)
 	return devices;
 }
 
-static int hw_dev_open(int dev_index)
+static int hw_dev_open(struct sr_dev_inst *sdi)
 {
 	/* Avoid compiler warnings. */
-	(void)dev_index;
+	(void)sdi;
 
 	/* Nothing needed so far. */
 
 	return SR_OK;
 }
 
-static int hw_dev_close(int dev_index)
+static int hw_dev_close(struct sr_dev_inst *sdi)
 {
 	/* Avoid compiler warnings. */
-	(void)dev_index;
+	(void)sdi;
 
 	/* Nothing needed so far. */
 

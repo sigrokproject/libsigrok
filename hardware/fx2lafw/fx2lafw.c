@@ -143,6 +143,7 @@ static libusb_context *usb_context = NULL;
 
 SR_PRIV struct sr_dev_driver fx2lafw_driver_info;
 static struct sr_dev_driver *fdi = &fx2lafw_driver_info;
+static int hw_dev_close(struct sr_dev_inst *sdi);
 static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		const void *value);
 static int hw_dev_acquisition_stop(int dev_index, void *cb_data);
@@ -191,18 +192,15 @@ static gboolean check_conf_profile(libusb_device *dev)
 	return ret;
 }
 
-static int fx2lafw_dev_open(int dev_index)
+static int fx2lafw_dev_open(struct sr_dev_inst *sdi)
 {
 	libusb_device **devlist;
 	struct libusb_device_descriptor des;
-	struct sr_dev_inst *sdi;
 	struct context *ctx;
 	struct version_info vi;
 	int ret, skip, i;
 	uint8_t revid;
 
-	if (!(sdi = sr_dev_inst_get(fdi->instances, dev_index)))
-		return SR_ERR;
 	ctx = sdi->priv;
 
 	if (sdi->status == SR_ST_ACTIVE)
@@ -229,7 +227,7 @@ static int fx2lafw_dev_open(int dev_index)
 			continue;
 
 		if (sdi->status == SR_ST_INITIALIZING) {
-			if (skip != dev_index) {
+			if (skip != sdi->index) {
 				/* Skip devices of this type that aren't the one we want. */
 				skip += 1;
 				continue;
@@ -296,23 +294,6 @@ static int fx2lafw_dev_open(int dev_index)
 		return SR_ERR;
 
 	return SR_OK;
-}
-
-static void close_dev(struct sr_dev_inst *sdi)
-{
-	struct context *ctx;
-
-	ctx = sdi->priv;
-
-	if (ctx->usb->devhdl == NULL)
-		return;
-
-	sr_info("fx2lafw: Closing device %d on %d.%d interface %d.",
-		sdi->index, ctx->usb->bus, ctx->usb->address, USB_INTERFACE);
-	libusb_release_interface(ctx->usb->devhdl, USB_INTERFACE);
-	libusb_close(ctx->usb->devhdl);
-	ctx->usb->devhdl = NULL;
-	sdi->status = SR_ST_INACTIVE;
 }
 
 static int configure_probes(struct context *ctx, GSList *probes)
@@ -400,7 +381,7 @@ static int clear_instances(void)
 			ret = SR_ERR_BUG;
 			continue;
 		}
-		close_dev(sdi);
+		hw_dev_close(sdi);
 		sdi = l->data;
 		sr_dev_inst_free(sdi);
 	}
@@ -471,7 +452,7 @@ static GSList *hw_scan(GSList *options)
 		sdi = sr_dev_inst_new(devcnt, SR_ST_INITIALIZING,
 			prof->vendor, prof->model, prof->model_version);
 		if (!sdi)
-			return 0;
+			return NULL;
 		sdi->driver = fdi;
 
 		/* Fill in probelist according to this device's profile. */
@@ -479,7 +460,7 @@ static GSList *hw_scan(GSList *options)
 		for (j = 0; j < num_logic_probes; j++) {
 			if (!(probe = sr_probe_new(j, SR_PROBE_LOGIC, TRUE,
 					probe_names[j])))
-				return 0;
+				return NULL;
 			sdi->probes = g_slist_append(sdi->probes, probe);
 		}
 
@@ -513,15 +494,12 @@ static GSList *hw_scan(GSList *options)
 	return devices;
 }
 
-static int hw_dev_open(int dev_index)
+static int hw_dev_open(struct sr_dev_inst *sdi)
 {
-	struct sr_dev_inst *sdi;
 	struct context *ctx;
 	int ret;
 	int64_t timediff_us, timediff_ms;
 
-	if (!(sdi = sr_dev_inst_get(fdi->instances, dev_index)))
-		return SR_ERR;
 	ctx = sdi->priv;
 
 	/*
@@ -535,7 +513,7 @@ static int hw_dev_open(int dev_index)
 		g_usleep(300 * 1000);
 		timediff_ms = 0;
 		while (timediff_ms < MAX_RENUM_DELAY_MS) {
-			if ((ret = fx2lafw_dev_open(dev_index)) == SR_OK)
+			if ((ret = fx2lafw_dev_open(sdi)) == SR_OK)
 				break;
 			g_usleep(100 * 1000);
 
@@ -545,7 +523,7 @@ static int hw_dev_open(int dev_index)
 		}
 		sr_info("fx2lafw: Device came back after %d ms.", timediff_ms);
 	} else {
-		ret = fx2lafw_dev_open(dev_index);
+		ret = fx2lafw_dev_open(sdi);
 	}
 
 	if (ret != SR_OK) {
@@ -584,17 +562,20 @@ static int hw_dev_open(int dev_index)
 	return SR_OK;
 }
 
-static int hw_dev_close(int dev_index)
+static int hw_dev_close(struct sr_dev_inst *sdi)
 {
-	struct sr_dev_inst *sdi;
+	struct context *ctx;
 
-	if (!(sdi = sr_dev_inst_get(fdi->instances, dev_index))) {
-		sr_err("fx2lafw: %s: sdi was NULL.", __func__);
-		return SR_ERR_BUG;
-	}
+	ctx = sdi->priv;
+	if (ctx->usb->devhdl == NULL)
+		return SR_ERR;
 
-	/* TODO */
-	close_dev(sdi);
+	sr_info("fx2lafw: Closing device %d on %d.%d interface %d.",
+		sdi->index, ctx->usb->bus, ctx->usb->address, USB_INTERFACE);
+	libusb_release_interface(ctx->usb->devhdl, USB_INTERFACE);
+	libusb_close(ctx->usb->devhdl);
+	ctx->usb->devhdl = NULL;
+	sdi->status = SR_ST_INACTIVE;
 
 	return SR_OK;
 }

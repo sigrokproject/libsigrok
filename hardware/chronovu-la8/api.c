@@ -168,16 +168,10 @@ err_free_nothing:
 	return NULL;
 }
 
-static int hw_dev_open(int dev_index)
+static int hw_dev_open(struct sr_dev_inst *sdi)
 {
-	int ret;
-	struct sr_dev_inst *sdi;
 	struct context *ctx;
-
-	if (!(sdi = sr_dev_inst_get(cdi->instances, dev_index))) {
-		sr_err("la8: %s: sdi was NULL", __func__);
-		return SR_ERR_BUG;
-	}
+	int ret;
 
 	if (!(ctx = sdi->priv)) {
 		sr_err("la8: %s: sdi->priv was NULL", __func__);
@@ -227,15 +221,9 @@ err_dev_open_close_ftdic:
 	return SR_ERR;
 }
 
-static int hw_dev_close(int dev_index)
+static int hw_dev_close(struct sr_dev_inst *sdi)
 {
-	struct sr_dev_inst *sdi;
 	struct context *ctx;
-
-	if (!(sdi = sr_dev_inst_get(cdi->instances, dev_index))) {
-		sr_err("la8: %s: sdi was NULL", __func__);
-		return SR_ERR_BUG;
-	}
 
 	if (!(ctx = sdi->priv)) {
 		sr_err("la8: %s: sdi->priv was NULL", __func__);

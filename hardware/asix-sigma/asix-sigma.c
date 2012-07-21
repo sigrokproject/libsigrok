@@ -607,14 +607,10 @@ static int upload_firmware(int firmware_idx, struct context *ctx)
 	return SR_OK;
 }
 
-static int hw_dev_open(int dev_index)
+static int hw_dev_open(struct sr_dev_inst *sdi)
 {
-	struct sr_dev_inst *sdi;
 	struct context *ctx;
 	int ret;
-
-	if (!(sdi = sr_dev_inst_get(adi->instances, dev_index)))
-		return SR_ERR;
 
 	ctx = sdi->priv;
 
@@ -748,15 +744,9 @@ static int configure_probes(const struct sr_dev_inst *sdi, const GSList *probes)
 	return SR_OK;
 }
 
-static int hw_dev_close(int dev_index)
+static int hw_dev_close(struct sr_dev_inst *sdi)
 {
-	struct sr_dev_inst *sdi;
 	struct context *ctx;
-
-	if (!(sdi = sr_dev_inst_get(adi->instances, dev_index))) {
-		sr_err("sigma: %s: sdi was NULL", __func__);
-		return SR_ERR_BUG;
-	}
 
 	if (!(ctx = sdi->priv)) {
 		sr_err("sigma: %s: sdi->priv was NULL", __func__);
