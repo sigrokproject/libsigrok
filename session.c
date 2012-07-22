@@ -456,14 +456,15 @@ static int _sr_session_source_add(GPollFD *pollfd, int timeout,
 
 	/* Note: cb_data can be NULL, that's not a bug. */
 
-	new_pollfds = g_try_realloc(session->pollfds, sizeof(GPollFD) * (session->num_sources + 1));
+	new_pollfds = g_try_realloc(session->pollfds,
+			sizeof(GPollFD) * (session->num_sources + 1));
 	if (!new_pollfds) {
 		sr_err("session: %s: new_pollfds malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 
 	new_sources = g_try_realloc(session->sources, sizeof(struct source) *
-	(session->num_sources + 1));
+			(session->num_sources + 1));
 	if (!new_sources) {
 		sr_err("session: %s: new_sources malloc failed", __func__);
 		return SR_ERR_MALLOC;
