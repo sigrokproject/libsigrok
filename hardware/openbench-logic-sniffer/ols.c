@@ -884,12 +884,12 @@ static int receive_data(int fd, int revents, void *cb_data)
 	return TRUE;
 }
 
-static int hw_dev_acquisition_start(int dev_index, void *cb_data)
+static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
+		void *cb_data)
 {
 	struct sr_datafeed_packet *packet;
 	struct sr_datafeed_header *header;
 	struct sr_datafeed_meta_logic meta;
-	struct sr_dev_inst *sdi;
 	struct context *ctx;
 	uint32_t trigger_config[4];
 	uint32_t data;
@@ -897,9 +897,6 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 	uint8_t changrp_mask;
 	int num_channels;
 	int i;
-
-	if (!(sdi = sr_dev_inst_get(odi->instances, dev_index)))
-		return SR_ERR;
 
 	ctx = sdi->priv;
 
@@ -1044,12 +1041,13 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 }
 
 /* TODO: This stops acquisition on ALL devices, ignoring dev_index. */
-static int hw_dev_acquisition_stop(int dev_index, void *cb_data)
+static int hw_dev_acquisition_stop(const struct sr_dev_inst *sdi,
+		void *cb_data)
 {
 	struct sr_datafeed_packet packet;
 
 	/* Avoid compiler warnings. */
-	(void)dev_index;
+	(void)sdi;
 
 	packet.type = SR_DF_END;
 	sr_session_send(cb_data, &packet);
