@@ -86,10 +86,10 @@ SR_API int sr_session_destroy(void)
 	return SR_OK;
 }
 
-static void sr_dev_close(struct sr_dev *dev)
+static void sr_dev_close(struct sr_dev_inst *sdi)
 {
-	if (dev && dev->driver && dev->driver->dev_close)
-		dev->driver->dev_close(dev->driver_index);
+	if (sdi->driver->dev_close)
+		sdi->driver->dev_close(sdi);
 }
 
 /**
@@ -116,17 +116,18 @@ SR_API int sr_session_dev_remove_all(void)
 /**
  * Add a device to the current session.
  *
- * @param dev The device to add to the current session. Must not be NULL.
- *            Also, dev->driver and dev->driver->dev_open must not be NULL.
+ * @param dev The device instance to add to the current session. Must not
+ *            be NULL. Also, sdi->driver and sdi->driver->dev_open must
+ *            not be NULL.
  *
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments.
  */
-SR_API int sr_session_dev_add(struct sr_dev *dev)
+SR_API int sr_session_dev_add(const struct sr_dev_inst *sdi)
 {
 	int ret;
 
-	if (!dev) {
-		sr_err("session: %s: dev was NULL", __func__);
+	if (!sdi) {
+		sr_err("session: %s: sdi was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
@@ -135,28 +136,27 @@ SR_API int sr_session_dev_add(struct sr_dev *dev)
 		return SR_ERR_BUG;
 	}
 
-	/* If dev->driver is NULL, this is a virtual device. */
-	if (!dev->driver) {
-		sr_dbg("session: %s: dev->driver was NULL, this seems to be "
+	/* If sdi->driver is NULL, this is a virtual device. */
+	if (!sdi->driver) {
+		sr_dbg("session: %s: sdi->driver was NULL, this seems to be "
 		       "a virtual device; continuing", __func__);
 		/* Just add the device, don't run dev_open(). */
-		session->devs = g_slist_append(session->devs, dev);
+		session->devs = g_slist_append(session->devs, (gpointer)sdi);
 		return SR_OK;
 	}
 
-	/* dev->driver is non-NULL (i.e. we have a real device). */
-	if (!dev->driver->dev_open) {
-		sr_err("session: %s: dev->driver->dev_open was NULL",
-		       __func__);
+	/* sdi->driver is non-NULL (i.e. we have a real device). */
+	if (!sdi->driver->dev_open) {
+		sr_err("session: %s: sdi->driver->dev_open was NULL", __func__);
 		return SR_ERR_BUG;
 	}
 
-	if ((ret = dev->driver->dev_open(dev->driver_index)) != SR_OK) {
+	if ((ret = sdi->driver->dev_open((struct sr_dev_inst *)sdi)) != SR_OK) {
 		sr_err("session: %s: dev_open failed (%d)", __func__, ret);
 		return ret;
 	}
 
-	session->devs = g_slist_append(session->devs, dev);
+	session->devs = g_slist_append(session->devs, (gpointer)sdi);
 
 	return SR_OK;
 }
@@ -243,32 +243,27 @@ static int sr_session_run_poll(void)
  */
 SR_API int sr_session_start(void)
 {
-	struct sr_dev *dev;
+	struct sr_dev_inst *sdi;
 	GSList *l;
 	int ret;
 
 	if (!session) {
 		sr_err("session: %s: session was NULL; a session must be "
-		       "created first, before starting it.", __func__);
+		       "created before starting it.", __func__);
 		return SR_ERR_BUG;
 	}
 
 	if (!session->devs) {
-		/* TODO: Actually the case? */
 		sr_err("session: %s: session->devs was NULL; a session "
 		       "cannot be started without devices.", __func__);
 		return SR_ERR_BUG;
 	}
 
-	/* TODO: Check driver_index validity? */
-
 	sr_info("session: starting");
 
 	for (l = session->devs; l; l = l->next) {
-		dev = l->data;
-		/* TODO: Check for dev != NULL. */
-		if ((ret = dev->driver->dev_acquisition_start(
-				dev->driver_index, dev)) != SR_OK) {
+		sdi = l->data;
+		if ((ret = sdi->driver->dev_acquisition_start(sdi, sdi)) != SR_OK) {
 			sr_err("session: %s: could not start an acquisition "
 			       "(%d)", __func__, ret);
 			break;
@@ -342,7 +337,7 @@ SR_API int sr_session_halt(void)
  */
 SR_API int sr_session_stop(void)
 {
-	struct sr_dev *dev;
+	struct sr_dev_inst *sdi;
 	GSList *l;
 
 	if (!session) {
@@ -354,11 +349,10 @@ SR_API int sr_session_stop(void)
 	session->running = FALSE;
 
 	for (l = session->devs; l; l = l->next) {
-		dev = l->data;
-		/* Check for dev != NULL. */
-		if (dev->driver) {
-			if (dev->driver->dev_acquisition_stop)
-				dev->driver->dev_acquisition_stop(dev->driver_index, dev);
+		sdi = l->data;
+		if (sdi->driver) {
+			if (sdi->driver->dev_acquisition_stop)
+				sdi->driver->dev_acquisition_stop(sdi, sdi);
 		}
 	}
 
@@ -423,14 +417,14 @@ static void datafeed_dump(struct sr_datafeed_packet *packet)
  *
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments.
  */
-SR_PRIV int sr_session_send(struct sr_dev *dev,
+SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
 			    struct sr_datafeed_packet *packet)
 {
 	GSList *l;
 	sr_datafeed_callback_t cb;
 
-	if (!dev) {
-		sr_err("session: %s: dev was NULL", __func__);
+	if (!sdi) {
+		sr_err("session: %s: sdi was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
@@ -443,8 +437,7 @@ SR_PRIV int sr_session_send(struct sr_dev *dev,
 		if (sr_log_loglevel_get() >= SR_LOG_DBG)
 			datafeed_dump(packet);
 		cb = l->data;
-		/* TODO: Check for cb != NULL. */
-		cb(dev, packet);
+		cb(sdi, packet);
 	}
 
 	return SR_OK;

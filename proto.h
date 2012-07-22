@@ -92,7 +92,7 @@ SR_API int sr_session_load(const char *filename);
 SR_API struct sr_session *sr_session_new(void);
 SR_API int sr_session_destroy(void);
 SR_API int sr_session_dev_remove_all(void);
-SR_API int sr_session_dev_add(struct sr_dev *dev);
+SR_API int sr_session_dev_add(const struct sr_dev_inst *sdi);
 
 /* Datafeed setup */
 SR_API int sr_session_datafeed_callback_remove_all(void);

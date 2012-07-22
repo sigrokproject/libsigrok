@@ -83,7 +83,7 @@ SR_PRIV void sr_hw_cleanup_all(void);
 
 /*--- session.c -------------------------------------------------------------*/
 
-SR_PRIV int sr_session_send(struct sr_dev *dev,
+SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
 			    struct sr_datafeed_packet *packet);
 
 /* Generic device instances */
