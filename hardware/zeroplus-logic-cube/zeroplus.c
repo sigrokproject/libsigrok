@@ -59,9 +59,11 @@ typedef struct {
 static model_t zeroplus_models[] = {
 	{0x0c12, 0x7009, "LAP-C(16064)",  16, 64,   100},
 	{0x0c12, 0x700A, "LAP-C(16128)",  16, 128,  200},
+	/* TODO: we don't know anything about these
 	{0x0c12, 0x700B, "LAP-C(32128)",  32, 128,  200},
 	{0x0c12, 0x700C, "LAP-C(321000)", 32, 1024, 200},
 	{0x0c12, 0x700D, "LAP-C(322000)", 32, 2048, 200},
+	*/
 	{0x0c12, 0x700E, "LAP-C(16032)",  16, 32,   100},
 	{0x0c12, 0x7016, "LAP-C(162000)", 16, 2048, 200},
 	{ 0, 0, 0, 0, 0, 0 }
