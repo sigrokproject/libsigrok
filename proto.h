@@ -84,8 +84,8 @@ SR_API int sr_info_get(struct sr_dev_driver *driver, int id,
 
 /*--- session.c -------------------------------------------------------------*/
 
-typedef void (*sr_datafeed_callback_t)(struct sr_dev *dev,
-				       struct sr_datafeed_packet *packet);
+typedef void (*sr_datafeed_callback_t)(const struct sr_dev_inst *sdi,
+		struct sr_datafeed_packet *packet);
 
 /* Session setup */
 SR_API int sr_session_load(const char *filename);
