@@ -144,7 +144,7 @@ SR_API int sr_session_load(const char *filename)
 						continue;
 					enabled_probes++;
 					tmp_u64 = strtoul(keys[j]+5, NULL, 10);
-					sr_dev_probe_name_set(dev, tmp_u64, val);
+					sr_dev_probe_name_set(sdi, tmp_u64, val);
 				} else if (!strncmp(keys[j], "trigger", 7)) {
 					probenum = strtoul(keys[j]+7, NULL, 10);
 					sr_dev_trigger_set(sdi, probenum, val);

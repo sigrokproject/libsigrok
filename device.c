@@ -28,39 +28,38 @@
  * If the probe already has a different name assigned to it, it will be
  * removed, and the new name will be saved instead.
  *
- * @param dev TODO
+ * @param sdi The device instance the probe is connected to.
  * @param probenum The number of the probe whose name to set.
- *                 Note that the probe numbers start at 1 (not 0!).
- * @param name The new name that the specified probe should get.
+ *                 Note that the probe numbers start at 0.
+ * @param name The new name that the specified probe should get. A copy
+ *             of the string is made.
  *
- * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or SR_ERR
- *         upon other errors.
- *         If something other than SR_OK is returned, 'dev' is unchanged.
+ * @return SR_OK on success, or SR_ERR_ARG on invalid arguments.
  */
-SR_API int sr_dev_probe_name_set(struct sr_dev *dev, int probenum,
-				 const char *name)
+SR_API int sr_dev_probe_name_set(const struct sr_dev_inst *sdi,
+		int probenum, const char *name)
 {
-	struct sr_probe *p;
+	GSList *l;
+	struct sr_probe *probe;
+	int ret;
 
-	if (!dev) {
-		sr_err("dev: %s: dev was NULL", __func__);
+	if (!sdi) {
+		sr_err("%s: sdi was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
-	p = sr_dev_probe_find(dev, probenum);
-	if (!p) {
-		sr_err("dev: %s: probe %d not found", __func__, probenum);
-		return SR_ERR; /* TODO: More specific error? */
+	ret = SR_ERR_ARG;
+	for (l = sdi->probes; l; l = l->next) {
+		probe = l->data;
+		if (probe->index == probenum) {
+			g_free(probe->name);
+			probe->name = g_strdup(name);
+			ret = SR_OK;
+			break;
+		}
 	}
 
-	/* TODO: Sanity check on 'name'. */
-
-	/* If the probe already has a name, kill it first. */
-	g_free(p->name);
-
-	p->name = g_strdup(name);
-
-	return SR_OK;
+	return ret;
 }
 
 /**
