@@ -348,18 +348,12 @@ SR_API int sr_dev_trigger_remove_all(struct sr_dev *dev)
  * If the specified probe of this device already has a trigger, it will
  * be silently replaced.
  *
- * TODO: Better description.
- * TODO: Describe valid format of the 'trigger' string.
- *
- * @param dev TODO. Must not be NULL.
- * @param probenum The number of the probe. TODO.
+ * @param sdi Must not be NULL.
+ * @param probenum The number of the probe.
  *                 Note that the probe numbers start at 1 (not 0!).
- * @param trigger TODO.
- *                TODO: Is NULL allowed?
+ * @param trigger trigger string, in the format used by sigrok-cli
  *
- * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or SR_ERR
- *         upon other errors.
- *         If something other than SR_OK is returned, 'dev' is unchanged.
+ * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments.
  */
 SR_API int sr_dev_trigger_set(const struct sr_dev_inst *sdi, int probenum,
 		const char *trigger)
