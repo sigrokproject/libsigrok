@@ -151,10 +151,8 @@ SR_API int sr_session_load(const char *filename)
 				}
 			}
 			g_strfreev(keys);
-			for (p = enabled_probes; p < total_probes; p++) {
-				probe = g_slist_nth_data(dev->probes, p);
-				probe->enabled = FALSE;
-			}
+			for (p = enabled_probes; p < total_probes; p++)
+				sr_dev_probe_enable(sdi, p, FALSE);
 		}
 		devcnt++;
 	}

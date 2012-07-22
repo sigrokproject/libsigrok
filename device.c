@@ -274,6 +274,38 @@ SR_API int sr_dev_probe_name_set(struct sr_dev *dev, int probenum,
 }
 
 /**
+ * Enable or disable a probe on the specified device.
+ *
+ * @param sdi The device instance the probe is connected to.
+ * @param probenum The probe number, starting from 0.
+ * @param state TRUE to enable the probe, FALSE to disable.
+ *
+ * @return SR_OK on success, or SR_ERR_ARG on invalid arguments.
+ */
+SR_API int sr_dev_probe_enable(const struct sr_dev_inst *sdi, int probenum,
+		gboolean state)
+{
+	GSList *l;
+	struct sr_probe *probe;
+	int ret;
+
+	if (!sdi)
+		return SR_ERR_ARG;
+
+	ret = SR_ERR_ARG;
+	for (l = sdi->probes; l; l = l->next) {
+		probe = l->data;
+		if (probe->index == probenum) {
+			probe->enabled = state;
+			ret = SR_OK;
+			break;
+		}
+	}
+
+	return ret;
+}
+
+/**
  * Remove all triggers set up for the specified device.
  *
  * TODO: Better description.

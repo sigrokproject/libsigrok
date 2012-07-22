@@ -56,6 +56,8 @@ SR_API struct sr_probe *sr_dev_probe_find(const struct sr_dev *dev,
 					  int probenum);
 SR_API int sr_dev_probe_name_set(struct sr_dev *dev, int probenum,
 				 const char *name);
+SR_API int sr_dev_probe_enable(const struct sr_dev_inst *sdi, int probenum,
+		gboolean state);
 SR_API int sr_dev_trigger_remove_all(struct sr_dev *dev);
 SR_API int sr_dev_trigger_set(const struct sr_dev_inst *sdi, int probenum,
 		const char *trigger);
