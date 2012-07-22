@@ -101,11 +101,10 @@ SR_API int sr_dev_probe_enable(const struct sr_dev_inst *sdi, int probenum,
  * be silently replaced.
  *
  * @param sdi Must not be NULL.
- * @param probenum The number of the probe.
- *                 Note that the probe numbers start at 1 (not 0!).
- * @param trigger trigger string, in the format used by sigrok-cli
+ * @param probenum The probe number, starting from 0.
+ * @param trigger Trigger string, in the format used by sigrok-cli
  *
- * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments.
+ * @return SR_OK on success, or SR_ERR_ARG on invalid arguments.
  */
 SR_API int sr_dev_trigger_set(const struct sr_dev_inst *sdi, int probenum,
 		const char *trigger)
@@ -142,7 +141,7 @@ SR_API int sr_dev_trigger_set(const struct sr_dev_inst *sdi, int probenum,
  * @param hwcap The capability that should be checked (whether it's supported
  *              by the specified device).
  *
- * @return TRUE, if the device has the specified capability, FALSE otherwise.
+ * @return TRUE if the device has the specified capability, FALSE otherwise.
  *         FALSE is also returned upon invalid input parameters or other
  *         error conditions.
  */

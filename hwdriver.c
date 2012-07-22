@@ -148,6 +148,13 @@ SR_API int sr_driver_init(struct sr_dev_driver *driver)
 /**
  * Tell a hardware driver to scan for devices.
  *
+ * In addition to the detection, the devices that are found are also
+ * initialized automatically. On some devices, this involves a firmware upload,
+ * or other such measures.
+ *
+ * The order in which the system is scanned for devices is not specified. The
+ * caller should not assume or rely on any specific order.
+ *
  * @param driver The driver.
  * @param options A list of struct sr_hwopt options to pass to the driver's
  * 		scanner.
