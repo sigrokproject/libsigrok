@@ -170,7 +170,7 @@ SR_API char *sr_voltage_string(struct sr_rational *voltage)
  *         contain the respective trigger type which is requested for the
  *         respective probe (e.g. "r", "c", and so on).
  */
-SR_API char **sr_parse_triggerstring(struct sr_dev *dev,
+SR_API char **sr_parse_triggerstring(const struct sr_dev_inst *sdi,
 				     const char *triggerstring)
 {
 	GSList *l;
@@ -180,7 +180,7 @@ SR_API char **sr_parse_triggerstring(struct sr_dev *dev,
 	const char *trigger_types;
 	gboolean error;
 
-	max_probes = g_slist_length(dev->probes);
+	max_probes = g_slist_length(sdi->probes);
 	error = FALSE;
 
 	if (!(triggerlist = g_try_malloc0(max_probes * sizeof(char *)))) {
@@ -190,10 +190,9 @@ SR_API char **sr_parse_triggerstring(struct sr_dev *dev,
 
 	tokens = g_strsplit(triggerstring, ",", max_probes);
 
-	trigger_types = dev->driver->dev_info_get(0, SR_DI_TRIGGER_TYPES);
-	if (!trigger_types) {
-		sr_err("strutil: %s: Device doesn't support any triggers.",
-		       __func__);
+	if (sdi->driver->info_get(SR_DI_TRIGGER_TYPES,
+			(const void **)&trigger_types, sdi) != SR_OK) {
+		sr_err("strutil: %s: Device doesn't support any triggers.", __func__);
 		return NULL;
 	}
 
@@ -201,7 +200,7 @@ SR_API char **sr_parse_triggerstring(struct sr_dev *dev,
 		if (tokens[i][0] < '0' || tokens[i][0] > '9') {
 			/* Named probe */
 			probenum = 0;
-			for (l = dev->probes; l; l = l->next) {
+			for (l = sdi->probes; l; l = l->next) {
 				probe = (struct sr_probe *)l->data;
 				if (probe->enabled
 				    && !strncmp(probe->name, tokens[i],

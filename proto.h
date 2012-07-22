@@ -127,8 +127,8 @@ SR_API struct sr_output_format **sr_output_list(void);
 SR_API char *sr_samplerate_string(uint64_t samplerate);
 SR_API char *sr_period_string(uint64_t frequency);
 SR_API char *sr_voltage_string(struct sr_rational *voltage);
-SR_API char **sr_parse_triggerstring(struct sr_dev *dev,
-				     const char *triggerstring);
+SR_API char **sr_parse_triggerstring(const struct sr_dev_inst *sdi,
+		const char *triggerstring);
 SR_API int sr_parse_sizestring(const char *sizestring, uint64_t *size);
 SR_API uint64_t sr_parse_timestring(const char *timestring);
 SR_API gboolean sr_parse_boolstring(const char *boolstring);
