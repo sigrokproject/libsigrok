@@ -494,9 +494,8 @@ struct sr_dev_driver {
 	int (*dev_close) (struct sr_dev_inst *sdi);
 	/* TODO remove this */
 	const void *(*dev_info_get) (int dev_index, int dev_info_id);
-	int (*info_get) (int dev_info_id, const void **data,
+	int (*info_get) (int info_id, const void **data,
 			const struct sr_dev_inst *sdi);
-	int (*dev_status_get) (int dev_index);
 	int (*dev_config_set) (const struct sr_dev_inst *sdi, int hwcap,
 			const void *value);
 	int (*dev_acquisition_start) (const struct sr_dev_inst *sdi,

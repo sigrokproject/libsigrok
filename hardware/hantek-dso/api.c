@@ -427,16 +427,6 @@ static int hw_info_get(int info_id, const void **data,
 	return SR_OK;
 }
 
-static int hw_dev_status_get(int dev_index)
-{
-	struct sr_dev_inst *sdi;
-
-	if (!(sdi = sr_dev_inst_get(hdi->instances, dev_index)))
-		return SR_ST_NOT_FOUND;
-
-	return sdi->status;
-}
-
 static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		const void *value)
 {
@@ -863,7 +853,6 @@ SR_PRIV struct sr_dev_driver hantek_dso_driver_info = {
 	.dev_open = hw_dev_open,
 	.dev_close = hw_dev_close,
 	.info_get = hw_info_get,
-	.dev_status_get = hw_dev_status_get,
 	.dev_config_set = hw_dev_config_set,
 	.dev_acquisition_start = hw_dev_acquisition_start,
 	.dev_acquisition_stop = hw_dev_acquisition_stop,
