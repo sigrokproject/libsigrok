@@ -44,8 +44,9 @@
 #define PACKET_SIZE			2048	/* ?? */
 
 typedef struct {
+	unsigned short vid;
 	unsigned short pid;
-	char model_name[64];
+	char *model_name;
 	unsigned int channels;
 	unsigned int sample_depth;	/* In Ksamples/channel */
 	unsigned int max_sampling_freq;
@@ -56,13 +57,14 @@ typedef struct {
  * same 128K sample depth.
  */
 static model_t zeroplus_models[] = {
-	{0x7009, "LAP-C(16064)",  16, 64,   100},
-	{0x700A, "LAP-C(16128)",  16, 128,  200},
-	{0x700B, "LAP-C(32128)",  32, 128,  200},
-	{0x700C, "LAP-C(321000)", 32, 1024, 200},
-	{0x700D, "LAP-C(322000)", 32, 2048, 200},
-	{0x700E, "LAP-C(16032)",  16, 32,   100},
-	{0x7016, "LAP-C(162000)", 16, 2048, 200},
+	{0x0c12, 0x7009, "LAP-C(16064)",  16, 64,   100},
+	{0x0c12, 0x700A, "LAP-C(16128)",  16, 128,  200},
+	{0x0c12, 0x700B, "LAP-C(32128)",  32, 128,  200},
+	{0x0c12, 0x700C, "LAP-C(321000)", 32, 1024, 200},
+	{0x0c12, 0x700D, "LAP-C(322000)", 32, 2048, 200},
+	{0x0c12, 0x700E, "LAP-C(16032)",  16, 32,   100},
+	{0x0c12, 0x7016, "LAP-C(162000)", 16, 2048, 200},
+	{ 0, 0, 0, 0, 0, 0 }
 };
 
 static const int hwcaps[] = {
@@ -177,93 +179,6 @@ static unsigned int get_memory_size(int type)
 		return 0;
 }
 
-static int opendev4(struct sr_dev_inst **sdi, libusb_device *dev,
-		    struct libusb_device_descriptor *des)
-{
-	struct context *ctx;
-	unsigned int i;
-	int ret;
-
-	/* Note: sdi is non-NULL, the caller already checked this. */
-
-	if (!(ctx = (*sdi)->priv)) {
-		sr_err("zp: %s: (*sdi)->priv was NULL", __func__);
-		return -1;
-	}
-
-	if ((ret = libusb_get_device_descriptor(dev, des))) {
-		sr_err("zp: failed to get device descriptor: %d", ret);
-		return -1;
-	}
-
-	if (des->idVendor != USB_VENDOR)
-		return 0;
-
-	if (libusb_get_bus_number(dev) == ctx->usb->bus
-	    && libusb_get_device_address(dev) == ctx->usb->address) {
-
-		for (i = 0; i < ARRAY_SIZE(zeroplus_models); i++) {
-			if (!(des->idProduct == zeroplus_models[i].pid))
-				continue;
-
-			sr_info("zp: Found ZEROPLUS device 0x%04x (%s)",
-				des->idProduct, zeroplus_models[i].model_name);
-			ctx->num_channels = zeroplus_models[i].channels;
-			ctx->memory_size = zeroplus_models[i].sample_depth * 1024;
-			break;
-		}
-
-		if (ctx->num_channels == 0) {
-			sr_err("zp: Unknown ZEROPLUS device 0x%04x",
-			       des->idProduct);
-			return -2;
-		}
-
-		/* Found it. */
-		if (!(ret = libusb_open(dev, &(ctx->usb->devhdl)))) {
-			(*sdi)->status = SR_ST_ACTIVE;
-			sr_info("zp: opened device %d on %d.%d interface %d",
-				(*sdi)->index, ctx->usb->bus,
-				ctx->usb->address, USB_INTERFACE);
-		} else {
-			sr_err("zp: failed to open device: %d", ret);
-			*sdi = NULL;
-		}
-	}
-
-	return 0;
-}
-
-static struct sr_dev_inst *zp_open_dev(int dev_index)
-{
-	struct sr_dev_inst *sdi;
-	libusb_device **devlist;
-	struct libusb_device_descriptor des;
-	int i;
-
-	if (!(sdi = sr_dev_inst_get(zdi->instances, dev_index)))
-		return NULL;
-
-	libusb_get_device_list(usb_context, &devlist);
-	if (sdi->status == SR_ST_INACTIVE) {
-		/* Find the device by vendor, product, bus and address. */
-		libusb_get_device_list(usb_context, &devlist);
-		for (i = 0; devlist[i]; i++) {
-			/* TODO: Error handling. */
-			opendev4(&sdi, devlist[i], &des);
-		}
-	} else {
-		/* Status must be SR_ST_ACTIVE, i.e. already in use... */
-		sdi = NULL;
-	}
-	libusb_free_device_list(devlist, 1);
-
-	if (sdi && sdi->status != SR_ST_ACTIVE)
-		sdi = NULL;
-
-	return sdi;
-}
-
 static int configure_probes(const struct sr_dev_inst *sdi, const GSList *probes)
 {
 	struct context *ctx;
@@ -340,33 +255,18 @@ static int hw_init(void)
 static GSList *hw_scan(GSList *options)
 {
 	struct sr_dev_inst *sdi;
-	struct libusb_device_descriptor des;
-	GSList *devices;
-	libusb_device **devlist;
-	int ret, devcnt, i;
+	struct sr_probe *probe;
 	struct context *ctx;
+	model_t *prof;
+	struct libusb_device_descriptor des;
+	libusb_device **devlist;
+	GSList *devices;
+	int ret, devcnt, i, j;
 
 	(void)options;
 	devices = NULL;
 
 	clear_instances();
-
-	/* Allocate memory for our private driver context. */
-	if (!(ctx = g_try_malloc(sizeof(struct context)))) {
-		sr_err("zp: %s: ctx malloc failed", __func__);
-		return 0;
-	}
-
-	/* Set some sane defaults. */
-	ctx->cur_samplerate = 0;
-	ctx->limit_samples = 0;
-	/* TODO: num_channels isn't initialized before it's needed :( */
-	ctx->num_channels = NUM_PROBES;
-	ctx->memory_size = 0;
-	ctx->probe_mask = 0;
-	memset(ctx->trigger_mask, 0, NUM_TRIGGER_STAGES);
-	memset(ctx->trigger_value, 0, NUM_TRIGGER_STAGES);
-	// memset(ctx->trigger_buffer, 0, NUM_TRIGGER_STAGES);
 
 	/* Find all ZEROPLUS analyzers and add them to device list. */
 	devcnt = 0;
@@ -379,30 +279,51 @@ static GSList *hw_scan(GSList *options)
 			continue;
 		}
 
-		if (des.idVendor == USB_VENDOR) {
-			/*
-			 * Definitely a ZEROPLUS.
-			 * TODO: Any way to detect specific model/version in
-			 * the ZEROPLUS range?
-			 */
-			/* Register the device with libsigrok. */
-			if (!(sdi = sr_dev_inst_new(devcnt,
-					SR_ST_INACTIVE, VENDOR_NAME,
-					MODEL_NAME, MODEL_VERSION))) {
-				sr_err("zp: %s: sr_dev_inst_new failed",
-				       __func__);
-				return 0;
+		prof = NULL;
+		for (j = 0; j < zeroplus_models[j].vid; j++) {
+			if (des.idVendor == zeroplus_models[j].vid &&
+				des.idProduct == zeroplus_models[j].pid) {
+				prof = &zeroplus_models[j];
 			}
-			sdi->driver = zdi;
-			sdi->priv = ctx;
-
-			devices = g_slist_append(devices, sdi);
-			zdi->instances = g_slist_append(zdi->instances, sdi);
-			ctx->usb = sr_usb_dev_inst_new(
-				libusb_get_bus_number(devlist[i]),
-				libusb_get_device_address(devlist[i]), NULL);
-			devcnt++;
 		}
+		/* Skip if the device was not found */
+		if (!prof)
+			continue;
+		sr_info("zp: Found ZEROPLUS model %s", prof->model_name);
+
+		/* Register the device with libsigrok. */
+		if (!(sdi = sr_dev_inst_new(devcnt, SR_ST_INACTIVE,
+				VENDOR_NAME, prof->model_name, NULL))) {
+			sr_err("zp: %s: sr_dev_inst_new failed", __func__);
+			return NULL;
+		}
+		sdi->driver = zdi;
+
+		/* Allocate memory for our private driver context. */
+		if (!(ctx = g_try_malloc0(sizeof(struct context)))) {
+			sr_err("zp: %s: ctx malloc failed", __func__);
+			return 0;
+		}
+		sdi->priv = ctx;
+		ctx->num_channels = prof->channels;
+		ctx->memory_size = prof->sample_depth * 1024;
+		// memset(ctx->trigger_buffer, 0, NUM_TRIGGER_STAGES);
+
+		/* Fill in probelist according to this device's profile. */
+		for (j = 0; j < ctx->num_channels; j++) {
+			if (!(probe = sr_probe_new(j, SR_PROBE_LOGIC, TRUE,
+					probe_names[j])))
+				return NULL;
+			sdi->probes = g_slist_append(sdi->probes, probe);
+		}
+
+		devices = g_slist_append(devices, sdi);
+		zdi->instances = g_slist_append(zdi->instances, sdi);
+		ctx->usb = sr_usb_dev_inst_new(
+			libusb_get_bus_number(devlist[i]),
+			libusb_get_device_address(devlist[i]), NULL);
+		devcnt++;
+
 	}
 	libusb_free_device_list(devlist, 1);
 
@@ -412,11 +333,48 @@ static GSList *hw_scan(GSList *options)
 static int hw_dev_open(struct sr_dev_inst *sdi)
 {
 	struct context *ctx;
-	int ret;
+	libusb_device **devlist, *dev;
+	struct libusb_device_descriptor des;
+	int device_count, ret, i;
 
 	if (!(ctx = sdi->priv)) {
 		sr_err("zp: %s: sdi->priv was NULL", __func__);
 		return SR_ERR_ARG;
+	}
+
+	device_count = libusb_get_device_list(usb_context, &devlist);
+	if (device_count < 0) {
+		sr_err("zp: Failed to retrieve device list");
+		return SR_ERR;
+	}
+
+	dev = NULL;
+	for (i = 0; i < device_count; i++) {
+		if ((ret = libusb_get_device_descriptor(devlist[i], &des))) {
+			sr_err("fx2lafw: Failed to get device descriptor: %d.",
+			       ret);
+			continue;
+		}
+		if (libusb_get_bus_number(devlist[i]) == ctx->usb->bus
+		    && libusb_get_device_address(devlist[i]) == ctx->usb->address) {
+			dev = devlist[i];
+			break;
+		}
+	}
+	if (!dev) {
+		sr_err("device on bus %d address %d disappeared!",
+				ctx->usb->bus, ctx->usb->address);
+		return SR_ERR;
+	}
+
+	if (!(ret = libusb_open(dev, &(ctx->usb->devhdl)))) {
+		sdi->status = SR_ST_ACTIVE;
+		sr_info("zp: opened device %d on %d.%d interface %d",
+			sdi->index, ctx->usb->bus,
+			ctx->usb->address, USB_INTERFACE);
+	} else {
+		sr_err("zp: failed to open device: %d", ret);
+		return SR_ERR;
 	}
 
 	ret = libusb_set_configuration(ctx->usb->devhdl, USB_CONFIGURATION);
