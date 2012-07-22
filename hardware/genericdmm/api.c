@@ -426,12 +426,12 @@ static int hw_cleanup(void)
 	return SR_OK;
 }
 
-static int hw_info_get(int dev_info_id, const void **data,
+static int hw_info_get(int info_id, const void **data,
 		const struct sr_dev_inst *sdi)
 {
 	struct context *ctx;
 
-	switch (dev_info_id) {
+	switch (info_id) {
 	case SR_DI_INST:
 		*data = sdi;
 		sr_spew("genericdmm: Returning sdi.");
