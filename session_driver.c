@@ -50,31 +50,6 @@ static const int hwcaps[] = {
 /**
  * TODO.
  *
- * @param dev_index TODO.
- */
-static struct session_vdev *get_vdev_by_index(int dev_index)
-{
-	struct sr_dev_inst *sdi;
-	struct session_vdev *vdev;
-
-	/* TODO: Sanity checks on dev_index. */
-
-	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index))) {
-		sr_err("session driver: %s: device instance with device "
-		       "index %d was not found", __func__, dev_index);
-		return NULL;
-	}
-
-	/* TODO: Is sdi->priv == NULL valid? */
-
-	vdev = sdi->priv;
-
-	return vdev;
-}
-
-/**
- * TODO.
- *
  * @param fd TODO.
  * @param revents TODO.
  * @param cb_data TODO.
@@ -260,7 +235,8 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 	return SR_OK;
 }
 
-static int hw_dev_acquisition_start(int dev_index, void *cb_data)
+static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
+		void *cb_data)
 {
 	struct zip_stat zs;
 	struct session_vdev *vdev;
@@ -269,8 +245,7 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 	struct sr_datafeed_meta_logic meta;
 	int ret;
 
-	if (!(vdev = get_vdev_by_index(dev_index)))
-		return SR_ERR;
+	vdev = sdi->priv;
 
 	sr_info("session_driver: opening archive %s file %s", vdev->sessionfile,
 		vdev->capturefile);

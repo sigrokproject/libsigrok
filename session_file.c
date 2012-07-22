@@ -46,7 +46,7 @@ SR_API int sr_session_load(const char *filename)
 	struct zip *archive;
 	struct zip_file *zf;
 	struct zip_stat zs;
-	struct sr_dev *dev;
+	struct sr_dev_inst *sdi;
 	struct sr_probe *probe;
 	int ret, probenum, devcnt, i, j;
 	uint64_t tmp_u64, total_probes, enabled_probes, p;
@@ -108,42 +108,46 @@ SR_API int sr_session_load(const char *filename)
 			continue;
 		if (!strncmp(sections[i], "device ", 7)) {
 			/* device section */
-			dev = NULL;
+			sdi = NULL;
 			enabled_probes = 0;
 			keys = g_key_file_get_keys(kf, sections[i], NULL, NULL);
 			for (j = 0; keys[j]; j++) {
 				val = g_key_file_get_string(kf, sections[i], keys[j], NULL);
 				if (!strcmp(keys[j], "capturefile")) {
-					dev = sr_dev_new(&session_driver, devcnt);
+					sdi = sr_dev_inst_new(devcnt, SR_ST_ACTIVE, NULL, NULL, NULL);
+					sdi->driver = &session_driver;
 					if (devcnt == 0)
 						/* first device, init the driver */
-						dev->driver->init();
-					sr_session_dev_add(dev);
-					dev->driver->dev_config_set(devcnt, SR_HWCAP_SESSIONFILE, filename);
-					dev->driver->dev_config_set(devcnt, SR_HWCAP_CAPTUREFILE, val);
+						sdi->driver->init();
+					sr_session_dev_add(sdi);
+					sdi->driver->dev_config_set(sdi, SR_HWCAP_SESSIONFILE, filename);
+					sdi->driver->dev_config_set(sdi, SR_HWCAP_CAPTUREFILE, val);
 					g_ptr_array_add(capturefiles, val);
 				} else if (!strcmp(keys[j], "samplerate")) {
 					sr_parse_sizestring(val, &tmp_u64);
-					dev->driver->dev_config_set(devcnt, SR_HWCAP_SAMPLERATE, &tmp_u64);
+					sdi->driver->dev_config_set(sdi, SR_HWCAP_SAMPLERATE, &tmp_u64);
 				} else if (!strcmp(keys[j], "unitsize")) {
 					tmp_u64 = strtoull(val, NULL, 10);
-					dev->driver->dev_config_set(devcnt, SR_HWCAP_CAPTURE_UNITSIZE, &tmp_u64);
+					sdi->driver->dev_config_set(sdi, SR_HWCAP_CAPTURE_UNITSIZE, &tmp_u64);
 				} else if (!strcmp(keys[j], "total probes")) {
 					total_probes = strtoull(val, NULL, 10);
-					dev->driver->dev_config_set(devcnt, SR_HWCAP_CAPTURE_NUM_PROBES, &total_probes);
+					sdi->driver->dev_config_set(sdi, SR_HWCAP_CAPTURE_NUM_PROBES, &total_probes);
 					for (p = 0; p < total_probes; p++) {
 						snprintf(probename, SR_MAX_PROBENAME_LEN, "%" PRIu64, p);
-						sr_dev_probe_add(dev, probename);
+						if (!(probe = sr_probe_new(j, SR_PROBE_LOGIC, TRUE,
+								probename)))
+							return SR_ERR;
+						sdi->probes = g_slist_append(sdi->probes, probe);
 					}
 				} else if (!strncmp(keys[j], "probe", 5)) {
-					if (!dev)
+					if (!sdi)
 						continue;
 					enabled_probes++;
 					tmp_u64 = strtoul(keys[j]+5, NULL, 10);
 					sr_dev_probe_name_set(dev, tmp_u64, val);
 				} else if (!strncmp(keys[j], "trigger", 7)) {
 					probenum = strtoul(keys[j]+7, NULL, 10);
-					sr_dev_trigger_set(dev, probenum, val);
+					sr_dev_trigger_set(sdi, probenum, val);
 				}
 			}
 			g_strfreev(keys);
@@ -152,6 +156,7 @@ SR_API int sr_session_load(const char *filename)
 				probe->enabled = FALSE;
 			}
 		}
+		devcnt++;
 	}
 	g_strfreev(sections);
 	g_key_file_free(kf);
@@ -172,7 +177,7 @@ int sr_session_save(const char *filename)
 {
 	GSList *l, *p, *d;
 	FILE *meta;
-	struct sr_dev *dev;
+	struct sr_dev_inst *sdi;
 	struct sr_probe *probe;
 	struct sr_datastore *ds;
 	struct zip *zipfile;
