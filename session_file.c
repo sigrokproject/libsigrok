@@ -48,9 +48,9 @@ SR_API int sr_session_load(const char *filename)
 	struct zip_stat zs;
 	struct sr_dev_inst *sdi;
 	struct sr_probe *probe;
-	int ret, probenum, devcnt, i, j;
+	int ret, probenum, devcnt, version, i, j;
 	uint64_t tmp_u64, total_probes, enabled_probes, p;
-	char **sections, **keys, *metafile, *val, c;
+	char **sections, **keys, *metafile, *val, s[11];
 	char probename[SR_MAX_PROBENAME_LEN + 1];
 
 	if (!filename) {
@@ -65,16 +65,22 @@ SR_API int sr_session_load(const char *filename)
 	}
 
 	/* check "version" */
+	version = 0;
 	if (!(zf = zip_fopen(archive, "version", 0))) {
 		sr_dbg("session file: Not a sigrok session file.");
 		return SR_ERR;
 	}
-	ret = zip_fread(zf, &c, 1);
-	if (ret != 1 || c != '1') {
+	if ((ret = zip_fread(zf, s, 10)) == -1) {
 		sr_dbg("session file: Not a valid sigrok session file.");
 		return SR_ERR;
 	}
 	zip_fclose(zf);
+	s[ret] = 0;
+	version = strtoull(s, NULL, 10);
+	if (version != 1) {
+		sr_dbg("session file: Not a valid sigrok session file version.");
+		return SR_ERR;
+	}
 
 	/* read "metadata" */
 	if (zip_stat(archive, "metadata", 0, &zs) == -1) {
