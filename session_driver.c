@@ -47,15 +47,6 @@ static const int hwcaps[] = {
 	0,
 };
 
-/**
- * TODO.
- *
- * @param fd TODO.
- * @param revents TODO.
- * @param cb_data TODO.
- *
- * @return TODO.
- */
 static int receive_data(int fd, int revents, void *cb_data)
 {
 	struct sr_dev_inst *sdi;
@@ -81,9 +72,8 @@ static int receive_data(int fd, int revents, void *cb_data)
 			continue;
 
 		if (!(buf = g_try_malloc(CHUNKSIZE))) {
-			sr_err("session driver: %s: buf malloc failed",
-			       __func__);
-			return FALSE; /* TODO: SR_ERR_MALLOC */
+			sr_err("session driver: %s: buf malloc failed", __func__);
+			return FALSE;
 		}
 
 		ret = zip_fread(vdev->capfile, buf, CHUNKSIZE);
@@ -116,22 +106,12 @@ static int receive_data(int fd, int revents, void *cb_data)
 /* driver callbacks */
 static int hw_cleanup(void);
 
-/**
- * TODO.
- *
- * @param devinfo TODO.
- *
- * @return TODO.
- */
 static int hw_init(void)
 {
 
 	return SR_OK;
 }
 
-/**
- * TODO.
- */
 static int hw_cleanup(void)
 {
 	GSList *l;
