@@ -188,14 +188,13 @@ SR_API char **sr_parse_triggerstring(const struct sr_dev_inst *sdi,
 		return NULL;
 	}
 
-	tokens = g_strsplit(triggerstring, ",", max_probes);
-
 	if (sdi->driver->info_get(SR_DI_TRIGGER_TYPES,
 			(const void **)&trigger_types, sdi) != SR_OK) {
 		sr_err("strutil: %s: Device doesn't support any triggers.", __func__);
 		return NULL;
 	}
 
+	tokens = g_strsplit(triggerstring, ",", max_probes);
 	for (i = 0; tokens[i]; i++) {
 		if (tokens[i][0] < '0' || tokens[i][0] > '9') {
 			/* Named probe */
@@ -213,7 +212,7 @@ SR_API char **sr_parse_triggerstring(const struct sr_dev_inst *sdi,
 			probenum = strtol(tokens[i], NULL, 10);
 		}
 
-		if (probenum < 1 || probenum > max_probes) {
+		if (probenum < 0 || probenum >= max_probes) {
 			sr_err("strutil: Invalid probe (%d).", probenum);
 			error = TRUE;
 			break;
@@ -229,7 +228,7 @@ SR_API char **sr_parse_triggerstring(const struct sr_dev_inst *sdi,
 				}
 			}
 			if (!error)
-				triggerlist[probenum - 1] = g_strdup(trigger);
+				triggerlist[probenum] = g_strdup(trigger);
 		}
 	}
 	g_strfreev(tokens);
