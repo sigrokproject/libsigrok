@@ -56,9 +56,8 @@
  *                     The requested unit size must be big enough to hold as
  *                     much data as is specified by the number of enabled
  *                     probes in 'probelist'.
- * @param probelist Pointer to a list of integers (probe numbers). The probe
- *                  numbers in this list are 1-based, i.e. the first probe
- *                  is expected to be numbered 1 (not 0!). Must not be NULL.
+ * @param probelist Pointer to a list of probe numbers, numbered starting
+ *                  from 0. The list is terminated with -1.
  * @param data_in Pointer to the input data buffer. Must not be NULL.
  * @param length_in The input data length (>= 1), in number of bytes.
  * @param data_out Variable which will point to the newly allocated buffer
@@ -103,13 +102,13 @@ SR_API int sr_filter_probes(int in_unitsize, int out_unitsize,
 	}
 
 	num_enabled_probes = 0;
-	for (i = 0; probelist[i]; i++)
+	for (i = 0; probelist[i] != -1; i++)
 		num_enabled_probes++;
 
 	/* Are there more probes than the target unit size supports? */
 	if (num_enabled_probes > out_unitsize * 8) {
 		sr_err("filter: %s: too many probes (%d) for the target unit "
-		       "size (%d)", num_enabled_probes, out_unitsize, __func__);
+		       "size (%d)", __func__, num_enabled_probes, out_unitsize);
 		return SR_ERR_ARG;
 	}
 
@@ -130,8 +129,8 @@ SR_API int sr_filter_probes(int in_unitsize, int out_unitsize,
 	while (in_offset <= length_in - in_unitsize) {
 		memcpy(&sample_in, data_in + in_offset, in_unitsize);
 		sample_out = out_bit = 0;
-		for (i = 0; probelist[i]; i++) {
-			if (sample_in & (1 << (probelist[i] - 1)))
+		for (i = 0; probelist[i] != -1; i++) {
+			if (sample_in & (1 << (probelist[i])))
 				sample_out |= (1 << out_bit);
 			out_bit++;
 		}
