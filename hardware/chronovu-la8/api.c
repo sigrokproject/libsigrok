@@ -70,6 +70,7 @@ static int hw_init(const char *devinfo)
 	ctx->done = 0;
 	ctx->block_counter = 0;
 	ctx->divcount = 0; /* 10ns sample period == 100MHz samplerate */
+	ctx->usb_pid = 0;
 
 	/* Allocate memory where we'll store the de-mangled data. */
 	if (!(ctx->final_buf = g_try_malloc(SDRAM_SIZE))) {
