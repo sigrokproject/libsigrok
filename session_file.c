@@ -134,7 +134,7 @@ SR_API int sr_session_load(const char *filename)
 					sdi->driver->dev_config_set(sdi, SR_HWCAP_CAPTURE_NUM_PROBES, &total_probes);
 					for (p = 0; p < total_probes; p++) {
 						snprintf(probename, SR_MAX_PROBENAME_LEN, "%" PRIu64, p);
-						if (!(probe = sr_probe_new(j, SR_PROBE_LOGIC, TRUE,
+						if (!(probe = sr_probe_new(p, SR_PROBE_LOGIC, TRUE,
 								probename)))
 							return SR_ERR;
 						sdi->probes = g_slist_append(sdi->probes, probe);
@@ -144,13 +144,15 @@ SR_API int sr_session_load(const char *filename)
 						continue;
 					enabled_probes++;
 					tmp_u64 = strtoul(keys[j]+5, NULL, 10);
-					sr_dev_probe_name_set(sdi, tmp_u64, val);
+					/* sr_session_save() */
+					sr_dev_probe_name_set(sdi, tmp_u64 - 1, val);
 				} else if (!strncmp(keys[j], "trigger", 7)) {
 					probenum = strtoul(keys[j]+7, NULL, 10);
 					sr_dev_trigger_set(sdi, probenum, val);
 				}
 			}
 			g_strfreev(keys);
+			/* Disable probes not specifically listed. */
 			for (p = enabled_probes; p < total_probes; p++)
 				sr_dev_probe_enable(sdi, p, FALSE);
 		}
