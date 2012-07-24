@@ -203,7 +203,7 @@ static int configure_probes(const struct sr_dev_inst *sdi, const GSList *probes)
 		probe = (struct sr_probe *)l->data;
 		if (probe->enabled == FALSE)
 			continue;
-		probe_bit = 1 << (probe->index - 1);
+		probe_bit = 1 << (probe->index);
 		ctx->probe_mask |= probe_bit;
 
 		if (probe->trigger) {

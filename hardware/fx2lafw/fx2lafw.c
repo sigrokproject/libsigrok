@@ -315,10 +315,10 @@ static int configure_probes(struct context *ctx, GSList *probes)
 		if (probe->enabled == FALSE)
 			continue;
 
-		if (probe->index > 8)
+		if (probe->index > 7)
 			ctx->sample_wide = TRUE;
 
-		probe_bit = 1 << (probe->index - 1);
+		probe_bit = 1 << (probe->index);
 		if (!(probe->trigger))
 			continue;
 

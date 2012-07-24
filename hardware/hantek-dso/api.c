@@ -193,9 +193,9 @@ static int configure_probes(struct context *ctx, const GSList *probes)
 	ctx->ch1_enabled = ctx->ch2_enabled = FALSE;
 	for (l = probes; l; l = l->next) {
 		probe = (struct sr_probe *)l->data;
-		if (probe->index == 1)
+		if (probe->index == 0)
 			ctx->ch1_enabled = probe->enabled;
-		else if (probe->index == 2)
+		else if (probe->index == 1)
 			ctx->ch2_enabled = probe->enabled;
 	}
 

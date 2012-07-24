@@ -354,7 +354,7 @@ SR_PRIV int configure_probes(struct context *ctx, const GSList *probes)
 			return SR_ERR;
 		}
 
-		probe_bit = (1 << (probe->index - 1));
+		probe_bit = (1 << (probe->index));
 
 		/* Configure the probe's trigger mask and trigger pattern. */
 		for (tc = probe->trigger; tc && *tc; tc++) {

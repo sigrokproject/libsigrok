@@ -154,7 +154,7 @@ static int configure_probes(struct context *ctx, const GSList *probes)
 		 * Set up the probe mask for later configuration into the
 		 * flag register.
 		 */
-		probe_bit = 1 << (probe->index - 1);
+		probe_bit = 1 << (probe->index);
 		ctx->probe_mask |= probe_bit;
 
 		if (!probe->trigger)
