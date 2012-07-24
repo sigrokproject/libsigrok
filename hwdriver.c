@@ -210,106 +210,6 @@ SR_API int sr_info_get(struct sr_dev_driver *driver, int id,
 	return ret;
 }
 
-SR_PRIV struct sr_dev_inst *sr_dev_inst_new(int index, int status,
-		const char *vendor, const char *model, const char *version)
-{
-	struct sr_dev_inst *sdi;
-
-	if (!(sdi = g_try_malloc(sizeof(struct sr_dev_inst)))) {
-		sr_err("hwdriver: %s: sdi malloc failed", __func__);
-		return NULL;
-	}
-
-	sdi->index = index;
-	sdi->status = status;
-	sdi->inst_type = -1;
-	sdi->vendor = vendor ? g_strdup(vendor) : NULL;
-	sdi->model = model ? g_strdup(model) : NULL;
-	sdi->version = version ? g_strdup(version) : NULL;
-	sdi->probes = NULL;
-	sdi->priv = NULL;
-
-	return sdi;
-}
-
-SR_PRIV void sr_dev_inst_free(struct sr_dev_inst *sdi)
-{
-	g_free(sdi->priv);
-	g_free(sdi->vendor);
-	g_free(sdi->model);
-	g_free(sdi->version);
-	g_free(sdi);
-}
-
-SR_PRIV struct sr_probe *sr_probe_new(int index, int type,
-		gboolean enabled, const char *name)
-{
-	struct sr_probe *probe;
-
-	if (!(probe = g_try_malloc0(sizeof(struct sr_probe)))) {
-		sr_err("hwdriver: probe malloc failed");
-		return NULL;
-	}
-
-	probe->index = index;
-	probe->type = type;
-	probe->enabled = enabled;
-	if (name)
-		probe->name = g_strdup(name);
-
-	return probe;
-}
-
-#ifdef HAVE_LIBUSB_1_0
-
-SR_PRIV struct sr_usb_dev_inst *sr_usb_dev_inst_new(uint8_t bus,
-			uint8_t address, struct libusb_device_handle *hdl)
-{
-	struct sr_usb_dev_inst *udi;
-
-	if (!(udi = g_try_malloc(sizeof(struct sr_usb_dev_inst)))) {
-		sr_err("hwdriver: %s: udi malloc failed", __func__);
-		return NULL;
-	}
-
-	udi->bus = bus;
-	udi->address = address;
-	udi->devhdl = hdl;
-
-	return udi;
-}
-
-SR_PRIV void sr_usb_dev_inst_free(struct sr_usb_dev_inst *usb)
-{
-	/* Avoid compiler warnings. */
-	(void)usb;
-
-	/* Nothing to do for this device instance type. */
-}
-
-#endif
-
-SR_PRIV struct sr_serial_dev_inst *sr_serial_dev_inst_new(const char *port,
-							  int fd)
-{
-	struct sr_serial_dev_inst *serial;
-
-	if (!(serial = g_try_malloc(sizeof(struct sr_serial_dev_inst)))) {
-		sr_err("hwdriver: %s: serial malloc failed", __func__);
-		return NULL;
-	}
-
-	serial->port = g_strdup(port);
-	serial->fd = fd;
-
-	return serial;
-}
-
-SR_PRIV void sr_serial_dev_inst_free(struct sr_serial_dev_inst *serial)
-{
-	g_free(serial->port);
-}
-
 /**
  * Find out if a hardware driver has a specific capability.
  *
@@ -342,7 +242,7 @@ SR_API gboolean sr_driver_hwcap_exists(struct sr_dev_driver *driver, int hwcap)
 }
 
 /**
- * Get a hardware driver option.
+ * Get information about a hardware driver option.
  *
  * @param hwopt The option to get.
  *
@@ -362,7 +262,7 @@ SR_API const struct sr_hwcap_option *sr_drvopt_get(int hwopt)
 }
 
 /**
- * Get a hardware driver capability option.
+ * Get information about a device option.
  *
  * @param hwcap The capability to get.
  *

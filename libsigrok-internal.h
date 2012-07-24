@@ -56,7 +56,26 @@ struct sr_serial_dev_inst {
 	int fd;
 };
 
+/*--- log.c -----------------------------------------------------------------*/
+
+SR_PRIV int sr_log(int loglevel, const char *format, ...);
+SR_PRIV int sr_spew(const char *format, ...);
+SR_PRIV int sr_dbg(const char *format, ...);
+SR_PRIV int sr_info(const char *format, ...);
+SR_PRIV int sr_warn(const char *format, ...);
+SR_PRIV int sr_err(const char *format, ...);
+
+/*--- device.c --------------------------------------------------------------*/
+
+SR_PRIV struct sr_probe *sr_probe_new(int index, int type,
+		gboolean enabled, const char *name);
+
+/* Generic device instances */
+SR_PRIV struct sr_dev_inst *sr_dev_inst_new(int index, int status,
+		const char *vendor, const char *model, const char *version);
+SR_PRIV void sr_dev_inst_free(struct sr_dev_inst *sdi);
 #ifdef HAVE_LIBUSB_1_0
+
 /* USB-specific instances */
 SR_PRIV struct sr_usb_dev_inst *sr_usb_dev_inst_new(uint8_t bus,
 		uint8_t address, struct libusb_device_handle *hdl);
@@ -68,34 +87,18 @@ SR_PRIV struct sr_serial_dev_inst *sr_serial_dev_inst_new(
 					const char *port, int fd);
 SR_PRIV void sr_serial_dev_inst_free(struct sr_serial_dev_inst *serial);
 
-/*--- log.c -----------------------------------------------------------------*/
-
-SR_PRIV int sr_log(int loglevel, const char *format, ...);
-SR_PRIV int sr_spew(const char *format, ...);
-SR_PRIV int sr_dbg(const char *format, ...);
-SR_PRIV int sr_info(const char *format, ...);
-SR_PRIV int sr_warn(const char *format, ...);
-SR_PRIV int sr_err(const char *format, ...);
 
 /*--- hwdriver.c ------------------------------------------------------------*/
 
 SR_PRIV void sr_hw_cleanup_all(void);
+SR_PRIV int sr_source_remove(int fd);
+SR_PRIV int sr_source_add(int fd, int events, int timeout,
+			  sr_receive_data_callback_t cb, void *cb_data);
 
 /*--- session.c -------------------------------------------------------------*/
 
 SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
 			    struct sr_datafeed_packet *packet);
-
-/* Generic device instances */
-SR_PRIV struct sr_dev_inst *sr_dev_inst_new(int index, int status,
-		const char *vendor, const char *model, const char *version);
-SR_PRIV void sr_dev_inst_free(struct sr_dev_inst *sdi);
-SR_PRIV struct sr_probe *sr_probe_new(int index, int type,
-		gboolean enabled, const char *name);
-
-SR_PRIV int sr_source_remove(int fd);
-SR_PRIV int sr_source_add(int fd, int events, int timeout,
-			  sr_receive_data_callback_t cb, void *cb_data);
 
 /*--- hardware/common/serial.c ----------------------------------------------*/
 
