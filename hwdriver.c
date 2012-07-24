@@ -232,21 +232,6 @@ SR_PRIV struct sr_dev_inst *sr_dev_inst_new(int index, int status,
 	return sdi;
 }
 
-SR_PRIV struct sr_dev_inst *sr_dev_inst_get(GSList *dev_insts, int dev_index)
-{
-	struct sr_dev_inst *sdi;
-	GSList *l;
-
-	for (l = dev_insts; l; l = l->next) {
-		sdi = (struct sr_dev_inst *)(l->data);
-		if (sdi->index == dev_index)
-			return sdi;
-	}
-	sr_warn("could not find device index %d instance", dev_index);
-
-	return NULL;
-}
-
 SR_PRIV void sr_dev_inst_free(struct sr_dev_inst *sdi)
 {
 	g_free(sdi->priv);

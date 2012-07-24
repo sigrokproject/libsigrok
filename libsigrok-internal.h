@@ -89,7 +89,6 @@ SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
 /* Generic device instances */
 SR_PRIV struct sr_dev_inst *sr_dev_inst_new(int index, int status,
 		const char *vendor, const char *model, const char *version);
-SR_PRIV struct sr_dev_inst *sr_dev_inst_get(GSList *dev_insts, int dev_index);
 SR_PRIV void sr_dev_inst_free(struct sr_dev_inst *sdi);
 SR_PRIV struct sr_probe *sr_probe_new(int index, int type,
 		gboolean enabled, const char *name);
@@ -119,17 +118,6 @@ SR_PRIV int ezusb_install_firmware(libusb_device_handle *hdl,
 				   const char *filename);
 SR_PRIV int ezusb_upload_firmware(libusb_device *dev, int configuration,
 				  const char *filename);
-#endif
-
-/*--- hardware/common/misc.c ------------------------------------------------*/
-
-#ifdef HAVE_LIBUSB_1_0
-SR_PRIV int opendev2(int dev_index, struct sr_dev_inst **sdi,
-		     libusb_device *dev, struct libusb_device_descriptor *des,
-		     int *skip, uint16_t vid, uint16_t pid, int interface);
-SR_PRIV int opendev3(struct sr_dev_inst **sdi, libusb_device *dev,
-		     struct libusb_device_descriptor *des,
-		     uint16_t vid, uint16_t pid, int interface);
 #endif
 
 #endif
