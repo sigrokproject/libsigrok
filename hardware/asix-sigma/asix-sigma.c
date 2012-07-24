@@ -443,12 +443,13 @@ static int hw_init(void)
 static GSList *hw_scan(GSList *options)
 {
 	struct sr_dev_inst *sdi;
+	struct sr_probe *probe;
 	struct context *ctx;
 	GSList *devices;
 	struct ftdi_device_list *devlist;
 	char serial_txt[10];
 	uint32_t serial;
-	int ret;
+	int ret, i;
 
 	(void)options;
 	devices = NULL;
@@ -499,6 +500,14 @@ static GSList *hw_scan(GSList *options)
 		goto free;
 	}
 	sdi->driver = adi;
+
+	for (i = 0; probe_names[i]; i++) {
+		if (!(probe = sr_probe_new(i, SR_PROBE_ANALOG, TRUE,
+				probe_names[i])))
+			return NULL;
+		sdi->probes = g_slist_append(sdi->probes, probe);
+	}
+
 	devices = g_slist_append(devices, sdi);
 	adi->instances = g_slist_append(adi->instances, sdi);
 	sdi->priv = ctx;

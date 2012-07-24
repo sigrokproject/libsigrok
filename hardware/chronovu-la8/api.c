@@ -77,6 +77,7 @@ static int hw_init(void)
 static GSList *hw_scan(GSList *options)
 {
 	struct sr_dev_inst *sdi;
+	struct sr_probe *probe;
 	struct context *ctx;
 	GSList *devices;
 	unsigned int i;
@@ -145,6 +146,13 @@ static GSList *hw_scan(GSList *options)
 	}
 	sdi->driver = cdi;
 	sdi->priv = ctx;
+
+	for (i = 0; probe_names[i]; i++) {
+		if (!(probe = sr_probe_new(i, SR_PROBE_ANALOG, TRUE,
+				probe_names[i])))
+			return NULL;
+		sdi->probes = g_slist_append(sdi->probes, probe);
+	}
 
 	devices = g_slist_append(devices, sdi);
 	cdi->instances = g_slist_append(cdi->instances, sdi);

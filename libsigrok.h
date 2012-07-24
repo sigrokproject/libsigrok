@@ -251,6 +251,7 @@ struct sr_dev {
 
 enum {
 	SR_PROBE_LOGIC,
+	SR_PROBE_ANALOG,
 };
 
 struct sr_probe {

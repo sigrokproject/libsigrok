@@ -151,13 +151,25 @@ static struct sr_dev_driver *hdi = &hantek_dso_driver_info;
 static struct sr_dev_inst *dso_dev_new(int index, const struct dso_profile *prof)
 {
 	struct sr_dev_inst *sdi;
+	struct sr_probe *probe;
 	struct context *ctx;
+	int i;
 
 	sdi = sr_dev_inst_new(index, SR_ST_INITIALIZING,
 		prof->vendor, prof->model, NULL);
 	if (!sdi)
 		return NULL;
 	sdi->driver = hdi;
+
+	/* Add only the real probes -- EXT isn't a source of data, only
+	 * a trigger source internal to the device.
+	 */
+	for (i = 0; probe_names[i]; i++) {
+		if (!(probe = sr_probe_new(i, SR_PROBE_ANALOG, TRUE,
+				probe_names[i])))
+			return NULL;
+		sdi->probes = g_slist_append(sdi->probes, probe);
+	}
 
 	if (!(ctx = g_try_malloc0(sizeof(struct context)))) {
 		sr_err("hantek-dso: ctx malloc failed");
