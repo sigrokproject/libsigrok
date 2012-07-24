@@ -431,11 +431,10 @@ static int hw_info_get(int info_id, const void **data,
 {
 	struct context *ctx;
 
+	(void)sdi;
+	(void)ctx;
+
 	switch (info_id) {
-	case SR_DI_INST:
-		*data = sdi;
-		sr_spew("genericdmm: Returning sdi.");
-		break;
 	case SR_DI_HWOPTS:
 		*data = hwopts;
 		break;

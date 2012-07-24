@@ -397,10 +397,9 @@ static int hw_info_get(int info_id, const void **data,
 {
 	uint64_t tmp;
 
+	(void)sdi;
+
 	switch (info_id) {
-	case SR_DI_INST:
-		*data = sdi;
-		break;
 	case SR_DI_HWCAPS:
 		*data = hwcaps;
 		break;

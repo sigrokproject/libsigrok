@@ -436,9 +436,6 @@ enum {
 
 /* Device info IDs */
 enum {
-	/* struct sr_dev_inst for this specific device */
-	/* TODO: obsolete */
-	SR_DI_INST,
 	/* A list of options supported by the driver. */
 	SR_DI_HWOPTS,
 	/* A list of capabilities supported by the device. */

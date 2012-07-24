@@ -786,9 +786,6 @@ static int hw_info_get(int info_id, const void **data,
 	struct context *ctx;
 
 	switch (info_id) {
-	case SR_DI_INST:
-		*data = sdi;
-		break;
 	case SR_DI_HWCAPS:
 		*data = hwcaps;
 		break;
