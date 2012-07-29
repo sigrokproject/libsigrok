@@ -96,6 +96,7 @@ SR_PRIV int init(struct sr_output *o, int default_spl, enum outputmode mode)
 	ctx->mark_trigger = -1;
 	ctx->mode = mode;
 
+	ret = SR_OK;
 	if (o->param && o->param[0]) {
 		ctx->samples_per_line = strtoul(o->param, NULL, 10);
 		if (ctx->samples_per_line < 1) {
