@@ -30,7 +30,7 @@
 #define DEFAULT_NUM_PROBES    8
 
 struct context {
-	int samplerate;
+	uint64_t samplerate;
 };
 
 static int format_match(const char *filename)
@@ -67,10 +67,8 @@ static int init(struct sr_input *in)
 
 		param = g_hash_table_lookup(in->param, "samplerate");
 		if (param) {
-			ctx->samplerate = strtoul(param, NULL, 10);
-			if (ctx->samplerate < 1) {
+			if (sr_parse_sizestring(param, &ctx->samplerate) != SR_OK)
 				return SR_ERR;
-			}
 		}
 	}
 
