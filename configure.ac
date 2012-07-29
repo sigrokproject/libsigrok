@@ -191,8 +191,9 @@ PKG_CHECK_MODULES([gthread], [gthread-2.0 >= 2.22.0],
 # libusb is only needed for some hardware drivers.
 if test "x$LA_ASIX_SIGMA" != xno \
    -o "x$LA_CHRONOVU_LA8" != xno \
-   -o "x$LA_ZEROPLUS_LOGIC_CUBE" != xno \
-   -o "x$LA_FX2LAFW" != xno; then
+   -o "x$LA_FX2LAFW" != xno \
+   -o "x$HW_HANTEK_DSO" != xno \
+   -o "x$LA_ZEROPLUS_LOGIC_CUBE" != xno; then
 	case "$build" in
 	*freebsd*)
 		# FreeBSD comes with an "integrated" libusb-1.0-style USB API.
