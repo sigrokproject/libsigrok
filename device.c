@@ -194,6 +194,7 @@ SR_PRIV struct sr_dev_inst *sr_dev_inst_new(int index, int status,
 		return NULL;
 	}
 
+	sdi->driver = NULL;
 	sdi->index = index;
 	sdi->status = status;
 	sdi->inst_type = -1;

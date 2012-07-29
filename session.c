@@ -88,7 +88,7 @@ SR_API int sr_session_destroy(void)
 
 static void sr_dev_close(struct sr_dev_inst *sdi)
 {
-	if (sdi->driver->dev_close)
+	if (sdi->driver && sdi->driver->dev_close)
 		sdi->driver->dev_close(sdi);
 }
 
