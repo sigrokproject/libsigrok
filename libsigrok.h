@@ -500,7 +500,7 @@ struct sr_dev_driver {
 			void *cb_data);
 
 	/* Dynamic */
-	GSList *instances;
+	void *priv;
 };
 
 struct sr_session {
