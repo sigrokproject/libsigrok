@@ -193,8 +193,9 @@ struct sr_datafeed_analog {
 
 struct sr_input {
 	struct sr_input_format *format;
-	char *param;
+	GHashTable *param;
 	struct sr_dev *vdev;
+	void *internal;
 };
 
 struct sr_input_format {
