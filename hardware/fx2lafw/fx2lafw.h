@@ -60,7 +60,12 @@ struct fx2lafw_profile {
 	uint32_t dev_caps;
 };
 
-struct context {
+struct drv_context {
+	libusb_context *usb_context;
+	GSList *instances;
+};
+
+struct dev_context {
 	const struct fx2lafw_profile *profile;
 
 	/*
