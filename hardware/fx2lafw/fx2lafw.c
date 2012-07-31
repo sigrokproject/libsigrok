@@ -31,6 +31,13 @@
 
 static const struct fx2lafw_profile supported_fx2[] = {
 	/*
+	 * CWAV USBee DX
+	 * XZL Studio DX
+	 */
+	{ 0x08a9, 0x0015, "CWAV", "USBee DX", NULL,
+		FIRMWARE_DIR "/fx2lafw-cwav-usbeedx.fw",
+		0 },
+	/*
 	 * CWAV USBee AX
 	 * EE Electronics ESLA201A
 	 * ARMFLY AX-Pro

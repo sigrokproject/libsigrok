@@ -2,6 +2,9 @@
 ------------------
 
  * TODO
+ * fx2lafw driver:
+   - Add support for the USBee DX and clones. This requires the latest
+     version of the fx2lafw firmware files.
 
 0.1.1 (2012-05-30)
 ------------------

@@ -64,6 +64,14 @@ ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", MODE="664", GROUP="plugdev"
 # lsusb: "08a9:0014" (no string for the vendor name available)
 ATTRS{idVendor}=="08a9", ATTRS{idProduct}=="0014", MODE="664", GROUP="plugdev"
 
+# CWAV USBee DX
+# http://www.usbee.com/dx.html
+# lsusb: "08a9:0015" (no string for the vendor name available)
+#
+# XZL Studio DX (clone of the CWAV USBee DX)
+# lsusb: "08a9:0015" (no string for the vendor name available)
+ATTRS{idVendor}=="08a9", ATTRS{idProduct}=="0015", MODE="664", GROUP="plugdev"
+
 # CWAV USBee SX
 # http://www.usbee.com/sx.html
 # lsusb: "08a9:0009" (no string for the vendor name available)
