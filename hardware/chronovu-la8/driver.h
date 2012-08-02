@@ -41,8 +41,13 @@
 #define BS				4096 /* Block size */
 #define NUM_BLOCKS			2048 /* Number of blocks */
 
+/* Private driver context. */
+struct drv_context {
+	GSList *instances;
+};
+
 /* Private, per-device-instance driver context. */
-struct context {
+struct dev_context {
 	/** FTDI device context (used by libftdi). */
 	struct ftdi_context *ftdic;
 
@@ -110,14 +115,14 @@ extern const struct sr_samplerates samplerates;
 SR_PRIV void fill_supported_samplerates_if_needed(void);
 SR_PRIV int is_valid_samplerate(uint64_t samplerate);
 SR_PRIV uint8_t samplerate_to_divcount(uint64_t samplerate);
-SR_PRIV int la8_write(struct context *ctx, uint8_t *buf, int size);
-SR_PRIV int la8_read(struct context *ctx, uint8_t *buf, int size);
-SR_PRIV int la8_close(struct context *ctx);
-SR_PRIV int la8_close_usb_reset_sequencer(struct context *ctx);
-SR_PRIV int la8_reset(struct context *ctx);
-SR_PRIV int configure_probes(struct context *ctx, const GSList *probes);
+SR_PRIV int la8_write(struct dev_context *devc, uint8_t *buf, int size);
+SR_PRIV int la8_read(struct dev_context *devc, uint8_t *buf, int size);
+SR_PRIV int la8_close(struct dev_context *devc);
+SR_PRIV int la8_close_usb_reset_sequencer(struct dev_context *devc);
+SR_PRIV int la8_reset(struct dev_context *devc);
+SR_PRIV int configure_probes(struct dev_context *devc, const GSList *probes);
 SR_PRIV int set_samplerate(const struct sr_dev_inst *sdi, uint64_t samplerate);
-SR_PRIV int la8_read_block(struct context *ctx);
-SR_PRIV void send_block_to_session_bus(struct context *ctx, int block);
+SR_PRIV int la8_read_block(struct dev_context *devc);
+SR_PRIV void send_block_to_session_bus(struct dev_context *devc, int block);
 
 #endif
