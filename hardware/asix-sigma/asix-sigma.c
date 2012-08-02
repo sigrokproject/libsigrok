@@ -437,8 +437,13 @@ static void clear_instances(void)
 
 static int hw_init(void)
 {
+	struct drv_context *drvc;
 
-	/* Nothing to do. */
+	if (!(drvc = g_try_malloc0(sizeof(struct drv_context)))) {
+		sr_err("asix-sigma: driver context malloc failed.");
+		return SR_ERR;
+	}
+	adi->priv = drvc;
 
 	return SR_OK;
 }
@@ -779,6 +784,9 @@ static int hw_dev_close(struct sr_dev_inst *sdi)
 
 static int hw_cleanup(void)
 {
+
+	if (!adi->priv)
+		return SR_OK;
 
 	clear_instances();
 
