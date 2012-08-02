@@ -148,8 +148,13 @@ static const struct sr_samplerates samplerates = {
 	supported_samplerates,
 };
 
+/* Private driver context. */
+struct drv_context {
+	GSList *instances;
+};
+
 /* Private, per-device-instance driver context. */
-struct context {
+struct dev_context {
 	uint64_t cur_samplerate;
 	uint64_t limit_samples;
 	int num_channels; /* TODO: This isn't initialized before it's needed :( */
@@ -183,19 +188,19 @@ static unsigned int get_memory_size(int type)
 
 static int configure_probes(const struct sr_dev_inst *sdi, const GSList *probes)
 {
-	struct context *ctx;
+	struct dev_context *devc;
 	const struct sr_probe *probe;
 	const GSList *l;
 	int probe_bit, stage, i;
 	char *tc;
 
 	/* Note: sdi and sdi->priv are non-NULL, the caller checked this. */
-	ctx = sdi->priv;
+	devc = sdi->priv;
 
-	ctx->probe_mask = 0;
+	devc->probe_mask = 0;
 	for (i = 0; i < NUM_TRIGGER_STAGES; i++) {
-		ctx->trigger_mask[i] = 0;
-		ctx->trigger_value[i] = 0;
+		devc->trigger_mask[i] = 0;
+		devc->trigger_value[i] = 0;
 	}
 
 	stage = -1;
@@ -204,14 +209,14 @@ static int configure_probes(const struct sr_dev_inst *sdi, const GSList *probes)
 		if (probe->enabled == FALSE)
 			continue;
 		probe_bit = 1 << (probe->index);
-		ctx->probe_mask |= probe_bit;
+		devc->probe_mask |= probe_bit;
 
 		if (probe->trigger) {
 			stage = 0;
 			for (tc = probe->trigger; *tc; tc++) {
-				ctx->trigger_mask[stage] |= probe_bit;
+				devc->trigger_mask[stage] |= probe_bit;
 				if (*tc == '1')
-					ctx->trigger_value[stage] |= probe_bit;
+					devc->trigger_value[stage] |= probe_bit;
 				stage++;
 				if (stage > NUM_TRIGGER_STAGES)
 					return SR_ERR;
@@ -226,16 +231,18 @@ static void clear_instances(void)
 {
 	GSList *l;
 	struct sr_dev_inst *sdi;
+	struct drv_context *drvc;
 
-	for (l = zdi->instances; l; l = l->next) {
+	drvc = zdi->priv;
+	for (l = drvc->instances; l; l = l->next) {
 		sdi = l->data;
 		/* Properly close all devices... */
 		hw_dev_close(sdi);
 		/* ...and free all their memory. */
 		sr_dev_inst_free(sdi);
 	}
-	g_slist_free(zdi->instances);
-	zdi->instances = NULL;
+	g_slist_free(drvc->instances);
+	drvc->instances = NULL;
 
 }
 
@@ -245,6 +252,13 @@ static void clear_instances(void)
 
 static int hw_init(void)
 {
+	struct drv_context *drvc;
+
+	if (!(drvc = g_try_malloc0(sizeof(struct drv_context)))) {
+		sr_err("zeroplus: driver context malloc failed.");
+		return SR_ERR;
+	}
+	zdi->priv = drvc;
 
 	if (libusb_init(&usb_context) != 0) {
 		sr_err("zp: Failed to initialize USB.");
@@ -258,7 +272,8 @@ static GSList *hw_scan(GSList *options)
 {
 	struct sr_dev_inst *sdi;
 	struct sr_probe *probe;
-	struct context *ctx;
+	struct drv_context *drvc;
+	struct dev_context *devc;
 	model_t *prof;
 	struct libusb_device_descriptor des;
 	libusb_device **devlist;
@@ -266,6 +281,7 @@ static GSList *hw_scan(GSList *options)
 	int ret, devcnt, i, j;
 
 	(void)options;
+	drvc = zdi->priv;
 	devices = NULL;
 
 	clear_instances();
@@ -302,17 +318,17 @@ static GSList *hw_scan(GSList *options)
 		sdi->driver = zdi;
 
 		/* Allocate memory for our private driver context. */
-		if (!(ctx = g_try_malloc0(sizeof(struct context)))) {
-			sr_err("zp: %s: ctx malloc failed", __func__);
+		if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
+			sr_err("zp: %s: devc malloc failed", __func__);
 			return 0;
 		}
-		sdi->priv = ctx;
-		ctx->num_channels = prof->channels;
-		ctx->memory_size = prof->sample_depth * 1024;
-		// memset(ctx->trigger_buffer, 0, NUM_TRIGGER_STAGES);
+		sdi->priv = devc;
+		devc->num_channels = prof->channels;
+		devc->memory_size = prof->sample_depth * 1024;
+		// memset(devc->trigger_buffer, 0, NUM_TRIGGER_STAGES);
 
 		/* Fill in probelist according to this device's profile. */
-		for (j = 0; j < ctx->num_channels; j++) {
+		for (j = 0; j < devc->num_channels; j++) {
 			if (!(probe = sr_probe_new(j, SR_PROBE_LOGIC, TRUE,
 					probe_names[j])))
 				return NULL;
@@ -320,8 +336,8 @@ static GSList *hw_scan(GSList *options)
 		}
 
 		devices = g_slist_append(devices, sdi);
-		zdi->instances = g_slist_append(zdi->instances, sdi);
-		ctx->usb = sr_usb_dev_inst_new(
+		drvc->instances = g_slist_append(drvc->instances, sdi);
+		devc->usb = sr_usb_dev_inst_new(
 			libusb_get_bus_number(devlist[i]),
 			libusb_get_device_address(devlist[i]), NULL);
 		devcnt++;
@@ -334,12 +350,12 @@ static GSList *hw_scan(GSList *options)
 
 static int hw_dev_open(struct sr_dev_inst *sdi)
 {
-	struct context *ctx;
+	struct dev_context *devc;
 	libusb_device **devlist, *dev;
 	struct libusb_device_descriptor des;
 	int device_count, ret, i;
 
-	if (!(ctx = sdi->priv)) {
+	if (!(devc = sdi->priv)) {
 		sr_err("zp: %s: sdi->priv was NULL", __func__);
 		return SR_ERR_ARG;
 	}
@@ -357,43 +373,43 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 			       ret);
 			continue;
 		}
-		if (libusb_get_bus_number(devlist[i]) == ctx->usb->bus
-		    && libusb_get_device_address(devlist[i]) == ctx->usb->address) {
+		if (libusb_get_bus_number(devlist[i]) == devc->usb->bus
+		    && libusb_get_device_address(devlist[i]) == devc->usb->address) {
 			dev = devlist[i];
 			break;
 		}
 	}
 	if (!dev) {
 		sr_err("device on bus %d address %d disappeared!",
-				ctx->usb->bus, ctx->usb->address);
+				devc->usb->bus, devc->usb->address);
 		return SR_ERR;
 	}
 
-	if (!(ret = libusb_open(dev, &(ctx->usb->devhdl)))) {
+	if (!(ret = libusb_open(dev, &(devc->usb->devhdl)))) {
 		sdi->status = SR_ST_ACTIVE;
 		sr_info("zp: opened device %d on %d.%d interface %d",
-			sdi->index, ctx->usb->bus,
-			ctx->usb->address, USB_INTERFACE);
+			sdi->index, devc->usb->bus,
+			devc->usb->address, USB_INTERFACE);
 	} else {
 		sr_err("zp: failed to open device: %d", ret);
 		return SR_ERR;
 	}
 
-	ret = libusb_set_configuration(ctx->usb->devhdl, USB_CONFIGURATION);
+	ret = libusb_set_configuration(devc->usb->devhdl, USB_CONFIGURATION);
 	if (ret < 0) {
 		sr_err("zp: Unable to set USB configuration %d: %d",
 		       USB_CONFIGURATION, ret);
 		return SR_ERR;
 	}
 
-	ret = libusb_claim_interface(ctx->usb->devhdl, USB_INTERFACE);
+	ret = libusb_claim_interface(devc->usb->devhdl, USB_INTERFACE);
 	if (ret != 0) {
 		sr_err("zp: Unable to claim interface: %d", ret);
 		return SR_ERR;
 	}
 
-	analyzer_reset(ctx->usb->devhdl);
-	analyzer_initialize(ctx->usb->devhdl);
+	analyzer_reset(devc->usb->devhdl);
+	analyzer_initialize(devc->usb->devhdl);
 
 	analyzer_set_memory_size(MEMORY_SIZE_512K);
 	// analyzer_set_freq(g_freq, g_freq_scale);
@@ -412,7 +428,7 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 #endif
 	analyzer_set_compression(COMPRESSION_NONE);
 
-	if (ctx->cur_samplerate == 0) {
+	if (devc->cur_samplerate == 0) {
 		/* Samplerate hasn't been set. Default to the slowest one. */
 		if (hw_dev_config_set(sdi, SR_HWCAP_SAMPLERATE,
 		     &samplerates.list[0]) == SR_ERR)
@@ -424,22 +440,22 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 
 static int hw_dev_close(struct sr_dev_inst *sdi)
 {
-	struct context *ctx;
+	struct dev_context *devc;
 
-	if (!(ctx = sdi->priv)) {
+	if (!(devc = sdi->priv)) {
 		sr_err("zp: %s: sdi->priv was NULL", __func__);
 		return SR_ERR;
 	}
 
-	if (!ctx->usb->devhdl)
+	if (!devc->usb->devhdl)
 		return SR_ERR;
 
 	sr_info("zp: closing device %d on %d.%d interface %d", sdi->index,
-		ctx->usb->bus, ctx->usb->address, USB_INTERFACE);
-	libusb_release_interface(ctx->usb->devhdl, USB_INTERFACE);
-	libusb_reset_device(ctx->usb->devhdl);
-	libusb_close(ctx->usb->devhdl);
-	ctx->usb->devhdl = NULL;
+		devc->usb->bus, devc->usb->address, USB_INTERFACE);
+	libusb_release_interface(devc->usb->devhdl, USB_INTERFACE);
+	libusb_reset_device(devc->usb->devhdl);
+	libusb_close(devc->usb->devhdl);
+	devc->usb->devhdl = NULL;
 	sdi->status = SR_ST_INACTIVE;
 
 	return SR_OK;
@@ -447,6 +463,10 @@ static int hw_dev_close(struct sr_dev_inst *sdi)
 
 static int hw_cleanup(void)
 {
+	struct drv_context *drvc;
+
+	if (!(drvc = zdi->priv))
+		return SR_OK;
 
 	clear_instances();
 
@@ -460,7 +480,7 @@ static int hw_cleanup(void)
 static int hw_info_get(int info_id, const void **data,
        const struct sr_dev_inst *sdi)
 {
-	struct context *ctx;
+	struct dev_context *devc;
 
 	switch (info_id) {
 	case SR_DI_HWCAPS:
@@ -468,10 +488,10 @@ static int hw_info_get(int info_id, const void **data,
 		break;
 	case SR_DI_NUM_PROBES:
 		if (sdi) {
-			ctx = sdi->priv;
-			*data = GINT_TO_POINTER(ctx->num_channels);
+			devc = sdi->priv;
+			*data = GINT_TO_POINTER(devc->num_channels);
 			sr_spew("zp: %s: Returning number of channels: %d.",
-					__func__, ctx->num_channels);
+					__func__, devc->num_channels);
 		} else
 			return SR_ERR;
 		break;
@@ -489,10 +509,10 @@ static int hw_info_get(int info_id, const void **data,
 		break;
 	case SR_DI_CUR_SAMPLERATE:
 		if (sdi) {
-			ctx = sdi->priv;
-			*data = &ctx->cur_samplerate;
+			devc = sdi->priv;
+			*data = &devc->cur_samplerate;
 			sr_spew("zp: %s: Returning samplerate: %" PRIu64 "Hz.",
-				__func__, ctx->cur_samplerate);
+				__func__, devc->cur_samplerate);
 		} else
 			return SR_ERR;
 		break;
@@ -505,14 +525,14 @@ static int hw_info_get(int info_id, const void **data,
 
 static int set_samplerate(const struct sr_dev_inst *sdi, uint64_t samplerate)
 {
-	struct context *ctx;
+	struct dev_context *devc;
 
 	if (!sdi) {
 		sr_err("zp: %s: sdi was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
-	if (!(ctx = sdi->priv)) {
+	if (!(devc = sdi->priv)) {
 		sr_err("zp: %s: sdi->priv was NULL", __func__);
 		return SR_ERR_ARG;
 	}
@@ -526,7 +546,7 @@ static int set_samplerate(const struct sr_dev_inst *sdi, uint64_t samplerate)
 	else
 		analyzer_set_freq(samplerate, FREQ_SCALE_HZ);
 
-	ctx->cur_samplerate = samplerate;
+	devc->cur_samplerate = samplerate;
 
 	return SR_OK;
 }
@@ -534,9 +554,9 @@ static int set_samplerate(const struct sr_dev_inst *sdi, uint64_t samplerate)
 static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		const void *value)
 {
-	struct context *ctx;
+	struct dev_context *devc;
 
-	if (!(ctx = sdi->priv)) {
+	if (!(devc = sdi->priv)) {
 		sr_err("zp: %s: sdi->priv was NULL", __func__);
 		return SR_ERR_ARG;
 	}
@@ -547,7 +567,7 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 	case SR_HWCAP_PROBECONFIG:
 		return configure_probes(sdi, (const GSList *)value);
 	case SR_HWCAP_LIMIT_SAMPLES:
-		ctx->limit_samples = *(const uint64_t *)value;
+		devc->limit_samples = *(const uint64_t *)value;
 		return SR_OK;
 	default:
 		return SR_ERR;
@@ -565,26 +585,26 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	int res;
 	unsigned int packet_num;
 	unsigned char *buf;
-	struct context *ctx;
+	struct dev_context *devc;
 
-	if (!(ctx = sdi->priv)) {
+	if (!(devc = sdi->priv)) {
 		sr_err("zp: %s: sdi->priv was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	/* push configured settings to device */
-	analyzer_configure(ctx->usb->devhdl);
+	analyzer_configure(devc->usb->devhdl);
 
-	analyzer_start(ctx->usb->devhdl);
+	analyzer_start(devc->usb->devhdl);
 	sr_info("zp: Waiting for data");
-	analyzer_wait_data(ctx->usb->devhdl);
+	analyzer_wait_data(devc->usb->devhdl);
 
 	sr_info("zp: Stop address    = 0x%x",
-		analyzer_get_stop_address(ctx->usb->devhdl));
+		analyzer_get_stop_address(devc->usb->devhdl));
 	sr_info("zp: Now address     = 0x%x",
-		analyzer_get_now_address(ctx->usb->devhdl));
+		analyzer_get_now_address(devc->usb->devhdl));
 	sr_info("zp: Trigger address = 0x%x",
-		analyzer_get_trigger_address(ctx->usb->devhdl));
+		analyzer_get_trigger_address(devc->usb->devhdl));
 
 	packet.type = SR_DF_HEADER;
 	packet.payload = &header;
@@ -595,8 +615,8 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	/* Send metadata about the SR_DF_LOGIC packets to come. */
 	packet.type = SR_DF_META_LOGIC;
 	packet.payload = &meta;
-	meta.samplerate = ctx->cur_samplerate;
-	meta.num_probes = ctx->num_channels;
+	meta.samplerate = devc->cur_samplerate;
+	meta.num_probes = devc->num_channels;
 	sr_session_send(cb_data, &packet);
 
 	if (!(buf = g_try_malloc(PACKET_SIZE))) {
@@ -605,11 +625,11 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	}
 
 	samples_read = 0;
-	analyzer_read_start(ctx->usb->devhdl);
+	analyzer_read_start(devc->usb->devhdl);
 	/* Send the incoming transfer to the session bus. */
-	for (packet_num = 0; packet_num < (ctx->memory_size * 4 / PACKET_SIZE);
+	for (packet_num = 0; packet_num < (devc->memory_size * 4 / PACKET_SIZE);
 	     packet_num++) {
-		res = analyzer_read_data(ctx->usb->devhdl, buf, PACKET_SIZE);
+		res = analyzer_read_data(devc->usb->devhdl, buf, PACKET_SIZE);
 		sr_info("zp: Tried to read %llx bytes, actually read %x bytes",
 			PACKET_SIZE, res);
 
@@ -621,7 +641,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 		sr_session_send(cb_data, &packet);
 		samples_read += res / 4;
 	}
-	analyzer_read_stop(ctx->usb->devhdl);
+	analyzer_read_stop(devc->usb->devhdl);
 	g_free(buf);
 
 	packet.type = SR_DF_END;
@@ -635,17 +655,17 @@ static int hw_dev_acquisition_stop(const struct sr_dev_inst *sdi,
 		void *cb_data)
 {
 	struct sr_datafeed_packet packet;
-	struct context *ctx;
+	struct dev_context *devc;
 
 	packet.type = SR_DF_END;
 	sr_session_send(cb_data, &packet);
 
-	if (!(ctx = sdi->priv)) {
+	if (!(devc = sdi->priv)) {
 		sr_err("zp: %s: sdi->priv was NULL", __func__);
 		return SR_ERR_BUG;
 	}
 
-	analyzer_reset(ctx->usb->devhdl);
+	analyzer_reset(devc->usb->devhdl);
 	/* TODO: Need to cancel and free any queued up transfers. */
 
 	return SR_OK;
@@ -664,5 +684,5 @@ SR_PRIV struct sr_dev_driver zeroplus_logic_cube_driver_info = {
 	.dev_config_set = hw_dev_config_set,
 	.dev_acquisition_start = hw_dev_acquisition_start,
 	.dev_acquisition_stop = hw_dev_acquisition_stop,
-	.instances = NULL,
+	.priv = NULL,
 };
