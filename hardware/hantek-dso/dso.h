@@ -143,7 +143,8 @@ enum states {
 	IDLE,
 	NEW_CAPTURE,
 	CAPTURE,
-	FETCH_DATA
+	FETCH_DATA,
+	STOPPING,
 };
 
 struct dso_profile {

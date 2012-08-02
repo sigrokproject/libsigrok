@@ -709,9 +709,7 @@ static void receive_transfer(struct libusb_transfer *transfer)
 
 		if (devc->limit_frames && ++devc->num_frames == devc->limit_frames) {
 			/* Terminate session */
-			/* TODO: don't leave pending USB transfers hanging */
-			packet.type = SR_DF_END;
-			sr_session_send(ctx->cb_data, &packet);
+			devc->dev_state = STOPPING;
 		} else {
 			devc->dev_state = NEW_CAPTURE;
 		}
@@ -721,11 +719,13 @@ static void receive_transfer(struct libusb_transfer *transfer)
 
 static int handle_event(int fd, int revents, void *cb_data)
 {
+	const struct sr_dev_inst *sdi;
 	struct sr_datafeed_packet packet;
 	struct timeval tv;
-	int num_probes;
 	struct drv_context *drvc;
 	struct dev_context *devc;
+	const struct libusb_pollfd **lupfd;
+	int num_probes, i;
 	uint32_t trigger_offset;
 	uint8_t capturestate;
 
@@ -736,11 +736,28 @@ static int handle_event(int fd, int revents, void *cb_data)
 	drvc = hdi->priv;
 	sdi = cb_data;
 	devc = sdi->priv;
+	if (devc->dev_state == STOPPING) {
+		/* We've been told to wind up the acquisition. */
+		sr_dbg("hantek-dso: stopping acquisition");
+		/* TODO: doesn't really cancel pending transfers so they might
+		 * come in after SR_DF_END is sent. */
+		lupfd = libusb_get_pollfds(drvc->usb_context);
+		for (i = 0; lupfd[i]; i++)
+			sr_source_remove(lupfd[i]->fd);
+		free(lupfd);
+
+		packet.type = SR_DF_END;
+		sr_session_send(sdi, &packet);
+
+		devc->dev_state = IDLE;
+
+		return TRUE;
+	}
+
 	/* Always handle pending libusb events. */
 	tv.tv_sec = tv.tv_usec = 0;
 	libusb_handle_events_timeout(drvc->usb_context, &tv);
 
-	ctx = cb_data;
 	/* TODO: ugh */
 	if (devc->dev_state == NEW_CAPTURE) {
 		if (dso_capture_start(devc) != SR_OK)
@@ -840,7 +857,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	lupfd = libusb_get_pollfds(drvc->usb_context);
 	for (i = 0; lupfd[i]; i++)
 		sr_source_add(lupfd[i]->fd, lupfd[i]->events, TICK, handle_event,
-			      ctx);
+				(void *)sdi);
 	free(lupfd);
 
 	/* Send header packet to the session bus. */
@@ -859,9 +876,6 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-/* TODO: doesn't really cancel pending transfers so they might come in after
- * SR_DF_END is sent.
- */
 static int hw_dev_acquisition_stop(const struct sr_dev_inst *sdi,
 		void *cb_data)
 {
@@ -872,11 +886,8 @@ static int hw_dev_acquisition_stop(const struct sr_dev_inst *sdi,
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR;
 
-	ctx = sdi->priv;
-	ctx->dev_state = IDLE;
-
-	packet.type = SR_DF_END;
-	sr_session_send(cb_data, &packet);
+	devc = sdi->priv;
+	devc->dev_state = STOPPING;
 
 	return SR_OK;
 }
