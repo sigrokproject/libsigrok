@@ -70,7 +70,8 @@ SR_PRIV libusb_context *genericdmm_usb_context = NULL;
 static GSList *connect_usb(const char *conn)
 {
 	struct sr_dev_inst *sdi;
-	struct context *ctx;
+	struct drv_context *drvc;
+	struct dev_context *devc;
 	libusb_device **devlist;
 	struct libusb_device_descriptor des;
 	GSList *devices;
@@ -78,6 +79,8 @@ static GSList *connect_usb(const char *conn)
 	GMatchInfo *match;
 	int vid, pid, bus, addr, devcnt, err, i;
 	char *mstr;
+
+	drvc = gdi->priv;
 
 	vid = pid = bus = addr = 0;
 	reg = g_regex_new(DMM_CONN_USB_VIDPID, 0, 0, NULL);
@@ -143,19 +146,19 @@ static GSList *connect_usb(const char *conn)
 			continue;
 
 		/* Found one. */
-		if (!(ctx = g_try_malloc0(sizeof(struct context)))) {
-			sr_err("genericdmm: ctx malloc failed.");
+		if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
+			sr_err("genericdmm: devc malloc failed.");
 			return 0;
 		}
 
-		devcnt = g_slist_length(gdi->instances);
+		devcnt = g_slist_length(drvc->instances);
 		if (!(sdi = sr_dev_inst_new(devcnt, SR_ST_ACTIVE,
 				NULL, NULL, NULL))) {
 			sr_err("genericdmm: sr_dev_inst_new returned NULL.");
 			return NULL;
 		}
-		sdi->priv = ctx;
-		ctx->usb = sr_usb_dev_inst_new(
+		sdi->priv = devc;
+		devc->usb = sr_usb_dev_inst_new(
 				libusb_get_bus_number(devlist[i]),
 				libusb_get_device_address(devlist[i]), NULL);
 		devices = g_slist_append(devices, sdi);
@@ -218,12 +221,19 @@ static GSList *default_scan(GSList *options)
 
 static int hw_init(void)
 {
+	struct drv_context *drvc;
+
+	if (!(drvc = g_try_malloc0(sizeof(struct drv_context)))) {
+		sr_err("genericdmm: driver context malloc failed.");
+		return SR_ERR;
+	}
 
 	if (libusb_init(&genericdmm_usb_context) != 0) {
 		sr_err("genericdmm: Failed to initialize USB.");
 		return SR_ERR;
 	}
 
+	gdi->priv = drvc;
 
 	return SR_OK;
 }
@@ -234,7 +244,10 @@ static GSList *hw_scan(GSList *options)
 	struct sr_hwopt *opt, *defopt;
 	struct dev_profile *pr, *profile;
 	struct sr_dev_inst *sdi;
+	struct drv_context *drvc;
 	const char *model;
+
+	drvc = gdi->priv;
 
 	/* Separate model from the options list. */
 	model = NULL;
@@ -318,7 +331,7 @@ static GSList *hw_scan(GSList *options)
 			if (!sdi->model)
 				sdi->model = g_strdup(profile->model);
 			/* Add a copy of these new devices to the driver instances. */
-			gdi->instances = g_slist_append(gdi->instances, l->data);
+			drvc->instances = g_slist_append(drvc->instances, l->data);
 		}
 	}
 
@@ -327,28 +340,28 @@ static GSList *hw_scan(GSList *options)
 
 static int hw_dev_open(struct sr_dev_inst *sdi)
 {
-	struct context *ctx;
+	struct dev_context *devc;
 
-	if (!(ctx = sdi->priv)) {
+	if (!(devc = sdi->priv)) {
 		sr_err("genericdmm: sdi->priv was NULL.");
 		return SR_ERR_BUG;
 	}
 
-	sr_dbg("genericdmm: Opening serial port '%s'.", ctx->serial->port);
+	sr_dbg("genericdmm: Opening serial port '%s'.", devc->serial->port);
 
-	switch (ctx->profile->transport) {
+	switch (devc->profile->transport) {
 	case DMM_TRANSPORT_USBHID:
 		/* TODO */
 		break;
 	case DMM_TRANSPORT_SERIAL:
 		/* TODO: O_NONBLOCK? */
-		ctx->serial->fd = serial_open(ctx->serial->port, O_RDWR | O_NONBLOCK);
-		if (ctx->serial->fd == -1) {
+		devc->serial->fd = serial_open(devc->serial->port, O_RDWR | O_NONBLOCK);
+		if (devc->serial->fd == -1) {
 			sr_err("genericdmm: Couldn't open serial port '%s'.",
-			       ctx->serial->port);
+			       devc->serial->port);
 			return SR_ERR;
 		}
-		//	serial_set_params(ctx->serial->fd, 2400, 8, 0, 1, 2);
+		//	serial_set_params(devc->serial->fd, 2400, 8, 0, 1, 2);
 		break;
 	default:
 		sr_err("No transport set.");
@@ -359,21 +372,21 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 
 static int hw_dev_close(struct sr_dev_inst *sdi)
 {
-	struct context *ctx;
+	struct dev_context *devc;
 
-	if (!(ctx = sdi->priv)) {
+	if (!(devc = sdi->priv)) {
 		sr_err("genericdmm: %s: sdi->priv was NULL.", __func__);
 		return SR_ERR_BUG;
 	}
 
-	switch (ctx->profile->transport) {
+	switch (devc->profile->transport) {
 	case DMM_TRANSPORT_USBHID:
 		/* TODO */
 		break;
 	case DMM_TRANSPORT_SERIAL:
-		if (ctx->serial && ctx->serial->fd != -1) {
-			serial_close(ctx->serial->fd);
-			ctx->serial->fd = -1;
+		if (devc->serial && devc->serial->fd != -1) {
+			serial_close(devc->serial->fd);
+			devc->serial->fd = -1;
 			sdi->status = SR_ST_INACTIVE;
 		}
 		break;
@@ -386,30 +399,34 @@ static int hw_cleanup(void)
 {
 	GSList *l;
 	struct sr_dev_inst *sdi;
-	struct context *ctx;
+	struct dev_context *devc;
+	struct drv_context *drvc;
+
+	if (!(drvc = gdi->priv))
+		return SR_OK;
 
 	/* Properly close and free all devices. */
-	for (l = gdi->instances; l; l = l->next) {
+	for (l = drvc->instances; l; l = l->next) {
 		if (!(sdi = l->data)) {
 			/* Log error, but continue cleaning up the rest. */
 			sr_err("genericdmm: sdi was NULL, continuing.");
 			continue;
 		}
-		if (!(ctx = sdi->priv)) {
+		if (!(devc = sdi->priv)) {
 			/* Log error, but continue cleaning up the rest. */
 			sr_err("genericdmm: sdi->priv was NULL, continuing.");
 			continue;
 		}
 
-		if (ctx->profile) {
-			switch (ctx->profile->transport) {
+		if (devc->profile) {
+			switch (devc->profile->transport) {
 			case DMM_TRANSPORT_USBHID:
 				/* TODO */
 				break;
 			case DMM_TRANSPORT_SERIAL:
-				if (ctx->serial && ctx->serial->fd != -1)
-					serial_close(ctx->serial->fd);
-				sr_serial_dev_inst_free(ctx->serial);
+				if (devc->serial && devc->serial->fd != -1)
+					serial_close(devc->serial->fd);
+				sr_serial_dev_inst_free(devc->serial);
 				break;
 			}
 		}
@@ -417,8 +434,8 @@ static int hw_cleanup(void)
 		sr_dev_inst_free(sdi);
 	}
 
-	g_slist_free(gdi->instances);
-	gdi->instances = NULL;
+	g_slist_free(drvc->instances);
+	drvc->instances = NULL;
 
 	if (genericdmm_usb_context)
 		libusb_exit(genericdmm_usb_context);
@@ -429,10 +446,10 @@ static int hw_cleanup(void)
 static int hw_info_get(int info_id, const void **data,
 		const struct sr_dev_inst *sdi)
 {
-	struct context *ctx;
+	struct dev_context *devc;
 
 	(void)sdi;
-	(void)ctx;
+	(void)devc;
 
 	switch (info_id) {
 	case SR_DI_HWOPTS:
@@ -462,9 +479,9 @@ static int hw_info_get(int info_id, const void **data,
 static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		const void *value)
 {
-	struct context *ctx;
+	struct dev_context *devc;
 
-	if (!(ctx = sdi->priv)) {
+	if (!(devc = sdi->priv)) {
 		sr_err("genericdmm: sdi->priv was NULL.");
 		return SR_ERR_BUG;
 	}
@@ -475,14 +492,14 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 			sr_err("genericdmm: LIMIT_MSEC can't be 0.");
 			return SR_ERR;
 		}
-		ctx->limit_msec = *(const uint64_t *)value;
+		devc->limit_msec = *(const uint64_t *)value;
 		sr_dbg("genericdmm: Setting LIMIT_MSEC to %" PRIu64 ".",
-		       ctx->limit_msec);
+		       devc->limit_msec);
 		break;
 	case SR_HWCAP_LIMIT_SAMPLES:
-		ctx->limit_samples = *(const uint64_t *)value;
+		devc->limit_samples = *(const uint64_t *)value;
 		sr_dbg("genericdmm: Setting LIMIT_SAMPLES to %" PRIu64 ".",
-		       ctx->limit_samples);
+		       devc->limit_samples);
 		break;
 	default:
 		sr_err("genericdmm: Unknown capability: %d.", hwcap);
@@ -496,12 +513,12 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 static int receive_data(int fd, int revents, void *cb_data)
 {
 	struct sr_dev_inst *sdi;
-	struct context *ctx;
+	struct dev_context *devc;
 
 	if (!(sdi = cb_data))
 		return FALSE;
 
-	if (!(ctx = sdi->priv))
+	if (!(devc = sdi->priv))
 		return FALSE;
 
 	if (revents != G_IO_IN) {
@@ -509,7 +526,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 		return FALSE;
 	}
 
-	switch (ctx->profile->transport) {
+	switch (devc->profile->transport) {
 	case DMM_TRANSPORT_USBHID:
 		/* TODO */
 		break;
@@ -527,16 +544,16 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_header header;
 	struct sr_datafeed_meta_analog meta;
-	struct context *ctx;
+	struct dev_context *devc;
 
-	if (!(ctx = sdi->priv)) {
+	if (!(devc = sdi->priv)) {
 		sr_err("genericdmm: sdi->priv was NULL.");
 		return SR_ERR_BUG;
 	}
 
 	sr_dbg("genericdmm: Starting acquisition.");
 
-	ctx->cb_data = cb_data;
+	devc->cb_data = cb_data;
 
 	/* Send header packet to the session bus. */
 	sr_dbg("genericdmm: Sending SR_DF_HEADER.");
@@ -544,23 +561,23 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	packet.payload = (uint8_t *)&header;
 	header.feed_version = 1;
 	gettimeofday(&header.starttime, NULL);
-	sr_session_send(ctx->cb_data, &packet);
+	sr_session_send(devc->cb_data, &packet);
 
 	/* Send metadata about the SR_DF_ANALOG packets to come. */
 	sr_dbg("genericdmm: Sending SR_DF_META_ANALOG.");
 	packet.type = SR_DF_META_ANALOG;
 	packet.payload = &meta;
 	meta.num_probes = 1;
-	sr_session_send(ctx->cb_data, &packet);
+	sr_session_send(devc->cb_data, &packet);
 
 	/* Hook up a proxy handler to receive data from the device. */
-	switch (ctx->profile->transport) {
+	switch (devc->profile->transport) {
 	case DMM_TRANSPORT_USBHID:
 		/* TODO libusb FD setup */
 		break;
 	case DMM_TRANSPORT_SERIAL:
 		/* TODO serial FD setup */
-		// sr_source_add(ctx->serial->fd, G_IO_IN, -1, receive_data, sdi);
+		// sr_source_add(devc->serial->fd, G_IO_IN, -1, receive_data, sdi);
 		break;
 	}
 
@@ -598,5 +615,5 @@ SR_PRIV struct sr_dev_driver genericdmm_driver_info = {
 	.dev_config_set = hw_dev_config_set,
 	.dev_acquisition_start = hw_dev_acquisition_start,
 	.dev_acquisition_stop = hw_dev_acquisition_stop,
-	.instances = NULL,
+	.priv = NULL,
 };
