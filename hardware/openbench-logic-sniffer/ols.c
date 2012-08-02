@@ -702,6 +702,22 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 	return ret;
 }
 
+static void abort_acquisition(const struct sr_dev_inst *sdi)
+{
+	struct sr_datafeed_packet packet;
+	struct dev_context *devc;
+
+	devc = sdi->priv;
+	sr_source_remove(devc->serial->fd);
+
+	/* Terminate session */
+	packet.type = SR_DF_END;
+	sr_session_send(sdi, &packet);
+
+}
+
+
+
 static int receive_data(int fd, int revents, void *cb_data)
 {
 	struct sr_datafeed_packet packet;
@@ -878,8 +894,8 @@ static int receive_data(int fd, int revents, void *cb_data)
 
 		serial_flush(fd);
 		serial_close(fd);
-		packet.type = SR_DF_END;
-		sr_session_send(cb_data, &packet);
+
+		abort_acquisition(sdi);
 	}
 
 	return TRUE;
@@ -1045,13 +1061,11 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 static int hw_dev_acquisition_stop(const struct sr_dev_inst *sdi,
 		void *cb_data)
 {
-	struct sr_datafeed_packet packet;
 
 	/* Avoid compiler warnings. */
-	(void)sdi;
+	(void)cb_data;
 
-	packet.type = SR_DF_END;
-	sr_session_send(cb_data, &packet);
+	abort_acquisition(sdi);
 
 	return SR_OK;
 }
