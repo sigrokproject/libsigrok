@@ -270,6 +270,9 @@ static int hw_dev_close(struct sr_dev_inst *sdi)
 static int hw_cleanup(void)
 {
 
+	if (!cdi->priv)
+		return SR_OK;
+
 	clear_instances();
 
 	return SR_OK;
