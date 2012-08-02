@@ -131,20 +131,20 @@ static int send_longcommand(int fd, uint8_t command, uint32_t data)
 	return SR_OK;
 }
 
-static int configure_probes(struct context *ctx, const GSList *probes)
+static int configure_probes(struct dev_context *devc, const GSList *probes)
 {
 	const struct sr_probe *probe;
 	const GSList *l;
 	int probe_bit, stage, i;
 	char *tc;
 
-	ctx->probe_mask = 0;
+	devc->probe_mask = 0;
 	for (i = 0; i < NUM_TRIGGER_STAGES; i++) {
-		ctx->trigger_mask[i] = 0;
-		ctx->trigger_value[i] = 0;
+		devc->trigger_mask[i] = 0;
+		devc->trigger_value[i] = 0;
 	}
 
-	ctx->num_stages = 0;
+	devc->num_stages = 0;
 	for (l = probes; l; l = l->next) {
 		probe = (const struct sr_probe *)l->data;
 		if (!probe->enabled)
@@ -155,7 +155,7 @@ static int configure_probes(struct context *ctx, const GSList *probes)
 		 * flag register.
 		 */
 		probe_bit = 1 << (probe->index);
-		ctx->probe_mask |= probe_bit;
+		devc->probe_mask |= probe_bit;
 
 		if (!probe->trigger)
 			continue;
@@ -163,9 +163,9 @@ static int configure_probes(struct context *ctx, const GSList *probes)
 		/* Configure trigger mask and value. */
 		stage = 0;
 		for (tc = probe->trigger; tc && *tc; tc++) {
-			ctx->trigger_mask[stage] |= probe_bit;
+			devc->trigger_mask[stage] |= probe_bit;
 			if (*tc == '1')
-				ctx->trigger_value[stage] |= probe_bit;
+				devc->trigger_value[stage] |= probe_bit;
 			stage++;
 			if (stage > 3)
 				/*
@@ -174,8 +174,8 @@ static int configure_probes(struct context *ctx, const GSList *probes)
 				 */
 				return SR_ERR;
 		}
-		if (stage > ctx->num_stages)
-			ctx->num_stages = stage;
+		if (stage > devc->num_stages)
+			devc->num_stages = stage;
 	}
 
 	return SR_OK;
@@ -205,28 +205,28 @@ static uint32_t reverse32(uint32_t in)
 	return out;
 }
 
-static struct context *ols_dev_new(void)
+static struct dev_context *ols_dev_new(void)
 {
-	struct context *ctx;
+	struct dev_context *devc;
 
-	/* TODO: Is 'ctx' ever g_free()'d? */
-	if (!(ctx = g_try_malloc0(sizeof(struct context)))) {
-		sr_err("ols: %s: ctx malloc failed", __func__);
+	/* TODO: Is 'devc' ever g_free()'d? */
+	if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
+		sr_err("ols: %s: devc malloc failed", __func__);
 		return NULL;
 	}
 
-	ctx->trigger_at = -1;
-	ctx->probe_mask = 0xffffffff;
-	ctx->cur_samplerate = SR_KHZ(200);
-	ctx->serial = NULL;
+	devc->trigger_at = -1;
+	devc->probe_mask = 0xffffffff;
+	devc->cur_samplerate = SR_KHZ(200);
+	devc->serial = NULL;
 
-	return ctx;
+	return devc;
 }
 
 static struct sr_dev_inst *get_metadata(int fd)
 {
 	struct sr_dev_inst *sdi;
-	struct context *ctx;
+	struct dev_context *devc;
 	struct sr_probe *probe;
 	uint32_t tmp_int, ui;
 	uint8_t key, type, token;
@@ -235,8 +235,8 @@ static struct sr_dev_inst *get_metadata(int fd)
 
 	sdi = sr_dev_inst_new(0, SR_ST_INACTIVE, NULL, NULL, NULL);
 	sdi->driver = odi;
-	ctx = ols_dev_new();
-	sdi->priv = ctx;
+	devc = ols_dev_new();
+	sdi->priv = devc;
 
 	devname = g_string_new("");
 	version = g_string_new("");
@@ -300,7 +300,7 @@ static struct sr_dev_inst *get_metadata(int fd)
 				break;
 			case 0x01:
 				/* Amount of sample memory available (bytes) */
-				ctx->max_samples = tmp_int;
+				devc->max_samples = tmp_int;
 				break;
 			case 0x02:
 				/* Amount of dynamic memory available (bytes) */
@@ -308,11 +308,11 @@ static struct sr_dev_inst *get_metadata(int fd)
 				break;
 			case 0x03:
 				/* Maximum sample rate (hz) */
-				ctx->max_samplerate = tmp_int;
+				devc->max_samplerate = tmp_int;
 				break;
 			case 0x04:
 				/* protocol version */
-				ctx->protocol_version = tmp_int;
+				devc->protocol_version = tmp_int;
 				break;
 			default:
 				sr_info("ols: unknown token 0x%.2x: 0x%.8x",
@@ -338,7 +338,7 @@ static struct sr_dev_inst *get_metadata(int fd)
 				break;
 			case 0x01:
 				/* protocol version */
-				ctx->protocol_version = tmp_c;
+				devc->protocol_version = tmp_c;
 				break;
 			default:
 				sr_info("ols: unknown token 0x%.2x: 0x%.2x",
@@ -362,8 +362,13 @@ static struct sr_dev_inst *get_metadata(int fd)
 
 static int hw_init(void)
 {
+	struct drv_context *drvc;
 
-	/* Nothing to do. */
+	if (!(drvc = g_try_malloc0(sizeof(struct drv_context)))) {
+		sr_err("ols: driver context malloc failed.");
+		return SR_ERR;
+	}
+	odi->priv = drvc;
 
 	return SR_OK;
 }
@@ -371,7 +376,8 @@ static int hw_init(void)
 static GSList *hw_scan(GSList *options)
 {
 	struct sr_dev_inst *sdi;
-	struct context *ctx;
+	struct drv_context *drvc;
+	struct dev_context *devc;
 	struct sr_probe *probe;
 	GSList *devices, *ports, *l;
 	GPollFD *fds, probefd;
@@ -379,6 +385,7 @@ static GSList *hw_scan(GSList *options)
 	char buf[8], **dev_names, **serial_params;
 
 	(void)options;
+	drvc = odi->priv;
 	final_devcnt = 0;
 	devices = NULL;
 
@@ -464,23 +471,23 @@ static GSList *hw_scan(GSList *options)
 			/* got metadata */
 			sdi = get_metadata(fds[i].fd);
 			sdi->index = final_devcnt;
-			ctx = sdi->priv;
+			devc = sdi->priv;
 		} else {
 			/* not an OLS -- some other board that uses the sump protocol */
 			sdi = sr_dev_inst_new(final_devcnt, SR_ST_INACTIVE,
 					"Sump", "Logic Analyzer", "v1.0");
 			sdi->driver = odi;
-			ctx = ols_dev_new();
+			devc = ols_dev_new();
 			for (j = 0; j < 32; j++) {
 				if (!(probe = sr_probe_new(j, SR_PROBE_LOGIC, TRUE,
 						probe_names[j])))
 					return 0;
 				sdi->probes = g_slist_append(sdi->probes, probe);
 			}
-			sdi->priv = ctx;
+			sdi->priv = devc;
 		}
-		ctx->serial = sr_serial_dev_inst_new(dev_names[i], -1);
-		odi->instances = g_slist_append(odi->instances, sdi);
+		devc->serial = sr_serial_dev_inst_new(dev_names[i], -1);
+		drvc->instances = g_slist_append(drvc->instances, sdi);
 		devices = g_slist_append(devices, sdi);
 
 		final_devcnt++;
@@ -511,12 +518,12 @@ hw_init_free_ports:
 
 static int hw_dev_open(struct sr_dev_inst *sdi)
 {
-	struct context *ctx;
+	struct dev_context *devc;
 
-	ctx = sdi->priv;
+	devc = sdi->priv;
 
-	ctx->serial->fd = serial_open(ctx->serial->port, O_RDWR);
-	if (ctx->serial->fd == -1)
+	devc->serial->fd = serial_open(devc->serial->port, O_RDWR);
+	if (devc->serial->fd == -1)
 		return SR_ERR;
 
 	sdi->status = SR_ST_ACTIVE;
@@ -526,13 +533,13 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 
 static int hw_dev_close(struct sr_dev_inst *sdi)
 {
-	struct context *ctx;
+	struct dev_context *devc;
 
-	ctx = sdi->priv;
+	devc = sdi->priv;
 
-	if (ctx->serial->fd != -1) {
-		serial_close(ctx->serial->fd);
-		ctx->serial->fd = -1;
+	if (devc->serial->fd != -1) {
+		serial_close(devc->serial->fd);
+		devc->serial->fd = -1;
 		sdi->status = SR_ST_INACTIVE;
 	}
 
@@ -543,18 +550,22 @@ static int hw_cleanup(void)
 {
 	GSList *l;
 	struct sr_dev_inst *sdi;
-	struct context *ctx;
+	struct drv_context *drvc;
+	struct dev_context *devc;
 	int ret = SR_OK;
 
+	if (!(drvc = odi->priv))
+		return SR_OK;
+
 	/* Properly close and free all devices. */
-	for (l = odi->instances; l; l = l->next) {
+	for (l = drvc->instances; l; l = l->next) {
 		if (!(sdi = l->data)) {
 			/* Log error, but continue cleaning up the rest. */
 			sr_err("ols: %s: sdi was NULL, continuing", __func__);
 			ret = SR_ERR_BUG;
 			continue;
 		}
-		if (!(ctx = sdi->priv)) {
+		if (!(devc = sdi->priv)) {
 			/* Log error, but continue cleaning up the rest. */
 			sr_err("ols: %s: sdi->priv was NULL, continuing",
 			       __func__);
@@ -562,13 +573,13 @@ static int hw_cleanup(void)
 			continue;
 		}
 		/* TODO: Check for serial != NULL. */
-		if (ctx->serial->fd != -1)
-			serial_close(ctx->serial->fd);
-		sr_serial_dev_inst_free(ctx->serial);
+		if (devc->serial->fd != -1)
+			serial_close(devc->serial->fd);
+		sr_serial_dev_inst_free(devc->serial);
 		sr_dev_inst_free(sdi);
 	}
-	g_slist_free(odi->instances);
-	odi->instances = NULL;
+	g_slist_free(drvc->instances);
+	drvc->instances = NULL;
 
 	return ret;
 }
@@ -576,7 +587,7 @@ static int hw_cleanup(void)
 static int hw_info_get(int info_id, const void **data,
        const struct sr_dev_inst *sdi)
 {
-	struct context *ctx;
+	struct dev_context *devc;
 
 	switch (info_id) {
 	case SR_DI_HWCAPS:
@@ -596,8 +607,8 @@ static int hw_info_get(int info_id, const void **data,
 		break;
 	case SR_DI_CUR_SAMPLERATE:
 		if (sdi) {
-			ctx = sdi->priv;
-			*data = &ctx->cur_samplerate;
+			devc = sdi->priv;
+			*data = &devc->cur_samplerate;
 		} else
 			return SR_ERR;
 		break;
@@ -610,32 +621,32 @@ static int hw_info_get(int info_id, const void **data,
 
 static int set_samplerate(const struct sr_dev_inst *sdi, uint64_t samplerate)
 {
-	struct context *ctx;
+	struct dev_context *devc;
 
-	ctx = sdi->priv;
-	if (ctx->max_samplerate) {
-		if (samplerate > ctx->max_samplerate)
+	devc = sdi->priv;
+	if (devc->max_samplerate) {
+		if (samplerate > devc->max_samplerate)
 			return SR_ERR_SAMPLERATE;
 	} else if (samplerate < samplerates.low || samplerate > samplerates.high)
 		return SR_ERR_SAMPLERATE;
 
 	if (samplerate > CLOCK_RATE) {
-		ctx->flag_reg |= FLAG_DEMUX;
-		ctx->cur_samplerate_divider = (CLOCK_RATE * 2 / samplerate) - 1;
+		devc->flag_reg |= FLAG_DEMUX;
+		devc->cur_samplerate_divider = (CLOCK_RATE * 2 / samplerate) - 1;
 	} else {
-		ctx->flag_reg &= ~FLAG_DEMUX;
-		ctx->cur_samplerate_divider = (CLOCK_RATE / samplerate) - 1;
+		devc->flag_reg &= ~FLAG_DEMUX;
+		devc->cur_samplerate_divider = (CLOCK_RATE / samplerate) - 1;
 	}
 
 	/* Calculate actual samplerate used and complain if it is different
 	 * from the requested.
 	 */
-	ctx->cur_samplerate = CLOCK_RATE / (ctx->cur_samplerate_divider + 1);
-	if (ctx->flag_reg & FLAG_DEMUX)
-		ctx->cur_samplerate *= 2;
-	if (ctx->cur_samplerate != samplerate)
+	devc->cur_samplerate = CLOCK_RATE / (devc->cur_samplerate_divider + 1);
+	if (devc->flag_reg & FLAG_DEMUX)
+		devc->cur_samplerate *= 2;
+	if (devc->cur_samplerate != samplerate)
 		sr_err("ols: can't match samplerate %" PRIu64 ", using %"
-		       PRIu64, samplerate, ctx->cur_samplerate);
+		       PRIu64, samplerate, devc->cur_samplerate);
 
 	return SR_OK;
 }
@@ -643,11 +654,11 @@ static int set_samplerate(const struct sr_dev_inst *sdi, uint64_t samplerate)
 static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		const void *value)
 {
-	struct context *ctx;
+	struct dev_context *devc;
 	int ret;
 	const uint64_t *tmp_u64;
 
-	ctx = sdi->priv;
+	devc = sdi->priv;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR;
@@ -657,22 +668,22 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		ret = set_samplerate(sdi, *(const uint64_t *)value);
 		break;
 	case SR_HWCAP_PROBECONFIG:
-		ret = configure_probes(ctx, (const GSList *)value);
+		ret = configure_probes(devc, (const GSList *)value);
 		break;
 	case SR_HWCAP_LIMIT_SAMPLES:
 		tmp_u64 = value;
 		if (*tmp_u64 < MIN_NUM_SAMPLES)
 			return SR_ERR;
-		if (*tmp_u64 > ctx->max_samples)
+		if (*tmp_u64 > devc->max_samples)
 			sr_err("ols: sample limit exceeds hw max");
-		ctx->limit_samples = *tmp_u64;
-		sr_info("ols: sample limit %" PRIu64, ctx->limit_samples);
+		devc->limit_samples = *tmp_u64;
+		sr_info("ols: sample limit %" PRIu64, devc->limit_samples);
 		ret = SR_OK;
 		break;
 	case SR_HWCAP_CAPTURE_RATIO:
-		ctx->capture_ratio = *(const uint64_t *)value;
-		if (ctx->capture_ratio < 0 || ctx->capture_ratio > 100) {
-			ctx->capture_ratio = 0;
+		devc->capture_ratio = *(const uint64_t *)value;
+		if (devc->capture_ratio < 0 || devc->capture_ratio > 100) {
+			devc->capture_ratio = 0;
 			ret = SR_ERR;
 		} else
 			ret = SR_OK;
@@ -680,7 +691,7 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 	case SR_HWCAP_RLE:
 		if (GPOINTER_TO_INT(value)) {
 			sr_info("ols: enabling RLE");
-			ctx->flag_reg |= FLAG_RLE;
+			devc->flag_reg |= FLAG_RLE;
 		}
 		ret = SR_OK;
 		break;
@@ -696,26 +707,29 @@ static int receive_data(int fd, int revents, void *cb_data)
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
 	struct sr_dev_inst *sdi;
-	struct context *ctx;
+	struct drv_context *drvc;
+	struct dev_context *devc;
 	GSList *l;
 	int num_channels, offset, i, j;
 	unsigned char byte;
 
-	/* Find this device's ctx struct by its fd. */
-	ctx = NULL;
-	for (l = odi->instances; l; l = l->next) {
+	drvc = odi->priv;
+
+	/* Find this device's devc struct by its fd. */
+	devc = NULL;
+	for (l = drvc->instances; l; l = l->next) {
 		sdi = l->data;
-		ctx = sdi->priv;
-		if (ctx->serial->fd == fd) {
+		devc = sdi->priv;
+		if (devc->serial->fd == fd) {
 			break;
 		}
-		ctx = NULL;
+		devc = NULL;
 	}
-	if (!ctx)
+	if (!devc)
 		/* Shouldn't happen. */
 		return TRUE;
 
-	if (ctx->num_transfers++ == 0) {
+	if (devc->num_transfers++ == 0) {
 		/*
 		 * First time round, means the device started sending data,
 		 * and will not stop until done. If it stops sending for
@@ -724,19 +738,19 @@ static int receive_data(int fd, int revents, void *cb_data)
 		 */
 		sr_source_remove(fd);
 		sr_source_add(fd, G_IO_IN, 30, receive_data, cb_data);
-		ctx->raw_sample_buf = g_try_malloc(ctx->limit_samples * 4);
-		if (!ctx->raw_sample_buf) {
-			sr_err("ols: %s: ctx->raw_sample_buf malloc failed",
+		devc->raw_sample_buf = g_try_malloc(devc->limit_samples * 4);
+		if (!devc->raw_sample_buf) {
+			sr_err("ols: %s: devc->raw_sample_buf malloc failed",
 			       __func__);
 			return FALSE;
 		}
 		/* fill with 1010... for debugging */
-		memset(ctx->raw_sample_buf, 0x82, ctx->limit_samples * 4);
+		memset(devc->raw_sample_buf, 0x82, devc->limit_samples * 4);
 	}
 
 	num_channels = 0;
 	for (i = 0x20; i > 0x02; i /= 2) {
-		if ((ctx->flag_reg & i) == 0)
+		if ((devc->flag_reg & i) == 0)
 			num_channels++;
 	}
 
@@ -745,37 +759,37 @@ static int receive_data(int fd, int revents, void *cb_data)
 			return FALSE;
 
 		/* Ignore it if we've read enough. */
-		if (ctx->num_samples >= ctx->limit_samples)
+		if (devc->num_samples >= devc->limit_samples)
 			return TRUE;
 
-		ctx->sample[ctx->num_bytes++] = byte;
+		devc->sample[devc->num_bytes++] = byte;
 		sr_dbg("ols: received byte 0x%.2x", byte);
-		if (ctx->num_bytes == num_channels) {
+		if (devc->num_bytes == num_channels) {
 			/* Got a full sample. */
 			sr_dbg("ols: received sample 0x%.*x",
-			       ctx->num_bytes * 2, *(int *)ctx->sample);
-			if (ctx->flag_reg & FLAG_RLE) {
+			       devc->num_bytes * 2, *(int *)devc->sample);
+			if (devc->flag_reg & FLAG_RLE) {
 				/*
 				 * In RLE mode -1 should never come in as a
 				 * sample, because bit 31 is the "count" flag.
 				 */
-				if (ctx->sample[ctx->num_bytes - 1] & 0x80) {
-					ctx->sample[ctx->num_bytes - 1] &= 0x7f;
+				if (devc->sample[devc->num_bytes - 1] & 0x80) {
+					devc->sample[devc->num_bytes - 1] &= 0x7f;
 					/*
 					 * FIXME: This will only work on
 					 * little-endian systems.
 					 */
-					ctx->rle_count = *(int *)(ctx->sample);
-					sr_dbg("ols: RLE count = %d", ctx->rle_count);
-					ctx->num_bytes = 0;
+					devc->rle_count = *(int *)(devc->sample);
+					sr_dbg("ols: RLE count = %d", devc->rle_count);
+					devc->num_bytes = 0;
 					return TRUE;
 				}
 			}
-			ctx->num_samples += ctx->rle_count + 1;
-			if (ctx->num_samples > ctx->limit_samples) {
+			devc->num_samples += devc->rle_count + 1;
+			if (devc->num_samples > devc->limit_samples) {
 				/* Save us from overrunning the buffer. */
-				ctx->rle_count -= ctx->num_samples - ctx->limit_samples;
-				ctx->num_samples = ctx->limit_samples;
+				devc->rle_count -= devc->num_samples - devc->limit_samples;
+				devc->num_samples = devc->limit_samples;
 			}
 
 			if (num_channels < 4) {
@@ -789,33 +803,33 @@ static int receive_data(int fd, int revents, void *cb_data)
 				 * the number of probes.
 				 */
 				j = 0;
-				memset(ctx->tmp_sample, 0, 4);
+				memset(devc->tmp_sample, 0, 4);
 				for (i = 0; i < 4; i++) {
-					if (((ctx->flag_reg >> 2) & (1 << i)) == 0) {
+					if (((devc->flag_reg >> 2) & (1 << i)) == 0) {
 						/*
 						 * This channel group was
 						 * enabled, copy from received
 						 * sample.
 						 */
-						ctx->tmp_sample[i] = ctx->sample[j++];
+						devc->tmp_sample[i] = devc->sample[j++];
 					}
 				}
-				memcpy(ctx->sample, ctx->tmp_sample, 4);
-				sr_dbg("ols: full sample 0x%.8x", *(int *)ctx->sample);
+				memcpy(devc->sample, devc->tmp_sample, 4);
+				sr_dbg("ols: full sample 0x%.8x", *(int *)devc->sample);
 			}
 
 			/* the OLS sends its sample buffer backwards.
 			 * store it in reverse order here, so we can dump
 			 * this on the session bus later.
 			 */
-			offset = (ctx->limit_samples - ctx->num_samples) * 4;
-			for (i = 0; i <= ctx->rle_count; i++) {
-				memcpy(ctx->raw_sample_buf + offset + (i * 4),
-				       ctx->sample, 4);
+			offset = (devc->limit_samples - devc->num_samples) * 4;
+			for (i = 0; i <= devc->rle_count; i++) {
+				memcpy(devc->raw_sample_buf + offset + (i * 4),
+				       devc->sample, 4);
 			}
-			memset(ctx->sample, 0, 4);
-			ctx->num_bytes = 0;
-			ctx->rle_count = 0;
+			memset(devc->sample, 0, 4);
+			devc->num_bytes = 0;
+			devc->rle_count = 0;
 		}
 	} else {
 		/*
@@ -823,18 +837,18 @@ static int receive_data(int fd, int revents, void *cb_data)
 		 * we've acquired all the samples we asked for -- we're done.
 		 * Send the (properly-ordered) buffer to the frontend.
 		 */
-		if (ctx->trigger_at != -1) {
+		if (devc->trigger_at != -1) {
 			/* a trigger was set up, so we need to tell the frontend
 			 * about it.
 			 */
-			if (ctx->trigger_at > 0) {
+			if (devc->trigger_at > 0) {
 				/* there are pre-trigger samples, send those first */
 				packet.type = SR_DF_LOGIC;
 				packet.payload = &logic;
-				logic.length = ctx->trigger_at * 4;
+				logic.length = devc->trigger_at * 4;
 				logic.unitsize = 4;
-				logic.data = ctx->raw_sample_buf +
-					(ctx->limit_samples - ctx->num_samples) * 4;
+				logic.data = devc->raw_sample_buf +
+					(devc->limit_samples - devc->num_samples) * 4;
 				sr_session_send(cb_data, &packet);
 			}
 
@@ -845,22 +859,22 @@ static int receive_data(int fd, int revents, void *cb_data)
 			/* send post-trigger samples */
 			packet.type = SR_DF_LOGIC;
 			packet.payload = &logic;
-			logic.length = (ctx->num_samples * 4) - (ctx->trigger_at * 4);
+			logic.length = (devc->num_samples * 4) - (devc->trigger_at * 4);
 			logic.unitsize = 4;
-			logic.data = ctx->raw_sample_buf + ctx->trigger_at * 4 +
-				(ctx->limit_samples - ctx->num_samples) * 4;
+			logic.data = devc->raw_sample_buf + devc->trigger_at * 4 +
+				(devc->limit_samples - devc->num_samples) * 4;
 			sr_session_send(cb_data, &packet);
 		} else {
 			/* no trigger was used */
 			packet.type = SR_DF_LOGIC;
 			packet.payload = &logic;
-			logic.length = ctx->num_samples * 4;
+			logic.length = devc->num_samples * 4;
 			logic.unitsize = 4;
-			logic.data = ctx->raw_sample_buf +
-				(ctx->limit_samples - ctx->num_samples) * 4;
+			logic.data = devc->raw_sample_buf +
+				(devc->limit_samples - devc->num_samples) * 4;
 			sr_session_send(cb_data, &packet);
 		}
-		g_free(ctx->raw_sample_buf);
+		g_free(devc->raw_sample_buf);
 
 		serial_flush(fd);
 		serial_close(fd);
@@ -877,7 +891,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	struct sr_datafeed_packet *packet;
 	struct sr_datafeed_header *header;
 	struct sr_datafeed_meta_logic meta;
-	struct context *ctx;
+	struct dev_context *devc;
 	uint32_t trigger_config[4];
 	uint32_t data;
 	uint16_t readcount, delaycount;
@@ -885,7 +899,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	int num_channels;
 	int i;
 
-	ctx = sdi->priv;
+	devc = sdi->priv;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR;
@@ -898,7 +912,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	changrp_mask = 0;
 	num_channels = 0;
 	for (i = 0; i < 4; i++) {
-		if (ctx->probe_mask & (0xff << (i * 8))) {
+		if (devc->probe_mask & (0xff << (i * 8))) {
 			changrp_mask |= (1 << i);
 			num_channels++;
 		}
@@ -908,92 +922,92 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	 * Limit readcount to prevent reading past the end of the hardware
 	 * buffer.
 	 */
-	readcount = MIN(ctx->max_samples / num_channels, ctx->limit_samples) / 4;
+	readcount = MIN(devc->max_samples / num_channels, devc->limit_samples) / 4;
 
 	memset(trigger_config, 0, 16);
-	trigger_config[ctx->num_stages - 1] |= 0x08;
-	if (ctx->trigger_mask[0]) {
-		delaycount = readcount * (1 - ctx->capture_ratio / 100.0);
-		ctx->trigger_at = (readcount - delaycount) * 4 - ctx->num_stages;
+	trigger_config[devc->num_stages - 1] |= 0x08;
+	if (devc->trigger_mask[0]) {
+		delaycount = readcount * (1 - devc->capture_ratio / 100.0);
+		devc->trigger_at = (readcount - delaycount) * 4 - devc->num_stages;
 
-		if (send_longcommand(ctx->serial->fd, CMD_SET_TRIGGER_MASK_0,
-			reverse32(ctx->trigger_mask[0])) != SR_OK)
+		if (send_longcommand(devc->serial->fd, CMD_SET_TRIGGER_MASK_0,
+			reverse32(devc->trigger_mask[0])) != SR_OK)
 			return SR_ERR;
-		if (send_longcommand(ctx->serial->fd, CMD_SET_TRIGGER_VALUE_0,
-			reverse32(ctx->trigger_value[0])) != SR_OK)
+		if (send_longcommand(devc->serial->fd, CMD_SET_TRIGGER_VALUE_0,
+			reverse32(devc->trigger_value[0])) != SR_OK)
 			return SR_ERR;
-		if (send_longcommand(ctx->serial->fd, CMD_SET_TRIGGER_CONFIG_0,
+		if (send_longcommand(devc->serial->fd, CMD_SET_TRIGGER_CONFIG_0,
 			trigger_config[0]) != SR_OK)
 			return SR_ERR;
 
-		if (send_longcommand(ctx->serial->fd, CMD_SET_TRIGGER_MASK_1,
-			reverse32(ctx->trigger_mask[1])) != SR_OK)
+		if (send_longcommand(devc->serial->fd, CMD_SET_TRIGGER_MASK_1,
+			reverse32(devc->trigger_mask[1])) != SR_OK)
 			return SR_ERR;
-		if (send_longcommand(ctx->serial->fd, CMD_SET_TRIGGER_VALUE_1,
-			reverse32(ctx->trigger_value[1])) != SR_OK)
+		if (send_longcommand(devc->serial->fd, CMD_SET_TRIGGER_VALUE_1,
+			reverse32(devc->trigger_value[1])) != SR_OK)
 			return SR_ERR;
-		if (send_longcommand(ctx->serial->fd, CMD_SET_TRIGGER_CONFIG_1,
+		if (send_longcommand(devc->serial->fd, CMD_SET_TRIGGER_CONFIG_1,
 			trigger_config[1]) != SR_OK)
 			return SR_ERR;
 
-		if (send_longcommand(ctx->serial->fd, CMD_SET_TRIGGER_MASK_2,
-			reverse32(ctx->trigger_mask[2])) != SR_OK)
+		if (send_longcommand(devc->serial->fd, CMD_SET_TRIGGER_MASK_2,
+			reverse32(devc->trigger_mask[2])) != SR_OK)
 			return SR_ERR;
-		if (send_longcommand(ctx->serial->fd, CMD_SET_TRIGGER_VALUE_2,
-			reverse32(ctx->trigger_value[2])) != SR_OK)
+		if (send_longcommand(devc->serial->fd, CMD_SET_TRIGGER_VALUE_2,
+			reverse32(devc->trigger_value[2])) != SR_OK)
 			return SR_ERR;
-		if (send_longcommand(ctx->serial->fd, CMD_SET_TRIGGER_CONFIG_2,
+		if (send_longcommand(devc->serial->fd, CMD_SET_TRIGGER_CONFIG_2,
 			trigger_config[2]) != SR_OK)
 			return SR_ERR;
 
-		if (send_longcommand(ctx->serial->fd, CMD_SET_TRIGGER_MASK_3,
-			reverse32(ctx->trigger_mask[3])) != SR_OK)
+		if (send_longcommand(devc->serial->fd, CMD_SET_TRIGGER_MASK_3,
+			reverse32(devc->trigger_mask[3])) != SR_OK)
 			return SR_ERR;
-		if (send_longcommand(ctx->serial->fd, CMD_SET_TRIGGER_VALUE_3,
-			reverse32(ctx->trigger_value[3])) != SR_OK)
+		if (send_longcommand(devc->serial->fd, CMD_SET_TRIGGER_VALUE_3,
+			reverse32(devc->trigger_value[3])) != SR_OK)
 			return SR_ERR;
-		if (send_longcommand(ctx->serial->fd, CMD_SET_TRIGGER_CONFIG_3,
+		if (send_longcommand(devc->serial->fd, CMD_SET_TRIGGER_CONFIG_3,
 			trigger_config[3]) != SR_OK)
 			return SR_ERR;
 	} else {
-		if (send_longcommand(ctx->serial->fd, CMD_SET_TRIGGER_MASK_0,
-				ctx->trigger_mask[0]) != SR_OK)
+		if (send_longcommand(devc->serial->fd, CMD_SET_TRIGGER_MASK_0,
+				devc->trigger_mask[0]) != SR_OK)
 			return SR_ERR;
-		if (send_longcommand(ctx->serial->fd, CMD_SET_TRIGGER_VALUE_0,
-				ctx->trigger_value[0]) != SR_OK)
+		if (send_longcommand(devc->serial->fd, CMD_SET_TRIGGER_VALUE_0,
+				devc->trigger_value[0]) != SR_OK)
 			return SR_ERR;
-		if (send_longcommand(ctx->serial->fd, CMD_SET_TRIGGER_CONFIG_0,
+		if (send_longcommand(devc->serial->fd, CMD_SET_TRIGGER_CONFIG_0,
 		     0x00000008) != SR_OK)
 			return SR_ERR;
 		delaycount = readcount;
 	}
 
 	sr_info("ols: setting samplerate to %" PRIu64 " Hz (divider %u, "
-		"demux %s)", ctx->cur_samplerate, ctx->cur_samplerate_divider,
-		ctx->flag_reg & FLAG_DEMUX ? "on" : "off");
-	if (send_longcommand(ctx->serial->fd, CMD_SET_DIVIDER,
-			reverse32(ctx->cur_samplerate_divider)) != SR_OK)
+		"demux %s)", devc->cur_samplerate, devc->cur_samplerate_divider,
+		devc->flag_reg & FLAG_DEMUX ? "on" : "off");
+	if (send_longcommand(devc->serial->fd, CMD_SET_DIVIDER,
+			reverse32(devc->cur_samplerate_divider)) != SR_OK)
 		return SR_ERR;
 
 	/* Send sample limit and pre/post-trigger capture ratio. */
 	data = ((readcount - 1) & 0xffff) << 16;
 	data |= (delaycount - 1) & 0xffff;
-	if (send_longcommand(ctx->serial->fd, CMD_CAPTURE_SIZE, reverse16(data)) != SR_OK)
+	if (send_longcommand(devc->serial->fd, CMD_CAPTURE_SIZE, reverse16(data)) != SR_OK)
 		return SR_ERR;
 
 	/* The flag register wants them here, and 1 means "disable channel". */
-	ctx->flag_reg |= ~(changrp_mask << 2) & 0x3c;
-	ctx->flag_reg |= FLAG_FILTER;
-	ctx->rle_count = 0;
-	data = (ctx->flag_reg << 24) | ((ctx->flag_reg << 8) & 0xff0000);
-	if (send_longcommand(ctx->serial->fd, CMD_SET_FLAGS, data) != SR_OK)
+	devc->flag_reg |= ~(changrp_mask << 2) & 0x3c;
+	devc->flag_reg |= FLAG_FILTER;
+	devc->rle_count = 0;
+	data = (devc->flag_reg << 24) | ((devc->flag_reg << 8) & 0xff0000);
+	if (send_longcommand(devc->serial->fd, CMD_SET_FLAGS, data) != SR_OK)
 		return SR_ERR;
 
 	/* Start acquisition on the device. */
-	if (send_shortcommand(ctx->serial->fd, CMD_RUN) != SR_OK)
+	if (send_shortcommand(devc->serial->fd, CMD_RUN) != SR_OK)
 		return SR_ERR;
 
-	sr_source_add(ctx->serial->fd, G_IO_IN, -1, receive_data,
+	sr_source_add(devc->serial->fd, G_IO_IN, -1, receive_data,
 		      cb_data);
 
 	if (!(packet = g_try_malloc(sizeof(struct sr_datafeed_packet)))) {
@@ -1017,7 +1031,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	/* Send metadata about the SR_DF_LOGIC packets to come. */
 	packet->type = SR_DF_META_LOGIC;
 	packet->payload = &meta;
-	meta.samplerate = ctx->cur_samplerate;
+	meta.samplerate = devc->cur_samplerate;
 	meta.num_probes = NUM_PROBES;
 	sr_session_send(cb_data, packet);
 
@@ -1055,5 +1069,5 @@ SR_PRIV struct sr_dev_driver ols_driver_info = {
 	.dev_config_set = hw_dev_config_set,
 	.dev_acquisition_start = hw_dev_acquisition_start,
 	.dev_acquisition_stop = hw_dev_acquisition_stop,
-	.instances = NULL,
+	.priv = NULL,
 };

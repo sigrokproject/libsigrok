@@ -59,8 +59,13 @@
 #define FLAG_CLOCK_INVERTED        0x80
 #define FLAG_RLE                   0x0100
 
+/* Private driver context. */
+struct drv_context {
+	GSList *instances;
+};
+
 /* Private, per-device-instance driver context. */
-struct context {
+struct dev_context {
 	uint32_t max_samplerate;
 	uint32_t max_samples;
 	uint32_t protocol_version;
