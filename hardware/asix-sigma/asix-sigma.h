@@ -173,8 +173,13 @@ struct sigma_state {
 	int chunks_downloaded;
 };
 
+/* Private driver context. */
+struct drv_context {
+	GSList *instances;
+};
+
 /* Private, per-device-instance driver context. */
-struct context {
+struct dev_context {
 	struct ftdi_context ftdic;
 	uint64_t cur_samplerate;
 	uint64_t period_ps;
