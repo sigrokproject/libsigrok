@@ -602,7 +602,6 @@ static int hw_cleanup(void)
 	if (!(drvc = fdi->priv))
 		return SR_OK;
 
-	drvc = fdi->priv;
 	ret = clear_instances();
 
 	if (drvc->usb_context)
