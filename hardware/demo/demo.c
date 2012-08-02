@@ -65,7 +65,13 @@ enum {
 
 /* FIXME: Should not be global. */
 
-struct context {
+/* Private driver context. */
+struct drv_context {
+	GSList *instances;
+};
+
+/* Private, per-device-instance driver context. */
+struct dev_context {
 	int pipe_fds[2];
 	GIOChannel *channels[2];
 	uint8_t sample_generator;
@@ -143,8 +149,13 @@ static int hw_dev_acquisition_stop(const struct sr_dev_inst *sdi,
 
 static int hw_init(void)
 {
+	struct drv_context *drvc;
 
-	/* Nothing to do. */
+	if (!(drvc = g_try_malloc0(sizeof(struct drv_context)))) {
+		sr_err("fx2lafw: driver context malloc failed.");
+		return SR_ERR;
+	}
+	ddi->priv = drvc;
 
 	return SR_OK;
 }
@@ -153,10 +164,12 @@ static GSList *hw_scan(GSList *options)
 {
 	struct sr_dev_inst *sdi;
 	struct sr_probe *probe;
+	struct drv_context *drvc;
 	GSList *devices;
 	int i;
 
 	(void)options;
+	drvc = ddi->priv;
 	devices = NULL;
 
 	sdi = sr_dev_inst_new(0, SR_ST_ACTIVE, DEMONAME, NULL, NULL);
@@ -174,7 +187,7 @@ static GSList *hw_scan(GSList *options)
 	}
 
 	devices = g_slist_append(devices, sdi);
-	ddi->instances = g_slist_append(ddi->instances, sdi);
+	drvc->instances = g_slist_append(drvc->instances, sdi);
 
 	return devices;
 }
@@ -293,13 +306,13 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 static void samples_generator(uint8_t *buf, uint64_t size, void *data)
 {
 	static uint64_t p = 0;
-	struct context *ctx = data;
+	struct dev_context *devc = data;
 	uint64_t i;
 
 	/* TODO: Needed? */
 	memset(buf, 0, size);
 
-	switch (ctx->sample_generator) {
+	switch (devc->sample_generator) {
 	case PATTERN_SIGROK: /* sigrok pattern */
 		for (i = 0; i < size; i++) {
 			*(buf + i) = ~(pattern_sigrok[p] >> 1);
@@ -323,7 +336,7 @@ static void samples_generator(uint8_t *buf, uint64_t size, void *data)
 		break;
 	default:
 		sr_err("demo: %s: unknown pattern %d", __func__,
-		       ctx->sample_generator);
+		       devc->sample_generator);
 		break;
 	}
 }
@@ -331,17 +344,17 @@ static void samples_generator(uint8_t *buf, uint64_t size, void *data)
 /* Thread function */
 static void thread_func(void *data)
 {
-	struct context *ctx = data;
+	struct dev_context *devc = data;
 	uint8_t buf[BUFSIZE];
 	uint64_t nb_to_send = 0;
 	int bytes_written;
 	double time_cur, time_last, time_diff;
 
-	time_last = g_timer_elapsed(ctx->timer, NULL);
+	time_last = g_timer_elapsed(devc->timer, NULL);
 
 	while (thread_running) {
 		/* Rate control */
-		time_cur = g_timer_elapsed(ctx->timer, NULL);
+		time_cur = g_timer_elapsed(devc->timer, NULL);
 
 		time_diff = time_cur - time_last;
 		time_last = time_cur;
@@ -350,7 +363,7 @@ static void thread_func(void *data)
 
 		if (limit_samples) {
 			nb_to_send = MIN(nb_to_send,
-				      limit_samples - ctx->samples_counter);
+				      limit_samples - devc->samples_counter);
 		}
 
 		/* Make sure we don't overflow. */
@@ -358,17 +371,17 @@ static void thread_func(void *data)
 
 		if (nb_to_send) {
 			samples_generator(buf, nb_to_send, data);
-			ctx->samples_counter += nb_to_send;
+			devc->samples_counter += nb_to_send;
 
-			g_io_channel_write_chars(ctx->channels[1], (gchar *)&buf,
+			g_io_channel_write_chars(devc->channels[1], (gchar *)&buf,
 				nb_to_send, (gsize *)&bytes_written, NULL);
 		}
 
 		/* Check if we're done. */
 		if ((limit_msec && time_cur * 1000 > limit_msec) ||
-		    (limit_samples && ctx->samples_counter >= limit_samples))
+		    (limit_samples && devc->samples_counter >= limit_samples))
 		{
-			close(ctx->pipe_fds[1]);
+			close(devc->pipe_fds[1]);
 			thread_running = 0;
 		}
 
@@ -379,7 +392,7 @@ static void thread_func(void *data)
 /* Callback handling data */
 static int receive_data(int fd, int revents, void *cb_data)
 {
-	struct context *ctx = cb_data;
+	struct dev_context *devc = cb_data;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
 	static uint64_t samples_received = 0;
@@ -391,7 +404,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 	(void)revents;
 
 	do {
-		g_io_channel_read_chars(ctx->channels[0],
+		g_io_channel_read_chars(devc->channels[0],
 				        (gchar *)&c, BUFSIZE, &z, NULL);
 
 		if (z > 0) {
@@ -400,18 +413,18 @@ static int receive_data(int fd, int revents, void *cb_data)
 			logic.length = z;
 			logic.unitsize = 1;
 			logic.data = c;
-			sr_session_send(ctx->session_dev_id, &packet);
+			sr_session_send(devc->session_dev_id, &packet);
 			samples_received += z;
 		}
 	} while (z > 0);
 
 	if (!thread_running && z <= 0) {
 		/* Make sure we don't receive more packets. */
-		g_io_channel_shutdown(ctx->channels[0], FALSE, NULL);
+		g_io_channel_shutdown(devc->channels[0], FALSE, NULL);
 
 		/* Send last packet. */
 		packet.type = SR_DF_END;
-		sr_session_send(ctx->session_dev_id, &packet);
+		sr_session_send(devc->session_dev_id, &packet);
 
 		return FALSE;
 	}
@@ -425,49 +438,49 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	struct sr_datafeed_packet *packet;
 	struct sr_datafeed_header *header;
 	struct sr_datafeed_meta_logic meta;
-	struct context *ctx;
+	struct dev_context *devc;
 
 	(void)sdi;
 
-	/* TODO: 'ctx' is never g_free()'d? */
-	if (!(ctx = g_try_malloc(sizeof(struct context)))) {
-		sr_err("demo: %s: ctx malloc failed", __func__);
+	/* TODO: 'devc' is never g_free()'d? */
+	if (!(devc = g_try_malloc(sizeof(struct dev_context)))) {
+		sr_err("demo: %s: devc malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 
-	ctx->sample_generator = default_pattern;
-	ctx->session_dev_id = cb_data;
-	ctx->samples_counter = 0;
+	devc->sample_generator = default_pattern;
+	devc->session_dev_id = cb_data;
+	devc->samples_counter = 0;
 
-	if (pipe(ctx->pipe_fds)) {
+	if (pipe(devc->pipe_fds)) {
 		/* TODO: Better error message. */
 		sr_err("demo: %s: pipe() failed", __func__);
 		return SR_ERR;
 	}
 
-	ctx->channels[0] = g_io_channel_unix_new(ctx->pipe_fds[0]);
-	ctx->channels[1] = g_io_channel_unix_new(ctx->pipe_fds[1]);
+	devc->channels[0] = g_io_channel_unix_new(devc->pipe_fds[0]);
+	devc->channels[1] = g_io_channel_unix_new(devc->pipe_fds[1]);
 
-	g_io_channel_set_flags(ctx->channels[0], G_IO_FLAG_NONBLOCK, NULL);
+	g_io_channel_set_flags(devc->channels[0], G_IO_FLAG_NONBLOCK, NULL);
 
 	/* Set channel encoding to binary (default is UTF-8). */
-	g_io_channel_set_encoding(ctx->channels[0], NULL, NULL);
-	g_io_channel_set_encoding(ctx->channels[1], NULL, NULL);
+	g_io_channel_set_encoding(devc->channels[0], NULL, NULL);
+	g_io_channel_set_encoding(devc->channels[1], NULL, NULL);
 
 	/* Make channels to unbuffered. */
-	g_io_channel_set_buffered(ctx->channels[0], FALSE);
-	g_io_channel_set_buffered(ctx->channels[1], FALSE);
+	g_io_channel_set_buffered(devc->channels[0], FALSE);
+	g_io_channel_set_buffered(devc->channels[1], FALSE);
 
-	sr_session_source_add_channel(ctx->channels[0], G_IO_IN | G_IO_ERR,
-		    40, receive_data, ctx);
+	sr_session_source_add_channel(devc->channels[0], G_IO_IN | G_IO_ERR,
+		    40, receive_data, devc);
 
 	/* Run the demo thread. */
 	g_thread_init(NULL);
 	/* This must to be done between g_thread_init() & g_thread_create(). */
-	ctx->timer = g_timer_new();
+	devc->timer = g_timer_new();
 	thread_running = 1;
 	my_thread =
-	    g_thread_create((GThreadFunc)thread_func, ctx, TRUE, NULL);
+	    g_thread_create((GThreadFunc)thread_func, devc, TRUE, NULL);
 	if (!my_thread) {
 		sr_err("demo: %s: g_thread_create failed", __func__);
 		return SR_ERR; /* TODO */
@@ -487,14 +500,14 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	packet->payload = header;
 	header->feed_version = 1;
 	gettimeofday(&header->starttime, NULL);
-	sr_session_send(ctx->session_dev_id, packet);
+	sr_session_send(devc->session_dev_id, packet);
 
 	/* Send metadata about the SR_DF_LOGIC packets to come. */
 	packet->type = SR_DF_META_LOGIC;
 	packet->payload = &meta;
 	meta.samplerate = cur_samplerate;
 	meta.num_probes = NUM_PROBES;
-	sr_session_send(ctx->session_dev_id, packet);
+	sr_session_send(devc->session_dev_id, packet);
 
 	g_free(header);
 	g_free(packet);
@@ -528,5 +541,5 @@ SR_PRIV struct sr_dev_driver demo_driver_info = {
 	.dev_config_set = hw_dev_config_set,
 	.dev_acquisition_start = hw_dev_acquisition_start,
 	.dev_acquisition_stop = hw_dev_acquisition_stop,
-	.instances = NULL,
+	.priv = NULL,
 };
