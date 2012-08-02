@@ -509,7 +509,6 @@ struct sr_session {
 	/* list of sr_receive_data_callback_t */
 	GSList *datafeed_callbacks;
 	GTimeVal starttime;
-	gboolean running;
 
 	unsigned int num_sources;
 

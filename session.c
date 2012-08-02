@@ -205,27 +205,25 @@ SR_API int sr_session_datafeed_callback_add(sr_datafeed_callback_t cb)
 	return SR_OK;
 }
 
-/**
- * TODO.
- */
 static int sr_session_run_poll(void)
 {
 	unsigned int i;
 	int ret;
 
-	while (session->running) {
-		ret = g_poll(session->pollfds, session->num_sources, session->source_timeout);
-
+	while (session->num_sources > 0) {
+		ret = g_poll(session->pollfds, session->num_sources,
+				session->source_timeout);
 		for (i = 0; i < session->num_sources; i++) {
 			if (session->pollfds[i].revents > 0 || (ret == 0
 				&& session->source_timeout == session->sources[i].timeout)) {
 				/*
 				 * Invoke the source's callback on an event,
-				 * or if the poll timeout out and this source
+				 * or if the poll timed out and this source
 				 * asked for that timeout.
 				 */
-				if (!session->sources[i].cb(session->pollfds[i].fd, session->pollfds[i].revents,
-						  session->sources[i].cb_data))
+				if (!session->sources[i].cb(session->pollfds[i].fd,
+						session->pollfds[i].revents,
+						session->sources[i].cb_data))
 					sr_session_source_remove(session->sources[i].poll_object);
 			}
 		}
@@ -298,12 +296,11 @@ SR_API int sr_session_run(void)
 	}
 
 	sr_info("session: running");
-	session->running = TRUE;
 
 	/* Do we have real sources? */
 	if (session->num_sources == 1 && session->pollfds[0].fd == -1) {
 		/* Dummy source, freewheel over it. */
-		while (session->running)
+		while (session->num_sources)
 			session->sources[0].cb(-1, 0, session->sources[0].cb_data);
 	} else {
 		/* Real sources, use g_poll() main loop. */
@@ -346,7 +343,6 @@ SR_API int sr_session_stop(void)
 	}
 
 	sr_info("session: stopping");
-	session->running = FALSE;
 
 	for (l = session->devs; l; l = l->next) {
 		sdi = l->data;
