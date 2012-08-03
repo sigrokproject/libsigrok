@@ -518,12 +518,17 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 static int hw_dev_acquisition_stop(const struct sr_dev_inst *sdi,
 		void *cb_data)
 {
+	struct dev_context *devc;
+
 	/* Avoid compiler warnings. */
-	(void)sdi;
 	(void)cb_data;
+
+	devc = sdi->priv;
 
 	/* Stop generate thread. */
 	thread_running = 0;
+
+	sr_session_source_remove_channel(devc->channels[0]);
 
 	return SR_OK;
 }
