@@ -426,7 +426,6 @@ static void clear_instances(void)
 		if (sdi->priv) {
 			devc = sdi->priv;
 			ftdi_free(&devc->ftdic);
-			g_free(devc);
 		}
 		sr_dev_inst_free(sdi);
 	}
