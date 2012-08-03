@@ -1417,6 +1417,8 @@ static int hw_dev_acquisition_stop(const struct sr_dev_inst *sdi,
 	/* Avoid compiler warnings. */
 	(void)cb_data;
 
+	sr_source_remove(0);
+
 	if (!(devc = sdi->priv)) {
 		sr_err("sigma: %s: sdi->priv was NULL", __func__);
 		return SR_ERR_BUG;
