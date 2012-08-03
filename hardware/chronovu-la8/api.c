@@ -253,7 +253,6 @@ static int hw_dev_close(struct sr_dev_inst *sdi)
 
 	if (sdi->status == SR_ST_ACTIVE) {
 		sr_dbg("la8: Status ACTIVE, closing device.");
-		/* TODO: Really ignore errors here, or return SR_ERR? */
 		(void) la8_close_usb_reset_sequencer(devc); /* Ignore errors. */
 	} else {
 		sr_spew("la8: Status not ACTIVE, nothing to do.");
@@ -418,7 +417,6 @@ static int receive_data(int fd, int revents, void *cb_data)
 
 	hw_dev_acquisition_stop(sdi, sdi);
 
-	// return FALSE; /* FIXME? */
 	return TRUE;
 }
 
@@ -464,7 +462,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 		return SR_ERR;
 	} else if (bytes_written != 4) {
 		sr_err("la8: Acquisition failed to start.");
-		return SR_ERR; /* TODO: Other error and return code? */
+		return SR_ERR;
 	}
 
 	sr_dbg("la8: Acquisition started successfully.");
@@ -501,17 +499,12 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 static int hw_dev_acquisition_stop(const struct sr_dev_inst *sdi,
 		void *cb_data)
 {
-	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
 
+	(void)sdi;
+
 	sr_dbg("la8: Stopping acquisition.");
-
 	sr_source_remove(-1);
-
-	if (!(devc = sdi->priv)) {
-		sr_err("la8: %s: sdi->priv was NULL", __func__);
-		return SR_ERR_BUG;
-	}
 
 	/* Send end packet to the session bus. */
 	sr_dbg("la8: Sending SR_DF_END.");
