@@ -506,6 +506,8 @@ static int hw_dev_acquisition_stop(const struct sr_dev_inst *sdi,
 
 	sr_dbg("la8: Stopping acquisition.");
 
+	sr_source_remove(-1);
+
 	if (!(devc = sdi->priv)) {
 		sr_err("la8: %s: sdi->priv was NULL", __func__);
 		return SR_ERR_BUG;
