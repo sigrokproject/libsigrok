@@ -422,6 +422,7 @@ static int hw_cleanup(void)
 			switch (devc->profile->transport) {
 			case DMM_TRANSPORT_USBHID:
 				/* TODO */
+				sr_usb_dev_inst_free(devc->usb);
 				break;
 			case DMM_TRANSPORT_SERIAL:
 				if (devc->serial && devc->serial->fd != -1)

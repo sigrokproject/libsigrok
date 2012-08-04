@@ -385,6 +385,7 @@ static int clear_instances(void)
 			continue;
 		}
 		hw_dev_close(sdi);
+		sr_usb_dev_inst_free(devc->usb);
 		sdi = l->data;
 		sr_dev_inst_free(sdi);
 	}

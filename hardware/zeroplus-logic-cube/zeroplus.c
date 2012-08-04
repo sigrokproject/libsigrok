@@ -232,10 +232,17 @@ static void clear_instances(void)
 	GSList *l;
 	struct sr_dev_inst *sdi;
 	struct drv_context *drvc;
+	struct dev_context *devc;
 
 	drvc = zdi->priv;
 	for (l = drvc->instances; l; l = l->next) {
 		sdi = l->data;
+		if (!(devc = sdi->priv)) {
+			/* Log error, but continue cleaning up the rest. */
+			sr_err("zeroplus: %s: sdi->priv was NULL, continuing", __func__);
+			continue;
+		}
+		sr_usb_dev_inst_free(devc->usb);
 		/* Properly close all devices... */
 		hw_dev_close(sdi);
 		/* ...and free all their memory. */
