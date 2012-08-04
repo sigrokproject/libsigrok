@@ -264,17 +264,17 @@ SR_API const struct sr_hwcap_option *sr_drvopt_get(int hwopt)
 /**
  * Get information about a device option.
  *
- * @param hwcap The capability to get.
+ * @param hwopt The option to get.
  *
  * @return A pointer to a struct with information about the parameter, or NULL
  *         if the capability was not found.
  */
-SR_API const struct sr_hwcap_option *sr_hw_hwcap_get(int hwcap)
+SR_API const struct sr_hwcap_option *sr_devopt_get(int hwopt)
 {
 	int i;
 
 	for (i = 0; sr_hwcap_options[i].hwcap; i++) {
-		if (sr_hwcap_options[i].hwcap == hwcap)
+		if (sr_hwcap_options[i].hwcap == hwopt)
 			return &sr_hwcap_options[i];
 	}
 
