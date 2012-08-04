@@ -209,11 +209,21 @@ SR_PRIV struct sr_dev_inst *sr_dev_inst_new(int index, int status,
 
 SR_PRIV void sr_dev_inst_free(struct sr_dev_inst *sdi)
 {
+	struct sr_probe *probe;
+	GSList *l;
+
+	for (l = sdi->probes; l; l = l->next) {
+		probe = l->data;
+		g_free(probe->name);
+		g_free(probe);
+	}
+
 	g_free(sdi->priv);
 	g_free(sdi->vendor);
 	g_free(sdi->model);
 	g_free(sdi->version);
 	g_free(sdi);
+
 }
 
 #ifdef HAVE_LIBUSB_1_0
