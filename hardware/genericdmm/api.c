@@ -219,6 +219,52 @@ static GSList *default_scan(GSList *options)
 	return devices;
 }
 
+static int clear_instances(void)
+{
+	GSList *l;
+	struct sr_dev_inst *sdi;
+	struct dev_context *devc;
+	struct drv_context *drvc;
+
+	if (!(drvc = gdi->priv))
+		return SR_OK;
+
+	/* Properly close and free all devices. */
+	for (l = drvc->instances; l; l = l->next) {
+		if (!(sdi = l->data)) {
+			/* Log error, but continue cleaning up the rest. */
+			sr_err("genericdmm: sdi was NULL, continuing.");
+			continue;
+		}
+		if (!(devc = sdi->priv)) {
+			/* Log error, but continue cleaning up the rest. */
+			sr_err("genericdmm: sdi->priv was NULL, continuing.");
+			continue;
+		}
+
+		if (devc->profile) {
+			switch (devc->profile->transport) {
+			case DMM_TRANSPORT_USBHID:
+				/* TODO */
+				sr_usb_dev_inst_free(devc->usb);
+				break;
+			case DMM_TRANSPORT_SERIAL:
+				if (devc->serial && devc->serial->fd != -1)
+					serial_close(devc->serial->fd);
+				sr_serial_dev_inst_free(devc->serial);
+				break;
+			}
+		}
+
+		sr_dev_inst_free(sdi);
+	}
+
+	g_slist_free(drvc->instances);
+	drvc->instances = NULL;
+
+	return SR_OK;
+}
+
 static int hw_init(void)
 {
 	struct drv_context *drvc;
@@ -338,6 +384,15 @@ static GSList *hw_scan(GSList *options)
 	return devices;
 }
 
+static GSList *hw_dev_list(void)
+{
+	struct drv_context *drvc;
+
+	drvc = gdi->priv;
+
+	return drvc->instances;
+}
+
 static int hw_dev_open(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
@@ -347,14 +402,13 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 		return SR_ERR_BUG;
 	}
 
-	sr_dbg("genericdmm: Opening serial port '%s'.", devc->serial->port);
-
 	switch (devc->profile->transport) {
 	case DMM_TRANSPORT_USBHID:
 		/* TODO */
 		break;
 	case DMM_TRANSPORT_SERIAL:
 		/* TODO: O_NONBLOCK? */
+		sr_dbg("genericdmm: Opening serial port '%s'.", devc->serial->port);
 		devc->serial->fd = serial_open(devc->serial->port, O_RDWR | O_NONBLOCK);
 		if (devc->serial->fd == -1) {
 			sr_err("genericdmm: Couldn't open serial port '%s'.",
@@ -397,46 +451,8 @@ static int hw_dev_close(struct sr_dev_inst *sdi)
 
 static int hw_cleanup(void)
 {
-	GSList *l;
-	struct sr_dev_inst *sdi;
-	struct dev_context *devc;
-	struct drv_context *drvc;
 
-	if (!(drvc = gdi->priv))
-		return SR_OK;
-
-	/* Properly close and free all devices. */
-	for (l = drvc->instances; l; l = l->next) {
-		if (!(sdi = l->data)) {
-			/* Log error, but continue cleaning up the rest. */
-			sr_err("genericdmm: sdi was NULL, continuing.");
-			continue;
-		}
-		if (!(devc = sdi->priv)) {
-			/* Log error, but continue cleaning up the rest. */
-			sr_err("genericdmm: sdi->priv was NULL, continuing.");
-			continue;
-		}
-
-		if (devc->profile) {
-			switch (devc->profile->transport) {
-			case DMM_TRANSPORT_USBHID:
-				/* TODO */
-				sr_usb_dev_inst_free(devc->usb);
-				break;
-			case DMM_TRANSPORT_SERIAL:
-				if (devc->serial && devc->serial->fd != -1)
-					serial_close(devc->serial->fd);
-				sr_serial_dev_inst_free(devc->serial);
-				break;
-			}
-		}
-
-		sr_dev_inst_free(sdi);
-	}
-
-	g_slist_free(drvc->instances);
-	drvc->instances = NULL;
+	clear_instances();
 
 	if (genericdmm_usb_context)
 		libusb_exit(genericdmm_usb_context);
@@ -610,6 +626,8 @@ SR_PRIV struct sr_dev_driver genericdmm_driver_info = {
 	.init = hw_init,
 	.cleanup = hw_cleanup,
 	.scan = hw_scan,
+	.dev_list = hw_dev_list,
+	.dev_clear = clear_instances,
 	.dev_open = hw_dev_open,
 	.dev_close = hw_dev_close,
 	.info_get = hw_info_get,

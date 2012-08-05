@@ -41,7 +41,7 @@ static const uint16_t usb_pids[] = {
 static int hw_dev_acquisition_stop(const struct sr_dev_inst *sdi,
 		void *cb_data);
 
-static void clear_instances(void)
+static int clear_instances(void)
 {
 	GSList *l;
 	struct sr_dev_inst *sdi;
@@ -66,6 +66,7 @@ static void clear_instances(void)
 	g_slist_free(drvc->instances);
 	drvc->instances = NULL;
 
+	return SR_OK;
 }
 
 static int hw_init(void)
@@ -184,6 +185,15 @@ err_free_devc:
 err_free_nothing:
 
 	return NULL;
+}
+
+static GSList *hw_dev_list(void)
+{
+	struct drv_context *drvc;
+
+	drvc = cdi->priv;
+
+	return drvc->instances;
 }
 
 static int hw_dev_open(struct sr_dev_inst *sdi)
@@ -519,6 +529,8 @@ SR_PRIV struct sr_dev_driver chronovu_la8_driver_info = {
 	.init = hw_init,
 	.cleanup = hw_cleanup,
 	.scan = hw_scan,
+	.dev_list = hw_dev_list,
+	.dev_clear = clear_instances,
 	.dev_open = hw_dev_open,
 	.dev_close = hw_dev_close,
 	.info_get = hw_info_get,

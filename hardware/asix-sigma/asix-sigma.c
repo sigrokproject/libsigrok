@@ -406,7 +406,7 @@ static int bin2bitbang(const char *filename,
 	return SR_OK;
 }
 
-static void clear_instances(void)
+static int clear_instances(void)
 {
 	GSList *l;
 	struct sr_dev_inst *sdi;
@@ -431,6 +431,7 @@ static void clear_instances(void)
 	g_slist_free(drvc->instances);
 	drvc->instances = NULL;
 
+	return SR_OK;
 }
 
 static int hw_init(void)
@@ -529,6 +530,15 @@ free:
 	ftdi_deinit(&devc->ftdic);
 	g_free(devc);
 	return NULL;
+}
+
+static GSList *hw_dev_list(void)
+{
+	struct drv_context *drvc;
+
+	drvc = adi->priv;
+
+	return drvc->instances;
 }
 
 static int upload_firmware(int firmware_idx, struct dev_context *devc)
@@ -1455,6 +1465,8 @@ SR_PRIV struct sr_dev_driver asix_sigma_driver_info = {
 	.init = hw_init,
 	.cleanup = hw_cleanup,
 	.scan = hw_scan,
+	.dev_list = hw_dev_list,
+	.dev_clear = clear_instances,
 	.dev_open = hw_dev_open,
 	.dev_close = hw_dev_close,
 	.info_get = hw_info_get,

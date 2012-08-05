@@ -221,7 +221,7 @@ static int configure_probes(const struct sr_dev_inst *sdi)
 }
 
 /* Properly close and free all devices. */
-static void clear_instances(void)
+static int clear_instances(void)
 {
 	struct sr_dev_inst *sdi;
 	struct drv_context *drvc;
@@ -250,6 +250,7 @@ static void clear_instances(void)
 	g_slist_free(drvc->instances);
 	drvc->instances = NULL;
 
+	return SR_OK;
 }
 
 static int hw_init(void)
@@ -344,6 +345,15 @@ static GSList *hw_scan(GSList *options)
 	libusb_free_device_list(devlist, 1);
 
 	return devices;
+}
+
+static GSList *hw_dev_list(void)
+{
+	struct drv_context *drvc;
+
+	drvc = hdi->priv;
+
+	return drvc->instances;
 }
 
 static int hw_dev_open(struct sr_dev_inst *sdi)
@@ -904,6 +914,8 @@ SR_PRIV struct sr_dev_driver hantek_dso_driver_info = {
 	.init = hw_init,
 	.cleanup = hw_cleanup,
 	.scan = hw_scan,
+	.dev_list = hw_dev_list,
+	.dev_clear = clear_instances,
 	.dev_open = hw_dev_open,
 	.dev_close = hw_dev_close,
 	.info_get = hw_info_get,

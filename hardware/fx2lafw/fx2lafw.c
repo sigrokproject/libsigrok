@@ -511,6 +511,15 @@ static GSList *hw_scan(GSList *options)
 	return devices;
 }
 
+static GSList *hw_dev_list(void)
+{
+	struct drv_context *drvc;
+
+	drvc = fdi->priv;
+
+	return drvc->instances;
+}
+
 static int hw_dev_open(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
@@ -1046,6 +1055,8 @@ SR_PRIV struct sr_dev_driver fx2lafw_driver_info = {
 	.init = hw_init,
 	.cleanup = hw_cleanup,
 	.scan = hw_scan,
+	.dev_list = hw_dev_list,
+	.dev_clear = clear_instances,
 	.dev_open = hw_dev_open,
 	.dev_close = hw_dev_close,
 	.info_get = hw_info_get,

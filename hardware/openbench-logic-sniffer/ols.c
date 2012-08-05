@@ -519,6 +519,15 @@ hw_init_free_ports:
 	return devices;
 }
 
+static GSList *hw_dev_list(void)
+{
+	struct drv_context *drvc;
+
+	drvc = odi->priv;
+
+	return drvc->instances;
+}
+
 static int hw_dev_open(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
@@ -1082,6 +1091,8 @@ SR_PRIV struct sr_dev_driver ols_driver_info = {
 	.init = hw_init,
 	.cleanup = hw_cleanup,
 	.scan = hw_scan,
+	.dev_list = hw_dev_list,
+	.dev_clear = hw_cleanup,
 	.dev_open = hw_dev_open,
 	.dev_close = hw_dev_close,
 	.info_get = hw_info_get,

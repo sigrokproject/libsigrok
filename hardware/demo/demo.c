@@ -192,6 +192,15 @@ static GSList *hw_scan(GSList *options)
 	return devices;
 }
 
+static GSList *hw_dev_list(void)
+{
+	struct drv_context *drvc;
+
+	drvc = ddi->priv;
+
+	return drvc->instances;
+}
+
 static int hw_dev_open(struct sr_dev_inst *sdi)
 {
 	/* Avoid compiler warnings. */
@@ -537,6 +546,7 @@ SR_PRIV struct sr_dev_driver demo_driver_info = {
 	.init = hw_init,
 	.cleanup = hw_cleanup,
 	.scan = hw_scan,
+	.dev_list = hw_dev_list,
 	.dev_open = hw_dev_open,
 	.dev_close = hw_dev_close,
 	.info_get = hw_info_get,

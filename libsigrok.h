@@ -482,6 +482,8 @@ struct sr_dev_driver {
 	int (*init) (void);
 	int (*cleanup) (void);
 	GSList *(*scan) (GSList *options);
+	GSList *(*dev_list) (void);
+	int (*dev_clear) (void);
 
 	/* Device-specific */
 	int (*dev_open) (struct sr_dev_inst *sdi);
