@@ -297,20 +297,22 @@ static int fx2lafw_dev_open(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int configure_probes(struct dev_context *devc, GSList *probes)
+static int configure_probes(const struct sr_dev_inst *sdi)
 {
+	struct dev_context *devc;
 	struct sr_probe *probe;
 	GSList *l;
 	int probe_bit, stage, i;
 	char *tc;
 
+	devc = sdi->priv;
 	for (i = 0; i < NUM_TRIGGER_STAGES; i++) {
 		devc->trigger_mask[i] = 0;
 		devc->trigger_value[i] = 0;
 	}
 
 	stage = -1;
-	for (l = probes; l; l = l->next) {
+	for (l = sdi->probes; l; l = l->next) {
 		probe = (struct sr_probe *)l->data;
 		if (probe->enabled == FALSE)
 			continue;
@@ -667,8 +669,6 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 	if (hwcap == SR_HWCAP_SAMPLERATE) {
 		devc->cur_samplerate = *(const uint64_t *)value;
 		ret = SR_OK;
-	} else if (hwcap == SR_HWCAP_PROBECONFIG) {
-		ret = configure_probes(devc, (GSList *) value);
 	} else if (hwcap == SR_HWCAP_LIMIT_SAMPLES) {
 		devc->limit_samples = *(const uint64_t *)value;
 		ret = SR_OK;
@@ -959,6 +959,11 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	devc = sdi->priv;
 	if (devc->submitted_transfers != 0)
 		return SR_ERR;
+
+	if (configure_probes(sdi) != SR_OK) {
+		sr_err("fx2lafw: failed to configured probes");
+		return SR_ERR;
+	}
 
 	devc->session_dev_id = cb_data;
 	devc->num_samples = 0;

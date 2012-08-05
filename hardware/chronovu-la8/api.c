@@ -338,12 +338,6 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		}
 		sr_dbg("la8: SAMPLERATE = %" PRIu64, devc->cur_samplerate);
 		break;
-	case SR_HWCAP_PROBECONFIG:
-		if (configure_probes(devc, (const GSList *)value) != SR_OK) {
-			sr_err("la8: %s: probe config failed.", __func__);
-			return SR_ERR;
-		}
-		break;
 	case SR_HWCAP_LIMIT_MSEC:
 		if (*(const uint64_t *)value == 0) {
 			sr_err("la8: %s: LIMIT_MSEC can't be 0.", __func__);
@@ -442,6 +436,11 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	devc->divcount = samplerate_to_divcount(devc->cur_samplerate);
 	if (devc->divcount == 0xff) {
 		sr_err("la8: %s: invalid divcount/samplerate", __func__);
+		return SR_ERR;
+	}
+
+	if (configure_probes(sdi) != SR_OK) {
+		sr_err("chronovu-la8: failed to configured probes");
 		return SR_ERR;
 	}
 

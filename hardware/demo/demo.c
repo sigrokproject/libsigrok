@@ -258,10 +258,7 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 
 	(void)sdi;
 
-	if (hwcap == SR_HWCAP_PROBECONFIG) {
-		/* Nothing to do, but must be supported */
-		ret = SR_OK;
-	} else if (hwcap == SR_HWCAP_SAMPLERATE) {
+	if (hwcap == SR_HWCAP_SAMPLERATE) {
 		cur_samplerate = *(const uint64_t *)value;
 		sr_dbg("demo: %s: setting samplerate to %" PRIu64, __func__,
 		       cur_samplerate);

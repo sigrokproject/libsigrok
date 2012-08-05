@@ -305,10 +305,6 @@ enum {
 	/** The device supports setting/changing its samplerate. */
 	SR_HWCAP_SAMPLERATE,
 
-	/* TODO: Better description? Rename to PROBE_AND_TRIGGER_CONFIG? */
-	/** The device supports setting a probe mask. */
-	SR_HWCAP_PROBECONFIG,
-
 	/** The device supports setting a pre/post-trigger capture ratio. */
 	SR_HWCAP_CAPTURE_RATIO,
 

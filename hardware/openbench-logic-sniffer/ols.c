@@ -131,12 +131,15 @@ static int send_longcommand(int fd, uint8_t command, uint32_t data)
 	return SR_OK;
 }
 
-static int configure_probes(struct dev_context *devc, const GSList *probes)
+static int configure_probes(const struct sr_dev_inst *sdi)
 {
+	struct dev_context *devc;
 	const struct sr_probe *probe;
 	const GSList *l;
 	int probe_bit, stage, i;
 	char *tc;
+
+	devc = sdi->priv;
 
 	devc->probe_mask = 0;
 	for (i = 0; i < NUM_TRIGGER_STAGES; i++) {
@@ -145,7 +148,7 @@ static int configure_probes(struct dev_context *devc, const GSList *probes)
 	}
 
 	devc->num_stages = 0;
-	for (l = probes; l; l = l->next) {
+	for (l = sdi->probes; l; l = l->next) {
 		probe = (const struct sr_probe *)l->data;
 		if (!probe->enabled)
 			continue;
@@ -667,9 +670,6 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 	case SR_HWCAP_SAMPLERATE:
 		ret = set_samplerate(sdi, *(const uint64_t *)value);
 		break;
-	case SR_HWCAP_PROBECONFIG:
-		ret = configure_probes(devc, (const GSList *)value);
-		break;
 	case SR_HWCAP_LIMIT_SAMPLES:
 		tmp_u64 = value;
 		if (*tmp_u64 < MIN_NUM_SAMPLES)
@@ -919,6 +919,11 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR;
+
+	if (configure_probes(sdi) != SR_OK) {
+		sr_err("ols: failed to configured probes");
+		return SR_ERR;
+	}
 
 	/*
 	 * Enable/disable channel groups in the flag register according to the

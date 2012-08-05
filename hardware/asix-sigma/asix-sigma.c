@@ -93,7 +93,6 @@ static const int hwcaps[] = {
 	SR_HWCAP_LOGIC_ANALYZER,
 	SR_HWCAP_SAMPLERATE,
 	SR_HWCAP_CAPTURE_RATIO,
-	SR_HWCAP_PROBECONFIG,
 
 	SR_HWCAP_LIMIT_MSEC,
 	0,
@@ -689,7 +688,7 @@ static int set_samplerate(const struct sr_dev_inst *sdi, uint64_t samplerate)
  * The Sigma supports complex triggers using boolean expressions, but this
  * has not been implemented yet.
  */
-static int configure_probes(const struct sr_dev_inst *sdi, const GSList *probes)
+static int configure_probes(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc = sdi->priv;
 	const struct sr_probe *probe;
@@ -699,7 +698,7 @@ static int configure_probes(const struct sr_dev_inst *sdi, const GSList *probes)
 
 	memset(&devc->trigger, 0, sizeof(struct sigma_trigger));
 
-	for (l = probes; l; l = l->next) {
+	for (l = sdi->probes; l; l = l->next) {
 		probe = (struct sr_probe *)l->data;
 		probebit = 1 << (probe->index);
 
@@ -837,8 +836,6 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 
 	if (hwcap == SR_HWCAP_SAMPLERATE) {
 		ret = set_samplerate(sdi, *(const uint64_t *)value);
-	} else if (hwcap == SR_HWCAP_PROBECONFIG) {
-		ret = configure_probes(sdi, value);
 	} else if (hwcap == SR_HWCAP_LIMIT_MSEC) {
 		devc->limit_msec = *(const uint64_t *)value;
 		if (devc->limit_msec > 0)
@@ -1291,6 +1288,11 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	struct triggerlut lut;
 
 	devc = sdi->priv;
+
+	if (configure_probes(sdi) != SR_OK) {
+		sr_err("asix-sigma: failed to configured probes");
+		return SR_ERR;
+	}
 
 	/* If the samplerate has not been set, default to 200 kHz. */
 	if (devc->cur_firmware == -1) {

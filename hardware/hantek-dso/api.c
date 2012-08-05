@@ -200,13 +200,16 @@ static struct sr_dev_inst *dso_dev_new(int index, const struct dso_profile *prof
 	return sdi;
 }
 
-static int configure_probes(struct dev_context *devc, const GSList *probes)
+static int configure_probes(const struct sr_dev_inst *sdi)
 {
+	struct dev_context *devc;
 	const struct sr_probe *probe;
 	const GSList *l;
 
+	devc = sdi->priv;
+
 	devc->ch1_enabled = devc->ch2_enabled = FALSE;
-	for (l = probes; l; l = l->next) {
+	for (l = sdi->probes; l; l = l->next) {
 		probe = (struct sr_probe *)l->data;
 		if (probe->index == 0)
 			devc->ch1_enabled = probe->enabled;
@@ -476,9 +479,6 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 	switch (hwcap) {
 	case SR_HWCAP_LIMIT_FRAMES:
 		devc->limit_frames = *(const uint64_t *)value;
-		break;
-	case SR_HWCAP_PROBECONFIG:
-		ret = configure_probes(devc, (const GSList *)value);
 		break;
 	case SR_HWCAP_TRIGGER_SLOPE:
 		tmp_u64 = *(const int *)value;
@@ -846,6 +846,11 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 
 	devc = sdi->priv;
 	devc->cb_data = cb_data;
+
+	if (configure_probes(sdi) != SR_OK) {
+		sr_err("hantek-dso: failed to configured probes");
+		return SR_ERR;
+	}
 
 	if (dso_init(devc) != SR_OK)
 		return SR_ERR;

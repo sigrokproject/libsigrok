@@ -120,7 +120,7 @@ SR_PRIV int la8_read(struct dev_context *devc, uint8_t *buf, int size);
 SR_PRIV int la8_close(struct dev_context *devc);
 SR_PRIV int la8_close_usb_reset_sequencer(struct dev_context *devc);
 SR_PRIV int la8_reset(struct dev_context *devc);
-SR_PRIV int configure_probes(struct dev_context *devc, const GSList *probes);
+SR_PRIV int configure_probes(const struct sr_dev_inst *sdi);
 SR_PRIV int set_samplerate(const struct sr_dev_inst *sdi, uint64_t samplerate);
 SR_PRIV int la8_read_block(struct dev_context *devc);
 SR_PRIV void send_block_to_session_bus(struct dev_context *devc, int block);

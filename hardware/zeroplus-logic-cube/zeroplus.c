@@ -72,7 +72,6 @@ static model_t zeroplus_models[] = {
 static const int hwcaps[] = {
 	SR_HWCAP_LOGIC_ANALYZER,
 	SR_HWCAP_SAMPLERATE,
-	SR_HWCAP_PROBECONFIG,
 	SR_HWCAP_CAPTURE_RATIO,
 
 	/* These are really implemented in the driver, not the hardware. */
@@ -186,7 +185,7 @@ static unsigned int get_memory_size(int type)
 		return 0;
 }
 
-static int configure_probes(const struct sr_dev_inst *sdi, const GSList *probes)
+static int configure_probes(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	const struct sr_probe *probe;
@@ -204,7 +203,7 @@ static int configure_probes(const struct sr_dev_inst *sdi, const GSList *probes)
 	}
 
 	stage = -1;
-	for (l = probes; l; l = l->next) {
+	for (l = sdi->probes; l; l = l->next) {
 		probe = (struct sr_probe *)l->data;
 		if (probe->enabled == FALSE)
 			continue;
@@ -571,8 +570,6 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 	switch (hwcap) {
 	case SR_HWCAP_SAMPLERATE:
 		return set_samplerate(sdi, *(const uint64_t *)value);
-	case SR_HWCAP_PROBECONFIG:
-		return configure_probes(sdi, (const GSList *)value);
 	case SR_HWCAP_LIMIT_SAMPLES:
 		devc->limit_samples = *(const uint64_t *)value;
 		return SR_OK;
@@ -597,6 +594,11 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	if (!(devc = sdi->priv)) {
 		sr_err("zp: %s: sdi->priv was NULL", __func__);
 		return SR_ERR_ARG;
+	}
+
+	if (configure_probes(sdi) != SR_OK) {
+		sr_err("zp: failed to configured probes");
+		return SR_ERR;
 	}
 
 	/* push configured settings to device */

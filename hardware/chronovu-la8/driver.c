@@ -319,19 +319,19 @@ SR_PRIV int la8_reset(struct dev_context *devc)
 	return SR_OK;
 }
 
-SR_PRIV int configure_probes(struct dev_context *devc, const GSList *probes)
+SR_PRIV int configure_probes(const struct sr_dev_inst *sdi)
 {
+	struct dev_context *devc;
 	const struct sr_probe *probe;
 	const GSList *l;
 	uint8_t probe_bit;
 	char *tc;
 
-	/* Note: Caller checked that devc != NULL. */
-
+	devc = sdi->priv;
 	devc->trigger_pattern = 0;
 	devc->trigger_mask = 0; /* Default to "don't care" for all probes. */
 
-	for (l = probes; l; l = l->next) {
+	for (l = sdi->probes; l; l = l->next) {
 		probe = (struct sr_probe *)l->data;
 
 		if (!probe) {
