@@ -28,7 +28,7 @@
 
 
 /* Driver scanning options. */
-SR_API struct sr_hwcap_option sr_drvopts[] = {
+static struct sr_hwcap_option sr_drvopts[] = {
 	{SR_HWOPT_MODEL, SR_T_KEYVALUE, "Model", "model"},
 	{SR_HWOPT_CONN, SR_T_CHAR, "Connection", "conn"},
 	{SR_HWOPT_SERIALCOMM, SR_T_CHAR, "Serial communication", "serialcomm"},
@@ -36,7 +36,7 @@ SR_API struct sr_hwcap_option sr_drvopts[] = {
 };
 
 /* Device instance options. */
-SR_API struct sr_hwcap_option sr_hwcap_options[] = {
+static struct sr_hwcap_option sr_devopts[] = {
 	{SR_HWCAP_SAMPLERATE, SR_T_UINT64, "Sample rate", "samplerate"},
 	{SR_HWCAP_CAPTURE_RATIO, SR_T_UINT64, "Pre-trigger capture ratio", "captureratio"},
 	{SR_HWCAP_PATTERN_MODE, SR_T_CHAR, "Pattern generator mode", "pattern"},
@@ -244,17 +244,37 @@ SR_API gboolean sr_driver_hwcap_exists(struct sr_dev_driver *driver, int hwcap)
 /**
  * Get information about a hardware driver option.
  *
- * @param hwopt The option to get.
+ * @param opt The option to get.
  *
- * @return A pointer to a struct with information about the parameter, or NULL
- *         if the option was not found.
+ * @return A pointer to a struct sr_hwcap_option, or NULL if the option
+ *         was not found.
  */
-SR_API const struct sr_hwcap_option *sr_drvopt_get(int hwopt)
+SR_API const struct sr_hwcap_option *sr_drvopt_get(int opt)
 {
 	int i;
 
 	for (i = 0; sr_drvopts[i].hwcap; i++) {
-		if (sr_drvopts[i].hwcap == hwopt)
+		if (sr_drvopts[i].hwcap == opt)
+			return &sr_drvopts[i];
+	}
+
+	return NULL;
+}
+
+/**
+ * Get information about a hardware driver option, by name.
+ *
+ * @param optname The name of the option to get.
+ *
+ * @return A pointer to a struct sr_hwcap_option, or NULL if the option
+ *         was not found.
+ */
+SR_API const struct sr_hwcap_option *sr_drvopt_name_get(const char *optname)
+{
+	int i;
+
+	for (i = 0; sr_drvopts[i].hwcap; i++) {
+		if (!strcmp(sr_drvopts[i].shortname, optname))
 			return &sr_drvopts[i];
 	}
 
@@ -264,18 +284,38 @@ SR_API const struct sr_hwcap_option *sr_drvopt_get(int hwopt)
 /**
  * Get information about a device option.
  *
- * @param hwopt The option to get.
+ * @param opt The option to get.
  *
- * @return A pointer to a struct with information about the parameter, or NULL
- *         if the capability was not found.
+ * @return A pointer to a struct sr_hwcap_option, or NULL if the option
+ *         was not found.
  */
-SR_API const struct sr_hwcap_option *sr_devopt_get(int hwopt)
+SR_API const struct sr_hwcap_option *sr_devopt_get(int opt)
 {
 	int i;
 
-	for (i = 0; sr_hwcap_options[i].hwcap; i++) {
-		if (sr_hwcap_options[i].hwcap == hwopt)
-			return &sr_hwcap_options[i];
+	for (i = 0; sr_devopts[i].hwcap; i++) {
+		if (sr_devopts[i].hwcap == opt)
+			return &sr_devopts[i];
+	}
+
+	return NULL;
+}
+
+/**
+ * Get information about a device option, by name.
+ *
+ * @param optname The name of the option to get.
+ *
+ * @return A pointer to a struct sr_hwcap_option, or NULL if the option
+ *         was not found.
+ */
+SR_API const struct sr_hwcap_option *sr_devopt_name_get(const char *optname)
+{
+	int i;
+
+	for (i = 0; sr_devopts[i].hwcap; i++) {
+		if (!strcmp(sr_devopts[i].shortname, optname))
+			return &sr_devopts[i];
 	}
 
 	return NULL;
