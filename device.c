@@ -276,3 +276,17 @@ SR_PRIV void sr_serial_dev_inst_free(struct sr_serial_dev_inst *serial)
 	g_free(serial->port);
 }
 
+SR_API int sr_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
+		const void *value)
+{
+	int ret;
+
+	if (!sdi || !sdi->driver || !sdi->driver->dev_config_set) {
+		sr_err("hwdriver: unable to set config option");
+		return SR_ERR;
+	}
+
+	ret = sdi->driver->dev_config_set(sdi, hwcap, value);
+
+	return ret;
+}
