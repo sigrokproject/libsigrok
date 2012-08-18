@@ -41,6 +41,7 @@ struct dev_profile {
 	char *model;
 	struct dmmchip *chip;
 	int transport;
+	int poll_timeout;
 	struct sr_hwopt *defaults_opts;
 };
 
@@ -83,7 +84,7 @@ struct dmmchip {
 	GSList *(*scan) (GSList *options);
 
 	/* Called whenever a chunk of data arrives. */
-	int (*data) (struct sr_dev_inst *sdi, unsigned char *data);
+	int (*data) (struct sr_dev_inst *sdi);
 };
 
 

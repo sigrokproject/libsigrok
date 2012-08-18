@@ -37,8 +37,8 @@ static struct dev_profile dev_profiles[] = {
 	{ "victor-70c", "Victor", "70C", &dmmchip_fs9922,
 		DMM_TRANSPORT_USBHID, victor_70c_vidpid
 	},
-	{ "mastech-va18b", "Mastech", "VA18B", NULL, DMM_TRANSPORT_SERIAL, NULL},
-	{ NULL, NULL, NULL, NULL, 0, NULL }
+	{ "mastech-va18b", "Mastech", "VA18B", NULL, DMM_TRANSPORT_SERIAL, 0, NULL},
+	{ NULL, NULL, NULL, NULL, 0, 0, NULL }
 };
 
 static const int hwopts[] = {
@@ -64,7 +64,9 @@ static const char *probe_names[] = {
 SR_PRIV struct sr_dev_driver genericdmm_driver_info;
 static struct sr_dev_driver *gdi = &genericdmm_driver_info;
 /* TODO need a way to keep this local to the static library */
-SR_PRIV libusb_context *genericdmm_usb_context = NULL;
+static libusb_context *genericdmm_usb_context = NULL;
+static int hw_dev_acquisition_stop(const struct sr_dev_inst *sdi,
+		void *cb_data);
 
 
 static GSList *connect_usb(const char *conn)
@@ -72,6 +74,7 @@ static GSList *connect_usb(const char *conn)
 	struct sr_dev_inst *sdi;
 	struct drv_context *drvc;
 	struct dev_context *devc;
+	struct sr_probe *probe;
 	libusb_device **devlist;
 	struct libusb_device_descriptor des;
 	GSList *devices;
@@ -152,12 +155,15 @@ static GSList *connect_usb(const char *conn)
 		}
 
 		devcnt = g_slist_length(drvc->instances);
-		if (!(sdi = sr_dev_inst_new(devcnt, SR_ST_ACTIVE,
+		if (!(sdi = sr_dev_inst_new(devcnt, SR_ST_INACTIVE,
 				NULL, NULL, NULL))) {
 			sr_err("genericdmm: sr_dev_inst_new returned NULL.");
 			return NULL;
 		}
 		sdi->priv = devc;
+		if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "P1")))
+			return NULL;
+		sdi->probes = g_slist_append(sdi->probes, probe);
 		devc->usb = sr_usb_dev_inst_new(
 				libusb_get_bus_number(devlist[i]),
 				libusb_get_device_address(devlist[i]), NULL);
@@ -217,6 +223,52 @@ static GSList *default_scan(GSList *options)
 		devices = genericdmm_connect(conn, serialcomm);
 
 	return devices;
+}
+
+static int open_usb(struct sr_dev_inst *sdi)
+{
+	libusb_device **devlist;
+	struct libusb_device_descriptor des;
+	struct dev_context *devc;
+	int ret, tmp, cnt, i;
+
+	devc = sdi->priv;
+
+	if (sdi->status == SR_ST_ACTIVE)
+		/* already in use */
+		return SR_ERR;
+
+	cnt = libusb_get_device_list(genericdmm_usb_context, &devlist);
+	if (cnt < 0) {
+		sr_err("genericdmm: Failed to retrieve device list (%d)", cnt);
+		return SR_ERR;
+	}
+
+	ret = SR_ERR;
+	for (i = 0; i < cnt; i++) {
+		if ((tmp = libusb_get_device_descriptor(devlist[i], &des))) {
+			sr_err("genericdmm: Failed to get device descriptor: %d.", tmp);
+			continue;
+		}
+
+		if (libusb_get_bus_number(devlist[i]) != devc->usb->bus
+			|| libusb_get_device_address(devlist[i]) != devc->usb->address)
+			/* this is not the one */
+			continue;
+
+		if ((tmp = libusb_open(devlist[i], &devc->usb->devhdl))) {
+			sr_err("genericdmm: Failed to open device: %d.", tmp);
+			break;
+		}
+
+		sr_info("genericdmm: Opened device %s on %d.%d ", devc->profile->modelid,
+				devc->usb->bus, devc->usb->address);
+		ret = SR_OK;
+		break;
+	}
+	libusb_free_device_list(devlist, 1);
+
+	return ret;
 }
 
 static int clear_instances(void)
@@ -291,6 +343,7 @@ static GSList *hw_scan(GSList *options)
 	struct dev_profile *pr, *profile;
 	struct sr_dev_inst *sdi;
 	struct drv_context *drvc;
+	struct dev_context *devc;
 	const char *model;
 
 	drvc = gdi->priv;
@@ -371,6 +424,8 @@ static GSList *hw_scan(GSList *options)
 			 * or model. Do that now.
 			 */
 			sdi = l->data;
+			devc = sdi->priv;
+			devc->profile = profile;
 			sdi->driver = gdi;
 			if (!sdi->vendor)
 				sdi->vendor = g_strdup(profile->vendor);
@@ -396,15 +451,17 @@ static GSList *hw_dev_list(void)
 static int hw_dev_open(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
+	int ret;
 
 	if (!(devc = sdi->priv)) {
 		sr_err("genericdmm: sdi->priv was NULL.");
 		return SR_ERR_BUG;
 	}
 
+	ret = SR_OK;
 	switch (devc->profile->transport) {
 	case DMM_TRANSPORT_USBHID:
-		/* TODO */
+		ret = open_usb(sdi);
 		break;
 	case DMM_TRANSPORT_SERIAL:
 		/* TODO: O_NONBLOCK? */
@@ -413,15 +470,16 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 		if (devc->serial->fd == -1) {
 			sr_err("genericdmm: Couldn't open serial port '%s'.",
 			       devc->serial->port);
-			return SR_ERR;
+			ret = SR_ERR;
 		}
 		//	serial_set_params(devc->serial->fd, 2400, 8, 0, 1, 2);
 		break;
 	default:
 		sr_err("No transport set.");
+		ret = SR_ERR;
 	}
 
-	return SR_OK;
+	return ret;
 }
 
 static int hw_dev_close(struct sr_dev_inst *sdi)
@@ -484,6 +542,7 @@ static int hw_info_get(int info_id, const void **data,
 	case SR_DI_CUR_SAMPLERATE:
 		/* TODO get rid of this */
 		*data = NULL;
+		return SR_ERR_ARG;
 		break;
 	default:
 		/* Unknown device info ID. */
@@ -505,17 +564,18 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 
 	switch (hwcap) {
 	case SR_HWCAP_LIMIT_MSEC:
+		/* TODO: not yet implemented */
 		if (*(const uint64_t *)value == 0) {
 			sr_err("genericdmm: LIMIT_MSEC can't be 0.");
 			return SR_ERR;
 		}
 		devc->limit_msec = *(const uint64_t *)value;
-		sr_dbg("genericdmm: Setting LIMIT_MSEC to %" PRIu64 ".",
+		sr_dbg("genericdmm: Setting time limit to %" PRIu64 "ms.",
 		       devc->limit_msec);
 		break;
 	case SR_HWCAP_LIMIT_SAMPLES:
 		devc->limit_samples = *(const uint64_t *)value;
-		sr_dbg("genericdmm: Setting LIMIT_SAMPLES to %" PRIu64 ".",
+		sr_dbg("genericdmm: Setting sample limit to %" PRIu64 ".",
 		       devc->limit_samples);
 		break;
 	default:
@@ -532,25 +592,27 @@ static int receive_data(int fd, int revents, void *cb_data)
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 
+	(void)revents;
+
 	if (!(sdi = cb_data))
-		return FALSE;
+		return TRUE;
 
 	if (!(devc = sdi->priv))
-		return FALSE;
-
-	if (revents != G_IO_IN) {
-		sr_err("genericdmm: No data?");
-		return FALSE;
-	}
+		return TRUE;
 
 	switch (devc->profile->transport) {
 	case DMM_TRANSPORT_USBHID:
-		/* TODO */
+		if (devc->profile->chip->data)
+			devc->profile->chip->data(sdi);
 		break;
 	case DMM_TRANSPORT_SERIAL:
 		/* TODO */
+		fd = fd;
 		break;
 	}
+
+	if (devc->num_samples >= devc->limit_samples)
+		hw_dev_acquisition_stop(sdi, cb_data);
 
 	return TRUE;
 }
@@ -590,7 +652,14 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	/* Hook up a proxy handler to receive data from the device. */
 	switch (devc->profile->transport) {
 	case DMM_TRANSPORT_USBHID:
-		/* TODO libusb FD setup */
+		/* Callously using stdin here. This works because no G_IO_* flags
+		 * are set, but will certainly break when any other driver does
+		 * this, and runs at the same time as genericdmm.
+		 * We'll need a timeout-only source when revamping the whole
+		 * driver source system.
+		 */
+		sr_source_add(0, 0, devc->profile->poll_timeout,
+				receive_data, (void *)sdi);
 		break;
 	case DMM_TRANSPORT_SERIAL:
 		/* TODO serial FD setup */
@@ -615,6 +684,8 @@ static int hw_dev_acquisition_stop(const struct sr_dev_inst *sdi,
 	sr_dbg("genericdmm: Sending SR_DF_END.");
 	packet.type = SR_DF_END;
 	sr_session_send(cb_data, &packet);
+
+	sr_source_remove(0);
 
 	return SR_OK;
 }

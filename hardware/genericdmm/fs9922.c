@@ -22,7 +22,7 @@
 #include "genericdmm.h"
 
 
-static int fs9922_data(struct sr_dev_inst *sdi, unsigned char *data)
+static int fs9922_data(struct sr_dev_inst *sdi)
 {
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog analog;
