@@ -28,14 +28,15 @@
 
 
 extern SR_PRIV struct dmmchip dmmchip_fs9922;
+extern SR_PRIV struct dmmchip dmmchip_victor70c;
 
 static struct sr_hwopt victor_70c_vidpid[] = {
 	{ SR_HWOPT_CONN, "1244.d237" },
 	{ 0, NULL }
 };
 static struct dev_profile dev_profiles[] = {
-	{ "victor-70c", "Victor", "70C", &dmmchip_fs9922,
-		DMM_TRANSPORT_USBHID, victor_70c_vidpid
+	{ "victor-70c", "Victor", "70C", &dmmchip_victor70c,
+		DMM_TRANSPORT_USBHID, 1000, victor_70c_vidpid
 	},
 	{ "mastech-va18b", "Mastech", "VA18B", NULL, DMM_TRANSPORT_SERIAL, 0, NULL},
 	{ NULL, NULL, NULL, NULL, 0, 0, NULL }

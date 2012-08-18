@@ -25,6 +25,7 @@ noinst_LTLIBRARIES = libsigrokhwgenericdmm.la
 libsigrokhwgenericdmm_la_SOURCES = \
 	api.c \
 	fs9922.c \
+	victor-70c.c \
 	genericdmm.h
 
 libsigrokhwgenericdmm_la_CFLAGS = \
