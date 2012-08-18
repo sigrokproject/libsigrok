@@ -191,7 +191,7 @@ ATTRS{idVendor}=="10cf", ATTRS{idProduct}=="1000", MODE="664", GROUP="plugdev"
 
 # Victor 70C
 # http://www.china-victor.com/english/en/product_data.aspx?ClassID=168&ID=121
-ATTRS{idVendor}=="1224", ATTRS{idProduct}=="d237", MODE="664", GROUP="plugdev"
+ATTRS{idVendor}=="1244", ATTRS{idProduct}=="d237", MODE="664", GROUP="plugdev"
 
 # ZEROPLUS Logic Cube LAP-C series
 # http://www.zeroplus.com.tw/logic-analyzer_en/products.php#top_c
