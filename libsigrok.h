@@ -162,6 +162,28 @@ enum {
 	SR_UNIT_BOOLEAN,
 };
 
+/** sr_datafeed_analog.flags values */
+enum {
+	/** Voltage measurement is alternating current. */
+	SR_MQFLAG_AC = 0x01,
+	/** Voltage measurement is direct current. */
+	SR_MQFLAG_DC = 0x02,
+	/** This is a true RMS measurement. */
+	SR_MQFLAG_RMS = 0x04,
+	/** Value is voltage drop across a diode, or NAN. */
+	SR_MQFLAG_DIODE = 0x08,
+	/** Device is in "hold" mode, i.e. repeating the last measurement. */
+	SR_MQFLAG_HOLD = 0x10,
+	/** Device is in "max" mode, only updating when a new max value is found. */
+	SR_MQFLAG_MAX = 0x20,
+	/** Device is in "min" mode, only updating when a new min value is found. */
+	SR_MQFLAG_MIN = 0x40,
+	/** Device is in autoranging mode. */
+	SR_MQFLAG_AUTORANGE = 0x80,
+	/** Device is in relative mode. */
+	SR_MQFLAG_RELATIVE = 0x100,
+};
+
 struct sr_datafeed_packet {
 	uint16_t type;
 	void *payload;
@@ -189,8 +211,12 @@ struct sr_datafeed_meta_analog {
 
 struct sr_datafeed_analog {
 	int num_samples;
-	int mq; /* Measured quantity (e.g. voltage, current, temperature) */
-	int unit; /* Unit in which the MQ is measured. */
+	/** Measured quantity (e.g. voltage, current, temperature) */
+	int mq;
+	/** Unit in which the MQ is measured. */
+	int unit;
+	/** Bitmap with extra information about the MQ. */
+	uint64_t mqflags;
 	float *data;
 };
 
