@@ -145,6 +145,7 @@ enum {
 	SR_MQ_TEMPERATURE,
 	SR_MQ_FREQUENCY,
 	SR_MQ_DUTY_CYCLE,
+	SR_MQ_CONTINUITY,
 };
 
 /* sr_datafeed_analog.unit values */
