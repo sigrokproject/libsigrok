@@ -285,13 +285,17 @@ SR_PRIV int serial_set_params(int fd, int baudrate, int bits, int parity,
 		return SR_ERR;
 	}
 
-	term.c_cflag &= ~(IXON | IXOFF | CRTSCTS);
+	term.c_iflag &= ~(IXON | IXOFF);
+	term.c_cflag &= ~CRTSCTS;
 	switch (flowcontrol) {
-	case 2:
-		term.c_cflag |= IXON | IXOFF;
+	case 0:
+		/* No flow control. */
 		break;
 	case 1:
 		term.c_cflag |= CRTSCTS;
+	case 2:
+		term.c_iflag |= IXON | IXOFF;
+		break;
 	default:
 		return SR_ERR;
 	}
