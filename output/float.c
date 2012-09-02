@@ -126,7 +126,7 @@ static int data(struct sr_output *o, const uint8_t *data_in,
 	max = length_in / sizeof(float);
 	for (i = 0; i < max;) {
 		for (j = 0; j < ctx->num_enabled_probes; j++) {
-			g_string_append_printf(outstr, "%s: %f\n",
+			g_string_append_printf(outstr, "%s: %.12f\n",
 					(char *)g_ptr_array_index(ctx->probelist, j),
 					fdata[i++]);
 		}
