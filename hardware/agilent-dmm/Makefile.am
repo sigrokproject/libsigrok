@@ -23,7 +23,9 @@ if HW_AGILENT_DMM
 noinst_LTLIBRARIES = libsigrokhwagilentdmm.la
 
 libsigrokhwagilentdmm_la_SOURCES = \
-	api.c
+	api.c \
+	agilentdmm.h \
+	sched.c
 
 libsigrokhwagilentdmm_la_CFLAGS = \
 	-I$(top_srcdir)
