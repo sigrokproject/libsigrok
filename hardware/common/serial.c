@@ -234,6 +234,9 @@ SR_PRIV int serial_set_params(int fd, int baudrate, int bits, int parity,
 	struct termios term;
 	speed_t baud;
 
+	if (tcgetattr(fd, &term) < 0)
+		return SR_ERR;
+
 	switch (baudrate) {
 	case 9600:
 		baud = B9600;
@@ -255,8 +258,7 @@ SR_PRIV int serial_set_params(int fd, int baudrate, int bits, int parity,
 	default:
 		return SR_ERR;
 	}
-
-	if (tcgetattr(fd, &term) < 0)
+	if (cfsetospeed(&term, baud) < 0)
 		return SR_ERR;
 	if (cfsetispeed(&term, baud) < 0)
 		return SR_ERR;
