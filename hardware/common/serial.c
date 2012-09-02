@@ -322,3 +322,48 @@ SR_PRIV int serial_set_params(int fd, int baudrate, int bits, int parity,
 
 	return SR_OK;
 }
+
+#define SERIAL_COMM_SPEC "^(\\d+)/([78])([neo])([12])$"
+SR_PRIV int serial_set_paramstr(int fd, const char *paramstr)
+{
+	GRegex *reg;
+	GMatchInfo *match;
+	int speed, databits, parity, stopbits;
+	char *mstr;
+
+	speed = databits = parity = stopbits = 0;
+	reg = g_regex_new(SERIAL_COMM_SPEC, 0, 0, NULL);
+	if (g_regex_match(reg, paramstr, 0, &match)) {
+		if ((mstr = g_match_info_fetch(match, 1)))
+			speed = strtoul(mstr, NULL, 10);
+		g_free(mstr);
+		if ((mstr = g_match_info_fetch(match, 2)))
+			databits = strtoul(mstr, NULL, 10);
+		g_free(mstr);
+		if ((mstr = g_match_info_fetch(match, 3))) {
+			switch (mstr[0]) {
+			case 'n':
+				parity = SERIAL_PARITY_NONE;
+				break;
+			case 'e':
+				parity = SERIAL_PARITY_EVEN;
+				break;
+			case 'o':
+				parity = SERIAL_PARITY_ODD;
+				break;
+			}
+		}
+		g_free(mstr);
+		if ((mstr = g_match_info_fetch(match, 4)))
+			stopbits = strtoul(mstr, NULL, 10);
+		g_free(mstr);
+	}
+	g_match_info_unref(match);
+	g_regex_unref(reg);
+
+	if (speed)
+		return serial_set_params(fd, speed, databits, parity, stopbits, 0);
+	else
+		return SR_ERR_ARG;
+}
+

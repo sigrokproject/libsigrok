@@ -112,6 +112,7 @@ SR_PRIV void *serial_backup_params(int fd);
 SR_PRIV void serial_restore_params(int fd, void *backup);
 SR_PRIV int serial_set_params(int fd, int baudrate, int bits, int parity,
 			      int stopbits, int flowcontrol);
+SR_PRIV int serial_set_paramstr(int fd, const char *paramstr);
 
 /*--- hardware/common/ezusb.c -----------------------------------------------*/
 
