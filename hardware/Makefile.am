@@ -18,6 +18,7 @@
 ##
 
 SUBDIRS = \
+	agilent-dmm \
 	alsa \
 	asix-sigma \
 	chronovu-la8 \
@@ -36,6 +37,10 @@ libsigrokhardware_la_SOURCES =
 
 libsigrokhardware_la_LIBADD = \
 	common/libsigrokhwcommon.la
+
+if HW_AGILENT_DMM
+libsigrokhardware_la_LIBADD += agilent-dmm/libsigrokhwagilentdmm.la
+endif
 
 if LA_ALSA
 libsigrokhardware_la_LIBADD += alsa/libsigrokhwalsa.la

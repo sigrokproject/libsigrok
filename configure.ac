@@ -76,6 +76,16 @@ AC_SUBST(SR_LIB_LDFLAGS)
 
 # Logic analyzer hardware support '--enable' options.
 
+# Disabled by default
+AC_ARG_ENABLE(agilent-dmm, AC_HELP_STRING([--enable-agilent-dmm],
+	      [enable Agilent DMM driver support [default=no]]),
+	      [HW_AGILENT_DMM="$enableval"],
+	      [HW_AGILENT_DMM=xno])
+AM_CONDITIONAL(HW_AGILENT_DMM, test x$HW_AGILENT_DMM = xyes)
+if test "x$HW_AGILENT_DMM" = "xyes"; then
+	AC_DEFINE(HAVE_HW_AGILENT_DMM, 1, [Agilent DMM driver support])
+fi
+
 # Disabled by default, unfinished.
 AC_ARG_ENABLE(alsa, AC_HELP_STRING([--enable-alsa],
 	      [enable ALSA driver support [default=no]]),
@@ -247,6 +257,7 @@ AM_CONDITIONAL(NEED_EZUSB, \
 # Serial port helpers only needed for some hardware drivers
 AM_CONDITIONAL(NEED_SERIAL, \
 	test "x$LA_OLS" != xno \
+	-o "x$HW_AGILENT_DMM" != xno \
 	-o "x$HW_GENERICDMM" != xno \
 )
 
@@ -288,6 +299,7 @@ AC_SUBST(SR_PACKAGE_VERSION)
 AC_CONFIG_FILES([Makefile
 		 version.h
 		 hardware/Makefile
+		 hardware/agilent-dmm/Makefile
 		 hardware/alsa/Makefile
 		 hardware/asix-sigma/Makefile
 		 hardware/chronovu-la8/Makefile
@@ -332,6 +344,7 @@ done
 echo
 echo "Enabled hardware drivers:"
 echo
+echo "  - Agilent DMM..................... $HW_AGILENT_DMM"
 echo "  - ASIX SIGMA/SIGMA2............... $LA_ASIX_SIGMA"
 echo "  - ChronoVu LA8.................... $LA_CHRONOVU_LA8"
 echo "  - Demo driver..................... $LA_DEMO"
