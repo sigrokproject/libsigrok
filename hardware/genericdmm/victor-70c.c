@@ -270,8 +270,12 @@ static int victor70c_data(struct sr_dev_inst *sdi)
 
 	if (sdi->status == SR_ST_INACTIVE) {
 		/* First time through. */
-		if (libusb_kernel_driver_active(devc->usb->devhdl, 0) == 1)
-			libusb_detach_kernel_driver(devc->usb->devhdl, 0);
+		if (libusb_kernel_driver_active(devc->usb->devhdl, 0) == 1) {
+			if (libusb_detach_kernel_driver(devc->usb->devhdl, 0) < 0) {
+				sr_err("genericdmm/victor-70c: failed to detach kernel driver");
+				return SR_ERR;
+			}
+		}
 
 		if (libusb_claim_interface(devc->usb->devhdl, 0)) {
 			sr_err("genericdmm/victor-70c: failed to claim interface 0");
