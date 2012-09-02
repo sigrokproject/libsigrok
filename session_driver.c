@@ -98,6 +98,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 	if (!got_data) {
 		packet.type = SR_DF_END;
 		sr_session_send(cb_data, &packet);
+		sr_session_source_remove(-1);
 	}
 
 	return TRUE;
@@ -120,8 +121,6 @@ static int hw_cleanup(void)
 		sr_dev_inst_free(l->data);
 	g_slist_free(dev_insts);
 	dev_insts = NULL;
-
-	sr_session_source_remove(-1);
 
 	return SR_OK;
 }
