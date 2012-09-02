@@ -298,7 +298,6 @@ static int clear_instances(void)
 		if (devc->profile) {
 			switch (devc->profile->transport) {
 			case DMM_TRANSPORT_USBHID:
-				/* TODO */
 				sr_usb_dev_inst_free(devc->usb);
 				break;
 			case DMM_TRANSPORT_SERIAL:
@@ -465,7 +464,6 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 		ret = open_usb(sdi);
 		break;
 	case DMM_TRANSPORT_SERIAL:
-		/* TODO: O_NONBLOCK? */
 		sr_dbg("genericdmm: Opening serial port '%s'.", devc->serial->port);
 		devc->serial->fd = serial_open(devc->serial->port, O_RDWR | O_NONBLOCK);
 		if (devc->serial->fd == -1) {
