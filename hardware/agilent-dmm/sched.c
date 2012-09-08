@@ -145,22 +145,6 @@ static int agdmm_send(const struct sr_dev_inst *sdi, const char *cmd)
 	return SR_OK;
 }
 
-static int agdmm_ident_send(const struct sr_dev_inst *sdi)
-{
-
-	return agdmm_send(sdi, "*IDN?");
-}
-
-static int agdmm_ident_recv(const struct sr_dev_inst *sdi, GMatchInfo *match)
-{
-
-	(void)sdi;
-
-	sr_spew("got ident '%s'", g_match_info_get_string(match));
-
-	return SR_OK;
-}
-
 static int agdmm_stat_send(const struct sr_dev_inst *sdi)
 {
 
@@ -174,7 +158,7 @@ static int agdmm_stat_recv(const struct sr_dev_inst *sdi, GMatchInfo *match)
 
 	devc = sdi->priv;
 	s = g_match_info_fetch(match, 1);
-	sr_spew("got stat '%s'", s);
+	sr_spew("agilent-dmm: STAT response '%s'", s);
 
 	/* Max, Min or Avg mode -- no way to tell which, so we'll
 	 * set both flags to denote it's not a normal measurement. */
@@ -277,7 +261,7 @@ SR_PRIV int agdmm_conf_recv(const struct sr_dev_inst *sdi, GMatchInfo *match)
 	struct dev_context *devc;
 	char *mstr;
 
-	sr_spew("got conf '%s'",  g_match_info_get_string(match));
+	sr_spew("agilent-dmm: CONF? response '%s'",  g_match_info_get_string(match));
 	devc = sdi->priv;
 	mstr = g_match_info_fetch(match, 1);
 	if (!strcmp(mstr, "V")) {
@@ -354,19 +338,22 @@ SR_PRIV int agdmm_conf_recv(const struct sr_dev_inst *sdi, GMatchInfo *match)
 	return SR_OK;
 }
 
+/* This comes in whenever the rotary switch is changed to a new position.
+ * We could use it to determine the major measurement mode, but we already
+ * have the output of CONF? for that, which is more detailed. However
+ * we do need to catch this here, or it'll show up in some other output. */
 SR_PRIV int agdmm_switch_recv(const struct sr_dev_inst *sdi, GMatchInfo *match)
 {
 
 	(void)sdi;
 
-	sr_spew("got switch '%s'",  g_match_info_get_string(match));
+	sr_spew("agilent-dmm: switch '%s'",  g_match_info_get_string(match));
 
 	return SR_OK;
 }
 
 
 SR_PRIV const struct agdmm_job u123x_jobs[] = {
-	{ 1000, agdmm_ident_send },
 	{ 143, agdmm_stat_send },
 	{ 1000, agdmm_conf_send },
 	{ 143, agdmm_fetc_send },
