@@ -57,6 +57,7 @@ static void decode_buf(struct dev_context *devc, unsigned char *data)
 	digits[1] = decode_digit(data[11]);
 	digits[2] = decode_digit(data[10]);
 	digits[3] = decode_digit(data[9]);
+
 	if (digits[0] == 0x0f && digits[1] == 0x00 && digits[2] == 0x0a &&
 			digits[3] == 0x0f)
 		/* The "over limit" (OL) display comes through like this */
@@ -206,6 +207,8 @@ static void decode_buf(struct dev_context *devc, unsigned char *data)
 		} else {
 			analog.mq = SR_MQ_RESISTANCE;
 			analog.unit = SR_UNIT_OHM;
+			if (ivalue < 0)
+				fvalue = INFINITY;
 		}
 		break;
 	case 0x08:
@@ -214,7 +217,7 @@ static void decode_buf(struct dev_context *devc, unsigned char *data)
 		break;
 	case 0x10:
 		analog.mq = SR_MQ_FREQUENCY;
-		analog.mq = SR_UNIT_HERTZ;
+		analog.unit = SR_UNIT_HERTZ;
 		break;
 	case 0x20:
 		analog.mq = SR_MQ_CAPACITANCE;
