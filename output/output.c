@@ -30,6 +30,7 @@ extern SR_PRIV struct sr_output_format output_gnuplot;
 extern SR_PRIV struct sr_output_format output_chronovu_la8;
 extern SR_PRIV struct sr_output_format output_csv;
 extern SR_PRIV struct sr_output_format output_float;
+extern SR_PRIV struct sr_output_format output_analog;
 /* extern SR_PRIV struct sr_output_format output_analog_gnuplot; */
 
 static struct sr_output_format *output_module_list[] = {
@@ -43,6 +44,7 @@ static struct sr_output_format *output_module_list[] = {
 	&output_chronovu_la8,
 	&output_csv,
 	&output_float,
+	&output_analog,
 	/* &output_analog_gnuplot, */
 	NULL,
 };

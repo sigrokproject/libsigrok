@@ -30,6 +30,7 @@ libsigrokoutput_la_SOURCES = \
 	chronovu_la8.c \
 	csv.c \
 	float.c \
+	analog.c \
 	output.c
 
 libsigrokoutput_la_CFLAGS = \
