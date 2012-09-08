@@ -252,6 +252,9 @@ struct sr_output_format {
 		     uint64_t *length_out);
 	int (*event) (struct sr_output *o, int event_type, uint8_t **data_out,
 		      uint64_t *length_out);
+	GString *(*recv) (struct sr_output *o, const struct sr_dev_inst *sdi,
+			struct sr_datafeed_packet *packet);
+	int (*cleanup) (struct sr_output *o);
 };
 
 struct sr_datastore {
