@@ -58,10 +58,12 @@ struct dev_context {
 	unsigned char buf[AGDMM_BUFSIZE];
 	int buflen;
 	int cur_mq;
-	int cur_mq_unit;
-	int cur_mq_flags;
+	int cur_unit;
+	int cur_mqflags;
 	int cur_divider;
 	int cur_acdc;
+	int mode_tempaux;
+	int mode_continuity;
 };
 
 struct agdmm_job {

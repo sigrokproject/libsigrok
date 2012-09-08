@@ -169,8 +169,44 @@ static int agdmm_stat_send(const struct sr_dev_inst *sdi)
 
 static int agdmm_stat_recv(const struct sr_dev_inst *sdi, GMatchInfo *match)
 {
+	struct dev_context *devc;
+	char *s;
 
-	sr_spew("got stat '%s'", g_match_info_get_string(match));
+	devc = sdi->priv;
+	s = g_match_info_fetch(match, 1);
+	sr_spew("got stat '%s'", s);
+
+	/* Max, Min or Avg mode -- no way to tell which, so we'll
+	 * set both flags to denote it's not a normal measurement. */
+	if (s[0] == '1')
+		devc->cur_mqflags |= SR_MQFLAG_MAX | SR_MQFLAG_MIN;
+	else
+		devc->cur_mqflags &= ~(SR_MQFLAG_MAX | SR_MQFLAG_MIN);
+
+	if (s[1] == '1')
+		devc->cur_mqflags |= SR_MQFLAG_RELATIVE;
+	else
+		devc->cur_mqflags &= ~SR_MQFLAG_RELATIVE;
+
+	/* Triggered or auto hold modes. */
+	if (s[2] == '1' || s[3] == '1')
+		devc->cur_mqflags |= SR_MQFLAG_HOLD;
+	else
+		devc->cur_mqflags &= ~SR_MQFLAG_HOLD;
+
+	/* Temp/aux mode. */
+	if (s[7] == '1')
+		devc->mode_tempaux = TRUE;
+	else
+		devc->mode_tempaux = FALSE;
+
+	/*  Continuity mode. */
+	if (s[16] == '1')
+		devc->mode_continuity = TRUE;
+	else
+		devc->mode_continuity = FALSE;
+
+	g_free(s);
 
 	return SR_OK;
 }
@@ -217,8 +253,8 @@ SR_PRIV int agdmm_fetc_recv(const struct sr_dev_inst *sdi, GMatchInfo *match)
 
 	memset(&analog, 0, sizeof(struct sr_datafeed_analog));
 	analog.mq = devc->cur_mq;
-	analog.unit = devc->cur_mq_unit;
-	analog.mqflags = devc->cur_mq_flags;
+	analog.unit = devc->cur_unit;
+	analog.mqflags = devc->cur_mqflags;
 	analog.num_samples = 1;
 	analog.data = &fvalue;
 	packet.type = SR_DF_ANALOG;
@@ -246,43 +282,57 @@ SR_PRIV int agdmm_conf_recv(const struct sr_dev_inst *sdi, GMatchInfo *match)
 	mstr = g_match_info_fetch(match, 1);
 	if (!strcmp(mstr, "V")) {
 		devc->cur_mq = SR_MQ_VOLTAGE;
-		devc->cur_mq_unit = SR_UNIT_VOLT;
-		devc->cur_mq_flags = 0;
+		devc->cur_unit = SR_UNIT_VOLT;
+		devc->cur_mqflags = 0;
 		devc->cur_divider = 0;
 	} else if(!strcmp(mstr, "MV")) {
-		devc->cur_mq = SR_MQ_VOLTAGE;
-		devc->cur_mq_unit = SR_UNIT_VOLT;
-		devc->cur_mq_flags = 0;
-		devc->cur_divider = 1000;
+		if (devc->mode_tempaux) {
+			devc->cur_mq = SR_MQ_TEMPERATURE;
+			/* No way to detect whether Fahrenheit or Celcius
+			 * is used, so we'll just default to Celcius. */
+			devc->cur_unit = SR_UNIT_CELSIUS;
+		devc->cur_mqflags = 0;
+		devc->cur_divider = 0;
+		} else {
+			devc->cur_mq = SR_MQ_VOLTAGE;
+			devc->cur_unit = SR_UNIT_VOLT;
+			devc->cur_mqflags = 0;
+			devc->cur_divider = 1000;
+		}
 	} else if(!strcmp(mstr, "A")) {
 		devc->cur_mq = SR_MQ_CURRENT;
-		devc->cur_mq_unit = SR_UNIT_AMPERE;
-		devc->cur_mq_flags = 0;
+		devc->cur_unit = SR_UNIT_AMPERE;
+		devc->cur_mqflags = 0;
 		devc->cur_divider = 0;
 	} else if(!strcmp(mstr, "UA")) {
 		devc->cur_mq = SR_MQ_CURRENT;
-		devc->cur_mq_unit = SR_UNIT_AMPERE;
-		devc->cur_mq_flags = 0;
+		devc->cur_unit = SR_UNIT_AMPERE;
+		devc->cur_mqflags = 0;
 		devc->cur_divider = 1000000;
 	} else if(!strcmp(mstr, "FREQ")) {
 		devc->cur_mq = SR_MQ_FREQUENCY;
-		devc->cur_mq_unit = SR_UNIT_HERTZ;
-		devc->cur_mq_flags = 0;
+		devc->cur_unit = SR_UNIT_HERTZ;
+		devc->cur_mqflags = 0;
 		devc->cur_divider = 0;
 	} else if(!strcmp(mstr, "RES")) {
-		devc->cur_mq = SR_MQ_RESISTANCE;
-		devc->cur_mq_unit = SR_UNIT_OHM;
-		devc->cur_mq_flags = 0;
+		if (devc->mode_continuity) {
+			devc->cur_mq = SR_MQ_CONTINUITY;
+			devc->cur_unit = SR_UNIT_BOOLEAN;
+		} else {
+			devc->cur_mq = SR_MQ_RESISTANCE;
+			devc->cur_unit = SR_UNIT_OHM;
+		}
+		devc->cur_mqflags = 0;
 		devc->cur_divider = 0;
 	} else if(!strcmp(mstr, "CAP")) {
 		devc->cur_mq = SR_MQ_CAPACITANCE;
-		devc->cur_mq_unit = SR_UNIT_FARAD;
-		devc->cur_mq_flags = 0;
+		devc->cur_unit = SR_UNIT_FARAD;
+		devc->cur_mqflags = 0;
 		devc->cur_divider = 0;
 	} else if(!strcmp(mstr, "DIOD")) {
 		devc->cur_mq = SR_MQ_VOLTAGE;
-		devc->cur_mq_unit = SR_UNIT_VOLT;
-		devc->cur_mq_flags = SR_MQFLAG_DIODE;
+		devc->cur_unit = SR_UNIT_VOLT;
+		devc->cur_mqflags = SR_MQFLAG_DIODE;
 		devc->cur_divider = 0;
 	} else
 		sr_dbg("agilent-dmm: unknown first argument");
@@ -292,13 +342,14 @@ SR_PRIV int agdmm_conf_recv(const struct sr_dev_inst *sdi, GMatchInfo *match)
 		mstr = g_match_info_fetch(match, 1);
 		/* Third value, if present, is always AC or DC. */
 		if (!strcmp(mstr, "AC"))
-			devc->cur_acdc = 1;
+			devc->cur_mqflags |= SR_MQFLAG_AC;
 		else if (!strcmp(mstr, "DC"))
-			devc->cur_acdc = 2;
+			devc->cur_mqflags |= SR_MQFLAG_DC;
 		else
 			sr_dbg("agilent-dmm: unknown third argument");
 		g_free(mstr);
-	}
+	} else
+		devc->cur_mqflags &= ~(SR_MQFLAG_AC | SR_MQFLAG_DC);
 
 	return SR_OK;
 }
