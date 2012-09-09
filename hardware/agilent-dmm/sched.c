@@ -153,7 +153,7 @@ static int send_stat(const struct sr_dev_inst *sdi)
 	return agdmm_send(sdi, "STAT?");
 }
 
-static int recv_stat(const struct sr_dev_inst *sdi, GMatchInfo *match)
+static int recv_stat_u123x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 {
 	struct dev_context *devc;
 	char *s;
@@ -191,6 +191,32 @@ static int recv_stat(const struct sr_dev_inst *sdi, GMatchInfo *match)
 		devc->mode_continuity = TRUE;
 	else
 		devc->mode_continuity = FALSE;
+
+	g_free(s);
+
+	return SR_OK;
+}
+
+static int recv_stat_u125x(const struct sr_dev_inst *sdi, GMatchInfo *match)
+{
+	struct dev_context *devc;
+	char *s;
+
+	devc = sdi->priv;
+	s = g_match_info_fetch(match, 1);
+	sr_spew("agilent-dmm: STAT response '%s'", s);
+
+	/* Peak hold mode. */
+	if (s[4] == '1')
+		devc->cur_mqflags |= SR_MQFLAG_MAX;
+	else
+		devc->cur_mqflags &= ~SR_MQFLAG_MAX;
+
+	/* Triggered hold mode. */
+	if (s[7] == '1')
+		devc->cur_mqflags |= SR_MQFLAG_HOLD;
+	else
+		devc->cur_mqflags &= ~SR_MQFLAG_HOLD;
 
 	g_free(s);
 
@@ -335,6 +361,52 @@ static int recv_conf_u123x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 	return SR_OK;
 }
 
+static int recv_conf_u125x(const struct sr_dev_inst *sdi, GMatchInfo *match)
+{
+	struct dev_context *devc;
+	char *mstr;
+
+	sr_spew("agilent-dmm: CONF? response '%s'",  g_match_info_get_string(match));
+	devc = sdi->priv;
+	mstr = g_match_info_fetch(match, 1);
+	if (!strncmp(mstr, "VOLT", 4)) {
+		devc->cur_mq = SR_MQ_VOLTAGE;
+		devc->cur_unit = SR_UNIT_VOLT;
+		devc->cur_mqflags = 0;
+		devc->cur_divider = 0;
+		if (mstr[4] == ':') {
+			if (!strcmp(mstr + 4, "AC"))
+				devc->cur_mqflags |= SR_MQFLAG_AC;
+			else if (!strcmp(mstr + 4, "DC"))
+				devc->cur_mqflags |= SR_MQFLAG_DC;
+			else
+				/* "ACDC" appears as well, no idea what it means. */
+				devc->cur_mqflags &= ~(SR_MQFLAG_AC | SR_MQFLAG_DC);
+		} else
+			devc->cur_mqflags &= ~(SR_MQFLAG_AC | SR_MQFLAG_DC);
+	} else if(!strcmp(mstr, "CURR")) {
+		devc->cur_mq = SR_MQ_CURRENT;
+		devc->cur_unit = SR_UNIT_AMPERE;
+		devc->cur_mqflags = 0;
+		devc->cur_divider = 0;
+	} else if(!strcmp(mstr, "RES")) {
+		if (devc->mode_continuity) {
+			devc->cur_mq = SR_MQ_CONTINUITY;
+			devc->cur_unit = SR_UNIT_BOOLEAN;
+		} else {
+			devc->cur_mq = SR_MQ_RESISTANCE;
+			devc->cur_unit = SR_UNIT_OHM;
+		}
+		devc->cur_mqflags = 0;
+		devc->cur_divider = 0;
+} else
+		sr_dbg("agilent-dmm: unknown first argument");
+	g_free(mstr);
+
+
+	return SR_OK;
+}
+
 /* At least the 123x and 125x appear to have this. */
 static int recv_conf(const struct sr_dev_inst *sdi, GMatchInfo *match)
 {
@@ -349,7 +421,8 @@ static int recv_conf(const struct sr_dev_inst *sdi, GMatchInfo *match)
 		devc->cur_unit = SR_UNIT_VOLT;
 		devc->cur_mqflags = SR_MQFLAG_DIODE;
 		devc->cur_divider = 0;
-	}
+	} else
+		sr_dbg("agilent-dmm: unknown single argument");
 	g_free(mstr);
 
 	return SR_OK;
@@ -370,19 +443,36 @@ static int recv_switch(const struct sr_dev_inst *sdi, GMatchInfo *match)
 }
 
 
-SR_PRIV const struct agdmm_job agdmm_u123x_jobs[] = {
+SR_PRIV const struct agdmm_job agdmm_jobs_u123x[] = {
 	{ 143, send_stat },
 	{ 1000, send_conf },
 	{ 143, send_fetc },
 	{ 0, NULL }
 };
 
-SR_PRIV const struct agdmm_recv agdmm_recvs[] = {
-	{ "^\"(\\d\\d.{18}\\d)\"$", recv_stat },
+SR_PRIV const struct agdmm_recv agdmm_recvs_u123x[] = {
+	{ "^\"(\\d\\d.{18}\\d)\"$", recv_stat_u123x },
 	{ "^\\*([0-9])$", recv_switch },
 	{ "^([-+][0-9]\\.[0-9]{8}E[-+][0-9]{2})$", recv_fetc },
 	{ "^\"(V|MV|A|UA|FREQ),(\\d),(AC|DC)\"$", recv_conf_u123x },
 	{ "^\"(RES|CAP),(\\d)\"$", recv_conf_u123x},
+	{ "^\"(DIOD)\"$", recv_conf },
+	{ NULL, NULL }
+};
+
+SR_PRIV const struct agdmm_job agdmm_jobs_u125x[] = {
+	{ 143, send_stat },
+	{ 1000, send_conf },
+	{ 143, send_fetc },
+	{ 0, NULL }
+};
+
+SR_PRIV const struct agdmm_recv agdmm_recvs_u125x[] = {
+	{ "^\"(\\d\\d.{18}\\d)\"$", recv_stat_u125x },
+	{ "^\\*([0-9])$", recv_switch },
+	{ "^([-+][0-9]\\.[0-9]{8}E[-+][0-9]{2})$", recv_fetc },
+	{ "^(VOLT|CURR|RES|CAP) ([-+][0-9\\.E\\-+]+),([-+][0-9\\.E\\-+]+)$", recv_conf_u125x },
+	{ "^(VOLT:[ACD]+) ([-+][0-9\\.E\\-+]+),([-+][0-9\\.E\\-+]+)$", recv_conf_u125x },
 	{ "^\"(DIOD)\"$", recv_conf },
 	{ NULL, NULL }
 };

@@ -47,11 +47,18 @@ static const char *probe_names[] = {
 	NULL,
 };
 
-extern const struct agdmm_job agdmm_u123x_jobs[];
-extern const struct agdmm_recv agdmm_recvs[];
+extern const struct agdmm_job agdmm_jobs_u123x[];
+extern const struct agdmm_recv agdmm_recvs_u123x[];
+extern const struct agdmm_job agdmm_jobs_u125x[];
+extern const struct agdmm_recv agdmm_recvs_u125x[];
 
 static const struct agdmm_profile supported_agdmm[] = {
-	{ AGILENT_U1232A, "U1232A", 9600, agdmm_u123x_jobs, agdmm_recvs },
+	{ AGILENT_U1232A, "U1231A", 9600, agdmm_jobs_u123x, agdmm_recvs_u123x },
+	{ AGILENT_U1232A, "U1232A", 9600, agdmm_jobs_u123x, agdmm_recvs_u123x },
+	{ AGILENT_U1232A, "U1233A", 9600, agdmm_jobs_u123x, agdmm_recvs_u123x },
+	{ AGILENT_U1232A, "U1251A", 9600, agdmm_jobs_u125x, agdmm_recvs_u125x },
+	{ AGILENT_U1232A, "U1252A", 9600, agdmm_jobs_u125x, agdmm_recvs_u125x },
+	{ AGILENT_U1232A, "U1253A", 9600, agdmm_jobs_u125x, agdmm_recvs_u125x },
 	{ 0, NULL, 0, NULL, NULL }
 };
 
