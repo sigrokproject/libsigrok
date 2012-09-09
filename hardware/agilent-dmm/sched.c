@@ -83,7 +83,8 @@ static void receive_line(const struct sr_dev_inst *sdi)
 		recv->recv(sdi, match);
 		g_match_info_unref(match);
 		g_regex_unref(reg);
-	}
+	} else
+		sr_dbg("agilent-dmm: unknown line '%s'", devc->buf);
 
 	/* Done with this. */
 	devc->buflen = 0;
@@ -104,15 +105,16 @@ SR_PRIV int agdmm_receive_data(int fd, int revents, void *cb_data)
 
 	if (revents == G_IO_IN) {
 		/* Serial data arrived. */
-		len = AGDMM_BUFSIZE - devc->buflen - 1;
-		if (len > 0) {
-			len = serial_read(fd, devc->buf + devc->buflen, len);
-			if (len > 0) {
-				devc->buflen += len;
-				*(devc->buf + devc->buflen) = '\0';
-				if (devc->buflen > 0 && *(devc->buf + devc->buflen - 1) == '\n')
-					/* End of line */
-					receive_line(sdi);
+		while(AGDMM_BUFSIZE - devc->buflen - 1 > 0) {
+			len = serial_read(fd, devc->buf + devc->buflen, 1);
+			if (len < 1)
+				break;
+			devc->buflen += len;
+			*(devc->buf + devc->buflen) = '\0';
+			if (*(devc->buf + devc->buflen - 1) == '\n') {
+				/* End of line */
+				receive_line(sdi);
+				break;
 			}
 		}
 	}
