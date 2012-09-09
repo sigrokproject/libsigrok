@@ -47,11 +47,11 @@ static const char *probe_names[] = {
 	NULL,
 };
 
-extern const struct agdmm_job u123x_jobs[];
-extern const struct agdmm_recv u123x_recvs[];
+extern const struct agdmm_job agdmm_u123x_jobs[];
+extern const struct agdmm_recv agdmm_recvs[];
 
 static const struct agdmm_profile supported_agdmm[] = {
-	{ AGILENT_U1232A, "U1232A", 9600, u123x_jobs, u123x_recvs },
+	{ AGILENT_U1232A, "U1232A", 9600, agdmm_u123x_jobs, agdmm_recvs },
 	{ 0, NULL, 0, NULL, NULL }
 };
 

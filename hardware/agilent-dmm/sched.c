@@ -147,13 +147,13 @@ static int agdmm_send(const struct sr_dev_inst *sdi, const char *cmd)
 	return SR_OK;
 }
 
-static int agdmm_stat_send(const struct sr_dev_inst *sdi)
+static int send_stat(const struct sr_dev_inst *sdi)
 {
 
 	return agdmm_send(sdi, "STAT?");
 }
 
-static int agdmm_stat_recv(const struct sr_dev_inst *sdi, GMatchInfo *match)
+static int recv_stat(const struct sr_dev_inst *sdi, GMatchInfo *match)
 {
 	struct dev_context *devc;
 	char *s;
@@ -197,13 +197,13 @@ static int agdmm_stat_recv(const struct sr_dev_inst *sdi, GMatchInfo *match)
 	return SR_OK;
 }
 
-SR_PRIV int agdmm_fetc_send(const struct sr_dev_inst *sdi)
+static int send_fetc(const struct sr_dev_inst *sdi)
 {
 
 	return agdmm_send(sdi, "FETC?");
 }
 
-SR_PRIV int agdmm_fetc_recv(const struct sr_dev_inst *sdi, GMatchInfo *match)
+static int recv_fetc(const struct sr_dev_inst *sdi, GMatchInfo *match)
 {
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
@@ -252,13 +252,13 @@ SR_PRIV int agdmm_fetc_recv(const struct sr_dev_inst *sdi, GMatchInfo *match)
 	return SR_OK;
 }
 
-SR_PRIV int agdmm_conf_send(const struct sr_dev_inst *sdi)
+static int send_conf(const struct sr_dev_inst *sdi)
 {
 
 	return agdmm_send(sdi, "CONF?");
 }
 
-SR_PRIV int agdmm_conf_recv(const struct sr_dev_inst *sdi, GMatchInfo *match)
+static int recv_conf_u123x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 {
 	struct dev_context *devc;
 	char *mstr;
@@ -315,11 +315,6 @@ SR_PRIV int agdmm_conf_recv(const struct sr_dev_inst *sdi, GMatchInfo *match)
 		devc->cur_unit = SR_UNIT_FARAD;
 		devc->cur_mqflags = 0;
 		devc->cur_divider = 0;
-	} else if(!strcmp(mstr, "DIOD")) {
-		devc->cur_mq = SR_MQ_VOLTAGE;
-		devc->cur_unit = SR_UNIT_VOLT;
-		devc->cur_mqflags = SR_MQFLAG_DIODE;
-		devc->cur_divider = 0;
 	} else
 		sr_dbg("agilent-dmm: unknown first argument");
 	g_free(mstr);
@@ -340,11 +335,31 @@ SR_PRIV int agdmm_conf_recv(const struct sr_dev_inst *sdi, GMatchInfo *match)
 	return SR_OK;
 }
 
+/* At least the 123x and 125x appear to have this. */
+static int recv_conf(const struct sr_dev_inst *sdi, GMatchInfo *match)
+{
+	struct dev_context *devc;
+	char *mstr;
+
+	sr_spew("agilent-dmm: CONF? response '%s'",  g_match_info_get_string(match));
+	devc = sdi->priv;
+	mstr = g_match_info_fetch(match, 1);
+	if(!strcmp(mstr, "DIOD")) {
+		devc->cur_mq = SR_MQ_VOLTAGE;
+		devc->cur_unit = SR_UNIT_VOLT;
+		devc->cur_mqflags = SR_MQFLAG_DIODE;
+		devc->cur_divider = 0;
+	}
+	g_free(mstr);
+
+	return SR_OK;
+}
+
 /* This comes in whenever the rotary switch is changed to a new position.
  * We could use it to determine the major measurement mode, but we already
  * have the output of CONF? for that, which is more detailed. However
  * we do need to catch this here, or it'll show up in some other output. */
-SR_PRIV int agdmm_switch_recv(const struct sr_dev_inst *sdi, GMatchInfo *match)
+static int recv_switch(const struct sr_dev_inst *sdi, GMatchInfo *match)
 {
 
 	(void)sdi;
@@ -355,20 +370,20 @@ SR_PRIV int agdmm_switch_recv(const struct sr_dev_inst *sdi, GMatchInfo *match)
 }
 
 
-SR_PRIV const struct agdmm_job u123x_jobs[] = {
-	{ 143, agdmm_stat_send },
-	{ 1000, agdmm_conf_send },
-	{ 143, agdmm_fetc_send },
+SR_PRIV const struct agdmm_job agdmm_u123x_jobs[] = {
+	{ 143, send_stat },
+	{ 1000, send_conf },
+	{ 143, send_fetc },
 	{ 0, NULL }
 };
 
-SR_PRIV const struct agdmm_recv u123x_recvs[] = {
-	{ "^\"(\\d\\d.{18}\\d)\"$", agdmm_stat_recv },
-	{ "^\\*([0-9])$", agdmm_switch_recv },
-	{ "^([-+][0-9]\\.[0-9]{8}E[-+][0-9]{2})$", agdmm_fetc_recv },
-	{ "^\"(V|MV|A|UA|FREQ),(\\d),(AC|DC)\"$", agdmm_conf_recv },
-	{ "^\"(RES|CAP),(\\d)\"$", agdmm_conf_recv },
-	{ "^\"(DIOD)\"$", agdmm_conf_recv },
+SR_PRIV const struct agdmm_recv agdmm_recvs[] = {
+	{ "^\"(\\d\\d.{18}\\d)\"$", recv_stat },
+	{ "^\\*([0-9])$", recv_switch },
+	{ "^([-+][0-9]\\.[0-9]{8}E[-+][0-9]{2})$", recv_fetc },
+	{ "^\"(V|MV|A|UA|FREQ),(\\d),(AC|DC)\"$", recv_conf_u123x },
+	{ "^\"(RES|CAP),(\\d)\"$", recv_conf_u123x},
+	{ "^\"(DIOD)\"$", recv_conf },
 	{ NULL, NULL }
 };
 
