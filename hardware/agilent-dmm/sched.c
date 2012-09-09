@@ -324,8 +324,8 @@ SR_PRIV int agdmm_conf_recv(const struct sr_dev_inst *sdi, GMatchInfo *match)
 		sr_dbg("agilent-dmm: unknown first argument");
 	g_free(mstr);
 
-	if (g_match_info_get_match_count(match) == 3) {
-		mstr = g_match_info_fetch(match, 1);
+	if (g_match_info_get_match_count(match) == 4) {
+		mstr = g_match_info_fetch(match, 3);
 		/* Third value, if present, is always AC or DC. */
 		if (!strcmp(mstr, "AC"))
 			devc->cur_mqflags |= SR_MQFLAG_AC;
