@@ -25,7 +25,12 @@
 
 /* Supported models */
 enum {
-	AGILENT_U1232A = 1,
+	AGILENT_U1231A = 1,
+	AGILENT_U1232A,
+	AGILENT_U1233A,
+	AGILENT_U1251A,
+	AGILENT_U1252A,
+	AGILENT_U1253A,
 };
 
 /* Supported device profiles */
