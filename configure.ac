@@ -74,13 +74,12 @@ AC_SUBST(SR_LIB_VERSION_AGE)
 AC_SUBST(SR_LIB_VERSION)
 AC_SUBST(SR_LIB_LDFLAGS)
 
-# Logic analyzer hardware support '--enable' options.
+# Hardware support '--enable' options.
 
-# Disabled by default
 AC_ARG_ENABLE(agilent-dmm, AC_HELP_STRING([--enable-agilent-dmm],
-	      [enable Agilent DMM driver support [default=no]]),
+	      [enable Agilent DMM driver support [default=yes]]),
 	      [HW_AGILENT_DMM="$enableval"],
-	      [HW_AGILENT_DMM=xno])
+	      [HW_AGILENT_DMM=yes])
 AM_CONDITIONAL(HW_AGILENT_DMM, test x$HW_AGILENT_DMM = xyes)
 if test "x$HW_AGILENT_DMM" = "xyes"; then
 	AC_DEFINE(HAVE_HW_AGILENT_DMM, 1, [Agilent DMM driver support])
@@ -123,11 +122,10 @@ if test "x$LA_FX2LAFW" = "xyes"; then
 	AC_DEFINE(HAVE_LA_FX2LAFW, 1, [fx2lafw support])
 fi
 
-# Disabled by default for now
 AC_ARG_ENABLE(genericdmm, AC_HELP_STRING([--enable-genericdmm],
-	      [enable genericdmm support (for most DMMs). [default=no]]),
+	      [enable genericdmm support (for most DMMs). [default=yes]]),
 	      [HW_GENERICDMM="$enableval"],
-	      [HW_GENERICDMM=no])
+	      [HW_GENERICDMM=yes])
 AM_CONDITIONAL(HW_GENERICDMM, test x$HW_GENERICDMM = xyes)
 if test "x$HW_GENERICDMM" = "xyes"; then
 	AC_DEFINE(HAVE_HW_GENERICDMM, 1, [Generic DMM support])
