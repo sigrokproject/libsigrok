@@ -113,6 +113,15 @@ if test "x$LA_CHRONOVU_LA8" = "xyes"; then
 	AC_DEFINE(HAVE_LA_CHRONOVU_LA8, 1, [ChronoVu LA8 support])
 fi
 
+AC_ARG_ENABLE(fluke-dmm, AC_HELP_STRING([--enable-fluke-dmm],
+	      [Enable Fluke DMM support. [default=yes]]),
+	      [HW_FLUKE_DMM="$enableval"],
+	      [HW_FLUKE_DMM=yes])
+AM_CONDITIONAL(HW_FLUKE_DMM, test x$HW_FLUKE_DMM = xyes)
+if test "x$HW_FLUKE_DMM" = "xyes"; then
+	AC_DEFINE(HAVE_HW_FLUKE_DMM, 1, [Fluke DMM support])
+fi
+
 AC_ARG_ENABLE(fx2lafw, AC_HELP_STRING([--enable-fx2lafw],
 	      [enable fx2lafw support (for FX2 LAs). [default=yes]]),
 	      [LA_FX2LAFW="$enableval"],
@@ -303,6 +312,7 @@ AC_CONFIG_FILES([Makefile
 		 hardware/chronovu-la8/Makefile
 		 hardware/common/Makefile
 		 hardware/demo/Makefile
+		 hardware/fluke-dmm/Makefile
 		 hardware/fx2lafw/Makefile
 		 hardware/genericdmm/Makefile
 		 hardware/link-mso19/Makefile
@@ -346,6 +356,7 @@ echo "  - Agilent DMM..................... $HW_AGILENT_DMM"
 echo "  - ASIX SIGMA/SIGMA2............... $LA_ASIX_SIGMA"
 echo "  - ChronoVu LA8.................... $LA_CHRONOVU_LA8"
 echo "  - Demo driver..................... $LA_DEMO"
+echo "  - Fluke DMM....................... $HW_FLUKE_DMM"
 echo "  - fx2lafw (for FX2 LAs)........... $LA_FX2LAFW"
 echo "  - Generic DMM..................... $HW_GENERICDMM"
 echo "  - Link MSO-19..................... $LA_LINK_MSO19"

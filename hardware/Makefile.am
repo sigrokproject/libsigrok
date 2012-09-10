@@ -24,6 +24,7 @@ SUBDIRS = \
 	chronovu-la8 \
 	common \
 	demo \
+	fluke-dmm \
 	fx2lafw \
 	genericdmm \
 	link-mso19 \
@@ -56,6 +57,10 @@ endif
 
 if LA_DEMO
 libsigrokhardware_la_LIBADD += demo/libsigrokhwdemo.la
+endif
+
+if HW_FLUKE_DMM
+libsigrokhardware_la_LIBADD += fluke-dmm/libsigrokhwflukedmm.la
 endif
 
 if LA_FX2LAFW
