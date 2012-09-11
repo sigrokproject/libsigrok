@@ -262,7 +262,7 @@ static int hw_init(void)
 		return SR_ERR;
 	}
 
-	if (libusb_init(&drvc->usb_context) != 0) {
+	if (libusb_init(NULL) != 0) {
 		g_free(drvc);
 		sr_err("hantek-dso: Failed to initialize USB.");
 		return SR_ERR;
@@ -293,7 +293,7 @@ static GSList *hw_scan(GSList *options)
 	clear_instances();
 
 	/* Find all Hantek DSO devices and upload firmware to all of them. */
-	libusb_get_device_list(drvc->usb_context, &devlist);
+	libusb_get_device_list(NULL, &devlist);
 	for (i = 0; devlist[i]; i++) {
 		if ((ret = libusb_get_device_descriptor(devlist[i], &des))) {
 			sr_err("hantek-dso: failed to get device descriptor: %d", ret);
@@ -418,9 +418,7 @@ static int hw_cleanup(void)
 
 	clear_instances();
 
-	if (drvc->usb_context)
-		libusb_exit(drvc->usb_context);
-	drvc->usb_context = NULL;
+	libusb_exit(NULL);
 
 	return SR_OK;
 }
@@ -732,7 +730,6 @@ static int handle_event(int fd, int revents, void *cb_data)
 	const struct sr_dev_inst *sdi;
 	struct sr_datafeed_packet packet;
 	struct timeval tv;
-	struct drv_context *drvc;
 	struct dev_context *devc;
 	const struct libusb_pollfd **lupfd;
 	int num_probes, i;
@@ -743,7 +740,6 @@ static int handle_event(int fd, int revents, void *cb_data)
 	(void)fd;
 	(void)revents;
 
-	drvc = hdi->priv;
 	sdi = cb_data;
 	devc = sdi->priv;
 	if (devc->dev_state == STOPPING) {
@@ -751,7 +747,7 @@ static int handle_event(int fd, int revents, void *cb_data)
 		sr_dbg("hantek-dso: stopping acquisition");
 		/* TODO: doesn't really cancel pending transfers so they might
 		 * come in after SR_DF_END is sent. */
-		lupfd = libusb_get_pollfds(drvc->usb_context);
+		lupfd = libusb_get_pollfds(NULL);
 		for (i = 0; lupfd[i]; i++)
 			sr_source_remove(lupfd[i]->fd);
 		free(lupfd);
@@ -766,7 +762,7 @@ static int handle_event(int fd, int revents, void *cb_data)
 
 	/* Always handle pending libusb events. */
 	tv.tv_sec = tv.tv_usec = 0;
-	libusb_handle_events_timeout(drvc->usb_context, &tv);
+	libusb_handle_events_timeout(NULL, &tv);
 
 	/* TODO: ugh */
 	if (devc->dev_state == NEW_CAPTURE) {
@@ -846,11 +842,9 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_header header;
 	struct sr_datafeed_meta_analog meta;
-	struct drv_context *drvc;
 	struct dev_context *devc;
 	int i;
 
-	drvc = hdi->priv;
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR;
 
@@ -869,7 +863,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 		return SR_ERR;
 
 	devc->dev_state = CAPTURE;
-	lupfd = libusb_get_pollfds(drvc->usb_context);
+	lupfd = libusb_get_pollfds(NULL);
 	for (i = 0; lupfd[i]; i++)
 		sr_source_add(lupfd[i]->fd, lupfd[i]->events, TICK, handle_event,
 				(void *)sdi);

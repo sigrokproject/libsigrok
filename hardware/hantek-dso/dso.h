@@ -160,7 +160,6 @@ struct dso_profile {
 };
 
 struct drv_context {
-	libusb_context *usb_context;
 	GSList *instances;
 };
 

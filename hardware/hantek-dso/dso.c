@@ -28,7 +28,6 @@
 #include <libusb.h>
 
 extern struct sr_dev_driver hantek_dso_driver_info;
-static struct sr_dev_driver *hdi = &hantek_dso_driver_info;
 
 
 static int send_begin(struct dev_context *devc)
@@ -108,11 +107,9 @@ SR_PRIV int dso_open(struct sr_dev_inst *sdi)
 {
 	libusb_device **devlist;
 	struct libusb_device_descriptor des;
-	struct drv_context *drvc;
 	struct dev_context *devc;
 	int err, skip, i;
 
-	drvc = hdi->priv;
 	devc = sdi->priv;
 
 	if (sdi->status == SR_ST_ACTIVE)
@@ -120,7 +117,7 @@ SR_PRIV int dso_open(struct sr_dev_inst *sdi)
 		return SR_ERR;
 
 	skip = 0;
-	libusb_get_device_list(drvc->usb_context, &devlist);
+	libusb_get_device_list(NULL, &devlist);
 	for (i = 0; devlist[i]; i++) {
 		if ((err = libusb_get_device_descriptor(devlist[i], &des))) {
 			sr_err("hantek-dso: failed to get device descriptor: %d", err);
