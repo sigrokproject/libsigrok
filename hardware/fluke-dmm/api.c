@@ -21,14 +21,21 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 #include "config.h"
+#include "fluke-dmm.h"
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <string.h>
+#include <errno.h>
 
 
 SR_PRIV struct sr_dev_driver driver_info;
 static struct sr_dev_driver *di = &driver_info;
 
-/* TODO move to header file */
-struct drv_context { GSList *instances; };
-struct dev_context { };
+static const struct flukedmm_profile supported_flukedmm[] = {
+	{ FLUKE_187, "187" },
+};
+
 
 /* Properly close and free all devices. */
 static int clear_instances(void)
@@ -38,24 +45,18 @@ static int clear_instances(void)
 	struct dev_context *devc;
 	GSList *l;
 
+	if (!(drvc = di->priv))
+		return SR_OK;
+
 	drvc = di->priv;
 	for (l = drvc->instances; l; l = l->next) {
-		if (!(sdi = l->data)) {
-			/* Log error, but continue cleaning up the rest. */
-			sr_err("TODO: %s: sdi was NULL, continuing", __func__);
+		if (!(sdi = l->data))
 			continue;
-		}
-		if (!(devc = sdi->priv)) {
-			/* Log error, but continue cleaning up the rest. */
-			sr_err("TODO: %s: sdi->priv was NULL, continuing", __func__);
+		if (!(devc = sdi->priv))
 			continue;
-		}
-
-		/* TODO */
-
+		sr_serial_dev_inst_free(devc->serial);
 		sr_dev_inst_free(sdi);
 	}
-
 	g_slist_free(drvc->instances);
 	drvc->instances = NULL;
 
@@ -67,28 +68,151 @@ static int hw_init(void)
 	struct drv_context *drvc;
 
 	if (!(drvc = g_try_malloc0(sizeof(struct drv_context)))) {
-		sr_err("TODO: driver context malloc failed.");
+		sr_err("fluke-dmm: driver context malloc failed.");
 		return SR_ERR;
 	}
-
-	/* TODO */
 
 	di->priv = drvc;
 
 	return SR_OK;
 }
 
+static int serial_readline(int fd, char **buf, int *buflen, uint64_t timeout_ms)
+{
+	uint64_t start;
+	int maxlen, len;
+
+	timeout_ms *= 1000;
+	start = g_get_monotonic_time();
+
+	maxlen = *buflen;
+	*buflen = len = 0;
+	while(1) {
+		len = maxlen - *buflen - 1;
+		if (len < 1)
+			break;
+		len = serial_read(fd, *buf + *buflen, len);
+		if (len > 0) {
+			*buflen += len;
+			*(*buf + *buflen) = '\0';
+			if (*buflen > 0 && *(*buf + *buflen - 1) == '\r')
+				/* End of line */
+				break;
+		}
+		if (g_get_monotonic_time() - start > timeout_ms)
+			/* Timeout */
+			break;
+		g_usleep(2000);
+	}
+
+	/* Strip CRLF */
+	while (*buflen) {
+		if (*(*buf + *buflen - 1) == '\r' || *(*buf + *buflen - 1) == '\n')
+			*(*buf + --*buflen) = '\0';
+		else
+			break;
+	}
+	if (*buflen)
+		sr_dbg("fluke-dmm: received '%s'", *buf);
+
+	return SR_OK;
+}
+
 static GSList *hw_scan(GSList *options)
 {
+	struct sr_dev_inst *sdi;
 	struct drv_context *drvc;
-	GSList *devices;
+	struct dev_context *devc;
+	struct sr_hwopt *opt;
+	struct sr_probe *probe;
+	GSList *l, *devices;
+	int len, fd, i;
+	const char *conn, *serialcomm;
+	char *buf, **tokens;
 
-	(void)options;
-	devices = NULL;
 	drvc = di->priv;
 	drvc->instances = NULL;
 
-	/* TODO */
+	devices = NULL;
+	conn = serialcomm = NULL;
+	for (l = options; l; l = l->next) {
+		opt = l->data;
+		switch (opt->hwopt) {
+		case SR_HWOPT_CONN:
+			conn = opt->value;
+			break;
+		case SR_HWOPT_SERIALCOMM:
+			serialcomm = opt->value;
+			break;
+		}
+	}
+	if (!conn) {
+		sr_dbg("fluke-dmm: no serial port provided");
+		return NULL;
+	}
+	if (!serialcomm) {
+		sr_dbg("fluke-dmm: no serial communication parameters provided");
+		return NULL;
+	}
+
+	if ((fd = serial_open(conn, O_RDWR|O_NONBLOCK)) == -1) {
+		sr_err("fluke-dmm: unable to open %s: %s", conn, strerror(errno));
+		return NULL;
+	}
+
+	if (serial_set_paramstr(fd, serialcomm) != SR_OK) {
+		sr_err("fluke-dmm: unable to set serial parameters: %s",
+				strerror(errno));
+		return NULL;
+	}
+
+	serial_flush(fd);
+	if (serial_write(fd, "ID\r", 3) == -1) {
+		sr_err("fluke-dmm: unable to send identification string: %s",
+				strerror(errno));
+		return NULL;
+	}
+
+	len = 128;
+	buf = g_try_malloc(len);
+	serial_readline(fd, &buf, &len, 150);
+	if (!len)
+		return NULL;
+
+	if (len < 2 || buf[0] != '0' || buf[1] != '\r') {
+		sr_err("fluke-dmm: invalid response to identification string");
+		return NULL;
+	}
+
+	tokens = g_strsplit(buf + 2, ",", 3);
+	if (!strncmp("FLUKE", tokens[0], 5)
+			&& tokens[1] && tokens[2]) {
+		for (i = 0; supported_flukedmm[i].model; i++) {
+			if (strcmp(supported_flukedmm[i].modelname, tokens[0]))
+				continue;
+			if (!(sdi = sr_dev_inst_new(0, SR_ST_INACTIVE, "Fluke",
+					tokens[0] + 6, tokens[1])))
+				return NULL;
+			if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
+				sr_dbg("fluke-dmm: failed to malloc devc");
+				return NULL;
+			}
+			devc->profile = &supported_flukedmm[i];
+			devc->serial = sr_serial_dev_inst_new(conn, -1);
+			sdi->priv = devc;
+			sdi->driver = di;
+			if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "P1")))
+				return NULL;
+			sdi->probes = g_slist_append(sdi->probes, probe);
+			drvc->instances = g_slist_append(drvc->instances, sdi);
+			devices = g_slist_append(devices, sdi);
+			break;
+		}
+	}
+	g_strfreev(tokens);
+	g_free(buf);
+
+	serial_close(fd);
 
 	return devices;
 }

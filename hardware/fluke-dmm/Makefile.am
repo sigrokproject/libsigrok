@@ -23,7 +23,8 @@ if HW_FLUKE_DMM
 noinst_LTLIBRARIES = libsigrokhwflukedmm.la
 
 libsigrokhwflukedmm_la_SOURCES = \
-	api.c
+	api.c \
+	fluke-dmm.h
 
 libsigrokhwflukedmm_la_CFLAGS = \
 	-I$(top_srcdir)
