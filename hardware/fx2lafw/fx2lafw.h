@@ -61,7 +61,6 @@ struct fx2lafw_profile {
 };
 
 struct drv_context {
-	libusb_context *usb_context;
 	GSList *instances;
 };
 

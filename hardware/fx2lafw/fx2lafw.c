@@ -195,13 +195,11 @@ static int fx2lafw_dev_open(struct sr_dev_inst *sdi)
 {
 	libusb_device **devlist;
 	struct libusb_device_descriptor des;
-	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct version_info vi;
 	int ret, skip, i;
 	uint8_t revid;
 
-	drvc = fdi->priv;
 	devc = sdi->priv;
 
 	if (sdi->status == SR_ST_ACTIVE)
@@ -209,7 +207,7 @@ static int fx2lafw_dev_open(struct sr_dev_inst *sdi)
 		return SR_ERR;
 
 	skip = 0;
-	const int device_count = libusb_get_device_list(drvc->usb_context, &devlist);
+	const int device_count = libusb_get_device_list(NULL, &devlist);
 	if (device_count < 0) {
 		sr_err("fx2lafw: Failed to retrieve device list (%d)",
 			device_count);
@@ -412,7 +410,7 @@ static int hw_init(void)
 		return SR_ERR;
 	}
 
-	if (libusb_init(&drvc->usb_context) != 0) {
+	if (libusb_init(NULL) != 0) {
 		g_free(drvc);
 		sr_warn("fx2lafw: Failed to initialize libusb.");
 		return SR_ERR;
@@ -444,7 +442,7 @@ static GSList *hw_scan(GSList *options)
 
 	/* Find all fx2lafw compatible devices and upload firmware to them. */
 	devices = NULL;
-	libusb_get_device_list(drvc->usb_context, &devlist);
+	libusb_get_device_list(NULL, &devlist);
 	for (i = 0; devlist[i]; i++) {
 
 		if ((ret = libusb_get_device_descriptor(
@@ -616,9 +614,7 @@ static int hw_cleanup(void)
 
 	ret = clear_instances();
 
-	if (drvc->usb_context)
-		libusb_exit(drvc->usb_context);
-	drvc->usb_context = NULL;
+	libusb_exit(NULL);
 
 	g_free(drvc);
 	fdi->priv = NULL;
@@ -690,7 +686,6 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 
 static int receive_data(int fd, int revents, void *cb_data)
 {
-	struct drv_context *drvc;
 	struct timeval tv;
 
 	/* Avoid compiler warnings. */
@@ -698,9 +693,8 @@ static int receive_data(int fd, int revents, void *cb_data)
 	(void)revents;
 	(void)cb_data;
 
-	drvc = fdi->priv;
 	tv.tv_sec = tv.tv_usec = 0;
-	libusb_handle_events_timeout(drvc->usb_context, &tv);
+	libusb_handle_events_timeout(NULL, &tv);
 
 	return TRUE;
 }
@@ -719,11 +713,9 @@ static void abort_acquisition(struct dev_context *devc)
 
 static void finish_acquisition(struct dev_context *devc)
 {
-	struct drv_context *drvc;
 	struct sr_datafeed_packet packet;
 	int i;
 
-	drvc = fdi->priv;
 
 	/* Terminate session */
 	packet.type = SR_DF_END;
@@ -731,7 +723,7 @@ static void finish_acquisition(struct dev_context *devc)
 
 	/* Remove fds from polling */
 	const struct libusb_pollfd **const lupfd =
-		libusb_get_pollfds(drvc->usb_context);
+		libusb_get_pollfds(NULL);
 	for (i = 0; lupfd[i]; i++)
 		sr_source_remove(lupfd[i]->fd);
 	free(lupfd); /* NOT g_free()! */
@@ -956,7 +948,6 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_header header;
 	struct sr_datafeed_meta_logic meta;
-	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct libusb_transfer *transfer;
 	const struct libusb_pollfd **lupfd;
@@ -964,7 +955,6 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	int ret;
 	unsigned char *buf;
 
-	drvc = fdi->priv;
 	devc = sdi->priv;
 	if (devc->submitted_transfers != 0)
 		return SR_ERR;
@@ -1007,7 +997,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 		devc->submitted_transfers++;
 	}
 
-	lupfd = libusb_get_pollfds(drvc->usb_context);
+	lupfd = libusb_get_pollfds(NULL);
 	for (i = 0; lupfd[i]; i++)
 		sr_source_add(lupfd[i]->fd, lupfd[i]->events,
 			      timeout, receive_data, NULL);
