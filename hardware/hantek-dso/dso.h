@@ -159,10 +159,6 @@ struct dso_profile {
 	char *firmware;
 };
 
-struct drv_context {
-	GSList *instances;
-};
-
 struct dev_context {
 	const struct dso_profile *profile;
 	struct sr_usb_dev_inst *usb;

@@ -63,13 +63,6 @@ enum {
 	PATTERN_ALL_HIGH,
 };
 
-/* FIXME: Should not be global. */
-
-/* Private driver context. */
-struct drv_context {
-	GSList *instances;
-};
-
 /* Private, per-device-instance driver context. */
 struct dev_context {
 	int pipe_fds[2];

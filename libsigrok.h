@@ -533,6 +533,11 @@ struct sr_dev_driver {
 	void *priv;
 };
 
+/* Private driver context. */
+struct drv_context {
+	GSList *instances;
+};
+
 struct sr_session {
 	/* List of struct sr_dev* */
 	GSList *devs;

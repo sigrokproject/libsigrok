@@ -42,11 +42,6 @@ struct agdmm_profile {
 	const struct agdmm_recv *recvs;
 };
 
-/* Private driver context. */
-struct drv_context {
-	GSList *instances;
-};
-
 /* Private, per-device-instance driver context. */
 struct dev_context {
 	const struct agdmm_profile *profile;

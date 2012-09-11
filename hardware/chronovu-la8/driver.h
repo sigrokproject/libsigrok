@@ -41,11 +41,6 @@
 #define BS				4096 /* Block size */
 #define NUM_BLOCKS			2048 /* Number of blocks */
 
-/* Private driver context. */
-struct drv_context {
-	GSList *instances;
-};
-
 /* Private, per-device-instance driver context. */
 struct dev_context {
 	/** FTDI device context (used by libftdi). */

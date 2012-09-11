@@ -45,11 +45,6 @@ struct dev_profile {
 	struct sr_hwopt *defaults_opts;
 };
 
-/* Private driver context. */
-struct drv_context {
-	GSList *instances;
-};
-
 /* Private, per-device-instance driver context. */
 struct dev_context {
 	struct dev_profile *profile;

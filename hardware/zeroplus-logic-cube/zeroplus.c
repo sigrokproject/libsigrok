@@ -147,11 +147,6 @@ static const struct sr_samplerates samplerates = {
 	supported_samplerates,
 };
 
-/* Private driver context. */
-struct drv_context {
-	GSList *instances;
-};
-
 /* Private, per-device-instance driver context. */
 struct dev_context {
 	uint64_t cur_samplerate;

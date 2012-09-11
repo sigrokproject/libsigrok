@@ -60,10 +60,6 @@ struct fx2lafw_profile {
 	uint32_t dev_caps;
 };
 
-struct drv_context {
-	GSList *instances;
-};
-
 struct dev_context {
 	const struct fx2lafw_profile *profile;
 
