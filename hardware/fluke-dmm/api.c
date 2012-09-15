@@ -29,8 +29,8 @@
 #include <errno.h>
 
 
-SR_PRIV struct sr_dev_driver driver_info;
-static struct sr_dev_driver *di = &driver_info;
+SR_PRIV struct sr_dev_driver flukedmm_driver_info;
+static struct sr_dev_driver *di = &flukedmm_driver_info;
 
 static const struct flukedmm_profile supported_flukedmm[] = {
 	{ FLUKE_187, "187" },
@@ -307,7 +307,7 @@ static int hw_dev_acquisition_stop(const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-SR_PRIV struct sr_dev_driver driver_info = {
+SR_PRIV struct sr_dev_driver flukedmm_driver_info = {
 	.name = "fluke-dmm",
 	.longname = "Fluke 18x/28x series DMMs",
 	.api_version = 1,

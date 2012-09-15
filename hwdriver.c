@@ -86,6 +86,9 @@ extern SR_PRIV struct sr_dev_driver genericdmm_driver_info;
 #ifdef HAVE_HW_AGILENT_DMM
 extern SR_PRIV struct sr_dev_driver agdmm_driver_info;
 #endif
+#ifdef HAVE_HW_FLUKE_DMM
+extern SR_PRIV struct sr_dev_driver flukedmm_driver_info;
+#endif
 
 static struct sr_dev_driver *drivers_list[] = {
 #ifdef HAVE_LA_DEMO
@@ -120,6 +123,9 @@ static struct sr_dev_driver *drivers_list[] = {
 #endif
 #ifdef HAVE_HW_AGILENT_DMM
 	&agdmm_driver_info,
+#endif
+#ifdef HAVE_HW_FLUKE_DMM
+	&flukedmm_driver_info,
 #endif
 	NULL,
 };
