@@ -91,29 +91,22 @@ static int serial_readline(int fd, char **buf, int *buflen, uint64_t timeout_ms)
 		len = maxlen - *buflen - 1;
 		if (len < 1)
 			break;
-		len = serial_read(fd, *buf + *buflen, len);
+		len = serial_read(fd, *buf + *buflen, 1);
 		if (len > 0) {
 			*buflen += len;
 			*(*buf + *buflen) = '\0';
-			if (*buflen > 0 && *(*buf + *buflen - 1) == '\r')
-				/* End of line */
+			if (*buflen > 0 && *(*buf + *buflen - 1) == '\n') {
+				/* Strip LF and terminate. */
+				*(*buf + --*buflen) = '\0';
 				break;
+			}
 		}
 		if (g_get_monotonic_time() - start > timeout_ms)
 			/* Timeout */
 			break;
 		g_usleep(2000);
 	}
-
-	/* Strip CRLF */
-	while (*buflen) {
-		if (*(*buf + *buflen - 1) == '\r' || *(*buf + *buflen - 1) == '\n')
-			*(*buf + --*buflen) = '\0';
-		else
-			break;
-	}
-	if (*buflen)
-		sr_dbg("fluke-dmm: received '%s'", *buf);
+	sr_dbg("fluke-dmm: received %d: '%s'", *buflen, *buf);
 
 	return SR_OK;
 }
@@ -126,9 +119,9 @@ static GSList *hw_scan(GSList *options)
 	struct sr_hwopt *opt;
 	struct sr_probe *probe;
 	GSList *l, *devices;
-	int len, fd, i;
+	int retry, len, fd, i, s;
 	const char *conn, *serialcomm;
-	char *buf, **tokens;
+	char buf[128], *b, **tokens;
 
 	drvc = di->priv;
 	drvc->instances = NULL;
@@ -166,51 +159,64 @@ static GSList *hw_scan(GSList *options)
 		return NULL;
 	}
 
-	serial_flush(fd);
-	if (serial_write(fd, "ID\r", 3) == -1) {
-		sr_err("fluke-dmm: unable to send identification string: %s",
-				strerror(errno));
-		return NULL;
-	}
-
-	len = 128;
-	buf = g_try_malloc(len);
-	serial_readline(fd, &buf, &len, 150);
-	if (!len)
-		return NULL;
-
-	if (len < 2 || buf[0] != '0' || buf[1] != '\r') {
-		sr_err("fluke-dmm: invalid response to identification string");
-		return NULL;
-	}
-
-	tokens = g_strsplit(buf + 2, ",", 3);
-	if (!strncmp("FLUKE", tokens[0], 5)
-			&& tokens[1] && tokens[2]) {
-		for (i = 0; supported_flukedmm[i].model; i++) {
-			if (strcmp(supported_flukedmm[i].modelname, tokens[0]))
-				continue;
-			if (!(sdi = sr_dev_inst_new(0, SR_ST_INACTIVE, "Fluke",
-					tokens[0] + 6, tokens[1])))
-				return NULL;
-			if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
-				sr_dbg("fluke-dmm: failed to malloc devc");
-				return NULL;
-			}
-			devc->profile = &supported_flukedmm[i];
-			devc->serial = sr_serial_dev_inst_new(conn, -1);
-			sdi->priv = devc;
-			sdi->driver = di;
-			if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "P1")))
-				return NULL;
-			sdi->probes = g_slist_append(sdi->probes, probe);
-			drvc->instances = g_slist_append(drvc->instances, sdi);
-			devices = g_slist_append(devices, sdi);
-			break;
+	b = buf;
+	retry = 0;
+	/* We'll try the discovery sequence three times in case the device
+	 * is not in an idle state when we send ID. */
+	while (!devices && retry < 3) {
+		retry++;
+		serial_flush(fd);
+		if (serial_write(fd, "ID\r", 3) == -1) {
+			sr_err("fluke-dmm: unable to send ID string: %s",
+					strerror(errno));
+			continue;
 		}
+
+		/* Response is first a CMD_ACK byte (ASCII '0' for OK,
+		 * or '1' to signify an error. */
+		len = 128;
+		serial_readline(fd, &b, &len, 150);
+		if (len != 1)
+			continue;
+		if (buf[0] != '0') {
+			sr_dbg("fluke-dmm: got ID response %.2x", buf[0]);
+			continue;
+		}
+
+		/* If CMD_ACK was OK, ID string follows. */
+		len = 128;
+		serial_readline(fd, &b, &len, 150);
+		if (len < 10)
+			continue;
+		tokens = g_strsplit(buf, ",", 3);
+		if (!strncmp("FLUKE", tokens[0], 5)
+				&& tokens[1] && tokens[2]) {
+			for (i = 0; supported_flukedmm[i].model; i++) {
+				if (strcmp(supported_flukedmm[i].modelname, tokens[0] + 6))
+					continue;
+				/* Skip leading spaces in version number. */
+				for (s = 0; tokens[1][s] == ' '; s++);
+				if (!(sdi = sr_dev_inst_new(0, SR_ST_INACTIVE, "Fluke",
+						tokens[0] + 6, tokens[1] + s)))
+					return NULL;
+				if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
+					sr_dbg("fluke-dmm: failed to malloc devc");
+					return NULL;
+				}
+				devc->profile = &supported_flukedmm[i];
+				devc->serial = sr_serial_dev_inst_new(conn, -1);
+				sdi->priv = devc;
+				sdi->driver = di;
+				if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "P1")))
+					return NULL;
+				sdi->probes = g_slist_append(sdi->probes, probe);
+				drvc->instances = g_slist_append(drvc->instances, sdi);
+				devices = g_slist_append(devices, sdi);
+				break;
+			}
+		}
+		g_strfreev(tokens);
 	}
-	g_strfreev(tokens);
-	g_free(buf);
 
 	serial_close(fd);
 
