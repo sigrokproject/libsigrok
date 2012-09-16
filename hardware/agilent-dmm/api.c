@@ -174,14 +174,8 @@ static GSList *hw_scan(GSList *options)
 			break;
 		}
 	}
-	if (!conn) {
-		sr_dbg("no serial port provided");
+	if (!conn || !serialcomm)
 		return NULL;
-	}
-	if (!serialcomm) {
-		sr_dbg("no serial communication parameters provided");
-		return NULL;
-	}
 
 	if ((fd = serial_open(conn, O_RDWR|O_NONBLOCK)) == -1) {
 		sr_err("agilent-dmm: unable to open %s: %s", conn, strerror(errno));
