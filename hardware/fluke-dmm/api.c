@@ -111,50 +111,29 @@ static int serial_readline(int fd, char **buf, int *buflen, uint64_t timeout_ms)
 	return SR_OK;
 }
 
-static GSList *hw_scan(GSList *options)
+static GSList *fluke_scan(const char *conn, const char *serialcomm)
 {
 	struct sr_dev_inst *sdi;
 	struct drv_context *drvc;
 	struct dev_context *devc;
-	struct sr_hwopt *opt;
 	struct sr_probe *probe;
-	GSList *l, *devices;
-	int retry, len, fd, i, s;
-	const char *conn, *serialcomm;
+	GSList *devices;
+	int fd, retry, len, i, s;
 	char buf[128], *b, **tokens;
-
-	drvc = di->priv;
-	drvc->instances = NULL;
-
-	devices = NULL;
-	conn = serialcomm = NULL;
-	for (l = options; l; l = l->next) {
-		opt = l->data;
-		switch (opt->hwopt) {
-		case SR_HWOPT_CONN:
-			conn = opt->value;
-			break;
-		case SR_HWOPT_SERIALCOMM:
-			serialcomm = opt->value;
-			break;
-		}
-	}
-	if (!conn || !serialcomm)
-		return NULL;
 
 	if ((fd = serial_open(conn, O_RDWR|O_NONBLOCK)) == -1) {
 		sr_err("fluke-dmm: unable to open %s: %s", conn, strerror(errno));
 		return NULL;
 	}
-
 	if (serial_set_paramstr(fd, serialcomm) != SR_OK) {
-		sr_err("fluke-dmm: unable to set serial parameters: %s",
-				strerror(errno));
+		sr_err("fluke-dmm: unable to set serial parameters");
 		return NULL;
 	}
 
+	drvc = di->priv;
 	b = buf;
 	retry = 0;
+	devices = NULL;
 	/* We'll try the discovery sequence three times in case the device
 	 * is not in an idle state when we send ID. */
 	while (!devices && retry < 3) {
@@ -172,10 +151,8 @@ static GSList *hw_scan(GSList *options)
 		serial_readline(fd, &b, &len, 150);
 		if (len != 1)
 			continue;
-		if (buf[0] != '0') {
-			sr_dbg("fluke-dmm: got ID response %.2x", buf[0]);
+		if (buf[0] != '0')
 			continue;
-		}
 
 		/* If CMD_ACK was OK, ID string follows. */
 		len = 128;
@@ -199,6 +176,7 @@ static GSList *hw_scan(GSList *options)
 				}
 				devc->profile = &supported_flukedmm[i];
 				devc->serial = sr_serial_dev_inst_new(conn, -1);
+				devc->serialcomm = g_strdup(serialcomm);
 				sdi->priv = devc;
 				sdi->driver = di;
 				if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "P1")))
@@ -211,8 +189,43 @@ static GSList *hw_scan(GSList *options)
 		}
 		g_strfreev(tokens);
 	}
-
 	serial_close(fd);
+
+	return devices;
+}
+
+static GSList *hw_scan(GSList *options)
+{
+	struct sr_dev_inst *sdi;
+	struct sr_hwopt *opt;
+	GSList *l, *devices;
+	const char *conn, *serialcomm;
+
+	conn = serialcomm = NULL;
+	for (l = options; l; l = l->next) {
+		opt = l->data;
+		switch (opt->hwopt) {
+		case SR_HWOPT_CONN:
+			conn = opt->value;
+			break;
+		case SR_HWOPT_SERIALCOMM:
+			serialcomm = opt->value;
+			break;
+		}
+	}
+	if (!conn)
+		return NULL;
+
+	if (serialcomm) {
+		/* Use the provided comm specs. */
+		devices = fluke_scan(conn, serialcomm);
+	} else {
+		/* Try 115200, as used on 287/289. */
+		devices = fluke_scan(conn, "115200/8n1");
+		if (!devices)
+			/* Fall back to 9600 for 187/189. */
+			devices = fluke_scan(conn, "9600/8n1");
+	}
 
 	return devices;
 }
@@ -228,8 +241,24 @@ static GSList *hw_dev_list(void)
 
 static int hw_dev_open(struct sr_dev_inst *sdi)
 {
+	struct dev_context *devc;
 
-	/* TODO */
+	if (!(devc = sdi->priv)) {
+		sr_err("fluke-dmm: sdi->priv was NULL.");
+		return SR_ERR_BUG;
+	}
+
+	devc->serial->fd = serial_open(devc->serial->port, O_RDWR | O_NONBLOCK);
+	if (devc->serial->fd == -1) {
+		sr_err("fluke-dmm: Couldn't open serial port '%s'.",
+		       devc->serial->port);
+		return SR_ERR;
+	}
+	if (serial_set_paramstr(devc->serial->fd, devc->serialcomm) != SR_OK) {
+		sr_err("fluke-dmm: unable to set serial parameters");
+		return SR_ERR;
+	}
+	sdi->status = SR_ST_ACTIVE;
 
 	return SR_OK;
 }

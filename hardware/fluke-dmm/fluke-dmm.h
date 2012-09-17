@@ -45,6 +45,7 @@ struct dev_context {
 	uint64_t limit_samples;
 	uint64_t limit_msec;
 	struct sr_serial_dev_inst *serial;
+	char *serialcomm;
 
 	/* Opaque pointer passed in by the frontend. */
 	void *cb_data;
