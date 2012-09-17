@@ -28,6 +28,24 @@
 #include <string.h>
 #include <errno.h>
 
+static const int hwopts[] = {
+	SR_HWOPT_CONN,
+	SR_HWOPT_SERIALCOMM,
+	0,
+};
+
+static const int hwcaps[] = {
+	SR_HWCAP_MULTIMETER,
+	SR_HWCAP_LIMIT_SAMPLES,
+	SR_HWCAP_LIMIT_MSEC,
+	SR_HWCAP_CONTINUOUS,
+	0,
+};
+
+static const char *probe_names[] = {
+	"Probe",
+	NULL,
+};
 
 SR_PRIV struct sr_dev_driver flukedmm_driver_info;
 static struct sr_dev_driver *di = &flukedmm_driver_info;
@@ -196,7 +214,6 @@ static GSList *fluke_scan(const char *conn, const char *serialcomm)
 
 static GSList *hw_scan(GSList *options)
 {
-	struct sr_dev_inst *sdi;
 	struct sr_hwopt *opt;
 	GSList *l, *devices;
 	const char *conn, *serialcomm;
@@ -265,8 +282,18 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 
 static int hw_dev_close(struct sr_dev_inst *sdi)
 {
+	struct dev_context *devc;
 
-	/* TODO */
+	if (!(devc = sdi->priv)) {
+		sr_err("fluke-dmm: sdi->priv was NULL.");
+		return SR_ERR_BUG;
+	}
+
+	if (devc->serial && devc->serial->fd != -1) {
+		serial_close(devc->serial->fd);
+		devc->serial->fd = -1;
+		sdi->status = SR_ST_INACTIVE;
+	}
 
 	return SR_OK;
 }
@@ -276,8 +303,6 @@ static int hw_cleanup(void)
 
 	clear_instances();
 
-	/* TODO */
-
 	return SR_OK;
 }
 
@@ -285,9 +310,21 @@ static int hw_info_get(int info_id, const void **data,
        const struct sr_dev_inst *sdi)
 {
 
+	(void)sdi;
 
 	switch (info_id) {
-	/* TODO */
+	case SR_DI_HWOPTS:
+		*data = hwopts;
+		break;
+	case SR_DI_HWCAPS:
+		*data = hwcaps;
+		break;
+	case SR_DI_NUM_PROBES:
+		*data = GINT_TO_POINTER(1);
+		break;
+	case SR_DI_PROBE_NAMES:
+		*data = probe_names;
+		break;
 	default:
 		return SR_ERR_ARG;
 	}
@@ -298,26 +335,75 @@ static int hw_info_get(int info_id, const void **data,
 static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		const void *value)
 {
-	int ret;
+	struct dev_context *devc;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR;
 
-	ret = SR_OK;
-	switch (hwcap) {
-	/* TODO */
-	default:
-		ret = SR_ERR_ARG;
+	if (!(devc = sdi->priv)) {
+		sr_err("fluke-dmm: sdi->priv was NULL.");
+		return SR_ERR_BUG;
 	}
 
-	return ret;
+	switch (hwcap) {
+	case SR_HWCAP_LIMIT_MSEC:
+		/* TODO: not yet implemented */
+		if (*(const uint64_t *)value == 0) {
+			sr_err("fluke-dmm: LIMIT_MSEC can't be 0.");
+			return SR_ERR;
+		}
+		devc->limit_msec = *(const uint64_t *)value;
+		sr_dbg("fluke-dmm: Setting time limit to %" PRIu64 "ms.",
+		       devc->limit_msec);
+		break;
+	case SR_HWCAP_LIMIT_SAMPLES:
+		devc->limit_samples = *(const uint64_t *)value;
+		sr_dbg("fluke-dmm: Setting sample limit to %" PRIu64 ".",
+		       devc->limit_samples);
+		break;
+	default:
+		sr_err("fluke-dmm: Unknown capability: %d.", hwcap);
+		return SR_ERR;
+		break;
+	}
+
+	return SR_OK;
 }
 
 static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 		void *cb_data)
 {
+	struct sr_datafeed_packet packet;
+	struct sr_datafeed_header header;
+	struct sr_datafeed_meta_analog meta;
+	struct dev_context *devc;
 
-	/* TODO */
+	if (!(devc = sdi->priv)) {
+		sr_err("fluke-dmm: sdi->priv was NULL.");
+		return SR_ERR_BUG;
+	}
+
+	sr_dbg("fluke-dmm: Starting acquisition.");
+
+	devc->cb_data = cb_data;
+
+	/* Send header packet to the session bus. */
+	sr_dbg("fluke-dmm: Sending SR_DF_HEADER.");
+	packet.type = SR_DF_HEADER;
+	packet.payload = (uint8_t *)&header;
+	header.feed_version = 1;
+	gettimeofday(&header.starttime, NULL);
+	sr_session_send(devc->cb_data, &packet);
+
+	/* Send metadata about the SR_DF_ANALOG packets to come. */
+	sr_dbg("fluke-dmm: Sending SR_DF_META_ANALOG.");
+	packet.type = SR_DF_META_ANALOG;
+	packet.payload = &meta;
+	meta.num_probes = 1;
+	sr_session_send(devc->cb_data, &packet);
+
+	/* Poll every 100ms, or whenever some data comes in. */
+	sr_source_add(devc->serial->fd, G_IO_IN, 100, fluke_receive_data, (void *)sdi);
 
 	return SR_OK;
 }
@@ -325,13 +411,26 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 static int hw_dev_acquisition_stop(const struct sr_dev_inst *sdi,
 		void *cb_data)
 {
-
-	(void)cb_data;
+	struct sr_datafeed_packet packet;
+	struct dev_context *devc;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR;
 
-	/* TODO */
+	if (!(devc = sdi->priv)) {
+		sr_err("fluke-dmm: sdi->priv was NULL.");
+		return SR_ERR_BUG;
+	}
+
+	sr_dbg("fluke-dmm: Stopping acquisition.");
+
+	sr_source_remove(devc->serial->fd);
+	hw_dev_close((struct sr_dev_inst *)sdi);
+
+	/* Send end packet to the session bus. */
+	sr_dbg("fluke-dmm: Sending SR_DF_END.");
+	packet.type = SR_DF_END;
+	sr_session_send(cb_data, &packet);
 
 	return SR_OK;
 }
