@@ -52,6 +52,7 @@ static struct sr_dev_driver *di = &flukedmm_driver_info;
 
 static const struct flukedmm_profile supported_flukedmm[] = {
 	{ FLUKE_187, "187" },
+	{ FLUKE_287, "287" },
 };
 
 

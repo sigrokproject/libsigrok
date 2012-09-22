@@ -26,6 +26,7 @@
 /* Supported models */
 enum {
 	FLUKE_187 = 1,
+	FLUKE_287,
 };
 
 /* Supported device profiles */
