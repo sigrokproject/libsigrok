@@ -317,6 +317,7 @@ SR_PRIV int serial_set_params(int fd, int baudrate, int bits, int parity,
 	}
 
 	/* Some default parameters */
+	term.c_iflag &= ~(ICRNL);
 	term.c_lflag &= ~(ICANON | ECHO);
 
 	if (tcsetattr(fd, TCSADRAIN, &term) < 0)
