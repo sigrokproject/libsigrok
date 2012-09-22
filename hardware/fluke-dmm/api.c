@@ -114,7 +114,7 @@ static int serial_readline(int fd, char **buf, int *buflen, uint64_t timeout_ms)
 		if (len > 0) {
 			*buflen += len;
 			*(*buf + *buflen) = '\0';
-			if (*buflen > 0 && *(*buf + *buflen - 1) == '\n') {
+			if (*buflen > 0 && *(*buf + *buflen - 1) == '\r') {
 				/* Strip LF and terminate. */
 				*(*buf + --*buflen) = '\0';
 				break;
