@@ -33,6 +33,8 @@ enum {
 struct flukedmm_profile {
 	int model;
 	const char *modelname;
+	/* How often to poll, in ms. */
+	int poll_period;
 };
 
 /* Private driver context. */
@@ -53,8 +55,12 @@ struct dev_context {
 
 	/* Runtime. */
 	uint64_t num_samples;
-	unsigned char buf[FLUKEDMM_BUFSIZE];
+	char buf[FLUKEDMM_BUFSIZE];
 	int buflen;
+	int64_t cmd_sent_at;
+	int expect_response;
 };
+
+SR_PRIV int fluke_receive_data(int fd, int revents, void *cb_data);
 
 #endif /* LIBSIGROK_FLUKE_DMM_H */

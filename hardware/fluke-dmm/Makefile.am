@@ -24,6 +24,7 @@ noinst_LTLIBRARIES = libsigrokhwflukedmm.la
 
 libsigrokhwflukedmm_la_SOURCES = \
 	api.c \
+	fluke.c \
 	fluke-dmm.h
 
 libsigrokhwflukedmm_la_CFLAGS = \

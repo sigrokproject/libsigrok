@@ -51,8 +51,8 @@ SR_PRIV struct sr_dev_driver flukedmm_driver_info;
 static struct sr_dev_driver *di = &flukedmm_driver_info;
 
 static const struct flukedmm_profile supported_flukedmm[] = {
-	{ FLUKE_187, "187" },
-	{ FLUKE_287, "287" },
+	{ FLUKE_187, "187", 100 },
+	{ FLUKE_287, "287", 100 },
 };
 
 
@@ -404,7 +404,14 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	sr_session_send(devc->cb_data, &packet);
 
 	/* Poll every 100ms, or whenever some data comes in. */
-	sr_source_add(devc->serial->fd, G_IO_IN, 100, fluke_receive_data, (void *)sdi);
+	sr_source_add(devc->serial->fd, G_IO_IN, 50, fluke_receive_data, (void *)sdi);
+
+	if (serial_write(devc->serial->fd, "QM\r", 3) == -1) {
+		sr_err("fluke-dmm: unable to send QM: %s", strerror(errno));
+		return SR_ERR;
+	}
+	devc->cmd_sent_at = g_get_monotonic_time() / 1000;
+	devc->expect_response = TRUE;
 
 	return SR_OK;
 }
