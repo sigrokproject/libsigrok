@@ -147,6 +147,7 @@ enum {
 	SR_MQ_DUTY_CYCLE,
 	SR_MQ_CONTINUITY,
 	SR_MQ_PULSE_WIDTH,
+	SR_MQ_CONDUCTANCE,
 };
 
 /* sr_datafeed_analog.unit values */
@@ -162,6 +163,7 @@ enum {
 	SR_UNIT_PERCENTAGE,
 	SR_UNIT_BOOLEAN,
 	SR_UNIT_SECOND,
+	SR_UNIT_SIEMENS,
 };
 
 /** sr_datafeed_analog.flags values */
