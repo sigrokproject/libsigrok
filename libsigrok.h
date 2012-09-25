@@ -146,6 +146,7 @@ enum {
 	SR_MQ_FREQUENCY,
 	SR_MQ_DUTY_CYCLE,
 	SR_MQ_CONTINUITY,
+	SR_MQ_PULSE_WIDTH,
 };
 
 /* sr_datafeed_analog.unit values */
@@ -160,6 +161,7 @@ enum {
 	SR_UNIT_HERTZ,
 	SR_UNIT_PERCENTAGE,
 	SR_UNIT_BOOLEAN,
+	SR_UNIT_SECOND,
 };
 
 /** sr_datafeed_analog.flags values */

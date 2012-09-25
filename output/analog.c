@@ -125,6 +125,9 @@ static void fancyprint(int unit, int mqflags, float value, GString *out)
 			else
 				g_string_append_printf(out, "FALSE");
 			break;
+		case SR_UNIT_SECOND:
+			si_printf(value, out, "s");
+			break;
 	}
 	if (mqflags & SR_MQFLAG_AC)
 		g_string_append_printf(out, " AC");
