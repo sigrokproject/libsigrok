@@ -37,11 +37,6 @@ struct flukedmm_profile {
 	int poll_period;
 };
 
-/* Private driver context. */
-struct drv_context {
-	GSList *instances;
-};
-
 /* Private, per-device-instance driver context. */
 struct dev_context {
 	const struct flukedmm_profile *profile;
