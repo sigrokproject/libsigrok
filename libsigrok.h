@@ -704,6 +704,7 @@ struct sr_dev_inst {
 	char *model;
 	char *version;
 	GSList *probes;
+	void *conn;
 	void *priv;
 };
 
