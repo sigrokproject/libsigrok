@@ -214,24 +214,19 @@ SR_API char **sr_parse_triggerstring(const struct sr_dev_inst *sdi,
 
 	tokens = g_strsplit(triggerstring, ",", max_probes);
 	for (i = 0; tokens[i]; i++) {
-		if (tokens[i][0] < '0' || tokens[i][0] > '9') {
-			/* Named probe */
-			probenum = 0;
-			for (l = sdi->probes; l; l = l->next) {
-				probe = (struct sr_probe *)l->data;
-				if (probe->enabled
-				    && !strncmp(probe->name, tokens[i],
-						strlen(probe->name))) {
-					probenum = probe->index;
-					break;
-				}
+		probenum = -1;
+		for (l = sdi->probes; l; l = l->next) {
+			probe = (struct sr_probe *)l->data;
+			if (probe->enabled
+				&& !strncmp(probe->name, tokens[i],
+					strlen(probe->name))) {
+				probenum = probe->index;
+				break;
 			}
-		} else {
-			probenum = strtol(tokens[i], NULL, 10);
 		}
 
 		if (probenum < 0 || probenum >= max_probes) {
-			sr_err("strutil: Invalid probe (%d).", probenum);
+			sr_err("strutil: Invalid probe.");
 			error = TRUE;
 			break;
 		}
