@@ -1,2 +1,36 @@
+# autotools cruft
+aclocal.m4
+autom4te.cache/
+compile
+config.guess
+config.h
+config.h.in
+config.log
+config.status
+config.sub
+configure
+depcomp
+libtool
+ltmain.sh
+install-sh
+map
+missing
+stamp-h1
+autostuff/
 version.h
 ChangeLog
+
+# recursive autoconf leftovers
+.deps
+Makefile
+Makefile.in
+
+# build leftovers
+*~
+*.o
+*.a
+*.lo
+*.la
+.libs/
+*.pc
+
