@@ -4,11 +4,24 @@ README
 
 The sigrok project aims at creating a portable, cross-platform,
 Free/Libre/Open-Source signal analysis software suite that supports various
-device types.
+device types (such as logic analyzers, oscilloscopes, multimeters, and more).
 
 libsigrok is a shared library written in C which provides the basic API
 for talking to hardware and reading/writing the acquired data into various
 input/output file formats.
+
+
+Status
+------
+
+libsigrok is in a usable state and has had official tarball releases.
+
+While the API can change from release to release, this will always be
+properly documented and reflected in the package version number and
+in the shared library / libtool / .so-file version numbers.
+
+However, there are _NO_ guarantees at all for stable APIs in git snapshots!
+Distro packagers should only use released tarballs (no git snapshots).
 
 
 Requirements
@@ -86,5 +99,5 @@ You can find the sigrok developers in the #sigrok IRC channel on Freenode.
 Website
 -------
 
-http://sigrok.org
+ http://sigrok.org/wiki/Libsigrok
 
