@@ -37,6 +37,11 @@
 #define ARRAY_AND_SIZE(a) (a), ARRAY_SIZE(a)
 #endif
 
+/* Versions < 2.30.0 of glib don't have g_match_info_unref(). */
+#if !GLIB_CHECK_VERSION(2,30,0)
+#define g_match_info_unref g_match_info_free
+#endif
+
 /* Size of a datastore chunk in units */
 #define DATASTORE_CHUNKSIZE (512 * 1024)
 
