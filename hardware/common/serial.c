@@ -218,6 +218,9 @@ SR_PRIV int serial_set_params(int fd, int baudrate, int bits, int parity,
 	case 9600:
 		dcb.BaudRate = CBR_9600;
 		break;
+	case 4800:
+		dcb.BaudRate = CBR_4800;
+		break;
 	default:
 		/* TODO: Error handling. */
 		break;
@@ -238,6 +241,9 @@ SR_PRIV int serial_set_params(int fd, int baudrate, int bits, int parity,
 		return SR_ERR;
 
 	switch (baudrate) {
+	case 4800:
+		baud = B4800;
+		break;
 	case 9600:
 		baud = B9600;
 		break;
