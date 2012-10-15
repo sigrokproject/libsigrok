@@ -2,6 +2,7 @@
 ## This file is part of the sigrok project.
 ##
 ## Copyright (C) 2011 Uwe Hermann <uwe@hermann-uwe.de>
+## Copyright (C) 2012 Alexandru Gagniuc <mr.nuke.me@gmail.com>
 ##
 ## This program is free software: you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -30,7 +31,8 @@ SUBDIRS = \
 	link-mso19 \
 	openbench-logic-sniffer \
 	zeroplus-logic-cube \
-	hantek-dso
+	hantek-dso \
+	radioshack-dmm
 
 noinst_LTLIBRARIES = libsigrokhardware.la
 
@@ -61,6 +63,10 @@ endif
 
 if HW_FLUKE_DMM
 libsigrokhardware_la_LIBADD += fluke-dmm/libsigrokhwflukedmm.la
+endif
+
+if HW_RADIOSHACK_DMM
+libsigrokhardware_la_LIBADD += radioshack-dmm/libsigrokhwradioshackdmm.la
 endif
 
 if LA_FX2LAFW

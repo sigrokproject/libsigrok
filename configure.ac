@@ -2,6 +2,7 @@
 ## This file is part of the sigrok project.
 ##
 ## Copyright (C) 2010-2012 Bert Vermeulen <bert@biot.com>
+## Copyright (C) 2012 Alexandru Gagniuc <mr.nuke.me@gmail.com>
 ##
 ## This program is free software: you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -121,6 +122,15 @@ AM_CONDITIONAL(HW_FLUKE_DMM, test x$HW_FLUKE_DMM = xyes)
 if test "x$HW_FLUKE_DMM" = "xyes"; then
 	AC_DEFINE(HAVE_HW_FLUKE_DMM, 1, [Fluke DMM support])
 fi
+
+AC_ARG_ENABLE(radioshack-dmm, AC_HELP_STRING([--enable-radioshack-dmm],
+	      [Enable Fluke DMM support. [default=yes]]),
+	      [HW_RADIOSHACK_DMM="$enableval"],
+	      [HW_RADIOSHACK_DMM=yes])
+AM_CONDITIONAL(HW_RADIOSHACK_DMM, test x$HW_RADIOSHACK_DMM = xyes)
+if test "x$HW_RADIOSHACK_DMM" = "xyes"; then
+	AC_DEFINE(HAVE_HW_RADIOSHACK_DMM, 1, [Radioshack DMM support])
+	fi
 
 AC_ARG_ENABLE(fx2lafw, AC_HELP_STRING([--enable-fx2lafw],
 	      [enable fx2lafw support (for FX2 LAs). [default=yes]]),
@@ -313,6 +323,7 @@ AC_CONFIG_FILES([Makefile
 		 hardware/common/Makefile
 		 hardware/demo/Makefile
 		 hardware/fluke-dmm/Makefile
+		 hardware/radioshack-dmm/Makefile
 		 hardware/fx2lafw/Makefile
 		 hardware/genericdmm/Makefile
 		 hardware/link-mso19/Makefile
@@ -357,6 +368,7 @@ echo "  - ASIX SIGMA/SIGMA2............... $LA_ASIX_SIGMA"
 echo "  - ChronoVu LA8.................... $LA_CHRONOVU_LA8"
 echo "  - Demo driver..................... $LA_DEMO"
 echo "  - Fluke DMM....................... $HW_FLUKE_DMM"
+echo "  - Radioshack DMM.................. $HW_RADIOSHACK_DMM"
 echo "  - fx2lafw (for FX2 LAs)........... $LA_FX2LAFW"
 echo "  - Generic DMM..................... $HW_GENERICDMM"
 echo "  - Link MSO-19..................... $LA_LINK_MSO19"
