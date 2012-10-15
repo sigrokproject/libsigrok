@@ -19,7 +19,7 @@
  */
 
 #include <glib.h>
-#include "libsigrok/libsigrok.h"
+#include "libsigrok.h"
 #include "libsigrok-internal.h"
 #include "config.h"
 #include "radioshack-dmm.h"

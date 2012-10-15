@@ -124,7 +124,7 @@ if test "x$HW_FLUKE_DMM" = "xyes"; then
 fi
 
 AC_ARG_ENABLE(radioshack-dmm, AC_HELP_STRING([--enable-radioshack-dmm],
-	      [Enable Fluke DMM support. [default=yes]]),
+	      [Enable Radio Shack DMM support. [default=yes]]),
 	      [HW_RADIOSHACK_DMM="$enableval"],
 	      [HW_RADIOSHACK_DMM=yes])
 AM_CONDITIONAL(HW_RADIOSHACK_DMM, test x$HW_RADIOSHACK_DMM = xyes)

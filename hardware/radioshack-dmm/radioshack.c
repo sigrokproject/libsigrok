@@ -403,4 +403,3 @@ SR_PRIV int radioshack_receive_data(int fd, int revents, void *cb_data)
 	return TRUE;
 }
 
-
