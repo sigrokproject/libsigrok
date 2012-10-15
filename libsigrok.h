@@ -148,6 +148,10 @@ enum {
 	SR_MQ_CONTINUITY,
 	SR_MQ_PULSE_WIDTH,
 	SR_MQ_CONDUCTANCE,
+	/** For a measurement of electrical power, usually in W, or dBm */
+	SR_MQ_POWER,
+	/** Usually for measuring a transistor's gain, or h_FE*/
+	SR_MQ_GAIN,
 };
 
 /* sr_datafeed_analog.unit values */
@@ -163,7 +167,15 @@ enum {
 	SR_UNIT_PERCENTAGE,
 	SR_UNIT_BOOLEAN,
 	SR_UNIT_SECOND,
+	/** Unit of conductance, the inverse of resistance */
 	SR_UNIT_SIEMENS,
+	/** An absolute measurement of power, in decibels, referenced to
+	 * 1 milliwatt */
+	SR_UNIT_DECIBEL_MW,
+	/** Measurements that intrinsically, do not have units attached, such
+	 * as ratios, gains, etc
+	 * Specifically, a transistor's gain (hFE) is a unitless quantity*/
+	SR_UNIT_UNITLESS,
 };
 
 /** sr_datafeed_analog.flags values */
