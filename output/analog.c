@@ -132,7 +132,9 @@ static void fancyprint(int unit, int mqflags, float value, GString *out)
 			si_printf(value, out, "S");
 			break;
 	}
-	if (mqflags & SR_MQFLAG_AC)
+	if ((mqflags & (SR_MQFLAG_AC | SR_MQFLAG_DC)) == (SR_MQFLAG_AC | SR_MQFLAG_DC))
+		g_string_append_printf(out, " AC+DC");
+	else if (mqflags & SR_MQFLAG_AC)
 		g_string_append_printf(out, " AC");
 	else if (mqflags & SR_MQFLAG_DC)
 		g_string_append_printf(out, " DC");
