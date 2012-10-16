@@ -137,6 +137,12 @@ static void fancyprint(int unit, int mqflags, float value, GString *out)
 		case SR_UNIT_SIEMENS:
 			si_printf(value, out, "S");
 			break;
+		case SR_UNIT_DECIBEL_MW:
+			si_printf(value, out, "dBu");
+			break;
+		case SR_UNIT_DECIBEL_VOLT:
+			si_printf(value, out, "dBV");
+			break;
 	}
 	if ((mqflags & (SR_MQFLAG_AC | SR_MQFLAG_DC)) == (SR_MQFLAG_AC | SR_MQFLAG_DC))
 		g_string_append_printf(out, " AC+DC");
@@ -156,6 +162,7 @@ static GString *receive(struct sr_output *o, const struct sr_dev_inst *sdi,
 	float *fdata;
 	int i, j;
 
+	(void)sdi;
 	if (!o || !o->sdi)
 		return NULL;
 	ctx = o->internal;
