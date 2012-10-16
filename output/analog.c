@@ -142,7 +142,7 @@ static void fancyprint(int unit, int mqflags, float value, GString *out)
 
 }
 
-static GString *recv(struct sr_output *o, const struct sr_dev_inst *sdi,
+static GString *receive(struct sr_output *o, const struct sr_dev_inst *sdi,
 		struct sr_datafeed_packet *packet)
 {
 	struct sr_datafeed_analog *analog;
@@ -203,6 +203,6 @@ SR_PRIV struct sr_output_format output_analog = {
 	.description = "Analog data",
 	.df_type = SR_DF_ANALOG,
 	.init = init,
-	.recv = recv,
+	.recv = receive,
 	.cleanup = cleanup
 };
