@@ -167,14 +167,16 @@ enum {
 	SR_UNIT_PERCENTAGE,
 	SR_UNIT_BOOLEAN,
 	SR_UNIT_SECOND,
-	/** Unit of conductance, the inverse of resistance */
+	/** Unit of conductance, the inverse of resistance.  */
 	SR_UNIT_SIEMENS,
 	/** An absolute measurement of power, in decibels, referenced to
-	 * 1 milliwatt */
+	 * 1 milliwatt (dBu). */
 	SR_UNIT_DECIBEL_MW,
-	/** Measurements that intrinsically, do not have units attached, such
-	 * as ratios, gains, etc
-	 * Specifically, a transistor's gain (hFE) is a unitless quantity*/
+	/** Voltage in decibel, referenced to 1 volt (dBV). */
+	SR_UNIT_DECIBEL_VOLT,
+	/** Measurements that intrinsically do not have units attached, such
+	 * as ratios, gains, etc. Specifically, a transistor's gain (hFE) is
+	 * a unitless quantity. */
 	SR_UNIT_UNITLESS,
 };
 
