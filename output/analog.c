@@ -63,21 +63,27 @@ static int init(struct sr_output *o)
 
 static void si_printf(float value, GString *out, char *unitstr)
 {
+	float v;
 
-	if (value > 1000000000L)
-		g_string_append_printf(out, "%f G%s", value / 1000000000L, unitstr);
-	else if (value > 1000000)
-		g_string_append_printf(out, "%f M%s", value / 1000000, unitstr);
-	else if (value > 1000)
-		g_string_append_printf(out, "%f k%s", value / 1000, unitstr);
-	else if (value < 0.000000000001)
-		g_string_append_printf(out, "%f p%s", value * 1000000000000, unitstr);
-	else if (value < 0.000000001)
-		g_string_append_printf(out, "%f n%s", value * 1000000000, unitstr);
-	else if (value < 0.000001)
-		g_string_append_printf(out, "%f u%s", value * 1000000, unitstr);
-	else if (value < 0.001)
-		g_string_append_printf(out, "%f m%s", value * 1000, unitstr);
+	if (signbit(value))
+		v = -(value);
+	else
+		v = value;
+
+	if (v < 1e-12 || v > 1e+12)
+		g_string_append_printf(out, "%f %s", value, unitstr);
+	else if (v > 1e+9)
+		g_string_append_printf(out, "%f G%s", value / 1e+9, unitstr);
+	else if (v > 1e+6)
+		g_string_append_printf(out, "%f M%s", value / 1e+6, unitstr);
+	else if (v > 1e+3)
+		g_string_append_printf(out, "%f k%s", value / 1e+3, unitstr);
+	else if (v < 1e-9)
+		g_string_append_printf(out, "%f n%s", value * 1e+9, unitstr);
+	else if (v < 1e-6)
+		g_string_append_printf(out, "%f u%s", value * 1e+6, unitstr);
+	else if (v < 1e-3)
+		g_string_append_printf(out, "%f m%s", value * 1e+3, unitstr);
 	else
 		g_string_append_printf(out, "%f %s", value, unitstr);
 
