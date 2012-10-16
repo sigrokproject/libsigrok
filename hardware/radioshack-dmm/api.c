@@ -140,7 +140,7 @@ static GSList *rs_22_812_scan(const char *conn, const char *serialcomm)
 	size_t len;
 	char buf[128], *b;
 
-	if ((fd = serial_open(conn, O_RDWR|O_NONBLOCK)) == -1) {
+	if ((fd = serial_open(conn, O_RDONLY|O_NONBLOCK)) == -1) {
 		sr_err("radioshack-dmm: unable to open %s: %s",
 		       conn, strerror(errno));
 		return NULL;
@@ -149,6 +149,8 @@ static GSList *rs_22_812_scan(const char *conn, const char *serialcomm)
 		sr_err("radioshack-dmm: unable to set serial parameters");
 		return NULL;
 	}
+
+	sr_info("radioshack-dmm: probing port %s readonly", conn);
 
 	drvc = di->priv;
 	b = buf;
@@ -195,6 +197,8 @@ static GSList *rs_22_812_scan(const char *conn, const char *serialcomm)
 		/* Let's see if we have anything good */
 		if (good_packets == 0)
 			continue;
+
+		sr_info("radioshack-dmm: found RS 22-812 on port %s", conn);
 
 		if (!(sdi = sr_dev_inst_new(0, SR_ST_INACTIVE, "Radioshack",
 					    "22-812", "")))
@@ -273,7 +277,7 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 		return SR_ERR_BUG;
 	}
 
-	devc->serial->fd = serial_open(devc->serial->port, O_RDWR | O_NONBLOCK);
+	devc->serial->fd = serial_open(devc->serial->port, O_RDONLY);
 	if (devc->serial->fd == -1) {
 		sr_err("radioshack-dmm: Couldn't open serial port '%s'.",
 		       devc->serial->port);
@@ -382,6 +386,11 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	sr_dbg("radioshack-dmm: Starting acquisition.");
 
 	devc->cb_data = cb_data;
+
+	/* Reset the number of samples to take. If we've already collected our
+	 * quota, but we start a new session, and don't reset this, we'll just
+	 * quit without aquiring any new samples */
+	devc->num_samples = 0;
 
 	/* Send header packet to the session bus. */
 	sr_dbg("radioshack-dmm: Sending SR_DF_HEADER.");
