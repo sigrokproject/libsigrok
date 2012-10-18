@@ -20,5 +20,6 @@
 
 EXTRA_DIST = gnuplot_usbeesx.gpi \
 	     gnuplot_chronovu_la8.gpi \
-	     z60_libsigrok.rules
+	     z60_libsigrok.rules \
+	     sigrok-logo-notext.png
 
