@@ -23,6 +23,43 @@
 #include "libsigrok-internal.h"
 
 /**
+ * @mainpage libsigrok API
+ *
+ * @section sec_intro Introduction
+ *
+ * The <a href="http://sigrok.org">sigrok</a> project aims at creating a
+ * portable, cross-platform, Free/Libre/Open-Source signal analysis software
+ * suite that supports various device types (such as logic analyzers,
+ * oscilloscopes, multimeters, and more).
+ *
+ * <a href="http://sigrok.org/wiki/Libsigrok">libsigrok</a> is a shared
+ * library written in C which provides the basic API for talking to
+ * <a href="http://sigrok.org/wiki/Supported_hardware">supported hardware</a>
+ * and reading/writing the acquired data into various
+ * <a href="http://sigrok.org/wiki/Input_output_formats">input/output
+ * file formats</a>.
+ *
+ * @section sec_error_handling Error handling
+ *
+ * libsigrok functions usually return @ref SR_OK upon success, or a negative
+ * error code on failure.
+ *
+ * @section sec_mailinglists Mailing lists
+ *
+ * There are two mailing lists for sigrok/libsigrok: <a href="https://lists.sourceforge.net/lists/listinfo/sigrok-devel">sigrok-devel</a> and <a href="https://lists.sourceforge.net/lists/listinfo/sigrok-commits">sigrok-commits</a>.
+ *
+ * @section sec_irc IRC
+ *
+ * You can find the sigrok developers in the
+ * <a href="irc://chat.freenode.net/sigrok">\#sigrok</a>
+ * IRC channel on Freenode.
+ *
+ * @section sec_website Website
+ *
+ * <a href="http://sigrok.org/wiki/Libsigrok">sigrok.org/wiki/Libsigrok</a>
+ */
+
+/**
  * Initialize libsigrok.
  *
  * This function must be called before any other libsigrok function.
