@@ -61,6 +61,11 @@ struct sr_serial_dev_inst {
 	int fd;
 };
 
+/* Private driver context. */
+struct drv_context {
+	GSList *instances;
+};
+
 /*--- log.c -----------------------------------------------------------------*/
 
 SR_PRIV int sr_log(int loglevel, const char *format, ...);
