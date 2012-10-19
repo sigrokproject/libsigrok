@@ -412,6 +412,8 @@ static void datafeed_dump(struct sr_datafeed_packet *packet)
  * @param packet The datafeed packet to send to the session bus.
  *
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments.
+ *
+ * @private
  */
 SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
 			    struct sr_datafeed_packet *packet)

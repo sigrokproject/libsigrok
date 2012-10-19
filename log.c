@@ -23,6 +23,12 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
+/**
+ * @file
+ *
+ * Logging support.
+ */
+
 /* Currently selected libsigrok loglevel. Default: SR_LOG_WARN. */
 static int sr_loglevel = SR_LOG_WARN; /* Show errors+warnings per default. */
 
@@ -40,8 +46,10 @@ static sr_log_callback_t sr_log_callback = sr_logv;
 static void *sr_log_callback_data = NULL;
 
 /* Log domain (a short string that is used as prefix for all messages). */
+/** @cond PRIVATE */
 #define LOGDOMAIN_MAXLEN 30
 #define LOGDOMAIN_DEFAULT "sr: "
+/** @endcond */
 static char sr_log_domain[LOGDOMAIN_MAXLEN + 1] = LOGDOMAIN_DEFAULT;
 
 /**
@@ -190,6 +198,7 @@ static int sr_logv(void *cb_data, int loglevel, const char *format, va_list args
 	return ret;
 }
 
+/** @private */
 SR_PRIV int sr_log(int loglevel, const char *format, ...)
 {
 	int ret;
@@ -202,6 +211,7 @@ SR_PRIV int sr_log(int loglevel, const char *format, ...)
 	return ret;
 }
 
+/** @private */
 SR_PRIV int sr_spew(const char *format, ...)
 {
 	int ret;
@@ -214,6 +224,7 @@ SR_PRIV int sr_spew(const char *format, ...)
 	return ret;
 }
 
+/** @private */
 SR_PRIV int sr_dbg(const char *format, ...)
 {
 	int ret;
@@ -226,6 +237,7 @@ SR_PRIV int sr_dbg(const char *format, ...)
 	return ret;
 }
 
+/** @private */
 SR_PRIV int sr_info(const char *format, ...)
 {
 	int ret;
@@ -238,6 +250,7 @@ SR_PRIV int sr_info(const char *format, ...)
 	return ret;
 }
 
+/** @private */
 SR_PRIV int sr_warn(const char *format, ...)
 {
 	int ret;
@@ -250,6 +263,7 @@ SR_PRIV int sr_warn(const char *format, ...)
 	return ret;
 }
 
+/** @private */
 SR_PRIV int sr_err(const char *format, ...)
 {
 	int ret;

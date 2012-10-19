@@ -71,9 +71,21 @@ Random notes
    should end with "_all", e.g. "_remove_all", "_get_all", and so on.
    Use "_remove_all" in favor of "_clear" for consistency.
 
+
+Doxygen
+-------
+
  - In Doxygen comments, put an empty line between the block of @param lines
    and the final @return line. The @param lines themselves (if there is more
    than one) are not separated by empty lines.
+
+ - Mark private functions (SR_PRIV) with /** @private */, so that Doxygen
+   doesn't include them in the output. Functions that are "static" anyway
+   don't need to be marked like this.
+
+ - Mark private variables/#defines with /** @cond PRIVATE */ and
+   /** @endcond */, so that Doxygen doesn't include them in the output.
+   Variables that are "static" don't need to be marked like this.
 
 
 Release engineering

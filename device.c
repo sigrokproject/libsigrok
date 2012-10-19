@@ -22,6 +22,7 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
+/** @private */
 SR_PRIV struct sr_probe *sr_probe_new(int index, int type,
 		gboolean enabled, const char *name)
 {
@@ -184,6 +185,7 @@ SR_API gboolean sr_dev_has_hwcap(const struct sr_dev_inst *sdi, int hwcap)
 	return FALSE;
 }
 
+/** @private */
 SR_PRIV struct sr_dev_inst *sr_dev_inst_new(int index, int status,
 		const char *vendor, const char *model, const char *version)
 {
@@ -207,6 +209,7 @@ SR_PRIV struct sr_dev_inst *sr_dev_inst_new(int index, int status,
 	return sdi;
 }
 
+/** @private */
 SR_PRIV void sr_dev_inst_free(struct sr_dev_inst *sdi)
 {
 	struct sr_probe *probe;
@@ -228,6 +231,7 @@ SR_PRIV void sr_dev_inst_free(struct sr_dev_inst *sdi)
 
 #ifdef HAVE_LIBUSB_1_0
 
+/** @private */
 SR_PRIV struct sr_usb_dev_inst *sr_usb_dev_inst_new(uint8_t bus,
 			uint8_t address, struct libusb_device_handle *hdl)
 {
@@ -245,6 +249,7 @@ SR_PRIV struct sr_usb_dev_inst *sr_usb_dev_inst_new(uint8_t bus,
 	return udi;
 }
 
+/** @private */
 SR_PRIV void sr_usb_dev_inst_free(struct sr_usb_dev_inst *usb)
 {
 	/* Avoid compiler warnings. */
@@ -255,6 +260,7 @@ SR_PRIV void sr_usb_dev_inst_free(struct sr_usb_dev_inst *usb)
 
 #endif
 
+/** @private */
 SR_PRIV struct sr_serial_dev_inst *sr_serial_dev_inst_new(const char *port,
 							  int fd)
 {
@@ -271,6 +277,7 @@ SR_PRIV struct sr_serial_dev_inst *sr_serial_dev_inst_new(const char *port,
 	return serial;
 }
 
+/** @private */
 SR_PRIV void sr_serial_dev_inst_free(struct sr_serial_dev_inst *serial)
 {
 	g_free(serial->port);

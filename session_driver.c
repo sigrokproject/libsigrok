@@ -27,7 +27,9 @@
 #include "libsigrok-internal.h"
 
 /* size of payloads sent across the session bus */
+/** @cond PRIVATE */
 #define CHUNKSIZE (512 * 1024)
+/** @endcond */
 
 struct session_vdev {
 	char *sessionfile;
@@ -269,6 +271,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
+/** @private */
 SR_PRIV struct sr_dev_driver session_driver = {
 	.name = "session",
 	.longname = "Session-emulating driver",

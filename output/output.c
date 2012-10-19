@@ -20,6 +20,7 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
+/** @cond PRIVATE */
 extern SR_PRIV struct sr_output_format output_text_bits;
 extern SR_PRIV struct sr_output_format output_text_hex;
 extern SR_PRIV struct sr_output_format output_text_ascii;
@@ -32,6 +33,7 @@ extern SR_PRIV struct sr_output_format output_csv;
 extern SR_PRIV struct sr_output_format output_float;
 extern SR_PRIV struct sr_output_format output_analog;
 /* extern SR_PRIV struct sr_output_format output_analog_gnuplot; */
+/* @endcond */
 
 static struct sr_output_format *output_module_list[] = {
 	&output_text_bits,

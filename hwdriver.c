@@ -53,6 +53,7 @@ static struct sr_hwcap_option sr_devopts[] = {
 	{0, 0, NULL, NULL},
 };
 
+/** @cond PRIVATE */
 #ifdef HAVE_LA_DEMO
 extern SR_PRIV struct sr_dev_driver demo_driver_info;
 #endif
@@ -92,6 +93,7 @@ extern SR_PRIV struct sr_dev_driver flukedmm_driver_info;
 #ifdef HAVE_HW_RADIOSHACK_DMM
 extern SR_PRIV struct sr_dev_driver radioshackdmm_driver_info;
 #endif
+/** @endcond */
 
 static struct sr_dev_driver *drivers_list[] = {
 #ifdef HAVE_LA_DEMO
@@ -190,6 +192,7 @@ SR_API GSList *sr_driver_scan(struct sr_dev_driver *driver, GSList *options)
 	return NULL;
 }
 
+/** @private */
 SR_PRIV void sr_hw_cleanup_all(void)
 {
 	int i;
@@ -341,11 +344,13 @@ SR_API const struct sr_hwcap_option *sr_devopt_name_get(const char *optname)
 
 /* Unnecessary level of indirection follows. */
 
+/** @private */
 SR_PRIV int sr_source_remove(int fd)
 {
 	return sr_session_source_remove(fd);
 }
 
+/** @private */
 SR_PRIV int sr_source_add(int fd, int events, int timeout,
 			  sr_receive_data_callback_t cb, void *cb_data)
 {
