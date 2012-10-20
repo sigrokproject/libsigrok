@@ -114,6 +114,15 @@ if test "x$LA_CHRONOVU_LA8" = "xyes"; then
 	AC_DEFINE(HAVE_LA_CHRONOVU_LA8, 1, [ChronoVu LA8 support])
 fi
 
+AC_ARG_ENABLE(demo, AC_HELP_STRING([--enable-demo],
+	      [enable demo driver support [default=yes]]),
+	      [LA_DEMO="$enableval"],
+	      [LA_DEMO=yes])
+AM_CONDITIONAL(LA_DEMO, test x$LA_DEMO = xyes)
+if test "x$LA_DEMO" = "xyes"; then
+	AC_DEFINE(HAVE_LA_DEMO, 1, [Demo driver support])
+fi
+
 AC_ARG_ENABLE(fluke-dmm, AC_HELP_STRING([--enable-fluke-dmm],
 	      [Enable Fluke DMM support. [default=yes]]),
 	      [HW_FLUKE_DMM="$enableval"],
@@ -122,15 +131,6 @@ AM_CONDITIONAL(HW_FLUKE_DMM, test x$HW_FLUKE_DMM = xyes)
 if test "x$HW_FLUKE_DMM" = "xyes"; then
 	AC_DEFINE(HAVE_HW_FLUKE_DMM, 1, [Fluke DMM support])
 fi
-
-AC_ARG_ENABLE(radioshack-dmm, AC_HELP_STRING([--enable-radioshack-dmm],
-	      [Enable Radio Shack DMM support. [default=yes]]),
-	      [HW_RADIOSHACK_DMM="$enableval"],
-	      [HW_RADIOSHACK_DMM=yes])
-AM_CONDITIONAL(HW_RADIOSHACK_DMM, test x$HW_RADIOSHACK_DMM = xyes)
-if test "x$HW_RADIOSHACK_DMM" = "xyes"; then
-	AC_DEFINE(HAVE_HW_RADIOSHACK_DMM, 1, [Radioshack DMM support])
-	fi
 
 AC_ARG_ENABLE(fx2lafw, AC_HELP_STRING([--enable-fx2lafw],
 	      [enable fx2lafw support (for FX2 LAs). [default=yes]]),
@@ -150,13 +150,14 @@ if test "x$HW_GENERICDMM" = "xyes"; then
 	AC_DEFINE(HAVE_HW_GENERICDMM, 1, [Generic DMM support])
 fi
 
-AC_ARG_ENABLE(demo, AC_HELP_STRING([--enable-demo],
-	      [enable demo driver support [default=yes]]),
-	      [LA_DEMO="$enableval"],
-	      [LA_DEMO=yes])
-AM_CONDITIONAL(LA_DEMO, test x$LA_DEMO = xyes)
-if test "x$LA_DEMO" = "xyes"; then
-	AC_DEFINE(HAVE_LA_DEMO, 1, [Demo driver support])
+AC_ARG_ENABLE(hantek-dso,
+	      AC_HELP_STRING([--enable-hantek-dso],
+	      [enable Hantek DSO support [default=yes]]),
+	      [HW_HANTEK_DSO="$enableval"],
+	      [HW_HANTEK_DSO=yes])
+AM_CONDITIONAL(HW_HANTEK_DSO, test x$HW_HANTEK_DSO = xyes)
+if test "x$HW_HANTEK_DSO" = "xyes"; then
+	AC_DEFINE(HAVE_HW_HANTEK_DSO, 1, [Hantek DSO support])
 fi
 
 # Disabled by default, unfinished.
@@ -178,6 +179,15 @@ if test "x$LA_OLS" = "xyes"; then
 	AC_DEFINE(HAVE_LA_OLS, 1, [OpenBench Logic Sniffer (OLS) support])
 fi
 
+AC_ARG_ENABLE(radioshack-dmm, AC_HELP_STRING([--enable-radioshack-dmm],
+	      [Enable Radio Shack DMM support. [default=yes]]),
+	      [HW_RADIOSHACK_DMM="$enableval"],
+	      [HW_RADIOSHACK_DMM=yes])
+AM_CONDITIONAL(HW_RADIOSHACK_DMM, test x$HW_RADIOSHACK_DMM = xyes)
+if test "x$HW_RADIOSHACK_DMM" = "xyes"; then
+	AC_DEFINE(HAVE_HW_RADIOSHACK_DMM, 1, [Radioshack DMM support])
+fi
+
 AC_ARG_ENABLE(zeroplus-logic-cube,
 	      AC_HELP_STRING([--enable-zeroplus-logic-cube],
 	      [enable ZEROPLUS Logic Cube support [default=yes]]),
@@ -186,16 +196,6 @@ AC_ARG_ENABLE(zeroplus-logic-cube,
 AM_CONDITIONAL(LA_ZEROPLUS_LOGIC_CUBE, test x$LA_ZEROPLUS_LOGIC_CUBE = xyes)
 if test "x$LA_ZEROPLUS_LOGIC_CUBE" = "xyes"; then
 	AC_DEFINE(HAVE_LA_ZEROPLUS_LOGIC_CUBE, 1, [ZEROPLUS Logic Cube support])
-fi
-
-AC_ARG_ENABLE(hantek-dso,
-	      AC_HELP_STRING([--enable-hantek-dso],
-	      [enable Hantek DSO support [default=yes]]),
-	      [HW_HANTEK_DSO="$enableval"],
-	      [HW_HANTEK_DSO=yes])
-AM_CONDITIONAL(HW_HANTEK_DSO, test x$HW_HANTEK_DSO = xyes)
-if test "x$HW_HANTEK_DSO" = "xyes"; then
-	AC_DEFINE(HAVE_HW_HANTEK_DSO, 1, [Hantek DSO support])
 fi
 
 # Checks for libraries.
@@ -313,9 +313,7 @@ AC_SUBST(SR_PACKAGE_VERSION_MINOR)
 AC_SUBST(SR_PACKAGE_VERSION_MICRO)
 AC_SUBST(SR_PACKAGE_VERSION)
 
-AC_CONFIG_FILES([Makefile
-		 version.h
-		 hardware/Makefile
+AC_CONFIG_FILES([Makefile version.h hardware/Makefile
 		 hardware/agilent-dmm/Makefile
 		 hardware/alsa/Makefile
 		 hardware/asix-sigma/Makefile
@@ -323,13 +321,13 @@ AC_CONFIG_FILES([Makefile
 		 hardware/common/Makefile
 		 hardware/demo/Makefile
 		 hardware/fluke-dmm/Makefile
-		 hardware/radioshack-dmm/Makefile
 		 hardware/fx2lafw/Makefile
 		 hardware/genericdmm/Makefile
+		 hardware/hantek-dso/Makefile
 		 hardware/link-mso19/Makefile
 		 hardware/openbench-logic-sniffer/Makefile
+		 hardware/radioshack-dmm/Makefile
 		 hardware/zeroplus-logic-cube/Makefile
-		 hardware/hantek-dso/Makefile
 		 input/Makefile
 		 output/Makefile
 		 output/text/Makefile
@@ -360,20 +358,18 @@ for lib in "glib-2.0" "gthread-2.0" "libusb-1.0" "libzip" "libftdi" "libudev" "a
 	echo "  - $lib: $answer"
 done
 
-echo
-echo "Enabled hardware drivers:"
-echo
+echo -e "\nEnabled hardware drivers:\n"
 echo "  - Agilent DMM..................... $HW_AGILENT_DMM"
 echo "  - ASIX SIGMA/SIGMA2............... $LA_ASIX_SIGMA"
 echo "  - ChronoVu LA8.................... $LA_CHRONOVU_LA8"
 echo "  - Demo driver..................... $LA_DEMO"
 echo "  - Fluke DMM....................... $HW_FLUKE_DMM"
-echo "  - Radioshack DMM.................. $HW_RADIOSHACK_DMM"
 echo "  - fx2lafw (for FX2 LAs)........... $LA_FX2LAFW"
 echo "  - Generic DMM..................... $HW_GENERICDMM"
+echo "  - Hantek DSO...................... $HW_HANTEK_DSO"
 echo "  - Link MSO-19..................... $LA_LINK_MSO19"
 echo "  - Openbench Logic Sniffer......... $LA_OLS"
+echo "  - Radioshack DMM.................. $HW_RADIOSHACK_DMM"
 echo "  - ZEROPLUS Logic Cube............. $LA_ZEROPLUS_LOGIC_CUBE"
-echo "  - Hantek DSO...................... $HW_HANTEK_DSO"
 echo
 

@@ -28,11 +28,11 @@ SUBDIRS = \
 	fluke-dmm \
 	fx2lafw \
 	genericdmm \
+	hantek-dso \
 	link-mso19 \
 	openbench-logic-sniffer \
-	zeroplus-logic-cube \
-	hantek-dso \
-	radioshack-dmm
+	radioshack-dmm \
+	zeroplus-logic-cube
 
 noinst_LTLIBRARIES = libsigrokhardware.la
 
@@ -65,16 +65,16 @@ if HW_FLUKE_DMM
 libsigrokhardware_la_LIBADD += fluke-dmm/libsigrokhwflukedmm.la
 endif
 
-if HW_RADIOSHACK_DMM
-libsigrokhardware_la_LIBADD += radioshack-dmm/libsigrokhwradioshackdmm.la
-endif
-
 if LA_FX2LAFW
 libsigrokhardware_la_LIBADD += fx2lafw/libsigrokhwfx2lafw.la
 endif
 
 if HW_GENERICDMM
 libsigrokhardware_la_LIBADD += genericdmm/libsigrokhwgenericdmm.la
+endif
+
+if HW_HANTEK_DSO
+libsigrokhardware_la_LIBADD += hantek-dso/libsigrokhw_hantek_dso.la
 endif
 
 if LA_LINK_MSO19
@@ -85,11 +85,11 @@ if LA_OLS
 libsigrokhardware_la_LIBADD += openbench-logic-sniffer/libsigrokhwols.la
 endif
 
-if LA_ZEROPLUS_LOGIC_CUBE
-libsigrokhardware_la_LIBADD += zeroplus-logic-cube/libsigrokhwzeroplus.la
+if HW_RADIOSHACK_DMM
+libsigrokhardware_la_LIBADD += radioshack-dmm/libsigrokhwradioshackdmm.la
 endif
 
-if HW_HANTEK_DSO
-libsigrokhardware_la_LIBADD += hantek-dso/libsigrokhw_hantek_dso.la
+if LA_ZEROPLUS_LOGIC_CUBE
+libsigrokhardware_la_LIBADD += zeroplus-logic-cube/libsigrokhwzeroplus.la
 endif
 
