@@ -215,6 +215,12 @@ static gboolean rs_22_812_is_shortcirc(rs_22_812_packet *rs_packet)
 	return((rs_packet->digit2 & ~RS_22_812_DP_MASK) == RS_22_812_LCD_h);
 }
 
+static gboolean rs_22_812_is_logic_high(rs_22_812_packet *rs_packet)
+{
+	sr_spew("digit 2: %x", rs_packet->digit2 & ~RS_22_812_DP_MASK);
+	return((rs_packet->digit2 & ~RS_22_812_DP_MASK) == RS_22_812_LCD_H);
+}
+
 static void rs_22_812_handle_packet(rs_22_812_packet *rs_packet,
 				    rs_dev_ctx *devc)
 {
@@ -281,12 +287,17 @@ static void rs_22_812_handle_packet(rs_22_812_packet *rs_packet,
 		analog->unit = SR_UNIT_HERTZ;
 		break;
 	case RS_22_812_MODE_LOGIC:
-		analog->mq = 0; /* FIXME */
-		analog->unit = SR_UNIT_BOOLEAN;
-		sr_warn("radioshack-dmm: LOGIC mode not supported yet");
-		g_free(analog->data);
-		g_free(analog);
-		return;
+		/* No matter whether or not we have an actual voltage reading,
+		 * we are measuring voltage, so we set our MQ as VOLTAGE */
+		analog->mq = SR_MQ_VOLTAGE;
+		if(!isnan(rawval)) {
+			/* We have an actual voltage */
+			analog->unit = SR_UNIT_VOLT;
+		} else {
+			/* We have either HI or LOW */
+			analog->unit = SR_UNIT_BOOLEAN;
+			*analog->data = rs_22_812_is_logic_high(rs_packet);
+		}
 		break;
 	case RS_22_812_MODE_HFE:
 		analog->mq = SR_MQ_GAIN;

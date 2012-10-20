@@ -71,7 +71,7 @@
 #define RS_22_812_LCD_E
 #define RS_22_812_LCD_F
 #define RS_22_812_LCD_h 0x66
-#define RS_22_812_LCD_H
+#define RS_22_812_LCD_H 0x76
 #define RS_22_812_LCD_I
 #define RS_22_812_LCD_n
 #define RS_22_812_LCD_P 0x37
