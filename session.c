@@ -381,7 +381,7 @@ static void datafeed_dump(struct sr_datafeed_packet *packet)
 		sr_dbg("bus: received SR_DF_LOGIC %" PRIu64 " bytes", logic->length);
 		break;
 	case SR_DF_META_ANALOG:
-		sr_dbg("bus: received SR_DF_META_LOGIC");
+		sr_dbg("bus: received SR_DF_META_ANALOG");
 		break;
 	case SR_DF_ANALOG:
 		analog = packet->payload;
