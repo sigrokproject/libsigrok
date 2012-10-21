@@ -161,7 +161,7 @@ enum {
 	SR_MQ_CONDUCTANCE,
 	/** Electrical power, usually in W, or dBm. */
 	SR_MQ_POWER,
-	/** Gain (e.g. a transistor's gain, or hFE). */
+	/** Gain (a transistor's gain, or hFE, for example). */
 	SR_MQ_GAIN,
 };
 
@@ -205,7 +205,7 @@ enum {
 	SR_MQFLAG_RMS = 0x04,
 	/** Value is voltage drop across a diode, or NAN. */
 	SR_MQFLAG_DIODE = 0x08,
-	/** Device is in "hold" mode, i.e. repeating the last measurement. */
+	/** Device is in "hold" mode (repeating the last measurement). */
 	SR_MQFLAG_HOLD = 0x10,
 	/** Device is in "max" mode, only updating upon a new max value. */
 	SR_MQFLAG_MAX = 0x20,
@@ -246,7 +246,7 @@ struct sr_datafeed_meta_analog {
 
 struct sr_datafeed_analog {
 	int num_samples;
-	/** Measured quantity (e.g. voltage, current, temperature). */
+	/** Measured quantity (voltage, current, temperature, and so on). */
 	int mq;
 	/** Unit in which the MQ is measured. */
 	int unit;
@@ -337,8 +337,8 @@ struct sr_hwopt {
 
 /** Hardware driver options. */
 enum {
-	/** Used to terminate lists. Must be 0! */
-	SR_HWOPT_DUMMY = 0,
+	/** Used to terminate lists. */
+	SR_HWOPT_DUMMY = 0, /* Must be 0! */
 
 	/**
 	 * Some drivers cannot detect the exact model they're talking to
@@ -347,18 +347,23 @@ enum {
 	SR_HWOPT_MODEL,
 
 	/**
-	 * Specification on how to connect to a device. In combination
-	 * with SR_HWOPT_SERIALCOMM, this is a serial port in the form
-	 * which makes sense to the operating system (e.g., /dev/ttyS0).
+	 * Specification on how to connect to a device.
+	 *
+	 * In combination with SR_HWOPT_SERIALCOMM, this is a serial port in
+	 * the form which makes sense to the OS (e.g., /dev/ttyS0).
 	 * Otherwise this specifies a USB device, either in the form of
-	 * [bus].[address] (decimal, e.g. 1.65) or [vendorid].[productid]
+	 * @verbatim <bus>.<address> @endverbatim (decimal, e.g. 1.65) or
+	 * @verbatim <vendorid>.<productid> @endverbatim
 	 * (hexadecimal, e.g. 1d6b.0001).
 	 */
 	SR_HWOPT_CONN,
 
 	/**
 	 * Serial communication specification, in the form:
-	 *   [baudrate]/[databits][parity][stopbits], e.g. 9600/8n1
+	 *
+	 *   @verbatim <baudrate>/<databits><parity><stopbits> @endverbatim
+	 *
+	 * Example: 9600/8n1
 	 *
 	 * This is always an optional parameter, since a driver typically
 	 * knows the speed at which the device wants to communicate.
@@ -368,8 +373,8 @@ enum {
 
 /** Hardware device capabilities. */
 enum {
-	/** Used to terminate lists. Must be 0! */
-	SR_HWCAP_DUMMY = 0,
+	/** Used to terminate lists. */
+	SR_HWCAP_DUMMY = 0, /* Must be 0! */
 
 	/*--- Device classes ------------------------------------------------*/
 
@@ -447,25 +452,25 @@ enum {
 	/*--- Acquisition modes ---------------------------------------------*/
 
 	/**
-	 * The device supports setting a sample time limit, i.e. how long the
-	 * sample acquisition should run (in ms).
+	 * The device supports setting a sample time limit (how long
+	 * the sample acquisition should run, in ms).
 	 */
 	SR_HWCAP_LIMIT_MSEC,
 
 	/**
-	 * The device supports setting a sample number limit, i.e. how many
-	 * samples should be acquired.
+	 * The device supports setting a sample number limit (how many
+	 * samples should be acquired).
 	 */
 	SR_HWCAP_LIMIT_SAMPLES,
 
 	/**
-	 * The device supports setting a frame limit, i.e. how many
-	 * frames should be acquired.
+	 * The device supports setting a frame limit (how many
+	 * frames should be acquired).
 	 */
 	SR_HWCAP_LIMIT_FRAMES,
 
 	/**
-	 * The device supports continuous sampling, i.e. neither a time limit
+	 * The device supports continuous sampling. Neither a time limit
 	 * nor a sample number limit has to be supplied, it will just acquire
 	 * samples continuously, until explicitly stopped by a certain command.
 	 */
