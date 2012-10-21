@@ -122,9 +122,9 @@ SR_API int sr_session_dev_remove_all(void)
 }
 
 /**
- * Add a device to the current session.
+ * Add a device instance to the current session.
  *
- * @param dev The device instance to add to the current session. Must not
+ * @param sdi The device instance to add to the current session. Must not
  *            be NULL. Also, sdi->driver and sdi->driver->dev_open must
  *            not be NULL.
  *

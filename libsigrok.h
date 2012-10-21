@@ -323,22 +323,29 @@ struct sr_hwopt {
 enum {
 	SR_HWOPT_DUMMY = 0, /* Used to terminate lists. Must be 0! */
 
-	/** Some drivers cannot detect the exact model they're talking to
-	 * (may be phased out). */
+	/**
+	 * Some drivers cannot detect the exact model they're talking to
+	 * (may be phased out).
+	 */
 	SR_HWOPT_MODEL,
 
-	/** Specification on how to connect to a device. In combination
+	/**
+	 * Specification on how to connect to a device. In combination
 	 * with SR_HWOPT_SERIALCOMM, this is a serial port in the form
-	 * which makes sense to the operating system (/dev/ttyS0).
+	 * which makes sense to the operating system (e.g., /dev/ttyS0).
 	 * Otherwise this specifies a USB device, either in the form of
-	 * <bus>.<address> (decimal, e.g. 1.65) or <vendorid>.<productid>
-	 * (hexadecimal, e.g. 1d6b.0001). */
+	 * [bus].[address] (decimal, e.g. 1.65) or [vendorid].[productid]
+	 * (hexadecimal, e.g. 1d6b.0001).
+	 */
 	SR_HWOPT_CONN,
 
-	/** Serial communication specification, in the form:
-	 *   <speed>/<data bits><parity><stop bit> e.g.9600/ 8n1
+	/**
+	 * Serial communication specification, in the form:
+	 *   [speed]/[databits][parity][stop bit], e.g. 9600/8n1
+	 *
 	 * This is always an optional parameter, since a driver typically
-	 * knows the speed at which the device wants to communicate */
+	 * knows the speed at which the device wants to communicate.
+	 */
 	SR_HWOPT_SERIALCOMM,
 };
 

@@ -178,7 +178,9 @@ SR_API char *sr_voltage_string(struct sr_rational *voltage)
 /**
  * Parse a trigger specification string.
  *
- * @param dev The device for which the trigger specification is intended.
+ * @param sdi The device instance for which the trigger specification is
+ *            intended. Must not be NULL. Also, sdi->driver and
+ *            sdi->driver->info_get must not be NULL.
  * @param triggerstring The string containing the trigger specification for
  *        one or more probes of this device. Entries for multiple probes are
  *        comma-separated. Triggers are specified in the form key=value,

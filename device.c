@@ -160,9 +160,10 @@ SR_API int sr_dev_trigger_set(const struct sr_dev_inst *sdi, int probenum,
 }
 
 /**
- * Determine whether the specified device has the specified capability.
+ * Determine whether the specified device instance has the specified
+ * capability.
  *
- * @param dev Pointer to the device instance to be checked. Must not be NULL.
+ * @param sdi Pointer to the device instance to be checked. Must not be NULL.
  *            If the device's 'driver' field is NULL (virtual device), this
  *            function will always return FALSE (virtual devices don't have
  *            a hardware capabilities list).
