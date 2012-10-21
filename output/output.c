@@ -20,6 +20,14 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
+/**
+ * @defgroup grp_output Output formats
+ *
+ * Output file/data format handling.
+ *
+ * @{
+ */
+
 /** @cond PRIVATE */
 extern SR_PRIV struct sr_output_format output_text_bits;
 extern SR_PRIV struct sr_output_format output_text_hex;
@@ -55,3 +63,5 @@ SR_API struct sr_output_format **sr_output_list(void)
 {
 	return output_module_list;
 }
+
+/** @} */

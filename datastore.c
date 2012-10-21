@@ -24,6 +24,14 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
+/**
+ * @defgroup grp_datastore Datastore
+ *
+ * Creating, using, or destroying libsigrok datastores.
+ *
+ * @{
+ */
+
 static gpointer new_chunk(struct sr_datastore **ds);
 
 /**
@@ -241,3 +249,5 @@ static gpointer new_chunk(struct sr_datastore **ds)
 
 	return chunk; /* TODO: SR_OK later? */
 }
+
+/** @} */

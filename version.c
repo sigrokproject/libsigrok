@@ -20,6 +20,14 @@
 
 #include "libsigrok.h"
 
+/**
+ * @defgroup grp_versions Versions
+ *
+ * Version number querying functions.
+ *
+ * @{
+ */
+
 SR_API int sr_package_version_major_get(void)
 {
 	return SR_PACKAGE_VERSION_MAJOR;
@@ -59,3 +67,5 @@ SR_API const char *sr_lib_version_string_get(void)
 {
 	return SR_LIB_VERSION_STRING;
 }
+
+/** @} */

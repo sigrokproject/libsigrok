@@ -25,6 +25,14 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
+/**
+ * @defgroup grp_session Session handling
+ *
+ * Creating, using, or destroying libsigrok sessions.
+ *
+ * @{
+ */
+
 struct source {
 	int timeout;
 	sr_receive_data_callback_t cb;
@@ -652,3 +660,5 @@ SR_API int sr_session_source_remove_channel(GIOChannel *channel)
 {
 	return _sr_session_source_remove((gintptr)channel);
 }
+
+/** @} */

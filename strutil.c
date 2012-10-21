@@ -25,6 +25,14 @@
 #include "libsigrok-internal.h"
 
 /**
+ * @defgroup grp_strutil String utilities
+ *
+ * Helper functions for handling or converting libsigrok-related strings.
+ *
+ * @{
+ */
+
+/**
  * Convert a numeric value value to its "natural" string representation.
  * in SI units
  *
@@ -419,4 +427,4 @@ SR_API int sr_parse_voltage(const char *voltstr, struct sr_rational *r)
 	return SR_OK;
 }
 
-
+/** @} */

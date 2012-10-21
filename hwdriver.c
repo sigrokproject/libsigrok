@@ -26,6 +26,13 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
+/**
+ * @defgroup grp_driver Hardware drivers
+ *
+ * Hardware driver handling in libsigrok.
+ *
+ * @{
+ */
 
 /* Driver scanning options. */
 static struct sr_hwcap_option sr_drvopts[] = {
@@ -356,3 +363,5 @@ SR_PRIV int sr_source_add(int fd, int events, int timeout,
 {
 	return sr_session_source_add(fd, events, timeout, cb, cb_data);
 }
+
+/** @} */

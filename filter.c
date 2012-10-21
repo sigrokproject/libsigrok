@@ -24,6 +24,14 @@
 #include "libsigrok-internal.h"
 
 /**
+ * @defgroup grp_filter Probe filter
+ *
+ * Helper functions to filter out unused probes from samples.
+ *
+ * @{
+ */
+
+/**
  * Remove unused probes from samples.
  *
  * Convert sample from maximum probes -- the way the hardware driver sent
@@ -142,3 +150,5 @@ SR_API int sr_filter_probes(int in_unitsize, int out_unitsize,
 
 	return SR_OK;
 }
+
+/** @} */

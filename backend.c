@@ -60,6 +60,14 @@
  */
 
 /**
+ * @defgroup grp_init Initialization
+ *
+ * Initializing and shutting down libsigrok.
+ *
+ * @{
+ */
+
+/**
  * Initialize libsigrok.
  *
  * This function must be called before any other libsigrok function.
@@ -130,3 +138,5 @@ SR_API int sr_exit(struct sr_context *ctx)
 
 	return SR_OK;
 }
+
+/** @} */

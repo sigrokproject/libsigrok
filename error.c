@@ -21,6 +21,14 @@
 #include "libsigrok.h"
 
 /**
+ * @defgroup grp_error Error handling
+ *
+ * Error handling in libsigrok.
+ *
+ * @{
+ */
+
+/**
  * Return a human-readable error string for the given libsigrok error code.
  *
  * @param error_code A libsigrok error code number, such as SR_ERR_MALLOC.
@@ -108,3 +116,5 @@ SR_API const char *sr_strerror_name(int error_code)
 
 	return str;
 }
+
+/** @} */

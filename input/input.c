@@ -20,6 +20,14 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
+/**
+ * @defgroup grp_input Input formats
+ *
+ * Input file/data format handling.
+ *
+ * @{
+ */
+
 /** @cond PRIVATE */
 extern SR_PRIV struct sr_input_format input_chronovu_la8;
 extern SR_PRIV struct sr_input_format input_binary;
@@ -36,3 +44,5 @@ SR_API struct sr_input_format **sr_input_list(void)
 {
 	return input_module_list;
 }
+
+/** @} */

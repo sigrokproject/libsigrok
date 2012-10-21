@@ -22,6 +22,14 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
+/**
+ * @defgroup grp_devices Devices
+ *
+ * Device handling in libsigrok.
+ *
+ * @{
+ */
+
 /** @private */
 SR_PRIV struct sr_probe *sr_probe_new(int index, int type,
 		gboolean enabled, const char *name)
@@ -316,3 +324,4 @@ SR_API int sr_dev_inst_clear(const struct sr_dev_driver *driver)
 		return SR_OK;
 }
 
+/** @} */

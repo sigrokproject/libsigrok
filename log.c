@@ -29,6 +29,14 @@
  * Logging support.
  */
 
+/**
+ * @defgroup grp_logging Logging
+ *
+ * Controlling the libsigrok message logging functionality.
+ *
+ * @{
+ */
+
 /* Currently selected libsigrok loglevel. Default: SR_LOG_WARN. */
 static int sr_loglevel = SR_LOG_WARN; /* Show errors+warnings per default. */
 
@@ -275,3 +283,5 @@ SR_PRIV int sr_err(const char *format, ...)
 
 	return ret;
 }
+
+/** @} */

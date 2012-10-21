@@ -27,6 +27,12 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
+/**
+ * @ingroup grp_device
+ *
+ * @{
+ */
+
 extern struct sr_session *session;
 extern SR_PRIV struct sr_dev_driver session_driver;
 
@@ -289,3 +295,5 @@ SR_API int sr_session_save(const char *filename,
 
 	return SR_OK;
 }
+
+/** @} */
