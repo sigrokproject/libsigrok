@@ -28,7 +28,7 @@
 #include "libsigrok-internal.h"
 
 /**
- * @ingroup grp_device
+ * @addtogroup grp_session
  *
  * @{
  */
