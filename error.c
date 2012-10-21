@@ -25,6 +25,9 @@
  *
  * Error handling in libsigrok.
  *
+ * libsigrok functions usually return @ref SR_OK upon success, or a negative
+ * error code on failure.
+ *
  * @{
  */
 

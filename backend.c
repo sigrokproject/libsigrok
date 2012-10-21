@@ -39,10 +39,14 @@
  * <a href="http://sigrok.org/wiki/Input_output_formats">input/output
  * file formats</a>.
  *
- * @section sec_error_handling Error handling
+ * @section sec_api API reference
  *
- * libsigrok functions usually return @ref SR_OK upon success, or a negative
- * error code on failure.
+ * See the "Modules" page for an introduction to various libsigrok
+ * related topics and the detailed API documentation of the respective
+ * functions.
+ *
+ * You can also browse the API documentation by file, or review all
+ * data structures.
  *
  * @section sec_mailinglists Mailing lists
  *
