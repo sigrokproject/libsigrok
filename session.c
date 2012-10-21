@@ -51,7 +51,7 @@ struct sr_session *session;
 /**
  * Create a new session.
  *
- * TODO: Should it use the file-global "session" variable or take an argument?
+ * @todo Should it use the file-global "session" variable or take an argument?
  *       The same question applies to all the other session functions.
  *
  * @return A pointer to the newly allocated session, or NULL upon errors.
@@ -86,8 +86,6 @@ SR_API int sr_session_destroy(void)
 
 	/* TODO: Error checks needed? */
 
-	/* TODO: Loop over protocol decoders and free them. */
-
 	g_free(session);
 	session = NULL;
 
@@ -101,7 +99,7 @@ static void sr_dev_close(struct sr_dev_inst *sdi)
 }
 
 /**
- * Remove all the devices from the current session. TODO?
+ * Remove all the devices from the current session.
  *
  * The session itself (i.e., the struct sr_session) is not free'd and still
  * exists after this function returns.
@@ -284,8 +282,6 @@ SR_API int sr_session_start(void)
 /**
  * Run the session.
  *
- * TODO: Various error checks etc.
- *
  * @return SR_OK upon success, SR_ERR_BUG upon errors.
  */
 SR_API int sr_session_run(void)
@@ -416,7 +412,7 @@ static void datafeed_dump(struct sr_datafeed_packet *packet)
  *
  * Hardware drivers use this to send a data packet to the frontend.
  *
- * @param dev TODO.
+ * @param sdi TODO.
  * @param packet The datafeed packet to send to the session bus.
  *
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments.
@@ -449,6 +445,18 @@ SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
+/**
+ * Add an event source for a file descriptor.
+ *
+ * @param pollfd The GPollFD.
+ * @param timeout Max time to wait before the callback is called, ignored if 0.
+ * @param cb Callback function to add. Must not be NULL.
+ * @param cb_data Data for the callback function. Can be NULL.
+ * @param poll_object TODO.
+ *
+ * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or
+ *         SR_ERR_MALLOC upon memory allocation errors.
+ */
 static int _sr_session_source_add(GPollFD *pollfd, int timeout,
 	sr_receive_data_callback_t cb, void *cb_data, gintptr poll_object)
 {
@@ -493,7 +501,7 @@ static int _sr_session_source_add(GPollFD *pollfd, int timeout,
 }
 
 /**
- * Add a event source for a file descriptor.
+ * Add an event source for a file descriptor.
  *
  * @param fd The file descriptor.
  * @param events Events to check for.
@@ -518,8 +526,6 @@ SR_API int sr_session_source_add(int fd, int events, int timeout,
 /**
  * Add an event source for a GPollFD.
  *
- * TODO: More error checks etc.
- *
  * @param pollfd The GPollFD.
  * @param timeout Max time to wait before the callback is called, ignored if 0.
  * @param cb Callback function to add. Must not be NULL.
@@ -538,8 +544,6 @@ SR_API int sr_session_source_add_pollfd(GPollFD *pollfd, int timeout,
 /**
  * Add an event source for a GIOChannel.
  *
- * TODO: More error checks etc.
- *
  * @param channel The GIOChannel.
  * @param events Events to poll on.
  * @param timeout Max time to wait before the callback is called, ignored if 0.
@@ -555,8 +559,7 @@ SR_API int sr_session_source_add_channel(GIOChannel *channel, int events,
 	GPollFD p;
 
 #ifdef _WIN32
-	g_io_channel_win32_make_pollfd(channel,
-			events, &p);
+	g_io_channel_win32_make_pollfd(channel, events, &p);
 #else
 	p.fd = g_io_channel_unix_get_fd(channel);
 	p.events = events;
@@ -565,7 +568,17 @@ SR_API int sr_session_source_add_channel(GIOChannel *channel, int events,
 	return _sr_session_source_add(&p, timeout, cb, cb_data, (gintptr)channel);
 }
 
-
+/**
+ * Remove the source belonging to the specified channel.
+ *
+ * @todo Add more error checks and logging.
+ *
+ * @param channel The channel for which the source should be removed.
+ *
+ * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or
+ *         SR_ERR_MALLOC upon memory allocation errors, SR_ERR_BUG upon
+ *         internal errors.
+ */
 static int _sr_session_source_remove(gintptr poll_object)
 {
 	struct source *new_sources;
@@ -613,10 +626,8 @@ static int _sr_session_source_remove(gintptr poll_object)
 	return SR_OK;
 }
 
-/*
+/**
  * Remove the source belonging to the specified file descriptor.
- *
- * TODO: More error checks.
  *
  * @param fd The file descriptor for which the source should be removed.
  *
@@ -632,8 +643,6 @@ SR_API int sr_session_source_remove(int fd)
 /**
  * Remove the source belonging to the specified poll descriptor.
  *
- * TODO: More error checks.
- *
  * @param pollfd The poll descriptor for which the source should be removed.
  *
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or
@@ -645,10 +654,8 @@ SR_API int sr_session_source_remove_pollfd(GPollFD *pollfd)
 	return _sr_session_source_remove((gintptr)pollfd);
 }
 
-/*
+/**
  * Remove the source belonging to the specified channel.
- *
- * TODO: More error checks.
  *
  * @param channel The channel for which the source should be removed.
  *

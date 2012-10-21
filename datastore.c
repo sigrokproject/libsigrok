@@ -44,8 +44,8 @@ static gpointer new_chunk(struct sr_datastore **ds);
  * It is the caller's responsibility to free the allocated memory of the
  * datastore via the sr_datastore_destroy() function, if no longer needed.
  *
- * TODO: Unitsize should probably be unsigned int or uint32_t or similar.
- * TODO: This function should have a 'chunksize' parameter, and
+ * @todo Unitsize should probably be unsigned int or uint32_t or similar.
+ * @todo This function should have a 'chunksize' parameter, and
  *       struct sr_datastore a 'chunksize' field.
  *
  * @param unitsize The unit size (>= 1) to be used for this datastore.
@@ -112,20 +112,20 @@ SR_API int sr_datastore_destroy(struct sr_datastore *ds)
 /**
  * Append some data to the specified datastore.
  *
- * TODO: More elaborate function description.
- *
- * TODO: This function should use the (not yet available) 'chunksize' field
+ * @todo More elaborate function description.
+ * @todo This function should use the (not yet available) 'chunksize' field
  *       of struct sr_datastore (instead of hardcoding DATASTORE_CHUNKSIZE).
- * TODO: in_unitsize and probelist are unused?
- * TODO: A few of the parameters can be const.
- * TODO: Ideally, 'ds' should be unmodified upon errors.
+ * @todo in_unitsize and probelist are unused?
+ * @todo A few of the parameters can be const.
+ * @todo Ideally, 'ds' should be unmodified upon errors.
+ * @todo Should 0 be allowed as length?
+ * @todo Specify/document the data format of the 'data' parameter.
  *
  * @param ds Pointer to the datastore which shall receive the data.
  *           Must not be NULL.
  * @param data Pointer to the memory buffer containing the data to add.
- *             Must not be NULL. TODO: Data format?
+ *             Must not be NULL.
  * @param length Length of the data to add (in number of bytes).
- *               TODO: Should 0 be allowed as length?
  * @param in_unitsize The unit size (>= 1) of the input data.
  * @param probelist Pointer to a list of integers (probe numbers). The probe
  *                  numbers in this list are 1-based, i.e. the first probe
@@ -223,9 +223,9 @@ SR_API int sr_datastore_put(struct sr_datastore *ds, void *data,
  *
  * The allocated memory is guaranteed to be cleared.
  *
- * TODO: This function should use the datastore's 'chunksize' field instead
+ * @todo This function should use the datastore's 'chunksize' field instead
  *       of hardcoding DATASTORE_CHUNKSIZE.
- * TODO: Return int, so we can return SR_OK / SR_ERR_ARG / SR_ERR_MALLOC?
+ * @todo Return int, so we can return SR_OK / SR_ERR_ARG / SR_ERR_MALLOC?
  *
  * @param ds Pointer to a variable which holds the datastore structure.
  *           Must not be NULL. The contents of 'ds' are modified in-place.

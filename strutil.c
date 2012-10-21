@@ -334,15 +334,16 @@ SR_API int sr_parse_sizestring(const char *sizestring, uint64_t *size)
  * @param timestring A string containing a (decimal) time value.
  * @return The string's time value as uint64_t, in milliseconds.
  *
- * TODO: Error handling.
- * TODO: Add support for "m" (minutes) and others.
- * TODO: picoseconds?
- * TODO: Allow both lower-case and upper-case.
+ * @todo Add support for "m" (minutes) and others.
+ * @todo Add support for picoseconds?
+ * @todo Allow both lower-case and upper-case? If no, document it.
  */
 SR_API uint64_t sr_parse_timestring(const char *timestring)
 {
 	uint64_t time_msec;
 	char *s;
+
+	/* TODO: Error handling, logging. */
 
 	time_msec = strtoull(timestring, &s, 10);
 	if (time_msec == 0 && s == timestring)
