@@ -45,6 +45,9 @@
 /* Size of a datastore chunk in units */
 #define DATASTORE_CHUNKSIZE (512 * 1024)
 
+struct sr_context {
+};
+
 #ifdef HAVE_LIBUSB_1_0
 struct sr_usb_dev_inst {
 	uint8_t bus;

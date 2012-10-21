@@ -22,8 +22,8 @@
 
 /*--- backend.c -------------------------------------------------------------*/
 
-SR_API int sr_init(void);
-SR_API int sr_exit(void);
+SR_API int sr_init(struct sr_context **ctx);
+SR_API int sr_exit(struct sr_context *ctx);
 
 /*--- log.c -----------------------------------------------------------------*/
 

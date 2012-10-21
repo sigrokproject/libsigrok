@@ -2,6 +2,7 @@
  * This file is part of the sigrok project.
  *
  * Copyright (C) 2010-2012 Bert Vermeulen <bert@biot.com>
+ * Copyright (C) 2012 Peter Stuge <peter@stuge.se>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,9 +27,24 @@
  *
  * @return SR_OK upon success, a (negative) error code otherwise.
  */
-SR_API int sr_init(void)
+SR_API int sr_init(struct sr_context **ctx)
 {
-	return SR_OK;
+	int ret = SR_ERR;
+	struct sr_context *context;
+
+	/* + 1 to handle when struct sr_context has no members. */
+	context = g_try_malloc0(sizeof(struct sr_context) + 1);
+
+	if (!context) {
+		ret = SR_ERR_MALLOC;
+		goto done;
+	}
+
+	*ctx = context;
+	ret = SR_OK;
+
+done:
+	return ret;
 }
 
 /**
@@ -36,9 +52,11 @@ SR_API int sr_init(void)
  *
  * @return SR_OK upon success, a (negative) error code otherwise.
  */
-SR_API int sr_exit(void)
+SR_API int sr_exit(struct sr_context *ctx)
 {
 	sr_hw_cleanup_all();
+
+	g_free(ctx);
 
 	return SR_OK;
 }

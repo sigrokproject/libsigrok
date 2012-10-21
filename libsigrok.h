@@ -202,6 +202,8 @@ enum {
 	SR_MQFLAG_RELATIVE = 0x100,
 };
 
+struct sr_context;
+
 struct sr_datafeed_packet {
 	uint16_t type;
 	void *payload;
