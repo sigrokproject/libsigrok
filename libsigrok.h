@@ -31,11 +31,9 @@ extern "C" {
 #endif
 
 /*
- * Status/error codes returned by libsigrok functions.
- *
  * All possible return codes of libsigrok functions must be listed here.
  * Functions should never return hardcoded numbers as status, but rather
- * use these #defines instead. All error codes are negative numbers.
+ * use these enum values. All error codes are negative numbers.
  *
  * The error codes are globally unique in libsigrok, i.e. if one of the
  * libsigrok functions returns a "malloc error" it must be exactly the same
@@ -44,15 +42,19 @@ extern "C" {
  * same return code.
  *
  * Also, for compatibility reasons, no defined return codes are ever removed
- * or reused for different #defines later. You can only add new #defines and
+ * or reused for different errors later. You can only add new entries and
  * return codes, but never remove or redefine existing ones.
  */
-#define SR_OK                 0 /* No error */
-#define SR_ERR               -1 /* Generic/unspecified error */
-#define SR_ERR_MALLOC        -2 /* Malloc/calloc/realloc error */
-#define SR_ERR_ARG           -3 /* Function argument error */
-#define SR_ERR_BUG           -4 /* Errors hinting at internal bugs */
-#define SR_ERR_SAMPLERATE    -5 /* Incorrect samplerate */
+
+/** Status/error codes returned by libsigrok functions. */
+enum {
+	SR_OK             =  0, /**< No error. */
+	SR_ERR            = -1, /**< Generic/unspecified error. */
+	SR_ERR_MALLOC     = -2, /**< Malloc/calloc/realloc error. */
+	SR_ERR_ARG        = -3, /**< Function argument error. */
+	SR_ERR_BUG        = -4, /**< Errors hinting at internal bugs. */
+	SR_ERR_SAMPLERATE = -5, /**< Incorrect samplerate. */
+};
 
 #define SR_MAX_NUM_PROBES    64 /* Limited by uint64_t. */
 #define SR_MAX_PROBENAME_LEN 32
@@ -65,13 +67,15 @@ extern "C" {
 
 #define SR_HZ_TO_NS(n) (1000000000 / (n))
 
-/* libsigrok loglevels. */
-#define SR_LOG_NONE           0 /**< Output no messages at all. */
-#define SR_LOG_ERR            1 /**< Output error messages. */
-#define SR_LOG_WARN           2 /**< Output warnings. */
-#define SR_LOG_INFO           3 /**< Output informational messages. */
-#define SR_LOG_DBG            4 /**< Output debug messages. */
-#define SR_LOG_SPEW           5 /**< Output very noisy debug messages. */
+/** libsigrok loglevels. */
+enum {
+	SR_LOG_NONE = 0, /**< Output no messages at all. */
+	SR_LOG_ERR  = 1, /**< Output error messages. */
+	SR_LOG_WARN = 2, /**< Output warnings. */
+	SR_LOG_INFO = 3, /**< Output informational messages. */
+	SR_LOG_DBG  = 4, /**< Output debug messages. */
+	SR_LOG_SPEW = 5, /**< Output very noisy debug messages. */
+};
 
 /*
  * Use SR_API to mark public API symbols, and SR_PRIV for private symbols.
@@ -105,7 +109,7 @@ extern "C" {
 
 typedef int (*sr_receive_data_callback_t)(int fd, int revents, void *cb_data);
 
-/* Data types used by hardware drivers for dev_config_set() */
+/** Data types used by hardware drivers for dev_config_set(). */
 enum {
 	SR_T_UINT64,
 	SR_T_CHAR,
@@ -116,14 +120,15 @@ enum {
 	SR_T_KEYVALUE,
 };
 
+/** Rational number data type, containing numerator and denominator values. */
 struct sr_rational {
-	/* numerator */
+	/** Numerator of the rational number. */
 	uint64_t p;
-	/* denominator */
+	/** Denominator of the rational number. */
 	uint64_t q;
 };
 
-/* sr_datafeed_packet.type values */
+/** Value for sr_datafeed_packet.type. */
 enum {
 	SR_DF_HEADER,
 	SR_DF_END,
@@ -136,7 +141,7 @@ enum {
 	SR_DF_FRAME_END,
 };
 
-/* sr_datafeed_analog.mq values */
+/** Values for sr_datafeed_analog.mq. */
 enum {
 	SR_MQ_VOLTAGE,
 	SR_MQ_CURRENT,
@@ -148,13 +153,13 @@ enum {
 	SR_MQ_CONTINUITY,
 	SR_MQ_PULSE_WIDTH,
 	SR_MQ_CONDUCTANCE,
-	/** For a measurement of electrical power, usually in W, or dBm */
+	/** Electrical power, usually in W, or dBm. */
 	SR_MQ_POWER,
-	/** Usually for measuring a transistor's gain, or h_FE*/
+	/** Gain (e.g. a transistor's gain, or hFE). */
 	SR_MQ_GAIN,
 };
 
-/* sr_datafeed_analog.unit values */
+/** Values for sr_datafeed_analog.unit. */
 enum {
 	SR_UNIT_VOLT,
 	SR_UNIT_AMPERE,
@@ -167,24 +172,28 @@ enum {
 	SR_UNIT_PERCENTAGE,
 	SR_UNIT_BOOLEAN,
 	SR_UNIT_SECOND,
-	/** Unit of conductance, the inverse of resistance.  */
+	/** Unit of conductance, the inverse of resistance. */
 	SR_UNIT_SIEMENS,
-	/** An absolute measurement of power, in decibels, referenced to
-	 * 1 milliwatt (dBu). */
+	/**
+	 * An absolute measurement of power, in decibels, referenced to
+	 * 1 milliwatt (dBu).
+	 */
 	SR_UNIT_DECIBEL_MW,
 	/** Voltage in decibel, referenced to 1 volt (dBV). */
 	SR_UNIT_DECIBEL_VOLT,
-	/** Measurements that intrinsically do not have units attached, such
+	/**
+	 * Measurements that intrinsically do not have units attached, such
 	 * as ratios, gains, etc. Specifically, a transistor's gain (hFE) is
-	 * a unitless quantity. */
+	 * a unitless quantity, for example.
+	 */
 	SR_UNIT_UNITLESS,
 };
 
-/** sr_datafeed_analog.flags values */
+/** Values for sr_datafeed_analog.flags. */
 enum {
-	/** Voltage measurement is alternating current. */
+	/** Voltage measurement is alternating current (AC). */
 	SR_MQFLAG_AC = 0x01,
-	/** Voltage measurement is direct current. */
+	/** Voltage measurement is direct current (DC). */
 	SR_MQFLAG_DC = 0x02,
 	/** This is a true RMS measurement. */
 	SR_MQFLAG_RMS = 0x04,
@@ -192,9 +201,9 @@ enum {
 	SR_MQFLAG_DIODE = 0x08,
 	/** Device is in "hold" mode, i.e. repeating the last measurement. */
 	SR_MQFLAG_HOLD = 0x10,
-	/** Device is in "max" mode, only updating when a new max value is found. */
+	/** Device is in "max" mode, only updating upon a new max value. */
 	SR_MQFLAG_MAX = 0x20,
-	/** Device is in "min" mode, only updating when a new min value is found. */
+	/** Device is in "min" mode, only updating upon a new min value. */
 	SR_MQFLAG_MIN = 0x40,
 	/** Device is in autoranging mode. */
 	SR_MQFLAG_AUTORANGE = 0x80,
@@ -231,12 +240,13 @@ struct sr_datafeed_meta_analog {
 
 struct sr_datafeed_analog {
 	int num_samples;
-	/** Measured quantity (e.g. voltage, current, temperature) */
+	/** Measured quantity (e.g. voltage, current, temperature). */
 	int mq;
 	/** Unit in which the MQ is measured. */
 	int unit;
 	/** Bitmap with extra information about the MQ. */
 	uint64_t mqflags;
+	/** The analog value. */
 	float *data;
 };
 
@@ -278,7 +288,7 @@ struct sr_output_format {
 };
 
 struct sr_datastore {
-	/* Size in bytes of the number of units stored in this datastore */
+	/** Size in bytes of the number of units stored in this datastore. */
 	int ds_unitsize;
 	unsigned int num_units; /* TODO: uint64_t */
 	GSList *chunklist;
@@ -291,13 +301,13 @@ struct sr_datastore {
  * device. All relevant driver calls take a dev_index parameter for this.
  */
 struct sr_dev {
-	/* Which driver handles this device */
+	/** Which driver handles this device. */
 	struct sr_dev_driver *driver;
-	/* A driver may handle multiple devices of the same type */
+	/** A driver may handle multiple devices of the same type. */
 	int driver_index;
-	/* List of struct sr_probe* */
+	/** List of struct sr_probe pointers. */
 	GSList *probes;
-	/* Data acquired by this device, if any */
+	/** Data acquired by this device, if any. */
 	struct sr_datastore *datastore;
 };
 
@@ -319,9 +329,10 @@ struct sr_hwopt {
 	const void *value;
 };
 
-/* Hardware driver options */
+/** Hardware driver options. */
 enum {
-	SR_HWOPT_DUMMY = 0, /* Used to terminate lists. Must be 0! */
+	/** Used to terminate lists. Must be 0! */
+	SR_HWOPT_DUMMY = 0,
 
 	/**
 	 * Some drivers cannot detect the exact model they're talking to
@@ -341,7 +352,7 @@ enum {
 
 	/**
 	 * Serial communication specification, in the form:
-	 *   [speed]/[databits][parity][stop bit], e.g. 9600/8n1
+	 *   [baudrate]/[databits][parity][stopbits], e.g. 9600/8n1
 	 *
 	 * This is always an optional parameter, since a driver typically
 	 * knows the speed at which the device wants to communicate.
@@ -349,9 +360,10 @@ enum {
 	SR_HWOPT_SERIALCOMM,
 };
 
-/* Hardware device capabilities */
+/** Hardware device capabilities. */
 enum {
-	SR_HWCAP_DUMMY = 0, /* Used to terminate lists. Must be 0! */
+	/** Used to terminate lists. Must be 0! */
+	SR_HWCAP_DUMMY = 0,
 
 	/*--- Device classes ------------------------------------------------*/
 
@@ -389,7 +401,7 @@ enum {
 	/** Trigger source. */
 	SR_HWCAP_TRIGGER_SOURCE,
 
-	/** Horizontal trigger position */
+	/** Horizontal trigger position. */
 	SR_HWCAP_HORIZ_TRIGGERPOS,
 
 	/** Buffer size. */
@@ -410,7 +422,7 @@ enum {
 
 	/*--- Special stuff -------------------------------------------------*/
 
-	/** Session filename */
+	/** Session filename. */
 	SR_HWCAP_SESSIONFILE,
 
 	/* TODO: Better description. */
@@ -474,7 +486,7 @@ struct sr_dev_inst {
 	void *priv;
 };
 
-/* sr_dev_inst types */
+/** Types of device instances (sr_dev_inst). */
 enum {
 	/** Device instance type for USB devices. */
 	SR_INST_USB,
@@ -482,14 +494,15 @@ enum {
 	SR_INST_SERIAL,
 };
 
-/* Device instance status */
+/** Device instance status. */
 enum {
+	/** The device instance was not found. */
 	SR_ST_NOT_FOUND,
-	/* Found, but still booting */
+	/** The device instance was found, but is still booting. */
 	SR_ST_INITIALIZING,
-	/* Live, but not in use */
+	/** The device instance is live, but not in use. */
 	SR_ST_INACTIVE,
-	/* Actively in use in a session */
+	/** The device instance is actively in use in a session. */
 	SR_ST_ACTIVE,
 };
 
@@ -498,35 +511,35 @@ enum {
  * TODO: Need a DI to return the number of trigger stages supported.
  */
 
-/* Device info IDs */
+/** Device info IDs. */
 enum {
-	/* A list of options supported by the driver. */
+	/** A list of options supported by the driver. */
 	SR_DI_HWOPTS,
-	/* A list of capabilities supported by the device. */
+	/** A list of capabilities supported by the device. */
 	SR_DI_HWCAPS,
-	/* The number of probes connected to this device */
+	/** The number of probes connected to this device. */
 	SR_DI_NUM_PROBES,
-	/* The probe names on this device */
+	/** The probe names on this device. */
 	SR_DI_PROBE_NAMES,
-	/* Samplerates supported by this device, (struct sr_samplerates) */
+	/** Samplerates supported by this device (struct sr_samplerates). */
 	SR_DI_SAMPLERATES,
-	/* Types of logic trigger supported, out of "01crf" (char *) */
+	/** Types of logic trigger supported, out of "01crf" (char *). */
 	SR_DI_TRIGGER_TYPES,
-	/* The currently set samplerate in Hz (uint64_t) */
+	/** The currently set samplerate in Hz (uint64_t). */
 	SR_DI_CUR_SAMPLERATE,
-	/* Supported patterns (in pattern generator mode) */
+	/** Supported patterns (in pattern generator mode). */
 	SR_DI_PATTERNS,
-	/* Supported buffer sizes */
+	/** Supported buffer sizes. */
 	SR_DI_BUFFERSIZES,
-	/* Supported time bases */
+	/** Supported time bases. */
 	SR_DI_TIMEBASES,
-	/* Supported trigger sources */
+	/** Supported trigger sources. */
 	SR_DI_TRIGGER_SOURCES,
-	/* Supported filter targets */
+	/** Supported filter targets. */
 	SR_DI_FILTERS,
-	/* Valid volts/div values */
+	/** Valid volts/div values. */
 	SR_DI_VDIVS,
-	/* Coupling options */
+	/** Coupling options. */
 	SR_DI_COUPLING,
 };
 
@@ -570,18 +583,19 @@ struct sr_dev_driver {
 };
 
 struct sr_session {
-	/* List of struct sr_dev* */
+	/** List of struct sr_dev pointers. */
 	GSList *devs;
-	/* list of sr_receive_data_callback_t */
+	/** List of sr_receive_data_callback_t items. */
 	GSList *datafeed_callbacks;
 	GTimeVal starttime;
 
 	unsigned int num_sources;
 
-	/* Both "sources" and "pollfds" are of the same size and contain pairs of
-	 * descriptor and callback function. We can not embed the GPollFD into the
-	 * source struct since we want to be able to pass the array of all poll
-	 * descriptors to g_poll.
+	/*
+	 * Both "sources" and "pollfds" are of the same size and contain pairs
+	 * of descriptor and callback function. We can not embed the GPollFD
+	 * into the source struct since we want to be able to pass the array
+	 * of all poll descriptors to g_poll().
 	 */
 	struct source *sources;
 	GPollFD *pollfds;
