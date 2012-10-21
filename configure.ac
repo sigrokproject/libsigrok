@@ -228,7 +228,7 @@ if test "x$LA_ASIX_SIGMA" != xno \
 			[Specifies whether we have a libusb.h header.])
 		;;
 	*)
-		PKG_CHECK_MODULES([libusb], [libusb-1.0 >= 1.0.5],
+		PKG_CHECK_MODULES([libusb], [libusb-1.0 >= 1.0.9],
 			[CFLAGS="$CFLAGS $libusb_CFLAGS";
 			LIBS="$LIBS $libusb_LIBS";
 			SR_PKGLIBS="$SR_PKGLIBS libusb-1.0"])

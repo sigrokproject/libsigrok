@@ -35,7 +35,7 @@ Requirements
  - libtool
  - pkg-config >= 0.22
  - libglib >= 2.28.0
- - libusb >= 1.0.5 (for most hardware)
+ - libusb >= 1.0.9 (for most hardware)
  - libzip >= 0.8
  - libftdi >= 0.16 (for some hardware)
  - libudev >= 151 (for some hardware)
