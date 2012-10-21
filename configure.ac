@@ -188,6 +188,15 @@ if test "x$HW_RADIOSHACK_DMM" = "xyes"; then
 	AC_DEFINE(HAVE_HW_RADIOSHACK_DMM, 1, [RadioShack DMM support])
 fi
 
+AC_ARG_ENABLE(tekpower-dmm, AC_HELP_STRING([--enable-tekpower-dmm],
+	[enable Tekpower DMM support. [default=yes]]),
+	[HW_TEKPOWER_DMM="$enableval"],
+	[HW_TEKPOWER_DMM=yes])
+AM_CONDITIONAL(HW_TEKPOWER_DMM, test x$HW_TEKPOWER_DMM = xyes)
+if test "x$HW_TEKPOWER_DMM" = "xyes"; then
+	AC_DEFINE(HAVE_HW_TEKPOWER_DMM, 1, [TekPower DMM support])
+fi
+
 AC_ARG_ENABLE(zeroplus-logic-cube,
 	      AC_HELP_STRING([--enable-zeroplus-logic-cube],
 	      [enable ZEROPLUS Logic Cube support [default=yes]]),
@@ -327,6 +336,7 @@ AC_CONFIG_FILES([Makefile version.h hardware/Makefile
 		 hardware/link-mso19/Makefile
 		 hardware/openbench-logic-sniffer/Makefile
 		 hardware/radioshack-dmm/Makefile
+		 hardware/tekpower-dmm/Makefile
 		 hardware/zeroplus-logic-cube/Makefile
 		 input/Makefile
 		 output/Makefile
@@ -370,6 +380,7 @@ echo "  - Hantek DSO...................... $HW_HANTEK_DSO"
 echo "  - Link MSO-19..................... $LA_LINK_MSO19"
 echo "  - Openbench Logic Sniffer......... $LA_OLS"
 echo "  - Radioshack DMM.................. $HW_RADIOSHACK_DMM"
+echo "  - Tekpower DMM.................... $HW_TEKPOWER_DMM"
 echo "  - ZEROPLUS Logic Cube............. $LA_ZEROPLUS_LOGIC_CUBE"
 echo
 
