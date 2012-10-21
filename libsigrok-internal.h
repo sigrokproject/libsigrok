@@ -27,6 +27,12 @@
 #include <libusb.h>
 #endif
 
+/**
+ * @file
+ *
+ * libsigrok private header file, only to be used internally.
+ */
+
 /*--- Macros ----------------------------------------------------------------*/
 
 #ifndef ARRAY_SIZE

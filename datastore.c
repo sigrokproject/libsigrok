@@ -25,6 +25,12 @@
 #include "libsigrok-internal.h"
 
 /**
+ * @file
+ *
+ * Creating, using, or destroying libsigrok datastores.
+ */
+
+/**
  * @defgroup grp_datastore Datastore
  *
  * Creating, using, or destroying libsigrok datastores.

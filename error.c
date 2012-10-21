@@ -21,6 +21,12 @@
 #include "libsigrok.h"
 
 /**
+ * @file
+ *
+ * Error handling in libsigrok.
+ */
+
+/**
  * @defgroup grp_error Error handling
  *
  * Error handling in libsigrok.

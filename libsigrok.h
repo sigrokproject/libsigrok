@@ -30,6 +30,12 @@
 extern "C" {
 #endif
 
+/**
+ * @file
+ *
+ * The public libsigrok header file to be used by frontends.
+ */
+
 /*
  * All possible return codes of libsigrok functions must be listed here.
  * Functions should never return hardcoded numbers as status, but rather

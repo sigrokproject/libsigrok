@@ -27,6 +27,12 @@
 #include "libsigrok-internal.h"
 
 /**
+ * @file
+ *
+ * Hardware driver handling in libsigrok.
+ */
+
+/**
  * @defgroup grp_driver Hardware drivers
  *
  * Hardware driver handling in libsigrok.

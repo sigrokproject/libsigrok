@@ -21,6 +21,12 @@
 #include "libsigrok.h"
 
 /**
+ * @file
+ *
+ * Version number querying functions.
+ */
+
+/**
  * @defgroup grp_versions Versions
  *
  * Version number querying functions.

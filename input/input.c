@@ -21,6 +21,12 @@
 #include "libsigrok-internal.h"
 
 /**
+ * @file
+ *
+ * Input file/data format handling.
+ */
+
+/**
  * @defgroup grp_input Input formats
  *
  * Input file/data format handling.

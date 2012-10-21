@@ -24,6 +24,12 @@
 #include "libsigrok-internal.h"
 
 /**
+ * @file
+ *
+ * Helper functions to filter out unused probes from samples.
+ */
+
+/**
  * @defgroup grp_filter Probe filter
  *
  * Helper functions to filter out unused probes from samples.

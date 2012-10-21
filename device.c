@@ -23,6 +23,12 @@
 #include "libsigrok-internal.h"
 
 /**
+ * @file
+ *
+ * Device handling in libsigrok.
+ */
+
+/**
  * @defgroup grp_devices Devices
  *
  * Device handling in libsigrok.

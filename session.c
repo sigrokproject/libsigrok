@@ -26,6 +26,12 @@
 #include "libsigrok-internal.h"
 
 /**
+ * @file
+ *
+ * Creating, using, or destroying libsigrok sessions.
+ */
+
+/**
  * @defgroup grp_session Session handling
  *
  * Creating, using, or destroying libsigrok sessions.

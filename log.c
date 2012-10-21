@@ -26,7 +26,7 @@
 /**
  * @file
  *
- * Logging support.
+ * Controlling the libsigrok message logging functionality.
  */
 
 /**

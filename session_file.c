@@ -28,6 +28,12 @@
 #include "libsigrok-internal.h"
 
 /**
+ * @file
+ *
+ * Loading and saving libsigrok session files.
+ */
+
+/**
  * @addtogroup grp_session
  *
  * @{

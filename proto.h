@@ -20,6 +20,12 @@
 #ifndef LIBSIGROK_SIGROK_PROTO_H
 #define LIBSIGROK_SIGROK_PROTO_H
 
+/**
+ * @file
+ *
+ * Header file containing API function prototypes.
+ */
+
 /*--- backend.c -------------------------------------------------------------*/
 
 SR_API int sr_init(struct sr_context **ctx);

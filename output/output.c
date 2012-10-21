@@ -21,6 +21,12 @@
 #include "libsigrok-internal.h"
 
 /**
+ * @file
+ *
+ * Output file/data format handling.
+ */
+
+/**
  * @defgroup grp_output Output formats
  *
  * Output file/data format handling.

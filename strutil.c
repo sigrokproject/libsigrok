@@ -25,6 +25,12 @@
 #include "libsigrok-internal.h"
 
 /**
+ * @file
+ *
+ * Helper functions for handling or converting libsigrok-related strings.
+ */
+
+/**
  * @defgroup grp_strutil String utilities
  *
  * Helper functions for handling or converting libsigrok-related strings.

@@ -64,6 +64,12 @@
  */
 
 /**
+ * @file
+ *
+ * Initializing and shutting down libsigrok.
+ */
+
+/**
  * @defgroup grp_init Initialization
  *
  * Initializing and shutting down libsigrok.
