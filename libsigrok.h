@@ -34,6 +34,16 @@ extern "C" {
  * @file
  *
  * The public libsigrok header file to be used by frontends.
+ *
+ * This is the only file that libsigrok users (frontends) are supposed to
+ * use and #include. There are other header files which get installed with
+ * libsigrok, but those are not meant to be used directly by frontends.
+ *
+ * The correct way to get/use the libsigrok API functions is:
+ *
+ * @code{.c}
+ *   #include <libsigrok/libsigrok.h>
+ * @endcode
  */
 
 /*
