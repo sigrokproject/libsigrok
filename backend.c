@@ -40,6 +40,14 @@ SR_API int sr_init(struct sr_context **ctx)
 		goto done;
 	}
 
+#ifdef HAVE_LIBUSB_1_0
+	ret = libusb_init(&context->libusb_ctx);
+	if (LIBUSB_SUCCESS != ret) {
+		sr_err("libusb_init() returned %s\n", libusb_error_name(ret));
+		goto done;
+	}
+#endif
+
 	*ctx = context;
 	ret = SR_OK;
 
@@ -55,6 +63,10 @@ done:
 SR_API int sr_exit(struct sr_context *ctx)
 {
 	sr_hw_cleanup_all();
+
+#ifdef HAVE_LIBUSB_1_0
+	libusb_exit(ctx->libusb_ctx);
+#endif
 
 	g_free(ctx);
 

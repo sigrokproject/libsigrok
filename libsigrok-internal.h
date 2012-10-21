@@ -46,6 +46,9 @@
 #define DATASTORE_CHUNKSIZE (512 * 1024)
 
 struct sr_context {
+#ifdef HAVE_LIBUSB_1_0
+	libusb_context *libusb_ctx;
+#endif
 };
 
 #ifdef HAVE_LIBUSB_1_0
