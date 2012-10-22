@@ -37,7 +37,7 @@ libsigrok_la_SOURCES = \
 	filter.c \
 	strutil.c \
 	log.c \
-	version.c
+	version.c \
 	error.c
 
 libsigrok_la_LIBADD = \
