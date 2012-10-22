@@ -74,6 +74,42 @@
  *
  * Initializing and shutting down libsigrok.
  *
+ * Before using any of the libsigrok functionality, sr_init() must
+ * be called to initialize the library, which will return a struct sr_context
+ * when the initialization was successful.
+ *
+ * When libsigrok functionality is no longer needed, sr_exit() should be
+ * called, which will (among other things) free the struct sr_context.
+ *
+ * Example for a minimal program using libsigrok:
+ *
+ * @code{.c}
+ *   #include <stdio.h>
+ *   #include <libsigrok/libsigrok.h>
+ *
+ *   int main(int argc, char **argv)
+ *   {
+ *   	int ret;
+ *   	struct sr_context *sr_ctx;
+ *
+ *   	if ((ret = sr_init(&sr_ctx)) != SR_OK) {
+ *   		printf("Error initializing libsigrok (%s): %s.",
+ *   		       sr_strerror_name(ret), sr_strerror(ret));
+ *   		return 1;
+ *   	}
+ *
+ *   	// Use libsigrok functions here...
+ *
+ *   	if ((ret = sr_exit(sr_ctx)) != SR_OK) {
+ *   		printf("Error shutting down libsigrok (%s): %s.",
+ *   		       sr_strerror_name(ret), sr_strerror(ret));
+ *   		return 1;
+ *   	}
+ *
+ *   	return 0;
+ *   }
+ * @endcode
+ *
  * @{
  */
 
