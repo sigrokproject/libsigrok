@@ -23,6 +23,7 @@
 #include <dirent.h>
 #include <string.h>
 #include <glib.h>
+#include "config.h" /* Needed for HAVE_LIBUSB_1_0 and others. */
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 

@@ -20,7 +20,6 @@
 #include <glib.h>
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
-#include "config.h"
 #include "agilent-dmm.h"
 #include <sys/types.h>
 #include <sys/stat.h>

@@ -31,7 +31,6 @@
 #include <libusb.h>
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
-#include "config.h"
 #include "dso.h"
 
 

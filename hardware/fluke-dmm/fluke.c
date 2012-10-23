@@ -20,7 +20,6 @@
 #include <glib.h>
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
-#include "config.h"
 #include "fluke-dmm.h"
 #include <stdlib.h>
 #include <math.h>

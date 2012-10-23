@@ -23,7 +23,6 @@
 #include <string.h>
 #include <inttypes.h>
 #include <libusb.h>
-#include "config.h"
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 #include "fx2lafw.h"

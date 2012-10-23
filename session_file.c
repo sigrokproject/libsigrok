@@ -23,7 +23,7 @@
 #include <zip.h>
 #include <glib.h>
 #include <glib/gstdio.h>
-#include "config.h"
+#include "config.h" /* Needed for PACKAGE_VERSION and others. */
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 

@@ -96,8 +96,8 @@ SR_PRIV struct sr_probe *sr_probe_new(int index, int type,
 SR_PRIV struct sr_dev_inst *sr_dev_inst_new(int index, int status,
 		const char *vendor, const char *model, const char *version);
 SR_PRIV void sr_dev_inst_free(struct sr_dev_inst *sdi);
-#ifdef HAVE_LIBUSB_1_0
 
+#ifdef HAVE_LIBUSB_1_0
 /* USB-specific instances */
 SR_PRIV struct sr_usb_dev_inst *sr_usb_dev_inst_new(uint8_t bus,
 		uint8_t address, struct libusb_device_handle *hdl);

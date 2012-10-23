@@ -22,7 +22,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <glib.h>
-#include "config.h"
+#include "config.h" /* Needed for PACKAGE_STRING and others. */
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 #include "text.h"

@@ -21,7 +21,6 @@
 #include <glib.h>
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
-#include "config.h"
 #include "radioshack-dmm.h"
 #include <stdlib.h>
 #include <math.h>
