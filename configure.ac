@@ -78,7 +78,7 @@ AC_SUBST(SR_LIB_LDFLAGS)
 # Hardware support '--enable' options.
 
 AC_ARG_ENABLE(agilent-dmm, AC_HELP_STRING([--enable-agilent-dmm],
-	      [enable Agilent DMM driver support [default=yes]]),
+	      [enable Agilent DMM support [default=yes]]),
 	      [HW_AGILENT_DMM="$enableval"],
 	      [HW_AGILENT_DMM=yes])
 AM_CONDITIONAL(HW_AGILENT_DMM, test x$HW_AGILENT_DMM = xyes)
@@ -124,7 +124,7 @@ if test "x$LA_DEMO" = "xyes"; then
 fi
 
 AC_ARG_ENABLE(fluke-dmm, AC_HELP_STRING([--enable-fluke-dmm],
-	      [Enable Fluke DMM support. [default=yes]]),
+	      [enable Fluke DMM support. [default=yes]]),
 	      [HW_FLUKE_DMM="$enableval"],
 	      [HW_FLUKE_DMM=yes])
 AM_CONDITIONAL(HW_FLUKE_DMM, test x$HW_FLUKE_DMM = xyes)
@@ -180,12 +180,12 @@ if test "x$LA_OLS" = "xyes"; then
 fi
 
 AC_ARG_ENABLE(radioshack-dmm, AC_HELP_STRING([--enable-radioshack-dmm],
-	      [Enable Radio Shack DMM support. [default=yes]]),
+	      [enable RadioShack DMM support. [default=yes]]),
 	      [HW_RADIOSHACK_DMM="$enableval"],
 	      [HW_RADIOSHACK_DMM=yes])
 AM_CONDITIONAL(HW_RADIOSHACK_DMM, test x$HW_RADIOSHACK_DMM = xyes)
 if test "x$HW_RADIOSHACK_DMM" = "xyes"; then
-	AC_DEFINE(HAVE_HW_RADIOSHACK_DMM, 1, [Radioshack DMM support])
+	AC_DEFINE(HAVE_HW_RADIOSHACK_DMM, 1, [RadioShack DMM support])
 fi
 
 AC_ARG_ENABLE(zeroplus-logic-cube,
