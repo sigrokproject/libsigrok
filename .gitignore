@@ -36,3 +36,6 @@ Makefile.in
 
 # KDE backup files
 *.kate-swp
+
+# KDevelop project files
+*.kdev4
