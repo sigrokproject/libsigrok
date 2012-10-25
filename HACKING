@@ -24,6 +24,50 @@ Contributions
    github.com, or any other public git hosting site.
 
 
+Adding a new hardware driver
+----------------------------
+
+The simple, scripted way (recommended):
+---------------------------------------
+
+Use the 'new-driver' script from the sigrok-util repo:
+
+ $ git clone git://sigrok.org/sigrok-util
+ $ cd sigrok-util/source
+ $ ./new-driver "Tondaj SL-814"
+
+The example above generates a patch file against the current libsigrok
+development git tree which adds a simple "stub" driver for your device
+(the Tondaj SL-814 sound level meter in this case).
+
+You can apply it like this:
+
+ $ cd libsigrok
+ $ git am 0001-tondaj-sl-814-Initial-driver-skeleton.patch
+
+You can now edit the files in the hardware/tondaj-sl-814 directory as needed.
+
+
+The manual way:
+---------------
+
+This is a rough overview of what you need to do in order to add a new driver
+(using the Tondaj SL-814 device as example). It's basically what the
+'new-driver' script (see above) does for you:
+
+ - configure.ac:
+   - Add an --enable-tondaj-sl-814 option.
+   - Add "hardware/tondaj-sl-814/Makefile" to the AC_CONFIG_FILES list.
+   - Add and entry for the device in the "Enabled hardware drivers" list
+     at the bottom of the file.
+ - hardware/Makefile.am: Add "tondaj-sl-814" to the SUBDIRS variable.
+ - hwdriver.c: Add a tondaj_sl_814_driver_info entry in two places.
+ - hardware/tondaj-sl-814/ directory: Add the following files:
+   Makefile.am, api.c, protocol.c, protocol.h
+
+See existing drivers or the 'new-driver' output for the details.
+
+
 Random notes
 ------------
 
