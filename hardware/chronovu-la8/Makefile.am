@@ -25,8 +25,8 @@ noinst_LTLIBRARIES = libsigrokhwchronovula8.la
 
 libsigrokhwchronovula8_la_SOURCES = \
 	api.c \
-	driver.c \
-	driver.h
+	protocol.c \
+	protocol.h
 
 libsigrokhwchronovula8_la_CFLAGS = \
 	-I$(top_srcdir)

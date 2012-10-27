@@ -18,8 +18,8 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-#ifndef LIBSIGROK_HARDWARE_CHRONOVU_LA8_DRIVER_H
-#define LIBSIGROK_HARDWARE_CHRONOVU_LA8_DRIVER_H
+#ifndef LIBSIGROK_HARDWARE_CHRONOVU_LA8_PROTOCOL_H
+#define LIBSIGROK_HARDWARE_CHRONOVU_LA8_PROTOCOL_H
 
 #include <glib.h>
 #include <ftdi.h>
@@ -111,7 +111,7 @@ struct dev_context {
 	uint16_t usb_pid;
 };
 
-/* driver.c */
+/* protocol.c */
 extern SR_PRIV uint64_t supported_samplerates[];
 extern SR_PRIV const int hwcaps[];
 extern SR_PRIV const char *probe_names[];

@@ -23,7 +23,7 @@
 #include <string.h>
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
-#include "driver.h"
+#include "protocol.h"
 
 SR_PRIV struct sr_dev_driver chronovu_la8_driver_info;
 static struct sr_dev_driver *di = &chronovu_la8_driver_info;

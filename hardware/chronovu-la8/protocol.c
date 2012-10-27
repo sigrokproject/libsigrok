@@ -22,7 +22,7 @@
 #include <glib.h>
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
-#include "driver.h"
+#include "protocol.h"
 
 /* Probes are numbered 0-7. */
 SR_PRIV const char *probe_names[NUM_PROBES + 1] = {
