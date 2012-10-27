@@ -91,8 +91,7 @@ SR_PRIV int is_valid_samplerate(uint64_t samplerate)
 			return 1;
 	}
 
-	sr_err("la8: %s: invalid samplerate (%" PRIu64 "Hz)",
-	       __func__, samplerate);
+	sr_err("Invalid samplerate (%" PRIu64 "Hz).", samplerate);
 
 	return 0;
 }
@@ -110,13 +109,12 @@ SR_PRIV int is_valid_samplerate(uint64_t samplerate)
 SR_PRIV uint8_t samplerate_to_divcount(uint64_t samplerate)
 {
 	if (samplerate == 0) {
-		sr_err("la8: %s: samplerate was 0", __func__);
+		sr_err("%s: samplerate was 0.", __func__);
 		return 0xff;
 	}
 
 	if (!is_valid_samplerate(samplerate)) {
-		sr_err("la8: %s: can't get divcount, samplerate invalid",
-		       __func__);
+		sr_err("%s: Can't get divcount, samplerate invalid.", __func__);
 		return 0xff;
 	}
 
@@ -139,23 +137,23 @@ SR_PRIV int la8_write(struct dev_context *devc, uint8_t *buf, int size)
 	/* Note: Caller checked that devc and devc->ftdic != NULL. */
 
 	if (!buf) {
-		sr_err("la8: %s: buf was NULL", __func__);
+		sr_err("%s: buf was NULL.", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (size < 0) {
-		sr_err("la8: %s: size was < 0", __func__);
+		sr_err("%s: size was < 0.", __func__);
 		return SR_ERR_ARG;
 	}
 
 	bytes_written = ftdi_write_data(devc->ftdic, buf, size);
 
 	if (bytes_written < 0) {
-		sr_err("la8: %s: ftdi_write_data: (%d) %s", __func__,
+		sr_err("%s: ftdi_write_data: (%d) %s.", __func__,
 		       bytes_written, ftdi_get_error_string(devc->ftdic));
 		(void) la8_close_usb_reset_sequencer(devc); /* Ignore errors. */
 	} else if (bytes_written != size) {
-		sr_err("la8: %s: bytes to write: %d, bytes written: %d",
+		sr_err("%s: bytes to write: %d, bytes written: %d.",
 		       __func__, size, bytes_written);
 		(void) la8_close_usb_reset_sequencer(devc); /* Ignore errors. */
 	}
@@ -180,22 +178,22 @@ SR_PRIV int la8_read(struct dev_context *devc, uint8_t *buf, int size)
 	/* Note: Caller checked that devc and devc->ftdic != NULL. */
 
 	if (!buf) {
-		sr_err("la8: %s: buf was NULL", __func__);
+		sr_err("%s: buf was NULL.", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (size <= 0) {
-		sr_err("la8: %s: size was <= 0", __func__);
+		sr_err("%s: size was <= 0.", __func__);
 		return SR_ERR_ARG;
 	}
 
 	bytes_read = ftdi_read_data(devc->ftdic, buf, size);
 
 	if (bytes_read < 0) {
-		sr_err("la8: %s: ftdi_read_data: (%d) %s", __func__,
+		sr_err("%s: ftdi_read_data: (%d) %s.", __func__,
 		       bytes_read, ftdi_get_error_string(devc->ftdic));
 	} else if (bytes_read != size) {
-		// sr_err("la8: %s: bytes to read: %d, bytes read: %d",
+		// sr_err("%s: Bytes to read: %d, bytes read: %d.",
 		//        __func__, size, bytes_read);
 	}
 
@@ -207,17 +205,17 @@ SR_PRIV int la8_close(struct dev_context *devc)
 	int ret;
 
 	if (!devc) {
-		sr_err("la8: %s: devc was NULL", __func__);
+		sr_err("%s: devc was NULL.", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!devc->ftdic) {
-		sr_err("la8: %s: devc->ftdic was NULL", __func__);
+		sr_err("%s: devc->ftdic was NULL.", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if ((ret = ftdi_usb_close(devc->ftdic)) < 0) {
-		sr_err("la8: %s: ftdi_usb_close: (%d) %s",
+		sr_err("%s: ftdi_usb_close: (%d) %s.",
 		       __func__, ret, ftdi_get_error_string(devc->ftdic));
 	}
 
@@ -237,33 +235,33 @@ SR_PRIV int la8_close_usb_reset_sequencer(struct dev_context *devc)
 	int ret;
 
 	if (!devc) {
-		sr_err("la8: %s: devc was NULL", __func__);
+		sr_err("%s: devc was NULL.", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!devc->ftdic) {
-		sr_err("la8: %s: devc->ftdic was NULL", __func__);
+		sr_err("%s: devc->ftdic was NULL.", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (devc->ftdic->usb_dev) {
 		/* Reset the LA8 sequencer logic, then wait 100ms. */
-		sr_dbg("la8: Resetting sequencer logic.");
+		sr_dbg("Resetting sequencer logic.");
 		(void) la8_write(devc, buf, 8); /* Ignore errors. */
 		g_usleep(100 * 1000);
 
 		/* Purge FTDI buffers, then reset and close the FTDI device. */
-		sr_dbg("la8: Purging buffers, resetting+closing FTDI device.");
+		sr_dbg("Purging buffers, resetting+closing FTDI device.");
 
 		/* Log errors, but ignore them (i.e., don't abort). */
 		if ((ret = ftdi_usb_purge_buffers(devc->ftdic)) < 0)
-			sr_err("la8: %s: ftdi_usb_purge_buffers: (%d) %s",
+			sr_err("%s: ftdi_usb_purge_buffers: (%d) %s.",
 			    __func__, ret, ftdi_get_error_string(devc->ftdic));
 		if ((ret = ftdi_usb_reset(devc->ftdic)) < 0)
-			sr_err("la8: %s: ftdi_usb_reset: (%d) %s", __func__,
+			sr_err("%s: ftdi_usb_reset: (%d) %s.", __func__,
 			       ret, ftdi_get_error_string(devc->ftdic));
 		if ((ret = ftdi_usb_close(devc->ftdic)) < 0)
-			sr_err("la8: %s: ftdi_usb_close: (%d) %s", __func__,
+			sr_err("%s: ftdi_usb_close: (%d) %s.", __func__,
 			       ret, ftdi_get_error_string(devc->ftdic));
 	}
 
@@ -289,16 +287,16 @@ SR_PRIV int la8_reset(struct dev_context *devc)
 	int bytes_read;
 
 	if (!devc) {
-		sr_err("la8: %s: devc was NULL", __func__);
+		sr_err("%s: devc was NULL.", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!devc->ftdic) {
-		sr_err("la8: %s: devc->ftdic was NULL", __func__);
+		sr_err("%s: devc->ftdic was NULL.", __func__);
 		return SR_ERR_ARG;
 	}
 
-	sr_dbg("la8: Resetting the device.");
+	sr_dbg("Resetting the device.");
 
 	/*
 	 * Purge pending read data from the FTDI hardware FIFO until
@@ -314,7 +312,7 @@ SR_PRIV int la8_reset(struct dev_context *devc)
 	/* Reset the LA8 sequencer logic and close the USB port. */
 	(void) la8_close_usb_reset_sequencer(devc); /* Ignore errors. */
 
-	sr_dbg("la8: Device reset finished.");
+	sr_dbg("Device reset finished.");
 
 	return SR_OK;
 }
@@ -335,7 +333,7 @@ SR_PRIV int configure_probes(const struct sr_dev_inst *sdi)
 		probe = (struct sr_probe *)l->data;
 
 		if (!probe) {
-			sr_err("la8: %s: probe was NULL", __func__);
+			sr_err("%s: probe was NULL.", __func__);
 			return SR_ERR;
 		}
 
@@ -349,8 +347,8 @@ SR_PRIV int configure_probes(const struct sr_dev_inst *sdi)
 
 		/* Note: Must only be run if probe->trigger != NULL. */
 		if (probe->index < 0 || probe->index > 7) {
-			sr_err("la8: %s: invalid probe index %d, must be "
-			       "between 0 and 7", __func__, probe->index);
+			sr_err("%s: Invalid probe index %d, must be "
+			       "between 0 and 7.", __func__, probe->index);
 			return SR_ERR;
 		}
 
@@ -362,8 +360,8 @@ SR_PRIV int configure_probes(const struct sr_dev_inst *sdi)
 
 			/* Sanity check, LA8 only supports low/high trigger. */
 			if (*tc != '0' && *tc != '1') {
-				sr_err("la8: %s: invalid trigger '%c', only "
-				       "'0'/'1' supported", __func__, *tc);
+				sr_err("%s: Invalid trigger '%c', only "
+				       "'0'/'1' supported.", __func__, *tc);
 				return SR_ERR;
 			}
 
@@ -372,7 +370,7 @@ SR_PRIV int configure_probes(const struct sr_dev_inst *sdi)
 		}
 	}
 
-	sr_dbg("la8: trigger_mask = 0x%x, trigger_pattern = 0x%x",
+	sr_dbg("Trigger mask = 0x%x, trigger pattern = 0x%x.",
 	       devc->trigger_mask, devc->trigger_pattern);
 
 	return SR_OK;
@@ -386,7 +384,7 @@ SR_PRIV int set_samplerate(const struct sr_dev_inst *sdi, uint64_t samplerate)
 
 	devc = sdi->priv;
 
-	sr_spew("la8: Trying to set samplerate to %" PRIu64 "Hz.", samplerate);
+	sr_spew("Trying to set samplerate to %" PRIu64 "Hz.", samplerate);
 
 	fill_supported_samplerates_if_needed();
 
@@ -397,7 +395,7 @@ SR_PRIV int set_samplerate(const struct sr_dev_inst *sdi, uint64_t samplerate)
 	/* Set the new samplerate. */
 	devc->cur_samplerate = samplerate;
 
-	sr_dbg("la8: Samplerate set to %" PRIu64 "Hz.", devc->cur_samplerate);
+	sr_dbg("Samplerate set to %" PRIu64 "Hz.", devc->cur_samplerate);
 
 	return SR_OK;
 }
@@ -416,14 +414,14 @@ SR_PRIV int la8_read_block(struct dev_context *devc)
 
 	/* Note: Caller checked that devc and devc->ftdic != NULL. */
 
-	sr_spew("la8: Reading block %d.", devc->block_counter);
+	sr_spew("Reading block %d.", devc->block_counter);
 
 	bytes_read = la8_read(devc, devc->mangled_buf, BS);
 
 	/* If first block read got 0 bytes, retry until success or timeout. */
 	if ((bytes_read == 0) && (devc->block_counter == 0)) {
 		do {
-			sr_spew("la8: Reading block 0 (again).");
+			sr_spew("Reading block 0 (again).");
 			bytes_read = la8_read(devc, devc->mangled_buf, BS);
 			/* TODO: How to handle read errors here? */
 			now = time(NULL);
@@ -432,13 +430,13 @@ SR_PRIV int la8_read_block(struct dev_context *devc)
 
 	/* Check if block read was successful or a timeout occured. */
 	if (bytes_read != BS) {
-		sr_err("la8: Trigger timed out. Bytes read: %d.", bytes_read);
+		sr_err("Trigger timed out. Bytes read: %d.", bytes_read);
 		(void) la8_reset(devc); /* Ignore errors. */
 		return SR_ERR;
 	}
 
 	/* De-mangle the data. */
-	sr_spew("la8: Demangling block %d.", devc->block_counter);
+	sr_spew("Demangling block %d.", devc->block_counter);
 	byte_offset = devc->block_counter * BS;
 	m = byte_offset / (1024 * 1024);
 	mi = m * (1024 * 1024);
@@ -490,8 +488,8 @@ SR_PRIV void send_block_to_session_bus(struct dev_context *devc, int block)
 	/* If no trigger was found, send one SR_DF_LOGIC packet. */
 	if (trigger_point == -1) {
 		/* Send an SR_DF_LOGIC packet to the session bus. */
-		sr_spew("la8: sending SR_DF_LOGIC packet (%d bytes) for "
-		        "block %d", BS, block);
+		sr_spew("Sending SR_DF_LOGIC packet (%d bytes) for "
+		        "block %d.", BS, block);
 		packet.type = SR_DF_LOGIC;
 		packet.payload = &logic;
 		logic.length = BS;
@@ -513,8 +511,8 @@ SR_PRIV void send_block_to_session_bus(struct dev_context *devc, int block)
 	/* If at least one sample is located before the trigger... */
 	if (trigger_point > 0) {
 		/* Send pre-trigger SR_DF_LOGIC packet to the session bus. */
-		sr_spew("la8: sending pre-trigger SR_DF_LOGIC packet, "
-			"start = %d, length = %d", block * BS, trigger_point);
+		sr_spew("Sending pre-trigger SR_DF_LOGIC packet, "
+			"start = %d, length = %d.", block * BS, trigger_point);
 		packet.type = SR_DF_LOGIC;
 		packet.payload = &logic;
 		logic.length = trigger_point;
@@ -524,7 +522,7 @@ SR_PRIV void send_block_to_session_bus(struct dev_context *devc, int block)
 	}
 
 	/* Send the SR_DF_TRIGGER packet to the session bus. */
-	sr_spew("la8: sending SR_DF_TRIGGER packet, sample = %d",
+	sr_spew("Sending SR_DF_TRIGGER packet, sample = %d.",
 		(block * BS) + trigger_point);
 	packet.type = SR_DF_TRIGGER;
 	packet.payload = NULL;
@@ -533,8 +531,8 @@ SR_PRIV void send_block_to_session_bus(struct dev_context *devc, int block)
 	/* If at least one sample is located after the trigger... */
 	if (trigger_point < (BS - 1)) {
 		/* Send post-trigger SR_DF_LOGIC packet to the session bus. */
-		sr_spew("la8: sending post-trigger SR_DF_LOGIC packet, "
-			"start = %d, length = %d",
+		sr_spew("Sending post-trigger SR_DF_LOGIC packet, "
+			"start = %d, length = %d.",
 			(block * BS) + trigger_point, BS - trigger_point);
 		packet.type = SR_DF_LOGIC;
 		packet.payload = &logic;

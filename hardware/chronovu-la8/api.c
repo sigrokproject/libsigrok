@@ -26,7 +26,7 @@
 #include "driver.h"
 
 SR_PRIV struct sr_dev_driver chronovu_la8_driver_info;
-static struct sr_dev_driver *cdi = &chronovu_la8_driver_info;
+static struct sr_dev_driver *di = &chronovu_la8_driver_info;
 
 /*
  * The ChronoVu LA8 can have multiple PIDs. Older versions shipped with
@@ -39,7 +39,7 @@ static const uint16_t usb_pids[] = {
 
 /* Function prototypes. */
 static int hw_dev_acquisition_stop(const struct sr_dev_inst *sdi,
-		void *cb_data);
+				   void *cb_data);
 
 static int clear_instances(void)
 {
@@ -48,13 +48,13 @@ static int clear_instances(void)
 	struct drv_context *drvc;
 	struct dev_context *devc;
 
-	drvc = cdi->priv;
+	drvc = di->priv;
 
 	/* Properly close all devices. */
 	for (l = drvc->instances; l; l = l->next) {
 		if (!(sdi = l->data)) {
 			/* Log error, but continue cleaning up the rest. */
-			sr_err("la8: %s: sdi was NULL, continuing", __func__);
+			sr_err("%s: sdi was NULL, continuing.", __func__);
 			continue;
 		}
 		if (sdi->priv) {
@@ -74,10 +74,11 @@ static int hw_init(void)
 	struct drv_context *drvc;
 
 	if (!(drvc = g_try_malloc0(sizeof(struct drv_context)))) {
-		sr_err("chronovu-la8: driver context malloc failed.");
-		return SR_ERR;
+		sr_err("Driver context malloc failed.");
+		return SR_ERR_MALLOC;
 	}
-	cdi->priv = drvc;
+
+	di->priv = drvc;
 
 	return SR_OK;
 }
@@ -93,12 +94,13 @@ static GSList *hw_scan(GSList *options)
 	int ret;
 
 	(void)options;
-	drvc = cdi->priv;
+
+	drvc = di->priv;
 	devices = NULL;
 
 	/* Allocate memory for our private device context. */
 	if (!(devc = g_try_malloc(sizeof(struct dev_context)))) {
-		sr_err("la8: %s: struct context malloc failed", __func__);
+		sr_err("Device context malloc failed.");
 		goto err_free_nothing;
 	}
 
@@ -121,24 +123,24 @@ static GSList *hw_scan(GSList *options)
 
 	/* Allocate memory where we'll store the de-mangled data. */
 	if (!(devc->final_buf = g_try_malloc(SDRAM_SIZE))) {
-		sr_err("la8: %s: final_buf malloc failed", __func__);
+		sr_err("final_buf malloc failed.");
 		goto err_free_devc;
 	}
 
 	/* Allocate memory for the FTDI context (ftdic) and initialize it. */
 	if (!(devc->ftdic = ftdi_new())) {
-		sr_err("la8: %s: ftdi_new failed", __func__);
+		sr_err("%s: ftdi_new failed.", __func__);
 		goto err_free_final_buf;
 	}
 
 	/* Check for the device and temporarily open it. */
 	for (i = 0; i < ARRAY_SIZE(usb_pids); i++) {
-		sr_dbg("la8: Probing for VID/PID %04x:%04x.", USB_VENDOR_ID,
+		sr_dbg("Probing for VID/PID %04x:%04x.", USB_VENDOR_ID,
 		       usb_pids[i]);
 		ret = ftdi_usb_open_desc(devc->ftdic, USB_VENDOR_ID,
 					 usb_pids[i], USB_DESCRIPTION, NULL);
 		if (ret == 0) {
-			sr_dbg("la8: Found LA8 device (%04x:%04x).",
+			sr_dbg("Found LA8 device (%04x:%04x).",
 			       USB_VENDOR_ID, usb_pids[i]);
 			devc->usb_pid = usb_pids[i];
 		}
@@ -151,15 +153,15 @@ static GSList *hw_scan(GSList *options)
 	sdi = sr_dev_inst_new(0, SR_ST_INITIALIZING,
 			USB_VENDOR_NAME, USB_MODEL_NAME, USB_MODEL_VERSION);
 	if (!sdi) {
-		sr_err("la8: %s: sr_dev_inst_new failed", __func__);
+		sr_err("%s: sr_dev_inst_new failed.", __func__);
 		goto err_close_ftdic;
 	}
-	sdi->driver = cdi;
+	sdi->driver = di;
 	sdi->priv = devc;
 
 	for (i = 0; probe_names[i]; i++) {
 		if (!(probe = sr_probe_new(i, SR_PROBE_ANALOG, TRUE,
-				probe_names[i])))
+					   probe_names[i])))
 			return NULL;
 		sdi->probes = g_slist_append(sdi->probes, probe);
 	}
@@ -167,7 +169,7 @@ static GSList *hw_scan(GSList *options)
 	devices = g_slist_append(devices, sdi);
 	drvc->instances = g_slist_append(drvc->instances, sdi);
 
-	sr_spew("la8: Device init successful.");
+	sr_spew("Device init successful.");
 
 	/* Close device. We'll reopen it again when we need it. */
 	(void) la8_close(devc); /* Log, but ignore errors. */
@@ -191,7 +193,7 @@ static GSList *hw_dev_list(void)
 {
 	struct drv_context *drvc;
 
-	drvc = cdi->priv;
+	drvc = di->priv;
 
 	return drvc->instances;
 }
@@ -202,40 +204,40 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 	int ret;
 
 	if (!(devc = sdi->priv)) {
-		sr_err("la8: %s: sdi->priv was NULL", __func__);
+		sr_err("%s: sdi->priv was NULL.", __func__);
 		return SR_ERR_BUG;
 	}
 
-	sr_dbg("la8: Opening LA8 device (%04x:%04x).", USB_VENDOR_ID,
+	sr_dbg("Opening LA8 device (%04x:%04x).", USB_VENDOR_ID,
 	       devc->usb_pid);
 
 	/* Open the device. */
 	if ((ret = ftdi_usb_open_desc(devc->ftdic, USB_VENDOR_ID,
 			devc->usb_pid, USB_DESCRIPTION, NULL)) < 0) {
-		sr_err("la8: %s: ftdi_usb_open_desc: (%d) %s",
+		sr_err("%s: ftdi_usb_open_desc: (%d) %s",
 		       __func__, ret, ftdi_get_error_string(devc->ftdic));
 		(void) la8_close_usb_reset_sequencer(devc); /* Ignore errors. */
 		return SR_ERR;
 	}
-	sr_dbg("la8: Device opened successfully.");
+	sr_dbg("Device opened successfully.");
 
 	/* Purge RX/TX buffers in the FTDI chip. */
 	if ((ret = ftdi_usb_purge_buffers(devc->ftdic)) < 0) {
-		sr_err("la8: %s: ftdi_usb_purge_buffers: (%d) %s",
+		sr_err("%s: ftdi_usb_purge_buffers: (%d) %s",
 		       __func__, ret, ftdi_get_error_string(devc->ftdic));
 		(void) la8_close_usb_reset_sequencer(devc); /* Ignore errors. */
 		goto err_dev_open_close_ftdic;
 	}
-	sr_dbg("la8: FTDI buffers purged successfully.");
+	sr_dbg("FTDI buffers purged successfully.");
 
 	/* Enable flow control in the FTDI chip. */
 	if ((ret = ftdi_setflowctrl(devc->ftdic, SIO_RTS_CTS_HS)) < 0) {
-		sr_err("la8: %s: ftdi_setflowcontrol: (%d) %s",
+		sr_err("%s: ftdi_setflowcontrol: (%d) %s",
 		       __func__, ret, ftdi_get_error_string(devc->ftdic));
 		(void) la8_close_usb_reset_sequencer(devc); /* Ignore errors. */
 		goto err_dev_open_close_ftdic;
 	}
-	sr_dbg("la8: FTDI flow control enabled successfully.");
+	sr_dbg("FTDI flow control enabled successfully.");
 
 	/* Wait 100ms. */
 	g_usleep(100 * 1000);
@@ -254,22 +256,22 @@ static int hw_dev_close(struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 
 	if (!(devc = sdi->priv)) {
-		sr_err("la8: %s: sdi->priv was NULL", __func__);
+		sr_err("%s: sdi->priv was NULL.", __func__);
 		return SR_ERR_BUG;
 	}
 
-	sr_dbg("la8: Closing device.");
+	sr_dbg("Closing device.");
 
 	if (sdi->status == SR_ST_ACTIVE) {
-		sr_dbg("la8: Status ACTIVE, closing device.");
+		sr_dbg("Status ACTIVE, closing device.");
 		(void) la8_close_usb_reset_sequencer(devc); /* Ignore errors. */
 	} else {
-		sr_spew("la8: Status not ACTIVE, nothing to do.");
+		sr_spew("Status not ACTIVE, nothing to do.");
 	}
 
 	sdi->status = SR_ST_INACTIVE;
 
-	sr_dbg("la8: Freeing sample buffer.");
+	sr_dbg("Freeing sample buffer.");
 	g_free(devc->final_buf);
 
 	return SR_OK;
@@ -277,9 +279,10 @@ static int hw_dev_close(struct sr_dev_inst *sdi)
 
 static int hw_cleanup(void)
 {
-
-	if (!cdi->priv)
-		return SR_OK;
+	if (!di->priv) {
+		sr_err("%s: di->priv was NULL.", __func__);
+		return SR_ERR_BUG;
+	}
 
 	clear_instances();
 
@@ -287,7 +290,7 @@ static int hw_cleanup(void)
 }
 
 static int hw_info_get(int info_id, const void **data,
-       const struct sr_dev_inst *sdi)
+		       const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 
@@ -297,28 +300,28 @@ static int hw_info_get(int info_id, const void **data,
 		break;
 	case SR_DI_NUM_PROBES:
 		*data = GINT_TO_POINTER(NUM_PROBES);
-		sr_spew("la8: %s: Returning number of probes: %d.", __func__,
+		sr_spew("%s: Returning number of probes: %d.", __func__,
 			NUM_PROBES);
 		break;
 	case SR_DI_PROBE_NAMES:
 		*data = probe_names;
-		sr_spew("la8: %s: Returning probenames.", __func__);
+		sr_spew("%s: Returning probenames.", __func__);
 		break;
 	case SR_DI_SAMPLERATES:
 		fill_supported_samplerates_if_needed();
 		*data = &samplerates;
-		sr_spew("la8: %s: Returning samplerates.", __func__);
+		sr_spew("%s: Returning samplerates.", __func__);
 		break;
 	case SR_DI_TRIGGER_TYPES:
 		*data = (char *)TRIGGER_TYPES;
-		sr_spew("la8: %s: Returning trigger types: %s.", __func__,
+		sr_spew("%s: Returning trigger types: %s.", __func__,
 			TRIGGER_TYPES);
 		break;
 	case SR_DI_CUR_SAMPLERATE:
 		if (sdi) {
 			devc = sdi->priv;
 			*data = &devc->cur_samplerate;
-			sr_spew("la8: %s: Returning samplerate: %" PRIu64 "Hz.",
+			sr_spew("%s: Returning samplerate: %" PRIu64 "Hz.",
 				__func__, devc->cur_samplerate);
 		} else
 			return SR_ERR;
@@ -336,37 +339,37 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 	struct dev_context *devc;
 
 	if (!(devc = sdi->priv)) {
-		sr_err("la8: %s: sdi->priv was NULL", __func__);
+		sr_err("%s: sdi->priv was NULL.", __func__);
 		return SR_ERR_BUG;
 	}
 
 	switch (hwcap) {
 	case SR_HWCAP_SAMPLERATE:
 		if (set_samplerate(sdi, *(const uint64_t *)value) == SR_ERR) {
-			sr_err("la8: %s: setting samplerate failed.", __func__);
+			sr_err("%s: setting samplerate failed.", __func__);
 			return SR_ERR;
 		}
-		sr_dbg("la8: SAMPLERATE = %" PRIu64, devc->cur_samplerate);
+		sr_dbg("SAMPLERATE = %" PRIu64, devc->cur_samplerate);
 		break;
 	case SR_HWCAP_LIMIT_MSEC:
 		if (*(const uint64_t *)value == 0) {
-			sr_err("la8: %s: LIMIT_MSEC can't be 0.", __func__);
+			sr_err("%s: LIMIT_MSEC can't be 0.", __func__);
 			return SR_ERR;
 		}
 		devc->limit_msec = *(const uint64_t *)value;
-		sr_dbg("la8: LIMIT_MSEC = %" PRIu64, devc->limit_msec);
+		sr_dbg("LIMIT_MSEC = %" PRIu64, devc->limit_msec);
 		break;
 	case SR_HWCAP_LIMIT_SAMPLES:
 		if (*(const uint64_t *)value < MIN_NUM_SAMPLES) {
-			sr_err("la8: %s: LIMIT_SAMPLES too small.", __func__);
+			sr_err("%s: LIMIT_SAMPLES too small.", __func__);
 			return SR_ERR;
 		}
 		devc->limit_samples = *(const uint64_t *)value;
-		sr_dbg("la8: LIMIT_SAMPLES = %" PRIu64, devc->limit_samples);
+		sr_dbg("LIMIT_SAMPLES = %" PRIu64, devc->limit_samples);
 		break;
 	default:
 		/* Unknown capability, return SR_ERR. */
-		sr_err("la8: %s: Unknown capability.", __func__);
+		sr_err("%s: Unknown capability: %d.", __func__, hwcap);
 		return SR_ERR;
 		break;
 	}
@@ -380,28 +383,27 @@ static int receive_data(int fd, int revents, void *cb_data)
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 
-	/* Avoid compiler errors. */
 	(void)fd;
 	(void)revents;
 
 	if (!(sdi = cb_data)) {
-		sr_err("la8: %s: cb_data was NULL", __func__);
+		sr_err("%s: cb_data was NULL.", __func__);
 		return FALSE;
 	}
 
 	if (!(devc = sdi->priv)) {
-		sr_err("la8: %s: sdi->priv was NULL", __func__);
+		sr_err("%s: sdi->priv was NULL.", __func__);
 		return FALSE;
 	}
 
 	if (!devc->ftdic) {
-		sr_err("la8: %s: devc->ftdic was NULL", __func__);
+		sr_err("%s: devc->ftdic was NULL.", __func__);
 		return FALSE;
 	}
 
 	/* Get one block of data. */
 	if ((ret = la8_read_block(devc)) < 0) {
-		sr_err("la8: %s: la8_read_block error: %d", __func__, ret);
+		sr_err("%s: la8_read_block error: %d.", __func__, ret);
 		hw_dev_acquisition_stop(sdi, sdi);
 		return FALSE;
 	}
@@ -412,7 +414,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 		return TRUE;
 	}
 
-	sr_dbg("la8: Sampling finished, sending data to session bus now.");
+	sr_dbg("Sampling finished, sending data to session bus now.");
 
 	/* All data was received and demangled, send it to the session bus. */
 	for (i = 0; i < NUM_BLOCKS; i++)
@@ -424,7 +426,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 }
 
 static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
-		void *cb_data)
+				    void *cb_data)
 {
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
@@ -434,27 +436,27 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	int bytes_written;
 
 	if (!(devc = sdi->priv)) {
-		sr_err("la8: %s: sdi->priv was NULL", __func__);
+		sr_err("%s: sdi->priv was NULL.", __func__);
 		return SR_ERR_BUG;
 	}
 
 	if (!devc->ftdic) {
-		sr_err("la8: %s: devc->ftdic was NULL", __func__);
+		sr_err("%s: devc->ftdic was NULL.", __func__);
 		return SR_ERR_BUG;
 	}
 
 	devc->divcount = samplerate_to_divcount(devc->cur_samplerate);
 	if (devc->divcount == 0xff) {
-		sr_err("la8: %s: invalid divcount/samplerate", __func__);
+		sr_err("%s: Invalid divcount/samplerate.", __func__);
 		return SR_ERR;
 	}
 
 	if (configure_probes(sdi) != SR_OK) {
-		sr_err("chronovu-la8: failed to configured probes");
+		sr_err("Failed to configure probes.");
 		return SR_ERR;
 	}
 
-	sr_dbg("la8: Starting acquisition.");
+	sr_dbg("Starting acquisition.");
 
 	/* Fill acquisition parameters into buf[]. */
 	buf[0] = devc->divcount;
@@ -466,19 +468,19 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	bytes_written = la8_write(devc, buf, 4);
 
 	if (bytes_written < 0) {
-		sr_err("la8: Acquisition failed to start.");
+		sr_err("Acquisition failed to start: %d.", bytes_written);
 		return SR_ERR;
 	} else if (bytes_written != 4) {
-		sr_err("la8: Acquisition failed to start.");
+		sr_err("Acquisition failed to start: %d.", bytes_written);
 		return SR_ERR;
 	}
 
-	sr_dbg("la8: Acquisition started successfully.");
+	sr_dbg("Acquisition started successfully.");
 
 	devc->session_dev_id = cb_data;
 
 	/* Send header packet to the session bus. */
-	sr_dbg("la8: Sending SR_DF_HEADER.");
+	sr_dbg("Sending SR_DF_HEADER.");
 	packet.type = SR_DF_HEADER;
 	packet.payload = &header;
 	header.feed_version = 1;
@@ -505,17 +507,17 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 }
 
 static int hw_dev_acquisition_stop(const struct sr_dev_inst *sdi,
-		void *cb_data)
+				   void *cb_data)
 {
 	struct sr_datafeed_packet packet;
 
 	(void)sdi;
 
-	sr_dbg("la8: Stopping acquisition.");
+	sr_dbg("Stopping acquisition.");
 	sr_source_remove(-1);
 
 	/* Send end packet to the session bus. */
-	sr_dbg("la8: Sending SR_DF_END.");
+	sr_dbg("Sending SR_DF_END.");
 	packet.type = SR_DF_END;
 	sr_session_send(cb_data, &packet);
 
