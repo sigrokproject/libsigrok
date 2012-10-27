@@ -146,4 +146,9 @@ SR_PRIV int ezusb_upload_firmware(libusb_device *dev, int configuration,
 				  const char *filename);
 #endif
 
+/*--- hardware/common/dmm/fs9922.c ------------------------------------------*/
+
+SR_PRIV int sr_dmm_parse_fs9922(const uint8_t *buf, float *floatval,
+				struct sr_datafeed_analog *analog);
+
 #endif

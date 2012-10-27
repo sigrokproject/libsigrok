@@ -1,7 +1,7 @@
 ##
 ## This file is part of the sigrok project.
 ##
-## Copyright (C) 2011 Uwe Hermann <uwe@hermann-uwe.de>
+## Copyright (C) 2012 Uwe Hermann <uwe@hermann-uwe.de>
 ##
 ## This program is free software: you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -17,25 +17,12 @@
 ## along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##
 
-SUBDIRS = dmm
-
 # Local lib, this is NOT meant to be installed!
-noinst_LTLIBRARIES = libsigrokhwcommon.la
+noinst_LTLIBRARIES = libsigrok_hw_common_dmm.la
 
-libsigrokhwcommon_la_SOURCES =
+libsigrok_hw_common_dmm_la_SOURCES = \
+	fs9922.c
 
-if NEED_EZUSB
-libsigrokhwcommon_la_SOURCES += ezusb.c
-endif
-
-if NEED_SERIAL
-libsigrokhwcommon_la_SOURCES += serial.c
-endif
-
-libsigrokhwcommon_la_LIBADD = 
-
-libsigrokhwcommon_la_LIBADD += dmm/libsigrok_hw_common_dmm.la
-
-libsigrokhwcommon_la_CFLAGS = \
+libsigrok_hw_common_dmm_la_CFLAGS = \
 	-I$(top_srcdir)
 

@@ -196,6 +196,15 @@ if test "x$HW_TEKPOWER_DMM" = "xyes"; then
 	AC_DEFINE(HAVE_HW_TEKPOWER_DMM, 1, [TekPower DMM support])
 fi
 
+AC_ARG_ENABLE(uni-t-dmm, AC_HELP_STRING([--enable-uni-t-dmm],
+	      [enable UNI-T DMM support [default=yes]]),
+	      [HW_UNI_T_DMM="$enableval"],
+	      [HW_UNI_T_DMM=yes])
+AM_CONDITIONAL(HW_UNI_T_DMM, test x$HW_UNI_T_DMM = xyes)
+if test "x$HW_UNI_T_DMM" = "xyes"; then
+	AC_DEFINE(HAVE_HW_UNI_T_DMM, 1, [UNI-T DMM support])
+fi
+
 AC_ARG_ENABLE(zeroplus-logic-cube,
 	      AC_HELP_STRING([--enable-zeroplus-logic-cube],
 	      [enable ZEROPLUS Logic Cube support [default=yes]]),
@@ -273,13 +282,13 @@ if test "x$LA_ALSA" != xno; then
 		SR_PKGLIBS="$SR_PKGLIBS alsa"])
 fi
 
-# EZUSB FX2 firmware helpers only needed for some hardware drivers
+# EZUSB FX2 firmware helper code is only needed for some hardware drivers.
 AM_CONDITIONAL(NEED_EZUSB, \
 	test "x$LA_FX2LAFW" != xno \
 	-o "x$HW_HANTEK_DSO" != xno \
 )
 
-# Serial port helpers only needed for some hardware drivers
+# Serial port helper code is only needed for some hardware drivers.
 AM_CONDITIONAL(NEED_SERIAL, \
 	test "x$LA_OLS" != xno \
 	-o "x$HW_AGILENT_DMM" != xno \
@@ -327,6 +336,7 @@ AC_CONFIG_FILES([Makefile version.h hardware/Makefile
 		 hardware/asix-sigma/Makefile
 		 hardware/chronovu-la8/Makefile
 		 hardware/common/Makefile
+		 hardware/common/dmm/Makefile
 		 hardware/demo/Makefile
 		 hardware/fluke-dmm/Makefile
 		 hardware/fx2lafw/Makefile
@@ -336,6 +346,7 @@ AC_CONFIG_FILES([Makefile version.h hardware/Makefile
 		 hardware/openbench-logic-sniffer/Makefile
 		 hardware/radioshack-dmm/Makefile
 		 hardware/tekpower-dmm/Makefile
+		 hardware/uni-t-dmm/Makefile
 		 hardware/zeroplus-logic-cube/Makefile
 		 input/Makefile
 		 output/Makefile
@@ -380,6 +391,7 @@ echo "  - Link MSO-19..................... $LA_LINK_MSO19"
 echo "  - Openbench Logic Sniffer......... $LA_OLS"
 echo "  - Radioshack DMM.................. $HW_RADIOSHACK_DMM"
 echo "  - TekPower DMM.................... $HW_TEKPOWER_DMM"
+echo "  - UNI-T DMM....................... $HW_UNI_T_DMM"
 echo "  - ZEROPLUS Logic Cube............. $LA_ZEROPLUS_LOGIC_CUBE"
 echo
 

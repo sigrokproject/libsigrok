@@ -33,6 +33,7 @@ SUBDIRS = \
 	openbench-logic-sniffer \
 	radioshack-dmm \
 	tekpower-dmm \
+	uni-t-dmm \
 	zeroplus-logic-cube
 
 noinst_LTLIBRARIES = libsigrokhardware.la
@@ -92,6 +93,10 @@ endif
 
 if HW_TEKPOWER_DMM
 libsigrokhardware_la_LIBADD += tekpower-dmm/libsigrokhwtekpowerdmm.la
+endif
+
+if HW_UNI_T_DMM
+libsigrokhardware_la_LIBADD += uni-t-dmm/libsigrok_hw_uni_t_dmm.la
 endif
 
 if LA_ZEROPLUS_LOGIC_CUBE
