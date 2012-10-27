@@ -83,7 +83,7 @@ AC_ARG_ENABLE(agilent-dmm, AC_HELP_STRING([--enable-agilent-dmm],
 	      [HW_AGILENT_DMM=yes])
 AM_CONDITIONAL(HW_AGILENT_DMM, test x$HW_AGILENT_DMM = xyes)
 if test "x$HW_AGILENT_DMM" = "xyes"; then
-	AC_DEFINE(HAVE_HW_AGILENT_DMM, 1, [Agilent DMM driver support])
+	AC_DEFINE(HAVE_HW_AGILENT_DMM, 1, [Agilent DMM support])
 fi
 
 # Disabled by default, unfinished.
@@ -124,7 +124,7 @@ if test "x$LA_DEMO" = "xyes"; then
 fi
 
 AC_ARG_ENABLE(fluke-dmm, AC_HELP_STRING([--enable-fluke-dmm],
-	      [enable Fluke DMM support. [default=yes]]),
+	      [enable Fluke DMM support [default=yes]]),
 	      [HW_FLUKE_DMM="$enableval"],
 	      [HW_FLUKE_DMM=yes])
 AM_CONDITIONAL(HW_FLUKE_DMM, test x$HW_FLUKE_DMM = xyes)
@@ -142,7 +142,7 @@ if test "x$LA_FX2LAFW" = "xyes"; then
 fi
 
 AC_ARG_ENABLE(genericdmm, AC_HELP_STRING([--enable-genericdmm],
-	      [enable genericdmm support (for most DMMs). [default=yes]]),
+	      [enable genericdmm support (for most DMMs) [default=yes]]),
 	      [HW_GENERICDMM="$enableval"],
 	      [HW_GENERICDMM=yes])
 AM_CONDITIONAL(HW_GENERICDMM, test x$HW_GENERICDMM = xyes)
@@ -150,8 +150,7 @@ if test "x$HW_GENERICDMM" = "xyes"; then
 	AC_DEFINE(HAVE_HW_GENERICDMM, 1, [Generic DMM support])
 fi
 
-AC_ARG_ENABLE(hantek-dso,
-	      AC_HELP_STRING([--enable-hantek-dso],
+AC_ARG_ENABLE(hantek-dso, AC_HELP_STRING([--enable-hantek-dso],
 	      [enable Hantek DSO support [default=yes]]),
 	      [HW_HANTEK_DSO="$enableval"],
 	      [HW_HANTEK_DSO=yes])
@@ -180,7 +179,7 @@ if test "x$LA_OLS" = "xyes"; then
 fi
 
 AC_ARG_ENABLE(radioshack-dmm, AC_HELP_STRING([--enable-radioshack-dmm],
-	      [enable RadioShack DMM support. [default=yes]]),
+	      [enable RadioShack DMM support [default=yes]]),
 	      [HW_RADIOSHACK_DMM="$enableval"],
 	      [HW_RADIOSHACK_DMM=yes])
 AM_CONDITIONAL(HW_RADIOSHACK_DMM, test x$HW_RADIOSHACK_DMM = xyes)
