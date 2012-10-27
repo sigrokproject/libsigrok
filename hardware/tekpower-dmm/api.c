@@ -19,14 +19,14 @@
  */
 
 #include <glib.h>
-#include "libsigrok.h"
-#include "libsigrok-internal.h"
-#include "protocol.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <string.h>
 #include <errno.h>
+#include "libsigrok.h"
+#include "libsigrok-internal.h"
+#include "protocol.h"
 
 static const int hwopts[] = {
 	SR_HWOPT_CONN,
@@ -46,8 +46,8 @@ static const char *probe_names[] = {
 	NULL,
 };
 
-SR_PRIV struct sr_dev_driver tekpower_driver_info;
-static struct sr_dev_driver *di = &tekpower_driver_info;
+SR_PRIV struct sr_dev_driver tekpower_dmm_driver_info;
+static struct sr_dev_driver *di = &tekpower_dmm_driver_info;
 
 /* Properly close and free all devices. */
 static int clear_instances(void)
@@ -80,8 +80,8 @@ static int hw_init(void)
 	struct drv_context *drvc;
 
 	if (!(drvc = g_try_malloc0(sizeof(struct drv_context)))) {
-		sr_err("driver context malloc failed.");
-		return SR_ERR;
+		sr_err("Driver context malloc failed.");
+		return SR_ERR_MALLOC;
 	}
 
 	di->priv = drvc;
@@ -89,7 +89,7 @@ static int hw_init(void)
 	return SR_OK;
 }
 
-static int serial_readline(int fd, char **buf, size_t *buflen,
+static int serial_readline(int fd, char **buf, int *buflen,
 			   uint64_t timeout_ms)
 {
 	uint64_t start;
@@ -100,7 +100,7 @@ static int serial_readline(int fd, char **buf, size_t *buflen,
 
 	maxlen = *buflen;
 	*buflen = len = 0;
-	while(1) {
+	while (1) {
 		len = maxlen - *buflen - 1;
 		if (len < 1)
 			break;
@@ -129,52 +129,49 @@ static GSList *lcd14_scan(const char *conn, const char *serialcomm)
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct sr_probe *probe;
+	struct lcd14_packet *packet;
 	GSList *devices;
-	int fd, retry;
-	size_t len;
+	int i, len, fd, retry, good_packets = 0, dropped, ret;
 	char buf[128], *b;
 
-	if ((fd = serial_open(conn, O_RDONLY|O_NONBLOCK)) == -1) {
-		sr_err("unable to open %s: %s",
-		       conn, strerror(errno));
+	if ((fd = serial_open(conn, O_RDONLY | O_NONBLOCK)) == -1) {
+		sr_err("Unable to open %s: %s.", conn, strerror(errno));
 		return NULL;
 	}
-	if (serial_set_paramstr(fd, serialcomm) != SR_OK) {
-		sr_err("unable to set serial parameters");
+	if ((ret = serial_set_paramstr(fd, serialcomm)) != SR_OK) {
+		sr_err("Unable to set serial parameters: %d", ret);
 		return NULL;
 	}
 
-	sr_info("probing port %s readonly", conn);
+	sr_info("Probing port %s readonly.", conn);
 
 	drvc = di->priv;
 	b = buf;
 	retry = 0;
 	devices = NULL;
 	serial_flush(fd);
-	/* There's no way to get an ID from the multimeter. It just sends data
-	 * periodically, so the best we can do is check if the packets match the
-	 * expected format. */
-	while (!devices && retry < 3)
-	{
-		size_t i;
-		size_t good_packets = 0;
+
+	/*
+	 * There's no way to get an ID from the multimeter. It just sends data
+	 * periodically, so the best we can do is check if the packets match
+	 * the expected format.
+	 */
+	while (!devices && retry < 3) {
 		retry++;
 
-		/* Let's get a bit of data and see if we can find a packet */
+		/* Let's get a bit of data and see if we can find a packet. */
 		len = sizeof(buf);
 		serial_readline(fd, &b, &len, 500);
-		if( (len == 0) || (len < LCD14_PACKET_SIZE) ) {
-			/* Not enough data received, is the DMM connected ? */
+		if ((len == 0) || (len < LCD14_PACKET_SIZE)) {
+			/* Not enough data received, is the DMM connected? */
 			continue;
 		}
 
 		/* Let's treat our buffer like a stream, and find any
 		 * valid packets */
-		for( i = 0; i < len - LCD14_PACKET_SIZE + 1;
-		    /* don't increment i here */ )
-		{
-			const lcd14_packet *packet = (void *)(&buf[i]);
-			if( !lcd14_is_packet_valid(packet, NULL) ){
+		for (i = 0; i < len - LCD14_PACKET_SIZE + 1;) {
+			packet = (void *)(&buf[i]);
+			if (!lcd14_is_packet_valid(packet, NULL)) {
 				i++;
 				continue;
 			}
@@ -182,27 +179,28 @@ static GSList *lcd14_scan(const char *conn, const char *serialcomm)
 			i += LCD14_PACKET_SIZE;
 		}
 
-		/* If we dropped more than two packets worth of data, something
-		 * is wrong */
-		size_t dropped = len - (good_packets * LCD14_PACKET_SIZE);
-		if(dropped > 2 * LCD14_PACKET_SIZE)
+		/*
+		 * If we dropped more than two packets worth of data,
+		 * something is wrong.
+		 */
+		dropped = len - (good_packets * LCD14_PACKET_SIZE);
+		if (dropped > 2 * LCD14_PACKET_SIZE)
 			continue;
 
-		/* Let's see if we have anything good */
+		/* Let's see if we have anything good. */
 		if (good_packets == 0)
 			continue;
 
-		sr_info("found device on port %s", conn);
+		sr_info("Found device on port %s.", conn);
 
 		if (!(sdi = sr_dev_inst_new(0, SR_ST_INACTIVE, "TekPower",
 					    "TP4000ZC", "")))
 			return NULL;
 		if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
-			sr_dbg("failed to malloc devc");
+			sr_err("Device context malloc failed.");
 			return NULL;
 		}
 
-		/* devc->profile = RADIOSHACK_22_812; */
 		devc->serial = sr_serial_dev_inst_new(conn, -1);
 		devc->serialcomm = g_strdup(serialcomm);
 
@@ -245,7 +243,7 @@ static GSList *hw_scan(GSList *options)
 		/* Use the provided comm specs. */
 		devices = lcd14_scan(conn, serialcomm);
 	} else {
-		/* Then try the default 2400 8n1 */
+		/* Try the default 2400/8n1. */
 		devices = lcd14_scan(conn, "2400/8n1");
 	}
 
@@ -263,6 +261,7 @@ static GSList *hw_dev_list(void)
 
 static int hw_dev_open(struct sr_dev_inst *sdi)
 {
+	int ret;
 	struct dev_context *devc;
 
 	if (!(devc = sdi->priv)) {
@@ -272,12 +271,13 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 
 	devc->serial->fd = serial_open(devc->serial->port, O_RDONLY);
 	if (devc->serial->fd == -1) {
-		sr_err("Couldn't open serial port '%s'.",
-		       devc->serial->port);
+		sr_err("Couldn't open serial port '%s'.", devc->serial->port);
 		return SR_ERR;
 	}
-	if (serial_set_paramstr(devc->serial->fd, devc->serialcomm) != SR_OK) {
-		sr_err("unable to set serial parameters");
+
+	ret = serial_set_paramstr(devc->serial->fd, devc->serialcomm);
+	if (ret != SR_OK) {
+		sr_err("Unable to set serial parameters: %d.", ret);
 		return SR_ERR;
 	}
 	sdi->status = SR_ST_ACTIVE;
@@ -311,9 +311,9 @@ static int hw_cleanup(void)
 }
 
 static int hw_info_get(int info_id, const void **data,
-       const struct sr_dev_inst *sdi)
+		       const struct sr_dev_inst *sdi)
 {
-	(void)sdi; /* Does nothing. prevents "unused parameter" warning */
+	(void)sdi;
 
 	switch (info_id) {
 	case SR_DI_HWOPTS:
@@ -336,7 +336,7 @@ static int hw_info_get(int info_id, const void **data,
 }
 
 static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
-		const void *value)
+			     const void *value)
 {
 	struct dev_context *devc;
 
@@ -364,7 +364,7 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 }
 
 static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
-		void *cb_data)
+				    void *cb_data)
 {
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_header header;
@@ -380,9 +380,11 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 
 	devc->cb_data = cb_data;
 
-	/* Reset the number of samples to take. If we've already collected our
+	/*
+	 * Reset the number of samples to take. If we've already collected our
 	 * quota, but we start a new session, and don't reset this, we'll just
-	 * quit without aquiring any new samples */
+	 * quit without acquiring any new samples.
+	 */
 	devc->num_samples = 0;
 
 	/* Send header packet to the session bus. */
@@ -400,15 +402,15 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	meta.num_probes = 1;
 	sr_session_send(devc->cb_data, &packet);
 
-	/* Poll every 100ms, or whenever some data comes in. */
+	/* Poll every 50ms, or whenever some data comes in. */
 	sr_source_add(devc->serial->fd, G_IO_IN, 50,
-		      lcd14_receive_data, (void *)sdi );
+		      tekpower_dmm_receive_data, (void *)sdi);
 
 	return SR_OK;
 }
 
 static int hw_dev_acquisition_stop(const struct sr_dev_inst *sdi,
-		void *cb_data)
+				   void *cb_data)
 {
 	struct sr_datafeed_packet packet;
 	struct dev_context *devc;
@@ -434,9 +436,9 @@ static int hw_dev_acquisition_stop(const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-SR_PRIV struct sr_dev_driver tekpower_driver_info = {
+SR_PRIV struct sr_dev_driver tekpower_dmm_driver_info = {
 	.name = "tekpower-dmm",
-	.longname = "TekPower/Digitek 4000ZC",
+	.longname = "TekPower/Digitek TP4000ZC/DT4000ZC DMM",
 	.api_version = 1,
 	.init = hw_init,
 	.cleanup = hw_cleanup,

@@ -189,9 +189,9 @@ if test "x$HW_RADIOSHACK_DMM" = "xyes"; then
 fi
 
 AC_ARG_ENABLE(tekpower-dmm, AC_HELP_STRING([--enable-tekpower-dmm],
-	[enable Tekpower DMM support. [default=yes]]),
-	[HW_TEKPOWER_DMM="$enableval"],
-	[HW_TEKPOWER_DMM=yes])
+	      [enable TekPower DMM support [default=yes]]),
+	      [HW_TEKPOWER_DMM="$enableval"],
+	      [HW_TEKPOWER_DMM=yes])
 AM_CONDITIONAL(HW_TEKPOWER_DMM, test x$HW_TEKPOWER_DMM = xyes)
 if test "x$HW_TEKPOWER_DMM" = "xyes"; then
 	AC_DEFINE(HAVE_HW_TEKPOWER_DMM, 1, [TekPower DMM support])
@@ -380,7 +380,7 @@ echo "  - Hantek DSO...................... $HW_HANTEK_DSO"
 echo "  - Link MSO-19..................... $LA_LINK_MSO19"
 echo "  - Openbench Logic Sniffer......... $LA_OLS"
 echo "  - Radioshack DMM.................. $HW_RADIOSHACK_DMM"
-echo "  - Tekpower DMM.................... $HW_TEKPOWER_DMM"
+echo "  - TekPower DMM.................... $HW_TEKPOWER_DMM"
 echo "  - ZEROPLUS Logic Cube............. $LA_ZEROPLUS_LOGIC_CUBE"
 echo
 
