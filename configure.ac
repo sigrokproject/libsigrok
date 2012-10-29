@@ -224,7 +224,7 @@ SR_PKGLIBS=""
 
 # libglib-2.0 is always needed.
 # Note: glib-2.0 is part of the libsigrok API (hard pkg-config requirement).
-AM_PATH_GLIB_2_0([2.28.0],
+AM_PATH_GLIB_2_0([2.32.0],
 	[CFLAGS="$CFLAGS $GLIB_CFLAGS"; LIBS="$LIBS $GLIB_LIBS"])
 
 # libgthread-2.0 is always needed (e.g. for the demo hardware driver).
