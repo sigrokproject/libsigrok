@@ -181,14 +181,14 @@ static struct sr_datafeed_analog *handle_qm_v2(const struct sr_dev_inst *sdi,
 			*analog->data = NAN;
 		} else
 			analog->mq = -1;
-	} if (!strcmp(tokens[1], "dBV") || !strcmp(tokens[1], "dBm")) {
+	} else if (!strcmp(tokens[1], "dBV") || !strcmp(tokens[1], "dBm")) {
 		analog->mq = SR_MQ_VOLTAGE;
 		if (tokens[1][2] == 'm')
 			analog->unit = SR_UNIT_DECIBEL_MW;
 		else
 			analog->unit = SR_UNIT_DECIBEL_VOLT;
 		analog->mqflags |= SR_MQFLAG_AC | SR_MQFLAG_RMS;
-	} if (!strcmp(tokens[1], "CEL") || !strcmp(tokens[1], "FAR")) {
+	} else if (!strcmp(tokens[1], "CEL") || !strcmp(tokens[1], "FAR")) {
 		if (!strcmp(tokens[2], "NORMAL")) {
 			analog->mq = SR_MQ_TEMPERATURE;
 			if (tokens[1][0] == 'C')
@@ -196,7 +196,7 @@ static struct sr_datafeed_analog *handle_qm_v2(const struct sr_dev_inst *sdi,
 			else
 				analog->unit = SR_UNIT_FAHRENHEIT;
 		}
-	} if (!strcmp(tokens[1], "OHM")) {
+	} else if (!strcmp(tokens[1], "OHM")) {
 		if (!strcmp(tokens[3], "NONE")) {
 			analog->mq = SR_MQ_RESISTANCE;
 			analog->unit = SR_UNIT_OHM;
@@ -213,7 +213,7 @@ static struct sr_datafeed_analog *handle_qm_v2(const struct sr_dev_inst *sdi,
 			analog->unit = SR_UNIT_BOOLEAN;
 			*analog->data = 1.0;
 		}
-	} if (!strcmp(tokens[1], "F")
+	} else if (!strcmp(tokens[1], "F")
 			&& !strcmp(tokens[2], "NORMAL")
 			&& !strcmp(tokens[3], "NONE")) {
 		analog->mq = SR_MQ_CAPACITANCE;
@@ -234,13 +234,13 @@ static struct sr_datafeed_analog *handle_qm_v2(const struct sr_dev_inst *sdi,
 	} if (!strcmp(tokens[1], "Hz") && !strcmp(tokens[2], "NORMAL")) {
 		analog->mq = SR_MQ_FREQUENCY;
 		analog->unit = SR_UNIT_HERTZ;
-	} if (!strcmp(tokens[1], "PCT") && !strcmp(tokens[2], "NORMAL")) {
+	} else if (!strcmp(tokens[1], "PCT") && !strcmp(tokens[2], "NORMAL")) {
 		analog->mq = SR_MQ_DUTY_CYCLE;
 		analog->unit = SR_UNIT_PERCENTAGE;
-	} if (!strcmp(tokens[1], "S") && !strcmp(tokens[2], "NORMAL")) {
+	} else if (!strcmp(tokens[1], "S") && !strcmp(tokens[2], "NORMAL")) {
 		analog->mq = SR_MQ_PULSE_WIDTH;
 		analog->unit = SR_UNIT_SECOND;
-	} if (!strcmp(tokens[1], "SIE") && !strcmp(tokens[2], "NORMAL")) {
+	} else if (!strcmp(tokens[1], "SIE") && !strcmp(tokens[2], "NORMAL")) {
 		analog->mq = SR_MQ_CONDUCTANCE;
 		analog->unit = SR_UNIT_SIEMENS;
 	}
