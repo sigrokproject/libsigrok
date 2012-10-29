@@ -474,14 +474,12 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 		    40, receive_data, devc);
 
 	/* Run the demo thread. */
-	g_thread_init(NULL);
-	/* This must to be done between g_thread_init() & g_thread_create(). */
 	devc->timer = g_timer_new();
 	thread_running = 1;
-	my_thread =
-	    g_thread_create((GThreadFunc)thread_func, devc, TRUE, NULL);
+	my_thread = g_thread_try_new("sigrok demo generator",
+			(GThreadFunc)thread_func, devc, NULL);
 	if (!my_thread) {
-		sr_err("demo: %s: g_thread_create failed", __func__);
+		sr_err("demo: %s: g_thread_try_new failed", __func__);
 		return SR_ERR; /* TODO */
 	}
 
