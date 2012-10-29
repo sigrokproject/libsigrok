@@ -21,6 +21,7 @@
 noinst_LTLIBRARIES = libsigrok_hw_common_dmm.la
 
 libsigrok_hw_common_dmm_la_SOURCES = \
+	fs9721.c \
 	fs9922.c
 
 libsigrok_hw_common_dmm_la_CFLAGS = \
