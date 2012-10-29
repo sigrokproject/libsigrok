@@ -23,6 +23,7 @@ SUBDIRS = \
 	alsa \
 	asix-sigma \
 	chronovu-la8 \
+	colead-slm \
 	common \
 	demo \
 	fluke-dmm \
@@ -57,6 +58,10 @@ endif
 
 if LA_CHRONOVU_LA8
 libsigrokhardware_la_LIBADD += chronovu-la8/libsigrokhwchronovula8.la
+endif
+
+if HW_COLEAD_SLM
+libsigrokhardware_la_LIBADD += colead-slm/libsigrok_hw_colead_slm.la
 endif
 
 if LA_DEMO

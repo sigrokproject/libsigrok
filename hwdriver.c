@@ -68,6 +68,9 @@ static struct sr_hwcap_option sr_devopts[] = {
 };
 
 /** @cond PRIVATE */
+#ifdef HAVE_HW_COLEAD_SLM
+extern SR_PRIV struct sr_dev_driver colead_slm_driver_info;
+#endif
 #ifdef HAVE_LA_DEMO
 extern SR_PRIV struct sr_dev_driver demo_driver_info;
 #endif
@@ -117,6 +120,9 @@ extern SR_PRIV struct sr_dev_driver voltcraft_vc820_driver_info;
 /** @endcond */
 
 static struct sr_dev_driver *drivers_list[] = {
+#ifdef HAVE_HW_COLEAD_SLM
+	&colead_slm_driver_info,
+#endif
 #ifdef HAVE_LA_DEMO
 	&demo_driver_info,
 #endif

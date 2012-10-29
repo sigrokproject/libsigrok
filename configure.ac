@@ -114,6 +114,15 @@ if test "x$LA_CHRONOVU_LA8" = "xyes"; then
 	AC_DEFINE(HAVE_LA_CHRONOVU_LA8, 1, [ChronoVu LA8 support])
 fi
 
+AC_ARG_ENABLE(colead-slm, AC_HELP_STRING([--enable-colead-slm],
+	[enable Colead SLM support [default=yes]]),
+	[HW_COLEAD_SLM="$enableval"],
+	[HW_COLEAD_SLM=yes])
+AM_CONDITIONAL(HW_COLEAD_SLM, test x$HW_COLEAD_SLM = xyes)
+if test "x$HW_COLEAD_SLM" = "xyes"; then
+	AC_DEFINE(HAVE_HW_COLEAD_SLM, 1, [Colead SLM support])
+fi
+
 AC_ARG_ENABLE(demo, AC_HELP_STRING([--enable-demo],
 	      [enable demo driver support [default=yes]]),
 	      [LA_DEMO="$enableval"],
@@ -335,6 +344,7 @@ AC_CONFIG_FILES([Makefile version.h hardware/Makefile
 		 hardware/alsa/Makefile
 		 hardware/asix-sigma/Makefile
 		 hardware/chronovu-la8/Makefile
+		 hardware/colead-slm/Makefile
 		 hardware/common/Makefile
 		 hardware/common/dmm/Makefile
 		 hardware/demo/Makefile
@@ -382,6 +392,7 @@ echo -e "\nEnabled hardware drivers:\n"
 echo "  - Agilent DMM..................... $HW_AGILENT_DMM"
 echo "  - ASIX SIGMA/SIGMA2............... $LA_ASIX_SIGMA"
 echo "  - ChronoVu LA8.................... $LA_CHRONOVU_LA8"
+echo "  - Colead SLM...................... $HW_COLEAD_SLM"
 echo "  - Demo driver..................... $LA_DEMO"
 echo "  - Fluke DMM....................... $HW_FLUKE_DMM"
 echo "  - fx2lafw (for FX2 LAs)........... $LA_FX2LAFW"
