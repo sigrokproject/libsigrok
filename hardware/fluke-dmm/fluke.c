@@ -181,6 +181,13 @@ static struct sr_datafeed_analog *handle_qm_v2(const struct sr_dev_inst *sdi,
 			*analog->data = NAN;
 		} else
 			analog->mq = -1;
+	} if (!strcmp(tokens[1], "dBV") || !strcmp(tokens[1], "dBm")) {
+		analog->mq = SR_MQ_VOLTAGE;
+		if (tokens[1][2] == 'm')
+			analog->unit = SR_UNIT_DECIBEL_MW;
+		else
+			analog->unit = SR_UNIT_DECIBEL_VOLT;
+		analog->mqflags |= SR_MQFLAG_AC | SR_MQFLAG_RMS;
 	} if (!strcmp(tokens[1], "CEL") || !strcmp(tokens[1], "FAR")) {
 		if (!strcmp(tokens[2], "NORMAL")) {
 			analog->mq = SR_MQ_TEMPERATURE;
