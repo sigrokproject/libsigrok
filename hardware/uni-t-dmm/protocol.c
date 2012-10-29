@@ -77,6 +77,7 @@ static void decode_packet(struct dev_context *devc, const uint8_t *buf)
 
 	/* Parse the protocol packet. */
 	if ((ret = sr_dmm_parse_fs9922(buf, &floatval, &analog)) != SR_OK) {
+	// if ((ret = sr_dmm_parse_fs9721(buf, &floatval, &analog)) != SR_OK) {
 		sr_err("Invalid DMM packet, ignoring.");
 		return;
 	}
@@ -228,6 +229,7 @@ SR_PRIV int uni_t_dmm_receive_data(int fd, int revents, void *cb_data)
 		if (!synced_on_first_packet) {
 			/* Valid packets start with '+' or '-'. */
 			if ((buf[1] != '+') && buf[1] != '-')
+			// if ((buf[1] & 0xf0) != 0x10)
 				return TRUE;
 			synced_on_first_packet = TRUE;
 			sr_spew("Successfully synchronized on first packet.");
