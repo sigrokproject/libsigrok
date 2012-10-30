@@ -95,7 +95,7 @@ static GSList *lcd14_scan(const char *conn, const char *serialcomm)
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct sr_probe *probe;
-	struct lcd14_packet *packet;
+	struct fs9721_packet *packet;
 	GSList *devices;
 	int i, len, fd, retry, good_packets = 0, dropped, ret;
 	char buf[128], *b;
@@ -128,29 +128,29 @@ static GSList *lcd14_scan(const char *conn, const char *serialcomm)
 		/* Let's get a bit of data and see if we can find a packet. */
 		len = sizeof(buf);
 		serial_readline(fd, &b, &len, 500);
-		if ((len == 0) || (len < LCD14_PACKET_SIZE)) {
+		if ((len == 0) || (len < FS9721_PACKET_SIZE)) {
 			/* Not enough data received, is the DMM connected? */
 			continue;
 		}
 
 		/* Let's treat our buffer like a stream, and find any
 		 * valid packets */
-		for (i = 0; i < len - LCD14_PACKET_SIZE + 1;) {
+		for (i = 0; i < len - FS9721_PACKET_SIZE + 1;) {
 			packet = (void *)(&buf[i]);
-			if (!lcd14_is_packet_valid(packet, NULL)) {
+			if (!fs9721_is_packet_valid(packet, NULL)) {
 				i++;
 				continue;
 			}
 			good_packets++;
-			i += LCD14_PACKET_SIZE;
+			i += FS9721_PACKET_SIZE;
 		}
 
 		/*
 		 * If we dropped more than two packets worth of data,
 		 * something is wrong.
 		 */
-		dropped = len - (good_packets * LCD14_PACKET_SIZE);
-		if (dropped > 2 * LCD14_PACKET_SIZE)
+		dropped = len - (good_packets * FS9721_PACKET_SIZE);
+		if (dropped > 2 * FS9721_PACKET_SIZE)
 			continue;
 
 		/* Let's see if we have anything good. */

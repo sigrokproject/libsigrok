@@ -20,6 +20,8 @@
 #ifndef LIBSIGROK_HARDWARE_TEKPOWER_DMM_PROTOCOL_H
 #define LIBSIGROK_HARDWARE_TEKPOWER_DMM_PROTOCOL_H
 
+#include "hardware/common/dmm/fs9721.h"
+
 /* Message logging helpers with driver-specific prefix string. */
 #define DRIVER_LOG_DOMAIN "tekpower-dmm: "
 #define sr_log(l, s, args...) sr_log(l, DRIVER_LOG_DOMAIN s, ## args)
@@ -31,65 +33,7 @@
 
 #define DMM_BUFSIZE		256
 
-/* Flags present in the packet */
-#define LCD14_AC		(1 << 23)
-#define LCD14_DC		(1 << 22)
-#define LCD14_AUTO		(1 << 21)
-#define LCD14_RS232		(1 << 20)
-#define LCD14_MICRO		(1 << 19)
-#define LCD14_NANO		(1 << 18)
-#define LCD14_KILO		(1 << 17)
-#define LCD14_DIODE		(1 << 16)
-#define LCD14_MILLI		(1 << 15)
-#define LCD14_DUTY		(1 << 14)
-#define LCD14_MEGA		(1 << 13)
-#define LCD14_BEEP		(1 << 12)
-#define LCD14_FARAD		(1 << 11)
-#define LCD14_OHM		(1 << 10)
-#define LCD14_REL		(1 <<  9)
-#define LCD14_HOLD		(1 <<  8)
-#define LCD14_AMP		(1 <<  7)
-#define LCD14_VOLT		(1 <<  6)
-#define LCD14_HZ		(1 <<  5)
-#define LCD14_LOW_BATT		(1 <<  4)
-#define LCD14_HFE		(1 <<  3)
-#define LCD14_CELSIUS		(1 <<  2)
-#define LCD14_RSVD1		(1 <<  1)
-#define LCD14_RSVD0		(0 <<  0)
-
-/* Mask used to remove the decimal point from a digit. */
-#define LCD14_DP_MASK		0x80
-#define LCD14_D0_NEG		LCD14_DP_MASK
-/* Mask used to remove the syncronization nibble. */
-#define LCD14_SYNC_MASK		0xf0
-
-/* What the LCD values represent */
-#define LCD14_LCD_0		0x7d
-#define LCD14_LCD_1		0x05
-#define LCD14_LCD_2		0x5b
-#define LCD14_LCD_3		0x1f
-#define LCD14_LCD_4		0x27
-#define LCD14_LCD_5		0x3e
-#define LCD14_LCD_6		0x7e
-#define LCD14_LCD_7		0x15
-#define LCD14_LCD_8		0x7f
-#define LCD14_LCD_9		0x3f
-
-#define LCD14_LCD_INVALID	0xff
-
-#define LCD14_PACKET_SIZE	14
-
-struct lcd14_packet {
-	uint8_t raw[LCD14_PACKET_SIZE];
-};
-
-struct lcd14_data {
-	uint8_t digit[4];
-	uint32_t flags;
-};
-
-SR_PRIV gboolean lcd14_is_packet_valid(const struct lcd14_packet *packet,
-				       struct lcd14_data *data);
+#define FLAG_TEMP_CELSIUS	FS9721_USR2
 
 /** Private, per-device-instance driver context. */
 struct dev_context {
