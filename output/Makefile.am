@@ -29,7 +29,6 @@ libsigrokoutput_la_SOURCES = \
 	gnuplot.c \
 	chronovu_la8.c \
 	csv.c \
-	float.c \
 	analog.c \
 	output.c
 
