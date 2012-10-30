@@ -36,6 +36,12 @@
 #define sr_warn(s, args...) sr_warn(DRIVER_LOG_DOMAIN s, ## args)
 #define sr_err(s, args...) sr_err(DRIVER_LOG_DOMAIN s, ## args)
 
+/* Note: The order here must match dev_names[] in api.c. */
+enum {
+	UNI_T_UT61D,
+	VOLTCRAFT_VC820,
+};
+
 #define UT_D04_CABLE_USB_VID	0x1a86
 #define UT_D04_CABLE_USB_DID	0xe008
 
@@ -61,6 +67,7 @@ struct dev_context {
 	uint8_t protocol_buf[14];
 };
 
-SR_PRIV int uni_t_dmm_receive_data(int fd, int revents, void *cb_data);
+SR_PRIV int uni_t_ut61d_receive_data(int fd, int revents, void *cb_data);
+SR_PRIV int voltcraft_vc820_receive_data(int fd, int revents, void *cb_data);
 
 #endif

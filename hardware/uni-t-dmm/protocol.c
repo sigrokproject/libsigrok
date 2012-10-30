@@ -66,7 +66,7 @@
  *  - ...
  */
 
-static void decode_packet(struct dev_context *devc, const uint8_t *buf)
+static void decode_packet(struct dev_context *devc, int dmm, const uint8_t *buf)
 {
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog analog;
@@ -76,8 +76,11 @@ static void decode_packet(struct dev_context *devc, const uint8_t *buf)
 	memset(&analog, 0, sizeof(struct sr_datafeed_analog));
 
 	/* Parse the protocol packet. */
-	if ((ret = sr_dmm_parse_fs9922(buf, &floatval, &analog)) != SR_OK) {
-	// if ((ret = sr_dmm_parse_fs9721(buf, &floatval, &analog)) != SR_OK) {
+	if (dmm == UNI_T_UT61D)
+		ret = sr_dmm_parse_fs9922(buf, &floatval, &analog);
+	else if (dmm == VOLTCRAFT_VC820)
+		ret = sr_dmm_parse_fs9721(buf, &floatval, &analog);
+	if (ret != SR_OK) {
 		sr_err("Invalid DMM packet, ignoring.");
 		return;
 	}
@@ -171,7 +174,7 @@ static void log_dmm_packet(const uint8_t *buf)
 	       buf[7], buf[8], buf[9], buf[10], buf[11], buf[12], buf[13]);
 }
 
-SR_PRIV int uni_t_dmm_receive_data(int fd, int revents, void *cb_data)
+static int uni_t_dmm_receive_data(int fd, int revents, int dmm, void *cb_data)
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
@@ -227,10 +230,15 @@ SR_PRIV int uni_t_dmm_receive_data(int fd, int revents, void *cb_data)
 	if (buf[0] != 0xf0) {
 		/* First time: Synchronize to the start of a packet. */
 		if (!synced_on_first_packet) {
-			/* Valid packets start with '+' or '-'. */
-			if ((buf[1] != '+') && buf[1] != '-')
-			// if ((buf[1] & 0xf0) != 0x10)
-				return TRUE;
+			if (dmm == UNI_T_UT61D) {
+				/* Valid packets start with '+' or '-'. */
+				if ((buf[1] != '+') && buf[1] != '-')
+					return TRUE;
+			} else if (dmm == VOLTCRAFT_VC820) {
+				/* Valid packets have 0x1 as high nibble. */
+				if ((buf[1] & 0xf0) != 0x10)
+					return TRUE;
+			}
 			synced_on_first_packet = TRUE;
 			sr_spew("Successfully synchronized on first packet.");
 		}
@@ -243,7 +251,7 @@ SR_PRIV int uni_t_dmm_receive_data(int fd, int revents, void *cb_data)
 		if (data_byte_counter == NUM_DATA_BYTES) {
 			log_dmm_packet(pbuf);
 			data_byte_counter = 0;
-			decode_packet(devc, pbuf);
+			decode_packet(devc, dmm, pbuf);
 			memset(pbuf, 0x00, NUM_DATA_BYTES);
 		}
 	}
@@ -255,4 +263,14 @@ SR_PRIV int uni_t_dmm_receive_data(int fd, int revents, void *cb_data)
 	}
 
 	return TRUE;
+}
+
+SR_PRIV int uni_t_ut61d_receive_data(int fd, int revents, void *cb_data)
+{
+	return uni_t_dmm_receive_data(fd, revents, UNI_T_UT61D, cb_data);
+}
+
+SR_PRIV int voltcraft_vc820_receive_data(int fd, int revents, void *cb_data)
+{
+	return uni_t_dmm_receive_data(fd, revents, VOLTCRAFT_VC820, cb_data);
 }
