@@ -24,8 +24,16 @@
 #include <string.h>
 #include <math.h>
 
-#define DMM_DATA_SIZE  14
+/* Message logging helpers with driver-specific prefix string. */
+#define DRIVER_LOG_DOMAIN "victor-dmm: "
+#define sr_log(l, s, args...) sr_log(l, DRIVER_LOG_DOMAIN s, ## args)
+#define sr_spew(s, args...) sr_spew(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_dbg(s, args...) sr_dbg(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_info(s, args...) sr_info(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_warn(s, args...) sr_warn(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_err(s, args...) sr_err(DRIVER_LOG_DOMAIN s, ## args)
 
+#define DMM_DATA_SIZE 14
 
 /* Reverse the high nibble into the low nibble */
 static uint8_t decode_digit(uint8_t in)
@@ -49,8 +57,8 @@ static void decode_buf(struct dev_context *devc, unsigned char *data)
 	struct sr_datafeed_analog analog;
 	long factor, ivalue;
 	uint8_t digits[4];
-	gboolean is_duty, is_continuity, is_diode, is_ac, is_dc, is_auto,
-			is_hold, is_max, is_min, is_relative, minus;
+	gboolean is_duty, is_continuity, is_diode, is_ac, is_dc, is_auto;
+	gboolean is_hold, is_max, is_min, is_relative, minus;
 	float fvalue;
 
 	digits[0] = decode_digit(data[12]);
@@ -87,7 +95,7 @@ static void decode_buf(struct dev_context *devc, unsigned char *data)
 		factor = 3;
 		break;
 	default:
-		sr_err("genericdmm/victor-70c: unknown decimal point value %.2x", data[7]);
+		sr_err("Unknown decimal point value %.2x.", data[7]);
 	}
 
 	/* Minus flag */
@@ -128,10 +136,10 @@ static void decode_buf(struct dev_context *devc, unsigned char *data)
 		break;
 	case 0x80:
 		/* Never seen */
-		sr_dbg("genericdmm/victor-70c: unknown mode right detail %.2x", data[4]);
+		sr_dbg("Unknown mode right detail %.2x.", data[4]);
 		break;
 	default:
-		sr_dbg("genericdmm/victor-70c: unknown/invalid mode right detail %.2x", data[4]);
+		sr_dbg("Unknown/invalid mode right detail %.2x.", data[4]);
 	}
 
 	/* Scale flags on the right, continued */
@@ -171,7 +179,7 @@ static void decode_buf(struct dev_context *devc, unsigned char *data)
 			analog.mq = SR_MQ_DUTY_CYCLE;
 			analog.unit = SR_UNIT_PERCENTAGE;
 		} else
-			sr_dbg("genericdmm/victor-70c: unknown measurement mode %.2x", data[3]);
+			sr_dbg("Unknown measurement mode %.2x.", data[3]);
 		break;
 	case 0x01:
 		if (is_diode) {
@@ -213,7 +221,7 @@ static void decode_buf(struct dev_context *devc, unsigned char *data)
 		break;
 	case 0x08:
 		/* Never seen */
-		sr_dbg("genericdmm/victor-70c: unknown measurement mode %.2x", data[3]);
+		sr_dbg("Unknown measurement mode %.2x.", data[3]);
 		break;
 	case 0x10:
 		analog.mq = SR_MQ_FREQUENCY;
@@ -232,7 +240,7 @@ static void decode_buf(struct dev_context *devc, unsigned char *data)
 		analog.unit = SR_UNIT_FAHRENHEIT;
 		break;
 	default:
-		sr_dbg("genericdmm/victor-70c: unknown/invalid measurement mode %.2x", data[3]);
+		sr_dbg("Unknown/invalid measurement mode %.2x.", data[3]);
 	}
 	if (analog.mq == -1)
 		return;
@@ -255,7 +263,6 @@ static void decode_buf(struct dev_context *devc, unsigned char *data)
 	sr_session_send(devc->cb_data, &packet);
 
 	devc->num_samples++;
-
 }
 
 static int victor70c_data(struct sr_dev_inst *sdi)
@@ -275,13 +282,13 @@ static int victor70c_data(struct sr_dev_inst *sdi)
 		/* First time through. */
 		if (libusb_kernel_driver_active(devc->usb->devhdl, 0) == 1) {
 			if (libusb_detach_kernel_driver(devc->usb->devhdl, 0) < 0) {
-				sr_err("genericdmm/victor-70c: failed to detach kernel driver");
+				sr_err("Failed to detach kernel driver.");
 				return SR_ERR;
 			}
 		}
 
 		if (libusb_claim_interface(devc->usb->devhdl, 0)) {
-			sr_err("genericdmm/victor-70c: failed to claim interface 0");
+			sr_err("Failed to claim interface 0.");
 			return SR_ERR;
 		}
 		sdi->status = SR_ST_ACTIVE;
@@ -290,20 +297,20 @@ static int victor70c_data(struct sr_dev_inst *sdi)
 	ret = libusb_interrupt_transfer(devc->usb->devhdl, 0x81, buf, DMM_DATA_SIZE,
 			&len, 100);
 	if (ret != 0) {
-		sr_err("genericdmm/victor-70c: failed to get data: libusb error %d", ret);
+		sr_err("Failed to get data: libusb error %d.", ret);
 		return SR_ERR;
 	}
 
 	if (len != DMM_DATA_SIZE) {
-		sr_dbg("genericdmm/victor-70c: short packet: received %d/%d bytes",
-				len, DMM_DATA_SIZE);
+		sr_dbg("Short packet: received %d/%d bytes.",
+		       len, DMM_DATA_SIZE);
 		return SR_ERR;
 	}
 
 	for (i = 0; i < DMM_DATA_SIZE && buf[i] == 0; i++);
 	if (i == DMM_DATA_SIZE) {
 		/* This DMM outputs all zeroes from time to time, just ignore it. */
-		sr_dbg("genericdmm/victor-70c: received all zeroes");
+		sr_dbg("Received all zeroes.");
 		return SR_OK;
 	}
 
@@ -313,7 +320,7 @@ static int victor70c_data(struct sr_dev_inst *sdi)
 
 	if (sr_log_loglevel_get() >= SR_LOG_SPEW) {
 		dbg = g_string_sized_new(128);
-		g_string_printf(dbg, "genericdmm/victor-70c: deobfuscated");
+		g_string_printf(dbg, "Deobfuscated.");
 		for (i = 0; i < DMM_DATA_SIZE; i++)
 			g_string_append_printf(dbg, " %.2x", data[i]);
 		sr_spew("%s", dbg->str);
@@ -325,8 +332,6 @@ static int victor70c_data(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-
 SR_PRIV struct dmmchip dmmchip_victor70c = {
 	.data = victor70c_data,
 };
-

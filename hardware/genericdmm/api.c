@@ -121,12 +121,12 @@ static GSList *connect_usb(const char *conn)
 		return NULL;
 
 	if (bus > 64) {
-		sr_err("invalid bus");
+		sr_err("Invalid bus.");
 		return NULL;
 	}
 
 	if (addr > 127) {
-		sr_err("invalid address");
+		sr_err("Invalid address.");
 		return NULL;
 	}
 
@@ -135,7 +135,7 @@ static GSList *connect_usb(const char *conn)
 	libusb_get_device_list(genericdmm_usb_context, &devlist);
 	for (i = 0; devlist[i]; i++) {
 		if ((err = libusb_get_device_descriptor(devlist[i], &des))) {
-			sr_err("genericdmm: failed to get device descriptor: %d", err);
+			sr_err("Failed to get device descriptor: %d.", err);
 			continue;
 		}
 
@@ -151,14 +151,14 @@ static GSList *connect_usb(const char *conn)
 
 		/* Found one. */
 		if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
-			sr_err("genericdmm: devc malloc failed.");
+			sr_err("Device context malloc failed.");
 			return 0;
 		}
 
 		devcnt = g_slist_length(drvc->instances);
 		if (!(sdi = sr_dev_inst_new(devcnt, SR_ST_INACTIVE,
 				NULL, NULL, NULL))) {
-			sr_err("genericdmm: sr_dev_inst_new returned NULL.");
+			sr_err("sr_dev_inst_new returned NULL.");
 			return NULL;
 		}
 		sdi->priv = devc;
@@ -182,7 +182,7 @@ static GSList *connect_serial(const char *conn, const char *serialcomm)
 	devices = NULL;
 
 	/* TODO */
-	sr_dbg("not yet implemented");
+	sr_dbg("Not yet implemented.");
 
 	return devices;
 }
@@ -241,14 +241,14 @@ static int open_usb(struct sr_dev_inst *sdi)
 
 	cnt = libusb_get_device_list(genericdmm_usb_context, &devlist);
 	if (cnt < 0) {
-		sr_err("genericdmm: Failed to retrieve device list (%d)", cnt);
+		sr_err("Failed to retrieve device list (%d).", cnt);
 		return SR_ERR;
 	}
 
 	ret = SR_ERR;
 	for (i = 0; i < cnt; i++) {
 		if ((tmp = libusb_get_device_descriptor(devlist[i], &des))) {
-			sr_err("genericdmm: Failed to get device descriptor: %d.", tmp);
+			sr_err("Failed to get device descriptor: %d.", tmp);
 			continue;
 		}
 
@@ -258,12 +258,12 @@ static int open_usb(struct sr_dev_inst *sdi)
 			continue;
 
 		if ((tmp = libusb_open(devlist[i], &devc->usb->devhdl))) {
-			sr_err("genericdmm: Failed to open device: %d.", tmp);
+			sr_err("Failed to open device: %d.", tmp);
 			break;
 		}
 
-		sr_info("genericdmm: Opened device %s on %d.%d ", devc->profile->modelid,
-				devc->usb->bus, devc->usb->address);
+		sr_info("Opened device %s on %d.%d.", devc->profile->modelid,
+			devc->usb->bus, devc->usb->address);
 		ret = SR_OK;
 		break;
 	}
@@ -286,12 +286,12 @@ static int clear_instances(void)
 	for (l = drvc->instances; l; l = l->next) {
 		if (!(sdi = l->data)) {
 			/* Log error, but continue cleaning up the rest. */
-			sr_err("genericdmm: sdi was NULL, continuing.");
+			sr_err("sdi was NULL, continuing.");
 			continue;
 		}
 		if (!(devc = sdi->priv)) {
 			/* Log error, but continue cleaning up the rest. */
-			sr_err("genericdmm: sdi->priv was NULL, continuing.");
+			sr_err("sdi->priv was NULL, continuing.");
 			continue;
 		}
 
@@ -322,12 +322,12 @@ static int hw_init(void)
 	struct drv_context *drvc;
 
 	if (!(drvc = g_try_malloc0(sizeof(struct drv_context)))) {
-		sr_err("genericdmm: driver context malloc failed.");
+		sr_err("Driver context malloc failed.");
 		return SR_ERR;
 	}
 
 	if (libusb_init(&genericdmm_usb_context) != 0) {
-		sr_err("genericdmm: Failed to initialize USB.");
+		sr_err("Failed to initialize USB.");
 		return SR_ERR;
 	}
 
@@ -454,7 +454,7 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 	int ret;
 
 	if (!(devc = sdi->priv)) {
-		sr_err("genericdmm: sdi->priv was NULL.");
+		sr_err("sdi->priv was NULL.");
 		return SR_ERR_BUG;
 	}
 
@@ -464,10 +464,10 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 		ret = open_usb(sdi);
 		break;
 	case DMM_TRANSPORT_SERIAL:
-		sr_dbg("genericdmm: Opening serial port '%s'.", devc->serial->port);
+		sr_dbg("Opening serial port '%s'.", devc->serial->port);
 		devc->serial->fd = serial_open(devc->serial->port, O_RDWR | O_NONBLOCK);
 		if (devc->serial->fd == -1) {
-			sr_err("genericdmm: Couldn't open serial port '%s'.",
+			sr_err("Couldn't open serial port '%s'.",
 			       devc->serial->port);
 			ret = SR_ERR;
 		}
@@ -486,7 +486,7 @@ static int hw_dev_close(struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 
 	if (!(devc = sdi->priv)) {
-		sr_err("genericdmm: %s: sdi->priv was NULL.", __func__);
+		sr_err("%s: sdi->priv was NULL.", __func__);
 		return SR_ERR_BUG;
 	}
 
@@ -557,7 +557,7 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 	struct dev_context *devc;
 
 	if (!(devc = sdi->priv)) {
-		sr_err("genericdmm: sdi->priv was NULL.");
+		sr_err("sdi->priv was NULL.");
 		return SR_ERR_BUG;
 	}
 
@@ -565,20 +565,20 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 	case SR_HWCAP_LIMIT_MSEC:
 		/* TODO: not yet implemented */
 		if (*(const uint64_t *)value == 0) {
-			sr_err("genericdmm: LIMIT_MSEC can't be 0.");
+			sr_err("LIMIT_MSEC can't be 0.");
 			return SR_ERR;
 		}
 		devc->limit_msec = *(const uint64_t *)value;
-		sr_dbg("genericdmm: Setting time limit to %" PRIu64 "ms.",
+		sr_dbg("Setting time limit to %" PRIu64 "ms.",
 		       devc->limit_msec);
 		break;
 	case SR_HWCAP_LIMIT_SAMPLES:
 		devc->limit_samples = *(const uint64_t *)value;
-		sr_dbg("genericdmm: Setting sample limit to %" PRIu64 ".",
+		sr_dbg("Setting sample limit to %" PRIu64 ".",
 		       devc->limit_samples);
 		break;
 	default:
-		sr_err("genericdmm: Unknown capability: %d.", hwcap);
+		sr_err("Unknown capability: %d.", hwcap);
 		return SR_ERR;
 		break;
 	}
@@ -625,16 +625,16 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	struct dev_context *devc;
 
 	if (!(devc = sdi->priv)) {
-		sr_err("genericdmm: sdi->priv was NULL.");
+		sr_err("sdi->priv was NULL.");
 		return SR_ERR_BUG;
 	}
 
-	sr_dbg("genericdmm: Starting acquisition.");
+	sr_dbg("Starting acquisition.");
 
 	devc->cb_data = cb_data;
 
 	/* Send header packet to the session bus. */
-	sr_dbg("genericdmm: Sending SR_DF_HEADER.");
+	sr_dbg("Sending SR_DF_HEADER.");
 	packet.type = SR_DF_HEADER;
 	packet.payload = (uint8_t *)&header;
 	header.feed_version = 1;
@@ -642,7 +642,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	sr_session_send(devc->cb_data, &packet);
 
 	/* Send metadata about the SR_DF_ANALOG packets to come. */
-	sr_dbg("genericdmm: Sending SR_DF_META_ANALOG.");
+	sr_dbg("Sending SR_DF_META_ANALOG.");
 	packet.type = SR_DF_META_ANALOG;
 	packet.payload = &meta;
 	meta.num_probes = 1;
@@ -677,10 +677,10 @@ static int hw_dev_acquisition_stop(const struct sr_dev_inst *sdi,
 	/* Avoid compiler warnings. */
 	(void)sdi;
 
-	sr_dbg("genericdmm: Stopping acquisition.");
+	sr_dbg("Stopping acquisition.");
 
 	/* Send end packet to the session bus. */
-	sr_dbg("genericdmm: Sending SR_DF_END.");
+	sr_dbg("Sending SR_DF_END.");
 	packet.type = SR_DF_END;
 	sr_session_send(cb_data, &packet);
 

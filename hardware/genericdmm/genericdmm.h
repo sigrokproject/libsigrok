@@ -17,9 +17,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 #ifndef LIBSIGROK_GENERICDMM_H
 #define LIBSIGROK_GENERICDMM_H
+
+/* Message logging helpers with driver-specific prefix string. */
+#define DRIVER_LOG_DOMAIN "genericdmm: "
+#define sr_log(l, s, args...) sr_log(l, DRIVER_LOG_DOMAIN s, ## args)
+#define sr_spew(s, args...) sr_spew(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_dbg(s, args...) sr_dbg(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_info(s, args...) sr_info(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_warn(s, args...) sr_warn(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_err(s, args...) sr_err(DRIVER_LOG_DOMAIN s, ## args)
 
 /* SR_HWCAP_CONN takes one of these: */
 #define DMM_CONN_USB_VIDPID    "^([0-9a-z]{1,4})\\.([0-9a-z]{1,4})$"
