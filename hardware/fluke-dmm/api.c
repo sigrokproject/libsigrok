@@ -86,7 +86,7 @@ static int hw_init(void)
 	struct drv_context *drvc;
 
 	if (!(drvc = g_try_malloc0(sizeof(struct drv_context)))) {
-		sr_err("fluke-dmm: driver context malloc failed.");
+		sr_err("Driver context malloc failed.");
 		return SR_ERR;
 	}
 
@@ -124,7 +124,7 @@ static int serial_readline(int fd, char **buf, int *buflen, uint64_t timeout_ms)
 			break;
 		g_usleep(2000);
 	}
-	sr_dbg("fluke-dmm: received %d: '%s'", *buflen, *buf);
+	sr_dbg("Received %d: '%s'.", *buflen, *buf);
 
 	return SR_OK;
 }
@@ -140,11 +140,11 @@ static GSList *fluke_scan(const char *conn, const char *serialcomm)
 	char buf[128], *b, **tokens;
 
 	if ((fd = serial_open(conn, O_RDWR|O_NONBLOCK)) == -1) {
-		sr_err("fluke-dmm: unable to open %s: %s", conn, strerror(errno));
+		sr_err("Unable to open %s: %s.", conn, strerror(errno));
 		return NULL;
 	}
 	if (serial_set_paramstr(fd, serialcomm) != SR_OK) {
-		sr_err("fluke-dmm: unable to set serial parameters");
+		sr_err("Unable to set serial parameters.");
 		return NULL;
 	}
 
@@ -158,8 +158,8 @@ static GSList *fluke_scan(const char *conn, const char *serialcomm)
 		retry++;
 		serial_flush(fd);
 		if (serial_write(fd, "ID\r", 3) == -1) {
-			sr_err("fluke-dmm: unable to send ID string: %s",
-					strerror(errno));
+			sr_err("Unable to send ID string: %s.",
+			       strerror(errno));
 			continue;
 		}
 
@@ -189,7 +189,7 @@ static GSList *fluke_scan(const char *conn, const char *serialcomm)
 						tokens[0] + 6, tokens[1] + s)))
 					return NULL;
 				if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
-					sr_dbg("fluke-dmm: failed to malloc devc");
+					sr_err("Device context malloc failed.");
 					return NULL;
 				}
 				devc->profile = &supported_flukedmm[i];
@@ -261,18 +261,17 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 
 	if (!(devc = sdi->priv)) {
-		sr_err("fluke-dmm: sdi->priv was NULL.");
+		sr_err("sdi->priv was NULL.");
 		return SR_ERR_BUG;
 	}
 
 	devc->serial->fd = serial_open(devc->serial->port, O_RDWR | O_NONBLOCK);
 	if (devc->serial->fd == -1) {
-		sr_err("fluke-dmm: Couldn't open serial port '%s'.",
-		       devc->serial->port);
+		sr_err("Couldn't open serial port '%s'.", devc->serial->port);
 		return SR_ERR;
 	}
 	if (serial_set_paramstr(devc->serial->fd, devc->serialcomm) != SR_OK) {
-		sr_err("fluke-dmm: unable to set serial parameters");
+		sr_err("Unable to set serial parameters.");
 		return SR_ERR;
 	}
 	sdi->status = SR_ST_ACTIVE;
@@ -285,7 +284,7 @@ static int hw_dev_close(struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 
 	if (!(devc = sdi->priv)) {
-		sr_err("fluke-dmm: sdi->priv was NULL.");
+		sr_err("sdi->priv was NULL.");
 		return SR_ERR_BUG;
 	}
 
@@ -341,7 +340,7 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		return SR_ERR;
 
 	if (!(devc = sdi->priv)) {
-		sr_err("fluke-dmm: sdi->priv was NULL.");
+		sr_err("sdi->priv was NULL.");
 		return SR_ERR_BUG;
 	}
 
@@ -349,20 +348,20 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 	case SR_HWCAP_LIMIT_MSEC:
 		/* TODO: not yet implemented */
 		if (*(const uint64_t *)value == 0) {
-			sr_err("fluke-dmm: LIMIT_MSEC can't be 0.");
+			sr_err("LIMIT_MSEC can't be 0.");
 			return SR_ERR;
 		}
 		devc->limit_msec = *(const uint64_t *)value;
-		sr_dbg("fluke-dmm: Setting time limit to %" PRIu64 "ms.",
+		sr_dbg("Setting time limit to %" PRIu64 "ms.",
 		       devc->limit_msec);
 		break;
 	case SR_HWCAP_LIMIT_SAMPLES:
 		devc->limit_samples = *(const uint64_t *)value;
-		sr_dbg("fluke-dmm: Setting sample limit to %" PRIu64 ".",
+		sr_dbg("Setting sample limit to %" PRIu64 ".",
 		       devc->limit_samples);
 		break;
 	default:
-		sr_err("fluke-dmm: Unknown capability: %d.", hwcap);
+		sr_err("Unknown capability: %d.", hwcap);
 		return SR_ERR;
 		break;
 	}
@@ -379,16 +378,16 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	struct dev_context *devc;
 
 	if (!(devc = sdi->priv)) {
-		sr_err("fluke-dmm: sdi->priv was NULL.");
+		sr_err("sdi->priv was NULL.");
 		return SR_ERR_BUG;
 	}
 
-	sr_dbg("fluke-dmm: Starting acquisition.");
+	sr_dbg("Starting acquisition.");
 
 	devc->cb_data = cb_data;
 
 	/* Send header packet to the session bus. */
-	sr_dbg("fluke-dmm: Sending SR_DF_HEADER.");
+	sr_dbg("Sending SR_DF_HEADER.");
 	packet.type = SR_DF_HEADER;
 	packet.payload = (uint8_t *)&header;
 	header.feed_version = 1;
@@ -396,7 +395,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	sr_session_send(devc->cb_data, &packet);
 
 	/* Send metadata about the SR_DF_ANALOG packets to come. */
-	sr_dbg("fluke-dmm: Sending SR_DF_META_ANALOG.");
+	sr_dbg("Sending SR_DF_META_ANALOG.");
 	packet.type = SR_DF_META_ANALOG;
 	packet.payload = &meta;
 	meta.num_probes = 1;
@@ -406,7 +405,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	sr_source_add(devc->serial->fd, G_IO_IN, 50, fluke_receive_data, (void *)sdi);
 
 	if (serial_write(devc->serial->fd, "QM\r", 3) == -1) {
-		sr_err("fluke-dmm: unable to send QM: %s", strerror(errno));
+		sr_err("Unable to send QM: %s.", strerror(errno));
 		return SR_ERR;
 	}
 	devc->cmd_sent_at = g_get_monotonic_time() / 1000;
@@ -425,17 +424,17 @@ static int hw_dev_acquisition_stop(const struct sr_dev_inst *sdi,
 		return SR_ERR;
 
 	if (!(devc = sdi->priv)) {
-		sr_err("fluke-dmm: sdi->priv was NULL.");
+		sr_err("sdi->priv was NULL.");
 		return SR_ERR_BUG;
 	}
 
-	sr_dbg("fluke-dmm: Stopping acquisition.");
+	sr_dbg("Stopping acquisition.");
 
 	sr_source_remove(devc->serial->fd);
 	hw_dev_close((struct sr_dev_inst *)sdi);
 
 	/* Send end packet to the session bus. */
-	sr_dbg("fluke-dmm: Sending SR_DF_END.");
+	sr_dbg("Sending SR_DF_END.");
 	packet.type = SR_DF_END;
 	sr_session_send(cb_data, &packet);
 

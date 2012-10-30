@@ -47,7 +47,7 @@ static struct sr_datafeed_analog *handle_qm_v1(const struct sr_dev_inst *sdi,
 		fvalue = strtof(tokens[1], &e);
 		if (fvalue == 0.0 && e == tokens[1]) {
 			/* Happens all the time, when switching modes. */
-			sr_dbg("fluke-dmm: invalid float");
+			sr_dbg("Invalid float.");
 			return NULL;
 		}
 	}
@@ -158,7 +158,7 @@ static struct sr_datafeed_analog *handle_qm_v2(const struct sr_dev_inst *sdi,
 	(void)sdi;
 	fvalue = strtof(tokens[0], &eptr);
 	if (fvalue == 0.0 && eptr == tokens[0]) {
-		sr_err("fluke-dmm: invalid float");
+		sr_err("Invalid float.");
 		return NULL;
 	}
 
@@ -263,12 +263,12 @@ static void handle_line(const struct sr_dev_inst *sdi)
 	char **tokens;
 
 	devc = sdi->priv;
-	sr_spew("fluke-dmm: received line '%s' (%d)", devc->buf, devc->buflen);
+	sr_spew("Received line '%s' (%d).", devc->buf, devc->buflen);
 
 	if (devc->buflen == 1) {
 		if (devc->buf[0] != '0') {
 			/* Not just a CMD_ACK from the query command. */
-			sr_dbg("fluke-dmm: got CMD_ACK '%c'", devc->buf[0]);
+			sr_dbg("Got CMD_ACK '%c'.", devc->buf[0]);
 			devc->expect_response = FALSE;
 		}
 		devc->buflen = 0;
@@ -342,9 +342,9 @@ SR_PRIV int fluke_receive_data(int fd, int revents, void *cb_data)
 	 * or temporary disconnect issues. */
 	if ((devc->expect_response == FALSE && elapsed > devc->profile->poll_period)
 			|| elapsed > 1000) {
-		sr_spew("fluke-dmm: sending QM");
+		sr_spew("Sending QM.");
 		if (serial_write(devc->serial->fd, "QM\r", 3) == -1)
-			sr_err("fluke-dmm: unable to send QM: %s", strerror(errno));
+			sr_err("Unable to send QM: %s.", strerror(errno));
 		devc->cmd_sent_at = now;
 		devc->expect_response = TRUE;
 	}
