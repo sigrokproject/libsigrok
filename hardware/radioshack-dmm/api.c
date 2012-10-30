@@ -53,7 +53,6 @@ static const struct radioshackdmm_profile supported_radioshackdmm[] = {
 	{ RADIOSHACK_22_812, "22-812", 100 },
 };
 
-
 /* Properly close and free all devices. */
 static int clear_instances(void)
 {
@@ -85,7 +84,7 @@ static int hw_init(void)
 	struct drv_context *drvc;
 
 	if (!(drvc = g_try_malloc0(sizeof(struct drv_context)))) {
-		sr_err("radioshack-dmm: driver context malloc failed.");
+		sr_err("Driver context malloc failed.");
 		return SR_ERR;
 	}
 
@@ -140,16 +139,15 @@ static GSList *rs_22_812_scan(const char *conn, const char *serialcomm)
 	char buf[128], *b;
 
 	if ((fd = serial_open(conn, O_RDONLY|O_NONBLOCK)) == -1) {
-		sr_err("radioshack-dmm: unable to open %s: %s",
-		       conn, strerror(errno));
+		sr_err("Unable to open %s: %s.", conn, strerror(errno));
 		return NULL;
 	}
 	if (serial_set_paramstr(fd, serialcomm) != SR_OK) {
-		sr_err("radioshack-dmm: unable to set serial parameters");
+		sr_err("Unable to set serial parameters.");
 		return NULL;
 	}
 
-	sr_info("radioshack-dmm: probing port %s readonly", conn);
+	sr_info("Probing port %s readonly.", conn);
 
 	drvc = di->priv;
 	b = buf;
@@ -197,13 +195,13 @@ static GSList *rs_22_812_scan(const char *conn, const char *serialcomm)
 		if (good_packets == 0)
 			continue;
 
-		sr_info("radioshack-dmm: found RS 22-812 on port %s", conn);
+		sr_info("Found RS 22-812 on port %s.", conn);
 
-		if (!(sdi = sr_dev_inst_new(0, SR_ST_INACTIVE, "Radioshack",
+		if (!(sdi = sr_dev_inst_new(0, SR_ST_INACTIVE, "RadioShack",
 					    "22-812", "")))
 			return NULL;
 		if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
-			sr_dbg("radioshack-dmm: failed to malloc devc");
+			sr_err("Device context malloc failed.");
 			return NULL;
 		}
 
@@ -219,7 +217,6 @@ static GSList *rs_22_812_scan(const char *conn, const char *serialcomm)
 		drvc->instances = g_slist_append(drvc->instances, sdi);
 		devices = g_slist_append(devices, sdi);
 		break;
-
 	}
 	serial_close(fd);
 
@@ -272,18 +269,18 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 
 	if (!(devc = sdi->priv)) {
-		sr_err("radioshack-dmm: sdi->priv was NULL.");
+		sr_err("sdi->priv was NULL.");
 		return SR_ERR_BUG;
 	}
 
 	devc->serial->fd = serial_open(devc->serial->port, O_RDONLY);
 	if (devc->serial->fd == -1) {
-		sr_err("radioshack-dmm: Couldn't open serial port '%s'.",
+		sr_err("Couldn't open serial port '%s'.",
 		       devc->serial->port);
 		return SR_ERR;
 	}
 	if (serial_set_paramstr(devc->serial->fd, devc->serialcomm) != SR_OK) {
-		sr_err("radioshack-dmm: unable to set serial parameters");
+		sr_err("Unable to set serial parameters.");
 		return SR_ERR;
 	}
 	sdi->status = SR_ST_ACTIVE;
@@ -296,7 +293,7 @@ static int hw_dev_close(struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 
 	if (!(devc = sdi->priv)) {
-		sr_err("radioshack-dmm: sdi->priv was NULL.");
+		sr_err("sdi->priv was NULL.");
 		return SR_ERR_BUG;
 	}
 
@@ -350,18 +347,18 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		return SR_ERR;
 
 	if (!(devc = sdi->priv)) {
-		sr_err("radioshack-dmm: sdi->priv was NULL.");
+		sr_err("sdi->priv was NULL.");
 		return SR_ERR_BUG;
 	}
 
 	switch (hwcap) {
 	case SR_HWCAP_LIMIT_SAMPLES:
 		devc->limit_samples = *(const uint64_t *)value;
-		sr_dbg("radioshack-dmm: Setting sample limit to %" PRIu64 ".",
+		sr_dbg("Setting sample limit to %" PRIu64 ".",
 		       devc->limit_samples);
 		break;
 	default:
-		sr_err("radioshack-dmm: Unknown capability: %d.", hwcap);
+		sr_err("Unknown capability: %d.", hwcap);
 		return SR_ERR;
 		break;
 	}
@@ -378,11 +375,11 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	struct dev_context *devc;
 
 	if (!(devc = sdi->priv)) {
-		sr_err("radioshack-dmm: sdi->priv was NULL.");
+		sr_err("sdi->priv was NULL.");
 		return SR_ERR_BUG;
 	}
 
-	sr_dbg("radioshack-dmm: Starting acquisition.");
+	sr_dbg("Starting acquisition.");
 
 	devc->cb_data = cb_data;
 
@@ -392,7 +389,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	devc->num_samples = 0;
 
 	/* Send header packet to the session bus. */
-	sr_dbg("radioshack-dmm: Sending SR_DF_HEADER.");
+	sr_dbg("Sending SR_DF_HEADER.");
 	packet.type = SR_DF_HEADER;
 	packet.payload = (uint8_t *)&header;
 	header.feed_version = 1;
@@ -400,7 +397,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	sr_session_send(devc->cb_data, &packet);
 
 	/* Send metadata about the SR_DF_ANALOG packets to come. */
-	sr_dbg("radioshack-dmm: Sending SR_DF_META_ANALOG.");
+	sr_dbg("Sending SR_DF_META_ANALOG.");
 	packet.type = SR_DF_META_ANALOG;
 	packet.payload = &meta;
 	meta.num_probes = 1;
@@ -423,17 +420,17 @@ static int hw_dev_acquisition_stop(const struct sr_dev_inst *sdi,
 		return SR_ERR;
 
 	if (!(devc = sdi->priv)) {
-		sr_err("radioshack-dmm: sdi->priv was NULL.");
+		sr_err("sdi->priv was NULL.");
 		return SR_ERR_BUG;
 	}
 
-	sr_dbg("radioshack-dmm: Stopping acquisition.");
+	sr_dbg("Stopping acquisition.");
 
 	sr_source_remove(devc->serial->fd);
 	hw_dev_close((struct sr_dev_inst *)sdi);
 
 	/* Send end packet to the session bus. */
-	sr_dbg("radioshack-dmm: Sending SR_DF_END.");
+	sr_dbg("Sending SR_DF_END.");
 	packet.type = SR_DF_END;
 	sr_session_send(cb_data, &packet);
 

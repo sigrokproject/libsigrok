@@ -27,7 +27,6 @@
 #include <string.h>
 #include <errno.h>
 
-
 static gboolean rs_22_812_is_checksum_valid(const rs_22_812_packet *data)
 {
 	uint8_t *raw = (void *) data;
@@ -326,7 +325,7 @@ static void rs_22_812_handle_packet(rs_22_812_packet *rs_packet,
 		analog->mqflags |= SR_MQFLAG_AC;
 		break;
 	default:
-		sr_warn("radioshack-dmm: unkown mode: %d", rs_packet->mode);
+		sr_warn("Unknown mode: %d.", rs_packet->mode);
 		break;
 	}
 
@@ -345,7 +344,7 @@ static void rs_22_812_handle_packet(rs_22_812_packet *rs_packet,
 
 	if (analog->mq != -1) {
 		/* Got a measurement. */
-		sr_spew("radioshack-dmm: val %f", rawval);
+		sr_spew("Value: %f.", rawval);
 		packet.type = SR_DF_ANALOG;
 		packet.payload = analog;
 		sr_session_send(devc->cb_data, &packet);
@@ -364,7 +363,7 @@ static void handle_new_data(rs_dev_ctx *devc, int fd)
 	len = RS_DMM_BUFSIZE - devc->buflen;
 	len = serial_read(fd, devc->buf + devc->buflen, len);
 	if (len < 1) {
-		sr_err("radioshack-dmm: serial port read error!");
+		sr_err("Serial port read error!");
 		return;
 	}
 	devc->buflen += len;
@@ -412,4 +411,3 @@ SR_PRIV int radioshack_receive_data(int fd, int revents, void *cb_data)
 
 	return TRUE;
 }
-
