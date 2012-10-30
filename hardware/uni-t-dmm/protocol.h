@@ -36,7 +36,6 @@
 #define sr_warn(s, args...) sr_warn(DRIVER_LOG_DOMAIN s, ## args)
 #define sr_err(s, args...) sr_err(DRIVER_LOG_DOMAIN s, ## args)
 
-/* Note: The order here must match dev_names[] in api.c. */
 enum {
 	UNI_T_UT61D,
 	VOLTCRAFT_VC820,
