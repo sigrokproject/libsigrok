@@ -95,7 +95,7 @@ static int hw_init(void)
 	struct drv_context *drvc;
 
 	if (!(drvc = g_try_malloc0(sizeof(struct drv_context)))) {
-		sr_err("agilent-dmm: driver context malloc failed.");
+		sr_err("Driver context malloc failed.");
 		return SR_ERR;
 	}
 
@@ -140,7 +140,7 @@ static int serial_readline(int fd, char **buf, int *buflen, uint64_t timeout_ms)
 			break;
 	}
 	if (*buflen)
-		sr_dbg("agilent-dmm: received '%s'", *buf);
+		sr_dbg("Received '%s'.", *buf);
 
 	return SR_OK;
 }
@@ -177,20 +177,20 @@ static GSList *hw_scan(GSList *options)
 		return NULL;
 
 	if ((fd = serial_open(conn, O_RDWR|O_NONBLOCK)) == -1) {
-		sr_err("agilent-dmm: unable to open %s: %s", conn, strerror(errno));
+		sr_err("Unable to open %s: %s.", conn, strerror(errno));
 		return NULL;
 	}
 
 	if (serial_set_paramstr(fd, serialcomm) != SR_OK) {
-		sr_err("agilent-dmm: unable to set serial parameters: %s",
-				strerror(errno));
+		sr_err("Unable to set serial parameters: %s.",
+		       strerror(errno));
 		return NULL;
 	}
 
 	serial_flush(fd);
 	if (serial_write(fd, "*IDN?\r\n", 7) == -1) {
-		sr_err("agilent-dmm: unable to send identification string: %s",
-				strerror(errno));
+		sr_err("Unable to send identification string: %s.",
+		       strerror(errno));
 		return NULL;
 	}
 
@@ -210,7 +210,7 @@ static GSList *hw_scan(GSList *options)
 					tokens[1], tokens[3])))
 				return NULL;
 			if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
-				sr_dbg("agilent-dmm: failed to malloc devc");
+				sr_dbg("failed to malloc devc");
 				return NULL;
 			}
 			devc->profile = &supported_agdmm[i];
@@ -248,13 +248,13 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 
 	if (!(devc = sdi->priv)) {
-		sr_err("agilent-dmm: sdi->priv was NULL.");
+		sr_err("sdi->priv was NULL.");
 		return SR_ERR_BUG;
 	}
 
 	devc->serial->fd = serial_open(devc->serial->port, O_RDWR | O_NONBLOCK);
 	if (devc->serial->fd == -1) {
-		sr_err("agilent-dmm: Couldn't open serial port '%s'.",
+		sr_err("Couldn't open serial port '%s'.",
 		       devc->serial->port);
 		return SR_ERR;
 	}
@@ -270,7 +270,7 @@ static int hw_dev_close(struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 
 	if (!(devc = sdi->priv)) {
-		sr_err("agilent-dmm: sdi->priv was NULL.");
+		sr_err("sdi->priv was NULL.");
 		return SR_ERR_BUG;
 	}
 
@@ -326,7 +326,7 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		return SR_ERR;
 
 	if (!(devc = sdi->priv)) {
-		sr_err("agilent-dmm: sdi->priv was NULL.");
+		sr_err("sdi->priv was NULL.");
 		return SR_ERR_BUG;
 	}
 
@@ -334,20 +334,20 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 	case SR_HWCAP_LIMIT_MSEC:
 		/* TODO: not yet implemented */
 		if (*(const uint64_t *)value == 0) {
-			sr_err("agilent-dmm: LIMIT_MSEC can't be 0.");
+			sr_err("LIMIT_MSEC can't be 0.");
 			return SR_ERR;
 		}
 		devc->limit_msec = *(const uint64_t *)value;
-		sr_dbg("agilent-dmm: Setting time limit to %" PRIu64 "ms.",
+		sr_dbg("Setting time limit to %" PRIu64 "ms.",
 		       devc->limit_msec);
 		break;
 	case SR_HWCAP_LIMIT_SAMPLES:
 		devc->limit_samples = *(const uint64_t *)value;
-		sr_dbg("agilent-dmm: Setting sample limit to %" PRIu64 ".",
+		sr_dbg("Setting sample limit to %" PRIu64 ".",
 		       devc->limit_samples);
 		break;
 	default:
-		sr_err("agilent-dmm: Unknown capability: %d.", hwcap);
+		sr_err("Unknown capability: %d.", hwcap);
 		return SR_ERR;
 		break;
 	}
@@ -364,16 +364,16 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	struct dev_context *devc;
 
 	if (!(devc = sdi->priv)) {
-		sr_err("agilent-dmm: sdi->priv was NULL.");
+		sr_err("sdi->priv was NULL.");
 		return SR_ERR_BUG;
 	}
 
-	sr_dbg("agilent-dmm: Starting acquisition.");
+	sr_dbg("Starting acquisition.");
 
 	devc->cb_data = cb_data;
 
 	/* Send header packet to the session bus. */
-	sr_dbg("agilent-dmm: Sending SR_DF_HEADER.");
+	sr_dbg("Sending SR_DF_HEADER.");
 	packet.type = SR_DF_HEADER;
 	packet.payload = (uint8_t *)&header;
 	header.feed_version = 1;
@@ -381,7 +381,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	sr_session_send(devc->cb_data, &packet);
 
 	/* Send metadata about the SR_DF_ANALOG packets to come. */
-	sr_dbg("agilent-dmm: Sending SR_DF_META_ANALOG.");
+	sr_dbg("Sending SR_DF_META_ANALOG.");
 	packet.type = SR_DF_META_ANALOG;
 	packet.payload = &meta;
 	meta.num_probes = 1;
@@ -403,17 +403,17 @@ static int hw_dev_acquisition_stop(const struct sr_dev_inst *sdi,
 		return SR_ERR;
 
 	if (!(devc = sdi->priv)) {
-		sr_err("agilent-dmm: sdi->priv was NULL.");
+		sr_err("sdi->priv was NULL.");
 		return SR_ERR_BUG;
 	}
 
-	sr_dbg("agilent-dmm: Stopping acquisition.");
+	sr_dbg("Stopping acquisition.");
 
 	sr_source_remove(devc->serial->fd);
 	hw_dev_close((struct sr_dev_inst *)sdi);
 
 	/* Send end packet to the session bus. */
-	sr_dbg("agilent-dmm: Sending SR_DF_END.");
+	sr_dbg("Sending SR_DF_END.");
 	packet.type = SR_DF_END;
 	sr_session_send(cb_data, &packet);
 

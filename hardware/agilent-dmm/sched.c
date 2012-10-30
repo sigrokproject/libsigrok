@@ -26,7 +26,6 @@
 #include <errno.h>
 #include <math.h>
 
-
 static void dispatch(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
@@ -39,12 +38,11 @@ static void dispatch(const struct sr_dev_inst *sdi)
 	now = g_get_monotonic_time() / 1000;
 	for (i = 0; (&jobs[i])->interval; i++) {
 		if (now - devc->jobqueue[i] > (&jobs[i])->interval) {
-			sr_spew("agilent-dmm: running job %d", i);
+			sr_spew("Running job %d.", i);
 			(&jobs[i])->send(sdi);
 			devc->jobqueue[i] = now;
 		}
 	}
-
 }
 
 static void receive_line(const struct sr_dev_inst *sdi)
@@ -65,7 +63,7 @@ static void receive_line(const struct sr_dev_inst *sdi)
 		else
 			break;
 	}
-	sr_spew("agilent-dmm: received '%s'", devc->buf);
+	sr_spew("Received '%s'.", devc->buf);
 
 	recv = NULL;
 	recvs = devc->profile->recvs;
@@ -83,11 +81,10 @@ static void receive_line(const struct sr_dev_inst *sdi)
 		g_match_info_unref(match);
 		g_regex_unref(reg);
 	} else
-		sr_dbg("agilent-dmm: unknown line '%s'", devc->buf);
+		sr_dbg("Unknown line '%s'.", devc->buf);
 
 	/* Done with this. */
 	devc->buflen = 0;
-
 }
 
 SR_PRIV int agdmm_receive_data(int fd, int revents, void *cb_data)
@@ -132,14 +129,14 @@ static int agdmm_send(const struct sr_dev_inst *sdi, const char *cmd)
 	char buf[32];
 
 	devc = sdi->priv;
-	sr_spew("agilent-dmm: sending '%s'", cmd);
+	sr_spew("Sending '%s'.", cmd);
 	strncpy(buf, cmd, 28);
 	if (!strncmp(buf, "*IDN?", 5))
 		strncat(buf, "\r\n", 32);
 	else
 		strncat(buf, "\n\r\n", 32);
 	if (serial_write(devc->serial->fd, buf, strlen(buf)) == -1) {
-		sr_err("agilent-dmm: failed to send: %s", strerror(errno));
+		sr_err("Failed to send: %s.", strerror(errno));
 		return SR_ERR;
 	}
 	
@@ -148,7 +145,6 @@ static int agdmm_send(const struct sr_dev_inst *sdi, const char *cmd)
 
 static int send_stat(const struct sr_dev_inst *sdi)
 {
-
 	return agdmm_send(sdi, "STAT?");
 }
 
@@ -159,7 +155,7 @@ static int recv_stat_u123x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 
 	devc = sdi->priv;
 	s = g_match_info_fetch(match, 1);
-	sr_spew("agilent-dmm: STAT response '%s'", s);
+	sr_spew("STAT response '%s'.", s);
 
 	/* Max, Min or Avg mode -- no way to tell which, so we'll
 	 * set both flags to denote it's not a normal measurement. */
@@ -185,7 +181,7 @@ static int recv_stat_u123x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 	else
 		devc->mode_tempaux = FALSE;
 
-	/*  Continuity mode. */
+	/* Continuity mode. */
 	if (s[16] == '1')
 		devc->mode_continuity = TRUE;
 	else
@@ -203,7 +199,7 @@ static int recv_stat_u125x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 
 	devc = sdi->priv;
 	s = g_match_info_fetch(match, 1);
-	sr_spew("agilent-dmm: STAT response '%s'", s);
+	sr_spew("STAT response '%s'.", s);
 
 	/* Peak hold mode. */
 	if (s[4] == '1')
@@ -224,7 +220,6 @@ static int recv_stat_u125x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 
 static int send_fetc(const struct sr_dev_inst *sdi)
 {
-
 	return agdmm_send(sdi, "FETC?");
 }
 
@@ -236,7 +231,7 @@ static int recv_fetc(const struct sr_dev_inst *sdi, GMatchInfo *match)
 	float fvalue;
 	char *mstr, *eptr;
 
-	sr_spew("agilent-dmm: FETC reply '%s'", g_match_info_get_string(match));
+	sr_spew("FETC reply '%s'.", g_match_info_get_string(match));
 	devc = sdi->priv;
 
 	if (devc->cur_mq == -1)
@@ -255,7 +250,7 @@ static int recv_fetc(const struct sr_dev_inst *sdi, GMatchInfo *match)
 		fvalue = strtof(mstr, &eptr);
 		g_free(mstr);
 		if (fvalue == 0.0 && eptr == mstr) {
-			sr_err("agilent-dmm: invalid float");
+			sr_err("Invalid float.");
 			return SR_ERR;
 		}
 		if (devc->cur_divider > 0)
@@ -279,7 +274,6 @@ static int recv_fetc(const struct sr_dev_inst *sdi, GMatchInfo *match)
 
 static int send_conf(const struct sr_dev_inst *sdi)
 {
-
 	return agdmm_send(sdi, "CONF?");
 }
 
@@ -288,7 +282,7 @@ static int recv_conf_u123x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 	struct dev_context *devc;
 	char *mstr;
 
-	sr_spew("agilent-dmm: CONF? response '%s'",  g_match_info_get_string(match));
+	sr_spew("CONF? response '%s'.", g_match_info_get_string(match));
 	devc = sdi->priv;
 	mstr = g_match_info_fetch(match, 1);
 	if (!strcmp(mstr, "V")) {
@@ -341,7 +335,7 @@ static int recv_conf_u123x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 		devc->cur_mqflags = 0;
 		devc->cur_divider = 0;
 	} else
-		sr_dbg("agilent-dmm: unknown first argument");
+		sr_dbg("Unknown first argument.");
 	g_free(mstr);
 
 	if (g_match_info_get_match_count(match) == 4) {
@@ -352,7 +346,7 @@ static int recv_conf_u123x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 		else if (!strcmp(mstr, "DC"))
 			devc->cur_mqflags |= SR_MQFLAG_DC;
 		else
-			sr_dbg("agilent-dmm: unknown third argument");
+			sr_dbg("Unknown third argument.");
 		g_free(mstr);
 	} else
 		devc->cur_mqflags &= ~(SR_MQFLAG_AC | SR_MQFLAG_DC);
@@ -365,7 +359,7 @@ static int recv_conf_u125x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 	struct dev_context *devc;
 	char *mstr;
 
-	sr_spew("agilent-dmm: CONF? response '%s'",  g_match_info_get_string(match));
+	sr_spew("CONF? response '%s'.", g_match_info_get_string(match));
 	devc = sdi->priv;
 	mstr = g_match_info_fetch(match, 1);
 	if (!strncmp(mstr, "VOLT", 4)) {
@@ -398,10 +392,9 @@ static int recv_conf_u125x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 		}
 		devc->cur_mqflags = 0;
 		devc->cur_divider = 0;
-} else
-		sr_dbg("agilent-dmm: unknown first argument");
+	} else
+		sr_dbg("Unknown first argument.");
 	g_free(mstr);
-
 
 	return SR_OK;
 }
@@ -412,7 +405,7 @@ static int recv_conf(const struct sr_dev_inst *sdi, GMatchInfo *match)
 	struct dev_context *devc;
 	char *mstr;
 
-	sr_spew("agilent-dmm: CONF? response '%s'",  g_match_info_get_string(match));
+	sr_spew("CONF? response '%s'.", g_match_info_get_string(match));
 	devc = sdi->priv;
 	mstr = g_match_info_fetch(match, 1);
 	if(!strcmp(mstr, "DIOD")) {
@@ -421,7 +414,7 @@ static int recv_conf(const struct sr_dev_inst *sdi, GMatchInfo *match)
 		devc->cur_mqflags = SR_MQFLAG_DIODE;
 		devc->cur_divider = 0;
 	} else
-		sr_dbg("agilent-dmm: unknown single argument");
+		sr_dbg("Unknown single argument.");
 	g_free(mstr);
 
 	return SR_OK;
@@ -433,14 +426,12 @@ static int recv_conf(const struct sr_dev_inst *sdi, GMatchInfo *match)
  * we do need to catch this here, or it'll show up in some other output. */
 static int recv_switch(const struct sr_dev_inst *sdi, GMatchInfo *match)
 {
-
 	(void)sdi;
 
-	sr_spew("agilent-dmm: switch '%s'",  g_match_info_get_string(match));
+	sr_spew("Switch '%s'.", g_match_info_get_string(match));
 
 	return SR_OK;
 }
-
 
 SR_PRIV const struct agdmm_job agdmm_jobs_u123x[] = {
 	{ 143, send_stat },
@@ -475,5 +466,3 @@ SR_PRIV const struct agdmm_recv agdmm_recvs_u125x[] = {
 	{ "^\"(DIOD)\"$", recv_conf },
 	{ NULL, NULL }
 };
-
-
