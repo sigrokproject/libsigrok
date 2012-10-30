@@ -383,3 +383,37 @@ SR_PRIV int serial_set_paramstr(int fd, const char *paramstr)
 		return SR_ERR_ARG;
 }
 
+SR_PRIV int serial_readline(int fd, char **buf, int *buflen,
+			    uint64_t timeout_ms)
+{
+	uint64_t start;
+	int maxlen, len;
+
+	timeout_ms *= 1000;
+	start = g_get_monotonic_time();
+
+	maxlen = *buflen;
+	*buflen = len = 0;
+	while(1) {
+		len = maxlen - *buflen - 1;
+		if (len < 1)
+			break;
+		len = serial_read(fd, *buf + *buflen, 1);
+		if (len > 0) {
+			*buflen += len;
+			*(*buf + *buflen) = '\0';
+			if (*buflen > 0 && *(*buf + *buflen - 1) == '\r') {
+				/* Strip LF and terminate. */
+				*(*buf + --*buflen) = '\0';
+				break;
+			}
+		}
+		if (g_get_monotonic_time() - start > timeout_ms)
+			/* Timeout */
+			break;
+		g_usleep(2000);
+	}
+	sr_dbg("Received %d: '%s'.", *buflen, *buf);
+
+	return SR_OK;
+}

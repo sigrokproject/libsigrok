@@ -89,40 +89,6 @@ static int hw_init(void)
 	return SR_OK;
 }
 
-static int serial_readline(int fd, char **buf, int *buflen,
-			   uint64_t timeout_ms)
-{
-	uint64_t start;
-	int maxlen, len;
-
-	timeout_ms *= 1000;
-	start = g_get_monotonic_time();
-
-	maxlen = *buflen;
-	*buflen = len = 0;
-	while (1) {
-		len = maxlen - *buflen - 1;
-		if (len < 1)
-			break;
-		len = serial_read(fd, *buf + *buflen, 1);
-		if (len > 0) {
-			*buflen += len;
-			*(*buf + *buflen) = '\0';
-			if (*buflen > 0 && *(*buf + *buflen - 1) == '\r') {
-				/* Strip LF and terminate. */
-				*(*buf + --*buflen) = '\0';
-				break;
-			}
-		}
-		if (g_get_monotonic_time() - start > timeout_ms)
-			/* Timeout */
-			break;
-		g_usleep(2000);
-	}
-
-	return SR_OK;
-}
-
 static GSList *lcd14_scan(const char *conn, const char *serialcomm)
 {
 	struct sr_dev_inst *sdi;

@@ -18,14 +18,14 @@
  */
 
 #include <glib.h>
-#include "libsigrok.h"
-#include "libsigrok-internal.h"
-#include "agilent-dmm.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <string.h>
 #include <errno.h>
+#include "libsigrok.h"
+#include "libsigrok-internal.h"
+#include "agilent-dmm.h"
 
 static const int hwopts[] = {
 	SR_HWOPT_CONN,
@@ -104,7 +104,8 @@ static int hw_init(void)
 	return SR_OK;
 }
 
-static int serial_readline(int fd, char **buf, int *buflen, uint64_t timeout_ms)
+/* TODO: Merge into serial_readline() from serial.c. */
+static int serial_readline2(int fd, char **buf, int *buflen, uint64_t timeout_ms)
 {
 	uint64_t start;
 	int maxlen, len;
@@ -196,7 +197,7 @@ static GSList *hw_scan(GSList *options)
 
 	len = 128;
 	buf = g_try_malloc(len);
-	serial_readline(fd, &buf, &len, 150);
+	serial_readline2(fd, &buf, &len, 150);
 	if (!len)
 		return NULL;
 
