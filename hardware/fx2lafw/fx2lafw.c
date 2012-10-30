@@ -406,7 +406,7 @@ static int hw_init(void)
 
 	if (!(drvc = g_try_malloc0(sizeof(struct drv_context)))) {
 		sr_err("fx2lafw: driver context malloc failed.");
-		return SR_ERR;
+		return SR_ERR_MALLOC;
 	}
 
 	if (libusb_init(NULL) != 0) {
@@ -972,8 +972,10 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	const size_t size = get_buffer_size(devc);
 
 	devc->transfers = g_try_malloc0(sizeof(*devc->transfers) * num_transfers);
-	if (!devc->transfers)
-		return SR_ERR;
+	if (!devc->transfers) {
+		sr_err("fx2lafw: USB transfers malloc failed.");
+		return SR_ERR_MALLOC;
+	}
 
 	devc->num_transfers = num_transfers;
 

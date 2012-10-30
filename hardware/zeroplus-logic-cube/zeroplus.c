@@ -257,7 +257,7 @@ static int hw_init(void)
 
 	if (!(drvc = g_try_malloc0(sizeof(struct drv_context)))) {
 		sr_err("zeroplus: driver context malloc failed.");
-		return SR_ERR;
+		return SR_ERR_MALLOC;
 	}
 	zdi->priv = drvc;
 
@@ -321,7 +321,7 @@ static GSList *hw_scan(GSList *options)
 		/* Allocate memory for our private driver context. */
 		if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
 			sr_err("zp: %s: devc malloc failed", __func__);
-			return 0;
+			return NULL;
 		}
 		sdi->priv = devc;
 		devc->num_channels = prof->channels;

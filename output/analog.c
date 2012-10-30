@@ -30,7 +30,6 @@ struct context {
 	GString *out;
 };
 
-
 static int init(struct sr_output *o)
 {
 	struct context *ctx;
@@ -41,8 +40,10 @@ static int init(struct sr_output *o)
 	if (!o || !o->sdi)
 		return SR_ERR_ARG;
 
-	if (!(ctx = g_try_malloc0(sizeof(struct context))))
+	if (!(ctx = g_try_malloc0(sizeof(struct context)))) {
+		sr_err("output/analog: Context malloc failed.");
 		return SR_ERR_MALLOC;
+	}
 	o->internal = ctx;
 
 	/* Get the number of probes and their names. */

@@ -166,7 +166,7 @@ SR_PRIV void *serial_backup_params(int fd)
 	/* TODO: 'term' is never g_free()'d? */
 	if (!(term = g_try_malloc(sizeof(struct termios)))) {
 		sr_err("serial: %s: term malloc failed", __func__);
-		return NULL;
+		return -1;
 	}
 
 	tcgetattr(fd, term);

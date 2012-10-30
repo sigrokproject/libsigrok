@@ -152,7 +152,7 @@ static GSList *connect_usb(const char *conn)
 		/* Found one. */
 		if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
 			sr_err("Device context malloc failed.");
-			return 0;
+			return NULL;
 		}
 
 		devcnt = g_slist_length(drvc->instances);
@@ -323,7 +323,7 @@ static int hw_init(void)
 
 	if (!(drvc = g_try_malloc0(sizeof(struct drv_context)))) {
 		sr_err("Driver context malloc failed.");
-		return SR_ERR;
+		return SR_ERR_MALLOC;
 	}
 
 	if (libusb_init(&genericdmm_usb_context) != 0) {

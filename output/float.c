@@ -43,8 +43,10 @@ static int init(struct sr_output *o)
 	if (!o->sdi->driver)
 		return SR_ERR_ARG;
 
-	if (!(ctx = g_try_malloc0(sizeof(struct context))))
+	if (!(ctx = g_try_malloc0(sizeof(struct context)))) {
+		sr_err("output/float: Context malloc failed.");
 		return SR_ERR_MALLOC;
+	}
 
 	o->internal = ctx;
 

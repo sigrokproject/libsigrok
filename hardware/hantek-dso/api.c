@@ -258,7 +258,7 @@ static int hw_init(void)
 
 	if (!(drvc = g_try_malloc0(sizeof(struct drv_context)))) {
 		sr_err("hantek-dso: driver context malloc failed.");
-		return SR_ERR;
+		return SR_ERR_MALLOC;
 	}
 
 	if (libusb_init(NULL) != 0) {
@@ -602,6 +602,7 @@ static void send_chunk(struct dev_context *devc, unsigned char *buf,
 	analog.num_samples = num_samples;
 	analog.mq = SR_MQ_VOLTAGE;
 	analog.unit = SR_UNIT_VOLT;
+	/* TODO: Check malloc return value. */
 	analog.data = g_try_malloc(analog.num_samples * sizeof(float) * num_probes);
 	data_offset = 0;
 	for (i = 0; i < analog.num_samples; i++) {
@@ -804,6 +805,7 @@ static int handle_event(int fd, int revents, void *cb_data)
 		devc->trigger_offset = trigger_offset;
 
 		num_probes = (devc->ch1_enabled && devc->ch2_enabled) ? 2 : 1;
+		/* TODO: Check malloc return value. */
 		devc->framebuf = g_try_malloc(devc->framesize * num_probes * 2);
 		devc->samp_buffered = devc->samp_received = 0;
 

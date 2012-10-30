@@ -54,8 +54,10 @@ static struct sr_datafeed_analog *handle_qm_v1(const struct sr_dev_inst *sdi,
 	while(*e && *e == ' ')
 		e++;
 
+	/* TODO: Check malloc return value. */
 	analog = g_try_malloc0(sizeof(struct sr_datafeed_analog));
 	analog->num_samples = 1;
+	/* TODO: Check malloc return value. */
 	analog->data = g_try_malloc(sizeof(float));
 	if (is_oor)
 		*analog->data = NAN;
@@ -162,8 +164,10 @@ static struct sr_datafeed_analog *handle_qm_v2(const struct sr_dev_inst *sdi,
 		return NULL;
 	}
 
+	/* TODO: Check malloc return value. */
 	analog = g_try_malloc0(sizeof(struct sr_datafeed_analog));
 	analog->num_samples = 1;
+	/* TODO: Check malloc return value. */
 	analog->data = g_try_malloc(sizeof(float));
 	*analog->data = fvalue;
 	analog->mq = -1;

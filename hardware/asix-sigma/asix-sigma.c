@@ -440,7 +440,7 @@ static int hw_init(void)
 
 	if (!(drvc = g_try_malloc0(sizeof(struct drv_context)))) {
 		sr_err("asix-sigma: driver context malloc failed.");
-		return SR_ERR;
+		return SR_ERR_MALLOC;
 	}
 	adi->priv = drvc;
 

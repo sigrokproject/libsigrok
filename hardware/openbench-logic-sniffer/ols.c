@@ -369,7 +369,7 @@ static int hw_init(void)
 
 	if (!(drvc = g_try_malloc0(sizeof(struct drv_context)))) {
 		sr_err("ols: driver context malloc failed.");
-		return SR_ERR;
+		return SR_ERR_MALLOC;
 	}
 	odi->priv = drvc;
 
@@ -763,6 +763,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 		 */
 		sr_source_remove(fd);
 		sr_source_add(fd, G_IO_IN, 30, receive_data, cb_data);
+		/* TODO: Check malloc return code. */
 		devc->raw_sample_buf = g_try_malloc(devc->limit_samples * 4);
 		if (!devc->raw_sample_buf) {
 			sr_err("ols: %s: devc->raw_sample_buf malloc failed",
@@ -1075,7 +1076,6 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 static int hw_dev_acquisition_stop(const struct sr_dev_inst *sdi,
 		void *cb_data)
 {
-
 	/* Avoid compiler warnings. */
 	(void)cb_data;
 

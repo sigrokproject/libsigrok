@@ -229,8 +229,10 @@ static void rs_22_812_handle_packet(rs_22_812_packet *rs_packet,
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog *analog;
 
+	/* TODO: Check malloc return value. */
 	analog = g_try_malloc0(sizeof(struct sr_datafeed_analog));
 	analog->num_samples = 1;
+	/* TODO: Check malloc return value. */
 	analog->data = g_try_malloc(sizeof(float));
 	*analog->data = (float)rawval;
 	analog->mq = -1;

@@ -145,8 +145,8 @@ static int hw_init(void)
 	struct drv_context *drvc;
 
 	if (!(drvc = g_try_malloc0(sizeof(struct drv_context)))) {
-		sr_err("fx2lafw: driver context malloc failed.");
-		return SR_ERR;
+		sr_err("demo: driver context malloc failed.");
+		return SR_ERR_MALLOC;
 	}
 	ddi->priv = drvc;
 

@@ -96,7 +96,7 @@ static int hw_init(void)
 
 	if (!(drvc = g_try_malloc0(sizeof(struct drv_context)))) {
 		sr_err("Driver context malloc failed.");
-		return SR_ERR;
+		return SR_ERR_MALLOC;
 	}
 
 	di->priv = drvc;
@@ -196,7 +196,10 @@ static GSList *hw_scan(GSList *options)
 	}
 
 	len = 128;
-	buf = g_try_malloc(len);
+	if (!(buf = g_try_malloc(len))) {
+		sr_err("Serial buffer malloc failed.");
+		return NULL;
+	}
 	serial_readline2(fd, &buf, &len, 150);
 	if (!len)
 		return NULL;
@@ -211,7 +214,7 @@ static GSList *hw_scan(GSList *options)
 					tokens[1], tokens[3])))
 				return NULL;
 			if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
-				sr_dbg("failed to malloc devc");
+				sr_err("Device context malloc failed.");
 				return NULL;
 			}
 			devc->profile = &supported_agdmm[i];

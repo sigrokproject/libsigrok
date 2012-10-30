@@ -76,7 +76,7 @@ static int hw_init(const char *devinfo)
 
 	if (!(ctx = g_try_malloc0(sizeof(struct context)))) {
 		sr_err("alsa: %s: ctx malloc failed", __func__);
-		return 0;
+		return SR_ERR_MALLOC;
 	}
 
 	if (!(sdi = sr_dev_inst_new(0, SR_ST_ACTIVE, "alsa", NULL, NULL))) {
@@ -117,7 +117,7 @@ static int hw_dev_open(int dev_index)
 	if (ret < 0) {
 		sr_err("alsa: can't allocate hardware parameter structure (%s)",
 		       snd_strerror(ret));
-		return SR_ERR;
+		return SR_ERR_MALLOC;
 	}
 
 	ret = snd_pcm_hw_params_any(ctx->capture_handle, ctx->hw_params);
