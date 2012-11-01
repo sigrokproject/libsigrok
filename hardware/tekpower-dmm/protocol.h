@@ -20,8 +20,6 @@
 #ifndef LIBSIGROK_HARDWARE_TEKPOWER_DMM_PROTOCOL_H
 #define LIBSIGROK_HARDWARE_TEKPOWER_DMM_PROTOCOL_H
 
-#include "hardware/common/dmm/fs9721.h"
-
 /* Message logging helpers with driver-specific prefix string. */
 #define DRIVER_LOG_DOMAIN "tekpower-dmm: "
 #define sr_log(l, s, args...) sr_log(l, DRIVER_LOG_DOMAIN s, ## args)
@@ -32,8 +30,6 @@
 #define sr_err(s, args...) sr_err(DRIVER_LOG_DOMAIN s, ## args)
 
 #define DMM_BUFSIZE		256
-
-#define FLAG_TEMP_CELSIUS	FS9721_USR2
 
 /** Private, per-device-instance driver context. */
 struct dev_context {

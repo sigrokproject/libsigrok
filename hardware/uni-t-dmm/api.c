@@ -172,7 +172,7 @@ static int hw_init(int dmm)
 		di = di_ut61d;
 	else if (dmm == VOLTCRAFT_VC820)
 		di = di_vc820;
-	sr_dbg("Selected '%s' driver.", di->name);
+	sr_dbg("Selected '%s' subdriver.", di->name);
 
 	di->priv = drvc;
 

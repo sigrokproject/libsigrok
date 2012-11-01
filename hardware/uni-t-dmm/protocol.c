@@ -70,6 +70,7 @@ static void decode_packet(struct dev_context *devc, int dmm, const uint8_t *buf)
 {
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog analog;
+	struct fs9721_info info;
 	float floatval;
 	int ret;
 
@@ -79,7 +80,7 @@ static void decode_packet(struct dev_context *devc, int dmm, const uint8_t *buf)
 	if (dmm == UNI_T_UT61D)
 		ret = sr_dmm_parse_fs9922(buf, &floatval, &analog);
 	else if (dmm == VOLTCRAFT_VC820)
-		ret = sr_dmm_parse_fs9721(buf, &floatval, &analog);
+		ret = sr_fs9721_parse(buf, &floatval, &analog, &info);
 	if (ret != SR_OK) {
 		sr_err("Invalid DMM packet, ignoring.");
 		return;
@@ -236,7 +237,7 @@ static int uni_t_dmm_receive_data(int fd, int revents, int dmm, void *cb_data)
 					return TRUE;
 			} else if (dmm == VOLTCRAFT_VC820) {
 				/* Valid packets have 0x1 as high nibble. */
-				if ((buf[1] & 0xf0) != 0x10)
+				if (!sr_fs9721_is_packet_start(buf[1]))
 					return TRUE;
 			}
 			synced_on_first_packet = TRUE;
@@ -251,6 +252,10 @@ static int uni_t_dmm_receive_data(int fd, int revents, int dmm, void *cb_data)
 		if (data_byte_counter == NUM_DATA_BYTES) {
 			log_dmm_packet(pbuf);
 			data_byte_counter = 0;
+			if (!sr_fs9721_packet_valid(pbuf)) {
+				sr_err("Invalid packet.");
+				return TRUE;
+			}
 			decode_packet(devc, dmm, pbuf);
 			memset(pbuf, 0x00, NUM_DATA_BYTES);
 		}

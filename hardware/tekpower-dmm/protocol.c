@@ -26,21 +26,25 @@
 #include "libsigrok-internal.h"
 #include "protocol.h"
 
+/* User-defined FS9721_LP3 flag 'c2c1_10' means temperature on this DMM. */
+#define is_temperature info.is_c2c1_10
+
 /* Now see what the value means, and pass that on. */
-static void fs9721_serial_handle_packet(const struct fs9721_data *data,
+static void fs9721_serial_handle_packet(const uint8_t *buf,
 					struct dev_context *devc)
 {
-	float rawval;
+	float floatval;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog *analog;
+	struct fs9721_info info;
 
 	if (!(analog = g_try_malloc0(sizeof(struct sr_datafeed_analog)))) {
-		sr_err("Failed to malloc packet.");
+		sr_err("Analog packet malloc failed.");
 		return;
 	}
 
 	if (!(analog->data = g_try_malloc(sizeof(float)))) {
-		sr_err("Failed to malloc data.");
+		sr_err("Analog value malloc failed.");
 		g_free(analog);
 		return;
 	}
@@ -48,15 +52,14 @@ static void fs9721_serial_handle_packet(const struct fs9721_data *data,
 	analog->num_samples = 1;
 	analog->mq = -1;
 
-	sr_dmm_smart_parse_fs9721(data, &rawval, analog);
-	*analog->data = rawval;
+	sr_fs9721_parse(buf, &floatval, analog, &info);
+	*analog->data = floatval;
 
-	if (data->flags & FLAG_TEMP_CELSIUS) {
+	if (is_temperature) {
 		analog->mq = SR_MQ_TEMPERATURE;
 		/* No Kelvin or Fahrenheit from the device, just Celsius. */
 		analog->unit = SR_UNIT_CELSIUS;
 	}
-
 
 	if (analog->mq != -1) {
 		/* Got a measurement. */
@@ -73,8 +76,6 @@ static void fs9721_serial_handle_packet(const struct fs9721_data *data,
 static void handle_new_data(struct dev_context *devc, int fd)
 {
 	int len, i, offset = 0;
-	struct fs9721_packet *packet;
-	struct fs9721_data data;
 
 	/* Try to get as much data as the buffer can hold. */
 	len = DMM_BUFSIZE - devc->buflen;
@@ -87,9 +88,8 @@ static void handle_new_data(struct dev_context *devc, int fd)
 
 	/* Now look for packets in that data. */
 	while ((devc->buflen - offset) >= FS9721_PACKET_SIZE) {
-		packet = (void *)(devc->buf + offset);
-		if (fs9721_is_packet_valid(packet, &data)) {
-			fs9721_serial_handle_packet(&data, devc);
+		if (sr_fs9721_packet_valid(devc->buf + offset)) {
+			fs9721_serial_handle_packet(devc->buf + offset, devc);
 			offset += FS9721_PACKET_SIZE;
 		} else {
 			offset++;

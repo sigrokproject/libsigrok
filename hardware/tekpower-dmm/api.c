@@ -95,10 +95,9 @@ static GSList *lcd14_scan(const char *conn, const char *serialcomm)
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct sr_probe *probe;
-	struct fs9721_packet *packet;
 	GSList *devices;
 	int i, len, fd, retry, good_packets = 0, dropped, ret;
-	char buf[128], *b;
+	uint8_t buf[128], *b;
 
 	if ((fd = serial_open(conn, O_RDONLY | O_NONBLOCK)) == -1) {
 		sr_err("Unable to open %s: %s.", conn, strerror(errno));
@@ -127,7 +126,7 @@ static GSList *lcd14_scan(const char *conn, const char *serialcomm)
 
 		/* Let's get a bit of data and see if we can find a packet. */
 		len = sizeof(buf);
-		serial_readline(fd, &b, &len, 500);
+		serial_readline(fd, (char **)&b, &len, 500);
 		if ((len == 0) || (len < FS9721_PACKET_SIZE)) {
 			/* Not enough data received, is the DMM connected? */
 			continue;
@@ -136,8 +135,7 @@ static GSList *lcd14_scan(const char *conn, const char *serialcomm)
 		/* Let's treat our buffer like a stream, and find any
 		 * valid packets */
 		for (i = 0; i < len - FS9721_PACKET_SIZE + 1;) {
-			packet = (void *)(&buf[i]);
-			if (!fs9721_is_packet_valid(packet, NULL)) {
+			if (!sr_fs9721_packet_valid(&buf[i])) {
 				i++;
 				continue;
 			}

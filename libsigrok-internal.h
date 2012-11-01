@@ -155,7 +155,19 @@ SR_PRIV int sr_dmm_parse_fs9922(const uint8_t *buf, float *floatval,
 
 /*--- hardware/common/dmm/fs9721.c ------------------------------------------*/
 
-SR_PRIV int sr_dmm_parse_fs9721(const uint8_t *buf, float *floatval,
-				struct sr_datafeed_analog *analog);
+#define FS9721_PACKET_SIZE 14
+
+struct fs9721_info {
+	gboolean is_ac, is_dc, is_auto, is_rs232, is_micro, is_nano, is_kilo;
+	gboolean is_diode, is_milli, is_percent, is_mega, is_beep, is_farad;
+	gboolean is_ohm, is_rel, is_hold, is_ampere, is_volt, is_hz, is_bat;
+	gboolean is_c2c1_11, is_c2c1_10, is_c2c1_01, is_c2c1_00, is_sign;
+};
+
+SR_PRIV gboolean sr_fs9721_is_packet_start(uint8_t b);
+SR_PRIV gboolean sr_fs9721_packet_valid(const uint8_t *buf);
+SR_PRIV int sr_fs9721_parse(const uint8_t *buf, float *floatval,
+			    struct sr_datafeed_analog *analog,
+			    struct fs9721_info *info);
 
 #endif
