@@ -143,6 +143,8 @@ static void fancyprint(int unit, int mqflags, float value, GString *out)
 		case SR_UNIT_DECIBEL_VOLT:
 			si_printf(value, out, "dBV");
 			break;
+		default:
+			si_printf(value, out, "");
 	}
 	if ((mqflags & (SR_MQFLAG_AC | SR_MQFLAG_DC)) == (SR_MQFLAG_AC | SR_MQFLAG_DC))
 		g_string_append_printf(out, " AC+DC");
