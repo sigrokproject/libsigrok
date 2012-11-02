@@ -66,87 +66,43 @@ static libusb_context *genericdmm_usb_context = NULL;
 static int hw_dev_acquisition_stop(const struct sr_dev_inst *sdi,
 		void *cb_data);
 
-
-static GSList *connect_usb(const char *conn)
+static GSList *connect_serial(const char *conn, const char *serialcomm)
 {
-	struct sr_dev_inst *sdi;
-	struct drv_context *drvc;
-	struct dev_context *devc;
-	struct sr_probe *probe;
-	libusb_device **devlist;
-	struct libusb_device_descriptor des;
 	GSList *devices;
-	GRegex *reg;
-	GMatchInfo *match;
-	int vid, pid, bus, addr, devcnt, err, i;
-	char *mstr;
+
+	devices = NULL;
+
+	/* TODO */
+	sr_dbg("Not yet implemented.");
+
+	return devices;
+}
+
+GSList *genericdmm_connect(const char *conn, const char *serialcomm)
+{
+	GSList *devices, *l;
+	struct sr_dev_inst *sdi;
+	struct dev_context *devc;
+	struct drv_context *drvc;
+	struct sr_probe *probe;
+	struct libusb_device *ldev;
+	int i, devcnt;
 
 	drvc = gdi->priv;
 
-	vid = pid = bus = addr = 0;
-	reg = g_regex_new(DMM_CONN_USB_VIDPID, 0, 0, NULL);
-	if (g_regex_match(reg, conn, 0, &match)) {
-		/* Extract VID. */
-		if ((mstr = g_match_info_fetch(match, 1)))
-			vid = strtoul(mstr, NULL, 16);
-		g_free(mstr);
-
-		/* Extract PID. */
-		if ((mstr = g_match_info_fetch(match, 2)))
-			pid = strtoul(mstr, NULL, 16);
-		g_free(mstr);
-	} else {
-		g_match_info_unref(match);
-		g_regex_unref(reg);
-		reg = g_regex_new(DMM_CONN_USB_BUSADDR, 0, 0, NULL);
-		if (g_regex_match(reg, conn, 0, &match)) {
-			/* Extract bus. */
-			if ((mstr = g_match_info_fetch(match, 0)))
-				bus = strtoul(mstr, NULL, 16);
-			g_free(mstr);
-
-			/* Extract address. */
-			if ((mstr = g_match_info_fetch(match, 0)))
-				addr = strtoul(mstr, NULL, 16);
-			g_free(mstr);
-		}
-	}
-	g_match_info_unref(match);
-	g_regex_unref(reg);
-
-	if (vid + pid + bus + addr == 0)
-		return NULL;
-
-	if (bus > 64) {
-		sr_err("Invalid bus.");
-		return NULL;
-	}
-
-	if (addr > 127) {
-		sr_err("Invalid address.");
-		return NULL;
-	}
-
-	/* Looks like a valid USB device specification, but is it connected? */
 	devices = NULL;
-	libusb_get_device_list(genericdmm_usb_context, &devlist);
-	for (i = 0; devlist[i]; i++) {
-		if ((err = libusb_get_device_descriptor(devlist[i], &des))) {
-			sr_err("Failed to get device descriptor: %d.", err);
-			continue;
-		}
 
-		if (vid + pid && (des.idVendor != vid || des.idProduct != pid))
-			/* VID/PID specified, but no match. */
-			continue;
+	if (serialcomm)
+		/* Must be a serial port. */
+		return connect_serial(conn, serialcomm);
 
-		if (bus + addr && (
-				libusb_get_bus_number(devlist[i]) != bus
-				|| libusb_get_device_address(devlist[i]) != addr))
-			/* Bus/address specified, but no match. */
-			continue;
+	if (!(l = sr_usb_connect(genericdmm_usb_context, conn))) {
+		return NULL;
+	}
 
-		/* Found one. */
+	for (i = 0; i < (int)g_slist_length(l); i++) {
+		ldev = (struct libusb_device *)l->data;
+
 		if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
 			sr_err("Device context malloc failed.");
 			return NULL;
@@ -163,37 +119,12 @@ static GSList *connect_usb(const char *conn)
 			return NULL;
 		sdi->probes = g_slist_append(sdi->probes, probe);
 		devc->usb = sr_usb_dev_inst_new(
-				libusb_get_bus_number(devlist[i]),
-				libusb_get_device_address(devlist[i]), NULL);
+				libusb_get_bus_number(ldev),
+				libusb_get_device_address(ldev), NULL);
 		devices = g_slist_append(devices, sdi);
-	}
-	libusb_free_device_list(devlist, 1);
 
-	return devices;
-}
-
-static GSList *connect_serial(const char *conn, const char *serialcomm)
-{
-	GSList *devices;
-
-	devices = NULL;
-
-	/* TODO */
-	sr_dbg("Not yet implemented.");
-
-	return devices;
-}
-
-GSList *genericdmm_connect(const char *conn, const char *serialcomm)
-{
-	GSList *devices;
-
-	if (serialcomm)
-		/* Must be a serial port. */
-		return connect_serial(conn, serialcomm);
-
-	if ((devices = connect_usb(conn)))
 		return devices;
+	}
 
 	return NULL;
 }
@@ -221,52 +152,6 @@ static GSList *default_scan(GSList *options)
 		devices = genericdmm_connect(conn, serialcomm);
 
 	return devices;
-}
-
-static int open_usb(struct sr_dev_inst *sdi)
-{
-	libusb_device **devlist;
-	struct libusb_device_descriptor des;
-	struct dev_context *devc;
-	int ret, tmp, cnt, i;
-
-	devc = sdi->priv;
-
-	if (sdi->status == SR_ST_ACTIVE)
-		/* already in use */
-		return SR_ERR;
-
-	cnt = libusb_get_device_list(genericdmm_usb_context, &devlist);
-	if (cnt < 0) {
-		sr_err("Failed to retrieve device list (%d).", cnt);
-		return SR_ERR;
-	}
-
-	ret = SR_ERR;
-	for (i = 0; i < cnt; i++) {
-		if ((tmp = libusb_get_device_descriptor(devlist[i], &des))) {
-			sr_err("Failed to get device descriptor: %d.", tmp);
-			continue;
-		}
-
-		if (libusb_get_bus_number(devlist[i]) != devc->usb->bus
-			|| libusb_get_device_address(devlist[i]) != devc->usb->address)
-			/* this is not the one */
-			continue;
-
-		if ((tmp = libusb_open(devlist[i], &devc->usb->devhdl))) {
-			sr_err("Failed to open device: %d.", tmp);
-			break;
-		}
-
-		sr_info("Opened device %s on %d.%d.", devc->profile->modelid,
-			devc->usb->bus, devc->usb->address);
-		ret = SR_OK;
-		break;
-	}
-	libusb_free_device_list(devlist, 1);
-
-	return ret;
 }
 
 static int clear_instances(void)
@@ -458,7 +343,12 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 	ret = SR_OK;
 	switch (devc->profile->transport) {
 	case DMM_TRANSPORT_USBHID:
-		ret = open_usb(sdi);
+		if (sdi->status == SR_ST_ACTIVE) {
+			sr_err("Device already in use.");
+			ret = SR_ERR;
+		} else {
+			ret = sr_usb_open(genericdmm_usb_context, devc->usb);
+		}
 		break;
 	case DMM_TRANSPORT_SERIAL:
 		sr_dbg("Opening serial port '%s'.", devc->serial->port);

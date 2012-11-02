@@ -22,7 +22,7 @@ SUBDIRS = dmm
 # Local lib, this is NOT meant to be installed!
 noinst_LTLIBRARIES = libsigrokhwcommon.la
 
-libsigrokhwcommon_la_SOURCES =
+libsigrokhwcommon_la_SOURCES = usb.c
 
 if NEED_EZUSB
 libsigrokhwcommon_la_SOURCES += ezusb.c

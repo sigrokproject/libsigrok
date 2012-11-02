@@ -148,6 +148,13 @@ SR_PRIV int ezusb_upload_firmware(libusb_device *dev, int configuration,
 				  const char *filename);
 #endif
 
+/*--- hardware/common/usb.c -------------------------------------------------*/
+
+#ifdef HAVE_LIBUSB_1_0
+SR_PRIV GSList *sr_usb_connect(libusb_context *usb_ctx, const char *conn);
+SR_PRIV int sr_usb_open(libusb_context *usb_ctx, struct sr_usb_dev_inst *usb);
+#endif
+
 /*--- hardware/common/dmm/fs9922.c ------------------------------------------*/
 
 SR_PRIV int sr_dmm_parse_fs9922(const uint8_t *buf, float *floatval,
