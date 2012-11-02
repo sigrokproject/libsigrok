@@ -26,8 +26,6 @@
 #include "libsigrok-internal.h"
 #include "genericdmm.h"
 
-
-extern SR_PRIV struct dmmchip dmmchip_fs9922;
 extern SR_PRIV struct dmmchip dmmchip_victor70c;
 
 static struct sr_hwopt victor_70c_vidpid[] = {
