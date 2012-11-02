@@ -38,7 +38,6 @@ static struct dev_profile dev_profiles[] = {
 	{ "victor-70c", "Victor", "70C", &dmmchip_victor70c,
 		DMM_TRANSPORT_USBHID, 1000, victor_70c_vidpid
 	},
-	{ "mastech-va18b", "Mastech", "VA18B", NULL, DMM_TRANSPORT_SERIAL, 0, NULL},
 	{ NULL, NULL, NULL, NULL, 0, 0, NULL }
 };
 
