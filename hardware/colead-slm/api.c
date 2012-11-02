@@ -57,7 +57,9 @@ static int clear_instances(void)
 	struct dev_context *devc;
 	GSList *l;
 
-	drvc = di->priv;
+	if (!(drvc = di->priv))
+		return SR_OK;
+
 	for (l = drvc->instances; l; l = l->next) {
 		if (!(sdi = l->data))
 			continue;
