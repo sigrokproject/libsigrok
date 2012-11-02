@@ -46,105 +46,6 @@ static struct sr_dev_driver *di_vc820 = &voltcraft_vc820_driver_info;
 /* After hw_init() this will point to a device-specific entry (see above). */
 static struct sr_dev_driver *di = NULL;
 
-static int open_usb(struct sr_dev_inst *sdi)
-{
-	libusb_device **devlist;
-	struct libusb_device_descriptor des;
-	struct dev_context *devc;
-	int ret, tmp, cnt, i;
-
-	/* TODO: Use common code later, refactor. */
-
-	devc = sdi->priv;
-
-	if ((cnt = libusb_get_device_list(NULL, &devlist)) < 0) {
-		sr_err("Error getting USB device list: %d.", cnt);
-		return SR_ERR;
-	}
-
-	ret = SR_ERR;
-	for (i = 0; i < cnt; i++) {
-		if ((tmp = libusb_get_device_descriptor(devlist[i], &des))) {
-			sr_err("Failed to get device descriptor: %d.", tmp);
-			continue;
-		}
-
-		if (libusb_get_bus_number(devlist[i]) != devc->usb->bus
-			|| libusb_get_device_address(devlist[i]) != devc->usb->address)
-			continue;
-
-		if ((tmp = libusb_open(devlist[i], &devc->usb->devhdl))) {
-			sr_err("Failed to open device: %d.", tmp);
-			break;
-		}
-
-		sr_info("Opened USB device on %d.%d.",
-			devc->usb->bus, devc->usb->address);
-		ret = SR_OK;
-		break;
-	}
-	libusb_free_device_list(devlist, 1);
-
-	return ret;
-}
-
-static GSList *connect_usb(const char *conn)
-{
-	struct sr_dev_inst *sdi;
-	struct drv_context *drvc;
-	struct dev_context *devc;
-	struct sr_probe *probe;
-	libusb_device **devlist;
-	struct libusb_device_descriptor des;
-	GSList *devices;
-	int vid, pid, devcnt, err, i;
-
-	(void)conn;
-
-	/* TODO: Use common code later, refactor. */
-
-	drvc = di->priv;
-
-	/* Hardcoded for now. */
-	vid = UT_D04_CABLE_USB_VID;
-	pid = UT_D04_CABLE_USB_DID;
-
-	devices = NULL;
-	libusb_get_device_list(NULL, &devlist);
-	for (i = 0; devlist[i]; i++) {
-		if ((err = libusb_get_device_descriptor(devlist[i], &des))) {
-			sr_err("Failed to get device descriptor: %d", err);
-			continue;
-		}
-
-		if (des.idVendor != vid || des.idProduct != pid)
-			continue;
-
-		if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
-			sr_err("Device context malloc failed.");
-			return NULL;
-		}
-
-		devcnt = g_slist_length(drvc->instances);
-		if (!(sdi = sr_dev_inst_new(devcnt, SR_ST_INACTIVE,
-					    di->longname, NULL, NULL))) {
-			sr_err("sr_dev_inst_new returned NULL.");
-			return NULL;
-		}
-		sdi->priv = devc;
-		if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "P1")))
-			return NULL;
-		sdi->probes = g_slist_append(sdi->probes, probe);
-		devc->usb = sr_usb_dev_inst_new(
-				libusb_get_bus_number(devlist[i]),
-				libusb_get_device_address(devlist[i]), NULL);
-		devices = g_slist_append(devices, sdi);
-	}
-	libusb_free_device_list(devlist, 1);
-
-	return devices;
-}
-
 static int clear_instances(void)
 {
 	/* TODO: Use common code later. */
@@ -191,21 +92,47 @@ static int hw_init_vc820(void)
 
 static GSList *hw_scan(GSList *options)
 {
-	GSList *l, *devices;
+	GSList *devices, *l;
 	struct sr_dev_inst *sdi;
+	struct dev_context *devc;
 	struct drv_context *drvc;
+	struct sr_probe *probe;
+	struct libusb_device *ldev;
+	int i, devcnt;
 
 	(void)options;
 
 	drvc = di->priv;
 
-	if (!(devices = connect_usb(NULL)))
+	devices = NULL;
+
+	if (!(l = sr_usb_connect(NULL, "1a86.e008")))
 		return NULL;
 
-	for (l = devices; l; l = l->next) {
-		sdi = l->data;
+	for (i = 0; i < (int)g_slist_length(l); i++) {
+		ldev = (struct libusb_device *)l->data;
+
+		if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
+			sr_err("Device context malloc failed.");
+			return NULL;
+		}
+
+		devcnt = g_slist_length(drvc->instances);
+		if (!(sdi = sr_dev_inst_new(devcnt, SR_ST_INACTIVE,
+				di->longname, NULL, NULL))) {
+			sr_err("sr_dev_inst_new returned NULL.");
+			return NULL;
+		}
+		sdi->priv = devc;
 		sdi->driver = di;
+		if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "P1")))
+			return NULL;
+		sdi->probes = g_slist_append(sdi->probes, probe);
+		devc->usb = sr_usb_dev_inst_new(
+				libusb_get_bus_number(ldev),
+				libusb_get_device_address(ldev), NULL);
 		drvc->instances = g_slist_append(drvc->instances, l->data);
+		devices = g_slist_append(devices, sdi);
 	}
 
 	return devices;
@@ -222,7 +149,11 @@ static GSList *hw_dev_list(void)
 
 static int hw_dev_open(struct sr_dev_inst *sdi)
 {
-	return open_usb(sdi);
+	struct dev_context *devc;
+
+	devc = sdi->priv;
+
+	return sr_usb_open(NULL, devc->usb);
 }
 
 static int hw_dev_close(struct sr_dev_inst *sdi)
