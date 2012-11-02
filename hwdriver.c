@@ -77,6 +77,9 @@ extern SR_PRIV struct sr_dev_driver demo_driver_info;
 #ifdef HAVE_LA_OLS
 extern SR_PRIV struct sr_dev_driver ols_driver_info;
 #endif
+#ifdef HAVE_HW_VICTOR_DMM
+extern SR_PRIV struct sr_dev_driver victor_dmm_driver_info;
+#endif
 #ifdef HAVE_LA_ZEROPLUS_LOGIC_CUBE
 extern SR_PRIV struct sr_dev_driver zeroplus_logic_cube_driver_info;
 #endif
@@ -128,6 +131,9 @@ static struct sr_dev_driver *drivers_list[] = {
 #endif
 #ifdef HAVE_LA_OLS
 	&ols_driver_info,
+#endif
+#ifdef HAVE_HW_VICTOR_DMM
+	&victor_dmm_driver_info,
 #endif
 #ifdef HAVE_LA_ZEROPLUS_LOGIC_CUBE
 	&zeroplus_logic_cube_driver_info,

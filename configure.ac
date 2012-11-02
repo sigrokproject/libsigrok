@@ -214,6 +214,15 @@ if test "x$HW_UNI_T_DMM" = "xyes"; then
 	AC_DEFINE(HAVE_HW_UNI_T_DMM, 1, [UNI-T DMM support])
 fi
 
+AC_ARG_ENABLE(victor-dmm, AC_HELP_STRING([--enable-victor-dmm],
+	[enable victor-dmm support [default=yes]]),
+	[HW_VICTOR_DMM="$enableval"],
+	[HW_VICTOR_DMM=yes])
+AM_CONDITIONAL(HW_VICTOR_DMM, test x$HW_VICTOR_DMM = xyes)
+if test "x$HW_VICTOR_DMM" = "xyes"; then
+	AC_DEFINE(HAVE_HW_VICTOR_DMM, 1, [victor-dmm support])
+fi
+
 AC_ARG_ENABLE(zeroplus-logic-cube,
 	      AC_HELP_STRING([--enable-zeroplus-logic-cube],
 	      [enable ZEROPLUS Logic Cube support [default=yes]]),
@@ -346,6 +355,7 @@ AC_CONFIG_FILES([Makefile version.h hardware/Makefile
 		 hardware/chronovu-la8/Makefile
 		 hardware/colead-slm/Makefile
 		 hardware/common/Makefile
+		 hardware/victor-dmm/Makefile
 		 hardware/common/dmm/Makefile
 		 hardware/demo/Makefile
 		 hardware/fluke-dmm/Makefile
@@ -403,6 +413,7 @@ echo "  - Openbench Logic Sniffer......... $LA_OLS"
 echo "  - Radioshack DMM.................. $HW_RADIOSHACK_DMM"
 echo "  - TekPower DMM.................... $HW_TEKPOWER_DMM"
 echo "  - UNI-T DMM....................... $HW_UNI_T_DMM"
+echo "  - victor-dmm...................... $HW_VICTOR_DMM"
 echo "  - ZEROPLUS Logic Cube............. $LA_ZEROPLUS_LOGIC_CUBE"
 echo
 
