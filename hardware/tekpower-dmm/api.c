@@ -91,6 +91,78 @@ static int hw_init(void)
 	return SR_OK;
 }
 
+typedef gboolean (*packet_valid_t)(const uint8_t *buf);
+
+/**
+ * Try to find a valid packet in a serial data stream
+ *
+ * @param fd File descriptor of the serial port.
+ * @param buf Buffer containing the bytes to write.
+ * @param count Size of the buffer.
+ * @param packet_size Size, in bytes, of a valid packet
+ * @param is_valid callback that assesses whether the packet is valid or not
+ * @param timeout_ms the timeout after which, if no packet is detected, to abort
+ *                   scanning.
+ * @param baudrate the baudrate of the serial port. This parameter is not
+ *                 critical, but it helps fine tune the serial port polling
+ *                 delay
+ *
+ * @return SR_OK if a valid packet is found within he given timeout,
+ *         SR_ERR upon failure.
+ */
+static int serial_stream_detect(struct sr_serial_dev_inst *serial,
+				uint8_t *buf, size_t *buflen,
+				const size_t packet_size,
+				packet_valid_t is_valid,
+				uint64_t timeout_ms, int baudrate)
+{
+	uint64_t start;
+	uint64_t time;
+	uint64_t byte_delay_us;
+	size_t ibuf, i;
+	int len;
+	const size_t maxlen = *buflen;
+
+	if(maxlen < (packet_size << 1) ) {
+		sr_err("Buffer size must be at least twice the packet size");
+		return SR_ERR;
+	}
+
+	timeout_ms *= 1000;
+	/* Assume 8n1 transmission. That is 10 bits for every byte */
+	byte_delay_us = 10000000 / baudrate;
+	start = g_get_monotonic_time();
+
+	i = ibuf = len = 0;
+	while (ibuf < maxlen) {
+		len = serial_read(serial, &buf[ibuf], 1);
+		if (len > 0)
+			ibuf+= len;
+		if ((ibuf - i) >= packet_size) {
+			/* We have at least a packet's worth of data */
+			if (is_valid(&buf[i])) {
+				time = g_get_monotonic_time()-start;
+				time /= 1000;
+				sr_spew("Serial detection took %li ms", time);
+				*buflen = ibuf;
+				return SR_OK;
+			}
+			/* Not a valid packet; continue searching */
+			i++;
+		}
+		if (g_get_monotonic_time() - start > timeout_ms) {
+			/* Timeout */
+			sr_warn("Serial detection timeout");
+			break;
+		}
+		g_usleep(byte_delay_us);
+	}
+
+	*buflen = ibuf;
+	return SR_ERR;
+
+}
+
 static GSList *lcd14_scan(const char *conn, const char *serialcomm)
 {
 	struct sr_dev_inst *sdi;
@@ -99,8 +171,9 @@ static GSList *lcd14_scan(const char *conn, const char *serialcomm)
 	struct sr_probe *probe;
 	struct sr_serial_dev_inst *serial;
 	GSList *devices;
-	int i, len, retry, good_packets = 0, dropped;
-	uint8_t buf[128], *b;
+	int dropped, ret;
+	size_t len;
+	uint8_t buf[128];
 
 	if (!(serial = sr_serial_dev_inst_new(conn, serialcomm)))
 		return NULL;
@@ -111,8 +184,6 @@ static GSList *lcd14_scan(const char *conn, const char *serialcomm)
 	sr_info("Probing port %s readonly.", conn);
 
 	drvc = di->priv;
-	b = buf;
-	retry = 0;
 	devices = NULL;
 	serial_flush(serial);
 
@@ -121,63 +192,51 @@ static GSList *lcd14_scan(const char *conn, const char *serialcomm)
 	 * periodically, so the best we can do is check if the packets match
 	 * the expected format.
 	 */
-	while (!devices && retry < 3) {
-		retry++;
 
-		/* Let's get a bit of data and see if we can find a packet. */
-		len = sizeof(buf);
-		serial_readline(serial, (char **)&b, &len, 500);
-		if ((len == 0) || (len < FS9721_PACKET_SIZE)) {
-			/* Not enough data received, is the DMM connected? */
-			continue;
-		}
+	/* Let's get a bit of data and see if we can find a packet. */
+	len = sizeof(buf);
 
-		/* Let's treat our buffer like a stream, and find any
-		 * valid packets */
-		for (i = 0; i < len - FS9721_PACKET_SIZE + 1;) {
-			if (!sr_fs9721_packet_valid(&buf[i])) {
-				i++;
-				continue;
-			}
-			good_packets++;
-			i += FS9721_PACKET_SIZE;
-		}
+	ret = serial_stream_detect(serial, buf, &len, FS9721_PACKET_SIZE,
+				   sr_fs9721_packet_valid, 1000, 2400);
+	if (ret != SR_OK)
+		goto scan_cleanup;
 
-		/*
-		 * If we dropped more than two packets worth of data,
-		 * something is wrong.
-		 */
-		dropped = len - (good_packets * FS9721_PACKET_SIZE);
-		if (dropped > 2 * FS9721_PACKET_SIZE)
-			continue;
+	/*
+	 * If we dropped more than two packets worth of data, something is
+	 * wrong. We shouldn't quit however, since the dropped bytes might be
+	 * just zeroes at the beginning of the stream. Those can occur as a
+	 * combination of the nonstandard cable that ships with this device and
+	 * the serial port or USB to serial adapter.
+	 */
+	dropped = len - FS9721_PACKET_SIZE;
+	if (dropped > 2 * FS9721_PACKET_SIZE) {
 
-		/* Let's see if we have anything good. */
-		if (good_packets == 0)
-			continue;
-
-		sr_info("Found device on port %s.", conn);
-
-		if (!(sdi = sr_dev_inst_new(0, SR_ST_INACTIVE, "TekPower",
-					    "TP4000ZC", "")))
-			return NULL;
-		if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
-			sr_err("Device context malloc failed.");
-			return NULL;
-		}
-
-		devc->serial = serial;
-
-		sdi->priv = devc;
-		sdi->driver = di;
-		if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "P1")))
-			return NULL;
-		sdi->probes = g_slist_append(sdi->probes, probe);
-		drvc->instances = g_slist_append(drvc->instances, sdi);
-		devices = g_slist_append(devices, sdi);
-		break;
+		sr_warn("Had to drop too much data");
 	}
 
+	sr_info("Found device on port %s.", conn);
+
+	if (!(sdi = sr_dev_inst_new(0, SR_ST_INACTIVE, "TekPower",
+				    "TP4000ZC", "")))
+		goto scan_cleanup;
+	if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
+		sr_err("Device context malloc failed.");
+		goto scan_cleanup;
+	}
+
+	devc->serial = serial;
+
+	sdi->priv = devc;
+	sdi->driver = di;
+	if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "P1")))
+		goto scan_cleanup;
+	sdi->probes = g_slist_append(sdi->probes, probe);
+	drvc->instances = g_slist_append(drvc->instances, sdi);
+	devices = g_slist_append(devices, sdi);
+
+scan_cleanup:
 	serial_close(serial);
+
 	return devices;
 }
 
