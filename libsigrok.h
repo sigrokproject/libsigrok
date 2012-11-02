@@ -173,6 +173,9 @@ enum {
 	SR_MQ_POWER,
 	/** Gain (a transistor's gain, or hFE, for example). */
 	SR_MQ_GAIN,
+	/** Logarithmic representation of sound pressure relative to a
+	 * reference value. */
+	SR_MQ_SOUND_PRESSURE_LEVEL,
 };
 
 /** Values for sr_datafeed_analog.unit. */
@@ -203,6 +206,8 @@ enum {
 	 * a unitless quantity, for example.
 	 */
 	SR_UNIT_UNITLESS,
+	/** Sound pressure level relative so 20 micropascals. */
+	SR_UNIT_DECIBEL_SPL,
 };
 
 /** Values for sr_datafeed_analog.flags. */
@@ -225,6 +230,30 @@ enum {
 	SR_MQFLAG_AUTORANGE = 0x80,
 	/** Device is in relative mode. */
 	SR_MQFLAG_RELATIVE = 0x100,
+	/** Sound pressure level is A-weighted in the frequency domain,
+	 * according to IRC 61672:2003. */
+	SR_MQFLAG_SPL_FREQ_WEIGHT_A = 0x200,
+	/** Sound pressure level is C-weighted in the frequency domain,
+	 * according to IRC 61672:2003. */
+	SR_MQFLAG_SPL_FREQ_WEIGHT_C = 0x400,
+	/** Sound pressure level is Z-weighted (i.e. not at all) in the
+	 * frequency domain, according to IRC 61672:2003. */
+	SR_MQFLAG_SPL_FREQ_WEIGHT_Z = 0x800,
+	/** Sound pressure level is not weighted in the frequency domain,
+	 * albeit without standards-defined low and high frequency limits. */
+	SR_MQFLAG_SPL_FREQ_WEIGHT_FLAT = 0x1000,
+	/** Sound pressure level measurement is S-weighted (1s) in the
+	 * time domain. */
+	SR_MQFLAG_SPL_TIME_WEIGHT_S = 0x2000,
+	/** Sound pressure level measurement is F-weighted (125ms) in the
+	 * time domain. */
+	SR_MQFLAG_SPL_TIME_WEIGHT_F = 0x4000,
+	/** Sound pressure level is time-averaged (LAT), also known as
+	 * Equivalent Continuous A-weighted Sound Level (LEQ). */
+	SR_MQFLAG_SPL_LAT = 0x8000,
+	/** Sound pressure level represented as a percentage of measurements
+	 * that were over a preset alarm level. */
+	SR_MQFLAG_SPL_PCT_OVER_ALARM = 0x10000,
 };
 
 struct sr_context;
@@ -400,6 +429,8 @@ enum {
 	/** The device is a demo device. */
 	SR_HWCAP_DEMO_DEV,
 
+	/** The device can act as a sound level meter. */
+	SR_HWCAP_SOUNDLEVELMETER,
 
 	/*--- Device configuration ------------------------------------------*/
 
