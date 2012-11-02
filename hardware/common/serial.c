@@ -293,6 +293,7 @@ SR_PRIV int serial_set_params(int fd, int baudrate, int bits, int parity,
 		break;
 	case 2:
 		term.c_cflag |= CSTOPB;
+		break;
 	default:
 		return SR_ERR;
 	}
@@ -305,6 +306,7 @@ SR_PRIV int serial_set_params(int fd, int baudrate, int bits, int parity,
 		break;
 	case 1:
 		term.c_cflag |= CRTSCTS;
+		break;
 	case 2:
 		term.c_iflag |= IXON | IXOFF;
 		break;
