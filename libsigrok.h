@@ -127,7 +127,7 @@ typedef int (*sr_receive_data_callback_t)(int fd, int revents, void *cb_data);
 
 /** Data types used by hardware drivers for dev_config_set(). */
 enum {
-	SR_T_UINT64,
+	SR_T_UINT64 = 10000,
 	SR_T_CHAR,
 	SR_T_BOOL,
 	SR_T_FLOAT,
@@ -146,7 +146,7 @@ struct sr_rational {
 
 /** Value for sr_datafeed_packet.type. */
 enum {
-	SR_DF_HEADER,
+	SR_DF_HEADER = 10000,
 	SR_DF_END,
 	SR_DF_TRIGGER,
 	SR_DF_LOGIC,
@@ -159,7 +159,7 @@ enum {
 
 /** Values for sr_datafeed_analog.mq. */
 enum {
-	SR_MQ_VOLTAGE,
+	SR_MQ_VOLTAGE = 10000,
 	SR_MQ_CURRENT,
 	SR_MQ_RESISTANCE,
 	SR_MQ_CAPACITANCE,
@@ -180,7 +180,7 @@ enum {
 
 /** Values for sr_datafeed_analog.unit. */
 enum {
-	SR_UNIT_VOLT,
+	SR_UNIT_VOLT = 10000,
 	SR_UNIT_AMPERE,
 	SR_UNIT_OHM,
 	SR_UNIT_FARAD,
@@ -357,7 +357,7 @@ struct sr_dev {
 };
 
 enum {
-	SR_PROBE_LOGIC,
+	SR_PROBE_LOGIC = 10000,
 	SR_PROBE_ANALOG,
 };
 
@@ -376,14 +376,11 @@ struct sr_hwopt {
 
 /** Hardware driver options. */
 enum {
-	/** Used to terminate lists. */
-	SR_HWOPT_DUMMY = 0, /* Must be 0! */
-
 	/**
 	 * Some drivers cannot detect the exact model they're talking to
 	 * (may be phased out).
 	 */
-	SR_HWOPT_MODEL,
+	SR_HWOPT_MODEL = 10000,
 
 	/**
 	 * Specification on how to connect to a device.
@@ -412,13 +409,10 @@ enum {
 
 /** Hardware device capabilities. */
 enum {
-	/** Used to terminate lists. */
-	SR_HWCAP_DUMMY = 0, /* Must be 0! */
-
 	/*--- Device classes ------------------------------------------------*/
 
 	/** The device can act as logic analyzer. */
-	SR_HWCAP_LOGIC_ANALYZER,
+	SR_HWCAP_LOGIC_ANALYZER = 10000,
 
 	/** The device can act as an oscilloscope. */
 	SR_HWCAP_OSCILLOSCOPE,
@@ -435,7 +429,7 @@ enum {
 	/*--- Device configuration ------------------------------------------*/
 
 	/** The device supports setting/changing its samplerate. */
-	SR_HWCAP_SAMPLERATE,
+	SR_HWCAP_SAMPLERATE = 20000,
 
 	/** The device supports setting a pre/post-trigger capture ratio. */
 	SR_HWCAP_CAPTURE_RATIO,
@@ -471,11 +465,10 @@ enum {
 	/** Coupling. */
 	SR_HWCAP_COUPLING,
 
-
 	/*--- Special stuff -------------------------------------------------*/
 
 	/** Session filename. */
-	SR_HWCAP_SESSIONFILE,
+	SR_HWCAP_SESSIONFILE = 30000,
 
 	/* TODO: Better description. */
 	/** The device supports specifying a capturefile to inject. */
@@ -489,14 +482,13 @@ enum {
 	/** The device supports setting the number of probes. */
 	SR_HWCAP_CAPTURE_NUM_PROBES,
 
-
 	/*--- Acquisition modes ---------------------------------------------*/
 
 	/**
 	 * The device supports setting a sample time limit (how long
 	 * the sample acquisition should run, in ms).
 	 */
-	SR_HWCAP_LIMIT_MSEC,
+	SR_HWCAP_LIMIT_MSEC = 40000,
 
 	/**
 	 * The device supports setting a sample number limit (how many
@@ -516,7 +508,6 @@ enum {
 	 * samples continuously, until explicitly stopped by a certain command.
 	 */
 	SR_HWCAP_CONTINUOUS,
-
 };
 
 struct sr_hwcap_option {
@@ -541,7 +532,7 @@ struct sr_dev_inst {
 /** Types of device instances (sr_dev_inst). */
 enum {
 	/** Device instance type for USB devices. */
-	SR_INST_USB,
+	SR_INST_USB = 10000,
 	/** Device instance type for serial port devices. */
 	SR_INST_SERIAL,
 };
@@ -549,7 +540,7 @@ enum {
 /** Device instance status. */
 enum {
 	/** The device instance was not found. */
-	SR_ST_NOT_FOUND,
+	SR_ST_NOT_FOUND = 10000,
 	/** The device instance was found, but is still booting. */
 	SR_ST_INITIALIZING,
 	/** The device instance is live, but not in use. */
@@ -566,7 +557,7 @@ enum {
 /** Device info IDs. */
 enum {
 	/** A list of options supported by the driver. */
-	SR_DI_HWOPTS,
+	SR_DI_HWOPTS = 10000,
 	/** A list of capabilities supported by the device. */
 	SR_DI_HWCAPS,
 	/** The number of probes connected to this device. */
