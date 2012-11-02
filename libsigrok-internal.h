@@ -131,7 +131,7 @@ SR_PRIV int serial_flush(int fd);
 SR_PRIV int serial_write(int fd, const void *buf, size_t count);
 SR_PRIV int serial_read(int fd, void *buf, size_t count);
 SR_PRIV void *serial_backup_params(int fd);
-SR_PRIV void serial_restore_params(int fd, void *backup);
+SR_PRIV int serial_restore_params(int fd, void *backup);
 SR_PRIV int serial_set_params(int fd, int baudrate, int bits, int parity,
 			      int stopbits, int flowcontrol);
 SR_PRIV int serial_set_paramstr(int fd, const char *paramstr);
