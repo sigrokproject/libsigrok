@@ -126,6 +126,8 @@ SR_PRIV int serial_open(const char *pathname, int flags)
 		 */
 		sr_dbg("Error opening serial port '%s': %s.", pathname,
 		       strerror(errno));
+	} else {
+		sr_dbg("Opened serial port '%s' as FD %d.", pathname, fd);
 	}
 
 	return fd;
