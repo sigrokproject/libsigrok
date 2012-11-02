@@ -143,6 +143,27 @@ static void fancyprint(int unit, int mqflags, float value, GString *out)
 		case SR_UNIT_DECIBEL_VOLT:
 			si_printf(value, out, "dBV");
 			break;
+		case SR_UNIT_DECIBEL_SPL:
+			if (mqflags & SR_MQFLAG_SPL_FREQ_WEIGHT_A)
+				si_printf(value, out, "dB(A)");
+			else if (mqflags & SR_MQFLAG_SPL_FREQ_WEIGHT_C)
+				si_printf(value, out, "dB(C)");
+			else if (mqflags & SR_MQFLAG_SPL_FREQ_WEIGHT_Z)
+				si_printf(value, out, "dB(Z)");
+			else
+				/* No frequency weighting, or non-standard "flat" */
+				si_printf(value, out, "dB(SPL)");
+			if (mqflags & SR_MQFLAG_SPL_TIME_WEIGHT_S)
+				g_string_append(out, " S");
+			else if (mqflags & SR_MQFLAG_SPL_TIME_WEIGHT_F)
+				g_string_append(out, " F");
+			if (mqflags & SR_MQFLAG_SPL_LAT)
+				g_string_append(out, " LAT");
+			else if (mqflags & SR_MQFLAG_SPL_PCT_OVER_ALARM)
+				/* Not a standard function for SLMs, so this is
+				 * a made-up notation. */
+				g_string_append(out, " %oA");
+			break;
 		default:
 			si_printf(value, out, "");
 	}
