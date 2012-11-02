@@ -281,7 +281,7 @@ SR_PRIV void *serial_backup_params(int fd)
 	/* Returns 0 upon success, -1 upon failure. */
 	if (tcgetattr(fd, term) < 0) {
 		sr_err("FD %d: Error getting serial parameters: %s.",
-		       strerror(errno));
+		       fd, strerror(errno));
 		g_free(term);
 		return NULL;
 	}
@@ -311,7 +311,7 @@ SR_PRIV int serial_restore_params(int fd, void *backup)
 	/* Returns 0 upon success, -1 upon failure. */
 	if ((ret = tcsetattr(fd, TCSADRAIN, (struct termios *)backup)) < 0) {
 		sr_err("FD %d: Error restoring serial parameters: %s.",
-		       strerror(errno));
+		       fd, strerror(errno));
 	}
 
 	return ret;
