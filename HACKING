@@ -115,6 +115,18 @@ Random notes
    should end with "_all", e.g. "_remove_all", "_get_all", and so on.
    Use "_remove_all" in favor of "_clear" for consistency.
 
+ - All enums should generally use an explicit start number of 10000.
+   If there are multiple "categories" in the enum entries, each category
+   should be 10000 entries apart from the next one. The start of categories
+   are thus 10000, 20000, 30000, and so on.
+
+   Adding items to an enum MUST always append to a "category", never add
+   items in the middle of a category. The order of items MUST NOT be changed.
+   Any of the above would break the ABI.
+
+   The enum item 0 is special and is used as terminator in some lists, thus
+   enums should not use this for "valid" entries (and start at 10000 instead).
+
 
 Doxygen
 -------
