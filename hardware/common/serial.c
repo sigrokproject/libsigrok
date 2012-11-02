@@ -303,6 +303,11 @@ SR_PRIV int serial_restore_params(int fd, void *backup)
 {
 	sr_dbg("FD %d: Restoring serial parameters from backup.", fd);
 
+	if (!backup) {
+		sr_err("FD %d: Cannot restore serial params (NULL).", fd);
+		return -1;
+	}
+
 #ifdef _WIN32
 	/* TODO */
 #else
@@ -384,7 +389,7 @@ SR_PRIV int serial_set_params(int fd, int baudrate, int bits, int parity,
 
 	sr_dbg("FD %d: Getting terminal settings.", fd);
 	if (tcgetattr(fd, &term) < 0) {
-		sr_err("tcgetattr() error: %ѕ.", strerror(errno));
+		sr_err("tcgetattr() error: %s.", strerror(errno));
 		return SR_ERR;
 	}
 
