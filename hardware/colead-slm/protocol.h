@@ -33,6 +33,11 @@
 #define sr_warn(s, args...) sr_warn(DRIVER_LOG_DOMAIN s, ## args)
 #define sr_err(s, args...) sr_err(DRIVER_LOG_DOMAIN s, ## args)
 
+enum {
+	IDLE,
+	COMMAND_SENT,
+};
+
 /** Private, per-device-instance driver context. */
 struct dev_context {
 	/** The current sampling limit (in number of samples). */
@@ -46,6 +51,11 @@ struct dev_context {
 
 	/** The current number of already received samples. */
 	uint64_t num_samples;
+	struct sr_serial_dev_inst *serial;
+	char *serialcomm;
+	int state;
+	char buf[10];
+	int buflen;
 };
 
 SR_PRIV int colead_slm_receive_data(int fd, int revents, void *cb_data);

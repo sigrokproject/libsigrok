@@ -21,6 +21,30 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 #include "protocol.h"
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <string.h>
+
+static const int hwopts[] = {
+	SR_HWOPT_CONN,
+	SR_HWOPT_SERIALCOMM,
+	0,
+};
+
+static const int hwcaps[] = {
+	SR_HWCAP_SOUNDLEVELMETER,
+	SR_HWCAP_LIMIT_SAMPLES,
+	SR_HWCAP_LIMIT_MSEC,
+	SR_HWCAP_CONTINUOUS,
+	0,
+};
+
+static const char *probe_names[] = {
+	"P1",
+	NULL,
+};
 
 SR_PRIV struct sr_dev_driver colead_slm_driver_info;
 static struct sr_dev_driver *di = &colead_slm_driver_info;
@@ -39,12 +63,9 @@ static int clear_instances(void)
 			continue;
 		if (!(devc = sdi->priv))
 			continue;
-
-		/* TODO */
-
+		sr_serial_dev_inst_free(devc->serial);
 		sr_dev_inst_free(sdi);
 	}
-
 	g_slist_free(drvc->instances);
 	drvc->instances = NULL;
 
@@ -60,8 +81,6 @@ static int hw_init(void)
 		return SR_ERR;
 	}
 
-	/* TODO */
-
 	di->priv = drvc;
 
 	return SR_OK;
@@ -70,15 +89,54 @@ static int hw_init(void)
 static GSList *hw_scan(GSList *options)
 {
 	struct drv_context *drvc;
-	GSList *devices;
-
-	(void)options;
+	struct dev_context *devc;
+	struct sr_dev_inst *sdi;
+	struct sr_hwopt *opt;
+	struct sr_probe *probe;
+	GSList *devices, *l;
+	const char *conn, *serialcomm;
 
 	devices = NULL;
 	drvc = di->priv;
 	drvc->instances = NULL;
 
-	/* TODO */
+	conn = serialcomm = NULL;
+	for (l = options; l; l = l->next) {
+		opt = l->data;
+		switch (opt->hwopt) {
+		case SR_HWOPT_CONN:
+			conn = opt->value;
+			break;
+		case SR_HWOPT_SERIALCOMM:
+			serialcomm = opt->value;
+			break;
+		}
+	}
+	if (!conn)
+		return NULL;
+
+	if (!(sdi = sr_dev_inst_new(0, SR_ST_INACTIVE, "Colead",
+			"SL-5868P", NULL)))
+		return NULL;
+
+	if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
+		sr_dbg("failed to malloc devc");
+		return NULL;
+	}
+
+	if (!serialcomm)
+		/* The Colead SL-5868P uses this. */
+		serialcomm = "2400/8n1";
+
+	devc->serial = sr_serial_dev_inst_new(conn, -1);
+	devc->serialcomm = g_strdup(serialcomm);
+	sdi->priv = devc;
+	sdi->driver = di;
+	if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "P1")))
+		return NULL;
+	sdi->probes = g_slist_append(sdi->probes, probe);
+	drvc->instances = g_slist_append(drvc->instances, sdi);
+	devices = g_slist_append(devices, sdi);
 
 	return devices;
 }
@@ -94,14 +152,43 @@ static GSList *hw_dev_list(void)
 
 static int hw_dev_open(struct sr_dev_inst *sdi)
 {
-	/* TODO */
+	struct dev_context *devc;
+
+	if (!(devc = sdi->priv)) {
+		sr_err("sdi->priv was NULL.");
+		return SR_ERR_BUG;
+	}
+
+	sr_dbg("opening %s with %s", devc->serial->port, devc->serialcomm);
+	devc->serial->fd = serial_open(devc->serial->port, O_RDWR | O_NONBLOCK);
+	if (devc->serial->fd == -1) {
+		sr_err("Couldn't open serial port '%s'.",
+		       devc->serial->port);
+		return SR_ERR;
+	}
+	if (serial_set_paramstr(devc->serial->fd, devc->serialcomm) != SR_OK) {
+		sr_err("Unable to set serial parameters.");
+		return SR_ERR;
+	}
+	sdi->status = SR_ST_ACTIVE;
 
 	return SR_OK;
 }
 
 static int hw_dev_close(struct sr_dev_inst *sdi)
 {
-	/* TODO */
+	struct dev_context *devc;
+
+	if (!(devc = sdi->priv)) {
+		sr_err("sdi->priv was NULL.");
+		return SR_ERR_BUG;
+	}
+
+	if (devc->serial && devc->serial->fd != -1) {
+		serial_close(devc->serial->fd);
+		devc->serial->fd = -1;
+		sdi->status = SR_ST_INACTIVE;
+	}
 
 	return SR_OK;
 }
@@ -110,18 +197,29 @@ static int hw_cleanup(void)
 {
 	clear_instances();
 
-	/* TODO */
-
 	return SR_OK;
 }
 
 static int hw_info_get(int info_id, const void **data,
 		       const struct sr_dev_inst *sdi)
 {
+	
+	(void)sdi;
+
 	switch (info_id) {
-	/* TODO */
+	case SR_DI_HWOPTS:
+		*data = hwopts;
+		break;
+	case SR_DI_HWCAPS:
+		*data = hwcaps;
+		break;
+	case SR_DI_NUM_PROBES:
+		*data = GINT_TO_POINTER(1);
+		break;
+	case SR_DI_PROBE_NAMES:
+		*data = probe_names;
+		break;
 	default:
-		sr_err("Unknown info_id: %d.", info_id);
 		return SR_ERR_ARG;
 	}
 
@@ -131,28 +229,76 @@ static int hw_info_get(int info_id, const void **data,
 static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 			     const void *value)
 {
-	int ret;
+	struct dev_context *devc;
 
-	if (sdi->status != SR_ST_ACTIVE) {
-		sr_err("Device inactive, can't set config options.");
+	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR;
+
+	if (!(devc = sdi->priv)) {
+		sr_err("sdi->priv was NULL.");
+		return SR_ERR_BUG;
 	}
 
-	ret = SR_OK;
 	switch (hwcap) {
-	/* TODO */
+	case SR_HWCAP_LIMIT_MSEC:
+		/* TODO: not yet implemented */
+		if (*(const uint64_t *)value == 0) {
+			sr_err("LIMIT_MSEC can't be 0.");
+			return SR_ERR;
+		}
+		devc->limit_msec = *(const uint64_t *)value;
+		sr_dbg("Setting time limit to %" PRIu64 "ms.",
+		       devc->limit_msec);
+		break;
+	case SR_HWCAP_LIMIT_SAMPLES:
+		devc->limit_samples = *(const uint64_t *)value;
+		sr_dbg("Setting sample limit to %" PRIu64 ".",
+		       devc->limit_samples);
+		break;
 	default:
-		sr_err("Unknown hardware capability: %d.", hwcap);
-		ret = SR_ERR_ARG;
+		sr_err("Unknown capability: %d.", hwcap);
+		return SR_ERR;
+		break;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 				    void *cb_data)
 {
-	/* TODO */
+	struct sr_datafeed_packet packet;
+	struct sr_datafeed_header header;
+	struct sr_datafeed_meta_analog meta;
+	struct dev_context *devc;
+
+	if (!(devc = sdi->priv)) {
+		sr_err("sdi->priv was NULL.");
+		return SR_ERR_BUG;
+	}
+
+	sr_dbg("Starting acquisition.");
+
+	devc->cb_data = cb_data;
+
+	/* Send header packet to the session bus. */
+	sr_dbg("Sending SR_DF_HEADER.");
+	packet.type = SR_DF_HEADER;
+	packet.payload = (uint8_t *)&header;
+	header.feed_version = 1;
+	gettimeofday(&header.starttime, NULL);
+	sr_session_send(devc->cb_data, &packet);
+
+	/* Send metadata about the SR_DF_ANALOG packets to come. */
+	sr_dbg("Sending SR_DF_META_ANALOG.");
+	packet.type = SR_DF_META_ANALOG;
+	packet.payload = &meta;
+	meta.num_probes = 1;
+	sr_session_send(devc->cb_data, &packet);
+
+	/* Poll every 150ms, or whenever some data comes in. */
+	sr_source_add(devc->serial->fd, G_IO_IN, 150, colead_slm_receive_data,
+			(void *)sdi);
 
 	return SR_OK;
 }
@@ -160,14 +306,26 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 static int hw_dev_acquisition_stop(const struct sr_dev_inst *sdi,
 				   void *cb_data)
 {
-	(void)cb_data;
+	struct sr_datafeed_packet packet;
+	struct dev_context *devc;
 
-	if (sdi->status != SR_ST_ACTIVE) {
-		sr_err("Device inactive, can't stop acquisition.");
+	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR;
+
+	if (!(devc = sdi->priv)) {
+		sr_err("sdi->priv was NULL.");
+		return SR_ERR_BUG;
 	}
 
-	/* TODO */
+	sr_dbg("Stopping acquisition.");
+
+	sr_source_remove(devc->serial->fd);
+	hw_dev_close((struct sr_dev_inst *)sdi);
+
+	/* Send end packet to the session bus. */
+	sr_dbg("Sending SR_DF_END.");
+	packet.type = SR_DF_END;
+	sr_session_send(cb_data, &packet);
 
 	return SR_OK;
 }
