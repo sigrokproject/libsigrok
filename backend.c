@@ -249,9 +249,12 @@ SR_API int sr_init(struct sr_context **ctx)
 #endif
 
 	*ctx = context;
+	context = NULL;
 	ret = SR_OK;
 
 done:
+	if (context)
+		g_free(context);
 	return ret;
 }
 
