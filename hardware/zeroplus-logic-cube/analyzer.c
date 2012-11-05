@@ -110,11 +110,11 @@ static int g_trigger_count = 1;
 static int g_filter_status[8] = { 0 };
 static int g_filter_enable = 0;
 
-static int g_freq_value = 100;
+static int g_freq_value = 1;
 static int g_freq_scale = FREQ_SCALE_MHZ;
-static int g_memory_size = MEMORY_SIZE_512K;
-static int g_ramsize_triggerbar_addr = 0x80000 >> 2;
-static int g_triggerbar_addr = 0x3fe;
+static int g_memory_size = MEMORY_SIZE_8K;
+static int g_ramsize_triggerbar_addr = 2 * 1024;
+static int g_triggerbar_addr = 0;
 static int g_compression = COMPRESSION_NONE;
 
 /* Maybe unk specifies an "endpoint" or "register" of sorts. */
@@ -125,6 +125,7 @@ static int analyzer_write_status(libusb_device_handle *devh, unsigned char unk,
 	return gl_reg_write(devh, START_STATUS, unk << 6 | flags);
 }
 
+#if 0
 static int __analyzer_set_freq(libusb_device_handle *devh, int freq, int scale)
 {
 	int reg0 = 0, divisor = 0, reg2 = 0;
@@ -257,6 +258,80 @@ static int __analyzer_set_freq(libusb_device_handle *devh, int freq, int scale)
 		return -1; /* Always 2 */
 
 	if (gl_reg_write(devh, FREQUENCY_REG4, reg2) < 0)
+		return -1;
+
+	return 0;
+}
+#endif
+
+/*
+ * It seems that ...
+ *	FREQUENCT_REG0 - division factor (?)
+ *	FREQUENCT_REG1 - multiplication factor (?)
+ *	FREQUENCT_REG4 - clock selection (?)
+ *
+ *	clock selection
+ *	0  10MHz  16   1MHz  32 100kHz  48  10kHz  64   1kHz
+ *	1   5MHz  17 500kHz  33  50kHz  49   5kHz  65  500Hz
+ *	2 2.5MHz   .          .         50 2.5kHz  66  250Hz
+ *	.          .          .          .         67  125Hz
+ *	.          .          .          .         68 62.5Hz
+ */
+static int __analyzer_set_freq(libusb_device_handle *devh, int freq, int scale)
+{
+	struct freq_factor {
+		int freq;
+		int scale;
+		int sel;
+		int div;
+		int mul;
+	};
+
+	static const struct freq_factor f[] = {
+		{ 200, FREQ_SCALE_MHZ,  0,  1, 20 },
+		{ 150, FREQ_SCALE_MHZ,  0,  1, 15 },
+		{ 100, FREQ_SCALE_MHZ,  0,  1, 10 },
+		{  80, FREQ_SCALE_MHZ,  0,  2, 16 },
+		{  50, FREQ_SCALE_MHZ,  0,  2, 10 },
+		{  25, FREQ_SCALE_MHZ,  1,  5, 25 },
+		{  10, FREQ_SCALE_MHZ,  1,  5, 10 },
+		{   1, FREQ_SCALE_MHZ, 16,  5,  5 },
+		{ 800, FREQ_SCALE_KHZ, 17,  5,  8 },
+		{ 400, FREQ_SCALE_KHZ, 32,  5, 20 },
+		{ 200, FREQ_SCALE_KHZ, 32,  5, 10 },
+		{ 100, FREQ_SCALE_KHZ, 32,  5,  5 },
+		{  50, FREQ_SCALE_KHZ, 33,  5,  5 },
+		{  25, FREQ_SCALE_KHZ, 49,  5, 25 },
+		{   5, FREQ_SCALE_KHZ, 50,  5, 10 },
+		{   1, FREQ_SCALE_KHZ, 64,  5,  5 },
+		{ 500, FREQ_SCALE_HZ,  64, 10,  5 },
+		{ 100, FREQ_SCALE_HZ,  68,  5,  8 },
+		{   0, 0,              0,   0,  0 }
+	};
+
+	int i;
+
+	for (i = 0; f[i].freq; i++) {
+		if (scale == f[i].scale && freq == f[i].freq)
+			break;
+	}
+	if (!f[i].freq)
+		return -1;
+
+	sr_dbg("zp: Setting samplerate regs (freq=%d, scale=%d): "
+	       "reg0: %d, reg1: %d, reg2: %d, reg3: %d.",
+	       freq, scale, f[i].div, f[i].mul, 0x02, f[i].sel);
+
+	if (gl_reg_write(devh, FREQUENCY_REG0, f[i].div) < 0)
+		return -1;
+
+	if (gl_reg_write(devh, FREQUENCY_REG1, f[i].mul) < 0)
+		return -1;
+
+	if (gl_reg_write(devh, FREQUENCY_REG2, 0x02) < 0)
+		return -1;
+
+	if (gl_reg_write(devh, FREQUENCY_REG4, f[i].sel) < 0)
 		return -1;
 
 	return 0;
@@ -399,7 +474,10 @@ SR_PRIV void analyzer_configure(libusb_device_handle *devh)
 	__analyzer_set_triggerbar_address(devh, g_triggerbar_addr);
 
 	/* Set_Dont_Care_TriggerBar */
-	gl_reg_write(devh, DONT_CARE_TRIGGERBAR, 0x01);
+	if (g_triggerbar_addr)
+		gl_reg_write(devh, DONT_CARE_TRIGGERBAR, 0x00);
+	else
+		gl_reg_write(devh, DONT_CARE_TRIGGERBAR, 0x01);
 
 	/* Enable_Status */
 	analyzer_set_filter(devh);
@@ -413,44 +491,26 @@ SR_PRIV void analyzer_configure(libusb_device_handle *devh)
 
 SR_PRIV void analyzer_add_trigger(int channel, int type)
 {
-	int i;
-
-	if ((channel & 0xf) >= 8)
-		return;
-
-	if (type == TRIGGER_HIGH || type == TRIGGER_LOW) {
-		if (channel & CHANNEL_A)
-			i = 0;
-		else if (channel & CHANNEL_B)
-			i = 2;
-		else if (channel & CHANNEL_C)
-			i = 4;
-		else if (channel & CHANNEL_D)
-			i = 6;
-		else
-			return;
-		if ((channel & 0xf) >= 4) {
-			i++;
-			channel -= 4;
-		}
-		g_trigger_status[i] |=
-		    1 << ((2 * channel) + (type == TRIGGER_LOW ? 1 : 0));
-	} else {
-		if (type == TRIGGER_POSEDGE)
-			g_trigger_status[8] = 0x40;
-		else if (type == TRIGGER_NEGEDGE)
-			g_trigger_status[8] = 0x80;
-		else
-			g_trigger_status[8] = 0xc0;
-
-		/* FIXME: Just guessed the index; need to verify. */
-		if (channel & CHANNEL_B)
-			g_trigger_status[8] += 8;
-		else if (channel & CHANNEL_C)
-			g_trigger_status[8] += 16;
-		else if (channel & CHANNEL_D)
-			g_trigger_status[8] += 24;
-		g_trigger_status[8] += channel % 8;
+	switch (type) {
+	case TRIGGER_HIGH:
+		g_trigger_status[channel / 4] |= 1 << (channel % 4 * 2);
+		break;
+	case TRIGGER_LOW:
+		g_trigger_status[channel / 4] |= 2 << (channel % 4 * 2);
+		break;
+#if 0
+	case TRIGGER_POSEDGE:
+		g_trigger_status[8] = 0x40 | channel;
+		break;
+	case TRIGGER_NEGEDGE:
+		g_trigger_status[8] = 0x80 | channel;
+		break;
+	case TRIGGER_ANYEDGE:
+		g_trigger_status[8] = 0xc0 | channel;
+		break;
+#endif
+	default:
+		break;
 	}
 }
 
@@ -509,6 +569,11 @@ SR_PRIV void analyzer_set_ramsize_trigger_address(unsigned int address)
 SR_PRIV void analyzer_set_triggerbar_address(unsigned int address)
 {
 	g_triggerbar_addr = address;
+}
+
+SR_PRIV unsigned int analyzer_read_status(libusb_device_handle *devh)
+{
+	return gl_reg_read(devh, DEV_STATUS);
 }
 
 SR_PRIV unsigned int analyzer_read_id(libusb_device_handle *devh)

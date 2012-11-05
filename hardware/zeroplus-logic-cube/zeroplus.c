@@ -42,6 +42,8 @@
 
 #define PACKET_SIZE			2048	/* ?? */
 
+//#define ZP_EXPERIMENTAL
+
 typedef struct {
 	unsigned short vid;
 	unsigned short pid;
@@ -149,20 +151,22 @@ static const struct sr_samplerates samplerates = {
 /* Private, per-device-instance driver context. */
 struct dev_context {
 	uint64_t cur_samplerate;
+	uint64_t max_samplerate;
 	uint64_t limit_samples;
 	int num_channels; /* TODO: This isn't initialized before it's needed :( */
-	uint64_t memory_size;
-	uint8_t probe_mask;
-	uint8_t trigger_mask[NUM_TRIGGER_STAGES];
-	uint8_t trigger_value[NUM_TRIGGER_STAGES];
+	int memory_size;
+	unsigned int max_memory_size;
+	//uint8_t probe_mask;
+	//uint8_t trigger_mask[NUM_TRIGGER_STAGES];
+	//uint8_t trigger_value[NUM_TRIGGER_STAGES];
 	// uint8_t trigger_buffer[NUM_TRIGGER_STAGES];
+	int trigger;
+	unsigned int capture_ratio;
 
 	/* TODO: this belongs in the device instance */
 	struct sr_usb_dev_inst *usb;
 };
 
-static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
-		const void *value);
 static int hw_dev_close(struct sr_dev_inst *sdi);
 
 static unsigned int get_memory_size(int type)
@@ -179,6 +183,7 @@ static unsigned int get_memory_size(int type)
 		return 0;
 }
 
+#if 0
 static int configure_probes(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
@@ -214,6 +219,53 @@ static int configure_probes(const struct sr_dev_inst *sdi)
 				if (stage > NUM_TRIGGER_STAGES)
 					return SR_ERR;
 			}
+		}
+	}
+
+	return SR_OK;
+}
+#endif
+
+static int configure_probes(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	const GSList *l;
+	const struct sr_probe *probe;
+	char *tc;
+	int type;
+
+	/* Note: sdi and sdi->priv are non-NULL, the caller checked this. */
+	devc = sdi->priv;
+
+	for (l = sdi->probes; l; l = l->next) {
+		probe = (struct sr_probe *)l->data;
+		if (probe->enabled == FALSE)
+			continue;
+
+		if ((tc = probe->trigger)) {
+			switch (*tc) {
+			case '1':
+				type = TRIGGER_HIGH;
+				break;
+			case '0':
+				type = TRIGGER_LOW;
+				break;
+#if 0
+			case 'r':
+				type = TRIGGER_POSEDGE;
+				break;
+			case 'f':
+				type = TRIGGER_NEGEDGE;
+				break;
+			case 'c':
+				type = TRIGGER_ANYEDGE;
+				break;
+#endif
+			default:
+				return SR_ERR;
+			}
+			analyzer_add_trigger(probe->index, type);
+			devc->trigger = 1;
 		}
 	}
 
@@ -325,7 +377,15 @@ static GSList *hw_scan(GSList *options)
 		}
 		sdi->priv = devc;
 		devc->num_channels = prof->channels;
-		devc->memory_size = prof->sample_depth * 1024;
+#ifdef ZP_EXPERIMENTAL
+		devc->max_memory_size = 128 * 1024;
+		devc->max_samplerate = 200;
+#else
+		devc->max_memory_size = prof->sample_depth * 1024;
+		devc->max_samplerate = prof->max_sampling_freq;
+#endif
+		devc->max_samplerate *= SR_MHZ(1);
+		devc->memory_size = MEMORY_SIZE_8K;
 		// memset(devc->trigger_buffer, 0, NUM_TRIGGER_STAGES);
 
 		/* Fill in probelist according to this device's profile. */
@@ -418,16 +478,18 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
+	/* Set default configuration after power on */
+	if (analyzer_read_status(devc->usb->devhdl) == 0)
+		analyzer_configure(devc->usb->devhdl);
+
 	analyzer_reset(devc->usb->devhdl);
 	analyzer_initialize(devc->usb->devhdl);
 
-	analyzer_set_memory_size(MEMORY_SIZE_512K);
+	//analyzer_set_memory_size(MEMORY_SIZE_512K);
 	// analyzer_set_freq(g_freq, g_freq_scale);
 	analyzer_set_trigger_count(1);
 	// analyzer_set_ramsize_trigger_address((((100 - g_pre_trigger)
 	// * get_memory_size(g_memory_size)) / 100) >> 2);
-	analyzer_set_ramsize_trigger_address(
-		(100 * get_memory_size(MEMORY_SIZE_512K) / 100) >> 2);
 
 #if 0
 	if (g_double_mode == 1)
@@ -439,10 +501,9 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 	analyzer_set_compression(COMPRESSION_NONE);
 
 	if (devc->cur_samplerate == 0) {
-		/* Samplerate hasn't been set. Default to the slowest one. */
-		if (hw_dev_config_set(sdi, SR_HWCAP_SAMPLERATE,
-		     &samplerates.list[0]) == SR_ERR)
-			return SR_ERR;
+		/* Samplerate hasn't been set. Default to 1MHz. */
+		analyzer_set_freq(1, FREQ_SCALE_MHZ);
+		devc->cur_samplerate = SR_MHZ(1);
 	}
 
 	return SR_OK;
@@ -533,7 +594,70 @@ static int hw_info_get(int info_id, const void **data,
 	return SR_OK;
 }
 
-static int set_samplerate(const struct sr_dev_inst *sdi, uint64_t samplerate)
+static int set_samplerate(struct dev_context *devc, uint64_t samplerate)
+{
+	int i;
+
+	for (i = 0; supported_samplerates[i]; i++)
+		if (samplerate == supported_samplerates[i])
+			break;
+	if (!supported_samplerates[i] || samplerate > devc->max_samplerate) {
+		sr_err("zp: %s: unsupported samplerate", __func__);
+		return SR_ERR_ARG;
+	}
+
+	sr_info("zp: Setting samplerate to %" PRIu64 "Hz.", samplerate);
+
+	if (samplerate >= SR_MHZ(1))
+		analyzer_set_freq(samplerate / SR_MHZ(1), FREQ_SCALE_MHZ);
+	else if (samplerate >= SR_KHZ(1))
+		analyzer_set_freq(samplerate / SR_KHZ(1), FREQ_SCALE_KHZ);
+	else
+		analyzer_set_freq(samplerate, FREQ_SCALE_HZ);
+
+	devc->cur_samplerate = samplerate;
+
+	return SR_OK;
+}
+
+static int set_limit_samples(struct dev_context *devc, uint64_t samples)
+{
+	devc->limit_samples = samples;
+
+	if (samples <= 2 * 1024)
+		devc->memory_size = MEMORY_SIZE_8K;
+	else if (samples <= 16 * 1024)
+		devc->memory_size = MEMORY_SIZE_64K;
+	else if (samples <= 32 * 1024 ||
+		 devc->max_memory_size <= 32 * 1024)
+		devc->memory_size = MEMORY_SIZE_128K;
+	else
+		devc->memory_size = MEMORY_SIZE_512K;
+
+	sr_info("zp: Setting memory size to %dK.",
+		get_memory_size(devc->memory_size) / 1024);
+
+	analyzer_set_memory_size(devc->memory_size);
+
+	return SR_OK;
+}
+
+static int set_capture_ratio(struct dev_context *devc, uint64_t ratio)
+{
+	if (ratio > 100) {
+		sr_err("zp: %s: invalid capture ratio", __func__);
+		return SR_ERR_ARG;
+	}
+
+	devc->capture_ratio = ratio;
+
+	sr_info("zp: Setting capture ratio to %d%%.", devc->capture_ratio);
+
+	return SR_OK;
+}
+
+static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
+			     const void *value)
 {
 	struct dev_context *devc;
 
@@ -547,39 +671,45 @@ static int set_samplerate(const struct sr_dev_inst *sdi, uint64_t samplerate)
 		return SR_ERR_ARG;
 	}
 
-	sr_info("zp: Setting samplerate to %" PRIu64 "Hz.", samplerate);
-
-	if (samplerate > SR_MHZ(1))
-		analyzer_set_freq(samplerate / SR_MHZ(1), FREQ_SCALE_MHZ);
-	else if (samplerate > SR_KHZ(1))
-		analyzer_set_freq(samplerate / SR_KHZ(1), FREQ_SCALE_KHZ);
-	else
-		analyzer_set_freq(samplerate, FREQ_SCALE_HZ);
-
-	devc->cur_samplerate = samplerate;
-
-	return SR_OK;
-}
-
-static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
-		const void *value)
-{
-	struct dev_context *devc;
-
-	if (!(devc = sdi->priv)) {
-		sr_err("zp: %s: sdi->priv was NULL", __func__);
-		return SR_ERR_ARG;
-	}
-
 	switch (hwcap) {
 	case SR_HWCAP_SAMPLERATE:
-		return set_samplerate(sdi, *(const uint64_t *)value);
+		return set_samplerate(devc, *(const uint64_t *)value);
 	case SR_HWCAP_LIMIT_SAMPLES:
-		devc->limit_samples = *(const uint64_t *)value;
-		return SR_OK;
+		return set_limit_samples(devc, *(const uint64_t *)value);
+	case SR_HWCAP_CAPTURE_RATIO:
+		return set_capture_ratio(devc, *(const uint64_t *)value);
 	default:
 		return SR_ERR;
 	}
+}
+
+static void set_triggerbar(struct dev_context *devc)
+{
+	unsigned int ramsize;
+	unsigned int n;
+	unsigned int triggerbar;
+
+	ramsize = get_memory_size(devc->memory_size) / 4;
+	if (devc->trigger) {
+		n = ramsize;
+		if (devc->max_memory_size < n)
+			n = devc->max_memory_size;
+		if (devc->limit_samples < n)
+			n = devc->limit_samples;
+		n = n * devc->capture_ratio / 100;
+		if (n > ramsize - 8)
+			triggerbar = ramsize - 8;
+		else
+			triggerbar = n;
+	} else {
+		triggerbar = 0;
+	}
+	analyzer_set_triggerbar_address(triggerbar);
+	analyzer_set_ramsize_trigger_address(ramsize - triggerbar);
+
+	sr_dbg("zp: triggerbar_address = %d(0x%x)", triggerbar, triggerbar);
+	sr_dbg("zp: ramsize_triggerbar_address = %d(0x%x)",
+	       ramsize - triggerbar, ramsize - triggerbar);
 }
 
 static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
@@ -589,9 +719,10 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	struct sr_datafeed_logic logic;
 	struct sr_datafeed_header header;
 	struct sr_datafeed_meta_logic meta;
-	uint64_t samples_read;
+	//uint64_t samples_read;
 	int res;
 	unsigned int packet_num;
+	unsigned int n;
 	unsigned char *buf;
 	struct dev_context *devc;
 
@@ -604,6 +735,8 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 		sr_err("zp: failed to configured probes");
 		return SR_ERR;
 	}
+
+	set_triggerbar(devc);
 
 	/* push configured settings to device */
 	analyzer_configure(devc->usb->devhdl);
@@ -637,13 +770,15 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 		return SR_ERR_MALLOC;
 	}
 
-	samples_read = 0;
+	//samples_read = 0;
 	analyzer_read_start(devc->usb->devhdl);
 	/* Send the incoming transfer to the session bus. */
-	for (packet_num = 0; packet_num < (devc->memory_size * 4 / PACKET_SIZE);
-	     packet_num++) {
+	n = get_memory_size(devc->memory_size);
+	if (devc->max_memory_size * 4 < n)
+		n = devc->max_memory_size * 4;
+	for (packet_num = 0; packet_num < n / PACKET_SIZE; packet_num++) {
 		res = analyzer_read_data(devc->usb->devhdl, buf, PACKET_SIZE);
-		sr_info("zp: Tried to read %llx bytes, actually read %x bytes",
+		sr_info("zp: Tried to read %d bytes, actually read %d bytes",
 			PACKET_SIZE, res);
 
 		packet.type = SR_DF_LOGIC;
@@ -652,7 +787,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 		logic.unitsize = 4;
 		logic.data = buf;
 		sr_session_send(cb_data, &packet);
-		samples_read += res / 4;
+		//samples_read += res / 4;
 	}
 	analyzer_read_stop(devc->usb->devhdl);
 	g_free(buf);

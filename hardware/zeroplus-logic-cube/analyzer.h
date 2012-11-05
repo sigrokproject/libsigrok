@@ -85,6 +85,7 @@ SR_PRIV void analyzer_add_trigger(int channel, int type);
 SR_PRIV void analyzer_set_trigger_count(int count);
 SR_PRIV void analyzer_add_filter(int channel, int type);
 
+SR_PRIV unsigned int analyzer_read_status(libusb_device_handle *devh);
 SR_PRIV unsigned int analyzer_read_id(libusb_device_handle *devh);
 SR_PRIV unsigned int analyzer_get_stop_address(libusb_device_handle *devh);
 SR_PRIV unsigned int analyzer_get_now_address(libusb_device_handle *devh);
