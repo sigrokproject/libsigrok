@@ -94,73 +94,86 @@ static int hw_init(void)
 typedef gboolean (*packet_valid_t)(const uint8_t *buf);
 
 /**
- * Try to find a valid packet in a serial data stream
+ * Try to find a valid packet in a serial data stream.
  *
- * @param fd File descriptor of the serial port.
+ * @param serial Previously initialized serial port structure.
  * @param buf Buffer containing the bytes to write.
  * @param count Size of the buffer.
- * @param packet_size Size, in bytes, of a valid packet
- * @param is_valid callback that assesses whether the packet is valid or not
- * @param timeout_ms the timeout after which, if no packet is detected, to abort
- *                   scanning.
- * @param baudrate the baudrate of the serial port. This parameter is not
+ * @param packet_size Size, in bytes, of a valid packet.
+ * @param is_valid Callback that assesses whether the packet is valid or not.
+ * @param timeout_ms The timeout after which, if no packet is detected, to
+ *                   abort scanning.
+ * @param baudrate The baudrate of the serial port. This parameter is not
  *                 critical, but it helps fine tune the serial port polling
- *                 delay
+ *                 delay.
  *
- * @return SR_OK if a valid packet is found within he given timeout,
+ * @return SR_OK if a valid packet is found within the given timeout,
  *         SR_ERR upon failure.
  */
 static int serial_stream_detect(struct sr_serial_dev_inst *serial,
 				uint8_t *buf, size_t *buflen,
-				const size_t packet_size,
-				packet_valid_t is_valid,
+				size_t packet_size, packet_valid_t is_valid,
 				uint64_t timeout_ms, int baudrate)
 {
-	uint64_t start;
-	uint64_t time;
-	uint64_t byte_delay_us;
-	size_t ibuf, i;
+	uint64_t start, time, byte_delay_us;
+	size_t ibuf, i, maxlen;
 	int len;
-	const size_t maxlen = *buflen;
 
-	if(maxlen < (packet_size << 1) ) {
-		sr_err("Buffer size must be at least twice the packet size");
+	maxlen = *buflen;
+
+	sr_dbg("Detecting packets on FD %d (timeout = %" PRIu64
+	       "ms, baudrate = %d).", serial->fd, timeout_ms, baudrate);
+
+	if (maxlen < (packet_size / 2) ) {
+		sr_err("Buffer size must be at least twice the packet size.");
 		return SR_ERR;
 	}
 
 	timeout_ms *= 1000;
-	/* Assume 8n1 transmission. That is 10 bits for every byte */
-	byte_delay_us = 10000000 / baudrate;
+
+	/* Assume 8n1 transmission. That is 10 bits for every byte. */
+	byte_delay_us = 10 * (1000000 / baudrate);
 	start = g_get_monotonic_time();
 
 	i = ibuf = len = 0;
 	while (ibuf < maxlen) {
 		len = serial_read(serial, &buf[ibuf], 1);
-		if (len > 0)
-			ibuf+= len;
+		if (len > 0) {
+			ibuf += len;
+		} else if (len == 0) {
+			sr_spew("Error: Only read 0 bytes.");
+		} else {
+			/* Error reading byte, but continuing anyway. */
+		}
 		if ((ibuf - i) >= packet_size) {
-			/* We have at least a packet's worth of data */
+			/* We have at least a packet's worth of data. */
 			if (is_valid(&buf[i])) {
-				time = g_get_monotonic_time()-start;
+				time = g_get_monotonic_time() - start;
 				time /= 1000;
-				sr_spew("Serial detection took %li ms", time);
+				sr_spew("Found valid %d-byte packet after "
+					"%" PRIu64 "ms.", (ibuf - i), time);
 				*buflen = ibuf;
 				return SR_OK;
+			} else {
+				sr_spew("Got %d bytes, but not a valid "
+					"packet.", (ibuf - i));
 			}
-			/* Not a valid packet; continue searching */
+			/* Not a valid packet. Continue searching. */
 			i++;
 		}
 		if (g_get_monotonic_time() - start > timeout_ms) {
 			/* Timeout */
-			sr_warn("Serial detection timeout");
+			sr_dbg("Detection timed out after %dms.", timeout_ms);
 			break;
 		}
 		g_usleep(byte_delay_us);
 	}
 
 	*buflen = ibuf;
-	return SR_ERR;
 
+	sr_err("Didn't find a valid packet (read %d bytes).", *buflen);
+
+	return SR_ERR;
 }
 
 static GSList *lcd14_scan(const char *conn, const char *serialcomm)
@@ -178,7 +191,7 @@ static GSList *lcd14_scan(const char *conn, const char *serialcomm)
 	if (!(serial = sr_serial_dev_inst_new(conn, serialcomm)))
 		return NULL;
 
-	if (serial_open(serial, O_RDONLY|O_NONBLOCK) != SR_OK)
+	if (serial_open(serial, O_RDONLY | O_NONBLOCK) != SR_OK)
 		return NULL;
 
 	sr_info("Probing port %s readonly.", conn);
@@ -209,16 +222,15 @@ static GSList *lcd14_scan(const char *conn, const char *serialcomm)
 	 * the serial port or USB to serial adapter.
 	 */
 	dropped = len - FS9721_PACKET_SIZE;
-	if (dropped > 2 * FS9721_PACKET_SIZE) {
-
-		sr_warn("Had to drop too much data");
-	}
+	if (dropped > 2 * FS9721_PACKET_SIZE)
+		sr_warn("Had to drop too much data.");
 
 	sr_info("Found device on port %s.", conn);
 
 	if (!(sdi = sr_dev_inst_new(0, SR_ST_INACTIVE, "TekPower",
 				    "TP4000ZC", "")))
 		goto scan_cleanup;
+
 	if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
 		sr_err("Device context malloc failed.");
 		goto scan_cleanup;

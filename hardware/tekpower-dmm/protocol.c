@@ -29,6 +29,14 @@
 /* User-defined FS9721_LP3 flag 'c2c1_10' means temperature on this DMM. */
 #define is_temperature info.is_c2c1_10
 
+static void log_dmm_packet(const uint8_t *buf)
+{
+	sr_dbg("DMM packet: %02x %02x %02x %02x %02x %02x %02x"
+	       " %02x %02x %02x %02x %02x %02x %02x",
+	       buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6],
+	       buf[7], buf[8], buf[9], buf[10], buf[11], buf[12], buf[13]);
+}
+
 /* Now see what the value means, and pass that on. */
 static void fs9721_serial_handle_packet(const uint8_t *buf,
 					struct dev_context *devc)
@@ -37,6 +45,8 @@ static void fs9721_serial_handle_packet(const uint8_t *buf,
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog *analog;
 	struct fs9721_info info;
+
+	log_dmm_packet(buf);
 
 	if (!(analog = g_try_malloc0(sizeof(struct sr_datafeed_analog)))) {
 		sr_err("Analog packet malloc failed.");
@@ -121,6 +131,7 @@ SR_PRIV int tekpower_dmm_receive_data(int fd, int revents, void *cb_data)
 	}
 
 	if (devc->num_samples >= devc->limit_samples) {
+		sr_info("Requested number of samples reached, stopping.");
 		sdi->driver->dev_acquisition_stop(sdi, cb_data);
 		return TRUE;
 	}
