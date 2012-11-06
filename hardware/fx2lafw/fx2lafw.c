@@ -143,8 +143,7 @@ static struct sr_dev_driver *fdi = &fx2lafw_driver_info;
 static int hw_dev_close(struct sr_dev_inst *sdi);
 static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		const void *value);
-static int hw_dev_acquisition_stop(const struct sr_dev_inst *sdi,
-		void *cb_data);
+static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);
 
 /**
  * Check the USB configuration to determine if this is an fx2lafw device.
@@ -1027,8 +1026,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 }
 
 /* TODO: This stops acquisition on ALL devices, ignoring dev_index. */
-static int hw_dev_acquisition_stop(const struct sr_dev_inst *sdi,
-		void *cb_data)
+static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
 
 	/* Avoid compiler warnings. */

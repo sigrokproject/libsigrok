@@ -145,8 +145,7 @@ static const char *coupling[] = {
 
 SR_PRIV struct sr_dev_driver hantek_dso_driver_info;
 static struct sr_dev_driver *hdi = &hantek_dso_driver_info;
-static int hw_dev_acquisition_stop(const struct sr_dev_inst *sdi,
-		void *cb_data);
+static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);
 
 static struct sr_dev_inst *dso_dev_new(int index, const struct dso_profile *prof)
 {
@@ -886,8 +885,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-static int hw_dev_acquisition_stop(const struct sr_dev_inst *sdi,
-		void *cb_data)
+static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
 	struct dev_context *devc;
 

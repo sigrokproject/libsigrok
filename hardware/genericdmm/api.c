@@ -63,8 +63,7 @@ SR_PRIV struct sr_dev_driver genericdmm_driver_info;
 static struct sr_dev_driver *gdi = &genericdmm_driver_info;
 /* TODO need a way to keep this local to the static library */
 static libusb_context *genericdmm_usb_context = NULL;
-static int hw_dev_acquisition_stop(const struct sr_dev_inst *sdi,
-		void *cb_data);
+static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);
 
 static GSList *connect_serial(const char *conn, const char *serialcomm)
 {
@@ -556,8 +555,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-static int hw_dev_acquisition_stop(const struct sr_dev_inst *sdi,
-		void *cb_data)
+static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
 	struct sr_datafeed_packet packet;
 

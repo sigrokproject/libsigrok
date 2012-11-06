@@ -547,6 +547,8 @@ enum {
 	SR_ST_INACTIVE,
 	/** The device instance is actively in use in a session. */
 	SR_ST_ACTIVE,
+	/** The device is winding down its session. */
+	SR_ST_STOPPING,
 };
 
 /*
@@ -618,7 +620,7 @@ struct sr_dev_driver {
 			const void *value);
 	int (*dev_acquisition_start) (const struct sr_dev_inst *sdi,
 			void *cb_data);
-	int (*dev_acquisition_stop) (const struct sr_dev_inst *sdi,
+	int (*dev_acquisition_stop) (struct sr_dev_inst *sdi,
 			void *cb_data);
 
 	/* Dynamic */

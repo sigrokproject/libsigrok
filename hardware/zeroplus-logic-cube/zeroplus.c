@@ -799,8 +799,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 }
 
 /* TODO: This stops acquisition on ALL devices, ignoring dev_index. */
-static int hw_dev_acquisition_stop(const struct sr_dev_inst *sdi,
-		void *cb_data)
+static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
 	struct sr_datafeed_packet packet;
 	struct dev_context *devc;

@@ -42,6 +42,7 @@
 
 SR_PRIV struct sr_dev_driver asix_sigma_driver_info;
 static struct sr_dev_driver *adi = &asix_sigma_driver_info;
+static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);
 
 static const uint64_t supported_samplerates[] = {
 	SR_KHZ(200),
@@ -121,9 +122,6 @@ static const char *firmware_files[] = {
 	"asix-sigma-50sync.fw",	/* Synchronous clock from pin */
 	"asix-sigma-phasor.fw",	/* Frequency counter */
 };
-
-static int hw_dev_acquisition_stop(const struct sr_dev_inst *sdi,
-		void *cb_data);
 
 static int sigma_read(void *buf, size_t size, struct dev_context *devc)
 {
@@ -1419,8 +1417,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-static int hw_dev_acquisition_stop(const struct sr_dev_inst *sdi,
-		void *cb_data)
+static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
 	struct dev_context *devc;
 	uint8_t modestatus;
