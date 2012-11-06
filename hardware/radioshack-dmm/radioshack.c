@@ -391,7 +391,7 @@ static void handle_new_data(rs_dev_ctx *devc, int fd)
 
 SR_PRIV int radioshack_receive_data(int fd, int revents, void *cb_data)
 {
-	const struct sr_dev_inst *sdi;
+	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 
 	if (!(sdi = cb_data))

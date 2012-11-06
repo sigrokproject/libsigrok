@@ -89,7 +89,7 @@ static void receive_line(const struct sr_dev_inst *sdi)
 
 SR_PRIV int agdmm_receive_data(int fd, int revents, void *cb_data)
 {
-	const struct sr_dev_inst *sdi;
+	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 	int len;
 
