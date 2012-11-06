@@ -51,14 +51,18 @@ extern const struct agdmm_recv agdmm_recvs_u123x[];
 extern const struct agdmm_job agdmm_jobs_u125x[];
 extern const struct agdmm_recv agdmm_recvs_u125x[];
 
+/* This works on all the Agilent U12xxA series, although the
+ * U127xA can apparently also run at 19200/8n1. */
+#define SERIALCOMM "9600/8n1"
+
 static const struct agdmm_profile supported_agdmm[] = {
-	{ AGILENT_U1231A, "U1231A", 9600, agdmm_jobs_u123x, agdmm_recvs_u123x },
-	{ AGILENT_U1232A, "U1232A", 9600, agdmm_jobs_u123x, agdmm_recvs_u123x },
-	{ AGILENT_U1233A, "U1233A", 9600, agdmm_jobs_u123x, agdmm_recvs_u123x },
-	{ AGILENT_U1251A, "U1251A", 9600, agdmm_jobs_u125x, agdmm_recvs_u125x },
-	{ AGILENT_U1252A, "U1252A", 9600, agdmm_jobs_u125x, agdmm_recvs_u125x },
-	{ AGILENT_U1253A, "U1253A", 9600, agdmm_jobs_u125x, agdmm_recvs_u125x },
-	{ 0, NULL, 0, NULL, NULL }
+	{ AGILENT_U1231A, "U1231A", agdmm_jobs_u123x, agdmm_recvs_u123x },
+	{ AGILENT_U1232A, "U1232A", agdmm_jobs_u123x, agdmm_recvs_u123x },
+	{ AGILENT_U1233A, "U1233A", agdmm_jobs_u123x, agdmm_recvs_u123x },
+	{ AGILENT_U1251A, "U1251A", agdmm_jobs_u125x, agdmm_recvs_u125x },
+	{ AGILENT_U1252A, "U1252A", agdmm_jobs_u125x, agdmm_recvs_u125x },
+	{ AGILENT_U1253A, "U1253A", agdmm_jobs_u125x, agdmm_recvs_u125x },
+	{ 0, NULL, NULL, NULL }
 };
 
 SR_PRIV struct sr_dev_driver agdmm_driver_info;
@@ -174,7 +178,7 @@ static GSList *hw_scan(GSList *options)
 			break;
 		}
 	}
-	if (!conn || !serialcomm)
+	if (!conn)
 		return NULL;
 
 	if ((fd = serial_open(conn, O_RDWR|O_NONBLOCK)) == -1) {
@@ -182,6 +186,8 @@ static GSList *hw_scan(GSList *options)
 		return NULL;
 	}
 
+	if (!serialcomm)
+		serialcomm = SERIALCOMM;
 	if (serial_set_paramstr(fd, serialcomm) != SR_OK) {
 		sr_err("Unable to set serial parameters: %s.",
 		       strerror(errno));
@@ -262,8 +268,7 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 		       devc->serial->port);
 		return SR_ERR;
 	}
-	serial_set_params(devc->serial->fd, devc->profile->serial_speed, 8,
-			SERIAL_PARITY_NONE, 1, 0);
+	serial_set_paramstr(devc->serial->fd, SERIALCOMM);
 	sdi->status = SR_ST_ACTIVE;
 
 	return SR_OK;

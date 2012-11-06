@@ -46,7 +46,6 @@ enum {
 struct agdmm_profile {
 	int model;
 	const char *modelname;
-	int serial_speed;
 	const struct agdmm_job *jobs;
 	const struct agdmm_recv *recvs;
 };
