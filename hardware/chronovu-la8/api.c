@@ -278,10 +278,9 @@ static int hw_dev_close(struct sr_dev_inst *sdi)
 
 static int hw_cleanup(void)
 {
-	if (!di->priv) {
-		sr_err("%s: di->priv was NULL.", __func__);
-		return SR_ERR_BUG;
-	}
+	if (!di->priv)
+		/* Can get called on an unused driver, doesn't matter. */
+		return SR_OK;
 
 	clear_instances();
 
