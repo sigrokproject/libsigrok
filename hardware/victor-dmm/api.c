@@ -322,10 +322,8 @@ static void receive_transfer(struct libusb_transfer *transfer)
 		hw_dev_acquisition_stop(sdi, sdi);
 	} else if (transfer->status == LIBUSB_TRANSFER_COMPLETED) {
 		sr_dbg("got %d-byte packet", transfer->actual_length);
-		if (transfer->actual_length == 14) {
-			devc->num_samples++;
-			/* TODO */
-
+		if (transfer->actual_length == DMM_DATA_SIZE) {
+			victor_dmm_receive_data(sdi, transfer->buffer);
 			if (devc->limit_samples) {
 				if (devc->num_samples >= devc->limit_samples)
 					hw_dev_acquisition_stop(sdi, sdi);
@@ -434,14 +432,14 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	}
 	devc->usbfd[i] = -1;
 
-	buf = g_try_malloc(14);
+	buf = g_try_malloc(DMM_DATA_SIZE);
 	transfer = libusb_alloc_transfer(0);
 	/* Each transfer request gets 100ms to arrive before it's restarted.
 	 * The device only sends 1 transfer/second no matter how many
 	 * times you ask, but we want to keep step with the USB events
 	 * handling above. */
 	libusb_fill_interrupt_transfer(transfer, devc->usb->devhdl,
-			VICTOR_ENDPOINT, buf, 14, receive_transfer, cb_data, 100);
+			VICTOR_ENDPOINT, buf, DMM_DATA_SIZE, receive_transfer, cb_data, 100);
 	if ((ret = libusb_submit_transfer(transfer) != 0)) {
 		sr_err("unable to submit transfer: %s", libusb_error_name(ret));
 		libusb_free_transfer(transfer);
