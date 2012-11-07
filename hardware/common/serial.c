@@ -621,8 +621,9 @@ SR_PRIV int serial_readline(int fd, char **buf, int *buflen,
 		if (len > 0) {
 			*buflen += len;
 			*(*buf + *buflen) = '\0';
-			if (*buflen > 0 && *(*buf + *buflen - 1) == '\r') {
-				/* Strip LF and terminate. */
+			if (*buflen > 0 && (*(*buf + *buflen - 1) == '\r'
+					|| *(*buf + *buflen - 1) == '\n')) {
+				/* Strip CR/LF and terminate. */
 				*(*buf + --*buflen) = '\0';
 				break;
 			}
@@ -632,7 +633,8 @@ SR_PRIV int serial_readline(int fd, char **buf, int *buflen,
 			break;
 		g_usleep(2000);
 	}
-	sr_dbg("Received %d: '%s'.", *buflen, *buf);
+	if (*buflen)
+		sr_dbg("Received %d: '%s'.", *buflen, *buf);
 
 	return SR_OK;
 }
