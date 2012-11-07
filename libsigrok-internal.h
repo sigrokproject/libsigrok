@@ -136,7 +136,7 @@ SR_PRIV int serial_set_params(int fd, int baudrate, int bits, int parity,
 			      int stopbits, int flowcontrol);
 SR_PRIV int serial_set_paramstr(int fd, const char *paramstr);
 SR_PRIV int serial_readline(int fd, char **buf, int *buflen,
-			    uint64_t timeout_ms);
+			    gint64 timeout_ms);
 
 /*--- hardware/common/ezusb.c -----------------------------------------------*/
 

@@ -603,9 +603,9 @@ SR_PRIV int serial_set_paramstr(int fd, const char *paramstr)
 }
 
 SR_PRIV int serial_readline(int fd, char **buf, int *buflen,
-			    uint64_t timeout_ms)
+			    gint64 timeout_ms)
 {
-	uint64_t start;
+	gint64 start;
 	int maxlen, len;
 
 	timeout_ms *= 1000;
