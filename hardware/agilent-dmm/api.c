@@ -108,48 +108,6 @@ static int hw_init(void)
 	return SR_OK;
 }
 
-/* TODO: Merge into serial_readline() from serial.c. */
-static int serial_readline2(int fd, char **buf, int *buflen, uint64_t timeout_ms)
-{
-	uint64_t start;
-	int maxlen, len;
-
-	timeout_ms *= 1000;
-	start = g_get_monotonic_time();
-
-	maxlen = *buflen;
-	*buflen = len = 0;
-	while(1) {
-		len = maxlen - *buflen - 1;
-		if (len < 1)
-			break;
-		len = serial_read(fd, *buf + *buflen, len);
-		if (len > 0) {
-			*buflen += len;
-			*(*buf + *buflen) = '\0';
-			if (*buflen > 0 && *(*buf + *buflen - 1) == '\n')
-				/* End of line */
-				break;
-		}
-		if (g_get_monotonic_time() - start > timeout_ms)
-			/* Timeout */
-			break;
-		g_usleep(2000);
-	}
-
-	/* Strip CRLF */
-	while (*buflen) {
-		if (*(*buf + *buflen - 1) == '\r' || *(*buf + *buflen - 1) == '\n')
-			*(*buf + --*buflen) = '\0';
-		else
-			break;
-	}
-	if (*buflen)
-		sr_dbg("Received '%s'.", *buf);
-
-	return SR_OK;
-}
-
 static GSList *hw_scan(GSList *options)
 {
 	struct sr_dev_inst *sdi;
@@ -206,7 +164,7 @@ static GSList *hw_scan(GSList *options)
 		sr_err("Serial buffer malloc failed.");
 		return NULL;
 	}
-	serial_readline2(fd, &buf, &len, 150);
+	serial_readline(fd, &buf, &len, 150);
 	if (!len)
 		return NULL;
 
