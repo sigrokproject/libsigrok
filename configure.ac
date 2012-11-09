@@ -205,6 +205,15 @@ if test "x$HW_TEKPOWER_DMM" = "xyes"; then
 	AC_DEFINE(HAVE_HW_TEKPOWER_DMM, 1, [TekPower DMM support])
 fi
 
+AC_ARG_ENABLE(tondaj-sl-814, AC_HELP_STRING([--enable-tondaj-sl-814],
+	[enable Tondaj SL-814 support [default=yes]]),
+	[HW_TONDAJ_SL_814="$enableval"],
+	[HW_TONDAJ_SL_814=yes])
+AM_CONDITIONAL(HW_TONDAJ_SL_814, test x$HW_TONDAJ_SL_814 = xyes)
+if test "x$HW_TONDAJ_SL_814" = "xyes"; then
+	AC_DEFINE(HAVE_HW_TONDAJ_SL_814, 1, [Tondaj SL-814 support])
+fi
+
 AC_ARG_ENABLE(uni-t-dmm, AC_HELP_STRING([--enable-uni-t-dmm],
 	      [enable UNI-T DMM support [default=yes]]),
 	      [HW_UNI_T_DMM="$enableval"],
@@ -355,6 +364,7 @@ AC_CONFIG_FILES([Makefile version.h hardware/Makefile
 		 hardware/chronovu-la8/Makefile
 		 hardware/colead-slm/Makefile
 		 hardware/common/Makefile
+		 hardware/tondaj-sl-814/Makefile
 		 hardware/victor-dmm/Makefile
 		 hardware/common/dmm/Makefile
 		 hardware/demo/Makefile
@@ -412,6 +422,7 @@ echo "  - Link MSO-19..................... $LA_LINK_MSO19"
 echo "  - Openbench Logic Sniffer......... $LA_OLS"
 echo "  - Radioshack DMM.................. $HW_RADIOSHACK_DMM"
 echo "  - TekPower DMM.................... $HW_TEKPOWER_DMM"
+echo "  - Tondaj SL-814................... $HW_TONDAJ_SL_814"
 echo "  - UNI-T DMM....................... $HW_UNI_T_DMM"
 echo "  - victor-dmm...................... $HW_VICTOR_DMM"
 echo "  - ZEROPLUS Logic Cube............. $LA_ZEROPLUS_LOGIC_CUBE"

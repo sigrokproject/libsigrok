@@ -34,6 +34,7 @@ SUBDIRS = \
 	openbench-logic-sniffer \
 	radioshack-dmm \
 	tekpower-dmm \
+	tondaj-sl-814 \
 	uni-t-dmm \
 	victor-dmm \
 	zeroplus-logic-cube
@@ -99,6 +100,10 @@ endif
 
 if HW_TEKPOWER_DMM
 libsigrokhardware_la_LIBADD += tekpower-dmm/libsigrokhwtekpowerdmm.la
+endif
+
+if HW_TONDAJ_SL_814
+libsigrokhardware_la_LIBADD += tondaj-sl-814/libsigrok_hw_tondaj_sl_814.la
 endif
 
 if HW_UNI_T_DMM
