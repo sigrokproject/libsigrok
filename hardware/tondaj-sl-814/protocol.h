@@ -47,6 +47,15 @@ struct dev_context {
 
 	/** The current number of already received samples. */
 	uint64_t num_samples;
+
+	struct sr_serial_dev_inst *serial;
+
+	char *serialcomm;
+
+	int state;
+
+	uint8_t buf[4];
+	uint8_t buflen;
 };
 
 SR_PRIV int tondaj_sl_814_receive_data(int fd, int revents, void *cb_data);

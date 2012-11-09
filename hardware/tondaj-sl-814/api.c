@@ -18,10 +18,29 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
+#include <fcntl.h>
 #include <glib.h>
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 #include "protocol.h"
+
+static const int hwopts[] = {
+	SR_HWOPT_CONN,
+	SR_HWOPT_SERIALCOMM,
+	0,
+};
+
+static const int hwcaps[] = {
+	SR_HWCAP_SOUNDLEVELMETER,
+	SR_HWCAP_LIMIT_SAMPLES,
+	SR_HWCAP_CONTINUOUS,
+	0,
+};
+
+static const char *probe_names[] = {
+	"P1",
+	NULL,
+};
 
 SR_PRIV struct sr_dev_driver tondaj_sl_814_driver_info;
 static struct sr_dev_driver *di = &tondaj_sl_814_driver_info;
@@ -42,9 +61,7 @@ static int clear_instances(void)
 			continue;
 		if (!(devc = sdi->priv))
 			continue;
-
-		/* TODO */
-
+		sr_serial_dev_inst_free(devc->serial);
 		sr_dev_inst_free(sdi);
 	}
 
@@ -63,8 +80,6 @@ static int hw_init(void)
 		return SR_ERR_MALLOC;
 	}
 
-	/* TODO */
-
 	di->priv = drvc;
 
 	return SR_OK;
@@ -73,15 +88,69 @@ static int hw_init(void)
 static GSList *hw_scan(GSList *options)
 {
 	struct drv_context *drvc;
-	GSList *devices;
-
-	(void)options;
+	struct dev_context *devc;
+	struct sr_dev_inst *sdi;
+	struct sr_hwopt *opt;
+	struct sr_probe *probe;
+	GSList *devices, *l;
+	const char *conn, *serialcomm;
 
 	devices = NULL;
 	drvc = di->priv;
 	drvc->instances = NULL;
 
-	/* TODO */
+	conn = serialcomm = NULL;
+	for (l = options; l; l = l->next) {
+		if (!(opt = l->data)) {
+			sr_err("Invalid option data, skipping.");
+			continue;
+		}
+		switch (opt->hwopt) {
+		case SR_HWOPT_CONN:
+			conn = opt->value;
+			break;
+		case SR_HWOPT_SERIALCOMM:
+			serialcomm = opt->value;
+			break;
+		default:
+			sr_err("Unknown option %d, skipping.", opt->hwopt);
+			break;
+		}
+	}
+	if (!conn) {
+		sr_dbg("Couldn't determine connection options.");
+		return NULL;
+	}
+
+	if (!(sdi = sr_dev_inst_new(0, SR_ST_INACTIVE, "Tondaj",
+				    "SL-814", NULL))) {
+		sr_err("Failed to create device instance.");
+		return NULL;
+	}
+
+	if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
+		sr_err("Device context malloc failed.");
+		return NULL;
+	}
+
+	if (!serialcomm)
+		serialcomm = "9600/8e1";
+
+	if (!(devc->serial = sr_serial_dev_inst_new(conn, -1))) {
+		sr_err("Failed to create serial device instance.");
+		return NULL;
+	}
+	devc->serialcomm = g_strdup(serialcomm);
+	sdi->priv = devc;
+	sdi->driver = di;
+	probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, probe_names[0]);
+	if (!probe) {
+		sr_err("Failed to create probe.");
+		return NULL;
+	}
+	sdi->probes = g_slist_append(sdi->probes, probe);
+	drvc->instances = g_slist_append(drvc->instances, sdi);
+	devices = g_slist_append(devices, sdi);
 
 	return devices;
 }
@@ -97,14 +166,55 @@ static GSList *hw_dev_list(void)
 
 static int hw_dev_open(struct sr_dev_inst *sdi)
 {
-	/* TODO */
+	int ret;
+	struct dev_context *devc;
+
+	devc = sdi->priv;
+
+	sr_dbg("Opening '%s' with '%s'.", devc->serial->port, devc->serialcomm);
+
+	ret = serial_open(devc->serial->port, O_RDWR | O_NONBLOCK);
+	if (ret < 0) {
+		sr_err("Unable to open serial port: %d.", ret);
+		return SR_ERR;
+	}
+	devc->serial->fd = ret;
+
+	ret = serial_set_paramstr(devc->serial->fd, devc->serialcomm);
+	if (ret < 0) {
+		sr_err("Unable to set serial parameters: %d.", ret);
+		return SR_ERR;
+	}
+
+	sdi->status = SR_ST_ACTIVE;
 
 	return SR_OK;
 }
 
 static int hw_dev_close(struct sr_dev_inst *sdi)
 {
-	/* TODO */
+	int ret;
+	struct dev_context *devc;
+
+	devc = sdi->priv;
+
+	if (!devc->serial) {
+		sr_err("Invalid serial device instance, cannot close.");
+		return SR_ERR_BUG;
+	}
+
+	if (devc->serial->fd == -1) {
+		sr_dbg("Serial device instance FD was -1, no need to close.");
+		return SR_OK;
+	}
+
+	if ((ret = serial_close(devc->serial->fd)) < 0) {
+		sr_err("Error closing serial port: %d.", ret);
+		return SR_ERR;
+	}
+
+	devc->serial->fd = -1;
+	sdi->status = SR_ST_INACTIVE;
 
 	return SR_OK;
 }
@@ -113,16 +223,27 @@ static int hw_cleanup(void)
 {
 	clear_instances();
 
-	/* TODO */
-
 	return SR_OK;
 }
 
 static int hw_info_get(int info_id, const void **data,
 		       const struct sr_dev_inst *sdi)
 {
+	(void)sdi;
+
 	switch (info_id) {
-	/* TODO */
+	case SR_DI_HWOPTS:
+		*data = hwopts;
+		break;
+	case SR_DI_HWCAPS:
+		*data = hwcaps;
+		break;
+	case SR_DI_NUM_PROBES:
+		*data = GINT_TO_POINTER(1);
+		break;
+	case SR_DI_PROBE_NAMES:
+		*data = probe_names;
+		break;
 	default:
 		sr_err("Unknown info_id: %d.", info_id);
 		return SR_ERR_ARG;
@@ -134,45 +255,93 @@ static int hw_info_get(int info_id, const void **data,
 static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 			     const void *value)
 {
-	int ret;
+	struct dev_context *devc;
 
 	if (sdi->status != SR_ST_ACTIVE) {
 		sr_err("Device inactive, can't set config options.");
 		return SR_ERR;
 	}
 
-	ret = SR_OK;
+	devc = sdi->priv;
+
 	switch (hwcap) {
-	/* TODO */
+	case SR_HWCAP_LIMIT_SAMPLES:
+		devc->limit_samples = *(const uint64_t *)value;
+		sr_dbg("Setting sample limit to %" PRIu64 ".",
+		       devc->limit_samples);
+		break;
 	default:
 		sr_err("Unknown hardware capability: %d.", hwcap);
-		ret = SR_ERR_ARG;
+		return SR_ERR_ARG;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 				    void *cb_data)
 {
-	/* TODO */
+	struct sr_datafeed_packet packet;
+	struct sr_datafeed_header header;
+	struct sr_datafeed_meta_analog meta;
+	struct dev_context *devc;
+
+	devc = sdi->priv;
+	devc->cb_data = cb_data;
+
+	/* Send header packet to the session bus. */
+	sr_dbg("Sending SR_DF_HEADER.");
+	packet.type = SR_DF_HEADER;
+	packet.payload = (uint8_t *)&header;
+	header.feed_version = 1;
+	gettimeofday(&header.starttime, NULL);
+	sr_session_send(devc->cb_data, &packet);
+
+	/* Send metadata about the SR_DF_ANALOG packets to come. */
+	sr_dbg("Sending SR_DF_META_ANALOG.");
+	packet.type = SR_DF_META_ANALOG;
+	packet.payload = &meta;
+	meta.num_probes = 1;
+	sr_session_send(devc->cb_data, &packet);
+
+	/* Poll every 500ms, or whenever some data comes in. */
+	sr_source_add(devc->serial->fd, G_IO_IN, 500,
+		      tondaj_sl_814_receive_data, (void *)sdi);
 
 	return SR_OK;
 }
 
-static int hw_dev_acquisition_stop(const struct sr_dev_inst *sdi,
-				   void *cb_data)
+static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
-	(void)cb_data;
+	int ret, final_ret;
+	struct sr_datafeed_packet packet;
+	struct dev_context *devc;
+
+	final_ret = SR_OK;
 
 	if (sdi->status != SR_ST_ACTIVE) {
 		sr_err("Device inactive, can't stop acquisition.");
 		return SR_ERR;
 	}
 
-	/* TODO */
+	devc = sdi->priv;
 
-	return SR_OK;
+	if ((ret = sr_source_remove(devc->serial->fd)) < 0) {
+		sr_err("Error removing source: %d.", ret);
+		final_ret = SR_ERR;
+	}
+	
+	if ((ret = hw_dev_close(sdi)) < 0) {
+		sr_err("Error closing device: %d.", ret);
+		final_ret = SR_ERR;
+	}
+
+	/* Send end packet to the session bus. */
+	sr_dbg("Sending SR_DF_END.");
+	packet.type = SR_DF_END;
+	sr_session_send(cb_data, &packet);
+
+	return final_ret;
 }
 
 SR_PRIV struct sr_dev_driver tondaj_sl_814_driver_info = {
