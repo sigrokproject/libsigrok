@@ -102,7 +102,7 @@ static GSList *rs_22_812_scan(const char *conn, const char *serialcomm)
 	const struct rs_22_812_packet *rs_packet;
 
 	if ((fd = serial_open(conn, O_RDONLY | O_NONBLOCK)) < 0) {
-		sr_err("Unable to open '%s': %s.", conn, fd);
+		sr_err("Unable to open '%s': %d.", conn, fd);
 		return NULL;
 	}
 
