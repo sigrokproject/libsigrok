@@ -49,10 +49,6 @@ static const char *probe_names[] = {
 SR_PRIV struct sr_dev_driver radioshackdmm_driver_info;
 static struct sr_dev_driver *di = &radioshackdmm_driver_info;
 
-static const struct radioshackdmm_profile supported_radioshackdmm[] = {
-	{ RADIOSHACK_22_812, "22-812", 100 },
-};
-
 /* Properly close and free all devices. */
 static int clear_instances(void)
 {
@@ -101,49 +97,49 @@ static GSList *rs_22_812_scan(const char *conn, const char *serialcomm)
 	struct sr_probe *probe;
 	GSList *devices;
 	int fd, retry;
-	size_t len;
+	size_t len, i, good_packets, dropped;
 	char buf[128], *b;
+	const struct rs_22_812_packet *rs_packet;
 
-	if ((fd = serial_open(conn, O_RDONLY|O_NONBLOCK)) == -1) {
-		sr_err("Unable to open %s: %s.", conn, strerror(errno));
+	if ((fd = serial_open(conn, O_RDONLY | O_NONBLOCK)) < 0) {
+		sr_err("Unable to open '%s': %s.", conn, fd);
 		return NULL;
 	}
+
 	if (serial_set_paramstr(fd, serialcomm) != SR_OK) {
 		sr_err("Unable to set serial parameters.");
 		return NULL;
 	}
 
-	sr_info("Probing port %s readonly.", conn);
+	sr_info("Probing port '%s' readonly.", conn);
 
 	drvc = di->priv;
 	b = buf;
 	retry = 0;
 	devices = NULL;
-	/* There's no way to get an ID from the multimeter. It just sends data
-	 * periodically, so the best we can do is check if the packets match the
-	 * expected format. */
-	while (!devices && retry < 3)
-	{
-		size_t i;
-		size_t good_packets = 0;
+
+	/*
+	 * There's no way to get an ID from the multimeter. It just sends data
+	 * periodically, so the best we can do is check if the packets match
+	 * the expected format.
+	 */
+	while (!devices && retry < 3) {
+		good_packets = 0;
 		retry++;
 		serial_flush(fd);
 
-		/* Let's get a bit of data and see if we can find a packet */
+		/* Let's get a bit of data and see if we can find a packet. */
 		len = sizeof(buf);
 		serial_readline(fd, &b, &len, 250);
-		if( (len == 0) || (len < RS_22_812_PACKET_SIZE) ) {
-			/* Not enough data received, is the DMM connected ? */
+		if ((len == 0) || (len < RS_22_812_PACKET_SIZE)) {
+			/* Not enough data received, is the DMM connected? */
 			continue;
 		}
 
-		/* Let's treat our buffer like a stream, and find any
-		 * valid packets */
-		for( i = 0; i < len - RS_22_812_PACKET_SIZE + 1;
-		    /* don't increment i here */ )
-		{
-			const rs_22_812_packet *packet = (void *)(&buf[i]);
-			if( !rs_22_812_is_packet_valid(packet) ){
+		/* Treat our buffer as stream, and find any valid packets. */
+		for (i = 0; i < len - RS_22_812_PACKET_SIZE + 1;) {
+			rs_packet = (void *)(&buf[i]);
+			if (!rs_22_812_packet_valid(rs_packet)) {
 				i++;
 				continue;
 			}
@@ -151,27 +147,26 @@ static GSList *rs_22_812_scan(const char *conn, const char *serialcomm)
 			i += RS_22_812_PACKET_SIZE;
 		}
 
-		/* If we dropped more than two packets worth of data, something
-		 * is wrong */
-		size_t dropped = len - (good_packets * RS_22_812_PACKET_SIZE);
-		if(dropped > 2 * RS_22_812_PACKET_SIZE)
+		/* If we dropped more than two packets, something is wrong. */
+		dropped = len - (good_packets * RS_22_812_PACKET_SIZE);
+		if (dropped > 2 * RS_22_812_PACKET_SIZE)
 			continue;
 
-		/* Let's see if we have anything good */
+		/* Let's see if we have anything good. */
 		if (good_packets == 0)
 			continue;
 
-		sr_info("Found RS 22-812 on port %s.", conn);
+		sr_info("Found RadioShack 22-812 on port '%s'.", conn);
 
 		if (!(sdi = sr_dev_inst_new(0, SR_ST_INACTIVE, "RadioShack",
 					    "22-812", "")))
 			return NULL;
+
 		if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
 			sr_err("Device context malloc failed.");
 			return NULL;
 		}
 
-		/* devc->profile = RADIOSHACK_22_812; */
 		devc->serial = sr_serial_dev_inst_new(conn, -1);
 		devc->serialcomm = g_strdup(serialcomm);
 
@@ -189,7 +184,7 @@ static GSList *rs_22_812_scan(const char *conn, const char *serialcomm)
 	return devices;
 }
 
-static GSList *hw_scan(GSList *options)
+static GSList *hw_scan(GSList * options)
 {
 	struct sr_hwopt *opt;
 	GSList *l, *devices;
@@ -214,7 +209,7 @@ static GSList *hw_scan(GSList *options)
 		/* Use the provided comm specs. */
 		devices = rs_22_812_scan(conn, serialcomm);
 	} else {
-		/* Then try the default 4800 8n1 */
+		/* Try the default 4800/8n1. */
 		devices = rs_22_812_scan(conn, "4800/8n1");
 	}
 
@@ -240,9 +235,8 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 	}
 
 	devc->serial->fd = serial_open(devc->serial->port, O_RDONLY);
-	if (devc->serial->fd == -1) {
-		sr_err("Couldn't open serial port '%s'.",
-		       devc->serial->port);
+	if (devc->serial->fd < 0) {
+		sr_err("Couldn't open serial port '%s'.", devc->serial->port);
 		return SR_ERR;
 	}
 	if (serial_set_paramstr(devc->serial->fd, devc->serialcomm) != SR_OK) {
@@ -280,9 +274,9 @@ static int hw_cleanup(void)
 }
 
 static int hw_info_get(int info_id, const void **data,
-       const struct sr_dev_inst *sdi)
+		       const struct sr_dev_inst *sdi)
 {
-	(void)sdi; /* Does nothing. prevents "unused parameter" warning */
+	(void)sdi;
 
 	switch (info_id) {
 	case SR_DI_HWOPTS:
@@ -298,6 +292,7 @@ static int hw_info_get(int info_id, const void **data,
 		*data = probe_names;
 		break;
 	default:
+		sr_err("Unknown info_id: %d.", info_id);
 		return SR_ERR_ARG;
 	}
 
@@ -305,7 +300,7 @@ static int hw_info_get(int info_id, const void **data,
 }
 
 static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
-		const void *value)
+			     const void *value)
 {
 	struct dev_context *devc;
 
@@ -325,7 +320,7 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		break;
 	default:
 		sr_err("Unknown capability: %d.", hwcap);
-		return SR_ERR;
+		return SR_ERR_ARG;
 		break;
 	}
 
@@ -333,7 +328,7 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 }
 
 static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
-		void *cb_data)
+				    void *cb_data)
 {
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_header header;
@@ -349,15 +344,17 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 
 	devc->cb_data = cb_data;
 
-	/* Reset the number of samples to take. If we've already collected our
+	/*
+	 * Reset the number of samples to take. If we've already collected our
 	 * quota, but we start a new session, and don't reset this, we'll just
-	 * quit without aquiring any new samples */
+	 * quit without aquiring any new samples.
+	 */
 	devc->num_samples = 0;
 
 	/* Send header packet to the session bus. */
 	sr_dbg("Sending SR_DF_HEADER.");
 	packet.type = SR_DF_HEADER;
-	packet.payload = (uint8_t *)&header;
+	packet.payload = (uint8_t *) & header;
 	header.feed_version = 1;
 	gettimeofday(&header.starttime, NULL);
 	sr_session_send(devc->cb_data, &packet);
@@ -369,9 +366,9 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	meta.num_probes = 1;
 	sr_session_send(devc->cb_data, &packet);
 
-	/* Poll every 100ms, or whenever some data comes in. */
+	/* Poll every 50ms, or whenever some data comes in. */
 	sr_source_add(devc->serial->fd, G_IO_IN, 50,
-		      radioshack_receive_data, (void *)sdi );
+		      radioshack_dmm_receive_data, (void *)sdi);
 
 	return SR_OK;
 }
@@ -404,7 +401,7 @@ static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 
 SR_PRIV struct sr_dev_driver radioshackdmm_driver_info = {
 	.name = "radioshack-dmm",
-	.longname = "Radioshack 22-812/22-039 DMMs",
+	.longname = "RadioShack 22-812/22-039 DMMs",
 	.api_version = 1,
 	.init = hw_init,
 	.cleanup = hw_cleanup,
