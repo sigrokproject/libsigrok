@@ -30,6 +30,15 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
+/* Message logging helpers with driver-specific prefix string. */
+#define DRIVER_LOG_DOMAIN "demo: "
+#define sr_log(l, s, args...) sr_log(l, DRIVER_LOG_DOMAIN s, ## args)
+#define sr_spew(s, args...) sr_spew(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_dbg(s, args...) sr_dbg(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_info(s, args...) sr_info(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_warn(s, args...) sr_warn(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_err(s, args...) sr_err(DRIVER_LOG_DOMAIN s, ## args)
+
 /* TODO: Number of probes should be configurable. */
 #define NUM_PROBES             8
 
@@ -144,7 +153,7 @@ static int hw_init(void)
 	struct drv_context *drvc;
 
 	if (!(drvc = g_try_malloc0(sizeof(struct drv_context)))) {
-		sr_err("demo: driver context malloc failed.");
+		sr_err("Driver context malloc failed.");
 		return SR_ERR_MALLOC;
 	}
 	ddi->priv = drvc;
@@ -166,7 +175,7 @@ static GSList *hw_scan(GSList *options)
 
 	sdi = sr_dev_inst_new(0, SR_ST_ACTIVE, DEMONAME, NULL, NULL);
 	if (!sdi) {
-		sr_err("demo: %s: sr_dev_inst_new failed", __func__);
+		sr_err("%s: sr_dev_inst_new failed", __func__);
 		return 0;
 	}
 	sdi->driver = ddi;
@@ -261,19 +270,19 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 
 	if (hwcap == SR_HWCAP_SAMPLERATE) {
 		cur_samplerate = *(const uint64_t *)value;
-		sr_dbg("demo: %s: setting samplerate to %" PRIu64, __func__,
+		sr_dbg("%s: setting samplerate to %" PRIu64, __func__,
 		       cur_samplerate);
 		ret = SR_OK;
 	} else if (hwcap == SR_HWCAP_LIMIT_SAMPLES) {
 		limit_msec = 0;
 		limit_samples = *(const uint64_t *)value;
-		sr_dbg("demo: %s: setting limit_samples to %" PRIu64, __func__,
+		sr_dbg("%s: setting limit_samples to %" PRIu64, __func__,
 		       limit_samples);
 		ret = SR_OK;
 	} else if (hwcap == SR_HWCAP_LIMIT_MSEC) {
 		limit_msec = *(const uint64_t *)value;
 		limit_samples = 0;
-		sr_dbg("demo: %s: setting limit_msec to %" PRIu64, __func__,
+		sr_dbg("%s: setting limit_msec to %" PRIu64, __func__,
 		       limit_msec);
 		ret = SR_OK;
 	} else if (hwcap == SR_HWCAP_PATTERN_MODE) {
@@ -292,8 +301,7 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		} else {
 			ret = SR_ERR;
 		}
-		sr_dbg("demo: %s: setting pattern to %d", __func__,
-		       default_pattern);
+		sr_dbg("%s: setting pattern to %d", __func__, default_pattern);
 	} else {
 		ret = SR_ERR;
 	}
@@ -333,8 +341,7 @@ static void samples_generator(uint8_t *buf, uint64_t size, void *data)
 		memset(buf, 0xff, size);
 		break;
 	default:
-		sr_err("demo: %s: unknown pattern %d", __func__,
-		       devc->sample_generator);
+		sr_err("Unknown pattern: %d.", devc->sample_generator);
 		break;
 	}
 }
@@ -442,7 +449,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 
 	/* TODO: 'devc' is never g_free()'d? */
 	if (!(devc = g_try_malloc(sizeof(struct dev_context)))) {
-		sr_err("demo: %s: devc malloc failed", __func__);
+		sr_err("%s: devc malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 
@@ -452,7 +459,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 
 	if (pipe(devc->pipe_fds)) {
 		/* TODO: Better error message. */
-		sr_err("demo: %s: pipe() failed", __func__);
+		sr_err("%s: pipe() failed", __func__);
 		return SR_ERR;
 	}
 
@@ -478,17 +485,17 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	my_thread = g_thread_try_new("sigrok demo generator",
 			(GThreadFunc)thread_func, devc, NULL);
 	if (!my_thread) {
-		sr_err("demo: %s: g_thread_try_new failed", __func__);
+		sr_err("%s: g_thread_try_new failed", __func__);
 		return SR_ERR; /* TODO */
 	}
 
 	if (!(packet = g_try_malloc(sizeof(struct sr_datafeed_packet)))) {
-		sr_err("demo: %s: packet malloc failed", __func__);
+		sr_err("%s: packet malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 
 	if (!(header = g_try_malloc(sizeof(struct sr_datafeed_header)))) {
-		sr_err("demo: %s: header malloc failed", __func__);
+		sr_err("%s: header malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 
