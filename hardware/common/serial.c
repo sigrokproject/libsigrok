@@ -197,8 +197,6 @@ SR_PRIV int serial_flush(int fd)
  */
 SR_PRIV int serial_write(int fd, const void *buf, size_t count)
 {
-	sr_spew("FD %d: Writing %d bytes.", fd, count);
-
 #ifdef _WIN32
 	DWORD tmp = 0;
 
@@ -212,8 +210,8 @@ SR_PRIV int serial_write(int fd, const void *buf, size_t count)
 	ret = write(fd, buf, count);
 	if (ret < 0)
 		sr_err("FD %d: Write error: %s.", fd, strerror(errno));
-	else if ((size_t)ret != count)
-		sr_spew("FD %d: Only wrote %d/%d bytes.", fd, ret, count);
+	else
+		sr_spew("FD %d: Wrote %d/%d bytes.", fd, ret, count);
 
 	return ret;
 #endif
@@ -230,8 +228,6 @@ SR_PRIV int serial_write(int fd, const void *buf, size_t count)
  */
 SR_PRIV int serial_read(int fd, void *buf, size_t count)
 {
-	sr_spew("FD %d: Reading %d bytes.", fd, count);
-
 #ifdef _WIN32
 	DWORD tmp = 0;
 
@@ -249,8 +245,8 @@ SR_PRIV int serial_read(int fd, void *buf, size_t count)
 		 * "Resource temporarily unavailable" messages.
 		 */
 		sr_spew("FD %d: Read error: %s.", fd, strerror(errno));
-	} else if ((size_t)ret != count) {
-		sr_spew("FD %d: Only read %d/%d bytes.", fd, ret, count);
+	} else {
+		sr_spew("FD %d: Read %d/%d bytes.", fd, ret, count);
 	}
 
 	return ret;
