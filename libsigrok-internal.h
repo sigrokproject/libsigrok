@@ -124,14 +124,11 @@ SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
 
 /*--- hardware/common/serial.c ----------------------------------------------*/
 
-SR_PRIV GSList *list_serial_ports(void);
 SR_PRIV int serial_open(const char *pathname, int flags);
 SR_PRIV int serial_close(int fd);
 SR_PRIV int serial_flush(int fd);
 SR_PRIV int serial_write(int fd, const void *buf, size_t count);
 SR_PRIV int serial_read(int fd, void *buf, size_t count);
-SR_PRIV void *serial_backup_params(int fd);
-SR_PRIV int serial_restore_params(int fd, void *backup);
 SR_PRIV int serial_set_params(int fd, int baudrate, int bits, int parity,
 			      int stopbits, int flowcontrol);
 SR_PRIV int serial_set_paramstr(int fd, const char *paramstr);

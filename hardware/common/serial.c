@@ -49,47 +49,6 @@
 static HANDLE hdl;
 #endif
 
-static const char *serial_port_glob[] = {
-	/* Linux */
-	"/dev/ttyS*",
-	"/dev/ttyUSB*",
-	"/dev/ttyACM*",
-	/* MacOS X */
-	"/dev/ttys*",
-	"/dev/tty.USB-*",
-	"/dev/tty.Modem-*",
-	NULL,
-};
-
-SR_PRIV GSList *list_serial_ports(void)
-{
-	GSList *ports;
-
-	sr_dbg("Getting list of serial ports on the system.");
-
-#ifdef _WIN32
-	/* TODO */
-	ports = NULL;
-	ports = g_slist_append(ports, g_strdup("COM1"));
-#else
-	glob_t g;
-	unsigned int i, j;
-
-	ports = NULL;
-	for (i = 0; serial_port_glob[i]; i++) {
-		if (glob(serial_port_glob[i], 0, NULL, &g))
-			continue;
-		for (j = 0; j < g.gl_pathc; j++) {
-			ports = g_slist_append(ports, g_strdup(g.gl_pathv[j]));
-			sr_dbg("Found serial port '%s'.", g.gl_pathv[j]);
-		}
-		globfree(&g);
-	}
-#endif
-
-	return ports;
-}
-
 /**
  * Open the specified serial port.
  *
@@ -247,74 +206,6 @@ SR_PRIV int serial_read(int fd, void *buf, size_t count)
 		sr_spew("FD %d: Read error: %s.", fd, strerror(errno));
 	} else {
 		sr_spew("FD %d: Read %d/%d bytes.", fd, ret, count);
-	}
-
-	return ret;
-#endif
-}
-
-/**
- * Create a backup of the current parameters of the specified serial port.
- *
- * @param fd File descriptor of the serial port.
- *
- * @return Pointer to a struct termios upon success, NULL upon errors.
- *         It is the caller's responsibility to g_free() the pointer if no
- *         longer needed.
- */
-SR_PRIV void *serial_backup_params(int fd)
-{
-	sr_dbg("FD %d: Creating serial parameters backup.", fd);
-
-#ifdef _WIN32
-	/* TODO */
-#else
-	struct termios *term;
-
-	if (!(term = g_try_malloc(sizeof(struct termios)))) {
-		sr_err("termios struct malloc failed.");
-		return NULL;
-	}
-
-	/* Returns 0 upon success, -1 upon failure. */
-	if (tcgetattr(fd, term) < 0) {
-		sr_err("FD %d: Error getting serial parameters: %s.",
-		       fd, strerror(errno));
-		g_free(term);
-		return NULL;
-	}
-
-	return term;
-#endif
-}
-
-/**
- * Restore serial port settings from a previously created backup.
- *
- * @param fd File descriptor of the serial port.
- * @param backup Pointer to a struct termios which contains the settings
- *               to restore.
- *
- * @return 0 upon success, -1 upon failure.
- */
-SR_PRIV int serial_restore_params(int fd, void *backup)
-{
-	sr_dbg("FD %d: Restoring serial parameters from backup.", fd);
-
-	if (!backup) {
-		sr_err("FD %d: Cannot restore serial params (NULL).", fd);
-		return -1;
-	}
-
-#ifdef _WIN32
-	/* TODO */
-#else
-	int ret;
-
-	/* Returns 0 upon success, -1 upon failure. */
-	if ((ret = tcsetattr(fd, TCSADRAIN, (struct termios *)backup)) < 0) {
-		sr_err("FD %d: Error restoring serial parameters: %s.",
-		       fd, strerror(errno));
 	}
 
 	return ret;

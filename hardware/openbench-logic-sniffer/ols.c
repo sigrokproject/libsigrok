@@ -378,143 +378,123 @@ static int hw_init(void)
 
 static GSList *hw_scan(GSList *options)
 {
+	struct sr_hwopt *opt;
+	GSList *l, *devices;
+	const char *conn, *serialcomm;
 	struct sr_dev_inst *sdi;
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct sr_probe *probe;
-	GSList *devices, *ports, *l;
-	GPollFD *fds, probefd;
-	int devcnt, final_devcnt, num_ports, fd, ret, i, j;
-	char buf[8], **dev_names, **serial_params;
+	GPollFD probefd;
+	int final_devcnt, fd, ret, i;
+	char buf[8];
 
 	(void)options;
 	drvc = odi->priv;
 	final_devcnt = 0;
 	devices = NULL;
 
-	/* Scan all serial ports. */
-	ports = list_serial_ports();
-	num_ports = g_slist_length(ports);
-
-	if (!(fds = g_try_malloc0(num_ports * sizeof(GPollFD)))) {
-		sr_err("ols: %s: fds malloc failed", __func__);
-		goto hw_init_free_ports; /* TODO: SR_ERR_MALLOC. */
-	}
-
-	if (!(dev_names = g_try_malloc(num_ports * sizeof(char *)))) {
-		sr_err("ols: %s: dev_names malloc failed", __func__);
-		goto hw_init_free_fds; /* TODO: SR_ERR_MALLOC. */
-	}
-
-	if (!(serial_params = g_try_malloc(num_ports * sizeof(char *)))) {
-		sr_err("ols: %s: serial_params malloc failed", __func__);
-		goto hw_init_free_dev_names; /* TODO: SR_ERR_MALLOC. */
-	}
-
-	devcnt = 0;
-	for (l = ports; l; l = l->next) {
-		/* The discovery procedure is like this: first send the Reset
-		 * command (0x00) 5 times, since the device could be anywhere
-		 * in a 5-byte command. Then send the ID command (0x02).
-		 * If the device responds with 4 bytes ("OLS1" or "SLA1"), we
-		 * have a match.
-		 *
-		 * Since it may take the device a while to respond at 115Kb/s,
-		 * we do all the sending first, then wait for all of them to
-		 * respond with g_poll().
-		 */
-		sr_info("ols: probing %s...", (char *)l->data);
-		fd = serial_open(l->data, O_RDWR | O_NONBLOCK);
-		if (fd != -1) {
-			serial_params[devcnt] = serial_backup_params(fd);
-			serial_set_params(fd, 115200, 8, SERIAL_PARITY_NONE, 1, 2);
-			ret = SR_OK;
-			for (i = 0; i < 5; i++) {
-				if ((ret = send_shortcommand(fd,
-					CMD_RESET)) != SR_OK) {
-					/* Serial port is not writable. */
-					break;
-				}
-			}
-			if (ret != SR_OK) {
-				serial_restore_params(fd,
-					serial_params[devcnt]);
-				serial_close(fd);
-				continue;
-			}
-			send_shortcommand(fd, CMD_ID);
-			fds[devcnt].fd = fd;
-			fds[devcnt].events = G_IO_IN;
-			dev_names[devcnt] = g_strdup(l->data);
-			devcnt++;
+	conn = serialcomm = NULL;
+	for (l = options; l; l = l->next) {
+		opt = l->data;
+		switch (opt->hwopt) {
+		case SR_HWOPT_CONN:
+			conn = opt->value;
+			break;
+		case SR_HWOPT_SERIALCOMM:
+			serialcomm = opt->value;
+			break;
 		}
-		g_free(l->data);
 	}
+	if (!conn) {
+		sr_err("ols: No serial port specified.");
+		return NULL;
+	}
+
+	if (serialcomm == NULL) {
+		serialcomm = g_strdup("115200/8n1");
+	}
+
+	/* The discovery procedure is like this: first send the Reset
+	 * command (0x00) 5 times, since the device could be anywhere
+	 * in a 5-byte command. Then send the ID command (0x02).
+	 * If the device responds with 4 bytes ("OLS1" or "SLA1"), we
+	 * have a match.
+	 *
+	 * Since it may take the device a while to respond at 115Kb/s,
+	 * we do all the sending first, then wait for all of them to
+	 * respond with g_poll().
+	 */
+	sr_info("ols: probing %s .", conn);
+	fd = serial_open(conn, O_RDWR | O_NONBLOCK);
+	if (fd < 0) {
+		sr_err("ols: could not open port %s .", conn);
+		return NULL;
+	}
+
+	serial_set_paramstr(fd, serialcomm);
+	ret = SR_OK;
+	for (i = 0; i < 5; i++) {
+		if ((ret = send_shortcommand(fd, CMD_RESET)) != SR_OK) {
+			/* Serial port is not writable. */
+			sr_err("ols: port %s is not writable.", conn);
+		}
+	}
+	if (ret != SR_OK) {
+		serial_close(fd);
+		sr_err("ols: Could not use port %s. Quitting.", conn);
+		return NULL;
+	}
+	send_shortcommand(fd, CMD_ID);
 
 	/* 2ms isn't enough for reliable transfer with pl2303, let's try 10 */
 	usleep(10000);
 
-	g_poll(fds, devcnt, 1);
+	g_poll(&probefd/*fds*/, 1/*devcnt*/, 1);
 
-	for (i = 0; i < devcnt; i++) {
-		if (fds[i].revents != G_IO_IN)
-			continue;
-		if (serial_read(fds[i].fd, buf, 4) != 4)
-			continue;
-		if (strncmp(buf, "1SLO", 4) && strncmp(buf, "1ALS", 4))
-			continue;
+	if (probefd.revents != G_IO_IN)
+		return NULL;
+	if (serial_read(probefd.fd, buf, 4) != 4)
+		return NULL;
+	if (strncmp(buf, "1SLO", 4) && strncmp(buf, "1ALS", 4))
+		return NULL;
 
-		/* definitely using the OLS protocol, check if it supports
-		 * the metadata command
-		 */
-		send_shortcommand(fds[i].fd, CMD_METADATA);
-		probefd.fd = fds[i].fd;
-		probefd.events = G_IO_IN;
-		if (g_poll(&probefd, 1, 10) > 0) {
-			/* got metadata */
-			sdi = get_metadata(fds[i].fd);
-			sdi->index = final_devcnt;
-			devc = sdi->priv;
-		} else {
-			/* not an OLS -- some other board that uses the sump protocol */
-			sdi = sr_dev_inst_new(final_devcnt, SR_ST_INACTIVE,
-					"Sump", "Logic Analyzer", "v1.0");
-			sdi->driver = odi;
-			devc = ols_dev_new();
-			for (j = 0; j < 32; j++) {
-				if (!(probe = sr_probe_new(j, SR_PROBE_LOGIC, TRUE,
-						probe_names[j])))
-					return 0;
-				sdi->probes = g_slist_append(sdi->probes, probe);
-			}
-			sdi->priv = devc;
+	/* definitely using the OLS protocol, check if it supports
+	 * the metadata command
+	 */
+	send_shortcommand(probefd.fd, CMD_METADATA);
+	probefd.fd = fd;
+	probefd.events = G_IO_IN;
+	if (g_poll(&probefd, 1, 10) > 0) {
+		/* got metadata */
+		sdi = get_metadata(fd);
+		sdi->index = final_devcnt;
+		devc = sdi->priv;
+	} else {
+		/* not an OLS -- some other board that uses the sump protocol */
+		sdi = sr_dev_inst_new(final_devcnt, SR_ST_INACTIVE,
+				"Sump", "Logic Analyzer", "v1.0");
+		sdi->driver = odi;
+		devc = ols_dev_new();
+		for (i = 0; i < 32; i++) {
+			if (!(probe = sr_probe_new(i, SR_PROBE_LOGIC, TRUE,
+					probe_names[i])))
+				return 0;
+			sdi->probes = g_slist_append(sdi->probes, probe);
 		}
-		devc->serial = sr_serial_dev_inst_new(dev_names[i], -1);
-		drvc->instances = g_slist_append(drvc->instances, sdi);
-		devices = g_slist_append(devices, sdi);
-
-		final_devcnt++;
-		serial_close(fds[i].fd);
-		fds[i].fd = 0;
+		sdi->priv = devc;
 	}
+	devc->serial = sr_serial_dev_inst_new("FIXME", -1);
+	drvc->instances = g_slist_append(drvc->instances, sdi);
+	devices = g_slist_append(devices, sdi);
+
+	final_devcnt++;
+	serial_close(probefd.fd);
 
 	/* clean up after all the probing */
-	for (i = 0; i < devcnt; i++) {
-		if (fds[i].fd != 0) {
-			serial_restore_params(fds[i].fd, serial_params[i]);
-			serial_close(fds[i].fd);
-		}
-		g_free(serial_params[i]);
-		g_free(dev_names[i]);
+	if (fd != 0) {
+		serial_close(fd);
 	}
-
-	g_free(serial_params);
-hw_init_free_dev_names:
-	g_free(dev_names);
-hw_init_free_fds:
-	g_free(fds);
-hw_init_free_ports:
-	g_slist_free(ports);
 
 	return devices;
 }
