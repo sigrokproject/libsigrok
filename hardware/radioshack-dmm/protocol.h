@@ -18,8 +18,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBSIGROK_HARDWARE_RADIOSHACK_DMM_RADIOSHACK_DMM_H
-#define LIBSIGROK_HARDWARE_RADIOSHACK_DMM_RADIOSHACK_DMM_H
+#ifndef LIBSIGROK_HARDWARE_RADIOSHACK_DMM_PROTOCOL_H
+#define LIBSIGROK_HARDWARE_RADIOSHACK_DMM_PROTOCOL_H
 
 /* Message logging helpers with driver-specific prefix string. */
 #define DRIVER_LOG_DOMAIN "radioshack-dmm: "

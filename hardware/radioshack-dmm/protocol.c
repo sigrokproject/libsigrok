@@ -25,7 +25,7 @@
 #include <glib.h>
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
-#include "radioshack-dmm.h"
+#include "protocol.h"
 
 /* Byte 1 of the packet, and the modes it represents */
 #define IND1_HZ		0x80

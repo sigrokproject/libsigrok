@@ -25,8 +25,8 @@ noinst_LTLIBRARIES = libsigrokhwradioshackdmm.la
 
 libsigrokhwradioshackdmm_la_SOURCES = \
 	api.c \
-	radioshack.c \
-	radioshack-dmm.h
+	protocol.c \
+	protocol.h
 
 libsigrokhwradioshackdmm_la_CFLAGS = \
 	-I$(top_srcdir)

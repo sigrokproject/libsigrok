@@ -26,7 +26,7 @@
 #include <errno.h>
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
-#include "radioshack-dmm.h"
+#include "protocol.h"
 
 static const int hwopts[] = {
 	SR_HWOPT_CONN,
