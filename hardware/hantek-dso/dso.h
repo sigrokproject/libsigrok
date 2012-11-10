@@ -22,41 +22,40 @@
 #ifndef LIBSIGROK_HARDWARE_HANTEK_DSO_H
 #define LIBSIGROK_HARDWARE_HANTEK_DSO_H
 
-#define USB_INTERFACE          0
-#define USB_CONFIGURATION      1
-#define DSO_EP_IN              0x86
-#define DSO_EP_OUT             0x02
-#define NUM_PROBES             2
+#define USB_INTERFACE			0
+#define USB_CONFIGURATION		1
+#define DSO_EP_IN			0x86
+#define DSO_EP_OUT			0x02
+#define NUM_PROBES			2
 
 /* FX2 renumeration delay in ms */
-#define MAX_RENUM_DELAY_MS     3000
+#define MAX_RENUM_DELAY_MS		3000
 
-#define MAX_CAPTURE_EMPTY      3
+#define MAX_CAPTURE_EMPTY		3
 
-#define DEFAULT_VOLTAGE            VDIV_500MV
-#define DEFAULT_FRAMESIZE          FRAMESIZE_SMALL
-#define DEFAULT_TIMEBASE           TIME_100us
-#define DEFAULT_TRIGGER_SOURCE     "CH1"
-#define DEFAULT_COUPLING           COUPLING_DC
-#define DEFAULT_HORIZ_TRIGGERPOS   0.5
-#define DEFAULT_VERT_OFFSET        0.5
-#define DEFAULT_VERT_TRIGGERPOS    0.5
+#define DEFAULT_VOLTAGE			VDIV_500MV
+#define DEFAULT_FRAMESIZE		FRAMESIZE_SMALL
+#define DEFAULT_TIMEBASE		TIME_100us
+#define DEFAULT_TRIGGER_SOURCE		"CH1"
+#define DEFAULT_COUPLING		COUPLING_DC
+#define DEFAULT_HORIZ_TRIGGERPOS	0.5
+#define DEFAULT_VERT_OFFSET		0.5
+#define DEFAULT_VERT_TRIGGERPOS		0.5
 
-#define MAX_VERT_TRIGGER           0xfe
+#define MAX_VERT_TRIGGER		0xfe
 
 /* Hantek DSO-specific protocol values */
-#define EEPROM_CHANNEL_OFFSETS     0x08
+#define EEPROM_CHANNEL_OFFSETS		0x08
 
-#define FRAMESIZE_SMALL        10240
-#define FRAMESIZE_LARGE        32768
-
+#define FRAMESIZE_SMALL			10240
+#define FRAMESIZE_LARGE			32768
 
 enum control_requests {
 	CTRL_READ_EEPROM = 0xa2,
 	CTRL_GETSPEED = 0xb2,
 	CTRL_BEGINCOMMAND = 0xb3,
 	CTRL_SETOFFSET = 0xb4,
-	CTRL_SETRELAYS = 0xb5
+	CTRL_SETRELAYS = 0xb5,
 };
 
 enum dso_commands {
@@ -70,7 +69,7 @@ enum dso_commands {
 	CMD_SET_VOLTAGE,
 	/* unused */
 	cmdSetLogicalData,
-	cmdGetLogicalData
+	cmdGetLogicalData,
 };
 
 /* Must match the coupling table. */
@@ -78,7 +77,7 @@ enum couplings {
 	COUPLING_AC = 0,
 	COUPLING_DC,
 	/* TODO not used, how to enable? */
-	COUPLING_GND
+	COUPLING_GND,
 };
 
 /* Must match the timebases table. */
@@ -97,7 +96,7 @@ enum time_bases {
 	TIME_40ms,
 	TIME_100ms,
 	TIME_200ms,
-	TIME_400ms
+	TIME_400ms,
 };
 
 /* Must match the vdivs table. */
@@ -115,7 +114,7 @@ enum {
 
 enum trigger_slopes {
 	SLOPE_POSITIVE = 0,
-	SLOPE_NEGATIVE
+	SLOPE_NEGATIVE,
 };
 
 enum trigger_sources {
@@ -130,13 +129,13 @@ enum capturestates {
 	CAPTURE_READY_8BIT = 2,
 	CAPTURE_READY_9BIT = 7,
 	CAPTURE_TIMEOUT = 127,
-	CAPTURE_UNKNOWN = 255
+	CAPTURE_UNKNOWN = 255,
 };
 
 enum triggermodes {
 	TRIGGERMODE_AUTO,
 	TRIGGERMODE_NORMAL,
-	TRIGGERMODE_SINGLE
+	TRIGGERMODE_SINGLE,
 };
 
 enum states {
@@ -209,9 +208,10 @@ SR_PRIV void dso_close(struct sr_dev_inst *sdi);
 SR_PRIV int dso_enable_trigger(struct dev_context *devc);
 SR_PRIV int dso_force_trigger(struct dev_context *devc);
 SR_PRIV int dso_init(struct dev_context *devc);
-SR_PRIV int dso_get_capturestate(struct dev_context *devc, uint8_t *capturestate,
-		uint32_t *trigger_offset);
+SR_PRIV int dso_get_capturestate(struct dev_context *devc,
+		uint8_t *capturestate, uint32_t *trigger_offset);
 SR_PRIV int dso_capture_start(struct dev_context *devc);
-SR_PRIV int dso_get_channeldata(struct dev_context *devc, libusb_transfer_cb_fn cb);
+SR_PRIV int dso_get_channeldata(struct dev_context *devc,
+		libusb_transfer_cb_fn cb);
 
 #endif

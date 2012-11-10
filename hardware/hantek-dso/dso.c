@@ -28,19 +28,18 @@
 
 extern struct sr_dev_driver hantek_dso_driver_info;
 
-
 static int send_begin(struct dev_context *devc)
 {
 	int ret;
 	unsigned char buffer[] = {0x0f, 0x03, 0x03, 0x03, 0x68, 0xac, 0xfe,
 	0x00, 0x01, 0x00};
 
-	sr_dbg("hantek-dso: sending CTRL_BEGINCOMMAND");
+	sr_dbg("Sending CTRL_BEGINCOMMAND.");
 
 	if ((ret = libusb_control_transfer(devc->usb->devhdl,
 			LIBUSB_REQUEST_TYPE_VENDOR, CTRL_BEGINCOMMAND,
 			0, 0, buffer, sizeof(buffer), 200)) != sizeof(buffer)) {
-		sr_err("failed to send begincommand: %d", ret);
+		sr_err("Failed to send begincommand: %d.", ret);
 		return SR_ERR;
 	}
 
@@ -119,7 +118,7 @@ SR_PRIV int dso_open(struct sr_dev_inst *sdi)
 	libusb_get_device_list(NULL, &devlist);
 	for (i = 0; devlist[i]; i++) {
 		if ((err = libusb_get_device_descriptor(devlist[i], &des))) {
-			sr_err("hantek-dso: failed to get device descriptor: %d", err);
+			sr_err("Failed to get device descriptor: %d.", err);
 			continue;
 		}
 
@@ -152,19 +151,19 @@ SR_PRIV int dso_open(struct sr_dev_inst *sdi)
 				 */
 				devc->usb->address = libusb_get_device_address(devlist[i]);
 
-			if(!(devc->epin_maxpacketsize = dso_getmps(devlist[i])))
-				sr_err("hantek-dso: wrong endpoint profile");
+			if (!(devc->epin_maxpacketsize = dso_getmps(devlist[i])))
+				sr_err("Wrong endpoint profile.");
 			else {
 				sdi->status = SR_ST_ACTIVE;
-				sr_info("hantek-dso: opened device %d on %d.%d interface %d",
+				sr_info("Opened device %d on %d.%d interface %d.",
 					sdi->index, devc->usb->bus,
 					devc->usb->address, USB_INTERFACE);
 			}
 		} else {
-			sr_err("hantek-dso: failed to open device: %d", err);
+			sr_err("Failed to open device: %d.", err);
 		}
 
-		/* if we made it here, we handled the device one way or another */
+		/* If we made it here, we handled the device (somehow). */
 		break;
 	}
 	libusb_free_device_list(devlist, 1);
@@ -184,7 +183,7 @@ SR_PRIV void dso_close(struct sr_dev_inst *sdi)
 	if (devc->usb->devhdl == NULL)
 		return;
 
-	sr_info("hantek-dso: closing device %d on %d.%d interface %d", sdi->index,
+	sr_info("Closing device %d on %d.%d interface %d.", sdi->index,
 		devc->usb->bus, devc->usb->address, USB_INTERFACE);
 	libusb_release_interface(devc->usb->devhdl, USB_INTERFACE);
 	libusb_close(devc->usb->devhdl);
@@ -198,7 +197,7 @@ static int get_channel_offsets(struct dev_context *devc)
 	GString *gs;
 	int chan, v, ret;
 
-	sr_dbg("hantek-dso: getting channel offsets");
+	sr_dbg("Getting channel offsets.");
 
 	ret = libusb_control_transfer(devc->usb->devhdl,
 			LIBUSB_ENDPOINT_IN | LIBUSB_REQUEST_TYPE_VENDOR,
@@ -206,7 +205,7 @@ static int get_channel_offsets(struct dev_context *devc)
 			(unsigned char *)&devc->channel_levels,
 			sizeof(devc->channel_levels), 200);
 	if (ret != sizeof(devc->channel_levels)) {
-		sr_err("failed to get channel offsets: %d", ret);
+		sr_err("Failed to get channel offsets: %d.", ret);
 		return SR_ERR;
 	}
 
@@ -217,19 +216,21 @@ static int get_channel_offsets(struct dev_context *devc)
 	 */
 	for (chan = 0; chan < 2; chan++) {
 		for (v = 0; v < 9; v++) {
-			devc->channel_levels[chan][v][0] = g_ntohs(devc->channel_levels[chan][v][0]);
-			devc->channel_levels[chan][v][1] = g_ntohs(devc->channel_levels[chan][v][1]);
+			devc->channel_levels[chan][v][0] =
+				g_ntohs(devc->channel_levels[chan][v][0]);
+			devc->channel_levels[chan][v][1] =
+				g_ntohs(devc->channel_levels[chan][v][1]);
 		}
 	}
 
 	if (sr_log_loglevel_get() >= SR_LOG_DBG) {
 		gs = g_string_sized_new(128);
 		for (chan = 0; chan < 2; chan++) {
-			g_string_printf(gs, "hantek-dso: CH%d:", chan + 1);
+			g_string_printf(gs, "CH%d:", chan + 1);
 			for (v = 0; v < 9; v++) {
 				g_string_append_printf(gs, " %.4x-%.4x",
-						devc->channel_levels[chan][v][0],
-						devc->channel_levels[chan][v][1]);
+					devc->channel_levels[chan][v][0],
+					devc->channel_levels[chan][v][1]);
 			}
 			sr_dbg(gs->str);
 		}
@@ -244,18 +245,18 @@ SR_PRIV int dso_set_trigger_samplerate(struct dev_context *devc)
 	int ret, tmp;
 	uint8_t cmdstring[12];
 	uint16_t timebase_small[] = { 0xffff, 0xfffc, 0xfff7, 0xffe8, 0xffce,
-			0xff9c, 0xff07, 0xfe0d, 0xfc19, 0xf63d, 0xec79, 0xd8f1 };
+		0xff9c, 0xff07, 0xfe0d, 0xfc19, 0xf63d, 0xec79, 0xd8f1 };
 	uint16_t timebase_large[] = { 0xffff, 0x0000, 0xfffc, 0xfff7, 0xffe8,
-			0xffce, 0xff9d, 0xff07, 0xfe0d, 0xfc19, 0xf63d, 0xec79 };
+		0xffce, 0xff9d, 0xff07, 0xfe0d, 0xfc19, 0xf63d, 0xec79 };
 
-	sr_dbg("hantek-dso: preparing CMD_SET_TRIGGER_SAMPLERATE");
+	sr_dbg("Preparing CMD_SET_TRIGGER_SAMPLERATE.");
 
 	memset(cmdstring, 0, sizeof(cmdstring));
 	/* Command */
 	cmdstring[0] = CMD_SET_TRIGGER_SAMPLERATE;
 
 	/* Trigger source */
-	sr_dbg("hantek-dso: trigger source %s", devc->triggersource);
+	sr_dbg("Trigger source %s.", devc->triggersource);
 	if (!strcmp("CH2", devc->triggersource))
 		tmp = 0;
 	else if (!strcmp("CH1", devc->triggersource))
@@ -263,17 +264,17 @@ SR_PRIV int dso_set_trigger_samplerate(struct dev_context *devc)
 	else if (!strcmp("EXT", devc->triggersource))
 		tmp = 2;
 	else {
-		sr_err("hantek-dso: invalid trigger source %s", devc->triggersource);
+		sr_err("Invalid trigger source: '%s'.", devc->triggersource);
 		return SR_ERR_ARG;
 	}
 	cmdstring[2] = tmp;
 
 	/* Frame size */
-	sr_dbg("hantek-dso: frame size %d", devc->framesize);
+	sr_dbg("Frame size: %d.", devc->framesize);
 	cmdstring[2] |= (devc->framesize == FRAMESIZE_SMALL ? 0x01 : 0x02) << 2;
 
 	/* Timebase fast */
-	sr_dbg("hantek-dso: time base index %d", devc->timebase);
+	sr_dbg("Time base index: %d.", devc->timebase);
 	switch (devc->framesize) {
 	case FRAMESIZE_SMALL:
 		if (devc->timebase < TIME_20us)
@@ -289,7 +290,7 @@ SR_PRIV int dso_set_trigger_samplerate(struct dev_context *devc)
 		break;
 	case FRAMESIZE_LARGE:
 		if (devc->timebase < TIME_40us) {
-			sr_err("hantek-dso: timebase < 40us only supported with 10K buffer");
+			sr_err("Timebase < 40us only supported with 10K buffer.");
 			return SR_ERR_ARG;
 		}
 		else if (devc->timebase == TIME_40us)
@@ -305,18 +306,18 @@ SR_PRIV int dso_set_trigger_samplerate(struct dev_context *devc)
 	cmdstring[2] |= (tmp & 0x07) << 5;
 
 	/* Enabled channels: 00=CH1 01=CH2 10=both */
-	sr_dbg("hantek-dso: channels CH1=%d CH2=%d", devc->ch1_enabled, devc->ch2_enabled);
+	sr_dbg("Channels CH1=%d CH2=%d", devc->ch1_enabled, devc->ch2_enabled);
 	tmp = (((devc->ch2_enabled ? 1 : 0) << 1) + (devc->ch1_enabled ? 1 : 0)) - 1;
 	cmdstring[3] = tmp;
 
 	/* Fast rates channel */
-	/* TODO: is this right? */
+	/* TODO: Is this right? */
 	tmp = devc->timebase < TIME_10us ? 1 : 0;
 	cmdstring[3] |= tmp << 2;
 
 	/* Trigger slope: 0=positive 1=negative */
-	/* TODO: does this work? */
-	sr_dbg("hantek-dso: trigger slope %d", devc->triggerslope);
+	/* TODO: Does this work? */
+	sr_dbg("Trigger slope: %d.", devc->triggerslope);
 	cmdstring[3] |= (devc->triggerslope == SLOPE_NEGATIVE ? 1 : 0) << 3;
 
 	/* Timebase slow */
@@ -334,7 +335,7 @@ SR_PRIV int dso_set_trigger_samplerate(struct dev_context *devc)
 	cmdstring[5] = (tmp >> 8) & 0xff;
 
 	/* Horizontal trigger position */
-	sr_dbg("hantek-dso: trigger position %3.2f", devc->triggerposition);
+	sr_dbg("Trigger position: %3.2f.", devc->triggerposition);
 	tmp = 0x77fff + 0x8000 * devc->triggerposition;
 	cmdstring[6] = tmp & 0xff;
 	cmdstring[7] = (tmp >> 8) & 0xff;
@@ -347,10 +348,10 @@ SR_PRIV int dso_set_trigger_samplerate(struct dev_context *devc)
 			DSO_EP_OUT | LIBUSB_ENDPOINT_OUT,
 			cmdstring, sizeof(cmdstring),
 			&tmp, 100)) != 0) {
-		sr_err("Failed to set trigger/samplerate: %d", ret);
+		sr_err("Failed to set trigger/samplerate: %d.", ret);
 		return SR_ERR;
 	}
-	sr_dbg("hantek-dso: sent CMD_SET_TRIGGER_SAMPLERATE");
+	sr_dbg("Sent CMD_SET_TRIGGER_SAMPLERATE.");
 
 	return SR_OK;
 }
@@ -360,22 +361,22 @@ SR_PRIV int dso_set_filters(struct dev_context *devc)
 	int ret, tmp;
 	uint8_t cmdstring[8];
 
-	sr_dbg("hantek-dso: preparing CMD_SET_FILTERS");
+	sr_dbg("Preparing CMD_SET_FILTERS.");
 
 	memset(cmdstring, 0, sizeof(cmdstring));
 	cmdstring[0] = CMD_SET_FILTERS;
 	cmdstring[1] = 0x0f;
 	if (devc->filter_ch1) {
-		sr_dbg("hantek-dso: turning on CH1 filter");
+		sr_dbg("Turning on CH1 filter.");
 		cmdstring[2] |= 0x80;
 	}
 	if (devc->filter_ch2) {
-		sr_dbg("hantek-dso: turning on CH2 filter");
+		sr_dbg("Turning on CH2 filter.");
 		cmdstring[2] |= 0x40;
 	}
 	if (devc->filter_trigger) {
 		/* TODO: supported on the DSO-2090? */
-		sr_dbg("hantek-dso: turning on trigger filter");
+		sr_dbg("Turning on trigger filter.");
 		cmdstring[2] |= 0x20;
 	}
 
@@ -389,7 +390,7 @@ SR_PRIV int dso_set_filters(struct dev_context *devc)
 		sr_err("Failed to set filters: %d", ret);
 		return SR_ERR;
 	}
-	sr_dbg("hantek-dso: sent CMD_SET_FILTERS");
+	sr_dbg("Sent CMD_SET_FILTERS.");
 
 	return SR_OK;
 }
@@ -399,7 +400,7 @@ SR_PRIV int dso_set_voltage(struct dev_context *devc)
 	int ret, tmp;
 	uint8_t cmdstring[8];
 
-	sr_dbg("hantek-dso: preparing CMD_SET_VOLTAGE");
+	sr_dbg("Preparing CMD_SET_VOLTAGE.");
 
 	memset(cmdstring, 0, sizeof(cmdstring));
 	cmdstring[0] = CMD_SET_VOLTAGE;
@@ -407,7 +408,7 @@ SR_PRIV int dso_set_voltage(struct dev_context *devc)
 	cmdstring[2] = 0x30;
 
 	/* CH1 volts/div is encoded in bits 0-1 */
-	sr_dbg("hantek-dso: CH1 vdiv index %d", devc->voltage_ch1);
+	sr_dbg("CH1 vdiv index: %d.", devc->voltage_ch1);
 	switch (devc->voltage_ch1) {
 	case VDIV_1V:
 	case VDIV_100MV:
@@ -427,7 +428,7 @@ SR_PRIV int dso_set_voltage(struct dev_context *devc)
 	}
 
 	/* CH2 volts/div is encoded in bits 2-3 */
-	sr_dbg("hantek-dso: CH2 vdiv index %d", devc->voltage_ch2);
+	sr_dbg("CH2 vdiv index: %d.", devc->voltage_ch2);
 	switch (devc->voltage_ch2) {
 	case VDIV_1V:
 	case VDIV_100MV:
@@ -453,10 +454,10 @@ SR_PRIV int dso_set_voltage(struct dev_context *devc)
 			DSO_EP_OUT | LIBUSB_ENDPOINT_OUT,
 			cmdstring, sizeof(cmdstring),
 			&tmp, 100)) != 0) {
-		sr_err("Failed to set voltage: %d", ret);
+		sr_err("Failed to set voltage: %d.", ret);
 		return SR_ERR;
 	}
-	sr_dbg("hantek-dso: sent CMD_SET_VOLTAGE");
+	sr_dbg("Sent CMD_SET_VOLTAGE.");
 
 	return SR_OK;
 }
@@ -468,7 +469,7 @@ SR_PRIV int dso_set_relays(struct dev_context *devc)
 	uint8_t relays[17] = { 0x00, 0x04, 0x08, 0x02, 0x20, 0x40, 0x10, 0x01,
 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
-	sr_dbg("hantek-dso: preparing CTRL_SETRELAYS");
+	sr_dbg("Preparing CTRL_SETRELAYS.");
 
 	if (devc->voltage_ch1 < VDIV_1V)
 		relays[1] = ~relays[1];
@@ -476,7 +477,7 @@ SR_PRIV int dso_set_relays(struct dev_context *devc)
 	if (devc->voltage_ch1 < VDIV_100MV)
 		relays[2] = ~relays[2];
 
-	sr_dbg("hantek-dso: CH1 coupling %d", devc->coupling_ch1);
+	sr_dbg("CH1 coupling: %d.", devc->coupling_ch1);
 	if (devc->coupling_ch1 != COUPLING_AC)
 		relays[3] = ~relays[3];
 
@@ -486,7 +487,7 @@ SR_PRIV int dso_set_relays(struct dev_context *devc)
 	if (devc->voltage_ch2 < VDIV_100MV)
 		relays[5] = ~relays[5];
 
-	sr_dbg("hantek-dso: CH2 coupling %d", devc->coupling_ch1);
+	sr_dbg("CH2 coupling: %d.", devc->coupling_ch1);
 	if (devc->coupling_ch2 != COUPLING_AC)
 		relays[6] = ~relays[6];
 
@@ -495,7 +496,7 @@ SR_PRIV int dso_set_relays(struct dev_context *devc)
 
 	if (sr_log_loglevel_get() >= SR_LOG_DBG) {
 		gs = g_string_sized_new(128);
-		g_string_printf(gs, "hantek-dso: relays:");
+		g_string_printf(gs, "Relays:");
 		for (i = 0; i < 17; i++)
 			g_string_append_printf(gs, " %.2x", relays[i]);
 		sr_dbg(gs->str);
@@ -505,10 +506,10 @@ SR_PRIV int dso_set_relays(struct dev_context *devc)
 	if ((ret = libusb_control_transfer(devc->usb->devhdl,
 			LIBUSB_REQUEST_TYPE_VENDOR, CTRL_SETRELAYS,
 			0, 0, relays, 17, 100)) != sizeof(relays)) {
-		sr_err("failed to set relays: %d", ret);
+		sr_err("Failed to set relays: %d.", ret);
 		return SR_ERR;
 	}
-	sr_dbg("hantek-dso: sent CTRL_SETRELAYS");
+	sr_dbg("Sent CTRL_SETRELAYS.");
 
 	return SR_OK;
 }
@@ -519,7 +520,7 @@ SR_PRIV int dso_set_voffsets(struct dev_context *devc)
 	uint16_t *ch_levels;
 	uint8_t offsets[17];
 
-	sr_dbg("hantek-dso: preparing CTRL_SETOFFSET");
+	sr_dbg("Preparing CTRL_SETOFFSET.");
 
 	memset(offsets, 0, sizeof(offsets));
 	/* Channel 1 */
@@ -527,31 +528,31 @@ SR_PRIV int dso_set_voffsets(struct dev_context *devc)
 	offset = (ch_levels[1] - ch_levels[0]) * devc->voffset_ch1 + ch_levels[0];
 	offsets[0] = (offset >> 8) | 0x20;
 	offsets[1] = offset & 0xff;
-	sr_dbg("hantek-dso: CH1 offset %3.2f (%.2x%.2x)", devc->voffset_ch1,
-			offsets[0], offsets[1]);
+	sr_dbg("CH1 offset: %3.2f (%.2x%.2x).", devc->voffset_ch1,
+	       offsets[0], offsets[1]);
 
 	/* Channel 2 */
 	ch_levels = devc->channel_levels[1][devc->voltage_ch2];
 	offset = (ch_levels[1] - ch_levels[0]) * devc->voffset_ch2 + ch_levels[0];
 	offsets[2] = (offset >> 8) | 0x20;
 	offsets[3] = offset & 0xff;
-	sr_dbg("hantek-dso: CH2 offset %3.2f (%.2x%.2x)", devc->voffset_ch2,
-			offsets[2], offsets[3]);
+	sr_dbg("CH2 offset: %3.2f (%.2x%.2x).", devc->voffset_ch2,
+	       offsets[2], offsets[3]);
 
 	/* Trigger */
 	offset = MAX_VERT_TRIGGER * devc->voffset_trigger;
 	offsets[4] = (offset >> 8) | 0x20;
 	offsets[5] = offset & 0xff;
-	sr_dbg("hantek-dso: trigger offset %3.2f (%.2x%.2x)", devc->voffset_trigger,
+	sr_dbg("Trigger offset: %3.2f (%.2x%.2x).", devc->voffset_trigger,
 			offsets[4], offsets[5]);
 
 	if ((ret = libusb_control_transfer(devc->usb->devhdl,
 			LIBUSB_REQUEST_TYPE_VENDOR, CTRL_SETOFFSET,
 			0, 0, offsets, sizeof(offsets), 100)) != sizeof(offsets)) {
-		sr_err("failed to set offsets: %d", ret);
+		sr_err("Failed to set offsets: %d.", ret);
 		return SR_ERR;
 	}
-	sr_dbg("hantek-dso: sent CTRL_SETOFFSET");
+	sr_dbg("Sent CTRL_SETOFFSET.");
 
 	return SR_OK;
 }
@@ -561,7 +562,7 @@ SR_PRIV int dso_enable_trigger(struct dev_context *devc)
 	int ret, tmp;
 	uint8_t cmdstring[2];
 
-	sr_dbg("hantek-dso: sending CMD_ENABLE_TRIGGER");
+	sr_dbg("Sending CMD_ENABLE_TRIGGER.");
 
 	memset(cmdstring, 0, sizeof(cmdstring));
 	cmdstring[0] = CMD_ENABLE_TRIGGER;
@@ -574,7 +575,7 @@ SR_PRIV int dso_enable_trigger(struct dev_context *devc)
 			DSO_EP_OUT | LIBUSB_ENDPOINT_OUT,
 			cmdstring, sizeof(cmdstring),
 			&tmp, 100)) != 0) {
-		sr_err("Failed to enable trigger: %d", ret);
+		sr_err("Failed to enable trigger: %d.", ret);
 		return SR_ERR;
 	}
 
@@ -586,7 +587,7 @@ SR_PRIV int dso_force_trigger(struct dev_context *devc)
 	int ret, tmp;
 	uint8_t cmdstring[2];
 
-	sr_dbg("hantek-dso: sending CMD_FORCE_TRIGGER");
+	sr_dbg("Sending CMD_FORCE_TRIGGER.");
 
 	memset(cmdstring, 0, sizeof(cmdstring));
 	cmdstring[0] = CMD_FORCE_TRIGGER;
@@ -599,7 +600,7 @@ SR_PRIV int dso_force_trigger(struct dev_context *devc)
 			DSO_EP_OUT | LIBUSB_ENDPOINT_OUT,
 			cmdstring, sizeof(cmdstring),
 			&tmp, 100)) != 0) {
-		sr_err("Failed to force trigger: %d", ret);
+		sr_err("Failed to force trigger: %d.", ret);
 		return SR_ERR;
 	}
 
@@ -609,7 +610,7 @@ SR_PRIV int dso_force_trigger(struct dev_context *devc)
 SR_PRIV int dso_init(struct dev_context *devc)
 {
 
-	sr_dbg("hantek-dso: initializing dso");
+	sr_dbg("Initializing DSO.");
 
 	if (get_channel_offsets(devc) != SR_OK)
 		return SR_ERR;
@@ -635,33 +636,35 @@ SR_PRIV int dso_init(struct dev_context *devc)
 	return SR_OK;
 }
 
-SR_PRIV int dso_get_capturestate(struct dev_context *devc, uint8_t *capturestate,
-		uint32_t *trigger_offset)
+SR_PRIV int dso_get_capturestate(struct dev_context *devc,
+				 uint8_t *capturestate,
+				 uint32_t *trigger_offset)
 {
 	int ret, tmp, i;
 	unsigned int bitvalue, toff;
 	uint8_t cmdstring[2], inbuf[512];
 
-	sr_dbg("hantek-dso: sending CMD_GET_CAPTURESTATE");
+	sr_dbg("Sending CMD_GET_CAPTURESTATE.");
 
 	cmdstring[0] = CMD_GET_CAPTURESTATE;
 	cmdstring[1] = 0;
 
 	if ((ret = send_bulkcmd(devc, cmdstring, sizeof(cmdstring))) != SR_OK) {
-		sr_dbg("Failed to send get_capturestate command: %d", ret);
+		sr_dbg("Failed to send get_capturestate command: %d.", ret);
 		return SR_ERR;
 	}
 
 	if ((ret = libusb_bulk_transfer(devc->usb->devhdl,
 			DSO_EP_IN | LIBUSB_ENDPOINT_IN,
 			inbuf, 512, &tmp, 100)) != 0) {
-		sr_dbg("Failed to get capturestate: %d", ret);
+		sr_dbg("Failed to get capturestate: %d.", ret);
 		return SR_ERR;
 	}
 	*capturestate = inbuf[0];
 	toff = (inbuf[1] << 16) | (inbuf[3] << 8) | inbuf[2];
 
-	/* This conversion comes from the openhantek project.
+	/*
+	 * This conversion comes from the openhantek project.
 	 * Each set bit in the 24-bit value inverts all bits with a lower
 	 * value. No idea why the device reports the trigger point this way.
 	 */
@@ -682,13 +685,13 @@ SR_PRIV int dso_capture_start(struct dev_context *devc)
 	int ret;
 	uint8_t cmdstring[2];
 
-	sr_dbg("hantek-dso: sending CMD_CAPTURE_START");
+	sr_dbg("Sending CMD_CAPTURE_START.");
 
 	cmdstring[0] = CMD_CAPTURE_START;
 	cmdstring[1] = 0;
 
 	if ((ret = send_bulkcmd(devc, cmdstring, sizeof(cmdstring))) != SR_OK) {
-		sr_err("Failed to send capture_start command: %d", ret);
+		sr_err("Failed to send capture_start command: %d.", ret);
 		return SR_ERR;
 	}
 
@@ -702,22 +705,23 @@ SR_PRIV int dso_get_channeldata(struct dev_context *devc, libusb_transfer_cb_fn 
 	uint8_t cmdstring[2];
 	unsigned char *buf;
 
-	sr_dbg("hantek-dso: sending CMD_GET_CHANNELDATA");
+	sr_dbg("Sending CMD_GET_CHANNELDATA.");
 
 	cmdstring[0] = CMD_GET_CHANNELDATA;
 	cmdstring[1] = 0;
 
 	if ((ret = send_bulkcmd(devc, cmdstring, sizeof(cmdstring))) != SR_OK) {
-		sr_err("Failed to get channel data: %d", ret);
+		sr_err("Failed to get channel data: %d.", ret);
 		return SR_ERR;
 	}
 
-	/* TODO: dso-2xxx only */
-	num_transfers = devc->framesize * sizeof(unsigned short) / devc->epin_maxpacketsize;
-	sr_dbg("hantek-dso: queueing up %d transfers", num_transfers);
+	/* TODO: DSO-2xxx only. */
+	num_transfers = devc->framesize *
+			sizeof(unsigned short) / devc->epin_maxpacketsize;
+	sr_dbg("Queueing up %d transfers.", num_transfers);
 	for (i = 0; i < num_transfers; i++) {
 		if (!(buf = g_try_malloc(devc->epin_maxpacketsize))) {
-			sr_err("hantek-dso: %s: buf malloc failed", __func__);
+			sr_err("Failed to malloc USB endpoint buffer.");
 			return SR_ERR_MALLOC;
 		}
 		transfer = libusb_alloc_transfer(0);
@@ -725,7 +729,7 @@ SR_PRIV int dso_get_channeldata(struct dev_context *devc, libusb_transfer_cb_fn 
 				DSO_EP_IN | LIBUSB_ENDPOINT_IN, buf,
 				devc->epin_maxpacketsize, cb, devc, 40);
 		if ((ret = libusb_submit_transfer(transfer)) != 0) {
-			sr_err("failed to submit transfer: %d", ret);
+			sr_err("Failed to submit transfer: %d.", ret);
 			/* TODO: Free them all. */
 			libusb_free_transfer(transfer);
 			g_free(buf);
@@ -735,4 +739,3 @@ SR_PRIV int dso_get_channeldata(struct dev_context *devc, libusb_transfer_cb_fn 
 
 	return SR_OK;
 }
-

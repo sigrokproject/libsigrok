@@ -33,10 +33,9 @@
 #include "libsigrok-internal.h"
 #include "dso.h"
 
-
 /* Max time in ms before we want to check on USB events */
 /* TODO tune this properly */
-#define TICK    1
+#define TICK 1
 
 static const int hwcaps[] = {
 	SR_HWCAP_OSCILLOSCOPE,
@@ -145,6 +144,7 @@ static const char *coupling[] = {
 
 SR_PRIV struct sr_dev_driver hantek_dso_driver_info;
 static struct sr_dev_driver *hdi = &hantek_dso_driver_info;
+
 static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);
 
 static struct sr_dev_inst *dso_dev_new(int index, const struct dso_profile *prof)
@@ -161,7 +161,8 @@ static struct sr_dev_inst *dso_dev_new(int index, const struct dso_profile *prof
 		return NULL;
 	sdi->driver = hdi;
 
-	/* Add only the real probes -- EXT isn't a source of data, only
+	/*
+	 * Add only the real probes -- EXT isn't a source of data, only
 	 * a trigger source internal to the device.
 	 */
 	for (i = 0; probe_names[i]; i++) {
@@ -172,9 +173,10 @@ static struct sr_dev_inst *dso_dev_new(int index, const struct dso_profile *prof
 	}
 
 	if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
-		sr_err("hantek-dso: devc malloc failed");
+		sr_err("Device context malloc failed.");
 		return NULL;
 	}
+
 	devc->profile = prof;
 	devc->dev_state = IDLE;
 	devc->timebase = DEFAULT_TIMEBASE;
@@ -230,12 +232,12 @@ static int clear_instances(void)
 	for (l = drvc->instances; l; l = l->next) {
 		if (!(sdi = l->data)) {
 			/* Log error, but continue cleaning up the rest. */
-			sr_err("hantek-dso: %s: sdi was NULL, continuing", __func__);
+			sr_err("%s: sdi was NULL, continuing", __func__);
 			continue;
 		}
 		if (!(devc = sdi->priv)) {
 			/* Log error, but continue cleaning up the rest. */
-			sr_err("hantek-dso: %s: sdi->priv was NULL, continuing", __func__);
+			sr_err("%s: sdi->priv was NULL, continuing", __func__);
 			continue;
 		}
 		dso_close(sdi);
@@ -256,13 +258,13 @@ static int hw_init(void)
 	struct drv_context *drvc;
 
 	if (!(drvc = g_try_malloc0(sizeof(struct drv_context)))) {
-		sr_err("hantek-dso: driver context malloc failed.");
+		sr_err("Driver context malloc failed.");
 		return SR_ERR_MALLOC;
 	}
 
 	if (libusb_init(NULL) != 0) {
 		g_free(drvc);
-		sr_err("hantek-dso: Failed to initialize USB.");
+		sr_err("Failed to initialize USB.");
 		return SR_ERR;
 	}
 
@@ -283,6 +285,7 @@ static GSList *hw_scan(GSList *options)
 	int devcnt, ret, i, j;
 
 	(void)options;
+
 	devcnt = 0;
 	devices = 0;
 	drvc = hdi->priv;
@@ -294,7 +297,7 @@ static GSList *hw_scan(GSList *options)
 	libusb_get_device_list(NULL, &devlist);
 	for (i = 0; devlist[i]; i++) {
 		if ((ret = libusb_get_device_descriptor(devlist[i], &des))) {
-			sr_err("hantek-dso: failed to get device descriptor: %d", ret);
+			sr_err("Failed to get device descriptor: %d.", ret);
 			continue;
 		}
 
@@ -304,7 +307,7 @@ static GSList *hw_scan(GSList *options)
 				&& des.idProduct == dev_profiles[j].orig_pid) {
 				/* Device matches the pre-firmware profile. */
 				prof = &dev_profiles[j];
-				sr_dbg("hantek-dso: Found a %s %s.", prof->vendor, prof->model);
+				sr_dbg("Found a %s %s.", prof->vendor, prof->model);
 				sdi = dso_dev_new(devcnt, prof);
 				devices = g_slist_append(devices, sdi);
 				devc = sdi->priv;
@@ -313,8 +316,8 @@ static GSList *hw_scan(GSList *options)
 					/* Remember when the firmware on this device was updated */
 					devc->fw_updated = g_get_monotonic_time();
 				else
-					sr_err("hantek-dso: firmware upload failed for "
-					       "device %d", devcnt);
+					sr_err("Firmware upload failed for "
+					       "device %d.", devcnt);
 				/* Dummy USB address of 0xff will get overwritten later. */
 				devc->usb = sr_usb_dev_inst_new(
 						libusb_get_bus_number(devlist[i]), 0xff, NULL);
@@ -324,7 +327,7 @@ static GSList *hw_scan(GSList *options)
 				&& des.idProduct == dev_profiles[j].fw_pid) {
 				/* Device matches the post-firmware profile. */
 				prof = &dev_profiles[j];
-				sr_dbg("hantek-dso: Found a %s %s.", prof->vendor, prof->model);
+				sr_dbg("Found a %s %s.", prof->vendor, prof->model);
 				sdi = dso_dev_new(devcnt, prof);
 				sdi->status = SR_ST_INACTIVE;
 				devices = g_slist_append(devices, sdi);
@@ -363,13 +366,13 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 
 	/*
-	 * if the firmware was recently uploaded, wait up to MAX_RENUM_DELAY_MS
-	 * for the FX2 to renumerate
+	 * If the firmware was recently uploaded, wait up to MAX_RENUM_DELAY_MS
+	 * for the FX2 to renumerate.
 	 */
 	err = SR_ERR;
 	if (devc->fw_updated > 0) {
-		sr_info("hantek-dso: waiting for device to reset");
-		/* takes at least 300ms for the FX2 to be gone from the USB bus */
+		sr_info("Waiting for device to reset.");
+		/* Takes >= 300ms for the FX2 to be gone from the USB bus. */
 		g_usleep(300 * 1000);
 		timediff_ms = 0;
 		while (timediff_ms < MAX_RENUM_DELAY_MS) {
@@ -378,21 +381,21 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 			g_usleep(100 * 1000);
 			timediff_us = g_get_monotonic_time() - devc->fw_updated;
 			timediff_ms = timediff_us / 1000;
-			sr_spew("hantek-dso: waited %" PRIi64 " ms", timediff_ms);
+			sr_spew("Waited %" PRIi64 " ms.", timediff_ms);
 		}
-		sr_info("hantek-dso: device came back after %d ms", timediff_ms);
+		sr_info("Device came back after %d ms.", timediff_ms);
 	} else {
 		err = dso_open(sdi);
 	}
 
 	if (err != SR_OK) {
-		sr_err("hantek-dso: unable to open device");
+		sr_err("Unable to open device.");
 		return SR_ERR;
 	}
 
 	err = libusb_claim_interface(devc->usb->devhdl, USB_INTERFACE);
 	if (err != 0) {
-		sr_err("hantek-dso: Unable to claim interface: %d", err);
+		sr_err("Unable to claim interface: %d.", err);
 		return SR_ERR;
 	}
 
@@ -401,7 +404,6 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 
 static int hw_dev_close(struct sr_dev_inst *sdi)
 {
-
 	dso_close(sdi);
 
 	return SR_OK;
@@ -422,7 +424,7 @@ static int hw_cleanup(void)
 }
 
 static int hw_info_get(int info_id, const void **data,
-       const struct sr_dev_inst *sdi)
+		       const struct sr_dev_inst *sdi)
 {
 	uint64_t tmp;
 
@@ -468,7 +470,7 @@ static int hw_info_get(int info_id, const void **data,
 }
 
 static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
-		const void *value)
+			     const void *value)
 {
 	struct dev_context *devc;
 	struct sr_rational tmp_rat;
@@ -495,7 +497,7 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 	case SR_HWCAP_HORIZ_TRIGGERPOS:
 		tmp_float = *(const float *)value;
 		if (tmp_float < 0.0 || tmp_float > 1.0) {
-			sr_err("hantek-dso: trigger position should be between 0.0 and 1.0");
+			sr_err("Trigger position should be between 0.0 and 1.0.");
 			ret = SR_ERR_ARG;
 		} else
 			devc->triggerposition = tmp_float;
@@ -547,14 +549,14 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 			else if (!strcmp(targets[i], "TRIGGER"))
 				devc->filter_trigger = TRUE;
 			else {
-				sr_err("invalid filter target %s", targets[i]);
+				sr_err("Invalid filter target %s.", targets[i]);
 				ret = SR_ERR_ARG;
 			}
 		}
 		g_strfreev(targets);
 		break;
 	case SR_HWCAP_VDIV:
-		/* TODO not supporting vdiv per channel yet */
+		/* TODO: Not supporting vdiv per channel yet. */
 		tmp_rat = *(const struct sr_rational *)value;
 		for (i = 0; vdivs[i].p && vdivs[i].q; i++) {
 			if (vdivs[i].p == tmp_rat.p
@@ -568,7 +570,7 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 			ret = SR_ERR_ARG;
 		break;
 	case SR_HWCAP_COUPLING:
-		/* TODO not supporting coupling per channel yet */
+		/* TODO: Not supporting coupling per channel yet. */
 		for (i = 0; coupling[i]; i++) {
 			if (!strcmp(value, coupling[i])) {
 				devc->coupling_ch1 = i;
@@ -581,6 +583,7 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		break;
 	default:
 		ret = SR_ERR_ARG;
+		break;
 	}
 
 	return ret;
@@ -605,16 +608,19 @@ static void send_chunk(struct dev_context *devc, unsigned char *buf,
 	analog.data = g_try_malloc(analog.num_samples * sizeof(float) * num_probes);
 	data_offset = 0;
 	for (i = 0; i < analog.num_samples; i++) {
-		/* The device always sends data for both channels. If a channel
+		/*
+		 * The device always sends data for both channels. If a channel
 		 * is disabled, it contains a copy of the enabled channel's
-		 * data. However, we only send the requested channels to the bus.
+		 * data. However, we only send the requested channels to
+		 * the bus.
 		 *
-		 * Voltage values are encoded as a value 0-255 (0-512 on the 5200*),
-		 * where the value is a point in the range represented by the vdiv
-		 * setting. There are 8 vertical divs, so e.g. 500mV/div represents
-		 * 4V peak-to-peak where 0 = -2V and 255 = +2V.
+		 * Voltage values are encoded as a value 0-255 (0-512 on the
+		 * DSO-5200*), where the value is a point in the range
+		 * represented by the vdiv setting. There are 8 vertical divs,
+		 * so e.g. 500mV/div represents 4V peak-to-peak where 0 = -2V
+		 * and 255 = +2V.
 		 */
-		/* TODO: support for 5xxx series 9-bit samples */
+		/* TODO: Support for DSO-5xxx series 9-bit samples. */
 		if (devc->ch1_enabled) {
 			range = ((float)vdivs[devc->voltage_ch1].p / vdivs[devc->voltage_ch1].q) * 8;
 			ch1 = range / 255 * *(buf + i * 2 + 1);
@@ -630,12 +636,12 @@ static void send_chunk(struct dev_context *devc, unsigned char *buf,
 		}
 	}
 	sr_session_send(devc->cb_data, &packet);
-
 }
 
-/* Called by libusb (as triggered by handle_event()) when a transfer comes in.
+/*
+ * Called by libusb (as triggered by handle_event()) when a transfer comes in.
  * Only channel data comes in asynchronously, and all transfers for this are
- * queued up beforehand, so this just needs so chuck the incoming data onto
+ * queued up beforehand, so this just needs to chuck the incoming data onto
  * the libsigrok session bus.
  */
 static void receive_transfer(struct libusb_transfer *transfer)
@@ -645,8 +651,8 @@ static void receive_transfer(struct libusb_transfer *transfer)
 	int num_samples, pre;
 
 	devc = transfer->user_data;
-	sr_dbg("hantek-dso: receive_transfer(): status %d received %d bytes",
-			transfer->status, transfer->actual_length);
+	sr_dbg("receive_transfer(): status %d received %d bytes.",
+	       transfer->status, transfer->actual_length);
 
 	if (transfer->actual_length == 0)
 		/* Nothing to send to the bus. */
@@ -654,15 +660,17 @@ static void receive_transfer(struct libusb_transfer *transfer)
 
 	num_samples = transfer->actual_length / 2;
 
-	sr_dbg("hantek-dso: got %d-%d/%d samples in frame", devc->samp_received + 1,
-			devc->samp_received + num_samples, devc->framesize);
+	sr_dbg("Got %d-%d/%d samples in frame.", devc->samp_received + 1,
+	       devc->samp_received + num_samples, devc->framesize);
 
-	/* The device always sends a full frame, but the beginning of the frame
+	/*
+	 * The device always sends a full frame, but the beginning of the frame
 	 * doesn't represent the trigger point. The offset at which the trigger
 	 * happened came in with the capture state, so we need to start sending
-	 * from there up the session bus. The samples in the frame buffer before
-	 * that trigger point came after the end of the device's frame buffer was
-	 * reached, and it wrapped around to overwrite up until the trigger point.
+	 * from there up the session bus. The samples in the frame buffer
+	 * before that trigger point came after the end of the device's frame
+	 * buffer was reached, and it wrapped around to overwrite up until the
+	 * trigger point.
 	 */
 	if (devc->samp_received < devc->trigger_offset) {
 		/* Trigger point not yet reached. */
@@ -672,17 +680,19 @@ static void receive_transfer(struct libusb_transfer *transfer)
 					transfer->buffer, num_samples * 2);
 			devc->samp_buffered += num_samples;
 		} else {
-			/* This chunk hits or overruns the trigger point.
+			/*
+			 * This chunk hits or overruns the trigger point.
 			 * Store the part before the trigger fired, and
-			 * send the rest up to the session bus. */
+			 * send the rest up to the session bus.
+			 */
 			pre = devc->trigger_offset - devc->samp_received;
 			memcpy(devc->framebuf + devc->samp_buffered * 2,
 					transfer->buffer, pre * 2);
 			devc->samp_buffered += pre;
 
 			/* The rest of this chunk starts with the trigger point. */
-			sr_dbg("hantek-dso: reached trigger point, %d samples buffered",
-					devc->samp_buffered);
+			sr_dbg("Reached trigger point, %d samples buffered.",
+			       devc->samp_buffered);
 
 			/* Avoid the corner case where the chunk ended at
 			 * exactly the trigger point. */
@@ -706,8 +716,8 @@ static void receive_transfer(struct libusb_transfer *transfer)
 	if (devc->samp_received >= devc->framesize) {
 		/* That was the last chunk in this frame. Send the buffered
 		 * pre-trigger samples out now, in one big chunk. */
-		sr_dbg("hantek-dso: end of frame, sending %d pre-trigger buffered samples",
-				devc->samp_buffered);
+		sr_dbg("End of frame, sending %d pre-trigger buffered samples.",
+		       devc->samp_buffered);
 		send_chunk(devc, devc->framebuf, devc->samp_buffered);
 
 		/* Mark the end of this frame. */
@@ -721,7 +731,6 @@ static void receive_transfer(struct libusb_transfer *transfer)
 			devc->dev_state = NEW_CAPTURE;
 		}
 	}
-
 }
 
 static int handle_event(int fd, int revents, void *cb_data)
@@ -735,7 +744,6 @@ static int handle_event(int fd, int revents, void *cb_data)
 	uint32_t trigger_offset;
 	uint8_t capturestate;
 
-	/* Avoid compiler warnings. */
 	(void)fd;
 	(void)revents;
 
@@ -743,9 +751,11 @@ static int handle_event(int fd, int revents, void *cb_data)
 	devc = sdi->priv;
 	if (devc->dev_state == STOPPING) {
 		/* We've been told to wind up the acquisition. */
-		sr_dbg("hantek-dso: stopping acquisition");
-		/* TODO: doesn't really cancel pending transfers so they might
-		 * come in after SR_DF_END is sent. */
+		sr_dbg("Stopping acquisition.");
+		/*
+		 * TODO: Doesn't really cancel pending transfers so they might
+		 * come in after SR_DF_END is sent.
+		 */
 		lupfd = libusb_get_pollfds(NULL);
 		for (i = 0; lupfd[i]; i++)
 			sr_source_remove(lupfd[i]->fd);
@@ -771,7 +781,7 @@ static int handle_event(int fd, int revents, void *cb_data)
 			return TRUE;
 //		if (dso_force_trigger(devc) != SR_OK)
 //			return TRUE;
-		sr_dbg("hantek-dso: successfully requested next chunk");
+		sr_dbg("Successfully requested next chunk.");
 		devc->dev_state = CAPTURE;
 		return TRUE;
 	}
@@ -781,8 +791,8 @@ static int handle_event(int fd, int revents, void *cb_data)
 	if ((dso_get_capturestate(devc, &capturestate, &trigger_offset)) != SR_OK)
 		return TRUE;
 
-	sr_dbg("hantek-dso: capturestate %d", capturestate);
-	sr_dbg("hantek-dso: trigger offset 0x%.6x", trigger_offset);
+	sr_dbg("Capturestate %d.", capturestate);
+	sr_dbg("Trigger offset 0x%.6x.", trigger_offset);
 	switch (capturestate) {
 	case CAPTURE_EMPTY:
 		if (++devc->capture_empty_count >= MAX_CAPTURE_EMPTY) {
@@ -793,11 +803,11 @@ static int handle_event(int fd, int revents, void *cb_data)
 				break;
 //			if (dso_force_trigger(devc) != SR_OK)
 //				break;
-			sr_dbg("hantek-dso: successfully requested next chunk");
+			sr_dbg("Successfully requested next chunk.");
 		}
 		break;
 	case CAPTURE_FILLING:
-		/* no data yet */
+		/* No data yet. */
 		break;
 	case CAPTURE_READY_8BIT:
 		/* Remember where in the captured frame the trigger is. */
@@ -812,7 +822,8 @@ static int handle_event(int fd, int revents, void *cb_data)
 		if (dso_get_channeldata(devc, receive_transfer) != SR_OK)
 			break;
 
-		/* Don't hit the state machine again until we're done fetching
+		/*
+		 * Don't hit the state machine again until we're done fetching
 		 * the data we just told the scope to send.
 		 */
 		devc->dev_state = FETCH_DATA;
@@ -823,20 +834,21 @@ static int handle_event(int fd, int revents, void *cb_data)
 		break;
 	case CAPTURE_READY_9BIT:
 		/* TODO */
-		sr_err("not yet supported");
+		sr_err("Not yet supported.");
 		break;
 	case CAPTURE_TIMEOUT:
 		/* Doesn't matter, we'll try again next time. */
 		break;
 	default:
-		sr_dbg("unknown capture state");
+		sr_dbg("Unknown capture state: %d.", capturestate);
+		break;
 	}
 
 	return TRUE;
 }
 
 static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
-		void *cb_data)
+				    void *cb_data)
 {
 	const struct libusb_pollfd **lupfd;
 	struct sr_datafeed_packet packet;
@@ -852,7 +864,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	devc->cb_data = cb_data;
 
 	if (configure_probes(sdi) != SR_OK) {
-		sr_err("hantek-dso: failed to configured probes");
+		sr_err("Failed to configure probes.");
 		return SR_ERR;
 	}
 
@@ -865,8 +877,8 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	devc->dev_state = CAPTURE;
 	lupfd = libusb_get_pollfds(NULL);
 	for (i = 0; lupfd[i]; i++)
-		sr_source_add(lupfd[i]->fd, lupfd[i]->events, TICK, handle_event,
-				(void *)sdi);
+		sr_source_add(lupfd[i]->fd, lupfd[i]->events, TICK,
+			      handle_event, (void *)sdi);
 	free(lupfd);
 
 	/* Send header packet to the session bus. */
