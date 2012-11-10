@@ -129,7 +129,7 @@ static int sigma_read(void *buf, size_t size, struct dev_context *devc)
 
 	ret = ftdi_read_data(&devc->ftdic, (unsigned char *)buf, size);
 	if (ret < 0) {
-		sr_err("sigma: ftdi_read_data failed: %s",
+		sr_err("ftdi_read_data failed: %s",
 		       ftdi_get_error_string(&devc->ftdic));
 	}
 
@@ -142,10 +142,10 @@ static int sigma_write(void *buf, size_t size, struct dev_context *devc)
 
 	ret = ftdi_write_data(&devc->ftdic, (unsigned char *)buf, size);
 	if (ret < 0) {
-		sr_err("sigma: ftdi_write_data failed: %s",
+		sr_err("ftdi_write_data failed: %s",
 		       ftdi_get_error_string(&devc->ftdic));
 	} else if ((size_t) ret != size) {
-		sr_err("sigma: ftdi_write_data did not complete write.");
+		sr_err("ftdi_write_data did not complete write.");
 	}
 
 	return ret;
@@ -193,7 +193,7 @@ static uint8_t sigma_get_register(uint8_t reg, struct dev_context *devc)
 	uint8_t value;
 
 	if (1 != sigma_read_register(reg, &value, 1, devc)) {
-		sr_err("sigma: sigma_get_register: 1 byte expected");
+		sr_err("sigma_get_register: 1 byte expected");
 		return 0;
 	}
 
@@ -340,12 +340,12 @@ static int bin2bitbang(const char *filename,
 
 	f = g_fopen(filename, "rb");
 	if (!f) {
-		sr_err("sigma: g_fopen(\"%s\", \"rb\")", filename);
+		sr_err("g_fopen(\"%s\", \"rb\")", filename);
 		return SR_ERR;
 	}
 
 	if (-1 == fseek(f, 0, SEEK_END)) {
-		sr_err("sigma: fseek on %s failed", filename);
+		sr_err("fseek on %s failed", filename);
 		fclose(f);
 		return SR_ERR;
 	}
@@ -355,7 +355,7 @@ static int bin2bitbang(const char *filename,
 	fseek(f, 0, SEEK_SET);
 
 	if (!(firmware = g_try_malloc(buffer_size))) {
-		sr_err("sigma: %s: firmware malloc failed", __func__);
+		sr_err("%s: firmware malloc failed", __func__);
 		fclose(f);
 		return SR_ERR_MALLOC;
 	}
@@ -367,7 +367,7 @@ static int bin2bitbang(const char *filename,
 	fclose(f);
 
 	if(fwsize != file_size) {
-	    sr_err("sigma: %s: Error reading firmware", filename);
+	    sr_err("%s: Error reading firmware", filename);
 	    fclose(f);
 	    g_free(firmware);
 	    return SR_ERR;
@@ -377,7 +377,7 @@ static int bin2bitbang(const char *filename,
 
 	*buf = p = (unsigned char *)g_try_malloc(*buf_size);
 	if (!p) {
-		sr_err("sigma: %s: buf/p malloc failed", __func__);
+		sr_err("%s: buf/p malloc failed", __func__);
 		g_free(firmware);
 		return SR_ERR_MALLOC;
 	}
@@ -394,7 +394,7 @@ static int bin2bitbang(const char *filename,
 
 	if (offset != *buf_size) {
 		g_free(*buf);
-		sr_err("sigma: Error reading firmware %s "
+		sr_err("Error reading firmware %s "
 		       "offset=%ld, file_size=%ld, buf_size=%zd.",
 		       filename, offset, file_size, *buf_size);
 
@@ -417,7 +417,7 @@ static int clear_instances(void)
 	for (l = drvc->instances; l; l = l->next) {
 		if (!(sdi = l->data)) {
 			/* Log error, but continue cleaning up the rest. */
-			sr_err("sigma: %s: sdi was NULL, continuing", __func__);
+			sr_err("%s: sdi was NULL, continuing", __func__);
 			continue;
 		}
 		if (sdi->priv) {
@@ -437,7 +437,7 @@ static int hw_init(void)
 	struct drv_context *drvc;
 
 	if (!(drvc = g_try_malloc0(sizeof(struct drv_context)))) {
-		sr_err("asix-sigma: driver context malloc failed.");
+		sr_err("Driver context malloc failed.");
 		return SR_ERR_MALLOC;
 	}
 	adi->priv = drvc;
@@ -463,7 +463,7 @@ static GSList *hw_scan(GSList *options)
 	clear_instances();
 
 	if (!(devc = g_try_malloc(sizeof(struct dev_context)))) {
-		sr_err("sigma: %s: devc malloc failed", __func__);
+		sr_err("%s: devc malloc failed", __func__);
 		return NULL;
 	}
 
@@ -484,8 +484,8 @@ static GSList *hw_scan(GSList *options)
 	sscanf(serial_txt, "%x", &serial);
 
 	if (serial < 0xa6010000 || serial > 0xa602ffff) {
-		sr_err("sigma: Only SIGMA and SIGMA2 are supported "
-		       "in this version of sigrok.");
+		sr_err("Only SIGMA and SIGMA2 are supported "
+		       "in this version of libsigrok.");
 		goto free;
 	}
 
@@ -503,7 +503,7 @@ static GSList *hw_scan(GSList *options)
 	/* Register SIGMA device. */
 	if (!(sdi = sr_dev_inst_new(0, SR_ST_INITIALIZING, USB_VENDOR_NAME,
 				    USB_MODEL_NAME, USB_MODEL_VERSION))) {
-		sr_err("sigma: %s: sdi was NULL", __func__);
+		sr_err("%s: sdi was NULL", __func__);
 		goto free;
 	}
 	sdi->driver = adi;
@@ -551,20 +551,20 @@ static int upload_firmware(int firmware_idx, struct dev_context *devc)
 	/* Make sure it's an ASIX SIGMA. */
 	if ((ret = ftdi_usb_open_desc(&devc->ftdic,
 		USB_VENDOR, USB_PRODUCT, USB_DESCRIPTION, NULL)) < 0) {
-		sr_err("sigma: ftdi_usb_open failed: %s",
+		sr_err("ftdi_usb_open failed: %s",
 		       ftdi_get_error_string(&devc->ftdic));
 		return 0;
 	}
 
 	if ((ret = ftdi_set_bitmode(&devc->ftdic, 0xdf, BITMODE_BITBANG)) < 0) {
-		sr_err("sigma: ftdi_set_bitmode failed: %s",
+		sr_err("ftdi_set_bitmode failed: %s",
 		       ftdi_get_error_string(&devc->ftdic));
 		return 0;
 	}
 
 	/* Four times the speed of sigmalogan - Works well. */
 	if ((ret = ftdi_set_baudrate(&devc->ftdic, 750000)) < 0) {
-		sr_err("sigma: ftdi_set_baudrate failed: %s",
+		sr_err("ftdi_set_baudrate failed: %s",
 		       ftdi_get_error_string(&devc->ftdic));
 		return 0;
 	}
@@ -592,19 +592,19 @@ static int upload_firmware(int firmware_idx, struct dev_context *devc)
 		 firmware_files[firmware_idx]);
 
 	if ((ret = bin2bitbang(firmware_path, &buf, &buf_size)) != SR_OK) {
-		sr_err("sigma: An error occured while reading the firmware: %s",
+		sr_err("An error occured while reading the firmware: %s",
 		       firmware_path);
 		return ret;
 	}
 
 	/* Upload firmare. */
-	sr_info("sigma: Uploading firmware %s", firmware_files[firmware_idx]);
+	sr_info("Uploading firmware file '%s'.", firmware_files[firmware_idx]);
 	sigma_write(buf, buf_size, devc);
 
 	g_free(buf);
 
 	if ((ret = ftdi_set_bitmode(&devc->ftdic, 0x00, BITMODE_RESET)) < 0) {
-		sr_err("sigma: ftdi_set_bitmode failed: %s",
+		sr_err("ftdi_set_bitmode failed: %s",
 		       ftdi_get_error_string(&devc->ftdic));
 		return SR_ERR;
 	}
@@ -622,13 +622,13 @@ static int upload_firmware(int firmware_idx, struct dev_context *devc)
 	ret = sigma_read(result, 3, devc);
 	if (ret != 3 ||
 	    result[0] != 0xa6 || result[1] != 0x55 || result[2] != 0xaa) {
-		sr_err("sigma: Configuration failed. Invalid reply received.");
+		sr_err("Configuration failed. Invalid reply received.");
 		return SR_ERR;
 	}
 
 	devc->cur_firmware = firmware_idx;
 
-	sr_info("sigma: Firmware uploaded");
+	sr_info("Firmware uploaded.");
 
 	return SR_OK;
 }
@@ -644,7 +644,7 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 	if ((ret = ftdi_usb_open_desc(&devc->ftdic,
 		USB_VENDOR, USB_PRODUCT, USB_DESCRIPTION, NULL)) < 0) {
 
-		sr_err("sigma: ftdi_usb_open failed: %s",
+		sr_err("ftdi_usb_open failed: %s",
 		       ftdi_get_error_string(&devc->ftdic));
 
 		return 0;
@@ -716,8 +716,8 @@ static int configure_probes(const struct sr_dev_inst *sdi)
 		if (devc->cur_samplerate >= SR_MHZ(100)) {
 			/* Fast trigger support. */
 			if (trigger_set) {
-				sr_err("sigma: ASIX SIGMA only supports a single "
-				       "pin trigger in 100 and 200MHz mode.");
+				sr_err("Only a single pin trigger in 100 and "
+				       "200MHz mode is supported.");
 				return SR_ERR;
 			}
 			if (probe->trigger[0] == 'f')
@@ -725,9 +725,8 @@ static int configure_probes(const struct sr_dev_inst *sdi)
 			else if (probe->trigger[0] == 'r')
 				devc->trigger.risingmask |= probebit;
 			else {
-				sr_err("sigma: ASIX SIGMA only supports "
-				       "rising/falling trigger in 100 "
-				       "and 200MHz mode.");
+				sr_err("Only rising/falling trigger in 100 "
+				       "and 200MHz mode is supported.");
 				return SR_ERR;
 			}
 
@@ -757,8 +756,8 @@ static int configure_probes(const struct sr_dev_inst *sdi)
 			 * does not permit ORed triggers.
 			 */
 			if (trigger_set > 1) {
-				sr_err("sigma: ASIX SIGMA only supports 1 "
-				       "rising/falling triggers.");
+				sr_err("Only 1 rising/falling trigger "
+				       "is supported.");
 				return SR_ERR;
 			}
 		}
@@ -775,7 +774,7 @@ static int hw_dev_close(struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 
 	if (!(devc = sdi->priv)) {
-		sr_err("sigma: %s: sdi->priv was NULL", __func__);
+		sr_err("%s: sdi->priv was NULL", __func__);
 		return SR_ERR_BUG;
 	}
 
@@ -790,7 +789,6 @@ static int hw_dev_close(struct sr_dev_inst *sdi)
 
 static int hw_cleanup(void)
 {
-
 	if (!adi->priv)
 		return SR_OK;
 
@@ -800,7 +798,7 @@ static int hw_cleanup(void)
 }
 
 static int hw_info_get(int info_id, const void **data,
-       const struct sr_dev_inst *sdi)
+		       const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 
@@ -835,7 +833,7 @@ static int hw_info_get(int info_id, const void **data,
 }
 
 static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
-		const void *value)
+			     const void *value)
 {
 	struct dev_context *devc;
 	int ret;
@@ -1045,7 +1043,6 @@ static int receive_data(int fd, int revents, void *cb_data)
 	uint64_t running_msec;
 	struct timeval tv;
 
-	/* Avoid compiler warnings. */
 	(void)fd;
 	(void)revents;
 
@@ -1082,7 +1079,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 		newchunks = MIN(chunks_per_read,
 				numchunks - devc->state.chunks_downloaded);
 
-		sr_info("sigma: Downloading sample data: %.0f %%",
+		sr_info("Downloading sample data: %.0f %%.",
 			100.0 * devc->state.chunks_downloaded / numchunks);
 
 		bufsz = sigma_read_dram(devc->state.chunks_downloaded,
@@ -1298,7 +1295,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	devc = sdi->priv;
 
 	if (configure_probes(sdi) != SR_OK) {
-		sr_err("asix-sigma: failed to configured probes");
+		sr_err("Failed to configure probes.");
 		return SR_ERR;
 	}
 
@@ -1383,12 +1380,12 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	devc->session_dev_id = cb_data;
 
 	if (!(packet = g_try_malloc(sizeof(struct sr_datafeed_packet)))) {
-		sr_err("sigma: %s: packet malloc failed.", __func__);
+		sr_err("%s: packet malloc failed.", __func__);
 		return SR_ERR_MALLOC;
 	}
 
 	if (!(header = g_try_malloc(sizeof(struct sr_datafeed_header)))) {
-		sr_err("sigma: %s: header malloc failed.", __func__);
+		sr_err("%s: header malloc failed.", __func__);
 		return SR_ERR_MALLOC;
 	}
 
@@ -1428,7 +1425,7 @@ static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 	sr_source_remove(0);
 
 	if (!(devc = sdi->priv)) {
-		sr_err("sigma: %s: sdi->priv was NULL", __func__);
+		sr_err("%s: sdi->priv was NULL", __func__);
 		return SR_ERR_BUG;
 	}
 

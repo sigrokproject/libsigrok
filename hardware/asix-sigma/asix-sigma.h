@@ -22,6 +22,15 @@
 #ifndef LIBSIGROK_HARDWARE_ASIX_SIGMA_ASIX_SIGMA_H
 #define LIBSIGROK_HARDWARE_ASIX_SIGMA_ASIX_SIGMA_H
 
+/* Message logging helpers with driver-specific prefix string. */
+#define DRIVER_LOG_DOMAIN "asix-sigma: "
+#define sr_log(l, s, args...) sr_log(l, DRIVER_LOG_DOMAIN s, ## args)
+#define sr_spew(s, args...) sr_spew(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_dbg(s, args...) sr_dbg(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_info(s, args...) sr_info(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_warn(s, args...) sr_warn(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_err(s, args...) sr_err(DRIVER_LOG_DOMAIN s, ## args)
+
 enum sigma_write_register {
 	WRITE_CLOCK_SELECT	= 0,
 	WRITE_TRIGGER_SELECT0	= 1,
