@@ -111,7 +111,7 @@ static int mso_send_control_message(struct sr_dev_inst *sdi,
 		goto ret;
 
 	if (!(buf = g_try_malloc(s))) {
-		sr_err("mso19: %s: buf malloc failed", __func__);
+		sr_err("Failed to malloc message buffer.");
 		ret = SR_ERR_MALLOC;
 		goto ret;
 	}
@@ -151,7 +151,7 @@ static int mso_reset_adc(struct sr_dev_inst *sdi)
 	ops[1] = mso_trans(REG_CTL1, ctx->ctlbase1);
 	ctx->ctlbase1 |= BIT_CTL1_ADC_UNKNOWN4;
 
-	sr_dbg("mso19: Requesting ADC reset");
+	sr_dbg("Requesting ADC reset.");
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
 }
 
@@ -163,7 +163,7 @@ static int mso_reset_fsm(struct sr_dev_inst *sdi)
 	ctx->ctlbase1 |= BIT_CTL1_RESETFSM;
 	ops[0] = mso_trans(REG_CTL1, ctx->ctlbase1);
 
-	sr_dbg("mso19: Requesting ADC reset");
+	sr_dbg("Requesting ADC reset.");
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
 }
 
@@ -177,7 +177,7 @@ static int mso_toggle_led(struct sr_dev_inst *sdi, int state)
 		ctx->ctlbase1 |= BIT_CTL1_LED;
 	ops[0] = mso_trans(REG_CTL1, ctx->ctlbase1);
 
-	sr_dbg("mso19: Requesting LED toggle");
+	sr_dbg("Requesting LED toggle.");
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
 }
 
@@ -187,7 +187,7 @@ static int mso_check_trigger(struct sr_dev_inst *sdi, uint8_t *info)
 	char buf[1];
 	int ret;
 
-	sr_dbg("mso19: Requesting trigger state");
+	sr_dbg("Requesting trigger state.");
 	ret = mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
 	if (info == NULL || ret != SR_OK)
 		return ret;
@@ -197,7 +197,7 @@ static int mso_check_trigger(struct sr_dev_inst *sdi, uint8_t *info)
 		ret = SR_ERR;
 	*info = buf[0];
 
-	sr_dbg("mso19: Trigger state is: 0x%x", *info);
+	sr_dbg("Trigger state is: 0x%x.", *info);
 	return ret;
 }
 
@@ -205,7 +205,7 @@ static int mso_read_buffer(struct sr_dev_inst *sdi)
 {
 	uint16_t ops[] = { mso_trans(REG_BUFFER, 0) };
 
-	sr_dbg("mso19: Requesting buffer dump");
+	sr_dbg("Requesting buffer dump.");
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
 }
 
@@ -218,7 +218,7 @@ static int mso_arm(struct sr_dev_inst *sdi)
 		mso_trans(REG_CTL1, ctx->ctlbase1),
 	};
 
-	sr_dbg("mso19: Requesting trigger arm");
+	sr_dbg("Requesting trigger arm.");
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
 }
 
@@ -230,7 +230,7 @@ static int mso_force_capture(struct sr_dev_inst *sdi)
 		mso_trans(REG_CTL1, ctx->ctlbase1),
 	};
 
-	sr_dbg("mso19: Requesting forced capture");
+	sr_dbg("Requesting forced capture.");
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
 }
 
@@ -243,7 +243,7 @@ static int mso_dac_out(struct sr_dev_inst *sdi, uint16_t val)
 		mso_trans(REG_CTL1, ctx->ctlbase1 | BIT_CTL1_RESETADC),
 	};
 
-	sr_dbg("mso19: Setting dac word to 0x%x", val);
+	sr_dbg("Setting dac word to 0x%x.", val);
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
 }
 
@@ -254,7 +254,7 @@ static int mso_clkrate_out(struct sr_dev_inst *sdi, uint16_t val)
 		mso_trans(REG_CLKRATE2, val & 0xff),
 	};
 
-	sr_dbg("mso19: Setting clkrate word to 0x%x", val);
+	sr_dbg("Setting clkrate word to 0x%x.", val);
 	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
 }
 
@@ -425,7 +425,7 @@ static int hw_scan(void)
 	 */
 	udev = udev_new();
 	if (!udev) {
-		sr_err("mso19: Failed to initialize udev.");
+		sr_err("Failed to initialize udev.");
 		goto ret;
 	}
 	enumerate = udev_enumerate_new(udev);
@@ -445,7 +445,7 @@ static int hw_scan(void)
 		parent = udev_device_get_parent_with_subsystem_devtype(
 				dev, "usb", "usb_device");
 		if (!parent) {
-			sr_err("mso19: Unable to find parent usb device for %s",
+			sr_err("Unable to find parent usb device for %s",
 			       sysname);
 			continue;
 		}
@@ -464,7 +464,7 @@ static int hw_scan(void)
 		s = strcspn(iProduct, " ");
 		if (s > sizeof(product) ||
 				strlen(iProduct) - s > sizeof(manufacturer)) {
-			sr_err("mso19: Could not parse iProduct: %s", iProduct);
+			sr_err("Could not parse iProduct: %s.", iProduct);
 			continue;
 		}
 		strncpy(product, iProduct, s);
@@ -472,12 +472,12 @@ static int hw_scan(void)
 		strcpy(manufacturer, iProduct + s);
 
 		if (!(ctx = g_try_malloc0(sizeof(struct context)))) {
-			sr_err("mso19: %s: ctx malloc failed", __func__);
+			sr_err("Context malloc failed.");
 			continue; /* TODO: Errors handled correctly? */
 		}
 
 		if (mso_parse_serial(iSerial, iProduct, ctx) != SR_OK) {
-			sr_err("mso19: Invalid iSerial: %s", iSerial);
+			sr_err("Invalid iSerial: %s.", iSerial);
 			goto err_free_ctx;
 		}
 		sprintf(hwrev, "r%d", ctx->hwrev);
@@ -497,7 +497,7 @@ static int hw_scan(void)
 		sdi = sr_dev_inst_new(devcnt, SR_ST_INITIALIZING,
 				      manufacturer, product, hwrev);
 		if (!sdi) {
-			sr_err("mso19: Unable to create device instance for %s",
+			sr_err("Unable to create device instance for %s",
 			       sysname);
 			goto err_free_ctx;
 		}
@@ -537,7 +537,7 @@ static int hw_cleanup(void)
 	for (l = dev_insts; l; l = l->next) {
 		if (!(sdi = l->data)) {
 			/* Log error, but continue cleaning up the rest. */
-			sr_err("mso19: %s: sdi was NULL, continuing", __func__);
+			sr_err("%s: sdi was NULL, continuing", __func__);
 			ret = SR_ERR_BUG;
 			continue;
 		}
@@ -574,20 +574,18 @@ static int hw_dev_open(int dev_index)
 	/* FIXME: discard serial buffer */
 
 	mso_check_trigger(sdi, &ctx->trigger_state);
-	sr_dbg("mso19: trigger state: 0x%x", ctx->trigger_state);
+	sr_dbg("Trigger state: 0x%x.", ctx->trigger_state);
 
 	ret = mso_reset_adc(sdi);
 	if (ret != SR_OK)
 		return ret;
 
 	mso_check_trigger(sdi, &ctx->trigger_state);
-	sr_dbg("mso19: trigger state: 0x%x", ctx->trigger_state);
+	sr_dbg("Trigger state: 0x%x.", ctx->trigger_state);
 
 //	ret = mso_reset_fsm(sdi);
 //	if (ret != SR_OK)
 //		return ret;
-
-	sr_dbg("mso19: Finished %s", __func__);
 
 //	return SR_ERR;
 	return SR_OK;
@@ -598,7 +596,7 @@ static int hw_dev_close(int dev_index)
 	struct sr_dev_inst *sdi;
 
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index))) {
-		sr_err("mso19: %s: sdi was NULL", __func__);
+		sr_err("%s: sdi was NULL", __func__);
 		return SR_ERR_BUG;
 	}
 
@@ -609,7 +607,6 @@ static int hw_dev_close(int dev_index)
 		sdi->status = SR_ST_INACTIVE;
 	}
 
-	sr_dbg("mso19: finished %s", __func__);
 	return SR_OK;
 }
 
