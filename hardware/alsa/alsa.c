@@ -27,6 +27,15 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
+/* Message logging helpers with driver-specific prefix string. */
+#define DRIVER_LOG_DOMAIN "alsa: "
+#define sr_log(l, s, args...) sr_log(l, DRIVER_LOG_DOMAIN s, ## args)
+#define sr_spew(s, args...) sr_spew(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_dbg(s, args...) sr_dbg(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_info(s, args...) sr_info(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_warn(s, args...) sr_warn(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_err(s, args...) sr_err(DRIVER_LOG_DOMAIN s, ## args)
+
 #define NUM_PROBES 2
 #define SAMPLE_WIDTH 16
 #define AUDIO_DEV "plughw:0,0"
@@ -74,12 +83,12 @@ static int hw_init(const char *devinfo)
 	(void)devinfo;
 
 	if (!(ctx = g_try_malloc0(sizeof(struct context)))) {
-		sr_err("alsa: %s: ctx malloc failed", __func__);
+		sr_err("%s: ctx malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 
 	if (!(sdi = sr_dev_inst_new(0, SR_ST_ACTIVE, "alsa", NULL, NULL))) {
-		sr_err("alsa: %s: sdi was NULL", __func__);
+		sr_err("%s: sdi was NULL", __func__);
 		goto free_ctx;
 	}
 
@@ -107,22 +116,22 @@ static int hw_dev_open(int dev_index)
 	ret = snd_pcm_open(&ctx->capture_handle, AUDIO_DEV,
 			   SND_PCM_STREAM_CAPTURE, 0);
 	if (ret < 0) {
-		sr_err("alsa: can't open audio device %s (%s)", AUDIO_DEV,
+		sr_err("Can't open audio device %s (%s).", AUDIO_DEV,
 		       snd_strerror(ret));
 		return SR_ERR;
 	}
 
 	ret = snd_pcm_hw_params_malloc(&ctx->hw_params);
 	if (ret < 0) {
-		sr_err("alsa: can't allocate hardware parameter structure (%s)",
+		sr_err("Can't allocate hardware parameter structure (%s).",
 		       snd_strerror(ret));
 		return SR_ERR_MALLOC;
 	}
 
 	ret = snd_pcm_hw_params_any(ctx->capture_handle, ctx->hw_params);
 	if (ret < 0) {
-		sr_err("alsa: can't initialize hardware parameter structure "
-		       "(%s)", snd_strerror(ret));
+		sr_err("Can't initialize hardware parameter structure (%s)",
+		       snd_strerror(ret));
 		return SR_ERR;
 	}
 
@@ -135,12 +144,12 @@ static int hw_dev_close(int dev_index)
 	struct context *ctx;
 
 	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index))) {
-		sr_err("alsa: %s: sdi was NULL", __func__);
+		sr_err("%s: sdi was NULL", __func__);
 		return SR_ERR_BUG;
 	}
 
 	if (!(ctx = sdi->priv)) {
-		sr_err("alsa: %s: sdi->priv was NULL", __func__);
+		sr_err("%s: sdi->priv was NULL", __func__);
 		return SR_ERR_BUG;
 	}
 
@@ -158,7 +167,7 @@ static int hw_cleanup(void)
 	struct sr_dev_inst *sdi;
 
 	if (!(sdi = sr_dev_inst_get(dev_insts, 0))) {
-		sr_err("alsa: %s: sdi was NULL", __func__);
+		sr_err("%s: sdi was NULL", __func__);
 		return SR_ERR_BUG;
 	}
 
@@ -200,8 +209,7 @@ static const void *hw_dev_info_get(int dev_index, int dev_info_id)
 
 static int hw_dev_status_get(int dev_index)
 {
-	/* Avoid compiler warnings. */
-	dev_index = dev_index;
+	(void)dev_index;
 
 	return SR_ST_ACTIVE;
 }
@@ -254,12 +262,12 @@ static int receive_data(int fd, int revents, void *cb_data)
 		count = snd_pcm_readi(ctx->capture_handle, inb,
 			MIN(4096 / 4, ctx->limit_samples));
 		if (count < 1) {
-			sr_err("alsa: Failed to read samples");
+			sr_err("Failed to read samples");
 			return FALSE;
 		}
 
 		if (!(outb = g_try_malloc(sample_size * count))) {
-			sr_err("alsa: %s: outb malloc failed", __func__);
+			sr_err("%s: outb malloc failed", __func__);
 			return FALSE;
 		}
 
@@ -309,7 +317,7 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 	ret = snd_pcm_hw_params_set_access(ctx->capture_handle,
 			ctx->hw_params, SND_PCM_ACCESS_RW_INTERLEAVED);
 	if (ret < 0) {
-		sr_err("alsa: can't set access type (%s)", snd_strerror(ret));
+		sr_err("Can't set access type (%s).", snd_strerror(ret));
 		return SR_ERR;
 	}
 
@@ -317,51 +325,51 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 	ret = snd_pcm_hw_params_set_format(ctx->capture_handle,
 			ctx->hw_params, SND_PCM_FORMAT_S16_LE);
 	if (ret < 0) {
-		sr_err("alsa: can't set sample format (%s)", snd_strerror(ret));
+		sr_err("Can't set sample format (%s).", snd_strerror(ret));
 		return SR_ERR;
 	}
 
 	ret = snd_pcm_hw_params_set_rate_near(ctx->capture_handle,
 			ctx->hw_params, (unsigned int *)&ctx->cur_rate, 0);
 	if (ret < 0) {
-		sr_err("alsa: can't set sample rate (%s)", snd_strerror(ret));
+		sr_err("Can't set sample rate (%s).", snd_strerror(ret));
 		return SR_ERR;
 	}
 
 	ret = snd_pcm_hw_params_set_channels(ctx->capture_handle,
 			ctx->hw_params, NUM_PROBES);
 	if (ret < 0) {
-		sr_err("alsa: can't set channel count (%s)", snd_strerror(ret));
+		sr_err("Can't set channel count (%s).", snd_strerror(ret));
 		return SR_ERR;
 	}
 
 	ret = snd_pcm_hw_params(ctx->capture_handle, ctx->hw_params);
 	if (ret < 0) {
-		sr_err("alsa: can't set parameters (%s)", snd_strerror(ret));
+		sr_err("Can't set parameters (%s).", snd_strerror(ret));
 		return SR_ERR;
 	}
 
 	ret = snd_pcm_prepare(ctx->capture_handle);
 	if (ret < 0) {
-		sr_err("alsa: can't prepare audio interface for use (%s)",
+		sr_err("Can't prepare audio interface for use (%s).",
 		       snd_strerror(ret));
 		return SR_ERR;
 	}
 
 	count = snd_pcm_poll_descriptors_count(ctx->capture_handle);
 	if (count < 1) {
-		sr_err("alsa: Unable to obtain poll descriptors count");
+		sr_err("Unable to obtain poll descriptors count.");
 		return SR_ERR;
 	}
 
 	if (!(ufds = g_try_malloc(count * sizeof(struct pollfd)))) {
-		sr_err("alsa: %s: ufds malloc failed", __func__);
+		sr_err("%s: ufds malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 
 	ret = snd_pcm_poll_descriptors(ctx->capture_handle, ufds, count);
 	if (ret < 0) {
-		sr_err("alsa: Unable to obtain poll descriptors (%s)",
+		sr_err("Unable to obtain poll descriptors (%s)",
 		       snd_strerror(ret));
 		g_free(ufds);
 		return SR_ERR;
