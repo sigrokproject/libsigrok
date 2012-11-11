@@ -350,14 +350,14 @@ SR_PRIV int serial_set_params(int fd, int baudrate, int bits, int parity,
 	sr_dbg("FD %d: Configuring output baudrate to %d (%d).",
 		fd, baudrate, baud);
 	if (cfsetospeed(&term, baud) < 0) {
-		sr_err("cfsetospeed() error: %ѕ.", strerror(errno));
+		sr_err("cfsetospeed() error: %s.", strerror(errno));
 		return SR_ERR;
 	}
 
 	sr_dbg("FD %d: Configuring input baudrate to %d (%d).",
 		fd, baudrate, baud);
 	if (cfsetispeed(&term, baud) < 0) {
-		sr_err("cfsetispeed() error: %ѕ.", strerror(errno));
+		sr_err("cfsetispeed() error: %s.", strerror(errno));
 		return SR_ERR;
 	}
 
