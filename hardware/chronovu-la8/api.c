@@ -159,7 +159,7 @@ static GSList *hw_scan(GSList *options)
 	sdi->priv = devc;
 
 	for (i = 0; probe_names[i]; i++) {
-		if (!(probe = sr_probe_new(i, SR_PROBE_ANALOG, TRUE,
+		if (!(probe = sr_probe_new(i, SR_PROBE_LOGIC, TRUE,
 					   probe_names[i])))
 			return NULL;
 		sdi->probes = g_slist_append(sdi->probes, probe);
