@@ -24,6 +24,15 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
+/* Message logging helpers with driver-specific prefix string. */
+#define DRIVER_LOG_DOMAIN "strutil: "
+#define sr_log(l, s, args...) sr_log(l, DRIVER_LOG_DOMAIN s, ## args)
+#define sr_spew(s, args...) sr_spew(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_dbg(s, args...) sr_dbg(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_info(s, args...) sr_info(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_warn(s, args...) sr_warn(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_err(s, args...) sr_err(DRIVER_LOG_DOMAIN s, ## args)
+
 /**
  * @file
  *
@@ -55,7 +64,7 @@
  */
 SR_API char *sr_si_string_u64(uint64_t x, const char *unit)
 {
-	if(unit == NULL)
+	if (unit == NULL)
 		unit = "";
 
 	if ((x >= SR_GHZ(1)) && (x % SR_GHZ(1) == 0)) {
@@ -79,8 +88,7 @@ SR_API char *sr_si_string_u64(uint64_t x, const char *unit)
 		return g_strdup_printf("%" PRIu64 " %s", x, unit);
 	}
 
-	sr_err("strutil: %s: Error creating SI units string.",
-		__func__);
+	sr_err("%s: Error creating SI units string.", __func__);
 	return NULL;
 }
 
@@ -120,7 +128,7 @@ SR_API char *sr_period_string(uint64_t frequency)
 
 	/* Allocate enough for a uint64_t as string + " ms". */
 	if (!(o = g_try_malloc0(30 + 1))) {
-		sr_err("strutil: %s: o malloc failed", __func__);
+		sr_err("%s: o malloc failed", __func__);
 		return NULL;
 	}
 
@@ -161,7 +169,7 @@ SR_API char *sr_voltage_string(struct sr_rational *voltage)
 	int r;
 
 	if (!(o = g_try_malloc0(30 + 1))) {
-		sr_err("strutil: %s: o malloc failed", __func__);
+		sr_err("%s: o malloc failed", __func__);
 		return NULL;
 	}
 
@@ -218,13 +226,13 @@ SR_API char **sr_parse_triggerstring(const struct sr_dev_inst *sdi,
 	error = FALSE;
 
 	if (!(triggerlist = g_try_malloc0(max_probes * sizeof(char *)))) {
-		sr_err("strutil: %s: triggerlist malloc failed", __func__);
+		sr_err("%s: triggerlist malloc failed", __func__);
 		return NULL;
 	}
 
 	if (sdi->driver->info_get(SR_DI_TRIGGER_TYPES,
 			(const void **)&trigger_types, sdi) != SR_OK) {
-		sr_err("strutil: %s: Device doesn't support any triggers.", __func__);
+		sr_err("%s: Device doesn't support any triggers.", __func__);
 		return NULL;
 	}
 
@@ -242,7 +250,7 @@ SR_API char **sr_parse_triggerstring(const struct sr_dev_inst *sdi,
 		}
 
 		if (probenum < 0 || probenum >= max_probes) {
-			sr_err("strutil: Invalid probe.");
+			sr_err("Invalid probe.");
 			error = TRUE;
 			break;
 		}
@@ -250,7 +258,7 @@ SR_API char **sr_parse_triggerstring(const struct sr_dev_inst *sdi,
 		if ((trigger = strchr(tokens[i], '='))) {
 			for (tc = ++trigger; *tc; tc++) {
 				if (strchr(trigger_types, *tc) == NULL) {
-					sr_err("strutil: Unsupported trigger "
+					sr_err("Unsupported trigger "
 					       "type '%c'.", *tc);
 					error = TRUE;
 					break;

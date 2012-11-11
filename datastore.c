@@ -24,6 +24,15 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
+/* Message logging helpers with driver-specific prefix string. */
+#define DRIVER_LOG_DOMAIN "datastore: "
+#define sr_log(l, s, args...) sr_log(l, DRIVER_LOG_DOMAIN s, ## args)
+#define sr_spew(s, args...) sr_spew(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_dbg(s, args...) sr_dbg(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_info(s, args...) sr_info(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_warn(s, args...) sr_warn(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_err(s, args...) sr_err(DRIVER_LOG_DOMAIN s, ## args)
+
 /**
  * @file
  *
@@ -65,18 +74,18 @@ static gpointer new_chunk(struct sr_datastore **ds);
 SR_API int sr_datastore_new(int unitsize, struct sr_datastore **ds)
 {
 	if (!ds) {
-		sr_err("ds: %s: ds was NULL", __func__);
+		sr_err("%s: ds was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (unitsize <= 0) {
-		sr_err("ds: %s: unitsize was %d, but it must be >= 1",
+		sr_err("%s: unitsize was %d, but it must be >= 1",
 		       __func__, unitsize);
 		return SR_ERR_ARG;
 	}
 
 	if (!(*ds = g_try_malloc(sizeof(struct sr_datastore)))) {
-		sr_err("ds: %s: ds malloc failed", __func__);
+		sr_err("%s: ds malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 
@@ -102,7 +111,7 @@ SR_API int sr_datastore_destroy(struct sr_datastore *ds)
 	GSList *chunk;
 
 	if (!ds) {
-		sr_err("ds: %s: ds was NULL", __func__);
+		sr_err("%s: ds was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
@@ -149,36 +158,36 @@ SR_API int sr_datastore_put(struct sr_datastore *ds, void *data,
 	gpointer chunk;
 
 	if (!ds) {
-		sr_err("ds: %s: ds was NULL", __func__);
+		sr_err("%s: ds was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	/* Unitsize must not be 0, we'll divide by 0 otherwise. */
 	if (ds->ds_unitsize == 0) {
-		sr_err("ds: %s: ds->ds_unitsize was 0", __func__);
+		sr_err("%s: ds->ds_unitsize was 0", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!data) {
-		sr_err("ds: %s: data was NULL", __func__);
+		sr_err("%s: data was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (in_unitsize < 1) {
-		sr_err("ds: %s: in_unitsize was %d, but it must be >= 1",
+		sr_err("%s: in_unitsize was %d, but it must be >= 1",
 		       __func__, in_unitsize);
 		return SR_ERR_ARG;
 	}
 
 	if (!probelist) {
-		sr_err("ds: %s: probelist was NULL", __func__);
+		sr_err("%s: probelist was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	/* Get the last chunk in the list, or create a new one if needed. */
 	if (ds->chunklist == NULL) {
 		if (!(chunk = new_chunk(&ds))) {
-			sr_err("ds: %s: couldn't allocate new chunk", __func__);
+			sr_err("%s: couldn't allocate new chunk", __func__);
 			return SR_ERR_MALLOC;
 		}
 	} else {
@@ -197,7 +206,7 @@ SR_API int sr_datastore_put(struct sr_datastore *ds, void *data,
 		/* No more free space left, allocate a new chunk. */
 		if (chunk_bytes_free == 0) {
 			if (!(chunk = new_chunk(&ds))) {
-				sr_err("ds: %s: couldn't allocate new chunk",
+				sr_err("%s: couldn't allocate new chunk",
 				       __func__);
 				return SR_ERR_MALLOC;
 			}
@@ -246,7 +255,7 @@ static gpointer new_chunk(struct sr_datastore **ds)
 
 	chunk = g_try_malloc0(DATASTORE_CHUNKSIZE * (*ds)->ds_unitsize);
 	if (!chunk) {
-		sr_err("ds: %s: chunk malloc failed (ds_unitsize was %u)",
+		sr_err("%s: chunk malloc failed (ds_unitsize was %u)",
 		       __func__, (*ds)->ds_unitsize);
 		return NULL; /* TODO: SR_ERR_MALLOC later? */
 	}

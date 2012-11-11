@@ -27,6 +27,15 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
+/* Message logging helpers with driver-specific prefix string. */
+#define DRIVER_LOG_DOMAIN "session-file: "
+#define sr_log(l, s, args...) sr_log(l, DRIVER_LOG_DOMAIN s, ## args)
+#define sr_spew(s, args...) sr_spew(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_dbg(s, args...) sr_dbg(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_info(s, args...) sr_info(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_warn(s, args...) sr_warn(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_err(s, args...) sr_err(DRIVER_LOG_DOMAIN s, ## args)
+
 /**
  * @file
  *
@@ -66,42 +75,41 @@ SR_API int sr_session_load(const char *filename)
 	char probename[SR_MAX_PROBENAME_LEN + 1];
 
 	if (!filename) {
-		sr_err("session file: %s: filename was NULL", __func__);
+		sr_err("%s: filename was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!(archive = zip_open(filename, 0, &ret))) {
-		sr_dbg("session file: Failed to open session file: zip "
-		       "error %d", ret);
+		sr_dbg("Failed to open session file: zip error %d", ret);
 		return SR_ERR;
 	}
 
 	/* check "version" */
 	version = 0;
 	if (!(zf = zip_fopen(archive, "version", 0))) {
-		sr_dbg("session file: Not a sigrok session file.");
+		sr_dbg("Not a sigrok session file.");
 		return SR_ERR;
 	}
 	if ((ret = zip_fread(zf, s, 10)) == -1) {
-		sr_dbg("session file: Not a valid sigrok session file.");
+		sr_dbg("Not a valid sigrok session file.");
 		return SR_ERR;
 	}
 	zip_fclose(zf);
 	s[ret] = 0;
 	version = strtoull(s, NULL, 10);
 	if (version != 1) {
-		sr_dbg("session file: Not a valid sigrok session file version.");
+		sr_dbg("Not a valid sigrok session file version.");
 		return SR_ERR;
 	}
 
 	/* read "metadata" */
 	if (zip_stat(archive, "metadata", 0, &zs) == -1) {
-		sr_dbg("session file: Not a valid sigrok session file.");
+		sr_dbg("Not a valid sigrok session file.");
 		return SR_ERR;
 	}
 
 	if (!(metafile = g_try_malloc(zs.size))) {
-		sr_err("session file: %s: metafile malloc failed", __func__);
+		sr_err("%s: metafile malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 
@@ -111,7 +119,7 @@ SR_API int sr_session_load(const char *filename)
 
 	kf = g_key_file_new();
 	if (!g_key_file_load_from_data(kf, metafile, zs.size, 0, NULL)) {
-		sr_dbg("session file: Failed to parse metadata.");
+		sr_dbg("Failed to parse metadata.");
 		return SR_ERR;
 	}
 
@@ -206,7 +214,7 @@ SR_API int sr_session_save(const char *filename,
 	char version[1], rawname[16], metafile[32], *buf, *s;
 
 	if (!filename) {
-		sr_err("session file: %s: filename was NULL", __func__);
+		sr_err("%s: filename was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
@@ -220,7 +228,7 @@ SR_API int sr_session_save(const char *filename,
 	if (!(versrc = zip_source_buffer(zipfile, version, 1, 0)))
 		return SR_ERR;
 	if (zip_add(zipfile, "version", versrc) == -1) {
-		sr_info("session file: error saving version into zipfile: %s",
+		sr_info("error saving version into zipfile: %s",
 			zip_strerror(zipfile));
 		return SR_ERR;
 	}
@@ -267,8 +275,7 @@ SR_API int sr_session_save(const char *filename,
 	buf = g_try_malloc(ds->num_units * ds->ds_unitsize +
 		   DATASTORE_CHUNKSIZE);
 	if (!buf) {
-		sr_err("session file: %s: buf malloc failed",
-			   __func__);
+		sr_err("%s: buf malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 
@@ -292,8 +299,7 @@ SR_API int sr_session_save(const char *filename,
 		return SR_ERR;
 
 	if ((ret = zip_close(zipfile)) == -1) {
-		sr_info("session file: error saving zipfile: %s",
-			zip_strerror(zipfile));
+		sr_info("error saving zipfile: %s", zip_strerror(zipfile));
 		return SR_ERR;
 	}
 

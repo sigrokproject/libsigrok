@@ -23,6 +23,15 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
+/* Message logging helpers with driver-specific prefix string. */
+#define DRIVER_LOG_DOMAIN "device: "
+#define sr_log(l, s, args...) sr_log(l, DRIVER_LOG_DOMAIN s, ## args)
+#define sr_spew(s, args...) sr_spew(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_dbg(s, args...) sr_dbg(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_info(s, args...) sr_info(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_warn(s, args...) sr_warn(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_err(s, args...) sr_err(DRIVER_LOG_DOMAIN s, ## args)
+
 /**
  * @file
  *
@@ -44,7 +53,7 @@ SR_PRIV struct sr_probe *sr_probe_new(int index, int type,
 	struct sr_probe *probe;
 
 	if (!(probe = g_try_malloc0(sizeof(struct sr_probe)))) {
-		sr_err("hwdriver: probe malloc failed");
+		sr_err("Probe malloc failed.");
 		return NULL;
 	}
 
@@ -208,7 +217,7 @@ SR_PRIV struct sr_dev_inst *sr_dev_inst_new(int index, int status,
 	struct sr_dev_inst *sdi;
 
 	if (!(sdi = g_try_malloc(sizeof(struct sr_dev_inst)))) {
-		sr_err("hwdriver: %s: sdi malloc failed", __func__);
+		sr_err("%s: sdi malloc failed", __func__);
 		return NULL;
 	}
 
@@ -254,7 +263,7 @@ SR_PRIV struct sr_usb_dev_inst *sr_usb_dev_inst_new(uint8_t bus,
 	struct sr_usb_dev_inst *udi;
 
 	if (!(udi = g_try_malloc(sizeof(struct sr_usb_dev_inst)))) {
-		sr_err("hwdriver: %s: udi malloc failed", __func__);
+		sr_err("%s: udi malloc failed", __func__);
 		return NULL;
 	}
 
@@ -282,7 +291,7 @@ SR_PRIV struct sr_serial_dev_inst *sr_serial_dev_inst_new(const char *port,
 	struct sr_serial_dev_inst *serial;
 
 	if (!(serial = g_try_malloc(sizeof(struct sr_serial_dev_inst)))) {
-		sr_err("hwdriver: %s: serial malloc failed", __func__);
+		sr_err("%s: serial malloc failed", __func__);
 		return NULL;
 	}
 
@@ -304,7 +313,7 @@ SR_API int sr_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 	int ret;
 
 	if (!sdi || !sdi->driver || !sdi->driver->dev_config_set) {
-		sr_err("hwdriver: unable to set config option");
+		sr_err("Unable to set config option.");
 		return SR_ERR;
 	}
 

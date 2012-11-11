@@ -23,6 +23,15 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
+/* Message logging helpers with driver-specific prefix string. */
+#define DRIVER_LOG_DOMAIN "filter: "
+#define sr_log(l, s, args...) sr_log(l, DRIVER_LOG_DOMAIN s, ## args)
+#define sr_spew(s, args...) sr_spew(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_dbg(s, args...) sr_dbg(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_info(s, args...) sr_info(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_warn(s, args...) sr_warn(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_err(s, args...) sr_err(DRIVER_LOG_DOMAIN s, ## args)
+
 /**
  * @file
  *
@@ -96,22 +105,22 @@ SR_API int sr_filter_probes(int in_unitsize, int out_unitsize,
 	uint64_t sample_in, sample_out;
 
 	if (!probelist) {
-		sr_err("filter: %s: probelist was NULL", __func__);
+		sr_err("%s: probelist was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!data_in) {
-		sr_err("filter: %s: data_in was NULL", __func__);
+		sr_err("%s: data_in was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!data_out) {
-		sr_err("filter: %s: data_out was NULL", __func__);
+		sr_err("%s: data_out was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!length_out) {
-		sr_err("filter: %s: length_out was NULL", __func__);
+		sr_err("%s: length_out was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
@@ -121,13 +130,13 @@ SR_API int sr_filter_probes(int in_unitsize, int out_unitsize,
 
 	/* Are there more probes than the target unit size supports? */
 	if (num_enabled_probes > out_unitsize * 8) {
-		sr_err("filter: %s: too many probes (%d) for the target unit "
+		sr_err("%s: too many probes (%d) for the target unit "
 		       "size (%d)", __func__, num_enabled_probes, out_unitsize);
 		return SR_ERR_ARG;
 	}
 
 	if (!(*data_out = g_try_malloc(length_in))) {
-		sr_err("filter: %s: data_out malloc failed", __func__);
+		sr_err("%s: data_out malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 

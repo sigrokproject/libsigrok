@@ -26,6 +26,15 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
+/* Message logging helpers with driver-specific prefix string. */
+#define DRIVER_LOG_DOMAIN "virtual-session: "
+#define sr_log(l, s, args...) sr_log(l, DRIVER_LOG_DOMAIN s, ## args)
+#define sr_spew(s, args...) sr_spew(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_dbg(s, args...) sr_dbg(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_info(s, args...) sr_info(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_warn(s, args...) sr_warn(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_err(s, args...) sr_err(DRIVER_LOG_DOMAIN s, ## args)
+
 /* size of payloads sent across the session bus */
 /** @cond PRIVATE */
 #define CHUNKSIZE (512 * 1024)
@@ -62,7 +71,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 	(void)fd;
 	(void)revents;
 
-	sr_dbg("session_driver: feed chunk");
+	sr_dbg("Feed chunk.");
 
 	got_data = FALSE;
 	for (l = dev_insts; l; l = l->next) {
@@ -73,7 +82,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 			continue;
 
 		if (!(buf = g_try_malloc(CHUNKSIZE))) {
-			sr_err("session driver: %s: buf malloc failed", __func__);
+			sr_err("%s: buf malloc failed", __func__);
 			return FALSE;
 		}
 
@@ -110,7 +119,6 @@ static int hw_cleanup(void);
 
 static int hw_init(void)
 {
-
 	return SR_OK;
 }
 
@@ -128,9 +136,8 @@ static int hw_cleanup(void)
 
 static int hw_dev_open(struct sr_dev_inst *sdi)
 {
-
 	if (!(sdi->priv = g_try_malloc0(sizeof(struct session_vdev)))) {
-		sr_err("session driver: %s: sdi->priv malloc failed", __func__);
+		sr_err("%s: sdi->priv malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 
@@ -174,18 +181,15 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 	case SR_HWCAP_SAMPLERATE:
 		tmp_u64 = value;
 		vdev->samplerate = *tmp_u64;
-		sr_info("session driver: setting samplerate to %" PRIu64,
-		        vdev->samplerate);
+		sr_info("Setting samplerate to %" PRIu64 ".", vdev->samplerate);
 		break;
 	case SR_HWCAP_SESSIONFILE:
 		vdev->sessionfile = g_strdup(value);
-		sr_info("session driver: setting sessionfile to %s",
-		        vdev->sessionfile);
+		sr_info("Setting sessionfile to '%s'.", vdev->sessionfile);
 		break;
 	case SR_HWCAP_CAPTUREFILE:
 		vdev->capturefile = g_strdup(value);
-		sr_info("session driver: setting capturefile to %s",
-		        vdev->capturefile);
+		sr_info("Setting capturefile to '%s'.", vdev->capturefile);
 		break;
 	case SR_HWCAP_CAPTURE_UNITSIZE:
 		tmp_u64 = value;
@@ -196,8 +200,7 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		vdev->num_probes = *tmp_u64;
 		break;
 	default:
-		sr_err("session driver: %s: unknown capability %d requested",
-		       __func__, hwcap);
+		sr_err("Unknown capability: %d.", hwcap);
 		return SR_ERR;
 	}
 
@@ -216,23 +219,23 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 
 	vdev = sdi->priv;
 
-	sr_info("session_driver: opening archive %s file %s", vdev->sessionfile,
+	sr_info("Opening archive %s file %s", vdev->sessionfile,
 		vdev->capturefile);
 
 	if (!(vdev->archive = zip_open(vdev->sessionfile, 0, &ret))) {
-		sr_err("session driver: Failed to open session file '%s': "
+		sr_err("Failed to open session file '%s': "
 		       "zip error %d\n", vdev->sessionfile, ret);
 		return SR_ERR;
 	}
 
 	if (zip_stat(vdev->archive, vdev->capturefile, 0, &zs) == -1) {
-		sr_err("session driver: Failed to check capture file '%s' in "
+		sr_err("Failed to check capture file '%s' in "
 		       "session file '%s'.", vdev->capturefile, vdev->sessionfile);
 		return SR_ERR;
 	}
 
 	if (!(vdev->capfile = zip_fopen(vdev->archive, vdev->capturefile, 0))) {
-		sr_err("session driver: Failed to open capture file '%s' in "
+		sr_err("Failed to open capture file '%s' in "
 		       "session file '%s'.", vdev->capturefile, vdev->sessionfile);
 		return SR_ERR;
 	}
@@ -241,12 +244,12 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	sr_session_source_add(-1, 0, 0, receive_data, cb_data);
 
 	if (!(packet = g_try_malloc(sizeof(struct sr_datafeed_packet)))) {
-		sr_err("session driver: %s: packet malloc failed", __func__);
+		sr_err("%s: packet malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 
 	if (!(header = g_try_malloc(sizeof(struct sr_datafeed_header)))) {
-		sr_err("session driver: %s: header malloc failed", __func__);
+		sr_err("%s: header malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 
@@ -272,7 +275,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 
 /** @private */
 SR_PRIV struct sr_dev_driver session_driver = {
-	.name = "session",
+	.name = "virtual-session",
 	.longname = "Session-emulating driver",
 	.api_version = 1,
 	.init = hw_init,
