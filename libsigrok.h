@@ -231,13 +231,13 @@ enum {
 	/** Device is in relative mode. */
 	SR_MQFLAG_RELATIVE = 0x100,
 	/** Sound pressure level is A-weighted in the frequency domain,
-	 * according to IRC 61672:2003. */
+	 * according to IEC 61672:2003. */
 	SR_MQFLAG_SPL_FREQ_WEIGHT_A = 0x200,
 	/** Sound pressure level is C-weighted in the frequency domain,
-	 * according to IRC 61672:2003. */
+	 * according to IEC 61672:2003. */
 	SR_MQFLAG_SPL_FREQ_WEIGHT_C = 0x400,
 	/** Sound pressure level is Z-weighted (i.e. not at all) in the
-	 * frequency domain, according to IRC 61672:2003. */
+	 * frequency domain, according to IEC 61672:2003. */
 	SR_MQFLAG_SPL_FREQ_WEIGHT_Z = 0x800,
 	/** Sound pressure level is not weighted in the frequency domain,
 	 * albeit without standards-defined low and high frequency limits. */
