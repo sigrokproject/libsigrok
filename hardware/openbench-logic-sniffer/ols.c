@@ -46,6 +46,8 @@
 #define O_NONBLOCK FIONBIO
 #endif
 
+#define SERIALCOMM "115200/8n1"
+
 static const int hwcaps[] = {
 	SR_HWCAP_LOGIC_ANALYZER,
 	SR_HWCAP_SAMPLERATE,
@@ -212,7 +214,6 @@ static struct dev_context *ols_dev_new(void)
 {
 	struct dev_context *devc;
 
-	/* TODO: Is 'devc' ever g_free()'d? */
 	if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
 		sr_err("ols: %s: devc malloc failed", __func__);
 		return NULL;
@@ -379,19 +380,18 @@ static int hw_init(void)
 static GSList *hw_scan(GSList *options)
 {
 	struct sr_hwopt *opt;
-	GSList *l, *devices;
-	const char *conn, *serialcomm;
 	struct sr_dev_inst *sdi;
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct sr_probe *probe;
 	GPollFD probefd;
-	int final_devcnt, fd, ret, i;
+	GSList *l, *devices;
+	int fd, ret, i;
+	const char *conn, *serialcomm;
 	char buf[8];
 
 	(void)options;
 	drvc = odi->priv;
-	final_devcnt = 0;
 	devices = NULL;
 
 	conn = serialcomm = NULL;
@@ -411,19 +411,14 @@ static GSList *hw_scan(GSList *options)
 		return NULL;
 	}
 
-	if (serialcomm == NULL) {
-		serialcomm = g_strdup("115200/8n1");
-	}
+	if (serialcomm == NULL)
+		serialcomm = g_strdup(SERIALCOMM);
 
 	/* The discovery procedure is like this: first send the Reset
 	 * command (0x00) 5 times, since the device could be anywhere
 	 * in a 5-byte command. Then send the ID command (0x02).
 	 * If the device responds with 4 bytes ("OLS1" or "SLA1"), we
 	 * have a match.
-	 *
-	 * Since it may take the device a while to respond at 115Kb/s,
-	 * we do all the sending first, then wait for all of them to
-	 * respond with g_poll().
 	 */
 	sr_info("ols: probing %s .", conn);
 	fd = serial_open(conn, O_RDWR | O_NONBLOCK);
@@ -436,8 +431,8 @@ static GSList *hw_scan(GSList *options)
 	ret = SR_OK;
 	for (i = 0; i < 5; i++) {
 		if ((ret = send_shortcommand(fd, CMD_RESET)) != SR_OK) {
-			/* Serial port is not writable. */
 			sr_err("ols: port %s is not writable.", conn);
+			break;
 		}
 	}
 	if (ret != SR_OK) {
@@ -447,10 +442,12 @@ static GSList *hw_scan(GSList *options)
 	}
 	send_shortcommand(fd, CMD_ID);
 
-	/* 2ms isn't enough for reliable transfer with pl2303, let's try 10 */
+	/* Wait 10ms for a response. */
 	usleep(10000);
 
-	g_poll(&probefd/*fds*/, 1/*devcnt*/, 1);
+	probefd.fd = fd;
+	probefd.events = G_IO_IN;
+	g_poll(&probefd, 1, 1);
 
 	if (probefd.revents != G_IO_IN)
 		return NULL;
@@ -459,20 +456,18 @@ static GSList *hw_scan(GSList *options)
 	if (strncmp(buf, "1SLO", 4) && strncmp(buf, "1ALS", 4))
 		return NULL;
 
-	/* definitely using the OLS protocol, check if it supports
-	 * the metadata command
+	/* Definitely using the OLS protocol, check if it supports
+	 * the metadata command.
 	 */
 	send_shortcommand(probefd.fd, CMD_METADATA);
-	probefd.fd = fd;
-	probefd.events = G_IO_IN;
 	if (g_poll(&probefd, 1, 10) > 0) {
-		/* got metadata */
+		/* Got metadata. */
 		sdi = get_metadata(fd);
-		sdi->index = final_devcnt;
+		sdi->index = 0;
 		devc = sdi->priv;
 	} else {
-		/* not an OLS -- some other board that uses the sump protocol */
-		sdi = sr_dev_inst_new(final_devcnt, SR_ST_INACTIVE,
+		/* Not an OLS -- some other board that uses the sump protocol. */
+		sdi = sr_dev_inst_new(0, SR_ST_INACTIVE,
 				"Sump", "Logic Analyzer", "v1.0");
 		sdi->driver = odi;
 		devc = ols_dev_new();
@@ -484,17 +479,11 @@ static GSList *hw_scan(GSList *options)
 		}
 		sdi->priv = devc;
 	}
-	devc->serial = sr_serial_dev_inst_new("FIXME", -1);
+	devc->serial = sr_serial_dev_inst_new(conn, -1);
 	drvc->instances = g_slist_append(drvc->instances, sdi);
 	devices = g_slist_append(devices, sdi);
 
-	final_devcnt++;
-	serial_close(probefd.fd);
-
-	/* clean up after all the probing */
-	if (fd != 0) {
-		serial_close(fd);
-	}
+	serial_close(fd);
 
 	return devices;
 }
