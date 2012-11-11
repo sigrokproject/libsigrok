@@ -19,10 +19,19 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 #include <glib.h>
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
-#include <math.h>
+
+/* Message logging helpers with driver-specific prefix string. */
+#define DRIVER_LOG_DOMAIN "output/analog: "
+#define sr_log(l, s, args...) sr_log(l, DRIVER_LOG_DOMAIN s, ## args)
+#define sr_spew(s, args...) sr_spew(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_dbg(s, args...) sr_dbg(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_info(s, args...) sr_info(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_warn(s, args...) sr_warn(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_err(s, args...) sr_err(DRIVER_LOG_DOMAIN s, ## args)
 
 struct context {
 	int num_enabled_probes;
@@ -36,12 +45,13 @@ static int init(struct sr_output *o)
 	struct sr_probe *probe;
 	GSList *l;
 
-	sr_spew("output/analog: initializing");
+	sr_spew("Initializing output module.");
+
 	if (!o || !o->sdi)
 		return SR_ERR_ARG;
 
 	if (!(ctx = g_try_malloc0(sizeof(struct context)))) {
-		sr_err("output/analog: Context malloc failed.");
+		sr_err("Output module context malloc failed.");
 		return SR_ERR_MALLOC;
 	}
 	o->internal = ctx;
@@ -91,7 +101,6 @@ static void si_printf(float value, GString *out, char *unitstr)
 
 static void fancyprint(int unit, int mqflags, float value, GString *out)
 {
-
 	switch (unit) {
 		case SR_UNIT_VOLT:
 			si_printf(value, out, "V");
@@ -174,7 +183,6 @@ static void fancyprint(int unit, int mqflags, float value, GString *out)
 	else if (mqflags & SR_MQFLAG_DC)
 		g_string_append_printf(out, " DC");
 	g_string_append_c(out, '\n');
-
 }
 
 static GString *receive(struct sr_output *o, const struct sr_dev_inst *sdi,
@@ -233,7 +241,6 @@ static int cleanup(struct sr_output *o)
 
 	return SR_OK;
 }
-
 
 SR_PRIV struct sr_output_format output_analog = {
 	.id = "analog",

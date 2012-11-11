@@ -25,6 +25,15 @@
 #include "libsigrok-internal.h"
 #include "text.h"
 
+/* Message logging helpers with driver-specific prefix string. */
+#define DRIVER_LOG_DOMAIN "output/hex: "
+#define sr_log(l, s, args...) sr_log(l, DRIVER_LOG_DOMAIN s, ## args)
+#define sr_spew(s, args...) sr_spew(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_dbg(s, args...) sr_dbg(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_info(s, args...) sr_info(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_warn(s, args...) sr_warn(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_err(s, args...) sr_err(DRIVER_LOG_DOMAIN s, ## args)
+
 SR_PRIV int init_hex(struct sr_output *o)
 {
 	return init(o, DEFAULT_BPL_HEX, MODE_HEX);
@@ -47,7 +56,7 @@ SR_PRIV int data_hex(struct sr_output *o, const uint8_t *data_in,
 			/ ctx->samples_per_line * max_linelen + 512;
 
 	if (!(outbuf = g_try_malloc0(outsize + 1))) {
-		sr_err("hex out: %s: outbuf malloc failed", __func__);
+		sr_err("%s: outbuf malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 

@@ -31,6 +31,15 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
+/* Message logging helpers with driver-specific prefix string. */
+#define DRIVER_LOG_DOMAIN "output/ols: "
+#define sr_log(l, s, args...) sr_log(l, DRIVER_LOG_DOMAIN s, ## args)
+#define sr_spew(s, args...) sr_spew(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_dbg(s, args...) sr_dbg(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_info(s, args...) sr_info(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_warn(s, args...) sr_warn(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_err(s, args...) sr_err(DRIVER_LOG_DOMAIN s, ## args)
+
 struct context {
 	GString *header;
 	uint64_t num_samples;
@@ -46,7 +55,7 @@ static int init(struct sr_output *o)
 	int num_enabled_probes;
 
 	if (!(ctx = g_try_malloc(sizeof(struct context)))) {
-		sr_err("ols out: %s: ctx malloc failed", __func__);
+		sr_err("%s: ctx malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 	o->internal = ctx;

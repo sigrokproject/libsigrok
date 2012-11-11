@@ -27,6 +27,15 @@
 #include "libsigrok-internal.h"
 #include "text.h"
 
+/* Message logging helpers with driver-specific prefix string. */
+#define DRIVER_LOG_DOMAIN "output/text: "
+#define sr_log(l, s, args...) sr_log(l, DRIVER_LOG_DOMAIN s, ## args)
+#define sr_spew(s, args...) sr_spew(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_dbg(s, args...) sr_dbg(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_info(s, args...) sr_info(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_warn(s, args...) sr_warn(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_err(s, args...) sr_err(DRIVER_LOG_DOMAIN s, ## args)
+
 SR_PRIV void flush_linebufs(struct context *ctx, uint8_t *outbuf)
 {
 	static int max_probename_len = 0;
@@ -75,7 +84,7 @@ SR_PRIV int init(struct sr_output *o, int default_spl, enum outputmode mode)
 	char *samplerate_s;
 
 	if (!(ctx = g_try_malloc0(sizeof(struct context)))) {
-		sr_err("text out: %s: ctx malloc failed", __func__);
+		sr_err("%s: ctx malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 
@@ -107,7 +116,7 @@ SR_PRIV int init(struct sr_output *o, int default_spl, enum outputmode mode)
 		ctx->samples_per_line = default_spl;
 
 	if (!(ctx->header = g_try_malloc0(512))) {
-		sr_err("text out: %s: ctx->header malloc failed", __func__);
+		sr_err("%s: ctx->header malloc failed", __func__);
 		ret = SR_ERR_MALLOC;
 		goto err;
 	}
@@ -132,13 +141,13 @@ SR_PRIV int init(struct sr_output *o, int default_spl, enum outputmode mode)
 
 	ctx->linebuf_len = ctx->samples_per_line * 2 + 4;
 	if (!(ctx->linebuf = g_try_malloc0(num_probes * ctx->linebuf_len))) {
-		sr_err("text out: %s: ctx->linebuf malloc failed", __func__);
+		sr_err("%s: ctx->linebuf malloc failed", __func__);
 		ret = SR_ERR_MALLOC;
 		goto err;
 	}
 
 	if (!(ctx->linevalues = g_try_malloc0(num_probes))) {
-		sr_err("text out: %s: ctx->linevalues malloc failed", __func__);
+		sr_err("%s: ctx->linevalues malloc failed", __func__);
 		ret = SR_ERR_MALLOC;
 	}
 
@@ -169,7 +178,7 @@ SR_PRIV int event(struct sr_output *o, int event_type, uint8_t **data_out,
 		outsize = ctx->num_enabled_probes
 				* (ctx->samples_per_line + 20) + 512;
 		if (!(outbuf = g_try_malloc0(outsize))) {
-			sr_err("text out: %s: outbuf malloc failed", __func__);
+			sr_err("%s: outbuf malloc failed", __func__);
 			return SR_ERR_MALLOC;
 		}
 		flush_linebufs(ctx, outbuf);

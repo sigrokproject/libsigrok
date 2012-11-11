@@ -26,6 +26,15 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
+/* Message logging helpers with driver-specific prefix string. */
+#define DRIVER_LOG_DOMAIN "output/vcd: "
+#define sr_log(l, s, args...) sr_log(l, DRIVER_LOG_DOMAIN s, ## args)
+#define sr_spew(s, args...) sr_spew(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_dbg(s, args...) sr_dbg(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_info(s, args...) sr_info(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_warn(s, args...) sr_warn(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_err(s, args...) sr_err(DRIVER_LOG_DOMAIN s, ## args)
+
 struct context {
 	int num_enabled_probes;
 	int unitsize;
@@ -51,7 +60,7 @@ static int init(struct sr_output *o)
 	time_t t;
 
 	if (!(ctx = g_try_malloc0(sizeof(struct context)))) {
-		sr_err("vcd out: %s: ctx malloc failed", __func__);
+		sr_err("%s: ctx malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 
@@ -65,7 +74,7 @@ static int init(struct sr_output *o)
 		ctx->probelist[ctx->num_enabled_probes++] = probe->name;
 	}
 	if (ctx->num_enabled_probes > 94) {
-		sr_err("vcd out: VCD only supports 94 probes.");
+		sr_err("VCD only supports 94 probes.");
 		return SR_ERR;
 	}
 
@@ -130,7 +139,7 @@ static int init(struct sr_output *o)
 	if (!(ctx->prevbits = g_try_malloc0(sizeof(int) * num_probes))) {
 		g_string_free(ctx->header, TRUE);
 		g_free(ctx);
-		sr_err("vcd out: %s: ctx->prevbits malloc failed", __func__);
+		sr_err("%s: ctx->prevbits malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 

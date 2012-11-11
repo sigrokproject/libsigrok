@@ -25,6 +25,15 @@
 #include "libsigrok-internal.h"
 #include "text.h"
 
+/* Message logging helpers with driver-specific prefix string. */
+#define DRIVER_LOG_DOMAIN "output/bits: "
+#define sr_log(l, s, args...) sr_log(l, DRIVER_LOG_DOMAIN s, ## args)
+#define sr_spew(s, args...) sr_spew(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_dbg(s, args...) sr_dbg(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_info(s, args...) sr_info(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_warn(s, args...) sr_warn(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_err(s, args...) sr_err(DRIVER_LOG_DOMAIN s, ## args)
+
 SR_PRIV int init_bits(struct sr_output *o)
 {
 	return init(o, DEFAULT_BPL_BITS, MODE_BITS);
@@ -51,7 +60,7 @@ SR_PRIV int data_bits(struct sr_output *o, const uint8_t *data_in,
             * (ctx->num_enabled_probes * max_linelen);
 
 	if (!(outbuf = g_try_malloc0(outsize + 1))) {
-		sr_err("bits out: %s: outbuf malloc failed", __func__);
+		sr_err("%s: outbuf malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 
@@ -95,8 +104,7 @@ SR_PRIV int data_bits(struct sr_output *o, const uint8_t *data_in,
 			}
 		}
 	} else {
-		sr_info("bits out: short buffer (length_in=%" PRIu64 ")",
-			length_in);
+		sr_info("Short buffer (length_in=%" PRIu64 ").", length_in);
 	}
 
 	*data_out = outbuf;

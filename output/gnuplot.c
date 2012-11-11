@@ -25,6 +25,15 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
+/* Message logging helpers with driver-specific prefix string. */
+#define DRIVER_LOG_DOMAIN "output/gnuplot: "
+#define sr_log(l, s, args...) sr_log(l, DRIVER_LOG_DOMAIN s, ## args)
+#define sr_spew(s, args...) sr_spew(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_dbg(s, args...) sr_dbg(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_info(s, args...) sr_info(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_warn(s, args...) sr_warn(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_err(s, args...) sr_err(DRIVER_LOG_DOMAIN s, ## args)
+
 struct context {
 	unsigned int num_enabled_probes;
 	unsigned int unitsize;
@@ -62,27 +71,27 @@ static int init(struct sr_output *o)
 	time_t t;
 
 	if (!o) {
-		sr_err("gnuplot out: %s: o was NULL", __func__);
+		sr_err("%s: o was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!o->sdi) {
-		sr_err("gnuplot out: %s: o->sdi was NULL", __func__);
+		sr_err("%s: o->sdi was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!o->sdi->driver) {
-		sr_err("gnuplot out: %s: o->sdi->driver was NULL", __func__);
+		sr_err("%s: o->sdi->driver was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!(ctx = g_try_malloc0(sizeof(struct context)))) {
-		sr_err("gnuplot out: %s: ctx malloc failed", __func__);
+		sr_err("%s: ctx malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 
 	if (!(ctx->header = g_try_malloc0(MAX_HEADER_LEN + 1))) {
-		sr_err("gnuplot out: %s: ctx->header malloc failed", __func__);
+		sr_err("%s: ctx->header malloc failed", __func__);
 		g_free(ctx);
 		return SR_ERR_MALLOC;
 	}
@@ -104,8 +113,7 @@ static int init(struct sr_output *o)
 		o->sdi->driver->info_get(SR_DI_CUR_SAMPLERATE,
 				(const void **)&samplerate, o->sdi);
 		if (!(frequency_s = sr_samplerate_string(*samplerate))) {
-			sr_err("gnuplot out: %s: sr_samplerate_string failed",
-			       __func__);
+			sr_err("%s: sr_samplerate_string failed", __func__);
 			g_free(ctx->header);
 			g_free(ctx);
 			return SR_ERR;
@@ -123,7 +131,7 @@ static int init(struct sr_output *o)
 	}
 
 	if (!(frequency_s = sr_period_string(*samplerate))) {
-		sr_err("gnuplot out: %s: sr_period_string failed", __func__);
+		sr_err("%s: sr_period_string failed", __func__);
 		g_free(ctx->header);
 		g_free(ctx);
 		return SR_ERR;
@@ -136,7 +144,7 @@ static int init(struct sr_output *o)
 	g_free(frequency_s);
 
 	if (b < 0) {
-		sr_err("gnuplot out: %s: sprintf failed", __func__);
+		sr_err("%s: sprintf failed", __func__);
 		g_free(ctx->header);
 		g_free(ctx);
 		return SR_ERR;
@@ -149,17 +157,17 @@ static int event(struct sr_output *o, int event_type, uint8_t **data_out,
 		 uint64_t *length_out)
 {
 	if (!o) {
-		sr_err("gnuplot out: %s: o was NULL", __func__);
+		sr_err("%s: o was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!data_out) {
-		sr_err("gnuplot out: %s: data_out was NULL", __func__);
+		sr_err("%s: data_out was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!length_out) {
-		sr_err("gnuplot out: %s: length_out was NULL", __func__);
+		sr_err("%s: length_out was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
@@ -172,8 +180,7 @@ static int event(struct sr_output *o, int event_type, uint8_t **data_out,
 		o->internal = NULL;
 		break;
 	default:
-		sr_err("gnuplot out: %s: unsupported event type: %d",
-		       __func__, event_type);
+		sr_err("%s: unsupported event type: %d", __func__, event_type);
 		break;
 	}
 
@@ -193,27 +200,27 @@ static int data(struct sr_output *o, const uint8_t *data_in,
 	uint8_t *outbuf, *c;
 
 	if (!o) {
-		sr_err("gnuplot out: %s: o was NULL", __func__);
+		sr_err("%s: o was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!o->internal) {
-		sr_err("gnuplot out: %s: o->internal was NULL", __func__);
+		sr_err("%s: o->internal was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!data_in) {
-		sr_err("gnuplot out: %s: data_in was NULL", __func__);
+		sr_err("%s: data_in was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!data_out) {
-		sr_err("gnuplot out: %s: data_out was NULL", __func__);
+		sr_err("%s: data_out was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!length_out) {
-		sr_err("gnuplot out: %s: length_out was NULL", __func__);
+		sr_err("%s: length_out was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
@@ -224,7 +231,7 @@ static int data(struct sr_output *o, const uint8_t *data_in,
 		outsize += strlen(ctx->header);
 
 	if (!(outbuf = g_try_malloc0(outsize))) {
-		sr_err("gnuplot out: %s: outbuf malloc failed", __func__);
+		sr_err("%s: outbuf malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 

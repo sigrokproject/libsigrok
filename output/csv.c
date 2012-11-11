@@ -25,6 +25,15 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
+/* Message logging helpers with driver-specific prefix string. */
+#define DRIVER_LOG_DOMAIN "output/csv: "
+#define sr_log(l, s, args...) sr_log(l, DRIVER_LOG_DOMAIN s, ## args)
+#define sr_spew(s, args...) sr_spew(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_dbg(s, args...) sr_dbg(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_info(s, args...) sr_info(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_warn(s, args...) sr_warn(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_err(s, args...) sr_err(DRIVER_LOG_DOMAIN s, ## args)
+
 struct context {
 	unsigned int num_enabled_probes;
 	unsigned int unitsize;
@@ -57,22 +66,22 @@ static int init(struct sr_output *o)
 	unsigned int i;
 
 	if (!o) {
-		sr_err("csv out: %s: o was NULL", __func__);
+		sr_err("%s: o was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!o->sdi) {
-		sr_err("csv out: %s: o->sdi was NULL", __func__);
+		sr_err("%s: o->sdi was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!o->sdi->driver) {
-		sr_err("csv out: %s: o->sdi->driver was NULL", __func__);
+		sr_err("%s: o->sdi->driver was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!(ctx = g_try_malloc0(sizeof(struct context)))) {
-		sr_err("csv out: %s: ctx malloc failed", __func__);
+		sr_err("%s: ctx malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 
@@ -124,29 +133,29 @@ static int event(struct sr_output *o, int event_type, uint8_t **data_out,
 	struct context *ctx;
 
 	if (!o) {
-		sr_err("csv out: %s: o was NULL", __func__);
+		sr_err("%s: o was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!(ctx = o->internal)) {
-		sr_err("csv out: %s: o->internal was NULL", __func__);
+		sr_err("%s: o->internal was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!data_out) {
-		sr_err("csv out: %s: data_out was NULL", __func__);
+		sr_err("%s: data_out was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	switch (event_type) {
 	case SR_DF_TRIGGER:
-		sr_dbg("csv out: %s: SR_DF_TRIGGER event", __func__);
+		sr_dbg("%s: SR_DF_TRIGGER event", __func__);
 		/* TODO */
 		*data_out = NULL;
 		*length_out = 0;
 		break;
 	case SR_DF_END:
-		sr_dbg("csv out: %s: SR_DF_END event", __func__);
+		sr_dbg("%s: SR_DF_END event", __func__);
 		/* TODO */
 		*data_out = NULL;
 		*length_out = 0;
@@ -154,8 +163,7 @@ static int event(struct sr_output *o, int event_type, uint8_t **data_out,
 		o->internal = NULL;
 		break;
 	default:
-		sr_err("csv out: %s: unsupported event type: %d", __func__,
-		       event_type);
+		sr_err("%s: unsupported event type: %d", __func__, event_type);
 		*data_out = NULL;
 		*length_out = 0;
 		break;
@@ -173,17 +181,17 @@ static int data(struct sr_output *o, const uint8_t *data_in,
 	int j;
 
 	if (!o) {
-		sr_err("csv out: %s: o was NULL", __func__);
+		sr_err("%s: o was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!(ctx = o->internal)) {
-		sr_err("csv out: %s: o->internal was NULL", __func__);
+		sr_err("%s: o->internal was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!data_in) {
-		sr_err("csv out: %s: data_in was NULL", __func__);
+		sr_err("%s: data_in was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
