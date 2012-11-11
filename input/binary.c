@@ -26,6 +26,15 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
+/* Message logging helpers with driver-specific prefix string. */
+#define DRIVER_LOG_DOMAIN "input/binary: "
+#define sr_log(l, s, args...) sr_log(l, DRIVER_LOG_DOMAIN s, ## args)
+#define sr_spew(s, args...) sr_spew(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_dbg(s, args...) sr_dbg(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_info(s, args...) sr_info(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_warn(s, args...) sr_warn(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_err(s, args...) sr_err(DRIVER_LOG_DOMAIN s, ## args)
+
 #define CHUNKSIZE             (512 * 1024)
 #define DEFAULT_NUM_PROBES    8
 
@@ -37,7 +46,7 @@ static int format_match(const char *filename)
 {
 	(void)filename;
 
-	/* this module will handle anything you throw at it */
+	/* This module will handle anything you throw at it. */
 	return TRUE;
 }
 
@@ -50,14 +59,14 @@ static int init(struct sr_input *in)
 	struct context *ctx;
 
 	if (!(ctx = g_try_malloc0(sizeof(*ctx)))) {
-		sr_err("binary in: %s: ctx malloc failed", __func__);
+		sr_err("Input format context malloc failed.");
 		return SR_ERR_MALLOC;
 	}
 
 	num_probes = DEFAULT_NUM_PROBES;
 	ctx->samplerate = 0;
 
-	if(in->param) {
+	if (in->param) {
 		param = g_hash_table_lookup(in->param, "numprobes");
 		if (param) {
 			num_probes = strtoul(param, NULL, 10);
@@ -104,7 +113,7 @@ static int loadfile(struct sr_input *in, const char *filename)
 
 	num_probes = g_slist_length(in->sdi->probes);
 
-	/* send header */
+	/* Send header packet to the session bus. */
 	header.feed_version = 1;
 	gettimeofday(&header.starttime, NULL);
 	packet.type = SR_DF_HEADER;
@@ -118,7 +127,7 @@ static int loadfile(struct sr_input *in, const char *filename)
 	meta.num_probes = num_probes;
 	sr_session_send(in->sdi, &packet);
 
-	/* chop up the input file into chunks and feed it into the session bus */
+	/* Chop up the input file into chunks & send it to the session bus. */
 	packet.type = SR_DF_LOGIC;
 	packet.payload = &logic;
 	logic.unitsize = (num_probes + 7) / 8;
@@ -129,7 +138,7 @@ static int loadfile(struct sr_input *in, const char *filename)
 	}
 	close(fd);
 
-	/* end of stream */
+	/* Send end packet to the session bus. */
 	packet.type = SR_DF_END;
 	sr_session_send(in->sdi, &packet);
 

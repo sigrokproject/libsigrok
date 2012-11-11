@@ -25,6 +25,15 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
+/* Message logging helpers with driver-specific prefix string. */
+#define DRIVER_LOG_DOMAIN "input/chronovu-la8: "
+#define sr_log(l, s, args...) sr_log(l, DRIVER_LOG_DOMAIN s, ## args)
+#define sr_spew(s, args...) sr_spew(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_dbg(s, args...) sr_dbg(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_info(s, args...) sr_info(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_warn(s, args...) sr_warn(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_err(s, args...) sr_err(DRIVER_LOG_DOMAIN s, ## args)
+
 #define NUM_PACKETS		2048
 #define PACKET_SIZE		4096
 #define DEFAULT_NUM_PROBES	8
@@ -54,20 +63,20 @@ static int format_match(const char *filename)
 	int ret;
 
 	if (!filename) {
-		sr_err("la8 in: %s: filename was NULL", __func__);
+		sr_err("%s: filename was NULL", __func__);
 		// return SR_ERR; /* FIXME */
 		return FALSE;
 	}
 
 	if (!g_file_test(filename, G_FILE_TEST_EXISTS)) {
-		sr_err("la8 in: %s: input file '%s' does not exist",
+		sr_err("%s: input file '%s' does not exist",
 		       __func__, filename);
 		// return SR_ERR; /* FIXME */
 		return FALSE;
 	}
 
 	if (!g_file_test(filename, G_FILE_TEST_IS_REGULAR)) {
-		sr_err("la8 in: %s: input file '%s' not a regular file",
+		sr_err("%s: input file '%s' not a regular file",
 		       __func__, filename);
 		// return SR_ERR; /* FIXME */
 		return FALSE;
@@ -76,12 +85,12 @@ static int format_match(const char *filename)
 	/* Only accept files of length 8MB + 5 bytes. */
 	ret = stat(filename, &stat_buf);
 	if (ret != 0) {
-		sr_err("la8 in: %s: Error getting file size of '%s'",
+		sr_err("%s: Error getting file size of '%s'",
 		       __func__, filename);
 		return FALSE;
 	}
 	if (stat_buf.st_size != (8 * 1024 * 1024 + 5)) {
-		sr_dbg("la8 in: %s: File size must be exactly 8388613 bytes ("
+		sr_dbg("%s: File size must be exactly 8388613 bytes ("
 		       "it actually is %d bytes in size), so this is not a "
 		       "ChronoVu LA8 file.", __func__, stat_buf.st_size);
 		return FALSE;
@@ -106,7 +115,7 @@ static int init(struct sr_input *in)
 		if (param) {
 			num_probes = strtoul(param, NULL, 10);
 			if (num_probes < 1) {
-				sr_err("la8 in: %s: strtoul failed", __func__);
+				sr_err("%s: strtoul failed", __func__);
 				return SR_ERR;
 			}
 		}
@@ -138,7 +147,7 @@ static int loadfile(struct sr_input *in, const char *filename)
 
 	/* TODO: Use glib functions! GIOChannel, g_fopen, etc. */
 	if ((fd = open(filename, O_RDONLY)) == -1) {
-		sr_err("la8 in: %s: file open failed", __func__);
+		sr_err("%s: file open failed", __func__);
 		return SR_ERR;
 	}
 
@@ -153,10 +162,10 @@ static int loadfile(struct sr_input *in, const char *filename)
 		close(fd); /* FIXME */
 		return SR_ERR;
 	}
-	sr_dbg("la8 in: %s: samplerate is %" PRIu64, __func__, samplerate);
+	sr_dbg("%s: samplerate is %" PRIu64, __func__, samplerate);
 
 	/* Send header packet to the session bus. */
-	sr_dbg("la8 in: %s: sending SR_DF_HEADER packet", __func__);
+	sr_dbg("%s: sending SR_DF_HEADER packet", __func__);
 	packet.type = SR_DF_HEADER;
 	packet.payload = &header;
 	header.feed_version = 1;
@@ -173,7 +182,7 @@ static int loadfile(struct sr_input *in, const char *filename)
 	/* TODO: Handle trigger point. */
 
 	/* Send data packets to the session bus. */
-	sr_dbg("la8 in: %s: sending SR_DF_LOGIC data packets", __func__);
+	sr_dbg("%s: sending SR_DF_LOGIC data packets", __func__);
 	packet.type = SR_DF_LOGIC;
 	packet.payload = &logic;
 	logic.unitsize = (num_probes + 7) / 8;
@@ -189,7 +198,7 @@ static int loadfile(struct sr_input *in, const char *filename)
 	close(fd); /* FIXME */
 
 	/* Send end packet to the session bus. */
-	sr_dbg("la8 in: %s: sending SR_DF_END", __func__);
+	sr_dbg("%s: sending SR_DF_END", __func__);
 	packet.type = SR_DF_END;
 	packet.payload = NULL;
 	sr_session_send(in->sdi, &packet);
