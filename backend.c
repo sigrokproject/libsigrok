@@ -115,6 +115,95 @@
  */
 
 /**
+ * Sanity-check all libsigrok drivers.
+ *
+ * @return SR_OK if all drivers are OK, SR_ERR if one or more have issues.
+ */
+static int sanity_check_all_drivers(void)
+{
+	int i, errors, ret = SR_OK;
+	struct sr_dev_driver **drivers;
+	const char *d;
+
+	sr_spew("Sanity-checking all drivers.");
+
+	drivers = sr_driver_list();
+	for (i = 0; drivers[i]; i++) {
+		errors = 0;
+
+		d = (drivers[i]->name) ? drivers[i]->name : "NULL";
+
+		if (!drivers[i]->name) {
+			sr_err("No name in driver %d ('%s').", i, d);
+			errors++;
+		}
+		if (!drivers[i]->longname) {
+			sr_err("No longname in driver %d ('%s').", i, d);
+			errors++;
+		}
+		if (drivers[i]->api_version < 1) {
+			sr_err("API version in driver %d ('%s') < 1.", i, d);
+			errors++;
+		}
+		if (!drivers[i]->init) {
+			sr_err("No init in driver %d ('%s').", i, d);
+			errors++;
+		}
+		if (!drivers[i]->cleanup) {
+			sr_err("No cleanup in driver %d ('%s').", i, d);
+			errors++;
+		}
+		if (!drivers[i]->scan) {
+			sr_err("No scan in driver %d ('%s').", i, d);
+			errors++;
+		}
+		if (!drivers[i]->dev_list) {
+			sr_err("No dev_list in driver %d ('%s').", i, d);
+			errors++;
+		}
+		if (!drivers[i]->dev_clear) {
+			sr_err("No dev_clear in driver %d ('%s').", i, d);
+			errors++;
+		}
+		if (!drivers[i]->dev_open) {
+			sr_err("No dev_open in driver %d ('%s').", i, d);
+			errors++;
+		}
+		if (!drivers[i]->dev_close) {
+			sr_err("No dev_close in driver %d ('%s').", i, d);
+			errors++;
+		}
+		if (!drivers[i]->info_get) {
+			sr_err("No info_get in driver %d ('%s').", i, d);
+			errors++;
+		}
+		if (!drivers[i]->dev_config_set) {
+			sr_err("No dev_config_set in driver %d ('%s').", i, d);
+			errors++;
+		}
+		if (!drivers[i]->dev_acquisition_start) {
+			sr_err("No dev_acquisition_start in driver %d ('%s').",
+			       i, d);
+			errors++;
+		}
+		if (!drivers[i]->dev_acquisition_stop) {
+			sr_err("No dev_acquisition_stop in driver %d ('%s').",
+			       i, d);
+			errors++;
+		}
+
+		/* Note: 'priv' is allowed to be NULL. */
+
+		if (errors == 0)
+			continue;
+
+		ret = SR_ERR;
+	}
+
+	return ret;
+}
+
+/**
  * Initialize libsigrok.
  *
  * This function must be called before any other libsigrok function.
@@ -136,6 +225,11 @@ SR_API int sr_init(struct sr_context **ctx)
 	if (!ctx) {
 		sr_err("%s(): libsigrok context was NULL.", __func__);
 		return SR_ERR;
+	}
+
+	if (sanity_check_all_drivers() < 0) {
+		sr_err("Internal driver error(s), aborting.");
+		return ret;
 	}
 
 	/* + 1 to handle when struct sr_context has no members. */
