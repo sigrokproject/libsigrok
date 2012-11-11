@@ -29,7 +29,6 @@ static int data(struct sr_output *o, const uint8_t *data_in,
 {
 	uint8_t *outbuf;
 
-	/* Prevent compiler warnings. */
 	(void)o;
 
 	if (!data_in) {

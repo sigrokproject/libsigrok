@@ -431,8 +431,8 @@ static GSList *hw_scan(GSList *options)
 	libusb_device **devlist;
 	int devcnt, num_logic_probes, ret, i, j;
 
-	/* Avoid compiler warnings. */
 	(void)options;
+
 	drvc = fdi->priv;
 
 	/* This scan always invalidates any previous scans. */
@@ -686,7 +686,6 @@ static int receive_data(int fd, int revents, void *cb_data)
 {
 	struct timeval tv;
 
-	/* Avoid compiler warnings. */
 	(void)fd;
 	(void)revents;
 	(void)cb_data;
@@ -1028,8 +1027,6 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 /* TODO: This stops acquisition on ALL devices, ignoring dev_index. */
 static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
-
-	/* Avoid compiler warnings. */
 	(void)cb_data;
 
 	abort_acquisition(sdi->priv);

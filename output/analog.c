@@ -186,6 +186,7 @@ static GString *receive(struct sr_output *o, const struct sr_dev_inst *sdi,
 	int i, j;
 
 	(void)sdi;
+
 	if (!o || !o->sdi)
 		return NULL;
 	ctx = o->internal;

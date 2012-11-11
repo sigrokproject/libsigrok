@@ -458,6 +458,7 @@ static GSList *hw_scan(GSList *options)
 	int ret, i;
 
 	(void)options;
+
 	drvc = adi->priv;
 	devices = NULL;
 	clear_instances();
@@ -1419,7 +1420,6 @@ static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 	struct dev_context *devc;
 	uint8_t modestatus;
 
-	/* Avoid compiler warnings. */
 	(void)cb_data;
 
 	sr_source_remove(0);

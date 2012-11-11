@@ -36,6 +36,7 @@ static struct sr_datafeed_analog *handle_qm_v1(const struct sr_dev_inst *sdi,
 	gboolean is_oor;
 
 	(void)sdi;
+
 	if (strcmp(tokens[0], "QM"))
 		return NULL;
 
@@ -158,6 +159,7 @@ static struct sr_datafeed_analog *handle_qm_v2(const struct sr_dev_inst *sdi,
 	char *eptr;
 
 	(void)sdi;
+
 	fvalue = strtof(tokens[0], &eptr);
 	if (fvalue == 0.0 && eptr == tokens[0]) {
 		sr_err("Invalid float.");

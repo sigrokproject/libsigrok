@@ -334,6 +334,7 @@ static GSList *hw_scan(GSList *options)
 	int ret, devcnt, i, j;
 
 	(void)options;
+
 	drvc = zdi->priv;
 	devices = NULL;
 

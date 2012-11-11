@@ -35,7 +35,6 @@ struct context {
 
 static int format_match(const char *filename)
 {
-	/* suppress compiler warning */
 	(void)filename;
 
 	/* this module will handle anything you throw at it */

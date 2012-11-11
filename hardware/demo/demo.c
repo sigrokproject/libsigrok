@@ -170,6 +170,7 @@ static GSList *hw_scan(GSList *options)
 	int i;
 
 	(void)options;
+
 	drvc = ddi->priv;
 	devices = NULL;
 
@@ -204,7 +205,6 @@ static GSList *hw_dev_list(void)
 
 static int hw_dev_open(struct sr_dev_inst *sdi)
 {
-	/* Avoid compiler warnings. */
 	(void)sdi;
 
 	/* Nothing needed so far. */
@@ -214,7 +214,6 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 
 static int hw_dev_close(struct sr_dev_inst *sdi)
 {
-	/* Avoid compiler warnings. */
 	(void)sdi;
 
 	/* Nothing needed so far. */
@@ -231,7 +230,6 @@ static int hw_cleanup(void)
 static int hw_info_get(int info_id, const void **data,
        const struct sr_dev_inst *sdi)
 {
-
 	(void)sdi;
 
 	switch (info_id) {
@@ -404,7 +402,6 @@ static int receive_data(int fd, int revents, void *cb_data)
 	unsigned char c[BUFSIZE];
 	gsize z;
 
-	/* Avoid compiler warnings. */
 	(void)fd;
 	(void)revents;
 
@@ -522,7 +519,6 @@ static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
 	struct dev_context *devc;
 
-	/* Avoid compiler warnings. */
 	(void)cb_data;
 
 	devc = sdi->priv;

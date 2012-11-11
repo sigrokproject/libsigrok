@@ -403,7 +403,6 @@ static int mso_parse_serial(const char *iSerial, const char *iProduct,
 
 static int hw_init(void)
 {
-
 	/* Nothing to do. */
 
 	return SR_OK;
@@ -694,7 +693,6 @@ static int receive_data(int fd, int revents, void *cb_data)
 	double analog_out[1024];
 	size_t i, s;
 
-	/* Avoid compiler warnings. */
 	(void)revents;
 
 	s = serial_read(fd, in, sizeof(in));
@@ -830,7 +828,6 @@ static int hw_dev_acquisition_stop(int dev_index, void *cb_data)
 {
 	struct sr_datafeed_packet packet;
 
-	/* Avoid compiler warnings. */
 	(void)dev_index;
 
 	packet.type = SR_DF_END;

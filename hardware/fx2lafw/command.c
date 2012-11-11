@@ -18,7 +18,6 @@
  */
 
 #include <libusb.h>
-
 #include "fx2lafw.h"
 #include "command.h"
 #include "libsigrok.h"

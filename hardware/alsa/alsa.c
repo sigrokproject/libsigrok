@@ -71,7 +71,6 @@ static int hw_init(const char *devinfo)
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
 
-	/* Avoid compiler warnings. */
 	(void)devinfo;
 
 	if (!(ctx = g_try_malloc0(sizeof(struct context)))) {
@@ -389,7 +388,6 @@ static int hw_dev_acquisition_start(int dev_index, void *cb_data)
 /* TODO: This stops acquisition on ALL devices, ignoring dev_index. */
 static int hw_dev_acquisition_stop(int dev_index, void *cb_data)
 {
-	/* Avoid compiler warnings. */
 	(void)dev_index;
 	(void)cb_data;
 

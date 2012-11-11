@@ -268,7 +268,6 @@ SR_PRIV struct sr_usb_dev_inst *sr_usb_dev_inst_new(uint8_t bus,
 /** @private */
 SR_PRIV void sr_usb_dev_inst_free(struct sr_usb_dev_inst *usb)
 {
-	/* Avoid compiler warnings. */
 	(void)usb;
 
 	/* Nothing to do for this device instance type. */

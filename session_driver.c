@@ -59,7 +59,6 @@ static int receive_data(int fd, int revents, void *cb_data)
 	void *buf;
 	int ret, got_data;
 
-	/* Avoid compiler warnings. */
 	(void)fd;
 	(void)revents;
 
