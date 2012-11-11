@@ -18,12 +18,11 @@
  */
 
 #include <glib.h>
+#include <string.h>
+#include <math.h>
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 #include "protocol.h"
-#include <string.h>
-#include <math.h>
-
 
 /* Reverse the high nibble into the low nibble */
 static uint8_t decode_digit(uint8_t in)
@@ -85,7 +84,8 @@ static void decode_buf(struct dev_context *devc, unsigned char *data)
 		factor = 3;
 		break;
 	default:
-		sr_err("Unknown decimal point value %.2x.", data[7]);
+		sr_err("Unknown decimal point byte: 0x%.2x.", data[7]);
+		break;
 	}
 
 	/* Minus flag */
@@ -126,10 +126,11 @@ static void decode_buf(struct dev_context *devc, unsigned char *data)
 		break;
 	case 0x80:
 		/* Never seen */
-		sr_dbg("Unknown mode right detail %.2x.", data[4]);
+		sr_dbg("Unknown mode right detail: 0x%.2x.", data[4]);
 		break;
 	default:
-		sr_dbg("Unknown/invalid mode right detail %.2x.", data[4]);
+		sr_dbg("Unknown/invalid mode right detail: 0x%.2x.", data[4]);
+		break;
 	}
 
 	/* Scale flags on the right, continued */
@@ -169,7 +170,7 @@ static void decode_buf(struct dev_context *devc, unsigned char *data)
 			analog.mq = SR_MQ_DUTY_CYCLE;
 			analog.unit = SR_UNIT_PERCENTAGE;
 		} else
-			sr_dbg("Unknown measurement mode %.2x.", data[3]);
+			sr_dbg("Unknown measurement mode: %.2x.", data[3]);
 		break;
 	case 0x01:
 		if (is_diode) {
@@ -211,7 +212,7 @@ static void decode_buf(struct dev_context *devc, unsigned char *data)
 		break;
 	case 0x08:
 		/* Never seen */
-		sr_dbg("Unknown measurement mode %.2x.", data[3]);
+		sr_dbg("Unknown measurement mode: 0x%.2x.", data[3]);
 		break;
 	case 0x10:
 		analog.mq = SR_MQ_FREQUENCY;
@@ -230,7 +231,8 @@ static void decode_buf(struct dev_context *devc, unsigned char *data)
 		analog.unit = SR_UNIT_FAHRENHEIT;
 		break;
 	default:
-		sr_dbg("Unknown/invalid measurement mode %.2x.", data[3]);
+		sr_dbg("Unknown/invalid measurement mode: 0x%.2x.", data[3]);
+		break;
 	}
 	if (analog.mq == -1)
 		return;
@@ -292,4 +294,3 @@ SR_PRIV int victor_dmm_receive_data(struct sr_dev_inst *sdi, unsigned char *buf)
 
 	return SR_OK;
 }
-

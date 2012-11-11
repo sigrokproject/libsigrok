@@ -18,12 +18,12 @@
  */
 
 #include <glib.h>
-#include "libsigrok.h"
-#include "libsigrok-internal.h"
-#include "protocol.h"
 #include <libusb.h>
 #include <stdlib.h>
 #include <string.h>
+#include "libsigrok.h"
+#include "libsigrok-internal.h"
+#include "protocol.h"
 
 #define VICTOR_VID 0x1244
 #define VICTOR_PID 0xd237
@@ -47,7 +47,6 @@ static const int hwcaps[] = {
 static const char *probe_names[] = {
 	"P1",
 };
-
 
 /* Properly close and free all devices. */
 static int clear_instances(void)
@@ -124,8 +123,8 @@ static GSList *hw_scan(GSList *options)
 			continue;
 
 		devcnt = g_slist_length(drvc->instances);
-		if (!(sdi = sr_dev_inst_new(devcnt, SR_ST_INACTIVE, VICTOR_VENDOR,
-				NULL, NULL)))
+		if (!(sdi = sr_dev_inst_new(devcnt, SR_ST_INACTIVE,
+				VICTOR_VENDOR, NULL, NULL)))
 			return NULL;
 		sdi->driver = di;
 
@@ -179,7 +178,7 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 				|| libusb_get_device_address(devlist[i]) != devc->usb->address)
 			continue;
 		if ((ret = libusb_open(devlist[i], &devc->usb->devhdl))) {
-			sr_err("Failed to open device: %s", libusb_error_name(ret));
+			sr_err("Failed to open device: %s.", libusb_error_name(ret));
 			return SR_ERR;
 		}
 		break;
@@ -201,7 +200,7 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 
 	if ((ret = libusb_claim_interface(devc->usb->devhdl,
 			VICTOR_INTERFACE))) {
-		sr_err("Failed to claim interface: %s", libusb_error_name(ret));
+		sr_err("Failed to claim interface: %s.", libusb_error_name(ret));
 		return SR_ERR;
 	}
 	sdi->status = SR_ST_ACTIVE;
@@ -249,21 +248,21 @@ static int hw_cleanup(void)
 static int hw_info_get(int info_id, const void **data,
 		       const struct sr_dev_inst *sdi)
 {
-
 	(void)sdi;
 
 	switch (info_id) {
-		case SR_DI_HWCAPS:
-			*data = hwcaps;
-			break;
-		case SR_DI_NUM_PROBES:
-			*data = GINT_TO_POINTER(1);
-			break;
-		case SR_DI_PROBE_NAMES:
-			*data = probe_names;
-			break;
-		default:
-			return SR_ERR_ARG;
+	case SR_DI_HWCAPS:
+		*data = hwcaps;
+		break;
+	case SR_DI_NUM_PROBES:
+		*data = GINT_TO_POINTER(1);
+		break;
+	case SR_DI_PROBE_NAMES:
+		*data = probe_names;
+		break;
+	default:
+		sr_err("Unknown info_id: %d.", info_id);
+		return SR_ERR_ARG;
 	}
 
 	return SR_OK;
@@ -289,18 +288,18 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 	devc = sdi->priv;
 	ret = SR_OK;
 	switch (hwcap) {
-		case SR_HWCAP_LIMIT_MSEC:
-			devc->limit_msec = *(const int64_t *)value;
-			now = g_get_monotonic_time() / 1000;
-			devc->end_time = now + devc->limit_msec;
-			sr_dbg("setting time limit to %" PRIu64 "ms.",
-					devc->limit_msec);
-			break;
-		case SR_HWCAP_LIMIT_SAMPLES:
-			devc->limit_samples = *(const uint64_t *)value;
-			sr_dbg("setting sample limit to %" PRIu64 ".",
-					devc->limit_samples);
-			break;
+	case SR_HWCAP_LIMIT_MSEC:
+		devc->limit_msec = *(const int64_t *)value;
+		now = g_get_monotonic_time() / 1000;
+		devc->end_time = now + devc->limit_msec;
+		sr_dbg("Setting time limit to %" PRIu64 "ms.",
+		       devc->limit_msec);
+		break;
+	case SR_HWCAP_LIMIT_SAMPLES:
+		devc->limit_samples = *(const uint64_t *)value;
+		sr_dbg("Setting sample limit to %" PRIu64 ".",
+		       devc->limit_samples);
+		break;
 	default:
 		sr_err("Unknown hardware capability: %d.", hwcap);
 		ret = SR_ERR_ARG;
@@ -321,7 +320,7 @@ static void receive_transfer(struct libusb_transfer *transfer)
 		/* USB device was unplugged. */
 		hw_dev_acquisition_stop(sdi, sdi);
 	} else if (transfer->status == LIBUSB_TRANSFER_COMPLETED) {
-		sr_dbg("got %d-byte packet", transfer->actual_length);
+		sr_dbg("Got %d-byte packet.", transfer->actual_length);
 		if (transfer->actual_length == DMM_DATA_SIZE) {
 			victor_dmm_receive_data(sdi, transfer->buffer);
 			if (devc->limit_samples) {
@@ -336,7 +335,8 @@ static void receive_transfer(struct libusb_transfer *transfer)
 	if (sdi->status == SR_ST_ACTIVE) {
 		/* Send the same request again. */
 		if ((ret = libusb_submit_transfer(transfer) != 0)) {
-			sr_err("unable to resubmit transfer: %s", libusb_error_name(ret));
+			sr_err("Unable to resubmit transfer: %s.",
+			       libusb_error_name(ret));
 			libusb_free_transfer(transfer);
 			g_free(transfer->buffer);
 			hw_dev_acquisition_stop(sdi, sdi);
@@ -347,7 +347,6 @@ static void receive_transfer(struct libusb_transfer *transfer)
 		libusb_free_transfer(transfer);
 		g_free(transfer->buffer);
 	}
-
 }
 
 static int handle_events(int fd, int revents, void *cb_data)
@@ -439,9 +438,10 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	 * times you ask, but we want to keep step with the USB events
 	 * handling above. */
 	libusb_fill_interrupt_transfer(transfer, devc->usb->devhdl,
-			VICTOR_ENDPOINT, buf, DMM_DATA_SIZE, receive_transfer, cb_data, 100);
+			VICTOR_ENDPOINT, buf, DMM_DATA_SIZE, receive_transfer,
+			cb_data, 100);
 	if ((ret = libusb_submit_transfer(transfer) != 0)) {
-		sr_err("unable to submit transfer: %s", libusb_error_name(ret));
+		sr_err("Unable to submit transfer: %s.", libusb_error_name(ret));
 		libusb_free_transfer(transfer);
 		g_free(buf);
 		return SR_ERR;
@@ -452,7 +452,6 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 
 static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
-
 	(void)cb_data;
 
 	if (!di->priv) {
