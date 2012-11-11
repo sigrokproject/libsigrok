@@ -284,19 +284,37 @@ SR_PRIV void sr_usb_dev_inst_free(struct sr_usb_dev_inst *usb)
 
 #endif
 
-/** @private */
+/** @private
+ * @param pathname OS-specific serial port specification. Examples:
+ * "/dev/ttyUSB0", "/dev/ttyACM1", "/dev/tty.Modem-0", "COM1".
+ * @param serialcomm A serial communication parameters string, in the form
+ * of <speed>/<data bits><parity><stopbits>, for example "9600/8n1" or
+ * "600/7o2". This is an optional parameter; it may be filled in later.
+ * @return A pointer to a newly initialized struct sr_serial_dev_inst,
+ * or NULL on error.
+ *
+ * Both parameters are copied to newly allocated strings, and freed
+ * automatically by sr_serial_dev_inst_free().
+ */
 SR_PRIV struct sr_serial_dev_inst *sr_serial_dev_inst_new(const char *port,
-							  int fd)
+		const char *serialcomm)
 {
 	struct sr_serial_dev_inst *serial;
 
-	if (!(serial = g_try_malloc(sizeof(struct sr_serial_dev_inst)))) {
-		sr_err("%s: serial malloc failed", __func__);
+	if (!port) {
+		sr_err("hwdriver: serial port required");
+		return NULL;
+	}
+
+	if (!(serial = g_try_malloc0(sizeof(struct sr_serial_dev_inst)))) {
+		sr_err("hwdriver: serial malloc failed");
 		return NULL;
 	}
 
 	serial->port = g_strdup(port);
-	serial->fd = fd;
+	if (serialcomm)
+		serial->serialcomm = g_strdup(serialcomm);
+	serial->fd = -1;
 
 	return serial;
 }
@@ -304,7 +322,10 @@ SR_PRIV struct sr_serial_dev_inst *sr_serial_dev_inst_new(const char *port,
 /** @private */
 SR_PRIV void sr_serial_dev_inst_free(struct sr_serial_dev_inst *serial)
 {
+
 	g_free(serial->port);
+	g_free(serial->serialcomm);
+
 }
 
 SR_API int sr_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,

@@ -52,94 +52,127 @@ static HANDLE hdl;
 /**
  * Open the specified serial port.
  *
- * @param pathname OS-specific serial port specification. Examples:
- *                 "/dev/ttyUSB0", "/dev/ttyACM1", "/dev/tty.Modem-0", "COM1".
+ * @param serial Previously initialized serial port structure.
  * @param flags Flags to use when opening the serial port.
+ * TODO: Abstract 'flags', currently they're OS-specific!
  *
- * @return 0 upon success, -1 upon failure.
+ * If the serial structure contains a serialcomm string, it will be
+ * passed to serial_set_paramstr() after the port is opened.
+ *
+ * @return SR_OK on success, SR_ERR on failure.
  */
-SR_PRIV int serial_open(const char *pathname, int flags)
+SR_PRIV int serial_open(struct sr_serial_dev_inst *serial, int flags)
 {
-	/* TODO: Abstract 'flags', currently they're OS-specific! */
 
-	sr_dbg("Opening serial port '%s' (flags = %d).", pathname, flags);
+	if (!serial) {
+		sr_dbg("Invalid serial port.");
+		return SR_ERR;
+	}
+
+	sr_spew("Opening serial port '%s' (flags %d).", serial->port, flags);
 
 #ifdef _WIN32
-	pathname = "COM1"; /* FIXME: Don't hardcode COM1. */
-
-	hdl = CreateFile(pathname, GENERIC_READ | GENERIC_WRITE, 0, 0,
+	hdl = CreateFile(serial->port, GENERIC_READ | GENERIC_WRITE, 0, 0,
 			 OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
 	if (hdl == INVALID_HANDLE_VALUE) {
-		sr_err("Error opening serial port '%s'.", pathname);
-		return -1;
+		sr_err("Error opening serial port '%s'.", serial->port);
+		return SR_ERR;
 	}
-	return 0;
 #else
-	int fd;
-
-	if ((fd = open(pathname, flags)) < 0) {
-		/*
-		 * Should be sr_err(), but since some drivers try to open all
-		 * ports on a system and see if they succeed, this would
-		 * yield ugly output for e.g. "sigrok-cli -D".
-		 */
-		sr_dbg("Error opening serial port '%s': %s.", pathname,
+	if ((serial->fd = open(serial->port, flags)) < 0) {
+		sr_err("Error opening serial port '%s': %s.", serial->port,
 		       strerror(errno));
-	} else {
-		sr_dbg("Opened serial port '%s' as FD %d.", pathname, fd);
-	}
-
-	return fd;
+		return SR_ERR;
+	} else
+		sr_spew("Opened serial port '%s' (fd %d).", serial->port, serial->fd);
 #endif
+
+	if (serial->serialcomm)
+		return serial_set_paramstr(serial, serial->serialcomm);
+	else
+		return SR_OK;
 }
 
 /**
  * Close the specified serial port.
  *
- * @param fd File descriptor of the serial port.
+ * @param serial Previously initialized serial port structure.
  *
- * @return 0 upon success, -1 upon failure.
+ * @return SR_OK on success, SR_ERR on failure.
  */
-SR_PRIV int serial_close(int fd)
+SR_PRIV int serial_close(struct sr_serial_dev_inst *serial)
 {
-	sr_dbg("FD %d: Closing serial port.", fd);
+	int ret;
+
+	if (!serial) {
+		sr_dbg("Invalid serial port.");
+		return SR_ERR;
+	}
+
+	if (serial->fd == -1) {
+		sr_dbg("Cannot close unopened serial port %s (fd %d).",
+				serial->port, serial->fd);
+		return SR_ERR;
+	}
+
+	sr_spew("Closing serial port %s (fd %d).", serial->port, serial->fd);
+	ret = SR_OK;
 
 #ifdef _WIN32
 	/* Returns non-zero upon success, 0 upon failure. */
-	return (CloseHandle(hdl) == 0) ? -1 : 0;
+	if (CloseHandle(hdl) == 0)
+		ret = SR_ERR;
 #else
-	int ret;
-
 	/* Returns 0 upon success, -1 upon failure. */
-	if ((ret = close(fd)) < 0) {
-		sr_dbg("FD %d: Error closing serial port: %s.",
-		       fd, strerror(errno));
+	if (close(serial->fd) < 0) {
+		sr_err("Error closing serial port: %s (fd %d).", strerror(errno),
+				serial->fd);
+		ret = SR_ERR;
 	}
+#endif
+
+	serial->fd = -1;
 
 	return ret;
-#endif
 }
 
 /**
- * Flush serial port buffers (if any).
+ * Flush serial port buffers.
  *
- * @param fd File descriptor of the serial port.
+ * @param serial Previously initialized serial port structure.
  *
- * @return 0 upon success, -1 upon failure.
+ * @return SR_OK on success, SR_ERR on failure.
  */
-SR_PRIV int serial_flush(int fd)
+SR_PRIV int serial_flush(struct sr_serial_dev_inst *serial)
 {
-	sr_dbg("FD %d: Flushing serial port.", fd);
+	int ret;
+
+	if (!serial) {
+		sr_dbg("Invalid serial port.");
+		return SR_ERR;
+	}
+
+	if (serial->fd == -1) {
+		sr_dbg("Cannot flush unopened serial port %s (fd %d).",
+				serial->port, serial->fd);
+		return SR_ERR;
+	}
+
+	sr_spew("Flushing serial port %s (fd %d).", serial->port, serial->fd);
+	ret = SR_OK;
 
 #ifdef _WIN32
 	/* Returns non-zero upon success, 0 upon failure. */
-	return (PurgeComm(hdl, PURGE_RXCLEAR | PURGE_TXCLEAR) == 0) ? -1 : 0;
-#else
-	int ret;
-
-	/* Returns 0 upon success, -1 upon failure. */
-	if ((ret = tcflush(fd, TCIOFLUSH)) < 0)
+	if (PurgeComm(hdl, PURGE_RXCLEAR | PURGE_TXCLEAR) == 0) ) {
 		sr_err("Error flushing serial port: %s.", strerror(errno));
+		ret = SR_ERR;
+	}
+#else
+	/* Returns 0 upon success, -1 upon failure. */
+	if (tcflush(serial->fd, TCIOFLUSH) < 0) {
+		sr_err("Error flushing serial port: %s.", strerror(errno));
+		ret = SR_ERR;
+	}
 
 	return ret;
 #endif
@@ -148,14 +181,28 @@ SR_PRIV int serial_flush(int fd)
 /**
  * Write a number of bytes to the specified serial port.
  *
- * @param fd File descriptor of the serial port.
+ * @param serial Previously initialized serial port structure.
  * @param buf Buffer containing the bytes to write.
  * @param count Number of bytes to write.
  *
  * @return The number of bytes written, or -1 upon failure.
  */
-SR_PRIV int serial_write(int fd, const void *buf, size_t count)
+SR_PRIV int serial_write(struct sr_serial_dev_inst *serial,
+		const void *buf, size_t count)
 {
+	ssize_t ret;
+
+	if (!serial) {
+		sr_dbg("Invalid serial port.");
+		return -1;
+	}
+
+	if (serial->fd == -1) {
+		sr_dbg("Cannot use unopened serial port %s (fd %d).",
+				serial->port, serial->fd);
+		return -1;
+	}
+
 #ifdef _WIN32
 	DWORD tmp = 0;
 
@@ -163,30 +210,42 @@ SR_PRIV int serial_write(int fd, const void *buf, size_t count)
 	/* Returns non-zero upon success, 0 upon failure. */
 	WriteFile(hdl, buf, count, &tmp, NULL);
 #else
-	ssize_t ret;
-
 	/* Returns the number of bytes written, or -1 upon failure. */
-	ret = write(fd, buf, count);
+	ret = write(serial->fd, buf, count);
 	if (ret < 0)
-		sr_err("FD %d: Write error: %s.", fd, strerror(errno));
+		sr_err("Write error: %s.", strerror(errno));
 	else
-		sr_spew("FD %d: Wrote %d/%d bytes.", fd, ret, count);
+		sr_spew("Wrote %d/%d bytes (fd %d).", ret, count, serial->fd);
+#endif
 
 	return ret;
-#endif
 }
 
 /**
  * Read a number of bytes from the specified serial port.
  *
- * @param fd File descriptor of the serial port.
+ * @param serial Previously initialized serial port structure.
  * @param buf Buffer where to store the bytes that are read.
  * @param count The number of bytes to read.
  *
  * @return The number of bytes read, or -1 upon failure.
  */
-SR_PRIV int serial_read(int fd, void *buf, size_t count)
+SR_PRIV int serial_read(struct sr_serial_dev_inst *serial, void *buf,
+		size_t count)
 {
+	ssize_t ret;
+
+	if (!serial) {
+		sr_dbg("Invalid serial port.");
+		return -1;
+	}
+
+	if (serial->fd == -1) {
+		sr_dbg("Cannot use unopened serial port %s (fd %d).",
+				serial->port, serial->fd);
+		return -1;
+	}
+
 #ifdef _WIN32
 	DWORD tmp = 0;
 
@@ -194,27 +253,25 @@ SR_PRIV int serial_read(int fd, void *buf, size_t count)
 	/* Returns non-zero upon success, 0 upon failure. */
 	return ReadFile(hdl, buf, count, &tmp, NULL);
 #else
-	ssize_t ret;
-
 	/* Returns the number of bytes read, or -1 upon failure. */
-	ret = read(fd, buf, count);
-	if (ret < 0) {
+	ret = read(serial->fd, buf, count);
+	if (ret < 0)
 		/*
  		 * Should be sr_err(), but that would yield lots of
 		 * "Resource temporarily unavailable" messages.
 		 */
-		sr_spew("FD %d: Read error: %s.", fd, strerror(errno));
-	} else {
-		sr_spew("FD %d: Read %d/%d bytes.", fd, ret, count);
-	}
+		sr_spew("Read error: %s (fd %d).", strerror(errno), serial->fd);
+	else
+		sr_spew("Read %d/%d bytes (fd %d).", ret, count, serial->fd);
+#endif
 
 	return ret;
-#endif
 }
 
 /**
  * Set serial parameters for the specified serial port.
  *
+ * @param serial Previously initialized serial port structure.
  * @param baudrate The baudrate to set.
  * @param bits The number of data bits to use.
  * @param parity The parity setting to use (0 = none, 1 = even, 2 = odd).
@@ -224,21 +281,31 @@ SR_PRIV int serial_read(int fd, void *buf, size_t count)
  *
  * @return SR_OK upon success, SR_ERR upon failure.
  */
-SR_PRIV int serial_set_params(int fd, int baudrate, int bits, int parity,
-			      int stopbits, int flowcontrol)
+SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
+		int bits, int parity, int stopbits, int flowcontrol)
 {
-	sr_dbg("FD %d: Setting serial parameters.", fd);
+
+	if (!serial) {
+		sr_dbg("Invalid serial port.");
+		return SR_ERR;
+	}
+
+	if (serial->fd == -1) {
+		sr_dbg("Cannot configure unopened serial port %s (fd %d).",
+				serial->port, serial->fd);
+		return SR_ERR;
+	}
+
+	sr_spew("Setting serial parameters on port %s (fd %d).", serial->port,
+			serial->fd);
 
 #ifdef _WIN32
 	DCB dcb;
 
-	if (!GetCommState(hdl, &dcb)) {
-		/* TODO: Error handling. */
+	if (!GetCommState(hdl, &dcb))
 		return SR_ERR;
-	}
 
 	switch (baudrate) {
-	/* TODO: Support for higher baud rates. */
 	case 115200:
 		dcb.BaudRate = CBR_115200;
 		break;
@@ -261,24 +328,22 @@ SR_PRIV int serial_set_params(int fd, int baudrate, int bits, int parity,
 		dcb.BaudRate = CBR_2400;
 		break;
 	default:
-		sr_err("Unsupported baudrate: %d.", baudrate);
+		sr_err("Unsupported baudrate %d.", baudrate);
 		return SR_ERR;
 	}
 	dcb.ByteSize = bits;
 	dcb.Parity = NOPARITY; /* TODO: Don't hardcode. */
 	dcb.StopBits = ONESTOPBIT; /* TODO: Don't hardcode. */
 
-	if (!SetCommState(hdl, &dcb)) {
-		/* TODO: Error handling. */
+	if (!SetCommState(hdl, &dcb))
 		return SR_ERR;
-	}
 #else
 	struct termios term;
 	speed_t baud;
 
-	sr_dbg("FD %d: Getting terminal settings.", fd);
-	if (tcgetattr(fd, &term) < 0) {
-		sr_err("tcgetattr() error: %s.", strerror(errno));
+	if (tcgetattr(serial->fd, &term) < 0) {
+		sr_err("tcgetattr() error on port %s (fd %d): %s.",
+				serial->port, serial->fd, strerror(errno));
 		return SR_ERR;
 	}
 
@@ -343,25 +408,23 @@ SR_PRIV int serial_set_params(int fd, int baudrate, int bits, int parity,
 		break;
 #endif
 	default:
-		sr_err("Unsupported baudrate: %d.", baudrate);
+		sr_err("Unsupported baudrate %d.", baudrate);
 		return SR_ERR;
 	}
 
-	sr_dbg("FD %d: Configuring output baudrate to %d (%d).",
-		fd, baudrate, baud);
+	sr_spew("Configuring output baudrate to %d (%d).", baudrate, baud);
 	if (cfsetospeed(&term, baud) < 0) {
 		sr_err("cfsetospeed() error: %s.", strerror(errno));
 		return SR_ERR;
 	}
 
-	sr_dbg("FD %d: Configuring input baudrate to %d (%d).",
-		fd, baudrate, baud);
+	sr_spew("Configuring input baudrate to %d (%d).", baudrate, baud);
 	if (cfsetispeed(&term, baud) < 0) {
 		sr_err("cfsetispeed() error: %s.", strerror(errno));
 		return SR_ERR;
 	}
 
-	sr_dbg("FD %d: Configuring %d data bits.", fd, bits);
+	sr_spew("Configuring %d data bits.", bits);
 	term.c_cflag &= ~CSIZE;
 	switch (bits) {
 	case 8:
@@ -371,21 +434,21 @@ SR_PRIV int serial_set_params(int fd, int baudrate, int bits, int parity,
 		term.c_cflag |= CS7;
 		break;
 	default:
-		sr_err("Unsupported data bits number: %d.", bits);
+		sr_err("Unsupported data bits number %d.", bits);
 		return SR_ERR;
 	}
 
-	sr_dbg("FD %d: Configuring %d stop bits.", fd, stopbits);
+	sr_spew("Configuring %d stop bits.", stopbits);
 	term.c_cflag &= ~CSTOPB;
 	switch (stopbits) {
 	case 1:
-		/* Do nothing, a cleared CSTOPB entry means "1 stop bit". */
+		term.c_cflag &= ~CSTOPB;
 		break;
 	case 2:
 		term.c_cflag |= CSTOPB;
 		break;
 	default:
-		sr_err("Unsupported stopbits number: %d.", stopbits);
+		sr_err("Unsupported stopbits number %d.", stopbits);
 		return SR_ERR;
 	}
 
@@ -394,18 +457,18 @@ SR_PRIV int serial_set_params(int fd, int baudrate, int bits, int parity,
 	switch (flowcontrol) {
 	case 0:
 		/* No flow control. */
-		sr_dbg("FD %d: Configuring no flow control.", fd);
+		sr_spew("Configuring no flow control.");
 		break;
 	case 1:
-		sr_dbg("FD %d: Configuring RTS/CTS flow control.", fd);
+		sr_spew("Configuring RTS/CTS flow control.");
 		term.c_cflag |= CRTSCTS;
 		break;
 	case 2:
-		sr_dbg("FD %d: Configuring XON/XOFF flow control.", fd);
+		sr_spew("Configuring XON/XOFF flow control.");
 		term.c_iflag |= IXON | IXOFF;
 		break;
 	default:
-		sr_err("Unsupported flow control setting: %d.", flowcontrol);
+		sr_err("Unsupported flow control setting %d.", flowcontrol);
 		return SR_ERR;
 	}
 
@@ -413,31 +476,31 @@ SR_PRIV int serial_set_params(int fd, int baudrate, int bits, int parity,
 	term.c_cflag &= ~(PARODD | PARENB);
 	switch (parity) {
 	case SERIAL_PARITY_NONE:
-		sr_dbg("FD %d: Configuring no parity.", fd);
+		sr_spew("Configuring no parity.");
 		term.c_iflag |= IGNPAR;
 		break;
 	case SERIAL_PARITY_EVEN:
-		sr_dbg("FD %d: Configuring even parity.", fd);
+		sr_spew("Configuring even parity.");
 		term.c_cflag |= PARENB;
 		break;
 	case SERIAL_PARITY_ODD:
-		sr_dbg("FD %d: Configuring odd parity.", fd);
+		sr_spew("Configuring odd parity.");
 		term.c_cflag |= PARENB | PARODD;
 		break;
 	default:
-		sr_err("Unsupported parity setting: %d.", parity);
+		sr_err("Unsupported parity setting %d.", parity);
 		return SR_ERR;
 	}
 
-	/* Do NOT translate carriage return to newline on input. */
+	/* Do not translate carriage return to newline on input. */
 	term.c_iflag &= ~(ICRNL);
 
 	/* Disable canonical mode, and don't echo input characters. */
 	term.c_lflag &= ~(ICANON | ECHO);
 
 	/* Write the configured settings. */
-	if (tcsetattr(fd, TCSADRAIN, &term) < 0) {
-		sr_err("tcsetattr() error: %ѕ.", strerror(errno));
+	if (tcsetattr(serial->fd, TCSADRAIN, &term) < 0) {
+		sr_err("tcsetattr() error: %s.", strerror(errno));
 		return SR_ERR;
 	}
 #endif
@@ -445,8 +508,19 @@ SR_PRIV int serial_set_params(int fd, int baudrate, int bits, int parity,
 	return SR_OK;
 }
 
+/**
+ * Set serial parameters for the specified serial port.
+ *
+ * @param serial Previously initialized serial port structure.
+ * @param paramstr A serial communication parameters string, in the form
+ * of <speed>/<data bits><parity><stopbits>, for example "9600/8n1" or
+ * "600/7o2".
+ *
+ * @return SR_OK upon success, SR_ERR upon failure.
+ */
 #define SERIAL_COMM_SPEC "^(\\d+)/([78])([neo])([12])$"
-SR_PRIV int serial_set_paramstr(int fd, const char *paramstr)
+SR_PRIV int serial_set_paramstr(struct sr_serial_dev_inst *serial,
+		const char *paramstr)
 {
 	GRegex *reg;
 	GMatchInfo *match;
@@ -484,16 +558,39 @@ SR_PRIV int serial_set_paramstr(int fd, const char *paramstr)
 	g_regex_unref(reg);
 
 	if (speed)
-		return serial_set_params(fd, speed, databits, parity, stopbits, 0);
+		return serial_set_params(serial, speed, databits, parity, stopbits, 0);
 	else
 		return SR_ERR_ARG;
 }
 
-SR_PRIV int serial_readline(int fd, char **buf, int *buflen,
-			    gint64 timeout_ms)
+/**
+ * Read a line from the specified serial port.
+ *
+ * @param serial Previously initialized serial port structure.
+ * @param buf Buffer where to store the bytes that are read.
+ * @param buflen Size of the buffer.
+ * @param timeout_ms How long to wait for a line to come in.
+ *
+ * Reading stops when CR of LR is found, which is stripped from the buffer.
+ *
+ * @return SR_OK on success, SR_ERR on failure.
+ */
+SR_PRIV int serial_readline(struct sr_serial_dev_inst *serial, char **buf,
+		int *buflen, gint64 timeout_ms)
 {
 	gint64 start;
 	int maxlen, len;
+
+	if (!serial || serial->fd == -1) {
+		sr_dbg("Invalid serial port.");
+		return SR_ERR;
+	}
+
+	if (serial->fd == -1) {
+		sr_dbg("Cannot use unopened serial port %s (fd %d).",
+				serial->port, serial->fd);
+		return -1;
+	}
 
 	timeout_ms *= 1000;
 	start = g_get_monotonic_time();
@@ -504,7 +601,7 @@ SR_PRIV int serial_readline(int fd, char **buf, int *buflen,
 		len = maxlen - *buflen - 1;
 		if (len < 1)
 			break;
-		len = serial_read(fd, *buf + *buflen, 1);
+		len = serial_read(serial, *buf + *buflen, 1);
 		if (len > 0) {
 			*buflen += len;
 			*(*buf + *buflen) = '\0';

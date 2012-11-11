@@ -70,6 +70,7 @@ struct sr_usb_dev_inst {
 #define SERIAL_PARITY_ODD  2
 struct sr_serial_dev_inst {
 	char *port;
+	char *serialcomm;
 	int fd;
 };
 
@@ -105,8 +106,8 @@ SR_PRIV void sr_usb_dev_inst_free(struct sr_usb_dev_inst *usb);
 #endif
 
 /* Serial-specific instances */
-SR_PRIV struct sr_serial_dev_inst *sr_serial_dev_inst_new(
-					const char *port, int fd);
+SR_PRIV struct sr_serial_dev_inst *sr_serial_dev_inst_new(const char *port,
+		const char *serialcomm);
 SR_PRIV void sr_serial_dev_inst_free(struct sr_serial_dev_inst *serial);
 
 
@@ -124,16 +125,19 @@ SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
 
 /*--- hardware/common/serial.c ----------------------------------------------*/
 
-SR_PRIV int serial_open(const char *pathname, int flags);
-SR_PRIV int serial_close(int fd);
-SR_PRIV int serial_flush(int fd);
-SR_PRIV int serial_write(int fd, const void *buf, size_t count);
-SR_PRIV int serial_read(int fd, void *buf, size_t count);
-SR_PRIV int serial_set_params(int fd, int baudrate, int bits, int parity,
-			      int stopbits, int flowcontrol);
-SR_PRIV int serial_set_paramstr(int fd, const char *paramstr);
-SR_PRIV int serial_readline(int fd, char **buf, int *buflen,
-			    gint64 timeout_ms);
+SR_PRIV int serial_open(struct sr_serial_dev_inst *serial, int flags);
+SR_PRIV int serial_close(struct sr_serial_dev_inst *serial);
+SR_PRIV int serial_flush(struct sr_serial_dev_inst *serial);
+SR_PRIV int serial_write(struct sr_serial_dev_inst *serial,
+		const void *buf, size_t count);
+SR_PRIV int serial_read(struct sr_serial_dev_inst *serial, void *buf,
+		size_t count);
+SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
+		int bits, int parity, int stopbits, int flowcontrol);
+SR_PRIV int serial_set_paramstr(struct sr_serial_dev_inst *serial,
+		const char *paramstr);
+SR_PRIV int serial_readline(struct sr_serial_dev_inst *serial, char **buf,
+		int *buflen, gint64 timeout_ms);
 
 /*--- hardware/common/ezusb.c -----------------------------------------------*/
 
