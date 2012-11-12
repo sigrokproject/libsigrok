@@ -27,6 +27,9 @@
 #include <errno.h>
 #include <string.h>
 
+/* The Colead SL-5868P uses this. */
+#define SERIALCOMM "2400/8n1"
+
 static const int hwopts[] = {
 	SR_HWOPT_CONN,
 	SR_HWOPT_SERIALCOMM,
@@ -116,6 +119,8 @@ static GSList *hw_scan(GSList *options)
 	}
 	if (!conn)
 		return NULL;
+	if (!serialcomm)
+		serialcomm = SERIALCOMM;
 
 	if (!(sdi = sr_dev_inst_new(0, SR_ST_INACTIVE, "Colead",
 			"SL-5868P", NULL)))
@@ -126,12 +131,9 @@ static GSList *hw_scan(GSList *options)
 		return NULL;
 	}
 
-	if (!serialcomm)
-		/* The Colead SL-5868P uses this. */
-		serialcomm = "2400/8n1";
+	if (!(devc->serial = sr_serial_dev_inst_new(conn, serialcomm)))
+		return NULL;
 
-	devc->serial = sr_serial_dev_inst_new(conn, -1);
-	devc->serialcomm = g_strdup(serialcomm);
 	sdi->priv = devc;
 	sdi->driver = di;
 	if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "P1")))
@@ -161,17 +163,9 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 		return SR_ERR_BUG;
 	}
 
-	sr_dbg("opening %s with %s", devc->serial->port, devc->serialcomm);
-	devc->serial->fd = serial_open(devc->serial->port, O_RDWR | O_NONBLOCK);
-	if (devc->serial->fd == -1) {
-		sr_err("Couldn't open serial port '%s'.",
-		       devc->serial->port);
+	if (serial_open(devc->serial, O_RDWR) != SR_OK)
 		return SR_ERR;
-	}
-	if (serial_set_paramstr(devc->serial->fd, devc->serialcomm) != SR_OK) {
-		sr_err("Unable to set serial parameters.");
-		return SR_ERR;
-	}
+
 	sdi->status = SR_ST_ACTIVE;
 
 	return SR_OK;
@@ -187,8 +181,7 @@ static int hw_dev_close(struct sr_dev_inst *sdi)
 	}
 
 	if (devc->serial && devc->serial->fd != -1) {
-		serial_close(devc->serial->fd);
-		devc->serial->fd = -1;
+		serial_close(devc->serial);
 		sdi->status = SR_ST_INACTIVE;
 	}
 

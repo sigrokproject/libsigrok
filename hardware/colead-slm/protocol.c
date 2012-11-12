@@ -183,6 +183,8 @@ SR_PRIV int colead_slm_receive_data(int fd, int revents, void *cb_data)
 	int len;
 	char buf[128];
 
+	(void)fd;
+
 	if (!(sdi = cb_data))
 		return TRUE;
 
@@ -194,20 +196,21 @@ SR_PRIV int colead_slm_receive_data(int fd, int revents, void *cb_data)
 		return TRUE;
 
 	if (devc->state == IDLE) {
-		if (serial_read(fd, buf, 128) != 1 || buf[0] != 0x10)
+		if (serial_read(devc->serial, buf, 128) != 1 || buf[0] != 0x10)
 			/* Nothing there, or caught the tail end of a previous packet,
 			 * or some garbage. Unless it's a single "data ready" byte,
 			 * we don't want it. */
 			return TRUE;
 		/* Got 0x10, "measurement ready". */
-		if (serial_write(fd, "\x20", 1) == -1)
+		if (serial_write(devc->serial, "\x20", 1) == -1)
 			sr_err("unable to send command: %s", strerror(errno));
 		else {
 			devc->state = COMMAND_SENT;
 			devc->buflen = 0;
 		}
 	} else {
-		len = serial_read(fd, devc->buf + devc->buflen, 10 - devc->buflen);
+		len = serial_read(devc->serial, devc->buf + devc->buflen,
+				10 - devc->buflen);
 		if (len < 1)
 			return TRUE;
 		devc->buflen += len;

@@ -52,7 +52,6 @@ struct dev_context {
 	/** The current number of already received samples. */
 	uint64_t num_samples;
 	struct sr_serial_dev_inst *serial;
-	char *serialcomm;
 	int state;
 	char buf[10];
 	int buflen;
