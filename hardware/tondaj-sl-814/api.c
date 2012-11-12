@@ -24,6 +24,8 @@
 #include "libsigrok-internal.h"
 #include "protocol.h"
 
+#define SERIALCOMM "9600/8e1"
+
 static const int hwopts[] = {
 	SR_HWOPT_CONN,
 	SR_HWOPT_SERIALCOMM,
@@ -121,6 +123,8 @@ static GSList *hw_scan(GSList *options)
 		sr_dbg("Couldn't determine connection options.");
 		return NULL;
 	}
+	if (!serialcomm)
+		serialcomm = SERIALCOMM;
 
 	if (!(sdi = sr_dev_inst_new(0, SR_ST_INACTIVE, "Tondaj",
 				    "SL-814", NULL))) {
@@ -133,14 +137,12 @@ static GSList *hw_scan(GSList *options)
 		return NULL;
 	}
 
-	if (!serialcomm)
-		serialcomm = "9600/8e1";
-
-	if (!(devc->serial = sr_serial_dev_inst_new(conn, -1))) {
-		sr_err("Failed to create serial device instance.");
+	if (!(devc->serial = sr_serial_dev_inst_new(conn, serialcomm)))
 		return NULL;
-	}
-	devc->serialcomm = g_strdup(serialcomm);
+
+	if (serial_open(devc->serial, O_RDWR|O_NONBLOCK) != SR_OK)
+		return NULL;
+
 	sdi->priv = devc;
 	sdi->driver = di;
 	probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, probe_names[0]);
@@ -166,25 +168,12 @@ static GSList *hw_dev_list(void)
 
 static int hw_dev_open(struct sr_dev_inst *sdi)
 {
-	int ret;
 	struct dev_context *devc;
 
 	devc = sdi->priv;
 
-	sr_dbg("Opening '%s' with '%s'.", devc->serial->port, devc->serialcomm);
-
-	ret = serial_open(devc->serial->port, O_RDWR | O_NONBLOCK);
-	if (ret < 0) {
-		sr_err("Unable to open serial port: %d.", ret);
+	if (serial_open(devc->serial, O_RDWR|O_NONBLOCK) != SR_OK)
 		return SR_ERR;
-	}
-	devc->serial->fd = ret;
-
-	ret = serial_set_paramstr(devc->serial->fd, devc->serialcomm);
-	if (ret < 0) {
-		sr_err("Unable to set serial parameters: %d.", ret);
-		return SR_ERR;
-	}
 
 	sdi->status = SR_ST_ACTIVE;
 
@@ -193,28 +182,14 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 
 static int hw_dev_close(struct sr_dev_inst *sdi)
 {
-	int ret;
 	struct dev_context *devc;
 
 	devc = sdi->priv;
 
-	if (!devc->serial) {
-		sr_err("Invalid serial device instance, cannot close.");
-		return SR_ERR_BUG;
+	if (devc->serial && devc->serial->fd != -1) {
+		serial_close(devc->serial);
+		sdi->status = SR_ST_INACTIVE;
 	}
-
-	if (devc->serial->fd == -1) {
-		sr_dbg("Serial device instance FD was -1, no need to close.");
-		return SR_OK;
-	}
-
-	if ((ret = serial_close(devc->serial->fd)) < 0) {
-		sr_err("Error closing serial port: %d.", ret);
-		return SR_ERR;
-	}
-
-	devc->serial->fd = -1;
-	sdi->status = SR_ST_INACTIVE;
 
 	return SR_OK;
 }

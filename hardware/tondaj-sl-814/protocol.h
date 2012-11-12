@@ -50,8 +50,6 @@ struct dev_context {
 
 	struct sr_serial_dev_inst *serial;
 
-	char *serialcomm;
-
 	int state;
 
 	uint8_t buf[4];
