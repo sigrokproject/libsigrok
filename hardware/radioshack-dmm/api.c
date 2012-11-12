@@ -28,6 +28,8 @@
 #include "libsigrok-internal.h"
 #include "protocol.h"
 
+#define SERIALCOMM "4800/8n1"
+
 static const int hwopts[] = {
 	SR_HWOPT_CONN,
 	SR_HWOPT_SERIALCOMM,
@@ -95,21 +97,18 @@ static GSList *rs_22_812_scan(const char *conn, const char *serialcomm)
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct sr_probe *probe;
+	struct sr_serial_dev_inst *serial;
 	GSList *devices;
-	int fd, retry;
+	int retry;
 	size_t len, i, good_packets, dropped;
 	char buf[128], *b;
 	const struct rs_22_812_packet *rs_packet;
 
-	if ((fd = serial_open(conn, O_RDONLY | O_NONBLOCK)) < 0) {
-		sr_err("Unable to open '%s': %d.", conn, fd);
+	if (!(serial = sr_serial_dev_inst_new(conn, serialcomm)))
 		return NULL;
-	}
 
-	if (serial_set_paramstr(fd, serialcomm) != SR_OK) {
-		sr_err("Unable to set serial parameters.");
+	if (serial_open(serial, O_RDONLY|O_NONBLOCK) != SR_OK)
 		return NULL;
-	}
 
 	sr_info("Probing port '%s' readonly.", conn);
 
@@ -126,11 +125,11 @@ static GSList *rs_22_812_scan(const char *conn, const char *serialcomm)
 	while (!devices && retry < 3) {
 		good_packets = 0;
 		retry++;
-		serial_flush(fd);
+		serial_flush(serial);
 
 		/* Let's get a bit of data and see if we can find a packet. */
 		len = sizeof(buf);
-		serial_readline(fd, &b, &len, 250);
+		serial_readline(serial, &b, &len, 250);
 		if ((len == 0) || (len < RS_22_812_PACKET_SIZE)) {
 			/* Not enough data received, is the DMM connected? */
 			continue;
@@ -167,8 +166,7 @@ static GSList *rs_22_812_scan(const char *conn, const char *serialcomm)
 			return NULL;
 		}
 
-		devc->serial = sr_serial_dev_inst_new(conn, -1);
-		devc->serialcomm = g_strdup(serialcomm);
+		devc->serial = serial;
 
 		sdi->priv = devc;
 		sdi->driver = di;
@@ -179,7 +177,7 @@ static GSList *rs_22_812_scan(const char *conn, const char *serialcomm)
 		devices = g_slist_append(devices, sdi);
 		break;
 	}
-	serial_close(fd);
+	serial_close(serial);
 
 	return devices;
 }
@@ -205,13 +203,12 @@ static GSList *hw_scan(GSList * options)
 	if (!conn)
 		return NULL;
 
-	if (serialcomm) {
+	if (serialcomm)
 		/* Use the provided comm specs. */
 		devices = rs_22_812_scan(conn, serialcomm);
-	} else {
-		/* Try the default 4800/8n1. */
-		devices = rs_22_812_scan(conn, "4800/8n1");
-	}
+	else
+		/* Try the default. */
+		devices = rs_22_812_scan(conn, SERIALCOMM);
 
 	return devices;
 }
@@ -234,15 +231,9 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 		return SR_ERR_BUG;
 	}
 
-	devc->serial->fd = serial_open(devc->serial->port, O_RDONLY);
-	if (devc->serial->fd < 0) {
-		sr_err("Couldn't open serial port '%s'.", devc->serial->port);
+	if (serial_open(devc->serial, O_RDONLY) != SR_OK)
 		return SR_ERR;
-	}
-	if (serial_set_paramstr(devc->serial->fd, devc->serialcomm) != SR_OK) {
-		sr_err("Unable to set serial parameters.");
-		return SR_ERR;
-	}
+
 	sdi->status = SR_ST_ACTIVE;
 
 	return SR_OK;
@@ -258,8 +249,7 @@ static int hw_dev_close(struct sr_dev_inst *sdi)
 	}
 
 	if (devc->serial && devc->serial->fd != -1) {
-		serial_close(devc->serial->fd);
-		devc->serial->fd = -1;
+		serial_close(devc->serial);
 		sdi->status = SR_ST_INACTIVE;
 	}
 
