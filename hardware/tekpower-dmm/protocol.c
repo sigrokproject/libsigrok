@@ -73,13 +73,13 @@ static void fs9721_serial_handle_packet(const uint8_t *buf,
 	g_free(analog);
 }
 
-static void handle_new_data(struct dev_context *devc, int fd)
+static void handle_new_data(struct dev_context *devc)
 {
 	int len, i, offset = 0;
 
 	/* Try to get as much data as the buffer can hold. */
 	len = DMM_BUFSIZE - devc->buflen;
-	len = serial_read(fd, devc->buf + devc->buflen, len);
+	len = serial_read(devc->serial, devc->buf + devc->buflen, len);
 	if (len < 1) {
 		sr_err("Serial port read error: %d.", len);
 		return;
@@ -107,6 +107,8 @@ SR_PRIV int tekpower_dmm_receive_data(int fd, int revents, void *cb_data)
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 
+	(void)fd;
+
 	if (!(sdi = cb_data))
 		return TRUE;
 
@@ -115,7 +117,7 @@ SR_PRIV int tekpower_dmm_receive_data(int fd, int revents, void *cb_data)
 
 	if (revents == G_IO_IN) {
 		/* Serial data arrived. */
-		handle_new_data(devc, fd);
+		handle_new_data(devc);
 	}
 
 	if (devc->num_samples >= devc->limit_samples) {

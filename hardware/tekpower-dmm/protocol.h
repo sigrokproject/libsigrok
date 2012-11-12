@@ -43,7 +43,6 @@ struct dev_context {
 	uint64_t num_samples;
 
 	struct sr_serial_dev_inst *serial;
-	char *serialcomm;
 
 	uint8_t buf[DMM_BUFSIZE];
 	int bufoffset;

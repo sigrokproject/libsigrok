@@ -28,6 +28,8 @@
 #include "libsigrok-internal.h"
 #include "protocol.h"
 
+#define SERIALCOMM "2400/8n1"
+
 static const int hwopts[] = {
 	SR_HWOPT_CONN,
 	SR_HWOPT_SERIALCOMM,
@@ -95,18 +97,16 @@ static GSList *lcd14_scan(const char *conn, const char *serialcomm)
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct sr_probe *probe;
+	struct sr_serial_dev_inst *serial;
 	GSList *devices;
-	int i, len, fd, retry, good_packets = 0, dropped, ret;
+	int i, len, retry, good_packets = 0, dropped;
 	uint8_t buf[128], *b;
 
-	if ((fd = serial_open(conn, O_RDONLY | O_NONBLOCK)) == -1) {
-		sr_err("Unable to open %s: %s.", conn, strerror(errno));
+	if (!(serial = sr_serial_dev_inst_new(conn, serialcomm)))
 		return NULL;
-	}
-	if ((ret = serial_set_paramstr(fd, serialcomm)) != SR_OK) {
-		sr_err("Unable to set serial parameters: %d", ret);
+
+	if (serial_open(serial, O_RDONLY|O_NONBLOCK) != SR_OK)
 		return NULL;
-	}
 
 	sr_info("Probing port %s readonly.", conn);
 
@@ -114,7 +114,7 @@ static GSList *lcd14_scan(const char *conn, const char *serialcomm)
 	b = buf;
 	retry = 0;
 	devices = NULL;
-	serial_flush(fd);
+	serial_flush(serial);
 
 	/*
 	 * There's no way to get an ID from the multimeter. It just sends data
@@ -126,7 +126,7 @@ static GSList *lcd14_scan(const char *conn, const char *serialcomm)
 
 		/* Let's get a bit of data and see if we can find a packet. */
 		len = sizeof(buf);
-		serial_readline(fd, (char **)&b, &len, 500);
+		serial_readline(serial, (char **)&b, &len, 500);
 		if ((len == 0) || (len < FS9721_PACKET_SIZE)) {
 			/* Not enough data received, is the DMM connected? */
 			continue;
@@ -165,8 +165,7 @@ static GSList *lcd14_scan(const char *conn, const char *serialcomm)
 			return NULL;
 		}
 
-		devc->serial = sr_serial_dev_inst_new(conn, -1);
-		devc->serialcomm = g_strdup(serialcomm);
+		devc->serial = serial;
 
 		sdi->priv = devc;
 		sdi->driver = di;
@@ -178,7 +177,7 @@ static GSList *lcd14_scan(const char *conn, const char *serialcomm)
 		break;
 	}
 
-	serial_close(fd);
+	serial_close(serial);
 	return devices;
 }
 
@@ -207,8 +206,8 @@ static GSList *hw_scan(GSList *options)
 		/* Use the provided comm specs. */
 		devices = lcd14_scan(conn, serialcomm);
 	} else {
-		/* Try the default 2400/8n1. */
-		devices = lcd14_scan(conn, "2400/8n1");
+		/* Try the default. */
+		devices = lcd14_scan(conn, SERIALCOMM);
 	}
 
 	return devices;
@@ -225,7 +224,6 @@ static GSList *hw_dev_list(void)
 
 static int hw_dev_open(struct sr_dev_inst *sdi)
 {
-	int ret;
 	struct dev_context *devc;
 
 	if (!(devc = sdi->priv)) {
@@ -233,17 +231,9 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 		return SR_ERR_BUG;
 	}
 
-	devc->serial->fd = serial_open(devc->serial->port, O_RDONLY);
-	if (devc->serial->fd == -1) {
-		sr_err("Couldn't open serial port '%s'.", devc->serial->port);
+	if (serial_open(devc->serial, O_RDONLY) != SR_OK)
 		return SR_ERR;
-	}
 
-	ret = serial_set_paramstr(devc->serial->fd, devc->serialcomm);
-	if (ret != SR_OK) {
-		sr_err("Unable to set serial parameters: %d.", ret);
-		return SR_ERR;
-	}
 	sdi->status = SR_ST_ACTIVE;
 
 	return SR_OK;
@@ -259,8 +249,7 @@ static int hw_dev_close(struct sr_dev_inst *sdi)
 	}
 
 	if (devc->serial && devc->serial->fd != -1) {
-		serial_close(devc->serial->fd);
-		devc->serial->fd = -1;
+		serial_close(devc->serial);
 		sdi->status = SR_ST_INACTIVE;
 	}
 
