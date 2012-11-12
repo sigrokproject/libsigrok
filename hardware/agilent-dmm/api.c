@@ -115,8 +115,9 @@ static GSList *hw_scan(GSList *options)
 	struct dev_context *devc;
 	struct sr_hwopt *opt;
 	struct sr_probe *probe;
+	struct sr_serial_dev_inst *serial;
 	GSList *l, *devices;
-	int len, fd, i;
+	int len, i;
 	const char *conn, *serialcomm;
 	char *buf, **tokens;
 
@@ -138,22 +139,17 @@ static GSList *hw_scan(GSList *options)
 	}
 	if (!conn)
 		return NULL;
-
-	if ((fd = serial_open(conn, O_RDWR|O_NONBLOCK)) == -1) {
-		sr_err("Unable to open %s: %s.", conn, strerror(errno));
-		return NULL;
-	}
-
 	if (!serialcomm)
 		serialcomm = SERIALCOMM;
-	if (serial_set_paramstr(fd, serialcomm) != SR_OK) {
-		sr_err("Unable to set serial parameters: %s.",
-		       strerror(errno));
-		return NULL;
-	}
 
-	serial_flush(fd);
-	if (serial_write(fd, "*IDN?\r\n", 7) == -1) {
+	if (!(serial = sr_serial_dev_inst_new(conn, serialcomm)))
+		return NULL;
+
+	if (serial_open(serial, O_RDWR|O_NONBLOCK) != SR_OK)
+		return NULL;
+
+	serial_flush(serial);
+	if (serial_write(serial, "*IDN?\r\n", 7) == -1) {
 		sr_err("Unable to send identification string: %s.",
 		       strerror(errno));
 		return NULL;
@@ -164,7 +160,7 @@ static GSList *hw_scan(GSList *options)
 		sr_err("Serial buffer malloc failed.");
 		return NULL;
 	}
-	serial_readline(fd, &buf, &len, 150);
+	serial_readline(serial, &buf, &len, 150);
 	if (!len)
 		return NULL;
 
@@ -182,7 +178,7 @@ static GSList *hw_scan(GSList *options)
 				return NULL;
 			}
 			devc->profile = &supported_agdmm[i];
-			devc->serial = sr_serial_dev_inst_new(conn, -1);
+			devc->serial = serial;
 			devc->cur_mq = -1;
 			sdi->priv = devc;
 			sdi->driver = di;
@@ -197,7 +193,9 @@ static GSList *hw_scan(GSList *options)
 	g_strfreev(tokens);
 	g_free(buf);
 
-	serial_close(fd);
+	serial_close(serial);
+	if (!devices)
+		sr_serial_dev_inst_free(serial);
 
 	return devices;
 }
@@ -220,13 +218,9 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 		return SR_ERR_BUG;
 	}
 
-	devc->serial->fd = serial_open(devc->serial->port, O_RDWR | O_NONBLOCK);
-	if (devc->serial->fd == -1) {
-		sr_err("Couldn't open serial port '%s'.",
-		       devc->serial->port);
+	if (serial_open(devc->serial, O_RDWR|O_NONBLOCK) != SR_OK)
 		return SR_ERR;
-	}
-	serial_set_paramstr(devc->serial->fd, SERIALCOMM);
+
 	sdi->status = SR_ST_ACTIVE;
 
 	return SR_OK;
@@ -242,8 +236,7 @@ static int hw_dev_close(struct sr_dev_inst *sdi)
 	}
 
 	if (devc->serial && devc->serial->fd != -1) {
-		serial_close(devc->serial->fd);
-		devc->serial->fd = -1;
+		serial_close(devc->serial);
 		sdi->status = SR_ST_INACTIVE;
 	}
 
