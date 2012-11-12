@@ -101,18 +101,16 @@ static GSList *fluke_scan(const char *conn, const char *serialcomm)
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct sr_probe *probe;
+	struct sr_serial_dev_inst *serial;
 	GSList *devices;
-	int fd, retry, len, i, s;
+	int retry, len, i, s;
 	char buf[128], *b, **tokens;
 
-	if ((fd = serial_open(conn, O_RDWR|O_NONBLOCK)) == -1) {
-		sr_err("Unable to open %s: %s.", conn, strerror(errno));
+	if (!(serial = sr_serial_dev_inst_new(conn, serialcomm)))
 		return NULL;
-	}
-	if (serial_set_paramstr(fd, serialcomm) != SR_OK) {
-		sr_err("Unable to set serial parameters.");
+
+	if (serial_open(serial, O_RDWR|O_NONBLOCK) != SR_OK)
 		return NULL;
-	}
 
 	drvc = di->priv;
 	b = buf;
@@ -122,8 +120,8 @@ static GSList *fluke_scan(const char *conn, const char *serialcomm)
 	 * is not in an idle state when we send ID. */
 	while (!devices && retry < 3) {
 		retry++;
-		serial_flush(fd);
-		if (serial_write(fd, "ID\r", 3) == -1) {
+		serial_flush(serial);
+		if (serial_write(serial, "ID\r", 3) == -1) {
 			sr_err("Unable to send ID string: %s.",
 			       strerror(errno));
 			continue;
@@ -132,7 +130,7 @@ static GSList *fluke_scan(const char *conn, const char *serialcomm)
 		/* Response is first a CMD_ACK byte (ASCII '0' for OK,
 		 * or '1' to signify an error. */
 		len = 128;
-		serial_readline(fd, &b, &len, 150);
+		serial_readline(serial, &b, &len, 150);
 		if (len != 1)
 			continue;
 		if (buf[0] != '0')
@@ -140,7 +138,7 @@ static GSList *fluke_scan(const char *conn, const char *serialcomm)
 
 		/* If CMD_ACK was OK, ID string follows. */
 		len = 128;
-		serial_readline(fd, &b, &len, 150);
+		serial_readline(serial, &b, &len, 150);
 		if (len < 10)
 			continue;
 		tokens = g_strsplit(buf, ",", 3);
@@ -159,8 +157,7 @@ static GSList *fluke_scan(const char *conn, const char *serialcomm)
 					return NULL;
 				}
 				devc->profile = &supported_flukedmm[i];
-				devc->serial = sr_serial_dev_inst_new(conn, -1);
-				devc->serialcomm = g_strdup(serialcomm);
+				devc->serial = serial;
 				sdi->priv = devc;
 				sdi->driver = di;
 				if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "P1")))
@@ -173,7 +170,9 @@ static GSList *fluke_scan(const char *conn, const char *serialcomm)
 		}
 		g_strfreev(tokens);
 	}
-	serial_close(fd);
+	serial_close(serial);
+	if (!devices)
+		sr_serial_dev_inst_free(serial);
 
 	return devices;
 }
@@ -231,15 +230,9 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 		return SR_ERR_BUG;
 	}
 
-	devc->serial->fd = serial_open(devc->serial->port, O_RDWR | O_NONBLOCK);
-	if (devc->serial->fd == -1) {
-		sr_err("Couldn't open serial port '%s'.", devc->serial->port);
+	if (serial_open(devc->serial, O_RDWR|O_NONBLOCK) != SR_OK)
 		return SR_ERR;
-	}
-	if (serial_set_paramstr(devc->serial->fd, devc->serialcomm) != SR_OK) {
-		sr_err("Unable to set serial parameters.");
-		return SR_ERR;
-	}
+
 	sdi->status = SR_ST_ACTIVE;
 
 	return SR_OK;
@@ -255,8 +248,7 @@ static int hw_dev_close(struct sr_dev_inst *sdi)
 	}
 
 	if (devc->serial && devc->serial->fd != -1) {
-		serial_close(devc->serial->fd);
-		devc->serial->fd = -1;
+		serial_close(devc->serial);
 		sdi->status = SR_ST_INACTIVE;
 	}
 
@@ -370,7 +362,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	/* Poll every 100ms, or whenever some data comes in. */
 	sr_source_add(devc->serial->fd, G_IO_IN, 50, fluke_receive_data, (void *)sdi);
 
-	if (serial_write(devc->serial->fd, "QM\r", 3) == -1) {
+	if (serial_write(devc->serial, "QM\r", 3) == -1) {
 		sr_err("Unable to send QM: %s.", strerror(errno));
 		return SR_ERR;
 	}

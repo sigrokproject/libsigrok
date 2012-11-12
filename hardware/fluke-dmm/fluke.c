@@ -314,6 +314,8 @@ SR_PRIV int fluke_receive_data(int fd, int revents, void *cb_data)
 	int len;
 	int64_t now, elapsed;
 
+	(void)fd;
+
 	if (!(sdi = cb_data))
 		return TRUE;
 
@@ -323,7 +325,7 @@ SR_PRIV int fluke_receive_data(int fd, int revents, void *cb_data)
 	if (revents == G_IO_IN) {
 		/* Serial data arrived. */
 		while(FLUKEDMM_BUFSIZE - devc->buflen - 1 > 0) {
-			len = serial_read(fd, devc->buf + devc->buflen, 1);
+			len = serial_read(devc->serial, devc->buf + devc->buflen, 1);
 			if (len < 1)
 				break;
 			devc->buflen++;
@@ -349,7 +351,7 @@ SR_PRIV int fluke_receive_data(int fd, int revents, void *cb_data)
 	if ((devc->expect_response == FALSE && elapsed > devc->profile->poll_period)
 			|| elapsed > 1000) {
 		sr_spew("Sending QM.");
-		if (serial_write(devc->serial->fd, "QM\r", 3) == -1)
+		if (serial_write(devc->serial, "QM\r", 3) == -1)
 			sr_err("Unable to send QM: %s.", strerror(errno));
 		devc->cmd_sent_at = now;
 		devc->expect_response = TRUE;
