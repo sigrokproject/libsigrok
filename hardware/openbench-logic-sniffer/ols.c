@@ -105,19 +105,21 @@ static const struct sr_samplerates samplerates = {
 SR_PRIV struct sr_dev_driver ols_driver_info;
 static struct sr_dev_driver *odi = &ols_driver_info;
 
-static int send_shortcommand(int fd, uint8_t command)
+static int send_shortcommand(struct sr_serial_dev_inst *serial,
+		uint8_t command)
 {
 	char buf[1];
 
 	sr_dbg("ols: sending cmd 0x%.2x", command);
 	buf[0] = command;
-	if (serial_write(fd, buf, 1) != 1)
+	if (serial_write(serial, buf, 1) != 1)
 		return SR_ERR;
 
 	return SR_OK;
 }
 
-static int send_longcommand(int fd, uint8_t command, uint32_t data)
+static int send_longcommand(struct sr_serial_dev_inst *serial,
+		uint8_t command, uint32_t data)
 {
 	char buf[5];
 
@@ -127,7 +129,7 @@ static int send_longcommand(int fd, uint8_t command, uint32_t data)
 	buf[2] = (data & 0xff0000) >> 16;
 	buf[3] = (data & 0xff00) >> 8;
 	buf[4] = data & 0xff;
-	if (serial_write(fd, buf, 5) != 5)
+	if (serial_write(serial, buf, 5) != 5)
 		return SR_ERR;
 
 	return SR_OK;
@@ -227,7 +229,7 @@ static struct dev_context *ols_dev_new(void)
 	return devc;
 }
 
-static struct sr_dev_inst *get_metadata(int fd)
+static struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
@@ -247,7 +249,7 @@ static struct sr_dev_inst *get_metadata(int fd)
 
 	key = 0xff;
 	while (key) {
-		if (serial_read(fd, &key, 1) != 1 || key == 0x00)
+		if (serial_read(serial, &key, 1) != 1 || key == 0x00)
 			break;
 		type = key >> 5;
 		token = key & 0x1f;
@@ -255,7 +257,7 @@ static struct sr_dev_inst *get_metadata(int fd)
 		case 0:
 			/* NULL-terminated string */
 			tmp_str = g_string_new("");
-			while (serial_read(fd, &tmp_c, 1) == 1 && tmp_c != '\0')
+			while (serial_read(serial, &tmp_c, 1) == 1 && tmp_c != '\0')
 				g_string_append_c(tmp_str, tmp_c);
 			sr_dbg("ols: got metadata key 0x%.2x value '%s'",
 			       key, tmp_str->str);
@@ -287,7 +289,7 @@ static struct sr_dev_inst *get_metadata(int fd)
 			break;
 		case 1:
 			/* 32-bit unsigned integer */
-			if (serial_read(fd, &tmp_int, 4) != 4)
+			if (serial_read(serial, &tmp_int, 4) != 4)
 				break;
 			tmp_int = reverse32(tmp_int);
 			sr_dbg("ols: got metadata key 0x%.2x value 0x%.8x",
@@ -326,7 +328,7 @@ static struct sr_dev_inst *get_metadata(int fd)
 			break;
 		case 2:
 			/* 8-bit unsigned integer */
-			if (serial_read(fd, &tmp_c, 1) != 1)
+			if (serial_read(serial, &tmp_c, 1) != 1)
 				break;
 			sr_dbg("ols: got metadata key 0x%.2x value 0x%.2x",
 			       key, tmp_c);
@@ -384,9 +386,10 @@ static GSList *hw_scan(GSList *options)
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct sr_probe *probe;
+	struct sr_serial_dev_inst *serial;
 	GPollFD probefd;
 	GSList *l, *devices;
-	int fd, ret, i;
+	int ret, i;
 	const char *conn, *serialcomm;
 	char buf[8];
 
@@ -412,7 +415,10 @@ static GSList *hw_scan(GSList *options)
 	}
 
 	if (serialcomm == NULL)
-		serialcomm = g_strdup(SERIALCOMM);
+		serialcomm = SERIALCOMM;
+
+	if (!(serial = sr_serial_dev_inst_new(conn, serialcomm)))
+		return NULL;
 
 	/* The discovery procedure is like this: first send the Reset
 	 * command (0x00) 5 times, since the device could be anywhere
@@ -421,37 +427,33 @@ static GSList *hw_scan(GSList *options)
 	 * have a match.
 	 */
 	sr_info("ols: probing %s .", conn);
-	fd = serial_open(conn, O_RDWR | O_NONBLOCK);
-	if (fd < 0) {
-		sr_err("ols: could not open port %s .", conn);
+	if (serial_open(serial, O_RDWR | O_NONBLOCK) != SR_OK)
 		return NULL;
-	}
 
-	serial_set_paramstr(fd, serialcomm);
 	ret = SR_OK;
 	for (i = 0; i < 5; i++) {
-		if ((ret = send_shortcommand(fd, CMD_RESET)) != SR_OK) {
+		if ((ret = send_shortcommand(serial, CMD_RESET)) != SR_OK) {
 			sr_err("ols: port %s is not writable.", conn);
 			break;
 		}
 	}
 	if (ret != SR_OK) {
-		serial_close(fd);
+		serial_close(serial);
 		sr_err("ols: Could not use port %s. Quitting.", conn);
 		return NULL;
 	}
-	send_shortcommand(fd, CMD_ID);
+	send_shortcommand(serial, CMD_ID);
 
 	/* Wait 10ms for a response. */
 	usleep(10000);
 
-	probefd.fd = fd;
+	probefd.fd = serial->fd;
 	probefd.events = G_IO_IN;
 	g_poll(&probefd, 1, 1);
 
 	if (probefd.revents != G_IO_IN)
 		return NULL;
-	if (serial_read(probefd.fd, buf, 4) != 4)
+	if (serial_read(serial, buf, 4) != 4)
 		return NULL;
 	if (strncmp(buf, "1SLO", 4) && strncmp(buf, "1ALS", 4))
 		return NULL;
@@ -459,10 +461,10 @@ static GSList *hw_scan(GSList *options)
 	/* Definitely using the OLS protocol, check if it supports
 	 * the metadata command.
 	 */
-	send_shortcommand(probefd.fd, CMD_METADATA);
+	send_shortcommand(serial, CMD_METADATA);
 	if (g_poll(&probefd, 1, 10) > 0) {
 		/* Got metadata. */
-		sdi = get_metadata(fd);
+		sdi = get_metadata(serial);
 		sdi->index = 0;
 		devc = sdi->priv;
 	} else {
@@ -479,11 +481,11 @@ static GSList *hw_scan(GSList *options)
 		}
 		sdi->priv = devc;
 	}
-	devc->serial = sr_serial_dev_inst_new(conn, -1);
+	devc->serial = serial;
 	drvc->instances = g_slist_append(drvc->instances, sdi);
 	devices = g_slist_append(devices, sdi);
 
-	serial_close(fd);
+	serial_close(serial);
 
 	return devices;
 }
@@ -503,8 +505,7 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
-	devc->serial->fd = serial_open(devc->serial->port, O_RDWR);
-	if (devc->serial->fd == -1)
+	if (serial_open(devc->serial, O_RDWR) != SR_OK)
 		return SR_ERR;
 
 	sdi->status = SR_ST_ACTIVE;
@@ -518,9 +519,8 @@ static int hw_dev_close(struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
-	if (devc->serial->fd != -1) {
-		serial_close(devc->serial->fd);
-		devc->serial->fd = -1;
+	if (devc->serial && devc->serial->fd != -1) {
+		serial_close(devc->serial);
 		sdi->status = SR_ST_INACTIVE;
 	}
 
@@ -553,9 +553,7 @@ static int hw_cleanup(void)
 			ret = SR_ERR_BUG;
 			continue;
 		}
-		/* TODO: Check for serial != NULL. */
-		if (devc->serial->fd != -1)
-			serial_close(devc->serial->fd);
+		hw_dev_close(sdi);
 		sr_serial_dev_inst_free(devc->serial);
 		sr_dev_inst_free(sdi);
 	}
@@ -714,9 +712,8 @@ static int receive_data(int fd, int revents, void *cb_data)
 	for (l = drvc->instances; l; l = l->next) {
 		sdi = l->data;
 		devc = sdi->priv;
-		if (devc->serial->fd == fd) {
+		if (devc->serial->fd == fd)
 			break;
-		}
 		devc = NULL;
 	}
 	if (!devc)
@@ -750,7 +747,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 	}
 
 	if (revents == G_IO_IN) {
-		if (serial_read(fd, &byte, 1) != 1)
+		if (serial_read(devc->serial, &byte, 1) != 1)
 			return FALSE;
 
 		/* Ignore it if we've read enough. */
@@ -871,10 +868,9 @@ static int receive_data(int fd, int revents, void *cb_data)
 		}
 		g_free(devc->raw_sample_buf);
 
-		serial_flush(fd);
-		serial_close(fd);
-
+		serial_flush(devc->serial);
 		abort_acquisition(sdi);
+		serial_close(devc->serial);
 	}
 
 	return TRUE;
@@ -930,53 +926,53 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 		delaycount = readcount * (1 - devc->capture_ratio / 100.0);
 		devc->trigger_at = (readcount - delaycount) * 4 - devc->num_stages;
 
-		if (send_longcommand(devc->serial->fd, CMD_SET_TRIGGER_MASK_0,
+		if (send_longcommand(devc->serial, CMD_SET_TRIGGER_MASK_0,
 			reverse32(devc->trigger_mask[0])) != SR_OK)
 			return SR_ERR;
-		if (send_longcommand(devc->serial->fd, CMD_SET_TRIGGER_VALUE_0,
+		if (send_longcommand(devc->serial, CMD_SET_TRIGGER_VALUE_0,
 			reverse32(devc->trigger_value[0])) != SR_OK)
 			return SR_ERR;
-		if (send_longcommand(devc->serial->fd, CMD_SET_TRIGGER_CONFIG_0,
+		if (send_longcommand(devc->serial, CMD_SET_TRIGGER_CONFIG_0,
 			trigger_config[0]) != SR_OK)
 			return SR_ERR;
 
-		if (send_longcommand(devc->serial->fd, CMD_SET_TRIGGER_MASK_1,
+		if (send_longcommand(devc->serial, CMD_SET_TRIGGER_MASK_1,
 			reverse32(devc->trigger_mask[1])) != SR_OK)
 			return SR_ERR;
-		if (send_longcommand(devc->serial->fd, CMD_SET_TRIGGER_VALUE_1,
+		if (send_longcommand(devc->serial, CMD_SET_TRIGGER_VALUE_1,
 			reverse32(devc->trigger_value[1])) != SR_OK)
 			return SR_ERR;
-		if (send_longcommand(devc->serial->fd, CMD_SET_TRIGGER_CONFIG_1,
+		if (send_longcommand(devc->serial, CMD_SET_TRIGGER_CONFIG_1,
 			trigger_config[1]) != SR_OK)
 			return SR_ERR;
 
-		if (send_longcommand(devc->serial->fd, CMD_SET_TRIGGER_MASK_2,
+		if (send_longcommand(devc->serial, CMD_SET_TRIGGER_MASK_2,
 			reverse32(devc->trigger_mask[2])) != SR_OK)
 			return SR_ERR;
-		if (send_longcommand(devc->serial->fd, CMD_SET_TRIGGER_VALUE_2,
+		if (send_longcommand(devc->serial, CMD_SET_TRIGGER_VALUE_2,
 			reverse32(devc->trigger_value[2])) != SR_OK)
 			return SR_ERR;
-		if (send_longcommand(devc->serial->fd, CMD_SET_TRIGGER_CONFIG_2,
+		if (send_longcommand(devc->serial, CMD_SET_TRIGGER_CONFIG_2,
 			trigger_config[2]) != SR_OK)
 			return SR_ERR;
 
-		if (send_longcommand(devc->serial->fd, CMD_SET_TRIGGER_MASK_3,
+		if (send_longcommand(devc->serial, CMD_SET_TRIGGER_MASK_3,
 			reverse32(devc->trigger_mask[3])) != SR_OK)
 			return SR_ERR;
-		if (send_longcommand(devc->serial->fd, CMD_SET_TRIGGER_VALUE_3,
+		if (send_longcommand(devc->serial, CMD_SET_TRIGGER_VALUE_3,
 			reverse32(devc->trigger_value[3])) != SR_OK)
 			return SR_ERR;
-		if (send_longcommand(devc->serial->fd, CMD_SET_TRIGGER_CONFIG_3,
+		if (send_longcommand(devc->serial, CMD_SET_TRIGGER_CONFIG_3,
 			trigger_config[3]) != SR_OK)
 			return SR_ERR;
 	} else {
-		if (send_longcommand(devc->serial->fd, CMD_SET_TRIGGER_MASK_0,
+		if (send_longcommand(devc->serial, CMD_SET_TRIGGER_MASK_0,
 				devc->trigger_mask[0]) != SR_OK)
 			return SR_ERR;
-		if (send_longcommand(devc->serial->fd, CMD_SET_TRIGGER_VALUE_0,
+		if (send_longcommand(devc->serial, CMD_SET_TRIGGER_VALUE_0,
 				devc->trigger_value[0]) != SR_OK)
 			return SR_ERR;
-		if (send_longcommand(devc->serial->fd, CMD_SET_TRIGGER_CONFIG_0,
+		if (send_longcommand(devc->serial, CMD_SET_TRIGGER_CONFIG_0,
 		     0x00000008) != SR_OK)
 			return SR_ERR;
 		delaycount = readcount;
@@ -985,14 +981,14 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	sr_info("ols: setting samplerate to %" PRIu64 " Hz (divider %u, "
 		"demux %s)", devc->cur_samplerate, devc->cur_samplerate_divider,
 		devc->flag_reg & FLAG_DEMUX ? "on" : "off");
-	if (send_longcommand(devc->serial->fd, CMD_SET_DIVIDER,
+	if (send_longcommand(devc->serial, CMD_SET_DIVIDER,
 			reverse32(devc->cur_samplerate_divider)) != SR_OK)
 		return SR_ERR;
 
 	/* Send sample limit and pre/post-trigger capture ratio. */
 	data = ((readcount - 1) & 0xffff) << 16;
 	data |= (delaycount - 1) & 0xffff;
-	if (send_longcommand(devc->serial->fd, CMD_CAPTURE_SIZE, reverse16(data)) != SR_OK)
+	if (send_longcommand(devc->serial, CMD_CAPTURE_SIZE, reverse16(data)) != SR_OK)
 		return SR_ERR;
 
 	/* The flag register wants them here, and 1 means "disable channel". */
@@ -1000,11 +996,11 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	devc->flag_reg |= FLAG_FILTER;
 	devc->rle_count = 0;
 	data = (devc->flag_reg << 24) | ((devc->flag_reg << 8) & 0xff0000);
-	if (send_longcommand(devc->serial->fd, CMD_SET_FLAGS, data) != SR_OK)
+	if (send_longcommand(devc->serial, CMD_SET_FLAGS, data) != SR_OK)
 		return SR_ERR;
 
 	/* Start acquisition on the device. */
-	if (send_shortcommand(devc->serial->fd, CMD_RUN) != SR_OK)
+	if (send_shortcommand(devc->serial, CMD_RUN) != SR_OK)
 		return SR_ERR;
 
 	sr_source_add(devc->serial->fd, G_IO_IN, -1, receive_data,
