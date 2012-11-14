@@ -308,8 +308,14 @@ AM_CONDITIONAL(NEED_EZUSB, \
 
 # Serial port helper code is only needed for some hardware drivers.
 AM_CONDITIONAL(NEED_SERIAL, \
-	test "x$LA_OLS" != xno \
-	-o "x$HW_AGILENT_DMM" != xno \
+	test "x$HW_AGILENT_DMM" != xno \
+	-o "x$HW_COLEAD_SLM" != xno \
+	-o "x$HW_FLUKE_DMM" != xno \
+	-o "x$LA_LINK_MSO19" != xno \
+	-o "x$LA_OLS" != xno \
+	-o "x$HW_RADIOSHACK_DMM" != xno \
+	-o "x$HW_TEKPOWER_DMM" != xno \
+	-o "x$HW_TONDAJ_SL_814" != xno \
 )
 
 AC_SUBST(SR_PKGLIBS)
