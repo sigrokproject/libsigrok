@@ -150,15 +150,6 @@ if test "x$LA_FX2LAFW" = "xyes"; then
 	AC_DEFINE(HAVE_LA_FX2LAFW, 1, [fx2lafw support])
 fi
 
-AC_ARG_ENABLE(genericdmm, AC_HELP_STRING([--enable-genericdmm],
-	      [enable genericdmm support (for most DMMs) [default=yes]]),
-	      [HW_GENERICDMM="$enableval"],
-	      [HW_GENERICDMM=yes])
-AM_CONDITIONAL(HW_GENERICDMM, test x$HW_GENERICDMM = xyes)
-if test "x$HW_GENERICDMM" = "xyes"; then
-	AC_DEFINE(HAVE_HW_GENERICDMM, 1, [Generic DMM support])
-fi
-
 AC_ARG_ENABLE(hantek-dso, AC_HELP_STRING([--enable-hantek-dso],
 	      [enable Hantek DSO support [default=yes]]),
 	      [HW_HANTEK_DSO="$enableval"],
@@ -319,7 +310,6 @@ AM_CONDITIONAL(NEED_EZUSB, \
 AM_CONDITIONAL(NEED_SERIAL, \
 	test "x$LA_OLS" != xno \
 	-o "x$HW_AGILENT_DMM" != xno \
-	-o "x$HW_GENERICDMM" != xno \
 )
 
 AC_SUBST(SR_PKGLIBS)
@@ -370,7 +360,6 @@ AC_CONFIG_FILES([Makefile version.h hardware/Makefile
 		 hardware/demo/Makefile
 		 hardware/fluke-dmm/Makefile
 		 hardware/fx2lafw/Makefile
-		 hardware/genericdmm/Makefile
 		 hardware/hantek-dso/Makefile
 		 hardware/link-mso19/Makefile
 		 hardware/openbench-logic-sniffer/Makefile
@@ -416,7 +405,6 @@ echo "  - Colead SLM...................... $HW_COLEAD_SLM"
 echo "  - Demo driver..................... $LA_DEMO"
 echo "  - Fluke DMM....................... $HW_FLUKE_DMM"
 echo "  - fx2lafw (for FX2 LAs)........... $LA_FX2LAFW"
-echo "  - Generic DMM..................... $HW_GENERICDMM"
 echo "  - Hantek DSO...................... $HW_HANTEK_DSO"
 echo "  - Link MSO-19..................... $LA_LINK_MSO19"
 echo "  - Openbench Logic Sniffer......... $LA_OLS"

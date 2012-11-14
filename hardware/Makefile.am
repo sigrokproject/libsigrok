@@ -28,7 +28,6 @@ SUBDIRS = \
 	demo \
 	fluke-dmm \
 	fx2lafw \
-	genericdmm \
 	hantek-dso \
 	link-mso19 \
 	openbench-logic-sniffer \
@@ -76,10 +75,6 @@ endif
 
 if LA_FX2LAFW
 libsigrokhardware_la_LIBADD += fx2lafw/libsigrokhwfx2lafw.la
-endif
-
-if HW_GENERICDMM
-libsigrokhardware_la_LIBADD += genericdmm/libsigrokhwgenericdmm.la
 endif
 
 if HW_HANTEK_DSO
