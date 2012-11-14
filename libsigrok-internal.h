@@ -184,4 +184,20 @@ SR_PRIV int sr_fs9721_parse(const uint8_t *buf, float *floatval,
 			    struct sr_datafeed_analog *analog,
 			    struct fs9721_info *info);
 
+/*--- hardware/common/dmm/metex14.c -----------------------------------------*/
+
+#define METEX14_PACKET_SIZE 14
+
+struct metex14_info {
+	gboolean is_ac, is_dc, is_resistance, is_capacity, is_temperature;
+	gboolean is_diode, is_frequency, is_ampere, is_volt, is_farad;
+	gboolean is_hertz, is_ohm, is_celsius, is_nano, is_micro, is_milli;
+	gboolean is_kilo, is_mega;
+};
+
+SR_PRIV gboolean sr_metex14_packet_valid(const uint8_t *buf);
+SR_PRIV int sr_metex14_parse(const uint8_t *buf, float *floatval,
+			     struct sr_datafeed_analog *analog,
+			     struct metex14_info *info);
+
 #endif
