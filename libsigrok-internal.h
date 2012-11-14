@@ -125,6 +125,8 @@ SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
 
 /*--- hardware/common/serial.c ----------------------------------------------*/
 
+typedef gboolean (*packet_valid_t)(const uint8_t *buf);
+
 SR_PRIV int serial_open(struct sr_serial_dev_inst *serial, int flags);
 SR_PRIV int serial_close(struct sr_serial_dev_inst *serial);
 SR_PRIV int serial_flush(struct sr_serial_dev_inst *serial);
@@ -138,6 +140,10 @@ SR_PRIV int serial_set_paramstr(struct sr_serial_dev_inst *serial,
 		const char *paramstr);
 SR_PRIV int serial_readline(struct sr_serial_dev_inst *serial, char **buf,
 		int *buflen, gint64 timeout_ms);
+SR_PRIV int serial_stream_detect(struct sr_serial_dev_inst *serial,
+				 uint8_t *buf, size_t *buflen,
+				 size_t packet_size, packet_valid_t is_valid,
+				 uint64_t timeout_ms, int baudrate);
 
 /*--- hardware/common/ezusb.c -----------------------------------------------*/
 

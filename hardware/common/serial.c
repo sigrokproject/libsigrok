@@ -3,6 +3,7 @@
  *
  * Copyright (C) 2010-2012 Bert Vermeulen <bert@biot.com>
  * Copyright (C) 2010-2012 Uwe Hermann <uwe@hermann-uwe.de>
+ * Copyright (C) 2012 Alexandru Gagniuc <mr.nuke.me@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -621,4 +622,87 @@ SR_PRIV int serial_readline(struct sr_serial_dev_inst *serial, char **buf,
 		sr_dbg("Received %d: '%s'.", *buflen, *buf);
 
 	return SR_OK;
+}
+
+/**
+ * Try to find a valid packet in a serial data stream.
+ *
+ * @param serial Previously initialized serial port structure.
+ * @param buf Buffer containing the bytes to write.
+ * @param count Size of the buffer.
+ * @param packet_size Size, in bytes, of a valid packet.
+ * @param is_valid Callback that assesses whether the packet is valid or not.
+ * @param timeout_ms The timeout after which, if no packet is detected, to
+ *                   abort scanning.
+ * @param baudrate The baudrate of the serial port. This parameter is not
+ *                 critical, but it helps fine tune the serial port polling
+ *                 delay.
+ *
+ * @return SR_OK if a valid packet is found within the given timeout,
+ *         SR_ERR upon failure.
+ */
+SR_PRIV int serial_stream_detect(struct sr_serial_dev_inst *serial,
+				 uint8_t *buf, size_t *buflen,
+				 size_t packet_size, packet_valid_t is_valid,
+				 uint64_t timeout_ms, int baudrate)
+{
+	uint64_t start, time, byte_delay_us;
+	size_t ibuf, i, maxlen;
+	int len;
+
+	maxlen = *buflen;
+
+	sr_dbg("Detecting packets on FD %d (timeout = %" PRIu64
+	       "ms, baudrate = %d).", serial->fd, timeout_ms, baudrate);
+
+	if (maxlen < (packet_size / 2) ) {
+		sr_err("Buffer size must be at least twice the packet size.");
+		return SR_ERR;
+	}
+
+	timeout_ms *= 1000;
+
+	/* Assume 8n1 transmission. That is 10 bits for every byte. */
+	byte_delay_us = 10 * (1000000 / baudrate);
+	start = g_get_monotonic_time();
+
+	i = ibuf = len = 0;
+	while (ibuf < maxlen) {
+		len = serial_read(serial, &buf[ibuf], 1);
+		if (len > 0) {
+			ibuf += len;
+		} else if (len == 0) {
+			sr_spew("Error: Only read 0 bytes.");
+		} else {
+			/* Error reading byte, but continuing anyway. */
+		}
+		if ((ibuf - i) >= packet_size) {
+			/* We have at least a packet's worth of data. */
+			if (is_valid(&buf[i])) {
+				time = g_get_monotonic_time() - start;
+				time /= 1000;
+				sr_spew("Found valid %d-byte packet after "
+					"%" PRIu64 "ms.", (ibuf - i), time);
+				*buflen = ibuf;
+				return SR_OK;
+			} else {
+				sr_spew("Got %d bytes, but not a valid "
+					"packet.", (ibuf - i));
+			}
+			/* Not a valid packet. Continue searching. */
+			i++;
+		}
+		if (g_get_monotonic_time() - start > timeout_ms) {
+			/* Timeout */
+			sr_dbg("Detection timed out after %dms.", timeout_ms);
+			break;
+		}
+		g_usleep(byte_delay_us);
+	}
+
+	*buflen = ibuf;
+
+	sr_err("Didn't find a valid packet (read %d bytes).", *buflen);
+
+	return SR_ERR;
 }
