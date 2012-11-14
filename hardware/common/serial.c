@@ -163,7 +163,7 @@ SR_PRIV int serial_flush(struct sr_serial_dev_inst *serial)
 
 #ifdef _WIN32
 	/* Returns non-zero upon success, 0 upon failure. */
-	if (PurgeComm(hdl, PURGE_RXCLEAR | PURGE_TXCLEAR) == 0) ) {
+	if (PurgeComm(hdl, PURGE_RXCLEAR | PURGE_TXCLEAR) == 0) {
 		sr_err("Error flushing serial port: %s.", strerror(errno));
 		ret = SR_ERR;
 	}
