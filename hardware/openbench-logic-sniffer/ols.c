@@ -409,10 +409,8 @@ static GSList *hw_scan(GSList *options)
 			break;
 		}
 	}
-	if (!conn) {
-		sr_err("ols: No serial port specified.");
+	if (!conn)
 		return NULL;
-	}
 
 	if (serialcomm == NULL)
 		serialcomm = SERIALCOMM;
