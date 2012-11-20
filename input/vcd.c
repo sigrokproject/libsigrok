@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <glib.h>
 #include <stdio.h>
+#include <string.h>
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
@@ -52,7 +53,8 @@ static gboolean read_until(FILE *file, GString *dest, char mode)
 
 		if (c == EOF)
 		{
-			sr_err("Unexpected EOF.");
+			if (mode != 'N')
+				sr_err("Unexpected EOF.");
 			return FALSE;
 		}
 		
@@ -131,6 +133,18 @@ struct context
 	int probecount;
 	struct probe probes[SR_MAX_NUM_PROBES];
 };
+
+static void release_context(struct context *ctx)
+{
+	int i;
+	for (i = 0; i < ctx->probecount; i++)
+	{
+		g_free(ctx->probes[i].name); ctx->probes[i].name = NULL;
+		g_free(ctx->probes[i].identifier); ctx->probes[i].identifier = NULL;
+	}
+	
+	g_free(ctx);
+}
 
 /* Remove empty parts from an array returned by g_strsplit. */
 static void remove_empty_parts(gchar **parts)
@@ -276,7 +290,10 @@ static int init(struct sr_input *in)
 		if (param) {
 			num_probes = strtoul(param, NULL, 10);
 			if (num_probes < 1)
+			{
+				release_context(ctx);
 				return SR_ERR;
+			}
 		}
 	}
 	
@@ -291,11 +308,133 @@ static int init(struct sr_input *in)
 		snprintf(name, SR_MAX_PROBENAME_LEN, "%d", i);
 		
 		if (!(probe = sr_probe_new(i, SR_PROBE_LOGIC, TRUE, name)))
+		{
+			release_context(ctx);
 			return SR_ERR;
+		}
+			
 		in->sdi->probes = g_slist_append(in->sdi->probes, probe);
 	}
 
 	return SR_OK;
+}
+
+#define CHUNKSIZE 1024
+
+/* Send N samples of the given value. */
+static void send_samples(const struct sr_dev_inst *sdi, uint64_t sample, uint64_t count)
+{
+	struct sr_datafeed_packet packet;
+	struct sr_datafeed_logic logic;
+	uint64_t buffer[CHUNKSIZE];
+	uint64_t i;
+	unsigned chunksize = CHUNKSIZE;
+	
+	if (count < chunksize)
+		chunksize = count;
+
+	for (i = 0; i < chunksize; i++)
+	{
+		buffer[i] = sample;
+	}
+	
+	packet.type = SR_DF_LOGIC;
+	packet.payload = &logic;	
+	logic.unitsize = sizeof(uint64_t);
+	logic.data = buffer;
+	
+	while (count)
+	{
+		if (count < chunksize)
+			chunksize = count;
+	
+		logic.length = sizeof(uint64_t) * chunksize;
+	
+		sr_session_send(sdi, &packet);
+		count -= chunksize;
+	}
+}
+
+/* Parse the data section of VCD */
+static void parse_contents(FILE *file, const struct sr_dev_inst *sdi, struct context *ctx)
+{
+	GString *token = g_string_sized_new(32);
+	
+	gboolean first = TRUE;
+	uint64_t prev_timestamp = 0;
+	uint64_t prev_values = 0;
+	
+	/* Read one space-delimited token at a time. */
+	while (read_until(file, NULL, 'N') && read_until(file, token, 'W'))
+	{
+		if (token->str[0] == '#' && g_ascii_isdigit(token->str[1]))
+		{
+			/* Numeric value beginning with # is a new timestamp value */
+			uint64_t timestamp;
+			timestamp = strtoull(token->str + 1, NULL, 10);
+			
+			if (first)
+			{
+				first = FALSE;
+			}
+			else
+			{
+				sr_dbg("New timestamp: %" PRIu64, timestamp);
+			
+				/* Generate samples from prev_timestamp up to timestamp - 1. */
+				send_samples(sdi, prev_values, timestamp - prev_timestamp);
+			}
+			
+			prev_timestamp = timestamp;
+		}
+		else if (token->str[0] == '$')
+		{
+			/* This is probably a $dumpvars, $comment or similar.
+			 * For now, just skip it until $end. */
+			read_until(file, NULL, '$');
+		}
+		else if (strchr("01xXzZ", token->str[0]) != NULL)
+		{
+			/* A new 1-bit sample value */
+			int i, bit;
+			bit = (token->str[0] == '1');
+		
+			g_string_erase(token, 0, 1);
+			if (token->len == 0)
+			{
+				/* There was a space between value and identifier.
+				 * Read in the rest.
+				 */
+				read_until(file, NULL, 'N');
+				read_until(file, token, 'W');
+			}
+			
+			for (i = 0; i < ctx->probecount; i++)
+			{
+				if (g_strcmp0(token->str, ctx->probes[i].identifier) == 0)
+				{
+					sr_dbg("Probe %d new value %d.", i, bit);
+				
+					/* Found our probe */
+					if (bit)
+						prev_values |= (1 << i);
+					else
+						prev_values &= ~(1 << i);
+					
+					break;
+				}
+			}
+			
+			if (i == ctx->probecount)
+			{
+				sr_info("Did not find probe for identifier '%s'.", token->str);
+			}
+		}
+		
+		g_string_truncate(token, 0);
+	}
+	
+	g_string_free(token, TRUE);
 }
 
 static int loadfile(struct sr_input *in, const char *filename)
@@ -303,7 +442,6 @@ static int loadfile(struct sr_input *in, const char *filename)
 	struct sr_datafeed_header header;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_meta_logic meta;
-	struct sr_datafeed_logic logic;
 	FILE *file;
 	struct context *ctx;
 
@@ -333,22 +471,15 @@ static int loadfile(struct sr_input *in, const char *filename)
 	meta.num_probes = ctx->probecount;
 	sr_session_send(in->sdi, &packet);
 
-	/* Chop up the input file into chunks & send it to the session bus. */
-/*	packet.type = SR_DF_LOGIC;
-	packet.payload = &logic;
-	logic.unitsize = (num_probes + 7) / 8;
-	logic.data = buffer;
-	while ((size = read(fd, buffer, CHUNKSIZE)) > 0) {
-		logic.length = size;
-		sr_session_send(in->sdi, &packet);
-	}
-	close(fd);
-*/
+	/* Parse the contents of the VCD file */
+	parse_contents(file, in->sdi, ctx);
+	
 	/* Send end packet to the session bus. */
 	packet.type = SR_DF_END;
 	sr_session_send(in->sdi, &packet);
 
-	g_free(ctx);
+	fclose(file);
+	release_context(ctx);
 	in->internal = NULL;
 
 	return SR_OK;
