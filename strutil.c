@@ -403,7 +403,11 @@ SR_API int sr_parse_period(const char *periodstr, struct sr_rational *r)
 	if (s && *s) {
 		while (*s == ' ')
 			s++;
-		if (!strcmp(s, "ns"))
+		if (!strcmp(s, "fs"))
+			r->q = 1000000000000000L;
+		else if (!strcmp(s, "ps"))
+			r->q = 1000000000000L;
+		else if (!strcmp(s, "ns"))
 			r->q = 1000000000L;
 		else if (!strcmp(s, "us"))
 			r->q = 1000000;
