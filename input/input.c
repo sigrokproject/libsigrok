@@ -37,9 +37,11 @@
 /** @cond PRIVATE */
 extern SR_PRIV struct sr_input_format input_chronovu_la8;
 extern SR_PRIV struct sr_input_format input_binary;
+extern SR_PRIV struct sr_input_format input_vcd;
 /* @endcond */
 
 static struct sr_input_format *input_module_list[] = {
+	&input_vcd,
 	&input_chronovu_la8,
 	/* This one has to be last, because it will take any input. */
 	&input_binary,
