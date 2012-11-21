@@ -48,6 +48,7 @@
  * - vector variables (bit vectors etc.)
  * - analog, integer and real number variables
  * - $dumpvars initial value declaration
+ * - $scope namespaces
  */
 
 /*  */
@@ -80,14 +81,15 @@
 static gboolean read_until(FILE *file, GString *dest, char mode)
 {
 	char prev[4] = "";
+	long startpos = ftell(file);
 	for(;;)
 	{
 		int c = fgetc(file);
 
 		if (c == EOF)
 		{
-			if (mode != 'N')
-				sr_err("Unexpected EOF.");
+			if (mode == '$')
+				sr_err("Unexpected EOF, read started at %ld.", startpos);
 			return FALSE;
 		}
 		
@@ -246,15 +248,15 @@ static gboolean parse_header(FILE *file, struct context *ctx)
 			
 			if (g_strv_length(parts) != 4)
 			{
-				sr_err("$var section should have 4 items");
+				sr_warn("$var section should have 4 items");
 			}
 			else if (g_strcmp0(parts[0], "reg") != 0 && g_strcmp0(parts[0], "wire") != 0)
 			{
-				sr_warn("Unsupported signal type: '%s'", parts[0]);
+				sr_info("Unsupported signal type: '%s'", parts[0]);
 			}
 			else if (strtol(parts[1], NULL, 10) != 1)
 			{
-				sr_warn("Unsupported signal size: '%s'", parts[1]);
+				sr_info("Unsupported signal size: '%s'", parts[1]);
 			}
 			else if (ctx->probecount >= ctx->maxprobes)
 			{
@@ -412,7 +414,6 @@ static void parse_contents(FILE *file, const struct sr_dev_inst *sdi, struct con
 	GString *token = g_string_sized_new(32);
 	
 	uint64_t prev_timestamp = 0;
-	uint64_t new_values = 0;
 	uint64_t prev_values = 0;
 	
 	/* Read one space-delimited token at a time. */
@@ -434,36 +435,47 @@ static void parse_contents(FILE *file, const struct sr_dev_inst *sdi, struct con
 			if (ctx->skip < 0)
 			{
 				ctx->skip = timestamp;
+				prev_timestamp = timestamp;
 			}
 			else if (ctx->skip > 0 && timestamp < (uint64_t)ctx->skip)
 			{
-				prev_timestamp = ctx->skip - 1;
+				prev_timestamp = ctx->skip;
 			}
 			else if (timestamp == prev_timestamp)
 			{
-				/* This only occurs when ctx->downsample > 1 */
-				if (prev_values != new_values)
-				{
-					sr_warn("VCD downsampling hides a glitch at %" PRIu64, timestamp);
-					prev_values = new_values;
-				}
+				/* Ignore repeated timestamps (e.g. sigrok outputs these) */
 			}
 			else
 			{
 				sr_dbg("New timestamp: %" PRIu64, timestamp);
 			
 				/* Generate samples from prev_timestamp up to timestamp - 1. */
-				send_samples(sdi, new_values, timestamp - prev_timestamp);
-
+				send_samples(sdi, prev_values, timestamp - prev_timestamp);
 				prev_timestamp = timestamp;
-				prev_values = new_values;
 			}
 		}
-		else if (token->str[0] == '$')
+		else if (token->str[0] == '$' && token->len > 1)
 		{
 			/* This is probably a $dumpvars, $comment or similar.
-			 * For now, just skip it until $end. */
-			read_until(file, NULL, '$');
+			 * $dump* contain useful data, but other tags will be skipped until $end. */
+			if (g_strcmp0(token->str, "$dumpvars") == 0 ||
+			    g_strcmp0(token->str, "$dumpon") == 0 ||
+			    g_strcmp0(token->str, "$dumpoff") == 0 ||
+			    g_strcmp0(token->str, "$end") == 0)
+			{
+				/* Ignore, parse contents as normally. */
+			}
+			else
+			{
+				/* Skip until $end */
+				read_until(file, NULL, '$');
+			}
+		}
+		else if (strchr("bBrR", token->str[0]) != NULL)
+		{
+			/* A vector value. Skip it and also the following identifier. */
+			read_until(file, NULL, 'N');
+			read_until(file, NULL, 'W');
 		}
 		else if (strchr("01xXzZ", token->str[0]) != NULL)
 		{
@@ -489,9 +501,9 @@ static void parse_contents(FILE *file, const struct sr_dev_inst *sdi, struct con
 				
 					/* Found our probe */
 					if (bit)
-						new_values |= (1 << i);
+						prev_values |= (1 << i);
 					else
-						new_values &= ~(1 << i);
+						prev_values &= ~(1 << i);
 					
 					break;
 				}
@@ -499,8 +511,12 @@ static void parse_contents(FILE *file, const struct sr_dev_inst *sdi, struct con
 			
 			if (i == ctx->probecount)
 			{
-				sr_info("Did not find probe for identifier '%s'.", token->str);
+				sr_dbg("Did not find probe for identifier '%s'.", token->str);
 			}
+		}
+		else
+		{
+			sr_warn("Skipping unknown token '%s'.", token->str);
 		}
 		
 		g_string_truncate(token, 0);
