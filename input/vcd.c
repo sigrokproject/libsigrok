@@ -1,7 +1,7 @@
 /*
  * This file is part of the sigrok project.
  *
- * Copyright (C) 2010-2012 Bert Vermeulen <bert@biot.com>
+ * Copyright (C) 2012 Petteri Aimonen <jpa@sr.mail.kapsi.fi>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,40 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/* Based on Verilog standard IEEE Std 1364-2001 Version C */
+/* The VCD input module has the following options:
+ *
+ * numprobes:   Maximum number of probes to use. The probes are
+ *              detected in the same order as they are listed
+ *              in the $var sections of the VCD file.
+ *
+ * skip:        Allows skipping until given timestamp in the file.
+ *              This can speed up analyzing of long captures.
+ *            
+ *              Value < 0: Skip until first timestamp listed in
+ *              the file. (default)
+ *
+ *              Value = 0: Do not skip, instead generate samples
+ *              beginning from timestamp 0.
+ *
+ *              Value > 0: Start at the given timestamp.
+ *
+ * downsample:  Divide the samplerate by the given factor.
+ *              This can speed up analyzing of long captures.
+ *
+ * Based on Verilog standard IEEE Std 1364-2001 Version C
+ *
+ * Supported features:
+ * - $var with 'wire' and 'reg' types of scalar variables
+ * - $timescale definition for samplerate
+ * - multiple character variable identifiers
+ *
+ * Most important unsupported features:
+ * - vector variables (bit vectors etc.)
+ * - analog, integer and real number variables
+ * - $dumpvars initial value declaration
+ */
+
+/*  */
 
 #include <stdlib.h>
 #include <glib.h>
@@ -131,6 +164,8 @@ struct context
 	uint64_t samplerate;
 	int maxprobes;
 	int probecount;
+	int downsample;
+	int64_t skip;
 	struct probe probes[SR_MAX_NUM_PROBES];
 };
 
@@ -192,7 +227,7 @@ static gboolean parse_header(FILE *file, struct context *ctx)
 				if (period.q % period.p != 0)
 				{
 					/* Does not happen unless time value is non-standard */
-					sr_warn("Inexact rounding of samplerate, %" PRIu64 " / %" PRIu64 " to %" PRIu64 ".",
+					sr_warn("Inexact rounding of samplerate, %" PRIu64 " / %" PRIu64 " to %" PRIu64 " Hz.",
 						period.q, period.p, ctx->samplerate);
 				}
 				
@@ -284,6 +319,8 @@ static int init(struct sr_input *in)
 
 	num_probes = DEFAULT_NUM_PROBES;
 	ctx->samplerate = 0;
+	ctx->downsample = 1;
+	ctx->skip = -1;
 
 	if (in->param) {
 		param = g_hash_table_lookup(in->param, "numprobes");
@@ -294,6 +331,20 @@ static int init(struct sr_input *in)
 				release_context(ctx);
 				return SR_ERR;
 			}
+		}
+		
+		param = g_hash_table_lookup(in->param, "downsample");
+		if (param) {
+			ctx->downsample = strtoul(param, NULL, 10);
+			if (ctx->downsample < 1)
+			{
+				ctx->downsample = 1;
+			}
+		}
+		
+		param = g_hash_table_lookup(in->param, "skip");
+		if (param) {
+			ctx->skip = strtoul(param, NULL, 10) / ctx->downsample;
 		}
 	}
 	
@@ -329,7 +380,7 @@ static void send_samples(const struct sr_dev_inst *sdi, uint64_t sample, uint64_
 	uint64_t buffer[CHUNKSIZE];
 	uint64_t i;
 	unsigned chunksize = CHUNKSIZE;
-	
+		
 	if (count < chunksize)
 		chunksize = count;
 
@@ -360,8 +411,8 @@ static void parse_contents(FILE *file, const struct sr_dev_inst *sdi, struct con
 {
 	GString *token = g_string_sized_new(32);
 	
-	gboolean first = TRUE;
 	uint64_t prev_timestamp = 0;
+	uint64_t new_values = 0;
 	uint64_t prev_values = 0;
 	
 	/* Read one space-delimited token at a time. */
@@ -373,19 +424,40 @@ static void parse_contents(FILE *file, const struct sr_dev_inst *sdi, struct con
 			uint64_t timestamp;
 			timestamp = strtoull(token->str + 1, NULL, 10);
 			
-			if (first)
+			if (ctx->downsample > 1)
+				timestamp /= ctx->downsample;
+			
+			/* Skip < 0 => skip until first timestamp.
+			 * Skip = 0 => don't skip
+			 * Skip > 0 => skip until timestamp >= skip.
+			 */
+			if (ctx->skip < 0)
 			{
-				first = FALSE;
+				ctx->skip = timestamp;
+			}
+			else if (ctx->skip > 0 && timestamp < (uint64_t)ctx->skip)
+			{
+				prev_timestamp = ctx->skip - 1;
+			}
+			else if (timestamp == prev_timestamp)
+			{
+				/* This only occurs when ctx->downsample > 1 */
+				if (prev_values != new_values)
+				{
+					sr_warn("VCD downsampling hides a glitch at %" PRIu64, timestamp);
+					prev_values = new_values;
+				}
 			}
 			else
 			{
 				sr_dbg("New timestamp: %" PRIu64, timestamp);
 			
 				/* Generate samples from prev_timestamp up to timestamp - 1. */
-				send_samples(sdi, prev_values, timestamp - prev_timestamp);
+				send_samples(sdi, new_values, timestamp - prev_timestamp);
+
+				prev_timestamp = timestamp;
+				prev_values = new_values;
 			}
-			
-			prev_timestamp = timestamp;
 		}
 		else if (token->str[0] == '$')
 		{
@@ -417,9 +489,9 @@ static void parse_contents(FILE *file, const struct sr_dev_inst *sdi, struct con
 				
 					/* Found our probe */
 					if (bit)
-						prev_values |= (1 << i);
+						new_values |= (1 << i);
 					else
-						prev_values &= ~(1 << i);
+						new_values &= ~(1 << i);
 					
 					break;
 				}
@@ -467,7 +539,7 @@ static int loadfile(struct sr_input *in, const char *filename)
 	/* Send metadata about the SR_DF_LOGIC packets to come. */
 	packet.type = SR_DF_META_LOGIC;
 	packet.payload = &meta;
-	meta.samplerate = ctx->samplerate;
+	meta.samplerate = ctx->samplerate / ctx->downsample;
 	meta.num_probes = ctx->probecount;
 	sr_session_send(in->sdi, &packet);
 
