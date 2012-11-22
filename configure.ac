@@ -108,6 +108,15 @@ if test "x$LA_ASIX_SIGMA" = "xyes"; then
 	AC_DEFINE(HAVE_LA_ASIX_SIGMA, 1, [ASIX SIGMA/SIGMA2 support])
 fi
 
+AC_ARG_ENABLE(brymen-dmm, AC_HELP_STRING([--enable-brymen-dmm],
+	[enable Brymen DMM support [default=yes]]),
+	[HW_BRYMEN_DMM="$enableval"],
+	[HW_BRYMEN_DMM=yes])
+AM_CONDITIONAL(HW_BRYMEN_DMM, test x$HW_BRYMEN_DMM = xyes)
+if test "x$HW_BRYMEN_DMM" = "xyes"; then
+	AC_DEFINE(HAVE_HW_BRYMEN_DMM, 1, [brymen-dmm support])
+fi
+
 AC_ARG_ENABLE(chronovu-la8, AC_HELP_STRING([--enable-chronovu-la8],
 	[enable ChronoVu LA8 support [default=yes]]),
 	[LA_CHRONOVU_LA8="$enableval"],
@@ -384,6 +393,7 @@ AC_CONFIG_FILES([Makefile version.h hardware/Makefile
 		 hardware/agilent-dmm/Makefile
 		 hardware/alsa/Makefile
 		 hardware/asix-sigma/Makefile
+		 hardware/brymen-dmm/Makefile
 		 hardware/chronovu-la8/Makefile
 		 hardware/colead-slm/Makefile
 		 hardware/common/Makefile
@@ -437,6 +447,7 @@ echo -e "\nEnabled hardware drivers:\n"
 echo "  - Agilent DMM..................... $HW_AGILENT_DMM"
 echo "  - ALSA............................ $HW_ALSA"
 echo "  - ASIX SIGMA/SIGMA2............... $LA_ASIX_SIGMA"
+echo "  - Brymen DMM...................... $HW_BRYMEN_DMM"
 echo "  - ChronoVu LA8.................... $LA_CHRONOVU_LA8"
 echo "  - Colead SLM...................... $HW_COLEAD_SLM"
 echo "  - Demo driver..................... $LA_DEMO"

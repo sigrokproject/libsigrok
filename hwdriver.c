@@ -83,6 +83,9 @@ static struct sr_config_info sr_config_info_data[] = {
 };
 
 /** @cond PRIVATE */
+#ifdef HAVE_HW_BRYMEN_DMM
+extern SR_PRIV struct sr_dev_driver brymen_dmm_driver_info;
+#endif
 #ifdef HAVE_HW_COLEAD_SLM
 extern SR_PRIV struct sr_dev_driver colead_slm_driver_info;
 #endif
@@ -160,6 +163,9 @@ extern SR_PRIV struct sr_dev_driver voltcraft_vc820_driver_info;
 /** @endcond */
 
 static struct sr_dev_driver *drivers_list[] = {
+#ifdef HAVE_HW_BRYMEN_DMM
+	&brymen_dmm_driver_info,
+#endif
 #ifdef HAVE_HW_COLEAD_SLM
 	&colead_slm_driver_info,
 #endif
