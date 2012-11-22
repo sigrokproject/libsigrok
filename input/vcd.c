@@ -37,6 +37,10 @@
  * downsample:  Divide the samplerate by the given factor.
  *              This can speed up analyzing of long captures.
  *
+ * compress:    Compress idle periods longer than this value.
+ *              This can speed up analyzing of long captures.
+ *              Default 0 = don't compress.
+ *
  * Based on Verilog standard IEEE Std 1364-2001 Version C
  *
  * Supported features:
@@ -167,6 +171,7 @@ struct context
 	int maxprobes;
 	int probecount;
 	int downsample;
+	unsigned compress;
 	int64_t skip;
 	struct probe probes[SR_MAX_NUM_PROBES];
 };
@@ -344,6 +349,11 @@ static int init(struct sr_input *in)
 			}
 		}
 		
+		param = g_hash_table_lookup(in->param, "compress");
+		if (param) {
+			ctx->compress = strtoul(param, NULL, 10);
+		}
+		
 		param = g_hash_table_lookup(in->param, "skip");
 		if (param) {
 			ctx->skip = strtoul(param, NULL, 10) / ctx->downsample;
@@ -447,6 +457,12 @@ static void parse_contents(FILE *file, const struct sr_dev_inst *sdi, struct con
 			}
 			else
 			{
+				if (ctx->compress != 0 && timestamp - prev_timestamp > ctx->compress)
+				{
+					/* Compress long idle periods */
+					prev_timestamp = timestamp - ctx->compress;
+				}
+			
 				sr_dbg("New timestamp: %" PRIu64, timestamp);
 			
 				/* Generate samples from prev_timestamp up to timestamp - 1. */
