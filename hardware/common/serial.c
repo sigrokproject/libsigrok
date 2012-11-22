@@ -660,8 +660,6 @@ SR_PRIV int serial_stream_detect(struct sr_serial_dev_inst *serial,
 		return SR_ERR;
 	}
 
-	timeout_ms *= 1000;
-
 	/* Assume 8n1 transmission. That is 10 bits for every byte. */
 	byte_delay_us = 10 * (1000000 / baudrate);
 	start = g_get_monotonic_time();
@@ -676,11 +674,13 @@ SR_PRIV int serial_stream_detect(struct sr_serial_dev_inst *serial,
 		} else {
 			/* Error reading byte, but continuing anyway. */
 		}
+
+		time = g_get_monotonic_time() - start;
+		time /= 1000;
+
 		if ((ibuf - i) >= packet_size) {
 			/* We have at least a packet's worth of data. */
 			if (is_valid(&buf[i])) {
-				time = g_get_monotonic_time() - start;
-				time /= 1000;
 				sr_spew("Found valid %d-byte packet after "
 					"%" PRIu64 "ms.", (ibuf - i), time);
 				*buflen = ibuf;
@@ -692,9 +692,9 @@ SR_PRIV int serial_stream_detect(struct sr_serial_dev_inst *serial,
 			/* Not a valid packet. Continue searching. */
 			i++;
 		}
-		if (g_get_monotonic_time() - start > timeout_ms) {
+		if (time >= timeout_ms) {
 			/* Timeout */
-			sr_dbg("Detection timed out after %dms.", timeout_ms);
+			sr_dbg("Detection timed out after %dms.", time);
 			break;
 		}
 		g_usleep(byte_delay_us);
