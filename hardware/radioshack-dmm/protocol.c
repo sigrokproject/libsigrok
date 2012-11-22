@@ -183,11 +183,15 @@ SR_PRIV gboolean rs_22_812_packet_valid(const struct rs_22_812_packet *rs_packet
 	if (!(rs_packet->mode < MODE_INVALID))
 		return FALSE;
 
-	if (!checksum_valid(rs_packet))
+	if (!checksum_valid(rs_packet)) {
+		sr_spew("Packet with invalid checksum. Discarding.");
 		return FALSE;
+	}
 
-	if (!selection_good(rs_packet))
+	if (!selection_good(rs_packet)) {
+		sr_spew("Packet with invalid selection bits. Discarding.");
 		return FALSE;
+	}
 
 	return TRUE;
 }
