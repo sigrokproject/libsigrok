@@ -91,6 +91,12 @@ static int hw_init(void)
 	return SR_OK;
 }
 
+
+static gboolean packet_valid_wrap(const uint8_t *buf)
+{
+	return rs_22_812_packet_valid((void*)buf);
+}
+
 static GSList *rs_22_812_scan(const char *conn, const char *serialcomm)
 {
 	struct sr_dev_inst *sdi;
@@ -99,10 +105,9 @@ static GSList *rs_22_812_scan(const char *conn, const char *serialcomm)
 	struct sr_probe *probe;
 	struct sr_serial_dev_inst *serial;
 	GSList *devices;
-	int retry;
-	size_t len, i, good_packets, dropped;
-	char buf[128], *b;
-	const struct rs_22_812_packet *rs_packet;
+	int ret;
+	size_t len, dropped;
+	uint8_t buf[128];
 
 	if (!(serial = sr_serial_dev_inst_new(conn, serialcomm)))
 		return NULL;
@@ -113,8 +118,6 @@ static GSList *rs_22_812_scan(const char *conn, const char *serialcomm)
 	sr_info("Probing port '%s' readonly.", conn);
 
 	drvc = di->priv;
-	b = buf;
-	retry = 0;
 	devices = NULL;
 
 	/*
@@ -122,61 +125,44 @@ static GSList *rs_22_812_scan(const char *conn, const char *serialcomm)
 	 * periodically, so the best we can do is check if the packets match
 	 * the expected format.
 	 */
-	while (!devices && retry < 3) {
-		good_packets = 0;
-		retry++;
-		serial_flush(serial);
+	serial_flush(serial);
 
-		/* Let's get a bit of data and see if we can find a packet. */
-		len = sizeof(buf);
-		serial_readline(serial, &b, &len, 250);
-		if ((len == 0) || (len < RS_22_812_PACKET_SIZE)) {
-			/* Not enough data received, is the DMM connected? */
-			continue;
-		}
+	/* Let's get a bit of data and see if we can find a packet. */
+	len = sizeof(buf);
 
-		/* Treat our buffer as stream, and find any valid packets. */
-		for (i = 0; i < len - RS_22_812_PACKET_SIZE + 1;) {
-			rs_packet = (void *)(&buf[i]);
-			if (!rs_22_812_packet_valid(rs_packet)) {
-				i++;
-				continue;
-			}
-			good_packets++;
-			i += RS_22_812_PACKET_SIZE;
-		}
+	/* 500ms gives us a window of two packets */
+	ret = serial_stream_detect(serial, buf, &len, RS_22_812_PACKET_SIZE,
+				   packet_valid_wrap, 500, 4800);
+	if (ret != SR_OK)
+		goto scan_cleanup;
 
-		/* If we dropped more than two packets, something is wrong. */
-		dropped = len - (good_packets * RS_22_812_PACKET_SIZE);
-		if (dropped > 2 * RS_22_812_PACKET_SIZE)
-			continue;
+	/* If we dropped more than two packets, something is wrong. */
+	dropped = len - RS_22_812_PACKET_SIZE;
+	if (dropped > 2 * RS_22_812_PACKET_SIZE)
+		goto scan_cleanup;
 
-		/* Let's see if we have anything good. */
-		if (good_packets == 0)
-			continue;
+	sr_info("Found RadioShack 22-812 on port '%s'.", conn);
 
-		sr_info("Found RadioShack 22-812 on port '%s'.", conn);
+	if (!(sdi = sr_dev_inst_new(0, SR_ST_INACTIVE, "RadioShack",
+				    "22-812", "")))
+		goto scan_cleanup;
 
-		if (!(sdi = sr_dev_inst_new(0, SR_ST_INACTIVE, "RadioShack",
-					    "22-812", "")))
-			return NULL;
-
-		if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
-			sr_err("Device context malloc failed.");
-			return NULL;
-		}
-
-		devc->serial = serial;
-
-		sdi->priv = devc;
-		sdi->driver = di;
-		if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "P1")))
-			return NULL;
-		sdi->probes = g_slist_append(sdi->probes, probe);
-		drvc->instances = g_slist_append(drvc->instances, sdi);
-		devices = g_slist_append(devices, sdi);
-		break;
+	if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
+		sr_err("Device context malloc failed.");
+		goto scan_cleanup;
 	}
+
+	devc->serial = serial;
+
+	sdi->priv = devc;
+	sdi->driver = di;
+	if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "P1")))
+		goto scan_cleanup;
+	sdi->probes = g_slist_append(sdi->probes, probe);
+	drvc->instances = g_slist_append(drvc->instances, sdi);
+	devices = g_slist_append(devices, sdi);
+
+scan_cleanup:
 	serial_close(serial);
 
 	return devices;
