@@ -176,10 +176,14 @@ static gboolean selection_good(const struct rs_22_812_packet *rs_packet)
  */
 SR_PRIV gboolean rs_22_812_packet_valid(const struct rs_22_812_packet *rs_packet)
 {
-	if (!checksum_valid(rs_packet))
+	/*
+	 * Check for valid mode first, before calculating the checksum.
+	 * No point calculating the checksum, if we know we'll reject the packet
+	 * */
+	if (!(rs_packet->mode < MODE_INVALID))
 		return FALSE;
 
-	if (!(rs_packet->mode < MODE_INVALID))
+	if (!checksum_valid(rs_packet))
 		return FALSE;
 
 	if (!selection_good(rs_packet))
