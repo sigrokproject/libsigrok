@@ -32,6 +32,7 @@
 #endif
 #include <stdlib.h>
 #include <errno.h>
+#include <sys/ioctl.h>
 #include <glib.h>
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
@@ -285,7 +286,6 @@ SR_PRIV int serial_read(struct sr_serial_dev_inst *serial, void *buf,
 SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
 		int bits, int parity, int stopbits, int flowcontrol)
 {
-
 	if (!serial) {
 		sr_dbg("Invalid serial port.");
 		return SR_ERR;
@@ -341,6 +341,7 @@ SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
 #else
 	struct termios term;
 	speed_t baud;
+	int ret, controlbits;
 
 	if (tcgetattr(serial->fd, &term) < 0) {
 		sr_err("tcgetattr() error on port %s (fd %d): %s.",
@@ -504,6 +505,25 @@ SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
 		sr_err("tcsetattr() error: %s.", strerror(errno));
 		return SR_ERR;
 	}
+
+#if 0
+	/* TODO: Make configurable via driver options. */
+
+	sr_spew("Configuring RTS to 1/high.");
+	controlbits = TIOCM_RTS;
+	if ((ret = ioctl(serial->fd, TIOCMBIC, &controlbits)) < 0) {
+		sr_err("Error setting RTS to 1: %s.", strerror(errno));
+		return SR_ERR;
+	}
+
+	sr_spew("Configuring DTR to 0/low.");
+	controlbits = TIOCM_DTR;
+	if ((ret = ioctl(serial->fd, TIOCMBIS, &controlbits)) < 0) {
+		sr_err("Error setting DTR to 0: %s.", strerror(errno));
+		return SR_ERR;
+	}
+#endif
+
 #endif
 
 	return SR_OK;
