@@ -284,7 +284,7 @@ SR_PRIV int serial_read(struct sr_serial_dev_inst *serial, void *buf,
  * @return SR_OK upon success, SR_ERR upon failure.
  */
 SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
-		int bits, int parity, int stopbits, int flowcontrol)
+		int bits, int parity, int stopbits, int flowcontrol, int rts, int dtr)
 {
 	if (!serial) {
 		sr_dbg("Invalid serial port.");
@@ -506,23 +506,25 @@ SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
 		return SR_ERR;
 	}
 
-#if 0
-	/* TODO: Make configurable via driver options. */
-
-	sr_spew("Configuring RTS to 1/high.");
-	controlbits = TIOCM_RTS;
-	if ((ret = ioctl(serial->fd, TIOCMBIC, &controlbits)) < 0) {
-		sr_err("Error setting RTS to 1: %s.", strerror(errno));
-		return SR_ERR;
+	if (rts != -1) {
+		sr_spew("Setting RTS %s.", rts ? "high" : "low");
+		controlbits = TIOCM_RTS;
+		if ((ret = ioctl(serial->fd, rts ? TIOCMBIS : TIOCMBIC,
+				&controlbits)) < 0) {
+			sr_err("Error setting RTS: %s.", strerror(errno));
+			return SR_ERR;
+		}
 	}
 
-	sr_spew("Configuring DTR to 0/low.");
-	controlbits = TIOCM_DTR;
-	if ((ret = ioctl(serial->fd, TIOCMBIS, &controlbits)) < 0) {
-		sr_err("Error setting DTR to 0: %s.", strerror(errno));
-		return SR_ERR;
+	if (dtr != -1) {
+		sr_spew("Setting DTR %s.", dtr ? "high" : "low");
+		controlbits = TIOCM_DTR;
+		if ((ret = ioctl(serial->fd, dtr ? TIOCMBIS : TIOCMBIC,
+				&controlbits)) < 0) {
+			sr_err("Error setting DTR: %s.", strerror(errno));
+			return SR_ERR;
+		}
 	}
-#endif
 
 #endif
 
@@ -539,16 +541,17 @@ SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
  *
  * @return SR_OK upon success, SR_ERR upon failure.
  */
-#define SERIAL_COMM_SPEC "^(\\d+)/([78])([neo])([12])$"
+#define SERIAL_COMM_SPEC "^(\\d+)/([78])([neo])([12])(.*)$"
 SR_PRIV int serial_set_paramstr(struct sr_serial_dev_inst *serial,
 		const char *paramstr)
 {
 	GRegex *reg;
 	GMatchInfo *match;
-	int speed, databits, parity, stopbits;
-	char *mstr;
+	int speed, databits, parity, stopbits, rts, dtr, i;
+	char *mstr, **opts, **kv;
 
 	speed = databits = parity = stopbits = 0;
+	rts = dtr = -1;
 	reg = g_regex_new(SERIAL_COMM_SPEC, 0, 0, NULL);
 	if (g_regex_match(reg, paramstr, 0, &match)) {
 		if ((mstr = g_match_info_fetch(match, 1)))
@@ -574,12 +577,47 @@ SR_PRIV int serial_set_paramstr(struct sr_serial_dev_inst *serial,
 		if ((mstr = g_match_info_fetch(match, 4)))
 			stopbits = strtoul(mstr, NULL, 10);
 		g_free(mstr);
+		if ((mstr = g_match_info_fetch(match, 5)) && mstr[0] != '\0') {
+			if (mstr[0] != '/') {
+				sr_dbg("missing separator before extra options");
+				speed = 0;
+			} else {
+				/* A set of "key=value" options separated by / */
+				opts = g_strsplit(mstr + 1, "/", 0);
+				for (i = 0; opts[i]; i++) {
+					kv = g_strsplit(opts[i], "=", 2);
+					if (!strncmp(kv[0], "rts", 3)) {
+						if (kv[1][0] == '1')
+							rts = 1;
+						else if (kv[1][0] == '0')
+							rts = 0;
+						else {
+							sr_dbg("invalid value for rts: %c", kv[1][0]);
+							speed = 0;
+						}
+					} else if (!strncmp(kv[0], "dtr", 3)) {
+						if (kv[1][0] == '1')
+							dtr = 1;
+						else if (kv[1][0] == '0')
+							dtr = 0;
+						else {
+							sr_dbg("invalid value for dtr: %c", kv[1][0]);
+							speed = 0;
+						}
+					}
+					g_strfreev(kv);
+				}
+				g_strfreev(opts);
+			}
+		}
+		g_free(mstr);
 	}
 	g_match_info_unref(match);
 	g_regex_unref(reg);
 
 	if (speed)
-		return serial_set_params(serial, speed, databits, parity, stopbits, 0);
+		return serial_set_params(serial, speed, databits, parity, stopbits,
+				0, rts, dtr);
 	else
 		return SR_ERR_ARG;
 }

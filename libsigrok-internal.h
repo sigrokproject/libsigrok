@@ -135,7 +135,7 @@ SR_PRIV int serial_write(struct sr_serial_dev_inst *serial,
 SR_PRIV int serial_read(struct sr_serial_dev_inst *serial, void *buf,
 		size_t count);
 SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
-		int bits, int parity, int stopbits, int flowcontrol);
+		int bits, int parity, int stopbits, int flowcontrol, int rts, int dtr);
 SR_PRIV int serial_set_paramstr(struct sr_serial_dev_inst *serial,
 		const char *paramstr);
 SR_PRIV int serial_readline(struct sr_serial_dev_inst *serial, char **buf,
