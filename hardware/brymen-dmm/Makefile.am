@@ -24,6 +24,7 @@ noinst_LTLIBRARIES = libsigrok_hw_brymen_dmm.la
 
 libsigrok_hw_brymen_dmm_la_SOURCES = \
 	api.c \
+	parser.c \
 	protocol.c \
 	protocol.h
 
