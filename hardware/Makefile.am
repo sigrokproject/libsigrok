@@ -29,6 +29,7 @@ SUBDIRS = \
 	fluke-dmm \
 	fx2lafw \
 	hantek-dso \
+	lascar-el-usb \
 	link-mso19 \
 	openbench-logic-sniffer \
 	serial-dmm \
@@ -78,6 +79,10 @@ endif
 
 if HW_HANTEK_DSO
 libsigrokhardware_la_LIBADD += hantek-dso/libsigrokhw_hantek_dso.la
+endif
+
+if HW_LASCAR_EL_USB
+libsigrokhardware_la_LIBADD += lascar-el-usb/libsigrok_hw_lascar_el_usb.la
 endif
 
 if LA_LINK_MSO19

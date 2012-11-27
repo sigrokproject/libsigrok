@@ -160,6 +160,15 @@ if test "x$HW_HANTEK_DSO" = "xyes"; then
 fi
 
 # Disabled by default, unfinished.
+AC_ARG_ENABLE(lascar-el-usb, AC_HELP_STRING([--enable-lascar-el-usb],
+	[enable Lascar EL-USB support [default=yes]]),
+	[HW_LASCAR_EL_USB="$enableval"],
+	[HW_LASCAR_EL_USB=yes])
+AM_CONDITIONAL(HW_LASCAR_EL_USB, test x$HW_LASCAR_EL_USB = xyes)
+if test "x$HW_LASCAR_EL_USB" = "xyes"; then
+	AC_DEFINE(HAVE_HW_LASCAR_EL_USB, 1, [Lascar EL-USB support])
+fi
+
 AC_ARG_ENABLE(link-mso19, AC_HELP_STRING([--enable-link-mso19],
 	      [enable Link Instruments MSO-19 support [default=no]]),
 	      [LA_LINK_MSO19="$enableval"],
@@ -350,6 +359,7 @@ AC_CONFIG_FILES([Makefile version.h hardware/Makefile
 		 hardware/chronovu-la8/Makefile
 		 hardware/colead-slm/Makefile
 		 hardware/common/Makefile
+		 hardware/lascar-el-usb/Makefile
 		 hardware/tondaj-sl-814/Makefile
 		 hardware/victor-dmm/Makefile
 		 hardware/common/dmm/Makefile
@@ -401,6 +411,7 @@ echo "  - Demo driver..................... $LA_DEMO"
 echo "  - Fluke DMM....................... $HW_FLUKE_DMM"
 echo "  - fx2lafw (for FX2 LAs)........... $LA_FX2LAFW"
 echo "  - Hantek DSO...................... $HW_HANTEK_DSO"
+echo "  - Lascar EL-USB................... $HW_LASCAR_EL_USB"
 echo "  - Link MSO-19..................... $LA_LINK_MSO19"
 echo "  - Openbench Logic Sniffer......... $LA_OLS"
 echo "  - Serial DMM...................... $HW_SERIAL_DMM"
