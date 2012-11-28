@@ -53,17 +53,11 @@ static void fs9721_serial_handle_packet(const uint8_t *buf,
 		return;
 	}
 
-	if (!(analog->data = g_try_malloc(sizeof(float)))) {
-		sr_err("Analog value malloc failed.");
-		g_free(analog);
-		return;
-	}
-
 	analog->num_samples = 1;
 	analog->mq = -1;
 
 	sr_fs9721_parse(buf, &floatval, analog, &info);
-	*analog->data = floatval;
+	analog->data = &floatval;
 
 	if (is_temperature) {
 		analog->mq = SR_MQ_TEMPERATURE;
@@ -79,7 +73,6 @@ static void fs9721_serial_handle_packet(const uint8_t *buf,
 		devc->num_samples++;
 	}
 
-	g_free(analog->data);
 	g_free(analog);
 }
 
