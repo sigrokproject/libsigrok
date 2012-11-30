@@ -135,27 +135,27 @@ static void parse_flags(const char *buf, struct metex14_info *info)
 	/* Bytes 3-8: See parse_value(). */
 
 	/* Bytes 9-12: Unit */
-	if (!strcmp(buf + 9, "   A"))
+	if (!strncmp(buf + 9, "   A", 4))
 		info->is_ampere = TRUE;
-	else if (!strcmp(buf + 9, "  mA"))
+	else if (!strncmp(buf + 9, "  mA", 4))
 		info->is_milli = info->is_ampere = TRUE;
-	else if (!strcmp(buf + 9, "   V"))
+	else if (!strncmp(buf + 9, "   V", 4))
 		info->is_volt = TRUE;
-	else if (!strcmp(buf + 9, "  mV"))
+	else if (!strncmp(buf + 9, "  mV", 4))
 		info->is_milli = info->is_volt = TRUE;
-	else if (!strcmp(buf + 9, " Ohm"))
+	else if (!strncmp(buf + 9, " Ohm", 4))
 		info->is_ohm = TRUE;
-	else if (!strcmp(buf + 9, "KOhm"))
+	else if (!strncmp(buf + 9, "KOhm", 4))
 		info->is_kilo = info->is_ohm = TRUE;
-	else if (!strcmp(buf + 9, "MOhm"))
+	else if (!strncmp(buf + 9, "MOhm", 4))
 		info->is_mega = info->is_ohm = TRUE;
-	else if (!strcmp(buf + 9, "  nF"))
+	else if (!strncmp(buf + 9, "  nF", 4))
 		info->is_nano = info->is_farad = TRUE;
-	else if (!strcmp(buf + 9, "  uF"))
+	else if (!strncmp(buf + 9, "  uF", 4))
 		info->is_micro = info->is_farad = TRUE;
-	else if (!strcmp(buf + 9, " KHz"))
+	else if (!strncmp(buf + 9, " KHz", 4))
 		info->is_kilo = info->is_hertz = TRUE;
-	else if (!strcmp(buf + 9, "   C"))
+	else if (!strncmp(buf + 9, "   C", 4))
 		info->is_celsius = TRUE;
 
 	/* Byte 13: Always '\r' (carriage return, 0x0d, 13) */
