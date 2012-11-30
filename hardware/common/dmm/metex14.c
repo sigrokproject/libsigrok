@@ -291,6 +291,9 @@ SR_PRIV int sr_metex14_parse(const uint8_t *buf, float *floatval,
 
 	info_local = (struct metex14_info *)info;
 
+	/* Don't print byte 13. That one contains the carriage return. */
+	sr_dbg("DMM packet: \"%.13s\"", buf);
+
 	if ((ret = parse_value(buf, floatval)) != SR_OK) {
 		sr_err("Error parsing value: %d.", ret);
 		return ret;
