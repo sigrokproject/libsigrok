@@ -75,6 +75,9 @@ static int parse_value(const uint8_t *buf, float *result)
 	factor = 1000;
 	for (i = 0; i < 5; i++) {
 		digit = buf[4 + i];
+		/* Convert spaces to '0', so that we can parse them. */
+		if (digit == ' ')
+			digit = '0';
 		if (digit == '.') {
 			decimal_point = i;
 		} else if (isdigit(digit)) {
