@@ -139,6 +139,8 @@ static void parse_flags(const char *buf, struct metex14_info *info)
 		info->is_ampere = TRUE;
 	else if (!strncmp(buf + 9, "  mA", 4))
 		info->is_milli = info->is_ampere = TRUE;
+	else if (!strncmp(buf + 9, "  uA", 4))
+		info->is_micro = info->is_ampere = TRUE;
 	else if (!strncmp(buf + 9, "   V", 4))
 		info->is_volt = TRUE;
 	else if (!strncmp(buf + 9, "  mV", 4))
