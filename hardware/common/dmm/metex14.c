@@ -126,6 +126,13 @@ static void parse_flags(const char *buf, struct metex14_info *info)
 	info->is_temperature = !strncmp(buf, "TE", 2);
 	info->is_diode       = !strncmp(buf, "DI", 2);
 	info->is_frequency   = !strncmp(buf, "FR", 2);
+	info->is_gain        = !strncmp(buf, "DB", 2);
+	info->is_hfe         = !strncmp(buf, "HF", 2);
+
+	/*
+	 * Note: "DB" shows the logarithmic ratio of input voltage to a
+	 * pre-stored (user-changeable) value in the DMM.
+	 */
 
 	if (info->is_dc || info->is_ac)
 		info->is_volt = TRUE;
@@ -159,6 +166,10 @@ static void parse_flags(const char *buf, struct metex14_info *info)
 		info->is_kilo = info->is_hertz = TRUE;
 	else if (!strncmp(buf + 9, "   C", 4))
 		info->is_celsius = TRUE;
+	else if (!strncmp(buf + 9, "  DB", 4))
+		info->is_decibel = TRUE;
+	else if (!strncmp(buf + 9, "    ", 4))
+		info->is_unitless = TRUE;
 
 	/* Byte 13: Always '\r' (carriage return, 0x0d, 13) */
 }
@@ -206,6 +217,14 @@ static void handle_flags(struct sr_datafeed_analog *analog, float *floatval,
 	if (info->is_diode) {
 		analog->mq = SR_MQ_VOLTAGE;
 		analog->unit = SR_UNIT_VOLT;
+	}
+	if (info->is_gain) {
+		analog->mq = SR_MQ_GAIN;
+		analog->unit = SR_UNIT_DECIBEL_VOLT;
+	}
+	if (info->is_hfe) {
+		analog->mq = SR_MQ_GAIN;
+		analog->unit = SR_UNIT_UNITLESS;
 	}
 
 	/* Measurement related flags */
