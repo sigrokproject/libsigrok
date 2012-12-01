@@ -202,7 +202,6 @@ struct metex14_info {
 
 SR_PRIV gboolean sr_metex14_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_metex14_parse(const uint8_t *buf, float *floatval,
-			     struct sr_datafeed_analog *analog,
-			     struct metex14_info *info);
+			     struct sr_datafeed_analog *analog, void *info);
 
 #endif
