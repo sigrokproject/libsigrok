@@ -3,6 +3,7 @@
  *
  * Copyright (C) 2010 Uwe Hermann <uwe@hermann-uwe.de>
  * Copyright (C) 2011 Olivier Fauchon <olivier@aixmarseille.com>
+ * Copyright (C) 2012 Alexandru Gagniuc <mr.nuke.me@gmail.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -422,13 +423,8 @@ static int receive_data(int fd, int revents, void *cb_data)
 
 	if (!thread_running && z <= 0) {
 		/* Make sure we don't receive more packets. */
-		g_io_channel_shutdown(devc->channels[0], FALSE, NULL);
-
-		/* Send last packet. */
-		packet.type = SR_DF_END;
-		sr_session_send(devc->session_dev_id, &packet);
-
-		return FALSE;
+		hw_dev_acquisition_stop(NULL, cb_data);
+		return TRUE;
 	}
 
 	return TRUE;
@@ -520,10 +516,11 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
 	struct dev_context *devc;
+	struct sr_datafeed_packet packet;
 
-	(void)cb_data;
+	(void)sdi;
 
-	devc = sdi->priv;
+	devc = cb_data;
 
 	sr_dbg("Stopping aquisition.");
 
@@ -531,6 +528,11 @@ static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 	thread_running = 0;
 
 	sr_session_source_remove_channel(devc->channels[0]);
+	g_io_channel_shutdown(devc->channels[0], FALSE, NULL);
+
+	/* Send last packet. */
+	packet.type = SR_DF_END;
+	sr_session_send(devc->session_dev_id, &packet);
 
 	return SR_OK;
 }
