@@ -3,6 +3,7 @@
  *
  * Copyright (C) 2012 Bert Vermeulen <bert@biot.com>
  * Copyright (C) 2012 Alexandru Gagniuc <mr.nuke.me@gmail.com>
+ * Copyright (C) 2012 Uwe Hermann <uwe@hermann-uwe.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,8 +29,6 @@
 #include "libsigrok-internal.h"
 #include "protocol.h"
 
-#define SERIALCOMM "2400/8n1"
-
 static const int hwopts[] = {
 	SR_HWOPT_CONN,
 	SR_HWOPT_SERIALCOMM,
@@ -48,8 +47,22 @@ static const char *probe_names[] = {
 	NULL,
 };
 
-SR_PRIV struct sr_dev_driver tekpower_dmm_driver_info;
-static struct sr_dev_driver *di = &tekpower_dmm_driver_info;
+SR_PRIV struct sr_dev_driver tekpower_tp4000zc_driver_info;
+static struct sr_dev_driver *di_tekpower_tp4000zc = &tekpower_tp4000zc_driver_info;
+
+/* After hw_init() this will point to a device-specific entry (see above). */
+static struct sr_dev_driver *di = NULL;
+
+SR_PRIV struct dmm_info dmms[] = {
+	{
+		"TekPower", "TP4000ZC",
+		"2400/8n1", 2400,
+		FS9721_PACKET_SIZE,
+		sr_fs9721_packet_valid,
+		sr_fs9721_parse,
+		dmm_details_tp4000zc,
+	},
+};
 
 /* Properly close and free all devices. */
 static int clear_instances(void)
@@ -77,7 +90,7 @@ static int clear_instances(void)
 	return SR_OK;
 }
 
-static int hw_init(void)
+static int hw_init(int dmm)
 {
 	struct drv_context *drvc;
 
@@ -86,12 +99,21 @@ static int hw_init(void)
 		return SR_ERR_MALLOC;
 	}
 
+	if (dmm == TEKPOWER_TP4000ZC)
+		di = di_tekpower_tp4000zc;
+	sr_dbg("Selected '%s' subdriver.", di->name);
+
 	di->priv = drvc;
 
 	return SR_OK;
 }
 
-static GSList *lcd14_scan(const char *conn, const char *serialcomm)
+static int hw_init_tekpower_tp4000zc(void)
+{
+	return hw_init(TEKPOWER_TP4000ZC);
+}
+
+static GSList *scan(const char *conn, const char *serialcomm, int dmm)
 {
 	struct sr_dev_inst *sdi;
 	struct drv_context *drvc;
@@ -124,8 +146,9 @@ static GSList *lcd14_scan(const char *conn, const char *serialcomm)
 	/* Let's get a bit of data and see if we can find a packet. */
 	len = sizeof(buf);
 
-	ret = serial_stream_detect(serial, buf, &len, FS9721_PACKET_SIZE,
-				   sr_fs9721_packet_valid, 1000, 2400);
+	ret = serial_stream_detect(serial, buf, &len, dmms[dmm].packet_size,
+				   dmms[dmm].packet_valid, 1000,
+				   dmms[dmm].baudrate);
 	if (ret != SR_OK)
 		goto scan_cleanup;
 
@@ -136,14 +159,14 @@ static GSList *lcd14_scan(const char *conn, const char *serialcomm)
 	 * combination of the nonstandard cable that ships with this device and
 	 * the serial port or USB to serial adapter.
 	 */
-	dropped = len - FS9721_PACKET_SIZE;
-	if (dropped > 2 * FS9721_PACKET_SIZE)
+	dropped = len - dmms[dmm].packet_size;
+	if (dropped > 2 * dmms[dmm].packet_size)
 		sr_warn("Had to drop too much data.");
 
 	sr_info("Found device on port %s.", conn);
 
-	if (!(sdi = sr_dev_inst_new(0, SR_ST_INACTIVE, "TekPower",
-				    "TP4000ZC", "")))
+	if (!(sdi = sr_dev_inst_new(0, SR_ST_INACTIVE, dmms[dmm].vendor,
+				    dmms[dmm].device, "")))
 		goto scan_cleanup;
 
 	if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
@@ -172,6 +195,7 @@ static GSList *hw_scan(GSList *options)
 	struct sr_hwopt *opt;
 	GSList *l, *devices;
 	const char *conn, *serialcomm;
+	int dmm;
 
 	conn = serialcomm = NULL;
 	for (l = options; l; l = l->next) {
@@ -188,12 +212,15 @@ static GSList *hw_scan(GSList *options)
 	if (!conn)
 		return NULL;
 
+	if (!strcmp(di->name, "tekpower-tp4000zc"))
+		dmm = 0;
+
 	if (serialcomm) {
 		/* Use the provided comm specs. */
-		devices = lcd14_scan(conn, serialcomm);
+		devices = scan(conn, serialcomm, dmm);
 	} else {
 		/* Try the default. */
-		devices = lcd14_scan(conn, SERIALCOMM);
+		devices = scan(conn, dmms[dmm].conn, dmm);
 	}
 
 	return devices;
@@ -309,6 +336,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	struct sr_datafeed_header header;
 	struct sr_datafeed_meta_analog meta;
 	struct dev_context *devc;
+	int (*receive_data)(int, int, void *) = NULL;
 
 	if (!(devc = sdi->priv)) {
 		sr_err("sdi->priv was NULL.");
@@ -341,9 +369,12 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	meta.num_probes = 1;
 	sr_session_send(devc->cb_data, &packet);
 
+	if (!strcmp(di->name, "tekpower-tp4000zc"))
+		receive_data = tekpower_tp4000zc_receive_data;
+
 	/* Poll every 50ms, or whenever some data comes in. */
 	sr_source_add(devc->serial->fd, G_IO_IN, 50,
-		      tekpower_dmm_receive_data, (void *)sdi);
+		      receive_data, (void *)sdi);
 
 	return SR_OK;
 }
@@ -374,11 +405,11 @@ static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 	return SR_OK;
 }
 
-SR_PRIV struct sr_dev_driver tekpower_dmm_driver_info = {
-	.name = "tekpower-dmm",
-	.longname = "TekPower/Digitek TP4000ZC/DT4000ZC DMM",
+SR_PRIV struct sr_dev_driver tekpower_tp4000zc_driver_info = {
+	.name = "tekpower-tp4000zc",
+	.longname = "TekPower TP4000ZC",
 	.api_version = 1,
-	.init = hw_init,
+	.init = hw_init_tekpower_tp4000zc,
 	.cleanup = hw_cleanup,
 	.scan = hw_scan,
 	.dev_list = hw_dev_list,

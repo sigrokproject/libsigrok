@@ -2,6 +2,7 @@
  * This file is part of the sigrok project.
  *
  * Copyright (C) 2012 Alexandru Gagniuc <mr.nuke.me@gmail.com>
+ * Copyright (C) 2012 Uwe Hermann <uwe@hermann-uwe.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,9 +27,6 @@
 #include "libsigrok-internal.h"
 #include "protocol.h"
 
-/* User-defined FS9721_LP3 flag 'c2c1_10' means temperature on this DMM. */
-#define is_temperature info.is_c2c1_10
-
 static void log_dmm_packet(const uint8_t *buf)
 {
 	sr_dbg("DMM packet: %02x %02x %02x %02x %02x %02x %02x"
@@ -37,14 +35,26 @@ static void log_dmm_packet(const uint8_t *buf)
 	       buf[7], buf[8], buf[9], buf[10], buf[11], buf[12], buf[13]);
 }
 
-/* Now see what the value means, and pass that on. */
-static void fs9721_serial_handle_packet(const uint8_t *buf,
-					struct dev_context *devc)
+SR_PRIV void dmm_details_tp4000zc(struct sr_datafeed_analog *analog, void *info)
+{
+	struct fs9721_info *info_local;
+
+	info_local = (struct fs9721_info *)info;
+
+	/* User-defined FS9721_LP3 flag 'c2c1_10' means temperature. */
+	if (info_local->is_c2c1_10) {
+		analog->mq = SR_MQ_TEMPERATURE;
+		/* No Kelvin or Fahrenheit from the device, just Celsius. */
+		analog->unit = SR_UNIT_CELSIUS;
+	}
+}
+
+static void handle_packet(const uint8_t *buf, struct dev_context *devc,
+			  int dmm, void *info)
 {
 	float floatval;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog *analog;
-	struct fs9721_info info;
 
 	log_dmm_packet(buf);
 
@@ -56,14 +66,10 @@ static void fs9721_serial_handle_packet(const uint8_t *buf,
 	analog->num_samples = 1;
 	analog->mq = -1;
 
-	sr_fs9721_parse(buf, &floatval, analog, &info);
+	dmms[dmm].packet_parse(buf, &floatval, analog, info);
 	analog->data = &floatval;
 
-	if (is_temperature) {
-		analog->mq = SR_MQ_TEMPERATURE;
-		/* No Kelvin or Fahrenheit from the device, just Celsius. */
-		analog->unit = SR_UNIT_CELSIUS;
-	}
+	dmms[dmm].dmm_details(analog, info);
 
 	if (analog->mq != -1) {
 		/* Got a measurement. */
@@ -76,7 +82,7 @@ static void fs9721_serial_handle_packet(const uint8_t *buf,
 	g_free(analog);
 }
 
-static void handle_new_data(struct dev_context *devc)
+static void handle_new_data(struct dev_context *devc, int dmm, void *info)
 {
 	int len, i, offset = 0;
 
@@ -90,10 +96,10 @@ static void handle_new_data(struct dev_context *devc)
 	devc->buflen += len;
 
 	/* Now look for packets in that data. */
-	while ((devc->buflen - offset) >= FS9721_PACKET_SIZE) {
-		if (sr_fs9721_packet_valid(devc->buf + offset)) {
-			fs9721_serial_handle_packet(devc->buf + offset, devc);
-			offset += FS9721_PACKET_SIZE;
+	while ((devc->buflen - offset) >= dmms[dmm].packet_size) {
+		if (dmms[dmm].packet_valid(devc->buf + offset)) {
+			handle_packet(devc->buf + offset, devc, dmm, info);
+			offset += dmms[dmm].packet_size;
 		} else {
 			offset++;
 		}
@@ -105,7 +111,7 @@ static void handle_new_data(struct dev_context *devc)
 	devc->buflen -= offset;
 }
 
-SR_PRIV int tekpower_dmm_receive_data(int fd, int revents, void *cb_data)
+static int receive_data(int fd, int revents, int dmm, void *info, void *cb_data)
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
@@ -120,7 +126,7 @@ SR_PRIV int tekpower_dmm_receive_data(int fd, int revents, void *cb_data)
 
 	if (revents == G_IO_IN) {
 		/* Serial data arrived. */
-		handle_new_data(devc);
+		handle_new_data(devc, dmm, info);
 	}
 
 	if (devc->num_samples >= devc->limit_samples) {
@@ -130,4 +136,11 @@ SR_PRIV int tekpower_dmm_receive_data(int fd, int revents, void *cb_data)
 	}
 
 	return TRUE;
+}
+
+SR_PRIV int tekpower_tp4000zc_receive_data(int fd, int revents, void *cb_data)
+{
+	struct fs9721_info info;
+
+	return receive_data(fd, revents, TEKPOWER_TP4000ZC, &info, cb_data);
 }

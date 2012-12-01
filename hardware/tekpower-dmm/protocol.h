@@ -29,7 +29,25 @@
 #define sr_warn(s, args...) sr_warn(DRIVER_LOG_DOMAIN s, ## args)
 #define sr_err(s, args...) sr_err(DRIVER_LOG_DOMAIN s, ## args)
 
-#define DMM_BUFSIZE		256
+enum {
+	TEKPOWER_TP4000ZC,
+};
+
+struct dmm_info {
+	char *vendor;
+	char *device;
+	char *conn;
+	uint32_t baudrate;
+	int packet_size;
+	gboolean (*packet_valid)(const uint8_t *);
+	int (*packet_parse)(const uint8_t *, float *,
+			    struct sr_datafeed_analog *, void *);
+	void (*dmm_details)(struct sr_datafeed_analog *, void *);
+};
+
+SR_PRIV struct dmm_info dmms[1];
+
+#define DMM_BUFSIZE 256
 
 /** Private, per-device-instance driver context. */
 struct dev_context {
@@ -49,6 +67,7 @@ struct dev_context {
 	int buflen;
 };
 
-SR_PRIV int tekpower_dmm_receive_data(int fd, int revents, void *cb_data);
+SR_PRIV int tekpower_tp4000zc_receive_data(int fd, int revents, void *cb_data);
+SR_PRIV void dmm_details_tp4000zc(struct sr_datafeed_analog *analog, void *info);
 
 #endif
