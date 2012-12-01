@@ -444,6 +444,8 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 
 	(void)sdi;
 
+	sr_dbg("Starting acquisition.");
+
 	/* TODO: 'devc' is never g_free()'d? */
 	if (!(devc = g_try_malloc(sizeof(struct dev_context)))) {
 		sr_err("%s: devc malloc failed", __func__);
@@ -522,6 +524,8 @@ static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 	(void)cb_data;
 
 	devc = sdi->priv;
+
+	sr_dbg("Stopping aquisition.");
 
 	/* Stop generate thread. */
 	thread_running = 0;
