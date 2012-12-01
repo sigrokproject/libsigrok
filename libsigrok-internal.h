@@ -187,8 +187,7 @@ struct fs9721_info {
 SR_PRIV gboolean sr_fs9721_is_packet_start(uint8_t b);
 SR_PRIV gboolean sr_fs9721_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_fs9721_parse(const uint8_t *buf, float *floatval,
-			    struct sr_datafeed_analog *analog,
-			    struct fs9721_info *info);
+			    struct sr_datafeed_analog *analog, void *info);
 
 /*--- hardware/common/dmm/metex14.c -----------------------------------------*/
 
