@@ -34,6 +34,7 @@ enum {
 	TEKPOWER_TP4000ZC,
 	METEX_ME31,
 	PEAKTECH_3410,
+	MASTECH_MAS345,
 };
 
 struct dmm_info {
@@ -49,7 +50,7 @@ struct dmm_info {
 	void (*dmm_details)(struct sr_datafeed_analog *, void *);
 };
 
-SR_PRIV struct dmm_info dmms[4];
+SR_PRIV struct dmm_info dmms[5];
 
 #define DMM_BUFSIZE 256
 
@@ -75,6 +76,7 @@ SR_PRIV int digitek_dt4000zc_receive_data(int fd, int revents, void *cb_data);
 SR_PRIV int tekpower_tp4000zc_receive_data(int fd, int revents, void *cb_data);
 SR_PRIV int metex_me31_receive_data(int fd, int revents, void *cb_data);
 SR_PRIV int peaktech_3410_receive_data(int fd, int revents, void *cb_data);
+SR_PRIV int mastech_mas345_receive_data(int fd, int revents, void *cb_data);
 
 SR_PRIV void dmm_details_tp4000zc(struct sr_datafeed_analog *analog, void *info);
 SR_PRIV void dmm_details_dt4000zc(struct sr_datafeed_analog *analog, void *info);

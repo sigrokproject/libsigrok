@@ -51,11 +51,13 @@ SR_PRIV struct sr_dev_driver digitek_dt4000zc_driver_info;
 SR_PRIV struct sr_dev_driver tekpower_tp4000zc_driver_info;
 SR_PRIV struct sr_dev_driver metex_me31_driver_info;
 SR_PRIV struct sr_dev_driver peaktech_3410_driver_info;
+SR_PRIV struct sr_dev_driver mastech_mas345_driver_info;
 
 static struct sr_dev_driver *di_dt4000zc = &digitek_dt4000zc_driver_info;
 static struct sr_dev_driver *di_tp4000zc = &tekpower_tp4000zc_driver_info;
 static struct sr_dev_driver *di_me31 = &metex_me31_driver_info;
 static struct sr_dev_driver *di_3410 = &peaktech_3410_driver_info;
+static struct sr_dev_driver *di_mas345 = &mastech_mas345_driver_info;
 
 /* After hw_init() this will point to a device-specific entry (see above). */
 static struct sr_dev_driver *di = NULL;
@@ -81,6 +83,12 @@ SR_PRIV struct dmm_info dmms[] = {
 	},
 	{
 		"Peaktech", "3410", "600/7n2/rts=0/dtr=1", 600,
+		METEX14_PACKET_SIZE, sr_metex14_packet_request,
+		sr_metex14_packet_valid, sr_metex14_parse,
+		NULL,
+	},
+	{
+		"MASTECH", "MAS345", "600/7n2/rts=0/dtr=1", 600,
 		METEX14_PACKET_SIZE, sr_metex14_packet_request,
 		sr_metex14_packet_valid, sr_metex14_parse,
 		NULL,
@@ -130,6 +138,8 @@ static int hw_init(int dmm)
 		di = di_me31;
 	if (dmm == PEAKTECH_3410)
 		di = di_3410;
+	if (dmm == MASTECH_MAS345)
+		di = di_mas345;
 	sr_dbg("Selected '%s' subdriver.", di->name);
 
 	di->priv = drvc;
@@ -155,6 +165,11 @@ static int hw_init_metex_me31(void)
 static int hw_init_peaktech_3410(void)
 {
 	return hw_init(PEAKTECH_3410);
+}
+
+static int hw_init_mastech_mas345(void)
+{
+	return hw_init(MASTECH_MAS345);
 }
 
 static GSList *scan(const char *conn, const char *serialcomm, int dmm)
@@ -272,6 +287,8 @@ static GSList *hw_scan(GSList *options)
 		dmm = 2;
 	if (!strcmp(di->name, "peaktech-3410"))
 		dmm = 3;
+	if (!strcmp(di->name, "mastech-mas345"))
+		dmm = 4;
 
 	if (serialcomm) {
 		/* Use the provided comm specs. */
@@ -435,6 +452,8 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 		receive_data = metex_me31_receive_data;
 	if (!strcmp(di->name, "peaktech-3410"))
 		receive_data = peaktech_3410_receive_data;
+	if (!strcmp(di->name, "mastech-mas345"))
+		receive_data = mastech_mas345_receive_data;
 
 	/* Poll every 50ms, or whenever some data comes in. */
 	sr_source_add(devc->serial->fd, G_IO_IN, 50,
@@ -528,6 +547,24 @@ SR_PRIV struct sr_dev_driver peaktech_3410_driver_info = {
 	.longname = "PeakTech 3410",
 	.api_version = 1,
 	.init = hw_init_peaktech_3410,
+	.cleanup = hw_cleanup,
+	.scan = hw_scan,
+	.dev_list = hw_dev_list,
+	.dev_clear = clear_instances,
+	.dev_open = hw_dev_open,
+	.dev_close = hw_dev_close,
+	.info_get = hw_info_get,
+	.dev_config_set = hw_dev_config_set,
+	.dev_acquisition_start = hw_dev_acquisition_start,
+	.dev_acquisition_stop = hw_dev_acquisition_stop,
+	.priv = NULL,
+};
+
+SR_PRIV struct sr_dev_driver mastech_mas345_driver_info = {
+	.name = "mastech-mas345",
+	.longname = "MASTECH MAS345",
+	.api_version = 1,
+	.init = hw_init_mastech_mas345,
 	.cleanup = hw_cleanup,
 	.scan = hw_scan,
 	.dev_list = hw_dev_list,
