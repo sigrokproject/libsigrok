@@ -29,10 +29,10 @@
 #else
 #include <glob.h>
 #include <termios.h>
+#include <sys/ioctl.h>
 #endif
 #include <stdlib.h>
 #include <errno.h>
-#include <sys/ioctl.h>
 #include <glib.h>
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
