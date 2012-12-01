@@ -61,10 +61,10 @@ static int parse_value(const uint8_t *buf, float *result)
 
 	/* Bytes 5-7: Over limit (various forms) */
 	is_ol = 0;
-	is_ol += !strncmp((char *)&buf[5], ".OL", 3);
-	is_ol += !strncmp((char *)&buf[5], "O.L", 3);
-	is_ol += !strncmp((char *)&buf[5], "OL.", 3);
-	is_ol += !strncmp((char *)&buf[5], " OL", 3);
+	is_ol += (!strncmp((char *)&buf[5], ".OL", 3)) ? 1 : 0;
+	is_ol += (!strncmp((char *)&buf[5], "O.L", 3)) ? 1 : 0;
+	is_ol += (!strncmp((char *)&buf[5], "OL.", 3)) ? 1 : 0;
+	is_ol += (!strncmp((char *)&buf[5], " OL", 3)) ? 1 : 0;
 	if (is_ol != 0) {
 		sr_spew("Over limit.");
 		*result = INFINITY;
