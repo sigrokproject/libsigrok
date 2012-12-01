@@ -47,13 +47,24 @@ static const char *probe_names[] = {
 	NULL,
 };
 
+SR_PRIV struct sr_dev_driver digitek_dt4000zc_driver_info;
 SR_PRIV struct sr_dev_driver tekpower_tp4000zc_driver_info;
+
+static struct sr_dev_driver *di_digitek_dt4000zc = &digitek_dt4000zc_driver_info;
 static struct sr_dev_driver *di_tekpower_tp4000zc = &tekpower_tp4000zc_driver_info;
 
 /* After hw_init() this will point to a device-specific entry (see above). */
 static struct sr_dev_driver *di = NULL;
 
 SR_PRIV struct dmm_info dmms[] = {
+	{
+		"Digitek", "DT4000ZC",
+		"2400/8n1", 2400,
+		FS9721_PACKET_SIZE,
+		sr_fs9721_packet_valid,
+		sr_fs9721_parse,
+		dmm_details_dt4000zc,
+	},
 	{
 		"TekPower", "TP4000ZC",
 		"2400/8n1", 2400,
@@ -99,6 +110,8 @@ static int hw_init(int dmm)
 		return SR_ERR_MALLOC;
 	}
 
+	if (dmm == DIGITEK_DT4000ZC)
+		di = di_digitek_dt4000zc;
 	if (dmm == TEKPOWER_TP4000ZC)
 		di = di_tekpower_tp4000zc;
 	sr_dbg("Selected '%s' subdriver.", di->name);
@@ -106,6 +119,11 @@ static int hw_init(int dmm)
 	di->priv = drvc;
 
 	return SR_OK;
+}
+
+static int hw_init_digitek_dt4000zc(void)
+{
+	return hw_init(DIGITEK_DT4000ZC);
 }
 
 static int hw_init_tekpower_tp4000zc(void)
@@ -212,8 +230,10 @@ static GSList *hw_scan(GSList *options)
 	if (!conn)
 		return NULL;
 
-	if (!strcmp(di->name, "tekpower-tp4000zc"))
+	if (!strcmp(di->name, "digitek-dt4000zc"))
 		dmm = 0;
+	if (!strcmp(di->name, "tekpower-tp4000zc"))
+		dmm = 1;
 
 	if (serialcomm) {
 		/* Use the provided comm specs. */
@@ -369,6 +389,8 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	meta.num_probes = 1;
 	sr_session_send(devc->cb_data, &packet);
 
+	if (!strcmp(di->name, "digitek-dt4000zc"))
+		receive_data = digitek_dt4000zc_receive_data;
 	if (!strcmp(di->name, "tekpower-tp4000zc"))
 		receive_data = tekpower_tp4000zc_receive_data;
 
@@ -404,6 +426,24 @@ static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 
 	return SR_OK;
 }
+
+SR_PRIV struct sr_dev_driver digitek_dt4000zc_driver_info = {
+	.name = "digitek-dt4000zc",
+	.longname = "Digitek DT4000ZC",
+	.api_version = 1,
+	.init = hw_init_digitek_dt4000zc,
+	.cleanup = hw_cleanup,
+	.scan = hw_scan,
+	.dev_list = hw_dev_list,
+	.dev_clear = clear_instances,
+	.dev_open = hw_dev_open,
+	.dev_close = hw_dev_close,
+	.info_get = hw_info_get,
+	.dev_config_set = hw_dev_config_set,
+	.dev_acquisition_start = hw_dev_acquisition_start,
+	.dev_acquisition_stop = hw_dev_acquisition_stop,
+	.priv = NULL,
+};
 
 SR_PRIV struct sr_dev_driver tekpower_tp4000zc_driver_info = {
 	.name = "tekpower-tp4000zc",

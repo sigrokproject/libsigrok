@@ -114,6 +114,7 @@ extern SR_PRIV struct sr_dev_driver flukedmm_driver_info;
 extern SR_PRIV struct sr_dev_driver radioshackdmm_driver_info;
 #endif
 #ifdef HAVE_HW_SERIAL_DMM
+extern SR_PRIV struct sr_dev_driver digitek_dt4000zc_driver_info;
 extern SR_PRIV struct sr_dev_driver tekpower_tp4000zc_driver_info;
 #endif
 #ifdef HAVE_HW_UNI_T_DMM
@@ -169,6 +170,7 @@ static struct sr_dev_driver *drivers_list[] = {
 	&radioshackdmm_driver_info,
 #endif
 #ifdef HAVE_HW_SERIAL_DMM
+	&digitek_dt4000zc_driver_info,
 	&tekpower_tp4000zc_driver_info,
 #endif
 #ifdef HAVE_HW_UNI_T_DMM

@@ -35,6 +35,11 @@ static void log_dmm_packet(const uint8_t *buf)
 	       buf[7], buf[8], buf[9], buf[10], buf[11], buf[12], buf[13]);
 }
 
+SR_PRIV void dmm_details_dt4000zc(struct sr_datafeed_analog *analog, void *info)
+{
+	dmm_details_tp4000zc(analog, info); /* Same as TP4000ZC. */
+}
+
 SR_PRIV void dmm_details_tp4000zc(struct sr_datafeed_analog *analog, void *info)
 {
 	struct fs9721_info *info_local;
@@ -136,6 +141,13 @@ static int receive_data(int fd, int revents, int dmm, void *info, void *cb_data)
 	}
 
 	return TRUE;
+}
+
+SR_PRIV int digitek_dt4000zc_receive_data(int fd, int revents, void *cb_data)
+{
+	struct fs9721_info info;
+
+	return receive_data(fd, revents, DIGITEK_DT4000ZC, &info, cb_data);
 }
 
 SR_PRIV int tekpower_tp4000zc_receive_data(int fd, int revents, void *cb_data)
