@@ -113,7 +113,7 @@ extern SR_PRIV struct sr_dev_driver flukedmm_driver_info;
 #ifdef HAVE_HW_RADIOSHACK_DMM
 extern SR_PRIV struct sr_dev_driver radioshackdmm_driver_info;
 #endif
-#ifdef HAVE_HW_TEKPOWER_DMM
+#ifdef HAVE_HW_SERIAL_DMM
 extern SR_PRIV struct sr_dev_driver tekpower_tp4000zc_driver_info;
 #endif
 #ifdef HAVE_HW_UNI_T_DMM
@@ -168,7 +168,7 @@ static struct sr_dev_driver *drivers_list[] = {
 #ifdef HAVE_HW_RADIOSHACK_DMM
 	&radioshackdmm_driver_info,
 #endif
-#ifdef HAVE_HW_TEKPOWER_DMM
+#ifdef HAVE_HW_SERIAL_DMM
 	&tekpower_tp4000zc_driver_info,
 #endif
 #ifdef HAVE_HW_UNI_T_DMM

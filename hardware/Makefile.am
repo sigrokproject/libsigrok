@@ -32,7 +32,7 @@ SUBDIRS = \
 	link-mso19 \
 	openbench-logic-sniffer \
 	radioshack-dmm \
-	tekpower-dmm \
+	serial-dmm \
 	tondaj-sl-814 \
 	uni-t-dmm \
 	victor-dmm \
@@ -93,8 +93,8 @@ if HW_RADIOSHACK_DMM
 libsigrokhardware_la_LIBADD += radioshack-dmm/libsigrokhwradioshackdmm.la
 endif
 
-if HW_TEKPOWER_DMM
-libsigrokhardware_la_LIBADD += tekpower-dmm/libsigrokhwtekpowerdmm.la
+if HW_SERIAL_DMM
+libsigrokhardware_la_LIBADD += serial-dmm/libsigrokhwserialdmm.la
 endif
 
 if HW_TONDAJ_SL_814

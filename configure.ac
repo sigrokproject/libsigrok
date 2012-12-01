@@ -187,13 +187,13 @@ if test "x$HW_RADIOSHACK_DMM" = "xyes"; then
 	AC_DEFINE(HAVE_HW_RADIOSHACK_DMM, 1, [RadioShack DMM support])
 fi
 
-AC_ARG_ENABLE(tekpower-dmm, AC_HELP_STRING([--enable-tekpower-dmm],
-	      [enable TekPower DMM support [default=yes]]),
-	      [HW_TEKPOWER_DMM="$enableval"],
-	      [HW_TEKPOWER_DMM=yes])
-AM_CONDITIONAL(HW_TEKPOWER_DMM, test x$HW_TEKPOWER_DMM = xyes)
-if test "x$HW_TEKPOWER_DMM" = "xyes"; then
-	AC_DEFINE(HAVE_HW_TEKPOWER_DMM, 1, [TekPower DMM support])
+AC_ARG_ENABLE(serial-dmm, AC_HELP_STRING([--enable-serial-dmm],
+	      [enable serial DMM support [default=yes]]),
+	      [HW_SERIAL_DMM="$enableval"],
+	      [HW_SERIAL_DMM=yes])
+AM_CONDITIONAL(HW_SERIAL_DMM, test x$HW_SERIAL_DMM = xyes)
+if test "x$HW_SERIAL_DMM" = "xyes"; then
+	AC_DEFINE(HAVE_HW_SERIAL_DMM, 1, [Serial DMM support])
 fi
 
 AC_ARG_ENABLE(tondaj-sl-814, AC_HELP_STRING([--enable-tondaj-sl-814],
@@ -314,7 +314,7 @@ AM_CONDITIONAL(NEED_SERIAL, \
 	-o "x$LA_LINK_MSO19" != xno \
 	-o "x$LA_OLS" != xno \
 	-o "x$HW_RADIOSHACK_DMM" != xno \
-	-o "x$HW_TEKPOWER_DMM" != xno \
+	-o "x$HW_SERIAL_DMM" != xno \
 	-o "x$HW_TONDAJ_SL_814" != xno \
 )
 
@@ -370,7 +370,7 @@ AC_CONFIG_FILES([Makefile version.h hardware/Makefile
 		 hardware/link-mso19/Makefile
 		 hardware/openbench-logic-sniffer/Makefile
 		 hardware/radioshack-dmm/Makefile
-		 hardware/tekpower-dmm/Makefile
+		 hardware/serial-dmm/Makefile
 		 hardware/uni-t-dmm/Makefile
 		 hardware/zeroplus-logic-cube/Makefile
 		 input/Makefile
@@ -415,7 +415,7 @@ echo "  - Hantek DSO...................... $HW_HANTEK_DSO"
 echo "  - Link MSO-19..................... $LA_LINK_MSO19"
 echo "  - Openbench Logic Sniffer......... $LA_OLS"
 echo "  - Radioshack DMM.................. $HW_RADIOSHACK_DMM"
-echo "  - TekPower DMM.................... $HW_TEKPOWER_DMM"
+echo "  - Serial DMM...................... $HW_SERIAL_DMM"
 echo "  - Tondaj SL-814................... $HW_TONDAJ_SL_814"
 echo "  - UNI-T DMM....................... $HW_UNI_T_DMM"
 echo "  - victor-dmm...................... $HW_VICTOR_DMM"

@@ -17,11 +17,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBSIGROK_HARDWARE_TEKPOWER_DMM_PROTOCOL_H
-#define LIBSIGROK_HARDWARE_TEKPOWER_DMM_PROTOCOL_H
+#ifndef LIBSIGROK_HARDWARE_SERIAL_DMM_PROTOCOL_H
+#define LIBSIGROK_HARDWARE_SERIAL_DMM_PROTOCOL_H
 
 /* Message logging helpers with driver-specific prefix string. */
-#define DRIVER_LOG_DOMAIN "tekpower-dmm: "
+#define DRIVER_LOG_DOMAIN "serial-dmm: "
 #define sr_log(l, s, args...) sr_log(l, DRIVER_LOG_DOMAIN s, ## args)
 #define sr_spew(s, args...) sr_spew(DRIVER_LOG_DOMAIN s, ## args)
 #define sr_dbg(s, args...) sr_dbg(DRIVER_LOG_DOMAIN s, ## args)

@@ -17,17 +17,17 @@
 ## along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##
 
-if HW_TEKPOWER_DMM
+if HW_SERIAL_DMM
 
 # Local lib, this is NOT meant to be installed!
-noinst_LTLIBRARIES = libsigrokhwtekpowerdmm.la
+noinst_LTLIBRARIES = libsigrokhwserialdmm.la
 
-libsigrokhwtekpowerdmm_la_SOURCES = \
+libsigrokhwserialdmm_la_SOURCES = \
 	api.c \
 	protocol.c \
 	protocol.h
 
-libsigrokhwtekpowerdmm_la_CFLAGS = \
+libsigrokhwserialdmm_la_CFLAGS = \
 	-I$(top_srcdir)
 
 endif
