@@ -254,6 +254,15 @@ static gboolean flags_valid(const struct metex14_info *info)
 	return TRUE;
 }
 
+SR_PRIV int sr_metex14_packet_request(struct sr_serial_dev_inst *serial)
+{
+	const uint8_t wbuf = 'D';
+
+	sr_spew("Requesting DMM packet.");
+
+	return (serial_write(serial, &wbuf, 1) == 1) ? SR_OK : SR_ERR;
+}
+
 SR_PRIV gboolean sr_metex14_packet_valid(const uint8_t *buf)
 {
 	struct metex14_info info;
