@@ -169,41 +169,41 @@ static int receive_data(int fd, int revents, int dmm, void *info, void *cb_data)
 SR_PRIV int digitek_dt4000zc_receive_data(int fd, int revents, void *cb_data)
 {
 	struct fs9721_info info;
-
 	return receive_data(fd, revents, DIGITEK_DT4000ZC, &info, cb_data);
 }
 
 SR_PRIV int tekpower_tp4000zc_receive_data(int fd, int revents, void *cb_data)
 {
 	struct fs9721_info info;
-
 	return receive_data(fd, revents, TEKPOWER_TP4000ZC, &info, cb_data);
 }
 
 SR_PRIV int metex_me31_receive_data(int fd, int revents, void *cb_data)
 {
 	struct metex14_info info;
-
 	return receive_data(fd, revents, METEX_ME31, &info, cb_data);
 }
 
 SR_PRIV int peaktech_3410_receive_data(int fd, int revents, void *cb_data)
 {
 	struct metex14_info info;
-
 	return receive_data(fd, revents, PEAKTECH_3410, &info, cb_data);
 }
 
 SR_PRIV int mastech_mas345_receive_data(int fd, int revents, void *cb_data)
 {
 	struct metex14_info info;
-
 	return receive_data(fd, revents, MASTECH_MAS345, &info, cb_data);
 }
 
 SR_PRIV int va_va18b_receive_data(int fd, int revents, void *cb_data)
 {
 	struct fs9721_info info;
-
 	return receive_data(fd, revents, VA_VA18B, &info, cb_data);
+}
+
+SR_PRIV int metex_m3640d_receive_data(int fd, int revents, void *cb_data)
+{
+	struct metex14_info info;
+	return receive_data(fd, revents, METEX_M3640D, &info, cb_data);
 }
