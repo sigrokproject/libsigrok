@@ -238,3 +238,9 @@ SR_PRIV int pce_pce_dm32_receive_data(int fd, int revents, void *cb_data)
 	struct fs9721_info info;
 	return receive_data(fd, revents, PCE_PCE_DM32, &info, cb_data);
 }
+
+SR_PRIV int radioshack_22_168_receive_data(int fd, int revents, void *cb_data)
+{
+	struct metex14_info info;
+	return receive_data(fd, revents, RADIOSHACK_22_168, &info, cb_data);
+}
