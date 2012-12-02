@@ -217,7 +217,7 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 		return SR_ERR_BUG;
 	}
 
-	if (serial_open(devc->serial, SERIAL_RDONLY) != SR_OK)
+	if (serial_open(devc->serial, SERIAL_RDONLY | SERIAL_NONBLOCK) != SR_OK)
 		return SR_ERR;
 
 	sdi->status = SR_ST_ACTIVE;
