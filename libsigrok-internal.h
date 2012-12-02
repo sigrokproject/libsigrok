@@ -125,6 +125,12 @@ SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
 
 /*--- hardware/common/serial.c ----------------------------------------------*/
 
+enum {
+	SERIAL_RDWR = 1,
+	SERIAL_RDONLY = 2,
+	SERIAL_NONBLOCK = 4,
+};
+
 typedef gboolean (*packet_valid_t)(const uint8_t *buf);
 
 SR_PRIV int serial_open(struct sr_serial_dev_inst *serial, int flags);

@@ -560,7 +560,7 @@ static int hw_dev_open(int dev_index)
 		return ret;
 
 	ctx = sdi->priv;
-	sdi->serial->fd = serial_open(sdi->serial->port, O_RDWR);
+	sdi->serial->fd = serial_open(sdi->serial->port, SERIAL_RDWR);
 	if (sdi->serial->fd == -1)
 		return ret;
 

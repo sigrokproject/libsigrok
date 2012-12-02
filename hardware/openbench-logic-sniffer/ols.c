@@ -42,10 +42,6 @@
 #include "libsigrok-internal.h"
 #include "ols.h"
 
-#ifdef _WIN32
-#define O_NONBLOCK FIONBIO
-#endif
-
 #define SERIALCOMM "115200/8n1"
 
 static const int hwcaps[] = {
@@ -425,7 +421,7 @@ static GSList *hw_scan(GSList *options)
 	 * have a match.
 	 */
 	sr_info("ols: probing %s .", conn);
-	if (serial_open(serial, O_RDWR | O_NONBLOCK) != SR_OK)
+	if (serial_open(serial, SERIAL_RDWR | SERIAL_NONBLOCK) != SR_OK)
 		return NULL;
 
 	ret = SR_OK;
@@ -503,7 +499,7 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
-	if (serial_open(devc->serial, O_RDWR) != SR_OK)
+	if (serial_open(devc->serial, SERIAL_RDWR) != SR_OK)
 		return SR_ERR;
 
 	sdi->status = SR_ST_ACTIVE;

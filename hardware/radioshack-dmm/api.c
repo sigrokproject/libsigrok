@@ -112,7 +112,7 @@ static GSList *rs_22_812_scan(const char *conn, const char *serialcomm)
 	if (!(serial = sr_serial_dev_inst_new(conn, serialcomm)))
 		return NULL;
 
-	if (serial_open(serial, O_RDONLY|O_NONBLOCK) != SR_OK)
+	if (serial_open(serial, SERIAL_RDONLY | SERIAL_NONBLOCK) != SR_OK)
 		return NULL;
 
 	sr_info("Probing port '%s' readonly.", conn);
@@ -217,7 +217,7 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 		return SR_ERR_BUG;
 	}
 
-	if (serial_open(devc->serial, O_RDONLY) != SR_OK)
+	if (serial_open(devc->serial, SERIAL_RDONLY) != SR_OK)
 		return SR_ERR;
 
 	sdi->status = SR_ST_ACTIVE;

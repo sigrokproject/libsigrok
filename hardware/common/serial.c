@@ -55,8 +55,8 @@ static HANDLE hdl;
  * Open the specified serial port.
  *
  * @param serial Previously initialized serial port structure.
- * @param flags Flags to use when opening the serial port.
- * TODO: Abstract 'flags', currently they're OS-specific!
+ * @param flags Flags to use when opening the serial port. Possible flags
+ *              include SERIAL_RDWR, SERIAL_RDONLY, SERIAL_NONBLOCK.
  *
  * If the serial structure contains a serialcomm string, it will be
  * passed to serial_set_paramstr() after the port is opened.
@@ -65,6 +65,10 @@ static HANDLE hdl;
  */
 SR_PRIV int serial_open(struct sr_serial_dev_inst *serial, int flags)
 {
+	int flags_local = 0;
+#ifdef _WIN32
+	DWORD desired_access = 0, flags_and_attributes = 0;
+#endif
 
 	if (!serial) {
 		sr_dbg("Invalid serial port.");
@@ -74,19 +78,36 @@ SR_PRIV int serial_open(struct sr_serial_dev_inst *serial, int flags)
 	sr_spew("Opening serial port '%s' (flags %d).", serial->port, flags);
 
 #ifdef _WIN32
-	hdl = CreateFile(serial->port, GENERIC_READ | GENERIC_WRITE, 0, 0,
-			 OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+	/* Map 'flags' to the OS-specific settings. */
+	desired_access |= GENERIC_READ;
+	flags_and_attributes = FILE_ATTRIBUTE_NORMAL;
+	if (flags & SERIAL_RDWR)
+		desired_access |= GENERIC_WRITE;
+	if (flags & SERIAL_NONBLOCK)
+		flags_and_attributes |= FILE_FLAG_OVERLAPPED;
+
+	hdl = CreateFile(serial->port, desired_access, 0, 0,
+			 OPEN_EXISTING, flags_and_attributes, 0);
 	if (hdl == INVALID_HANDLE_VALUE) {
 		sr_err("Error opening serial port '%s'.", serial->port);
 		return SR_ERR;
 	}
 #else
-	if ((serial->fd = open(serial->port, flags)) < 0) {
+	/* Map 'flags' to the OS-specific settings. */
+	if (flags & SERIAL_RDWR)
+		flags_local |= O_RDWR;
+	if (flags & SERIAL_RDONLY)
+		flags_local |= O_RDONLY;
+	if (flags & SERIAL_NONBLOCK)
+		flags_local |= O_NONBLOCK;
+
+	if ((serial->fd = open(serial->port, flags_local)) < 0) {
 		sr_err("Error opening serial port '%s': %s.", serial->port,
 		       strerror(errno));
 		return SR_ERR;
-	} else
-		sr_spew("Opened serial port '%s' (fd %d).", serial->port, serial->fd);
+	}
+
+	sr_spew("Opened serial port '%s' (fd %d).", serial->port, serial->fd);
 #endif
 
 	if (serial->serialcomm)
