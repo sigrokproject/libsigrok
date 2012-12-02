@@ -146,6 +146,13 @@ static int default_pattern = PATTERN_SIGROK;
 
 static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);
 
+static int clear_instances(void)
+{
+	/* Nothing needed so far. */
+
+	return SR_OK;
+}
+
 static int hw_init(void)
 {
 	struct drv_context *drvc;
@@ -505,6 +512,7 @@ SR_PRIV struct sr_dev_driver demo_driver_info = {
 	.cleanup = hw_cleanup,
 	.scan = hw_scan,
 	.dev_list = hw_dev_list,
+	.dev_clear = clear_instances,
 	.dev_open = hw_dev_open,
 	.dev_close = hw_dev_close,
 	.info_get = hw_info_get,
