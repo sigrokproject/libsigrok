@@ -121,6 +121,7 @@ extern SR_PRIV struct sr_dev_driver peaktech_3410_driver_info;
 extern SR_PRIV struct sr_dev_driver mastech_mas345_driver_info;
 extern SR_PRIV struct sr_dev_driver va_va18b_driver_info;
 extern SR_PRIV struct sr_dev_driver metex_m3640d_driver_info;
+extern SR_PRIV struct sr_dev_driver peaktech_4370_driver_info;
 #endif
 #ifdef HAVE_HW_UNI_T_DMM
 extern SR_PRIV struct sr_dev_driver uni_t_ut61d_driver_info;
@@ -182,6 +183,7 @@ static struct sr_dev_driver *drivers_list[] = {
 	&mastech_mas345_driver_info,
 	&va_va18b_driver_info,
 	&metex_m3640d_driver_info,
+	&peaktech_4370_driver_info,
 #endif
 #ifdef HAVE_HW_UNI_T_DMM
 	&uni_t_ut61d_driver_info,

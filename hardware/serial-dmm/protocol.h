@@ -29,6 +29,7 @@
 #define sr_warn(s, args...) sr_warn(DRIVER_LOG_DOMAIN s, ## args)
 #define sr_err(s, args...) sr_err(DRIVER_LOG_DOMAIN s, ## args)
 
+/* Note: When adding entries here, don't forget to update DMM_COUNT. */
 enum {
 	DIGITEK_DT4000ZC,
 	TEKPOWER_TP4000ZC,
@@ -37,7 +38,10 @@ enum {
 	MASTECH_MAS345,
 	VA_VA18B,
 	METEX_M3640D,
+	PEAKTECH_4370,
 };
+
+#define DMM_COUNT 8
 
 struct dmm_info {
 	char *vendor;
@@ -52,7 +56,7 @@ struct dmm_info {
 	void (*dmm_details)(struct sr_datafeed_analog *, void *);
 };
 
-SR_PRIV struct dmm_info dmms[7];
+SR_PRIV struct dmm_info dmms[DMM_COUNT];
 
 #define DMM_BUFSIZE 256
 
@@ -81,6 +85,7 @@ SR_PRIV int peaktech_3410_receive_data(int fd, int revents, void *cb_data);
 SR_PRIV int mastech_mas345_receive_data(int fd, int revents, void *cb_data);
 SR_PRIV int va_va18b_receive_data(int fd, int revents, void *cb_data);
 SR_PRIV int metex_m3640d_receive_data(int fd, int revents, void *cb_data);
+SR_PRIV int peaktech_4370_receive_data(int fd, int revents, void *cb_data);
 
 SR_PRIV void dmm_details_tp4000zc(struct sr_datafeed_analog *analog, void *info);
 SR_PRIV void dmm_details_dt4000zc(struct sr_datafeed_analog *analog, void *info);

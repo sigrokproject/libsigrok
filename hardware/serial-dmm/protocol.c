@@ -207,3 +207,9 @@ SR_PRIV int metex_m3640d_receive_data(int fd, int revents, void *cb_data)
 	struct metex14_info info;
 	return receive_data(fd, revents, METEX_M3640D, &info, cb_data);
 }
+
+SR_PRIV int peaktech_4370_receive_data(int fd, int revents, void *cb_data)
+{
+	struct metex14_info info;
+	return receive_data(fd, revents, PEAKTECH_4370, &info, cb_data);
+}

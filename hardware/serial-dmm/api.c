@@ -54,6 +54,7 @@ SR_PRIV struct sr_dev_driver peaktech_3410_driver_info;
 SR_PRIV struct sr_dev_driver mastech_mas345_driver_info;
 SR_PRIV struct sr_dev_driver va_va18b_driver_info;
 SR_PRIV struct sr_dev_driver metex_m3640d_driver_info;
+SR_PRIV struct sr_dev_driver peaktech_4370_driver_info;
 
 static struct sr_dev_driver *di_dt4000zc = &digitek_dt4000zc_driver_info;
 static struct sr_dev_driver *di_tp4000zc = &tekpower_tp4000zc_driver_info;
@@ -62,6 +63,7 @@ static struct sr_dev_driver *di_3410 = &peaktech_3410_driver_info;
 static struct sr_dev_driver *di_mas345 = &mastech_mas345_driver_info;
 static struct sr_dev_driver *di_va18b = &va_va18b_driver_info;
 static struct sr_dev_driver *di_m3640d = &metex_m3640d_driver_info;
+static struct sr_dev_driver *di_4370 = &peaktech_4370_driver_info;
 
 /* After hw_init() this will point to a device-specific entry (see above). */
 static struct sr_dev_driver *di = NULL;
@@ -105,6 +107,12 @@ SR_PRIV struct dmm_info dmms[] = {
 	},
 	{
 		"Metex", "M-3640D", "1200/7n2/rts=0/dtr=1", 1200,
+		METEX14_PACKET_SIZE, sr_metex14_packet_request,
+		sr_metex14_packet_valid, sr_metex14_parse,
+		NULL,
+	},
+	{
+		"PeakTech", "4370", "1200/7n2/rts=0/dtr=1", 1200,
 		METEX14_PACKET_SIZE, sr_metex14_packet_request,
 		sr_metex14_packet_valid, sr_metex14_parse,
 		NULL,
@@ -160,6 +168,8 @@ static int hw_init(int dmm)
 		di = di_va18b;
 	if (dmm == METEX_M3640D)
 		di = di_m3640d;
+	if (dmm == PEAKTECH_4370)
+		di = di_4370;
 	sr_dbg("Selected '%s' subdriver.", di->name);
 
 	di->priv = drvc;
@@ -200,6 +210,11 @@ static int hw_init_va_va18b(void)
 static int hw_init_metex_m3640d(void)
 {
 	return hw_init(METEX_M3640D);
+}
+
+static int hw_init_peaktech_4370(void)
+{
+	return hw_init(PEAKTECH_4370);
 }
 
 static GSList *scan(const char *conn, const char *serialcomm, int dmm)
@@ -323,6 +338,8 @@ static GSList *hw_scan(GSList *options)
 		dmm = 5;
 	if (!strcmp(di->name, "metex-m3640d"))
 		dmm = 6;
+	if (!strcmp(di->name, "peaktech-4370"))
+		dmm = 7;
 
 	if (serialcomm) {
 		/* Use the provided comm specs. */
@@ -492,6 +509,8 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 		receive_data = va_va18b_receive_data;
 	if (!strcmp(di->name, "metex-m3640d"))
 		receive_data = metex_m3640d_receive_data;
+	if (!strcmp(di->name, "peaktech-4370"))
+		receive_data = peaktech_4370_receive_data;
 
 	/* Poll every 50ms, or whenever some data comes in. */
 	sr_source_add(devc->serial->fd, G_IO_IN, 50,
@@ -639,6 +658,24 @@ SR_PRIV struct sr_dev_driver metex_m3640d_driver_info = {
 	.longname = "Metex M-3640D",
 	.api_version = 1,
 	.init = hw_init_metex_m3640d,
+	.cleanup = hw_cleanup,
+	.scan = hw_scan,
+	.dev_list = hw_dev_list,
+	.dev_clear = clear_instances,
+	.dev_open = hw_dev_open,
+	.dev_close = hw_dev_close,
+	.info_get = hw_info_get,
+	.dev_config_set = hw_dev_config_set,
+	.dev_acquisition_start = hw_dev_acquisition_start,
+	.dev_acquisition_stop = hw_dev_acquisition_stop,
+	.priv = NULL,
+};
+
+SR_PRIV struct sr_dev_driver peaktech_4370_driver_info = {
+	.name = "peaktech-4370",
+	.longname = "PeakTech 4370",
+	.api_version = 1,
+	.init = hw_init_peaktech_4370,
 	.cleanup = hw_cleanup,
 	.scan = hw_scan,
 	.dev_list = hw_dev_list,
