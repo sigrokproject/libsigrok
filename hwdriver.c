@@ -124,6 +124,7 @@ extern SR_PRIV struct sr_dev_driver metex_m3640d_driver_info;
 extern SR_PRIV struct sr_dev_driver peaktech_4370_driver_info;
 extern SR_PRIV struct sr_dev_driver pce_pce_dm32_driver_info;
 extern SR_PRIV struct sr_dev_driver radioshack_22_168_driver_info;
+extern SR_PRIV struct sr_dev_driver radioshack_22_812_driver_info;
 #endif
 #ifdef HAVE_HW_UNI_T_DMM
 extern SR_PRIV struct sr_dev_driver uni_t_ut61d_driver_info;
@@ -188,6 +189,7 @@ static struct sr_dev_driver *drivers_list[] = {
 	&peaktech_4370_driver_info,
 	&pce_pce_dm32_driver_info,
 	&radioshack_22_168_driver_info,
+	&radioshack_22_812_driver_info,
 #endif
 #ifdef HAVE_HW_UNI_T_DMM
 	&uni_t_ut61d_driver_info,

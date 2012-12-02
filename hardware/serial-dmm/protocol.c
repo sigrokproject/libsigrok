@@ -244,3 +244,9 @@ SR_PRIV int radioshack_22_168_receive_data(int fd, int revents, void *cb_data)
 	struct metex14_info info;
 	return receive_data(fd, revents, RADIOSHACK_22_168, &info, cb_data);
 }
+
+SR_PRIV int radioshack_22_812_receive_data(int fd, int revents, void *cb_data)
+{
+	struct metex14_info info;
+	return receive_data(fd, revents, RADIOSHACK_22_812, &info, cb_data);
+}

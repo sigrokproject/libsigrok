@@ -57,6 +57,7 @@ SR_PRIV struct sr_dev_driver metex_m3640d_driver_info;
 SR_PRIV struct sr_dev_driver peaktech_4370_driver_info;
 SR_PRIV struct sr_dev_driver pce_pce_dm32_driver_info;
 SR_PRIV struct sr_dev_driver radioshack_22_168_driver_info;
+SR_PRIV struct sr_dev_driver radioshack_22_812_driver_info;
 
 static struct sr_dev_driver *di_dt4000zc = &digitek_dt4000zc_driver_info;
 static struct sr_dev_driver *di_tp4000zc = &tekpower_tp4000zc_driver_info;
@@ -68,6 +69,7 @@ static struct sr_dev_driver *di_m3640d = &metex_m3640d_driver_info;
 static struct sr_dev_driver *di_4370 = &peaktech_4370_driver_info;
 static struct sr_dev_driver *di_pce_dm32 = &pce_pce_dm32_driver_info;
 static struct sr_dev_driver *di_22_168 = &radioshack_22_168_driver_info;
+static struct sr_dev_driver *di_22_812 = &radioshack_22_812_driver_info;
 
 /* After hw_init() this will point to a device-specific entry (see above). */
 static struct sr_dev_driver *di = NULL;
@@ -133,6 +135,12 @@ SR_PRIV struct dmm_info dmms[] = {
 		sr_metex14_packet_valid, sr_metex14_parse,
 		NULL,
 	},
+	{
+		"RadioShack", "22-812", "4800/8n1/rts=0/dtr=1", 4800,
+		RS9LCD_PACKET_SIZE, NULL,
+		sr_rs9lcd_packet_valid, sr_rs9lcd_parse,
+		NULL,
+	},
 };
 
 /* Properly close and free all devices. */
@@ -190,6 +198,8 @@ static int hw_init(int dmm)
 		di = di_pce_dm32;
 	if (dmm == RADIOSHACK_22_168)
 		di = di_22_168;
+	if (dmm == RADIOSHACK_22_812)
+		di = di_22_812;
 	sr_dbg("Selected '%s' subdriver.", di->name);
 
 	di->priv = drvc;
@@ -245,6 +255,11 @@ static int hw_init_pce_pce_dm32(void)
 static int hw_init_radioshack_22_168(void)
 {
 	return hw_init(RADIOSHACK_22_168);
+}
+
+static int hw_init_radioshack_22_812(void)
+{
+	return hw_init(RADIOSHACK_22_812);
 }
 
 static GSList *scan(const char *conn, const char *serialcomm, int dmm)
@@ -374,6 +389,8 @@ static GSList *hw_scan(GSList *options)
 		dmm = 8;
 	if (!strcmp(di->name, "radioshack-22-168"))
 		dmm = 9;
+	if (!strcmp(di->name, "radioshack-22-812"))
+		dmm = 10;
 
 	if (serialcomm) {
 		/* Use the provided comm specs. */
@@ -549,6 +566,8 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 		receive_data = pce_pce_dm32_receive_data;
 	if (!strcmp(di->name, "radioshack-22-168"))
 		receive_data = radioshack_22_168_receive_data;
+	if (!strcmp(di->name, "radioshack-22-812"))
+		receive_data = radioshack_22_812_receive_data;
 
 	/* Poll every 50ms, or whenever some data comes in. */
 	sr_source_add(devc->serial->fd, G_IO_IN, 50,
@@ -750,6 +769,24 @@ SR_PRIV struct sr_dev_driver radioshack_22_168_driver_info = {
 	.longname = "RadioShack 22-168",
 	.api_version = 1,
 	.init = hw_init_radioshack_22_168,
+	.cleanup = hw_cleanup,
+	.scan = hw_scan,
+	.dev_list = hw_dev_list,
+	.dev_clear = clear_instances,
+	.dev_open = hw_dev_open,
+	.dev_close = hw_dev_close,
+	.info_get = hw_info_get,
+	.dev_config_set = hw_dev_config_set,
+	.dev_acquisition_start = hw_dev_acquisition_start,
+	.dev_acquisition_stop = hw_dev_acquisition_stop,
+	.priv = NULL,
+};
+
+SR_PRIV struct sr_dev_driver radioshack_22_812_driver_info = {
+	.name = "radioshack-22-812",
+	.longname = "RadioShack 22-812",
+	.api_version = 1,
+	.init = hw_init_radioshack_22_812,
 	.cleanup = hw_cleanup,
 	.scan = hw_scan,
 	.dev_list = hw_dev_list,

@@ -153,7 +153,7 @@ static gboolean checksum_valid(const struct rs9lcd_packet *rs_packet)
 
 	raw = (void *)rs_packet;
 
-	for (i = 0; i < RS_22_812_PACKET_SIZE - 1; i++)
+	for (i = 0; i < RS9LCD_PACKET_SIZE - 1; i++)
 		sum += raw[i];
 
 	/* This is just a funky constant added to the checksum. */

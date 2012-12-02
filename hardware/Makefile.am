@@ -31,7 +31,6 @@ SUBDIRS = \
 	hantek-dso \
 	link-mso19 \
 	openbench-logic-sniffer \
-	radioshack-dmm \
 	serial-dmm \
 	tondaj-sl-814 \
 	uni-t-dmm \
