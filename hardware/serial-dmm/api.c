@@ -49,29 +49,33 @@ static const char *probe_names[] = {
 
 SR_PRIV struct sr_dev_driver digitek_dt4000zc_driver_info;
 SR_PRIV struct sr_dev_driver tekpower_tp4000zc_driver_info;
+SR_PRIV struct sr_dev_driver metex_me31_driver_info;
 
-static struct sr_dev_driver *di_digitek_dt4000zc = &digitek_dt4000zc_driver_info;
-static struct sr_dev_driver *di_tekpower_tp4000zc = &tekpower_tp4000zc_driver_info;
+static struct sr_dev_driver *di_dt4000zc = &digitek_dt4000zc_driver_info;
+static struct sr_dev_driver *di_tp4000zc = &tekpower_tp4000zc_driver_info;
+static struct sr_dev_driver *di_me31 = &metex_me31_driver_info;
 
 /* After hw_init() this will point to a device-specific entry (see above). */
 static struct sr_dev_driver *di = NULL;
 
 SR_PRIV struct dmm_info dmms[] = {
 	{
-		"Digitek", "DT4000ZC",
-		"2400/8n1", 2400,
-		FS9721_PACKET_SIZE,
-		sr_fs9721_packet_valid,
-		sr_fs9721_parse,
+		"Digitek", "DT4000ZC", "2400/8n1", 2400,
+		FS9721_PACKET_SIZE, NULL,
+		sr_fs9721_packet_valid, sr_fs9721_parse,
 		dmm_details_dt4000zc,
 	},
 	{
-		"TekPower", "TP4000ZC",
-		"2400/8n1", 2400,
-		FS9721_PACKET_SIZE,
-		sr_fs9721_packet_valid,
-		sr_fs9721_parse,
+		"TekPower", "TP4000ZC", "2400/8n1", 2400,
+		FS9721_PACKET_SIZE, NULL,
+		sr_fs9721_packet_valid, sr_fs9721_parse,
 		dmm_details_tp4000zc,
+	},
+	{
+		"Metex", "ME-31", "600/7n2/rts=0/dtr=1", 600,
+		METEX14_PACKET_SIZE, sr_metex14_packet_request,
+		sr_metex14_packet_valid, sr_metex14_parse,
+		NULL,
 	},
 };
 
@@ -111,9 +115,11 @@ static int hw_init(int dmm)
 	}
 
 	if (dmm == DIGITEK_DT4000ZC)
-		di = di_digitek_dt4000zc;
+		di = di_dt4000zc;
 	if (dmm == TEKPOWER_TP4000ZC)
-		di = di_tekpower_tp4000zc;
+		di = di_tp4000zc;
+	if (dmm == METEX_ME31)
+		di = di_me31;
 	sr_dbg("Selected '%s' subdriver.", di->name);
 
 	di->priv = drvc;
@@ -131,6 +137,11 @@ static int hw_init_tekpower_tp4000zc(void)
 	return hw_init(TEKPOWER_TP4000ZC);
 }
 
+static int hw_init_metex_me31(void)
+{
+	return hw_init(METEX_ME31);
+}
+
 static GSList *scan(const char *conn, const char *serialcomm, int dmm)
 {
 	struct sr_dev_inst *sdi;
@@ -146,10 +157,10 @@ static GSList *scan(const char *conn, const char *serialcomm, int dmm)
 	if (!(serial = sr_serial_dev_inst_new(conn, serialcomm)))
 		return NULL;
 
-	if (serial_open(serial, SERIAL_RDONLY | SERIAL_NONBLOCK) != SR_OK)
+	if (serial_open(serial, SERIAL_RDWR | SERIAL_NONBLOCK) != SR_OK)
 		return NULL;
 
-	sr_info("Probing port %s readonly.", conn);
+	sr_info("Probing port %s.", conn);
 
 	drvc = di->priv;
 	devices = NULL;
@@ -163,6 +174,14 @@ static GSList *scan(const char *conn, const char *serialcomm, int dmm)
 
 	/* Let's get a bit of data and see if we can find a packet. */
 	len = sizeof(buf);
+
+	/* Request a packet if the DMM requires this. */
+	if (dmms[dmm].packet_request) {
+		if ((ret = dmms[dmm].packet_request(serial)) < 0) {
+			sr_err("Failed to request packet: %d.", ret);
+			return FALSE;
+		}
+	}
 
 	ret = serial_stream_detect(serial, buf, &len, dmms[dmm].packet_size,
 				   dmms[dmm].packet_valid, 1000,
@@ -234,6 +253,8 @@ static GSList *hw_scan(GSList *options)
 		dmm = 0;
 	if (!strcmp(di->name, "tekpower-tp4000zc"))
 		dmm = 1;
+	if (!strcmp(di->name, "metex-me31"))
+		dmm = 2;
 
 	if (serialcomm) {
 		/* Use the provided comm specs. */
@@ -264,7 +285,7 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 		return SR_ERR_BUG;
 	}
 
-	if (serial_open(devc->serial, SERIAL_RDONLY) != SR_OK)
+	if (serial_open(devc->serial, SERIAL_RDWR | SERIAL_NONBLOCK) != SR_OK)
 		return SR_ERR;
 
 	sdi->status = SR_ST_ACTIVE;
@@ -393,6 +414,8 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 		receive_data = digitek_dt4000zc_receive_data;
 	if (!strcmp(di->name, "tekpower-tp4000zc"))
 		receive_data = tekpower_tp4000zc_receive_data;
+	if (!strcmp(di->name, "metex-me31"))
+		receive_data = metex_me31_receive_data;
 
 	/* Poll every 50ms, or whenever some data comes in. */
 	sr_source_add(devc->serial->fd, G_IO_IN, 50,
@@ -450,6 +473,24 @@ SR_PRIV struct sr_dev_driver tekpower_tp4000zc_driver_info = {
 	.longname = "TekPower TP4000ZC",
 	.api_version = 1,
 	.init = hw_init_tekpower_tp4000zc,
+	.cleanup = hw_cleanup,
+	.scan = hw_scan,
+	.dev_list = hw_dev_list,
+	.dev_clear = clear_instances,
+	.dev_open = hw_dev_open,
+	.dev_close = hw_dev_close,
+	.info_get = hw_info_get,
+	.dev_config_set = hw_dev_config_set,
+	.dev_acquisition_start = hw_dev_acquisition_start,
+	.dev_acquisition_stop = hw_dev_acquisition_stop,
+	.priv = NULL,
+};
+
+SR_PRIV struct sr_dev_driver metex_me31_driver_info = {
+	.name = "metex-me31",
+	.longname = "Metex ME-31",
+	.api_version = 1,
+	.init = hw_init_metex_me31,
 	.cleanup = hw_cleanup,
 	.scan = hw_scan,
 	.dev_list = hw_dev_list,

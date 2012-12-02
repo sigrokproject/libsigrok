@@ -32,6 +32,7 @@
 enum {
 	DIGITEK_DT4000ZC,
 	TEKPOWER_TP4000ZC,
+	METEX_ME31,
 };
 
 struct dmm_info {
@@ -40,13 +41,14 @@ struct dmm_info {
 	char *conn;
 	uint32_t baudrate;
 	int packet_size;
+	int (*packet_request)(struct sr_serial_dev_inst *);
 	gboolean (*packet_valid)(const uint8_t *);
 	int (*packet_parse)(const uint8_t *, float *,
 			    struct sr_datafeed_analog *, void *);
 	void (*dmm_details)(struct sr_datafeed_analog *, void *);
 };
 
-SR_PRIV struct dmm_info dmms[2];
+SR_PRIV struct dmm_info dmms[3];
 
 #define DMM_BUFSIZE 256
 
@@ -70,6 +72,7 @@ struct dev_context {
 
 SR_PRIV int digitek_dt4000zc_receive_data(int fd, int revents, void *cb_data);
 SR_PRIV int tekpower_tp4000zc_receive_data(int fd, int revents, void *cb_data);
+SR_PRIV int metex_me31_receive_data(int fd, int revents, void *cb_data);
 
 SR_PRIV void dmm_details_tp4000zc(struct sr_datafeed_analog *analog, void *info);
 SR_PRIV void dmm_details_dt4000zc(struct sr_datafeed_analog *analog, void *info);

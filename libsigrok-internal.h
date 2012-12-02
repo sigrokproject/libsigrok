@@ -200,6 +200,7 @@ struct metex14_info {
 	gboolean is_kilo, is_mega;
 };
 
+SR_PRIV int sr_metex14_packet_request(struct sr_serial_dev_inst *serial);
 SR_PRIV gboolean sr_metex14_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_metex14_parse(const uint8_t *buf, float *floatval,
 			     struct sr_datafeed_analog *analog, void *info);

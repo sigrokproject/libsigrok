@@ -74,7 +74,8 @@ static void handle_packet(const uint8_t *buf, struct dev_context *devc,
 	dmms[dmm].packet_parse(buf, &floatval, analog, info);
 	analog->data = &floatval;
 
-	dmms[dmm].dmm_details(analog, info);
+	if (dmms[dmm].dmm_details)
+		dmms[dmm].dmm_details(analog, info);
 
 	if (analog->mq != -1) {
 		/* Got a measurement. */
@@ -120,6 +121,7 @@ static int receive_data(int fd, int revents, int dmm, void *info, void *cb_data)
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
+	int ret;
 
 	(void)fd;
 
@@ -132,6 +134,15 @@ static int receive_data(int fd, int revents, int dmm, void *info, void *cb_data)
 	if (revents == G_IO_IN) {
 		/* Serial data arrived. */
 		handle_new_data(devc, dmm, info);
+	} else {
+		/* Timeout, send another packet request (if DMM needs it). */
+		if (dmms[dmm].packet_request) {
+			ret = dmms[dmm].packet_request(devc->serial);
+			if (ret < 0) {
+				sr_err("Failed to request packet: %d.", ret);
+				return FALSE;
+			}
+		}
 	}
 
 	if (devc->num_samples >= devc->limit_samples) {
@@ -155,4 +166,11 @@ SR_PRIV int tekpower_tp4000zc_receive_data(int fd, int revents, void *cb_data)
 	struct fs9721_info info;
 
 	return receive_data(fd, revents, TEKPOWER_TP4000ZC, &info, cb_data);
+}
+
+SR_PRIV int metex_me31_receive_data(int fd, int revents, void *cb_data)
+{
+	struct metex14_info info;
+
+	return receive_data(fd, revents, METEX_ME31, &info, cb_data);
 }
