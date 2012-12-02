@@ -78,10 +78,9 @@ struct dev_context {
 	int pipe_fds[2];
 	GIOChannel *channels[2];
 	uint8_t sample_generator;
-	uint8_t thread_running;
 	uint64_t samples_counter;
 	void *session_dev_id;
-	GTimer *timer;
+	int64_t starttime;
 };
 
 static const int hwcaps[] = {
@@ -144,8 +143,6 @@ static uint64_t cur_samplerate = SR_KHZ(200);
 static uint64_t limit_samples = 0;
 static uint64_t limit_msec = 0;
 static int default_pattern = PATTERN_SIGROK;
-static GThread *my_thread;
-static int thread_running;
 
 static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);
 
@@ -308,10 +305,10 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 	return ret;
 }
 
-static void samples_generator(uint8_t *buf, uint64_t size, void *data)
+static void samples_generator(uint8_t *buf, uint64_t size,
+			      struct dev_context *devc)
 {
 	static uint64_t p = 0;
-	struct dev_context *devc = data;
 	uint64_t i;
 
 	/* TODO: Needed? */
@@ -345,83 +342,49 @@ static void samples_generator(uint8_t *buf, uint64_t size, void *data)
 	}
 }
 
-/* Thread function */
-static void thread_func(void *data)
-{
-	struct dev_context *devc = data;
-	uint8_t buf[BUFSIZE];
-	uint64_t nb_to_send = 0;
-	int bytes_written;
-	double time_cur, time_last, time_diff;
-
-	time_last = g_timer_elapsed(devc->timer, NULL);
-
-	while (thread_running) {
-		/* Rate control */
-		time_cur = g_timer_elapsed(devc->timer, NULL);
-
-		time_diff = time_cur - time_last;
-		time_last = time_cur;
-
-		nb_to_send = cur_samplerate * time_diff;
-
-		if (limit_samples) {
-			nb_to_send = MIN(nb_to_send,
-				      limit_samples - devc->samples_counter);
-		}
-
-		/* Make sure we don't overflow. */
-		nb_to_send = MIN(nb_to_send, BUFSIZE);
-
-		if (nb_to_send) {
-			samples_generator(buf, nb_to_send, data);
-			devc->samples_counter += nb_to_send;
-
-			g_io_channel_write_chars(devc->channels[1], (gchar *)&buf,
-				nb_to_send, (gsize *)&bytes_written, NULL);
-		}
-
-		/* Check if we're done. */
-		if ((limit_msec && time_cur * 1000 > limit_msec) ||
-		    (limit_samples && devc->samples_counter >= limit_samples))
-		{
-			close(devc->pipe_fds[1]);
-			thread_running = 0;
-		}
-
-		g_usleep(10);
-	}
-}
-
 /* Callback handling data */
 static int receive_data(int fd, int revents, void *cb_data)
 {
 	struct dev_context *devc = cb_data;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
-	static uint64_t samples_received = 0;
-	unsigned char c[BUFSIZE];
-	gsize z;
+	uint8_t buf[BUFSIZE];
+	static uint64_t samples_to_send, expected_samplenum, sending_now;
+	int64_t time, elapsed;
 
 	(void)fd;
 	(void)revents;
 
-	do {
-		g_io_channel_read_chars(devc->channels[0],
-				        (gchar *)&c, BUFSIZE, &z, NULL);
+	/* How many "virtual" samples should we have collected by now? */
+	time = g_get_monotonic_time();
+	elapsed = time - devc->starttime;
+	expected_samplenum = elapsed * cur_samplerate / 1000000;
+	/* Of those, how many do we still have to send? */
+	samples_to_send = expected_samplenum - devc->samples_counter;
 
-		if (z > 0) {
-			packet.type = SR_DF_LOGIC;
-			packet.payload = &logic;
-			logic.length = z;
-			logic.unitsize = 1;
-			logic.data = c;
-			sr_session_send(devc->session_dev_id, &packet);
-			samples_received += z;
-		}
-	} while (z > 0);
+	if (limit_samples) {
+		samples_to_send = MIN(samples_to_send,
+				 limit_samples - devc->samples_counter);
+	}
 
-	if (!thread_running && z <= 0) {
+	while (samples_to_send > 0) {
+		sending_now = MIN(samples_to_send, sizeof(buf));
+		samples_to_send -= sending_now;
+		samples_generator(buf, sending_now, devc);
+
+		packet.type = SR_DF_LOGIC;
+		packet.payload = &logic;
+		logic.length = sending_now;
+		logic.unitsize = 1;
+		logic.data = buf;
+		sr_session_send(devc->session_dev_id, &packet);
+		devc->samples_counter += sending_now;
+	}
+
+
+	if (devc->samples_counter >= limit_samples) {
+		sr_spew("We sent a total of %" PRIu64 " samples.",
+			devc->samples_counter);
 		/* Make sure we don't receive more packets. */
 		hw_dev_acquisition_stop(NULL, cb_data);
 		return TRUE;
@@ -452,6 +415,13 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	devc->session_dev_id = cb_data;
 	devc->samples_counter = 0;
 
+	/*
+	 * Setting two channels connected by a pipe is a remnant from when the
+	 * demo driver generated data in a thread, and collected and sent the
+	 * data in the main program loop.
+	 * They are kept here because it provides a convenient way of setting
+	 * up a timeout-based polling mechanism.
+	 */
 	if (pipe(devc->pipe_fds)) {
 		/* TODO: Better error message. */
 		sr_err("%s: pipe() failed", __func__);
@@ -473,16 +443,6 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 
 	sr_session_source_add_channel(devc->channels[0], G_IO_IN | G_IO_ERR,
 		    40, receive_data, devc);
-
-	/* Run the demo thread. */
-	devc->timer = g_timer_new();
-	thread_running = 1;
-	my_thread = g_thread_try_new("sigrok demo generator",
-			(GThreadFunc)thread_func, devc, NULL);
-	if (!my_thread) {
-		sr_err("%s: g_thread_try_new failed", __func__);
-		return SR_ERR; /* TODO */
-	}
 
 	if (!(packet = g_try_malloc(sizeof(struct sr_datafeed_packet)))) {
 		sr_err("%s: packet malloc failed", __func__);
@@ -507,6 +467,9 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	meta.num_probes = NUM_PROBES;
 	sr_session_send(devc->session_dev_id, packet);
 
+	/* We use this timestamp to decide how many more samples to send. */
+	devc->starttime = g_get_monotonic_time();
+
 	g_free(header);
 	g_free(packet);
 
@@ -523,9 +486,6 @@ static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 	devc = cb_data;
 
 	sr_dbg("Stopping aquisition.");
-
-	/* Stop generate thread. */
-	thread_running = 0;
 
 	sr_session_source_remove_channel(devc->channels[0]);
 	g_io_channel_shutdown(devc->channels[0], FALSE, NULL);
