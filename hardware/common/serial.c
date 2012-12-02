@@ -325,8 +325,11 @@ SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
 #ifdef _WIN32
 	DCB dcb;
 
-	if (!GetCommState(hdl, &dcb))
+	if (!GetCommState(hdl, &dcb)) {
+		sr_err("Failed to get comm state on port %s (fd %d): %d.",
+		       serial->port, serial->fd, GetLastError());
 		return SR_ERR;
+	}
 
 	switch (baudrate) {
 	/*
@@ -381,9 +384,41 @@ SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
 	}
 	sr_spew("Configuring baudrate to %d (%d).", baudrate, dcb.BaudRate);
 
+	sr_spew("Configuring %d data bits.", bits);
 	dcb.ByteSize = bits;
-	dcb.Parity = NOPARITY; /* TODO: Don't hardcode. */
-	dcb.StopBits = ONESTOPBIT; /* TODO: Don't hardcode. */
+
+	sr_spew("Configuring %d stop bits.", stopbits);
+	switch (stopbits) {
+	/* Note: There's also ONE5STOPBITS == 1.5 (unneeded so far). */
+	case 1:
+		dcb.StopBits = ONESTOPBIT;
+		break;
+	case 2:
+		dcb.StopBits = TWOSTOPBITS;
+		break;
+	default:
+		sr_err("Unsupported stopbits number: %d.", stopbits);
+		return SR_ERR;
+	}
+
+	switch (parity) {
+	/* Note: There's also SPACEPARITY, MARKPARITY (unneeded so far). */
+	case SERIAL_PARITY_NONE:
+		sr_spew("Configuring no parity.");
+		dcb.Parity = NOPARITY;
+		break;
+	case SERIAL_PARITY_EVEN:
+		sr_spew("Configuring even parity.");
+		dcb.Parity = EVENPARITY;
+		break;
+	case SERIAL_PARITY_ODD:
+		sr_spew("Configuring odd parity.");
+		dcb.Parity = ODDPARITY;
+		break;
+	default:
+		sr_err("Unsupported parity setting: %d.", parity);
+		return SR_ERR;
+	}
 
 	if (rts != -1) {
 		sr_spew("Setting RTS %s.", rts ? "high" : "low");
@@ -401,8 +436,11 @@ SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
 			dcb.fDtrControl = DTR_CONTROL_DISABLE;
 	}
 
-	if (!SetCommState(hdl, &dcb))
+	if (!SetCommState(hdl, &dcb)) {
+		sr_err("Failed to set comm state on port %s (fd %d): %d.",
+		       serial->port, serial->fd, GetLastError());
 		return SR_ERR;
+	}
 #else
 	struct termios term;
 	speed_t baud;
