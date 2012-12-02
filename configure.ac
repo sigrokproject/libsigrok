@@ -178,15 +178,6 @@ if test "x$LA_OLS" = "xyes"; then
 	AC_DEFINE(HAVE_LA_OLS, 1, [OpenBench Logic Sniffer (OLS) support])
 fi
 
-AC_ARG_ENABLE(radioshack-dmm, AC_HELP_STRING([--enable-radioshack-dmm],
-	      [enable RadioShack DMM support [default=yes]]),
-	      [HW_RADIOSHACK_DMM="$enableval"],
-	      [HW_RADIOSHACK_DMM=yes])
-AM_CONDITIONAL(HW_RADIOSHACK_DMM, test x$HW_RADIOSHACK_DMM = xyes)
-if test "x$HW_RADIOSHACK_DMM" = "xyes"; then
-	AC_DEFINE(HAVE_HW_RADIOSHACK_DMM, 1, [RadioShack DMM support])
-fi
-
 AC_ARG_ENABLE(serial-dmm, AC_HELP_STRING([--enable-serial-dmm],
 	      [enable serial DMM support [default=yes]]),
 	      [HW_SERIAL_DMM="$enableval"],
@@ -313,7 +304,6 @@ AM_CONDITIONAL(NEED_SERIAL, \
 	-o "x$HW_FLUKE_DMM" != xno \
 	-o "x$LA_LINK_MSO19" != xno \
 	-o "x$LA_OLS" != xno \
-	-o "x$HW_RADIOSHACK_DMM" != xno \
 	-o "x$HW_SERIAL_DMM" != xno \
 	-o "x$HW_TONDAJ_SL_814" != xno \
 )
@@ -369,7 +359,6 @@ AC_CONFIG_FILES([Makefile version.h hardware/Makefile
 		 hardware/hantek-dso/Makefile
 		 hardware/link-mso19/Makefile
 		 hardware/openbench-logic-sniffer/Makefile
-		 hardware/radioshack-dmm/Makefile
 		 hardware/serial-dmm/Makefile
 		 hardware/uni-t-dmm/Makefile
 		 hardware/zeroplus-logic-cube/Makefile
@@ -414,7 +403,6 @@ echo "  - fx2lafw (for FX2 LAs)........... $LA_FX2LAFW"
 echo "  - Hantek DSO...................... $HW_HANTEK_DSO"
 echo "  - Link MSO-19..................... $LA_LINK_MSO19"
 echo "  - Openbench Logic Sniffer......... $LA_OLS"
-echo "  - Radioshack DMM.................. $HW_RADIOSHACK_DMM"
 echo "  - Serial DMM...................... $HW_SERIAL_DMM"
 echo "  - Tondaj SL-814................... $HW_TONDAJ_SL_814"
 echo "  - UNI-T DMM....................... $HW_UNI_T_DMM"

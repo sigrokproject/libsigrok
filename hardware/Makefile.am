@@ -88,10 +88,6 @@ if LA_OLS
 libsigrokhardware_la_LIBADD += openbench-logic-sniffer/libsigrokhwols.la
 endif
 
-if HW_RADIOSHACK_DMM
-libsigrokhardware_la_LIBADD += radioshack-dmm/libsigrokhwradioshackdmm.la
-endif
-
 if HW_SERIAL_DMM
 libsigrokhardware_la_LIBADD += serial-dmm/libsigrokhwserialdmm.la
 endif
