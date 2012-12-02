@@ -655,6 +655,7 @@ SR_PRIV int serial_set_paramstr(struct sr_serial_dev_inst *serial,
 
 	speed = databits = parity = stopbits = 0;
 	rts = dtr = -1;
+	sr_spew("Parsing parameters from \"%s\".", paramstr);
 	reg = g_regex_new(SERIAL_COMM_SPEC, 0, 0, NULL);
 	if (g_regex_match(reg, paramstr, 0, &match)) {
 		if ((mstr = g_match_info_fetch(match, 1)))
@@ -718,11 +719,13 @@ SR_PRIV int serial_set_paramstr(struct sr_serial_dev_inst *serial,
 	g_match_info_unref(match);
 	g_regex_unref(reg);
 
-	if (speed)
-		return serial_set_params(serial, speed, databits, parity, stopbits,
-				0, rts, dtr);
-	else
+	if (speed) {
+		return serial_set_params(serial, speed, databits, parity,
+					 stopbits, 0, rts, dtr);
+	} else {
+		sr_dbg("Could not infer speed from parameter string.");
 		return SR_ERR_ARG;
+	}
 }
 
 /**
