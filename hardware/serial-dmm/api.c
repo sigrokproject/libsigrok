@@ -55,6 +55,7 @@ SR_PRIV struct sr_dev_driver mastech_mas345_driver_info;
 SR_PRIV struct sr_dev_driver va_va18b_driver_info;
 SR_PRIV struct sr_dev_driver metex_m3640d_driver_info;
 SR_PRIV struct sr_dev_driver peaktech_4370_driver_info;
+SR_PRIV struct sr_dev_driver pce_pce_dm32_driver_info;
 
 static struct sr_dev_driver *di_dt4000zc = &digitek_dt4000zc_driver_info;
 static struct sr_dev_driver *di_tp4000zc = &tekpower_tp4000zc_driver_info;
@@ -64,6 +65,7 @@ static struct sr_dev_driver *di_mas345 = &mastech_mas345_driver_info;
 static struct sr_dev_driver *di_va18b = &va_va18b_driver_info;
 static struct sr_dev_driver *di_m3640d = &metex_m3640d_driver_info;
 static struct sr_dev_driver *di_4370 = &peaktech_4370_driver_info;
+static struct sr_dev_driver *di_pce_dm32 = &pce_pce_dm32_driver_info;
 
 /* After hw_init() this will point to a device-specific entry (see above). */
 static struct sr_dev_driver *di = NULL;
@@ -116,6 +118,12 @@ SR_PRIV struct dmm_info dmms[] = {
 		METEX14_PACKET_SIZE, sr_metex14_packet_request,
 		sr_metex14_packet_valid, sr_metex14_parse,
 		NULL,
+	},
+	{
+		"PCE", "PCE-DM32", "2400/8n1", 2400,
+		FS9721_PACKET_SIZE, NULL,
+		sr_fs9721_packet_valid, sr_fs9721_parse,
+		dmm_details_pce_dm32,
 	},
 };
 
@@ -170,6 +178,8 @@ static int hw_init(int dmm)
 		di = di_m3640d;
 	if (dmm == PEAKTECH_4370)
 		di = di_4370;
+	if (dmm == PCE_PCE_DM32)
+		di = di_pce_dm32;
 	sr_dbg("Selected '%s' subdriver.", di->name);
 
 	di->priv = drvc;
@@ -215,6 +225,11 @@ static int hw_init_metex_m3640d(void)
 static int hw_init_peaktech_4370(void)
 {
 	return hw_init(PEAKTECH_4370);
+}
+
+static int hw_init_pce_pce_dm32(void)
+{
+	return hw_init(PCE_PCE_DM32);
 }
 
 static GSList *scan(const char *conn, const char *serialcomm, int dmm)
@@ -340,6 +355,8 @@ static GSList *hw_scan(GSList *options)
 		dmm = 6;
 	if (!strcmp(di->name, "peaktech-4370"))
 		dmm = 7;
+	if (!strcmp(di->name, "pce-pce-dm32"))
+		dmm = 8;
 
 	if (serialcomm) {
 		/* Use the provided comm specs. */
@@ -511,6 +528,8 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 		receive_data = metex_m3640d_receive_data;
 	if (!strcmp(di->name, "peaktech-4370"))
 		receive_data = peaktech_4370_receive_data;
+	if (!strcmp(di->name, "pce-pce-dm32"))
+		receive_data = pce_pce_dm32_receive_data;
 
 	/* Poll every 50ms, or whenever some data comes in. */
 	sr_source_add(devc->serial->fd, G_IO_IN, 50,
@@ -688,3 +707,22 @@ SR_PRIV struct sr_dev_driver peaktech_4370_driver_info = {
 	.dev_acquisition_stop = hw_dev_acquisition_stop,
 	.priv = NULL,
 };
+
+SR_PRIV struct sr_dev_driver pce_pce_dm32_driver_info = {
+	.name = "pce-pce-dm32",
+	.longname = "PCE PCE-DM32",
+	.api_version = 1,
+	.init = hw_init_pce_pce_dm32,
+	.cleanup = hw_cleanup,
+	.scan = hw_scan,
+	.dev_list = hw_dev_list,
+	.dev_clear = clear_instances,
+	.dev_open = hw_dev_open,
+	.dev_close = hw_dev_close,
+	.info_get = hw_info_get,
+	.dev_config_set = hw_dev_config_set,
+	.dev_acquisition_start = hw_dev_acquisition_start,
+	.dev_acquisition_stop = hw_dev_acquisition_stop,
+	.priv = NULL,
+};
+

@@ -39,9 +39,10 @@ enum {
 	VA_VA18B,
 	METEX_M3640D,
 	PEAKTECH_4370,
+	PCE_PCE_DM32,
 };
 
-#define DMM_COUNT 8
+#define DMM_COUNT 9
 
 struct dmm_info {
 	char *vendor;
@@ -86,9 +87,11 @@ SR_PRIV int mastech_mas345_receive_data(int fd, int revents, void *cb_data);
 SR_PRIV int va_va18b_receive_data(int fd, int revents, void *cb_data);
 SR_PRIV int metex_m3640d_receive_data(int fd, int revents, void *cb_data);
 SR_PRIV int peaktech_4370_receive_data(int fd, int revents, void *cb_data);
+SR_PRIV int pce_pce_dm32_receive_data(int fd, int revents, void *cb_data);
 
 SR_PRIV void dmm_details_tp4000zc(struct sr_datafeed_analog *analog, void *info);
 SR_PRIV void dmm_details_dt4000zc(struct sr_datafeed_analog *analog, void *info);
 SR_PRIV void dmm_details_va18b(struct sr_datafeed_analog *analog, void *info);
+SR_PRIV void dmm_details_pce_dm32(struct sr_datafeed_analog *analog, void *info);
 
 #endif

@@ -66,6 +66,25 @@ SR_PRIV void dmm_details_va18b(struct sr_datafeed_analog *analog, void *info)
 	}
 }
 
+SR_PRIV void dmm_details_pce_dm32(struct sr_datafeed_analog *analog, void *info)
+{
+	struct fs9721_info *info_local;
+
+	info_local = (struct fs9721_info *)info;
+
+	/* User-defined FS9721_LP3 flag 'c2c1_01' means temperature (F). */
+	if (info_local->is_c2c1_01) {
+		analog->mq = SR_MQ_TEMPERATURE;
+		analog->unit = SR_UNIT_FAHRENHEIT;
+	}
+
+	/* User-defined FS9721_LP3 flag 'c2c1_10' means temperature (C). */
+	if (info_local->is_c2c1_10) {
+		analog->mq = SR_MQ_TEMPERATURE;
+		analog->unit = SR_UNIT_CELSIUS;
+	}
+}
+
 static void handle_packet(const uint8_t *buf, struct dev_context *devc,
 			  int dmm, void *info)
 {
@@ -212,4 +231,10 @@ SR_PRIV int peaktech_4370_receive_data(int fd, int revents, void *cb_data)
 {
 	struct metex14_info info;
 	return receive_data(fd, revents, PEAKTECH_4370, &info, cb_data);
+}
+
+SR_PRIV int pce_pce_dm32_receive_data(int fd, int revents, void *cb_data)
+{
+	struct fs9721_info info;
+	return receive_data(fd, revents, PCE_PCE_DM32, &info, cb_data);
 }
