@@ -305,7 +305,8 @@ SR_PRIV int serial_read(struct sr_serial_dev_inst *serial, void *buf,
  * @return SR_OK upon success, SR_ERR upon failure.
  */
 SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
-		int bits, int parity, int stopbits, int flowcontrol, int rts, int dtr)
+			      int bits, int parity, int stopbits,
+			      int flowcontrol, int rts, int dtr)
 {
 	if (!serial) {
 		sr_dbg("Invalid serial port.");
@@ -314,12 +315,12 @@ SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
 
 	if (serial->fd == -1) {
 		sr_dbg("Cannot configure unopened serial port %s (fd %d).",
-				serial->port, serial->fd);
+		       serial->port, serial->fd);
 		return SR_ERR;
 	}
 
 	sr_spew("Setting serial parameters on port %s (fd %d).", serial->port,
-			serial->fd);
+		serial->fd);
 
 #ifdef _WIN32
 	DCB dcb;
@@ -356,6 +357,22 @@ SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
 	dcb.ByteSize = bits;
 	dcb.Parity = NOPARITY; /* TODO: Don't hardcode. */
 	dcb.StopBits = ONESTOPBIT; /* TODO: Don't hardcode. */
+
+	if (rts != -1) {
+		sr_spew("Setting RTS %s.", rts ? "high" : "low");
+		if (rts)
+			dcb.fRtsControl = RTS_CONTROL_ENABLE;
+		else
+			dcb.fRtsControl = RTS_CONTROL_DISABLE;
+	}
+
+	if (dtr != -1) {
+		sr_spew("Setting DTR %s.", dtr ? "high" : "low");
+		if (rts)
+			dcb.fDtrControl = DTR_CONTROL_ENABLE;
+		else
+			dcb.fDtrControl = DTR_CONTROL_DISABLE;
+	}
 
 	if (!SetCommState(hdl, &dcb))
 		return SR_ERR;
