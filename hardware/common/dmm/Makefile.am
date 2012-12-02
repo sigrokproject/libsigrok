@@ -23,7 +23,8 @@ noinst_LTLIBRARIES = libsigrok_hw_common_dmm.la
 libsigrok_hw_common_dmm_la_SOURCES = \
 	fs9721.c \
 	fs9922.c \
-	metex14.c
+	metex14.c \
+	rs9lcd.c
 
 libsigrok_hw_common_dmm_la_CFLAGS = \
 	-I$(top_srcdir)

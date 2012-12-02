@@ -94,7 +94,7 @@ static int hw_init(void)
 
 static gboolean packet_valid_wrap(const uint8_t *buf)
 {
-	return rs_22_812_packet_valid((void*)buf);
+	return sr_rs9lcd_packet_valid((void*)buf);
 }
 
 static GSList *rs_22_812_scan(const char *conn, const char *serialcomm)

@@ -32,20 +32,6 @@
 
 #define RS_DMM_BUFSIZE		256
 
-#define RS_22_812_PACKET_SIZE	9
-
-struct rs_22_812_packet {
-	uint8_t mode;
-	uint8_t indicatrix1;
-	uint8_t indicatrix2;
-	uint8_t digit4;
-	uint8_t digit3;
-	uint8_t digit2;
-	uint8_t digit1;
-	uint8_t info;
-	uint8_t checksum;
-};
-
 /* Private, per-device-instance driver context. */
 struct dev_context {
 	uint64_t limit_samples;
@@ -62,6 +48,5 @@ struct dev_context {
 };
 
 SR_PRIV int radioshack_dmm_receive_data(int fd, int revents, void *cb_data);
-SR_PRIV gboolean rs_22_812_packet_valid(const struct rs_22_812_packet *rs_packet);
 
 #endif
