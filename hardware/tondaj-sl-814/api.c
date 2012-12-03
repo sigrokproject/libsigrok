@@ -82,6 +82,7 @@ static int hw_init(struct sr_context *sr_ctx)
 		return SR_ERR_MALLOC;
 	}
 
+	drvc->sr_ctx = sr_ctx;
 	di->priv = drvc;
 
 	return SR_OK;

@@ -311,6 +311,7 @@ static int hw_init(struct sr_context *sr_ctx)
 		sr_err("zeroplus: driver context malloc failed.");
 		return SR_ERR_MALLOC;
 	}
+	drvc->sr_ctx = sr_ctx;
 	zdi->priv = drvc;
 
 	if (libusb_init(&usb_context) != 0) {

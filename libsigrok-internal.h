@@ -76,6 +76,7 @@ struct sr_serial_dev_inst {
 
 /* Private driver context. */
 struct drv_context {
+	struct sr_context *sr_ctx;
 	GSList *instances;
 };
 

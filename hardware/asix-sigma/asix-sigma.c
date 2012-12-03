@@ -440,6 +440,7 @@ static int hw_init(struct sr_context *sr_ctx)
 		sr_err("Driver context malloc failed.");
 		return SR_ERR_MALLOC;
 	}
+	drvc->sr_ctx = sr_ctx;
 	adi->priv = drvc;
 
 	return SR_OK;

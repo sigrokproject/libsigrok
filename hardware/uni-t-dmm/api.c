@@ -75,6 +75,7 @@ static int hw_init(struct sr_context *sr_ctx, int dmm)
 		di = di_vc820;
 	sr_dbg("Selected '%s' subdriver.", di->name);
 
+	drvc->sr_ctx = sr_ctx;
 	di->priv = drvc;
 
 	return SR_OK;
