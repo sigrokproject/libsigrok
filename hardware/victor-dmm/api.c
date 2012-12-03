@@ -112,7 +112,7 @@ static GSList *hw_scan(GSList *options)
 	clear_instances();
 
 	devices = NULL;
-	libusb_get_device_list(NULL, &devlist);
+	libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &devlist);
 	for (i = 0; devlist[i]; i++) {
 		if ((ret = libusb_get_device_descriptor(devlist[i], &des)) != 0) {
 			sr_warn("Failed to get device descriptor: %s",
@@ -164,6 +164,7 @@ static GSList *hw_dev_list(void)
 static int hw_dev_open(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
+	struct drv_context *drvc = di->priv;
 	libusb_device **devlist;
 	int ret, i;
 
@@ -173,7 +174,7 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 	}
 
 	devc = sdi->priv;
-	libusb_get_device_list(NULL, &devlist);
+	libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &devlist);
 	for (i = 0; devlist[i]; i++) {
 		if (libusb_get_bus_number(devlist[i]) != devc->usb->bus
 				|| libusb_get_device_address(devlist[i]) != devc->usb->address)
@@ -353,6 +354,7 @@ static void receive_transfer(struct libusb_transfer *transfer)
 static int handle_events(int fd, int revents, void *cb_data)
 {
 	struct dev_context *devc;
+	struct drv_context *drvc = di->priv;
 	struct sr_datafeed_packet packet;
 	struct sr_dev_inst *sdi;
 	struct timeval tv;
@@ -382,7 +384,8 @@ static int handle_events(int fd, int revents, void *cb_data)
 	}
 
 	memset(&tv, 0, sizeof(struct timeval));
-	libusb_handle_events_timeout_completed(NULL, &tv, NULL);
+	libusb_handle_events_timeout_completed(drvc->sr_ctx->libusb_ctx, &tv,
+					       NULL);
 
 	return TRUE;
 }
@@ -394,6 +397,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	struct sr_datafeed_header header;
 	struct sr_datafeed_meta_analog meta;
 	struct dev_context *devc;
+	struct drv_context *drvc = di->priv;
 	const struct libusb_pollfd **pfd;
 	struct libusb_transfer *transfer;
 	int ret, i;
@@ -422,7 +426,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	meta.num_probes = 1;
 	sr_session_send(devc->cb_data, &packet);
 
-	pfd = libusb_get_pollfds(NULL);
+	pfd = libusb_get_pollfds(drvc->sr_ctx->libusb_ctx);
 	for (i = 0; pfd[i]; i++) {
 		/* Handle USB events every 100ms, for decent latency. */
 		sr_source_add(pfd[i]->fd, pfd[i]->events, 100,

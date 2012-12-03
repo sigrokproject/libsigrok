@@ -106,6 +106,7 @@ SR_PRIV int dso_open(struct sr_dev_inst *sdi)
 	libusb_device **devlist;
 	struct libusb_device_descriptor des;
 	struct dev_context *devc;
+	struct drv_context *drvc = hantek_dso_driver_info.priv;
 	int err, skip, i;
 
 	devc = sdi->priv;
@@ -115,7 +116,7 @@ SR_PRIV int dso_open(struct sr_dev_inst *sdi)
 		return SR_ERR;
 
 	skip = 0;
-	libusb_get_device_list(NULL, &devlist);
+	libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &devlist);
 	for (i = 0; devlist[i]; i++) {
 		if ((err = libusb_get_device_descriptor(devlist[i], &des))) {
 			sr_err("Failed to get device descriptor: %d.", err);

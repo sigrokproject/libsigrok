@@ -108,8 +108,6 @@ static const char *probe_names[NUM_PROBES + 1] = {
 SR_PRIV struct sr_dev_driver zeroplus_logic_cube_driver_info;
 static struct sr_dev_driver *zdi = &zeroplus_logic_cube_driver_info;
 
-static libusb_context *usb_context = NULL;
-
 /*
  * The hardware supports more samplerates than these, but these are the
  * options hardcoded into the vendor's Windows GUI.
@@ -314,11 +312,6 @@ static int hw_init(struct sr_context *sr_ctx)
 	drvc->sr_ctx = sr_ctx;
 	zdi->priv = drvc;
 
-	if (libusb_init(&usb_context) != 0) {
-		sr_err("zp: Failed to initialize USB.");
-		return 0;
-	}
-
 	return SR_OK;
 }
 
@@ -343,7 +336,7 @@ static GSList *hw_scan(GSList *options)
 
 	/* Find all ZEROPLUS analyzers and add them to device list. */
 	devcnt = 0;
-	libusb_get_device_list(usb_context, &devlist); /* TODO: Errors. */
+	libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &devlist); /* TODO: Errors. */
 
 	for (i = 0; devlist[i]; i++) {
 		ret = libusb_get_device_descriptor(devlist[i], &des);
@@ -423,6 +416,7 @@ static GSList *hw_dev_list(void)
 static int hw_dev_open(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
+	struct drv_context *drvc = zdi->priv;
 	libusb_device **devlist, *dev;
 	struct libusb_device_descriptor des;
 	int device_count, ret, i;
@@ -432,7 +426,8 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 		return SR_ERR_ARG;
 	}
 
-	device_count = libusb_get_device_list(usb_context, &devlist);
+	device_count = libusb_get_device_list(drvc->sr_ctx->libusb_ctx,
+					      &devlist);
 	if (device_count < 0) {
 		sr_err("zp: Failed to retrieve device list");
 		return SR_ERR;
@@ -542,10 +537,6 @@ static int hw_cleanup(void)
 		return SR_OK;
 
 	clear_instances();
-
-	if (usb_context)
-		libusb_exit(usb_context);
-	usb_context = NULL;
 
 	return SR_OK;
 }

@@ -55,18 +55,11 @@ static int clear_instances(void)
 
 static int hw_init(struct sr_context *sr_ctx, int dmm)
 {
-	int ret;
 	struct drv_context *drvc;
 
 	if (!(drvc = g_try_malloc0(sizeof(struct drv_context)))) {
 		sr_err("Driver context malloc failed.");
 		return SR_ERR_MALLOC;
-	}
-
-	if ((ret = libusb_init(NULL)) < 0) {
-		sr_err("Failed to initialize libusb: %s.",
-		       libusb_error_name(ret));
-		return SR_ERR;
 	}
 
 	if (dmm == UNI_T_UT61D)
@@ -107,7 +100,7 @@ static GSList *hw_scan(GSList *options)
 
 	devices = NULL;
 
-	if (!(l = sr_usb_connect(NULL, "1a86.e008")))
+	if (!(l = sr_usb_connect(drvc->sr_ctx->libusb_ctx, "1a86.e008")))
 		return NULL;
 
 	for (i = 0; i < (int)g_slist_length(l); i++) {
@@ -169,8 +162,6 @@ static int hw_dev_close(struct sr_dev_inst *sdi)
 static int hw_cleanup(void)
 {
 	clear_instances();
-
-	// libusb_exit(NULL);
 
 	return SR_OK;
 }
