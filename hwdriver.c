@@ -212,11 +212,13 @@ SR_API struct sr_dev_driver **sr_driver_list(void)
 /**
  * Initialize a hardware driver.
  *
+ * @param ctx A libsigrok context object allocated by a previous call to
+ * 		sr_init().
  * @param driver The driver to initialize.
  *
  * @return SR_OK if all went well, or an error code otherwise.
  */
-SR_API int sr_driver_init(struct sr_dev_driver *driver)
+SR_API int sr_driver_init(struct sr_context *ctx, struct sr_dev_driver *driver)
 {
 
 	if (driver->init)

@@ -144,7 +144,7 @@ SR_API int sr_session_load(const char *filename)
 					sdi->driver = &session_driver;
 					if (devcnt == 0)
 						/* first device, init the driver */
-						sdi->driver->init();
+						sdi->driver->init(NULL);
 					sr_session_dev_add(sdi);
 					sdi->driver->dev_config_set(sdi, SR_HWCAP_SESSIONFILE, filename);
 					sdi->driver->dev_config_set(sdi, SR_HWCAP_CAPTUREFILE, val);
