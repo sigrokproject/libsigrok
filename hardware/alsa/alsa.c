@@ -75,12 +75,10 @@ struct context {
 	void *session_dev_id;
 };
 
-static int hw_init(const char *devinfo)
+static int hw_init(void)
 {
 	struct sr_dev_inst *sdi;
 	struct context *ctx;
-
-	(void)devinfo;
 
 	if (!(ctx = g_try_malloc0(sizeof(struct context)))) {
 		sr_err("%s: ctx malloc failed", __func__);
