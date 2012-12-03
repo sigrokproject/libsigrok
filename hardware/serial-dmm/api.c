@@ -169,7 +169,7 @@ static int clear_instances(void)
 	return SR_OK;
 }
 
-static int hw_init(int dmm)
+static int hw_init(struct sr_context *sr_ctx, int dmm)
 {
 	struct drv_context *drvc;
 
@@ -207,59 +207,59 @@ static int hw_init(int dmm)
 	return SR_OK;
 }
 
-static int hw_init_digitek_dt4000zc(void)
+static int hw_init_digitek_dt4000zc(struct sr_context *sr_ctx)
 {
-	return hw_init(DIGITEK_DT4000ZC);
+	return hw_init(sr_ctx, DIGITEK_DT4000ZC);
 }
 
-static int hw_init_tekpower_tp4000zc(void)
+static int hw_init_tekpower_tp4000zc(struct sr_context *sr_ctx)
 {
-	return hw_init(TEKPOWER_TP4000ZC);
+	return hw_init(sr_ctx, TEKPOWER_TP4000ZC);
 }
 
-static int hw_init_metex_me31(void)
+static int hw_init_metex_me31(struct sr_context *sr_ctx)
 {
-	return hw_init(METEX_ME31);
+	return hw_init(sr_ctx, METEX_ME31);
 }
 
-static int hw_init_peaktech_3410(void)
+static int hw_init_peaktech_3410(struct sr_context *sr_ctx)
 {
-	return hw_init(PEAKTECH_3410);
+	return hw_init(sr_ctx, PEAKTECH_3410);
 }
 
-static int hw_init_mastech_mas345(void)
+static int hw_init_mastech_mas345(struct sr_context *sr_ctx)
 {
-	return hw_init(MASTECH_MAS345);
+	return hw_init(sr_ctx, MASTECH_MAS345);
 }
 
-static int hw_init_va_va18b(void)
+static int hw_init_va_va18b(struct sr_context *sr_ctx)
 {
-	return hw_init(VA_VA18B);
+	return hw_init(sr_ctx, VA_VA18B);
 }
 
-static int hw_init_metex_m3640d(void)
+static int hw_init_metex_m3640d(struct sr_context *sr_ctx)
 {
-	return hw_init(METEX_M3640D);
+	return hw_init(sr_ctx, METEX_M3640D);
 }
 
-static int hw_init_peaktech_4370(void)
+static int hw_init_peaktech_4370(struct sr_context *sr_ctx)
 {
-	return hw_init(PEAKTECH_4370);
+	return hw_init(sr_ctx, PEAKTECH_4370);
 }
 
-static int hw_init_pce_pce_dm32(void)
+static int hw_init_pce_pce_dm32(struct sr_context *sr_ctx)
 {
-	return hw_init(PCE_PCE_DM32);
+	return hw_init(sr_ctx, PCE_PCE_DM32);
 }
 
-static int hw_init_radioshack_22_168(void)
+static int hw_init_radioshack_22_168(struct sr_context *sr_ctx)
 {
-	return hw_init(RADIOSHACK_22_168);
+	return hw_init(sr_ctx, RADIOSHACK_22_168);
 }
 
-static int hw_init_radioshack_22_812(void)
+static int hw_init_radioshack_22_812(struct sr_context *sr_ctx)
 {
-	return hw_init(RADIOSHACK_22_812);
+	return hw_init(sr_ctx, RADIOSHACK_22_812);
 }
 
 static GSList *scan(const char *conn, const char *serialcomm, int dmm)

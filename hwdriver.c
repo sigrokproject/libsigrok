@@ -222,7 +222,7 @@ SR_API int sr_driver_init(struct sr_context *ctx, struct sr_dev_driver *driver)
 {
 
 	if (driver->init)
-		return driver->init();
+		return driver->init(ctx);
 
 	return SR_OK;
 }

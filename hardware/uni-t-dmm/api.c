@@ -53,7 +53,7 @@ static int clear_instances(void)
 	return SR_OK;
 }
 
-static int hw_init(int dmm)
+static int hw_init(struct sr_context *sr_ctx, int dmm)
 {
 	int ret;
 	struct drv_context *drvc;
@@ -80,14 +80,14 @@ static int hw_init(int dmm)
 	return SR_OK;
 }
 
-static int hw_init_ut61d(void)
+static int hw_init_ut61d(struct sr_context *sr_ctx)
 {
-	return hw_init(UNI_T_UT61D);
+	return hw_init(sr_ctx, UNI_T_UT61D);
 }
 
-static int hw_init_vc820(void)
+static int hw_init_vc820(struct sr_context *sr_ctx)
 {
-	return hw_init(VOLTCRAFT_VC820);
+	return hw_init(sr_ctx, VOLTCRAFT_VC820);
 }
 
 static GSList *hw_scan(GSList *options)

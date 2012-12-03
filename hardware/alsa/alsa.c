@@ -75,7 +75,7 @@ struct context {
 	void *session_dev_id;
 };
 
-static int hw_init(void)
+static int hw_init(struct sr_context *sr_ctx)
 {
 	struct sr_dev_inst *sdi;
 	struct context *ctx;

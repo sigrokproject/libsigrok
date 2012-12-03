@@ -401,7 +401,7 @@ static int mso_parse_serial(const char *iSerial, const char *iProduct,
 	return SR_OK;
 }
 
-static int hw_init(void)
+static int hw_init(struct sr_context *sr_ctx)
 {
 	/* Nothing to do. */
 

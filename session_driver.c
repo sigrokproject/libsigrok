@@ -117,8 +117,10 @@ static int receive_data(int fd, int revents, void *cb_data)
 /* driver callbacks */
 static int hw_cleanup(void);
 
-static int hw_init(void)
+static int hw_init(struct sr_context *sr_ctx)
 {
+	(void)sr_ctx;
+
 	return SR_OK;
 }
 

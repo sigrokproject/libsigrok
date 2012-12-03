@@ -303,7 +303,7 @@ static int clear_instances(void)
  * API callbacks
  */
 
-static int hw_init(void)
+static int hw_init(struct sr_context *sr_ctx)
 {
 	struct drv_context *drvc;
 

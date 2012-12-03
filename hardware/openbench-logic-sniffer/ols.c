@@ -362,7 +362,7 @@ static struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
 	return sdi;
 }
 
-static int hw_init(void)
+static int hw_init(struct sr_context *sr_ctx)
 {
 	struct drv_context *drvc;
 

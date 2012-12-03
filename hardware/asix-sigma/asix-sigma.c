@@ -432,7 +432,7 @@ static int clear_instances(void)
 	return SR_OK;
 }
 
-static int hw_init(void)
+static int hw_init(struct sr_context *sr_ctx)
 {
 	struct drv_context *drvc;
 

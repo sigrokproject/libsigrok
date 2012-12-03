@@ -605,7 +605,7 @@ struct sr_dev_driver {
 	char *name;
 	char *longname;
 	int api_version;
-	int (*init) (void);
+	int (*init) (struct sr_context *sr_ctx);
 	int (*cleanup) (void);
 	GSList *(*scan) (GSList *options);
 	GSList *(*dev_list) (void);
