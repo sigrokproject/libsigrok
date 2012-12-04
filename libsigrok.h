@@ -426,6 +426,12 @@ enum {
 	/** The device can act as a sound level meter. */
 	SR_HWCAP_SOUNDLEVELMETER,
 
+	/** The device can measure temperature. */
+	SR_HWCAP_THERMOMETER,
+
+	/** The device can measure humidity. */
+	SR_HWCAP_HYGROMETER,
+
 	/*--- Device configuration ------------------------------------------*/
 
 	/** The device supports setting/changing its samplerate. */
