@@ -46,6 +46,23 @@ struct dev_context {
 
 	/** The current number of already received samples. */
 	uint64_t num_samples;
+
+	struct sr_usb_dev_inst *usb;
+	const struct elusb_profile *profile;
+	/* Only requires 3 really. */
+	int usbfd[10];
+};
+
+enum {
+	LOG_UNSUPPORTED,
+	LOG_TEMP_RH,
+	LOG_CO,
+};
+
+struct elusb_profile {
+	int modelid;
+	char *modelname;
+	int logformat;
 };
 
 SR_PRIV int lascar_el_usb_receive_data(int fd, int revents, void *cb_data);
