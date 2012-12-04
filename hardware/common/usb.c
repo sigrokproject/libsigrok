@@ -123,7 +123,8 @@ SR_PRIV GSList *sr_usb_find(libusb_context *usb_ctx, const char *conn)
 	libusb_get_device_list(usb_ctx, &devlist);
 	for (i = 0; devlist[i]; i++) {
 		if ((ret = libusb_get_device_descriptor(devlist[i], &des))) {
-			sr_err("Failed to get device descriptor: %d.", ret);
+			sr_err("Failed to get device descriptor: %s.",
+			       libusb_error_name(ret));
 			continue;
 		}
 

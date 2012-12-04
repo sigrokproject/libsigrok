@@ -341,7 +341,8 @@ static GSList *hw_scan(GSList *options)
 	for (i = 0; devlist[i]; i++) {
 		ret = libusb_get_device_descriptor(devlist[i], &des);
 		if (ret != 0) {
-			sr_err("zp: failed to get device descriptor: %d", ret);
+			sr_err("zp: failed to get device descriptor: %s",
+			       libusb_error_name(ret));
 			continue;
 		}
 
@@ -436,8 +437,8 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 	dev = NULL;
 	for (i = 0; i < device_count; i++) {
 		if ((ret = libusb_get_device_descriptor(devlist[i], &des))) {
-			sr_err("fx2lafw: Failed to get device descriptor: %d.",
-			       ret);
+			sr_err("zp: Failed to get device descriptor: %s.",
+			       libusb_error_name(ret));
 			continue;
 		}
 		if (libusb_get_bus_number(devlist[i]) == devc->usb->bus
@@ -458,20 +459,21 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 			sdi->index, devc->usb->bus,
 			devc->usb->address, USB_INTERFACE);
 	} else {
-		sr_err("zp: failed to open device: %d", ret);
+		sr_err("zp: failed to open device: %s", libusb_error_name(ret));
 		return SR_ERR;
 	}
 
 	ret = libusb_set_configuration(devc->usb->devhdl, USB_CONFIGURATION);
 	if (ret < 0) {
-		sr_err("zp: Unable to set USB configuration %d: %d",
-		       USB_CONFIGURATION, ret);
+		sr_err("zp: Unable to set USB configuration %d: %s",
+		       USB_CONFIGURATION, libusb_error_name(ret));
 		return SR_ERR;
 	}
 
 	ret = libusb_claim_interface(devc->usb->devhdl, USB_INTERFACE);
 	if (ret != 0) {
-		sr_err("zp: Unable to claim interface: %d", ret);
+		sr_err("zp: Unable to claim interface: %s",
+		       libusb_error_name(ret));
 		return SR_ERR;
 	}
 

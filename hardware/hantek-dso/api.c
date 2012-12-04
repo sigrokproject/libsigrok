@@ -292,7 +292,8 @@ static GSList *hw_scan(GSList *options)
 	libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &devlist);
 	for (i = 0; devlist[i]; i++) {
 		if ((ret = libusb_get_device_descriptor(devlist[i], &des))) {
-			sr_err("Failed to get device descriptor: %d.", ret);
+			sr_err("Failed to get device descriptor: %s.",
+			       libusb_error_name(ret));
 			continue;
 		}
 
@@ -390,7 +391,8 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 
 	err = libusb_claim_interface(devc->usb->devhdl, USB_INTERFACE);
 	if (err != 0) {
-		sr_err("Unable to claim interface: %d.", err);
+		sr_err("Unable to claim interface: %s.",
+		       libusb_error_name(err));
 		return SR_ERR;
 	}
 

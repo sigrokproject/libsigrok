@@ -39,7 +39,8 @@ static int send_begin(struct dev_context *devc)
 	if ((ret = libusb_control_transfer(devc->usb->devhdl,
 			LIBUSB_REQUEST_TYPE_VENDOR, CTRL_BEGINCOMMAND,
 			0, 0, buffer, sizeof(buffer), 200)) != sizeof(buffer)) {
-		sr_err("Failed to send begincommand: %d.", ret);
+		sr_err("Failed to send begincommand: %s.",
+		       libusb_error_name(ret));
 		return SR_ERR;
 	}
 
@@ -119,7 +120,8 @@ SR_PRIV int dso_open(struct sr_dev_inst *sdi)
 	libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &devlist);
 	for (i = 0; devlist[i]; i++) {
 		if ((err = libusb_get_device_descriptor(devlist[i], &des))) {
-			sr_err("Failed to get device descriptor: %d.", err);
+			sr_err("Failed to get device descriptor: %s.",
+			       libusb_error_name(err));
 			continue;
 		}
 
@@ -161,7 +163,8 @@ SR_PRIV int dso_open(struct sr_dev_inst *sdi)
 					devc->usb->address, USB_INTERFACE);
 			}
 		} else {
-			sr_err("Failed to open device: %d.", err);
+			sr_err("Failed to open device: %s.",
+			       libusb_error_name(err));
 		}
 
 		/* If we made it here, we handled the device (somehow). */
@@ -206,7 +209,8 @@ static int get_channel_offsets(struct dev_context *devc)
 			(unsigned char *)&devc->channel_levels,
 			sizeof(devc->channel_levels), 200);
 	if (ret != sizeof(devc->channel_levels)) {
-		sr_err("Failed to get channel offsets: %d.", ret);
+		sr_err("Failed to get channel offsets: %s.",
+		       libusb_error_name(ret));
 		return SR_ERR;
 	}
 
@@ -349,7 +353,8 @@ SR_PRIV int dso_set_trigger_samplerate(struct dev_context *devc)
 			DSO_EP_OUT | LIBUSB_ENDPOINT_OUT,
 			cmdstring, sizeof(cmdstring),
 			&tmp, 100)) != 0) {
-		sr_err("Failed to set trigger/samplerate: %d.", ret);
+		sr_err("Failed to set trigger/samplerate: %s.",
+		       libusb_error_name(ret));
 		return SR_ERR;
 	}
 	sr_dbg("Sent CMD_SET_TRIGGER_SAMPLERATE.");
@@ -388,7 +393,8 @@ SR_PRIV int dso_set_filters(struct dev_context *devc)
 			DSO_EP_OUT | LIBUSB_ENDPOINT_OUT,
 			cmdstring, sizeof(cmdstring),
 			&tmp, 100)) != 0) {
-		sr_err("Failed to set filters: %d", ret);
+		sr_err("Failed to set filters: %s",
+		       libusb_error_name(ret));
 		return SR_ERR;
 	}
 	sr_dbg("Sent CMD_SET_FILTERS.");
@@ -455,7 +461,8 @@ SR_PRIV int dso_set_voltage(struct dev_context *devc)
 			DSO_EP_OUT | LIBUSB_ENDPOINT_OUT,
 			cmdstring, sizeof(cmdstring),
 			&tmp, 100)) != 0) {
-		sr_err("Failed to set voltage: %d.", ret);
+		sr_err("Failed to set voltage: %s.",
+		       libusb_error_name(ret));
 		return SR_ERR;
 	}
 	sr_dbg("Sent CMD_SET_VOLTAGE.");
@@ -507,7 +514,8 @@ SR_PRIV int dso_set_relays(struct dev_context *devc)
 	if ((ret = libusb_control_transfer(devc->usb->devhdl,
 			LIBUSB_REQUEST_TYPE_VENDOR, CTRL_SETRELAYS,
 			0, 0, relays, 17, 100)) != sizeof(relays)) {
-		sr_err("Failed to set relays: %d.", ret);
+		sr_err("Failed to set relays: %s.",
+		       libusb_error_name(ret));
 		return SR_ERR;
 	}
 	sr_dbg("Sent CTRL_SETRELAYS.");
@@ -550,7 +558,8 @@ SR_PRIV int dso_set_voffsets(struct dev_context *devc)
 	if ((ret = libusb_control_transfer(devc->usb->devhdl,
 			LIBUSB_REQUEST_TYPE_VENDOR, CTRL_SETOFFSET,
 			0, 0, offsets, sizeof(offsets), 100)) != sizeof(offsets)) {
-		sr_err("Failed to set offsets: %d.", ret);
+		sr_err("Failed to set offsets: %s.",
+		       libusb_error_name(ret));
 		return SR_ERR;
 	}
 	sr_dbg("Sent CTRL_SETOFFSET.");
@@ -576,7 +585,8 @@ SR_PRIV int dso_enable_trigger(struct dev_context *devc)
 			DSO_EP_OUT | LIBUSB_ENDPOINT_OUT,
 			cmdstring, sizeof(cmdstring),
 			&tmp, 100)) != 0) {
-		sr_err("Failed to enable trigger: %d.", ret);
+		sr_err("Failed to enable trigger: %s.",
+		       libusb_error_name(ret));
 		return SR_ERR;
 	}
 
@@ -601,7 +611,8 @@ SR_PRIV int dso_force_trigger(struct dev_context *devc)
 			DSO_EP_OUT | LIBUSB_ENDPOINT_OUT,
 			cmdstring, sizeof(cmdstring),
 			&tmp, 100)) != 0) {
-		sr_err("Failed to force trigger: %d.", ret);
+		sr_err("Failed to force trigger: %s.",
+		       libusb_error_name(ret));
 		return SR_ERR;
 	}
 
@@ -651,14 +662,16 @@ SR_PRIV int dso_get_capturestate(struct dev_context *devc,
 	cmdstring[1] = 0;
 
 	if ((ret = send_bulkcmd(devc, cmdstring, sizeof(cmdstring))) != SR_OK) {
-		sr_dbg("Failed to send get_capturestate command: %d.", ret);
+		sr_dbg("Failed to send get_capturestate command: %s.",
+		       libusb_error_name(ret));
 		return SR_ERR;
 	}
 
 	if ((ret = libusb_bulk_transfer(devc->usb->devhdl,
 			DSO_EP_IN | LIBUSB_ENDPOINT_IN,
 			inbuf, 512, &tmp, 100)) != 0) {
-		sr_dbg("Failed to get capturestate: %d.", ret);
+		sr_dbg("Failed to get capturestate: %s.",
+		       libusb_error_name(ret));
 		return SR_ERR;
 	}
 	*capturestate = inbuf[0];
@@ -692,7 +705,8 @@ SR_PRIV int dso_capture_start(struct dev_context *devc)
 	cmdstring[1] = 0;
 
 	if ((ret = send_bulkcmd(devc, cmdstring, sizeof(cmdstring))) != SR_OK) {
-		sr_err("Failed to send capture_start command: %d.", ret);
+		sr_err("Failed to send capture_start command: %s.",
+		       libusb_error_name(ret));
 		return SR_ERR;
 	}
 
@@ -712,7 +726,8 @@ SR_PRIV int dso_get_channeldata(struct dev_context *devc, libusb_transfer_cb_fn 
 	cmdstring[1] = 0;
 
 	if ((ret = send_bulkcmd(devc, cmdstring, sizeof(cmdstring))) != SR_OK) {
-		sr_err("Failed to get channel data: %d.", ret);
+		sr_err("Failed to get channel data: %s.",
+		       libusb_error_name(ret));
 		return SR_ERR;
 	}
 
@@ -730,7 +745,8 @@ SR_PRIV int dso_get_channeldata(struct dev_context *devc, libusb_transfer_cb_fn 
 				DSO_EP_IN | LIBUSB_ENDPOINT_IN, buf,
 				devc->epin_maxpacketsize, cb, devc, 40);
 		if ((ret = libusb_submit_transfer(transfer)) != 0) {
-			sr_err("Failed to submit transfer: %d.", ret);
+			sr_err("Failed to submit transfer: %s.",
+			       libusb_error_name(ret));
 			/* TODO: Free them all. */
 			libusb_free_transfer(transfer);
 			g_free(buf);

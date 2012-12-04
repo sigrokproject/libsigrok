@@ -106,7 +106,8 @@ static int hid_chip_init(struct dev_context *devc, uint16_t baudrate)
 	if (libusb_kernel_driver_active(devc->usb->devhdl, 0) == 1) {
 		ret = libusb_detach_kernel_driver(devc->usb->devhdl, 0);
 		if (ret < 0) {
-			sr_err("Failed to detach kernel driver: %d.", ret);
+			sr_err("Failed to detach kernel driver: %s.",
+			       libusb_error_name(ret));
 			return SR_ERR;
 		}
 		sr_dbg("Successfully detached kernel driver.");
@@ -116,7 +117,8 @@ static int hid_chip_init(struct dev_context *devc, uint16_t baudrate)
 
 	/* Claim interface 0. */
 	if ((ret = libusb_claim_interface(devc->usb->devhdl, 0)) < 0) {
-		sr_err("Failed to claim interface 0: %d.", ret);
+		sr_err("Failed to claim interface 0: %s.",
+		       libusb_error_name(ret));
 		return SR_ERR;
 	}
 	sr_dbg("Successfully claimed interface 0.");
@@ -145,7 +147,7 @@ static int hid_chip_init(struct dev_context *devc, uint16_t baudrate)
 		1000 /* timeout (ms) */);
 
 	if (ret < 0) {
-		sr_err("HID feature report error: %d.", ret);
+		sr_err("HID feature report error: %s.", libusb_error_name(ret));
 		return SR_ERR;
 	}
 
@@ -216,7 +218,7 @@ static int uni_t_dmm_receive_data(int fd, int revents, int dmm, void *cb_data)
 		1000 /* timeout (ms) */);
 
 	if (ret < 0) {
-		sr_err("USB receive error: %d.", ret);
+		sr_err("USB receive error: %s.", libusb_error_name(ret));
 		return FALSE;
 	}
 

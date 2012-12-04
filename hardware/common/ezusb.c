@@ -50,7 +50,8 @@ SR_PRIV int ezusb_reset(struct libusb_device_handle *hdl, int set_clear)
 	ret = libusb_control_transfer(hdl, LIBUSB_REQUEST_TYPE_VENDOR, 0xa0,
 				      0xe600, 0x0000, buf, 1, 100);
 	if (ret < 0)
-		sr_err("Unable to send control request: %d", ret);
+		sr_err("Unable to send control request: %s",
+				libusb_error_name(ret));
 
 	return ret;
 }
@@ -79,8 +80,8 @@ SR_PRIV int ezusb_install_firmware(libusb_device_handle *hdl,
 					      LIBUSB_ENDPOINT_OUT, 0xa0, offset,
 					      0x0000, buf, chunksize, 100);
 		if (ret < 0) {
-			sr_err("Unable to send firmware to device: %d",
-			       ret);
+			sr_err("Unable to send firmware to device: %s",
+					libusb_error_name(ret));
 			result = SR_ERR;
 			break;
 		}
@@ -103,7 +104,8 @@ SR_PRIV int ezusb_upload_firmware(libusb_device *dev, int configuration,
 		libusb_get_bus_number(dev), libusb_get_device_address(dev));
 
 	if ((ret = libusb_open(dev, &hdl)) < 0) {
-		sr_err("failed to open device: %d", ret);
+		sr_err("ezusb: failed to open device: %s",
+				libusb_error_name(ret));
 		return SR_ERR;
 	}
 
@@ -111,14 +113,16 @@ SR_PRIV int ezusb_upload_firmware(libusb_device *dev, int configuration,
 #if !defined(_WIN32) && !defined(__APPLE__)
 	if (libusb_kernel_driver_active(hdl, 0)) {
 		if ((ret = libusb_detach_kernel_driver(hdl, 0)) < 0) {
-			sr_err("failed to detach kernel driver: %d", ret);
+			sr_err("failed to detach kernel driver: %s",
+					libusb_error_name(ret));
 			return SR_ERR;
 		}
 	}
 #endif
 
 	if ((ret = libusb_set_configuration(hdl, configuration)) < 0) {
-		sr_err("Unable to set configuration: %d", ret);
+		sr_err("Unable to set configuration: %s",
+				libusb_error_name(ret));
 		return SR_ERR;
 	}
 

@@ -194,8 +194,9 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 	/* The device reports as HID class, so the kernel would have
 	 * claimed it. */
 	if (libusb_kernel_driver_active(devc->usb->devhdl, 0) == 1) {
-		if (libusb_detach_kernel_driver(devc->usb->devhdl, 0) < 0) {
-			sr_err("Failed to detach kernel driver.");
+		if ((ret = libusb_detach_kernel_driver(devc->usb->devhdl, 0)) < 0) {
+			sr_err("Failed to detach kernel driver: %s.",
+			       libusb_error_name(ret));
 			return SR_ERR;
 		}
 	}

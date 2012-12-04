@@ -216,8 +216,8 @@ static int fx2lafw_dev_open(struct sr_dev_inst *sdi)
 
 	for (i = 0; i < device_count; i++) {
 		if ((ret = libusb_get_device_descriptor(devlist[i], &des))) {
-			sr_err("fx2lafw: Failed to get device descriptor: %d.",
-			       ret);
+			sr_err("fx2lafw: Failed to get device descriptor: %s.",
+			       libusb_error_name(ret));
 			continue;
 		}
 
@@ -250,7 +250,8 @@ static int fx2lafw_dev_open(struct sr_dev_inst *sdi)
 				 */
 				devc->usb->address = libusb_get_device_address(devlist[i]);
 		} else {
-			sr_err("fx2lafw: Failed to open device: %d.", ret);
+			sr_err("fx2lafw: Failed to open device: %s.",
+			       libusb_error_name(ret));
 			break;
 		}
 
@@ -442,7 +443,8 @@ static GSList *hw_scan(GSList *options)
 
 		if ((ret = libusb_get_device_descriptor(
 		     devlist[i], &des)) != 0) {
-			sr_warn("fx2lafw: Failed to get device descriptor: %d.", ret);
+			sr_warn("fx2lafw: Failed to get device descriptor: %s.",
+				libusb_error_name(ret));
 			continue;
 		}
 
@@ -564,7 +566,8 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 			break;
 
 		default:
-			sr_err("fx2lafw: Unable to claim interface: %d.", ret);
+			sr_err("fx2lafw: Unable to claim interface: %s.",
+			       libusb_error_name(ret));
 			break;
 		}
 
@@ -750,12 +753,15 @@ static void free_transfer(struct libusb_transfer *transfer)
 
 static void resubmit_transfer(struct libusb_transfer *transfer)
 {
-	if (libusb_submit_transfer(transfer) != 0) {
-		free_transfer(transfer);
-		/* TODO: Stop session? */
-		/* TODO: Better error message. */
-		sr_err("fx2lafw: %s: libusb_submit_transfer error.", __func__);
-	}
+	int ret = libusb_submit_transfer(transfer);
+
+	if (LIBUSB_SUCCESS == ret)
+		return;
+
+	free_transfer(transfer);
+	/* TODO: Stop session? */
+
+	sr_err("fx2lafw: %s: %s", __func__, libusb_error_name(ret));
 }
 
 static void receive_transfer(struct libusb_transfer *transfer)
@@ -984,7 +990,9 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 		libusb_fill_bulk_transfer(transfer, devc->usb->devhdl,
 				2 | LIBUSB_ENDPOINT_IN, buf, size,
 				receive_transfer, devc, timeout);
-		if (libusb_submit_transfer(transfer) != 0) {
+		if ((ret = libusb_submit_transfer(transfer)) != 0) {
+			sr_err("fx2lafw: %s: libusb_submit_transfer: %s.",
+			       __func__, libusb_error_name(ret));
 			libusb_free_transfer(transfer);
 			g_free(buf);
 			abort_acquisition(devc);

@@ -33,7 +33,8 @@ SR_PRIV int command_get_fw_version(libusb_device_handle *devhdl,
 		(unsigned char *)vi, sizeof(struct version_info), 100);
 
 	if (ret < 0) {
-		sr_err("fx2lafw: Unable to get version info: %d.", ret);
+		sr_err("fx2lafw: Unable to get version info: %s.",
+		       libusb_error_name(ret));
 		return SR_ERR;
 	}
 
@@ -50,7 +51,8 @@ SR_PRIV int command_get_revid_version(libusb_device_handle *devhdl,
 		revid, 1, 100);
 
 	if (ret < 0) {
-		sr_err("fx2lafw: Unable to get REVID: %d.", ret);
+		sr_err("fx2lafw: Unable to get REVID: %s.",
+		       libusb_error_name(ret));
 		return SR_ERR;
 	}
 
@@ -103,7 +105,8 @@ SR_PRIV int command_start_acquisition(libusb_device_handle *devhdl,
 			LIBUSB_ENDPOINT_OUT, CMD_START, 0x0000, 0x0000,
 			(unsigned char *)&cmd, sizeof(cmd), 100);
 	if (ret < 0) {
-		sr_err("fx2lafw: Unable to send start command: %d.", ret);
+		sr_err("fx2lafw: Unable to send start command: %s.",
+		       libusb_error_name(ret));
 		return SR_ERR;
 	}
 
