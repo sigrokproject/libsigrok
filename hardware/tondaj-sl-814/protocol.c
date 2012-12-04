@@ -112,6 +112,7 @@ int tondaj_sl_814_receive_data(int fd, int revents, void *cb_data)
 	uint8_t buf[3];
 	int ret;
 
+	(void)fd;
 	(void)revents;
 
 	sdi = cb_data;
