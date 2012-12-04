@@ -38,8 +38,20 @@
 #define sr_warn(s, args...) sr_warn(DRIVER_LOG_DOMAIN s, ## args)
 #define sr_err(s, args...) sr_err(DRIVER_LOG_DOMAIN s, ## args)
 
-SR_PRIV GSList *sr_usb_connect(libusb_context *usb_ctx, const char *conn)
+/**
+ * Find USB devices according to a connection string.
+ *
+ * @param usb_ctx libusb context to use while scanning.
+ * @param conn Connection string specifying the device(s) to match. This
+ * can be of the form "<bus>.<address>", or "<vendorid>.<productid>".
+ *
+ * @return A GSList of struct sr_usb_dev_inst, with bus and address fields
+ * matching the device that matched the connection string. The GSList and
+ * its contents must be freed by the caller.
+ */
+SR_PRIV GSList *sr_usb_find(libusb_context *usb_ctx, const char *conn)
 {
+	struct sr_usb_dev_inst *usb;
 	struct libusb_device **devlist;
 	struct libusb_device_descriptor des;
 	GSList *devices;
@@ -115,25 +127,20 @@ SR_PRIV GSList *sr_usb_connect(libusb_context *usb_ctx, const char *conn)
 			continue;
 		}
 
+		if (vid + pid && (des.idVendor != vid || des.idProduct != pid))
+			continue;
+
 		b = libusb_get_bus_number(devlist[i]);
 		a = libusb_get_device_address(devlist[i]);
-
-		if (vid + pid &&
-		    (des.idVendor != vid || des.idProduct != pid)) {
-			sr_spew("VID:PID = %04x:%04x (%d.%d) doesn't match.",
-				des.idVendor, des.idProduct, b, a);
+		if (bus + addr && (b != bus || a != addr))
 			continue;
-		}
-
-		if (bus + addr && (b != bus || a != addr)) {
-			sr_spew("bus.address = %d.%d does not match.", b, a);
-			continue;
-		}
 
 		sr_dbg("Found USB device (VID:PID = %04x:%04x, bus.address = "
 		       "%d.%d).", des.idVendor, des.idProduct, b, a);
 
-		devices = g_slist_append(devices, devlist[i]);
+		usb = sr_usb_dev_inst_new(libusb_get_bus_number(devlist[i]),
+				libusb_get_device_address(devlist[i]), NULL);
+		devices = g_slist_append(devices, usb);
 	}
 	libusb_free_device_list(devlist, 1);
 

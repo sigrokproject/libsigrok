@@ -165,7 +165,7 @@ SR_PRIV int ezusb_upload_firmware(libusb_device *dev, int configuration,
 /*--- hardware/common/usb.c -------------------------------------------------*/
 
 #ifdef HAVE_LIBUSB_1_0
-SR_PRIV GSList *sr_usb_connect(libusb_context *usb_ctx, const char *conn);
+SR_PRIV GSList *sr_usb_find(libusb_context *usb_ctx, const char *conn);
 SR_PRIV int sr_usb_open(libusb_context *usb_ctx, struct sr_usb_dev_inst *usb);
 #endif
 

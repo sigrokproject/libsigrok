@@ -100,7 +100,7 @@ static GSList *hw_scan(GSList *options)
 
 	devices = NULL;
 
-	if (!(l = sr_usb_connect(drvc->sr_ctx->libusb_ctx, "1a86.e008")))
+	if (!(l = sr_usb_find(drvc->sr_ctx->libusb_ctx, "1a86.e008")))
 		return NULL;
 
 	for (i = 0; i < (int)g_slist_length(l); i++) {
