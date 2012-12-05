@@ -151,6 +151,10 @@ static int clear_instances(void)
 	struct dev_context *devc;
 	GSList *l;
 
+	/* di is not necessarily initialized */
+	if (!di)
+		return SR_OK;
+
 	if (!(drvc = di->priv))
 		return SR_OK;
 
