@@ -393,8 +393,7 @@ SR_PRIV int dso_set_filters(struct dev_context *devc)
 			DSO_EP_OUT | LIBUSB_ENDPOINT_OUT,
 			cmdstring, sizeof(cmdstring),
 			&tmp, 100)) != 0) {
-		sr_err("Failed to set filters: %s",
-		       libusb_error_name(ret));
+		sr_err("Failed to set filters: %s.", libusb_error_name(ret));
 		return SR_ERR;
 	}
 	sr_dbg("Sent CMD_SET_FILTERS.");
@@ -461,8 +460,7 @@ SR_PRIV int dso_set_voltage(struct dev_context *devc)
 			DSO_EP_OUT | LIBUSB_ENDPOINT_OUT,
 			cmdstring, sizeof(cmdstring),
 			&tmp, 100)) != 0) {
-		sr_err("Failed to set voltage: %s.",
-		       libusb_error_name(ret));
+		sr_err("Failed to set voltage: %s.", libusb_error_name(ret));
 		return SR_ERR;
 	}
 	sr_dbg("Sent CMD_SET_VOLTAGE.");
@@ -514,8 +512,7 @@ SR_PRIV int dso_set_relays(struct dev_context *devc)
 	if ((ret = libusb_control_transfer(devc->usb->devhdl,
 			LIBUSB_REQUEST_TYPE_VENDOR, CTRL_SETRELAYS,
 			0, 0, relays, 17, 100)) != sizeof(relays)) {
-		sr_err("Failed to set relays: %s.",
-		       libusb_error_name(ret));
+		sr_err("Failed to set relays: %s.", libusb_error_name(ret));
 		return SR_ERR;
 	}
 	sr_dbg("Sent CTRL_SETRELAYS.");
@@ -558,8 +555,7 @@ SR_PRIV int dso_set_voffsets(struct dev_context *devc)
 	if ((ret = libusb_control_transfer(devc->usb->devhdl,
 			LIBUSB_REQUEST_TYPE_VENDOR, CTRL_SETOFFSET,
 			0, 0, offsets, sizeof(offsets), 100)) != sizeof(offsets)) {
-		sr_err("Failed to set offsets: %s.",
-		       libusb_error_name(ret));
+		sr_err("Failed to set offsets: %s.", libusb_error_name(ret));
 		return SR_ERR;
 	}
 	sr_dbg("Sent CTRL_SETOFFSET.");
@@ -585,8 +581,7 @@ SR_PRIV int dso_enable_trigger(struct dev_context *devc)
 			DSO_EP_OUT | LIBUSB_ENDPOINT_OUT,
 			cmdstring, sizeof(cmdstring),
 			&tmp, 100)) != 0) {
-		sr_err("Failed to enable trigger: %s.",
-		       libusb_error_name(ret));
+		sr_err("Failed to enable trigger: %s.", libusb_error_name(ret));
 		return SR_ERR;
 	}
 
@@ -611,8 +606,7 @@ SR_PRIV int dso_force_trigger(struct dev_context *devc)
 			DSO_EP_OUT | LIBUSB_ENDPOINT_OUT,
 			cmdstring, sizeof(cmdstring),
 			&tmp, 100)) != 0) {
-		sr_err("Failed to force trigger: %s.",
-		       libusb_error_name(ret));
+		sr_err("Failed to force trigger: %s.", libusb_error_name(ret));
 		return SR_ERR;
 	}
 
