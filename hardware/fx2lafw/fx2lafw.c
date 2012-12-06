@@ -542,7 +542,6 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 			timediff_ms = timediff_us / 1000;
 			sr_spew("fx2lafw: waited %" PRIi64 " ms", timediff_ms);
 		}
-		sr_info("fx2lafw: Device came back after %d ms.", timediff_ms);
 	} else {
 		ret = fx2lafw_dev_open(sdi);
 	}
@@ -550,7 +549,11 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 	if (ret != SR_OK) {
 		sr_err("fx2lafw: Unable to open device.");
 		return SR_ERR;
+	} else {
+		sr_info("fx2lafw: Device came back after %d ms.",
+			timediff_ms);
 	}
+
 	devc = sdi->priv;
 
 	ret = libusb_claim_interface(devc->usb->devhdl, USB_INTERFACE);
