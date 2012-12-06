@@ -542,16 +542,20 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 			timediff_ms = timediff_us / 1000;
 			sr_spew("Waited %" PRIi64 " ms", timediff_ms);
 		}
+		if (ret != SR_OK) {
+			sr_err("Device failed to renumerate.");
+			return SR_ERR;
+		}
+		sr_info("Device came back after %d ms.",
+			timediff_ms);
 	} else {
+		sr_info("Firmware upload was not needed.");
 		ret = fx2lafw_dev_open(sdi);
 	}
 
 	if (ret != SR_OK) {
 		sr_err("Unable to open device.");
 		return SR_ERR;
-	} else {
-		sr_info("Device came back after %d ms.",
-			timediff_ms);
 	}
 
 	devc = sdi->priv;
