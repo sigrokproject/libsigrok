@@ -144,7 +144,7 @@ SR_PRIV int sr_usb_open(libusb_context *usb_ctx, struct sr_usb_dev_inst *usb)
 	struct libusb_device_descriptor des;
 	int ret, r, cnt, i, a, b;
 
-	sr_dbg("Trying to open USB device.");
+	sr_dbg("Trying to open USB device %d.%d.", usb->bus, usb->address);
 
 	if ((cnt = libusb_get_device_list(usb_ctx, &devlist)) < 0) {
 		sr_err("Failed to retrieve device list: %s.",
@@ -162,11 +162,8 @@ SR_PRIV int sr_usb_open(libusb_context *usb_ctx, struct sr_usb_dev_inst *usb)
 
 		b = libusb_get_bus_number(devlist[i]);
 		a = libusb_get_device_address(devlist[i]);
-
-		if (b != usb->bus || a != usb->address) {
-			sr_spew("bus.address = %d.%d does not match.", b, a);
+		if (b != usb->bus || a != usb->address)
 			continue;
-		}
 
 		if ((r = libusb_open(devlist[i], &usb->devhdl)) < 0) {
 			sr_err("Failed to open device: %s.",
