@@ -59,7 +59,7 @@ struct dmm_info {
 	void (*dmm_details)(struct sr_datafeed_analog *, void *);
 };
 
-SR_PRIV struct dmm_info dmms[DMM_COUNT];
+extern SR_PRIV struct dmm_info dmms[DMM_COUNT];
 
 #define DMM_BUFSIZE 256
 
