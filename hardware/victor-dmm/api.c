@@ -340,15 +340,15 @@ static void receive_transfer(struct libusb_transfer *transfer)
 		if ((ret = libusb_submit_transfer(transfer) != 0)) {
 			sr_err("Unable to resubmit transfer: %s.",
 			       libusb_error_name(ret));
-			libusb_free_transfer(transfer);
 			g_free(transfer->buffer);
+			libusb_free_transfer(transfer);
 			hw_dev_acquisition_stop(sdi, sdi);
 		}
 	} else {
 		/* This was the last transfer we're going to receive, so
 		 * clean up now. */
-		libusb_free_transfer(transfer);
 		g_free(transfer->buffer);
+		libusb_free_transfer(transfer);
 	}
 }
 
