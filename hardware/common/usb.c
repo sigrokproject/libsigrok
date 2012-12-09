@@ -63,18 +63,12 @@ SR_PRIV GSList *sr_usb_find(libusb_context *usb_ctx, const char *conn)
 	vid = pid = bus = addr = 0;
 	reg = g_regex_new(CONN_USB_VIDPID, 0, 0, NULL);
 	if (g_regex_match(reg, conn, 0, &match)) {
-		/* Extract VID. */
-		if ((mstr = g_match_info_fetch(match, 1))) {
+		if ((mstr = g_match_info_fetch(match, 1)))
 			vid = strtoul(mstr, NULL, 16);
-			sr_spew("Extracted VID 0x%04x.", vid);
-		}
 		g_free(mstr);
 
-		/* Extract PID. */
-		if ((mstr = g_match_info_fetch(match, 2))) {
+		if ((mstr = g_match_info_fetch(match, 2)))
 			pid = strtoul(mstr, NULL, 16);
-			sr_spew("Extracted PID 0x%04x.", pid);
-		}
 		g_free(mstr);
 		sr_dbg("Trying to find USB device with VID:PID = %04x:%04x.",
 		       vid, pid);
@@ -83,18 +77,12 @@ SR_PRIV GSList *sr_usb_find(libusb_context *usb_ctx, const char *conn)
 		g_regex_unref(reg);
 		reg = g_regex_new(CONN_USB_BUSADDR, 0, 0, NULL);
 		if (g_regex_match(reg, conn, 0, &match)) {
-			/* Extract bus. */
-			if ((mstr = g_match_info_fetch(match, 1))) {
+			if ((mstr = g_match_info_fetch(match, 1)))
 				bus = strtoul(mstr, NULL, 16);
-				sr_spew("Extracted bus %d.", bus);
-			}
 			g_free(mstr);
 
-			/* Extract address. */
-			if ((mstr = g_match_info_fetch(match, 2))) {
+			if ((mstr = g_match_info_fetch(match, 2)))
 				addr = strtoul(mstr, NULL, 16);
-				sr_spew("Extracted address %d.", addr);
-			}
 			g_free(mstr);
 			sr_dbg("Trying to find USB device with bus.address = "
 			       "%d.%d.", bus, addr);
@@ -104,7 +92,7 @@ SR_PRIV GSList *sr_usb_find(libusb_context *usb_ctx, const char *conn)
 	g_regex_unref(reg);
 
 	if (vid + pid + bus + addr == 0) {
-		sr_err("Neither VID:PID nor bus.address was found.");
+		sr_err("Neither VID:PID nor bus.address was specified.");
 		return NULL;
 	}
 
