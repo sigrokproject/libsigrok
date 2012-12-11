@@ -57,6 +57,8 @@ struct dmm_info {
 	int (*packet_parse)(const uint8_t *, float *,
 			    struct sr_datafeed_analog *, void *);
 	void (*dmm_details)(struct sr_datafeed_analog *, void *);
+	struct sr_dev_driver *di;
+	int (*receive_data)(int, int, void *);
 };
 
 extern SR_PRIV struct dmm_info dmms[DMM_COUNT];

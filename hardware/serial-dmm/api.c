@@ -59,18 +59,6 @@ SR_PRIV struct sr_dev_driver pce_pce_dm32_driver_info;
 SR_PRIV struct sr_dev_driver radioshack_22_168_driver_info;
 SR_PRIV struct sr_dev_driver radioshack_22_812_driver_info;
 
-static struct sr_dev_driver *di_dt4000zc = &digitek_dt4000zc_driver_info;
-static struct sr_dev_driver *di_tp4000zc = &tekpower_tp4000zc_driver_info;
-static struct sr_dev_driver *di_me31 = &metex_me31_driver_info;
-static struct sr_dev_driver *di_3410 = &peaktech_3410_driver_info;
-static struct sr_dev_driver *di_mas345 = &mastech_mas345_driver_info;
-static struct sr_dev_driver *di_va18b = &va_va18b_driver_info;
-static struct sr_dev_driver *di_m3640d = &metex_m3640d_driver_info;
-static struct sr_dev_driver *di_4370 = &peaktech_4370_driver_info;
-static struct sr_dev_driver *di_pce_dm32 = &pce_pce_dm32_driver_info;
-static struct sr_dev_driver *di_22_168 = &radioshack_22_168_driver_info;
-static struct sr_dev_driver *di_22_812 = &radioshack_22_812_driver_info;
-
 /* After hw_init() this will point to a device-specific entry (see above). */
 static struct sr_dev_driver *di = NULL;
 
@@ -80,66 +68,77 @@ SR_PRIV struct dmm_info dmms[] = {
 		FS9721_PACKET_SIZE, NULL,
 		sr_fs9721_packet_valid, sr_fs9721_parse,
 		dmm_details_dt4000zc,
+		&digitek_dt4000zc_driver_info, digitek_dt4000zc_receive_data,
 	},
 	{
 		"TekPower", "TP4000ZC", "2400/8n1", 2400,
 		FS9721_PACKET_SIZE, NULL,
 		sr_fs9721_packet_valid, sr_fs9721_parse,
 		dmm_details_tp4000zc,
+		&tekpower_tp4000zc_driver_info, tekpower_tp4000zc_receive_data,
 	},
 	{
 		"Metex", "ME-31", "600/7n2/rts=0/dtr=1", 600,
 		METEX14_PACKET_SIZE, sr_metex14_packet_request,
 		sr_metex14_packet_valid, sr_metex14_parse,
 		NULL,
+		&metex_me31_driver_info, metex_me31_receive_data,
 	},
 	{
 		"Peaktech", "3410", "600/7n2/rts=0/dtr=1", 600,
 		METEX14_PACKET_SIZE, sr_metex14_packet_request,
 		sr_metex14_packet_valid, sr_metex14_parse,
 		NULL,
+		&peaktech_3410_driver_info, peaktech_3410_receive_data,
 	},
 	{
 		"MASTECH", "MAS345", "600/7n2/rts=0/dtr=1", 600,
 		METEX14_PACKET_SIZE, sr_metex14_packet_request,
 		sr_metex14_packet_valid, sr_metex14_parse,
 		NULL,
+		&mastech_mas345_driver_info, mastech_mas345_receive_data,
 	},
 	{
 		"V&A", "VA18B", "2400/8n1", 2400,
 		FS9721_PACKET_SIZE, NULL,
 		sr_fs9721_packet_valid, sr_fs9721_parse,
 		dmm_details_va18b,
+		&va_va18b_driver_info, va_va18b_receive_data,
 	},
 	{
 		"Metex", "M-3640D", "1200/7n2/rts=0/dtr=1", 1200,
 		METEX14_PACKET_SIZE, sr_metex14_packet_request,
 		sr_metex14_packet_valid, sr_metex14_parse,
 		NULL,
+		&metex_m3640d_driver_info, metex_m3640d_receive_data,
 	},
 	{
 		"PeakTech", "4370", "1200/7n2/rts=0/dtr=1", 1200,
 		METEX14_PACKET_SIZE, sr_metex14_packet_request,
 		sr_metex14_packet_valid, sr_metex14_parse,
 		NULL,
+		&peaktech_4370_driver_info, peaktech_4370_receive_data,
 	},
 	{
 		"PCE", "PCE-DM32", "2400/8n1", 2400,
 		FS9721_PACKET_SIZE, NULL,
 		sr_fs9721_packet_valid, sr_fs9721_parse,
 		dmm_details_pce_dm32,
+		&pce_pce_dm32_driver_info, pce_pce_dm32_receive_data,
 	},
 	{
 		"RadioShack", "22-168", "1200/7n2/rts=0/dtr=1", 1200,
 		METEX14_PACKET_SIZE, sr_metex14_packet_request,
 		sr_metex14_packet_valid, sr_metex14_parse,
 		NULL,
+		&radioshack_22_168_driver_info, radioshack_22_168_receive_data,
 	},
 	{
 		"RadioShack", "22-812", "4800/8n1/rts=0/dtr=1", 4800,
 		RS9LCD_PACKET_SIZE, NULL,
 		sr_rs9lcd_packet_valid, sr_rs9lcd_parse,
 		NULL,
+		&radioshack_22_812_driver_info, radioshack_22_812_receive_data,
 	},
 };
 
@@ -182,90 +181,30 @@ static int hw_init(struct sr_context *sr_ctx, int dmm)
 		return SR_ERR_MALLOC;
 	}
 
-	if (dmm == DIGITEK_DT4000ZC)
-		di = di_dt4000zc;
-	if (dmm == TEKPOWER_TP4000ZC)
-		di = di_tp4000zc;
-	if (dmm == METEX_ME31)
-		di = di_me31;
-	if (dmm == PEAKTECH_3410)
-		di = di_3410;
-	if (dmm == MASTECH_MAS345)
-		di = di_mas345;
-	if (dmm == VA_VA18B)
-		di = di_va18b;
-	if (dmm == METEX_M3640D)
-		di = di_m3640d;
-	if (dmm == PEAKTECH_4370)
-		di = di_4370;
-	if (dmm == PCE_PCE_DM32)
-		di = di_pce_dm32;
-	if (dmm == RADIOSHACK_22_168)
-		di = di_22_168;
-	if (dmm == RADIOSHACK_22_812)
-		di = di_22_812;
-	sr_dbg("Selected '%s' subdriver.", di->name);
+	di = dmms[dmm].di;
+	sr_dbg("Selected '%s' subdriver.", dmms[dmm].di->name);
 
 	drvc->sr_ctx = sr_ctx;
-	di->priv = drvc;
+	//// di->priv = drvc;
+	dmms[dmm].di->priv = drvc;
 
 	return SR_OK;
 }
 
-static int hw_init_digitek_dt4000zc(struct sr_context *sr_ctx)
-{
-	return hw_init(sr_ctx, DIGITEK_DT4000ZC);
-}
-
-static int hw_init_tekpower_tp4000zc(struct sr_context *sr_ctx)
-{
-	return hw_init(sr_ctx, TEKPOWER_TP4000ZC);
-}
-
-static int hw_init_metex_me31(struct sr_context *sr_ctx)
-{
-	return hw_init(sr_ctx, METEX_ME31);
-}
-
-static int hw_init_peaktech_3410(struct sr_context *sr_ctx)
-{
-	return hw_init(sr_ctx, PEAKTECH_3410);
-}
-
-static int hw_init_mastech_mas345(struct sr_context *sr_ctx)
-{
-	return hw_init(sr_ctx, MASTECH_MAS345);
-}
-
-static int hw_init_va_va18b(struct sr_context *sr_ctx)
-{
-	return hw_init(sr_ctx, VA_VA18B);
-}
-
-static int hw_init_metex_m3640d(struct sr_context *sr_ctx)
-{
-	return hw_init(sr_ctx, METEX_M3640D);
-}
-
-static int hw_init_peaktech_4370(struct sr_context *sr_ctx)
-{
-	return hw_init(sr_ctx, PEAKTECH_4370);
-}
-
-static int hw_init_pce_pce_dm32(struct sr_context *sr_ctx)
-{
-	return hw_init(sr_ctx, PCE_PCE_DM32);
-}
-
-static int hw_init_radioshack_22_168(struct sr_context *sr_ctx)
-{
-	return hw_init(sr_ctx, RADIOSHACK_22_168);
-}
-
-static int hw_init_radioshack_22_812(struct sr_context *sr_ctx)
-{
-	return hw_init(sr_ctx, RADIOSHACK_22_812);
-}
+/* Driver-specific hw_init() function wrappers */
+#define HW_INIT(X) static int hw_init_##X(struct sr_context *sr_ctx) \
+				{ return hw_init(sr_ctx, X); }
+HW_INIT(DIGITEK_DT4000ZC)
+HW_INIT(TEKPOWER_TP4000ZC)
+HW_INIT(METEX_ME31)
+HW_INIT(PEAKTECH_3410)
+HW_INIT(MASTECH_MAS345)
+HW_INIT(VA_VA18B)
+HW_INIT(METEX_M3640D)
+HW_INIT(PEAKTECH_4370)
+HW_INIT(PCE_PCE_DM32)
+HW_INIT(RADIOSHACK_22_168)
+HW_INIT(RADIOSHACK_22_812)
 
 static GSList *scan(const char *conn, const char *serialcomm, int dmm)
 {
@@ -287,7 +226,8 @@ static GSList *scan(const char *conn, const char *serialcomm, int dmm)
 
 	sr_info("Probing port %s.", conn);
 
-	drvc = di->priv;
+	//// drvc = di->priv;
+	drvc = dmms[dmm].di->priv;
 	devices = NULL;
 	serial_flush(serial);
 
@@ -339,7 +279,7 @@ static GSList *scan(const char *conn, const char *serialcomm, int dmm)
 	devc->serial = serial;
 
 	sdi->priv = devc;
-	sdi->driver = di;
+	sdi->driver = dmms[dmm].di;
 	if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "P1")))
 		goto scan_cleanup;
 	sdi->probes = g_slist_append(sdi->probes, probe);
@@ -518,7 +458,6 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	struct sr_datafeed_header header;
 	struct sr_datafeed_meta_analog meta;
 	struct dev_context *devc;
-	int (*receive_data)(int, int, void *) = NULL;
 
 	if (!(devc = sdi->priv)) {
 		sr_err("sdi->priv was NULL.");
@@ -551,32 +490,9 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	meta.num_probes = 1;
 	sr_session_send(devc->cb_data, &packet);
 
-	if (!strcmp(di->name, "digitek-dt4000zc"))
-		receive_data = digitek_dt4000zc_receive_data;
-	if (!strcmp(di->name, "tekpower-tp4000zc"))
-		receive_data = tekpower_tp4000zc_receive_data;
-	if (!strcmp(di->name, "metex-me31"))
-		receive_data = metex_me31_receive_data;
-	if (!strcmp(di->name, "peaktech-3410"))
-		receive_data = peaktech_3410_receive_data;
-	if (!strcmp(di->name, "mastech-mas345"))
-		receive_data = mastech_mas345_receive_data;
-	if (!strcmp(di->name, "va-va18b"))
-		receive_data = va_va18b_receive_data;
-	if (!strcmp(di->name, "metex-m3640d"))
-		receive_data = metex_m3640d_receive_data;
-	if (!strcmp(di->name, "peaktech-4370"))
-		receive_data = peaktech_4370_receive_data;
-	if (!strcmp(di->name, "pce-pce-dm32"))
-		receive_data = pce_pce_dm32_receive_data;
-	if (!strcmp(di->name, "radioshack-22-168"))
-		receive_data = radioshack_22_168_receive_data;
-	if (!strcmp(di->name, "radioshack-22-812"))
-		receive_data = radioshack_22_812_receive_data;
-
 	/* Poll every 50ms, or whenever some data comes in. */
 	sr_source_add(devc->serial->fd, G_IO_IN, 50,
-		      receive_data, (void *)sdi);
+		      dmms[sdi->driver->subdriver].receive_data, (void *)sdi);
 
 	return SR_OK;
 }
@@ -611,7 +527,7 @@ SR_PRIV struct sr_dev_driver digitek_dt4000zc_driver_info = {
 	.name = "digitek-dt4000zc",
 	.longname = "Digitek DT4000ZC",
 	.api_version = 1,
-	.init = hw_init_digitek_dt4000zc,
+	.init = hw_init_DIGITEK_DT4000ZC,
 	.cleanup = hw_cleanup,
 	.scan = hw_scan,
 	.dev_list = hw_dev_list,
@@ -623,13 +539,14 @@ SR_PRIV struct sr_dev_driver digitek_dt4000zc_driver_info = {
 	.dev_acquisition_start = hw_dev_acquisition_start,
 	.dev_acquisition_stop = hw_dev_acquisition_stop,
 	.priv = NULL,
+	.subdriver = DIGITEK_DT4000ZC,
 };
 
 SR_PRIV struct sr_dev_driver tekpower_tp4000zc_driver_info = {
 	.name = "tekpower-tp4000zc",
 	.longname = "TekPower TP4000ZC",
 	.api_version = 1,
-	.init = hw_init_tekpower_tp4000zc,
+	.init = hw_init_TEKPOWER_TP4000ZC,
 	.cleanup = hw_cleanup,
 	.scan = hw_scan,
 	.dev_list = hw_dev_list,
@@ -641,13 +558,14 @@ SR_PRIV struct sr_dev_driver tekpower_tp4000zc_driver_info = {
 	.dev_acquisition_start = hw_dev_acquisition_start,
 	.dev_acquisition_stop = hw_dev_acquisition_stop,
 	.priv = NULL,
+	.subdriver = TEKPOWER_TP4000ZC,
 };
 
 SR_PRIV struct sr_dev_driver metex_me31_driver_info = {
 	.name = "metex-me31",
 	.longname = "Metex ME-31",
 	.api_version = 1,
-	.init = hw_init_metex_me31,
+	.init = hw_init_METEX_ME31,
 	.cleanup = hw_cleanup,
 	.scan = hw_scan,
 	.dev_list = hw_dev_list,
@@ -659,13 +577,14 @@ SR_PRIV struct sr_dev_driver metex_me31_driver_info = {
 	.dev_acquisition_start = hw_dev_acquisition_start,
 	.dev_acquisition_stop = hw_dev_acquisition_stop,
 	.priv = NULL,
+	.subdriver = METEX_ME31,
 };
 
 SR_PRIV struct sr_dev_driver peaktech_3410_driver_info = {
 	.name = "peaktech-3410",
 	.longname = "PeakTech 3410",
 	.api_version = 1,
-	.init = hw_init_peaktech_3410,
+	.init = hw_init_PEAKTECH_3410,
 	.cleanup = hw_cleanup,
 	.scan = hw_scan,
 	.dev_list = hw_dev_list,
@@ -677,13 +596,14 @@ SR_PRIV struct sr_dev_driver peaktech_3410_driver_info = {
 	.dev_acquisition_start = hw_dev_acquisition_start,
 	.dev_acquisition_stop = hw_dev_acquisition_stop,
 	.priv = NULL,
+	.subdriver = PEAKTECH_3410,
 };
 
 SR_PRIV struct sr_dev_driver mastech_mas345_driver_info = {
 	.name = "mastech-mas345",
 	.longname = "MASTECH MAS345",
 	.api_version = 1,
-	.init = hw_init_mastech_mas345,
+	.init = hw_init_MASTECH_MAS345,
 	.cleanup = hw_cleanup,
 	.scan = hw_scan,
 	.dev_list = hw_dev_list,
@@ -695,13 +615,14 @@ SR_PRIV struct sr_dev_driver mastech_mas345_driver_info = {
 	.dev_acquisition_start = hw_dev_acquisition_start,
 	.dev_acquisition_stop = hw_dev_acquisition_stop,
 	.priv = NULL,
+	.subdriver = MASTECH_MAS345,
 };
 
 SR_PRIV struct sr_dev_driver va_va18b_driver_info = {
 	.name = "va-va18b",
 	.longname = "V&A VA18B",
 	.api_version = 1,
-	.init = hw_init_va_va18b,
+	.init = hw_init_VA_VA18B,
 	.cleanup = hw_cleanup,
 	.scan = hw_scan,
 	.dev_list = hw_dev_list,
@@ -713,13 +634,14 @@ SR_PRIV struct sr_dev_driver va_va18b_driver_info = {
 	.dev_acquisition_start = hw_dev_acquisition_start,
 	.dev_acquisition_stop = hw_dev_acquisition_stop,
 	.priv = NULL,
+	.subdriver = VA_VA18B,
 };
 
 SR_PRIV struct sr_dev_driver metex_m3640d_driver_info = {
 	.name = "metex-m3640d",
 	.longname = "Metex M-3640D",
 	.api_version = 1,
-	.init = hw_init_metex_m3640d,
+	.init = hw_init_METEX_M3640D,
 	.cleanup = hw_cleanup,
 	.scan = hw_scan,
 	.dev_list = hw_dev_list,
@@ -731,13 +653,14 @@ SR_PRIV struct sr_dev_driver metex_m3640d_driver_info = {
 	.dev_acquisition_start = hw_dev_acquisition_start,
 	.dev_acquisition_stop = hw_dev_acquisition_stop,
 	.priv = NULL,
+	.subdriver = METEX_M3640D,
 };
 
 SR_PRIV struct sr_dev_driver peaktech_4370_driver_info = {
 	.name = "peaktech-4370",
 	.longname = "PeakTech 4370",
 	.api_version = 1,
-	.init = hw_init_peaktech_4370,
+	.init = hw_init_PEAKTECH_4370,
 	.cleanup = hw_cleanup,
 	.scan = hw_scan,
 	.dev_list = hw_dev_list,
@@ -749,13 +672,14 @@ SR_PRIV struct sr_dev_driver peaktech_4370_driver_info = {
 	.dev_acquisition_start = hw_dev_acquisition_start,
 	.dev_acquisition_stop = hw_dev_acquisition_stop,
 	.priv = NULL,
+	.subdriver = PEAKTECH_4370,
 };
 
 SR_PRIV struct sr_dev_driver pce_pce_dm32_driver_info = {
 	.name = "pce-pce-dm32",
 	.longname = "PCE PCE-DM32",
 	.api_version = 1,
-	.init = hw_init_pce_pce_dm32,
+	.init = hw_init_PCE_PCE_DM32,
 	.cleanup = hw_cleanup,
 	.scan = hw_scan,
 	.dev_list = hw_dev_list,
@@ -767,13 +691,14 @@ SR_PRIV struct sr_dev_driver pce_pce_dm32_driver_info = {
 	.dev_acquisition_start = hw_dev_acquisition_start,
 	.dev_acquisition_stop = hw_dev_acquisition_stop,
 	.priv = NULL,
+	.subdriver = PCE_PCE_DM32,
 };
 
 SR_PRIV struct sr_dev_driver radioshack_22_168_driver_info = {
 	.name = "radioshack-22-168",
 	.longname = "RadioShack 22-168",
 	.api_version = 1,
-	.init = hw_init_radioshack_22_168,
+	.init = hw_init_RADIOSHACK_22_168,
 	.cleanup = hw_cleanup,
 	.scan = hw_scan,
 	.dev_list = hw_dev_list,
@@ -785,13 +710,14 @@ SR_PRIV struct sr_dev_driver radioshack_22_168_driver_info = {
 	.dev_acquisition_start = hw_dev_acquisition_start,
 	.dev_acquisition_stop = hw_dev_acquisition_stop,
 	.priv = NULL,
+	.subdriver = RADIOSHACK_22_168,
 };
 
 SR_PRIV struct sr_dev_driver radioshack_22_812_driver_info = {
 	.name = "radioshack-22-812",
 	.longname = "RadioShack 22-812",
 	.api_version = 1,
-	.init = hw_init_radioshack_22_812,
+	.init = hw_init_RADIOSHACK_22_812,
 	.cleanup = hw_cleanup,
 	.scan = hw_scan,
 	.dev_list = hw_dev_list,
@@ -803,4 +729,5 @@ SR_PRIV struct sr_dev_driver radioshack_22_812_driver_info = {
 	.dev_acquisition_start = hw_dev_acquisition_start,
 	.dev_acquisition_stop = hw_dev_acquisition_stop,
 	.priv = NULL,
+	.subdriver = RADIOSHACK_22_812,
 };

@@ -631,6 +631,8 @@ struct sr_dev_driver {
 
 	/* Dynamic */
 	void *priv;
+
+	int subdriver;
 };
 
 struct sr_session {
