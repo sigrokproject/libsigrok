@@ -523,211 +523,34 @@ static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 	return SR_OK;
 }
 
-SR_PRIV struct sr_dev_driver digitek_dt4000zc_driver_info = {
-	.name = "digitek-dt4000zc",
-	.longname = "Digitek DT4000ZC",
-	.api_version = 1,
-	.init = hw_init_DIGITEK_DT4000ZC,
-	.cleanup = hw_cleanup,
-	.scan = hw_scan,
-	.dev_list = hw_dev_list,
-	.dev_clear = clear_instances,
-	.dev_open = hw_dev_open,
-	.dev_close = hw_dev_close,
-	.info_get = hw_info_get,
-	.dev_config_set = hw_dev_config_set,
-	.dev_acquisition_start = hw_dev_acquisition_start,
-	.dev_acquisition_stop = hw_dev_acquisition_stop,
-	.priv = NULL,
-	.subdriver = DIGITEK_DT4000ZC,
+/* Driver structs */
+#define DRV(ID, ID_UPPER, NAME, LONGNAME) \
+SR_PRIV struct sr_dev_driver ID##_driver_info = { \
+	.name = NAME, \
+	.longname = LONGNAME, \
+	.api_version = 1, \
+	.init = hw_init_##ID_UPPER, \
+	.cleanup = hw_cleanup, \
+	.scan = hw_scan, \
+	.dev_list = hw_dev_list, \
+	.dev_clear = clear_instances, \
+	.dev_open = hw_dev_open, \
+	.dev_close = hw_dev_close, \
+	.info_get = hw_info_get, \
+	.dev_config_set = hw_dev_config_set, \
+	.dev_acquisition_start = hw_dev_acquisition_start, \
+	.dev_acquisition_stop = hw_dev_acquisition_stop, \
+	.priv = NULL, \
+	.subdriver = ID_UPPER, \
 };
-
-SR_PRIV struct sr_dev_driver tekpower_tp4000zc_driver_info = {
-	.name = "tekpower-tp4000zc",
-	.longname = "TekPower TP4000ZC",
-	.api_version = 1,
-	.init = hw_init_TEKPOWER_TP4000ZC,
-	.cleanup = hw_cleanup,
-	.scan = hw_scan,
-	.dev_list = hw_dev_list,
-	.dev_clear = clear_instances,
-	.dev_open = hw_dev_open,
-	.dev_close = hw_dev_close,
-	.info_get = hw_info_get,
-	.dev_config_set = hw_dev_config_set,
-	.dev_acquisition_start = hw_dev_acquisition_start,
-	.dev_acquisition_stop = hw_dev_acquisition_stop,
-	.priv = NULL,
-	.subdriver = TEKPOWER_TP4000ZC,
-};
-
-SR_PRIV struct sr_dev_driver metex_me31_driver_info = {
-	.name = "metex-me31",
-	.longname = "Metex ME-31",
-	.api_version = 1,
-	.init = hw_init_METEX_ME31,
-	.cleanup = hw_cleanup,
-	.scan = hw_scan,
-	.dev_list = hw_dev_list,
-	.dev_clear = clear_instances,
-	.dev_open = hw_dev_open,
-	.dev_close = hw_dev_close,
-	.info_get = hw_info_get,
-	.dev_config_set = hw_dev_config_set,
-	.dev_acquisition_start = hw_dev_acquisition_start,
-	.dev_acquisition_stop = hw_dev_acquisition_stop,
-	.priv = NULL,
-	.subdriver = METEX_ME31,
-};
-
-SR_PRIV struct sr_dev_driver peaktech_3410_driver_info = {
-	.name = "peaktech-3410",
-	.longname = "PeakTech 3410",
-	.api_version = 1,
-	.init = hw_init_PEAKTECH_3410,
-	.cleanup = hw_cleanup,
-	.scan = hw_scan,
-	.dev_list = hw_dev_list,
-	.dev_clear = clear_instances,
-	.dev_open = hw_dev_open,
-	.dev_close = hw_dev_close,
-	.info_get = hw_info_get,
-	.dev_config_set = hw_dev_config_set,
-	.dev_acquisition_start = hw_dev_acquisition_start,
-	.dev_acquisition_stop = hw_dev_acquisition_stop,
-	.priv = NULL,
-	.subdriver = PEAKTECH_3410,
-};
-
-SR_PRIV struct sr_dev_driver mastech_mas345_driver_info = {
-	.name = "mastech-mas345",
-	.longname = "MASTECH MAS345",
-	.api_version = 1,
-	.init = hw_init_MASTECH_MAS345,
-	.cleanup = hw_cleanup,
-	.scan = hw_scan,
-	.dev_list = hw_dev_list,
-	.dev_clear = clear_instances,
-	.dev_open = hw_dev_open,
-	.dev_close = hw_dev_close,
-	.info_get = hw_info_get,
-	.dev_config_set = hw_dev_config_set,
-	.dev_acquisition_start = hw_dev_acquisition_start,
-	.dev_acquisition_stop = hw_dev_acquisition_stop,
-	.priv = NULL,
-	.subdriver = MASTECH_MAS345,
-};
-
-SR_PRIV struct sr_dev_driver va_va18b_driver_info = {
-	.name = "va-va18b",
-	.longname = "V&A VA18B",
-	.api_version = 1,
-	.init = hw_init_VA_VA18B,
-	.cleanup = hw_cleanup,
-	.scan = hw_scan,
-	.dev_list = hw_dev_list,
-	.dev_clear = clear_instances,
-	.dev_open = hw_dev_open,
-	.dev_close = hw_dev_close,
-	.info_get = hw_info_get,
-	.dev_config_set = hw_dev_config_set,
-	.dev_acquisition_start = hw_dev_acquisition_start,
-	.dev_acquisition_stop = hw_dev_acquisition_stop,
-	.priv = NULL,
-	.subdriver = VA_VA18B,
-};
-
-SR_PRIV struct sr_dev_driver metex_m3640d_driver_info = {
-	.name = "metex-m3640d",
-	.longname = "Metex M-3640D",
-	.api_version = 1,
-	.init = hw_init_METEX_M3640D,
-	.cleanup = hw_cleanup,
-	.scan = hw_scan,
-	.dev_list = hw_dev_list,
-	.dev_clear = clear_instances,
-	.dev_open = hw_dev_open,
-	.dev_close = hw_dev_close,
-	.info_get = hw_info_get,
-	.dev_config_set = hw_dev_config_set,
-	.dev_acquisition_start = hw_dev_acquisition_start,
-	.dev_acquisition_stop = hw_dev_acquisition_stop,
-	.priv = NULL,
-	.subdriver = METEX_M3640D,
-};
-
-SR_PRIV struct sr_dev_driver peaktech_4370_driver_info = {
-	.name = "peaktech-4370",
-	.longname = "PeakTech 4370",
-	.api_version = 1,
-	.init = hw_init_PEAKTECH_4370,
-	.cleanup = hw_cleanup,
-	.scan = hw_scan,
-	.dev_list = hw_dev_list,
-	.dev_clear = clear_instances,
-	.dev_open = hw_dev_open,
-	.dev_close = hw_dev_close,
-	.info_get = hw_info_get,
-	.dev_config_set = hw_dev_config_set,
-	.dev_acquisition_start = hw_dev_acquisition_start,
-	.dev_acquisition_stop = hw_dev_acquisition_stop,
-	.priv = NULL,
-	.subdriver = PEAKTECH_4370,
-};
-
-SR_PRIV struct sr_dev_driver pce_pce_dm32_driver_info = {
-	.name = "pce-pce-dm32",
-	.longname = "PCE PCE-DM32",
-	.api_version = 1,
-	.init = hw_init_PCE_PCE_DM32,
-	.cleanup = hw_cleanup,
-	.scan = hw_scan,
-	.dev_list = hw_dev_list,
-	.dev_clear = clear_instances,
-	.dev_open = hw_dev_open,
-	.dev_close = hw_dev_close,
-	.info_get = hw_info_get,
-	.dev_config_set = hw_dev_config_set,
-	.dev_acquisition_start = hw_dev_acquisition_start,
-	.dev_acquisition_stop = hw_dev_acquisition_stop,
-	.priv = NULL,
-	.subdriver = PCE_PCE_DM32,
-};
-
-SR_PRIV struct sr_dev_driver radioshack_22_168_driver_info = {
-	.name = "radioshack-22-168",
-	.longname = "RadioShack 22-168",
-	.api_version = 1,
-	.init = hw_init_RADIOSHACK_22_168,
-	.cleanup = hw_cleanup,
-	.scan = hw_scan,
-	.dev_list = hw_dev_list,
-	.dev_clear = clear_instances,
-	.dev_open = hw_dev_open,
-	.dev_close = hw_dev_close,
-	.info_get = hw_info_get,
-	.dev_config_set = hw_dev_config_set,
-	.dev_acquisition_start = hw_dev_acquisition_start,
-	.dev_acquisition_stop = hw_dev_acquisition_stop,
-	.priv = NULL,
-	.subdriver = RADIOSHACK_22_168,
-};
-
-SR_PRIV struct sr_dev_driver radioshack_22_812_driver_info = {
-	.name = "radioshack-22-812",
-	.longname = "RadioShack 22-812",
-	.api_version = 1,
-	.init = hw_init_RADIOSHACK_22_812,
-	.cleanup = hw_cleanup,
-	.scan = hw_scan,
-	.dev_list = hw_dev_list,
-	.dev_clear = clear_instances,
-	.dev_open = hw_dev_open,
-	.dev_close = hw_dev_close,
-	.info_get = hw_info_get,
-	.dev_config_set = hw_dev_config_set,
-	.dev_acquisition_start = hw_dev_acquisition_start,
-	.dev_acquisition_stop = hw_dev_acquisition_stop,
-	.priv = NULL,
-	.subdriver = RADIOSHACK_22_812,
-};
+DRV(digitek_dt4000zc, DIGITEK_DT4000ZC, "digitek-dt4000zc", "Digitek DT4000ZC")
+DRV(tekpower_tp4000zc, TEKPOWER_TP4000ZC, "tekpower-tp4000zc", "TekPower TP4000ZC")
+DRV(metex_me31, METEX_ME31, "metex-me31", "Metex ME-31")
+DRV(peaktech_3410, PEAKTECH_3410, "peaktech-3410", "PeakTech 3410")
+DRV(mastech_mas345, MASTECH_MAS345, "mastech-mas345", "MASTECH MAS345")
+DRV(va_va18b, VA_VA18B, "va-va18b", "V&A VA18B")
+DRV(metex_m3640d, METEX_M3640D, "metex-m3640d", "Metex M-3640D")
+DRV(peaktech_4370, PEAKTECH_4370, "peaktech-4370", "PeakTech 4370")
+DRV(pce_pce_dm32, PCE_PCE_DM32, "pce-pce-dm32", "PCE PCE-DM32")
+DRV(radioshack_22_168, RADIOSHACK_22_168, "radioshack-22-168", "RadioShack 22-168")
+DRV(radioshack_22_812, RADIOSHACK_22_812, "radioshack-22-812", "RadioShack 22-812")
