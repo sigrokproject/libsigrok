@@ -339,14 +339,29 @@ HW_SCAN(PCE_PCE_DM32)
 HW_SCAN(RADIOSHACK_22_168)
 HW_SCAN(RADIOSHACK_22_812)
 
-static GSList *hw_dev_list(void)
+static GSList *hw_dev_list(int dmm)
 {
 	struct drv_context *drvc;
 
-	drvc = di->priv;
+	drvc = dmms[dmm].di->priv;
 
 	return drvc->instances;
 }
+
+/* Driver-specific hw_dev_list() function wrappers */
+#define HW_DEV_LIST(X) static GSList *hw_dev_list_##X(void) \
+				{ return hw_dev_list(X); }
+HW_DEV_LIST(DIGITEK_DT4000ZC)
+HW_DEV_LIST(TEKPOWER_TP4000ZC)
+HW_DEV_LIST(METEX_ME31)
+HW_DEV_LIST(PEAKTECH_3410)
+HW_DEV_LIST(MASTECH_MAS345)
+HW_DEV_LIST(VA_VA18B)
+HW_DEV_LIST(METEX_M3640D)
+HW_DEV_LIST(PEAKTECH_4370)
+HW_DEV_LIST(PCE_PCE_DM32)
+HW_DEV_LIST(RADIOSHACK_22_168)
+HW_DEV_LIST(RADIOSHACK_22_812)
 
 static int hw_dev_open(struct sr_dev_inst *sdi)
 {
@@ -523,7 +538,7 @@ SR_PRIV struct sr_dev_driver ID##_driver_info = { \
 	.init = hw_init_##ID_UPPER, \
 	.cleanup = hw_cleanup, \
 	.scan = hw_scan_##ID_UPPER, \
-	.dev_list = hw_dev_list, \
+	.dev_list = hw_dev_list_##ID_UPPER, \
 	.dev_clear = clear_instances, \
 	.dev_open = hw_dev_open, \
 	.dev_close = hw_dev_close, \
