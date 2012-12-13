@@ -171,21 +171,6 @@ static int clear_instances(int dmm)
 	return SR_OK;
 }
 
-/* Driver-specific clear_instances() function wrappers */
-#define CLEAR_INSTANCES(X) static int clear_instances_##X(void) \
-					{ return clear_instances(X); }
-CLEAR_INSTANCES(DIGITEK_DT4000ZC)
-CLEAR_INSTANCES(TEKPOWER_TP4000ZC)
-CLEAR_INSTANCES(METEX_ME31)
-CLEAR_INSTANCES(PEAKTECH_3410)
-CLEAR_INSTANCES(MASTECH_MAS345)
-CLEAR_INSTANCES(VA_VA18B)
-CLEAR_INSTANCES(METEX_M3640D)
-CLEAR_INSTANCES(PEAKTECH_4370)
-CLEAR_INSTANCES(PCE_PCE_DM32)
-CLEAR_INSTANCES(RADIOSHACK_22_168)
-CLEAR_INSTANCES(RADIOSHACK_22_812)
-
 static int hw_init(struct sr_context *sr_ctx, int dmm)
 {
 	struct drv_context *drvc;
@@ -204,21 +189,6 @@ static int hw_init(struct sr_context *sr_ctx, int dmm)
 
 	return SR_OK;
 }
-
-/* Driver-specific hw_init() function wrappers */
-#define HW_INIT(X) static int hw_init_##X(struct sr_context *sr_ctx) \
-				{ return hw_init(sr_ctx, X); }
-HW_INIT(DIGITEK_DT4000ZC)
-HW_INIT(TEKPOWER_TP4000ZC)
-HW_INIT(METEX_ME31)
-HW_INIT(PEAKTECH_3410)
-HW_INIT(MASTECH_MAS345)
-HW_INIT(VA_VA18B)
-HW_INIT(METEX_M3640D)
-HW_INIT(PEAKTECH_4370)
-HW_INIT(PCE_PCE_DM32)
-HW_INIT(RADIOSHACK_22_168)
-HW_INIT(RADIOSHACK_22_812)
 
 static GSList *scan(const char *conn, const char *serialcomm, int dmm)
 {
@@ -338,21 +308,6 @@ static GSList *hw_scan(GSList *options, int dmm)
 	return devices;
 }
 
-/* Driver-specific hw_scan() function wrappers */
-#define HW_SCAN(X) static GSList *hw_scan_##X(GSList *options) \
-				{ return hw_scan(options, X); }
-HW_SCAN(DIGITEK_DT4000ZC)
-HW_SCAN(TEKPOWER_TP4000ZC)
-HW_SCAN(METEX_ME31)
-HW_SCAN(PEAKTECH_3410)
-HW_SCAN(MASTECH_MAS345)
-HW_SCAN(VA_VA18B)
-HW_SCAN(METEX_M3640D)
-HW_SCAN(PEAKTECH_4370)
-HW_SCAN(PCE_PCE_DM32)
-HW_SCAN(RADIOSHACK_22_168)
-HW_SCAN(RADIOSHACK_22_812)
-
 static GSList *hw_dev_list(int dmm)
 {
 	struct drv_context *drvc;
@@ -361,21 +316,6 @@ static GSList *hw_dev_list(int dmm)
 
 	return drvc->instances;
 }
-
-/* Driver-specific hw_dev_list() function wrappers */
-#define HW_DEV_LIST(X) static GSList *hw_dev_list_##X(void) \
-				{ return hw_dev_list(X); }
-HW_DEV_LIST(DIGITEK_DT4000ZC)
-HW_DEV_LIST(TEKPOWER_TP4000ZC)
-HW_DEV_LIST(METEX_ME31)
-HW_DEV_LIST(PEAKTECH_3410)
-HW_DEV_LIST(MASTECH_MAS345)
-HW_DEV_LIST(VA_VA18B)
-HW_DEV_LIST(METEX_M3640D)
-HW_DEV_LIST(PEAKTECH_4370)
-HW_DEV_LIST(PCE_PCE_DM32)
-HW_DEV_LIST(RADIOSHACK_22_168)
-HW_DEV_LIST(RADIOSHACK_22_812)
 
 static int hw_dev_open(struct sr_dev_inst *sdi)
 {
@@ -417,20 +357,6 @@ static int hw_cleanup(int dmm)
 
 	return SR_OK;
 }
-
-/* Driver-specific hw_cleanup() function wrappers */
-#define HW_CLEANUP(X) static int hw_cleanup_##X(void) { return hw_cleanup(X); }
-HW_CLEANUP(DIGITEK_DT4000ZC)
-HW_CLEANUP(TEKPOWER_TP4000ZC)
-HW_CLEANUP(METEX_ME31)
-HW_CLEANUP(PEAKTECH_3410)
-HW_CLEANUP(MASTECH_MAS345)
-HW_CLEANUP(VA_VA18B)
-HW_CLEANUP(METEX_M3640D)
-HW_CLEANUP(PEAKTECH_4370)
-HW_CLEANUP(PCE_PCE_DM32)
-HW_CLEANUP(RADIOSHACK_22_168)
-HW_CLEANUP(RADIOSHACK_22_812)
 
 static int hw_info_get(int info_id, const void **data,
 		       const struct sr_dev_inst *sdi)
@@ -557,8 +483,25 @@ static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 	return SR_OK;
 }
 
-/* Driver structs */
+/* Driver-specific API function wrappers */
+#define HW_INIT(X) \
+static int hw_init_##X(struct sr_context *sr_ctx) { return hw_init(sr_ctx, X); }
+#define HW_CLEANUP(X) \
+static int hw_cleanup_##X(void) { return hw_cleanup(X); }
+#define HW_SCAN(X) \
+static GSList *hw_scan_##X(GSList *options) { return hw_scan(options, X); }
+#define HW_DEV_LIST(X) \
+static GSList *hw_dev_list_##X(void) { return hw_dev_list(X); }
+#define CLEAR_INSTANCES(X) \
+static int clear_instances_##X(void) { return clear_instances(X); }
+
+/* Driver structs and API function wrappers */
 #define DRV(ID, ID_UPPER, NAME, LONGNAME) \
+HW_INIT(ID_UPPER) \
+HW_CLEANUP(ID_UPPER) \
+HW_SCAN(ID_UPPER) \
+HW_DEV_LIST(ID_UPPER) \
+CLEAR_INSTANCES(ID_UPPER) \
 SR_PRIV struct sr_dev_driver ID##_driver_info = { \
 	.name = NAME, \
 	.longname = LONGNAME, \
@@ -577,6 +520,7 @@ SR_PRIV struct sr_dev_driver ID##_driver_info = { \
 	.priv = NULL, \
 	.subdriver = ID_UPPER, \
 };
+
 DRV(digitek_dt4000zc, DIGITEK_DT4000ZC, "digitek-dt4000zc", "Digitek DT4000ZC")
 DRV(tekpower_tp4000zc, TEKPOWER_TP4000ZC, "tekpower-tp4000zc", "TekPower TP4000ZC")
 DRV(metex_me31, METEX_ME31, "metex-me31", "Metex ME-31")
