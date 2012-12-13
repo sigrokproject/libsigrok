@@ -81,6 +81,7 @@ struct dev_context {
 	uint8_t buf[DMM_BUFSIZE];
 	int bufoffset;
 	int buflen;
+	int subdriver;
 };
 
 SR_PRIV int receive_data_DIGITEK_DT4000ZC(int fd, int revents, void *cb_data);

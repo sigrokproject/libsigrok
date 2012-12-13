@@ -255,6 +255,7 @@ static GSList *scan(const char *conn, const char *serialcomm, int dmm)
 	}
 
 	devc->serial = serial;
+	devc->subdriver = dmm;
 
 	sdi->priv = devc;
 	sdi->driver = dmms[dmm].di;
@@ -446,7 +447,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 
 	/* Poll every 50ms, or whenever some data comes in. */
 	sr_source_add(devc->serial->fd, G_IO_IN, 50,
-		      dmms[sdi->driver->subdriver].receive_data, (void *)sdi);
+		      dmms[devc->subdriver].receive_data, (void *)sdi);
 
 	return SR_OK;
 }
@@ -512,7 +513,6 @@ SR_PRIV struct sr_dev_driver ID##_driver_info = { \
 	.dev_acquisition_start = hw_dev_acquisition_start, \
 	.dev_acquisition_stop = hw_dev_acquisition_stop, \
 	.priv = NULL, \
-	.subdriver = ID_UPPER, \
 };
 
 DRV(digitek_dt4000zc, DIGITEK_DT4000ZC, "digitek-dt4000zc", "Digitek DT4000ZC")
