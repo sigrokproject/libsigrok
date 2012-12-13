@@ -122,7 +122,7 @@ SR_PRIV int sr_source_add(int fd, int events, int timeout,
 /*--- session.c -------------------------------------------------------------*/
 
 SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
-			    struct sr_datafeed_packet *packet);
+			    const struct sr_datafeed_packet *packet);
 
 /*--- hardware/common/serial.c ----------------------------------------------*/
 

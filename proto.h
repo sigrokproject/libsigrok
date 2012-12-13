@@ -89,7 +89,7 @@ SR_API const struct sr_hwcap_option *sr_devopt_name_get(const char *optname);
 /*--- session.c -------------------------------------------------------------*/
 
 typedef void (*sr_datafeed_callback_t)(const struct sr_dev_inst *sdi,
-		struct sr_datafeed_packet *packet);
+		const struct sr_datafeed_packet *packet);
 
 /* Session setup */
 SR_API int sr_session_load(const char *filename);

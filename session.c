@@ -370,10 +370,10 @@ SR_API int sr_session_stop(void)
  *
  * @param packet The packet to show debugging information for.
  */
-static void datafeed_dump(struct sr_datafeed_packet *packet)
+static void datafeed_dump(const struct sr_datafeed_packet *packet)
 {
-	struct sr_datafeed_logic *logic;
-	struct sr_datafeed_analog *analog;
+	const struct sr_datafeed_logic *logic;
+	const struct sr_datafeed_analog *analog;
 
 	switch (packet->type) {
 	case SR_DF_HEADER:
@@ -426,7 +426,7 @@ static void datafeed_dump(struct sr_datafeed_packet *packet)
  * @private
  */
 SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
-			    struct sr_datafeed_packet *packet)
+			    const struct sr_datafeed_packet *packet)
 {
 	GSList *l;
 	sr_datafeed_callback_t cb;
