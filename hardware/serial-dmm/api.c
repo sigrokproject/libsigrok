@@ -292,12 +292,11 @@ scan_cleanup:
 	return devices;
 }
 
-static GSList *hw_scan(GSList *options)
+static GSList *hw_scan(GSList *options, int dmm)
 {
 	struct sr_hwopt *opt;
 	GSList *l, *devices;
 	const char *conn, *serialcomm;
-	int dmm;
 
 	conn = serialcomm = NULL;
 	for (l = options; l; l = l->next) {
@@ -314,29 +313,6 @@ static GSList *hw_scan(GSList *options)
 	if (!conn)
 		return NULL;
 
-	if (!strcmp(di->name, "digitek-dt4000zc"))
-		dmm = 0;
-	if (!strcmp(di->name, "tekpower-tp4000zc"))
-		dmm = 1;
-	if (!strcmp(di->name, "metex-me31"))
-		dmm = 2;
-	if (!strcmp(di->name, "peaktech-3410"))
-		dmm = 3;
-	if (!strcmp(di->name, "mastech-mas345"))
-		dmm = 4;
-	if (!strcmp(di->name, "va-va18b"))
-		dmm = 5;
-	if (!strcmp(di->name, "metex-m3640d"))
-		dmm = 6;
-	if (!strcmp(di->name, "peaktech-4370"))
-		dmm = 7;
-	if (!strcmp(di->name, "pce-pce-dm32"))
-		dmm = 8;
-	if (!strcmp(di->name, "radioshack-22-168"))
-		dmm = 9;
-	if (!strcmp(di->name, "radioshack-22-812"))
-		dmm = 10;
-
 	if (serialcomm) {
 		/* Use the provided comm specs. */
 		devices = scan(conn, serialcomm, dmm);
@@ -347,6 +323,21 @@ static GSList *hw_scan(GSList *options)
 
 	return devices;
 }
+
+/* Driver-specific hw_scan() function wrappers */
+#define HW_SCAN(X) static GSList *hw_scan_##X(GSList *options) \
+				{ return hw_scan(options, X); }
+HW_SCAN(DIGITEK_DT4000ZC)
+HW_SCAN(TEKPOWER_TP4000ZC)
+HW_SCAN(METEX_ME31)
+HW_SCAN(PEAKTECH_3410)
+HW_SCAN(MASTECH_MAS345)
+HW_SCAN(VA_VA18B)
+HW_SCAN(METEX_M3640D)
+HW_SCAN(PEAKTECH_4370)
+HW_SCAN(PCE_PCE_DM32)
+HW_SCAN(RADIOSHACK_22_168)
+HW_SCAN(RADIOSHACK_22_812)
 
 static GSList *hw_dev_list(void)
 {
@@ -531,7 +522,7 @@ SR_PRIV struct sr_dev_driver ID##_driver_info = { \
 	.api_version = 1, \
 	.init = hw_init_##ID_UPPER, \
 	.cleanup = hw_cleanup, \
-	.scan = hw_scan, \
+	.scan = hw_scan_##ID_UPPER, \
 	.dev_list = hw_dev_list, \
 	.dev_clear = clear_instances, \
 	.dev_open = hw_dev_open, \
