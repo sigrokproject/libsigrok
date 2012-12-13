@@ -397,12 +397,26 @@ static int hw_dev_close(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int hw_cleanup(void)
+static int hw_cleanup(int dmm)
 {
 	clear_instances();
 
 	return SR_OK;
 }
+
+/* Driver-specific hw_cleanup() function wrappers */
+#define HW_CLEANUP(X) static int hw_cleanup_##X(void) { return hw_cleanup(X); }
+HW_CLEANUP(DIGITEK_DT4000ZC)
+HW_CLEANUP(TEKPOWER_TP4000ZC)
+HW_CLEANUP(METEX_ME31)
+HW_CLEANUP(PEAKTECH_3410)
+HW_CLEANUP(MASTECH_MAS345)
+HW_CLEANUP(VA_VA18B)
+HW_CLEANUP(METEX_M3640D)
+HW_CLEANUP(PEAKTECH_4370)
+HW_CLEANUP(PCE_PCE_DM32)
+HW_CLEANUP(RADIOSHACK_22_168)
+HW_CLEANUP(RADIOSHACK_22_812)
 
 static int hw_info_get(int info_id, const void **data,
 		       const struct sr_dev_inst *sdi)
@@ -536,7 +550,7 @@ SR_PRIV struct sr_dev_driver ID##_driver_info = { \
 	.longname = LONGNAME, \
 	.api_version = 1, \
 	.init = hw_init_##ID_UPPER, \
-	.cleanup = hw_cleanup, \
+	.cleanup = hw_cleanup_##ID_UPPER, \
 	.scan = hw_scan_##ID_UPPER, \
 	.dev_list = hw_dev_list_##ID_UPPER, \
 	.dev_clear = clear_instances, \
