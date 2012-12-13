@@ -143,16 +143,15 @@ SR_PRIV struct dmm_info dmms[] = {
 };
 
 /* Properly close and free all devices. */
-static int clear_instances(void)
+static int clear_instances(int dmm)
 {
 	struct sr_dev_inst *sdi;
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	GSList *l;
+	struct sr_dev_driver *di;
 
-	/* di is not necessarily initialized */
-	if (!di)
-		return SR_OK;
+	di = dmms[dmm].di;
 
 	if (!(drvc = di->priv))
 		return SR_OK;
@@ -171,6 +170,21 @@ static int clear_instances(void)
 
 	return SR_OK;
 }
+
+/* Driver-specific clear_instances() function wrappers */
+#define CLEAR_INSTANCES(X) static int clear_instances_##X(void) \
+					{ return clear_instances(X); }
+CLEAR_INSTANCES(DIGITEK_DT4000ZC)
+CLEAR_INSTANCES(TEKPOWER_TP4000ZC)
+CLEAR_INSTANCES(METEX_ME31)
+CLEAR_INSTANCES(PEAKTECH_3410)
+CLEAR_INSTANCES(MASTECH_MAS345)
+CLEAR_INSTANCES(VA_VA18B)
+CLEAR_INSTANCES(METEX_M3640D)
+CLEAR_INSTANCES(PEAKTECH_4370)
+CLEAR_INSTANCES(PCE_PCE_DM32)
+CLEAR_INSTANCES(RADIOSHACK_22_168)
+CLEAR_INSTANCES(RADIOSHACK_22_812)
 
 static int hw_init(struct sr_context *sr_ctx, int dmm)
 {
@@ -399,7 +413,7 @@ static int hw_dev_close(struct sr_dev_inst *sdi)
 
 static int hw_cleanup(int dmm)
 {
-	clear_instances();
+	clear_instances(dmm);
 
 	return SR_OK;
 }
@@ -553,7 +567,7 @@ SR_PRIV struct sr_dev_driver ID##_driver_info = { \
 	.cleanup = hw_cleanup_##ID_UPPER, \
 	.scan = hw_scan_##ID_UPPER, \
 	.dev_list = hw_dev_list_##ID_UPPER, \
-	.dev_clear = clear_instances, \
+	.dev_clear = clear_instances_##ID_UPPER, \
 	.dev_open = hw_dev_open, \
 	.dev_close = hw_dev_close, \
 	.info_get = hw_info_get, \
