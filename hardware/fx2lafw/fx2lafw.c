@@ -209,14 +209,14 @@ static int fx2lafw_dev_open(struct sr_dev_inst *sdi)
 	const int device_count = libusb_get_device_list(
 		drvc->sr_ctx->libusb_ctx, &devlist);
 	if (device_count < 0) {
-		sr_err("fx2lafw: Failed to retrieve device list (%d)",
+		sr_err("Failed to retrieve device list (%d)",
 			device_count);
 		return SR_ERR;
 	}
 
 	for (i = 0; i < device_count; i++) {
 		if ((ret = libusb_get_device_descriptor(devlist[i], &des))) {
-			sr_err("fx2lafw: Failed to get device descriptor: %s.",
+			sr_err("Failed to get device descriptor: %s.",
 			       libusb_error_name(ret));
 			continue;
 		}
@@ -250,21 +250,21 @@ static int fx2lafw_dev_open(struct sr_dev_inst *sdi)
 				 */
 				devc->usb->address = libusb_get_device_address(devlist[i]);
 		} else {
-			sr_err("fx2lafw: Failed to open device: %s.",
+			sr_err("Failed to open device: %s.",
 			       libusb_error_name(ret));
 			break;
 		}
 
 		ret = command_get_fw_version(devc->usb->devhdl, &vi);
 		if (ret != SR_OK) {
-			sr_err("fx2lafw: Failed to retrieve "
+			sr_err("Failed to retrieve "
 			       "firmware version information.");
 			break;
 		}
 
 		ret = command_get_revid_version(devc->usb->devhdl, &revid);
 		if (ret != SR_OK) {
-			sr_err("fx2lafw: Failed to retrieve REVID.");
+			sr_err("Failed to retrieve REVID.");
 			break;
 		}
 
@@ -274,14 +274,14 @@ static int fx2lafw_dev_open(struct sr_dev_inst *sdi)
 		 * Different minor versions are OK, they should be compatible.
 		 */
 		if (vi.major != FX2LAFW_REQUIRED_VERSION_MAJOR) {
-			sr_err("fx2lafw: Expected firmware version %d.x, "
+			sr_err("Expected firmware version %d.x, "
 			       "got %d.%d.", FX2LAFW_REQUIRED_VERSION_MAJOR,
 			       vi.major, vi.minor);
 			break;
 		}
 
 		sdi->status = SR_ST_ACTIVE;
-		sr_info("fx2lafw: Opened device %d on %d.%d "
+		sr_info("Opened device %d on %d.%d "
 			"interface %d, firmware %d.%d, REVID %d.",
 			sdi->index, devc->usb->bus, devc->usb->address,
 			USB_INTERFACE, vi.major, vi.minor, revid);
@@ -351,7 +351,7 @@ static struct dev_context *fx2lafw_dev_new(void)
 	struct dev_context *devc;
 
 	if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
-		sr_err("fx2lafw: %s: devc malloc failed.", __func__);
+		sr_err("%s: devc malloc failed.", __func__);
 		return NULL;
 	}
 
@@ -373,14 +373,14 @@ static int clear_instances(void)
 	for (l = drvc->instances; l; l = l->next) {
 		if (!(sdi = l->data)) {
 			/* Log error, but continue cleaning up the rest. */
-			sr_err("fx2lafw: %s: sdi was NULL, continuing.",
+			sr_err("%s: sdi was NULL, continuing.",
 				   __func__);
 			ret = SR_ERR_BUG;
 			continue;
 		}
 		if (!(devc = sdi->priv)) {
 			/* Log error, but continue cleaning up the rest. */
-			sr_err("fx2lafw: %s: sdi->priv was NULL, continuing",
+			sr_err("%s: sdi->priv was NULL, continuing",
 				   __func__);
 			ret = SR_ERR_BUG;
 			continue;
@@ -407,7 +407,7 @@ static int hw_init(struct sr_context *sr_ctx)
 	struct drv_context *drvc;
 
 	if (!(drvc = g_try_malloc0(sizeof(struct drv_context)))) {
-		sr_err("fx2lafw: driver context malloc failed.");
+		sr_err("Driver context malloc failed.");
 		return SR_ERR_MALLOC;
 	}
 
@@ -443,7 +443,7 @@ static GSList *hw_scan(GSList *options)
 
 		if ((ret = libusb_get_device_descriptor(
 		     devlist[i], &des)) != 0) {
-			sr_warn("fx2lafw: Failed to get device descriptor: %s.",
+			sr_warn("Failed to get device descriptor: %s.",
 				libusb_error_name(ret));
 			continue;
 		}
@@ -484,7 +484,7 @@ static GSList *hw_scan(GSList *options)
 
 		if (check_conf_profile(devlist[i])) {
 			/* Already has the firmware, so fix the new address. */
-			sr_dbg("fx2lafw: Found an fx2lafw device.");
+			sr_dbg("Found an fx2lafw device.");
 			sdi->status = SR_ST_INACTIVE;
 			devc->usb = sr_usb_dev_inst_new
 			    (libusb_get_bus_number(devlist[i]),
@@ -495,7 +495,7 @@ static GSList *hw_scan(GSList *options)
 				/* Remember when the firmware on this device was updated */
 				devc->fw_updated = g_get_monotonic_time();
 			else
-				sr_err("fx2lafw: Firmware upload failed for "
+				sr_err("Firmware upload failed for "
 				       "device %d.", devcnt);
 			devc->usb = sr_usb_dev_inst_new
 				(libusb_get_bus_number(devlist[i]), 0xff, NULL);
@@ -529,7 +529,7 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 	 */
 	ret = SR_ERR;
 	if (devc->fw_updated > 0) {
-		sr_info("fx2lafw: Waiting for device to reset.");
+		sr_info("Waiting for device to reset.");
 		/* takes at least 300ms for the FX2 to be gone from the USB bus */
 		g_usleep(300 * 1000);
 		timediff_ms = 0;
@@ -540,17 +540,17 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 
 			timediff_us = g_get_monotonic_time() - devc->fw_updated;
 			timediff_ms = timediff_us / 1000;
-			sr_spew("fx2lafw: waited %" PRIi64 " ms", timediff_ms);
+			sr_spew("Waited %" PRIi64 " ms", timediff_ms);
 		}
 	} else {
 		ret = fx2lafw_dev_open(sdi);
 	}
 
 	if (ret != SR_OK) {
-		sr_err("fx2lafw: Unable to open device.");
+		sr_err("Unable to open device.");
 		return SR_ERR;
 	} else {
-		sr_info("fx2lafw: Device came back after %d ms.",
+		sr_info("Device came back after %d ms.",
 			timediff_ms);
 	}
 
@@ -560,16 +560,16 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 	if (ret != 0) {
 		switch(ret) {
 		case LIBUSB_ERROR_BUSY:
-			sr_err("fx2lafw: Unable to claim USB interface. Another "
+			sr_err("Unable to claim USB interface. Another "
 				"program or driver has already claimed it.");
 			break;
 
 		case LIBUSB_ERROR_NO_DEVICE:
-			sr_err("fx2lafw: Device has been disconnected.");
+			sr_err("Device has been disconnected.");
 			break;
 
 		default:
-			sr_err("fx2lafw: Unable to claim interface: %s.",
+			sr_err("Unable to claim interface: %s.",
 			       libusb_error_name(ret));
 			break;
 		}
@@ -595,7 +595,7 @@ static int hw_dev_close(struct sr_dev_inst *sdi)
 	if (devc->usb->devhdl == NULL)
 		return SR_ERR;
 
-	sr_info("fx2lafw: Closing device %d on %d.%d interface %d.",
+	sr_info("Closing device %d on %d.%d interface %d.",
 		sdi->index, devc->usb->bus, devc->usb->address, USB_INTERFACE);
 	libusb_release_interface(devc->usb->devhdl, USB_INTERFACE);
 	libusb_close(devc->usb->devhdl);
@@ -764,7 +764,7 @@ static void resubmit_transfer(struct libusb_transfer *transfer)
 	free_transfer(transfer);
 	/* TODO: Stop session? */
 
-	sr_err("fx2lafw: %s: %s", __func__, libusb_error_name(ret));
+	sr_err("%s: %s", __func__, libusb_error_name(ret));
 }
 
 static void receive_transfer(struct libusb_transfer *transfer)
@@ -784,7 +784,7 @@ static void receive_transfer(struct libusb_transfer *transfer)
 		return;
 	}
 
-	sr_info("fx2lafw: receive_transfer(): status %d received %d bytes.",
+	sr_info("receive_transfer(): status %d received %d bytes.",
 		transfer->status, transfer->actual_length);
 
 	/* Save incoming transfer before reusing the transfer struct. */
@@ -964,7 +964,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 		return SR_ERR;
 
 	if (configure_probes(sdi) != SR_OK) {
-		sr_err("fx2lafw: failed to configured probes");
+		sr_err("Failed to configured probes");
 		return SR_ERR;
 	}
 
@@ -978,7 +978,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 
 	devc->transfers = g_try_malloc0(sizeof(*devc->transfers) * num_transfers);
 	if (!devc->transfers) {
-		sr_err("fx2lafw: USB transfers malloc failed.");
+		sr_err("USB transfers malloc failed.");
 		return SR_ERR_MALLOC;
 	}
 
@@ -986,7 +986,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 
 	for (i = 0; i < num_transfers; i++) {
 		if (!(buf = g_try_malloc(size))) {
-			sr_err("fx2lafw: %s: buf malloc failed.", __func__);
+			sr_err("%s: buf malloc failed.", __func__);
 			return SR_ERR_MALLOC;
 		}
 		transfer = libusb_alloc_transfer(0);
@@ -994,7 +994,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 				2 | LIBUSB_ENDPOINT_IN, buf, size,
 				receive_transfer, devc, timeout);
 		if ((ret = libusb_submit_transfer(transfer)) != 0) {
-			sr_err("fx2lafw: %s: libusb_submit_transfer: %s.",
+			sr_err("%s: libusb_submit_transfer: %s.",
 			       __func__, libusb_error_name(ret));
 			libusb_free_transfer(transfer);
 			g_free(buf);
