@@ -83,17 +83,17 @@ struct dev_context {
 	int buflen;
 };
 
-SR_PRIV int digitek_dt4000zc_receive_data(int fd, int revents, void *cb_data);
-SR_PRIV int tekpower_tp4000zc_receive_data(int fd, int revents, void *cb_data);
-SR_PRIV int metex_me31_receive_data(int fd, int revents, void *cb_data);
-SR_PRIV int peaktech_3410_receive_data(int fd, int revents, void *cb_data);
-SR_PRIV int mastech_mas345_receive_data(int fd, int revents, void *cb_data);
-SR_PRIV int va_va18b_receive_data(int fd, int revents, void *cb_data);
-SR_PRIV int metex_m3640d_receive_data(int fd, int revents, void *cb_data);
-SR_PRIV int peaktech_4370_receive_data(int fd, int revents, void *cb_data);
-SR_PRIV int pce_pce_dm32_receive_data(int fd, int revents, void *cb_data);
-SR_PRIV int radioshack_22_168_receive_data(int fd, int revents, void *cb_data);
-SR_PRIV int radioshack_22_812_receive_data(int fd, int revents, void *cb_data);
+SR_PRIV int receive_data_DIGITEK_DT4000ZC(int fd, int revents, void *cb_data);
+SR_PRIV int receive_data_TEKPOWER_TP4000ZC(int fd, int revents, void *cb_data);
+SR_PRIV int receive_data_METEX_ME31(int fd, int revents, void *cb_data);
+SR_PRIV int receive_data_PEAKTECH_3410(int fd, int revents, void *cb_data);
+SR_PRIV int receive_data_MASTECH_MAS345(int fd, int revents, void *cb_data);
+SR_PRIV int receive_data_VA_VA18B(int fd, int revents, void *cb_data);
+SR_PRIV int receive_data_METEX_M3640D(int fd, int revents, void *cb_data);
+SR_PRIV int receive_data_PEAKTECH_4370(int fd, int revents, void *cb_data);
+SR_PRIV int receive_data_PCE_PCE_DM32(int fd, int revents, void *cb_data);
+SR_PRIV int receive_data_RADIOSHACK_22_168(int fd, int revents, void *cb_data);
+SR_PRIV int receive_data_RADIOSHACK_22_812(int fd, int revents, void *cb_data);
 
 SR_PRIV void dmm_details_tp4000zc(struct sr_datafeed_analog *analog, void *info);
 SR_PRIV void dmm_details_dt4000zc(struct sr_datafeed_analog *analog, void *info);

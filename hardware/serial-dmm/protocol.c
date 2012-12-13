@@ -185,68 +185,20 @@ static int receive_data(int fd, int revents, int dmm, void *info, void *cb_data)
 	return TRUE;
 }
 
-SR_PRIV int digitek_dt4000zc_receive_data(int fd, int revents, void *cb_data)
-{
-	struct fs9721_info info;
-	return receive_data(fd, revents, DIGITEK_DT4000ZC, &info, cb_data);
-}
+#define RECV_DATA(ID_UPPER, DMM_DRIVER) \
+SR_PRIV int receive_data_##ID_UPPER(int fd, int revents, void *cb_data) { \
+	struct DMM_DRIVER##_info info; \
+	return receive_data(fd, revents, ID_UPPER, &info, cb_data); }
 
-SR_PRIV int tekpower_tp4000zc_receive_data(int fd, int revents, void *cb_data)
-{
-	struct fs9721_info info;
-	return receive_data(fd, revents, TEKPOWER_TP4000ZC, &info, cb_data);
-}
-
-SR_PRIV int metex_me31_receive_data(int fd, int revents, void *cb_data)
-{
-	struct metex14_info info;
-	return receive_data(fd, revents, METEX_ME31, &info, cb_data);
-}
-
-SR_PRIV int peaktech_3410_receive_data(int fd, int revents, void *cb_data)
-{
-	struct metex14_info info;
-	return receive_data(fd, revents, PEAKTECH_3410, &info, cb_data);
-}
-
-SR_PRIV int mastech_mas345_receive_data(int fd, int revents, void *cb_data)
-{
-	struct metex14_info info;
-	return receive_data(fd, revents, MASTECH_MAS345, &info, cb_data);
-}
-
-SR_PRIV int va_va18b_receive_data(int fd, int revents, void *cb_data)
-{
-	struct fs9721_info info;
-	return receive_data(fd, revents, VA_VA18B, &info, cb_data);
-}
-
-SR_PRIV int metex_m3640d_receive_data(int fd, int revents, void *cb_data)
-{
-	struct metex14_info info;
-	return receive_data(fd, revents, METEX_M3640D, &info, cb_data);
-}
-
-SR_PRIV int peaktech_4370_receive_data(int fd, int revents, void *cb_data)
-{
-	struct metex14_info info;
-	return receive_data(fd, revents, PEAKTECH_4370, &info, cb_data);
-}
-
-SR_PRIV int pce_pce_dm32_receive_data(int fd, int revents, void *cb_data)
-{
-	struct fs9721_info info;
-	return receive_data(fd, revents, PCE_PCE_DM32, &info, cb_data);
-}
-
-SR_PRIV int radioshack_22_168_receive_data(int fd, int revents, void *cb_data)
-{
-	struct metex14_info info;
-	return receive_data(fd, revents, RADIOSHACK_22_168, &info, cb_data);
-}
-
-SR_PRIV int radioshack_22_812_receive_data(int fd, int revents, void *cb_data)
-{
-	struct metex14_info info;
-	return receive_data(fd, revents, RADIOSHACK_22_812, &info, cb_data);
-}
+/* Driver-specific receive_data() wrappers */
+RECV_DATA(DIGITEK_DT4000ZC, fs9721)
+RECV_DATA(TEKPOWER_TP4000ZC, fs9721)
+RECV_DATA(METEX_ME31, metex14)
+RECV_DATA(PEAKTECH_3410, metex14)
+RECV_DATA(MASTECH_MAS345, metex14)
+RECV_DATA(VA_VA18B, fs9721)
+RECV_DATA(METEX_M3640D, metex14)
+RECV_DATA(PEAKTECH_4370, metex14)
+RECV_DATA(PCE_PCE_DM32, fs9721)
+RECV_DATA(RADIOSHACK_22_168, metex14)
+RECV_DATA(RADIOSHACK_22_812, metex14)
