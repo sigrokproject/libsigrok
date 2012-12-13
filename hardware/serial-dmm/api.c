@@ -59,9 +59,6 @@ SR_PRIV struct sr_dev_driver pce_pce_dm32_driver_info;
 SR_PRIV struct sr_dev_driver radioshack_22_168_driver_info;
 SR_PRIV struct sr_dev_driver radioshack_22_812_driver_info;
 
-/* After hw_init() this will point to a device-specific entry (see above). */
-static struct sr_dev_driver *di = NULL;
-
 SR_PRIV struct dmm_info dmms[] = {
 	{
 		"Digitek", "DT4000ZC", "2400/8n1", 2400,
@@ -180,11 +177,9 @@ static int hw_init(struct sr_context *sr_ctx, int dmm)
 		return SR_ERR_MALLOC;
 	}
 
-	di = dmms[dmm].di;
 	sr_dbg("Selected '%s' subdriver.", dmms[dmm].di->name);
 
 	drvc->sr_ctx = sr_ctx;
-	//// di->priv = drvc;
 	dmms[dmm].di->priv = drvc;
 
 	return SR_OK;
@@ -210,7 +205,6 @@ static GSList *scan(const char *conn, const char *serialcomm, int dmm)
 
 	sr_info("Probing port %s.", conn);
 
-	//// drvc = di->priv;
 	drvc = dmms[dmm].di->priv;
 	devices = NULL;
 	serial_flush(serial);
