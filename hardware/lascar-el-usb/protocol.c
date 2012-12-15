@@ -405,7 +405,7 @@ static void lascar_el_usb_dispatch(struct sr_dev_inst *sdi, unsigned char *buf,
 			break;
 		for (i = 0; i < samples; i++) {
 			s = (buf[i * 2] << 8) | buf[i * 2 + 1];
-			analog.data[i] = s * devc->co_high + devc->co_low;
+			analog.data[i] = (s * devc->co_high + devc->co_low) / 1000000;
 			if (analog.data[i] < 0.0)
 				analog.data[i] = 0.0;
 		}
