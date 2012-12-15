@@ -176,6 +176,7 @@ enum {
 	/** Logarithmic representation of sound pressure relative to a
 	 * reference value. */
 	SR_MQ_SOUND_PRESSURE_LEVEL,
+	SR_MQ_CARBON_MONOXIDE,
 };
 
 /** Values for sr_datafeed_analog.unit. */
@@ -208,6 +209,7 @@ enum {
 	SR_UNIT_UNITLESS,
 	/** Sound pressure level relative so 20 micropascals. */
 	SR_UNIT_DECIBEL_SPL,
+	SR_UNIT_CONCENTRATION,
 };
 
 /** Values for sr_datafeed_analog.flags. */

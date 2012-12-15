@@ -313,8 +313,8 @@ static void lascar_el_usb_dispatch(struct sr_dev_inst *sdi, unsigned char *buf,
 		packet.type = SR_DF_ANALOG;
 		packet.payload = &analog;
 		analog.num_samples = samples;
-		analog.mq = 0;
-		analog.unit = 0;
+		analog.mq = SR_MQ_CARBON_MONOXIDE;
+		analog.unit = SR_UNIT_CONCENTRATION;
 		analog.mqflags = 0;
 		if (!(analog.data = g_try_malloc(sizeof(float) * samples)))
 			break;
