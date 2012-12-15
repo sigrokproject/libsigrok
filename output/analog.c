@@ -173,6 +173,9 @@ static void fancyprint(int unit, int mqflags, float value, GString *out)
 				 * a made-up notation. */
 				g_string_append(out, " %oA");
 			break;
+		case SR_UNIT_CONCENTRATION:
+			g_string_append_printf(out, "%f ppm", value * 1000000);
+			break;
 		default:
 			si_printf(value, out, "");
 	}
