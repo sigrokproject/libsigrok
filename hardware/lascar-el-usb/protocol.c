@@ -200,6 +200,91 @@ cleanup:
 	return config;
 }
 
+/* Currently unused. */
+SR_PRIV int lascar_save_config(libusb_device_handle *dev_hdl,
+		unsigned char *config, int configlen)
+{
+	struct drv_context *drvc;
+	struct libusb_transfer *xfer_in, *xfer_out;
+	struct timeval tv;
+	int64_t start;
+	int buflen, ret;
+	unsigned char cmd[3], buf[256];
+
+	drvc = di->priv;
+
+	if (!(xfer_in = libusb_alloc_transfer(0)) ||
+			!(xfer_out = libusb_alloc_transfer(0)))
+		return SR_ERR;
+
+	/* Flush anything the F321 still has queued. */
+	while (libusb_bulk_transfer(dev_hdl, LASCAR_EP_IN, buf, 256, &buflen,
+			5) == 0 && buflen > 0)
+		;
+	ret = SR_OK;
+
+	/* Keep a read request waiting in the wings, ready to pounce
+	 * the moment the device sends something. */
+	libusb_fill_bulk_transfer(xfer_in, dev_hdl, LASCAR_EP_IN,
+			buf, 256, mark_xfer, 0, 10000);
+	if (libusb_submit_transfer(xfer_in) != 0) {
+		ret = SR_ERR;
+		goto cleanup;
+	}
+
+	/* Request device configuration structure. */
+	cmd[0] = 0x01;
+	cmd[1] = configlen & 0xff;
+	cmd[2] = (configlen >> 8) & 0xff;
+	libusb_fill_bulk_transfer(xfer_out, dev_hdl, LASCAR_EP_OUT,
+			cmd, 3, mark_xfer, 0, 100);
+	if (libusb_submit_transfer(xfer_out) != 0) {
+		ret = SR_ERR;
+		goto cleanup;
+	}
+	tv.tv_sec = 0;
+	tv.tv_usec = 0;
+	while (!xfer_out->user_data) {
+		g_usleep(5000);
+		libusb_handle_events_timeout(drvc->sr_ctx->libusb_ctx, &tv);
+	}
+
+	libusb_fill_bulk_transfer(xfer_out, dev_hdl, LASCAR_EP_OUT,
+			config, configlen, mark_xfer, 0, 100);
+	if (libusb_submit_transfer(xfer_out) != 0) {
+		ret = SR_ERR;
+		goto cleanup;
+	}
+	while (!xfer_in->user_data || !xfer_out->user_data) {
+		g_usleep(5000);
+		libusb_handle_events_timeout(drvc->sr_ctx->libusb_ctx, &tv);
+	}
+
+	if (xfer_in->actual_length != 1 || buf[0] != 0xff) {
+		sr_dbg("unexpected response after transfer");
+		ret = SR_ERR;
+	}
+
+cleanup:
+	if (!xfer_in->user_data || !xfer_in->user_data) {
+		if (!xfer_in->user_data)
+			libusb_cancel_transfer(xfer_in);
+		if (!xfer_out->user_data)
+			libusb_cancel_transfer(xfer_out);
+		start = g_get_monotonic_time();
+		while (!xfer_in->user_data || !xfer_out->user_data) {
+			if (g_get_monotonic_time() - start > 10000)
+				break;
+			g_usleep(1000);
+			libusb_handle_events_timeout(drvc->sr_ctx->libusb_ctx, &tv);
+		}
+	}
+	libusb_free_transfer(xfer_in);
+	libusb_free_transfer(xfer_out);
+
+	return ret;
+}
+
 static struct sr_dev_inst *lascar_identify(unsigned char *config)
 {
 	struct dev_context *devc;
