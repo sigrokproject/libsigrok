@@ -33,24 +33,32 @@
 #define sr_warn(s, args...) sr_warn(DRIVER_LOG_DOMAIN s, ## args)
 #define sr_err(s, args...) sr_err(DRIVER_LOG_DOMAIN s, ## args)
 
+#define LASCAR_VENDOR "Lascar"
+#define LASCAR_INTERFACE 0
+#define LASCAR_EP_IN 0x82
+#define LASCAR_EP_OUT 2
+/* Max 100ms for a device to positively identify. */
+#define SCAN_TIMEOUT 100000
+
 /** Private, per-device-instance driver context. */
 struct dev_context {
-	/** The current sampling limit (in number of samples). */
-	uint64_t limit_samples;
-
-	/** The current sampling limit (in ms). */
-	uint64_t limit_msec;
-
-	/** Opaque pointer passed in by the frontend. */
 	void *cb_data;
-
-	/** The current number of already received samples. */
-	uint64_t num_samples;
-
 	struct sr_usb_dev_inst *usb;
 	const struct elusb_profile *profile;
-	/* Only requires 3 really. */
 	int usbfd[10];
+	/* Generic EL-USB */
+	unsigned char *config;
+	unsigned int log_size;
+	unsigned int rcvd_bytes;
+	unsigned int sample_size;
+	unsigned int logged_samples;
+	unsigned int rcvd_samples;
+	unsigned int limit_samples;
+	/* Model-specific */
+	/* EL-USB-CO: these are something like calibration values fixed per
+	 * device, used to convert the sample values to CO ppm. */
+	float co_high;
+	float co_low;
 };
 
 enum {
@@ -65,6 +73,9 @@ struct elusb_profile {
 	int logformat;
 };
 
-SR_PRIV int lascar_el_usb_receive_data(int fd, int revents, void *cb_data);
+SR_PRIV unsigned char *lascar_get_config(libusb_device_handle *dev_hdl);
+SR_PRIV int lascar_el_usb_handle_events(int fd, int revents, void *cb_data);
+SR_PRIV void lascar_el_usb_receive_transfer(struct libusb_transfer *transfer);
+SR_PRIV int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);
 
 #endif

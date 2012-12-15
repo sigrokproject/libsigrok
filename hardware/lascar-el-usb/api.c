@@ -27,7 +27,6 @@ SR_PRIV struct sr_dev_inst *lascar_scan(int bus, int address);
 SR_PRIV struct sr_dev_driver lascar_el_usb_driver_info;
 static struct sr_dev_driver *di = &lascar_el_usb_driver_info;
 static int hw_dev_close(struct sr_dev_inst *sdi);
-static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);
 
 static const int hwopts[] = {
 	SR_HWOPT_CONN,
@@ -95,7 +94,6 @@ static GSList *hw_scan(GSList *options)
 	struct dev_context *devc;
 	struct sr_dev_inst *sdi;
 	struct sr_usb_dev_inst *usb;
-	struct sr_probe *probe;
 	struct sr_hwopt *opt;
 	GSList *usb_devices, *devices, *l;
 	const char *conn;
@@ -133,15 +131,8 @@ static GSList *hw_scan(GSList *options)
 				g_free(usb);
 				continue;
 			}
-			if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
-				sr_err("Device context malloc failed.");
-				return NULL;
-			}
+			devc = sdi->priv;
 			devc->usb = usb;
-			sdi->priv = devc;
-			if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "P1")))
-				return NULL;
-			sdi->probes = g_slist_append(sdi->probes, probe);
 			drvc->instances = g_slist_append(drvc->instances, sdi);
 			devices = g_slist_append(devices, sdi);
 		}
@@ -156,30 +147,73 @@ static GSList *hw_dev_list(void)
 {
 	struct drv_context *drvc;
 
-	drvc = di->priv;
+	if (!(drvc = di->priv)) {
+		sr_err("Driver was not initialized.");
+		return NULL;
+	}
 
 	return drvc->instances;
 }
 
 static int hw_dev_open(struct sr_dev_inst *sdi)
 {
-	/* TODO */
+	struct drv_context *drvc;
+	struct dev_context *devc;
+	int ret;
 
-	return SR_OK;
+	if (!(drvc = di->priv)) {
+		sr_err("Driver was not initialized.");
+		return SR_ERR;
+	}
+
+	devc = sdi->priv;
+	if (sr_usb_open(drvc->sr_ctx->libusb_ctx, devc->usb) != SR_OK)
+		return SR_ERR;
+
+	if ((ret = libusb_claim_interface(devc->usb->devhdl, LASCAR_INTERFACE))) {
+		sr_err("Failed to claim interface: %s.", libusb_error_name(ret));
+		return SR_ERR;
+	}
+	sdi->status = SR_ST_ACTIVE;
+
+	return ret;
 }
 
 static int hw_dev_close(struct sr_dev_inst *sdi)
 {
-	/* TODO */
+	struct dev_context *devc;
+
+	if (!di->priv) {
+		sr_err("Driver was not initialized.");
+		return SR_ERR;
+	}
+
+	devc = sdi->priv;
+	if (!devc->usb->devhdl)
+		/*  Nothing to do. */
+		return SR_OK;
+
+	libusb_release_interface(devc->usb->devhdl, LASCAR_INTERFACE);
+	libusb_close(devc->usb->devhdl);
+	devc->usb->devhdl = NULL;
+	g_free(devc->config);
+	sdi->status = SR_ST_INACTIVE;
+
 
 	return SR_OK;
 }
 
 static int hw_cleanup(void)
 {
-	clear_instances();
+	struct drv_context *drvc;
 
-	/* TODO */
+	if (!(drvc = di->priv))
+		/* Can get called on an unused driver, doesn't matter. */
+		return SR_OK;
+
+	clear_instances();
+	g_free(drvc);
+	di->priv = NULL;
 
 	return SR_OK;
 }
@@ -187,8 +221,22 @@ static int hw_cleanup(void)
 static int hw_info_get(int info_id, const void **data,
 		const struct sr_dev_inst *sdi)
 {
+
+	(void)sdi;
+
 	switch (info_id) {
-	/* TODO */
+	case SR_DI_HWOPTS:
+		*data = hwopts;
+		break;
+	case SR_DI_HWCAPS:
+		*data = hwcaps;
+		break;
+	case SR_DI_NUM_PROBES:
+		*data = GINT_TO_POINTER(1);
+		break;
+	case SR_DI_PROBE_NAMES:
+		*data = probe_names;
+		break;
 	default:
 		sr_err("Unknown info_id: %d.", info_id);
 		return SR_ERR_ARG;
@@ -200,16 +248,26 @@ static int hw_info_get(int info_id, const void **data,
 static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		const void *value)
 {
+	struct dev_context *devc;
 	int ret;
 
+	if (!di->priv) {
+		sr_err("Driver was not initialized.");
+		return SR_ERR;
+	}
 	if (sdi->status != SR_ST_ACTIVE) {
 		sr_err("Device inactive, can't set config options.");
 		return SR_ERR;
 	}
 
+	devc = sdi->priv;
 	ret = SR_OK;
 	switch (hwcap) {
-	/* TODO */
+	case SR_HWCAP_LIMIT_SAMPLES:
+		devc->limit_samples = *(const uint64_t *)value;
+		sr_dbg("Setting sample limit to %" PRIu64 ".",
+		       devc->limit_samples);
+		break;
 	default:
 		sr_err("Unknown hardware capability: %d.", hwcap);
 		ret = SR_ERR_ARG;
@@ -218,24 +276,209 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 	return ret;
 }
 
+static void mark_xfer(struct libusb_transfer *xfer)
+{
+
+	if (xfer->status == LIBUSB_TRANSFER_COMPLETED)
+		xfer->user_data = GINT_TO_POINTER(1);
+	else
+		xfer->user_data = GINT_TO_POINTER(-1);
+
+}
+
+/* The Lascar software, in its infinite ignorance, reads a set of four
+ * bytes from the device config struct and interprets it as a float.
+ * That only works because they only use windows, and only on x86. However
+ * we may be running on any architecture, any operating system. So we have
+ * to convert these four bytes as the Lascar software would on windows/x86,
+ * to the local representation of a float.
+ * The source format is little-endian, with IEEE 754-2008 BINARY32 encoding. */
+static float binary32_le_to_float(unsigned char *buf)
+{
+	GFloatIEEE754 f;
+
+	f.v_float = 0;
+	f.mpn.sign = (buf[3] & 0x80) ? 1 : 0;
+	f.mpn.biased_exponent = (buf[3] << 1) | (buf[2] >> 7);
+	f.mpn.mantissa = buf[0] | (buf[1] << 8) | ((buf[2] & 0x7f) << 16);
+
+	return f.v_float;
+}
+
+static int lascar_proc_config(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	int ret;
+
+	devc = sdi->priv;
+	if (!(devc->config = lascar_get_config(devc->usb->devhdl)))
+		return SR_ERR;
+
+	ret = SR_OK;
+	switch (devc->profile->logformat) {
+	case LOG_TEMP_RH:
+		/* TODO */
+		break;
+	case LOG_CO:
+		devc->sample_size = 2;
+		devc->co_high = binary32_le_to_float(devc->config + 36);
+		devc->co_low = binary32_le_to_float(devc->config + 40);
+		sr_dbg("EL-USB-CO calibration high %f low %f", devc->co_high,
+				devc->co_low);
+		break;
+	default:
+		ret = SR_ERR_ARG;
+	}
+	devc->logged_samples = devc->config[0x1e] | (devc->config[0x1f] << 8);
+	sr_dbg("device log contains %d samples.", devc->logged_samples);
+
+	return ret;
+}
+
 static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 		void *cb_data)
 {
-	/* TODO */
+	struct sr_datafeed_packet packet;
+	struct sr_datafeed_header header;
+	struct sr_datafeed_meta_analog meta;
+	struct dev_context *devc;
+	struct drv_context *drvc = di->priv;
+	struct libusb_transfer *xfer_in, *xfer_out;
+	const struct libusb_pollfd **pfd;
+	struct timeval tv;
+	int ret, i;
+	unsigned char cmd[3], resp[4], *buf;
+
+	if (!di->priv) {
+		sr_err("Driver was not initialized.");
+		return SR_ERR;
+	}
+
+	devc = sdi->priv;
+	devc->cb_data = cb_data;
+
+	if (lascar_proc_config(sdi) != SR_OK)
+		return SR_ERR;
+
+	sr_dbg("Starting log retrieval.");
+
+	/* Send header packet to the session bus. */
+	sr_dbg("Sending SR_DF_HEADER.");
+	packet.type = SR_DF_HEADER;
+	packet.payload = (uint8_t *)&header;
+	header.feed_version = 1;
+	sr_session_send(devc->cb_data, &packet);
+
+	if (devc->logged_samples == 0) {
+		/* This ensures the frontend knows the session is done. */
+		packet.type = SR_DF_END;
+		sr_session_send(devc->cb_data, &packet);
+		return SR_OK;
+	}
+
+	if (!(xfer_in = libusb_alloc_transfer(0)) ||
+			!(xfer_out = libusb_alloc_transfer(0)))
+		return SR_ERR;
+
+	libusb_control_transfer(devc->usb->devhdl, LIBUSB_REQUEST_TYPE_VENDOR,
+			0x00, 0xffff, 0x00, NULL, 0, 50);
+	libusb_control_transfer(devc->usb->devhdl, LIBUSB_REQUEST_TYPE_VENDOR,
+			0x02, 0x0002, 0x00, NULL, 0, 50);
+	libusb_control_transfer(devc->usb->devhdl, LIBUSB_REQUEST_TYPE_VENDOR,
+			0x02, 0x0001, 0x00, NULL, 0, 50);
+
+
+	/* Flush input. The F321 requires this. */
+	while (libusb_bulk_transfer(devc->usb->devhdl, LASCAR_EP_IN, resp,
+			256, &ret, 5) == 0 && ret > 0)
+		;
+
+	libusb_fill_bulk_transfer(xfer_in, devc->usb->devhdl, LASCAR_EP_IN,
+			resp, sizeof(resp), mark_xfer, 0, 10000);
+	if (libusb_submit_transfer(xfer_in) != 0) {
+		libusb_free_transfer(xfer_in);
+		libusb_free_transfer(xfer_out);
+		return SR_ERR;
+	}
+
+	cmd[0] = 0x03;
+	cmd[1] = 0xff;
+	cmd[2] = 0xff;
+	libusb_fill_bulk_transfer(xfer_out, devc->usb->devhdl, LASCAR_EP_OUT,
+			cmd, 3, mark_xfer, 0, 100);
+	if (libusb_submit_transfer(xfer_out) != 0) {
+		libusb_free_transfer(xfer_in);
+		libusb_free_transfer(xfer_out);
+		return SR_ERR;
+	}
+
+	tv.tv_sec = 0;
+	tv.tv_usec = 0;
+	while (!xfer_in->user_data || !xfer_out->user_data) {
+		g_usleep(5000);
+		libusb_handle_events_timeout(drvc->sr_ctx->libusb_ctx, &tv);
+	}
+	if (xfer_in->user_data != GINT_TO_POINTER(1) ||
+			xfer_in->user_data != GINT_TO_POINTER(1)) {
+		sr_dbg("no response to log transfer request");
+		libusb_free_transfer(xfer_in);
+		libusb_free_transfer(xfer_out);
+		return SR_ERR;
+	}
+	if (xfer_in->actual_length != 3 || xfer_in->buffer[0] != 2) {
+		sr_dbg("invalid response to log transfer request");
+		libusb_free_transfer(xfer_in);
+		libusb_free_transfer(xfer_out);
+		return SR_ERR;
+	}
+	devc->log_size = xfer_in->buffer[1] + (xfer_in->buffer[2] << 8);
+	libusb_free_transfer(xfer_out);
+
+	/* Send metadata about the SR_DF_ANALOG packets to come. */
+	packet.type = SR_DF_META_ANALOG;
+	packet.payload = &meta;
+	meta.num_probes = 1;
+	sr_session_send(devc->cb_data, &packet);
+
+	pfd = libusb_get_pollfds(drvc->sr_ctx->libusb_ctx);
+	for (i = 0; pfd[i]; i++) {
+		/* Handle USB events every 100ms, for decent latency. */
+		sr_source_add(pfd[i]->fd, pfd[i]->events, 100,
+				lascar_el_usb_handle_events, (void *)sdi);
+		/* We'll need to remove this fd later. */
+		devc->usbfd[i] = pfd[i]->fd;
+	}
+	devc->usbfd[i] = -1;
+
+	buf = g_try_malloc(4096);
+	libusb_fill_bulk_transfer(xfer_in, devc->usb->devhdl, LASCAR_EP_IN,
+			buf, 4096, lascar_el_usb_receive_transfer, cb_data, 100);
+	if ((ret = libusb_submit_transfer(xfer_in) != 0)) {
+		sr_err("Unable to submit transfer: %s.", libusb_error_name(ret));
+		libusb_free_transfer(xfer_in);
+		g_free(buf);
+		return SR_ERR;
+	}
 
 	return SR_OK;
 }
 
-static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
+SR_PRIV int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
 	(void)cb_data;
+
+	if (!di->priv) {
+		sr_err("Driver was not initialized.");
+		return SR_ERR;
+	}
 
 	if (sdi->status != SR_ST_ACTIVE) {
 		sr_err("Device inactive, can't stop acquisition.");
 		return SR_ERR;
 	}
 
-	/* TODO */
+	sdi->status = SR_ST_STOPPING;
+	/* TODO: free ongoing transfers? */
 
 	return SR_OK;
 }

@@ -20,17 +20,11 @@
 #include <stdlib.h>
 #include <sys/time.h>
 #include <string.h>
+#include <math.h>
 #include <glib.h>
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 #include "protocol.h"
-
-#define LASCAR_VENDOR "Lascar"
-#define LASCAR_INTERFACE 0
-#define LASCAR_EP_IN 0x82
-#define LASCAR_EP_OUT 2
-/* Max 100ms for a device to positively identify. */
-#define SCAN_TIMEOUT 100000
 
 extern struct sr_dev_driver lascar_el_usb_driver_info;
 static struct sr_dev_driver *di = &lascar_el_usb_driver_info;
@@ -61,40 +55,51 @@ static const struct elusb_profile profiles[] = {
 };
 
 
-static void scan_xfer(struct libusb_transfer *xfer)
+SR_PRIV libusb_device_handle *lascar_open(struct libusb_device *dev)
+{
+	libusb_device_handle *dev_hdl;
+	int ret;
+
+	if ((ret = libusb_open(dev, &dev_hdl)) != 0) {
+		sr_dbg("failed to open device for scan: %s",
+				libusb_error_name(ret));
+		return NULL;
+	}
+
+	/* Some of these fail, but it needs doing -- some sort of mode
+	 * setup for the SILabs F32x. */
+	libusb_control_transfer(dev_hdl, LIBUSB_REQUEST_TYPE_VENDOR,
+			0x00, 0xffff, 0x00, NULL, 0, 50);
+	libusb_control_transfer(dev_hdl, LIBUSB_REQUEST_TYPE_VENDOR,
+			0x02, 0x0002, 0x00, NULL, 0, 50);
+	libusb_control_transfer(dev_hdl, LIBUSB_REQUEST_TYPE_VENDOR,
+			0x02, 0x0001, 0x00, NULL, 0, 50);
+
+	return dev_hdl;
+}
+
+static void mark_xfer(struct libusb_transfer *xfer)
 {
 
 	xfer->user_data = GINT_TO_POINTER(1);
 
 }
 
-static struct sr_dev_inst *lascar_identify(libusb_device_handle *dev_hdl)
+SR_PRIV unsigned char *lascar_get_config(libusb_device_handle *dev_hdl)
 {
 	struct drv_context *drvc;
-	const struct elusb_profile *profile;
-	struct sr_dev_inst *sdi;
 	struct libusb_transfer *xfer_in, *xfer_out;
 	struct timeval tv;
 	int64_t start;
-	int modelid, buflen, i;
-	unsigned char cmd[3], buf[256];
-	char firmware[5];
+	int buflen;
+	unsigned char cmd[3], buf[256], *config;
 
 	drvc = di->priv;
-	modelid = 0;
-
-	/* Some of these fail, but it needs doing -- some sort of mode
-	 * setup for the SILabs F32x. */
-	libusb_control_transfer(dev_hdl, LIBUSB_REQUEST_TYPE_VENDOR,
-			0x00, 0xffff, 0x00, buf, 0, 50);
-	libusb_control_transfer(dev_hdl, LIBUSB_REQUEST_TYPE_VENDOR,
-			0x02, 0x0002, 0x00, buf, 0, 50);
-	libusb_control_transfer(dev_hdl, LIBUSB_REQUEST_TYPE_VENDOR,
-			0x02, 0x0001, 0x00, buf, 0, 50);
+	config = NULL;
 
 	if (!(xfer_in = libusb_alloc_transfer(0)) ||
 			!(xfer_out = libusb_alloc_transfer(0)))
-		return 0;
+		return NULL;
 
 	/* Flush anything the F321 still has queued. */
 	while (libusb_bulk_transfer(dev_hdl, LASCAR_EP_IN, buf, 256, &buflen,
@@ -104,7 +109,7 @@ static struct sr_dev_inst *lascar_identify(libusb_device_handle *dev_hdl)
 	/* Keep a read request waiting in the wings, ready to pounce
 	 * the moment the device sends something. */
 	libusb_fill_bulk_transfer(xfer_in, dev_hdl, LASCAR_EP_IN,
-			buf, 256, scan_xfer, 0, 10000);
+			buf, 256, mark_xfer, 0, 10000);
 	if (libusb_submit_transfer(xfer_in) != 0)
 		goto cleanup;
 
@@ -113,7 +118,7 @@ static struct sr_dev_inst *lascar_identify(libusb_device_handle *dev_hdl)
 	cmd[1] = 0xff;
 	cmd[2] = 0xff;
 	libusb_fill_bulk_transfer(xfer_out, dev_hdl, LASCAR_EP_OUT,
-			cmd, 3, scan_xfer, 0, 100);
+			cmd, 3, mark_xfer, 0, 100);
 	if (libusb_submit_transfer(xfer_out) != 0)
 		goto cleanup;
 
@@ -138,7 +143,7 @@ static struct sr_dev_inst *lascar_identify(libusb_device_handle *dev_hdl)
 	}
 
 	/* Got configuration structure header. */
-	sr_spew("response to config request: 0x%.2x 0x%.2x 0x%.2x ",
+	sr_dbg("response to config request: 0x%.2x 0x%.2x 0x%.2x ",
 			buf[0], buf[1], buf[2]);
 	buflen = buf[1] | (buf[2] << 8);
 	if (buf[0] != 0x02 || buflen > 256) {
@@ -170,7 +175,10 @@ static struct sr_dev_inst *lascar_identify(libusb_device_handle *dev_hdl)
 				xfer_in->actual_length);
 		goto cleanup;
 	}
-	modelid = buf[0];
+
+	if (!(config = g_try_malloc(256)))
+		return NULL;
+	memcpy(config, buf, buflen);
 
 cleanup:
 	if (!xfer_in->user_data || !xfer_in->user_data) {
@@ -189,6 +197,19 @@ cleanup:
 	libusb_free_transfer(xfer_in);
 	libusb_free_transfer(xfer_out);
 
+	return config;
+}
+
+static struct sr_dev_inst *lascar_identify(unsigned char *config)
+{
+	struct dev_context *devc;
+	const struct elusb_profile *profile;
+	struct sr_dev_inst *sdi;
+	struct sr_probe *probe;
+	int modelid, i;
+	char firmware[5];
+
+	modelid = config[0];
 	sdi = NULL;
 	if (modelid) {
 		profile = NULL;
@@ -203,8 +224,8 @@ cleanup:
 			return NULL;
 		}
 
-		i = buf[52] | (buf[53] << 8);
-		memcpy(firmware, buf + 0x30, 4);
+		i = config[52] | (config[53] << 8);
+		memcpy(firmware, config + 0x30, 4);
 		firmware[4] = '\0';
 		sr_dbg("found %s with firmware version %s serial %d",
 				profile->modelname, firmware, i);
@@ -218,6 +239,15 @@ cleanup:
 				profile->modelname, firmware)))
 			return NULL;
 		sdi->driver = di;
+
+		if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "P1")))
+			return NULL;
+		sdi->probes = g_slist_append(NULL, probe);
+
+		if (!(devc = g_try_malloc0(sizeof(struct dev_context))))
+			return NULL;
+		sdi->priv = devc;
+		devc->profile = profile;
 	}
 
 	return sdi;
@@ -231,6 +261,7 @@ SR_PRIV struct sr_dev_inst *lascar_scan(int bus, int address)
 	struct libusb_device_descriptor des;
 	libusb_device_handle *dev_hdl;
 	int ret, i;
+	unsigned char *config;
 
 	drvc = di->priv;
 	sdi = NULL;
@@ -246,34 +277,146 @@ SR_PRIV struct sr_dev_inst *lascar_scan(int bus, int address)
 				libusb_get_device_address(devlist[i]) != address)
 			continue;
 
-		if ((ret = libusb_open(devlist[i], &dev_hdl)) != 0) {
-			sr_dbg("failed to open device for scan: %s",
-					libusb_error_name(ret));
+		if (!(dev_hdl = lascar_open(devlist[i])))
 			continue;
-		}
 
-		sdi = lascar_identify(dev_hdl);
+		if (!(config = lascar_get_config(dev_hdl)))
+			continue;
+
 		libusb_close(dev_hdl);
+		sdi = lascar_identify(config);
+		g_free(config);
 	}
 
 	return sdi;
 }
 
-
-SR_PRIV int lascar_el_usb_receive_data(int fd, int revents, void *cb_data)
+static void lascar_el_usb_dispatch(struct sr_dev_inst *sdi, unsigned char *buf,
+		int buflen)
 {
-	const struct sr_dev_inst *sdi;
 	struct dev_context *devc;
+	struct sr_datafeed_packet packet;
+	struct sr_datafeed_analog analog;
+	uint16_t s;
+	int samples, samples_left, i;
 
-	if (!(sdi = cb_data))
-		return TRUE;
-
-	if (!(devc = sdi->priv))
-		return TRUE;
-
-	if (revents == G_IO_IN) {
+	devc = sdi->priv;
+	samples = buflen / devc->sample_size;
+	samples_left = devc->logged_samples - devc->rcvd_samples;
+	if (samples_left < samples)
+		samples = samples_left;
+	switch (devc->profile->logformat) {
+	case LOG_TEMP_RH:
 		/* TODO */
+		break;
+	case LOG_CO:
+		packet.type = SR_DF_ANALOG;
+		packet.payload = &analog;
+		analog.num_samples = samples;
+		analog.mq = 0;
+		analog.unit = 0;
+		analog.mqflags = 0;
+		if (!(analog.data = g_try_malloc(sizeof(float) * samples)))
+			break;
+		for (i = 0; i < samples; i++) {
+			s = (buf[i * 2] << 8) | buf[i * 2 + 1];
+			analog.data[i] = s * devc->co_high + devc->co_low;
+			if (analog.data[i] < 0.0)
+				analog.data[i] = 0.0;
+		}
+		sr_session_send(devc->cb_data, &packet);
+		g_free(analog.data);
+		break;
+	default:
+		/* How did we even get this far? */
+		break;
+	}
+	devc->rcvd_samples += samples;
+
+}
+
+SR_PRIV int lascar_el_usb_handle_events(int fd, int revents, void *cb_data)
+{
+	struct dev_context *devc;
+	struct drv_context *drvc = di->priv;
+	struct sr_datafeed_packet packet;
+	struct sr_dev_inst *sdi;
+	struct timeval tv;
+	int i;
+
+	(void)fd;
+	(void)revents;
+
+	sdi = cb_data;
+	devc = sdi->priv;
+
+	if (sdi->status == SR_ST_STOPPING) {
+		for (i = 0; devc->usbfd[i] != -1; i++)
+			sr_source_remove(devc->usbfd[i]);
+
+		sdi->driver->dev_close(sdi);
+
+		packet.type = SR_DF_END;
+		sr_session_send(cb_data, &packet);
 	}
 
+	memset(&tv, 0, sizeof(struct timeval));
+	libusb_handle_events_timeout_completed(drvc->sr_ctx->libusb_ctx, &tv,
+					       NULL);
+
 	return TRUE;
+}
+
+SR_PRIV void lascar_el_usb_receive_transfer(struct libusb_transfer *transfer)
+{
+	struct dev_context *devc;
+	struct sr_dev_inst *sdi;
+	int ret;
+	gboolean packet_has_error;
+
+	sdi = transfer->user_data;
+	devc = sdi->priv;
+
+	packet_has_error = FALSE;
+	switch (transfer->status) {
+	case LIBUSB_TRANSFER_NO_DEVICE:
+		/* USB device was unplugged. */
+		hw_dev_acquisition_stop(sdi, sdi);
+		return;
+	case LIBUSB_TRANSFER_COMPLETED:
+	case LIBUSB_TRANSFER_TIMED_OUT: /* We may have received some data though */
+		break;
+	default:
+		packet_has_error = TRUE;
+		break;
+	}
+
+	if (!packet_has_error) {
+		if (devc->rcvd_samples < devc->logged_samples)
+			lascar_el_usb_dispatch(sdi, transfer->buffer,
+					transfer->actual_length);
+		devc->rcvd_bytes += transfer->actual_length;
+		sr_spew("received %d/%d bytes (%d/%d samples)",
+				devc->rcvd_bytes, devc->log_size,
+				devc->rcvd_samples, devc->logged_samples);
+		if (devc->rcvd_bytes >= devc->log_size)
+			hw_dev_acquisition_stop(sdi, sdi);
+	}
+
+	if (sdi->status == SR_ST_ACTIVE) {
+		/* Send the same request again. */
+		if ((ret = libusb_submit_transfer(transfer) != 0)) {
+			sr_err("Unable to resubmit transfer: %s.",
+			       libusb_error_name(ret));
+			g_free(transfer->buffer);
+			libusb_free_transfer(transfer);
+			hw_dev_acquisition_stop(sdi, sdi);
+		}
+	} else {
+		/* This was the last transfer we're going to receive, so
+		 * clean up now. */
+		g_free(transfer->buffer);
+		libusb_free_transfer(transfer);
+	}
+
 }
