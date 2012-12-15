@@ -210,6 +210,11 @@ enum {
 	SR_UNIT_UNITLESS,
 	/** Sound pressure level relative so 20 micropascals. */
 	SR_UNIT_DECIBEL_SPL,
+	/**
+	 * Normalized (0 to 1) concentration of a substance or compound with 0
+	 * representing a concentration of 0%, and 1 being 100%. This is
+	 * represented as the fraction of number of particles of the substance.
+	 */
 	SR_UNIT_CONCENTRATION,
 };
 
