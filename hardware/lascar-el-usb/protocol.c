@@ -40,7 +40,7 @@ static const struct elusb_profile profiles[] = {
 	{ 8, "EL-USB-LITE", LOG_UNSUPPORTED },
 	{ 9, "EL-USB-CO", LOG_CO },
 	{ 10, "EL-USB-TC", LOG_UNSUPPORTED },
-	{ 11, "EL-USB-CO300", LOG_UNSUPPORTED },
+	{ 11, "EL-USB-CO300", LOG_CO },
 	{ 12, "EL-USB-2-LCD", LOG_UNSUPPORTED },
 	{ 13, "EL-USB-2+", LOG_UNSUPPORTED },
 	{ 14, "EL-USB-1-PRO", LOG_UNSUPPORTED },
