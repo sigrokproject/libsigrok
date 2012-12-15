@@ -417,7 +417,7 @@ echo "  - Openbench Logic Sniffer......... $LA_OLS"
 echo "  - Serial DMM...................... $HW_SERIAL_DMM"
 echo "  - Tondaj SL-814................... $HW_TONDAJ_SL_814"
 echo "  - UNI-T DMM....................... $HW_UNI_T_DMM"
-echo "  - victor-dmm...................... $HW_VICTOR_DMM"
+echo "  - Victor DMM...................... $HW_VICTOR_DMM"
 echo "  - ZEROPLUS Logic Cube............. $LA_ZEROPLUS_LOGIC_CUBE"
 echo
 
