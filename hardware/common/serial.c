@@ -834,7 +834,7 @@ SR_PRIV int serial_stream_detect(struct sr_serial_dev_inst *serial,
 		if (len > 0) {
 			ibuf += len;
 		} else if (len == 0) {
-			sr_spew("Error: Only read 0 bytes.");
+			/* No logging, already done in serial_read(). */
 		} else {
 			/* Error reading byte, but continuing anyway. */
 		}
