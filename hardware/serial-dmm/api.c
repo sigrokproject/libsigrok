@@ -59,6 +59,7 @@ SR_PRIV struct sr_dev_driver pce_pce_dm32_driver_info;
 SR_PRIV struct sr_dev_driver radioshack_22_168_driver_info;
 SR_PRIV struct sr_dev_driver radioshack_22_812_driver_info;
 SR_PRIV struct sr_dev_driver voltcraft_vc820_ser_driver_info;
+SR_PRIV struct sr_dev_driver voltcraft_vc840_ser_driver_info;
 
 SR_PRIV struct dmm_info dmms[] = {
 	{
@@ -144,6 +145,13 @@ SR_PRIV struct dmm_info dmms[] = {
 		sr_fs9721_packet_valid, sr_fs9721_parse,
 		NULL,
 		&voltcraft_vc820_ser_driver_info, receive_data_VOLTCRAFT_VC820,
+	},
+	{
+		"Voltcraft", "VC-840 (UT-D02 cable)", "2400/8n1/rts=0/dtr=1",
+		2400, FS9721_PACKET_SIZE, NULL,
+		sr_fs9721_packet_valid, sr_fs9721_parse,
+		NULL,
+		&voltcraft_vc840_ser_driver_info, receive_data_VOLTCRAFT_VC840,
 	},
 };
 

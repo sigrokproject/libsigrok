@@ -43,9 +43,10 @@ enum {
 	RADIOSHACK_22_168,
 	RADIOSHACK_22_812,
 	VOLTCRAFT_VC820,
+	VOLTCRAFT_VC840,
 };
 
-#define DMM_COUNT 12
+#define DMM_COUNT 13
 
 struct dmm_info {
 	char *vendor;
@@ -96,6 +97,7 @@ SR_PRIV int receive_data_PCE_PCE_DM32(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_RADIOSHACK_22_168(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_RADIOSHACK_22_812(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_VOLTCRAFT_VC820(int fd, int revents, void *cb_data);
+SR_PRIV int receive_data_VOLTCRAFT_VC840(int fd, int revents, void *cb_data);
 
 SR_PRIV void dmm_details_tp4000zc(struct sr_datafeed_analog *analog, void *info);
 SR_PRIV void dmm_details_dt4000zc(struct sr_datafeed_analog *analog, void *info);
