@@ -53,7 +53,7 @@ struct dev_context {
 	unsigned int sample_size;
 	unsigned int logged_samples;
 	unsigned int rcvd_samples;
-	unsigned int limit_samples;
+	uint64_t limit_samples;
 	/* Model-specific */
 	/* EL-USB-CO: these are something like scaling and calibration values
 	 * fixed per device, used to convert the sample values to CO ppm. */
