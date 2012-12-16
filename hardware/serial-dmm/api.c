@@ -254,7 +254,6 @@ static GSList *scan(const char *conn, const char *serialcomm, int dmm)
 	}
 
 	devc->serial = serial;
-	devc->subdriver = dmm;
 
 	sdi->priv = devc;
 	sdi->driver = dmms[dmm].di;
@@ -406,7 +405,7 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 }
 
 static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
-				    void *cb_data)
+				    void *cb_data, int dmm)
 {
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_header header;
@@ -446,7 +445,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 
 	/* Poll every 50ms, or whenever some data comes in. */
 	sr_source_add(devc->serial->fd, G_IO_IN, 50,
-		      dmms[devc->subdriver].receive_data, (void *)sdi);
+		      dmms[dmm].receive_data, (void *)sdi);
 
 	return SR_OK;
 }
@@ -488,6 +487,9 @@ static GSList *hw_scan_##X(GSList *options) { return hw_scan(options, X); }
 static GSList *hw_dev_list_##X(void) { return hw_dev_list(X); }
 #define CLEAR_INSTANCES(X) \
 static int clear_instances_##X(void) { return clear_instances(X); }
+#define HW_DEV_ACQUISITION_START(X) \
+static int hw_dev_acquisition_start_##X(const struct sr_dev_inst *sdi, \
+void *cb_data) { return hw_dev_acquisition_start(sdi, cb_data, X); }
 
 /* Driver structs and API function wrappers */
 #define DRV(ID, ID_UPPER, NAME, LONGNAME) \
@@ -496,6 +498,7 @@ HW_CLEANUP(ID_UPPER) \
 HW_SCAN(ID_UPPER) \
 HW_DEV_LIST(ID_UPPER) \
 CLEAR_INSTANCES(ID_UPPER) \
+HW_DEV_ACQUISITION_START(ID_UPPER) \
 SR_PRIV struct sr_dev_driver ID##_driver_info = { \
 	.name = NAME, \
 	.longname = LONGNAME, \
@@ -509,7 +512,7 @@ SR_PRIV struct sr_dev_driver ID##_driver_info = { \
 	.dev_close = hw_dev_close, \
 	.info_get = hw_info_get, \
 	.dev_config_set = hw_dev_config_set, \
-	.dev_acquisition_start = hw_dev_acquisition_start, \
+	.dev_acquisition_start = hw_dev_acquisition_start_##ID_UPPER, \
 	.dev_acquisition_stop = hw_dev_acquisition_stop, \
 	.priv = NULL, \
 };
