@@ -18,11 +18,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <glib.h>
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
 #include <errno.h>
+#include <glib.h>
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 #include "protocol.h"
@@ -105,6 +105,7 @@ static void handle_packet(const uint8_t *buf, struct dev_context *devc,
 	dmms[dmm].packet_parse(buf, &floatval, analog, info);
 	analog->data = &floatval;
 
+	/* If this DMM needs additional handling, call the resp. function. */
 	if (dmms[dmm].dmm_details)
 		dmms[dmm].dmm_details(analog, info);
 
@@ -185,20 +186,20 @@ static int receive_data(int fd, int revents, int dmm, void *info, void *cb_data)
 	return TRUE;
 }
 
-#define RECV_DATA(ID_UPPER, DMM_DRIVER) \
+#define RECEIVE_DATA(ID_UPPER, DMM_DRIVER) \
 SR_PRIV int receive_data_##ID_UPPER(int fd, int revents, void *cb_data) { \
 	struct DMM_DRIVER##_info info; \
 	return receive_data(fd, revents, ID_UPPER, &info, cb_data); }
 
 /* Driver-specific receive_data() wrappers */
-RECV_DATA(DIGITEK_DT4000ZC, fs9721)
-RECV_DATA(TEKPOWER_TP4000ZC, fs9721)
-RECV_DATA(METEX_ME31, metex14)
-RECV_DATA(PEAKTECH_3410, metex14)
-RECV_DATA(MASTECH_MAS345, metex14)
-RECV_DATA(VA_VA18B, fs9721)
-RECV_DATA(METEX_M3640D, metex14)
-RECV_DATA(PEAKTECH_4370, metex14)
-RECV_DATA(PCE_PCE_DM32, fs9721)
-RECV_DATA(RADIOSHACK_22_168, metex14)
-RECV_DATA(RADIOSHACK_22_812, rs9lcd)
+RECEIVE_DATA(DIGITEK_DT4000ZC, fs9721)
+RECEIVE_DATA(TEKPOWER_TP4000ZC, fs9721)
+RECEIVE_DATA(METEX_ME31, metex14)
+RECEIVE_DATA(PEAKTECH_3410, metex14)
+RECEIVE_DATA(MASTECH_MAS345, metex14)
+RECEIVE_DATA(VA_VA18B, fs9721)
+RECEIVE_DATA(METEX_M3640D, metex14)
+RECEIVE_DATA(PEAKTECH_4370, metex14)
+RECEIVE_DATA(PCE_PCE_DM32, fs9721)
+RECEIVE_DATA(RADIOSHACK_22_168, metex14)
+RECEIVE_DATA(RADIOSHACK_22_812, rs9lcd)

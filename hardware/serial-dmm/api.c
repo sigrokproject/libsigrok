@@ -19,12 +19,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <glib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <string.h>
 #include <errno.h>
+#include <glib.h>
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 #include "protocol.h"
@@ -203,20 +203,11 @@ static GSList *scan(const char *conn, const char *serialcomm, int dmm)
 	if (serial_open(serial, SERIAL_RDWR | SERIAL_NONBLOCK) != SR_OK)
 		return NULL;
 
-	sr_info("Probing port %s.", conn);
+	sr_info("Probing serial port %s.", conn);
 
 	drvc = dmms[dmm].di->priv;
 	devices = NULL;
 	serial_flush(serial);
-
-	/*
-	 * There's no way to get an ID from the multimeter. It just sends data
-	 * periodically, so the best we can do is check if the packets match
-	 * the expected format.
-	 */
-
-	/* Let's get a bit of data and see if we can find a packet. */
-	len = sizeof(buf);
 
 	/* Request a packet if the DMM requires this. */
 	if (dmms[dmm].packet_request) {
@@ -226,6 +217,14 @@ static GSList *scan(const char *conn, const char *serialcomm, int dmm)
 		}
 	}
 
+	/*
+	 * There's no way to get an ID from the multimeter. It just sends data
+	 * periodically (or upon request), so the best we can do is check if
+	 * the packets match the expected format.
+	 */
+
+	/* Let's get a bit of data and see if we can find a packet. */
+	len = sizeof(buf);
 	ret = serial_stream_detect(serial, buf, &len, dmms[dmm].packet_size,
 				   dmms[dmm].packet_valid, 1000,
 				   dmms[dmm].baudrate);
@@ -236,8 +235,8 @@ static GSList *scan(const char *conn, const char *serialcomm, int dmm)
 	 * If we dropped more than two packets worth of data, something is
 	 * wrong. We shouldn't quit however, since the dropped bytes might be
 	 * just zeroes at the beginning of the stream. Those can occur as a
-	 * combination of the nonstandard cable that ships with this device and
-	 * the serial port or USB to serial adapter.
+	 * combination of the nonstandard cable that ships with some devices
+	 * and the serial port or USB to serial adapter.
 	 */
 	dropped = len - dmms[dmm].packet_size;
 	if (dropped > 2 * dmms[dmm].packet_size)
