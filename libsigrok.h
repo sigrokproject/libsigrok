@@ -177,6 +177,7 @@ enum {
 	 * reference value. */
 	SR_MQ_SOUND_PRESSURE_LEVEL,
 	SR_MQ_CARBON_MONOXIDE,
+	SR_MQ_RELATIVE_HUMIDITY,
 };
 
 /** Values for sr_datafeed_analog.unit. */
