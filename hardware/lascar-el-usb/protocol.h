@@ -55,10 +55,12 @@ struct dev_context {
 	unsigned int rcvd_samples;
 	unsigned int limit_samples;
 	/* Model-specific */
-	/* EL-USB-CO: these are something like calibration values fixed per
-	 * device, used to convert the sample values to CO ppm. */
+	/* EL-USB-CO: these are something like scaling and calibration values
+	 * fixed per device, used to convert the sample values to CO ppm. */
 	float co_high;
 	float co_low;
+	/* Temperature units as stored in the device config. */
+	int temp_unit;
 };
 
 enum {

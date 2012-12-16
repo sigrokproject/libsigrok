@@ -41,11 +41,11 @@ static const struct elusb_profile profiles[] = {
 	{ 9, "EL-USB-CO", LOG_CO },
 	{ 10, "EL-USB-TC", LOG_UNSUPPORTED },
 	{ 11, "EL-USB-CO300", LOG_CO },
-	{ 12, "EL-USB-2-LCD", LOG_UNSUPPORTED },
-	{ 13, "EL-USB-2+", LOG_UNSUPPORTED },
+	{ 12, "EL-USB-2-LCD", LOG_TEMP_RH },
+	{ 13, "EL-USB-2+", LOG_TEMP_RH },
 	{ 14, "EL-USB-1-PRO", LOG_UNSUPPORTED },
 	{ 15, "EL-USB-TC-LCD", LOG_UNSUPPORTED },
-	{ 16, "EL-USB-2-LCD+", LOG_UNSUPPORTED },
+	{ 16, "EL-USB-2-LCD+", LOG_TEMP_RH },
 	{ 17, "EL-USB-5", LOG_UNSUPPORTED },
 	{ 18, "EL-USB-1-RCG", LOG_UNSUPPORTED },
 	{ 19, "EL-USB-1-LCD", LOG_UNSUPPORTED },
@@ -382,8 +382,9 @@ static void lascar_el_usb_dispatch(struct sr_dev_inst *sdi, unsigned char *buf,
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog analog;
+	float *temp, *rh;
 	uint16_t s;
-	int samples, samples_left, i;
+	int samples, samples_left, i, j;
 
 	devc = sdi->priv;
 	samples = buflen / devc->sample_size;
@@ -392,7 +393,44 @@ static void lascar_el_usb_dispatch(struct sr_dev_inst *sdi, unsigned char *buf,
 		samples = samples_left;
 	switch (devc->profile->logformat) {
 	case LOG_TEMP_RH:
-		/* TODO */
+		packet.type = SR_DF_ANALOG;
+		packet.payload = &analog;
+		analog.mqflags = 0;
+		if (!(temp = g_try_malloc(sizeof(float) * samples)))
+			break;
+		if (!(rh = g_try_malloc(sizeof(float) * samples)))
+			break;
+		for (i = 0, j = 0; i < samples; i++) {
+			/* Both Celcius and Fahrenheit stored at base -40. */
+			if (devc->temp_unit == 0)
+				/* Celcius is stored in half-degree increments. */
+				temp[j] = buf[i * 2] / 2 - 40;
+			else
+				temp[j] = buf[i * 2] - 40;
+
+			rh[j] = buf[i * 2 + 1] / 2;
+
+			if (temp[j] == 0.0 && rh[j] == 0.0)
+				/* Skip invalid measurement. */
+				continue;
+			j++;
+		}
+		analog.num_samples = j;
+
+		analog.mq = SR_MQ_TEMPERATURE;
+		if (devc->temp_unit == 1)
+			analog.unit = SR_UNIT_FAHRENHEIT;
+		else
+			analog.unit = SR_UNIT_CELSIUS;
+		analog.data = temp;
+		sr_session_send(devc->cb_data, &packet);
+
+		analog.mq = SR_MQ_RELATIVE_HUMIDITY;
+		analog.unit = SR_UNIT_PERCENTAGE;
+		analog.data = rh;
+		sr_session_send(devc->cb_data, &packet);
+		g_free(temp);
+		g_free(rh);
 		break;
 	case LOG_CO:
 		packet.type = SR_DF_ANALOG;

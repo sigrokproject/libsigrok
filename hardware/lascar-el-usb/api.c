@@ -317,12 +317,20 @@ static int lascar_proc_config(const struct sr_dev_inst *sdi)
 	ret = SR_OK;
 	switch (devc->profile->logformat) {
 	case LOG_TEMP_RH:
-		/* TODO */
+		devc->sample_size = 2;
+		devc->temp_unit = devc->config[0x2e] | (devc->config[0x2f] << 8);
+		if (devc->temp_unit != 0 && devc->temp_unit != 1) {
+			sr_dbg("invalid temperature unit %d", devc->temp_unit);
+			/* Default to Celcius, we're all adults here. */
+			devc->temp_unit = 0;
+		} else
+			sr_dbg("temperature unit is %s", devc->temp_unit
+					? "Fahrenheit" : "Celcius");
 		break;
 	case LOG_CO:
 		devc->sample_size = 2;
-		devc->co_high = binary32_le_to_float(devc->config + 36);
-		devc->co_low = binary32_le_to_float(devc->config + 40);
+		devc->co_high = binary32_le_to_float(devc->config + 0x24);
+		devc->co_low = binary32_le_to_float(devc->config + 0x28);
 		sr_dbg("EL-USB-CO calibration high %f low %f", devc->co_high,
 				devc->co_low);
 		break;
