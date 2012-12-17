@@ -139,7 +139,7 @@ static const struct sr_samplerates samplerates = {
 };
 
 SR_PRIV struct sr_dev_driver fx2lafw_driver_info;
-static struct sr_dev_driver *fdi = &fx2lafw_driver_info;
+static struct sr_dev_driver *di = &fx2lafw_driver_info;
 static int hw_dev_close(struct sr_dev_inst *sdi);
 static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		const void *value);
@@ -194,7 +194,7 @@ static int fx2lafw_dev_open(struct sr_dev_inst *sdi)
 	libusb_device **devlist;
 	struct libusb_device_descriptor des;
 	struct dev_context *devc;
-	struct drv_context *drvc = fdi->priv;
+	struct drv_context *drvc = di->priv;
 	struct version_info vi;
 	int ret, skip, i;
 	uint8_t revid;
@@ -368,7 +368,7 @@ static int clear_instances(void)
 	struct dev_context *devc;
 	int ret;
 
-	drvc = fdi->priv;
+	drvc = di->priv;
 	ret = SR_OK;
 	for (l = drvc->instances; l; l = l->next) {
 		if (!(sdi = l->data)) {
@@ -412,7 +412,7 @@ static int hw_init(struct sr_context *sr_ctx)
 	}
 
 	drvc->sr_ctx = sr_ctx;
-	fdi->priv = drvc;
+	di->priv = drvc;
 
 	return SR_OK;
 }
@@ -431,7 +431,7 @@ static GSList *hw_scan(GSList *options)
 
 	(void)options;
 
-	drvc = fdi->priv;
+	drvc = di->priv;
 
 	/* This scan always invalidates any previous scans. */
 	clear_instances();
@@ -465,7 +465,7 @@ static GSList *hw_scan(GSList *options)
 			prof->vendor, prof->model, prof->model_version);
 		if (!sdi)
 			return NULL;
-		sdi->driver = fdi;
+		sdi->driver = di;
 
 		/* Fill in probelist according to this device's profile. */
 		num_logic_probes = prof->dev_caps & DEV_CAPS_16BIT ? 16 : 8;
@@ -510,7 +510,7 @@ static GSList *hw_dev_list(void)
 {
 	struct drv_context *drvc;
 
-	drvc = fdi->priv;
+	drvc = di->priv;
 
 	return drvc->instances;
 }
@@ -614,13 +614,13 @@ static int hw_cleanup(void)
 	struct drv_context *drvc;
 	int ret;
 
-	if (!(drvc = fdi->priv))
+	if (!(drvc = di->priv))
 		return SR_OK;
 
 	ret = clear_instances();
 
 	g_free(drvc);
-	fdi->priv = NULL;
+	di->priv = NULL;
 
 	return ret;
 }
@@ -690,7 +690,7 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 static int receive_data(int fd, int revents, void *cb_data)
 {
 	struct timeval tv;
-	struct drv_context *drvc = fdi->priv;
+	struct drv_context *drvc = di->priv;
 
 	(void)fd;
 	(void)revents;
@@ -717,7 +717,7 @@ static void abort_acquisition(struct dev_context *devc)
 static void finish_acquisition(struct dev_context *devc)
 {
 	struct sr_datafeed_packet packet;
-	struct drv_context *drvc = fdi->priv;
+	struct drv_context *drvc = di->priv;
 	int i;
 
 
@@ -956,7 +956,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	struct sr_datafeed_header header;
 	struct sr_datafeed_meta_logic meta;
 	struct dev_context *devc;
-	struct drv_context *drvc = fdi->priv;
+	struct drv_context *drvc = di->priv;
 	struct libusb_transfer *transfer;
 	const struct libusb_pollfd **lupfd;
 	unsigned int i;

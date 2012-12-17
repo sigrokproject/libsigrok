@@ -138,7 +138,7 @@ static uint8_t pattern_sigrok[] = {
 
 /* List of struct sr_dev_inst, maintained by dev_open()/dev_close(). */
 SR_PRIV struct sr_dev_driver demo_driver_info;
-static struct sr_dev_driver *ddi = &demo_driver_info;
+static struct sr_dev_driver *di = &demo_driver_info;
 static uint64_t cur_samplerate = SR_KHZ(200);
 static uint64_t limit_samples = 0;
 static uint64_t limit_msec = 0;
@@ -162,7 +162,7 @@ static int hw_init(struct sr_context *sr_ctx)
 		return SR_ERR_MALLOC;
 	}
 	drvc->sr_ctx = sr_ctx;
-	ddi->priv = drvc;
+	di->priv = drvc;
 
 	return SR_OK;
 }
@@ -177,7 +177,7 @@ static GSList *hw_scan(GSList *options)
 
 	(void)options;
 
-	drvc = ddi->priv;
+	drvc = di->priv;
 	devices = NULL;
 
 	sdi = sr_dev_inst_new(0, SR_ST_ACTIVE, DEMONAME, NULL, NULL);
@@ -185,7 +185,7 @@ static GSList *hw_scan(GSList *options)
 		sr_err("%s: sr_dev_inst_new failed", __func__);
 		return 0;
 	}
-	sdi->driver = ddi;
+	sdi->driver = di;
 
 	for (i = 0; probe_names[i]; i++) {
 		if (!(probe = sr_probe_new(i, SR_PROBE_LOGIC, TRUE,
@@ -204,7 +204,7 @@ static GSList *hw_dev_list(void)
 {
 	struct drv_context *drvc;
 
-	drvc = ddi->priv;
+	drvc = di->priv;
 
 	return drvc->instances;
 }

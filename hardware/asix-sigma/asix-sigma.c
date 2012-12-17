@@ -41,7 +41,7 @@
 #define NUM_PROBES			16
 
 SR_PRIV struct sr_dev_driver asix_sigma_driver_info;
-static struct sr_dev_driver *adi = &asix_sigma_driver_info;
+static struct sr_dev_driver *di = &asix_sigma_driver_info;
 static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);
 
 static const uint64_t supported_samplerates[] = {
@@ -411,7 +411,7 @@ static int clear_instances(void)
 	struct drv_context *drvc;
 	struct dev_context *devc;
 
-	drvc = adi->priv;
+	drvc = di->priv;
 
 	/* Properly close all devices. */
 	for (l = drvc->instances; l; l = l->next) {
@@ -441,7 +441,7 @@ static int hw_init(struct sr_context *sr_ctx)
 		return SR_ERR_MALLOC;
 	}
 	drvc->sr_ctx = sr_ctx;
-	adi->priv = drvc;
+	di->priv = drvc;
 
 	return SR_OK;
 }
@@ -460,7 +460,7 @@ static GSList *hw_scan(GSList *options)
 
 	(void)options;
 
-	drvc = adi->priv;
+	drvc = di->priv;
 	devices = NULL;
 	clear_instances();
 
@@ -508,7 +508,7 @@ static GSList *hw_scan(GSList *options)
 		sr_err("%s: sdi was NULL", __func__);
 		goto free;
 	}
-	sdi->driver = adi;
+	sdi->driver = di;
 
 	for (i = 0; probe_names[i]; i++) {
 		if (!(probe = sr_probe_new(i, SR_PROBE_LOGIC, TRUE,
@@ -536,7 +536,7 @@ static GSList *hw_dev_list(void)
 {
 	struct drv_context *drvc;
 
-	drvc = adi->priv;
+	drvc = di->priv;
 
 	return drvc->instances;
 }
@@ -791,7 +791,7 @@ static int hw_dev_close(struct sr_dev_inst *sdi)
 
 static int hw_cleanup(void)
 {
-	if (!adi->priv)
+	if (!di->priv)
 		return SR_OK;
 
 	clear_instances();

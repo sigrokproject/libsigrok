@@ -106,7 +106,7 @@ static const char *probe_names[NUM_PROBES + 1] = {
 
 /* List of struct sr_dev_inst, maintained by dev_open()/dev_close(). */
 SR_PRIV struct sr_dev_driver zeroplus_logic_cube_driver_info;
-static struct sr_dev_driver *zdi = &zeroplus_logic_cube_driver_info;
+static struct sr_dev_driver *di = &zeroplus_logic_cube_driver_info;
 
 /*
  * The hardware supports more samplerates than these, but these are the
@@ -277,7 +277,7 @@ static int clear_instances(void)
 	struct drv_context *drvc;
 	struct dev_context *devc;
 
-	drvc = zdi->priv;
+	drvc = di->priv;
 	for (l = drvc->instances; l; l = l->next) {
 		sdi = l->data;
 		if (!(devc = sdi->priv)) {
@@ -310,7 +310,7 @@ static int hw_init(struct sr_context *sr_ctx)
 		return SR_ERR_MALLOC;
 	}
 	drvc->sr_ctx = sr_ctx;
-	zdi->priv = drvc;
+	di->priv = drvc;
 
 	return SR_OK;
 }
@@ -329,7 +329,7 @@ static GSList *hw_scan(GSList *options)
 
 	(void)options;
 
-	drvc = zdi->priv;
+	drvc = di->priv;
 	devices = NULL;
 
 	clear_instances();
@@ -364,7 +364,7 @@ static GSList *hw_scan(GSList *options)
 			sr_err("zp: %s: sr_dev_inst_new failed", __func__);
 			return NULL;
 		}
-		sdi->driver = zdi;
+		sdi->driver = di;
 
 		/* Allocate memory for our private driver context. */
 		if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
@@ -409,7 +409,7 @@ static GSList *hw_dev_list(void)
 {
 	struct drv_context *drvc;
 
-	drvc = zdi->priv;
+	drvc = di->priv;
 
 	return drvc->instances;
 }
@@ -417,7 +417,7 @@ static GSList *hw_dev_list(void)
 static int hw_dev_open(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	struct drv_context *drvc = zdi->priv;
+	struct drv_context *drvc = di->priv;
 	libusb_device **devlist, *dev;
 	struct libusb_device_descriptor des;
 	int device_count, ret, i;
@@ -535,7 +535,7 @@ static int hw_cleanup(void)
 {
 	struct drv_context *drvc;
 
-	if (!(drvc = zdi->priv))
+	if (!(drvc = di->priv))
 		return SR_OK;
 
 	clear_instances();

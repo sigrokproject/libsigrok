@@ -143,7 +143,7 @@ static const char *coupling[] = {
 };
 
 SR_PRIV struct sr_dev_driver hantek_dso_driver_info;
-static struct sr_dev_driver *hdi = &hantek_dso_driver_info;
+static struct sr_dev_driver *di = &hantek_dso_driver_info;
 
 static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);
 
@@ -159,7 +159,7 @@ static struct sr_dev_inst *dso_dev_new(int index, const struct dso_profile *prof
 		prof->vendor, prof->model, NULL);
 	if (!sdi)
 		return NULL;
-	sdi->driver = hdi;
+	sdi->driver = di;
 
 	/*
 	 * Add only the real probes -- EXT isn't a source of data, only
@@ -194,7 +194,7 @@ static struct sr_dev_inst *dso_dev_new(int index, const struct dso_profile *prof
 	devc->triggersource = g_strdup(DEFAULT_TRIGGER_SOURCE);
 	devc->triggerposition = DEFAULT_HORIZ_TRIGGERPOS;
 	sdi->priv = devc;
-	drvc = hdi->priv;
+	drvc = di->priv;
 	drvc->instances = g_slist_append(drvc->instances, sdi);
 
 	return sdi;
@@ -228,7 +228,7 @@ static int clear_instances(void)
 	struct dev_context *devc;
 	GSList *l;
 
-	drvc = hdi->priv;
+	drvc = di->priv;
 	for (l = drvc->instances; l; l = l->next) {
 		if (!(sdi = l->data)) {
 			/* Log error, but continue cleaning up the rest. */
@@ -263,7 +263,7 @@ static int hw_init(struct sr_context *sr_ctx)
 	}
 
 	drvc->sr_ctx = sr_ctx;
-	hdi->priv = drvc;
+	di->priv = drvc;
 
 	return SR_OK;
 }
@@ -283,7 +283,7 @@ static GSList *hw_scan(GSList *options)
 
 	devcnt = 0;
 	devices = 0;
-	drvc = hdi->priv;
+	drvc = di->priv;
 	drvc->instances = NULL;
 
 	clear_instances();
@@ -348,7 +348,7 @@ static GSList *hw_dev_list(void)
 {
 	struct drv_context *drvc;
 
-	drvc = hdi->priv;
+	drvc = di->priv;
 
 	return drvc->instances;
 }
@@ -410,7 +410,7 @@ static int hw_cleanup(void)
 {
 	struct drv_context *drvc;
 
-	if (!(drvc = hdi->priv))
+	if (!(drvc = di->priv))
 		return SR_OK;
 
 	clear_instances();
@@ -734,7 +734,7 @@ static int handle_event(int fd, int revents, void *cb_data)
 	struct sr_datafeed_packet packet;
 	struct timeval tv;
 	struct dev_context *devc;
-	struct drv_context *drvc = hdi->priv;
+	struct drv_context *drvc = di->priv;
 	const struct libusb_pollfd **lupfd;
 	int num_probes, i;
 	uint32_t trigger_offset;
@@ -851,7 +851,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	struct sr_datafeed_header header;
 	struct sr_datafeed_meta_analog meta;
 	struct dev_context *devc;
-	struct drv_context *drvc = hdi->priv;
+	struct drv_context *drvc = di->priv;
 	int i;
 
 	if (sdi->status != SR_ST_ACTIVE)

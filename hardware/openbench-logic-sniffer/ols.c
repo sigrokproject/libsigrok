@@ -99,7 +99,7 @@ static const struct sr_samplerates samplerates = {
 };
 
 SR_PRIV struct sr_dev_driver ols_driver_info;
-static struct sr_dev_driver *odi = &ols_driver_info;
+static struct sr_dev_driver *di = &ols_driver_info;
 
 static int send_shortcommand(struct sr_serial_dev_inst *serial,
 		uint8_t command)
@@ -236,7 +236,7 @@ static struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
 	guchar tmp_c;
 
 	sdi = sr_dev_inst_new(0, SR_ST_INACTIVE, NULL, NULL, NULL);
-	sdi->driver = odi;
+	sdi->driver = di;
 	devc = ols_dev_new();
 	sdi->priv = devc;
 
@@ -371,7 +371,7 @@ static int hw_init(struct sr_context *sr_ctx)
 		return SR_ERR_MALLOC;
 	}
 	drvc->sr_ctx = sr_ctx;
-	odi->priv = drvc;
+	di->priv = drvc;
 
 	return SR_OK;
 }
@@ -391,7 +391,7 @@ static GSList *hw_scan(GSList *options)
 	char buf[8];
 
 	(void)options;
-	drvc = odi->priv;
+	drvc = di->priv;
 	devices = NULL;
 
 	conn = serialcomm = NULL;
@@ -466,7 +466,7 @@ static GSList *hw_scan(GSList *options)
 		/* Not an OLS -- some other board that uses the sump protocol. */
 		sdi = sr_dev_inst_new(0, SR_ST_INACTIVE,
 				"Sump", "Logic Analyzer", "v1.0");
-		sdi->driver = odi;
+		sdi->driver = di;
 		devc = ols_dev_new();
 		for (i = 0; i < 32; i++) {
 			if (!(probe = sr_probe_new(i, SR_PROBE_LOGIC, TRUE,
@@ -489,7 +489,7 @@ static GSList *hw_dev_list(void)
 {
 	struct drv_context *drvc;
 
-	drvc = odi->priv;
+	drvc = di->priv;
 
 	return drvc->instances;
 }
@@ -530,7 +530,7 @@ static int hw_cleanup(void)
 	struct dev_context *devc;
 	int ret = SR_OK;
 
-	if (!(drvc = odi->priv))
+	if (!(drvc = di->priv))
 		return SR_OK;
 
 	/* Properly close and free all devices. */
@@ -700,7 +700,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 	int num_channels, offset, i, j;
 	unsigned char byte;
 
-	drvc = odi->priv;
+	drvc = di->priv;
 
 	/* Find this device's devc struct by its fd. */
 	devc = NULL;
