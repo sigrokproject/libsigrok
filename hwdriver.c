@@ -98,7 +98,7 @@ extern SR_PRIV struct sr_dev_driver chronovu_la8_driver_info;
 #ifdef HAVE_LA_LINK_MSO19
 extern SR_PRIV struct sr_dev_driver link_mso19_driver_info;
 #endif
-#ifdef HAVE_LA_ALSA
+#ifdef HAVE_HW_ALSA
 extern SR_PRIV struct sr_dev_driver alsa_driver_info;
 #endif
 #ifdef HAVE_LA_FX2LAFW
@@ -165,7 +165,7 @@ static struct sr_dev_driver *drivers_list[] = {
 #ifdef HAVE_LA_LINK_MSO19
 	&link_mso19_driver_info,
 #endif
-#ifdef HAVE_LA_ALSA
+#ifdef HAVE_HW_ALSA
 	&alsa_driver_info,
 #endif
 #ifdef HAVE_LA_FX2LAFW

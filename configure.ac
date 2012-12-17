@@ -86,14 +86,13 @@ if test "x$HW_AGILENT_DMM" = "xyes"; then
 	AC_DEFINE(HAVE_HW_AGILENT_DMM, 1, [Agilent DMM support])
 fi
 
-# Disabled by default, unfinished.
 AC_ARG_ENABLE(alsa, AC_HELP_STRING([--enable-alsa],
-	      [enable ALSA driver support [default=no]]),
-	      [LA_ALSA="$enableval"],
-	      [LA_ALSA=no])
-AM_CONDITIONAL(LA_ALSA, test x$LA_ALSA = xyes)
-if test "x$LA_ALSA" = "xyes"; then
-	AC_DEFINE(HAVE_LA_ALSA, 1, [ALSA driver support])
+	      [enable ALSA driver support [default=yes]]),
+	      [HW_ALSA="$enableval"],
+	      [HW_ALSA=yes])
+AM_CONDITIONAL(HW_ALSA, test x$HW_ALSA = xyes)
+if test "x$HW_ALSA" = "xyes"; then
+	AC_DEFINE(HAVE_HW_ALSA, 1, [ALSA driver support])
 fi
 
 AC_ARG_ENABLE(asix-sigma, AC_HELP_STRING([--enable-asix-sigma],
@@ -294,7 +293,7 @@ if test "x$LA_LINK_MSO19" != xno; then
 fi
 
 # ALSA is only needed for some hardware drivers.
-if test "x$LA_ALSA" != xno; then
+if test "x$HW_ALSA" != xno; then
 	PKG_CHECK_MODULES([alsa], [alsa >= 1.0],
 		[CFLAGS="$CFLAGS $alsa_CFLAGS"; LIBS="$LIBS $alsa_LIBS";
 		SR_PKGLIBS="$SR_PKGLIBS alsa"])
@@ -404,6 +403,7 @@ done
 
 echo -e "\nEnabled hardware drivers:\n"
 echo "  - Agilent DMM..................... $HW_AGILENT_DMM"
+echo "  - ALSA............................ $HW_ALSA"
 echo "  - ASIX SIGMA/SIGMA2............... $LA_ASIX_SIGMA"
 echo "  - ChronoVu LA8.................... $LA_CHRONOVU_LA8"
 echo "  - Colead SLM...................... $HW_COLEAD_SLM"

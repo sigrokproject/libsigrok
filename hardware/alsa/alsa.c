@@ -2,6 +2,7 @@
  * This file is part of the sigrok project.
  *
  * Copyright (C) 2011 Daniel Ribeiro <drwyrm@gmail.com>
+ * Copyright (C) 2012 Uwe Hermann <uwe@hermann-uwe.de>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,8 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
  */
-
-/* Note: This driver doesn't compile, analog support in sigrok is WIP. */
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -36,99 +35,144 @@
 #define sr_warn(s, args...) sr_warn(DRIVER_LOG_DOMAIN s, ## args)
 #define sr_err(s, args...) sr_err(DRIVER_LOG_DOMAIN s, ## args)
 
-#define NUM_PROBES 2
-#define SAMPLE_WIDTH 16
-#define AUDIO_DEV "plughw:0,0"
-
-struct sr_analog_probe {
-	uint8_t att;
-	uint8_t res;    /* Needs to be a power of 2, FIXME */
-	uint16_t val;   /* Max hardware ADC width is 16bits */
-};
-
-struct sr_analog_sample {
-	uint8_t num_probes; /* Max hardware probes is 256 */
-	struct sr_analog_probe probes[];
-};
+#define NUM_PROBES		2
+#define SAMPLE_WIDTH		16
+#define DEFAULT_SAMPLERATE	44100
+// #define AUDIO_DEV		"plughw:0,0"
+#define AUDIO_DEV		"default"
 
 static const int hwcaps[] = {
 	SR_HWCAP_SAMPLERATE,
 	SR_HWCAP_LIMIT_SAMPLES,
 	SR_HWCAP_CONTINUOUS,
+	0,
 };
 
-/* TODO: Which probe names/numbers to use? */
-static const char *probe_names[NUM_PROBES + 1] = {
-	"0",
-	"1",
+static const char *probe_names[] = {
+	"Channel 0",
+	"Channel 1",
 	NULL,
 };
 
-static GSList *dev_insts = NULL;
+SR_PRIV struct sr_dev_driver alsa_driver_info;
+static struct sr_dev_driver *di = &alsa_driver_info;
 
-/* Private, per-device-instance driver context. */
-struct context {
-	uint64_t cur_rate;
+/** Private, per-device-instance driver context. */
+struct dev_context {
+	uint64_t cur_samplerate;
 	uint64_t limit_samples;
+	uint64_t num_samples;
 	snd_pcm_t *capture_handle;
 	snd_pcm_hw_params_t *hw_params;
-	void *session_dev_id;
+	struct pollfd *ufds;
+	void *cb_data;
 };
+
+static int clear_instances(void)
+{
+	/* TODO */
+
+	return SR_OK;
+}
 
 static int hw_init(struct sr_context *sr_ctx)
 {
-	struct sr_dev_inst *sdi;
-	struct context *ctx;
+	struct drv_context *drvc;
 
-	if (!(ctx = g_try_malloc0(sizeof(struct context)))) {
-		sr_err("%s: ctx malloc failed", __func__);
+	if (!(drvc = g_try_malloc0(sizeof(struct drv_context)))) {
+		sr_err("Driver context malloc failed.");
 		return SR_ERR_MALLOC;
+	}
+
+	drvc->sr_ctx = sr_ctx;
+	di->priv = drvc;
+
+	return SR_OK;
+}
+
+static GSList *hw_scan(GSList *options)
+{
+	struct drv_context *drvc;
+	struct dev_context *devc;
+	struct sr_dev_inst *sdi;
+	struct sr_probe *probe;
+	GSList *devices;
+	int i;
+
+	(void)options;
+
+	drvc = di->priv;
+	drvc->instances = NULL;
+
+	devices = NULL;
+
+	if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
+		sr_err("Device context malloc failed.");
+		return NULL;
 	}
 
 	if (!(sdi = sr_dev_inst_new(0, SR_ST_ACTIVE, "alsa", NULL, NULL))) {
-		sr_err("%s: sdi was NULL", __func__);
-		goto free_ctx;
+		sr_err("Failed to create device instance.");
+		return NULL;
 	}
 
-	sdi->priv = ctx;
+	/* Set the samplerate to a default value for now. */
+	devc->cur_samplerate = DEFAULT_SAMPLERATE;
 
-	dev_insts = g_slist_append(dev_insts, sdi);
+	sdi->priv = devc;
+	sdi->driver = di;
 
-	return 1;
+	for (i = 0; probe_names[i]; i++) {
+		if (!(probe = sr_probe_new(i, SR_PROBE_ANALOG, TRUE,
+					   probe_names[i]))) {
+			sr_err("Failed to create probe.");
+			return NULL;
+		}
+		sdi->probes = g_slist_append(sdi->probes, probe);
+	}
 
-free_ctx:
-	g_free(ctx);
-	return 0;
+	drvc->instances = g_slist_append(drvc->instances, sdi);
+	devices = g_slist_append(devices, sdi);
+
+	return devices;
 }
 
-static int hw_dev_open(int dev_index)
+static GSList *hw_dev_list(void)
 {
-	struct sr_dev_inst *sdi;
-	struct context *ctx;
+	struct drv_context *drvc;
+
+	drvc = di->priv;
+
+	return drvc->instances;
+}
+
+static int hw_dev_open(struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
 	int ret;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
-		return SR_ERR;
-	ctx = sdi->priv;
+	devc = sdi->priv;
 
-	ret = snd_pcm_open(&ctx->capture_handle, AUDIO_DEV,
+	sr_dbg("Opening audio device '%s' for stream capture.", AUDIO_DEV);
+	ret = snd_pcm_open(&devc->capture_handle, AUDIO_DEV,
 			   SND_PCM_STREAM_CAPTURE, 0);
 	if (ret < 0) {
-		sr_err("Can't open audio device %s (%s).", AUDIO_DEV,
-		       snd_strerror(ret));
+		sr_err("Can't open audio device: %s.", snd_strerror(ret));
 		return SR_ERR;
 	}
 
-	ret = snd_pcm_hw_params_malloc(&ctx->hw_params);
+	sr_dbg("Allocating hardware parameter structure.");
+	ret = snd_pcm_hw_params_malloc(&devc->hw_params);
 	if (ret < 0) {
-		sr_err("Can't allocate hardware parameter structure (%s).",
+		sr_err("Can't allocate hardware parameter structure: %s.",
 		       snd_strerror(ret));
 		return SR_ERR_MALLOC;
 	}
 
-	ret = snd_pcm_hw_params_any(ctx->capture_handle, ctx->hw_params);
+	sr_dbg("Initializing hardware parameter structure.");
+	ret = snd_pcm_hw_params_any(devc->capture_handle, devc->hw_params);
 	if (ret < 0) {
-		sr_err("Can't initialize hardware parameter structure (%s)",
+		sr_err("Can't initialize hardware parameter structure: %s.",
 		       snd_strerror(ret));
 		return SR_ERR;
 	}
@@ -136,266 +180,282 @@ static int hw_dev_open(int dev_index)
 	return SR_OK;
 }
 
-static int hw_dev_close(int dev_index)
+static int hw_dev_close(struct sr_dev_inst *sdi)
 {
-	struct sr_dev_inst *sdi;
-	struct context *ctx;
+	int ret;
+	struct dev_context *devc;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index))) {
-		sr_err("%s: sdi was NULL", __func__);
-		return SR_ERR_BUG;
+	devc = sdi->priv;
+
+	sr_dbg("Closing device.");
+
+	if (devc->hw_params) {
+		sr_dbg("Freeing hardware parameters.");
+		snd_pcm_hw_params_free(devc->hw_params);
+	} else {
+		sr_dbg("No hardware parameters, no need to free.");
 	}
 
-	if (!(ctx = sdi->priv)) {
-		sr_err("%s: sdi->priv was NULL", __func__);
-		return SR_ERR_BUG;
+	if (devc->capture_handle) {
+		sr_dbg("Closing PCM device.");
+		if ((ret = snd_pcm_close(devc->capture_handle)) < 0) {
+			sr_err("Failed to close device: %s.",
+			       snd_strerror(ret));
+		}
+	} else {
+		sr_dbg("No capture handle, no need to close audio device.");
 	}
-
-	// TODO: Return values of snd_*?
-	if (ctx->hw_params)
-		snd_pcm_hw_params_free(ctx->hw_params);
-	if (ctx->capture_handle)
-		snd_pcm_close(ctx->capture_handle);
 
 	return SR_OK;
 }
 
 static int hw_cleanup(void)
 {
-	struct sr_dev_inst *sdi;
-
-	if (!(sdi = sr_dev_inst_get(dev_insts, 0))) {
-		sr_err("%s: sdi was NULL", __func__);
-		return SR_ERR_BUG;
-	}
-
-	sr_dev_inst_free(sdi);
+	clear_instances();
 
 	return SR_OK;
 }
 
-static const void *hw_dev_info_get(int dev_index, int dev_info_id)
+static int hw_info_get(int info_id, const void **data,
+		       const struct sr_dev_inst *sdi)
 {
-	struct sr_dev_inst *sdi;
-	struct context *ctx;
-	void *info = NULL;
+	struct dev_context *devc;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
-		return NULL;
-	ctx = sdi->priv;
+	if (info_id != SR_DI_HWCAPS) /* For SR_DI_HWCAPS sdi will be NULL. */
+		devc = sdi->priv;
 
-	switch (dev_info_id) {
-	case SR_DI_INST:
-		info = sdi;
+	switch (info_id) {
+	case SR_DI_HWCAPS:
+		*data = hwcaps;
 		break;
 	case SR_DI_NUM_PROBES:
-		info = GINT_TO_POINTER(NUM_PROBES);
+		*data = GINT_TO_POINTER(NUM_PROBES);
 		break;
 	case SR_DI_PROBE_NAMES:
-		info = probe_names;
+		*data = probe_names;
 		break;
 	case SR_DI_CUR_SAMPLERATE:
-		info = &ctx->cur_rate;
+		*data = &devc->cur_samplerate;
 		break;
-	// case SR_DI_PROBE_TYPE:
-	// 	info = GINT_TO_POINTER(SR_PROBE_TYPE_ANALOG);
-	// 	break;
+	default:
+		sr_err("Invalid info_id: %d.", info_id);
+		return SR_ERR_ARG;
 	}
 
-	return info;
+	return SR_OK;
 }
 
-static int hw_dev_status_get(int dev_index)
+static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
+			     const void *value)
 {
-	(void)dev_index;
+	struct dev_context *devc;
 
-	return SR_ST_ACTIVE;
-}
-
-static const int *hw_hwcap_get_all(void)
-{
-	return hwcaps;
-}
-
-static int hw_dev_config_set(int dev_index, int hwcap, const void *value)
-{
-	struct sr_dev_inst *sdi;
-	struct context *ctx;
-
-	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
-		return SR_ERR;
-	ctx = sdi->priv;
+	devc = sdi->priv;
 
 	switch (hwcap) {
-	case SR_HWCAP_PROBECONFIG:
-		return SR_OK;
 	case SR_HWCAP_SAMPLERATE:
-		ctx->cur_rate = *(const uint64_t *)value;
-		return SR_OK;
+		devc->cur_samplerate = *(const uint64_t *)value;
+		break;
 	case SR_HWCAP_LIMIT_SAMPLES:
-		ctx->limit_samples = *(const uint64_t *)value;
-		return SR_OK;
+		devc->limit_samples = *(const uint64_t *)value;
+		break;
 	default:
+		sr_err("Unknown capability: %d.", hwcap);
 		return SR_ERR;
 	}
+
+	return SR_OK;
 }
 
 static int receive_data(int fd, int revents, void *cb_data)
 {
-	struct sr_dev_inst *sdi = cb_data;
-	struct context *ctx = sdi->priv;
+	struct sr_dev_inst *sdi;
+	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
-	struct sr_analog_sample *sample;
-	unsigned int sample_size = sizeof(struct sr_analog_sample) +
-		(NUM_PROBES * sizeof(struct sr_analog_probe));
-	char *outb;
-	char inb[4096];
-	int i, x, count;
+	struct sr_datafeed_analog analog;
+	char inbuf[4096];
+	int i, x, count, offset, samples_to_get;
+	uint16_t tmp16;
 
-	fd = fd;
-	revents = revents;
+	(void)fd;
+	(void)revents;
 
-	do {
-		memset(inb, 0, sizeof(inb));
-		count = snd_pcm_readi(ctx->capture_handle, inb,
-			MIN(4096 / 4, ctx->limit_samples));
-		if (count < 1) {
-			sr_err("Failed to read samples");
-			return FALSE;
+	sdi = cb_data;
+	devc = sdi->priv;
+
+	memset(&analog, 0, sizeof(struct sr_datafeed_analog));
+	memset(inbuf, 0, sizeof(inbuf));
+
+	samples_to_get = MIN(4096 / 4, devc->limit_samples);
+
+	sr_spew("Getting %d samples from audio device.", samples_to_get);
+	count = snd_pcm_readi(devc->capture_handle, inbuf, samples_to_get);
+
+	if (count < 0) {
+		sr_err("Failed to read samples: %s.", snd_strerror(count));
+		return FALSE;
+	} else if (count != samples_to_get) {
+		sr_spew("Only got %d/%d samples.", count, samples_to_get);
+	}
+
+	analog.data = g_try_malloc0(count * sizeof(float) * NUM_PROBES);
+	if (!analog.data) {
+		sr_err("Failed to malloc sample buffer.");
+		return FALSE;
+	}
+
+	offset = 0;
+
+	for (i = 0; i < count; i++) {
+		for (x = 0; x < NUM_PROBES; x++) {
+			tmp16 = *(uint16_t *)(inbuf + (i * 4) + (x * 2));
+			analog.data[offset++] = (float)tmp16;
 		}
+	}
 
-		if (!(outb = g_try_malloc(sample_size * count))) {
-			sr_err("%s: outb malloc failed", __func__);
-			return FALSE;
+	/* Send a sample packet with the analog values. */
+	analog.num_samples = count;
+	analog.mq = SR_MQ_VOLTAGE; /* FIXME */
+	analog.unit = SR_UNIT_VOLT; /* FIXME */
+	packet.type = SR_DF_ANALOG;
+	packet.payload = &analog;
+	sr_session_send(devc->cb_data, &packet);
+
+	g_free(analog.data);
+
+	devc->num_samples += count;
+
+	/* Stop acquisition if we acquired enough samples. */
+	if (devc->limit_samples > 0) {
+		if (devc->num_samples >= devc->limit_samples) {
+			sr_info("Requested number of samples reached.");
+			sdi->driver->dev_acquisition_stop(sdi, cb_data);
 		}
-
-		for (i = 0; i < count; i++) {
-			sample = (struct sr_analog_sample *)
-						(outb + (i * sample_size));
-			sample->num_probes = NUM_PROBES;
-
-			for (x = 0; x < NUM_PROBES; x++) {
-				sample->probes[x].val =
-					*(uint16_t *)(inb + (i * 4) + (x * 2));
-				sample->probes[x].val &= ((1 << 16) - 1);
-				sample->probes[x].res = 16;
-			}
-		}
-
-		packet.type = SR_DF_ANALOG;
-		packet.length = count * sample_size;
-		packet.unitsize = sample_size;
-		packet.payload = outb;
-		sr_session_send(sdi, &packet);
-		g_free(outb);
-		ctx->limit_samples -= count;
-
-	} while (ctx->limit_samples > 0);
-
-	packet.type = SR_DF_END;
-	sr_session_send(sdi, &packet);
+	}
 
 	return TRUE;
 }
 
-static int hw_dev_acquisition_start(int dev_index, void *cb_data)
+static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
+				    void *cb_data)
 {
-	struct sr_dev_inst *sdi;
-	struct context *ctx;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_header header;
-	struct pollfd *ufds;
-	int count;
-	int ret;
+	struct sr_datafeed_meta_analog meta;
+	struct dev_context *devc;
+	int count, ret;
 
-	if (!(sdi = sr_dev_inst_get(dev_insts, dev_index)))
-		return SR_ERR;
-	ctx = sdi->priv;
+	devc = sdi->priv;
+	devc->cb_data = cb_data;
 
-	ret = snd_pcm_hw_params_set_access(ctx->capture_handle,
-			ctx->hw_params, SND_PCM_ACCESS_RW_INTERLEAVED);
+	sr_dbg("Setting audio access type to RW/interleaved.");
+	ret = snd_pcm_hw_params_set_access(devc->capture_handle,
+			devc->hw_params, SND_PCM_ACCESS_RW_INTERLEAVED);
 	if (ret < 0) {
-		sr_err("Can't set access type (%s).", snd_strerror(ret));
-		return SR_ERR;
-	}
-
-	/* FIXME: Hardcoded for 16bits */
-	ret = snd_pcm_hw_params_set_format(ctx->capture_handle,
-			ctx->hw_params, SND_PCM_FORMAT_S16_LE);
-	if (ret < 0) {
-		sr_err("Can't set sample format (%s).", snd_strerror(ret));
+		sr_err("Can't set audio access type: %s.", snd_strerror(ret));
 		return SR_ERR;
 	}
 
-	ret = snd_pcm_hw_params_set_rate_near(ctx->capture_handle,
-			ctx->hw_params, (unsigned int *)&ctx->cur_rate, 0);
+	/* FIXME: Hardcoded for 16bits. */
+	sr_dbg("Setting audio sample format to signed 16bit (little endian).");
+	ret = snd_pcm_hw_params_set_format(devc->capture_handle,
+			devc->hw_params, SND_PCM_FORMAT_S16_LE);
 	if (ret < 0) {
-		sr_err("Can't set sample rate (%s).", snd_strerror(ret));
+		sr_err("Can't set audio sample format: %s.", snd_strerror(ret));
 		return SR_ERR;
 	}
 
-	ret = snd_pcm_hw_params_set_channels(ctx->capture_handle,
-			ctx->hw_params, NUM_PROBES);
+	sr_dbg("Setting audio samplerate to %" PRIu64 "Hz.",
+	       devc->cur_samplerate);
+	ret = snd_pcm_hw_params_set_rate_near(devc->capture_handle,
+		devc->hw_params, (unsigned int *)&devc->cur_samplerate, 0);
 	if (ret < 0) {
-		sr_err("Can't set channel count (%s).", snd_strerror(ret));
+		sr_err("Can't set audio sample rate: %s.", snd_strerror(ret));
 		return SR_ERR;
 	}
 
-	ret = snd_pcm_hw_params(ctx->capture_handle, ctx->hw_params);
+	sr_dbg("Setting audio channel count to %d.", NUM_PROBES);
+	ret = snd_pcm_hw_params_set_channels(devc->capture_handle,
+					     devc->hw_params, NUM_PROBES);
 	if (ret < 0) {
-		sr_err("Can't set parameters (%s).", snd_strerror(ret));
+		sr_err("Can't set channel count: %s.", snd_strerror(ret));
 		return SR_ERR;
 	}
 
-	ret = snd_pcm_prepare(ctx->capture_handle);
+	sr_dbg("Setting audio parameters.");
+	ret = snd_pcm_hw_params(devc->capture_handle, devc->hw_params);
 	if (ret < 0) {
-		sr_err("Can't prepare audio interface for use (%s).",
+		sr_err("Can't set parameters: %s.", snd_strerror(ret));
+		return SR_ERR;
+	}
+
+	sr_dbg("Preparing audio interface for use.");
+	ret = snd_pcm_prepare(devc->capture_handle);
+	if (ret < 0) {
+		sr_err("Can't prepare audio interface for use: %s.",
 		       snd_strerror(ret));
 		return SR_ERR;
 	}
 
-	count = snd_pcm_poll_descriptors_count(ctx->capture_handle);
+	count = snd_pcm_poll_descriptors_count(devc->capture_handle);
 	if (count < 1) {
 		sr_err("Unable to obtain poll descriptors count.");
 		return SR_ERR;
 	}
+	sr_spew("Obtained poll descriptor count: %d.", count);
 
-	if (!(ufds = g_try_malloc(count * sizeof(struct pollfd)))) {
-		sr_err("%s: ufds malloc failed", __func__);
+	if (!(devc->ufds = g_try_malloc(count * sizeof(struct pollfd)))) {
+		sr_err("Failed to malloc ufds.");
 		return SR_ERR_MALLOC;
 	}
 
-	ret = snd_pcm_poll_descriptors(ctx->capture_handle, ufds, count);
+	sr_err("Getting %d poll descriptors.", count);
+	ret = snd_pcm_poll_descriptors(devc->capture_handle, devc->ufds, count);
 	if (ret < 0) {
-		sr_err("Unable to obtain poll descriptors (%s)",
+		sr_err("Unable to obtain poll descriptors: %s.",
 		       snd_strerror(ret));
-		g_free(ufds);
+		g_free(devc->ufds);
 		return SR_ERR;
 	}
 
-	ctx->session_dev_id = cb_data;
-	sr_source_add(ufds[0].fd, ufds[0].events, 10, receive_data, sdi);
-
+	/* Send header packet to the session bus. */
+	sr_dbg("Sending SR_DF_HEADER packet.");
 	packet.type = SR_DF_HEADER;
-	packet.length = sizeof(struct sr_datafeed_header);
-	packet.payload = (unsigned char *)&header;
+	packet.payload = (uint8_t *)&header;
 	header.feed_version = 1;
 	gettimeofday(&header.starttime, NULL);
-	header.samplerate = ctx->cur_rate;
-	header.num_analog_probes = NUM_PROBES;
-	header.num_logic_probes = 0;
-	header.protocol_id = SR_PROTO_RAW;
-	sr_session_send(cb_data, &packet);
-	g_free(ufds);
+	sr_session_send(devc->cb_data, &packet);
+
+	/* Send metadata about the SR_DF_ANALOG packets to come. */
+	sr_dbg("Sending SR_DF_META_ANALOG packet.");
+	packet.type = SR_DF_META_ANALOG;
+	packet.payload = &meta;
+	meta.num_probes = NUM_PROBES;
+	sr_session_send(devc->cb_data, &packet);
+
+	/* Poll every 10ms, or whenever some data comes in. */
+	sr_source_add(devc->ufds[0].fd, devc->ufds[0].events, 10,
+		      receive_data, (void *)sdi);
+
+	// g_free(devc->ufds); /* FIXME */
 
 	return SR_OK;
 }
 
-/* TODO: This stops acquisition on ALL devices, ignoring dev_index. */
-static int hw_dev_acquisition_stop(int dev_index, void *cb_data)
+static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
-	(void)dev_index;
-	(void)cb_data;
+	struct sr_datafeed_packet packet;
+	struct dev_context *devc;
+
+	devc = sdi->priv;
+	devc->cb_data = cb_data;
+
+	sr_source_remove(devc->ufds[0].fd);
+
+	/* Send end packet to the session bus. */
+	sr_dbg("Sending SR_DF_END packet.");
+	packet.type = SR_DF_END;
+	sr_session_send(cb_data, &packet);
 
 	return SR_OK;
 }
@@ -406,12 +466,14 @@ SR_PRIV struct sr_dev_driver alsa_driver_info = {
 	.api_version = 1,
 	.init = hw_init,
 	.cleanup = hw_cleanup,
+	.scan = hw_scan,
+	.dev_list = hw_dev_list,
+	.dev_clear = clear_instances,
 	.dev_open = hw_dev_open,
 	.dev_close = hw_dev_close,
-	.dev_info_get = hw_dev_info_get,
-	.dev_status_get = hw_dev_status_get,
-	.hwcap_get_all = hw_hwcap_get_all,
+	.info_get = hw_info_get,
 	.dev_config_set = hw_dev_config_set,
 	.dev_acquisition_start = hw_dev_acquisition_start,
 	.dev_acquisition_stop = hw_dev_acquisition_stop,
+	.priv = NULL,
 };

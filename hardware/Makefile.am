@@ -49,7 +49,7 @@ if HW_AGILENT_DMM
 libsigrokhardware_la_LIBADD += agilent-dmm/libsigrokhwagilentdmm.la
 endif
 
-if LA_ALSA
+if HW_ALSA
 libsigrokhardware_la_LIBADD += alsa/libsigrokhwalsa.la
 endif
 
