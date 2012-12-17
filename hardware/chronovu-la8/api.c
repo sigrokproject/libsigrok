@@ -179,7 +179,7 @@ static GSList *hw_scan(GSList *options)
 err_close_ftdic:
 	(void) la8_close(devc); /* Log, but ignore errors. */
 err_free_ftdic:
-	free(devc->ftdic); /* NOT g_free()! */
+	ftdi_free(devc->ftdic); /* NOT free() or g_free()! */
 err_free_final_buf:
 	g_free(devc->final_buf);
 err_free_devc:
