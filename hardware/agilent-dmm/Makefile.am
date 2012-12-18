@@ -24,7 +24,7 @@ noinst_LTLIBRARIES = libsigrokhwagilentdmm.la
 
 libsigrokhwagilentdmm_la_SOURCES = \
 	api.c \
-	agilentdmm.h \
+	agilent-dmm.h \
 	sched.c
 
 libsigrokhwagilentdmm_la_CFLAGS = \
