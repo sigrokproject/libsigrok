@@ -51,8 +51,7 @@ SR_PRIV int command_get_revid_version(libusb_device_handle *devhdl,
 		revid, 1, 100);
 
 	if (ret < 0) {
-		sr_err("Unable to get REVID: %s.",
-		       libusb_error_name(ret));
+		sr_err("Unable to get REVID: %s.", libusb_error_name(ret));
 		return SR_ERR;
 	}
 
@@ -84,19 +83,18 @@ SR_PRIV int command_start_acquisition(libusb_device_handle *devhdl,
 		delay = SR_MHZ(30) / samplerate - 1;
 	}
 
-	sr_info("GPIF delay = %d, clocksource = %sMHz", delay,
+	sr_info("GPIF delay = %d, clocksource = %sMHz.", delay,
 		(cmd.flags & CMD_START_FLAGS_CLK_48MHZ) ? "48" : "30");
 
 	if (delay <= 0 || delay > MAX_SAMPLE_DELAY) {
-		sr_err("Unable to sample at %" PRIu64 "Hz.",
-		       samplerate);
+		sr_err("Unable to sample at %" PRIu64 "Hz.", samplerate);
 		return SR_ERR;
 	}
 
 	cmd.sample_delay_h = (delay >> 8) & 0xff;
 	cmd.sample_delay_l = delay & 0xff;
 
-	/* Select the sampling width */
+	/* Select the sampling width. */
 	cmd.flags |= samplewide ? CMD_START_FLAGS_SAMPLE_16BIT :
 		CMD_START_FLAGS_SAMPLE_8BIT;
 

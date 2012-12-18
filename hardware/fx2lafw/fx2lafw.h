@@ -18,10 +18,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <glib.h>
-
 #ifndef LIBSIGROK_HARDWARE_FX2LAFW_FX2LAFW_H
 #define LIBSIGROK_HARDWARE_FX2LAFW_FX2LAFW_H
+
+#include <glib.h>
+
+/* Message logging helpers with driver-specific prefix string. */
+#define DRIVER_LOG_DOMAIN "fx2lafw: "
+#define sr_log(l, s, args...) sr_log(l, DRIVER_LOG_DOMAIN s, ## args)
+#define sr_spew(s, args...) sr_spew(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_dbg(s, args...) sr_dbg(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_info(s, args...) sr_info(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_warn(s, args...) sr_warn(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_err(s, args...) sr_err(DRIVER_LOG_DOMAIN s, ## args)
 
 #define USB_INTERFACE		0
 #define USB_CONFIGURATION	1
@@ -47,15 +56,6 @@
 
 #define DEV_CAPS_16BIT		(1 << DEV_CAPS_16BIT_POS)
 
-/* Message logging helpers with driver-specific prefix string. */
-#define DRIVER_LOG_DOMAIN "fx2lafw: "
-#define sr_log(l, s, args...) sr_log(l, DRIVER_LOG_DOMAIN s, ## args)
-#define sr_spew(s, args...) sr_spew(DRIVER_LOG_DOMAIN s, ## args)
-#define sr_dbg(s, args...) sr_dbg(DRIVER_LOG_DOMAIN s, ## args)
-#define sr_info(s, args...) sr_info(DRIVER_LOG_DOMAIN s, ## args)
-#define sr_warn(s, args...) sr_warn(DRIVER_LOG_DOMAIN s, ## args)
-#define sr_err(s, args...) sr_err(DRIVER_LOG_DOMAIN s, ## args)
-
 struct fx2lafw_profile {
 	uint16_t vid;
 	uint16_t pid;
@@ -74,7 +74,7 @@ struct dev_context {
 
 	/*
 	 * Since we can't keep track of an fx2lafw device after upgrading
-	 * the firmware (it re-enumerates into a different device address
+	 * the firmware (it renumerates into a different device address
 	 * after the upgrade) this is like a global lock. No device will open
 	 * until a proper delay after the last device was upgraded.
 	 */
