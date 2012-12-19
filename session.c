@@ -362,6 +362,15 @@ SR_API int sr_session_stop(void)
 		}
 	}
 
+	/*
+	 * Some sources may not be necessarily associated with a device.
+	 * Those sources may still be present even after stopping all devices.
+	 * We need to make sure all sources are removed, or we risk running the
+	 * session in an infinite loop.
+	 */
+	while (session->num_sources)
+		sr_session_source_remove(session->sources[0].poll_object);
+
 	return SR_OK;
 }
 
