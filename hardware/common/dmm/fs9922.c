@@ -38,16 +38,54 @@
 #define sr_warn(s, args...) sr_warn(DRIVER_LOG_DOMAIN s, ## args)
 #define sr_err(s, args...) sr_err(DRIVER_LOG_DOMAIN s, ## args)
 
-/**
- * Parse the numerical value from a protocol packet.
- *
- * @param buf Buffer containing the 14-byte protocol packet.
- * @param result Pointer to a float variable. That variable will contain the
- *               result value upon parsing success.
- *
- * @return SR_OK upon success, SR_ERR upon failure. Upon errors, the result
- *         variable contents are undefined and should not be used.
- */
+static gboolean flags_valid(const struct fs9922_info *info)
+{
+	int count;
+
+	/* Does the packet have more than one multiplier? */
+	count = 0;
+	count += (info->is_nano) ? 1 : 0;
+	count += (info->is_micro) ? 1 : 0;
+	count += (info->is_milli) ? 1 : 0;
+	count += (info->is_kilo) ? 1 : 0;
+	count += (info->is_mega) ? 1 : 0;
+	if (count > 1) {
+		sr_err("More than one multiplier detected in packet.");
+		return FALSE;
+	}
+
+	/* Does the packet "measure" more than one type of value? */
+	count = 0;
+	count += (info->is_diode) ? 1 : 0;
+	count += (info->is_percent) ? 1 : 0;
+	count += (info->is_volt) ? 1 : 0;
+	count += (info->is_ampere) ? 1 : 0;
+	count += (info->is_ohm) ? 1 : 0;
+	count += (info->is_hfe) ? 1 : 0;
+	count += (info->is_hertz) ? 1 : 0;
+	count += (info->is_farad) ? 1 : 0;
+	count += (info->is_celsius) ? 1 : 0;
+	count += (info->is_fahrenheit) ? 1 : 0;
+	if (count > 1) {
+		sr_err("More than one measurement type detected in packet.");
+		return FALSE;
+	}
+
+	/* Both AC and DC set? */
+	if (info->is_ac && info->is_dc) {
+		sr_err("Both AC and DC flags detected in packet.");
+		return FALSE;
+	}
+
+	/* Both Celsius and Fahrenheit set? */
+	if (info->is_celsius && info->is_fahrenheit) {
+		sr_err("Both Celsius and Fahrenheit flags detected in packet.");
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
 static int parse_value(const uint8_t *buf, float *result)
 {
 	int sign, intval;
@@ -118,71 +156,49 @@ static int parse_value(const uint8_t *buf, float *result)
 	return SR_OK;
 }
 
-/**
- * Parse various flags in a protocol packet.
- *
- * @param buf Buffer containing the 14-byte protocol packet.
- * @param floatval Pointer to a float variable which should contain the value
- *                 parsed using parse_value(). That variable will be modified
- *                 in-place depending on the flags in the protocol packet.
- * @param analog Pointer to a struct sr_datafeed_analog. The struct will be
- *               filled with the relevant data according to the flags in the
- *               protocol packet.
- *
- * @return SR_OK upon success, SR_ERR upon failure. Upon errors, the 'floatval'
- *         and 'analog' variable contents are undefined and should not be used.
- */
-static int parse_flags(const uint8_t *buf, float *floatval,
-		       struct sr_datafeed_analog *analog)
+static void parse_flags(const uint8_t *buf, struct fs9922_info *info)
 {
-	gboolean is_auto, is_dc, is_ac, is_rel, is_hold, is_bpn, is_z1, is_z2;
-	gboolean is_max, is_min, is_apo, is_bat, is_nano, is_z3, is_micro;
-	gboolean is_milli, is_kilo, is_mega, is_beep, is_diode, is_percent;
-	gboolean is_z4, is_volt, is_ampere, is_ohm, is_hfe, is_hertz, is_farad;
-	gboolean is_celsius, is_fahrenheit;
-	int bargraph_sign, bargraph_value;
-
 	/* Z1/Z2/Z3/Z4 are bits for user-defined LCD symbols (on/off). */
 
 	/* Byte 7 */
 	/* Bit 7: Always 0 */
 	/* Bit 6: Always 0 */
-	is_auto       = (buf[7] & (1 << 5)) != 0;
-	is_dc         = (buf[7] & (1 << 4)) != 0;
-	is_ac         = (buf[7] & (1 << 3)) != 0;
-	is_rel        = (buf[7] & (1 << 2)) != 0;
-	is_hold       = (buf[7] & (1 << 1)) != 0;
-	is_bpn        = (buf[7] & (1 << 0)) != 0; /* Bargraph shown */
+	info->is_auto       = (buf[7] & (1 << 5)) != 0;
+	info->is_dc         = (buf[7] & (1 << 4)) != 0;
+	info->is_ac         = (buf[7] & (1 << 3)) != 0;
+	info->is_rel        = (buf[7] & (1 << 2)) != 0;
+	info->is_hold       = (buf[7] & (1 << 1)) != 0;
+	info->is_bpn        = (buf[7] & (1 << 0)) != 0; /* Bargraph shown */
 
 	/* Byte 8 */
-	is_z1         = (buf[8] & (1 << 7)) != 0; /* User-defined symbol 1 */
-	is_z2         = (buf[8] & (1 << 6)) != 0; /* User-defined symbol 2 */
-	is_max        = (buf[8] & (1 << 5)) != 0;
-	is_min        = (buf[8] & (1 << 4)) != 0;
-	is_apo        = (buf[8] & (1 << 3)) != 0; /* Auto-poweroff active */
-	is_bat        = (buf[8] & (1 << 2)) != 0; /* Battery low */
-	is_nano       = (buf[8] & (1 << 1)) != 0;
-	is_z3         = (buf[8] & (1 << 0)) != 0; /* User-defined symbol 3 */
+	info->is_z1         = (buf[8] & (1 << 7)) != 0; /* User symbol 1 */
+	info->is_z2         = (buf[8] & (1 << 6)) != 0; /* User symbol 2 */
+	info->is_max        = (buf[8] & (1 << 5)) != 0;
+	info->is_min        = (buf[8] & (1 << 4)) != 0;
+	info->is_apo        = (buf[8] & (1 << 3)) != 0; /* Auto-poweroff on */
+	info->is_bat        = (buf[8] & (1 << 2)) != 0; /* Battery low */
+	info->is_nano       = (buf[8] & (1 << 1)) != 0;
+	info->is_z3         = (buf[8] & (1 << 0)) != 0; /* User symbol 3 */
 
 	/* Byte 9 */
-	is_micro      = (buf[9] & (1 << 7)) != 0;
-	is_milli      = (buf[9] & (1 << 6)) != 0;
-	is_kilo       = (buf[9] & (1 << 5)) != 0;
-	is_mega       = (buf[9] & (1 << 4)) != 0;
-	is_beep       = (buf[9] & (1 << 3)) != 0;
-	is_diode      = (buf[9] & (1 << 2)) != 0;
-	is_percent    = (buf[9] & (1 << 1)) != 0;
-	is_z4         = (buf[8] & (1 << 0)) != 0; /* User-defined symbol 4 */
+	info->is_micro      = (buf[9] & (1 << 7)) != 0;
+	info->is_milli      = (buf[9] & (1 << 6)) != 0;
+	info->is_kilo       = (buf[9] & (1 << 5)) != 0;
+	info->is_mega       = (buf[9] & (1 << 4)) != 0;
+	info->is_beep       = (buf[9] & (1 << 3)) != 0;
+	info->is_diode      = (buf[9] & (1 << 2)) != 0;
+	info->is_percent    = (buf[9] & (1 << 1)) != 0;
+	info->is_z4         = (buf[8] & (1 << 0)) != 0; /* User symbol 4 */
 
 	/* Byte 10 */
-	is_volt       = (buf[10] & (1 << 7)) != 0;
-	is_ampere     = (buf[10] & (1 << 6)) != 0;
-	is_ohm        = (buf[10] & (1 << 5)) != 0;
-	is_hfe        = (buf[10] & (1 << 4)) != 0;
-	is_hertz      = (buf[10] & (1 << 3)) != 0;
-	is_farad      = (buf[10] & (1 << 2)) != 0;
-	is_celsius    = (buf[10] & (1 << 1)) != 0; /* Only FS9922-DMM4 */
-	is_fahrenheit = (buf[10] & (1 << 0)) != 0; /* Only FS9922-DMM4 */
+	info->is_volt       = (buf[10] & (1 << 7)) != 0;
+	info->is_ampere     = (buf[10] & (1 << 6)) != 0;
+	info->is_ohm        = (buf[10] & (1 << 5)) != 0;
+	info->is_hfe        = (buf[10] & (1 << 4)) != 0;
+	info->is_hertz      = (buf[10] & (1 << 3)) != 0;
+	info->is_farad      = (buf[10] & (1 << 2)) != 0;
+	info->is_celsius    = (buf[10] & (1 << 1)) != 0; /* Only FS9922-DMM4 */
+	info->is_fahrenheit = (buf[10] & (1 << 0)) != 0; /* Only FS9922-DMM4 */
 
 	/*
 	 * Byte 11: Bar graph
@@ -194,137 +210,163 @@ static int parse_flags(const uint8_t *buf, float *floatval,
 	 * Upon "over limit" the bargraph value is 1 count above the highest
 	 * valid number (i.e. 41 or 61, depending on chip).
 	 */
-	if (is_bpn) {
-		bargraph_sign = ((buf[11] & (1 << 7)) != 0) ? -1 : 1;
-		bargraph_value = (buf[11] & 0x7f);
-		bargraph_value *= bargraph_sign;
-		sr_spew("The bargraph value is %d.", bargraph_value);
-	} else {
-		sr_spew("The bargraph is not active.");
+	if (info->is_bpn) {
+		info->bargraph_sign = ((buf[11] & (1 << 7)) != 0) ? -1 : 1;
+		info->bargraph_value = (buf[11] & 0x7f);
+		info->bargraph_value *= info->bargraph_sign;
 	}
 
 	/* Byte 12: Always '\r' (carriage return, 0x0d, 13) */
 
 	/* Byte 13: Always '\n' (newline, 0x0a, 10) */
+}
 
+static void handle_flags(struct sr_datafeed_analog *analog, float *floatval,
+			 const struct fs9922_info *info)
+{
 	/* Factors */
-	if (is_nano)
+	if (info->is_nano)
 		*floatval /= 1000000000;
-	if (is_micro)
+	if (info->is_micro)
 		*floatval /= 1000000;
-	if (is_milli)
+	if (info->is_milli)
 		*floatval /= 1000;
-	if (is_kilo)
+	if (info->is_kilo)
 		*floatval *= 1000;
-	if (is_mega)
+	if (info->is_mega)
 		*floatval *= 1000000;
 
 	/* Measurement modes */
-	if (is_volt) {
+	if (info->is_volt) {
 		analog->mq = SR_MQ_VOLTAGE;
 		analog->unit = SR_UNIT_VOLT;
 	}
-	if (is_ampere) {
+	if (info->is_ampere) {
 		analog->mq = SR_MQ_CURRENT;
 		analog->unit = SR_UNIT_AMPERE;
 	}
-	if (is_ohm) {
+	if (info->is_ohm) {
 		analog->mq = SR_MQ_RESISTANCE;
 		analog->unit = SR_UNIT_OHM;
 	}
-	if (is_hfe) {
+	if (info->is_hfe) {
 		analog->mq = SR_MQ_GAIN;
 		analog->unit = SR_UNIT_UNITLESS;
 	}
-	if (is_hertz) {
+	if (info->is_hertz) {
 		analog->mq = SR_MQ_FREQUENCY;
 		analog->unit = SR_UNIT_HERTZ;
 	}
-	if (is_farad) {
+	if (info->is_farad) {
 		analog->mq = SR_MQ_CAPACITANCE;
 		analog->unit = SR_UNIT_FARAD;
 	}
-	if (is_celsius) {
+	if (info->is_celsius) {
 		analog->mq = SR_MQ_TEMPERATURE;
 		analog->unit = SR_UNIT_CELSIUS;
 	}
-	if (is_fahrenheit) {
+	if (info->is_fahrenheit) {
 		analog->mq = SR_MQ_TEMPERATURE;
 		analog->unit = SR_UNIT_FAHRENHEIT;
 	}
-	if (is_beep) {
+	if (info->is_beep) {
 		analog->mq = SR_MQ_CONTINUITY;
 		analog->unit = SR_UNIT_BOOLEAN;
 		*floatval = (*floatval < 0.0) ? 0.0 : 1.0;
 	}
-	if (is_diode) {
+	if (info->is_diode) {
 		analog->mq = SR_MQ_VOLTAGE;
 		analog->unit = SR_UNIT_VOLT;
 	}
-	if (is_percent) {
+	if (info->is_percent) {
 		analog->mq = SR_MQ_DUTY_CYCLE;
 		analog->unit = SR_UNIT_PERCENTAGE;
 	}
 
 	/* Measurement related flags */
-	if (is_ac)
+	if (info->is_ac)
 		analog->mqflags |= SR_MQFLAG_AC;
-	if (is_dc)
+	if (info->is_dc)
 		analog->mqflags |= SR_MQFLAG_DC;
-	if (is_auto)
+	if (info->is_auto)
 		analog->mqflags |= SR_MQFLAG_AUTORANGE;
-	if (is_hold)
+	if (info->is_hold)
 		analog->mqflags |= SR_MQFLAG_HOLD;
-	if (is_max)
+	if (info->is_max)
 		analog->mqflags |= SR_MQFLAG_MAX;
-	if (is_min)
+	if (info->is_min)
 		analog->mqflags |= SR_MQFLAG_MIN;
-	if (is_rel)
+	if (info->is_rel)
 		analog->mqflags |= SR_MQFLAG_RELATIVE;
 
 	/* Other flags */
-	if (is_apo)
+	if (info->is_apo)
 		sr_spew("Automatic power-off function is active.");
-	if (is_bat)
+	if (info->is_bat)
 		sr_spew("Battery is low.");
-	if (is_z1)
+	if (info->is_z1)
 		sr_spew("User-defined LCD symbol 1 is active.");
-	if (is_z2)
+	if (info->is_z2)
 		sr_spew("User-defined LCD symbol 2 is active.");
-	if (is_z3)
+	if (info->is_z3)
 		sr_spew("User-defined LCD symbol 3 is active.");
-	if (is_z4)
+	if (info->is_z4)
 		sr_spew("User-defined LCD symbol 4 is active.");
+	if (info->is_bpn)
+		sr_spew("The bargraph value is %d.", info->bargraph_value);
+	else
+		sr_spew("The bargraph is not active.");
 
-	return SR_OK;
+}
+
+SR_PRIV gboolean sr_fs9922_packet_valid(const uint8_t *buf)
+{
+	struct fs9922_info info;
+
+	/* Byte 0: Sign (must be '+' or '-') */
+	if (buf[0] != '+' && buf[0] != '-')
+		return FALSE;
+
+	/* Byte 12: Always '\r' (carriage return, 0x0d, 13) */
+	/* Byte 13: Always '\n' (newline, 0x0a, 10) */
+	if (buf[12] != '\r' || buf[13] != '\n')
+		return FALSE;
+
+	parse_flags(buf, &info);
+
+	return flags_valid(&info);
 }
 
 /**
- * Parse a Fortune Semiconductor FS9922-DMM3/4 protocol packet.
+ * Parse a protocol packet.
  *
- * @param buf Buffer containing the 14-byte protocol packet.
- * @param floatval Pointer to a float variable. That variable will be modified
- *                 in-place depending on the protocol packet.
+ * @param buf Buffer containing the protocol packet. Must not be NULL.
+ * @param floatval Pointer to a float variable. That variable will contain the
+ *                 result value upon parsing success. Must not be NULL.
  * @param analog Pointer to a struct sr_datafeed_analog. The struct will be
  *               filled with data according to the protocol packet.
+ *               Must not be NULL.
+ * @param info Pointer to a struct fs9922_info. The struct will be filled
+ *             with data according to the protocol packet. Must not be NULL.
  *
  * @return SR_OK upon success, SR_ERR upon failure. Upon errors, the
  *         'analog' variable contents are undefined and should not be used.
  */
-SR_PRIV int sr_dmm_parse_fs9922(const uint8_t *buf, float *floatval,
-				struct sr_datafeed_analog *analog)
+SR_PRIV int sr_fs9922_parse(const uint8_t *buf, float *floatval,
+			    struct sr_datafeed_analog *analog, void *info)
 {
 	int ret;
+	struct fs9922_info *info_local;
+
+	info_local = (struct fs9922_info *)info;
 
 	if ((ret = parse_value(buf, floatval)) != SR_OK) {
 		sr_err("Error parsing value: %d.", ret);
 		return ret;
 	}
 
-	if ((ret = parse_flags(buf, floatval, analog)) != SR_OK) {
-		sr_err("Error parsing flags: %d.", ret);
-		return ret;
-	}
+	parse_flags(buf, info_local);
+	handle_flags(analog, floatval, info_local);
 
 	return SR_OK;
 }

@@ -199,8 +199,21 @@ SR_PRIV int sr_es51922_parse(const uint8_t *buf, float *floatval,
 
 /*--- hardware/common/dmm/fs9922.c ------------------------------------------*/
 
-SR_PRIV int sr_dmm_parse_fs9922(const uint8_t *buf, float *floatval,
-				struct sr_datafeed_analog *analog);
+#define FS9922_PACKET_SIZE 14
+
+struct fs9922_info {
+	gboolean is_auto, is_dc, is_ac, is_rel, is_hold, is_bpn, is_z1, is_z2;
+	gboolean is_max, is_min, is_apo, is_bat, is_nano, is_z3, is_micro;
+	gboolean is_milli, is_kilo, is_mega, is_beep, is_diode, is_percent;
+	gboolean is_z4, is_volt, is_ampere, is_ohm, is_hfe, is_hertz, is_farad;
+	gboolean is_celsius, is_fahrenheit;
+	int bargraph_sign, bargraph_value;
+};
+
+SR_PRIV gboolean sr_fs9922_is_packet_start(uint8_t b);
+SR_PRIV gboolean sr_fs9922_packet_valid(const uint8_t *buf);
+SR_PRIV int sr_fs9922_parse(const uint8_t *buf, float *floatval,
+			    struct sr_datafeed_analog *analog, void *info);
 
 /*--- hardware/common/dmm/fs9721.c ------------------------------------------*/
 
