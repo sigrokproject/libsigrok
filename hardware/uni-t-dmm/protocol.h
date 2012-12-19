@@ -36,10 +36,29 @@
 #define sr_warn(s, args...) sr_warn(DRIVER_LOG_DOMAIN s, ## args)
 #define sr_err(s, args...) sr_err(DRIVER_LOG_DOMAIN s, ## args)
 
+/* Note: When adding entries here, don't forget to update DMM_COUNT. */
 enum {
 	UNI_T_UT61D,
 	VOLTCRAFT_VC820,
 };
+
+#define DMM_COUNT 2
+
+struct dmm_info {
+	char *vendor;
+	char *device;
+	uint32_t baudrate;
+	int packet_size;
+	int (*packet_request)(struct sr_serial_dev_inst *);
+	gboolean (*packet_valid)(const uint8_t *);
+	int (*packet_parse)(const uint8_t *, float *,
+			    struct sr_datafeed_analog *, void *);
+	void (*dmm_details)(struct sr_datafeed_analog *, void *);
+	struct sr_dev_driver *di;
+	int (*receive_data)(int, int, void *);
+};
+
+extern SR_PRIV struct dmm_info udmms[DMM_COUNT];
 
 #define UT_D04_CABLE_USB_VID	0x1a86
 #define UT_D04_CABLE_USB_DID	0xe008
@@ -66,7 +85,7 @@ struct dev_context {
 	uint8_t protocol_buf[14];
 };
 
-SR_PRIV int uni_t_ut61d_receive_data(int fd, int revents, void *cb_data);
-SR_PRIV int voltcraft_vc820_receive_data(int fd, int revents, void *cb_data);
+SR_PRIV int receive_data_UNI_T_UT61D(int fd, int revents, void *cb_data);
+SR_PRIV int receive_data_VOLTCRAFT_VC820(int fd, int revents, void *cb_data);
 
 #endif

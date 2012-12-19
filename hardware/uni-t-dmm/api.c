@@ -40,14 +40,27 @@ static const int32_t hwcaps[] = {
 SR_PRIV struct sr_dev_driver uni_t_ut61d_driver_info;
 SR_PRIV struct sr_dev_driver voltcraft_vc820_driver_info;
 
-static struct sr_dev_driver *di_ut61d = &uni_t_ut61d_driver_info;
-static struct sr_dev_driver *di_vc820 = &voltcraft_vc820_driver_info;
+SR_PRIV struct dmm_info udmms[] = {
+	{
+		"UNI-T", "UT61D", 19230 /* TODO */,
+		FS9922_PACKET_SIZE, NULL,
+		sr_fs9922_packet_valid, sr_fs9922_parse,
+		NULL,
+		&uni_t_ut61d_driver_info, receive_data_UNI_T_UT61D,
+	},
+	{
+		"Voltcraft VC-820", "VC-820", 19200 /* TODO */,
+		FS9721_PACKET_SIZE, NULL,
+		sr_fs9721_packet_valid, sr_fs9721_parse,
+		NULL,
+		&voltcraft_vc820_driver_info, receive_data_VOLTCRAFT_VC820,
+	},
+};
 
-/* After hw_init() this will point to a device-specific entry (see above). */
-static struct sr_dev_driver *di = NULL;
-
-static int clear_instances(void)
+static int clear_instances(int dmm)
 {
+	(void)dmm;
+
 	/* TODO: Use common code later. */
 
 	return SR_OK;
@@ -55,26 +68,12 @@ static int clear_instances(void)
 
 static int hw_init(struct sr_context *sr_ctx, int dmm)
 {
-	if (dmm == UNI_T_UT61D)
-		di = di_ut61d;
-	else if (dmm == VOLTCRAFT_VC820)
-		di = di_vc820;
-	sr_dbg("Selected '%s' subdriver.", di->name);
+	sr_dbg("Selected '%s' subdriver.", udmms[dmm].di->name);
 
-	return std_hw_init(sr_ctx, di, DRIVER_LOG_DOMAIN);
+	return std_hw_init(sr_ctx, uddms[dmm].di, DRIVER_LOG_DOMAIN);
 }
 
-static int hw_init_ut61d(struct sr_context *sr_ctx)
-{
-	return hw_init(sr_ctx, UNI_T_UT61D);
-}
-
-static int hw_init_vc820(struct sr_context *sr_ctx)
-{
-	return hw_init(sr_ctx, VOLTCRAFT_VC820);
-}
-
-static GSList *hw_scan(GSList *options)
+static GSList *hw_scan(GSList *options, int dmm)
 {
 	GSList *usb_devices, *devices, *l;
 	struct sr_dev_inst *sdi;
@@ -87,10 +86,10 @@ static GSList *hw_scan(GSList *options)
 
 	(void)options;
 
-	drvc = di->priv;
+	drvc = udmms[dmm].di->priv;
 
 	/* USB scan is always authoritative. */
-	clear_instances();
+	clear_instances(dmm);
 
 	conn = NULL;
 	for (l = options; l; l = l->next) {
@@ -119,12 +118,12 @@ static GSList *hw_scan(GSList *options)
 		}
 
 		if (!(sdi = sr_dev_inst_new(0, SR_ST_INACTIVE,
-				di->longname, NULL, NULL))) {
+				udmms[dmm].vendor, udmms[dmm].device, NULL))) {
 			sr_err("sr_dev_inst_new returned NULL.");
 			return NULL;
 		}
 		sdi->priv = devc;
-		sdi->driver = di;
+		sdi->driver = udmms[dmm].di;
 		if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "P1")))
 			return NULL;
 		sdi->probes = g_slist_append(sdi->probes, probe);
@@ -138,18 +137,18 @@ static GSList *hw_scan(GSList *options)
 	return devices;
 }
 
-static GSList *hw_dev_list(void)
+static GSList *hw_dev_list(int dmm)
 {
-	return ((struct drv_context *)(di->priv))->instances;
+	return ((struct drv_context *)(udmms[dmm]->priv))->instances;
 }
 
-static int hw_dev_open(struct sr_dev_inst *sdi)
+static int hw_dev_open(struct sr_dev_inst *sdi, int dmm)
 {
 	struct drv_context *drvc;
 	struct dev_context *devc;
     int ret;
 
-	drvc = di->priv;
+	drvc = udmms[dmm].di->priv;
 	devc = sdi->priv;
 
     if ((ret = sr_usb_open(drvc->sr_ctx->libusb_ctx, devc->usb)) == SR_OK)
@@ -169,9 +168,9 @@ static int hw_dev_close(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int hw_cleanup(void)
+static int hw_cleanup(int dmm)
 {
-	clear_instances();
+	clear_instances(dmm);
 
 	return SR_OK;
 }
@@ -231,7 +230,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 }
 
 static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
-				    void *cb_data)
+				    void *cb_data, int dmm)
 {
 	struct dev_context *devc;
 
@@ -242,13 +241,8 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, DRIVER_LOG_DOMAIN);
 
-	if (!strcmp(di->name, "uni-t-ut61d")) {
-		sr_source_add(0, 0, 10 /* poll_timeout */,
-			      uni_t_ut61d_receive_data, (void *)sdi);
-	} else if (!strcmp(di->name, "voltcraft-vc820")) {
-		sr_source_add(0, 0, 10 /* poll_timeout */,
-			      voltcraft_vc820_receive_data, (void *)sdi);
-	}
+	sr_source_add(0, 0, 10 /* poll_timeout */,
+		      udmms[dmm].receive_data, (void *)sdi);
 
 	return SR_OK;
 }
@@ -272,40 +266,50 @@ static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 	return SR_OK;
 }
 
-SR_PRIV struct sr_dev_driver uni_t_ut61d_driver_info = {
-	.name = "uni-t-ut61d",
-	.longname = "UNI-T UT61D",
-	.api_version = 1,
-	.init = hw_init_ut61d,
-	.cleanup = hw_cleanup,
-	.scan = hw_scan,
-	.dev_list = hw_dev_list,
-	.dev_clear = clear_instances,
-	.config_get = NULL,
-	.config_set = config_set,
-	.config_list = config_list,
-	.dev_open = hw_dev_open,
-	.dev_close = hw_dev_close,
-	.dev_acquisition_start = hw_dev_acquisition_start,
-	.dev_acquisition_stop = hw_dev_acquisition_stop,
-	.priv = NULL,
+/* Driver-specific API function wrappers */
+#define HW_INIT(X) \
+static int hw_init_##X(struct sr_context *sr_ctx) { return hw_init(sr_ctx, X); }
+#define HW_CLEANUP(X) \
+static int hw_cleanup_##X(void) { return hw_cleanup(X); }
+#define HW_SCAN(X) \
+static GSList *hw_scan_##X(GSList *options) { return hw_scan(options, X); }
+#define HW_DEV_LIST(X) \
+static GSList *hw_dev_list_##X(void) { return hw_dev_list(X); }
+#define CLEAR_INSTANCES(X) \
+static int clear_instances_##X(void) { return clear_instances(X); }
+#define HW_DEV_ACQUISITION_START(X) \
+static int hw_dev_acquisition_start_##X(const struct sr_dev_inst *sdi, \
+void *cb_data) { return hw_dev_acquisition_start(sdi, cb_data, X); }
+#define HW_DEV_OPEN(X) \
+static int hw_dev_open_##X(struct sr_dev_inst *sdi) { return hw_dev_open(sdi, X); }
+
+/* Driver structs and API function wrappers */
+#define DRV(ID, ID_UPPER, NAME, LONGNAME) \
+HW_INIT(ID_UPPER) \
+HW_CLEANUP(ID_UPPER) \
+HW_SCAN(ID_UPPER) \
+HW_DEV_LIST(ID_UPPER) \
+CLEAR_INSTANCES(ID_UPPER) \
+HW_DEV_ACQUISITION_START(ID_UPPER) \
+HW_DEV_OPEN(ID_UPPER) \
+SR_PRIV struct sr_dev_driver ID##_driver_info = { \
+	.name = NAME, \
+	.longname = LONGNAME, \
+	.api_version = 1, \
+	.init = hw_init_##ID_UPPER, \
+	.cleanup = hw_cleanup_##ID_UPPER, \
+	.scan = hw_scan_##ID_UPPER, \
+	.dev_list = hw_dev_list_##ID_UPPER, \
+	.dev_clear = clear_instances_##ID_UPPER, \
+	.config_get = NULL, \
+	.config_set = config_set, \
+	.config_list = config_list, \
+	.dev_open = hw_dev_open_##ID_UPPER, \
+	.dev_close = hw_dev_close, \
+	.dev_acquisition_start = hw_dev_acquisition_start_##ID_UPPER, \
+	.dev_acquisition_stop = hw_dev_acquisition_stop, \
+	.priv = NULL, \
 };
 
-SR_PRIV struct sr_dev_driver voltcraft_vc820_driver_info = {
-	.name = "voltcraft-vc820",
-	.longname = "Voltcraft VC-820",
-	.api_version = 1,
-	.init = hw_init_vc820,
-	.cleanup = hw_cleanup,
-	.scan = hw_scan,
-	.dev_list = hw_dev_list,
-	.dev_clear = clear_instances,
-	.config_get = NULL,
-	.config_set = config_set,
-	.config_list = config_list,
-	.dev_open = hw_dev_open,
-	.dev_close = hw_dev_close,
-	.dev_acquisition_start = hw_dev_acquisition_start,
-	.dev_acquisition_stop = hw_dev_acquisition_stop,
-	.priv = NULL,
-};
+DRV(uni_t_ut61d, UNI_T_UT61D, "uni-t-ut61d", "UNI-T UT61D")
+DRV(voltcraft_vc820, VOLTCRAFT_VC820, "voltcraft-vc820", "Voltcraft VC-820")

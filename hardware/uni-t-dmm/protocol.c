@@ -30,11 +30,12 @@
  * Most UNI-T DMMs can be used with two (three) different PC interface cables:
  *  - The UT-D04 USB/HID cable, old version with Hoitek HE2325U chip.
  *  - The UT-D04 USB/HID cable, new version with WCH CH9325 chip.
- *  - The UT-D01 RS232 cable.
+ *  - The UT-D02 RS232 cable.
  *
- * This driver is meant to support all three cables, and various DMMs that
+ * This driver is meant to support all USB/HID cables, and various DMMs that
  * can be attached to a PC via these cables. Currently only the UT-D04 cable
- * (new version) is supported.
+ * (new version) is supported/tested.
+ * The UT-D02 RS232 cable is handled by the 'serial-dmm' driver.
  *
  * The data for one DMM packet (e.g. 14 bytes if the respective DMM uses a
  * Fortune Semiconductor FS9922-DMM4 chip) is spread across multiple
@@ -66,12 +67,12 @@
  *  - ...
  */
 
-static void decode_packet(struct sr_dev_inst *sdi, int dmm, const uint8_t *buf)
+static void decode_packet(struct sr_dev_inst *sdi, int dmm, const uint8_t *buf,
+			  void *info)
 {
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog analog;
-	struct dev_context *devc;
-	struct fs9721_info info;
+	/// struct fs9721_info info;
 	float floatval;
 	int ret;
 
@@ -79,15 +80,15 @@ static void decode_packet(struct sr_dev_inst *sdi, int dmm, const uint8_t *buf)
 	memset(&analog, 0, sizeof(struct sr_datafeed_analog));
 
 	/* Parse the protocol packet. */
-	ret = SR_ERR;
-	if (dmm == UNI_T_UT61D)
-		ret = sr_dmm_parse_fs9922(buf, &floatval, &analog);
-	else if (dmm == VOLTCRAFT_VC820)
-		ret = sr_fs9721_parse(buf, &floatval, &analog, &info);
+	ret = udmms[dmm].packet_parse(buf, &floatval, &analog, &info);
 	if (ret != SR_OK) {
 		sr_err("Invalid DMM packet, ignoring.");
 		return;
 	}
+
+	/* If this DMM needs additional handling, call the resp. function. */
+	if (udmms[dmm].dmm_details)
+		udmms[dmm].dmm_details(&analog, info);
 
 	/* Send a sample packet with one analog value. */
 	analog.probes = sdi->probes;
@@ -181,7 +182,7 @@ static void log_dmm_packet(const uint8_t *buf)
 	       buf[7], buf[8], buf[9], buf[10], buf[11], buf[12], buf[13]);
 }
 
-static int uni_t_dmm_receive_data(int fd, int revents, int dmm, void *cb_data)
+static int receive_data(int fd, int revents, int dmm, void *info, void *cb_data)
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
@@ -201,8 +202,8 @@ static int uni_t_dmm_receive_data(int fd, int revents, int dmm, void *cb_data)
 
 	/* On the first run, we need to init the HID chip. */
 	if (first_run) {
-		/* TODO: The baudrate is DMM-specific (UT61D: 19230). */
-		if ((ret = hid_chip_init(devc, 19230)) != SR_OK) {
+		/* Note: The baudrate is DMM-specific (UT61D: 19230). */
+		if ((ret = hid_chip_init(devc, udmms[dmm].baudrate)) != SR_OK) {
 			sr_err("HID chip init failed: %d.", ret);
 			return FALSE;
 		}
@@ -237,15 +238,8 @@ static int uni_t_dmm_receive_data(int fd, int revents, int dmm, void *cb_data)
 	if (buf[0] != 0xf0) {
 		/* First time: Synchronize to the start of a packet. */
 		if (!synced_on_first_packet) {
-			if (dmm == UNI_T_UT61D) {
-				/* Valid packets start with '+' or '-'. */
-				if ((buf[1] != '+') && buf[1] != '-')
-					return TRUE;
-			} else if (dmm == VOLTCRAFT_VC820) {
-				/* Valid packets have 0x1 as high nibble. */
-				if (!sr_fs9721_is_packet_start(buf[1]))
-					return TRUE;
-			}
+			if (!udmms[dmm].packet_valid(buf))
+				return TRUE;
 			synced_on_first_packet = TRUE;
 			sr_spew("Successfully synchronized on first packet.");
 		}
@@ -258,13 +252,14 @@ static int uni_t_dmm_receive_data(int fd, int revents, int dmm, void *cb_data)
 		if (data_byte_counter == NUM_DATA_BYTES) {
 			log_dmm_packet(pbuf);
 			data_byte_counter = 0;
-			if (dmm == VOLTCRAFT_VC820) {
-				if (!sr_fs9721_packet_valid(pbuf)) {
-					sr_err("Invalid packet.");
-					return TRUE;
-				}
+
+			if (!udmms[dmm].packet_valid(pbuf)) {
+				sr_err("Invalid packet.");
+				return TRUE;
 			}
-			decode_packet(sdi, dmm, pbuf);
+
+			decode_packet(sdi, dmm, pbuf, info);
+
 			memset(pbuf, 0x00, NUM_DATA_BYTES);
 		}
 	}
@@ -278,12 +273,11 @@ static int uni_t_dmm_receive_data(int fd, int revents, int dmm, void *cb_data)
 	return TRUE;
 }
 
-SR_PRIV int uni_t_ut61d_receive_data(int fd, int revents, void *cb_data)
-{
-	return uni_t_dmm_receive_data(fd, revents, UNI_T_UT61D, cb_data);
-}
+#define RECEIVE_DATA(ID_UPPER, DMM_DRIVER) \
+SR_PRIV int receive_data_##ID_UPPER(int fd, int revents, void *cb_data) { \
+	struct DMM_DRIVER##_info info; \
+	return receive_data(fd, revents, ID_UPPER, &info, cb_data); }
 
-SR_PRIV int voltcraft_vc820_receive_data(int fd, int revents, void *cb_data)
-{
-	return uni_t_dmm_receive_data(fd, revents, VOLTCRAFT_VC820, cb_data);
-}
+/* Driver-specific receive_data() wrappers */
+RECEIVE_DATA(UNI_T_UT61D, fs9922)
+RECEIVE_DATA(VOLTCRAFT_VC820, fs9721)
