@@ -44,11 +44,14 @@ struct dev_context {
 	uint64_t limit_samples;
 	uint64_t num_samples;
 	uint8_t num_probes;
+	const char *hwdev;
 	snd_pcm_t *capture_handle;
 	snd_pcm_hw_params_t *hw_params;
 	struct pollfd *ufds;
 	void *cb_data;
 };
+SR_PRIV GSList *alsa_scan(GSList *options, struct sr_dev_driver *di);
+SR_PRIV void alsa_dev_inst_clear(struct sr_dev_inst *sdi);
 
 SR_PRIV int alsa_receive_data(int fd, int revents, void *cb_data);
 

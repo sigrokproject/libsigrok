@@ -1,8 +1,9 @@
 /*
- * This file is part of the sigrok project.
+ * This file is part of the libsigrok project.
  *
  * Copyright (C) 2011 Daniel Ribeiro <drwyrm@gmail.com>
  * Copyright (C) 2012 Uwe Hermann <uwe@hermann-uwe.de>
+ * Copyright (C) 2012 Alexandru Gagniuc <mr.nuke.me@gmail.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,8 +31,6 @@
 #define DEFAULT_PROBES		2
 #define SAMPLE_WIDTH		16
 #define DEFAULT_SAMPLERATE	44100
-// #define AUDIO_DEV		"plughw:0,0"
-#define AUDIO_DEV		"default"
 
 static const int hwcaps[] = {
 	SR_HWCAP_SAMPLERATE,
@@ -50,7 +49,13 @@ static struct sr_dev_driver *di = &alsa_driver_info;
 
 static int clear_instances(void)
 {
-	/* TODO */
+	struct drv_context *drvc;
+
+	if (!(drvc = di->priv))
+		return SR_OK;
+
+	g_slist_free_full(drvc->instances, (GDestroyNotify)alsa_dev_inst_clear);
+	drvc->instances = NULL;
 
 	return SR_OK;
 }
@@ -72,50 +77,7 @@ static int hw_init(struct sr_context *sr_ctx)
 
 static GSList *hw_scan(GSList *options)
 {
-	struct drv_context *drvc;
-	struct dev_context *devc;
-	struct sr_dev_inst *sdi;
-	struct sr_probe *probe;
-	GSList *devices;
-	int i;
-
-	(void)options;
-
-	drvc = di->priv;
-	drvc->instances = NULL;
-
-	devices = NULL;
-
-	if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
-		sr_err("Device context malloc failed.");
-		return NULL;
-	}
-
-	if (!(sdi = sr_dev_inst_new(0, SR_ST_ACTIVE, "alsa", NULL, NULL))) {
-		sr_err("Failed to create device instance.");
-		return NULL;
-	}
-
-	/* Set the samplerate to a default value for now. */
-	devc->cur_samplerate = DEFAULT_SAMPLERATE;
-	devc->num_probes = DEFAULT_PROBES;
-
-	sdi->priv = devc;
-	sdi->driver = di;
-
-	for (i = 0; probe_names[i]; i++) {
-		if (!(probe = sr_probe_new(i, SR_PROBE_ANALOG, TRUE,
-					   probe_names[i]))) {
-			sr_err("Failed to create probe.");
-			return NULL;
-		}
-		sdi->probes = g_slist_append(sdi->probes, probe);
-	}
-
-	drvc->instances = g_slist_append(drvc->instances, sdi);
-	devices = g_slist_append(devices, sdi);
-
-	return devices;
+	return alsa_scan(options, di);
 }
 
 static GSList *hw_dev_list(void)
@@ -134,20 +96,17 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
-	sr_dbg("Opening audio device '%s' for stream capture.", AUDIO_DEV);
-	ret = snd_pcm_open(&devc->capture_handle, AUDIO_DEV,
+	if (!(devc->hwdev)) {
+		sr_err("devc->hwdev was NULL.");
+		return SR_ERR_BUG;
+	}
+
+	sr_dbg("Opening audio device '%s' for stream capture.", devc->hwdev);
+	ret = snd_pcm_open(&devc->capture_handle, devc->hwdev,
 			   SND_PCM_STREAM_CAPTURE, 0);
 	if (ret < 0) {
 		sr_err("Can't open audio device: %s.", snd_strerror(ret));
 		return SR_ERR;
-	}
-
-	sr_dbg("Allocating hardware parameter structure.");
-	ret = snd_pcm_hw_params_malloc(&devc->hw_params);
-	if (ret < 0) {
-		sr_err("Can't allocate hardware parameter structure: %s.",
-		       snd_strerror(ret));
-		return SR_ERR_MALLOC;
 	}
 
 	sr_dbg("Initializing hardware parameter structure.");
@@ -170,18 +129,12 @@ static int hw_dev_close(struct sr_dev_inst *sdi)
 
 	sr_dbg("Closing device.");
 
-	if (devc->hw_params) {
-		sr_dbg("Freeing hardware parameters.");
-		snd_pcm_hw_params_free(devc->hw_params);
-	} else {
-		sr_dbg("No hardware parameters, no need to free.");
-	}
-
 	if (devc->capture_handle) {
 		sr_dbg("Closing PCM device.");
 		if ((ret = snd_pcm_close(devc->capture_handle)) < 0) {
 			sr_err("Failed to close device: %s.",
 			       snd_strerror(ret));
+			devc->capture_handle = NULL;
 		}
 	} else {
 		sr_dbg("No capture handle, no need to close audio device.");
@@ -210,7 +163,7 @@ static int hw_info_get(int info_id, const void **data,
 		*data = hwcaps;
 		break;
 	case SR_DI_NUM_PROBES:
-		*data = GINT_TO_POINTER(DEFAULT_PROBES);
+		*data = &devc->num_probes;
 		break;
 	case SR_DI_PROBE_NAMES:
 		*data = probe_names;
