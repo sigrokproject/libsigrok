@@ -19,23 +19,15 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <alsa/asoundlib.h>
+#include "protocol.h"
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
-/* Message logging helpers with driver-specific prefix string. */
-#define DRIVER_LOG_DOMAIN "alsa: "
-#define sr_log(l, s, args...) sr_log(l, DRIVER_LOG_DOMAIN s, ## args)
-#define sr_spew(s, args...) sr_spew(DRIVER_LOG_DOMAIN s, ## args)
-#define sr_dbg(s, args...) sr_dbg(DRIVER_LOG_DOMAIN s, ## args)
-#define sr_info(s, args...) sr_info(DRIVER_LOG_DOMAIN s, ## args)
-#define sr_warn(s, args...) sr_warn(DRIVER_LOG_DOMAIN s, ## args)
-#define sr_err(s, args...) sr_err(DRIVER_LOG_DOMAIN s, ## args)
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
 
-#define NUM_PROBES		2
+#define DEFAULT_PROBES		2
 #define SAMPLE_WIDTH		16
 #define DEFAULT_SAMPLERATE	44100
 // #define AUDIO_DEV		"plughw:0,0"
@@ -56,17 +48,6 @@ static const char *probe_names[] = {
 
 SR_PRIV struct sr_dev_driver alsa_driver_info;
 static struct sr_dev_driver *di = &alsa_driver_info;
-
-/** Private, per-device-instance driver context. */
-struct dev_context {
-	uint64_t cur_samplerate;
-	uint64_t limit_samples;
-	uint64_t num_samples;
-	snd_pcm_t *capture_handle;
-	snd_pcm_hw_params_t *hw_params;
-	struct pollfd *ufds;
-	void *cb_data;
-};
 
 static int clear_instances(void)
 {
@@ -118,6 +99,7 @@ static GSList *hw_scan(GSList *options)
 
 	/* Set the samplerate to a default value for now. */
 	devc->cur_samplerate = DEFAULT_SAMPLERATE;
+	devc->num_probes = DEFAULT_PROBES;
 
 	sdi->priv = devc;
 	sdi->driver = di;
@@ -229,7 +211,7 @@ static int hw_info_get(int info_id, const void **data,
 		*data = hwcaps;
 		break;
 	case SR_DI_NUM_PROBES:
-		*data = GINT_TO_POINTER(NUM_PROBES);
+		*data = GINT_TO_POINTER(DEFAULT_PROBES);
 		break;
 	case SR_DI_PROBE_NAMES:
 		*data = probe_names;
@@ -265,75 +247,6 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 	}
 
 	return SR_OK;
-}
-
-static int receive_data(int fd, int revents, void *cb_data)
-{
-	struct sr_dev_inst *sdi;
-	struct dev_context *devc;
-	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog analog;
-	char inbuf[4096];
-	int i, x, count, offset, samples_to_get;
-	uint16_t tmp16;
-
-	(void)fd;
-	(void)revents;
-
-	sdi = cb_data;
-	devc = sdi->priv;
-
-	memset(&analog, 0, sizeof(struct sr_datafeed_analog));
-	memset(inbuf, 0, sizeof(inbuf));
-
-	samples_to_get = MIN(4096 / 4, devc->limit_samples);
-
-	sr_spew("Getting %d samples from audio device.", samples_to_get);
-	count = snd_pcm_readi(devc->capture_handle, inbuf, samples_to_get);
-
-	if (count < 0) {
-		sr_err("Failed to read samples: %s.", snd_strerror(count));
-		return FALSE;
-	} else if (count != samples_to_get) {
-		sr_spew("Only got %d/%d samples.", count, samples_to_get);
-	}
-
-	analog.data = g_try_malloc0(count * sizeof(float) * NUM_PROBES);
-	if (!analog.data) {
-		sr_err("Failed to malloc sample buffer.");
-		return FALSE;
-	}
-
-	offset = 0;
-
-	for (i = 0; i < count; i++) {
-		for (x = 0; x < NUM_PROBES; x++) {
-			tmp16 = *(uint16_t *)(inbuf + (i * 4) + (x * 2));
-			analog.data[offset++] = (float)tmp16;
-		}
-	}
-
-	/* Send a sample packet with the analog values. */
-	analog.num_samples = count;
-	analog.mq = SR_MQ_VOLTAGE; /* FIXME */
-	analog.unit = SR_UNIT_VOLT; /* FIXME */
-	packet.type = SR_DF_ANALOG;
-	packet.payload = &analog;
-	sr_session_send(devc->cb_data, &packet);
-
-	g_free(analog.data);
-
-	devc->num_samples += count;
-
-	/* Stop acquisition if we acquired enough samples. */
-	if (devc->limit_samples > 0) {
-		if (devc->num_samples >= devc->limit_samples) {
-			sr_info("Requested number of samples reached.");
-			sdi->driver->dev_acquisition_stop(sdi, cb_data);
-		}
-	}
-
-	return TRUE;
 }
 
 static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
@@ -374,9 +287,9 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 		return SR_ERR;
 	}
 
-	sr_dbg("Setting audio channel count to %d.", NUM_PROBES);
+	sr_dbg("Setting audio channel count to %d.", devc->num_probes);
 	ret = snd_pcm_hw_params_set_channels(devc->capture_handle,
-					     devc->hw_params, NUM_PROBES);
+					     devc->hw_params, devc->num_probes);
 	if (ret < 0) {
 		sr_err("Can't set channel count: %s.", snd_strerror(ret));
 		return SR_ERR;
@@ -430,12 +343,12 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	sr_dbg("Sending SR_DF_META_ANALOG packet.");
 	packet.type = SR_DF_META_ANALOG;
 	packet.payload = &meta;
-	meta.num_probes = NUM_PROBES;
+	meta.num_probes = devc->num_probes;
 	sr_session_send(devc->cb_data, &packet);
 
 	/* Poll every 10ms, or whenever some data comes in. */
 	sr_source_add(devc->ufds[0].fd, devc->ufds[0].events, 10,
-		      receive_data, (void *)sdi);
+		      alsa_receive_data, (void *)sdi);
 
 	// g_free(devc->ufds); /* FIXME */
 

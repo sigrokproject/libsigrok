@@ -23,7 +23,9 @@ if HW_ALSA
 noinst_LTLIBRARIES = libsigrokhwalsa.la
 
 libsigrokhwalsa_la_SOURCES = \
-	alsa.c
+	protocol.h \
+	protocol.c \
+	api.c
 
 libsigrokhwalsa_la_CFLAGS = \
 	-I$(top_srcdir)
