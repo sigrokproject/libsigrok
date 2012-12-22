@@ -249,7 +249,7 @@ PKG_CHECK_MODULES([gthread], [gthread-2.0 >= 2.22.0],
 	[CFLAGS="$CFLAGS $gthread_CFLAGS"; LIBS="$LIBS $gthread_LIBS";
 	SR_PKGLIBS="$SR_PKGLIBS gthread-2.0"])
 
-# libusb is only needed for some hardware drivers.
+# libusb-1.0 is only needed for some hardware drivers.
 if test "x$LA_ASIX_SIGMA" != xno \
    -o "x$LA_CHRONOVU_LA8" != xno \
    -o "x$LA_FX2LAFW" != xno \
@@ -266,7 +266,11 @@ if test "x$LA_ASIX_SIGMA" != xno \
 			[CFLAGS="$CFLAGS $libusb_CFLAGS";
 			LIBS="$LIBS $libusb_LIBS";
 			SR_PKGLIBS="$SR_PKGLIBS libusb-1.0"])
-		AC_CHECK_LIB(usb-1.0, libusb_init)
+		# Define HAVE_LIBUSB_1_0 in config.h if we found libusb-1.0.
+		if test "x$libusb_CFLAGS" != "x"; then
+			AC_DEFINE_UNQUOTED(HAVE_LIBUSB_1_0, [1],
+				[Specifies whether we have a libusb.h header.])
+		fi
 		;;
 	esac
 fi
