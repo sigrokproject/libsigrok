@@ -177,7 +177,7 @@ static int receive_data(int fd, int revents, int dmm, void *info, void *cb_data)
 		}
 	}
 
-	if (devc->num_samples >= devc->limit_samples) {
+	if (devc->limit_samples && devc->num_samples >= devc->limit_samples) {
 		sr_info("Requested number of samples reached, stopping.");
 		sdi->driver->dev_acquisition_stop(sdi, cb_data);
 		return TRUE;
