@@ -278,8 +278,6 @@ SR_PRIV int serial_read(struct sr_serial_dev_inst *serial, void *buf,
 #else
 	/* Returns the number of bytes read, or -1 upon failure. */
 	ret = read(serial->fd, buf, count);
-	if (ret >= 0)
-		sr_spew("Read %d/%d bytes (fd %d).", ret, count, serial->fd);
 #endif
 
 	return ret;
