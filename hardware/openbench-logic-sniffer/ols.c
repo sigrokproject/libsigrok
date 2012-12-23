@@ -106,7 +106,7 @@ static int send_shortcommand(struct sr_serial_dev_inst *serial,
 {
 	char buf[1];
 
-	sr_dbg("ols: sending cmd 0x%.2x", command);
+	sr_dbg("Sending cmd 0x%.2x.", command);
 	buf[0] = command;
 	if (serial_write(serial, buf, 1) != 1)
 		return SR_ERR;
@@ -119,7 +119,7 @@ static int send_longcommand(struct sr_serial_dev_inst *serial,
 {
 	char buf[5];
 
-	sr_dbg("ols: sending cmd 0x%.2x data 0x%.8x", command, data);
+	sr_dbg("Sending cmd 0x%.2x data 0x%.8x.", command, data);
 	buf[0] = command;
 	buf[1] = (data & 0xff000000) >> 24;
 	buf[2] = (data & 0xff0000) >> 16;
@@ -213,7 +213,7 @@ static struct dev_context *ols_dev_new(void)
 	struct dev_context *devc;
 
 	if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
-		sr_err("ols: %s: devc malloc failed", __func__);
+		sr_err("Device context malloc failed.");
 		return NULL;
 	}
 
@@ -255,7 +255,7 @@ static struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
 			tmp_str = g_string_new("");
 			while (serial_read(serial, &tmp_c, 1) == 1 && tmp_c != '\0')
 				g_string_append_c(tmp_str, tmp_c);
-			sr_dbg("ols: got metadata key 0x%.2x value '%s'",
+			sr_dbg("Got metadata key 0x%.2x value '%s'.",
 			       key, tmp_str->str);
 			switch (token) {
 			case 0x01:
@@ -288,7 +288,7 @@ static struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
 			if (serial_read(serial, &tmp_int, 4) != 4)
 				break;
 			tmp_int = reverse32(tmp_int);
-			sr_dbg("ols: got metadata key 0x%.2x value 0x%.8x",
+			sr_dbg("Got metadata key 0x%.2x value 0x%.8x.",
 			       key, tmp_int);
 			switch (token) {
 			case 0x00:
@@ -317,7 +317,7 @@ static struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
 				devc->protocol_version = tmp_int;
 				break;
 			default:
-				sr_info("ols: unknown token 0x%.2x: 0x%.8x",
+				sr_info("Unknown token 0x%.2x: 0x%.8x.",
 					token, tmp_int);
 				break;
 			}
@@ -326,7 +326,7 @@ static struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
 			/* 8-bit unsigned integer */
 			if (serial_read(serial, &tmp_c, 1) != 1)
 				break;
-			sr_dbg("ols: got metadata key 0x%.2x value 0x%.2x",
+			sr_dbg("Got metadata key 0x%.2x value 0x%.2x.",
 			       key, tmp_c);
 			switch (token) {
 			case 0x00:
@@ -343,7 +343,7 @@ static struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
 				devc->protocol_version = tmp_c;
 				break;
 			default:
-				sr_info("ols: unknown token 0x%.2x: 0x%.2x",
+				sr_info("Unknown token 0x%.2x: 0x%.2x.",
 					token, tmp_c);
 				break;
 			}
@@ -367,7 +367,7 @@ static int hw_init(struct sr_context *sr_ctx)
 	struct drv_context *drvc;
 
 	if (!(drvc = g_try_malloc0(sizeof(struct drv_context)))) {
-		sr_err("ols: driver context malloc failed.");
+		sr_err("Driver context malloc failed.");
 		return SR_ERR_MALLOC;
 	}
 	drvc->sr_ctx = sr_ctx;
@@ -421,20 +421,20 @@ static GSList *hw_scan(GSList *options)
 	 * If the device responds with 4 bytes ("OLS1" or "SLA1"), we
 	 * have a match.
 	 */
-	sr_info("ols: probing %s .", conn);
+	sr_info("Probing %s.", conn);
 	if (serial_open(serial, SERIAL_RDWR | SERIAL_NONBLOCK) != SR_OK)
 		return NULL;
 
 	ret = SR_OK;
 	for (i = 0; i < 5; i++) {
 		if ((ret = send_shortcommand(serial, CMD_RESET)) != SR_OK) {
-			sr_err("ols: port %s is not writable.", conn);
+			sr_err("Port %s is not writable.", conn);
 			break;
 		}
 	}
 	if (ret != SR_OK) {
 		serial_close(serial);
-		sr_err("ols: Could not use port %s. Quitting.", conn);
+		sr_err("Could not use port %s. Quitting.", conn);
 		return NULL;
 	}
 	send_shortcommand(serial, CMD_ID);
@@ -537,14 +537,13 @@ static int hw_cleanup(void)
 	for (l = drvc->instances; l; l = l->next) {
 		if (!(sdi = l->data)) {
 			/* Log error, but continue cleaning up the rest. */
-			sr_err("ols: %s: sdi was NULL, continuing", __func__);
+			sr_err("%s: sdi was NULL, continuing", __func__);
 			ret = SR_ERR_BUG;
 			continue;
 		}
 		if (!(devc = sdi->priv)) {
 			/* Log error, but continue cleaning up the rest. */
-			sr_err("ols: %s: sdi->priv was NULL, continuing",
-			       __func__);
+			sr_err("%s: sdi->priv was NULL, continuing", __func__);
 			ret = SR_ERR_BUG;
 			continue;
 		}
@@ -619,8 +618,8 @@ static int set_samplerate(const struct sr_dev_inst *sdi, uint64_t samplerate)
 	if (devc->flag_reg & FLAG_DEMUX)
 		devc->cur_samplerate *= 2;
 	if (devc->cur_samplerate != samplerate)
-		sr_err("ols: can't match samplerate %" PRIu64 ", using %"
-		       PRIu64, samplerate, devc->cur_samplerate);
+		sr_err("Can't match samplerate %" PRIu64 ", using %"
+		       PRIu64 ".", samplerate, devc->cur_samplerate);
 
 	return SR_OK;
 }
@@ -646,9 +645,9 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		if (*tmp_u64 < MIN_NUM_SAMPLES)
 			return SR_ERR;
 		if (*tmp_u64 > devc->max_samples)
-			sr_err("ols: sample limit exceeds hw max");
+			sr_err("Sample limit exceeds hardware maximum.");
 		devc->limit_samples = *tmp_u64;
-		sr_info("ols: sample limit %" PRIu64, devc->limit_samples);
+		sr_info("Sample limit is %" PRIu64 ".", devc->limit_samples);
 		ret = SR_OK;
 		break;
 	case SR_HWCAP_CAPTURE_RATIO:
@@ -661,7 +660,7 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		break;
 	case SR_HWCAP_RLE:
 		if (GPOINTER_TO_INT(value)) {
-			sr_info("ols: enabling RLE");
+			sr_info("Enabling RLE.");
 			devc->flag_reg |= FLAG_RLE;
 		}
 		ret = SR_OK;
@@ -684,10 +683,7 @@ static void abort_acquisition(const struct sr_dev_inst *sdi)
 	/* Terminate session */
 	packet.type = SR_DF_END;
 	sr_session_send(sdi, &packet);
-
 }
-
-
 
 static int receive_data(int fd, int revents, void *cb_data)
 {
@@ -724,11 +720,9 @@ static int receive_data(int fd, int revents, void *cb_data)
 		 */
 		sr_source_remove(fd);
 		sr_source_add(fd, G_IO_IN, 30, receive_data, cb_data);
-		/* TODO: Check malloc return code. */
 		devc->raw_sample_buf = g_try_malloc(devc->limit_samples * 4);
 		if (!devc->raw_sample_buf) {
-			sr_err("ols: %s: devc->raw_sample_buf malloc failed",
-			       __func__);
+			sr_err("Sample buffer malloc failed.");
 			return FALSE;
 		}
 		/* fill with 1010... for debugging */
@@ -750,10 +744,10 @@ static int receive_data(int fd, int revents, void *cb_data)
 			return TRUE;
 
 		devc->sample[devc->num_bytes++] = byte;
-		sr_dbg("ols: received byte 0x%.2x", byte);
+		sr_dbg("Received byte 0x%.2x.", byte);
 		if (devc->num_bytes == num_channels) {
 			/* Got a full sample. */
-			sr_dbg("ols: received sample 0x%.*x",
+			sr_dbg("Received sample 0x%.*x.",
 			       devc->num_bytes * 2, *(int *)devc->sample);
 			if (devc->flag_reg & FLAG_RLE) {
 				/*
@@ -767,7 +761,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 					 * little-endian systems.
 					 */
 					devc->rle_count = *(int *)(devc->sample);
-					sr_dbg("ols: RLE count = %d", devc->rle_count);
+					sr_dbg("RLE count: %d.", devc->rle_count);
 					devc->num_bytes = 0;
 					return TRUE;
 				}
@@ -802,7 +796,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 					}
 				}
 				memcpy(devc->sample, devc->tmp_sample, 4);
-				sr_dbg("ols: full sample 0x%.8x", *(int *)devc->sample);
+				sr_dbg("Full sample: 0x%.8x.", *(int *)devc->sample);
 			}
 
 			/* the OLS sends its sample buffer backwards.
@@ -891,7 +885,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 		return SR_ERR;
 
 	if (configure_probes(sdi) != SR_OK) {
-		sr_err("ols: failed to configured probes");
+		sr_err("Failed to configure probes.");
 		return SR_ERR;
 	}
 
@@ -973,7 +967,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 		delaycount = readcount;
 	}
 
-	sr_info("ols: setting samplerate to %" PRIu64 " Hz (divider %u, "
+	sr_info("Setting samplerate to %" PRIu64 "Hz (divider %u, "
 		"demux %s)", devc->cur_samplerate, devc->cur_samplerate_divider,
 		devc->flag_reg & FLAG_DEMUX ? "on" : "off");
 	if (send_longcommand(devc->serial, CMD_SET_DIVIDER,
@@ -1002,12 +996,12 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 		      cb_data);
 
 	if (!(packet = g_try_malloc(sizeof(struct sr_datafeed_packet)))) {
-		sr_err("ols: %s: packet malloc failed", __func__);
+		sr_err("Datafeed packet malloc failed.");
 		return SR_ERR_MALLOC;
 	}
 
 	if (!(header = g_try_malloc(sizeof(struct sr_datafeed_header)))) {
-		sr_err("ols: %s: header malloc failed", __func__);
+		sr_err("Datafeed header malloc failed.");
 		g_free(packet);
 		return SR_ERR_MALLOC;
 	}

@@ -20,6 +20,15 @@
 #ifndef LIBSIGROK_HARDWARE_OPENBENCH_LOGIC_SNIFFER_OLS_H
 #define LIBSIGROK_HARDWARE_OPENBENCH_LOGIC_SNIFFER_OLS_H
 
+/* Message logging helpers with driver-specific prefix string. */
+#define DRIVER_LOG_DOMAIN "ols: "
+#define sr_log(l, s, args...) sr_log(l, DRIVER_LOG_DOMAIN s, ## args)
+#define sr_spew(s, args...) sr_spew(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_dbg(s, args...) sr_dbg(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_info(s, args...) sr_info(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_warn(s, args...) sr_warn(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_err(s, args...) sr_err(DRIVER_LOG_DOMAIN s, ## args)
+
 #define NUM_PROBES             32
 #define NUM_TRIGGER_STAGES     4
 #define TRIGGER_TYPES          "01"
