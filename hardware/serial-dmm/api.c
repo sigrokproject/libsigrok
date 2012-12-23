@@ -38,6 +38,7 @@ static const int hwopts[] = {
 static const int hwcaps[] = {
 	SR_HWCAP_MULTIMETER,
 	SR_HWCAP_LIMIT_SAMPLES,
+	SR_HWCAP_LIMIT_MSEC,
 	SR_HWCAP_CONTINUOUS,
 	0,
 };
@@ -411,6 +412,11 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		sr_dbg("Setting sample limit to %" PRIu64 ".",
 		       devc->limit_samples);
 		break;
+	case SR_HWCAP_LIMIT_MSEC:
+		devc->limit_msec = *(const uint64_t *)value;
+		sr_dbg("Setting time limit to %" PRIu64 "ms.",
+		       devc->limit_msec);
+		break;
 	default:
 		sr_err("Unknown capability: %d.", hwcap);
 		return SR_ERR;
@@ -443,6 +449,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	 * quit without acquiring any new samples.
 	 */
 	devc->num_samples = 0;
+	devc->starttime = g_get_monotonic_time();
 
 	/* Send header packet to the session bus. */
 	sr_dbg("Sending SR_DF_HEADER.");

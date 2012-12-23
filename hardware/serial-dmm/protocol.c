@@ -153,6 +153,7 @@ static int receive_data(int fd, int revents, int dmm, void *info, void *cb_data)
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
+	int64_t time;
 	int ret;
 
 	(void)fd;
@@ -181,6 +182,15 @@ static int receive_data(int fd, int revents, int dmm, void *info, void *cb_data)
 		sr_info("Requested number of samples reached, stopping.");
 		sdi->driver->dev_acquisition_stop(sdi, cb_data);
 		return TRUE;
+	}
+
+	if (devc->limit_msec) {
+		time = (g_get_monotonic_time() - devc->starttime) / 1000;
+		if (time > (int64_t)devc->limit_msec) {
+			sr_info("Requested time limit reached, stopping.");
+			sdi->driver->dev_acquisition_stop(sdi, cb_data);
+			return TRUE;
+		}
 	}
 
 	return TRUE;

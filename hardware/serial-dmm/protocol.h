@@ -72,11 +72,16 @@ struct dev_context {
 	/** The current sampling limit (in number of samples). */
 	uint64_t limit_samples;
 
+	/** The time limit (in milliseconds). */
+	uint64_t limit_msec;
+
 	/** Opaque pointer passed in by the frontend. */
 	void *cb_data;
 
 	/** The current number of already received samples. */
 	uint64_t num_samples;
+
+	int64_t starttime;
 
 	struct sr_serial_dev_inst *serial;
 
