@@ -230,9 +230,10 @@ SR_PRIV int alsa_receive_data(int fd, int revents, void *cb_data)
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog analog;
-	char inbuf[4096];
+	int16_t inbuf[4096];
 	int i, x, count, offset, samples_to_get;
-	uint16_t tmp16;
+	int16_t tmp16;
+	const float s16norm = 1 / (float)(1<<15);
 
 	(void)fd;
 	(void)revents;
@@ -262,11 +263,18 @@ SR_PRIV int alsa_receive_data(int fd, int revents, void *cb_data)
 	}
 
 	offset = 0;
-
-	for (i = 0; i < count; i++) {
+	/*
+	 * It's impossible to know what voltage levels the soundcard handles.
+	 * Some handle 0 dBV rms, some 0dBV peak-to-peak, +4dbmW (600 ohm), etc
+	 * Each of these corresponds to a different voltage, and there is no
+	 * mechanism to determine this voltage. The best solution is to send all
+	 * audio data as a normalized float, and let the frontend or user worry
+	 * about the calibration.
+	 */
+	for (i = 0; i < count; i += devc->num_probes) {
 		for (x = 0; x < devc->num_probes; x++) {
-			tmp16 = *(uint16_t *)(inbuf + (i * 4) + (x * 2));
-			analog.data[offset++] = (float)tmp16;
+			tmp16 = inbuf[i+x];
+			analog.data[offset++] = tmp16 * s16norm;
 		}
 	}
 

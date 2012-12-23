@@ -209,9 +209,11 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	struct sr_datafeed_meta_analog meta;
 	struct dev_context *devc;
 	int count, ret;
+	char *endianess;
 
 	devc = sdi->priv;
 	devc->cb_data = cb_data;
+	devc->num_samples = 0;
 
 	sr_dbg("Setting audio access type to RW/interleaved.");
 	ret = snd_pcm_hw_params_set_access(devc->capture_handle,
@@ -222,9 +224,14 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	}
 
 	/* FIXME: Hardcoded for 16bits. */
-	sr_dbg("Setting audio sample format to signed 16bit (little endian).");
+	if (SND_PCM_FORMAT_S16 == SND_PCM_FORMAT_S16_LE)
+		endianess = "lilltle endian";
+	else
+		endianess = "big endian";
+	sr_dbg("Setting audio sample format to signed 16bit (%s).", endianess);
 	ret = snd_pcm_hw_params_set_format(devc->capture_handle,
-			devc->hw_params, SND_PCM_FORMAT_S16_LE);
+					   devc->hw_params,
+					   SND_PCM_FORMAT_S16);
 	if (ret < 0) {
 		sr_err("Can't set audio sample format: %s.", snd_strerror(ret));
 		return SR_ERR;
