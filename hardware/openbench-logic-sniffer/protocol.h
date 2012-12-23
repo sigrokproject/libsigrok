@@ -17,8 +17,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBSIGROK_HARDWARE_OPENBENCH_LOGIC_SNIFFER_OLS_H
-#define LIBSIGROK_HARDWARE_OPENBENCH_LOGIC_SNIFFER_OLS_H
+#ifndef LIBSIGROK_HARDWARE_OPENBENCH_LOGIC_SNIFFER_PROTOCOL_H
+#define LIBSIGROK_HARDWARE_OPENBENCH_LOGIC_SNIFFER_PROTOCOL_H
+
+#include <stdint.h>
+#include <string.h>
+#include <glib.h>
+#include "libsigrok.h"
+#include "libsigrok-internal.h"
 
 /* Message logging helpers with driver-specific prefix string. */
 #define DRIVER_LOG_DOMAIN "ols: "
@@ -99,5 +105,23 @@ struct dev_context {
 
 	struct sr_serial_dev_inst *serial;
 };
+
+
+SR_PRIV extern const char *ols_probe_names[NUM_PROBES + 1];
+
+SR_PRIV int send_shortcommand(struct sr_serial_dev_inst *serial,
+		uint8_t command);
+SR_PRIV int send_longcommand(struct sr_serial_dev_inst *serial,
+		uint8_t command, uint32_t data);
+SR_PRIV int ols_configure_probes(const struct sr_dev_inst *sdi);
+SR_PRIV uint32_t reverse16(uint32_t in);
+SR_PRIV uint32_t reverse32(uint32_t in);
+SR_PRIV struct dev_context *ols_dev_new(void);
+SR_PRIV struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial);
+SR_PRIV int ols_set_samplerate(const struct sr_dev_inst *sdi,
+			       uint64_t samplerate,
+			       const struct sr_samplerates *samplerates);
+SR_PRIV void abort_acquisition(const struct sr_dev_inst *sdi);
+SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data);
 
 #endif

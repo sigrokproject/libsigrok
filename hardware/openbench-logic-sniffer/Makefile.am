@@ -23,8 +23,9 @@ if LA_OLS
 noinst_LTLIBRARIES = libsigrokhwols.la
 
 libsigrokhwols_la_SOURCES = \
-	ols.c \
-	ols.h
+	api.c \
+	protocol.c \
+	protocol.h
 
 libsigrokhwols_la_CFLAGS = \
 	-I$(top_srcdir)
