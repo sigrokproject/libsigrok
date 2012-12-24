@@ -36,6 +36,7 @@
 enum {
 	FLUKE_187 = 1,
 	FLUKE_287,
+	FLUKE_190,
 };
 
 /* Supported device profiles */
@@ -64,6 +65,11 @@ struct dev_context {
 	int buflen;
 	int64_t cmd_sent_at;
 	int expect_response;
+	int meas_type;
+	int is_relative;
+	int mq;
+	int unit;
+	int mqflags;
 };
 
 SR_PRIV int fluke_receive_data(int fd, int revents, void *cb_data);

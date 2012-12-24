@@ -264,12 +264,157 @@ static struct sr_datafeed_analog *handle_qm_28x(const struct sr_dev_inst *sdi,
 	return analog;
 }
 
+static void handle_qm_19x_meta(const struct sr_dev_inst *sdi, char **tokens)
+{
+	struct dev_context *devc;
+	int meas_type, meas_unit, meas_char, i;
+
+	/* Make sure we have 7 valid tokens. */
+	for (i = 0; tokens[i] && i < 7; i++);
+	if (i != 7)
+		return;
+
+	if (strcmp(tokens[1], "1"))
+		/* Invalid measurement. */
+		return;
+
+	if (strcmp(tokens[2], "3"))
+		/* Only interested in input from the meter mode source. */
+		return;
+
+	devc = sdi->priv;
+
+	/* Measurement type 11 == absolute, 19 = relative */
+	meas_type = strtol(tokens[0], NULL, 10);
+	if (meas_type != 11 && meas_type != 19)
+		/* Device is in some mode we don't support. */
+		return;
+
+	/* We might get metadata for absolute and relative mode (if the device
+	 * is in relative mode). In that case, relative takes precedence. */
+	if (meas_type == 11 && devc->meas_type == 19)
+		return;
+
+	meas_unit = strtol(tokens[3], NULL, 10);
+	if (meas_unit == 0)
+		/* Device is turned off. Really. */
+		return;
+	meas_char = strtol(tokens[4], NULL, 10);
+
+	devc->mq = devc->unit = -1;
+	devc->mqflags = 0;
+	switch (meas_unit) {
+	case 1:
+		devc->mq = SR_MQ_VOLTAGE;
+		devc->unit = SR_UNIT_VOLT;
+		if (meas_char == 1)
+			devc->mqflags |= SR_MQFLAG_DC;
+		else if (meas_char == 2)
+			devc->mqflags |= SR_MQFLAG_AC;
+		else if (meas_char == 3)
+			devc->mqflags |= SR_MQFLAG_DC | SR_MQFLAG_AC;
+		else if (meas_char == 15)
+			devc->mqflags |= SR_MQFLAG_DIODE;
+		break;
+	case 2:
+		devc->mq = SR_MQ_CURRENT;
+		devc->unit = SR_UNIT_AMPERE;
+		if (meas_char == 1)
+			devc->mqflags |= SR_MQFLAG_DC;
+		else if (meas_char == 2)
+			devc->mqflags |= SR_MQFLAG_AC;
+		else if (meas_char == 3)
+			devc->mqflags |= SR_MQFLAG_DC | SR_MQFLAG_AC;
+		break;
+	case 3:
+		if (meas_char == 1) {
+			devc->mq = SR_MQ_RESISTANCE;
+			devc->unit = SR_UNIT_OHM;
+		} else if (meas_char == 16) {
+			devc->mq = SR_MQ_CONTINUITY;
+			devc->unit = SR_UNIT_BOOLEAN;
+		}
+		break;
+	case 12:
+		devc->mq = SR_MQ_TEMPERATURE;
+		devc->unit = SR_UNIT_CELSIUS;
+		break;
+	case 13:
+		devc->mq = SR_MQ_TEMPERATURE;
+		devc->unit = SR_UNIT_FAHRENHEIT;
+		break;
+	default:
+		sr_dbg("unknown unit: %d", meas_unit);
+	}
+	if (devc->mq == -1 && devc->unit == -1)
+		return;
+
+	/* If we got here, we know how to interpret the measurement. */
+	devc->meas_type = meas_type;
+	if (meas_type == 11)
+		/* Absolute meter reading. */
+		devc->is_relative = FALSE;
+	else if (!strcmp(tokens[0], "19"))
+		/* Relative meter reading. */
+		devc->is_relative = TRUE;
+
+}
+
+static void handle_qm_19x_data(const struct sr_dev_inst *sdi, char **tokens)
+{
+	struct dev_context *devc;
+	struct sr_datafeed_packet packet;
+	struct sr_datafeed_analog analog;
+	float fvalue;
+	char *eptr;
+
+	if (!strcmp(tokens[0], "9.9E+37")) {
+		/* An invalid measurement shows up on the display as "OL", but
+		 * comes through like this. Since comparing 38-digit floats
+		 * is rather problematic, we'll cut through this here. */
+		fvalue = NAN;
+	} else {
+		fvalue = strtof(tokens[0], &eptr);
+		if (fvalue == 0.0 && eptr == tokens[0]) {
+			sr_err("Invalid float '%s'.", tokens[0]);
+			return;
+		}
+	}
+
+	devc = sdi->priv;
+	if (devc->mq == -1 || devc->unit == -1)
+		/* Don't have valid metadata yet. */
+		return;
+
+
+	if (devc->mq == SR_MQ_RESISTANCE && isnan(fvalue))
+		fvalue = INFINITY;
+	else if (devc->mq == SR_MQ_CONTINUITY) {
+		if (isnan(fvalue))
+			fvalue = 0.0;
+		else
+			fvalue = 1.0;
+	}
+
+	analog.num_samples = 1;
+	analog.data = &fvalue;
+	analog.mq = devc->mq;
+	analog.unit = devc->unit;
+	analog.mqflags = 0;
+	packet.type = SR_DF_ANALOG;
+	packet.payload = &analog;
+	sr_session_send(devc->cb_data, &packet);
+	devc->num_samples++;
+
+}
+
 static void handle_line(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog *analog;
-	char **tokens;
+	int num_tokens, n, i;
+	char cmd[16], **tokens;
 
 	devc = sdi->priv;
 	sr_spew("Received line '%s' (%d).", devc->buf, devc->buflen);
@@ -293,6 +438,29 @@ static void handle_line(const struct sr_dev_inst *sdi)
 		} else if (devc->profile->model == FLUKE_287) {
 			devc->expect_response = FALSE;
 			analog = handle_qm_28x(sdi, tokens);
+		} else if (devc->profile->model == FLUKE_190) {
+			devc->expect_response = FALSE;
+			for (num_tokens = 0; tokens[num_tokens]; num_tokens++);
+			if (num_tokens >= 7) {
+				/* Response to QM: this is a comma-separated list of
+				 * fields with metadata about the measurement. This
+				 * format can return multiple sets of metadata,
+				 * split into sets of 7 tokens each. */
+				devc->meas_type = 0;
+				for (i = 0; i < num_tokens; i += 7)
+					handle_qm_19x_meta(sdi, tokens + i);
+				if (devc->meas_type) {
+					/* Slip the request in now, before the main
+					 * timer loop asks for metadata again. */
+					n = sprintf(cmd, "QM %d\r", devc->meas_type);
+					if (serial_write(devc->serial, cmd, n) == -1)
+						sr_err("Unable to send QM (measurement): %s.",
+								strerror(errno));
+				}
+			} else {
+				/* Response to QM <n> measurement request. */
+				handle_qm_19x_data(sdi, tokens);
+			}
 		}
 	}
 	g_strfreev(tokens);
