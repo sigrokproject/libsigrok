@@ -44,6 +44,8 @@ struct flukedmm_profile {
 	const char *modelname;
 	/* How often to poll, in ms. */
 	int poll_period;
+	/* If no response received, how long to wait before retrying. */
+	int timeout;
 };
 
 /* Private, per-device-instance driver context. */

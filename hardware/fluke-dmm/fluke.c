@@ -346,11 +346,10 @@ SR_PRIV int fluke_receive_data(int fd, int revents, void *cb_data)
 	now = g_get_monotonic_time() / 1000;
 	elapsed = now - devc->cmd_sent_at;
 	/* Send query command at poll_period interval, or after 1 second
-	 * has elapsed. This will make it recover from any out-of-sync
-	 * or temporary disconnect issues. */
+	 * has elapsed. This will make it easier to recover from any
+	 * out-of-sync or temporary disconnect issues. */
 	if ((devc->expect_response == FALSE && elapsed > devc->profile->poll_period)
-			|| elapsed > 1000) {
-		sr_spew("Sending QM.");
+			|| elapsed > devc->profile->timeout) {
 		if (serial_write(devc->serial, "QM\r", 3) == -1)
 			sr_err("Unable to send QM: %s.", strerror(errno));
 		devc->cmd_sent_at = now;
