@@ -1067,7 +1067,9 @@ static int receive_data(int fd, int revents, void *cb_data)
 		else
 			hw_dev_acquisition_stop(sdi, sdi);
 
-	} else if (devc->state.state == SIGMA_DOWNLOAD) {
+	}
+
+	if (devc->state.state == SIGMA_DOWNLOAD) {
 		if (devc->state.chunks_downloaded >= numchunks) {
 			/* End of samples. */
 			packet.type = SR_DF_END;
