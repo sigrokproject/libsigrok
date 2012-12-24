@@ -31,6 +31,7 @@ SUBDIRS = \
 	hantek-dso \
 	lascar-el-usb \
 	link-mso19 \
+	nexus-osciprime \
 	openbench-logic-sniffer \
 	serial-dmm \
 	tondaj-sl-814 \
@@ -87,6 +88,10 @@ endif
 
 if LA_LINK_MSO19
 libsigrokhardware_la_LIBADD += link-mso19/libsigrokhwlinkmso19.la
+endif
+
+if HW_NEXUS_OSCIPRIME
+libsigrokhardware_la_LIBADD += nexus-osciprime/libsigrok_hw_nexus_osciprime.la
 endif
 
 if LA_OLS
