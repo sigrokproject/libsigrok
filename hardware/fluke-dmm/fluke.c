@@ -17,17 +17,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <glib.h>
-#include "libsigrok.h"
-#include "libsigrok-internal.h"
-#include "fluke-dmm.h"
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
 #include <errno.h>
+#include <glib.h>
+#include "libsigrok.h"
+#include "libsigrok-internal.h"
+#include "fluke-dmm.h"
 
 
-static struct sr_datafeed_analog *handle_qm_v1(const struct sr_dev_inst *sdi,
+static struct sr_datafeed_analog *handle_qm_18x(const struct sr_dev_inst *sdi,
 		char **tokens)
 {
 	struct sr_datafeed_analog *analog;
@@ -37,7 +37,7 @@ static struct sr_datafeed_analog *handle_qm_v1(const struct sr_dev_inst *sdi,
 
 	(void)sdi;
 
-	if (strcmp(tokens[0], "QM"))
+	if (strcmp(tokens[0], "QM") || !tokens[1])
 		return NULL;
 
 	if ((e = strstr(tokens[1], "Out of range"))) {
@@ -151,7 +151,7 @@ static struct sr_datafeed_analog *handle_qm_v1(const struct sr_dev_inst *sdi,
 	return analog;
 }
 
-static struct sr_datafeed_analog *handle_qm_v2(const struct sr_dev_inst *sdi,
+static struct sr_datafeed_analog *handle_qm_28x(const struct sr_dev_inst *sdi,
 		char **tokens)
 {
 	struct sr_datafeed_analog *analog;
@@ -159,6 +159,9 @@ static struct sr_datafeed_analog *handle_qm_v2(const struct sr_dev_inst *sdi,
 	char *eptr;
 
 	(void)sdi;
+
+	if (!tokens[1])
+		return NULL;
 
 	fvalue = strtof(tokens[0], &eptr);
 	if (fvalue == 0.0 && eptr == tokens[0]) {
@@ -283,13 +286,13 @@ static void handle_line(const struct sr_dev_inst *sdi)
 
 	analog = NULL;
 	tokens = g_strsplit(devc->buf, ",", 0);
-	if (tokens[0] && tokens[1]) {
+	if (tokens[0]) {
 		if (devc->profile->model == FLUKE_187) {
 			devc->expect_response = FALSE;
-			analog = handle_qm_v1(sdi, tokens);
+			analog = handle_qm_18x(sdi, tokens);
 		} else if (devc->profile->model == FLUKE_287) {
 			devc->expect_response = FALSE;
-			analog = handle_qm_v2(sdi, tokens);
+			analog = handle_qm_28x(sdi, tokens);
 		}
 	}
 	g_strfreev(tokens);
