@@ -49,6 +49,16 @@ static const char *probe_names[] = {
 SR_PRIV struct sr_dev_driver flukedmm_driver_info;
 static struct sr_dev_driver *di = &flukedmm_driver_info;
 
+static char *scan_conn[] = {
+	/* 287/289 */
+	"115200/8n1",
+	/* 187/189 */
+	"9600/8n1",
+	/* Scopemeter 190 series */
+	"1200/8n1",
+	NULL
+};
+
 static const struct flukedmm_profile supported_flukedmm[] = {
 	{ FLUKE_187, "187", 100, 1000 },
 	{ FLUKE_287, "287", 100, 1000 },
@@ -140,10 +150,15 @@ static GSList *fluke_scan(const char *conn, const char *serialcomm)
 
 		/* If CMD_ACK was OK, ID string follows. */
 		len = 128;
-		serial_readline(serial, &b, &len, 150);
+		serial_readline(serial, &b, &len, 850);
 		if (len < 10)
 			continue;
-		tokens = g_strsplit(buf, ",", 3);
+		if (strcspn(buf, ",") < 15)
+			/* Looks like it's comma-separated. */
+			tokens = g_strsplit(buf, ",", 3);
+		else
+			/* Fluke 199B, at least, uses semicolon. */
+			tokens = g_strsplit(buf, ";", 3);
 		if (!strncmp("FLUKE", tokens[0], 5)
 				&& tokens[1] && tokens[2]) {
 			for (i = 0; supported_flukedmm[i].model; i++) {
@@ -171,6 +186,9 @@ static GSList *fluke_scan(const char *conn, const char *serialcomm)
 			}
 		}
 		g_strfreev(tokens);
+		if (devices)
+			/* Found one. */
+			break;
 	}
 	serial_close(serial);
 	if (!devices)
@@ -183,6 +201,7 @@ static GSList *hw_scan(GSList *options)
 {
 	struct sr_hwopt *opt;
 	GSList *l, *devices;
+	int i;
 	const char *conn, *serialcomm;
 
 	conn = serialcomm = NULL;
@@ -204,11 +223,13 @@ static GSList *hw_scan(GSList *options)
 		/* Use the provided comm specs. */
 		devices = fluke_scan(conn, serialcomm);
 	} else {
-		/* Try 115200, as used on 287/289. */
-		devices = fluke_scan(conn, "115200/8n1");
-		if (!devices)
-			/* Fall back to 9600 for 187/189. */
-			devices = fluke_scan(conn, "9600/8n1");
+		for (i = 0; scan_conn[i]; i++) {
+			if ((devices = fluke_scan(conn, scan_conn[i])))
+				break;
+			/* The Scopemeter 199B, at least, requires this
+			 * after all the 115k/9.6k confusion. */
+			g_usleep(5000);
+		}
 	}
 
 	return devices;
