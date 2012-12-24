@@ -509,7 +509,7 @@ SR_PRIV int fluke_receive_data(int fd, int revents, void *cb_data)
 		}
 	}
 
-	if (devc->num_samples >= devc->limit_samples) {
+	if (devc->limit_samples && devc->num_samples >= devc->limit_samples) {
 		sdi->driver->dev_acquisition_stop(sdi, cb_data);
 		return TRUE;
 	}
