@@ -134,6 +134,13 @@ ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="0033", MODE="664", GROUP="plugdev"
 # lsusb: "0403:6010 Future Technology Devices International, Ltd FT2232C Dual USB-UART/FIFO IC"
 ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6010", MODE="664", GROUP="plugdev"
 
+# Nexus-Computing OsciPrime
+# http://www.osciprime.com/
+# The device comes up with the default Cypress FX2 VID:PID (04b4:8613), but
+# after firmware upload enumerates as this:
+# lsusb: "04b4:1004 Cypress Semiconductor Corp."
+ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="1004", MODE="664", GROUP="plugdev"
+
 # Openbench Logic Sniffer
 # http://www.gadgetfactory.net/gf/project/butterflylogic/
 # http://dangerousprototypes.com/open-logic-sniffer/
