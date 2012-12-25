@@ -241,14 +241,18 @@ static GSList *hw_dev_list(void)
 
 static int hw_dev_open(struct sr_dev_inst *sdi)
 {
+
 	/* TODO */
+	(void)sdi;
 
 	return SR_OK;
 }
 
 static int hw_dev_close(struct sr_dev_inst *sdi)
 {
+
 	/* TODO */
+	(void)sdi;
 
 	return SR_OK;
 }
@@ -265,8 +269,12 @@ static int hw_cleanup(void)
 static int hw_info_get(int info_id, const void **data,
 		       const struct sr_dev_inst *sdi)
 {
-	switch (info_id) {
+
 	/* TODO */
+	(void)data;
+	(void)sdi;
+
+	switch (info_id) {
 	default:
 		sr_err("Unknown info_id: %d.", info_id);
 		return SR_ERR_ARG;
@@ -280,6 +288,9 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 {
 	int ret;
 
+	/* TODO */
+	(void)value;
+
 	if (sdi->status != SR_ST_ACTIVE) {
 		sr_err("Device inactive, can't set config options.");
 		return SR_ERR;
@@ -287,7 +298,7 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 
 	ret = SR_OK;
 	switch (hwcap) {
-	/* TODO */
+
 	default:
 		sr_err("Unknown hardware capability: %d.", hwcap);
 		ret = SR_ERR_ARG;
@@ -300,6 +311,8 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 				    void *cb_data)
 {
 	/* TODO */
+	(void)sdi;
+	(void)cb_data;
 
 	return SR_OK;
 }
