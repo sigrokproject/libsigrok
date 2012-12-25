@@ -46,6 +46,9 @@ struct dev_context {
 
 	/** The current number of already received samples. */
 	uint64_t num_samples;
+	struct sr_usb_dev_inst *usb;
+	int usbfd[10];
+	int64_t fw_updated;
 };
 
 SR_PRIV int nexus_osciprime_receive_data(int fd, int revents, void *cb_data);
