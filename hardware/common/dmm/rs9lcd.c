@@ -369,7 +369,7 @@ SR_PRIV int sr_rs9lcd_parse(const uint8_t *buf, float *floatval,
 	case MODE_CONT:
 		analog->mq = SR_MQ_CONTINUITY;
 		analog->unit = SR_UNIT_BOOLEAN;
-		*analog->data = is_shortcirc(rs_packet);
+		rawval = is_shortcirc(rs_packet);
 		break;
 	case MODE_DIODE:
 		analog->mq = SR_MQ_VOLTAGE;
@@ -394,7 +394,7 @@ SR_PRIV int sr_rs9lcd_parse(const uint8_t *buf, float *floatval,
 		} else {
 			/* We have either HI or LOW. */
 			analog->unit = SR_UNIT_BOOLEAN;
-			*analog->data = is_logic_high(rs_packet);
+			rawval = is_logic_high(rs_packet);
 		}
 		break;
 	case MODE_HFE:
@@ -415,7 +415,7 @@ SR_PRIV int sr_rs9lcd_parse(const uint8_t *buf, float *floatval,
 	case MODE_TEMP:
 		analog->mq = SR_MQ_TEMPERATURE;
 		/* We need to reparse. */
-		*analog->data = lcd_to_double(rs_packet, READ_TEMP);
+		rawval = lcd_to_double(rs_packet, READ_TEMP);
 		analog->unit = is_celsius(rs_packet) ?
 				SR_UNIT_CELSIUS : SR_UNIT_FAHRENHEIT;
 		break;
