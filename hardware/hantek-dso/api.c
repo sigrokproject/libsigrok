@@ -53,8 +53,7 @@ static const int hwcaps[] = {
 };
 
 static const char *probe_names[] = {
-	"CH1",
-	"CH2",
+	"CH1", "CH2",
 	NULL,
 };
 

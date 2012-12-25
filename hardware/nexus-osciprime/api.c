@@ -92,8 +92,7 @@ static const struct sr_rational timebases[] = {
 };
 
 static const char *probe_names[] = {
-	"CHA",
-	"CHB",
+	"CHA", "CHB",
 	NULL,
 };
 

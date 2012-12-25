@@ -111,14 +111,7 @@ static const char *pattern_strings[] = {
 
 /* We name the probes 0-7 on our demo driver. */
 static const char *probe_names[NUM_PROBES + 1] = {
-	"0",
-	"1",
-	"2",
-	"3",
-	"4",
-	"5",
-	"6",
-	"7",
+	"0", "1", "2", "3", "4", "5", "6", "7",
 	NULL,
 };
 

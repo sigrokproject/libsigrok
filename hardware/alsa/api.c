@@ -41,8 +41,7 @@ static const int hwcaps[] = {
 };
 
 static const char *probe_names[] = {
-	"Channel 0",
-	"Channel 1",
+	"Channel 0", "Channel 1",
 	NULL,
 };
 

@@ -54,14 +54,7 @@ static const int hwcaps[] = {
  * See also: http://www.linkinstruments.com/images/mso19_1113.gif
  */
 static const char *probe_names[NUM_PROBES + 1] = {
-	"0",
-	"1",
-	"2",
-	"3",
-	"4",
-	"5",
-	"6",
-	"7",
+	"0", "1", "2", "3", "4", "5", "6", "7",
 	NULL,
 };
 

@@ -26,14 +26,7 @@
 
 /* Probes are numbered 0-7. */
 SR_PRIV const char *probe_names[NUM_PROBES + 1] = {
-	"0",
-	"1",
-	"2",
-	"3",
-	"4",
-	"5",
-	"6",
-	"7",
+	"0", "1", "2", "3", "4", "5", "6", "7",
 	NULL,
 };
 

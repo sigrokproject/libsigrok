@@ -42,8 +42,8 @@ static const int hwcaps[] = {
 
 static const char *probe_names[] = {
 	"P1",
+	NULL,
 };
-
 
 /* Properly close and free all devices. */
 static int clear_instances(void)

@@ -64,22 +64,8 @@ static const uint64_t supported_samplerates[] = {
  * (the cable has two additional GND pins, and a TI and TO pin)
  */
 static const char *probe_names[NUM_PROBES + 1] = {
-	"1",
-	"2",
-	"3",
-	"4",
-	"5",
-	"6",
-	"7",
-	"8",
-	"9",
-	"10",
-	"11",
-	"12",
-	"13",
-	"14",
-	"15",
-	"16",
+	"1", "2", "3", "4", "5", "6", "7", "8",
+	"9", "10", "11", "12", "13", "14", "15", "16",
 	NULL,
 };
 
