@@ -45,36 +45,36 @@
 #define sr_err(s, args...) sr_err(DRIVER_LOG_DOMAIN s, ## args)
 
 /* Byte 1 of the packet, and the modes it represents */
-#define IND1_HZ		0x80
-#define IND1_OHM	0x40
-#define IND1_KILO	0x20
-#define IND1_MEGA	0x10
-#define IND1_FARAD	0x08
-#define IND1_AMP	0x04
-#define IND1_VOLT	0x02
-#define IND1_MILI	0x01
+#define IND1_HZ		(1 << 7)
+#define IND1_OHM	(1 << 6)
+#define IND1_KILO	(1 << 5)
+#define IND1_MEGA	(1 << 4)
+#define IND1_FARAD	(1 << 3)
+#define IND1_AMP	(1 << 2)
+#define IND1_VOLT	(1 << 1)
+#define IND1_MILI	(1 << 0)
 /* Byte 2 of the packet, and the modes it represents */
-#define IND2_MICRO	0x80
-#define IND2_NANO	0x40
-#define IND2_DBM	0x20
-#define IND2_SEC	0x10
-#define IND2_DUTY	0x08
-#define IND2_HFE	0x04
-#define IND2_REL	0x02
-#define IND2_MIN	0x01
+#define IND2_MICRO	(1 << 7)
+#define IND2_NANO	(1 << 6)
+#define IND2_DBM	(1 << 5)
+#define IND2_SEC	(1 << 4)
+#define IND2_DUTY	(1 << 3)
+#define IND2_HFE	(1 << 2)
+#define IND2_REL	(1 << 1)
+#define IND2_MIN	(1 << 0)
 /* Byte 7 of the packet, and the modes it represents */
-#define INFO_BEEP	0x80
-#define INFO_DIODE	0x30
-#define INFO_BAT	0x20
-#define INFO_HOLD	0x10
-#define INFO_NEG	0x08
-#define INFO_AC		0x04
-#define INFO_RS232	0x02
-#define INFO_AUTO	0x01
+#define INFO_BEEP	(1 << 7)
+#define INFO_DIODE	(1 << 6)
+#define INFO_BAT	(1 << 5)
+#define INFO_HOLD	(1 << 4)
+#define INFO_NEG	(1 << 3)
+#define INFO_AC		(1 << 2)
+#define INFO_RS232	(1 << 1)
+#define INFO_AUTO	(1 << 0)
 /* Instead of a decimal point, digit 4 carries the MAX flag */
-#define DIG4_MAX	0x08
+#define DIG4_MAX	(1 << 3)
 /* Mask to remove the decimal point from a digit */
-#define DP_MASK		0x08
+#define DP_MASK		(1 << 3)
 
 /* What the LCD values represent */
 #define LCD_0		0xd7
@@ -110,20 +110,20 @@ enum {
 	MODE_OHM	= 8,
 	MODE_FARAD	= 9,
 	MODE_HZ		= 10,
-	MODE_VOLT_HZ	= 11,
-	MODE_AMP_HZ	= 12,
+	MODE_VOLT_HZ	= 11,	/* Dial set to V, Hz selected by Hz button */
+	MODE_AMP_HZ	= 12,	/* Dial set to A, Hz selected by Hz button */
 	MODE_DUTY	= 13,
-	MODE_VOLT_DUTY	= 14,
-	MODE_AMP_DUTY	= 15,
+	MODE_VOLT_DUTY	= 14,	/* Dial set to V, duty cycle selected */
+	MODE_AMP_DUTY	= 15,	/* Dial set to A, duty cycle selected */
 	MODE_WIDTH	= 16,
-	MODE_VOLT_WIDTH	= 17,
-	MODE_AMP_WIDTH	= 18,
+	MODE_VOLT_WIDTH	= 17,	/* Dial set to V, pulse width selected */
+	MODE_AMP_WIDTH	= 18,	/* Dial set to A, pulse width selected */
 	MODE_DIODE	= 19,
 	MODE_CONT	= 20,
 	MODE_HFE	= 21,
 	MODE_LOGIC	= 22,
 	MODE_DBM	= 23,
-	// MODE_EF	= 24,
+	/* MODE_EF	= 24, */ /* Not encountered on any DMM */
 	MODE_TEMP	= 25,
 	MODE_INVALID	= 26,
 };
@@ -344,15 +344,15 @@ SR_PRIV int sr_rs9lcd_parse(const uint8_t *buf, float *floatval,
 		analog->unit = SR_UNIT_VOLT;
 		analog->mqflags |= SR_MQFLAG_AC;
 		break;
-	case MODE_DC_UA:
-	case MODE_DC_MA:
+	case MODE_DC_UA:	/* Fall through */
+	case MODE_DC_MA:	/* Fall through */
 	case MODE_DC_A:
 		analog->mq = SR_MQ_CURRENT;
 		analog->unit = SR_UNIT_AMPERE;
 		analog->mqflags |= SR_MQFLAG_DC;
 		break;
-	case MODE_AC_UA:
-	case MODE_AC_MA:
+	case MODE_AC_UA:	/* Fall through */
+	case MODE_AC_MA:	/* Fall through */
 	case MODE_AC_A:
 		analog->mq = SR_MQ_CURRENT;
 		analog->unit = SR_UNIT_AMPERE;
@@ -376,8 +376,8 @@ SR_PRIV int sr_rs9lcd_parse(const uint8_t *buf, float *floatval,
 		analog->unit = SR_UNIT_VOLT;
 		analog->mqflags |= SR_MQFLAG_DIODE | SR_MQFLAG_DC;
 		break;
-	case MODE_HZ:
-	case MODE_VOLT_HZ:
+	case MODE_HZ:		/* Fall through */
+	case MODE_VOLT_HZ:	/* Fall through */
 	case MODE_AMP_HZ:
 		analog->mq = SR_MQ_FREQUENCY;
 		analog->unit = SR_UNIT_HERTZ;
@@ -401,14 +401,14 @@ SR_PRIV int sr_rs9lcd_parse(const uint8_t *buf, float *floatval,
 		analog->mq = SR_MQ_GAIN;
 		analog->unit = SR_UNIT_UNITLESS;
 		break;
-	case MODE_DUTY:
-	case MODE_VOLT_DUTY:
+	case MODE_DUTY:		/* Fall through */
+	case MODE_VOLT_DUTY:	/* Fall through */
 	case MODE_AMP_DUTY:
 		analog->mq = SR_MQ_DUTY_CYCLE;
 		analog->unit = SR_UNIT_PERCENTAGE;
 		break;
-	case MODE_WIDTH:
-	case MODE_VOLT_WIDTH:
+	case MODE_WIDTH:	/* Fall through */
+	case MODE_VOLT_WIDTH:	/* Fall through */
 	case MODE_AMP_WIDTH:
 		analog->mq = SR_MQ_PULSE_WIDTH;
 		analog->unit = SR_UNIT_SECOND;
