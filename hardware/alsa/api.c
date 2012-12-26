@@ -28,10 +28,6 @@
 #include <unistd.h>
 #include <string.h>
 
-#define DEFAULT_PROBES		2
-#define SAMPLE_WIDTH		16
-#define DEFAULT_SAMPLERATE	44100
-
 static const int hwcaps[] = {
 	SR_HWCAP_SAMPLERATE,
 	SR_HWCAP_LIMIT_SAMPLES,
@@ -171,6 +167,13 @@ static int hw_info_get(int info_id, const void **data,
 	case SR_DI_CUR_SAMPLERATE:
 		*data = &devc->cur_samplerate;
 		break;
+	case SR_DI_SAMPLERATES:
+		if (!devc->supp_rates.list) {
+			sr_err("Instance did not contain a samplerate list");
+			return SR_ERR_ARG;
+		}
+		*data = &devc->supp_rates;
+		break;
 	default:
 		sr_err("Invalid info_id: %d.", info_id);
 		return SR_ERR_ARG;
@@ -188,7 +191,7 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 
 	switch (hwcap) {
 	case SR_HWCAP_SAMPLERATE:
-		devc->cur_samplerate = *(const uint64_t *)value;
+		alsa_set_samplerate(sdi, *(const uint64_t *)value);
 		break;
 	case SR_HWCAP_LIMIT_SAMPLES:
 		devc->limit_samples = *(const uint64_t *)value;

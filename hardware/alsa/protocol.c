@@ -24,6 +24,34 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
+/*
+ * There is no way to get a list of supported samplerates from ALSA. We could
+ * use the 'plughw' interface of ALSA, in which case any format and/or
+ * samplerate conversion would be performed by ALSA. However, we are interested
+ * in the hardware capabilities, and have the infrastructure in sigrok to do so.
+ * We therefore use the 'hw' interface. The downside is that the code gets a
+ * little bulkier, as we have to keep track of the hardware capabilities, and
+ * only use those that the hardware supports. Case in point, ALSA will not give
+ * us a list of capabilities; we have to test for each one individually. Hence,
+ * we keep lists of the capabilities we are interested in.
+ */
+static const unsigned int rates[] = {
+	5512,
+	8000,
+	11025,
+	16000,
+	22050,
+	32000,
+	44100,
+	48000,
+	64000,
+	88200,
+	96000,
+	176400,
+	192000,
+	384000, /* Yes, there are sound cards that go this high */
+};
+
 static void alsa_scan_handle_dev(GSList **devices,
 				 const char *cardname, const char *alsaname,
 				 struct sr_dev_driver *di,
@@ -34,17 +62,20 @@ static void alsa_scan_handle_dev(GSList **devices,
 	struct dev_context *devc = NULL;
 	struct sr_probe *probe;
 	int ret;
-	unsigned int i, channels;
+	unsigned int i, offset, channels, minrate, maxrate, rate;
+	uint64_t hwrates[ARRAY_SIZE(rates)];
+	uint64_t *devrates = NULL;
 	snd_pcm_t *temp_handle = NULL;
 	snd_pcm_hw_params_t *hw_params = NULL;
 
 	drvc = di->priv;
 
 	/*
-	 * Get the number of input channels. Those are our sigrok probes.
-	 * Getting this information needs a detour. We need to open the device,
-	 * then query it for the number of channels. A side-effect of is that we
-	 * create a snd_pcm_hw_params_t object. We take advantage of the
+	 * Get hardware parameters:
+	 * The number of channels, for example, are our sigrok probes. Getting
+	 * this information needs a detour. We need to open the device, then
+	 * query it and/or test different parameters. A side-effect of is that
+	 * we create a snd_pcm_hw_params_t object. We take advantage of the
 	 * situation, and pass this object in our dev_context->hw_params,
 	 * eliminating the need to free() it and malloc() it later.
 	 */
@@ -70,12 +101,33 @@ static void alsa_scan_handle_dev(GSList **devices,
 
 	snd_pcm_hw_params_get_channels_max(hw_params, &channels);
 
+	/*
+	 * We need to test if each samplerate between min and max is supported.
+	 * Unfortunately, ALSA won't just throw a list at us.
+	 */
+	snd_pcm_hw_params_get_rate_min(hw_params, &minrate, 0);
+	snd_pcm_hw_params_get_rate_max(hw_params, &maxrate, 0);
+	for (i = 0, offset = 0; i < ARRAY_SIZE(rates); i++)
+	{
+		rate = rates[i];
+		if (rate < minrate)
+			continue;
+		if (rate > maxrate)
+			break;
+		ret = snd_pcm_hw_params_test_rate(temp_handle, hw_params,
+						  rate, 0);
+		if (ret >= 0)
+			hwrates[offset++] = rate;
+	}
+	hwrates[offset++] = 0;
+
 	snd_pcm_close(temp_handle);
 	temp_handle = NULL;
 
 	/*
-	 * Now we are done querying the number of channels
-	 * If we made it here, then it's time to create our sigrok device.
+	 * Now we are done querying the hardware parameters.
+	 * If we made it here, we know everything we want to know, and it's time
+	 * to create our sigrok device.
 	 */
 	sr_info("Device %s has %d channels.", alsaname, channels);
 	if (!(sdi = sr_dev_inst_new(0, SR_ST_INACTIVE, "ALSA:",
@@ -87,10 +139,17 @@ static void alsa_scan_handle_dev(GSList **devices,
 		sr_err("Device context malloc failed.");
 		goto scan_error_cleanup;
 	}
+	if (!(devrates = g_try_malloc(offset * sizeof(uint64_t)))) {
+		sr_err("Samplerate list malloc failed.");
+		goto scan_error_cleanup;
+	}
 
 	devc->hwdev = g_strdup(alsaname);
 	devc->num_probes = channels;
 	devc->hw_params = hw_params;
+	memcpy(devrates, hwrates, offset * sizeof(uint64_t));
+	devc->supp_rates.list = devrates;
+
 	sdi->priv = devc;
 	sdi->driver = di;
 
@@ -112,6 +171,8 @@ scan_error_cleanup:
 			g_free((void*)devc->hwdev);
 		g_free(devc);
 	}
+	if (devrates)
+		g_free(devrates);
 	if (sdi)
 		sr_dev_inst_free(sdi);
 	if (hw_params)
@@ -221,7 +282,48 @@ SR_PRIV void alsa_dev_inst_clear(struct sr_dev_inst *sdi)
 		return;
 
 	snd_pcm_hw_params_free(devc->hw_params);
+	g_free((void*)devc->supp_rates.list);
 	sr_dev_inst_free(sdi);
+}
+
+/*
+ * Sets the samplerate of the ALSA device
+ *
+ * Changes the samplerate of the given ALSA device if the specified samplerate
+ * is supported by the hardware.
+ * The new samplerate is recorded, but it is not applied to the hardware. The
+ * samplerate is applied to the hardware only when acquisition is started via
+ * dev_acquisition_start(), and cannot be changed during acquisition. To change
+ * the samplerate, several steps are needed:
+ *    1) If acquisition is running, it must first be stopped.
+ *    2) dev_config_set() must be called with the new samplerate.
+ *    3) When starting a new acquisition, the new samplerate is applied.
+ */
+SR_PRIV int alsa_set_samplerate(const struct sr_dev_inst *sdi,
+				const uint64_t newrate)
+{
+	struct dev_context *devc;
+	size_t i;
+	uint64_t rate = 0;
+
+	if (!(devc = sdi->priv))
+		return SR_ERR_ARG;
+
+	i = 0;
+	do {
+		if (newrate == devc->supp_rates.list[i]) {
+			rate = newrate;
+			break;
+		}
+	} while (devc->supp_rates.list[i++] != 0);
+
+	if (!rate) {
+		sr_err("Sample rate " PRIu64 " not supported.", newrate);
+		return SR_ERR_ARG;
+	}
+
+	devc->cur_samplerate = rate;
+	return SR_OK;
 }
 
 SR_PRIV int alsa_receive_data(int fd, int revents, void *cb_data)
