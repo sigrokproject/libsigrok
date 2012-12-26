@@ -194,11 +194,9 @@ int tondaj_sl_814_receive_data(int fd, int revents, void *cb_data)
 	}
 
 	/* Stop acquisition if we acquired enough samples. */
-	if (devc->limit_samples > 0) {
-		if (devc->num_samples >= devc->limit_samples) {
-			sr_info("Requested number of samples reached.");
-			sdi->driver->dev_acquisition_stop(sdi, cb_data);
-		}
+	if (devc->limit_samples && devc->num_samples >= devc->limit_samples) {
+		sr_info("Requested number of samples reached.");
+		sdi->driver->dev_acquisition_stop(sdi, cb_data);
 	}
 
 	return TRUE;

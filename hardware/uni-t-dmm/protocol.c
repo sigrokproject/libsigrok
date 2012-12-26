@@ -264,7 +264,7 @@ static int uni_t_dmm_receive_data(int fd, int revents, int dmm, void *cb_data)
 	}
 
 	/* Abort acquisition if we acquired enough samples. */
-	if (devc->num_samples >= devc->limit_samples && devc->limit_samples > 0) {
+	if (devc->limit_samples && devc->num_samples >= devc->limit_samples) {
 		sr_info("Requested number of samples reached.");
 		sdi->driver->dev_acquisition_stop(sdi, cb_data);
 	}

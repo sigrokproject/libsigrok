@@ -382,11 +382,8 @@ static int receive_data(int fd, int revents, void *cb_data)
 		devc->samples_counter += sending_now;
 	}
 
-
-	if (devc->samples_counter >= limit_samples) {
-		sr_spew("We sent a total of %" PRIu64 " samples.",
-			devc->samples_counter);
-		/* Make sure we don't receive more packets. */
+	if (limit_samples && devc->samples_counter >= limit_samples) {
+		sr_info("Requested number of samples reached.");
 		hw_dev_acquisition_stop(NULL, cb_data);
 		return TRUE;
 	}
