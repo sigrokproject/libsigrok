@@ -279,8 +279,8 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 
 	sr_dbg("Setting audio samplerate to %" PRIu64 "Hz.",
 	       devc->cur_samplerate);
-	ret = snd_pcm_hw_params_set_rate_near(devc->capture_handle,
-		devc->hw_params, (unsigned int *)&devc->cur_samplerate, 0);
+	ret = snd_pcm_hw_params_set_rate(devc->capture_handle, devc->hw_params,
+					 (unsigned int)devc->cur_samplerate, 0);
 	if (ret < 0) {
 		sr_err("Can't set audio sample rate: %s.", snd_strerror(ret));
 		return SR_ERR;
