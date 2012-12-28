@@ -19,7 +19,7 @@
 
 #include "protocol.h"
 
-SR_PRIV struct sr_dev_driver ols_driver_info;
+extern SR_PRIV struct sr_dev_driver ols_driver_info;
 static struct sr_dev_driver *di = &ols_driver_info;
 
 SR_PRIV int send_shortcommand(struct sr_serial_dev_inst *serial,
