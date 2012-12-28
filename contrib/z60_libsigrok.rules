@@ -95,6 +95,34 @@ ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="8613", MODE="664", GROUP="plugdev"
 ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="2090", MODE="664", GROUP="plugdev"
 ATTRS{idVendor}=="04b5", ATTRS{idProduct}=="2090", MODE="664", GROUP="plugdev"
 
+# Hantek DSO-2150
+# http://www.hantek.com.cn/english/produce_list.asp?unid=63
+# lsusb: "04b4:2150 Cypress Semiconductor Corp."
+# lsusb after FW upload: "04b5:2150 ROHM LSI Systems USA, LLC"
+ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="2150", MODE="664", GROUP="plugdev"
+ATTRS{idVendor}=="04b5", ATTRS{idProduct}=="2150", MODE="664", GROUP="plugdev"
+
+# Hantek DSO-2250
+# http://www.hantek.com.cn/english/produce_list.asp?unid=64
+# lsusb: "04b4:2250 Cypress Semiconductor Corp."
+# lsusb after FW upload: "04b5:2250 ROHM LSI Systems USA, LLC"
+ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="2250", MODE="664", GROUP="plugdev"
+ATTRS{idVendor}=="04b5", ATTRS{idProduct}=="2250", MODE="664", GROUP="plugdev"
+
+# Hantek DSO-5200
+# http://www.hantek.com.cn/english/produce_list.asp?unid=27
+# lsusb: "04b4:5200 Cypress Semiconductor Corp."
+# lsusb after FW upload: "04b5:5200 ROHM LSI Systems USA, LLC"
+ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="5200", MODE="664", GROUP="plugdev"
+ATTRS{idVendor}=="04b5", ATTRS{idProduct}=="5200", MODE="664", GROUP="plugdev"
+
+# Hantek DSO-5200A
+# http://www.hantek.com.cn/english/produce_list.asp?unid=66
+# lsusb: "04b4:520a Cypress Semiconductor Corp."
+# lsusb after FW upload: "04b5:520a ROHM LSI Systems USA, LLC"
+ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="520a", MODE="664", GROUP="plugdev"
+ATTRS{idVendor}=="04b5", ATTRS{idProduct}=="520a", MODE="664", GROUP="plugdev"
+
 # Ideofy LA-08
 # http://www.ideofy.com/la-08_en
 # lsusb: "1fff:0100" (no string for the vendor name available)
