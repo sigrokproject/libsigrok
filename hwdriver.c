@@ -83,6 +83,9 @@ extern SR_PRIV struct sr_dev_driver nexus_osciprime_driver_info;
 #ifdef HAVE_LA_OLS
 extern SR_PRIV struct sr_dev_driver ols_driver_info;
 #endif
+#ifdef HAVE_HW_RIGOL_DS1XX2
+extern SR_PRIV struct sr_dev_driver rigol_ds1xx2_driver_info;
+#endif
 #ifdef HAVE_HW_TONDAJ_SL_814
 extern SR_PRIV struct sr_dev_driver tondaj_sl_814_driver_info;
 #endif
@@ -153,6 +156,9 @@ static struct sr_dev_driver *drivers_list[] = {
 #endif
 #ifdef HAVE_LA_OLS
 	&ols_driver_info,
+#endif
+#ifdef HAVE_HW_RIGOL_DS1XX2
+	&rigol_ds1xx2_driver_info,
 #endif
 #ifdef HAVE_HW_TONDAJ_SL_814
 	&tondaj_sl_814_driver_info,

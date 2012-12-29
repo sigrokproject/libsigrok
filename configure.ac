@@ -195,6 +195,15 @@ if test "x$LA_OLS" = "xyes"; then
 	AC_DEFINE(HAVE_LA_OLS, 1, [OpenBench Logic Sniffer (OLS) support])
 fi
 
+AC_ARG_ENABLE(rigol-ds1xx2, AC_HELP_STRING([--enable-rigol-ds1xx2],
+	[enable Rigol DS1xx2 support [default=yes]]),
+	[HW_RIGOL_DS1XX2="$enableval"],
+	[HW_RIGOL_DS1XX2=yes])
+AM_CONDITIONAL(HW_RIGOL_DS1XX2, test x$HW_RIGOL_DS1XX2 = xyes)
+if test "x$HW_RIGOL_DS1XX2" = "xyes"; then
+	AC_DEFINE(HAVE_HW_RIGOL_DS1XX2, 1, [Rigol DS1xx2 support])
+fi
+
 AC_ARG_ENABLE(serial-dmm, AC_HELP_STRING([--enable-serial-dmm],
 	      [enable serial DMM support [default=yes]]),
 	      [HW_SERIAL_DMM="$enableval"],
@@ -373,6 +382,7 @@ AC_CONFIG_FILES([Makefile version.h hardware/Makefile
 		 hardware/common/Makefile
 		 hardware/lascar-el-usb/Makefile
 		 hardware/nexus-osciprime/Makefile
+		 hardware/rigol-ds1xx2/Makefile
 		 hardware/tondaj-sl-814/Makefile
 		 hardware/victor-dmm/Makefile
 		 hardware/common/dmm/Makefile
@@ -429,6 +439,7 @@ echo "  - Lascar EL-USB................... $HW_LASCAR_EL_USB"
 echo "  - Link MSO-19..................... $LA_LINK_MSO19"
 echo "  - Nexus Osciprime................. $HW_NEXUS_OSCIPRIME"
 echo "  - Openbench Logic Sniffer......... $LA_OLS"
+echo "  - Rigol DS1xx2.................... $HW_RIGOL_DS1XX2"
 echo "  - Serial DMM...................... $HW_SERIAL_DMM"
 echo "  - Tondaj SL-814................... $HW_TONDAJ_SL_814"
 echo "  - UNI-T DMM....................... $HW_UNI_T_DMM"

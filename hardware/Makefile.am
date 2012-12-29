@@ -33,6 +33,7 @@ SUBDIRS = \
 	link-mso19 \
 	nexus-osciprime \
 	openbench-logic-sniffer \
+	rigol-ds1xx2 \
 	serial-dmm \
 	tondaj-sl-814 \
 	uni-t-dmm \
@@ -96,6 +97,10 @@ endif
 
 if LA_OLS
 libsigrokhardware_la_LIBADD += openbench-logic-sniffer/libsigrokhwols.la
+endif
+
+if HW_RIGOL_DS1XX2
+libsigrokhardware_la_LIBADD += rigol-ds1xx2/libsigrok_hw_rigol_ds1xx2.la
 endif
 
 if HW_SERIAL_DMM
