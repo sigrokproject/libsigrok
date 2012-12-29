@@ -120,10 +120,8 @@ static GSList *hw_scan(GSList *options)
 			break;
 		}
 	}
-	if (!conn) {
-		sr_dbg("Couldn't determine connection options.");
+	if (!conn)
 		return NULL;
-	}
 	if (!serialcomm)
 		serialcomm = SERIALCOMM;
 
