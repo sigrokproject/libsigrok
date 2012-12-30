@@ -61,6 +61,9 @@ struct dev_context {
 	/** Current offset setting. */
 	float offset;
 
+	/** Path to USBTMC character device file. */
+	char *device;
+
 	/** USBTMC character device file descriptor. */
 	int fd;
 };

@@ -137,6 +137,7 @@ static int clear_instances(void)
 		if (!(devc = sdi->priv))
 			continue;
 
+		g_free(devc->device);
 		close(devc->fd);
 
 		sr_dev_inst_free(sdi);
@@ -170,6 +171,21 @@ static GSList *hw_scan(GSList *options)
 	struct dev_context *devc;
 	struct sr_probe *probe;
 	GSList *devices;
+	GDir *dir;
+	const gchar *dev_name;
+	const gchar *dev_dir = "/dev/";
+	const gchar *prefix = "usbtmc";
+	gchar *device;
+	const gchar *idn_query = "*IDN?";
+	gchar *idn_reply;
+	const gchar *idn_reply_prefix = "*IDN ";
+	int len;
+	const gchar *delimiter = ",";
+	gchar **tokens;
+	int num_tokens;
+	int fd;
+	char buf[256];
+
 	int i;
 
 	(void)options;
@@ -178,22 +194,66 @@ static GSList *hw_scan(GSList *options)
 	drvc = di->priv;
 	drvc->instances = NULL;
 
-	if (!(sdi = sr_dev_inst_new(0, SR_ST_ACTIVE, "Rigol", "DS1xx2", NULL)))
-		return NULL;
-	if (!(devc = g_try_malloc0(sizeof(struct dev_context))))
+	dir = g_dir_open("/sys/class/usb/", 0, NULL);
+
+	if (dir == NULL)
 		return NULL;
 
-	sdi->priv = devc;
-	sdi->driver = di;
-
-	for (i = 0; i < 2; i++)
+	while ((dev_name = g_dir_read_name(dir)) != NULL)
 	{
-		if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, i == 0 ? "CH1" : "CH2")))
+		if (strncmp(dev_name, prefix, strlen(prefix))) 
+			continue;
+
+		device = g_strconcat(dev_dir, dev_name, NULL);
+
+		fd = open(device, O_RDWR);
+		len = write(fd, idn_query, strlen(idn_query));
+		len = read(fd, buf, sizeof(buf));
+		close(fd);
+		if (len == 0)
+		{
+			g_free(device);
 			return NULL;
-		sdi->probes = g_slist_append(sdi->probes, probe);
+		}
+
+		buf[len] = 0;
+		tokens = g_strsplit(buf, delimiter, 0);
+		close(fd);
+
+		for (num_tokens = 0; tokens[num_tokens] != NULL; num_tokens++);
+
+		if (!(sdi = sr_dev_inst_new(0, SR_ST_ACTIVE, tokens[0],
+			num_tokens > 1 ? tokens[1] : NULL, num_tokens > 3 ? tokens[3] : NULL)))
+		{
+			g_strfreev(tokens);
+			g_free(device);
+			return NULL;
+		}
+		g_strfreev(tokens);
+
+		if (!(devc = g_try_malloc0(sizeof(struct dev_context))))
+		{
+			g_free(device);
+			return NULL;
+		}
+
+		devc->device = device;
+
+		sdi->priv = devc;
+		sdi->driver = di;
+
+		for (i = 0; i < 2; i++)
+		{
+			if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, i == 0 ? "CH1" : "CH2")))
+				return NULL;
+			sdi->probes = g_slist_append(sdi->probes, probe);
+		}
+
+		drvc->instances = g_slist_append(drvc->instances, sdi);
+		devices = g_slist_append(devices, sdi);
 	}
-	drvc->instances = g_slist_append(drvc->instances, sdi);
-	devices = g_slist_append(devices, sdi);
+
+	g_dir_close(dir);
 
 	return devices;
 }
@@ -209,12 +269,13 @@ static GSList *hw_dev_list(void)
 
 static int hw_dev_open(struct sr_dev_inst *sdi)
 {
-	int fd = open("/dev/usbtmc1", O_RDWR);
+	struct dev_context *devc = sdi->priv;
+
+	int fd = open(devc->device, O_RDWR);
 
 	if (fd == -1)
 		return SR_ERR;
 
-	struct dev_context *devc = sdi->priv;
 	devc->fd = fd;
 
 	devc->scale = 1;
