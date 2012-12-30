@@ -33,8 +33,13 @@
 #define sr_warn(s, args...) sr_warn(DRIVER_LOG_DOMAIN s, ## args)
 #define sr_err(s, args...) sr_err(DRIVER_LOG_DOMAIN s, ## args)
 
+#define WAVEFORM_SIZE 600
+
 /** Private, per-device-instance driver context. */
 struct dev_context {
+	/** The current frame limit */
+	uint64_t limit_frames;
+
 	/** The current sampling limit (in number of samples). */
 	uint64_t limit_samples;
 
@@ -44,10 +49,24 @@ struct dev_context {
 	/** Opaque pointer passed in by the frontend. */
 	void *cb_data;
 
+	/** The current number of already received frames. */
+	uint64_t num_frames;
+
 	/** The current number of already received samples. */
 	uint64_t num_samples;
+
+	/** Current scale setting. */
+	float scale;
+
+	/** Current offset setting. */
+	float offset;
+
+	/** USBTMC character device file descriptor. */
+	int fd;
 };
 
 SR_PRIV int rigol_ds1xx2_receive_data(int fd, int revents, void *cb_data);
+
+SR_PRIV int rigol_ds1xx2_send_data(int fd, const char *format, ...);
 
 #endif
