@@ -295,7 +295,7 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		break;
 	case SR_HWCAP_TRIGGER_SLOPE:
 		tmp_u64 = *(const int *)value;
-		rigol_ds1xx2_send_data(devc->fd, ":TRIG:EDGE:%s\n", tmp_u64 ? "POS" : "NEG");
+		rigol_ds1xx2_send_data(devc->fd, ":TRIG:EDGE:SLOP %s\n", tmp_u64 ? "POS" : "NEG");
 		break;
 	case SR_HWCAP_HORIZ_TRIGGERPOS:
 		tmp_float = *(const float *)value;
@@ -315,9 +315,11 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		else if (!strcmp(value, "AC Line"))
 			channel = "ACL";
 		else
+		{
 			ret = SR_ERR_ARG;
 			break;
-		rigol_ds1xx2_send_data(devc->fd, ":TRIG:SOUR %s\n", channel);
+		}
+		rigol_ds1xx2_send_data(devc->fd, ":TRIG:EDGE:SOUR %s\n", channel);
 		break;
 	case SR_HWCAP_VDIV:
 		/* TODO: Not supporting vdiv per channel yet. */
