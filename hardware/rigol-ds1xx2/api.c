@@ -295,15 +295,15 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		break;
 	case SR_HWCAP_TRIGGER_SLOPE:
 		tmp_u64 = *(const int *)value;
-		rigol_ds1xx2_send_data(devc->fd, "TRIG:EDGE:%s\n", tmp_u64 ? "POS" : "NEG");
+		rigol_ds1xx2_send_data(devc->fd, ":TRIG:EDGE:%s\n", tmp_u64 ? "POS" : "NEG");
 		break;
 	case SR_HWCAP_HORIZ_TRIGGERPOS:
 		tmp_float = *(const float *)value;
-		rigol_ds1xx2_send_data(devc->fd, "TIM:OFFS %f\n", tmp_float);
+		rigol_ds1xx2_send_data(devc->fd, ":TIM:OFFS %.9f\n", tmp_float);
 		break;
 	case SR_HWCAP_TIMEBASE:
 		tmp_rat = *(const struct sr_rational *)value;
-		rigol_ds1xx2_send_data(devc->fd, "TIM:SCAL %f\n", (float) tmp_rat.p / tmp_rat.q);
+		rigol_ds1xx2_send_data(devc->fd, ":TIM:SCAL %.9f\n", (float) tmp_rat.p / tmp_rat.q);
 		break;
 	case SR_HWCAP_TRIGGER_SOURCE:
 		if (!strcmp(value, "CH1"))
@@ -317,7 +317,7 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		else
 			ret = SR_ERR_ARG;
 			break;
-		rigol_ds1xx2_send_data(devc->fd, "TRIG:SOUR %s\n", channel);
+		rigol_ds1xx2_send_data(devc->fd, ":TRIG:SOUR %s\n", channel);
 		break;
 	case SR_HWCAP_VDIV:
 		/* TODO: Not supporting vdiv per channel yet. */
@@ -327,7 +327,7 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 					&& vdivs[i].q == tmp_rat.q) {
 				devc->scale = (float) tmp_rat.p / tmp_rat.q;
 				for (j = 0; j < 2; j++)
-					rigol_ds1xx2_send_data(devc->fd, "CHAN%d:SCAL %f\n", j, devc->scale);
+					rigol_ds1xx2_send_data(devc->fd, ":CHAN%d:SCAL %.3f\n", j, devc->scale);
 				break;
 			}
 		}
@@ -339,7 +339,7 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		for (i = 0; coupling[i]; i++) {
 			if (!strcmp(value, coupling[i])) {
 				for (j = 0; j < 2; j++)
-					rigol_ds1xx2_send_data(devc->fd, "CHAN%d:COUP %s\n", j, coupling[i]);
+					rigol_ds1xx2_send_data(devc->fd, ":CHAN%d:COUP %s\n", j, coupling[i]);
 				break;
 			}
 		}
@@ -386,12 +386,12 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	len = read(devc->fd, buf, sizeof(buf));
 	buf[len] = 0;
 	devc->scale = atof(buf);
-	sr_dbg("scale is %f", devc->scale);
+	sr_dbg("scale is %.3f", devc->scale);
 	rigol_ds1xx2_send_data(devc->fd, ":CHAN1:OFFS?\n");
 	len = read(devc->fd, buf, sizeof(buf));
 	buf[len] = 0;
 	devc->offset = atof(buf);
-	sr_dbg("offset is %f", devc->offset);
+	sr_dbg("offset is %.6f", devc->offset);
 	rigol_ds1xx2_send_data(devc->fd, ":WAV:DATA?\n");
 
 	return SR_OK;
