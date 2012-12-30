@@ -29,6 +29,10 @@
 #define CONN_USB_VIDPID  "^([0-9a-z]{1,4})\\.([0-9a-z]{1,4})$"
 #define CONN_USB_BUSADDR "^(\\d+)\\.(\\d+)$"
 
+/* Some USBTMC-specific enums, as defined in the USBTMC standard. */
+#define SUBCLASS_USBTMC 0x03
+#define USBTMC_USB488   0x01
+
 /* Message logging helpers with driver-specific prefix string. */
 #define DRIVER_LOG_DOMAIN "usb: "
 #define sr_log(l, s, args...) sr_log(l, DRIVER_LOG_DOMAIN s, ## args)
@@ -135,6 +139,62 @@ SR_PRIV GSList *sr_usb_find(libusb_context *usb_ctx, const char *conn)
 
 	sr_dbg("Found %d device(s).", g_slist_length(devices));
 	
+	return devices;
+}
+
+/**
+ * Find USB devices supporting the USBTMC class
+ *
+ * @param usb_ctx libusb context to use while scanning.
+ *
+ * @return A GSList of struct sr_usb_dev_inst, with bus and address fields
+ * indicating devices with USBTMC support.
+ */
+SR_PRIV GSList *sr_usb_find_usbtmc(libusb_context *usb_ctx)
+{
+	struct sr_usb_dev_inst *usb;
+	struct libusb_device **devlist;
+	struct libusb_device_descriptor des;
+	struct libusb_config_descriptor *confdes;
+	const struct libusb_interface_descriptor *intfdes;
+	GSList *devices;
+	int confidx, intfidx, ret, i;
+
+	devices = NULL;
+	libusb_get_device_list(usb_ctx, &devlist);
+	for (i = 0; devlist[i]; i++) {
+		if ((ret = libusb_get_device_descriptor(devlist[i], &des))) {
+			sr_err("Failed to get device descriptor: %s.",
+			       libusb_error_name(ret));
+			continue;
+		}
+
+		for (confidx = 0; confidx < des.bNumConfigurations; confidx++) {
+			if (libusb_get_config_descriptor(devlist[i], confidx, &confdes) != 0) {
+				sr_err("Failed to get configuration descriptor.");
+				break;
+			}
+			for (intfidx = 0; intfidx < confdes->bNumInterfaces; intfidx++) {
+				intfdes = confdes->interface[intfidx].altsetting;
+				if (intfdes->bInterfaceClass != LIBUSB_CLASS_APPLICATION
+						|| intfdes->bInterfaceSubClass != SUBCLASS_USBTMC
+						|| intfdes->bInterfaceProtocol != USBTMC_USB488)
+					continue;
+				sr_dbg("Found USBTMC device (VID:PID = %04x:%04x, bus.address = "
+					   "%d.%d).", des.idVendor, des.idProduct,
+					   libusb_get_bus_number(devlist[i]),
+					   libusb_get_device_address(devlist[i]));
+
+				usb = sr_usb_dev_inst_new(libusb_get_bus_number(devlist[i]),
+						libusb_get_device_address(devlist[i]), NULL);
+				devices = g_slist_append(devices, usb);
+			}
+		}
+	}
+	libusb_free_device_list(devlist, 1);
+
+	sr_dbg("Found %d device(s).", g_slist_length(devices));
+
 	return devices;
 }
 
