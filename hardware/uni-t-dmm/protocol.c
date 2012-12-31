@@ -77,6 +77,7 @@ static void decode_packet(struct dev_context *devc, int dmm, const uint8_t *buf)
 	memset(&analog, 0, sizeof(struct sr_datafeed_analog));
 
 	/* Parse the protocol packet. */
+	ret = SR_ERR;
 	if (dmm == UNI_T_UT61D)
 		ret = sr_dmm_parse_fs9922(buf, &floatval, &analog);
 	else if (dmm == VOLTCRAFT_VC820)
