@@ -262,7 +262,7 @@ static uint8_t decode_digit(uint8_t raw_digit)
 
 static double lcd_to_double(const struct rs9lcd_packet *rs_packet, int type)
 {
-	double rawval, multiplier = 1;
+	double rawval = 0, multiplier = 1;
 	uint8_t digit, raw_digit;
 	gboolean dp_reached = FALSE;
 	int i, end;
