@@ -70,6 +70,7 @@ static void decode_buf(struct dev_context *devc, unsigned char *data)
 	}
 
 	/* Decimal point position */
+	factor = 0;
 	switch (data[7] >> 4) {
 	case 0x00:
 		factor = 0;
