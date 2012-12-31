@@ -648,6 +648,8 @@ static int set_samplerate(const struct sr_dev_inst *sdi, uint64_t samplerate)
 	int i, ret;
 	struct dev_context *devc = sdi->priv;
 
+	ret = SR_OK;
+
 	for (i = 0; supported_samplerates[i]; i++) {
 		if (supported_samplerates[i] == samplerate)
 			break;
@@ -1278,7 +1280,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	struct sr_datafeed_meta_logic meta;
 	struct clockselect_50 clockselect;
 	int frac, triggerpin, ret;
-	uint8_t triggerselect;
+	uint8_t triggerselect = 0;
 	struct triggerinout triggerinout_conf;
 	struct triggerlut lut;
 
