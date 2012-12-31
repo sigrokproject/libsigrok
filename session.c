@@ -271,6 +271,7 @@ SR_API int sr_session_start(void)
 
 	sr_info("session: starting");
 
+	ret = SR_OK;
 	for (l = session->devs; l; l = l->next) {
 		sdi = l->data;
 		if ((ret = sdi->driver->dev_acquisition_start(sdi, sdi)) != SR_OK) {
