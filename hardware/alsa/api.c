@@ -276,7 +276,6 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 		sr_err("Unable to obtain poll descriptors count.");
 		return SR_ERR;
 	}
-	sr_spew("Obtained poll descriptor count: %d.", count);
 
 	if (!(devc->ufds = g_try_malloc(count * sizeof(struct pollfd)))) {
 		sr_err("Failed to malloc ufds.");

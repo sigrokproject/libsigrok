@@ -121,7 +121,8 @@ static void alsa_scan_handle_dev(GSList **devices,
 	}
 	hwrates[offset++] = 0;
 
-	snd_pcm_close(temp_handle);
+	if ((ret = snd_pcm_close(temp_handle)) < 0)
+		sr_err("Failed to close device: %s.", snd_strerror(ret));
 	temp_handle = NULL;
 
 	/*
@@ -177,7 +178,10 @@ scan_error_cleanup:
 	if (hw_params)
 		snd_pcm_hw_params_free(hw_params);
 	if (temp_handle)
-		snd_pcm_close(temp_handle);
+		if ((ret = snd_pcm_close(temp_handle)) < 0) {
+			sr_err("Failed to close device: %s.",
+			       snd_strerror(ret));
+		}
 }
 
 /**
@@ -211,12 +215,12 @@ SR_PRIV GSList *alsa_scan(GSList *options, struct sr_dev_driver *di)
 	/* TODO */
 	(void)options;
 
-	if (snd_ctl_card_info_malloc(&info) < 0) {
-		sr_err("Cannot malloc card info.");
+	if ((ret = snd_ctl_card_info_malloc(&info)) < 0) {
+		sr_err("Failed to malloc card info: %s.", snd_strerror(ret));
 		return NULL;
 	}
-	if (snd_pcm_info_malloc(&pcminfo) < 0) {
-		sr_err("Cannot malloc pcm info.");
+	if ((ret = snd_pcm_info_malloc(&pcminfo) < 0)) {
+		sr_err("Cannot malloc pcm info: %s.", snd_strerror(ret));
 		return NULL;
 	}
 
@@ -230,7 +234,10 @@ SR_PRIV GSList *alsa_scan(GSList *options, struct sr_dev_driver *di)
 		if ((ret = snd_ctl_card_info(handle, info)) < 0) {
 			sr_err("Cannot get hardware info (%d): %s.",
 			       card, snd_strerror(ret));
-			snd_ctl_close(handle);
+			if ((ret = snd_ctl_close(handle)) < 0) {
+				sr_err("Cannot close device (%d): %s.",
+				       card, snd_strerror(ret));
+			}
 			continue;
 		}
 		dev = -1;
@@ -246,8 +253,8 @@ SR_PRIV GSList *alsa_scan(GSList *options, struct sr_dev_driver *di)
 			snd_pcm_info_set_stream(pcminfo,
 						SND_PCM_STREAM_CAPTURE);
 			if ((ret = snd_ctl_pcm_info(handle, pcminfo)) < 0) {
-				sr_err("Cannot get device info: %s.",
-				       snd_strerror(ret));
+				sr_err("Cannot get device info (%s): %s.",
+				       hwdev, snd_strerror(ret));
 				continue;
 			}
 
@@ -260,7 +267,10 @@ SR_PRIV GSList *alsa_scan(GSList *options, struct sr_dev_driver *di)
 			alsa_scan_handle_dev(&devices, cardname, hwdev,
 					     di, pcminfo);
 		}
-		snd_ctl_close(handle);
+		if ((ret = snd_ctl_close(handle)) < 0) {
+			sr_err("Cannot close device (%d): %s.",
+			       card, snd_strerror(ret));
+		}
 	}
 
 	snd_pcm_info_free(pcminfo);
