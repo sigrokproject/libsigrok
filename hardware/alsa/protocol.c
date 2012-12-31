@@ -330,7 +330,7 @@ SR_PRIV int alsa_set_samplerate(const struct sr_dev_inst *sdi,
 	} while (devc->supp_rates.list[i++] != 0);
 
 	if (!rate) {
-		sr_err("Sample rate " PRIu64 " not supported.", newrate);
+		sr_err("Sample rate %" PRIu64 " not supported.", newrate);
 		return SR_ERR_ARG;
 	}
 
