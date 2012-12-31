@@ -28,6 +28,8 @@ SR_PRIV int nexus_osciprime_receive_data(int fd, int revents, void *cb_data)
 	const struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 
+	(void)fd;
+
 	if (!(sdi = cb_data))
 		return TRUE;
 
