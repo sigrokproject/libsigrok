@@ -412,6 +412,7 @@ SR_PRIV int sr_rs9lcd_parse(const uint8_t *buf, float *floatval,
 	case MODE_AMP_WIDTH:
 		analog->mq = SR_MQ_PULSE_WIDTH;
 		analog->unit = SR_UNIT_SECOND;
+		break;
 	case MODE_TEMP:
 		analog->mq = SR_MQ_TEMPERATURE;
 		/* We need to reparse. */
