@@ -23,11 +23,10 @@
 #ifndef LIBSIGROK_HARDWARE_ALSA_PROTOCOL_H
 #define LIBSIGROK_HARDWARE_ALSA_PROTOCOL_H
 
+#include <stdint.h>
+#include <alsa/asoundlib.h>
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
-
-#include <alsa/asoundlib.h>
-#include <stdint.h>
 
 /* Message logging helpers with driver-specific prefix string. */
 #define DRIVER_LOG_DOMAIN "alsa: "
@@ -45,7 +44,7 @@ struct dev_context {
 	uint64_t num_samples;
 	uint8_t num_probes;
 	struct sr_samplerates supp_rates;
-	const char *hwdev;
+	char *hwdev;
 	snd_pcm_t *capture_handle;
 	snd_pcm_hw_params_t *hw_params;
 	struct pollfd *ufds;
@@ -56,8 +55,8 @@ SR_PRIV GSList *alsa_scan(GSList *options, struct sr_dev_driver *di);
 SR_PRIV void alsa_dev_inst_clear(struct sr_dev_inst *sdi);
 
 SR_PRIV int alsa_set_samplerate(const struct sr_dev_inst *sdi,
-				const uint64_t newrate);
+				uint64_t newrate);
 
 SR_PRIV int alsa_receive_data(int fd, int revents, void *cb_data);
 
-#endif /* LIBSIGROK_HARDWARE_ALSA_PROTOCOL_H */
+#endif

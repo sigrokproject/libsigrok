@@ -20,9 +20,9 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-#include "protocol.h"
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
+#include "protocol.h"
 
 /*
  * There is no way to get a list of supported samplerates from ALSA. We could
@@ -49,7 +49,7 @@ static const unsigned int rates[] = {
 	96000,
 	176400,
 	192000,
-	384000, /* Yes, there are sound cards that go this high */
+	384000, /* Yes, there are sound cards that go this high. */
 };
 
 static void alsa_scan_handle_dev(GSList **devices,
@@ -67,6 +67,7 @@ static void alsa_scan_handle_dev(GSList **devices,
 	uint64_t *devrates = NULL;
 	snd_pcm_t *temp_handle = NULL;
 	snd_pcm_hw_params_t *hw_params = NULL;
+	char p_name[32];
 
 	drvc = di->priv;
 
@@ -107,8 +108,7 @@ static void alsa_scan_handle_dev(GSList **devices,
 	 */
 	snd_pcm_hw_params_get_rate_min(hw_params, &minrate, 0);
 	snd_pcm_hw_params_get_rate_max(hw_params, &maxrate, 0);
-	for (i = 0, offset = 0; i < ARRAY_SIZE(rates); i++)
-	{
+	for (i = 0, offset = 0; i < ARRAY_SIZE(rates); i++) {
 		rate = rates[i];
 		if (rate < minrate)
 			continue;
@@ -126,13 +126,13 @@ static void alsa_scan_handle_dev(GSList **devices,
 
 	/*
 	 * Now we are done querying the hardware parameters.
-	 * If we made it here, we know everything we want to know, and it's time
-	 * to create our sigrok device.
+	 * If we made it here, we know everything we want to know, and it's
+	 * time to create our sigrok device.
 	 */
 	sr_info("Device %s has %d channels.", alsaname, channels);
 	if (!(sdi = sr_dev_inst_new(0, SR_ST_INACTIVE, "ALSA:",
 		cardname, snd_pcm_info_get_name(pcminfo)))) {
-		sr_err("Device instance malloc failed.");
+		sr_err("Failed to create device instance.");
 		goto scan_error_cleanup;
 	}
 	if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
@@ -154,7 +154,6 @@ static void alsa_scan_handle_dev(GSList **devices,
 	sdi->driver = di;
 
 	for (i = 0; i < devc->num_probes; i++) {
-		char p_name[32];
 		snprintf(p_name, sizeof(p_name), "Ch_%d", i);
 		if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, p_name)))
 			goto scan_error_cleanup;
@@ -168,7 +167,7 @@ static void alsa_scan_handle_dev(GSList **devices,
 scan_error_cleanup:
 	if (devc) {
 		if (devc->hwdev)
-			g_free((void*)devc->hwdev);
+			g_free(devc->hwdev);
 		g_free(devc);
 	}
 	if (devrates)
@@ -179,13 +178,13 @@ scan_error_cleanup:
 		snd_pcm_hw_params_free(hw_params);
 	if (temp_handle)
 		snd_pcm_close(temp_handle);
-	return;
 }
 
 /**
- * \brief Scan all alsa devices, and translate them to sigrok devices
+ * Scan all alsa devices, and translate them to sigrok devices.
  *
- * Each alsa device (not alsa card) gets its own sigrok device
+ * Each alsa device (not alsa card) gets its own sigrok device.
+ *
  * For example,
  *     hw:1,0 == sigrok device 0
  *     hw:1,1 == sigrok device 1
@@ -193,9 +192,9 @@ scan_error_cleanup:
  *     hw:2,1 == sigrok device 3
  *     hw:2,2 == sigrok device 4
  *     [...]
- * \n
+ *
  * We don't currently look at alsa subdevices. We only use subdevice 0.
- * Every input device will have a its own channels (Left, Right, etc). Each of
+ * Every input device will have its own channels (left, right, etc). Each of
  * those channels gets mapped to a different sigrok probe. A device with 4
  * channels will have 4 probes from sigrok's perspective.
  */
@@ -206,7 +205,9 @@ SR_PRIV GSList *alsa_scan(GSList *options, struct sr_dev_driver *di)
 	int card, ret, dev;
 	snd_ctl_card_info_t *info;
 	snd_pcm_info_t *pcminfo;
-	const char* cardname;
+	const char *cardname;
+	char hwcard[32], hwdev[32];
+
 	/* TODO */
 	(void)options;
 
@@ -221,21 +222,19 @@ SR_PRIV GSList *alsa_scan(GSList *options, struct sr_dev_driver *di)
 
 	card = -1;
 	while (snd_card_next(&card) >= 0 && card >= 0) {
-		char hwcard[32];
 		snprintf(hwcard, sizeof(hwcard), "hw:%d", card);
 		if ((ret = snd_ctl_open(&handle, hwcard, 0)) < 0) {
-			sr_err("Cannot open (%i): %s", card, snd_strerror(ret));
+			sr_err("Cannot open (%d): %s.", card, snd_strerror(ret));
 			continue;
 		}
 		if ((ret = snd_ctl_card_info(handle, info)) < 0) {
-			sr_err("Cannot get hardware info (%i): %s",
+			sr_err("Cannot get hardware info (%d): %s.",
 			       card, snd_strerror(ret));
 			snd_ctl_close(handle);
 			continue;
 		}
 		dev = -1;
 		while (snd_ctl_pcm_next_device(handle, &dev) >= 0 && dev >= 0) {
-			char hwdev[32];
 			snprintf(hwdev, sizeof(hwdev), "%s,%d", hwcard, dev);
 			/*
 			 * TODO: We always use subdevice 0, but we have yet to
@@ -247,13 +246,13 @@ SR_PRIV GSList *alsa_scan(GSList *options, struct sr_dev_driver *di)
 			snd_pcm_info_set_stream(pcminfo,
 						SND_PCM_STREAM_CAPTURE);
 			if ((ret = snd_ctl_pcm_info(handle, pcminfo)) < 0) {
-				sr_err("Cannot get device info: %s",
+				sr_err("Cannot get device info: %s.",
 				       snd_strerror(ret));
 				continue;
 			}
 
 			cardname = snd_ctl_card_info_get_name(info);
-			sr_info("card %i: %s [%s], device %i: %s [%s]",
+			sr_info("card %d: %s [%s], device %d: %s [%s]",
 			       card, snd_ctl_card_info_get_id(info), cardname,
 			       dev, snd_pcm_info_get_id(pcminfo),
 			       snd_pcm_info_get_name(pcminfo));
@@ -286,21 +285,24 @@ SR_PRIV void alsa_dev_inst_clear(struct sr_dev_inst *sdi)
 	sr_dev_inst_free(sdi);
 }
 
-/*
- * Sets the samplerate of the ALSA device
+/**
+ * Set the samplerate of the ALSA device.
  *
  * Changes the samplerate of the given ALSA device if the specified samplerate
  * is supported by the hardware.
+ *
  * The new samplerate is recorded, but it is not applied to the hardware. The
  * samplerate is applied to the hardware only when acquisition is started via
  * dev_acquisition_start(), and cannot be changed during acquisition. To change
  * the samplerate, several steps are needed:
+ *
  *    1) If acquisition is running, it must first be stopped.
  *    2) dev_config_set() must be called with the new samplerate.
  *    3) When starting a new acquisition, the new samplerate is applied.
+ *
  */
 SR_PRIV int alsa_set_samplerate(const struct sr_dev_inst *sdi,
-				const uint64_t newrate)
+				uint64_t newrate)
 {
 	struct dev_context *devc;
 	size_t i;
@@ -335,7 +337,7 @@ SR_PRIV int alsa_receive_data(int fd, int revents, void *cb_data)
 	int16_t inbuf[4096];
 	int i, x, count, offset, samples_to_get;
 	int16_t tmp16;
-	const float s16norm = 1 / (float)(1<<15);
+	const float s16norm = 1 / (float)(1 << 15);
 
 	(void)fd;
 	(void)revents;
@@ -375,7 +377,7 @@ SR_PRIV int alsa_receive_data(int fd, int revents, void *cb_data)
 	 */
 	for (i = 0; i < count; i += devc->num_probes) {
 		for (x = 0; x < devc->num_probes; x++) {
-			tmp16 = inbuf[i+x];
+			tmp16 = inbuf[i + x];
 			analog.data[offset++] = tmp16 * s16norm;
 		}
 	}
@@ -400,4 +402,3 @@ SR_PRIV int alsa_receive_data(int fd, int revents, void *cb_data)
 
 	return TRUE;
 }
-

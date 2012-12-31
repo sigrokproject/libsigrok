@@ -20,13 +20,12 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-#include "protocol.h"
-#include "libsigrok.h"
-#include "libsigrok-internal.h"
-
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include "libsigrok.h"
+#include "libsigrok-internal.h"
+#include "protocol.h"
 
 static const int hwcaps[] = {
 	SR_HWCAP_SAMPLERATE,
@@ -169,7 +168,7 @@ static int hw_info_get(int info_id, const void **data,
 		break;
 	case SR_DI_SAMPLERATES:
 		if (!devc->supp_rates.list) {
-			sr_err("Instance did not contain a samplerate list");
+			sr_err("Instance did not contain a samplerate list.");
 			return SR_ERR_ARG;
 		}
 		*data = &devc->supp_rates;
@@ -212,7 +211,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	struct sr_datafeed_meta_analog meta;
 	struct dev_context *devc;
 	int count, ret;
-	char *endianess;
+	char *endianness;
 
 	devc = sdi->priv;
 	devc->cb_data = cb_data;
@@ -228,10 +227,10 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 
 	/* FIXME: Hardcoded for 16bits. */
 	if (SND_PCM_FORMAT_S16 == SND_PCM_FORMAT_S16_LE)
-		endianess = "lilltle endian";
+		endianness = "little endian";
 	else
-		endianess = "big endian";
-	sr_dbg("Setting audio sample format to signed 16bit (%s).", endianess);
+		endianness = "big endian";
+	sr_dbg("Setting audio sample format to signed 16bit (%s).", endianness);
 	ret = snd_pcm_hw_params_set_format(devc->capture_handle,
 					   devc->hw_params,
 					   SND_PCM_FORMAT_S16);
