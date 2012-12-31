@@ -39,8 +39,10 @@ static const unsigned int rates[] = {
 	5512,
 	8000,
 	11025,
+	12000,
 	16000,
 	22050,
+	24000,
 	32000,
 	44100,
 	48000,
@@ -49,7 +51,8 @@ static const unsigned int rates[] = {
 	96000,
 	176400,
 	192000,
-	384000, /* Yes, there are sound cards that go this high. */
+	384000,
+	768000, /* Yes, there are sound cards that go this high. */
 };
 
 static void alsa_scan_handle_dev(GSList **devices,
