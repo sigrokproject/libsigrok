@@ -1,7 +1,7 @@
 ##
-## This file is part of the sigrok project.
+## This file is part of the libsigrok project.
 ##
-## Copyright (C) 2010 Uwe Hermann <uwe@hermann-uwe.de>
+## Copyright (C) 2013 Uwe Hermann <uwe@hermann-uwe.de>
 ##
 ## This program is free software; you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -18,11 +18,20 @@
 ## Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
 ##
 
-EXTRA_DIST = gnuplot_chronovu_la8.gpi \
-	     gnuplot_rigol_ds1xx2.gpi \
-	     gnuplot_usbeesx.gpi \
-	     gnuplot_usbeedx8.gpi \
-	     gnuplot_usbeedx16.gpi \
-	     sigrok-logo-notext.png \
-	     z60_libsigrok.rules
+set terminal png large size 2048, 1536
+set autoscale
+set grid
+set title "sigrok gnuplot output, http://www.sigrok.org, Rigol DS1xx2"
+set xlabel "Time"
+set ylabel "Voltage"
+set output "sigrok_gnuplot.png"
+
+#
+# Rigol DS1xx2 output is currently always 600 samples in size.
+# This script currently also assumes only one channel is acquired like this:
+#
+#   $ sigrok-cli --driver rigol-ds1xx2 --frames 1 -p CH1 ...
+#
+plot [0:600] \
+"sigrok_gnuplot.dat" using 1 with lines linewidth 2 title "CH1"
 
