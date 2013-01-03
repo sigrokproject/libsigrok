@@ -177,16 +177,10 @@ static GSList *hw_scan(GSList *options)
 	const gchar *prefix = "usbtmc";
 	gchar *device;
 	const gchar *idn_query = "*IDN?";
-	gchar *idn_reply;
-	const gchar *idn_reply_prefix = "*IDN ";
-	int len;
+	int len, num_tokens, fd, i;
 	const gchar *delimiter = ",";
 	gchar **tokens;
-	int num_tokens;
-	int fd;
 	char buf[256];
-
-	int i;
 
 	(void)options;
 
@@ -199,8 +193,7 @@ static GSList *hw_scan(GSList *options)
 	if (dir == NULL)
 		return NULL;
 
-	while ((dev_name = g_dir_read_name(dir)) != NULL)
-	{
+	while ((dev_name = g_dir_read_name(dir)) != NULL) {
 		if (strncmp(dev_name, prefix, strlen(prefix))) 
 			continue;
 
@@ -210,8 +203,7 @@ static GSList *hw_scan(GSList *options)
 		len = write(fd, idn_query, strlen(idn_query));
 		len = read(fd, buf, sizeof(buf));
 		close(fd);
-		if (len == 0)
-		{
+		if (len == 0) {
 			g_free(device);
 			return NULL;
 		}
@@ -223,16 +215,16 @@ static GSList *hw_scan(GSList *options)
 		for (num_tokens = 0; tokens[num_tokens] != NULL; num_tokens++);
 
 		if (!(sdi = sr_dev_inst_new(0, SR_ST_ACTIVE, tokens[0],
-			num_tokens > 1 ? tokens[1] : NULL, num_tokens > 3 ? tokens[3] : NULL)))
-		{
+		    num_tokens > 1 ? tokens[1] : NULL,
+		    num_tokens > 3 ? tokens[3] : NULL))) {
 			g_strfreev(tokens);
 			g_free(device);
 			return NULL;
 		}
 		g_strfreev(tokens);
 
-		if (!(devc = g_try_malloc0(sizeof(struct dev_context))))
-		{
+		if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
+			sr_err("Device context malloc failed.");
 			g_free(device);
 			return NULL;
 		}
@@ -242,9 +234,9 @@ static GSList *hw_scan(GSList *options)
 		sdi->priv = devc;
 		sdi->driver = di;
 
-		for (i = 0; i < 2; i++)
-		{
-			if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, i == 0 ? "CH1" : "CH2")))
+		for (i = 0; i < 2; i++) {
+			if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE,
+			    i == 0 ? "CH1" : "CH2")))
 				return NULL;
 			sdi->probes = g_slist_append(sdi->probes, probe);
 		}
@@ -269,11 +261,12 @@ static GSList *hw_dev_list(void)
 
 static int hw_dev_open(struct sr_dev_inst *sdi)
 {
-	struct dev_context *devc = sdi->priv;
+	struct dev_context *devc;
+	int fd;
 
-	int fd = open(devc->device, O_RDWR);
+	devc = sdi->priv;
 
-	if (fd == -1)
+	if ((fd = open(devc->device, O_RDWR)) == -1)
 		return SR_ERR;
 
 	devc->fd = fd;
@@ -285,7 +278,9 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 
 static int hw_dev_close(struct sr_dev_inst *sdi)
 {
-	struct dev_context *devc = sdi->priv;
+	struct dev_context *devc;
+
+	devc = sdi->priv;
 
 	close(devc->fd);
 
@@ -337,12 +332,14 @@ static int hw_info_get(int info_id, const void **data,
 static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 			     const void *value)
 {
-	struct dev_context *devc = sdi->priv;
+	struct dev_context *devc;
 	uint64_t tmp_u64;
 	float tmp_float;
 	struct sr_rational tmp_rat;
 	int ret, i, j;
 	char *channel;
+
+	devc = sdi->priv;
 
 	if (sdi->status != SR_ST_ACTIVE) {
 		sr_err("Device inactive, can't set config options.");
@@ -351,12 +348,13 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 
 	ret = SR_OK;
 	switch (hwcap) {
-    case SR_HWCAP_LIMIT_FRAMES:
+	case SR_HWCAP_LIMIT_FRAMES:
 		devc->limit_frames = *(const uint64_t *)value;
 		break;
 	case SR_HWCAP_TRIGGER_SLOPE:
 		tmp_u64 = *(const int *)value;
-		rigol_ds1xx2_send_data(devc->fd, ":TRIG:EDGE:SLOP %s\n", tmp_u64 ? "POS" : "NEG");
+		rigol_ds1xx2_send_data(devc->fd, ":TRIG:EDGE:SLOP %s\n",
+				       tmp_u64 ? "POS" : "NEG");
 		break;
 	case SR_HWCAP_HORIZ_TRIGGERPOS:
 		tmp_float = *(const float *)value;
@@ -364,7 +362,8 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		break;
 	case SR_HWCAP_TIMEBASE:
 		tmp_rat = *(const struct sr_rational *)value;
-		rigol_ds1xx2_send_data(devc->fd, ":TIM:SCAL %.9f\n", (float) tmp_rat.p / tmp_rat.q);
+		rigol_ds1xx2_send_data(devc->fd, ":TIM:SCAL %.9f\n",
+				       (float)tmp_rat.p / tmp_rat.q);
 		break;
 	case SR_HWCAP_TRIGGER_SOURCE:
 		if (!strcmp(value, "CH1"))
@@ -375,8 +374,7 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 			channel = "EXT";
 		else if (!strcmp(value, "AC Line"))
 			channel = "ACL";
-		else
-		{
+		else {
 			ret = SR_ERR_ARG;
 			break;
 		}
@@ -388,9 +386,10 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		for (i = 0; vdivs[i].p && vdivs[i].q; i++) {
 			if (vdivs[i].p == tmp_rat.p
 					&& vdivs[i].q == tmp_rat.q) {
-				devc->scale = (float) tmp_rat.p / tmp_rat.q;
+				devc->scale = (float)tmp_rat.p / tmp_rat.q;
 				for (j = 0; j < 2; j++)
-					rigol_ds1xx2_send_data(devc->fd, ":CHAN%d:SCAL %.3f\n", j, devc->scale);
+					rigol_ds1xx2_send_data(devc->fd,
+					 ":CHAN%d:SCAL %.3f\n", j, devc->scale);
 				break;
 			}
 		}
@@ -402,7 +401,8 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		for (i = 0; coupling[i]; i++) {
 			if (!strcmp(value, coupling[i])) {
 				for (j = 0; j < 2; j++)
-					rigol_ds1xx2_send_data(devc->fd, ":CHAN%d:COUP %s\n", j, coupling[i]);
+					rigol_ds1xx2_send_data(devc->fd,
+					  ":CHAN%d:COUP %s\n", j, coupling[i]);
 				break;
 			}
 		}
@@ -412,6 +412,7 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 	default:
 		sr_err("Unknown hardware capability: %d.", hwcap);
 		ret = SR_ERR_ARG;
+		break;
 	}
 
 	return ret;
@@ -420,13 +421,16 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 				    void *cb_data)
 {
-	struct dev_context *devc = sdi->priv;
+	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_header header;
 	struct sr_datafeed_meta_analog meta;
 	char buf[256];
 	int len;
+
 	(void)cb_data;
+
+	devc = sdi->priv;
 
 	devc->num_frames = 0;
 
@@ -449,12 +453,12 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	len = read(devc->fd, buf, sizeof(buf));
 	buf[len] = 0;
 	devc->scale = atof(buf);
-	sr_dbg("scale is %.3f", devc->scale);
+	sr_dbg("Scale is %.3f.", devc->scale);
 	rigol_ds1xx2_send_data(devc->fd, ":CHAN1:OFFS?\n");
 	len = read(devc->fd, buf, sizeof(buf));
 	buf[len] = 0;
 	devc->offset = atof(buf);
-	sr_dbg("offset is %.6f", devc->offset);
+	sr_dbg("Offset is %.6f.", devc->offset);
 	rigol_ds1xx2_send_data(devc->fd, ":WAV:DATA?\n");
 
 	return SR_OK;
@@ -462,8 +466,11 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 
 static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
-	struct dev_context *devc = sdi->priv;
+	struct dev_context *devc;
+
 	(void)cb_data;
+
+	devc = sdi->priv;
 
 	if (sdi->status != SR_ST_ACTIVE) {
 		sr_err("Device inactive, can't stop acquisition.");

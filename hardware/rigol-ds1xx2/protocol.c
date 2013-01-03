@@ -44,7 +44,7 @@ SR_PRIV int rigol_ds1xx2_receive_data(int fd, int revents, void *cb_data)
 
 	if (revents == G_IO_IN) {
 		len = read(fd, buf, WAVEFORM_SIZE);
-		sr_dbg("received %d", len);
+		sr_dbg("Received %d bytes.", len);
 		if (len == -1)
 			return TRUE;
 		for (i = 0; i < len; i++)
@@ -57,6 +57,7 @@ SR_PRIV int rigol_ds1xx2_receive_data(int fd, int revents, void *cb_data)
 		packet.type = SR_DF_ANALOG;
 		packet.payload = &analog;
 		sr_session_send(cb_data, &packet);
+
 		if (++devc->num_frames == devc->limit_frames)
 			sdi->driver->dev_acquisition_stop(sdi, cb_data);
 		else
@@ -70,10 +71,13 @@ SR_PRIV int rigol_ds1xx2_send_data(int fd, const char *format, ...)
 {
 	va_list args;
 	char buf[256];
+	int len;
+
 	va_start(args, format);
-	int len = vsprintf(buf, format, args);
+	len = vsprintf(buf, format, args);
 	va_end(args);
 	len = write(fd, buf, len);
-	sr_dbg("sent %s", buf);
+	sr_dbg("Sent '%s'.", buf);
+
 	return len;
 }
