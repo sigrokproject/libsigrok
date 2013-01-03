@@ -21,6 +21,12 @@
 
 #define SERIALCOMM "115200/8n1"
 
+static const int hwopts[] = {
+	SR_HWOPT_CONN,
+	SR_HWOPT_SERIALCOMM,
+	0,
+};
+
 static const int hwcaps[] = {
 	SR_HWCAP_LOGIC_ANALYZER,
 	SR_HWCAP_SAMPLERATE,
@@ -250,6 +256,9 @@ static int hw_info_get(int info_id, const void **data,
 	struct dev_context *devc;
 
 	switch (info_id) {
+	case SR_DI_HWOPTS:
+		*data = hwopts;
+		break;
 	case SR_DI_HWCAPS:
 		*data = hwcaps;
 		break;
