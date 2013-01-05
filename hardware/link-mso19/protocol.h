@@ -41,21 +41,10 @@
 #define NUM_PROBES             8
 #define NUM_TRIGGER_STAGES     4
 #define TRIGGER_TYPES          "01"
-#define SERIAL_SPEED           B115200
+#define SERIALCOMM "460800/8n1/flow=2" 
+#define SERIALCONN "/dev/ttyUSB0" 
 #define CLOCK_RATE             SR_MHZ(100)
 #define MIN_NUM_SAMPLES        4
-
-
-///* Bitmasks for CMD_FLAGS */
-//#define FLAG_DEMUX                 0x01
-//#define FLAG_FILTER                0x02
-//#define FLAG_CHANNELGROUP_1        0x04
-//#define FLAG_CHANNELGROUP_2        0x08
-//#define FLAG_CHANNELGROUP_3        0x10
-//#define FLAG_CHANNELGROUP_4        0x20
-//#define FLAG_CLOCK_EXTERNAL        0x40
-//#define FLAG_CLOCK_INVERTED        0x80
-//#define FLAG_RLE                   0x0100
 
 #define MSO_TRIGGER_UNKNOWN	'!'
 #define MSO_TRIGGER_UNKNOWN1	'1'
@@ -140,8 +129,9 @@ SR_PRIV int mso_read_buffer(struct sr_dev_inst *sdi);
 SR_PRIV int mso_arm(struct sr_dev_inst *sdi);
 SR_PRIV int mso_force_capture(struct sr_dev_inst *sdi);
 SR_PRIV int mso_dac_out(struct sr_dev_inst *sdi, uint16_t val);
-SR_PRIV int mso_configure_rate(struct sr_dev_inst *sdi, uint32_t rate);
 SR_PRIV inline uint16_t mso_calc_raw_from_mv(struct dev_context *devc);
+SR_PRIV int mso_reset_fsm(struct sr_dev_inst *sdi);
+SR_PRIV int mso_toggle_led(struct sr_dev_inst *sdi, int state);
 
 SR_PRIV void stop_acquisition(const struct sr_dev_inst *sdi);
 
@@ -223,22 +213,5 @@ static uint16_t la_threshold_map[] = {
 	0x8eff,
 	0x8fff,
 };
-
-
-//SR_PRIV extern const char *ols_probe_names[NUM_PROBES + 1];
-//
-//SR_PRIV int send_shortcommand(struct sr_serial_dev_inst *serial,
-//		uint8_t command);
-//SR_PRIV int send_longcommand(struct sr_serial_dev_inst *serial,
-//		uint8_t command, uint32_t data);
-//SR_PRIV int ols_configure_probes(const struct sr_dev_inst *sdi);
-//SR_PRIV uint32_t reverse16(uint32_t in);
-//SR_PRIV uint32_t reverse32(uint32_t in);
-//SR_PRIV struct dev_context *ols_dev_new(void);
-//SR_PRIV struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial);
-//SR_PRIV int ols_set_samplerate(const struct sr_dev_inst *sdi,
-//			       uint64_t samplerate,
-//			       const struct sr_samplerates *samplerates);
-//SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data);
 
 #endif

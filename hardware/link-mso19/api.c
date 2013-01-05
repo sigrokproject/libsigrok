@@ -19,9 +19,6 @@
 
 #include "protocol.h"
 
-#define SERIALCOMM "460800/8n1" //Default communication params
-#define SERIALCONN "/dev/ttyUSB0" //Default communication params
-
 static const int hwcaps[] = {
 	SR_HWCAP_LOGIC_ANALYZER,
 	SR_HWCAP_SAMPLERATE,
@@ -43,25 +40,28 @@ SR_PRIV const char *mso19_probe_names[NUM_PROBES + 1] = {
 /*supported samplerates */
 static const struct sr_samplerates samplerates = {
 	SR_HZ(100),
-	SR_HZ(200),
-	SR_HZ(500),
-	SR_KHZ(1),
-	SR_KHZ(2),
-	SR_KHZ(5),
-	SR_KHZ(10),
-	SR_KHZ(20),
-	SR_KHZ(50),
-	SR_KHZ(100),
-	SR_KHZ(200),
-	SR_KHZ(500),
-	SR_MHZ(1),
-	SR_MHZ(2),
-	SR_MHZ(5),
-	SR_MHZ(10),
-	SR_MHZ(20),
-	SR_MHZ(50),
-	SR_MHZ(100),
 	SR_MHZ(200),
+	SR_HZ(1),
+	//SR_HZ(100),
+	//SR_HZ(200),
+	//SR_HZ(500),
+	//SR_KHZ(1),
+	//SR_KHZ(2),
+	//SR_KHZ(5),
+	//SR_KHZ(10),
+	//SR_KHZ(20),
+	//SR_KHZ(50),
+	//SR_KHZ(100),
+	//SR_KHZ(200),
+	//SR_KHZ(500),
+	//SR_MHZ(1),
+	//SR_MHZ(2),
+	//SR_MHZ(5),
+	//SR_MHZ(10),
+	//SR_MHZ(20),
+	//SR_MHZ(50),
+	//SR_MHZ(100),
+	//SR_MHZ(200),
 	NULL,
 };
 
@@ -165,7 +165,7 @@ static GSList *hw_scan(GSList *options)
 		}
 		strncpy(product, iProduct, s);
 		product[s] = 0;
-		strcpy(manufacturer, iProduct + s);
+		strcpy(manufacturer, iProduct + s + 1);
     
     //Create the device context and set its params
     struct dev_context *devc;
@@ -206,13 +206,17 @@ static GSList *hw_scan(GSList *options)
       return devices;
     }
     
-    //sdi->index = 0;
     sdi->driver = di;
     sdi->priv = devc;
-    //sdi->model = "
-    //sdi->version = "Testing1234";
-    //struct sr_probe *probe;
-    //sdi->probes = g_slist_append(sdi->probes, probe);
+
+    for (i = 0; i < NUM_PROBES; i++) { 
+      struct sr_probe *probe;
+      if (!(probe = sr_probe_new(i, SR_PROBE_LOGIC, TRUE, 
+              mso19_probe_names[i]))) 
+        return 0; 
+      sdi->probes = g_slist_append(sdi->probes, probe); 
+    }
+
 
     printf("Add the context\n");
     //Add the driver
@@ -357,12 +361,7 @@ static int hw_info_get(int info_id, const void **data,
 static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		const void *value)
 {
-	struct dev_context *devc;
 	int ret;
-	const uint64_t *tmp_u64;
-
-  printf("Config set\n");
-	devc = sdi->priv;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR;
@@ -395,12 +394,6 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	struct sr_datafeed_header *header;
 	struct sr_datafeed_meta_logic meta;
 	struct dev_context *devc;
-	uint32_t trigger_config[4];
-	uint32_t data;
-	uint16_t readcount, delaycount;
-	uint8_t changrp_mask;
-	int num_channels;
-	int i;
 	int ret = SR_ERR;
   
   
@@ -438,19 +431,23 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	devc->ctlbase1 &= 0x7f;
 //	devc->ctlbase1 |= devc->acdcmode;
 
+  printf("Configure rate\n");
 	ret = mso_configure_rate(sdi, devc->cur_rate);
 	if (ret != SR_OK)
 		return ret;
 
 	/* set dac offset */
+  printf("Configure dac\n");
 	ret = mso_dac_out(sdi, devc->dac_offset);
 	if (ret != SR_OK)
 		return ret;
 
+  printf("Configure threshold level\n");
 	ret = mso_configure_threshold_level(sdi);
 	if (ret != SR_OK)
 		return ret;
 
+  printf("Configure trigger\n");
 	ret = mso_configure_trigger(sdi);
 	if (ret != SR_OK)
 		return ret;
@@ -461,6 +458,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	/* END of config hardware part */
 
 	/* with trigger */
+  printf("arm\n");
 	ret = mso_arm(sdi);
 	if (ret != SR_OK)
 		return ret;
@@ -471,13 +469,16 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 //		return ret;
 
 	/* Start acquisition on the device. */
-	mso_check_trigger(sdi, &devc->trigger_state);
-	ret = mso_check_trigger(sdi, NULL);
+  printf("Check trigger\n");
+	mso_check_trigger(devc->serial, &devc->trigger_state);
+	ret = mso_check_trigger(devc->serial, NULL);
 	if (ret != SR_OK)
 		return ret;
 
+  printf("Source add\n");
   sr_source_add(devc->serial->fd, G_IO_IN, -1, mso_receive_data, cb_data);
 
+  printf("Create packet\n");
 	if (!(packet = g_try_malloc(sizeof(struct sr_datafeed_packet)))) {
 		sr_err("Datafeed packet malloc failed.");
 		return SR_ERR_MALLOC;

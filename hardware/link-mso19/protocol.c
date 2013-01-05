@@ -18,9 +18,54 @@
  */
 
 #include "protocol.h"
+#include <arpa/inet.h>
 
 extern SR_PRIV struct sr_dev_driver link_mso19_driver_info;
 static struct sr_dev_driver *di = &link_mso19_driver_info;
+
+SR_PRIV int mso_send_control_message(struct sr_serial_dev_inst *serial,
+    uint16_t payload[], int n)
+{
+	int i, w, ret, s = n * 2 + sizeof(mso_head) + sizeof(mso_foot);
+	char *p, *buf;
+
+	ret = SR_ERR;
+
+	if (serial->fd < 0)
+		goto ret;
+
+	if (!(buf = g_try_malloc(s))) {
+		sr_err("Failed to malloc message buffer.");
+		ret = SR_ERR_MALLOC;
+		goto ret;
+	}
+
+	p = buf;
+	memcpy(p, mso_head, sizeof(mso_head));
+	p += sizeof(mso_head);
+
+	for (i = 0; i < n; i++) {
+		*(uint16_t *) p = htons(payload[i]);
+		p += 2;
+	}
+	memcpy(p, mso_foot, sizeof(mso_foot));
+
+	w = 0;
+	while (w < s) {
+		ret = serial_write(serial, buf + w, s - w);
+		if (ret < 0) {
+			ret = SR_ERR;
+			goto free;
+		}
+		w += ret;
+	}
+	ret = SR_OK;
+free:
+	g_free(buf);
+ret:
+	return ret;
+}
+
 
 SR_PRIV int mso_configure_trigger(struct sr_dev_inst *sdi)
 {
@@ -91,7 +136,7 @@ SR_PRIV int mso_configure_trigger(struct sr_dev_inst *sdi)
 	/* Select the default config bank */
 	ops[15] = mso_trans(REG_CTL2, devc->ctlbase2);
 
-	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
+	return mso_send_control_message(devc->serial, ARRAY_AND_SIZE(ops));
 }
 
 SR_PRIV int mso_configure_threshold_level(struct sr_dev_inst *sdi)
@@ -176,7 +221,6 @@ SR_PRIV int mso_parse_serial(const char *iSerial, const char *iProduct,
 		return SR_ERR;
 	devc->hwmodel = u4;
 	devc->hwrev = u5;
-	devc->serial = u6;
 	devc->vbit = u1 / 10000;
 	if (devc->vbit == 0)
 		devc->vbit = 4.19195;
@@ -196,49 +240,6 @@ SR_PRIV int mso_parse_serial(const char *iSerial, const char *iProduct,
 	return SR_OK;
 }
 
-SR_PRIV int mso_send_control_message(struct sr_serial_dev_inst *serial,
-    uint16_t payload[], int n)
-{
-	int i, w, ret, s = n * 2 + sizeof(mso_head) + sizeof(mso_foot);
-	char *p, *buf;
-
-	ret = SR_ERR;
-
-	if (serial->fd < 0)
-		goto ret;
-
-	if (!(buf = g_try_malloc(s))) {
-		sr_err("Failed to malloc message buffer.");
-		ret = SR_ERR_MALLOC;
-		goto ret;
-	}
-
-	p = buf;
-	memcpy(p, mso_head, sizeof(mso_head));
-	p += sizeof(mso_head);
-
-	for (i = 0; i < n; i++) {
-		*(uint16_t *) p = htons(payload[i]);
-		p += 2;
-	}
-	memcpy(p, mso_foot, sizeof(mso_foot));
-
-	w = 0;
-	while (w < s) {
-		ret = serial_write(serial, buf + w, s - w);
-		if (ret < 0) {
-			ret = SR_ERR;
-			goto free;
-		}
-		w += ret;
-	}
-	ret = SR_OK;
-free:
-	g_free(buf);
-ret:
-	return ret;
-}
-
 SR_PRIV int mso_reset_adc(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc = sdi->priv;
@@ -249,6 +250,32 @@ SR_PRIV int mso_reset_adc(struct sr_dev_inst *sdi)
 	devc->ctlbase1 |= BIT_CTL1_ADC_UNKNOWN4;
 
 	sr_dbg("Requesting ADC reset.");
+	return mso_send_control_message(devc->serial, ARRAY_AND_SIZE(ops));
+}
+
+SR_PRIV int mso_reset_fsm(struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc = sdi->priv;
+	uint16_t ops[1];
+
+	devc->ctlbase1 |= BIT_CTL1_RESETFSM;
+	ops[0] = mso_trans(REG_CTL1, devc->ctlbase1);
+
+	sr_dbg("Requesting ADC reset.");
+	return mso_send_control_message(devc->serial, ARRAY_AND_SIZE(ops));
+}
+
+SR_PRIV int mso_toggle_led(struct sr_dev_inst *sdi, int state)
+{
+	struct dev_context *devc = sdi->priv;
+	uint16_t ops[1];
+
+	devc->ctlbase1 &= ~BIT_CTL1_LED;
+	if (state)
+		devc->ctlbase1 |= BIT_CTL1_LED;
+	ops[0] = mso_trans(REG_CTL1, devc->ctlbase1);
+
+	sr_dbg("Requesting LED toggle.");
 	return mso_send_control_message(devc->serial, ARRAY_AND_SIZE(ops));
 }
 
@@ -291,6 +318,10 @@ SR_PRIV int mso_configure_rate(struct sr_dev_inst *sdi, uint32_t rate)
 			return ret;
 		}
 	}
+
+  if (ret != SR_OK)
+		sr_err("Unsupported rate.");
+
 	return ret;
 }
 
@@ -324,16 +355,13 @@ SR_PRIV int mso_receive_data(int fd, int revents, void *cb_data)
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
 	struct sr_dev_inst *sdi;
-	struct drv_context *drvc;
-	struct dev_context *devc;
 	GSList *l;
-	int num_channels, offset, i, j;
-	unsigned char byte;
+	int i;
 
-	drvc = di->priv;
+	struct drv_context *drvc = di->priv;
 
 	/* Find this device's devc struct by its fd. */
-	devc = NULL;
+	struct dev_context *devc = NULL;
 	for (l = drvc->instances; l; l = l->next) {
 		sdi = l->data;
 		devc = sdi->priv;
@@ -402,4 +430,5 @@ SR_PRIV int mso_receive_data(int fd, int revents, void *cb_data)
 	packet.type = SR_DF_END;
 	sr_session_send(devc->session_dev_id, &packet);
 
+  return TRUE;
 }
