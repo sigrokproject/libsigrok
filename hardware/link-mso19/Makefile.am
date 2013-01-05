@@ -23,7 +23,10 @@ if LA_LINK_MSO19
 noinst_LTLIBRARIES = libsigrokhwlinkmso19.la
 
 libsigrokhwlinkmso19_la_SOURCES = \
-	link-mso19.c
+	api.c \
+	protocol.c \
+	protocol.h 
+#link-mso19.c 
 
 libsigrokhwlinkmso19_la_CFLAGS = \
 	-I$(top_srcdir)
