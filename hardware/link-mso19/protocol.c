@@ -22,6 +22,140 @@
 extern SR_PRIV struct sr_dev_driver link_mso19_driver_info;
 static struct sr_dev_driver *di = &link_mso19_driver_info;
 
+SR_PRIV int mso_configure_trigger(struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc = sdi->priv;
+	uint16_t ops[16];
+	uint16_t dso_trigger = mso_calc_raw_from_mv(devc);
+
+	dso_trigger &= 0x3ff;
+	if ((!devc->trigger_slope && devc->trigger_chan == 1) ||
+			(devc->trigger_slope &&
+			 (devc->trigger_chan == 0 ||
+			  devc->trigger_chan == 2 ||
+			  devc->trigger_chan == 3)))
+		dso_trigger |= 0x400;
+
+	switch (devc->trigger_chan) {
+	case 1:
+		dso_trigger |= 0xe000;
+	case 2:
+		dso_trigger |= 0x4000;
+		break;
+	case 3:
+		dso_trigger |= 0x2000;
+		break;
+	case 4:
+		dso_trigger |= 0xa000;
+		break;
+	case 5:
+		dso_trigger |= 0x8000;
+		break;
+	default:
+	case 0:
+		break;
+	}
+
+	switch (devc->trigger_outsrc) {
+	case 1:
+		dso_trigger |= 0x800;
+		break;
+	case 2:
+		dso_trigger |= 0x1000;
+		break;
+	case 3:
+		dso_trigger |= 0x1800;
+		break;
+
+	}
+
+	ops[0] = mso_trans(5, devc->la_trigger);
+	ops[1] = mso_trans(6, devc->la_trigger_mask);
+	ops[2] = mso_trans(3, dso_trigger & 0xff);
+	ops[3] = mso_trans(4, (dso_trigger >> 8) & 0xff);
+	ops[4] = mso_trans(11,
+			devc->dso_trigger_width / SR_HZ_TO_NS(devc->cur_rate));
+
+	/* Select the SPI/I2C trigger config bank */
+	ops[5] = mso_trans(REG_CTL2, (devc->ctlbase2 | BITS_CTL2_BANK(2)));
+	/* Configure the SPI/I2C protocol trigger */
+	ops[6] = mso_trans(REG_PT_WORD(0), devc->protocol_trigger.word[0]);
+	ops[7] = mso_trans(REG_PT_WORD(1), devc->protocol_trigger.word[1]);
+	ops[8] = mso_trans(REG_PT_WORD(2), devc->protocol_trigger.word[2]);
+	ops[9] = mso_trans(REG_PT_WORD(3), devc->protocol_trigger.word[3]);
+	ops[10] = mso_trans(REG_PT_MASK(0), devc->protocol_trigger.mask[0]);
+	ops[11] = mso_trans(REG_PT_MASK(1), devc->protocol_trigger.mask[1]);
+	ops[12] = mso_trans(REG_PT_MASK(2), devc->protocol_trigger.mask[2]);
+	ops[13] = mso_trans(REG_PT_MASK(3), devc->protocol_trigger.mask[3]);
+	ops[14] = mso_trans(REG_PT_SPIMODE, devc->protocol_trigger.spimode);
+	/* Select the default config bank */
+	ops[15] = mso_trans(REG_CTL2, devc->ctlbase2);
+
+	return mso_send_control_message(sdi, ARRAY_AND_SIZE(ops));
+}
+
+SR_PRIV int mso_configure_threshold_level(struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc = sdi->priv;
+
+	return mso_dac_out(sdi, la_threshold_map[devc->la_threshold]);
+}
+
+SR_PRIV int mso_read_buffer(struct sr_dev_inst *sdi)
+{
+	uint16_t ops[] = { mso_trans(REG_BUFFER, 0) };
+	struct dev_context *devc = sdi->priv;
+
+	sr_dbg("Requesting buffer dump.");
+	return mso_send_control_message(devc->serial, ARRAY_AND_SIZE(ops));
+}
+
+SR_PRIV int mso_arm(struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc = sdi->priv;
+	uint16_t ops[] = {
+		mso_trans(REG_CTL1, devc->ctlbase1 | BIT_CTL1_RESETFSM),
+		mso_trans(REG_CTL1, devc->ctlbase1 | BIT_CTL1_ARM),
+		mso_trans(REG_CTL1, devc->ctlbase1),
+	};
+
+	sr_dbg("Requesting trigger arm.");
+	return mso_send_control_message(devc->serial, ARRAY_AND_SIZE(ops));
+}
+
+SR_PRIV int mso_force_capture(struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc = sdi->priv;
+	uint16_t ops[] = {
+		mso_trans(REG_CTL1, devc->ctlbase1 | 8),
+		mso_trans(REG_CTL1, devc->ctlbase1),
+	};
+
+	sr_dbg("Requesting forced capture.");
+	return mso_send_control_message(devc->serial, ARRAY_AND_SIZE(ops));
+}
+
+SR_PRIV int mso_dac_out(struct sr_dev_inst *sdi, uint16_t val)
+{
+	struct dev_context *devc = sdi->priv;
+	uint16_t ops[] = {
+		mso_trans(REG_DAC1, (val >> 8) & 0xff),
+		mso_trans(REG_DAC2, val & 0xff),
+		mso_trans(REG_CTL1, devc->ctlbase1 | BIT_CTL1_RESETADC),
+	};
+
+	sr_dbg("Setting dac word to 0x%x.", val);
+	return mso_send_control_message(devc->serial, ARRAY_AND_SIZE(ops));
+}
+
+SR_PRIV inline uint16_t mso_calc_raw_from_mv(struct dev_context *devc)
+{
+	return (uint16_t) (0x200 -
+			((devc->dso_trigger_voltage / devc->dso_probe_attn) /
+			 devc->vbit));
+}
+
+
 SR_PRIV int mso_parse_serial(const char *iSerial, const char *iProduct,
     struct dev_context *devc)
 {
@@ -151,7 +285,7 @@ SR_PRIV int mso_configure_rate(struct sr_dev_inst *sdi, uint32_t rate)
 	for (i = 0; i < ARRAY_SIZE(rate_map); i++) {
 		if (rate_map[i].rate == rate) {
 			devc->ctlbase2 = rate_map[i].slowmode;
-			ret = mso_clkrate_out(sdi, rate_map[i].val);
+			ret = mso_clkrate_out(devc->serial, rate_map[i].val);
 			if (ret == SR_OK)
 				devc->cur_rate = rate;
 			return ret;
