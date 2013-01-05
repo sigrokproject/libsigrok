@@ -631,8 +631,8 @@ SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
  *
  * @param serial Previously initialized serial port structure.
  * @param paramstr A serial communication parameters string, in the form
- * of <speed>/<data bits><parity><stopbits>, for example "9600/8n1" or
- * "600/7o2".
+ * of <speed>/<data bits><parity><stopbits><flow>, for example "9600/8n1" or
+ * "600/7o2" or "460800/8n1/flow=2" where flow is 0 for none, 1 for rts/cts and 2 for xon/xoff.
  *
  * @return SR_OK upon success, SR_ERR upon failure.
  */
@@ -642,10 +642,10 @@ SR_PRIV int serial_set_paramstr(struct sr_serial_dev_inst *serial,
 {
 	GRegex *reg;
 	GMatchInfo *match;
-	int speed, databits, parity, stopbits, rts, dtr, i;
+	int speed, databits, parity, stopbits, flow, rts, dtr, i;
 	char *mstr, **opts, **kv;
 
-	speed = databits = parity = stopbits = 0;
+	speed = databits = parity = stopbits = flow = 0;
 	rts = dtr = -1;
 	sr_spew("Parsing parameters from \"%s\".", paramstr);
 	reg = g_regex_new(SERIAL_COMM_SPEC, 0, 0, NULL);
@@ -700,6 +700,17 @@ SR_PRIV int serial_set_paramstr(struct sr_serial_dev_inst *serial,
 							sr_dbg("invalid value for dtr: %c", kv[1][0]);
 							speed = 0;
 						}
+					} else if (!strncmp(kv[0], "flow", 4)) {
+						if (kv[1][0] == '0')
+							flow = 0;
+						else if (kv[1][0] == '1')
+							flow = 1;
+						else if (kv[1][0] == '2')
+							flow = 2;
+						else {
+							sr_dbg("invalid value for flow: %c", kv[1][0]);
+							speed = 0;
+						}
 					}
 					g_strfreev(kv);
 				}
@@ -713,7 +724,7 @@ SR_PRIV int serial_set_paramstr(struct sr_serial_dev_inst *serial,
 
 	if (speed) {
 		return serial_set_params(serial, speed, databits, parity,
-					 stopbits, 0, rts, dtr);
+					 stopbits, flow, rts, dtr);
 	} else {
 		sr_dbg("Could not infer speed from parameter string.");
 		return SR_ERR_ARG;
