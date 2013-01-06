@@ -22,6 +22,8 @@
 static const int hwcaps[] = {
 	SR_HWCAP_LOGIC_ANALYZER,
 	SR_HWCAP_SAMPLERATE,
+  SR_HWCAP_TRIGGER_SLOPE, 
+  SR_HWCAP_HORIZ_TRIGGERPOS,
 //	SR_HWCAP_CAPTURE_RATIO,
 	SR_HWCAP_LIMIT_SAMPLES,
 //	SR_HWCAP_RLE,
@@ -326,6 +328,9 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 {
 	int ret;
 
+	struct dev_context *devc;
+  devc = sdi->priv;
+
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR;
 
@@ -340,6 +345,34 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
   case SR_HWCAP_CAPTURE_RATIO:
     ret = SR_OK;
 		break;
+  case SR_HWCAP_TRIGGER_SLOPE:
+    {
+      uint64_t slope = *(const uint64_t *)value;
+      if (slope != SLOPE_NEGATIVE && slope != SLOPE_POSITIVE)
+      {
+        sr_err("Invalid trigger slope");
+        ret = SR_ERR_ARG;
+      } else {
+        devc->trigger_slope = slope;
+        ret = SR_OK;
+      }
+    }
+    break;
+  case SR_HWCAP_HORIZ_TRIGGERPOS:
+    {
+      float pos = *(const float *)value;
+      if (pos < 0 || pos > 255) {
+        sr_err("Trigger position (%f) should be between 0 and 255.", pos);
+        ret = SR_ERR_ARG;
+      } else {
+        int trigger_pos = (int)pos;
+        printf("Set trigger posion to %X\n", trigger_pos&0xff);
+        devc->trigger_holdoff[0] = trigger_pos&0xff;
+        ret = SR_OK;
+      }
+    }
+    break;
+
 	case SR_HWCAP_RLE:
     ret = SR_OK;
 		break;
@@ -371,20 +404,6 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 		return SR_ERR;
 	}
 
-	/*
-	 * Enable/disable channel groups in the flag register according to the
-	 * probe mask. Calculate this here, because num_channels is needed
-	 * to limit readcount.
-	 */
-	//changrp_mask = 0;
-	//num_channels = 0;
-	//for (i = 0; i < 4; i++) {
-	//	if (devc->probe_mask & (0xff << (i * 8))) {
-	//		changrp_mask |= (1 << i);
-	//		num_channels++;
-	//	}
-	//}
-
 	/* FIXME: No need to do full reconfigure every time */
 //	ret = mso_reset_fsm(sdi);
 //	if (ret != SR_OK)
@@ -410,26 +429,17 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	if (ret != SR_OK)
 		return ret;
 
+
   printf("Configure trigger\n");
 	ret = mso_configure_trigger(sdi);
 	if (ret != SR_OK)
 		return ret;
 
-	/* FIXME: trigger_position */
-
 
 	/* END of config hardware part */
-
-	/* with trigger */
-  printf("arm\n");
-	ret = mso_arm(sdi);
-	if (ret != SR_OK)
-		return ret;
-
-	/* without trigger */
-//	ret = mso_force_capture(sdi);
-//	if (ret != SR_OK)
-//		return ret;
+  ret = mso_arm(sdi);
+  if (ret != SR_OK)
+    return ret;
 
 	/* Start acquisition on the device. */
   printf("Check trigger\n");
@@ -471,7 +481,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-/* TODO: This stops acquisition on ALL devices, ignoring dev_index. */
+/* This stops acquisition on ALL devices, ignoring dev_index. */
 static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
 	/* Avoid compiler warnings. */

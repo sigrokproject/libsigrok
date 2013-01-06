@@ -40,7 +40,7 @@
 
 #define NUM_PROBES             8
 #define NUM_TRIGGER_STAGES     4
-#define TRIGGER_TYPES          "01"
+#define TRIGGER_TYPES          "01" //the first r/f is used for the whole group
 #define SERIALCOMM "460800/8n1/flow=2" 
 #define SERIALCONN "/dev/ttyUSB0" 
 #define CLOCK_RATE             SR_MHZ(100)
@@ -53,6 +53,11 @@
 #define MSO_TRIGGER_WAIT	'4'
 #define MSO_TRIGGER_FIRED	'5'
 #define MSO_TRIGGER_DATAREADY	'6'
+
+enum trigger_slopes {
+  SLOPE_POSITIVE = 0, 
+  SLOPE_NEGATIVE,
+};
 
 /* Structure for the pattern generator state */
 struct mso_patgen {
@@ -102,10 +107,12 @@ struct dev_context {
 	uint8_t la_threshold;
 	uint64_t cur_rate;
 	uint8_t dso_probe_attn;
+  int8_t  use_trigger;
 	uint8_t trigger_chan;
 	uint8_t trigger_slope;
 	uint8_t trigger_outsrc;
 	uint8_t trigger_state;
+	uint8_t trigger_holdoff[2];
 	uint8_t la_trigger;
 	uint8_t la_trigger_mask;
 	double dso_trigger_voltage;

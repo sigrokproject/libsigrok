@@ -70,71 +70,73 @@ ret:
 SR_PRIV int mso_configure_trigger(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc = sdi->priv;
-	uint16_t ops[16];
-	uint16_t dso_trigger = mso_calc_raw_from_mv(devc);
+	uint16_t threshold_value = mso_calc_raw_from_mv(devc);
 
-	dso_trigger &= 0x3ff;
-	if ((!devc->trigger_slope && devc->trigger_chan == 1) ||
-			(devc->trigger_slope &&
-			 (devc->trigger_chan == 0 ||
-			  devc->trigger_chan == 2 ||
-			  devc->trigger_chan == 3)))
-		dso_trigger |= 0x400;
 
-	switch (devc->trigger_chan) {
-	case 1:
-		dso_trigger |= 0xe000;
-	case 2:
-		dso_trigger |= 0x4000;
-		break;
-	case 3:
-		dso_trigger |= 0x2000;
-		break;
-	case 4:
-		dso_trigger |= 0xa000;
-		break;
-	case 5:
-		dso_trigger |= 0x8000;
-		break;
-	default:
-	case 0:
-		break;
-	}
+  threshold_value = 0x153C;
+  uint8_t trigger_config = 0; 
+
+  if (devc->trigger_slope)
+    trigger_config |= 0x04; //Trigger on falling edge
 
 	switch (devc->trigger_outsrc) {
 	case 1:
-		dso_trigger |= 0x800;
+		trigger_config |= 0x00; //Trigger pulse output
 		break;
 	case 2:
-		dso_trigger |= 0x1000;
+		trigger_config |= 0x08; //PWM DAC from the pattern generator buffer
 		break;
 	case 3:
-		dso_trigger |= 0x1800;
+		trigger_config |= 0x18; //White noise
 		break;
-
 	}
 
-	ops[0] = mso_trans(5, devc->la_trigger);
-	ops[1] = mso_trans(6, devc->la_trigger_mask);
-	ops[2] = mso_trans(3, dso_trigger & 0xff);
-	ops[3] = mso_trans(4, (dso_trigger >> 8) & 0xff);
-	ops[4] = mso_trans(11,
+	switch (devc->trigger_chan) {
+    case 0:
+      trigger_config |= 0x00; //DSO level trigger //b00000000
+      break;
+    case 1:
+      trigger_config |= 0x20; //DSO level trigger & width < trigger_width
+      break;
+    case 2:
+      trigger_config |= 0x40; //DSO level trigger & width >= trigger_width 
+      break;
+    case 3:
+      trigger_config |= 0x60; //LA combination trigger
+      break;
+  }
+
+  //Last bit of trigger config reg 4 needs to be 1 for trigger enable,
+  //otherwise the trigger is not enabled
+  if (devc->use_trigger)
+    trigger_config |= 0x80;
+
+	uint16_t ops[18];
+	ops[0] = mso_trans(3, threshold_value & 0xff);
+  //The trigger_config also holds the 2 MSB bits from the threshold value
+	ops[1] = mso_trans(4, trigger_config | (threshold_value >> 8) & 0x03);
+	ops[2] = mso_trans(5, devc->la_trigger);
+	ops[3] = mso_trans(6, devc->la_trigger_mask);
+	ops[4] = mso_trans(7, devc->trigger_holdoff[0]);
+	ops[5] = mso_trans(8, devc->trigger_holdoff[1]);
+
+	ops[6] = mso_trans(11,
 			devc->dso_trigger_width / SR_HZ_TO_NS(devc->cur_rate));
 
 	/* Select the SPI/I2C trigger config bank */
-	ops[5] = mso_trans(REG_CTL2, (devc->ctlbase2 | BITS_CTL2_BANK(2)));
+	ops[7] = mso_trans(REG_CTL2, (devc->ctlbase2 | BITS_CTL2_BANK(2)));
 	/* Configure the SPI/I2C protocol trigger */
-	ops[6] = mso_trans(REG_PT_WORD(0), devc->protocol_trigger.word[0]);
-	ops[7] = mso_trans(REG_PT_WORD(1), devc->protocol_trigger.word[1]);
-	ops[8] = mso_trans(REG_PT_WORD(2), devc->protocol_trigger.word[2]);
-	ops[9] = mso_trans(REG_PT_WORD(3), devc->protocol_trigger.word[3]);
-	ops[10] = mso_trans(REG_PT_MASK(0), devc->protocol_trigger.mask[0]);
-	ops[11] = mso_trans(REG_PT_MASK(1), devc->protocol_trigger.mask[1]);
-	ops[12] = mso_trans(REG_PT_MASK(2), devc->protocol_trigger.mask[2]);
-	ops[13] = mso_trans(REG_PT_MASK(3), devc->protocol_trigger.mask[3]);
-	ops[14] = mso_trans(REG_PT_SPIMODE, devc->protocol_trigger.spimode);
+	ops[8] = mso_trans(REG_PT_WORD(0), devc->protocol_trigger.word[0]);
+	ops[9] = mso_trans(REG_PT_WORD(1), devc->protocol_trigger.word[1]);
+	ops[10] = mso_trans(REG_PT_WORD(2), devc->protocol_trigger.word[2]);
+	ops[11] = mso_trans(REG_PT_WORD(3), devc->protocol_trigger.word[3]);
+	ops[12] = mso_trans(REG_PT_MASK(0), devc->protocol_trigger.mask[0]);
+	ops[13] = mso_trans(REG_PT_MASK(1), devc->protocol_trigger.mask[1]);
+	ops[14] = mso_trans(REG_PT_MASK(2), devc->protocol_trigger.mask[2]);
+	ops[15] = mso_trans(REG_PT_MASK(3), devc->protocol_trigger.mask[3]);
+	ops[16] = mso_trans(REG_PT_SPIMODE, devc->protocol_trigger.spimode);
 	/* Select the default config bank */
-	ops[15] = mso_trans(REG_CTL2, devc->ctlbase2);
+	ops[17] = mso_trans(REG_CTL2, devc->ctlbase2);
 
 	return mso_send_control_message(devc->serial, ARRAY_AND_SIZE(ops));
 }
@@ -335,13 +337,11 @@ SR_PRIV int mso_check_trigger(struct sr_serial_dev_inst *serial, uint8_t *info)
 	int ret;
 
 	sr_dbg("Requesting trigger state.");
-  printf("Send Controll message\n");
 	ret = mso_send_control_message(serial, ARRAY_AND_SIZE(ops));
 	if (info == NULL || ret != SR_OK)
 		return ret;
 
 
-  printf("REad buffer\n");
   uint8_t buf = 0;
 	if (serial_read(serial, &buf, 1) != 1) /* FIXME: Need timeout */
 		ret = SR_ERR;
@@ -387,9 +387,9 @@ SR_PRIV int mso_receive_data(int fd, int revents, void *cb_data)
    * to read the data */
   if (devc->trigger_state != MSO_TRIGGER_DATAREADY) {
     devc->trigger_state = in[0];
-    printf("Got %c for trigger \n", in[0]);
+    //printf("Got %c for trigger \n", in[0]);
     if (devc->trigger_state == MSO_TRIGGER_DATAREADY) {
-      printf("Trigger is ready %c\n", MSO_TRIGGER_DATAREADY);
+      //printf("Trigger is ready %c\n", MSO_TRIGGER_DATAREADY);
       mso_read_buffer(sdi);
       devc->buffer_n = 0;
     } else {
@@ -450,59 +450,42 @@ SR_PRIV int mso_receive_data(int fd, int revents, void *cb_data)
 
 SR_PRIV int mso_configure_probes(const struct sr_dev_inst *sdi)
 {
-
 	struct dev_context *devc;
 	struct sr_probe *probe;
 	GSList *l;
 	int probe_bit, stage, i;
 	char *tc;
 
-  /*
+  
 	devc = sdi->priv;
-	for (i = 0; i < NUM_TRIGGER_STAGES; i++) {
-		devc->la_trigger_mask[i] = 0;
-		devc->la_trigger[i] = 0;
-	}
 
-	stage = -1;
+  devc->la_trigger_mask = 0xFF; //the mask for the LA_TRIGGER (bits set to 0 matter, those set to 1 are ignored).
+  devc->la_trigger = 0x00;  //The value of the LA byte that generates a trigger event (in that mode).
+  devc->dso_trigger_voltage = 3;
+  devc->dso_probe_attn = 1;
+  devc->trigger_outsrc = 0;
+  devc->trigger_chan = 3; //LA combination trigger
+  devc->use_trigger = FALSE;
+
 	for (l = sdi->probes; l; l = l->next) {
 		probe = (struct sr_probe *)l->data;
 		if (probe->enabled == FALSE)
 			continue;
 
-		//if (probe->index > 7)
-		//	devc->sample_wide = TRUE;
-
-		probe_bit = 1 << (probe->index);
+		int probe_bit = 1 << (probe->index);
 		if (!(probe->trigger))
 			continue;
 
+    devc->use_trigger = TRUE;
 		//Configure trigger mask and value.
-		stage = 0;
 		for (tc = probe->trigger; *tc; tc++) {
-			devc->trigger_mask[stage] |= probe_bit;
-			if (*tc == '1')
-				devc->trigger_value[stage] |= probe_bit;
-			stage++;
-			if (stage > NUM_TRIGGER_STAGES)
-				return SR_ERR;
-		}
-	}
-
-  */
-
-	//if (stage == -1)
-	//	/*
-	//	 * We didn't configure any triggers, make sure acquisition
-	//	 * doesn't wait for any.
-	//	 */
-	//	devc->trigger_stage = TRIGGER_FIRED;
-	//else
-	//	devc->trigger_stage = 0;
+			devc->la_trigger_mask &= ~probe_bit;
+      if (*tc == '1')
+        devc->la_trigger |= probe_bit;
+    }
+  }
 
 	return SR_OK;
-
-
 }
 
 
