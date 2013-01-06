@@ -158,7 +158,7 @@ static GSList *hw_scan(GSList *options)
 	struct dev_context *devc;
 	struct sr_dev_inst *sdi;
 	struct sr_usb_dev_inst *usb;
-	struct sr_hwopt *opt;
+	struct sr_config *src;
 	struct sr_probe *probe;
 	libusb_device *dev;
 	GSList *usb_devices, *devices, *l;
@@ -177,10 +177,10 @@ static GSList *hw_scan(GSList *options)
 
 	conn = NULL;
 	for (l = options; l; l = l->next) {
-		opt = l->data;
-		switch (opt->hwopt) {
+		src = l->data;
+		switch (src->key) {
 		case SR_HWOPT_CONN:
-			conn = opt->value;
+			conn = src->value;
 			break;
 		}
 	}

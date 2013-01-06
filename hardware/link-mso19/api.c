@@ -74,19 +74,19 @@ static GSList *hw_scan(GSList *options)
 	const char *conn = NULL;
 	const char *serialcomm = NULL;
 	GSList *l;
-	struct sr_hwopt *opt;
+	struct sr_config *src;
 	struct udev *udev;
 
 	(void)options;
 
 	for (l = options; l; l = l->next) {
-		opt = l->data;
-		switch (opt->hwopt) {
+		src = l->data;
+		switch (src->key) {
 		case SR_HWOPT_CONN:
-			conn = opt->value;
+			conn = src->value;
 			break;
 		case SR_HWOPT_SERIALCOMM:
-			serialcomm = opt->value;
+			serialcomm = src->value;
 			break;
 		}
 	}
@@ -399,7 +399,6 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 {
 	struct sr_datafeed_packet *packet;
 	struct sr_datafeed_header *header;
-	struct sr_datafeed_meta_logic meta;
 	struct dev_context *devc;
 	int ret = SR_ERR;
 
@@ -467,12 +466,6 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	packet->payload = (unsigned char *)header;
 	header->feed_version = 1;
 	gettimeofday(&header->starttime, NULL);
-	sr_session_send(cb_data, packet);
-
-	packet->type = SR_DF_META_LOGIC;
-	packet->payload = &meta;
-	meta.samplerate = devc->cur_rate;
-	meta.num_probes = NUM_PROBES;
 	sr_session_send(cb_data, packet);
 
 	g_free(header);

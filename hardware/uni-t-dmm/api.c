@@ -262,7 +262,6 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 {
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_header header;
-	struct sr_datafeed_meta_analog meta;
 	struct dev_context *devc;
 
 	devc = sdi->priv;
@@ -277,13 +276,6 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	packet.payload = (uint8_t *)&header;
 	header.feed_version = 1;
 	gettimeofday(&header.starttime, NULL);
-	sr_session_send(devc->cb_data, &packet);
-
-	/* Send metadata about the SR_DF_ANALOG packets to come. */
-	sr_dbg("Sending SR_DF_META_ANALOG.");
-	packet.type = SR_DF_META_ANALOG;
-	packet.payload = &meta;
-	meta.num_probes = 1;
 	sr_session_send(devc->cb_data, &packet);
 
 	if (!strcmp(di->name, "uni-t-ut61d")) {

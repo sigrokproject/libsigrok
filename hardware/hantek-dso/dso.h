@@ -26,7 +26,6 @@
 #define USB_CONFIGURATION		1
 #define DSO_EP_IN			0x86
 #define DSO_EP_OUT			0x02
-#define NUM_PROBES			2
 
 /* FX2 renumeration delay in ms */
 #define MAX_RENUM_DELAY_MS		3000

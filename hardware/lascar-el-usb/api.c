@@ -89,7 +89,7 @@ static GSList *hw_scan(GSList *options)
 	struct dev_context *devc;
 	struct sr_dev_inst *sdi;
 	struct sr_usb_dev_inst *usb;
-	struct sr_hwopt *opt;
+	struct sr_config *src;
 	GSList *usb_devices, *devices, *l;
 	const char *conn;
 
@@ -105,10 +105,10 @@ static GSList *hw_scan(GSList *options)
 
 	conn = NULL;
 	for (l = options; l; l = l->next) {
-		opt = l->data;
-		switch (opt->hwopt) {
+		src = l->data;
+		switch (src->key) {
 		case SR_HWOPT_CONN:
-			conn = opt->value;
+			conn = src->value;
 			break;
 		}
 	}
@@ -335,7 +335,6 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 {
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_header header;
-	struct sr_datafeed_meta_analog meta;
 	struct dev_context *devc;
 	struct drv_context *drvc = di->priv;
 	struct libusb_transfer *xfer_in, *xfer_out;
@@ -428,12 +427,6 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	}
 	devc->log_size = xfer_in->buffer[1] + (xfer_in->buffer[2] << 8);
 	libusb_free_transfer(xfer_out);
-
-	/* Send metadata about the SR_DF_ANALOG packets to come. */
-	packet.type = SR_DF_META_ANALOG;
-	packet.payload = &meta;
-	meta.num_probes = 1;
-	sr_session_send(devc->cb_data, &packet);
 
 	pfd = libusb_get_pollfds(drvc->sr_ctx->libusb_ctx);
 	for (i = 0; pfd[i]; i++) {

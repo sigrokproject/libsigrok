@@ -928,7 +928,6 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 {
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_header header;
-	struct sr_datafeed_meta_logic meta;
 	struct dev_context *devc;
 	struct drv_context *drvc;
 	struct libusb_transfer *transfer;
@@ -996,13 +995,6 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	packet.payload = &header;
 	header.feed_version = 1;
 	gettimeofday(&header.starttime, NULL);
-	sr_session_send(cb_data, &packet);
-
-	/* Send metadata about the SR_DF_LOGIC packets to come. */
-	packet.type = SR_DF_META_LOGIC;
-	packet.payload = &meta;
-	meta.samplerate = devc->cur_samplerate;
-	meta.num_probes = devc->sample_wide ? 16 : 8;
 	sr_session_send(cb_data, &packet);
 
 	if ((ret = command_start_acquisition(devc->usb->devhdl,

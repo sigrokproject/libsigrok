@@ -1271,7 +1271,6 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	struct dev_context *devc;
 	struct sr_datafeed_packet *packet;
 	struct sr_datafeed_header *header;
-	struct sr_datafeed_meta_logic meta;
 	struct clockselect_50 clockselect;
 	int frac, triggerpin, ret;
 	uint8_t triggerselect = 0;
@@ -1380,13 +1379,6 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	packet->payload = header;
 	header->feed_version = 1;
 	gettimeofday(&header->starttime, NULL);
-	sr_session_send(devc->session_dev_id, packet);
-
-	/* Send metadata about the SR_DF_LOGIC packets to come. */
-	packet->type = SR_DF_META_LOGIC;
-	packet->payload = &meta;
-	meta.samplerate = devc->cur_samplerate;
-	meta.num_probes = devc->num_probes;
 	sr_session_send(devc->session_dev_id, packet);
 
 	/* Add capture source. */

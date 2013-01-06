@@ -194,20 +194,20 @@ static GSList *fluke_scan(const char *conn, const char *serialcomm)
 
 static GSList *hw_scan(GSList *options)
 {
-	struct sr_hwopt *opt;
+	struct sr_config *src;
 	GSList *l, *devices;
 	int i;
 	const char *conn, *serialcomm;
 
 	conn = serialcomm = NULL;
 	for (l = options; l; l = l->next) {
-		opt = l->data;
-		switch (opt->hwopt) {
+		src = l->data;
+		switch (src->key) {
 		case SR_HWOPT_CONN:
-			conn = opt->value;
+			conn = src->value;
 			break;
 		case SR_HWOPT_SERIALCOMM:
-			serialcomm = opt->value;
+			serialcomm = src->value;
 			break;
 		}
 	}
@@ -343,7 +343,6 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 {
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_header header;
-	struct sr_datafeed_meta_analog meta;
 	struct dev_context *devc;
 
 	if (!(devc = sdi->priv)) {
@@ -361,13 +360,6 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	packet.payload = (uint8_t *)&header;
 	header.feed_version = 1;
 	gettimeofday(&header.starttime, NULL);
-	sr_session_send(devc->cb_data, &packet);
-
-	/* Send metadata about the SR_DF_ANALOG packets to come. */
-	sr_dbg("Sending SR_DF_META_ANALOG.");
-	packet.type = SR_DF_META_ANALOG;
-	packet.payload = &meta;
-	meta.num_probes = 1;
 	sr_session_send(devc->cb_data, &packet);
 
 	/* Poll every 100ms, or whenever some data comes in. */
