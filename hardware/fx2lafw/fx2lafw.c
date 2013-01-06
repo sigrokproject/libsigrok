@@ -267,9 +267,12 @@ static int fx2lafw_dev_open(struct sr_dev_inst *sdi)
 
 		sdi->status = SR_ST_ACTIVE;
 		sr_info("Opened device %d on %d.%d, "
-			"interface %d, firmware %d.%d, REVID %d.",
+			"interface %d, firmware %d.%d.",
 			sdi->index, devc->usb->bus, devc->usb->address,
-			USB_INTERFACE, vi.major, vi.minor, revid);
+			USB_INTERFACE, vi.major, vi.minor);
+
+		sr_info("Detected REVID=%d, it's a Cypress CY7C68013%s.",
+			revid, (revid != 1) ? " (FX2)" : "A (FX2LP)");
 
 		break;
 	}
