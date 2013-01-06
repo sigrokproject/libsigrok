@@ -148,11 +148,10 @@ struct sr_rational {
 enum {
 	SR_DF_HEADER = 10000,
 	SR_DF_END,
+	SR_DF_META,
 	SR_DF_TRIGGER,
 	SR_DF_LOGIC,
-	SR_DF_META_LOGIC,
 	SR_DF_ANALOG,
-	SR_DF_META_ANALOG,
 	SR_DF_FRAME_BEGIN,
 	SR_DF_FRAME_END,
 };
@@ -276,6 +275,10 @@ struct sr_datafeed_header {
 	struct timeval starttime;
 };
 
+struct sr_datafeed_meta {
+	GSList *config;
+};
+
 struct sr_datafeed_meta_logic {
 	int num_probes;
 	uint64_t samplerate;
@@ -368,9 +371,17 @@ struct sr_probe {
 	char *trigger;
 };
 
-struct sr_hwopt {
-	int hwopt;
+struct sr_config {
+	int key;
 	const void *value;
+};
+
+struct sr_config_info {
+	int key;
+	char *id;
+	char *name;
+	char *description;
+	int datatype;
 };
 
 /** Hardware driver options. */
@@ -513,13 +524,6 @@ enum {
 	 * samples continuously, until explicitly stopped by a certain command.
 	 */
 	SR_HWCAP_CONTINUOUS,
-};
-
-struct sr_hwcap_option {
-	int hwcap;
-	int type;
-	char *description;
-	char *shortname;
 };
 
 struct sr_dev_inst {
