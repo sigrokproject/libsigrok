@@ -335,11 +335,13 @@ SR_PRIV int mso_check_trigger(struct sr_serial_dev_inst *serial, uint8_t *info)
 	int ret;
 
 	sr_dbg("Requesting trigger state.");
+  printf("Send Controll message\n");
 	ret = mso_send_control_message(serial, ARRAY_AND_SIZE(ops));
 	if (info == NULL || ret != SR_OK)
 		return ret;
 
 
+  printf("REad buffer\n");
   uint8_t buf = 0;
 	if (serial_read(serial, &buf, 1) != 1) /* FIXME: Need timeout */
 		ret = SR_ERR;
@@ -377,19 +379,23 @@ SR_PRIV int mso_receive_data(int fd, int revents, void *cb_data)
 
 	uint8_t in[1024];
 	size_t s = serial_read(devc->serial, in, sizeof(in));
+
 	if (s <= 0)
 		return FALSE;
   
-  /* No samples */
+  /* Check if we triggered, then send a command that we are ready
+   * to read the data */
   if (devc->trigger_state != MSO_TRIGGER_DATAREADY) {
     devc->trigger_state = in[0];
+    printf("Got %c for trigger \n", in[0]);
     if (devc->trigger_state == MSO_TRIGGER_DATAREADY) {
+      printf("Trigger is ready %c\n", MSO_TRIGGER_DATAREADY);
       mso_read_buffer(sdi);
       devc->buffer_n = 0;
     } else {
       mso_check_trigger(devc->serial, NULL);
     }
-    return FALSE;
+    return TRUE;
   }
 
 	/* the hardware always dumps 1024 samples, 24bits each */
@@ -398,8 +404,9 @@ SR_PRIV int mso_receive_data(int fd, int revents, void *cb_data)
 		devc->buffer_n += s;
 	}
 	if (devc->buffer_n < 3072)
-		return FALSE;
+		return TRUE;
 
+  printf("Got samples, write out the data\n");
 	/* do the conversion */
 	uint8_t logic_out[1024];
 	double analog_out[1024];
@@ -416,6 +423,7 @@ SR_PRIV int mso_receive_data(int fd, int revents, void *cb_data)
 	logic.length = 1024;
 	logic.unitsize = 1;
 	logic.data = logic_out;
+  printf("Send Data\n");
 	sr_session_send(cb_data, &packet);
 
 	// Dont bother fixing this yet, keep it "old style"
@@ -427,8 +435,75 @@ SR_PRIV int mso_receive_data(int fd, int revents, void *cb_data)
 	sr_session_send(ctx->session_dev_id, &packet);
 	*/
 
-	packet.type = SR_DF_END;
-	sr_session_send(devc->session_dev_id, &packet);
+  //printf("Send END\n");
+	//packet.type = SR_DF_END;
+	//sr_session_send(devc->session_dev_id, &packet);
 
+ // serial_flush(devc->serial);
+ // abort_acquisition(sdi);
+ // serial_close(devc->serial);
+
+  return FALSE;
+  printf("REturn \n");
   return TRUE;
 }
+
+SR_PRIV int mso_configure_probes(const struct sr_dev_inst *sdi)
+{
+
+	struct dev_context *devc;
+	struct sr_probe *probe;
+	GSList *l;
+	int probe_bit, stage, i;
+	char *tc;
+
+  /*
+	devc = sdi->priv;
+	for (i = 0; i < NUM_TRIGGER_STAGES; i++) {
+		devc->la_trigger_mask[i] = 0;
+		devc->la_trigger[i] = 0;
+	}
+
+	stage = -1;
+	for (l = sdi->probes; l; l = l->next) {
+		probe = (struct sr_probe *)l->data;
+		if (probe->enabled == FALSE)
+			continue;
+
+		//if (probe->index > 7)
+		//	devc->sample_wide = TRUE;
+
+		probe_bit = 1 << (probe->index);
+		if (!(probe->trigger))
+			continue;
+
+		//Configure trigger mask and value.
+		stage = 0;
+		for (tc = probe->trigger; *tc; tc++) {
+			devc->trigger_mask[stage] |= probe_bit;
+			if (*tc == '1')
+				devc->trigger_value[stage] |= probe_bit;
+			stage++;
+			if (stage > NUM_TRIGGER_STAGES)
+				return SR_ERR;
+		}
+	}
+
+  */
+
+	//if (stage == -1)
+	//	/*
+	//	 * We didn't configure any triggers, make sure acquisition
+	//	 * doesn't wait for any.
+	//	 */
+	//	devc->trigger_stage = TRIGGER_FIRED;
+	//else
+	//	devc->trigger_stage = 0;
+
+	return SR_OK;
+
+
+}
+
+
+

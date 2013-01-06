@@ -41,27 +41,7 @@ SR_PRIV const char *mso19_probe_names[NUM_PROBES + 1] = {
 static const struct sr_samplerates samplerates = {
 	SR_HZ(100),
 	SR_MHZ(200),
-	SR_HZ(1),
-	//SR_HZ(100),
-	//SR_HZ(200),
-	//SR_HZ(500),
-	//SR_KHZ(1),
-	//SR_KHZ(2),
-	//SR_KHZ(5),
-	//SR_KHZ(10),
-	//SR_KHZ(20),
-	//SR_KHZ(50),
-	//SR_KHZ(100),
-	//SR_KHZ(200),
-	//SR_KHZ(500),
-	//SR_MHZ(1),
-	//SR_MHZ(2),
-	//SR_MHZ(5),
-	//SR_MHZ(10),
-	//SR_MHZ(20),
-	//SR_MHZ(50),
-	//SR_MHZ(100),
-	//SR_MHZ(200),
+	SR_HZ(100),
 	NULL,
 };
 
@@ -70,8 +50,6 @@ static struct sr_dev_driver *di = &link_mso19_driver_info;
 
 static int hw_init(struct sr_context *sr_ctx)
 {
-  printf("Init driver\n");
-
 	struct drv_context *drvc;
 
 	if (!(drvc = g_try_malloc0(sizeof(struct drv_context)))) {
@@ -86,18 +64,10 @@ static int hw_init(struct sr_context *sr_ctx)
 
 static GSList *hw_scan(GSList *options)
 {
-	//struct sr_hwopt *opt;
-	//struct sr_probe *probe;
-	//GPollFD probefd;
-	//int ret, i;
-	//char buf[8];
-	//struct udev *udev;
   int i;
 
 	(void)options;
 	GSList *devices = NULL;
- 
-	sr_info("Checking for link mso19\n");
 
 	const char* conn = NULL;
   const char* serialcomm = NULL;
@@ -154,6 +124,7 @@ static GSList *hw_scan(GSList *options)
 
     char path[32];
 		snprintf(path, sizeof(path), "/dev/%s", sysname);
+    conn = path;
 
 		size_t s = strcspn(iProduct, " ");
     char product[32];
@@ -217,21 +188,17 @@ static GSList *hw_scan(GSList *options)
       sdi->probes = g_slist_append(sdi->probes, probe); 
     }
 
-
-    printf("Add the context\n");
     //Add the driver
     struct drv_context *drvc = di->priv;
     drvc->instances = g_slist_append(drvc->instances, sdi);
     devices = g_slist_append(devices, sdi);
   }
-  
-  printf("Return devices\n");
+
 	return devices;
 }
 
 static GSList *hw_dev_list(void)
 {
-  printf("Dev list\n");
 	struct drv_context *drvc;
 
 	drvc = di->priv;
@@ -241,7 +208,6 @@ static GSList *hw_dev_list(void)
 
 static int hw_dev_open(struct sr_dev_inst *sdi)
 {
-  printf("Dev opewn\n");
 	struct dev_context *devc;
 
 	devc = sdi->priv;
@@ -287,7 +253,6 @@ static int hw_dev_close(struct sr_dev_inst *sdi)
 
 static int hw_cleanup(void)
 {
-  printf("*Dev clearup\n");
 	GSList *l;
 	struct sr_dev_inst *sdi;
 	struct drv_context *drvc;
@@ -325,8 +290,6 @@ static int hw_info_get(int info_id, const void **data,
        const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-
-  printf("Get info\n");
 
 	switch (info_id) {
 	case SR_DI_HWCAPS:
@@ -403,10 +366,10 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR;
 
-	//TODO if (ols_configure_probes(sdi) != SR_OK) {
-	//TODO 	sr_err("Failed to configure probes.");
-	//TODO 	return SR_ERR;
-	//TODO }
+	if (mso_configure_probes(sdi) != SR_OK) {
+		sr_err("Failed to configure probes.");
+		return SR_ERR;
+	}
 
 	/*
 	 * Enable/disable channel groups in the flag register according to the
@@ -511,7 +474,6 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 /* TODO: This stops acquisition on ALL devices, ignoring dev_index. */
 static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
-  printf("Accuqstion stop\n");
 	/* Avoid compiler warnings. */
 	(void)cb_data;
 
