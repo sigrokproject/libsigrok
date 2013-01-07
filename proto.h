@@ -67,8 +67,8 @@ SR_API int sr_dev_inst_clear(const struct sr_dev_driver *driver);
 
 /*--- filter.c --------------------------------------------------------------*/
 
-SR_API int sr_filter_probes(int in_unitsize, int out_unitsize,
-			    const int *probelist, const uint8_t *data_in,
+SR_API int sr_filter_probes(unsigned int in_unitsize, unsigned int out_unitsize,
+			    const GArray *probe_array, const uint8_t *data_in,
 			    uint64_t length_in, uint8_t **data_out,
 			    uint64_t *length_out);
 

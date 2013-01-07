@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <glib.h>
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
@@ -95,19 +96,21 @@
  *         If something other than SR_OK is returned, the values of
  *         out_unitsize, data_out, and length_out are undefined.
  */
-SR_API int sr_filter_probes(int in_unitsize, int out_unitsize,
-			    const int *probelist, const uint8_t *data_in,
+SR_API int sr_filter_probes(unsigned int in_unitsize, unsigned int out_unitsize,
+			    const GArray *probe_array, const uint8_t *data_in,
 			    uint64_t length_in, uint8_t **data_out,
 			    uint64_t *length_out)
 {
 	unsigned int in_offset, out_offset;
-	int num_enabled_probes, out_bit, i;
+	int *probelist, out_bit;
+	unsigned int i;
 	uint64_t sample_in, sample_out;
 
-	if (!probelist) {
-		sr_err("%s: probelist was NULL", __func__);
+	if (!probe_array) {
+		sr_err("%s: probe_array was NULL", __func__);
 		return SR_ERR_ARG;
 	}
+	probelist = (int *)probe_array->data;
 
 	if (!data_in) {
 		sr_err("%s: data_in was NULL", __func__);
@@ -124,14 +127,10 @@ SR_API int sr_filter_probes(int in_unitsize, int out_unitsize,
 		return SR_ERR_ARG;
 	}
 
-	num_enabled_probes = 0;
-	for (i = 0; probelist[i] != -1; i++)
-		num_enabled_probes++;
-
 	/* Are there more probes than the target unit size supports? */
-	if (num_enabled_probes > out_unitsize * 8) {
+	if (probe_array->len > out_unitsize * 8) {
 		sr_err("%s: too many probes (%d) for the target unit "
-		       "size (%d)", __func__, num_enabled_probes, out_unitsize);
+		       "size (%d)", __func__, probe_array->len, out_unitsize);
 		return SR_ERR_ARG;
 	}
 
@@ -140,7 +139,7 @@ SR_API int sr_filter_probes(int in_unitsize, int out_unitsize,
 		return SR_ERR_MALLOC;
 	}
 
-	if (num_enabled_probes == in_unitsize * 8) {
+	if (probe_array->len == in_unitsize * 8) {
 		/* All probes are used -- no need to compress anything. */
 		memcpy(*data_out, data_in, length_in);
 		*length_out = length_in;
@@ -152,7 +151,7 @@ SR_API int sr_filter_probes(int in_unitsize, int out_unitsize,
 	while (in_offset <= length_in - in_unitsize) {
 		memcpy(&sample_in, data_in + in_offset, in_unitsize);
 		sample_out = out_bit = 0;
-		for (i = 0; probelist[i] != -1; i++) {
+		for (i = 0; i < probe_array->len; i++) {
 			if (sample_in & (1 << (probelist[i])))
 				sample_out |= (1 << out_bit);
 			out_bit++;
