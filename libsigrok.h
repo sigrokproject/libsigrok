@@ -340,13 +340,6 @@ struct sr_output_format {
 	int (*cleanup) (struct sr_output *o);
 };
 
-struct sr_datastore {
-	/** Size in bytes of the number of units stored in this datastore. */
-	int ds_unitsize;
-	unsigned int num_units; /* TODO: uint64_t */
-	GSList *chunklist;
-};
-
 /*
  * This represents a generic device connected to the system.
  * For device-specific information, ask the driver. The driver_index refers
@@ -360,8 +353,6 @@ struct sr_dev {
 	int driver_index;
 	/** List of struct sr_probe pointers. */
 	GSList *probes;
-	/** Data acquired by this device, if any. */
-	struct sr_datastore *datastore;
 };
 
 enum {

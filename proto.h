@@ -43,14 +43,6 @@ SR_API int sr_log_callback_set_default(void);
 SR_API int sr_log_logdomain_set(const char *logdomain);
 SR_API char *sr_log_logdomain_get(void);
 
-/*--- datastore.c -----------------------------------------------------------*/
-
-SR_API int sr_datastore_new(int unitsize, struct sr_datastore **ds);
-SR_API int sr_datastore_destroy(struct sr_datastore *ds);
-SR_API int sr_datastore_put(struct sr_datastore *ds, void *data,
-			    unsigned int length, int in_unitsize,
-			    const int *probelist);
-
 /*--- device.c --------------------------------------------------------------*/
 
 SR_API int sr_dev_probe_name_set(const struct sr_dev_inst *sdi,
