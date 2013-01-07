@@ -387,9 +387,7 @@ SR_PRIV int mso_receive_data(int fd, int revents, void *cb_data)
    * to read the data */
   if (devc->trigger_state != MSO_TRIGGER_DATAREADY) {
     devc->trigger_state = in[0];
-    //printf("Got %c for trigger \n", in[0]);
     if (devc->trigger_state == MSO_TRIGGER_DATAREADY) {
-      //printf("Trigger is ready %c\n", MSO_TRIGGER_DATAREADY);
       mso_read_buffer(sdi);
       devc->buffer_n = 0;
     } else {
@@ -406,7 +404,6 @@ SR_PRIV int mso_receive_data(int fd, int revents, void *cb_data)
 	if (devc->buffer_n < 3072)
 		return TRUE;
 
-  printf("Got samples, write out the data\n");
 	/* do the conversion */
 	uint8_t logic_out[1024];
 	double analog_out[1024];
@@ -423,8 +420,9 @@ SR_PRIV int mso_receive_data(int fd, int revents, void *cb_data)
 	logic.length = 1024;
 	logic.unitsize = 1;
 	logic.data = logic_out;
-  printf("Send Data\n");
 	sr_session_send(cb_data, &packet);
+
+  devc->num_samples += 1024;
 
 	// Dont bother fixing this yet, keep it "old style"
 	/*
@@ -435,16 +433,11 @@ SR_PRIV int mso_receive_data(int fd, int revents, void *cb_data)
 	sr_session_send(ctx->session_dev_id, &packet);
 	*/
 
-  //printf("Send END\n");
-	//packet.type = SR_DF_END;
-	//sr_session_send(devc->session_dev_id, &packet);
+  if (devc->limit_samples && devc->num_samples >= devc->limit_samples) { 
+    sr_info("Requested number of samples reached."); 
+    sdi->driver->dev_acquisition_stop(sdi, cb_data); 
+  } 
 
- // serial_flush(devc->serial);
- // abort_acquisition(sdi);
- // serial_close(devc->serial);
-
-  return FALSE;
-  printf("REturn \n");
   return TRUE;
 }
 

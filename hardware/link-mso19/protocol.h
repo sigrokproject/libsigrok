@@ -100,6 +100,8 @@ struct dev_context {
 	double vbit;
 	uint16_t dac_offset;
 	uint16_t offset_range;
+  uint64_t limit_samples;
+  uint64_t num_samples;
 	/* register cache */
 	uint8_t ctlbase1;
 	uint8_t ctlbase2;

@@ -240,7 +240,6 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 
 static int hw_dev_close(struct sr_dev_inst *sdi)
 {
-  printf("dev close\n");
 	struct dev_context *devc;
 
 	devc = sdi->priv;
@@ -340,14 +339,26 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		ret = SR_OK;
 		break;
 	case SR_HWCAP_LIMIT_SAMPLES:
-		ret = SR_OK;
+    {
+      const uint64_t num_samples = *(const uint64_t *)value;
+      if (num_samples < 1024)
+      {
+        sr_err("minimum of 1024 samples required");
+        ret = SR_ERR_ARG;
+
+      } else {
+        devc->limit_samples = num_samples;
+        sr_dbg("setting limit_samples to %i\n", num_samples);
+        ret = SR_OK;
+      }
+    }
 		break;
   case SR_HWCAP_CAPTURE_RATIO:
     ret = SR_OK;
 		break;
   case SR_HWCAP_TRIGGER_SLOPE:
     {
-      uint64_t slope = *(const uint64_t *)value;
+      const uint64_t slope = *(const uint64_t *)value;
       if (slope != SLOPE_NEGATIVE && slope != SLOPE_POSITIVE)
       {
         sr_err("Invalid trigger slope");
@@ -360,13 +371,12 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
     break;
   case SR_HWCAP_HORIZ_TRIGGERPOS:
     {
-      float pos = *(const float *)value;
+      const float pos = *(const float *)value;
       if (pos < 0 || pos > 255) {
         sr_err("Trigger position (%f) should be between 0 and 255.", pos);
         ret = SR_ERR_ARG;
       } else {
         int trigger_pos = (int)pos;
-        printf("Set trigger posion to %X\n", trigger_pos&0xff);
         devc->trigger_holdoff[0] = trigger_pos&0xff;
         ret = SR_OK;
       }
@@ -393,7 +403,6 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	int ret = SR_ERR;
   
   
-  printf("Accquistion start\n");
 	devc = sdi->priv;
 
 	if (sdi->status != SR_ST_ACTIVE)
@@ -413,24 +422,20 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	devc->ctlbase1 &= 0x7f;
 //	devc->ctlbase1 |= devc->acdcmode;
 
-  printf("Configure rate\n");
 	ret = mso_configure_rate(sdi, devc->cur_rate);
 	if (ret != SR_OK)
 		return ret;
 
 	/* set dac offset */
-  printf("Configure dac\n");
 	ret = mso_dac_out(sdi, devc->dac_offset);
 	if (ret != SR_OK)
 		return ret;
 
-  printf("Configure threshold level\n");
 	ret = mso_configure_threshold_level(sdi);
 	if (ret != SR_OK)
 		return ret;
 
 
-  printf("Configure trigger\n");
 	ret = mso_configure_trigger(sdi);
 	if (ret != SR_OK)
 		return ret;
@@ -442,16 +447,13 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
     return ret;
 
 	/* Start acquisition on the device. */
-  printf("Check trigger\n");
 	mso_check_trigger(devc->serial, &devc->trigger_state);
 	ret = mso_check_trigger(devc->serial, NULL);
 	if (ret != SR_OK)
 		return ret;
 
-  printf("Source add\n");
   sr_source_add(devc->serial->fd, G_IO_IN, -1, mso_receive_data, cb_data);
 
-  printf("Create packet\n");
 	if (!(packet = g_try_malloc(sizeof(struct sr_datafeed_packet)))) {
 		sr_err("Datafeed packet malloc failed.");
 		return SR_ERR_MALLOC;
@@ -462,6 +464,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 		g_free(packet);
 		return SR_ERR_MALLOC;
 	}
+
 
 	packet->type = SR_DF_HEADER;
 	packet->payload = (unsigned char *)header;
