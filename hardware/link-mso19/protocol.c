@@ -26,7 +26,7 @@ extern SR_PRIV struct sr_dev_driver link_mso19_driver_info;
 static struct sr_dev_driver *di = &link_mso19_driver_info;
 
 SR_PRIV int mso_send_control_message(struct sr_serial_dev_inst *serial,
-    uint16_t payload[], int n)
+				     uint16_t payload[], int n)
 {
 	int i, w, ret, s = n * 2 + sizeof(mso_head) + sizeof(mso_foot);
 	char *p, *buf;
@@ -68,54 +68,52 @@ ret:
 	return ret;
 }
 
-
 SR_PRIV int mso_configure_trigger(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc = sdi->priv;
 	uint16_t threshold_value = mso_calc_raw_from_mv(devc);
 
+	threshold_value = 0x153C;
+	uint8_t trigger_config = 0;
 
-  threshold_value = 0x153C;
-  uint8_t trigger_config = 0; 
-
-  if (devc->trigger_slope)
-    trigger_config |= 0x04; //Trigger on falling edge
+	if (devc->trigger_slope)
+		trigger_config |= 0x04;	//Trigger on falling edge
 
 	switch (devc->trigger_outsrc) {
 	case 1:
-		trigger_config |= 0x00; //Trigger pulse output
+		trigger_config |= 0x00;	//Trigger pulse output
 		break;
 	case 2:
-		trigger_config |= 0x08; //PWM DAC from the pattern generator buffer
+		trigger_config |= 0x08;	//PWM DAC from the pattern generator buffer
 		break;
 	case 3:
-		trigger_config |= 0x18; //White noise
+		trigger_config |= 0x18;	//White noise
 		break;
 	}
 
 	switch (devc->trigger_chan) {
-    case 0:
-      trigger_config |= 0x00; //DSO level trigger //b00000000
-      break;
-    case 1:
-      trigger_config |= 0x20; //DSO level trigger & width < trigger_width
-      break;
-    case 2:
-      trigger_config |= 0x40; //DSO level trigger & width >= trigger_width 
-      break;
-    case 3:
-      trigger_config |= 0x60; //LA combination trigger
-      break;
-  }
+	case 0:
+		trigger_config |= 0x00;	//DSO level trigger //b00000000
+		break;
+	case 1:
+		trigger_config |= 0x20;	//DSO level trigger & width < trigger_width
+		break;
+	case 2:
+		trigger_config |= 0x40;	//DSO level trigger & width >= trigger_width 
+		break;
+	case 3:
+		trigger_config |= 0x60;	//LA combination trigger
+		break;
+	}
 
-  //Last bit of trigger config reg 4 needs to be 1 for trigger enable,
-  //otherwise the trigger is not enabled
-  if (devc->use_trigger)
-    trigger_config |= 0x80;
+	//Last bit of trigger config reg 4 needs to be 1 for trigger enable,
+	//otherwise the trigger is not enabled
+	if (devc->use_trigger)
+		trigger_config |= 0x80;
 
 	uint16_t ops[18];
 	ops[0] = mso_trans(3, threshold_value & 0xff);
-  //The trigger_config also holds the 2 MSB bits from the threshold value
+	//The trigger_config also holds the 2 MSB bits from the threshold value
 	ops[1] = mso_trans(4, trigger_config | (threshold_value >> 8) & 0x03);
 	ops[2] = mso_trans(5, devc->la_trigger);
 	ops[3] = mso_trans(6, devc->la_trigger_mask);
@@ -123,7 +121,8 @@ SR_PRIV int mso_configure_trigger(struct sr_dev_inst *sdi)
 	ops[5] = mso_trans(8, devc->trigger_holdoff[1]);
 
 	ops[6] = mso_trans(11,
-			devc->dso_trigger_width / SR_HZ_TO_NS(devc->cur_rate));
+			   devc->dso_trigger_width /
+			   SR_HZ_TO_NS(devc->cur_rate));
 
 	/* Select the SPI/I2C trigger config bank */
 	ops[7] = mso_trans(REG_CTL2, (devc->ctlbase2 | BITS_CTL2_BANK(2)));
@@ -197,31 +196,29 @@ SR_PRIV int mso_dac_out(struct sr_dev_inst *sdi, uint16_t val)
 	return mso_send_control_message(devc->serial, ARRAY_AND_SIZE(ops));
 }
 
-SR_PRIV inline uint16_t mso_calc_raw_from_mv(struct dev_context *devc)
+SR_PRIV inline uint16_t mso_calc_raw_from_mv(struct dev_context * devc)
 {
 	return (uint16_t) (0x200 -
-			((devc->dso_trigger_voltage / devc->dso_probe_attn) /
-			 devc->vbit));
+			   ((devc->dso_trigger_voltage / devc->dso_probe_attn) /
+			    devc->vbit));
 }
 
-
 SR_PRIV int mso_parse_serial(const char *iSerial, const char *iProduct,
-    struct dev_context *devc)
+			     struct dev_context *devc)
 {
 	unsigned int u1, u2, u3, u4, u5, u6;
 
-  iProduct = iProduct;
-  /* FIXME: This code is in the original app, but I think its
-   * used only for the GUI */
-  /*	if (strstr(iProduct, "REV_02") || strstr(iProduct, "REV_03"))
-      devc->num_sample_rates = 0x16;
-      else
-      devc->num_sample_rates = 0x10; */
-  
+	iProduct = iProduct;
+	/* FIXME: This code is in the original app, but I think its
+	 * used only for the GUI */
+	/*    if (strstr(iProduct, "REV_02") || strstr(iProduct, "REV_03"))
+	   devc->num_sample_rates = 0x16;
+	   else
+	   devc->num_sample_rates = 0x10; */
 
 	/* parse iSerial */
 	if (iSerial[0] != '4' || sscanf(iSerial, "%5u%3u%3u%1u%1u%6u",
-				&u1, &u2, &u3, &u4, &u5, &u6) != 6)
+					&u1, &u2, &u3, &u4, &u5, &u6) != 6)
 		return SR_ERR;
 	devc->hwmodel = u4;
 	devc->hwrev = u5;
@@ -323,17 +320,13 @@ SR_PRIV int mso_configure_rate(struct sr_dev_inst *sdi, uint32_t rate)
 		}
 	}
 
-  if (ret != SR_OK)
+	if (ret != SR_OK)
 		sr_err("Unsupported rate.");
 
 	return ret;
 }
 
-
-
-
-
-SR_PRIV int mso_check_trigger(struct sr_serial_dev_inst *serial, uint8_t *info)
+SR_PRIV int mso_check_trigger(struct sr_serial_dev_inst *serial, uint8_t * info)
 {
 	uint16_t ops[] = { mso_trans(REG_TRIGGER, 0) };
 	int ret;
@@ -343,9 +336,8 @@ SR_PRIV int mso_check_trigger(struct sr_serial_dev_inst *serial, uint8_t *info)
 	if (info == NULL || ret != SR_OK)
 		return ret;
 
-
-  uint8_t buf = 0;
-	if (serial_read(serial, &buf, 1) != 1) /* FIXME: Need timeout */
+	uint8_t buf = 0;
+	if (serial_read(serial, &buf, 1) != 1)	/* FIXME: Need timeout */
 		ret = SR_ERR;
 	*info = buf;
 
@@ -355,7 +347,6 @@ SR_PRIV int mso_check_trigger(struct sr_serial_dev_inst *serial, uint8_t *info)
 
 SR_PRIV int mso_receive_data(int fd, int revents, void *cb_data)
 {
-
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
 	struct sr_dev_inst *sdi;
@@ -384,19 +375,19 @@ SR_PRIV int mso_receive_data(int fd, int revents, void *cb_data)
 
 	if (s <= 0)
 		return FALSE;
-  
-  /* Check if we triggered, then send a command that we are ready
-   * to read the data */
-  if (devc->trigger_state != MSO_TRIGGER_DATAREADY) {
-    devc->trigger_state = in[0];
-    if (devc->trigger_state == MSO_TRIGGER_DATAREADY) {
-      mso_read_buffer(sdi);
-      devc->buffer_n = 0;
-    } else {
-      mso_check_trigger(devc->serial, NULL);
-    }
-    return TRUE;
-  }
+
+	/* Check if we triggered, then send a command that we are ready
+	 * to read the data */
+	if (devc->trigger_state != MSO_TRIGGER_DATAREADY) {
+		devc->trigger_state = in[0];
+		if (devc->trigger_state == MSO_TRIGGER_DATAREADY) {
+			mso_read_buffer(sdi);
+			devc->buffer_n = 0;
+		} else {
+			mso_check_trigger(devc->serial, NULL);
+		}
+		return TRUE;
+	}
 
 	/* the hardware always dumps 1024 samples, 24bits each */
 	if (devc->buffer_n < 3072) {
@@ -412,9 +403,9 @@ SR_PRIV int mso_receive_data(int fd, int revents, void *cb_data)
 	for (i = 0; i < 1024; i++) {
 		/* FIXME: Need to do conversion to mV */
 		analog_out[i] = (devc->buffer[i * 3] & 0x3f) |
-			((devc->buffer[i * 3 + 1] & 0xf) << 6);
+		    ((devc->buffer[i * 3 + 1] & 0xf) << 6);
 		logic_out[i] = ((devc->buffer[i * 3 + 1] & 0x30) >> 4) |
-			((devc->buffer[i * 3 + 2] & 0x3f) << 2);
+		    ((devc->buffer[i * 3 + 2] & 0x3f) << 2);
 	}
 
 	packet.type = SR_DF_LOGIC;
@@ -424,23 +415,23 @@ SR_PRIV int mso_receive_data(int fd, int revents, void *cb_data)
 	logic.data = logic_out;
 	sr_session_send(cb_data, &packet);
 
-  devc->num_samples += 1024;
+	devc->num_samples += 1024;
 
 	// Dont bother fixing this yet, keep it "old style"
 	/*
-	packet.type = SR_DF_ANALOG;
-	packet.length = 1024;
-	packet.unitsize = sizeof(double);
-	packet.payload = analog_out;
-	sr_session_send(ctx->session_dev_id, &packet);
-	*/
+	   packet.type = SR_DF_ANALOG;
+	   packet.length = 1024;
+	   packet.unitsize = sizeof(double);
+	   packet.payload = analog_out;
+	   sr_session_send(ctx->session_dev_id, &packet);
+	 */
 
-  if (devc->limit_samples && devc->num_samples >= devc->limit_samples) { 
-    sr_info("Requested number of samples reached."); 
-    sdi->driver->dev_acquisition_stop(sdi, cb_data); 
-  } 
+	if (devc->limit_samples && devc->num_samples >= devc->limit_samples) {
+		sr_info("Requested number of samples reached.");
+		sdi->driver->dev_acquisition_stop(sdi, cb_data);
+	}
 
-  return TRUE;
+	return TRUE;
 }
 
 SR_PRIV int mso_configure_probes(const struct sr_dev_inst *sdi)
@@ -451,16 +442,15 @@ SR_PRIV int mso_configure_probes(const struct sr_dev_inst *sdi)
 	int probe_bit, stage, i;
 	char *tc;
 
-  
 	devc = sdi->priv;
 
-  devc->la_trigger_mask = 0xFF; //the mask for the LA_TRIGGER (bits set to 0 matter, those set to 1 are ignored).
-  devc->la_trigger = 0x00;  //The value of the LA byte that generates a trigger event (in that mode).
-  devc->dso_trigger_voltage = 3;
-  devc->dso_probe_attn = 1;
-  devc->trigger_outsrc = 0;
-  devc->trigger_chan = 3; //LA combination trigger
-  devc->use_trigger = FALSE;
+	devc->la_trigger_mask = 0xFF;	//the mask for the LA_TRIGGER (bits set to 0 matter, those set to 1 are ignored).
+	devc->la_trigger = 0x00;	//The value of the LA byte that generates a trigger event (in that mode).
+	devc->dso_trigger_voltage = 3;
+	devc->dso_probe_attn = 1;
+	devc->trigger_outsrc = 0;
+	devc->trigger_chan = 3;	//LA combination trigger
+	devc->use_trigger = FALSE;
 
 	for (l = sdi->probes; l; l = l->next) {
 		probe = (struct sr_probe *)l->data;
@@ -471,17 +461,14 @@ SR_PRIV int mso_configure_probes(const struct sr_dev_inst *sdi)
 		if (!(probe->trigger))
 			continue;
 
-    devc->use_trigger = TRUE;
+		devc->use_trigger = TRUE;
 		//Configure trigger mask and value.
 		for (tc = probe->trigger; *tc; tc++) {
 			devc->la_trigger_mask &= ~probe_bit;
-      if (*tc == '1')
-        devc->la_trigger |= probe_bit;
-    }
-  }
+			if (*tc == '1')
+				devc->la_trigger |= probe_bit;
+		}
+	}
 
 	return SR_OK;
 }
-
-
-

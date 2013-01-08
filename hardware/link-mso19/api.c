@@ -24,11 +24,11 @@
 static const int hwcaps[] = {
 	SR_HWCAP_LOGIC_ANALYZER,
 	SR_HWCAP_SAMPLERATE,
-  SR_HWCAP_TRIGGER_SLOPE, 
-  SR_HWCAP_HORIZ_TRIGGERPOS,
-//	SR_HWCAP_CAPTURE_RATIO,
+	SR_HWCAP_TRIGGER_SLOPE,
+	SR_HWCAP_HORIZ_TRIGGERPOS,
+//      SR_HWCAP_CAPTURE_RATIO,
 	SR_HWCAP_LIMIT_SAMPLES,
-//	SR_HWCAP_RLE,
+//      SR_HWCAP_RLE,
 	0,
 };
 
@@ -60,6 +60,7 @@ static int hw_init(struct sr_context *sr_ctx)
 		sr_err("Driver context malloc failed.");
 		return SR_ERR_MALLOC;
 	}
+
 	drvc->sr_ctx = sr_ctx;
 	di->priv = drvc;
 
@@ -68,16 +69,18 @@ static int hw_init(struct sr_context *sr_ctx)
 
 static GSList *hw_scan(GSList *options)
 {
-  int i;
+	int i;
+	GSList *devices = NULL;
+	const char *conn = NULL;
+	const char *serialcomm = NULL;
+	GSList *l;
+	struct sr_hwopt *opt;
+	struct udev *udev;
 
 	(void)options;
-	GSList *devices = NULL;
 
-	const char* conn = NULL;
-  const char* serialcomm = NULL;
-  GSList *l;
 	for (l = options; l; l = l->next) {
-		struct sr_hwopt* opt = l->data;
+		opt = l->data;
 		switch (opt->hwopt) {
 		case SR_HWOPT_CONN:
 			conn = opt->value;
@@ -88,28 +91,30 @@ static GSList *hw_scan(GSList *options)
 		}
 	}
 	if (!conn)
-    conn = SERIALCONN;
+		conn = SERIALCONN;
 	if (serialcomm == NULL)
 		serialcomm = SERIALCOMM;
 
-	struct udev *udev = udev_new();
+	udev = udev_new();
 	if (!udev) {
 		sr_err("Failed to initialize udev.");
 	}
+
 	struct udev_enumerate *enumerate = udev_enumerate_new(udev);
 	udev_enumerate_add_match_subsystem(enumerate, "usb-serial");
 	udev_enumerate_scan_devices(enumerate);
 	struct udev_list_entry *devs = udev_enumerate_get_list_entry(enumerate);
 	struct udev_list_entry *dev_list_entry;
-  for (dev_list_entry = devs; 
-      dev_list_entry != NULL; 
-      dev_list_entry = udev_list_entry_get_next(dev_list_entry))
-  {
+	for (dev_list_entry = devs;
+	     dev_list_entry != NULL;
+	     dev_list_entry = udev_list_entry_get_next(dev_list_entry)) {
 		const char *syspath = udev_list_entry_get_name(dev_list_entry);
-		struct udev_device *dev = udev_device_new_from_syspath(udev, syspath);
+		struct udev_device *dev =
+		    udev_device_new_from_syspath(udev, syspath);
 		const char *sysname = udev_device_get_sysname(dev);
-		struct udev_device *parent = udev_device_get_parent_with_subsystem_devtype(
-        dev, "usb", "usb_device");
+		struct udev_device *parent =
+		    udev_device_get_parent_with_subsystem_devtype(dev, "usb",
+								  "usb_device");
 
 		if (!parent) {
 			sr_err("Unable to find parent usb device for %s",
@@ -117,86 +122,89 @@ static GSList *hw_scan(GSList *options)
 			continue;
 		}
 
-		const char *idVendor = udev_device_get_sysattr_value(parent, "idVendor");
-		const char *idProduct = udev_device_get_sysattr_value(parent, "idProduct");
+		const char *idVendor =
+		    udev_device_get_sysattr_value(parent, "idVendor");
+		const char *idProduct =
+		    udev_device_get_sysattr_value(parent, "idProduct");
 		if (strcmp(USB_VENDOR, idVendor)
-				|| strcmp(USB_PRODUCT, idProduct))
+		    || strcmp(USB_PRODUCT, idProduct))
 			continue;
 
-		const char* iSerial = udev_device_get_sysattr_value(parent, "serial");
-		const char* iProduct = udev_device_get_sysattr_value(parent, "product");
+		const char *iSerial =
+		    udev_device_get_sysattr_value(parent, "serial");
+		const char *iProduct =
+		    udev_device_get_sysattr_value(parent, "product");
 
-    char path[32];
+		char path[32];
 		snprintf(path, sizeof(path), "/dev/%s", sysname);
-    conn = path;
+		conn = path;
 
 		size_t s = strcspn(iProduct, " ");
-    char product[32];
-    char manufacturer[32];
+		char product[32];
+		char manufacturer[32];
 		if (s > sizeof(product) ||
-				strlen(iProduct) - s > sizeof(manufacturer)) {
-      sr_err("Could not parse iProduct: %s.", iProduct);
+		    strlen(iProduct) - s > sizeof(manufacturer)) {
+			sr_err("Could not parse iProduct: %s.", iProduct);
 			continue;
 		}
 		strncpy(product, iProduct, s);
 		product[s] = 0;
 		strcpy(manufacturer, iProduct + s + 1);
-    
-    //Create the device context and set its params
-    struct dev_context *devc;
-    if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
-      sr_err("Device context malloc failed.");
-      return devices;
-    }
 
-    if (mso_parse_serial(iSerial, iProduct, devc) != SR_OK) {
-      sr_err("Invalid iSerial: %s.", iSerial);
-      g_free(devc);
-      return devices;
-    }
-    
-    char hwrev[32];
-    sprintf(hwrev, "r%d", devc->hwrev);
-    devc->ctlbase1 = 0;
-    devc->protocol_trigger.spimode = 0;
-    for (i = 0; i < 4; i++) {
-      devc->protocol_trigger.word[i] = 0;
-      devc->protocol_trigger.mask[i] = 0xff;
-    }
+		//Create the device context and set its params
+		struct dev_context *devc;
+		if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
+			sr_err("Device context malloc failed.");
+			return devices;
+		}
 
-    if (!(devc->serial = sr_serial_dev_inst_new(conn, serialcomm)))
-    {
-      g_free(devc);
-      return devices;
-    }
+		if (mso_parse_serial(iSerial, iProduct, devc) != SR_OK) {
+			sr_err("Invalid iSerial: %s.", iSerial);
+			g_free(devc);
+			return devices;
+		}
 
-    struct sr_dev_inst *sdi = sr_dev_inst_new(0, SR_ST_INACTIVE,
-        manufacturer, product, hwrev);
+		char hwrev[32];
+		sprintf(hwrev, "r%d", devc->hwrev);
+		devc->ctlbase1 = 0;
+		devc->protocol_trigger.spimode = 0;
+		for (i = 0; i < 4; i++) {
+			devc->protocol_trigger.word[i] = 0;
+			devc->protocol_trigger.mask[i] = 0xff;
+		}
 
-    if (!sdi) {
-      sr_err("Unable to create device instance for %s",
-          sysname);
-      sr_dev_inst_free(sdi);
-      g_free(devc);
-      return devices;
-    }
-    
-    sdi->driver = di;
-    sdi->priv = devc;
+		if (!(devc->serial = sr_serial_dev_inst_new(conn, serialcomm))) {
+			g_free(devc);
+			return devices;
+		}
 
-    for (i = 0; i < NUM_PROBES; i++) { 
-      struct sr_probe *probe;
-      if (!(probe = sr_probe_new(i, SR_PROBE_LOGIC, TRUE, 
-              mso19_probe_names[i]))) 
-        return 0; 
-      sdi->probes = g_slist_append(sdi->probes, probe); 
-    }
+		struct sr_dev_inst *sdi = sr_dev_inst_new(0, SR_ST_INACTIVE,
+						manufacturer, product, hwrev);
 
-    //Add the driver
-    struct drv_context *drvc = di->priv;
-    drvc->instances = g_slist_append(drvc->instances, sdi);
-    devices = g_slist_append(devices, sdi);
-  }
+		if (!sdi) {
+			sr_err("Unable to create device instance for %s",
+			       sysname);
+			sr_dev_inst_free(sdi);
+			g_free(devc);
+			return devices;
+		}
+
+		sdi->driver = di;
+		sdi->priv = devc;
+
+		for (i = 0; i < NUM_PROBES; i++) {
+			struct sr_probe *probe;
+			if (!(probe = sr_probe_new(i, SR_PROBE_LOGIC, TRUE,
+						   mso19_probe_names[i])))
+				return 0;
+			sdi->probes = g_slist_append(sdi->probes, probe);
+		}
+
+		//Add the driver
+		struct drv_context *drvc = di->priv;
+		drvc->instances = g_slist_append(drvc->instances, sdi);
+		devices = g_slist_append(devices, sdi);
+	}
 
 	return devices;
 }
@@ -212,6 +220,7 @@ static GSList *hw_dev_list(void)
 
 static int hw_dev_open(struct sr_dev_inst *sdi)
 {
+	int ret;
 	struct dev_context *devc;
 
 	devc = sdi->priv;
@@ -225,17 +234,17 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 	mso_check_trigger(devc->serial, &devc->trigger_state);
 	sr_dbg("Trigger state: 0x%x.", devc->trigger_state);
 
-	int ret = mso_reset_adc(sdi);
+	ret = mso_reset_adc(sdi);
 	if (ret != SR_OK)
 		return ret;
 
 	mso_check_trigger(devc->serial, &devc->trigger_state);
 	sr_dbg("Trigger state: 0x%x.", devc->trigger_state);
 
-  //	ret = mso_reset_fsm(sdi);
-  //	if (ret != SR_OK)
-  //		return ret;
-  //	return SR_ERR;
+	//    ret = mso_reset_fsm(sdi);
+	//    if (ret != SR_OK)
+	//            return ret;
+	//    return SR_ERR;
 
 	return SR_OK;
 }
@@ -290,7 +299,7 @@ static int hw_cleanup(void)
 }
 
 static int hw_info_get(int info_id, const void **data,
-       const struct sr_dev_inst *sdi)
+		       const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 
@@ -325,86 +334,81 @@ static int hw_info_get(int info_id, const void **data,
 }
 
 static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
-		const void *value)
+			     const void *value)
 {
 	int ret;
-
 	struct dev_context *devc;
-  devc = sdi->priv;
+	uint64_t num_samples, slope;
+	int trigger_pos;
+	float pos;
+
+	devc = sdi->priv;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR;
 
 	switch (hwcap) {
 	case SR_HWCAP_SAMPLERATE:
-		return mso_configure_rate(sdi, *(const uint64_t *) value);
+		// FIXME
+		return mso_configure_rate(sdi, *(const uint64_t *)value);
 		ret = SR_OK;
 		break;
 	case SR_HWCAP_LIMIT_SAMPLES:
-    {
-      const uint64_t num_samples = *(const uint64_t *)value;
-      if (num_samples < 1024)
-      {
-        sr_err("minimum of 1024 samples required");
-        ret = SR_ERR_ARG;
-
-      } else {
-        devc->limit_samples = num_samples;
-        sr_dbg("setting limit_samples to %i\n", num_samples);
-        ret = SR_OK;
-      }
-    }
+		num_samples = *(uint64_t *)value;
+		if (num_samples < 1024) {
+			sr_err("minimum of 1024 samples required");
+			ret = SR_ERR_ARG;
+		} else {
+			devc->limit_samples = num_samples;
+			sr_dbg("setting limit_samples to %i\n",
+			       num_samples);
+			ret = SR_OK;
+		}
 		break;
-  case SR_HWCAP_CAPTURE_RATIO:
-    ret = SR_OK;
+	case SR_HWCAP_CAPTURE_RATIO:
+		ret = SR_OK;
 		break;
-  case SR_HWCAP_TRIGGER_SLOPE:
-    {
-      const uint64_t slope = *(const uint64_t *)value;
-      if (slope != SLOPE_NEGATIVE && slope != SLOPE_POSITIVE)
-      {
-        sr_err("Invalid trigger slope");
-        ret = SR_ERR_ARG;
-      } else {
-        devc->trigger_slope = slope;
-        ret = SR_OK;
-      }
-    }
-    break;
-  case SR_HWCAP_HORIZ_TRIGGERPOS:
-    {
-      const float pos = *(const float *)value;
-      if (pos < 0 || pos > 255) {
-        sr_err("Trigger position (%f) should be between 0 and 255.", pos);
-        ret = SR_ERR_ARG;
-      } else {
-        int trigger_pos = (int)pos;
-        devc->trigger_holdoff[0] = trigger_pos&0xff;
-        ret = SR_OK;
-      }
-    }
-    break;
-
+	case SR_HWCAP_TRIGGER_SLOPE:
+		slope = *(uint64_t *)value;
+		if (slope != SLOPE_NEGATIVE && slope != SLOPE_POSITIVE) {
+			sr_err("Invalid trigger slope");
+			ret = SR_ERR_ARG;
+		} else {
+			devc->trigger_slope = slope;
+			ret = SR_OK;
+		}
+		break;
+	case SR_HWCAP_HORIZ_TRIGGERPOS:
+		pos = *(float *)value;
+		if (pos < 0 || pos > 255) {
+			sr_err("Trigger position (%f) should be between 0 and 255.", pos);
+			ret = SR_ERR_ARG;
+		} else {
+			trigger_pos = (int)pos;
+			devc->trigger_holdoff[0] = trigger_pos & 0xff;
+			ret = SR_OK;
+		}
+		break;
 	case SR_HWCAP_RLE:
-    ret = SR_OK;
+		ret = SR_OK;
 		break;
 	default:
 		ret = SR_ERR;
+		break;
 	}
 
 	return ret;
 }
 
 static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
-		void *cb_data)
+				    void *cb_data)
 {
 	struct sr_datafeed_packet *packet;
 	struct sr_datafeed_header *header;
 	struct sr_datafeed_meta_logic meta;
 	struct dev_context *devc;
 	int ret = SR_ERR;
-  
-  
+
 	devc = sdi->priv;
 
 	if (sdi->status != SR_ST_ACTIVE)
@@ -416,13 +420,13 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	}
 
 	/* FIXME: No need to do full reconfigure every time */
-//	ret = mso_reset_fsm(sdi);
-//	if (ret != SR_OK)
-//		return ret;
+//      ret = mso_reset_fsm(sdi);
+//      if (ret != SR_OK)
+//              return ret;
 
 	/* FIXME: ACDC Mode */
 	devc->ctlbase1 &= 0x7f;
-//	devc->ctlbase1 |= devc->acdcmode;
+//      devc->ctlbase1 |= devc->acdcmode;
 
 	ret = mso_configure_rate(sdi, devc->cur_rate);
 	if (ret != SR_OK)
@@ -437,16 +441,14 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	if (ret != SR_OK)
 		return ret;
 
-
 	ret = mso_configure_trigger(sdi);
 	if (ret != SR_OK)
 		return ret;
 
-
 	/* END of config hardware part */
-  ret = mso_arm(sdi);
-  if (ret != SR_OK)
-    return ret;
+	ret = mso_arm(sdi);
+	if (ret != SR_OK)
+		return ret;
 
 	/* Start acquisition on the device. */
 	mso_check_trigger(devc->serial, &devc->trigger_state);
@@ -454,7 +456,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	if (ret != SR_OK)
 		return ret;
 
-  sr_source_add(devc->serial->fd, G_IO_IN, -1, mso_receive_data, cb_data);
+	sr_source_add(devc->serial->fd, G_IO_IN, -1, mso_receive_data, cb_data);
 
 	if (!(packet = g_try_malloc(sizeof(struct sr_datafeed_packet)))) {
 		sr_err("Datafeed packet malloc failed.");
@@ -467,7 +469,6 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 		return SR_ERR_MALLOC;
 	}
 
-
 	packet->type = SR_DF_HEADER;
 	packet->payload = (unsigned char *)header;
 	header->feed_version = 1;
@@ -479,7 +480,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	meta.samplerate = devc->cur_rate;
 	meta.num_probes = NUM_PROBES;
 	sr_session_send(cb_data, packet);
-  
+
 	g_free(header);
 	g_free(packet);
 
@@ -489,7 +490,6 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 /* This stops acquisition on ALL devices, ignoring dev_index. */
 static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
-	/* Avoid compiler warnings. */
 	(void)cb_data;
 
 	stop_acquisition(sdi);

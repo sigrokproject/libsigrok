@@ -22,9 +22,6 @@
 #ifndef LIBSIGROK_HARDWARE_LINK_MSO19_PROTOCOL_H
 #define LIBSIGROK_HARDWARE_LINK_MSO19_PROTOCOL_H
 
-#define USB_VENDOR "3195"
-#define USB_PRODUCT "f190"
-
 #include <stdint.h>
 #include <string.h>
 #include <glib.h>
@@ -40,13 +37,16 @@
 #define sr_warn(s, args...) sr_warn(DRIVER_LOG_DOMAIN s, ## args)
 #define sr_err(s, args...) sr_err(DRIVER_LOG_DOMAIN s, ## args)
 
-#define NUM_PROBES             8
-#define NUM_TRIGGER_STAGES     4
-#define TRIGGER_TYPES          "01" //the first r/f is used for the whole group
-#define SERIALCOMM "460800/8n1/flow=2" 
-#define SERIALCONN "/dev/ttyUSB0" 
-#define CLOCK_RATE             SR_MHZ(100)
-#define MIN_NUM_SAMPLES        4
+#define USB_VENDOR		"3195"
+#define USB_PRODUCT		"f190"
+
+#define NUM_PROBES		8
+#define NUM_TRIGGER_STAGES	4
+#define TRIGGER_TYPES		"01"	//the first r/f is used for the whole group
+#define SERIALCOMM		"460800/8n1/flow=2"
+#define SERIALCONN		"/dev/ttyUSB0"
+#define CLOCK_RATE		SR_MHZ(100)
+#define MIN_NUM_SAMPLES		4
 
 #define MSO_TRIGGER_UNKNOWN	'!'
 #define MSO_TRIGGER_UNKNOWN1	'1'
@@ -57,8 +57,8 @@
 #define MSO_TRIGGER_DATAREADY	'6'
 
 enum trigger_slopes {
-  SLOPE_POSITIVE = 0, 
-  SLOPE_NEGATIVE,
+	SLOPE_POSITIVE = 0,
+	SLOPE_NEGATIVE,
 };
 
 /* Structure for the pattern generator state */
@@ -73,7 +73,7 @@ struct mso_patgen {
 	uint8_t config;
 	/* Samples buffer */
 	uint8_t buffer[1024];
-	/* Input/output configuration for the samples buffer (?)*/
+	/* Input/output configuration for the samples buffer (?) */
 	uint8_t io[1024];
 	/* Number of loops for the pattern generator */
 	uint8_t loops;
@@ -97,13 +97,13 @@ struct dev_context {
 	uint8_t hwmodel;
 	uint8_t hwrev;
 	struct sr_serial_dev_inst *serial;
-//	uint8_t num_sample_rates;
+//      uint8_t num_sample_rates;
 	/* calibration */
 	double vbit;
 	uint16_t dac_offset;
 	uint16_t offset_range;
-  uint64_t limit_samples;
-  uint64_t num_samples;
+	uint64_t limit_samples;
+	uint64_t num_samples;
 	/* register cache */
 	uint8_t ctlbase1;
 	uint8_t ctlbase2;
@@ -111,7 +111,7 @@ struct dev_context {
 	uint8_t la_threshold;
 	uint64_t cur_rate;
 	uint8_t dso_probe_attn;
-  int8_t  use_trigger;
+	int8_t use_trigger;
 	uint8_t trigger_chan;
 	uint8_t trigger_slope;
 	uint8_t trigger_outsrc;
@@ -128,8 +128,9 @@ struct dev_context {
 };
 
 SR_PRIV int mso_parse_serial(const char *iSerial, const char *iProduct,
-    struct dev_context *ctx);
-SR_PRIV int mso_check_trigger(struct sr_serial_dev_inst *serial, uint8_t *info);
+			     struct dev_context *ctx);
+SR_PRIV int mso_check_trigger(struct sr_serial_dev_inst *serial,
+			      uint8_t * info);
 SR_PRIV int mso_reset_adc(struct sr_dev_inst *sdi);
 SR_PRIV int mso_clkrate_out(struct sr_serial_dev_inst *serial, uint16_t val);
 SR_PRIV int mso_configure_rate(struct sr_dev_inst *sdi, uint32_t rate);
@@ -146,9 +147,6 @@ SR_PRIV int mso_toggle_led(struct sr_dev_inst *sdi, int state);
 
 SR_PRIV int mso_configure_probes(const struct sr_dev_inst *sdi);
 SR_PRIV void stop_acquisition(const struct sr_dev_inst *sdi);
-
-///////////////////////
-//
 
 /* serial protocol */
 #define mso_trans(a, v) \
@@ -172,20 +170,20 @@ SR_PRIV static const char mso_foot[] = { 0x7e };
 #define REG_CTL1		14
 
 /* bank 2 registers (SPI/I2C protocol trigger) */
-#define REG_PT_WORD(x)	       (x)
-#define REG_PT_MASK(x)	       (x+4)
-#define REG_PT_SPIMODE          8
+#define REG_PT_WORD(x)		(x)
+#define REG_PT_MASK(x)		(x + 4)
+#define REG_PT_SPIMODE		8
 
 /* bits - REG_CTL1 */
-#define BIT_CTL1_RESETFSM      (1 << 0)
-#define BIT_CTL1_ARM	       (1 << 1)
-#define BIT_CTL1_ADC_UNKNOWN4  (1 << 4) /* adc enable? */
-#define BIT_CTL1_RESETADC      (1 << 6)
-#define BIT_CTL1_LED	       (1 << 7)
+#define BIT_CTL1_RESETFSM	(1 << 0)
+#define BIT_CTL1_ARM		(1 << 1)
+#define BIT_CTL1_ADC_UNKNOWN4	(1 << 4)	/* adc enable? */
+#define BIT_CTL1_RESETADC	(1 << 6)
+#define BIT_CTL1_LED		(1 << 7)
 
 /* bits - REG_CTL2 */
-#define BITS_CTL2_BANK(x)      (x & 0x3)
-#define BIT_CTL2_SLOWMODE      (1 << 5)
+#define BITS_CTL2_BANK(x)	(x & 0x3)
+#define BIT_CTL2_SLOWMODE	(1 << 5)
 
 struct rate_map {
 	uint32_t rate;
@@ -194,26 +192,26 @@ struct rate_map {
 };
 
 static struct rate_map rate_map[] = {
-	{ SR_MHZ(200),	0x0205, 0	},
-	{ SR_MHZ(100),	0x0105, 0	},
-	{ SR_MHZ(50),	0x0005, 0	},
-	{ SR_MHZ(20),	0x0303, 0	},
-	{ SR_MHZ(10),	0x0308, 0	},
-	{ SR_MHZ(5),	0x030c, 0	},
-	{ SR_MHZ(2),	0x0330, 0	},
-	{ SR_MHZ(1),	0x0362, 0	},
-	{ SR_KHZ(500),	0x03c6, 0	},
-	{ SR_KHZ(200),	0x07f2, 0	},
-	{ SR_KHZ(100),	0x0fe6, 0	},
-	{ SR_KHZ(50),	0x1fce, 0	},
-	{ SR_KHZ(20),	0x4f86, 0	},
-	{ SR_KHZ(10),	0x9f0e, 0	},
-	{ SR_KHZ(5),	0x03c7, 0x20	},
-	{ SR_KHZ(2),	0x07f3, 0x20	},
-	{ SR_KHZ(1),	0x0fe7, 0x20	},
-	{ 500,		0x1fcf, 0x20	},
-	{ 200,		0x4f87, 0x20	},
-	{ 100,		0x9f0f, 0x20	},
+	{ SR_MHZ(200), 0x0205, 0 },
+	{ SR_MHZ(100), 0x0105, 0 },
+	{ SR_MHZ(50),  0x0005, 0 },
+	{ SR_MHZ(20),  0x0303, 0 },
+	{ SR_MHZ(10),  0x0308, 0 },
+	{ SR_MHZ(5),   0x030c, 0 },
+	{ SR_MHZ(2),   0x0330, 0 },
+	{ SR_MHZ(1),   0x0362, 0 },
+	{ SR_KHZ(500), 0x03c6, 0 },
+	{ SR_KHZ(200), 0x07f2, 0 },
+	{ SR_KHZ(100), 0x0fe6, 0 },
+	{ SR_KHZ(50),  0x1fce, 0 },
+	{ SR_KHZ(20),  0x4f86, 0 },
+	{ SR_KHZ(10),  0x9f0e, 0 },
+	{ SR_KHZ(5),   0x03c7, 0x20 },
+	{ SR_KHZ(2),   0x07f3, 0x20 },
+	{ SR_KHZ(1),   0x0fe7, 0x20 },
+	{ SR_HZ(500),  0x1fcf, 0x20 },
+	{ SR_HZ(200),  0x4f87, 0x20 },
+	{ SR_HZ(100),  0x9f0f, 0x20 },
 };
 
 /* FIXME: Determine corresponding voltages */
