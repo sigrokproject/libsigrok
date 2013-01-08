@@ -22,6 +22,14 @@
 #include "protocol.h"
 #include <arpa/inet.h>
 
+/* serial protocol */
+#define mso_trans(a, v) \
+	(((v) & 0x3f) | (((v) & 0xc0) << 6) | (((a) & 0xf) << 8) | \
+	((~(v) & 0x20) << 1) | ((~(v) & 0x80) << 7))
+
+static const char mso_head[] = { 0x40, 0x4c, 0x44, 0x53, 0x7e };
+static const char mso_foot[] = { 0x7e };
+
 extern SR_PRIV struct sr_dev_driver link_mso19_driver_info;
 static struct sr_dev_driver *di = &link_mso19_driver_info;
 
@@ -68,7 +76,7 @@ ret:
 	return ret;
 }
 
-SR_PRIV int mso_configure_trigger(struct sr_dev_inst *sdi)
+SR_PRIV int mso_configure_trigger(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc = sdi->priv;
 	uint16_t threshold_value = mso_calc_raw_from_mv(devc);
@@ -142,7 +150,7 @@ SR_PRIV int mso_configure_trigger(struct sr_dev_inst *sdi)
 	return mso_send_control_message(devc->serial, ARRAY_AND_SIZE(ops));
 }
 
-SR_PRIV int mso_configure_threshold_level(struct sr_dev_inst *sdi)
+SR_PRIV int mso_configure_threshold_level(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc = sdi->priv;
 
@@ -158,7 +166,7 @@ SR_PRIV int mso_read_buffer(struct sr_dev_inst *sdi)
 	return mso_send_control_message(devc->serial, ARRAY_AND_SIZE(ops));
 }
 
-SR_PRIV int mso_arm(struct sr_dev_inst *sdi)
+SR_PRIV int mso_arm(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc = sdi->priv;
 	uint16_t ops[] = {
@@ -183,7 +191,7 @@ SR_PRIV int mso_force_capture(struct sr_dev_inst *sdi)
 	return mso_send_control_message(devc->serial, ARRAY_AND_SIZE(ops));
 }
 
-SR_PRIV int mso_dac_out(struct sr_dev_inst *sdi, uint16_t val)
+SR_PRIV int mso_dac_out(const struct sr_dev_inst *sdi, uint16_t val)
 {
 	struct dev_context *devc = sdi->priv;
 	uint16_t ops[] = {
@@ -304,7 +312,7 @@ SR_PRIV int mso_clkrate_out(struct sr_serial_dev_inst *serial, uint16_t val)
 	return mso_send_control_message(serial, ARRAY_AND_SIZE(ops));
 }
 
-SR_PRIV int mso_configure_rate(struct sr_dev_inst *sdi, uint32_t rate)
+SR_PRIV int mso_configure_rate(const struct sr_dev_inst *sdi, uint32_t rate)
 {
 	struct dev_context *devc = sdi->priv;
 	unsigned int i;
@@ -417,15 +425,6 @@ SR_PRIV int mso_receive_data(int fd, int revents, void *cb_data)
 
 	devc->num_samples += 1024;
 
-	// Dont bother fixing this yet, keep it "old style"
-	/*
-	   packet.type = SR_DF_ANALOG;
-	   packet.length = 1024;
-	   packet.unitsize = sizeof(double);
-	   packet.payload = analog_out;
-	   sr_session_send(ctx->session_dev_id, &packet);
-	 */
-
 	if (devc->limit_samples && devc->num_samples >= devc->limit_samples) {
 		sr_info("Requested number of samples reached.");
 		sdi->driver->dev_acquisition_stop(sdi, cb_data);
@@ -439,7 +438,6 @@ SR_PRIV int mso_configure_probes(const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	struct sr_probe *probe;
 	GSList *l;
-	int probe_bit, stage, i;
 	char *tc;
 
 	devc = sdi->priv;

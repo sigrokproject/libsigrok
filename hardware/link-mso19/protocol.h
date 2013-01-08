@@ -25,6 +25,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <glib.h>
+#include <libudev.h>
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
@@ -133,28 +134,20 @@ SR_PRIV int mso_check_trigger(struct sr_serial_dev_inst *serial,
 			      uint8_t * info);
 SR_PRIV int mso_reset_adc(struct sr_dev_inst *sdi);
 SR_PRIV int mso_clkrate_out(struct sr_serial_dev_inst *serial, uint16_t val);
-SR_PRIV int mso_configure_rate(struct sr_dev_inst *sdi, uint32_t rate);
+SR_PRIV int mso_configure_rate(const struct sr_dev_inst *sdi, uint32_t rate);
 SR_PRIV int mso_receive_data(int fd, int revents, void *cb_data);
-SR_PRIV int mso_configure_trigger(struct sr_dev_inst *sdi);
-SR_PRIV int mso_configure_threshold_level(struct sr_dev_inst *sdi);
+SR_PRIV int mso_configure_trigger(const struct sr_dev_inst *sdi);
+SR_PRIV int mso_configure_threshold_level(const struct sr_dev_inst *sdi);
 SR_PRIV int mso_read_buffer(struct sr_dev_inst *sdi);
-SR_PRIV int mso_arm(struct sr_dev_inst *sdi);
+SR_PRIV int mso_arm(const struct sr_dev_inst *sdi);
 SR_PRIV int mso_force_capture(struct sr_dev_inst *sdi);
-SR_PRIV int mso_dac_out(struct sr_dev_inst *sdi, uint16_t val);
+SR_PRIV int mso_dac_out(const struct sr_dev_inst *sdi, uint16_t val);
 SR_PRIV inline uint16_t mso_calc_raw_from_mv(struct dev_context *devc);
 SR_PRIV int mso_reset_fsm(struct sr_dev_inst *sdi);
 SR_PRIV int mso_toggle_led(struct sr_dev_inst *sdi, int state);
 
 SR_PRIV int mso_configure_probes(const struct sr_dev_inst *sdi);
 SR_PRIV void stop_acquisition(const struct sr_dev_inst *sdi);
-
-/* serial protocol */
-#define mso_trans(a, v) \
-	(((v) & 0x3f) | (((v) & 0xc0) << 6) | (((a) & 0xf) << 8) | \
-	((~(v) & 0x20) << 1) | ((~(v) & 0x80) << 7))
-
-SR_PRIV static const char mso_head[] = { 0x40, 0x4c, 0x44, 0x53, 0x7e };
-SR_PRIV static const char mso_foot[] = { 0x7e };
 
 /* bank agnostic registers */
 #define REG_CTL2		15
@@ -191,7 +184,7 @@ struct rate_map {
 	uint8_t slowmode;
 };
 
-static struct rate_map rate_map[] = {
+static const struct rate_map rate_map[] = {
 	{ SR_MHZ(200), 0x0205, 0 },
 	{ SR_MHZ(100), 0x0105, 0 },
 	{ SR_MHZ(50),  0x0005, 0 },
@@ -215,7 +208,7 @@ static struct rate_map rate_map[] = {
 };
 
 /* FIXME: Determine corresponding voltages */
-static uint16_t la_threshold_map[] = {
+static const uint16_t la_threshold_map[] = {
 	0x8600,
 	0x8770,
 	0x88ff,
