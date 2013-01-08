@@ -41,7 +41,7 @@
 #define USB_VENDOR		"3195"
 #define USB_PRODUCT		"f190"
 
-#define NUM_PROBES		8
+#define NUM_PROBES		(1 + 8)
 #define NUM_TRIGGER_STAGES	4
 #define TRIGGER_TYPE 		"01"	//the first r/f is used for the whole group
 #define SERIALCOMM		"460800/8n1/flow=2"

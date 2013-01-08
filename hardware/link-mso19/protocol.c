@@ -333,7 +333,7 @@ SR_PRIV int mso_configure_rate(const struct sr_dev_inst *sdi, uint32_t rate)
 	return ret;
 }
 
-SR_PRIV int mso_check_trigger(struct sr_serial_dev_inst *serial, uint8_t * info)
+SR_PRIV int mso_check_trigger(struct sr_serial_dev_inst *serial, uint8_t *info)
 {
 	uint16_t ops[] = { mso_trans(REG_TRIGGER, 0) };
 	int ret;
@@ -346,7 +346,8 @@ SR_PRIV int mso_check_trigger(struct sr_serial_dev_inst *serial, uint8_t * info)
 	uint8_t buf = 0;
 	if (serial_read(serial, &buf, 1) != 1)	/* FIXME: Need timeout */
 		ret = SR_ERR;
-	*info = buf;
+	if (!info)
+		*info = buf;
 
 	sr_dbg("Trigger state is: 0x%x.", *info);
 	return ret;

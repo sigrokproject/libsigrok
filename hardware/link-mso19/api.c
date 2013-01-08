@@ -22,6 +22,7 @@
 #include "protocol.h"
 
 static const int hwcaps[] = {
+	SR_CONF_OSCILLOSCOPE,
 	SR_CONF_LOGIC_ANALYZER,
 	SR_CONF_SAMPLERATE,
 	SR_CONF_TRIGGER_SLOPE,
@@ -38,7 +39,8 @@ static const int hwcaps[] = {
  * See also: http://www.linkinstruments.com/images/mso19_1113.gif
  */
 SR_PRIV const char *mso19_probe_names[NUM_PROBES + 1] = {
-	"0", "1", "2", "3", "4", "5", "6", "7", NULL
+	/* Note: DSO needs to be first. */
+	"DSO", "0", "1", "2", "3", "4", "5", "6", "7", NULL,
 };
 
 static const struct sr_samplerates samplerates = {
@@ -65,6 +67,7 @@ static GSList *hw_scan(GSList *options)
 	GSList *l;
 	struct sr_config *src;
 	struct udev *udev;
+	int ptype;
 
 	(void)options;
 
@@ -183,7 +186,8 @@ static GSList *hw_scan(GSList *options)
 
 		for (i = 0; i < NUM_PROBES; i++) {
 			struct sr_probe *probe;
-			if (!(probe = sr_probe_new(i, SR_PROBE_LOGIC, TRUE,
+			ptype = (i == 0) ? SR_PROBE_ANALOG : SR_PROBE_LOGIC;
+			if (!(probe = sr_probe_new(i, ptype, TRUE,
 						   mso19_probe_names[i])))
 				return 0;
 			sdi->probes = g_slist_append(sdi->probes, probe);
@@ -443,8 +447,14 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	if (ret != SR_OK)
 		return ret;
 
+	/* Reset trigger state. */
+	devc->trigger_state = 0x00;
+
 	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, DRIVER_LOG_DOMAIN);
+
+	/* Our first probe is analog, the other 8 are of type 'logic'. */
+	/* TODO. */
 
 	sr_source_add(devc->serial->fd, G_IO_IN, -1, mso_receive_data, cb_data);
 
