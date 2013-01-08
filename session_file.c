@@ -193,25 +193,27 @@ SR_API int sr_session_load(const char *filename)
 /**
  * Save the current session to the specified file.
  *
- * @param filename The name of the file where to save the current session.
+ * @param filename The name of the filename to save the current session as.
  *                 Must not be NULL.
  * @param sdi The device instance from which the data was captured.
- * @param ds The datastore where the session's captured data was stored.
+ * @param buf The data to be saved.
+ * @param unitsize The number of bytes per sample.
+ * @param units The number of samples.
  *
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or SR_ERR
  *         upon other errors.
  */
-SR_API int sr_session_save(const char *filename,
-		const struct sr_dev_inst *sdi, struct sr_datastore *ds)
+SR_API int sr_session_save(const char *filename, const struct sr_dev_inst *sdi,
+		unsigned char *buf, int unitsize, int units)
 {
-	GSList *l, *d;
+	GSList *l;
 	FILE *meta;
 	struct sr_probe *probe;
 	struct zip *zipfile;
 	struct zip_source *versrc, *metasrc, *logicsrc;
-	int bufcnt, tmpfile, ret, probecnt;
+	int tmpfile, ret, probecnt;
 	uint64_t *samplerate;
-	char version[1], rawname[16], metafile[32], *buf, *s;
+	char version[1], rawname[16], metafile[32], *s;
 
 	if (!filename) {
 		sr_err("%s: filename was NULL", __func__);
@@ -249,7 +251,7 @@ SR_API int sr_session_save(const char *filename,
 
 	/* metadata */
 	fprintf(meta, "capturefile = logic-1\n");
-	fprintf(meta, "unitsize = %d\n", ds->ds_unitsize);
+	fprintf(meta, "unitsize = %d\n", unitsize);
 	fprintf(meta, "total probes = %d\n", g_slist_length(sdi->probes));
 	if (sr_dev_has_hwcap(sdi, SR_HWCAP_SAMPLERATE)) {
 		if (sr_info_get(sdi->driver, SR_DI_CUR_SAMPLERATE,
@@ -271,22 +273,8 @@ SR_API int sr_session_save(const char *filename,
 		}
 	}
 
-	/* dump datastore into logic-n */
-	buf = g_try_malloc(ds->num_units * ds->ds_unitsize +
-		   DATASTORE_CHUNKSIZE);
-	if (!buf) {
-		sr_err("%s: buf malloc failed", __func__);
-		return SR_ERR_MALLOC;
-	}
-
-	bufcnt = 0;
-	for (d = ds->chunklist; d; d = d->next) {
-		memcpy(buf + bufcnt, d->data,
-			   DATASTORE_CHUNKSIZE);
-		bufcnt += DATASTORE_CHUNKSIZE;
-	}
 	if (!(logicsrc = zip_source_buffer(zipfile, buf,
-			   ds->num_units * ds->ds_unitsize, TRUE)))
+			   units * unitsize, FALSE)))
 		return SR_ERR;
 	snprintf(rawname, 15, "logic-1");
 	if (zip_add(zipfile, rawname, logicsrc) == -1)
