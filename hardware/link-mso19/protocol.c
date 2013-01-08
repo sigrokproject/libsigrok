@@ -20,7 +20,6 @@
  */
 
 #include "protocol.h"
-#include <arpa/inet.h>
 
 /* serial protocol */
 #define mso_trans(a, v) \
@@ -55,7 +54,7 @@ SR_PRIV int mso_send_control_message(struct sr_serial_dev_inst *serial,
 	p += sizeof(mso_head);
 
 	for (i = 0; i < n; i++) {
-		*(uint16_t *) p = htons(payload[i]);
+		*(uint16_t *) p = g_htons(payload[i]);
 		p += 2;
 	}
 	memcpy(p, mso_foot, sizeof(mso_foot));
