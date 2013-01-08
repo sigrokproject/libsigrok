@@ -1,7 +1,9 @@
 /*
  * This file is part of the sigrok project.
  *
- * Copyright (C) 2010-2012 Bert Vermeulen <bert@biot.com>
+ * Copyright (C) 2011 Daniel Ribeiro <drwyrm@gmail.com>
+ * Copyright (C) 2012 Renato Caldas <rmsc@fe.up.pt>
+ * Copyright (C) 2013 Lior Elazary <lelazary@yahoo.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
