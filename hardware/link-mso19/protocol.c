@@ -121,7 +121,7 @@ SR_PRIV int mso_configure_trigger(const struct sr_dev_inst *sdi)
 	uint16_t ops[18];
 	ops[0] = mso_trans(3, threshold_value & 0xff);
 	//The trigger_config also holds the 2 MSB bits from the threshold value
-	ops[1] = mso_trans(4, trigger_config | (threshold_value >> 8) & 0x03);
+	ops[1] = mso_trans(4, trigger_config | ((threshold_value >> 8) & 0x03));
 	ops[2] = mso_trans(5, devc->la_trigger);
 	ops[3] = mso_trans(6, devc->la_trigger_mask);
 	ops[4] = mso_trans(7, devc->trigger_holdoff[0]);

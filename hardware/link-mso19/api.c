@@ -323,8 +323,8 @@ static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
 		num_samples = *(uint64_t *)value;
-		if (num_samples < 1024) {
-			sr_err("minimum of 1024 samples required");
+		if (num_samples != 1024) {
+			sr_err("Only 1024 samples are supported.");
 			ret = SR_ERR_ARG;
 		} else {
 			devc->limit_samples = num_samples;
