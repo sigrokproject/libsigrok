@@ -169,9 +169,9 @@ if test "x$HW_LASCAR_EL_USB" = "xyes"; then
 fi
 
 AC_ARG_ENABLE(link-mso19, AC_HELP_STRING([--enable-link-mso19],
-	      [enable Link Instruments MSO-19 support [default=no]]),
+	      [enable Link Instruments MSO-19 support [default=yes]]),
 	      [LA_LINK_MSO19="$enableval"],
-	      [LA_LINK_MSO19=no])
+	      [LA_LINK_MSO19=yes])
 AM_CONDITIONAL(LA_LINK_MSO19, test x$LA_LINK_MSO19 = xyes)
 if test "x$LA_LINK_MSO19" = "xyes"; then
 	AC_DEFINE(HAVE_LA_LINK_MSO19, 1, [Link Instruments MSO-19 support])
