@@ -48,9 +48,6 @@
 #define g_match_info_unref g_match_info_free
 #endif
 
-/* Size of a datastore chunk in units */
-#define DATASTORE_CHUNKSIZE (512 * 1024)
-
 struct sr_context {
 #ifdef HAVE_LIBUSB_1_0
 	libusb_context *libusb_ctx;
