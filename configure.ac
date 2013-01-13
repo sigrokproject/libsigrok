@@ -83,36 +83,36 @@ AC_ARG_ENABLE(all-drivers, AC_HELP_STRING([--enable-all-drivers],
 	[HW_ENABLED_DEFAULT="yes"])
 
 AC_ARG_ENABLE(agilent-dmm, AC_HELP_STRING([--enable-agilent-dmm],
-	      [enable Agilent DMM support [default=yes]]),
-	      [HW_AGILENT_DMM="$enableval"],
-	      [HW_AGILENT_DMM=$HW_ENABLED_DEFAULT])
+	[enable Agilent DMM support [default=yes]]),
+	[HW_AGILENT_DMM="$enableval"],
+	[HW_AGILENT_DMM=$HW_ENABLED_DEFAULT])
 AM_CONDITIONAL(HW_AGILENT_DMM, test x$HW_AGILENT_DMM = xyes)
 if test "x$HW_AGILENT_DMM" = "xyes"; then
 	AC_DEFINE(HAVE_HW_AGILENT_DMM, 1, [Agilent DMM support])
 fi
 
 AC_ARG_ENABLE(alsa, AC_HELP_STRING([--enable-alsa],
-	      [enable ALSA driver support [default=yes]]),
-	      [HW_ALSA="$enableval"],
-	      [HW_ALSA=$HW_ENABLED_DEFAULT])
+	[enable ALSA driver support [default=yes]]),
+	[HW_ALSA="$enableval"],
+	[HW_ALSA=$HW_ENABLED_DEFAULT])
 AM_CONDITIONAL(HW_ALSA, test x$HW_ALSA = xyes)
 if test "x$HW_ALSA" = "xyes"; then
 	AC_DEFINE(HAVE_HW_ALSA, 1, [ALSA driver support])
 fi
 
 AC_ARG_ENABLE(asix-sigma, AC_HELP_STRING([--enable-asix-sigma],
-	      [enable ASIX SIGMA/SIGMA2 support [default=yes]]),
-	      [LA_ASIX_SIGMA="$enableval"],
-	      [LA_ASIX_SIGMA=$HW_ENABLED_DEFAULT])
+	[enable ASIX SIGMA/SIGMA2 support [default=yes]]),
+	[LA_ASIX_SIGMA="$enableval"],
+	[LA_ASIX_SIGMA=$HW_ENABLED_DEFAULT])
 AM_CONDITIONAL(LA_ASIX_SIGMA, test x$LA_ASIX_SIGMA = xyes)
 if test "x$LA_ASIX_SIGMA" = "xyes"; then
 	AC_DEFINE(HAVE_LA_ASIX_SIGMA, 1, [ASIX SIGMA/SIGMA2 support])
 fi
 
 AC_ARG_ENABLE(chronovu-la8, AC_HELP_STRING([--enable-chronovu-la8],
-	      [enable ChronoVu LA8 support [default=yes]]),
-	      [LA_CHRONOVU_LA8="$enableval"],
-	      [LA_CHRONOVU_LA8=$HW_ENABLED_DEFAULT])
+	[enable ChronoVu LA8 support [default=yes]]),
+	[LA_CHRONOVU_LA8="$enableval"],
+	[LA_CHRONOVU_LA8=$HW_ENABLED_DEFAULT])
 AM_CONDITIONAL(LA_CHRONOVU_LA8, test x$LA_CHRONOVU_LA8 = xyes)
 if test "x$LA_CHRONOVU_LA8" = "xyes"; then
 	AC_DEFINE(HAVE_LA_CHRONOVU_LA8, 1, [ChronoVu LA8 support])
@@ -128,36 +128,36 @@ if test "x$HW_COLEAD_SLM" = "xyes"; then
 fi
 
 AC_ARG_ENABLE(demo, AC_HELP_STRING([--enable-demo],
-	      [enable demo driver support [default=yes]]),
-	      [LA_DEMO="$enableval"],
-	      [LA_DEMO=$HW_ENABLED_DEFAULT])
+	[enable demo driver support [default=yes]]),
+	[LA_DEMO="$enableval"],
+	[LA_DEMO=$HW_ENABLED_DEFAULT])
 AM_CONDITIONAL(LA_DEMO, test x$LA_DEMO = xyes)
 if test "x$LA_DEMO" = "xyes"; then
 	AC_DEFINE(HAVE_LA_DEMO, 1, [Demo driver support])
 fi
 
 AC_ARG_ENABLE(fluke-dmm, AC_HELP_STRING([--enable-fluke-dmm],
-	      [enable Fluke DMM support [default=yes]]),
-	      [HW_FLUKE_DMM="$enableval"],
-	      [HW_FLUKE_DMM=$HW_ENABLED_DEFAULT])
+	[enable Fluke DMM support [default=yes]]),
+	[HW_FLUKE_DMM="$enableval"],
+	[HW_FLUKE_DMM=$HW_ENABLED_DEFAULT])
 AM_CONDITIONAL(HW_FLUKE_DMM, test x$HW_FLUKE_DMM = xyes)
 if test "x$HW_FLUKE_DMM" = "xyes"; then
 	AC_DEFINE(HAVE_HW_FLUKE_DMM, 1, [Fluke DMM support])
 fi
 
 AC_ARG_ENABLE(fx2lafw, AC_HELP_STRING([--enable-fx2lafw],
-	      [enable fx2lafw support (for FX2 LAs). [default=yes]]),
-	      [LA_FX2LAFW="$enableval"],
-	      [LA_FX2LAFW=$HW_ENABLED_DEFAULT])
+	[enable fx2lafw support (for FX2 LAs). [default=yes]]),
+	[LA_FX2LAFW="$enableval"],
+	[LA_FX2LAFW=$HW_ENABLED_DEFAULT])
 AM_CONDITIONAL(LA_FX2LAFW, test x$LA_FX2LAFW = xyes)
 if test "x$LA_FX2LAFW" = "xyes"; then
 	AC_DEFINE(HAVE_LA_FX2LAFW, 1, [fx2lafw support])
 fi
 
 AC_ARG_ENABLE(hantek-dso, AC_HELP_STRING([--enable-hantek-dso],
-	      [enable Hantek DSO support [default=yes]]),
-	      [HW_HANTEK_DSO="$enableval"],
-	      [HW_HANTEK_DSO=$HW_ENABLED_DEFAULT])
+	[enable Hantek DSO support [default=yes]]),
+	[HW_HANTEK_DSO="$enableval"],
+	[HW_HANTEK_DSO=$HW_ENABLED_DEFAULT])
 AM_CONDITIONAL(HW_HANTEK_DSO, test x$HW_HANTEK_DSO = xyes)
 if test "x$HW_HANTEK_DSO" = "xyes"; then
 	AC_DEFINE(HAVE_HW_HANTEK_DSO, 1, [Hantek DSO support])
@@ -173,9 +173,9 @@ if test "x$HW_LASCAR_EL_USB" = "xyes"; then
 fi
 
 AC_ARG_ENABLE(link-mso19, AC_HELP_STRING([--enable-link-mso19],
-	      [enable Link Instruments MSO-19 support [default=yes]]),
-	      [LA_LINK_MSO19="$enableval"],
-	      [LA_LINK_MSO19=$HW_ENABLED_DEFAULT])
+	[enable Link Instruments MSO-19 support [default=yes]]),
+	[LA_LINK_MSO19="$enableval"],
+	[LA_LINK_MSO19=$HW_ENABLED_DEFAULT])
 AM_CONDITIONAL(LA_LINK_MSO19, test x$LA_LINK_MSO19 = xyes)
 if test "x$LA_LINK_MSO19" = "xyes"; then
 	AC_DEFINE(HAVE_LA_LINK_MSO19, 1, [Link Instruments MSO-19 support])
@@ -191,9 +191,9 @@ if test "x$HW_NEXUS_OSCIPRIME" = "xyes"; then
 fi
 
 AC_ARG_ENABLE(ols, AC_HELP_STRING([--enable-ols],
-	      [enable OpenBench Logic Sniffer (OLS) support [default=yes]]),
-	      [LA_OLS="$enableval"],
-	      [LA_OLS=$HW_ENABLED_DEFAULT])
+	[enable OpenBench Logic Sniffer (OLS) support [default=yes]]),
+	[LA_OLS="$enableval"],
+	[LA_OLS=$HW_ENABLED_DEFAULT])
 AM_CONDITIONAL(LA_OLS, test x$LA_OLS = xyes)
 if test "x$LA_OLS" = "xyes"; then
 	AC_DEFINE(HAVE_LA_OLS, 1, [OpenBench Logic Sniffer (OLS) support])
@@ -209,9 +209,9 @@ if test "x$HW_RIGOL_DS1XX2" = "xyes"; then
 fi
 
 AC_ARG_ENABLE(serial-dmm, AC_HELP_STRING([--enable-serial-dmm],
-	      [enable serial DMM support [default=yes]]),
-	      [HW_SERIAL_DMM="$enableval"],
-	      [HW_SERIAL_DMM=$HW_ENABLED_DEFAULT])
+	[enable serial DMM support [default=yes]]),
+	[HW_SERIAL_DMM="$enableval"],
+	[HW_SERIAL_DMM=$HW_ENABLED_DEFAULT])
 AM_CONDITIONAL(HW_SERIAL_DMM, test x$HW_SERIAL_DMM = xyes)
 if test "x$HW_SERIAL_DMM" = "xyes"; then
 	AC_DEFINE(HAVE_HW_SERIAL_DMM, 1, [Serial DMM support])
@@ -227,9 +227,9 @@ if test "x$HW_TONDAJ_SL_814" = "xyes"; then
 fi
 
 AC_ARG_ENABLE(uni-t-dmm, AC_HELP_STRING([--enable-uni-t-dmm],
-	      [enable UNI-T DMM support [default=yes]]),
-	      [HW_UNI_T_DMM="$enableval"],
-	      [HW_UNI_T_DMM=$HW_ENABLED_DEFAULT])
+	[enable UNI-T DMM support [default=yes]]),
+	[HW_UNI_T_DMM="$enableval"],
+	[HW_UNI_T_DMM=$HW_ENABLED_DEFAULT])
 AM_CONDITIONAL(HW_UNI_T_DMM, test x$HW_UNI_T_DMM = xyes)
 if test "x$HW_UNI_T_DMM" = "xyes"; then
 	AC_DEFINE(HAVE_HW_UNI_T_DMM, 1, [UNI-T DMM support])
@@ -245,10 +245,10 @@ if test "x$HW_VICTOR_DMM" = "xyes"; then
 fi
 
 AC_ARG_ENABLE(zeroplus-logic-cube,
-	      AC_HELP_STRING([--enable-zeroplus-logic-cube],
-	      [enable ZEROPLUS Logic Cube support [default=yes]]),
-	      [LA_ZEROPLUS_LOGIC_CUBE="$enableval"],
-	      [LA_ZEROPLUS_LOGIC_CUBE=$HW_ENABLED_DEFAULT])
+	AC_HELP_STRING([--enable-zeroplus-logic-cube],
+	[enable ZEROPLUS Logic Cube support [default=yes]]),
+	[LA_ZEROPLUS_LOGIC_CUBE="$enableval"],
+	[LA_ZEROPLUS_LOGIC_CUBE=$HW_ENABLED_DEFAULT])
 AM_CONDITIONAL(LA_ZEROPLUS_LOGIC_CUBE, test x$LA_ZEROPLUS_LOGIC_CUBE = xyes)
 if test "x$LA_ZEROPLUS_LOGIC_CUBE" = "xyes"; then
 	AC_DEFINE(HAVE_LA_ZEROPLUS_LOGIC_CUBE, 1, [ZEROPLUS Logic Cube support])
