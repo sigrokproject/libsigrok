@@ -117,6 +117,13 @@ static const char *coupling[] = {
 	NULL,
 };
 
+static const char *supported_models[] = {
+	"DS1052E",
+	"DS1102E",
+	"DS1052D",
+	"DS1102D"
+};
+
 SR_PRIV struct sr_dev_driver rigol_ds1xx2_driver_info;
 static struct sr_dev_driver *di = &rigol_ds1xx2_driver_info;
 
@@ -180,6 +187,9 @@ static GSList *hw_scan(GSList *options)
 	int len, num_tokens, fd, i;
 	const gchar *delimiter = ",";
 	gchar **tokens;
+	const char *manufacturer, *model, *version;
+	int num_models;
+	gboolean matched = FALSE;
 	char buf[256];
 
 	(void)options;
@@ -211,16 +221,42 @@ static GSList *hw_scan(GSList *options)
 		buf[len] = 0;
 		tokens = g_strsplit(buf, delimiter, 0);
 		close(fd);
+		sr_dbg("response: %s %d [%s]", device, len, buf);
 
 		for (num_tokens = 0; tokens[num_tokens] != NULL; num_tokens++);
 
-		if (!(sdi = sr_dev_inst_new(0, SR_ST_ACTIVE, tokens[0],
-		    num_tokens > 1 ? tokens[1] : NULL,
-		    num_tokens > 3 ? tokens[3] : NULL))) {
+		if (num_tokens < 4) {
 			g_strfreev(tokens);
 			g_free(device);
 			return NULL;
 		}
+
+		manufacturer = tokens[0];
+		model = tokens[1];
+		version = tokens[3];
+
+		if (strcmp(manufacturer, "Rigol Technologies")) {
+			g_strfreev(tokens);
+			g_free(device);
+			return NULL;
+		}
+
+		num_models = sizeof(supported_models) / sizeof(supported_models[0]);
+
+		for (i = 0; i < num_models; i++) {
+			if (!strcmp(model, supported_models[i])) {
+				matched = 1;
+				break;
+			}
+		}
+
+		if (!matched || !(sdi = sr_dev_inst_new(0, SR_ST_ACTIVE,
+			manufacturer, model, version))) {
+			g_strfreev(tokens);
+			g_free(device);
+			return NULL;
+		}
+
 		g_strfreev(tokens);
 
 		if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
