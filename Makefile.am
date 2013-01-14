@@ -60,7 +60,7 @@ MAINTAINERCLEANFILES = ChangeLog
 
 .PHONY: ChangeLog
 ChangeLog:
-	git --git-dir $(top_srcdir)/../.git log > ChangeLog || touch ChangeLog
+	git --git-dir $(top_srcdir)/.git log > ChangeLog || touch ChangeLog
 
 dist-hook: ChangeLog
 
