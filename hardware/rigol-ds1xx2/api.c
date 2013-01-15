@@ -40,11 +40,6 @@ static const int hwcaps[] = {
 	0,
 };
 
-static const char *probe_names[] = {
-	"CH1", "CH2",
-	NULL,
-};
-
 static const struct sr_rational timebases[] = {
 	/* nanoseconds */
 	{ 2, 1000000000 },
@@ -338,12 +333,6 @@ static int hw_info_get(int info_id, const void **data,
 	switch (info_id) {
 	case SR_DI_HWCAPS:
 		*data = hwcaps;
-		break;
-	case SR_DI_NUM_PROBES:
-		*data = GINT_TO_POINTER(NUM_PROBES);
-		break;
-	case SR_DI_PROBE_NAMES:
-		*data = probe_names;
 		break;
 	case SR_DI_TIMEBASES:
 		*data = timebases;

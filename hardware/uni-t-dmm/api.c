@@ -32,11 +32,6 @@ static const int hwcaps[] = {
 	0,
 };
 
-static const char *probe_names[] = {
-	"Probe",
-	NULL,
-};
-
 SR_PRIV struct sr_dev_driver uni_t_ut61d_driver_info;
 SR_PRIV struct sr_dev_driver voltcraft_vc820_driver_info;
 
@@ -177,14 +172,6 @@ static int hw_info_get(int info_id, const void **data,
 	case SR_DI_HWCAPS:
 		*data = hwcaps;
 		sr_spew("%s: Returning hwcaps.", __func__);
-		break;
-	case SR_DI_NUM_PROBES:
-		*data = GINT_TO_POINTER(1);
-		sr_spew("%s: Returning number of probes.", __func__);
-		break;
-	case SR_DI_PROBE_NAMES:
-		*data = probe_names;
-		sr_spew("%s: Returning probe names.", __func__);
 		break;
 	case SR_DI_SAMPLERATES:
 		/* TODO: Get rid of this. */

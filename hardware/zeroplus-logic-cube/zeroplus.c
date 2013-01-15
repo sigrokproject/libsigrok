@@ -538,19 +538,6 @@ static int hw_info_get(int info_id, const void **data,
 	case SR_DI_HWCAPS:
 		*data = hwcaps;
 		break;
-	case SR_DI_NUM_PROBES:
-		if (sdi) {
-			devc = sdi->priv;
-			*data = GINT_TO_POINTER(devc->num_channels);
-			sr_spew("zp: %s: Returning number of channels: %d.",
-					__func__, devc->num_channels);
-		} else
-			return SR_ERR;
-		break;
-	case SR_DI_PROBE_NAMES:
-		*data = probe_names;
-		sr_spew("zp: %s: Returning probenames.", __func__);
-		break;
 	case SR_DI_SAMPLERATES:
 		*data = &samplerates;
 		sr_spew("zp: %s: Returning samplerates.", __func__);

@@ -567,10 +567,6 @@ enum {
 	SR_DI_HWOPTS = 10000,
 	/** A list of capabilities supported by the device. */
 	SR_DI_HWCAPS,
-	/** The number of probes connected to this device. */
-	SR_DI_NUM_PROBES,
-	/** The probe names on this device. */
-	SR_DI_PROBE_NAMES,
 	/** Samplerates supported by this device (struct sr_samplerates). */
 	SR_DI_SAMPLERATES,
 	/** Types of logic trigger supported, out of "01crf" (char *). */

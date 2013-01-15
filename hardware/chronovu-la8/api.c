@@ -297,15 +297,6 @@ static int hw_info_get(int info_id, const void **data,
 	case SR_DI_HWCAPS:
 		*data = hwcaps;
 		break;
-	case SR_DI_NUM_PROBES:
-		*data = GINT_TO_POINTER(NUM_PROBES);
-		sr_spew("%s: Returning number of probes: %d.", __func__,
-			NUM_PROBES);
-		break;
-	case SR_DI_PROBE_NAMES:
-		*data = probe_names;
-		sr_spew("%s: Returning probenames.", __func__);
-		break;
 	case SR_DI_SAMPLERATES:
 		fill_supported_samplerates_if_needed();
 		*data = &samplerates;

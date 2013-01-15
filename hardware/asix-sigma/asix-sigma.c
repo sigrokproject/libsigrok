@@ -796,12 +796,6 @@ static int hw_info_get(int info_id, const void **data,
 	case SR_DI_HWCAPS:
 		*data = hwcaps;
 		break;
-	case SR_DI_NUM_PROBES:
-		*data = GINT_TO_POINTER(NUM_PROBES);
-		break;
-	case SR_DI_PROBE_NAMES:
-		*data = probe_names;
-		break;
 	case SR_DI_SAMPLERATES:
 		*data = &samplerates;
 		break;

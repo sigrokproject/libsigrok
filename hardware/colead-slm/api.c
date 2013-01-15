@@ -44,11 +44,6 @@ static const int hwcaps[] = {
 	0,
 };
 
-static const char *probe_names[] = {
-	"P1",
-	NULL,
-};
-
 SR_PRIV struct sr_dev_driver colead_slm_driver_info;
 static struct sr_dev_driver *di = &colead_slm_driver_info;
 
@@ -208,12 +203,6 @@ static int hw_info_get(int info_id, const void **data,
 		break;
 	case SR_DI_HWCAPS:
 		*data = hwcaps;
-		break;
-	case SR_DI_NUM_PROBES:
-		*data = GINT_TO_POINTER(1);
-		break;
-	case SR_DI_PROBE_NAMES:
-		*data = probe_names;
 		break;
 	default:
 		return SR_ERR_ARG;

@@ -39,11 +39,6 @@ static const int hwcaps[] = {
 	0,
 };
 
-static const char *probe_names[] = {
-	"P1",
-	NULL,
-};
-
 SR_PRIV struct sr_dev_driver tondaj_sl_814_driver_info;
 static struct sr_dev_driver *di = &tondaj_sl_814_driver_info;
 
@@ -144,7 +139,7 @@ static GSList *hw_scan(GSList *options)
 
 	sdi->priv = devc;
 	sdi->driver = di;
-	probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, probe_names[0]);
+	probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "P1");
 	if (!probe) {
 		sr_err("Failed to create probe.");
 		return NULL;
@@ -211,12 +206,6 @@ static int hw_info_get(int info_id, const void **data,
 		break;
 	case SR_DI_HWCAPS:
 		*data = hwcaps;
-		break;
-	case SR_DI_NUM_PROBES:
-		*data = GINT_TO_POINTER(1);
-		break;
-	case SR_DI_PROBE_NAMES:
-		*data = probe_names;
 		break;
 	default:
 		sr_err("Unknown info_id: %d.", info_id);

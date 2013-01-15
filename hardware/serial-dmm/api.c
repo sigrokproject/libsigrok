@@ -43,11 +43,6 @@ static const int hwcaps[] = {
 	0,
 };
 
-static const char *probe_names[] = {
-	"Probe",
-	NULL,
-};
-
 SR_PRIV struct sr_dev_driver digitek_dt4000zc_driver_info;
 SR_PRIV struct sr_dev_driver tekpower_tp4000zc_driver_info;
 SR_PRIV struct sr_dev_driver metex_me31_driver_info;
@@ -389,12 +384,6 @@ static int hw_info_get(int info_id, const void **data,
 		break;
 	case SR_DI_HWCAPS:
 		*data = hwcaps;
-		break;
-	case SR_DI_NUM_PROBES:
-		*data = GINT_TO_POINTER(1);
-		break;
-	case SR_DI_PROBE_NAMES:
-		*data = probe_names;
 		break;
 	default:
 		return SR_ERR_ARG;

@@ -41,11 +41,6 @@ static const int hwcaps[] = {
 	0,
 };
 
-static const char *probe_names[] = {
-	"Probe",
-	NULL,
-};
-
 extern const struct agdmm_job agdmm_jobs_u123x[];
 extern const struct agdmm_recv agdmm_recvs_u123x[];
 extern const struct agdmm_job agdmm_jobs_u125x[];
@@ -264,12 +259,6 @@ static int hw_info_get(int info_id, const void **data,
 		break;
 	case SR_DI_HWCAPS:
 		*data = hwcaps;
-		break;
-	case SR_DI_NUM_PROBES:
-		*data = GINT_TO_POINTER(1);
-		break;
-	case SR_DI_PROBE_NAMES:
-		*data = probe_names;
 		break;
 	default:
 		return SR_ERR_ARG;

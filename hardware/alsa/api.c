@@ -34,11 +34,6 @@ static const int hwcaps[] = {
 	0,
 };
 
-static const char *probe_names[] = {
-	"Channel 0", "Channel 1",
-	NULL,
-};
-
 SR_PRIV struct sr_dev_driver alsa_driver_info;
 static struct sr_dev_driver *di = &alsa_driver_info;
 
@@ -156,12 +151,6 @@ static int hw_info_get(int info_id, const void **data,
 	switch (info_id) {
 	case SR_DI_HWCAPS:
 		*data = hwcaps;
-		break;
-	case SR_DI_NUM_PROBES:
-		*data = &devc->num_probes;
-		break;
-	case SR_DI_PROBE_NAMES:
-		*data = probe_names;
 		break;
 	case SR_DI_CUR_SAMPLERATE:
 		*data = &devc->cur_samplerate;

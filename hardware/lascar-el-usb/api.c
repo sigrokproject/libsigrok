@@ -40,11 +40,6 @@ static const int hwcaps[] = {
 	0
 };
 
-static const char *probe_names[] = {
-	"P1",
-	NULL,
-};
-
 /* Properly close and free all devices. */
 static int clear_instances(void)
 {
@@ -230,12 +225,6 @@ static int hw_info_get(int info_id, const void **data,
 		break;
 	case SR_DI_HWCAPS:
 		*data = hwcaps;
-		break;
-	case SR_DI_NUM_PROBES:
-		*data = GINT_TO_POINTER(1);
-		break;
-	case SR_DI_PROBE_NAMES:
-		*data = probe_names;
 		break;
 	default:
 		sr_err("Unknown info_id: %d.", info_id);
