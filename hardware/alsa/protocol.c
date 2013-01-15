@@ -219,11 +219,11 @@ SR_PRIV GSList *alsa_scan(GSList *options, struct sr_dev_driver *di)
 	(void)options;
 
 	if ((ret = snd_ctl_card_info_malloc(&info)) < 0) {
-		sr_err("Failed to malloc card info: %s.", snd_strerror(ret));
+		sr_dbg("Failed to malloc card info: %s.", snd_strerror(ret));
 		return NULL;
 	}
 	if ((ret = snd_pcm_info_malloc(&pcminfo) < 0)) {
-		sr_err("Cannot malloc pcm info: %s.", snd_strerror(ret));
+		sr_dbg("Cannot malloc pcm info: %s.", snd_strerror(ret));
 		return NULL;
 	}
 
@@ -231,14 +231,14 @@ SR_PRIV GSList *alsa_scan(GSList *options, struct sr_dev_driver *di)
 	while (snd_card_next(&card) >= 0 && card >= 0) {
 		snprintf(hwcard, sizeof(hwcard), "hw:%d", card);
 		if ((ret = snd_ctl_open(&handle, hwcard, 0)) < 0) {
-			sr_err("Cannot open (%d): %s.", card, snd_strerror(ret));
+			sr_dbg("Cannot open (%d): %s.", card, snd_strerror(ret));
 			continue;
 		}
 		if ((ret = snd_ctl_card_info(handle, info)) < 0) {
-			sr_err("Cannot get hardware info (%d): %s.",
+			sr_dbg("Cannot get hardware info (%d): %s.",
 			       card, snd_strerror(ret));
 			if ((ret = snd_ctl_close(handle)) < 0) {
-				sr_err("Cannot close device (%d): %s.",
+				sr_dbg("Cannot close device (%d): %s.",
 				       card, snd_strerror(ret));
 			}
 			continue;
@@ -256,7 +256,7 @@ SR_PRIV GSList *alsa_scan(GSList *options, struct sr_dev_driver *di)
 			snd_pcm_info_set_stream(pcminfo,
 						SND_PCM_STREAM_CAPTURE);
 			if ((ret = snd_ctl_pcm_info(handle, pcminfo)) < 0) {
-				sr_err("Cannot get device info (%s): %s.",
+				sr_dbg("Cannot get device info (%s): %s.",
 				       hwdev, snd_strerror(ret));
 				continue;
 			}
@@ -271,7 +271,7 @@ SR_PRIV GSList *alsa_scan(GSList *options, struct sr_dev_driver *di)
 					     di, pcminfo);
 		}
 		if ((ret = snd_ctl_close(handle)) < 0) {
-			sr_err("Cannot close device (%d): %s.",
+			sr_dbg("Cannot close device (%d): %s.",
 			       card, snd_strerror(ret));
 		}
 	}

@@ -271,7 +271,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 		return SR_ERR_MALLOC;
 	}
 
-	sr_err("Getting %d poll descriptors.", count);
+	sr_spew("Getting %d poll descriptors.", count);
 	ret = snd_pcm_poll_descriptors(devc->capture_handle, devc->ufds, count);
 	if (ret < 0) {
 		sr_err("Unable to obtain poll descriptors: %s.",
