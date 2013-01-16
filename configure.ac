@@ -266,11 +266,6 @@ SR_PKGLIBS=""
 AM_PATH_GLIB_2_0([2.28.0],
 	[CFLAGS="$CFLAGS $GLIB_CFLAGS"; LIBS="$LIBS $GLIB_LIBS"])
 
-# libgthread-2.0 is always needed (e.g. for the demo hardware driver).
-PKG_CHECK_MODULES([gthread], [gthread-2.0 >= 2.22.0],
-	[CFLAGS="$CFLAGS $gthread_CFLAGS"; LIBS="$LIBS $gthread_LIBS";
-	SR_PKGLIBS="$SR_PKGLIBS gthread-2.0"])
-
 # libusb-1.0 is only needed for some hardware drivers.
 if test "x$LA_ASIX_SIGMA" != xno \
    -o "x$LA_CHRONOVU_LA8" != xno \
@@ -419,7 +414,7 @@ echo "Detected libraries:"
 echo
 
 # Note: This only works for libs with pkg-config integration.
-for lib in "glib-2.0" "gthread-2.0" "libusb-1.0" "libzip" "libftdi" "libudev" "alsa"; do
+for lib in "glib-2.0" "libusb-1.0" "libzip" "libftdi" "libudev" "alsa"; do
 	if `$PKG_CONFIG --exists $lib`; then
 		ver=`$PKG_CONFIG --modversion $lib`
 		answer="yes ($ver)"
