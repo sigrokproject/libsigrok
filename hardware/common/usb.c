@@ -189,6 +189,7 @@ SR_PRIV GSList *sr_usb_find_usbtmc(libusb_context *usb_ctx)
 						libusb_get_device_address(devlist[i]), NULL);
 				devices = g_slist_append(devices, usb);
 			}
+			libusb_free_config_descriptor(confdes);
 		}
 	}
 	libusb_free_device_list(devlist, 1);
