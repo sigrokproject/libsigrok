@@ -47,7 +47,6 @@ AH_BOTTOM([#endif /* SR_CONFIG_H */])
 CFLAGS="$CFLAGS -Wall -Wextra -fvisibility=hidden"
 
 # Checks for programs.
-AC_PROG_CXX
 AC_PROG_CC
 AC_PROG_CPP
 AC_PROG_INSTALL
