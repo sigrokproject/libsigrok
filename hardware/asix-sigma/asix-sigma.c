@@ -671,7 +671,7 @@ static int set_samplerate(const struct sr_dev_inst *sdi, uint64_t samplerate)
 	}
 
 	devc->cur_samplerate = samplerate;
-	devc->period_ps = 1000000000000 / samplerate;
+	devc->period_ps = 1000000000000ULL / samplerate;
 	devc->samples_per_event = 16 / devc->num_probes;
 	devc->state.state = SIGMA_IDLE;
 
