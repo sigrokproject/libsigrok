@@ -499,7 +499,7 @@ SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
 	case 230400:
 		baud = B230400;
 		break;
-#ifndef __APPLE__
+#if !defined(__APPLE__) && !defined(__OpenBSD__)
 	case 460800:
 		baud = B460800;
 		break;
