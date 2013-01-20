@@ -223,6 +223,11 @@ ATTRS{idVendor}=="0925", ATTRS{idProduct}=="3881", MODE="664", GROUP="plugdev"
 # lsusb: "21a9:1001" (no string for the vendor name available)
 ATTRS{idVendor}=="21a9", ATTRS{idProduct}=="1001", MODE="664", GROUP="plugdev"
 
+# UNI-T UT-D04 multimeter cable (for various DMMs)
+# http://sigrok.org/wiki/Device_cables#UNI-T_UT-D04
+# lsusb: "1a86:e008 QinHeng Electronics HID-based serial adapater"
+ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="e008", MODE="664", GROUP="plugdev"
+
 # Velleman PCSU1000
 # http://www.velleman.eu/products/view/?id=362986
 # lsusb: "10cf:1000 Velleman Components, Inc."
@@ -250,6 +255,5 @@ ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="700c", MODE="664", GROUP="plugdev"
 ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="700d", MODE="664", GROUP="plugdev"
 ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="700e", MODE="664", GROUP="plugdev"
 ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="7016", MODE="664", GROUP="plugdev"
-
 
 LABEL="libsigrok_rules_end"
