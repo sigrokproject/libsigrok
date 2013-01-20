@@ -378,20 +378,14 @@ struct sr_config {
 
 struct sr_config_info {
 	int key;
+	int datatype;
 	char *id;
 	char *name;
 	char *description;
-	int datatype;
 };
 
 /** Hardware driver options. */
 enum {
-	/**
-	 * Some drivers cannot detect the exact model they're talking to
-	 * (may be phased out).
-	 */
-	SR_HWOPT_MODEL = 10000,
-
 	/**
 	 * Specification on how to connect to a device.
 	 *
@@ -402,7 +396,7 @@ enum {
 	 * @verbatim <vendorid>.<productid> @endverbatim
 	 * (hexadecimal, e.g. 1d6b.0001).
 	 */
-	SR_HWOPT_CONN,
+	SR_HWOPT_CONN = 10000,
 
 	/**
 	 * Serial communication specification, in the form:
