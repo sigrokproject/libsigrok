@@ -350,12 +350,12 @@ SR_API gboolean sr_driver_hwcap_exists(struct sr_dev_driver *driver, int hwcap)
  * @return A pointer to a struct sr_hwcap_option, or NULL if the option
  *         was not found.
  */
-SR_API const struct sr_hwcap_option *sr_drvopt_get(int opt)
+SR_API const struct sr_config_info *sr_drvopt_get(int opt)
 {
 	int i;
 
-	for (i = 0; sr_drvopts[i].hwcap; i++) {
-		if (sr_drvopts[i].hwcap == opt)
+	for (i = 0; sr_drvopts[i].key; i++) {
+		if (sr_drvopts[i].key == opt)
 			return &sr_drvopts[i];
 	}
 
@@ -370,12 +370,12 @@ SR_API const struct sr_hwcap_option *sr_drvopt_get(int opt)
  * @return A pointer to a struct sr_hwcap_option, or NULL if the option
  *         was not found.
  */
-SR_API const struct sr_hwcap_option *sr_drvopt_name_get(const char *optname)
+SR_API const struct sr_config_info *sr_drvopt_name_get(const char *optname)
 {
 	int i;
 
-	for (i = 0; sr_drvopts[i].hwcap; i++) {
-		if (!strcmp(sr_drvopts[i].shortname, optname))
+	for (i = 0; sr_drvopts[i].key; i++) {
+		if (!strcmp(sr_drvopts[i].id, optname))
 			return &sr_drvopts[i];
 	}
 
@@ -390,12 +390,12 @@ SR_API const struct sr_hwcap_option *sr_drvopt_name_get(const char *optname)
  * @return A pointer to a struct sr_hwcap_option, or NULL if the option
  *         was not found.
  */
-SR_API const struct sr_hwcap_option *sr_devopt_get(int opt)
+SR_API const struct sr_config_info *sr_devopt_get(int opt)
 {
 	int i;
 
-	for (i = 0; sr_devopts[i].hwcap; i++) {
-		if (sr_devopts[i].hwcap == opt)
+	for (i = 0; sr_devopts[i].key; i++) {
+		if (sr_devopts[i].key == opt)
 			return &sr_devopts[i];
 	}
 
@@ -410,12 +410,12 @@ SR_API const struct sr_hwcap_option *sr_devopt_get(int opt)
  * @return A pointer to a struct sr_hwcap_option, or NULL if the option
  *         was not found.
  */
-SR_API const struct sr_hwcap_option *sr_devopt_name_get(const char *optname)
+SR_API const struct sr_config_info *sr_devopt_name_get(const char *optname)
 {
 	int i;
 
-	for (i = 0; sr_devopts[i].hwcap; i++) {
-		if (!strcmp(sr_devopts[i].shortname, optname))
+	for (i = 0; sr_devopts[i].key; i++) {
+		if (!strcmp(sr_devopts[i].id, optname))
 			return &sr_devopts[i];
 	}
 
