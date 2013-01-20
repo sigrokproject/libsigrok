@@ -285,6 +285,18 @@ SR_PRIV void sr_hw_cleanup_all(void)
 	}
 }
 
+SR_PRIV struct sr_config *sr_config_make(int key, const void *value)
+{
+	struct sr_config *src;
+
+	if (!(src = g_try_malloc(sizeof(struct sr_config))))
+		return NULL;
+	src->key = key;
+	src->value = value;
+
+	return src;
+}
+
 /**
  * Returns information about the given driver or device instance.
  *
