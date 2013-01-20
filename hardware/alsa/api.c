@@ -163,7 +163,6 @@ static int hw_info_get(int info_id, const void **data,
 		*data = &devc->supp_rates;
 		break;
 	default:
-		sr_err("Invalid info_id: %d.", info_id);
 		return SR_ERR_ARG;
 	}
 

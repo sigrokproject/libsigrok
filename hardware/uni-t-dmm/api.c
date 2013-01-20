@@ -186,7 +186,6 @@ static int hw_info_get(int info_id, const void **data,
 		return SR_ERR_ARG;
 		break;
 	default:
-		sr_err("%s: Unknown info_id %d.", __func__, info_id);
 		return SR_ERR_ARG;
 		break;
 	}

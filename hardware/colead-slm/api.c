@@ -194,7 +194,6 @@ static int hw_cleanup(void)
 static int hw_info_get(int info_id, const void **data,
 		       const struct sr_dev_inst *sdi)
 {
-	
 	(void)sdi;
 
 	switch (info_id) {

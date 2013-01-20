@@ -347,7 +347,6 @@ static int hw_info_get(int info_id, const void **data,
 		*data = coupling;
 		break;
 	default:
-		sr_err("Unknown info_id: %d.", info_id);
 		return SR_ERR_ARG;
 	}
 
