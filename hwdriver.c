@@ -42,29 +42,41 @@
  */
 
 /* Driver scanning options. */
-static struct sr_hwcap_option sr_drvopts[] = {
-	{SR_HWOPT_MODEL, SR_T_KEYVALUE, "Model", "model"},
-	{SR_HWOPT_CONN, SR_T_CHAR, "Connection", "conn"},
-	{SR_HWOPT_SERIALCOMM, SR_T_CHAR, "Serial communication", "serialcomm"},
-	{0, 0, NULL, NULL},
+static struct sr_config_info sr_drvopts[] = {
+	{SR_HWOPT_CONN, SR_T_CHAR, "conn",
+		"Connection", NULL},
+	{SR_HWOPT_SERIALCOMM, SR_T_CHAR, "serialcomm",
+		"Serial communication", NULL},
+	{0, 0, NULL, NULL, NULL},
 };
 
 /* Device instance options. */
-static struct sr_hwcap_option sr_devopts[] = {
-	{SR_HWCAP_SAMPLERATE, SR_T_UINT64, "Sample rate", "samplerate"},
-	{SR_HWCAP_CAPTURE_RATIO, SR_T_UINT64, "Pre-trigger capture ratio", "captureratio"},
-	{SR_HWCAP_PATTERN_MODE, SR_T_CHAR, "Pattern generator mode", "pattern"},
-	{SR_HWCAP_RLE, SR_T_BOOL, "Run Length Encoding", "rle"},
-	{SR_HWCAP_TRIGGER_SLOPE, SR_T_UINT64, "Trigger slope", "triggerslope"},
-	{SR_HWCAP_TRIGGER_SOURCE, SR_T_CHAR, "Trigger source", "triggersource"},
-	{SR_HWCAP_HORIZ_TRIGGERPOS, SR_T_FLOAT, "Horizontal trigger position",
-			"horiz_triggerpos"},
-	{SR_HWCAP_BUFFERSIZE, SR_T_UINT64, "Buffer size", "buffersize"},
-	{SR_HWCAP_TIMEBASE, SR_T_RATIONAL_PERIOD, "Time base", "timebase"},
-	{SR_HWCAP_FILTER, SR_T_CHAR, "Filter targets", "filter"},
-	{SR_HWCAP_VDIV, SR_T_RATIONAL_VOLT, "Volts/div", "vdiv"},
-	{SR_HWCAP_COUPLING, SR_T_CHAR, "Coupling", "coupling"},
-	{0, 0, NULL, NULL},
+static struct sr_config_info sr_devopts[] = {
+	{SR_HWCAP_SAMPLERATE, SR_T_UINT64, "samplerate",
+		"Sample rate", NULL},
+	{SR_HWCAP_CAPTURE_RATIO, SR_T_UINT64, "captureratio",
+		"Pre-trigger capture ratio", NULL},
+	{SR_HWCAP_PATTERN_MODE, SR_T_CHAR, "pattern",
+		"Pattern generator mode", NULL},
+	{SR_HWCAP_RLE, SR_T_BOOL, "rle",
+		"Run Length Encoding", NULL},
+	{SR_HWCAP_TRIGGER_SLOPE, SR_T_UINT64, "triggerslope",
+		"Trigger slope", NULL},
+	{SR_HWCAP_TRIGGER_SOURCE, SR_T_CHAR, "triggersource",
+		"Trigger source", NULL},
+	{SR_HWCAP_HORIZ_TRIGGERPOS, SR_T_FLOAT, "horiz_triggerpos",
+		"Horizontal trigger position", NULL},
+	{SR_HWCAP_BUFFERSIZE, SR_T_UINT64, "buffersize",
+		"Buffer size", NULL},
+	{SR_HWCAP_TIMEBASE, SR_T_RATIONAL_PERIOD, "timebase",
+		"Time base", NULL},
+	{SR_HWCAP_FILTER, SR_T_CHAR, "filter",
+		"Filter targets", NULL},
+	{SR_HWCAP_VDIV, SR_T_RATIONAL_VOLT, "vdiv",
+		"Volts/div", NULL},
+	{SR_HWCAP_COUPLING, SR_T_CHAR, "coupling",
+		"Coupling", NULL},
+	{0, 0, NULL, NULL, NULL},
 };
 
 /** @cond PRIVATE */
