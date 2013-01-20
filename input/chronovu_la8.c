@@ -139,8 +139,9 @@ static int loadfile(struct sr_input *in, const char *filename)
 {
 	struct sr_datafeed_header header;
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_meta_logic meta;
+	struct sr_datafeed_meta meta;
 	struct sr_datafeed_logic logic;
+	struct sr_config *src;
 	uint8_t buf[PACKET_SIZE], divcount;
 	int i, fd, size, num_probes;
 	uint64_t samplerate;
@@ -173,10 +174,10 @@ static int loadfile(struct sr_input *in, const char *filename)
 	sr_session_send(in->sdi, &packet);
 
 	/* Send metadata about the SR_DF_LOGIC packets to come. */
-	packet.type = SR_DF_META_LOGIC;
+	packet.type = SR_DF_META;
 	packet.payload = &meta;
-	meta.samplerate = samplerate;
-	meta.num_probes = num_probes;
+	src = sr_config_make(SR_HWCAP_SAMPLERATE, (const void *)&samplerate);
+	meta.config = g_slist_append(NULL, src);
 	sr_session_send(in->sdi, &packet);
 
 	/* TODO: Handle trigger point. */

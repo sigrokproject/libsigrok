@@ -545,9 +545,11 @@ static int loadfile(struct sr_input *in, const char *filename)
 {
 	struct sr_datafeed_header header;
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_meta_logic meta;
+	struct sr_datafeed_meta meta;
+	struct sr_config *src;
 	FILE *file;
 	struct context *ctx;
+	uint64_t samplerate;
 
 	ctx = in->internal;
 
@@ -569,10 +571,11 @@ static int loadfile(struct sr_input *in, const char *filename)
 	sr_session_send(in->sdi, &packet);
 
 	/* Send metadata about the SR_DF_LOGIC packets to come. */
-	packet.type = SR_DF_META_LOGIC;
+	packet.type = SR_DF_META;
 	packet.payload = &meta;
-	meta.samplerate = ctx->samplerate / ctx->downsample;
-	meta.num_probes = ctx->probecount;
+	samplerate = ctx->samplerate / ctx->downsample;
+	src = sr_config_make(SR_HWCAP_SAMPLERATE, (const void *)&samplerate);
+	meta.config = g_slist_append(NULL, src);
 	sr_session_send(in->sdi, &packet);
 
 	/* Parse the contents of the VCD file */
