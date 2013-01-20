@@ -392,20 +392,15 @@ static void datafeed_dump(const struct sr_datafeed_packet *packet)
 	case SR_DF_TRIGGER:
 		sr_dbg("bus: received SR_DF_TRIGGER");
 		break;
-	case SR_DF_META_LOGIC:
-		sr_dbg("bus: received SR_DF_META_LOGIC");
+	case SR_DF_META:
+		sr_dbg("bus: received SR_DF_META");
 		break;
 	case SR_DF_LOGIC:
 		logic = packet->payload;
-		/* TODO: Check for logic != NULL. */
 		sr_dbg("bus: received SR_DF_LOGIC %" PRIu64 " bytes", logic->length);
-		break;
-	case SR_DF_META_ANALOG:
-		sr_dbg("bus: received SR_DF_META_ANALOG");
 		break;
 	case SR_DF_ANALOG:
 		analog = packet->payload;
-		/* TODO: Check for analog != NULL. */
 		sr_dbg("bus: received SR_DF_ANALOG %d samples", analog->num_samples);
 		break;
 	case SR_DF_END:
