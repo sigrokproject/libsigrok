@@ -216,7 +216,6 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	struct session_vdev *vdev;
 	struct sr_datafeed_header *header;
 	struct sr_datafeed_packet *packet;
-	struct sr_datafeed_meta_logic meta;
 	int ret;
 
 	vdev = sdi->priv;
@@ -260,13 +259,6 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	packet->payload = (unsigned char *)header;
 	header->feed_version = 1;
 	gettimeofday(&header->starttime, NULL);
-	sr_session_send(cb_data, packet);
-
-	/* Send metadata about the SR_DF_LOGIC packets to come. */
-	packet->type = SR_DF_META_LOGIC;
-	packet->payload = &meta;
-	meta.samplerate = vdev->samplerate;
-	meta.num_probes = vdev->num_probes;
 	sr_session_send(cb_data, packet);
 
 	g_free(header);
