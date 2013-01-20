@@ -26,6 +26,11 @@
 
 #define UNI_T_UT_D04_NEW "1a86.e008"
 
+static const int hwopts[] = {
+	SR_HWOPT_CONN,
+	0,
+};
+
 static const int hwcaps[] = {
 	SR_HWCAP_MULTIMETER,
 	SR_HWCAP_LIMIT_SAMPLES,
@@ -189,6 +194,9 @@ static int hw_info_get(int info_id, const void **data,
 	sr_spew("Backend requested info_id %d.", info_id);
 
 	switch (info_id) {
+	case SR_DI_HWOPTS:
+		*data = hwopts;
+		break;
 	case SR_DI_HWCAPS:
 		*data = hwcaps;
 		sr_spew("%s: Returning hwcaps.", __func__);
