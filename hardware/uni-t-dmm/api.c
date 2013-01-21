@@ -27,7 +27,7 @@
 #define UNI_T_UT_D04_NEW "1a86.e008"
 
 static const int hwopts[] = {
-	SR_HWOPT_CONN,
+	SR_CONF_CONN,
 	0,
 };
 
@@ -93,7 +93,7 @@ static GSList *hw_scan(GSList *options)
 	struct dev_context *devc;
 	struct drv_context *drvc;
 	struct sr_usb_dev_inst *usb;
-	struct sr_hwopt *opt;
+	struct sr_config *src;
 	struct sr_probe *probe;
 	const char *conn;
 
@@ -106,10 +106,10 @@ static GSList *hw_scan(GSList *options)
 
 	conn = NULL;
 	for (l = options; l; l = l->next) {
-		opt = l->data;
-		switch (opt->hwopt) {
-		case SR_HWOPT_CONN:
-			conn = opt->value;
+		src = l->data;
+		switch (src->key) {
+		case SR_CONF_CONN:
+			conn = src->value;
 			break;
 		}
 	}
