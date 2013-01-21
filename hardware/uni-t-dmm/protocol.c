@@ -255,9 +255,11 @@ static int uni_t_dmm_receive_data(int fd, int revents, int dmm, void *cb_data)
 		if (data_byte_counter == NUM_DATA_BYTES) {
 			log_dmm_packet(pbuf);
 			data_byte_counter = 0;
-			if (!sr_fs9721_packet_valid(pbuf)) {
-				sr_err("Invalid packet.");
-				return TRUE;
+			if (dmm == VOLTCRAFT_VC820) {
+				if (!sr_fs9721_packet_valid(pbuf)) {
+					sr_err("Invalid packet.");
+					return TRUE;
+				}
 			}
 			decode_packet(devc, dmm, pbuf);
 			memset(pbuf, 0x00, NUM_DATA_BYTES);
