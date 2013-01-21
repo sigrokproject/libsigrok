@@ -27,14 +27,14 @@
 #include "protocol.h"
 
 static const int hwcaps[] = {
-	SR_HWCAP_OSCILLOSCOPE,
-	SR_HWCAP_LIMIT_SAMPLES,
-	SR_HWCAP_TIMEBASE,
-	SR_HWCAP_TRIGGER_SOURCE,
-	SR_HWCAP_TRIGGER_SLOPE,
-	SR_HWCAP_HORIZ_TRIGGERPOS,
-	SR_HWCAP_VDIV,
-	SR_HWCAP_COUPLING,
+	SR_CONF_OSCILLOSCOPE,
+	SR_CONF_LIMIT_SAMPLES,
+	SR_CONF_TIMEBASE,
+	SR_CONF_TRIGGER_SOURCE,
+	SR_CONF_TRIGGER_SLOPE,
+	SR_CONF_HORIZ_TRIGGERPOS,
+	SR_CONF_VDIV,
+	SR_CONF_COUPLING,
 	0,
 };
 
@@ -370,24 +370,24 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 
 	ret = SR_OK;
 	switch (hwcap) {
-	case SR_HWCAP_LIMIT_FRAMES:
+	case SR_CONF_LIMIT_FRAMES:
 		devc->limit_frames = *(const uint64_t *)value;
 		break;
-	case SR_HWCAP_TRIGGER_SLOPE:
+	case SR_CONF_TRIGGER_SLOPE:
 		tmp_u64 = *(const int *)value;
 		rigol_ds1xx2_send_data(devc->fd, ":TRIG:EDGE:SLOP %s\n",
 				       tmp_u64 ? "POS" : "NEG");
 		break;
-	case SR_HWCAP_HORIZ_TRIGGERPOS:
+	case SR_CONF_HORIZ_TRIGGERPOS:
 		tmp_float = *(const float *)value;
 		rigol_ds1xx2_send_data(devc->fd, ":TIM:OFFS %.9f\n", tmp_float);
 		break;
-	case SR_HWCAP_TIMEBASE:
+	case SR_CONF_TIMEBASE:
 		tmp_rat = *(const struct sr_rational *)value;
 		rigol_ds1xx2_send_data(devc->fd, ":TIM:SCAL %.9f\n",
 				       (float)tmp_rat.p / tmp_rat.q);
 		break;
-	case SR_HWCAP_TRIGGER_SOURCE:
+	case SR_CONF_TRIGGER_SOURCE:
 		if (!strcmp(value, "CH1"))
 			channel = "CHAN1";
 		else if (!strcmp(value, "CH2"))
@@ -402,7 +402,7 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		}
 		rigol_ds1xx2_send_data(devc->fd, ":TRIG:EDGE:SOUR %s\n", channel);
 		break;
-	case SR_HWCAP_VDIV:
+	case SR_CONF_VDIV:
 		/* TODO: Not supporting vdiv per channel yet. */
 		tmp_rat = *(const struct sr_rational *)value;
 		for (i = 0; vdivs[i].p && vdivs[i].q; i++) {
@@ -418,7 +418,7 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		if (vdivs[i].p == 0 && vdivs[i].q == 0)
 			ret = SR_ERR_ARG;
 		break;
-	case SR_HWCAP_COUPLING:
+	case SR_CONF_COUPLING:
 		/* TODO: Not supporting coupling per channel yet. */
 		for (i = 0; coupling[i]; i++) {
 			if (!strcmp(value, coupling[i])) {

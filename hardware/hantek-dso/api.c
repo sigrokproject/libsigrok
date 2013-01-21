@@ -38,17 +38,17 @@
 #define TICK 1
 
 static const int hwcaps[] = {
-	SR_HWCAP_OSCILLOSCOPE,
-	SR_HWCAP_LIMIT_SAMPLES,
-	SR_HWCAP_CONTINUOUS,
-	SR_HWCAP_TIMEBASE,
-	SR_HWCAP_BUFFERSIZE,
-	SR_HWCAP_TRIGGER_SOURCE,
-	SR_HWCAP_TRIGGER_SLOPE,
-	SR_HWCAP_HORIZ_TRIGGERPOS,
-	SR_HWCAP_FILTER,
-	SR_HWCAP_VDIV,
-	SR_HWCAP_COUPLING,
+	SR_CONF_OSCILLOSCOPE,
+	SR_CONF_LIMIT_SAMPLES,
+	SR_CONF_CONTINUOUS,
+	SR_CONF_TIMEBASE,
+	SR_CONF_BUFFERSIZE,
+	SR_CONF_TRIGGER_SOURCE,
+	SR_CONF_TRIGGER_SLOPE,
+	SR_CONF_HORIZ_TRIGGERPOS,
+	SR_CONF_FILTER,
+	SR_CONF_VDIV,
+	SR_CONF_COUPLING,
 	0,
 };
 
@@ -473,16 +473,16 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 	ret = SR_OK;
 	devc = sdi->priv;
 	switch (hwcap) {
-	case SR_HWCAP_LIMIT_FRAMES:
+	case SR_CONF_LIMIT_FRAMES:
 		devc->limit_frames = *(const uint64_t *)value;
 		break;
-	case SR_HWCAP_TRIGGER_SLOPE:
+	case SR_CONF_TRIGGER_SLOPE:
 		tmp_u64 = *(const int *)value;
 		if (tmp_u64 != SLOPE_NEGATIVE && tmp_u64 != SLOPE_POSITIVE)
 			ret = SR_ERR_ARG;
 		devc->triggerslope = tmp_u64;
 		break;
-	case SR_HWCAP_HORIZ_TRIGGERPOS:
+	case SR_CONF_HORIZ_TRIGGERPOS:
 		tmp_float = *(const float *)value;
 		if (tmp_float < 0.0 || tmp_float > 1.0) {
 			sr_err("Trigger position should be between 0.0 and 1.0.");
@@ -490,7 +490,7 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		} else
 			devc->triggerposition = tmp_float;
 		break;
-	case SR_HWCAP_BUFFERSIZE:
+	case SR_CONF_BUFFERSIZE:
 		tmp_u64 = *(const int *)value;
 		for (i = 0; buffersizes[i]; i++) {
 			if (buffersizes[i] == tmp_u64) {
@@ -501,7 +501,7 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		if (buffersizes[i] == 0)
 			ret = SR_ERR_ARG;
 		break;
-	case SR_HWCAP_TIMEBASE:
+	case SR_CONF_TIMEBASE:
 		tmp_rat = *(const struct sr_rational *)value;
 		for (i = 0; timebases[i].p && timebases[i].q; i++) {
 			if (timebases[i].p == tmp_rat.p
@@ -513,7 +513,7 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		if (timebases[i].p == 0 && timebases[i].q == 0)
 			ret = SR_ERR_ARG;
 		break;
-	case SR_HWCAP_TRIGGER_SOURCE:
+	case SR_CONF_TRIGGER_SOURCE:
 		for (i = 0; trigger_sources[i]; i++) {
 			if (!strcmp(value, trigger_sources[i])) {
 				devc->triggersource = g_strdup(value);
@@ -523,7 +523,7 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		if (trigger_sources[i] == 0)
 			ret = SR_ERR_ARG;
 		break;
-	case SR_HWCAP_FILTER:
+	case SR_CONF_FILTER:
 		devc->filter_ch1 = devc->filter_ch2 = devc->filter_trigger = 0;
 		targets = g_strsplit(value, ",", 0);
 		for (i = 0; targets[i]; i++) {
@@ -543,7 +543,7 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		}
 		g_strfreev(targets);
 		break;
-	case SR_HWCAP_VDIV:
+	case SR_CONF_VDIV:
 		/* TODO: Not supporting vdiv per channel yet. */
 		tmp_rat = *(const struct sr_rational *)value;
 		for (i = 0; vdivs[i].p && vdivs[i].q; i++) {
@@ -557,7 +557,7 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		if (vdivs[i].p == 0 && vdivs[i].q == 0)
 			ret = SR_ERR_ARG;
 		break;
-	case SR_HWCAP_COUPLING:
+	case SR_CONF_COUPLING:
 		/* TODO: Not supporting coupling per channel yet. */
 		for (i = 0; coupling[i]; i++) {
 			if (!strcmp(value, coupling[i])) {

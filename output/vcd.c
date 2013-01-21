@@ -94,7 +94,7 @@ static int init(struct sr_output *o)
 	g_string_append_printf(ctx->header, "$version %s %s $end\n",
 			PACKAGE, PACKAGE_VERSION);
 
-	if (o->sdi->driver && sr_dev_has_hwcap(o->sdi, SR_HWCAP_SAMPLERATE)) {
+	if (o->sdi->driver && sr_dev_has_hwcap(o->sdi, SR_CONF_SAMPLERATE)) {
 		o->sdi->driver->info_get(SR_DI_CUR_SAMPLERATE,
 				(const void **)&samplerate, o->sdi);
 		ctx->samplerate = *samplerate;

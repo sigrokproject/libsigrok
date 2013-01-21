@@ -334,14 +334,14 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 	}
 
 	switch (hwcap) {
-	case SR_HWCAP_SAMPLERATE:
+	case SR_CONF_SAMPLERATE:
 		if (set_samplerate(sdi, *(const uint64_t *)value) == SR_ERR) {
 			sr_err("%s: setting samplerate failed.", __func__);
 			return SR_ERR;
 		}
 		sr_dbg("SAMPLERATE = %" PRIu64, devc->cur_samplerate);
 		break;
-	case SR_HWCAP_LIMIT_MSEC:
+	case SR_CONF_LIMIT_MSEC:
 		if (*(const uint64_t *)value == 0) {
 			sr_err("%s: LIMIT_MSEC can't be 0.", __func__);
 			return SR_ERR;
@@ -349,7 +349,7 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		devc->limit_msec = *(const uint64_t *)value;
 		sr_dbg("LIMIT_MSEC = %" PRIu64, devc->limit_msec);
 		break;
-	case SR_HWCAP_LIMIT_SAMPLES:
+	case SR_CONF_LIMIT_SAMPLES:
 		if (*(const uint64_t *)value < MIN_NUM_SAMPLES) {
 			sr_err("%s: LIMIT_SAMPLES too small.", __func__);
 			return SR_ERR;

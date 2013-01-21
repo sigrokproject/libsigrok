@@ -30,17 +30,17 @@
 #define OSCI_VIDPID "04b4.1004"
 
 static const int hwopts[] = {
-	SR_HWOPT_CONN,
-	SR_HWOPT_SERIALCOMM,
+	SR_CONF_CONN,
+	SR_CONF_SERIALCOMM,
 	0,
 };
 
 static const int hwcaps[] = {
-	SR_HWCAP_OSCILLOSCOPE,
-	SR_HWCAP_LIMIT_SAMPLES,
-	SR_HWCAP_CONTINUOUS,
-	SR_HWCAP_TIMEBASE,
-	SR_HWCAP_VDIV,
+	SR_CONF_OSCILLOSCOPE,
+	SR_CONF_LIMIT_SAMPLES,
+	SR_CONF_CONTINUOUS,
+	SR_CONF_TIMEBASE,
+	SR_CONF_VDIV,
 	0,
 };
 
@@ -179,7 +179,7 @@ static GSList *hw_scan(GSList *options)
 	for (l = options; l; l = l->next) {
 		src = l->data;
 		switch (src->key) {
-		case SR_HWOPT_CONN:
+		case SR_CONF_CONN:
 			conn = src->value;
 			break;
 		}

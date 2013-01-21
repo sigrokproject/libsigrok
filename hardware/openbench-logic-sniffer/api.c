@@ -22,17 +22,17 @@
 #define SERIALCOMM "115200/8n1"
 
 static const int hwopts[] = {
-	SR_HWOPT_CONN,
-	SR_HWOPT_SERIALCOMM,
+	SR_CONF_CONN,
+	SR_CONF_SERIALCOMM,
 	0,
 };
 
 static const int hwcaps[] = {
-	SR_HWCAP_LOGIC_ANALYZER,
-	SR_HWCAP_SAMPLERATE,
-	SR_HWCAP_CAPTURE_RATIO,
-	SR_HWCAP_LIMIT_SAMPLES,
-	SR_HWCAP_RLE,
+	SR_CONF_LOGIC_ANALYZER,
+	SR_CONF_SAMPLERATE,
+	SR_CONF_CAPTURE_RATIO,
+	SR_CONF_LIMIT_SAMPLES,
+	SR_CONF_RLE,
 	0,
 };
 
@@ -91,10 +91,10 @@ static GSList *hw_scan(GSList *options)
 	for (l = options; l; l = l->next) {
 		src = l->data;
 		switch (src->key) {
-		case SR_HWOPT_CONN:
+		case SR_CONF_CONN:
 			conn = src->value;
 			break;
-		case SR_HWOPT_SERIALCOMM:
+		case SR_CONF_SERIALCOMM:
 			serialcomm = src->value;
 			break;
 		}
@@ -295,11 +295,11 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		return SR_ERR;
 
 	switch (hwcap) {
-	case SR_HWCAP_SAMPLERATE:
+	case SR_CONF_SAMPLERATE:
 		ret = ols_set_samplerate(sdi, *(const uint64_t *)value,
 					 &samplerates);
 		break;
-	case SR_HWCAP_LIMIT_SAMPLES:
+	case SR_CONF_LIMIT_SAMPLES:
 		tmp_u64 = value;
 		if (*tmp_u64 < MIN_NUM_SAMPLES)
 			return SR_ERR;
@@ -309,7 +309,7 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		sr_info("Sample limit is %" PRIu64 ".", devc->limit_samples);
 		ret = SR_OK;
 		break;
-	case SR_HWCAP_CAPTURE_RATIO:
+	case SR_CONF_CAPTURE_RATIO:
 		devc->capture_ratio = *(const uint64_t *)value;
 		if (devc->capture_ratio < 0 || devc->capture_ratio > 100) {
 			devc->capture_ratio = 0;
@@ -317,7 +317,7 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		} else
 			ret = SR_OK;
 		break;
-	case SR_HWCAP_RLE:
+	case SR_CONF_RLE:
 		if (GPOINTER_TO_INT(value)) {
 			sr_info("Enabling RLE.");
 			devc->flag_reg |= FLAG_RLE;

@@ -574,7 +574,7 @@ static int loadfile(struct sr_input *in, const char *filename)
 	packet.type = SR_DF_META;
 	packet.payload = &meta;
 	samplerate = ctx->samplerate / ctx->downsample;
-	src = sr_config_make(SR_HWCAP_SAMPLERATE, (const void *)&samplerate);
+	src = sr_config_make(SR_CONF_SAMPLERATE, (const void *)&samplerate);
 	meta.config = g_slist_append(NULL, src);
 	sr_session_send(in->sdi, &packet);
 

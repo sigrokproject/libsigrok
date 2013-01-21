@@ -77,11 +77,11 @@ static const struct sr_samplerates samplerates = {
 };
 
 static const int hwcaps[] = {
-	SR_HWCAP_LOGIC_ANALYZER,
-	SR_HWCAP_SAMPLERATE,
-	SR_HWCAP_CAPTURE_RATIO,
+	SR_CONF_LOGIC_ANALYZER,
+	SR_CONF_SAMPLERATE,
+	SR_CONF_CAPTURE_RATIO,
 
-	SR_HWCAP_LIMIT_MSEC,
+	SR_CONF_LIMIT_MSEC,
 	0,
 };
 
@@ -824,15 +824,15 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 
 	devc = sdi->priv;
 
-	if (hwcap == SR_HWCAP_SAMPLERATE) {
+	if (hwcap == SR_CONF_SAMPLERATE) {
 		ret = set_samplerate(sdi, *(const uint64_t *)value);
-	} else if (hwcap == SR_HWCAP_LIMIT_MSEC) {
+	} else if (hwcap == SR_CONF_LIMIT_MSEC) {
 		devc->limit_msec = *(const uint64_t *)value;
 		if (devc->limit_msec > 0)
 			ret = SR_OK;
 		else
 			ret = SR_ERR;
-	} else if (hwcap == SR_HWCAP_CAPTURE_RATIO) {
+	} else if (hwcap == SR_CONF_CAPTURE_RATIO) {
 		devc->capture_ratio = *(const uint64_t *)value;
 		if (devc->capture_ratio < 0 || devc->capture_ratio > 100)
 			ret = SR_ERR;

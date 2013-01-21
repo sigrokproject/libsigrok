@@ -25,7 +25,7 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
-/* SR_HWCAP_CONN takes one of these: */
+/* SR_CONF_CONN takes one of these: */
 #define CONN_USB_VIDPID  "^([0-9a-z]{1,4})\\.([0-9a-z]{1,4})$"
 #define CONN_USB_BUSADDR "^(\\d+)\\.(\\d+)$"
 

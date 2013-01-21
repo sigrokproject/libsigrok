@@ -28,9 +28,9 @@
 #include "protocol.h"
 
 static const int hwcaps[] = {
-	SR_HWCAP_SAMPLERATE,
-	SR_HWCAP_LIMIT_SAMPLES,
-	SR_HWCAP_CONTINUOUS,
+	SR_CONF_SAMPLERATE,
+	SR_CONF_LIMIT_SAMPLES,
+	SR_CONF_CONTINUOUS,
 	0,
 };
 
@@ -177,10 +177,10 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 	devc = sdi->priv;
 
 	switch (hwcap) {
-	case SR_HWCAP_SAMPLERATE:
+	case SR_CONF_SAMPLERATE:
 		alsa_set_samplerate(sdi, *(const uint64_t *)value);
 		break;
-	case SR_HWCAP_LIMIT_SAMPLES:
+	case SR_CONF_LIMIT_SAMPLES:
 		devc->limit_samples = *(const uint64_t *)value;
 		break;
 	default:

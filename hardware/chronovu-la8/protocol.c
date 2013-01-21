@@ -46,10 +46,10 @@ const struct sr_samplerates samplerates = {
 
 /* Note: Continuous sampling is not supported by the hardware. */
 SR_PRIV const int hwcaps[] = {
-	SR_HWCAP_LOGIC_ANALYZER,
-	SR_HWCAP_SAMPLERATE,
-	SR_HWCAP_LIMIT_MSEC, /* TODO: Not yet implemented. */
-	SR_HWCAP_LIMIT_SAMPLES, /* TODO: Not yet implemented. */
+	SR_CONF_LOGIC_ANALYZER,
+	SR_CONF_SAMPLERATE,
+	SR_CONF_LIMIT_MSEC, /* TODO: Not yet implemented. */
+	SR_CONF_LIMIT_SAMPLES, /* TODO: Not yet implemented. */
 	0,
 };
 

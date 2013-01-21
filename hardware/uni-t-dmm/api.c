@@ -32,10 +32,10 @@ static const int hwopts[] = {
 };
 
 static const int hwcaps[] = {
-	SR_HWCAP_MULTIMETER,
-	SR_HWCAP_LIMIT_SAMPLES,
-	SR_HWCAP_LIMIT_MSEC,
-	SR_HWCAP_CONTINUOUS,
+	SR_CONF_MULTIMETER,
+	SR_CONF_LIMIT_SAMPLES,
+	SR_CONF_LIMIT_MSEC,
+	SR_CONF_CONTINUOUS,
 	0,
 };
 
@@ -229,7 +229,7 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 	devc = sdi->priv;
 
 	switch (hwcap) {
-	case SR_HWCAP_LIMIT_MSEC:
+	case SR_CONF_LIMIT_MSEC:
 		/* TODO: Not yet implemented. */
 		if (*(const uint64_t *)value == 0) {
 			sr_err("Time limit cannot be 0.");
@@ -239,7 +239,7 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		sr_dbg("Setting time limit to %" PRIu64 "ms.",
 		       devc->limit_msec);
 		break;
-	case SR_HWCAP_LIMIT_SAMPLES:
+	case SR_CONF_LIMIT_SAMPLES:
 		if (*(const uint64_t *)value == 0) {
 			sr_err("Sample limit cannot be 0.");
 			return SR_ERR;

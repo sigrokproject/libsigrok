@@ -37,10 +37,10 @@ static int hw_dev_close(struct sr_dev_inst *sdi);
 static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);
 
 static const int hwcaps[] = {
-	SR_HWCAP_MULTIMETER,
-	SR_HWCAP_LIMIT_MSEC,
-	SR_HWCAP_LIMIT_SAMPLES,
-	SR_HWCAP_CONTINUOUS,
+	SR_CONF_MULTIMETER,
+	SR_CONF_LIMIT_MSEC,
+	SR_CONF_LIMIT_SAMPLES,
+	SR_CONF_CONTINUOUS,
 	0
 };
 
@@ -280,14 +280,14 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 	devc = sdi->priv;
 	ret = SR_OK;
 	switch (hwcap) {
-	case SR_HWCAP_LIMIT_MSEC:
+	case SR_CONF_LIMIT_MSEC:
 		devc->limit_msec = *(const int64_t *)value;
 		now = g_get_monotonic_time() / 1000;
 		devc->end_time = now + devc->limit_msec;
 		sr_dbg("Setting time limit to %" PRIu64 "ms.",
 		       devc->limit_msec);
 		break;
-	case SR_HWCAP_LIMIT_SAMPLES:
+	case SR_CONF_LIMIT_SAMPLES:
 		devc->limit_samples = *(const uint64_t *)value;
 		sr_dbg("Setting sample limit to %" PRIu64 ".",
 		       devc->limit_samples);

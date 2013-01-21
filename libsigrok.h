@@ -388,39 +388,39 @@ enum {
 	/*--- Device classes ------------------------------------------------*/
 
 	/** The device can act as logic analyzer. */
-	SR_HWCAP_LOGIC_ANALYZER = 10000,
+	SR_CONF_LOGIC_ANALYZER = 10000,
 
 	/** The device can act as an oscilloscope. */
-	SR_HWCAP_OSCILLOSCOPE,
+	SR_CONF_OSCILLOSCOPE,
 
 	/** The device can act as a multimeter. */
-	SR_HWCAP_MULTIMETER,
+	SR_CONF_MULTIMETER,
 
 	/** The device is a demo device. */
-	SR_HWCAP_DEMO_DEV,
+	SR_CONF_DEMO_DEV,
 
 	/** The device can act as a sound level meter. */
-	SR_HWCAP_SOUNDLEVELMETER,
+	SR_CONF_SOUNDLEVELMETER,
 
 	/** The device can measure temperature. */
-	SR_HWCAP_THERMOMETER,
+	SR_CONF_THERMOMETER,
 
 	/** The device can measure humidity. */
-	SR_HWCAP_HYGROMETER,
+	SR_CONF_HYGROMETER,
 
 	/*--- Driver options ------------------------------------------------*/
 
 	/**
 	 * Specification on how to connect to a device.
 	 *
-	 * In combination with SR_HWOPT_SERIALCOMM, this is a serial port in
+	 * In combination with SR_CONF_SERIALCOMM, this is a serial port in
 	 * the form which makes sense to the OS (e.g., /dev/ttyS0).
 	 * Otherwise this specifies a USB device, either in the form of
 	 * @verbatim <bus>.<address> @endverbatim (decimal, e.g. 1.65) or
 	 * @verbatim <vendorid>.<productid> @endverbatim
 	 * (hexadecimal, e.g. 1d6b.0001).
 	 */
-	SR_HWOPT_CONN = 20000,
+	SR_CONF_CONN = 20000,
 
 	/**
 	 * Serial communication specification, in the form:
@@ -441,62 +441,62 @@ enum {
 	 * This is always an optional parameter, since a driver typically
 	 * knows the speed at which the device wants to communicate.
 	 */
-	SR_HWOPT_SERIALCOMM,
+	SR_CONF_SERIALCOMM,
 
 	/*--- Device configuration ------------------------------------------*/
 
 	/** The device supports setting/changing its samplerate. */
-	SR_HWCAP_SAMPLERATE = 30000,
+	SR_CONF_SAMPLERATE = 30000,
 
 	/** The device supports setting a pre/post-trigger capture ratio. */
-	SR_HWCAP_CAPTURE_RATIO,
+	SR_CONF_CAPTURE_RATIO,
 
 	/** The device supports setting a pattern (pattern generator mode). */
-	SR_HWCAP_PATTERN_MODE,
+	SR_CONF_PATTERN_MODE,
 
 	/** The device supports Run Length Encoding. */
-	SR_HWCAP_RLE,
+	SR_CONF_RLE,
 
 	/** The device supports setting trigger slope. */
-	SR_HWCAP_TRIGGER_SLOPE,
+	SR_CONF_TRIGGER_SLOPE,
 
 	/** Trigger source. */
-	SR_HWCAP_TRIGGER_SOURCE,
+	SR_CONF_TRIGGER_SOURCE,
 
 	/** Horizontal trigger position. */
-	SR_HWCAP_HORIZ_TRIGGERPOS,
+	SR_CONF_HORIZ_TRIGGERPOS,
 
 	/** Buffer size. */
-	SR_HWCAP_BUFFERSIZE,
+	SR_CONF_BUFFERSIZE,
 
 	/** Time base. */
-	SR_HWCAP_TIMEBASE,
+	SR_CONF_TIMEBASE,
 
 	/** Filter. */
-	SR_HWCAP_FILTER,
+	SR_CONF_FILTER,
 
 	/** Volts/div. */
-	SR_HWCAP_VDIV,
+	SR_CONF_VDIV,
 
 	/** Coupling. */
-	SR_HWCAP_COUPLING,
+	SR_CONF_COUPLING,
 
 	/*--- Special stuff -------------------------------------------------*/
 
 	/** Session filename. */
-	SR_HWCAP_SESSIONFILE = 40000,
+	SR_CONF_SESSIONFILE = 40000,
 
 	/* TODO: Better description. */
 	/** The device supports specifying a capturefile to inject. */
-	SR_HWCAP_CAPTUREFILE,
+	SR_CONF_CAPTUREFILE,
 
 	/* TODO: Better description. */
 	/** The device supports specifying the capturefile unit size. */
-	SR_HWCAP_CAPTURE_UNITSIZE,
+	SR_CONF_CAPTURE_UNITSIZE,
 
 	/* TODO: Better description. */
 	/** The device supports setting the number of probes. */
-	SR_HWCAP_CAPTURE_NUM_PROBES,
+	SR_CONF_CAPTURE_NUM_PROBES,
 
 	/*--- Acquisition modes ---------------------------------------------*/
 
@@ -504,26 +504,26 @@ enum {
 	 * The device supports setting a sample time limit (how long
 	 * the sample acquisition should run, in ms).
 	 */
-	SR_HWCAP_LIMIT_MSEC = 50000,
+	SR_CONF_LIMIT_MSEC = 50000,
 
 	/**
 	 * The device supports setting a sample number limit (how many
 	 * samples should be acquired).
 	 */
-	SR_HWCAP_LIMIT_SAMPLES,
+	SR_CONF_LIMIT_SAMPLES,
 
 	/**
 	 * The device supports setting a frame limit (how many
 	 * frames should be acquired).
 	 */
-	SR_HWCAP_LIMIT_FRAMES,
+	SR_CONF_LIMIT_FRAMES,
 
 	/**
 	 * The device supports continuous sampling. Neither a time limit
 	 * nor a sample number limit has to be supplied, it will just acquire
 	 * samples continuously, until explicitly stopped by a certain command.
 	 */
-	SR_HWCAP_CONTINUOUS,
+	SR_CONF_CONTINUOUS,
 };
 
 struct sr_dev_inst {

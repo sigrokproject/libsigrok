@@ -42,33 +42,33 @@
  */
 
 static struct sr_config_info sr_config_info_data[] = {
-	{SR_HWOPT_CONN, SR_T_CHAR, "conn",
+	{SR_CONF_CONN, SR_T_CHAR, "conn",
 		"Connection", NULL},
-	{SR_HWOPT_SERIALCOMM, SR_T_CHAR, "serialcomm",
+	{SR_CONF_SERIALCOMM, SR_T_CHAR, "serialcomm",
 		"Serial communication", NULL},
-	{SR_HWCAP_SAMPLERATE, SR_T_UINT64, "samplerate",
+	{SR_CONF_SAMPLERATE, SR_T_UINT64, "samplerate",
 		"Sample rate", NULL},
-	{SR_HWCAP_CAPTURE_RATIO, SR_T_UINT64, "captureratio",
+	{SR_CONF_CAPTURE_RATIO, SR_T_UINT64, "captureratio",
 		"Pre-trigger capture ratio", NULL},
-	{SR_HWCAP_PATTERN_MODE, SR_T_CHAR, "pattern",
+	{SR_CONF_PATTERN_MODE, SR_T_CHAR, "pattern",
 		"Pattern generator mode", NULL},
-	{SR_HWCAP_RLE, SR_T_BOOL, "rle",
+	{SR_CONF_RLE, SR_T_BOOL, "rle",
 		"Run Length Encoding", NULL},
-	{SR_HWCAP_TRIGGER_SLOPE, SR_T_UINT64, "triggerslope",
+	{SR_CONF_TRIGGER_SLOPE, SR_T_UINT64, "triggerslope",
 		"Trigger slope", NULL},
-	{SR_HWCAP_TRIGGER_SOURCE, SR_T_CHAR, "triggersource",
+	{SR_CONF_TRIGGER_SOURCE, SR_T_CHAR, "triggersource",
 		"Trigger source", NULL},
-	{SR_HWCAP_HORIZ_TRIGGERPOS, SR_T_FLOAT, "horiz_triggerpos",
+	{SR_CONF_HORIZ_TRIGGERPOS, SR_T_FLOAT, "horiz_triggerpos",
 		"Horizontal trigger position", NULL},
-	{SR_HWCAP_BUFFERSIZE, SR_T_UINT64, "buffersize",
+	{SR_CONF_BUFFERSIZE, SR_T_UINT64, "buffersize",
 		"Buffer size", NULL},
-	{SR_HWCAP_TIMEBASE, SR_T_RATIONAL_PERIOD, "timebase",
+	{SR_CONF_TIMEBASE, SR_T_RATIONAL_PERIOD, "timebase",
 		"Time base", NULL},
-	{SR_HWCAP_FILTER, SR_T_CHAR, "filter",
+	{SR_CONF_FILTER, SR_T_CHAR, "filter",
 		"Filter targets", NULL},
-	{SR_HWCAP_VDIV, SR_T_RATIONAL_VOLT, "vdiv",
+	{SR_CONF_VDIV, SR_T_RATIONAL_VOLT, "vdiv",
 		"Volts/div", NULL},
-	{SR_HWCAP_COUPLING, SR_T_CHAR, "coupling",
+	{SR_CONF_COUPLING, SR_T_CHAR, "coupling",
 		"Coupling", NULL},
 	{0, 0, NULL, NULL, NULL},
 };
@@ -307,7 +307,7 @@ SR_PRIV struct sr_config *sr_config_make(int key, const void *value)
  * Returns information about the given driver or device instance.
  *
  * @param driver The sr_dev_driver struct to query.
- * @param id The type of information, in the form of an SR_HWCAP_* option.
+ * @param id The type of information, in the form of an SR_CONF_* option.
  * @param data Pointer where the value. will be stored. Must not be NULL.
  * @param sdi Pointer to the struct sr_dev_inst to be checked. Must not be NULL.
  *

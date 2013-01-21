@@ -84,13 +84,13 @@ struct dev_context {
 };
 
 static const int hwcaps[] = {
-	SR_HWCAP_LOGIC_ANALYZER,
-	SR_HWCAP_DEMO_DEV,
-	SR_HWCAP_SAMPLERATE,
-	SR_HWCAP_PATTERN_MODE,
-	SR_HWCAP_LIMIT_SAMPLES,
-	SR_HWCAP_LIMIT_MSEC,
-	SR_HWCAP_CONTINUOUS,
+	SR_CONF_LOGIC_ANALYZER,
+	SR_CONF_DEMO_DEV,
+	SR_CONF_SAMPLERATE,
+	SR_CONF_PATTERN_MODE,
+	SR_CONF_LIMIT_SAMPLES,
+	SR_CONF_LIMIT_MSEC,
+	SR_CONF_CONTINUOUS,
 };
 
 static const struct sr_samplerates samplerates = {
@@ -259,24 +259,24 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 
 	(void)sdi;
 
-	if (hwcap == SR_HWCAP_SAMPLERATE) {
+	if (hwcap == SR_CONF_SAMPLERATE) {
 		cur_samplerate = *(const uint64_t *)value;
 		sr_dbg("%s: setting samplerate to %" PRIu64, __func__,
 		       cur_samplerate);
 		ret = SR_OK;
-	} else if (hwcap == SR_HWCAP_LIMIT_SAMPLES) {
+	} else if (hwcap == SR_CONF_LIMIT_SAMPLES) {
 		limit_msec = 0;
 		limit_samples = *(const uint64_t *)value;
 		sr_dbg("%s: setting limit_samples to %" PRIu64, __func__,
 		       limit_samples);
 		ret = SR_OK;
-	} else if (hwcap == SR_HWCAP_LIMIT_MSEC) {
+	} else if (hwcap == SR_CONF_LIMIT_MSEC) {
 		limit_msec = *(const uint64_t *)value;
 		limit_samples = 0;
 		sr_dbg("%s: setting limit_msec to %" PRIu64, __func__,
 		       limit_msec);
 		ret = SR_OK;
-	} else if (hwcap == SR_HWCAP_PATTERN_MODE) {
+	} else if (hwcap == SR_CONF_PATTERN_MODE) {
 		stropt = value;
 		ret = SR_OK;
 		if (!strcmp(stropt, "sigrok")) {

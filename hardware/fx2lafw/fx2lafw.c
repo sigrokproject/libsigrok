@@ -82,12 +82,12 @@ static const struct fx2lafw_profile supported_fx2[] = {
 };
 
 static const int hwcaps[] = {
-	SR_HWCAP_LOGIC_ANALYZER,
-	SR_HWCAP_SAMPLERATE,
+	SR_CONF_LOGIC_ANALYZER,
+	SR_CONF_SAMPLERATE,
 
 	/* These are really implemented in the driver, not the hardware. */
-	SR_HWCAP_LIMIT_SAMPLES,
-	SR_HWCAP_CONTINUOUS,
+	SR_CONF_LIMIT_SAMPLES,
+	SR_CONF_CONTINUOUS,
 	0,
 };
 
@@ -561,7 +561,7 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 
 	if (devc->cur_samplerate == 0) {
 		/* Samplerate hasn't been set; default to the slowest one. */
-		if (hw_dev_config_set(sdi, SR_HWCAP_SAMPLERATE,
+		if (hw_dev_config_set(sdi, SR_CONF_SAMPLERATE,
 		    &supported_samplerates[0]) == SR_ERR)
 			return SR_ERR;
 	}
@@ -640,10 +640,10 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 
 	devc = sdi->priv;
 
-	if (hwcap == SR_HWCAP_SAMPLERATE) {
+	if (hwcap == SR_CONF_SAMPLERATE) {
 		devc->cur_samplerate = *(const uint64_t *)value;
 		ret = SR_OK;
-	} else if (hwcap == SR_HWCAP_LIMIT_SAMPLES) {
+	} else if (hwcap == SR_CONF_LIMIT_SAMPLES) {
 		devc->limit_samples = *(const uint64_t *)value;
 		ret = SR_OK;
 	} else {

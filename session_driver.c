@@ -53,8 +53,8 @@ struct session_vdev {
 
 static GSList *dev_insts = NULL;
 static const int hwcaps[] = {
-	SR_HWCAP_CAPTUREFILE,
-	SR_HWCAP_CAPTURE_UNITSIZE,
+	SR_CONF_CAPTUREFILE,
+	SR_CONF_CAPTURE_UNITSIZE,
 	0,
 };
 
@@ -180,24 +180,24 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 	vdev = sdi->priv;
 
 	switch (hwcap) {
-	case SR_HWCAP_SAMPLERATE:
+	case SR_CONF_SAMPLERATE:
 		tmp_u64 = value;
 		vdev->samplerate = *tmp_u64;
 		sr_info("Setting samplerate to %" PRIu64 ".", vdev->samplerate);
 		break;
-	case SR_HWCAP_SESSIONFILE:
+	case SR_CONF_SESSIONFILE:
 		vdev->sessionfile = g_strdup(value);
 		sr_info("Setting sessionfile to '%s'.", vdev->sessionfile);
 		break;
-	case SR_HWCAP_CAPTUREFILE:
+	case SR_CONF_CAPTUREFILE:
 		vdev->capturefile = g_strdup(value);
 		sr_info("Setting capturefile to '%s'.", vdev->capturefile);
 		break;
-	case SR_HWCAP_CAPTURE_UNITSIZE:
+	case SR_CONF_CAPTURE_UNITSIZE:
 		tmp_u64 = value;
 		vdev->unitsize = *tmp_u64;
 		break;
-	case SR_HWCAP_CAPTURE_NUM_PROBES:
+	case SR_CONF_CAPTURE_NUM_PROBES:
 		tmp_u64 = value;
 		vdev->num_probes = *tmp_u64;
 		break;

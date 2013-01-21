@@ -71,12 +71,12 @@ static model_t zeroplus_models[] = {
 };
 
 static const int hwcaps[] = {
-	SR_HWCAP_LOGIC_ANALYZER,
-	SR_HWCAP_SAMPLERATE,
-	SR_HWCAP_CAPTURE_RATIO,
+	SR_CONF_LOGIC_ANALYZER,
+	SR_CONF_SAMPLERATE,
+	SR_CONF_CAPTURE_RATIO,
 
 	/* These are really implemented in the driver, not the hardware. */
-	SR_HWCAP_LIMIT_SAMPLES,
+	SR_CONF_LIMIT_SAMPLES,
 	0,
 };
 
@@ -640,11 +640,11 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 	}
 
 	switch (hwcap) {
-	case SR_HWCAP_SAMPLERATE:
+	case SR_CONF_SAMPLERATE:
 		return set_samplerate(devc, *(const uint64_t *)value);
-	case SR_HWCAP_LIMIT_SAMPLES:
+	case SR_CONF_LIMIT_SAMPLES:
 		return set_limit_samples(devc, *(const uint64_t *)value);
-	case SR_HWCAP_CAPTURE_RATIO:
+	case SR_CONF_CAPTURE_RATIO:
 		return set_capture_ratio(devc, *(const uint64_t *)value);
 	default:
 		return SR_ERR;

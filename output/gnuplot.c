@@ -109,7 +109,7 @@ static int init(struct sr_output *o)
 
 	num_probes = g_slist_length(o->sdi->probes);
 	comment[0] = '\0';
-	if (sr_dev_has_hwcap(o->sdi, SR_HWCAP_SAMPLERATE)) {
+	if (sr_dev_has_hwcap(o->sdi, SR_CONF_SAMPLERATE)) {
 		o->sdi->driver->info_get(SR_DI_CUR_SAMPLERATE,
 				(const void **)&samplerate, o->sdi);
 		if (!(frequency_s = sr_samplerate_string(*samplerate))) {

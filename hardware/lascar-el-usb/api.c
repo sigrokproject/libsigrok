@@ -29,14 +29,14 @@ static struct sr_dev_driver *di = &lascar_el_usb_driver_info;
 static int hw_dev_close(struct sr_dev_inst *sdi);
 
 static const int hwopts[] = {
-	SR_HWOPT_CONN,
+	SR_CONF_CONN,
 	0,
 };
 
 static const int hwcaps[] = {
-	SR_HWCAP_THERMOMETER,
-	SR_HWCAP_HYGROMETER,
-	SR_HWCAP_LIMIT_SAMPLES,
+	SR_CONF_THERMOMETER,
+	SR_CONF_HYGROMETER,
+	SR_CONF_LIMIT_SAMPLES,
 	0
 };
 
@@ -107,7 +107,7 @@ static GSList *hw_scan(GSList *options)
 	for (l = options; l; l = l->next) {
 		src = l->data;
 		switch (src->key) {
-		case SR_HWOPT_CONN:
+		case SR_CONF_CONN:
 			conn = src->value;
 			break;
 		}
@@ -250,7 +250,7 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 	devc = sdi->priv;
 	ret = SR_OK;
 	switch (hwcap) {
-	case SR_HWCAP_LIMIT_SAMPLES:
+	case SR_CONF_LIMIT_SAMPLES:
 		devc->limit_samples = *(const uint64_t *)value;
 		sr_dbg("Setting sample limit to %" PRIu64 ".",
 		       devc->limit_samples);

@@ -22,13 +22,13 @@
 #include "protocol.h"
 
 static const int hwcaps[] = {
-	SR_HWCAP_LOGIC_ANALYZER,
-	SR_HWCAP_SAMPLERATE,
-	SR_HWCAP_TRIGGER_SLOPE,
-	SR_HWCAP_HORIZ_TRIGGERPOS,
-//      SR_HWCAP_CAPTURE_RATIO,
-	SR_HWCAP_LIMIT_SAMPLES,
-//      SR_HWCAP_RLE,
+	SR_CONF_LOGIC_ANALYZER,
+	SR_CONF_SAMPLERATE,
+	SR_CONF_TRIGGER_SLOPE,
+	SR_CONF_HORIZ_TRIGGERPOS,
+//      SR_CONF_CAPTURE_RATIO,
+	SR_CONF_LIMIT_SAMPLES,
+//      SR_CONF_RLE,
 	0,
 };
 
@@ -82,10 +82,10 @@ static GSList *hw_scan(GSList *options)
 	for (l = options; l; l = l->next) {
 		src = l->data;
 		switch (src->key) {
-		case SR_HWOPT_CONN:
+		case SR_CONF_CONN:
 			conn = src->value;
 			break;
-		case SR_HWOPT_SERIALCOMM:
+		case SR_CONF_SERIALCOMM:
 			serialcomm = src->value;
 			break;
 		}
@@ -342,12 +342,12 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		return SR_ERR;
 
 	switch (hwcap) {
-	case SR_HWCAP_SAMPLERATE:
+	case SR_CONF_SAMPLERATE:
 		// FIXME
 		return mso_configure_rate(sdi, *(const uint64_t *)value);
 		ret = SR_OK;
 		break;
-	case SR_HWCAP_LIMIT_SAMPLES:
+	case SR_CONF_LIMIT_SAMPLES:
 		num_samples = *(uint64_t *)value;
 		if (num_samples < 1024) {
 			sr_err("minimum of 1024 samples required");
@@ -359,10 +359,10 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 			ret = SR_OK;
 		}
 		break;
-	case SR_HWCAP_CAPTURE_RATIO:
+	case SR_CONF_CAPTURE_RATIO:
 		ret = SR_OK;
 		break;
-	case SR_HWCAP_TRIGGER_SLOPE:
+	case SR_CONF_TRIGGER_SLOPE:
 		slope = *(uint64_t *)value;
 		if (slope != SLOPE_NEGATIVE && slope != SLOPE_POSITIVE) {
 			sr_err("Invalid trigger slope");
@@ -372,7 +372,7 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 			ret = SR_OK;
 		}
 		break;
-	case SR_HWCAP_HORIZ_TRIGGERPOS:
+	case SR_CONF_HORIZ_TRIGGERPOS:
 		pos = *(float *)value;
 		if (pos < 0 || pos > 255) {
 			sr_err("Trigger position (%f) should be between 0 and 255.", pos);
@@ -383,7 +383,7 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 			ret = SR_OK;
 		}
 		break;
-	case SR_HWCAP_RLE:
+	case SR_CONF_RLE:
 		ret = SR_OK;
 		break;
 	default:

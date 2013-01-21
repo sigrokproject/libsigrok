@@ -123,7 +123,7 @@ SR_PRIV int init(struct sr_output *o, int default_spl, enum outputmode mode)
 
 	snprintf(ctx->header, 511, "%s\n", PACKAGE_STRING);
 	num_probes = g_slist_length(o->sdi->probes);
-	if (o->sdi->driver || sr_dev_has_hwcap(o->sdi, SR_HWCAP_SAMPLERATE)) {
+	if (o->sdi->driver || sr_dev_has_hwcap(o->sdi, SR_CONF_SAMPLERATE)) {
 		ret = o->sdi->driver->info_get(SR_DI_CUR_SAMPLERATE,
 				(const void **)&samplerate, o->sdi);
 		if (ret != SR_OK)
