@@ -41,17 +41,11 @@
  * @{
  */
 
-/* Driver scanning options. */
-static struct sr_config_info sr_drvopts[] = {
+static struct sr_config_info sr_config_info_data[] = {
 	{SR_HWOPT_CONN, SR_T_CHAR, "conn",
 		"Connection", NULL},
 	{SR_HWOPT_SERIALCOMM, SR_T_CHAR, "serialcomm",
 		"Serial communication", NULL},
-	{0, 0, NULL, NULL, NULL},
-};
-
-/* Device instance options. */
-static struct sr_config_info sr_devopts[] = {
 	{SR_HWCAP_SAMPLERATE, SR_T_UINT64, "samplerate",
 		"Sample rate", NULL},
 	{SR_HWCAP_CAPTURE_RATIO, SR_T_UINT64, "captureratio",
@@ -367,80 +361,40 @@ SR_API gboolean sr_driver_hwcap_exists(struct sr_dev_driver *driver, int hwcap)
 }
 
 /**
- * Get information about a hardware driver option.
+ * Get information about an sr_config key.
  *
- * @param opt The option to get.
+ * @param opt The sr_config key.
  *
- * @return A pointer to a struct sr_hwcap_option, or NULL if the option
+ * @return A pointer to a struct sr_config_info, or NULL if the key
  *         was not found.
  */
-SR_API const struct sr_config_info *sr_drvopt_get(int opt)
+SR_API const struct sr_config_info *sr_config_info_get(int key)
 {
 	int i;
 
-	for (i = 0; sr_drvopts[i].key; i++) {
-		if (sr_drvopts[i].key == opt)
-			return &sr_drvopts[i];
+	for (i = 0; sr_config_info_data[i].key; i++) {
+		if (sr_config_info_data[i].key == key)
+			return &sr_config_info_data[i];
 	}
 
 	return NULL;
 }
 
 /**
- * Get information about a hardware driver option, by name.
+ * Get information about an sr_config key, by name.
  *
- * @param optname The name of the option to get.
+ * @param optname The sr_config key.
  *
- * @return A pointer to a struct sr_hwcap_option, or NULL if the option
+ * @return A pointer to a struct sr_config_info, or NULL if the key
  *         was not found.
  */
-SR_API const struct sr_config_info *sr_drvopt_name_get(const char *optname)
+SR_API const struct sr_config_info *sr_config_info_name_get(const char *optname)
 {
 	int i;
 
-	for (i = 0; sr_drvopts[i].key; i++) {
-		if (!strcmp(sr_drvopts[i].id, optname))
-			return &sr_drvopts[i];
-	}
-
-	return NULL;
-}
-
-/**
- * Get information about a device option.
- *
- * @param opt The option to get.
- *
- * @return A pointer to a struct sr_hwcap_option, or NULL if the option
- *         was not found.
- */
-SR_API const struct sr_config_info *sr_devopt_get(int opt)
-{
-	int i;
-
-	for (i = 0; sr_devopts[i].key; i++) {
-		if (sr_devopts[i].key == opt)
-			return &sr_devopts[i];
-	}
-
-	return NULL;
-}
-
-/**
- * Get information about a device option, by name.
- *
- * @param optname The name of the option to get.
- *
- * @return A pointer to a struct sr_hwcap_option, or NULL if the option
- *         was not found.
- */
-SR_API const struct sr_config_info *sr_devopt_name_get(const char *optname)
-{
-	int i;
-
-	for (i = 0; sr_devopts[i].key; i++) {
-		if (!strcmp(sr_devopts[i].id, optname))
-			return &sr_devopts[i];
+	for (i = 0; sr_config_info_data[i].key; i++) {
+		if (!strcmp(sr_config_info_data[i].id, optname))
+			return &sr_config_info_data[i];
 	}
 
 	return NULL;

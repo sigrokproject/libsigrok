@@ -384,34 +384,6 @@ struct sr_config_info {
 	char *description;
 };
 
-/** Hardware driver options. */
-enum {
-	/**
-	 * Specification on how to connect to a device.
-	 *
-	 * In combination with SR_HWOPT_SERIALCOMM, this is a serial port in
-	 * the form which makes sense to the OS (e.g., /dev/ttyS0).
-	 * Otherwise this specifies a USB device, either in the form of
-	 * @verbatim <bus>.<address> @endverbatim (decimal, e.g. 1.65) or
-	 * @verbatim <vendorid>.<productid> @endverbatim
-	 * (hexadecimal, e.g. 1d6b.0001).
-	 */
-	SR_HWOPT_CONN = 10000,
-
-	/**
-	 * Serial communication specification, in the form:
-	 *
-	 *   @verbatim <baudrate>/<databits><parity><stopbits> @endverbatim
-	 *
-	 * Example: 9600/8n1
-	 *
-	 * This is always an optional parameter, since a driver typically
-	 * knows the speed at which the device wants to communicate.
-	 */
-	SR_HWOPT_SERIALCOMM,
-};
-
-/** Hardware device capabilities. */
 enum {
 	/*--- Device classes ------------------------------------------------*/
 
@@ -436,15 +408,49 @@ enum {
 	/** The device can measure humidity. */
 	SR_HWCAP_HYGROMETER,
 
+	/*--- Driver options ------------------------------------------------*/
+
+	/**
+	 * Specification on how to connect to a device.
+	 *
+	 * In combination with SR_HWOPT_SERIALCOMM, this is a serial port in
+	 * the form which makes sense to the OS (e.g., /dev/ttyS0).
+	 * Otherwise this specifies a USB device, either in the form of
+	 * @verbatim <bus>.<address> @endverbatim (decimal, e.g. 1.65) or
+	 * @verbatim <vendorid>.<productid> @endverbatim
+	 * (hexadecimal, e.g. 1d6b.0001).
+	 */
+	SR_HWOPT_CONN = 20000,
+
+	/**
+	 * Serial communication specification, in the form:
+	 *
+	 *   @verbatim <baudrate>/<databits><parity><stopbits> @endverbatim
+	 *
+	 * Example: 9600/8n1
+	 *
+	 * The string may also be followed by one or more special settings,
+	 * in the form "/key=value". Supported keys and their values are:
+	 *
+	 * rts    0,1    set the port's RTS pin to low or high
+	 * dtr    0,1    set the port's DTR pin to low or high
+	 * flow   0      no flow control
+	 *        1      hardware-based (RTS/CTS) flow control
+	 *        2      software-based (XON/XOFF) flow control
+	 * 
+	 * This is always an optional parameter, since a driver typically
+	 * knows the speed at which the device wants to communicate.
+	 */
+	SR_HWOPT_SERIALCOMM,
+
 	/*--- Device configuration ------------------------------------------*/
 
 	/** The device supports setting/changing its samplerate. */
-	SR_HWCAP_SAMPLERATE = 20000,
+	SR_HWCAP_SAMPLERATE = 30000,
 
 	/** The device supports setting a pre/post-trigger capture ratio. */
 	SR_HWCAP_CAPTURE_RATIO,
 
-	/* TODO? */
 	/** The device supports setting a pattern (pattern generator mode). */
 	SR_HWCAP_PATTERN_MODE,
 
@@ -478,7 +484,7 @@ enum {
 	/*--- Special stuff -------------------------------------------------*/
 
 	/** Session filename. */
-	SR_HWCAP_SESSIONFILE = 30000,
+	SR_HWCAP_SESSIONFILE = 40000,
 
 	/* TODO: Better description. */
 	/** The device supports specifying a capturefile to inject. */
@@ -498,7 +504,7 @@ enum {
 	 * The device supports setting a sample time limit (how long
 	 * the sample acquisition should run, in ms).
 	 */
-	SR_HWCAP_LIMIT_MSEC = 40000,
+	SR_HWCAP_LIMIT_MSEC = 50000,
 
 	/**
 	 * The device supports setting a sample number limit (how many
