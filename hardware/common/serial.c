@@ -422,7 +422,7 @@ SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
 
 	if (dtr != -1) {
 		sr_spew("Setting DTR %s.", dtr ? "high" : "low");
-		if (rts)
+		if (dtr)
 			dcb.fDtrControl = DTR_CONTROL_ENABLE;
 		else
 			dcb.fDtrControl = DTR_CONTROL_DISABLE;
