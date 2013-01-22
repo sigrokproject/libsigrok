@@ -125,7 +125,7 @@ enum {
 
 typedef int (*sr_receive_data_callback_t)(int fd, int revents, void *cb_data);
 
-/** Data types used by hardware drivers for dev_config_set(). */
+/** Data types used by sr_config_info(). */
 enum {
 	SR_T_UINT64 = 10000,
 	SR_T_CHAR,
@@ -279,19 +279,10 @@ struct sr_datafeed_meta {
 	GSList *config;
 };
 
-struct sr_datafeed_meta_logic {
-	int num_probes;
-	uint64_t samplerate;
-};
-
 struct sr_datafeed_logic {
 	uint64_t length;
 	uint16_t unitsize;
 	void *data;
-};
-
-struct sr_datafeed_meta_analog {
-	int num_probes;
 };
 
 struct sr_datafeed_analog {
@@ -333,29 +324,16 @@ struct sr_output_format {
 	char *description;
 	int df_type;
 	int (*init) (struct sr_output *o);
+	/* Obsolete, use recv() instead. */
 	int (*data) (struct sr_output *o, const uint8_t *data_in,
 		     uint64_t length_in, uint8_t **data_out,
 		     uint64_t *length_out);
+	/* Obsolete, use recv() instead. */
 	int (*event) (struct sr_output *o, int event_type, uint8_t **data_out,
 		      uint64_t *length_out);
 	GString *(*recv) (struct sr_output *o, const struct sr_dev_inst *sdi,
 			const struct sr_datafeed_packet *packet);
 	int (*cleanup) (struct sr_output *o);
-};
-
-/*
- * This represents a generic device connected to the system.
- * For device-specific information, ask the driver. The driver_index refers
- * to the device index within that driver; it may be handling more than one
- * device. All relevant driver calls take a dev_index parameter for this.
- */
-struct sr_dev {
-	/** Which driver handles this device. */
-	struct sr_dev_driver *driver;
-	/** A driver may handle multiple devices of the same type. */
-	int driver_index;
-	/** List of struct sr_probe pointers. */
-	GSList *probes;
 };
 
 enum {
@@ -364,6 +342,7 @@ enum {
 };
 
 struct sr_probe {
+	/* The index field will go: use g_slist_length(sdi->probes) instead. */
 	int index;
 	int type;
 	gboolean enabled;
