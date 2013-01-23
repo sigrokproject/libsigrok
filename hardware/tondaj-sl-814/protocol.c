@@ -85,17 +85,20 @@ static void parse_packet(const uint8_t *buf, float *floatval,
 	(void)level;
 }
 
-static void decode_packet(struct dev_context *devc)
+static void decode_packet(struct sr_dev_inst *sdi)
 {
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog analog;
+	struct dev_context *devc;
 	float floatval;
 
+	devc = sdi->priv;
 	memset(&analog, 0, sizeof(struct sr_datafeed_analog));
 
 	parse_packet(devc->buf, &floatval, &analog);
 
 	/* Send a sample packet with one analog value. */
+	analog.probes = sdi->probes;
 	analog.num_samples = 1;
 	analog.data = &floatval;
 	packet.type = SR_DF_ANALOG;
@@ -185,7 +188,7 @@ int tondaj_sl_814_receive_data(int fd, int revents, void *cb_data)
 			return TRUE;
 		}
 
-		decode_packet(devc);
+		decode_packet(sdi);
 
 		devc->state = SEND_PACKET_REQUEST;
 	} else {

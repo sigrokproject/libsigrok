@@ -286,6 +286,7 @@ struct sr_datafeed_logic {
 };
 
 struct sr_datafeed_analog {
+	GSList *probes;
 	int num_samples;
 	/** Measured quantity (voltage, current, temperature, and so on). */
 	int mq;

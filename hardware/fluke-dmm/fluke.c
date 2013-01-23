@@ -55,11 +55,12 @@ static struct sr_datafeed_analog *handle_qm_18x(const struct sr_dev_inst *sdi,
 	while(*e && *e == ' ')
 		e++;
 
-	/* TODO: Check malloc return value. */
-	analog = g_try_malloc0(sizeof(struct sr_datafeed_analog));
+	if (!(analog = g_try_malloc0(sizeof(struct sr_datafeed_analog))))
+		return NULL;
+	if (!(analog->data = g_try_malloc(sizeof(float))))
+		return NULL;
+	analog->probes = sdi->probes;
 	analog->num_samples = 1;
-	/* TODO: Check malloc return value. */
-	analog->data = g_try_malloc(sizeof(float));
 	if (is_oor)
 		*analog->data = NAN;
 	else
@@ -169,11 +170,12 @@ static struct sr_datafeed_analog *handle_qm_28x(const struct sr_dev_inst *sdi,
 		return NULL;
 	}
 
-	/* TODO: Check malloc return value. */
-	analog = g_try_malloc0(sizeof(struct sr_datafeed_analog));
+	if (!(analog = g_try_malloc0(sizeof(struct sr_datafeed_analog))))
+		return NULL;
+	if (!(analog->data = g_try_malloc(sizeof(float))))
+		return NULL;
+	analog->probes = sdi->probes;
 	analog->num_samples = 1;
-	/* TODO: Check malloc return value. */
-	analog->data = g_try_malloc(sizeof(float));
 	*analog->data = fvalue;
 	analog->mq = -1;
 
@@ -396,6 +398,7 @@ static void handle_qm_19x_data(const struct sr_dev_inst *sdi, char **tokens)
 			fvalue = 1.0;
 	}
 
+	analog.probes = sdi->probes;
 	analog.num_samples = 1;
 	analog.data = &fvalue;
 	analog.mq = devc->mq;

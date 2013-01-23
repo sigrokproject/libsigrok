@@ -85,20 +85,23 @@ SR_PRIV void dmm_details_pce_dm32(struct sr_datafeed_analog *analog, void *info)
 	}
 }
 
-static void handle_packet(const uint8_t *buf, struct dev_context *devc,
+static void handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi,
 			  int dmm, void *info)
 {
 	float floatval;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog *analog;
+	struct dev_context *devc;
 
 	log_dmm_packet(buf);
+	devc = sdi->priv;
 
 	if (!(analog = g_try_malloc0(sizeof(struct sr_datafeed_analog)))) {
 		sr_err("Analog packet malloc failed.");
 		return;
 	}
 
+	analog->probes = sdi->probes;
 	analog->num_samples = 1;
 	analog->mq = -1;
 
@@ -120,9 +123,12 @@ static void handle_packet(const uint8_t *buf, struct dev_context *devc,
 	g_free(analog);
 }
 
-static void handle_new_data(struct dev_context *devc, int dmm, void *info)
+static void handle_new_data(struct sr_dev_inst *sdi, int dmm, void *info)
 {
+	struct dev_context *devc;
 	int len, i, offset = 0;
+
+	devc = sdi->priv;
 
 	/* Try to get as much data as the buffer can hold. */
 	len = DMM_BUFSIZE - devc->buflen;
@@ -136,7 +142,7 @@ static void handle_new_data(struct dev_context *devc, int dmm, void *info)
 	/* Now look for packets in that data. */
 	while ((devc->buflen - offset) >= dmms[dmm].packet_size) {
 		if (dmms[dmm].packet_valid(devc->buf + offset)) {
-			handle_packet(devc->buf + offset, devc, dmm, info);
+			handle_packet(devc->buf + offset, sdi, dmm, info);
 			offset += dmms[dmm].packet_size;
 		} else {
 			offset++;
@@ -166,7 +172,7 @@ static int receive_data(int fd, int revents, int dmm, void *info, void *cb_data)
 
 	if (revents == G_IO_IN) {
 		/* Serial data arrived. */
-		handle_new_data(devc, dmm, info);
+		handle_new_data(sdi, dmm, info);
 	} else {
 		/* Timeout, send another packet request (if DMM needs it). */
 		if (dmms[dmm].packet_request) {

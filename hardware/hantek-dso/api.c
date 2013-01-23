@@ -202,18 +202,22 @@ static struct sr_dev_inst *dso_dev_new(int index, const struct dso_profile *prof
 static int configure_probes(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	const struct sr_probe *probe;
+	struct sr_probe *probe;
 	const GSList *l;
+	int p;
 
 	devc = sdi->priv;
 
+	g_slist_free(devc->enabled_probes);
 	devc->ch1_enabled = devc->ch2_enabled = FALSE;
-	for (l = sdi->probes; l; l = l->next) {
-		probe = (struct sr_probe *)l->data;
-		if (probe->index == 0)
+	for (l = sdi->probes, p = 0; l; l = l->next, p++) {
+		probe = l->data;
+		if (p == 0)
 			devc->ch1_enabled = probe->enabled;
-		else if (probe->index == 1)
+		else
 			devc->ch2_enabled = probe->enabled;
+		if (probe->enabled)
+			devc->enabled_probes = g_slist_append(devc->enabled_probes, probe);
 	}
 
 	return SR_OK;
@@ -242,6 +246,7 @@ static int clear_instances(void)
 		dso_close(sdi);
 		sr_usb_dev_inst_free(devc->usb);
 		g_free(devc->triggersource);
+		g_slist_free(devc->enabled_probes);
 
 		sr_dev_inst_free(sdi);
 	}
@@ -577,18 +582,21 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 	return ret;
 }
 
-static void send_chunk(struct dev_context *devc, unsigned char *buf,
+static void send_chunk(struct sr_dev_inst *sdi, unsigned char *buf,
 		int num_samples)
 {
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog analog;
+	struct dev_context *devc;
 	float ch1, ch2, range;
 	int num_probes, data_offset, i;
 
+	devc = sdi->priv;
 	num_probes = (devc->ch1_enabled && devc->ch2_enabled) ? 2 : 1;
 	packet.type = SR_DF_ANALOG;
 	packet.payload = &analog;
 	/* TODO: support for 5xxx series 9-bit samples */
+	analog.probes = devc->enabled_probes;
 	analog.num_samples = num_samples;
 	analog.mq = SR_MQ_VOLTAGE;
 	analog.unit = SR_UNIT_VOLT;
@@ -635,10 +643,12 @@ static void send_chunk(struct dev_context *devc, unsigned char *buf,
 static void receive_transfer(struct libusb_transfer *transfer)
 {
 	struct sr_datafeed_packet packet;
+	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 	int num_samples, pre;
 
-	devc = transfer->user_data;
+	sdi = transfer->user_data;
+	devc = sdi->priv;
 	sr_dbg("receive_transfer(): status %d received %d bytes.",
 	       transfer->status, transfer->actual_length);
 
@@ -685,12 +695,12 @@ static void receive_transfer(struct libusb_transfer *transfer)
 			/* Avoid the corner case where the chunk ended at
 			 * exactly the trigger point. */
 			if (num_samples > pre)
-				send_chunk(devc, transfer->buffer + pre * 2,
+				send_chunk(sdi, transfer->buffer + pre * 2,
 						num_samples - pre);
 		}
 	} else {
 		/* Already past the trigger point, just send it all out. */
-		send_chunk(devc, transfer->buffer,
+		send_chunk(sdi, transfer->buffer,
 				num_samples);
 	}
 
@@ -706,7 +716,7 @@ static void receive_transfer(struct libusb_transfer *transfer)
 		 * pre-trigger samples out now, in one big chunk. */
 		sr_dbg("End of frame, sending %d pre-trigger buffered samples.",
 		       devc->samp_buffered);
-		send_chunk(devc, devc->framebuf, devc->samp_buffered);
+		send_chunk(sdi, devc->framebuf, devc->samp_buffered);
 
 		/* Mark the end of this frame. */
 		packet.type = SR_DF_FRAME_END;
@@ -808,7 +818,7 @@ static int handle_event(int fd, int revents, void *cb_data)
 		devc->samp_buffered = devc->samp_received = 0;
 
 		/* Tell the scope to send us the first frame. */
-		if (dso_get_channeldata(devc, receive_transfer) != SR_OK)
+		if (dso_get_channeldata(sdi, receive_transfer) != SR_OK)
 			break;
 
 		/*

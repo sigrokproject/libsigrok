@@ -66,6 +66,8 @@ struct dev_context {
 
 	/** USBTMC character device file descriptor. */
 	int fd;
+
+	GSList *enabled_probes;
 };
 
 SR_PRIV int rigol_ds1xx2_receive_data(int fd, int revents, void *cb_data);

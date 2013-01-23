@@ -707,13 +707,16 @@ SR_PRIV int dso_capture_start(struct dev_context *devc)
 	return SR_OK;
 }
 
-SR_PRIV int dso_get_channeldata(struct dev_context *devc, libusb_transfer_cb_fn cb)
+SR_PRIV int dso_get_channeldata(const struct sr_dev_inst *sdi,
+		libusb_transfer_cb_fn cb)
 {
+	struct dev_context *devc;
 	struct libusb_transfer *transfer;
 	int num_transfers, ret, i;
 	uint8_t cmdstring[2];
 	unsigned char *buf;
 
+	devc = sdi->priv;
 	sr_dbg("Sending CMD_GET_CHANNELDATA.");
 
 	cmdstring[0] = CMD_GET_CHANNELDATA;
@@ -737,7 +740,7 @@ SR_PRIV int dso_get_channeldata(struct dev_context *devc, libusb_transfer_cb_fn 
 		transfer = libusb_alloc_transfer(0);
 		libusb_fill_bulk_transfer(transfer, devc->usb->devhdl,
 				DSO_EP_IN | LIBUSB_ENDPOINT_IN, buf,
-				devc->epin_maxpacketsize, cb, devc, 40);
+				devc->epin_maxpacketsize, cb, (void *)sdi, 40);
 		if ((ret = libusb_submit_transfer(transfer)) != 0) {
 			sr_err("Failed to submit transfer: %s.",
 			       libusb_error_name(ret));

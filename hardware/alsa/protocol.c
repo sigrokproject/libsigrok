@@ -396,6 +396,7 @@ SR_PRIV int alsa_receive_data(int fd, int revents, void *cb_data)
 	}
 
 	/* Send a sample packet with the analog values. */
+	analog.probes = sdi->probes;
 	analog.num_samples = count;
 	analog.mq = SR_MQ_VOLTAGE; /* FIXME */
 	analog.unit = SR_UNIT_VOLT; /* FIXME */

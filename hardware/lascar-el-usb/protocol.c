@@ -387,6 +387,8 @@ static void lascar_el_usb_dispatch(struct sr_dev_inst *sdi, unsigned char *buf,
 	int samples, samples_left, i, j;
 
 	devc = sdi->priv;
+	analog.probes = sdi->probes;
+
 	samples = buflen / devc->sample_size;
 	samples_left = devc->logged_samples - devc->rcvd_samples;
 	if (samples_left < samples)

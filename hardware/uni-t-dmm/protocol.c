@@ -66,14 +66,16 @@
  *  - ...
  */
 
-static void decode_packet(struct dev_context *devc, int dmm, const uint8_t *buf)
+static void decode_packet(struct sr_dev_inst *sdi, int dmm, const uint8_t *buf)
 {
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog analog;
+	struct dev_context *devc;
 	struct fs9721_info info;
 	float floatval;
 	int ret;
 
+	devc = sdi->priv;
 	memset(&analog, 0, sizeof(struct sr_datafeed_analog));
 
 	/* Parse the protocol packet. */
@@ -88,6 +90,7 @@ static void decode_packet(struct dev_context *devc, int dmm, const uint8_t *buf)
 	}
 
 	/* Send a sample packet with one analog value. */
+	analog.probes = sdi->probes;
 	analog.num_samples = 1;
 	analog.data = &floatval;
 	packet.type = SR_DF_ANALOG;
@@ -261,7 +264,7 @@ static int uni_t_dmm_receive_data(int fd, int revents, int dmm, void *cb_data)
 					return TRUE;
 				}
 			}
-			decode_packet(devc, dmm, pbuf);
+			decode_packet(sdi, dmm, pbuf);
 			memset(pbuf, 0x00, NUM_DATA_BYTES);
 		}
 	}

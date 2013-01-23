@@ -40,15 +40,18 @@ static uint8_t decode_digit(uint8_t in)
 	return out;
 }
 
-static void decode_buf(struct dev_context *devc, unsigned char *data)
+static void decode_buf(struct sr_dev_inst *sdi, unsigned char *data)
 {
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog analog;
+	struct dev_context *devc;
 	long factor, ivalue;
 	uint8_t digits[4];
 	gboolean is_duty, is_continuity, is_diode, is_ac, is_dc, is_auto;
 	gboolean is_hold, is_max, is_min, is_relative, minus;
 	float fvalue;
+
+	devc = sdi->priv;
 
 	digits[0] = decode_digit(data[12]);
 	digits[1] = decode_digit(data[11]);
@@ -249,6 +252,7 @@ static void decode_buf(struct dev_context *devc, unsigned char *data)
 	if (is_relative)
 		analog.mqflags |= SR_MQFLAG_RELATIVE;
 
+	analog.probes = sdi->probes;
 	analog.num_samples = 1;
 	analog.data = &fvalue;
 	packet.type = SR_DF_ANALOG;
@@ -260,7 +264,6 @@ static void decode_buf(struct dev_context *devc, unsigned char *data)
 
 SR_PRIV int victor_dmm_receive_data(struct sr_dev_inst *sdi, unsigned char *buf)
 {
-	struct dev_context *devc;
 	GString *dbg;
 	int i;
 	unsigned char data[DMM_DATA_SIZE];
@@ -268,8 +271,6 @@ SR_PRIV int victor_dmm_receive_data(struct sr_dev_inst *sdi, unsigned char *buf)
 	unsigned char shuffle[DMM_DATA_SIZE] = {
 		6, 13, 5, 11, 2, 7, 9, 8, 3, 10, 12, 0, 4, 1
 	};
-
-	devc = sdi->priv;
 
 	for (i = 0; i < DMM_DATA_SIZE && buf[i] == 0; i++);
 	if (i == DMM_DATA_SIZE) {
@@ -291,7 +292,7 @@ SR_PRIV int victor_dmm_receive_data(struct sr_dev_inst *sdi, unsigned char *buf)
 		g_string_free(dbg, TRUE);
 	}
 
-	decode_buf(devc, data);
+	decode_buf(sdi, data);
 
 	return SR_OK;
 }

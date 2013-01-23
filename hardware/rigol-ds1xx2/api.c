@@ -138,6 +138,7 @@ static int clear_instances(void)
 			continue;
 
 		g_free(devc->device);
+		g_slist_free(devc->enabled_probes);
 		close(devc->fd);
 
 		sr_dev_inst_free(sdi);
@@ -464,6 +465,8 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	gettimeofday(&header.starttime, NULL);
 	sr_session_send(cb_data, &packet);
 
+	/* Hardcoded to CH1 only. */
+	devc->enabled_probes = g_slist_append(NULL, sdi->probes->data);
 	rigol_ds1xx2_send_data(devc->fd, ":CHAN1:SCAL?\n");
 	len = read(devc->fd, buf, sizeof(buf));
 	buf[len] = 0;

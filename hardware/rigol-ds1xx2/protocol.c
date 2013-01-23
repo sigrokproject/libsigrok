@@ -49,6 +49,7 @@ SR_PRIV int rigol_ds1xx2_receive_data(int fd, int revents, void *cb_data)
 			return TRUE;
 		for (i = 0; i < len; i++)
 			data[i] = devc->scale / 25.6 * (128 - buf[i]) - devc->offset;
+		analog.probes = devc->enabled_probes;
 		analog.num_samples = len;
 		analog.data = data;
 		analog.mq = SR_MQ_VOLTAGE;

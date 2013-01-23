@@ -191,10 +191,12 @@ static void fancyprint(int unit, int mqflags, float value, GString *out)
 static GString *receive(struct sr_output *o, const struct sr_dev_inst *sdi,
 		const struct sr_datafeed_packet *packet)
 {
-	const struct sr_datafeed_analog *analog;
 	struct context *ctx;
+	const struct sr_datafeed_analog *analog;
+	struct sr_probe *probe;
+	GSList *l;
 	const float *fdata;
-	int i, j;
+	int i, p;
 
 	(void)sdi;
 
@@ -216,11 +218,11 @@ static GString *receive(struct sr_output *o, const struct sr_dev_inst *sdi,
 		analog = packet->payload;
 		fdata = (const float *)analog->data;
 		for (i = 0; i < analog->num_samples; i++) {
-			for (j = 0; j < ctx->num_enabled_probes; j++) {
-				g_string_append_printf(ctx->out, "%s: ",
-						(char *)g_ptr_array_index(ctx->probelist, j));
+			for (l = analog->probes, p = 0; l; l = l->next, p++) {
+				probe = l->data;
+				g_string_append_printf(ctx->out, "%s: ", probe->name);
 				fancyprint(analog->unit, analog->mqflags,
-						fdata[i + j], ctx->out);
+						fdata[i + p], ctx->out);
 			}
 		}
 		break;

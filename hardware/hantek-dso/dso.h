@@ -163,6 +163,7 @@ struct dev_context {
 	void *cb_data;
 	uint64_t limit_frames;
 	uint64_t num_frames;
+	GSList *enabled_probes;
 	/* We can't keep track of an FX2-based device after upgrading
 	 * the firmware (it re-enumerates into a different device address
 	 * after the upgrade) this is like a global lock. No device will open
@@ -210,7 +211,7 @@ SR_PRIV int dso_init(struct dev_context *devc);
 SR_PRIV int dso_get_capturestate(struct dev_context *devc,
 		uint8_t *capturestate, uint32_t *trigger_offset);
 SR_PRIV int dso_capture_start(struct dev_context *devc);
-SR_PRIV int dso_get_channeldata(struct dev_context *devc,
+SR_PRIV int dso_get_channeldata(const struct sr_dev_inst *sdi,
 		libusb_transfer_cb_fn cb);
 
 #endif
