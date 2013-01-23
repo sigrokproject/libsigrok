@@ -589,8 +589,9 @@ SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
 		return SR_ERR;
 	}
 
-	/* Do not translate carriage return to newline on input. */
-	term.c_iflag &= ~(ICRNL);
+	/* Turn off all serial port cooking. */
+	term.c_iflag &= ~(ISTRIP | INLCR | ICRNL);
+	term.c_oflag &= ~(ONLCR | OCRNL | ONOCR | OFILL );
 
 	/* Disable canonical mode, and don't echo input characters. */
 	term.c_lflag &= ~(ICANON | ECHO);
