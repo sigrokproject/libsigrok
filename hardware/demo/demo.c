@@ -226,12 +226,11 @@ static int hw_cleanup(void)
 	return SR_OK;
 }
 
-static int hw_info_get(int info_id, const void **data,
-       const struct sr_dev_inst *sdi)
+static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
 {
 	(void)sdi;
 
-	switch (info_id) {
+	switch (id) {
 	case SR_DI_HWCAPS:
 		*data = hwcaps;
 		break;
@@ -251,32 +250,31 @@ static int hw_info_get(int info_id, const void **data,
 	return SR_OK;
 }
 
-static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
-		const void *value)
+static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 {
 	int ret;
 	const char *stropt;
 
 	(void)sdi;
 
-	if (hwcap == SR_CONF_SAMPLERATE) {
+	if (id == SR_CONF_SAMPLERATE) {
 		cur_samplerate = *(const uint64_t *)value;
 		sr_dbg("%s: setting samplerate to %" PRIu64, __func__,
 		       cur_samplerate);
 		ret = SR_OK;
-	} else if (hwcap == SR_CONF_LIMIT_SAMPLES) {
+	} else if (id == SR_CONF_LIMIT_SAMPLES) {
 		limit_msec = 0;
 		limit_samples = *(const uint64_t *)value;
 		sr_dbg("%s: setting limit_samples to %" PRIu64, __func__,
 		       limit_samples);
 		ret = SR_OK;
-	} else if (hwcap == SR_CONF_LIMIT_MSEC) {
+	} else if (id == SR_CONF_LIMIT_MSEC) {
 		limit_msec = *(const uint64_t *)value;
 		limit_samples = 0;
 		sr_dbg("%s: setting limit_msec to %" PRIu64, __func__,
 		       limit_msec);
 		ret = SR_OK;
-	} else if (hwcap == SR_CONF_PATTERN_MODE) {
+	} else if (id == SR_CONF_PATTERN_MODE) {
 		stropt = value;
 		ret = SR_OK;
 		if (!strcmp(stropt, "sigrok")) {
@@ -490,10 +488,10 @@ SR_PRIV struct sr_dev_driver demo_driver_info = {
 	.scan = hw_scan,
 	.dev_list = hw_dev_list,
 	.dev_clear = clear_instances,
+	.config_get = config_get,
+	.config_set = config_set,
 	.dev_open = hw_dev_open,
 	.dev_close = hw_dev_close,
-	.info_get = hw_info_get,
-	.dev_config_set = hw_dev_config_set,
 	.dev_acquisition_start = hw_dev_acquisition_start,
 	.dev_acquisition_stop = hw_dev_acquisition_stop,
 	.priv = NULL,

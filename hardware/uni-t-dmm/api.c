@@ -186,14 +186,13 @@ static int hw_cleanup(void)
 	return SR_OK;
 }
 
-static int hw_info_get(int info_id, const void **data,
-		       const struct sr_dev_inst *sdi)
+static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
 {
 	(void)sdi;
 
-	sr_spew("Backend requested info_id %d.", info_id);
+	sr_spew("Backend requested info_id %d.", id);
 
-	switch (info_id) {
+	switch (id) {
 	case SR_DI_HWOPTS:
 		*data = hwopts;
 		break;
@@ -221,14 +220,13 @@ static int hw_info_get(int info_id, const void **data,
 	return SR_OK;
 }
 
-static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
-			     const void *value)
+static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 
 	devc = sdi->priv;
 
-	switch (hwcap) {
+	switch (id) {
 	case SR_CONF_LIMIT_MSEC:
 		/* TODO: Not yet implemented. */
 		if (*(const uint64_t *)value == 0) {
@@ -249,7 +247,7 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		       devc->limit_samples);
 		break;
 	default:
-		sr_err("Unknown capability: %d.", hwcap);
+		sr_err("Unknown capability: %d.", id);
 		return SR_ERR;
 		break;
 	}
@@ -317,10 +315,10 @@ SR_PRIV struct sr_dev_driver uni_t_ut61d_driver_info = {
 	.scan = hw_scan,
 	.dev_list = hw_dev_list,
 	.dev_clear = clear_instances,
+	.config_get = config_get,
+	.config_set = config_set,
 	.dev_open = hw_dev_open,
 	.dev_close = hw_dev_close,
-	.info_get = hw_info_get,
-	.dev_config_set = hw_dev_config_set,
 	.dev_acquisition_start = hw_dev_acquisition_start,
 	.dev_acquisition_stop = hw_dev_acquisition_stop,
 	.priv = NULL,
@@ -335,10 +333,10 @@ SR_PRIV struct sr_dev_driver voltcraft_vc820_driver_info = {
 	.scan = hw_scan,
 	.dev_list = hw_dev_list,
 	.dev_clear = clear_instances,
+	.config_get = config_get,
+	.config_set = config_set,
 	.dev_open = hw_dev_open,
 	.dev_close = hw_dev_close,
-	.info_get = hw_info_get,
-	.dev_config_set = hw_dev_config_set,
 	.dev_acquisition_start = hw_dev_acquisition_start,
 	.dev_acquisition_stop = hw_dev_acquisition_stop,
 	.priv = NULL,

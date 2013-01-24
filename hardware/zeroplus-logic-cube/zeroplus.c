@@ -529,12 +529,11 @@ static int hw_cleanup(void)
 	return SR_OK;
 }
 
-static int hw_info_get(int info_id, const void **data,
-       const struct sr_dev_inst *sdi)
+static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 
-	switch (info_id) {
+	switch (id) {
 	case SR_DI_HWCAPS:
 		*data = hwcaps;
 		break;
@@ -624,8 +623,7 @@ static int set_capture_ratio(struct dev_context *devc, uint64_t ratio)
 	return SR_OK;
 }
 
-static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
-			     const void *value)
+static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 
@@ -639,7 +637,7 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		return SR_ERR_ARG;
 	}
 
-	switch (hwcap) {
+	switch (id) {
 	case SR_CONF_SAMPLERATE:
 		return set_samplerate(devc, *(const uint64_t *)value);
 	case SR_CONF_LIMIT_SAMPLES:
@@ -787,10 +785,10 @@ SR_PRIV struct sr_dev_driver zeroplus_logic_cube_driver_info = {
 	.scan = hw_scan,
 	.dev_list = hw_dev_list,
 	.dev_clear = hw_cleanup,
+	.config_get = config_get,
+	.config_set = config_set,
 	.dev_open = hw_dev_open,
 	.dev_close = hw_dev_close,
-	.info_get = hw_info_get,
-	.dev_config_set = hw_dev_config_set,
 	.dev_acquisition_start = hw_dev_acquisition_start,
 	.dev_acquisition_stop = hw_dev_acquisition_stop,
 	.priv = NULL,

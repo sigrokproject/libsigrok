@@ -324,7 +324,7 @@ SR_API int sr_info_get(struct sr_dev_driver *driver, int id,
 	if (driver == NULL || data == NULL)
 		return SR_ERR;
 
-	ret = driver->info_get(id, data, sdi);
+	ret = driver->config_get(id, data, sdi);
 
 	return ret;
 }
@@ -349,7 +349,7 @@ SR_API gboolean sr_driver_hwcap_exists(struct sr_dev_driver *driver, int hwcap)
 		return FALSE;
 	}
 
-	if (driver->info_get(SR_DI_HWCAPS, (const void **)&hwcaps, NULL) != SR_OK)
+	if (driver->config_get(SR_DI_HWCAPS, (const void **)&hwcaps, NULL) != SR_OK)
 		return FALSE;
 
 	for (i = 0; hwcaps[i]; i++) {

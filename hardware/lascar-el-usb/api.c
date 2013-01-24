@@ -213,12 +213,11 @@ static int hw_cleanup(void)
 	return SR_OK;
 }
 
-static int hw_info_get(int info_id, const void **data,
-		const struct sr_dev_inst *sdi)
+static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
 {
 	(void)sdi;
 
-	switch (info_id) {
+	switch (id) {
 	case SR_DI_HWOPTS:
 		*data = hwopts;
 		break;
@@ -232,8 +231,7 @@ static int hw_info_get(int info_id, const void **data,
 	return SR_OK;
 }
 
-static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
-		const void *value)
+static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	int ret;
@@ -249,14 +247,14 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 
 	devc = sdi->priv;
 	ret = SR_OK;
-	switch (hwcap) {
+	switch (id) {
 	case SR_CONF_LIMIT_SAMPLES:
 		devc->limit_samples = *(const uint64_t *)value;
 		sr_dbg("Setting sample limit to %" PRIu64 ".",
 		       devc->limit_samples);
 		break;
 	default:
-		sr_err("Unknown hardware capability: %d.", hwcap);
+		sr_err("Unknown hardware capability: %d.", id);
 		ret = SR_ERR_ARG;
 	}
 
@@ -480,10 +478,10 @@ SR_PRIV struct sr_dev_driver lascar_el_usb_driver_info = {
 	.scan = hw_scan,
 	.dev_list = hw_dev_list,
 	.dev_clear = clear_instances,
+	.config_get = config_get,
+	.config_set = config_set,
 	.dev_open = hw_dev_open,
 	.dev_close = hw_dev_close,
-	.info_get = hw_info_get,
-	.dev_config_set = hw_dev_config_set,
 	.dev_acquisition_start = hw_dev_acquisition_start,
 	.dev_acquisition_stop = hw_dev_acquisition_stop,
 	.priv = NULL,

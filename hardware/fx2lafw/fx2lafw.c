@@ -127,8 +127,7 @@ static const struct sr_samplerates samplerates = {
 SR_PRIV struct sr_dev_driver fx2lafw_driver_info;
 static struct sr_dev_driver *di = &fx2lafw_driver_info;
 static int hw_dev_close(struct sr_dev_inst *sdi);
-static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
-		const void *value);
+static int config_set(int id, const void *value, const struct sr_dev_inst *sdi);
 static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);
 
 /**
@@ -561,8 +560,8 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 
 	if (devc->cur_samplerate == 0) {
 		/* Samplerate hasn't been set; default to the slowest one. */
-		if (hw_dev_config_set(sdi, SR_CONF_SAMPLERATE,
-		    &supported_samplerates[0]) == SR_ERR)
+		if (config_set(SR_CONF_SAMPLERATE, &supported_samplerates[0],
+				sdi) == SR_ERR)
 			return SR_ERR;
 	}
 
@@ -603,12 +602,11 @@ static int hw_cleanup(void)
 	return ret;
 }
 
-static int hw_info_get(int info_id, const void **data,
-		const struct sr_dev_inst *sdi)
+static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 
-	switch (info_id) {
+	switch (id) {
 	case SR_DI_HWCAPS:
 		*data = hwcaps;
 		break;
@@ -632,18 +630,17 @@ static int hw_info_get(int info_id, const void **data,
 	return SR_OK;
 }
 
-static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
-		const void *value)
+static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	int ret;
 
 	devc = sdi->priv;
 
-	if (hwcap == SR_CONF_SAMPLERATE) {
+	if (id == SR_CONF_SAMPLERATE) {
 		devc->cur_samplerate = *(const uint64_t *)value;
 		ret = SR_OK;
-	} else if (hwcap == SR_CONF_LIMIT_SAMPLES) {
+	} else if (id == SR_CONF_LIMIT_SAMPLES) {
 		devc->limit_samples = *(const uint64_t *)value;
 		ret = SR_OK;
 	} else {
@@ -1025,10 +1022,10 @@ SR_PRIV struct sr_dev_driver fx2lafw_driver_info = {
 	.scan = hw_scan,
 	.dev_list = hw_dev_list,
 	.dev_clear = clear_instances,
+	.config_get = config_get,
+	.config_set = config_set,
 	.dev_open = hw_dev_open,
 	.dev_close = hw_dev_close,
-	.info_get = hw_info_get,
-	.dev_config_set = hw_dev_config_set,
 	.dev_acquisition_start = hw_dev_acquisition_start,
 	.dev_acquisition_stop = hw_dev_acquisition_stop,
 	.priv = NULL,

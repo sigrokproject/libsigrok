@@ -146,18 +146,18 @@ SR_API int sr_session_load(const char *filename)
 						/* first device, init the driver */
 						sdi->driver->init(NULL);
 					sr_session_dev_add(sdi);
-					sdi->driver->dev_config_set(sdi, SR_CONF_SESSIONFILE, filename);
-					sdi->driver->dev_config_set(sdi, SR_CONF_CAPTUREFILE, val);
+					sdi->driver->config_set(SR_CONF_SESSIONFILE, filename, sdi);
+					sdi->driver->config_set(SR_CONF_CAPTUREFILE, val, sdi);
 					g_ptr_array_add(capturefiles, val);
 				} else if (!strcmp(keys[j], "samplerate")) {
 					sr_parse_sizestring(val, &tmp_u64);
-					sdi->driver->dev_config_set(sdi, SR_CONF_SAMPLERATE, &tmp_u64);
+					sdi->driver->config_set(SR_CONF_SAMPLERATE, &tmp_u64, sdi);
 				} else if (!strcmp(keys[j], "unitsize")) {
 					tmp_u64 = strtoull(val, NULL, 10);
-					sdi->driver->dev_config_set(sdi, SR_CONF_CAPTURE_UNITSIZE, &tmp_u64);
+					sdi->driver->config_set(SR_CONF_CAPTURE_UNITSIZE, &tmp_u64, sdi);
 				} else if (!strcmp(keys[j], "total probes")) {
 					total_probes = strtoull(val, NULL, 10);
-					sdi->driver->dev_config_set(sdi, SR_CONF_CAPTURE_NUM_PROBES, &total_probes);
+					sdi->driver->config_set(SR_CONF_CAPTURE_NUM_PROBES, &total_probes, sdi);
 					for (p = 0; p < total_probes; p++) {
 						snprintf(probename, SR_MAX_PROBENAME_LEN, "%" PRIu64, p);
 						if (!(probe = sr_probe_new(p, SR_PROBE_LOGIC, TRUE,

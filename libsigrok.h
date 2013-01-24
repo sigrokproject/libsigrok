@@ -595,14 +595,14 @@ struct sr_dev_driver {
 	GSList *(*scan) (GSList *options);
 	GSList *(*dev_list) (void);
 	int (*dev_clear) (void);
+	int (*config_get) (int id, const void **value,
+			const struct sr_dev_inst *sdi);
+	int (*config_set) (int id, const void *value,
+			const struct sr_dev_inst *sdi);
 
 	/* Device-specific */
 	int (*dev_open) (struct sr_dev_inst *sdi);
 	int (*dev_close) (struct sr_dev_inst *sdi);
-	int (*info_get) (int info_id, const void **data,
-			const struct sr_dev_inst *sdi);
-	int (*dev_config_set) (const struct sr_dev_inst *sdi, int hwcap,
-			const void *value);
 	int (*dev_acquisition_start) (const struct sr_dev_inst *sdi,
 			void *cb_data);
 	int (*dev_acquisition_stop) (struct sr_dev_inst *sdi,

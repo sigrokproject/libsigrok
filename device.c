@@ -198,7 +198,7 @@ SR_API gboolean sr_dev_has_hwcap(const struct sr_dev_inst *sdi, int hwcap)
 	if (!sdi || !sdi->driver)
 		return FALSE;
 
-	if (sdi->driver->info_get(SR_DI_HWCAPS,
+	if (sdi->driver->config_get(SR_DI_HWCAPS,
 			(const void **)&hwcaps, NULL) != SR_OK)
 		return FALSE;
 
@@ -334,12 +334,12 @@ SR_API int sr_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 {
 	int ret;
 
-	if (!sdi || !sdi->driver || !sdi->driver->dev_config_set) {
+	if (!sdi || !sdi->driver || !sdi->driver->config_set) {
 		sr_err("Unable to set config option.");
 		return SR_ERR;
 	}
 
-	ret = sdi->driver->dev_config_set(sdi, hwcap, value);
+	ret = sdi->driver->config_set(hwcap, value, sdi);
 
 	return ret;
 }

@@ -250,12 +250,11 @@ static int hw_cleanup(void)
 	return ret;
 }
 
-static int hw_info_get(int info_id, const void **data,
-       const struct sr_dev_inst *sdi)
+static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 
-	switch (info_id) {
+	switch (id) {
 	case SR_DI_HWOPTS:
 		*data = hwopts;
 		break;
@@ -282,8 +281,7 @@ static int hw_info_get(int info_id, const void **data,
 	return SR_OK;
 }
 
-static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
-		const void *value)
+static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	int ret;
@@ -294,7 +292,7 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR;
 
-	switch (hwcap) {
+	switch (id) {
 	case SR_CONF_SAMPLERATE:
 		ret = ols_set_samplerate(sdi, *(const uint64_t *)value,
 					 &samplerates);
@@ -504,10 +502,10 @@ SR_PRIV struct sr_dev_driver ols_driver_info = {
 	.scan = hw_scan,
 	.dev_list = hw_dev_list,
 	.dev_clear = hw_cleanup,
+	.config_get = config_get,
+	.config_set = config_set,
 	.dev_open = hw_dev_open,
 	.dev_close = hw_dev_close,
-	.info_get = hw_info_get,
-	.dev_config_set = hw_dev_config_set,
 	.dev_acquisition_start = hw_dev_acquisition_start,
 	.dev_acquisition_stop = hw_dev_acquisition_stop,
 	.priv = NULL,

@@ -148,12 +148,11 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int hw_info_get(int info_id, const void **data,
-       const struct sr_dev_inst *sdi)
+static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
 {
 	struct session_vdev *vdev;
 
-	switch (info_id) {
+	switch (id) {
 	case SR_DI_HWCAPS:
 		*data = hwcaps;
 		break;
@@ -171,15 +170,14 @@ static int hw_info_get(int info_id, const void **data,
 	return SR_OK;
 }
 
-static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
-		const void *value)
+static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 {
 	struct session_vdev *vdev;
 	const uint64_t *tmp_u64;
 
 	vdev = sdi->priv;
 
-	switch (hwcap) {
+	switch (id) {
 	case SR_CONF_SAMPLERATE:
 		tmp_u64 = value;
 		vdev->samplerate = *tmp_u64;
@@ -202,7 +200,7 @@ static int hw_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		vdev->num_probes = *tmp_u64;
 		break;
 	default:
-		sr_err("Unknown capability: %d.", hwcap);
+		sr_err("Unknown capability: %d.", id);
 		return SR_ERR;
 	}
 
@@ -274,10 +272,10 @@ SR_PRIV struct sr_dev_driver session_driver = {
 	.api_version = 1,
 	.init = hw_init,
 	.cleanup = hw_cleanup,
+	.config_get = config_get,
+	.config_set = config_set,
 	.dev_open = hw_dev_open,
 	.dev_close = NULL,
-	.info_get = hw_info_get,
-	.dev_config_set = hw_dev_config_set,
 	.dev_acquisition_start = hw_dev_acquisition_start,
 	.dev_acquisition_stop = NULL,
 };
