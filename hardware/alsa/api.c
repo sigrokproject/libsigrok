@@ -189,6 +189,30 @@ static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
+static int config_list(int key, const void **data, const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+
+	(void)sdi;
+
+	switch (key) {
+	case SR_CONF_SAMPLERATE:
+		if (!sdi || !sdi->priv)
+			return SR_ERR_ARG;
+		devc = sdi->priv;
+		if (!devc->supp_rates.list) {
+			sr_err("Instance did not contain a samplerate list.");
+			return SR_ERR_ARG;
+		}
+		*data = &devc->supp_rates;
+		break;
+	default:
+		return SR_ERR_ARG;
+	}
+
+	return SR_OK;
+}
+
 static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 				    void *cb_data)
 {
@@ -322,6 +346,7 @@ SR_PRIV struct sr_dev_driver alsa_driver_info = {
 	.dev_clear = clear_instances,
 	.config_get = config_get,
 	.config_set = config_set,
+	.config_list = config_list,
 	.dev_open = hw_dev_open,
 	.dev_close = hw_dev_close,
 	.dev_acquisition_start = hw_dev_acquisition_start,

@@ -843,6 +843,22 @@ static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 	return ret;
 }
 
+static int config_list(int key, const void **data, const struct sr_dev_inst *sdi)
+{
+
+	(void)sdi;
+
+	switch (key) {
+	case SR_CONF_SAMPLERATE:
+		*data = &samplerates;
+		break;
+	default:
+		return SR_ERR_ARG;
+	}
+
+	return SR_OK;
+}
+
 /* Software trigger to determine exact trigger position. */
 static int get_trigger_offset(uint16_t *samples, uint16_t last_sample,
 			      struct sigma_trigger *t)
@@ -1438,6 +1454,7 @@ SR_PRIV struct sr_dev_driver asix_sigma_driver_info = {
 	.dev_clear = clear_instances,
 	.config_get = config_get,
 	.config_set = config_set,
+	.config_list = config_list,
 	.dev_open = hw_dev_open,
 	.dev_close = hw_dev_close,
 	.dev_acquisition_start = hw_dev_acquisition_start,

@@ -365,6 +365,23 @@ static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
+static int config_list(int key, const void **data, const struct sr_dev_inst *sdi)
+{
+
+	(void)sdi;
+
+	switch (key) {
+	case SR_CONF_SAMPLERATE:
+		fill_supported_samplerates_if_needed();
+		*data = &samplerates;
+		break;
+	default:
+		return SR_ERR_ARG;
+	}
+
+	return SR_OK;
+}
+
 static int receive_data(int fd, int revents, void *cb_data)
 {
 	int i, ret;
@@ -514,6 +531,7 @@ SR_PRIV struct sr_dev_driver chronovu_la8_driver_info = {
 	.dev_clear = clear_instances,
 	.config_get = config_get,
 	.config_set = config_set,
+	.config_list = config_list,
 	.dev_open = hw_dev_open,
 	.dev_close = hw_dev_close,
 	.dev_acquisition_start = hw_dev_acquisition_start,
