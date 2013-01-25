@@ -561,8 +561,6 @@ enum {
 	SR_DI_FILTERS,
 	/** Valid volts/div values. */
 	SR_DI_VDIVS,
-	/** Coupling options. */
-	SR_DI_COUPLING,
 };
 
 /*
