@@ -316,7 +316,7 @@ SR_PRIV struct sr_config *sr_config_make(int key, const void *value)
  *         but this is not to be flagged as an error by the caller; merely
  *         as an indication that it's not applicable.
  */
-SR_API int sr_info_get(struct sr_dev_driver *driver, int id,
+SR_API int sr_config_get(struct sr_dev_driver *driver, int id,
 		const void **data, const struct sr_dev_inst *sdi)
 {
 	int ret;
