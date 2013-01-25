@@ -432,9 +432,6 @@ static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
 	case SR_DI_HWCAPS:
 		*data = hwcaps;
 		break;
-	case SR_DI_TIMEBASES:
-		*data = timebases;
-		break;
 	case SR_DI_TRIGGER_SOURCES:
 		*data = trigger_sources;
 		break;
@@ -585,6 +582,9 @@ static int config_list(int key, const void **data, const struct sr_dev_inst *sdi
 		break;
 	case SR_CONF_FILTER:
 		*data = filter_targets;
+		break;
+	case SR_CONF_TIMEBASE:
+		*data = timebases;
 		break;
 	default:
 		return SR_ERR_ARG;
