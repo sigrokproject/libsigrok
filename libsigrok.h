@@ -559,8 +559,6 @@ enum {
 	SR_DI_TRIGGER_SOURCES,
 	/** Supported filter targets. */
 	SR_DI_FILTERS,
-	/** Valid volts/div values. */
-	SR_DI_VDIVS,
 };
 
 /*
