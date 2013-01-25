@@ -128,7 +128,7 @@ static int init(struct sr_output *o)
 	ctx->probelist[ctx->num_enabled_probes] = 0;
 	ctx->unitsize = (ctx->num_enabled_probes + 7) / 8;
 
-	if (sr_dev_has_hwcap(o->sdi, SR_CONF_SAMPLERATE)) {
+	if (sr_dev_has_option(o->sdi, SR_CONF_SAMPLERATE)) {
 		o->sdi->driver->config_get(SR_CONF_SAMPLERATE,
 				(const void **)&samplerate, o->sdi);
 		ctx->samplerate = *samplerate;

@@ -253,7 +253,7 @@ SR_API int sr_session_save(const char *filename, const struct sr_dev_inst *sdi,
 	fprintf(meta, "capturefile = logic-1\n");
 	fprintf(meta, "unitsize = %d\n", unitsize);
 	fprintf(meta, "total probes = %d\n", g_slist_length(sdi->probes));
-	if (sr_dev_has_hwcap(sdi, SR_CONF_SAMPLERATE)) {
+	if (sr_dev_has_option(sdi, SR_CONF_SAMPLERATE)) {
 		if (sr_config_get(sdi->driver, SR_CONF_SAMPLERATE,
 				(const void **)&samplerate, sdi) == SR_OK) {
 			s = sr_samplerate_string(*samplerate);

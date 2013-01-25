@@ -183,27 +183,27 @@ SR_API int sr_dev_trigger_set(const struct sr_dev_inst *sdi, int probenum,
  *            If the device's 'driver' field is NULL (virtual device), this
  *            function will always return FALSE (virtual devices don't have
  *            a hardware capabilities list).
- * @param hwcap The capability that should be checked (whether it's supported
- *              by the specified device).
+ * @param option The option that should be checked for support on the
+ *            specified device.
  *
- * @return TRUE if the device has the specified capability, FALSE otherwise.
- *         FALSE is also returned upon invalid input parameters or other
+ * @return TRUE if the device has the specified option, FALSE otherwise.
+ *         FALSE is also returned on invalid input parameters or other
  *         error conditions.
  */
-SR_API gboolean sr_dev_has_hwcap(const struct sr_dev_inst *sdi, int hwcap)
+SR_API gboolean sr_dev_has_option(const struct sr_dev_inst *sdi, int key)
 {
-	const int *hwcaps;
+	const int *devopts;
 	int i;
 
 	if (!sdi || !sdi->driver)
 		return FALSE;
 
 	if (sdi->driver->config_list(SR_CONF_DEVICE_OPTIONS,
-			(const void **)&hwcaps, NULL) != SR_OK)
+			(const void **)&devopts, NULL) != SR_OK)
 		return FALSE;
 
-	for (i = 0; hwcaps[i]; i++) {
-		if (hwcaps[i] == hwcap)
+	for (i = 0; devopts[i]; i++) {
+		if (devopts[i] == key)
 			return TRUE;
 	}
 
