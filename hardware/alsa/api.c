@@ -151,7 +151,7 @@ static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
 	case SR_DI_HWCAPS:
 		*data = hwcaps;
 		break;
-	case SR_DI_CUR_SAMPLERATE:
+	case SR_CONF_SAMPLERATE:
 		*data = &devc->cur_samplerate;
 		break;
 	default:

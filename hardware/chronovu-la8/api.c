@@ -301,7 +301,7 @@ static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
 		sr_spew("%s: Returning trigger types: %s.", __func__,
 			TRIGGER_TYPES);
 		break;
-	case SR_DI_CUR_SAMPLERATE:
+	case SR_CONF_SAMPLERATE:
 		if (sdi) {
 			devc = sdi->priv;
 			*data = &devc->cur_samplerate;

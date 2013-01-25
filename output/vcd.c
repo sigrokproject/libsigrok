@@ -95,7 +95,7 @@ static int init(struct sr_output *o)
 			PACKAGE, PACKAGE_VERSION);
 
 	if (o->sdi->driver && sr_dev_has_hwcap(o->sdi, SR_CONF_SAMPLERATE)) {
-		o->sdi->driver->config_get(SR_DI_CUR_SAMPLERATE,
+		o->sdi->driver->config_get(SR_CONF_SAMPLERATE,
 				(const void **)&samplerate, o->sdi);
 		ctx->samplerate = *samplerate;
 		if (!((samplerate_s = sr_samplerate_string(ctx->samplerate)))) {

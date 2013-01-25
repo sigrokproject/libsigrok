@@ -451,7 +451,7 @@ static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
 		*data = coupling;
 		break;
 	/* TODO remove this */
-	case SR_DI_CUR_SAMPLERATE:
+	case SR_CONF_SAMPLERATE:
 		*data = &tmp;
 		break;
 	default:

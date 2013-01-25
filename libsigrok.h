@@ -553,8 +553,6 @@ enum {
 	SR_DI_HWCAPS,
 	/** Types of logic trigger supported, out of "01crf" (char *). */
 	SR_DI_TRIGGER_TYPES,
-	/** The currently set samplerate in Hz (uint64_t). */
-	SR_DI_CUR_SAMPLERATE,
 	/** Supported patterns (in pattern generator mode). */
 	SR_DI_PATTERNS,
 	/** Supported buffer sizes. */
