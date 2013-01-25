@@ -550,17 +550,6 @@ enum {
 };
 
 /*
- * TODO: This sucks, you just kinda have to "know" the returned type.
- * TODO: Need a DI to return the number of trigger stages supported.
- */
-
-/** Device info IDs. */
-enum {
-	/** A list of options supported by the driver. */
-	SR_DI_HWOPTS = 10000,
-};
-
-/*
  * A device supports either a range of samplerates with steps of a given
  * granularity, or is limited to a set of defined samplerates. Use either
  * step or list, but not both.

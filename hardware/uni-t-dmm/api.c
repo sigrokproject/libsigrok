@@ -193,9 +193,6 @@ static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
 	sr_spew("Backend requested info_id %d.", id);
 
 	switch (id) {
-	case SR_DI_HWOPTS:
-		*data = hwopts;
-		break;
 	case SR_CONF_SAMPLERATE:
 		/* TODO: Get rid of this. */
 		*data = NULL;
@@ -251,6 +248,9 @@ static int config_list(int key, const void **data, const struct sr_dev_inst *sdi
 	(void)sdi;
 
 	switch (key) {
+	case SR_CONF_SCAN_OPTIONS:
+		*data = hwopts;
+		break;
 	case SR_CONF_DEVICE_OPTIONS:
 		*data = hwcaps;
 		break;
