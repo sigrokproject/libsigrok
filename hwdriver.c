@@ -329,6 +329,22 @@ SR_API int sr_info_get(struct sr_dev_driver *driver, int id,
 	return ret;
 }
 
+SR_API int sr_config_list(struct sr_dev_driver *driver, int id,
+		const void **data, const struct sr_dev_inst *sdi)
+{
+	int ret;
+
+	if (driver == NULL || data == NULL)
+		return SR_ERR;
+
+	if (!driver->config_list)
+		return SR_ERR;
+
+	ret = driver->config_list(id, data, sdi);
+
+	return ret;
+}
+
 /**
  * Find out if a hardware driver has a specific capability.
  *

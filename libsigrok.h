@@ -599,6 +599,8 @@ struct sr_dev_driver {
 			const struct sr_dev_inst *sdi);
 	int (*config_set) (int id, const void *value,
 			const struct sr_dev_inst *sdi);
+	int (*config_list) (int info_id, const void **data,
+			const struct sr_dev_inst *sdi);
 
 	/* Device-specific */
 	int (*dev_open) (struct sr_dev_inst *sdi);
