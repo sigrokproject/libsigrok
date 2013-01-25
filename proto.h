@@ -74,7 +74,6 @@ SR_API int sr_config_get(struct sr_dev_driver *driver, int id,
 		const void **data, const struct sr_dev_inst *sdi);
 SR_API int sr_config_list(struct sr_dev_driver *driver, int id,
 		const void **data, const struct sr_dev_inst *sdi);
-SR_API gboolean sr_driver_hwcap_exists(struct sr_dev_driver *driver, int hwcap);
 SR_API const struct sr_config_info *sr_config_info_get(int key);
 SR_API const struct sr_config_info *sr_config_info_name_get(const char *optname);
 

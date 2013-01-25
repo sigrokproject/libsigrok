@@ -346,37 +346,6 @@ SR_API int sr_config_list(struct sr_dev_driver *driver, int id,
 }
 
 /**
- * Find out if a hardware driver has a specific capability.
- *
- * @param driver The hardware driver in which to search for the capability.
- * @param hwcap The capability to find in the list.
- *
- * @return TRUE if the specified capability exists in the specified driver,
- *         FALSE otherwise. Also, if 'driver' is NULL or the respective driver
- *         returns an invalid capability list, FALSE is returned.
- */
-SR_API gboolean sr_driver_hwcap_exists(struct sr_dev_driver *driver, int hwcap)
-{
-	const int *hwcaps;
-	int i;
-
-	if (!driver) {
-		sr_err("hwdriver: %s: driver was NULL", __func__);
-		return FALSE;
-	}
-
-	if (driver->config_list(SR_CONF_DEVICE_OPTIONS, (const void **)&hwcaps, NULL) != SR_OK)
-		return FALSE;
-
-	for (i = 0; hwcaps[i]; i++) {
-		if (hwcaps[i] == hwcap)
-			return TRUE;
-	}
-
-	return FALSE;
-}
-
-/**
  * Get information about an sr_config key.
  *
  * @param opt The sr_config key.
