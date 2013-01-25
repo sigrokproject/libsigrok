@@ -186,27 +186,6 @@ static int hw_cleanup(void)
 	return SR_OK;
 }
 
-static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
-{
-	(void)sdi;
-
-	sr_spew("Backend requested info_id %d.", id);
-
-	switch (id) {
-	case SR_CONF_SAMPLERATE:
-		/* TODO: Get rid of this. */
-		*data = NULL;
-		sr_spew("%s: Returning current samplerate.", __func__);
-		return SR_ERR_ARG;
-		break;
-	default:
-		return SR_ERR_ARG;
-		break;
-	}
-
-	return SR_OK;
-}
-
 static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
@@ -321,7 +300,6 @@ SR_PRIV struct sr_dev_driver uni_t_ut61d_driver_info = {
 	.scan = hw_scan,
 	.dev_list = hw_dev_list,
 	.dev_clear = clear_instances,
-	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,
 	.dev_open = hw_dev_open,
@@ -340,7 +318,6 @@ SR_PRIV struct sr_dev_driver voltcraft_vc820_driver_info = {
 	.scan = hw_scan,
 	.dev_list = hw_dev_list,
 	.dev_clear = clear_instances,
-	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,
 	.dev_open = hw_dev_open,

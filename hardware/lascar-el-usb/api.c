@@ -213,18 +213,6 @@ static int hw_cleanup(void)
 	return SR_OK;
 }
 
-static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
-{
-	(void)sdi;
-
-	switch (id) {
-	default:
-		return SR_ERR_ARG;
-	}
-
-	return SR_OK;
-}
-
 static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
@@ -491,7 +479,6 @@ SR_PRIV struct sr_dev_driver lascar_el_usb_driver_info = {
 	.scan = hw_scan,
 	.dev_list = hw_dev_list,
 	.dev_clear = clear_instances,
-	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,
 	.dev_open = hw_dev_open,

@@ -173,14 +173,6 @@ static int sanity_check_all_drivers(void)
 			sr_err("No dev_close in driver %d ('%s').", i, d);
 			errors++;
 		}
-		if (!drivers[i]->config_get) {
-			sr_err("No config_get in driver %d ('%s').", i, d);
-			errors++;
-		}
-		if (!drivers[i]->config_set) {
-			sr_err("No config_set in driver %d ('%s').", i, d);
-			errors++;
-		}
 		if (!drivers[i]->dev_acquisition_start) {
 			sr_err("No dev_acquisition_start in driver %d ('%s').",
 			       i, d);
