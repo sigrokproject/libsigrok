@@ -553,8 +553,6 @@ enum {
 	SR_DI_HWCAPS,
 	/** Types of logic trigger supported, out of "01crf" (char *). */
 	SR_DI_TRIGGER_TYPES,
-	/** Supported buffer sizes. */
-	SR_DI_BUFFERSIZES,
 	/** Supported time bases. */
 	SR_DI_TIMEBASES,
 	/** Supported trigger sources. */

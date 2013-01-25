@@ -432,9 +432,6 @@ static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
 	case SR_DI_HWCAPS:
 		*data = hwcaps;
 		break;
-	case SR_DI_BUFFERSIZES:
-		*data = buffersizes;
-		break;
 	case SR_DI_TIMEBASES:
 		*data = timebases;
 		break;
@@ -586,6 +583,9 @@ static int config_list(int key, const void **data, const struct sr_dev_inst *sdi
 	(void)sdi;
 
 	switch (key) {
+	case SR_CONF_BUFFERSIZE:
+		*data = buffersizes;
+		break;
 	default:
 		return SR_ERR_ARG;
 	}
