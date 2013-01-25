@@ -153,9 +153,6 @@ static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
 	struct session_vdev *vdev;
 
 	switch (id) {
-	case SR_DI_HWCAPS:
-		*data = hwcaps;
-		break;
 	case SR_CONF_SAMPLERATE:
 		if (sdi) {
 			vdev = sdi->priv;
@@ -202,6 +199,22 @@ static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 	default:
 		sr_err("Unknown capability: %d.", id);
 		return SR_ERR;
+	}
+
+	return SR_OK;
+}
+
+static int config_list(int key, const void **data, const struct sr_dev_inst *sdi)
+{
+
+	(void)sdi;
+
+	switch (key) {
+	case SR_CONF_DEVICE_OPTIONS:
+		*data = hwcaps;
+		break;
+	default:
+		return SR_ERR_ARG;
 	}
 
 	return SR_OK;
@@ -274,6 +287,7 @@ SR_PRIV struct sr_dev_driver session_driver = {
 	.cleanup = hw_cleanup,
 	.config_get = config_get,
 	.config_set = config_set,
+	.config_list = config_list,
 	.dev_open = hw_dev_open,
 	.dev_close = NULL,
 	.dev_acquisition_start = hw_dev_acquisition_start,

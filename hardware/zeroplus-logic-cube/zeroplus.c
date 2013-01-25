@@ -534,9 +534,6 @@ static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 
 	switch (id) {
-	case SR_DI_HWCAPS:
-		*data = hwcaps;
-		break;
 	case SR_CONF_SAMPLERATE:
 		if (sdi) {
 			devc = sdi->priv;
@@ -647,6 +644,9 @@ static int config_list(int key, const void **data, const struct sr_dev_inst *sdi
 	(void)sdi;
 
 	switch (key) {
+	case SR_CONF_DEVICE_OPTIONS:
+		*data = hwcaps;
+		break;
 	case SR_CONF_SAMPLERATE:
 		*data = &samplerates;
 		break;

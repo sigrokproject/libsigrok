@@ -429,9 +429,6 @@ static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
 	(void)sdi;
 
 	switch (id) {
-	case SR_DI_HWCAPS:
-		*data = hwcaps;
-		break;
 	/* TODO remove this */
 	case SR_CONF_SAMPLERATE:
 		*data = &tmp;
@@ -568,6 +565,9 @@ static int config_list(int key, const void **data, const struct sr_dev_inst *sdi
 	(void)sdi;
 
 	switch (key) {
+	case SR_CONF_DEVICE_OPTIONS:
+		*data = hwcaps;
+		break;
 	case SR_CONF_BUFFERSIZE:
 		*data = buffersizes;
 		break;

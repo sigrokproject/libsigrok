@@ -365,7 +365,7 @@ SR_API gboolean sr_driver_hwcap_exists(struct sr_dev_driver *driver, int hwcap)
 		return FALSE;
 	}
 
-	if (driver->config_get(SR_DI_HWCAPS, (const void **)&hwcaps, NULL) != SR_OK)
+	if (driver->config_list(SR_CONF_DEVICE_OPTIONS, (const void **)&hwcaps, NULL) != SR_OK)
 		return FALSE;
 
 	for (i = 0; hwcaps[i]; i++) {

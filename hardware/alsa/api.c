@@ -144,14 +144,9 @@ static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 
-	if (id != SR_DI_HWCAPS) /* For SR_DI_HWCAPS sdi will be NULL. */
-		devc = sdi->priv;
-
 	switch (id) {
-	case SR_DI_HWCAPS:
-		*data = hwcaps;
-		break;
 	case SR_CONF_SAMPLERATE:
+		devc = sdi->priv;
 		*data = &devc->cur_samplerate;
 		break;
 	default:
@@ -189,6 +184,9 @@ static int config_list(int key, const void **data, const struct sr_dev_inst *sdi
 	(void)sdi;
 
 	switch (key) {
+	case SR_CONF_DEVICE_OPTIONS:
+		*data = hwcaps;
+		break;
 	case SR_CONF_SAMPLERATE:
 		if (!sdi || !sdi->priv)
 			return SR_ERR_ARG;

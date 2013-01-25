@@ -388,7 +388,7 @@ enum {
 	/** The device can measure humidity. */
 	SR_CONF_HYGROMETER,
 
-	/*--- Driver options ------------------------------------------------*/
+	/*--- Driver scan options -------------------------------------------*/
 
 	/**
 	 * Specification on how to connect to a device.
@@ -465,6 +465,12 @@ enum {
 	SR_CONF_TRIGGER_TYPE,
 
 	/*--- Special stuff -------------------------------------------------*/
+
+	/** Scan options supported by the driver. */
+	SR_CONF_SCAN_OPTIONS,
+
+	/** Device options for a particular device. */
+	SR_CONF_DEVICE_OPTIONS,
 
 	/** Session filename. */
 	SR_CONF_SESSIONFILE = 40000,
@@ -552,8 +558,6 @@ enum {
 enum {
 	/** A list of options supported by the driver. */
 	SR_DI_HWOPTS = 10000,
-	/** A list of capabilities supported by the device. */
-	SR_DI_HWCAPS,
 };
 
 /*

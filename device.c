@@ -198,7 +198,7 @@ SR_API gboolean sr_dev_has_hwcap(const struct sr_dev_inst *sdi, int hwcap)
 	if (!sdi || !sdi->driver)
 		return FALSE;
 
-	if (sdi->driver->config_get(SR_DI_HWCAPS,
+	if (sdi->driver->config_list(SR_CONF_DEVICE_OPTIONS,
 			(const void **)&hwcaps, NULL) != SR_OK)
 		return FALSE;
 
