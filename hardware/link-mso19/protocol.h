@@ -43,7 +43,7 @@
 
 #define NUM_PROBES		8
 #define NUM_TRIGGER_STAGES	4
-#define TRIGGER_TYPES		"01"	//the first r/f is used for the whole group
+#define TRIGGER_TYPE 		"01"	//the first r/f is used for the whole group
 #define SERIALCOMM		"460800/8n1/flow=2"
 #define SERIALCONN		"/dev/ttyUSB0"
 #define CLOCK_RATE		SR_MHZ(100)

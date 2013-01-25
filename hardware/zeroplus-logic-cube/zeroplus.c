@@ -38,7 +38,7 @@
 #define USB_INTERFACE			0
 #define USB_CONFIGURATION		1
 #define NUM_TRIGGER_STAGES		4
-#define TRIGGER_TYPES			"01"
+#define TRIGGER_TYPE 			"01"
 
 #define PACKET_SIZE			2048	/* ?? */
 
@@ -537,10 +537,6 @@ static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
 	case SR_DI_HWCAPS:
 		*data = hwcaps;
 		break;
-	case SR_DI_TRIGGER_TYPES:
-		*data = TRIGGER_TYPES;
-		sr_spew("zp: %s: Returning triggertypes: %s.", __func__, TRIGGER_TYPES);
-		break;
 	case SR_CONF_SAMPLERATE:
 		if (sdi) {
 			devc = sdi->priv;
@@ -653,6 +649,9 @@ static int config_list(int key, const void **data, const struct sr_dev_inst *sdi
 	switch (key) {
 	case SR_CONF_SAMPLERATE:
 		*data = &samplerates;
+		break;
+	case SR_CONF_TRIGGER_TYPE:
+		*data = TRIGGER_TYPE;
 		break;
 	default:
 		return SR_ERR_ARG;

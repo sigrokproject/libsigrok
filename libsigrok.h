@@ -461,6 +461,9 @@ enum {
 	/** Coupling. */
 	SR_CONF_COUPLING,
 
+	/** Trigger types.  */
+	SR_CONF_TRIGGER_TYPE,
+
 	/*--- Special stuff -------------------------------------------------*/
 
 	/** Session filename. */
@@ -551,8 +554,6 @@ enum {
 	SR_DI_HWOPTS = 10000,
 	/** A list of capabilities supported by the device. */
 	SR_DI_HWCAPS,
-	/** Types of logic trigger supported, out of "01crf" (char *). */
-	SR_DI_TRIGGER_TYPES,
 };
 
 /*

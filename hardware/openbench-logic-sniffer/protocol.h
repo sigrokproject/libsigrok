@@ -37,7 +37,7 @@
 
 #define NUM_PROBES             32
 #define NUM_TRIGGER_STAGES     4
-#define TRIGGER_TYPES          "01"
+#define TRIGGER_TYPE           "01"
 #define SERIAL_SPEED           B115200
 #define CLOCK_RATE             SR_MHZ(100)
 #define MIN_NUM_SAMPLES        4

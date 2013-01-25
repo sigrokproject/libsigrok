@@ -261,9 +261,6 @@ static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
 	case SR_DI_HWCAPS:
 		*data = hwcaps;
 		break;
-	case SR_DI_TRIGGER_TYPES:
-		*data = (char *)TRIGGER_TYPES;
-		break;
 	case SR_CONF_SAMPLERATE:
 		if (sdi) {
 			devc = sdi->priv;
@@ -334,6 +331,9 @@ static int config_list(int key, const void **data, const struct sr_dev_inst *sdi
 	switch (key) {
 	case SR_CONF_SAMPLERATE:
 		*data = &samplerates;
+		break;
+	case SR_CONF_TRIGGER_TYPE:
+		*data = (char *)TRIGGER_TYPE;
 		break;
 	default:
 		return SR_ERR_ARG;

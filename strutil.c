@@ -230,7 +230,7 @@ SR_API char **sr_parse_triggerstring(const struct sr_dev_inst *sdi,
 		return NULL;
 	}
 
-	if (sdi->driver->config_get(SR_DI_TRIGGER_TYPES,
+	if (sdi->driver->config_list(SR_CONF_TRIGGER_TYPE,
 			(const void **)&trigger_types, sdi) != SR_OK) {
 		sr_err("%s: Device doesn't support any triggers.", __func__);
 		return NULL;
