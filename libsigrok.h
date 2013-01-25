@@ -557,8 +557,6 @@ enum {
 	SR_DI_TIMEBASES,
 	/** Supported trigger sources. */
 	SR_DI_TRIGGER_SOURCES,
-	/** Supported filter targets. */
-	SR_DI_FILTERS,
 };
 
 /*

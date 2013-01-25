@@ -438,9 +438,6 @@ static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
 	case SR_DI_TRIGGER_SOURCES:
 		*data = trigger_sources;
 		break;
-	case SR_DI_FILTERS:
-		*data = filter_targets;
-		break;
 	/* TODO remove this */
 	case SR_CONF_SAMPLERATE:
 		*data = &tmp;
@@ -585,6 +582,9 @@ static int config_list(int key, const void **data, const struct sr_dev_inst *sdi
 		break;
 	case SR_CONF_VDIV:
 		*data = vdivs;
+		break;
+	case SR_CONF_FILTER:
+		*data = filter_targets;
 		break;
 	default:
 		return SR_ERR_ARG;
