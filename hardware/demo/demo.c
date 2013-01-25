@@ -237,9 +237,6 @@ static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
 	case SR_CONF_SAMPLERATE:
 		*data = &cur_samplerate;
 		break;
-	case SR_DI_PATTERNS:
-		*data = &pattern_strings;
-		break;
 	default:
 		return SR_ERR_ARG;
 	}
@@ -303,6 +300,9 @@ static int config_list(int key, const void **data, const struct sr_dev_inst *sdi
 	switch (key) {
 	case SR_CONF_SAMPLERATE:
 		*data = &samplerates;
+		break;
+	case SR_CONF_PATTERN_MODE:
+		*data = &pattern_strings;
 		break;
 	default:
 		return SR_ERR_ARG;
