@@ -52,7 +52,7 @@ SR_API int sr_dev_probe_enable(const struct sr_dev_inst *sdi, int probenum,
 SR_API int sr_dev_trigger_set(const struct sr_dev_inst *sdi, int probenum,
 		const char *trigger);
 SR_API gboolean sr_dev_has_hwcap(const struct sr_dev_inst *sdi, int hwcap);
-SR_API int sr_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
+SR_API int sr_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		const void *value);
 SR_API GSList *sr_dev_inst_list(const struct sr_dev_driver *driver);
 SR_API int sr_dev_inst_clear(const struct sr_dev_driver *driver);

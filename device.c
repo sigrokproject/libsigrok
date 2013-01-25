@@ -329,7 +329,7 @@ SR_PRIV void sr_serial_dev_inst_free(struct sr_serial_dev_inst *serial)
 
 }
 
-SR_API int sr_dev_config_set(const struct sr_dev_inst *sdi, int hwcap,
+SR_API int sr_config_set(const struct sr_dev_inst *sdi, int hwcap,
 		const void *value)
 {
 	int ret;
