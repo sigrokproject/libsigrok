@@ -286,6 +286,7 @@ struct sr_datafeed_logic {
 };
 
 struct sr_datafeed_analog {
+	/** The probes for which data is included in this packet. */
 	GSList *probes;
 	int num_samples;
 	/** Measured quantity (voltage, current, temperature, and so on). */
@@ -294,7 +295,8 @@ struct sr_datafeed_analog {
 	int unit;
 	/** Bitmap with extra information about the MQ. */
 	uint64_t mqflags;
-	/** The analog value. */
+	/** The analog value(s). The data is interleaved according to
+	 * the probes list. */
 	float *data;
 };
 
@@ -467,23 +469,20 @@ enum {
 	/*--- Special stuff -------------------------------------------------*/
 
 	/** Scan options supported by the driver. */
-	SR_CONF_SCAN_OPTIONS,
+	SR_CONF_SCAN_OPTIONS = 40000,
 
 	/** Device options for a particular device. */
 	SR_CONF_DEVICE_OPTIONS,
 
 	/** Session filename. */
-	SR_CONF_SESSIONFILE = 40000,
+	SR_CONF_SESSIONFILE,
 
-	/* TODO: Better description. */
 	/** The device supports specifying a capturefile to inject. */
 	SR_CONF_CAPTUREFILE,
 
-	/* TODO: Better description. */
 	/** The device supports specifying the capturefile unit size. */
 	SR_CONF_CAPTURE_UNITSIZE,
 
-	/* TODO: Better description. */
 	/** The device supports setting the number of probes. */
 	SR_CONF_CAPTURE_NUM_PROBES,
 
