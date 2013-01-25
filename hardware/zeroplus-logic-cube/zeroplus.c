@@ -537,10 +537,6 @@ static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
 	case SR_DI_HWCAPS:
 		*data = hwcaps;
 		break;
-	case SR_DI_SAMPLERATES:
-		*data = &samplerates;
-		sr_spew("zp: %s: Returning samplerates.", __func__);
-		break;
 	case SR_DI_TRIGGER_TYPES:
 		*data = TRIGGER_TYPES;
 		sr_spew("zp: %s: Returning triggertypes: %s.", __func__, TRIGGER_TYPES);

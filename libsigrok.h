@@ -551,8 +551,6 @@ enum {
 	SR_DI_HWOPTS = 10000,
 	/** A list of capabilities supported by the device. */
 	SR_DI_HWCAPS,
-	/** Samplerates supported by this device (struct sr_samplerates). */
-	SR_DI_SAMPLERATES,
 	/** Types of logic trigger supported, out of "01crf" (char *). */
 	SR_DI_TRIGGER_TYPES,
 	/** The currently set samplerate in Hz (uint64_t). */

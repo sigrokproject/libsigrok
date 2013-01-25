@@ -200,12 +200,6 @@ static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
 		*data = hwcaps;
 		sr_spew("%s: Returning hwcaps.", __func__);
 		break;
-	case SR_DI_SAMPLERATES:
-		/* TODO: Get rid of this. */
-		*data = NULL;
-		sr_spew("%s: Returning samplerates.", __func__);
-		return SR_ERR_ARG;
-		break;
 	case SR_DI_CUR_SAMPLERATE:
 		/* TODO: Get rid of this. */
 		*data = NULL;

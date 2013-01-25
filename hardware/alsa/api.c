@@ -154,13 +154,6 @@ static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
 	case SR_DI_CUR_SAMPLERATE:
 		*data = &devc->cur_samplerate;
 		break;
-	case SR_DI_SAMPLERATES:
-		if (!devc->supp_rates.list) {
-			sr_err("Instance did not contain a samplerate list.");
-			return SR_ERR_ARG;
-		}
-		*data = &devc->supp_rates;
-		break;
 	default:
 		return SR_ERR_ARG;
 	}
