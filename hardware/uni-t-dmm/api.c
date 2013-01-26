@@ -1,7 +1,7 @@
 /*
  * This file is part of the libsigrok project.
  *
- * Copyright (C) 2012 Uwe Hermann <uwe@hermann-uwe.de>
+ * Copyright (C) 2012-2013 Uwe Hermann <uwe@hermann-uwe.de>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,14 +42,14 @@ SR_PRIV struct sr_dev_driver voltcraft_vc820_driver_info;
 
 SR_PRIV struct dmm_info udmms[] = {
 	{
-		"UNI-T", "UT61D", 19230 /* TODO */,
+		"UNI-T", "UT61D", 19230,
 		FS9922_PACKET_SIZE, NULL,
 		sr_fs9922_packet_valid, sr_fs9922_parse,
 		NULL,
 		&uni_t_ut61d_driver_info, receive_data_UNI_T_UT61D,
 	},
 	{
-		"Voltcraft VC-820", "VC-820", 19200 /* TODO */,
+		"Voltcraft", "VC-820", 2400,
 		FS9721_PACKET_SIZE, NULL,
 		sr_fs9721_packet_valid, sr_fs9721_parse,
 		NULL,
@@ -70,7 +70,7 @@ static int hw_init(struct sr_context *sr_ctx, int dmm)
 {
 	sr_dbg("Selected '%s' subdriver.", udmms[dmm].di->name);
 
-	return std_hw_init(sr_ctx, uddms[dmm].di, DRIVER_LOG_DOMAIN);
+	return std_hw_init(sr_ctx, udmms[dmm].di, DRIVER_LOG_DOMAIN);
 }
 
 static GSList *hw_scan(GSList *options, int dmm)
@@ -83,8 +83,6 @@ static GSList *hw_scan(GSList *options, int dmm)
 	struct sr_config *src;
 	struct sr_probe *probe;
 	const char *conn;
-
-	(void)options;
 
 	drvc = udmms[dmm].di->priv;
 
@@ -117,6 +115,8 @@ static GSList *hw_scan(GSList *options, int dmm)
 			return NULL;
 		}
 
+		devc->first_run = TRUE;
+
 		if (!(sdi = sr_dev_inst_new(0, SR_ST_INACTIVE,
 				udmms[dmm].vendor, udmms[dmm].device, NULL))) {
 			sr_err("sr_dev_inst_new returned NULL.");
@@ -139,22 +139,22 @@ static GSList *hw_scan(GSList *options, int dmm)
 
 static GSList *hw_dev_list(int dmm)
 {
-	return ((struct drv_context *)(udmms[dmm]->priv))->instances;
+	return ((struct drv_context *)(udmms[dmm].di->priv))->instances;
 }
 
 static int hw_dev_open(struct sr_dev_inst *sdi, int dmm)
 {
 	struct drv_context *drvc;
 	struct dev_context *devc;
-    int ret;
+	int ret;
 
 	drvc = udmms[dmm].di->priv;
 	devc = sdi->priv;
 
-    if ((ret = sr_usb_open(drvc->sr_ctx->libusb_ctx, devc->usb)) == SR_OK)
-        sdi->status = SR_ST_ACTIVE;
+	if ((ret = sr_usb_open(drvc->sr_ctx->libusb_ctx, devc->usb)) == SR_OK)
+		sdi->status = SR_ST_ACTIVE;
 
-    return ret;
+	return ret;
 }
 
 static int hw_dev_close(struct sr_dev_inst *sdi)
@@ -163,7 +163,7 @@ static int hw_dev_close(struct sr_dev_inst *sdi)
 
 	/* TODO */
 
-    sdi->status = SR_ST_INACTIVE;
+	sdi->status = SR_ST_INACTIVE;
 
 	return SR_OK;
 }
@@ -210,7 +210,6 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 
 static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 {
-
 	(void)sdi;
 
 	switch (key) {

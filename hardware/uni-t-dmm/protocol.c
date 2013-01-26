@@ -1,7 +1,7 @@
 /*
  * This file is part of the libsigrok project.
  *
- * Copyright (C) 2012 Uwe Hermann <uwe@hermann-uwe.de>
+ * Copyright (C) 2012-2013 Uwe Hermann <uwe@hermann-uwe.de>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -70,9 +70,9 @@
 static void decode_packet(struct sr_dev_inst *sdi, int dmm, const uint8_t *buf,
 			  void *info)
 {
+	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog analog;
-	/// struct fs9721_info info;
 	float floatval;
 	int ret;
 
@@ -80,9 +80,9 @@ static void decode_packet(struct sr_dev_inst *sdi, int dmm, const uint8_t *buf,
 	memset(&analog, 0, sizeof(struct sr_datafeed_analog));
 
 	/* Parse the protocol packet. */
-	ret = udmms[dmm].packet_parse(buf, &floatval, &analog, &info);
+	ret = udmms[dmm].packet_parse(buf, &floatval, &analog, info);
 	if (ret != SR_OK) {
-		sr_err("Invalid DMM packet, ignoring.");
+		sr_dbg("Invalid DMM packet, ignoring.");
 		return;
 	}
 
@@ -128,7 +128,7 @@ static int hid_chip_init(struct dev_context *devc, uint16_t baudrate)
 	}
 	sr_dbg("Successfully claimed interface 0.");
 
-	/* Baudrate example: 19230 baud -> HEX(19230) == 0x4b1e */
+	/* Set data for the HID feature report (e.g. baudrate). */
 	buf[0] = baudrate & 0xff;        /* Baudrate, LSB */
 	buf[1] = (baudrate >> 8) & 0xff; /* Baudrate, MSB */
 	buf[2] = 0x00;                   /* Unknown/unused (?) */
@@ -182,33 +182,23 @@ static void log_dmm_packet(const uint8_t *buf)
 	       buf[7], buf[8], buf[9], buf[10], buf[11], buf[12], buf[13]);
 }
 
-static int receive_data(int fd, int revents, int dmm, void *info, void *cb_data)
+static int get_and_handle_data(struct sr_dev_inst *sdi, int dmm, void *info)
 {
-	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
+	uint8_t buf[CHUNK_SIZE], *pbuf;
 	int i, ret, len, num_databytes_in_chunk;
-	uint8_t buf[CHUNK_SIZE];
-	uint8_t *pbuf;
-	static gboolean first_run = TRUE, synced_on_first_packet = FALSE;
-	static uint64_t data_byte_counter = 0;
 
-	(void)fd;
-	(void)revents;
-
-	sdi = cb_data;
 	devc = sdi->priv;
-
 	pbuf = devc->protocol_buf;
 
 	/* On the first run, we need to init the HID chip. */
-	if (first_run) {
-		/* Note: The baudrate is DMM-specific (UT61D: 19230). */
+	if (devc->first_run) {
 		if ((ret = hid_chip_init(devc, udmms[dmm].baudrate)) != SR_OK) {
 			sr_err("HID chip init failed: %d.", ret);
-			return FALSE;
+			return SR_ERR;
 		}
-		memset(pbuf, 0x00, NUM_DATA_BYTES);
-		first_run = FALSE;
+		memset(pbuf, 0x00, DMM_BUFSIZE);
+		devc->first_run = FALSE;
 	}
 
 	memset(&buf, 0x00, CHUNK_SIZE);
@@ -224,45 +214,61 @@ static int receive_data(int fd, int revents, int dmm, void *info, void *cb_data)
 
 	if (ret < 0) {
 		sr_err("USB receive error: %s.", libusb_error_name(ret));
-		return FALSE;
+		return SR_ERR;
 	}
 
 	if (len != CHUNK_SIZE) {
 		sr_err("Short packet: received %d/%d bytes.", len, CHUNK_SIZE);
 		/* TODO: Print the bytes? */
-		return FALSE;
+		return SR_ERR;
 	}
 
 	log_8byte_chunk((const uint8_t *)&buf);
 
-	if (buf[0] != 0xf0) {
-		/* First time: Synchronize to the start of a packet. */
-		if (!synced_on_first_packet) {
-			if (!udmms[dmm].packet_valid(buf))
-				return TRUE;
-			synced_on_first_packet = TRUE;
-			sr_spew("Successfully synchronized on first packet.");
-		}
+	/* If there are no data bytes just return (without error). */
+	if (buf[0] == 0xf0)
+		return SR_OK;
 
-		num_databytes_in_chunk = buf[0] & 0x0f;
-		for (i = 0; i < num_databytes_in_chunk; i++)
-			pbuf[data_byte_counter++] = buf[1 + i];
+	devc->bufoffset = 0;
 
-		/* TODO: Handle > 14 bytes in pbuf? Can this happen? */
-		if (data_byte_counter == NUM_DATA_BYTES) {
-			log_dmm_packet(pbuf);
-			data_byte_counter = 0;
+	/* Append the 1-7 data bytes of this chunk to pbuf. */
+	num_databytes_in_chunk = buf[0] & 0x0f;
+	for (i = 0; i < num_databytes_in_chunk; i++)
+		pbuf[devc->buflen++] = buf[1 + i];
 
-			if (!udmms[dmm].packet_valid(pbuf)) {
-				sr_err("Invalid packet.");
-				return TRUE;
-			}
-
-			decode_packet(sdi, dmm, pbuf, info);
-
-			memset(pbuf, 0x00, NUM_DATA_BYTES);
+	/* Now look for packets in that data. */
+	while ((devc->buflen - devc->bufoffset) >= udmms[dmm].packet_size) {
+		if (udmms[dmm].packet_valid(pbuf + devc->bufoffset)) {
+			log_dmm_packet(pbuf + devc->bufoffset);
+			decode_packet(sdi, dmm, pbuf + devc->bufoffset, info);
+			devc->bufoffset += udmms[dmm].packet_size;
+		} else {
+			devc->bufoffset++;
 		}
 	}
+
+	/* Move remaining bytes to beginning of buffer. */
+	for (i = 0; i < devc->buflen - devc->bufoffset; i++)
+		pbuf[i] = pbuf[devc->bufoffset + i];
+	devc->buflen -= devc->bufoffset;
+
+	return SR_OK;
+}
+
+static int receive_data(int fd, int revents, int dmm, void *info, void *cb_data)
+{
+	int ret;
+	struct sr_dev_inst *sdi;
+	struct dev_context *devc;
+
+	(void)fd;
+	(void)revents;
+
+	sdi = cb_data;
+	devc = sdi->priv;
+
+	if ((ret = get_and_handle_data(sdi, dmm, info)) != SR_OK)
+		return FALSE;
 
 	/* Abort acquisition if we acquired enough samples. */
 	if (devc->limit_samples && devc->num_samples >= devc->limit_samples) {

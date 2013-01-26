@@ -1,7 +1,7 @@
 /*
  * This file is part of the libsigrok project.
  *
- * Copyright (C) 2012 Uwe Hermann <uwe@hermann-uwe.de>
+ * Copyright (C) 2012-2013 Uwe Hermann <uwe@hermann-uwe.de>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -60,11 +60,9 @@ struct dmm_info {
 
 extern SR_PRIV struct dmm_info udmms[DMM_COUNT];
 
-#define UT_D04_CABLE_USB_VID	0x1a86
-#define UT_D04_CABLE_USB_DID	0xe008
-
 #define CHUNK_SIZE		8
-#define NUM_DATA_BYTES		14
+
+#define DMM_BUFSIZE		256
 
 /** Private, per-device-instance driver context. */
 struct dev_context {
@@ -82,7 +80,11 @@ struct dev_context {
 
 	struct sr_usb_dev_inst *usb;
 
-	uint8_t protocol_buf[14];
+	gboolean first_run;
+
+	uint8_t protocol_buf[DMM_BUFSIZE];
+	uint8_t bufoffset;
+	uint8_t buflen;
 };
 
 SR_PRIV int receive_data_UNI_T_UT61D(int fd, int revents, void *cb_data);
