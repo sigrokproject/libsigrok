@@ -329,21 +329,6 @@ SR_PRIV void sr_serial_dev_inst_free(struct sr_serial_dev_inst *serial)
 
 }
 
-SR_API int sr_config_set(const struct sr_dev_inst *sdi, int hwcap,
-		const void *value)
-{
-	int ret;
-
-	if (!sdi || !sdi->driver || !sdi->driver->config_set) {
-		sr_err("Unable to set config option.");
-		return SR_ERR;
-	}
-
-	ret = sdi->driver->config_set(hwcap, value, sdi);
-
-	return ret;
-}
-
 SR_API GSList *sr_dev_inst_list(const struct sr_dev_driver *driver)
 {
 

@@ -52,8 +52,6 @@ SR_API int sr_dev_probe_enable(const struct sr_dev_inst *sdi, int probenum,
 SR_API int sr_dev_trigger_set(const struct sr_dev_inst *sdi, int probenum,
 		const char *trigger);
 SR_API gboolean sr_dev_has_option(const struct sr_dev_inst *sdi, int key);
-SR_API int sr_config_set(const struct sr_dev_inst *sdi, int hwcap,
-		const void *value);
 SR_API GSList *sr_dev_inst_list(const struct sr_dev_driver *driver);
 SR_API int sr_dev_inst_clear(const struct sr_dev_driver *driver);
 
@@ -70,9 +68,11 @@ SR_API struct sr_dev_driver **sr_driver_list(void);
 SR_API int sr_driver_init(struct sr_context *ctx,
 		struct sr_dev_driver *driver);
 SR_API GSList *sr_driver_scan(struct sr_dev_driver *driver, GSList *options);
-SR_API int sr_config_get(struct sr_dev_driver *driver, int id,
+SR_API int sr_config_get(struct sr_dev_driver *driver, int key,
 		const void **data, const struct sr_dev_inst *sdi);
-SR_API int sr_config_list(struct sr_dev_driver *driver, int id,
+SR_API int sr_config_set(const struct sr_dev_inst *sdi, int key,
+		const void *value);
+SR_API int sr_config_list(struct sr_dev_driver *driver, int key,
 		const void **data, const struct sr_dev_inst *sdi);
 SR_API const struct sr_config_info *sr_config_info_get(int key);
 SR_API const struct sr_config_info *sr_config_info_name_get(const char *optname);

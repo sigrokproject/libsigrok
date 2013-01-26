@@ -307,48 +307,96 @@ SR_PRIV struct sr_config *sr_config_make(int key, const void *value)
  * Returns information about the given driver or device instance.
  *
  * @param driver The sr_dev_driver struct to query.
- * @param id The type of information, in the form of an SR_CONF_* option.
- * @param data Pointer where the value. will be stored. Must not be NULL.
- * @param sdi Pointer to the struct sr_dev_inst to be checked. Must not be NULL.
+ * @param key The configuration key (SR_CONF_*).
+ * @param data Pointer where the value will be stored. Must not be NULL.
+ * @param sdi If the key is specific to a device, this must contain a
+ *            pointer to the struct sr_dev_inst to be checked.
  *
  * @return SR_OK upon success or SR_ERR in case of error. Note SR_ERR_ARG
- *         may be returned by the driver indicating it doesn't know that id,
+ *         may be returned by the driver indicating it doesn't know that key,
  *         but this is not to be flagged as an error by the caller; merely
  *         as an indication that it's not applicable.
  */
-SR_API int sr_config_get(struct sr_dev_driver *driver, int id,
+SR_API int sr_config_get(struct sr_dev_driver *driver, int key,
 		const void **data, const struct sr_dev_inst *sdi)
 {
 	int ret;
 
-	if (driver == NULL || data == NULL)
+	if (!driver || !data)
 		return SR_ERR;
 
-	ret = driver->config_get(id, data, sdi);
+	if (!driver->config_get)
+		return SR_ERR_ARG;
 
-	return ret;
-}
-
-SR_API int sr_config_list(struct sr_dev_driver *driver, int id,
-		const void **data, const struct sr_dev_inst *sdi)
-{
-	int ret;
-
-	if (driver == NULL || data == NULL)
-		return SR_ERR;
-
-	if (!driver->config_list)
-		return SR_ERR;
-
-	ret = driver->config_list(id, data, sdi);
+	ret = driver->config_get(key, data, sdi);
 
 	return ret;
 }
 
 /**
- * Get information about an sr_config key.
+ * Set a configuration key in a device instance.
  *
- * @param opt The sr_config key.
+ * @param sdi The device instance.
+ * @param key The configuration key (SR_CONF_*).
+ * @param value The new value for the key, as a pointer to whatever type
+ *        is appropriate for that key.
+ *
+ * @return SR_OK upon success or SR_ERR in case of error. Note SR_ERR_ARG
+ *         may be returned by the driver indicating it doesn't know that key,
+ *         but this is not to be flagged as an error by the caller; merely
+ *         as an indication that it's not applicable.
+ */
+SR_API int sr_config_set(const struct sr_dev_inst *sdi, int key,
+		const void *value)
+{
+	int ret;
+
+	if (!sdi || !sdi->driver)
+		return SR_ERR;
+
+	if (!sdi->driver->config_set)
+		return SR_ERR_ARG;
+
+	ret = sdi->driver->config_set(key, value, sdi);
+
+	return ret;
+}
+
+/**
+ * List all possible values for a configuration key.
+ *
+ * @param driver The sr_dev_driver struct to query.
+ * @param key The configuration key (SR_CONF_*).
+ * @param data A pointer to a list of values, in whatever format is
+ *             appropriate for that key.
+ * @param sdi If the key is specific to a device, this must contain a
+ *            pointer to the struct sr_dev_inst to be checked.
+ *
+ * @return SR_OK upon success or SR_ERR in case of error. Note SR_ERR_ARG
+ *         may be returned by the driver indicating it doesn't know that key,
+ *         but this is not to be flagged as an error by the caller; merely
+ *         as an indication that it's not applicable.
+ */
+SR_API int sr_config_list(struct sr_dev_driver *driver, int key,
+		const void **data, const struct sr_dev_inst *sdi)
+{
+	int ret;
+
+	if (!driver || !data)
+		return SR_ERR;
+
+	if (!driver->config_list)
+		return SR_ERR_ARG;
+
+	ret = driver->config_list(key, data, sdi);
+
+	return ret;
+}
+
+/**
+ * Get information about a configuration key.
+ *
+ * @param opt The configuration key.
  *
  * @return A pointer to a struct sr_config_info, or NULL if the key
  *         was not found.
@@ -366,9 +414,9 @@ SR_API const struct sr_config_info *sr_config_info_get(int key)
 }
 
 /**
- * Get information about an sr_config key, by name.
+ * Get information about an configuration key, by name.
  *
- * @param optname The sr_config key.
+ * @param optname The configuration key.
  *
  * @return A pointer to a struct sr_config_info, or NULL if the key
  *         was not found.
