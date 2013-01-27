@@ -591,7 +591,10 @@ SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
 
 	/* Turn off all serial port cooking. */
 	term.c_iflag &= ~(ISTRIP | INLCR | ICRNL);
-	term.c_oflag &= ~(ONLCR | OCRNL | ONOCR | OFILL );
+	term.c_oflag &= ~(ONLCR | OCRNL | ONOCR);
+#if !defined(__NetBSD__)
+	term.c_oflag &= ~OFILL;
+#endif
 
 	/* Disable canonical mode, and don't echo input characters. */
 	term.c_lflag &= ~(ICANON | ECHO);
