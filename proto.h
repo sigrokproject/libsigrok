@@ -68,7 +68,7 @@ SR_API struct sr_dev_driver **sr_driver_list(void);
 SR_API int sr_driver_init(struct sr_context *ctx,
 		struct sr_dev_driver *driver);
 SR_API GSList *sr_driver_scan(struct sr_dev_driver *driver, GSList *options);
-SR_API int sr_config_get(struct sr_dev_driver *driver, int key,
+SR_API int sr_config_get(const struct sr_dev_driver *driver, int key,
 		const void **data, const struct sr_dev_inst *sdi);
 SR_API int sr_config_set(const struct sr_dev_inst *sdi, int key,
 		const void *value);
