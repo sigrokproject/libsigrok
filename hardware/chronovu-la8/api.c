@@ -96,6 +96,7 @@ static GSList *hw_scan(GSList *options)
 	(void)options;
 
 	drvc = di->priv;
+
 	devices = NULL;
 
 	/* Allocate memory for our private device context. */
@@ -168,8 +169,6 @@ static GSList *hw_scan(GSList *options)
 
 	devices = g_slist_append(devices, sdi);
 	drvc->instances = g_slist_append(drvc->instances, sdi);
-
-	sr_spew("Device init successful.");
 
 	/* Close device. We'll reopen it again when we need it. */
 	(void) la8_close(devc); /* Log, but ignore errors. */

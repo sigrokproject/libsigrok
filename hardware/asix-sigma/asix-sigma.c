@@ -448,7 +448,9 @@ static GSList *hw_scan(GSList *options)
 	(void)options;
 
 	drvc = di->priv;
+
 	devices = NULL;
+
 	clear_instances();
 
 	if (!(devc = g_try_malloc(sizeof(struct dev_context)))) {

@@ -97,9 +97,10 @@ static GSList *hw_scan(GSList *options)
 	GSList *devices, *l;
 	const char *conn, *serialcomm;
 
-	devices = NULL;
 	drvc = di->priv;
 	drvc->instances = NULL;
+
+	devices = NULL;
 
 	conn = serialcomm = NULL;
 	for (l = options; l; l = l->next) {
@@ -123,7 +124,7 @@ static GSList *hw_scan(GSList *options)
 		return NULL;
 
 	if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
-		sr_dbg("failed to malloc devc");
+		sr_dbg("Device context malloc failed.");
 		return NULL;
 	}
 

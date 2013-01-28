@@ -172,6 +172,7 @@ static GSList *hw_scan(GSList *options)
 	(void)options;
 
 	drvc = di->priv;
+
 	devices = NULL;
 
 	sdi = sr_dev_inst_new(0, SR_ST_ACTIVE, DEMONAME, NULL, NULL);

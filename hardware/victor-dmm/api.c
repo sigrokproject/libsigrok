@@ -100,10 +100,7 @@ static GSList *hw_scan(GSList *options)
 
 	(void)options;
 
-	if (!(drvc = di->priv)) {
-		sr_err("Driver was not initialized.");
-		return NULL;
-	}
+	drvc = di->priv;
 
 	/* USB scan is always authoritative. */
 	clear_instances();

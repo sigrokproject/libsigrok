@@ -188,9 +188,10 @@ static GSList *hw_scan(GSList *options)
 
 	(void)options;
 
-	devices = NULL;
 	drvc = di->priv;
 	drvc->instances = NULL;
+
+	devices = NULL;
 
 	dir = g_dir_open("/sys/class/usb/", 0, NULL);
 

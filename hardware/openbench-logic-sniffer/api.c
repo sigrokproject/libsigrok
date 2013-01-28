@@ -85,7 +85,9 @@ static GSList *hw_scan(GSList *options)
 	char buf[8];
 
 	(void)options;
+
 	drvc = di->priv;
+
 	devices = NULL;
 
 	conn = serialcomm = NULL;

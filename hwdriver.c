@@ -289,21 +289,39 @@ SR_API int sr_driver_init(struct sr_context *ctx, struct sr_dev_driver *driver)
  * The order in which the system is scanned for devices is not specified. The
  * caller should not assume or rely on any specific order.
  *
- * @param driver The driver.
- * @param options A list of struct sr_hwopt options to pass to the driver's
- * 		scanner.
+ * Before calling sr_driver_scan(), the user must have previously initialized
+ * the driver by calling sr_driver_init().
  *
- * @return A GSList * of struct sr_dev_inst, or NULL if no devices were found.
- * This list must be freed by the caller, but without freeing the data
- * pointed to in the list.
+ * @param driver The driver that should scan. This must be a pointer to one of
+ *               the entries returned by sr_driver_list(). Must not be NULL.
+ * @param options A list of 'struct sr_hwopt' options to pass to the driver's
+ *                scanner. Can be NULL/empty.
+ *
+ * @return A GSList * of 'struct sr_dev_inst', or NULL if no devices were
+ *         found (or errors were encountered). This list must be freed by the
+ *         caller using g_slist_free(), but without freeing the data pointed
+ *         to in the list.
  */
 SR_API GSList *sr_driver_scan(struct sr_dev_driver *driver, GSList *options)
 {
+	GSList *l;
 
-	if (driver->scan)
-		return driver->scan(options);
+	if (!driver) {
+		sr_err("Invalid driver, can't scan for devices.");
+		return NULL;
+	}
 
-	return NULL;
+	if (!driver->priv) {
+		sr_err("Driver not initialized, can't scan for devices.");
+		return NULL;
+	}
+
+	l = driver->scan(options);
+
+	sr_spew("Scan of '%s' found %d devices.", driver->name,
+		g_slist_length(l));
+
+	return l;
 }
 
 /** @private */

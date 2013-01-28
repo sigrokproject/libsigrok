@@ -285,10 +285,11 @@ static GSList *hw_scan(GSList *options)
 
 	(void)options;
 
-	devcnt = 0;
-	devices = 0;
 	drvc = di->priv;
 	drvc->instances = NULL;
+
+	devcnt = 0;
+	devices = 0;
 
 	clear_instances();
 
