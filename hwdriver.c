@@ -351,7 +351,7 @@ SR_API int sr_config_set(const struct sr_dev_inst *sdi, int key,
 {
 	int ret;
 
-	if (!sdi || !sdi->driver)
+	if (!sdi || !sdi->driver || !value)
 		return SR_ERR;
 
 	if (!sdi->driver->config_set)
