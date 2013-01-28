@@ -30,9 +30,11 @@
  */
 
 #include <assert.h>
+#include "libsigrok.h"
+#include "libsigrok-internal.h"
 #include "analyzer.h"
 #include "gl_usb.h"
-#include "libsigrok-internal.h"
+#include "protocol.h"
 
 enum {
 	HARD_DATA_CHECK_SUM		= 0x00,
@@ -244,7 +246,7 @@ static int __analyzer_set_freq(libusb_device_handle *devh, int freq, int scale)
 		break;
 	}
 
-	sr_dbg("zp: Setting samplerate regs (freq=%d, scale=%d): "
+	sr_dbg("Setting samplerate regs (freq=%d, scale=%d): "
 	       "reg0: %d, reg1: %d, reg2: %d, reg3: %d.",
 	       freq, scale, divisor, reg0, 0x02, reg2);
 
@@ -318,7 +320,7 @@ static int __analyzer_set_freq(libusb_device_handle *devh, int freq, int scale)
 	if (!f[i].freq)
 		return -1;
 
-	sr_dbg("zp: Setting samplerate regs (freq=%d, scale=%d): "
+	sr_dbg("Setting samplerate regs (freq=%d, scale=%d): "
 	       "reg0: %d, reg1: %d, reg2: %d, reg3: %d.",
 	       freq, scale, f[i].div, f[i].mul, 0x02, f[i].sel);
 
@@ -399,6 +401,7 @@ SR_PRIV void analyzer_initialize(libusb_device_handle *devh)
 SR_PRIV void analyzer_wait(libusb_device_handle *devh, int set, int unset)
 {
 	int status;
+
 	while (1) {
 		status = gl_reg_read(devh, DEV_STATUS);
 		if ((status & set) && ((status & unset) == 0))
