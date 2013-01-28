@@ -292,9 +292,10 @@ static int hw_init(struct sr_context *sr_ctx)
 	struct drv_context *drvc;
 
 	if (!(drvc = g_try_malloc0(sizeof(struct drv_context)))) {
-		sr_err("zeroplus: driver context malloc failed.");
+		sr_err("Driver context malloc failed.");
 		return SR_ERR_MALLOC;
 	}
+
 	drvc->sr_ctx = sr_ctx;
 	di->priv = drvc;
 

@@ -78,7 +78,7 @@ static int hw_init(struct sr_context *sr_ctx)
 
 	if (!(drvc = g_try_malloc0(sizeof(struct drv_context)))) {
 		sr_err("Driver context malloc failed.");
-		return SR_ERR;
+		return SR_ERR_MALLOC;
 	}
 
 	drvc->sr_ctx = sr_ctx;

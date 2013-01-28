@@ -245,19 +245,38 @@ SR_API struct sr_dev_driver **sr_driver_list(void)
 /**
  * Initialize a hardware driver.
  *
- * @param ctx A libsigrok context object allocated by a previous call to
- * 		sr_init().
- * @param driver The driver to initialize.
+ * This usually involves memory allocations and variable initializations
+ * within the driver, but _not_ scanning for attached devices.
+ * The API call sr_driver_scan() is used for that.
  *
- * @return SR_OK if all went well, or an error code otherwise.
+ * @param ctx A libsigrok context object allocated by a previous call to
+ *            sr_init(). Must not be NULL.
+ * @param driver The driver to initialize. This must be a pointer to one of
+ *               the entries returned by sr_driver_list(). Must not be NULL.
+ *
+ * @return SR_OK upon success, SR_ERR_ARG upon invalid parameters,
+ *         SR_ERR_BUG upon internal errors, or another negative error code
+ *         upon other errors.
  */
 SR_API int sr_driver_init(struct sr_context *ctx, struct sr_dev_driver *driver)
 {
+	int ret;
 
-	if (driver->init)
-		return driver->init(ctx);
+	if (!ctx) {
+		sr_err("Invalid libsigrok context, can't initialize.");
+		return SR_ERR_ARG;
+	}
 
-	return SR_OK;
+	if (!driver) {
+		sr_err("Invalid driver, can't initialize.");
+		return SR_ERR_ARG;
+	}
+
+	sr_spew("Initializing driver '%s'.", driver->name);
+	if ((ret = driver->init(ctx)) < 0)
+		sr_err("Failed to initialize the driver: %d.", ret);
+
+	return ret;
 }
 
 /**
