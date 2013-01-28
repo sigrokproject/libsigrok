@@ -72,7 +72,7 @@ SR_API int sr_config_get(const struct sr_dev_driver *driver, int key,
 		const void **data, const struct sr_dev_inst *sdi);
 SR_API int sr_config_set(const struct sr_dev_inst *sdi, int key,
 		const void *value);
-SR_API int sr_config_list(struct sr_dev_driver *driver, int key,
+SR_API int sr_config_list(const struct sr_dev_driver *driver, int key,
 		const void **data, const struct sr_dev_inst *sdi);
 SR_API const struct sr_config_info *sr_config_info_get(int key);
 SR_API const struct sr_config_info *sr_config_info_name_get(const char *optname);

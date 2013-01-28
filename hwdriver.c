@@ -377,7 +377,7 @@ SR_API int sr_config_set(const struct sr_dev_inst *sdi, int key,
  *         but this is not to be flagged as an error by the caller; merely
  *         as an indication that it's not applicable.
  */
-SR_API int sr_config_list(struct sr_dev_driver *driver, int key,
+SR_API int sr_config_list(const struct sr_dev_driver *driver, int key,
 		const void **data, const struct sr_dev_inst *sdi)
 {
 	int ret;
