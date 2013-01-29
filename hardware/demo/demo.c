@@ -94,10 +94,10 @@ static const int hwcaps[] = {
 };
 
 static const struct sr_samplerates samplerates = {
-	SR_HZ(1),
-	SR_GHZ(1),
-	SR_HZ(1),
-	NULL,
+	.low  = SR_HZ(1),
+	.high = SR_GHZ(1),
+	.step = SR_HZ(1),
+	.list = NULL,
 };
 
 static const char *pattern_strings[] = {

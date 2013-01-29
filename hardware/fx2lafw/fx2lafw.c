@@ -118,10 +118,10 @@ static const uint64_t supported_samplerates[] = {
 };
 
 static const struct sr_samplerates samplerates = {
-	0,
-	0,
-	0,
-	supported_samplerates,
+	.low  = 0,
+	.high = 0,
+	.step = 0,
+	.list = supported_samplerates,
 };
 
 SR_PRIV struct sr_dev_driver fx2lafw_driver_info;

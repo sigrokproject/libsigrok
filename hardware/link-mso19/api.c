@@ -41,12 +41,11 @@ SR_PRIV const char *mso19_probe_names[NUM_PROBES + 1] = {
 	"0", "1", "2", "3", "4", "5", "6", "7", NULL
 };
 
-/*supported samplerates */
 static const struct sr_samplerates samplerates = {
-	SR_HZ(100),
-	SR_MHZ(200),
-	SR_HZ(100),
-	NULL,
+	.low  = SR_HZ(100),
+	.high = SR_MHZ(200),
+	.step = SR_HZ(100),
+	.list = NULL,
 };
 
 SR_PRIV struct sr_dev_driver link_mso19_driver_info;

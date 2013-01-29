@@ -126,10 +126,10 @@ static const uint64_t supported_samplerates[] = {
 };
 
 static const struct sr_samplerates samplerates = {
-	0,
-	0,
-	0,
-	supported_samplerates,
+	.low  = 0,
+	.high = 0,
+	.step = 0,
+	.list = supported_samplerates,
 };
 
 /* Private, per-device-instance driver context. */

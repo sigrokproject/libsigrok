@@ -70,10 +70,10 @@ static const char *probe_names[NUM_PROBES + 1] = {
 };
 
 static const struct sr_samplerates samplerates = {
-	0,
-	0,
-	0,
-	supported_samplerates,
+	.low  = 0,
+	.high = 0,
+	.step = 0,
+	.list = supported_samplerates,
 };
 
 static const int hwcaps[] = {

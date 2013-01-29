@@ -44,12 +44,12 @@ SR_PRIV const char *ols_probe_names[NUM_PROBES + 1] = {
 	NULL,
 };
 
-/* default supported samplerates, can be overridden by device metadata */
+/* Default supported samplerates, can be overridden by device metadata. */
 static const struct sr_samplerates samplerates = {
-	SR_HZ(10),
-	SR_MHZ(200),
-	SR_HZ(1),
-	NULL,
+	.low  = SR_HZ(10),
+	.high = SR_MHZ(200),
+	.step = SR_HZ(1),
+	.list = NULL,
 };
 
 SR_PRIV struct sr_dev_driver ols_driver_info;
