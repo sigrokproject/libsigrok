@@ -25,6 +25,15 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
+/* Message logging helpers with driver-specific prefix string. */
+#define DRIVER_LOG_DOMAIN "session: "
+#define sr_log(l, s, args...) sr_log(l, DRIVER_LOG_DOMAIN s, ## args)
+#define sr_spew(s, args...) sr_spew(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_dbg(s, args...) sr_dbg(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_info(s, args...) sr_info(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_warn(s, args...) sr_warn(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_err(s, args...) sr_err(DRIVER_LOG_DOMAIN s, ## args)
+
 /**
  * @file
  *
@@ -65,8 +74,8 @@ struct sr_session *session;
 SR_API struct sr_session *sr_session_new(void)
 {
 	if (!(session = g_try_malloc0(sizeof(struct sr_session)))) {
-		sr_err("session: %s: session malloc failed", __func__);
-		return NULL; /* TODO: SR_ERR_MALLOC? */
+		sr_err("Session malloc failed.");
+		return NULL;
 	}
 
 	session->source_timeout = -1;
@@ -84,7 +93,7 @@ SR_API struct sr_session *sr_session_new(void)
 SR_API int sr_session_destroy(void)
 {
 	if (!session) {
-		sr_err("session: %s: session was NULL", __func__);
+		sr_err("%s: session was NULL", __func__);
 		return SR_ERR_BUG;
 	}
 
@@ -115,7 +124,7 @@ static void sr_dev_close(struct sr_dev_inst *sdi)
 SR_API int sr_session_dev_remove_all(void)
 {
 	if (!session) {
-		sr_err("session: %s: session was NULL", __func__);
+		sr_err("%s: session was NULL", __func__);
 		return SR_ERR_BUG;
 	}
 
@@ -139,18 +148,18 @@ SR_API int sr_session_dev_add(const struct sr_dev_inst *sdi)
 	int ret;
 
 	if (!sdi) {
-		sr_err("session: %s: sdi was NULL", __func__);
+		sr_err("%s: sdi was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!session) {
-		sr_err("session: %s: session was NULL", __func__);
+		sr_err("%s: session was NULL", __func__);
 		return SR_ERR_BUG;
 	}
 
 	/* If sdi->driver is NULL, this is a virtual device. */
 	if (!sdi->driver) {
-		sr_dbg("session: %s: sdi->driver was NULL, this seems to be "
+		sr_dbg("%s: sdi->driver was NULL, this seems to be "
 		       "a virtual device; continuing", __func__);
 		/* Just add the device, don't run dev_open(). */
 		session->devs = g_slist_append(session->devs, (gpointer)sdi);
@@ -159,12 +168,12 @@ SR_API int sr_session_dev_add(const struct sr_dev_inst *sdi)
 
 	/* sdi->driver is non-NULL (i.e. we have a real device). */
 	if (!sdi->driver->dev_open) {
-		sr_err("session: %s: sdi->driver->dev_open was NULL", __func__);
+		sr_err("%s: sdi->driver->dev_open was NULL", __func__);
 		return SR_ERR_BUG;
 	}
 
 	if ((ret = sdi->driver->dev_open((struct sr_dev_inst *)sdi)) != SR_OK) {
-		sr_err("session: %s: dev_open failed (%d)", __func__, ret);
+		sr_err("%s: dev_open failed (%d)", __func__, ret);
 		return ret;
 	}
 
@@ -181,7 +190,7 @@ SR_API int sr_session_dev_add(const struct sr_dev_inst *sdi)
 SR_API int sr_session_datafeed_callback_remove_all(void)
 {
 	if (!session) {
-		sr_err("session: %s: session was NULL", __func__);
+		sr_err("%s: session was NULL", __func__);
 		return SR_ERR_BUG;
 	}
 
@@ -202,12 +211,12 @@ SR_API int sr_session_datafeed_callback_remove_all(void)
 SR_API int sr_session_datafeed_callback_add(sr_datafeed_callback_t cb)
 {
 	if (!session) {
-		sr_err("session: %s: session was NULL", __func__);
+		sr_err("%s: session was NULL", __func__);
 		return SR_ERR_BUG;
 	}
 
 	if (!cb) {
-		sr_err("session: %s: cb was NULL", __func__);
+		sr_err("%s: cb was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
@@ -258,13 +267,13 @@ SR_API int sr_session_start(void)
 	int ret;
 
 	if (!session) {
-		sr_err("session: %s: session was NULL; a session must be "
+		sr_err("%s: session was NULL; a session must be "
 		       "created before starting it.", __func__);
 		return SR_ERR_BUG;
 	}
 
 	if (!session->devs) {
-		sr_err("session: %s: session->devs was NULL; a session "
+		sr_err("%s: session->devs was NULL; a session "
 		       "cannot be started without devices.", __func__);
 		return SR_ERR_BUG;
 	}
@@ -275,7 +284,7 @@ SR_API int sr_session_start(void)
 	for (l = session->devs; l; l = l->next) {
 		sdi = l->data;
 		if ((ret = sdi->driver->dev_acquisition_start(sdi, sdi)) != SR_OK) {
-			sr_err("session: %s: could not start an acquisition "
+			sr_err("%s: could not start an acquisition "
 			       "(%d)", __func__, ret);
 			break;
 		}
@@ -294,19 +303,19 @@ SR_API int sr_session_start(void)
 SR_API int sr_session_run(void)
 {
 	if (!session) {
-		sr_err("session: %s: session was NULL; a session must be "
+		sr_err("%s: session was NULL; a session must be "
 		       "created first, before running it.", __func__);
 		return SR_ERR_BUG;
 	}
 
 	if (!session->devs) {
 		/* TODO: Actually the case? */
-		sr_err("session: %s: session->devs was NULL; a session "
+		sr_err("%s: session->devs was NULL; a session "
 		       "cannot be run without devices.", __func__);
 		return SR_ERR_BUG;
 	}
 
-	sr_info("session: running");
+	sr_info("Running.");
 
 	/* Do we have real sources? */
 	if (session->num_sources == 1 && session->pollfds[0].fd == -1) {
@@ -349,11 +358,11 @@ SR_API int sr_session_stop(void)
 	GSList *l;
 
 	if (!session) {
-		sr_err("session: %s: session was NULL", __func__);
+		sr_err("%s: session was NULL", __func__);
 		return SR_ERR_BUG;
 	}
 
-	sr_info("session: stopping");
+	sr_info("Stopping.");
 
 	for (l = session->devs; l; l = l->next) {
 		sdi = l->data;
@@ -387,33 +396,35 @@ static void datafeed_dump(const struct sr_datafeed_packet *packet)
 
 	switch (packet->type) {
 	case SR_DF_HEADER:
-		sr_dbg("bus: received SR_DF_HEADER");
+		sr_dbg("bus: Received SR_DF_HEADER packet.");
 		break;
 	case SR_DF_TRIGGER:
-		sr_dbg("bus: received SR_DF_TRIGGER");
+		sr_dbg("bus: Received SR_DF_TRIGGER packet.");
 		break;
 	case SR_DF_META:
-		sr_dbg("bus: received SR_DF_META");
+		sr_dbg("bus: Received SR_DF_META packet.");
 		break;
 	case SR_DF_LOGIC:
 		logic = packet->payload;
-		sr_dbg("bus: received SR_DF_LOGIC %" PRIu64 " bytes", logic->length);
+		sr_dbg("bus: Received SR_DF_LOGIC packet (%" PRIu64 " bytes).",
+		       logic->length);
 		break;
 	case SR_DF_ANALOG:
 		analog = packet->payload;
-		sr_dbg("bus: received SR_DF_ANALOG %d samples", analog->num_samples);
+		sr_dbg("bus: Received SR_DF_ANALOG packet (%d samples).",
+		       analog->num_samples);
 		break;
 	case SR_DF_END:
-		sr_dbg("bus: received SR_DF_END");
+		sr_dbg("bus: Received SR_DF_END packet.");
 		break;
 	case SR_DF_FRAME_BEGIN:
-		sr_dbg("bus: received SR_DF_FRAME_BEGIN");
+		sr_dbg("bus: Received SR_DF_FRAME_BEGIN packet.");
 		break;
 	case SR_DF_FRAME_END:
-		sr_dbg("bus: received SR_DF_FRAME_END");
+		sr_dbg("bus: Received SR_DF_FRAME_END packet.");
 		break;
 	default:
-		sr_dbg("bus: received unknown packet type %d", packet->type);
+		sr_dbg("bus: Received unknown packet type: %d.", packet->type);
 		break;
 	}
 }
@@ -437,12 +448,12 @@ SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
 	sr_datafeed_callback_t cb;
 
 	if (!sdi) {
-		sr_err("session: %s: sdi was NULL", __func__);
+		sr_err("%s: sdi was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
 	if (!packet) {
-		sr_err("session: %s: packet was NULL", __func__);
+		sr_err("%s: packet was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
@@ -475,7 +486,7 @@ static int _sr_session_source_add(GPollFD *pollfd, int timeout,
 	GPollFD *new_pollfds;
 
 	if (!cb) {
-		sr_err("session: %s: cb was NULL", __func__);
+		sr_err("%s: cb was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
@@ -484,14 +495,14 @@ static int _sr_session_source_add(GPollFD *pollfd, int timeout,
 	new_pollfds = g_try_realloc(session->pollfds,
 			sizeof(GPollFD) * (session->num_sources + 1));
 	if (!new_pollfds) {
-		sr_err("session: %s: new_pollfds malloc failed", __func__);
+		sr_err("%s: new_pollfds malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 
 	new_sources = g_try_realloc(session->sources, sizeof(struct source) *
 			(session->num_sources + 1));
 	if (!new_sources) {
-		sr_err("session: %s: new_sources malloc failed", __func__);
+		sr_err("%s: new_sources malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 
@@ -597,7 +608,7 @@ static int _sr_session_source_remove(gintptr poll_object)
 	unsigned int old;
 
 	if (!session->sources || !session->num_sources) {
-		sr_err("session: %s: sources was NULL", __func__);
+		sr_err("%s: sources was NULL", __func__);
 		return SR_ERR_BUG;
 	}
 
@@ -621,13 +632,13 @@ static int _sr_session_source_remove(gintptr poll_object)
 
 	new_pollfds = g_try_realloc(session->pollfds, sizeof(GPollFD) * session->num_sources);
 	if (!new_pollfds && session->num_sources > 0) {
-		sr_err("session: %s: new_pollfds malloc failed", __func__);
+		sr_err("%s: new_pollfds malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 
 	new_sources = g_try_realloc(session->sources, sizeof(struct source) * session->num_sources);
 	if (!new_sources && session->num_sources > 0) {
-		sr_err("session: %s: new_sources malloc failed", __func__);
+		sr_err("%s: new_sources malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 
