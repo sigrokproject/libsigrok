@@ -192,19 +192,9 @@ static int clear_instances(int dmm)
 
 static int hw_init(struct sr_context *sr_ctx, int dmm)
 {
-	struct drv_context *drvc;
-
-	if (!(drvc = g_try_malloc0(sizeof(struct drv_context)))) {
-		sr_err("Driver context malloc failed.");
-		return SR_ERR_MALLOC;
-	}
-
 	sr_dbg("Selected '%s' subdriver.", dmms[dmm].di->name);
 
-	drvc->sr_ctx = sr_ctx;
-	dmms[dmm].di->priv = drvc;
-
-	return SR_OK;
+	return std_hw_init(sr_ctx, dmms[dmm].di, DRIVER_LOG_DOMAIN);
 }
 
 static GSList *scan(const char *conn, const char *serialcomm, int dmm)

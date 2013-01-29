@@ -123,6 +123,11 @@ SR_PRIV int sr_source_add(int fd, int events, int timeout,
 SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
 			    const struct sr_datafeed_packet *packet);
 
+/*--- std.c -----------------------------------------------------------------*/
+
+SR_PRIV int std_hw_init(struct sr_context *sr_ctx, struct sr_dev_driver *di,
+			const char *prefix);
+
 /*--- hardware/common/serial.c ----------------------------------------------*/
 
 enum {

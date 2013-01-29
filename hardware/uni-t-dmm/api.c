@@ -57,23 +57,13 @@ static int clear_instances(void)
 
 static int hw_init(struct sr_context *sr_ctx, int dmm)
 {
-	struct drv_context *drvc;
-
-	if (!(drvc = g_try_malloc0(sizeof(struct drv_context)))) {
-		sr_err("Driver context malloc failed.");
-		return SR_ERR_MALLOC;
-	}
-
 	if (dmm == UNI_T_UT61D)
 		di = di_ut61d;
 	else if (dmm == VOLTCRAFT_VC820)
 		di = di_vc820;
 	sr_dbg("Selected '%s' subdriver.", di->name);
 
-	drvc->sr_ctx = sr_ctx;
-	di->priv = drvc;
-
-	return SR_OK;
+	return std_hw_init(sr_ctx, di, DRIVER_LOG_DOMAIN);
 }
 
 static int hw_init_ut61d(struct sr_context *sr_ctx)
