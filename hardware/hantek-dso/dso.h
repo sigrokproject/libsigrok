@@ -22,6 +22,15 @@
 #ifndef LIBSIGROK_HARDWARE_HANTEK_DSO_H
 #define LIBSIGROK_HARDWARE_HANTEK_DSO_H
 
+/* Message logging helpers with driver-specific prefix string. */
+#define DRIVER_LOG_DOMAIN "hantek-dso: "
+#define sr_log(l, s, args...) sr_log(l, DRIVER_LOG_DOMAIN s, ## args)
+#define sr_spew(s, args...) sr_spew(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_dbg(s, args...) sr_dbg(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_info(s, args...) sr_info(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_warn(s, args...) sr_warn(DRIVER_LOG_DOMAIN s, ## args)
+#define sr_err(s, args...) sr_err(DRIVER_LOG_DOMAIN s, ## args)
+
 #define USB_INTERFACE			0
 #define USB_CONFIGURATION		1
 #define DSO_EP_IN			0x86

@@ -237,7 +237,7 @@ static int get_channel_offsets(struct dev_context *devc)
 					devc->channel_levels[chan][v][0],
 					devc->channel_levels[chan][v][1]);
 			}
-			sr_dbg(gs->str);
+			sr_dbg("%s", gs->str);
 		}
 		g_string_free(gs, TRUE);
 	}
@@ -505,7 +505,7 @@ SR_PRIV int dso_set_relays(struct dev_context *devc)
 		g_string_printf(gs, "Relays:");
 		for (i = 0; i < 17; i++)
 			g_string_append_printf(gs, " %.2x", relays[i]);
-		sr_dbg(gs->str);
+		sr_dbg("%s", gs->str);
 		g_string_free(gs, TRUE);
 	}
 
