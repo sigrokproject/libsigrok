@@ -217,7 +217,7 @@ SR_PRIV struct sr_dev_inst *sr_dev_inst_new(int index, int status,
 	struct sr_dev_inst *sdi;
 
 	if (!(sdi = g_try_malloc(sizeof(struct sr_dev_inst)))) {
-		sr_err("%s: sdi malloc failed", __func__);
+		sr_err("Device instance malloc failed.");
 		return NULL;
 	}
 
@@ -263,7 +263,7 @@ SR_PRIV struct sr_usb_dev_inst *sr_usb_dev_inst_new(uint8_t bus,
 	struct sr_usb_dev_inst *udi;
 
 	if (!(udi = g_try_malloc(sizeof(struct sr_usb_dev_inst)))) {
-		sr_err("%s: udi malloc failed", __func__);
+		sr_err("USB device instance malloc failed.");
 		return NULL;
 	}
 
@@ -302,12 +302,12 @@ SR_PRIV struct sr_serial_dev_inst *sr_serial_dev_inst_new(const char *port,
 	struct sr_serial_dev_inst *serial;
 
 	if (!port) {
-		sr_err("hwdriver: serial port required");
+		sr_err("Serial port required.");
 		return NULL;
 	}
 
 	if (!(serial = g_try_malloc0(sizeof(struct sr_serial_dev_inst)))) {
-		sr_err("hwdriver: serial malloc failed");
+		sr_err("Serial device instance malloc failed.");
 		return NULL;
 	}
 
@@ -322,16 +322,13 @@ SR_PRIV struct sr_serial_dev_inst *sr_serial_dev_inst_new(const char *port,
 /** @private */
 SR_PRIV void sr_serial_dev_inst_free(struct sr_serial_dev_inst *serial)
 {
-
 	g_free(serial->port);
 	g_free(serial->serialcomm);
 	g_free(serial);
-
 }
 
 SR_API GSList *sr_dev_inst_list(const struct sr_dev_driver *driver)
 {
-
 	if (driver && driver->dev_list)
 		return driver->dev_list();
 	else
@@ -340,7 +337,6 @@ SR_API GSList *sr_dev_inst_list(const struct sr_dev_driver *driver)
 
 SR_API int sr_dev_inst_clear(const struct sr_dev_driver *driver)
 {
-
 	if (driver && driver->dev_clear)
 		return driver->dev_clear();
 	else
