@@ -93,7 +93,7 @@ extern SR_PRIV struct sr_dev_driver demo_driver_info;
 extern SR_PRIV struct sr_dev_driver lascar_el_usb_driver_info;
 #endif
 #ifdef HAVE_HW_MIC_985XX
-extern SR_PRIV struct sr_dev_driver mic_985xx_driver_info;
+extern SR_PRIV struct sr_dev_driver mic_98583_driver_info;
 #endif
 #ifdef HAVE_HW_NEXUS_OSCIPRIME
 extern SR_PRIV struct sr_dev_driver nexus_osciprime_driver_info;
@@ -170,7 +170,7 @@ static struct sr_dev_driver *drivers_list[] = {
 	&lascar_el_usb_driver_info,
 #endif
 #ifdef HAVE_HW_MIC_985XX
-	&mic_985xx_driver_info,
+	&mic_98583_driver_info,
 #endif
 #ifdef HAVE_HW_NEXUS_OSCIPRIME
 	&nexus_osciprime_driver_info,
