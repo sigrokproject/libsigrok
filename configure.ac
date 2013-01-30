@@ -180,6 +180,15 @@ if test "x$LA_LINK_MSO19" = "xyes"; then
 	AC_DEFINE(HAVE_LA_LINK_MSO19, 1, [Link Instruments MSO-19 support])
 fi
 
+AC_ARG_ENABLE(mic-985xx, AC_HELP_STRING([--enable-mic-985xx],
+	[enable MIC 985xx support [default=yes]]),
+	[HW_MIC_985XX="$enableval"],
+	[HW_MIC_985XX=yes])
+AM_CONDITIONAL(HW_MIC_985XX, test x$HW_MIC_985XX = xyes)
+if test "x$HW_MIC_985XX" = "xyes"; then
+	AC_DEFINE(HAVE_HW_MIC_985XX, 1, [MIC 985xx support])
+fi
+
 AC_ARG_ENABLE(nexus-osciprime, AC_HELP_STRING([--enable-nexus-osciprime],
 	[enable Nexus Osciprime support [default=yes]]),
 	[HW_NEXUS_OSCIPRIME="$enableval"],
@@ -379,6 +388,7 @@ AC_CONFIG_FILES([Makefile version.h hardware/Makefile
 		 hardware/colead-slm/Makefile
 		 hardware/common/Makefile
 		 hardware/lascar-el-usb/Makefile
+		 hardware/mic-985xx/Makefile
 		 hardware/nexus-osciprime/Makefile
 		 hardware/rigol-ds1xx2/Makefile
 		 hardware/tondaj-sl-814/Makefile
@@ -435,6 +445,7 @@ echo "  - fx2lafw (for FX2 LAs)........... $LA_FX2LAFW"
 echo "  - Hantek DSO...................... $HW_HANTEK_DSO"
 echo "  - Lascar EL-USB................... $HW_LASCAR_EL_USB"
 echo "  - Link MSO-19..................... $LA_LINK_MSO19"
+echo "  - MIC 985xx....................... $HW_MIC_985XX"
 echo "  - Nexus Osciprime................. $HW_NEXUS_OSCIPRIME"
 echo "  - Openbench Logic Sniffer......... $LA_OLS"
 echo "  - Rigol DS1xx2.................... $HW_RIGOL_DS1XX2"
