@@ -246,35 +246,8 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 
 static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
-	int ret, final_ret;
-	struct sr_datafeed_packet packet;
-	struct dev_context *devc;
-
-	final_ret = SR_OK;
-
-	if (sdi->status != SR_ST_ACTIVE) {
-		sr_err("Device inactive, can't stop acquisition.");
-		return SR_ERR;
-	}
-
-	devc = sdi->priv;
-
-	if ((ret = sr_source_remove(devc->serial->fd)) < 0) {
-		sr_err("Error removing source: %d.", ret);
-		final_ret = SR_ERR;
-	}
-	
-	if ((ret = hw_dev_close(sdi)) < 0) {
-		sr_err("Error closing device: %d.", ret);
-		final_ret = SR_ERR;
-	}
-
-	/* Send end packet to the session bus. */
-	sr_dbg("Sending SR_DF_END.");
-	packet.type = SR_DF_END;
-	sr_session_send(cb_data, &packet);
-
-	return final_ret;
+	return std_hw_dev_acquisition_stop_serial(sdi, cb_data, hw_dev_close,
+	       ((struct dev_context *)(sdi->priv))->serial, DRIVER_LOG_DOMAIN);
 }
 
 SR_PRIV struct sr_dev_driver tondaj_sl_814_driver_info = {

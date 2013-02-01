@@ -125,9 +125,13 @@ SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
 
 /*--- std.c -----------------------------------------------------------------*/
 
+typedef int (*dev_close_t)(struct sr_dev_inst *sdi);
+
 SR_PRIV int std_hw_init(struct sr_context *sr_ctx, struct sr_dev_driver *di,
 			const char *prefix);
-
+SR_PRIV int std_hw_dev_acquisition_stop_serial(struct sr_dev_inst *sdi,
+			void *cb_data, dev_close_t hw_dev_close_fn,
+			struct sr_serial_dev_inst *serial, const char *prefix);
 SR_PRIV int std_session_send_df_header(const struct sr_dev_inst *sdi,
 				       const char *prefix);
 

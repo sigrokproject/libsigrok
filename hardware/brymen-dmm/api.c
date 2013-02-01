@@ -296,30 +296,8 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 
 static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
-	struct sr_datafeed_packet packet;
-	struct dev_context *devc;
-
-	if (sdi->status != SR_ST_ACTIVE) {
-		sr_err("Device inactive, can't stop acquisition.");
-		return SR_ERR;
-	}
-
-	if (!(devc = sdi->priv)) {
-		sr_err("sdi->priv was NULL.");
-		return SR_ERR_BUG;
-	}
-
-	sr_dbg("Stopping acquisition.");
-
-	sr_source_remove(devc->serial->fd);
-	hw_dev_close((struct sr_dev_inst *)sdi);
-
-	/* Send end packet to the session bus. */
-	sr_dbg("Sending SR_DF_END.");
-	packet.type = SR_DF_END;
-	sr_session_send(cb_data, &packet);
-
-	return SR_OK;
+	return std_hw_dev_acquisition_stop_serial(sdi, cb_data, hw_dev_close,
+	       ((struct dev_context *)(sdi->priv))->serial, DRIVER_LOG_DOMAIN);
 }
 
 SR_PRIV struct sr_dev_driver brymen_bm857_driver_info = {
