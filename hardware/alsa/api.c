@@ -103,8 +103,6 @@ static int hw_dev_close(struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
-	sr_dbg("Closing device.");
-
 	if (devc->capture_handle) {
 		sr_dbg("Closing PCM device.");
 		if ((ret = snd_pcm_close(devc->capture_handle)) < 0) {

@@ -107,10 +107,46 @@ SR_API int sr_session_destroy(void)
 	return SR_OK;
 }
 
+/**
+ * Close a device instance.
+ *
+ * @param sdi The device instance to close. Must not be NULL. Also,
+ *            sdi->driver, sdi->driver->priv, and sdi->priv must not be NULL.
+ */
 static void sr_dev_close(struct sr_dev_inst *sdi)
 {
-	if (sdi->driver && sdi->driver->dev_close)
-		sdi->driver->dev_close(sdi);
+	int ret;
+
+	if (!sdi) {
+		sr_err("Invalid device instance, can't close device.");
+		return;
+	}
+
+	/* In the drivers sdi->priv is a 'struct dev_context *devc'. */
+	if (!sdi->priv) {
+		/*
+		 * Should be sr_err() in theory, but the 'demo' driver has
+		 * NULL for sdi->priv, so we use sr_dbg() until that's fixed.
+		 */
+		sr_dbg("Invalid device context, can't close device.");
+		return;
+	}
+
+	if (!sdi->driver) {
+		sr_err("Invalid driver, can't close device.");
+		return;
+	}
+
+	if (!sdi->driver->priv) {
+		sr_err("Driver not initialized, can't close device.");
+		return;
+	}
+
+	sr_spew("Closing '%s' device instance %d.", sdi->driver->name,
+		sdi->index);
+
+	if ((ret = sdi->driver->dev_close(sdi)) < 0)
+		sr_err("Failed to close device instance: %d.", ret);
 }
 
 /**

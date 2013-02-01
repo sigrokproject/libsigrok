@@ -483,10 +483,7 @@ static int hw_dev_close(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 
-	if (!(devc = sdi->priv)) {
-		sr_err("%s: sdi->priv was NULL", __func__);
-		return SR_ERR;
-	}
+	devc = sdi->priv;
 
 	if (!devc->usb->devhdl)
 		return SR_ERR;

@@ -559,6 +559,7 @@ static int hw_dev_close(struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 
 	devc = sdi->priv;
+
 	if (devc->usb->devhdl == NULL)
 		return SR_ERR;
 
