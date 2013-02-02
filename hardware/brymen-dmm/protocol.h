@@ -21,6 +21,10 @@
 #define LIBSIGROK_HARDWARE_BRYMEN_DMM_PROTOCOL_H
 
 #include <stdint.h>
+#include <string.h>
+#include <stdlib.h>
+#include <math.h>
+#include <glib.h>
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
@@ -32,7 +36,6 @@
 #define sr_info(s, args...) sr_info(DRIVER_LOG_DOMAIN s, ## args)
 #define sr_warn(s, args...) sr_warn(DRIVER_LOG_DOMAIN s, ## args)
 #define sr_err(s, args...) sr_err(DRIVER_LOG_DOMAIN s, ## args)
-
 
 #define DMM_BUFSIZE 256
 
@@ -68,10 +71,10 @@ struct dev_context {
 };
 
 /**
- * Callback that assesses the size and status of the incoming packet
+ * Callback that assesses the size and status of the incoming packet.
  *
  * @return PACKET_HEADER_OK - This is a proper packet header.
- *         PACKET_NEED_MORE_DATA The buffer does not contain the entire header
+ *         PACKET_NEED_MORE_DATA The buffer does not contain the entire header.
  *         PACKET_INVALID_HEADER Not a valid start of packet.
  */
 typedef int (*packet_length_t)(const uint8_t *buf, int *len);
@@ -87,4 +90,5 @@ SR_PRIV int brymen_stream_detect(struct sr_serial_dev_inst *serial,
 				 packet_length_t get_packet_size,
 				 packet_valid_t is_valid,
 				 uint64_t timeout_ms, int baudrate);
+
 #endif

@@ -17,16 +17,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "libsigrok.h"
-#include "libsigrok-internal.h"
 #include "protocol.h"
 
-#include <string.h>
-
-/* --- parser.c --- */
+/* parser.c */
 SR_PRIV int sr_brymen_parse(const uint8_t *buf, float *floatval,
 			    struct sr_datafeed_analog *analog, void *info);
-
 
 static void handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi)
 {
@@ -36,7 +31,7 @@ static void handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi)
 	struct sr_datafeed_analog analog;
 
 	devc = sdi->priv;
-	
+
 	analog.num_samples = 1;
 	analog.mq = -1;
 
@@ -73,19 +68,19 @@ static void handle_new_data(struct sr_dev_inst *sdi)
 
 	/* Now look for packets in that data. */
 	while (status != PACKET_NEED_MORE_DATA) {
-		/* We don't have a header, look for one */
+		/* We don't have a header, look for one. */
 		if (devc->next_packet_len == 0) {
 			len = devc->buflen - offset;
 			status = brymen_packet_length(devc->buf + offset, &len);
 			if (status == PACKET_HEADER_OK) {
-				/* We know how large the packet will be */
+				/* We know how large the packet will be. */
 				devc->next_packet_len = len;
 			} else if (status == PACKET_NEED_MORE_DATA) {
-				/* We did not yet receive the complete header */
+				/* We didn't yet receive the full header. */
 				devc->next_packet_len = 0;
 				break;
 			} else {
-				/* Invalid header. Move on */
+				/* Invalid header. Move on. */
 				devc->next_packet_len = 0;
 				offset++;
 				continue;
@@ -96,13 +91,14 @@ static void handle_new_data(struct sr_dev_inst *sdi)
 		if (devc->buflen - offset < devc->next_packet_len)
 			break;
 
-		/* We should have a full packet here, so we can check it */
+		/* We should have a full packet here, so we can check it. */
 		if (brymen_packet_is_valid(devc->buf + offset)) {
 			handle_packet(devc->buf + offset, sdi);
 			offset += devc->next_packet_len;
 		} else {
 			offset++;
 		}
+
 		/* We are done with this packet. Look for a new one. */
 		devc->next_packet_len = 0;
 	}
@@ -132,8 +128,7 @@ SR_PRIV int brymen_dmm_receive_data(int fd, int revents, void *cb_data)
 		handle_new_data(sdi);
 	} else {
 		/* Timeout, send another packet request. */
-		ret = brymen_packet_request(devc->serial);
-		if (ret < 0) {
+		if ((ret = brymen_packet_request(devc->serial)) < 0) {
 			sr_err("Failed to request packet: %d.", ret);
 			return FALSE;
 		}
@@ -163,7 +158,7 @@ SR_PRIV int brymen_dmm_receive_data(int fd, int revents, void *cb_data)
  * @param serial Previously initialized serial port structure.
  * @param buf Buffer containing the bytes to write.
  * @param buflen Size of the buffer.
- * @param packet_size Callback that assesses the size of the incoming packet/
+ * @param get_packet_size Callback that assesses the size of incoming packets.
  * @param is_valid Callback that assesses whether the packet is valid or not.
  * @param timeout_ms The timeout after which, if no packet is detected, to
  *                   abort scanning.
@@ -187,7 +182,7 @@ SR_PRIV int brymen_stream_detect(struct sr_serial_dev_inst *serial,
 	maxlen = *buflen;
 
 	sr_dbg("Detecting packets on FD %d (timeout = %" PRIu64
-	"ms, baudrate = %d).", serial->fd, timeout_ms, baudrate);
+	       "ms, baudrate = %d).", serial->fd, timeout_ms, baudrate);
 
 	/* Assume 8n1 transmission. That is 10 bits for every byte. */
 	byte_delay_us = 10 * (1000000 / baudrate);
@@ -198,7 +193,7 @@ SR_PRIV int brymen_stream_detect(struct sr_serial_dev_inst *serial,
 		len = serial_read(serial, &buf[ibuf], maxlen - ibuf);
 		if (len > 0) {
 			ibuf += len;
-			sr_spew("Read %d bytes", len);
+			sr_spew("Read %d bytes.", len);
 		}
 
 		time = g_get_monotonic_time() - start;
@@ -211,10 +206,10 @@ SR_PRIV int brymen_stream_detect(struct sr_serial_dev_inst *serial,
 			status = get_packet_size(&buf[i], &packet_len);
 			switch(status) {
 			case PACKET_HEADER_OK:
-				/* We know how much data we need to wait for */
+				/* We know how much data we need to wait for. */
 				break;
 			case PACKET_NEED_MORE_DATA:
-				/* We did not receive the full header */
+				/* We did not receive the full header. */
 				packet_len = 0;
 				break;
 			case PACKET_INVALID_HEADER:
@@ -222,7 +217,7 @@ SR_PRIV int brymen_stream_detect(struct sr_serial_dev_inst *serial,
 				/*
 				 * We had enough data, but here was an error in
 				 * parsing the header. Restart parsing from the
-				 * next byte
+				 * next byte.
 				 */
 				packet_len = 0;
 				i++;
@@ -230,22 +225,24 @@ SR_PRIV int brymen_stream_detect(struct sr_serial_dev_inst *serial,
 			}
 		}
 
-		if ( (stream_len >= packet_len) && (packet_len != 0) ) {
+		if ((stream_len >= packet_len) && (packet_len != 0)) {
 			/* We have at least a packet's worth of data. */
 			if (is_valid(&buf[i])) {
 				sr_spew("Found valid %d-byte packet after "
-				"%" PRIu64 "ms.", packet_len, time);
+					"%" PRIu64 "ms.", packet_len, time);
 				*buflen = ibuf;
 				return SR_OK;
 			} else {
 				sr_spew("Got %d bytes, but not a valid "
-				"packet.", packet_len);
+					"packet.", packet_len);
 
 			}
+
 			/* Not a valid packet. Continue searching. */
 			i++;
 			packet_len = 0;
 		}
+
 		if (time >= (int64_t)timeout_ms) {
 			/* Timeout */
 			sr_dbg("Detection timed out after %dms.", time);

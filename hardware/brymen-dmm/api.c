@@ -17,12 +17,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <glib.h>
-#include <errno.h>
-#include <string.h>
-#include <fcntl.h>
-#include "libsigrok.h"
-#include "libsigrok-internal.h"
 #include "protocol.h"
 
 static const int hwopts[] = {
@@ -39,8 +33,8 @@ static const int hwcaps[] = {
 	0,
 };
 
-SR_PRIV struct sr_dev_driver brymen_dmm_driver_info;
-static struct sr_dev_driver *di = &brymen_dmm_driver_info;
+SR_PRIV struct sr_dev_driver brymen_bm857_driver_info;
+static struct sr_dev_driver *di = &brymen_bm857_driver_info;
 
 static int hw_init(struct sr_context *sr_ctx)
 {
@@ -51,6 +45,7 @@ static void free_instance(void *inst)
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
+
 	if (!(sdi = inst))
 		return;
 	if (!(devc = sdi->priv))
@@ -82,11 +77,13 @@ static GSList *brymen_scan(const char *conn, const char *serialcomm)
 	struct sr_serial_dev_inst *serial;
 	GSList *devices;
 	int ret;
+	uint8_t buf[128];
+	size_t len;
 
 	if (!(serial = sr_serial_dev_inst_new(conn, serialcomm)))
 		return NULL;
 
-	if (serial_open(serial, SERIAL_RDWR|SERIAL_NONBLOCK) != SR_OK)
+	if (serial_open(serial, SERIAL_RDWR | SERIAL_NONBLOCK) != SR_OK)
 		return NULL;
 
 	sr_info("Probing port %s.", conn);
@@ -94,14 +91,12 @@ static GSList *brymen_scan(const char *conn, const char *serialcomm)
 	devices = NULL;
 
 	/* Request reading */
-	if (brymen_packet_request(serial) == -1) {
-		sr_err("Unable to send command. code: %d.", errno);
+	if ((ret = brymen_packet_request(serial)) < 0) {
+		sr_err("Unable to send command: %d.", ret);
 		goto scan_cleanup;
 	}
 
-	uint8_t buf[128];
-	size_t len = 128;
-
+	len = 128;
 	ret = brymen_stream_detect(serial, buf, &len, brymen_packet_length,
 			     brymen_packet_is_valid, 1000, 9600);
 	if (ret != SR_OK)
@@ -129,7 +124,6 @@ static GSList *brymen_scan(const char *conn, const char *serialcomm)
 	drvc->instances = g_slist_append(drvc->instances, sdi);
 	devices = g_slist_append(devices, sdi);
 
-
 scan_cleanup:
 	serial_close(serial);
 
@@ -153,12 +147,12 @@ static GSList *hw_scan(GSList *options)
 	for (l = options; l; l = l->next) {
 		src = l->data;
 		switch (src->key) {
-			case SR_CONF_CONN:
-				conn = src->value;
-				break;
-			case SR_CONF_SERIALCOMM:
-				serialcomm = src->value;
-				break;
+		case SR_CONF_CONN:
+			conn = src->value;
+			break;
+		case SR_CONF_SERIALCOMM:
+			serialcomm = src->value;
+			break;
 		}
 	}
 	if (!conn) {
@@ -169,7 +163,7 @@ static GSList *hw_scan(GSList *options)
 		/* Use the provided comm specs. */
 		devices = brymen_scan(conn, serialcomm);
 	} else {
-		/* But 9600 8N1 should work all of the time */
+		/* But 9600/8n1 should work all of the time. */
 		devices = brymen_scan(conn, "9600/8n1/dtr=1/rts=1");
 	}
 
@@ -232,12 +226,12 @@ static int config_list(int key, const void **data,
 	(void)sdi;
 
 	switch (key) {
-		case SR_CONF_SCAN_OPTIONS:
-			*data = hwopts;
-			break;
-		case SR_CONF_DEVICE_OPTIONS:
-			*data = hwcaps;
-			break;
+	case SR_CONF_SCAN_OPTIONS:
+		*data = hwopts;
+		break;
+	case SR_CONF_DEVICE_OPTIONS:
+		*data = hwcaps;
+		break;
 	default:
 		sr_err("Unknown config key: %d.", key);
 		return SR_ERR_ARG;
@@ -264,11 +258,11 @@ static int hw_dev_config_set(int id, const void *value,
 
 	ret = SR_OK;
 	switch (id) {
-		case SR_CONF_LIMIT_SAMPLES:
-		devc->limit_samples = *(const uint64_t*)value;
+	case SR_CONF_LIMIT_SAMPLES:
+		devc->limit_samples = *(const uint64_t *)value;
 		break;
-		case SR_CONF_LIMIT_MSEC:
-		devc->limit_msec = *(const uint64_t*)value;
+	case SR_CONF_LIMIT_MSEC:
+		devc->limit_msec = *(const uint64_t *)value;
 		break;
 	default:
 		sr_err("Unknown hardware capability: %d.", id);
@@ -345,9 +339,9 @@ static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 	return SR_OK;
 }
 
-SR_PRIV struct sr_dev_driver brymen_dmm_driver_info = {
-	.name = "brymen-dmm",
-	.longname = "Brymen BM850 series",
+SR_PRIV struct sr_dev_driver brymen_bm857_driver_info = {
+	.name = "brymen-bm857",
+	.longname = "Brymen BM857",
 	.api_version = 1,
 	.init = hw_init,
 	.cleanup = hw_cleanup,
