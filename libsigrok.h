@@ -775,6 +775,14 @@ struct sr_session {
 	struct source *sources;
 	GPollFD *pollfds;
 	int source_timeout;
+
+	/*
+	 * These are our synchronization primitives for stopping the session in
+	 * an async fashion. We need to make sure the session is stopped from
+	 * within the session thread itself.
+	 */
+	GMutex stop_mutex;
+	gboolean abort_session;
 };
 
 #include "proto.h"

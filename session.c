@@ -79,6 +79,8 @@ SR_API struct sr_session *sr_session_new(void)
 	}
 
 	session->source_timeout = -1;
+	session->abort_session = FALSE;
+	g_mutex_init(&session->stop_mutex);
 
 	return session;
 }
@@ -100,6 +102,8 @@ SR_API int sr_session_destroy(void)
 	sr_session_dev_remove_all();
 
 	/* TODO: Error checks needed? */
+
+	g_mutex_clear(&session->stop_mutex);
 
 	g_free(session);
 	session = NULL;
@@ -283,6 +287,16 @@ static int sr_session_run_poll(void)
 						session->sources[i].cb_data))
 					sr_session_source_remove(session->sources[i].poll_object);
 			}
+			/*
+			 * We want to take as little time as possible to stop
+			 * the session if we have been told to do so. Therefore,
+			 * we check the flag after processing every source, not
+			 * just once per main event loop.
+			 */
+			g_mutex_lock(&session->stop_mutex);
+			if (session->abort_session)
+				sr_session_stop_sync();
+			g_mutex_unlock(&session->stop_mutex);
 		}
 	}
 
@@ -372,9 +386,12 @@ SR_API int sr_session_run(void)
  * The current session is stopped immediately, with all acquisition sessions
  * being stopped and hardware drivers cleaned up.
  *
+ * This must be called from within the session thread, to prevent freeing
+ * resources that the session thread will try to use.
+ *
  * @return SR_OK upon success, SR_ERR_BUG if no session exists.
  */
-SR_API int sr_session_stop(void)
+SR_PRIV int sr_session_stop_sync(void)
 {
 	struct sr_dev_inst *sdi;
 	GSList *l;
@@ -402,6 +419,33 @@ SR_API int sr_session_stop(void)
 	 */
 	while (session->num_sources)
 		sr_session_source_remove(session->sources[0].poll_object);
+
+	return SR_OK;
+}
+
+/**
+ * Stop the current session.
+ *
+ * The current session is stopped immediately, with all acquisition sessions
+ * being stopped and hardware drivers cleaned up.
+ *
+ * If the session is run in a separate thread, this function will not block
+ * until the session is finished executing. It is the caller's responsibility
+ * to wait for the session thread to return before assuming that the session is
+ * completely decommissioned.
+ *
+ * @return SR_OK upon success, SR_ERR_BUG if no session exists.
+ */
+SR_API int sr_session_stop(void)
+{
+	if (!session) {
+		sr_err("%s: session was NULL", __func__);
+		return SR_ERR_BUG;
+	}
+
+	g_mutex_lock(&session->stop_mutex);
+	session->abort_session = TRUE;
+	g_mutex_unlock(&session->stop_mutex);
 
 	return SR_OK;
 }
