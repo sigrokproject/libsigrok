@@ -90,37 +90,32 @@ static void handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi,
 {
 	float floatval;
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog *analog;
+	struct sr_datafeed_analog analog;
 	struct dev_context *devc;
 
 	log_dmm_packet(buf);
 	devc = sdi->priv;
 
-	if (!(analog = g_try_malloc0(sizeof(struct sr_datafeed_analog)))) {
-		sr_err("Analog packet malloc failed.");
-		return;
-	}
+	memset(&analog, 0, sizeof(struct sr_datafeed_analog));
 
-	analog->probes = sdi->probes;
-	analog->num_samples = 1;
-	analog->mq = -1;
+	analog.probes = sdi->probes;
+	analog.num_samples = 1;
+	analog.mq = -1;
 
-	dmms[dmm].packet_parse(buf, &floatval, analog, info);
-	analog->data = &floatval;
+	dmms[dmm].packet_parse(buf, &floatval, &analog, info);
+	analog.data = &floatval;
 
 	/* If this DMM needs additional handling, call the resp. function. */
 	if (dmms[dmm].dmm_details)
-		dmms[dmm].dmm_details(analog, info);
+		dmms[dmm].dmm_details(&analog, info);
 
-	if (analog->mq != -1) {
+	if (analog.mq != -1) {
 		/* Got a measurement. */
 		packet.type = SR_DF_ANALOG;
-		packet.payload = analog;
+		packet.payload = &analog;
 		sr_session_send(devc->cb_data, &packet);
 		devc->num_samples++;
 	}
-
-	g_free(analog);
 }
 
 static void handle_new_data(struct sr_dev_inst *sdi, int dmm, void *info)
