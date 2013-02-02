@@ -232,7 +232,7 @@ SR_PRIV int sr_metex14_parse(const uint8_t *buf, float *floatval,
 #define RS9LCD_PACKET_SIZE 9
 
 /* Dummy info struct. The parser does not use it. */
-struct rs9lcd_info {};
+struct rs9lcd_info { int dummy; };
 
 SR_PRIV gboolean sr_rs9lcd_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_rs9lcd_parse(const uint8_t *buf, float *floatval,
