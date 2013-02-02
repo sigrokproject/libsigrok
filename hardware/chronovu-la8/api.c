@@ -180,11 +180,7 @@ err_free_nothing:
 
 static GSList *hw_dev_list(void)
 {
-	struct drv_context *drvc;
-
-	drvc = di->priv;
-
-	return drvc->instances;
+	return ((struct drv_context *)(di->priv))->instances;
 }
 
 static int hw_dev_open(struct sr_dev_inst *sdi)

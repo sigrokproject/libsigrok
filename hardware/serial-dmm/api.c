@@ -315,11 +315,7 @@ static GSList *hw_scan(GSList *options, int dmm)
 
 static GSList *hw_dev_list(int dmm)
 {
-	struct drv_context *drvc;
-
-	drvc = dmms[dmm].di->priv;
-
-	return drvc->instances;
+	return ((struct drv_context *)(dmms[dmm].di->priv))->instances;
 }
 
 static int hw_dev_open(struct sr_dev_inst *sdi)

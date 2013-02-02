@@ -127,14 +127,7 @@ static GSList *hw_scan(GSList *options)
 
 static GSList *hw_dev_list(void)
 {
-	struct drv_context *drvc;
-
-	if (!(drvc = di->priv)) {
-		sr_err("Driver was not initialized.");
-		return NULL;
-	}
-
-	return drvc->instances;
+	return ((struct drv_context *)(di->priv))->instances;
 }
 
 static int hw_dev_open(struct sr_dev_inst *sdi)
