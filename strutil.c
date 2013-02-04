@@ -165,8 +165,8 @@ SR_API char *sr_period_string(uint64_t frequency)
  */
 SR_API char *sr_voltage_string(struct sr_rational *voltage)
 {
-	char *o;
 	int r;
+	char *o;
 
 	if (!(o = g_try_malloc0(30 + 1))) {
 		sr_err("%s: o malloc failed", __func__);
@@ -178,7 +178,7 @@ SR_API char *sr_voltage_string(struct sr_rational *voltage)
 	else if (voltage->q == 1)
 		r = snprintf(o, 30, "%" PRIu64 "V", voltage->p);
 	else
-		r = -1;
+		r = snprintf(o, 30, "%gV", (float)voltage->p / (float)voltage->q);
 
 	if (r < 0) {
 		/* Something went wrong... */
