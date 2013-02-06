@@ -923,8 +923,6 @@ static unsigned int get_timeout(struct dev_context *devc)
 static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 		void *cb_data)
 {
-	struct sr_datafeed_packet packet;
-	struct sr_datafeed_header header;
 	struct dev_context *devc;
 	struct drv_context *drvc;
 	struct libusb_transfer *transfer;
@@ -988,11 +986,8 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 			      timeout, receive_data, NULL);
 	free(lupfd); /* NOT g_free()! */
 
-	packet.type = SR_DF_HEADER;
-	packet.payload = &header;
-	header.feed_version = 1;
-	gettimeofday(&header.starttime, NULL);
-	sr_session_send(cb_data, &packet);
+	/* Send header packet to the session bus. */
+	std_session_send_df_header(cb_data, DRIVER_LOG_DOMAIN);
 
 	if ((ret = command_start_acquisition(devc->usb->devhdl,
 		devc->cur_samplerate, devc->sample_wide)) != SR_OK) {

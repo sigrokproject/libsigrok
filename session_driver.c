@@ -225,8 +225,6 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 {
 	struct zip_stat zs;
 	struct session_vdev *vdev;
-	struct sr_datafeed_header *header;
-	struct sr_datafeed_packet *packet;
 	int ret;
 
 	vdev = sdi->priv;
@@ -252,28 +250,11 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 		return SR_ERR;
 	}
 
+	/* Send header packet to the session bus. */
+	std_session_send_df_header(cb_data, DRIVER_LOG_DOMAIN);
+
 	/* freewheeling source */
 	sr_session_source_add(-1, 0, 0, receive_data, cb_data);
-
-	if (!(packet = g_try_malloc(sizeof(struct sr_datafeed_packet)))) {
-		sr_err("%s: packet malloc failed", __func__);
-		return SR_ERR_MALLOC;
-	}
-
-	if (!(header = g_try_malloc(sizeof(struct sr_datafeed_header)))) {
-		sr_err("%s: header malloc failed", __func__);
-		return SR_ERR_MALLOC;
-	}
-
-	/* Send header packet to the session bus. */
-	packet->type = SR_DF_HEADER;
-	packet->payload = (unsigned char *)header;
-	header->feed_version = 1;
-	gettimeofday(&header->starttime, NULL);
-	sr_session_send(cb_data, packet);
-
-	g_free(header);
-	g_free(packet);
 
 	return SR_OK;
 }

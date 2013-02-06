@@ -191,8 +191,6 @@ static int config_list(int key, const void **data, const struct sr_dev_inst *sdi
 static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 				    void *cb_data)
 {
-	struct sr_datafeed_packet packet;
-	struct sr_datafeed_header header;
 	struct dev_context *devc;
 	int count, ret;
 	char *endianness;
@@ -276,12 +274,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	}
 
 	/* Send header packet to the session bus. */
-	sr_dbg("Sending SR_DF_HEADER packet.");
-	packet.type = SR_DF_HEADER;
-	packet.payload = (uint8_t *)&header;
-	header.feed_version = 1;
-	gettimeofday(&header.starttime, NULL);
-	sr_session_send(devc->cb_data, &packet);
+	std_session_send_df_header(cb_data, DRIVER_LOG_DOMAIN);
 
 	/* Poll every 10ms, or whenever some data comes in. */
 	sr_source_add(devc->ufds[0].fd, devc->ufds[0].events, 10,

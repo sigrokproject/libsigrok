@@ -830,8 +830,6 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 				    void *cb_data)
 {
 	const struct libusb_pollfd **lupfd;
-	struct sr_datafeed_packet packet;
-	struct sr_datafeed_header header;
 	struct dev_context *devc;
 	struct drv_context *drvc = di->priv;
 	int i;
@@ -861,11 +859,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	free(lupfd);
 
 	/* Send header packet to the session bus. */
-	packet.type = SR_DF_HEADER;
-	packet.payload = (unsigned char *)&header;
-	header.feed_version = 1;
-	gettimeofday(&header.starttime, NULL);
-	sr_session_send(cb_data, &packet);
+	std_session_send_df_header(cb_data, DRIVER_LOG_DOMAIN);
 
 	return SR_OK;
 }

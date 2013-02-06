@@ -128,6 +128,9 @@ SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
 SR_PRIV int std_hw_init(struct sr_context *sr_ctx, struct sr_dev_driver *di,
 			const char *prefix);
 
+SR_PRIV int std_session_send_df_header(const struct sr_dev_inst *sdi,
+				       const char *prefix);
+
 /*--- hardware/common/serial.c ----------------------------------------------*/
 
 enum {

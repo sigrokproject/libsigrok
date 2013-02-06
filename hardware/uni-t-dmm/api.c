@@ -229,23 +229,14 @@ static int config_list(int key, const void **data, const struct sr_dev_inst *sdi
 static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 				    void *cb_data)
 {
-	struct sr_datafeed_packet packet;
-	struct sr_datafeed_header header;
 	struct dev_context *devc;
 
 	devc = sdi->priv;
 
-	sr_dbg("Starting acquisition.");
-
 	devc->cb_data = cb_data;
 
 	/* Send header packet to the session bus. */
-	sr_dbg("Sending SR_DF_HEADER.");
-	packet.type = SR_DF_HEADER;
-	packet.payload = (uint8_t *)&header;
-	header.feed_version = 1;
-	gettimeofday(&header.starttime, NULL);
-	sr_session_send(devc->cb_data, &packet);
+	std_session_send_df_header(cb_data, DRIVER_LOG_DOMAIN);
 
 	if (!strcmp(di->name, "uni-t-ut61d")) {
 		sr_source_add(0, 0, 10 /* poll_timeout */,

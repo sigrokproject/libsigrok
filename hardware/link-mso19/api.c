@@ -393,8 +393,6 @@ static int config_list(int key, const void **data, const struct sr_dev_inst *sdi
 static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 				    void *cb_data)
 {
-	struct sr_datafeed_packet *packet;
-	struct sr_datafeed_header *header;
 	struct dev_context *devc;
 	int ret = SR_ERR;
 
@@ -445,27 +443,10 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	if (ret != SR_OK)
 		return ret;
 
+	/* Send header packet to the session bus. */
+	std_session_send_df_header(cb_data, DRIVER_LOG_DOMAIN);
+
 	sr_source_add(devc->serial->fd, G_IO_IN, -1, mso_receive_data, cb_data);
-
-	if (!(packet = g_try_malloc(sizeof(struct sr_datafeed_packet)))) {
-		sr_err("Datafeed packet malloc failed.");
-		return SR_ERR_MALLOC;
-	}
-
-	if (!(header = g_try_malloc(sizeof(struct sr_datafeed_header)))) {
-		sr_err("Datafeed header malloc failed.");
-		g_free(packet);
-		return SR_ERR_MALLOC;
-	}
-
-	packet->type = SR_DF_HEADER;
-	packet->payload = (unsigned char *)header;
-	header->feed_version = 1;
-	gettimeofday(&header->starttime, NULL);
-	sr_session_send(cb_data, packet);
-
-	g_free(header);
-	g_free(packet);
 
 	return SR_OK;
 }

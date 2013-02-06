@@ -543,7 +543,6 @@ static void parse_contents(FILE *file, const struct sr_dev_inst *sdi, struct con
 
 static int loadfile(struct sr_input *in, const char *filename)
 {
-	struct sr_datafeed_header header;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_meta meta;
 	struct sr_config *src;
@@ -564,11 +563,7 @@ static int loadfile(struct sr_input *in, const char *filename)
 	}
 
 	/* Send header packet to the session bus. */
-	header.feed_version = 1;
-	gettimeofday(&header.starttime, NULL);
-	packet.type = SR_DF_HEADER;
-	packet.payload = &header;
-	sr_session_send(in->sdi, &packet);
+	std_session_send_df_header(in->sdi, DRIVER_LOG_DOMAIN);
 
 	/* Send metadata about the SR_DF_LOGIC packets to come. */
 	packet.type = SR_DF_META;

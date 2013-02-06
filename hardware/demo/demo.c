@@ -387,13 +387,9 @@ static int receive_data(int fd, int revents, void *cb_data)
 static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 		void *cb_data)
 {
-	struct sr_datafeed_packet *packet;
-	struct sr_datafeed_header *header;
 	struct dev_context *devc;
 
 	(void)sdi;
-
-	sr_dbg("Starting acquisition.");
 
 	/* TODO: 'devc' is never g_free()'d? */
 	if (!(devc = g_try_malloc(sizeof(struct dev_context)))) {
@@ -434,27 +430,11 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	sr_session_source_add_channel(devc->channels[0], G_IO_IN | G_IO_ERR,
 		    40, receive_data, devc);
 
-	if (!(packet = g_try_malloc(sizeof(struct sr_datafeed_packet)))) {
-		sr_err("%s: packet malloc failed", __func__);
-		return SR_ERR_MALLOC;
-	}
-
-	if (!(header = g_try_malloc(sizeof(struct sr_datafeed_header)))) {
-		sr_err("%s: header malloc failed", __func__);
-		return SR_ERR_MALLOC;
-	}
-
-	packet->type = SR_DF_HEADER;
-	packet->payload = header;
-	header->feed_version = 1;
-	gettimeofday(&header->starttime, NULL);
-	sr_session_send(devc->session_dev_id, packet);
+	/* Send header packet to the session bus. */
+	std_session_send_df_header(cb_data, DRIVER_LOG_DOMAIN);
 
 	/* We use this timestamp to decide how many more samples to send. */
 	devc->starttime = g_get_monotonic_time();
-
-	g_free(header);
-	g_free(packet);
 
 	return SR_OK;
 }

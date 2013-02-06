@@ -431,8 +431,6 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 				    void *cb_data)
 {
 	struct dev_context *devc;
-	struct sr_datafeed_packet packet;
-	struct sr_datafeed_header header;
 	char buf[256];
 	int len;
 
@@ -445,11 +443,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	sr_source_add(devc->fd, G_IO_IN, 50, rigol_ds1xx2_receive_data, (void *)sdi);
 
 	/* Send header packet to the session bus. */
-	packet.type = SR_DF_HEADER;
-	packet.payload = (unsigned char *)&header;
-	header.feed_version = 1;
-	gettimeofday(&header.starttime, NULL);
-	sr_session_send(cb_data, &packet);
+	std_session_send_df_header(cb_data, DRIVER_LOG_DOMAIN);
 
 	/* Hardcoded to CH1 only. */
 	devc->enabled_probes = g_slist_append(NULL, sdi->probes->data);

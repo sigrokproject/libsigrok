@@ -676,7 +676,6 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 {
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
-	struct sr_datafeed_header header;
 	//uint64_t samples_read;
 	int res;
 	unsigned int packet_num;
@@ -710,11 +709,8 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	sr_info("Trigger address = 0x%x.",
 		analyzer_get_trigger_address(devc->usb->devhdl));
 
-	packet.type = SR_DF_HEADER;
-	packet.payload = &header;
-	header.feed_version = 1;
-	gettimeofday(&header.starttime, NULL);
-	sr_session_send(cb_data, &packet);
+	/* Send header packet to the session bus. */
+	std_session_send_df_header(cb_data, DRIVER_LOG_DOMAIN);
 
 	if (!(buf = g_try_malloc(PACKET_SIZE))) {
 		sr_err("Packet buffer malloc failed.");

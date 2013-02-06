@@ -98,7 +98,6 @@ static int init(struct sr_input *in)
 
 static int loadfile(struct sr_input *in, const char *filename)
 {
-	struct sr_datafeed_header header;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_meta meta;
 	struct sr_datafeed_logic logic;
@@ -115,11 +114,7 @@ static int loadfile(struct sr_input *in, const char *filename)
 	num_probes = g_slist_length(in->sdi->probes);
 
 	/* Send header packet to the session bus. */
-	header.feed_version = 1;
-	gettimeofday(&header.starttime, NULL);
-	packet.type = SR_DF_HEADER;
-	packet.payload = &header;
-	sr_session_send(in->sdi, &packet);
+	std_session_send_df_header(in->sdi, DRIVER_LOG_DOMAIN);
 
 	if (ctx->samplerate) {
 		packet.type = SR_DF_META;

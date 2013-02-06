@@ -313,7 +313,6 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 		void *cb_data)
 {
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_header header;
 	struct dev_context *devc;
 	struct drv_context *drvc = di->priv;
 	struct libusb_transfer *xfer_in, *xfer_out;
@@ -336,11 +335,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	sr_dbg("Starting log retrieval.");
 
 	/* Send header packet to the session bus. */
-	sr_dbg("Sending SR_DF_HEADER.");
-	packet.type = SR_DF_HEADER;
-	packet.payload = (uint8_t *)&header;
-	header.feed_version = 1;
-	sr_session_send(devc->cb_data, &packet);
+	std_session_send_df_header(cb_data, DRIVER_LOG_DOMAIN);
 
 	if (devc->logged_samples == 0) {
 		/* This ensures the frontend knows the session is done. */

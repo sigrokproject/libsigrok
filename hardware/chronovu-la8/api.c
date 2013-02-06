@@ -406,8 +406,6 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 				    void *cb_data)
 {
 	struct dev_context *devc;
-	struct sr_datafeed_packet packet;
-	struct sr_datafeed_header header;
 	uint8_t buf[4];
 	int bytes_written;
 
@@ -432,8 +430,6 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 		return SR_ERR;
 	}
 
-	sr_dbg("Starting acquisition.");
-
 	/* Fill acquisition parameters into buf[]. */
 	buf[0] = devc->divcount;
 	buf[1] = 0xff; /* This byte must always be 0xff. */
@@ -451,17 +447,12 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 		return SR_ERR;
 	}
 
-	sr_dbg("Acquisition started successfully.");
+	sr_dbg("Hardware acquisition started successfully.");
 
 	devc->session_dev_id = cb_data;
 
 	/* Send header packet to the session bus. */
-	sr_dbg("Sending SR_DF_HEADER.");
-	packet.type = SR_DF_HEADER;
-	packet.payload = &header;
-	header.feed_version = 1;
-	gettimeofday(&header.starttime, NULL);
-	sr_session_send(devc->session_dev_id, &packet);
+	std_session_send_df_header(cb_data, DRIVER_LOG_DOMAIN);
 
 	/* Time when we should be done (for detecting trigger timeouts). */
 	devc->done = (devc->divcount + 1) * 0.08388608 + time(NULL)

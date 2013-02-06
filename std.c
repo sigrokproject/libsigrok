@@ -57,3 +57,45 @@ SR_PRIV int std_hw_init(struct sr_context *sr_ctx, struct sr_dev_driver *di,
 
 	return SR_OK;
 }
+
+/**
+ * Standard API helper for sending an SR_DF_HEADER packet.
+ *
+ * This function can be used to simplify most driver's
+ * hw_dev_acquisition_start() API callback.
+ *
+ * @param sdi The device instance to use.
+ * @param prefix A driver-specific prefix string used for log messages.
+ * 		 Must not be NULL. An empty string is allowed.
+ *
+ * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or
+ *         SR_ERR upon other errors.
+ */
+SR_PRIV int std_session_send_df_header(const struct sr_dev_inst *sdi,
+				       const char *prefix)
+{
+	int ret;
+	struct sr_datafeed_packet packet;
+	struct sr_datafeed_header header;
+
+	if (!prefix) {
+		sr_err("Invalid prefix.");
+		return SR_ERR_ARG;
+	}
+
+	sr_dbg("%sStarting acquisition.", prefix);
+
+	/* Send header packet to the session bus. */
+	sr_dbg("%sSending SR_DF_HEADER packet.", prefix);
+	packet.type = SR_DF_HEADER;
+	packet.payload = (uint8_t *)&header;
+	header.feed_version = 1;
+	gettimeofday(&header.starttime, NULL);
+
+	if ((ret = sr_session_send(sdi, &packet)) < 0) {
+		sr_err("%sFailed to send header packet: %d.", prefix, ret);
+		return ret;
+	}
+
+	return SR_OK;
+}
