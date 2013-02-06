@@ -454,6 +454,7 @@ SR_PRIV struct sr_dev_driver lascar_el_usb_driver_info = {
 	.scan = hw_scan,
 	.dev_list = hw_dev_list,
 	.dev_clear = clear_instances,
+	.config_get = NULL,
 	.config_set = config_set,
 	.config_list = config_list,
 	.dev_open = hw_dev_open,

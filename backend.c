@@ -165,6 +165,15 @@ static int sanity_check_all_drivers(void)
 			sr_err("No dev_clear in driver %d ('%s').", i, d);
 			errors++;
 		}
+		/* Note: config_get() is optional. */
+		if (!drivers[i]->config_set) {
+			sr_err("No config_set in driver %d ('%s').", i, d);
+			errors++;
+		}
+		if (!drivers[i]->config_list) {
+			sr_err("No config_list in driver %d ('%s').", i, d);
+			errors++;
+		}
 		if (!drivers[i]->dev_open) {
 			sr_err("No dev_open in driver %d ('%s').", i, d);
 			errors++;

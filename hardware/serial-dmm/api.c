@@ -495,6 +495,7 @@ SR_PRIV struct sr_dev_driver ID##_driver_info = { \
 	.scan = hw_scan_##ID_UPPER, \
 	.dev_list = hw_dev_list_##ID_UPPER, \
 	.dev_clear = clear_instances_##ID_UPPER, \
+	.config_get = NULL, \
 	.config_set = config_set, \
 	.config_list = config_list, \
 	.dev_open = hw_dev_open, \

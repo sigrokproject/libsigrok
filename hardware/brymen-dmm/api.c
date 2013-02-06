@@ -233,8 +233,7 @@ static int config_list(int key, const void **data,
 	return SR_OK;
 }
 
-static int hw_dev_config_set(int id, const void *value,
-			     const struct sr_dev_inst *sdi)
+static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	int ret;
@@ -332,10 +331,11 @@ SR_PRIV struct sr_dev_driver brymen_bm857_driver_info = {
 	.scan = hw_scan,
 	.dev_list = hw_dev_list,
 	.dev_clear = clear_instances,
+	.config_get = NULL,
+	.config_set = config_set,
+	.config_list = config_list,
 	.dev_open = hw_dev_open,
 	.dev_close = hw_dev_close,
-	.config_list = config_list,
-	.config_set = hw_dev_config_set,
 	.dev_acquisition_start = hw_dev_acquisition_start,
 	.dev_acquisition_stop = hw_dev_acquisition_stop,
 	.priv = NULL,

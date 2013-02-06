@@ -383,9 +383,6 @@ SR_API int sr_config_get(const struct sr_dev_driver *driver, int key,
 	if (!driver || !data)
 		return SR_ERR;
 
-	if (!driver->config_get)
-		return SR_ERR_ARG;
-
 	ret = driver->config_get(key, data, sdi);
 
 	return ret;
@@ -442,9 +439,6 @@ SR_API int sr_config_list(const struct sr_dev_driver *driver, int key,
 
 	if (!driver || !data)
 		return SR_ERR;
-
-	if (!driver->config_list)
-		return SR_ERR_ARG;
 
 	ret = driver->config_list(key, data, sdi);
 
