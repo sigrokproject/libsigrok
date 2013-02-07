@@ -314,7 +314,7 @@ SR_API int sr_session_start(void)
 		return SR_ERR_BUG;
 	}
 
-	sr_info("session: starting");
+	sr_info("Starting.");
 
 	ret = SR_OK;
 	for (l = session->devs; l; l = l->next) {
