@@ -79,7 +79,7 @@ struct dev_context {
 	GIOChannel *channels[2];
 	uint8_t sample_generator;
 	uint64_t samples_counter;
-	void *session_dev_id;
+	void *cb_data;
 	int64_t starttime;
 };
 
@@ -371,7 +371,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 		logic.length = sending_now;
 		logic.unitsize = 1;
 		logic.data = buf;
-		sr_session_send(devc->session_dev_id, &packet);
+		sr_session_send(devc->cb_data, &packet);
 		devc->samples_counter += sending_now;
 	}
 
@@ -398,7 +398,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	}
 
 	devc->sample_generator = default_pattern;
-	devc->session_dev_id = cb_data;
+	devc->cb_data = cb_data;
 	devc->samples_counter = 0;
 
 	/*
@@ -455,7 +455,7 @@ static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 
 	/* Send last packet. */
 	packet.type = SR_DF_END;
-	sr_session_send(devc->session_dev_id, &packet);
+	sr_session_send(devc->cb_data, &packet);
 
 	return SR_OK;
 }

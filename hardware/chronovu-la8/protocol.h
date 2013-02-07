@@ -64,8 +64,7 @@ struct dev_context {
 	/** The current sampling limit (in number of samples). */
 	uint64_t limit_samples;
 
-	/** TODO */
-	void *session_dev_id;
+	void *cb_data;
 
 	/**
 	 * A buffer containing some (mangled) samples from the device.

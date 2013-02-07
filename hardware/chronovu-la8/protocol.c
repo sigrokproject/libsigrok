@@ -488,7 +488,7 @@ SR_PRIV void send_block_to_session_bus(struct dev_context *devc, int block)
 		logic.length = BS;
 		logic.unitsize = 1;
 		logic.data = devc->final_buf + (block * BS);
-		sr_session_send(devc->session_dev_id, &packet);
+		sr_session_send(devc->cb_data, &packet);
 		return;
 	}
 
@@ -511,7 +511,7 @@ SR_PRIV void send_block_to_session_bus(struct dev_context *devc, int block)
 		logic.length = trigger_point;
 		logic.unitsize = 1;
 		logic.data = devc->final_buf + (block * BS);
-		sr_session_send(devc->session_dev_id, &packet);
+		sr_session_send(devc->cb_data, &packet);
 	}
 
 	/* Send the SR_DF_TRIGGER packet to the session bus. */
@@ -519,7 +519,7 @@ SR_PRIV void send_block_to_session_bus(struct dev_context *devc, int block)
 		(block * BS) + trigger_point);
 	packet.type = SR_DF_TRIGGER;
 	packet.payload = NULL;
-	sr_session_send(devc->session_dev_id, &packet);
+	sr_session_send(devc->cb_data, &packet);
 
 	/* If at least one sample is located after the trigger... */
 	if (trigger_point < (BS - 1)) {
@@ -532,6 +532,6 @@ SR_PRIV void send_block_to_session_bus(struct dev_context *devc, int block)
 		logic.length = BS - trigger_point;
 		logic.unitsize = 1;
 		logic.data = devc->final_buf + (block * BS) + trigger_point;
-		sr_session_send(devc->session_dev_id, &packet);
+		sr_session_send(devc->cb_data, &packet);
 	}
 }

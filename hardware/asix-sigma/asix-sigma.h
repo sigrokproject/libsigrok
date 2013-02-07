@@ -196,7 +196,7 @@ struct dev_context {
 	struct sigma_trigger trigger;
 	int use_triggers;
 	struct sigma_state state;
-	void *session_dev_id;
+	void *cb_data;
 };
 
 #endif

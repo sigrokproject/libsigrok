@@ -95,7 +95,7 @@ struct dev_context {
 	int submitted_transfers;
 	int empty_transfer_count;
 
-	void *session_dev_id;
+	void *cb_data;
 
 	struct sr_usb_dev_inst *usb;
 

@@ -100,7 +100,7 @@ static GSList *hw_scan(GSList *options)
 	devc->cur_samplerate = SR_MHZ(100); /* 100MHz == max. samplerate */
 	devc->limit_msec = 0;
 	devc->limit_samples = 0;
-	devc->session_dev_id = NULL;
+	devc->cb_data = NULL;
 	memset(devc->mangled_buf, 0, BS);
 	devc->final_buf = NULL;
 	devc->trigger_pattern = 0x00; /* Value irrelevant, see trigger_mask. */
@@ -449,7 +449,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 
 	sr_dbg("Hardware acquisition started successfully.");
 
-	devc->session_dev_id = cb_data;
+	devc->cb_data = cb_data;
 
 	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, DRIVER_LOG_DOMAIN);

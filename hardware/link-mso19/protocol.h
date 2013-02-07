@@ -123,7 +123,7 @@ struct dev_context {
 	double dso_trigger_voltage;
 	uint16_t dso_trigger_width;
 	struct mso_prototrig protocol_trigger;
-	void *session_dev_id;
+	void *cb_data;
 	uint16_t buffer_n;
 	char buffer[4096];
 };
