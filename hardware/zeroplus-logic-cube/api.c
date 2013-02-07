@@ -17,16 +17,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/time.h>
-#include <inttypes.h>
-#include <glib.h>
-#include <libusb.h>
-#include "libsigrok.h"
-#include "libsigrok-internal.h"
-#include "analyzer.h"
 #include "protocol.h"
 
 #define USB_VENDOR			0x0c12
@@ -104,7 +94,7 @@ static struct sr_dev_driver *di = &zeroplus_logic_cube_driver_info;
  * TODO: We shouldn't support 150MHz and 200MHz on devices that don't go up
  * that high.
  */
-static const uint64_t supported_samplerates[] = {
+const uint64_t zp_supported_samplerates[] = {
 	SR_HZ(100),
 	SR_HZ(500),
 	SR_KHZ(1),
@@ -130,43 +120,10 @@ static const struct sr_samplerates samplerates = {
 	.low  = 0,
 	.high = 0,
 	.step = 0,
-	.list = supported_samplerates,
-};
-
-/* Private, per-device-instance driver context. */
-struct dev_context {
-	uint64_t cur_samplerate;
-	uint64_t max_samplerate;
-	uint64_t limit_samples;
-	int num_channels; /* TODO: This isn't initialized before it's needed :( */
-	int memory_size;
-	unsigned int max_memory_size;
-	//uint8_t probe_mask;
-	//uint8_t trigger_mask[NUM_TRIGGER_STAGES];
-	//uint8_t trigger_value[NUM_TRIGGER_STAGES];
-	// uint8_t trigger_buffer[NUM_TRIGGER_STAGES];
-	int trigger;
-	unsigned int capture_ratio;
-
-	/* TODO: this belongs in the device instance */
-	struct sr_usb_dev_inst *usb;
+	.list = zp_supported_samplerates,
 };
 
 static int hw_dev_close(struct sr_dev_inst *sdi);
-
-static unsigned int get_memory_size(int type)
-{
-	if (type == MEMORY_SIZE_8K)
-		return 8 * 1024;
-	else if (type == MEMORY_SIZE_64K)
-		return 64 * 1024;
-	else if (type == MEMORY_SIZE_128K)
-		return 128 * 1024;
-	else if (type == MEMORY_SIZE_512K)
-		return 512 * 1024;
-	else
-		return 0;
-}
 
 #if 0
 static int configure_probes(const struct sr_dev_inst *sdi)
@@ -532,69 +489,6 @@ static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int set_samplerate(struct dev_context *devc, uint64_t samplerate)
-{
-	int i;
-
-	for (i = 0; supported_samplerates[i]; i++)
-		if (samplerate == supported_samplerates[i])
-			break;
-
-	if (!supported_samplerates[i] || samplerate > devc->max_samplerate) {
-		sr_err("Unsupported samplerate.");
-		return SR_ERR_ARG;
-	}
-
-	sr_info("Setting samplerate to %" PRIu64 "Hz.", samplerate);
-
-	if (samplerate >= SR_MHZ(1))
-		analyzer_set_freq(samplerate / SR_MHZ(1), FREQ_SCALE_MHZ);
-	else if (samplerate >= SR_KHZ(1))
-		analyzer_set_freq(samplerate / SR_KHZ(1), FREQ_SCALE_KHZ);
-	else
-		analyzer_set_freq(samplerate, FREQ_SCALE_HZ);
-
-	devc->cur_samplerate = samplerate;
-
-	return SR_OK;
-}
-
-static int set_limit_samples(struct dev_context *devc, uint64_t samples)
-{
-	devc->limit_samples = samples;
-
-	if (samples <= 2 * 1024)
-		devc->memory_size = MEMORY_SIZE_8K;
-	else if (samples <= 16 * 1024)
-		devc->memory_size = MEMORY_SIZE_64K;
-	else if (samples <= 32 * 1024 ||
-		 devc->max_memory_size <= 32 * 1024)
-		devc->memory_size = MEMORY_SIZE_128K;
-	else
-		devc->memory_size = MEMORY_SIZE_512K;
-
-	sr_info("Setting memory size to %dK.",
-		get_memory_size(devc->memory_size) / 1024);
-
-	analyzer_set_memory_size(devc->memory_size);
-
-	return SR_OK;
-}
-
-static int set_capture_ratio(struct dev_context *devc, uint64_t ratio)
-{
-	if (ratio > 100) {
-		sr_err("Invalid capture ratio: %" PRIu64 ".", ratio);
-		return SR_ERR_ARG;
-	}
-
-	devc->capture_ratio = ratio;
-
-	sr_info("Setting capture ratio to %d%%.", devc->capture_ratio);
-
-	return SR_OK;
-}
-
 static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
@@ -611,7 +505,7 @@ static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 
 	switch (id) {
 	case SR_CONF_SAMPLERATE:
-		return set_samplerate(devc, *(const uint64_t *)value);
+		return zp_set_samplerate(devc, *(const uint64_t *)value);
 	case SR_CONF_LIMIT_SAMPLES:
 		return set_limit_samples(devc, *(const uint64_t *)value);
 	case SR_CONF_CAPTURE_RATIO:
@@ -640,35 +534,6 @@ static int config_list(int key, const void **data, const struct sr_dev_inst *sdi
 	}
 
 	return SR_OK;
-}
-
-static void set_triggerbar(struct dev_context *devc)
-{
-	unsigned int ramsize;
-	unsigned int n;
-	unsigned int triggerbar;
-
-	ramsize = get_memory_size(devc->memory_size) / 4;
-	if (devc->trigger) {
-		n = ramsize;
-		if (devc->max_memory_size < n)
-			n = devc->max_memory_size;
-		if (devc->limit_samples < n)
-			n = devc->limit_samples;
-		n = n * devc->capture_ratio / 100;
-		if (n > ramsize - 8)
-			triggerbar = ramsize - 8;
-		else
-			triggerbar = n;
-	} else {
-		triggerbar = 0;
-	}
-	analyzer_set_triggerbar_address(triggerbar);
-	analyzer_set_ramsize_trigger_address(ramsize - triggerbar);
-
-	sr_dbg("triggerbar_address = %d(0x%x)", triggerbar, triggerbar);
-	sr_dbg("ramsize_triggerbar_address = %d(0x%x)",
-	       ramsize - triggerbar, ramsize - triggerbar);
 }
 
 static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,

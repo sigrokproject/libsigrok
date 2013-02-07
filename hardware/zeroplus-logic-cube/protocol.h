@@ -21,6 +21,13 @@
 #ifndef LIBSIGROK_HARDWARE_ZEROPLUS_LOGIC_CUBE_PROTOCOL_H
 #define LIBSIGROK_HARDWARE_ZEROPLUS_LOGIC_CUBE_PROTOCOL_H
 
+#include <stdint.h>
+#include <glib.h>
+#include <libusb.h>
+#include "libsigrok.h"
+#include "libsigrok-internal.h"
+#include "analyzer.h"
+
 /* Message logging helpers with driver-specific prefix string. */
 #define DRIVER_LOG_DOMAIN "zeroplus: "
 #define sr_log(l, s, args...) sr_log(l, DRIVER_LOG_DOMAIN s, ## args)
@@ -29,5 +36,32 @@
 #define sr_info(s, args...) sr_info(DRIVER_LOG_DOMAIN s, ## args)
 #define sr_warn(s, args...) sr_warn(DRIVER_LOG_DOMAIN s, ## args)
 #define sr_err(s, args...) sr_err(DRIVER_LOG_DOMAIN s, ## args)
+
+/* Private, per-device-instance driver context. */
+struct dev_context {
+	uint64_t cur_samplerate;
+	uint64_t max_samplerate;
+	uint64_t limit_samples;
+	int num_channels; /* TODO: This isn't initialized before it's needed :( */
+	int memory_size;
+	unsigned int max_memory_size;
+	//uint8_t probe_mask;
+	//uint8_t trigger_mask[NUM_TRIGGER_STAGES];
+	//uint8_t trigger_value[NUM_TRIGGER_STAGES];
+	// uint8_t trigger_buffer[NUM_TRIGGER_STAGES];
+	int trigger;
+	unsigned int capture_ratio;
+
+	/* TODO: this belongs in the device instance */
+	struct sr_usb_dev_inst *usb;
+};
+
+extern const uint64_t zp_supported_samplerates[];
+
+SR_PRIV unsigned int get_memory_size(int type);
+SR_PRIV int zp_set_samplerate(struct dev_context *devc, uint64_t samplerate);
+SR_PRIV int set_limit_samples(struct dev_context *devc, uint64_t samples);
+SR_PRIV int set_capture_ratio(struct dev_context *devc, uint64_t ratio);
+SR_PRIV void set_triggerbar(struct dev_context *devc);
 
 #endif
