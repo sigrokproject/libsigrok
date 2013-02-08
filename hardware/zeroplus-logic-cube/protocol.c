@@ -37,11 +37,11 @@ SR_PRIV int zp_set_samplerate(struct dev_context *devc, uint64_t samplerate)
 {
 	int i;
 
-	for (i = 0; zp_supported_samplerates[i]; i++)
-		if (samplerate == zp_supported_samplerates[i])
+	for (i = 0; zp_supported_samplerates_200[i]; i++)
+		if (samplerate == zp_supported_samplerates_200[i])
 			break;
 
-	if (!zp_supported_samplerates[i] || samplerate > devc->max_samplerate) {
+	if (!zp_supported_samplerates_200[i] || samplerate > devc->max_samplerate) {
 		sr_err("Unsupported samplerate: %" PRIu64 "Hz.", samplerate);
 		return SR_ERR_ARG;
 	}

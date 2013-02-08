@@ -52,9 +52,10 @@ struct dev_context {
 	int trigger;
 	unsigned int capture_ratio;
 	struct sr_usb_dev_inst *usb;
+	const struct zp_model *prof;
 };
 
-extern const uint64_t zp_supported_samplerates[];
+extern const uint64_t zp_supported_samplerates_200[];
 
 SR_PRIV unsigned int get_memory_size(int type);
 SR_PRIV int zp_set_samplerate(struct dev_context *devc, uint64_t samplerate);

@@ -80,11 +80,27 @@ static struct sr_dev_driver *di = &zeroplus_logic_cube_driver_info;
  * options hardcoded into the vendor's Windows GUI.
  */
 
-/*
- * TODO: We shouldn't support 150MHz and 200MHz on devices that don't go up
- * that high.
- */
-const uint64_t zp_supported_samplerates[] = {
+static const uint64_t zp_supported_samplerates_100[] = {
+	SR_HZ(100),
+	SR_HZ(500),
+	SR_KHZ(1),
+	SR_KHZ(5),
+	SR_KHZ(25),
+	SR_KHZ(50),
+	SR_KHZ(100),
+	SR_KHZ(200),
+	SR_KHZ(400),
+	SR_KHZ(800),
+	SR_MHZ(1),
+	SR_MHZ(10),
+	SR_MHZ(25),
+	SR_MHZ(50),
+	SR_MHZ(80),
+	SR_MHZ(100),
+	0,
+};
+
+const uint64_t zp_supported_samplerates_200[] = {
 	SR_HZ(100),
 	SR_HZ(500),
 	SR_KHZ(1),
@@ -106,11 +122,18 @@ const uint64_t zp_supported_samplerates[] = {
 	0,
 };
 
-static const struct sr_samplerates samplerates = {
+static const struct sr_samplerates samplerates_100 = {
 	.low  = 0,
 	.high = 0,
 	.step = 0,
-	.list = zp_supported_samplerates,
+	.list = zp_supported_samplerates_100,
+};
+
+static const struct sr_samplerates samplerates_200 = {
+	.low  = 0,
+	.high = 0,
+	.step = 0,
+	.list = zp_supported_samplerates_200,
 };
 
 static int hw_dev_close(struct sr_dev_inst *sdi);
@@ -295,6 +318,7 @@ static GSList *hw_scan(GSList *options)
 		}
 
 		sdi->priv = devc;
+		devc->prof = prof;
 		devc->num_channels = prof->channels;
 #ifdef ZP_EXPERIMENTAL
 		devc->max_memory_size = 128 * 1024;
@@ -512,14 +536,23 @@ static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 
 static int config_list(int key, const void **data, const struct sr_dev_inst *sdi)
 {
-	(void)sdi;
+	struct dev_context *devc;
 
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
 		*data = hwcaps;
 		break;
 	case SR_CONF_SAMPLERATE:
-		*data = &samplerates;
+		devc = sdi->priv;
+		if (devc->prof->max_sampling_freq == 100) {
+			*data = &samplerates_100;
+		} else if (devc->prof->max_sampling_freq == 200) {
+			*data = &samplerates_200;
+		} else {
+			sr_err("Internal error: Unknown max. samplerate: %d.",
+			       devc->prof->max_sampling_freq);
+			return SR_ERR_ARG;
+		}
 		break;
 	case SR_CONF_TRIGGER_TYPE:
 		*data = TRIGGER_TYPE;
