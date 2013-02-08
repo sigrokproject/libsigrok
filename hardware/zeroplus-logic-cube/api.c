@@ -19,44 +19,37 @@
 
 #include "protocol.h"
 
-#define USB_VENDOR			0x0c12
-
 #define VENDOR_NAME			"ZEROPLUS"
-#define MODEL_NAME			"Logic Cube LAP-C"
-#define MODEL_VERSION			NULL
-
-#define NUM_PROBES			16
 #define USB_INTERFACE			0
 #define USB_CONFIGURATION		1
 #define NUM_TRIGGER_STAGES		4
 #define TRIGGER_TYPE 			"01"
-
 #define PACKET_SIZE			2048	/* ?? */
 
 //#define ZP_EXPERIMENTAL
 
-typedef struct {
-	unsigned short vid;
-	unsigned short pid;
+struct zp_model {
+	uint16_t vid;
+	uint16_t pid;
 	char *model_name;
 	unsigned int channels;
 	unsigned int sample_depth;	/* In Ksamples/channel */
 	unsigned int max_sampling_freq;
-} model_t;
+};
 
 /*
  * Note -- 16032, 16064 and 16128 *usually* -- but not always -- have the
  * same 128K sample depth.
  */
-static model_t zeroplus_models[] = {
+static const struct zp_model zeroplus_models[] = {
 	{0x0c12, 0x7009, "LAP-C(16064)",  16, 64,   100},
-	{0x0c12, 0x700A, "LAP-C(16128)",  16, 128,  200},
-	/* TODO: we don't know anything about these
-	{0x0c12, 0x700B, "LAP-C(32128)",  32, 128,  200},
-	{0x0c12, 0x700C, "LAP-C(321000)", 32, 1024, 200},
-	{0x0c12, 0x700D, "LAP-C(322000)", 32, 2048, 200},
+	{0x0c12, 0x700a, "LAP-C(16128)",  16, 128,  200},
+	/* TODO: We don't know anything about these.
+	{0x0c12, 0x700b, "LAP-C(32128)",  32, 128,  200},
+	{0x0c12, 0x700c, "LAP-C(321000)", 32, 1024, 200},
+	{0x0c12, 0x700d, "LAP-C(322000)", 32, 2048, 200},
 	*/
-	{0x0c12, 0x700E, "LAP-C(16032)",  16, 32,   100},
+	{0x0c12, 0x700e, "LAP-C(16032)",  16, 32,   100},
 	{0x0c12, 0x7016, "LAP-C(162000)", 16, 2048, 200},
 	{ 0, 0, 0, 0, 0, 0 }
 };
@@ -65,8 +58,6 @@ static const int hwcaps[] = {
 	SR_CONF_LOGIC_ANALYZER,
 	SR_CONF_SAMPLERATE,
 	SR_CONF_CAPTURE_RATIO,
-
-	/* These are really implemented in the driver, not the hardware. */
 	SR_CONF_LIMIT_SAMPLES,
 	0,
 };
@@ -75,13 +66,12 @@ static const int hwcaps[] = {
  * ZEROPLUS LAP-C (16032) numbers the 16 probes A0-A7 and B0-B7.
  * We currently ignore other untested/unsupported devices here.
  */
-static const char *probe_names[NUM_PROBES + 1] = {
+static const char *probe_names[] = {
 	"A0", "A1", "A2", "A3", "A4", "A5", "A6", "A7",
 	"B0", "B1", "B2", "B3", "B4", "B5", "B6", "B7",
 	NULL,
 };
 
-/* List of struct sr_dev_inst, maintained by dev_open()/dev_close(). */
 SR_PRIV struct sr_dev_driver zeroplus_logic_cube_driver_info;
 static struct sr_dev_driver *di = &zeroplus_logic_cube_driver_info;
 
@@ -252,7 +242,7 @@ static GSList *hw_scan(GSList *options)
 	struct sr_probe *probe;
 	struct drv_context *drvc;
 	struct dev_context *devc;
-	model_t *prof;
+	const struct zp_model *prof;
 	struct libusb_device_descriptor des;
 	libusb_device **devlist;
 	GSList *devices;
@@ -285,10 +275,10 @@ static GSList *hw_scan(GSList *options)
 				prof = &zeroplus_models[j];
 			}
 		}
-		/* Skip if the device was not found */
+		/* Skip if the device was not found. */
 		if (!prof)
 			continue;
-		sr_info("Found ZEROPLUS model %s.", prof->model_name);
+		sr_info("Found ZEROPLUS %s.", prof->model_name);
 
 		/* Register the device with libsigrok. */
 		if (!(sdi = sr_dev_inst_new(devcnt, SR_ST_INACTIVE,
@@ -303,6 +293,7 @@ static GSList *hw_scan(GSList *options)
 			sr_err("Device context malloc failed.");
 			return NULL;
 		}
+
 		sdi->priv = devc;
 		devc->num_channels = prof->channels;
 #ifdef ZP_EXPERIMENTAL
@@ -345,10 +336,12 @@ static GSList *hw_dev_list(void)
 static int hw_dev_open(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	struct drv_context *drvc = di->priv;
+	struct drv_context *drvc;
 	libusb_device **devlist, *dev;
 	struct libusb_device_descriptor des;
 	int device_count, ret, i;
+
+	drvc = di->priv;
 
 	if (!(devc = sdi->priv)) {
 		sr_err("%s: sdi->priv was NULL", __func__);
@@ -405,7 +398,7 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
-	/* Set default configuration after power on */
+	/* Set default configuration after power on. */
 	if (analyzer_read_status(devc->usb->devhdl) == 0)
 		analyzer_configure(devc->usb->devhdl);
 
@@ -513,6 +506,8 @@ static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 	default:
 		return SR_ERR;
 	}
+
+	return SR_OK;
 }
 
 static int config_list(int key, const void **data, const struct sr_dev_inst *sdi)
@@ -543,8 +538,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	struct sr_datafeed_logic logic;
 	//uint64_t samples_read;
 	int res;
-	unsigned int packet_num;
-	unsigned int n;
+	unsigned int packet_num, n;
 	unsigned char *buf;
 	struct dev_context *devc;
 
@@ -560,7 +554,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 
 	set_triggerbar(devc);
 
-	/* push configured settings to device */
+	/* Push configured settings to device. */
 	analyzer_configure(devc->usb->devhdl);
 
 	analyzer_start(devc->usb->devhdl);

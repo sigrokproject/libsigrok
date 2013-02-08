@@ -42,7 +42,7 @@ struct dev_context {
 	uint64_t cur_samplerate;
 	uint64_t max_samplerate;
 	uint64_t limit_samples;
-	int num_channels; /* TODO: This isn't initialized before it's needed :( */
+	int num_channels;
 	int memory_size;
 	unsigned int max_memory_size;
 	//uint8_t probe_mask;
@@ -51,8 +51,6 @@ struct dev_context {
 	// uint8_t trigger_buffer[NUM_TRIGGER_STAGES];
 	int trigger;
 	unsigned int capture_ratio;
-
-	/* TODO: this belongs in the device instance */
 	struct sr_usb_dev_inst *usb;
 };
 

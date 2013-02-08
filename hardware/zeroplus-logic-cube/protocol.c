@@ -42,7 +42,7 @@ SR_PRIV int zp_set_samplerate(struct dev_context *devc, uint64_t samplerate)
 			break;
 
 	if (!zp_supported_samplerates[i] || samplerate > devc->max_samplerate) {
-		sr_err("Unsupported samplerate.");
+		sr_err("Unsupported samplerate: %" PRIu64 "Hz.", samplerate);
 		return SR_ERR_ARG;
 	}
 
@@ -68,8 +68,7 @@ SR_PRIV int set_limit_samples(struct dev_context *devc, uint64_t samples)
 		devc->memory_size = MEMORY_SIZE_8K;
 	else if (samples <= 16 * 1024)
 		devc->memory_size = MEMORY_SIZE_64K;
-	else if (samples <= 32 * 1024 ||
-		 devc->max_memory_size <= 32 * 1024)
+	else if (samples <= 32 * 1024 || devc->max_memory_size <= 32 * 1024)
 		devc->memory_size = MEMORY_SIZE_128K;
 	else
 		devc->memory_size = MEMORY_SIZE_512K;
@@ -98,9 +97,7 @@ SR_PRIV int set_capture_ratio(struct dev_context *devc, uint64_t ratio)
 
 SR_PRIV void set_triggerbar(struct dev_context *devc)
 {
-	unsigned int ramsize;
-	unsigned int n;
-	unsigned int triggerbar;
+	unsigned int ramsize, n, triggerbar;
 
 	ramsize = get_memory_size(devc->memory_size) / 4;
 	if (devc->trigger) {
