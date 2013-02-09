@@ -35,11 +35,18 @@ static const int hwcaps[] = {
 	0,
 };
 
+SR_PRIV struct sr_dev_driver mic_98581_driver_info;
 SR_PRIV struct sr_dev_driver mic_98583_driver_info;
 
 SR_PRIV const struct mic_dev_info mic_devs[] = {
 	{
-		"MIC", "98583", "38400/8n2", 32000, TRUE, TRUE,
+		"MIC", "98581", "38400/8n2", 32000, TRUE, FALSE, 6,
+		packet_valid_temp,
+		&mic_98581_driver_info, receive_data_MIC_98581,
+	},
+	{
+		"MIC", "98583", "38400/8n2", 32000, TRUE, TRUE, 10,
+		packet_valid_temp_hum,
 		&mic_98583_driver_info, receive_data_MIC_98583,
 	},
 };
@@ -122,9 +129,11 @@ static GSList *scan(const char *conn, const char *serialcomm, int idx)
 		goto scan_cleanup;
 	sdi->probes = g_slist_append(sdi->probes, probe);
 
-	if (!(probe = sr_probe_new(1, SR_PROBE_ANALOG, TRUE, "Humidity")))
-		goto scan_cleanup;
-	sdi->probes = g_slist_append(sdi->probes, probe);
+	if (mic_devs[idx].has_humidity) {
+		if (!(probe = sr_probe_new(1, SR_PROBE_ANALOG, TRUE, "Humidity")))
+			goto scan_cleanup;
+		sdi->probes = g_slist_append(sdi->probes, probe);
+	}
 
 	drvc->instances = g_slist_append(drvc->instances, sdi);
 	devices = g_slist_append(devices, sdi);
@@ -323,4 +332,5 @@ SR_PRIV struct sr_dev_driver ID##_driver_info = { \
 	.priv = NULL, \
 };
 
+DRV(mic_98581, MIC_98581, "mic-98581", "MIC 98581")
 DRV(mic_98583, MIC_98583, "mic-98583", "MIC 98583")

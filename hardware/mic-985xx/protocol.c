@@ -20,8 +20,6 @@
 
 #include "protocol.h"
 
-#define PACKET_SIZE 10
-
 static int mic_send(struct sr_serial_dev_inst *serial, const char *cmd)
 {
 	int ret;
@@ -44,7 +42,18 @@ static int mic_cmd_set_realtime_mode(struct sr_serial_dev_inst *serial)
 	return mic_send(serial, "S 1 M 2 32 3\r");
 }
 
-static gboolean packet_valid(const uint8_t *buf)
+SR_PRIV gboolean packet_valid_temp(const uint8_t *buf)
+{
+	if (buf[0] != 'v' || buf[1] != ' ' || buf[5] != '\r')
+		return FALSE;
+
+	if (!isdigit(buf[2]) || !isdigit(buf[3]) || !isdigit(buf[4]))
+		return FALSE;
+
+	return TRUE;
+}
+
+SR_PRIV gboolean packet_valid_temp_hum(const uint8_t *buf)
 {
 	if (buf[0] != 'v' || buf[1] != ' ' || buf[5] != ' ' || buf[9] != '\r')
 		return FALSE;
@@ -58,11 +67,12 @@ static gboolean packet_valid(const uint8_t *buf)
 	return TRUE;
 }
 
-static int packet_parse(const char *buf, float *temp, float *humidity)
+static int packet_parse(const char *buf, int idx, float *temp, float *humidity)
 {
 	char tmp[4];
 
-	/* Packet format: "v ttt hhh\r". */
+	/* Packet format MIC98581: "v ttt\r". */
+	/* Packet format MIC98583: "v ttt hhh\r". */
 
 	/* TODO: Sanity check on buf. For now we assume well-formed ASCII. */
 
@@ -71,8 +81,10 @@ static int packet_parse(const char *buf, float *temp, float *humidity)
 	strncpy((char *)&tmp, &buf[2], 3);
 	*temp = g_ascii_strtoull((const char *)&tmp, NULL, 10) / 10;
 
-	strncpy((char *)&tmp, &buf[6], 3);
-	*humidity = g_ascii_strtoull((const char *)&tmp, NULL, 10) / 10;
+	if (mic_devs[idx].has_humidity) {
+		strncpy((char *)&tmp, &buf[6], 3);
+		*humidity = g_ascii_strtoull((const char *)&tmp, NULL, 10) / 10;
+	}
 
 	return SR_OK;
 }
@@ -90,7 +102,7 @@ static int handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi, int idx)
 
 	devc = sdi->priv;
 
-	ret = packet_parse((const char *)buf, &temperature, &humidity);
+	ret = packet_parse((const char *)buf, idx, &temperature, &humidity);
 	if (ret < 0) {
 		sr_err("Failed to parse packet.");
 		return SR_ERR;
@@ -112,14 +124,16 @@ static int handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi, int idx)
 	g_slist_free(l);
 
 	/* Humidity. */
-	l = g_slist_copy(sdi->probes);
-	l = g_slist_remove_link(l, g_slist_nth(l, 0));
-	analog.probes = l;
-	analog.mq = SR_MQ_RELATIVE_HUMIDITY;
-	analog.unit = SR_UNIT_PERCENTAGE;
-	analog.data = &humidity;
-	sr_session_send(devc->cb_data, &packet);
-	g_slist_free(l);
+	if (mic_devs[idx].has_humidity) {
+		l = g_slist_copy(sdi->probes);
+		l = g_slist_remove_link(l, g_slist_nth(l, 0));
+		analog.probes = l;
+		analog.mq = SR_MQ_RELATIVE_HUMIDITY;
+		analog.unit = SR_UNIT_PERCENTAGE;
+		analog.data = &humidity;
+		sr_session_send(devc->cb_data, &packet);
+		g_slist_free(l);
+	}
 
 	devc->num_samples++;
 
@@ -144,10 +158,10 @@ static void handle_new_data(struct sr_dev_inst *sdi, int idx)
 	devc->buflen += len;
 
 	/* Now look for packets in that data. */
-	while ((devc->buflen - offset) >= PACKET_SIZE) {
-		if (packet_valid(devc->buf + offset)) {
+	while ((devc->buflen - offset) >= mic_devs[idx].packet_size) {
+		if (mic_devs[idx].packet_valid(devc->buf + offset)) {
 			handle_packet(devc->buf + offset, sdi, idx);
-			offset += PACKET_SIZE;
+			offset += mic_devs[idx].packet_size;
 		} else {
 			offset++;
 		}
@@ -208,4 +222,5 @@ SR_PRIV int receive_data_##ID_UPPER(int fd, int revents, void *cb_data) { \
 	return receive_data(fd, revents, ID_UPPER, cb_data); }
 
 /* Driver-specific receive_data() wrappers */
+RECEIVE_DATA(MIC_98581)
 RECEIVE_DATA(MIC_98583)

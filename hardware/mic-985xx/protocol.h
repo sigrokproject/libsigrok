@@ -39,10 +39,11 @@
 
 /* Note: When adding entries here, don't forget to update MIC_DEV_COUNT. */
 enum {
+	MIC_98581,
 	MIC_98583,
 };
 
-#define MIC_DEV_COUNT 1
+#define MIC_DEV_COUNT 2
 
 struct mic_dev_info {
 	char *vendor;
@@ -51,6 +52,8 @@ struct mic_dev_info {
 	uint32_t max_sample_points;
 	gboolean has_temperature;
 	gboolean has_humidity;
+	uint8_t packet_size;
+	gboolean (*packet_valid)(const uint8_t *);
 	struct sr_dev_driver *di;
 	int (*receive_data)(int, int, void *);
 };
@@ -82,6 +85,10 @@ struct dev_context {
 	int buflen;
 };
 
+SR_PRIV gboolean packet_valid_temp(const uint8_t *buf);
+SR_PRIV gboolean packet_valid_temp_hum(const uint8_t *buf);
+
+SR_PRIV int receive_data_MIC_98581(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_MIC_98583(int fd, int revents, void *cb_data);
 
 SR_PRIV int mic_cmd_get_device_info(struct sr_serial_dev_inst *serial);
