@@ -37,9 +37,9 @@
 /* TODO tune this properly */
 #define TICK 1
 
-static const int hwcaps[] = {
+static const int devopts[] = {
 	SR_CONF_OSCILLOSCOPE,
-	SR_CONF_LIMIT_SAMPLES,
+	SR_CONF_LIMIT_FRAMES,
 	SR_CONF_CONTINUOUS,
 	SR_CONF_TIMEBASE,
 	SR_CONF_BUFFERSIZE,
@@ -535,7 +535,7 @@ static int config_list(int key, const void **data, const struct sr_dev_inst *sdi
 
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
-		*data = hwcaps;
+		*data = devopts;
 		break;
 	case SR_CONF_BUFFERSIZE:
 		*data = buffersizes;
