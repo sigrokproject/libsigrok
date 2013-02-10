@@ -408,7 +408,7 @@ static int clear_instances(void)
 		}
 		if (sdi->priv) {
 			devc = sdi->priv;
-			ftdi_free(&devc->ftdic);
+			ftdi_deinit(&devc->ftdic);
 		}
 		sr_dev_inst_free(sdi);
 	}
