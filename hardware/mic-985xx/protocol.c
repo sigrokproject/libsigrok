@@ -108,6 +108,9 @@ static int handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi, int idx)
 		return SR_ERR;
 	}
 
+	/* Clear 'analog', otherwise it'll contain random garbage. */
+	memset(&analog, 0, sizeof(struct sr_datafeed_analog));
+
 	/* Common values for both probes. */
 	packet.type = SR_DF_ANALOG;
 	packet.payload = &analog;
