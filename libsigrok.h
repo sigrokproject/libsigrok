@@ -300,18 +300,71 @@ struct sr_datafeed_analog {
 	float *data;
 };
 
+/** Input (file) format struct. */
 struct sr_input {
+	/**
+	 * A pointer to this input format's 'struct sr_input_format'.
+	 * The frontend can use this to call the module's callbacks.
+	 */
 	struct sr_input_format *format;
+
 	GHashTable *param;
+
 	struct sr_dev_inst *sdi;
+
 	void *internal;
 };
 
 struct sr_input_format {
+	/** The unique ID for this input format. Must not be NULL. */
 	char *id;
+
+	/**
+	 * A short description of the input format, which can (for example)
+	 * be displayed to the user by frontends. Must not be NULL.
+	 */
 	char *description;
+
+	/**
+	 * Check if this input module can load and parse the specified file.
+	 *
+	 * @param filename The name (and path) of the file to check.
+	 *
+	 * @return TRUE if this module knows the format, FALSE if it doesn't.
+	 */
 	int (*format_match) (const char *filename);
+
+	/**
+	 * Initialize the input module.
+	 *
+	 * @param in A pointer to a valid 'struct sr_input' that the caller
+	 *           has to allocate and provide to this function. It is also
+	 *           the responsibility of the caller to free it later.
+	 * @param filename The name (and path) of the file to use.
+	 *
+	 * @return SR_OK upon success, a negative error code upon failure.
+	 */
 	int (*init) (struct sr_input *in, const char *filename);
+
+	/**
+	 * Load a file, parsing the input according to the file's format.
+	 *
+	 * This function will send datafeed packets to the session bus, so
+	 * the calling frontend must have registered its session callbacks
+	 * beforehand.
+	 *
+	 * The packet types sent across the session bus by this function must
+	 * include at least SR_DF_HEADER, SR_DF_END, and an appropriate data
+	 * type such as SR_DF_LOGIC. It may also send a SR_DF_TRIGGER packet
+	 * if appropriate.
+	 *
+	 * @param in A pointer to a valid 'struct sr_input' that the caller
+	 *           has to allocate and provide to this function. It is also
+	 *           the responsibility of the caller to free it later.
+	 * @param filename The name (and path) of the file to use.
+	 *
+	 * @return SR_OK upon success, a negative error code upon failure.
+	 */
 	int (*loadfile) (struct sr_input *in, const char *filename);
 };
 

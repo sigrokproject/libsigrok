@@ -31,6 +31,21 @@
  *
  * Input file/data format handling.
  *
+ * libsigrok can process acquisition data in several different ways.
+ * Aside from acquiring data from a hardware device, it can also take it from
+ * a file in various formats (binary, CSV, VCD, and so on).
+ *
+ * Like everything in libsigrok that handles data, processing is done in a
+ * streaming manner -- input should be supplied to libsigrok a chunk at a time.
+ * This way anything that processes data can do so in real time, without the
+ * user having to wait for the whole thing to be finished.
+ *
+ * Every input module is "pluggable", meaning it's handled as being separate
+ * from the main libsigrok, but linked in to it statically. To keep things
+ * modular and separate like this, functions within an input module should be
+ * declared static, with only the respective 'struct sr_input_format' being
+ * exported for use into the wider libsigrok namespace.
+ *
  * @{
  */
 
