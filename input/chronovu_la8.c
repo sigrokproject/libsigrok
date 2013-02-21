@@ -101,12 +101,14 @@ static int format_match(const char *filename)
 	return TRUE;
 }
 
-static int init(struct sr_input *in)
+static int init(struct sr_input *in, const char *filename)
 {
 	struct sr_probe *probe;
 	int num_probes, i;
 	char name[SR_MAX_PROBENAME_LEN + 1];
 	char *param;
+
+	(void)filename;
 
 	num_probes = DEFAULT_NUM_PROBES;
 

@@ -311,7 +311,7 @@ struct sr_input_format {
 	char *id;
 	char *description;
 	int (*format_match) (const char *filename);
-	int (*init) (struct sr_input *in);
+	int (*init) (struct sr_input *in, const char *filename);
 	int (*loadfile) (struct sr_input *in, const char *filename);
 };
 
