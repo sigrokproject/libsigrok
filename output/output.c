@@ -31,6 +31,20 @@
  *
  * Output file/data format handling.
  *
+ * libsigrok supports several output (file) formats, e.g. binary, VCD,
+ * gnuplot, and so on. It provides an output API that frontends can use.
+ * New output formats can be added/implemented in libsigrok without having
+ * to change the frontends at all.
+ *
+ * All output modules are fed data in a stream. Devices that can stream data
+ * into libsigrok live, instead of storing and then transferring the whole
+ * buffer, can thus generate output live.
+ *
+ * Output modules are responsible for allocating enough memory to store
+ * their own output, and passing a pointer to that memory (and length) of
+ * the allocated memory back to the caller. The caller is then expected to
+ * free this memory when finished with it.
+ *
  * @{
  */
 
