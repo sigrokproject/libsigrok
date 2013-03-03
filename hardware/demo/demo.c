@@ -49,6 +49,12 @@
 /* TODO: Should be configurable. */
 #define BUFSIZE                4096
 
+#define STR_PATTERN_SIGROK   "sigrok"
+#define STR_PATTERN_RANDOM   "random"
+#define STR_PATTERN_INC      "incremental"
+#define STR_PATTERN_ALL_LOW  "all-low"
+#define STR_PATTERN_ALL_HIGH "all-high"
+
 /* Supported patterns which we can generate */
 enum {
 	/**
@@ -222,6 +228,31 @@ static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
 	case SR_CONF_SAMPLERATE:
 		*data = &cur_samplerate;
 		break;
+	case SR_CONF_LIMIT_SAMPLES:
+		*data = &limit_samples;
+		break;
+	case SR_CONF_LIMIT_MSEC:
+		*data = &limit_msec;
+		break;
+	case SR_CONF_PATTERN_MODE:
+		switch (default_pattern) {
+		case PATTERN_SIGROK:
+			*data = STR_PATTERN_SIGROK;
+			break;
+		case PATTERN_RANDOM:
+			*data = STR_PATTERN_RANDOM;
+			break;
+		case PATTERN_INC:
+			*data = STR_PATTERN_INC;
+			break;
+		case PATTERN_ALL_LOW:
+			*data = STR_PATTERN_ALL_LOW;
+			break;
+		case PATTERN_ALL_HIGH:
+			*data = STR_PATTERN_ALL_HIGH;
+			break;
+		}
+		break;
 	default:
 		return SR_ERR_ARG;
 	}
@@ -256,15 +287,15 @@ static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 	} else if (id == SR_CONF_PATTERN_MODE) {
 		stropt = value;
 		ret = SR_OK;
-		if (!strcmp(stropt, "sigrok")) {
+		if (!strcmp(stropt, STR_PATTERN_SIGROK)) {
 			default_pattern = PATTERN_SIGROK;
-		} else if (!strcmp(stropt, "random")) {
+		} else if (!strcmp(stropt, STR_PATTERN_RANDOM)) {
 			default_pattern = PATTERN_RANDOM;
-		} else if (!strcmp(stropt, "incremental")) {
+		} else if (!strcmp(stropt, STR_PATTERN_INC)) {
 			default_pattern = PATTERN_INC;
-		} else if (!strcmp(stropt, "all-low")) {
+		} else if (!strcmp(stropt, STR_PATTERN_ALL_LOW)) {
 			default_pattern = PATTERN_ALL_LOW;
-		} else if (!strcmp(stropt, "all-high")) {
+		} else if (!strcmp(stropt, STR_PATTERN_ALL_HIGH)) {
 			default_pattern = PATTERN_ALL_HIGH;
 		} else {
 			ret = SR_ERR;
