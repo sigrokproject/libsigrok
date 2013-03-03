@@ -96,7 +96,6 @@ SR_API int sr_session_datafeed_callback_add(sr_datafeed_callback_t cb);
 /* Session control */
 SR_API int sr_session_start(void);
 SR_API int sr_session_run(void);
-SR_API int sr_session_halt(void);
 SR_API int sr_session_stop(void);
 SR_API int sr_session_save(const char *filename, const struct sr_dev_inst *sdi,
 		unsigned char *buf, int unitsize, int units);

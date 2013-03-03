@@ -367,20 +367,6 @@ SR_API int sr_session_run(void)
 }
 
 /**
- * Halt the current session.
- *
- * This function is deprecated and should not be used in new code, use
- * sr_session_stop() instead. The behaviour of this function is identical to
- * sr_session_stop().
- *
- * @return SR_OK upon success, SR_ERR_BUG if no session exists.
- */
-SR_API int sr_session_halt(void)
-{
-	return sr_session_stop();
-}
-
-/**
  * Stop the current session.
  *
  * The current session is stopped immediately, with all acquisition sessions
