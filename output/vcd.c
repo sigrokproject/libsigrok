@@ -37,7 +37,6 @@
 
 struct context {
 	int num_enabled_probes;
-	int unitsize;
 	char *probelist[SR_MAX_NUM_PROBES + 1];
 	int *prevbits;
 	GString *header;
@@ -79,7 +78,6 @@ static int init(struct sr_output *o)
 	}
 
 	ctx->probelist[ctx->num_enabled_probes] = 0;
-	ctx->unitsize = (ctx->num_enabled_probes + 7) / 8;
 	ctx->header = g_string_sized_new(512);
 	num_probes = g_slist_length(o->sdi->probes);
 
@@ -146,59 +144,51 @@ static int init(struct sr_output *o)
 	return SR_OK;
 }
 
-static int event(struct sr_output *o, int event_type, uint8_t **data_out,
-		 uint64_t *length_out)
+static GString *recv(struct sr_output *o, const struct sr_dev_inst *sdi,
+		const struct sr_datafeed_packet *packet)
 {
-	uint8_t *outbuf;
-
-	switch (event_type) {
-	case SR_DF_END:
-		outbuf = (uint8_t *)g_strdup("$dumpoff\n$end\n");
-		*data_out = outbuf;
-		*length_out = strlen((const char *)outbuf);
-		g_free(o->internal);
-		o->internal = NULL;
-		break;
-	default:
-		*data_out = NULL;
-		*length_out = 0;
-		break;
-	}
-
-	return SR_OK;
-}
-
-static int data(struct sr_output *o, const uint8_t *data_in,
-		uint64_t length_in, uint8_t **data_out, uint64_t *length_out)
-{
+	const struct sr_datafeed_logic *logic;
 	struct context *ctx;
+	GString *text;
 	unsigned int i;
 	int p, curbit, prevbit;
 	uint64_t sample;
 	static uint64_t samplecount = 0;
-	GString *out;
-	int first_sample = 0;
+	gboolean first_sample;
 
+	(void)sdi;
+
+	if (!o || !o->internal)
+		return NULL;
 	ctx = o->internal;
-	out = g_string_sized_new(512);
+
+	if (packet->type == SR_DF_END) {
+		text = g_string_sized_new(16);
+		g_string_printf(text, "$dumpoff\n$end\n");
+		return text;
+	} else if (packet->type != SR_DF_LOGIC)
+		return NULL;
 
 	if (ctx->header) {
 		/* The header is still here, this must be the first packet. */
-		g_string_append(out, ctx->header->str);
-		g_string_free(ctx->header, TRUE);
+		text = ctx->header;
 		ctx->header = NULL;
-		first_sample = 1;
+		first_sample = TRUE;
+	} else {
+		text = g_string_sized_new(512);
+		first_sample = FALSE;
 	}
 
-	for (i = 0; i <= length_in - ctx->unitsize; i += ctx->unitsize) {
+	logic = packet->payload;
+	for (i = 0; i <= logic->length - logic->unitsize; i += logic->unitsize) {
 		samplecount++;
 
-		memcpy(&sample, data_in + i, ctx->unitsize);
+		memcpy(&sample, logic->data + i, logic->unitsize);
 
 		if (first_sample) {
 			/* First packet. We neg to make sure sample is stored. */
 			ctx->prevsample = ~sample;
-			first_sample = 0;
+			first_sample = FALSE;
 		}
 
 		for (p = 0; p < ctx->num_enabled_probes; p++) {
@@ -210,7 +200,7 @@ static int data(struct sr_output *o, const uint8_t *data_in,
 				continue;
 
 			/* Output which signal changed to which value. */
-			g_string_append_printf(out, "#%" PRIu64 "\n%i%c\n",
+			g_string_append_printf(text, "#%" PRIu64 "\n%i%c\n",
 					(uint64_t)(((float)samplecount / ctx->samplerate)
 					* ctx->period), curbit, (char)('!' + p));
 		}
@@ -218,9 +208,18 @@ static int data(struct sr_output *o, const uint8_t *data_in,
 		ctx->prevsample = sample;
 	}
 
-	*data_out = (uint8_t *)out->str;
-	*length_out = out->len;
-	g_string_free(out, FALSE);
+	return text;
+}
+
+static int cleanup(struct sr_output *o)
+{
+	struct context *ctx;
+
+	if (!o || !o->internal)
+		return SR_ERR_ARG;
+
+	ctx = o->internal;
+	g_free(ctx);
 
 	return SR_OK;
 }
@@ -230,6 +229,6 @@ struct sr_output_format output_vcd = {
 	.description = "Value Change Dump (VCD)",
 	.df_type = SR_DF_LOGIC,
 	.init = init,
-	.data = data,
-	.event = event,
+	.recv = recv,
+	.cleanup = cleanup
 };
