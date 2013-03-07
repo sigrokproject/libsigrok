@@ -40,6 +40,7 @@ Requirements
  - libftdi >= 0.16 (optional, used by some drivers)
  - libudev >= 151 (optional, used by some drivers)
  - libasound / alsa-lib >= 1.0 (optional, only used by the alsa driver)
+ - check >= 0.9.4 (optional, only needed to run unit tests)
 
 
 Building and installing

@@ -144,6 +144,14 @@ Doxygen
    Variables that are "static" don't need to be marked like this.
 
 
+Testsuite
+---------
+
+You can run the libsigrok testsuite using:
+
+ $ make check
+
+
 Release engineering
 -------------------
 

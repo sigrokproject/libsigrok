@@ -337,6 +337,12 @@ if test "x$HW_ALSA" != xno; then
 		SR_PKGLIBS="$SR_PKGLIBS alsa"])
 fi
 
+# The Check unit testing framework is optional.
+PKG_CHECK_MODULES([check], [check >= 0.9.4],
+	[have_check="yes"; CFLAGS="$CFLAGS $check_CFLAGS";
+	LIBS="$LIBS $check_LIBS"], [have_check="no"])
+AM_CONDITIONAL(HAVE_CHECK, test x"$have_check" = "xyes")
+
 # EZUSB FX2 firmware helper code is only needed for some hardware drivers.
 AM_CONDITIONAL(NEED_EZUSB, \
 	test "x$LA_FX2LAFW" != xno \
@@ -418,6 +424,7 @@ AC_CONFIG_FILES([Makefile version.h hardware/Makefile
 		 output/text/Makefile
 		 libsigrok.pc
 		 contrib/Makefile
+		 tests/Makefile
 		])
 
 AC_OUTPUT
@@ -433,7 +440,7 @@ echo "Detected libraries:"
 echo
 
 # Note: This only works for libs with pkg-config integration.
-for lib in "glib-2.0" "libusb-1.0" "libzip" "libftdi" "libudev" "alsa"; do
+for lib in "glib-2.0" "libusb-1.0" "libzip" "libftdi" "libudev" "alsa" "check"; do
 	if `$PKG_CONFIG --exists $lib`; then
 		ver=`$PKG_CONFIG --modversion $lib`
 		answer="yes ($ver)"
