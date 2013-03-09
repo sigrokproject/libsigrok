@@ -77,11 +77,11 @@ enum {
 
 /* Handy little macros */
 #define SR_HZ(n)  (n)
-#define SR_KHZ(n) ((n) * 1000)
-#define SR_MHZ(n) ((n) * 1000000)
-#define SR_GHZ(n) ((n) * 1000000000)
+#define SR_KHZ(n) ((n) * (uint64_t)(1000ULL))
+#define SR_MHZ(n) ((n) * (uint64_t)(1000000ULL))
+#define SR_GHZ(n) ((n) * (uint64_t)(1000000000ULL))
 
-#define SR_HZ_TO_NS(n) (1000000000 / (n))
+#define SR_HZ_TO_NS(n) ((uint64_t)(1000000000ULL) / (n))
 
 /** libsigrok loglevels. */
 enum {
