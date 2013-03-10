@@ -205,6 +205,108 @@ static int sanity_check_all_drivers(void)
 }
 
 /**
+ * Sanity-check all libsigrok input modules.
+ *
+ * @return SR_OK if all modules are OK, SR_ERR if one or more have issues.
+ */
+static int sanity_check_all_input_modules(void)
+{
+	int i, errors, ret = SR_OK;
+	struct sr_input_format **inputs;
+	const char *d;
+
+	sr_spew("Sanity-checking all input modules.");
+
+	inputs = sr_input_list();
+	for (i = 0; inputs[i]; i++) {
+		errors = 0;
+
+		d = (inputs[i]->id) ? inputs[i]->id : "NULL";
+
+		if (!inputs[i]->id) {
+			sr_err("No ID in module %d ('%s').", i, d);
+			errors++;
+		}
+		if (!inputs[i]->description) {
+			sr_err("No description in module %d ('%s').", i, d);
+			errors++;
+		}
+		if (!inputs[i]->format_match) {
+			sr_err("No format_match in module %d ('%s').", i, d);
+			errors++;
+		}
+		if (!inputs[i]->init) {
+			sr_err("No init in module %d ('%s').", i, d);
+			errors++;
+		}
+		if (!inputs[i]->loadfile) {
+			sr_err("No loadfile in module %d ('%s').", i, d);
+			errors++;
+		}
+
+		if (errors == 0)
+			continue;
+
+		ret = SR_ERR;
+	}
+
+	return ret;
+}
+
+/**
+ * Sanity-check all libsigrok output modules.
+ *
+ * @return SR_OK if all modules are OK, SR_ERR if one or more have issues.
+ */
+static int sanity_check_all_output_modules(void)
+{
+	int i, errors, ret = SR_OK;
+	struct sr_output_format **outputs;
+	const char *d;
+
+	sr_spew("Sanity-checking all output modules.");
+
+	outputs = sr_output_list();
+	for (i = 0; outputs[i]; i++) {
+		errors = 0;
+
+		d = (outputs[i]->id) ? outputs[i]->id : "NULL";
+
+		if (!outputs[i]->id) {
+			sr_err("No ID in module %d ('%s').", i, d);
+			errors++;
+		}
+		if (!outputs[i]->description) {
+			sr_err("No description in module %d ('%s').", i, d);
+			errors++;
+		}
+		if (outputs[i]->df_type < 10000 || outputs[i]->df_type > 10007) {
+			sr_err("Invalid df_type %d in module %d ('%s').",
+			       outputs[i]->df_type, i, d);
+			errors++;
+		}
+
+		/* All modules must provide a data or recv API callback. */
+		if (!outputs[i]->data && !outputs[i]->recv) {
+			sr_err("No data/recv in module %d ('%s').", i, d);
+			errors++;
+		}
+
+		/*
+		 * Currently most API calls are optional (their function
+		 * pointers can thus be NULL) in theory: init, event, cleanup.
+		 */
+
+		if (errors == 0)
+			continue;
+
+		ret = SR_ERR;
+	}
+
+	return ret;
+}
+
+/**
  * Initialize libsigrok.
  *
  * This function must be called before any other libsigrok function.
@@ -230,6 +332,16 @@ SR_API int sr_init(struct sr_context **ctx)
 
 	if (sanity_check_all_drivers() < 0) {
 		sr_err("Internal driver error(s), aborting.");
+		return ret;
+	}
+
+	if (sanity_check_all_input_modules() < 0) {
+		sr_err("Internal input module error(s), aborting.");
+		return ret;
+	}
+
+	if (sanity_check_all_output_modules() < 0) {
+		sr_err("Internal output module error(s), aborting.");
 		return ret;
 	}
 
