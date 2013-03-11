@@ -293,7 +293,7 @@ static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 			ret = SR_OK;
 		break;
 	case SR_CONF_RLE:
-		if (GPOINTER_TO_INT(value)) {
+		if (*(int *)value) {
 			sr_info("Enabling RLE.");
 			devc->flag_reg |= FLAG_RLE;
 		}
