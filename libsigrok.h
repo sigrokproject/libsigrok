@@ -679,6 +679,10 @@ enum {
 	 * samples continuously, until explicitly stopped by a certain command.
 	 */
 	SR_CONF_CONTINUOUS,
+
+	/** The device has internal storage, into which data is logged. This
+	 * starts or stops the internal logging. */
+	SR_CONF_DATALOG,
 };
 
 struct sr_dev_inst {

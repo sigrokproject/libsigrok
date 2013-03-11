@@ -79,6 +79,8 @@ static struct sr_config_info sr_config_info_data[] = {
 		"Volts/div", NULL},
 	{SR_CONF_COUPLING, SR_T_CHAR, "coupling",
 		"Coupling", NULL},
+	{SR_CONF_DATALOG, SR_T_BOOL, "datalog",
+		"Datalog", NULL},
 	{0, 0, NULL, NULL, NULL},
 };
 
