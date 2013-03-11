@@ -85,21 +85,24 @@ static void mark_xfer(struct libusb_transfer *xfer)
 
 }
 
-SR_PRIV unsigned char *lascar_get_config(libusb_device_handle *dev_hdl)
+SR_PRIV int lascar_get_config(libusb_device_handle *dev_hdl,
+		unsigned char *configblock, int *configlen)
 {
 	struct drv_context *drvc;
 	struct libusb_transfer *xfer_in, *xfer_out;
 	struct timeval tv;
 	int64_t start;
 	int buflen;
-	unsigned char cmd[3], buf[256], *config;
+	unsigned char cmd[3], buf[MAX_CONFIGBLOCK_SIZE];
+
+	sr_spew("Reading config block.");
 
 	drvc = di->priv;
-	config = NULL;
+	*configlen = 0;
 
 	if (!(xfer_in = libusb_alloc_transfer(0)) ||
 			!(xfer_out = libusb_alloc_transfer(0)))
-		return NULL;
+		return SR_ERR;
 
 	/* Flush anything the F321 still has queued. */
 	while (libusb_bulk_transfer(dev_hdl, LASCAR_EP_IN, buf, 256, &buflen,
@@ -143,10 +146,10 @@ SR_PRIV unsigned char *lascar_get_config(libusb_device_handle *dev_hdl)
 	}
 
 	/* Got configuration structure header. */
-	sr_dbg("response to config request: 0x%.2x 0x%.2x 0x%.2x ",
+	sr_spew("Response to config request: 0x%.2x 0x%.2x 0x%.2x ",
 			buf[0], buf[1], buf[2]);
 	buflen = buf[1] | (buf[2] << 8);
-	if (buf[0] != 0x02 || buflen > 256) {
+	if (buf[0] != 0x02 || buflen > MAX_CONFIGBLOCK_SIZE) {
 		sr_dbg("Invalid response to config request: "
 				"0x%.2x 0x%.2x 0x%.2x ", buf[0], buf[1], buf[2]);
 		libusb_close(dev_hdl);
@@ -176,9 +179,8 @@ SR_PRIV unsigned char *lascar_get_config(libusb_device_handle *dev_hdl)
 		goto cleanup;
 	}
 
-	if (!(config = g_try_malloc(256)))
-		return NULL;
-	memcpy(config, buf, buflen);
+	memcpy(configblock, buf, buflen);
+	*configlen = buflen;
 
 cleanup:
 	if (!xfer_in->user_data || !xfer_in->user_data) {
@@ -197,10 +199,9 @@ cleanup:
 	libusb_free_transfer(xfer_in);
 	libusb_free_transfer(xfer_out);
 
-	return config;
+	return *configlen ? SR_OK : SR_ERR;
 }
 
-/* Currently unused. */
 SR_PRIV int lascar_save_config(libusb_device_handle *dev_hdl,
 		unsigned char *config, int configlen)
 {
@@ -210,6 +211,8 @@ SR_PRIV int lascar_save_config(libusb_device_handle *dev_hdl,
 	int64_t start;
 	int buflen, ret;
 	unsigned char cmd[3], buf[256];
+
+	sr_spew("Writing config block.");
 
 	drvc = di->priv;
 
@@ -345,8 +348,8 @@ SR_PRIV struct sr_dev_inst *lascar_scan(int bus, int address)
 	struct libusb_device **devlist;
 	struct libusb_device_descriptor des;
 	libusb_device_handle *dev_hdl;
-	int ret, i;
-	unsigned char *config;
+	int dummy, ret, i;
+	unsigned char config[MAX_CONFIGBLOCK_SIZE];
 
 	drvc = di->priv;
 	sdi = NULL;
@@ -365,12 +368,11 @@ SR_PRIV struct sr_dev_inst *lascar_scan(int bus, int address)
 		if (!(dev_hdl = lascar_open(devlist[i])))
 			continue;
 
-		if (!(config = lascar_get_config(dev_hdl)))
+		if (lascar_get_config(dev_hdl, config, &dummy) != SR_OK)
 			continue;
 
 		libusb_close(dev_hdl);
 		sdi = lascar_identify(config);
-		g_free(config);
 	}
 
 	return sdi;
@@ -545,3 +547,84 @@ SR_PRIV void lascar_el_usb_receive_transfer(struct libusb_transfer *transfer)
 	}
 
 }
+
+static int get_flags(unsigned char *configblock)
+{
+	int flags;
+
+	flags = (configblock[32] | (configblock[33] << 8)) & 0x1fff;
+	sr_spew("Read flags (0x%.4x).", flags);
+
+	return flags;
+}
+
+static int set_flags(unsigned char *configblock, int flags)
+{
+
+	sr_spew("Setting flags to 0x%.4x.", flags);
+	configblock[32] = flags & 0xff;
+	configblock[33] = (flags >> 8) & 0x1f;
+
+	return flags;
+}
+
+SR_PRIV int lascar_is_logging(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	int dummy, flags, ret;
+
+	devc = sdi->priv;
+	if (lascar_get_config(devc->usb->devhdl, devc->config, &dummy) != SR_OK)
+		return -1;
+
+	flags = get_flags(devc->config);
+	if (flags & 0x0100)
+		ret = 1;
+	else
+		ret = 0;
+
+	return ret;
+}
+
+SR_PRIV int lascar_start_logging(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	int len, flags, ret;
+
+	devc = sdi->priv;
+	if (lascar_get_config(devc->usb->devhdl, devc->config, &len) != SR_OK)
+		return SR_ERR;
+
+	/* Turn on logging. */
+	flags = get_flags(devc->config);
+	flags |= 0x0100;
+	set_flags(devc->config, flags);
+
+	/* Start logging in 0 seconds. */
+	memset(devc->config + 24, 0, 4);
+
+	ret = lascar_save_config(devc->usb->devhdl, devc->config, len);
+	sr_info("Started internal logging.");
+
+	return ret;
+}
+
+SR_PRIV int lascar_stop_logging(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	int len, flags, ret;
+
+	devc = sdi->priv;
+	if (lascar_get_config(devc->usb->devhdl, devc->config, &len) != SR_OK)
+		return SR_ERR;
+
+	flags = get_flags(devc->config);
+	flags &= ~0x0100;
+	set_flags(devc->config, flags);
+
+	ret = lascar_save_config(devc->usb->devhdl, devc->config, len);
+	sr_info("Stopped internal logging.");
+
+	return ret;
+}
+

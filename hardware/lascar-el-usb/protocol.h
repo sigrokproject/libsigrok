@@ -39,6 +39,7 @@
 #define LASCAR_EP_OUT 2
 /* Max 100ms for a device to positively identify. */
 #define SCAN_TIMEOUT 100000
+#define MAX_CONFIGBLOCK_SIZE 256
 
 /** Private, per-device-instance driver context. */
 struct dev_context {
@@ -47,7 +48,7 @@ struct dev_context {
 	const struct elusb_profile *profile;
 	int usbfd[10];
 	/* Generic EL-USB */
-	unsigned char *config;
+	unsigned char config[MAX_CONFIGBLOCK_SIZE];
 	unsigned int log_size;
 	unsigned int rcvd_bytes;
 	unsigned int sample_size;
@@ -75,9 +76,13 @@ struct elusb_profile {
 	int logformat;
 };
 
-SR_PRIV unsigned char *lascar_get_config(libusb_device_handle *dev_hdl);
+SR_PRIV int lascar_get_config(libusb_device_handle *dev_hdl,
+		unsigned char *configblock, int *configlen);
 SR_PRIV int lascar_el_usb_handle_events(int fd, int revents, void *cb_data);
 SR_PRIV void lascar_el_usb_receive_transfer(struct libusb_transfer *transfer);
+SR_PRIV int lascar_start_logging(const struct sr_dev_inst *sdi);
+SR_PRIV int lascar_stop_logging(const struct sr_dev_inst *sdi);
+SR_PRIV int lascar_is_logging(const struct sr_dev_inst *sdi);
 SR_PRIV int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);
 
 #endif

@@ -36,9 +36,14 @@ static const int hwopts[] = {
 static const int hwcaps[] = {
 	SR_CONF_THERMOMETER,
 	SR_CONF_HYGROMETER,
+	SR_CONF_DATALOG,
 	SR_CONF_LIMIT_SAMPLES,
 	0
 };
+
+/* Terrible hack */
+static int BOOL_TRUE = TRUE;
+static int BOOL_FALSE = FALSE;
 
 /* Properly close and free all devices. */
 static int clear_instances(void)
@@ -171,7 +176,6 @@ static int hw_dev_close(struct sr_dev_inst *sdi)
 	libusb_release_interface(devc->usb->devhdl, LASCAR_INTERFACE);
 	libusb_close(devc->usb->devhdl);
 	devc->usb->devhdl = NULL;
-	g_free(devc->config);
 	sdi->status = SR_ST_INACTIVE;
 
 
@@ -193,6 +197,30 @@ static int hw_cleanup(void)
 	return SR_OK;
 }
 
+static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	int ret;
+
+	devc = sdi->priv;
+	switch (id) {
+	case SR_CONF_DATALOG:
+		if (!sdi)
+			return SR_ERR_ARG;
+		if ((ret = lascar_is_logging(sdi)) == -1)
+			return SR_ERR;
+		*data = ret ? &BOOL_TRUE : &BOOL_FALSE;
+		break;
+	case SR_CONF_LIMIT_SAMPLES:
+		*data = &devc->limit_samples;
+		break;
+	default:
+		return SR_ERR_ARG;
+	}
+
+	return SR_OK;
+}
+
 static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
@@ -210,6 +238,15 @@ static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 	ret = SR_OK;
 	switch (id) {
+	case SR_CONF_DATALOG:
+		if (*(int *)value) {
+			/* Start logging. */
+			ret = lascar_start_logging(sdi);
+		} else {
+			/* Stop logging. */
+			ret = lascar_stop_logging(sdi);
+		}
+		break;
 	case SR_CONF_LIMIT_SAMPLES:
 		devc->limit_samples = *(const uint64_t *)value;
 		sr_dbg("Setting sample limit to %" PRIu64 ".",
@@ -274,10 +311,10 @@ static float binary32_le_to_float(unsigned char *buf)
 static int lascar_proc_config(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	int ret;
+	int dummy, ret;
 
 	devc = sdi->priv;
-	if (!(devc->config = lascar_get_config(devc->usb->devhdl)))
+	if (lascar_get_config(devc->usb->devhdl, devc->config, &dummy) != SR_OK)
 		return SR_ERR;
 
 	ret = SR_OK;
@@ -454,7 +491,7 @@ SR_PRIV struct sr_dev_driver lascar_el_usb_driver_info = {
 	.scan = hw_scan,
 	.dev_list = hw_dev_list,
 	.dev_clear = clear_instances,
-	.config_get = NULL,
+	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,
 	.dev_open = hw_dev_open,
