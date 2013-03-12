@@ -37,7 +37,7 @@
 
 /** Private, per-device-instance driver context. */
 struct dev_context {
-	/** The current frame limit */
+	/** The current frame limit. */
 	uint64_t limit_frames;
 
 	/** The current sampling limit (in number of samples). */

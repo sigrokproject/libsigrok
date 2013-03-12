@@ -114,7 +114,7 @@ static const char *supported_models[] = {
 	"DS1052E",
 	"DS1102E",
 	"DS1052D",
-	"DS1102D"
+	"DS1102D",
 };
 
 SR_PRIV struct sr_dev_driver rigol_ds1xx2_driver_info;
@@ -172,7 +172,6 @@ static GSList *hw_scan(GSList *options)
 	const gchar *delimiter = ",";
 	gchar **tokens;
 	const char *manufacturer, *model, *version;
-	int num_models;
 	gboolean matched = FALSE;
 	char buf[256];
 
@@ -226,9 +225,7 @@ static GSList *hw_scan(GSList *options)
 			return NULL;
 		}
 
-		num_models = sizeof(supported_models) / sizeof(supported_models[0]);
-
-		for (i = 0; i < num_models; i++) {
+		for (i = 0; i < ARRAY_SIZE(supported_models); i++) {
 			if (!strcmp(model, supported_models[i])) {
 				matched = 1;
 				break;
