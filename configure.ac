@@ -52,6 +52,9 @@ AC_PROG_CPP
 AC_PROG_INSTALL
 AC_PROG_LN_S
 
+# Required for per-target flags or subdir-objects with C sources.
+AM_PROG_CC_C_O
+
 # Initialize libtool.
 LT_INIT
 
