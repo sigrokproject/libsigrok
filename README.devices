@@ -1,0 +1,319 @@
+-------------------------------------------------------------------------------
+README.devices
+-------------------------------------------------------------------------------
+
+This README contains various notes for users of libsigrok (or frontends
+that are based on libsigrok) about device- and/or driver-specific issues.
+
+
+Firmware
+--------
+
+Some devices supported by libsigrok need a firmware to be uploaded every time
+the device is connected to the PC (usually via USB), before it can be used. 
+
+The default location where libsigrok expects the firmware files is:
+
+  $prefix/share/sigrok-firmware
+
+($prefix is usually /usr/local or /usr, depending on your ./configure options)
+
+For further information see the section below and also:
+
+  http://sigrok.org/wiki/Firmware
+
+
+Per-driver firmware requirements
+--------------------------------
+
+The following drivers/devices require a firmware upload upon connection:
+
+ - asix-sigma: The ASIX SIGMA and SIGMA2 require various firmware files,
+   depending on the settings used. These files are available from our
+   'sigrok-firmware' repository/project under a license which allows us
+   to redistribute them.
+
+ - fx2lafw: Logic analyzers based on the Cypress FX2(LP) chip need the
+   firmware files from the 'sigrok-firmware-fx2lafw' repository/project.
+   The firmware is written from scratch and licensed under the GPLv2+.
+
+ - hantek-dso: The Hantek DSO-2090 (and other supported models of the same
+   series of Hantek PC oscilloscopes) need firmware files.
+   These can be extracted from the vendor's Windows drivers using a tool
+   from our 'sigrok-util' repository/project.
+
+ - nexus-osciprime: The Nexus Computing OsciPrime PC oscilloscope needs
+   firmware files. These are available from the vendor website.
+
+The following drivers/devices do not need any firmware upload:
+
+ - agilent-dmm
+ - alsa
+ - brymen-dmm
+ - chronovu-la8
+ - colead-slm
+ - demo
+ - fluke-dmm
+ - lascar-el-usb
+ - link-mso19
+ - mic-985xx
+ - openbench-logic-sniffer
+ - rigol-ds1xx2
+ - serial-dmm
+ - tondaj-sl-814
+ - uni-t-dmm
+ - victor-dmm
+ - zeroplus-logic-cube
+
+
+Specifying serial ports
+-----------------------
+
+Many devices supported by libsigrok use serial port based cables (real RS232
+or USB-to-serial ones) to connect to a PC.
+
+For all these devices, you need to specify the serial port they are connected
+to (e.g. using the 'conn' option in sigrok-cli). It is not possible to scan
+for such devices without specifying a serial port.
+
+Example:
+
+ $ sigrok-cli --driver <somedriver>:conn=/dev/ttyUSB0 ...
+
+The following drivers/devices require a serial port specification:
+
+ - agilent-dmm
+ - brymen-dmm
+ - colead-slm
+ - fluke-dmm
+ - link-mso19
+ - mic-985xx
+ - nexus-osciprime
+ - openbench-logic-sniffer
+ - serial-dmm
+ - tondaj-sl-814
+
+The following drivers/devices do not require a serial port specification:
+
+ - alsa
+ - asix-sigma
+ - chronovu-la8
+ - demo
+ - fx2lafw
+ - hantek-dso
+ - lascar-el-usb
+ - rigol-ds1xx2
+ - uni-t-dmm
+ - victor-dmm
+ - zeroplus-logic-cube
+
+
+Permissions of serial port based devices
+----------------------------------------
+
+When using devices supported by libsigrok that use serial port based cables
+(real RS232 or USB-to-serial ones) to connect to a PC, you need to ensure
+that the user running the libsigrok frontend has (read/write) permissions to
+access the serial port device (e.g. /dev/ttyS0, /dev/ttyUSB0, and so on).
+
+You can use 'chmod' to apply permissions as you see fit, and/or 'chown' to
+change the owner of the serial port device to a certain user or group.
+
+For USB-to-serial based devices, we recommended using our udev rules file
+(see below for details).
+
+
+Permissions for USB devices (udev rules file)
+---------------------------------------------
+
+When using USB-based devices supported by libsigrok, the user running the
+libsigrok frontend (e.g. sigrok-cli) has to have (read/write) permissions
+for the respective USB device.
+
+On Linux, this is accomplished using either 'chmod' (not recommended) or
+using the udev rules file shipped with libsigrok (recommended).
+
+The file is available in contrib/z60_libsigrok.rules. It contains entries
+for all libsigrok-supported (USB-based) devices and changes their group
+to 'plugdev' and the permissions to '664'.
+
+When using a libsigrok package from your favorite Linux distribution, the
+packager will have already taken care of properly installing the udev file
+in the correct (distro-specific) place, and you don't have to do anything.
+The packager might also have adapted 'plugdev' and '664' as needed.
+
+If you're building from source, you need to copy the file to the place
+where your distro expects such files. This is beyond the scope of this README,
+but generally the location could be e.g. /etc/udev/rules.d, or maybe
+/lib/udev/rules.d, or something else. Afterwards you might have to restart
+udev, e.g. via '/etc/init.d/udev restart' or similar, and you'll have to
+re-attach your device via USB.
+
+Please consult the udev docs of your distro for details.
+
+
+Cypress FX2 based devices
+-------------------------
+
+Devices using the Cypress FX2(LP) chip without any specific USB VID/PID will
+be enumerated with VID/PID 04b4:8613 (the default for "unconfigured FX2").
+These are usually "FX2 eval boards" (that can also be used as LAs, though).
+
+On Linux, the 'usbtest' driver will usually grab such devices, and they will
+thus not be usable by libsigrok (and frontends).
+
+You can fix this by running 'rmmod usbtest' as root before using the device.
+
+
+UNI-T DMM (and rebranded models) cables
+---------------------------------------
+
+UNI-T multimeters (and rebranded devices, e.g. some Voltcraft models) can
+ship with different PC connectivity cables:
+
+ - UT-D04 (USB/HID cable with Hoitek HE2325U chip, USB VID/PID 04fa:2490)
+ - UT-D04 (USB/HID cable with WCH CH9325 chip, USB VID/PID 1a86:e008)
+ - UT-D02 (RS232 cable)
+
+The above cables are all physically compatible (same IR connector shape)
+with all/most currently known UNI-T multimeters. For example, you can
+use either of the UT-D04 USB/HID cables or the UT-D02 RS232 cable with
+the UNI-T UT61D multimeter.
+
+When using the UT-D02 RS232 cable with any of the supported UNI-T DMMs,
+you have to use the respective driver with a '-ser' drivername suffix
+(internally all of these models are handled by the 'serial-dmm' driver).
+
+You also need to specify the serial port via the 'conn' option, e.g.
+/dev/ttyUSB0 (attached via a USB-to-serial cable) or /dev/ttyS0 (actual
+RS232 port) on Linux (see above).
+
+Finally, the user running the frontend (e.g. sigrok-cli) also needs
+permissions to access the respective serial port (see above).
+
+Examples (sigrok-cli):
+
+ $ sigrok-cli --driver uni-t-ut61e-ser:conn=/dev/ttyUSB0 ...
+ $ sigrok-cli --driver voltcraft-vc820-ser:conn=/dev/ttyS0 ...
+
+When using any of the UT-D04 USB/HID cables you have to use the respective
+driver _without_ the '-ser' drivername suffix (internally all of these models
+are handled by the 'uni-t-dmm' driver).
+
+Since the UT-D04 cables are USB based (but don't use a USB-to-serial chip)
+there is no need to specify a serial port via 'conn', of course.
+However, the user running the frontend does also need to have permissions
+to access the respective USB device (see above).
+
+Examples (sigrok-cli):
+
+ $ sigrok-cli --driver uni-t-ut61e ...
+ $ sigrok-cli --driver voltcraft-vc820 ...
+
+
+UNI-T UT-D04 cable issue on Linux
+---------------------------------
+
+The UNI-T UT-D04 cable with Hoitek HE2325U (or WCH CH9325) chip seems to have
+a very specific problem on Linux. Apparently it requires a to be put into
+suspend (and woken up again) before it is usable. This seems to be a
+Linux-only issue, Windows is not affected by this since apparently the
+Windows kernel does this for every USB device, always.
+
+Thus, if you want to use any of the UNI-T DMMs with this specific cable,
+you'll have to run the following script (as root) once, every time you attach
+the cable via USB. The script was written by Ralf Burger.
+
+See also: http://erste.de/UT61/index.html
+
+  #!/bin/bash
+  for dat in /sys/bus/usb/devices/*; do
+    if test -e $dat/manufacturer; then
+      grep "WCH.CN" $dat/manufacturer > /dev/null && echo auto > ${dat}/power/level && echo 0 > ${dat}/power/autosuspend
+    fi
+  done
+
+
+ALSA driver
+-----------
+
+The 'alsa' driver can be used to sample analog data using a PC's soundcard.
+I.e. the sound card can act as a simple oscilloscope (with some limitations)
+using commercial or DIY "sound card scope probe" cables.
+
+Since ALSA is a Linux-specific sound system, this driver will inherently
+only compile and work on Linux.
+
+We might write additional drivers to make a similar functionality available
+on other OSes at some point.
+
+
+Link Instruments MSO-19
+-----------------------
+
+The driver for the Link Instruments MSO-19 mixed-signal oscilloscope (MSO)
+is currently using libudev (which is a library for the Linux-specific udev
+system). Thus, this driver can currently only compile and work on Linux.
+
+We plan to fix this though, so that it'll work on all other OSes, too.
+
+
+ChronoVu LA8 USB VID/PIDs
+-------------------------
+
+The ChronoVu LA8 logic analyzer is available in two revisions. Previously,
+the LA8 shipped with a USB VID/PID of 0403:6001, which is the standard ID
+for FTDI FT232 USB chips.
+
+Since this made it hard to distinguish the LA8 from any other device
+with this FTDI chip connected to the PC, the vendor later shipped the
+LA8 with a USB VID/PID of 0403:8867.
+
+The 'chronovu-la8' driver in libsigrok supports both VID/PID pairs and
+automatically finds devices with either VID/PID pair. However, currently
+the driver will assume any device with VID/PID 0403:6001 is a ChronoVu LA8.
+
+
+OLS
+---
+
+The Dangerous Prototypes Openbench Logic Sniffer (OLS) logic analyzer is
+supported by the 'ols' driver in libsigrok. This driver assumes a somewhat
+recent firmware has been flashed onto the OLS (it doesn't need a firmware
+upload every time it's attached via USB, since the firmware is stored in the
+device permanently).
+
+The most recent firmware version that is tested is 3.07.
+
+If you use any older firmware and your OLS is not found or is not working
+properly, please upgrade to at least this firmware version. Check the
+Dangerous Prototypes wiki for firmware upgrade instructions:
+
+ http://dangerousprototypes.com/docs/Logic_Sniffer_upgrade_procedure
+
+Also, you need to specify a serial port for the OLS in the frontends, e.g.
+using the 'conn' option in sigrok-cli, and you also need to have the
+permissions to access the serial port (see above).
+
+Example:
+
+ $ sigrok-cli --driver ols:conn=/dev/ttyACM0 ...
+
+
+Rigol DS1xx2 oscilloscopes
+--------------------------
+
+The 'rigol-ds1xx2' driver (for the Rigol DS1052E and some other, similar DSOs)
+currently uses the Linux usbtmc kernel driver. This means it can currently
+only be built and used on Linux (i.e., it's non-portable).
+
+The use of a kernel module also means it is dependent on the kernel version
+used, as well as on whether this specific module is available in the kernel.
+Additionally, the usbtmc kernel module has been known to have various bugs
+in some versions. These are some (but not all) drawbacks of using a kernel
+module as opposed to a libusb-based driver that works in user-space.
+
+We plan to change the driver to use the 'librevisa' user-space shared
+library (which uses libusb) soon, which will fix all these issues and make
+the driver portable at the same time.
+
