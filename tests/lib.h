@@ -24,11 +24,21 @@
 #include "../libsigrok.h"
 
 struct sr_dev_driver *srtest_driver_get(const char *drivername);
+struct sr_input_format *srtest_input_get(const char *id);
+struct sr_output_format *srtest_output_get(const char *id);
+
 void srtest_driver_init(struct sr_context *sr_ctx, struct sr_dev_driver *driver);
 void srtest_driver_init_all(struct sr_context *sr_ctx);
+
+void srtest_input_init(struct sr_context *sr_ctx, struct sr_input_format *input);
+void srtest_input_init_all(struct sr_context *sr_ctx);
+
 void srtest_set_samplerate(struct sr_dev_driver *driver, uint64_t samplerate);
 uint64_t srtest_get_samplerate(struct sr_dev_driver *driver);
 void srtest_check_samplerate(struct sr_context *sr_ctx, const char *drivername,
 			     uint64_t samplerate);
+
+void srtest_buf_to_file(const char *filename, const uint8_t *buf, uint64_t len);
+GArray *srtest_get_enabled_logic_probes(const struct sr_dev_inst *sdi);
 
 #endif

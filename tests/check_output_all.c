@@ -21,36 +21,28 @@
 #include <stdlib.h>
 #include <check.h>
 #include "../libsigrok.h"
+#include "lib.h"
 
-Suite *suite_core(void);
-Suite *suite_driver_all(void);
-Suite *suite_input_all(void);
-Suite *suite_input_binary(void);
-Suite *suite_output_all(void);
-Suite *suite_strutil(void);
-Suite *suite_version(void);
-
-int main(void)
+/* Check whether at least one output module is available. */
+START_TEST(test_output_available)
 {
-	int ret;
+	struct sr_output_format **outputs;
+
+	outputs = sr_output_list();
+	fail_unless(outputs != NULL, "No output modules found.");
+}
+END_TEST
+
+Suite *suite_output_all(void)
+{
 	Suite *s;
-	SRunner *srunner;
+	TCase *tc;
 
-	s = suite_create("mastersuite");
-	srunner = srunner_create(s);
+	s = suite_create("output-all");
 
-	/* Add all testsuites to the master suite. */
-	srunner_add_suite(srunner, suite_core());
-	srunner_add_suite(srunner, suite_driver_all());
-	srunner_add_suite(srunner, suite_input_all());
-	srunner_add_suite(srunner, suite_input_binary());
-	srunner_add_suite(srunner, suite_output_all());
-	srunner_add_suite(srunner, suite_strutil());
-	srunner_add_suite(srunner, suite_version());
+	tc = tcase_create("basic");
+	tcase_add_test(tc, test_output_available);
+	suite_add_tcase(s, tc);
 
-	srunner_run_all(srunner, CK_VERBOSE);
-	ret = srunner_ntests_failed(srunner);
-	srunner_free(srunner);
-
-	return (ret == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
+	return s;
 }

@@ -30,7 +30,11 @@ check_main_SOURCES = \
 	lib.h \
 	check_main.c \
 	check_core.c \
+	check_input_all.c \
+	check_input_binary.c \
+	check_output_all.c \
 	check_strutil.c \
+	check_version.c \
 	check_driver_all.c
 
 check_main_CFLAGS = @check_CFLAGS@
