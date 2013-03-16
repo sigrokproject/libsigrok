@@ -350,11 +350,14 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 		void *cb_data)
 {
 	struct sr_datafeed_packet packet;
+	struct sr_datafeed_meta meta;
+	struct sr_config *src;
 	struct dev_context *devc;
-	struct drv_context *drvc = di->priv;
+	struct drv_context *drvc;
 	struct libusb_transfer *xfer_in, *xfer_out;
 	const struct libusb_pollfd **pfd;
 	struct timeval tv;
+	uint64_t interval;
 	int ret, i;
 	unsigned char cmd[3], resp[4], *buf;
 
@@ -363,6 +366,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 		return SR_ERR;
 	}
 
+	drvc = di->priv;
 	devc = sdi->priv;
 	devc->cb_data = cb_data;
 
@@ -373,6 +377,14 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 
 	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, DRIVER_LOG_DOMAIN);
+
+	interval = (devc->config[0x1c] | (devc->config[0x1d] << 8)) * 1000;
+	packet.type = SR_DF_META;
+	packet.payload = &meta;
+	src = sr_config_make(SR_CONF_SAMPLE_INTERVAL, (const void *)&interval);
+	meta.config = g_slist_append(NULL, src);
+	sr_session_send(devc->cb_data, &packet);
+	g_free(src);
 
 	if (devc->logged_samples == 0) {
 		/* This ensures the frontend knows the session is done. */
