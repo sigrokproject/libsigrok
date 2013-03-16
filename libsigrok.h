@@ -594,7 +594,7 @@ enum {
 
 	/*--- Device configuration ------------------------------------------*/
 
-	/** The device supports setting/changing its samplerate. */
+	/** The device supports setting its samplerate, in Hz. */
 	SR_CONF_SAMPLERATE = 30000,
 
 	/** The device supports setting a pre/post-trigger capture ratio. */
@@ -632,6 +632,9 @@ enum {
 
 	/** Trigger types.  */
 	SR_CONF_TRIGGER_TYPE,
+
+	/** The device supports setting its sample interval, in ms. */
+	SR_CONF_SAMPLE_INTERVAL,
 
 	/*--- Special stuff -------------------------------------------------*/
 
