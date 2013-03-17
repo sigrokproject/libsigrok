@@ -381,7 +381,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	interval = (devc->config[0x1c] | (devc->config[0x1d] << 8)) * 1000;
 	packet.type = SR_DF_META;
 	packet.payload = &meta;
-	src = sr_config_make(SR_CONF_SAMPLE_INTERVAL, (const void *)&interval);
+	src = sr_config_new(SR_CONF_SAMPLE_INTERVAL, (const void *)&interval);
 	meta.config = g_slist_append(NULL, src);
 	sr_session_send(devc->cb_data, &packet);
 	g_free(src);

@@ -121,7 +121,7 @@ static int loadfile(struct sr_input *in, const char *filename)
 	if (ctx->samplerate) {
 		packet.type = SR_DF_META;
 		packet.payload = &meta;
-		src = sr_config_make(SR_CONF_SAMPLERATE, (const void *)&ctx->samplerate);
+		src = sr_config_new(SR_CONF_SAMPLERATE, (const void *)&ctx->samplerate);
 		meta.config = g_slist_append(NULL, src);
 		sr_session_send(in->sdi, &packet);
 	}

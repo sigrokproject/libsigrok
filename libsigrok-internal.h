@@ -113,7 +113,7 @@ SR_PRIV void sr_serial_dev_inst_free(struct sr_serial_dev_inst *serial);
 /*--- hwdriver.c ------------------------------------------------------------*/
 
 SR_PRIV void sr_hw_cleanup_all(void);
-SR_PRIV struct sr_config *sr_config_make(int key, const void *value);
+SR_PRIV struct sr_config *sr_config_new(int key, const void *value);
 SR_PRIV int sr_source_remove(int fd);
 SR_PRIV int sr_source_add(int fd, int events, int timeout,
 			  sr_receive_data_callback_t cb, void *cb_data);

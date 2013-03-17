@@ -355,7 +355,7 @@ SR_PRIV void sr_hw_cleanup_all(void)
 	}
 }
 
-SR_PRIV struct sr_config *sr_config_make(int key, const void *value)
+SR_PRIV struct sr_config *sr_config_new(int key, const void *value)
 {
 	struct sr_config *src;
 
