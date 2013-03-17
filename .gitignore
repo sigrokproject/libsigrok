@@ -19,6 +19,7 @@ stamp-h1
 autostuff/
 version.h
 ChangeLog
+INSTALL
 
 # recursive autoconf leftovers
 .deps

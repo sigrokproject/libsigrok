@@ -55,6 +55,6 @@ echo "Generating build system..."
 ${LIBTOOLIZE} --install --copy --quiet || exit 1
 aclocal ${ACLOCAL_DIR} || exit 1
 autoheader || exit 1
-automake --add-missing --copy --foreign || exit 1
+automake --add-missing --copy || exit 1
 autoconf || exit 1
 
