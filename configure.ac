@@ -114,7 +114,7 @@ fi
 AC_ARG_ENABLE(brymen-dmm, AC_HELP_STRING([--enable-brymen-dmm],
 	[enable Brymen DMM support [default=yes]]),
 	[HW_BRYMEN_DMM="$enableval"],
-	[HW_BRYMEN_DMM=yes])
+	[HW_BRYMEN_DMM=$HW_ENABLED_DEFAULT])
 AM_CONDITIONAL(HW_BRYMEN_DMM, test x$HW_BRYMEN_DMM = xyes)
 if test "x$HW_BRYMEN_DMM" = "xyes"; then
 	AC_DEFINE(HAVE_HW_BRYMEN_DMM, 1, [brymen-dmm support])
@@ -195,7 +195,7 @@ fi
 AC_ARG_ENABLE(mic-985xx, AC_HELP_STRING([--enable-mic-985xx],
 	[enable MIC 985xx support [default=yes]]),
 	[HW_MIC_985XX="$enableval"],
-	[HW_MIC_985XX=yes])
+	[HW_MIC_985XX=$HW_ENABLED_DEFAULT])
 AM_CONDITIONAL(HW_MIC_985XX, test x$HW_MIC_985XX = xyes)
 if test "x$HW_MIC_985XX" = "xyes"; then
 	AC_DEFINE(HAVE_HW_MIC_985XX, 1, [MIC 985xx support])
