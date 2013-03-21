@@ -41,13 +41,14 @@ enum {
 	PEAKTECH_4370,
 	PCE_PCE_DM32,
 	RADIOSHACK_22_168,
+	RADIOSHACK_22_805,
 	RADIOSHACK_22_812,
 	VOLTCRAFT_VC820_SER,
 	VOLTCRAFT_VC840_SER,
 	UNI_T_UT61E_SER,
 };
 
-#define DMM_COUNT 14
+#define DMM_COUNT 15
 
 struct dmm_info {
 	char *vendor;
@@ -101,6 +102,7 @@ SR_PRIV int receive_data_METEX_M3640D(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_PEAKTECH_4370(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_PCE_PCE_DM32(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_RADIOSHACK_22_168(int fd, int revents, void *cb_data);
+SR_PRIV int receive_data_RADIOSHACK_22_805(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_RADIOSHACK_22_812(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_VOLTCRAFT_VC820_SER(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_VOLTCRAFT_VC840_SER(int fd, int revents, void *cb_data);

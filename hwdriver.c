@@ -154,6 +154,7 @@ extern SR_PRIV struct sr_dev_driver metex_m3640d_driver_info;
 extern SR_PRIV struct sr_dev_driver peaktech_4370_driver_info;
 extern SR_PRIV struct sr_dev_driver pce_pce_dm32_driver_info;
 extern SR_PRIV struct sr_dev_driver radioshack_22_168_driver_info;
+extern SR_PRIV struct sr_dev_driver radioshack_22_805_driver_info;
 extern SR_PRIV struct sr_dev_driver radioshack_22_812_driver_info;
 extern SR_PRIV struct sr_dev_driver voltcraft_vc820_ser_driver_info;
 extern SR_PRIV struct sr_dev_driver voltcraft_vc840_ser_driver_info;
@@ -235,6 +236,7 @@ static struct sr_dev_driver *drivers_list[] = {
 	&peaktech_4370_driver_info,
 	&pce_pce_dm32_driver_info,
 	&radioshack_22_168_driver_info,
+	&radioshack_22_805_driver_info,
 	&radioshack_22_812_driver_info,
 	&voltcraft_vc820_ser_driver_info,
 	&voltcraft_vc840_ser_driver_info,

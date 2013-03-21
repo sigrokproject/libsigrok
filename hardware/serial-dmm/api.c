@@ -53,6 +53,7 @@ SR_PRIV struct sr_dev_driver metex_m3640d_driver_info;
 SR_PRIV struct sr_dev_driver peaktech_4370_driver_info;
 SR_PRIV struct sr_dev_driver pce_pce_dm32_driver_info;
 SR_PRIV struct sr_dev_driver radioshack_22_168_driver_info;
+SR_PRIV struct sr_dev_driver radioshack_22_805_driver_info;
 SR_PRIV struct sr_dev_driver radioshack_22_812_driver_info;
 SR_PRIV struct sr_dev_driver voltcraft_vc820_ser_driver_info;
 SR_PRIV struct sr_dev_driver voltcraft_vc840_ser_driver_info;
@@ -128,6 +129,13 @@ SR_PRIV struct dmm_info dmms[] = {
 		sr_metex14_packet_valid, sr_metex14_parse,
 		NULL,
 		&radioshack_22_168_driver_info, receive_data_RADIOSHACK_22_168,
+	},
+	{
+		"RadioShack", "22-805", "600/7n2/rts=0/dtr=1", 600,
+		METEX14_PACKET_SIZE, sr_metex14_packet_request,
+		sr_metex14_packet_valid, sr_metex14_parse,
+		NULL,
+		&radioshack_22_805_driver_info, receive_data_RADIOSHACK_22_805,
 	},
 	{
 		"RadioShack", "22-812", "4800/8n1/rts=0/dtr=1", 4800,
@@ -495,6 +503,7 @@ DRV(metex_m3640d, METEX_M3640D, "metex-m3640d", "Metex M-3640D")
 DRV(peaktech_4370, PEAKTECH_4370, "peaktech-4370", "PeakTech 4370")
 DRV(pce_pce_dm32, PCE_PCE_DM32, "pce-pce-dm32", "PCE PCE-DM32")
 DRV(radioshack_22_168, RADIOSHACK_22_168, "radioshack-22-168", "RadioShack 22-168")
+DRV(radioshack_22_805, RADIOSHACK_22_805, "radioshack-22-805", "RadioShack 22-805")
 DRV(radioshack_22_812, RADIOSHACK_22_812, "radioshack-22-812", "RadioShack 22-812")
 DRV(voltcraft_vc820_ser, VOLTCRAFT_VC820_SER, "voltcraft-vc820-ser", "Voltcraft VC-820 (UT-D02 cable)")
 DRV(voltcraft_vc840_ser, VOLTCRAFT_VC840_SER, "voltcraft-vc840-ser", "Voltcraft VC-840 (UT-D02 cable)")
