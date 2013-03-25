@@ -148,7 +148,7 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
+static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi)
 {
 	struct session_vdev *vdev;
 
@@ -156,7 +156,7 @@ static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
 	case SR_CONF_SAMPLERATE:
 		if (sdi) {
 			vdev = sdi->priv;
-			*data = &vdev->samplerate;
+			*data = g_variant_new_uint64(vdev->samplerate);
 		} else
 			return SR_ERR;
 		break;
@@ -167,34 +167,30 @@ static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
+static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 {
 	struct session_vdev *vdev;
-	const uint64_t *tmp_u64;
 
 	vdev = sdi->priv;
 
 	switch (id) {
 	case SR_CONF_SAMPLERATE:
-		tmp_u64 = value;
-		vdev->samplerate = *tmp_u64;
+		vdev->samplerate = g_variant_get_uint64(data);
 		sr_info("Setting samplerate to %" PRIu64 ".", vdev->samplerate);
 		break;
 	case SR_CONF_SESSIONFILE:
-		vdev->sessionfile = g_strdup(value);
+		vdev->sessionfile = g_strdup(g_variant_get_string(data, NULL));
 		sr_info("Setting sessionfile to '%s'.", vdev->sessionfile);
 		break;
 	case SR_CONF_CAPTUREFILE:
-		vdev->capturefile = g_strdup(value);
+		vdev->capturefile = g_strdup(g_variant_get_string(data, NULL));
 		sr_info("Setting capturefile to '%s'.", vdev->capturefile);
 		break;
 	case SR_CONF_CAPTURE_UNITSIZE:
-		tmp_u64 = value;
-		vdev->unitsize = *tmp_u64;
+		vdev->unitsize = g_variant_get_uint64(data);
 		break;
 	case SR_CONF_CAPTURE_NUM_PROBES:
-		tmp_u64 = value;
-		vdev->num_probes = *tmp_u64;
+		vdev->num_probes = g_variant_get_uint64(data);
 		break;
 	default:
 		sr_err("Unknown capability: %d.", id);
@@ -204,14 +200,15 @@ static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int config_list(int key, const void **data, const struct sr_dev_inst *sdi)
+static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 {
 
 	(void)sdi;
 
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
-		*data = hwcaps;
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+				hwcaps, ARRAY_SIZE(hwcaps), sizeof(int32_t));
 		break;
 	default:
 		return SR_ERR_ARG;

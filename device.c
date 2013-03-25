@@ -192,22 +192,28 @@ SR_API int sr_dev_trigger_set(const struct sr_dev_inst *sdi, int probenum,
  */
 SR_API gboolean sr_dev_has_option(const struct sr_dev_inst *sdi, int key)
 {
+	GVariant *gvar;
 	const int *devopts;
-	int i;
+	gsize num_opts, i;
+	int ret;
 
-	if (!sdi || !sdi->driver)
+	if (!sdi || !sdi->driver || !sdi->driver->config_list)
 		return FALSE;
 
-	if (sdi->driver->config_list(SR_CONF_DEVICE_OPTIONS,
-			(const void **)&devopts, NULL) != SR_OK)
+	if (sdi->driver->config_list(SR_CONF_DEVICE_OPTIONS, &gvar, NULL) != SR_OK)
 		return FALSE;
 
-	for (i = 0; devopts[i]; i++) {
-		if (devopts[i] == key)
-			return TRUE;
+	ret = FALSE;
+	devopts = g_variant_get_fixed_array(gvar, &num_opts, sizeof(int32_t));
+	for (i = 0; i < num_opts; i++) {
+		if (devopts[i] == key) {
+			ret = TRUE;
+			break;
+		}
 	}
+	g_variant_unref(gvar);
 
-	return FALSE;
+	return ret;
 }
 
 /** @private */

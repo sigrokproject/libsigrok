@@ -216,6 +216,7 @@ SR_API char **sr_parse_triggerstring(const struct sr_dev_inst *sdi,
 				     const char *triggerstring)
 {
 	GSList *l;
+	GVariant *gvar;
 	struct sr_probe *probe;
 	int max_probes, probenum, i;
 	char **tokens, **triggerlist, *trigger, *tc;
@@ -230,11 +231,11 @@ SR_API char **sr_parse_triggerstring(const struct sr_dev_inst *sdi,
 		return NULL;
 	}
 
-	if (sdi->driver->config_list(SR_CONF_TRIGGER_TYPE,
-			(const void **)&trigger_types, sdi) != SR_OK) {
+	if (sdi->driver->config_list(SR_CONF_TRIGGER_TYPE, &gvar, sdi) != SR_OK) {
 		sr_err("%s: Device doesn't support any triggers.", __func__);
 		return NULL;
 	}
+	trigger_types = g_variant_get_string(gvar, NULL);
 
 	tokens = g_strsplit(triggerstring, ",", max_probes);
 	for (i = 0; tokens[i]; i++) {
@@ -269,6 +270,7 @@ SR_API char **sr_parse_triggerstring(const struct sr_dev_inst *sdi,
 		}
 	}
 	g_strfreev(tokens);
+	g_variant_unref(gvar);
 
 	if (error) {
 		for (i = 0; i < max_probes; i++)
