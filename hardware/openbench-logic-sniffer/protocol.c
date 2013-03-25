@@ -284,16 +284,12 @@ SR_PRIV struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
 }
 
 SR_PRIV int ols_set_samplerate(const struct sr_dev_inst *sdi,
-			       uint64_t samplerate,
-			       const struct sr_samplerates *samplerates)
+		const uint64_t samplerate)
 {
 	struct dev_context *devc;
 
 	devc = sdi->priv;
-	if (devc->max_samplerate) {
-		if (samplerate > devc->max_samplerate)
-			return SR_ERR_SAMPLERATE;
-	} else if (samplerate < samplerates->low || samplerate > samplerates->high)
+	if (devc->max_samplerate && samplerate > devc->max_samplerate)
 		return SR_ERR_SAMPLERATE;
 
 	if (samplerate > CLOCK_RATE) {
@@ -311,7 +307,7 @@ SR_PRIV int ols_set_samplerate(const struct sr_dev_inst *sdi,
 	if (devc->flag_reg & FLAG_DEMUX)
 		devc->cur_samplerate *= 2;
 	if (devc->cur_samplerate != samplerate)
-		sr_err("Can't match samplerate %" PRIu64 ", using %"
+		sr_info("Can't match samplerate %" PRIu64 ", using %"
 		       PRIu64 ".", samplerate, devc->cur_samplerate);
 
 	return SR_OK;

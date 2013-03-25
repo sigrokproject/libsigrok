@@ -119,8 +119,7 @@ SR_PRIV uint32_t reverse32(uint32_t in);
 SR_PRIV struct dev_context *ols_dev_new(void);
 SR_PRIV struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial);
 SR_PRIV int ols_set_samplerate(const struct sr_dev_inst *sdi,
-			       uint64_t samplerate,
-			       const struct sr_samplerates *samplerates);
+		uint64_t samplerate);
 SR_PRIV void abort_acquisition(const struct sr_dev_inst *sdi);
 SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data);
 

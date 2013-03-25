@@ -21,19 +21,17 @@
 
 #define SERIALCOMM "115200/8n1"
 
-static const int hwopts[] = {
+static const int32_t hwopts[] = {
 	SR_CONF_CONN,
 	SR_CONF_SERIALCOMM,
-	0,
 };
 
-static const int hwcaps[] = {
+static const int32_t hwcaps[] = {
 	SR_CONF_LOGIC_ANALYZER,
 	SR_CONF_SAMPLERATE,
 	SR_CONF_CAPTURE_RATIO,
 	SR_CONF_LIMIT_SAMPLES,
 	SR_CONF_RLE,
-	0,
 };
 
 /* Probes are numbered 0-31 (on the PCB silkscreen). */
@@ -45,11 +43,10 @@ SR_PRIV const char *ols_probe_names[NUM_PROBES + 1] = {
 };
 
 /* Default supported samplerates, can be overridden by device metadata. */
-static const struct sr_samplerates samplerates = {
-	.low  = SR_HZ(10),
-	.high = SR_MHZ(200),
-	.step = SR_HZ(1),
-	.list = NULL,
+static const uint64_t samplerates[] = {
+	SR_HZ(10),
+	SR_MHZ(200),
+	SR_HZ(1),
 };
 
 SR_PRIV struct sr_dev_driver ols_driver_info;
@@ -85,10 +82,10 @@ static GSList *hw_scan(GSList *options)
 		src = l->data;
 		switch (src->key) {
 		case SR_CONF_CONN:
-			conn = src->value;
+			conn = g_variant_get_string(src->data, NULL);
 			break;
 		case SR_CONF_SERIALCOMM:
-			serialcomm = src->value;
+			serialcomm = g_variant_get_string(src->data, NULL);
 			break;
 		}
 	}
@@ -239,7 +236,7 @@ static int hw_cleanup(void)
 	return ret;
 }
 
-static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
+static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 
@@ -247,7 +244,7 @@ static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
 	case SR_CONF_SAMPLERATE:
 		if (sdi) {
 			devc = sdi->priv;
-			*data = &devc->cur_samplerate;
+			*data = g_variant_new_uint64(devc->cur_samplerate);
 		} else
 			return SR_ERR;
 		break;
@@ -258,11 +255,11 @@ static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
+static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	int ret;
-	const uint64_t *tmp_u64;
+	uint64_t tmp_u64;
 
 	devc = sdi->priv;
 
@@ -271,21 +268,23 @@ static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 
 	switch (id) {
 	case SR_CONF_SAMPLERATE:
-		ret = ols_set_samplerate(sdi, *(const uint64_t *)value,
-					 &samplerates);
+		tmp_u64 = g_variant_get_uint64(data);
+		if (tmp_u64 < samplerates[0] || tmp_u64 > samplerates[1])
+			return SR_ERR_SAMPLERATE;
+		ret = ols_set_samplerate(sdi, g_variant_get_uint64(data));
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
-		tmp_u64 = value;
-		if (*tmp_u64 < MIN_NUM_SAMPLES)
+		tmp_u64 = g_variant_get_uint64(data);
+		if (tmp_u64 < MIN_NUM_SAMPLES)
 			return SR_ERR;
-		if (*tmp_u64 > devc->max_samples)
+		if (tmp_u64 > devc->max_samples)
 			sr_err("Sample limit exceeds hardware maximum.");
-		devc->limit_samples = *tmp_u64;
+		devc->limit_samples = tmp_u64;
 		sr_info("Sample limit is %" PRIu64 ".", devc->limit_samples);
 		ret = SR_OK;
 		break;
 	case SR_CONF_CAPTURE_RATIO:
-		devc->capture_ratio = *(const uint64_t *)value;
+		devc->capture_ratio = g_variant_get_uint64(data);
 		if (devc->capture_ratio < 0 || devc->capture_ratio > 100) {
 			devc->capture_ratio = 0;
 			ret = SR_ERR;
@@ -293,7 +292,7 @@ static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 			ret = SR_OK;
 		break;
 	case SR_CONF_RLE:
-		if (*(int *)value) {
+		if (g_variant_get_boolean(data)) {
 			sr_info("Enabling RLE.");
 			devc->flag_reg |= FLAG_RLE;
 		}
@@ -306,23 +305,31 @@ static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 	return ret;
 }
 
-static int config_list(int key, const void **data, const struct sr_dev_inst *sdi)
+static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 {
+	GVariant *gvar;
+	GVariantBuilder gvb;
 
 	(void)sdi;
 
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
-		*data = hwopts;
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+				hwopts, ARRAY_SIZE(hwopts), sizeof(int32_t));
 		break;
 	case SR_CONF_DEVICE_OPTIONS:
-		*data = hwcaps;
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+				hwcaps, ARRAY_SIZE(hwcaps), sizeof(int32_t));
 		break;
 	case SR_CONF_SAMPLERATE:
-		*data = &samplerates;
+		g_variant_builder_init(&gvb, G_VARIANT_TYPE("a{sv}"));
+		gvar = g_variant_new_fixed_array(G_VARIANT_TYPE("t"), samplerates,
+				ARRAY_SIZE(samplerates), sizeof(uint64_t));
+		g_variant_builder_add(&gvb, "{sv}", "samplerate-steps", gvar);
+		*data = g_variant_builder_end(&gvb);
 		break;
 	case SR_CONF_TRIGGER_TYPE:
-		*data = (char *)TRIGGER_TYPE;
+		*data = g_variant_new_string(TRIGGER_TYPE);
 		break;
 	default:
 		return SR_ERR_ARG;
