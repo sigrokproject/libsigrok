@@ -722,18 +722,6 @@ enum {
 	SR_ST_STOPPING,
 };
 
-/*
- * A device supports either a range of samplerates with steps of a given
- * granularity, or is limited to a set of defined samplerates. Use either
- * step or list, but not both.
- */
-struct sr_samplerates {
-	uint64_t low;
-	uint64_t high;
-	uint64_t step;
-	const uint64_t *list;
-};
-
 struct sr_dev_driver {
 	/* Driver-specific */
 	char *name;
