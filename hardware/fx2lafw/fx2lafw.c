@@ -81,14 +81,14 @@ static const struct fx2lafw_profile supported_fx2[] = {
 	{ 0, 0, 0, 0, 0, 0, 0 }
 };
 
-static const int hwcaps[] = {
+static const int32_t hwcaps[] = {
 	SR_CONF_LOGIC_ANALYZER,
+	SR_CONF_TRIGGER_TYPE,
 	SR_CONF_SAMPLERATE,
 
 	/* These are really implemented in the driver, not the hardware. */
 	SR_CONF_LIMIT_SAMPLES,
 	SR_CONF_CONTINUOUS,
-	0,
 };
 
 static const char *probe_names[] = {
@@ -97,7 +97,7 @@ static const char *probe_names[] = {
 	NULL,
 };
 
-static const uint64_t supported_samplerates[] = {
+static const uint64_t samplerates[] = {
 	SR_KHZ(20),
 	SR_KHZ(25),
 	SR_KHZ(50),
@@ -114,20 +114,11 @@ static const uint64_t supported_samplerates[] = {
 	SR_MHZ(12),
 	SR_MHZ(16),
 	SR_MHZ(24),
-	0,
-};
-
-static const struct sr_samplerates samplerates = {
-	.low  = 0,
-	.high = 0,
-	.step = 0,
-	.list = supported_samplerates,
 };
 
 SR_PRIV struct sr_dev_driver fx2lafw_driver_info;
 static struct sr_dev_driver *di = &fx2lafw_driver_info;
 static int hw_dev_close(struct sr_dev_inst *sdi);
-static int config_set(int id, const void *value, const struct sr_dev_inst *sdi);
 static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);
 
 /**
@@ -546,9 +537,7 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 
 	if (devc->cur_samplerate == 0) {
 		/* Samplerate hasn't been set; default to the slowest one. */
-		if (config_set(SR_CONF_SAMPLERATE, &supported_samplerates[0],
-				sdi) == SR_ERR)
-			return SR_ERR;
+		devc->cur_samplerate = samplerates[0];
 	}
 
 	return SR_OK;
@@ -589,7 +578,7 @@ static int hw_cleanup(void)
 	return ret;
 }
 
-static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
+static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 
@@ -597,7 +586,7 @@ static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
 	case SR_CONF_SAMPLERATE:
 		if (sdi) {
 			devc = sdi->priv;
-			*data = &devc->cur_samplerate;
+			*data = g_variant_new_uint64(devc->cur_samplerate);
 		} else
 			return SR_ERR;
 		break;
@@ -608,7 +597,7 @@ static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
+static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	int ret;
@@ -616,10 +605,10 @@ static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 
 	if (id == SR_CONF_SAMPLERATE) {
-		devc->cur_samplerate = *(const uint64_t *)value;
+		devc->cur_samplerate = g_variant_get_uint64(data);
 		ret = SR_OK;
 	} else if (id == SR_CONF_LIMIT_SAMPLES) {
-		devc->limit_samples = *(const uint64_t *)value;
+		devc->limit_samples = g_variant_get_uint64(data);
 		ret = SR_OK;
 	} else {
 		ret = SR_ERR;
@@ -628,20 +617,27 @@ static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 	return ret;
 }
 
-static int config_list(int key, const void **data, const struct sr_dev_inst *sdi)
+static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 {
+	GVariant *gvar;
+	GVariantBuilder gvb;
 
 	(void)sdi;
 
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
-		*data = hwcaps;
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+				hwcaps, ARRAY_SIZE(hwcaps), sizeof(int32_t));
 		break;
 	case SR_CONF_SAMPLERATE:
-		*data = &samplerates;
+		g_variant_builder_init(&gvb, G_VARIANT_TYPE("a{sv}"));
+		gvar = g_variant_new_fixed_array(G_VARIANT_TYPE("t"), samplerates,
+				ARRAY_SIZE(samplerates), sizeof(uint64_t));
+		g_variant_builder_add(&gvb, "{sv}", "samplerates", gvar);
+		*data = g_variant_builder_end(&gvb);
 		break;
 	case SR_CONF_TRIGGER_TYPE:
-		*data = TRIGGER_TYPE;
+		*data = g_variant_new_string(TRIGGER_TYPE);
 		break;
 	default:
 		return SR_ERR_ARG;
