@@ -355,14 +355,15 @@ SR_PRIV void sr_hw_cleanup_all(void)
 	}
 }
 
-SR_PRIV struct sr_config *sr_config_new(int key, const void *value)
+/** A floating reference can be passed in for data. */
+SR_PRIV struct sr_config *sr_config_new(int key, GVariant *data)
 {
 	struct sr_config *src;
 
 	if (!(src = g_try_malloc(sizeof(struct sr_config))))
 		return NULL;
 	src->key = key;
-	src->value = value;
+	src->data = g_variant_ref_sink(data);
 
 	return src;
 }
@@ -372,9 +373,14 @@ SR_PRIV struct sr_config *sr_config_new(int key, const void *value)
  *
  * @param driver The sr_dev_driver struct to query.
  * @param key The configuration key (SR_CONF_*).
- * @param data Pointer where the value will be stored. Must not be NULL.
- * @param sdi If the key is specific to a device, this must contain a
- *            pointer to the struct sr_dev_inst to be checked.
+ * @param data Pointer to a GVariant where the value will be stored. Must
+ *             not be NULL. The caller is given ownership of the GVariant
+ *             and must thus decrease the refcount after use. However if
+ *             this function returns an error code, the field should be
+ *             considered unused, and should not be unreferenced.
+ * @param sdi (optional) If the key is specific to a device, this must
+ *            contain a pointer to the struct sr_dev_inst to be checked.
+ *            Otherwise it must be NULL.
  *
  * @return SR_OK upon success or SR_ERR in case of error. Note SR_ERR_ARG
  *         may be returned by the driver indicating it doesn't know that key,
@@ -382,14 +388,18 @@ SR_PRIV struct sr_config *sr_config_new(int key, const void *value)
  *         as an indication that it's not applicable.
  */
 SR_API int sr_config_get(const struct sr_dev_driver *driver, int key,
-		const void **data, const struct sr_dev_inst *sdi)
+		GVariant **data, const struct sr_dev_inst *sdi)
 {
 	int ret;
 
 	if (!driver || !data)
 		return SR_ERR;
 
-	ret = driver->config_get(key, data, sdi);
+	if ((ret = driver->config_get(key, data, sdi)) == SR_OK) {
+		/* Got a floating reference from the driver. Sink it here,
+		 * caller will need to unref when done with it. */
+		g_variant_ref_sink(*data);
+	}
 
 	return ret;
 }
@@ -399,26 +409,29 @@ SR_API int sr_config_get(const struct sr_dev_driver *driver, int key,
  *
  * @param sdi The device instance.
  * @param key The configuration key (SR_CONF_*).
- * @param value The new value for the key, as a pointer to whatever type
- *        is appropriate for that key.
+ * @param data The new value for the key, as a GVariant with GVariantType
+ *        appropriate to that key. A floating reference can be passed
+ *        in; its refcount will be sunk and unreferenced after use.
  *
  * @return SR_OK upon success or SR_ERR in case of error. Note SR_ERR_ARG
  *         may be returned by the driver indicating it doesn't know that key,
  *         but this is not to be flagged as an error by the caller; merely
  *         as an indication that it's not applicable.
  */
-SR_API int sr_config_set(const struct sr_dev_inst *sdi, int key,
-		const void *value)
+SR_API int sr_config_set(const struct sr_dev_inst *sdi, int key, GVariant *data)
 {
 	int ret;
 
-	if (!sdi || !sdi->driver || !value)
-		return SR_ERR;
+	g_variant_ref_sink(data);
 
-	if (!sdi->driver->config_set)
-		return SR_ERR_ARG;
+	if (!sdi || !sdi->driver || !data)
+		ret = SR_ERR;
+	else if (!sdi->driver->config_set)
+		ret = SR_ERR_ARG;
+	else
+		ret = sdi->driver->config_set(key, data, sdi);
 
-	ret = sdi->driver->config_set(key, value, sdi);
+	g_variant_unref(data);
 
 	return ret;
 }
@@ -428,10 +441,13 @@ SR_API int sr_config_set(const struct sr_dev_inst *sdi, int key,
  *
  * @param driver The sr_dev_driver struct to query.
  * @param key The configuration key (SR_CONF_*).
- * @param data A pointer to a list of values, in whatever format is
- *             appropriate for that key.
- * @param sdi If the key is specific to a device, this must contain a
- *            pointer to the struct sr_dev_inst to be checked.
+ * @param data A pointer to a GVariant where the list will be stored. The
+ *             caller is given ownership of the GVariant and must thus
+ *             unref the GVariant after use. However if this function
+ *             returns an error code, the field should be considered
+ *             unused, and should not be unreferenced.
+ * @param sdi (optional) If the key is specific to a device, this must
+ *            contain a pointer to the struct sr_dev_inst to be checked.
  *
  * @return SR_OK upon success or SR_ERR in case of error. Note SR_ERR_ARG
  *         may be returned by the driver indicating it doesn't know that key,
@@ -439,14 +455,14 @@ SR_API int sr_config_set(const struct sr_dev_inst *sdi, int key,
  *         as an indication that it's not applicable.
  */
 SR_API int sr_config_list(const struct sr_dev_driver *driver, int key,
-		const void **data, const struct sr_dev_inst *sdi)
+		GVariant **data, const struct sr_dev_inst *sdi)
 {
 	int ret;
 
-	if (!driver || !data)
-		return SR_ERR;
-
-	ret = driver->config_list(key, data, sdi);
+	if (!driver || !data || !driver->config_list)
+		ret = SR_ERR;
+	else if ((ret = driver->config_list(key, data, sdi)) == SR_OK)
+		g_variant_ref_sink(*data);
 
 	return ret;
 }

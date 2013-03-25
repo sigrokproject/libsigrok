@@ -522,7 +522,7 @@ struct sr_probe {
 
 struct sr_config {
 	int key;
-	const void *value;
+	GVariant *data;
 };
 
 struct sr_config_info {
@@ -744,11 +744,11 @@ struct sr_dev_driver {
 	GSList *(*scan) (GSList *options);
 	GSList *(*dev_list) (void);
 	int (*dev_clear) (void);
-	int (*config_get) (int id, const void **value,
+	int (*config_get) (int id, GVariant **data,
 			const struct sr_dev_inst *sdi);
-	int (*config_set) (int id, const void *value,
+	int (*config_set) (int id, GVariant *data,
 			const struct sr_dev_inst *sdi);
-	int (*config_list) (int info_id, const void **data,
+	int (*config_list) (int info_id, GVariant **data,
 			const struct sr_dev_inst *sdi);
 
 	/* Device-specific */
