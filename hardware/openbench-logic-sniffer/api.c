@@ -295,6 +295,9 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 		if (g_variant_get_boolean(data)) {
 			sr_info("Enabling RLE.");
 			devc->flag_reg |= FLAG_RLE;
+		} else {
+			sr_info("Disabling RLE.");
+			devc->flag_reg &= ~FLAG_RLE;
 		}
 		ret = SR_OK;
 		break;
