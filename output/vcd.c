@@ -53,7 +53,7 @@ static int init(struct sr_output *o)
 	struct context *ctx;
 	struct sr_probe *probe;
 	GSList *l;
-	uint64_t *samplerate;
+	GVariant *gvar;
 	int num_probes, i;
 	char *samplerate_s, *frequency_s, *timestamp;
 	time_t t;
@@ -93,17 +93,18 @@ static int init(struct sr_output *o)
 			PACKAGE, PACKAGE_VERSION);
 
 	if (o->sdi->driver && sr_dev_has_option(o->sdi, SR_CONF_SAMPLERATE)) {
-		o->sdi->driver->config_get(SR_CONF_SAMPLERATE,
-				(const void **)&samplerate, o->sdi);
-		ctx->samplerate = *samplerate;
+		o->sdi->driver->config_get(SR_CONF_SAMPLERATE, &gvar, o->sdi);
+		ctx->samplerate = g_variant_get_uint64(gvar);
 		if (!((samplerate_s = sr_samplerate_string(ctx->samplerate)))) {
 			g_string_free(ctx->header, TRUE);
 			g_free(ctx);
+			g_variant_unref(gvar);
 			return SR_ERR;
 		}
 		g_string_append_printf(ctx->header, vcd_header_comment,
 				 ctx->num_enabled_probes, num_probes, samplerate_s);
 		g_free(samplerate_s);
+		g_variant_unref(gvar);
 	}
 
 	/* timescale */

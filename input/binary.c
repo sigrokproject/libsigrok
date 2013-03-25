@@ -121,9 +121,11 @@ static int loadfile(struct sr_input *in, const char *filename)
 	if (ctx->samplerate) {
 		packet.type = SR_DF_META;
 		packet.payload = &meta;
-		src = sr_config_new(SR_CONF_SAMPLERATE, (const void *)&ctx->samplerate);
+		src = sr_config_new(SR_CONF_SAMPLERATE,
+				g_variant_new_uint64(ctx->samplerate));
 		meta.config = g_slist_append(NULL, src);
 		sr_session_send(in->sdi, &packet);
+		sr_config_free(src);
 	}
 
 	/* Chop up the input file into chunks & send it to the session bus. */

@@ -148,9 +148,11 @@ static int loadfile(struct sr_input *in, const char *filename)
 
 	packet.type = SR_DF_META;
 	packet.payload = &meta;
-	src = sr_config_new(SR_CONF_SAMPLERATE, (const void *)&ctx->samplerate);
+	src = sr_config_new(SR_CONF_SAMPLERATE,
+			g_variant_new_uint64(ctx->samplerate));
 	meta.config = g_slist_append(NULL, src);
 	sr_session_send(in->sdi, &packet);
+	sr_config_free(src);
 
 	if ((fd = open(filename, O_RDONLY)) == -1)
 		return SR_ERR;

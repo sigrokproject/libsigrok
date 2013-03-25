@@ -94,7 +94,7 @@ static int init(struct sr_output *o)
 	struct context *ctx;
 	struct sr_probe *probe;
 	GSList *l;
-	uint64_t *samplerate;
+	GVariant *gvar;
 
 	if (!o) {
 		sr_warn("%s: o was NULL", __func__);
@@ -129,9 +129,9 @@ static int init(struct sr_output *o)
 	ctx->unitsize = (ctx->num_enabled_probes + 7) / 8;
 
 	if (sr_dev_has_option(o->sdi, SR_CONF_SAMPLERATE)) {
-		o->sdi->driver->config_get(SR_CONF_SAMPLERATE,
-				(const void **)&samplerate, o->sdi);
-		ctx->samplerate = *samplerate;
+		o->sdi->driver->config_get(SR_CONF_SAMPLERATE, &gvar, o->sdi);
+		ctx->samplerate = g_variant_get_uint64(gvar);
+		g_variant_unref(gvar);
 	} else
 		ctx->samplerate = 0;
 

@@ -63,7 +63,8 @@ static int init(struct sr_output *o)
 	struct context *ctx;
 	struct sr_probe *probe;
 	GSList *l;
-	uint64_t *samplerate;
+	GVariant *gvar;
+	uint64_t samplerate;
 	unsigned int i;
 	int b, num_probes;
 	char *c, *frequency_s;
@@ -99,7 +100,7 @@ static int init(struct sr_output *o)
 	o->internal = ctx;
 	ctx->num_enabled_probes = 0;
 	for (l = o->sdi->probes; l; l = l->next) {
-		probe = l->data; /* TODO: Error checks. */
+		probe = l->data;
 		if (!probe->enabled)
 			continue;
 		ctx->probelist[ctx->num_enabled_probes++] = probe->name;
@@ -109,18 +110,21 @@ static int init(struct sr_output *o)
 
 	num_probes = g_slist_length(o->sdi->probes);
 	comment[0] = '\0';
+	samplerate = 0;
 	if (sr_dev_has_option(o->sdi, SR_CONF_SAMPLERATE)) {
-		o->sdi->driver->config_get(SR_CONF_SAMPLERATE,
-				(const void **)&samplerate, o->sdi);
-		if (!(frequency_s = sr_samplerate_string(*samplerate))) {
+		o->sdi->driver->config_get(SR_CONF_SAMPLERATE, &gvar, o->sdi);
+		samplerate = g_variant_get_uint64(gvar);
+		if (!(frequency_s = sr_samplerate_string(samplerate))) {
 			sr_err("%s: sr_samplerate_string failed", __func__);
 			g_free(ctx->header);
 			g_free(ctx);
+			g_variant_unref(gvar);
 			return SR_ERR;
 		}
 		snprintf(comment, 127, gnuplot_header_comment,
 			ctx->num_enabled_probes, num_probes, frequency_s);
 		g_free(frequency_s);
+		g_variant_unref(gvar);
 	}
 
 	/* Columns / channels */
@@ -130,7 +134,7 @@ static int init(struct sr_output *o)
 		sprintf(c, "# %d\t\t%s\n", i + 1, ctx->probelist[i]);
 	}
 
-	if (!(frequency_s = sr_period_string(*samplerate))) {
+	if (!(frequency_s = sr_period_string(samplerate))) {
 		sr_err("%s: sr_period_string failed", __func__);
 		g_free(ctx->header);
 		g_free(ctx);

@@ -79,7 +79,8 @@ SR_PRIV int init(struct sr_output *o, int default_spl, enum outputmode mode)
 	struct context *ctx;
 	struct sr_probe *probe;
 	GSList *l;
-	uint64_t *samplerate;
+	GVariant *gvar;
+	uint64_t samplerate;
 	int num_probes, ret;
 	char *samplerate_s;
 
@@ -124,12 +125,13 @@ SR_PRIV int init(struct sr_output *o, int default_spl, enum outputmode mode)
 	snprintf(ctx->header, 511, "%s\n", PACKAGE_STRING);
 	num_probes = g_slist_length(o->sdi->probes);
 	if (o->sdi->driver || sr_dev_has_option(o->sdi, SR_CONF_SAMPLERATE)) {
-		ret = o->sdi->driver->config_get(SR_CONF_SAMPLERATE,
-				(const void **)&samplerate, o->sdi);
-		if (ret != SR_OK)
+		if ((ret = o->sdi->driver->config_get(SR_CONF_SAMPLERATE, &gvar,
+				o->sdi)) != SR_OK)
 			goto err;
-		if (!(samplerate_s = sr_samplerate_string(*samplerate))) {
+		samplerate = g_variant_get_uint64(gvar);
+		if (!(samplerate_s = sr_samplerate_string(samplerate))) {
 			ret = SR_ERR;
+			g_variant_unref(gvar);
 			goto err;
 		}
 		snprintf(ctx->header + strlen(ctx->header),
@@ -137,6 +139,7 @@ SR_PRIV int init(struct sr_output *o, int default_spl, enum outputmode mode)
 			 "Acquisition with %d/%d probes at %s\n",
 			 ctx->num_enabled_probes, num_probes, samplerate_s);
 		g_free(samplerate_s);
+		g_variant_unref(gvar);
 	}
 
 	ctx->linebuf_len = ctx->samples_per_line * 2 + 4;
