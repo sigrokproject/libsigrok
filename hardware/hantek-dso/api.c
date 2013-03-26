@@ -37,7 +37,7 @@
 /* TODO tune this properly */
 #define TICK 1
 
-static const int devopts[] = {
+static const int32_t devopts[] = {
 	SR_CONF_OSCILLOSCOPE,
 	SR_CONF_LIMIT_FRAMES,
 	SR_CONF_CONTINUOUS,
@@ -49,7 +49,6 @@ static const int devopts[] = {
 	SR_CONF_FILTER,
 	SR_CONF_VDIV,
 	SR_CONF_COUPLING,
-	0,
 };
 
 static const char *probe_names[] = {
@@ -80,10 +79,9 @@ static const uint64_t buffersizes[] = {
 	10240,
 	32768,
 	/* TODO: 65535 */
-	0,
 };
 
-static const struct sr_rational timebases[] = {
+static const int32_t timebases[][2] = {
 	/* microseconds */
 	{ 10, 1000000 },
 	{ 20, 1000000 },
@@ -101,10 +99,9 @@ static const struct sr_rational timebases[] = {
 	{ 100, 1000 },
 	{ 200, 1000 },
 	{ 400, 1000 },
-	{ 0, 0},
 };
 
-static const struct sr_rational vdivs[] = {
+static const int32_t vdivs[][2] = {
 	/* millivolts */
 	{ 10, 1000 },
 	{ 20, 1000 },
@@ -116,7 +113,6 @@ static const struct sr_rational vdivs[] = {
 	{ 1, 1 },
 	{ 2, 1 },
 	{ 5, 1 },
-	{ 0, 0 },
 };
 
 static const char *trigger_sources[] = {
@@ -124,21 +120,18 @@ static const char *trigger_sources[] = {
 	"CH2",
 	"EXT",
 	/* TODO: forced */
-	NULL,
 };
 
 static const char *filter_targets[] = {
 	"CH1",
 	"CH2",
 	/* TODO: "TRIGGER", */
-	NULL,
 };
 
 static const char *coupling[] = {
 	"AC",
 	"DC",
 	"GND",
-	NULL,
 };
 
 SR_PRIV struct sr_dev_driver hantek_dso_driver_info;
@@ -409,13 +402,15 @@ static int hw_cleanup(void)
 	return SR_OK;
 }
 
-static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
+static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	struct sr_rational tmp_rat;
-	float tmp_float;
+	double tmp_double;
 	uint64_t tmp_u64;
-	int ret, i;
+	int32_t p, q;
+	int tmp_int, ret;
+	unsigned int i;
+	const char *tmp_str;
 	char **targets;
 
 	if (sdi->status != SR_ST_ACTIVE)
@@ -425,24 +420,24 @@ static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 	switch (id) {
 	case SR_CONF_LIMIT_FRAMES:
-		devc->limit_frames = *(const uint64_t *)value;
+		devc->limit_frames = g_variant_get_uint64(data);
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
-		tmp_u64 = *(const int *)value;
+		tmp_u64 = g_variant_get_uint64(data);
 		if (tmp_u64 != SLOPE_NEGATIVE && tmp_u64 != SLOPE_POSITIVE)
 			ret = SR_ERR_ARG;
 		devc->triggerslope = tmp_u64;
 		break;
 	case SR_CONF_HORIZ_TRIGGERPOS:
-		tmp_float = *(const float *)value;
-		if (tmp_float < 0.0 || tmp_float > 1.0) {
+		tmp_double = g_variant_get_double(data);
+		if (tmp_double < 0.0 || tmp_double > 1.0) {
 			sr_err("Trigger position should be between 0.0 and 1.0.");
 			ret = SR_ERR_ARG;
 		} else
-			devc->triggerposition = tmp_float;
+			devc->triggerposition = tmp_double;
 		break;
 	case SR_CONF_BUFFERSIZE:
-		tmp_u64 = *(const int *)value;
+		tmp_u64 = g_variant_get_uint64(data);
 		for (i = 0; buffersizes[i]; i++) {
 			if (buffersizes[i] == tmp_u64) {
 				devc->framesize = tmp_u64;
@@ -453,21 +448,24 @@ static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 			ret = SR_ERR_ARG;
 		break;
 	case SR_CONF_TIMEBASE:
-		tmp_rat = *(const struct sr_rational *)value;
-		for (i = 0; timebases[i].p && timebases[i].q; i++) {
-			if (timebases[i].p == tmp_rat.p
-					&& timebases[i].q == tmp_rat.q) {
-				devc->timebase = i;
+		g_variant_get(data, "(ii)", &p, &q);
+		tmp_int = -1;
+		for (i = 0; i < ARRAY_SIZE(timebases); i++) {
+			if (timebases[i][0] == p && timebases[i][1] == q) {
+				tmp_int = i;
 				break;
 			}
 		}
-		if (timebases[i].p == 0 && timebases[i].q == 0)
+		if (tmp_int >= 0)
+			devc->timebase = tmp_int;
+		else
 			ret = SR_ERR_ARG;
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
+		tmp_str = g_variant_get_string(data, NULL);
 		for (i = 0; trigger_sources[i]; i++) {
-			if (!strcmp(value, trigger_sources[i])) {
-				devc->triggersource = g_strdup(value);
+			if (!strcmp(tmp_str, trigger_sources[i])) {
+				devc->triggersource = g_strdup(tmp_str);
 				break;
 			}
 		}
@@ -475,8 +473,9 @@ static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 			ret = SR_ERR_ARG;
 		break;
 	case SR_CONF_FILTER:
+		tmp_str = g_variant_get_string(data, NULL);
 		devc->filter_ch1 = devc->filter_ch2 = devc->filter_trigger = 0;
-		targets = g_strsplit(value, ",", 0);
+		targets = g_strsplit(tmp_str, ",", 0);
 		for (i = 0; targets[i]; i++) {
 			if (targets[i] == '\0')
 				/* Empty filter string can be used to clear them all. */
@@ -496,22 +495,25 @@ static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 		break;
 	case SR_CONF_VDIV:
 		/* TODO: Not supporting vdiv per channel yet. */
-		tmp_rat = *(const struct sr_rational *)value;
-		for (i = 0; vdivs[i].p && vdivs[i].q; i++) {
-			if (vdivs[i].p == tmp_rat.p
-					&& vdivs[i].q == tmp_rat.q) {
-				devc->voltage_ch1 = i;
-				devc->voltage_ch2 = i;
+		g_variant_get(data, "(ii)", &p, &q);
+		tmp_int = -1;
+		for (i = 0; i < ARRAY_SIZE(vdivs); i++) {
+			if (vdivs[i][0] == p && vdivs[i][1] == q) {
+				tmp_int = i;
 				break;
 			}
 		}
-		if (vdivs[i].p == 0 && vdivs[i].q == 0)
+		if (tmp_int >= 0) {
+			devc->voltage_ch1 = tmp_int;
+			devc->voltage_ch2 = tmp_int;
+		} else
 			ret = SR_ERR_ARG;
 		break;
 	case SR_CONF_COUPLING:
+		tmp_str = g_variant_get_string(data, NULL);
 		/* TODO: Not supporting coupling per channel yet. */
 		for (i = 0; coupling[i]; i++) {
-			if (!strcmp(value, coupling[i])) {
+			if (!strcmp(tmp_str, coupling[i])) {
 				devc->coupling_ch1 = i;
 				devc->coupling_ch2 = i;
 				break;
@@ -528,32 +530,38 @@ static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 	return ret;
 }
 
-static int config_list(int key, const void **data, const struct sr_dev_inst *sdi)
+static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 {
 
 	(void)sdi;
 
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
-		*data = devopts;
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+				devopts, ARRAY_SIZE(devopts), sizeof(int32_t));
 		break;
 	case SR_CONF_BUFFERSIZE:
-		*data = buffersizes;
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT64,
+				buffersizes, ARRAY_SIZE(buffersizes), sizeof(uint64_t));
 		break;
 	case SR_CONF_COUPLING:
-		*data = coupling;
+		*data = g_variant_new_strv(coupling, ARRAY_SIZE(coupling));
 		break;
 	case SR_CONF_VDIV:
-		*data = vdivs;
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+				vdivs, ARRAY_SIZE(vdivs) * 2, sizeof(int32_t));
 		break;
 	case SR_CONF_FILTER:
-		*data = filter_targets;
+		*data = g_variant_new_strv(filter_targets,
+				ARRAY_SIZE(filter_targets));
 		break;
 	case SR_CONF_TIMEBASE:
-		*data = timebases;
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+				timebases, ARRAY_SIZE(timebases) * 2, sizeof(int32_t));
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
-		*data = trigger_sources;
+		*data = g_variant_new_strv(trigger_sources,
+				ARRAY_SIZE(trigger_sources));
 		break;
 	default:
 		return SR_ERR_ARG;
@@ -598,14 +606,14 @@ static void send_chunk(struct sr_dev_inst *sdi, unsigned char *buf,
 		 */
 		/* TODO: Support for DSO-5xxx series 9-bit samples. */
 		if (devc->ch1_enabled) {
-			range = ((float)vdivs[devc->voltage_ch1].p / vdivs[devc->voltage_ch1].q) * 8;
+			range = ((float)vdivs[devc->voltage_ch1][0] / vdivs[devc->voltage_ch1][1]) * 8;
 			ch1 = range / 255 * *(buf + i * 2 + 1);
 			/* Value is centered around 0V. */
 			ch1 -= range / 2;
 			analog.data[data_offset++] = ch1;
 		}
 		if (devc->ch2_enabled) {
-			range = ((float)vdivs[devc->voltage_ch2].p / vdivs[devc->voltage_ch2].q) * 8;
+			range = ((float)vdivs[devc->voltage_ch2][0] / vdivs[devc->voltage_ch2][1]) * 8;
 			ch2 = range / 255 * *(buf + i * 2);
 			ch2 -= range / 2;
 			analog.data[data_offset++] = ch2;
