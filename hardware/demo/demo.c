@@ -99,11 +99,10 @@ static const int hwcaps[] = {
 	SR_CONF_CONTINUOUS,
 };
 
-static const struct sr_samplerates samplerates = {
-	.low  = SR_HZ(1),
-	.high = SR_GHZ(1),
-	.step = SR_HZ(1),
-	.list = NULL,
+static const uint64_t samplerates[] = {
+	SR_HZ(1),
+	SR_GHZ(1),
+	SR_HZ(1),
 };
 
 static const char *pattern_strings[] = {
@@ -112,7 +111,6 @@ static const char *pattern_strings[] = {
 	"incremental",
 	"all-low",
 	"all-high",
-	NULL,
 };
 
 /* We name the probes 0-7 on our demo driver. */
@@ -220,36 +218,36 @@ static int hw_cleanup(void)
 	return SR_OK;
 }
 
-static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
+static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi)
 {
 	(void)sdi;
 
 	switch (id) {
 	case SR_CONF_SAMPLERATE:
-		*data = &cur_samplerate;
+		*data = g_variant_new_uint64(cur_samplerate);
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
-		*data = &limit_samples;
+		*data = g_variant_new_uint64(limit_samples);
 		break;
 	case SR_CONF_LIMIT_MSEC:
-		*data = &limit_msec;
+		*data = g_variant_new_uint64(limit_msec);
 		break;
 	case SR_CONF_PATTERN_MODE:
 		switch (default_pattern) {
 		case PATTERN_SIGROK:
-			*data = STR_PATTERN_SIGROK;
+			*data = g_variant_new_string(STR_PATTERN_SIGROK);
 			break;
 		case PATTERN_RANDOM:
-			*data = STR_PATTERN_RANDOM;
+			*data = g_variant_new_string(STR_PATTERN_RANDOM);
 			break;
 		case PATTERN_INC:
-			*data = STR_PATTERN_INC;
+			*data = g_variant_new_string(STR_PATTERN_INC);
 			break;
 		case PATTERN_ALL_LOW:
-			*data = STR_PATTERN_ALL_LOW;
+			*data = g_variant_new_string(STR_PATTERN_ALL_LOW);
 			break;
 		case PATTERN_ALL_HIGH:
-			*data = STR_PATTERN_ALL_HIGH;
+			*data = g_variant_new_string(STR_PATTERN_ALL_HIGH);
 			break;
 		}
 		break;
@@ -260,7 +258,7 @@ static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
+static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 {
 	int ret;
 	const char *stropt;
@@ -268,24 +266,24 @@ static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 	(void)sdi;
 
 	if (id == SR_CONF_SAMPLERATE) {
-		cur_samplerate = *(const uint64_t *)value;
+		cur_samplerate = g_variant_get_uint64(data);
 		sr_dbg("%s: setting samplerate to %" PRIu64, __func__,
 		       cur_samplerate);
 		ret = SR_OK;
 	} else if (id == SR_CONF_LIMIT_SAMPLES) {
 		limit_msec = 0;
-		limit_samples = *(const uint64_t *)value;
+		limit_samples = g_variant_get_uint64(data);
 		sr_dbg("%s: setting limit_samples to %" PRIu64, __func__,
 		       limit_samples);
 		ret = SR_OK;
 	} else if (id == SR_CONF_LIMIT_MSEC) {
-		limit_msec = *(const uint64_t *)value;
+		limit_msec = g_variant_get_uint64(data);
 		limit_samples = 0;
 		sr_dbg("%s: setting limit_msec to %" PRIu64, __func__,
 		       limit_msec);
 		ret = SR_OK;
 	} else if (id == SR_CONF_PATTERN_MODE) {
-		stropt = value;
+		stropt = g_variant_get_string(data, NULL);
 		ret = SR_OK;
 		if (!strcmp(stropt, STR_PATTERN_SIGROK)) {
 			default_pattern = PATTERN_SIGROK;
@@ -308,20 +306,27 @@ static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 	return ret;
 }
 
-static int config_list(int key, const void **data, const struct sr_dev_inst *sdi)
+static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 {
+	GVariant *gvar;
+	GVariantBuilder gvb;
 
 	(void)sdi;
 
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
-		*data = hwcaps;
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+				hwcaps, ARRAY_SIZE(hwcaps), sizeof(int32_t));
 		break;
 	case SR_CONF_SAMPLERATE:
-		*data = &samplerates;
+		g_variant_builder_init(&gvb, G_VARIANT_TYPE("a{sv}"));
+		gvar = g_variant_new_fixed_array(G_VARIANT_TYPE("t"), samplerates,
+				ARRAY_SIZE(samplerates), sizeof(uint64_t));
+		g_variant_builder_add(&gvb, "{sv}", "samplerate-steps", gvar);
+		*data = g_variant_builder_end(&gvb);
 		break;
 	case SR_CONF_PATTERN_MODE:
-		*data = &pattern_strings;
+		*data = g_variant_new_strv(pattern_strings, ARRAY_SIZE(pattern_strings));
 		break;
 	default:
 		return SR_ERR_ARG;
