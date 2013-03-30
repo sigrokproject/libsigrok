@@ -81,7 +81,7 @@ static const uint64_t buffersizes[] = {
 	/* TODO: 65535 */
 };
 
-static const int32_t timebases[][2] = {
+static const uint64_t timebases[][2] = {
 	/* microseconds */
 	{ 10, 1000000 },
 	{ 20, 1000000 },
@@ -101,7 +101,7 @@ static const int32_t timebases[][2] = {
 	{ 400, 1000 },
 };
 
-static const int32_t vdivs[][2] = {
+static const uint64_t vdivs[][2] = {
 	/* millivolts */
 	{ 10, 1000 },
 	{ 20, 1000 },
@@ -406,8 +406,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	double tmp_double;
-	uint64_t tmp_u64;
-	int32_t p, q;
+	uint64_t tmp_u64, p, q;
 	int tmp_int, ret;
 	unsigned int i;
 	const char *tmp_str;
@@ -448,7 +447,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 			ret = SR_ERR_ARG;
 		break;
 	case SR_CONF_TIMEBASE:
-		g_variant_get(data, "(ii)", &p, &q);
+		g_variant_get(data, "(tt)", &p, &q);
 		tmp_int = -1;
 		for (i = 0; i < ARRAY_SIZE(timebases); i++) {
 			if (timebases[i][0] == p && timebases[i][1] == q) {
@@ -495,7 +494,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 		break;
 	case SR_CONF_VDIV:
 		/* TODO: Not supporting vdiv per channel yet. */
-		g_variant_get(data, "(ii)", &p, &q);
+		g_variant_get(data, "(tt)", &p, &q);
 		tmp_int = -1;
 		for (i = 0; i < ARRAY_SIZE(vdivs); i++) {
 			if (vdivs[i][0] == p && vdivs[i][1] == q) {
@@ -548,16 +547,16 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 		*data = g_variant_new_strv(coupling, ARRAY_SIZE(coupling));
 		break;
 	case SR_CONF_VDIV:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-				vdivs, ARRAY_SIZE(vdivs) * 2, sizeof(int32_t));
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT64,
+				vdivs, ARRAY_SIZE(vdivs) * 2, sizeof(uint64_t));
 		break;
 	case SR_CONF_FILTER:
 		*data = g_variant_new_strv(filter_targets,
 				ARRAY_SIZE(filter_targets));
 		break;
 	case SR_CONF_TIMEBASE:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-				timebases, ARRAY_SIZE(timebases) * 2, sizeof(int32_t));
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT64,
+				timebases, ARRAY_SIZE(timebases) * 2, sizeof(uint64_t));
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
 		*data = g_variant_new_strv(trigger_sources,
