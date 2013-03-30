@@ -28,22 +28,16 @@ SR_PRIV struct sr_dev_driver lascar_el_usb_driver_info;
 static struct sr_dev_driver *di = &lascar_el_usb_driver_info;
 static int hw_dev_close(struct sr_dev_inst *sdi);
 
-static const int hwopts[] = {
+static const int32_t hwopts[] = {
 	SR_CONF_CONN,
-	0,
 };
 
-static const int hwcaps[] = {
+static const int32_t hwcaps[] = {
 	SR_CONF_THERMOMETER,
 	SR_CONF_HYGROMETER,
 	SR_CONF_DATALOG,
 	SR_CONF_LIMIT_SAMPLES,
-	0
 };
-
-/* Terrible hack */
-static int BOOL_TRUE = TRUE;
-static int BOOL_FALSE = FALSE;
 
 /* Properly close and free all devices. */
 static int clear_instances(void)
@@ -100,7 +94,7 @@ static GSList *hw_scan(GSList *options)
 		src = l->data;
 		switch (src->key) {
 		case SR_CONF_CONN:
-			conn = src->value;
+			conn = g_variant_get_string(src->data, NULL);
 			break;
 		}
 	}
@@ -197,7 +191,7 @@ static int hw_cleanup(void)
 	return SR_OK;
 }
 
-static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
+static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	int ret;
@@ -209,10 +203,10 @@ static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
 			return SR_ERR_ARG;
 		if ((ret = lascar_is_logging(sdi)) == -1)
 			return SR_ERR;
-		*data = ret ? &BOOL_TRUE : &BOOL_FALSE;
+		*data = g_variant_new_boolean(ret ? TRUE : FALSE);
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
-		*data = &devc->limit_samples;
+		*data = g_variant_new_uint64(devc->limit_samples);
 		break;
 	default:
 		return SR_ERR_ARG;
@@ -221,7 +215,7 @@ static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
+static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	int ret;
@@ -239,7 +233,7 @@ static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 	ret = SR_OK;
 	switch (id) {
 	case SR_CONF_DATALOG:
-		if (*(int *)value) {
+		if (g_variant_get_boolean(data)) {
 			/* Start logging. */
 			ret = lascar_start_logging(sdi);
 		} else {
@@ -248,7 +242,7 @@ static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 		}
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
-		devc->limit_samples = *(const uint64_t *)value;
+		devc->limit_samples = g_variant_get_uint64(data);
 		sr_dbg("Setting sample limit to %" PRIu64 ".",
 		       devc->limit_samples);
 		break;
@@ -260,17 +254,19 @@ static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 	return ret;
 }
 
-static int config_list(int key, const void **data, const struct sr_dev_inst *sdi)
+static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 {
 
 	(void)sdi;
 
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
-		*data = hwopts;
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+				hwopts, ARRAY_SIZE(hwopts), sizeof(int32_t));
 		break;
 	case SR_CONF_DEVICE_OPTIONS:
-		*data = hwcaps;
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+				hwcaps, ARRAY_SIZE(hwcaps), sizeof(int32_t));
 		break;
 	default:
 		return SR_ERR_ARG;
@@ -381,7 +377,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	interval = (devc->config[0x1c] | (devc->config[0x1d] << 8)) * 1000;
 	packet.type = SR_DF_META;
 	packet.payload = &meta;
-	src = sr_config_new(SR_CONF_SAMPLE_INTERVAL, (const void *)&interval);
+	src = sr_config_new(SR_CONF_SAMPLE_INTERVAL, g_variant_new_uint64(interval));
 	meta.config = g_slist_append(NULL, src);
 	sr_session_send(devc->cb_data, &packet);
 	g_free(src);
