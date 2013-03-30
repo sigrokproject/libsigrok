@@ -211,6 +211,7 @@ static void remove_empty_parts(gchar **parts)
  */
 static gboolean parse_header(FILE *file, struct context *ctx)
 {
+	uint64_t p, q;
 	gchar *name = NULL, *contents = NULL;
 	gboolean status = FALSE;
 
@@ -227,15 +228,14 @@ static gboolean parse_header(FILE *file, struct context *ctx)
 		{
 			/* The standard allows for values 1, 10 or 100
 			 * and units s, ms, us, ns, ps and fs. */
-			struct sr_rational period;
-			if (sr_parse_period(contents, &period) == SR_OK)
+			if (sr_parse_period(contents, &p, &q) == SR_OK)
 			{
-				ctx->samplerate = period.q / period.p;
-				if (period.q % period.p != 0)
+				ctx->samplerate = q / p;
+				if (q % p != 0)
 				{
 					/* Does not happen unless time value is non-standard */
 					sr_warn("Inexact rounding of samplerate, %" PRIu64 " / %" PRIu64 " to %" PRIu64 " Hz.",
-						period.q, period.p, ctx->samplerate);
+						q, p, ctx->samplerate);
 				}
 				
 				sr_dbg("Samplerate: %" PRIu64, ctx->samplerate);
