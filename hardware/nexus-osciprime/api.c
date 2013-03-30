@@ -29,19 +29,17 @@
 #define OSCI_FIRMWARE FIRMWARE_DIR "/nexus-osciprime.fw"
 #define OSCI_VIDPID "04b4.1004"
 
-static const int hwopts[] = {
+static const int32_t hwopts[] = {
 	SR_CONF_CONN,
 	SR_CONF_SERIALCOMM,
-	0,
 };
 
-static const int hwcaps[] = {
+static const int32_t hwcaps[] = {
 	SR_CONF_OSCILLOSCOPE,
 	SR_CONF_LIMIT_SAMPLES,
 	SR_CONF_CONTINUOUS,
 	SR_CONF_TIMEBASE,
 	SR_CONF_VDIV,
-	0,
 };
 
 static const struct sr_rational timebases[] = {
@@ -167,7 +165,7 @@ static GSList *hw_scan(GSList *options)
 		src = l->data;
 		switch (src->key) {
 		case SR_CONF_CONN:
-			conn = src->value;
+			conn = g_variant_get_string(src->data, NULL);
 			break;
 		}
 	}
@@ -248,12 +246,12 @@ static int hw_cleanup(void)
 	return SR_OK;
 }
 
-static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
+static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 {
 	int ret;
 
 	/* TODO */
-	(void)value;
+	(void)data;
 
 	if (sdi->status != SR_ST_ACTIVE) {
 		sr_err("Device inactive, can't set config options.");
@@ -271,7 +269,7 @@ static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 	return ret;
 }
 
-static int config_list(int key, const void **data, const struct sr_dev_inst *sdi)
+static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 {
 
 	(void)sdi;
