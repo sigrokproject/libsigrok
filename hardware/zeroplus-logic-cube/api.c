@@ -54,12 +54,11 @@ static const struct zp_model zeroplus_models[] = {
 	{ 0, 0, 0, 0, 0, 0 }
 };
 
-static const int hwcaps[] = {
+static const int32_t hwcaps[] = {
 	SR_CONF_LOGIC_ANALYZER,
 	SR_CONF_SAMPLERATE,
 	SR_CONF_CAPTURE_RATIO,
 	SR_CONF_LIMIT_SAMPLES,
-	0,
 };
 
 /*
@@ -80,7 +79,7 @@ static struct sr_dev_driver *di = &zeroplus_logic_cube_driver_info;
  * options hardcoded into the vendor's Windows GUI.
  */
 
-static const uint64_t zp_supported_samplerates_100[] = {
+static const uint64_t samplerates_100[] = {
 	SR_HZ(100),
 	SR_HZ(500),
 	SR_KHZ(1),
@@ -97,10 +96,9 @@ static const uint64_t zp_supported_samplerates_100[] = {
 	SR_MHZ(50),
 	SR_MHZ(80),
 	SR_MHZ(100),
-	0,
 };
 
-const uint64_t zp_supported_samplerates_200[] = {
+const uint64_t samplerates_200[] = {
 	SR_HZ(100),
 	SR_HZ(500),
 	SR_KHZ(1),
@@ -119,21 +117,6 @@ const uint64_t zp_supported_samplerates_200[] = {
 	SR_MHZ(100),
 	SR_MHZ(150),
 	SR_MHZ(200),
-	0,
-};
-
-static const struct sr_samplerates samplerates_100 = {
-	.low  = 0,
-	.high = 0,
-	.step = 0,
-	.list = zp_supported_samplerates_100,
-};
-
-static const struct sr_samplerates samplerates_200 = {
-	.low  = 0,
-	.high = 0,
-	.step = 0,
-	.list = zp_supported_samplerates_200,
 };
 
 static int hw_dev_close(struct sr_dev_inst *sdi);
@@ -485,7 +468,7 @@ static int hw_cleanup(void)
 	return SR_OK;
 }
 
-static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
+static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 
@@ -493,7 +476,7 @@ static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
 	case SR_CONF_SAMPLERATE:
 		if (sdi) {
 			devc = sdi->priv;
-			*data = &devc->cur_samplerate;
+			*data = g_variant_new_uint64(devc->cur_samplerate);
 			sr_spew("Returning samplerate: %" PRIu64 "Hz.",
 				devc->cur_samplerate);
 		} else
@@ -506,7 +489,7 @@ static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
+static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 
@@ -522,11 +505,11 @@ static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 
 	switch (id) {
 	case SR_CONF_SAMPLERATE:
-		return zp_set_samplerate(devc, *(const uint64_t *)value);
+		return zp_set_samplerate(devc, g_variant_get_uint64(data));
 	case SR_CONF_LIMIT_SAMPLES:
-		return set_limit_samples(devc, *(const uint64_t *)value);
+		return set_limit_samples(devc, g_variant_get_uint64(data));
 	case SR_CONF_CAPTURE_RATIO:
-		return set_capture_ratio(devc, *(const uint64_t *)value);
+		return set_capture_ratio(devc, g_variant_get_uint64(data));
 	default:
 		return SR_ERR;
 	}
@@ -534,28 +517,38 @@ static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int config_list(int key, const void **data, const struct sr_dev_inst *sdi)
+static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
+	GVariant *gvar;
+	GVariantBuilder gvb;
 
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
-		*data = hwcaps;
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+				hwcaps, ARRAY_SIZE(hwcaps), sizeof(int32_t));
 		break;
 	case SR_CONF_SAMPLERATE:
 		devc = sdi->priv;
+		g_variant_builder_init(&gvb, G_VARIANT_TYPE("a{sv}"));
 		if (devc->prof->max_sampling_freq == 100) {
-			*data = &samplerates_100;
+			gvar = g_variant_new_fixed_array(G_VARIANT_TYPE("t"),
+					samplerates_100, ARRAY_SIZE(samplerates_100),
+					sizeof(uint64_t));
 		} else if (devc->prof->max_sampling_freq == 200) {
-			*data = &samplerates_200;
+			gvar = g_variant_new_fixed_array(G_VARIANT_TYPE("t"),
+					samplerates_200, ARRAY_SIZE(samplerates_200),
+					sizeof(uint64_t));
 		} else {
 			sr_err("Internal error: Unknown max. samplerate: %d.",
 			       devc->prof->max_sampling_freq);
 			return SR_ERR_ARG;
 		}
+		g_variant_builder_add(&gvb, "{sv}", "samplerates", gvar);
+		*data = g_variant_builder_end(&gvb);
 		break;
 	case SR_CONF_TRIGGER_TYPE:
-		*data = TRIGGER_TYPE;
+		*data = g_variant_new_string(TRIGGER_TYPE);
 		break;
 	default:
 		return SR_ERR_ARG;
