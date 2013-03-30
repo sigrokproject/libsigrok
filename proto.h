@@ -128,8 +128,8 @@ SR_API char **sr_parse_triggerstring(const struct sr_dev_inst *sdi,
 SR_API int sr_parse_sizestring(const char *sizestring, uint64_t *size);
 SR_API uint64_t sr_parse_timestring(const char *timestring);
 SR_API gboolean sr_parse_boolstring(const char *boolstring);
-SR_API int sr_parse_period(const char *periodstr, struct sr_rational *r);
-SR_API int sr_parse_voltage(const char *voltstr, struct sr_rational *r);
+SR_API int sr_parse_period(const char *periodstr, uint64_t *p, uint64_t *q);
+SR_API int sr_parse_voltage(const char *voltstr, uint64_t *p, uint64_t *q);
 
 /*--- version.c -------------------------------------------------------------*/
 

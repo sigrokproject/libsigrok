@@ -393,12 +393,12 @@ SR_API gboolean sr_parse_boolstring(const char *boolstr)
 	return FALSE;
 }
 
-SR_API int sr_parse_period(const char *periodstr, struct sr_rational *r)
+SR_API int sr_parse_period(const char *periodstr, uint64_t *p, uint64_t *q)
 {
 	char *s;
 
-	r->p = strtoull(periodstr, &s, 10);
-	if (r->p == 0 && s == periodstr)
+	*p = strtoull(periodstr, &s, 10);
+	if (*p == 0 && s == periodstr)
 		/* No digits found. */
 		return SR_ERR_ARG;
 
@@ -406,17 +406,17 @@ SR_API int sr_parse_period(const char *periodstr, struct sr_rational *r)
 		while (*s == ' ')
 			s++;
 		if (!strcmp(s, "fs"))
-			r->q = 1000000000000000ULL;
+			*q = 1000000000000000ULL;
 		else if (!strcmp(s, "ps"))
-			r->q = 1000000000000ULL;
+			*q = 1000000000000ULL;
 		else if (!strcmp(s, "ns"))
-			r->q = 1000000000ULL;
+			*q = 1000000000ULL;
 		else if (!strcmp(s, "us"))
-			r->q = 1000000;
+			*q = 1000000;
 		else if (!strcmp(s, "ms"))
-			r->q = 1000;
+			*q = 1000;
 		else if (!strcmp(s, "s"))
-			r->q = 1;
+			*q = 1;
 		else
 			/* Must have a time suffix. */
 			return SR_ERR_ARG;
@@ -426,12 +426,12 @@ SR_API int sr_parse_period(const char *periodstr, struct sr_rational *r)
 }
 
 
-SR_API int sr_parse_voltage(const char *voltstr, struct sr_rational *r)
+SR_API int sr_parse_voltage(const char *voltstr, uint64_t *p, uint64_t *q)
 {
 	char *s;
 
-	r->p = strtoull(voltstr, &s, 10);
-	if (r->p == 0 && s == voltstr)
+	*p = strtoull(voltstr, &s, 10);
+	if (*p == 0 && s == voltstr)
 		/* No digits found. */
 		return SR_ERR_ARG;
 
@@ -439,9 +439,9 @@ SR_API int sr_parse_voltage(const char *voltstr, struct sr_rational *r)
 		while (*s == ' ')
 			s++;
 		if (!strcasecmp(s, "mv"))
-			r->q = 1000L;
+			*q = 1000L;
 		else if (!strcasecmp(s, "v"))
-			r->q = 1;
+			*q = 1;
 		else
 			/* Must have a base suffix. */
 			return SR_ERR_ARG;
