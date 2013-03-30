@@ -636,7 +636,7 @@ static void receive_transfer(struct libusb_transfer *transfer)
 
 	sdi = transfer->user_data;
 	devc = sdi->priv;
-	sr_dbg("receive_transfer(): status %d received %d bytes.",
+	sr_spew("receive_transfer(): status %d received %d bytes.",
 	       transfer->status, transfer->actual_length);
 
 	if (transfer->actual_length == 0)
@@ -645,7 +645,7 @@ static void receive_transfer(struct libusb_transfer *transfer)
 
 	num_samples = transfer->actual_length / 2;
 
-	sr_dbg("Got %d-%d/%d samples in frame.", devc->samp_received + 1,
+	sr_spew("Got %d-%d/%d samples in frame.", devc->samp_received + 1,
 	       devc->samp_received + num_samples, devc->framesize);
 
 	/*
