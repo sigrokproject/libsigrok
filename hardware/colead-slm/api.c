@@ -30,18 +30,16 @@
 /* The Colead SL-5868P uses this. */
 #define SERIALCOMM "2400/8n1"
 
-static const int hwopts[] = {
+static const int32_t hwopts[] = {
 	SR_CONF_CONN,
 	SR_CONF_SERIALCOMM,
-	0,
 };
 
-static const int hwcaps[] = {
+static const int32_t hwcaps[] = {
 	SR_CONF_SOUNDLEVELMETER,
 	SR_CONF_LIMIT_SAMPLES,
 	SR_CONF_LIMIT_MSEC,
 	SR_CONF_CONTINUOUS,
-	0,
 };
 
 SR_PRIV struct sr_dev_driver colead_slm_driver_info;
@@ -97,10 +95,10 @@ static GSList *hw_scan(GSList *options)
 		src = l->data;
 		switch (src->key) {
 		case SR_CONF_CONN:
-			conn = src->value;
+			conn = g_variant_get_string(src->data, NULL);
 			break;
 		case SR_CONF_SERIALCOMM:
-			serialcomm = src->value;
+			serialcomm = g_variant_get_string(src->data, NULL);
 			break;
 		}
 	}
@@ -175,7 +173,7 @@ static int hw_cleanup(void)
 	return SR_OK;
 }
 
-static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
+static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 
@@ -190,16 +188,16 @@ static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 	switch (id) {
 	case SR_CONF_LIMIT_MSEC:
 		/* TODO: not yet implemented */
-		if (*(const uint64_t *)value == 0) {
+		if (g_variant_get_uint64(data) == 0) {
 			sr_err("LIMIT_MSEC can't be 0.");
 			return SR_ERR;
 		}
-		devc->limit_msec = *(const uint64_t *)value;
+		devc->limit_msec = g_variant_get_uint64(data);;
 		sr_dbg("Setting time limit to %" PRIu64 "ms.",
 		       devc->limit_msec);
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
-		devc->limit_samples = *(const uint64_t *)value;
+		devc->limit_samples = g_variant_get_uint64(data);
 		sr_dbg("Setting sample limit to %" PRIu64 ".",
 		       devc->limit_samples);
 		break;
@@ -212,17 +210,19 @@ static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int config_list(int key, const void **data, const struct sr_dev_inst *sdi)
+static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 {
 
 	(void)sdi;
 
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
-		*data = hwopts;
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+				hwopts, ARRAY_SIZE(hwopts), sizeof(int32_t));
 		break;
 	case SR_CONF_DEVICE_OPTIONS:
-		*data = hwcaps;
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+				hwcaps, ARRAY_SIZE(hwcaps), sizeof(int32_t));
 		break;
 	default:
 		return SR_ERR_ARG;
