@@ -36,12 +36,11 @@ static struct sr_dev_driver *di = &victor_dmm_driver_info;
 static int hw_dev_close(struct sr_dev_inst *sdi);
 static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);
 
-static const int hwcaps[] = {
+static const int32_t hwcaps[] = {
 	SR_CONF_MULTIMETER,
 	SR_CONF_LIMIT_MSEC,
 	SR_CONF_LIMIT_SAMPLES,
 	SR_CONF_CONTINUOUS,
-	0
 };
 
 /* Properly close and free all devices. */
@@ -225,7 +224,7 @@ static int hw_cleanup(void)
 	return SR_OK;
 }
 
-static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
+static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	gint64 now;
@@ -245,14 +244,14 @@ static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 	ret = SR_OK;
 	switch (id) {
 	case SR_CONF_LIMIT_MSEC:
-		devc->limit_msec = *(const int64_t *)value;
+		devc->limit_msec = g_variant_get_uint64(data);
 		now = g_get_monotonic_time() / 1000;
 		devc->end_time = now + devc->limit_msec;
 		sr_dbg("Setting time limit to %" PRIu64 "ms.",
 		       devc->limit_msec);
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
-		devc->limit_samples = *(const uint64_t *)value;
+		devc->limit_samples = g_variant_get_uint64(data);
 		sr_dbg("Setting sample limit to %" PRIu64 ".",
 		       devc->limit_samples);
 		break;
@@ -264,14 +263,15 @@ static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 	return ret;
 }
 
-static int config_list(int key, const void **data, const struct sr_dev_inst *sdi)
+static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 {
 
 	(void)sdi;
 
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
-		*data = hwcaps;
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+				hwcaps, ARRAY_SIZE(hwcaps), sizeof(int32_t));
 		break;
 	default:
 		return SR_ERR_ARG;
