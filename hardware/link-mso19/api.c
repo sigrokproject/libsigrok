@@ -21,7 +21,7 @@
 
 #include "protocol.h"
 
-static const int hwcaps[] = {
+static const int32_t hwcaps[] = {
 	SR_CONF_OSCILLOSCOPE,
 	SR_CONF_LOGIC_ANALYZER,
 	SR_CONF_SAMPLERATE,
@@ -30,7 +30,6 @@ static const int hwcaps[] = {
 //      SR_CONF_CAPTURE_RATIO,
 	SR_CONF_LIMIT_SAMPLES,
 //      SR_CONF_RLE,
-	0,
 };
 
 /*
@@ -43,11 +42,10 @@ SR_PRIV const char *mso19_probe_names[NUM_PROBES + 1] = {
 	"DSO", "0", "1", "2", "3", "4", "5", "6", "7", NULL,
 };
 
-static const struct sr_samplerates samplerates = {
-	.low  = SR_HZ(100),
-	.high = SR_MHZ(200),
-	.step = SR_HZ(100),
-	.list = NULL,
+static const uint64_t samplerates[] = {
+	SR_HZ(100),
+	SR_MHZ(200),
+	SR_HZ(100),
 };
 
 SR_PRIV struct sr_dev_driver link_mso19_driver_info;
@@ -75,10 +73,10 @@ static GSList *hw_scan(GSList *options)
 		src = l->data;
 		switch (src->key) {
 		case SR_CONF_CONN:
-			conn = src->value;
+			conn = g_variant_get_string(src->data, NULL);
 			break;
 		case SR_CONF_SERIALCOMM:
-			serialcomm = src->value;
+			serialcomm  = g_variant_get_string(src->data, NULL);
 			break;
 		}
 	}
@@ -287,7 +285,7 @@ static int hw_cleanup(void)
 	return ret;
 }
 
-static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
+static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 
@@ -295,7 +293,7 @@ static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
 	case SR_CONF_SAMPLERATE:
 		if (sdi) {
 			devc = sdi->priv;
-			*data = &devc->cur_rate;
+			*data = g_variant_new_uint64(devc->cur_rate);
 		} else
 			return SR_ERR;
 		break;
@@ -306,13 +304,13 @@ static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
+static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 {
 	int ret;
 	struct dev_context *devc;
 	uint64_t num_samples, slope;
 	int trigger_pos;
-	float pos;
+	double pos;
 
 	devc = sdi->priv;
 
@@ -322,11 +320,11 @@ static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 	switch (id) {
 	case SR_CONF_SAMPLERATE:
 		// FIXME
-		return mso_configure_rate(sdi, *(const uint64_t *)value);
+		return mso_configure_rate(sdi, g_variant_get_uint64(data));
 		ret = SR_OK;
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
-		num_samples = *(uint64_t *)value;
+		num_samples = g_variant_get_uint64(data);
 		if (num_samples != 1024) {
 			sr_err("Only 1024 samples are supported.");
 			ret = SR_ERR_ARG;
@@ -341,7 +339,7 @@ static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 		ret = SR_OK;
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
-		slope = *(uint64_t *)value;
+		slope = g_variant_get_uint64(data);
 		if (slope != SLOPE_NEGATIVE && slope != SLOPE_POSITIVE) {
 			sr_err("Invalid trigger slope");
 			ret = SR_ERR_ARG;
@@ -351,7 +349,7 @@ static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 		}
 		break;
 	case SR_CONF_HORIZ_TRIGGERPOS:
-		pos = *(float *)value;
+		pos = g_variant_get_double(data);
 		if (pos < 0 || pos > 255) {
 			sr_err("Trigger position (%f) should be between 0 and 255.", pos);
 			ret = SR_ERR_ARG;
@@ -372,20 +370,27 @@ static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 	return ret;
 }
 
-static int config_list(int key, const void **data, const struct sr_dev_inst *sdi)
+static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 {
+	GVariant *gvar;
+	GVariantBuilder gvb;
 
 	(void)sdi;
 
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
-		*data = hwcaps;
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+				hwcaps, ARRAY_SIZE(hwcaps), sizeof(int32_t));
 		break;
 	case SR_CONF_SAMPLERATE:
-		*data = &samplerates;
+		g_variant_builder_init(&gvb, G_VARIANT_TYPE("a{sv}"));
+		gvar = g_variant_new_fixed_array(G_VARIANT_TYPE("t"), samplerates,
+				ARRAY_SIZE(samplerates), sizeof(uint64_t));
+		g_variant_builder_add(&gvb, "{sv}", "samplerate-steps", gvar);
+		*data = g_variant_builder_end(&gvb);
 		break;
 	case SR_CONF_TRIGGER_TYPE:
-		*data = (char *)TRIGGER_TYPE;
+		*data = g_variant_new_string(TRIGGER_TYPE);
 		break;
 	default:
 		return SR_ERR_ARG;
