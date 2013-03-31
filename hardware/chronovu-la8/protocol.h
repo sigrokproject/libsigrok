@@ -111,10 +111,9 @@ struct dev_context {
 };
 
 /* protocol.c */
-extern SR_PRIV uint64_t supported_samplerates[];
-extern SR_PRIV const int hwcaps[];
-extern SR_PRIV const char *probe_names[];
-extern const struct sr_samplerates samplerates;
+extern const int32_t chronovu_la8_hwcaps[];
+extern uint64_t chronovu_la8_samplerates[];
+extern SR_PRIV const char *chronovu_la8_probe_names[];
 SR_PRIV void fill_supported_samplerates_if_needed(void);
 SR_PRIV int is_valid_samplerate(uint64_t samplerate);
 SR_PRIV uint8_t samplerate_to_divcount(uint64_t samplerate);

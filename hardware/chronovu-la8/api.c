@@ -28,6 +28,21 @@
 SR_PRIV struct sr_dev_driver chronovu_la8_driver_info;
 static struct sr_dev_driver *di = &chronovu_la8_driver_info;
 
+/* This will be initialized via config_list()/SR_CONF_SAMPLERATE.
+ *
+ * Min: 1 sample per 0.01us -> sample time is 0.084s, samplerate 100MHz
+ * Max: 1 sample per 2.55us -> sample time is 21.391s, samplerate 392.15kHz
+ */
+SR_PRIV uint64_t chronovu_la8_samplerates[255 + 1] = { 0 };
+
+/* Note: Continuous sampling is not supported by the hardware. */
+SR_PRIV const int32_t chronovu_la8_hwcaps[] = {
+	SR_CONF_LOGIC_ANALYZER,
+	SR_CONF_SAMPLERATE,
+	SR_CONF_LIMIT_MSEC, /* TODO: Not yet implemented. */
+	SR_CONF_LIMIT_SAMPLES, /* TODO: Not yet implemented. */
+};
+
 /*
  * The ChronoVu LA8 can have multiple PIDs. Older versions shipped with
  * a standard FTDI USB VID/PID of 0403:6001, newer ones have 0403:8867.
@@ -150,9 +165,9 @@ static GSList *hw_scan(GSList *options)
 	sdi->driver = di;
 	sdi->priv = devc;
 
-	for (i = 0; probe_names[i]; i++) {
+	for (i = 0; chronovu_la8_probe_names[i]; i++) {
 		if (!(probe = sr_probe_new(i, SR_PROBE_LOGIC, TRUE,
-					   probe_names[i])))
+					   chronovu_la8_probe_names[i])))
 			return NULL;
 		sdi->probes = g_slist_append(sdi->probes, probe);
 	}
@@ -267,7 +282,7 @@ static int hw_cleanup(void)
 	return SR_OK;
 }
 
-static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
+static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 
@@ -275,7 +290,7 @@ static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
 	case SR_CONF_SAMPLERATE:
 		if (sdi) {
 			devc = sdi->priv;
-			*data = &devc->cur_samplerate;
+			*data = g_variant_new_uint64(devc->cur_samplerate);
 			sr_spew("%s: Returning samplerate: %" PRIu64 "Hz.",
 				__func__, devc->cur_samplerate);
 		} else
@@ -288,7 +303,7 @@ static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
+static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 
@@ -299,26 +314,26 @@ static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 
 	switch (id) {
 	case SR_CONF_SAMPLERATE:
-		if (set_samplerate(sdi, *(const uint64_t *)value) == SR_ERR) {
+		if (set_samplerate(sdi, g_variant_get_uint64(data)) == SR_ERR) {
 			sr_err("%s: setting samplerate failed.", __func__);
 			return SR_ERR;
 		}
 		sr_dbg("SAMPLERATE = %" PRIu64, devc->cur_samplerate);
 		break;
 	case SR_CONF_LIMIT_MSEC:
-		if (*(const uint64_t *)value == 0) {
+		if (g_variant_get_uint64(data) == 0) {
 			sr_err("%s: LIMIT_MSEC can't be 0.", __func__);
 			return SR_ERR;
 		}
-		devc->limit_msec = *(const uint64_t *)value;
+		devc->limit_msec = g_variant_get_uint64(data);
 		sr_dbg("LIMIT_MSEC = %" PRIu64, devc->limit_msec);
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
-		if (*(const uint64_t *)value < MIN_NUM_SAMPLES) {
+		if (g_variant_get_uint64(data) < MIN_NUM_SAMPLES) {
 			sr_err("%s: LIMIT_SAMPLES too small.", __func__);
 			return SR_ERR;
 		}
-		devc->limit_samples = *(const uint64_t *)value;
+		devc->limit_samples = g_variant_get_uint64(data);
 		sr_dbg("LIMIT_SAMPLES = %" PRIu64, devc->limit_samples);
 		break;
 	default:
@@ -331,21 +346,30 @@ static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int config_list(int key, const void **data, const struct sr_dev_inst *sdi)
+static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 {
+	GVariant *gvar;
+	GVariantBuilder gvb;
 
 	(void)sdi;
 
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
-		*data = hwcaps;
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+				chronovu_la8_hwcaps, ARRAY_SIZE(chronovu_la8_hwcaps),
+				sizeof(int32_t));
 		break;
 	case SR_CONF_SAMPLERATE:
 		fill_supported_samplerates_if_needed();
-		*data = &samplerates;
+		g_variant_builder_init(&gvb, G_VARIANT_TYPE("a{sv}"));
+		gvar = g_variant_new_fixed_array(G_VARIANT_TYPE("t"),
+				chronovu_la8_samplerates, ARRAY_SIZE(chronovu_la8_samplerates),
+				sizeof(uint64_t));
+		g_variant_builder_add(&gvb, "{sv}", "samplerates", gvar);
+		*data = g_variant_builder_end(&gvb);
 		break;
 	case SR_CONF_TRIGGER_TYPE:
-		*data = (char *)TRIGGER_TYPE;
+		*data = g_variant_new_string(TRIGGER_TYPE);
 		break;
 	default:
 		return SR_ERR_ARG;

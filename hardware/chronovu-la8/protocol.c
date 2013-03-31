@@ -25,46 +25,21 @@
 #include "protocol.h"
 
 /* Probes are numbered 0-7. */
-SR_PRIV const char *probe_names[NUM_PROBES + 1] = {
+SR_PRIV const char *chronovu_la8_probe_names[NUM_PROBES + 1] = {
 	"0", "1", "2", "3", "4", "5", "6", "7",
 	NULL,
-};
-
-/* This will be initialized via config_list()/SR_CONF_SAMPLERATE. */
-SR_PRIV uint64_t supported_samplerates[255 + 1] = { 0 };
-
-/*
- * Min: 1 sample per 0.01us -> sample time is 0.084s, samplerate 100MHz
- * Max: 1 sample per 2.55us -> sample time is 21.391s, samplerate 392.15kHz
- */
-const struct sr_samplerates samplerates = {
-	.low  = 0,
-	.high = 0,
-	.step = 0,
-	.list = supported_samplerates,
-};
-
-/* Note: Continuous sampling is not supported by the hardware. */
-SR_PRIV const int hwcaps[] = {
-	SR_CONF_LOGIC_ANALYZER,
-	SR_CONF_SAMPLERATE,
-	SR_CONF_LIMIT_MSEC, /* TODO: Not yet implemented. */
-	SR_CONF_LIMIT_SAMPLES, /* TODO: Not yet implemented. */
-	0,
 };
 
 SR_PRIV void fill_supported_samplerates_if_needed(void)
 {
 	int i;
 
-	/* Do nothing if supported_samplerates[] is already filled. */
-	if (supported_samplerates[0] != 0)
+	if (chronovu_la8_samplerates[0] != 0)
 		return;
 
-	/* Fill supported_samplerates[] with the proper values. */
 	for (i = 0; i < 255; i++)
-		supported_samplerates[254 - i] = SR_MHZ(100) / (i + 1);
-	supported_samplerates[255] = 0;
+		chronovu_la8_samplerates[254 - i] = SR_MHZ(100) / (i + 1);
+	chronovu_la8_samplerates[255] = 0;
 }
 
 /**
@@ -80,7 +55,7 @@ SR_PRIV int is_valid_samplerate(uint64_t samplerate)
 	fill_supported_samplerates_if_needed();
 
 	for (i = 0; i < 255; i++) {
-		if (supported_samplerates[i] == samplerate)
+		if (chronovu_la8_samplerates[i] == samplerate)
 			return 1;
 	}
 
