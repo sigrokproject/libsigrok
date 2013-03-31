@@ -26,7 +26,7 @@
 #include "libsigrok-internal.h"
 #include "protocol.h"
 
-static const int hwcaps[] = {
+static const int32_t hwcaps[] = {
 	SR_CONF_OSCILLOSCOPE,
 	SR_CONF_LIMIT_SAMPLES,
 	SR_CONF_TIMEBASE,
@@ -35,10 +35,9 @@ static const int hwcaps[] = {
 	SR_CONF_HORIZ_TRIGGERPOS,
 	SR_CONF_VDIV,
 	SR_CONF_COUPLING,
-	0,
 };
 
-static const struct sr_rational timebases[] = {
+static const uint64_t timebases[][2] = {
 	/* nanoseconds */
 	{ 2, 1000000000 },
 	{ 5, 1000000000 },
@@ -74,10 +73,9 @@ static const struct sr_rational timebases[] = {
 	{ 10, 1 },
 	{ 20, 1 },
 	{ 50, 1 },
-	{ 0, 0},
 };
 
-static const struct sr_rational vdivs[] = {
+static const uint64_t vdivs[][2] = {
 	/* millivolts */
 	{ 2, 1000 },
 	{ 5, 1000 },
@@ -92,7 +90,6 @@ static const struct sr_rational vdivs[] = {
 	{ 2, 1 },
 	{ 5, 1 },
 	{ 10, 1 },
-	{ 0, 0 },
 };
 
 static const char *trigger_sources[] = {
@@ -100,14 +97,12 @@ static const char *trigger_sources[] = {
 	"CH2",
 	"EXT",
 	"AC Line",
-	NULL,
 };
 
 static const char *coupling[] = {
 	"AC",
 	"DC",
 	"GND",
-	NULL,
 };
 
 static const char *supported_models[] = {
@@ -168,7 +163,8 @@ static GSList *hw_scan(GSList *options)
 	const gchar *prefix = "usbtmc";
 	gchar *device;
 	const gchar *idn_query = "*IDN?";
-	int len, num_tokens, fd, i;
+	unsigned int i;
+	int len, num_tokens, fd;
 	const gchar *delimiter = ",";
 	gchar **tokens;
 	const char *manufacturer, *model, *version;
@@ -308,14 +304,14 @@ static int hw_cleanup(void)
 	return SR_OK;
 }
 
-static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
+static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	uint64_t tmp_u64;
-	float tmp_float;
-	struct sr_rational tmp_rat;
-	int ret, i, j;
-	char *channel;
+	uint64_t tmp_u64, p, q;
+	double tmp_double;
+	unsigned int i;
+	int tmp_int, ret;
+	const char *tmp_str, *channel;
 
 	devc = sdi->priv;
 
@@ -327,30 +323,39 @@ static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 	ret = SR_OK;
 	switch (id) {
 	case SR_CONF_LIMIT_FRAMES:
-		devc->limit_frames = *(const uint64_t *)value;
+		devc->limit_frames = g_variant_get_uint64(data);
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
-		tmp_u64 = *(const int *)value;
+		tmp_u64 = g_variant_get_uint64(data);
 		rigol_ds1xx2_send_data(devc->fd, ":TRIG:EDGE:SLOP %s\n",
 				       tmp_u64 ? "POS" : "NEG");
 		break;
 	case SR_CONF_HORIZ_TRIGGERPOS:
-		tmp_float = *(const float *)value;
-		rigol_ds1xx2_send_data(devc->fd, ":TIM:OFFS %.9f\n", tmp_float);
+		tmp_double = g_variant_get_double(data);
+		rigol_ds1xx2_send_data(devc->fd, ":TIM:OFFS %.9f\n", tmp_double);
 		break;
 	case SR_CONF_TIMEBASE:
-		tmp_rat = *(const struct sr_rational *)value;
-		rigol_ds1xx2_send_data(devc->fd, ":TIM:SCAL %.9f\n",
-				       (float)tmp_rat.p / tmp_rat.q);
+		g_variant_get(data, "(tt)", &p, &q);
+		tmp_int = -1;
+		for (i = 0; i < ARRAY_SIZE(timebases); i++) {
+			if (timebases[i][0] == p && timebases[i][1] == q) {
+				tmp_int = i;
+				break;
+			}
+		}
+		if (tmp_int >= 0)
+			rigol_ds1xx2_send_data(devc->fd, ":TIM:SCAL %.9f\n",
+					(float)timebases[i][0] / timebases[i][1]);
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
-		if (!strcmp(value, "CH1"))
+		tmp_str = g_variant_get_string(data, NULL);
+		if (!strcmp(tmp_str, "CH1"))
 			channel = "CHAN1";
-		else if (!strcmp(value, "CH2"))
+		else if (!strcmp(tmp_str, "CH2"))
 			channel = "CHAN2";
-		else if (!strcmp(value, "EXT"))
+		else if (!strcmp(tmp_str, "EXT"))
 			channel = "EXT";
-		else if (!strcmp(value, "AC Line"))
+		else if (!strcmp(tmp_str, "AC Line"))
 			channel = "ACL";
 		else {
 			ret = SR_ERR_ARG;
@@ -359,32 +364,34 @@ static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 		rigol_ds1xx2_send_data(devc->fd, ":TRIG:EDGE:SOUR %s\n", channel);
 		break;
 	case SR_CONF_VDIV:
-		/* TODO: Not supporting vdiv per channel yet. */
-		tmp_rat = *(const struct sr_rational *)value;
-		for (i = 0; vdivs[i].p && vdivs[i].q; i++) {
-			if (vdivs[i].p == tmp_rat.p
-					&& vdivs[i].q == tmp_rat.q) {
-				devc->scale = (float)tmp_rat.p / tmp_rat.q;
-				for (j = 0; j < 2; j++)
-					rigol_ds1xx2_send_data(devc->fd,
-					 ":CHAN%d:SCAL %.3f\n", j, devc->scale);
-				break;
-			}
+		g_variant_get(data, "(tt)", &p, &q);
+		tmp_int = -1;
+		for (i = 0; i < ARRAY_SIZE(vdivs); i++) {
+			if (vdivs[i][0] != p || vdivs[i][1] != q)
+				continue;
+			devc->scale = (float)vdivs[i][0] / vdivs[i][1];
+			rigol_ds1xx2_send_data(devc->fd, ":CHAN0:SCAL %.3f\n",
+					devc->scale);
+			rigol_ds1xx2_send_data(devc->fd, ":CHAN1:SCAL %.3f\n",
+					devc->scale);
+			break;
 		}
-		if (vdivs[i].p == 0 && vdivs[i].q == 0)
+		if (i == ARRAY_SIZE(vdivs))
 			ret = SR_ERR_ARG;
 		break;
 	case SR_CONF_COUPLING:
 		/* TODO: Not supporting coupling per channel yet. */
-		for (i = 0; coupling[i]; i++) {
-			if (!strcmp(value, coupling[i])) {
-				for (j = 0; j < 2; j++)
-					rigol_ds1xx2_send_data(devc->fd,
-					  ":CHAN%d:COUP %s\n", j, coupling[i]);
+		tmp_str = g_variant_get_string(data, NULL);
+		for (i = 0; i < ARRAY_SIZE(coupling); i++) {
+			if (!strcmp(tmp_str, coupling[i])) {
+				rigol_ds1xx2_send_data(devc->fd, ":CHAN0:COUP %s\n",
+						coupling[i]);
+				rigol_ds1xx2_send_data(devc->fd, ":CHAN1:COUP %s\n",
+						coupling[i]);
 				break;
 			}
 		}
-		if (coupling[i] == 0)
+		if (i == ARRAY_SIZE(coupling))
 			ret = SR_ERR_ARG;
 		break;
 	default:
@@ -396,26 +403,30 @@ static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 	return ret;
 }
 
-static int config_list(int key, const void **data, const struct sr_dev_inst *sdi)
+static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 {
 
 	(void)sdi;
 
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
-		*data = hwcaps;
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+				hwcaps, ARRAY_SIZE(hwcaps), sizeof(int32_t));
 		break;
 	case SR_CONF_COUPLING:
-		*data = coupling;
+		*data = g_variant_new_strv(coupling, ARRAY_SIZE(coupling));
 		break;
 	case SR_CONF_VDIV:
-		*data = vdivs;
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT64,
+				vdivs, ARRAY_SIZE(vdivs) * 2, sizeof(uint64_t));
 		break;
 	case SR_CONF_TIMEBASE:
-		*data = timebases;
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT64,
+				timebases, ARRAY_SIZE(timebases) * 2, sizeof(uint64_t));
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
-		*data = trigger_sources;
+		*data = g_variant_new_strv(trigger_sources,
+				ARRAY_SIZE(trigger_sources));
 		break;
 	default:
 		return SR_ERR_ARG;
