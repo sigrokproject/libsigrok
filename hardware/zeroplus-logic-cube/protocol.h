@@ -55,8 +55,6 @@ struct dev_context {
 	const struct zp_model *prof;
 };
 
-extern const uint64_t zp_supported_samplerates_200[];
-
 SR_PRIV unsigned int get_memory_size(int type);
 SR_PRIV int zp_set_samplerate(struct dev_context *devc, uint64_t samplerate);
 SR_PRIV int set_limit_samples(struct dev_context *devc, uint64_t samples);

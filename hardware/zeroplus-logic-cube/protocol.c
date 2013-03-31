@@ -33,33 +33,6 @@ SR_PRIV unsigned int get_memory_size(int type)
 		return 0;
 }
 
-SR_PRIV int zp_set_samplerate(struct dev_context *devc, uint64_t samplerate)
-{
-	int i;
-
-	for (i = 0; zp_supported_samplerates_200[i]; i++)
-		if (samplerate == zp_supported_samplerates_200[i])
-			break;
-
-	if (!zp_supported_samplerates_200[i] || samplerate > devc->max_samplerate) {
-		sr_err("Unsupported samplerate: %" PRIu64 "Hz.", samplerate);
-		return SR_ERR_ARG;
-	}
-
-	sr_info("Setting samplerate to %" PRIu64 "Hz.", samplerate);
-
-	if (samplerate >= SR_MHZ(1))
-		analyzer_set_freq(samplerate / SR_MHZ(1), FREQ_SCALE_MHZ);
-	else if (samplerate >= SR_KHZ(1))
-		analyzer_set_freq(samplerate / SR_KHZ(1), FREQ_SCALE_KHZ);
-	else
-		analyzer_set_freq(samplerate, FREQ_SCALE_HZ);
-
-	devc->cur_samplerate = samplerate;
-
-	return SR_OK;
-}
-
 SR_PRIV int set_limit_samples(struct dev_context *devc, uint64_t samples)
 {
 	devc->limit_samples = samples;

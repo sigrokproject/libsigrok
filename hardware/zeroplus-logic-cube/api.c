@@ -210,6 +210,33 @@ static int configure_probes(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
+SR_PRIV int zp_set_samplerate(struct dev_context *devc, uint64_t samplerate)
+{
+	int i;
+
+	for (i = 0; ARRAY_SIZE(samplerates_200); i++)
+		if (samplerate == samplerates_200[i])
+			break;
+
+	if (i == ARRAY_SIZE(samplerates_200) || samplerate > devc->max_samplerate) {
+		sr_err("Unsupported samplerate: %" PRIu64 "Hz.", samplerate);
+		return SR_ERR_ARG;
+	}
+
+	sr_info("Setting samplerate to %" PRIu64 "Hz.", samplerate);
+
+	if (samplerate >= SR_MHZ(1))
+		analyzer_set_freq(samplerate / SR_MHZ(1), FREQ_SCALE_MHZ);
+	else if (samplerate >= SR_KHZ(1))
+		analyzer_set_freq(samplerate / SR_KHZ(1), FREQ_SCALE_KHZ);
+	else
+		analyzer_set_freq(samplerate, FREQ_SCALE_HZ);
+
+	devc->cur_samplerate = samplerate;
+
+	return SR_OK;
+}
+
 static int clear_instances(void)
 {
 	GSList *l;
