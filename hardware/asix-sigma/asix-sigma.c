@@ -44,7 +44,7 @@ SR_PRIV struct sr_dev_driver asix_sigma_driver_info;
 static struct sr_dev_driver *di = &asix_sigma_driver_info;
 static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);
 
-static const uint64_t supported_samplerates[] = {
+static const uint64_t samplerates[] = {
 	SR_KHZ(200),
 	SR_KHZ(250),
 	SR_KHZ(500),
@@ -55,7 +55,6 @@ static const uint64_t supported_samplerates[] = {
 	SR_MHZ(50),
 	SR_MHZ(100),
 	SR_MHZ(200),
-	0,
 };
 
 /*
@@ -69,20 +68,11 @@ static const char *probe_names[NUM_PROBES + 1] = {
 	NULL,
 };
 
-static const struct sr_samplerates samplerates = {
-	.low  = 0,
-	.high = 0,
-	.step = 0,
-	.list = supported_samplerates,
-};
-
-static const int hwcaps[] = {
+static const int32_t hwcaps[] = {
 	SR_CONF_LOGIC_ANALYZER,
 	SR_CONF_SAMPLERATE,
 	SR_CONF_CAPTURE_RATIO,
-
 	SR_CONF_LIMIT_MSEC,
-	0,
 };
 
 /* Force the FPGA to reboot. */
@@ -634,16 +624,18 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 
 static int set_samplerate(const struct sr_dev_inst *sdi, uint64_t samplerate)
 {
-	int i, ret;
-	struct dev_context *devc = sdi->priv;
+	struct dev_context *devc;
+	unsigned int i;
+	int ret;
 
+	devc = sdi->priv;
 	ret = SR_OK;
 
-	for (i = 0; supported_samplerates[i]; i++) {
-		if (supported_samplerates[i] == samplerate)
+	for (i = 0; i < ARRAY_SIZE(samplerates); i++) {
+		if (samplerates[i] == samplerate)
 			break;
 	}
-	if (supported_samplerates[i] == 0)
+	if (samplerates[i] == 0)
 		return SR_ERR_SAMPLERATE;
 
 	if (samplerate <= SR_MHZ(50)) {
@@ -773,7 +765,7 @@ static int hw_cleanup(void)
 	return SR_OK;
 }
 
-static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
+static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 
@@ -781,7 +773,7 @@ static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
 	case SR_CONF_SAMPLERATE:
 		if (sdi) {
 			devc = sdi->priv;
-			*data = &devc->cur_samplerate;
+			*data = g_variant_new_uint64(devc->cur_samplerate);
 		} else
 			return SR_ERR;
 		break;
@@ -792,7 +784,7 @@ static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
+static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	int ret;
@@ -800,15 +792,15 @@ static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 
 	if (id == SR_CONF_SAMPLERATE) {
-		ret = set_samplerate(sdi, *(const uint64_t *)value);
+		ret = set_samplerate(sdi, g_variant_get_uint64(data));
 	} else if (id == SR_CONF_LIMIT_MSEC) {
-		devc->limit_msec = *(const uint64_t *)value;
+		devc->limit_msec = g_variant_get_uint64(data);
 		if (devc->limit_msec > 0)
 			ret = SR_OK;
 		else
 			ret = SR_ERR;
 	} else if (id == SR_CONF_CAPTURE_RATIO) {
-		devc->capture_ratio = *(const uint64_t *)value;
+		devc->capture_ratio = g_variant_get_uint64(data);
 		if (devc->capture_ratio < 0 || devc->capture_ratio > 100)
 			ret = SR_ERR;
 		else
@@ -820,20 +812,27 @@ static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 	return ret;
 }
 
-static int config_list(int key, const void **data, const struct sr_dev_inst *sdi)
+static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 {
+	GVariant *gvar;
+	GVariantBuilder gvb;
 
 	(void)sdi;
 
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
-		*data = hwcaps;
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+				hwcaps, ARRAY_SIZE(hwcaps), sizeof(int32_t));
 		break;
 	case SR_CONF_SAMPLERATE:
-		*data = &samplerates;
+		g_variant_builder_init(&gvb, G_VARIANT_TYPE("a{sv}"));
+		gvar = g_variant_new_fixed_array(G_VARIANT_TYPE("t"), samplerates,
+				ARRAY_SIZE(samplerates), sizeof(uint64_t));
+		g_variant_builder_add(&gvb, "{sv}", "samplerates", gvar);
+		*data = g_variant_builder_end(&gvb);
 		break;
 	case SR_CONF_TRIGGER_TYPE:
-		*data = (char *)TRIGGER_TYPE;
+		*data = g_variant_new_string(TRIGGER_TYPE);
 		break;
 	default:
 		return SR_ERR_ARG;
