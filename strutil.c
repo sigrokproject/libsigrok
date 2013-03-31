@@ -151,19 +151,20 @@ SR_API char *sr_period_string(uint64_t frequency)
 }
 
 /**
- * Convert a numeric frequency value to the "natural" string representation
- * of its voltage value.
+ * Convert a numeric voltage value to the "natural" string representation
+ * of its voltage value. The voltage is specified as a rational number's
+ * numerator and denominator.
  *
  * E.g. a value of 300000 would be converted to "300mV", 2 to "2V".
  *
- * @param voltage The voltage represented as a rational number, with the
- *                denominator a divisor of 1V.
+ * @param v_p The voltage numerator.
+ * @param v_q The voltage denominator.
  *
  * @return A g_try_malloc()ed string representation of the voltage value,
  *         or NULL upon errors. The caller is responsible to g_free() the
  *         memory.
  */
-SR_API char *sr_voltage_string(struct sr_rational *voltage)
+SR_API char *sr_voltage_string(uint64_t v_p, uint64_t v_q)
 {
 	int r;
 	char *o;
@@ -173,12 +174,12 @@ SR_API char *sr_voltage_string(struct sr_rational *voltage)
 		return NULL;
 	}
 
-	if (voltage->q == 1000)
-		r = snprintf(o, 30, "%" PRIu64 "mV", voltage->p);
-	else if (voltage->q == 1)
-		r = snprintf(o, 30, "%" PRIu64 "V", voltage->p);
+	if (v_q == 1000)
+		r = snprintf(o, 30, "%" PRIu64 "mV", v_p);
+	else if (v_q == 1)
+		r = snprintf(o, 30, "%" PRIu64 "V", v_p);
 	else
-		r = snprintf(o, 30, "%gV", (float)voltage->p / (float)voltage->q);
+		r = snprintf(o, 30, "%gV", (float)v_p / (float)v_q);
 
 	if (r < 0) {
 		/* Something went wrong... */
