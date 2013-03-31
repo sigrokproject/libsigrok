@@ -43,7 +43,7 @@ struct dev_context {
 	uint64_t limit_samples;
 	uint64_t num_samples;
 	uint8_t num_probes;
-	struct sr_samplerates supp_rates;
+	uint64_t *samplerates;
 	char *hwdev;
 	snd_pcm_t *capture_handle;
 	snd_pcm_hw_params_t *hw_params;

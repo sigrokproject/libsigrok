@@ -152,7 +152,7 @@ static void alsa_scan_handle_dev(GSList **devices,
 	devc->num_probes = channels;
 	devc->hw_params = hw_params;
 	memcpy(devrates, hwrates, offset * sizeof(uint64_t));
-	devc->supp_rates.list = devrates;
+	devc->samplerates = devrates;
 
 	sdi->priv = devc;
 	sdi->driver = di;
@@ -294,7 +294,7 @@ SR_PRIV void alsa_dev_inst_clear(struct sr_dev_inst *sdi)
 		return;
 
 	snd_pcm_hw_params_free(devc->hw_params);
-	g_free((void*)devc->supp_rates.list);
+	g_free((void*)devc->samplerates);
 	sr_dev_inst_free(sdi);
 }
 
@@ -326,11 +326,11 @@ SR_PRIV int alsa_set_samplerate(const struct sr_dev_inst *sdi,
 
 	i = 0;
 	do {
-		if (newrate == devc->supp_rates.list[i]) {
+		if (newrate == devc->samplerates[i]) {
 			rate = newrate;
 			break;
 		}
-	} while (devc->supp_rates.list[i++] != 0);
+	} while (devc->samplerates[i++] != 0);
 
 	if (!rate) {
 		sr_err("Sample rate %" PRIu64 " not supported.", newrate);

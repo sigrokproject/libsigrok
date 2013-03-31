@@ -27,11 +27,10 @@
 #include "libsigrok-internal.h"
 #include "protocol.h"
 
-static const int hwcaps[] = {
+static const int32_t hwcaps[] = {
 	SR_CONF_SAMPLERATE,
 	SR_CONF_LIMIT_SAMPLES,
 	SR_CONF_CONTINUOUS,
-	0,
 };
 
 SR_PRIV struct sr_dev_driver alsa_driver_info;
@@ -124,14 +123,14 @@ static int hw_cleanup(void)
 	return SR_OK;
 }
 
-static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
+static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 
 	switch (id) {
 	case SR_CONF_SAMPLERATE:
 		devc = sdi->priv;
-		*data = &devc->cur_samplerate;
+		*data = g_variant_new_uint64(devc->cur_samplerate);
 		break;
 	default:
 		return SR_ERR_ARG;
@@ -140,7 +139,7 @@ static int config_get(int id, const void **data, const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
+static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 
@@ -148,10 +147,10 @@ static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 
 	switch (id) {
 	case SR_CONF_SAMPLERATE:
-		alsa_set_samplerate(sdi, *(const uint64_t *)value);
+		alsa_set_samplerate(sdi, g_variant_get_uint64(data));
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
-		devc->limit_samples = *(const uint64_t *)value;
+		devc->limit_samples = g_variant_get_uint64(data);
 		break;
 	default:
 		sr_err("Unknown capability: %d.", id);
@@ -161,25 +160,35 @@ static int config_set(int id, const void *value, const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int config_list(int key, const void **data, const struct sr_dev_inst *sdi)
+static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
+	GVariant *gvar;
+	GVariantBuilder gvb;
+	int i;
 
 	(void)sdi;
 
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
-		*data = hwcaps;
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+				hwcaps, ARRAY_SIZE(hwcaps), sizeof(int32_t));
 		break;
 	case SR_CONF_SAMPLERATE:
 		if (!sdi || !sdi->priv)
 			return SR_ERR_ARG;
 		devc = sdi->priv;
-		if (!devc->supp_rates.list) {
+		if (!devc->samplerates) {
 			sr_err("Instance did not contain a samplerate list.");
 			return SR_ERR_ARG;
 		}
-		*data = &devc->supp_rates;
+		for (i = 0; devc->samplerates[i]; i++)
+			;
+		g_variant_builder_init(&gvb, G_VARIANT_TYPE("a{sv}"));
+		gvar = g_variant_new_fixed_array(G_VARIANT_TYPE("t"),
+				devc->samplerates, i, sizeof(uint64_t));
+		g_variant_builder_add(&gvb, "{sv}", "samplerates", gvar);
+		*data = g_variant_builder_end(&gvb);
 		break;
 	default:
 		return SR_ERR_ARG;
