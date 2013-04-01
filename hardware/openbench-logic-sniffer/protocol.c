@@ -334,6 +334,7 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	GSList *l;
+	uint32_t sample;
 	int num_channels, offset, i, j;
 	unsigned char byte;
 
@@ -388,8 +389,9 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 		sr_dbg("Received byte 0x%.2x.", byte);
 		if (devc->num_bytes == num_channels) {
 			/* Got a full sample. */
-			sr_dbg("Received sample 0x%.*x.",
-			       devc->num_bytes * 2, *(int *)devc->sample);
+			sample = devc->sample[0] | (devc->sample[1] << 8) \
+					| (devc->sample[2] << 16) | (devc->sample[3] << 24);
+			sr_dbg("Received sample 0x%.*x.", devc->num_bytes * 2, sample);
 			if (devc->flag_reg & FLAG_RLE) {
 				/*
 				 * In RLE mode -1 should never come in as a
@@ -401,7 +403,7 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 					 * FIXME: This will only work on
 					 * little-endian systems.
 					 */
-					devc->rle_count = *(int *)(devc->sample);
+					devc->rle_count = sample;
 					sr_dbg("RLE count: %d.", devc->rle_count);
 					devc->num_bytes = 0;
 					return TRUE;
@@ -437,7 +439,7 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 					}
 				}
 				memcpy(devc->sample, devc->tmp_sample, 4);
-				sr_dbg("Full sample: 0x%.8x.", *(int *)devc->sample);
+				sr_dbg("Full sample: 0x%.8x.", sample);
 			}
 
 			/* the OLS sends its sample buffer backwards.
