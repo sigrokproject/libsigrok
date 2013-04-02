@@ -280,8 +280,7 @@ SR_PRIV int dso_set_trigger_samplerate(struct dev_context *devc)
 
 	/* Timebase fast */
 	sr_dbg("Time base index: %d.", devc->timebase);
-	switch (devc->framesize) {
-	case FRAMESIZE_SMALL:
+	if (devc->framesize == FRAMESIZE_SMALL) {
 		if (devc->timebase < TIME_20us)
 			tmp = 0;
 		else if (devc->timebase == TIME_20us)
@@ -292,8 +291,7 @@ SR_PRIV int dso_set_trigger_samplerate(struct dev_context *devc)
 			tmp = 3;
 		else if (devc->timebase >= TIME_200us)
 			tmp = 4;
-		break;
-	case FRAMESIZE_LARGE:
+	} else {
 		if (devc->timebase < TIME_40us) {
 			sr_err("Timebase < 40us only supported with 10K buffer.");
 			return SR_ERR_ARG;
@@ -306,7 +304,6 @@ SR_PRIV int dso_set_trigger_samplerate(struct dev_context *devc)
 			tmp = 3;
 		else if (devc->timebase >= TIME_400us)
 			tmp = 4;
-		break;
 	}
 	cmdstring[2] |= (tmp & 0x07) << 5;
 

@@ -55,8 +55,8 @@
 /* Hantek DSO-specific protocol values */
 #define EEPROM_CHANNEL_OFFSETS  0x08
 
+/* All models have this for their "fast" mode. */
 #define FRAMESIZE_SMALL         10240
-#define FRAMESIZE_LARGE         32768
 
 enum control_requests {
 	CTRL_READ_EEPROM = 0xa2,
@@ -163,6 +163,7 @@ struct dso_profile {
 	uint16_t fw_pid;
 	char *vendor;
 	char *model;
+	const uint64_t *buffersizes;
 	char *firmware;
 };
 

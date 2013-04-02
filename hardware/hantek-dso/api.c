@@ -56,29 +56,38 @@ static const char *probe_names[] = {
 	NULL,
 };
 
+static const uint64_t buffersizes_32k[] = {
+	10240, 32768,
+};
+static const uint64_t buffersizes_512k[] = {
+	10240, 524288,
+};
+static const uint64_t buffersizes_14k[] = {
+	10240, 14336,
+};
+
 static const struct dso_profile dev_profiles[] = {
 	{	0x04b4, 0x2090, 0x04b5, 0x2090,
 		"Hantek", "DSO-2090",
+		buffersizes_32k,
 		FIRMWARE_DIR "/hantek-dso-2090.fw" },
 	{	0x04b4, 0x2150, 0x04b5, 0x2150,
 		"Hantek", "DSO-2150",
+		buffersizes_32k,
 		FIRMWARE_DIR "/hantek-dso-2150.fw" },
 	{	0x04b4, 0x2250, 0x04b5, 0x2250,
 		"Hantek", "DSO-2250",
+		buffersizes_512k,
 		FIRMWARE_DIR "/hantek-dso-2250.fw" },
 	{	0x04b4, 0x5200, 0x04b5, 0x5200,
 		"Hantek", "DSO-5200",
+		buffersizes_14k,
 		FIRMWARE_DIR "/hantek-dso-5200.fw" },
 	{	0x04b4, 0x520a, 0x04b5, 0x520a,
 		"Hantek", "DSO-5200A",
+		buffersizes_512k,
 		FIRMWARE_DIR "/hantek-dso-5200A.fw" },
-	{ 0, 0, 0, 0, 0, 0, 0 },
-};
-
-static const uint64_t buffersizes[] = {
-	10240,
-	32768,
-	/* TODO: 65535 */
+	{ 0, 0, 0, 0, 0, 0, 0, 0 },
 };
 
 static const uint64_t timebases[][2] = {
@@ -437,13 +446,13 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 		break;
 	case SR_CONF_BUFFERSIZE:
 		tmp_u64 = g_variant_get_uint64(data);
-		for (i = 0; buffersizes[i]; i++) {
-			if (buffersizes[i] == tmp_u64) {
+		for (i = 0; i < 2; i++) {
+			if (devc->profile->buffersizes[i] == tmp_u64) {
 				devc->framesize = tmp_u64;
 				break;
 			}
 		}
-		if (buffersizes[i] == 0)
+		if (i == 2)
 			ret = SR_ERR_ARG;
 		break;
 	case SR_CONF_TIMEBASE:
@@ -531,9 +540,14 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 
 static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 {
+	struct dev_context *devc;
 
 	(void)sdi;
 
+	if (!sdi)
+		return SR_ERR_ARG;
+
+	devc = sdi->priv;
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
@@ -541,7 +555,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 		break;
 	case SR_CONF_BUFFERSIZE:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT64,
-				buffersizes, ARRAY_SIZE(buffersizes), sizeof(uint64_t));
+				devc->profile->buffersizes, 2, sizeof(uint64_t));
 		break;
 	case SR_CONF_COUPLING:
 		*data = g_variant_new_strv(coupling, ARRAY_SIZE(coupling));
