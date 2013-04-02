@@ -31,32 +31,32 @@
 #define sr_warn(s, args...) sr_warn(DRIVER_LOG_DOMAIN s, ## args)
 #define sr_err(s, args...) sr_err(DRIVER_LOG_DOMAIN s, ## args)
 
-#define USB_INTERFACE			0
-#define USB_CONFIGURATION		1
-#define DSO_EP_IN			0x86
-#define DSO_EP_OUT			0x02
+#define USB_INTERFACE           0
+#define USB_CONFIGURATION       1
+#define DSO_EP_IN               0x86
+#define DSO_EP_OUT              0x02
 
 /* FX2 renumeration delay in ms */
-#define MAX_RENUM_DELAY_MS		3000
+#define MAX_RENUM_DELAY_MS      3000
 
-#define MAX_CAPTURE_EMPTY		3
+#define MAX_CAPTURE_EMPTY       3
 
-#define DEFAULT_VOLTAGE			VDIV_500MV
-#define DEFAULT_FRAMESIZE		FRAMESIZE_SMALL
-#define DEFAULT_TIMEBASE		TIME_100us
-#define DEFAULT_TRIGGER_SOURCE		"CH1"
-#define DEFAULT_COUPLING		COUPLING_DC
-#define DEFAULT_HORIZ_TRIGGERPOS	0.5
-#define DEFAULT_VERT_OFFSET		0.5
-#define DEFAULT_VERT_TRIGGERPOS		0.5
+#define DEFAULT_VOLTAGE         VDIV_500MV
+#define DEFAULT_FRAMESIZE       FRAMESIZE_SMALL
+#define DEFAULT_TIMEBASE        TIME_100us
+#define DEFAULT_TRIGGER_SOURCE  "CH1"
+#define DEFAULT_COUPLING        COUPLING_DC
+#define DEFAULT_HORIZ_TRIGGERPOS 0.5
+#define DEFAULT_VERT_OFFSET     0.5
+#define DEFAULT_VERT_TRIGGERPOS 0.5
 
-#define MAX_VERT_TRIGGER		0xfe
+#define MAX_VERT_TRIGGER        0xfe
 
 /* Hantek DSO-specific protocol values */
-#define EEPROM_CHANNEL_OFFSETS		0x08
+#define EEPROM_CHANNEL_OFFSETS  0x08
 
-#define FRAMESIZE_SMALL			10240
-#define FRAMESIZE_LARGE			32768
+#define FRAMESIZE_SMALL         10240
+#define FRAMESIZE_LARGE         32768
 
 enum control_requests {
 	CTRL_READ_EEPROM = 0xa2,
