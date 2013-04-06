@@ -23,13 +23,13 @@
 /**
  * @file
  *
- * Version number querying functions.
+ * Version number querying functions, definitions, and macros.
  */
 
 /**
  * @defgroup grp_versions Versions
  *
- * Version number querying functions.
+ * Version number querying functions, definitions, and macros.
  *
  * @{
  */

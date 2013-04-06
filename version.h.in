@@ -20,6 +20,18 @@
 #ifndef LIBSIGROK_VERSION_H
 #define LIBSIGROK_VERSION_H
 
+/**
+ * @file
+ *
+ * Version number definitions and macros.
+ */
+
+/**
+ * @ingroup grp_versions
+ *
+ * @{
+ */
+
 /*
  * Package version macros (can be used for conditional compilation).
  */
@@ -52,5 +64,6 @@
 /** The libsigrok libtool version ("current:revision:age") as string. */
 #define SR_LIB_VERSION_STRING "@SR_LIB_VERSION@"
 
-#endif
+/** @} */
 
+#endif
