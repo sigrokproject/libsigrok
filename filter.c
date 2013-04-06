@@ -80,8 +80,8 @@
  *                     The requested unit size must be big enough to hold as
  *                     much data as is specified by the number of enabled
  *                     probes in 'probelist'.
- * @param probelist Pointer to a list of probe numbers, numbered starting
- *                  from 0. The list is terminated with -1.
+ * @param probe_array Pointer to a list of probe numbers, numbered starting
+ *                    from 0. The list is terminated with -1.
  * @param data_in Pointer to the input data buffer. Must not be NULL.
  * @param length_in The input data length (>= 1), in number of bytes.
  * @param data_out Variable which will point to the newly allocated buffer

@@ -454,7 +454,7 @@ SR_API int sr_config_list(const struct sr_dev_driver *driver, int key,
 /**
  * Get information about a configuration key.
  *
- * @param opt The configuration key.
+ * @param key The configuration key.
  *
  * @return A pointer to a struct sr_config_info, or NULL if the key
  *         was not found.

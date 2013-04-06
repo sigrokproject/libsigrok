@@ -183,7 +183,7 @@ SR_API int sr_dev_trigger_set(const struct sr_dev_inst *sdi, int probenum,
  *            If the device's 'driver' field is NULL (virtual device), this
  *            function will always return FALSE (virtual devices don't have
  *            a hardware capabilities list).
- * @param option The option that should be checked for support on the
+ * @param key The option that should be checked for support on the
  *            specified device.
  *
  * @return TRUE if the device has the specified option, FALSE otherwise.
