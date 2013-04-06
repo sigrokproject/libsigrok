@@ -687,7 +687,7 @@ RECURSIVE              = YES
 # Note that relative paths are relative to the directory from which doxygen is
 # run.
 
-EXCLUDE                = config.h libsigrok-internal.h session_driver.c
+EXCLUDE                = config.h libsigrok-internal.h session_driver.c std.c
 
 # The EXCLUDE_SYMLINKS tag can be used to select whether or not files or
 # directories that are symbolic links (a Unix file system feature) are excluded
@@ -706,11 +706,13 @@ EXCLUDE_SYMLINKS       = NO
 #  - config.h: Non-public stuff, the file doesn't get installed.
 #  - libsigrok-internal.h: Non-public stuff, the file doesn't get installed.
 #  - session_driver.c: Special driver for "virtual" devices, non-public.
+#  - std.c: Non-public helpers, no public API stuff in there.
 #  - hardware/*: Only driver-specific stuff, no public API stuff in there.
 #  - input/*: Only input.c contains public API, everything else doesn't.
 #  - output/*: Only output.c contains public API, everything else doesn't.
+#  - tests/*: Unit tests, no public API stuff in there.
 #
-EXCLUDE_PATTERNS       = */hardware/* */input/* */output/*
+EXCLUDE_PATTERNS       = */hardware/* */input/* */output/* */tests/*
 INPUT                 += input/input.c output/output.c
 
 # The EXCLUDE_SYMBOLS tag can be used to specify one or more symbol names
