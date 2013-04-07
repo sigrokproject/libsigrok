@@ -37,6 +37,9 @@
 /* TODO tune this properly */
 #define TICK 1
 
+#define NUM_TIMEBASE  10
+#define NUM_VDIV      8
+
 static const int32_t devopts[] = {
 	SR_CONF_OSCILLOSCOPE,
 	SR_CONF_LIMIT_FRAMES,
@@ -49,6 +52,8 @@ static const int32_t devopts[] = {
 	SR_CONF_FILTER,
 	SR_CONF_VDIV,
 	SR_CONF_COUPLING,
+	SR_CONF_NUM_TIMEBASE,
+	SR_CONF_NUM_VDIV,
 };
 
 static const char *probe_names[] = {
@@ -407,6 +412,25 @@ static int hw_cleanup(void)
 		return SR_OK;
 
 	clear_instances();
+
+	return SR_OK;
+}
+
+static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi)
+{
+
+	(void)sdi;
+
+	switch (id) {
+	case SR_CONF_NUM_TIMEBASE:
+		*data = g_variant_new_int32(NUM_TIMEBASE);
+		break;
+	case SR_CONF_NUM_VDIV:
+		*data = g_variant_new_int32(NUM_VDIV);
+		break;
+	default:
+		return SR_ERR_ARG;
+	}
 
 	return SR_OK;
 }
@@ -924,7 +948,7 @@ SR_PRIV struct sr_dev_driver hantek_dso_driver_info = {
 	.scan = hw_scan,
 	.dev_list = hw_dev_list,
 	.dev_clear = clear_instances,
-	.config_get = NULL,
+	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,
 	.dev_open = hw_dev_open,
