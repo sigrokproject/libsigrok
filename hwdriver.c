@@ -479,7 +479,7 @@ SR_API int sr_config_list(const struct sr_dev_driver *driver, int key,
 
 	if (!driver || !data)
 		ret = SR_ERR;
-	else if (!sdi->driver->config_list)
+	else if (!driver->config_list)
 		ret = SR_ERR_ARG;
 	else if ((ret = driver->config_list(key, data, sdi)) == SR_OK)
 		g_variant_ref_sink(*data);
