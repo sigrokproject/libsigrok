@@ -108,9 +108,12 @@ SR_PRIV int ezusb_upload_firmware(libusb_device *dev, int configuration,
 		return SR_ERR;
 	}
 
-/* Neither Windows/MinGW nor Darwin/Mac support these libusb-1.0 calls. */
-#if !defined(_WIN32) && !defined(__APPLE__)
-	if (libusb_kernel_driver_active(hdl, 0)) {
+/*
+ * The libusbx darwin backend is broken: it can report a kernel driver being
+ * active, but detaching it always returns an error.
+ */
+#if !defined(__APPLE__)
+	if (libusb_kernel_driver_active(hdl, 0) == 1) {
 		if ((ret = libusb_detach_kernel_driver(hdl, 0)) < 0) {
 			sr_err("failed to detach kernel driver: %s",
 					libusb_error_name(ret));
