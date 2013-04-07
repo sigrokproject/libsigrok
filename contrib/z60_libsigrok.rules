@@ -190,6 +190,10 @@ ATTRS{idVendor}=="16c0", ATTRS{idProduct}=="4e21", MODE="664", GROUP="plugdev"
 # lsusb: "0400:03e8 National Semiconductor Corp."
 ATTRS{idVendor}=="0400", ATTRS{idProduct}=="03e8", MODE="664", GROUP="plugdev"
 
+# Rigol DS1052E/1102E
+# lsusb: 1ab1:0588
+ATTRS{idVendor}=="1ab1", ATTRS{idProduct}=="0588", MODE="664", GROUP="plugdev"
+
 # RockyLogic Ant8
 # http://www.rockylogic.com/products/ant8.html
 # lsusb: "0403:f918 Future Technology Devices International,
