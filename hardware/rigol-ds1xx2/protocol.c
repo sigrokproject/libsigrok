@@ -47,6 +47,13 @@ SR_PRIV int rigol_ds1xx2_receive_data(int fd, int revents, void *cb_data)
 		sr_dbg("Received %d bytes.", len);
 		if (len == -1)
 			return TRUE;
+
+		if (devc->num_frame_samples == 0) {
+			/* Start of a new frame. */
+			packet.type = SR_DF_FRAME_BEGIN;
+			sr_session_send(sdi, &packet);
+		}
+
 		for (i = 0; i < len; i++)
 			data[i] = devc->scale / 25.6 * (128 - buf[i]) - devc->offset;
 		analog.probes = devc->enabled_probes;
@@ -59,10 +66,16 @@ SR_PRIV int rigol_ds1xx2_receive_data(int fd, int revents, void *cb_data)
 		packet.payload = &analog;
 		sr_session_send(cb_data, &packet);
 
-		if (++devc->num_frames == devc->limit_frames)
-			sdi->driver->dev_acquisition_stop(sdi, cb_data);
-		else
-			rigol_ds1xx2_send_data(fd, ":WAV:DATA?\n");
+		if (len == WAVEFORM_SIZE) {
+			/* End of the frame. */
+			packet.type = SR_DF_FRAME_END;
+			sr_session_send(sdi, &packet);
+
+			if (++devc->num_frames == devc->limit_frames)
+				sdi->driver->dev_acquisition_stop(sdi, cb_data);
+			else
+				rigol_ds1xx2_send_data(fd, ":WAV:DATA?\n");
+		}
 	}
 
 	return TRUE;

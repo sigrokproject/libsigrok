@@ -485,7 +485,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 
 	devc = sdi->priv;
 
-	devc->num_frames = 0;
+	devc->num_frames = devc->num_frame_samples = 0;
 
 	sr_source_add(devc->fd, G_IO_IN, 50, rigol_ds1xx2_receive_data, (void *)sdi);
 

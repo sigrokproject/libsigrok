@@ -52,8 +52,8 @@ struct dev_context {
 	/** The current number of already received frames. */
 	uint64_t num_frames;
 
-	/** The current number of already received samples. */
-	uint64_t num_samples;
+	/** The current number of samples received in this frame. */
+	uint64_t num_frame_samples;
 
 	/** Current scale setting. */
 	float scale;
