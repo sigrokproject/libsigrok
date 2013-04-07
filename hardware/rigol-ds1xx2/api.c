@@ -26,6 +26,9 @@
 #include "libsigrok-internal.h"
 #include "protocol.h"
 
+#define NUM_TIMEBASE  12
+#define NUM_VDIV      8
+
 static const int32_t hwcaps[] = {
 	SR_CONF_OSCILLOSCOPE,
 	SR_CONF_LIMIT_SAMPLES,
@@ -35,6 +38,8 @@ static const int32_t hwcaps[] = {
 	SR_CONF_HORIZ_TRIGGERPOS,
 	SR_CONF_VDIV,
 	SR_CONF_COUPLING,
+	SR_CONF_NUM_TIMEBASE,
+	SR_CONF_NUM_VDIV,
 };
 
 static const uint64_t timebases[][2] = {
@@ -304,6 +309,25 @@ static int hw_cleanup(void)
 	return SR_OK;
 }
 
+static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi)
+{
+
+	(void)sdi;
+
+	switch (id) {
+	case SR_CONF_NUM_TIMEBASE:
+		*data = g_variant_new_int32(NUM_TIMEBASE);
+		break;
+	case SR_CONF_NUM_VDIV:
+		*data = g_variant_new_int32(NUM_VDIV);
+		break;
+	default:
+		return SR_ERR_ARG;
+	}
+
+	return SR_OK;
+}
+
 static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
@@ -512,7 +536,7 @@ SR_PRIV struct sr_dev_driver rigol_ds1xx2_driver_info = {
 	.scan = hw_scan,
 	.dev_list = hw_dev_list,
 	.dev_clear = clear_instances,
-	.config_get = NULL,
+	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,
 	.dev_open = hw_dev_open,
