@@ -410,6 +410,9 @@ SR_API int sr_config_get(const struct sr_dev_driver *driver, int key,
 	if (!driver || !data)
 		return SR_ERR;
 
+	if (!driver->config_get)
+		return SR_ERR_ARG;
+
 	if ((ret = driver->config_get(key, data, sdi)) == SR_OK) {
 		/* Got a floating reference from the driver. Sink it here,
 		 * caller will need to unref when done with it. */
@@ -474,8 +477,10 @@ SR_API int sr_config_list(const struct sr_dev_driver *driver, int key,
 {
 	int ret;
 
-	if (!driver || !data || !driver->config_list)
+	if (!driver || !data)
 		ret = SR_ERR;
+	else if (!sdi->driver->config_list)
+		ret = SR_ERR_ARG;
 	else if ((ret = driver->config_list(key, data, sdi)) == SR_OK)
 		g_variant_ref_sink(*data);
 
