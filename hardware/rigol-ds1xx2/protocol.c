@@ -21,6 +21,7 @@
 #include <stdarg.h>
 #include <unistd.h>
 #include <errno.h>
+#include <string.h>
 #include <glib.h>
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
@@ -74,7 +75,7 @@ SR_PRIV int rigol_ds1xx2_receive_data(int fd, int revents, void *cb_data)
 			if (++devc->num_frames == devc->limit_frames)
 				sdi->driver->dev_acquisition_stop(sdi, cb_data);
 			else
-				rigol_ds1xx2_send_data(fd, ":WAV:DATA?\n");
+				rigol_ds1xx2_send_data(fd, ":WAV:DATA?");
 		}
 	}
 
@@ -85,13 +86,22 @@ SR_PRIV int rigol_ds1xx2_send_data(int fd, const char *format, ...)
 {
 	va_list args;
 	char buf[256];
-	int len;
+	int len, out, ret;
 
 	va_start(args, format);
 	len = vsprintf(buf, format, args);
 	va_end(args);
-	len = write(fd, buf, len);
-	sr_dbg("Sent '%s'.", buf);
+	strcat(buf, "\n");
+	len++;
+	out = write(fd, buf, len);
+	buf[len - 1] = '\0';
+	if (out != len) {
+		sr_dbg("Only sent %d/%d bytes of '%s'.", out, len, buf);
+		ret = SR_ERR;
+	} else {
+		sr_dbg("Sent '%s'.", buf);
+		ret = SR_OK;
+	}
 
-	return len;
+	return ret;
 }

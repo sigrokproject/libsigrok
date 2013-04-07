@@ -351,12 +351,12 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
 		tmp_u64 = g_variant_get_uint64(data);
-		rigol_ds1xx2_send_data(devc->fd, ":TRIG:EDGE:SLOP %s\n",
+		rigol_ds1xx2_send_data(devc->fd, ":TRIG:EDGE:SLOP %s",
 				       tmp_u64 ? "POS" : "NEG");
 		break;
 	case SR_CONF_HORIZ_TRIGGERPOS:
 		tmp_double = g_variant_get_double(data);
-		rigol_ds1xx2_send_data(devc->fd, ":TIM:OFFS %.9f\n", tmp_double);
+		rigol_ds1xx2_send_data(devc->fd, ":TIM:OFFS %.9f", tmp_double);
 		break;
 	case SR_CONF_TIMEBASE:
 		g_variant_get(data, "(tt)", &p, &q);
@@ -368,7 +368,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 			}
 		}
 		if (tmp_int >= 0)
-			rigol_ds1xx2_send_data(devc->fd, ":TIM:SCAL %.9f\n",
+			rigol_ds1xx2_send_data(devc->fd, ":TIM:SCAL %.9f",
 					(float)timebases[i][0] / timebases[i][1]);
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
@@ -385,7 +385,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 			ret = SR_ERR_ARG;
 			break;
 		}
-		rigol_ds1xx2_send_data(devc->fd, ":TRIG:EDGE:SOUR %s\n", channel);
+		rigol_ds1xx2_send_data(devc->fd, ":TRIG:EDGE:SOUR %s", channel);
 		break;
 	case SR_CONF_VDIV:
 		g_variant_get(data, "(tt)", &p, &q);
@@ -394,9 +394,9 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 			if (vdivs[i][0] != p || vdivs[i][1] != q)
 				continue;
 			devc->scale = (float)vdivs[i][0] / vdivs[i][1];
-			rigol_ds1xx2_send_data(devc->fd, ":CHAN0:SCAL %.3f\n",
+			rigol_ds1xx2_send_data(devc->fd, ":CHAN0:SCAL %.3f",
 					devc->scale);
-			rigol_ds1xx2_send_data(devc->fd, ":CHAN1:SCAL %.3f\n",
+			rigol_ds1xx2_send_data(devc->fd, ":CHAN1:SCAL %.3f",
 					devc->scale);
 			break;
 		}
@@ -408,9 +408,9 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 		tmp_str = g_variant_get_string(data, NULL);
 		for (i = 0; i < ARRAY_SIZE(coupling); i++) {
 			if (!strcmp(tmp_str, coupling[i])) {
-				rigol_ds1xx2_send_data(devc->fd, ":CHAN0:COUP %s\n",
+				rigol_ds1xx2_send_data(devc->fd, ":CHAN0:COUP %s",
 						coupling[i]);
-				rigol_ds1xx2_send_data(devc->fd, ":CHAN1:COUP %s\n",
+				rigol_ds1xx2_send_data(devc->fd, ":CHAN1:COUP %s",
 						coupling[i]);
 				break;
 			}
@@ -494,17 +494,17 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 
 	/* Hardcoded to CH1 only. */
 	devc->enabled_probes = g_slist_append(NULL, sdi->probes->data);
-	rigol_ds1xx2_send_data(devc->fd, ":CHAN1:SCAL?\n");
+	rigol_ds1xx2_send_data(devc->fd, ":CHAN1:SCAL?");
 	len = read(devc->fd, buf, sizeof(buf));
 	buf[len] = 0;
 	devc->scale = atof(buf);
 	sr_dbg("Scale is %.3f.", devc->scale);
-	rigol_ds1xx2_send_data(devc->fd, ":CHAN1:OFFS?\n");
+	rigol_ds1xx2_send_data(devc->fd, ":CHAN1:OFFS?");
 	len = read(devc->fd, buf, sizeof(buf));
 	buf[len] = 0;
 	devc->offset = atof(buf);
 	sr_dbg("Offset is %.6f.", devc->offset);
-	rigol_ds1xx2_send_data(devc->fd, ":WAV:DATA?\n");
+	rigol_ds1xx2_send_data(devc->fd, ":WAV:DATA?");
 
 	return SR_OK;
 }
