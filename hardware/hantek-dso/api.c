@@ -541,6 +541,9 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
+	GVariant *tuple, *rational[2];
+	GVariantBuilder gvb;
+	unsigned int i;
 
 	(void)sdi;
 
@@ -561,16 +564,28 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 		*data = g_variant_new_strv(coupling, ARRAY_SIZE(coupling));
 		break;
 	case SR_CONF_VDIV:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT64,
-				vdivs, ARRAY_SIZE(vdivs) * 2, sizeof(uint64_t));
+		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
+		for (i = 0; i < ARRAY_SIZE(vdivs); i++) {
+			rational[0] = g_variant_new_uint64(vdivs[i][0]);
+			rational[1] = g_variant_new_uint64(vdivs[i][1]);
+			tuple = g_variant_new_tuple(rational, 2);
+			g_variant_builder_add_value(&gvb, tuple);
+		}
+		*data = g_variant_builder_end(&gvb);
 		break;
 	case SR_CONF_FILTER:
 		*data = g_variant_new_strv(filter_targets,
 				ARRAY_SIZE(filter_targets));
 		break;
 	case SR_CONF_TIMEBASE:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT64,
-				timebases, ARRAY_SIZE(timebases) * 2, sizeof(uint64_t));
+		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
+		for (i = 0; i < ARRAY_SIZE(timebases); i++) {
+			rational[0] = g_variant_new_uint64(timebases[i][0]);
+			rational[1] = g_variant_new_uint64(timebases[i][1]);
+			tuple = g_variant_new_tuple(rational, 2);
+			g_variant_builder_add_value(&gvb, tuple);
+		}
+		*data = g_variant_builder_end(&gvb);
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
 		*data = g_variant_new_strv(trigger_sources,
