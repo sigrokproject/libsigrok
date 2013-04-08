@@ -2,6 +2,7 @@
  * This file is part of the libsigrok project.
  *
  * Copyright (C) 2012 Martin Ling <martin-git@earth.li>
+ * Copyright (C) 2013 Bert Vermeulen <bert@biot.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -394,8 +395,6 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 			if (vdivs[i][0] != p || vdivs[i][1] != q)
 				continue;
 			devc->scale = (float)vdivs[i][0] / vdivs[i][1];
-			rigol_ds1xx2_send_data(devc->fd, ":CHAN0:SCAL %.3f",
-					devc->scale);
 			rigol_ds1xx2_send_data(devc->fd, ":CHAN1:SCAL %.3f",
 					devc->scale);
 			break;
@@ -408,9 +407,9 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 		tmp_str = g_variant_get_string(data, NULL);
 		for (i = 0; i < ARRAY_SIZE(coupling); i++) {
 			if (!strcmp(tmp_str, coupling[i])) {
-				rigol_ds1xx2_send_data(devc->fd, ":CHAN0:COUP %s",
-						coupling[i]);
 				rigol_ds1xx2_send_data(devc->fd, ":CHAN1:COUP %s",
+						coupling[i]);
+				rigol_ds1xx2_send_data(devc->fd, ":CHAN2:COUP %s",
 						coupling[i]);
 				break;
 			}
