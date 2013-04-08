@@ -228,7 +228,7 @@ case "$build" in
 		LA_ZEROPLUS_LOGIC_CUBE="no"])
 
 	# Define HAVE_LIBUSB_1_0 in config.h if we found libusb-1.0.
-	if test "x$libusb_CFLAGS" != "x"; then
+	if test "x$have_libusb1_0" != "xno"; then
 		AC_DEFINE_UNQUOTED(HAVE_LIBUSB_1_0, [1],
 			[Specifies whether we have a libusb.h header.])
 	fi
