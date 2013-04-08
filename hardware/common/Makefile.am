@@ -22,19 +22,13 @@ SUBDIRS = dmm
 # Local lib, this is NOT meant to be installed!
 noinst_LTLIBRARIES = libsigrokhwcommon.la
 
-libsigrokhwcommon_la_SOURCES = usb.c
+libsigrokhwcommon_la_SOURCES = serial.c
 
-if NEED_EZUSB
-libsigrokhwcommon_la_SOURCES += ezusb.c
+if NEED_USB
+libsigrokhwcommon_la_SOURCES += ezusb.c usb.c
 endif
 
-if NEED_SERIAL
-libsigrokhwcommon_la_SOURCES += serial.c
-endif
-
-libsigrokhwcommon_la_LIBADD = 
-
-libsigrokhwcommon_la_LIBADD += dmm/libsigrok_hw_common_dmm.la
+libsigrokhwcommon_la_LIBADD = dmm/libsigrok_hw_common_dmm.la
 
 libsigrokhwcommon_la_CFLAGS = \
 	-I$(top_srcdir)

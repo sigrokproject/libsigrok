@@ -235,6 +235,9 @@ case "$build" in
 	;;
 esac
 
+# USB + FX2 firmware helper code is only compiled in if libusb-1.0 was found.
+AM_CONDITIONAL(NEED_USB, test "x$have_libusb1_0" != xno)
+
 # libftdi is only needed for some hardware drivers. Disable them if not found.
 PKG_CHECK_MODULES([libftdi], [libftdi >= 0.16],
 	[CFLAGS="$CFLAGS $libftdi_CFLAGS";
@@ -259,23 +262,6 @@ PKG_CHECK_MODULES([check], [check >= 0.9.4],
 	[have_check="yes"; CFLAGS="$CFLAGS $check_CFLAGS";
 	LIBS="$LIBS $check_LIBS"], [have_check="no"])
 AM_CONDITIONAL(HAVE_CHECK, test x"$have_check" = "xyes")
-
-# EZUSB FX2 firmware helper code is only needed for some hardware drivers.
-AM_CONDITIONAL(NEED_EZUSB, \
-	test "x$LA_FX2LAFW" != xno \
-	-o "x$HW_HANTEK_DSO" != xno \
-)
-
-# Serial port helper code is only needed for some hardware drivers.
-AM_CONDITIONAL(NEED_SERIAL, \
-	test "x$HW_AGILENT_DMM" != xno \
-	-o "x$HW_COLEAD_SLM" != xno \
-	-o "x$HW_FLUKE_DMM" != xno \
-	-o "x$LA_LINK_MSO19" != xno \
-	-o "x$LA_OLS" != xno \
-	-o "x$HW_SERIAL_DMM" != xno \
-	-o "x$HW_TONDAJ_SL_814" != xno \
-)
 
 AC_SUBST(SR_PKGLIBS)
 
