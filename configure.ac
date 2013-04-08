@@ -281,66 +281,64 @@ fi
 # libsigrok.pc file.
 SR_PKGLIBS=""
 
-# libglib-2.0 is always needed.
+# libglib-2.0 is always needed. Abort if it's not found.
 # Note: glib-2.0 is part of the libsigrok API (hard pkg-config requirement).
 AM_PATH_GLIB_2_0([2.28.0],
 	[CFLAGS="$CFLAGS $GLIB_CFLAGS"; LIBS="$LIBS $GLIB_LIBS"])
 
-# libusb-1.0 is only needed for some hardware drivers.
-if test "x$LA_ASIX_SIGMA" != xno \
-   -o "x$LA_CHRONOVU_LA8" != xno \
-   -o "x$LA_FX2LAFW" != xno \
-   -o "x$HW_HANTEK_DSO" != xno \
-   -o "x$LA_ZEROPLUS_LOGIC_CUBE" != xno; then
-	case "$build" in
-	*freebsd*)
-		# FreeBSD comes with an "integrated" libusb-1.0-style USB API.
-		AC_DEFINE_UNQUOTED(HAVE_LIBUSB_1_0, [1],
-			[Specifies whether we have a libusb.h header.])
-		;;
-	*)
-		PKG_CHECK_MODULES([libusb], [libusb-1.0 >= 1.0.9],
-			[CFLAGS="$CFLAGS $libusb_CFLAGS";
-			LIBS="$LIBS $libusb_LIBS";
-			SR_PKGLIBS="$SR_PKGLIBS libusb-1.0"])
-		# Define HAVE_LIBUSB_1_0 in config.h if we found libusb-1.0.
-		if test "x$libusb_CFLAGS" != "x"; then
-			AC_DEFINE_UNQUOTED(HAVE_LIBUSB_1_0, [1],
-				[Specifies whether we have a libusb.h header.])
-		fi
-		;;
-	esac
-fi
-
-# libzip is always needed.
+# libzip is always needed. Abort if it's not found.
 PKG_CHECK_MODULES([libzip], [libzip >= 0.8],
 	[CFLAGS="$CFLAGS $libzip_CFLAGS"; LIBS="$LIBS $libzip_LIBS";
 	SR_PKGLIBS="$SR_PKGLIBS libzip"])
 
-# libftdi is only needed for some hardware drivers.
-if test "x$LA_ASIX_SIGMA" != xno \
-     -o "x$LA_CHRONOVU_LA8" != xno; then
-	PKG_CHECK_MODULES([libftdi], [libftdi >= 0.16],
-		[CFLAGS="$CFLAGS $libftdi_CFLAGS";
-		LIBS="$LIBS $libftdi_LIBS";
-		SR_PKGLIBS="$SR_PKGLIBS libftdi"])
-fi
+# libusb-1.0 is only needed for some hardware drivers. Disable the respective
+# drivers if it is not found.
+case "$build" in
+*freebsd*)
+	# FreeBSD comes with an "integrated" libusb-1.0-style USB API.
+	# This means libusb-1.0 is always available, no need to check for it,
+	# and no need to (potentially) disable any drivers if it's not found.
+	AC_DEFINE_UNQUOTED(HAVE_LIBUSB_1_0, [1],
+		[Specifies whether we have a libusb.h header.])
+	;;
+*)
+	PKG_CHECK_MODULES([libusb], [libusb-1.0 >= 1.0.9],
+		[have_libusb1_0="yes"; CFLAGS="$CFLAGS $libusb_CFLAGS";
+		LIBS="$LIBS $libusb_LIBS";
+		SR_PKGLIBS="$SR_PKGLIBS libusb-1.0"],
+		[have_libusb1_0="no"; LA_FX2LAFW="no"; HW_HANTEK_DSO="no";
+		HW_LASCAR_EL_USB="no"; HW_NEXUS_OSCIPRIME="no";
+		HW_UNI_T_DMM="no"; HW_VICTOR_DMM="no";
+		LA_ZEROPLUS_LOGIC_CUBE="no"])
 
-# libudev is only needed for some hardware drivers.
-if test "x$LA_LINK_MSO19" != xno; then
-	PKG_CHECK_MODULES([libudev], [libudev >= 151],
-		[CFLAGS="$CFLAGS $libudev_CFLAGS"; LIBS="$LIBS $libudev_LIBS";
-		SR_PKGLIBS="$SR_PKGLIBS libudev"])
-fi
+	# Define HAVE_LIBUSB_1_0 in config.h if we found libusb-1.0.
+	if test "x$libusb_CFLAGS" != "x"; then
+		AC_DEFINE_UNQUOTED(HAVE_LIBUSB_1_0, [1],
+			[Specifies whether we have a libusb.h header.])
+	fi
+	;;
+esac
 
-# ALSA is only needed for some hardware drivers.
-if test "x$HW_ALSA" != xno; then
-	PKG_CHECK_MODULES([alsa], [alsa >= 1.0],
-		[CFLAGS="$CFLAGS $alsa_CFLAGS"; LIBS="$LIBS $alsa_LIBS";
-		SR_PKGLIBS="$SR_PKGLIBS alsa"])
-fi
+# libftdi is only needed for some hardware drivers. Disable them if not found.
+PKG_CHECK_MODULES([libftdi], [libftdi >= 0.16],
+	[CFLAGS="$CFLAGS $libftdi_CFLAGS";
+	LIBS="$LIBS $libftdi_LIBS";
+	SR_PKGLIBS="$SR_PKGLIBS libftdi"],
+	[LA_ASIX_SIGMA="no"; LA_CHRONOVU_LA8="no"])
 
-# The Check unit testing framework is optional.
+# libudev is only needed for some hardware drivers. Disable them if not found.
+PKG_CHECK_MODULES([libudev], [libudev >= 151],
+	[CFLAGS="$CFLAGS $libudev_CFLAGS"; LIBS="$LIBS $libudev_LIBS";
+	SR_PKGLIBS="$SR_PKGLIBS libudev"],
+	[LA_LINK_MSO19="no"])
+
+# ALSA is only needed for some hardware drivers. Disable them if not found.
+PKG_CHECK_MODULES([alsa], [alsa >= 1.0],
+	[CFLAGS="$CFLAGS $alsa_CFLAGS"; LIBS="$LIBS $alsa_LIBS";
+	SR_PKGLIBS="$SR_PKGLIBS alsa"],
+	[HW_ALSA="no"])
+
+# The Check unit testing framework is optional. Disable if not found.
 PKG_CHECK_MODULES([check], [check >= 0.9.4],
 	[have_check="yes"; CFLAGS="$CFLAGS $check_CFLAGS";
 	LIBS="$LIBS $check_LIBS"], [have_check="no"])
@@ -443,7 +441,7 @@ echo "Detected libraries:"
 echo
 
 # Note: This only works for libs with pkg-config integration.
-for lib in "glib-2.0" "libusb-1.0" "libzip" "libftdi" "libudev" "alsa" "check"; do
+for lib in "glib-2.0" "libzip" "libusb-1.0" "libftdi" "libudev" "alsa" "check"; do
 	if `$PKG_CONFIG --exists $lib`; then
 		ver=`$PKG_CONFIG --modversion $lib`
 		answer="yes ($ver)"
