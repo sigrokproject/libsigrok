@@ -465,7 +465,7 @@ echo "Detected libraries:"
 echo
 
 # Note: This only works for libs with pkg-config integration.
-for lib in "glib-2.0" "libzip" "libusb-1.0" "libftdi" "libudev" "alsa" "check"; do
+for lib in "glib-2.0 >= 2.28.0" "libzip >= 0.8" "libusb-1.0 >= 1.0.9" "libftdi >= 0.16" "libudev >= 151" "alsa >= 1.0" "check >= 0.9.4"; do
 	if `$PKG_CONFIG --exists $lib`; then
 		ver=`$PKG_CONFIG --modversion $lib`
 		answer="yes ($ver)"
