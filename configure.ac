@@ -284,7 +284,7 @@ fi
 
 AM_CONDITIONAL(HW_BRYMEN_DMM, test x$HW_BRYMEN_DMM = xyes)
 if test "x$HW_BRYMEN_DMM" = "xyes"; then
-	AC_DEFINE(HAVE_HW_BRYMEN_DMM, 1, [brymen-dmm support])
+	AC_DEFINE(HAVE_HW_BRYMEN_DMM, 1, [Brymen DMM support])
 fi
 
 AM_CONDITIONAL(LA_CHRONOVU_LA8, test x$LA_CHRONOVU_LA8 = xyes)
@@ -364,7 +364,7 @@ fi
 
 AM_CONDITIONAL(HW_VICTOR_DMM, test x$HW_VICTOR_DMM = xyes)
 if test "x$HW_VICTOR_DMM" = "xyes"; then
-	AC_DEFINE(HAVE_HW_VICTOR_DMM, 1, [victor-dmm support])
+	AC_DEFINE(HAVE_HW_VICTOR_DMM, 1, [Victor DMM support])
 fi
 
 AM_CONDITIONAL(LA_ZEROPLUS_LOGIC_CUBE, test x$LA_ZEROPLUS_LOGIC_CUBE = xyes)
@@ -461,26 +461,26 @@ for lib in "glib-2.0" "libzip" "libusb-1.0" "libftdi" "libudev" "alsa" "check"; 
 done
 
 echo -e "\nEnabled hardware drivers:\n"
-echo "  - Agilent DMM..................... $HW_AGILENT_DMM"
-echo "  - ALSA............................ $HW_ALSA"
-echo "  - ASIX SIGMA/SIGMA2............... $LA_ASIX_SIGMA"
-echo "  - Brymen DMM...................... $HW_BRYMEN_DMM"
-echo "  - ChronoVu LA8.................... $LA_CHRONOVU_LA8"
-echo "  - Colead SLM...................... $HW_COLEAD_SLM"
-echo "  - Demo driver..................... $LA_DEMO"
-echo "  - Fluke DMM....................... $HW_FLUKE_DMM"
-echo "  - fx2lafw (for FX2 LAs)........... $LA_FX2LAFW"
-echo "  - Hantek DSO...................... $HW_HANTEK_DSO"
-echo "  - Lascar EL-USB................... $HW_LASCAR_EL_USB"
-echo "  - Link MSO-19..................... $LA_LINK_MSO19"
-echo "  - MIC 985xx....................... $HW_MIC_985XX"
-echo "  - Nexus Osciprime................. $HW_NEXUS_OSCIPRIME"
-echo "  - Openbench Logic Sniffer......... $LA_OLS"
-echo "  - Rigol DS1xx2.................... $HW_RIGOL_DS1XX2"
-echo "  - Serial DMM...................... $HW_SERIAL_DMM"
-echo "  - Tondaj SL-814................... $HW_TONDAJ_SL_814"
-echo "  - UNI-T DMM....................... $HW_UNI_T_DMM"
-echo "  - Victor DMM...................... $HW_VICTOR_DMM"
-echo "  - ZEROPLUS Logic Cube............. $LA_ZEROPLUS_LOGIC_CUBE"
+echo "  - agilent-dmm..................... $HW_AGILENT_DMM"
+echo "  - alsa............................ $HW_ALSA"
+echo "  - asix-sigma...................... $LA_ASIX_SIGMA"
+echo "  - brymen-dmm...................... $HW_BRYMEN_DMM"
+echo "  - chronovu-la8.................... $LA_CHRONOVU_LA8"
+echo "  - colead-slm...................... $HW_COLEAD_SLM"
+echo "  - demo............................ $LA_DEMO"
+echo "  - fluke-dmm....................... $HW_FLUKE_DMM"
+echo "  - fx2lafw......................... $LA_FX2LAFW"
+echo "  - hantek-dso...................... $HW_HANTEK_DSO"
+echo "  - lascar-el-usb................... $HW_LASCAR_EL_USB"
+echo "  - link-mso19...................... $LA_LINK_MSO19"
+echo "  - mic-985xx....................... $HW_MIC_985XX"
+echo "  - nexus-osciprime................. $HW_NEXUS_OSCIPRIME"
+echo "  - openbench-logic-sniffer......... $LA_OLS"
+echo "  - rigol-ds1xx2.................... $HW_RIGOL_DS1XX2"
+echo "  - serial-dmm...................... $HW_SERIAL_DMM"
+echo "  - tondaj-sl-814................... $HW_TONDAJ_SL_814"
+echo "  - uni-t-dmm....................... $HW_UNI_T_DMM"
+echo "  - victor-dmm...................... $HW_VICTOR_DMM"
+echo "  - zeroplus-logic-cube............. $LA_ZEROPLUS_LOGIC_CUBE"
 echo
 
