@@ -144,7 +144,7 @@ static int init(struct sr_output *o)
 	return SR_OK;
 }
 
-static GString *recv(struct sr_output *o, const struct sr_dev_inst *sdi,
+static GString *receive(struct sr_output *o, const struct sr_dev_inst *sdi,
 		const struct sr_datafeed_packet *packet)
 {
 	const struct sr_datafeed_logic *logic;
@@ -229,6 +229,6 @@ struct sr_output_format output_vcd = {
 	.description = "Value Change Dump (VCD)",
 	.df_type = SR_DF_LOGIC,
 	.init = init,
-	.recv = recv,
-	.cleanup = cleanup
+	.recv = receive,
+	.cleanup = cleanup,
 };
