@@ -460,6 +460,8 @@ echo
 echo "  - Package version (major.minor.micro):    $SR_PACKAGE_VERSION"
 echo "  - Library version (current:revision:age): $SR_LIB_VERSION"
 echo "  - Prefix: $prefix"
+echo "  - Building on: $build"
+echo "  - Building for: $host"
 echo
 echo "Detected libraries:"
 echo
