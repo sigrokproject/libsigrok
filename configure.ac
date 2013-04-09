@@ -209,7 +209,7 @@ PKG_CHECK_MODULES([libzip], [libzip >= 0.8],
 
 # libusb-1.0 is only needed for some hardware drivers. Disable the respective
 # drivers if it is not found.
-case "$build" in
+case "$host" in
 *freebsd*)
 	# FreeBSD comes with an "integrated" libusb-1.0-style USB API.
 	# This means libusb-1.0 is always available, no need to check for it,
@@ -266,7 +266,7 @@ AM_CONDITIONAL(HAVE_CHECK, test x"$have_check" = "xyes")
 # The Rigol DS1xx2 driver currently uses the Linux kernel usbtmc module
 # (though it is planned to rewrite the driver to be portable later).
 # Thus, it will be disabled for non-Linux builds for now.
-case "$build" in
+case "$host" in
 *linux*)
 	# Do nothing. Whether the driver is enabled is determined by the
 	# previous --enable-all-drivers/--disable-all-drivers and/or any
