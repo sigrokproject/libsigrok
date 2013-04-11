@@ -38,6 +38,7 @@
 struct context {
 	int num_enabled_probes;
 	char *probelist[SR_MAX_NUM_PROBES + 1];
+	int probeindices[SR_MAX_NUM_PROBES + 1];
 	int *prevbits;
 	GString *header;
 	uint64_t prevsample;
@@ -70,7 +71,9 @@ static int init(struct sr_output *o)
 		probe = l->data;
 		if (!probe->enabled)
 			continue;
-		ctx->probelist[ctx->num_enabled_probes++] = probe->name;
+		ctx->probelist[ctx->num_enabled_probes] = probe->name;
+		ctx->probeindices[ctx->num_enabled_probes] = probe->index;
+		ctx->num_enabled_probes++;
 	}
 	if (ctx->num_enabled_probes > 94) {
 		sr_err("VCD only supports 94 probes.");
@@ -152,7 +155,7 @@ static GString *receive(struct sr_output *o, const struct sr_dev_inst *sdi,
 	struct context *ctx;
 	GString *text;
 	unsigned int i;
-	int p, curbit, prevbit;
+	int p, curbit, prevbit, index;
 	uint64_t sample;
 	static uint64_t samplecount = 0;
 	gboolean first_sample;
@@ -193,8 +196,9 @@ static GString *receive(struct sr_output *o, const struct sr_dev_inst *sdi,
 		}
 
 		for (p = 0; p < ctx->num_enabled_probes; p++) {
-			curbit = (sample & ((uint64_t) (1 << p))) >> p;
-			prevbit = (ctx->prevsample & ((uint64_t) (1 << p))) >> p;
+			index = ctx->probeindices[p];
+			curbit = (sample & (((uint64_t) 1) << index)) >> index;
+			prevbit = (ctx->prevsample & (((uint64_t) 1) << index)) >> index;
 
 			/* VCD only contains deltas/changes of signals. */
 			if (prevbit == curbit)
