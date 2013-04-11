@@ -22,6 +22,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <glib.h>
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
@@ -139,7 +140,10 @@ static int clear_instances(void)
 			continue;
 
 		g_free(devc->device);
-		g_slist_free(devc->enabled_probes);
+		g_free(devc->coupling[0]);
+		g_free(devc->coupling[1]);
+		g_free(devc->trigger_source);
+		g_free(devc->trigger_slope);
 		close(devc->fd);
 
 		sr_dev_inst_free(sdi);
@@ -147,6 +151,31 @@ static int clear_instances(void)
 
 	g_slist_free(drvc->instances);
 	drvc->instances = NULL;
+
+	return SR_OK;
+}
+
+static int set_cfg(const struct sr_dev_inst *sdi, const char *format, ...)
+{
+	struct dev_context *devc;
+	struct timespec delay;
+	va_list args;
+	char buf[256];
+
+	devc = sdi->priv;
+
+	va_start(args, format);
+	vsnprintf(buf, 255, format, args);
+	va_end(args);
+	if (rigol_ds1xx2_send(devc, buf) != SR_OK)
+		return SR_ERR;
+
+	/* When setting a bunch of parameters in a row, the DS1052E scrambles
+	 * some of them unless there is at least 100ms delay in between. */
+	delay.tv_sec = 0;
+	delay.tv_nsec = 100000000L;
+	sr_spew("delay %dms", delay.tv_nsec / 1000000);
+	nanosleep(&delay, NULL);
 
 	return SR_OK;
 }
@@ -248,9 +277,8 @@ static GSList *hw_scan(GSList *options)
 			g_free(device);
 			return NULL;
 		}
-
+		devc->limit_frames = 0;
 		devc->device = device;
-
 		sdi->priv = devc;
 		sdi->driver = di;
 
@@ -284,10 +312,11 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 
 	if ((fd = open(devc->device, O_RDWR)) == -1)
 		return SR_ERR;
-
 	devc->fd = fd;
 
-	devc->scale = 1;
+	if (rigol_ds1xx2_get_dev_cfg(sdi) != SR_OK)
+		/* TODO: force configuration? */
+		return SR_ERR;
 
 	return SR_OK;
 }
@@ -333,10 +362,10 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	uint64_t tmp_u64, p, q;
-	double tmp_double;
+	double t_dbl;
 	unsigned int i;
-	int tmp_int, ret;
-	const char *tmp_str, *channel;
+	int ret;
+	const char *tmp_str;
 
 	devc = sdi->priv;
 
@@ -352,51 +381,63 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
 		tmp_u64 = g_variant_get_uint64(data);
-		rigol_ds1xx2_send_data(devc->fd, ":TRIG:EDGE:SLOP %s",
-				       tmp_u64 ? "POS" : "NEG");
+		if (tmp_u64 != 0 && tmp_u64 != 1)
+			return SR_ERR;
+		g_free(devc->trigger_slope);
+		devc->trigger_slope = g_strdup(tmp_u64 ? "POS" : "NEG");
+		ret = set_cfg(sdi, ":TRIG:EDGE:SLOP %s", devc->trigger_slope);
 		break;
 	case SR_CONF_HORIZ_TRIGGERPOS:
-		tmp_double = g_variant_get_double(data);
-		rigol_ds1xx2_send_data(devc->fd, ":TIM:OFFS %.9f", tmp_double);
+		t_dbl = g_variant_get_double(data);
+		if (t_dbl < 0.0 || t_dbl > 1.0)
+			return SR_ERR;
+		devc->horiz_triggerpos = t_dbl;
+		/* We have the trigger offset as a percentage of the frame, but
+		 * need to express this in seconds. */
+		t_dbl = -(devc->horiz_triggerpos - 0.5) * devc->timebase * NUM_TIMEBASE;
+		ret = set_cfg(sdi, ":TIM:OFFS %.6f", t_dbl);
 		break;
 	case SR_CONF_TIMEBASE:
 		g_variant_get(data, "(tt)", &p, &q);
-		tmp_int = -1;
 		for (i = 0; i < ARRAY_SIZE(timebases); i++) {
 			if (timebases[i][0] == p && timebases[i][1] == q) {
-				tmp_int = i;
+				devc->timebase = (float)p / q;
+				ret = set_cfg(sdi, ":TIM:SCAL %.9f", devc->timebase);
 				break;
 			}
 		}
-		if (tmp_int >= 0)
-			rigol_ds1xx2_send_data(devc->fd, ":TIM:SCAL %.9f",
-					(float)timebases[i][0] / timebases[i][1]);
+		if (i == ARRAY_SIZE(timebases))
+			ret = SR_ERR_ARG;
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
 		tmp_str = g_variant_get_string(data, NULL);
-		if (!strcmp(tmp_str, "CH1"))
-			channel = "CHAN1";
-		else if (!strcmp(tmp_str, "CH2"))
-			channel = "CHAN2";
-		else if (!strcmp(tmp_str, "EXT"))
-			channel = "EXT";
-		else if (!strcmp(tmp_str, "AC Line"))
-			channel = "ACL";
-		else {
-			ret = SR_ERR_ARG;
-			break;
+		for (i = 0; i < ARRAY_SIZE(trigger_sources); i++) {
+			if (!strcmp(trigger_sources[i], tmp_str)) {
+				g_free(devc->trigger_source);
+				devc->trigger_source = g_strdup(trigger_sources[i]);
+				if (!strcmp(devc->trigger_source, "AC Line"))
+					tmp_str = "ACL";
+				else if (!strcmp(devc->trigger_source, "CH1"))
+					tmp_str = "CHAN1";
+				else if (!strcmp(devc->trigger_source, "CH2"))
+					tmp_str = "CHAN2";
+				else
+					tmp_str = (char *)devc->trigger_source;
+				ret = set_cfg(sdi, ":TRIG:EDGE:SOUR %s", tmp_str);
+				break;
+			}
 		}
-		rigol_ds1xx2_send_data(devc->fd, ":TRIG:EDGE:SOUR %s", channel);
+		if (i == ARRAY_SIZE(trigger_sources))
+			ret = SR_ERR_ARG;
 		break;
 	case SR_CONF_VDIV:
 		g_variant_get(data, "(tt)", &p, &q);
-		tmp_int = -1;
 		for (i = 0; i < ARRAY_SIZE(vdivs); i++) {
 			if (vdivs[i][0] != p || vdivs[i][1] != q)
 				continue;
-			devc->scale = (float)vdivs[i][0] / vdivs[i][1];
-			rigol_ds1xx2_send_data(devc->fd, ":CHAN1:SCAL %.3f",
-					devc->scale);
+			devc->vdiv[0] = devc->vdiv[1] = (float)p / q;
+			set_cfg(sdi, ":CHAN1:SCAL %.3f", devc->vdiv[0]);
+			ret = set_cfg(sdi, ":CHAN2:SCAL %.3f", devc->vdiv[1]);
 			break;
 		}
 		if (i == ARRAY_SIZE(vdivs))
@@ -407,10 +448,12 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 		tmp_str = g_variant_get_string(data, NULL);
 		for (i = 0; i < ARRAY_SIZE(coupling); i++) {
 			if (!strcmp(tmp_str, coupling[i])) {
-				rigol_ds1xx2_send_data(devc->fd, ":CHAN1:COUP %s",
-						coupling[i]);
-				rigol_ds1xx2_send_data(devc->fd, ":CHAN2:COUP %s",
-						coupling[i]);
+				g_free(devc->coupling[0]);
+				g_free(devc->coupling[1]);
+				devc->coupling[0] = g_strdup(coupling[i]);
+				devc->coupling[1] = g_strdup(coupling[i]);
+				set_cfg(sdi, ":CHAN1:COUP %s", devc->coupling[0]);
+				ret = set_cfg(sdi, ":CHAN2:COUP %s", devc->coupling[1]);
 				break;
 			}
 		}
@@ -440,8 +483,8 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 				hwcaps, ARRAY_SIZE(hwcaps), sizeof(int32_t));
 		break;
 	case SR_CONF_COUPLING:
-		*data = g_variant_new_strv(coupling, ARRAY_SIZE(coupling));
-		break;
+			*data = g_variant_new_strv(coupling, ARRAY_SIZE(coupling));
+			break;
 	case SR_CONF_VDIV:
 		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
 		for (i = 0; i < ARRAY_SIZE(vdivs); i++) {
@@ -473,42 +516,50 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
-				    void *cb_data)
+static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 {
 	struct dev_context *devc;
-	char buf[256];
-	int len;
+	struct sr_probe *probe;
+	GSList *l;
+	int probenum;
+	char cmd[256];
 
 	(void)cb_data;
 
 	devc = sdi->priv;
 
-	devc->num_frames = devc->num_frame_samples = 0;
+	for (l = sdi->probes; l; l = l->next) {
+		probe = l->data;
+		probenum = probe->name[2] == '1' ? 0 : 1;
+		if (probe->enabled)
+			devc->enabled_probes = g_slist_append(devc->enabled_probes, probe);
 
-	sr_source_add(devc->fd, G_IO_IN, 50, rigol_ds1xx2_receive_data, (void *)sdi);
+		if (probe->enabled != devc->channels[probenum]) {
+			/* Enabled channel is currently disabled, or vice versa. */
+			sprintf(cmd, ":CHAN%d:DISP %s", probenum + 1,
+					probe->enabled ? "ON" : "OFF");
+			if (rigol_ds1xx2_send(devc, cmd) != SR_OK)
+				return SR_ERR;
+		}
+	}
+	if (!devc->enabled_probes)
+		return SR_ERR;
+
+	sr_source_add(devc->fd, G_IO_IN, 50, rigol_ds1xx2_receive, (void *)sdi);
 
 	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, DRIVER_LOG_DOMAIN);
 
-	/* Hardcoded to CH1 only. */
-	devc->enabled_probes = g_slist_append(NULL, sdi->probes->data);
-	rigol_ds1xx2_send_data(devc->fd, ":CHAN1:SCAL?");
-	len = read(devc->fd, buf, sizeof(buf));
-	buf[len] = 0;
-	devc->scale = atof(buf);
-	sr_dbg("Scale is %.3f.", devc->scale);
-	rigol_ds1xx2_send_data(devc->fd, ":CHAN1:OFFS?");
-	len = read(devc->fd, buf, sizeof(buf));
-	buf[len] = 0;
-	devc->offset = atof(buf);
-	sr_dbg("Offset is %.6f.", devc->offset);
-	rigol_ds1xx2_send_data(devc->fd, ":WAV:DATA?");
+	/* Fetch the first frame. */
+	devc->channel_frame = devc->enabled_probes->data;
+	if (rigol_ds1xx2_send(devc, ":WAV:DATA? CHAN%c",
+			devc->channel_frame->name[2]) != SR_OK)
+		return SR_ERR;
 
 	return SR_OK;
 }
 
-static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
 	struct dev_context *devc;
 
@@ -521,6 +572,8 @@ static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 		return SR_ERR;
 	}
 
+	g_slist_free(devc->enabled_probes);
+	devc->enabled_probes = NULL;
 	sr_source_remove(devc->fd);
 
 	return SR_OK;
@@ -540,7 +593,7 @@ SR_PRIV struct sr_dev_driver rigol_ds1xx2_driver_info = {
 	.config_list = config_list,
 	.dev_open = hw_dev_open,
 	.dev_close = hw_dev_close,
-	.dev_acquisition_start = hw_dev_acquisition_start,
-	.dev_acquisition_stop = hw_dev_acquisition_stop,
+	.dev_acquisition_start = dev_acquisition_start,
+	.dev_acquisition_stop = dev_acquisition_stop,
 	.priv = NULL,
 };

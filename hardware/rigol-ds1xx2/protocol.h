@@ -38,41 +38,31 @@
 
 /** Private, per-device-instance driver context. */
 struct dev_context {
-	/** The current frame limit. */
+	/* Acquisition settings */
+	GSList *enabled_probes;
 	uint64_t limit_frames;
-
-	/** The current sampling limit (in number of samples). */
-	uint64_t limit_samples;
-
-	/** The current sampling limit (in ms). */
-	uint64_t limit_msec;
-
-	/** Opaque pointer passed in by the frontend. */
 	void *cb_data;
 
-	/** The current number of already received frames. */
-	uint64_t num_frames;
+	/* Device settings */
+	gboolean channels[2];
+	float timebase;
+	float vdiv[2];
+	float vert_offset[2];
+	char *trigger_source;
+	float horiz_triggerpos;
+	char *trigger_slope;
+	char *coupling[2];
 
-	/** The current number of samples received in this frame. */
-	uint64_t num_frame_samples;
-
-	/** Current scale setting. */
-	float scale;
-
-	/** Current offset setting. */
-	float offset;
-
-	/** Path to USBTMC character device file. */
+	/* Operational state */
 	char *device;
-
-	/** USBTMC character device file descriptor. */
 	int fd;
-
-	GSList *enabled_probes;
+	uint64_t num_frames;
+	uint64_t num_frame_samples;
+	struct sr_probe *channel_frame;
 };
 
-SR_PRIV int rigol_ds1xx2_receive_data(int fd, int revents, void *cb_data);
-
-SR_PRIV int rigol_ds1xx2_send_data(int fd, const char *format, ...);
+SR_PRIV int rigol_ds1xx2_receive(int fd, int revents, void *cb_data);
+SR_PRIV int rigol_ds1xx2_send(struct dev_context *devc, const char *format, ...);
+SR_PRIV int rigol_ds1xx2_get_dev_cfg(const struct sr_dev_inst *sdi);
 
 #endif
