@@ -271,8 +271,8 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 
 static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 {
-
 	(void)sdi;
+	(void)data;
 
 	switch (key) {
 	default:

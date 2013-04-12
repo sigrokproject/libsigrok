@@ -412,6 +412,7 @@ SR_PRIV int mso_receive_data(int fd, int revents, void *cb_data)
 		/* FIXME: Need to do conversion to mV */
 		analog_out[i] = (devc->buffer[i * 3] & 0x3f) |
 		    ((devc->buffer[i * 3 + 1] & 0xf) << 6);
+		(void)analog_out;
 		logic_out[i] = ((devc->buffer[i * 3 + 1] & 0x30) >> 4) |
 		    ((devc->buffer[i * 3 + 2] & 0x3f) << 2);
 	}
