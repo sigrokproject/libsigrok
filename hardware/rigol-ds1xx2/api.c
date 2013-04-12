@@ -22,7 +22,6 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 #include <glib.h>
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
@@ -158,7 +157,6 @@ static int clear_instances(void)
 static int set_cfg(const struct sr_dev_inst *sdi, const char *format, ...)
 {
 	struct dev_context *devc;
-	struct timespec delay;
 	va_list args;
 	char buf[256];
 
@@ -172,10 +170,8 @@ static int set_cfg(const struct sr_dev_inst *sdi, const char *format, ...)
 
 	/* When setting a bunch of parameters in a row, the DS1052E scrambles
 	 * some of them unless there is at least 100ms delay in between. */
-	delay.tv_sec = 0;
-	delay.tv_nsec = 100000000L;
-	sr_spew("delay %dms", delay.tv_nsec / 1000000);
-	nanosleep(&delay, NULL);
+	sr_spew("delay %dms", 100);
+	g_usleep(100);
 
 	return SR_OK;
 }
