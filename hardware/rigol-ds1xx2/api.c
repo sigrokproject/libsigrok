@@ -483,8 +483,8 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 				hwcaps, ARRAY_SIZE(hwcaps), sizeof(int32_t));
 		break;
 	case SR_CONF_COUPLING:
-			*data = g_variant_new_strv(coupling, ARRAY_SIZE(coupling));
-			break;
+		*data = g_variant_new_strv(coupling, ARRAY_SIZE(coupling));
+		break;
 	case SR_CONF_VDIV:
 		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
 		for (i = 0; i < ARRAY_SIZE(vdivs); i++) {

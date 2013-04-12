@@ -155,7 +155,7 @@ static int get_cfg_float(const struct sr_dev_inst *sdi, char *cmd, float *f)
 	if (get_cfg(sdi, cmd, buf) != SR_OK)
 		return SR_ERR;
 	*f = strtof(buf, &e);
-	if (e == buf || (fpclassify(*f) & (FP_ZERO|FP_NORMAL)) == 0) {
+	if (e == buf || (fpclassify(*f) & (FP_ZERO | FP_NORMAL)) == 0) {
 		sr_dbg("failed to parse response to '%s': '%s'", cmd, buf);
 		return SR_ERR;
 	}
@@ -167,7 +167,7 @@ static int get_cfg_string(const struct sr_dev_inst *sdi, char *cmd, char **buf)
 {
 
 	if (!(*buf = g_try_malloc0(256)))
-		return SR_ERR;
+		return SR_ERR_MALLOC;
 
 	if (get_cfg(sdi, cmd, *buf) != SR_OK)
 		return SR_ERR;
