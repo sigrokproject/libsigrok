@@ -319,6 +319,8 @@ static int sanity_check_all_output_modules(void)
  *         the 'ctx' pointer is undefined and should not be used. Upon success,
  *         the context will be free'd by sr_exit() as part of the libsigrok
  *         shutdown.
+ *
+ * @since 0.1.0 (but the API changed in 0.2.0)
  */
 SR_API int sr_init(struct sr_context **ctx)
 {
@@ -378,6 +380,8 @@ done:
  * @param ctx Pointer to a libsigrok context struct. Must not be NULL.
  *
  * @return SR_OK upon success, a (negative) error code otherwise.
+ *
+ * @since 0.1.0 (but the API changed in 0.2.0)
  */
 SR_API int sr_exit(struct sr_context *ctx)
 {

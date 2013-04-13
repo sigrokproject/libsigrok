@@ -143,6 +143,22 @@ Doxygen
    /** @endcond */, so that Doxygen doesn't include them in the output.
    Variables that are "static" don't need to be marked like this.
 
+ - Mark all public API functions (SR_API) with a @since tag which indicates
+   in which release the respective function was added. If the function has
+   existed before, but its API changed later, document this as well.
+
+   Non-public functions (static ones, and those marked SR_PRIV) don't need
+   to have @since markers.
+
+   The @since tag should be the last one, i.e. it should come after @param,
+   @return, @see, and so on.
+
+   Examples:
+
+     @since 0.1.0
+
+     @since 0.1.1 (but the API changed in 0.2.0)
+
 
 Testsuite
 ---------

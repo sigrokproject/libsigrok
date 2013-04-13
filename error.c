@@ -41,10 +41,14 @@
  * Return a human-readable error string for the given libsigrok error code.
  *
  * @param error_code A libsigrok error code number, such as SR_ERR_MALLOC.
+ *
  * @return A const string containing a short, human-readable (English)
  *         description of the error, such as "memory allocation error".
  *         The string must NOT be free'd by the caller!
+ *
  * @see sr_strerror_name
+ *
+ * @since 0.2.0
  */
 SR_API const char *sr_strerror(int error_code)
 {
@@ -89,9 +93,13 @@ SR_API const char *sr_strerror(int error_code)
  * a libsigrok error code is useful.
  *
  * @param error_code A libsigrok error code number, such as SR_ERR_MALLOC.
+ *
  * @return A const string containing the "name" of the error code as string.
  *         The string must NOT be free'd by the caller!
+ *
  * @see sr_strerror
+ *
+ * @since 0.2.0
  */
 SR_API const char *sr_strerror_name(int error_code)
 {

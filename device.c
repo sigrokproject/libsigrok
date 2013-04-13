@@ -79,6 +79,8 @@ SR_PRIV struct sr_probe *sr_probe_new(int index, int type,
  *             of the string is made.
  *
  * @return SR_OK on success, or SR_ERR_ARG on invalid arguments.
+ *
+ * @since 0.1.0 (but the API changed in 0.2.0)
  */
 SR_API int sr_dev_probe_name_set(const struct sr_dev_inst *sdi,
 		int probenum, const char *name)
@@ -114,6 +116,8 @@ SR_API int sr_dev_probe_name_set(const struct sr_dev_inst *sdi,
  * @param state TRUE to enable the probe, FALSE to disable.
  *
  * @return SR_OK on success, or SR_ERR_ARG on invalid arguments.
+ *
+ * @since 0.2.0
  */
 SR_API int sr_dev_probe_enable(const struct sr_dev_inst *sdi, int probenum,
 		gboolean state)
@@ -149,6 +153,8 @@ SR_API int sr_dev_probe_enable(const struct sr_dev_inst *sdi, int probenum,
  * @param trigger Trigger string, in the format used by sigrok-cli
  *
  * @return SR_OK on success, or SR_ERR_ARG on invalid arguments.
+ *
+ * @since 0.1.0 (but the API changed in 0.2.0)
  */
 SR_API int sr_dev_trigger_set(const struct sr_dev_inst *sdi, int probenum,
 		const char *trigger)
@@ -189,6 +195,8 @@ SR_API int sr_dev_trigger_set(const struct sr_dev_inst *sdi, int probenum,
  * @return TRUE if the device has the specified option, FALSE otherwise.
  *         FALSE is also returned on invalid input parameters or other
  *         error conditions.
+ *
+ * @since 0.1.0 (but the API changed in 0.2.0)
  */
 SR_API gboolean sr_dev_has_option(const struct sr_dev_inst *sdi, int key)
 {
@@ -257,7 +265,6 @@ SR_PRIV void sr_dev_inst_free(struct sr_dev_inst *sdi)
 	g_free(sdi->model);
 	g_free(sdi->version);
 	g_free(sdi);
-
 }
 
 #ifdef HAVE_LIBUSB_1_0
@@ -290,17 +297,21 @@ SR_PRIV void sr_usb_dev_inst_free(struct sr_usb_dev_inst *usb)
 
 #endif
 
-/** @private
- * @param pathname OS-specific serial port specification. Examples:
- * "/dev/ttyUSB0", "/dev/ttyACM1", "/dev/tty.Modem-0", "COM1".
- * @param serialcomm A serial communication parameters string, in the form
- * of <speed>/<data bits><parity><stopbits>, for example "9600/8n1" or
- * "600/7o2". This is an optional parameter; it may be filled in later.
- * @return A pointer to a newly initialized struct sr_serial_dev_inst,
- * or NULL on error.
+/**
+ * @private
  *
  * Both parameters are copied to newly allocated strings, and freed
  * automatically by sr_serial_dev_inst_free().
+ *
+ * @param pathname OS-specific serial port specification. Examples:
+ *                 "/dev/ttyUSB0", "/dev/ttyACM1", "/dev/tty.Modem-0", "COM1".
+ * @param serialcomm A serial communication parameters string, in the form
+ *                   of <speed>/<data bits><parity><stopbits>, for example
+ *                   "9600/8n1" or "600/7o2". This is an optional parameter;
+ *                   it may be filled in later.
+ *
+ * @return A pointer to a newly initialized struct sr_serial_dev_inst,
+ *         or NULL on error.
  */
 SR_PRIV struct sr_serial_dev_inst *sr_serial_dev_inst_new(const char *port,
 		const char *serialcomm)
