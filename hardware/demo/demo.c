@@ -347,9 +347,8 @@ static void samples_generator(uint8_t *buf, uint64_t size,
 	switch (devc->sample_generator) {
 	case PATTERN_SIGROK: /* sigrok pattern */
 		for (i = 0; i < size; i++) {
-			*(buf + i) = ~(pattern_sigrok[p] >> 1);
-			if (++p == 64)
-				p = 0;
+			*(buf + i) = ~(pattern_sigrok[
+				p++ % sizeof(pattern_sigrok)] >> 1);
 		}
 		break;
 	case PATTERN_RANDOM: /* Random */
@@ -358,7 +357,7 @@ static void samples_generator(uint8_t *buf, uint64_t size,
 		break;
 	case PATTERN_INC: /* Simple increment */
 		for (i = 0; i < size; i++)
-			*(buf + i) = i;
+			*(buf + i) = p++;
 		break;
 	case PATTERN_ALL_LOW: /* All probes are low */
 		memset(buf, 0x00, size);
