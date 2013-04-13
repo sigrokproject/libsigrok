@@ -82,7 +82,7 @@ enum {
 /* Private, per-device-instance driver context. */
 struct dev_context {
 	int pipe_fds[2];
-	GIOChannel *channels[2];
+	GIOChannel *channel;
 	uint8_t sample_generator;
 	uint64_t samples_counter;
 	void *cb_data;
@@ -449,20 +449,17 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 		return SR_ERR;
 	}
 
-	devc->channels[0] = g_io_channel_unix_new(devc->pipe_fds[0]);
-	devc->channels[1] = g_io_channel_unix_new(devc->pipe_fds[1]);
+	devc->channel = g_io_channel_unix_new(devc->pipe_fds[0]);
 
-	g_io_channel_set_flags(devc->channels[0], G_IO_FLAG_NONBLOCK, NULL);
+	g_io_channel_set_flags(devc->channel, G_IO_FLAG_NONBLOCK, NULL);
 
 	/* Set channel encoding to binary (default is UTF-8). */
-	g_io_channel_set_encoding(devc->channels[0], NULL, NULL);
-	g_io_channel_set_encoding(devc->channels[1], NULL, NULL);
+	g_io_channel_set_encoding(devc->channel, NULL, NULL);
 
 	/* Make channels to unbuffered. */
-	g_io_channel_set_buffered(devc->channels[0], FALSE);
-	g_io_channel_set_buffered(devc->channels[1], FALSE);
+	g_io_channel_set_buffered(devc->channel, FALSE);
 
-	sr_session_source_add_channel(devc->channels[0], G_IO_IN | G_IO_ERR,
+	sr_session_source_add_channel(devc->channel, G_IO_IN | G_IO_ERR,
 		    40, receive_data, devc);
 
 	/* Send header packet to the session bus. */
@@ -485,8 +482,8 @@ static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 
 	sr_dbg("Stopping aquisition.");
 
-	sr_session_source_remove_channel(devc->channels[0]);
-	g_io_channel_shutdown(devc->channels[0], FALSE, NULL);
+	sr_session_source_remove_channel(devc->channel);
+	g_io_channel_shutdown(devc->channel, FALSE, NULL);
 
 	/* Send last packet. */
 	packet.type = SR_DF_END;
