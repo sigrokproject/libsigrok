@@ -29,6 +29,7 @@ static const int32_t hwopts[] = {
 static const int32_t hwcaps[] = {
 	SR_CONF_LOGIC_ANALYZER,
 	SR_CONF_SAMPLERATE,
+	SR_CONF_TRIGGER_TYPE,
 	SR_CONF_CAPTURE_RATIO,
 	SR_CONF_LIMIT_SAMPLES,
 	SR_CONF_RLE,
@@ -240,13 +241,22 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 
+	if (!sdi)
+		return SR_ERR_ARG;
+
+	devc = sdi->priv;
 	switch (id) {
 	case SR_CONF_SAMPLERATE:
-		if (sdi) {
-			devc = sdi->priv;
-			*data = g_variant_new_uint64(devc->cur_samplerate);
-		} else
-			return SR_ERR;
+		*data = g_variant_new_uint64(devc->cur_samplerate);
+		break;
+	case SR_CONF_CAPTURE_RATIO:
+		*data = g_variant_new_uint64(devc->capture_ratio);
+		break;
+	case SR_CONF_LIMIT_SAMPLES:
+		*data = g_variant_new_uint64(devc->limit_samples);
+		break;
+	case SR_CONF_RLE:
+		*data = g_variant_new_boolean(devc->flag_reg & FLAG_RLE ? TRUE : FALSE);
 		break;
 	default:
 		return SR_ERR_ARG;
@@ -277,10 +287,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 		tmp_u64 = g_variant_get_uint64(data);
 		if (tmp_u64 < MIN_NUM_SAMPLES)
 			return SR_ERR;
-		if (tmp_u64 > devc->max_samples)
-			sr_err("Sample limit exceeds hardware maximum.");
 		devc->limit_samples = tmp_u64;
-		sr_info("Sample limit is %" PRIu64 ".", devc->limit_samples);
 		ret = SR_OK;
 		break;
 	case SR_CONF_CAPTURE_RATIO:
