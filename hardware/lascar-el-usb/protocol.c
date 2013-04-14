@@ -328,9 +328,23 @@ static struct sr_dev_inst *lascar_identify(unsigned char *config)
 			return NULL;
 		sdi->driver = di;
 
-		if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "P1")))
-			return NULL;
-		sdi->probes = g_slist_append(NULL, probe);
+		if (profile->logformat == LOG_TEMP_RH) {
+			/* Model this as two probes: temperature and humidity. */
+			if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "Temp")))
+				return NULL;
+			sdi->probes = g_slist_append(NULL, probe);
+			if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "Hum")))
+				return NULL;
+			sdi->probes = g_slist_append(sdi->probes, probe);
+		} else if (profile->logformat == LOG_CO) {
+			if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "CO")))
+				return NULL;
+			sdi->probes = g_slist_append(NULL, probe);
+		} else {
+			if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "P1")))
+				return NULL;
+			sdi->probes = g_slist_append(NULL, probe);
+		}
 
 		if (!(devc = g_try_malloc0(sizeof(struct dev_context))))
 			return NULL;
@@ -384,12 +398,12 @@ static void lascar_el_usb_dispatch(struct sr_dev_inst *sdi, unsigned char *buf,
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog analog;
+	struct sr_probe *probe;
 	float *temp, *rh;
 	uint16_t s;
 	int samples, samples_left, i, j;
 
 	devc = sdi->priv;
-	analog.probes = sdi->probes;
 
 	samples = buflen / devc->sample_size;
 	samples_left = devc->logged_samples - devc->rcvd_samples;
@@ -421,24 +435,34 @@ static void lascar_el_usb_dispatch(struct sr_dev_inst *sdi, unsigned char *buf,
 		}
 		analog.num_samples = j;
 
-		analog.mq = SR_MQ_TEMPERATURE;
-		if (devc->temp_unit == 1)
-			analog.unit = SR_UNIT_FAHRENHEIT;
-		else
-			analog.unit = SR_UNIT_CELSIUS;
-		analog.data = temp;
-		sr_session_send(devc->cb_data, &packet);
+		probe = sdi->probes->data;
+		if (probe->enabled) {
+			analog.probes = g_slist_append(NULL, probe);
+			analog.mq = SR_MQ_TEMPERATURE;
+			if (devc->temp_unit == 1)
+				analog.unit = SR_UNIT_FAHRENHEIT;
+			else
+				analog.unit = SR_UNIT_CELSIUS;
+			analog.data = temp;
+			sr_session_send(devc->cb_data, &packet);
+		}
 
-		analog.mq = SR_MQ_RELATIVE_HUMIDITY;
-		analog.unit = SR_UNIT_PERCENTAGE;
-		analog.data = rh;
-		sr_session_send(devc->cb_data, &packet);
+		probe = sdi->probes->next->data;
+		if (probe->enabled) {
+			analog.probes = g_slist_append(NULL, probe);
+			analog.mq = SR_MQ_RELATIVE_HUMIDITY;
+			analog.unit = SR_UNIT_PERCENTAGE;
+			analog.data = rh;
+			sr_session_send(devc->cb_data, &packet);
+		}
+
 		g_free(temp);
 		g_free(rh);
 		break;
 	case LOG_CO:
 		packet.type = SR_DF_ANALOG;
 		packet.payload = &analog;
+		analog.probes = sdi->probes;
 		analog.num_samples = samples;
 		analog.mq = SR_MQ_CARBON_MONOXIDE;
 		analog.unit = SR_UNIT_CONCENTRATION;
