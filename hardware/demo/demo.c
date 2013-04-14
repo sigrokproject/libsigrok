@@ -187,7 +187,6 @@ static GSList *hw_scan(GSList *options)
 	devices = g_slist_append(devices, sdi);
 	drvc->instances = g_slist_append(drvc->instances, sdi);
 
-	/* TODO: 'devc' is never g_free()'d? */
 	if (!(devc = g_try_malloc(sizeof(struct dev_context)))) {
 		sr_err("%s: devc malloc failed", __func__);
 		return SR_ERR_MALLOC;
@@ -229,8 +228,28 @@ static int hw_dev_close(struct sr_dev_inst *sdi)
 
 static int hw_cleanup(void)
 {
-	/* Nothing needed so far. */
-	return SR_OK;
+	GSList *l;
+	struct sr_dev_inst *sdi;
+	struct drv_context *drvc;
+	int ret = SR_OK;
+
+	if (!(drvc = di->priv))
+		return SR_OK;
+
+	/* Properly close and free all devices. */
+	for (l = drvc->instances; l; l = l->next) {
+		if (!(sdi = l->data)) {
+			/* Log error, but continue cleaning up the rest. */
+			sr_err("%s: sdi was NULL, continuing", __func__);
+			ret = SR_ERR_BUG;
+			continue;
+		}
+		sr_dev_inst_free(sdi);
+	}
+	g_slist_free(drvc->instances);
+	drvc->instances = NULL;
+
+	return ret;
 }
 
 static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi)
