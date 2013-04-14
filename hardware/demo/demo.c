@@ -81,6 +81,7 @@ enum {
 
 /* Private, per-device-instance driver context. */
 struct dev_context {
+	struct sr_dev_inst *sdi;
 	int pipe_fds[2];
 	GIOChannel *channel;
 	uint8_t sample_generator;
@@ -160,6 +161,7 @@ static GSList *hw_scan(GSList *options)
 	struct sr_dev_inst *sdi;
 	struct sr_probe *probe;
 	struct drv_context *drvc;
+	struct dev_context *devc;
 	GSList *devices;
 	int i;
 
@@ -185,6 +187,16 @@ static GSList *hw_scan(GSList *options)
 
 	devices = g_slist_append(devices, sdi);
 	drvc->instances = g_slist_append(drvc->instances, sdi);
+
+	/* TODO: 'devc' is never g_free()'d? */
+	if (!(devc = g_try_malloc(sizeof(struct dev_context)))) {
+		sr_err("%s: devc malloc failed", __func__);
+		return SR_ERR_MALLOC;
+	}
+
+	devc->sdi = sdi;
+
+	sdi->priv = devc;
 
 	return devices;
 }
@@ -412,7 +424,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 
 	if (limit_samples && devc->samples_counter >= limit_samples) {
 		sr_info("Requested number of samples reached.");
-		hw_dev_acquisition_stop(NULL, cb_data);
+		hw_dev_acquisition_stop(devc->sdi, cb_data);
 		return TRUE;
 	}
 
@@ -422,15 +434,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 		void *cb_data)
 {
-	struct dev_context *devc;
-
-	(void)sdi;
-
-	/* TODO: 'devc' is never g_free()'d? */
-	if (!(devc = g_try_malloc(sizeof(struct dev_context)))) {
-		sr_err("%s: devc malloc failed", __func__);
-		return SR_ERR_MALLOC;
-	}
+	struct dev_context *const devc = sdi->priv;
 
 	devc->sample_generator = default_pattern;
 	devc->cb_data = cb_data;
@@ -473,12 +477,10 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 
 static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
-	struct dev_context *devc;
+	struct dev_context *const devc = sdi->priv;
 	struct sr_datafeed_packet packet;
 
-	(void)sdi;
-
-	devc = cb_data;
+	(void)cb_data;
 
 	sr_dbg("Stopping aquisition.");
 
