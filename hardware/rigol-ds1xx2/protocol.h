@@ -34,17 +34,23 @@
 #define sr_warn(s, args...) sr_warn(DRIVER_LOG_DOMAIN s, ## args)
 #define sr_err(s, args...) sr_err(DRIVER_LOG_DOMAIN s, ## args)
 
-#define WAVEFORM_SIZE 600
+#define ANALOG_WAVEFORM_SIZE 600
+#define DIGITAL_WAVEFORM_SIZE 1210
 
 /** Private, per-device-instance driver context. */
 struct dev_context {
+	/* Device features */
+	gboolean has_digital;
+
 	/* Acquisition settings */
-	GSList *enabled_probes;
+	GSList *enabled_analog_probes;
+	GSList *enabled_digital_probes;
 	uint64_t limit_frames;
 	void *cb_data;
 
 	/* Device settings */
-	gboolean channels[2];
+	gboolean analog_channels[2];
+	gboolean digital_channels[16];
 	float timebase;
 	float vdiv[2];
 	float vert_offset[2];

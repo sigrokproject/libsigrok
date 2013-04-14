@@ -102,6 +102,22 @@ static const char *trigger_sources[] = {
 	"CH2",
 	"EXT",
 	"AC Line",
+	"D0",
+	"D1",
+	"D2",
+	"D3",
+	"D4",
+	"D5",
+	"D6",
+	"D7",
+	"D8",
+	"D9",
+	"D10",
+	"D11",
+	"D12",
+	"D13",
+	"D14",
+	"D15",
 };
 
 static const char *coupling[] = {
@@ -199,7 +215,9 @@ static GSList *hw_scan(GSList *options)
 	gchar **tokens;
 	const char *manufacturer, *model, *version;
 	gboolean matched = FALSE;
+	gboolean has_digital = FALSE;
 	char buf[256];
+	gchar *channel_name;
 
 	(void)options;
 
@@ -254,6 +272,7 @@ static GSList *hw_scan(GSList *options)
 		for (i = 0; i < ARRAY_SIZE(supported_models); i++) {
 			if (!strcmp(model, supported_models[i])) {
 				matched = 1;
+				has_digital = g_str_has_suffix(model, "D");
 				break;
 			}
 		}
@@ -274,14 +293,27 @@ static GSList *hw_scan(GSList *options)
 		}
 		devc->limit_frames = 0;
 		devc->device = device;
+		devc->has_digital = has_digital;
 		sdi->priv = devc;
 		sdi->driver = di;
 
 		for (i = 0; i < 2; i++) {
-			if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE,
+			if (!(probe = sr_probe_new(i, SR_PROBE_ANALOG, TRUE,
 			    i == 0 ? "CH1" : "CH2")))
 				return NULL;
 			sdi->probes = g_slist_append(sdi->probes, probe);
+		}
+
+		if (devc->has_digital) {
+			for (i = 0; i < 16; i++) {
+				if (!(channel_name = g_strdup_printf("D%d", i)))
+					return NULL;
+				probe = sr_probe_new(i, SR_PROBE_LOGIC, TRUE, channel_name);
+				g_free(channel_name);
+				if (!probe)
+					return NULL;
+				sdi->probes = g_slist_append(sdi->probes, probe);
+			}
 		}
 
 		drvc->instances = g_slist_append(drvc->instances, sdi);
@@ -469,8 +501,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 	GVariant *tuple, *rational[2];
 	GVariantBuilder gvb;
 	unsigned int i;
-
-	(void)sdi;
+	struct dev_context *devc = sdi->priv;
 
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
@@ -502,7 +533,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
 		*data = g_variant_new_strv(trigger_sources,
-				ARRAY_SIZE(trigger_sources));
+				devc->has_digital ? ARRAY_SIZE(trigger_sources) : 4);
 		break;
 	default:
 		return SR_ERR_ARG;
@@ -516,7 +547,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	struct dev_context *devc;
 	struct sr_probe *probe;
 	GSList *l;
-	int probenum;
 	char cmd[256];
 
 	(void)cb_data;
@@ -525,19 +555,32 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 
 	for (l = sdi->probes; l; l = l->next) {
 		probe = l->data;
-		probenum = probe->name[2] == '1' ? 0 : 1;
-		if (probe->enabled)
-			devc->enabled_probes = g_slist_append(devc->enabled_probes, probe);
-
-		if (probe->enabled != devc->channels[probenum]) {
-			/* Enabled channel is currently disabled, or vice versa. */
-			sprintf(cmd, ":CHAN%d:DISP %s", probenum + 1,
-					probe->enabled ? "ON" : "OFF");
-			if (rigol_ds1xx2_send(devc, cmd) != SR_OK)
-				return SR_ERR;
+		sr_dbg("handling probe %s", probe->name);
+		if (probe->type == SR_PROBE_ANALOG) {
+			if (probe->enabled)
+				devc->enabled_analog_probes = g_slist_append(
+						devc->enabled_analog_probes, probe);
+			if (probe->enabled != devc->analog_channels[probe->index]) {
+				/* Enabled channel is currently disabled, or vice versa. */
+				sprintf(cmd, ":CHAN%d:DISP %s", probe->index + 1,
+						probe->enabled ? "ON" : "OFF");
+				if (rigol_ds1xx2_send(devc, cmd) != SR_OK)
+					return SR_ERR;
+			}
+		} else if (probe->type == SR_PROBE_LOGIC) {
+			if (probe->enabled)
+				devc->enabled_digital_probes = g_slist_append(
+						devc->enabled_digital_probes, probe);
+			if (probe->enabled != devc->digital_channels[probe->index]) {
+				/* Enabled channel is currently disabled, or vice versa. */
+				sprintf(cmd, ":DIG%d:TURN %s", probe->index,
+						probe->enabled ? "ON" : "OFF");
+				if (rigol_ds1xx2_send(devc, cmd) != SR_OK)
+					return SR_ERR;
+			}
 		}
 	}
-	if (!devc->enabled_probes)
+	if (!devc->enabled_analog_probes && !devc->enabled_digital_probes)
 		return SR_ERR;
 
 	sr_source_add(devc->fd, G_IO_IN, 50, rigol_ds1xx2_receive, (void *)sdi);
@@ -546,10 +589,16 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	std_session_send_df_header(cb_data, DRIVER_LOG_DOMAIN);
 
 	/* Fetch the first frame. */
-	devc->channel_frame = devc->enabled_probes->data;
-	if (rigol_ds1xx2_send(devc, ":WAV:DATA? CHAN%c",
-			devc->channel_frame->name[2]) != SR_OK)
-		return SR_ERR;
+	if (devc->enabled_analog_probes) {
+		devc->channel_frame = devc->enabled_analog_probes->data;
+		if (rigol_ds1xx2_send(devc, ":WAV:DATA? CHAN%d",
+				devc->channel_frame->index + 1) != SR_OK)
+			return SR_ERR;
+	} else {
+		devc->channel_frame = devc->enabled_digital_probes->data;
+		if (rigol_ds1xx2_send(devc, ":WAV:DATA? DIG") != SR_OK)
+			return SR_ERR;
+	}
 
 	devc->num_frame_bytes = 0;
 
@@ -569,8 +618,10 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 		return SR_ERR;
 	}
 
-	g_slist_free(devc->enabled_probes);
-	devc->enabled_probes = NULL;
+	g_slist_free(devc->enabled_analog_probes);
+	g_slist_free(devc->enabled_digital_probes);
+	devc->enabled_analog_probes = NULL;
+	devc->enabled_digital_probes = NULL;
 	sr_source_remove(devc->fd);
 
 	return SR_OK;
