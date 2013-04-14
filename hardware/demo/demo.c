@@ -84,6 +84,9 @@ struct dev_context {
 	struct sr_dev_inst *sdi;
 	int pipe_fds[2];
 	GIOChannel *channel;
+	uint64_t cur_samplerate;
+	uint64_t limit_samples;
+	uint64_t limit_msec;
 	uint8_t sample_generator;
 	uint64_t samples_counter;
 	void *cb_data;
@@ -137,10 +140,6 @@ static uint8_t pattern_sigrok[] = {
 /* List of struct sr_dev_inst, maintained by dev_open()/dev_close(). */
 SR_PRIV struct sr_dev_driver demo_driver_info;
 static struct sr_dev_driver *di = &demo_driver_info;
-static uint64_t cur_samplerate = SR_KHZ(200);
-static uint64_t limit_samples = 0;
-static uint64_t limit_msec = 0;
-static int default_pattern = PATTERN_SIGROK;
 
 static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);
 
@@ -195,6 +194,10 @@ static GSList *hw_scan(GSList *options)
 	}
 
 	devc->sdi = sdi;
+	devc->cur_samplerate = SR_KHZ(200);
+	devc->limit_samples = 0;
+	devc->limit_msec = 0;
+	devc->sample_generator = PATTERN_SIGROK;
 
 	sdi->priv = devc;
 
@@ -232,20 +235,20 @@ static int hw_cleanup(void)
 
 static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi)
 {
-	(void)sdi;
+	struct dev_context *const devc = sdi->priv;
 
 	switch (id) {
 	case SR_CONF_SAMPLERATE:
-		*data = g_variant_new_uint64(cur_samplerate);
+		*data = g_variant_new_uint64(devc->cur_samplerate);
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
-		*data = g_variant_new_uint64(limit_samples);
+		*data = g_variant_new_uint64(devc->limit_samples);
 		break;
 	case SR_CONF_LIMIT_MSEC:
-		*data = g_variant_new_uint64(limit_msec);
+		*data = g_variant_new_uint64(devc->limit_msec);
 		break;
 	case SR_CONF_PATTERN_MODE:
-		switch (default_pattern) {
+		switch (devc->sample_generator) {
 		case PATTERN_SIGROK:
 			*data = g_variant_new_string(STR_PATTERN_SIGROK);
 			break;
@@ -275,42 +278,43 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 	int ret;
 	const char *stropt;
 
-	(void)sdi;
+	struct dev_context *const devc = sdi->priv;
 
 	if (id == SR_CONF_SAMPLERATE) {
-		cur_samplerate = g_variant_get_uint64(data);
+		devc->cur_samplerate = g_variant_get_uint64(data);
 		sr_dbg("%s: setting samplerate to %" PRIu64, __func__,
-		       cur_samplerate);
+		       devc->cur_samplerate);
 		ret = SR_OK;
 	} else if (id == SR_CONF_LIMIT_SAMPLES) {
-		limit_msec = 0;
-		limit_samples = g_variant_get_uint64(data);
+		devc->limit_msec = 0;
+		devc->limit_samples = g_variant_get_uint64(data);
 		sr_dbg("%s: setting limit_samples to %" PRIu64, __func__,
-		       limit_samples);
+		       devc->limit_samples);
 		ret = SR_OK;
 	} else if (id == SR_CONF_LIMIT_MSEC) {
-		limit_msec = g_variant_get_uint64(data);
-		limit_samples = 0;
+		devc->limit_msec = g_variant_get_uint64(data);
+		devc->limit_samples = 0;
 		sr_dbg("%s: setting limit_msec to %" PRIu64, __func__,
-		       limit_msec);
+		       devc->limit_msec);
 		ret = SR_OK;
 	} else if (id == SR_CONF_PATTERN_MODE) {
 		stropt = g_variant_get_string(data, NULL);
 		ret = SR_OK;
 		if (!strcmp(stropt, STR_PATTERN_SIGROK)) {
-			default_pattern = PATTERN_SIGROK;
+			devc->sample_generator = PATTERN_SIGROK;
 		} else if (!strcmp(stropt, STR_PATTERN_RANDOM)) {
-			default_pattern = PATTERN_RANDOM;
+			devc->sample_generator = PATTERN_RANDOM;
 		} else if (!strcmp(stropt, STR_PATTERN_INC)) {
-			default_pattern = PATTERN_INC;
+			devc->sample_generator = PATTERN_INC;
 		} else if (!strcmp(stropt, STR_PATTERN_ALL_LOW)) {
-			default_pattern = PATTERN_ALL_LOW;
+			devc->sample_generator = PATTERN_ALL_LOW;
 		} else if (!strcmp(stropt, STR_PATTERN_ALL_HIGH)) {
-			default_pattern = PATTERN_ALL_HIGH;
+			devc->sample_generator = PATTERN_ALL_HIGH;
 		} else {
 			ret = SR_ERR;
 		}
-		sr_dbg("%s: setting pattern to %d", __func__, default_pattern);
+		sr_dbg("%s: setting pattern to %d",
+			__func__, devc->sample_generator);
 	} else {
 		ret = SR_ERR;
 	}
@@ -399,13 +403,13 @@ static int receive_data(int fd, int revents, void *cb_data)
 	/* How many "virtual" samples should we have collected by now? */
 	time = g_get_monotonic_time();
 	elapsed = time - devc->starttime;
-	expected_samplenum = elapsed * cur_samplerate / 1000000;
+	expected_samplenum = elapsed * devc->cur_samplerate / 1000000;
 	/* Of those, how many do we still have to send? */
 	samples_to_send = expected_samplenum - devc->samples_counter;
 
-	if (limit_samples) {
+	if (devc->limit_samples) {
 		samples_to_send = MIN(samples_to_send,
-				 limit_samples - devc->samples_counter);
+				 devc->limit_samples - devc->samples_counter);
 	}
 
 	while (samples_to_send > 0) {
@@ -422,7 +426,8 @@ static int receive_data(int fd, int revents, void *cb_data)
 		devc->samples_counter += sending_now;
 	}
 
-	if (limit_samples && devc->samples_counter >= limit_samples) {
+	if (devc->limit_samples &&
+		devc->samples_counter >= devc->limit_samples) {
 		sr_info("Requested number of samples reached.");
 		hw_dev_acquisition_stop(devc->sdi, cb_data);
 		return TRUE;
@@ -436,7 +441,6 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 {
 	struct dev_context *const devc = sdi->priv;
 
-	devc->sample_generator = default_pattern;
 	devc->cb_data = cb_data;
 	devc->samples_counter = 0;
 
