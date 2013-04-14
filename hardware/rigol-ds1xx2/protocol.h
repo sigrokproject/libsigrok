@@ -57,7 +57,7 @@ struct dev_context {
 	char *device;
 	int fd;
 	uint64_t num_frames;
-	uint64_t num_frame_samples;
+	uint64_t num_frame_bytes;
 	struct sr_probe *channel_frame;
 };
 

@@ -47,12 +47,12 @@ SR_PRIV int rigol_ds1xx2_receive(int fd, int revents, void *cb_data)
 		return TRUE;
 
 	if (revents == G_IO_IN) {
-		len = read(fd, buf, WAVEFORM_SIZE);
+		len = read(fd, buf, WAVEFORM_SIZE - devc->num_frame_bytes);
 		sr_dbg("Received %d bytes.", len);
 		if (len == -1)
 			return TRUE;
 
-		if (devc->num_frame_samples == 0) {
+		if (devc->num_frame_bytes == 0) {
 			/* Start of a new frame. */
 			packet.type = SR_DF_FRAME_BEGIN;
 			sr_session_send(sdi, &packet);
@@ -75,13 +75,17 @@ SR_PRIV int rigol_ds1xx2_receive(int fd, int revents, void *cb_data)
 		sr_session_send(cb_data, &packet);
 		g_slist_free(analog.probes);
 
-		if (len != WAVEFORM_SIZE)
+		devc->num_frame_bytes += len;
+
+		if (devc->num_frame_bytes != WAVEFORM_SIZE) {
 			/* Don't have the whole frame yet. */
 			return TRUE;
+		}
 
 		/* End of the frame. */
 		packet.type = SR_DF_FRAME_END;
 		sr_session_send(sdi, &packet);
+		devc->num_frame_bytes = 0;
 
 		if (devc->channel_frame == devc->enabled_probes->data
 				&& devc->enabled_probes->next != NULL) {

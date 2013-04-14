@@ -552,6 +552,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 			devc->channel_frame->name[2]) != SR_OK)
 		return SR_ERR;
 
+	devc->num_frame_bytes = 0;
+
 	return SR_OK;
 }
 
