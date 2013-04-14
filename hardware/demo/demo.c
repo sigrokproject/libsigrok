@@ -509,6 +509,8 @@ static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 
 	sr_session_source_remove_channel(devc->channel);
 	g_io_channel_shutdown(devc->channel, FALSE, NULL);
+	g_io_channel_unref(devc->channel);
+	devc->channel = NULL;
 
 	/* Send last packet. */
 	packet.type = SR_DF_END;
