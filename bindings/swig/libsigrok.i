@@ -25,6 +25,8 @@
 #include "libsigrok/libsigrok.h"
 %}
 
+typedef void * gpointer;
+
 typedef struct _GSList GSList;
 
 struct _GSList
