@@ -280,9 +280,6 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR;
-
 	switch (id) {
 	case SR_CONF_SAMPLERATE:
 		tmp_u64 = g_variant_get_uint64(data);
