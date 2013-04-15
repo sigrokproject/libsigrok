@@ -172,8 +172,8 @@ static GSList *hw_scan(GSList *options)
 
 	sdi = sr_dev_inst_new(0, SR_ST_ACTIVE, DEMONAME, NULL, NULL);
 	if (!sdi) {
-		sr_err("%s: sr_dev_inst_new failed", __func__);
-		return 0;
+		sr_err("Device instance creation failed.");
+		return NULL;
 	}
 	sdi->driver = di;
 
@@ -188,8 +188,8 @@ static GSList *hw_scan(GSList *options)
 	drvc->instances = g_slist_append(drvc->instances, sdi);
 
 	if (!(devc = g_try_malloc(sizeof(struct dev_context)))) {
-		sr_err("%s: devc malloc failed", __func__);
-		return SR_ERR_MALLOC;
+		sr_err("Device context malloc failed.");
+		return NULL;
 	}
 
 	devc->sdi = sdi;
