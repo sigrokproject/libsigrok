@@ -761,7 +761,7 @@ struct sr_dev_driver {
 struct sr_session {
 	/** List of struct sr_dev pointers. */
 	GSList *devs;
-	/** List of sr_receive_data_callback_t items. */
+	/** List of struct datafeed_callback pointers. */
 	GSList *datafeed_callbacks;
 	GTimeVal starttime;
 

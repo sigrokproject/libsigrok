@@ -59,6 +59,11 @@ struct source {
 	gintptr poll_object;
 };
 
+struct datafeed_callback {
+	sr_datafeed_callback_t cb;
+	void *cb_data;
+};
+
 /* There can only be one session at a time. */
 /* 'session' is not static, it's used elsewhere (via 'extern'). */
 struct sr_session *session;
@@ -234,7 +239,7 @@ SR_API int sr_session_datafeed_callback_remove_all(void)
 		return SR_ERR_BUG;
 	}
 
-	g_slist_free(session->datafeed_callbacks);
+	g_slist_free_full(session->datafeed_callbacks, g_free);
 	session->datafeed_callbacks = NULL;
 
 	return SR_OK;
@@ -248,8 +253,10 @@ SR_API int sr_session_datafeed_callback_remove_all(void)
  *
  * @return SR_OK upon success, SR_ERR_BUG if no session exists.
  */
-SR_API int sr_session_datafeed_callback_add(sr_datafeed_callback_t cb)
+SR_API int sr_session_datafeed_callback_add(sr_datafeed_callback_t cb, void *cb_data)
 {
+	struct datafeed_callback *cb_struct;
+
 	if (!session) {
 		sr_err("%s: session was NULL", __func__);
 		return SR_ERR_BUG;
@@ -260,8 +267,14 @@ SR_API int sr_session_datafeed_callback_add(sr_datafeed_callback_t cb)
 		return SR_ERR_ARG;
 	}
 
+	if (!(cb_struct = g_try_malloc0(sizeof(struct datafeed_callback))))
+		return SR_ERR_MALLOC;
+
+	cb_struct->cb = cb;
+	cb_struct->cb_data = cb_data;
+
 	session->datafeed_callbacks =
-	    g_slist_append(session->datafeed_callbacks, cb);
+	    g_slist_append(session->datafeed_callbacks, cb_struct);
 
 	return SR_OK;
 }
@@ -511,7 +524,7 @@ SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
 			    const struct sr_datafeed_packet *packet)
 {
 	GSList *l;
-	sr_datafeed_callback_t cb;
+	struct datafeed_callback *cb_struct;
 
 	if (!sdi) {
 		sr_err("%s: sdi was NULL", __func__);
@@ -526,8 +539,8 @@ SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
 	for (l = session->datafeed_callbacks; l; l = l->next) {
 		if (sr_log_loglevel_get() >= SR_LOG_DBG)
 			datafeed_dump(packet);
-		cb = l->data;
-		cb(sdi, packet);
+		cb_struct = l->data;
+		cb_struct->cb(sdi, packet, cb_struct->cb_data);
 	}
 
 	return SR_OK;

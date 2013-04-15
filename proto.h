@@ -80,7 +80,7 @@ SR_API const struct sr_config_info *sr_config_info_name_get(const char *optname)
 /*--- session.c -------------------------------------------------------------*/
 
 typedef void (*sr_datafeed_callback_t)(const struct sr_dev_inst *sdi,
-		const struct sr_datafeed_packet *packet);
+		const struct sr_datafeed_packet *packet, void *cb_data);
 
 /* Session setup */
 SR_API int sr_session_load(const char *filename);
@@ -91,7 +91,8 @@ SR_API int sr_session_dev_add(const struct sr_dev_inst *sdi);
 
 /* Datafeed setup */
 SR_API int sr_session_datafeed_callback_remove_all(void);
-SR_API int sr_session_datafeed_callback_add(sr_datafeed_callback_t cb);
+SR_API int sr_session_datafeed_callback_add(sr_datafeed_callback_t cb,
+		void *cb_data);
 
 /* Session control */
 SR_API int sr_session_start(void);
