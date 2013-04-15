@@ -27,7 +27,7 @@ sr_libs = subprocess.check_output(
     ["pkg-config", "--libs", "libsigrok"]).rstrip().split(' ')
 
 sr_version = subprocess.check_output(
-    ["pkg-config", "--version", "libsigrok"]).rstrip()
+    ["pkg-config", "--modversion", "libsigrok"]).rstrip()
 
 setup(
     name = 'libsigrok',
