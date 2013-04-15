@@ -151,16 +151,23 @@ static GSList *hw_scan(GSList *options)
 		sdi = sr_dev_inst_new(0, SR_ST_INACTIVE,
 				"Sump", "Logic Analyzer", "v1.0");
 		sdi->driver = di;
-		devc = ols_dev_new();
 		for (i = 0; i < 32; i++) {
 			if (!(probe = sr_probe_new(i, SR_PROBE_LOGIC, TRUE,
 					ols_probe_names[i])))
 				return 0;
 			sdi->probes = g_slist_append(sdi->probes, probe);
 		}
+		devc = ols_dev_new();
 		sdi->priv = devc;
 	}
+	/* Configure samplerate and divider. */
+	if (ols_set_samplerate(sdi, DEFAULT_SAMPLERATE) != SR_OK)
+		sr_dbg("Failed to set default samplerate (%"PRIu64").",
+				DEFAULT_SAMPLERATE);
+	/* Clear trigger masks, values and stages. */
+	ols_configure_probes(sdi);
 	devc->serial = serial;
+
 	drvc->instances = g_slist_append(drvc->instances, sdi);
 	devices = g_slist_append(devices, sdi);
 
@@ -472,6 +479,9 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	if (send_shortcommand(devc->serial, CMD_RUN) != SR_OK)
 		return SR_ERR;
 
+	/* Reset all operational states. */
+	devc->num_transfers = devc->num_samples = devc->num_bytes = 0;
+
 	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, DRIVER_LOG_DOMAIN);
 
@@ -481,7 +491,6 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-/* TODO: This stops acquisition on ALL devices, ignoring dev_index. */
 static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
 	/* Avoid compiler warnings. */

@@ -133,14 +133,20 @@ SR_PRIV struct dev_context *ols_dev_new(void)
 {
 	struct dev_context *devc;
 
-	if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
+	if (!(devc = g_try_malloc(sizeof(struct dev_context)))) {
 		sr_err("Device context malloc failed.");
 		return NULL;
 	}
 
+	/* Device-specific settings */
+	devc->max_samples = devc->max_samplerate = devc->protocol_version = 0;
+
+	/* Acquisition settings */
+	devc->limit_samples = devc->capture_ratio = 0;
 	devc->trigger_at = -1;
 	devc->probe_mask = 0xffffffff;
-	devc->cur_samplerate = SR_KHZ(200);
+	devc->flag_reg = 0;
+
 	devc->serial = NULL;
 
 	return devc;

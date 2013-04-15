@@ -41,6 +41,7 @@
 #define SERIAL_SPEED           B115200
 #define CLOCK_RATE             SR_MHZ(100)
 #define MIN_NUM_SAMPLES        4
+#define DEFAULT_SAMPLERATE     SR_KHZ(200)
 
 /* Command opcodes */
 #define CMD_RESET                  0x00
@@ -76,34 +77,35 @@
 
 /* Private, per-device-instance driver context. */
 struct dev_context {
-	uint32_t max_samplerate;
+	struct sr_serial_dev_inst *serial;
+
+	/* Fixed device settings */
 	uint32_t max_samples;
+	uint32_t max_samplerate;
 	uint32_t protocol_version;
 
+	/* Acquisition settings */
 	uint64_t cur_samplerate;
 	uint32_t cur_samplerate_divider;
 	uint64_t limit_samples;
-	/* Current state of the flag register */
-	uint32_t flag_reg;
-
-	/* Pre/post trigger capture ratio, in percentage.
-	 * 0 means no pre-trigger data. */
 	int capture_ratio;
 	int trigger_at;
 	uint32_t probe_mask;
 	uint32_t trigger_mask[4];
 	uint32_t trigger_value[4];
 	int num_stages;
+	uint32_t flag_reg;
 
+	/* Operational states */
 	unsigned int num_transfers;
 	unsigned int num_samples;
-	int rle_count;
 	int num_bytes;
+
+	/* Temporary variables */
+	int rle_count;
 	unsigned char sample[4];
 	unsigned char tmp_sample[4];
 	unsigned char *raw_sample_buf;
-
-	struct sr_serial_dev_inst *serial;
 };
 
 
