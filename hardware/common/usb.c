@@ -26,7 +26,7 @@
 #include "libsigrok-internal.h"
 
 /* SR_CONF_CONN takes one of these: */
-#define CONN_USB_VIDPID  "^([0-9a-z]{1,4})\\.([0-9a-z]{1,4})$"
+#define CONN_USB_VIDPID  "^([0-9a-z]{4})\\.([0-9a-z]{4})$"
 #define CONN_USB_BUSADDR "^(\\d+)\\.(\\d+)$"
 
 /* Some USBTMC-specific enums, as defined in the USBTMC standard. */
@@ -82,11 +82,11 @@ SR_PRIV GSList *sr_usb_find(libusb_context *usb_ctx, const char *conn)
 		reg = g_regex_new(CONN_USB_BUSADDR, 0, 0, NULL);
 		if (g_regex_match(reg, conn, 0, &match)) {
 			if ((mstr = g_match_info_fetch(match, 1)))
-				bus = strtoul(mstr, NULL, 16);
+				bus = strtoul(mstr, NULL, 10);
 			g_free(mstr);
 
 			if ((mstr = g_match_info_fetch(match, 2)))
-				addr = strtoul(mstr, NULL, 16);
+				addr = strtoul(mstr, NULL, 10);
 			g_free(mstr);
 			sr_dbg("Trying to find USB device with bus.address = "
 			       "%d.%d.", bus, addr);
