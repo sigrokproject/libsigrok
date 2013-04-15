@@ -501,7 +501,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 	GVariant *tuple, *rational[2];
 	GVariantBuilder gvb;
 	unsigned int i;
-	struct dev_context *devc = sdi->priv;
+	struct dev_context *devc;
 
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
@@ -532,6 +532,10 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 		*data = g_variant_builder_end(&gvb);
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
+		if (!sdi || !sdi->priv)
+			/* Can't know this until we have the exact model. */
+			return SR_ERR_ARG;
+		devc = sdi->priv;
 		*data = g_variant_new_strv(trigger_sources,
 				devc->has_digital ? ARRAY_SIZE(trigger_sources) : 4);
 		break;
