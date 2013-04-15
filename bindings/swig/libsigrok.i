@@ -25,14 +25,14 @@
 #include "libsigrok/libsigrok.h"
 %}
 
-typedef void * gpointer;
+typedef void *gpointer;
 
 typedef struct _GSList GSList;
 
 struct _GSList
 {
-  gpointer data;
-  GSList *next;
+        gpointer data;
+        GSList *next;
 };
 
 void g_slist_free(GSList *list);
