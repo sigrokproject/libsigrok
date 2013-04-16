@@ -69,11 +69,17 @@ SR_API const char *sr_strerror(int error_code)
 	case SR_ERR_MALLOC:
 		str = "memory allocation error";
 		break;
+	case SR_ERR_ARG:
+		str = "invalid argument";
+		break;
 	case SR_ERR_BUG:
 		str = "internal error";
 		break;
 	case SR_ERR_SAMPLERATE:
 		str = "invalid samplerate";
+		break;
+	case SR_ERR_NA:
+		str = "not applicable";
 		break;
 	default:
 		str = "unknown error";
@@ -120,11 +126,17 @@ SR_API const char *sr_strerror_name(int error_code)
 	case SR_ERR_MALLOC:
 		str = "SR_ERR_MALLOC";
 		break;
+	case SR_ERR_ARG:
+		str = "SR_ERR_ARG";
+		break;
 	case SR_ERR_BUG:
 		str = "SR_ERR_BUG";
 		break;
 	case SR_ERR_SAMPLERATE:
 		str = "SR_ERR_SAMPLERATE";
+		break;
+	case SR_ERR_NA:
+		str = "SR_ERR_NA";
 		break;
 	default:
 		str = "unknown error code";
