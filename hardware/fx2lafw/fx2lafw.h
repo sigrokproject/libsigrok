@@ -97,8 +97,6 @@ struct dev_context {
 
 	void *cb_data;
 
-	struct sr_usb_dev_inst *usb;
-
 	unsigned int num_transfers;
 	struct libusb_transfer **transfers;
 };

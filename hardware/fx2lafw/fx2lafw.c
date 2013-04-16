@@ -168,6 +168,7 @@ static gboolean check_conf_profile(libusb_device *dev)
 static int fx2lafw_dev_open(struct sr_dev_inst *sdi)
 {
 	libusb_device **devlist;
+	struct sr_usb_dev_inst *usb;
 	struct libusb_device_descriptor des;
 	struct dev_context *devc;
 	struct drv_context *drvc;
@@ -177,6 +178,7 @@ static int fx2lafw_dev_open(struct sr_dev_inst *sdi)
 
 	drvc = di->priv;
 	devc = sdi->priv;
+	usb = sdi->conn;
 
 	if (sdi->status == SR_ST_ACTIVE)
 		/* Device is already in use. */
@@ -212,32 +214,32 @@ static int fx2lafw_dev_open(struct sr_dev_inst *sdi)
 			 * This device is fully enumerated, so we need to find
 			 * this device by vendor, product, bus and address.
 			 */
-			if (libusb_get_bus_number(devlist[i]) != devc->usb->bus
-				|| libusb_get_device_address(devlist[i]) != devc->usb->address)
+			if (libusb_get_bus_number(devlist[i]) != usb->bus
+				|| libusb_get_device_address(devlist[i]) != usb->address)
 				/* This is not the one. */
 				continue;
 		}
 
-		if (!(ret = libusb_open(devlist[i], &devc->usb->devhdl))) {
-			if (devc->usb->address == 0xff)
+		if (!(ret = libusb_open(devlist[i], &usb->devhdl))) {
+			if (usb->address == 0xff)
 				/*
 				 * First time we touch this device after FW
 				 * upload, so we don't know the address yet.
 				 */
-				devc->usb->address = libusb_get_device_address(devlist[i]);
+				usb->address = libusb_get_device_address(devlist[i]);
 		} else {
 			sr_err("Failed to open device: %s.",
 			       libusb_error_name(ret));
 			break;
 		}
 
-		ret = command_get_fw_version(devc->usb->devhdl, &vi);
+		ret = command_get_fw_version(usb->devhdl, &vi);
 		if (ret != SR_OK) {
 			sr_err("Failed to get firmware version.");
 			break;
 		}
 
-		ret = command_get_revid_version(devc->usb->devhdl, &revid);
+		ret = command_get_revid_version(usb->devhdl, &revid);
 		if (ret != SR_OK) {
 			sr_err("Failed to get REVID.");
 			break;
@@ -258,7 +260,7 @@ static int fx2lafw_dev_open(struct sr_dev_inst *sdi)
 		sdi->status = SR_ST_ACTIVE;
 		sr_info("Opened device %d on %d.%d, "
 			"interface %d, firmware %d.%d.",
-			sdi->index, devc->usb->bus, devc->usb->address,
+			sdi->index, usb->bus, usb->address,
 			USB_INTERFACE, vi.major, vi.minor);
 
 		sr_info("Detected REVID=%d, it's a Cypress CY7C68013%s.",
@@ -340,37 +342,7 @@ static struct dev_context *fx2lafw_dev_new(void)
 
 static int clear_instances(void)
 {
-	GSList *l;
-	struct sr_dev_inst *sdi;
-	struct drv_context *drvc;
-	struct dev_context *devc;
-	int ret;
-
-	drvc = di->priv;
-	ret = SR_OK;
-	for (l = drvc->instances; l; l = l->next) {
-		if (!(sdi = l->data)) {
-			/* Log error, but continue cleaning up the rest. */
-			sr_err("sdi was NULL, continuing.");
-			ret = SR_ERR_BUG;
-			continue;
-		}
-		if (!(devc = sdi->priv)) {
-			/* Log error, but continue cleaning up the rest. */
-			sr_err("sdi->priv was NULL, continuing.");
-			ret = SR_ERR_BUG;
-			continue;
-		}
-		hw_dev_close(sdi);
-		sr_usb_dev_inst_free(devc->usb);
-		sdi = l->data;
-		sr_dev_inst_free(sdi);
-	}
-
-	g_slist_free(drvc->instances);
-	drvc->instances = NULL;
-
-	return ret;
+	return std_dev_clear(di);
 }
 
 static int hw_init(struct sr_context *sr_ctx)
@@ -476,9 +448,9 @@ static GSList *hw_scan(GSList *options)
 			/* Already has the firmware, so fix the new address. */
 			sr_dbg("Found an fx2lafw device.");
 			sdi->status = SR_ST_INACTIVE;
-			devc->usb = sr_usb_dev_inst_new
-			    (libusb_get_bus_number(devlist[i]),
-			     libusb_get_device_address(devlist[i]), NULL);
+			sdi->inst_type = SR_INST_USB;
+			sdi->conn = sr_usb_dev_inst_new(libusb_get_bus_number(devlist[i]),
+					libusb_get_device_address(devlist[i]), NULL);
 		} else {
 			if (ezusb_upload_firmware(devlist[i], USB_CONFIGURATION,
 				prof->firmware) == SR_OK)
@@ -487,8 +459,9 @@ static GSList *hw_scan(GSList *options)
 			else
 				sr_err("Firmware upload failed for "
 				       "device %d.", devcnt);
-			devc->usb = sr_usb_dev_inst_new
-				(libusb_get_bus_number(devlist[i]), 0xff, NULL);
+			sdi->inst_type = SR_INST_USB;
+			sdi->conn = sr_usb_dev_inst_new (libusb_get_bus_number(devlist[i]),
+					0xff, NULL);
 		}
 	}
 	libusb_free_device_list(devlist, 1);
@@ -503,11 +476,13 @@ static GSList *hw_dev_list(void)
 
 static int hw_dev_open(struct sr_dev_inst *sdi)
 {
+	struct sr_usb_dev_inst *usb;
 	struct dev_context *devc;
 	int ret;
 	int64_t timediff_us, timediff_ms;
 
 	devc = sdi->priv;
+	usb = sdi->conn;
 
 	/*
 	 * If the firmware was recently uploaded, wait up to MAX_RENUM_DELAY_MS
@@ -543,9 +518,7 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
-	devc = sdi->priv;
-
-	ret = libusb_claim_interface(devc->usb->devhdl, USB_INTERFACE);
+	ret = libusb_claim_interface(usb->devhdl, USB_INTERFACE);
 	if (ret != 0) {
 		switch(ret) {
 		case LIBUSB_ERROR_BUSY:
@@ -574,18 +547,17 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 
 static int hw_dev_close(struct sr_dev_inst *sdi)
 {
-	struct dev_context *devc;
+	struct sr_usb_dev_inst *usb;
 
-	devc = sdi->priv;
-
-	if (devc->usb->devhdl == NULL)
+	usb = sdi->conn;
+	if (usb->devhdl == NULL)
 		return SR_ERR;
 
-	sr_info("Closing device %d on %d.%d, interface %d.",
-		sdi->index, devc->usb->bus, devc->usb->address, USB_INTERFACE);
-	libusb_release_interface(devc->usb->devhdl, USB_INTERFACE);
-	libusb_close(devc->usb->devhdl);
-	devc->usb->devhdl = NULL;
+	sr_info("fx2lafw: Closing device %d on %d.%d interface %d.",
+		sdi->index, usb->bus, usb->address, USB_INTERFACE);
+	libusb_release_interface(usb->devhdl, USB_INTERFACE);
+	libusb_close(usb->devhdl);
+	usb->devhdl = NULL;
 	sdi->status = SR_ST_INACTIVE;
 
 	return SR_OK;
@@ -950,6 +922,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 {
 	struct dev_context *devc;
 	struct drv_context *drvc;
+	struct sr_usb_dev_inst *usb;
 	struct libusb_transfer *transfer;
 	const struct libusb_pollfd **lupfd;
 	unsigned int i, timeout, num_transfers;
@@ -959,6 +932,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 
 	drvc = di->priv;
 	devc = sdi->priv;
+	usb = sdi->conn;
 
 	if (devc->submitted_transfers != 0)
 		return SR_ERR;
@@ -990,7 +964,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 			return SR_ERR_MALLOC;
 		}
 		transfer = libusb_alloc_transfer(0);
-		libusb_fill_bulk_transfer(transfer, devc->usb->devhdl,
+		libusb_fill_bulk_transfer(transfer, usb->devhdl,
 				2 | LIBUSB_ENDPOINT_IN, buf, size,
 				receive_transfer, devc, timeout);
 		if ((ret = libusb_submit_transfer(transfer)) != 0) {
@@ -1014,7 +988,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, DRIVER_LOG_DOMAIN);
 
-	if ((ret = command_start_acquisition(devc->usb->devhdl,
+	if ((ret = command_start_acquisition (usb->devhdl,
 		devc->cur_samplerate, devc->sample_wide)) != SR_OK) {
 		abort_acquisition(devc);
 		return ret;
