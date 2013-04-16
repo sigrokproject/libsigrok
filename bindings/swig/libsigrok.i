@@ -39,6 +39,8 @@ struct _GSList
 
 void g_slist_free(GSList *list);
 
+GVariant *g_variant_new_uint64(uint64_t value);
+
 %include "libsigrok/libsigrok.h"
 #undef SR_API
 #define SR_API
