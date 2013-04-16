@@ -20,6 +20,7 @@
 %module libsigrok
 %include "cpointer.i"
 %include "carrays.i"
+%include "stdint.i"
 
 %{
 #include "libsigrok/libsigrok.h"
