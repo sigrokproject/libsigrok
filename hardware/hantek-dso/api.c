@@ -230,38 +230,19 @@ static int configure_probes(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-/* Properly close and free all devices. */
+static void clear_dev_context(void *priv)
+{
+	struct dev_context *devc;
+
+	devc = priv;
+	g_free(devc->triggersource);
+	g_slist_free(devc->enabled_probes);
+
+}
+
 static int clear_instances(void)
 {
-	struct sr_dev_inst *sdi;
-	struct drv_context *drvc;
-	struct dev_context *devc;
-	GSList *l;
-
-	drvc = di->priv;
-	for (l = drvc->instances; l; l = l->next) {
-		if (!(sdi = l->data)) {
-			/* Log error, but continue cleaning up the rest. */
-			sr_err("%s: sdi was NULL, continuing", __func__);
-			continue;
-		}
-		if (!(devc = sdi->priv)) {
-			/* Log error, but continue cleaning up the rest. */
-			sr_err("%s: sdi->priv was NULL, continuing", __func__);
-			continue;
-		}
-		dso_close(sdi);
-		sr_usb_dev_inst_free(sdi->conn);
-		g_free(devc->triggersource);
-		g_slist_free(devc->enabled_probes);
-
-		sr_dev_inst_free(sdi);
-	}
-
-	g_slist_free(drvc->instances);
-	drvc->instances = NULL;
-
-	return SR_OK;
+	return std_dev_clear(di, clear_dev_context);
 }
 
 static int hw_init(struct sr_context *sr_ctx)
