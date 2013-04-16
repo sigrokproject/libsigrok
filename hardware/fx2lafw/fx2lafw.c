@@ -342,7 +342,7 @@ static struct dev_context *fx2lafw_dev_new(void)
 
 static int clear_instances(void)
 {
-	return std_dev_clear(di);
+	return std_dev_clear(di, NULL);
 }
 
 static int hw_init(struct sr_context *sr_ctx)
