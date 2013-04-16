@@ -48,3 +48,4 @@ void g_slist_free(GSList *list);
 %pointer_functions(struct sr_context *, sr_context_ptr_ptr);
 %array_functions(struct sr_dev_driver *, sr_dev_driver_ptr_array);
 %pointer_cast(gpointer, struct sr_dev_inst *, gpointer_to_sr_dev_inst_ptr);
+%pointer_cast(void *, struct sr_datafeed_logic *, void_ptr_to_sr_datafeed_logic_ptr)
