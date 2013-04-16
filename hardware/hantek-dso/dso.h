@@ -169,7 +169,6 @@ struct dso_profile {
 
 struct dev_context {
 	const struct dso_profile *profile;
-	struct sr_usb_dev_inst *usb;
 	void *cb_data;
 	uint64_t limit_frames;
 	uint64_t num_frames;
@@ -215,12 +214,12 @@ struct dev_context {
 
 SR_PRIV int dso_open(struct sr_dev_inst *sdi);
 SR_PRIV void dso_close(struct sr_dev_inst *sdi);
-SR_PRIV int dso_enable_trigger(struct dev_context *devc);
-SR_PRIV int dso_force_trigger(struct dev_context *devc);
-SR_PRIV int dso_init(struct dev_context *devc);
-SR_PRIV int dso_get_capturestate(struct dev_context *devc,
+SR_PRIV int dso_enable_trigger(const struct sr_dev_inst *sdi);
+SR_PRIV int dso_force_trigger(const struct sr_dev_inst *sdi);
+SR_PRIV int dso_init(const struct sr_dev_inst *sdi);
+SR_PRIV int dso_get_capturestate(const struct sr_dev_inst *sdi,
 		uint8_t *capturestate, uint32_t *trigger_offset);
-SR_PRIV int dso_capture_start(struct dev_context *devc);
+SR_PRIV int dso_capture_start(const struct sr_dev_inst *sdi);
 SR_PRIV int dso_get_channeldata(const struct sr_dev_inst *sdi,
 		libusb_transfer_cb_fn cb);
 

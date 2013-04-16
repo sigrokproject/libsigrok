@@ -251,7 +251,7 @@ static int clear_instances(void)
 			continue;
 		}
 		dso_close(sdi);
-		sr_usb_dev_inst_free(devc->usb);
+		sr_usb_dev_inst_free(sdi->conn);
 		g_free(devc->triggersource);
 		g_slist_free(devc->enabled_probes);
 
@@ -317,7 +317,7 @@ static GSList *hw_scan(GSList *options)
 					sr_err("Firmware upload failed for "
 					       "device %d.", devcnt);
 				/* Dummy USB address of 0xff will get overwritten later. */
-				devc->usb = sr_usb_dev_inst_new(
+				sdi->conn = sr_usb_dev_inst_new(
 						libusb_get_bus_number(devlist[i]), 0xff, NULL);
 				devcnt++;
 				break;
@@ -330,7 +330,7 @@ static GSList *hw_scan(GSList *options)
 				sdi->status = SR_ST_INACTIVE;
 				devices = g_slist_append(devices, sdi);
 				devc = sdi->priv;
-				devc->usb = sr_usb_dev_inst_new(
+				sdi->conn = sr_usb_dev_inst_new(
 						libusb_get_bus_number(devlist[i]),
 						libusb_get_device_address(devlist[i]), NULL);
 				devcnt++;
@@ -354,10 +354,12 @@ static GSList *hw_dev_list(void)
 static int hw_dev_open(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
+	struct sr_usb_dev_inst *usb;
 	int64_t timediff_us, timediff_ms;
 	int err;
 
 	devc = sdi->priv;
+	usb = sdi->conn;
 
 	/*
 	 * If the firmware was recently uploaded, wait up to MAX_RENUM_DELAY_MS
@@ -387,7 +389,7 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
-	err = libusb_claim_interface(devc->usb->devhdl, USB_INTERFACE);
+	err = libusb_claim_interface(usb->devhdl, USB_INTERFACE);
 	if (err != 0) {
 		sr_err("Unable to claim interface: %s.",
 		       libusb_error_name(err));
@@ -814,11 +816,11 @@ static int handle_event(int fd, int revents, void *cb_data)
 
 	/* TODO: ugh */
 	if (devc->dev_state == NEW_CAPTURE) {
-		if (dso_capture_start(devc) != SR_OK)
+		if (dso_capture_start(sdi) != SR_OK)
 			return TRUE;
-		if (dso_enable_trigger(devc) != SR_OK)
+		if (dso_enable_trigger(sdi) != SR_OK)
 			return TRUE;
-//		if (dso_force_trigger(devc) != SR_OK)
+//		if (dso_force_trigger(sdi) != SR_OK)
 //			return TRUE;
 		sr_dbg("Successfully requested next chunk.");
 		devc->dev_state = CAPTURE;
@@ -827,7 +829,7 @@ static int handle_event(int fd, int revents, void *cb_data)
 	if (devc->dev_state != CAPTURE)
 		return TRUE;
 
-	if ((dso_get_capturestate(devc, &capturestate, &trigger_offset)) != SR_OK)
+	if ((dso_get_capturestate(sdi, &capturestate, &trigger_offset)) != SR_OK)
 		return TRUE;
 
 	sr_dbg("Capturestate %d.", capturestate);
@@ -836,11 +838,11 @@ static int handle_event(int fd, int revents, void *cb_data)
 	case CAPTURE_EMPTY:
 		if (++devc->capture_empty_count >= MAX_CAPTURE_EMPTY) {
 			devc->capture_empty_count = 0;
-			if (dso_capture_start(devc) != SR_OK)
+			if (dso_capture_start(sdi) != SR_OK)
 				break;
-			if (dso_enable_trigger(devc) != SR_OK)
+			if (dso_enable_trigger(sdi) != SR_OK)
 				break;
-//			if (dso_force_trigger(devc) != SR_OK)
+//			if (dso_force_trigger(sdi) != SR_OK)
 //				break;
 			sr_dbg("Successfully requested next chunk.");
 		}
@@ -905,10 +907,10 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 		return SR_ERR;
 	}
 
-	if (dso_init(devc) != SR_OK)
+	if (dso_init(sdi) != SR_OK)
 		return SR_ERR;
 
-	if (dso_capture_start(devc) != SR_OK)
+	if (dso_capture_start(sdi) != SR_OK)
 		return SR_ERR;
 
 	devc->dev_state = CAPTURE;
