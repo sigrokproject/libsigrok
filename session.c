@@ -250,6 +250,7 @@ SR_API int sr_session_datafeed_callback_remove_all(void)
  *
  * @param cb Function to call when a chunk of data is received.
  *           Must not be NULL.
+ * @param cb_data Opaque pointer passed in by the caller.
  *
  * @return SR_OK upon success, SR_ERR_BUG if no session exists.
  */
