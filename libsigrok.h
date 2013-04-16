@@ -70,6 +70,7 @@ enum {
 	SR_ERR_ARG        = -3, /**< Function argument error. */
 	SR_ERR_BUG        = -4, /**< Errors hinting at internal bugs. */
 	SR_ERR_SAMPLERATE = -5, /**< Incorrect samplerate. */
+	SR_ERR_NA         = -6, /**< Not applicable. */
 };
 
 #define SR_MAX_NUM_PROBES    64 /* Limited by uint64_t. */

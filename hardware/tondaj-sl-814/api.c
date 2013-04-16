@@ -198,8 +198,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 		       devc->limit_samples);
 		break;
 	default:
-		sr_err("Unknown hardware capability: %d.", id);
-		return SR_ERR_ARG;
+		return SR_ERR_NA;
 	}
 
 	return SR_OK;
@@ -220,7 +219,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 				hwcaps, ARRAY_SIZE(hwcaps), sizeof(int32_t));
 		break;
 	default:
-		return SR_ERR_ARG;
+		return SR_ERR_NA;
 	}
 
 	return SR_OK;

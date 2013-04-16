@@ -133,7 +133,7 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi)
 		*data = g_variant_new_uint64(devc->cur_samplerate);
 		break;
 	default:
-		return SR_ERR_ARG;
+		return SR_ERR_NA;
 	}
 
 	return SR_OK;
@@ -153,8 +153,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 		devc->limit_samples = g_variant_get_uint64(data);
 		break;
 	default:
-		sr_err("Unknown capability: %d.", id);
-		return SR_ERR;
+		return SR_ERR_NA;
 	}
 
 	return SR_OK;
@@ -191,7 +190,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 		*data = g_variant_builder_end(&gvb);
 		break;
 	default:
-		return SR_ERR_ARG;
+		return SR_ERR_NA;
 	}
 
 	return SR_OK;

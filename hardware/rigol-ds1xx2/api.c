@@ -379,7 +379,7 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi)
 		*data = g_variant_new_int32(NUM_VDIV);
 		break;
 	default:
-		return SR_ERR_ARG;
+		return SR_ERR_NA;
 	}
 
 	return SR_OK;
@@ -488,8 +488,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 			ret = SR_ERR_ARG;
 		break;
 	default:
-		sr_err("Unknown hardware capability: %d.", id);
-		ret = SR_ERR_ARG;
+		ret = SR_ERR_NA;
 		break;
 	}
 
@@ -540,7 +539,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 				devc->has_digital ? ARRAY_SIZE(trigger_sources) : 4);
 		break;
 	default:
-		return SR_ERR_ARG;
+		return SR_ERR_NA;
 	}
 
 	return SR_OK;

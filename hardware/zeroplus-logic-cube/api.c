@@ -511,7 +511,7 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi)
 			return SR_ERR;
 		break;
 	default:
-		return SR_ERR_ARG;
+		return SR_ERR_NA;
 	}
 
 	return SR_OK;
@@ -539,7 +539,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 	case SR_CONF_CAPTURE_RATIO:
 		return set_capture_ratio(devc, g_variant_get_uint64(data));
 	default:
-		return SR_ERR;
+		return SR_ERR_NA;
 	}
 
 	return SR_OK;
@@ -579,7 +579,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 		*data = g_variant_new_string(TRIGGER_TYPE);
 		break;
 	default:
-		return SR_ERR_ARG;
+		return SR_ERR_NA;
 	}
 
 	return SR_OK;

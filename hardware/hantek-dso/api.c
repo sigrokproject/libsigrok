@@ -429,7 +429,7 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi)
 		*data = g_variant_new_int32(NUM_VDIV);
 		break;
 	default:
-		return SR_ERR_ARG;
+		return SR_ERR_NA;
 	}
 
 	return SR_OK;
@@ -555,7 +555,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 			ret = SR_ERR_ARG;
 		break;
 	default:
-		ret = SR_ERR_ARG;
+		ret = SR_ERR_NA;
 		break;
 	}
 
@@ -616,7 +616,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 				ARRAY_SIZE(trigger_sources));
 		break;
 	default:
-		return SR_ERR_ARG;
+		return SR_ERR_NA;
 	}
 
 	return SR_OK;

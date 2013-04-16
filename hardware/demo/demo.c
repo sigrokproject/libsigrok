@@ -286,7 +286,7 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi)
 		}
 		break;
 	default:
-		return SR_ERR_ARG;
+		return SR_ERR_NA;
 	}
 
 	return SR_OK;
@@ -335,7 +335,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 		sr_dbg("%s: setting pattern to %d",
 			__func__, devc->sample_generator);
 	} else {
-		ret = SR_ERR;
+		ret = SR_ERR_NA;
 	}
 
 	return ret;
@@ -364,7 +364,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 		*data = g_variant_new_strv(pattern_strings, ARRAY_SIZE(pattern_strings));
 		break;
 	default:
-		return SR_ERR_ARG;
+		return SR_ERR_NA;
 	}
 
 	return SR_OK;

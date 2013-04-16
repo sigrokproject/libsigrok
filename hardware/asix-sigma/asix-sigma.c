@@ -778,7 +778,7 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi)
 			return SR_ERR;
 		break;
 	default:
-		return SR_ERR_ARG;
+		return SR_ERR_NA;
 	}
 
 	return SR_OK;
@@ -806,7 +806,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 		else
 			ret = SR_OK;
 	} else {
-		ret = SR_ERR;
+		ret = SR_ERR_NA;
 	}
 
 	return ret;
@@ -835,7 +835,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 		*data = g_variant_new_string(TRIGGER_TYPE);
 		break;
 	default:
-		return SR_ERR_ARG;
+		return SR_ERR_NA;
 	}
 
 	return SR_OK;
