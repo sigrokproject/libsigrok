@@ -18,3 +18,49 @@
  */
 
 %include "../swig/libsigrok.i"
+
+%{
+
+void sr_datafeed_python_callback(const struct sr_dev_inst *sdi,
+        const struct sr_datafeed_packet *packet, void *cb_data)
+{
+    PyObject *sdi_obj;
+    PyObject *packet_obj;
+    PyObject *arglist;
+    PyObject *result;
+    PyGILState_STATE gstate;
+    PyObject *python_callback;
+
+    python_callback = (PyObject *) cb_data;
+    gstate = PyGILState_Ensure();
+
+    sdi_obj = SWIG_NewPointerObj(SWIG_as_voidptr(sdi),
+            SWIGTYPE_p_sr_dev_inst, 0);
+
+    packet_obj = SWIG_NewPointerObj(SWIG_as_voidptr(packet),
+            SWIGTYPE_p_sr_datafeed_packet, 0);
+
+    arglist = Py_BuildValue("(OO)", sdi_obj, packet_obj);
+
+    result = PyEval_CallObject(python_callback, arglist);
+
+    Py_XDECREF(arglist);
+    Py_XDECREF(sdi_obj);
+    Py_XDECREF(packet_obj);
+    Py_XDECREF(result);
+
+    PyGILState_Release(gstate);
+}
+
+void sr_session_datafeed_python_callback_add(PyObject *cb)
+{
+    if (!PyCallable_Check(cb))
+        PyErr_SetString(PyExc_TypeError, "Object passed is not callable");
+    else
+        sr_session_datafeed_callback_add(
+            sr_datafeed_python_callback, cb);
+}
+
+%}
+
+void sr_session_datafeed_python_callback_add(PyObject *cb);
