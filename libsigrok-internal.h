@@ -117,26 +117,28 @@ SR_PRIV struct sr_config *sr_config_new(int key, GVariant *data);
 SR_PRIV void sr_config_free(struct sr_config *src);
 SR_PRIV int sr_source_remove(int fd);
 SR_PRIV int sr_source_add(int fd, int events, int timeout,
-			  sr_receive_data_callback_t cb, void *cb_data);
+		sr_receive_data_callback_t cb, void *cb_data);
 
 /*--- session.c -------------------------------------------------------------*/
 
 SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
-			    const struct sr_datafeed_packet *packet);
+		const struct sr_datafeed_packet *packet);
 SR_PRIV int sr_session_stop_sync(void);
 
 /*--- std.c -----------------------------------------------------------------*/
 
 typedef int (*dev_close_t)(struct sr_dev_inst *sdi);
+typedef void (*std_dev_clear_t)(void *priv);
 
 SR_PRIV int std_hw_init(struct sr_context *sr_ctx, struct sr_dev_driver *di,
-			const char *prefix);
+		const char *prefix);
 SR_PRIV int std_hw_dev_acquisition_stop_serial(struct sr_dev_inst *sdi,
-			void *cb_data, dev_close_t hw_dev_close_fn,
-			struct sr_serial_dev_inst *serial, const char *prefix);
+		void *cb_data, dev_close_t hw_dev_close_fn,
+		struct sr_serial_dev_inst *serial, const char *prefix);
 SR_PRIV int std_session_send_df_header(const struct sr_dev_inst *sdi,
-				       const char *prefix);
-SR_PRIV int std_dev_clear(const struct sr_dev_driver *driver);
+		const char *prefix);
+SR_PRIV int std_dev_clear(const struct sr_dev_driver *driver,
+		std_dev_clear_t clear_private);
 
 /*--- hardware/common/serial.c ----------------------------------------------*/
 

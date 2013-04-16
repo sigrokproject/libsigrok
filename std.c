@@ -174,7 +174,8 @@ SR_PRIV int std_hw_dev_acquisition_stop_serial(struct sr_dev_inst *sdi,
  *
  * @return SR_OK on success.
  */
-SR_PRIV int std_dev_clear(const struct sr_dev_driver *driver)
+SR_PRIV int std_dev_clear(const struct sr_dev_driver *driver,
+		std_dev_clear_t clear_private)
 {
 	struct sr_dev_inst *sdi;
 	struct drv_context *drvc;
@@ -203,6 +204,8 @@ SR_PRIV int std_dev_clear(const struct sr_dev_driver *driver)
 			else if (sdi->inst_type == SR_INST_SERIAL)
 				sr_serial_dev_inst_free(sdi->conn);
 		}
+		if (clear_private)
+			clear_private(sdi->priv);
 		sdi = l->data;
 		sr_dev_inst_free(sdi);
 	}
