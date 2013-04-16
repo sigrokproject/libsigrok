@@ -28,12 +28,13 @@
 SR_PRIV struct sr_dev_driver chronovu_la8_driver_info;
 static struct sr_dev_driver *di = &chronovu_la8_driver_info;
 
-/* This will be initialized via config_list()/SR_CONF_SAMPLERATE.
+/*
+ * This will be initialized via config_list()/SR_CONF_SAMPLERATE.
  *
  * Min: 1 sample per 0.01us -> sample time is 0.084s, samplerate 100MHz
  * Max: 1 sample per 2.55us -> sample time is 21.391s, samplerate 392.15kHz
  */
-SR_PRIV uint64_t chronovu_la8_samplerates[255 + 1] = { 0 };
+SR_PRIV uint64_t chronovu_la8_samplerates[255] = { 0 };
 
 /* Note: Continuous sampling is not supported by the hardware. */
 SR_PRIV const int32_t chronovu_la8_hwcaps[] = {
@@ -353,14 +354,16 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-				chronovu_la8_hwcaps, ARRAY_SIZE(chronovu_la8_hwcaps),
+				chronovu_la8_hwcaps,
+				ARRAY_SIZE(chronovu_la8_hwcaps),
 				sizeof(int32_t));
 		break;
 	case SR_CONF_SAMPLERATE:
 		fill_supported_samplerates_if_needed();
 		g_variant_builder_init(&gvb, G_VARIANT_TYPE("a{sv}"));
 		gvar = g_variant_new_fixed_array(G_VARIANT_TYPE("t"),
-				chronovu_la8_samplerates, ARRAY_SIZE(chronovu_la8_samplerates),
+				chronovu_la8_samplerates,
+				ARRAY_SIZE(chronovu_la8_samplerates),
 				sizeof(uint64_t));
 		g_variant_builder_add(&gvb, "{sv}", "samplerates", gvar);
 		*data = g_variant_builder_end(&gvb);

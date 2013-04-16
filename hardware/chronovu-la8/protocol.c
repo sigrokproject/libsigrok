@@ -39,7 +39,6 @@ SR_PRIV void fill_supported_samplerates_if_needed(void)
 
 	for (i = 0; i < 255; i++)
 		chronovu_la8_samplerates[254 - i] = SR_MHZ(100) / (i + 1);
-	chronovu_la8_samplerates[255] = 0;
 }
 
 /**
