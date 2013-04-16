@@ -311,6 +311,7 @@ static GSList *hw_scan(GSList *options)
 				sdi->status = SR_ST_INACTIVE;
 				devices = g_slist_append(devices, sdi);
 				devc = sdi->priv;
+				sdi->inst_type = SR_INST_USB;
 				sdi->conn = sr_usb_dev_inst_new(
 						libusb_get_bus_number(devlist[i]),
 						libusb_get_device_address(devlist[i]), NULL);
