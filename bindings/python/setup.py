@@ -21,13 +21,13 @@ from distutils.core import setup, Extension
 import subprocess
 
 sr_includes = subprocess.check_output(
-    ["pkg-config", "--cflags", "libsigrok"]).rstrip().split(' ')
+    ["pkg-config", "--cflags", "libsigrok"]).rstrip().decode().split(' ')
 
 sr_libs = subprocess.check_output(
-    ["pkg-config", "--libs", "libsigrok"]).rstrip().split(' ')
+    ["pkg-config", "--libs", "libsigrok"]).rstrip().decode().split(' ')
 
 sr_version = subprocess.check_output(
-    ["pkg-config", "--modversion", "libsigrok"]).rstrip()
+    ["pkg-config", "--modversion", "libsigrok"]).decode().rstrip()
 
 setup(
     name = 'libsigrok',
