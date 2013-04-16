@@ -136,6 +136,7 @@ SR_PRIV int std_hw_dev_acquisition_stop_serial(struct sr_dev_inst *sdi,
 			struct sr_serial_dev_inst *serial, const char *prefix);
 SR_PRIV int std_session_send_df_header(const struct sr_dev_inst *sdi,
 				       const char *prefix);
+SR_PRIV int std_dev_clear(const struct sr_dev_driver *driver);
 
 /*--- hardware/common/serial.c ----------------------------------------------*/
 
