@@ -17,7 +17,7 @@
 ## along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##
 
-from distutils.core import setup, Extension
+from setuptools import setup, find_packages, Extension
 import subprocess
 
 sr_includes = subprocess.check_output(
@@ -31,12 +31,13 @@ sr_version = subprocess.check_output(
 
 setup(
     name = 'libsigrok',
+    namespace_packages = ['sigrok'],
+    packages = find_packages(),
     version = sr_version,
     description = "libsigrok API wrapper",
-    py_modules = ['libsigrok'],
     ext_modules = [
-        Extension('_libsigrok',
-            sources = ['libsigrok_python.i'],
+        Extension('sigrok.core._lowlevel',
+            sources = ['sigrok/core/lowlevel.i'],
             swig_opts = sr_includes,
             include_dirs = [i[2:] for i in sr_includes if i.startswith('-I')],
             library_dirs = [l[2:] for l in sr_libs if l.startswith('-L')],

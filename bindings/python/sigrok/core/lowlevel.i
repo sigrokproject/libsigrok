@@ -17,7 +17,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-%include "../swig/libsigrok.i"
+%module lowlevel
+
+%include "../../../swig/libsigrok.i"
 
 %{
 
