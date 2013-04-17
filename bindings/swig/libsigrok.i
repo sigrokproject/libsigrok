@@ -39,6 +39,16 @@ struct _GSList
 void g_slist_free(GSList *list);
 
 GVariant *g_variant_new_uint64(uint64_t value);
+GVariant *g_variant_new_boolean(gboolean value);
+GVariant *g_variant_new_double(double value);
+GVariant *g_variant_new_string(char *value);
+GVariant *g_variant_new_tuple(GVariant *children[], unsigned long n_children);
+char *g_variant_get_type_string(GVariant *value);
+uint64_t g_variant_get_uint64(GVariant *value);
+gboolean g_variant_get_boolean(GVariant *value);
+double g_variant_get_double(GVariant *value);
+char *g_variant_get_string(GVariant *value, unsigned long *length);
+GVariant *g_variant_get_child_value(GVariant *value, unsigned long index);
 
 %include "libsigrok/libsigrok.h"
 #undef SR_API
@@ -47,6 +57,8 @@ GVariant *g_variant_new_uint64(uint64_t value);
 %include "libsigrok/proto.h"
 %include "libsigrok/version.h"
 
+%pointer_functions(GVariant *, gvariant_ptr_ptr);
+%array_functions(GVariant *, gvariant_ptr_array);
 %pointer_functions(struct sr_context *, sr_context_ptr_ptr);
 %array_functions(struct sr_dev_driver *, sr_dev_driver_ptr_array);
 %pointer_cast(gpointer, struct sr_dev_inst *, gpointer_to_sr_dev_inst_ptr);
