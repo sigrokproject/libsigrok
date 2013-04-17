@@ -225,6 +225,9 @@ class Packet(object):
             if self.struct.type == SR_DF_LOGIC:
                 self._payload = Logic(self,
                     void_ptr_to_sr_datafeed_logic_ptr(pointer))
+            elif self.struct.type == SR_DF_ANALOG:
+                self._payload = Analog(self,
+                    void_ptr_to_sr_datafeed_analog_ptr(pointer))
             else:
                 raise NotImplementedError(
                     "No Python mapping for packet type %ѕ" % self.struct.type)
@@ -241,6 +244,23 @@ class Logic(object):
     def data(self):
         if self._data is None:
             self._data = cdata(self.struct.data, self.struct.length)
+        return self._data
+
+class Analog(object):
+
+    def __init__(self, packet, struct):
+        self.packet = packet
+        self.struct = struct
+        self._data = None
+
+    @property
+    def num_samples(self):
+        return self.struct.num_samples
+
+    @property
+    def data(self):
+        if self._data is None:
+            self._data = float_array.frompointer(self.struct.data)
         return self._data
 
 for symbol_name in dir(lowlevel):
