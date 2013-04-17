@@ -38,7 +38,7 @@ setup(
     ext_modules = [
         Extension('sigrok.core._lowlevel',
             sources = ['sigrok/core/lowlevel.i'],
-            swig_opts = sr_includes,
+            swig_opts = ['-threads'] + sr_includes,
             include_dirs = [i[2:] for i in sr_includes if i.startswith('-I')],
             library_dirs = [l[2:] for l in sr_libs if l.startswith('-L')],
             libraries = [l[2:] for l in sr_libs if l.startswith('-l')]
