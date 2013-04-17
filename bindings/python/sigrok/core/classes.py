@@ -19,8 +19,8 @@
 
 from functools import partial
 from fractions import Fraction
-from lowlevel import *
-import lowlevel
+from .lowlevel import *
+from . import lowlevel
 import itertools
 
 __all__ = ['Error', 'Context', 'Driver', 'Device', 'Session', 'Packet']
@@ -54,7 +54,7 @@ def gvariant_to_python(value):
         return Fraction(
             g_variant_get_uint64(g_variant_get_child_value(value, 0)),
             g_variant_get_uint64(g_variant_get_child_value(value, 1)))
-    raise NotImplementedError, (
+    raise NotImplementedError(
         "Can't convert GVariant type '%s' to a Python type." % type_string)
 
 def python_to_gvariant(value):
@@ -73,7 +73,7 @@ def python_to_gvariant(value):
         result = g_variant_new_tuple(array, 2)
         delete_gvariant_ptr_array(array)
         return result
-    raise NotImplementedError, (
+    raise NotImplementedError(
         "Can't convert Python '%s' to a GVariant." % type(value))
 
 def callback_wrapper(session, callback, device_ptr, packet_ptr):
@@ -153,7 +153,7 @@ class Device(object):
             check(sr_config_get(self.driver.struct, key, data, self.struct))
         except Error as error:
             if error.errno == SR_ERR_ARG:
-                raise NotImplementedError, (
+                raise NotImplementedError(
                     "Device does not implement %s" % name)
             else:
                 raise AttributeError
@@ -226,7 +226,7 @@ class Packet(object):
                 self._payload = Logic(self,
                     void_ptr_to_sr_datafeed_logic_ptr(pointer))
             else:
-                raise NotImplementedError, (
+                raise NotImplementedError(
                     "No Python mapping for packet type %ѕ" % self.struct.type)
         return self._payload
 

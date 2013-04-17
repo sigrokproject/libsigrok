@@ -1,3 +1,3 @@
-import lowlevel
-import classes
-from classes import *
+from . import lowlevel
+from . import classes
+from .classes import *
