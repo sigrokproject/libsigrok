@@ -54,15 +54,21 @@ void sr_datafeed_python_callback(const struct sr_dev_inst *sdi,
     PyGILState_Release(gstate);
 }
 
-void sr_session_datafeed_python_callback_add(PyObject *cb)
+int sr_session_datafeed_python_callback_add(PyObject *cb)
 {
+    int ret;
+
     if (!PyCallable_Check(cb))
-        PyErr_SetString(PyExc_TypeError, "Object passed is not callable");
-    else
-        sr_session_datafeed_callback_add(
+        return SR_ERR_ARG;
+    else {
+        ret = sr_session_datafeed_callback_add(
             sr_datafeed_python_callback, cb);
+        if (ret == SR_OK)
+            Py_XINCREF(cb);
+        return ret;
+    }
 }
 
 %}
 
-void sr_session_datafeed_python_callback_add(PyObject *cb);
+int sr_session_datafeed_python_callback_add(PyObject *cb);
