@@ -69,6 +69,17 @@ int sr_session_datafeed_python_callback_add(PyObject *cb)
     }
 }
 
+PyObject *cdata(const void *data, unsigned long size)
+{
+#if PY_MAJOR_VERSION < 3
+    return PyString_FromStringAndSize(data, size);
+#else
+    return PyBytes_FromStringAndSize(data, size);
+#endif
+}
+
 %}
 
 int sr_session_datafeed_python_callback_add(PyObject *cb);
+
+PyObject *cdata(const void *data, unsigned long size);
