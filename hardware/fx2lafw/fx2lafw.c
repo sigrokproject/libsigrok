@@ -81,6 +81,10 @@ static const struct fx2lafw_profile supported_fx2[] = {
 	{ 0, 0, 0, 0, 0, 0, 0 }
 };
 
+static const int32_t hwopts[] = {
+	SR_CONF_CONN,
+};
+
 static const int32_t hwcaps[] = {
 	SR_CONF_LOGIC_ANALYZER,
 	SR_CONF_TRIGGER_TYPE,
@@ -582,14 +586,26 @@ static int hw_cleanup(void)
 static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
+	struct sr_usb_dev_inst *usb;
+	char str[128];
 
 	switch (id) {
-	case SR_CONF_SAMPLERATE:
-		if (sdi) {
-			devc = sdi->priv;
-			*data = g_variant_new_uint64(devc->cur_samplerate);
-		} else
+	case SR_CONF_CONN:
+		if (!sdi || !sdi->conn)
 			return SR_ERR;
+		usb = sdi->conn;
+		if (usb->address == 255)
+			/* Device still needs to re-enumerate after firmware
+			 * upload, so we don't know its (future) address. */
+			return SR_ERR;
+		snprintf(str, 128, "%d.%d", usb->bus, usb->address);
+		*data = g_variant_new_string(str);
+		break;
+	case SR_CONF_SAMPLERATE:
+		if (!sdi)
+			return SR_ERR;
+		devc = sdi->priv;
+		*data = g_variant_new_uint64(devc->cur_samplerate);
 		break;
 	default:
 		return SR_ERR_NA;
@@ -626,6 +642,10 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 	(void)sdi;
 
 	switch (key) {
+	case SR_CONF_SCAN_OPTIONS:
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+				hwopts, ARRAY_SIZE(hwopts), sizeof(int32_t));
+		break;
 	case SR_CONF_DEVICE_OPTIONS:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
 				hwcaps, ARRAY_SIZE(hwcaps), sizeof(int32_t));
