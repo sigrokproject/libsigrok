@@ -40,6 +40,10 @@
 #define NUM_TIMEBASE  10
 #define NUM_VDIV      8
 
+static const int32_t scanopts[] = {
+	SR_CONF_CONN,
+};
+
 static const int32_t devopts[] = {
 	SR_CONF_OSCILLOSCOPE,
 	SR_CONF_LIMIT_FRAMES,
@@ -402,10 +406,23 @@ static int hw_cleanup(void)
 
 static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi)
 {
+	struct sr_usb_dev_inst *usb;
+	char str[128];
 
 	(void)sdi;
 
 	switch (id) {
+	case SR_CONF_CONN:
+		if (!sdi || !sdi->conn)
+			return SR_ERR;
+		usb = sdi->conn;
+		if (usb->address == 255)
+			/* Device still needs to re-enumerate after firmware
+			 * upload, so we don't know its (future) address. */
+			return SR_ERR;
+		snprintf(str, 128, "%d.%d", usb->bus, usb->address);
+		*data = g_variant_new_string(str);
+		break;
 	case SR_CONF_NUM_TIMEBASE:
 		*data = g_variant_new_int32(NUM_TIMEBASE);
 		break;
@@ -560,6 +577,10 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 	switch (key) {
+	case SR_CONF_SCAN_OPTIONS:
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+				scanopts, ARRAY_SIZE(scanopts), sizeof(int32_t));
+		break;
 	case SR_CONF_DEVICE_OPTIONS:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
 				devopts, ARRAY_SIZE(devopts), sizeof(int32_t));
