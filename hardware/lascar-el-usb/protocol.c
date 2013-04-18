@@ -595,10 +595,13 @@ static int set_flags(unsigned char *configblock, int flags)
 SR_PRIV int lascar_is_logging(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
+	struct sr_usb_dev_inst *usb;
 	int dummy, flags, ret;
 
 	devc = sdi->priv;
-	if (lascar_get_config(devc->usb->devhdl, devc->config, &dummy) != SR_OK)
+	usb = sdi->conn;
+
+	if (lascar_get_config(usb->devhdl, devc->config, &dummy) != SR_OK)
 		return -1;
 
 	flags = get_flags(devc->config);
@@ -613,10 +616,13 @@ SR_PRIV int lascar_is_logging(const struct sr_dev_inst *sdi)
 SR_PRIV int lascar_start_logging(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
+	struct sr_usb_dev_inst *usb;
 	int len, flags, ret;
 
 	devc = sdi->priv;
-	if (lascar_get_config(devc->usb->devhdl, devc->config, &len) != SR_OK)
+	usb = sdi->conn;
+
+	if (lascar_get_config(usb->devhdl, devc->config, &len) != SR_OK)
 		return SR_ERR;
 
 	/* Turn on logging. */
@@ -627,7 +633,7 @@ SR_PRIV int lascar_start_logging(const struct sr_dev_inst *sdi)
 	/* Start logging in 0 seconds. */
 	memset(devc->config + 24, 0, 4);
 
-	ret = lascar_save_config(devc->usb->devhdl, devc->config, len);
+	ret = lascar_save_config(usb->devhdl, devc->config, len);
 	sr_info("Started internal logging.");
 
 	return ret;
@@ -636,17 +642,20 @@ SR_PRIV int lascar_start_logging(const struct sr_dev_inst *sdi)
 SR_PRIV int lascar_stop_logging(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
+	struct sr_usb_dev_inst *usb;
 	int len, flags, ret;
 
 	devc = sdi->priv;
-	if (lascar_get_config(devc->usb->devhdl, devc->config, &len) != SR_OK)
+	usb = sdi->conn;
+
+	if (lascar_get_config(usb->devhdl, devc->config, &len) != SR_OK)
 		return SR_ERR;
 
 	flags = get_flags(devc->config);
 	flags &= ~0x0100;
 	set_flags(devc->config, flags);
 
-	ret = lascar_save_config(devc->usb->devhdl, devc->config, len);
+	ret = lascar_save_config(usb->devhdl, devc->config, len);
 	sr_info("Stopped internal logging.");
 
 	return ret;

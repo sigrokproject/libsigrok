@@ -57,7 +57,7 @@ static int clear_instances(void)
 			continue;
 
 		hw_dev_close(sdi);
-		sr_usb_dev_inst_free(devc->usb);
+		sr_usb_dev_inst_free(sdi->conn);
 		sr_dev_inst_free(sdi);
 	}
 
@@ -75,7 +75,6 @@ static int hw_init(struct sr_context *sr_ctx)
 static GSList *hw_scan(GSList *options)
 {
 	struct drv_context *drvc;
-	struct dev_context *devc;
 	struct sr_dev_inst *sdi;
 	struct sr_usb_dev_inst *usb;
 	struct sr_config *src;
@@ -112,8 +111,8 @@ static GSList *hw_scan(GSList *options)
 				g_free(usb);
 				continue;
 			}
-			devc = sdi->priv;
-			devc->usb = usb;
+			sdi->inst_type = SR_INST_USB;
+			sdi->conn = usb;
 			drvc->instances = g_slist_append(drvc->instances, sdi);
 			devices = g_slist_append(devices, sdi);
 		}
@@ -132,7 +131,7 @@ static GSList *hw_dev_list(void)
 static int hw_dev_open(struct sr_dev_inst *sdi)
 {
 	struct drv_context *drvc;
-	struct dev_context *devc;
+	struct sr_usb_dev_inst *usb;
 	int ret;
 
 	if (!(drvc = di->priv)) {
@@ -140,11 +139,12 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
-	devc = sdi->priv;
-	if (sr_usb_open(drvc->sr_ctx->libusb_ctx, devc->usb) != SR_OK)
+	usb = sdi->conn;
+
+	if (sr_usb_open(drvc->sr_ctx->libusb_ctx, usb) != SR_OK)
 		return SR_ERR;
 
-	if ((ret = libusb_claim_interface(devc->usb->devhdl, LASCAR_INTERFACE))) {
+	if ((ret = libusb_claim_interface(usb->devhdl, LASCAR_INTERFACE))) {
 		sr_err("Failed to claim interface: %s.", libusb_error_name(ret));
 		return SR_ERR;
 	}
@@ -155,23 +155,23 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 
 static int hw_dev_close(struct sr_dev_inst *sdi)
 {
-	struct dev_context *devc;
+	struct sr_usb_dev_inst *usb;
 
 	if (!di->priv) {
 		sr_err("Driver was not initialized.");
 		return SR_ERR;
 	}
 
-	devc = sdi->priv;
-	if (!devc->usb->devhdl)
+	usb = sdi->conn;
+
+	if (!usb->devhdl)
 		/*  Nothing to do. */
 		return SR_OK;
 
-	libusb_release_interface(devc->usb->devhdl, LASCAR_INTERFACE);
-	libusb_close(devc->usb->devhdl);
-	devc->usb->devhdl = NULL;
+	libusb_release_interface(usb->devhdl, LASCAR_INTERFACE);
+	libusb_close(usb->devhdl);
+	usb->devhdl = NULL;
 	sdi->status = SR_ST_INACTIVE;
-
 
 	return SR_OK;
 }
@@ -194,10 +194,19 @@ static int hw_cleanup(void)
 static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
+	struct sr_usb_dev_inst *usb;
 	int ret;
+	char str[128];
 
 	devc = sdi->priv;
 	switch (id) {
+	case SR_CONF_CONN:
+		if (!sdi || !sdi->conn)
+			return SR_ERR_ARG;
+		usb = sdi->conn;
+		snprintf(str, 128, "%d.%d", usb->bus, usb->address);
+		*data = g_variant_new_string(str);
+		break;
 	case SR_CONF_DATALOG:
 		if (!sdi)
 			return SR_ERR_ARG;
@@ -306,10 +315,13 @@ static float binary32_le_to_float(unsigned char *buf)
 static int lascar_proc_config(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
+	struct sr_usb_dev_inst *usb;
 	int dummy, ret;
 
 	devc = sdi->priv;
-	if (lascar_get_config(devc->usb->devhdl, devc->config, &dummy) != SR_OK)
+	usb = sdi->conn;
+
+	if (lascar_get_config(usb->devhdl, devc->config, &dummy) != SR_OK)
 		return SR_ERR;
 
 	ret = SR_OK;
@@ -349,6 +361,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	struct sr_config *src;
 	struct dev_context *devc;
 	struct drv_context *drvc;
+	struct sr_usb_dev_inst *usb;
 	struct libusb_transfer *xfer_in, *xfer_out;
 	const struct libusb_pollfd **pfd;
 	struct timeval tv;
@@ -363,6 +376,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 
 	drvc = di->priv;
 	devc = sdi->priv;
+	usb = sdi->conn;
 	devc->cb_data = cb_data;
 
 	if (lascar_proc_config(sdi) != SR_OK)
@@ -392,20 +406,20 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 			!(xfer_out = libusb_alloc_transfer(0)))
 		return SR_ERR;
 
-	libusb_control_transfer(devc->usb->devhdl, LIBUSB_REQUEST_TYPE_VENDOR,
+	libusb_control_transfer(usb->devhdl, LIBUSB_REQUEST_TYPE_VENDOR,
 			0x00, 0xffff, 0x00, NULL, 0, 50);
-	libusb_control_transfer(devc->usb->devhdl, LIBUSB_REQUEST_TYPE_VENDOR,
+	libusb_control_transfer(usb->devhdl, LIBUSB_REQUEST_TYPE_VENDOR,
 			0x02, 0x0002, 0x00, NULL, 0, 50);
-	libusb_control_transfer(devc->usb->devhdl, LIBUSB_REQUEST_TYPE_VENDOR,
+	libusb_control_transfer(usb->devhdl, LIBUSB_REQUEST_TYPE_VENDOR,
 			0x02, 0x0001, 0x00, NULL, 0, 50);
 
 
 	/* Flush input. The F321 requires this. */
-	while (libusb_bulk_transfer(devc->usb->devhdl, LASCAR_EP_IN, resp,
+	while (libusb_bulk_transfer(usb->devhdl, LASCAR_EP_IN, resp,
 			256, &ret, 5) == 0 && ret > 0)
 		;
 
-	libusb_fill_bulk_transfer(xfer_in, devc->usb->devhdl, LASCAR_EP_IN,
+	libusb_fill_bulk_transfer(xfer_in, usb->devhdl, LASCAR_EP_IN,
 			resp, sizeof(resp), mark_xfer, 0, 10000);
 	if (libusb_submit_transfer(xfer_in) != 0) {
 		libusb_free_transfer(xfer_in);
@@ -416,7 +430,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	cmd[0] = 0x03;
 	cmd[1] = 0xff;
 	cmd[2] = 0xff;
-	libusb_fill_bulk_transfer(xfer_out, devc->usb->devhdl, LASCAR_EP_OUT,
+	libusb_fill_bulk_transfer(xfer_out, usb->devhdl, LASCAR_EP_OUT,
 			cmd, 3, mark_xfer, 0, 100);
 	if (libusb_submit_transfer(xfer_out) != 0) {
 		libusb_free_transfer(xfer_in);
@@ -457,7 +471,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	devc->usbfd[i] = -1;
 
 	buf = g_try_malloc(4096);
-	libusb_fill_bulk_transfer(xfer_in, devc->usb->devhdl, LASCAR_EP_IN,
+	libusb_fill_bulk_transfer(xfer_in, usb->devhdl, LASCAR_EP_IN,
 			buf, 4096, lascar_el_usb_receive_transfer, cb_data, 100);
 	if ((ret = libusb_submit_transfer(xfer_in) != 0)) {
 		sr_err("Unable to submit transfer: %s.", libusb_error_name(ret));

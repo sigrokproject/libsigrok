@@ -44,7 +44,6 @@
 /** Private, per-device-instance driver context. */
 struct dev_context {
 	void *cb_data;
-	struct sr_usb_dev_inst *usb;
 	const struct elusb_profile *profile;
 	int usbfd[10];
 	/* Generic EL-USB */
