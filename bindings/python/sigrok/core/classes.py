@@ -258,6 +258,18 @@ class Analog(object):
         return self.struct.num_samples
 
     @property
+    def mq(self):
+        return self.struct.mq
+
+    @property
+    def unit(self):
+        return self.struct.unit
+
+    @property
+    def mqflags(self):
+        return self.struct.mqflags
+
+    @property
     def data(self):
         if self._data is None:
             self._data = float_array.frompointer(self.struct.data)
