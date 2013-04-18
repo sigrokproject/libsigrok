@@ -50,7 +50,6 @@ struct dev_context {
 	uint64_t num_samples;
 	gint64 end_time;
 
-	struct sr_usb_dev_inst *usb;
 	/* Only requires 3 really. */
 	int usbfd[10];
 };

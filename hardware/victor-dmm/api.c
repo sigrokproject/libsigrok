@@ -36,6 +36,10 @@ static struct sr_dev_driver *di = &victor_dmm_driver_info;
 static int hw_dev_close(struct sr_dev_inst *sdi);
 static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);
 
+static const int32_t hwopts[] = {
+	SR_CONF_CONN,
+};
+
 static const int32_t hwcaps[] = {
 	SR_CONF_MULTIMETER,
 	SR_CONF_LIMIT_MSEC,
@@ -61,7 +65,7 @@ static int clear_instances(void)
 		if (!(devc = sdi->priv))
 			continue;
 		hw_dev_close(sdi);
-		sr_usb_dev_inst_free(devc->usb);
+		sr_usb_dev_inst_free(sdi->conn);
 		sr_dev_inst_free(sdi);
 	}
 
@@ -120,9 +124,10 @@ static GSList *hw_scan(GSList *options)
 			return NULL;
 		sdi->probes = g_slist_append(NULL, probe);
 
-		if (!(devc->usb = sr_usb_dev_inst_new(libusb_get_bus_number(devlist[i]),
+		if (!(sdi->conn = sr_usb_dev_inst_new(libusb_get_bus_number(devlist[i]),
 				libusb_get_device_address(devlist[i]), NULL)))
 			return NULL;
+		sdi->inst_type = SR_INST_USB;
 
 		drvc->instances = g_slist_append(drvc->instances, sdi);
 		devices = g_slist_append(devices, sdi);
@@ -139,8 +144,8 @@ static GSList *hw_dev_list(void)
 
 static int hw_dev_open(struct sr_dev_inst *sdi)
 {
-	struct dev_context *devc;
 	struct drv_context *drvc = di->priv;
+	struct sr_usb_dev_inst *usb;
 	libusb_device **devlist;
 	int ret, i;
 
@@ -149,13 +154,14 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
-	devc = sdi->priv;
+	usb = sdi->conn;
+
 	libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &devlist);
 	for (i = 0; devlist[i]; i++) {
-		if (libusb_get_bus_number(devlist[i]) != devc->usb->bus
-				|| libusb_get_device_address(devlist[i]) != devc->usb->address)
+		if (libusb_get_bus_number(devlist[i]) != usb->bus
+				|| libusb_get_device_address(devlist[i]) != usb->address)
 			continue;
-		if ((ret = libusb_open(devlist[i], &devc->usb->devhdl))) {
+		if ((ret = libusb_open(devlist[i], &usb->devhdl))) {
 			sr_err("Failed to open device: %s.", libusb_error_name(ret));
 			return SR_ERR;
 		}
@@ -169,15 +175,15 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 
 	/* The device reports as HID class, so the kernel would have
 	 * claimed it. */
-	if (libusb_kernel_driver_active(devc->usb->devhdl, 0) == 1) {
-		if ((ret = libusb_detach_kernel_driver(devc->usb->devhdl, 0)) < 0) {
+	if (libusb_kernel_driver_active(usb->devhdl, 0) == 1) {
+		if ((ret = libusb_detach_kernel_driver(usb->devhdl, 0)) < 0) {
 			sr_err("Failed to detach kernel driver: %s.",
 			       libusb_error_name(ret));
 			return SR_ERR;
 		}
 	}
 
-	if ((ret = libusb_claim_interface(devc->usb->devhdl,
+	if ((ret = libusb_claim_interface(usb->devhdl,
 			VICTOR_INTERFACE))) {
 		sr_err("Failed to claim interface: %s.", libusb_error_name(ret));
 		return SR_ERR;
@@ -189,21 +195,22 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 
 static int hw_dev_close(struct sr_dev_inst *sdi)
 {
-	struct dev_context *devc;
+	struct sr_usb_dev_inst *usb;
 
 	if (!di->priv) {
 		sr_err("Driver was not initialized.");
 		return SR_ERR;
 	}
 
-	devc = sdi->priv;
-	if (!devc->usb->devhdl)
+	usb = sdi->conn;
+
+	if (!usb->devhdl)
 		/*  Nothing to do. */
 		return SR_OK;
 
-	libusb_release_interface(devc->usb->devhdl, VICTOR_INTERFACE);
-	libusb_close(devc->usb->devhdl);
-	devc->usb->devhdl = NULL;
+	libusb_release_interface(usb->devhdl, VICTOR_INTERFACE);
+	libusb_close(usb->devhdl);
+	usb->devhdl = NULL;
 	sdi->status = SR_ST_INACTIVE;
 
 	return SR_OK;
@@ -220,6 +227,26 @@ static int hw_cleanup(void)
 	clear_instances();
 	g_free(drvc);
 	di->priv = NULL;
+
+	return SR_OK;
+}
+
+static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi)
+{
+	struct sr_usb_dev_inst *usb;
+	char str[128];
+
+	switch (id) {
+	case SR_CONF_CONN:
+		if (!sdi || !sdi->conn)
+			return SR_ERR_ARG;
+		usb = sdi->conn;
+		snprintf(str, 128, "%d.%d", usb->bus, usb->address);
+		*data = g_variant_new_string(str);
+		break;
+	default:
+		return SR_ERR_NA;
+	}
 
 	return SR_OK;
 }
@@ -268,6 +295,10 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 	(void)sdi;
 
 	switch (key) {
+	case SR_CONF_SCAN_OPTIONS:
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+				hwopts, ARRAY_SIZE(hwopts), sizeof(int32_t));
+		break;
 	case SR_CONF_DEVICE_OPTIONS:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
 				hwcaps, ARRAY_SIZE(hwcaps), sizeof(int32_t));
@@ -365,6 +396,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	struct dev_context *devc;
 	struct drv_context *drvc = di->priv;
 	const struct libusb_pollfd **pfd;
+	struct sr_usb_dev_inst *usb;
 	struct libusb_transfer *transfer;
 	int ret, i;
 	unsigned char *buf;
@@ -375,6 +407,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	}
 
 	devc = sdi->priv;
+	usb = sdi->conn;
 	devc->cb_data = cb_data;
 
 	/* Send header packet to the session bus. */
@@ -396,7 +429,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	 * The device only sends 1 transfer/second no matter how many
 	 * times you ask, but we want to keep step with the USB events
 	 * handling above. */
-	libusb_fill_interrupt_transfer(transfer, devc->usb->devhdl,
+	libusb_fill_interrupt_transfer(transfer, usb->devhdl,
 			VICTOR_ENDPOINT, buf, DMM_DATA_SIZE, receive_transfer,
 			cb_data, 100);
 	if ((ret = libusb_submit_transfer(transfer) != 0)) {
@@ -437,7 +470,7 @@ SR_PRIV struct sr_dev_driver victor_dmm_driver_info = {
 	.scan = hw_scan,
 	.dev_list = hw_dev_list,
 	.dev_clear = clear_instances,
-	.config_get = NULL,
+	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,
 	.dev_open = hw_dev_open,
