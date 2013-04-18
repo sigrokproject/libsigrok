@@ -592,7 +592,7 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi)
 	switch (id) {
 	case SR_CONF_CONN:
 		if (!sdi || !sdi->conn)
-			return SR_ERR;
+			return SR_ERR_ARG;
 		usb = sdi->conn;
 		if (usb->address == 255)
 			/* Device still needs to re-enumerate after firmware
