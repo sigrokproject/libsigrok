@@ -262,11 +262,6 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
-	if (sdi->status != SR_ST_ACTIVE) {
-		sr_err("Device inactive, can't set config options.");
-		return SR_ERR;
-	}
-
 	devc = sdi->priv;
 	ret = SR_OK;
 	switch (id) {
