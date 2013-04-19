@@ -23,7 +23,7 @@ from .lowlevel import *
 from . import lowlevel
 import itertools
 
-__all__ = ['Error', 'Context', 'Driver', 'Device', 'Session', 'Packet']
+__all__ = ['Error', 'Context', 'Driver', 'Device', 'Session', 'Packet', 'Log']
 
 class Error(Exception):
 
@@ -274,6 +274,31 @@ class Analog(object):
         if self._data is None:
             self._data = float_array.frompointer(self.struct.data)
         return self._data
+
+class Log(object):
+
+    NONE = SR_LOG_NONE
+    ERR = SR_LOG_ERR
+    WARN = SR_LOG_WARN
+    INFO = SR_LOG_INFO
+    DBG = SR_LOG_DBG
+    SPEW = SR_LOG_SPEW
+
+    @property
+    def level(self):
+        return sr_log_loglevel_get()
+
+    @level.setter
+    def level(self, l):
+        check(sr_log_loglevel_set(l))
+
+    @property
+    def domain(self):
+        return sr_log_logdomain_get()
+
+    @domain.setter
+    def domain(self, d):
+        check(sr_log_logdomain_set(d))
 
 for symbol_name in dir(lowlevel):
     prefix = 'SR_DF_'
