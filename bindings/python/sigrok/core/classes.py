@@ -152,7 +152,7 @@ class Device(object):
         try:
             check(sr_config_get(self.driver.struct, key, data, self.struct))
         except Error as error:
-            if error.errno == SR_ERR_ARG:
+            if error.errno == SR_ERR_NA:
                 raise NotImplementedError(
                     "Device does not implement %s" % name)
             else:
