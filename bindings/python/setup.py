@@ -20,14 +20,11 @@
 from setuptools import setup, find_packages, Extension
 import subprocess
 
-sr_includes = subprocess.check_output(
-    ["pkg-config", "--cflags-only-I", "libsigrok"]).rstrip().decode().split(' ')
-
-sr_libs = subprocess.check_output(
-    ["pkg-config", "--libs", "libsigrok"]).rstrip().decode().split(' ')
-
-sr_version = subprocess.check_output(
-    ["pkg-config", "--modversion", "libsigrok"]).decode().rstrip()
+sr_includes, sr_lib_dirs, sr_libs, (sr_version,) = [
+    subprocess.check_output(
+        ["pkg-config", option, "libsigrok"]).decode().rstrip().split(' ')
+    for option in
+        ("--cflags-only-I", "--libs-only-L", "--libs-only-l", "--modversion")]
 
 setup(
     name = 'libsigrok',
@@ -40,8 +37,8 @@ setup(
             sources = ['sigrok/core/lowlevel.i'],
             swig_opts = ['-threads'] + sr_includes,
             include_dirs = [i[2:] for i in sr_includes],
-            library_dirs = [l[2:] for l in sr_libs if l.startswith('-L')],
-            libraries = [l[2:] for l in sr_libs if l.startswith('-l')]
+            library_dirs = [l[2:] for l in sr_lib_dirs],
+            libraries = [l[2:] for l in sr_libs]
         )
     ],
 )
