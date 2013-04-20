@@ -411,9 +411,12 @@ static int cleanup(int dmm)
 	return dev_clear(dmm);
 }
 
-static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
+static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
+		const struct sr_probe_group *probe_group)
 {
 	struct dev_context *devc;
+
+	(void)probe_group;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
@@ -441,10 +444,11 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
+static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
+		const struct sr_probe_group *probe_group)
 {
-
 	(void)sdi;
+	(void)probe_group;
 
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:

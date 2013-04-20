@@ -504,8 +504,10 @@ SR_PRIV void sr_config_free(struct sr_config *src)
  *         but this is not to be flagged as an error by the caller; merely
  *         as an indication that it's not applicable.
  */
-SR_API int sr_config_get(const struct sr_dev_driver *driver, int key,
-		GVariant **data, const struct sr_dev_inst *sdi)
+SR_API int sr_config_get(const struct sr_dev_driver *driver,
+		const struct sr_dev_inst *sdi,
+		const struct sr_probe_group *probe_group,
+		int key, GVariant **data)
 {
 	int ret;
 
@@ -515,7 +517,7 @@ SR_API int sr_config_get(const struct sr_dev_driver *driver, int key,
 	if (!driver->config_get)
 		return SR_ERR_ARG;
 
-	if ((ret = driver->config_get(key, data, sdi)) == SR_OK) {
+	if ((ret = driver->config_get(key, data, sdi, probe_group)) == SR_OK) {
 		/* Got a floating reference from the driver. Sink it here,
 		 * caller will need to unref when done with it. */
 		g_variant_ref_sink(*data);
@@ -538,7 +540,9 @@ SR_API int sr_config_get(const struct sr_dev_driver *driver, int key,
  *         but this is not to be flagged as an error by the caller; merely
  *         as an indication that it's not applicable.
  */
-SR_API int sr_config_set(const struct sr_dev_inst *sdi, int key, GVariant *data)
+SR_API int sr_config_set(const struct sr_dev_inst *sdi,
+		const struct sr_probe_group *probe_group,
+		int key, GVariant *data)
 {
 	int ret;
 
@@ -549,7 +553,7 @@ SR_API int sr_config_set(const struct sr_dev_inst *sdi, int key, GVariant *data)
 	else if (!sdi->driver->config_set)
 		ret = SR_ERR_ARG;
 	else
-		ret = sdi->driver->config_set(key, data, sdi);
+		ret = sdi->driver->config_set(key, data, sdi, probe_group);
 
 	g_variant_unref(data);
 
@@ -574,8 +578,10 @@ SR_API int sr_config_set(const struct sr_dev_inst *sdi, int key, GVariant *data)
  *         but this is not to be flagged as an error by the caller; merely
  *         as an indication that it's not applicable.
  */
-SR_API int sr_config_list(const struct sr_dev_driver *driver, int key,
-		GVariant **data, const struct sr_dev_inst *sdi)
+SR_API int sr_config_list(const struct sr_dev_driver *driver,
+		const struct sr_dev_inst *sdi,
+		const struct sr_probe_group *probe_group,
+		int key, GVariant **data)
 {
 	int ret;
 
@@ -583,7 +589,7 @@ SR_API int sr_config_list(const struct sr_dev_driver *driver, int key,
 		ret = SR_ERR;
 	else if (!driver->config_list)
 		ret = SR_ERR_ARG;
-	else if ((ret = driver->config_list(key, data, sdi)) == SR_OK)
+	else if ((ret = driver->config_list(key, data, sdi, probe_group)) == SR_OK)
 		g_variant_ref_sink(*data);
 
 	return ret;

@@ -69,8 +69,8 @@ static GString *gen_header(const struct sr_dev_inst *sdi, struct context *ctx)
 	GVariant *gvar;
 	int num_enabled_probes;
 
-	if (!ctx->samplerate && sr_config_get(sdi->driver, SR_CONF_SAMPLERATE,
-			&gvar, sdi) == SR_OK) {
+	if (!ctx->samplerate && sr_config_get(sdi->driver, sdi, NULL,
+			SR_CONF_SAMPLERATE, &gvar) == SR_OK) {
 		ctx->samplerate = g_variant_get_uint64(gvar);
 		g_variant_unref(gvar);
 	}

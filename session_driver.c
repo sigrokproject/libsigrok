@@ -202,9 +202,12 @@ static int dev_open(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi)
+static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
+		const struct sr_probe_group *probe_group)
 {
 	struct session_vdev *vdev;
+
+	(void)probe_group;
 
 	switch (id) {
 	case SR_CONF_SAMPLERATE:
@@ -221,9 +224,12 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
+static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
+		const struct sr_probe_group *probe_group)
 {
 	struct session_vdev *vdev;
+
+	(void)probe_group;
 
 	vdev = sdi->priv;
 
@@ -253,10 +259,11 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
+static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
+		const struct sr_probe_group *probe_group)
 {
-
 	(void)sdi;
+	(void)probe_group;
 
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:

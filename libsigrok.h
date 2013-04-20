@@ -549,6 +549,13 @@ struct sr_probe {
 	char *trigger;
 };
 
+struct sr_probe_group {
+	/* List of sr_probe structs. */
+	GSList *probes;
+	/* Private data for driver use. */
+	void *data;
+};
+
 struct sr_config {
 	int key;
 	GVariant *data;
@@ -777,6 +784,8 @@ struct sr_dev_inst {
 	char *model;
 	char *version;
 	GSList *probes;
+	/* List of sr_probe_group structs */
+	GSList *probe_groups;
 	void *conn;
 	void *priv;
 };
@@ -814,11 +823,14 @@ struct sr_dev_driver {
 	GSList *(*dev_list) (void);
 	int (*dev_clear) (void);
 	int (*config_get) (int id, GVariant **data,
-			const struct sr_dev_inst *sdi);
+			const struct sr_dev_inst *sdi,
+			const struct sr_probe_group *probe_group);
 	int (*config_set) (int id, GVariant *data,
-			const struct sr_dev_inst *sdi);
+			const struct sr_dev_inst *sdi,
+			const struct sr_probe_group *probe_group);
 	int (*config_list) (int info_id, GVariant **data,
-			const struct sr_dev_inst *sdi);
+			const struct sr_dev_inst *sdi,
+			const struct sr_probe_group *probe_group);
 
 	/* Device-specific */
 	int (*dev_open) (struct sr_dev_inst *sdi);

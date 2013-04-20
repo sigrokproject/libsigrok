@@ -370,10 +370,12 @@ static int cleanup(void)
 	return dev_clear();
 }
 
-static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi)
+static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
+		const struct sr_probe_group *probe_group)
 {
 
 	(void)sdi;
+	(void)probe_group;
 
 	switch (id) {
 	case SR_CONF_NUM_TIMEBASE:
@@ -389,7 +391,8 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
+static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
+		const struct sr_probe_group *probe_group)
 {
 	struct dev_context *devc;
 	uint64_t tmp_u64, p, q;
@@ -397,6 +400,8 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 	unsigned int i;
 	int ret;
 	const char *tmp_str;
+
+	(void)probe_group;
 
 	devc = sdi->priv;
 
@@ -497,12 +502,15 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 	return ret;
 }
 
-static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
+static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
+		const struct sr_probe_group *probe_group)
 {
 	GVariant *tuple, *rational[2];
 	GVariantBuilder gvb;
 	unsigned int i;
 	struct dev_context *devc;
+
+	(void)probe_group;
 
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:

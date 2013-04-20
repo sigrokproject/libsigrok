@@ -165,22 +165,22 @@ SR_API int sr_session_load(const char *filename)
 					sr_dev_open(sdi);
 					sr_session_dev_add(sdi);
 					sdi->driver->config_set(SR_CONF_SESSIONFILE,
-							g_variant_new_string(filename), sdi);
+							g_variant_new_string(filename), sdi, NULL);
 					sdi->driver->config_set(SR_CONF_CAPTUREFILE,
-							g_variant_new_string(val), sdi);
+							g_variant_new_string(val), sdi, NULL);
 					g_ptr_array_add(capturefiles, val);
 				} else if (!strcmp(keys[j], "samplerate")) {
 					sr_parse_sizestring(val, &tmp_u64);
 					sdi->driver->config_set(SR_CONF_SAMPLERATE,
-							g_variant_new_uint64(tmp_u64), sdi);
+							g_variant_new_uint64(tmp_u64), sdi, NULL);
 				} else if (!strcmp(keys[j], "unitsize")) {
 					tmp_u64 = strtoull(val, NULL, 10);
 					sdi->driver->config_set(SR_CONF_CAPTURE_UNITSIZE,
-							g_variant_new_uint64(tmp_u64), sdi);
+							g_variant_new_uint64(tmp_u64), sdi, NULL);
 				} else if (!strcmp(keys[j], "total probes")) {
 					total_probes = strtoull(val, NULL, 10);
 					sdi->driver->config_set(SR_CONF_CAPTURE_NUM_PROBES,
-							g_variant_new_uint64(total_probes), sdi);
+							g_variant_new_uint64(total_probes), sdi, NULL);
 					for (p = 0; p < total_probes; p++) {
 						snprintf(probename, SR_MAX_PROBENAME_LEN, "%" PRIu64, p);
 						if (!(probe = sr_probe_new(p, SR_PROBE_LOGIC, TRUE,
@@ -279,8 +279,8 @@ SR_API int sr_session_save(const char *filename, const struct sr_dev_inst *sdi,
 	fprintf(meta, "unitsize = %d\n", unitsize);
 	fprintf(meta, "total probes = %d\n", g_slist_length(sdi->probes));
 	if (sr_dev_has_option(sdi, SR_CONF_SAMPLERATE)) {
-		if (sr_config_get(sdi->driver, SR_CONF_SAMPLERATE,
-				&gvar, sdi) == SR_OK) {
+		if (sr_config_get(sdi->driver, sdi, NULL,
+					SR_CONF_SAMPLERATE, &gvar) == SR_OK) {
 			samplerate = g_variant_get_uint64(gvar);
 			s = sr_samplerate_string(samplerate);
 			fprintf(meta, "samplerate = %s\n", s);
