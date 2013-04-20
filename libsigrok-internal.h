@@ -43,11 +43,6 @@
 #define ARRAY_AND_SIZE(a) (a), ARRAY_SIZE(a)
 #endif
 
-/* Versions < 2.30.0 of glib don't have g_match_info_unref(). */
-#if !GLIB_CHECK_VERSION(2,30,0)
-#define g_match_info_unref g_match_info_free
-#endif
-
 struct sr_context {
 #ifdef HAVE_LIBUSB_1_0
 	libusb_context *libusb_ctx;
