@@ -69,8 +69,10 @@ def python_to_gvariant(value):
         return g_variant_new_string(value)
     if isinstance(value, Fraction):
         array = new_gvariant_ptr_array(2)
-        gvariant_ptr_array_setitem(array, 0, value.numerator)
-        gvariant_ptr_array_setitem(array, 1, value.denominator)
+        gvariant_ptr_array_setitem(array, 0,
+            g_variant_new_uint64(value.numerator))
+        gvariant_ptr_array_setitem(array, 1,
+            g_variant_new_uint64(value.denominator))
         result = g_variant_new_tuple(array, 2)
         delete_gvariant_ptr_array(array)
         return result
