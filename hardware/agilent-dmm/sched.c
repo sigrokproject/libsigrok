@@ -91,6 +91,7 @@ SR_PRIV int agdmm_receive_data(int fd, int revents, void *cb_data)
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
+	struct sr_serial_dev_inst *serial;
 	int len;
 
 	(void)fd;
@@ -101,10 +102,11 @@ SR_PRIV int agdmm_receive_data(int fd, int revents, void *cb_data)
 	if (!(devc = sdi->priv))
 		return TRUE;
 
+	serial = sdi->conn;
 	if (revents == G_IO_IN) {
 		/* Serial data arrived. */
 		while(AGDMM_BUFSIZE - devc->buflen - 1 > 0) {
-			len = serial_read(devc->serial, devc->buf + devc->buflen, 1);
+			len = serial_read(serial, devc->buf + devc->buflen, 1);
 			if (len < 1)
 				break;
 			devc->buflen += len;
@@ -127,17 +129,18 @@ SR_PRIV int agdmm_receive_data(int fd, int revents, void *cb_data)
 
 static int agdmm_send(const struct sr_dev_inst *sdi, const char *cmd)
 {
-	struct dev_context *devc;
+	struct sr_serial_dev_inst *serial;
 	char buf[32];
 
-	devc = sdi->priv;
+	serial = sdi->conn;
+
 	sr_spew("Sending '%s'.", cmd);
 	strncpy(buf, cmd, 28);
 	if (!strncmp(buf, "*IDN?", 5))
 		strncat(buf, "\r\n", 32);
 	else
 		strncat(buf, "\n\r\n", 32);
-	if (serial_write(devc->serial, buf, strlen(buf)) == -1) {
+	if (serial_write(serial, buf, strlen(buf)) == -1) {
 		sr_err("Failed to send: %s.", strerror(errno));
 		return SR_ERR;
 	}
