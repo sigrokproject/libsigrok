@@ -550,6 +550,7 @@ struct sr_probe {
 };
 
 struct sr_probe_group {
+	char *name;
 	/* List of sr_probe structs. */
 	GSList *probes;
 	/* Private data for driver use. */
