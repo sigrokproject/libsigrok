@@ -40,10 +40,13 @@ static const int32_t hwcaps[] = {
 	SR_CONF_TRIGGER_SOURCE,
 	SR_CONF_TRIGGER_SLOPE,
 	SR_CONF_HORIZ_TRIGGERPOS,
-	SR_CONF_VDIV,
-	SR_CONF_COUPLING,
 	SR_CONF_NUM_TIMEBASE,
+};
+
+static const int32_t analog_hwcaps[] = {
 	SR_CONF_NUM_VDIV,
+	SR_CONF_VDIV,
+	SR_CONF_COUPLING
 };
 
 static const uint64_t timebases[][2] = {
@@ -405,17 +408,22 @@ static int cleanup(void)
 static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_probe_group *probe_group)
 {
-
-	(void)sdi;
-	(void)probe_group;
+	struct dev_context *devc = sdi->priv;
+	unsigned int i;
 
 	switch (id) {
 	case SR_CONF_NUM_TIMEBASE:
 		*data = g_variant_new_int32(NUM_TIMEBASE);
 		break;
 	case SR_CONF_NUM_VDIV:
-		*data = g_variant_new_int32(NUM_VDIV);
-		break;
+		for (i = 0; i < 2; i++) {
+			if (probe_group == &devc->analog_groups[i])
+			{
+				*data = g_variant_new_int32(NUM_VDIV);
+				return SR_OK;
+			}
+		}
+		return SR_ERR_NA;
 	default:
 		return SR_ERR_NA;
 	}
@@ -429,11 +437,9 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 	struct dev_context *devc;
 	uint64_t tmp_u64, p, q;
 	double t_dbl;
-	unsigned int i;
+	unsigned int i, j;
 	int ret;
 	const char *tmp_str;
-
-	(void)probe_group;
 
 	devc = sdi->priv;
 
@@ -498,34 +504,40 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 		break;
 	case SR_CONF_VDIV:
 		g_variant_get(data, "(tt)", &p, &q);
-		for (i = 0; i < ARRAY_SIZE(vdivs); i++) {
-			if (vdivs[i][0] != p || vdivs[i][1] != q)
-				continue;
-			devc->vdiv[0] = devc->vdiv[1] = (float)p / q;
-			set_cfg(sdi, ":CHAN1:SCAL %.3f", devc->vdiv[0]);
-			ret = set_cfg(sdi, ":CHAN2:SCAL %.3f", devc->vdiv[1]);
-			break;
-		}
-		if (i == ARRAY_SIZE(vdivs))
-			ret = SR_ERR_ARG;
-		break;
-	case SR_CONF_COUPLING:
-		/* TODO: Not supporting coupling per channel yet. */
-		tmp_str = g_variant_get_string(data, NULL);
-		for (i = 0; i < ARRAY_SIZE(coupling); i++) {
-			if (!strcmp(tmp_str, coupling[i])) {
-				g_free(devc->coupling[0]);
-				g_free(devc->coupling[1]);
-				devc->coupling[0] = g_strdup(coupling[i]);
-				devc->coupling[1] = g_strdup(coupling[i]);
-				set_cfg(sdi, ":CHAN1:COUP %s", devc->coupling[0]);
-				ret = set_cfg(sdi, ":CHAN2:COUP %s", devc->coupling[1]);
-				break;
+		for (i = 0; i < 2; i++) {
+			if (probe_group == &devc->analog_groups[i])
+			{
+				for (j = 0; j < ARRAY_SIZE(vdivs); j++)
+				{
+					if (vdivs[j][0] != p || vdivs[j][1] != q)
+						continue;
+					devc->vdiv[i] = (float)p / q;
+					return set_cfg(sdi, ":CHAN%d:SCAL %.3f", i + 1,
+							devc->vdiv[i]);
+				}
+				return SR_ERR_ARG;
 			}
 		}
-		if (i == ARRAY_SIZE(coupling))
-			ret = SR_ERR_ARG;
-		break;
+		return SR_ERR_NA;
+	case SR_CONF_COUPLING:
+		tmp_str = g_variant_get_string(data, NULL);
+		for (i = 0; i < 2; i++) {
+			if (probe_group == &devc->analog_groups[i])
+			{
+				for (j = 0; j < ARRAY_SIZE(coupling); j++)
+				{
+					if (!strcmp(tmp_str, coupling[j]))
+					{
+						g_free(devc->coupling[i]);
+						devc->coupling[i] = g_strdup(coupling[j]);
+						return set_cfg(sdi, ":CHAN%d:COUP %s", i + 1,
+								devc->coupling[i]);
+					}
+				}
+				return SR_ERR_ARG;
+			}
+		}
+		return SR_ERR_NA;
 	default:
 		ret = SR_ERR_NA;
 		break;
@@ -540,9 +552,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	GVariant *tuple, *rational[2];
 	GVariantBuilder gvb;
 	unsigned int i;
-	struct dev_context *devc;
-
-	(void)probe_group;
+	struct dev_context *devc = sdi->priv;
 
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
@@ -550,22 +560,42 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 				hwopts, ARRAY_SIZE(hwopts), sizeof(int32_t));
 		break;
 	case SR_CONF_DEVICE_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+		if (probe_group == NULL) {
+			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
 				hwcaps, ARRAY_SIZE(hwcaps), sizeof(int32_t));
-		break;
-	case SR_CONF_COUPLING:
-		*data = g_variant_new_strv(coupling, ARRAY_SIZE(coupling));
-		break;
-	case SR_CONF_VDIV:
-		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
-		for (i = 0; i < ARRAY_SIZE(vdivs); i++) {
-			rational[0] = g_variant_new_uint64(vdivs[i][0]);
-			rational[1] = g_variant_new_uint64(vdivs[i][1]);
-			tuple = g_variant_new_tuple(rational, 2);
-			g_variant_builder_add_value(&gvb, tuple);
+			return SR_OK;
+		} else if (probe_group == &devc->digital_group) {
+			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+				NULL, 0, sizeof(int32_t));
+			return SR_OK;
+		} else {
+			for (i = 0; i < 2; i++) {
+				if (probe_group == &devc->analog_groups[i]) {
+					*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+						analog_hwcaps, ARRAY_SIZE(analog_hwcaps), sizeof(int32_t));
+					return SR_OK;
+				}
+			}
+			return SR_ERR_NA;
 		}
-		*data = g_variant_builder_end(&gvb);
-		break;
+	case SR_CONF_COUPLING:
+		for (i = 0; i < 2; i++) {
+			if (probe_group == &devc->analog_groups[i]) {
+				*data = g_variant_new_strv(coupling, ARRAY_SIZE(coupling));
+				return SR_OK;
+			}
+		}
+		return SR_ERR_NA;
+	case SR_CONF_VDIV:
+		for (i = 0; i < 2; i++) {
+			if (probe_group == &devc->analog_groups[i]) {
+				rational[0] = g_variant_new_uint64(vdivs[i][0]);
+				rational[1] = g_variant_new_uint64(vdivs[i][1]);
+				*data = g_variant_new_tuple(rational, 2);
+				return SR_OK;
+			}
+		}
+		return SR_ERR_NA;
 	case SR_CONF_TIMEBASE:
 		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
 		for (i = 0; i < ARRAY_SIZE(timebases); i++) {
@@ -580,7 +610,6 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		if (!sdi || !sdi->priv)
 			/* Can't know this until we have the exact model. */
 			return SR_ERR_ARG;
-		devc = sdi->priv;
 		*data = g_variant_new_strv(trigger_sources,
 				devc->has_digital ? ARRAY_SIZE(trigger_sources) : 4);
 		break;
