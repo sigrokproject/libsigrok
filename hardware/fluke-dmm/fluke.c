@@ -414,12 +414,14 @@ static void handle_qm_19x_data(const struct sr_dev_inst *sdi, char **tokens)
 static void handle_line(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
+	struct sr_serial_dev_inst *serial;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog *analog;
 	int num_tokens, n, i;
 	char cmd[16], **tokens;
 
 	devc = sdi->priv;
+	serial = sdi->conn;
 	sr_spew("Received line '%s' (%d).", devc->buf, devc->buflen);
 
 	if (devc->buflen == 1) {
@@ -456,7 +458,7 @@ static void handle_line(const struct sr_dev_inst *sdi)
 					/* Slip the request in now, before the main
 					 * timer loop asks for metadata again. */
 					n = sprintf(cmd, "QM %d\r", devc->meas_type);
-					if (serial_write(devc->serial, cmd, n) == -1)
+					if (serial_write(serial, cmd, n) == -1)
 						sr_err("Unable to send QM (measurement): %s.",
 								strerror(errno));
 				}
@@ -485,6 +487,7 @@ SR_PRIV int fluke_receive_data(int fd, int revents, void *cb_data)
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
+	struct sr_serial_dev_inst *serial;
 	int len;
 	int64_t now, elapsed;
 
@@ -496,10 +499,11 @@ SR_PRIV int fluke_receive_data(int fd, int revents, void *cb_data)
 	if (!(devc = sdi->priv))
 		return TRUE;
 
+	serial = sdi->conn;
 	if (revents == G_IO_IN) {
 		/* Serial data arrived. */
 		while(FLUKEDMM_BUFSIZE - devc->buflen - 1 > 0) {
-			len = serial_read(devc->serial, devc->buf + devc->buflen, 1);
+			len = serial_read(serial, devc->buf + devc->buflen, 1);
 			if (len < 1)
 				break;
 			devc->buflen++;
@@ -524,7 +528,7 @@ SR_PRIV int fluke_receive_data(int fd, int revents, void *cb_data)
 	 * out-of-sync or temporary disconnect issues. */
 	if ((devc->expect_response == FALSE && elapsed > devc->profile->poll_period)
 			|| elapsed > devc->profile->timeout) {
-		if (serial_write(devc->serial, "QM\r", 3) == -1)
+		if (serial_write(serial, "QM\r", 3) == -1)
 			sr_err("Unable to send QM: %s.", strerror(errno));
 		devc->cmd_sent_at = now;
 		devc->expect_response = TRUE;

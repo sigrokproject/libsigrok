@@ -54,7 +54,6 @@ struct dev_context {
 	const struct flukedmm_profile *profile;
 	uint64_t limit_samples;
 	uint64_t limit_msec;
-	struct sr_serial_dev_inst *serial;
 
 	/* Opaque pointer passed in by the frontend. */
 	void *cb_data;
