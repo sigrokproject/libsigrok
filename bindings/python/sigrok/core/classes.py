@@ -237,6 +237,30 @@ class ProbeGroup(object):
     def __iter__(self):
         return iter(self.probes)
 
+    def __getattr__(self, name):
+        key = config_key(name)
+        data = new_gvariant_ptr_ptr()
+        try:
+            check(sr_config_get(self.device.driver.struct, self.device.struct,
+                self.struct, key, data))
+        except Error as error:
+            if error.errno == SR_ERR_NA:
+                raise NotImplementedError(
+                    "Probe group does not implement %s" % name)
+            else:
+                raise AttributeError
+        value = gvariant_ptr_ptr_value(data)
+        return gvariant_to_python(value)
+
+    def __setattr__(self, name, value):
+        try:
+            key = config_key(name)
+        except AttributeError:
+            super(ProbeGroup, self).__setattr__(name, value)
+            return
+        check(sr_config_set(self.device.struct, self.struct,
+            key, python_to_gvariant(value)))
+
     @property
     def name(self):
         return self.struct.name
