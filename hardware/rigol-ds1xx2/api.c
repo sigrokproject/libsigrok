@@ -243,7 +243,7 @@ static GSList *hw_scan(GSList *options)
 		close(fd);
 		if (len == 0) {
 			g_free(device);
-			return NULL;
+			continue;
 		}
 
 		buf[len] = 0;
@@ -256,7 +256,7 @@ static GSList *hw_scan(GSList *options)
 		if (num_tokens < 4) {
 			g_strfreev(tokens);
 			g_free(device);
-			return NULL;
+			continue;
 		}
 
 		manufacturer = tokens[0];
@@ -266,7 +266,7 @@ static GSList *hw_scan(GSList *options)
 		if (strcmp(manufacturer, "Rigol Technologies")) {
 			g_strfreev(tokens);
 			g_free(device);
-			return NULL;
+			continue;
 		}
 
 		for (i = 0; i < ARRAY_SIZE(supported_models); i++) {
@@ -281,7 +281,7 @@ static GSList *hw_scan(GSList *options)
 			manufacturer, model, version))) {
 			g_strfreev(tokens);
 			g_free(device);
-			return NULL;
+			continue;
 		}
 
 		g_strfreev(tokens);
@@ -289,40 +289,46 @@ static GSList *hw_scan(GSList *options)
 		if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
 			sr_err("Device context malloc failed.");
 			g_free(device);
-			return NULL;
+			goto hw_scan_abort;
 		}
+
 		devc->limit_frames = 0;
 		devc->device = device;
 		devc->has_digital = has_digital;
 		sdi->priv = devc;
 		sdi->driver = di;
+		drvc->instances = g_slist_append(drvc->instances, sdi);
+		devices = g_slist_append(devices, sdi);
 
 		for (i = 0; i < 2; i++) {
 			if (!(probe = sr_probe_new(i, SR_PROBE_ANALOG, TRUE,
-			    i == 0 ? "CH1" : "CH2")))
-				return NULL;
+				    i == 0 ? "CH1" : "CH2")))
+				goto hw_scan_abort;
 			sdi->probes = g_slist_append(sdi->probes, probe);
 		}
 
 		if (devc->has_digital) {
 			for (i = 0; i < 16; i++) {
 				if (!(channel_name = g_strdup_printf("D%d", i)))
-					return NULL;
+					goto hw_scan_abort;
 				probe = sr_probe_new(i, SR_PROBE_LOGIC, TRUE, channel_name);
 				g_free(channel_name);
 				if (!probe)
-					return NULL;
+					goto hw_scan_abort;
 				sdi->probes = g_slist_append(sdi->probes, probe);
 			}
 		}
-
-		drvc->instances = g_slist_append(drvc->instances, sdi);
-		devices = g_slist_append(devices, sdi);
 	}
 
 	g_dir_close(dir);
 
 	return devices;
+
+hw_scan_abort:
+	g_dir_close(dir);
+	g_slist_free(devices);
+	clear_instances();
+	return NULL;
 }
 
 static GSList *hw_dev_list(void)
