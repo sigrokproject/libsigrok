@@ -24,7 +24,8 @@ from . import lowlevel
 import itertools
 
 __all__ = ['Error', 'Context', 'Driver', 'Device', 'Session', 'Packet', 'Log',
-    'LogLevel', 'PacketType', 'Quantity', 'Unit', 'QuantityFlag', 'ConfigKey']
+    'LogLevel', 'PacketType', 'Quantity', 'Unit', 'QuantityFlag', 'ConfigKey',
+	'ProbeType', 'Probe', 'ProbeGroup']
 
 class Error(Exception):
 
@@ -146,6 +147,8 @@ class Device(object):
     def __init__(self, driver, struct):
         self.driver = driver
         self.struct = struct
+        self._probes = None
+        self._probe_groups = None
 
     def __getattr__(self, name):
         key = getattr(ConfigKey, name.upper())
@@ -181,6 +184,73 @@ class Device(object):
     @property
     def version(self):
         return self.struct.version
+
+    @property
+    def probes(self):
+        if self._probes is None:
+            self._probes = {}
+            probe_list = self.struct.probes
+            while (probe_list):
+                probe_ptr = void_ptr_to_sr_probe_ptr(probe_list.data)
+                self._probes[probe_ptr.name] = Probe(self, probe_ptr)
+                probe_list = probe_list.next
+        return self._probes
+
+    @property
+    def probe_groups(self):
+        if self._probe_groups is None:
+            self._probe_groups = {}
+            probe_group_list = self.struct.probe_groups
+            while (probe_group_list):
+                probe_group_ptr = void_ptr_to_sr_probe_group_ptr(
+                    probe_group_list.data)
+                self._probe_groups[probe_group_ptr.name] = ProbeGroup(self,
+                    probe_group_ptr)
+                probe_group_list = probe_group_list.next
+        return self._probe_groups
+
+class Probe(object):
+
+    def __init__(self, device, struct):
+        self.device = device
+        self.struct = struct
+
+    @property
+    def type(self):
+        return ProbeType(self.struct.type)
+
+    @property
+    def enabled(self):
+        return self.struct.enabled
+
+    @property
+    def name(self):
+        return self.struct.name
+
+class ProbeGroup(object):
+
+    def __init__(self, device, struct):
+        self.device = device
+        self.struct = struct
+        self._probes = None
+
+    def __iter__(self):
+        return iter(self.probes)
+
+    @property
+    def name(self):
+        return self.struct.name
+
+    @property
+    def probes(self):
+        if self._probes is None:
+            self._probes = []
+            probe_list = self.struct.probes
+            while (probe_list):
+                probe_ptr = void_ptr_to_sr_probe_ptr(probe_list.data)
+                self._probes.append(Probe(self, probe_ptr))
+                probe_list = probe_list.next
+        return self._probes
 
 class Session(object):
 
@@ -235,7 +305,7 @@ class Packet(object):
                     void_ptr_to_sr_datafeed_analog_ptr(pointer))
             else:
                 raise NotImplementedError(
-                    "No Python mapping for packet type %ѕ" % self.struct.type)
+                    "No Python mapping for packet type %s" % self.struct.type)
         return self._payload
 
 class Logic(object):
@@ -337,6 +407,9 @@ class QuantityFlag(EnumValue):
 class ConfigKey(EnumValue):
     pass
 
+class ProbeType(EnumValue):
+    pass
+
 for symbol_name in dir(lowlevel):
     for prefix, cls in [
         ('SR_LOG_', LogLevel),
@@ -344,7 +417,8 @@ for symbol_name in dir(lowlevel):
         ('SR_MQ_', Quantity),
         ('SR_UNIT_', Unit),
         ('SR_MQFLAG_', QuantityFlag),
-        ('SR_CONF_', ConfigKey)]:
+        ('SR_CONF_', ConfigKey),
+        ('SR_PROBE_', ProbeType)]:
         if symbol_name.startswith(prefix):
             name = symbol_name[len(prefix):]
             value = getattr(lowlevel, symbol_name)
