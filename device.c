@@ -244,6 +244,7 @@ SR_PRIV struct sr_dev_inst *sr_dev_inst_new(int index, int status,
 	sdi->model = model ? g_strdup(model) : NULL;
 	sdi->version = version ? g_strdup(version) : NULL;
 	sdi->probes = NULL;
+	sdi->probe_groups = NULL;
 	sdi->conn = NULL;
 	sdi->priv = NULL;
 
