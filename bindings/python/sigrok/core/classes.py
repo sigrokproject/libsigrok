@@ -151,8 +151,8 @@ class Device(object):
         key = getattr(ConfigKey, name.upper())
         data = new_gvariant_ptr_ptr()
         try:
-            check(sr_config_get(self.driver.struct,
-                key.id, data, self.struct))
+            check(sr_config_get(self.driver.struct, self.struct, None,
+                key, data))
         except Error as error:
             if error.errno == SR_ERR_NA:
                 raise NotImplementedError(
@@ -168,8 +168,7 @@ class Device(object):
         except AttributeError:
             super(Device, self).__setattr__(name, value)
             return
-        check(sr_config_set(self.struct,
-            key.id, python_to_gvariant(value)))
+        check(sr_config_set(self.struct, None, key, python_to_gvariant(value)))
 
     @property
     def vendor(self):
