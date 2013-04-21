@@ -146,7 +146,30 @@ static void clear_helper(void *priv)
 {
 	struct dev_context *devc;
 
-	devc = priv;
+	for (l = drvc->instances; l; l = l->next) {
+		if (!(sdi = l->data))
+			continue;
+
+		if (sdi->conn)
+			sr_serial_dev_inst_free(sdi->conn);
+
+		g_slist_free(sdi->probe_groups);
+
+		if (!(devc = sdi->priv))
+			continue;
+
+		g_free(devc->device);
+		g_free(devc->coupling[0]);
+		g_free(devc->coupling[1]);
+		g_free(devc->trigger_source);
+		g_free(devc->trigger_slope);
+		g_slist_free(devc->analog_groups[0].probes);
+		g_slist_free(devc->analog_groups[1].probes);
+		g_slist_free(devc->digital_group.probes);
+		close(devc->fd);
+
+		sr_dev_inst_free(sdi);
+	}
 
 	g_free(devc->coupling[0]);
 	g_free(devc->coupling[1]);
@@ -260,10 +283,14 @@ static int probe_port(const char *port, GSList **devices)
 	devc->has_digital = has_digital;
 
 	for (i = 0; i < 2; i++) {
-		if (!(probe = sr_probe_new(i, SR_PROBE_ANALOG, TRUE,
-				i == 0 ? "CH1" : "CH2")))
+		channel_name = (i == 0 ? "CH1" : "CH2");
+		if (!(probe = sr_probe_new(i, SR_PROBE_ANALOG, TRUE, channel_name)))
 			return SR_ERR_MALLOC;
 		sdi->probes = g_slist_append(sdi->probes, probe);
+		devc->analog_groups[i].name = channel_name;
+		devc->analog_groups[i].probes = g_slist_append(NULL, probe);
+		sdi->probe_groups = g_slist_append(sdi->probe_groups,
+				&devc->analog_groups[i]);
 	}
 
 	if (devc->has_digital) {
@@ -275,6 +302,11 @@ static int probe_port(const char *port, GSList **devices)
 			if (!probe)
 				return SR_ERR_MALLOC;
 			sdi->probes = g_slist_append(sdi->probes, probe);
+			devc->digital_group.probes = g_slist_append(
+					devc->digital_group.probes, probe);
+			devc->digital_group.name = "LA";
+			sdi->probe_groups = g_slist_append(sdi->probe_groups,
+					&devc->digital_group);
 		}
 	}
 	sdi->priv = devc;

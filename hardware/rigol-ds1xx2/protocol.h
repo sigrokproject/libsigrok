@@ -42,6 +42,10 @@ struct dev_context {
 	/* Device features */
 	gboolean has_digital;
 
+	/* Probe groups */
+	struct sr_probe_group analog_groups[2];
+	struct sr_probe_group digital_group;
+
 	/* Acquisition settings */
 	GSList *enabled_analog_probes;
 	GSList *enabled_digital_probes;
