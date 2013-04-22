@@ -147,8 +147,6 @@ SR_PRIV struct dev_context *ols_dev_new(void)
 	devc->probe_mask = 0xffffffff;
 	devc->flag_reg = 0;
 
-	devc->serial = NULL;
-
 	return devc;
 }
 
@@ -322,10 +320,10 @@ SR_PRIV int ols_set_samplerate(const struct sr_dev_inst *sdi,
 SR_PRIV void abort_acquisition(const struct sr_dev_inst *sdi)
 {
 	struct sr_datafeed_packet packet;
-	struct dev_context *devc;
+	struct sr_serial_dev_inst *serial;
 
-	devc = sdi->priv;
-	sr_source_remove(devc->serial->fd);
+	serial = sdi->conn;
+	sr_source_remove(serial->fd);
 
 	/* Terminate session */
 	packet.type = SR_DF_END;
@@ -334,11 +332,12 @@ SR_PRIV void abort_acquisition(const struct sr_dev_inst *sdi)
 
 SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 {
+	struct drv_context *drvc;
+	struct dev_context *devc;
+	struct sr_serial_dev_inst *serial;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
 	struct sr_dev_inst *sdi;
-	struct drv_context *drvc;
-	struct dev_context *devc;
 	GSList *l;
 	uint32_t sample;
 	int num_channels, offset, i, j;
@@ -351,7 +350,8 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 	for (l = drvc->instances; l; l = l->next) {
 		sdi = l->data;
 		devc = sdi->priv;
-		if (devc->serial->fd == fd)
+		serial = sdi->conn;
+		if (serial->fd == fd)
 			break;
 		devc = NULL;
 	}
@@ -384,7 +384,7 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 	}
 
 	if (revents == G_IO_IN) {
-		if (serial_read(devc->serial, &byte, 1) != 1)
+		if (serial_read(serial, &byte, 1) != 1)
 			return FALSE;
 
 		/* Ignore it if we've read enough. */
@@ -506,9 +506,9 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 		}
 		g_free(devc->raw_sample_buf);
 
-		serial_flush(devc->serial);
+		serial_flush(serial);
 		abort_acquisition(sdi);
-		serial_close(devc->serial);
+		serial_close(serial);
 	}
 
 	return TRUE;

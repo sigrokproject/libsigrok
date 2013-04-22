@@ -77,8 +77,6 @@
 
 /* Private, per-device-instance driver context. */
 struct dev_context {
-	struct sr_serial_dev_inst *serial;
-
 	/* Fixed device settings */
 	uint32_t max_samples;
 	uint32_t max_samplerate;
