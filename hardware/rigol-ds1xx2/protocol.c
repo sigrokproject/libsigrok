@@ -32,6 +32,7 @@
 SR_PRIV int rigol_ds1xx2_receive(int fd, int revents, void *cb_data)
 {
 	struct sr_dev_inst *sdi;
+	struct sr_serial_dev_inst *serial;
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog analog;
@@ -42,17 +43,21 @@ SR_PRIV int rigol_ds1xx2_receive(int fd, int revents, void *cb_data)
 	int len, i, waveform_size;
 	struct sr_probe *probe;
 
+	(void) fd;
+
 	if (!(sdi = cb_data))
 		return TRUE;
 
 	if (!(devc = sdi->priv))
 		return TRUE;
 
+	serial = sdi->conn;
+
 	if (revents == G_IO_IN) {
 		probe = devc->channel_frame;
 		waveform_size = probe->type == SR_PROBE_ANALOG ?
 				ANALOG_WAVEFORM_SIZE : DIGITAL_WAVEFORM_SIZE;
-		len = read(fd, buf, waveform_size - devc->num_frame_bytes);
+		len = serial_read(serial, buf, waveform_size - devc->num_frame_bytes);
 		sr_dbg("Received %d bytes.", len);
 		if (len == -1)
 			return TRUE;
@@ -107,7 +112,7 @@ SR_PRIV int rigol_ds1xx2_receive(int fd, int revents, void *cb_data)
 			/* We got the frame for the first analog channel, but
 			 * there's a second analog channel. */
 			devc->channel_frame = devc->enabled_analog_probes->next->data;
-			rigol_ds1xx2_send(devc, ":WAV:DATA? CHAN%c",
+			rigol_ds1xx2_send(sdi, ":WAV:DATA? CHAN%c",
 					devc->channel_frame->name[2]);
 		} else {
 			/* Done with both analog channels in this frame. */
@@ -115,7 +120,7 @@ SR_PRIV int rigol_ds1xx2_receive(int fd, int revents, void *cb_data)
 					&& devc->channel_frame != devc->enabled_digital_probes->data) {
 				/* Now we need to get the digital data. */
 				devc->channel_frame = devc->enabled_digital_probes->data;
-				rigol_ds1xx2_send(devc, ":WAV:DATA? DIG");
+				rigol_ds1xx2_send(sdi, ":WAV:DATA? DIG");
 			} else if (++devc->num_frames == devc->limit_frames) {
 				/* End of last frame. */
 				sdi->driver->dev_acquisition_stop(sdi, cb_data);
@@ -123,11 +128,11 @@ SR_PRIV int rigol_ds1xx2_receive(int fd, int revents, void *cb_data)
 				/* Get the next frame, starting with the first analog channel. */
 				if (devc->enabled_analog_probes) {
 					devc->channel_frame = devc->enabled_analog_probes->data;
-					rigol_ds1xx2_send(devc, ":WAV:DATA? CHAN%c",
+					rigol_ds1xx2_send(sdi, ":WAV:DATA? CHAN%c",
 							devc->channel_frame->name[2]);
 				} else {
 					devc->channel_frame = devc->enabled_digital_probes->data;
-					rigol_ds1xx2_send(devc, ":WAV:DATA? DIG");
+					rigol_ds1xx2_send(sdi, ":WAV:DATA? DIG");
 				}
 			}
 		}
@@ -136,7 +141,7 @@ SR_PRIV int rigol_ds1xx2_receive(int fd, int revents, void *cb_data)
 	return TRUE;
 }
 
-SR_PRIV int rigol_ds1xx2_send(struct dev_context *devc, const char *format, ...)
+SR_PRIV int rigol_ds1xx2_send(const struct sr_dev_inst *sdi, const char *format, ...)
 {
 	va_list args;
 	char buf[256];
@@ -147,7 +152,7 @@ SR_PRIV int rigol_ds1xx2_send(struct dev_context *devc, const char *format, ...)
 	va_end(args);
 	strcat(buf, "\n");
 	len++;
-	out = write(devc->fd, buf, len);
+	out = serial_write(sdi->conn, buf, len);
 	buf[len - 1] = '\0';
 	if (out != len) {
 		sr_dbg("Only sent %d/%d bytes of '%s'.", out, len, buf);
@@ -162,15 +167,12 @@ SR_PRIV int rigol_ds1xx2_send(struct dev_context *devc, const char *format, ...)
 
 static int get_cfg(const struct sr_dev_inst *sdi, char *cmd, char *reply)
 {
-	struct dev_context *devc;
 	int len;
 
-	devc = sdi->priv;
-
-	if (rigol_ds1xx2_send(devc, cmd) != SR_OK)
+	if (rigol_ds1xx2_send(sdi, cmd) != SR_OK)
 		return SR_ERR;
 
-	if ((len = read(devc->fd, reply, 255)) < 0)
+	if ((len = serial_read(sdi->conn, reply, 255)) < 0)
 		return SR_ERR;
 	reply[len] = '\0';
 	sr_spew("Received '%s'.", reply);

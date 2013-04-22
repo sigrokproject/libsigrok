@@ -68,7 +68,7 @@ struct dev_context {
 };
 
 SR_PRIV int rigol_ds1xx2_receive(int fd, int revents, void *cb_data);
-SR_PRIV int rigol_ds1xx2_send(struct dev_context *devc, const char *format, ...);
+SR_PRIV int rigol_ds1xx2_send(const struct sr_dev_inst *sdi, const char *format, ...);
 SR_PRIV int rigol_ds1xx2_get_dev_cfg(const struct sr_dev_inst *sdi);
 
 #endif

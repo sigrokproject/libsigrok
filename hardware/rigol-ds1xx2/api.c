@@ -152,17 +152,22 @@ static int clear_instances(void)
 		return SR_OK;
 
 	for (l = drvc->instances; l; l = l->next) {
+
 		if (!(sdi = l->data))
 			continue;
-		if (!(devc = sdi->priv))
-			continue;
 
-		g_free(devc->device);
-		g_free(devc->coupling[0]);
-		g_free(devc->coupling[1]);
-		g_free(devc->trigger_source);
-		g_free(devc->trigger_slope);
-		close(devc->fd);
+		if (sdi->conn) {
+			serial_close(sdi->conn);
+			sr_serial_dev_inst_free(sdi->conn);
+		}
+
+		if ((devc = sdi->priv)) {
+			g_free(devc->device);
+			g_free(devc->coupling[0]);
+			g_free(devc->coupling[1]);
+			g_free(devc->trigger_source);
+			g_free(devc->trigger_slope);
+		}
 
 		sr_dev_inst_free(sdi);
 	}
@@ -175,16 +180,13 @@ static int clear_instances(void)
 
 static int set_cfg(const struct sr_dev_inst *sdi, const char *format, ...)
 {
-	struct dev_context *devc;
 	va_list args;
 	char buf[256];
-
-	devc = sdi->priv;
 
 	va_start(args, format);
 	vsnprintf(buf, 255, format, args);
 	va_end(args);
-	if (rigol_ds1xx2_send(devc, buf) != SR_OK)
+	if (rigol_ds1xx2_send(sdi, buf) != SR_OK)
 		return SR_ERR;
 
 	/* When setting a bunch of parameters in a row, the DS1052E scrambles
@@ -202,9 +204,10 @@ static int hw_init(struct sr_context *sr_ctx)
 
 static int probe_device(struct drv_context *drvc, const char *device)
 {
+	struct sr_serial_dev_inst *serial;
 	const gchar *idn_query = "*IDN?";
 	unsigned int i;
-	int len, num_tokens, fd;
+	int len, num_tokens;
 	const gchar *delimiter = ",";
 	gchar **tokens;
 	const char *manufacturer, *model, *version;
@@ -216,16 +219,23 @@ static int probe_device(struct drv_context *drvc, const char *device)
 	gchar *channel_name;
 	struct sr_probe *probe;
 
-	fd = open(device, O_RDWR);
-	len = write(fd, idn_query, strlen(idn_query));
-	len = read(fd, buf, sizeof(buf));
-	close(fd);
+	if (!(serial = sr_serial_dev_inst_new(device, NULL)))
+		return SR_ERR_MALLOC;
+
+	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
+		return SR_ERR;
+	len = serial_write(serial, idn_query, strlen(idn_query));
+	len = serial_read(serial, buf, sizeof(buf));
+	if (serial_close(serial) != SR_OK)
+		return SR_ERR;
+
+	sr_serial_dev_inst_free(serial);
+
 	if (len == 0)
 		return SR_ERR_NA;
 
 	buf[len] = 0;
 	tokens = g_strsplit(buf, delimiter, 0);
-	close(fd);
 	sr_dbg("response: %s %d [%s]", device, len, buf);
 
 	for (num_tokens = 0; tokens[num_tokens] != NULL; num_tokens++);
@@ -353,13 +363,14 @@ static GSList *hw_dev_list(void)
 static int hw_dev_open(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	int fd;
 
 	devc = sdi->priv;
 
-	if ((fd = open(devc->device, O_RDWR)) == -1)
+	if (!(sdi->conn = sr_serial_dev_inst_new(devc->device, NULL)))
 		return SR_ERR;
-	devc->fd = fd;
+
+	if (serial_open(sdi->conn, SERIAL_RDWR) != SR_OK)
+		return SR_ERR;
 
 	if (rigol_ds1xx2_get_dev_cfg(sdi) != SR_OK)
 		/* TODO: force configuration? */
@@ -370,11 +381,11 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 
 static int hw_dev_close(struct sr_dev_inst *sdi)
 {
-	struct dev_context *devc;
+	if (serial_close(sdi->conn) != SR_OK)
+		return SR_ERR;
 
-	devc = sdi->priv;
-
-	close(devc->fd);
+	sr_serial_dev_inst_free(sdi->conn);
+	sdi->conn = NULL;
 
 	return SR_OK;
 }
@@ -571,6 +582,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 {
+	struct sr_serial_dev_inst *serial;
 	struct dev_context *devc;
 	struct sr_probe *probe;
 	GSList *l;
@@ -578,6 +590,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 
 	(void)cb_data;
 
+	serial = sdi->conn;
 	devc = sdi->priv;
 
 	for (l = sdi->probes; l; l = l->next) {
@@ -591,7 +604,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 				/* Enabled channel is currently disabled, or vice versa. */
 				sprintf(cmd, ":CHAN%d:DISP %s", probe->index + 1,
 						probe->enabled ? "ON" : "OFF");
-				if (rigol_ds1xx2_send(devc, cmd) != SR_OK)
+				if (rigol_ds1xx2_send(sdi, cmd) != SR_OK)
 					return SR_ERR;
 			}
 		} else if (probe->type == SR_PROBE_LOGIC) {
@@ -602,7 +615,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 				/* Enabled channel is currently disabled, or vice versa. */
 				sprintf(cmd, ":DIG%d:TURN %s", probe->index,
 						probe->enabled ? "ON" : "OFF");
-				if (rigol_ds1xx2_send(devc, cmd) != SR_OK)
+				if (rigol_ds1xx2_send(sdi, cmd) != SR_OK)
 					return SR_ERR;
 			}
 		}
@@ -610,7 +623,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	if (!devc->enabled_analog_probes && !devc->enabled_digital_probes)
 		return SR_ERR;
 
-	sr_source_add(devc->fd, G_IO_IN, 50, rigol_ds1xx2_receive, (void *)sdi);
+	sr_source_add(serial->fd, G_IO_IN, 50, rigol_ds1xx2_receive, (void *)sdi);
 
 	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, DRIVER_LOG_DOMAIN);
@@ -618,12 +631,12 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	/* Fetch the first frame. */
 	if (devc->enabled_analog_probes) {
 		devc->channel_frame = devc->enabled_analog_probes->data;
-		if (rigol_ds1xx2_send(devc, ":WAV:DATA? CHAN%d",
+		if (rigol_ds1xx2_send(sdi, ":WAV:DATA? CHAN%d",
 				devc->channel_frame->index + 1) != SR_OK)
 			return SR_ERR;
 	} else {
 		devc->channel_frame = devc->enabled_digital_probes->data;
-		if (rigol_ds1xx2_send(devc, ":WAV:DATA? DIG") != SR_OK)
+		if (rigol_ds1xx2_send(sdi, ":WAV:DATA? DIG") != SR_OK)
 			return SR_ERR;
 	}
 
