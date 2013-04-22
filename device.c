@@ -361,4 +361,28 @@ SR_API int sr_dev_clear(const struct sr_dev_driver *driver)
 		return SR_OK;
 }
 
+SR_API int sr_dev_open(struct sr_dev_inst *sdi)
+{
+	int ret;
+
+	if (!sdi || !sdi->driver || !sdi->driver->dev_open)
+		return SR_ERR;
+
+	ret = sdi->driver->dev_open(sdi);
+
+	return ret;
+}
+
+SR_API int sr_dev_close(struct sr_dev_inst *sdi)
+{
+	int ret;
+
+	if (!sdi || !sdi->driver || !sdi->driver->dev_close)
+		return SR_ERR;
+
+	ret = sdi->driver->dev_close(sdi);
+
+	return ret;
+}
+
 /** @} */
