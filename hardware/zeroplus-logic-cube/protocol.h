@@ -51,7 +51,6 @@ struct dev_context {
 	// uint8_t trigger_buffer[NUM_TRIGGER_STAGES];
 	int trigger;
 	unsigned int capture_ratio;
-	struct sr_usb_dev_inst *usb;
 	const struct zp_model *prof;
 };
 

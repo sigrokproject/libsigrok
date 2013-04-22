@@ -244,6 +244,7 @@ static int clear_instances(void)
 	struct sr_dev_inst *sdi;
 	struct drv_context *drvc;
 	struct dev_context *devc;
+	struct sr_usb_dev_inst *usb;
 
 	drvc = di->priv;
 	for (l = drvc->instances; l; l = l->next) {
@@ -253,7 +254,8 @@ static int clear_instances(void)
 			sr_err("%s: sdi->priv was NULL, continuing", __func__);
 			continue;
 		}
-		sr_usb_dev_inst_free(devc->usb);
+		usb = sdi->conn;
+		sr_usb_dev_inst_free(usb);
 		/* Properly close all devices... */
 		hw_dev_close(sdi);
 		/* ...and free all their memory. */
@@ -352,7 +354,7 @@ static GSList *hw_scan(GSList *options)
 
 		devices = g_slist_append(devices, sdi);
 		drvc->instances = g_slist_append(drvc->instances, sdi);
-		devc->usb = sr_usb_dev_inst_new(
+		sdi->conn = sr_usb_dev_inst_new(
 			libusb_get_bus_number(devlist[i]),
 			libusb_get_device_address(devlist[i]), NULL);
 		devcnt++;
@@ -372,11 +374,13 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct drv_context *drvc;
+	struct sr_usb_dev_inst *usb;
 	libusb_device **devlist, *dev;
 	struct libusb_device_descriptor des;
 	int device_count, ret, i;
 
 	drvc = di->priv;
+	usb = sdi->conn;
 
 	if (!(devc = sdi->priv)) {
 		sr_err("%s: sdi->priv was NULL", __func__);
@@ -397,36 +401,35 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 			       libusb_error_name(ret));
 			continue;
 		}
-		if (libusb_get_bus_number(devlist[i]) == devc->usb->bus
-		    && libusb_get_device_address(devlist[i]) == devc->usb->address) {
+		if (libusb_get_bus_number(devlist[i]) == usb->bus
+		    && libusb_get_device_address(devlist[i]) == usb->address) {
 			dev = devlist[i];
 			break;
 		}
 	}
 	if (!dev) {
 		sr_err("Device on bus %d address %d disappeared!",
-		       devc->usb->bus, devc->usb->address);
+		       usb->bus, usb->address);
 		return SR_ERR;
 	}
 
-	if (!(ret = libusb_open(dev, &(devc->usb->devhdl)))) {
+	if (!(ret = libusb_open(dev, &(usb->devhdl)))) {
 		sdi->status = SR_ST_ACTIVE;
 		sr_info("Opened device %d on %d.%d interface %d.",
-			sdi->index, devc->usb->bus,
-			devc->usb->address, USB_INTERFACE);
+			sdi->index, usb->bus, usb->address, USB_INTERFACE);
 	} else {
 		sr_err("Failed to open device: %s.", libusb_error_name(ret));
 		return SR_ERR;
 	}
 
-	ret = libusb_set_configuration(devc->usb->devhdl, USB_CONFIGURATION);
+	ret = libusb_set_configuration(usb->devhdl, USB_CONFIGURATION);
 	if (ret < 0) {
 		sr_err("Unable to set USB configuration %d: %s.",
 		       USB_CONFIGURATION, libusb_error_name(ret));
 		return SR_ERR;
 	}
 
-	ret = libusb_claim_interface(devc->usb->devhdl, USB_INTERFACE);
+	ret = libusb_claim_interface(usb->devhdl, USB_INTERFACE);
 	if (ret != 0) {
 		sr_err("Unable to claim interface: %s.",
 		       libusb_error_name(ret));
@@ -434,11 +437,11 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 	}
 
 	/* Set default configuration after power on. */
-	if (analyzer_read_status(devc->usb->devhdl) == 0)
-		analyzer_configure(devc->usb->devhdl);
+	if (analyzer_read_status(usb->devhdl) == 0)
+		analyzer_configure(usb->devhdl);
 
-	analyzer_reset(devc->usb->devhdl);
-	analyzer_initialize(devc->usb->devhdl);
+	analyzer_reset(usb->devhdl);
+	analyzer_initialize(usb->devhdl);
 
 	//analyzer_set_memory_size(MEMORY_SIZE_512K);
 	// analyzer_set_freq(g_freq, g_freq_scale);
@@ -466,19 +469,19 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 
 static int hw_dev_close(struct sr_dev_inst *sdi)
 {
-	struct dev_context *devc;
+	struct sr_usb_dev_inst *usb;
 
-	devc = sdi->priv;
+	usb = sdi->conn;
 
-	if (!devc->usb->devhdl)
+	if (!usb->devhdl)
 		return SR_ERR;
 
 	sr_info("Closing device %d on %d.%d interface %d.", sdi->index,
-		devc->usb->bus, devc->usb->address, USB_INTERFACE);
-	libusb_release_interface(devc->usb->devhdl, USB_INTERFACE);
-	libusb_reset_device(devc->usb->devhdl);
-	libusb_close(devc->usb->devhdl);
-	devc->usb->devhdl = NULL;
+		usb->bus, usb->address, USB_INTERFACE);
+	libusb_release_interface(usb->devhdl, USB_INTERFACE);
+	libusb_reset_device(usb->devhdl);
+	libusb_close(usb->devhdl);
+	usb->devhdl = NULL;
 	sdi->status = SR_ST_INACTIVE;
 
 	return SR_OK;
@@ -588,13 +591,14 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 		void *cb_data)
 {
+	struct dev_context *devc;
+	struct sr_usb_dev_inst *usb;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
 	//uint64_t samples_read;
 	int res;
 	unsigned int packet_num, n;
 	unsigned char *buf;
-	struct dev_context *devc;
 
 	if (!(devc = sdi->priv)) {
 		sr_err("%s: sdi->priv was NULL", __func__);
@@ -606,21 +610,23 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 		return SR_ERR;
 	}
 
+	usb = sdi->conn;
+
 	set_triggerbar(devc);
 
 	/* Push configured settings to device. */
-	analyzer_configure(devc->usb->devhdl);
+	analyzer_configure(usb->devhdl);
 
-	analyzer_start(devc->usb->devhdl);
+	analyzer_start(usb->devhdl);
 	sr_info("Waiting for data.");
-	analyzer_wait_data(devc->usb->devhdl);
+	analyzer_wait_data(usb->devhdl);
 
 	sr_info("Stop address    = 0x%x.",
-		analyzer_get_stop_address(devc->usb->devhdl));
+		analyzer_get_stop_address(usb->devhdl));
 	sr_info("Now address     = 0x%x.",
-		analyzer_get_now_address(devc->usb->devhdl));
+		analyzer_get_now_address(usb->devhdl));
 	sr_info("Trigger address = 0x%x.",
-		analyzer_get_trigger_address(devc->usb->devhdl));
+		analyzer_get_trigger_address(usb->devhdl));
 
 	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, DRIVER_LOG_DOMAIN);
@@ -631,13 +637,13 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	}
 
 	//samples_read = 0;
-	analyzer_read_start(devc->usb->devhdl);
+	analyzer_read_start(usb->devhdl);
 	/* Send the incoming transfer to the session bus. */
 	n = get_memory_size(devc->memory_size);
 	if (devc->max_memory_size * 4 < n)
 		n = devc->max_memory_size * 4;
 	for (packet_num = 0; packet_num < n / PACKET_SIZE; packet_num++) {
-		res = analyzer_read_data(devc->usb->devhdl, buf, PACKET_SIZE);
+		res = analyzer_read_data(usb->devhdl, buf, PACKET_SIZE);
 		sr_info("Tried to read %d bytes, actually read %d bytes.",
 			PACKET_SIZE, res);
 
@@ -649,7 +655,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 		sr_session_send(cb_data, &packet);
 		//samples_read += res / 4;
 	}
-	analyzer_read_stop(devc->usb->devhdl);
+	analyzer_read_stop(usb->devhdl);
 	g_free(buf);
 
 	packet.type = SR_DF_END;
@@ -661,8 +667,9 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 /* TODO: This stops acquisition on ALL devices, ignoring dev_index. */
 static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
-	struct sr_datafeed_packet packet;
 	struct dev_context *devc;
+	struct sr_usb_dev_inst *usb;
+	struct sr_datafeed_packet packet;
 
 	packet.type = SR_DF_END;
 	sr_session_send(cb_data, &packet);
@@ -672,7 +679,8 @@ static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 		return SR_ERR_BUG;
 	}
 
-	analyzer_reset(devc->usb->devhdl);
+	usb = sdi->conn;
+	analyzer_reset(usb->devhdl);
 	/* TODO: Need to cancel and free any queued up transfers. */
 
 	return SR_OK;
