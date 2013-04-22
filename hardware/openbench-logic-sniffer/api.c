@@ -395,7 +395,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	readcount = MIN(devc->max_samples / num_channels, devc->limit_samples) / 4;
 
 	memset(trigger_config, 0, 16);
-	trigger_config[devc->num_stages - 1] |= 0x08;
+	trigger_config[devc->num_stages] |= 0x08;
 	if (devc->trigger_mask[0]) {
 		delaycount = readcount * (1 - devc->capture_ratio / 100.0);
 		devc->trigger_at = (readcount - delaycount) * 4 - devc->num_stages;
