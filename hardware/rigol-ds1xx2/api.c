@@ -30,6 +30,10 @@
 #define NUM_TIMEBASE  12
 #define NUM_VDIV      8
 
+static const int32_t hwopts[] = {
+	SR_CONF_CONN,
+};
+
 static const int32_t hwcaps[] = {
 	SR_CONF_OSCILLOSCOPE,
 	SR_CONF_TIMEBASE,
@@ -196,18 +200,8 @@ static int hw_init(struct sr_context *sr_ctx)
 	return std_hw_init(sr_ctx, di, DRIVER_LOG_DOMAIN);
 }
 
-static GSList *hw_scan(GSList *options)
+static int probe_device(struct drv_context *drvc, const char *device)
 {
-	struct drv_context *drvc;
-	struct sr_dev_inst *sdi;
-	struct dev_context *devc;
-	struct sr_probe *probe;
-	GSList *devices;
-	GDir *dir;
-	const gchar *dev_name;
-	const gchar *dev_dir = "/dev/";
-	const gchar *prefix = "usbtmc";
-	gchar *device;
 	const gchar *idn_query = "*IDN?";
 	unsigned int i;
 	int len, num_tokens, fd;
@@ -215,120 +209,140 @@ static GSList *hw_scan(GSList *options)
 	gchar **tokens;
 	const char *manufacturer, *model, *version;
 	gboolean matched = FALSE;
+	struct sr_dev_inst *sdi;
+	struct dev_context *devc;
 	gboolean has_digital = FALSE;
 	char buf[256];
 	gchar *channel_name;
+	struct sr_probe *probe;
 
-	(void)options;
+	fd = open(device, O_RDWR);
+	len = write(fd, idn_query, strlen(idn_query));
+	len = read(fd, buf, sizeof(buf));
+	close(fd);
+	if (len == 0)
+		return SR_ERR_NA;
+
+	buf[len] = 0;
+	tokens = g_strsplit(buf, delimiter, 0);
+	close(fd);
+	sr_dbg("response: %s %d [%s]", device, len, buf);
+
+	for (num_tokens = 0; tokens[num_tokens] != NULL; num_tokens++);
+
+	if (num_tokens < 4) {
+		g_strfreev(tokens);
+		return SR_ERR_NA;
+	}
+
+	manufacturer = tokens[0];
+	model = tokens[1];
+	version = tokens[3];
+
+	if (strcmp(manufacturer, "Rigol Technologies")) {
+		g_strfreev(tokens);
+		return SR_ERR_NA;
+	}
+
+	for (i = 0; i < ARRAY_SIZE(supported_models); i++) {
+		if (!strcmp(model, supported_models[i])) {
+			matched = 1;
+			has_digital = g_str_has_suffix(model, "D");
+			break;
+		}
+	}
+
+	if (!matched || !(sdi = sr_dev_inst_new(0, SR_ST_ACTIVE,
+		manufacturer, model, version))) {
+		g_strfreev(tokens);
+		return SR_ERR_NA;
+	}
+
+	g_strfreev(tokens);
+
+	if (!(devc = g_try_malloc0(sizeof(struct dev_context))))
+		return SR_ERR_MALLOC;
+
+	devc->limit_frames = 0;
+	if (!(devc->device = g_strdup(device)))
+		return SR_ERR_MALLOC;
+	devc->has_digital = has_digital;
+	sdi->priv = devc;
+	sdi->driver = di;
+	drvc->instances = g_slist_append(drvc->instances, sdi);
+
+	for (i = 0; i < 2; i++) {
+		if (!(probe = sr_probe_new(i, SR_PROBE_ANALOG, TRUE,
+				i == 0 ? "CH1" : "CH2")))
+			return SR_ERR_MALLOC;
+		sdi->probes = g_slist_append(sdi->probes, probe);
+	}
+
+	if (devc->has_digital) {
+		for (i = 0; i < 16; i++) {
+			if (!(channel_name = g_strdup_printf("D%d", i)))
+				return SR_ERR_MALLOC;
+			probe = sr_probe_new(i, SR_PROBE_LOGIC, TRUE, channel_name);
+			g_free(channel_name);
+			if (!probe)
+				return SR_ERR_MALLOC;
+			sdi->probes = g_slist_append(sdi->probes, probe);
+		}
+	}
+
+	return SR_OK;
+}
+
+static GSList *hw_scan(GSList *options)
+{
+	struct drv_context *drvc;
+	GSList *l, *devices;
+	struct sr_config *src;
+	GDir *dir;
+	const gchar *dev_name;
+	const gchar *dev_dir = "/dev/";
+	const gchar *prefix = "usbtmc";
+	gchar *device = NULL;
+	int ret;
 
 	drvc = di->priv;
 	drvc->instances = NULL;
 
-	devices = NULL;
-
-	dir = g_dir_open("/sys/class/usb/", 0, NULL);
-
-	if (dir == NULL)
-		return NULL;
-
-	while ((dev_name = g_dir_read_name(dir)) != NULL) {
-		if (strncmp(dev_name, prefix, strlen(prefix))) 
-			continue;
-
-		device = g_strconcat(dev_dir, dev_name, NULL);
-
-		fd = open(device, O_RDWR);
-		len = write(fd, idn_query, strlen(idn_query));
-		len = read(fd, buf, sizeof(buf));
-		close(fd);
-		if (len == 0) {
-			g_free(device);
-			continue;
-		}
-
-		buf[len] = 0;
-		tokens = g_strsplit(buf, delimiter, 0);
-		close(fd);
-		sr_dbg("response: %s %d [%s]", device, len, buf);
-
-		for (num_tokens = 0; tokens[num_tokens] != NULL; num_tokens++);
-
-		if (num_tokens < 4) {
-			g_strfreev(tokens);
-			g_free(device);
-			continue;
-		}
-
-		manufacturer = tokens[0];
-		model = tokens[1];
-		version = tokens[3];
-
-		if (strcmp(manufacturer, "Rigol Technologies")) {
-			g_strfreev(tokens);
-			g_free(device);
-			continue;
-		}
-
-		for (i = 0; i < ARRAY_SIZE(supported_models); i++) {
-			if (!strcmp(model, supported_models[i])) {
-				matched = 1;
-				has_digital = g_str_has_suffix(model, "D");
-				break;
-			}
-		}
-
-		if (!matched || !(sdi = sr_dev_inst_new(0, SR_ST_ACTIVE,
-			manufacturer, model, version))) {
-			g_strfreev(tokens);
-			g_free(device);
-			continue;
-		}
-
-		g_strfreev(tokens);
-
-		if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
-			sr_err("Device context malloc failed.");
-			g_free(device);
-			goto hw_scan_abort;
-		}
-
-		devc->limit_frames = 0;
-		devc->device = device;
-		devc->has_digital = has_digital;
-		sdi->priv = devc;
-		sdi->driver = di;
-		drvc->instances = g_slist_append(drvc->instances, sdi);
-		devices = g_slist_append(devices, sdi);
-
-		for (i = 0; i < 2; i++) {
-			if (!(probe = sr_probe_new(i, SR_PROBE_ANALOG, TRUE,
-				    i == 0 ? "CH1" : "CH2")))
-				goto hw_scan_abort;
-			sdi->probes = g_slist_append(sdi->probes, probe);
-		}
-
-		if (devc->has_digital) {
-			for (i = 0; i < 16; i++) {
-				if (!(channel_name = g_strdup_printf("D%d", i)))
-					goto hw_scan_abort;
-				probe = sr_probe_new(i, SR_PROBE_LOGIC, TRUE, channel_name);
-				g_free(channel_name);
-				if (!probe)
-					goto hw_scan_abort;
-				sdi->probes = g_slist_append(sdi->probes, probe);
-			}
+	for (l = options; l; l = l->next) {
+		src = l->data;
+		if (src->key == SR_CONF_CONN) {
+			device = g_variant_get_string(src->data, NULL);
+			break;
 		}
 	}
 
-	g_dir_close(dir);
+	if (device) {
+		ret = probe_device(drvc, device);
+		if (ret == SR_ERR_MALLOC) {
+			clear_instances();
+			return NULL;
+		}
+	} else {
+		if (!(dir = g_dir_open("/sys/class/usb/", 0, NULL)))
+			return NULL;
+		while ((dev_name = g_dir_read_name(dir))) {
+			if (strncmp(dev_name, prefix, strlen(prefix)))
+				continue;
+			device = g_strconcat(dev_dir, dev_name, NULL);
+			ret = probe_device(drvc, device);
+			g_free(device);
+			if (ret == SR_ERR_MALLOC) {
+				g_dir_close(dir);
+				clear_instances();
+				return NULL;
+			}
+		}
 
+		g_dir_close(dir);
+	}
+
+	devices = g_slist_copy(drvc->instances);
 	return devices;
-
-hw_scan_abort:
-	g_dir_close(dir);
-	g_slist_free(devices);
-	clear_instances();
-	return NULL;
 }
 
 static GSList *hw_dev_list(void)
@@ -509,6 +523,10 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 
 	switch (key) {
+	case SR_CONF_SCAN_OPTIONS:
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+				hwopts, ARRAY_SIZE(hwopts), sizeof(int32_t));
+		break;
 	case SR_CONF_DEVICE_OPTIONS:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
 				hwcaps, ARRAY_SIZE(hwcaps), sizeof(int32_t));
