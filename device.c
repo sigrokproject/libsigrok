@@ -345,7 +345,7 @@ SR_PRIV void sr_serial_dev_inst_free(struct sr_serial_dev_inst *serial)
 	g_free(serial);
 }
 
-SR_API GSList *sr_dev_inst_list(const struct sr_dev_driver *driver)
+SR_API GSList *sr_dev_list(const struct sr_dev_driver *driver)
 {
 	if (driver && driver->dev_list)
 		return driver->dev_list();
@@ -353,7 +353,7 @@ SR_API GSList *sr_dev_inst_list(const struct sr_dev_driver *driver)
 		return NULL;
 }
 
-SR_API int sr_dev_inst_clear(const struct sr_dev_driver *driver)
+SR_API int sr_dev_clear(const struct sr_dev_driver *driver)
 {
 	if (driver && driver->dev_clear)
 		return driver->dev_clear();
