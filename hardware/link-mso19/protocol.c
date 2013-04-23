@@ -1,5 +1,5 @@
 /*
- * This file is part of the sigrok project.
+ * This file is part of the libsigrok project.
  *
  * Copyright (C) 2011 Daniel Ribeiro <drwyrm@gmail.com>
  * Copyright (C) 2012 Renato Caldas <rmsc@fe.up.pt>

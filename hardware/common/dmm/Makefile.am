@@ -1,5 +1,5 @@
 ##
-## This file is part of the sigrok project.
+## This file is part of the libsigrok project.
 ##
 ## Copyright (C) 2012 Uwe Hermann <uwe@hermann-uwe.de>
 ##

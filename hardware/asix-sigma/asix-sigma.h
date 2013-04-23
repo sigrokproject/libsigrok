@@ -1,5 +1,5 @@
 /*
- * This file is part of the sigrok project.
+ * This file is part of the libsigrok project.
  *
  * Copyright (C) 2010 Håvard Espeland <gus@ping.uio.no>,
  * Copyright (C) 2010 Martin Stensgård <mastensg@ping.uio.no>
