@@ -215,7 +215,8 @@ SR_PRIV int mso_parse_serial(const char *iSerial, const char *iProduct,
 {
 	unsigned int u1, u2, u3, u4, u5, u6;
 
-	iProduct = iProduct;
+	(void)iProduct;
+
 	/* FIXME: This code is in the original app, but I think its
 	 * used only for the GUI */
 	/*    if (strstr(iProduct, "REV_02") || strstr(iProduct, "REV_03"))
