@@ -173,6 +173,7 @@ static int clear_instances(int dmm)
 	struct sr_dev_inst *sdi;
 	struct drv_context *drvc;
 	struct dev_context *devc;
+	struct sr_serial_dev_inst *serial;
 	GSList *l;
 	struct sr_dev_driver *di;
 
@@ -187,7 +188,8 @@ static int clear_instances(int dmm)
 			continue;
 		if (!(devc = sdi->priv))
 			continue;
-		sr_serial_dev_inst_free(devc->serial);
+		serial = sdi->conn;
+		sr_serial_dev_inst_free(serial);
 		sr_dev_inst_free(sdi);
 	}
 	g_slist_free(drvc->instances);
@@ -271,7 +273,8 @@ static GSList *scan(const char *conn, const char *serialcomm, int dmm)
 		goto scan_cleanup;
 	}
 
-	devc->serial = serial;
+	sdi->inst_type = SR_INST_SERIAL;
+	sdi->conn = serial;
 
 	sdi->priv = devc;
 	sdi->driver = dmms[dmm].di;
@@ -326,14 +329,10 @@ static GSList *hw_dev_list(int dmm)
 
 static int hw_dev_open(struct sr_dev_inst *sdi)
 {
-	struct dev_context *devc;
+	struct sr_serial_dev_inst *serial;
 
-	if (!(devc = sdi->priv)) {
-		sr_err("sdi->priv was NULL.");
-		return SR_ERR_BUG;
-	}
-
-	if (serial_open(devc->serial, SERIAL_RDWR | SERIAL_NONBLOCK) != SR_OK)
+	serial = sdi->conn;
+	if (serial_open(serial, SERIAL_RDWR | SERIAL_NONBLOCK) != SR_OK)
 		return SR_ERR;
 
 	sdi->status = SR_ST_ACTIVE;
@@ -343,12 +342,11 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 
 static int hw_dev_close(struct sr_dev_inst *sdi)
 {
-	struct dev_context *devc;
+	struct sr_serial_dev_inst *serial;
 
-	devc = sdi->priv;
-
-	if (devc->serial && devc->serial->fd != -1) {
-		serial_close(devc->serial);
+	serial = sdi->conn;
+	if (serial && serial->fd != -1) {
+		serial_close(serial);
 		sdi->status = SR_ST_INACTIVE;
 	}
 
@@ -417,6 +415,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 				    void *cb_data, int dmm)
 {
 	struct dev_context *devc;
+	struct sr_serial_dev_inst *serial;
 
 	if (!(devc = sdi->priv)) {
 		sr_err("sdi->priv was NULL.");
@@ -437,7 +436,8 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	std_session_send_df_header(cb_data, DRIVER_LOG_DOMAIN);
 
 	/* Poll every 50ms, or whenever some data comes in. */
-	sr_source_add(devc->serial->fd, G_IO_IN, 50,
+	serial = sdi->conn;
+	sr_source_add(serial->fd, G_IO_IN, 50,
 		      dmms[dmm].receive_data, (void *)sdi);
 
 	return SR_OK;
@@ -446,7 +446,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
 	return std_hw_dev_acquisition_stop_serial(sdi, cb_data, hw_dev_close,
-	       ((struct dev_context *)(sdi->priv))->serial, DRIVER_LOG_DOMAIN);
+						  sdi->conn, DRIVER_LOG_DOMAIN);
 }
 
 /* Driver-specific API function wrappers */
