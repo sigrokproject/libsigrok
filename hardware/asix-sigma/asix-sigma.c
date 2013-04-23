@@ -789,6 +789,9 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	int ret;
 
+	if (sdi->status != SR_ST_ACTIVE)
+		return SR_ERR_DEV_CLOSED;
+
 	devc = sdi->priv;
 
 	if (id == SR_CONF_SAMPLERATE) {
@@ -1270,6 +1273,9 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	uint8_t triggerselect = 0;
 	struct triggerinout triggerinout_conf;
 	struct triggerlut lut;
+
+	if (sdi->status != SR_ST_ACTIVE)
+		return SR_ERR_DEV_CLOSED;
 
 	devc = sdi->priv;
 

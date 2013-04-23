@@ -257,6 +257,9 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 	gint64 now;
 	int ret;
 
+	if (sdi->status != SR_ST_ACTIVE)
+		return SR_ERR_DEV_CLOSED;
+
 	if (!di->priv) {
 		sr_err("Driver was not initialized.");
 		return SR_ERR;
@@ -395,6 +398,9 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	struct libusb_transfer *transfer;
 	int ret, i;
 	unsigned char *buf;
+
+	if (sdi->status != SR_ST_ACTIVE)
+		return SR_ERR_DEV_CLOSED;
 
 	if (!di->priv) {
 		sr_err("Driver was not initialized.");

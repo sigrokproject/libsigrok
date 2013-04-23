@@ -216,10 +216,8 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	int ret;
 
-	if (sdi->status != SR_ST_ACTIVE) {
-		sr_err("Device inactive, can't set config options.");
-		return SR_ERR;
-	}
+	if (sdi->status != SR_ST_ACTIVE)
+		return SR_ERR_DEV_CLOSED;
 
 	if (!(devc = sdi->priv)) {
 		sr_err("sdi->priv was NULL.");
@@ -265,6 +263,9 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 				    void *cb_data)
 {
 	struct dev_context *devc;
+
+	if (sdi->status != SR_ST_ACTIVE)
+		return SR_ERR_DEV_CLOSED;
 
 	if (!(devc = sdi->priv)) {
 		sr_err("sdi->priv was NULL.");

@@ -229,12 +229,11 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	int ret;
 
+	if (sdi->status != SR_ST_ACTIVE)
+		return SR_ERR_DEV_CLOSED;
+
 	if (!di->priv) {
 		sr_err("Driver was not initialized.");
-		return SR_ERR;
-	}
-	if (sdi->status != SR_ST_ACTIVE) {
-		sr_err("Device inactive, can't set config options.");
 		return SR_ERR;
 	}
 
@@ -368,6 +367,9 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	uint64_t interval;
 	int ret, i;
 	unsigned char cmd[3], resp[4], *buf;
+
+	if (sdi->status != SR_ST_ACTIVE)
+		return SR_ERR_DEV_CLOSED;
 
 	if (!di->priv) {
 		sr_err("Driver was not initialized.");

@@ -524,10 +524,8 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 
-	if (!sdi) {
-		sr_err("%s: sdi was NULL", __func__);
-		return SR_ERR_ARG;
-	}
+	if (sdi->status != SR_ST_ACTIVE)
+		return SR_ERR_DEV_CLOSED;
 
 	if (!(devc = sdi->priv)) {
 		sr_err("%s: sdi->priv was NULL", __func__);
@@ -599,6 +597,9 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	int res;
 	unsigned int packet_num, n;
 	unsigned char *buf;
+
+	if (sdi->status != SR_ST_ACTIVE)
+		return SR_ERR_DEV_CLOSED;
 
 	if (!(devc = sdi->priv)) {
 		sr_err("%s: sdi->priv was NULL", __func__);

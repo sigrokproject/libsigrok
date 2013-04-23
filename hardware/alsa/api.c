@@ -92,6 +92,8 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
+	sdi->status = SR_ST_ACTIVE;
+
 	return SR_OK;
 }
 
@@ -108,6 +110,7 @@ static int hw_dev_close(struct sr_dev_inst *sdi)
 			sr_err("Failed to close device: %s.",
 			       snd_strerror(ret));
 			devc->capture_handle = NULL;
+            sdi->status = SR_ST_INACTIVE;
 		}
 	} else {
 		sr_dbg("No capture handle, no need to close audio device.");
@@ -142,6 +145,9 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi)
 static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
+
+	if (sdi->status != SR_ST_ACTIVE)
+		return SR_ERR_DEV_CLOSED;
 
 	devc = sdi->priv;
 
@@ -202,6 +208,9 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	struct dev_context *devc;
 	int count, ret;
 	char *endianness;
+
+	if (sdi->status != SR_ST_ACTIVE)
+		return SR_ERR_DEV_CLOSED;
 
 	devc = sdi->priv;
 	devc->cb_data = cb_data;

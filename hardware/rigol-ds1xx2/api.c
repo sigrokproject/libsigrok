@@ -414,10 +414,8 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
-	if (sdi->status != SR_ST_ACTIVE) {
-		sr_err("Device inactive, can't set config options.");
-		return SR_ERR;
-	}
+	if (sdi->status != SR_ST_ACTIVE)
+		return SR_ERR_DEV_CLOSED;
 
 	ret = SR_OK;
 	switch (id) {
@@ -575,7 +573,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	GSList *l;
 	char cmd[256];
 
-	(void)cb_data;
+	if (sdi->status != SR_ST_ACTIVE)
+		return SR_ERR_DEV_CLOSED;
 
 	serial = sdi->conn;
 	devc = sdi->priv;

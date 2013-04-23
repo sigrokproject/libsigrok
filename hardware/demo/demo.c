@@ -212,7 +212,7 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 {
 	(void)sdi;
 
-	/* Nothing needed so far. */
+	sdi->status = SR_ST_ACTIVE;
 
 	return SR_OK;
 }
@@ -221,7 +221,7 @@ static int hw_dev_close(struct sr_dev_inst *sdi)
 {
 	(void)sdi;
 
-	/* Nothing needed so far. */
+    sdi->status = SR_ST_INACTIVE;
 
 	return SR_OK;
 }
@@ -298,6 +298,9 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 	const char *stropt;
 
 	struct dev_context *const devc = sdi->priv;
+
+	if (sdi->status != SR_ST_ACTIVE)
+		return SR_ERR_DEV_CLOSED;
 
 	if (id == SR_CONF_SAMPLERATE) {
 		devc->cur_samplerate = g_variant_get_uint64(data);
@@ -459,6 +462,9 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 		void *cb_data)
 {
 	struct dev_context *const devc = sdi->priv;
+
+	if (sdi->status != SR_ST_ACTIVE)
+		return SR_ERR_DEV_CLOSED;
 
 	devc->cb_data = cb_data;
 	devc->samples_counter = 0;

@@ -223,7 +223,7 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 {
 
 	/* TODO */
-	(void)sdi;
+	sdi->status = SR_ST_ACTIVE;
 
 	return SR_OK;
 }
@@ -232,7 +232,7 @@ static int hw_dev_close(struct sr_dev_inst *sdi)
 {
 
 	/* TODO */
-	(void)sdi;
+    sdi->status = SR_ST_INACTIVE;
 
 	return SR_OK;
 }
@@ -253,10 +253,8 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 	/* TODO */
 	(void)data;
 
-	if (sdi->status != SR_ST_ACTIVE) {
-		sr_err("Device inactive, can't set config options.");
-		return SR_ERR;
-	}
+	if (sdi->status != SR_ST_ACTIVE)
+		return SR_ERR_DEV_CLOSED;
 
 	ret = SR_OK;
 	switch (id) {
@@ -285,8 +283,10 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 				    void *cb_data)
 {
 	/* TODO */
-	(void)sdi;
 	(void)cb_data;
+
+	if (sdi->status != SR_ST_ACTIVE)
+		return SR_ERR_DEV_CLOSED;
 
 	return SR_OK;
 }

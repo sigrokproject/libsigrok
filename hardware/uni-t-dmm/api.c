@@ -147,11 +147,15 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 {
 	struct drv_context *drvc;
 	struct dev_context *devc;
+    int ret;
 
 	drvc = di->priv;
 	devc = sdi->priv;
 
-	return sr_usb_open(drvc->sr_ctx->libusb_ctx, devc->usb);
+    if ((ret = sr_usb_open(drvc->sr_ctx->libusb_ctx, devc->usb)) == SR_OK)
+        sdi->status = SR_ST_ACTIVE;
+
+    return ret;
 }
 
 static int hw_dev_close(struct sr_dev_inst *sdi)
@@ -159,6 +163,8 @@ static int hw_dev_close(struct sr_dev_inst *sdi)
 	(void)sdi;
 
 	/* TODO */
+
+    sdi->status = SR_ST_INACTIVE;
 
 	return SR_OK;
 }

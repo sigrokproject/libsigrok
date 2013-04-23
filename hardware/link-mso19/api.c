@@ -315,7 +315,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 
 	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR;
+		return SR_ERR_DEV_CLOSED;
 
 	switch (id) {
 	case SR_CONF_SAMPLERATE:
@@ -405,10 +405,10 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	struct dev_context *devc;
 	int ret = SR_ERR;
 
-	devc = sdi->priv;
-
 	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR;
+		return SR_ERR_DEV_CLOSED;
+
+	devc = sdi->priv;
 
 	if (mso_configure_probes(sdi) != SR_OK) {
 		sr_err("Failed to configure probes.");

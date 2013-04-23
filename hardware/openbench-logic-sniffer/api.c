@@ -280,6 +280,9 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 	int ret;
 	uint64_t tmp_u64;
 
+	if (sdi->status != SR_ST_ACTIVE)
+		return SR_ERR_DEV_CLOSED;
+
 	devc = sdi->priv;
 
 	switch (id) {
@@ -366,11 +369,11 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	int num_channels;
 	int i;
 
+	if (sdi->status != SR_ST_ACTIVE)
+		return SR_ERR_DEV_CLOSED;
+
 	devc = sdi->priv;
 	serial = sdi->conn;
-
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR;
 
 	if (ols_configure_probes(sdi) != SR_OK) {
 		sr_err("Failed to configure probes.");
