@@ -78,8 +78,6 @@ struct dev_context {
 
 	int64_t starttime;
 
-	struct sr_serial_dev_inst *serial;
-
 	uint8_t buf[SERIAL_BUFSIZE];
 	int bufoffset;
 	int buflen;

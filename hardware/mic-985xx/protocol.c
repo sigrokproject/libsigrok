@@ -146,13 +146,15 @@ static int handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi, int idx)
 static void handle_new_data(struct sr_dev_inst *sdi, int idx)
 {
 	struct dev_context *devc;
+	struct sr_serial_dev_inst *serial;
 	int len, i, offset = 0;
 
 	devc = sdi->priv;
+	serial = sdi->conn;
 
 	/* Try to get as much data as the buffer can hold. */
 	len = SERIAL_BUFSIZE - devc->buflen;
-	len = serial_read(devc->serial, devc->buf + devc->buflen, len);
+	len = serial_read(serial, devc->buf + devc->buflen, len);
 	if (len < 1) {
 		sr_err("Serial port read error: %d.", len);
 		return;
@@ -182,6 +184,7 @@ static int receive_data(int fd, int revents, int idx, void *cb_data)
 	struct dev_context *devc;
 	int64_t t;
 	static gboolean first_time = TRUE;
+	struct sr_serial_dev_inst *serial;
 
 	(void)fd;
 
@@ -191,13 +194,15 @@ static int receive_data(int fd, int revents, int idx, void *cb_data)
 	if (!(devc = sdi->priv))
 		return TRUE;
 
+	serial = sdi->conn;
+
 	if (revents == G_IO_IN) {
 		/* New data arrived. */
 		handle_new_data(sdi, idx);
 	} else {
 		/* Timeout. */
 		if (first_time) {
-			mic_cmd_set_realtime_mode(devc->serial);
+			mic_cmd_set_realtime_mode(serial);
 			first_time = FALSE;
 		}
 	}
