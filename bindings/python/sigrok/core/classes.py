@@ -24,7 +24,7 @@ from . import lowlevel
 import itertools
 
 __all__ = ['Error', 'Context', 'Driver', 'Device', 'Session', 'Packet', 'Log',
-    'LogLevel', 'PacketType', 'Quantity', 'Unit', 'QuantityFlag']
+    'LogLevel', 'PacketType', 'Quantity', 'Unit', 'QuantityFlag', 'ConfigKey']
 
 class Error(Exception):
 
@@ -34,12 +34,6 @@ class Error(Exception):
 def check(result):
     if result != SR_OK:
         raise Error(result)
-
-def config_key(name):
-    if not name.lower() == name:
-        raise AttributeError
-    key_name = "SR_CONF_" + name.upper()
-    return getattr(lowlevel, key_name)
 
 def gvariant_to_python(value):
     type_string = g_variant_get_type_string(value)
@@ -145,10 +139,11 @@ class Device(object):
         self.struct = struct
 
     def __getattr__(self, name):
-        key = config_key(name)
+        key = getattr(ConfigKey, name.upper())
         data = new_gvariant_ptr_ptr()
         try:
-            check(sr_config_get(self.driver.struct, key, data, self.struct))
+            check(sr_config_get(self.driver.struct,
+                key.id, data, self.struct))
         except Error as error:
             if error.errno == SR_ERR_NA:
                 raise NotImplementedError(
@@ -160,11 +155,12 @@ class Device(object):
 
     def __setattr__(self, name, value):
         try:
-            key = config_key(name)
+            key = getattr(ConfigKey, name.upper())
         except AttributeError:
             super(Device, self).__setattr__(name, value)
             return
-        check(sr_config_set(self.struct, key, python_to_gvariant(value)))
+        check(sr_config_set(self.struct,
+            key.id, python_to_gvariant(value)))
 
     @property
     def vendor(self):
@@ -327,13 +323,17 @@ class QuantityFlag(EnumValue):
             mask = new_mask
         return result
 
+class ConfigKey(EnumValue):
+    pass
+
 for symbol_name in dir(lowlevel):
     for prefix, cls in [
         ('SR_LOG_', LogLevel),
         ('SR_DF_', PacketType),
         ('SR_MQ_', Quantity),
         ('SR_UNIT_', Unit),
-        ('SR_MQFLAG_', QuantityFlag)]:
+        ('SR_MQFLAG_', QuantityFlag),
+        ('SR_CONF_', ConfigKey)]:
         if symbol_name.startswith(prefix):
             name = symbol_name[len(prefix):]
             value = getattr(lowlevel, symbol_name)
