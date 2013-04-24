@@ -124,7 +124,7 @@ class Driver(object):
             key = getattr(ConfigKey, name.upper())
             src = sr_config()
             src.key = key.id
-            src.value = python_to_gvariant(value)
+            src.data = python_to_gvariant(value)
             options.append(src.this)
         option_list = python_to_gslist(options)
         device_list = sr_driver_scan(self.struct, option_list)
