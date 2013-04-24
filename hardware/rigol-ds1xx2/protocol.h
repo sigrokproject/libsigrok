@@ -60,8 +60,6 @@ struct dev_context {
 	char *coupling[2];
 
 	/* Operational state */
-	char *device;
-	int fd;
 	uint64_t num_frames;
 	uint64_t num_frame_bytes;
 	struct sr_probe *channel_frame;

@@ -152,23 +152,18 @@ static int clear_instances(void)
 		return SR_OK;
 
 	for (l = drvc->instances; l; l = l->next) {
-
 		if (!(sdi = l->data))
 			continue;
 
-		if (sdi->conn) {
-			serial_close(sdi->conn);
+		if (sdi->conn)
 			sr_serial_dev_inst_free(sdi->conn);
-		}
 
 		if ((devc = sdi->priv)) {
-			g_free(devc->device);
 			g_free(devc->coupling[0]);
 			g_free(devc->coupling[1]);
 			g_free(devc->trigger_source);
 			g_free(devc->trigger_slope);
 		}
-
 		sr_dev_inst_free(sdi);
 	}
 
@@ -202,29 +197,26 @@ static int hw_init(struct sr_context *sr_ctx)
 	return std_hw_init(sr_ctx, di, DRIVER_LOG_DOMAIN);
 }
 
-static int probe_device(struct drv_context *drvc, const char *device)
+static int probe_port(const char *port, GSList **devices)
 {
+	struct dev_context *devc;
+	struct sr_dev_inst *sdi;
 	struct sr_serial_dev_inst *serial;
-	const gchar *idn_query = "*IDN?";
+	struct sr_probe *probe;
 	unsigned int i;
 	int len, num_tokens;
-	const gchar *delimiter = ",";
-	gchar **tokens;
+	gboolean matched, has_digital;
 	const char *manufacturer, *model, *version;
-	gboolean matched = FALSE;
-	struct sr_dev_inst *sdi;
-	struct dev_context *devc;
-	gboolean has_digital = FALSE;
 	char buf[256];
-	gchar *channel_name;
-	struct sr_probe *probe;
+	gchar **tokens, *channel_name;
 
-	if (!(serial = sr_serial_dev_inst_new(device, NULL)))
+    *devices = NULL;
+	if (!(serial = sr_serial_dev_inst_new(port, NULL)))
 		return SR_ERR_MALLOC;
 
 	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
 		return SR_ERR;
-	len = serial_write(serial, idn_query, strlen(idn_query));
+	len = serial_write(serial, "*IDN?", 5);
 	len = serial_read(serial, buf, sizeof(buf));
 	if (serial_close(serial) != SR_OK)
 		return SR_ERR;
@@ -235,8 +227,8 @@ static int probe_device(struct drv_context *drvc, const char *device)
 		return SR_ERR_NA;
 
 	buf[len] = 0;
-	tokens = g_strsplit(buf, delimiter, 0);
-	sr_dbg("response: %s %d [%s]", device, len, buf);
+	tokens = g_strsplit(buf, ",", 0);
+	sr_dbg("response: %s [%s]", port, buf);
 
 	for (num_tokens = 0; tokens[num_tokens] != NULL; num_tokens++);
 
@@ -254,9 +246,10 @@ static int probe_device(struct drv_context *drvc, const char *device)
 		return SR_ERR_NA;
 	}
 
+    matched = has_digital = FALSE;
 	for (i = 0; i < ARRAY_SIZE(supported_models); i++) {
 		if (!strcmp(model, supported_models[i])) {
-			matched = 1;
+			matched = TRUE;
 			has_digital = g_str_has_suffix(model, "D");
 			break;
 		}
@@ -270,16 +263,14 @@ static int probe_device(struct drv_context *drvc, const char *device)
 
 	g_strfreev(tokens);
 
+	if (!(sdi->conn = sr_serial_dev_inst_new(port, NULL)))
+		return SR_ERR_MALLOC;
+	sdi->driver = di;
+
 	if (!(devc = g_try_malloc0(sizeof(struct dev_context))))
 		return SR_ERR_MALLOC;
-
 	devc->limit_frames = 0;
-	if (!(devc->device = g_strdup(device)))
-		return SR_ERR_MALLOC;
 	devc->has_digital = has_digital;
-	sdi->priv = devc;
-	sdi->driver = di;
-	drvc->instances = g_slist_append(drvc->instances, sdi);
 
 	for (i = 0; i < 2; i++) {
 		if (!(probe = sr_probe_new(i, SR_PROBE_ANALOG, TRUE,
@@ -299,6 +290,9 @@ static int probe_device(struct drv_context *drvc, const char *device)
 			sdi->probes = g_slist_append(sdi->probes, probe);
 		}
 	}
+	sdi->priv = devc;
+
+	*devices = g_slist_append(NULL, sdi);
 
 	return SR_OK;
 }
@@ -306,52 +300,48 @@ static int probe_device(struct drv_context *drvc, const char *device)
 static GSList *hw_scan(GSList *options)
 {
 	struct drv_context *drvc;
-	GSList *l, *devices;
 	struct sr_config *src;
+	GSList *l, *devices;
 	GDir *dir;
-	const gchar *dev_name;
-	const gchar *dev_dir = "/dev/";
-	const gchar *prefix = "usbtmc";
-	gchar *device = NULL;
 	int ret;
+	const gchar *dev_name;
+	gchar *port = NULL;
 
 	drvc = di->priv;
-	drvc->instances = NULL;
 
 	for (l = options; l; l = l->next) {
 		src = l->data;
 		if (src->key == SR_CONF_CONN) {
-			device = g_variant_get_string(src->data, NULL);
+			port = (char *)g_variant_get_string(src->data, NULL);
 			break;
 		}
 	}
 
-	if (device) {
-		ret = probe_device(drvc, device);
-		if (ret == SR_ERR_MALLOC) {
-			clear_instances();
+    devices = NULL;
+	if (port) {
+		if (probe_port(port, &devices) == SR_ERR_MALLOC)
 			return NULL;
-		}
 	} else {
 		if (!(dir = g_dir_open("/sys/class/usb/", 0, NULL)))
 			return NULL;
 		while ((dev_name = g_dir_read_name(dir))) {
-			if (strncmp(dev_name, prefix, strlen(prefix)))
+			if (strncmp(dev_name, "usbtmc", 6))
 				continue;
-			device = g_strconcat(dev_dir, dev_name, NULL);
-			ret = probe_device(drvc, device);
-			g_free(device);
+			port = g_strconcat("/dev/", dev_name, NULL);
+			ret = probe_port(port, &devices);
+			g_free(port);
 			if (ret == SR_ERR_MALLOC) {
 				g_dir_close(dir);
-				clear_instances();
 				return NULL;
 			}
 		}
-
 		g_dir_close(dir);
 	}
 
-	devices = g_slist_copy(drvc->instances);
+    /* Tack a copy of the newly found devices onto the driver list. */
+    l = g_slist_copy(devices);
+    drvc->instances = g_slist_concat(drvc->instances, l);
+
 	return devices;
 }
 
@@ -362,30 +352,27 @@ static GSList *hw_dev_list(void)
 
 static int hw_dev_open(struct sr_dev_inst *sdi)
 {
-	struct dev_context *devc;
-
-	devc = sdi->priv;
-
-	if (!(sdi->conn = sr_serial_dev_inst_new(devc->device, NULL)))
-		return SR_ERR;
 
 	if (serial_open(sdi->conn, SERIAL_RDWR) != SR_OK)
 		return SR_ERR;
 
 	if (rigol_ds1xx2_get_dev_cfg(sdi) != SR_OK)
-		/* TODO: force configuration? */
 		return SR_ERR;
+
+    sdi->status = SR_ST_ACTIVE;
 
 	return SR_OK;
 }
 
 static int hw_dev_close(struct sr_dev_inst *sdi)
 {
-	if (serial_close(sdi->conn) != SR_OK)
-		return SR_ERR;
+	struct sr_serial_dev_inst *serial;
 
-	sr_serial_dev_inst_free(sdi->conn);
-	sdi->conn = NULL;
+	serial = sdi->conn;
+	if (serial && serial->fd != -1) {
+		serial_close(serial);
+		sdi->status = SR_ST_INACTIVE;
+	}
 
 	return SR_OK;
 }
@@ -648,6 +635,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
 	struct dev_context *devc;
+	struct sr_serial_dev_inst *serial;
 
 	(void)cb_data;
 
@@ -662,7 +650,8 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 	g_slist_free(devc->enabled_digital_probes);
 	devc->enabled_analog_probes = NULL;
 	devc->enabled_digital_probes = NULL;
-	sr_source_remove(devc->fd);
+	serial = sdi->conn;
+	sr_source_remove(serial->fd);
 
 	return SR_OK;
 }
