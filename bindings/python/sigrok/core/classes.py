@@ -125,14 +125,9 @@ class Driver(object):
         if not self._initialized:
             check(sr_driver_init(self.context.struct, self.struct))
             self._initialized = True
-        devices = []
         device_list = sr_driver_scan(self.struct, None)
-        device_list_item = device_list
-        while device_list_item:
-            ptr = device_list_item.data
-            device_ptr = gpointer_to_sr_dev_inst_ptr(ptr)
-            devices.append(Device(self, device_ptr))
-            device_list_item = device_list_item.next
+        devices = [Device(self, gpointer_to_sr_dev_inst_ptr(ptr))
+            for ptr in gslist_to_python(device_list)]
         g_slist_free(device_list)
         return devices
 

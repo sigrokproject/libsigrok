@@ -78,8 +78,36 @@ PyObject *cdata(const void *data, unsigned long size)
 #endif
 }
 
+GSList *python_to_gslist(PyObject *pylist)
+{
+    if (PyList_Check(pylist)) {
+        GSList *gslist = NULL;
+        int size = PyList_Size(pylist);
+        int i;
+        for (i = size - 1; i >= 0; i--) {
+            SwigPyObject *o = (SwigPyObject *)PyList_GetItem(pylist, i);
+            void *data = o->ptr;
+            gslist = g_slist_prepend(gslist, data);
+        }
+        return gslist;
+    }
+    return NULL;
+}
+
+PyObject *gslist_to_python(GSList *gslist)
+{
+    PyObject *pylist = PyList_New(0);
+    GSList *l;
+    for (l = gslist; l; l = l->next)
+        PyList_Append(pylist, SWIG_NewPointerObj(l->data, SWIGTYPE_p_void, 0));
+    return pylist;
+}
+
 %}
 
 int sr_session_datafeed_python_callback_add(PyObject *cb);
 
 PyObject *cdata(const void *data, unsigned long size);
+
+GSList *python_to_gslist(PyObject *pylist);
+PyObject *gslist_to_python(GSList *gslist);
