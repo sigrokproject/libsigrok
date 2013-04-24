@@ -369,8 +369,6 @@ static GSList *hw_scan(GSList *options)
 	int devcnt, num_logic_probes, ret, i, j;
 	const char *conn;
 
-	(void)options;
-
 	drvc = di->priv;
 
 	/* This scan always invalidates any previous scans. */
