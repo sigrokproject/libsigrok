@@ -112,6 +112,7 @@ int tondaj_sl_814_receive_data(int fd, int revents, void *cb_data)
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
+	struct sr_serial_dev_inst *serial;
 	uint8_t buf[3];
 	int ret;
 
@@ -119,6 +120,7 @@ int tondaj_sl_814_receive_data(int fd, int revents, void *cb_data)
 	(void)revents;
 
 	sdi = cb_data;
+	serial = sdi->conn;
 	devc = sdi->priv;
 
 	/* TODO: Parts of this code need to be improved later. */
@@ -131,14 +133,14 @@ int tondaj_sl_814_receive_data(int fd, int revents, void *cb_data)
 		buf[2] = 0x0d;
 		sr_spew("Sending init command: %02x %02x %02x.",
 			buf[0], buf[1], buf[2]);
-		if ((ret = serial_write(devc->serial, buf, 3)) < 0) {
+		if ((ret = serial_write(serial, buf, 3)) < 0) {
 			sr_err("Error sending init command: %d.", ret);
 			return FALSE;
 		}
 		devc->state = GET_INIT_REPLY;
 	} else if (devc->state == GET_INIT_REPLY) {
 		/* If we just sent the "init" command, get its reply. */
-		if ((ret = serial_read(devc->serial, buf, 2)) < 0) {
+		if ((ret = serial_read(serial, buf, 2)) < 0) {
 			sr_err("Error reading init reply: %d.", ret);
 			return FALSE;
 		}
@@ -157,7 +159,7 @@ int tondaj_sl_814_receive_data(int fd, int revents, void *cb_data)
 		buf[2] = 0x0d;
 		sr_spew("Sending data request command: %02x %02x %02x.",
 			buf[0], buf[1], buf[2]);
-		if ((ret = serial_write(devc->serial, buf, 3)) < 0) {
+		if ((ret = serial_write(serial, buf, 3)) < 0) {
 			sr_err("Error sending request command: %d.", ret);
 			return FALSE;
 		}
@@ -165,7 +167,7 @@ int tondaj_sl_814_receive_data(int fd, int revents, void *cb_data)
 		devc->state = GET_PACKET;
 	} else if (devc->state == GET_PACKET) {
 		/* Read a packet from the device. */
-		ret = serial_read(devc->serial, devc->buf + devc->buflen,
+		ret = serial_read(serial, devc->buf + devc->buflen,
 				  4 - devc->buflen);
 		if (ret < 0) {
 			sr_err("Error reading packet: %d.", ret);

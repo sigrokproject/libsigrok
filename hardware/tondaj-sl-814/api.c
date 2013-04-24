@@ -46,6 +46,7 @@ static int clear_instances(void)
 	struct sr_dev_inst *sdi;
 	struct drv_context *drvc;
 	struct dev_context *devc;
+	struct sr_serial_dev_inst *serial;
 	GSList *l;
 
 	if (!(drvc = di->priv))
@@ -56,7 +57,8 @@ static int clear_instances(void)
 			continue;
 		if (!(devc = sdi->priv))
 			continue;
-		sr_serial_dev_inst_free(devc->serial);
+		serial = sdi->conn;
+		sr_serial_dev_inst_free(serial);
 		sr_dev_inst_free(sdi);
 	}
 
@@ -80,6 +82,7 @@ static GSList *hw_scan(GSList *options)
 	struct sr_probe *probe;
 	GSList *devices, *l;
 	const char *conn, *serialcomm;
+	struct sr_serial_dev_inst *serial;
 
 	drvc = di->priv;
 	drvc->instances = NULL;
@@ -120,11 +123,14 @@ static GSList *hw_scan(GSList *options)
 		return NULL;
 	}
 
-	if (!(devc->serial = sr_serial_dev_inst_new(conn, serialcomm)))
+	if (!(serial = sr_serial_dev_inst_new(conn, serialcomm)))
 		return NULL;
 
-	if (serial_open(devc->serial, SERIAL_RDWR | SERIAL_NONBLOCK) != SR_OK)
+	if (serial_open(serial, SERIAL_RDWR | SERIAL_NONBLOCK) != SR_OK)
 		return NULL;
+
+	sdi->inst_type = SR_INST_SERIAL;
+	sdi->conn = serial;
 
 	sdi->priv = devc;
 	sdi->driver = di;
@@ -147,11 +153,10 @@ static GSList *hw_dev_list(void)
 
 static int hw_dev_open(struct sr_dev_inst *sdi)
 {
-	struct dev_context *devc;
+	struct sr_serial_dev_inst *serial;
 
-	devc = sdi->priv;
-
-	if (serial_open(devc->serial, SERIAL_RDWR | SERIAL_NONBLOCK) != SR_OK)
+	serial = sdi->conn;
+	if (serial_open(serial, SERIAL_RDWR | SERIAL_NONBLOCK) != SR_OK)
 		return SR_ERR;
 
 	sdi->status = SR_ST_ACTIVE;
@@ -161,12 +166,11 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 
 static int hw_dev_close(struct sr_dev_inst *sdi)
 {
-	struct dev_context *devc;
+	struct sr_serial_dev_inst *serial;
 
-	devc = sdi->priv;
-
-	if (devc->serial && devc->serial->fd != -1) {
-		serial_close(devc->serial);
+	serial = sdi->conn;
+	if (serial && serial->fd != -1) {
+		serial_close(serial);
 		sdi->status = SR_ST_INACTIVE;
 	}
 
@@ -227,6 +231,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 				    void *cb_data)
 {
 	struct dev_context *devc;
+	struct sr_serial_dev_inst *serial;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
@@ -238,7 +243,8 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	std_session_send_df_header(cb_data, DRIVER_LOG_DOMAIN);
 
 	/* Poll every 500ms, or whenever some data comes in. */
-	sr_source_add(devc->serial->fd, G_IO_IN, 500,
+	serial = sdi->conn;
+	sr_source_add(serial->fd, G_IO_IN, 500,
 		      tondaj_sl_814_receive_data, (void *)sdi);
 
 	return SR_OK;
@@ -247,7 +253,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
 	return std_hw_dev_acquisition_stop_serial(sdi, cb_data, hw_dev_close,
-	       ((struct dev_context *)(sdi->priv))->serial, DRIVER_LOG_DOMAIN);
+						  sdi->conn, DRIVER_LOG_DOMAIN);
 }
 
 SR_PRIV struct sr_dev_driver tondaj_sl_814_driver_info = {
