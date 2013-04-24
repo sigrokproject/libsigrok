@@ -256,16 +256,17 @@ static int hw_init(struct sr_context *sr_ctx)
 
 static GSList *hw_scan(GSList *options)
 {
-	struct sr_dev_inst *sdi;
-	const struct dso_profile *prof;
 	struct drv_context *drvc;
 	struct dev_context *devc;
-	GSList *devices;
+	struct sr_dev_inst *sdi;
+    struct sr_usb_dev_inst *usb;
+    struct sr_config *src;
+	const struct dso_profile *prof;
+	GSList *l, *devices, *conn_devices;
 	struct libusb_device_descriptor des;
 	libusb_device **devlist;
 	int devcnt, ret, i, j;
-
-	(void)options;
+    const char *conn;
 
 	drvc = di->priv;
 	drvc->instances = NULL;
@@ -275,9 +276,36 @@ static GSList *hw_scan(GSList *options)
 
 	clear_instances();
 
+	conn = NULL;
+	for (l = options; l; l = l->next) {
+		src = l->data;
+		if (src->key == SR_CONF_CONN) {
+			conn = g_variant_get_string(src->data, NULL);
+			break;
+		}
+	}
+	if (conn)
+		conn_devices = sr_usb_find(drvc->sr_ctx->libusb_ctx, conn);
+	else
+		conn_devices = NULL;
+
 	/* Find all Hantek DSO devices and upload firmware to all of them. */
 	libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &devlist);
 	for (i = 0; devlist[i]; i++) {
+        if (conn) {
+			usb = NULL;
+			for (l = conn_devices; l; l = l->next) {
+				usb = l->data;
+				if (usb->bus == libusb_get_bus_number(devlist[i])
+					&& usb->address == libusb_get_device_address(devlist[i]))
+					break;
+			}
+			if (!l)
+				/* This device matched none of the ones that
+				 * matched the conn specification. */
+				continue;
+        }
+
 		if ((ret = libusb_get_device_descriptor(devlist[i], &des))) {
 			sr_err("Failed to get device descriptor: %s.",
 			       libusb_error_name(ret));
