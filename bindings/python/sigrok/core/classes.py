@@ -197,6 +197,9 @@ class Session(object):
     def add_device(self, device):
         check(sr_session_dev_add(device.struct))
 
+    def open_device(self, device):
+        check(sr_dev_open(device.struct))
+
     def add_callback(self, callback):
         wrapper = partial(callback_wrapper, self, callback)
         check(sr_session_datafeed_python_callback_add(wrapper))
