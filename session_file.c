@@ -145,6 +145,7 @@ SR_API int sr_session_load(const char *filename)
 					if (devcnt == 0)
 						/* first device, init the driver */
 						sdi->driver->init(NULL);
+					sr_dev_open(sdi);
 					sr_session_dev_add(sdi);
 					sdi->driver->config_set(SR_CONF_SESSIONFILE,
 							g_variant_new_string(filename), sdi);
