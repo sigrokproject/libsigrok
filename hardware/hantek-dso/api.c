@@ -259,14 +259,14 @@ static GSList *hw_scan(GSList *options)
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct sr_dev_inst *sdi;
-    struct sr_usb_dev_inst *usb;
-    struct sr_config *src;
+	struct sr_usb_dev_inst *usb;
+	struct sr_config *src;
 	const struct dso_profile *prof;
 	GSList *l, *devices, *conn_devices;
 	struct libusb_device_descriptor des;
 	libusb_device **devlist;
 	int devcnt, ret, i, j;
-    const char *conn;
+	const char *conn;
 
 	drvc = di->priv;
 	drvc->instances = NULL;
@@ -292,7 +292,7 @@ static GSList *hw_scan(GSList *options)
 	/* Find all Hantek DSO devices and upload firmware to all of them. */
 	libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &devlist);
 	for (i = 0; devlist[i]; i++) {
-        if (conn) {
+		if (conn) {
 			usb = NULL;
 			for (l = conn_devices; l; l = l->next) {
 				usb = l->data;
@@ -304,11 +304,11 @@ static GSList *hw_scan(GSList *options)
 				/* This device matched none of the ones that
 				 * matched the conn specification. */
 				continue;
-        }
+		}
 
 		if ((ret = libusb_get_device_descriptor(devlist[i], &des))) {
 			sr_err("Failed to get device descriptor: %s.",
-			       libusb_error_name(ret));
+					libusb_error_name(ret));
 			continue;
 		}
 
@@ -328,7 +328,7 @@ static GSList *hw_scan(GSList *options)
 					devc->fw_updated = g_get_monotonic_time();
 				else
 					sr_err("Firmware upload failed for "
-					       "device %d.", devcnt);
+					        "device %d.", devcnt);
 				/* Dummy USB address of 0xff will get overwritten later. */
 				sdi->conn = sr_usb_dev_inst_new(
 						libusb_get_bus_number(devlist[i]), 0xff, NULL);
@@ -406,7 +406,7 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 	err = libusb_claim_interface(usb->devhdl, USB_INTERFACE);
 	if (err != 0) {
 		sr_err("Unable to claim interface: %s.",
-		       libusb_error_name(err));
+			   libusb_error_name(err));
 		return SR_ERR;
 	}
 
@@ -721,7 +721,7 @@ static void receive_transfer(struct libusb_transfer *transfer)
 	sdi = transfer->user_data;
 	devc = sdi->priv;
 	sr_spew("receive_transfer(): status %d received %d bytes.",
-	       transfer->status, transfer->actual_length);
+		   transfer->status, transfer->actual_length);
 
 	if (transfer->actual_length == 0)
 		/* Nothing to send to the bus. */
@@ -730,7 +730,7 @@ static void receive_transfer(struct libusb_transfer *transfer)
 	num_samples = transfer->actual_length / 2;
 
 	sr_spew("Got %d-%d/%d samples in frame.", devc->samp_received + 1,
-	       devc->samp_received + num_samples, devc->framesize);
+		   devc->samp_received + num_samples, devc->framesize);
 
 	/*
 	 * The device always sends a full frame, but the beginning of the frame
@@ -761,7 +761,7 @@ static void receive_transfer(struct libusb_transfer *transfer)
 
 			/* The rest of this chunk starts with the trigger point. */
 			sr_dbg("Reached trigger point, %d samples buffered.",
-			       devc->samp_buffered);
+				   devc->samp_buffered);
 
 			/* Avoid the corner case where the chunk ended at
 			 * exactly the trigger point. */
@@ -786,7 +786,7 @@ static void receive_transfer(struct libusb_transfer *transfer)
 		/* That was the last chunk in this frame. Send the buffered
 		 * pre-trigger samples out now, in one big chunk. */
 		sr_dbg("End of frame, sending %d pre-trigger buffered samples.",
-		       devc->samp_buffered);
+			   devc->samp_buffered);
 		send_chunk(sdi, devc->framebuf, devc->samp_buffered);
 
 		/* Mark the end of this frame. */
@@ -918,7 +918,7 @@ static int handle_event(int fd, int revents, void *cb_data)
 }
 
 static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
-				    void *cb_data)
+					void *cb_data)
 {
 	const struct libusb_pollfd **lupfd;
 	struct dev_context *devc;
@@ -946,7 +946,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	lupfd = libusb_get_pollfds(drvc->sr_ctx->libusb_ctx);
 	for (i = 0; lupfd[i]; i++)
 		sr_source_add(lupfd[i]->fd, lupfd[i]->events, TICK,
-			      handle_event, (void *)sdi);
+				handle_event, (void *)sdi);
 	free(lupfd);
 
 	/* Send header packet to the session bus. */

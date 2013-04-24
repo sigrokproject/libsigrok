@@ -210,7 +210,7 @@ static int probe_port(const char *port, GSList **devices)
 	char buf[256];
 	gchar **tokens, *channel_name;
 
-    *devices = NULL;
+	*devices = NULL;
 	if (!(serial = sr_serial_dev_inst_new(port, NULL)))
 		return SR_ERR_MALLOC;
 
@@ -246,7 +246,7 @@ static int probe_port(const char *port, GSList **devices)
 		return SR_ERR_NA;
 	}
 
-    matched = has_digital = FALSE;
+	matched = has_digital = FALSE;
 	for (i = 0; i < ARRAY_SIZE(supported_models); i++) {
 		if (!strcmp(model, supported_models[i])) {
 			matched = TRUE;
@@ -317,7 +317,7 @@ static GSList *hw_scan(GSList *options)
 		}
 	}
 
-    devices = NULL;
+	devices = NULL;
 	if (port) {
 		if (probe_port(port, &devices) == SR_ERR_MALLOC)
 			return NULL;
@@ -338,9 +338,9 @@ static GSList *hw_scan(GSList *options)
 		g_dir_close(dir);
 	}
 
-    /* Tack a copy of the newly found devices onto the driver list. */
-    l = g_slist_copy(devices);
-    drvc->instances = g_slist_concat(drvc->instances, l);
+	/* Tack a copy of the newly found devices onto the driver list. */
+	l = g_slist_copy(devices);
+	drvc->instances = g_slist_concat(drvc->instances, l);
 
 	return devices;
 }
@@ -359,7 +359,7 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 	if (rigol_ds1xx2_get_dev_cfg(sdi) != SR_OK)
 		return SR_ERR;
 
-    sdi->status = SR_ST_ACTIVE;
+	sdi->status = SR_ST_ACTIVE;
 
 	return SR_OK;
 }
