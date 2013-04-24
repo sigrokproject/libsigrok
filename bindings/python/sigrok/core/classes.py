@@ -115,11 +115,20 @@ class Driver(object):
     def name(self):
         return self.struct.name
 
-    def scan(self):
+    def scan(self, **kwargs):
         if not self._initialized:
             check(sr_driver_init(self.context.struct, self.struct))
             self._initialized = True
-        device_list = sr_driver_scan(self.struct, None)
+        options = []
+        for name, value in kwargs.items():
+            key = getattr(ConfigKey, name.upper())
+            src = sr_config()
+            src.key = key.id
+            src.value = python_to_gvariant(value)
+            options.append(src.this)
+        option_list = python_to_gslist(options)
+        device_list = sr_driver_scan(self.struct, option_list)
+        g_slist_free(option_list)
         devices = [Device(self, gpointer_to_sr_dev_inst_ptr(ptr))
             for ptr in gslist_to_python(device_list)]
         g_slist_free(device_list)
