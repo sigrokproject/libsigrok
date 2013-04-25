@@ -215,7 +215,7 @@ UNI-T UT-D04 cable issue on Linux
 ---------------------------------
 
 The UNI-T UT-D04 cable with Hoitek HE2325U (or WCH CH9325) chip seems to have
-a very specific problem on Linux. Apparently it requires a to be put into
+a very specific problem on Linux. Apparently it requires to be put into
 suspend (and woken up again) before it is usable. This seems to be a
 Linux-only issue, Windows is not affected by this since apparently the
 Windows kernel does this for every USB device, always.
