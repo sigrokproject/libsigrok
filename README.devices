@@ -42,9 +42,6 @@ The following drivers/devices require a firmware upload upon connection:
    These can be extracted from the vendor's Windows drivers using a tool
    from our 'sigrok-util' repository/project.
 
- - nexus-osciprime: The Nexus Computing OsciPrime PC oscilloscope needs
-   firmware files. These are available from the vendor website.
-
 The following drivers/devices do not need any firmware upload:
 
  - agilent-dmm
@@ -55,7 +52,6 @@ The following drivers/devices do not need any firmware upload:
  - demo
  - fluke-dmm
  - lascar-el-usb
- - link-mso19
  - mic-985xx
  - openbench-logic-sniffer
  - rigol-ds1xx2
@@ -86,9 +82,7 @@ The following drivers/devices require a serial port specification:
  - brymen-dmm
  - colead-slm
  - fluke-dmm
- - link-mso19
  - mic-985xx
- - nexus-osciprime
  - openbench-logic-sniffer
  - serial-dmm
  - tondaj-sl-814
@@ -246,16 +240,6 @@ only compile and work on Linux.
 
 We might write additional drivers to make a similar functionality available
 on other OSes at some point.
-
-
-Link Instruments MSO-19
------------------------
-
-The driver for the Link Instruments MSO-19 mixed-signal oscilloscope (MSO)
-is currently using libudev (which is a library for the Linux-specific udev
-system). Thus, this driver can currently only compile and work on Linux.
-
-We plan to fix this though, so that it'll work on all other OSes, too.
 
 
 ChronoVu LA8 USB VID/PIDs
