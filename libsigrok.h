@@ -138,14 +138,6 @@ enum {
 	SR_T_KEYVALUE,
 };
 
-/** Rational number data type, containing numerator and denominator values. */
-struct sr_rational {
-	/** Numerator of the rational number. */
-	uint64_t p;
-	/** Denominator of the rational number. */
-	uint64_t q;
-};
-
 /** Value for sr_datafeed_packet.type. */
 enum {
 	SR_DF_HEADER = 10000,

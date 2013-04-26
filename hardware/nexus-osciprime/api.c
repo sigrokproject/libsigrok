@@ -42,7 +42,7 @@ static const int32_t hwcaps[] = {
 	SR_CONF_VDIV,
 };
 
-static const struct sr_rational timebases[] = {
+static const uint64_t timebases[][2] = {
 	/* 24 MHz */
 	{ 42, 1e9 },
 	/* 12 MHz */
@@ -94,7 +94,7 @@ static const char *probe_names[] = {
 	NULL,
 };
 
-static const struct sr_rational vdivs[] = {
+static const uint64_t vdivs[][2] = {
 	{ 1, 1 },
 	{ 2, 1 },
 	{ 5, 2 },
