@@ -40,23 +40,27 @@ SR_PRIV void flush_linebufs(struct context *ctx, uint8_t *outbuf)
 {
 	static int max_probename_len = 0;
 	int len, i;
+	GSList *l;
+	char *probe_name;
 
 	if (ctx->linebuf[0] == 0)
 		return;
 
 	if (max_probename_len == 0) {
 		/* First time through... */
-		for (i = 0; ctx->probelist[i]; i++) {
-			len = strlen(ctx->probelist[i]);
+		for (l = ctx->probenames; l; l = l->next) {
+			probe_name = l->data;
+			len = strlen(probe_name);
 			if (len > max_probename_len)
 				max_probename_len = len;
 		}
 	}
 
-	for (i = 0; ctx->probelist[i]; i++) {
+	for (i = 0, l = ctx->probenames; l; l = l->next, i++) {
+		probe_name = l->data;
 		sprintf((char *)outbuf + strlen((const char *)outbuf),
 			"%*s:%s\n", max_probename_len,
-			ctx->probelist[i], ctx->linebuf + i * ctx->linebuf_len);
+			probe_name, ctx->linebuf + i * ctx->linebuf_len);
 	}
 
 	/* Mark trigger with a ^ character. */
@@ -91,15 +95,16 @@ SR_PRIV int init(struct sr_output *o, int default_spl, enum outputmode mode)
 
 	o->internal = ctx;
 	ctx->num_enabled_probes = 0;
+	ctx->probenames = NULL;
 
 	for (l = o->sdi->probes; l; l = l->next) {
 		probe = l->data;
 		if (!probe->enabled)
 			continue;
-		ctx->probelist[ctx->num_enabled_probes++] = probe->name;
+		ctx->probenames = g_slist_append(ctx->probenames, probe->name);
+		ctx->num_enabled_probes++;
 	}
 
-	ctx->probelist[ctx->num_enabled_probes] = 0;
 	ctx->unitsize = (ctx->num_enabled_probes + 7) / 8;
 	ctx->line_offset = 0;
 	ctx->spl_cnt = 0;

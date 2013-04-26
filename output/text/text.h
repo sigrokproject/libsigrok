@@ -36,7 +36,7 @@ struct context {
 	unsigned int unitsize;
 	int line_offset;
 	int linebuf_len;
-	char *probelist[SR_MAX_NUM_PROBES + 1];
+	GSList *probenames;
 	uint8_t *linebuf;
 	int spl_cnt;
 	uint8_t *linevalues;
