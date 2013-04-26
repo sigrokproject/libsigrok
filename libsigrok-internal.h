@@ -210,7 +210,6 @@ struct fs9922_info {
 	int bargraph_sign, bargraph_value;
 };
 
-SR_PRIV gboolean sr_fs9922_is_packet_start(uint8_t b);
 SR_PRIV gboolean sr_fs9922_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_fs9922_parse(const uint8_t *buf, float *floatval,
 			    struct sr_datafeed_analog *analog, void *info);
@@ -226,7 +225,6 @@ struct fs9721_info {
 	gboolean is_c2c1_11, is_c2c1_10, is_c2c1_01, is_c2c1_00, is_sign;
 };
 
-SR_PRIV gboolean sr_fs9721_is_packet_start(uint8_t b);
 SR_PRIV gboolean sr_fs9721_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_fs9721_parse(const uint8_t *buf, float *floatval,
 			    struct sr_datafeed_analog *analog, void *info);

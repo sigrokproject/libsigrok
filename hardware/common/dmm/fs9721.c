@@ -326,11 +326,6 @@ static void handle_flags(struct sr_datafeed_analog *analog, float *floatval,
 		sr_spew("User-defined LCD symbol 3 is active.");
 }
 
-SR_PRIV gboolean sr_fs9721_is_packet_start(uint8_t b)
-{
-	return (((b >> 4) & 0x0f) == 0x01);
-}
-
 SR_PRIV gboolean sr_fs9721_packet_valid(const uint8_t *buf)
 {
 	struct fs9721_info info;
