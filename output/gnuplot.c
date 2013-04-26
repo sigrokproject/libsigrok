@@ -39,6 +39,7 @@ struct context {
 	unsigned int unitsize;
 	char *probelist[SR_MAX_NUM_PROBES + 1];
 	char *header;
+	uint8_t *old_sample;
 };
 
 #define MAX_HEADER_LEN \
@@ -154,6 +155,13 @@ static int init(struct sr_output *o)
 		return SR_ERR;
 	}
 
+	if (!(ctx->old_sample = g_try_malloc0(ctx->unitsize))) {
+		sr_err("%s: ctx->old_sample malloc failed", __func__);
+		g_free(ctx->header);
+		g_free(ctx);
+		return SR_ERR_MALLOC;
+	}
+
 	return 0;
 }
 
@@ -199,8 +207,8 @@ static int data(struct sr_output *o, const uint8_t *data_in,
 {
 	struct context *ctx;
 	unsigned int max_linelen, outsize, p, curbit, i;
-	uint64_t sample;
-	static uint64_t samplecount = 0, old_sample = 0;
+	const uint8_t *sample;
+	static uint64_t samplecount = 0;
 	uint8_t *outbuf, *c;
 
 	if (!o) {
@@ -249,17 +257,18 @@ static int data(struct sr_output *o, const uint8_t *data_in,
 
 	for (i = 0; i <= length_in - ctx->unitsize; i += ctx->unitsize) {
 
-		memcpy(&sample, data_in + i, ctx->unitsize);
+		sample = data_in + i;
 
 		/*
 		 * Don't output the same samples multiple times. However, make
 		 * sure to output at least the first and last sample.
 		 */
-		if (samplecount++ != 0 && sample == old_sample) {
+		if (samplecount++ != 0 &&
+				!memcmp(sample, ctx->old_sample, ctx->unitsize)) {
 			if (i != (length_in - ctx->unitsize))
 				continue;
 		}
-		old_sample = sample;
+		memcpy(ctx->old_sample, sample, ctx->unitsize);
 
 		/* The first column is a counter (needed for gnuplot). */
 		c = outbuf + strlen((const char *)outbuf);
@@ -267,7 +276,7 @@ static int data(struct sr_output *o, const uint8_t *data_in,
 
 		/* The next columns are the values of all channels. */
 		for (p = 0; p < ctx->num_enabled_probes; p++) {
-			curbit = (sample & ((uint64_t) (1 << p))) >> p;
+			curbit = (sample[p / 8] & ((uint8_t) (1 << (p % 8)))) >> (p % 8);
 			c = outbuf + strlen((const char *)outbuf);
 			sprintf((char *)c, "%d ", curbit);
 		}
