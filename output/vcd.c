@@ -39,11 +39,11 @@ struct context {
 	int num_enabled_probes;
 	char *probelist[SR_MAX_NUM_PROBES + 1];
 	int probeindices[SR_MAX_NUM_PROBES + 1];
-	int *prevbits;
 	GString *header;
-	uint64_t prevsample;
+	uint8_t *prevsample;
 	int period;
 	uint64_t samplerate;
+	unsigned int unitsize;
 };
 
 static const char *vcd_header_comment = "\
@@ -80,6 +80,7 @@ static int init(struct sr_output *o)
 		return SR_ERR;
 	}
 
+	ctx->unitsize = (ctx->num_enabled_probes + 7) / 8;
 	ctx->probelist[ctx->num_enabled_probes] = 0;
 	ctx->header = g_string_sized_new(512);
 	num_probes = g_slist_length(o->sdi->probes);
@@ -138,10 +139,10 @@ static int init(struct sr_output *o)
 	g_string_append(ctx->header, "$upscope $end\n"
 			"$enddefinitions $end\n$dumpvars\n");
 
-	if (!(ctx->prevbits = g_try_malloc0(sizeof(int) * num_probes))) {
+	if (!(ctx->prevsample = g_try_malloc0(ctx->unitsize))) {
 		g_string_free(ctx->header, TRUE);
 		g_free(ctx);
-		sr_err("%s: ctx->prevbits malloc failed", __func__);
+		sr_err("%s: ctx->prevsample malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
 
@@ -156,9 +157,8 @@ static GString *receive(struct sr_output *o, const struct sr_dev_inst *sdi,
 	GString *text;
 	unsigned int i;
 	int p, curbit, prevbit, index;
-	uint64_t sample;
+	uint8_t *sample;
 	static uint64_t samplecount = 0;
-	gboolean first_sample;
 
 	(void)sdi;
 
@@ -177,28 +177,20 @@ static GString *receive(struct sr_output *o, const struct sr_dev_inst *sdi,
 		/* The header is still here, this must be the first packet. */
 		text = ctx->header;
 		ctx->header = NULL;
-		first_sample = TRUE;
 	} else {
 		text = g_string_sized_new(512);
-		first_sample = FALSE;
 	}
 
 	logic = packet->payload;
 	for (i = 0; i <= logic->length - logic->unitsize; i += logic->unitsize) {
 		samplecount++;
 
-		memcpy(&sample, logic->data + i, logic->unitsize);
-
-		if (first_sample) {
-			/* First packet. We neg to make sure sample is stored. */
-			ctx->prevsample = ~sample;
-			first_sample = FALSE;
-		}
+		sample = logic->data + i;
 
 		for (p = 0; p < ctx->num_enabled_probes; p++) {
-			index = ctx->probeindices[p];
-			curbit = (sample & (((uint64_t) 1) << index)) >> index;
-			prevbit = (ctx->prevsample & (((uint64_t) 1) << index)) >> index;
+			index = ctx->probeindices[p % 8];
+			curbit = (sample[p / 8] & (((uint8_t) 1) << index)) >> index;
+			prevbit = (ctx->prevsample[p / 8] & (((uint64_t) 1) << index)) >> index;
 
 			/* VCD only contains deltas/changes of signals. */
 			if (prevbit == curbit)
@@ -210,7 +202,7 @@ static GString *receive(struct sr_output *o, const struct sr_dev_inst *sdi,
 					* ctx->period), curbit, (char)('!' + p));
 		}
 
-		ctx->prevsample = sample;
+		memcpy(ctx->prevsample, sample, ctx->unitsize);
 	}
 
 	return text;
