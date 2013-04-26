@@ -173,18 +173,20 @@ struct context
 	int downsample;
 	unsigned compress;
 	int64_t skip;
-	struct probe probes[SR_MAX_NUM_PROBES];
+	GSList *probes;
 };
+
+static void free_probe(void *data)
+{
+	struct probe *probe = data;
+	g_free(probe->name);
+	g_free(probe->identifier);
+	g_free(probe);
+}
 
 static void release_context(struct context *ctx)
 {
-	int i;
-	for (i = 0; i < ctx->probecount; i++)
-	{
-		g_free(ctx->probes[i].name); ctx->probes[i].name = NULL;
-		g_free(ctx->probes[i].identifier); ctx->probes[i].identifier = NULL;
-	}
-	
+	g_slist_free_full(ctx->probes, free_probe);
 	g_free(ctx);
 }
 
@@ -214,6 +216,7 @@ static gboolean parse_header(FILE *file, struct context *ctx)
 	uint64_t p, q;
 	gchar *name = NULL, *contents = NULL;
 	gboolean status = FALSE;
+	struct probe *probe;
 
 	while (parse_section(file, &name, &contents))
 	{
@@ -270,8 +273,10 @@ static gboolean parse_header(FILE *file, struct context *ctx)
 			else
 			{
 				sr_info("Probe %d is '%s' identified by '%s'.", ctx->probecount, parts[3], parts[2]);
-				ctx->probes[ctx->probecount].identifier = g_strdup(parts[2]);
-				ctx->probes[ctx->probecount].name = g_strdup(parts[3]);
+				probe = g_malloc(sizeof(struct probe));
+				probe->identifier = g_strdup(parts[2]);
+				probe->name = g_strdup(parts[3]);
+				ctx->probes = g_slist_append(ctx->probes, probe);
 				ctx->probecount++;
 			}
 			
@@ -499,6 +504,9 @@ static void parse_contents(FILE *file, const struct sr_dev_inst *sdi, struct con
 		{
 			/* A new 1-bit sample value */
 			int i, bit;
+			GSList *l;
+			struct probe *probe;
+
 			bit = (token->str[0] == '1');
 		
 			g_string_erase(token, 0, 1);
@@ -511,9 +519,11 @@ static void parse_contents(FILE *file, const struct sr_dev_inst *sdi, struct con
 				read_until(file, token, 'W');
 			}
 			
-			for (i = 0; i < ctx->probecount; i++)
+			for (i = 0, l = ctx->probes; i < ctx->probecount && l; i++, l = l->next)
 			{
-				if (g_strcmp0(token->str, ctx->probes[i].identifier) == 0)
+				probe = l->data;
+
+				if (g_strcmp0(token->str, probe->identifier) == 0)
 				{
 					sr_dbg("Probe %d new value %d.", i, bit);
 				
