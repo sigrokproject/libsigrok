@@ -46,7 +46,7 @@ SR_PRIV int data_bits(struct sr_output *o, const uint8_t *data_in,
 	struct context *ctx;
 	unsigned int outsize, offset, p;
 	int max_linelen;
-	uint64_t sample;
+	const uint8_t *sample;
 	uint8_t *outbuf, c;
 
 	ctx = o->internal;
@@ -79,9 +79,9 @@ SR_PRIV int data_bits(struct sr_output *o, const uint8_t *data_in,
 	if (length_in >= ctx->unitsize) {
 		for (offset = 0; offset <= length_in - ctx->unitsize;
 		     offset += ctx->unitsize) {
-			memcpy(&sample, data_in + offset, ctx->unitsize);
+			sample = data_in + offset;
 			for (p = 0; p < ctx->num_enabled_probes; p++) {
-				c = (sample & ((uint64_t) 1 << p)) ? '1' : '0';
+				c = (sample[p / 8] & ((uint8_t) 1 << (p % 8))) ? '1' : '0';
 				ctx->linebuf[p * ctx->linebuf_len +
 					     ctx->line_offset] = c;
 			}
