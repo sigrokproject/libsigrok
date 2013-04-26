@@ -70,10 +70,6 @@ SR_PRIV int data_bits(struct sr_output *o, const uint8_t *data_in,
 		strncpy((char *)outbuf, ctx->header, outsize);
 		g_free(ctx->header);
 		ctx->header = NULL;
-
-		/* Ensure first transition. */
-		memcpy(&ctx->prevsample, data_in, ctx->unitsize);
-		ctx->prevsample = ~ctx->prevsample;
 	}
 
 	if (length_in >= ctx->unitsize) {
