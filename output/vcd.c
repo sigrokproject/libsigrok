@@ -37,7 +37,7 @@
 
 struct context {
 	int num_enabled_probes;
-	int probeindices[SR_MAX_NUM_PROBES + 1];
+	GArray *probeindices;
 	GString *header;
 	uint8_t *prevsample;
 	int period;
@@ -65,12 +65,14 @@ static int init(struct sr_output *o)
 
 	o->internal = ctx;
 	ctx->num_enabled_probes = 0;
+	ctx->probeindices = g_array_new(FALSE, FALSE, sizeof(int));
 
 	for (l = o->sdi->probes; l; l = l->next) {
 		probe = l->data;
 		if (!probe->enabled)
 			continue;
-		ctx->probeindices[ctx->num_enabled_probes] = probe->index;
+		ctx->probeindices = g_array_append_val(
+				ctx->probeindices, probe->index);
 		ctx->num_enabled_probes++;
 	}
 	if (ctx->num_enabled_probes > 94) {
@@ -188,7 +190,7 @@ static GString *receive(struct sr_output *o, const struct sr_dev_inst *sdi,
 		sample = logic->data + i;
 
 		for (p = 0; p < ctx->num_enabled_probes; p++) {
-			index = ctx->probeindices[p % 8];
+			index = g_array_index(ctx->probeindices, int, p);
 			curbit = (sample[p / 8] & (((uint8_t) 1) << index)) >> index;
 			prevbit = (ctx->prevsample[p / 8] & (((uint64_t) 1) << index)) >> index;
 
