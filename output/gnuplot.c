@@ -37,7 +37,6 @@
 struct context {
 	unsigned int num_enabled_probes;
 	unsigned int unitsize;
-	char *probelist[SR_MAX_NUM_PROBES + 1];
 	char *header;
 	uint8_t *old_sample;
 };
@@ -102,11 +101,9 @@ static int init(struct sr_output *o)
 	ctx->num_enabled_probes = 0;
 	for (l = o->sdi->probes; l; l = l->next) {
 		probe = l->data;
-		if (!probe->enabled)
-			continue;
-		ctx->probelist[ctx->num_enabled_probes++] = probe->name;
+		if (probe->enabled)
+			ctx->num_enabled_probes++;
 	}
-	ctx->probelist[ctx->num_enabled_probes] = 0;
 	ctx->unitsize = (ctx->num_enabled_probes + 7) / 8;
 
 	num_probes = g_slist_length(o->sdi->probes);
@@ -130,9 +127,12 @@ static int init(struct sr_output *o)
 
 	/* Columns / channels */
 	wbuf[0] = '\0';
-	for (i = 0; i < ctx->num_enabled_probes; i++) {
+	for (i = 0, l = o->sdi->probes; l; l = l->next, i++) {
+		probe = l->data;
+		if (!probe->enabled)
+			continue;
 		c = (char *)&wbuf + strlen((const char *)&wbuf);
-		sprintf(c, "# %d\t\t%s\n", i + 1, ctx->probelist[i]);
+		sprintf(c, "# %d\t\t%s\n", i + 1, probe->name);
 	}
 
 	if (!(frequency_s = sr_period_string(samplerate))) {
