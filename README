@@ -77,6 +77,19 @@ Some devices supported by libsigrok need a firmware to be uploaded before the
 device can be used. See README.devices for details.
 
 
+Copyright and license
+---------------------
+
+libsigrok is licensed under the terms of the GNU General Public License
+(GPL), version 3 or later.
+
+While some individual source code files are licensed under the GPLv2+, and
+some files are licensed under the GPLv3+, this doesn't change the fact that
+the library as a whole is licensed under the terms of the GPLv3+.
+
+Please see the individual source files for the full list of copyright holders.
+
+
 Mailing lists
 -------------
 
