@@ -42,7 +42,7 @@ struct context {
 	uint8_t *linevalues;
 	char *header;
 	int mark_trigger;
-	uint64_t prevsample;
+	uint8_t *prevsample;
 	enum outputmode mode;
 };
 

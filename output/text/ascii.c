@@ -46,7 +46,7 @@ SR_PRIV int data_ascii(struct sr_output *o, const uint8_t *data_in,
 	struct context *ctx;
 	unsigned int outsize, offset, p;
 	int max_linelen;
-	uint64_t sample;
+	const uint8_t *sample;
 	uint8_t *outbuf;
 
 	ctx = o->internal;
@@ -75,14 +75,14 @@ SR_PRIV int data_ascii(struct sr_output *o, const uint8_t *data_in,
 	if (length_in >= ctx->unitsize) {
 		for (offset = 0; offset <= length_in - ctx->unitsize;
 		     offset += ctx->unitsize) {
-			memcpy(&sample, data_in + offset, ctx->unitsize);
+			sample = data_in + offset;
 
 			char tmpval[ctx->num_enabled_probes];
 
 			for (p = 0; p < ctx->num_enabled_probes; p++) {
-				uint64_t curbit = (sample & ((uint64_t) 1 << p));
-				uint64_t prevbit = (ctx->prevsample &
-						((uint64_t) 1 << p));
+				uint8_t curbit = (sample[p / 8] & ((uint8_t) 1 << (p % 8)));
+				uint8_t prevbit = (ctx->prevsample[p / 8] &
+						((uint8_t) 1 << (p % 8)));
 
 				if (curbit < prevbit && ctx->line_offset > 0) {
 					ctx->linebuf[p * ctx->linebuf_len +
@@ -114,7 +114,7 @@ SR_PRIV int data_ascii(struct sr_output *o, const uint8_t *data_in,
 			ctx->line_offset++;
 			ctx->spl_cnt++;
 
-			ctx->prevsample = sample;
+			memcpy(ctx->prevsample, sample, ctx->unitsize);
 		}
 	} else {
 		sr_info("Short buffer (length_in=%" PRIu64 ").", length_in);

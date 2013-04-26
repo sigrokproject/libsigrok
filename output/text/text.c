@@ -154,6 +154,12 @@ SR_PRIV int init(struct sr_output *o, int default_spl, enum outputmode mode)
 		ret = SR_ERR_MALLOC;
 	}
 
+	if (mode == MODE_ASCII &&
+			!(ctx->prevsample = g_try_malloc0(num_probes / 8))) {
+		sr_err("%s: ctx->prevsample malloc failed", __func__);
+		ret = SR_ERR_MALLOC;
+	}
+
 err:
 	if (ret != SR_OK) {
 		g_free(ctx->header);
