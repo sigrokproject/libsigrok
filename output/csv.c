@@ -37,7 +37,6 @@
 struct context {
 	unsigned int num_enabled_probes;
 	unsigned int unitsize;
-	char *probelist[SR_MAX_NUM_PROBES + 1];
 	uint64_t samplerate;
 	GString *header;
 	char separator;
@@ -63,7 +62,6 @@ static int init(struct sr_output *o)
 	GVariant *gvar;
 	int num_probes;
 	time_t t;
-	unsigned int i;
 
 	if (!o) {
 		sr_err("%s: o was NULL", __func__);
@@ -87,14 +85,13 @@ static int init(struct sr_output *o)
 
 	o->internal = ctx;
 
-	/* Get the number of probes, their names, and the unitsize. */
+	/* Get the number of probes, and the unitsize. */
 	for (l = o->sdi->probes; l; l = l->next) {
 		probe = l->data;
-		if (!probe->enabled)
-			continue;
-		ctx->probelist[ctx->num_enabled_probes++] = probe->name;
+		if (probe->enabled)
+			ctx->num_enabled_probes++;
 	}
-	ctx->probelist[ctx->num_enabled_probes] = 0;
+
 	ctx->unitsize = (ctx->num_enabled_probes + 7) / 8;
 
 	num_probes = g_slist_length(o->sdi->probes);
@@ -120,8 +117,11 @@ static int init(struct sr_output *o)
 	/* Columns / channels */
 	g_string_append_printf(ctx->header, "; Channels (%d/%d): ",
 			       ctx->num_enabled_probes, num_probes);
-	for (i = 0; i < ctx->num_enabled_probes; i++)
-		g_string_append_printf(ctx->header, "%s, ", ctx->probelist[i]);
+	for (l = o->sdi->probes; l; l = l->next) {
+		probe = l->data;
+		if (probe->enabled)
+			g_string_append_printf(ctx->header, "%s, ", probe->name);
+	}
 	g_string_append_printf(ctx->header, "\n");
 
 	return SR_OK;
