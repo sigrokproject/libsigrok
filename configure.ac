@@ -139,10 +139,20 @@ AC_ARG_ENABLE(lascar-el-usb, AC_HELP_STRING([--enable-lascar-el-usb],
 	[HW_LASCAR_EL_USB="$enableval"],
 	[HW_LASCAR_EL_USB=$HW_ENABLED_DEFAULT])
 
+AC_ARG_ENABLE(link-mso19, AC_HELP_STRING([--enable-link-mso19],
+	[enable Link Instruments MSO-19 support [default=yes]]),
+	[LA_LINK_MSO19="$enableval"],
+	[LA_LINK_MSO19=$HW_ENABLED_DEFAULT])
+
 AC_ARG_ENABLE(mic-985xx, AC_HELP_STRING([--enable-mic-985xx],
 	[enable MIC 985xx support [default=yes]]),
 	[HW_MIC_985XX="$enableval"],
 	[HW_MIC_985XX=$HW_ENABLED_DEFAULT])
+
+AC_ARG_ENABLE(nexus-osciprime, AC_HELP_STRING([--enable-nexus-osciprime],
+	[enable Nexus Osciprime support [default=yes]]),
+	[HW_NEXUS_OSCIPRIME="$enableval"],
+	[HW_NEXUS_OSCIPRIME=$HW_ENABLED_DEFAULT])
 
 AC_ARG_ENABLE(ols, AC_HELP_STRING([--enable-ols],
 	[enable OpenBench Logic Sniffer (OLS) support [default=yes]]),
@@ -236,6 +246,12 @@ PKG_CHECK_MODULES([libftdi], [libftdi >= 0.16],
 	SR_PKGLIBS="$SR_PKGLIBS libftdi"],
 	[LA_ASIX_SIGMA="no"; LA_CHRONOVU_LA8="no"])
 
+# libudev is only needed for some hardware drivers. Disable them if not found.
+PKG_CHECK_MODULES([libudev], [libudev >= 151],
+	[CFLAGS="$CFLAGS $libudev_CFLAGS"; LIBS="$LIBS $libudev_LIBS";
+	SR_PKGLIBS="$SR_PKGLIBS libudev"],
+	[LA_LINK_MSO19="no"])
+
 # ALSA is only needed for some hardware drivers. Disable them if not found.
 PKG_CHECK_MODULES([alsa], [alsa >= 1.0],
 	[CFLAGS="$CFLAGS $alsa_CFLAGS"; LIBS="$LIBS $alsa_LIBS";
@@ -322,9 +338,19 @@ if test "x$HW_LASCAR_EL_USB" = "xyes"; then
 	AC_DEFINE(HAVE_HW_LASCAR_EL_USB, 1, [Lascar EL-USB support])
 fi
 
+AM_CONDITIONAL(LA_LINK_MSO19, test x$LA_LINK_MSO19 = xyes)
+if test "x$LA_LINK_MSO19" = "xyes"; then
+	AC_DEFINE(HAVE_LA_LINK_MSO19, 1, [Link Instruments MSO-19 support])
+fi
+
 AM_CONDITIONAL(HW_MIC_985XX, test x$HW_MIC_985XX = xyes)
 if test "x$HW_MIC_985XX" = "xyes"; then
 	AC_DEFINE(HAVE_HW_MIC_985XX, 1, [MIC 985xx support])
+fi
+
+AM_CONDITIONAL(HW_NEXUS_OSCIPRIME, test x$HW_NEXUS_OSCIPRIME = xyes)
+if test "x$HW_NEXUS_OSCIPRIME" = "xyes"; then
+	AC_DEFINE(HAVE_HW_NEXUS_OSCIPRIME, 1, [Nexus Osciprime support])
 fi
 
 AM_CONDITIONAL(LA_OLS, test x$LA_OLS = xyes)
@@ -405,6 +431,7 @@ AC_CONFIG_FILES([Makefile version.h hardware/Makefile
 		 hardware/common/Makefile
 		 hardware/lascar-el-usb/Makefile
 		 hardware/mic-985xx/Makefile
+		 hardware/nexus-osciprime/Makefile
 		 hardware/rigol-ds1xx2/Makefile
 		 hardware/tondaj-sl-814/Makefile
 		 hardware/victor-dmm/Makefile
@@ -413,6 +440,7 @@ AC_CONFIG_FILES([Makefile version.h hardware/Makefile
 		 hardware/fluke-dmm/Makefile
 		 hardware/fx2lafw/Makefile
 		 hardware/hantek-dso/Makefile
+		 hardware/link-mso19/Makefile
 		 hardware/openbench-logic-sniffer/Makefile
 		 hardware/serial-dmm/Makefile
 		 hardware/uni-t-dmm/Makefile
@@ -440,7 +468,7 @@ echo "Detected libraries:"
 echo
 
 # Note: This only works for libs with pkg-config integration.
-for lib in "glib-2.0 >= 2.32.0" "libzip >= 0.8" "libusb-1.0 >= 1.0.9" "libftdi >= 0.16" "alsa >= 1.0" "check >= 0.9.4"; do
+for lib in "glib-2.0 >= 2.32.0" "libzip >= 0.8" "libusb-1.0 >= 1.0.9" "libftdi >= 0.16" "libudev >= 151" "alsa >= 1.0" "check >= 0.9.4"; do
 	if `$PKG_CONFIG --exists $lib`; then
 		ver=`$PKG_CONFIG --modversion $lib`
 		answer="yes ($ver)"
@@ -462,7 +490,9 @@ echo "  - fluke-dmm....................... $HW_FLUKE_DMM"
 echo "  - fx2lafw......................... $LA_FX2LAFW"
 echo "  - hantek-dso...................... $HW_HANTEK_DSO"
 echo "  - lascar-el-usb................... $HW_LASCAR_EL_USB"
+echo "  - link-mso19...................... $LA_LINK_MSO19"
 echo "  - mic-985xx....................... $HW_MIC_985XX"
+echo "  - nexus-osciprime................. $HW_NEXUS_OSCIPRIME"
 echo "  - openbench-logic-sniffer......... $LA_OLS"
 echo "  - rigol-ds1xx2.................... $HW_RIGOL_DS1XX2"
 echo "  - serial-dmm...................... $HW_SERIAL_DMM"
