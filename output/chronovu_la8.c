@@ -36,7 +36,6 @@
 struct context {
 	unsigned int num_enabled_probes;
 	unsigned int unitsize;
-	char *probelist[SR_MAX_NUM_PROBES + 1];
 	uint64_t trigger_point;
 	uint64_t samplerate;
 };
@@ -118,14 +117,13 @@ static int init(struct sr_output *o)
 
 	o->internal = ctx;
 
-	/* Get the probe names and the unitsize. */
+	/* Get the unitsize. */
 	for (l = o->sdi->probes; l; l = l->next) {
 		probe = l->data;
 		if (!probe->enabled)
 			continue;
-		ctx->probelist[ctx->num_enabled_probes++] = probe->name;
+		ctx->num_enabled_probes++;
 	}
-	ctx->probelist[ctx->num_enabled_probes] = 0;
 	ctx->unitsize = (ctx->num_enabled_probes + 7) / 8;
 
 	if (sr_dev_has_option(o->sdi, SR_CONF_SAMPLERATE)) {
