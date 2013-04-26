@@ -41,9 +41,6 @@ struct context {
 	uint8_t *old_sample;
 };
 
-#define MAX_HEADER_LEN \
-	(1024 + (SR_MAX_NUM_PROBES * (SR_MAX_PROBENAME_LEN + 10)))
-
 static const char *gnuplot_header = "\
 # Sample data in space-separated columns format usable by gnuplot\n\
 #\n\
@@ -66,7 +63,7 @@ static int init(struct sr_output *o)
 	GVariant *gvar;
 	uint64_t samplerate;
 	unsigned int i;
-	int b, num_probes;
+	int num_probes;
 	char *c, *frequency_s;
 	char wbuf[1000], comment[128];
 	time_t t;
@@ -91,12 +88,6 @@ static int init(struct sr_output *o)
 		return SR_ERR_MALLOC;
 	}
 
-	if (!(ctx->header = g_try_malloc0(MAX_HEADER_LEN + 1))) {
-		sr_err("%s: ctx->header malloc failed", __func__);
-		g_free(ctx);
-		return SR_ERR_MALLOC;
-	}
-
 	o->internal = ctx;
 	ctx->num_enabled_probes = 0;
 	for (l = o->sdi->probes; l; l = l->next) {
@@ -114,7 +105,6 @@ static int init(struct sr_output *o)
 		samplerate = g_variant_get_uint64(gvar);
 		if (!(frequency_s = sr_samplerate_string(samplerate))) {
 			sr_err("%s: sr_samplerate_string failed", __func__);
-			g_free(ctx->header);
 			g_free(ctx);
 			g_variant_unref(gvar);
 			return SR_ERR;
@@ -137,23 +127,14 @@ static int init(struct sr_output *o)
 
 	if (!(frequency_s = sr_period_string(samplerate))) {
 		sr_err("%s: sr_period_string failed", __func__);
-		g_free(ctx->header);
 		g_free(ctx);
 		return SR_ERR;
 	}
 
 	t = time(NULL);
-	b = snprintf(ctx->header, MAX_HEADER_LEN, gnuplot_header,
-		     PACKAGE_STRING, ctime(&t), comment, frequency_s,
-		     (char *)&wbuf);
+	ctx->header = g_strdup_printf(gnuplot_header, PACKAGE_STRING,
+			ctime(&t), comment, frequency_s, (char *)&wbuf);
 	g_free(frequency_s);
-
-	if (b < 0) {
-		sr_err("%s: sprintf failed", __func__);
-		g_free(ctx->header);
-		g_free(ctx);
-		return SR_ERR;
-	}
 
 	if (!(ctx->old_sample = g_try_malloc0(ctx->unitsize))) {
 		sr_err("%s: ctx->old_sample malloc failed", __func__);
