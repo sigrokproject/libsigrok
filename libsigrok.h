@@ -79,7 +79,6 @@ enum {
 	 */
 };
 
-#define SR_MAX_NUM_PROBES    64 /* Limited by uint64_t. */
 #define SR_MAX_PROBENAME_LEN 32
 
 /* Handy little macros */
