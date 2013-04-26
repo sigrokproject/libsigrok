@@ -37,7 +37,6 @@
 
 struct context {
 	int num_enabled_probes;
-	char *probelist[SR_MAX_NUM_PROBES + 1];
 	int probeindices[SR_MAX_NUM_PROBES + 1];
 	GString *header;
 	uint8_t *prevsample;
@@ -71,7 +70,6 @@ static int init(struct sr_output *o)
 		probe = l->data;
 		if (!probe->enabled)
 			continue;
-		ctx->probelist[ctx->num_enabled_probes] = probe->name;
 		ctx->probeindices[ctx->num_enabled_probes] = probe->index;
 		ctx->num_enabled_probes++;
 	}
@@ -81,7 +79,6 @@ static int init(struct sr_output *o)
 	}
 
 	ctx->unitsize = (ctx->num_enabled_probes + 7) / 8;
-	ctx->probelist[ctx->num_enabled_probes] = 0;
 	ctx->header = g_string_sized_new(512);
 	num_probes = g_slist_length(o->sdi->probes);
 
@@ -131,9 +128,12 @@ static int init(struct sr_output *o)
 	g_string_append_printf(ctx->header, "$scope module %s $end\n", PACKAGE);
 
 	/* Wires / channels */
-	for (i = 0; i < ctx->num_enabled_probes; i++) {
+	for (i = 0, l = o->sdi->probes; l; l = l->next, i++) {
+		probe = l->data;
+		if (!probe->enabled)
+			continue;
 		g_string_append_printf(ctx->header, "$var wire 1 %c %s $end\n",
-				(char)('!' + i), ctx->probelist[i]);
+				(char)('!' + i), probe->name);
 	}
 
 	g_string_append(ctx->header, "$upscope $end\n"
