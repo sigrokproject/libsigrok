@@ -86,9 +86,6 @@ static GSList *hw_scan(GSList *options, int dmm)
 
 	drvc = udmms[dmm].di->priv;
 
-	/* USB scan is always authoritative. */
-	clear_instances(dmm);
-
 	conn = NULL;
 	for (l = options; l; l = l->next) {
 		src = l->data;

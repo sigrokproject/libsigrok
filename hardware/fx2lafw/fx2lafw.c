@@ -371,9 +371,6 @@ static GSList *hw_scan(GSList *options)
 
 	drvc = di->priv;
 
-	/* This scan always invalidates any previous scans. */
-	clear_instances();
-
 	conn = NULL;
 	for (l = options; l; l = l->next) {
 		src = l->data;

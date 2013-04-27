@@ -95,9 +95,6 @@ static GSList *hw_scan(GSList *options)
 
 	drvc = di->priv;
 
-	/* USB scan is always authoritative. */
-	clear_instances();
-
 	devices = NULL;
 	libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &devlist);
 	for (i = 0; devlist[i]; i++) {

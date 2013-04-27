@@ -431,8 +431,6 @@ static GSList *hw_scan(GSList *options)
 
 	devices = NULL;
 
-	clear_instances();
-
 	if (!(devc = g_try_malloc(sizeof(struct dev_context)))) {
 		sr_err("%s: devc malloc failed", __func__);
 		return NULL;

@@ -269,12 +269,9 @@ static GSList *hw_scan(GSList *options)
 	const char *conn;
 
 	drvc = di->priv;
-	drvc->instances = NULL;
 
 	devcnt = 0;
 	devices = 0;
-
-	clear_instances();
 
 	conn = NULL;
 	for (l = options; l; l = l->next) {

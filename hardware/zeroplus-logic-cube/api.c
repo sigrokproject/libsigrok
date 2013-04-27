@@ -290,8 +290,6 @@ static GSList *hw_scan(GSList *options)
 
 	devices = NULL;
 
-	clear_instances();
-
 	/* Find all ZEROPLUS analyzers and add them to device list. */
 	devcnt = 0;
 	libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &devlist); /* TODO: Errors. */
