@@ -151,12 +151,11 @@ static int init(struct sr_output *o)
 	return SR_OK;
 }
 
-static GString *receive(struct sr_output *o, const struct sr_dev_inst *sdi,
-		const struct sr_datafeed_packet *packet)
+static int receive(struct sr_output *o, const struct sr_dev_inst *sdi,
+		const struct sr_datafeed_packet *packet, GString **out)
 {
 	const struct sr_datafeed_logic *logic;
 	struct context *ctx;
-	GString *text;
 	unsigned int i;
 	int p, curbit, prevbit, index;
 	uint8_t *sample;
@@ -164,23 +163,23 @@ static GString *receive(struct sr_output *o, const struct sr_dev_inst *sdi,
 
 	(void)sdi;
 
+	*out = NULL;
 	if (!o || !o->internal)
-		return NULL;
+		return SR_ERR_ARG;
 	ctx = o->internal;
 
 	if (packet->type == SR_DF_END) {
-		text = g_string_sized_new(16);
-		g_string_printf(text, "$dumpoff\n$end\n");
-		return text;
+		*out = g_string_new("$dumpoff\n$end\n");
+		return SR_OK;
 	} else if (packet->type != SR_DF_LOGIC)
-		return NULL;
+		return SR_OK;
 
 	if (ctx->header) {
 		/* The header is still here, this must be the first packet. */
-		text = ctx->header;
+		*out = ctx->header;
 		ctx->header = NULL;
 	} else {
-		text = g_string_sized_new(512);
+		*out = g_string_sized_new(512);
 	}
 
 	logic = packet->payload;
@@ -199,7 +198,7 @@ static GString *receive(struct sr_output *o, const struct sr_dev_inst *sdi,
 				continue;
 
 			/* Output which signal changed to which value. */
-			g_string_append_printf(text, "#%" PRIu64 "\n%i%c\n",
+			g_string_append_printf(*out, "#%" PRIu64 "\n%i%c\n",
 					(uint64_t)(((float)samplecount / ctx->samplerate)
 					* ctx->period), curbit, (char)('!' + p));
 		}
@@ -207,7 +206,7 @@ static GString *receive(struct sr_output *o, const struct sr_dev_inst *sdi,
 		memcpy(ctx->prevsample, sample, ctx->unitsize);
 	}
 
-	return text;
+	return SR_OK;
 }
 
 static int cleanup(struct sr_output *o)
@@ -228,6 +227,6 @@ struct sr_output_format output_vcd = {
 	.description = "Value Change Dump (VCD)",
 	.df_type = SR_DF_LOGIC,
 	.init = init,
-	.recv = receive,
+	.receive = receive,
 	.cleanup = cleanup,
 };

@@ -41,7 +41,7 @@
 #define sr_err(s, args...) sr_err(DRIVER_LOG_DOMAIN s, ## args)
 
 struct context {
-    uint64_t samplerate;
+	uint64_t samplerate;
 	uint64_t num_samples;
 };
 
@@ -55,7 +55,7 @@ static int init(struct sr_output *o)
 	}
 	o->internal = ctx;
 
-    ctx->samplerate = 0;
+	ctx->samplerate = 0;
 	ctx->num_samples = 0;
 
 	return SR_OK;
@@ -69,7 +69,7 @@ static GString *gen_header(const struct sr_dev_inst *sdi, struct context *ctx)
 	GVariant *gvar;
 	int num_enabled_probes;
 
-    if (!ctx->samplerate && sr_config_get(sdi->driver, SR_CONF_SAMPLERATE,
+	if (!ctx->samplerate && sr_config_get(sdi->driver, SR_CONF_SAMPLERATE,
 			&gvar, sdi) == SR_OK) {
 		ctx->samplerate = g_variant_get_uint64(gvar);
 		g_variant_unref(gvar);
@@ -92,51 +92,50 @@ static GString *gen_header(const struct sr_dev_inst *sdi, struct context *ctx)
 	return s;
 }
 
-static GString *receive(struct sr_output *o, const struct sr_dev_inst *sdi,
-		const struct sr_datafeed_packet *packet)
+static int receive(struct sr_output *o, const struct sr_dev_inst *sdi,
+		const struct sr_datafeed_packet *packet, GString **out)
 {
 	struct context *ctx;
 	const struct sr_datafeed_meta *meta;
 	const struct sr_datafeed_logic *logic;
 	const struct sr_config *src;
 	GSList *l;
-	GString *out;
 	unsigned int i, j;
 	uint8_t c;
 
+	*out = NULL;
 	if (!o || !o->sdi)
-		return NULL;
+		return SR_ERR_ARG;
 	ctx = o->internal;
 
-	out = NULL;
 	switch (packet->type) {
-    case SR_DF_META:
+	case SR_DF_META:
 		meta = packet->payload;
 		for (l = meta->config; l; l = l->next) {
 			src = l->data;
 			if (src->key == SR_CONF_SAMPLERATE)
 				ctx->samplerate = g_variant_get_uint64(src->data);
 		}
-        break;
-    case SR_DF_LOGIC:
+		break;
+	case SR_DF_LOGIC:
 		logic = packet->payload;
 		if (ctx->num_samples == 0) {
 			/* First logic packet in the feed. */
-			out = gen_header(sdi, ctx);
+			*out = gen_header(sdi, ctx);
 		} else
-			out = g_string_sized_new(512);
+			*out = g_string_sized_new(512);
 		for (i = 0; i <= logic->length - logic->unitsize; i += logic->unitsize) {
 			for (j = 0; j < logic->unitsize; j++) {
 				/* The OLS format wants the samples presented MSB first. */
 				c = *((uint8_t *)logic->data + i + logic->unitsize - 1 - j);
-				g_string_append_printf(out, "%02x", c);
+				g_string_append_printf(*out, "%02x", c);
 			}
-			g_string_append_printf(out, "@%"PRIu64"\n", ctx->num_samples++);
+			g_string_append_printf(*out, "@%"PRIu64"\n", ctx->num_samples++);
 		}
 		break;
 	}
 
-    return out;
+	return SR_OK;
 }
 
 static int cleanup(struct sr_output *o)
@@ -147,8 +146,8 @@ static int cleanup(struct sr_output *o)
 		return SR_ERR_ARG;
 
 	ctx = o->internal;
-    g_free(ctx);
-    o->internal = NULL;
+	g_free(ctx);
+	o->internal = NULL;
 
 	return SR_OK;
 }
@@ -158,6 +157,6 @@ SR_PRIV struct sr_output_format output_ols = {
 	.description = "OpenBench Logic Sniffer",
 	.df_type = SR_DF_LOGIC,
 	.init = init,
-	.recv = receive,
+	.receive = receive,
 	.cleanup = cleanup
 };

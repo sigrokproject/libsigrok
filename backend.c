@@ -287,8 +287,8 @@ static int sanity_check_all_output_modules(void)
 		}
 
 		/* All modules must provide a data or recv API callback. */
-		if (!outputs[i]->data && !outputs[i]->recv) {
-			sr_err("No data/recv in module %d ('%s').", i, d);
+		if (!outputs[i]->data && !outputs[i]->receive) {
+			sr_err("No data/receive in module %d ('%s').", i, d);
 			errors++;
 		}
 

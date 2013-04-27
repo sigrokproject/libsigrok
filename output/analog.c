@@ -36,7 +36,6 @@
 struct context {
 	int num_enabled_probes;
 	GPtrArray *probelist;
-	GString *out;
 };
 
 static int init(struct sr_output *o)
@@ -65,8 +64,6 @@ static int init(struct sr_output *o)
 		g_ptr_array_add(ctx->probelist, probe->name);
 		ctx->num_enabled_probes++;
 	}
-
-	ctx->out = g_string_sized_new(512);
 
 	return SR_OK;
 }
@@ -188,10 +185,9 @@ static void fancyprint(int unit, int mqflags, float value, GString *out)
 	g_string_append_c(out, '\n');
 }
 
-static GString *receive(struct sr_output *o, const struct sr_dev_inst *sdi,
-		const struct sr_datafeed_packet *packet)
+static int receive(struct sr_output *o, const struct sr_dev_inst *sdi,
+		const struct sr_datafeed_packet *packet, GString **out)
 {
-	struct context *ctx;
 	const struct sr_datafeed_analog *analog;
 	struct sr_probe *probe;
 	GSList *l;
@@ -200,35 +196,33 @@ static GString *receive(struct sr_output *o, const struct sr_dev_inst *sdi,
 
 	(void)sdi;
 
+	*out = NULL;
 	if (!o || !o->sdi)
-		return NULL;
-	ctx = o->internal;
+		return SR_ERR_ARG;
 
-	g_string_set_size(ctx->out, 0);
 	switch (packet->type) {
-	case SR_DF_HEADER:
-		break;
 	case SR_DF_FRAME_BEGIN:
-		g_string_append_printf(ctx->out, "FRAME-BEGIN\n");
+		*out = g_string_new("FRAME-BEGIN\n");
 		break;
 	case SR_DF_FRAME_END:
-		g_string_append_printf(ctx->out, "FRAME-END\n");
+		*out = g_string_new("FRAME-END\n");
 		break;
 	case SR_DF_ANALOG:
 		analog = packet->payload;
 		fdata = (const float *)analog->data;
+		*out = g_string_sized_new(512);
 		for (i = 0; i < analog->num_samples; i++) {
 			for (l = analog->probes, p = 0; l; l = l->next, p++) {
 				probe = l->data;
-				g_string_append_printf(ctx->out, "%s: ", probe->name);
+				g_string_append_printf(*out, "%s: ", probe->name);
 				fancyprint(analog->unit, analog->mqflags,
-						fdata[i + p], ctx->out);
+						fdata[i + p], *out);
 			}
 		}
 		break;
 	}
 
-	return ctx->out;
+	return SR_OK;
 }
 
 static int cleanup(struct sr_output *o)
@@ -240,7 +234,6 @@ static int cleanup(struct sr_output *o)
 	ctx = o->internal;
 
 	g_ptr_array_free(ctx->probelist, 1);
-	g_string_free(ctx->out, 1);
 	g_free(ctx);
 	o->internal = NULL;
 
@@ -252,6 +245,6 @@ SR_PRIV struct sr_output_format output_analog = {
 	.description = "Analog data",
 	.df_type = SR_DF_ANALOG,
 	.init = init,
-	.recv = receive,
+	.receive = receive,
 	.cleanup = cleanup
 };
