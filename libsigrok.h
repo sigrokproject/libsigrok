@@ -72,6 +72,11 @@ enum {
 	SR_ERR_SAMPLERATE = -5, /**< Incorrect samplerate. */
 	SR_ERR_NA         = -6, /**< Not applicable. */
 	SR_ERR_DEV_CLOSED = -7, /**< Device is closed, but needs to be open. */
+
+	/*
+	 * Note: When adding entries here, don't forget to also update the
+	 * sr_strerror() and sr_strerror_name() functions in error.c.
+	 */
 };
 
 #define SR_MAX_NUM_PROBES    64 /* Limited by uint64_t. */

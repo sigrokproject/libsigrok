@@ -55,7 +55,7 @@ SR_API const char *sr_strerror(int error_code)
 	const char *str;
 
 	/*
-	 * Note: All defined SR_* error macros from libsigrok.h should have
+	 * Note: All defined SR_* error macros from libsigrok.h must have
 	 * an entry in this function, as well as in sr_strerror_name().
 	 */
 
@@ -80,6 +80,9 @@ SR_API const char *sr_strerror(int error_code)
 		break;
 	case SR_ERR_NA:
 		str = "not applicable";
+		break;
+	case SR_ERR_DEV_CLOSED:
+		str = "device closed but should be open";
 		break;
 	default:
 		str = "unknown error";
@@ -112,7 +115,7 @@ SR_API const char *sr_strerror_name(int error_code)
 	const char *str;
 
 	/*
-	 * Note: All defined SR_* error macros from libsigrok.h should have
+	 * Note: All defined SR_* error macros from libsigrok.h must have
 	 * an entry in this function, as well as in sr_strerror().
 	 */
 
@@ -137,6 +140,9 @@ SR_API const char *sr_strerror_name(int error_code)
 		break;
 	case SR_ERR_NA:
 		str = "SR_ERR_NA";
+		break;
+	case SR_ERR_DEV_CLOSED:
+		str = "SR_ERR_DEV_CLOSED";
 		break;
 	default:
 		str = "unknown error code";
