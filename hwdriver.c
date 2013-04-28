@@ -489,15 +489,17 @@ SR_PRIV void sr_config_free(struct sr_config *src)
  * Returns information about the given driver or device instance.
  *
  * @param driver The sr_dev_driver struct to query.
+ * @param sdi (optional) If the key is specific to a device, this must
+ *            contain a pointer to the struct sr_dev_inst to be checked.
+ *            Otherwise it must be NULL.
+ * @param probe_group The probe group on the device for which to list the
+ *                    values, or NULL.
  * @param key The configuration key (SR_CONF_*).
  * @param data Pointer to a GVariant where the value will be stored. Must
  *             not be NULL. The caller is given ownership of the GVariant
  *             and must thus decrease the refcount after use. However if
  *             this function returns an error code, the field should be
  *             considered unused, and should not be unreferenced.
- * @param sdi (optional) If the key is specific to a device, this must
- *            contain a pointer to the struct sr_dev_inst to be checked.
- *            Otherwise it must be NULL.
  *
  * @return SR_OK upon success or SR_ERR in case of error. Note SR_ERR_ARG
  *         may be returned by the driver indicating it doesn't know that key,
@@ -530,6 +532,8 @@ SR_API int sr_config_get(const struct sr_dev_driver *driver,
  * Set a configuration key in a device instance.
  *
  * @param sdi The device instance.
+ * @param probe_group The probe group on the device for which to list the
+ *                    values, or NULL.
  * @param key The configuration key (SR_CONF_*).
  * @param data The new value for the key, as a GVariant with GVariantType
  *        appropriate to that key. A floating reference can be passed
@@ -564,14 +568,16 @@ SR_API int sr_config_set(const struct sr_dev_inst *sdi,
  * List all possible values for a configuration key.
  *
  * @param driver The sr_dev_driver struct to query.
+ * @param sdi (optional) If the key is specific to a device, this must
+ *            contain a pointer to the struct sr_dev_inst to be checked.
+ * @param probe_group The probe group on the device for which to list the
+ *                    values, or NULL.
  * @param key The configuration key (SR_CONF_*).
  * @param data A pointer to a GVariant where the list will be stored. The
  *             caller is given ownership of the GVariant and must thus
  *             unref the GVariant after use. However if this function
  *             returns an error code, the field should be considered
  *             unused, and should not be unreferenced.
- * @param sdi (optional) If the key is specific to a device, this must
- *            contain a pointer to the struct sr_dev_inst to be checked.
  *
  * @return SR_OK upon success or SR_ERR in case of error. Note SR_ERR_ARG
  *         may be returned by the driver indicating it doesn't know that key,
