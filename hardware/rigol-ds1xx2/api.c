@@ -406,8 +406,11 @@ static int cleanup(void)
 static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_probe_group *probe_group)
 {
-	struct dev_context *devc = sdi->priv;
+	struct dev_context *devc;
 	unsigned int i;
+
+	if (!sdi || !(devc = sdi->priv))
+		return SR_ERR_ARG;
 
 	switch (id) {
 	case SR_CONF_NUM_TIMEBASE:
@@ -415,8 +418,7 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 		break;
 	case SR_CONF_NUM_VDIV:
 		for (i = 0; i < 2; i++) {
-			if (probe_group == &devc->analog_groups[i])
-			{
+			if (probe_group == &devc->analog_groups[i]) {
 				*data = g_variant_new_int32(NUM_VDIV);
 				return SR_OK;
 			}
@@ -439,7 +441,8 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 	int ret;
 	const char *tmp_str;
 
-	devc = sdi->priv;
+	if (!(devc = sdi->priv))
+		return SR_ERR_ARG;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
@@ -550,19 +553,26 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	GVariant *tuple, *rational[2];
 	GVariantBuilder gvb;
 	unsigned int i;
-	struct dev_context *devc = sdi->priv;
+	struct dev_context *devc;
 
-	switch (key) {
-	case SR_CONF_SCAN_OPTIONS:
+	if (key == SR_CONF_SCAN_OPTIONS) {
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
 				hwopts, ARRAY_SIZE(hwopts), sizeof(int32_t));
+		return SR_OK;
+	} else if (key == SR_CONF_DEVICE_OPTIONS && probe_group == NULL) {
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+			hwcaps, ARRAY_SIZE(hwcaps), sizeof(int32_t));
+		return SR_OK;
+	}
+
+	/* Every other option requires a valid device instance. */
+	if (!sdi || !(devc = sdi->priv))
+		return SR_ERR_ARG;
+
+	switch (key) {
 		break;
 	case SR_CONF_DEVICE_OPTIONS:
-		if (probe_group == NULL) {
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-				hwcaps, ARRAY_SIZE(hwcaps), sizeof(int32_t));
-			return SR_OK;
-		} else if (probe_group == &devc->digital_group) {
+		if (probe_group == &devc->digital_group) {
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
 				NULL, 0, sizeof(int32_t));
 			return SR_OK;
@@ -605,9 +615,6 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		*data = g_variant_builder_end(&gvb);
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
-		if (!sdi || !sdi->priv)
-			/* Can't know this until we have the exact model. */
-			return SR_ERR_ARG;
 		*data = g_variant_new_strv(trigger_sources,
 				devc->has_digital ? ARRAY_SIZE(trigger_sources) : 4);
 		break;
