@@ -161,7 +161,6 @@ static void clear_helper(void *priv)
 		if (!(devc = sdi->priv))
 			continue;
 
-		g_free(devc->device);
 		g_free(devc->coupling[0]);
 		g_free(devc->coupling[1]);
 		g_free(devc->trigger_source);
@@ -169,7 +168,6 @@ static void clear_helper(void *priv)
 		g_slist_free(devc->analog_groups[0].probes);
 		g_slist_free(devc->analog_groups[1].probes);
 		g_slist_free(devc->digital_group.probes);
-		close(devc->fd);
 
 		sr_dev_inst_free(sdi);
 	}
