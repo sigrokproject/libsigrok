@@ -62,8 +62,6 @@ struct dev_context {
 	/** Start time of acquisition session */
 	int64_t starttime;
 
-	struct sr_serial_dev_inst *serial;
-
 	uint8_t buf[DMM_BUFSIZE];
 	int bufoffset;
 	int buflen;

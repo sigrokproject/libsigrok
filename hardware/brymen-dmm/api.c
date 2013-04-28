@@ -42,13 +42,13 @@ static int hw_init(struct sr_context *sr_ctx)
 static void free_instance(void *inst)
 {
 	struct sr_dev_inst *sdi;
-	struct dev_context *devc;
+	struct sr_serial_dev_inst *serial;
 
 	if (!(sdi = inst))
 		return;
-	if (!(devc = sdi->priv))
-		return;
-	sr_serial_dev_inst_free(devc->serial);
+
+	serial = sdi->conn;
+	sr_serial_dev_inst_free(serial);
 	sr_dev_inst_free(sdi);
 }
 
@@ -110,7 +110,8 @@ static GSList *brymen_scan(const char *conn, const char *serialcomm)
 		goto scan_cleanup;
 	}
 
-	devc->serial = serial;
+	sdi->inst_type = SR_INST_SERIAL;
+	sdi->conn = serial;
 	drvc = di->priv;
 	sdi->priv = devc;
 	sdi->driver = di;
@@ -135,8 +136,6 @@ static GSList *hw_scan(GSList *options)
 	GSList *devices, *l;
 	const char *conn, *serialcomm;
 
-	(void)options;
-
 	devices = NULL;
 	drvc = di->priv;
 	drvc->instances = NULL;
@@ -153,9 +152,8 @@ static GSList *hw_scan(GSList *options)
 			break;
 		}
 	}
-	if (!conn) {
+	if (!conn)
 		return NULL;
-	}
 
 	if (serialcomm) {
 		/* Use the provided comm specs. */
@@ -175,14 +173,10 @@ static GSList *hw_dev_list(void)
 
 static int hw_dev_open(struct sr_dev_inst *sdi)
 {
-	struct dev_context *devc;
+	struct sr_serial_dev_inst *serial;
 
-	if (!(devc = sdi->priv)) {
-		sr_err("sdi->priv was NULL.");
-		return SR_ERR_BUG;
-	}
-
-	if (serial_open(devc->serial, SERIAL_RDWR | SERIAL_NONBLOCK) != SR_OK)
+	serial = sdi->conn;
+	if (serial_open(serial, SERIAL_RDWR | SERIAL_NONBLOCK) != SR_OK)
 		return SR_ERR;
 
 	sdi->status = SR_ST_ACTIVE;
@@ -192,12 +186,11 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 
 static int hw_dev_close(struct sr_dev_inst *sdi)
 {
-	struct dev_context *devc;
+	struct sr_serial_dev_inst *serial;
 
-	devc = sdi->priv;
-
-	if (devc->serial && devc->serial->fd != -1) {
-		serial_close(devc->serial);
+	serial = sdi->conn;
+	if (serial && serial->fd != -1) {
+		serial_close(serial);
 		sdi->status = SR_ST_INACTIVE;
 	}
 
@@ -263,6 +256,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 				    void *cb_data)
 {
 	struct dev_context *devc;
+	struct sr_serial_dev_inst *serial;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
@@ -286,7 +280,8 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	std_session_send_df_header(cb_data, DRIVER_LOG_DOMAIN);
 
 	/* Poll every 50ms, or whenever some data comes in. */
-	sr_source_add(devc->serial->fd, G_IO_IN, 50,
+	serial = sdi->conn;
+	sr_source_add(serial->fd, G_IO_IN, 50,
 		      brymen_dmm_receive_data, (void *)sdi);
 
 	return SR_OK;
@@ -295,7 +290,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
 	return std_hw_dev_acquisition_stop_serial(sdi, cb_data, hw_dev_close,
-	       ((struct dev_context *)(sdi->priv))->serial, DRIVER_LOG_DOMAIN);
+						  sdi->conn, DRIVER_LOG_DOMAIN);
 }
 
 SR_PRIV struct sr_dev_driver brymen_bm857_driver_info = {
