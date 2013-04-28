@@ -102,14 +102,17 @@ static void decode_packet(struct sr_dev_inst *sdi, int dmm, const uint8_t *buf,
 	devc->num_samples++;
 }
 
-static int hid_chip_init(struct dev_context *devc, uint16_t baudrate)
+static int hid_chip_init(struct sr_dev_inst *sdi, uint16_t baudrate)
 {
 	int ret;
 	uint8_t buf[5];
+	struct sr_usb_dev_inst *usb;
 
+	usb = sdi->conn;
+	
 	/* Detach kernel drivers which grabbed this device (if any). */
-	if (libusb_kernel_driver_active(devc->usb->devhdl, 0) == 1) {
-		ret = libusb_detach_kernel_driver(devc->usb->devhdl, 0);
+	if (libusb_kernel_driver_active(usb->devhdl, 0) == 1) {
+		ret = libusb_detach_kernel_driver(usb->devhdl, 0);
 		if (ret < 0) {
 			sr_err("Failed to detach kernel driver: %s.",
 			       libusb_error_name(ret));
@@ -121,7 +124,7 @@ static int hid_chip_init(struct dev_context *devc, uint16_t baudrate)
 	}
 
 	/* Claim interface 0. */
-	if ((ret = libusb_claim_interface(devc->usb->devhdl, 0)) < 0) {
+	if ((ret = libusb_claim_interface(usb->devhdl, 0)) < 0) {
 		sr_err("Failed to claim interface 0: %s.",
 		       libusb_error_name(ret));
 		return SR_ERR;
@@ -140,7 +143,7 @@ static int hid_chip_init(struct dev_context *devc, uint16_t baudrate)
 	sr_spew("HID init = 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x (%d baud)",
 		buf[0], buf[1], buf[2], buf[3], buf[4], baudrate);
 	ret = libusb_control_transfer(
-		devc->usb->devhdl, /* libusb device handle */
+		usb->devhdl, /* libusb device handle */
 		LIBUSB_REQUEST_TYPE_CLASS |
 		LIBUSB_RECIPIENT_INTERFACE |
 		LIBUSB_ENDPOINT_OUT,
@@ -187,13 +190,15 @@ static int get_and_handle_data(struct sr_dev_inst *sdi, int dmm, void *info)
 	struct dev_context *devc;
 	uint8_t buf[CHUNK_SIZE], *pbuf;
 	int i, ret, len, num_databytes_in_chunk;
+	struct sr_usb_dev_inst *usb;
 
 	devc = sdi->priv;
+	usb = sdi->conn;
 	pbuf = devc->protocol_buf;
 
 	/* On the first run, we need to init the HID chip. */
 	if (devc->first_run) {
-		if ((ret = hid_chip_init(devc, udmms[dmm].baudrate)) != SR_OK) {
+		if ((ret = hid_chip_init(sdi, udmms[dmm].baudrate)) != SR_OK) {
 			sr_err("HID chip init failed: %d.", ret);
 			return SR_ERR;
 		}
@@ -205,7 +210,7 @@ static int get_and_handle_data(struct sr_dev_inst *sdi, int dmm, void *info)
 
 	/* Get data from EP2 using an interrupt transfer. */
 	ret = libusb_interrupt_transfer(
-		devc->usb->devhdl, /* libusb device handle */
+		usb->devhdl, /* libusb device handle */
 		LIBUSB_ENDPOINT_IN | 2, /* EP2, IN */
 		(unsigned char *)&buf, /* receive buffer */
 		CHUNK_SIZE, /* wLength */

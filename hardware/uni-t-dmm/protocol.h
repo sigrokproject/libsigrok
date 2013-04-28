@@ -78,8 +78,6 @@ struct dev_context {
 	/** The current number of already received samples. */
 	uint64_t num_samples;
 
-	struct sr_usb_dev_inst *usb;
-
 	gboolean first_run;
 
 	uint8_t protocol_buf[DMM_BUFSIZE];

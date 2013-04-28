@@ -125,7 +125,8 @@ static GSList *hw_scan(GSList *options, int dmm)
 			return NULL;
 		sdi->probes = g_slist_append(sdi->probes, probe);
 
-		devc->usb = usb;
+		sdi->inst_type = SR_INST_USB;
+		sdi->conn = usb;
 
 		drvc->instances = g_slist_append(drvc->instances, sdi);
 		devices = g_slist_append(devices, sdi);
@@ -142,13 +143,13 @@ static GSList *hw_dev_list(int dmm)
 static int hw_dev_open(struct sr_dev_inst *sdi, int dmm)
 {
 	struct drv_context *drvc;
-	struct dev_context *devc;
+	struct sr_usb_dev_inst *usb;
 	int ret;
 
 	drvc = udmms[dmm].di->priv;
-	devc = sdi->priv;
+	usb = sdi->conn;
 
-	if ((ret = sr_usb_open(drvc->sr_ctx->libusb_ctx, devc->usb)) == SR_OK)
+	if ((ret = sr_usb_open(drvc->sr_ctx->libusb_ctx, usb)) == SR_OK)
 		sdi->status = SR_ST_ACTIVE;
 
 	return ret;
