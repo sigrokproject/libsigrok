@@ -131,7 +131,7 @@ SR_API int sr_session_dev_remove_all(void)
 		return SR_ERR_BUG;
 	}
 
-	g_slist_free_full(session->devs, (GDestroyNotify)sr_dev_close);
+	g_slist_free(session->devs);
 	session->devs = NULL;
 
 	return SR_OK;
