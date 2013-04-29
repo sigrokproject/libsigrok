@@ -291,4 +291,5 @@ SR_PRIV int receive_data_##ID_UPPER(int fd, int revents, void *cb_data) { \
 
 /* Driver-specific receive_data() wrappers */
 RECEIVE_DATA(UNI_T_UT61D, fs9922)
+RECEIVE_DATA(UNI_T_UT61E, es51922)
 RECEIVE_DATA(VOLTCRAFT_VC820, fs9721)

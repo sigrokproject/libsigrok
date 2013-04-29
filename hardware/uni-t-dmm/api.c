@@ -38,6 +38,7 @@ static const int32_t hwcaps[] = {
 };
 
 SR_PRIV struct sr_dev_driver uni_t_ut61d_driver_info;
+SR_PRIV struct sr_dev_driver uni_t_ut61e_driver_info;
 SR_PRIV struct sr_dev_driver voltcraft_vc820_driver_info;
 
 SR_PRIV struct dmm_info udmms[] = {
@@ -47,6 +48,13 @@ SR_PRIV struct dmm_info udmms[] = {
 		sr_fs9922_packet_valid, sr_fs9922_parse,
 		NULL,
 		&uni_t_ut61d_driver_info, receive_data_UNI_T_UT61D,
+	},
+	{
+		"UNI-T", "UT61E", 19230,
+		ES51922_PACKET_SIZE, NULL,
+		sr_es51922_packet_valid, sr_es51922_parse,
+		NULL,
+		&uni_t_ut61e_driver_info, receive_data_UNI_T_UT61E,
 	},
 	{
 		"Voltcraft", "VC-820", 2400,
@@ -309,4 +317,5 @@ SR_PRIV struct sr_dev_driver ID##_driver_info = { \
 };
 
 DRV(uni_t_ut61d, UNI_T_UT61D, "uni-t-ut61d", "UNI-T UT61D")
+DRV(uni_t_ut61e, UNI_T_UT61E, "uni-t-ut61e", "UNI-T UT61E")
 DRV(voltcraft_vc820, VOLTCRAFT_VC820, "voltcraft-vc820", "Voltcraft VC-820")
