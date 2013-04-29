@@ -260,8 +260,11 @@ static int sr_session_run_poll(void)
 			 * just once per main event loop.
 			 */
 			g_mutex_lock(&session->stop_mutex);
-			if (session->abort_session)
+			if (session->abort_session) {
 				sr_session_stop_sync();
+				/* But once is enough. */
+				session->abort_session = FALSE;
+			}
 			g_mutex_unlock(&session->stop_mutex);
 		}
 	}
@@ -376,15 +379,6 @@ SR_PRIV int sr_session_stop_sync(void)
 				sdi->driver->dev_acquisition_stop(sdi, sdi);
 		}
 	}
-
-	/*
-	 * Some sources may not be necessarily associated with a device.
-	 * Those sources may still be present even after stopping all devices.
-	 * We need to make sure all sources are removed, or we risk running the
-	 * session in an infinite loop.
-	 */
-	while (session->num_sources)
-		sr_session_source_remove(session->sources[0].poll_object);
 
 	return SR_OK;
 }
