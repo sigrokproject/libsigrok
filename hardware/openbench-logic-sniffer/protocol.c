@@ -508,7 +508,6 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 
 		serial_flush(serial);
 		abort_acquisition(sdi);
-		serial_close(serial);
 	}
 
 	return TRUE;
