@@ -122,8 +122,6 @@ static const uint64_t samplerates[] = {
 
 SR_PRIV struct sr_dev_driver fx2lafw_driver_info;
 static struct sr_dev_driver *di = &fx2lafw_driver_info;
-static int hw_dev_close(struct sr_dev_inst *sdi);
-static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);
 
 /**
  * Check the USB configuration to determine if this is an fx2lafw device.
@@ -334,12 +332,17 @@ static struct dev_context *fx2lafw_dev_new(void)
 {
 	struct dev_context *devc;
 
-	if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
+	if (!(devc = g_try_malloc(sizeof(struct dev_context)))) {
 		sr_err("Device context malloc failed.");
 		return NULL;
 	}
 
-	devc->trigger_stage = TRIGGER_FIRED;
+	devc->profile = NULL;
+	devc->fw_updated = 0;
+	devc->cur_samplerate = 0;
+	devc->limit_samples = 0;
+	devc->sample_wide = 0;
+
 
 	return devc;
 }
@@ -955,9 +958,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	devc = sdi->priv;
 	usb = sdi->conn;
 
-	if (devc->submitted_transfers != 0)
-		return SR_ERR;
-
+	/* Configures devc->trigger_* and devc->sample_wide */
 	if (configure_probes(sdi) != SR_OK) {
 		sr_err("Failed to configure probes.");
 		return SR_ERR;
@@ -970,6 +971,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	timeout = get_timeout(devc);
 	num_transfers = get_number_of_transfers(devc);
 	size = get_buffer_size(devc);
+	devc->submitted_transfers = 0;
 
 	devc->transfers = g_try_malloc0(sizeof(*devc->transfers) * num_transfers);
 	if (!devc->transfers) {
@@ -978,7 +980,6 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	}
 
 	devc->num_transfers = num_transfers;
-
 	for (i = 0; i < num_transfers; i++) {
 		if (!(buf = g_try_malloc(size))) {
 			sr_err("USB transfer buffer malloc failed.");
