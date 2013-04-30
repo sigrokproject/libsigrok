@@ -71,7 +71,6 @@ struct fx2lafw_profile {
 
 struct dev_context {
 	const struct fx2lafw_profile *profile;
-
 	/*
 	 * Since we can't keep track of an fx2lafw device after upgrading
 	 * the firmware (it renumerates into a different device address
@@ -84,8 +83,8 @@ struct dev_context {
 	uint64_t cur_samplerate;
 	uint64_t limit_samples;
 
+	/* Operational settings */
 	gboolean sample_wide;
-
 	uint16_t trigger_mask[NUM_TRIGGER_STAGES];
 	uint16_t trigger_value[NUM_TRIGGER_STAGES];
 	int trigger_stage;
@@ -96,9 +95,9 @@ struct dev_context {
 	int empty_transfer_count;
 
 	void *cb_data;
-
 	unsigned int num_transfers;
 	struct libusb_transfer **transfers;
+	int *usbfd;
 };
 
 #endif

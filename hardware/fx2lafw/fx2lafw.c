@@ -700,8 +700,6 @@ static void abort_acquisition(struct dev_context *devc)
 static void finish_acquisition(struct dev_context *devc)
 {
 	struct sr_datafeed_packet packet;
-	struct drv_context *drvc = di->priv;
-	const struct libusb_pollfd **lupfd;
 	int i;
 
 	/* Terminate session. */
@@ -709,10 +707,9 @@ static void finish_acquisition(struct dev_context *devc)
 	sr_session_send(devc->cb_data, &packet);
 
 	/* Remove fds from polling. */
-	lupfd = libusb_get_pollfds(drvc->sr_ctx->libusb_ctx);
-	for (i = 0; lupfd[i]; i++)
-		sr_source_remove(lupfd[i]->fd);
-	free(lupfd); /* NOT g_free()! */
+	for (i = 0; devc->usbfd[i] != -1; i++)
+		sr_source_remove(devc->usbfd[i]);
+	g_free(devc->usbfd);
 
 	devc->num_transfers = 0;
 	g_free(devc->transfers);
@@ -1002,10 +999,16 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	}
 
 	lupfd = libusb_get_pollfds(drvc->sr_ctx->libusb_ctx);
-	for (i = 0; lupfd[i]; i++)
+	for (i = 0; lupfd[i]; i++);
+	if (!(devc->usbfd = g_try_malloc(sizeof(struct libusb_pollfd) * (i + 1))))
+		return SR_ERR;
+	for (i = 0; lupfd[i]; i++) {
 		sr_source_add(lupfd[i]->fd, lupfd[i]->events,
 			      timeout, receive_data, NULL);
-	free(lupfd); /* NOT g_free()! */
+		devc->usbfd[i] = lupfd[i]->fd;
+	}
+	devc->usbfd[i] = -1;
+	free(lupfd);
 
 	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, DRIVER_LOG_DOMAIN);
@@ -1019,7 +1022,6 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-/* TODO: This stops acquisition on ALL devices, ignoring dev_index. */
 static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
 	(void)cb_data;
