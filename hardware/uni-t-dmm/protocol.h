@@ -41,9 +41,10 @@ enum {
 	UNI_T_UT61D,
 	UNI_T_UT61E,
 	VOLTCRAFT_VC820,
+	VOLTCRAFT_VC840,
 };
 
-#define DMM_COUNT 3
+#define DMM_COUNT 4
 
 struct dmm_info {
 	char *vendor;
@@ -89,5 +90,6 @@ struct dev_context {
 SR_PRIV int receive_data_UNI_T_UT61D(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_UNI_T_UT61E(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_VOLTCRAFT_VC820(int fd, int revents, void *cb_data);
+SR_PRIV int receive_data_VOLTCRAFT_VC840(int fd, int revents, void *cb_data);
 
 #endif
