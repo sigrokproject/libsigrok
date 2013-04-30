@@ -279,7 +279,7 @@ static void handle_flags(struct sr_datafeed_analog *analog, float *floatval,
 	if (info->is_beep) {
 		analog->mq = SR_MQ_CONTINUITY;
 		analog->unit = SR_UNIT_BOOLEAN;
-		*floatval = (*floatval < 0.0) ? 0.0 : 1.0;
+		*floatval = (*floatval == INFINITY) ? 0.0 : 1.0;
 	}
 	if (info->is_percent) {
 		analog->mq = SR_MQ_DUTY_CYCLE;
