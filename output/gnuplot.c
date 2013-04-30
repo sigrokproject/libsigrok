@@ -78,11 +78,6 @@ static int init(struct sr_output *o)
 		return SR_ERR_ARG;
 	}
 
-	if (!o->sdi->driver) {
-		sr_err("%s: o->sdi->driver was NULL", __func__);
-		return SR_ERR_ARG;
-	}
-
 	if (!(ctx = g_try_malloc0(sizeof(struct context)))) {
 		sr_err("%s: ctx malloc failed", __func__);
 		return SR_ERR_MALLOC;
@@ -100,19 +95,18 @@ static int init(struct sr_output *o)
 	num_probes = g_slist_length(o->sdi->probes);
 	comment[0] = '\0';
 	samplerate = 0;
-	if (sr_dev_has_option(o->sdi, SR_CONF_SAMPLERATE)) {
-		o->sdi->driver->config_get(SR_CONF_SAMPLERATE, &gvar, o->sdi);
+	if (sr_config_get(o->sdi->driver, SR_CONF_SAMPLERATE, &gvar,
+			o->sdi) == SR_OK) {
 		samplerate = g_variant_get_uint64(gvar);
+		g_variant_unref(gvar);
 		if (!(frequency_s = sr_samplerate_string(samplerate))) {
 			sr_err("%s: sr_samplerate_string failed", __func__);
 			g_free(ctx);
-			g_variant_unref(gvar);
 			return SR_ERR;
 		}
 		snprintf(comment, 127, gnuplot_header_comment,
 			ctx->num_enabled_probes, num_probes, frequency_s);
 		g_free(frequency_s);
-		g_variant_unref(gvar);
 	}
 
 	/* Columns / channels */

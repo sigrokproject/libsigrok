@@ -95,19 +95,18 @@ static int init(struct sr_output *o)
 	g_string_append_printf(ctx->header, "$version %s %s $end\n",
 			PACKAGE, PACKAGE_VERSION);
 
-	if (o->sdi->driver && sr_dev_has_option(o->sdi, SR_CONF_SAMPLERATE)) {
-		o->sdi->driver->config_get(SR_CONF_SAMPLERATE, &gvar, o->sdi);
+	if (sr_config_get(o->sdi->driver, SR_CONF_SAMPLERATE, &gvar,
+			o->sdi) == SR_OK) {
 		ctx->samplerate = g_variant_get_uint64(gvar);
+		g_variant_unref(gvar);
 		if (!((samplerate_s = sr_samplerate_string(ctx->samplerate)))) {
 			g_string_free(ctx->header, TRUE);
 			g_free(ctx);
-			g_variant_unref(gvar);
 			return SR_ERR;
 		}
 		g_string_append_printf(ctx->header, vcd_header_comment,
 				 ctx->num_enabled_probes, num_probes, samplerate_s);
 		g_free(samplerate_s);
-		g_variant_unref(gvar);
 	}
 
 	/* timescale */
