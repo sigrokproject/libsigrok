@@ -155,7 +155,7 @@ SR_PRIV struct dmm_info dmms[] = {
 		"Voltcraft", "VC-840 (UT-D02 cable)", "2400/8n1/rts=0/dtr=1",
 		2400, FS9721_PACKET_SIZE, NULL,
 		sr_fs9721_packet_valid, sr_fs9721_parse,
-		NULL,
+		sr_fs9721_details_c2c1_00_temp_celsius,
 		&voltcraft_vc840_ser_driver_info,
 		receive_data_VOLTCRAFT_VC840_SER,
 	},

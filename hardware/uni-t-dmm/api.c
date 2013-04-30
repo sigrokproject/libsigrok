@@ -68,7 +68,7 @@ SR_PRIV struct dmm_info udmms[] = {
 		"Voltcraft", "VC-840", 2400,
 		FS9721_PACKET_SIZE, NULL,
 		sr_fs9721_packet_valid, sr_fs9721_parse,
-		NULL,
+		sr_fs9721_details_c2c1_00_temp_celsius,
 		&voltcraft_vc840_driver_info, receive_data_VOLTCRAFT_VC840,
 	},
 };
