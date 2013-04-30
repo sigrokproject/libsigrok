@@ -44,7 +44,7 @@ SR_PRIV struct sr_dev_driver voltcraft_vc840_driver_info;
 
 SR_PRIV struct dmm_info udmms[] = {
 	{
-		"UNI-T", "UT61D", 19230,
+		"UNI-T", "UT61D", 2400,
 		FS9922_PACKET_SIZE, NULL,
 		sr_fs9922_packet_valid, sr_fs9922_parse,
 		NULL,
