@@ -54,9 +54,15 @@ static gboolean flags_valid(const struct fs9922_info *info)
 		return FALSE;
 	}
 
-	/* Does the packet "measure" more than one type of value? */
+	/*
+	 * Does the packet "measure" more than one type of value?
+	 *
+	 * Note: In "diode mode", both is_diode and is_volt will be set.
+	 * That is a valid use-case, so we don't want to error out below
+	 * if it happens. Thus, we don't check for is_diode here.
+	 */
 	count = 0;
-	count += (info->is_diode) ? 1 : 0;
+	// count += (info->is_diode) ? 1 : 0;
 	count += (info->is_percent) ? 1 : 0;
 	count += (info->is_volt) ? 1 : 0;
 	count += (info->is_ampere) ? 1 : 0;
@@ -237,7 +243,8 @@ static void handle_flags(struct sr_datafeed_analog *analog, float *floatval,
 		*floatval *= 1000000;
 
 	/* Measurement modes */
-	if (info->is_volt) {
+	if (info->is_volt || info->is_diode) {
+		/* Note: In "diode mode" both is_diode and is_volt are set. */
 		analog->mq = SR_MQ_VOLTAGE;
 		analog->unit = SR_UNIT_VOLT;
 	}
@@ -273,10 +280,6 @@ static void handle_flags(struct sr_datafeed_analog *analog, float *floatval,
 		analog->mq = SR_MQ_CONTINUITY;
 		analog->unit = SR_UNIT_BOOLEAN;
 		*floatval = (*floatval < 0.0) ? 0.0 : 1.0;
-	}
-	if (info->is_diode) {
-		analog->mq = SR_MQ_VOLTAGE;
-		analog->unit = SR_UNIT_VOLT;
 	}
 	if (info->is_percent) {
 		analog->mq = SR_MQ_DUTY_CYCLE;
