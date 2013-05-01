@@ -184,7 +184,10 @@ SR_PRIV int std_dev_clear(const struct sr_dev_driver *driver,
 	GSList *l;
 	int ret;
 
-	drvc = driver->priv;
+	if (!(drvc = driver->priv))
+		/* Driver was never initialized, nothing to do. */
+		return SR_OK;
+
 	ret = SR_OK;
 	for (l = drvc->instances; l; l = l->next) {
 		/* Log errors, but continue cleaning up the rest. */
