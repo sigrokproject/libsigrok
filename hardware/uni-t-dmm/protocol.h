@@ -38,6 +38,7 @@
 
 /* Note: When adding entries here, don't forget to update DMM_COUNT. */
 enum {
+	TECPEL_DMM_8060,
 	TECPEL_DMM_8061,
 	UNI_T_UT61D,
 	UNI_T_UT61E,
@@ -45,7 +46,7 @@ enum {
 	VOLTCRAFT_VC840,
 };
 
-#define DMM_COUNT 5
+#define DMM_COUNT 6
 
 struct dmm_info {
 	char *vendor;
@@ -88,6 +89,7 @@ struct dev_context {
 	uint8_t buflen;
 };
 
+SR_PRIV int receive_data_TECPEL_DMM_8060(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_TECPEL_DMM_8061(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_UNI_T_UT61D(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_UNI_T_UT61E(int fd, int revents, void *cb_data);
