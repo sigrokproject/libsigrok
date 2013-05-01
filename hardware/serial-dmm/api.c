@@ -63,14 +63,14 @@ SR_PRIV struct dmm_info dmms[] = {
 		"Digitek", "DT4000ZC", "2400/8n1", 2400,
 		FS9721_PACKET_SIZE, NULL,
 		sr_fs9721_packet_valid, sr_fs9721_parse,
-		dmm_details_dt4000zc,
+		sr_fs9721_10_temp_c,
 		&digitek_dt4000zc_driver_info, receive_data_DIGITEK_DT4000ZC,
 	},
 	{
 		"TekPower", "TP4000ZC", "2400/8n1", 2400,
 		FS9721_PACKET_SIZE, NULL,
 		sr_fs9721_packet_valid, sr_fs9721_parse,
-		dmm_details_tp4000zc,
+		sr_fs9721_10_temp_c,
 		&tekpower_tp4000zc_driver_info, receive_data_TEKPOWER_TP4000ZC,
 	},
 	{
@@ -98,7 +98,7 @@ SR_PRIV struct dmm_info dmms[] = {
 		"V&A", "VA18B", "2400/8n1", 2400,
 		FS9721_PACKET_SIZE, NULL,
 		sr_fs9721_packet_valid, sr_fs9721_parse,
-		dmm_details_va18b,
+		sr_fs9721_01_temp_c,
 		&va_va18b_driver_info, receive_data_VA_VA18B,
 	},
 	{
@@ -119,7 +119,7 @@ SR_PRIV struct dmm_info dmms[] = {
 		"PCE", "PCE-DM32", "2400/8n1", 2400,
 		FS9721_PACKET_SIZE, NULL,
 		sr_fs9721_packet_valid, sr_fs9721_parse,
-		dmm_details_pce_dm32,
+		sr_fs9721_01_10_temp_f_c,
 		&pce_pce_dm32_driver_info, receive_data_PCE_PCE_DM32,
 	},
 	{
@@ -155,7 +155,7 @@ SR_PRIV struct dmm_info dmms[] = {
 		"Voltcraft", "VC-840 (UT-D02 cable)", "2400/8n1/rts=0/dtr=1",
 		2400, FS9721_PACKET_SIZE, NULL,
 		sr_fs9721_packet_valid, sr_fs9721_parse,
-		sr_fs9721_details_c2c1_00_temp_celsius,
+		sr_fs9721_00_temp_c,
 		&voltcraft_vc840_ser_driver_info,
 		receive_data_VOLTCRAFT_VC840_SER,
 	},

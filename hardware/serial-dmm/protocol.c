@@ -35,56 +35,6 @@ static void log_dmm_packet(const uint8_t *buf)
 	       buf[7], buf[8], buf[9], buf[10], buf[11], buf[12], buf[13]);
 }
 
-SR_PRIV void dmm_details_dt4000zc(struct sr_datafeed_analog *analog, void *info)
-{
-	dmm_details_tp4000zc(analog, info); /* Same as TP4000ZC. */
-}
-
-SR_PRIV void dmm_details_tp4000zc(struct sr_datafeed_analog *analog, void *info)
-{
-	struct fs9721_info *info_local;
-
-	info_local = (struct fs9721_info *)info;
-
-	/* User-defined FS9721_LP3 flag 'c2c1_10' means temperature (C). */
-	if (info_local->is_c2c1_10) {
-		analog->mq = SR_MQ_TEMPERATURE;
-		analog->unit = SR_UNIT_CELSIUS;
-	}
-}
-
-SR_PRIV void dmm_details_va18b(struct sr_datafeed_analog *analog, void *info)
-{
-	struct fs9721_info *info_local;
-
-	info_local = (struct fs9721_info *)info;
-
-	/* User-defined FS9721_LP3 flag 'c2c1_01' means temperature (C). */
-	if (info_local->is_c2c1_01) {
-		analog->mq = SR_MQ_TEMPERATURE;
-		analog->unit = SR_UNIT_CELSIUS;
-	}
-}
-
-SR_PRIV void dmm_details_pce_dm32(struct sr_datafeed_analog *analog, void *info)
-{
-	struct fs9721_info *info_local;
-
-	info_local = (struct fs9721_info *)info;
-
-	/* User-defined FS9721_LP3 flag 'c2c1_01' means temperature (F). */
-	if (info_local->is_c2c1_01) {
-		analog->mq = SR_MQ_TEMPERATURE;
-		analog->unit = SR_UNIT_FAHRENHEIT;
-	}
-
-	/* User-defined FS9721_LP3 flag 'c2c1_10' means temperature (C). */
-	if (info_local->is_c2c1_10) {
-		analog->mq = SR_MQ_TEMPERATURE;
-		analog->unit = SR_UNIT_CELSIUS;
-	}
-}
-
 static void handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi,
 			  int dmm, void *info)
 {
