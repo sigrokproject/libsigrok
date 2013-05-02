@@ -234,6 +234,24 @@ See also: http://erste.de/UT61/index.html
   done
 
 
+Enabling multimeter / data logger measurement output
+----------------------------------------------------
+
+Some multimeters or data loggers will not start outputting measurement data
+unless a certain action has been performed by the user beforehand. This is
+usually mentioned in the vendor manual of the respective device, but here's
+a short list for convenience:
+
+ - Digitek DT4000ZC: Briefly press the "RS232" button.
+ - PCE PCE-DM32: Briefly press the "RS232" button.
+ - RadioShack 22-812: Press and hold "SELECT" and "RANGE" together.
+ - TekPower TP4000ZC: Briefly press the "RS232" button.
+ - UNI-T UT61D: Press the "REL/RS232/USB" button for roughly 1 second.
+ - V&A VA18B: Keep the "Hz/DUTY" key pressed while powering on the device.
+ - Victor 70C: Press the "REL/RS232" button for roughly 1 second.
+ - Victor 86C: Press the "REL/RS232" button for roughly 1 second.
+
+
 ALSA driver
 -----------
 
