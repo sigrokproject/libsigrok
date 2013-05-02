@@ -4,7 +4,7 @@
  * Support for analog sources (oscilloscopes, DMMs, data loggers) was added.
  * New supported hardware:
    - Logic analyzers:
-     - USBee DX
+     - CWAV USBee DX
      - ZEROPLUS LAP-16128U
    - Oscilloscopes:
      - Hantek DSO-2090 (USB scope)
@@ -26,12 +26,14 @@
      - MASTECH MAS345
      - Metex ME-31
      - Metex M-3640D
+     - PCE PCE-DM32
      - PeakTech 3410
      - PeakTech 4370
-     - PCE PCE-DM32
      - RadioShack 22-168
      - RadioShack 22-805
      - RadioShack 22-812
+     - Tecpel DMM-8060
+     - Tecpel DMM-8061
      - TekPower TP4000ZC
      - UNI-T UT61D
      - UNI-T UT61E
@@ -52,7 +54,7 @@
    cables and/or transports (e.g. same protocol over serial or USB/HID):
    - Cyrustek ES51922 binary protocol.
    - Fortune Semiconductor FS9721_LP3/FS9721B binary protocol.
-   - Fortune Semiconductor FS9922-DMM3/ÐMM4 binary protocol.
+   - Fortune Semiconductor FS9922-DMM3/DMM4 binary protocol.
    - Metex 14-byte ASCII protocol.
    - RadioShack 22-812 binary protocol.
  * zeroplus-logic-cube driver:
@@ -62,8 +64,8 @@
    - Add pre-trigger (capture ratio) setting.
    - Add support for the ZEROPLUS LAP-16128U.
  * fx2lafw driver:
-   - Add support for the USBee DX. This requires the latest version of the
-     fx2lafw firmware files.
+   - Add support for the CWAV USBee DX. This requires the latest version of
+     the fx2lafw firmware files.
    - Add support for wide sampling (i.e. 16 probes instead of just 8).
    - Fix multi-stage (software) triggers.
    - Fix various memory leaks, firmware upload timeout bugs, and other issues.
@@ -88,7 +90,7 @@
    - The header that frontends should include is: <libsigrok/libsigrok.h>.
      There are other headers which are installed, but those are not meant to
      be included directly by the frontends.
-   - There we numerous API changes, additions and removals, too many to list
+   - There were numerous API changes, additions and removals, too many to list
      here. Please check the source code or Doxygen API documentation for the
      current set of API functions.
  * Serial port code:
@@ -97,7 +99,7 @@
     - Add support for more baudrates (e.g. very low ones such as 600/1200)
       that are used in some devices.
     - Add support for setting DTR/RTS.
- * gnuplot files: Add sample files for USBee DX (for 8/16 bit sampling).
+ * gnuplot files: Add sample files for CWAV USBee DX (for 8/16 bit sampling).
  * Documentation updates:
    - Add a README.devices file which contains various notes for users of
      libsigrok about device- and/or driver-specific issues.
