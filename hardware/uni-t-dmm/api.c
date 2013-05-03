@@ -213,7 +213,6 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 
 	switch (id) {
 	case SR_CONF_LIMIT_MSEC:
-		/* TODO: Not yet implemented. */
 		if (g_variant_get_uint64(data) == 0) {
 			sr_err("Time limit cannot be 0.");
 			return SR_ERR;
@@ -266,6 +265,8 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	devc = sdi->priv;
 
 	devc->cb_data = cb_data;
+
+	devc->starttime = g_get_monotonic_time();
 
 	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, LOG_PREFIX);

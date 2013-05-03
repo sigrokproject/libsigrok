@@ -82,6 +82,8 @@ struct dev_context {
 	/** The current number of already received samples. */
 	uint64_t num_samples;
 
+	int64_t starttime;
+
 	gboolean first_run;
 
 	uint8_t protocol_buf[DMM_BUFSIZE];
