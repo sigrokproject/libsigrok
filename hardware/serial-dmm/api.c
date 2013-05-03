@@ -227,7 +227,7 @@ static int hw_init(struct sr_context *sr_ctx, int dmm)
 {
 	sr_dbg("Selected '%s' subdriver.", dmms[dmm].di->name);
 
-	return std_hw_init(sr_ctx, dmms[dmm].di, DRIVER_LOG_DOMAIN);
+	return std_hw_init(sr_ctx, dmms[dmm].di, LOG_PREFIX);
 }
 
 static GSList *scan(const char *conn, const char *serialcomm, int dmm)
@@ -461,7 +461,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	devc->starttime = g_get_monotonic_time();
 
 	/* Send header packet to the session bus. */
-	std_session_send_df_header(cb_data, DRIVER_LOG_DOMAIN);
+	std_session_send_df_header(cb_data, LOG_PREFIX);
 
 	/* Poll every 50ms, or whenever some data comes in. */
 	serial = sdi->conn;
@@ -474,7 +474,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
 	return std_hw_dev_acquisition_stop_serial(sdi, cb_data, hw_dev_close,
-						  sdi->conn, DRIVER_LOG_DOMAIN);
+						  sdi->conn, LOG_PREFIX);
 }
 
 /* Driver-specific API function wrappers */

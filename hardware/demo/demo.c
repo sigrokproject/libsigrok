@@ -31,14 +31,14 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
-/* Message logging helpers with driver-specific prefix string. */
-#define DRIVER_LOG_DOMAIN "demo: "
-#define sr_log(l, s, args...) sr_log(l, DRIVER_LOG_DOMAIN s, ## args)
-#define sr_spew(s, args...) sr_spew(DRIVER_LOG_DOMAIN s, ## args)
-#define sr_dbg(s, args...) sr_dbg(DRIVER_LOG_DOMAIN s, ## args)
-#define sr_info(s, args...) sr_info(DRIVER_LOG_DOMAIN s, ## args)
-#define sr_warn(s, args...) sr_warn(DRIVER_LOG_DOMAIN s, ## args)
-#define sr_err(s, args...) sr_err(DRIVER_LOG_DOMAIN s, ## args)
+/* Message logging helpers with subsystem-specific prefix string. */
+#define LOG_PREFIX "demo: "
+#define sr_log(l, s, args...) sr_log(l, LOG_PREFIX s, ## args)
+#define sr_spew(s, args...) sr_spew(LOG_PREFIX s, ## args)
+#define sr_dbg(s, args...) sr_dbg(LOG_PREFIX s, ## args)
+#define sr_info(s, args...) sr_info(LOG_PREFIX s, ## args)
+#define sr_warn(s, args...) sr_warn(LOG_PREFIX s, ## args)
+#define sr_err(s, args...) sr_err(LOG_PREFIX s, ## args)
 
 /* TODO: Number of probes should be configurable. */
 #define NUM_PROBES             8
@@ -152,7 +152,7 @@ static int clear_instances(void)
 
 static int hw_init(struct sr_context *sr_ctx)
 {
-	return std_hw_init(sr_ctx, di, DRIVER_LOG_DOMAIN);
+	return std_hw_init(sr_ctx, di, LOG_PREFIX);
 }
 
 static GSList *hw_scan(GSList *options)
@@ -496,7 +496,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 		    40, receive_data, devc);
 
 	/* Send header packet to the session bus. */
-	std_session_send_df_header(cb_data, DRIVER_LOG_DOMAIN);
+	std_session_send_df_header(cb_data, LOG_PREFIX);
 
 	/* We use this timestamp to decide how many more samples to send. */
 	devc->starttime = g_get_monotonic_time();

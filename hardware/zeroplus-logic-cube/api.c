@@ -628,7 +628,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 		analyzer_get_trigger_address(usb->devhdl));
 
 	/* Send header packet to the session bus. */
-	std_session_send_df_header(cb_data, DRIVER_LOG_DOMAIN);
+	std_session_send_df_header(cb_data, LOG_PREFIX);
 
 	if (!(buf = g_try_malloc(PACKET_SIZE))) {
 		sr_err("Packet buffer malloc failed.");

@@ -53,7 +53,7 @@ static struct sr_dev_driver *di = &link_mso19_driver_info;
 
 static int hw_init(struct sr_context *sr_ctx)
 {
-	return std_hw_init(sr_ctx, di, DRIVER_LOG_DOMAIN);
+	return std_hw_init(sr_ctx, di, LOG_PREFIX);
 }
 
 static GSList *hw_scan(GSList *options)
@@ -456,7 +456,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	devc->trigger_state = 0x00;
 
 	/* Send header packet to the session bus. */
-	std_session_send_df_header(cb_data, DRIVER_LOG_DOMAIN);
+	std_session_send_df_header(cb_data, LOG_PREFIX);
 
 	/* Our first probe is analog, the other 8 are of type 'logic'. */
 	/* TODO. */

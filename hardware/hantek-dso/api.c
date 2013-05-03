@@ -251,7 +251,7 @@ static int clear_instances(void)
 
 static int hw_init(struct sr_context *sr_ctx)
 {
-	return std_hw_init(sr_ctx, di, DRIVER_LOG_DOMAIN);
+	return std_hw_init(sr_ctx, di, LOG_PREFIX);
 }
 
 static GSList *hw_scan(GSList *options)
@@ -947,7 +947,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	free(lupfd);
 
 	/* Send header packet to the session bus. */
-	std_session_send_df_header(cb_data, DRIVER_LOG_DOMAIN);
+	std_session_send_df_header(cb_data, LOG_PREFIX);
 
 	return SR_OK;
 }

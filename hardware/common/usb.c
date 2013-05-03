@@ -33,14 +33,14 @@
 #define SUBCLASS_USBTMC 0x03
 #define USBTMC_USB488   0x01
 
-/* Message logging helpers with driver-specific prefix string. */
-#define DRIVER_LOG_DOMAIN "usb: "
-#define sr_log(l, s, args...) sr_log(l, DRIVER_LOG_DOMAIN s, ## args)
-#define sr_spew(s, args...) sr_spew(DRIVER_LOG_DOMAIN s, ## args)
-#define sr_dbg(s, args...) sr_dbg(DRIVER_LOG_DOMAIN s, ## args)
-#define sr_info(s, args...) sr_info(DRIVER_LOG_DOMAIN s, ## args)
-#define sr_warn(s, args...) sr_warn(DRIVER_LOG_DOMAIN s, ## args)
-#define sr_err(s, args...) sr_err(DRIVER_LOG_DOMAIN s, ## args)
+/* Message logging helpers with subsystem-specific prefix string. */
+#define LOG_PREFIX "usb: "
+#define sr_log(l, s, args...) sr_log(l, LOG_PREFIX s, ## args)
+#define sr_spew(s, args...) sr_spew(LOG_PREFIX s, ## args)
+#define sr_dbg(s, args...) sr_dbg(LOG_PREFIX s, ## args)
+#define sr_info(s, args...) sr_info(LOG_PREFIX s, ## args)
+#define sr_warn(s, args...) sr_warn(LOG_PREFIX s, ## args)
+#define sr_err(s, args...) sr_err(LOG_PREFIX s, ## args)
 
 /**
  * Find USB devices according to a connection string.

@@ -194,7 +194,7 @@ static int set_cfg(const struct sr_dev_inst *sdi, const char *format, ...)
 
 static int hw_init(struct sr_context *sr_ctx)
 {
-	return std_hw_init(sr_ctx, di, DRIVER_LOG_DOMAIN);
+	return std_hw_init(sr_ctx, di, LOG_PREFIX);
 }
 
 static int probe_port(const char *port, GSList **devices)
@@ -612,7 +612,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	sr_source_add(serial->fd, G_IO_IN, 50, rigol_ds1xx2_receive, (void *)sdi);
 
 	/* Send header packet to the session bus. */
-	std_session_send_df_header(cb_data, DRIVER_LOG_DOMAIN);
+	std_session_send_df_header(cb_data, LOG_PREFIX);
 
 	/* Fetch the first frame. */
 	if (devc->enabled_analog_probes) {

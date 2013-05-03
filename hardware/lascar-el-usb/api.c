@@ -69,7 +69,7 @@ static int clear_instances(void)
 
 static int hw_init(struct sr_context *sr_ctx)
 {
-	return std_hw_init(sr_ctx, di, DRIVER_LOG_DOMAIN);
+	return std_hw_init(sr_ctx, di, LOG_PREFIX);
 }
 
 static GSList *hw_scan(GSList *options)
@@ -384,7 +384,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	sr_dbg("Starting log retrieval.");
 
 	/* Send header packet to the session bus. */
-	std_session_send_df_header(cb_data, DRIVER_LOG_DOMAIN);
+	std_session_send_df_header(cb_data, LOG_PREFIX);
 
 	interval = (devc->config[0x1c] | (devc->config[0x1d] << 8)) * 1000;
 	packet.type = SR_DF_META;

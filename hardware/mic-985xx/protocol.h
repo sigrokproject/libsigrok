@@ -28,14 +28,14 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
-/* Message logging helpers with driver-specific prefix string. */
-#define DRIVER_LOG_DOMAIN "mic-985xx: "
-#define sr_log(l, s, args...) sr_log(l, DRIVER_LOG_DOMAIN s, ## args)
-#define sr_spew(s, args...) sr_spew(DRIVER_LOG_DOMAIN s, ## args)
-#define sr_dbg(s, args...) sr_dbg(DRIVER_LOG_DOMAIN s, ## args)
-#define sr_info(s, args...) sr_info(DRIVER_LOG_DOMAIN s, ## args)
-#define sr_warn(s, args...) sr_warn(DRIVER_LOG_DOMAIN s, ## args)
-#define sr_err(s, args...) sr_err(DRIVER_LOG_DOMAIN s, ## args)
+/* Message logging helpers with subsystem-specific prefix string. */
+#define LOG_PREFIX "mic-985xx: "
+#define sr_log(l, s, args...) sr_log(l, LOG_PREFIX s, ## args)
+#define sr_spew(s, args...) sr_spew(LOG_PREFIX s, ## args)
+#define sr_dbg(s, args...) sr_dbg(LOG_PREFIX s, ## args)
+#define sr_info(s, args...) sr_info(LOG_PREFIX s, ## args)
+#define sr_warn(s, args...) sr_warn(LOG_PREFIX s, ## args)
+#define sr_err(s, args...) sr_err(LOG_PREFIX s, ## args)
 
 /* Note: When adding entries here, don't forget to update MIC_DEV_COUNT. */
 enum {

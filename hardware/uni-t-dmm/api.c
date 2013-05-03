@@ -102,7 +102,7 @@ static int hw_init(struct sr_context *sr_ctx, int dmm)
 {
 	sr_dbg("Selected '%s' subdriver.", udmms[dmm].di->name);
 
-	return std_hw_init(sr_ctx, udmms[dmm].di, DRIVER_LOG_DOMAIN);
+	return std_hw_init(sr_ctx, udmms[dmm].di, LOG_PREFIX);
 }
 
 static GSList *hw_scan(GSList *options, int dmm)
@@ -268,7 +268,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	devc->cb_data = cb_data;
 
 	/* Send header packet to the session bus. */
-	std_session_send_df_header(cb_data, DRIVER_LOG_DOMAIN);
+	std_session_send_df_header(cb_data, LOG_PREFIX);
 
 	sr_source_add(0, 0, 10 /* poll_timeout */,
 		      udmms[dmm].receive_data, (void *)sdi);

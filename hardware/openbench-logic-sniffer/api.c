@@ -55,7 +55,7 @@ static struct sr_dev_driver *di = &ols_driver_info;
 
 static int hw_init(struct sr_context *sr_ctx)
 {
-	return std_hw_init(sr_ctx, di, DRIVER_LOG_DOMAIN);
+	return std_hw_init(sr_ctx, di, LOG_PREFIX);
 }
 
 static GSList *hw_scan(GSList *options)
@@ -487,7 +487,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	devc->num_transfers = devc->num_samples = devc->num_bytes = 0;
 
 	/* Send header packet to the session bus. */
-	std_session_send_df_header(cb_data, DRIVER_LOG_DOMAIN);
+	std_session_send_df_header(cb_data, LOG_PREFIX);
 
 	sr_source_add(serial->fd, G_IO_IN, -1, ols_receive_data, cb_data);
 

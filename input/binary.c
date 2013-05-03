@@ -26,14 +26,14 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
-/* Message logging helpers with driver-specific prefix string. */
-#define DRIVER_LOG_DOMAIN "input/binary: "
-#define sr_log(l, s, args...) sr_log(l, DRIVER_LOG_DOMAIN s, ## args)
-#define sr_spew(s, args...) sr_spew(DRIVER_LOG_DOMAIN s, ## args)
-#define sr_dbg(s, args...) sr_dbg(DRIVER_LOG_DOMAIN s, ## args)
-#define sr_info(s, args...) sr_info(DRIVER_LOG_DOMAIN s, ## args)
-#define sr_warn(s, args...) sr_warn(DRIVER_LOG_DOMAIN s, ## args)
-#define sr_err(s, args...) sr_err(DRIVER_LOG_DOMAIN s, ## args)
+/* Message logging helpers with subsystem-specific prefix string. */
+#define LOG_PREFIX "input/binary: "
+#define sr_log(l, s, args...) sr_log(l, LOG_PREFIX s, ## args)
+#define sr_spew(s, args...) sr_spew(LOG_PREFIX s, ## args)
+#define sr_dbg(s, args...) sr_dbg(LOG_PREFIX s, ## args)
+#define sr_info(s, args...) sr_info(LOG_PREFIX s, ## args)
+#define sr_warn(s, args...) sr_warn(LOG_PREFIX s, ## args)
+#define sr_err(s, args...) sr_err(LOG_PREFIX s, ## args)
 
 #define CHUNKSIZE             (512 * 1024)
 #define DEFAULT_NUM_PROBES    8
@@ -116,7 +116,7 @@ static int loadfile(struct sr_input *in, const char *filename)
 	num_probes = g_slist_length(in->sdi->probes);
 
 	/* Send header packet to the session bus. */
-	std_session_send_df_header(in->sdi, DRIVER_LOG_DOMAIN);
+	std_session_send_df_header(in->sdi, LOG_PREFIX);
 
 	if (ctx->samplerate) {
 		packet.type = SR_DF_META;
