@@ -99,82 +99,83 @@ static void si_printf(float value, GString *out, char *unitstr)
 static void fancyprint(int unit, int mqflags, float value, GString *out)
 {
 	switch (unit) {
-		case SR_UNIT_VOLT:
-			si_printf(value, out, "V");
-			break;
-		case SR_UNIT_AMPERE:
-			si_printf(value, out, "A");
-			break;
-		case SR_UNIT_OHM:
-			si_printf(value, out, "");
-			g_string_append_unichar(out, 0x2126);
-			break;
-		case SR_UNIT_FARAD:
-			si_printf(value, out, "F");
-			break;
-		case SR_UNIT_KELVIN:
-			si_printf(value, out, "K");
-			break;
-		case SR_UNIT_CELSIUS:
-			si_printf(value, out, "");
-			g_string_append_unichar(out, 0x00b0);
-			g_string_append_c(out, 'C');
-			break;
-		case SR_UNIT_FAHRENHEIT:
-			si_printf(value, out, "");
-			g_string_append_unichar(out, 0x00b0);
-			g_string_append_c(out, 'F');
-			break;
-		case SR_UNIT_HERTZ:
-			si_printf(value, out, "Hz");
-			break;
-		case SR_UNIT_PERCENTAGE:
-			g_string_append_printf(out, "%f%%", value);
-			break;
-		case SR_UNIT_BOOLEAN:
-			if (value > 0)
-				g_string_append_printf(out, "TRUE");
-			else
-				g_string_append_printf(out, "FALSE");
-			break;
-		case SR_UNIT_SECOND:
-			si_printf(value, out, "s");
-			break;
-		case SR_UNIT_SIEMENS:
-			si_printf(value, out, "S");
-			break;
-		case SR_UNIT_DECIBEL_MW:
-			si_printf(value, out, "dBu");
-			break;
-		case SR_UNIT_DECIBEL_VOLT:
-			si_printf(value, out, "dBV");
-			break;
-		case SR_UNIT_DECIBEL_SPL:
-			if (mqflags & SR_MQFLAG_SPL_FREQ_WEIGHT_A)
-				si_printf(value, out, "dB(A)");
-			else if (mqflags & SR_MQFLAG_SPL_FREQ_WEIGHT_C)
-				si_printf(value, out, "dB(C)");
-			else if (mqflags & SR_MQFLAG_SPL_FREQ_WEIGHT_Z)
-				si_printf(value, out, "dB(Z)");
-			else
-				/* No frequency weighting, or non-standard "flat" */
-				si_printf(value, out, "dB(SPL)");
-			if (mqflags & SR_MQFLAG_SPL_TIME_WEIGHT_S)
-				g_string_append(out, " S");
-			else if (mqflags & SR_MQFLAG_SPL_TIME_WEIGHT_F)
-				g_string_append(out, " F");
-			if (mqflags & SR_MQFLAG_SPL_LAT)
-				g_string_append(out, " LAT");
-			else if (mqflags & SR_MQFLAG_SPL_PCT_OVER_ALARM)
-				/* Not a standard function for SLMs, so this is
-				 * a made-up notation. */
-				g_string_append(out, " %oA");
-			break;
-		case SR_UNIT_CONCENTRATION:
-			g_string_append_printf(out, "%f ppm", value * 1000000);
-			break;
-		default:
-			si_printf(value, out, "");
+	case SR_UNIT_VOLT:
+		si_printf(value, out, "V");
+		break;
+	case SR_UNIT_AMPERE:
+		si_printf(value, out, "A");
+		break;
+	case SR_UNIT_OHM:
+		si_printf(value, out, "");
+		g_string_append_unichar(out, 0x2126);
+		break;
+	case SR_UNIT_FARAD:
+		si_printf(value, out, "F");
+		break;
+	case SR_UNIT_KELVIN:
+		si_printf(value, out, "K");
+		break;
+	case SR_UNIT_CELSIUS:
+		si_printf(value, out, "");
+		g_string_append_unichar(out, 0x00b0);
+		g_string_append_c(out, 'C');
+		break;
+	case SR_UNIT_FAHRENHEIT:
+		si_printf(value, out, "");
+		g_string_append_unichar(out, 0x00b0);
+		g_string_append_c(out, 'F');
+		break;
+	case SR_UNIT_HERTZ:
+		si_printf(value, out, "Hz");
+		break;
+	case SR_UNIT_PERCENTAGE:
+		g_string_append_printf(out, "%f%%", value);
+		break;
+	case SR_UNIT_BOOLEAN:
+		if (value > 0)
+			g_string_append_printf(out, "TRUE");
+		else
+			g_string_append_printf(out, "FALSE");
+		break;
+	case SR_UNIT_SECOND:
+		si_printf(value, out, "s");
+		break;
+	case SR_UNIT_SIEMENS:
+		si_printf(value, out, "S");
+		break;
+	case SR_UNIT_DECIBEL_MW:
+		si_printf(value, out, "dBu");
+		break;
+	case SR_UNIT_DECIBEL_VOLT:
+		si_printf(value, out, "dBV");
+		break;
+	case SR_UNIT_DECIBEL_SPL:
+		if (mqflags & SR_MQFLAG_SPL_FREQ_WEIGHT_A)
+			si_printf(value, out, "dB(A)");
+		else if (mqflags & SR_MQFLAG_SPL_FREQ_WEIGHT_C)
+			si_printf(value, out, "dB(C)");
+		else if (mqflags & SR_MQFLAG_SPL_FREQ_WEIGHT_Z)
+			si_printf(value, out, "dB(Z)");
+		else
+			/* No frequency weighting, or non-standard "flat" */
+			si_printf(value, out, "dB(SPL)");
+		if (mqflags & SR_MQFLAG_SPL_TIME_WEIGHT_S)
+			g_string_append(out, " S");
+		else if (mqflags & SR_MQFLAG_SPL_TIME_WEIGHT_F)
+			g_string_append(out, " F");
+		if (mqflags & SR_MQFLAG_SPL_LAT)
+			g_string_append(out, " LAT");
+		else if (mqflags & SR_MQFLAG_SPL_PCT_OVER_ALARM)
+			/* Not a standard function for SLMs, so this is
+			 * a made-up notation. */
+			g_string_append(out, " %oA");
+		break;
+	case SR_UNIT_CONCENTRATION:
+		g_string_append_printf(out, "%f ppm", value * 1000000);
+		break;
+	default:
+		si_printf(value, out, "");
+		break;
 	}
 	if ((mqflags & (SR_MQFLAG_AC | SR_MQFLAG_DC)) == (SR_MQFLAG_AC | SR_MQFLAG_DC))
 		g_string_append_printf(out, " AC+DC");

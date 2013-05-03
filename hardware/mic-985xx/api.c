@@ -159,7 +159,7 @@ static GSList *hw_scan(GSList *options, int idx)
 			conn = g_variant_get_string(src->data, NULL);
 			break;
 		case SR_CONF_SERIALCOMM:
-			serialcomm  = g_variant_get_string(src->data, NULL);
+			serialcomm = g_variant_get_string(src->data, NULL);
 			break;
 		}
 	}
