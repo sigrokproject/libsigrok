@@ -1,5 +1,8 @@
-0.2.0 (2013-xx-yy)
+0.2.0 (2013-05-04)
 ------------------
+
+Note: This release DOES change the libsigrok API. That means it is NOT
+      backwards-compatible and frontends will need updates.
 
  * Support for analog sources (oscilloscopes, DMMs, data loggers) was added.
  * New supported hardware:
@@ -22,7 +25,7 @@
      - Fluke 189
      - Fluke 287
      - Fluke 289
-     - Fluke Scopemeter 199B
+     - Fluke ScopeMeter 199B
      - MASTECH MAS345
      - Metex ME-31
      - Metex M-3640D
