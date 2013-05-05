@@ -172,15 +172,18 @@ SR_PRIV int std_hw_dev_acquisition_stop_serial(struct sr_dev_inst *sdi,
  * there cannot be freed.
  *
  * @param driver The driver which will have its instances released.
+ * @param clear_private If not NULL, this points to a function called
+ * with sdi->priv as argument. The function can then clear any device
+ * instance-specific resources kept there. It must also clear the struct
+ * pointed to by sdi->priv.
  *
  * @return SR_OK on success.
  */
 SR_PRIV int std_dev_clear(const struct sr_dev_driver *driver,
 		std_dev_clear_t clear_private)
 {
-	struct sr_dev_inst *sdi;
 	struct drv_context *drvc;
-	struct dev_context *devc;
+	struct sr_dev_inst *sdi;
 	GSList *l;
 	int ret;
 
@@ -190,12 +193,7 @@ SR_PRIV int std_dev_clear(const struct sr_dev_driver *driver,
 
 	ret = SR_OK;
 	for (l = drvc->instances; l; l = l->next) {
-		/* Log errors, but continue cleaning up the rest. */
 		if (!(sdi = l->data)) {
-			ret = SR_ERR_BUG;
-			continue;
-		}
-		if (!(devc = sdi->priv)) {
 			ret = SR_ERR_BUG;
 			continue;
 		}
@@ -203,18 +201,17 @@ SR_PRIV int std_dev_clear(const struct sr_dev_driver *driver,
 			driver->dev_close(sdi);
 
 		if (sdi->conn) {
-			if (sdi->inst_type == SR_INST_USB)
-#if HAVE_LIBUSB_1_0
-				sr_usb_dev_inst_free(sdi->conn);
-#else
-				;
-#endif
-			else if (sdi->inst_type == SR_INST_SERIAL)
+			 if (sdi->inst_type == SR_INST_SERIAL)
 				sr_serial_dev_inst_free(sdi->conn);
+#if HAVE_LIBUSB_1_0
+			else if (sdi->inst_type == SR_INST_USB)
+				sr_usb_dev_inst_free(sdi->conn);
+#endif
 		}
 		if (clear_private)
 			clear_private(sdi->priv);
-		sdi = l->data;
+		else
+			g_free(sdi->priv);
 		sr_dev_inst_free(sdi);
 	}
 
