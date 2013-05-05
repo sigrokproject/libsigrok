@@ -258,10 +258,11 @@ SR_PRIV void sr_dev_inst_free(struct sr_dev_inst *sdi)
 	for (l = sdi->probes; l; l = l->next) {
 		probe = l->data;
 		g_free(probe->name);
+		g_free(probe->trigger);
 		g_free(probe);
 	}
+	g_slist_free(sdi->probes);
 
-	g_free(sdi->priv);
 	g_free(sdi->vendor);
 	g_free(sdi->model);
 	g_free(sdi->version);
@@ -291,9 +292,7 @@ SR_PRIV struct sr_usb_dev_inst *sr_usb_dev_inst_new(uint8_t bus,
 /** @private */
 SR_PRIV void sr_usb_dev_inst_free(struct sr_usb_dev_inst *usb)
 {
-	(void)usb;
-
-	/* Nothing to do for this device instance type. */
+	g_free(usb);
 }
 
 #endif
