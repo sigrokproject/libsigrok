@@ -344,6 +344,16 @@ SR_PRIV void sr_serial_dev_inst_free(struct sr_serial_dev_inst *serial)
 	g_free(serial);
 }
 
+/**
+ * Get the list of devices/instances of the specified driver.
+ *
+ * @param driver The driver to use. Must not be NULL.
+ *
+ * @return The list of devices/instances of this driver, or NULL upon errors
+ *         or if the list is empty.
+ *
+ * @since 0.1.0 (but the API changed in 0.2.0)
+ */
 SR_API GSList *sr_dev_list(const struct sr_dev_driver *driver)
 {
 	if (driver && driver->dev_list)
@@ -352,6 +362,15 @@ SR_API GSList *sr_dev_list(const struct sr_dev_driver *driver)
 		return NULL;
 }
 
+/**
+ * Clear all devices/instances of the specified driver.
+ *
+ * @param driver The driver to use. Must not be NULL.
+ *
+ * @return SR_OK upon success, a negative error code upon errors.
+ *
+ * @since 0.2.0
+ */
 SR_API int sr_dev_clear(const struct sr_dev_driver *driver)
 {
 	if (driver && driver->dev_clear)
@@ -360,6 +379,15 @@ SR_API int sr_dev_clear(const struct sr_dev_driver *driver)
 		return SR_OK;
 }
 
+/**
+ * Open the specified device.
+ *
+ * @param sdi Device instance to use. Must not be NULL.
+ *
+ * @return SR_OK upon success, a negative error code upon errors.
+ *
+ * @since 0.2.0
+ */
 SR_API int sr_dev_open(struct sr_dev_inst *sdi)
 {
 	int ret;
@@ -372,6 +400,15 @@ SR_API int sr_dev_open(struct sr_dev_inst *sdi)
 	return ret;
 }
 
+/**
+ * Close the specified device.
+ *
+ * @param sdi Device instance to use. Must not be NULL.
+ *
+ * @return SR_OK upon success, a negative error code upon errors.
+ *
+ * @since 0.2.0
+ */
 SR_API int sr_dev_close(struct sr_dev_inst *sdi)
 {
 	int ret;
