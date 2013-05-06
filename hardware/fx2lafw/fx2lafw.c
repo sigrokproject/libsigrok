@@ -467,6 +467,7 @@ static GSList *hw_scan(GSList *options)
 		}
 	}
 	libusb_free_device_list(devlist, 1);
+	g_slist_free_full(conn_devices, (GDestroyNotify)sr_usb_dev_inst_free);
 
 	return devices;
 }
