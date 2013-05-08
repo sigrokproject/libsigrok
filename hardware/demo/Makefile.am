@@ -20,12 +20,12 @@
 if HW_DEMO
 
 # Local lib, this is NOT meant to be installed!
-noinst_LTLIBRARIES = libsigrokhwdemo.la
+noinst_LTLIBRARIES = libsigrok_hw_demo.la
 
-libsigrokhwdemo_la_SOURCES = \
+libsigrok_hw_demo_la_SOURCES = \
 	demo.c
 
-libsigrokhwdemo_la_CFLAGS = \
+libsigrok_hw_demo_la_CFLAGS = \
 	-I$(top_srcdir)
 
 endif

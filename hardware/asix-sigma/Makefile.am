@@ -22,13 +22,13 @@ if HW_ASIX_SIGMA
 AM_CPPFLAGS = -DFIRMWARE_DIR='"$(FIRMWARE_DIR)"'
 
 # Local lib, this is NOT meant to be installed!
-noinst_LTLIBRARIES = libsigrokhwasixsigma.la
+noinst_LTLIBRARIES = libsigrok_hw_asix_sigma.la
 
-libsigrokhwasixsigma_la_SOURCES = \
+libsigrok_hw_asix_sigma_la_SOURCES = \
 	asix-sigma.c \
 	asix-sigma.h
 
-libsigrokhwasixsigma_la_CFLAGS = \
+libsigrok_hw_asix_sigma_la_CFLAGS = \
 	-I$(top_srcdir)
 
 endif

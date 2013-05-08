@@ -20,14 +20,14 @@
 if HW_FLUKE_DMM
 
 # Local lib, this is NOT meant to be installed!
-noinst_LTLIBRARIES = libsigrokhwflukedmm.la
+noinst_LTLIBRARIES = libsigrok_hw_fluke_dmm.la
 
-libsigrokhwflukedmm_la_SOURCES = \
+libsigrok_hw_fluke_dmm_la_SOURCES = \
 	api.c \
 	fluke.c \
 	fluke-dmm.h
 
-libsigrokhwflukedmm_la_CFLAGS = \
+libsigrok_hw_fluke_dmm_la_CFLAGS = \
 	-I$(top_srcdir)
 
 endif

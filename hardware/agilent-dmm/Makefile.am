@@ -20,14 +20,14 @@
 if HW_AGILENT_DMM
 
 # Local lib, this is NOT meant to be installed!
-noinst_LTLIBRARIES = libsigrokhwagilentdmm.la
+noinst_LTLIBRARIES = libsigrok_hw_agilent_dmm.la
 
-libsigrokhwagilentdmm_la_SOURCES = \
+libsigrok_hw_agilent_dmm_la_SOURCES = \
 	api.c \
 	agilent-dmm.h \
 	sched.c
 
-libsigrokhwagilentdmm_la_CFLAGS = \
+libsigrok_hw_agilent_dmm_la_CFLAGS = \
 	-I$(top_srcdir)
 
 endif

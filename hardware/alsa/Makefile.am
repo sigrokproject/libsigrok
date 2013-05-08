@@ -20,14 +20,14 @@
 if HW_ALSA
 
 # Local lib, this is NOT meant to be installed!
-noinst_LTLIBRARIES = libsigrokhwalsa.la
+noinst_LTLIBRARIES = libsigrok_hw_alsa.la
 
-libsigrokhwalsa_la_SOURCES = \
+libsigrok_hw_alsa_la_SOURCES = \
 	protocol.h \
 	protocol.c \
 	api.c
 
-libsigrokhwalsa_la_CFLAGS = \
+libsigrok_hw_alsa_la_CFLAGS = \
 	-I$(top_srcdir)
 
 endif

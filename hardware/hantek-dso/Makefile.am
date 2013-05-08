@@ -22,14 +22,14 @@ if HW_HANTEK_DSO
 AM_CPPFLAGS = -DFIRMWARE_DIR='"$(FIRMWARE_DIR)"'
 
 # Local lib, this is NOT meant to be installed!
-noinst_LTLIBRARIES = libsigrokhw_hantek_dso.la
+noinst_LTLIBRARIES = libsigrok_hw_hantek_dso.la
 
-libsigrokhw_hantek_dso_la_SOURCES = \
+libsigrok_hw_hantek_dso_la_SOURCES = \
 	api.c \
 	dso.c \
 	dso.h
 
-libsigrokhw_hantek_dso_la_CFLAGS = \
+libsigrok_hw_hantek_dso_la_CFLAGS = \
 	-I$(top_srcdir)
 
 endif

@@ -20,15 +20,14 @@
 if HW_LINK_MSO19
 
 # Local lib, this is NOT meant to be installed!
-noinst_LTLIBRARIES = libsigrokhwlinkmso19.la
+noinst_LTLIBRARIES = libsigrok_hw_link_mso_19.la
 
-libsigrokhwlinkmso19_la_SOURCES = \
+libsigrok_hw_link_mso_19_la_SOURCES = \
 	api.c \
 	protocol.c \
 	protocol.h 
-#link-mso19.c 
 
-libsigrokhwlinkmso19_la_CFLAGS = \
+libsigrok_hw_link_mso_19_la_CFLAGS = \
 	-I$(top_srcdir)
 
 endif

@@ -47,18 +47,18 @@ noinst_LTLIBRARIES = libsigrokhardware.la
 libsigrokhardware_la_SOURCES =
 
 libsigrokhardware_la_LIBADD = \
-	common/libsigrokhwcommon.la
+	common/libsigrok_hw_common.la
 
 if HW_AGILENT_DMM
-libsigrokhardware_la_LIBADD += agilent-dmm/libsigrokhwagilentdmm.la
+libsigrokhardware_la_LIBADD += agilent-dmm/libsigrok_hw_agilent_dmm.la
 endif
 
 if HW_ALSA
-libsigrokhardware_la_LIBADD += alsa/libsigrokhwalsa.la
+libsigrokhardware_la_LIBADD += alsa/libsigrok_hw_alsa.la
 endif
 
 if HW_ASIX_SIGMA
-libsigrokhardware_la_LIBADD += asix-sigma/libsigrokhwasixsigma.la
+libsigrokhardware_la_LIBADD += asix-sigma/libsigrok_hw_asix_sigma.la
 endif
 
 if HW_BRYMEN_DMM
@@ -66,7 +66,7 @@ libsigrokhardware_la_LIBADD += brymen-dmm/libsigrok_hw_brymen_dmm.la
 endif
 
 if HW_CHRONOVU_LA8
-libsigrokhardware_la_LIBADD += chronovu-la8/libsigrokhwchronovula8.la
+libsigrokhardware_la_LIBADD += chronovu-la8/libsigrok_hw_chronovu_la8.la
 endif
 
 if HW_COLEAD_SLM
@@ -74,19 +74,19 @@ libsigrokhardware_la_LIBADD += colead-slm/libsigrok_hw_colead_slm.la
 endif
 
 if HW_DEMO
-libsigrokhardware_la_LIBADD += demo/libsigrokhwdemo.la
+libsigrokhardware_la_LIBADD += demo/libsigrok_hw_demo.la
 endif
 
 if HW_FLUKE_DMM
-libsigrokhardware_la_LIBADD += fluke-dmm/libsigrokhwflukedmm.la
+libsigrokhardware_la_LIBADD += fluke-dmm/libsigrok_hw_fluke_dmm.la
 endif
 
 if HW_FX2LAFW
-libsigrokhardware_la_LIBADD += fx2lafw/libsigrokhwfx2lafw.la
+libsigrokhardware_la_LIBADD += fx2lafw/libsigrok_hw_fx2lafw.la
 endif
 
 if HW_HANTEK_DSO
-libsigrokhardware_la_LIBADD += hantek-dso/libsigrokhw_hantek_dso.la
+libsigrokhardware_la_LIBADD += hantek-dso/libsigrok_hw_hantek_dso.la
 endif
 
 if HW_LASCAR_EL_USB
@@ -94,7 +94,7 @@ libsigrokhardware_la_LIBADD += lascar-el-usb/libsigrok_hw_lascar_el_usb.la
 endif
 
 if HW_LINK_MSO19
-libsigrokhardware_la_LIBADD += link-mso19/libsigrokhwlinkmso19.la
+libsigrokhardware_la_LIBADD += link-mso19/libsigrok_hw_link_mso_19.la
 endif
 
 if HW_MIC_985XX
@@ -106,7 +106,7 @@ libsigrokhardware_la_LIBADD += nexus-osciprime/libsigrok_hw_nexus_osciprime.la
 endif
 
 if HW_OLS
-libsigrokhardware_la_LIBADD += openbench-logic-sniffer/libsigrokhwols.la
+libsigrokhardware_la_LIBADD += openbench-logic-sniffer/libsigrok_hw_ols.la
 endif
 
 if HW_RIGOL_DS1XX2
@@ -114,7 +114,7 @@ libsigrokhardware_la_LIBADD += rigol-ds1xx2/libsigrok_hw_rigol_ds1xx2.la
 endif
 
 if HW_SERIAL_DMM
-libsigrokhardware_la_LIBADD += serial-dmm/libsigrokhwserialdmm.la
+libsigrokhardware_la_LIBADD += serial-dmm/libsigrok_hw_serial_dmm.la
 endif
 
 if HW_TONDAJ_SL_814
@@ -130,6 +130,6 @@ libsigrokhardware_la_LIBADD += victor-dmm/libsigrok_hw_victor_dmm.la
 endif
 
 if HW_ZEROPLUS_LOGIC_CUBE
-libsigrokhardware_la_LIBADD += zeroplus-logic-cube/libsigrokhwzeroplus.la
+libsigrokhardware_la_LIBADD += zeroplus-logic-cube/libsigrok_hw_zeroplus.la
 endif
 

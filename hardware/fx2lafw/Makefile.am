@@ -22,15 +22,15 @@ if HW_FX2LAFW
 AM_CPPFLAGS = -DFIRMWARE_DIR='"$(FIRMWARE_DIR)"'
 
 # Local lib, this is NOT meant to be installed!
-noinst_LTLIBRARIES = libsigrokhwfx2lafw.la
+noinst_LTLIBRARIES = libsigrok_hw_fx2lafw.la
 
-libsigrokhwfx2lafw_la_SOURCES = \
+libsigrok_hw_fx2lafw_la_SOURCES = \
 	command.c \
 	command.h \
 	fx2lafw.c \
 	fx2lafw.h
 
-libsigrokhwfx2lafw_la_CFLAGS = \
+libsigrok_hw_fx2lafw_la_CFLAGS = \
 	-I$(top_srcdir)
 
 endif

@@ -20,9 +20,9 @@
 if HW_ZEROPLUS_LOGIC_CUBE
 
 # Local lib, this is NOT meant to be installed!
-noinst_LTLIBRARIES = libsigrokhwzeroplus.la
+noinst_LTLIBRARIES = libsigrok_hw_zeroplus.la
 
-libsigrokhwzeroplus_la_SOURCES = \
+libsigrok_hw_zeroplus_la_SOURCES = \
 	api.c \
 	protocol.c \
 	protocol.h \
@@ -31,7 +31,7 @@ libsigrokhwzeroplus_la_SOURCES = \
 	gl_usb.c \
 	gl_usb.h
 
-libsigrokhwzeroplus_la_CFLAGS = \
+libsigrok_hw_zeroplus_la_CFLAGS = \
 	-I$(top_srcdir)
 
 endif

@@ -20,14 +20,14 @@
 if HW_OLS
 
 # Local lib, this is NOT meant to be installed!
-noinst_LTLIBRARIES = libsigrokhwols.la
+noinst_LTLIBRARIES = libsigrok_hw_ols.la
 
-libsigrokhwols_la_SOURCES = \
+libsigrok_hw_ols_la_SOURCES = \
 	api.c \
 	protocol.c \
 	protocol.h
 
-libsigrokhwols_la_CFLAGS = \
+libsigrok_hw_ols_la_CFLAGS = \
 	-I$(top_srcdir)
 
 endif

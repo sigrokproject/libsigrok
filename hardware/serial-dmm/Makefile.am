@@ -20,14 +20,14 @@
 if HW_SERIAL_DMM
 
 # Local lib, this is NOT meant to be installed!
-noinst_LTLIBRARIES = libsigrokhwserialdmm.la
+noinst_LTLIBRARIES = libsigrok_hw_serial_dmm.la
 
-libsigrokhwserialdmm_la_SOURCES = \
+libsigrok_hw_serial_dmm_la_SOURCES = \
 	api.c \
 	protocol.c \
 	protocol.h
 
-libsigrokhwserialdmm_la_CFLAGS = \
+libsigrok_hw_serial_dmm_la_CFLAGS = \
 	-I$(top_srcdir)
 
 endif

@@ -21,14 +21,14 @@
 if HW_CHRONOVU_LA8
 
 # Local lib, this is NOT meant to be installed!
-noinst_LTLIBRARIES = libsigrokhwchronovula8.la
+noinst_LTLIBRARIES = libsigrok_hw_chronovu_la8.la
 
-libsigrokhwchronovula8_la_SOURCES = \
+libsigrok_hw_chronovu_la8_la_SOURCES = \
 	api.c \
 	protocol.c \
 	protocol.h
 
-libsigrokhwchronovula8_la_CFLAGS = \
+libsigrok_hw_chronovu_la8_la_CFLAGS = \
 	-I$(top_srcdir)
 
 endif
