@@ -96,8 +96,8 @@ AC_ARG_ENABLE(alsa, AC_HELP_STRING([--enable-alsa],
 
 AC_ARG_ENABLE(asix-sigma, AC_HELP_STRING([--enable-asix-sigma],
 	[enable ASIX SIGMA/SIGMA2 support [default=yes]]),
-	[LA_ASIX_SIGMA="$enableval"],
-	[LA_ASIX_SIGMA=$HW_ENABLED_DEFAULT])
+	[HW_ASIX_SIGMA="$enableval"],
+	[HW_ASIX_SIGMA=$HW_ENABLED_DEFAULT])
 
 AC_ARG_ENABLE(brymen-dmm, AC_HELP_STRING([--enable-brymen-dmm],
 	[enable Brymen DMM support [default=yes]]),
@@ -106,8 +106,8 @@ AC_ARG_ENABLE(brymen-dmm, AC_HELP_STRING([--enable-brymen-dmm],
 
 AC_ARG_ENABLE(chronovu-la8, AC_HELP_STRING([--enable-chronovu-la8],
 	[enable ChronoVu LA8 support [default=yes]]),
-	[LA_CHRONOVU_LA8="$enableval"],
-	[LA_CHRONOVU_LA8=$HW_ENABLED_DEFAULT])
+	[HW_CHRONOVU_LA8="$enableval"],
+	[HW_CHRONOVU_LA8=$HW_ENABLED_DEFAULT])
 
 AC_ARG_ENABLE(colead-slm, AC_HELP_STRING([--enable-colead-slm],
 	[enable Colead SLM support [default=yes]]),
@@ -116,8 +116,8 @@ AC_ARG_ENABLE(colead-slm, AC_HELP_STRING([--enable-colead-slm],
 
 AC_ARG_ENABLE(demo, AC_HELP_STRING([--enable-demo],
 	[enable demo driver support [default=yes]]),
-	[LA_DEMO="$enableval"],
-	[LA_DEMO=$HW_ENABLED_DEFAULT])
+	[HW_DEMO="$enableval"],
+	[HW_DEMO=$HW_ENABLED_DEFAULT])
 
 AC_ARG_ENABLE(fluke-dmm, AC_HELP_STRING([--enable-fluke-dmm],
 	[enable Fluke DMM support [default=yes]]),
@@ -126,8 +126,8 @@ AC_ARG_ENABLE(fluke-dmm, AC_HELP_STRING([--enable-fluke-dmm],
 
 AC_ARG_ENABLE(fx2lafw, AC_HELP_STRING([--enable-fx2lafw],
 	[enable fx2lafw support (for FX2 LAs). [default=yes]]),
-	[LA_FX2LAFW="$enableval"],
-	[LA_FX2LAFW=$HW_ENABLED_DEFAULT])
+	[HW_FX2LAFW="$enableval"],
+	[HW_FX2LAFW=$HW_ENABLED_DEFAULT])
 
 AC_ARG_ENABLE(hantek-dso, AC_HELP_STRING([--enable-hantek-dso],
 	[enable Hantek DSO support [default=yes]]),
@@ -141,8 +141,8 @@ AC_ARG_ENABLE(lascar-el-usb, AC_HELP_STRING([--enable-lascar-el-usb],
 
 AC_ARG_ENABLE(link-mso19, AC_HELP_STRING([--enable-link-mso19],
 	[enable Link Instruments MSO-19 support [default=yes]]),
-	[LA_LINK_MSO19="$enableval"],
-	[LA_LINK_MSO19=$HW_ENABLED_DEFAULT])
+	[HW_LINK_MSO19="$enableval"],
+	[HW_LINK_MSO19=$HW_ENABLED_DEFAULT])
 
 AC_ARG_ENABLE(mic-985xx, AC_HELP_STRING([--enable-mic-985xx],
 	[enable MIC 985xx support [default=yes]]),
@@ -156,8 +156,8 @@ AC_ARG_ENABLE(nexus-osciprime, AC_HELP_STRING([--enable-nexus-osciprime],
 
 AC_ARG_ENABLE(ols, AC_HELP_STRING([--enable-ols],
 	[enable OpenBench Logic Sniffer (OLS) support [default=yes]]),
-	[LA_OLS="$enableval"],
-	[LA_OLS=$HW_ENABLED_DEFAULT])
+	[HW_OLS="$enableval"],
+	[HW_OLS=$HW_ENABLED_DEFAULT])
 
 AC_ARG_ENABLE(rigol-ds1xx2, AC_HELP_STRING([--enable-rigol-ds1xx2],
 	[enable Rigol DS1xx2 support [default=yes]]),
@@ -187,8 +187,8 @@ AC_ARG_ENABLE(victor-dmm, AC_HELP_STRING([--enable-victor-dmm],
 AC_ARG_ENABLE(zeroplus-logic-cube,
 	AC_HELP_STRING([--enable-zeroplus-logic-cube],
 	[enable ZEROPLUS Logic Cube support [default=yes]]),
-	[LA_ZEROPLUS_LOGIC_CUBE="$enableval"],
-	[LA_ZEROPLUS_LOGIC_CUBE=$HW_ENABLED_DEFAULT])
+	[HW_ZEROPLUS_LOGIC_CUBE="$enableval"],
+	[HW_ZEROPLUS_LOGIC_CUBE=$HW_ENABLED_DEFAULT])
 
 # Checks for libraries.
 
@@ -223,10 +223,10 @@ case "$host" in
 		[have_libusb1_0="yes"; CFLAGS="$CFLAGS $libusb_CFLAGS";
 		LIBS="$LIBS $libusb_LIBS";
 		SR_PKGLIBS="$SR_PKGLIBS libusb-1.0"],
-		[have_libusb1_0="no"; LA_FX2LAFW="no"; HW_HANTEK_DSO="no";
+		[have_libusb1_0="no"; HW_FX2LAFW="no"; HW_HANTEK_DSO="no";
 		HW_LASCAR_EL_USB="no"; HW_NEXUS_OSCIPRIME="no";
 		HW_UNI_T_DMM="no"; HW_VICTOR_DMM="no";
-		LA_ZEROPLUS_LOGIC_CUBE="no"])
+		HW_ZEROPLUS_LOGIC_CUBE="no"])
 
 	# Define HAVE_LIBUSB_1_0 in config.h if we found libusb-1.0.
 	if test "x$have_libusb1_0" != "xno"; then
@@ -244,13 +244,13 @@ PKG_CHECK_MODULES([libftdi], [libftdi >= 0.16],
 	[CFLAGS="$CFLAGS $libftdi_CFLAGS";
 	LIBS="$LIBS $libftdi_LIBS";
 	SR_PKGLIBS="$SR_PKGLIBS libftdi"],
-	[LA_ASIX_SIGMA="no"; LA_CHRONOVU_LA8="no"])
+	[HW_ASIX_SIGMA="no"; HW_CHRONOVU_LA8="no"])
 
 # libudev is only needed for some hardware drivers. Disable them if not found.
 PKG_CHECK_MODULES([libudev], [libudev >= 151],
 	[CFLAGS="$CFLAGS $libudev_CFLAGS"; LIBS="$LIBS $libudev_LIBS";
 	SR_PKGLIBS="$SR_PKGLIBS libudev"],
-	[LA_LINK_MSO19="no"])
+	[HW_LINK_MSO19="no"])
 
 # ALSA is only needed for some hardware drivers. Disable them if not found.
 PKG_CHECK_MODULES([alsa], [alsa >= 1.0],
@@ -293,9 +293,9 @@ if test "x$HW_ALSA" = "xyes"; then
 	AC_DEFINE(HAVE_HW_ALSA, 1, [ALSA driver support])
 fi
 
-AM_CONDITIONAL(LA_ASIX_SIGMA, test x$LA_ASIX_SIGMA = xyes)
-if test "x$LA_ASIX_SIGMA" = "xyes"; then
-	AC_DEFINE(HAVE_LA_ASIX_SIGMA, 1, [ASIX SIGMA/SIGMA2 support])
+AM_CONDITIONAL(HW_ASIX_SIGMA, test x$HW_ASIX_SIGMA = xyes)
+if test "x$HW_ASIX_SIGMA" = "xyes"; then
+	AC_DEFINE(HAVE_HW_ASIX_SIGMA, 1, [ASIX SIGMA/SIGMA2 support])
 fi
 
 AM_CONDITIONAL(HW_BRYMEN_DMM, test x$HW_BRYMEN_DMM = xyes)
@@ -303,9 +303,9 @@ if test "x$HW_BRYMEN_DMM" = "xyes"; then
 	AC_DEFINE(HAVE_HW_BRYMEN_DMM, 1, [Brymen DMM support])
 fi
 
-AM_CONDITIONAL(LA_CHRONOVU_LA8, test x$LA_CHRONOVU_LA8 = xyes)
-if test "x$LA_CHRONOVU_LA8" = "xyes"; then
-	AC_DEFINE(HAVE_LA_CHRONOVU_LA8, 1, [ChronoVu LA8 support])
+AM_CONDITIONAL(HW_CHRONOVU_LA8, test x$HW_CHRONOVU_LA8 = xyes)
+if test "x$HW_CHRONOVU_LA8" = "xyes"; then
+	AC_DEFINE(HAVE_HW_CHRONOVU_LA8, 1, [ChronoVu LA8 support])
 fi
 
 AM_CONDITIONAL(HW_COLEAD_SLM, test x$HW_COLEAD_SLM = xyes)
@@ -313,9 +313,9 @@ if test "x$HW_COLEAD_SLM" = "xyes"; then
 	AC_DEFINE(HAVE_HW_COLEAD_SLM, 1, [Colead SLM support])
 fi
 
-AM_CONDITIONAL(LA_DEMO, test x$LA_DEMO = xyes)
-if test "x$LA_DEMO" = "xyes"; then
-	AC_DEFINE(HAVE_LA_DEMO, 1, [Demo driver support])
+AM_CONDITIONAL(HW_DEMO, test x$HW_DEMO = xyes)
+if test "x$HW_DEMO" = "xyes"; then
+	AC_DEFINE(HAVE_HW_DEMO, 1, [Demo driver support])
 fi
 
 AM_CONDITIONAL(HW_FLUKE_DMM, test x$HW_FLUKE_DMM = xyes)
@@ -323,9 +323,9 @@ if test "x$HW_FLUKE_DMM" = "xyes"; then
 	AC_DEFINE(HAVE_HW_FLUKE_DMM, 1, [Fluke DMM support])
 fi
 
-AM_CONDITIONAL(LA_FX2LAFW, test x$LA_FX2LAFW = xyes)
-if test "x$LA_FX2LAFW" = "xyes"; then
-	AC_DEFINE(HAVE_LA_FX2LAFW, 1, [fx2lafw support])
+AM_CONDITIONAL(HW_FX2LAFW, test x$HW_FX2LAFW = xyes)
+if test "x$HW_FX2LAFW" = "xyes"; then
+	AC_DEFINE(HAVE_HW_FX2LAFW, 1, [fx2lafw support])
 fi
 
 AM_CONDITIONAL(HW_HANTEK_DSO, test x$HW_HANTEK_DSO = xyes)
@@ -338,9 +338,9 @@ if test "x$HW_LASCAR_EL_USB" = "xyes"; then
 	AC_DEFINE(HAVE_HW_LASCAR_EL_USB, 1, [Lascar EL-USB support])
 fi
 
-AM_CONDITIONAL(LA_LINK_MSO19, test x$LA_LINK_MSO19 = xyes)
-if test "x$LA_LINK_MSO19" = "xyes"; then
-	AC_DEFINE(HAVE_LA_LINK_MSO19, 1, [Link Instruments MSO-19 support])
+AM_CONDITIONAL(HW_LINK_MSO19, test x$HW_LINK_MSO19 = xyes)
+if test "x$HW_LINK_MSO19" = "xyes"; then
+	AC_DEFINE(HAVE_HW_LINK_MSO19, 1, [Link Instruments MSO-19 support])
 fi
 
 AM_CONDITIONAL(HW_MIC_985XX, test x$HW_MIC_985XX = xyes)
@@ -353,9 +353,9 @@ if test "x$HW_NEXUS_OSCIPRIME" = "xyes"; then
 	AC_DEFINE(HAVE_HW_NEXUS_OSCIPRIME, 1, [Nexus Osciprime support])
 fi
 
-AM_CONDITIONAL(LA_OLS, test x$LA_OLS = xyes)
-if test "x$LA_OLS" = "xyes"; then
-	AC_DEFINE(HAVE_LA_OLS, 1, [OpenBench Logic Sniffer (OLS) support])
+AM_CONDITIONAL(HW_OLS, test x$HW_OLS = xyes)
+if test "x$HW_OLS" = "xyes"; then
+	AC_DEFINE(HAVE_HW_OLS, 1, [OpenBench Logic Sniffer (OLS) support])
 fi
 
 AM_CONDITIONAL(HW_RIGOL_DS1XX2, test x$HW_RIGOL_DS1XX2 = xyes)
@@ -383,9 +383,9 @@ if test "x$HW_VICTOR_DMM" = "xyes"; then
 	AC_DEFINE(HAVE_HW_VICTOR_DMM, 1, [Victor DMM support])
 fi
 
-AM_CONDITIONAL(LA_ZEROPLUS_LOGIC_CUBE, test x$LA_ZEROPLUS_LOGIC_CUBE = xyes)
-if test "x$LA_ZEROPLUS_LOGIC_CUBE" = "xyes"; then
-	AC_DEFINE(HAVE_LA_ZEROPLUS_LOGIC_CUBE, 1, [ZEROPLUS Logic Cube support])
+AM_CONDITIONAL(HW_ZEROPLUS_LOGIC_CUBE, test x$HW_ZEROPLUS_LOGIC_CUBE = xyes)
+if test "x$HW_ZEROPLUS_LOGIC_CUBE" = "xyes"; then
+	AC_DEFINE(HAVE_HW_ZEROPLUS_LOGIC_CUBE, 1, [ZEROPLUS Logic Cube support])
 fi
 
 # Checks for header files.
@@ -481,24 +481,24 @@ done
 echo -e "\nEnabled hardware drivers:\n"
 echo "  - agilent-dmm..................... $HW_AGILENT_DMM"
 echo "  - alsa............................ $HW_ALSA"
-echo "  - asix-sigma...................... $LA_ASIX_SIGMA"
+echo "  - asix-sigma...................... $HW_ASIX_SIGMA"
 echo "  - brymen-dmm...................... $HW_BRYMEN_DMM"
-echo "  - chronovu-la8.................... $LA_CHRONOVU_LA8"
+echo "  - chronovu-la8.................... $HW_CHRONOVU_LA8"
 echo "  - colead-slm...................... $HW_COLEAD_SLM"
-echo "  - demo............................ $LA_DEMO"
+echo "  - demo............................ $HW_DEMO"
 echo "  - fluke-dmm....................... $HW_FLUKE_DMM"
-echo "  - fx2lafw......................... $LA_FX2LAFW"
+echo "  - fx2lafw......................... $HW_FX2LAFW"
 echo "  - hantek-dso...................... $HW_HANTEK_DSO"
 echo "  - lascar-el-usb................... $HW_LASCAR_EL_USB"
-echo "  - link-mso19...................... $LA_LINK_MSO19"
+echo "  - link-mso19...................... $HW_LINK_MSO19"
 echo "  - mic-985xx....................... $HW_MIC_985XX"
 echo "  - nexus-osciprime................. $HW_NEXUS_OSCIPRIME"
-echo "  - openbench-logic-sniffer......... $LA_OLS"
+echo "  - openbench-logic-sniffer......... $HW_OLS"
 echo "  - rigol-ds1xx2.................... $HW_RIGOL_DS1XX2"
 echo "  - serial-dmm...................... $HW_SERIAL_DMM"
 echo "  - tondaj-sl-814................... $HW_TONDAJ_SL_814"
 echo "  - uni-t-dmm....................... $HW_UNI_T_DMM"
 echo "  - victor-dmm...................... $HW_VICTOR_DMM"
-echo "  - zeroplus-logic-cube............. $LA_ZEROPLUS_LOGIC_CUBE"
+echo "  - zeroplus-logic-cube............. $HW_ZEROPLUS_LOGIC_CUBE"
 echo
 

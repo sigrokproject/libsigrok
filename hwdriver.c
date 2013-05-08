@@ -93,7 +93,7 @@ extern SR_PRIV struct sr_dev_driver brymen_bm857_driver_info;
 #ifdef HAVE_HW_COLEAD_SLM
 extern SR_PRIV struct sr_dev_driver colead_slm_driver_info;
 #endif
-#ifdef HAVE_LA_DEMO
+#ifdef HAVE_HW_DEMO
 extern SR_PRIV struct sr_dev_driver demo_driver_info;
 #endif
 #ifdef HAVE_HW_LASCAR_EL_USB
@@ -106,7 +106,7 @@ extern SR_PRIV struct sr_dev_driver mic_98583_driver_info;
 #ifdef HAVE_HW_NEXUS_OSCIPRIME
 extern SR_PRIV struct sr_dev_driver nexus_osciprime_driver_info;
 #endif
-#ifdef HAVE_LA_OLS
+#ifdef HAVE_HW_OLS
 extern SR_PRIV struct sr_dev_driver ols_driver_info;
 #endif
 #ifdef HAVE_HW_RIGOL_DS1XX2
@@ -118,22 +118,22 @@ extern SR_PRIV struct sr_dev_driver tondaj_sl_814_driver_info;
 #ifdef HAVE_HW_VICTOR_DMM
 extern SR_PRIV struct sr_dev_driver victor_dmm_driver_info;
 #endif
-#ifdef HAVE_LA_ZEROPLUS_LOGIC_CUBE
+#ifdef HAVE_HW_ZEROPLUS_LOGIC_CUBE
 extern SR_PRIV struct sr_dev_driver zeroplus_logic_cube_driver_info;
 #endif
-#ifdef HAVE_LA_ASIX_SIGMA
+#ifdef HAVE_HW_ASIX_SIGMA
 extern SR_PRIV struct sr_dev_driver asix_sigma_driver_info;
 #endif
-#ifdef HAVE_LA_CHRONOVU_LA8
+#ifdef HAVE_HW_CHRONOVU_LA8
 extern SR_PRIV struct sr_dev_driver chronovu_la8_driver_info;
 #endif
-#ifdef HAVE_LA_LINK_MSO19
+#ifdef HAVE_HW_LINK_MSO19
 extern SR_PRIV struct sr_dev_driver link_mso19_driver_info;
 #endif
 #ifdef HAVE_HW_ALSA
 extern SR_PRIV struct sr_dev_driver alsa_driver_info;
 #endif
-#ifdef HAVE_LA_FX2LAFW
+#ifdef HAVE_HW_FX2LAFW
 extern SR_PRIV struct sr_dev_driver fx2lafw_driver_info;
 #endif
 #ifdef HAVE_HW_HANTEK_DSO
@@ -182,7 +182,7 @@ static struct sr_dev_driver *drivers_list[] = {
 #ifdef HAVE_HW_COLEAD_SLM
 	&colead_slm_driver_info,
 #endif
-#ifdef HAVE_LA_DEMO
+#ifdef HAVE_HW_DEMO
 	&demo_driver_info,
 #endif
 #ifdef HAVE_HW_LASCAR_EL_USB
@@ -195,7 +195,7 @@ static struct sr_dev_driver *drivers_list[] = {
 #ifdef HAVE_HW_NEXUS_OSCIPRIME
 	&nexus_osciprime_driver_info,
 #endif
-#ifdef HAVE_LA_OLS
+#ifdef HAVE_HW_OLS
 	&ols_driver_info,
 #endif
 #ifdef HAVE_HW_RIGOL_DS1XX2
@@ -207,22 +207,22 @@ static struct sr_dev_driver *drivers_list[] = {
 #ifdef HAVE_HW_VICTOR_DMM
 	&victor_dmm_driver_info,
 #endif
-#ifdef HAVE_LA_ZEROPLUS_LOGIC_CUBE
+#ifdef HAVE_HW_ZEROPLUS_LOGIC_CUBE
 	&zeroplus_logic_cube_driver_info,
 #endif
-#ifdef HAVE_LA_ASIX_SIGMA
+#ifdef HAVE_HW_ASIX_SIGMA
 	&asix_sigma_driver_info,
 #endif
-#ifdef HAVE_LA_CHRONOVU_LA8
+#ifdef HAVE_HW_CHRONOVU_LA8
 	&chronovu_la8_driver_info,
 #endif
-#ifdef HAVE_LA_LINK_MSO19
+#ifdef HAVE_HW_LINK_MSO19
 	&link_mso19_driver_info,
 #endif
 #ifdef HAVE_HW_ALSA
 	&alsa_driver_info,
 #endif
-#ifdef HAVE_LA_FX2LAFW
+#ifdef HAVE_HW_FX2LAFW
 	&fx2lafw_driver_info,
 #endif
 #ifdef HAVE_HW_HANTEK_DSO

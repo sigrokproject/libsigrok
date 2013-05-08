@@ -18,7 +18,7 @@
 ## Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
 ##
 
-if LA_CHRONOVU_LA8
+if HW_CHRONOVU_LA8
 
 # Local lib, this is NOT meant to be installed!
 noinst_LTLIBRARIES = libsigrokhwchronovula8.la

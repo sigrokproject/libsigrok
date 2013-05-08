@@ -17,7 +17,7 @@
 ## along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##
 
-if LA_OLS
+if HW_OLS
 
 # Local lib, this is NOT meant to be installed!
 noinst_LTLIBRARIES = libsigrokhwols.la
