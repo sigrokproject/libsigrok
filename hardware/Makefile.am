@@ -31,7 +31,9 @@ SUBDIRS = \
 	fx2lafw \
 	hantek-dso \
 	lascar-el-usb \
+	link-mso19 \
 	mic-985xx \
+	nexus-osciprime \
 	openbench-logic-sniffer \
 	rigol-ds1xx2 \
 	serial-dmm \
@@ -91,8 +93,16 @@ if HW_LASCAR_EL_USB
 libsigrokhardware_la_LIBADD += lascar-el-usb/libsigrok_hw_lascar_el_usb.la
 endif
 
+if LA_LINK_MSO19
+libsigrokhardware_la_LIBADD += link-mso19/libsigrokhwlinkmso19.la
+endif
+
 if HW_MIC_985XX
 libsigrokhardware_la_LIBADD += mic-985xx/libsigrok_hw_mic_985xx.la
+endif
+
+if HW_NEXUS_OSCIPRIME
+libsigrokhardware_la_LIBADD += nexus-osciprime/libsigrok_hw_nexus_osciprime.la
 endif
 
 if LA_OLS
