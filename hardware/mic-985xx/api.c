@@ -51,32 +51,7 @@ SR_PRIV const struct mic_dev_info mic_devs[] = {
 
 static int clear_instances(int idx)
 {
-	struct sr_dev_inst *sdi;
-	struct drv_context *drvc;
-	struct dev_context *devc;
-	struct sr_serial_dev_inst *serial;
-	GSList *l;
-	struct sr_dev_driver *di;
-
-	di = mic_devs[idx].di;
-
-	if (!(drvc = di->priv))
-		return SR_OK;
-
-	for (l = drvc->instances; l; l = l->next) {
-		if (!(sdi = l->data))
-			continue;
-		if (!(devc = sdi->priv))
-			continue;
-		serial = sdi->conn;
-		sr_serial_dev_inst_free(serial);
-		sr_dev_inst_free(sdi);
-	}
-
-	g_slist_free(drvc->instances);
-	drvc->instances = NULL;
-
-	return SR_OK;
+	return std_dev_clear(mic_devs[idx].di, NULL);
 }
 
 static int hw_init(struct sr_context *sr_ctx, int idx)
@@ -210,9 +185,7 @@ static int hw_dev_close(struct sr_dev_inst *sdi)
 
 static int hw_cleanup(int idx)
 {
-	clear_instances(idx);
-
-	return SR_OK;
+	return clear_instances(idx);
 }
 
 static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
