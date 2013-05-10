@@ -240,31 +240,7 @@ SR_PRIV int zp_set_samplerate(struct dev_context *devc, uint64_t samplerate)
 
 static int clear_instances(void)
 {
-	GSList *l;
-	struct sr_dev_inst *sdi;
-	struct drv_context *drvc;
-	struct dev_context *devc;
-	struct sr_usb_dev_inst *usb;
-
-	drvc = di->priv;
-	for (l = drvc->instances; l; l = l->next) {
-		sdi = l->data;
-		if (!(devc = sdi->priv)) {
-			/* Log error, but continue cleaning up the rest. */
-			sr_err("%s: sdi->priv was NULL, continuing", __func__);
-			continue;
-		}
-		usb = sdi->conn;
-		sr_usb_dev_inst_free(usb);
-		/* Properly close all devices... */
-		hw_dev_close(sdi);
-		/* ...and free all their memory. */
-		sr_dev_inst_free(sdi);
-	}
-	g_slist_free(drvc->instances);
-	drvc->instances = NULL;
-
-	return SR_OK;
+	return std_dev_clear(di, NULL);
 }
 
 static int hw_init(struct sr_context *sr_ctx)
@@ -487,14 +463,7 @@ static int hw_dev_close(struct sr_dev_inst *sdi)
 
 static int hw_cleanup(void)
 {
-	struct drv_context *drvc;
-
-	if (!(drvc = di->priv))
-		return SR_OK;
-
-	clear_instances();
-
-	return SR_OK;
+	return clear_instances();
 }
 
 static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi)
