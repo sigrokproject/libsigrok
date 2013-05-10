@@ -532,7 +532,7 @@ SR_PRIV void lascar_el_usb_receive_transfer(struct libusb_transfer *transfer)
 	switch (transfer->status) {
 	case LIBUSB_TRANSFER_NO_DEVICE:
 		/* USB device was unplugged. */
-		hw_dev_acquisition_stop(sdi, sdi);
+		dev_acquisition_stop(sdi, sdi);
 		return;
 	case LIBUSB_TRANSFER_COMPLETED:
 	case LIBUSB_TRANSFER_TIMED_OUT: /* We may have received some data though */
@@ -551,7 +551,7 @@ SR_PRIV void lascar_el_usb_receive_transfer(struct libusb_transfer *transfer)
 				devc->rcvd_bytes, devc->log_size,
 				devc->rcvd_samples, devc->logged_samples);
 		if (devc->rcvd_bytes >= devc->log_size)
-			hw_dev_acquisition_stop(sdi, sdi);
+			dev_acquisition_stop(sdi, sdi);
 	}
 
 	if (sdi->status == SR_ST_ACTIVE) {
@@ -561,7 +561,7 @@ SR_PRIV void lascar_el_usb_receive_transfer(struct libusb_transfer *transfer)
 			       libusb_error_name(ret));
 			g_free(transfer->buffer);
 			libusb_free_transfer(transfer);
-			hw_dev_acquisition_stop(sdi, sdi);
+			dev_acquisition_stop(sdi, sdi);
 		}
 	} else {
 		/* This was the last transfer we're going to receive, so

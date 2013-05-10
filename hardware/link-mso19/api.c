@@ -51,12 +51,12 @@ static const uint64_t samplerates[] = {
 SR_PRIV struct sr_dev_driver link_mso19_driver_info;
 static struct sr_dev_driver *di = &link_mso19_driver_info;
 
-static int hw_init(struct sr_context *sr_ctx)
+static int init(struct sr_context *sr_ctx)
 {
 	return std_hw_init(sr_ctx, di, LOG_PREFIX);
 }
 
-static GSList *hw_scan(GSList *options)
+static GSList *scan(GSList *options)
 {
 	int i;
 	GSList *devices = NULL;
@@ -198,12 +198,12 @@ static GSList *hw_scan(GSList *options)
 	return devices;
 }
 
-static GSList *hw_dev_list(void)
+static GSList *dev_list(void)
 {
 	return ((struct drv_context *)(di->priv))->instances;
 }
 
-static int hw_dev_open(struct sr_dev_inst *sdi)
+static int dev_open(struct sr_dev_inst *sdi)
 {
 	int ret;
 	struct dev_context *devc;
@@ -234,7 +234,7 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int hw_dev_close(struct sr_dev_inst *sdi)
+static int dev_close(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 
@@ -248,7 +248,7 @@ static int hw_dev_close(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int hw_cleanup(void)
+static int cleanup(void)
 {
 	GSList *l;
 	struct sr_dev_inst *sdi;
@@ -273,7 +273,7 @@ static int hw_cleanup(void)
 			ret = SR_ERR_BUG;
 			continue;
 		}
-		hw_dev_close(sdi);
+		dev_close(sdi);
 		sr_serial_dev_inst_free(devc->serial);
 		sr_dev_inst_free(sdi);
 	}
@@ -397,8 +397,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
-				    void *cb_data)
+static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 {
 	struct dev_context *devc;
 	int ret = SR_ERR;
@@ -465,7 +464,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 }
 
 /* This stops acquisition on ALL devices, ignoring dev_index. */
-static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
 	(void)cb_data;
 
@@ -478,17 +477,17 @@ SR_PRIV struct sr_dev_driver link_mso19_driver_info = {
 	.name = "link-mso19",
 	.longname = "Link Instruments MSO-19",
 	.api_version = 1,
-	.init = hw_init,
-	.cleanup = hw_cleanup,
-	.scan = hw_scan,
-	.dev_list = hw_dev_list,
-	.dev_clear = hw_cleanup,
+	.init = init,
+	.cleanup = cleanup,
+	.scan = scan,
+	.dev_list = dev_list,
+	.dev_clear = cleanup,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,
-	.dev_open = hw_dev_open,
-	.dev_close = hw_dev_close,
-	.dev_acquisition_start = hw_dev_acquisition_start,
-	.dev_acquisition_stop = hw_dev_acquisition_stop,
+	.dev_open = dev_open,
+	.dev_close = dev_close,
+	.dev_acquisition_start = dev_acquisition_start,
+	.dev_acquisition_stop = dev_acquisition_stop,
 	.priv = NULL,
 };

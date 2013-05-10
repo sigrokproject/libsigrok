@@ -128,7 +128,7 @@ typedef void (*std_dev_clear_t)(void *priv);
 SR_PRIV int std_hw_init(struct sr_context *sr_ctx, struct sr_dev_driver *di,
 		const char *prefix);
 SR_PRIV int std_hw_dev_acquisition_stop_serial(struct sr_dev_inst *sdi,
-		void *cb_data, dev_close_t hw_dev_close_fn,
+		void *cb_data, dev_close_t dev_close_fn,
 		struct sr_serial_dev_inst *serial, const char *prefix);
 SR_PRIV int std_session_send_df_header(const struct sr_dev_inst *sdi,
 		const char *prefix);

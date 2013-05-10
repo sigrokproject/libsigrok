@@ -33,8 +33,8 @@
 
 SR_PRIV struct sr_dev_driver victor_dmm_driver_info;
 static struct sr_dev_driver *di = &victor_dmm_driver_info;
-static int hw_dev_close(struct sr_dev_inst *sdi);
-static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);
+static int dev_close(struct sr_dev_inst *sdi);
+static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);
 
 static const int32_t hwopts[] = {
 	SR_CONF_CONN,
@@ -64,7 +64,7 @@ static int clear_instances(void)
 			continue;
 		if (!(devc = sdi->priv))
 			continue;
-		hw_dev_close(sdi);
+		dev_close(sdi);
 		sr_usb_dev_inst_free(sdi->conn);
 		sr_dev_inst_free(sdi);
 	}
@@ -75,12 +75,12 @@ static int clear_instances(void)
 	return SR_OK;
 }
 
-static int hw_init(struct sr_context *sr_ctx)
+static int init(struct sr_context *sr_ctx)
 {
 	return std_hw_init(sr_ctx, di, LOG_PREFIX);
 }
 
-static GSList *hw_scan(GSList *options)
+static GSList *scan(GSList *options)
 {
 	struct drv_context *drvc;
 	struct dev_context *devc;
@@ -134,12 +134,12 @@ static GSList *hw_scan(GSList *options)
 	return devices;
 }
 
-static GSList *hw_dev_list(void)
+static GSList *dev_list(void)
 {
 	return ((struct drv_context *)(di->priv))->instances;
 }
 
-static int hw_dev_open(struct sr_dev_inst *sdi)
+static int dev_open(struct sr_dev_inst *sdi)
 {
 	struct drv_context *drvc = di->priv;
 	struct sr_usb_dev_inst *usb;
@@ -190,7 +190,7 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int hw_dev_close(struct sr_dev_inst *sdi)
+static int dev_close(struct sr_dev_inst *sdi)
 {
 	struct sr_usb_dev_inst *usb;
 
@@ -213,7 +213,7 @@ static int hw_dev_close(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int hw_cleanup(void)
+static int cleanup(void)
 {
 	struct drv_context *drvc;
 
@@ -315,14 +315,14 @@ static void receive_transfer(struct libusb_transfer *transfer)
 	devc = sdi->priv;
 	if (transfer->status == LIBUSB_TRANSFER_NO_DEVICE) {
 		/* USB device was unplugged. */
-		hw_dev_acquisition_stop(sdi, sdi);
+		dev_acquisition_stop(sdi, sdi);
 	} else if (transfer->status == LIBUSB_TRANSFER_COMPLETED) {
 		sr_dbg("Got %d-byte packet.", transfer->actual_length);
 		if (transfer->actual_length == DMM_DATA_SIZE) {
 			victor_dmm_receive_data(sdi, transfer->buffer);
 			if (devc->limit_samples) {
 				if (devc->num_samples >= devc->limit_samples)
-					hw_dev_acquisition_stop(sdi, sdi);
+					dev_acquisition_stop(sdi, sdi);
 			}
 		}
 	}
@@ -336,7 +336,7 @@ static void receive_transfer(struct libusb_transfer *transfer)
 			       libusb_error_name(ret));
 			g_free(transfer->buffer);
 			libusb_free_transfer(transfer);
-			hw_dev_acquisition_stop(sdi, sdi);
+			dev_acquisition_stop(sdi, sdi);
 		}
 	} else {
 		/* This was the last transfer we're going to receive, so
@@ -365,14 +365,14 @@ static int handle_events(int fd, int revents, void *cb_data)
 	if (devc->limit_msec) {
 		now = g_get_monotonic_time() / 1000;
 		if (now > devc->end_time)
-			hw_dev_acquisition_stop(sdi, sdi);
+			dev_acquisition_stop(sdi, sdi);
 	}
 
 	if (sdi->status == SR_ST_STOPPING) {
 		for (i = 0; devc->usbfd[i] != -1; i++)
 			sr_source_remove(devc->usbfd[i]);
 
-		hw_dev_close(sdi);
+		dev_close(sdi);
 
 		packet.type = SR_DF_END;
 		sr_session_send(cb_data, &packet);
@@ -385,8 +385,7 @@ static int handle_events(int fd, int revents, void *cb_data)
 	return TRUE;
 }
 
-static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
-				    void *cb_data)
+static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 {
 	struct dev_context *devc;
 	struct drv_context *drvc = di->priv;
@@ -440,7 +439,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
 	(void)cb_data;
 
@@ -463,17 +462,17 @@ SR_PRIV struct sr_dev_driver victor_dmm_driver_info = {
 	.name = "victor-dmm",
 	.longname = "Victor DMMs",
 	.api_version = 1,
-	.init = hw_init,
-	.cleanup = hw_cleanup,
-	.scan = hw_scan,
-	.dev_list = hw_dev_list,
+	.init = init,
+	.cleanup = cleanup,
+	.scan = scan,
+	.dev_list = dev_list,
 	.dev_clear = clear_instances,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,
-	.dev_open = hw_dev_open,
-	.dev_close = hw_dev_close,
-	.dev_acquisition_start = hw_dev_acquisition_start,
-	.dev_acquisition_stop = hw_dev_acquisition_stop,
+	.dev_open = dev_open,
+	.dev_close = dev_close,
+	.dev_acquisition_start = dev_acquisition_start,
+	.dev_acquisition_stop = dev_acquisition_stop,
 	.priv = NULL,
 };

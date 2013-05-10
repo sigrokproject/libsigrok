@@ -155,7 +155,7 @@ static const char *coupling[] = {
 SR_PRIV struct sr_dev_driver hantek_dso_driver_info;
 static struct sr_dev_driver *di = &hantek_dso_driver_info;
 
-static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);
+static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);
 
 static struct sr_dev_inst *dso_dev_new(int index, const struct dso_profile *prof)
 {
@@ -249,12 +249,12 @@ static int clear_instances(void)
 	return std_dev_clear(di, clear_dev_context);
 }
 
-static int hw_init(struct sr_context *sr_ctx)
+static int init(struct sr_context *sr_ctx)
 {
 	return std_hw_init(sr_ctx, di, LOG_PREFIX);
 }
 
-static GSList *hw_scan(GSList *options)
+static GSList *scan(GSList *options)
 {
 	struct drv_context *drvc;
 	struct dev_context *devc;
@@ -357,12 +357,12 @@ static GSList *hw_scan(GSList *options)
 	return devices;
 }
 
-static GSList *hw_dev_list(void)
+static GSList *dev_list(void)
 {
 	return ((struct drv_context *)(di->priv))->instances;
 }
 
-static int hw_dev_open(struct sr_dev_inst *sdi)
+static int dev_open(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
@@ -410,14 +410,14 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int hw_dev_close(struct sr_dev_inst *sdi)
+static int dev_close(struct sr_dev_inst *sdi)
 {
 	dso_close(sdi);
 
 	return SR_OK;
 }
 
-static int hw_cleanup(void)
+static int cleanup(void)
 {
 	struct drv_context *drvc;
 
@@ -912,8 +912,7 @@ static int handle_event(int fd, int revents, void *cb_data)
 	return TRUE;
 }
 
-static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
-					void *cb_data)
+static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 {
 	const struct libusb_pollfd **lupfd;
 	struct dev_context *devc;
@@ -950,7 +949,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
 	struct dev_context *devc;
 
@@ -969,17 +968,17 @@ SR_PRIV struct sr_dev_driver hantek_dso_driver_info = {
 	.name = "hantek-dso",
 	.longname = "Hantek DSO",
 	.api_version = 1,
-	.init = hw_init,
-	.cleanup = hw_cleanup,
-	.scan = hw_scan,
-	.dev_list = hw_dev_list,
+	.init = init,
+	.cleanup = cleanup,
+	.scan = scan,
+	.dev_list = dev_list,
 	.dev_clear = clear_instances,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,
-	.dev_open = hw_dev_open,
-	.dev_close = hw_dev_close,
-	.dev_acquisition_start = hw_dev_acquisition_start,
-	.dev_acquisition_stop = hw_dev_acquisition_stop,
+	.dev_open = dev_open,
+	.dev_close = dev_close,
+	.dev_acquisition_start = dev_acquisition_start,
+	.dev_acquisition_stop = dev_acquisition_stop,
 	.priv = NULL,
 };

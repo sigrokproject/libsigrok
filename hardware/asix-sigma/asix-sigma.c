@@ -42,7 +42,7 @@
 
 SR_PRIV struct sr_dev_driver asix_sigma_driver_info;
 static struct sr_dev_driver *di = &asix_sigma_driver_info;
-static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);
+static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);
 
 static const uint64_t samplerates[] = {
 	SR_KHZ(200),
@@ -81,7 +81,7 @@ static uint8_t suicide[] = {
 };
 
 /* Prepare to upload firmware (FPGA specific). */
-static uint8_t init[] = {
+static uint8_t init_array[] = {
 	0x03, 0x03, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
 };
 
@@ -408,12 +408,12 @@ static int clear_instances(void)
 	return SR_OK;
 }
 
-static int hw_init(struct sr_context *sr_ctx)
+static int init(struct sr_context *sr_ctx)
 {
 	return std_hw_init(sr_ctx, di, LOG_PREFIX);
 }
 
-static GSList *hw_scan(GSList *options)
+static GSList *scan(GSList *options)
 {
 	struct sr_dev_inst *sdi;
 	struct sr_probe *probe;
@@ -499,7 +499,7 @@ free:
 	return NULL;
 }
 
-static GSList *hw_dev_list(void)
+static GSList *dev_list(void)
 {
 	return ((struct drv_context *)(di->priv))->instances;
 }
@@ -541,7 +541,7 @@ static int upload_firmware(int firmware_idx, struct dev_context *devc)
 	sigma_write(suicide, sizeof(suicide), devc);
 
 	/* Prepare to upload firmware (FPGA specific). */
-	sigma_write(init, sizeof(init), devc);
+	sigma_write(init_array, sizeof(init_array), devc);
 
 	ftdi_usb_purge_buffers(&devc->ftdic);
 
@@ -598,7 +598,7 @@ static int upload_firmware(int firmware_idx, struct dev_context *devc)
 	return SR_OK;
 }
 
-static int hw_dev_open(struct sr_dev_inst *sdi)
+static int dev_open(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	int ret;
@@ -738,7 +738,7 @@ static int configure_probes(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int hw_dev_close(struct sr_dev_inst *sdi)
+static int dev_close(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 
@@ -753,7 +753,7 @@ static int hw_dev_close(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int hw_cleanup(void)
+static int cleanup(void)
 {
 	if (!di->priv)
 		return SR_OK;
@@ -1044,7 +1044,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 		if (running_msec < devc->limit_msec && numchunks < 32767)
 			return TRUE; /* While capturing... */
 		else
-			hw_dev_acquisition_stop(sdi, sdi);
+			dev_acquisition_stop(sdi, sdi);
 
 	}
 
@@ -1262,8 +1262,7 @@ static int build_basic_trigger(struct triggerlut *lut, struct dev_context *devc)
 	return SR_OK;
 }
 
-static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
-		void *cb_data)
+static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 {
 	struct dev_context *devc;
 	struct clockselect_50 clockselect;
@@ -1373,7 +1372,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
 	struct dev_context *devc;
 	uint8_t modestatus;
@@ -1414,17 +1413,17 @@ SR_PRIV struct sr_dev_driver asix_sigma_driver_info = {
 	.name = "asix-sigma",
 	.longname = "ASIX SIGMA/SIGMA2",
 	.api_version = 1,
-	.init = hw_init,
-	.cleanup = hw_cleanup,
-	.scan = hw_scan,
-	.dev_list = hw_dev_list,
+	.init = init,
+	.cleanup = cleanup,
+	.scan = scan,
+	.dev_list = dev_list,
 	.dev_clear = clear_instances,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,
-	.dev_open = hw_dev_open,
-	.dev_close = hw_dev_close,
-	.dev_acquisition_start = hw_dev_acquisition_start,
-	.dev_acquisition_stop = hw_dev_acquisition_stop,
+	.dev_open = dev_open,
+	.dev_close = dev_close,
+	.dev_acquisition_start = dev_acquisition_start,
+	.dev_acquisition_stop = dev_acquisition_stop,
 	.priv = NULL,
 };

@@ -115,16 +115,16 @@ static int receive_data(int fd, int revents, void *cb_data)
 }
 
 /* driver callbacks */
-static int hw_cleanup(void);
+static int cleanup(void);
 
-static int hw_init(struct sr_context *sr_ctx)
+static int init(struct sr_context *sr_ctx)
 {
 	(void)sr_ctx;
 
 	return SR_OK;
 }
 
-static int hw_cleanup(void)
+static int cleanup(void)
 {
 	GSList *l;
 
@@ -136,7 +136,7 @@ static int hw_cleanup(void)
 	return SR_OK;
 }
 
-static int hw_dev_open(struct sr_dev_inst *sdi)
+static int dev_open(struct sr_dev_inst *sdi)
 {
 	if (!(sdi->priv = g_try_malloc0(sizeof(struct session_vdev)))) {
 		sr_err("%s: sdi->priv malloc failed", __func__);
@@ -217,8 +217,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
-		void *cb_data)
+static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 {
 	struct zip_stat zs;
 	struct session_vdev *vdev;
@@ -261,13 +260,13 @@ SR_PRIV struct sr_dev_driver session_driver = {
 	.name = "virtual-session",
 	.longname = "Session-emulating driver",
 	.api_version = 1,
-	.init = hw_init,
-	.cleanup = hw_cleanup,
+	.init = init,
+	.cleanup = cleanup,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,
-	.dev_open = hw_dev_open,
+	.dev_open = dev_open,
 	.dev_close = NULL,
-	.dev_acquisition_start = hw_dev_acquisition_start,
+	.dev_acquisition_start = dev_acquisition_start,
 	.dev_acquisition_stop = NULL,
 };

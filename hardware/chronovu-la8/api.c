@@ -54,7 +54,7 @@ static const uint16_t usb_pids[] = {
 };
 
 /* Function prototypes. */
-static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);
+static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);
 
 static void clear_helper(void *priv)
 {
@@ -71,12 +71,12 @@ static int clear_instances(void)
 	return std_dev_clear(di, clear_helper);
 }
 
-static int hw_init(struct sr_context *sr_ctx)
+static int init(struct sr_context *sr_ctx)
 {
 	return std_hw_init(sr_ctx, di, LOG_PREFIX);
 }
 
-static GSList *hw_scan(GSList *options)
+static GSList *scan(GSList *options)
 {
 	struct sr_dev_inst *sdi;
 	struct sr_probe *probe;
@@ -181,12 +181,12 @@ err_free_nothing:
 	return NULL;
 }
 
-static GSList *hw_dev_list(void)
+static GSList *dev_list(void)
 {
 	return ((struct drv_context *)(di->priv))->instances;
 }
 
-static int hw_dev_open(struct sr_dev_inst *sdi)
+static int dev_open(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	int ret;
@@ -239,7 +239,7 @@ err_dev_open_close_ftdic:
 	return SR_ERR;
 }
 
-static int hw_dev_close(struct sr_dev_inst *sdi)
+static int dev_close(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 
@@ -257,7 +257,7 @@ static int hw_dev_close(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int hw_cleanup(void)
+static int cleanup(void)
 {
 	return clear_instances();
 }
@@ -387,7 +387,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 	/* Get one block of data. */
 	if ((ret = la8_read_block(devc)) < 0) {
 		sr_err("%s: la8_read_block error: %d.", __func__, ret);
-		hw_dev_acquisition_stop(sdi, sdi);
+		dev_acquisition_stop(sdi, sdi);
 		return FALSE;
 	}
 
@@ -403,13 +403,12 @@ static int receive_data(int fd, int revents, void *cb_data)
 	for (i = 0; i < NUM_BLOCKS; i++)
 		send_block_to_session_bus(devc, i);
 
-	hw_dev_acquisition_stop(sdi, sdi);
+	dev_acquisition_stop(sdi, sdi);
 
 	return TRUE;
 }
 
-static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
-				    void *cb_data)
+static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 {
 	struct dev_context *devc;
 	uint8_t buf[4];
@@ -475,7 +474,7 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
 	struct sr_datafeed_packet packet;
 
@@ -496,17 +495,17 @@ SR_PRIV struct sr_dev_driver chronovu_la8_driver_info = {
 	.name = "chronovu-la8",
 	.longname = "ChronoVu LA8",
 	.api_version = 1,
-	.init = hw_init,
-	.cleanup = hw_cleanup,
-	.scan = hw_scan,
-	.dev_list = hw_dev_list,
+	.init = init,
+	.cleanup = cleanup,
+	.scan = scan,
+	.dev_list = dev_list,
 	.dev_clear = clear_instances,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,
-	.dev_open = hw_dev_open,
-	.dev_close = hw_dev_close,
-	.dev_acquisition_start = hw_dev_acquisition_start,
-	.dev_acquisition_stop = hw_dev_acquisition_stop,
+	.dev_open = dev_open,
+	.dev_close = dev_close,
+	.dev_acquisition_start = dev_acquisition_start,
+	.dev_acquisition_stop = dev_acquisition_stop,
 	.priv = NULL,
 };

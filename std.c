@@ -25,7 +25,7 @@
 /**
  * Standard sr_driver_init() API helper.
  *
- * This function can be used to simplify most driver's hw_init() API callback.
+ * This function can be used to simplify most driver's init() API callback.
  *
  * It creates a new 'struct drv_context' (drvc), assigns sr_ctx to it, and
  * then 'drvc' is assigned to the 'struct sr_dev_driver' (di) that is passed.
@@ -63,7 +63,7 @@ SR_PRIV int std_hw_init(struct sr_context *sr_ctx, struct sr_dev_driver *di,
  * Standard API helper for sending an SR_DF_HEADER packet.
  *
  * This function can be used to simplify most driver's
- * hw_dev_acquisition_start() API callback.
+ * dev_acquisition_start() API callback.
  *
  * @param sdi The device instance to use.
  * @param prefix A driver-specific prefix string used for log messages.
@@ -105,12 +105,12 @@ SR_PRIV int std_session_send_df_header(const struct sr_dev_inst *sdi,
  * Standard sr_session_stop() API helper.
  *
  * This function can be used to simplify most (serial port based) driver's
- * hw_dev_acquisition_stop() API callback.
+ * dev_acquisition_stop() API callback.
  *
  * @param sdi The device instance for which acquisition should stop.
  *            Must not be NULL.
  * @param cb_data Opaque 'cb_data' pointer. Must not be NULL.
- * @param hw_dev_close_fn Function pointer to the driver's hw_dev_close().
+ * @param dev_close_fn Function pointer to the driver's dev_close().
  *               	  Must not be NULL.
  * @param serial The serial device instance (struct serial_dev_inst *).
  *               Must not be NULL.
@@ -121,7 +121,7 @@ SR_PRIV int std_session_send_df_header(const struct sr_dev_inst *sdi,
  *         SR_ERR upon other errors.
  */
 SR_PRIV int std_hw_dev_acquisition_stop_serial(struct sr_dev_inst *sdi,
-			void *cb_data, dev_close_t hw_dev_close_fn,
+			void *cb_data, dev_close_t dev_close_fn,
 			struct sr_serial_dev_inst *serial, const char *prefix)
 {
 	int ret;
@@ -144,7 +144,7 @@ SR_PRIV int std_hw_dev_acquisition_stop_serial(struct sr_dev_inst *sdi,
 		return ret;
 	}
 
-	if ((ret = hw_dev_close_fn(sdi)) < 0) {
+	if ((ret = dev_close_fn(sdi)) < 0) {
 		sr_err("%sFailed to close device: %d.", prefix, ret);
 		return ret;
 	}

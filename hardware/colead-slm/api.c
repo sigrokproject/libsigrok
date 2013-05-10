@@ -72,12 +72,12 @@ static int clear_instances(void)
 	return SR_OK;
 }
 
-static int hw_init(struct sr_context *sr_ctx)
+static int init(struct sr_context *sr_ctx)
 {
 	return std_hw_init(sr_ctx, di, LOG_PREFIX);
 }
 
-static GSList *hw_scan(GSList *options)
+static GSList *scan(GSList *options)
 {
 	struct drv_context *drvc;
 	struct dev_context *devc;
@@ -133,12 +133,12 @@ static GSList *hw_scan(GSList *options)
 	return devices;
 }
 
-static GSList *hw_dev_list(void)
+static GSList *dev_list(void)
 {
 	return ((struct drv_context *)(di->priv))->instances;
 }
 
-static int hw_dev_open(struct sr_dev_inst *sdi)
+static int dev_open(struct sr_dev_inst *sdi)
 {
 	struct sr_serial_dev_inst *serial;
 
@@ -151,7 +151,7 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int hw_dev_close(struct sr_dev_inst *sdi)
+static int dev_close(struct sr_dev_inst *sdi)
 {
 	struct sr_serial_dev_inst *serial;
 
@@ -164,7 +164,7 @@ static int hw_dev_close(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int hw_cleanup(void)
+static int cleanup(void)
 {
 	clear_instances();
 
@@ -227,8 +227,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
-				    void *cb_data)
+static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 {
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
@@ -254,9 +253,9 @@ static int hw_dev_acquisition_start(const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
-	return std_hw_dev_acquisition_stop_serial(sdi, cb_data, hw_dev_close,
+	return std_hw_dev_acquisition_stop_serial(sdi, cb_data, dev_close,
 	       sdi->conn, LOG_PREFIX);
 }
 
@@ -264,17 +263,17 @@ SR_PRIV struct sr_dev_driver colead_slm_driver_info = {
 	.name = "colead-slm",
 	.longname = "Colead SLM",
 	.api_version = 1,
-	.init = hw_init,
-	.cleanup = hw_cleanup,
-	.scan = hw_scan,
-	.dev_list = hw_dev_list,
+	.init = init,
+	.cleanup = cleanup,
+	.scan = scan,
+	.dev_list = dev_list,
 	.dev_clear = clear_instances,
 	.config_get = NULL,
 	.config_set = config_set,
 	.config_list = config_list,
-	.dev_open = hw_dev_open,
-	.dev_close = hw_dev_close,
-	.dev_acquisition_start = hw_dev_acquisition_start,
-	.dev_acquisition_stop = hw_dev_acquisition_stop,
+	.dev_open = dev_open,
+	.dev_close = dev_close,
+	.dev_acquisition_start = dev_acquisition_start,
+	.dev_acquisition_stop = dev_acquisition_stop,
 	.priv = NULL,
 };
