@@ -192,35 +192,9 @@ SR_PRIV struct dmm_info dmms[] = {
 	},
 };
 
-/* Properly close and free all devices. */
 static int clear_instances(int dmm)
 {
-	struct sr_dev_inst *sdi;
-	struct drv_context *drvc;
-	struct dev_context *devc;
-	struct sr_serial_dev_inst *serial;
-	GSList *l;
-	struct sr_dev_driver *di;
-
-	di = dmms[dmm].di;
-
-	if (!(drvc = di->priv))
-		return SR_OK;
-
-	drvc = di->priv;
-	for (l = drvc->instances; l; l = l->next) {
-		if (!(sdi = l->data))
-			continue;
-		if (!(devc = sdi->priv))
-			continue;
-		serial = sdi->conn;
-		sr_serial_dev_inst_free(serial);
-		sr_dev_inst_free(sdi);
-	}
-	g_slist_free(drvc->instances);
-	drvc->instances = NULL;
-
-	return SR_OK;
+	return std_dev_clear(dmms[dmm].di, NULL);
 }
 
 static int hw_init(struct sr_context *sr_ctx, int dmm)
@@ -380,9 +354,7 @@ static int hw_dev_close(struct sr_dev_inst *sdi)
 
 static int hw_cleanup(int dmm)
 {
-	clear_instances(dmm);
-
-	return SR_OK;
+	return clear_instances(dmm);
 }
 
 static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
