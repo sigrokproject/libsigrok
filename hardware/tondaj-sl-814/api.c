@@ -40,32 +40,9 @@ static const int32_t hwcaps[] = {
 SR_PRIV struct sr_dev_driver tondaj_sl_814_driver_info;
 static struct sr_dev_driver *di = &tondaj_sl_814_driver_info;
 
-/* Properly close and free all devices. */
 static int clear_instances(void)
 {
-	struct sr_dev_inst *sdi;
-	struct drv_context *drvc;
-	struct dev_context *devc;
-	struct sr_serial_dev_inst *serial;
-	GSList *l;
-
-	if (!(drvc = di->priv))
-		return SR_OK;
-
-	for (l = drvc->instances; l; l = l->next) {
-		if (!(sdi = l->data))
-			continue;
-		if (!(devc = sdi->priv))
-			continue;
-		serial = sdi->conn;
-		sr_serial_dev_inst_free(serial);
-		sr_dev_inst_free(sdi);
-	}
-
-	g_slist_free(drvc->instances);
-	drvc->instances = NULL;
-
-	return SR_OK;
+	return std_dev_clear(di, NULL);
 }
 
 static int hw_init(struct sr_context *sr_ctx)
@@ -179,9 +156,7 @@ static int hw_dev_close(struct sr_dev_inst *sdi)
 
 static int hw_cleanup(void)
 {
-	clear_instances();
-
-	return SR_OK;
+	return clear_instances();
 }
 
 static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
