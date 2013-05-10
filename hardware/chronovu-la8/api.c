@@ -56,32 +56,19 @@ static const uint16_t usb_pids[] = {
 /* Function prototypes. */
 static int hw_dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);
 
+static void clear_helper(void *priv)
+{
+	struct dev_context *devc;
+	
+	devc = priv;
+
+	ftdi_free(devc->ftdic);
+	g_free(devc->final_buf);
+}
+
 static int clear_instances(void)
 {
-	GSList *l;
-	struct sr_dev_inst *sdi;
-	struct drv_context *drvc;
-	struct dev_context *devc;
-
-	drvc = di->priv;
-
-	/* Properly close all devices. */
-	for (l = drvc->instances; l; l = l->next) {
-		if (!(sdi = l->data)) {
-			/* Log error, but continue cleaning up the rest. */
-			sr_err("%s: sdi was NULL, continuing.", __func__);
-			continue;
-		}
-		if (sdi->priv) {
-			devc = sdi->priv;
-			ftdi_free(devc->ftdic);
-		}
-		sr_dev_inst_free(sdi);
-	}
-	g_slist_free(drvc->instances);
-	drvc->instances = NULL;
-
-	return SR_OK;
+	return std_dev_clear(di, clear_helper);
 }
 
 static int hw_init(struct sr_context *sr_ctx)
@@ -267,20 +254,12 @@ static int hw_dev_close(struct sr_dev_inst *sdi)
 
 	sdi->status = SR_ST_INACTIVE;
 
-	g_free(devc->final_buf);
-
 	return SR_OK;
 }
 
 static int hw_cleanup(void)
 {
-	if (!di->priv)
-		/* Can get called on an unused driver, doesn't matter. */
-		return SR_OK;
-
-	clear_instances();
-
-	return SR_OK;
+	return clear_instances();
 }
 
 static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi)
