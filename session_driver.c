@@ -139,7 +139,7 @@ static int cleanup(void)
 static int dev_open(struct sr_dev_inst *sdi)
 {
 	if (!(sdi->priv = g_try_malloc0(sizeof(struct session_vdev)))) {
-		sr_err("%s: sdi->priv malloc failed", __func__);
+		sr_err("Device context malloc failed.");
 		return SR_ERR_MALLOC;
 	}
 
@@ -161,7 +161,7 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi)
 			return SR_ERR;
 		break;
 	default:
-		return SR_ERR_ARG;
+		return SR_ERR_NA;
 	}
 
 	return SR_OK;
@@ -193,8 +193,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 		vdev->num_probes = g_variant_get_uint64(data);
 		break;
 	default:
-		sr_err("Unknown capability: %d.", id);
-		return SR_ERR;
+		return SR_ERR_NA;
 	}
 
 	return SR_OK;
@@ -211,7 +210,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 				hwcaps, ARRAY_SIZE(hwcaps), sizeof(int32_t));
 		break;
 	default:
-		return SR_ERR_ARG;
+		return SR_ERR_NA;
 	}
 
 	return SR_OK;
@@ -262,6 +261,9 @@ SR_PRIV struct sr_dev_driver session_driver = {
 	.api_version = 1,
 	.init = init,
 	.cleanup = cleanup,
+	.scan = NULL,
+	.dev_list = NULL,
+	.dev_clear = NULL,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,
@@ -269,4 +271,5 @@ SR_PRIV struct sr_dev_driver session_driver = {
 	.dev_close = NULL,
 	.dev_acquisition_start = dev_acquisition_start,
 	.dev_acquisition_stop = NULL,
+	.priv = NULL,
 };
