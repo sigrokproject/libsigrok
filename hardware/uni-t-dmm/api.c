@@ -91,11 +91,7 @@ SR_PRIV struct dmm_info udmms[] = {
 
 static int clear_instances(int dmm)
 {
-	(void)dmm;
-
-	/* TODO: Use common code later. */
-
-	return SR_OK;
+	return std_dev_clear(udmms[dmm].di, NULL);
 }
 
 static int hw_init(struct sr_context *sr_ctx, int dmm)
@@ -200,9 +196,7 @@ static int hw_dev_close(struct sr_dev_inst *sdi)
 
 static int hw_cleanup(int dmm)
 {
-	clear_instances(dmm);
-
-	return SR_OK;
+	return clear_instances(dmm);
 }
 
 static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
