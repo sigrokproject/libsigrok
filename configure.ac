@@ -197,6 +197,9 @@ AC_ARG_ENABLE(zeroplus-logic-cube,
 # libsigrok.pc file.
 SR_PKGLIBS=""
 
+# libm (the standard math library) is always needed.
+AC_SEARCH_LIBS([pow], [m])
+
 # libglib-2.0 is always needed. Abort if it's not found.
 # Note: glib-2.0 is part of the libsigrok API (hard pkg-config requirement).
 # We require at least 2.32.0 due to e.g. g_variant_new_fixed_array().
