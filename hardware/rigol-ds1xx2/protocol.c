@@ -43,7 +43,7 @@ SR_PRIV int rigol_ds1xx2_receive(int fd, int revents, void *cb_data)
 	int len, i, waveform_size;
 	struct sr_probe *probe;
 
-	(void) fd;
+	(void)fd;
 
 	if (!(sdi = cb_data))
 		return TRUE;

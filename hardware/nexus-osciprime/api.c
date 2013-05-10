@@ -153,8 +153,6 @@ static GSList *hw_scan(GSList *options)
 	int i;
 	const char *conn;
 
-	(void)options;
-
 	drvc = di->priv;
 
 	conn = NULL;

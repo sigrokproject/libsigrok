@@ -593,8 +593,6 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 	GVariantBuilder gvb;
 	unsigned int i;
 
-	(void)sdi;
-
 	if (!sdi)
 		return SR_ERR_ARG;
 

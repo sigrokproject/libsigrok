@@ -172,8 +172,6 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 	GVariantBuilder gvb;
 	int i;
 
-	(void)sdi;
-
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,

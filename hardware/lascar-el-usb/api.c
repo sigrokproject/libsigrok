@@ -81,8 +81,6 @@ static GSList *hw_scan(GSList *options)
 	GSList *usb_devices, *devices, *l;
 	const char *conn;
 
-	(void)options;
-
 	drvc = di->priv;
 
 	conn = NULL;

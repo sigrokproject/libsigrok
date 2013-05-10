@@ -35,8 +35,6 @@ static struct sr_datafeed_analog *handle_qm_18x(const struct sr_dev_inst *sdi,
 	char *e, *u;
 	gboolean is_oor;
 
-	(void)sdi;
-
 	if (strcmp(tokens[0], "QM") || !tokens[1])
 		return NULL;
 
@@ -158,8 +156,6 @@ static struct sr_datafeed_analog *handle_qm_28x(const struct sr_dev_inst *sdi,
 	struct sr_datafeed_analog *analog;
 	float fvalue;
 	char *eptr;
-
-	(void)sdi;
 
 	if (!tokens[1])
 		return NULL;

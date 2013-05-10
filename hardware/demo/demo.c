@@ -210,8 +210,6 @@ static GSList *hw_dev_list(void)
 
 static int hw_dev_open(struct sr_dev_inst *sdi)
 {
-	(void)sdi;
-
 	sdi->status = SR_ST_ACTIVE;
 
 	return SR_OK;
@@ -219,9 +217,7 @@ static int hw_dev_open(struct sr_dev_inst *sdi)
 
 static int hw_dev_close(struct sr_dev_inst *sdi)
 {
-	(void)sdi;
-
-    sdi->status = SR_ST_INACTIVE;
+	sdi->status = SR_ST_INACTIVE;
 
 	return SR_OK;
 }

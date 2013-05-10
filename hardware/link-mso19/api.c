@@ -67,8 +67,6 @@ static GSList *hw_scan(GSList *options)
 	struct udev *udev;
 	int ptype;
 
-	(void)options;
-
 	for (l = options; l; l = l->next) {
 		src = l->data;
 		switch (src->key) {

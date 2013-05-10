@@ -343,7 +343,6 @@ static struct dev_context *fx2lafw_dev_new(void)
 	devc->limit_samples = 0;
 	devc->sample_wide = 0;
 
-
 	return devc;
 }
 

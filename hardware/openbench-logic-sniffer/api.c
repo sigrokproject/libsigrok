@@ -72,8 +72,6 @@ static GSList *scan(GSList *options)
 	const char *conn, *serialcomm;
 	char buf[8];
 
-	(void)options;
-
 	drvc = di->priv;
 
 	devices = NULL;
@@ -464,7 +462,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
-	/* Avoid compiler warnings. */
 	(void)cb_data;
 
 	abort_acquisition(sdi);
