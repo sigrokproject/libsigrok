@@ -172,8 +172,7 @@ static int data(struct sr_output *o, const uint8_t *data_in,
 {
 	struct context *ctx;
 	GString *outstr;
-	uint64_t sample, i;
-	int j;
+	uint64_t sample, i, j;
 
 	if (!o) {
 		sr_err("%s: o was NULL", __func__);
@@ -200,7 +199,7 @@ static int data(struct sr_output *o, const uint8_t *data_in,
 
 	for (i = 0; i <= length_in - ctx->unitsize; i += ctx->unitsize) {
 		memcpy(&sample, data_in + i, ctx->unitsize);
-		for (j = ctx->num_enabled_probes - 1; j >= 0; j--) {
+		for (j = 0; j < ctx->num_enabled_probes; j++) {
 			g_string_append_printf(outstr, "%d%c",
 				(int)((sample & (1 << j)) >> j),
 				ctx->separator);
