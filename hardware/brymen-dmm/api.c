@@ -39,31 +39,9 @@ static int init(struct sr_context *sr_ctx)
 	return std_hw_init(sr_ctx, di, LOG_PREFIX);
 }
 
-static void free_instance(void *inst)
-{
-	struct sr_dev_inst *sdi;
-	struct sr_serial_dev_inst *serial;
-
-	if (!(sdi = inst))
-		return;
-
-	serial = sdi->conn;
-	sr_serial_dev_inst_free(serial);
-	sr_dev_inst_free(sdi);
-}
-
-/* Properly close and free all devices. */
 static int clear_instances(void)
 {
-	struct drv_context *drvc;
-
-	if (!(drvc = di->priv))
-		return SR_OK;
-
-	g_slist_free_full(drvc->instances, free_instance);
-	drvc->instances = NULL;
-
-	return SR_OK;
+	return std_dev_clear(di, NULL);
 }
 
 static GSList *brymen_scan(const char *conn, const char *serialcomm)
@@ -199,9 +177,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 
 static int cleanup(void)
 {
-	clear_instances();
-
-	return SR_OK;
+	return clear_instances();
 }
 
 static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
