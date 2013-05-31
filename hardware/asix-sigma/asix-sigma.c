@@ -380,32 +380,18 @@ static int bin2bitbang(const char *filename,
 	return SR_OK;
 }
 
+static void clear_helper(void *priv)
+{
+	struct dev_context *devc;
+	
+	devc = priv;
+
+	ftdi_deinit(&devc->ftdic);
+}
+
 static int clear_instances(void)
 {
-	GSList *l;
-	struct sr_dev_inst *sdi;
-	struct drv_context *drvc;
-	struct dev_context *devc;
-
-	drvc = di->priv;
-
-	/* Properly close all devices. */
-	for (l = drvc->instances; l; l = l->next) {
-		if (!(sdi = l->data)) {
-			/* Log error, but continue cleaning up the rest. */
-			sr_err("%s: sdi was NULL, continuing", __func__);
-			continue;
-		}
-		if (sdi->priv) {
-			devc = sdi->priv;
-			ftdi_deinit(&devc->ftdic);
-		}
-		sr_dev_inst_free(sdi);
-	}
-	g_slist_free(drvc->instances);
-	drvc->instances = NULL;
-
-	return SR_OK;
+	return std_dev_clear(di, clear_helper);
 }
 
 static int init(struct sr_context *sr_ctx)
@@ -755,12 +741,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 
 static int cleanup(void)
 {
-	if (!di->priv)
-		return SR_OK;
-
-	clear_instances();
-
-	return SR_OK;
+	return clear_instances();
 }
 
 static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi)
