@@ -58,33 +58,9 @@ static const struct flukedmm_profile supported_flukedmm[] = {
 	{ FLUKE_190, "199B", 1000, 3500 },
 };
 
-
-/* Properly close and free all devices. */
 static int clear_instances(void)
 {
-	struct sr_dev_inst *sdi;
-	struct drv_context *drvc;
-	struct dev_context *devc;
-	struct sr_serial_dev_inst *serial;
-	GSList *l;
-
-	if (!(drvc = di->priv))
-		return SR_OK;
-
-	drvc = di->priv;
-	for (l = drvc->instances; l; l = l->next) {
-		if (!(sdi = l->data))
-			continue;
-		if (!(devc = sdi->priv))
-			continue;
-		serial = sdi->conn;
-		sr_serial_dev_inst_free(serial);
-		sr_dev_inst_free(sdi);
-	}
-	g_slist_free(drvc->instances);
-	drvc->instances = NULL;
-
-	return SR_OK;
+	return std_dev_clear(di, NULL);
 }
 
 static int init(struct sr_context *sr_ctx)
@@ -159,6 +135,7 @@ static GSList *fluke_scan(const char *conn, const char *serialcomm)
 					return NULL;
 				}
 				devc->profile = &supported_flukedmm[i];
+				sdi->inst_type = SR_INST_SERIAL;
 				sdi->conn = serial;
 				sdi->priv = devc;
 				sdi->driver = di;
@@ -253,10 +230,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 
 static int cleanup(void)
 {
-
-	clear_instances();
-
-	return SR_OK;
+	return clear_instances();
 }
 
 static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
