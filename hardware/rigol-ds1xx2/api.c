@@ -140,37 +140,21 @@ static const char *supported_models[] = {
 SR_PRIV struct sr_dev_driver rigol_ds1xx2_driver_info;
 static struct sr_dev_driver *di = &rigol_ds1xx2_driver_info;
 
-/* Properly close and free all devices. */
+static void clear_helper(void *priv)
+{
+	struct dev_context *devc;
+
+	devc = priv;
+
+	g_free(devc->coupling[0]);
+	g_free(devc->coupling[1]);
+	g_free(devc->trigger_source);
+	g_free(devc->trigger_slope);
+}
+
 static int clear_instances(void)
 {
-	struct sr_dev_inst *sdi;
-	struct drv_context *drvc;
-	struct dev_context *devc;
-	GSList *l;
-
-	if (!(drvc = di->priv))
-		return SR_OK;
-
-	for (l = drvc->instances; l; l = l->next) {
-		if (!(sdi = l->data))
-			continue;
-
-		if (sdi->conn)
-			sr_serial_dev_inst_free(sdi->conn);
-
-		if ((devc = sdi->priv)) {
-			g_free(devc->coupling[0]);
-			g_free(devc->coupling[1]);
-			g_free(devc->trigger_source);
-			g_free(devc->trigger_slope);
-		}
-		sr_dev_inst_free(sdi);
-	}
-
-	g_slist_free(drvc->instances);
-	drvc->instances = NULL;
-
-	return SR_OK;
+	return std_dev_clear(di, clear_helper);
 }
 
 static int set_cfg(const struct sr_dev_inst *sdi, const char *format, ...)
@@ -266,6 +250,7 @@ static int probe_port(const char *port, GSList **devices)
 	if (!(sdi->conn = sr_serial_dev_inst_new(port, NULL)))
 		return SR_ERR_MALLOC;
 	sdi->driver = di;
+	sdi->inst_type = SR_INST_SERIAL;
 
 	if (!(devc = g_try_malloc0(sizeof(struct dev_context))))
 		return SR_ERR_MALLOC;
@@ -379,9 +364,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 
 static int cleanup(void)
 {
-	clear_instances();
-
-	return SR_OK;
+	return clear_instances();
 }
 
 static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi)
