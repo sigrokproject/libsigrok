@@ -419,14 +419,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 
 static int cleanup(void)
 {
-	struct drv_context *drvc;
-
-	if (!(drvc = di->priv))
-		return SR_OK;
-
-	clear_instances();
-
-	return SR_OK;
+	return clear_instances();
 }
 
 static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi)
