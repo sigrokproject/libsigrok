@@ -98,7 +98,7 @@ static int init(struct sr_context *sr_ctx, int dmm)
 {
 	sr_dbg("Selected '%s' subdriver.", udmms[dmm].di->name);
 
-	return std_hw_init(sr_ctx, udmms[dmm].di, LOG_PREFIX);
+	return std_init(sr_ctx, udmms[dmm].di, LOG_PREFIX);
 }
 
 static GSList *scan(GSList *options, int dmm)

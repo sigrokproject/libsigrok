@@ -178,7 +178,7 @@ static int set_cfg(const struct sr_dev_inst *sdi, const char *format, ...)
 
 static int init(struct sr_context *sr_ctx)
 {
-	return std_hw_init(sr_ctx, di, LOG_PREFIX);
+	return std_init(sr_ctx, di, LOG_PREFIX);
 }
 
 static int probe_port(const char *port, GSList **devices)

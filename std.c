@@ -37,8 +37,8 @@
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or
  *         SR_ERR_MALLOC upon memory allocation errors.
  */
-SR_PRIV int std_hw_init(struct sr_context *sr_ctx, struct sr_dev_driver *di,
-			const char *prefix)
+SR_PRIV int std_init(struct sr_context *sr_ctx, struct sr_dev_driver *di,
+		     const char *prefix)
 {
 	struct drv_context *drvc;
 
@@ -120,7 +120,7 @@ SR_PRIV int std_session_send_df_header(const struct sr_dev_inst *sdi,
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or
  *         SR_ERR upon other errors.
  */
-SR_PRIV int std_hw_dev_acquisition_stop_serial(struct sr_dev_inst *sdi,
+SR_PRIV int std_dev_acquisition_stop_serial(struct sr_dev_inst *sdi,
 			void *cb_data, dev_close_t dev_close_fn,
 			struct sr_serial_dev_inst *serial, const char *prefix)
 {

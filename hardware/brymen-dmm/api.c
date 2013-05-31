@@ -36,7 +36,7 @@ static struct sr_dev_driver *di = &brymen_bm857_driver_info;
 
 static int init(struct sr_context *sr_ctx)
 {
-	return std_hw_init(sr_ctx, di, LOG_PREFIX);
+	return std_init(sr_ctx, di, LOG_PREFIX);
 }
 
 static int clear_instances(void)
@@ -264,8 +264,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
-	return std_hw_dev_acquisition_stop_serial(sdi, cb_data, dev_close,
-						  sdi->conn, LOG_PREFIX);
+	return std_dev_acquisition_stop_serial(sdi, cb_data, dev_close,
+					       sdi->conn, LOG_PREFIX);
 }
 
 SR_PRIV struct sr_dev_driver brymen_bm857_driver_info = {

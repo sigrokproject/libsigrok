@@ -112,7 +112,7 @@ static int clear_instances(void)
 
 static int init(struct sr_context *sr_ctx)
 {
-	return std_hw_init(sr_ctx, di, LOG_PREFIX);
+	return std_init(sr_ctx, di, LOG_PREFIX);
 }
 
 static GSList *scan(GSList *options)

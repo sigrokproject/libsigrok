@@ -58,7 +58,7 @@ static int init(struct sr_context *sr_ctx, int idx)
 {
 	sr_dbg("Selected '%s' subdriver.", mic_devs[idx].di->name);
 
-	return std_hw_init(sr_ctx, mic_devs[idx].di, LOG_PREFIX);
+	return std_init(sr_ctx, mic_devs[idx].di, LOG_PREFIX);
 }
 
 static GSList *mic_scan(const char *conn, const char *serialcomm, int idx)
@@ -262,8 +262,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
-	return std_hw_dev_acquisition_stop_serial(sdi, cb_data, dev_close,
-						  sdi->conn, LOG_PREFIX);
+	return std_dev_acquisition_stop_serial(sdi, cb_data, dev_close,
+					       sdi->conn, LOG_PREFIX);
 }
 
 /* Driver-specific API function wrappers */
