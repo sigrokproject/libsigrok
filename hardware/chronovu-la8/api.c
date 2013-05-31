@@ -66,7 +66,7 @@ static void clear_helper(void *priv)
 	g_free(devc->final_buf);
 }
 
-static int clear_instances(void)
+static int dev_clear(void)
 {
 	return std_dev_clear(di, clear_helper);
 }
@@ -259,7 +259,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 
 static int cleanup(void)
 {
-	return clear_instances();
+	return dev_clear();
 }
 
 static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi)
@@ -499,7 +499,7 @@ SR_PRIV struct sr_dev_driver chronovu_la8_driver_info = {
 	.cleanup = cleanup,
 	.scan = scan,
 	.dev_list = dev_list,
-	.dev_clear = clear_instances,
+	.dev_clear = dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,

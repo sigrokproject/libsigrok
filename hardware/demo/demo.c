@@ -143,7 +143,7 @@ static struct sr_dev_driver *di = &demo_driver_info;
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);
 
-static int clear_instances(void)
+static int dev_clear(void)
 {
 	/* Nothing needed so far. */
 
@@ -528,7 +528,7 @@ SR_PRIV struct sr_dev_driver demo_driver_info = {
 	.cleanup = cleanup,
 	.scan = scan,
 	.dev_list = dev_list,
-	.dev_clear = clear_instances,
+	.dev_clear = dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,

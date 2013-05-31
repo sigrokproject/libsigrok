@@ -61,7 +61,7 @@ static const struct agdmm_profile supported_agdmm[] = {
 SR_PRIV struct sr_dev_driver agdmm_driver_info;
 static struct sr_dev_driver *di = &agdmm_driver_info;
 
-static int clear_instances(void)
+static int dev_clear(void)
 {
 	return std_dev_clear(di, NULL);
 }
@@ -197,7 +197,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 
 static int cleanup(void)
 {
-	return clear_instances();
+	return dev_clear();
 }
 
 static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
@@ -295,7 +295,7 @@ SR_PRIV struct sr_dev_driver agdmm_driver_info = {
 	.cleanup = cleanup,
 	.scan = scan,
 	.dev_list = dev_list,
-	.dev_clear = clear_instances,
+	.dev_clear = dev_clear,
 	.config_get = NULL,
 	.config_set = config_set,
 	.config_list = config_list,

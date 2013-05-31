@@ -346,7 +346,7 @@ static struct dev_context *fx2lafw_dev_new(void)
 	return devc;
 }
 
-static int clear_instances(void)
+static int dev_clear(void)
 {
 	return std_dev_clear(di, NULL);
 }
@@ -567,13 +567,13 @@ static int dev_close(struct sr_dev_inst *sdi)
 
 static int cleanup(void)
 {
-	struct drv_context *drvc;
 	int ret;
+	struct drv_context *drvc;
 
 	if (!(drvc = di->priv))
 		return SR_OK;
 
-	ret = clear_instances();
+	ret = dev_clear();
 
 	g_free(drvc);
 	di->priv = NULL;
@@ -1038,7 +1038,7 @@ SR_PRIV struct sr_dev_driver fx2lafw_driver_info = {
 	.cleanup = cleanup,
 	.scan = scan,
 	.dev_list = dev_list,
-	.dev_clear = clear_instances,
+	.dev_clear = dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,

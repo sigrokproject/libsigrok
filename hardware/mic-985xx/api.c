@@ -49,7 +49,7 @@ SR_PRIV const struct mic_dev_info mic_devs[] = {
 	},
 };
 
-static int clear_instances(int idx)
+static int dev_clear(int idx)
 {
 	return std_dev_clear(mic_devs[idx].di, NULL);
 }
@@ -185,7 +185,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 
 static int cleanup(int idx)
 {
-	return clear_instances(idx);
+	return dev_clear(idx);
 }
 
 static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
@@ -275,8 +275,8 @@ static int cleanup_##X(void) { return cleanup(X); }
 static GSList *scan_##X(GSList *options) { return scan(options, X); }
 #define HW_DEV_LIST(X) \
 static GSList *dev_list_##X(void) { return dev_list(X); }
-#define CLEAR_INSTANCES(X) \
-static int clear_instances_##X(void) { return clear_instances(X); }
+#define HW_DEV_CLEAR(X) \
+static int dev_clear_##X(void) { return dev_clear(X); }
 #define HW_DEV_ACQUISITION_START(X) \
 static int dev_acquisition_start_##X(const struct sr_dev_inst *sdi, \
 void *cb_data) { return dev_acquisition_start(sdi, cb_data, X); }
@@ -287,7 +287,7 @@ HW_INIT(ID_UPPER) \
 HW_CLEANUP(ID_UPPER) \
 HW_SCAN(ID_UPPER) \
 HW_DEV_LIST(ID_UPPER) \
-CLEAR_INSTANCES(ID_UPPER) \
+HW_DEV_CLEAR(ID_UPPER) \
 HW_DEV_ACQUISITION_START(ID_UPPER) \
 SR_PRIV struct sr_dev_driver ID##_driver_info = { \
 	.name = NAME, \
@@ -297,7 +297,7 @@ SR_PRIV struct sr_dev_driver ID##_driver_info = { \
 	.cleanup = cleanup_##ID_UPPER, \
 	.scan = scan_##ID_UPPER, \
 	.dev_list = dev_list_##ID_UPPER, \
-	.dev_clear = clear_instances_##ID_UPPER, \
+	.dev_clear = dev_clear_##ID_UPPER, \
 	.config_get = NULL, \
 	.config_set = config_set, \
 	.config_list = config_list, \
