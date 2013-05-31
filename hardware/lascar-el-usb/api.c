@@ -26,7 +26,6 @@
 SR_PRIV struct sr_dev_inst *lascar_scan(int bus, int address);
 SR_PRIV struct sr_dev_driver lascar_el_usb_driver_info;
 static struct sr_dev_driver *di = &lascar_el_usb_driver_info;
-static int dev_close(struct sr_dev_inst *sdi);
 
 static const int32_t hwopts[] = {
 	SR_CONF_CONN,
@@ -39,32 +38,9 @@ static const int32_t hwcaps[] = {
 	SR_CONF_LIMIT_SAMPLES,
 };
 
-/* Properly close and free all devices. */
 static int clear_instances(void)
 {
-	struct sr_dev_inst *sdi;
-	struct drv_context *drvc;
-	struct dev_context *devc;
-	GSList *l;
-
-	if (!(drvc = di->priv))
-		return SR_OK;
-
-	for (l = drvc->instances; l; l = l->next) {
-		if (!(sdi = l->data))
-			continue;
-		if (!(devc = sdi->priv))
-			continue;
-
-		dev_close(sdi);
-		sr_usb_dev_inst_free(sdi->conn);
-		sr_dev_inst_free(sdi);
-	}
-
-	g_slist_free(drvc->instances);
-	drvc->instances = NULL;
-
-	return SR_OK;
+	return std_dev_clear(di, NULL);
 }
 
 static int init(struct sr_context *sr_ctx)
@@ -173,17 +149,18 @@ static int dev_close(struct sr_dev_inst *sdi)
 
 static int cleanup(void)
 {
+	int ret;
 	struct drv_context *drvc;
 
 	if (!(drvc = di->priv))
 		/* Can get called on an unused driver, doesn't matter. */
 		return SR_OK;
 
-	clear_instances();
+	ret = clear_instances();
 	g_free(drvc);
 	di->priv = NULL;
 
-	return SR_OK;
+	return ret;
 }
 
 static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi)
