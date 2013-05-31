@@ -36,17 +36,19 @@ static const int32_t hwcaps[] = {
 SR_PRIV struct sr_dev_driver alsa_driver_info;
 static struct sr_dev_driver *di = &alsa_driver_info;
 
+static void clear_helper(void *priv)
+{
+	struct dev_context *devc;
+
+	devc = priv;
+
+	snd_pcm_hw_params_free(devc->hw_params);
+	g_free((void *)devc->samplerates);
+}
+
 static int clear_instances(void)
 {
-	struct drv_context *drvc;
-
-	if (!(drvc = di->priv))
-		return SR_OK;
-
-	g_slist_free_full(drvc->instances, (GDestroyNotify)alsa_dev_inst_clear);
-	drvc->instances = NULL;
-
-	return SR_OK;
+	return std_dev_clear(di, clear_helper);
 }
 
 static int init(struct sr_context *sr_ctx)
@@ -121,9 +123,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 
 static int cleanup(void)
 {
-	clear_instances();
-
-	return SR_OK;
+	return clear_instances();
 }
 
 static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi)

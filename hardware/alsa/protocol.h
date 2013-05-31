@@ -52,11 +52,8 @@ struct dev_context {
 };
 
 SR_PRIV GSList *alsa_scan(GSList *options, struct sr_dev_driver *di);
-SR_PRIV void alsa_dev_inst_clear(struct sr_dev_inst *sdi);
-
 SR_PRIV int alsa_set_samplerate(const struct sr_dev_inst *sdi,
 				uint64_t newrate);
-
 SR_PRIV int alsa_receive_data(int fd, int revents, void *cb_data);
 
 #endif

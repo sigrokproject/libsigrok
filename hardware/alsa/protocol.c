@@ -282,22 +282,6 @@ SR_PRIV GSList *alsa_scan(GSList *options, struct sr_dev_driver *di)
 	return devices;
 }
 
-/*
- * Helper to be used with g_slist_free_full(); for properly freeing an alsa
- * dev instance.
- */
-SR_PRIV void alsa_dev_inst_clear(struct sr_dev_inst *sdi)
-{
-	struct dev_context *devc;
-
-	if (!(devc = sdi->priv))
-		return;
-
-	snd_pcm_hw_params_free(devc->hw_params);
-	g_free((void*)devc->samplerates);
-	sr_dev_inst_free(sdi);
-}
-
 /**
  * Set the samplerate of the ALSA device.
  *
