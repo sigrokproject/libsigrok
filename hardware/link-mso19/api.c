@@ -51,6 +51,44 @@ static const uint64_t samplerates[] = {
 SR_PRIV struct sr_dev_driver link_mso19_driver_info;
 static struct sr_dev_driver *di = &link_mso19_driver_info;
 
+static int dev_close(struct sr_dev_inst *sdi);
+
+/* TODO: Use sr_dev_inst to store connection handle & use std_dev_clear(). */
+static int dev_clear(void)
+{
+	GSList *l;
+	struct sr_dev_inst *sdi;
+	struct drv_context *drvc;
+	struct dev_context *devc;
+	int ret = SR_OK;
+
+	if (!(drvc = di->priv))
+		return SR_OK;
+
+	/* Properly close and free all devices. */
+	for (l = drvc->instances; l; l = l->next) {
+		if (!(sdi = l->data)) {
+			/* Log error, but continue cleaning up the rest. */
+			sr_err("%s: sdi was NULL, continuing", __func__);
+			ret = SR_ERR_BUG;
+			continue;
+		}
+		if (!(devc = sdi->priv)) {
+			/* Log error, but continue cleaning up the rest. */
+			sr_err("%s: sdi->priv was NULL, continuing", __func__);
+			ret = SR_ERR_BUG;
+			continue;
+		}
+		dev_close(sdi);
+		sr_serial_dev_inst_free(devc->serial);
+		sr_dev_inst_free(sdi);
+	}
+	g_slist_free(drvc->instances);
+	drvc->instances = NULL;
+
+	return ret;
+}
+
 static int init(struct sr_context *sr_ctx)
 {
 	return std_init(sr_ctx, di, LOG_PREFIX);
@@ -250,37 +288,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 
 static int cleanup(void)
 {
-	GSList *l;
-	struct sr_dev_inst *sdi;
-	struct drv_context *drvc;
-	struct dev_context *devc;
-	int ret = SR_OK;
-
-	if (!(drvc = di->priv))
-		return SR_OK;
-
-	/* Properly close and free all devices. */
-	for (l = drvc->instances; l; l = l->next) {
-		if (!(sdi = l->data)) {
-			/* Log error, but continue cleaning up the rest. */
-			sr_err("%s: sdi was NULL, continuing", __func__);
-			ret = SR_ERR_BUG;
-			continue;
-		}
-		if (!(devc = sdi->priv)) {
-			/* Log error, but continue cleaning up the rest. */
-			sr_err("%s: sdi->priv was NULL, continuing", __func__);
-			ret = SR_ERR_BUG;
-			continue;
-		}
-		dev_close(sdi);
-		sr_serial_dev_inst_free(devc->serial);
-		sr_dev_inst_free(sdi);
-	}
-	g_slist_free(drvc->instances);
-	drvc->instances = NULL;
-
-	return ret;
+	return dev_clear();
 }
 
 static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi)
@@ -481,7 +489,7 @@ SR_PRIV struct sr_dev_driver link_mso19_driver_info = {
 	.cleanup = cleanup,
 	.scan = scan,
 	.dev_list = dev_list,
-	.dev_clear = cleanup,
+	.dev_clear = dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,

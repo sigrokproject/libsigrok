@@ -53,6 +53,11 @@ static const uint64_t samplerates[] = {
 SR_PRIV struct sr_dev_driver ols_driver_info;
 static struct sr_dev_driver *di = &ols_driver_info;
 
+static int dev_clear(void)
+{
+	return std_dev_clear(di, NULL);
+}
+
 static int init(struct sr_context *sr_ctx)
 {
 	return std_init(sr_ctx, di, LOG_PREFIX);
@@ -207,9 +212,9 @@ static int dev_close(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int dev_clear(void)
+static int cleanup(void)
 {
-	return std_dev_clear(di, NULL);
+	return dev_clear();
 }
 
 static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi)
@@ -474,7 +479,7 @@ SR_PRIV struct sr_dev_driver ols_driver_info = {
 	.longname = "Openbench Logic Sniffer",
 	.api_version = 1,
 	.init = init,
-	.cleanup = dev_clear,
+	.cleanup = cleanup,
 	.scan = scan,
 	.dev_list = dev_list,
 	.dev_clear = dev_clear,
