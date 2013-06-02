@@ -145,9 +145,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);
 
 static int dev_clear(void)
 {
-	/* Nothing needed so far. */
-
-	return SR_OK;
+	return std_dev_clear(di, NULL);
 }
 
 static int init(struct sr_context *sr_ctx)
@@ -224,28 +222,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 
 static int cleanup(void)
 {
-	GSList *l;
-	struct sr_dev_inst *sdi;
-	struct drv_context *drvc;
-	int ret = SR_OK;
-
-	if (!(drvc = di->priv))
-		return SR_OK;
-
-	/* Properly close and free all devices. */
-	for (l = drvc->instances; l; l = l->next) {
-		if (!(sdi = l->data)) {
-			/* Log error, but continue cleaning up the rest. */
-			sr_err("%s: sdi was NULL, continuing", __func__);
-			ret = SR_ERR_BUG;
-			continue;
-		}
-		sr_dev_inst_free(sdi);
-	}
-	g_slist_free(drvc->instances);
-	drvc->instances = NULL;
-
-	return ret;
+	return dev_clear();
 }
 
 static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi)
