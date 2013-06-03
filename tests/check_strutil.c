@@ -57,8 +57,6 @@ static void test_samplerate(uint64_t samplerate, const char *expected)
  *  - Results which contain commas (e.g. 1.234 / 12.34 / 123.4 kHz).
  *  - Results with zeroes right after the comma (e.g. 1.034 Hz).
  *    See also: http://sigrok.org/bugzilla/show_bug.cgi?id=73
- *  - Results with trailing zeroes (e.g. 1.230 kHz).
- *    (This is currently allowed, but might be changed later)
  *  - Results with zeroes in the middle (e.g. 1.204 kHz).
  *  - All of the above, but using SR_MHZ() and friends.
  *    See also: http://sigrok.org/bugzilla/show_bug.cgi?id=72
@@ -95,7 +93,7 @@ START_TEST(test_khz)
 	test_samplerate(123456, "123.456 kHz");
 	test_samplerate(1034, "1.034 kHz");
 	test_samplerate(1004, "1.004 kHz");
-	test_samplerate(1230, "1.230 kHz");
+	test_samplerate(1230, "1.23 kHz");
 
 	/* Again, but now using SR_KHZ(). */
 	test_samplerate(SR_KHZ(1), "1 kHz");
@@ -107,7 +105,7 @@ START_TEST(test_khz)
 	test_samplerate(SR_KHZ(1.204), "1.204 kHz");
 	test_samplerate(SR_KHZ(1.034), "1.034 kHz");
 	test_samplerate(SR_KHZ(1.004), "1.004 kHz");
-	test_samplerate(SR_KHZ(1.230), "1.230 kHz");
+	test_samplerate(SR_KHZ(1.230), "1.23 kHz");
 }
 END_TEST
 
@@ -122,7 +120,7 @@ START_TEST(test_mhz)
 	test_samplerate(1230007, "1.230007 MHz");
 	test_samplerate(1034567, "1.034567 MHz");
 	test_samplerate(1000007, "1.000007 MHz");
-	test_samplerate(1234000, "1.234000 MHz");
+	test_samplerate(1234000, "1.234 MHz");
 
 	/* Again, but now using SR_MHZ(). */
 	test_samplerate(SR_MHZ(1), "1 MHz");
@@ -134,7 +132,7 @@ START_TEST(test_mhz)
 	test_samplerate(SR_MHZ(1.230007), "1.230007 MHz");
 	test_samplerate(SR_MHZ(1.034567), "1.034567 MHz");
 	test_samplerate(SR_MHZ(1.000007), "1.000007 MHz");
-	test_samplerate(SR_MHZ(1.234000), "1.234000 MHz");
+	test_samplerate(SR_MHZ(1.234000), "1.234 MHz");
 }
 END_TEST
 
@@ -152,7 +150,7 @@ START_TEST(test_ghz)
 	test_samplerate(441759000001ULL, "441.759000001 GHz");
 	test_samplerate(441050000000ULL, "441.05 GHz");
 	test_samplerate(441000000005ULL, "441.000000005 GHz");
-	test_samplerate(441500000000ULL, "441.500000000 GHz");
+	test_samplerate(441500000000ULL, "441.5 GHz");
 
 	/* Again, but now using SR_GHZ(). */
 	test_samplerate(SR_GHZ(1), "1 GHz");
@@ -165,7 +163,7 @@ START_TEST(test_ghz)
 	test_samplerate(SR_GHZ(441.759000001), "441.759000001 GHz");
 	test_samplerate(SR_GHZ(441.050000000), "441.05 GHz");
 	test_samplerate(SR_GHZ(441.000000005), "441.000000005 GHz");
-	test_samplerate(SR_GHZ(441.500000000), "441.500000000 GHz");
+	test_samplerate(SR_GHZ(441.500000000), "441.5 GHz");
 
 	/* Now check the biggest-possible samplerate (2^64 Hz). */
 	test_samplerate(18446744073709551615ULL, "18446744073.709551615 GHz");
