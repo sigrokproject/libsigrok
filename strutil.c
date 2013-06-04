@@ -64,32 +64,30 @@
  */
 SR_API char *sr_si_string_u64(uint64_t x, const char *unit)
 {
+	uint8_t i;
+	uint64_t quot, divisor[] = {
+		1, SR_KHZ(1), SR_MHZ(1), SR_GHZ(1),
+		SR_GHZ(1000), SR_GHZ(1000*1000), SR_GHZ(1000*1000*1000)
+	};
+	const char *p, prefix[] = "\0kMGTPE";
+	char fmt[8], fract[20] = "", *f;
+
 	if (unit == NULL)
 		unit = "";
 
-	if ((x >= SR_GHZ(1)) && (x % SR_GHZ(1) == 0)) {
-		return g_strdup_printf("%" PRIu64 " G%s", x / SR_GHZ(1), unit);
-	} else if ((x >= SR_GHZ(1)) && (x % SR_GHZ(1) != 0)) {
-		return g_strdup_printf("%" PRIu64 ".%" PRIu64 " G%s",
-				       x / SR_GHZ(1), x % SR_GHZ(1), unit);
-	} else if ((x >= SR_MHZ(1)) && (x % SR_MHZ(1) == 0)) {
-		return g_strdup_printf("%" PRIu64 " M%s",
-				       x / SR_MHZ(1), unit);
-	} else if ((x >= SR_MHZ(1)) && (x % SR_MHZ(1) != 0)) {
-		return g_strdup_printf("%" PRIu64 ".%" PRIu64 " M%s",
-				    x / SR_MHZ(1), x % SR_MHZ(1), unit);
-	} else if ((x >= SR_KHZ(1)) && (x % SR_KHZ(1) == 0)) {
-		return g_strdup_printf("%" PRIu64 " k%s",
-				    x / SR_KHZ(1), unit);
-	} else if ((x >= SR_KHZ(1)) && (x % SR_KHZ(1) != 0)) {
-		return g_strdup_printf("%" PRIu64 ".%" PRIu64 " k%s",
-				    x / SR_KHZ(1), x % SR_KHZ(1), unit);
-	} else {
-		return g_strdup_printf("%" PRIu64 " %s", x, unit);
+	for (i = 0; (quot = x / divisor[i]) >= 1000; i++);
+
+	if (i) {
+		sprintf(fmt, ".%%0%dlu", i * 3);
+		f = fract + sprintf(fract, fmt, x % divisor[i]) - 1;
+
+		while (f >= fract && strchr("0.", *f))
+			*f-- = 0;
 	}
 
-	sr_err("%s: Error creating SI units string.", __func__);
-	return NULL;
+	p = prefix + i;
+
+	return g_strdup_printf("%" PRIu64 "%s %.1s%s", quot, fract, p, unit);
 }
 
 /**
