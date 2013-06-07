@@ -23,6 +23,7 @@ SUBDIRS = \
 	alsa \
 	asix-sigma \
 	brymen-dmm \
+	cem-dt-885x \
 	chronovu-la8 \
 	colead-slm \
 	common \
@@ -64,6 +65,10 @@ endif
 
 if HW_BRYMEN_DMM
 libsigrokhardware_la_LIBADD += brymen-dmm/libsigrok_hw_brymen_dmm.la
+endif
+
+if HW_CEM_DT_885X
+libsigrokhardware_la_LIBADD += cem-dt-885x/libsigrok_hw_cem_dt_885x.la
 endif
 
 if HW_CHRONOVU_LA8

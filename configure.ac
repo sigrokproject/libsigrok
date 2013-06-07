@@ -104,6 +104,15 @@ AC_ARG_ENABLE(brymen-dmm, AC_HELP_STRING([--enable-brymen-dmm],
 	[HW_BRYMEN_DMM="$enableval"],
 	[HW_BRYMEN_DMM=$HW_ENABLED_DEFAULT])
 
+AC_ARG_ENABLE(cem-dt-885x, AC_HELP_STRING([--enable-cem-dt-885x],
+	[enable CEM DT-885x support [default=yes]]),
+	[HW_CEM_DT_885X="$enableval"],
+	[HW_CEM_DT_885X=yes])
+AM_CONDITIONAL(HW_CEM_DT_885X, test x$HW_CEM_DT_885X = xyes)
+if test "x$HW_CEM_DT_885X" = "xyes"; then
+	AC_DEFINE(HAVE_HW_CEM_DT_885X, 1, [CEM DT-885x support])
+fi
+
 AC_ARG_ENABLE(chronovu-la8, AC_HELP_STRING([--enable-chronovu-la8],
 	[enable ChronoVu LA8 support [default=yes]]),
 	[HW_CHRONOVU_LA8="$enableval"],
@@ -438,6 +447,7 @@ AC_CONFIG_FILES([Makefile version.h hardware/Makefile
 		 hardware/alsa/Makefile
 		 hardware/asix-sigma/Makefile
 		 hardware/brymen-dmm/Makefile
+		 hardware/cem-dt-885x/Makefile
 		 hardware/chronovu-la8/Makefile
 		 hardware/colead-slm/Makefile
 		 hardware/common/Makefile
@@ -496,6 +506,7 @@ echo "  - agilent-dmm..................... $HW_AGILENT_DMM"
 echo "  - alsa............................ $HW_ALSA"
 echo "  - asix-sigma...................... $HW_ASIX_SIGMA"
 echo "  - brymen-dmm...................... $HW_BRYMEN_DMM"
+echo "  - cem-dt-885x..................... $HW_CEM_DT_885X"
 echo "  - chronovu-la8.................... $HW_CHRONOVU_LA8"
 echo "  - colead-slm...................... $HW_COLEAD_SLM"
 echo "  - demo............................ $HW_DEMO"
