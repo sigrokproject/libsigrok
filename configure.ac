@@ -134,6 +134,15 @@ AC_ARG_ENABLE(hantek-dso, AC_HELP_STRING([--enable-hantek-dso],
 	[HW_HANTEK_DSO="$enableval"],
 	[HW_HANTEK_DSO=$HW_ENABLED_DEFAULT])
 
+AC_ARG_ENABLE(ikalogic-scanalogic2, AC_HELP_STRING([--enable-ikalogic-scanalogic2],
+	[enable IKALOGIC Scanalogic2 support [default=yes]]),
+	[HW_IKALOGIC_SCANALOGIC2="$enableval"],
+	[HW_IKALOGIC_SCANALOGIC2=yes])
+AM_CONDITIONAL(HW_IKALOGIC_SCANALOGIC2, test x$HW_IKALOGIC_SCANALOGIC2 = xyes)
+if test "x$HW_IKALOGIC_SCANALOGIC2" = "xyes"; then
+	AC_DEFINE(HAVE_HW_IKALOGIC_SCANALOGIC2, 1, [IKALOGIC Scanalogic2 support])
+fi
+
 AC_ARG_ENABLE(lascar-el-usb, AC_HELP_STRING([--enable-lascar-el-usb],
 	[enable Lascar EL-USB support [default=yes]]),
 	[HW_LASCAR_EL_USB="$enableval"],
@@ -432,6 +441,7 @@ AC_CONFIG_FILES([Makefile version.h hardware/Makefile
 		 hardware/chronovu-la8/Makefile
 		 hardware/colead-slm/Makefile
 		 hardware/common/Makefile
+		 hardware/ikalogic-scanalogic2/Makefile
 		 hardware/lascar-el-usb/Makefile
 		 hardware/mic-985xx/Makefile
 		 hardware/nexus-osciprime/Makefile
@@ -492,6 +502,7 @@ echo "  - demo............................ $HW_DEMO"
 echo "  - fluke-dmm....................... $HW_FLUKE_DMM"
 echo "  - fx2lafw......................... $HW_FX2LAFW"
 echo "  - hantek-dso...................... $HW_HANTEK_DSO"
+echo "  - ikalogic-scanalogic2............ $HW_IKALOGIC_SCANALOGIC2"
 echo "  - lascar-el-usb................... $HW_LASCAR_EL_USB"
 echo "  - link-mso19...................... $HW_LINK_MSO19"
 echo "  - mic-985xx....................... $HW_MIC_985XX"

@@ -30,6 +30,7 @@ SUBDIRS = \
 	fluke-dmm \
 	fx2lafw \
 	hantek-dso \
+	ikalogic-scanalogic2 \
 	lascar-el-usb \
 	link-mso19 \
 	mic-985xx \
@@ -87,6 +88,10 @@ endif
 
 if HW_HANTEK_DSO
 libsigrokhardware_la_LIBADD += hantek-dso/libsigrok_hw_hantek_dso.la
+endif
+
+if HW_IKALOGIC_SCANALOGIC2
+libsigrokhardware_la_LIBADD += ikalogic-scanalogic2/libsigrok_hw_ikalogic_scanalogic2.la
 endif
 
 if HW_LASCAR_EL_USB
