@@ -234,7 +234,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 	if (libusb_kernel_driver_active(usb->devhdl, USB_INTERFACE) == 1) {
 		ret = libusb_detach_kernel_driver(usb->devhdl, USB_INTERFACE);
 		if (ret < 0) {
-			sr_err("Failed to detach kernel driver: %i.",
+			sr_err("Failed to detach kernel driver: %s.",
 				libusb_error_name(ret));
 			return SR_ERR;
 		}

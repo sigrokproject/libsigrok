@@ -655,7 +655,7 @@ SR_PRIV int sl2_get_device_info(struct sr_usb_dev_inst usb,
 			USB_INTERFACE);
 
 		if (ret < 0) {
-			sr_err("Failed to detach kernel driver: %i.",
+			sr_err("Failed to detach kernel driver: %s.",
 				libusb_error_name(ret));
 			libusb_close(usb.devhdl);
 			return SR_ERR;
@@ -734,7 +734,7 @@ SR_PRIV int sl2_get_device_info(struct sr_usb_dev_inst usb,
 	ret = libusb_release_interface(usb.devhdl, USB_INTERFACE);
 
 	if (ret < 0) {
-		sr_err("Failed to release interface: %i.",
+		sr_err("Failed to release interface: %s.",
 			libusb_error_name(ret));
 		libusb_close(usb.devhdl);
 		return SR_ERR;
