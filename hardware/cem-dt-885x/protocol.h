@@ -39,8 +39,11 @@ struct dev_context {
 	/* Model-specific information */
 
 	/* Acquisition settings */
+	uint64_t limit_samples;
 
 	/* Operational state */
+	unsigned int num_samples;
+	unsigned char stream_buf[5];
 
 	/* Temporary state across callbacks */
 

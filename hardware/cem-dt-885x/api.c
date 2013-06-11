@@ -19,6 +19,21 @@
 
 #include "protocol.h"
 
+#define SERIALCOMM "9600/8n1"
+/* 23ms is the longest interval between tokens. */
+#define MAX_SCAN_TIME 25 * 1000
+
+static const int32_t hwopts[] = {
+	SR_CONF_CONN,
+};
+
+static const int32_t hwcaps[] = {
+	SR_CONF_SOUNDLEVELMETER,
+	SR_CONF_LIMIT_SAMPLES,
+	SR_CONF_CONTINUOUS,
+};
+
+
 SR_PRIV struct sr_dev_driver cem_dt_885x_driver_info;
 static struct sr_dev_driver *di = &cem_dt_885x_driver_info;
 
@@ -31,16 +46,64 @@ static int init(struct sr_context *sr_ctx)
 static GSList *scan(GSList *options)
 {
 	struct drv_context *drvc;
-	GSList *devices;
+	struct dev_context *devc;
+	struct sr_config *src;
+	struct sr_serial_dev_inst *serial;
+	struct sr_dev_inst *sdi;
+	struct sr_probe *probe;
+	GSList *l, *devices;
+	gint64 start;
+	const char *conn;
+	unsigned char c;
 
-	(void)options;
+	conn = NULL;
+	for (l = options; l; l = l->next) {
+		src = l->data;
+		if (src->key == SR_CONF_CONN)
+			conn = g_variant_get_string(src->data, NULL);
+	}
+	if (!conn)
+		return NULL;
+
+	if (!(serial = sr_serial_dev_inst_new(conn, SERIALCOMM)))
+		return NULL;
+
+	if (serial_open(serial, SERIAL_RDONLY | SERIAL_NONBLOCK) != SR_OK)
+		return NULL;
 
 	devices = NULL;
 	drvc = di->priv;
-	drvc->instances = NULL;
+	start = g_get_monotonic_time();
+	while (g_get_monotonic_time() - start < MAX_SCAN_TIME) {
+		if (serial_read(serial, &c, 1) == 1 && c == 0xa5) {
+			/* Found one. */
+			if (!(sdi = sr_dev_inst_new(0, SR_ST_INACTIVE, "CEM",
+					"DT-885x", NULL)))
+				return NULL;
 
-	/* TODO: scan for devices, either based on a SR_CONF_CONN option
-	 * or on a USB scan. */
+			if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
+				sr_dbg("Device context malloc failed.");
+				return NULL;
+			}
+
+			if (!(sdi->conn = sr_serial_dev_inst_new(conn, SERIALCOMM)))
+				return NULL;
+
+			sdi->inst_type = SR_INST_SERIAL;
+			sdi->priv = devc;
+			sdi->driver = di;
+			if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "P1")))
+				return NULL;
+			sdi->probes = g_slist_append(sdi->probes, probe);
+			drvc->instances = g_slist_append(drvc->instances, sdi);
+			devices = g_slist_append(devices, sdi);
+			break;
+		}
+		/* It takes about 1ms for a byte to come in. */
+		g_usleep(1000);
+	}
+
+	serial_close(serial);
 
 	return devices;
 }
@@ -61,9 +124,11 @@ static int dev_clear(void)
 
 static int dev_open(struct sr_dev_inst *sdi)
 {
-	(void)sdi;
+	struct sr_serial_dev_inst *serial;
 
-	/* TODO: get handle from sdi->conn and open it. */
+	serial = sdi->conn;
+	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
+		return SR_ERR;
 
 	sdi->status = SR_ST_ACTIVE;
 
@@ -72,53 +137,62 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 static int dev_close(struct sr_dev_inst *sdi)
 {
-	(void)sdi;
+	struct sr_serial_dev_inst *serial;
 
-	/* TODO: get handle from sdi->conn and close it. */
-
-	sdi->status = SR_ST_INACTIVE;
+	serial = sdi->conn;
+	if (serial && serial->fd != -1) {
+		serial_close(serial);
+		sdi->status = SR_ST_INACTIVE;
+	}
 
 	return SR_OK;
 }
 
 static int cleanup(void)
 {
-	dev_clear();
-
-	/* TODO: free other driver resources, if any. */
-
-	return SR_OK;
+	return dev_clear();
 }
 
 static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi)
 {
-	int ret;
+	struct dev_context *devc;
 
-	(void)sdi;
-	(void)data;
+	if (!sdi)
+		return SR_ERR_ARG;
 
-	ret = SR_OK;
+	devc = sdi->priv;
 	switch (key) {
-	/* TODO */
+	case SR_CONF_LIMIT_SAMPLES:
+		*data = g_variant_new_uint64(devc->limit_samples);
+		break;
 	default:
 		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi)
 {
+	struct dev_context *devc;
+	uint64_t tmp_u64;
 	int ret;
-
-	(void)data;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
+	if (!(devc = sdi->priv)) {
+		sr_err("sdi->priv was NULL.");
+		return SR_ERR_BUG;
+	}
+
 	ret = SR_OK;
 	switch (key) {
-	/* TODO */
+	case SR_CONF_LIMIT_SAMPLES:
+		tmp_u64 = g_variant_get_uint64(data);
+		devc->limit_samples = tmp_u64;
+		ret = SR_OK;
+		break;
 	default:
 		ret = SR_ERR_NA;
 	}
@@ -131,11 +205,17 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 	int ret;
 
 	(void)sdi;
-	(void)data;
 
 	ret = SR_OK;
 	switch (key) {
-	/* TODO */
+	case SR_CONF_SCAN_OPTIONS:
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+				hwopts, ARRAY_SIZE(hwopts), sizeof(int32_t));
+		break;
+	case SR_CONF_DEVICE_OPTIONS:
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+				hwcaps, ARRAY_SIZE(hwcaps), sizeof(int32_t));
+		break;
 	default:
 		return SR_ERR_NA;
 	}
