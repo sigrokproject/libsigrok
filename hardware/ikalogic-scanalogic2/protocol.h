@@ -241,15 +241,15 @@ SR_PRIV void ikalogic_scanalogic2_configure_trigger(
 		const struct sr_dev_inst *sdi);
 SR_PRIV int ikalogic_scanalogic2_set_capture_ratio(
 		const struct sr_dev_inst *sdi, uint64_t capture_ratio);
-SR_PRIV int ikaloigc_scanalogic2_set_after_trigger_delay(
+SR_PRIV int ikalogic_scanalogic2_set_after_trigger_delay(
 		const struct sr_dev_inst *sdi, uint64_t after_trigger_delay);
 SR_PRIV void ikalogic_scanalogic2_calculate_trigger_samples(
 		const struct sr_dev_inst *sdi);
 SR_PRIV int ikalogic_scanalogic2_get_device_info(struct sr_usb_dev_inst usb,
 		struct device_info *dev_info);
 SR_PRIV int ikalogic_scanalogic2_transfer_in(libusb_device_handle *dev_handle,
-		unsigned char *data);
+		uint8_t *data);
 SR_PRIV int ikalogic_scanalogic2_transfer_out(libusb_device_handle *dev_handle,
-		unsigned char *data);
+		uint8_t *data);
 
 #endif

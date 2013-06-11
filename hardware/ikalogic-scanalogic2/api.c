@@ -24,7 +24,7 @@ static const int hwcaps[] = {
 	SR_CONF_SAMPLERATE,
 	SR_CONF_LIMIT_SAMPLES,
 	SR_CONF_TRIGGER_TYPE,
-	SR_CONF_CAPTURE_RATIO
+	SR_CONF_CAPTURE_RATIO,
 };
 
 SR_PRIV const uint64_t ikalogic_scanalogic2_samplerates[NUM_SAMPLERATES] = {
@@ -38,12 +38,12 @@ SR_PRIV const uint64_t ikalogic_scanalogic2_samplerates[NUM_SAMPLERATES] = {
 	SR_MHZ(2.5),
 	SR_MHZ(5),
 	SR_MHZ(10),
-	SR_MHZ(20)
+	SR_MHZ(20),
 };
 
 static const char *probe_names[NUM_PROBES + 1] = {
 	"0", "1", "2", "3",
-	NULL
+	NULL,
 };
 
 SR_PRIV struct sr_dev_driver ikalogic_scanalogic2_driver_info;
@@ -78,21 +78,17 @@ static GSList *scan(GSList *options)
 	if (usb_devices == NULL)
 		return NULL;
 
-	for (l = usb_devices; l; l = l->next)
-	{
+	for (l = usb_devices; l; l = l->next) {
 		usb = l->data;
 
 		ret = ikalogic_scanalogic2_get_device_info(*usb, &dev_info);
-
 		if (ret != SR_OK) {
-			sr_warn("Failed to get device information.\n");
+			sr_warn("Failed to get device information.");
 			sr_usb_dev_inst_free(usb);
 			continue;
 		}
 
-		devc = g_try_malloc(sizeof(struct dev_context));
-
-		if (!devc) {
+		if (!(devc = g_try_malloc(sizeof(struct dev_context)))) {
 			sr_err("Device instance malloc failed.");
 			sr_usb_dev_inst_free(usb);
 			continue;
@@ -115,7 +111,6 @@ static GSList *scan(GSList *options)
 
 		fw_ver_str = g_strdup_printf("%u.%u", dev_info.fw_ver_major,
 			dev_info.fw_ver_minor);
-
 		if (!fw_ver_str) {
 			sr_err("Firmware string malloc failed.");
 			sr_usb_dev_inst_free(usb);
@@ -127,9 +122,7 @@ static GSList *scan(GSList *options)
 
 		sdi = sr_dev_inst_new(device_index, SR_ST_INACTIVE, VENDOR_NAME,
 			MODEL_NAME, fw_ver_str);
-
 		g_free(fw_ver_str);
-
 		if (!sdi) {
 			sr_err("sr_dev_inst_new failed.");
 			sr_usb_dev_inst_free(usb);
@@ -195,18 +188,16 @@ static GSList *scan(GSList *options)
 
 static GSList *dev_list(void)
 {
-	struct drv_context *drvc;
-
-	drvc = di->priv;
-
-	return drvc->instances;
+	return ((struct drv_context *)(di->priv))->instances;
 }
 
 static void clear_dev_context(void *priv)
 {
-	struct dev_context *devc = priv;
+	struct dev_context *devc;
 
-	sr_dbg("Device context cleard.");
+	devc = priv;
+
+	sr_dbg("Device context cleared.");
 
 	libusb_free_transfer(devc->xfer_in);
 	libusb_free_transfer(devc->xfer_out);
@@ -243,7 +234,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 	 */
 	if (libusb_kernel_driver_active(usb->devhdl, USB_INTERFACE) == 1) {
 		ret = libusb_detach_kernel_driver(usb->devhdl, USB_INTERFACE);
-
 		if (ret < 0) {
 			sr_err("Failed to detach kernel driver: %i.",
 				libusb_error_name(ret));
@@ -252,7 +242,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 	}
 
 	ret = libusb_claim_interface(usb->devhdl, USB_INTERFACE);
-
 	if (ret) {
 		sr_err("Failed to claim interface: %s.",
 			libusb_error_name(ret));
@@ -271,7 +260,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 	buffer[0] = CMD_RESET;
 	ret = ikalogic_scanalogic2_transfer_out(usb->devhdl, buffer);
-
 	if (ret != PACKET_LENGTH) {
 		sr_err("Device reset failed: %s.", libusb_error_name(ret));
 		return SR_ERR;
@@ -279,12 +267,11 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 	/*
 	 * Set the device to idle state. If the device is not in idle state it
-	 * possibly will reset itself after a few seconds without being used and
-	 * thereby close the connection.
+	 * possibly will reset itself after a few seconds without being used
+	 * and thereby close the connection.
 	 */
 	buffer[0] = CMD_IDLE;
 	ret = ikalogic_scanalogic2_transfer_out(usb->devhdl, buffer);
-
 	if (ret != PACKET_LENGTH) {
 		sr_err("Failed to set device in idle state: %s.",
 			libusb_error_name(ret));
@@ -321,9 +308,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 
 static int cleanup(void)
 {
-	dev_clear();
-
-	return SR_OK;
+	return dev_clear();
 }
 
 static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi)
@@ -498,12 +483,11 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	if (!(devc->usbfd = g_try_malloc(devc->num_usbfd * sizeof(int)))) {
 		sr_err("File descriptor array malloc failed.");
 		free(pfd);
-
 		return SR_ERR_MALLOC;
 	}
 
 	if ((ret = libusb_submit_transfer(devc->xfer_out)) != 0) {
-		sr_err("Submit transfer failed: %s", libusb_error_name(ret));
+		sr_err("Submit transfer failed: %s.", libusb_error_name(ret));
 		g_free(devc->usbfd);
 		return SR_ERR;
 	}

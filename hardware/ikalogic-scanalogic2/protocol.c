@@ -111,8 +111,8 @@ static void process_sample_data(const struct sr_dev_inst *sdi)
 		ptr[i] = devc->sample_buffer[devc->probe_map[i]] + offset;
 
 	/*
-	 * Skip the first 4 bytes of the buffer because they contain channel and
-	 * packet information only.
+	 * Skip the first 4 bytes of the buffer because they contain channel
+	 * and packet information only.
 	 */
 	ptr[i] = devc->xfer_data_in + 4;
 
@@ -128,19 +128,18 @@ static void process_sample_data(const struct sr_dev_inst *sdi)
 			 * Adjust the position of the first sample to be
 			 * processed because possibly more samples than
 			 * necessary might have been aquired. This is because
-			 * the number of aquired samples is always rounded up to
-			 * a multiple of 8.
+			 * the number of aquired samples is always rounded up
+			 * to a multiple of 8.
 			 */
 			k = k - (devc->pre_trigger_bytes * 8) +
 				devc->pre_trigger_samples;
 
-			sr_dbg("Start processing at sample: %" PRIu8 ".",
-				7 - k);
+			sr_dbg("Start processing at sample: %d.", 7 - k);
 
 			/*
-			 * Send the trigger before the first sample is processed
-			 * if no pre trigger samples were calculated through the
-			 * capture ratio.
+			 * Send the trigger before the first sample is
+			 * processed if no pre trigger samples were calculated
+			 * through the capture ratio.
 			 */
 			if (devc->trigger_type != TRIGGER_TYPE_NONE &&
 					devc->pre_trigger_samples == 0) {
@@ -230,9 +229,9 @@ SR_PRIV int ikalogic_scanalogic2_receive_data(int fd, int revents,
 		time_elapsed = current_time - devc->wait_data_ready_time;
 
 		/*
-		 * Check here for stopping in addition to the transfer callback
-		 * functions to avoid waiting until the WAIT_DATA_READY_INTERVAL
-		 * has expired.
+		 * Check here for stopping in addition to the transfer
+		 * callback functions to avoid waiting until the
+		 * WAIT_DATA_READY_INTERVAL has expired.
 		 */
 		if (sdi->status == SR_ST_STOPPING) {
 			if (!devc->stopping_in_progress) {
@@ -247,7 +246,7 @@ SR_PRIV int ikalogic_scanalogic2_receive_data(int fd, int revents,
 	}
 
 	if (ret != 0) {
-		sr_err("Submit transfer failed: %s", libusb_error_name(ret));
+		sr_err("Submit transfer failed: %s.", libusb_error_name(ret));
 		abort_acquisition(sdi);
 		return TRUE;
 	}
@@ -259,9 +258,8 @@ SR_PRIV int ikalogic_scanalogic2_receive_data(int fd, int revents,
 		NULL);
 
 	/* Check if an error occurred on a transfer. */
-	if (devc->transfer_error) {
+	if (devc->transfer_error)
 		abort_acquisition(sdi);
-	}
 
 	return TRUE;
 }
@@ -278,7 +276,7 @@ SR_PRIV void ikalogic_scanalogic2_receive_transfer_in(
 	devc = sdi->priv;
 
 	if (transfer->status != LIBUSB_TRANSFER_COMPLETED) {
-		sr_err("Transfer to device failed: %i", transfer->status);
+		sr_err("Transfer to device failed: %i.", transfer->status);
 		devc->transfer_error = TRUE;
 		return;
 	}
@@ -288,7 +286,7 @@ SR_PRIV void ikalogic_scanalogic2_receive_transfer_in(
 		devc->stopping_in_progress = TRUE;
 
 		if (libusb_submit_transfer(devc->xfer_in) != 0) {
-			sr_err("Submit transfer failed: %s",
+			sr_err("Submit transfer failed: %s.",
 				libusb_error_name(ret));
 			devc->transfer_error = TRUE;
 		}
@@ -296,7 +294,7 @@ SR_PRIV void ikalogic_scanalogic2_receive_transfer_in(
 		return;
 	}
 
-	sr_dbg("State changed from %i to %i.", devc->state, devc->next_state);
+	sr_spew("State changed from %i to %i.", devc->state, devc->next_state);
 	devc->state = devc->next_state;
 
 	if (devc->state == STATE_WAIT_DATA_READY) {
@@ -356,10 +354,10 @@ SR_PRIV void ikalogic_scanalogic2_receive_transfer_in(
 			ret = libusb_submit_transfer(devc->xfer_out);
 		} else {
 			/*
-			 * The received device status is invalid which indicates
-			 * that the device is not ready to accept commands.
-			 * Request a new device status until a valid device
-			 * status is received.
+			 * The received device status is invalid which
+			 * indicates that the device is not ready to accept
+			 * commands. Request a new device status until a valid
+			 * device status is received.
 			 */
 			ret = libusb_submit_transfer(transfer);
 		}
@@ -383,15 +381,15 @@ SR_PRIV void ikalogic_scanalogic2_receive_transfer_in(
 		} else {
 			/*
 			 * The device is not ready and therefore not able to
-			 * change to the idle state. Request a new device status
-			 * until the device is ready.
+			 * change to the idle state. Request a new device
+			 * status until the device is ready.
 			 */
 			ret = libusb_submit_transfer(transfer);
 		}
 	}
 
 	if (ret != 0) {
-		sr_err("Submit transfer failed: %s", libusb_error_name(ret));
+		sr_err("Submit transfer failed: %s.", libusb_error_name(ret));
 		devc->transfer_error = TRUE;
 	}
 }
@@ -407,7 +405,7 @@ SR_PRIV void ikalogic_scanalogic2_receive_transfer_out(
 	devc = sdi->priv;
 
 	if (transfer->status != LIBUSB_TRANSFER_COMPLETED) {
-		sr_err("Transfer to device failed: %i", transfer->status);
+		sr_err("Transfer to device failed: %i.", transfer->status);
 		devc->transfer_error = TRUE;
 		return;
 	}
@@ -417,7 +415,7 @@ SR_PRIV void ikalogic_scanalogic2_receive_transfer_out(
 		devc->stopping_in_progress = TRUE;
 
 		if (libusb_submit_transfer(devc->xfer_in) != 0) {
-			sr_err("Submit transfer failed: %s",
+			sr_err("Submit transfer failed: %s.",
 				libusb_error_name(ret));
 
 			devc->transfer_error = TRUE;
@@ -426,7 +424,7 @@ SR_PRIV void ikalogic_scanalogic2_receive_transfer_out(
 		return;
 	}
 
-	sr_dbg("State changed from %i to %i.", devc->state, devc->next_state);
+	sr_spew("State changed from %i to %i.", devc->state, devc->next_state);
 	devc->state = devc->next_state;
 
 	if (devc->state == STATE_IDLE) {
@@ -439,7 +437,7 @@ SR_PRIV void ikalogic_scanalogic2_receive_transfer_out(
 	}
 
 	if (ret != 0) {
-		sr_err("Submit transfer failed: %s", libusb_error_name(ret));
+		sr_err("Submit transfer failed: %s.", libusb_error_name(ret));
 		devc->transfer_error = TRUE;
 	}
 }
@@ -479,7 +477,7 @@ SR_PRIV int ikalogic_scanalogic2_set_limit_samples(
 	if (limit_samples > MAX_SAMPLES)
 		limit_samples = MAX_SAMPLES;
 
-	sr_info("Limit samples set to %" PRIu64 ".", limit_samples);
+	sr_dbg("Limit samples set to %" PRIu64 ".", limit_samples);
 
 	devc->limit_samples = limit_samples;
 
@@ -539,7 +537,7 @@ SR_PRIV void ikalogic_scanalogic2_configure_trigger(
 		devc->trigger_type = TRIGGER_TYPE_ANYEDGE;
 	}
 
-	sr_dbg("Trigger set to channel %" PRIu8 " and type %" PRIu8 ".",
+	sr_dbg("Trigger set to channel 0x%02x and type 0x%02x.",
 		devc->trigger_channel, devc->trigger_type);
 }
 
@@ -562,7 +560,7 @@ SR_PRIV int ikalogic_scanalogic2_set_capture_ratio(
 	return SR_OK;
 }
 
-SR_PRIV int ikaloigc_scanalogic2_set_after_trigger_delay(
+SR_PRIV int ikalogic_scanalogic2_set_after_trigger_delay(
 		const struct sr_dev_inst *sdi, uint64_t after_trigger_delay)
 {
 	struct dev_context *devc;
@@ -619,8 +617,8 @@ SR_PRIV void ikalogic_scanalogic2_calculate_trigger_samples(
 	 * Round up the number of sample bytes to ensure that at least the
 	 * requested number of samples will be acquired. Note that due to this
 	 * rounding the buffer to store these sample bytes needs to be at least
-	 * one sample byte larger than the minimal number of sample bytes needed
-	 * to store the requested samples.
+	 * one sample byte larger than the minimal number of sample bytes
+	 * needed to store the requested samples.
 	 */
 	if (pre_trigger_samples % 8 != 0)
 		pre_trigger_bytes++;
@@ -734,8 +732,8 @@ SR_PRIV int ikalogic_scanalogic2_get_device_info(struct sr_usb_dev_inst usb,
 
 	/*
 	 * Set the device to idle state. If the device is not in idle state it
-	 * possibly will reset itself after a few seconds without being used and
-	 * thereby close the connection.
+	 * possibly will reset itself after a few seconds without being used
+	 * and thereby close the connection.
 	 */
 	buffer[0] = CMD_IDLE;
 	ret = ikalogic_scanalogic2_transfer_out(usb.devhdl, buffer);
@@ -763,17 +761,17 @@ SR_PRIV int ikalogic_scanalogic2_get_device_info(struct sr_usb_dev_inst usb,
 }
 
 SR_PRIV int ikalogic_scanalogic2_transfer_in(libusb_device_handle *dev_handle,
-		unsigned char *data)
+		uint8_t *data)
 {
 	return libusb_control_transfer(dev_handle, USB_REQUEST_TYPE_IN,
 		USB_HID_SET_REPORT, USB_HID_REPORT_TYPE_FEATURE, USB_INTERFACE,
-		data, PACKET_LENGTH, USB_TIMEOUT);
+		(unsigned char *)data, PACKET_LENGTH, USB_TIMEOUT);
 }
 
 SR_PRIV int ikalogic_scanalogic2_transfer_out(libusb_device_handle *dev_handle,
-		unsigned char *data)
+		uint8_t *data)
 {
 	return libusb_control_transfer(dev_handle, USB_REQUEST_TYPE_OUT,
 		USB_HID_SET_REPORT, USB_HID_REPORT_TYPE_FEATURE, USB_INTERFACE,
-		data, PACKET_LENGTH, USB_TIMEOUT);
+		(unsigned char *)data, PACKET_LENGTH, USB_TIMEOUT);
 }
