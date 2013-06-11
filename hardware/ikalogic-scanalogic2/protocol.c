@@ -292,7 +292,9 @@ SR_PRIV void sl2_receive_transfer_in( struct libusb_transfer *transfer)
 		return;
 	}
 
-	sr_spew("State changed from %i to %i.", devc->state, devc->next_state);
+	if (devc->state != devc->next_state)
+		sr_spew("State changed from %i to %i.",
+			devc->state, devc->next_state);
 	devc->state = devc->next_state;
 
 	if (devc->state == STATE_WAIT_DATA_READY) {
@@ -421,7 +423,9 @@ SR_PRIV void sl2_receive_transfer_out( struct libusb_transfer *transfer)
 		return;
 	}
 
-	sr_spew("State changed from %i to %i.", devc->state, devc->next_state);
+	if (devc->state != devc->next_state)
+		sr_spew("State changed from %i to %i.",
+			devc->state, devc->next_state);
 	devc->state = devc->next_state;
 
 	if (devc->state == STATE_IDLE) {
