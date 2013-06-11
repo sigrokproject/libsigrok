@@ -27,7 +27,7 @@ static const int hwcaps[] = {
 	SR_CONF_CAPTURE_RATIO,
 };
 
-SR_PRIV const uint64_t ikalogic_scanalogic2_samplerates[NUM_SAMPLERATES] = {
+SR_PRIV const uint64_t sl2_samplerates[NUM_SAMPLERATES] = {
 	SR_KHZ(1.25),
 	SR_KHZ(10),
 	SR_KHZ(50),
@@ -81,9 +81,8 @@ static GSList *scan(GSList *options)
 	for (l = usb_devices; l; l = l->next) {
 		usb = l->data;
 
-		ret = ikalogic_scanalogic2_get_device_info(*usb, &dev_info);
-		if (ret != SR_OK) {
-			sr_warn("Failed to get device information.");
+		if ((ret = sl2_get_device_info(*usb, &dev_info)) < 0) {
+			sr_warn("Failed to get device information: %d.", ret);
 			sr_usb_dev_inst_free(usb);
 			continue;
 		}
@@ -148,7 +147,7 @@ static GSList *scan(GSList *options)
 		devc->next_state = STATE_IDLE;
 
 		/* Set default samplerate. */
-		ikalogic_scanalogic2_set_samplerate(sdi, DEFAULT_SAMPLERATE);
+		sl2_set_samplerate(sdi, DEFAULT_SAMPLERATE);
 
 		/* Set default capture ratio. */
 		devc->capture_ratio = 0;
@@ -241,26 +240,24 @@ static int dev_open(struct sr_dev_inst *sdi)
 		}
 	}
 
-	ret = libusb_claim_interface(usb->devhdl, USB_INTERFACE);
-	if (ret) {
+	if ((ret = libusb_claim_interface(usb->devhdl, USB_INTERFACE)) < 0) {
 		sr_err("Failed to claim interface: %s.",
 			libusb_error_name(ret));
 		return SR_ERR;
 	}
 
 	libusb_fill_control_transfer(devc->xfer_in, usb->devhdl,
-		devc->xfer_buf_in, ikalogic_scanalogic2_receive_transfer_in,
+		devc->xfer_buf_in, sl2_receive_transfer_in,
 		sdi, USB_TIMEOUT);
 
 	libusb_fill_control_transfer(devc->xfer_out, usb->devhdl,
-		devc->xfer_buf_out, ikalogic_scanalogic2_receive_transfer_out,
+		devc->xfer_buf_out, sl2_receive_transfer_out,
 		sdi, USB_TIMEOUT);
 
 	memset(buffer, 0, sizeof(buffer));
 
 	buffer[0] = CMD_RESET;
-	ret = ikalogic_scanalogic2_transfer_out(usb->devhdl, buffer);
-	if (ret != PACKET_LENGTH) {
+	if ((ret = sl2_transfer_out(usb->devhdl, buffer)) != PACKET_LENGTH) {
 		sr_err("Device reset failed: %s.", libusb_error_name(ret));
 		return SR_ERR;
 	}
@@ -271,8 +268,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 	 * and thereby close the connection.
 	 */
 	buffer[0] = CMD_IDLE;
-	ret = ikalogic_scanalogic2_transfer_out(usb->devhdl, buffer);
-	if (ret != PACKET_LENGTH) {
+	if ((ret = sl2_transfer_out(usb->devhdl, buffer)) != PACKET_LENGTH) {
 		sr_err("Failed to set device in idle state: %s.",
 			libusb_error_name(ret));
 		return SR_ERR;
@@ -346,17 +342,15 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi)
 	switch (key) {
 	case SR_CONF_LIMIT_SAMPLES:
 		limit_samples = g_variant_get_uint64(data);
-		ret = ikalogic_scanalogic2_set_limit_samples(sdi,
-			limit_samples);
+		ret = sl2_set_limit_samples(sdi, limit_samples);
 		break;
 	case SR_CONF_SAMPLERATE:
 		samplerate = g_variant_get_uint64(data);
-		ret = ikalogic_scanalogic2_set_samplerate(sdi, samplerate);
+		ret = sl2_set_samplerate(sdi, samplerate);
 		break;
 	case SR_CONF_CAPTURE_RATIO:
 		capture_ratio = g_variant_get_uint64(data);
-		ret = ikalogic_scanalogic2_set_capture_ratio(sdi,
-			capture_ratio);
+		ret = sl2_set_capture_ratio(sdi, capture_ratio);
 		break;
 	default:
 		return SR_ERR_NA;
@@ -383,8 +377,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 	case SR_CONF_SAMPLERATE:
 		g_variant_builder_init(&gvb, G_VARIANT_TYPE("a{sv}"));
 		gvar = g_variant_new_fixed_array(G_VARIANT_TYPE("t"),
-			ikalogic_scanalogic2_samplerates,
-			ARRAY_SIZE(ikalogic_scanalogic2_samplerates),
+			sl2_samplerates, ARRAY_SIZE(sl2_samplerates),
 			sizeof(uint64_t));
 		g_variant_builder_add(&gvb, "{sv}", "samplerates", gvar);
 		*data = g_variant_builder_end(&gvb);
@@ -426,8 +419,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	 * The trigger must be configured first because the calculation of the
 	 * pre and post trigger samples depends on a configured trigger.
 	 */
-	ikalogic_scanalogic2_configure_trigger(sdi);
-	ikalogic_scanalogic2_calculate_trigger_samples(sdi);
+	sl2_configure_trigger(sdi);
+	sl2_calculate_trigger_samples(sdi);
 
 	trigger_bytes = devc->pre_trigger_bytes + devc->post_trigger_bytes;
 

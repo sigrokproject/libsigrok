@@ -227,29 +227,22 @@ struct dev_context {
 	gboolean transfer_error;
 };
 
-SR_PRIV int ikalogic_scanalogic2_receive_data(int fd, int revents,
-		void *cb_data);
-SR_PRIV void ikalogic_scanalogic2_receive_transfer_in(
-		struct libusb_transfer *transfer);
-SR_PRIV void ikalogic_scanalogic2_receive_transfer_out(
-		struct libusb_transfer *transfer);
-SR_PRIV int ikalogic_scanalogic2_set_samplerate(const struct sr_dev_inst *sdi,
+SR_PRIV int ikalogic_scanalogic2_receive_data(int fd, int revents, void *cb_data);
+SR_PRIV void sl2_receive_transfer_in(struct libusb_transfer *transfer);
+SR_PRIV void sl2_receive_transfer_out(struct libusb_transfer *transfer);
+SR_PRIV int sl2_set_samplerate(const struct sr_dev_inst *sdi,
 		uint64_t samplerate);
-SR_PRIV int ikalogic_scanalogic2_set_limit_samples(
-		const struct sr_dev_inst *sdi, uint64_t limit_samples);
-SR_PRIV void ikalogic_scanalogic2_configure_trigger(
-		const struct sr_dev_inst *sdi);
-SR_PRIV int ikalogic_scanalogic2_set_capture_ratio(
-		const struct sr_dev_inst *sdi, uint64_t capture_ratio);
-SR_PRIV int ikalogic_scanalogic2_set_after_trigger_delay(
-		const struct sr_dev_inst *sdi, uint64_t after_trigger_delay);
-SR_PRIV void ikalogic_scanalogic2_calculate_trigger_samples(
-		const struct sr_dev_inst *sdi);
-SR_PRIV int ikalogic_scanalogic2_get_device_info(struct sr_usb_dev_inst usb,
+SR_PRIV int sl2_set_limit_samples(const struct sr_dev_inst *sdi,
+				  uint64_t limit_samples);
+SR_PRIV void sl2_configure_trigger(const struct sr_dev_inst *sdi);
+SR_PRIV int sl2_set_capture_ratio(const struct sr_dev_inst *sdi,
+				  uint64_t capture_ratio);
+SR_PRIV int sl2_set_after_trigger_delay(const struct sr_dev_inst *sdi,
+					uint64_t after_trigger_delay);
+SR_PRIV void sl2_calculate_trigger_samples(const struct sr_dev_inst *sdi);
+SR_PRIV int sl2_get_device_info(struct sr_usb_dev_inst usb,
 		struct device_info *dev_info);
-SR_PRIV int ikalogic_scanalogic2_transfer_in(libusb_device_handle *dev_handle,
-		uint8_t *data);
-SR_PRIV int ikalogic_scanalogic2_transfer_out(libusb_device_handle *dev_handle,
-		uint8_t *data);
+SR_PRIV int sl2_transfer_in(libusb_device_handle *dev_handle, uint8_t *data);
+SR_PRIV int sl2_transfer_out(libusb_device_handle *dev_handle, uint8_t *data);
 
 #endif

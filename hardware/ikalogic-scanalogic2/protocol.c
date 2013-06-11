@@ -22,7 +22,7 @@
 extern struct sr_dev_driver ikalogic_scanalogic2_driver_info;
 static struct sr_dev_driver *di = &ikalogic_scanalogic2_driver_info;
 
-extern uint64_t ikalogic_scanalogic2_samplerates[NUM_SAMPLERATES];
+extern uint64_t sl2_samplerates[NUM_SAMPLERATES];
 
 static void stop_acquisition(struct sr_dev_inst *sdi)
 {
@@ -202,8 +202,7 @@ static void process_sample_data(const struct sr_dev_inst *sdi)
 	}
 }
 
-SR_PRIV int ikalogic_scanalogic2_receive_data(int fd, int revents,
-		void *cb_data)
+SR_PRIV int ikalogic_scanalogic2_receive_data(int fd, int revents, void *cb_data)
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
@@ -264,8 +263,7 @@ SR_PRIV int ikalogic_scanalogic2_receive_data(int fd, int revents,
 	return TRUE;
 }
 
-SR_PRIV void ikalogic_scanalogic2_receive_transfer_in(
-		struct libusb_transfer *transfer)
+SR_PRIV void sl2_receive_transfer_in( struct libusb_transfer *transfer)
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
@@ -394,8 +392,7 @@ SR_PRIV void ikalogic_scanalogic2_receive_transfer_in(
 	}
 }
 
-SR_PRIV void ikalogic_scanalogic2_receive_transfer_out(
-		struct libusb_transfer *transfer)
+SR_PRIV void sl2_receive_transfer_out( struct libusb_transfer *transfer)
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
@@ -442,7 +439,7 @@ SR_PRIV void ikalogic_scanalogic2_receive_transfer_out(
 	}
 }
 
-SR_PRIV int ikalogic_scanalogic2_set_samplerate(const struct sr_dev_inst *sdi,
+SR_PRIV int sl2_set_samplerate(const struct sr_dev_inst *sdi,
 		uint64_t samplerate)
 {
 	struct dev_context *devc;
@@ -451,7 +448,7 @@ SR_PRIV int ikalogic_scanalogic2_set_samplerate(const struct sr_dev_inst *sdi,
 	devc = sdi->priv;
 
 	for (i = 0; i < NUM_SAMPLERATES; i++) {
-		if (ikalogic_scanalogic2_samplerates[i] == samplerate) {
+		if (sl2_samplerates[i] == samplerate) {
 			devc->samplerate = samplerate;
 			devc->samplerate_id = NUM_SAMPLERATES - i - 1;
 			return SR_OK;
@@ -461,8 +458,8 @@ SR_PRIV int ikalogic_scanalogic2_set_samplerate(const struct sr_dev_inst *sdi,
 	return SR_ERR_ARG;
 }
 
-SR_PRIV int ikalogic_scanalogic2_set_limit_samples(
-		const struct sr_dev_inst *sdi, uint64_t limit_samples)
+SR_PRIV int sl2_set_limit_samples(const struct sr_dev_inst *sdi,
+				  uint64_t limit_samples)
 {
 	struct dev_context *devc;
 
@@ -484,8 +481,7 @@ SR_PRIV int ikalogic_scanalogic2_set_limit_samples(
 	return SR_OK;
 }
 
-SR_PRIV void ikalogic_scanalogic2_configure_trigger(
-		const struct sr_dev_inst *sdi)
+SR_PRIV void sl2_configure_trigger(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_probe *probe;
@@ -541,8 +537,8 @@ SR_PRIV void ikalogic_scanalogic2_configure_trigger(
 		devc->trigger_channel, devc->trigger_type);
 }
 
-SR_PRIV int ikalogic_scanalogic2_set_capture_ratio(
-		const struct sr_dev_inst *sdi, uint64_t capture_ratio)
+SR_PRIV int sl2_set_capture_ratio(const struct sr_dev_inst *sdi,
+				  uint64_t capture_ratio)
 {
 	struct dev_context *devc;
 
@@ -560,8 +556,8 @@ SR_PRIV int ikalogic_scanalogic2_set_capture_ratio(
 	return SR_OK;
 }
 
-SR_PRIV int ikalogic_scanalogic2_set_after_trigger_delay(
-		const struct sr_dev_inst *sdi, uint64_t after_trigger_delay)
+SR_PRIV int sl2_set_after_trigger_delay(const struct sr_dev_inst *sdi,
+					uint64_t after_trigger_delay)
 {
 	struct dev_context *devc;
 
@@ -581,8 +577,7 @@ SR_PRIV int ikalogic_scanalogic2_set_after_trigger_delay(
 	return SR_OK;
 }
 
-SR_PRIV void ikalogic_scanalogic2_calculate_trigger_samples(
-		const struct sr_dev_inst *sdi)
+SR_PRIV void sl2_calculate_trigger_samples(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	uint64_t pre_trigger_samples, post_trigger_samples;
@@ -636,7 +631,7 @@ SR_PRIV void ikalogic_scanalogic2_calculate_trigger_samples(
 	devc->post_trigger_bytes = post_trigger_bytes;
 }
 
-SR_PRIV int ikalogic_scanalogic2_get_device_info(struct sr_usb_dev_inst usb,
+SR_PRIV int sl2_get_device_info(struct sr_usb_dev_inst usb,
 		struct device_info *dev_info)
 {
 	struct drv_context *drvc;
@@ -683,9 +678,7 @@ SR_PRIV int ikalogic_scanalogic2_get_device_info(struct sr_usb_dev_inst usb,
 	 * device information.
 	 */
 	buffer[0] = CMD_RESET;
-	ret = ikalogic_scanalogic2_transfer_out(usb.devhdl, buffer);
-
-	if (ret != PACKET_LENGTH) {
+	if ((ret = sl2_transfer_out(usb.devhdl, buffer)) != PACKET_LENGTH) {
 		sr_err("Resetting of device failed: %s.",
 			libusb_error_name(ret));
 		libusb_release_interface(usb.devhdl, USB_INTERFACE);
@@ -694,9 +687,7 @@ SR_PRIV int ikalogic_scanalogic2_get_device_info(struct sr_usb_dev_inst usb,
 	}
 
 	buffer[0] = CMD_INFO;
-	ret = ikalogic_scanalogic2_transfer_out(usb.devhdl, buffer);
-
-	if (ret != PACKET_LENGTH) {
+	if ((ret = sl2_transfer_out(usb.devhdl, buffer)) != PACKET_LENGTH) {
 		sr_err("Requesting of device information failed: %s.",
 			libusb_error_name(ret));
 		libusb_release_interface(usb.devhdl, USB_INTERFACE);
@@ -704,9 +695,7 @@ SR_PRIV int ikalogic_scanalogic2_get_device_info(struct sr_usb_dev_inst usb,
 		return SR_ERR;
 	}
 
-	ret = ikalogic_scanalogic2_transfer_in(usb.devhdl, buffer);
-
-	if (ret != PACKET_LENGTH) {
+	if ((ret = sl2_transfer_in(usb.devhdl, buffer)) != PACKET_LENGTH) {
 		sr_err("Receiving of device information failed: %s.",
 			libusb_error_name(ret));
 		libusb_release_interface(usb.devhdl, USB_INTERFACE);
@@ -721,9 +710,7 @@ SR_PRIV int ikalogic_scanalogic2_get_device_info(struct sr_usb_dev_inst usb,
 	dev_info->fw_ver_minor = buffer[6];
 
 	buffer[0] = CMD_RESET;
-	ret = ikalogic_scanalogic2_transfer_out(usb.devhdl, buffer);
-
-	if (ret != PACKET_LENGTH) {
+	if ((ret = sl2_transfer_out(usb.devhdl, buffer)) != PACKET_LENGTH) {
 		sr_err("Device reset failed: %s.", libusb_error_name(ret));
 		libusb_release_interface(usb.devhdl, USB_INTERFACE);
 		libusb_close(usb.devhdl);
@@ -736,9 +723,7 @@ SR_PRIV int ikalogic_scanalogic2_get_device_info(struct sr_usb_dev_inst usb,
 	 * and thereby close the connection.
 	 */
 	buffer[0] = CMD_IDLE;
-	ret = ikalogic_scanalogic2_transfer_out(usb.devhdl, buffer);
-
-	if (ret != PACKET_LENGTH) {
+	if ((ret = sl2_transfer_out(usb.devhdl, buffer)) != PACKET_LENGTH) {
 		sr_err("Failed to set device in idle state: %s.",
 			libusb_error_name(ret));
 		libusb_release_interface(usb.devhdl, USB_INTERFACE);
@@ -760,16 +745,14 @@ SR_PRIV int ikalogic_scanalogic2_get_device_info(struct sr_usb_dev_inst usb,
 	return SR_OK;
 }
 
-SR_PRIV int ikalogic_scanalogic2_transfer_in(libusb_device_handle *dev_handle,
-		uint8_t *data)
+SR_PRIV int sl2_transfer_in(libusb_device_handle *dev_handle, uint8_t *data)
 {
 	return libusb_control_transfer(dev_handle, USB_REQUEST_TYPE_IN,
 		USB_HID_SET_REPORT, USB_HID_REPORT_TYPE_FEATURE, USB_INTERFACE,
 		(unsigned char *)data, PACKET_LENGTH, USB_TIMEOUT);
 }
 
-SR_PRIV int ikalogic_scanalogic2_transfer_out(libusb_device_handle *dev_handle,
-		uint8_t *data)
+SR_PRIV int sl2_transfer_out(libusb_device_handle *dev_handle, uint8_t *data)
 {
 	return libusb_control_transfer(dev_handle, USB_REQUEST_TYPE_OUT,
 		USB_HID_SET_REPORT, USB_HID_REPORT_TYPE_FEATURE, USB_INTERFACE,
