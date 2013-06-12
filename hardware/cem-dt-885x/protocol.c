@@ -169,6 +169,7 @@ static void process_mset(const struct sr_dev_inst *sdi)
 static void process_byte(const struct sr_dev_inst *sdi, const unsigned char c)
 {
 	struct dev_context *devc;
+	gint64 cur_time;
 	int len;
 
 	if (!(devc = sdi->priv))
@@ -178,14 +179,26 @@ static void process_byte(const struct sr_dev_inst *sdi, const unsigned char c)
 		/* Device is in hold mode */
 		devc->cur_mqflags |= SR_MQFLAG_HOLD;
 
-		/* TODO: send out the last measurement at the same
-		 * rate as it normally gets sent */
+		if (devc->hold_last_sent == 0) {
+			/* First hold notification. */
+			devc->hold_last_sent = g_get_monotonic_time();
+			/* When the device leaves hold mode, it starts from scratch. */
+			devc->state = ST_INIT;
+		} else {
+			cur_time = g_get_monotonic_time();
+			if (cur_time - devc->hold_last_sent > HOLD_REPEAT_INTERVAL) {
+				/* Force the last measurement out again. */
+				devc->cmd = 0xa5;
+				devc->token = TOKEN_MEAS_WAS_READOUT;
+				process_mset(sdi);
+				devc->hold_last_sent = cur_time;
+			}
+		}
 
-		/* When the device leaves hold mode, it starts from scratch. */
-		devc->state = ST_INIT;
 		return;
 	}
 	devc->cur_mqflags &= ~SR_MQFLAG_HOLD;
+	devc->hold_last_sent = 0;
 
 	if (devc->state == ST_INIT) {
 		if (c == 0xa5) {

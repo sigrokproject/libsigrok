@@ -35,6 +35,9 @@
 #define sr_err(s, args...) sr_err(LOG_PREFIX s, ## args)
 
 #define BUF_SIZE 32
+/* When in hold mode, force the last measurement out at this interval.
+ * We're using 50ms, which duplicates the non-hold 20Hz update rate. */
+#define HOLD_REPEAT_INTERVAL 50 * 1000
 
 enum {
 	TOKEN_WEIGHT_TIME_FAST = 0x02,
@@ -80,6 +83,7 @@ struct dev_context {
 	int buf_len;
 	unsigned char buf[BUF_SIZE];
 	float last_spl;
+	gint64 hold_last_sent;
 
 };
 
