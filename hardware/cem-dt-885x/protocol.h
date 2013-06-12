@@ -34,19 +34,60 @@
 #define sr_warn(s, args...) sr_warn(LOG_PREFIX s, ## args)
 #define sr_err(s, args...) sr_err(LOG_PREFIX s, ## args)
 
+#define BUF_SIZE 32
+
+enum {
+	TOKEN_WEIGHT_TIME_FAST = 0x02,
+	TOKEN_WEIGHT_TIME_SLOW = 0x03,
+	TOKEN_HOLD_MAX = 0x04,
+	TOKEN_HOLD_MIN = 0x05,
+	TOKEN_TIME = 0x06,
+	TOKEN_MEAS_RANGE_OVER = 0x07,
+	TOKEN_MEAS_RANGE_UNDER = 0x08,
+	TOKEN_STORE_FULL = 0x09,
+	TOKEN_RECORDING_ON = 0x0a,
+	TOKEN_MEAS_WAS_READOUT = 0x0b,
+	TOKEN_MEAS_WAS_BARGRAPH = 0x0c,
+	TOKEN_MEASUREMENT = 0xd,
+	TOKEN_HOLD_NONE = 0x0e,
+	TOKEN_BATTERY_LOW = 0x0f,
+	TOKEN_MEAS_RANGE_OK = 0x11,
+	TOKEN_STORE_OK = 0x19,
+	TOKEN_RECORDING_OFF = 0x1a,
+	TOKEN_WEIGHT_FREQ_A = 0x1b,
+	TOKEN_WEIGHT_FREQ_C = 0x1c,
+	TOKEN_BATTERY_OK = 0x1f,
+	TOKEN_MEAS_RANGE_30_80 = 0x30,
+	TOKEN_MEAS_RANGE_30_130 = 0x40,
+	TOKEN_MEAS_RANGE_50_100 = 0x4b,
+	TOKEN_MEAS_RANGE_80_130 = 0x4c,
+};
+
 /** Private, per-device-instance driver context. */
 struct dev_context {
-	/* Model-specific information */
-
 	/* Acquisition settings */
 	uint64_t limit_samples;
 
 	/* Operational state */
-	unsigned int num_samples;
-	unsigned char stream_buf[5];
+	int state;
+	uint64_t num_samples;
+	uint64_t cur_mqflags;
 
 	/* Temporary state across callbacks */
+	void *cb_data;
+	unsigned char cmd;
+	unsigned char token;
+	int buf_len;
+	unsigned char buf[BUF_SIZE];
 
+};
+
+/* Parser state machine. */
+enum {
+	ST_INIT,
+	ST_GET_TOKEN,
+	ST_GET_DATA,
+	ST_GET_LOG,
 };
 
 SR_PRIV int cem_dt_885x_receive_data(int fd, int revents, void *cb_data);

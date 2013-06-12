@@ -92,7 +92,7 @@ static GSList *scan(GSList *options)
 			sdi->inst_type = SR_INST_SERIAL;
 			sdi->priv = devc;
 			sdi->driver = di;
-			if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "P1")))
+			if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "SPL")))
 				return NULL;
 			sdi->probes = g_slist_append(sdi->probes, probe);
 			drvc->instances = g_slist_append(drvc->instances, sdi);
@@ -223,17 +223,31 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 	return ret;
 }
 
-static int dev_acquisition_start(const struct sr_dev_inst *sdi,
-				    void *cb_data)
+static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 {
-	(void)sdi;
-	(void)cb_data;
+	struct dev_context *devc;
+	struct sr_serial_dev_inst *serial;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
-	/* TODO: configure hardware, reset acquisition state, set up
-	 * callbacks and send header packet. */
+	if (!(devc = sdi->priv)) {
+		sr_err("sdi->priv was NULL.");
+		return SR_ERR_BUG;
+	}
+
+	devc->cb_data = cb_data;
+	devc->state = ST_INIT;
+	devc->num_samples = 0;
+	devc->buf_len = 0;
+
+	/* Send header packet to the session bus. */
+	std_session_send_df_header(cb_data, LOG_PREFIX);
+
+	/* Poll every 100ms, or whenever some data comes in. */
+	serial = sdi->conn;
+	sr_source_add(serial->fd, G_IO_IN, 150, cem_dt_885x_receive_data,
+			(void *)sdi);
 
 	return SR_OK;
 }
@@ -245,7 +259,8 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
-	/* TODO: stop acquisition. */
+	return std_dev_acquisition_stop_serial(sdi, cb_data, dev_close,
+			sdi->conn, LOG_PREFIX);
 
 	return SR_OK;
 }
