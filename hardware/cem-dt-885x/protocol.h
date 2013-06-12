@@ -79,6 +79,7 @@ struct dev_context {
 	unsigned char token;
 	int buf_len;
 	unsigned char buf[BUF_SIZE];
+	float last_spl;
 
 };
 

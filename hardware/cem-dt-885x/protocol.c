@@ -117,13 +117,26 @@ static void process_mset(const struct sr_dev_inst *sdi)
 		fvalue += (devc->buf[0] & 0x0f) * 10;
 		fvalue += ((devc->buf[1] & 0xf0) >> 4);
 		fvalue += (devc->buf[1] & 0x0f) / 10.0;
+		devc->last_spl = fvalue;
+		break;
+	case TOKEN_MEAS_WAS_READOUT:
+	case TOKEN_MEAS_WAS_BARGRAPH:
+		if (devc->cur_mqflags & (SR_MQFLAG_MAX | SR_MQFLAG_MIN)) {
+			if (devc->token == TOKEN_MEAS_WAS_BARGRAPH) {
+				/* The device still sends bargraph measurements even
+				 * when in max/min hold mode. Suppress them here, unless
+				 * they're readout values. This duplicates the behavior
+				 * of the device display exactly. */
+				break;
+			}
+		}
 		memset(&analog, 0, sizeof(struct sr_datafeed_analog));
 		analog.mq = SR_MQ_SOUND_PRESSURE_LEVEL;
 		analog.mqflags = devc->cur_mqflags;
 		analog.unit = SR_UNIT_DECIBEL_SPL;
 		analog.probes = sdi->probes;
 		analog.num_samples = 1;
-		analog.data = &fvalue;
+		analog.data = &devc->last_spl;
 		packet.type = SR_DF_ANALOG;
 		packet.payload = &analog;
 		sr_session_send(devc->cb_data, &packet);
@@ -138,8 +151,6 @@ static void process_mset(const struct sr_dev_inst *sdi)
 	case TOKEN_STORE_FULL:
 	case TOKEN_RECORDING_ON:
 	case TOKEN_RECORDING_OFF:
-	case TOKEN_MEAS_WAS_READOUT:
-	case TOKEN_MEAS_WAS_BARGRAPH:
 	case TOKEN_BATTERY_OK:
 	case TOKEN_BATTERY_LOW:
 	case TOKEN_MEAS_RANGE_OK:
