@@ -31,6 +31,7 @@ static const int32_t hwcaps[] = {
 	SR_CONF_SOUNDLEVELMETER,
 	SR_CONF_LIMIT_SAMPLES,
 	SR_CONF_CONTINUOUS,
+	SR_CONF_DATALOG,
 };
 
 
@@ -85,6 +86,8 @@ static GSList *scan(GSList *options)
 				sr_dbg("Device context malloc failed.");
 				return NULL;
 			}
+			devc->cur_mqflags = 0;
+			devc->recording = -1;
 
 			if (!(sdi->conn = sr_serial_dev_inst_new(conn, SERIALCOMM)))
 				return NULL;
@@ -165,6 +168,9 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi)
 	case SR_CONF_LIMIT_SAMPLES:
 		*data = g_variant_new_uint64(devc->limit_samples);
 		break;
+	case SR_CONF_DATALOG:
+		*data = g_variant_new_boolean(cem_dt_885x_recording_get(sdi));
+		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -192,6 +198,15 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi)
 		tmp_u64 = g_variant_get_uint64(data);
 		devc->limit_samples = tmp_u64;
 		ret = SR_OK;
+		break;
+	case SR_CONF_DATALOG:
+		if (g_variant_get_boolean(data)) {
+			/* Start logging. */
+			ret = cem_dt_885x_recording_set(sdi, TRUE);
+		} else {
+			/* Stop logging. */
+			ret = cem_dt_885x_recording_set(sdi, FALSE);
+		}
 		break;
 	default:
 		ret = SR_ERR_NA;

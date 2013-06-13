@@ -66,15 +66,22 @@ enum {
 	TOKEN_MEAS_RANGE_80_130 = 0x4c,
 };
 
+enum {
+	CMD_TOGGLE_RECORDING = 0x55,
+};
+
 /** Private, per-device-instance driver context. */
 struct dev_context {
+	/* Device state */
+	uint64_t cur_mqflags;
+	int recording;
+
 	/* Acquisition settings */
 	uint64_t limit_samples;
 
 	/* Operational state */
 	int state;
 	uint64_t num_samples;
-	uint64_t cur_mqflags;
 
 	/* Temporary state across callbacks */
 	void *cb_data;
@@ -84,7 +91,6 @@ struct dev_context {
 	unsigned char buf[BUF_SIZE];
 	float last_spl;
 	gint64 hold_last_sent;
-
 };
 
 /* Parser state machine. */
@@ -96,5 +102,7 @@ enum {
 };
 
 SR_PRIV int cem_dt_885x_receive_data(int fd, int revents, void *cb_data);
+SR_PRIV int cem_dt_885x_recording_set(const struct sr_dev_inst *sdi, gboolean start);
+SR_PRIV gboolean cem_dt_885x_recording_get(const struct sr_dev_inst *sdi);
 
 #endif

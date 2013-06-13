@@ -146,11 +146,15 @@ static void process_mset(const struct sr_dev_inst *sdi)
 			sdi->driver->dev_acquisition_stop((struct sr_dev_inst *)sdi,
 					devc->cb_data);
 		break;
+	case TOKEN_RECORDING_ON:
+		devc->recording = TRUE;
+		break;
+	case TOKEN_RECORDING_OFF:
+		devc->recording = FALSE;
+		break;
 	case TOKEN_TIME:
 	case TOKEN_STORE_OK:
 	case TOKEN_STORE_FULL:
-	case TOKEN_RECORDING_ON:
-	case TOKEN_RECORDING_OFF:
 	case TOKEN_BATTERY_OK:
 	case TOKEN_BATTERY_LOW:
 	case TOKEN_MEAS_RANGE_OK:
@@ -166,7 +170,8 @@ static void process_mset(const struct sr_dev_inst *sdi)
 
 }
 
-static void process_byte(const struct sr_dev_inst *sdi, const unsigned char c)
+static void process_byte(const struct sr_dev_inst *sdi, const unsigned char c,
+		int handle_packets)
 {
 	struct dev_context *devc;
 	gint64 cur_time;
@@ -190,7 +195,8 @@ static void process_byte(const struct sr_dev_inst *sdi, const unsigned char c)
 				/* Force the last measurement out again. */
 				devc->cmd = 0xa5;
 				devc->token = TOKEN_MEAS_WAS_READOUT;
-				process_mset(sdi);
+				if (handle_packets)
+					process_mset(sdi);
 				devc->hold_last_sent = cur_time;
 			}
 		}
@@ -218,7 +224,8 @@ static void process_byte(const struct sr_dev_inst *sdi, const unsigned char c)
 			devc->buf_len = 0;
 			devc->state = ST_GET_DATA;
 		} else {
-			process_mset(sdi);
+			if (handle_packets)
+				process_mset(sdi);
 			devc->state = ST_INIT;
 		}
 	} else if (devc->state == ST_GET_DATA) {
@@ -228,7 +235,8 @@ static void process_byte(const struct sr_dev_inst *sdi, const unsigned char c)
 			sr_dbg("Unknown 0xa5 token 0x%.2x", devc->token);
 			if (c == 0xa5 || c == 0xbb) {
 				/* Looks like a new command however. */
-				process_mset(sdi);
+				if (handle_packets)
+					process_mset(sdi);
 				devc->state = ST_INIT;
 			} else {
 				devc->buf[devc->buf_len++] = c;
@@ -240,7 +248,8 @@ static void process_byte(const struct sr_dev_inst *sdi, const unsigned char c)
 		} else {
 			devc->buf[devc->buf_len++] = c;
 			if (devc->buf_len == len) {
-				process_mset(sdi);
+				if (handle_packets)
+					process_mset(sdi);
 				devc->state = ST_INIT;
 			} else if (devc->buf_len > BUF_SIZE) {
 				/* Shouldn't happen, ignore. */
@@ -267,8 +276,122 @@ SR_PRIV int cem_dt_885x_receive_data(int fd, int revents, void *cb_data)
 	if (revents == G_IO_IN) {
 		if (serial_read(serial, &c, 1) != 1)
 			return TRUE;
-		process_byte(sdi, c);
+		process_byte(sdi, c, TRUE);
 	}
 
 	return TRUE;
+}
+
+
+static int wait_for_token(const struct sr_dev_inst *sdi, char *tokens, int timeout)
+{
+	struct dev_context *devc;
+	struct sr_serial_dev_inst *serial;
+	gint64 start_time;
+	int i;
+	unsigned char c;
+
+	serial = sdi->conn;
+	devc = sdi->priv;
+	devc->state = ST_INIT;
+	start_time = g_get_monotonic_time() / 1000;
+	while (TRUE) {
+		if (serial_read(serial, &c, 1) != 1)
+			/* Device might have gone away. */
+			return SR_ERR;
+		process_byte(sdi, c, FALSE);
+		if (devc->state != ST_INIT)
+			/* Wait for a whole packet to get processed. */
+			continue;
+		for (i = 0; tokens[i] != -1; i++) {
+			if (devc->token == tokens[i]) {
+				sr_spew("wait_for_token: got token 0x%.2x", devc->token);
+				return SR_OK;
+			}
+		}
+		if (timeout && g_get_monotonic_time() / 1000 - start_time > timeout)
+			return SR_ERR_TIMEOUT;
+	}
+
+	return SR_OK;
+}
+
+/* cmd is the command to send, tokens are the tokens that denote the state
+ * which the command affects. The first token is the desired state. */
+SR_PRIV int cem_dt_885x_toggle(const struct sr_dev_inst *sdi, uint8_t cmd, char *tokens)
+{
+	struct dev_context *devc;
+	struct sr_serial_dev_inst *serial;
+
+	serial = sdi->conn;
+	devc = sdi->priv;
+
+	/* The device doesn't respond to commands very well. The
+	 * only thing to do is wait for the token that will confirm
+	 * whether the command worked or not, and resend if needed. */
+	while (TRUE) {
+		if (serial_write(serial, (const void *)&cmd, 1) != 1)
+			return SR_ERR;
+		/* Notifications are sent at 2Hz minimum */
+		if (wait_for_token(sdi, tokens, 510) == SR_ERR)
+			return SR_ERR;
+		if (devc->token == tokens[0])
+			/* It worked. */
+			break;
+	}
+
+	return SR_OK;
+}
+
+SR_PRIV gboolean cem_dt_885x_recording_get(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	char tokens[5];
+
+	devc = sdi->priv;
+
+	if (devc->recording == -1) {
+		/* Didn't pick up device state yet. */
+		tokens[0] = TOKEN_RECORDING_ON;
+		tokens[1] = TOKEN_RECORDING_OFF;
+		tokens[2] = -1;
+		if (wait_for_token(sdi, tokens, 0) != SR_OK)
+			return SR_ERR;
+	}
+
+	return devc->token == TOKEN_RECORDING_ON;
+}
+
+SR_PRIV int cem_dt_885x_recording_set(const struct sr_dev_inst *sdi, gboolean start)
+{
+	struct dev_context *devc;
+	int ret;
+	char tokens[5];
+
+	devc = sdi->priv;
+
+	/* The toggle below needs the desired state in first position. */
+	if (start) {
+		tokens[0] = TOKEN_RECORDING_ON;
+		tokens[1] = TOKEN_RECORDING_OFF;
+	} else {
+		tokens[0] = TOKEN_RECORDING_OFF;
+		tokens[1] = TOKEN_RECORDING_ON;
+	}
+	tokens[2] = -1;
+
+	if (devc->recording == -1) {
+		/* Didn't pick up device state yet. */
+		if (wait_for_token(sdi, tokens, 0) != SR_OK)
+			return SR_ERR;
+		if (devc->token == tokens[0])
+			/* Nothing to do. */
+			return SR_OK;
+	} else if (devc->recording == start)
+		/* Nothing to do. */
+		return SR_OK;
+
+	ret = cem_dt_885x_toggle(sdi, CMD_TOGGLE_RECORDING, tokens);
+
+	return ret;
 }
