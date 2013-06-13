@@ -72,6 +72,7 @@ enum {
 	SR_ERR_SAMPLERATE = -5, /**< Incorrect samplerate. */
 	SR_ERR_NA         = -6, /**< Not applicable. */
 	SR_ERR_DEV_CLOSED = -7, /**< Device is closed, but needs to be open. */
+	SR_ERR_TIMEOUT    = -8, /**< A timeout occurred. */
 
 	/*
 	 * Note: When adding entries here, don't forget to also update the

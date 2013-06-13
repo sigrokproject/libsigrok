@@ -84,6 +84,9 @@ SR_API const char *sr_strerror(int error_code)
 	case SR_ERR_DEV_CLOSED:
 		str = "device closed but should be open";
 		break;
+	case SR_ERR_TIMEOUT:
+		str = "timeout occurred";
+		break;
 	default:
 		str = "unknown error";
 		break;
@@ -143,6 +146,9 @@ SR_API const char *sr_strerror_name(int error_code)
 		break;
 	case SR_ERR_DEV_CLOSED:
 		str = "SR_ERR_DEV_CLOSED";
+		break;
+	case SR_ERR_TIMEOUT:
+		str = "SR_ERR_TIMEOUT";
 		break;
 	default:
 		str = "unknown error code";
