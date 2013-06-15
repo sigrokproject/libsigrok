@@ -83,6 +83,10 @@ static struct sr_config_info sr_config_info_data[] = {
 		"Coupling", NULL},
 	{SR_CONF_DATALOG, SR_T_BOOL, "datalog",
 		"Datalog", NULL},
+	{SR_CONF_SPL_WEIGHT_FREQ, SR_T_CHAR, "spl_weight_freq",
+		"Sound pressure level frequency weighting", NULL},
+	{SR_CONF_SPL_WEIGHT_TIME, SR_T_CHAR, "spl_weight_time",
+		"Sound pressure level time weighting", NULL},
 	{0, 0, NULL, NULL, NULL},
 };
 

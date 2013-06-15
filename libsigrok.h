@@ -665,6 +665,12 @@ enum {
 	/** Number of vertical divisions, as related to SR_CONF_VDIV.  */
 	SR_CONF_NUM_VDIV,
 
+	/** Sound pressure level frequency weighting.  */
+	SR_CONF_SPL_WEIGHT_FREQ,
+
+	/** Sound pressure level time weighting.  */
+	SR_CONF_SPL_WEIGHT_TIME,
+
 	/*--- Special stuff -------------------------------------------------*/
 
 	/** Scan options supported by the driver. */
