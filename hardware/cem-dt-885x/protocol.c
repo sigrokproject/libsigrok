@@ -318,7 +318,8 @@ static int wait_for_token(const struct sr_dev_inst *sdi, char *tokens, int timeo
 
 /* cmd is the command to send, tokens are the tokens that denote the state
  * which the command affects. The first token is the desired state. */
-SR_PRIV int cem_dt_885x_toggle(const struct sr_dev_inst *sdi, uint8_t cmd, char *tokens)
+SR_PRIV int cem_dt_885x_toggle(const struct sr_dev_inst *sdi, uint8_t cmd,
+		char *tokens, int timeout)
 {
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
@@ -332,8 +333,7 @@ SR_PRIV int cem_dt_885x_toggle(const struct sr_dev_inst *sdi, uint8_t cmd, char 
 	while (TRUE) {
 		if (serial_write(serial, (const void *)&cmd, 1) != 1)
 			return SR_ERR;
-		/* Notifications are sent at 2Hz minimum */
-		if (wait_for_token(sdi, tokens, 510) == SR_ERR)
+		if (wait_for_token(sdi, tokens, timeout) == SR_ERR)
 			return SR_ERR;
 		if (devc->token == tokens[0])
 			/* It worked. */
@@ -391,7 +391,72 @@ SR_PRIV int cem_dt_885x_recording_set(const struct sr_dev_inst *sdi, gboolean st
 		/* Nothing to do. */
 		return SR_OK;
 
-	ret = cem_dt_885x_toggle(sdi, CMD_TOGGLE_RECORDING, tokens);
+	/* Recording state notifications are sent at 2Hz, so allow just over
+	 * that, 510ms, for the state to come in. */
+	ret = cem_dt_885x_toggle(sdi, CMD_TOGGLE_RECORDING, tokens, 510);
+
+	return ret;
+}
+
+SR_PRIV int cem_dt_885x_weight_freq_get(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	int cur_setting;
+	char tokens[5];
+
+	devc = sdi->priv;
+
+	cur_setting = devc->cur_mqflags & (SR_MQFLAG_SPL_FREQ_WEIGHT_A | SR_MQFLAG_SPL_FREQ_WEIGHT_C);
+	if (cur_setting == 0) {
+		/* Didn't pick up device state yet. */
+		tokens[0] = TOKEN_WEIGHT_FREQ_A;
+		tokens[1] = TOKEN_WEIGHT_FREQ_C;
+		tokens[2] = -1;
+		if (wait_for_token(sdi, tokens, 0) != SR_OK)
+			return SR_ERR;
+		if (devc->token == TOKEN_WEIGHT_FREQ_A)
+			return SR_MQFLAG_SPL_FREQ_WEIGHT_A;
+		else
+			return SR_MQFLAG_SPL_FREQ_WEIGHT_C;
+	} else
+		return cur_setting;
+
+}
+
+SR_PRIV int cem_dt_885x_weight_freq_set(const struct sr_dev_inst *sdi, int freqw)
+{
+	struct dev_context *devc;
+	int cur_setting, ret;
+	char tokens[5];
+
+	devc = sdi->priv;
+
+	cur_setting = devc->cur_mqflags & (SR_MQFLAG_SPL_FREQ_WEIGHT_A | SR_MQFLAG_SPL_FREQ_WEIGHT_C);
+	if (cur_setting == freqw)
+		/* Already set to this frequency weighting. */
+		return SR_OK;
+
+	/* The toggle below needs the desired state in first position. */
+	if (freqw == SR_MQFLAG_SPL_FREQ_WEIGHT_A) {
+		tokens[0] = TOKEN_WEIGHT_FREQ_A;
+		tokens[1] = TOKEN_WEIGHT_FREQ_C;
+	} else {
+		tokens[0] = TOKEN_WEIGHT_FREQ_C;
+		tokens[1] = TOKEN_WEIGHT_FREQ_A;
+	}
+	tokens[2] = -1;
+
+	if (cur_setting == 0) {
+		/* Didn't pick up device state yet. */
+		if (wait_for_token(sdi, tokens, 0) != SR_OK)
+			return SR_ERR;
+		if (devc->token == tokens[0])
+			/* Nothing to do. */
+			return SR_OK;
+	}
+
+	/* 10ms timeout seems to work best for this. */
+	ret = cem_dt_885x_toggle(sdi, CMD_TOGGLE_WEIGHT_FREQ, tokens, 10);
 
 	return ret;
 }

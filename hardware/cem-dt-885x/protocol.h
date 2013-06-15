@@ -68,6 +68,7 @@ enum {
 
 enum {
 	CMD_TOGGLE_RECORDING = 0x55,
+	CMD_TOGGLE_WEIGHT_FREQ = 0x99,
 };
 
 /** Private, per-device-instance driver context. */
@@ -104,5 +105,7 @@ enum {
 SR_PRIV int cem_dt_885x_receive_data(int fd, int revents, void *cb_data);
 SR_PRIV int cem_dt_885x_recording_set(const struct sr_dev_inst *sdi, gboolean start);
 SR_PRIV gboolean cem_dt_885x_recording_get(const struct sr_dev_inst *sdi);
+SR_PRIV int cem_dt_885x_weight_freq_get(const struct sr_dev_inst *sdi);
+SR_PRIV int cem_dt_885x_weight_freq_set(const struct sr_dev_inst *sdi, int freqw);
 
 #endif

@@ -17,6 +17,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <string.h>
 #include "protocol.h"
 
 #define SERIALCOMM "9600/8n1"
@@ -32,8 +33,13 @@ static const int32_t hwcaps[] = {
 	SR_CONF_LIMIT_SAMPLES,
 	SR_CONF_CONTINUOUS,
 	SR_CONF_DATALOG,
+	SR_CONF_SPL_WEIGHT_FREQ,
 };
 
+static const char *weight_freq[] = {
+	"A",
+	"C",
+};
 
 SR_PRIV struct sr_dev_driver cem_dt_885x_driver_info;
 static struct sr_dev_driver *di = &cem_dt_885x_driver_info;
@@ -159,6 +165,7 @@ static int cleanup(void)
 static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
+	int tmp;
 
 	if (!sdi)
 		return SR_ERR_ARG;
@@ -170,6 +177,15 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi)
 		break;
 	case SR_CONF_DATALOG:
 		*data = g_variant_new_boolean(cem_dt_885x_recording_get(sdi));
+		break;
+	case SR_CONF_SPL_WEIGHT_FREQ:
+		tmp = cem_dt_885x_weight_freq_get(sdi);
+		if (tmp == SR_MQFLAG_SPL_FREQ_WEIGHT_A)
+			*data = g_variant_new_string("A");
+		else if (tmp == SR_MQFLAG_SPL_FREQ_WEIGHT_C)
+			*data = g_variant_new_string("C");
+		else
+			return SR_ERR;
 		break;
 	default:
 		return SR_ERR_NA;
@@ -183,6 +199,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	uint64_t tmp_u64;
 	int ret;
+	const char *tmp_str;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
@@ -208,6 +225,17 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi)
 			ret = cem_dt_885x_recording_set(sdi, FALSE);
 		}
 		break;
+	case SR_CONF_SPL_WEIGHT_FREQ:
+		tmp_str = g_variant_get_string(data, NULL);
+		if (!strcmp(tmp_str, "A"))
+			ret = cem_dt_885x_weight_freq_set(sdi,
+					SR_MQFLAG_SPL_FREQ_WEIGHT_A);
+		else if (!strcmp(tmp_str, "C"))
+			ret = cem_dt_885x_weight_freq_set(sdi,
+					SR_MQFLAG_SPL_FREQ_WEIGHT_C);
+		else
+			return SR_ERR_ARG;
+		break;
 	default:
 		ret = SR_ERR_NA;
 	}
@@ -230,6 +258,9 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 	case SR_CONF_DEVICE_OPTIONS:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
 				hwcaps, ARRAY_SIZE(hwcaps), sizeof(int32_t));
+		break;
+	case SR_CONF_SPL_WEIGHT_FREQ:
+		*data = g_variant_new_strv(weight_freq, ARRAY_SIZE(weight_freq));
 		break;
 	default:
 		return SR_ERR_NA;
