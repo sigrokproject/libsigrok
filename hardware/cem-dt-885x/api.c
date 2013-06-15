@@ -34,11 +34,17 @@ static const int32_t hwcaps[] = {
 	SR_CONF_CONTINUOUS,
 	SR_CONF_DATALOG,
 	SR_CONF_SPL_WEIGHT_FREQ,
+	SR_CONF_SPL_WEIGHT_TIME,
 };
 
 static const char *weight_freq[] = {
 	"A",
 	"C",
+};
+
+static const char *weight_time[] = {
+	"F",
+	"S",
 };
 
 SR_PRIV struct sr_dev_driver cem_dt_885x_driver_info;
@@ -187,6 +193,15 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi)
 		else
 			return SR_ERR;
 		break;
+	case SR_CONF_SPL_WEIGHT_TIME:
+		tmp = cem_dt_885x_weight_time_get(sdi);
+		if (tmp == SR_MQFLAG_SPL_TIME_WEIGHT_F)
+			*data = g_variant_new_string("F");
+		else if (tmp == SR_MQFLAG_SPL_TIME_WEIGHT_S)
+			*data = g_variant_new_string("S");
+		else
+			return SR_ERR;
+		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -236,6 +251,17 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi)
 		else
 			return SR_ERR_ARG;
 		break;
+	case SR_CONF_SPL_WEIGHT_TIME:
+		tmp_str = g_variant_get_string(data, NULL);
+		if (!strcmp(tmp_str, "F"))
+			ret = cem_dt_885x_weight_time_set(sdi,
+					SR_MQFLAG_SPL_TIME_WEIGHT_F);
+		else if (!strcmp(tmp_str, "S"))
+			ret = cem_dt_885x_weight_time_set(sdi,
+					SR_MQFLAG_SPL_TIME_WEIGHT_S);
+		else
+			return SR_ERR_ARG;
+		break;
 	default:
 		ret = SR_ERR_NA;
 	}
@@ -261,6 +287,9 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 		break;
 	case SR_CONF_SPL_WEIGHT_FREQ:
 		*data = g_variant_new_strv(weight_freq, ARRAY_SIZE(weight_freq));
+		break;
+	case SR_CONF_SPL_WEIGHT_TIME:
+		*data = g_variant_new_strv(weight_time, ARRAY_SIZE(weight_time));
 		break;
 	default:
 		return SR_ERR_NA;
