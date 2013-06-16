@@ -71,6 +71,7 @@ enum {
 	CMD_TOGGLE_WEIGHT_FREQ = 0x99,
 	CMD_TOGGLE_WEIGHT_TIME = 0x77,
 	CMD_TOGGLE_HOLD_MAX_MIN = 0x11,
+	CMD_TOGGLE_MEAS_RANGE = 0x88,
 };
 
 /** Private, per-device-instance driver context. */
@@ -78,6 +79,7 @@ struct dev_context {
 	/* Device state */
 	uint64_t cur_mqflags;
 	int recording;
+	int cur_meas_range;
 
 	/* Acquisition settings */
 	uint64_t limit_samples;
@@ -115,5 +117,9 @@ SR_PRIV int cem_dt_885x_weight_time_set(const struct sr_dev_inst *sdi, int timew
 SR_PRIV int cem_dt_885x_holdmode_get(const struct sr_dev_inst *sdi,
 		gboolean *holdmode);
 SR_PRIV int cem_dt_885x_holdmode_set(const struct sr_dev_inst *sdi, int holdmode);
+SR_PRIV int cem_dt_885x_meas_range_get(const struct sr_dev_inst *sdi,
+		uint64_t *low, uint64_t *high);
+SR_PRIV int cem_dt_885x_meas_range_set(const struct sr_dev_inst *sdi,
+		uint64_t low, uint64_t high);
 
 #endif

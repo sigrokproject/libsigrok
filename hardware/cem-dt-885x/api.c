@@ -37,6 +37,7 @@ static const int32_t hwcaps[] = {
 	SR_CONF_SPL_WEIGHT_TIME,
 	SR_CONF_HOLD_MAX,
 	SR_CONF_HOLD_MIN,
+	SR_CONF_SPL_MEASUREMENT_RANGE,
 };
 
 static const char *weight_freq[] = {
@@ -47,6 +48,13 @@ static const char *weight_freq[] = {
 static const char *weight_time[] = {
 	"F",
 	"S",
+};
+
+static const uint64_t meas_ranges[][2] = {
+	{ 30, 130 },
+	{ 30, 80 },
+	{ 50, 100 },
+	{ 80, 130 },
 };
 
 SR_PRIV struct sr_dev_driver cem_dt_885x_driver_info;
@@ -102,6 +110,7 @@ static GSList *scan(GSList *options)
 			}
 			devc->cur_mqflags = 0;
 			devc->recording = -1;
+			devc->cur_meas_range = 0;
 
 			if (!(sdi->conn = sr_serial_dev_inst_new(conn, SERIALCOMM)))
 				return NULL;
@@ -173,6 +182,8 @@ static int cleanup(void)
 static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
+	GVariant *range[2];
+	uint64_t low, high;
 	int tmp, ret;
 
 	if (!sdi)
@@ -214,6 +225,13 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi)
 		if ((ret = cem_dt_885x_holdmode_get(sdi, &tmp)) == SR_OK)
 			*data = g_variant_new_boolean(tmp == SR_MQFLAG_MIN);
 		break;
+	case SR_CONF_SPL_MEASUREMENT_RANGE:
+		if ((ret = cem_dt_885x_meas_range_get(sdi, &low, &high)) == SR_OK) {
+			range[0] = g_variant_new_uint64(low);
+			range[1] = g_variant_new_uint64(high);
+			*data = g_variant_new_tuple(range, 2);
+		}
+		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -224,7 +242,8 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi)
 static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	uint64_t tmp_u64;
+	uint64_t tmp_u64, low, high;
+	unsigned int i;
 	int tmp, ret;
 	const char *tmp_str;
 
@@ -276,6 +295,16 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi)
 		tmp = g_variant_get_boolean(data) ? SR_MQFLAG_MIN : 0;
 		ret = cem_dt_885x_holdmode_set(sdi, tmp);
 		break;
+	case SR_CONF_SPL_MEASUREMENT_RANGE:
+		g_variant_get(data, "(tt)", &low, &high);
+		ret = SR_ERR_ARG;
+		for (i = 0; i < ARRAY_SIZE(meas_ranges); i++) {
+			if (meas_ranges[i][0] == low && meas_ranges[i][1] == high) {
+				ret = cem_dt_885x_meas_range_set(sdi, low, high);
+				break;
+			}
+		}
+		break;
 	default:
 		ret = SR_ERR_NA;
 	}
@@ -285,6 +314,9 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi)
 
 static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 {
+	GVariant *tuple, *range[2];
+	GVariantBuilder gvb;
+	unsigned int i;
 	int ret;
 
 	(void)sdi;
@@ -304,6 +336,16 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 		break;
 	case SR_CONF_SPL_WEIGHT_TIME:
 		*data = g_variant_new_strv(weight_time, ARRAY_SIZE(weight_time));
+		break;
+	case SR_CONF_SPL_MEASUREMENT_RANGE:
+		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
+		for (i = 0; i < ARRAY_SIZE(meas_ranges); i++) {
+			range[0] = g_variant_new_uint64(meas_ranges[i][0]);
+			range[1] = g_variant_new_uint64(meas_ranges[i][1]);
+			tuple = g_variant_new_tuple(range, 2);
+			g_variant_builder_add_value(&gvb, tuple);
+		}
+		*data = g_variant_builder_end(&gvb);
 		break;
 	default:
 		return SR_ERR_NA;

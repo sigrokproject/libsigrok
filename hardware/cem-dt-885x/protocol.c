@@ -152,6 +152,12 @@ static void process_mset(const struct sr_dev_inst *sdi)
 	case TOKEN_RECORDING_OFF:
 		devc->recording = FALSE;
 		break;
+	case TOKEN_MEAS_RANGE_30_80:
+	case TOKEN_MEAS_RANGE_30_130:
+	case TOKEN_MEAS_RANGE_50_100:
+	case TOKEN_MEAS_RANGE_80_130:
+		devc->cur_meas_range = devc->token;
+		break;
 	case TOKEN_TIME:
 	case TOKEN_STORE_OK:
 	case TOKEN_STORE_FULL:
@@ -160,10 +166,6 @@ static void process_mset(const struct sr_dev_inst *sdi)
 	case TOKEN_MEAS_RANGE_OK:
 	case TOKEN_MEAS_RANGE_OVER:
 	case TOKEN_MEAS_RANGE_UNDER:
-	case TOKEN_MEAS_RANGE_30_80:
-	case TOKEN_MEAS_RANGE_30_130:
-	case TOKEN_MEAS_RANGE_50_100:
-	case TOKEN_MEAS_RANGE_80_130:
 		/* Not useful, or not expressable in sigrok. */
 		break;
 	}
@@ -591,6 +593,95 @@ SR_PRIV int cem_dt_885x_holdmode_set(const struct sr_dev_inst *sdi, int holdmode
 
 	/* 51ms timeout seems to work best for this. */
 	ret = cem_dt_885x_toggle(sdi, CMD_TOGGLE_HOLD_MAX_MIN, tokens, 51);
+
+	return ret;
+}
+
+SR_PRIV int cem_dt_885x_meas_range_get(const struct sr_dev_inst *sdi,
+		uint64_t *low, uint64_t *high)
+{
+	struct dev_context *devc;
+	char tokens[5];
+
+	devc = sdi->priv;
+	if (devc->cur_meas_range == 0) {
+		tokens[0] = TOKEN_MEAS_RANGE_30_130;
+		tokens[1] = TOKEN_MEAS_RANGE_30_80;
+		tokens[2] = TOKEN_MEAS_RANGE_50_100;
+		tokens[3] = TOKEN_MEAS_RANGE_80_130;
+		tokens[4] = -1;
+		if (wait_for_token(sdi, tokens, 0) != SR_OK)
+			return SR_ERR;
+		devc->cur_meas_range = devc->token;
+	}
+
+	switch (devc->cur_meas_range) {
+	case TOKEN_MEAS_RANGE_30_130:
+		*low = 30;
+		*high = 130;
+		break;
+	case TOKEN_MEAS_RANGE_30_80:
+		*low = 30;
+		*high = 80;
+		break;
+	case TOKEN_MEAS_RANGE_50_100:
+		*low = 50;
+		*high = 100;
+		break;
+	case TOKEN_MEAS_RANGE_80_130:
+		*low = 80;
+		*high = 130;
+		break;
+	default:
+		return SR_ERR;
+	}
+
+	return SR_OK;
+}
+
+SR_PRIV int cem_dt_885x_meas_range_set(const struct sr_dev_inst *sdi,
+		uint64_t low, uint64_t high)
+{
+	struct dev_context *devc;
+	int ret;
+	char token, tokens[6];
+
+	devc = sdi->priv;
+	if (low == 30 && high == 130)
+		token = TOKEN_MEAS_RANGE_30_130;
+	else if (low == 30 &&  high == 80)
+		token = TOKEN_MEAS_RANGE_30_80;
+	else if (low == 50 &&  high == 100)
+		token = TOKEN_MEAS_RANGE_50_100;
+	else if (low == 80 &&  high == 130)
+		token = TOKEN_MEAS_RANGE_80_130;
+	else
+		return SR_ERR;
+
+	sr_dbg("want 0x%.2x", token);
+	/* The toggle below needs the desired state in first position. */
+	tokens[0] = token;
+	tokens[1] = TOKEN_MEAS_RANGE_30_130;
+	tokens[2] = TOKEN_MEAS_RANGE_30_80;
+	tokens[3] = TOKEN_MEAS_RANGE_50_100;
+	tokens[4] = TOKEN_MEAS_RANGE_80_130;
+	tokens[5] = -1;
+
+	if (devc->cur_meas_range == 0) {
+		/* 110ms should be enough for two of these announcements */
+		if (wait_for_token(sdi, tokens, 110) != SR_OK)
+			return SR_ERR;
+		devc->cur_meas_range = devc->token;
+	}
+
+	if (devc->cur_meas_range == token)
+		/* Already set to this range. */
+		return SR_OK;
+
+	/* For measurement range, it works best to ignore announcements of the
+	 * current setting and keep resending the toggle quickly. */
+	tokens[1] = -1;
+	ret = cem_dt_885x_toggle(sdi, CMD_TOGGLE_MEAS_RANGE, tokens, 11);
 
 	return ret;
 }
