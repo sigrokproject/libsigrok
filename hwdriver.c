@@ -87,6 +87,10 @@ static struct sr_config_info sr_config_info_data[] = {
 		"Sound pressure level frequency weighting", NULL},
 	{SR_CONF_SPL_WEIGHT_TIME, SR_T_CHAR, "spl_weight_time",
 		"Sound pressure level time weighting", NULL},
+	{SR_CONF_HOLD_MAX, SR_T_BOOL, "hold_max",
+		"Hold max", NULL},
+	{SR_CONF_HOLD_MIN, SR_T_BOOL, "hold_min",
+		"Hold min", NULL},
 	{0, 0, NULL, NULL, NULL},
 };
 

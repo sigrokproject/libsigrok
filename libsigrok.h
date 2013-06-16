@@ -671,6 +671,12 @@ enum {
 	/** Sound pressure level time weighting.  */
 	SR_CONF_SPL_WEIGHT_TIME,
 
+	/** Max hold mode. */
+	SR_CONF_HOLD_MAX,
+
+	/** Min hold mode. */
+	SR_CONF_HOLD_MIN,
+
 	/*--- Special stuff -------------------------------------------------*/
 
 	/** Scan options supported by the driver. */
