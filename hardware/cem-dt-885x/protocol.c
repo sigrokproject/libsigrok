@@ -523,3 +523,72 @@ SR_PRIV int cem_dt_885x_weight_time_set(const struct sr_dev_inst *sdi, int timew
 
 	return ret;
 }
+
+SR_PRIV int cem_dt_885x_holdmode_get(const struct sr_dev_inst *sdi,
+		gboolean *holdmode)
+{
+	struct dev_context *devc;
+	char tokens[5];
+
+	devc = sdi->priv;
+
+	if (devc->cur_mqflags == 0) {
+		tokens[0] = TOKEN_HOLD_MAX;
+		tokens[1] = TOKEN_HOLD_MIN;
+		tokens[2] = TOKEN_HOLD_NONE;
+		tokens[3] = -1;
+		if (wait_for_token(sdi, tokens, 0) != SR_OK)
+			return SR_ERR;
+		if (devc->token == TOKEN_HOLD_MAX)
+			devc->cur_mqflags = SR_MQFLAG_MAX;
+		else if (devc->token == TOKEN_HOLD_MIN)
+			devc->cur_mqflags = SR_MQFLAG_MIN;
+	}
+	*holdmode = devc->cur_mqflags & (SR_MQFLAG_MAX | SR_MQFLAG_MIN);
+
+	return SR_OK;
+}
+
+SR_PRIV int cem_dt_885x_holdmode_set(const struct sr_dev_inst *sdi, int holdmode)
+{
+	struct dev_context *devc;
+	int cur_setting, ret;
+	char tokens[5];
+
+	devc = sdi->priv;
+
+	/* The toggle below needs the desired state in first position. */
+	if (holdmode == SR_MQFLAG_MAX) {
+		tokens[0] = TOKEN_HOLD_MAX;
+		tokens[1] = TOKEN_HOLD_MIN;
+		tokens[2] = TOKEN_HOLD_NONE;
+	} else if (holdmode == SR_MQFLAG_MIN) {
+		tokens[0] = TOKEN_HOLD_MIN;
+		tokens[1] = TOKEN_HOLD_MAX;
+		tokens[2] = TOKEN_HOLD_NONE;
+	} else {
+		tokens[0] = TOKEN_HOLD_NONE;
+		tokens[1] = TOKEN_HOLD_MAX;
+		tokens[2] = TOKEN_HOLD_MIN;
+	}
+	tokens[3] = -1;
+
+	if (devc->cur_mqflags == 0) {
+		/* Didn't pick up device state yet. */
+		if (wait_for_token(sdi, tokens, 0) != SR_OK)
+			return SR_ERR;
+		if (devc->token == tokens[0])
+			/* Nothing to do. */
+			return SR_OK;
+	} else {
+		cur_setting = devc->cur_mqflags & (SR_MQFLAG_MAX | SR_MQFLAG_MIN);
+		if (cur_setting == holdmode)
+			/* Already set correctly. */
+			return SR_OK;
+	}
+
+	/* 51ms timeout seems to work best for this. */
+	ret = cem_dt_885x_toggle(sdi, CMD_TOGGLE_HOLD_MAX_MIN, tokens, 51);
+
+	return ret;
+}

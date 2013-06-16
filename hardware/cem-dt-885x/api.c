@@ -35,6 +35,8 @@ static const int32_t hwcaps[] = {
 	SR_CONF_DATALOG,
 	SR_CONF_SPL_WEIGHT_FREQ,
 	SR_CONF_SPL_WEIGHT_TIME,
+	SR_CONF_HOLD_MAX,
+	SR_CONF_HOLD_MIN,
 };
 
 static const char *weight_freq[] = {
@@ -171,12 +173,13 @@ static int cleanup(void)
 static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	int tmp;
+	int tmp, ret;
 
 	if (!sdi)
 		return SR_ERR_ARG;
 
 	devc = sdi->priv;
+	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_LIMIT_SAMPLES:
 		*data = g_variant_new_uint64(devc->limit_samples);
@@ -202,18 +205,26 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi)
 		else
 			return SR_ERR;
 		break;
+	case SR_CONF_HOLD_MAX:
+		if ((ret = cem_dt_885x_holdmode_get(sdi, &tmp)) == SR_OK)
+			*data = g_variant_new_boolean(tmp == SR_MQFLAG_MAX);
+		break;
+	case SR_CONF_HOLD_MIN:
+		if ((ret = cem_dt_885x_holdmode_get(sdi, &tmp)) == SR_OK)
+			*data = g_variant_new_boolean(tmp == SR_MQFLAG_MIN);
+		break;
 	default:
 		return SR_ERR_NA;
 	}
 
-	return SR_OK;
+	return ret;
 }
 
 static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	uint64_t tmp_u64;
-	int ret;
+	int tmp, ret;
 	const char *tmp_str;
 
 	if (sdi->status != SR_ST_ACTIVE)
@@ -261,6 +272,14 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi)
 					SR_MQFLAG_SPL_TIME_WEIGHT_S);
 		else
 			return SR_ERR_ARG;
+		break;
+	case SR_CONF_HOLD_MAX:
+		tmp = g_variant_get_boolean(data) ? SR_MQFLAG_MAX : 0;
+		ret = cem_dt_885x_holdmode_set(sdi, tmp);
+		break;
+	case SR_CONF_HOLD_MIN:
+		tmp = g_variant_get_boolean(data) ? SR_MQFLAG_MIN : 0;
+		ret = cem_dt_885x_holdmode_set(sdi, tmp);
 		break;
 	default:
 		ret = SR_ERR_NA;

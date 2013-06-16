@@ -70,6 +70,7 @@ enum {
 	CMD_TOGGLE_RECORDING = 0x55,
 	CMD_TOGGLE_WEIGHT_FREQ = 0x99,
 	CMD_TOGGLE_WEIGHT_TIME = 0x77,
+	CMD_TOGGLE_HOLD_MAX_MIN = 0x11,
 };
 
 /** Private, per-device-instance driver context. */
@@ -110,5 +111,8 @@ SR_PRIV int cem_dt_885x_weight_freq_get(const struct sr_dev_inst *sdi);
 SR_PRIV int cem_dt_885x_weight_freq_set(const struct sr_dev_inst *sdi, int freqw);
 SR_PRIV int cem_dt_885x_weight_time_get(const struct sr_dev_inst *sdi);
 SR_PRIV int cem_dt_885x_weight_time_set(const struct sr_dev_inst *sdi, int timew);
+SR_PRIV int cem_dt_885x_holdmode_get(const struct sr_dev_inst *sdi,
+		gboolean *holdmode);
+SR_PRIV int cem_dt_885x_holdmode_set(const struct sr_dev_inst *sdi, int holdmode);
 
 #endif
