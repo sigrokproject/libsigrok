@@ -185,7 +185,8 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi)
 		*data = g_variant_new_uint64(devc->limit_samples);
 		break;
 	case SR_CONF_DATALOG:
-		*data = g_variant_new_boolean(cem_dt_885x_recording_get(sdi));
+		if ((ret = cem_dt_885x_recording_get(sdi, &tmp)) == SR_OK)
+			*data = g_variant_new_boolean(tmp);
 		break;
 	case SR_CONF_SPL_WEIGHT_FREQ:
 		tmp = cem_dt_885x_weight_freq_get(sdi);
@@ -243,13 +244,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi)
 		ret = SR_OK;
 		break;
 	case SR_CONF_DATALOG:
-		if (g_variant_get_boolean(data)) {
-			/* Start logging. */
-			ret = cem_dt_885x_recording_set(sdi, TRUE);
-		} else {
-			/* Stop logging. */
-			ret = cem_dt_885x_recording_set(sdi, FALSE);
-		}
+		ret = cem_dt_885x_recording_set(sdi, g_variant_get_boolean(data));
 		break;
 	case SR_CONF_SPL_WEIGHT_FREQ:
 		tmp_str = g_variant_get_string(data, NULL);

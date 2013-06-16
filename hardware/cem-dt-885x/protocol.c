@@ -343,26 +343,28 @@ SR_PRIV int cem_dt_885x_toggle(const struct sr_dev_inst *sdi, uint8_t cmd,
 	return SR_OK;
 }
 
-SR_PRIV gboolean cem_dt_885x_recording_get(const struct sr_dev_inst *sdi)
+SR_PRIV gboolean cem_dt_885x_recording_get(const struct sr_dev_inst *sdi,
+		int *state)
 {
 	struct dev_context *devc;
 	char tokens[5];
 
 	devc = sdi->priv;
-
 	if (devc->recording == -1) {
 		/* Didn't pick up device state yet. */
 		tokens[0] = TOKEN_RECORDING_ON;
 		tokens[1] = TOKEN_RECORDING_OFF;
 		tokens[2] = -1;
-		if (wait_for_token(sdi, tokens, 0) != SR_OK)
+		if (wait_for_token(sdi, tokens, 510) != SR_OK)
 			return SR_ERR;
 	}
+	*state = devc->token == TOKEN_RECORDING_ON;
 
-	return devc->token == TOKEN_RECORDING_ON;
+	return SR_OK;
 }
 
-SR_PRIV int cem_dt_885x_recording_set(const struct sr_dev_inst *sdi, gboolean start)
+SR_PRIV int cem_dt_885x_recording_set(const struct sr_dev_inst *sdi,
+		gboolean state)
 {
 	struct dev_context *devc;
 	int ret;
@@ -371,7 +373,7 @@ SR_PRIV int cem_dt_885x_recording_set(const struct sr_dev_inst *sdi, gboolean st
 	devc = sdi->priv;
 
 	/* The toggle below needs the desired state in first position. */
-	if (start) {
+	if (state) {
 		tokens[0] = TOKEN_RECORDING_ON;
 		tokens[1] = TOKEN_RECORDING_OFF;
 	} else {
@@ -387,7 +389,7 @@ SR_PRIV int cem_dt_885x_recording_set(const struct sr_dev_inst *sdi, gboolean st
 		if (devc->token == tokens[0])
 			/* Nothing to do. */
 			return SR_OK;
-	} else if (devc->recording == start)
+	} else if (devc->recording == state)
 		/* Nothing to do. */
 		return SR_OK;
 
