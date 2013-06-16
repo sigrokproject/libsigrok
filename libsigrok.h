@@ -141,6 +141,7 @@ enum {
 	SR_T_RATIONAL_PERIOD,
 	SR_T_RATIONAL_VOLT,
 	SR_T_KEYVALUE,
+	SR_T_UINT64_RANGE,
 };
 
 /** Value for sr_datafeed_packet.type. */
@@ -670,6 +671,9 @@ enum {
 
 	/** Sound pressure level time weighting.  */
 	SR_CONF_SPL_WEIGHT_TIME,
+
+	/** Sound pressure level measurement range.  */
+	SR_CONF_SPL_MEASUREMENT_RANGE,
 
 	/** Max hold mode. */
 	SR_CONF_HOLD_MAX,

@@ -91,6 +91,8 @@ static struct sr_config_info sr_config_info_data[] = {
 		"Hold max", NULL},
 	{SR_CONF_HOLD_MIN, SR_T_BOOL, "hold_min",
 		"Hold min", NULL},
+	{SR_CONF_SPL_MEASUREMENT_RANGE, SR_T_UINT64_RANGE, "spl_meas_range",
+		"Sound pressure level measurement range", NULL},
 	{0, 0, NULL, NULL, NULL},
 };
 
