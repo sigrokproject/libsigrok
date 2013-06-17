@@ -701,6 +701,9 @@ enum {
 	/** The device supports setting the number of probes. */
 	SR_CONF_CAPTURE_NUM_PROBES,
 
+	/** Power off the device. */
+	SR_CONF_POWER_OFF,
+
 	/*--- Acquisition modes ---------------------------------------------*/
 
 	/**
