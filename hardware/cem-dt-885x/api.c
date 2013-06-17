@@ -32,12 +32,13 @@ static const int32_t hwcaps[] = {
 	SR_CONF_SOUNDLEVELMETER,
 	SR_CONF_LIMIT_SAMPLES,
 	SR_CONF_CONTINUOUS,
-	SR_CONF_DATALOG,
 	SR_CONF_SPL_WEIGHT_FREQ,
 	SR_CONF_SPL_WEIGHT_TIME,
+	SR_CONF_SPL_MEASUREMENT_RANGE,
+	SR_CONF_DATALOG,
 	SR_CONF_HOLD_MAX,
 	SR_CONF_HOLD_MIN,
-	SR_CONF_SPL_MEASUREMENT_RANGE,
+	SR_CONF_POWER_OFF,
 };
 
 static const char *weight_freq[] = {
@@ -232,6 +233,9 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi)
 			*data = g_variant_new_tuple(range, 2);
 		}
 		break;
+	case SR_CONF_POWER_OFF:
+		*data = g_variant_new_boolean(FALSE);
+		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -304,6 +308,10 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi)
 				break;
 			}
 		}
+		break;
+	case SR_CONF_POWER_OFF:
+		if (g_variant_get_boolean(data))
+			ret = cem_dt_885x_power_off(sdi);
 		break;
 	default:
 		ret = SR_ERR_NA;

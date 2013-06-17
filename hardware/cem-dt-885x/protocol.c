@@ -685,3 +685,36 @@ SR_PRIV int cem_dt_885x_meas_range_set(const struct sr_dev_inst *sdi,
 
 	return ret;
 }
+
+SR_PRIV int cem_dt_885x_power_off(const struct sr_dev_inst *sdi)
+{
+	struct sr_serial_dev_inst *serial;
+	char c, cmd;
+
+	serial = sdi->conn;
+
+	/* Reopen the port in non-blocking mode, so we can properly
+	 * detect when the device stops communicating. */
+	serial_close(serial);
+	if (serial_open(serial, SERIAL_RDWR | SERIAL_NONBLOCK) != SR_OK)
+		return SR_ERR;
+
+	cmd = CMD_TOGGLE_POWER_OFF;
+	while (TRUE) {
+		serial_flush(serial);
+		if (serial_write(serial, (const void *)&cmd, 1) != 1)
+			return SR_ERR;
+		/* It never takes more than 23ms for the next token to arrive. */
+		g_usleep(25 * 1000);
+		if (serial_read(serial, &c, 1) != 1)
+			/* Device is no longer responding. Good! */
+			break;
+	}
+
+	/* In case the user manually turns on the device again, reset
+	 * the port back to blocking. */
+	serial_close(serial);
+	serial_open(serial, SERIAL_RDWR);
+
+	return SR_OK;
+}
