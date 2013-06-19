@@ -39,6 +39,7 @@ static const int32_t hwcaps[] = {
 	SR_CONF_HOLD_MAX,
 	SR_CONF_HOLD_MIN,
 	SR_CONF_POWER_OFF,
+	SR_CONF_DATA_SOURCE,
 };
 
 static const char *weight_freq[] = {
@@ -58,6 +59,10 @@ static const uint64_t meas_ranges[][2] = {
 	{ 80, 130 },
 };
 
+static const char *data_sources[] = {
+	"Live",
+	"Memory",
+};
 SR_PRIV struct sr_dev_driver cem_dt_885x_driver_info;
 static struct sr_dev_driver *di = &cem_dt_885x_driver_info;
 
@@ -112,6 +117,7 @@ static GSList *scan(GSList *options)
 			devc->cur_mqflags = 0;
 			devc->recording = -1;
 			devc->cur_meas_range = 0;
+			devc->cur_data_source = DATA_SOURCE_LIVE;
 
 			if (!(sdi->conn = sr_serial_dev_inst_new(conn, SERIALCOMM)))
 				return NULL;
@@ -236,6 +242,12 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi)
 	case SR_CONF_POWER_OFF:
 		*data = g_variant_new_boolean(FALSE);
 		break;
+	case SR_CONF_DATA_SOURCE:
+		if (devc->cur_data_source == DATA_SOURCE_LIVE)
+			*data = g_variant_new_string("Live");
+		else
+			*data = g_variant_new_string("Memory");
+		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -313,6 +325,15 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi)
 		if (g_variant_get_boolean(data))
 			ret = cem_dt_885x_power_off(sdi);
 		break;
+	case SR_CONF_DATA_SOURCE:
+		tmp_str = g_variant_get_string(data, NULL);
+		if (!strcmp(tmp_str, "Live"))
+			devc->cur_data_source = DATA_SOURCE_LIVE;
+		else if (!strcmp(tmp_str, "Memory"))
+			devc->cur_data_source = DATA_SOURCE_MEMORY;
+		else
+			return SR_ERR;
+		break;
 	default:
 		ret = SR_ERR_NA;
 	}
@@ -354,6 +375,9 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 			g_variant_builder_add_value(&gvb, tuple);
 		}
 		*data = g_variant_builder_end(&gvb);
+		break;
+	case SR_CONF_DATA_SOURCE:
+		*data = g_variant_new_strv(data_sources, ARRAY_SIZE(data_sources));
 		break;
 	default:
 		return SR_ERR_NA;

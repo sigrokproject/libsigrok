@@ -75,12 +75,18 @@ enum {
 	CMD_TOGGLE_POWER_OFF = 0x33,
 };
 
+enum {
+	DATA_SOURCE_LIVE,
+	DATA_SOURCE_MEMORY,
+};
+
 /** Private, per-device-instance driver context. */
 struct dev_context {
 	/* Device state */
 	uint64_t cur_mqflags;
 	int recording;
 	int cur_meas_range;
+	int cur_data_source;
 
 	/* Acquisition settings */
 	uint64_t limit_samples;
