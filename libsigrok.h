@@ -704,6 +704,18 @@ enum {
 	/** Power off the device. */
 	SR_CONF_POWER_OFF,
 
+	/** Data source for acquisition. If not present, acquisition from
+	 * the device is always "live", i.e. acquisition starts when the
+	 * frontend asks and the results are sent out as soon as possible.
+	 *
+	 * If present, it indicates that either the device has no live
+	 * acquisition capability (for example a pure data logger), or
+	 * there is a choice. sr_config_list() returns those choices.
+	 *
+	 * In any case if a device has live acquisition capabilities, it
+	 * is always the default. */
+	SR_CONF_DATA_SOURCE,
+
 	/*--- Acquisition modes ---------------------------------------------*/
 
 	/**

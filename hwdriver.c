@@ -95,6 +95,8 @@ static struct sr_config_info sr_config_info_data[] = {
 		"Sound pressure level measurement range", NULL},
 	{SR_CONF_POWER_OFF, SR_T_BOOL, "power_off",
 		"Power off", NULL},
+	{SR_CONF_DATA_SOURCE, SR_T_CHAR, "data_source",
+		"Data source", NULL},
 	{0, 0, NULL, NULL, NULL},
 };
 
