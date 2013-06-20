@@ -172,10 +172,49 @@ static void process_mset(const struct sr_dev_inst *sdi)
 
 }
 
+static void send_data(const struct sr_dev_inst *sdi, unsigned char *data,
+		uint64_t num_samples)
+{
+	struct dev_context *devc;
+	struct sr_datafeed_packet packet;
+	struct sr_datafeed_analog analog;
+	float fbuf[SAMPLES_PER_PACKET];
+	unsigned int i;
+
+	devc = sdi->priv;
+
+	for (i = 0; i < num_samples; i ++) {
+		fbuf[i] = ((data[i * 2] & 0xf0) >> 4) * 100;
+		fbuf[i] += (data[i * 2] & 0x0f) * 10;
+		fbuf[i] += ((data[i * 2 + 1] & 0xf0) >> 4);
+		fbuf[i] += (data[i * 2 + 1] & 0x0f) / 10.0;
+	}
+	memset(&analog, 0, sizeof(struct sr_datafeed_analog));
+	analog.mq = SR_MQ_SOUND_PRESSURE_LEVEL;
+	analog.mqflags = devc->cur_mqflags;
+	analog.unit = SR_UNIT_DECIBEL_SPL;
+	analog.probes = sdi->probes;
+	analog.num_samples = num_samples;
+	analog.data = fbuf;
+	packet.type = SR_DF_ANALOG;
+	packet.payload = &analog;
+	sr_session_send(devc->cb_data, &packet);
+
+	devc->num_samples += analog.num_samples;
+	if (devc->limit_samples && devc->num_samples >= devc->limit_samples)
+		sdi->driver->dev_acquisition_stop((struct sr_dev_inst *)sdi,
+				devc->cb_data);
+
+	return;
+}
+
 static void process_byte(const struct sr_dev_inst *sdi, const unsigned char c,
 		int handle_packets)
 {
 	struct dev_context *devc;
+	struct sr_datafeed_packet packet;
+	struct sr_datafeed_meta meta;
+	struct sr_config *src;
 	gint64 cur_time;
 	int len;
 
@@ -216,7 +255,8 @@ static void process_byte(const struct sr_dev_inst *sdi, const unsigned char c,
 		} else if (c == 0xbb) {
 			devc->cmd = c;
 			devc->buf_len = 0;
-			devc->state = ST_GET_LOG;
+			devc->state = ST_GET_LOG_HEADER;
+			sr_dbg("got command 0xbb");
 		}
 	} else if (devc->state == ST_GET_TOKEN) {
 		devc->token = c;
@@ -258,7 +298,74 @@ static void process_byte(const struct sr_dev_inst *sdi, const unsigned char c,
 				devc->state = ST_INIT;
 			}
 		}
-	} else if (devc->state == ST_GET_LOG) {
+	} else if (devc->state == ST_GET_LOG_HEADER) {
+		sr_dbg("log header: 0x%.2x", c);
+		if (devc->buf_len < 2)
+			devc->buf[devc->buf_len++] = c;
+		if (devc->buf_len == 2) {
+			sr_dbg("Device says it has %d bytes stored.",
+					((devc->buf[0] << 8) + devc->buf[1]) - 100);
+			devc->buf_len = 0;
+			devc->state = ST_GET_LOG_RECORD_META;
+		}
+	} else if (devc->state == ST_GET_LOG_RECORD_META) {
+		sr_dbg("log meta: 0x%.2x", c);
+		if (c == RECORD_END) {
+			devc->state = ST_INIT;
+			/* Stop acquisition after transferring all stored
+			 * records. Otherwise the frontend would have no
+			 * way to tell where stored data ends and live
+			 * measurements begin. */
+			sdi->driver->dev_acquisition_stop((struct sr_dev_inst *)sdi,
+					devc->cb_data);
+		} else if (c == RECORD_DATA) {
+			devc->buf_len = 0;
+			devc->state = ST_GET_LOG_RECORD_DATA;
+		} else {
+			/* RECORD_DBA/RECORD_DBC + 7 bytes of metadata */
+			devc->buf[devc->buf_len++] = c;
+			if (devc->buf_len < 8)
+				/* Keep filling up the record header. */
+				return;
+			if (devc->buf[0] == RECORD_DBA)
+				devc->cur_mqflags = SR_MQFLAG_SPL_FREQ_WEIGHT_A;
+			else if (devc->buf[0] == RECORD_DBC)
+				devc->cur_mqflags = SR_MQFLAG_SPL_FREQ_WEIGHT_C;
+			else {
+				/* Shouldn't happen. */
+				sr_dbg("Unknown record token 0x%.2x", c);
+				return;
+			}
+			packet.type = SR_DF_META;
+			packet.payload = &meta;
+			src = sr_config_new(SR_CONF_SAMPLE_INTERVAL,
+					g_variant_new_uint64(devc->buf[7] * 1000));
+			meta.config = g_slist_append(NULL, src);
+			sr_session_send(devc->cb_data, &packet);
+			g_free(src);
+			devc->buf_len = 0;
+		}
+	} else if (devc->state == ST_GET_LOG_RECORD_DATA) {
+		sr_dbg("log data: 0x%.2x", c);
+		if (c == RECORD_DBA || c == RECORD_DBC || c == RECORD_DATA || c == RECORD_END) {
+			/* Work around off-by-one bug in device firmware. This
+			 * happens only on the last record, i.e. before RECORD_END */
+			if (devc->buf_len & 1)
+				devc->buf_len--;
+			/* Done with this set of samples */
+			send_data(sdi, devc->buf, devc->buf_len / 2);
+			devc->buf_len = 0;
+
+			/* Process this meta marker in the right state. */
+			devc->state = ST_GET_LOG_RECORD_META;
+			process_byte(sdi, c, handle_packets);
+		} else {
+			devc->buf[devc->buf_len++] = c;
+			if (devc->buf_len == SAMPLES_PER_PACKET * 2) {
+				send_data(sdi, devc->buf, devc->buf_len / 2);
+				devc->buf_len = 0;
+			}
+		}
 	}
 
 }
@@ -266,19 +373,32 @@ static void process_byte(const struct sr_dev_inst *sdi, const unsigned char c,
 SR_PRIV int cem_dt_885x_receive_data(int fd, int revents, void *cb_data)
 {
 	const struct sr_dev_inst *sdi;
+	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
-	unsigned char c;
+	unsigned char c, cmd;
 
 	(void)fd;
 
 	if (!(sdi = cb_data))
 		return TRUE;
 
+	devc = sdi->priv;
 	serial = sdi->conn;
 	if (revents == G_IO_IN) {
 		if (serial_read(serial, &c, 1) != 1)
 			return TRUE;
 		process_byte(sdi, c, TRUE);
+
+		if (devc->enable_data_source_memory) {
+			if (devc->state == ST_GET_LOG_HEADER) {
+				/* Memory transfer started. */
+				devc->enable_data_source_memory = FALSE;
+			} else {
+				/* Tell device to start transferring from memory. */
+				cmd = CMD_TRANSFER_MEMORY;
+				serial_write(serial, &cmd, 1);
+			}
+		}
 	}
 
 	return TRUE;

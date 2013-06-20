@@ -118,6 +118,7 @@ static GSList *scan(GSList *options)
 			devc->recording = -1;
 			devc->cur_meas_range = 0;
 			devc->cur_data_source = DATA_SOURCE_LIVE;
+			devc->enable_data_source_memory = FALSE;
 
 			if (!(sdi->conn = sr_serial_dev_inst_new(conn, SERIALCOMM)))
 				return NULL;
@@ -333,6 +334,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi)
 			devc->cur_data_source = DATA_SOURCE_MEMORY;
 		else
 			return SR_ERR;
+		devc->enable_data_source_memory = devc->cur_data_source == DATA_SOURCE_MEMORY;
 		break;
 	default:
 		ret = SR_ERR_NA;

@@ -34,7 +34,13 @@
 #define sr_warn(s, args...) sr_warn(LOG_PREFIX s, ## args)
 #define sr_err(s, args...) sr_err(LOG_PREFIX s, ## args)
 
-#define BUF_SIZE 32
+/* When retrieving samples from device memory, group this many
+ * together into a sigrok packet. */
+#define SAMPLES_PER_PACKET 50
+
+/* Various temporary storage, at least 8 bytes. */
+#define BUF_SIZE SAMPLES_PER_PACKET * 2
+
 /* When in hold mode, force the last measurement out at this interval.
  * We're using 50ms, which duplicates the non-hold 20Hz update rate. */
 #define HOLD_REPEAT_INTERVAL 50 * 1000
@@ -73,6 +79,14 @@ enum {
 	CMD_TOGGLE_HOLD_MAX_MIN = 0x11,
 	CMD_TOGGLE_MEAS_RANGE = 0x88,
 	CMD_TOGGLE_POWER_OFF = 0x33,
+	CMD_TRANSFER_MEMORY = 0xac,
+};
+
+enum {
+	RECORD_DBA = 0xaa,
+	RECORD_DBC = 0xcc,
+	RECORD_DATA = 0xac,
+	RECORD_END = 0xdd,
 };
 
 enum {
@@ -94,6 +108,7 @@ struct dev_context {
 	/* Operational state */
 	int state;
 	uint64_t num_samples;
+	gboolean enable_data_source_memory;
 
 	/* Temporary state across callbacks */
 	void *cb_data;
@@ -110,7 +125,9 @@ enum {
 	ST_INIT,
 	ST_GET_TOKEN,
 	ST_GET_DATA,
-	ST_GET_LOG,
+	ST_GET_LOG_HEADER,
+	ST_GET_LOG_RECORD_META,
+	ST_GET_LOG_RECORD_DATA,
 };
 
 SR_PRIV int cem_dt_885x_receive_data(int fd, int revents, void *cb_data);
