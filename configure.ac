@@ -144,6 +144,11 @@ AC_ARG_ENABLE(ikalogic-scanalogic2, AC_HELP_STRING([--enable-ikalogic-scanalogic
 	[HW_IKALOGIC_SCANALOGIC2="$enableval"],
 	[HW_IKALOGIC_SCANALOGIC2=yes])
 
+AC_ARG_ENABLE(ikalogic-scanaplus, AC_HELP_STRING([--enable-ikalogic-scanaplus],
+	[enable Ikalogic ScanaPLUS support [default=yes]]),
+	[HW_IKALOGIC_SCANAPLUS="$enableval"],
+	[HW_IKALOGIC_SCANAPLUS=yes])
+
 AC_ARG_ENABLE(lascar-el-usb, AC_HELP_STRING([--enable-lascar-el-usb],
 	[enable Lascar EL-USB support [default=yes]]),
 	[HW_LASCAR_EL_USB="$enableval"],
@@ -356,6 +361,11 @@ if test "x$HW_IKALOGIC_SCANALOGIC2" = "xyes"; then
 	AC_DEFINE(HAVE_HW_IKALOGIC_SCANALOGIC2, 1, [IKALOGIC Scanalogic2 support])
 fi
 
+AM_CONDITIONAL(HW_IKALOGIC_SCANAPLUS, test x$HW_IKALOGIC_SCANAPLUS = xyes)
+if test "x$HW_IKALOGIC_SCANAPLUS" = "xyes"; then
+	AC_DEFINE(HAVE_HW_IKALOGIC_SCANAPLUS, 1, [Ikalogic ScanaPLUS support])
+fi
+
 AM_CONDITIONAL(HW_LASCAR_EL_USB, test x$HW_LASCAR_EL_USB = xyes)
 if test "x$HW_LASCAR_EL_USB" = "xyes"; then
 	AC_DEFINE(HAVE_HW_LASCAR_EL_USB, 1, [Lascar EL-USB support])
@@ -454,6 +464,7 @@ AC_CONFIG_FILES([Makefile version.h hardware/Makefile
 		 hardware/colead-slm/Makefile
 		 hardware/common/Makefile
 		 hardware/ikalogic-scanalogic2/Makefile
+		 hardware/ikalogic-scanaplus/Makefile
 		 hardware/lascar-el-usb/Makefile
 		 hardware/mic-985xx/Makefile
 		 hardware/nexus-osciprime/Makefile
@@ -516,6 +527,7 @@ echo "  - fluke-dmm....................... $HW_FLUKE_DMM"
 echo "  - fx2lafw......................... $HW_FX2LAFW"
 echo "  - hantek-dso...................... $HW_HANTEK_DSO"
 echo "  - ikalogic-scanalogic2............ $HW_IKALOGIC_SCANALOGIC2"
+echo "  - ikalogic-scanaplus.............. $HW_IKALOGIC_SCANAPLUS"
 echo "  - lascar-el-usb................... $HW_LASCAR_EL_USB"
 echo "  - link-mso19...................... $HW_LINK_MSO19"
 echo "  - mic-985xx....................... $HW_MIC_985XX"
