@@ -108,10 +108,6 @@ AC_ARG_ENABLE(cem-dt-885x, AC_HELP_STRING([--enable-cem-dt-885x],
 	[enable CEM DT-885x support [default=yes]]),
 	[HW_CEM_DT_885X="$enableval"],
 	[HW_CEM_DT_885X=yes])
-AM_CONDITIONAL(HW_CEM_DT_885X, test x$HW_CEM_DT_885X = xyes)
-if test "x$HW_CEM_DT_885X" = "xyes"; then
-	AC_DEFINE(HAVE_HW_CEM_DT_885X, 1, [CEM DT-885x support])
-fi
 
 AC_ARG_ENABLE(chronovu-la8, AC_HELP_STRING([--enable-chronovu-la8],
 	[enable ChronoVu LA8 support [default=yes]]),
@@ -318,6 +314,11 @@ fi
 AM_CONDITIONAL(HW_BRYMEN_DMM, test x$HW_BRYMEN_DMM = xyes)
 if test "x$HW_BRYMEN_DMM" = "xyes"; then
 	AC_DEFINE(HAVE_HW_BRYMEN_DMM, 1, [Brymen DMM support])
+fi
+
+AM_CONDITIONAL(HW_CEM_DT_885X, test x$HW_CEM_DT_885X = xyes)
+if test "x$HW_CEM_DT_885X" = "xyes"; then
+	AC_DEFINE(HAVE_HW_CEM_DT_885X, 1, [CEM DT-885x support])
 fi
 
 AM_CONDITIONAL(HW_CHRONOVU_LA8, test x$HW_CHRONOVU_LA8 = xyes)
