@@ -34,11 +34,16 @@
 #define sr_warn(s, args...) sr_warn(LOG_PREFIX s, ## args)
 #define sr_err(s, args...) sr_err(LOG_PREFIX s, ## args)
 
+SR_PRIV enum {
+	CMD_IDENTIFY = 0x02,
+};
+
 /** Private, per-device-instance driver context. */
 struct dev_context {
 	/* Model-specific information */
 
 	/* Acquisition settings */
+	uint64_t limit_samples;
 
 	/* Operational state */
 
