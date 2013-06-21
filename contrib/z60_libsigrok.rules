@@ -138,6 +138,9 @@ ATTRS{idVendor}=="20a0", ATTRS{idProduct}=="4123", MODE="664", GROUP="plugdev"
 # lsusb: "0403:dc48 Future Technology Devices International, Ltd"
 ATTRS{idVendor}=="0403", ATTRS{idProduct}=="dc48", MODE="664", GROUP="plugdev"
 
+# Kecheng KC-330B
+ATTRS{idVendor}=="1041", ATTRS{idProduct}=="8101", MODE="664", GROUP="plugdev"
+
 # Lascar Electronics EL-USB series
 # This is actually the generic SILabs (Cygnal) F32x USBXpress VID:PID
 ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="0002", MODE="664", GROUP="plugdev"
