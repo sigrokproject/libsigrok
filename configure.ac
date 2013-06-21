@@ -147,10 +147,6 @@ AC_ARG_ENABLE(ikalogic-scanalogic2, AC_HELP_STRING([--enable-ikalogic-scanalogic
 	[enable IKALOGIC Scanalogic2 support [default=yes]]),
 	[HW_IKALOGIC_SCANALOGIC2="$enableval"],
 	[HW_IKALOGIC_SCANALOGIC2=yes])
-AM_CONDITIONAL(HW_IKALOGIC_SCANALOGIC2, test x$HW_IKALOGIC_SCANALOGIC2 = xyes)
-if test "x$HW_IKALOGIC_SCANALOGIC2" = "xyes"; then
-	AC_DEFINE(HAVE_HW_IKALOGIC_SCANALOGIC2, 1, [IKALOGIC Scanalogic2 support])
-fi
 
 AC_ARG_ENABLE(lascar-el-usb, AC_HELP_STRING([--enable-lascar-el-usb],
 	[enable Lascar EL-USB support [default=yes]]),
@@ -245,8 +241,8 @@ case "$host" in
 		LIBS="$LIBS $libusb_LIBS";
 		SR_PKGLIBS="$SR_PKGLIBS libusb-1.0"],
 		[have_libusb1_0="no"; HW_FX2LAFW="no"; HW_HANTEK_DSO="no";
-		HW_LASCAR_EL_USB="no"; HW_NEXUS_OSCIPRIME="no";
-		HW_UNI_T_DMM="no"; HW_VICTOR_DMM="no";
+		HW_IKALOGIC_SCANALOGIC2="no"; HW_LASCAR_EL_USB="no";
+		HW_NEXUS_OSCIPRIME="no"; HW_UNI_T_DMM="no"; HW_VICTOR_DMM="no";
 		HW_ZEROPLUS_LOGIC_CUBE="no"])
 
 	# Define HAVE_LIBUSB_1_0 in config.h if we found libusb-1.0.
@@ -352,6 +348,11 @@ fi
 AM_CONDITIONAL(HW_HANTEK_DSO, test x$HW_HANTEK_DSO = xyes)
 if test "x$HW_HANTEK_DSO" = "xyes"; then
 	AC_DEFINE(HAVE_HW_HANTEK_DSO, 1, [Hantek DSO support])
+fi
+
+AM_CONDITIONAL(HW_IKALOGIC_SCANALOGIC2, test x$HW_IKALOGIC_SCANALOGIC2 = xyes)
+if test "x$HW_IKALOGIC_SCANALOGIC2" = "xyes"; then
+	AC_DEFINE(HAVE_HW_IKALOGIC_SCANALOGIC2, 1, [IKALOGIC Scanalogic2 support])
 fi
 
 AM_CONDITIONAL(HW_LASCAR_EL_USB, test x$HW_LASCAR_EL_USB = xyes)
