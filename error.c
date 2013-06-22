@@ -52,8 +52,6 @@
  */
 SR_API const char *sr_strerror(int error_code)
 {
-	const char *str;
-
 	/*
 	 * Note: All defined SR_* error macros from libsigrok.h must have
 	 * an entry in this function, as well as in sr_strerror_name().
@@ -61,38 +59,26 @@ SR_API const char *sr_strerror(int error_code)
 
 	switch (error_code) {
 	case SR_OK:
-		str = "no error";
-		break;
+		return "no error";
 	case SR_ERR:
-		str = "generic/unspecified error";
-		break;
+		return "generic/unspecified error";
 	case SR_ERR_MALLOC:
-		str = "memory allocation error";
-		break;
+		return "memory allocation error";
 	case SR_ERR_ARG:
-		str = "invalid argument";
-		break;
+		return "invalid argument";
 	case SR_ERR_BUG:
-		str = "internal error";
-		break;
+		return "internal error";
 	case SR_ERR_SAMPLERATE:
-		str = "invalid samplerate";
-		break;
+		return "invalid samplerate";
 	case SR_ERR_NA:
-		str = "not applicable";
-		break;
+		return "not applicable";
 	case SR_ERR_DEV_CLOSED:
-		str = "device closed but should be open";
-		break;
+		return "device closed but should be open";
 	case SR_ERR_TIMEOUT:
-		str = "timeout occurred";
-		break;
+		return "timeout occurred";
 	default:
-		str = "unknown error";
-		break;
+		return "unknown error";
 	}
-
-	return str;
 }
 
 /**
@@ -115,8 +101,6 @@ SR_API const char *sr_strerror(int error_code)
  */
 SR_API const char *sr_strerror_name(int error_code)
 {
-	const char *str;
-
 	/*
 	 * Note: All defined SR_* error macros from libsigrok.h must have
 	 * an entry in this function, as well as in sr_strerror().
@@ -124,38 +108,26 @@ SR_API const char *sr_strerror_name(int error_code)
 
 	switch (error_code) {
 	case SR_OK:
-		str = "SR_OK";
-		break;
+		return "SR_OK";
 	case SR_ERR:
-		str = "SR_ERR";
-		break;
+		return "SR_ERR";
 	case SR_ERR_MALLOC:
-		str = "SR_ERR_MALLOC";
-		break;
+		return "SR_ERR_MALLOC";
 	case SR_ERR_ARG:
-		str = "SR_ERR_ARG";
-		break;
+		return "SR_ERR_ARG";
 	case SR_ERR_BUG:
-		str = "SR_ERR_BUG";
-		break;
+		return "SR_ERR_BUG";
 	case SR_ERR_SAMPLERATE:
-		str = "SR_ERR_SAMPLERATE";
-		break;
+		return "SR_ERR_SAMPLERATE";
 	case SR_ERR_NA:
-		str = "SR_ERR_NA";
-		break;
+		return "SR_ERR_NA";
 	case SR_ERR_DEV_CLOSED:
-		str = "SR_ERR_DEV_CLOSED";
-		break;
+		return "SR_ERR_DEV_CLOSED";
 	case SR_ERR_TIMEOUT:
-		str = "SR_ERR_TIMEOUT";
-		break;
+		return "SR_ERR_TIMEOUT";
 	default:
-		str = "unknown error code";
-		break;
+		return "unknown error code";
 	}
-
-	return str;
 }
 
 /** @} */
