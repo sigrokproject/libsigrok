@@ -50,10 +50,12 @@ The following drivers/devices do not need any firmware upload:
  - agilent-dmm
  - alsa
  - brymen-dmm
+ - cem-dt-885x
  - chronovu-la8
  - colead-slm
  - demo
  - fluke-dmm
+ - ikalogic-scanalogic2
  - lascar-el-usb
  - link-mso19
  - mic-985xx
@@ -84,6 +86,7 @@ The following drivers/devices require a serial port specification:
 
  - agilent-dmm
  - brymen-dmm
+ - cem-dt-885x
  - colead-slm
  - fluke-dmm
  - link-mso19
@@ -101,6 +104,7 @@ The following drivers/devices do not require a serial port specification:
  - demo
  - fx2lafw
  - hantek-dso
+ - ikalogic-scanalogic2
  - lascar-el-usb
  - rigol-ds1xx2
  - uni-t-dmm
@@ -250,6 +254,7 @@ a short list for convenience:
  - V&A VA18B: Keep the "Hz/DUTY" key pressed while powering on the device.
  - Victor 70C: Press the "REL/RS232" button for roughly 1 second.
  - Victor 86C: Press the "REL/RS232" button for roughly 1 second.
+ - Voltcraft VC-830: Press the "REL/PC" button for roughly 2 seconds.
 
 
 ALSA driver
