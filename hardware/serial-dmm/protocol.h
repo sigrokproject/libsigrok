@@ -47,12 +47,13 @@ enum {
 	TECPEL_DMM_8061_SER,
 	VOLTCRAFT_M3650D,
 	VOLTCRAFT_VC820_SER,
+	VOLTCRAFT_VC830_SER,
 	VOLTCRAFT_VC840_SER,
 	UNI_T_UT61D_SER,
 	UNI_T_UT61E_SER,
 };
 
-#define DMM_COUNT 19
+#define DMM_COUNT 20
 
 struct dmm_info {
 	char *vendor;
@@ -110,6 +111,7 @@ SR_PRIV int receive_data_TECPEL_DMM_8060_SER(int fd, int revents, void *cb_data)
 SR_PRIV int receive_data_TECPEL_DMM_8061_SER(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_VOLTCRAFT_M3650D(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_VOLTCRAFT_VC820_SER(int fd, int revents, void *cb_data);
+SR_PRIV int receive_data_VOLTCRAFT_VC830_SER(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_VOLTCRAFT_VC840_SER(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_UNI_T_UT61D_SER(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_UNI_T_UT61E_SER(int fd, int revents, void *cb_data);

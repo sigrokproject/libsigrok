@@ -57,6 +57,7 @@ SR_PRIV struct sr_dev_driver tecpel_dmm_8060_ser_driver_info;
 SR_PRIV struct sr_dev_driver tecpel_dmm_8061_ser_driver_info;
 SR_PRIV struct sr_dev_driver voltcraft_m3650d_driver_info;
 SR_PRIV struct sr_dev_driver voltcraft_vc820_ser_driver_info;
+SR_PRIV struct sr_dev_driver voltcraft_vc830_ser_driver_info;
 SR_PRIV struct sr_dev_driver voltcraft_vc840_ser_driver_info;
 SR_PRIV struct sr_dev_driver uni_t_ut61d_ser_driver_info;
 SR_PRIV struct sr_dev_driver uni_t_ut61e_ser_driver_info;
@@ -176,6 +177,14 @@ SR_PRIV struct dmm_info dmms[] = {
 		NULL,
 		&voltcraft_vc820_ser_driver_info,
 		receive_data_VOLTCRAFT_VC820_SER,
+	},
+	{
+		"Voltcraft", "VC-830 (UT-D02 cable)", "2400/8n1/rts=0/dtr=1",
+		2400, FS9922_PACKET_SIZE, NULL,
+		sr_fs9922_packet_valid, sr_fs9922_parse,
+		NULL,
+		&voltcraft_vc830_ser_driver_info,
+		receive_data_VOLTCRAFT_VC830_SER,
 	},
 	{
 		"Voltcraft", "VC-840 (UT-D02 cable)", "2400/8n1/rts=0/dtr=1",
@@ -515,6 +524,7 @@ DRV(tecpel_dmm_8060_ser, TECPEL_DMM_8060_SER, "tecpel-dmm-8060-ser", "Tecpel DMM
 DRV(tecpel_dmm_8061_ser, TECPEL_DMM_8061_SER, "tecpel-dmm-8061-ser", "Tecpel DMM-8061 (UT-D02 cable)")
 DRV(voltcraft_m3650d, VOLTCRAFT_M3650D, "voltcraft-m3650d", "Voltcraft M-3650D")
 DRV(voltcraft_vc820_ser, VOLTCRAFT_VC820_SER, "voltcraft-vc820-ser", "Voltcraft VC-820 (UT-D02 cable)")
+DRV(voltcraft_vc830_ser, VOLTCRAFT_VC830_SER, "voltcraft-vc830-ser", "Voltcraft VC-830 (UT-D02 cable)")
 DRV(voltcraft_vc840_ser, VOLTCRAFT_VC840_SER, "voltcraft-vc840-ser", "Voltcraft VC-840 (UT-D02 cable)")
 DRV(uni_t_ut61d_ser, UNI_T_UT61D_SER, "uni-t-ut61d-ser", "UNI-T UT61D (UT-D02 cable)")
 DRV(uni_t_ut61e_ser, UNI_T_UT61E_SER, "uni-t-ut61e-ser", "UNI-T UT61E (UT-D02 cable)")
