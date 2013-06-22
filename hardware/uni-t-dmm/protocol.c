@@ -65,6 +65,7 @@
  *  - UNI-T UT61E: Cyrustek ES51922
  *  - UNI-T UT70B: ?
  *  - Voltcraft VC-820: Fortune Semiconductor FS9721_LP3
+ *  - Voltcraft VC-830: Fortune Semiconductor FS9922-DMM4
  *  - Voltcraft VC-840: Fortune Semiconductor FS9721_LP3
  *  - ...
  */
@@ -307,4 +308,5 @@ RECEIVE_DATA(TECPEL_DMM_8061, fs9721)
 RECEIVE_DATA(UNI_T_UT61D, fs9922)
 RECEIVE_DATA(UNI_T_UT61E, es51922)
 RECEIVE_DATA(VOLTCRAFT_VC820, fs9721)
+RECEIVE_DATA(VOLTCRAFT_VC830, fs9922)
 RECEIVE_DATA(VOLTCRAFT_VC840, fs9721)
