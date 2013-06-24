@@ -17,18 +17,46 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <string.h>
 #include "protocol.h"
 
 #define USB_CONN "1041.8101"
 #define VENDOR "Kecheng"
 #define USB_INTERFACE 0
-#define EP_IN 0x80 | 1
-#define EP_OUT 2
 
 static const int32_t hwcaps[] = {
 	SR_CONF_SOUNDLEVELMETER,
 	SR_CONF_LIMIT_SAMPLES,
 	SR_CONF_CONTINUOUS,
+	SR_CONF_DATALOG,
+	SR_CONF_SPL_WEIGHT_FREQ,
+	SR_CONF_SPL_WEIGHT_TIME,
+	SR_CONF_DATA_SOURCE,
+};
+
+static const uint64_t sample_intervals[][2] = {
+	{ 1, 8 },
+	{ 1, 2 },
+	{ 1, 1 },
+	{ 2, 1 },
+	{ 5, 1 },
+	{ 10, 1 },
+	{ 60, 1 },
+};
+
+static const char *weight_freq[] = {
+	"A",
+	"C",
+};
+
+static const char *weight_time[] = {
+	"F",
+	"S",
+};
+
+static const char *data_sources[] = {
+	"Live",
+	"Memory",
 };
 
 SR_PRIV struct sr_dev_driver kecheng_kc_330b_driver_info;
@@ -118,6 +146,15 @@ static GSList *scan(GSList *options)
 			}
 			sdi->priv = devc;
 			devc->limit_samples = 0;
+			/* The protocol provides no way to read the current
+			 * settings, so we'll enforce these. */
+			devc->sample_interval = DEFAULT_SAMPLE_INTERVAL;
+			devc->alarm_low = DEFAULT_ALARM_LOW;
+			devc->alarm_high = DEFAULT_ALARM_HIGH;
+			devc->mqflags = DEFAULT_WEIGHT_TIME | DEFAULT_WEIGHT_FREQ;
+			devc->data_source = DEFAULT_DATA_SOURCE;
+
+			/* TODO: Set date/time? */
 
 			drvc->instances = g_slist_append(drvc->instances, sdi);
 			devices = g_slist_append(devices, sdi);
@@ -165,6 +202,9 @@ static int dev_open(struct sr_dev_inst *sdi)
 	}
 	sdi->status = SR_ST_ACTIVE;
 
+	/* Force configuration. */
+	ret = kecheng_kc_330b_configure(sdi);
+
 	return ret;
 }
 
@@ -210,11 +250,44 @@ static int cleanup(void)
 static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
+	GVariant *rational[2];
+	const uint64_t *si;
+	int tmp, ret;
 
 	devc = sdi->priv;
 	switch (key) {
 	case SR_CONF_LIMIT_SAMPLES:
 		*data = g_variant_new_uint64(devc->limit_samples);
+		break;
+	case SR_CONF_SAMPLE_INTERVAL:
+		si = sample_intervals[devc->sample_interval];
+		rational[0] = g_variant_new_uint64(si[0]);
+		rational[1] = g_variant_new_uint64(si[1]);
+		*data = g_variant_new_tuple(rational, 2);
+		break;
+	case SR_CONF_DATALOG:
+		if ((ret = kecheng_kc_330b_recording_get(sdi, &tmp)) == SR_OK)
+			*data = g_variant_new_boolean(tmp);
+		else
+			return SR_ERR;
+		break;
+	case SR_CONF_SPL_WEIGHT_FREQ:
+		if (devc->mqflags & SR_MQFLAG_SPL_FREQ_WEIGHT_A)
+			*data = g_variant_new_string("A");
+		else
+			*data = g_variant_new_string("C");
+		break;
+	case SR_CONF_SPL_WEIGHT_TIME:
+		if (devc->mqflags & SR_MQFLAG_SPL_TIME_WEIGHT_F)
+			*data = g_variant_new_string("F");
+		else
+			*data = g_variant_new_string("S");
+		break;
+	case SR_CONF_DATA_SOURCE:
+		if (devc->data_source == DATA_SOURCE_LIVE)
+			*data = g_variant_new_string("Live");
+		else
+			*data = g_variant_new_string("Memory");
 		break;
 	default:
 		return SR_ERR_NA;
@@ -226,7 +299,10 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi)
 static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	int ret;
+	uint64_t p, q;
+	unsigned int i;
+	int tmp, ret;
+	const char *tmp_str;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
@@ -244,6 +320,51 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi)
 		sr_dbg("Setting sample limit to %" PRIu64 ".",
 		       devc->limit_samples);
 		break;
+	case SR_CONF_SAMPLE_INTERVAL:
+		g_variant_get(data, "(tt)", &p, &q);
+		for (i = 0; i < ARRAY_SIZE(sample_intervals); i++) {
+			if (sample_intervals[i][0] != p || sample_intervals[i][1] != q)
+				continue;
+			devc->sample_interval = i;
+			kecheng_kc_330b_configure(sdi);
+			break;
+		}
+		if (i == ARRAY_SIZE(sample_intervals))
+			ret = SR_ERR_ARG;
+		break;
+	case SR_CONF_SPL_WEIGHT_FREQ:
+		tmp_str = g_variant_get_string(data, NULL);
+		if (!strcmp(tmp_str, "A"))
+			tmp = SR_MQFLAG_SPL_FREQ_WEIGHT_A;
+		else if (!strcmp(tmp_str, "C"))
+			tmp = SR_MQFLAG_SPL_FREQ_WEIGHT_C;
+		else
+			return SR_ERR_ARG;
+		devc->mqflags &= ~(SR_MQFLAG_SPL_FREQ_WEIGHT_A | SR_MQFLAG_SPL_FREQ_WEIGHT_C);
+		devc->mqflags |= tmp;
+		kecheng_kc_330b_configure(sdi);
+		break;
+	case SR_CONF_SPL_WEIGHT_TIME:
+		tmp_str = g_variant_get_string(data, NULL);
+		if (!strcmp(tmp_str, "F"))
+			tmp = SR_MQFLAG_SPL_TIME_WEIGHT_F;
+		else if (!strcmp(tmp_str, "S"))
+			tmp = SR_MQFLAG_SPL_TIME_WEIGHT_S;
+		else
+			return SR_ERR_ARG;
+		devc->mqflags &= ~(SR_MQFLAG_SPL_TIME_WEIGHT_F | SR_MQFLAG_SPL_TIME_WEIGHT_S);
+		devc->mqflags |= tmp;
+		kecheng_kc_330b_configure(sdi);
+		break;
+	case SR_CONF_DATA_SOURCE:
+		tmp_str = g_variant_get_string(data, NULL);
+		if (!strcmp(tmp_str, "Live"))
+			devc->data_source = DATA_SOURCE_LIVE;
+		else if (!strcmp(tmp_str, "Memory"))
+			devc->data_source = DATA_SOURCE_MEMORY;
+		else
+			return SR_ERR;
+		break;
 	default:
 		ret = SR_ERR_NA;
 	}
@@ -253,6 +374,9 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi)
 
 static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 {
+	GVariant *tuple, *rational[2];
+	GVariantBuilder gvb;
+	unsigned int i;
 
 	(void)sdi;
 
@@ -260,6 +384,25 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 	case SR_CONF_DEVICE_OPTIONS:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
 				hwcaps, ARRAY_SIZE(hwcaps), sizeof(int32_t));
+		break;
+	case SR_CONF_SAMPLE_INTERVAL:
+		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
+		for (i = 0; i < ARRAY_SIZE(sample_intervals); i++) {
+			rational[0] = g_variant_new_uint64(sample_intervals[i][0]);
+			rational[1] = g_variant_new_uint64(sample_intervals[i][1]);
+			tuple = g_variant_new_tuple(rational, 2);
+			g_variant_builder_add_value(&gvb, tuple);
+		}
+		*data = g_variant_builder_end(&gvb);
+		break;
+	case SR_CONF_SPL_WEIGHT_FREQ:
+		*data = g_variant_new_strv(weight_freq, ARRAY_SIZE(weight_freq));
+		break;
+	case SR_CONF_SPL_WEIGHT_TIME:
+		*data = g_variant_new_strv(weight_time, ARRAY_SIZE(weight_time));
+		break;
+	case SR_CONF_DATA_SOURCE:
+		*data = g_variant_new_strv(data_sources, ARRAY_SIZE(data_sources));
 		break;
 	default:
 		return SR_ERR_NA;
@@ -271,14 +414,42 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 				    void *cb_data)
 {
-	(void)sdi;
-	(void)cb_data;
+	struct drv_context *drvc;
+	struct dev_context *devc;
+	struct sr_usb_dev_inst *usb;
+	const struct libusb_pollfd **pfd;
+	int len, ret, i;
+	unsigned char cmd;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
-	/* TODO: configure hardware, reset acquisition state, set up
-	 * callbacks and send header packet. */
+	drvc = di->priv;
+	devc = sdi->priv;
+	usb = sdi->conn;
+
+	devc->cb_data = cb_data;
+	devc->num_samples = 0;
+
+	/* Send header packet to the session bus. */
+	std_session_send_df_header(cb_data, LOG_PREFIX);
+
+	pfd = libusb_get_pollfds(drvc->sr_ctx->libusb_ctx);
+	for (i = 0; pfd[i]; i++) {
+		/* Handle USB events every 100ms, for decent latency. */
+		sr_source_add(pfd[i]->fd, pfd[i]->events, 100,
+				kecheng_kc_330b_handle_events, (void *)sdi);
+		/* We'll need to remove this fd later. */
+		devc->usbfd[i] = pfd[i]->fd;
+	}
+	devc->usbfd[i] = -1;
+
+	cmd = CMD_GET_LIVE_SPL;
+	ret = libusb_bulk_transfer(usb->devhdl, EP_OUT, &cmd, 1, &len, 5);
+	if (ret != 0 || len != 1) {
+		sr_dbg("Failed to start acquisition: %s", libusb_error_name(ret));
+		return SR_ERR;
+	}
 
 	return SR_OK;
 }

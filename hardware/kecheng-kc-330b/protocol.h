@@ -34,8 +34,29 @@
 #define sr_warn(s, args...) sr_warn(LOG_PREFIX s, ## args)
 #define sr_err(s, args...) sr_err(LOG_PREFIX s, ## args)
 
-SR_PRIV enum {
+#define EP_IN 0x80 | 1
+#define EP_OUT 2
+
+/* 500ms */
+#define DEFAULT_SAMPLE_INTERVAL 1
+#define DEFAULT_ALARM_LOW 40
+#define DEFAULT_ALARM_HIGH 120
+#define DEFAULT_WEIGHT_TIME SR_MQFLAG_SPL_TIME_WEIGHT_F
+#define DEFAULT_WEIGHT_FREQ SR_MQFLAG_SPL_FREQ_WEIGHT_A
+/* Live */
+#define DEFAULT_DATA_SOURCE DATA_SOURCE_LIVE
+
+
+enum {
+	CMD_CONFIGURE = 0x01,
 	CMD_IDENTIFY = 0x02,
+	CMD_SET_DATE_TIME = 0x03,
+	CMD_GET_LIVE_SPL = 0x08,
+};
+
+enum {
+	DATA_SOURCE_LIVE,
+	DATA_SOURCE_MEMORY,
 };
 
 /** Private, per-device-instance driver context. */
@@ -44,13 +65,25 @@ struct dev_context {
 
 	/* Acquisition settings */
 	uint64_t limit_samples;
+	int sample_interval;
+	int alarm_low;
+	int alarm_high;
+	uint64_t mqflags;
+	int data_source;
 
 	/* Operational state */
+	uint64_t num_samples;
+	void *cb_data;
+	int usbfd[10];
 
 	/* Temporary state across callbacks */
 
 };
 
-SR_PRIV int kecheng_kc_330b_receive_data(int fd, int revents, void *cb_data);
+SR_PRIV int kecheng_kc_330b_handle_events(int fd, int revents, void *cb_data);
+SR_PRIV int kecheng_kc_330b_configure(const struct sr_dev_inst *sdi);
+SR_PRIV int kecheng_kc_330b_set_date_time(struct sr_dev_inst *sdi);
+SR_PRIV int kecheng_kc_330b_recording_get(const struct sr_dev_inst *sdi,
+		gboolean *tmp);
 
 #endif
