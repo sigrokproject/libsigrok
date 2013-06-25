@@ -55,12 +55,18 @@ enum {
 	CMD_CONFIGURE = 0x01,
 	CMD_IDENTIFY = 0x02,
 	CMD_SET_DATE_TIME = 0x03,
+	CMD_GET_STATUS = 0x04,
 	CMD_GET_LIVE_SPL = 0x08,
 };
 
 enum {
 	DATA_SOURCE_LIVE,
 	DATA_SOURCE_MEMORY,
+};
+
+enum {
+	DEVICE_ACTIVE,
+	DEVICE_INACTIVE,
 };
 
 /** Private, per-device-instance driver context. */
@@ -92,5 +98,7 @@ SR_PRIV int kecheng_kc_330b_configure(const struct sr_dev_inst *sdi);
 SR_PRIV int kecheng_kc_330b_set_date_time(struct sr_dev_inst *sdi);
 SR_PRIV int kecheng_kc_330b_recording_get(const struct sr_dev_inst *sdi,
 		gboolean *tmp);
+SR_PRIV int kecheng_kc_330b_status_get(const struct sr_dev_inst *sdi,
+		int *status);
 
 #endif

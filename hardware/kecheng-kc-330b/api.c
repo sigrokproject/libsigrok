@@ -431,6 +431,19 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	devc->cb_data = cb_data;
 	devc->num_samples = 0;
 
+	if (devc->data_source == DATA_SOURCE_LIVE) {
+		if (kecheng_kc_330b_status_get(sdi, &ret) != SR_OK)
+			return SR_ERR;
+		sr_dbg("st %s", ret == DEVICE_ACTIVE ? "act" : "deact");
+		if (ret != DEVICE_ACTIVE) {
+			sr_err("Device is inactive");
+			/* Still continue though, since the device will
+			 * just return 30.0 until the user hits the button
+			 * on the device -- and then start feeding good
+			 * samples back. */
+		}
+	}
+
 	if (!(devc->xfer = libusb_alloc_transfer(0)))
 		return SR_ERR;
 

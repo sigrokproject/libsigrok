@@ -225,7 +225,41 @@ SR_PRIV int kecheng_kc_330b_set_date_time(struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
+	return SR_OK;
+}
 
+SR_PRIV int kecheng_kc_330b_status_get(const struct sr_dev_inst *sdi,
+		int *status)
+{
+	struct sr_usb_dev_inst *usb;
+	int len, ret;
+	unsigned char buf;
+
+	sr_dbg("Getting device status.");
+
+	usb = sdi->conn;
+	buf = CMD_GET_STATUS;
+	ret = libusb_bulk_transfer(usb->devhdl, EP_OUT, &buf, 1, &len, 5);
+	if (ret != 0 || len != 1) {
+		sr_dbg("Failed to get status: %s", libusb_error_name(ret));
+		return SR_ERR;
+	}
+
+	ret = libusb_bulk_transfer(usb->devhdl, EP_IN, &buf, 1, &len, 10);
+	if (ret != 0 || len != 1) {
+		sr_dbg("Failed to get status (no ack): %s", libusb_error_name(ret));
+		return SR_ERR;
+	}
+	/* Need either 0x84 or 0xa4. */
+	if (buf != (CMD_GET_STATUS | 0x80) && buf != (CMD_GET_STATUS | 0xa0)) {
+		sr_dbg("Failed to get status: invalid response 0x%2.x", buf);
+		return SR_ERR;
+	}
+
+	if (buf & 0x20)
+		*status = DEVICE_INACTIVE;
+	else
+		*status = DEVICE_ACTIVE;
 
 	return SR_OK;
 }
