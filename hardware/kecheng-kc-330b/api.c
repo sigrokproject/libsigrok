@@ -34,7 +34,7 @@ static const int32_t hwcaps[] = {
 	SR_CONF_DATA_SOURCE,
 };
 
-static const uint64_t sample_intervals[][2] = {
+SR_PRIV const uint64_t kecheng_kc_330b_sample_intervals[][2] = {
 	{ 1, 8 },
 	{ 1, 2 },
 	{ 1, 1 },
@@ -260,7 +260,7 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi)
 		*data = g_variant_new_uint64(devc->limit_samples);
 		break;
 	case SR_CONF_SAMPLE_INTERVAL:
-		si = sample_intervals[devc->sample_interval];
+		si = kecheng_kc_330b_sample_intervals[devc->sample_interval];
 		rational[0] = g_variant_new_uint64(si[0]);
 		rational[1] = g_variant_new_uint64(si[1]);
 		*data = g_variant_new_tuple(rational, 2);
@@ -322,14 +322,14 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi)
 		break;
 	case SR_CONF_SAMPLE_INTERVAL:
 		g_variant_get(data, "(tt)", &p, &q);
-		for (i = 0; i < ARRAY_SIZE(sample_intervals); i++) {
-			if (sample_intervals[i][0] != p || sample_intervals[i][1] != q)
+		for (i = 0; i < ARRAY_SIZE(kecheng_kc_330b_sample_intervals); i++) {
+			if (kecheng_kc_330b_sample_intervals[i][0] != p || kecheng_kc_330b_sample_intervals[i][1] != q)
 				continue;
 			devc->sample_interval = i;
 			kecheng_kc_330b_configure(sdi);
 			break;
 		}
-		if (i == ARRAY_SIZE(sample_intervals))
+		if (i == ARRAY_SIZE(kecheng_kc_330b_sample_intervals))
 			ret = SR_ERR_ARG;
 		break;
 	case SR_CONF_SPL_WEIGHT_FREQ:
@@ -387,9 +387,9 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 		break;
 	case SR_CONF_SAMPLE_INTERVAL:
 		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
-		for (i = 0; i < ARRAY_SIZE(sample_intervals); i++) {
-			rational[0] = g_variant_new_uint64(sample_intervals[i][0]);
-			rational[1] = g_variant_new_uint64(sample_intervals[i][1]);
+		for (i = 0; i < ARRAY_SIZE(kecheng_kc_330b_sample_intervals); i++) {
+			rational[0] = g_variant_new_uint64(kecheng_kc_330b_sample_intervals[i][0]);
+			rational[1] = g_variant_new_uint64(kecheng_kc_330b_sample_intervals[i][1]);
 			tuple = g_variant_new_tuple(rational, 2);
 			g_variant_builder_add_value(&gvb, tuple);
 		}
@@ -431,13 +431,16 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	devc->cb_data = cb_data;
 	devc->num_samples = 0;
 
+	if (!(devc->xfer = libusb_alloc_transfer(0)))
+		return SR_ERR;
+
 	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, LOG_PREFIX);
 
 	pfd = libusb_get_pollfds(drvc->sr_ctx->libusb_ctx);
 	for (i = 0; pfd[i]; i++) {
-		/* Handle USB events every 100ms, for decent latency. */
-		sr_source_add(pfd[i]->fd, pfd[i]->events, 100,
+		/* Handle USB events every 10ms. */
+		sr_source_add(pfd[i]->fd, pfd[i]->events, 10,
 				kecheng_kc_330b_handle_events, (void *)sdi);
 		/* We'll need to remove this fd later. */
 		devc->usbfd[i] = pfd[i]->fd;
@@ -448,8 +451,18 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	ret = libusb_bulk_transfer(usb->devhdl, EP_OUT, &cmd, 1, &len, 5);
 	if (ret != 0 || len != 1) {
 		sr_dbg("Failed to start acquisition: %s", libusb_error_name(ret));
+		libusb_free_transfer(devc->xfer);
 		return SR_ERR;
 	}
+	devc->last_live_request = g_get_monotonic_time() / 1000;
+
+	libusb_fill_bulk_transfer(devc->xfer, usb->devhdl, EP_IN, devc->buf,
+			16, kecheng_kc_330b_receive_transfer, (void *)sdi, 15);
+	if (libusb_submit_transfer(devc->xfer) != 0) {
+		libusb_free_transfer(devc->xfer);
+		return SR_ERR;
+	}
+	devc->state = LIVE_SPL_WAIT;
 
 	return SR_OK;
 }
@@ -461,7 +474,8 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
-	/* TODO: stop acquisition. */
+	/* Signal USB transfer handler to clean up and stop. */
+	sdi->status = SR_ST_STOPPING;
 
 	return SR_OK;
 }

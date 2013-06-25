@@ -17,22 +17,137 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <string.h>
 #include "protocol.h"
+
+extern struct sr_dev_driver kecheng_kc_330b_driver_info;
+static struct sr_dev_driver *di = &kecheng_kc_330b_driver_info;
+extern const uint64_t kecheng_kc_330b_sample_intervals[][2];
 
 SR_PRIV int kecheng_kc_330b_handle_events(int fd, int revents, void *cb_data)
 {
-	const struct sr_dev_inst *sdi;
+	struct drv_context *drvc;
 	struct dev_context *devc;
+	struct sr_datafeed_packet packet;
+	struct sr_dev_inst *sdi;
+	struct sr_usb_dev_inst *usb;
 	struct timeval tv;
+	const uint64_t *intv_entry;
+	gint64 now, interval;
+	int len, ret, i;
+	unsigned char cmd;
 
 	(void)fd;
 	(void)revents;
 
+	drvc = di->priv;
 	sdi = cb_data;
 	devc = sdi->priv;
+	usb = sdi->conn;
 
+	memset(&tv, 0, sizeof(struct timeval));
+	libusb_handle_events_timeout_completed(drvc->sr_ctx->libusb_ctx, &tv,
+					       NULL);
+
+	if (sdi->status == SR_ST_STOPPING) {
+		libusb_free_transfer(devc->xfer);
+		for (i = 0; devc->usbfd[i] != -1; i++)
+			sr_source_remove(devc->usbfd[i]);
+		packet.type = SR_DF_END;
+		sr_session_send(cb_data, &packet);
+		sdi->status = SR_ST_ACTIVE;
+		return TRUE;
+	}
+
+	if (devc->state == LIVE_SPL_IDLE) {
+		now = g_get_monotonic_time() / 1000;
+		intv_entry = kecheng_kc_330b_sample_intervals[devc->sample_interval];
+		interval = intv_entry[0] * 1000 / intv_entry[1];
+		if (now - devc->last_live_request > interval) {
+			cmd = CMD_GET_LIVE_SPL;
+			ret = libusb_bulk_transfer(usb->devhdl, EP_OUT, &cmd, 1, &len, 5);
+			if (ret != 0 || len != 1) {
+				sr_dbg("Failed to request new acquisition: %s",
+						libusb_error_name(ret));
+				sdi->driver->dev_acquisition_stop((struct sr_dev_inst *)sdi,
+						devc->cb_data);
+				return TRUE;
+			}
+			libusb_submit_transfer(devc->xfer);
+			devc->last_live_request = now;
+			devc->state = LIVE_SPL_WAIT;
+		}
+	}
 
 	return TRUE;
+}
+
+static void send_data(const struct sr_dev_inst *sdi, void *buf, unsigned int buf_len)
+{
+	struct dev_context *devc;
+	struct sr_datafeed_packet packet;
+	struct sr_datafeed_analog analog;
+
+	devc = sdi->priv;
+
+	memset(&analog, 0, sizeof(struct sr_datafeed_analog));
+	analog.mq = SR_MQ_SOUND_PRESSURE_LEVEL;
+	analog.mqflags = devc->mqflags;
+	analog.unit = SR_UNIT_DECIBEL_SPL;
+	analog.probes = sdi->probes;
+	analog.num_samples = buf_len;
+	analog.data = buf;
+	packet.type = SR_DF_ANALOG;
+	packet.payload = &analog;
+	sr_session_send(devc->cb_data, &packet);
+
+}
+
+SR_PRIV void kecheng_kc_330b_receive_transfer(struct libusb_transfer *transfer)
+{
+	struct dev_context *devc;
+	struct sr_dev_inst *sdi;
+	float fvalue;
+	int packet_has_error;
+
+	sdi = transfer->user_data;
+	devc = sdi->priv;
+
+	packet_has_error = FALSE;
+	switch (transfer->status) {
+	case LIBUSB_TRANSFER_NO_DEVICE:
+		/* USB device was unplugged. */
+		sdi->driver->dev_acquisition_stop((struct sr_dev_inst *)sdi,
+				devc->cb_data);
+		return;
+	case LIBUSB_TRANSFER_COMPLETED:
+	case LIBUSB_TRANSFER_TIMED_OUT: /* We may have received some data though */
+		break;
+	default:
+		packet_has_error = TRUE;
+		break;
+	}
+
+	if (!packet_has_error) {
+		if (devc->state == LIVE_SPL_WAIT) {
+			if (transfer->actual_length != 3 || transfer->buffer[0] != 0x88) {
+				sr_dbg("Received invalid SPL packet.");
+			} else {
+				fvalue = ((transfer->buffer[1] << 8) + transfer->buffer[2]) / 10.0;
+				send_data(sdi, &fvalue, 1);
+				devc->num_samples++;
+				if (devc->limit_samples && devc->num_samples >= devc->limit_samples)
+					sdi->driver->dev_acquisition_stop((struct sr_dev_inst *)sdi,
+							devc->cb_data);
+
+				/* let USB event handler fire off another
+				 * request when the time is right. */
+				devc->state = LIVE_SPL_IDLE;
+			}
+		}
+	}
+
+
 }
 
 SR_PRIV int kecheng_kc_330b_configure(const struct sr_dev_inst *sdi)

@@ -38,7 +38,7 @@
 #define EP_OUT 2
 
 /* 500ms */
-#define DEFAULT_SAMPLE_INTERVAL 1
+#define DEFAULT_SAMPLE_INTERVAL 0
 #define DEFAULT_ALARM_LOW 40
 #define DEFAULT_ALARM_HIGH 120
 #define DEFAULT_WEIGHT_TIME SR_MQFLAG_SPL_TIME_WEIGHT_F
@@ -46,6 +46,10 @@
 /* Live */
 #define DEFAULT_DATA_SOURCE DATA_SOURCE_LIVE
 
+enum {
+	LIVE_SPL_IDLE,
+	LIVE_SPL_WAIT,
+};
 
 enum {
 	CMD_CONFIGURE = 0x01,
@@ -61,8 +65,6 @@ enum {
 
 /** Private, per-device-instance driver context. */
 struct dev_context {
-	/* Model-specific information */
-
 	/* Acquisition settings */
 	uint64_t limit_samples;
 	int sample_interval;
@@ -72,15 +74,20 @@ struct dev_context {
 	int data_source;
 
 	/* Operational state */
+	int state;
 	uint64_t num_samples;
 	void *cb_data;
 	int usbfd[10];
+	struct libusb_transfer *xfer;
+	unsigned char buf[16];
 
 	/* Temporary state across callbacks */
+	gint64 last_live_request;
 
 };
 
 SR_PRIV int kecheng_kc_330b_handle_events(int fd, int revents, void *cb_data);
+SR_PRIV void kecheng_kc_330b_receive_transfer(struct libusb_transfer *transfer);
 SR_PRIV int kecheng_kc_330b_configure(const struct sr_dev_inst *sdi);
 SR_PRIV int kecheng_kc_330b_set_date_time(struct sr_dev_inst *sdi);
 SR_PRIV int kecheng_kc_330b_recording_get(const struct sr_dev_inst *sdi,
