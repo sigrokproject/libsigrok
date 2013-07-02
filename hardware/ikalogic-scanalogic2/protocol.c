@@ -752,7 +752,7 @@ SR_PRIV int sl2_get_device_info(struct sr_usb_dev_inst usb,
 SR_PRIV int sl2_transfer_in(libusb_device_handle *dev_handle, uint8_t *data)
 {
 	return libusb_control_transfer(dev_handle, USB_REQUEST_TYPE_IN,
-		USB_HID_SET_REPORT, USB_HID_REPORT_TYPE_FEATURE, USB_INTERFACE,
+		USB_HID_GET_REPORT, USB_HID_REPORT_TYPE_FEATURE, USB_INTERFACE,
 		(unsigned char *)data, PACKET_LENGTH, USB_TIMEOUT);
 }
 

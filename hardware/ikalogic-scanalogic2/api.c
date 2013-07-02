@@ -161,7 +161,7 @@ static GSList *scan(GSList *options)
 			PACKET_LENGTH);
 
 		libusb_fill_control_setup(devc->xfer_buf_in,
-			USB_REQUEST_TYPE_IN, USB_HID_SET_REPORT,
+			USB_REQUEST_TYPE_IN, USB_HID_GET_REPORT,
 			USB_HID_REPORT_TYPE_FEATURE, USB_INTERFACE,
 			PACKET_LENGTH);
 		libusb_fill_control_setup(devc->xfer_buf_out,
