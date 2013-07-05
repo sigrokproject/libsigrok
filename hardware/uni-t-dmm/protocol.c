@@ -57,7 +57,8 @@
  *  - UNI-T UT109: ?
  *  - UNI-T UT30A: ?
  *  - UNI-T UT30E: ?
- *  - UNI-T UT60E: Fortune Semiconductor FS9721_LP3
+ *  - UNI-T UT60A: Fortune Semiconductor FS9721_LP3 (?)
+ *  - UNI-T UT60E: Fortune Semiconductor FS9721_LP3 (?)
  *  - UNI-T UT60G: ?
  *  - UNI-T UT61B: ?
  *  - UNI-T UT61C: ?
@@ -305,6 +306,8 @@ SR_PRIV int receive_data_##ID_UPPER(int fd, int revents, void *cb_data) { \
 /* Driver-specific receive_data() wrappers */
 RECEIVE_DATA(TECPEL_DMM_8060, fs9721)
 RECEIVE_DATA(TECPEL_DMM_8061, fs9721)
+RECEIVE_DATA(UNI_T_UT60A, fs9721)
+RECEIVE_DATA(UNI_T_UT60E, fs9721)
 RECEIVE_DATA(UNI_T_UT61D, fs9922)
 RECEIVE_DATA(UNI_T_UT61E, es51922)
 RECEIVE_DATA(VOLTCRAFT_VC820, fs9721)

@@ -59,6 +59,8 @@ SR_PRIV struct sr_dev_driver voltcraft_m3650d_driver_info;
 SR_PRIV struct sr_dev_driver voltcraft_vc820_ser_driver_info;
 SR_PRIV struct sr_dev_driver voltcraft_vc830_ser_driver_info;
 SR_PRIV struct sr_dev_driver voltcraft_vc840_ser_driver_info;
+SR_PRIV struct sr_dev_driver uni_t_ut60a_ser_driver_info;
+SR_PRIV struct sr_dev_driver uni_t_ut60e_ser_driver_info;
 SR_PRIV struct sr_dev_driver uni_t_ut61d_ser_driver_info;
 SR_PRIV struct sr_dev_driver uni_t_ut61e_ser_driver_info;
 
@@ -193,6 +195,22 @@ SR_PRIV struct dmm_info dmms[] = {
 		sr_fs9721_00_temp_c,
 		&voltcraft_vc840_ser_driver_info,
 		receive_data_VOLTCRAFT_VC840_SER,
+	},
+	{
+		"UNI-T", "UT60A (UT-D02 cable)", "2400/8n1/rts=0/dtr=1",
+		2400, FS9721_PACKET_SIZE, NULL,
+		sr_fs9721_packet_valid, sr_fs9721_parse,
+		NULL,
+		&uni_t_ut60a_ser_driver_info,
+		receive_data_UNI_T_UT60A_SER,
+	},
+	{
+		"UNI-T", "UT60E (UT-D02 cable)", "2400/8n1/rts=0/dtr=1",
+		2400, FS9721_PACKET_SIZE, NULL,
+		sr_fs9721_packet_valid, sr_fs9721_parse,
+		sr_fs9721_00_temp_c,
+		&uni_t_ut60e_ser_driver_info,
+		receive_data_UNI_T_UT60E_SER,
 	},
 	{
 		"UNI-T", "UT61D (UT-D02 cable)", "2400/8n1/rts=0/dtr=1",
@@ -526,5 +544,7 @@ DRV(voltcraft_m3650d, VOLTCRAFT_M3650D, "voltcraft-m3650d", "Voltcraft M-3650D")
 DRV(voltcraft_vc820_ser, VOLTCRAFT_VC820_SER, "voltcraft-vc820-ser", "Voltcraft VC-820 (UT-D02 cable)")
 DRV(voltcraft_vc830_ser, VOLTCRAFT_VC830_SER, "voltcraft-vc830-ser", "Voltcraft VC-830 (UT-D02 cable)")
 DRV(voltcraft_vc840_ser, VOLTCRAFT_VC840_SER, "voltcraft-vc840-ser", "Voltcraft VC-840 (UT-D02 cable)")
+DRV(uni_t_ut60a_ser, UNI_T_UT60A_SER, "uni-t-ut60a-ser", "UNI-T UT60A (UT-D02 cable)")
+DRV(uni_t_ut60e_ser, UNI_T_UT60E_SER, "uni-t-ut60e-ser", "UNI-T UT60E (UT-D02 cable)")
 DRV(uni_t_ut61d_ser, UNI_T_UT61D_SER, "uni-t-ut61d-ser", "UNI-T UT61D (UT-D02 cable)")
 DRV(uni_t_ut61e_ser, UNI_T_UT61E_SER, "uni-t-ut61e-ser", "UNI-T UT61E (UT-D02 cable)")

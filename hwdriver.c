@@ -184,12 +184,16 @@ extern SR_PRIV struct sr_dev_driver voltcraft_m3650d_driver_info;
 extern SR_PRIV struct sr_dev_driver voltcraft_vc820_ser_driver_info;
 extern SR_PRIV struct sr_dev_driver voltcraft_vc830_ser_driver_info;
 extern SR_PRIV struct sr_dev_driver voltcraft_vc840_ser_driver_info;
+extern SR_PRIV struct sr_dev_driver uni_t_ut60a_ser_driver_info;
+extern SR_PRIV struct sr_dev_driver uni_t_ut60e_ser_driver_info;
 extern SR_PRIV struct sr_dev_driver uni_t_ut61d_ser_driver_info;
 extern SR_PRIV struct sr_dev_driver uni_t_ut61e_ser_driver_info;
 #endif
 #ifdef HAVE_HW_UNI_T_DMM
 extern SR_PRIV struct sr_dev_driver tecpel_dmm_8060_driver_info;
 extern SR_PRIV struct sr_dev_driver tecpel_dmm_8061_driver_info;
+extern SR_PRIV struct sr_dev_driver uni_t_ut60a_driver_info;
+extern SR_PRIV struct sr_dev_driver uni_t_ut60e_driver_info;
 extern SR_PRIV struct sr_dev_driver uni_t_ut61d_driver_info;
 extern SR_PRIV struct sr_dev_driver uni_t_ut61e_driver_info;
 extern SR_PRIV struct sr_dev_driver voltcraft_vc820_driver_info;
@@ -282,12 +286,16 @@ static struct sr_dev_driver *drivers_list[] = {
 	&voltcraft_vc820_ser_driver_info,
 	&voltcraft_vc830_ser_driver_info,
 	&voltcraft_vc840_ser_driver_info,
+	&uni_t_ut60a_ser_driver_info,
+	&uni_t_ut60e_ser_driver_info,
 	&uni_t_ut61d_ser_driver_info,
 	&uni_t_ut61e_ser_driver_info,
 #endif
 #ifdef HAVE_HW_UNI_T_DMM
 	&tecpel_dmm_8060_driver_info,
 	&tecpel_dmm_8061_driver_info,
+	&uni_t_ut60a_driver_info,
+	&uni_t_ut60e_driver_info,
 	&uni_t_ut61d_driver_info,
 	&uni_t_ut61e_driver_info,
 	&voltcraft_vc820_driver_info,
