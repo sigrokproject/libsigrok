@@ -505,8 +505,6 @@ SR_PRIV int lascar_el_usb_handle_events(int fd, int revents, void *cb_data)
 		for (i = 0; devc->usbfd[i] != -1; i++)
 			sr_source_remove(devc->usbfd[i]);
 
-		sdi->driver->dev_close(sdi);
-
 		packet.type = SR_DF_END;
 		sr_session_send(cb_data, &packet);
 	}
