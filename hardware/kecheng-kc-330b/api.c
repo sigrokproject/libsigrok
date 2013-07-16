@@ -261,7 +261,6 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	GVariant *rational[2];
 	const uint64_t *si;
-	int tmp, ret;
 
 	devc = sdi->priv;
 	switch (key) {
