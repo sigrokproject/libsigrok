@@ -103,7 +103,6 @@ static int scan_kecheng(struct sr_usb_dev_inst *usb, char **model)
 
 	buf[buf[1] + 2] = '\x0';
 	*model = g_strndup((const gchar *)buf + 2, 30);
-	//g_strstrip(*model);
 
 	return SR_OK;
 }
@@ -153,6 +152,7 @@ static GSList *scan(GSList *options)
 			devc->alarm_high = DEFAULT_ALARM_HIGH;
 			devc->mqflags = DEFAULT_WEIGHT_TIME | DEFAULT_WEIGHT_FREQ;
 			devc->data_source = DEFAULT_DATA_SOURCE;
+			devc->config_dirty = FALSE;
 
 			/* TODO: Set date/time? */
 
@@ -196,20 +196,23 @@ static int dev_open(struct sr_dev_inst *sdi)
 	if (sr_usb_open(drvc->sr_ctx->libusb_ctx, usb) != SR_OK)
 		return SR_ERR;
 
+	if ((ret = libusb_set_configuration(usb->devhdl, 1))) {
+		sr_err("Failed to set configuration: %s.", libusb_error_name(ret));
+		return SR_ERR;
+	}
+
 	if ((ret = libusb_claim_interface(usb->devhdl, USB_INTERFACE))) {
 		sr_err("Failed to claim interface: %s.", libusb_error_name(ret));
 		return SR_ERR;
 	}
 	sdi->status = SR_ST_ACTIVE;
 
-	/* Force configuration. */
-	ret = kecheng_kc_330b_configure(sdi);
-
 	return ret;
 }
 
 static int dev_close(struct sr_dev_inst *sdi)
 {
+	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
 
 	if (!di->priv) {
@@ -222,6 +225,12 @@ static int dev_close(struct sr_dev_inst *sdi)
 	if (!usb->devhdl)
 		/*  Nothing to do. */
 		return SR_OK;
+
+	/* This allows a frontend to configure the device without ever
+	 * doing an acquisition step. */
+	devc = sdi->priv;
+	if (!devc->config_dirty)
+		kecheng_kc_330b_configure(sdi);
 
 	libusb_release_interface(usb->devhdl, USB_INTERFACE);
 	libusb_close(usb->devhdl);
@@ -266,10 +275,8 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi)
 		*data = g_variant_new_tuple(rational, 2);
 		break;
 	case SR_CONF_DATALOG:
-		if ((ret = kecheng_kc_330b_recording_get(sdi, &tmp)) == SR_OK)
-			*data = g_variant_new_boolean(tmp);
-		else
-			return SR_ERR;
+		/* There really isn't a way to be sure the device is logging. */
+		return SR_ERR_NA;
 		break;
 	case SR_CONF_SPL_WEIGHT_FREQ:
 		if (devc->mqflags & SR_MQFLAG_SPL_FREQ_WEIGHT_A)
@@ -326,7 +333,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi)
 			if (kecheng_kc_330b_sample_intervals[i][0] != p || kecheng_kc_330b_sample_intervals[i][1] != q)
 				continue;
 			devc->sample_interval = i;
-			kecheng_kc_330b_configure(sdi);
+			devc->config_dirty = TRUE;
 			break;
 		}
 		if (i == ARRAY_SIZE(kecheng_kc_330b_sample_intervals))
@@ -342,7 +349,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi)
 			return SR_ERR_ARG;
 		devc->mqflags &= ~(SR_MQFLAG_SPL_FREQ_WEIGHT_A | SR_MQFLAG_SPL_FREQ_WEIGHT_C);
 		devc->mqflags |= tmp;
-		kecheng_kc_330b_configure(sdi);
+		devc->config_dirty = TRUE;
 		break;
 	case SR_CONF_SPL_WEIGHT_TIME:
 		tmp_str = g_variant_get_string(data, NULL);
@@ -354,7 +361,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi)
 			return SR_ERR_ARG;
 		devc->mqflags &= ~(SR_MQFLAG_SPL_TIME_WEIGHT_F | SR_MQFLAG_SPL_TIME_WEIGHT_S);
 		devc->mqflags |= tmp;
-		kecheng_kc_330b_configure(sdi);
+		devc->config_dirty = TRUE;
 		break;
 	case SR_CONF_DATA_SOURCE:
 		tmp_str = g_variant_get_string(data, NULL);
@@ -364,6 +371,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi)
 			devc->data_source = DATA_SOURCE_MEMORY;
 		else
 			return SR_ERR;
+		devc->config_dirty = TRUE;
 		break;
 	default:
 		ret = SR_ERR_NA;
@@ -412,14 +420,19 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 }
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi,
-				    void *cb_data)
+		void *cb_data)
 {
 	struct drv_context *drvc;
 	struct dev_context *devc;
+	struct sr_datafeed_packet packet;
+	struct sr_datafeed_meta meta;
+	struct sr_config *src;
 	struct sr_usb_dev_inst *usb;
+	GVariant *gvar, *rational[2];
 	const struct libusb_pollfd **pfd;
-	int len, ret, i;
-	unsigned char cmd;
+	const uint64_t *si;
+	int stored_mqflags, req_len, buf_len, len, ret, i;
+	unsigned char buf[9];
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
@@ -431,10 +444,15 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	devc->cb_data = cb_data;
 	devc->num_samples = 0;
 
+	/* Send header packet to the session bus. */
+	std_session_send_df_header(cb_data, LOG_PREFIX);
+
 	if (devc->data_source == DATA_SOURCE_LIVE) {
+		/* Force configuration. */
+		kecheng_kc_330b_configure(sdi);
+
 		if (kecheng_kc_330b_status_get(sdi, &ret) != SR_OK)
 			return SR_ERR;
-		sr_dbg("st %s", ret == DEVICE_ACTIVE ? "act" : "deact");
 		if (ret != DEVICE_ACTIVE) {
 			sr_err("Device is inactive");
 			/* Still continue though, since the device will
@@ -442,13 +460,36 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 			 * on the device -- and then start feeding good
 			 * samples back. */
 		}
+	} else {
+		if (kecheng_kc_330b_log_info_get(sdi, buf) != SR_OK)
+			return SR_ERR;
+		stored_mqflags = buf[4] ? SR_MQFLAG_SPL_TIME_WEIGHT_S : SR_MQFLAG_SPL_TIME_WEIGHT_F;
+		stored_mqflags |= buf[5] ? SR_MQFLAG_SPL_FREQ_WEIGHT_C : SR_MQFLAG_SPL_FREQ_WEIGHT_A;
+		devc->stored_samples = (buf[7] << 8) | buf[8];
+		if (devc->stored_samples == 0) {
+			/* Notify frontend of empty log by sending start/end packets. */
+			packet.type = SR_DF_END;
+			sr_session_send(cb_data, &packet);
+			return SR_OK;
+		}
+
+		if (devc->limit_samples && devc->limit_samples < devc->stored_samples)
+			devc->stored_samples = devc->limit_samples;
+
+		si = kecheng_kc_330b_sample_intervals[buf[1]];
+		rational[0] = g_variant_new_uint64(si[0]);
+		rational[1] = g_variant_new_uint64(si[1]);
+		gvar = g_variant_new_tuple(rational, 2);
+		src = sr_config_new(SR_CONF_SAMPLE_INTERVAL, gvar);
+		packet.type = SR_DF_META;
+		packet.payload = &meta;
+		meta.config = g_slist_append(NULL, src);
+		sr_session_send(devc->cb_data, &packet);
+		g_free(src);
 	}
 
 	if (!(devc->xfer = libusb_alloc_transfer(0)))
 		return SR_ERR;
-
-	/* Send header packet to the session bus. */
-	std_session_send_df_header(cb_data, LOG_PREFIX);
 
 	pfd = libusb_get_pollfds(drvc->sr_ctx->libusb_ctx);
 	for (i = 0; pfd[i]; i++) {
@@ -460,28 +501,47 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	}
 	devc->usbfd[i] = -1;
 
-	cmd = CMD_GET_LIVE_SPL;
-	ret = libusb_bulk_transfer(usb->devhdl, EP_OUT, &cmd, 1, &len, 5);
+	if (devc->data_source == DATA_SOURCE_LIVE) {
+		buf[0] = CMD_GET_LIVE_SPL;
+		buf_len = 1;
+		devc->state = LIVE_SPL_WAIT;
+		devc->last_live_request = g_get_monotonic_time() / 1000;
+		req_len = 3;
+	} else {
+		buf[0] = CMD_GET_LOG_DATA;
+		buf[1] = 0;
+		buf[2] = 0;
+		buf_len = 4;
+		devc->state = LOG_DATA_WAIT;
+		if (devc->stored_samples < 63)
+			buf[3] = devc->stored_samples;
+		else
+			buf[3] = 63;
+		/* Command ack byte + 2 bytes per sample. */
+		req_len = 1 + buf[3] * 2;
+	}
+
+	ret = libusb_bulk_transfer(usb->devhdl, EP_OUT, buf, buf_len, &len, 5);
 	if (ret != 0 || len != 1) {
 		sr_dbg("Failed to start acquisition: %s", libusb_error_name(ret));
 		libusb_free_transfer(devc->xfer);
 		return SR_ERR;
 	}
-	devc->last_live_request = g_get_monotonic_time() / 1000;
 
 	libusb_fill_bulk_transfer(devc->xfer, usb->devhdl, EP_IN, devc->buf,
-			16, kecheng_kc_330b_receive_transfer, (void *)sdi, 15);
+			req_len, kecheng_kc_330b_receive_transfer, (void *)sdi, 15);
 	if (libusb_submit_transfer(devc->xfer) != 0) {
 		libusb_free_transfer(devc->xfer);
 		return SR_ERR;
 	}
-	devc->state = LIVE_SPL_WAIT;
 
 	return SR_OK;
 }
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
+	struct dev_context *devc;
+
 	(void)cb_data;
 
 	if (sdi->status != SR_ST_ACTIVE)
@@ -489,6 +549,17 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 
 	/* Signal USB transfer handler to clean up and stop. */
 	sdi->status = SR_ST_STOPPING;
+
+	devc = sdi->priv;
+	if (devc->data_source == DATA_SOURCE_MEMORY && devc->config_dirty) {
+		/* The protocol doesn't have a command to clear stored data;
+		 * it clears it whenever new configuration is set. That means
+		 * we can't just configure the device any time we want when
+		 * it's in DATA_SOURCE_MEMORY mode. The only safe time to do
+		 * it is now, when we're sure we've pulled in all the stored
+		 * data. */
+		kecheng_kc_330b_configure(sdi);
+	}
 
 	return SR_OK;
 }

@@ -34,8 +34,8 @@ SR_PRIV int kecheng_kc_330b_handle_events(int fd, int revents, void *cb_data)
 	struct timeval tv;
 	const uint64_t *intv_entry;
 	gint64 now, interval;
-	int len, ret, i;
-	unsigned char cmd;
+	int offset, len, ret, i;
+	unsigned char buf[4];
 
 	(void)fd;
 	(void)revents;
@@ -60,12 +60,13 @@ SR_PRIV int kecheng_kc_330b_handle_events(int fd, int revents, void *cb_data)
 	}
 
 	if (devc->state == LIVE_SPL_IDLE) {
+		/* Request samples at the interval rate. */
 		now = g_get_monotonic_time() / 1000;
 		intv_entry = kecheng_kc_330b_sample_intervals[devc->sample_interval];
 		interval = intv_entry[0] * 1000 / intv_entry[1];
 		if (now - devc->last_live_request > interval) {
-			cmd = CMD_GET_LIVE_SPL;
-			ret = libusb_bulk_transfer(usb->devhdl, EP_OUT, &cmd, 1, &len, 5);
+			buf[0] = CMD_GET_LIVE_SPL;
+			ret = libusb_bulk_transfer(usb->devhdl, EP_OUT, buf, 1, &len, 5);
 			if (ret != 0 || len != 1) {
 				sr_dbg("Failed to request new acquisition: %s",
 						libusb_error_name(ret));
@@ -77,6 +78,26 @@ SR_PRIV int kecheng_kc_330b_handle_events(int fd, int revents, void *cb_data)
 			devc->last_live_request = now;
 			devc->state = LIVE_SPL_WAIT;
 		}
+	} else if (devc->state == LIVE_SPL_IDLE) {
+		buf[0] = CMD_GET_LOG_DATA;
+		offset = devc->num_samples / 63;
+		buf[1] = (offset >> 8) & 0xff;
+		buf[2] = offset & 0xff;
+		if (devc->stored_samples - devc->num_samples > 63)
+			buf[3] = 63;
+		else
+			/* Last chunk. */
+			buf[3] = devc->stored_samples - devc->num_samples;
+		ret = libusb_bulk_transfer(usb->devhdl, EP_OUT, buf, 4, &len, 5);
+		if (ret != 0 || len != 4) {
+			sr_dbg("Failed to request next chunk: %s",
+					libusb_error_name(ret));
+			sdi->driver->dev_acquisition_stop((struct sr_dev_inst *)sdi,
+					devc->cb_data);
+			return TRUE;
+		}
+		libusb_submit_transfer(devc->xfer);
+		devc->state = LIVE_SPL_WAIT;
 	}
 
 	return TRUE;
@@ -107,8 +128,8 @@ SR_PRIV void kecheng_kc_330b_receive_transfer(struct libusb_transfer *transfer)
 {
 	struct dev_context *devc;
 	struct sr_dev_inst *sdi;
-	float fvalue;
-	int packet_has_error;
+	float fvalue[64];
+	int packet_has_error, num_samples, i;
 
 	sdi = transfer->user_data;
 	devc = sdi->priv;
@@ -128,25 +149,47 @@ SR_PRIV void kecheng_kc_330b_receive_transfer(struct libusb_transfer *transfer)
 		break;
 	}
 
-	if (!packet_has_error) {
-		if (devc->state == LIVE_SPL_WAIT) {
-			if (transfer->actual_length != 3 || transfer->buffer[0] != 0x88) {
-				sr_dbg("Received invalid SPL packet.");
-			} else {
-				fvalue = ((transfer->buffer[1] << 8) + transfer->buffer[2]) / 10.0;
-				send_data(sdi, &fvalue, 1);
-				devc->num_samples++;
-				if (devc->limit_samples && devc->num_samples >= devc->limit_samples)
-					sdi->driver->dev_acquisition_stop((struct sr_dev_inst *)sdi,
-							devc->cb_data);
+	if (packet_has_error)
+		return;
 
+	if (devc->state == LIVE_SPL_WAIT) {
+		if (transfer->actual_length != 3 || transfer->buffer[0] != 0x88) {
+			sr_dbg("Received invalid SPL packet.");
+		} else {
+			fvalue[0] = ((transfer->buffer[1] << 8) + transfer->buffer[2]) / 10.0;
+			send_data(sdi, fvalue, 1);
+			devc->num_samples++;
+			if (devc->limit_samples && devc->num_samples >= devc->limit_samples) {
+				sdi->driver->dev_acquisition_stop((struct sr_dev_inst *)sdi,
+						devc->cb_data);
+			} else {
 				/* let USB event handler fire off another
 				 * request when the time is right. */
 				devc->state = LIVE_SPL_IDLE;
 			}
 		}
+	} else if (devc->state == LOG_DATA_WAIT) {
+		if (transfer->actual_length < 1 || !(transfer->actual_length & 0x01)) {
+			sr_dbg("Received invalid stored SPL packet.");
+		} else {
+			num_samples = (transfer->actual_length - 1) / 2;
+			for (i = 0; i < num_samples; i++) {
+				fvalue[i] = transfer->buffer[1 + i * 2] << 8;
+				fvalue[i] += transfer->buffer[1 + i * 2 + 1];
+				fvalue[i] /= 10.0;
+			}
+			send_data(sdi, fvalue, 1);
+			devc->num_samples += num_samples;
+			if (devc->num_samples >= devc->stored_samples) {
+				sdi->driver->dev_acquisition_stop((struct sr_dev_inst *)sdi,
+						devc->cb_data);
+			} else {
+				/* let USB event handler fire off another
+				 * request when the time is right. */
+				devc->state = LOG_DATA_IDLE;
+			}
+		}
 	}
-
 
 }
 
@@ -185,6 +228,8 @@ SR_PRIV int kecheng_kc_330b_configure(const struct sr_dev_inst *sdi)
 		sr_dbg("Failed to configure device: invalid response 0x%2.x", buf[0]);
 		return SR_ERR;
 	}
+
+	devc->config_dirty = FALSE;
 
 	return SR_OK;
 }
@@ -264,7 +309,36 @@ SR_PRIV int kecheng_kc_330b_status_get(const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-SR_PRIV int kecheng_kc_330b_recording_get(const struct sr_dev_inst *sdi,
+SR_PRIV int kecheng_kc_330b_log_info_get(const struct sr_dev_inst *sdi,
+		unsigned char *buf)
+{
+	struct sr_usb_dev_inst *usb;
+	int len, ret;
+
+	sr_dbg("Getting logging info.");
+
+	usb = sdi->conn;
+	buf[0] = CMD_GET_LOG_INFO;
+	ret = libusb_bulk_transfer(usb->devhdl, EP_OUT, buf, 1, &len, 5);
+	if (ret != 0 || len != 1) {
+		sr_dbg("Failed to get status: %s", libusb_error_name(ret));
+		return SR_ERR;
+	}
+
+	ret = libusb_bulk_transfer(usb->devhdl, EP_IN, buf, 9, &len, 10);
+	if (ret != 0 || len != 9) {
+		sr_dbg("Failed to get status (no ack): %s", libusb_error_name(ret));
+		return SR_ERR;
+	}
+	if (buf[0] != (CMD_GET_LOG_INFO | 0x80) || buf[1] > 6) {
+		sr_dbg("Failed to get log info: invalid response 0x%2.x", buf[0]);
+		return SR_ERR;
+	}
+
+	return SR_OK;
+}
+
+SR_PRIV int kecheng_kc_330b_log_date_time_get(const struct sr_dev_inst *sdi,
 		gboolean *tmp)
 {
 

@@ -49,6 +49,8 @@
 enum {
 	LIVE_SPL_IDLE,
 	LIVE_SPL_WAIT,
+	LOG_DATA_IDLE,
+	LOG_DATA_WAIT,
 };
 
 enum {
@@ -56,6 +58,8 @@ enum {
 	CMD_IDENTIFY = 0x02,
 	CMD_SET_DATE_TIME = 0x03,
 	CMD_GET_STATUS = 0x04,
+	CMD_GET_LOG_INFO = 0x05,
+	CMD_GET_LOG_DATA = 0x07,
 	CMD_GET_LIVE_SPL = 0x08,
 };
 
@@ -81,11 +85,13 @@ struct dev_context {
 
 	/* Operational state */
 	int state;
+	gboolean config_dirty;
 	uint64_t num_samples;
+	uint64_t stored_samples;
 	void *cb_data;
 	int usbfd[10];
 	struct libusb_transfer *xfer;
-	unsigned char buf[16];
+	unsigned char buf[128];
 
 	/* Temporary state across callbacks */
 	gint64 last_live_request;
@@ -100,5 +106,7 @@ SR_PRIV int kecheng_kc_330b_recording_get(const struct sr_dev_inst *sdi,
 		gboolean *tmp);
 SR_PRIV int kecheng_kc_330b_status_get(const struct sr_dev_inst *sdi,
 		int *status);
+SR_PRIV int kecheng_kc_330b_log_info_get(const struct sr_dev_inst *sdi,
+		unsigned char *buf);
 
 #endif
