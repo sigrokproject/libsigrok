@@ -103,6 +103,7 @@ endif
 
 if HW_IKALOGIC_SCANAPLUS
 libsigrokhardware_la_LIBADD += ikalogic-scanaplus/libsigrok_hw_ikalogic_scanaplus.la
+endif
 
 if HW_KECHENG_KC_330B
 libsigrokhardware_la_LIBADD += kecheng-kc-330b/libsigrok_hw_kecheng_kc_330b.la
