@@ -51,7 +51,6 @@
  *  f1 d1 00 00 00 00 00 00 (1 data byte, 0xd1)
  *
  * Chips and serial settings used in UNI-T DMMs (and rebranded ones):
- *  - Tecpel DMM-8060: ? (very likely Fortune Semiconductor FS9721_LP3)
  *  - Tecpel DMM-8061: ? (very likely Fortune Semiconductor FS9721_LP3)
  *  - UNI-T UT108: ?
  *  - UNI-T UT109: ?
@@ -304,7 +303,6 @@ SR_PRIV int receive_data_##ID_UPPER(int fd, int revents, void *cb_data) { \
 	return receive_data(fd, revents, ID_UPPER, &info, cb_data); }
 
 /* Driver-specific receive_data() wrappers */
-RECEIVE_DATA(TECPEL_DMM_8060, fs9721)
 RECEIVE_DATA(TECPEL_DMM_8061, fs9721)
 RECEIVE_DATA(UNI_T_UT60A, fs9721)
 RECEIVE_DATA(UNI_T_UT60E, fs9721)

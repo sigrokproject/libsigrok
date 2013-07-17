@@ -43,7 +43,6 @@ enum {
 	RADIOSHACK_22_168,
 	RADIOSHACK_22_805,
 	RADIOSHACK_22_812,
-	TECPEL_DMM_8060_SER,
 	TECPEL_DMM_8061_SER,
 	VOLTCRAFT_M3650D,
 	VOLTCRAFT_VC820_SER,
@@ -55,7 +54,7 @@ enum {
 	UNI_T_UT61E_SER,
 };
 
-#define DMM_COUNT 22
+#define DMM_COUNT 21
 
 struct dmm_info {
 	char *vendor;
@@ -109,7 +108,6 @@ SR_PRIV int receive_data_PCE_PCE_DM32(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_RADIOSHACK_22_168(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_RADIOSHACK_22_805(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_RADIOSHACK_22_812(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_TECPEL_DMM_8060_SER(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_TECPEL_DMM_8061_SER(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_VOLTCRAFT_M3650D(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_VOLTCRAFT_VC820_SER(int fd, int revents, void *cb_data);
