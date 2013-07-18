@@ -239,9 +239,16 @@ SR_API int sr_session_datafeed_callback_add(sr_datafeed_callback_t cb, void *cb_
  * but driven by another scheduler, this can be used to poll the devices
  * from within that scheduler.
  *
+ * @param block If TRUE, this call will wait for any of the session's
+ *              sources to fire an event on the file descriptors, or
+ *              any of their timeouts to activate. In other words, this
+ *              can be used as a select loop.
+ *              If FALSE, all sources have their callback run, regardless
+ *              of file descriptor or timeout status.
+ *
  * @return SR_OK upon success, SR_ERR on errors.
  */
-SR_API int sr_session_iteration(gboolean block)
+SR_PRIV int sr_session_iteration(gboolean block)
 {
 	unsigned int i;
 	int ret;
