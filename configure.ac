@@ -109,6 +109,11 @@ AC_ARG_ENABLE(cem-dt-885x, AC_HELP_STRING([--enable-cem-dt-885x],
 	[HW_CEM_DT_885X="$enableval"],
 	[HW_CEM_DT_885X=yes])
 
+AC_ARG_ENABLE(center-3xx, AC_HELP_STRING([--enable-center-3xx],
+	[enable Center 3xx support [default=yes]]),
+	[HW_CENTER_3XX="$enableval"],
+	[HW_CENTER_3XX=yes])
+
 AC_ARG_ENABLE(chronovu-la8, AC_HELP_STRING([--enable-chronovu-la8],
 	[enable ChronoVu LA8 support [default=yes]]),
 	[HW_CHRONOVU_LA8="$enableval"],
@@ -327,6 +332,11 @@ if test "x$HW_CEM_DT_885X" = "xyes"; then
 	AC_DEFINE(HAVE_HW_CEM_DT_885X, 1, [CEM DT-885x support])
 fi
 
+AM_CONDITIONAL(HW_CENTER_3XX, test x$HW_CENTER_3XX = xyes)
+if test "x$HW_CENTER_3XX" = "xyes"; then
+	AC_DEFINE(HAVE_HW_CENTER_3XX, 1, [Center 3xx support])
+fi
+
 AM_CONDITIONAL(HW_CHRONOVU_LA8, test x$HW_CHRONOVU_LA8 = xyes)
 if test "x$HW_CHRONOVU_LA8" = "xyes"; then
 	AC_DEFINE(HAVE_HW_CHRONOVU_LA8, 1, [ChronoVu LA8 support])
@@ -461,6 +471,7 @@ AC_CONFIG_FILES([Makefile version.h hardware/Makefile
 		 hardware/asix-sigma/Makefile
 		 hardware/brymen-dmm/Makefile
 		 hardware/cem-dt-885x/Makefile
+		 hardware/center-3xx/Makefile
 		 hardware/chronovu-la8/Makefile
 		 hardware/colead-slm/Makefile
 		 hardware/common/Makefile
@@ -521,6 +532,7 @@ echo "  - alsa............................ $HW_ALSA"
 echo "  - asix-sigma...................... $HW_ASIX_SIGMA"
 echo "  - brymen-dmm...................... $HW_BRYMEN_DMM"
 echo "  - cem-dt-885x..................... $HW_CEM_DT_885X"
+echo "  - center-3xx...................... $HW_CENTER_3XX"
 echo "  - chronovu-la8.................... $HW_CHRONOVU_LA8"
 echo "  - colead-slm...................... $HW_COLEAD_SLM"
 echo "  - demo............................ $HW_DEMO"
