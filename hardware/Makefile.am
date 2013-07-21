@@ -40,6 +40,7 @@ SUBDIRS = \
 	mic-985xx \
 	openbench-logic-sniffer \
 	rigol-ds1xx2 \
+	saleae-logic16 \
 	serial-dmm \
 	tondaj-sl-814 \
 	uni-t-dmm \
@@ -132,6 +133,10 @@ endif
 
 if HW_RIGOL_DS1XX2
 libsigrokhardware_la_LIBADD += rigol-ds1xx2/libsigrok_hw_rigol_ds1xx2.la
+endif
+
+if HW_SALEAE_LOGIC16
+libsigrokhardware_la_LIBADD += saleae-logic16/libsigrok_hw_saleae_logic16.la
 endif
 
 if HW_SERIAL_DMM

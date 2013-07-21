@@ -184,6 +184,15 @@ AC_ARG_ENABLE(rigol-ds1xx2, AC_HELP_STRING([--enable-rigol-ds1xx2],
 	[HW_RIGOL_DS1XX2="$enableval"],
 	[HW_RIGOL_DS1XX2=$HW_ENABLED_DEFAULT])
 
+AC_ARG_ENABLE(saleae-logic16, AC_HELP_STRING([--enable-saleae-logic16],
+	[enable Saleae Logic16 support [default=yes]]),
+	[HW_SALEAE_LOGIC16="$enableval"],
+	[HW_SALEAE_LOGIC16=yes])
+AM_CONDITIONAL(HW_SALEAE_LOGIC16, test x$HW_SALEAE_LOGIC16 = xyes)
+if test "x$HW_SALEAE_LOGIC16" = "xyes"; then
+	AC_DEFINE(HAVE_HW_SALEAE_LOGIC16, 1, [Saleae Logic16 support])
+fi
+
 AC_ARG_ENABLE(serial-dmm, AC_HELP_STRING([--enable-serial-dmm],
 	[enable serial DMM support [default=yes]]),
 	[HW_SERIAL_DMM="$enableval"],
@@ -491,6 +500,7 @@ AC_CONFIG_FILES([Makefile version.h hardware/Makefile
 		 hardware/lascar-el-usb/Makefile
 		 hardware/mic-985xx/Makefile
 		 hardware/rigol-ds1xx2/Makefile
+		 hardware/saleae-logic16/Makefile
 		 hardware/tondaj-sl-814/Makefile
 		 hardware/victor-dmm/Makefile
 		 hardware/common/dmm/Makefile
@@ -558,6 +568,7 @@ echo "  - link-mso19 (EXPERIMENTAL)....... $HW_LINK_MSO19"
 echo "  - mic-985xx....................... $HW_MIC_985XX"
 echo "  - openbench-logic-sniffer......... $HW_OLS"
 echo "  - rigol-ds1xx2.................... $HW_RIGOL_DS1XX2"
+echo "  - saleae-logic16.................. $HW_SALEAE_LOGIC16"
 echo "  - serial-dmm...................... $HW_SERIAL_DMM"
 echo "  - tondaj-sl-814................... $HW_TONDAJ_SL_814"
 echo "  - uni-t-dmm....................... $HW_UNI_T_DMM"
