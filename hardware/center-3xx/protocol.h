@@ -22,6 +22,9 @@
 #define LIBSIGROK_HARDWARE_CENTER_3XX_PROTOCOL_H
 
 #include <stdint.h>
+#include <string.h>
+#include <ctype.h>
+#include <math.h>
 #include <glib.h>
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
@@ -35,18 +38,54 @@
 #define sr_warn(s, args...) sr_warn(LOG_PREFIX s, ## args)
 #define sr_err(s, args...) sr_err(LOG_PREFIX s, ## args)
 
-/** Private, per-device-instance driver context. */
-struct dev_context {
-	/* Model-specific information */
-
-	/* Acquisition settings */
-
-	/* Operational state */
-
-	/* Temporary state across callbacks */
-
+/* Note: When adding entries here, don't forget to update CENTER_DEV_COUNT. */
+enum {
+	CENTER_309,
+	VOLTCRAFT_K204,
 };
 
-SR_PRIV int center_3xx_receive_data(int fd, int revents, void *cb_data);
+#define CENTER_DEV_COUNT 2
+
+struct center_dev_info {
+	char *vendor;
+	char *device;
+	char *conn;
+	int num_channels;
+	uint32_t max_sample_points;
+	uint8_t packet_size;
+	gboolean (*packet_valid)(const uint8_t *);
+	struct sr_dev_driver *di;
+	int (*receive_data)(int, int, void *);
+};
+
+extern SR_PRIV const struct center_dev_info center_devs[CENTER_DEV_COUNT];
+
+#define SERIAL_BUFSIZE 256
+
+/** Private, per-device-instance driver context. */
+struct dev_context {
+	/** The current sampling limit (in number of samples). */
+	uint64_t limit_samples;
+
+	/** The current sampling limit (in ms). */
+	uint64_t limit_msec;
+
+	/** Opaque pointer passed in by the frontend. */
+	void *cb_data;
+
+	/** The current number of already received samples. */
+	uint64_t num_samples;
+
+	int64_t starttime;
+
+	uint8_t buf[SERIAL_BUFSIZE];
+	int bufoffset;
+	int buflen;
+};
+
+SR_PRIV gboolean center_3xx_packet_valid(const uint8_t *buf);
+
+SR_PRIV int receive_data_CENTER_309(int fd, int revents, void *cb_data);
+SR_PRIV int receive_data_VOLTCRAFT_K204(int fd, int revents, void *cb_data);
 
 #endif

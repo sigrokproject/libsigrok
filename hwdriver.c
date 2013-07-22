@@ -108,7 +108,8 @@ extern SR_PRIV struct sr_dev_driver brymen_bm857_driver_info;
 extern SR_PRIV struct sr_dev_driver cem_dt_885x_driver_info;
 #endif
 #ifdef HAVE_HW_CENTER_3XX
-extern SR_PRIV struct sr_dev_driver center_3xx_driver_info;
+extern SR_PRIV struct sr_dev_driver center_309_driver_info;
+extern SR_PRIV struct sr_dev_driver voltcraft_k204_driver_info;
 #endif
 #ifdef HAVE_HW_COLEAD_SLM
 extern SR_PRIV struct sr_dev_driver colead_slm_driver_info;
@@ -214,7 +215,8 @@ static struct sr_dev_driver *drivers_list[] = {
 	&cem_dt_885x_driver_info,
 #endif
 #ifdef HAVE_HW_CENTER_3XX
-	&center_3xx_driver_info,
+	&center_309_driver_info,
+	&voltcraft_k204_driver_info,
 #endif
 #ifdef HAVE_HW_COLEAD_SLM
 	&colead_slm_driver_info,

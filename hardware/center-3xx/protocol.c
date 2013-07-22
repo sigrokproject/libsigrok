@@ -20,12 +20,192 @@
 
 #include "protocol.h"
 
-SR_PRIV int center_3xx_receive_data(int fd, int revents, void *cb_data)
-{
-	(void)fd;
+struct center_info {
+	float temp[4];
+	gboolean rec, std, max, min, maxmin, t1t2, rel, hold, lowbat, celsius;
+	gboolean memfull, autooff;
+	gboolean mode_std, mode_rel, mode_max, mode_min, mode_maxmin;
+};
 
-	const struct sr_dev_inst *sdi;
+static int center_send(struct sr_serial_dev_inst *serial, const char *cmd)
+{
+	int ret;
+
+	if ((ret = serial_write(serial, cmd, strlen(cmd))) < 0) {
+		sr_err("Error sending '%s' command: %d.", cmd, ret);
+		return SR_ERR;
+	}
+
+	return SR_OK;
+}
+
+SR_PRIV gboolean center_3xx_packet_valid(const uint8_t *buf)
+{
+	return (buf[0] == 0x02 && buf[44] == 0x03);
+}
+
+static void log_packet(const uint8_t *buf, int idx)
+{
+	int i;
+	GString *s;
+
+	s = g_string_sized_new(100);
+	g_string_printf(s, "Packet: ");
+	for (i = 0; i < center_devs[idx].packet_size; i++)
+	        g_string_append_printf(s, "%02x ", buf[i]);
+	sr_spew("%s", s->str);
+	g_string_free(s, TRUE);
+}
+
+static int packet_parse(const uint8_t *buf, int idx, struct center_info *info)
+{
+	int i;
+	uint16_t temp_u16;
+
+	log_packet(buf, idx);
+
+	/* Byte 0: Always 0x02. */
+
+	/* Byte 1: Various status bits. */
+	info->rec         = (buf[1] & (1 << 0)) != 0;
+	info->mode_std    = (((buf[1] >> 1) & 0x3) == 0);
+	info->mode_max    = (((buf[1] >> 1) & 0x3) == 1);
+	info->mode_min    = (((buf[1] >> 1) & 0x3) == 2);
+	info->mode_maxmin = (((buf[1] >> 1) & 0x3) == 3);
+	/* TODO: Rel. Not available on all models. */
+	info->t1t2        = (buf[1] & (1 << 3)) != 0;
+	info->rel         = (buf[1] & (1 << 4)) != 0;
+	info->hold        = (buf[1] & (1 << 5)) != 0;
+	info->lowbat      = (buf[1] & (1 << 6)) != 0;
+	info->celsius     = (buf[1] & (1 << 7)) != 0;
+
+	/* Byte 2: Further status bits. */
+	info->memfull     = (buf[2] & (1 << 0)) != 0;
+	info->autooff     = (buf[2] & (1 << 7)) != 0;
+
+	/* Byte 7+8/9+10/11+12/13+14: channel T1/T2/T3/T4 temperature. */
+	for (i = 0; i < 4; i++) {
+		temp_u16 = buf[8 + (i * 2)];
+		temp_u16 |= ((uint16_t)buf[7 + (i * 2)] << 8);
+		info->temp[i] = (float)temp_u16;
+	}
+
+	/* Byte 43: Specifies whether we need to divide the value(s) by 10. */
+	for (i = 0; i < 4; i++) {
+		/* Bit = 0: Divide by 10. Bit = 1: Don't divide by 10. */
+		if ((buf[43] & (1 << i)) == 0)
+			info->temp[i] /= 10;
+	}
+
+	/* Bytes 39-42: Overflow/overlimit bits, depending on mode. */
+	for (i = 0; i < 4; i++) {
+		if (info->mode_std && ((buf[39] & (1 << i)) != 0))
+			info->temp[i] = INFINITY;
+		/* TODO: Rel. Not available on all models. */
+		// if (info->mode_rel && ((buf[40] & (1 << i)) != 0))
+		// 	info->temp[i] = INFINITY;
+		if (info->mode_max && ((buf[41] & (1 << i)) != 0))
+			info->temp[i] = INFINITY;
+		if (info->mode_min && ((buf[42] & (1 << i)) != 0))
+			info->temp[i] = INFINITY;
+		/* TODO: Minmax? */
+	}
+
+	/* Byte 44: Always 0x03. */
+
+	return SR_OK;
+}
+
+static int handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi, int idx)
+{
+	struct sr_datafeed_packet packet;
+	struct sr_datafeed_analog analog;
 	struct dev_context *devc;
+	struct center_info info;
+	GSList *l;
+	int i, ret;
+
+	devc = sdi->priv;
+
+	memset(&analog, 0, sizeof(struct sr_datafeed_analog));
+	memset(&info, 0, sizeof(struct center_info));
+
+	ret = packet_parse(buf, idx, &info);
+	if (ret < 0) {
+		sr_err("Failed to parse packet.");
+		return SR_ERR;
+	}
+
+	/* Common values for all 4 probes. */
+	packet.type = SR_DF_ANALOG;
+	packet.payload = &analog;
+	analog.mq = SR_MQ_TEMPERATURE;
+	analog.unit = (info.celsius) ? SR_UNIT_CELSIUS : SR_UNIT_FAHRENHEIT;
+	analog.num_samples = 1;
+
+	/* Send the values for T1 - T4. */
+	for (i = 0; i < 4; i++) {
+		l = NULL;
+		l = g_slist_append(l, g_slist_nth_data(sdi->probes, i));
+		analog.probes = l;
+		analog.data = &(info.temp[i]);
+		sr_session_send(devc->cb_data, &packet);
+		g_slist_free(l);
+	}
+
+	devc->num_samples++;
+
+	return SR_OK;
+}
+
+/* Return TRUE if a full packet was parsed, FALSE otherwise. */
+static gboolean handle_new_data(struct sr_dev_inst *sdi, int idx)
+{
+	struct dev_context *devc;
+	struct sr_serial_dev_inst *serial;
+	int len, i, offset = 0, ret = FALSE;
+
+	devc = sdi->priv;
+	serial = sdi->conn;
+
+	/* Try to get as much data as the buffer can hold. */
+	len = SERIAL_BUFSIZE - devc->buflen;
+	len = serial_read(serial, devc->buf + devc->buflen, len);
+	if (len < 1) {
+		sr_err("Serial port read error: %d.", len);
+		return FALSE;
+	}
+
+	devc->buflen += len;
+
+	/* Now look for packets in that data. */
+	while ((devc->buflen - offset) >= center_devs[idx].packet_size) {
+		if (center_devs[idx].packet_valid(devc->buf + offset)) {
+			handle_packet(devc->buf + offset, sdi, idx);
+			offset += center_devs[idx].packet_size;
+			ret = TRUE;
+		} else {
+			offset++;
+		}
+	}
+
+	/* If we have any data left, move it to the beginning of our buffer. */
+	for (i = 0; i < devc->buflen - offset; i++)
+		devc->buf[i] = devc->buf[offset + i];
+	devc->buflen -= offset;
+
+	return ret;
+}
+
+static int receive_data(int fd, int revents, int idx, void *cb_data)
+{
+	struct sr_dev_inst *sdi;
+	struct dev_context *devc;
+	int64_t t;
+	static gboolean request_new_packet = TRUE;
+	struct sr_serial_dev_inst *serial;
+
+	(void)fd;
 
 	if (!(sdi = cb_data))
 		return TRUE;
@@ -33,9 +213,44 @@ SR_PRIV int center_3xx_receive_data(int fd, int revents, void *cb_data)
 	if (!(devc = sdi->priv))
 		return TRUE;
 
+	serial = sdi->conn;
+
 	if (revents == G_IO_IN) {
-		/* TODO */
+		/* New data arrived. */
+		request_new_packet = handle_new_data(sdi, idx);
+	} else {
+		/*
+		 * Timeout. Send "A" to request a packet, but then don't send
+		 * further "A" commands until we received a full packet first.
+		 */
+		if (request_new_packet) {
+			center_send(serial, "A");
+			request_new_packet = FALSE;
+		}
+	}
+
+	if (devc->limit_samples && devc->num_samples >= devc->limit_samples) {
+		sr_info("Requested number of samples reached.");
+		sdi->driver->dev_acquisition_stop(sdi, cb_data);
+		return TRUE;
+	}
+
+	if (devc->limit_msec) {
+		t = (g_get_monotonic_time() - devc->starttime) / 1000;
+		if (t > (int64_t)devc->limit_msec) {
+			sr_info("Requested time limit reached.");
+			sdi->driver->dev_acquisition_stop(sdi, cb_data);
+			return TRUE;
+		}
 	}
 
 	return TRUE;
 }
+
+#define RECEIVE_DATA(ID_UPPER) \
+SR_PRIV int receive_data_##ID_UPPER(int fd, int revents, void *cb_data) { \
+	return receive_data(fd, revents, ID_UPPER, cb_data); }
+
+/* Driver-specific receive_data() wrappers */
+RECEIVE_DATA(CENTER_309)
+RECEIVE_DATA(VOLTCRAFT_K204)
