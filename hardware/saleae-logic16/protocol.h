@@ -36,14 +36,8 @@
 
 /** Private, per-device-instance driver context. */
 struct dev_context {
-	/* Model-specific information */
-
-	/* Acquisition settings */
-
-	/* Operational state */
-
-	/* Temporary state across callbacks */
-
+	/** The currently configured samplerate of the device. */
+	uint64_t cur_samplerate;
 };
 
 SR_PRIV int saleae_logic16_receive_data(int fd, int revents, void *cb_data);

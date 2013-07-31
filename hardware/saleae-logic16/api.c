@@ -17,11 +17,26 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <glib.h>
+#include <libusb.h>
+#include <stdlib.h>
+#include <string.h>
+#include "libsigrok.h"
+#include "libsigrok-internal.h"
 #include "protocol.h"
+
+#define LOGIC16_VID 0x21a9
+#define LOGIC16_PID 0x1001
+#define NUM_PROBES  16
 
 SR_PRIV struct sr_dev_driver saleae_logic16_driver_info;
 static struct sr_dev_driver *di = &saleae_logic16_driver_info;
 
+static const char *probe_names[NUM_PROBES + 1] = {
+	"0", "1", "2", "3", "4", "5", "6", "7", "8",
+	"9", "10", "11", "12", "13", "14", "15",
+	NULL,
+};
 
 static int init(struct sr_context *sr_ctx)
 {
@@ -31,16 +46,56 @@ static int init(struct sr_context *sr_ctx)
 static GSList *scan(GSList *options)
 {
 	struct drv_context *drvc;
+	struct dev_context *devc;
+	struct sr_dev_inst *sdi;
+	struct sr_probe *probe;
+	struct libusb_device_descriptor des;
+	libusb_device **devlist;
 	GSList *devices;
+	int ret, devcnt, i, j;
 
 	(void)options;
 
-	devices = NULL;
 	drvc = di->priv;
-	drvc->instances = NULL;
 
-	/* TODO: scan for devices, either based on a SR_CONF_CONN option
-	 * or on a USB scan. */
+	devices = NULL;
+	libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &devlist);
+	for (i = 0; devlist[i]; i++) {
+		if ((ret = libusb_get_device_descriptor(devlist[i], &des)) != 0) {
+			sr_warn("Failed to get device descriptor: %s",
+					libusb_error_name(ret));
+			continue;
+		}
+
+		if (des.idVendor != LOGIC16_VID || des.idProduct != LOGIC16_PID)
+			continue;
+
+		devcnt = g_slist_length(drvc->instances);
+		if (!(sdi = sr_dev_inst_new(devcnt, SR_ST_INACTIVE,
+					    "Saleae", "Logic16", NULL)))
+			return NULL;
+		sdi->driver = di;
+
+		if (!(devc = g_try_malloc0(sizeof(struct dev_context))))
+			return NULL;
+		sdi->priv = devc;
+
+		for (j = 0; probe_names[j]; j++) {
+			if (!(probe = sr_probe_new(j, SR_PROBE_LOGIC, TRUE,
+						   probe_names[j])))
+				return NULL;
+			sdi->probes = g_slist_append(sdi->probes, probe);
+		}
+
+		if (!(sdi->conn = sr_usb_dev_inst_new(libusb_get_bus_number(devlist[i]),
+						      libusb_get_device_address(devlist[i]), NULL)))
+			return NULL;
+		sdi->inst_type = SR_INST_USB;
+
+		drvc->instances = g_slist_append(drvc->instances, sdi);
+		devices = g_slist_append(devices, sdi);
+	}
+	libusb_free_device_list(devlist, 1);
 
 	return devices;
 }
@@ -83,11 +138,18 @@ static int dev_close(struct sr_dev_inst *sdi)
 
 static int cleanup(void)
 {
-	dev_clear();
+	int ret;
+	struct drv_context *drvc;
 
-	/* TODO: free other driver resources, if any. */
+	if (!(drvc = di->priv))
+		/* Can get called on an unused driver, doesn't matter. */
+		return SR_OK;
 
-	return SR_OK;
+	ret = dev_clear();
+	g_free(drvc);
+	di->priv = NULL;
+
+	return ret;
 }
 
 static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi)
