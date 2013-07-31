@@ -188,10 +188,6 @@ AC_ARG_ENABLE(saleae-logic16, AC_HELP_STRING([--enable-saleae-logic16],
 	[enable Saleae Logic16 support [default=yes]]),
 	[HW_SALEAE_LOGIC16="$enableval"],
 	[HW_SALEAE_LOGIC16=yes])
-AM_CONDITIONAL(HW_SALEAE_LOGIC16, test x$HW_SALEAE_LOGIC16 = xyes)
-if test "x$HW_SALEAE_LOGIC16" = "xyes"; then
-	AC_DEFINE(HAVE_HW_SALEAE_LOGIC16, 1, [Saleae Logic16 support])
-fi
 
 AC_ARG_ENABLE(serial-dmm, AC_HELP_STRING([--enable-serial-dmm],
 	[enable serial DMM support [default=yes]]),
@@ -264,7 +260,7 @@ case "$host" in
 		HW_IKALOGIC_SCANALOGIC2="no"; HW_KECHENG_KC_330B="no";
 		HW_LASCAR_EL_USB="no";
 		HW_UNI_T_DMM="no"; HW_VICTOR_DMM="no";
-		HW_ZEROPLUS_LOGIC_CUBE="no"])
+		HW_ZEROPLUS_LOGIC_CUBE="no"; HW_SALEAE_LOGIC16="no"])
 
 	# Define HAVE_LIBUSB_1_0 in config.h if we found libusb-1.0.
 	if test "x$have_libusb1_0" != "xno"; then
@@ -449,6 +445,11 @@ fi
 AM_CONDITIONAL(HW_ZEROPLUS_LOGIC_CUBE, test x$HW_ZEROPLUS_LOGIC_CUBE = xyes)
 if test "x$HW_ZEROPLUS_LOGIC_CUBE" = "xyes"; then
 	AC_DEFINE(HAVE_HW_ZEROPLUS_LOGIC_CUBE, 1, [ZEROPLUS Logic Cube support])
+fi
+
+AM_CONDITIONAL(HW_SALEAE_LOGIC16, test x$HW_SALEAE_LOGIC16 = xyes)
+if test "x$HW_SALEAE_LOGIC16" = "xyes"; then
+	AC_DEFINE(HAVE_HW_SALEAE_LOGIC16, 1, [Saleae Logic16 support])
 fi
 
 # Checks for header files.
