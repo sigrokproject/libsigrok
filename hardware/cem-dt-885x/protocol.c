@@ -544,7 +544,6 @@ SR_PRIV int cem_dt_885x_weight_freq_get(const struct sr_dev_inst *sdi)
 			return SR_MQFLAG_SPL_FREQ_WEIGHT_C;
 	} else
 		return cur_setting;
-
 }
 
 SR_PRIV int cem_dt_885x_weight_freq_set(const struct sr_dev_inst *sdi, int freqw)
@@ -607,7 +606,6 @@ SR_PRIV int cem_dt_885x_weight_time_get(const struct sr_dev_inst *sdi)
 			return SR_MQFLAG_SPL_TIME_WEIGHT_S;
 	} else
 		return cur_setting;
-
 }
 
 SR_PRIV int cem_dt_885x_weight_time_set(const struct sr_dev_inst *sdi, int timew)

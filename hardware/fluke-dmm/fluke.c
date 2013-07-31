@@ -26,7 +26,6 @@
 #include "libsigrok-internal.h"
 #include "fluke-dmm.h"
 
-
 static struct sr_datafeed_analog *handle_qm_18x(const struct sr_dev_inst *sdi,
 		char **tokens)
 {
@@ -532,5 +531,3 @@ SR_PRIV int fluke_receive_data(int fd, int revents, void *cb_data)
 
 	return TRUE;
 }
-
-

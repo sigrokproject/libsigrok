@@ -17,9 +17,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
-#ifndef LIBSIGROK_AGILENT_DMM_H
-#define LIBSIGROK_AGILENT_DMM_H
+#ifndef LIBSIGROK_HARDWARE_AGILENT_DMM_AGILENT_DMM_H
+#define LIBSIGROK_HARDWARE_AGILENT_DMM_AGILENT_DMM_H
 
 /* Message logging helpers with subsystem-specific prefix string. */
 #define LOG_PREFIX "agilent-dmm: "
@@ -85,4 +84,4 @@ struct agdmm_recv {
 
 SR_PRIV int agdmm_receive_data(int fd, int revents, void *cb_data);
 
-#endif /* LIBSIGROK_AGILENT_DMM_H */
+#endif

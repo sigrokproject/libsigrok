@@ -658,4 +658,3 @@ SR_PRIV int lascar_stop_logging(const struct sr_dev_inst *sdi)
 
 	return ret;
 }
-

@@ -25,7 +25,6 @@
 #include <errno.h>
 #include <string.h>
 
-
 static void process_packet(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
@@ -232,4 +231,3 @@ SR_PRIV int colead_slm_receive_data(int fd, int revents, void *cb_data)
 
 	return TRUE;
 }
-

@@ -17,9 +17,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
-#ifndef LIBSIGROK_FLUKE_DMM_H
-#define LIBSIGROK_FLUKE_DMM_H
+#ifndef LIBSIGROK_HARDWARE_FLUKE_DMM_FLUKE_DMM_H
+#define LIBSIGROK_HARDWARE_FLUKE_DMM_FLUKE_DMM_H
 
 /* Message logging helpers with subsystem-specific prefix string. */
 #define LOG_PREFIX "fluke-dmm: "
@@ -73,4 +72,4 @@ struct dev_context {
 
 SR_PRIV int fluke_receive_data(int fd, int revents, void *cb_data);
 
-#endif /* LIBSIGROK_FLUKE_DMM_H */
+#endif

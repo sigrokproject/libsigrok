@@ -383,7 +383,7 @@ static int bin2bitbang(const char *filename,
 static void clear_helper(void *priv)
 {
 	struct dev_context *devc;
-	
+
 	devc = priv;
 
 	ftdi_deinit(&devc->ftdic);

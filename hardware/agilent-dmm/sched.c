@@ -144,7 +144,7 @@ static int agdmm_send(const struct sr_dev_inst *sdi, const char *cmd)
 		sr_err("Failed to send: %s.", strerror(errno));
 		return SR_ERR;
 	}
-	
+
 	return SR_OK;
 }
 

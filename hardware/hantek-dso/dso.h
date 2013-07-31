@@ -19,8 +19,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBSIGROK_HARDWARE_HANTEK_DSO_H
-#define LIBSIGROK_HARDWARE_HANTEK_DSO_H
+#ifndef LIBSIGROK_HARDWARE_HANTEK_DSO_DSO_H
+#define LIBSIGROK_HARDWARE_HANTEK_DSO_DSO_H
 
 /* Message logging helpers with subsystem-specific prefix string. */
 #define LOG_PREFIX "hantek-dso: "
@@ -76,8 +76,8 @@ enum dso_commands {
 	CMD_GET_CAPTURESTATE,
 	CMD_SET_VOLTAGE,
 	/* unused */
-	cmdSetLogicalData,
-	cmdGetLogicalData,
+	CMD_SET_LOGICALDATA,
+	CMD_GET_LOGICALDATA,
 };
 
 /* Must match the coupling table. */

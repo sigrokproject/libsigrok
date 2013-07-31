@@ -288,4 +288,3 @@ SR_PRIV int rigol_ds1xx2_get_dev_cfg(const struct sr_dev_inst *sdi)
 
 	return SR_OK;
 }
-
