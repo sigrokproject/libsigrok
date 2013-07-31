@@ -26,236 +26,149 @@ ACTION!="add|change", GOTO="libsigrok_rules_end"
 SUBSYSTEM!="usb|usb_device", GOTO="libsigrok_rules_end"
 
 # Acute PKLA-1216
-# http://www.acute.com.tw/product/la.php
-# lsusb: "05e3:0136 Genesys Logic, Inc."
 ATTRS{idVendor}=="05e3", ATTRS{idProduct}=="0136", MODE="664", GROUP="plugdev"
 
-# ASIX SIGMA and SIGMA2
-# http://tools.asix.net/dbg_sigma.htm
-# lsusb: "a600:a000 Asix"
+# ASIX SIGMA
+# ASIX SIGMA2
 ATTRS{idVendor}=="a600", ATTRS{idProduct}=="a000", MODE="664", GROUP="plugdev"
 
 # Braintechnology USB-LPS
-# http://www.braintechnology.de/braintechnology/usb_lps.html
-# lsusb: "16d0:0498" (no string for the vendor name available)
 ATTRS{idVendor}=="16d0", ATTRS{idProduct}=="0498", MODE="664", GROUP="plugdev"
 
 # Buspirate (v3)
-# http://dangerousprototypes.com/2009/11/03/bus-pirate-logic-analyzer-mode/
-# lsusb: "0403:6001 Future Technology Devices International,
-#        Ltd FT232 USB-Serial (UART) IC"
-#
 # ChronoVu LA8
-# http://www.chronovu.com/
-# lsusb: "0403:6001 Future Technology Devices International,
-#        Ltd FT232 USB-Serial (UART) IC"
 ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", MODE="664", GROUP="plugdev"
 
 # CWAV USBee AX
-# http://www.usbee.com/ax.html
-# lsusb: "08a9:0014" (no string for the vendor name available)
-#
 # EE Electronics ESLA201A (clone of the CWAV USBee AX)
-# http://eeelec.com/xla/
-# lsusb: "08a9:0014" (no string for the vendor name available)
-#
 # ARMFLY AX-Pro (clone of the CWAV USBee AX)
-# http://www.armfly.com/product/AX-Pro/ax-pro.htm
-# lsusb: "08a9:0014" (no string for the vendor name available)
 ATTRS{idVendor}=="08a9", ATTRS{idProduct}=="0014", MODE="664", GROUP="plugdev"
 
 # CWAV USBee DX
-# http://www.usbee.com/dx.html
-# lsusb: "08a9:0015" (no string for the vendor name available)
-#
 # XZL Studio DX (clone of the CWAV USBee DX)
-# lsusb: "08a9:0015" (no string for the vendor name available)
 ATTRS{idVendor}=="08a9", ATTRS{idProduct}=="0015", MODE="664", GROUP="plugdev"
 
 # CWAV USBee SX
-# http://www.usbee.com/sx.html
-# lsusb: "08a9:0009" (no string for the vendor name available)
 ATTRS{idVendor}=="08a9", ATTRS{idProduct}=="0009", MODE="664", GROUP="plugdev"
 
 # Cypress FX2 eval boards without EEPROM:
 #
 # Lcsoft Mini Board
-# http://sigrok.org/wiki/Lcsoft_Mini_Board
-# lsusb: "04b4:8613 Cypress Semiconductor Corp. CY7C68013 EZ-USB FX2 USB 2.0 Development Kit"
-#
 # Braintechnology USB Interface V2.x
-# http://www.braintechnology.de/braintechnology/en/usb_fastinterface27.html
-# lsusb: "04b4:8613 Cypress Semiconductor Corp. CY7C68013 EZ-USB FX2 USB 2.0 Development Kit"
 ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="8613", MODE="664", GROUP="plugdev"
 
 # Hantek DSO-2090
-# http://www.hantek.com.cn/english/produce_list.asp?unid=62
 # lsusb: "04b4:2090 Cypress Semiconductor Corp."
 # lsusb after FW upload: "04b5:2090 ROHM LSI Systems USA, LLC"
 ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="2090", MODE="664", GROUP="plugdev"
 ATTRS{idVendor}=="04b5", ATTRS{idProduct}=="2090", MODE="664", GROUP="plugdev"
 
 # Hantek DSO-2150
-# http://www.hantek.com.cn/english/produce_list.asp?unid=63
 # lsusb: "04b4:2150 Cypress Semiconductor Corp."
 # lsusb after FW upload: "04b5:2150 ROHM LSI Systems USA, LLC"
 ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="2150", MODE="664", GROUP="plugdev"
 ATTRS{idVendor}=="04b5", ATTRS{idProduct}=="2150", MODE="664", GROUP="plugdev"
 
 # Hantek DSO-2250
-# http://www.hantek.com.cn/english/produce_list.asp?unid=64
 # lsusb: "04b4:2250 Cypress Semiconductor Corp."
 # lsusb after FW upload: "04b5:2250 ROHM LSI Systems USA, LLC"
 ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="2250", MODE="664", GROUP="plugdev"
 ATTRS{idVendor}=="04b5", ATTRS{idProduct}=="2250", MODE="664", GROUP="plugdev"
 
 # Hantek DSO-5200
-# http://www.hantek.com.cn/english/produce_list.asp?unid=27
 # lsusb: "04b4:5200 Cypress Semiconductor Corp."
 # lsusb after FW upload: "04b5:5200 ROHM LSI Systems USA, LLC"
 ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="5200", MODE="664", GROUP="plugdev"
 ATTRS{idVendor}=="04b5", ATTRS{idProduct}=="5200", MODE="664", GROUP="plugdev"
 
 # Hantek DSO-5200A
-# http://www.hantek.com.cn/english/produce_list.asp?unid=66
 # lsusb: "04b4:520a Cypress Semiconductor Corp."
 # lsusb after FW upload: "04b5:520a ROHM LSI Systems USA, LLC"
 ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="520a", MODE="664", GROUP="plugdev"
 ATTRS{idVendor}=="04b5", ATTRS{idProduct}=="520a", MODE="664", GROUP="plugdev"
 
 # Ideofy LA-08
-# http://www.ideofy.com/la-08_en
-# lsusb: "1fff:0100" (no string for the vendor name available)
 ATTRS{idVendor}=="1fff", ATTRS{idProduct}=="0100", MODE="664", GROUP="plugdev"
 
 # Ikalogic SCANALOGIC-2 PRO
-# http://www.ikalogic.com/scanalogic2/
-# lsusb: "20a0:4123" (no string for the vendor name available)
 ATTRS{idVendor}=="20a0", ATTRS{idProduct}=="4123", MODE="664", GROUP="plugdev"
 
 # Intronix Logicport LA1034
-# http://www.pctestinstruments.com/
-# lsusb: "0403:dc48 Future Technology Devices International, Ltd"
 ATTRS{idVendor}=="0403", ATTRS{idProduct}=="dc48", MODE="664", GROUP="plugdev"
 
 # Kecheng KC-330B
 ATTRS{idVendor}=="1041", ATTRS{idProduct}=="8101", MODE="664", GROUP="plugdev"
 
 # Lascar Electronics EL-USB series
-# This is actually the generic SILabs (Cygnal) F32x USBXpress VID:PID
+# This is actually the generic SiLabs (Cygnal) F32x USBXpress VID:PID.
 ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="0002", MODE="664", GROUP="plugdev"
 
 # Link Instruments MSO-19
-# http://www.linkinstruments.com/mso19.htm
-# lsusb: "3195:f190 Silicon Labs"
 ATTRS{idVendor}=="3195", ATTRS{idProduct}=="f190", MODE="664", GROUP="plugdev"
 
 # Logic Shrimp
-# http://dangerousprototypes.com/docs/Logic_Shrimp_logic_analyzer
-# lsusb: "04d8:fa95 Microchip Technology, Inc."
 ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="fa95", MODE="664", GROUP="plugdev"
 
 # Microchip PICkit2
-# http://www.microchip.com/pickit2
-# lsusb: "04d8:0033 Microchip Technology, Inc. PICkit2"
 ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="0033", MODE="664", GROUP="plugdev"
 
 # MiniLA Mockup
-# http://www.mikrocontroller.net/articles/Minila_Version_MockUp
-# lsusb: "0403:6010 Future Technology Devices International, Ltd FT2232C Dual USB-UART/FIFO IC"
 ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6010", MODE="664", GROUP="plugdev"
 
 # Nexus-Computing OsciPrime
-# http://www.osciprime.com/
 # The device comes up with the default Cypress FX2 VID:PID (04b4:8613), but
-# after firmware upload enumerates as this:
-# lsusb: "04b4:1004 Cypress Semiconductor Corp."
+# after firmware upload enumerates as "04b4:1004 Cypress Semiconductor Corp.".
 ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="1004", MODE="664", GROUP="plugdev"
 
 # Openbench Logic Sniffer
-# http://www.gadgetfactory.net/gf/project/butterflylogic/
-# http://dangerousprototypes.com/open-logic-sniffer/
-# lsusb: "04d8:000a Microchip Technology, Inc."
 ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="000a", MODE="664", GROUP="plugdev"
 
 # PoLabs PoScope Basic2
-# http://www.poscope.com/poscope_basic_2
-# lsusb: "10c4:ea67 Cygnal Integrated Products, Inc."
 ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea67", MODE="664", GROUP="plugdev"
 
 # QuantAsylum QA100
-# http://www.quantasylum.com/content/Products/QA100.aspx
-# lsusb: "16c0:4e21 VOTI"
 ATTRS{idVendor}=="16c0", ATTRS{idProduct}=="4e21", MODE="664", GROUP="plugdev"
 
 # Rigol VS5202D
-# http://int.rigol.com/prodserv/Discontinued%20products/
-# lsusb: "0400:03e8 National Semiconductor Corp."
 ATTRS{idVendor}=="0400", ATTRS{idProduct}=="03e8", MODE="664", GROUP="plugdev"
 
-# Rigol DS1052E/1102E
-# lsusb: 1ab1:0588
+# Rigol DS1052E
+# Rigol DS1102E
 ATTRS{idVendor}=="1ab1", ATTRS{idProduct}=="0588", MODE="664", GROUP="plugdev"
 
 # RockyLogic Ant8
-# http://www.rockylogic.com/products/ant8.html
-# lsusb: "0403:f918 Future Technology Devices International,
-#        Ltd Ant8 Logic Probe"
-#
 # RockyLogic Ant18e
-# http://www.rockylogic.com/products/ant18e.html
-# lsusb: "0403:f918 Future Technology Devices International,
-#        Ltd Ant8 Logic Probe"
 ATTRS{idVendor}=="0403", ATTRS{idProduct}=="f918", MODE="664", GROUP="plugdev"
 
 # Saleae Logic
-# http://www.saleae.com/logic/
-# lsusb: "0925:3881 Lakeview Research"
-#
 # EE Electronics ESLA100 (clone of the Saleae Logic)
-# http://eeelec.com/xla/
-# lsusb: "0925:3881 Lakeview Research"
-#
 # Robomotic MiniLogic (clone of the Saleae Logic)
-# http://buglogic.robomotic.com/
-# lsusb: "0925:3881 Lakeview Research"
-#
 # Robomotic BugLogic 3 (clone of the Saleae Logic)
-# http://norduino.robomotic.com/products-page/categories/buglogic3/
-# lsusb: "0925:3881 Lakeview Research"
 ATTRS{idVendor}=="0925", ATTRS{idProduct}=="3881", MODE="664", GROUP="plugdev"
 
 # Saleae Logic16
-# http://www.saleae.com/logic16/
-# lsusb: "21a9:1001" (no string for the vendor name available)
 ATTRS{idVendor}=="21a9", ATTRS{idProduct}=="1001", MODE="664", GROUP="plugdev"
 
 # UNI-T UT-D04 multimeter cable (for various DMMs)
 # http://sigrok.org/wiki/Device_cables#UNI-T_UT-D04
-# lsusb: "1a86:e008 QinHeng Electronics HID-based serial adapater"
 ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="e008", MODE="664", GROUP="plugdev"
 
 # Velleman PCSU1000
-# http://www.velleman.eu/products/view/?id=362986
-# lsusb: "10cf:1000 Velleman Components, Inc."
 ATTRS{idVendor}=="10cf", ATTRS{idProduct}=="1000", MODE="664", GROUP="plugdev"
 
 # Victor 70C
-# http://www.china-victor.com/english/en/product_data.aspx?ClassID=168&ID=121
 ATTRS{idVendor}=="1244", ATTRS{idProduct}=="d237", MODE="664", GROUP="plugdev"
 
 # ZEROPLUS Logic Cube LAP-C series
-# http://www.zeroplus.com.tw/logic-analyzer_en/products.php#top_c
-# lsusb: "0c12:700e Zeroplus"
 # There are various devices in the ZEROPLUS Logic Cube series:
-# 0x7002: LAP-16128U
-# 0x7009: LAP-C(16064)
-# 0x700a: LAP-C(16128)
-# 0x700b: LAP-C(32128)
-# 0x700c: LAP-C(321000)
-# 0x700d: LAP-C(322000)
-# 0x700e: LAP-C(16032)
-# 0x7016: LAP-C(162000)
+# 0c12:7002: LAP-16128U
+# 0c12:7009: LAP-C(16064)
+# 0c12:700a: LAP-C(16128)
+# 0c12:700b: LAP-C(32128)
+# 0c12:700c: LAP-C(321000)
+# 0c12:700d: LAP-C(322000)
+# 0c12:700e: LAP-C(16032)
+# 0c12:7016: LAP-C(162000)
 ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="7002", MODE="664", GROUP="plugdev"
 ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="7009", MODE="664", GROUP="plugdev"
 ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="700a", MODE="664", GROUP="plugdev"
