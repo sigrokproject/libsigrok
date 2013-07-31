@@ -1,7 +1,7 @@
 ##
 ## This file is part of the libsigrok project.
 ##
-## Copyright (C) 2010-2012 Uwe Hermann <uwe@hermann-uwe.de>
+## Copyright (C) 2010-2013 Uwe Hermann <uwe@hermann-uwe.de>
 ##
 ## This program is free software; you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -25,9 +25,6 @@
 ACTION!="add|change", GOTO="libsigrok_rules_end"
 SUBSYSTEM!="usb|usb_device", GOTO="libsigrok_rules_end"
 
-# Acute PKLA-1216
-ATTRS{idVendor}=="05e3", ATTRS{idProduct}=="0136", MODE="664", GROUP="plugdev"
-
 # ASIX SIGMA
 # ASIX SIGMA2
 ATTRS{idVendor}=="a600", ATTRS{idProduct}=="a000", MODE="664", GROUP="plugdev"
@@ -35,27 +32,35 @@ ATTRS{idVendor}=="a600", ATTRS{idProduct}=="a000", MODE="664", GROUP="plugdev"
 # Braintechnology USB-LPS
 ATTRS{idVendor}=="16d0", ATTRS{idProduct}=="0498", MODE="664", GROUP="plugdev"
 
-# Buspirate (v3)
-# ChronoVu LA8
-ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", MODE="664", GROUP="plugdev"
+# CEM DT-8852
+ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", MODE="664", GROUP="plugdev"
 
 # CWAV USBee AX
-# EE Electronics ESLA201A (clone of the CWAV USBee AX)
 # ARMFLY AX-Pro (clone of the CWAV USBee AX)
+# ARMFLY Mini-Logic (clone of the CWAV USBee AX)
+# EE Electronics ESLA201A (clone of the CWAV USBee AX)
+# MCU123 USBee AX Pro clone (clone of the CWAV USBee AX)
+# XZL_Studio AX (clone of the CWAV USBee AX)
 ATTRS{idVendor}=="08a9", ATTRS{idProduct}=="0014", MODE="664", GROUP="plugdev"
 
 # CWAV USBee DX
-# XZL Studio DX (clone of the CWAV USBee DX)
+# XZL_Studio DX (clone of the CWAV USBee DX)
 ATTRS{idVendor}=="08a9", ATTRS{idProduct}=="0015", MODE="664", GROUP="plugdev"
 
 # CWAV USBee SX
 ATTRS{idVendor}=="08a9", ATTRS{idProduct}=="0009", MODE="664", GROUP="plugdev"
 
 # Cypress FX2 eval boards without EEPROM:
-#
 # Lcsoft Mini Board
 # Braintechnology USB Interface V2.x
 ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="8613", MODE="664", GROUP="plugdev"
+
+# Dangerous Prototypes Buspirate (v3)
+# ChronoVu LA8
+ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", MODE="664", GROUP="plugdev"
+
+# Dangerous Prototypes Buspirate (v4)
+ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="fb00", MODE="664", GROUP="plugdev"
 
 # Hantek DSO-2090
 # lsusb: "04b4:2090 Cypress Semiconductor Corp."
@@ -87,19 +92,14 @@ ATTRS{idVendor}=="04b5", ATTRS{idProduct}=="5200", MODE="664", GROUP="plugdev"
 ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="520a", MODE="664", GROUP="plugdev"
 ATTRS{idVendor}=="04b5", ATTRS{idProduct}=="520a", MODE="664", GROUP="plugdev"
 
-# Ideofy LA-08
-ATTRS{idVendor}=="1fff", ATTRS{idProduct}=="0100", MODE="664", GROUP="plugdev"
-
-# Ikalogic SCANALOGIC-2 PRO
+# Ikalogic SCANALOGIC-2
 ATTRS{idVendor}=="20a0", ATTRS{idProduct}=="4123", MODE="664", GROUP="plugdev"
-
-# Intronix Logicport LA1034
-ATTRS{idVendor}=="0403", ATTRS{idProduct}=="dc48", MODE="664", GROUP="plugdev"
 
 # Kecheng KC-330B
 ATTRS{idVendor}=="1041", ATTRS{idProduct}=="8101", MODE="664", GROUP="plugdev"
 
-# Lascar Electronics EL-USB series
+# Lascar Electronics EL-USB-2
+# Lascar Electronics EL-USB-CO
 # This is actually the generic SiLabs (Cygnal) F32x USBXpress VID:PID.
 ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="0002", MODE="664", GROUP="plugdev"
 
@@ -109,11 +109,13 @@ ATTRS{idVendor}=="3195", ATTRS{idProduct}=="f190", MODE="664", GROUP="plugdev"
 # Logic Shrimp
 ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="fa95", MODE="664", GROUP="plugdev"
 
-# Microchip PICkit2
-ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="0033", MODE="664", GROUP="plugdev"
-
 # MiniLA Mockup
 ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6010", MODE="664", GROUP="plugdev"
+
+# MIC 98581
+# MIC 98583
+# Tondaj SL-814
+ATTRS{idVendor}=="067b", ATTRS{idProduct}=="2303", MODE="664", GROUP="plugdev"
 
 # Nexus-Computing OsciPrime
 # The device comes up with the default Cypress FX2 VID:PID (04b4:8613), but
@@ -123,40 +125,27 @@ ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="1004", MODE="664", GROUP="plugdev"
 # Openbench Logic Sniffer
 ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="000a", MODE="664", GROUP="plugdev"
 
-# PoLabs PoScope Basic2
-ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea67", MODE="664", GROUP="plugdev"
-
-# QuantAsylum QA100
-ATTRS{idVendor}=="16c0", ATTRS{idProduct}=="4e21", MODE="664", GROUP="plugdev"
-
-# Rigol VS5202D
-ATTRS{idVendor}=="0400", ATTRS{idProduct}=="03e8", MODE="664", GROUP="plugdev"
-
 # Rigol DS1052E
 # Rigol DS1102E
 ATTRS{idVendor}=="1ab1", ATTRS{idProduct}=="0588", MODE="664", GROUP="plugdev"
-
-# RockyLogic Ant8
-# RockyLogic Ant18e
-ATTRS{idVendor}=="0403", ATTRS{idProduct}=="f918", MODE="664", GROUP="plugdev"
 
 # Saleae Logic
 # EE Electronics ESLA100 (clone of the Saleae Logic)
 # Robomotic MiniLogic (clone of the Saleae Logic)
 # Robomotic BugLogic 3 (clone of the Saleae Logic)
+# MCU123 Saleae Logic clone (clone of the Saleae Logic)
 ATTRS{idVendor}=="0925", ATTRS{idProduct}=="3881", MODE="664", GROUP="plugdev"
 
-# Saleae Logic16
-ATTRS{idVendor}=="21a9", ATTRS{idProduct}=="1001", MODE="664", GROUP="plugdev"
-
-# UNI-T UT-D04 multimeter cable (for various DMMs)
+# UNI-T UT-D04 multimeter cable (for various UNI-T and rebranded DMMs)
 # http://sigrok.org/wiki/Device_cables#UNI-T_UT-D04
 ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="e008", MODE="664", GROUP="plugdev"
 
-# Velleman PCSU1000
-ATTRS{idVendor}=="10cf", ATTRS{idProduct}=="1000", MODE="664", GROUP="plugdev"
+# V&A VA4000 multimeter cable (for various V&A DMMs)
+# http://sigrok.org/wiki/Device_cables#V.26A_VA4000
+ATTRS{idVendor}=="04fc", ATTRS{idProduct}=="0201", MODE="664", GROUP="plugdev"
 
 # Victor 70C
+# Victor 86C
 ATTRS{idVendor}=="1244", ATTRS{idProduct}=="d237", MODE="664", GROUP="plugdev"
 
 # ZEROPLUS Logic Cube LAP-C series
