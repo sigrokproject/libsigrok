@@ -383,7 +383,7 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 			num_channels++;
 	}
 
-	if (revents == G_IO_IN) {
+	if (revents == G_IO_IN && devc->num_samples < devc->limit_samples) {
 		if (serial_read(serial, &byte, 1) != 1)
 			return FALSE;
 
