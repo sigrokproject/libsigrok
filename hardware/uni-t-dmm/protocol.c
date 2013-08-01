@@ -49,25 +49,6 @@
  *  f0 00 00 00 00 00 00 00 (no data bytes)
  *  f2 55 77 00 00 00 00 00 (2 data bytes, 0x55 and 0x77)
  *  f1 d1 00 00 00 00 00 00 (1 data byte, 0xd1)
- *
- * Chips and serial settings used in UNI-T DMMs (and rebranded ones):
- *  - Tecpel DMM-8061: ? (very likely Fortune Semiconductor FS9721_LP3)
- *  - UNI-T UT108: ?
- *  - UNI-T UT109: ?
- *  - UNI-T UT30A: ?
- *  - UNI-T UT30E: ?
- *  - UNI-T UT60A: Fortune Semiconductor FS9721_LP3 (?)
- *  - UNI-T UT60E: Fortune Semiconductor FS9721_LP3 (?)
- *  - UNI-T UT60G: ?
- *  - UNI-T UT61B: ?
- *  - UNI-T UT61C: ?
- *  - UNI-T UT61D: Fortune Semiconductor FS9922-DMM4
- *  - UNI-T UT61E: Cyrustek ES51922
- *  - UNI-T UT70B: ?
- *  - Voltcraft VC-820: Fortune Semiconductor FS9721_LP3
- *  - Voltcraft VC-830: Fortune Semiconductor FS9922-DMM4
- *  - Voltcraft VC-840: Fortune Semiconductor FS9721_LP3
- *  - ...
  */
 
 static void decode_packet(struct sr_dev_inst *sdi, int dmm, const uint8_t *buf,
