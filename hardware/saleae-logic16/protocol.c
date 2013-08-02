@@ -19,6 +19,422 @@
 
 #include "protocol.h"
 
+#include <stdint.h>
+#include <string.h>
+#include <glib.h>
+#include <glib/gstdio.h>
+#include <stdio.h>
+#include <errno.h>
+#include <math.h>
+#include "libsigrok.h"
+#include "libsigrok-internal.h"
+
+#define FPGA_FIRMWARE_18	FIRMWARE_DIR"/saleae-logic16-fpga-18.bitstream"
+#define FPGA_FIRMWARE_33	FIRMWARE_DIR"/saleae-logic16-fpga-33.bitstream"
+
+#define COMMAND_START_ACQUISITION	1
+#define COMMAND_ABORT_ACQUISITION_ASYNC	2
+#define COMMAND_WRITE_EEPROM		6
+#define COMMAND_READ_EEPROM		7
+#define COMMAND_WRITE_LED_TABLE		0x7a
+#define COMMAND_SET_LED_MODE		0x7b
+#define COMMAND_RETURN_TO_BOOTLOADER	0x7c
+#define COMMAND_ABORT_ACQUISITION_SYNC	0x7d
+#define COMMAND_FPGA_UPLOAD_INIT	0x7e
+#define COMMAND_FPGA_UPLOAD_SEND_DATA	0x7f
+#define COMMAND_FPGA_WRITE_REGISTER	0x80
+#define COMMAND_FPGA_READ_REGISTER	0x81
+#define COMMAND_GET_REVID		0x82
+
+#define WRITE_EEPROM_COOKIE1		0x42
+#define WRITE_EEPROM_COOKIE2		0x55
+#define READ_EEPROM_COOKIE1		0x33
+#define READ_EEPROM_COOKIE2		0x81
+#define ABORT_ACQUISITION_SYNC_PATTERN	0x55
+
+
+static void encrypt(uint8_t *dest, const uint8_t *src, uint8_t cnt)
+{
+	uint8_t state1 = 0x9b, state2 = 0x54;
+	int i;
+
+	for (i=0; i<cnt; i++) {
+		uint8_t t, v = src[i];
+		t = (((v ^ state2 ^ 0x2b) - 0x05) ^ 0x35) - 0x39;
+		t = (((t ^ state1 ^ 0x5a) - 0xb0) ^ 0x38) - 0x45;
+		dest[i] = state2 = t;
+		state1 = v;
+	}
+}
+
+static void decrypt(uint8_t *dest, const uint8_t *src, uint8_t cnt)
+{
+	uint8_t state1 = 0x9b, state2 = 0x54;
+	int i;
+	for (i=0; i<cnt; i++) {
+		uint8_t t, v = src[i];
+		t = (((v + 0x45) ^ 0x38) + 0xb0) ^ 0x5a ^ state1;
+		t = (((t + 0x39) ^ 0x35) + 0x05) ^ 0x2b ^ state2;
+		dest[i] = state1 = t;
+		state2 = v;
+	}
+}
+
+static int do_ep1_command(const struct sr_dev_inst *sdi,
+			  const uint8_t *command, uint8_t cmd_len,
+			  uint8_t *reply, uint8_t reply_len)
+{
+	uint8_t buf[64];
+	struct sr_usb_dev_inst *usb;
+	int ret, xfer;
+
+	usb = sdi->conn;
+
+	if (cmd_len < 1 || cmd_len > 64 || reply_len > 64 ||
+	    command == NULL || (reply_len > 0 && reply == NULL))
+		return SR_ERR_ARG;
+
+	encrypt(buf, command, cmd_len);
+
+	ret = libusb_bulk_transfer(usb->devhdl, 1, buf, cmd_len, &xfer, 1000);
+	if (ret != 0) {
+		sr_dbg("Failed to send EP1 command 0x%02x: %s",
+		       command[0], libusb_error_name(ret));
+		return SR_ERR;
+	}
+	if (xfer != cmd_len) {
+		sr_dbg("Failed to send EP1 command 0x%02x: incorrect length %d != %d",
+		       xfer, cmd_len);
+		return SR_ERR;
+	}
+
+	if (reply_len == 0)
+		return SR_OK;
+
+	ret = libusb_bulk_transfer(usb->devhdl, 0x80 | 1, buf, reply_len, &xfer, 1000);
+	if (ret != 0) {
+		sr_dbg("Failed to receive reply to EP1 command 0x%02x: %s",
+		       command[0], libusb_error_name(ret));
+		return SR_ERR;
+	}
+	if (xfer != reply_len) {
+		sr_dbg("Failed to receive reply to EP1 command 0x%02x: incorrect length %d != %d",
+		       xfer, reply_len);
+		return SR_ERR;
+	}
+
+	decrypt(reply, buf, reply_len);
+
+	return SR_OK;
+}
+
+static int read_eeprom(const struct sr_dev_inst *sdi,
+		       uint8_t address, uint8_t length, uint8_t *buf)
+{
+	uint8_t command[5] = {
+		COMMAND_READ_EEPROM,
+		READ_EEPROM_COOKIE1,
+		READ_EEPROM_COOKIE2,
+		address,
+		length,
+	};
+
+	return do_ep1_command(sdi, command, 5, buf, length);
+}
+
+static int upload_led_table(const struct sr_dev_inst *sdi,
+			    const uint8_t *table, uint8_t offset, uint8_t cnt)
+{
+	uint8_t command[64];
+	int ret;
+
+	if (cnt < 1 || cnt+offset > 64 || table == NULL)
+		return SR_ERR_ARG;
+
+	while (cnt > 0) {
+		uint8_t chunk = (cnt > 32? 32 : cnt);
+
+		command[0] = COMMAND_WRITE_LED_TABLE;
+		command[1] = offset;
+		command[2] = chunk;
+		memcpy(command+3, table, chunk);
+
+		if ((ret = do_ep1_command(sdi, command, 3+chunk, NULL, 0)) != SR_OK)
+			return ret;
+
+		table += chunk;
+		offset += chunk;
+		cnt -= chunk;
+	}
+
+	return SR_OK;
+}
+
+static int set_led_mode(const struct sr_dev_inst *sdi,
+			uint8_t animate, uint16_t t2reload, uint8_t div,
+			uint8_t repeat)
+{
+	uint8_t command[6] = {
+		COMMAND_SET_LED_MODE,
+		animate,
+		t2reload&0xff,
+		t2reload>>8,
+		div,
+		repeat,
+	};
+
+	return do_ep1_command(sdi, command, 6, NULL, 0);
+}
+
+static int read_fpga_register(const struct sr_dev_inst *sdi,
+			      uint8_t address, uint8_t *value)
+{
+	uint8_t command[3] = {
+		COMMAND_FPGA_READ_REGISTER,
+		1,
+		address,
+	};
+
+	return do_ep1_command(sdi, command, 3, value, 1);
+}
+
+static int write_fpga_registers(const struct sr_dev_inst *sdi,
+				uint8_t (*regs)[2], uint8_t cnt)
+{
+	uint8_t command[64];
+	int i;
+
+	if (cnt < 1 || cnt > 31)
+		return SR_ERR_ARG;
+
+	command[0] = COMMAND_FPGA_WRITE_REGISTER;
+	command[1] = cnt;
+	for (i=0; i<cnt; i++) {
+		command[2+2*i] = regs[i][0];
+		command[3+2*i] = regs[i][1];
+	}
+
+	return do_ep1_command(sdi, command, 2*(cnt+1), NULL, 0);
+}
+
+static int write_fpga_register(const struct sr_dev_inst *sdi,
+			       uint8_t address, uint8_t value)
+{
+	uint8_t regs[2] = { address, value };
+	return write_fpga_registers(sdi, &regs, 1);
+}
+
+
+static uint8_t map_eeprom_data(uint8_t v)
+{
+	/* ??? */
+	switch (v) {
+	case 0x00: return 0x7a;
+	case 0x01: return 0x79;
+	case 0x05: return 0x85;
+	case 0x10: return 0x6a;
+	case 0x11: return 0x69;
+	case 0x14: return 0x76;
+	case 0x15: return 0x75;
+	case 0x41: return 0x39;
+	case 0x50: return 0x2a;
+	case 0x51: return 0x29;
+	case 0x55: return 0x35;
+	default:
+		sr_err("No mapping of 0x%02x defined", v);
+		return 0xff;
+	}
+}
+
+static int prime_fpga(const struct sr_dev_inst *sdi)
+{
+	uint8_t eeprom_data[16];
+	uint8_t old_reg_10, status;
+	uint8_t regs[8][2] = {
+		{10, 0x00},
+		{10, 0x40},
+		{12, 0},
+		{10, 0xc0},
+		{10, 0x40},
+		{ 6, 0},
+		{ 7, 1},
+		{ 7, 0}
+	};
+	int i, ret;
+
+	if ((ret = read_eeprom(sdi, 16, 16, eeprom_data)) != SR_OK)
+		return ret;
+
+	if ((ret = read_fpga_register(sdi, 10, &old_reg_10)) != SR_OK)
+		return ret;
+
+	for (i=0; i<16; i++) {
+		regs[2][1] = eeprom_data[i];
+		regs[5][1] = map_eeprom_data(eeprom_data[i]);
+		if (i)
+			ret = write_fpga_registers(sdi, &regs[2], 6);
+		else
+			ret = write_fpga_registers(sdi, &regs[0], 8);
+		if (ret != SR_OK)
+			return ret;
+	}
+
+	if ((ret = write_fpga_register(sdi, 10, old_reg_10)) != SR_OK)
+		return ret;
+
+	if ((ret = read_fpga_register(sdi, 0, &status)) != SR_OK)
+		return ret;
+
+	if (status != 0x10) {
+		sr_err("Invalid FPGA status: 0x%02x != 0x10", status);
+		return SR_ERR;
+	}
+
+	return SR_OK;
+}
+
+static void make_heartbeat(uint8_t *table, int len)
+{
+	int i, j;
+
+	memset(table, 0, len);
+	len >>= 3;
+	for (i=0; i<2; i++)
+		for (j=0; j<len; j++)
+			*table++ = sin(j*M_PI/len)*255;
+}
+
+static int configure_led(const struct sr_dev_inst *sdi)
+{
+	uint8_t table[64];
+	int ret;
+
+	make_heartbeat(table, 64);
+	if ((ret = upload_led_table(sdi, table, 0, 64)) != SR_OK)
+		return ret;
+
+	return set_led_mode(sdi, 1, 6250, 0, 1);
+}
+
+static int upload_fpga_bitstream(const struct sr_dev_inst *sdi,
+				 enum voltage_range vrange)
+{
+	struct dev_context *devc;
+	int offset, chunksize, ret;
+	const char *filename;
+	FILE *fw;
+	unsigned char buf[256*62];
+
+	devc = sdi->priv;
+
+	if (devc->cur_voltage_range == vrange)
+		return SR_OK;
+
+	switch (vrange) {
+	case VOLTAGE_RANGE_18_33_V:
+		filename = FPGA_FIRMWARE_18;
+		break;
+	case VOLTAGE_RANGE_5_V:
+		filename = FPGA_FIRMWARE_33;
+		break;
+	default:
+		sr_err("Unsupported voltage range");
+		return SR_ERR;
+	}
+
+	sr_info("Uploading FPGA bitstream at %s", filename);
+	if ((fw = g_fopen(filename, "rb")) == NULL) {
+		sr_err("Unable to open bitstream file %s for reading: %s",
+		       filename, strerror(errno));
+		return SR_ERR;
+	}
+
+	buf[0] = COMMAND_FPGA_UPLOAD_INIT;
+	if ((ret = do_ep1_command(sdi, buf, 1, NULL, 0)) != SR_OK) {
+		fclose(fw);
+		return ret;
+	}
+
+	while (1) {
+		chunksize = fread(buf, 1, sizeof(buf), fw);
+		if (chunksize == 0)
+			break;
+
+		for (offset = 0; offset < chunksize; offset += 62) {
+			uint8_t command[64];
+			uint8_t len = (offset + 62 > chunksize?
+				       chunksize - offset : 62);
+			command[0] = COMMAND_FPGA_UPLOAD_SEND_DATA;
+			command[1] = len;
+			memcpy(command+2, buf+offset, len);
+			if ((ret = do_ep1_command(sdi, command, len+2, NULL, 0)) != SR_OK) {
+				fclose(fw);
+				return ret;
+			}
+		}
+
+		sr_info("Uploaded %d bytes", chunksize);
+	}
+	fclose(fw);
+	sr_info("FPGA bitstream upload done");
+
+	if ((ret = prime_fpga(sdi)) != SR_OK)
+		return ret;
+
+	if ((ret = configure_led(sdi)) != SR_OK)
+		return ret;
+
+	/* XXX */
+	if ((ret = configure_led(sdi)) != SR_OK)
+		return ret;
+
+	devc->cur_voltage_range = vrange;
+	return SR_OK;
+}
+
+SR_PRIV int saleae_logic16_abort_acquisition(const struct sr_dev_inst *sdi)
+{
+	static const uint8_t command[2] = {
+		COMMAND_ABORT_ACQUISITION_SYNC,
+		ABORT_ACQUISITION_SYNC_PATTERN,
+	};
+	uint8_t reply, expected_reply;
+	int ret;
+
+	if ((ret = do_ep1_command(sdi, command, 2, &reply, 1)) != SR_OK)
+		return ret;
+
+	expected_reply = ~command[1];
+	if (reply != expected_reply) {
+		sr_err("Invalid response for abort acquisition command: "
+		       "0x%02x != 0x%02x", reply, expected_reply);
+		return SR_ERR;
+	}
+
+	return SR_OK;
+}
+
+SR_PRIV int saleae_logic16_init_device(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	int ret;
+
+	devc = sdi->priv;
+
+	devc->cur_voltage_range = VOLTAGE_RANGE_UNKNOWN;
+
+	if ((ret = saleae_logic16_abort_acquisition(sdi)) != SR_OK)
+		return ret;
+
+	if ((ret = read_eeprom(sdi, 8, 8, devc->eeprom_data)) != SR_OK)
+		return ret;
+
+	if ((ret = upload_fpga_bitstream(sdi, VOLTAGE_RANGE_18_33_V)) != SR_OK)
+		return ret;
+
+	return SR_OK;
+}
+
 SR_PRIV int saleae_logic16_receive_data(int fd, int revents, void *cb_data)
 {
 	(void)fd;

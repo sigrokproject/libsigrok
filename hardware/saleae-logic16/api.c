@@ -271,6 +271,11 @@ static int logic16_dev_open(struct sr_dev_inst *sdi)
 			break;
 		}
 
+		if ((ret = saleae_logic16_init_device(sdi)) != SR_OK) {
+			sr_err("Failed to init device.");
+			break;
+		}
+
 		sdi->status = SR_ST_ACTIVE;
 		sr_info("Opened device %d on %d.%d, "
 			"interface %d.",

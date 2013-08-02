@@ -34,6 +34,12 @@
 #define sr_warn(s, args...) sr_warn(LOG_PREFIX s, ## args)
 #define sr_err(s, args...) sr_err(LOG_PREFIX s, ## args)
 
+enum voltage_range {
+	VOLTAGE_RANGE_UNKNOWN,
+	VOLTAGE_RANGE_18_33_V,	/* 1.8V and 3.3V logic */
+	VOLTAGE_RANGE_5_V,	/* 5V logic */
+};
+
 /** Private, per-device-instance driver context. */
 struct dev_context {
 	/*
@@ -46,8 +52,18 @@ struct dev_context {
 
 	/** The currently configured samplerate of the device. */
 	uint64_t cur_samplerate;
+
+	/** The currently configured input voltage of the device */
+	enum voltage_range cur_voltage_range;
+
+	/*
+	 * EEPROM data from address 8
+	 */
+	uint8_t eeprom_data[8];
 };
 
+SR_PRIV int saleae_logic16_abort_acquisition(const struct sr_dev_inst *sdi);
+SR_PRIV int saleae_logic16_init_device(const struct sr_dev_inst *sdi);
 SR_PRIV int saleae_logic16_receive_data(int fd, int revents, void *cb_data);
 
 #endif
