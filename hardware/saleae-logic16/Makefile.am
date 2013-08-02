@@ -19,6 +19,8 @@
 
 if HW_SALEAE_LOGIC16
 
+AM_CPPFLAGS = -DFIRMWARE_DIR='"$(FIRMWARE_DIR)"'
+
 # Local lib, this is NOT meant to be installed!
 noinst_LTLIBRARIES = libsigrok_hw_saleae_logic16.la
 

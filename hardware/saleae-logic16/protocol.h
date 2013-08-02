@@ -36,6 +36,14 @@
 
 /** Private, per-device-instance driver context. */
 struct dev_context {
+	/*
+	 * Since we can't keep track of a Logic16 device after upgrading
+	 * the firmware (it renumerates into a different device address
+	 * after the upgrade) this is like a global lock. No device will open
+	 * until a proper delay after the last device was upgraded.
+	 */
+	int64_t fw_updated;
+
 	/** The currently configured samplerate of the device. */
 	uint64_t cur_samplerate;
 };
