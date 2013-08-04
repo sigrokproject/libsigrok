@@ -21,6 +21,7 @@
 #include <libusb.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 #include "protocol.h"
@@ -47,6 +48,7 @@ static const int32_t hwopts[] = {
 static const int32_t hwcaps[] = {
 	SR_CONF_LOGIC_ANALYZER,
 	SR_CONF_SAMPLERATE,
+	SR_CONF_VOLTAGE_THRESHOLD,
 
 	/* These are really implemented in the driver, not the hardware. */
 	SR_CONF_LIMIT_SAMPLES,
@@ -57,6 +59,15 @@ static const char *probe_names[NUM_PROBES + 1] = {
 	"0", "1", "2", "3", "4", "5", "6", "7", "8",
 	"9", "10", "11", "12", "13", "14", "15",
 	NULL,
+};
+
+static const struct {
+	enum voltage_range range;
+	gdouble low;
+	gdouble high;
+} volt_thresholds[] = {
+	{ VOLTAGE_RANGE_18_33_V, 0.7, 1.4 },
+	{ VOLTAGE_RANGE_5_V,     1.4, 3.6 },
 };
 
 static const uint64_t samplerates[] = {
@@ -192,6 +203,7 @@ static GSList *scan(GSList *options)
 
 		if (!(devc = g_try_malloc0(sizeof(struct dev_context))))
 			return NULL;
+		devc->selected_voltage_range = VOLTAGE_RANGE_18_33_V;
 		sdi->priv = devc;
 		drvc->instances = g_slist_append(drvc->instances, sdi);
 		devices = g_slist_append(devices, sdi);
@@ -430,8 +442,10 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
+	GVariant *range[2];
 	char str[128];
 	int ret;
+	unsigned i;
 
 	ret = SR_OK;
 	switch (key) {
@@ -452,6 +466,21 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi)
 		devc = sdi->priv;
 		*data = g_variant_new_uint64(devc->cur_samplerate);
 		break;
+	case SR_CONF_VOLTAGE_THRESHOLD:
+		if (!sdi)
+			return SR_ERR;
+		devc = sdi->priv;
+		ret = SR_ERR;
+		for (i = 0; i < ARRAY_SIZE(volt_thresholds); i++)
+			if (devc->selected_voltage_range ==
+			    volt_thresholds[i].range) {
+				range[0] = g_variant_new_double(volt_thresholds[i].low);
+				range[1] = g_variant_new_double(volt_thresholds[i].high);
+				*data = g_variant_new_tuple(range, 2);
+				ret = SR_OK;
+				break;
+			}
+		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -462,7 +491,9 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi)
 static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
+	gdouble low, high;
 	int ret;
+	unsigned i;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
@@ -477,6 +508,19 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi)
 	case SR_CONF_LIMIT_SAMPLES:
 		devc->limit_samples = g_variant_get_uint64(data);
 		break;
+	case SR_CONF_VOLTAGE_THRESHOLD:
+		g_variant_get(data, "(dd)", &low, &high);
+		ret = SR_ERR_ARG;
+		for (i = 0; i < ARRAY_SIZE(volt_thresholds); i++) {
+			if (fabs(volt_thresholds[i].low - low) < 0.1 &&
+			    fabs(volt_thresholds[i].high - high) < 0.1) {
+				devc->selected_voltage_range =
+					volt_thresholds[i].range;
+				ret = SR_OK;
+				break;
+			}
+		}
+		break;
 	default:
 		ret = SR_ERR_NA;
 	}
@@ -486,9 +530,10 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi)
 
 static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 {
-	GVariant *gvar;
+	GVariant *gvar, *range[2];
 	GVariantBuilder gvb;
 	int ret;
+	unsigned i;
 
 	(void)sdi;
 
@@ -507,6 +552,16 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 		gvar = g_variant_new_fixed_array(G_VARIANT_TYPE("t"), samplerates,
 				ARRAY_SIZE(samplerates), sizeof(uint64_t));
 		g_variant_builder_add(&gvb, "{sv}", "samplerates", gvar);
+		*data = g_variant_builder_end(&gvb);
+		break;
+	case SR_CONF_VOLTAGE_THRESHOLD:
+		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
+		for (i = 0; i < ARRAY_SIZE(volt_thresholds); i++) {
+			range[0] = g_variant_new_double(volt_thresholds[i].low);
+			range[1] = g_variant_new_double(volt_thresholds[i].high);
+			gvar = g_variant_new_tuple(range, 2);
+			g_variant_builder_add_value(&gvb, gvar);
+		}
 		*data = g_variant_builder_end(&gvb);
 		break;
 	default:

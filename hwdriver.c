@@ -93,6 +93,8 @@ static struct sr_config_info sr_config_info_data[] = {
 		"Hold min", NULL},
 	{SR_CONF_SPL_MEASUREMENT_RANGE, SR_T_UINT64_RANGE, "spl_meas_range",
 		"Sound pressure level measurement range", NULL},
+	{SR_CONF_VOLTAGE_THRESHOLD, SR_T_DOUBLE_RANGE, "voltage_threshold",
+		"Voltage threshold", NULL },
 	{SR_CONF_POWER_OFF, SR_T_BOOL, "power_off",
 		"Power off", NULL},
 	{SR_CONF_DATA_SOURCE, SR_T_CHAR, "data_source",

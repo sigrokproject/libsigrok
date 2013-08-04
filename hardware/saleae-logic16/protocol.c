@@ -429,6 +429,9 @@ SR_PRIV int saleae_logic16_setup_acquisition(const struct sr_dev_inst *sdi,
 	uint8_t clock_select, reg1, reg10;
 	uint64_t div;
 	int i, ret, nchan = 0;
+	struct dev_context *devc;
+
+	devc = sdi->priv;
 
 	if (samplerate == 0 || samplerate > MAX_SAMPLE_RATE) {
 		sr_err("Unable to sample at %" PRIu64 "Hz.", samplerate);
@@ -459,6 +462,9 @@ SR_PRIV int saleae_logic16_setup_acquisition(const struct sr_dev_inst *sdi,
 		       "with this many channels.", samplerate);
 		return SR_ERR;
 	}
+
+	if ((ret = upload_fpga_bitstream(sdi, devc->selected_voltage_range)) != SR_OK)
+		return ret;
 
 	if ((ret = read_fpga_register(sdi, 1, &reg1)) != SR_OK)
 		return ret;
@@ -568,7 +574,7 @@ SR_PRIV int saleae_logic16_init_device(const struct sr_dev_inst *sdi)
 	if ((ret = read_eeprom(sdi, 8, 8, devc->eeprom_data)) != SR_OK)
 		return ret;
 
-	if ((ret = upload_fpga_bitstream(sdi, VOLTAGE_RANGE_18_33_V)) != SR_OK)
+	if ((ret = upload_fpga_bitstream(sdi, devc->selected_voltage_range)) != SR_OK)
 		return ret;
 
 	return SR_OK;

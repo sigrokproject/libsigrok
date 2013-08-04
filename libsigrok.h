@@ -142,6 +142,7 @@ enum {
 	SR_T_RATIONAL_VOLT,
 	SR_T_KEYVALUE,
 	SR_T_UINT64_RANGE,
+	SR_T_DOUBLE_RANGE,
 };
 
 /** Value for sr_datafeed_packet.type. */
@@ -680,6 +681,9 @@ enum {
 
 	/** Min hold mode. */
 	SR_CONF_HOLD_MIN,
+
+	/** Logic low-high threshold range. */
+	SR_CONF_VOLTAGE_THRESHOLD,
 
 	/*--- Special stuff -------------------------------------------------*/
 
