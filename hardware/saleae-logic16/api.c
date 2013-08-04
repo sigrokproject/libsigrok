@@ -40,6 +40,19 @@
 SR_PRIV struct sr_dev_driver saleae_logic16_driver_info;
 static struct sr_dev_driver *di = &saleae_logic16_driver_info;
 
+static const int32_t hwopts[] = {
+	SR_CONF_CONN,
+};
+
+static const int32_t hwcaps[] = {
+	SR_CONF_LOGIC_ANALYZER,
+	SR_CONF_SAMPLERATE,
+
+	/* These are really implemented in the driver, not the hardware. */
+	SR_CONF_LIMIT_SAMPLES,
+	SR_CONF_CONTINUOUS,
+};
+
 static const char *probe_names[NUM_PROBES + 1] = {
 	"0", "1", "2", "3", "4", "5", "6", "7", "8",
 	"9", "10", "11", "12", "13", "14", "15",
@@ -228,12 +241,10 @@ static int logic16_dev_open(struct sr_dev_inst *sdi)
 	libusb_device **devlist;
 	struct sr_usb_dev_inst *usb;
 	struct libusb_device_descriptor des;
-	struct dev_context *devc;
 	struct drv_context *drvc;
 	int ret, skip, i, device_count;
 
 	drvc = di->priv;
-	devc = sdi->priv;
 	usb = sdi->conn;
 
 	if (sdi->status == SR_ST_ACTIVE)
@@ -418,13 +429,23 @@ static int cleanup(void)
 static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
+	struct sr_usb_dev_inst *usb;
+	char str[128];
 	int ret;
-
-	(void)sdi;
-	(void)data;
 
 	ret = SR_OK;
 	switch (key) {
+	case SR_CONF_CONN:
+		if (!sdi || !sdi->conn)
+			return SR_ERR_ARG;
+		usb = sdi->conn;
+		if (usb->address == 255)
+			/* Device still needs to re-enumerate after firmware
+			 * upload, so we don't know its (future) address. */
+			return SR_ERR;
+		snprintf(str, 128, "%d.%d", usb->bus, usb->address);
+		*data = g_variant_new_string(str);
+		break;
 	case SR_CONF_SAMPLERATE:
 		if (!sdi)
 			return SR_ERR;
@@ -473,6 +494,14 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 
 	ret = SR_OK;
 	switch (key) {
+	case SR_CONF_SCAN_OPTIONS:
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+				hwopts, ARRAY_SIZE(hwopts), sizeof(int32_t));
+		break;
+	case SR_CONF_DEVICE_OPTIONS:
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+				hwcaps, ARRAY_SIZE(hwcaps), sizeof(int32_t));
+		break;
 	case SR_CONF_SAMPLERATE:
 		g_variant_builder_init(&gvb, G_VARIANT_TYPE("a{sv}"));
 		gvar = g_variant_new_fixed_array(G_VARIANT_TYPE("t"), samplerates,
