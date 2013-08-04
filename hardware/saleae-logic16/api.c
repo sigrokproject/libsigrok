@@ -34,6 +34,7 @@
 #define FX2_FIRMWARE		FIRMWARE_DIR "/saleae-logic16-fx2.fw"
 
 #define MAX_RENUM_DELAY_MS	3000
+#define NUM_SIMUL_TRANSFERS	32
 
 
 SR_PRIV struct sr_dev_driver saleae_logic16_driver_info;
@@ -43,6 +44,23 @@ static const char *probe_names[NUM_PROBES + 1] = {
 	"0", "1", "2", "3", "4", "5", "6", "7", "8",
 	"9", "10", "11", "12", "13", "14", "15",
 	NULL,
+};
+
+static const uint64_t samplerates[] = {
+	SR_KHZ(500),
+	SR_MHZ(1),
+	SR_MHZ(2),
+	SR_MHZ(4),
+	SR_MHZ(5),
+	SR_MHZ(8),
+	SR_MHZ(10),
+	SR_KHZ(12500),
+	SR_MHZ(16),
+	SR_MHZ(25),
+	SR_MHZ(32),
+	SR_MHZ(40),
+	SR_MHZ(80),
+	SR_MHZ(100),
 };
 
 static int init(struct sr_context *sr_ctx)
@@ -357,7 +375,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 	if (devc->cur_samplerate == 0) {
 		/* Samplerate hasn't been set; default to the slowest one. */
-		devc->cur_samplerate = 500000;
+		devc->cur_samplerate = samplerates[0];
 	}
 
 	return SR_OK;
@@ -399,6 +417,7 @@ static int cleanup(void)
 
 static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi)
 {
+	struct dev_context *devc;
 	int ret;
 
 	(void)sdi;
@@ -406,7 +425,12 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi)
 
 	ret = SR_OK;
 	switch (key) {
-	/* TODO */
+	case SR_CONF_SAMPLERATE:
+		if (!sdi)
+			return SR_ERR;
+		devc = sdi->priv;
+		*data = g_variant_new_uint64(devc->cur_samplerate);
+		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -416,16 +440,22 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi)
 
 static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi)
 {
+	struct dev_context *devc;
 	int ret;
-
-	(void)data;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
+	devc = sdi->priv;
+
 	ret = SR_OK;
 	switch (key) {
-	/* TODO */
+	case SR_CONF_SAMPLERATE:
+		devc->cur_samplerate = g_variant_get_uint64(data);
+		break;
+	case SR_CONF_LIMIT_SAMPLES:
+		devc->limit_samples = g_variant_get_uint64(data);
+		break;
 	default:
 		ret = SR_ERR_NA;
 	}
@@ -435,14 +465,21 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi)
 
 static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 {
+	GVariant *gvar;
+	GVariantBuilder gvb;
 	int ret;
 
 	(void)sdi;
-	(void)data;
 
 	ret = SR_OK;
 	switch (key) {
-	/* TODO */
+	case SR_CONF_SAMPLERATE:
+		g_variant_builder_init(&gvb, G_VARIANT_TYPE("a{sv}"));
+		gvar = g_variant_new_fixed_array(G_VARIANT_TYPE("t"), samplerates,
+				ARRAY_SIZE(samplerates), sizeof(uint64_t));
+		g_variant_builder_add(&gvb, "{sv}", "samplerates", gvar);
+		*data = g_variant_builder_end(&gvb);
+		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -450,31 +487,244 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 	return ret;
 }
 
-static int dev_acquisition_start(const struct sr_dev_inst *sdi,
-				    void *cb_data)
+static void abort_acquisition(struct dev_context *devc)
 {
-	(void)sdi;
-	(void)cb_data;
+	int i;
+
+	devc->num_samples = -1;
+
+	for (i = devc->num_transfers - 1; i >= 0; i--) {
+		if (devc->transfers[i])
+			libusb_cancel_transfer(devc->transfers[i]);
+	}
+}
+
+static unsigned int bytes_per_ms(struct dev_context *devc)
+{
+	return devc->cur_samplerate * devc->num_channels / 8000;
+}
+
+static size_t get_buffer_size(struct dev_context *devc)
+{
+	size_t s;
+
+	/*
+	 * The buffer should be large enough to hold 10ms of data and
+	 * a multiple of 512.
+	 */
+	s = 10 * bytes_per_ms(devc);
+	return (s + 511) & ~511;
+}
+
+static unsigned int get_number_of_transfers(struct dev_context *devc)
+{
+	unsigned int n;
+
+	/* Total buffer size should be able to hold about 500ms of data. */
+	n = 500 * bytes_per_ms(devc) / get_buffer_size(devc);
+
+	if (n > NUM_SIMUL_TRANSFERS)
+		return NUM_SIMUL_TRANSFERS;
+
+	return n;
+}
+
+static unsigned int get_timeout(struct dev_context *devc)
+{
+	size_t total_size;
+	unsigned int timeout;
+
+	total_size = get_buffer_size(devc) * get_number_of_transfers(devc);
+	timeout = total_size / bytes_per_ms(devc);
+	return timeout + timeout / 4; /* Leave a headroom of 25% percent. */
+}
+
+static int configure_probes(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	struct sr_probe *probe;
+	GSList *l;
+	uint16_t probe_bit;
+
+	devc = sdi->priv;
+
+	devc->cur_channels = 0;
+	devc->num_channels = 0;
+	for (l = sdi->probes; l; l = l->next) {
+		probe = (struct sr_probe *)l->data;
+		if (probe->enabled == FALSE)
+			continue;
+
+		probe_bit = 1 << (probe->index);
+
+		devc->cur_channels |= probe_bit;
+
+#ifdef WORDS_BIGENDIAN
+		/* Output logic data should be stored in little endian
+		   format.  To speed things up during conversion, do the
+		   switcharoo here instead. */
+
+		probe_bit = 1 << (probe->index ^ 8);
+#endif
+
+		devc->channel_masks[devc->num_channels ++] = probe_bit;
+	}
+
+	return SR_OK;
+}
+
+static int receive_data(int fd, int revents, void *cb_data)
+{
+	struct timeval tv;
+	struct dev_context *devc;
+	struct drv_context *drvc;
+	const struct sr_dev_inst *sdi;
+
+	(void)fd;
+	(void)revents;
+
+	sdi = cb_data;
+	drvc = di->priv;
+	devc = sdi->priv;
+
+	tv.tv_sec = tv.tv_usec = 0;
+	libusb_handle_events_timeout(drvc->sr_ctx->libusb_ctx, &tv);
+
+	if (devc->num_samples == -2) {
+		saleae_logic16_abort_acquisition(sdi);
+		abort_acquisition(devc);
+	}
+
+	return TRUE;
+}
+
+static int dev_acquisition_start(const struct sr_dev_inst *sdi,
+				 void *cb_data)
+{
+	struct dev_context *devc;
+	struct drv_context *drvc;
+	struct sr_usb_dev_inst *usb;
+	struct libusb_transfer *transfer;
+	const struct libusb_pollfd **lupfd;
+	unsigned int i, timeout, num_transfers;
+	int ret;
+	unsigned char *buf;
+	size_t size, convsize;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
-	/* TODO: configure hardware, reset acquisition state, set up
-	 * callbacks and send header packet. */
+	drvc = di->priv;
+	devc = sdi->priv;
+	usb = sdi->conn;
+
+	/* Configures devc->cur_channels */
+	if (configure_probes(sdi) != SR_OK) {
+		sr_err("Failed to configure probes.");
+		return SR_ERR;
+	}
+
+	devc->cb_data = cb_data;
+	devc->num_samples = 0;
+	devc->empty_transfer_count = 0;
+	devc->cur_channel = 0;
+	memset(devc->channel_data, 0, sizeof(devc->channel_data));
+
+	timeout = get_timeout(devc);
+	num_transfers = get_number_of_transfers(devc);
+	size = get_buffer_size(devc);
+	convsize = (size / devc->num_channels + 2) * 16;
+	devc->submitted_transfers = 0;
+	devc->usbfd = NULL;
+
+	devc->convbuffer_size = convsize;
+	if (!(devc->convbuffer = g_try_malloc(convsize))) {
+		sr_err("Conversion buffer malloc failed.");
+		return SR_ERR_MALLOC;
+	}
+
+	devc->transfers = g_try_malloc0(sizeof(*devc->transfers) * num_transfers);
+	if (!devc->transfers) {
+		sr_err("USB transfers malloc failed.");
+		g_free(devc->convbuffer);
+		return SR_ERR_MALLOC;
+	}
+
+	if ((ret = saleae_logic16_setup_acquisition(sdi, devc->cur_samplerate,
+						    devc->cur_channels)) != SR_OK) {
+		g_free(devc->transfers);
+		g_free(devc->convbuffer);
+		return ret;
+	}
+
+	devc->num_transfers = num_transfers;
+	for (i = 0; i < num_transfers; i++) {
+		if (!(buf = g_try_malloc(size))) {
+			sr_err("USB transfer buffer malloc failed.");
+			if (devc->submitted_transfers)
+				abort_acquisition(devc);
+			else {
+				g_free(devc->transfers);
+				g_free(devc->convbuffer);
+			}
+			return SR_ERR_MALLOC;
+		}
+		transfer = libusb_alloc_transfer(0);
+		libusb_fill_bulk_transfer(transfer, usb->devhdl,
+				2 | LIBUSB_ENDPOINT_IN, buf, size,
+				saleae_logic16_receive_transfer, devc, timeout);
+		if ((ret = libusb_submit_transfer(transfer)) != 0) {
+			sr_err("Failed to submit transfer: %s.",
+			       libusb_error_name(ret));
+			libusb_free_transfer(transfer);
+			g_free(buf);
+			abort_acquisition(devc);
+			return SR_ERR;
+		}
+		devc->transfers[i] = transfer;
+		devc->submitted_transfers++;
+	}
+
+	lupfd = libusb_get_pollfds(drvc->sr_ctx->libusb_ctx);
+	for (i = 0; lupfd[i]; i++);
+	if (!(devc->usbfd = g_try_malloc(sizeof(struct libusb_pollfd) * (i + 1)))) {
+		abort_acquisition(devc);
+		free(lupfd);
+		return SR_ERR;
+	}
+	for (i = 0; lupfd[i]; i++) {
+		sr_source_add(lupfd[i]->fd, lupfd[i]->events,
+			      timeout, receive_data, (void *)sdi);
+		devc->usbfd[i] = lupfd[i]->fd;
+	}
+	devc->usbfd[i] = -1;
+	free(lupfd);
+
+	/* Send header packet to the session bus. */
+	std_session_send_df_header(cb_data, LOG_PREFIX);
+
+	if ((ret = saleae_logic16_start_acquisition(sdi)) != SR_OK) {
+		abort_acquisition(devc);
+		return ret;
+	}
 
 	return SR_OK;
 }
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
+	int ret;
+
 	(void)cb_data;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
-	/* TODO: stop acquisition. */
+	ret = saleae_logic16_abort_acquisition(sdi);
 
-	return SR_OK;
+	abort_acquisition(sdi->priv);
+
+	return ret;
 }
 
 SR_PRIV struct sr_dev_driver saleae_logic16_driver_info = {

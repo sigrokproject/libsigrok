@@ -32,6 +32,16 @@
 #define FPGA_FIRMWARE_18	FIRMWARE_DIR"/saleae-logic16-fpga-18.bitstream"
 #define FPGA_FIRMWARE_33	FIRMWARE_DIR"/saleae-logic16-fpga-33.bitstream"
 
+#define MAX_SAMPLE_RATE		SR_MHZ(100)
+#define MAX_4CH_SAMPLE_RATE	SR_MHZ(50)
+#define MAX_7CH_SAMPLE_RATE	SR_MHZ(40)
+#define MAX_8CH_SAMPLE_RATE	SR_MHZ(32)
+#define MAX_10CH_SAMPLE_RATE	SR_MHZ(25)
+#define MAX_13CH_SAMPLE_RATE	SR_MHZ(16)
+
+#define BASE_CLOCK_0_FREQ	SR_MHZ(100)
+#define BASE_CLOCK_1_FREQ	SR_MHZ(160)
+
 #define COMMAND_START_ACQUISITION	1
 #define COMMAND_ABORT_ACQUISITION_ASYNC	2
 #define COMMAND_WRITE_EEPROM		6
@@ -51,6 +61,8 @@
 #define READ_EEPROM_COOKIE1		0x33
 #define READ_EEPROM_COOKIE2		0x81
 #define ABORT_ACQUISITION_SYNC_PATTERN	0x55
+
+#define MAX_EMPTY_TRANSFERS		64
 
 
 static void encrypt(uint8_t *dest, const uint8_t *src, uint8_t cnt)
@@ -384,15 +396,11 @@ static int upload_fpga_bitstream(const struct sr_dev_inst *sdi,
 	if ((ret = configure_led(sdi)) != SR_OK)
 		return ret;
 
-	/* XXX */
-	if ((ret = configure_led(sdi)) != SR_OK)
-		return ret;
-
 	devc->cur_voltage_range = vrange;
 	return SR_OK;
 }
 
-SR_PRIV int saleae_logic16_abort_acquisition(const struct sr_dev_inst *sdi)
+static int abort_acquisition_sync(const struct sr_dev_inst *sdi)
 {
 	static const uint8_t command[2] = {
 		COMMAND_ABORT_ACQUISITION_SYNC,
@@ -414,6 +422,137 @@ SR_PRIV int saleae_logic16_abort_acquisition(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
+SR_PRIV int saleae_logic16_setup_acquisition(const struct sr_dev_inst *sdi,
+					     uint64_t samplerate,
+					     uint16_t channels)
+{
+	uint8_t clock_select, reg1, reg10;
+	uint64_t div;
+	int i, ret, nchan = 0;
+
+	if (samplerate == 0 || samplerate > MAX_SAMPLE_RATE) {
+		sr_err("Unable to sample at %" PRIu64 "Hz.", samplerate);
+		return SR_ERR;
+	}
+
+	if (BASE_CLOCK_0_FREQ % samplerate == 0 &&
+	    (div = BASE_CLOCK_0_FREQ / samplerate) <= 256) {
+		clock_select = 0;
+	} else if (BASE_CLOCK_1_FREQ % samplerate == 0 &&
+		   (div = BASE_CLOCK_1_FREQ / samplerate) <= 256) {
+		clock_select = 1;
+	} else {
+		sr_err("Unable to sample at %" PRIu64 "Hz.", samplerate);
+		return SR_ERR;
+	}
+
+	for (i=0; i<16; i++)
+		if (channels & (1U<<i))
+			nchan++;
+
+	if ((nchan >= 13 && samplerate > MAX_13CH_SAMPLE_RATE) ||
+	    (nchan >= 10 && samplerate > MAX_10CH_SAMPLE_RATE) ||
+	    (nchan >= 8  && samplerate > MAX_8CH_SAMPLE_RATE) ||
+	    (nchan >= 7  && samplerate > MAX_7CH_SAMPLE_RATE) ||
+	    (nchan >= 4  && samplerate > MAX_4CH_SAMPLE_RATE)) {
+		sr_err("Unable to sample at %" PRIu64 "Hz "
+		       "with this many channels.", samplerate);
+		return SR_ERR;
+	}
+
+	if ((ret = read_fpga_register(sdi, 1, &reg1)) != SR_OK)
+		return ret;
+
+	if (reg1 != 0x08) {
+		sr_dbg("Invalid state at acquisition setup: 0x%02x != 0x08", reg1);
+		return SR_ERR;
+	}
+
+	if ((ret = write_fpga_register(sdi, 1, 0x40)) != SR_OK)
+		return ret;
+
+	if ((ret = write_fpga_register(sdi, 10, clock_select)) != SR_OK)
+		return ret;
+
+	if ((ret = write_fpga_register(sdi, 4, (uint8_t)(div-1))) != SR_OK)
+		return ret;
+
+	if ((ret = write_fpga_register(sdi, 2, (uint8_t)(channels & 0xff))) != SR_OK)
+		return ret;
+
+	if ((ret = write_fpga_register(sdi, 3, (uint8_t)(channels >> 8))) != SR_OK)
+		return ret;
+
+	if ((ret = write_fpga_register(sdi, 1, 0x42)) != SR_OK)
+		return ret;
+
+	if ((ret = write_fpga_register(sdi, 1, 0x40)) != SR_OK)
+		return ret;
+
+	if ((ret = read_fpga_register(sdi, 1, &reg1)) != SR_OK)
+		return ret;
+
+	if (reg1 != 0x48) {
+		sr_dbg("Invalid state at acquisition setup: 0x%02x != 0x48", reg1);
+		return SR_ERR;
+	}
+
+	if ((ret = read_fpga_register(sdi, 10, &reg10)) != SR_OK)
+		return ret;
+
+	if (reg10 != clock_select) {
+		sr_dbg("Invalid state at acquisition setup: 0x%02x != 0x%02x",
+		       reg10, (unsigned)clock_select);
+		return SR_ERR;
+	}
+
+	return SR_OK;
+}
+
+SR_PRIV int saleae_logic16_start_acquisition(const struct sr_dev_inst *sdi)
+{
+	static const uint8_t command[1] = {
+		COMMAND_START_ACQUISITION,
+	};
+	int ret;
+
+	if ((ret = do_ep1_command(sdi, command, 1, NULL, 0)) != SR_OK)
+		return ret;
+
+	return write_fpga_register(sdi, 1, 0x41);
+}
+
+SR_PRIV int saleae_logic16_abort_acquisition(const struct sr_dev_inst *sdi)
+{
+	static const uint8_t command[1] = {
+		COMMAND_ABORT_ACQUISITION_ASYNC,
+	};
+	int ret;
+	uint8_t reg1, reg8, reg9;
+
+	if ((ret = do_ep1_command(sdi, command, 1, NULL, 0)) != SR_OK)
+		return ret;
+
+	if ((ret = write_fpga_register(sdi, 1, 0x00)) != SR_OK)
+		return ret;
+
+	if ((ret = read_fpga_register(sdi, 1, &reg1)) != SR_OK)
+		return ret;
+
+	if (reg1 != 0x08) {
+		sr_dbg("Invalid state at acquisition stop: 0x%02x != 0x08", reg1);
+		return SR_ERR;
+	}
+
+	if ((ret = read_fpga_register(sdi, 8, &reg8)) != SR_OK)
+		return ret;
+
+	if ((ret = read_fpga_register(sdi, 9, &reg9)) != SR_OK)
+		return ret;
+
+	return SR_OK;
+}
+
 SR_PRIV int saleae_logic16_init_device(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
@@ -423,7 +562,7 @@ SR_PRIV int saleae_logic16_init_device(const struct sr_dev_inst *sdi)
 
 	devc->cur_voltage_range = VOLTAGE_RANGE_UNKNOWN;
 
-	if ((ret = saleae_logic16_abort_acquisition(sdi)) != SR_OK)
+	if ((ret = abort_acquisition_sync(sdi)) != SR_OK)
 		return ret;
 
 	if ((ret = read_eeprom(sdi, 8, 8, devc->eeprom_data)) != SR_OK)
@@ -435,22 +574,188 @@ SR_PRIV int saleae_logic16_init_device(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-SR_PRIV int saleae_logic16_receive_data(int fd, int revents, void *cb_data)
+static void finish_acquisition(struct dev_context *devc)
 {
-	(void)fd;
+	struct sr_datafeed_packet packet;
+	int i;
 
-	const struct sr_dev_inst *sdi;
-	struct dev_context *devc;
+	/* Terminate session. */
+	packet.type = SR_DF_END;
+	sr_session_send(devc->cb_data, &packet);
 
-	if (!(sdi = cb_data))
-		return TRUE;
-
-	if (!(devc = sdi->priv))
-		return TRUE;
-
-	if (revents == G_IO_IN) {
-		/* TODO */
+	/* Remove fds from polling. */
+	if (devc->usbfd != NULL) {
+		for (i = 0; devc->usbfd[i] != -1; i++)
+			sr_source_remove(devc->usbfd[i]);
+		g_free(devc->usbfd);
 	}
 
-	return TRUE;
+	devc->num_transfers = 0;
+	g_free(devc->transfers);
+	g_free(devc->convbuffer);
+}
+
+static void free_transfer(struct libusb_transfer *transfer)
+{
+	struct dev_context *devc;
+	unsigned int i;
+
+	devc = transfer->user_data;
+
+	g_free(transfer->buffer);
+	transfer->buffer = NULL;
+	libusb_free_transfer(transfer);
+
+	for (i = 0; i < devc->num_transfers; i++) {
+		if (devc->transfers[i] == transfer) {
+			devc->transfers[i] = NULL;
+			break;
+		}
+	}
+
+	devc->submitted_transfers--;
+	if (devc->submitted_transfers == 0)
+		finish_acquisition(devc);
+}
+
+static void resubmit_transfer(struct libusb_transfer *transfer)
+{
+	int ret;
+
+	if ((ret = libusb_submit_transfer(transfer)) == LIBUSB_SUCCESS)
+		return;
+
+	free_transfer(transfer);
+	/* TODO: Stop session? */
+
+	sr_err("%s: %s", __func__, libusb_error_name(ret));
+}
+
+static size_t convert_sample_data(struct dev_context *devc,
+				  uint8_t *dest, size_t destcnt,
+				  const uint8_t *src, size_t srccnt)
+{
+	uint16_t *channel_data;
+	int i, cur_channel;
+	size_t ret = 0;
+
+	srccnt /= 2;
+
+	channel_data = devc->channel_data;
+	cur_channel = devc->cur_channel;
+
+	while(srccnt--) {
+		uint16_t sample, channel_mask;
+
+		sample = src[0] | (src[1] << 8);
+		src += 2;
+
+		channel_mask = devc->channel_masks[cur_channel];
+
+		for (i=15; i>=0; --i, sample >>= 1)
+			if (sample & 1)
+				channel_data[i] |= channel_mask;
+
+		if (++cur_channel == devc->num_channels) {
+			cur_channel = 0;
+			if (destcnt < 16*2) {
+				sr_err("Conversion buffer too small!");
+				break;
+			}
+			memcpy(dest, channel_data, 16*2);
+			memset(channel_data, 0, 16*2);
+			dest += 16*2;
+			ret += 16*2;
+			destcnt -= 16*2;
+		}
+	}
+
+	devc->cur_channel = cur_channel;
+
+	return ret;
+}
+
+SR_PRIV void saleae_logic16_receive_transfer(struct libusb_transfer *transfer)
+{
+	gboolean packet_has_error = FALSE;
+	struct sr_datafeed_packet packet;
+	struct sr_datafeed_logic logic;
+	struct dev_context *devc;
+	size_t converted_length;
+
+	devc = transfer->user_data;
+
+	/*
+	 * If acquisition has already ended, just free any queued up
+	 * transfer that come in.
+	 */
+	if (devc->num_samples < 0) {
+		free_transfer(transfer);
+		return;
+	}
+
+	sr_info("receive_transfer(): status %d received %d bytes.",
+		transfer->status, transfer->actual_length);
+
+	switch (transfer->status) {
+	case LIBUSB_TRANSFER_NO_DEVICE:
+		devc->num_samples = -2;
+		free_transfer(transfer);
+		return;
+	case LIBUSB_TRANSFER_COMPLETED:
+	case LIBUSB_TRANSFER_TIMED_OUT: /* We may have received some data though. */
+		break;
+	default:
+		packet_has_error = TRUE;
+		break;
+	}
+
+	if (transfer->actual_length & 1) {
+		sr_err("Got an odd number of bytes from the device.  This should not happen.");
+		/* Bail out right away */
+		packet_has_error = TRUE;
+		devc->empty_transfer_count = MAX_EMPTY_TRANSFERS;
+	}
+
+	if (transfer->actual_length == 0 || packet_has_error) {
+		devc->empty_transfer_count++;
+		if (devc->empty_transfer_count > MAX_EMPTY_TRANSFERS) {
+			/*
+			 * The FX2 gave up. End the acquisition, the frontend
+			 * will work out that the samplecount is short.
+			 */
+			devc->num_samples = -2;
+			free_transfer(transfer);
+		} else {
+			resubmit_transfer(transfer);
+		}
+		return;
+	} else {
+		devc->empty_transfer_count = 0;
+	}
+
+	converted_length =
+		convert_sample_data(devc,
+				    devc->convbuffer, devc->convbuffer_size,
+				    transfer->buffer, transfer->actual_length);
+
+	if (converted_length > 0) {
+		/* Send the incoming transfer to the session bus. */
+		packet.type = SR_DF_LOGIC;
+		packet.payload = &logic;
+		logic.length = converted_length;
+		logic.unitsize = 2;
+		logic.data = devc->convbuffer;
+		sr_session_send(devc->cb_data, &packet);
+
+		devc->num_samples += converted_length / 2;
+		if (devc->limit_samples &&
+		    (uint64_t)devc->num_samples > devc->limit_samples) {
+			devc->num_samples = -2;
+			free_transfer(transfer);
+			return;
+		}
+	}
+
+	resubmit_transfer(transfer);
 }

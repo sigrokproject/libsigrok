@@ -457,6 +457,7 @@ fi
 AC_CHECK_HEADERS([fcntl.h sys/time.h termios.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
+AC_C_BIGENDIAN
 AC_C_INLINE
 AC_TYPE_INT8_T
 AC_TYPE_INT16_T
