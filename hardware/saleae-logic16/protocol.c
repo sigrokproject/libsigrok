@@ -241,29 +241,13 @@ static int write_fpga_register(const struct sr_dev_inst *sdi,
 
 static uint8_t map_eeprom_data(uint8_t v)
 {
-	/* ??? */
-	switch (v) {
-	case 0x00: return 0x7a;
-	case 0x01: return 0x79;
-	case 0x05: return 0x85;
-	case 0x10: return 0x6a;
-	case 0x11: return 0x69;
-	case 0x14: return 0x76;
-	case 0x15: return 0x75;
-	case 0x41: return 0x39;
-	case 0x50: return 0x2a;
-	case 0x51: return 0x29;
-	case 0x55: return 0x35;
-	default:
-		sr_err("No mapping of 0x%02x defined", v);
-		return 0xff;
-	}
+	return (((v ^ 0x80) + 0x44) ^ 0xd5) + 0x69;
 }
 
 static int prime_fpga(const struct sr_dev_inst *sdi)
 {
 	uint8_t eeprom_data[16];
-	uint8_t old_reg_10, status;
+	uint8_t old_reg_10, version;
 	uint8_t regs[8][2] = {
 		{10, 0x00},
 		{10, 0x40},
@@ -282,6 +266,11 @@ static int prime_fpga(const struct sr_dev_inst *sdi)
 	if ((ret = read_fpga_register(sdi, 10, &old_reg_10)) != SR_OK)
 		return ret;
 
+	regs[0][1] = (old_reg_10 &= 0x7f);
+	regs[1][1] |= old_reg_10;
+	regs[3][1] |= old_reg_10;
+	regs[4][1] |= old_reg_10;
+
 	for (i=0; i<16; i++) {
 		regs[2][1] = eeprom_data[i];
 		regs[5][1] = map_eeprom_data(eeprom_data[i]);
@@ -296,11 +285,11 @@ static int prime_fpga(const struct sr_dev_inst *sdi)
 	if ((ret = write_fpga_register(sdi, 10, old_reg_10)) != SR_OK)
 		return ret;
 
-	if ((ret = read_fpga_register(sdi, 0, &status)) != SR_OK)
+	if ((ret = read_fpga_register(sdi, 0, &version)) != SR_OK)
 		return ret;
 
-	if (status != 0x10) {
-		sr_err("Invalid FPGA status: 0x%02x != 0x10", status);
+	if (version != 0x10) {
+		sr_err("Invalid FPGA bitstream version: 0x%02x != 0x10", version);
 		return SR_ERR;
 	}
 
