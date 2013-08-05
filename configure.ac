@@ -263,7 +263,7 @@ PKG_CHECK_MODULES([libftdi], [libftdi >= 0.16],
 	[CFLAGS="$CFLAGS $libftdi_CFLAGS";
 	LIBS="$LIBS $libftdi_LIBS";
 	SR_PKGLIBS="$SR_PKGLIBS libftdi"],
-	[HW_ASIX_SIGMA="no"; HW_CHRONOVU_LA8="no"])
+	[HW_ASIX_SIGMA="no"; HW_CHRONOVU_LA8="no"; HW_IKALOGIC_SCANAPLUS="no"])
 
 # libudev is only needed for some hardware drivers. Disable them if not found.
 PKG_CHECK_MODULES([libudev], [libudev >= 151],
