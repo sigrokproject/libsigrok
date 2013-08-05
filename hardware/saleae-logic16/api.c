@@ -2,6 +2,8 @@
  * This file is part of the libsigrok project.
  *
  * Copyright (C) 2013 Marcus Comstedt <marcus@mc.pp.se>
+ * Copyright (C) 2013 Bert Vermeulen <bert@biot.com>
+ * Copyright (C) 2012 Joel Holdsworth <joel@airwebreathe.org.uk>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
