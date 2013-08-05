@@ -42,9 +42,6 @@ The following drivers/devices require a firmware upload upon connection:
    These can be extracted from the vendor's Windows drivers using a tool
    from our 'sigrok-util' repository/project.
 
- - nexus-osciprime: The Nexus Computing OsciPrime PC oscilloscope needs
-   firmware files. These are available from the vendor website.
-
 The following drivers/devices do not need any firmware upload:
 
  - agilent-dmm
@@ -91,7 +88,6 @@ The following drivers/devices require a serial port specification:
  - fluke-dmm
  - link-mso19
  - mic-985xx
- - nexus-osciprime
  - openbench-logic-sniffer
  - serial-dmm
  - tondaj-sl-814

@@ -37,7 +37,6 @@ SUBDIRS = \
 	lascar-el-usb \
 	link-mso19 \
 	mic-985xx \
-	nexus-osciprime \
 	openbench-logic-sniffer \
 	rigol-ds1xx2 \
 	serial-dmm \
@@ -119,10 +118,6 @@ endif
 
 if HW_MIC_985XX
 libsigrokhardware_la_LIBADD += mic-985xx/libsigrok_hw_mic_985xx.la
-endif
-
-if HW_NEXUS_OSCIPRIME
-libsigrokhardware_la_LIBADD += nexus-osciprime/libsigrok_hw_nexus_osciprime.la
 endif
 
 if HW_OLS

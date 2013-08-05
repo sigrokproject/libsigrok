@@ -117,11 +117,6 @@ ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6010", MODE="664", GROUP="plugdev"
 # Tondaj SL-814
 ATTRS{idVendor}=="067b", ATTRS{idProduct}=="2303", MODE="664", GROUP="plugdev"
 
-# Nexus-Computing OsciPrime
-# The device comes up with the default Cypress FX2 VID:PID (04b4:8613), but
-# after firmware upload enumerates as "04b4:1004 Cypress Semiconductor Corp.".
-ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="1004", MODE="664", GROUP="plugdev"
-
 # Openbench Logic Sniffer
 ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="000a", MODE="664", GROUP="plugdev"
 

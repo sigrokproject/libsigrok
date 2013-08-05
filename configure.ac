@@ -169,11 +169,6 @@ AC_ARG_ENABLE(mic-985xx, AC_HELP_STRING([--enable-mic-985xx],
 	[HW_MIC_985XX="$enableval"],
 	[HW_MIC_985XX=$HW_ENABLED_DEFAULT])
 
-AC_ARG_ENABLE(nexus-osciprime, AC_HELP_STRING([--enable-nexus-osciprime],
-	[enable Nexus Osciprime support [default=yes]]),
-	[HW_NEXUS_OSCIPRIME="$enableval"],
-	[HW_NEXUS_OSCIPRIME=$HW_ENABLED_DEFAULT])
-
 AC_ARG_ENABLE(ols, AC_HELP_STRING([--enable-ols],
 	[enable OpenBench Logic Sniffer (OLS) support [default=yes]]),
 	[HW_OLS="$enableval"],
@@ -248,7 +243,7 @@ case "$host" in
 		SR_PKGLIBS="$SR_PKGLIBS libusb-1.0"],
 		[have_libusb1_0="no"; HW_FX2LAFW="no"; HW_HANTEK_DSO="no";
 		HW_IKALOGIC_SCANALOGIC2="no"; HW_LASCAR_EL_USB="no";
-		HW_NEXUS_OSCIPRIME="no"; HW_UNI_T_DMM="no"; HW_VICTOR_DMM="no";
+		HW_UNI_T_DMM="no"; HW_VICTOR_DMM="no";
 		HW_ZEROPLUS_LOGIC_CUBE="no"])
 
 	# Define HAVE_LIBUSB_1_0 in config.h if we found libusb-1.0.
@@ -391,11 +386,6 @@ if test "x$HW_MIC_985XX" = "xyes"; then
 	AC_DEFINE(HAVE_HW_MIC_985XX, 1, [MIC 985xx support])
 fi
 
-AM_CONDITIONAL(HW_NEXUS_OSCIPRIME, test x$HW_NEXUS_OSCIPRIME = xyes)
-if test "x$HW_NEXUS_OSCIPRIME" = "xyes"; then
-	AC_DEFINE(HAVE_HW_NEXUS_OSCIPRIME, 1, [Nexus Osciprime support])
-fi
-
 AM_CONDITIONAL(HW_OLS, test x$HW_OLS = xyes)
 if test "x$HW_OLS" = "xyes"; then
 	AC_DEFINE(HAVE_HW_OLS, 1, [OpenBench Logic Sniffer (OLS) support])
@@ -478,7 +468,6 @@ AC_CONFIG_FILES([Makefile version.h hardware/Makefile
 		 hardware/kecheng-kc-330b/Makefile
 		 hardware/lascar-el-usb/Makefile
 		 hardware/mic-985xx/Makefile
-		 hardware/nexus-osciprime/Makefile
 		 hardware/rigol-ds1xx2/Makefile
 		 hardware/tondaj-sl-814/Makefile
 		 hardware/victor-dmm/Makefile
@@ -543,7 +532,6 @@ echo "  - kecheng-kc-330b................. $HW_KECHENG_KC_330B"
 echo "  - lascar-el-usb................... $HW_LASCAR_EL_USB"
 echo "  - link-mso19...................... $HW_LINK_MSO19"
 echo "  - mic-985xx....................... $HW_MIC_985XX"
-echo "  - nexus-osciprime................. $HW_NEXUS_OSCIPRIME"
 echo "  - openbench-logic-sniffer......... $HW_OLS"
 echo "  - rigol-ds1xx2.................... $HW_RIGOL_DS1XX2"
 echo "  - serial-dmm...................... $HW_SERIAL_DMM"
