@@ -1,3 +1,47 @@
+0.2.1 (2013-08-07)
+------------------
+
+Note: This release does NOT change the libsigrok API. While new config keys,
+      config info types, and error codes have been added (additional enum
+      entries / numbers), no existing interfaces were added/changed/removed.
+      Frontends should continue to work fine without recompiling or relinking.
+
+ * New supported hardware:
+   - Logic analyzers:
+     - IKALOGIC Scanalogic-2
+     - IKALOGIC ScanaPLUS
+   - Sound level meters:
+     - CEM DT-8852
+     - Kecheng KC-330B
+   - Multimeters:
+     - UNI-T UT60A
+     - UNI-T UT60E
+     - Voltcraft M-3650D
+     - Voltcraft VC-830
+ * Drop the Tecpel DMM-8060 (doesn't have PC connectivity).
+ * New config keys:
+   - SR_CONF_SPL_WEIGHT_FREQ
+   - SR_CONF_SPL_WEIGHT_TIME
+   - SR_CONF_SPL_MEASUREMENT_RANGE
+   - SR_CONF_HOLD_MIN
+   - SR_CONF_HOLD_MAX
+   - SR_CONF_POWER_OFF
+   - SR_CONF_DATA_SOURCE
+ * New config info types:
+   - SR_T_UINT64_RANGE
+ * New error codes:
+   - SR_ERR_TIMEOUT
+ * Always link against libm, the math library (bug #115).
+ * Fix a bug in sr_si_string_u64() at al (bug #73).
+ * output/csv: Fix incorrect probe order.
+ * alsa: Fix a double-free issue (bug #129).
+ * zeroplus-logic-cube: Fix a bug in the driver cleanup code.
+ * ikalogic-scanalogic2: Use GET_REPORT (bug #130).
+ * uni-t-dmm: Fix a bug breaking the UNI-T UT61E (bug #136).
+ * Various internal consistency fixes and code cleanups.
+ * Improved Doxygen documentation.
+ * Fixed various memory leaks.
+
 0.2.0 (2013-05-04)
 ------------------
 
