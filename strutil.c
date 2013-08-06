@@ -48,8 +48,8 @@
  */
 
 /**
- * Convert a numeric value value to its "natural" string representation.
- * in SI units
+ * Convert a numeric value value to its "natural" string representation
+ * in SI units.
  *
  * E.g. a value of 3000000, with units set to "W", would be converted
  * to "3 MW", 20000 to "20 kW", 31500 would become "31.5 kW".
@@ -66,8 +66,8 @@ SR_API char *sr_si_string_u64(uint64_t x, const char *unit)
 {
 	uint8_t i;
 	uint64_t quot, divisor[] = {
-		1, SR_KHZ(1), SR_MHZ(1), SR_GHZ(1),
-		SR_GHZ(1000), SR_GHZ(1000*1000), SR_GHZ(1000*1000*1000)
+		SR_HZ(1), SR_KHZ(1), SR_MHZ(1), SR_GHZ(1),
+		SR_GHZ(1000), SR_GHZ(1000 * 1000), SR_GHZ(1000 * 1000 * 1000),
 	};
 	const char *p, prefix[] = "\0kMGTPE";
 	char fmt[8], fract[20] = "", *f;

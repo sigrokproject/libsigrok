@@ -127,8 +127,8 @@ static void process_sample_data(const struct sr_dev_inst *sdi)
 			/*
 			 * Adjust the position of the first sample to be
 			 * processed because possibly more samples than
-			 * necessary might have been aquired. This is because
-			 * the number of aquired samples is always rounded up
+			 * necessary might have been acquired. This is because
+			 * the number of acquired samples is always rounded up
 			 * to a multiple of 8.
 			 */
 			k = k - (devc->pre_trigger_bytes * 8) +
