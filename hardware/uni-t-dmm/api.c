@@ -76,7 +76,16 @@ SR_PRIV struct dmm_info udmms[] = {
 		&uni_t_ut61d_driver_info, receive_data_UNI_T_UT61D,
 	},
 	{
-		"UNI-T", "UT61E", 19230,
+		/*
+		 * Important: The actual baudrate of the Cyrustek ES51922 chip
+		 * used in this DMM is 19230. However, the WCH CH9325 chip
+		 * (UART to USB/HID) used in (some versions of) the UNI-T
+		 * UT-D04 cable doesn't support 19230 baud. It only supports
+		 * 19200, and setting an unsupported baudrate will result in
+		 * the default of 2400 being used (which will not work with
+		 * this DMM, of course).
+		 */
+		"UNI-T", "UT61E", 19200,
 		ES51922_PACKET_SIZE, NULL,
 		sr_es51922_packet_valid, sr_es51922_parse,
 		NULL,

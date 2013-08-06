@@ -220,10 +220,24 @@ static int get_and_handle_data(struct sr_dev_inst *sdi, int dmm, void *info)
 
 	devc->bufoffset = 0;
 
-	/* Append the 1-7 data bytes of this chunk to pbuf. */
+	/*
+	 * Append the 1-7 data bytes of this chunk to pbuf.
+	 *
+	 * Special case:
+	 * DMMs with Cyrustek ES51922 chip need serial settings of
+	 * 19230/7o1. The WCH CH9325 UART to USB/HID chip used in (some
+	 * versions of) the UNI-T UT-D04 cable however, will also send
+	 * the parity bit to the host in the 8-byte data chunks. This bit
+	 * is encoded in bit 7 of each of the 1-7 data bytes and must thus
+	 * be removed in order for the actual ES51922 protocol parser to
+	 * work properly.
+	 */
 	num_databytes_in_chunk = buf[0] & 0x0f;
-	for (i = 0; i < num_databytes_in_chunk; i++)
-		pbuf[devc->buflen++] = buf[1 + i];
+	for (i = 0; i < num_databytes_in_chunk; i++, devc->buflen++) {
+		pbuf[devc->buflen] = buf[1 + i];
+		if (udmms[dmm].packet_parse == sr_es51922_parse)
+			pbuf[devc->buflen] &= ~(1 << 7);
+	}
 
 	/* Now look for packets in that data. */
 	while ((devc->buflen - devc->bufoffset) >= udmms[dmm].packet_size) {
