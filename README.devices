@@ -53,6 +53,8 @@ The following drivers/devices do not need any firmware upload:
  - demo
  - fluke-dmm
  - ikalogic-scanalogic2
+ - ikalogic-scanaplus
+ - kecheng-kc-330b
  - lascar-el-usb
  - link-mso19
  - mic-985xx
@@ -101,6 +103,8 @@ The following drivers/devices do not require a serial port specification:
  - fx2lafw
  - hantek-dso
  - ikalogic-scanalogic2
+ - ikalogic-scanaplus
+ - kecheng-kc-330b
  - lascar-el-usb
  - rigol-ds1xx2
  - uni-t-dmm
