@@ -95,6 +95,9 @@ ATTRS{idVendor}=="04b5", ATTRS{idProduct}=="520a", MODE="664", GROUP="plugdev"
 # IKALOGIC Scanalogic-2
 ATTRS{idVendor}=="20a0", ATTRS{idProduct}=="4123", MODE="664", GROUP="plugdev"
 
+# IKALOGIC ScanaPLUS
+ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6014", MODE="664", GROUP="plugdev"
+
 # Kecheng KC-330B
 ATTRS{idVendor}=="1041", ATTRS{idProduct}=="8101", MODE="664", GROUP="plugdev"
 
