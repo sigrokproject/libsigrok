@@ -248,7 +248,7 @@ SR_API int sr_session_datafeed_callback_add(sr_datafeed_callback_t cb, void *cb_
  *
  * @return SR_OK upon success, SR_ERR on errors.
  */
-SR_PRIV int sr_session_iteration(gboolean block)
+static int sr_session_iteration(gboolean block)
 {
 	unsigned int i;
 	int ret;
