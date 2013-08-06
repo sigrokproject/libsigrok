@@ -43,7 +43,10 @@ static void clear_helper(void *priv)
 	devc = priv;
 
 	snd_pcm_hw_params_free(devc->hw_params);
+	devc->hw_params = NULL;
+
 	g_free((void *)devc->samplerates);
+	devc->samplerates = NULL;
 }
 
 static int dev_clear(void)
@@ -108,12 +111,11 @@ static int dev_close(struct sr_dev_inst *sdi)
 
 	if (devc->capture_handle) {
 		sr_dbg("Closing PCM device.");
-		if ((ret = snd_pcm_close(devc->capture_handle)) < 0) {
+		if ((ret = snd_pcm_close(devc->capture_handle)) < 0)
 			sr_err("Failed to close device: %s.",
 			       snd_strerror(ret));
-			devc->capture_handle = NULL;
-            sdi->status = SR_ST_INACTIVE;
-		}
+		devc->capture_handle = NULL;
+		sdi->status = SR_ST_INACTIVE;
 	} else {
 		sr_dbg("No capture handle, no need to close audio device.");
 	}
