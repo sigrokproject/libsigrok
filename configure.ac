@@ -140,12 +140,12 @@ AC_ARG_ENABLE(hantek-dso, AC_HELP_STRING([--enable-hantek-dso],
 	[HW_HANTEK_DSO=$HW_ENABLED_DEFAULT])
 
 AC_ARG_ENABLE(ikalogic-scanalogic2, AC_HELP_STRING([--enable-ikalogic-scanalogic2],
-	[enable IKALOGIC Scanalogic2 support [default=yes]]),
+	[enable IKALOGIC Scanalogic-2 support [default=yes]]),
 	[HW_IKALOGIC_SCANALOGIC2="$enableval"],
 	[HW_IKALOGIC_SCANALOGIC2=yes])
 
 AC_ARG_ENABLE(ikalogic-scanaplus, AC_HELP_STRING([--enable-ikalogic-scanaplus],
-	[enable Ikalogic ScanaPLUS support [default=yes]]),
+	[enable IKALOGIC ScanaPLUS support [default=yes]]),
 	[HW_IKALOGIC_SCANAPLUS="$enableval"],
 	[HW_IKALOGIC_SCANAPLUS=yes])
 
@@ -359,12 +359,12 @@ fi
 
 AM_CONDITIONAL(HW_IKALOGIC_SCANALOGIC2, test x$HW_IKALOGIC_SCANALOGIC2 = xyes)
 if test "x$HW_IKALOGIC_SCANALOGIC2" = "xyes"; then
-	AC_DEFINE(HAVE_HW_IKALOGIC_SCANALOGIC2, 1, [IKALOGIC Scanalogic2 support])
+	AC_DEFINE(HAVE_HW_IKALOGIC_SCANALOGIC2, 1, [IKALOGIC Scanalogic-2 support])
 fi
 
 AM_CONDITIONAL(HW_IKALOGIC_SCANAPLUS, test x$HW_IKALOGIC_SCANAPLUS = xyes)
 if test "x$HW_IKALOGIC_SCANAPLUS" = "xyes"; then
-	AC_DEFINE(HAVE_HW_IKALOGIC_SCANAPLUS, 1, [Ikalogic ScanaPLUS support])
+	AC_DEFINE(HAVE_HW_IKALOGIC_SCANAPLUS, 1, [IKALOGIC ScanaPLUS support])
 fi
 
 AM_CONDITIONAL(HW_KECHENG_KC_330B, test x$HW_KECHENG_KC_330B = xyes)

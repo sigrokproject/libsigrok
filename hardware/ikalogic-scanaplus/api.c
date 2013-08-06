@@ -22,7 +22,7 @@
 
 #define USB_VENDOR_ID			0x0403
 #define USB_DEVICE_ID			0x6014
-#define USB_VENDOR_NAME			"Ikalogic"
+#define USB_VENDOR_NAME			"IKALOGIC"
 #define USB_MODEL_NAME			"ScanaPLUS"
 #define USB_IPRODUCT			"SCANAPLUS"
 
@@ -42,7 +42,7 @@ static const char *probe_names[] = {
 	NULL,
 };
 
-/* Note: The Ikalogic ScanaPLUS always samples at 100MHz. */
+/* Note: The IKALOGIC ScanaPLUS always samples at 100MHz. */
 static uint64_t samplerates[1] = { SR_MHZ(100) };
 
 SR_PRIV struct sr_dev_driver ikalogic_scanaplus_driver_info;
@@ -413,7 +413,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 
 SR_PRIV struct sr_dev_driver ikalogic_scanaplus_driver_info = {
 	.name = "ikalogic-scanaplus",
-	.longname = "Ikalogic ScanaPLUS",
+	.longname = "IKALOGIC ScanaPLUS",
 	.api_version = 1,
 	.init = init,
 	.cleanup = cleanup,
