@@ -199,6 +199,11 @@ AC_ARG_ENABLE(uni-t-dmm, AC_HELP_STRING([--enable-uni-t-dmm],
 	[HW_UNI_T_DMM="$enableval"],
 	[HW_UNI_T_DMM=$HW_ENABLED_DEFAULT])
 
+AC_ARG_ENABLE(uni-t-ut32x, AC_HELP_STRING([--enable-uni-t-ut32x],
+	[enable UNI-T UT32x support [default=yes]]),
+	[HW_UNI_T_UT32X="$enableval"],
+	[HW_UNI_T_UT32X=yes])
+
 AC_ARG_ENABLE(victor-dmm, AC_HELP_STRING([--enable-victor-dmm],
 	[enable victor-dmm support [default=yes]]),
 	[HW_VICTOR_DMM="$enableval"],
@@ -422,6 +427,11 @@ if test "x$HW_UNI_T_DMM" = "xyes"; then
 	AC_DEFINE(HAVE_HW_UNI_T_DMM, 1, [UNI-T DMM support])
 fi
 
+AM_CONDITIONAL(HW_UNI_T_UT32X, test x$HW_UNI_T_UT32X = xyes)
+if test "x$HW_UNI_T_UT32X" = "xyes"; then
+	AC_DEFINE(HAVE_HW_UNI_T_UT32X, 1, [UNI-T UT32x support])
+fi
+
 AM_CONDITIONAL(HW_VICTOR_DMM, test x$HW_VICTOR_DMM = xyes)
 if test "x$HW_VICTOR_DMM" = "xyes"; then
 	AC_DEFINE(HAVE_HW_VICTOR_DMM, 1, [Victor DMM support])
@@ -492,6 +502,7 @@ AC_CONFIG_FILES([Makefile version.h hardware/Makefile
 		 hardware/openbench-logic-sniffer/Makefile
 		 hardware/serial-dmm/Makefile
 		 hardware/uni-t-dmm/Makefile
+		 hardware/uni-t-ut32x/Makefile
 		 hardware/zeroplus-logic-cube/Makefile
 		 input/Makefile
 		 output/Makefile
@@ -550,6 +561,7 @@ echo "  - rigol-ds1xx2.................... $HW_RIGOL_DS1XX2"
 echo "  - serial-dmm...................... $HW_SERIAL_DMM"
 echo "  - tondaj-sl-814................... $HW_TONDAJ_SL_814"
 echo "  - uni-t-dmm....................... $HW_UNI_T_DMM"
+echo "  - uni-t-ut32x..................... $HW_UNI_T_UT32X"
 echo "  - victor-dmm...................... $HW_VICTOR_DMM"
 echo "  - zeroplus-logic-cube............. $HW_ZEROPLUS_LOGIC_CUBE"
 echo

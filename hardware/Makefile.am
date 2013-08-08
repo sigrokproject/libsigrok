@@ -43,6 +43,7 @@ SUBDIRS = \
 	serial-dmm \
 	tondaj-sl-814 \
 	uni-t-dmm \
+	uni-t-ut32x \
 	victor-dmm \
 	zeroplus-logic-cube
 
@@ -143,6 +144,10 @@ endif
 
 if HW_UNI_T_DMM
 libsigrokhardware_la_LIBADD += uni-t-dmm/libsigrok_hw_uni_t_dmm.la
+endif
+
+if HW_UNI_T_UT32X
+libsigrokhardware_la_LIBADD += uni-t-ut32x/libsigrok_hw_uni_t_ut32x.la
 endif
 
 if HW_VICTOR_DMM
