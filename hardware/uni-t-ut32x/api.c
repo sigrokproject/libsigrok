@@ -19,6 +19,33 @@
 
 #include "protocol.h"
 
+#include <string.h>
+
+#define USB_CONN "1a86.e008"
+#define VENDOR "UNI-T"
+#define MODEL "UT32x"
+#define USB_INTERFACE 0
+#define EP_IN 0x80 | 2
+#define EP_OUT 2
+
+static const int32_t hwcaps[] = {
+	SR_CONF_THERMOMETER,
+	SR_CONF_LIMIT_SAMPLES,
+	SR_CONF_CONTINUOUS,
+	SR_CONF_DATA_SOURCE,
+};
+
+static char *probes[] = {
+	"T1",
+	"T2",
+	"T1-T2",
+};
+
+static const char *data_sources[] = {
+	"Live",
+	"Memory",
+};
+
 SR_PRIV struct sr_dev_driver uni_t_ut32x_driver_info;
 static struct sr_dev_driver *di = &uni_t_ut32x_driver_info;
 
@@ -31,16 +58,62 @@ static int init(struct sr_context *sr_ctx)
 static GSList *scan(GSList *options)
 {
 	struct drv_context *drvc;
-	GSList *devices;
+	struct dev_context *devc;
+	struct sr_dev_inst *sdi;
+	struct sr_probe *probe;
+	struct sr_config *src;
+	GSList *usb_devices, *devices, *l;
+	int i;
+	const char *conn;
 
-	(void)options;
-
-	devices = NULL;
 	drvc = di->priv;
 	drvc->instances = NULL;
 
-	/* TODO: scan for devices, either based on a SR_CONF_CONN option
-	 * or on a USB scan. */
+	conn = NULL;
+	for (l = options; l; l = l->next) {
+		src = l->data;
+		switch (src->key) {
+		case SR_CONF_CONN:
+			conn = g_variant_get_string(src->data, NULL);
+			break;
+		}
+	}
+	if (!conn)
+		return NULL;
+
+	devices = NULL;
+	if ((usb_devices = sr_usb_find(drvc->sr_ctx->libusb_ctx, USB_CONN))) {
+		/* We have a list of sr_usb_dev_inst matching the connection
+		 * string. Wrap them in sr_dev_inst and we're done. */
+		for (l = usb_devices; l; l = l->next) {
+			if (!(sdi = sr_dev_inst_new(0, SR_ST_INACTIVE, VENDOR,
+					MODEL, NULL)))
+				return NULL;
+			sdi->driver = di;
+			sdi->inst_type = SR_INST_USB;
+			sdi->conn = l->data;
+			for (i = 0; i < 3; i++) {
+				if (!(probe = sr_probe_new(i, SR_PROBE_ANALOG, TRUE,
+						probes[i]))) {
+					sr_dbg("Probe malloc failed.");
+					return NULL;
+				}
+				sdi->probes = g_slist_append(sdi->probes, probe);
+			}
+
+			if (!(devc = g_try_malloc(sizeof(struct dev_context)))) {
+				sr_dbg("Device context malloc failed.");
+				return NULL;
+			}
+			sdi->priv = devc;
+			devc->limit_samples = 0;
+			devc->data_source = DEFAULT_DATA_SOURCE;
+			drvc->instances = g_slist_append(drvc->instances, sdi);
+			devices = g_slist_append(devices, sdi);
+		}
+		g_slist_free(usb_devices);
+	} else
+		g_slist_free_full(usb_devices, g_free);
 
 	return devices;
 }
@@ -61,21 +134,65 @@ static int dev_clear(void)
 
 static int dev_open(struct sr_dev_inst *sdi)
 {
-	(void)sdi;
+	struct drv_context *drvc;
+	struct sr_usb_dev_inst *usb;
+	int ret;
 
-	/* TODO: get handle from sdi->conn and open it. */
+	if (!(drvc = di->priv)) {
+		sr_err("Driver was not initialized.");
+		return SR_ERR;
+	}
 
+	usb = sdi->conn;
+
+	if (sr_usb_open(drvc->sr_ctx->libusb_ctx, usb) != SR_OK)
+		return SR_ERR;
+
+/*
+ * The libusbx 1.0.9 darwin backend is broken: it can report a kernel
+ * driver being active, but detaching it always returns an error.
+ */
+#if !defined(__APPLE__)
+	if (libusb_kernel_driver_active(usb->devhdl, 0) == 1) {
+		if ((ret = libusb_detach_kernel_driver(usb->devhdl, 0)) < 0) {
+			sr_err("failed to detach kernel driver: %s",
+					libusb_error_name(ret));
+			return SR_ERR;
+		}
+	}
+#endif
+
+	if ((ret = libusb_set_configuration(usb->devhdl, 1))) {
+		sr_err("Failed to set configuration: %s.", libusb_error_name(ret));
+		return SR_ERR;
+	}
+
+	if ((ret = libusb_claim_interface(usb->devhdl, USB_INTERFACE))) {
+		sr_err("Failed to claim interface: %s.", libusb_error_name(ret));
+		return SR_ERR;
+	}
 	sdi->status = SR_ST_ACTIVE;
 
-	return SR_OK;
+	return ret;
 }
 
 static int dev_close(struct sr_dev_inst *sdi)
 {
-	(void)sdi;
+	struct sr_usb_dev_inst *usb;
 
-	/* TODO: get handle from sdi->conn and close it. */
+	if (!di->priv) {
+		sr_err("Driver was not initialized.");
+		return SR_ERR;
+	}
 
+	usb = sdi->conn;
+	if (!usb->devhdl)
+		/*  Nothing to do. */
+		return SR_OK;
+
+	libusb_release_interface(usb->devhdl, USB_INTERFACE);
+	libusb_close(usb->devhdl);
+	usb->devhdl = NULL;
 	sdi->status = SR_ST_INACTIVE;
 
 	return SR_OK;
@@ -83,42 +200,73 @@ static int dev_close(struct sr_dev_inst *sdi)
 
 static int cleanup(void)
 {
-	dev_clear();
-
-	/* TODO: free other driver resources, if any. */
-
-	return SR_OK;
-}
-
-static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi)
-{
 	int ret;
+	struct drv_context *drvc;
 
-	(void)sdi;
-	(void)data;
+	if (!(drvc = di->priv))
+		/* Can get called on an unused driver, doesn't matter. */
+		return SR_OK;
 
-	ret = SR_OK;
-	switch (key) {
-	/* TODO */
-	default:
-		return SR_ERR_NA;
-	}
+	ret = dev_clear();
+	g_free(drvc);
+	di->priv = NULL;
 
 	return ret;
 }
 
+static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+
+	devc = sdi->priv;
+	switch (key) {
+	case SR_CONF_LIMIT_SAMPLES:
+		*data = g_variant_new_uint64(devc->limit_samples);
+		break;
+	case SR_CONF_DATA_SOURCE:
+		if (devc->data_source == DATA_SOURCE_LIVE)
+			*data = g_variant_new_string("Live");
+		else
+			*data = g_variant_new_string("Memory");
+		break;
+	default:
+		return SR_ERR_NA;
+	}
+
+	return SR_OK;
+}
+
 static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi)
 {
+	struct dev_context *devc;
 	int ret;
-
-	(void)data;
+	const char *tmp_str;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
+	if (!di->priv) {
+		sr_err("Driver was not initialized.");
+		return SR_ERR;
+	}
+
+	devc = sdi->priv;
 	ret = SR_OK;
 	switch (key) {
-	/* TODO */
+	case SR_CONF_LIMIT_SAMPLES:
+		devc->limit_samples = g_variant_get_uint64(data);
+		sr_dbg("Setting sample limit to %" PRIu64 ".",
+		       devc->limit_samples);
+		break;
+	case SR_CONF_DATA_SOURCE:
+		tmp_str = g_variant_get_string(data, NULL);
+		if (!strcmp(tmp_str, "Live"))
+			devc->data_source = DATA_SOURCE_LIVE;
+		else if (!strcmp(tmp_str, "Memory"))
+			devc->data_source = DATA_SOURCE_MEMORY;
+		else
+			return SR_ERR;
+		break;
 	default:
 		ret = SR_ERR_NA;
 	}
@@ -128,32 +276,80 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi)
 
 static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 {
-	int ret;
 
 	(void)sdi;
-	(void)data;
 
-	ret = SR_OK;
 	switch (key) {
-	/* TODO */
+	case SR_CONF_DEVICE_OPTIONS:
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+				hwcaps, ARRAY_SIZE(hwcaps), sizeof(int32_t));
+		break;
+	case SR_CONF_DATA_SOURCE:
+		*data = g_variant_new_strv(data_sources, ARRAY_SIZE(data_sources));
+		break;
 	default:
 		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 				    void *cb_data)
 {
-	(void)sdi;
-	(void)cb_data;
+	struct drv_context *drvc;
+	struct dev_context *devc;
+	struct sr_usb_dev_inst *usb;
+	const struct libusb_pollfd **pfd;
+	int len, ret, i;
+	unsigned char cmd[2];
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
-	/* TODO: configure hardware, reset acquisition state, set up
-	 * callbacks and send header packet. */
+	drvc = di->priv;
+	devc = sdi->priv;
+	usb = sdi->conn;
+
+	devc->cb_data = cb_data;
+	devc->num_samples = 0;
+
+	/* Send header packet to the session bus. */
+	std_session_send_df_header(cb_data, LOG_PREFIX);
+
+	if (!(devc->xfer = libusb_alloc_transfer(0)))
+		return SR_ERR;
+
+	pfd = libusb_get_pollfds(drvc->sr_ctx->libusb_ctx);
+	for (i = 0; pfd[i]; i++) {
+		/* Handle USB events every 10ms. */
+		sr_source_add(pfd[i]->fd, pfd[i]->events, 10,
+				uni_t_ut32x_handle_events, (void *)sdi);
+		/* We'll need to remove this fd later. */
+		devc->usbfd[i] = pfd[i]->fd;
+	}
+	devc->usbfd[i] = -1;
+
+	/* Length of payload to follow. */
+	cmd[0] = 0x01;
+	if (devc->data_source == DATA_SOURCE_LIVE)
+		cmd[1] = CMD_GET_LIVE;
+	else
+		cmd[1] = CMD_GET_STORED;
+
+	ret = libusb_bulk_transfer(usb->devhdl, EP_OUT, cmd, 2, &len, 5);
+	if (ret != 0 || len != 2) {
+		sr_dbg("Failed to start acquisition: %s", libusb_error_name(ret));
+		libusb_free_transfer(devc->xfer);
+		return SR_ERR;
+	}
+
+	libusb_fill_bulk_transfer(devc->xfer, usb->devhdl, EP_IN, devc->buf,
+			128, uni_t_ut32x_receive_transfer, (void *)sdi, 15);
+	if (libusb_submit_transfer(devc->xfer) != 0) {
+		libusb_free_transfer(devc->xfer);
+		return SR_ERR;
+	}
 
 	return SR_OK;
 }

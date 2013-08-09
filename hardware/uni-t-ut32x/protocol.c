@@ -19,7 +19,7 @@
 
 #include "protocol.h"
 
-SR_PRIV int uni_t_ut32x_receive_data(int fd, int revents, void *cb_data)
+SR_PRIV int uni_t_ut32x_handle_events(int fd, int revents, void *cb_data)
 {
 	(void)fd;
 
@@ -38,3 +38,9 @@ SR_PRIV int uni_t_ut32x_receive_data(int fd, int revents, void *cb_data)
 
 	return TRUE;
 }
+
+SR_PRIV void uni_t_ut32x_receive_transfer(struct libusb_transfer *transfer)
+{
+
+}
+

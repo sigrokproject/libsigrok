@@ -34,18 +34,39 @@
 #define sr_warn(s, args...) sr_warn(LOG_PREFIX s, ## args)
 #define sr_err(s, args...) sr_err(LOG_PREFIX s, ## args)
 
+#define DEFAULT_DATA_SOURCE DATA_SOURCE_LIVE
+
+enum {
+    DATA_SOURCE_LIVE,
+	DATA_SOURCE_MEMORY,
+};
+
+enum {
+	CMD_GET_LIVE = 1,
+	CMD_STOP = 2,
+	CMD_GET_STORED = 7,
+};
+
 /** Private, per-device-instance driver context. */
 struct dev_context {
 	/* Model-specific information */
 
 	/* Acquisition settings */
+	uint64_t limit_samples;
+	gboolean data_source;
 
 	/* Operational state */
+	uint64_t num_samples;
+	int usbfd[10];
+	unsigned char buf[128];
+	struct libusb_transfer *xfer;
+	void *cb_data;
 
 	/* Temporary state across callbacks */
 
 };
 
-SR_PRIV int uni_t_ut32x_receive_data(int fd, int revents, void *cb_data);
+SR_PRIV int uni_t_ut32x_handle_events(int fd, int revents, void *cb_data);
+SR_PRIV void uni_t_ut32x_receive_transfer(struct libusb_transfer *transfer);
 
 #endif
