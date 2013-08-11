@@ -149,7 +149,7 @@ static GSList *scan(GSList *options, int dmm)
 		}
 	}
 	if (!conn)
-		conn = UNI_T_UT_D04_NEW;
+		return NULL;
 
 	devices = NULL;
 	if (!(usb_devices = sr_usb_find(drvc->sr_ctx->libusb_ctx, conn))) {
