@@ -35,6 +35,14 @@
 #define sr_err(s, args...) sr_err(LOG_PREFIX s, ## args)
 
 #define DEFAULT_DATA_SOURCE DATA_SOURCE_LIVE
+#define USB_CONN "1a86.e008"
+#define VENDOR "UNI-T"
+#define MODEL "UT32x"
+#define USB_INTERFACE 0
+#define USB_CONFIGURATION 1
+
+#define EP_IN 0x80 | 2
+#define EP_OUT 2
 
 enum {
     DATA_SOURCE_LIVE,
@@ -49,8 +57,6 @@ enum {
 
 /** Private, per-device-instance driver context. */
 struct dev_context {
-	/* Model-specific information */
-
 	/* Acquisition settings */
 	uint64_t limit_samples;
 	gboolean data_source;
@@ -58,12 +64,13 @@ struct dev_context {
 	/* Operational state */
 	uint64_t num_samples;
 	int usbfd[10];
-	unsigned char buf[128];
+	unsigned char buf[8];
 	struct libusb_transfer *xfer;
 	void *cb_data;
 
 	/* Temporary state across callbacks */
-
+	unsigned char packet[32];
+	int packet_len;
 };
 
 SR_PRIV int uni_t_ut32x_handle_events(int fd, int revents, void *cb_data);

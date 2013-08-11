@@ -21,13 +21,6 @@
 
 #include <string.h>
 
-#define USB_CONN "1a86.e008"
-#define VENDOR "UNI-T"
-#define MODEL "UT32x"
-#define USB_INTERFACE 0
-#define EP_IN 0x80 | 2
-#define EP_OUT 2
-
 static const int32_t hwcaps[] = {
 	SR_CONF_THERMOMETER,
 	SR_CONF_LIMIT_SAMPLES,
@@ -153,8 +146,8 @@ static int dev_open(struct sr_dev_inst *sdi)
  * driver being active, but detaching it always returns an error.
  */
 #if !defined(__APPLE__)
-	if (libusb_kernel_driver_active(usb->devhdl, 0) == 1) {
-		if ((ret = libusb_detach_kernel_driver(usb->devhdl, 0)) < 0) {
+	if (libusb_kernel_driver_active(usb->devhdl, USB_INTERFACE) == 1) {
+		if ((ret = libusb_detach_kernel_driver(usb->devhdl, USB_INTERFACE)) < 0) {
 			sr_err("failed to detach kernel driver: %s",
 					libusb_error_name(ret));
 			return SR_ERR;
@@ -162,7 +155,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 	}
 #endif
 
-	if ((ret = libusb_set_configuration(usb->devhdl, 1))) {
+	if ((ret = libusb_set_configuration(usb->devhdl, USB_CONFIGURATION))) {
 		sr_err("Failed to set configuration: %s.", libusb_error_name(ret));
 		return SR_ERR;
 	}
@@ -313,22 +306,24 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 
 	devc->cb_data = cb_data;
 	devc->num_samples = 0;
+	devc->packet_len = 0;
+
+	/* Configure serial port parameters on USB-UART interface
+	 * chip inside the device (just baudrate 2400 actually). */
+	cmd[0] = 0x09;
+	cmd[1] = 0x60;
+	ret = libusb_control_transfer(usb->devhdl, 0x21, 0x09, 0x0300, 0x00,
+			cmd, 2, 5);
+	if (ret != 2) {
+		sr_dbg("Failed to configure CH9325: %s", libusb_error_name(ret));
+		return SR_ERR;
+	}
 
 	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, LOG_PREFIX);
 
 	if (!(devc->xfer = libusb_alloc_transfer(0)))
 		return SR_ERR;
-
-	pfd = libusb_get_pollfds(drvc->sr_ctx->libusb_ctx);
-	for (i = 0; pfd[i]; i++) {
-		/* Handle USB events every 10ms. */
-		sr_source_add(pfd[i]->fd, pfd[i]->events, 10,
-				uni_t_ut32x_handle_events, (void *)sdi);
-		/* We'll need to remove this fd later. */
-		devc->usbfd[i] = pfd[i]->fd;
-	}
-	devc->usbfd[i] = -1;
 
 	/* Length of payload to follow. */
 	cmd[0] = 0x01;
@@ -345,23 +340,35 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	}
 
 	libusb_fill_bulk_transfer(devc->xfer, usb->devhdl, EP_IN, devc->buf,
-			128, uni_t_ut32x_receive_transfer, (void *)sdi, 15);
+			8, uni_t_ut32x_receive_transfer, (void *)sdi, 15);
 	if (libusb_submit_transfer(devc->xfer) != 0) {
 		libusb_free_transfer(devc->xfer);
 		return SR_ERR;
 	}
+
+	pfd = libusb_get_pollfds(drvc->sr_ctx->libusb_ctx);
+	for (i = 0; pfd[i]; i++) {
+		/* Handle USB events every 10ms. */
+		sr_source_add(pfd[i]->fd, pfd[i]->events, 10,
+				uni_t_ut32x_handle_events, (void *)sdi);
+		/* We'll need to remove this fd later. */
+		devc->usbfd[i] = pfd[i]->fd;
+	}
+	devc->usbfd[i] = -1;
 
 	return SR_OK;
 }
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
+
 	(void)cb_data;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
-	/* TODO: stop acquisition. */
+	/* Signal USB transfer handler to clean up and stop. */
+	sdi->status = SR_ST_STOPPING;
 
 	return SR_OK;
 }
