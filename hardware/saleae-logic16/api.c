@@ -28,9 +28,9 @@
 #include "libsigrok-internal.h"
 #include "protocol.h"
 
-#define LOGIC16_VID 0x21a9
-#define LOGIC16_PID 0x1001
-#define NUM_PROBES  16
+#define LOGIC16_VID		0x21a9
+#define LOGIC16_PID		0x1001
+#define NUM_PROBES		16
 
 #define USB_INTERFACE		0
 #define USB_CONFIGURATION	1
@@ -38,7 +38,6 @@
 
 #define MAX_RENUM_DELAY_MS	3000
 #define NUM_SIMUL_TRANSFERS	32
-
 
 SR_PRIV struct sr_dev_driver saleae_logic16_driver_info;
 static struct sr_dev_driver *di = &saleae_logic16_driver_info;
@@ -118,7 +117,7 @@ static gboolean check_conf_profile(libusb_device *dev)
 			break;
 
 		if (libusb_get_string_descriptor_ascii(hdl,
-				des.iProduct, strdesc, sizeof(strdesc)) < 0)
+		    des.iProduct, strdesc, sizeof(strdesc)) < 0)
 			break;
 		if (strcmp((const char *)strdesc, "Logic S/16"))
 			break;
@@ -180,7 +179,7 @@ static GSList *scan(GSList *options)
 				continue;
 		}
 
-		if ((ret = libusb_get_device_descriptor( devlist[i], &des)) != 0) {
+		if ((ret = libusb_get_device_descriptor(devlist[i], &des)) != 0) {
 			sr_warn("Failed to get device descriptor: %s.",
 				libusb_error_name(ret));
 			continue;
@@ -215,8 +214,9 @@ static GSList *scan(GSList *options)
 			sr_dbg("Found a Logic16 device.");
 			sdi->status = SR_ST_INACTIVE;
 			sdi->inst_type = SR_INST_USB;
-			sdi->conn = sr_usb_dev_inst_new(libusb_get_bus_number(devlist[i]),
-							libusb_get_device_address(devlist[i]), NULL);
+			sdi->conn = sr_usb_dev_inst_new(
+				libusb_get_bus_number(devlist[i]),
+				libusb_get_device_address(devlist[i]), NULL);
 		} else {
 			if (ezusb_upload_firmware(devlist[i], USB_CONFIGURATION,
 						  FX2_FIRMWARE) == SR_OK)
@@ -226,8 +226,8 @@ static GSList *scan(GSList *options)
 				sr_err("Firmware upload failed for "
 				       "device %d.", devcnt);
 			sdi->inst_type = SR_INST_USB;
-			sdi->conn = sr_usb_dev_inst_new (libusb_get_bus_number(devlist[i]),
-							 0xff, NULL);
+			sdi->conn = sr_usb_dev_inst_new(
+				libusb_get_bus_number(devlist[i]), 0xff, NULL);
 		}
 	}
 	libusb_free_device_list(devlist, 1);
@@ -280,8 +280,7 @@ static int logic16_dev_open(struct sr_dev_inst *sdi)
 			continue;
 		}
 
-		if (des.idVendor != LOGIC16_VID
-		    || des.idProduct != LOGIC16_PID)
+		if (des.idVendor != LOGIC16_VID || des.idProduct != LOGIC16_PID)
 			continue;
 
 		if (sdi->status == SR_ST_INITIALIZING) {
@@ -296,7 +295,7 @@ static int logic16_dev_open(struct sr_dev_inst *sdi)
 			 * this device by vendor, product, bus and address.
 			 */
 			if (libusb_get_bus_number(devlist[i]) != usb->bus
-				|| libusb_get_device_address(devlist[i]) != usb->address)
+			    || libusb_get_device_address(devlist[i]) != usb->address)
 				/* This is not the one. */
 				continue;
 		}
@@ -314,16 +313,14 @@ static int logic16_dev_open(struct sr_dev_inst *sdi)
 			break;
 		}
 
-		if ((ret = saleae_logic16_init_device(sdi)) != SR_OK) {
+		if ((ret = logic16_init_device(sdi)) != SR_OK) {
 			sr_err("Failed to init device.");
 			break;
 		}
 
 		sdi->status = SR_ST_ACTIVE;
-		sr_info("Opened device %d on %d.%d, "
-			"interface %d.",
-			sdi->index, usb->bus, usb->address,
-			USB_INTERFACE);
+		sr_info("Opened device %d on %d.%d, interface %d.",
+			sdi->index, usb->bus, usb->address, USB_INTERFACE);
 
 		break;
 	}
@@ -381,7 +378,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 	ret = libusb_claim_interface(usb->devhdl, USB_INTERFACE);
 	if (ret != 0) {
-		switch(ret) {
+		switch (ret) {
 		case LIBUSB_ERROR_BUSY:
 			sr_err("Unable to claim USB interface. Another "
 			       "program or driver has already claimed it.");
@@ -447,7 +444,7 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi)
 	GVariant *range[2];
 	char str[128];
 	int ret;
-	unsigned i;
+	unsigned int i;
 
 	ret = SR_OK;
 	switch (key) {
@@ -473,15 +470,16 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi)
 			return SR_ERR;
 		devc = sdi->priv;
 		ret = SR_ERR;
-		for (i = 0; i < ARRAY_SIZE(volt_thresholds); i++)
-			if (devc->selected_voltage_range ==
-			    volt_thresholds[i].range) {
-				range[0] = g_variant_new_double(volt_thresholds[i].low);
-				range[1] = g_variant_new_double(volt_thresholds[i].high);
-				*data = g_variant_new_tuple(range, 2);
-				ret = SR_OK;
-				break;
-			}
+		for (i = 0; i < ARRAY_SIZE(volt_thresholds); i++) {
+			if (devc->selected_voltage_range !=
+			    volt_thresholds[i].range)
+				continue;
+			range[0] = g_variant_new_double(volt_thresholds[i].low);
+			range[1] = g_variant_new_double(volt_thresholds[i].high);
+			*data = g_variant_new_tuple(range, 2);
+			ret = SR_OK;
+			break;
+		}
 		break;
 	default:
 		return SR_ERR_NA;
@@ -495,7 +493,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	gdouble low, high;
 	int ret;
-	unsigned i;
+	unsigned int i;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
@@ -535,7 +533,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 	GVariant *gvar, *range[2];
 	GVariantBuilder gvb;
 	int ret;
-	unsigned i;
+	unsigned int i;
 
 	(void)sdi;
 
@@ -551,8 +549,8 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 		break;
 	case SR_CONF_SAMPLERATE:
 		g_variant_builder_init(&gvb, G_VARIANT_TYPE("a{sv}"));
-		gvar = g_variant_new_fixed_array(G_VARIANT_TYPE("t"), samplerates,
-				ARRAY_SIZE(samplerates), sizeof(uint64_t));
+		gvar = g_variant_new_fixed_array(G_VARIANT_TYPE("t"),
+			samplerates, ARRAY_SIZE(samplerates), sizeof(uint64_t));
 		g_variant_builder_add(&gvb, "{sv}", "samplerates", gvar);
 		*data = g_variant_builder_end(&gvb);
 		break;
@@ -646,14 +644,15 @@ static int configure_probes(const struct sr_dev_inst *sdi)
 		devc->cur_channels |= probe_bit;
 
 #ifdef WORDS_BIGENDIAN
-		/* Output logic data should be stored in little endian
-		   format.  To speed things up during conversion, do the
-		   switcharoo here instead. */
-
+		/*
+		 * Output logic data should be stored in little endian format.
+		 * To speed things up during conversion, do the switcharoo
+		 * here instead.
+		 */
 		probe_bit = 1 << (probe->index ^ 8);
 #endif
 
-		devc->channel_masks[devc->num_channels ++] = probe_bit;
+		devc->channel_masks[devc->num_channels++] = probe_bit;
 	}
 
 	return SR_OK;
@@ -677,15 +676,14 @@ static int receive_data(int fd, int revents, void *cb_data)
 	libusb_handle_events_timeout(drvc->sr_ctx->libusb_ctx, &tv);
 
 	if (devc->num_samples == -2) {
-		saleae_logic16_abort_acquisition(sdi);
+		logic16_abort_acquisition(sdi);
 		abort_acquisition(devc);
 	}
 
 	return TRUE;
 }
 
-static int dev_acquisition_start(const struct sr_dev_inst *sdi,
-				 void *cb_data)
+static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 {
 	struct dev_context *devc;
 	struct drv_context *drvc;
@@ -704,7 +702,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	devc = sdi->priv;
 	usb = sdi->conn;
 
-	/* Configures devc->cur_channels */
+	/* Configures devc->cur_channels. */
 	if (configure_probes(sdi) != SR_OK) {
 		sr_err("Failed to configure probes.");
 		return SR_ERR;
@@ -736,8 +734,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 		return SR_ERR_MALLOC;
 	}
 
-	if ((ret = saleae_logic16_setup_acquisition(sdi, devc->cur_samplerate,
-						    devc->cur_channels)) != SR_OK) {
+	if ((ret = logic16_setup_acquisition(sdi, devc->cur_samplerate,
+					     devc->cur_channels)) != SR_OK) {
 		g_free(devc->transfers);
 		g_free(devc->convbuffer);
 		return ret;
@@ -758,7 +756,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 		transfer = libusb_alloc_transfer(0);
 		libusb_fill_bulk_transfer(transfer, usb->devhdl,
 				2 | LIBUSB_ENDPOINT_IN, buf, size,
-				saleae_logic16_receive_transfer, devc, timeout);
+				logic16_receive_transfer, devc, timeout);
 		if ((ret = libusb_submit_transfer(transfer)) != 0) {
 			sr_err("Failed to submit transfer: %s.",
 			       libusb_error_name(ret));
@@ -773,7 +771,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 
 	lupfd = libusb_get_pollfds(drvc->sr_ctx->libusb_ctx);
 	for (i = 0; lupfd[i]; i++);
-	if (!(devc->usbfd = g_try_malloc(sizeof(struct libusb_pollfd) * (i + 1)))) {
+	devc->usbfd = g_try_malloc(sizeof(struct libusb_pollfd) * (i + 1));
+	if (!devc->usbfd) {
 		abort_acquisition(devc);
 		free(lupfd);
 		return SR_ERR;
@@ -789,7 +788,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, LOG_PREFIX);
 
-	if ((ret = saleae_logic16_start_acquisition(sdi)) != SR_OK) {
+	if ((ret = logic16_start_acquisition(sdi)) != SR_OK) {
 		abort_acquisition(devc);
 		return ret;
 	}
@@ -806,7 +805,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
-	ret = saleae_logic16_abort_acquisition(sdi);
+	ret = logic16_abort_acquisition(sdi);
 
 	abort_acquisition(sdi->priv);
 

@@ -66,14 +66,14 @@
 
 #define MAX_EMPTY_TRANSFERS		64
 
-
 static void encrypt(uint8_t *dest, const uint8_t *src, uint8_t cnt)
 {
 	uint8_t state1 = 0x9b, state2 = 0x54;
+	uint8_t t, v;
 	int i;
 
-	for (i=0; i<cnt; i++) {
-		uint8_t t, v = src[i];
+	for (i = 0; i < cnt; i++) {
+		v = src[i];
 		t = (((v ^ state2 ^ 0x2b) - 0x05) ^ 0x35) - 0x39;
 		t = (((t ^ state1 ^ 0x5a) - 0xb0) ^ 0x38) - 0x45;
 		dest[i] = state2 = t;
@@ -84,9 +84,11 @@ static void encrypt(uint8_t *dest, const uint8_t *src, uint8_t cnt)
 static void decrypt(uint8_t *dest, const uint8_t *src, uint8_t cnt)
 {
 	uint8_t state1 = 0x9b, state2 = 0x54;
+	uint8_t t, v;
 	int i;
-	for (i=0; i<cnt; i++) {
-		uint8_t t, v = src[i];
+
+	for (i = 0; i < cnt; i++) {
+		v = src[i];
 		t = (((v + 0x45) ^ 0x38) + 0xb0) ^ 0x5a ^ state1;
 		t = (((t + 0x39) ^ 0x35) + 0x05) ^ 0x2b ^ state2;
 		dest[i] = state1 = t;
@@ -112,28 +114,29 @@ static int do_ep1_command(const struct sr_dev_inst *sdi,
 
 	ret = libusb_bulk_transfer(usb->devhdl, 1, buf, cmd_len, &xfer, 1000);
 	if (ret != 0) {
-		sr_dbg("Failed to send EP1 command 0x%02x: %s",
+		sr_dbg("Failed to send EP1 command 0x%02x: %s.",
 		       command[0], libusb_error_name(ret));
 		return SR_ERR;
 	}
 	if (xfer != cmd_len) {
-		sr_dbg("Failed to send EP1 command 0x%02x: incorrect length %d != %d",
-		       xfer, cmd_len);
+		sr_dbg("Failed to send EP1 command 0x%02x: incorrect length "
+		       "%d != %d.", xfer, cmd_len);
 		return SR_ERR;
 	}
 
 	if (reply_len == 0)
 		return SR_OK;
 
-	ret = libusb_bulk_transfer(usb->devhdl, 0x80 | 1, buf, reply_len, &xfer, 1000);
+	ret = libusb_bulk_transfer(usb->devhdl, 0x80 | 1, buf, reply_len,
+				   &xfer, 1000);
 	if (ret != 0) {
-		sr_dbg("Failed to receive reply to EP1 command 0x%02x: %s",
+		sr_dbg("Failed to receive reply to EP1 command 0x%02x: %s.",
 		       command[0], libusb_error_name(ret));
 		return SR_ERR;
 	}
 	if (xfer != reply_len) {
-		sr_dbg("Failed to receive reply to EP1 command 0x%02x: incorrect length %d != %d",
-		       xfer, reply_len);
+		sr_dbg("Failed to receive reply to EP1 command 0x%02x: "
+		       "incorrect length %d != %d.", xfer, reply_len);
 		return SR_ERR;
 	}
 
@@ -159,21 +162,22 @@ static int read_eeprom(const struct sr_dev_inst *sdi,
 static int upload_led_table(const struct sr_dev_inst *sdi,
 			    const uint8_t *table, uint8_t offset, uint8_t cnt)
 {
-	uint8_t command[64];
+	uint8_t chunk, command[64];
 	int ret;
 
-	if (cnt < 1 || cnt+offset > 64 || table == NULL)
+	if (cnt < 1 || cnt + offset > 64 || table == NULL)
 		return SR_ERR_ARG;
 
 	while (cnt > 0) {
-		uint8_t chunk = (cnt > 32? 32 : cnt);
+		chunk = (cnt > 32 ? 32 : cnt);
 
 		command[0] = COMMAND_WRITE_LED_TABLE;
 		command[1] = offset;
 		command[2] = chunk;
-		memcpy(command+3, table, chunk);
+		memcpy(command + 3, table, chunk);
 
-		if ((ret = do_ep1_command(sdi, command, 3+chunk, NULL, 0)) != SR_OK)
+		ret = do_ep1_command(sdi, command, 3 + chunk, NULL, 0);
+		if (ret != SR_OK)
 			return ret;
 
 		table += chunk;
@@ -191,8 +195,8 @@ static int set_led_mode(const struct sr_dev_inst *sdi,
 	uint8_t command[6] = {
 		COMMAND_SET_LED_MODE,
 		animate,
-		t2reload&0xff,
-		t2reload>>8,
+		t2reload & 0xff,
+		t2reload >> 8,
 		div,
 		repeat,
 	};
@@ -223,21 +227,21 @@ static int write_fpga_registers(const struct sr_dev_inst *sdi,
 
 	command[0] = COMMAND_FPGA_WRITE_REGISTER;
 	command[1] = cnt;
-	for (i=0; i<cnt; i++) {
-		command[2+2*i] = regs[i][0];
-		command[3+2*i] = regs[i][1];
+	for (i = 0; i < cnt; i++) {
+		command[2 + 2 * i] = regs[i][0];
+		command[3 + 2 * i] = regs[i][1];
 	}
 
-	return do_ep1_command(sdi, command, 2*(cnt+1), NULL, 0);
+	return do_ep1_command(sdi, command, 2 * (cnt + 1), NULL, 0);
 }
 
 static int write_fpga_register(const struct sr_dev_inst *sdi,
 			       uint8_t address, uint8_t value)
 {
 	uint8_t regs[2] = { address, value };
+
 	return write_fpga_registers(sdi, &regs, 1);
 }
-
 
 static uint8_t map_eeprom_data(uint8_t v)
 {
@@ -254,9 +258,9 @@ static int prime_fpga(const struct sr_dev_inst *sdi)
 		{12, 0},
 		{10, 0xc0},
 		{10, 0x40},
-		{ 6, 0},
-		{ 7, 1},
-		{ 7, 0}
+		{6, 0},
+		{7, 1},
+		{7, 0}
 	};
 	int i, ret;
 
@@ -271,7 +275,7 @@ static int prime_fpga(const struct sr_dev_inst *sdi)
 	regs[3][1] |= old_reg_10;
 	regs[4][1] |= old_reg_10;
 
-	for (i=0; i<16; i++) {
+	for (i = 0; i < 16; i++) {
 		regs[2][1] = eeprom_data[i];
 		regs[5][1] = map_eeprom_data(eeprom_data[i]);
 		if (i)
@@ -289,7 +293,7 @@ static int prime_fpga(const struct sr_dev_inst *sdi)
 		return ret;
 
 	if (version != 0x10) {
-		sr_err("Invalid FPGA bitstream version: 0x%02x != 0x10", version);
+		sr_err("Invalid FPGA bitstream version: 0x%02x != 0x10.", version);
 		return SR_ERR;
 	}
 
@@ -302,9 +306,9 @@ static void make_heartbeat(uint8_t *table, int len)
 
 	memset(table, 0, len);
 	len >>= 3;
-	for (i=0; i<2; i++)
-		for (j=0; j<len; j++)
-			*table++ = sin(j*M_PI/len)*255;
+	for (i = 0; i < 2; i++)
+		for (j = 0; j < len; j++)
+			*table++ = sin(j * M_PI / len) * 255;
 }
 
 static int configure_led(const struct sr_dev_inst *sdi)
@@ -325,8 +329,8 @@ static int upload_fpga_bitstream(const struct sr_dev_inst *sdi,
 	struct dev_context *devc;
 	int offset, chunksize, ret;
 	const char *filename;
+	uint8_t len, buf[256 * 62], command[64];
 	FILE *fw;
-	unsigned char buf[256*62];
 
 	devc = sdi->priv;
 
@@ -341,13 +345,13 @@ static int upload_fpga_bitstream(const struct sr_dev_inst *sdi,
 		filename = FPGA_FIRMWARE_33;
 		break;
 	default:
-		sr_err("Unsupported voltage range");
+		sr_err("Unsupported voltage range.");
 		return SR_ERR;
 	}
 
-	sr_info("Uploading FPGA bitstream at %s", filename);
+	sr_info("Uploading FPGA bitstream at %s.", filename);
 	if ((fw = g_fopen(filename, "rb")) == NULL) {
-		sr_err("Unable to open bitstream file %s for reading: %s",
+		sr_err("Unable to open bitstream file %s for reading: %s.",
 		       filename, strerror(errno));
 		return SR_ERR;
 	}
@@ -364,22 +368,22 @@ static int upload_fpga_bitstream(const struct sr_dev_inst *sdi,
 			break;
 
 		for (offset = 0; offset < chunksize; offset += 62) {
-			uint8_t command[64];
-			uint8_t len = (offset + 62 > chunksize?
-				       chunksize - offset : 62);
+			len = (offset + 62 > chunksize ?
+				chunksize - offset : 62);
 			command[0] = COMMAND_FPGA_UPLOAD_SEND_DATA;
 			command[1] = len;
-			memcpy(command+2, buf+offset, len);
-			if ((ret = do_ep1_command(sdi, command, len+2, NULL, 0)) != SR_OK) {
+			memcpy(command + 2, buf + offset, len);
+			ret = do_ep1_command(sdi, command, len + 2, NULL, 0);
+			if (ret != SR_OK) {
 				fclose(fw);
 				return ret;
 			}
 		}
 
-		sr_info("Uploaded %d bytes", chunksize);
+		sr_info("Uploaded %d bytes.", chunksize);
 	}
 	fclose(fw);
-	sr_info("FPGA bitstream upload done");
+	sr_info("FPGA bitstream upload done.");
 
 	if ((ret = prime_fpga(sdi)) != SR_OK)
 		return ret;
@@ -406,16 +410,15 @@ static int abort_acquisition_sync(const struct sr_dev_inst *sdi)
 	expected_reply = ~command[1];
 	if (reply != expected_reply) {
 		sr_err("Invalid response for abort acquisition command: "
-		       "0x%02x != 0x%02x", reply, expected_reply);
+		       "0x%02x != 0x%02x.", reply, expected_reply);
 		return SR_ERR;
 	}
 
 	return SR_OK;
 }
 
-SR_PRIV int saleae_logic16_setup_acquisition(const struct sr_dev_inst *sdi,
-					     uint64_t samplerate,
-					     uint16_t channels)
+SR_PRIV int logic16_setup_acquisition(const struct sr_dev_inst *sdi,
+			     uint64_t samplerate, uint16_t channels)
 {
 	uint8_t clock_select, reg1, reg10;
 	uint64_t div;
@@ -440,8 +443,8 @@ SR_PRIV int saleae_logic16_setup_acquisition(const struct sr_dev_inst *sdi,
 		return SR_ERR;
 	}
 
-	for (i=0; i<16; i++)
-		if (channels & (1U<<i))
+	for (i = 0; i < 16; i++)
+		if (channels & (1U << i))
 			nchan++;
 
 	if ((nchan >= 13 && samplerate > MAX_13CH_SAMPLE_RATE) ||
@@ -454,14 +457,15 @@ SR_PRIV int saleae_logic16_setup_acquisition(const struct sr_dev_inst *sdi,
 		return SR_ERR;
 	}
 
-	if ((ret = upload_fpga_bitstream(sdi, devc->selected_voltage_range)) != SR_OK)
+	ret = upload_fpga_bitstream(sdi, devc->selected_voltage_range);
+	if (ret != SR_OK)
 		return ret;
 
 	if ((ret = read_fpga_register(sdi, 1, &reg1)) != SR_OK)
 		return ret;
 
 	if (reg1 != 0x08) {
-		sr_dbg("Invalid state at acquisition setup: 0x%02x != 0x08", reg1);
+		sr_dbg("Invalid state at acquisition setup: 0x%02x != 0x08.", reg1);
 		return SR_ERR;
 	}
 
@@ -471,7 +475,7 @@ SR_PRIV int saleae_logic16_setup_acquisition(const struct sr_dev_inst *sdi,
 	if ((ret = write_fpga_register(sdi, 10, clock_select)) != SR_OK)
 		return ret;
 
-	if ((ret = write_fpga_register(sdi, 4, (uint8_t)(div-1))) != SR_OK)
+	if ((ret = write_fpga_register(sdi, 4, (uint8_t)(div - 1))) != SR_OK)
 		return ret;
 
 	if ((ret = write_fpga_register(sdi, 2, (uint8_t)(channels & 0xff))) != SR_OK)
@@ -490,7 +494,7 @@ SR_PRIV int saleae_logic16_setup_acquisition(const struct sr_dev_inst *sdi,
 		return ret;
 
 	if (reg1 != 0x48) {
-		sr_dbg("Invalid state at acquisition setup: 0x%02x != 0x48", reg1);
+		sr_dbg("Invalid state at acquisition setup: 0x%02x != 0x48.", reg1);
 		return SR_ERR;
 	}
 
@@ -498,15 +502,15 @@ SR_PRIV int saleae_logic16_setup_acquisition(const struct sr_dev_inst *sdi,
 		return ret;
 
 	if (reg10 != clock_select) {
-		sr_dbg("Invalid state at acquisition setup: 0x%02x != 0x%02x",
-		       reg10, (unsigned)clock_select);
+		sr_dbg("Invalid state at acquisition setup: 0x%02x != 0x%02x.",
+		       reg10, clock_select);
 		return SR_ERR;
 	}
 
 	return SR_OK;
 }
 
-SR_PRIV int saleae_logic16_start_acquisition(const struct sr_dev_inst *sdi)
+SR_PRIV int logic16_start_acquisition(const struct sr_dev_inst *sdi)
 {
 	static const uint8_t command[1] = {
 		COMMAND_START_ACQUISITION,
@@ -519,7 +523,7 @@ SR_PRIV int saleae_logic16_start_acquisition(const struct sr_dev_inst *sdi)
 	return write_fpga_register(sdi, 1, 0x41);
 }
 
-SR_PRIV int saleae_logic16_abort_acquisition(const struct sr_dev_inst *sdi)
+SR_PRIV int logic16_abort_acquisition(const struct sr_dev_inst *sdi)
 {
 	static const uint8_t command[1] = {
 		COMMAND_ABORT_ACQUISITION_ASYNC,
@@ -537,7 +541,7 @@ SR_PRIV int saleae_logic16_abort_acquisition(const struct sr_dev_inst *sdi)
 		return ret;
 
 	if (reg1 != 0x08) {
-		sr_dbg("Invalid state at acquisition stop: 0x%02x != 0x08", reg1);
+		sr_dbg("Invalid state at acquisition stop: 0x%02x != 0x08.", reg1);
 		return SR_ERR;
 	}
 
@@ -550,7 +554,7 @@ SR_PRIV int saleae_logic16_abort_acquisition(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-SR_PRIV int saleae_logic16_init_device(const struct sr_dev_inst *sdi)
+SR_PRIV int logic16_init_device(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	int ret;
@@ -565,7 +569,8 @@ SR_PRIV int saleae_logic16_init_device(const struct sr_dev_inst *sdi)
 	if ((ret = read_eeprom(sdi, 8, 8, devc->eeprom_data)) != SR_OK)
 		return ret;
 
-	if ((ret = upload_fpga_bitstream(sdi, devc->selected_voltage_range)) != SR_OK)
+	ret = upload_fpga_bitstream(sdi, devc->selected_voltage_range);
+	if (ret != SR_OK)
 		return ret;
 
 	return SR_OK;
@@ -635,35 +640,34 @@ static size_t convert_sample_data(struct dev_context *devc,
 	uint16_t *channel_data;
 	int i, cur_channel;
 	size_t ret = 0;
+	uint16_t sample, channel_mask;
 
 	srccnt /= 2;
 
 	channel_data = devc->channel_data;
 	cur_channel = devc->cur_channel;
 
-	while(srccnt--) {
-		uint16_t sample, channel_mask;
-
+	while (srccnt--) {
 		sample = src[0] | (src[1] << 8);
 		src += 2;
 
 		channel_mask = devc->channel_masks[cur_channel];
 
-		for (i=15; i>=0; --i, sample >>= 1)
+		for (i = 15; i >= 0; --i, sample >>= 1)
 			if (sample & 1)
 				channel_data[i] |= channel_mask;
 
 		if (++cur_channel == devc->num_channels) {
 			cur_channel = 0;
-			if (destcnt < 16*2) {
+			if (destcnt < 16 * 2) {
 				sr_err("Conversion buffer too small!");
 				break;
 			}
-			memcpy(dest, channel_data, 16*2);
-			memset(channel_data, 0, 16*2);
-			dest += 16*2;
-			ret += 16*2;
-			destcnt -= 16*2;
+			memcpy(dest, channel_data, 16 * 2);
+			memset(channel_data, 0, 16 * 2);
+			dest += 16 * 2;
+			ret += 16 * 2;
+			destcnt -= 16 * 2;
 		}
 	}
 
@@ -672,7 +676,7 @@ static size_t convert_sample_data(struct dev_context *devc,
 	return ret;
 }
 
-SR_PRIV void saleae_logic16_receive_transfer(struct libusb_transfer *transfer)
+SR_PRIV void logic16_receive_transfer(struct libusb_transfer *transfer)
 {
 	gboolean packet_has_error = FALSE;
 	struct sr_datafeed_packet packet;
@@ -708,8 +712,9 @@ SR_PRIV void saleae_logic16_receive_transfer(struct libusb_transfer *transfer)
 	}
 
 	if (transfer->actual_length & 1) {
-		sr_err("Got an odd number of bytes from the device.  This should not happen.");
-		/* Bail out right away */
+		sr_err("Got an odd number of bytes from the device. "
+		       "This should not happen.");
+		/* Bail out right away. */
 		packet_has_error = TRUE;
 		devc->empty_transfer_count = MAX_EMPTY_TRANSFERS;
 	}
@@ -731,10 +736,9 @@ SR_PRIV void saleae_logic16_receive_transfer(struct libusb_transfer *transfer)
 		devc->empty_transfer_count = 0;
 	}
 
-	converted_length =
-		convert_sample_data(devc,
-				    devc->convbuffer, devc->convbuffer_size,
-				    transfer->buffer, transfer->actual_length);
+	converted_length = convert_sample_data(devc, devc->convbuffer,
+				devc->convbuffer_size, transfer->buffer,
+				transfer->actual_length);
 
 	if (converted_length > 0) {
 		/* Send the incoming transfer to the session bus. */

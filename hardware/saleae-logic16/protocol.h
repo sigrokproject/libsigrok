@@ -55,21 +55,19 @@ struct dev_context {
 	/** The currently configured samplerate of the device. */
 	uint64_t cur_samplerate;
 
-	/** Maximum number of samples to capture, if nonzero */
+	/** Maximum number of samples to capture, if nonzero. */
 	uint64_t limit_samples;
 
-	/** The currently configured input voltage of the device */
+	/** The currently configured input voltage of the device. */
 	enum voltage_range cur_voltage_range;
 
-	/** The input voltage selected by the user */
+	/** The input voltage selected by the user. */
 	enum voltage_range selected_voltage_range;
 
-	/** Channels to use */
+	/** Channels to use. */
 	uint16_t cur_channels;
 
-	/*
-	 * EEPROM data from address 8
-	 */
+	/* EEPROM data from address 8. */
 	uint8_t eeprom_data[8];
 
 	int64_t num_samples;
@@ -87,12 +85,11 @@ struct dev_context {
 	int *usbfd;
 };
 
-SR_PRIV int saleae_logic16_setup_acquisition(const struct sr_dev_inst *sdi,
-					     uint64_t samplerate,
-					     uint16_t channels);
-SR_PRIV int saleae_logic16_start_acquisition(const struct sr_dev_inst *sdi);
-SR_PRIV int saleae_logic16_abort_acquisition(const struct sr_dev_inst *sdi);
-SR_PRIV int saleae_logic16_init_device(const struct sr_dev_inst *sdi);
-SR_PRIV void saleae_logic16_receive_transfer(struct libusb_transfer *transfer);
+SR_PRIV int logic16_setup_acquisition(const struct sr_dev_inst *sdi,
+			uint64_t samplerate, uint16_t channels);
+SR_PRIV int logic16_start_acquisition(const struct sr_dev_inst *sdi);
+SR_PRIV int logic16_abort_acquisition(const struct sr_dev_inst *sdi);
+SR_PRIV int logic16_init_device(const struct sr_dev_inst *sdi);
+SR_PRIV void logic16_receive_transfer(struct libusb_transfer *transfer);
 
 #endif
