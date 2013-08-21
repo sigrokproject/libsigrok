@@ -30,7 +30,6 @@
 
 #define LOGIC16_VID		0x21a9
 #define LOGIC16_PID		0x1001
-#define NUM_PROBES		16
 
 #define USB_INTERFACE		0
 #define USB_CONFIGURATION	1
@@ -56,7 +55,7 @@ static const int32_t hwcaps[] = {
 	SR_CONF_CONTINUOUS,
 };
 
-static const char *probe_names[NUM_PROBES + 1] = {
+static const char *probe_names[] = {
 	"0", "1", "2", "3", "4", "5", "6", "7", "8",
 	"9", "10", "11", "12", "13", "14", "15",
 	NULL,
