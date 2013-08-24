@@ -99,7 +99,7 @@ SR_PRIV int ols_configure_probes(const struct sr_dev_inst *sdi)
 				return SR_ERR;
 		}
 		if (stage > devc->num_stages)
-			devc->num_stages = stage;
+			devc->num_stages = stage - 1;
 	}
 
 	return SR_OK;
