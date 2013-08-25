@@ -628,6 +628,9 @@ enum {
 	/** The device supports setting a pattern (pattern generator mode). */
 	SR_CONF_PATTERN_MODE,
 
+	/** The devices supports using a external clock. */
+	SR_CONF_EXTERNAL_CLOCK,
+
 	/** The device supports Run Length Encoding. */
 	SR_CONF_RLE,
 

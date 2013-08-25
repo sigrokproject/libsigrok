@@ -32,6 +32,7 @@ static const int32_t hwcaps[] = {
 	SR_CONF_TRIGGER_TYPE,
 	SR_CONF_CAPTURE_RATIO,
 	SR_CONF_LIMIT_SAMPLES,
+	SR_CONF_EXTERNAL_CLOCK,
 	SR_CONF_PATTERN_MODE,
 	SR_CONF_RLE,
 };
@@ -300,6 +301,16 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 			ret = SR_ERR;
 		} else
 			ret = SR_OK;
+		break;
+	case SR_CONF_EXTERNAL_CLOCK:
+		if (g_variant_get_boolean(data)) {
+			sr_info("Enabling external clock.");
+			devc->flag_reg |= FLAG_CLOCK_EXTERNAL;
+		} else {
+			sr_info("Disabled external clock.");
+			devc->flag_reg &= ~FLAG_CLOCK_EXTERNAL;
+		}
+		ret = SR_OK;
 		break;
 	case SR_CONF_PATTERN_MODE:
 		stropt = g_variant_get_string(data, NULL);

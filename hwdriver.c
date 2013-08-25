@@ -63,6 +63,8 @@ static struct sr_config_info sr_config_info_data[] = {
 		"Pattern generator mode", NULL},
 	{SR_CONF_TRIGGER_TYPE, SR_T_CHAR, "triggertype",
 		"Trigger types", NULL},
+	{SR_CONF_EXTERNAL_CLOCK, SR_T_BOOL, "external_clock",
+		"External clock mode", NULL},
 	{SR_CONF_RLE, SR_T_BOOL, "rle",
 		"Run Length Encoding", NULL},
 	{SR_CONF_TRIGGER_SLOPE, SR_T_UINT64, "triggerslope",
