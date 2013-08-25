@@ -32,7 +32,23 @@ static const int32_t hwcaps[] = {
 	SR_CONF_TRIGGER_TYPE,
 	SR_CONF_CAPTURE_RATIO,
 	SR_CONF_LIMIT_SAMPLES,
+	SR_CONF_PATTERN_MODE,
 	SR_CONF_RLE,
+};
+
+#define STR_PATTERN_EXTERNAL "external"
+#define STR_PATTERN_INTERNAL "internal"
+
+/* Supported methods of test pattern outputs */
+enum {
+	/**
+	 * Capture pins 31:16 (unbuffered wing) output a test pattern
+	 * that can captured on pins 0:15.
+	 */
+	PATTERN_EXTERNAL,
+
+	/** Route test pattern internally to capture buffer. */
+	PATTERN_INTERNAL,
 };
 
 /* Probes are numbered 0-31 (on the PCB silkscreen). */
@@ -235,6 +251,12 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi)
 	case SR_CONF_LIMIT_SAMPLES:
 		*data = g_variant_new_uint64(devc->limit_samples);
 		break;
+	case SR_CONF_PATTERN_MODE:
+		if (devc->flag_reg & FLAG_EXTERNAL_TEST_MODE)
+			*data = g_variant_new_string(STR_PATTERN_EXTERNAL);
+		else if (devc->flag_reg & FLAG_INTERNAL_TEST_MODE)
+			*data = g_variant_new_string(STR_PATTERN_INTERNAL);
+		break;
 	case SR_CONF_RLE:
 		*data = g_variant_new_boolean(devc->flag_reg & FLAG_RLE ? TRUE : FALSE);
 		break;
@@ -250,6 +272,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	int ret;
 	uint64_t tmp_u64;
+	const char *stropt;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
@@ -277,6 +300,19 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 			ret = SR_ERR;
 		} else
 			ret = SR_OK;
+		break;
+	case SR_CONF_PATTERN_MODE:
+		stropt = g_variant_get_string(data, NULL);
+		ret = SR_OK;
+		if (!strcmp(stropt, STR_PATTERN_INTERNAL)) {
+			sr_info("Enabling internal test mode.");
+			devc->flag_reg |= FLAG_INTERNAL_TEST_MODE;
+		} else if (!strcmp(stropt, STR_PATTERN_EXTERNAL)) {
+			sr_info("Enabling external test mode.");
+			devc->flag_reg |= FLAG_EXTERNAL_TEST_MODE;
+		} else {
+			ret = SR_ERR;
+		}
 		break;
 	case SR_CONF_RLE:
 		if (g_variant_get_boolean(data)) {

@@ -46,6 +46,7 @@
 /* Command opcodes */
 #define CMD_RESET                  0x00
 #define CMD_RUN                    0x01
+#define CMD_TESTMODE               0x03
 #define CMD_ID                     0x02
 #define CMD_METADATA               0x04
 #define CMD_SET_FLAGS              0x82
@@ -74,6 +75,8 @@
 #define FLAG_CLOCK_EXTERNAL        0x40
 #define FLAG_CLOCK_INVERTED        0x80
 #define FLAG_RLE                   0x0100
+#define FLAG_EXTERNAL_TEST_MODE    0x0400
+#define FLAG_INTERNAL_TEST_MODE    0x0800
 
 /* Private, per-device-instance driver context. */
 struct dev_context {
