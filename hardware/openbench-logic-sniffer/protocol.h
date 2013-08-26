@@ -103,7 +103,7 @@ struct dev_context {
 	int num_bytes;
 
 	/* Temporary variables */
-	int rle_count;
+	unsigned int rle_count;
 	unsigned char sample[4];
 	unsigned char tmp_sample[4];
 	unsigned char *raw_sample_buf;

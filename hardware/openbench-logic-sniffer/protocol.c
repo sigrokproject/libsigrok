@@ -340,7 +340,8 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 	struct sr_dev_inst *sdi;
 	GSList *l;
 	uint32_t sample;
-	int num_channels, offset, i, j;
+	int num_channels, offset, j;
+	unsigned int i;
 	unsigned char byte;
 
 	drvc = di->priv;
@@ -394,23 +395,22 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 		devc->sample[devc->num_bytes++] = byte;
 		sr_dbg("Received byte 0x%.2x.", byte);
 		if (devc->num_bytes == num_channels) {
-			/* Got a full sample. */
+			/* Got a full sample. Convert from the OLS's little-endian
+			 * sample to the local format. */
 			sample = devc->sample[0] | (devc->sample[1] << 8) \
 					| (devc->sample[2] << 16) | (devc->sample[3] << 24);
 			sr_dbg("Received sample 0x%.*x.", devc->num_bytes * 2, sample);
 			if (devc->flag_reg & FLAG_RLE) {
 				/*
-				 * In RLE mode -1 should never come in as a
-				 * sample, because bit 31 is the "count" flag.
+				 * In RLE mode the high bit of the sample is the
+				 * "count" flag, meaning this sample is the number
+				 * of times the previous sample occurred.
 				 */
 				if (devc->sample[devc->num_bytes - 1] & 0x80) {
-					devc->sample[devc->num_bytes - 1] &= 0x7f;
-					/*
-					 * FIXME: This will only work on
-					 * little-endian systems.
-					 */
+					/* Clear the high bit. */
+					sample &= ~(0x80 << (devc->num_bytes - 1) * 8);
 					devc->rle_count = sample;
-					sr_dbg("RLE count: %d.", devc->rle_count);
+					sr_dbg("RLE count: %u.", devc->rle_count);
 					devc->num_bytes = 0;
 					return TRUE;
 				}
