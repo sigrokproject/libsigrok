@@ -503,6 +503,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 
 	/* Reset all operational states. */
 	devc->num_transfers = devc->num_samples = devc->num_bytes = 0;
+	memset(devc->sample, 0, 4);
 
 	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, LOG_PREFIX);
