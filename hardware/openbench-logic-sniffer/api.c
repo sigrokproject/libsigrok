@@ -477,8 +477,10 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	}
 
 	sr_info("Setting samplerate to %" PRIu64 "Hz (divider %u, "
-		"demux %s)", devc->cur_samplerate, devc->cur_samplerate_divider,
-		devc->flag_reg & FLAG_DEMUX ? "on" : "off");
+		"demux %s, noise_filter %s)", devc->cur_samplerate,
+		devc->cur_samplerate_divider,
+		devc->flag_reg & FLAG_DEMUX ? "on" : "off",
+		devc->flag_reg & FLAG_FILTER ? "on": "off");
 	if (send_longcommand(serial, CMD_SET_DIVIDER,
 			reverse32(devc->cur_samplerate_divider)) != SR_OK)
 		return SR_ERR;
