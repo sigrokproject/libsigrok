@@ -631,6 +631,11 @@ enum {
 	/** The devices supports using a external clock. */
 	SR_CONF_EXTERNAL_CLOCK,
 
+	/** The device supports swapping channels. Typical this is between
+	 *  buffered and unbuffered channels.
+	 */
+	SR_CONF_SWAP,
+
 	/** The device supports Run Length Encoding. */
 	SR_CONF_RLE,
 

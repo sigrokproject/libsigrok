@@ -34,6 +34,7 @@ static const int32_t hwcaps[] = {
 	SR_CONF_LIMIT_SAMPLES,
 	SR_CONF_EXTERNAL_CLOCK,
 	SR_CONF_PATTERN_MODE,
+	SR_CONF_SWAP,
 	SR_CONF_RLE,
 };
 
@@ -325,6 +326,17 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi)
 			ret = SR_ERR;
 		}
 		break;
+	case SR_CONF_SWAP:
+		if (g_variant_get_boolean(data)) {
+			sr_info("Enabling channel swapping.");
+			devc->flag_reg |= FLAG_SWAP_PROBES;
+		} else {
+			sr_info("Disabling channel swapping.");
+			devc->flag_reg &= ~FLAG_SWAP_PROBES;
+		}
+		ret = SR_OK;
+		break;
+
 	case SR_CONF_RLE:
 		if (g_variant_get_boolean(data)) {
 			sr_info("Enabling RLE.");

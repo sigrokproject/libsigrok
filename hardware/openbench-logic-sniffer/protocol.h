@@ -75,6 +75,7 @@
 #define FLAG_CLOCK_EXTERNAL        0x40
 #define FLAG_CLOCK_INVERTED        0x80
 #define FLAG_RLE                   0x0100
+#define FLAG_SWAP_PROBES           0x0200
 #define FLAG_EXTERNAL_TEST_MODE    0x0400
 #define FLAG_INTERNAL_TEST_MODE    0x0800
 
