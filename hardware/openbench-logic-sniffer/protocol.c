@@ -341,7 +341,7 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 	GSList *l;
 	uint32_t sample;
 	int num_channels, offset, j;
-	unsigned int i;
+	unsigned int i, max_channels;
 	unsigned char byte;
 
 	drvc = di->priv;
@@ -379,9 +379,16 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 	}
 
 	num_channels = 0;
-	for (i = 0x20; i > 0x02; i /= 2) {
-		if ((devc->flag_reg & i) == 0)
+	max_channels = NUM_PROBES / (devc->flag_reg & FLAG_DEMUX ? 2 : 1);
+
+	for (i = NUM_PROBES; i > 0x02; i /= 2) {
+		if ((devc->flag_reg & i) == 0) {
+			if (i >= max_channels) {
+				sr_err("Channels over the limit of %d\n", max_channels);
+				return FALSE;
+			}
 			num_channels++;
+		}
 	}
 
 	if (revents == G_IO_IN && devc->num_samples < devc->limit_samples) {
@@ -442,6 +449,9 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 						 * sample.
 						 */
 						devc->tmp_sample[i] = devc->sample[j++];
+					} else if (devc->flag_reg & FLAG_DEMUX && (i > 2)) {
+						/* group 3 & 4 get added to 1 & 2 */
+						devc->tmp_sample[i - 2] = devc->sample[j++];
 					}
 				}
 				memcpy(devc->sample, devc->tmp_sample, 4);
