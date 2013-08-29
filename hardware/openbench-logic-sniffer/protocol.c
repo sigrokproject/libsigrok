@@ -74,6 +74,11 @@ SR_PRIV int ols_configure_probes(const struct sr_dev_inst *sdi)
 		if (!probe->enabled)
 			continue;
 
+		if (probe->index >= devc->max_probes) {
+			sr_err("Channels over the limit of %d\n", devc->max_probes);
+			return SR_ERR;
+		}
+
 		/*
 		 * Set up the probe mask for later configuration into the
 		 * flag register.
@@ -298,9 +303,11 @@ SR_PRIV int ols_set_samplerate(const struct sr_dev_inst *sdi,
 
 	if (samplerate > CLOCK_RATE) {
 		devc->flag_reg |= FLAG_DEMUX;
+		devc->max_probes = NUM_PROBES / 2;
 		devc->cur_samplerate_divider = (CLOCK_RATE * 2 / samplerate) - 1;
 	} else {
 		devc->flag_reg &= ~FLAG_DEMUX;
+		devc->max_probes = NUM_PROBES;
 		devc->cur_samplerate_divider = (CLOCK_RATE / samplerate) - 1;
 	}
 
@@ -341,7 +348,7 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 	GSList *l;
 	uint32_t sample;
 	int num_channels, offset, j;
-	unsigned int i, max_channels;
+	unsigned int i;
 	unsigned char byte;
 
 	drvc = di->priv;
@@ -379,14 +386,9 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 	}
 
 	num_channels = 0;
-	max_channels = NUM_PROBES / (devc->flag_reg & FLAG_DEMUX ? 2 : 1);
 
 	for (i = NUM_PROBES; i > 0x02; i /= 2) {
 		if ((devc->flag_reg & i) == 0) {
-			if (i >= max_channels) {
-				sr_err("Channels over the limit of %d\n", max_channels);
-				return FALSE;
-			}
 			num_channels++;
 		}
 	}
@@ -450,7 +452,7 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 						 */
 						devc->tmp_sample[i] = devc->sample[j++];
 					} else if (devc->flag_reg & FLAG_DEMUX && (i > 2)) {
-						/* group 3 & 4 get added to 1 & 2 */
+						/* group 2 & 3 get added to 0 & 1 */
 						devc->tmp_sample[i - 2] = devc->sample[j++];
 					}
 				}

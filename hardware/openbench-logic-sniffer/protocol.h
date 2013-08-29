@@ -82,6 +82,7 @@
 /* Private, per-device-instance driver context. */
 struct dev_context {
 	/* Fixed device settings */
+	int max_probes;
 	uint32_t max_samples;
 	uint32_t max_samplerate;
 	uint32_t protocol_version;
