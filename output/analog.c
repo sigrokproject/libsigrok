@@ -177,12 +177,25 @@ static void fancyprint(int unit, int mqflags, float value, GString *out)
 		si_printf(value, out, "");
 		break;
 	}
-	if ((mqflags & (SR_MQFLAG_AC | SR_MQFLAG_DC)) == (SR_MQFLAG_AC | SR_MQFLAG_DC))
-		g_string_append_printf(out, " AC+DC");
-	else if (mqflags & SR_MQFLAG_AC)
+
+	if (mqflags & SR_MQFLAG_AC)
 		g_string_append_printf(out, " AC");
-	else if (mqflags & SR_MQFLAG_DC)
+	if (mqflags & SR_MQFLAG_DC)
 		g_string_append_printf(out, " DC");
+	if (mqflags & SR_MQFLAG_RMS)
+		g_string_append_printf(out, " RMS");
+	if (mqflags & SR_MQFLAG_DIODE)
+		g_string_append_printf(out, " DIODE");
+	if (mqflags & SR_MQFLAG_HOLD)
+		g_string_append_printf(out, " HOLD");
+	if (mqflags & SR_MQFLAG_MAX)
+		g_string_append_printf(out, " MAX");
+	if (mqflags & SR_MQFLAG_MIN)
+		g_string_append_printf(out, " MIN");
+	if (mqflags & SR_MQFLAG_AUTORANGE)
+		g_string_append_printf(out, " AUTO");
+	if (mqflags & SR_MQFLAG_RELATIVE)
+		g_string_append_printf(out, " REL");
 	g_string_append_c(out, '\n');
 }
 
