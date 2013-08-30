@@ -307,8 +307,9 @@ static GSList *scan(GSList *options)
 		if (probe_port(port, &devices) == SR_ERR_MALLOC)
 			return NULL;
 	} else {
-		if (!(dir = g_dir_open("/sys/class/usb/", 0, NULL)))
-			return NULL;
+		if (!(dir = g_dir_open("/sys/class/usbmisc/", 0, NULL)))
+			if (!(dir = g_dir_open("/sys/class/usb/", 0, NULL)))
+				return NULL;
 		while ((dev_name = g_dir_read_name(dir))) {
 			if (strncmp(dev_name, "usbtmc", 6))
 				continue;
