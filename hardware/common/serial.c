@@ -27,7 +27,6 @@
 #ifdef _WIN32
 #include <windows.h>
 #else
-#include <glob.h>
 #include <termios.h>
 #include <sys/ioctl.h>
 #endif
