@@ -293,6 +293,8 @@ static void handle_flags(struct sr_datafeed_analog *analog, float *floatval,
 		analog->mqflags |= SR_MQFLAG_DC;
 	if (info->is_auto)
 		analog->mqflags |= SR_MQFLAG_AUTORANGE;
+	if (info->is_diode)
+		analog->mqflags |= SR_MQFLAG_DIODE;
 	if (info->is_hold)
 		analog->mqflags |= SR_MQFLAG_HOLD;
 	if (info->is_max)

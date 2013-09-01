@@ -232,6 +232,8 @@ static void handle_flags(struct sr_datafeed_analog *analog, float *floatval,
 		analog->mqflags |= SR_MQFLAG_AC;
 	if (info->is_dc)
 		analog->mqflags |= SR_MQFLAG_DC;
+	if (info->is_diode)
+		analog->mqflags |= SR_MQFLAG_DIODE;
 }
 
 static gboolean flags_valid(const struct metex14_info *info)
