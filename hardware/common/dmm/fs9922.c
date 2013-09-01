@@ -194,7 +194,7 @@ static void parse_flags(const uint8_t *buf, struct fs9922_info *info)
 	info->is_beep       = (buf[9] & (1 << 3)) != 0;
 	info->is_diode      = (buf[9] & (1 << 2)) != 0;
 	info->is_percent    = (buf[9] & (1 << 1)) != 0;
-	info->is_z4         = (buf[8] & (1 << 0)) != 0; /* User symbol 4 */
+	info->is_z4         = (buf[9] & (1 << 0)) != 0; /* User symbol 4 */
 
 	/* Byte 10 */
 	info->is_volt       = (buf[10] & (1 << 7)) != 0;
