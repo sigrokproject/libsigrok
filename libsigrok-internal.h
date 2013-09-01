@@ -213,6 +213,7 @@ struct fs9922_info {
 SR_PRIV gboolean sr_fs9922_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_fs9922_parse(const uint8_t *buf, float *floatval,
 			    struct sr_datafeed_analog *analog, void *info);
+SR_PRIV void sr_fs9922_z1_diode(struct sr_datafeed_analog *analog, void *info);
 
 /*--- hardware/common/dmm/fs9721.c ------------------------------------------*/
 

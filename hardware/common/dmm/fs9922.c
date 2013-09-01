@@ -375,3 +375,17 @@ SR_PRIV int sr_fs9922_parse(const uint8_t *buf, float *floatval,
 
 	return SR_OK;
 }
+
+SR_PRIV void sr_fs9922_z1_diode(struct sr_datafeed_analog *analog, void *info)
+{
+	struct fs9922_info *info_local;
+
+	info_local = (struct fs9922_info *)info;
+
+	/* User-defined z1 flag means "diode mode". */
+	if (info_local->is_z1) {
+		analog->mq = SR_MQ_VOLTAGE;
+		analog->unit = SR_UNIT_VOLT;
+		analog->mqflags |= SR_MQFLAG_DIODE;
+	}
+}

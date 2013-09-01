@@ -99,10 +99,15 @@ SR_PRIV struct dmm_info udmms[] = {
 		&voltcraft_vc820_driver_info, receive_data_VOLTCRAFT_VC820,
 	},
 	{
+		/*
+		 * Note: The VC830 doesn't set the 'volt' and 'diode' bits of
+		 * the FS9922 protocol. Instead, it only sets the user-defined
+		 * bit "z1" to indicate "diode mode" and "voltage".
+		 */
 		"Voltcraft", "VC-830", 2400,
 		FS9922_PACKET_SIZE, NULL,
 		sr_fs9922_packet_valid, sr_fs9922_parse,
-		NULL,
+		&sr_fs9922_z1_diode,
 		&voltcraft_vc830_driver_info, receive_data_VOLTCRAFT_VC830,
 	},
 	{
