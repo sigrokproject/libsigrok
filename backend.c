@@ -23,6 +23,8 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
+extern struct sr_session *session;
+
 /**
  * @mainpage libsigrok API
  *
@@ -366,6 +368,7 @@ SR_API int sr_init(struct sr_context **ctx)
 
 	*ctx = context;
 	context = NULL;
+	session = NULL;
 	ret = SR_OK;
 
 done:
