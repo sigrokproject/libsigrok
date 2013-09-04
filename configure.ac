@@ -107,12 +107,12 @@ AC_ARG_ENABLE(brymen-dmm, AC_HELP_STRING([--enable-brymen-dmm],
 AC_ARG_ENABLE(cem-dt-885x, AC_HELP_STRING([--enable-cem-dt-885x],
 	[enable CEM DT-885x support [default=yes]]),
 	[HW_CEM_DT_885X="$enableval"],
-	[HW_CEM_DT_885X=yes])
+	[HW_CEM_DT_885X=$HW_ENABLED_DEFAULT])
 
 AC_ARG_ENABLE(center-3xx, AC_HELP_STRING([--enable-center-3xx],
 	[enable Center 3xx support [default=yes]]),
 	[HW_CENTER_3XX="$enableval"],
-	[HW_CENTER_3XX=yes])
+	[HW_CENTER_3XX=$HW_ENABLED_DEFAULT])
 
 AC_ARG_ENABLE(chronovu-la8, AC_HELP_STRING([--enable-chronovu-la8],
 	[enable ChronoVu LA8 support [default=yes]]),
@@ -147,17 +147,17 @@ AC_ARG_ENABLE(hantek-dso, AC_HELP_STRING([--enable-hantek-dso],
 AC_ARG_ENABLE(ikalogic-scanalogic2, AC_HELP_STRING([--enable-ikalogic-scanalogic2],
 	[enable IKALOGIC Scanalogic-2 support [default=yes]]),
 	[HW_IKALOGIC_SCANALOGIC2="$enableval"],
-	[HW_IKALOGIC_SCANALOGIC2=yes])
+	[HW_IKALOGIC_SCANALOGIC2=$HW_ENABLED_DEFAULT])
 
 AC_ARG_ENABLE(ikalogic-scanaplus, AC_HELP_STRING([--enable-ikalogic-scanaplus],
 	[enable IKALOGIC ScanaPLUS support [default=yes]]),
 	[HW_IKALOGIC_SCANAPLUS="$enableval"],
-	[HW_IKALOGIC_SCANAPLUS=yes])
+	[HW_IKALOGIC_SCANAPLUS=$HW_ENABLED_DEFAULT])
 
 AC_ARG_ENABLE(kecheng-kc-330b, AC_HELP_STRING([--enable-kecheng-kc-330b],
 	[enable Kecheng KC-330B support [default=yes]]),
 	[HW_KECHENG_KC_330B="$enableval"],
-	[HW_KECHENG_KC_330B=yes])
+	[HW_KECHENG_KC_330B=$HW_ENABLED_DEFAULT])
 
 AC_ARG_ENABLE(lascar-el-usb, AC_HELP_STRING([--enable-lascar-el-usb],
 	[enable Lascar EL-USB support [default=yes]]),
@@ -187,7 +187,7 @@ AC_ARG_ENABLE(rigol-ds1xx2, AC_HELP_STRING([--enable-rigol-ds1xx2],
 AC_ARG_ENABLE(saleae-logic16, AC_HELP_STRING([--enable-saleae-logic16],
 	[enable Saleae Logic16 support [default=yes]]),
 	[HW_SALEAE_LOGIC16="$enableval"],
-	[HW_SALEAE_LOGIC16=yes])
+	[HW_SALEAE_LOGIC16=$HW_ENABLED_DEFAULT])
 
 AC_ARG_ENABLE(serial-dmm, AC_HELP_STRING([--enable-serial-dmm],
 	[enable serial DMM support [default=yes]]),
@@ -207,7 +207,7 @@ AC_ARG_ENABLE(uni-t-dmm, AC_HELP_STRING([--enable-uni-t-dmm],
 AC_ARG_ENABLE(uni-t-ut32x, AC_HELP_STRING([--enable-uni-t-ut32x],
 	[enable UNI-T UT32x support [default=yes]]),
 	[HW_UNI_T_UT32X="$enableval"],
-	[HW_UNI_T_UT32X=yes])
+	[HW_UNI_T_UT32X=$HW_ENABLED_DEFAULT])
 
 AC_ARG_ENABLE(victor-dmm, AC_HELP_STRING([--enable-victor-dmm],
 	[enable victor-dmm support [default=yes]]),
