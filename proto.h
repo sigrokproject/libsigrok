@@ -90,6 +90,7 @@ SR_API struct sr_session *sr_session_new(void);
 SR_API int sr_session_destroy(void);
 SR_API int sr_session_dev_remove_all(void);
 SR_API int sr_session_dev_add(const struct sr_dev_inst *sdi);
+SR_API int sr_session_dev_list(GSList **devlist);
 
 /* Datafeed setup */
 SR_API int sr_session_datafeed_callback_remove_all(void);
