@@ -505,7 +505,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 
 	/* The flag register wants them here, and 1 means "disable channel". */
 	devc->flag_reg |= ~(changrp_mask << 2) & 0x3c;
-	devc->flag_reg |= FLAG_FILTER;
 	devc->rle_count = 0;
 	data = (devc->flag_reg << 24) | ((devc->flag_reg << 8) & 0xff0000);
 	if (send_longcommand(serial, CMD_SET_FLAGS, data) != SR_OK)

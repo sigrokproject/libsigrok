@@ -307,6 +307,7 @@ SR_PRIV int ols_set_samplerate(const struct sr_dev_inst *sdi,
 		devc->cur_samplerate_divider = (CLOCK_RATE * 2 / samplerate) - 1;
 	} else {
 		devc->flag_reg &= ~FLAG_DEMUX;
+		devc->flag_reg |= FLAG_FILTER;
 		devc->max_probes = NUM_PROBES;
 		devc->cur_samplerate_divider = (CLOCK_RATE / samplerate) - 1;
 	}
