@@ -302,10 +302,13 @@ SR_PRIV int ols_set_samplerate(const struct sr_dev_inst *sdi,
 		return SR_ERR_SAMPLERATE;
 
 	if (samplerate > CLOCK_RATE) {
+		sr_info("Enabling demux mode.");
 		devc->flag_reg |= FLAG_DEMUX;
+		devc->flag_reg &= ~FLAG_FILTER;
 		devc->max_probes = NUM_PROBES / 2;
 		devc->cur_samplerate_divider = (CLOCK_RATE * 2 / samplerate) - 1;
 	} else {
+		sr_info("Disabling demux mode.");
 		devc->flag_reg &= ~FLAG_DEMUX;
 		devc->flag_reg |= FLAG_FILTER;
 		devc->max_probes = NUM_PROBES;
