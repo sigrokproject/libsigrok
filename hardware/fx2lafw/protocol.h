@@ -18,10 +18,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBSIGROK_HARDWARE_FX2LAFW_FX2LAFW_H
-#define LIBSIGROK_HARDWARE_FX2LAFW_FX2LAFW_H
+#ifndef LIBSIGROK_HARDWARE_FX2LAFW_PROTOCOL_H
+#define LIBSIGROK_HARDWARE_FX2LAFW_PROTOCOL_H
 
 #include <glib.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include <libusb.h>
+#include "libsigrok.h"
+#include "libsigrok-internal.h"
 
 /* Message logging helpers with subsystem-specific prefix string. */
 #define LOG_PREFIX "fx2lafw: "
@@ -99,5 +105,17 @@ struct dev_context {
 	struct libusb_transfer **transfers;
 	int *usbfd;
 };
+
+SR_PRIV int fx2lafw_command_start_acquisition(libusb_device_handle *devhdl,
+		uint64_t samplerate, gboolean samplewide);
+SR_PRIV gboolean fx2lafw_check_conf_profile(libusb_device *dev);
+SR_PRIV int fx2lafw_dev_open(struct sr_dev_inst *sdi, struct sr_dev_driver *di);
+SR_PRIV int fx2lafw_configure_probes(const struct sr_dev_inst *sdi);
+SR_PRIV struct dev_context *fx2lafw_dev_new(void);
+SR_PRIV void fx2lafw_abort_acquisition(struct dev_context *devc);
+SR_PRIV void fx2lafw_receive_transfer(struct libusb_transfer *transfer);
+SR_PRIV size_t fx2lafw_get_buffer_size(struct dev_context *devc);
+SR_PRIV unsigned int fx2lafw_get_number_of_transfers(struct dev_context *devc);
+SR_PRIV unsigned int fx2lafw_get_timeout(struct dev_context *devc);
 
 #endif

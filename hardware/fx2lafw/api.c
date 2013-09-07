@@ -18,15 +18,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <inttypes.h>
-#include <libusb.h>
-#include "libsigrok.h"
-#include "libsigrok-internal.h"
-#include "fx2lafw.h"
-#include "command.h"
+#include "protocol.h"
 
 static const struct fx2lafw_profile supported_fx2[] = {
 	/*
@@ -122,229 +114,6 @@ static const uint64_t samplerates[] = {
 
 SR_PRIV struct sr_dev_driver fx2lafw_driver_info;
 static struct sr_dev_driver *di = &fx2lafw_driver_info;
-
-/**
- * Check the USB configuration to determine if this is an fx2lafw device.
- *
- * @return TRUE if the device's configuration profile match fx2lafw
- *         configuration, FALSE otherwise.
- */
-static gboolean check_conf_profile(libusb_device *dev)
-{
-	struct libusb_device_descriptor des;
-	struct libusb_device_handle *hdl;
-	gboolean ret;
-	unsigned char strdesc[64];
-
-	hdl = NULL;
-	ret = FALSE;
-	while (!ret) {
-		/* Assume the FW has not been loaded, unless proven wrong. */
-		if (libusb_get_device_descriptor(dev, &des) != 0)
-			break;
-
-		if (libusb_open(dev, &hdl) != 0)
-			break;
-
-		if (libusb_get_string_descriptor_ascii(hdl,
-		    des.iManufacturer, strdesc, sizeof(strdesc)) < 0)
-			break;
-		if (strncmp((const char *)strdesc, "sigrok", 6))
-			break;
-
-		if (libusb_get_string_descriptor_ascii(hdl,
-				des.iProduct, strdesc, sizeof(strdesc)) < 0)
-			break;
-		if (strncmp((const char *)strdesc, "fx2lafw", 7))
-			break;
-
-		/* If we made it here, it must be an fx2lafw. */
-		ret = TRUE;
-	}
-	if (hdl)
-		libusb_close(hdl);
-
-	return ret;
-}
-
-static int fx2lafw_dev_open(struct sr_dev_inst *sdi)
-{
-	libusb_device **devlist;
-	struct sr_usb_dev_inst *usb;
-	struct libusb_device_descriptor des;
-	struct dev_context *devc;
-	struct drv_context *drvc;
-	struct version_info vi;
-	int ret, skip, i, device_count;
-	uint8_t revid;
-
-	drvc = di->priv;
-	devc = sdi->priv;
-	usb = sdi->conn;
-
-	if (sdi->status == SR_ST_ACTIVE)
-		/* Device is already in use. */
-		return SR_ERR;
-
-	skip = 0;
-	device_count = libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &devlist);
-	if (device_count < 0) {
-		sr_err("Failed to get device list: %s.",
-		       libusb_error_name(device_count));
-		return SR_ERR;
-	}
-
-	for (i = 0; i < device_count; i++) {
-		if ((ret = libusb_get_device_descriptor(devlist[i], &des))) {
-			sr_err("Failed to get device descriptor: %s.",
-			       libusb_error_name(ret));
-			continue;
-		}
-
-		if (des.idVendor != devc->profile->vid
-		    || des.idProduct != devc->profile->pid)
-			continue;
-
-		if (sdi->status == SR_ST_INITIALIZING) {
-			if (skip != sdi->index) {
-				/* Skip devices of this type that aren't the one we want. */
-				skip += 1;
-				continue;
-			}
-		} else if (sdi->status == SR_ST_INACTIVE) {
-			/*
-			 * This device is fully enumerated, so we need to find
-			 * this device by vendor, product, bus and address.
-			 */
-			if (libusb_get_bus_number(devlist[i]) != usb->bus
-				|| libusb_get_device_address(devlist[i]) != usb->address)
-				/* This is not the one. */
-				continue;
-		}
-
-		if (!(ret = libusb_open(devlist[i], &usb->devhdl))) {
-			if (usb->address == 0xff)
-				/*
-				 * First time we touch this device after FW
-				 * upload, so we don't know the address yet.
-				 */
-				usb->address = libusb_get_device_address(devlist[i]);
-		} else {
-			sr_err("Failed to open device: %s.",
-			       libusb_error_name(ret));
-			break;
-		}
-
-		ret = command_get_fw_version(usb->devhdl, &vi);
-		if (ret != SR_OK) {
-			sr_err("Failed to get firmware version.");
-			break;
-		}
-
-		ret = command_get_revid_version(usb->devhdl, &revid);
-		if (ret != SR_OK) {
-			sr_err("Failed to get REVID.");
-			break;
-		}
-
-		/*
-		 * Changes in major version mean incompatible/API changes, so
-		 * bail out if we encounter an incompatible version.
-		 * Different minor versions are OK, they should be compatible.
-		 */
-		if (vi.major != FX2LAFW_REQUIRED_VERSION_MAJOR) {
-			sr_err("Expected firmware version %d.x, "
-			       "got %d.%d.", FX2LAFW_REQUIRED_VERSION_MAJOR,
-			       vi.major, vi.minor);
-			break;
-		}
-
-		sdi->status = SR_ST_ACTIVE;
-		sr_info("Opened device %d on %d.%d, "
-			"interface %d, firmware %d.%d.",
-			sdi->index, usb->bus, usb->address,
-			USB_INTERFACE, vi.major, vi.minor);
-
-		sr_info("Detected REVID=%d, it's a Cypress CY7C68013%s.",
-			revid, (revid != 1) ? " (FX2)" : "A (FX2LP)");
-
-		break;
-	}
-	libusb_free_device_list(devlist, 1);
-
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR;
-
-	return SR_OK;
-}
-
-static int configure_probes(const struct sr_dev_inst *sdi)
-{
-	struct dev_context *devc;
-	struct sr_probe *probe;
-	GSList *l;
-	int probe_bit, stage, i;
-	char *tc;
-
-	devc = sdi->priv;
-	for (i = 0; i < NUM_TRIGGER_STAGES; i++) {
-		devc->trigger_mask[i] = 0;
-		devc->trigger_value[i] = 0;
-	}
-
-	stage = -1;
-	for (l = sdi->probes; l; l = l->next) {
-		probe = (struct sr_probe *)l->data;
-		if (probe->enabled == FALSE)
-			continue;
-
-		if (probe->index > 7)
-			devc->sample_wide = TRUE;
-
-		probe_bit = 1 << (probe->index);
-		if (!(probe->trigger))
-			continue;
-
-		stage = 0;
-		for (tc = probe->trigger; *tc; tc++) {
-			devc->trigger_mask[stage] |= probe_bit;
-			if (*tc == '1')
-				devc->trigger_value[stage] |= probe_bit;
-			stage++;
-			if (stage > NUM_TRIGGER_STAGES)
-				return SR_ERR;
-		}
-	}
-
-	if (stage == -1)
-		/*
-		 * We didn't configure any triggers, make sure acquisition
-		 * doesn't wait for any.
-		 */
-		devc->trigger_stage = TRIGGER_FIRED;
-	else
-		devc->trigger_stage = 0;
-
-	return SR_OK;
-}
-
-static struct dev_context *fx2lafw_dev_new(void)
-{
-	struct dev_context *devc;
-
-	if (!(devc = g_try_malloc(sizeof(struct dev_context)))) {
-		sr_err("Device context malloc failed.");
-		return NULL;
-	}
-
-	devc->profile = NULL;
-	devc->fw_updated = 0;
-	devc->cur_samplerate = 0;
-	devc->limit_samples = 0;
-	devc->sample_wide = 0;
-
-	return devc;
-}
 
 static int dev_clear(void)
 {
@@ -445,7 +214,7 @@ static GSList *scan(GSList *options)
 		drvc->instances = g_slist_append(drvc->instances, sdi);
 		devices = g_slist_append(devices, sdi);
 
-		if (check_conf_profile(devlist[i])) {
+		if (fx2lafw_check_conf_profile(devlist[i])) {
 			/* Already has the firmware, so fix the new address. */
 			sr_dbg("Found an fx2lafw device.");
 			sdi->status = SR_ST_INACTIVE;
@@ -497,7 +266,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 		g_usleep(300 * 1000);
 		timediff_ms = 0;
 		while (timediff_ms < MAX_RENUM_DELAY_MS) {
-			if ((ret = fx2lafw_dev_open(sdi)) == SR_OK)
+			if ((ret = fx2lafw_dev_open(sdi, di)) == SR_OK)
 				break;
 			g_usleep(100 * 1000);
 
@@ -512,7 +281,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 		sr_info("Device came back after %" PRIi64 "ms.", timediff_ms);
 	} else {
 		sr_info("Firmware upload was not needed.");
-		ret = fx2lafw_dev_open(sdi);
+		ret = fx2lafw_dev_open(sdi, di);
 	}
 
 	if (ret != SR_OK) {
@@ -685,256 +454,6 @@ static int receive_data(int fd, int revents, void *cb_data)
 	return TRUE;
 }
 
-static void abort_acquisition(struct dev_context *devc)
-{
-	int i;
-
-	devc->num_samples = -1;
-
-	for (i = devc->num_transfers - 1; i >= 0; i--) {
-		if (devc->transfers[i])
-			libusb_cancel_transfer(devc->transfers[i]);
-	}
-}
-
-static void finish_acquisition(struct dev_context *devc)
-{
-	struct sr_datafeed_packet packet;
-	int i;
-
-	/* Terminate session. */
-	packet.type = SR_DF_END;
-	sr_session_send(devc->cb_data, &packet);
-
-	/* Remove fds from polling. */
-	for (i = 0; devc->usbfd[i] != -1; i++)
-		sr_source_remove(devc->usbfd[i]);
-	g_free(devc->usbfd);
-
-	devc->num_transfers = 0;
-	g_free(devc->transfers);
-}
-
-static void free_transfer(struct libusb_transfer *transfer)
-{
-	struct dev_context *devc;
-	unsigned int i;
-
-	devc = transfer->user_data;
-
-	g_free(transfer->buffer);
-	transfer->buffer = NULL;
-	libusb_free_transfer(transfer);
-
-	for (i = 0; i < devc->num_transfers; i++) {
-		if (devc->transfers[i] == transfer) {
-			devc->transfers[i] = NULL;
-			break;
-		}
-	}
-
-	devc->submitted_transfers--;
-	if (devc->submitted_transfers == 0)
-		finish_acquisition(devc);
-}
-
-static void resubmit_transfer(struct libusb_transfer *transfer)
-{
-	int ret;
-
-	if ((ret = libusb_submit_transfer(transfer)) == LIBUSB_SUCCESS)
-		return;
-
-	free_transfer(transfer);
-	/* TODO: Stop session? */
-
-	sr_err("%s: %s", __func__, libusb_error_name(ret));
-}
-
-static void receive_transfer(struct libusb_transfer *transfer)
-{
-	gboolean packet_has_error = FALSE;
-	struct sr_datafeed_packet packet;
-	struct sr_datafeed_logic logic;
-	struct dev_context *devc;
-	int trigger_offset, i, sample_width, cur_sample_count;
-	int trigger_offset_bytes;
-	uint8_t *cur_buf;
-
-	devc = transfer->user_data;
-
-	/*
-	 * If acquisition has already ended, just free any queued up
-	 * transfer that come in.
-	 */
-	if (devc->num_samples == -1) {
-		free_transfer(transfer);
-		return;
-	}
-
-	sr_info("receive_transfer(): status %d received %d bytes.",
-		transfer->status, transfer->actual_length);
-
-	/* Save incoming transfer before reusing the transfer struct. */
-	cur_buf = transfer->buffer;
-	sample_width = devc->sample_wide ? 2 : 1;
-	cur_sample_count = transfer->actual_length / sample_width;
-
-	switch (transfer->status) {
-	case LIBUSB_TRANSFER_NO_DEVICE:
-		abort_acquisition(devc);
-		free_transfer(transfer);
-		return;
-	case LIBUSB_TRANSFER_COMPLETED:
-	case LIBUSB_TRANSFER_TIMED_OUT: /* We may have received some data though. */
-		break;
-	default:
-		packet_has_error = TRUE;
-		break;
-	}
-
-	if (transfer->actual_length == 0 || packet_has_error) {
-		devc->empty_transfer_count++;
-		if (devc->empty_transfer_count > MAX_EMPTY_TRANSFERS) {
-			/*
-			 * The FX2 gave up. End the acquisition, the frontend
-			 * will work out that the samplecount is short.
-			 */
-			abort_acquisition(devc);
-			free_transfer(transfer);
-		} else {
-			resubmit_transfer(transfer);
-		}
-		return;
-	} else {
-		devc->empty_transfer_count = 0;
-	}
-
-	trigger_offset = 0;
-	if (devc->trigger_stage >= 0) {
-		for (i = 0; i < cur_sample_count; i++) {
-
-			const uint16_t cur_sample = devc->sample_wide ?
-				*((const uint16_t*)cur_buf + i) :
-				*((const uint8_t*)cur_buf + i);
-
-			if ((cur_sample & devc->trigger_mask[devc->trigger_stage]) ==
-				devc->trigger_value[devc->trigger_stage]) {
-				/* Match on this trigger stage. */
-				devc->trigger_buffer[devc->trigger_stage] = cur_sample;
-				devc->trigger_stage++;
-
-				if (devc->trigger_stage == NUM_TRIGGER_STAGES ||
-					devc->trigger_mask[devc->trigger_stage] == 0) {
-					/* Match on all trigger stages, we're done. */
-					trigger_offset = i + 1;
-
-					/*
-					 * TODO: Send pre-trigger buffer to session bus.
-					 * Tell the frontend we hit the trigger here.
-					 */
-					packet.type = SR_DF_TRIGGER;
-					packet.payload = NULL;
-					sr_session_send(devc->cb_data, &packet);
-
-					/*
-					 * Send the samples that triggered it,
-					 * since we're skipping past them.
-					 */
-					packet.type = SR_DF_LOGIC;
-					packet.payload = &logic;
-					logic.unitsize = sizeof(*devc->trigger_buffer);
-					logic.length = devc->trigger_stage * logic.unitsize;
-					logic.data = devc->trigger_buffer;
-					sr_session_send(devc->cb_data, &packet);
-
-					devc->trigger_stage = TRIGGER_FIRED;
-					break;
-				}
-			} else if (devc->trigger_stage > 0) {
-				/*
-				 * We had a match before, but not in the next sample. However, we may
-				 * have a match on this stage in the next bit -- trigger on 0001 will
-				 * fail on seeing 00001, so we need to go back to stage 0 -- but at
-				 * the next sample from the one that matched originally, which the
-				 * counter increment at the end of the loop takes care of.
-				 */
-				i -= devc->trigger_stage;
-				if (i < -1)
-					i = -1; /* Oops, went back past this buffer. */
-				/* Reset trigger stage. */
-				devc->trigger_stage = 0;
-			}
-		}
-	}
-
-	if (devc->trigger_stage == TRIGGER_FIRED) {
-		/* Send the incoming transfer to the session bus. */
-		trigger_offset_bytes = trigger_offset * sample_width;
-		packet.type = SR_DF_LOGIC;
-		packet.payload = &logic;
-		logic.length = transfer->actual_length - trigger_offset_bytes;
-		logic.unitsize = sample_width;
-		logic.data = cur_buf + trigger_offset_bytes;
-		sr_session_send(devc->cb_data, &packet);
-
-		devc->num_samples += cur_sample_count;
-		if (devc->limit_samples &&
-			(unsigned int)devc->num_samples > devc->limit_samples) {
-			abort_acquisition(devc);
-			free_transfer(transfer);
-			return;
-		}
-	} else {
-		/*
-		 * TODO: Buffer pre-trigger data in capture
-		 * ratio-sized buffer.
-		 */
-	}
-
-	resubmit_transfer(transfer);
-}
-
-static unsigned int to_bytes_per_ms(unsigned int samplerate)
-{
-	return samplerate / 1000;
-}
-
-static size_t get_buffer_size(struct dev_context *devc)
-{
-	size_t s;
-
-	/*
-	 * The buffer should be large enough to hold 10ms of data and
-	 * a multiple of 512.
-	 */
-	s = 10 * to_bytes_per_ms(devc->cur_samplerate);
-	return (s + 511) & ~511;
-}
-
-static unsigned int get_number_of_transfers(struct dev_context *devc)
-{
-	unsigned int n;
-
-	/* Total buffer size should be able to hold about 500ms of data. */
-	n = 500 * to_bytes_per_ms(devc->cur_samplerate) / get_buffer_size(devc);
-
-	if (n > NUM_SIMUL_TRANSFERS)
-		return NUM_SIMUL_TRANSFERS;
-
-	return n;
-}
-
-static unsigned int get_timeout(struct dev_context *devc)
-{
-	size_t total_size;
-	unsigned int timeout;
-
-	total_size = get_buffer_size(devc) * get_number_of_transfers(devc);
-	timeout = total_size / to_bytes_per_ms(devc->cur_samplerate);
-	return timeout + timeout / 4; /* Leave a headroom of 25% percent. */
-}
-
 static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 {
 	struct dev_context *devc;
@@ -955,7 +474,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	usb = sdi->conn;
 
 	/* Configures devc->trigger_* and devc->sample_wide */
-	if (configure_probes(sdi) != SR_OK) {
+	if (fx2lafw_configure_probes(sdi) != SR_OK) {
 		sr_err("Failed to configure probes.");
 		return SR_ERR;
 	}
@@ -964,9 +483,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	devc->num_samples = 0;
 	devc->empty_transfer_count = 0;
 
-	timeout = get_timeout(devc);
-	num_transfers = get_number_of_transfers(devc);
-	size = get_buffer_size(devc);
+	timeout = fx2lafw_get_timeout(devc);
+	num_transfers = fx2lafw_get_number_of_transfers(devc);
+	size = fx2lafw_get_buffer_size(devc);
 	devc->submitted_transfers = 0;
 
 	devc->transfers = g_try_malloc0(sizeof(*devc->transfers) * num_transfers);
@@ -984,13 +503,13 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		transfer = libusb_alloc_transfer(0);
 		libusb_fill_bulk_transfer(transfer, usb->devhdl,
 				2 | LIBUSB_ENDPOINT_IN, buf, size,
-				receive_transfer, devc, timeout);
+				fx2lafw_receive_transfer, devc, timeout);
 		if ((ret = libusb_submit_transfer(transfer)) != 0) {
 			sr_err("Failed to submit transfer: %s.",
 			       libusb_error_name(ret));
 			libusb_free_transfer(transfer);
 			g_free(buf);
-			abort_acquisition(devc);
+			fx2lafw_abort_acquisition(devc);
 			return SR_ERR;
 		}
 		devc->transfers[i] = transfer;
@@ -1012,9 +531,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, LOG_PREFIX);
 
-	if ((ret = command_start_acquisition (usb->devhdl,
+	if ((ret = fx2lafw_command_start_acquisition(usb->devhdl,
 		devc->cur_samplerate, devc->sample_wide)) != SR_OK) {
-		abort_acquisition(devc);
+		fx2lafw_abort_acquisition(devc);
 		return ret;
 	}
 
@@ -1025,7 +544,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
 	(void)cb_data;
 
-	abort_acquisition(sdi->priv);
+	fx2lafw_abort_acquisition(sdi->priv);
 
 	return SR_OK;
 }

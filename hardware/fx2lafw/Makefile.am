@@ -25,10 +25,9 @@ AM_CPPFLAGS = -DFIRMWARE_DIR='"$(FIRMWARE_DIR)"'
 noinst_LTLIBRARIES = libsigrok_hw_fx2lafw.la
 
 libsigrok_hw_fx2lafw_la_SOURCES = \
-	command.c \
-	command.h \
-	fx2lafw.c \
-	fx2lafw.h
+	api.c \
+	protocol.c \
+	protocol.h
 
 libsigrok_hw_fx2lafw_la_CFLAGS = \
 	-I$(top_srcdir)
