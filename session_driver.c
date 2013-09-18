@@ -49,6 +49,7 @@ struct session_vdev {
 	uint64_t samplerate;
 	int unitsize;
 	int num_probes;
+	int cur_chunk;
 };
 
 static GSList *dev_insts = NULL;
@@ -64,26 +65,72 @@ static int receive_data(int fd, int revents, void *cb_data)
 	struct session_vdev *vdev;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
+	struct zip_stat zs;
 	GSList *l;
-	void *buf;
 	int ret, got_data;
+	char capturefile[16];
+	void *buf;
 
 	(void)fd;
 	(void)revents;
 
-	sr_dbg("Feed chunk.");
-
 	got_data = FALSE;
 	for (l = dev_insts; l; l = l->next) {
 		sdi = l->data;
-		vdev = sdi->priv;
-		if (!vdev)
-			/* already done with this instance */
+		if (!(vdev = sdi->priv))
+			/* Already done with this instance. */
 			continue;
 
 		if (!(buf = g_try_malloc(CHUNKSIZE))) {
 			sr_err("%s: buf malloc failed", __func__);
 			return FALSE;
+		}
+
+		if (!vdev->capfile) {
+			/* No capture file opened yet, or finished with the last
+			 * chunked one. */
+			if (vdev->cur_chunk == 0) {
+				/* capturefile is always the unchunked base name. */
+				if (zip_stat(vdev->archive, vdev->capturefile, 0, &zs) != -1) {
+					/* No chunks, just a single capture file. */
+					vdev->cur_chunk = 0;
+					if (!(vdev->capfile = zip_fopen(vdev->archive,
+							vdev->capturefile, 0)))
+						return FALSE;
+						sr_dbg("Opened %s.", vdev->capturefile);
+				} else {
+					/* Try as first chunk filename. */
+					snprintf(capturefile, 15, "%s-1", vdev->capturefile);
+					if (zip_stat(vdev->archive, capturefile, 0, &zs) != -1) {
+						vdev->cur_chunk = 1;
+						if (!(vdev->capfile = zip_fopen(vdev->archive,
+								capturefile, 0)))
+							return FALSE;
+						sr_dbg("Opened %s.", capturefile);
+					} else {
+						sr_err("No capture file '%s' in " "session file '%s'.",
+								vdev->capturefile, vdev->sessionfile);
+						return FALSE;
+					}
+				}
+			} else {
+				/* Capture data is chunked, advance to the next chunk. */
+				vdev->cur_chunk++;
+				snprintf(capturefile, 15, "%s-%d", vdev->capturefile,
+						vdev->cur_chunk);
+				if (zip_stat(vdev->archive, capturefile, 0, &zs) != -1) {
+					if (!(vdev->capfile = zip_fopen(vdev->archive,
+							capturefile, 0)))
+						return FALSE;
+					sr_dbg("Opened %s.", capturefile);
+				} else {
+					/* We got all the chunks, finish up. */
+					g_free(vdev->capturefile);
+					g_free(vdev);
+					sdi->priv = NULL;
+					continue;
+				}
+			}
 		}
 
 		ret = zip_fread(vdev->capfile, buf, CHUNKSIZE);
@@ -99,9 +146,17 @@ static int receive_data(int fd, int revents, void *cb_data)
 		} else {
 			/* done with this capture file */
 			zip_fclose(vdev->capfile);
-			g_free(vdev->capturefile);
-			g_free(vdev);
-			sdi->priv = NULL;
+			vdev->capfile = NULL;
+			if (vdev->cur_chunk == 0) {
+				/* It was the only file. */
+				g_free(vdev->capturefile);
+				g_free(vdev);
+				sdi->priv = NULL;
+			} else {
+				/* There might be more chunks, so don't fall through
+				 * to the SR_DF_END here. */
+				return TRUE;
+			}
 		}
 	}
 
@@ -115,7 +170,6 @@ static int receive_data(int fd, int revents, void *cb_data)
 }
 
 /* driver callbacks */
-static int cleanup(void);
 
 static int init(struct sr_context *sr_ctx)
 {
@@ -218,7 +272,6 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 {
-	struct zip_stat zs;
 	struct session_vdev *vdev;
 	int ret;
 
@@ -230,18 +283,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	if (!(vdev->archive = zip_open(vdev->sessionfile, 0, &ret))) {
 		sr_err("Failed to open session file '%s': "
 		       "zip error %d\n", vdev->sessionfile, ret);
-		return SR_ERR;
-	}
-
-	if (zip_stat(vdev->archive, vdev->capturefile, 0, &zs) == -1) {
-		sr_err("Failed to check capture file '%s' in "
-		       "session file '%s'.", vdev->capturefile, vdev->sessionfile);
-		return SR_ERR;
-	}
-
-	if (!(vdev->capfile = zip_fopen(vdev->archive, vdev->capturefile, 0))) {
-		sr_err("Failed to open capture file '%s' in "
-		       "session file '%s'.", vdev->capturefile, vdev->sessionfile);
 		return SR_ERR;
 	}
 

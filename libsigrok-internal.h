@@ -119,6 +119,7 @@ SR_PRIV int sr_source_add(int fd, int events, int timeout,
 SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
 		const struct sr_datafeed_packet *packet);
 SR_PRIV int sr_session_stop_sync(void);
+SR_PRIV int sr_sessionfile_check(const char *filename);
 
 /*--- std.c -----------------------------------------------------------------*/
 

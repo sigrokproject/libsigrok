@@ -51,6 +51,47 @@
 extern struct sr_session *session;
 extern SR_PRIV struct sr_dev_driver session_driver;
 
+SR_PRIV int sr_sessionfile_check(const char *filename)
+{
+	struct zip *archive;
+	struct zip_file *zf;
+	struct zip_stat zs;
+	int version, ret;
+	char s[11];
+
+	if (!filename)
+		return SR_ERR_ARG;
+
+	if (!(archive = zip_open(filename, 0, &ret)))
+		/* No logging: this can be used just to check if it's
+		 * a sigrok session file or not. */
+		return SR_ERR;
+
+	/* check "version" */
+	version = 0;
+	if (!(zf = zip_fopen(archive, "version", 0))) {
+		sr_dbg("Not a sigrok session file: no version found.");
+		return SR_ERR;
+	}
+	if ((ret = zip_fread(zf, s, 10)) == -1)
+		return SR_ERR;
+	zip_fclose(zf);
+	s[ret] = 0;
+	version = strtoull(s, NULL, 10);
+	if (version != 1) {
+		sr_dbg("Cannot handle sigrok session file version %d.", version);
+		return SR_ERR;
+	}
+
+	/* read "metadata" */
+	if (zip_stat(archive, "metadata", 0, &zs) == -1) {
+		sr_dbg("Not a valid sigrok session file.");
+		return SR_ERR;
+	}
+
+	return SR_OK;
+}
+
 /**
  * Load the session from the specified filename.
  *
@@ -69,44 +110,19 @@ SR_API int sr_session_load(const char *filename)
 	struct zip_stat zs;
 	struct sr_dev_inst *sdi;
 	struct sr_probe *probe;
-	int ret, probenum, devcnt, version, i, j;
+	int ret, probenum, devcnt, i, j;
 	uint64_t tmp_u64, total_probes, enabled_probes, p;
-	char **sections, **keys, *metafile, *val, s[11];
+	char **sections, **keys, *metafile, *val;
 	char probename[SR_MAX_PROBENAME_LEN + 1];
 
-	if (!filename) {
-		sr_err("%s: filename was NULL", __func__);
-		return SR_ERR_ARG;
-	}
+	if ((ret = sr_sessionfile_check(filename)) != SR_OK)
+		return ret;
 
-	if (!(archive = zip_open(filename, 0, &ret))) {
-		sr_dbg("Failed to open session file: zip error %d", ret);
+	if (!(archive = zip_open(filename, 0, &ret)))
 		return SR_ERR;
-	}
 
-	/* check "version" */
-	version = 0;
-	if (!(zf = zip_fopen(archive, "version", 0))) {
-		sr_dbg("Not a sigrok session file.");
+	if (zip_stat(archive, "metadata", 0, &zs) == -1)
 		return SR_ERR;
-	}
-	if ((ret = zip_fread(zf, s, 10)) == -1) {
-		sr_dbg("Not a valid sigrok session file.");
-		return SR_ERR;
-	}
-	zip_fclose(zf);
-	s[ret] = 0;
-	version = strtoull(s, NULL, 10);
-	if (version != 1) {
-		sr_dbg("Not a valid sigrok session file version.");
-		return SR_ERR;
-	}
-
-	/* read "metadata" */
-	if (zip_stat(archive, "metadata", 0, &zs) == -1) {
-		sr_dbg("Not a valid sigrok session file.");
-		return SR_ERR;
-	}
 
 	if (!(metafile = g_try_malloc(zs.size))) {
 		sr_err("%s: metafile malloc failed", __func__);
@@ -302,6 +318,67 @@ SR_API int sr_session_save(const char *filename, const struct sr_dev_inst *sdi,
 	}
 
 	unlink(metafile);
+
+	return SR_OK;
+}
+
+/**
+ * Append data to an existing session file.
+ *
+ * @param filename The name of the filename to append to. Must not be NULL.
+ * @param buf The data to be appended.
+ * @param unitsize The number of bytes per sample.
+ * @param units The number of samples.
+ *
+ * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or SR_ERR
+ *         upon other errors.
+ */
+SR_API int sr_session_append(const char *filename, unsigned char *buf,
+		int unitsize, int units)
+{
+	struct zip *archive;
+	struct zip_source *logicsrc;
+	zip_int64_t num_files;
+	int chunk_num, next_chunk_num, ret, i;
+	const char *entry_name;
+	char chunkname[16];
+
+	if ((ret = sr_sessionfile_check(filename)) != SR_OK)
+		return ret;
+
+	if (!(archive = zip_open(filename, 0, &ret)))
+		return SR_ERR;
+
+	next_chunk_num = 1;
+	num_files = zip_get_num_entries(archive, 0);
+	for (i = 0; i < num_files; i++) {
+		entry_name = zip_get_name(archive, i, 0);
+		if (strncmp(entry_name, "logic-1", 7))
+			continue;
+		if (strlen(entry_name) == 7) {
+			/* This file has no extra chunks, just a single "logic-1".
+			 * Rename it to "logic-1-1" * and continue with chunk 2. */
+			if (zip_rename(archive, i, "logic-1-1") == -1) {
+				sr_err("Failed to rename 'logic-1' to 'logic-1-1'.");
+				return SR_ERR;
+			}
+			next_chunk_num = 2;
+			break;
+		} else if (strlen(entry_name) > 8 && entry_name[7] == '-') {
+			chunk_num = strtoull(entry_name + 8, NULL, 10);
+			if (chunk_num >= next_chunk_num)
+				next_chunk_num = chunk_num + 1;
+		}
+	}
+	snprintf(chunkname, 15, "logic-1-%d", next_chunk_num);
+	if (!(logicsrc = zip_source_buffer(archive, buf, units * unitsize, FALSE)))
+		return SR_ERR;
+	if (zip_add(archive, chunkname, logicsrc) == -1)
+		return SR_ERR;
+	if ((ret = zip_close(archive)) == -1) {
+		sr_info("error saving session file: %s", zip_strerror(archive));
+		return SR_ERR;
+	}
 
 	return SR_OK;
 }
