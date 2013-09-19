@@ -786,7 +786,8 @@ SR_PRIV int serial_readline(struct sr_serial_dev_inst *serial, char **buf,
 		if (g_get_monotonic_time() - start > timeout_ms)
 			/* Timeout */
 			break;
-		g_usleep(2000);
+		if (len < 1)
+			g_usleep(2000);
 	}
 	if (*buflen)
 		sr_dbg("Received %d: '%s'.", *buflen, *buf);
@@ -867,7 +868,8 @@ SR_PRIV int serial_stream_detect(struct sr_serial_dev_inst *serial,
 			sr_dbg("Detection timed out after %dms.", time);
 			break;
 		}
-		g_usleep(byte_delay_us);
+		if (len < 1)
+			g_usleep(byte_delay_us);
 	}
 
 	*buflen = ibuf;
