@@ -84,6 +84,7 @@ SR_API struct sr_session *sr_session_new(void)
 	}
 
 	session->source_timeout = -1;
+	session->running = FALSE;
 	session->abort_session = FALSE;
 	g_mutex_init(&session->stop_mutex);
 
@@ -148,6 +149,7 @@ SR_API int sr_session_dev_remove_all(void)
  */
 SR_API int sr_session_dev_add(const struct sr_dev_inst *sdi)
 {
+	int ret;
 
 	if (!sdi) {
 		sr_err("%s: sdi was NULL", __func__);
@@ -175,6 +177,15 @@ SR_API int sr_session_dev_add(const struct sr_dev_inst *sdi)
 	}
 
 	session->devs = g_slist_append(session->devs, (gpointer)sdi);
+
+	if (session->running) {
+		/* Adding a device to a running session. Start acquisition
+		 * on that device now. */
+		if ((ret = sdi->driver->dev_acquisition_start(sdi,
+						(void *)sdi)) != SR_OK)
+			sr_err("Failed to start acquisition of device in "
+					"running session: %d", ret);
+	}
 
 	return SR_OK;
 }
@@ -372,6 +383,7 @@ SR_API int sr_session_run(void)
 		       "cannot be run without devices.", __func__);
 		return SR_ERR_BUG;
 	}
+	session->running = TRUE;
 
 	sr_info("Running.");
 
@@ -419,6 +431,7 @@ SR_PRIV int sr_session_stop_sync(void)
 				sdi->driver->dev_acquisition_stop(sdi, sdi);
 		}
 	}
+	session->running = FALSE;
 
 	return SR_OK;
 }
