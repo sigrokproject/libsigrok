@@ -148,6 +148,9 @@ extern SR_PRIV struct sr_dev_driver rigol_ds1xx2_driver_info;
 #ifdef HAVE_HW_SALEAE_LOGIC16
 extern SR_PRIV struct sr_dev_driver saleae_logic16_driver_info;
 #endif
+#ifdef HAVE_HW_TELEINFO
+extern SR_PRIV struct sr_dev_driver teleinfo_driver_info;
+#endif
 #ifdef HAVE_HW_TONDAJ_SL_814
 extern SR_PRIV struct sr_dev_driver tondaj_sl_814_driver_info;
 #endif
@@ -261,6 +264,9 @@ static struct sr_dev_driver *drivers_list[] = {
 #endif
 #ifdef HAVE_HW_SALEAE_LOGIC16
 	&saleae_logic16_driver_info,
+#endif
+#ifdef HAVE_HW_TELEINFO
+	&teleinfo_driver_info,
 #endif
 #ifdef HAVE_HW_TONDAJ_SL_814
 	&tondaj_sl_814_driver_info,

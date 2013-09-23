@@ -194,6 +194,15 @@ AC_ARG_ENABLE(serial-dmm, AC_HELP_STRING([--enable-serial-dmm],
 	[HW_SERIAL_DMM="$enableval"],
 	[HW_SERIAL_DMM=$HW_ENABLED_DEFAULT])
 
+AC_ARG_ENABLE(teleinfo, AC_HELP_STRING([--enable-teleinfo],
+	[enable Teleinfo support [default=yes]]),
+	[HW_TELEINFO="$enableval"],
+	[HW_TELEINFO=$HW_ENABLED_DEFAULT])
+AM_CONDITIONAL(HW_TELEINFO, test x$HW_TELEINFO = xyes)
+if test "x$HW_TELEINFO" = "xyes"; then
+	AC_DEFINE(HAVE_HW_TELEINFO, 1, [Teleinfo support])
+fi
+
 AC_ARG_ENABLE(tondaj-sl-814, AC_HELP_STRING([--enable-tondaj-sl-814],
 	[enable Tondaj SL-814 support [default=yes]]),
 	[HW_TONDAJ_SL_814="$enableval"],
@@ -503,6 +512,7 @@ AC_CONFIG_FILES([Makefile version.h hardware/Makefile
 		 hardware/mic-985xx/Makefile
 		 hardware/rigol-ds1xx2/Makefile
 		 hardware/saleae-logic16/Makefile
+		 hardware/teleinfo/Makefile
 		 hardware/tondaj-sl-814/Makefile
 		 hardware/victor-dmm/Makefile
 		 hardware/common/dmm/Makefile
@@ -572,6 +582,7 @@ echo "  - openbench-logic-sniffer......... $HW_OLS"
 echo "  - rigol-ds1xx2.................... $HW_RIGOL_DS1XX2"
 echo "  - saleae-logic16.................. $HW_SALEAE_LOGIC16"
 echo "  - serial-dmm...................... $HW_SERIAL_DMM"
+echo "  - teleinfo........................ $HW_TELEINFO"
 echo "  - tondaj-sl-814................... $HW_TONDAJ_SL_814"
 echo "  - uni-t-dmm....................... $HW_UNI_T_DMM"
 echo "  - uni-t-ut32x..................... $HW_UNI_T_UT32X"

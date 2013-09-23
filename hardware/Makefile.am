@@ -42,6 +42,7 @@ SUBDIRS = \
 	rigol-ds1xx2 \
 	saleae-logic16 \
 	serial-dmm \
+	teleinfo \
 	tondaj-sl-814 \
 	uni-t-dmm \
 	uni-t-ut32x \
@@ -141,6 +142,10 @@ endif
 
 if HW_SERIAL_DMM
 libsigrokhardware_la_LIBADD += serial-dmm/libsigrok_hw_serial_dmm.la
+endif
+
+if HW_TELEINFO
+libsigrokhardware_la_LIBADD += teleinfo/libsigrok_hw_teleinfo.la
 endif
 
 if HW_TONDAJ_SL_814
