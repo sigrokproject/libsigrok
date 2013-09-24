@@ -55,7 +55,7 @@ noinst_HEADERS = libsigrok-internal.h
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libsigrok.pc
 
-EXTRA_DIST = Doxyfile README.devices
+EXTRA_DIST = Doxyfile HACKING README.devices
 
 MAINTAINERCLEANFILES = ChangeLog
 
