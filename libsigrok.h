@@ -628,14 +628,6 @@ enum {
 	/** The device supports setting a pattern (pattern generator mode). */
 	SR_CONF_PATTERN_MODE,
 
-	/** The devices supports using a external clock. */
-	SR_CONF_EXTERNAL_CLOCK,
-
-	/** The device supports swapping channels. Typical this is between
-	 *  buffered and unbuffered channels.
-	 */
-	SR_CONF_SWAP,
-
 	/** The device supports Run Length Encoding. */
 	SR_CONF_RLE,
 
@@ -692,6 +684,15 @@ enum {
 
 	/** Logic low-high threshold range. */
 	SR_CONF_VOLTAGE_THRESHOLD,
+
+	/** The device supports using a external clock. */
+	SR_CONF_EXTERNAL_CLOCK,
+
+	/**
+	 * The device supports swapping channels. Typical this is between
+	 * buffered and unbuffered channels.
+	 */
+	SR_CONF_SWAP,
 
 	/*--- Special stuff -------------------------------------------------*/
 
