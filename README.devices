@@ -42,12 +42,18 @@ The following drivers/devices require a firmware upload upon connection:
    These can be extracted from the vendor's Windows drivers using a tool
    from our 'sigrok-util' repository/project.
 
+ - saleae-logic16: The Saleae Logic16 needs a firmware file for the
+   Cypress FX2 chip in the device, as well as two FPGA bitstream files.
+   These can be extracted from the vendor's Linux application using a tool
+   from our 'sigrok-util' repository/project.
+
 The following drivers/devices do not need any firmware upload:
 
  - agilent-dmm
  - alsa
  - brymen-dmm
  - cem-dt-885x
+ - center-3xx
  - chronovu-la8
  - colead-slm
  - demo
@@ -63,6 +69,7 @@ The following drivers/devices do not need any firmware upload:
  - serial-dmm
  - tondaj-sl-814
  - uni-t-dmm
+ - uni-t-ut32x
  - victor-dmm
  - zeroplus-logic-cube
 
@@ -86,6 +93,7 @@ The following drivers/devices require a serial port specification:
  - agilent-dmm
  - brymen-dmm
  - cem-dt-885x
+ - center-3xx
  - colead-slm
  - fluke-dmm
  - link-mso19
@@ -107,7 +115,9 @@ The following drivers/devices do not require a serial port specification:
  - kecheng-kc-330b
  - lascar-el-usb
  - rigol-ds1xx2
+ - saleae-logic16
  - uni-t-dmm
+ - uni-t-ut32x
  - victor-dmm
  - zeroplus-logic-cube
 
@@ -251,6 +261,9 @@ a short list for convenience:
  - RadioShack 22-812: Press and hold "SELECT" and "RANGE" together.
  - TekPower TP4000ZC: Briefly press the "RS232" button.
  - UNI-T UT61D: Press the "REL/RS232/USB" button for roughly 1 second.
+ - UNI-T UT325: Briefly press the "SEND" button (as per manual). However, it
+   appears that in practice you don't have to press the button (at least on
+   some versions of the device), simply connect the device via USB.
  - V&A VA18B: Keep the "Hz/DUTY" key pressed while powering on the device.
  - Victor 70C: Press the "REL/RS232" button for roughly 1 second.
  - Victor 86C: Press the "REL/RS232" button for roughly 1 second.
