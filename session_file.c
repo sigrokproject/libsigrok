@@ -51,6 +51,7 @@
 extern struct sr_session *session;
 extern SR_PRIV struct sr_dev_driver session_driver;
 
+/** @private */
 SR_PRIV int sr_sessionfile_check(const char *filename)
 {
 	struct zip *archive;

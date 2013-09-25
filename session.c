@@ -411,6 +411,8 @@ SR_API int sr_session_run(void)
  * resources that the session thread will try to use.
  *
  * @return SR_OK upon success, SR_ERR_BUG if no session exists.
+ *
+ * @private
  */
 SR_PRIV int sr_session_stop_sync(void)
 {

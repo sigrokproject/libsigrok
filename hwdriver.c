@@ -439,7 +439,8 @@ SR_PRIV void sr_hw_cleanup_all(void)
 	}
 }
 
-/** A floating reference can be passed in for data. */
+/** A floating reference can be passed in for data.
+ * @private */
 SR_PRIV struct sr_config *sr_config_new(int key, GVariant *data)
 {
 	struct sr_config *src;
@@ -452,6 +453,7 @@ SR_PRIV struct sr_config *sr_config_new(int key, GVariant *data)
 	return src;
 }
 
+/** @private */
 SR_PRIV void sr_config_free(struct sr_config *src)
 {
 
