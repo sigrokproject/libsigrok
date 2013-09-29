@@ -1,7 +1,7 @@
 /*
  * This file is part of the libsigrok project.
  *
- * Copyright (C) 2012 Uwe Hermann <uwe@hermann-uwe.de>
+ * Copyright (C) 2012-2013 Uwe Hermann <uwe@hermann-uwe.de>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -117,6 +117,10 @@ static int parse_value(const uint8_t *buf, float *result)
 
 static void parse_flags(const char *buf, struct metex14_info *info)
 {
+	int i, cnt;
+	char unit[4 + 1];
+	const char *u;
+
 	/* Bytes 0-1: Measurement mode */
 	/* Note: Protocol doesn't distinguish "resistance" from "beep" mode. */
 	info->is_ac          = !strncmp(buf, "AC", 2);
@@ -142,33 +146,39 @@ static void parse_flags(const char *buf, struct metex14_info *info)
 	/* Bytes 3-8: See parse_value(). */
 
 	/* Bytes 9-12: Unit */
-	if (!strncmp(buf + 9, "   A", 4))
+	memset(&unit, 0, 4 + 1);
+	for (i = 0, cnt = 0; i < 4; i++) {
+		if (buf[9 + i] != ' ')
+			unit[cnt++] = buf[9 + i];
+	}
+	u = (const char *)&unit;
+	if (!strcmp(u, "A"))
 		info->is_ampere = TRUE;
-	else if (!strncmp(buf + 9, "  mA", 4))
+	else if (!strcmp(u, "mA"))
 		info->is_milli = info->is_ampere = TRUE;
-	else if (!strncmp(buf + 9, "  uA", 4))
+	else if (!strcmp(u, "uA"))
 		info->is_micro = info->is_ampere = TRUE;
-	else if (!strncmp(buf + 9, "   V", 4))
+	else if (!strcmp(u, "V"))
 		info->is_volt = TRUE;
-	else if (!strncmp(buf + 9, "  mV", 4))
+	else if (!strcmp(u, "mV"))
 		info->is_milli = info->is_volt = TRUE;
-	else if (!strncmp(buf + 9, " Ohm", 4))
+	else if (!strcmp(u, "Ohm"))
 		info->is_ohm = TRUE;
-	else if (!strncmp(buf + 9, "KOhm", 4))
+	else if (!strcmp(u, "KOhm"))
 		info->is_kilo = info->is_ohm = TRUE;
-	else if (!strncmp(buf + 9, "MOhm", 4))
+	else if (!strcmp(u, "MOhm"))
 		info->is_mega = info->is_ohm = TRUE;
-	else if (!strncmp(buf + 9, "  nF", 4))
+	else if (!strcmp(u, "nF"))
 		info->is_nano = info->is_farad = TRUE;
-	else if (!strncmp(buf + 9, "  uF", 4))
+	else if (!strcmp(u, "uF"))
 		info->is_micro = info->is_farad = TRUE;
-	else if (!strncmp(buf + 9, " KHz", 4))
+	else if (!strcmp(u, "KHz"))
 		info->is_kilo = info->is_hertz = TRUE;
-	else if (!strncmp(buf + 9, "   C", 4))
+	else if (!strcmp(u, "C"))
 		info->is_celsius = TRUE;
-	else if (!strncmp(buf + 9, "  DB", 4))
+	else if (!strcmp(u, "DB"))
 		info->is_decibel = TRUE;
-	else if (!strncmp(buf + 9, "    ", 4))
+	else if (!strcmp(u, ""))
 		info->is_unitless = TRUE;
 
 	/* Byte 13: Always '\r' (carriage return, 0x0d, 13) */
