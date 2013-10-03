@@ -249,8 +249,8 @@ SR_PRIV struct dmm_info dmms[] = {
 	{
 		/* Note: ES51922 baudrate is actually 19230! */
 		"UNI-T", "UT61E (UT-D02 cable)", "19200/7o1/rts=0/dtr=1",
-		19200, ES51922_PACKET_SIZE, NULL,
-		sr_es51922_packet_valid, sr_es51922_parse, NULL,
+		19200, ES519XX_14B_PACKET_SIZE, NULL,
+		sr_es519xx_19200_14b_packet_valid, sr_es519xx_19200_14b_parse, NULL,
 		&uni_t_ut61e_ser_driver_info, receive_data_UNI_T_UT61E_SER,
 	},
 	{

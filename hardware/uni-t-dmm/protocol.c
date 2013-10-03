@@ -237,7 +237,7 @@ static int get_and_handle_data(struct sr_dev_inst *sdi, int dmm, void *info)
 	num_databytes_in_chunk = buf[0] & 0x0f;
 	for (i = 0; i < num_databytes_in_chunk; i++, devc->buflen++) {
 		pbuf[devc->buflen] = buf[1 + i];
-		if (udmms[dmm].packet_parse == sr_es51922_parse)
+		if (udmms[dmm].packet_parse == sr_es519xx_19200_14b_parse)
 			pbuf[devc->buflen] &= ~(1 << 7);
 	}
 
@@ -305,7 +305,7 @@ RECEIVE_DATA(UNI_T_UT60A, fs9721)
 RECEIVE_DATA(UNI_T_UT60E, fs9721)
 RECEIVE_DATA(UNI_T_UT61C, fs9922)
 RECEIVE_DATA(UNI_T_UT61D, fs9922)
-RECEIVE_DATA(UNI_T_UT61E, es51922)
+RECEIVE_DATA(UNI_T_UT61E, es519xx)
 RECEIVE_DATA(VOLTCRAFT_VC820, fs9721)
 RECEIVE_DATA(VOLTCRAFT_VC830, fs9922)
 RECEIVE_DATA(VOLTCRAFT_VC840, fs9721)

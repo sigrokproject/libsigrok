@@ -95,8 +95,8 @@ SR_PRIV struct dmm_info udmms[] = {
 		 * this DMM, of course).
 		 */
 		"UNI-T", "UT61E", 19200,
-		ES51922_PACKET_SIZE,
-		sr_es51922_packet_valid, sr_es51922_parse,
+		ES519XX_14B_PACKET_SIZE,
+		sr_es519xx_19200_14b_packet_valid, sr_es519xx_19200_14b_parse,
 		NULL,
 		&uni_t_ut61e_driver_info, receive_data_UNI_T_UT61E,
 	},
