@@ -62,6 +62,7 @@ SR_PRIV struct sr_dev_driver uni_t_ut60a_ser_driver_info;
 SR_PRIV struct sr_dev_driver uni_t_ut60e_ser_driver_info;
 SR_PRIV struct sr_dev_driver uni_t_ut61d_ser_driver_info;
 SR_PRIV struct sr_dev_driver uni_t_ut61e_ser_driver_info;
+SR_PRIV struct sr_dev_driver iso_tech_idm103n_ser_driver_info;
 
 SR_PRIV struct dmm_info dmms[] = {
 	{
@@ -220,6 +221,12 @@ SR_PRIV struct dmm_info dmms[] = {
 		19200, ES51922_PACKET_SIZE, NULL,
 		sr_es51922_packet_valid, sr_es51922_parse, NULL,
 		&uni_t_ut61e_ser_driver_info, receive_data_UNI_T_UT61E_SER,
+	},
+	{
+		"ISO-TECH", "IDM103N", "2400/7o1/rts=0/dtr=1",
+		2400, ES519XX_11B_PACKET_SIZE, NULL,
+		sr_es519xx_2400_11B_packet_valid, sr_es519xx_2400_11B_parse, NULL,
+		&iso_tech_idm103n_ser_driver_info, receive_data_ISO_TECH_IDM103N_SER,
 	},
 };
 
@@ -543,3 +550,4 @@ DRV(uni_t_ut60a_ser, UNI_T_UT60A_SER, "uni-t-ut60a-ser", "UNI-T UT60A (UT-D02 ca
 DRV(uni_t_ut60e_ser, UNI_T_UT60E_SER, "uni-t-ut60e-ser", "UNI-T UT60E (UT-D02 cable)")
 DRV(uni_t_ut61d_ser, UNI_T_UT61D_SER, "uni-t-ut61d-ser", "UNI-T UT61D (UT-D02 cable)")
 DRV(uni_t_ut61e_ser, UNI_T_UT61E_SER, "uni-t-ut61e-ser", "UNI-T UT61E (UT-D02 cable)")
+DRV(iso_tech_idm103n_ser, ISO_TECH_IDM103N_SER, "iso-tech-idm103n-ser", "ISO-TECH IDM103N")

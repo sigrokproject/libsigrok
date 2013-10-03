@@ -52,9 +52,10 @@ enum {
 	UNI_T_UT60E_SER,
 	UNI_T_UT61D_SER,
 	UNI_T_UT61E_SER,
+	ISO_TECH_IDM103N_SER,
 };
 
-#define DMM_COUNT 21
+#define DMM_COUNT 22
 
 struct dmm_info {
 	char *vendor;
@@ -117,6 +118,7 @@ SR_PRIV int receive_data_UNI_T_UT60A_SER(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_UNI_T_UT60E_SER(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_UNI_T_UT61D_SER(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_UNI_T_UT61E_SER(int fd, int revents, void *cb_data);
+SR_PRIV int receive_data_ISO_TECH_IDM103N_SER(int fd, int revents, void *cb_data);
 
 SR_PRIV void dmm_details_tp4000zc(struct sr_datafeed_analog *analog, void *info);
 SR_PRIV void dmm_details_dt4000zc(struct sr_datafeed_analog *analog, void *info);
