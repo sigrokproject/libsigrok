@@ -34,18 +34,35 @@
 #define sr_warn(s, args...) sr_warn(LOG_PREFIX s, ## args)
 #define sr_err(s, args...) sr_err(LOG_PREFIX s, ## args)
 
-/** Private, per-device-instance driver context. */
-struct dev_context {
-	/* Model-specific information */
-
-	/* Acquisition settings */
-
-	/* Operational state */
-
-	/* Temporary state across callbacks */
-
+enum optarif {
+	OPTARIF_NONE,
+	OPTARIF_BASE,
+	OPTARIF_HC,
+	OPTARIF_EJP,
+	OPTARIF_BBR,
 };
 
+#define TELEINFO_BUF_SIZE 256
+
+/** Private, per-device-instance driver context. */
+struct dev_context {
+	/* Acquisition settings */
+	uint64_t limit_samples;   /**< The sampling limit (in number of samples). */
+	uint64_t limit_msec;      /**< The time limit (in milliseconds). */
+	void *session_cb_data;    /**< Opaque pointer passed in by the frontend. */
+
+	/* Operational state */
+	enum optarif optarif;     /**< The device mode (which mesures are reported) */
+	uint64_t num_samples;     /**< The number of already received samples. */
+	int64_t start_time;       /**< The time at which sampling started. */
+
+	/* Temporary state across callbacks */
+	uint8_t buf[TELEINFO_BUF_SIZE];
+	int buf_len;
+};
+
+SR_PRIV gboolean teleinfo_packet_valid(const uint8_t *buf);
 SR_PRIV int teleinfo_receive_data(int fd, int revents, void *cb_data);
+SR_PRIV int teleinfo_get_optarif(const uint8_t *buf);
 
 #endif
