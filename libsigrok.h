@@ -216,6 +216,7 @@ enum {
 	 * represented as the fraction of number of particles of the substance.
 	 */
 	SR_UNIT_CONCENTRATION,
+	SR_UNIT_REVOLUTIONS_PER_MINUTE,
 };
 
 /** Values for sr_datafeed_analog.flags. */
