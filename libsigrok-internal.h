@@ -428,23 +428,6 @@ SR_PRIV struct sr_scpi_dev_inst *scpi_tcp_dev_inst_new(const char *address,
 
 SR_PRIV struct sr_scpi_dev_inst *scpi_usbtmc_dev_inst_new(const char *device);
 
-/*--- hardware/common/dmm/es51922.c -----------------------------------------*/
-
-#define ES51922_PACKET_SIZE 14
-
-struct es51922_info {
-	gboolean is_judge, is_vbar, is_voltage, is_auto, is_micro, is_current;
-	gboolean is_milli, is_resistance, is_continuity, is_diode, is_lpf;
-	gboolean is_frequency, is_duty_cycle, is_capacitance, is_temperature;
-	gboolean is_celsius, is_fahrenheit, is_adp, is_sign, is_batt, is_ol;
-	gboolean is_max, is_min, is_rel, is_rmr, is_ul, is_pmax, is_pmin;
-	gboolean is_dc, is_ac, is_vahz, is_hold, is_nano, is_kilo, is_mega;
-};
-
-SR_PRIV gboolean sr_es51922_packet_valid(const uint8_t *buf);
-SR_PRIV int sr_es51922_parse(const uint8_t *buf, float *floatval,
-			     struct sr_datafeed_analog *analog, void *info);
-
 /*--- hardware/common/dmm/es519xx.c -----------------------------------------*/
 
 /**
