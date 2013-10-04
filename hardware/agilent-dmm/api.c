@@ -129,7 +129,7 @@ static GSList *scan(GSList *options)
 
 	tokens = g_strsplit(buf, ",", 4);
 	if (!strcmp("Agilent Technologies", tokens[0])
-			&& tokens[2] && tokens[3]) {
+			&& tokens[1] && tokens[2] && tokens[3]) {
 		for (i = 0; supported_agdmm[i].model; i++) {
 			if (strcmp(supported_agdmm[i].modelname, tokens[1]))
 				continue;
