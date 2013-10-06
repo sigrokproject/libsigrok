@@ -200,7 +200,7 @@ SR_PRIV int sr_es51922_parse(const uint8_t *buf, float *floatval,
 
 /*--- hardware/common/dmm/es519xx.c -----------------------------------------*/
 
-#define ES519XX_11B_PACKET_SIZE (2 * 11)
+#define ES519XX_11B_PACKET_SIZE 11
 #define ES519XX_14B_PACKET_SIZE 14
 
 struct es519xx_info {
@@ -221,7 +221,7 @@ SR_PRIV gboolean sr_es519xx_2400_11b_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_es519xx_2400_11b_parse(const uint8_t *buf, float *floatval,
 		struct sr_datafeed_analog *analog, void *info);
 SR_PRIV gboolean sr_es519xx_19200_11b_5digits_packet_valid(const uint8_t *buf);
-SR_PRIV int sr_es519xx_19200_11b_5difits_parse(const uint8_t *buf,
+SR_PRIV int sr_es519xx_19200_11b_5digits_parse(const uint8_t *buf,
 		float *floatval, struct sr_datafeed_analog *analog, void *info);
 SR_PRIV gboolean sr_es519xx_19200_11b_clamp_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_es519xx_19200_11b_clamp_parse(const uint8_t *buf,
