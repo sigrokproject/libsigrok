@@ -225,7 +225,7 @@ SR_PRIV struct dmm_info dmms[] = {
 	{
 		"ISO-TECH", "IDM103N", "2400/7o1/rts=0/dtr=1",
 		2400, ES519XX_11B_PACKET_SIZE, NULL,
-		sr_es519xx_2400_11B_packet_valid, sr_es519xx_2400_11B_parse, NULL,
+		sr_es519xx_2400_11b_packet_valid, sr_es519xx_2400_11b_parse, NULL,
 		&iso_tech_idm103n_ser_driver_info, receive_data_ISO_TECH_IDM103N_SER,
 	},
 };

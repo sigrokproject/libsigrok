@@ -200,8 +200,8 @@ SR_PRIV int sr_es51922_parse(const uint8_t *buf, float *floatval,
 
 /*--- hardware/common/dmm/es519xx.c -----------------------------------------*/
 
-#define ES519XX_11B_PACKET_SIZE 2*11
-#define ES519XX_14B_PACKET_SIZE   14
+#define ES519XX_11B_PACKET_SIZE (2 * 11)
+#define ES519XX_14B_PACKET_SIZE 14
 
 struct es519xx_info {
 	gboolean is_judge, is_voltage, is_auto, is_micro, is_current;
@@ -217,31 +217,24 @@ struct es519xx_info {
 	gboolean alt_functions, fivedigits, clampmeter, selectable_lpf;
 };
 
-SR_PRIV gboolean sr_es519xx_2400_11B_packet_valid(const uint8_t *buf);
-SR_PRIV int sr_es519xx_2400_11B_parse(const uint8_t *buf, float *floatval,
-                                      struct sr_datafeed_analog *analog,
-                                      void *info);
-SR_PRIV gboolean sr_es519xx_19200_11B_5digits_packet_valid(const uint8_t *buf);
-SR_PRIV int sr_es519xx_19200_11B_5difits_parse(const uint8_t *buf,
-               float *floatval, struct sr_datafeed_analog *analog, void *info);
-SR_PRIV gboolean sr_es519xx_19200_11B_clamp_packet_valid(const uint8_t *buf);
-SR_PRIV int sr_es519xx_19200_11B_clamp_parse(const uint8_t *buf,
-                                             float *floatval,
-                                             struct sr_datafeed_analog *analog,
-                                             void *info);
-SR_PRIV gboolean sr_es519xx_19200_11B_packet_valid(const uint8_t *buf);
-SR_PRIV int sr_es519xx_19200_11B_parse(const uint8_t *buf, float *floatval,
-                                       struct sr_datafeed_analog *analog,
-                                       void *info);
-SR_PRIV gboolean sr_es519xx_19200_14B_packet_valid(const uint8_t *buf);
-SR_PRIV int sr_es519xx_19200_14B_parse(const uint8_t *buf, float *floatval,
-                                       struct sr_datafeed_analog *analog,
-                                       void *info);
-SR_PRIV gboolean sr_es519xx_19200_14B_selectable_lpfpacket_valid(const uint8_t *buf);
-SR_PRIV int sr_es519xx_19200_14B_selectable_lpf_parse(const uint8_t *buf,
-                                       float *floatval,
-                                       struct sr_datafeed_analog *analog,
-                                       void *info);
+SR_PRIV gboolean sr_es519xx_2400_11b_packet_valid(const uint8_t *buf);
+SR_PRIV int sr_es519xx_2400_11b_parse(const uint8_t *buf, float *floatval,
+		struct sr_datafeed_analog *analog, void *info);
+SR_PRIV gboolean sr_es519xx_19200_11b_5digits_packet_valid(const uint8_t *buf);
+SR_PRIV int sr_es519xx_19200_11b_5difits_parse(const uint8_t *buf,
+		float *floatval, struct sr_datafeed_analog *analog, void *info);
+SR_PRIV gboolean sr_es519xx_19200_11b_clamp_packet_valid(const uint8_t *buf);
+SR_PRIV int sr_es519xx_19200_11b_clamp_parse(const uint8_t *buf,
+		float *floatval, struct sr_datafeed_analog *analog, void *info);
+SR_PRIV gboolean sr_es519xx_19200_11b_packet_valid(const uint8_t *buf);
+SR_PRIV int sr_es519xx_19200_11b_parse(const uint8_t *buf, float *floatval,
+		struct sr_datafeed_analog *analog, void *info);
+SR_PRIV gboolean sr_es519xx_19200_14b_packet_valid(const uint8_t *buf);
+SR_PRIV int sr_es519xx_19200_14b_parse(const uint8_t *buf, float *floatval,
+		struct sr_datafeed_analog *analog, void *info);
+SR_PRIV gboolean sr_es519xx_19200_14b_sel_lpf_packet_valid(const uint8_t *buf);
+SR_PRIV int sr_es519xx_19200_14b_sel_lpf_parse(const uint8_t *buf,
+		float *floatval, struct sr_datafeed_analog *analog, void *info);
 
 /*--- hardware/common/dmm/fs9922.c ------------------------------------------*/
 

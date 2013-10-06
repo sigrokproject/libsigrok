@@ -42,7 +42,7 @@
 #define sr_err(s, args...) sr_err(LOG_PREFIX s, ## args)
 
 /* Factors for the respective measurement mode (0 means "invalid"). */
-static const float factors_2400_11B[8][8] = {
+static const float factors_2400_11b[8][8] = {
 	{1e-4,  1e-3,  1e-2,  1e-1, 1,    0,    0,    0   }, /* V */
 	{1e-7,  1e-6,  0,     0,    0,    0,    0,    0   }, /* uA */
 	{1e-5,  1e-4,  0,     0,    0,    0,    0,    0   }, /* mA */
@@ -52,7 +52,7 @@ static const float factors_2400_11B[8][8] = {
 	{1,     1e1,   1e2,   1e3,  1e4,  1e5,  0,    0   }, /* Frequency */
 	{1e-12, 1e-11, 1e-10, 1e-9, 1e-8, 1e-7, 1e-6, 1e-5}, /* Capacitance */
 };
-static const float factors_19200_11B_5digits[8][8] = {
+static const float factors_19200_11b_5digits[8][8] = {
 	{1e-4,  1e-3,  1e-2,  1e-1, 1e-5, 0,    0,    0},    /* V */
 	{1e-8,  1e-7,  0,     0,    0,    0,    0,    0},    /* uA */
 	{1e-6,  1e-5,  0,     0,    0,    0,    0,    0},    /* mA */
@@ -62,7 +62,7 @@ static const float factors_19200_11B_5digits[8][8] = {
 	{1e-1,  0,     1,     1e1,  1e2,  1e3,  1e4,  0},    /* Frequency */
 	{1e-12, 1e-11, 1e-10, 1e-9, 1e-8, 1e-7, 1e-6, 1e-5}, /* Capacitance */
 };
-static const float factors_19200_11B_clampmeter[8][8] = {
+static const float factors_19200_11b_clampmeter[8][8] = {
 	{1e-3,  1e-2,  1e-1,  1,    1e-4, 0,    0,    0},    /* V */
 	{1e-7,  1e-6,  0,     0,    0,    0,    0,    0},    /* uA */
 	{1e-5,  1e-4,  0,     0,    0,    0,    0,    0},    /* mA */
@@ -72,7 +72,7 @@ static const float factors_19200_11B_clampmeter[8][8] = {
 	{1e-1,  0,     1,     1e1,  1e2,  1e3,  1e4,  0},    /* Frequency */
 	{1e-12, 1e-11, 1e-10, 1e-9, 1e-8, 1e-7, 1e-6, 1e-5}, /* Capacitance */
 };
-static const float factors_19200_11B[8][8] = {
+static const float factors_19200_11b[8][8] = {
 	{1e-3,  1e-2,  1e-1,  1,    1e-4, 0,    0,    0},    /* V */
 	{1e-7,  1e-6,  0,     0,    0,    0,    0,    0},    /* uA */
 	{1e-5,  1e-4,  0,     0,    0,    0,    0,    0},    /* mA */
@@ -82,7 +82,7 @@ static const float factors_19200_11B[8][8] = {
 	{1,     1e1,   1e2,   1e3,  1e4,  0,    0,    0},    /* Frequency */
 	{1e-12, 1e-11, 1e-10, 1e-9, 1e-8, 1e-7, 1e-6, 0},    /* Capacitance */
 };
-static const float factors_19200_14B[8][8] = {
+static const float factors_19200_14b[8][8] = {
 	{1e-4,  1e-3,  1e-2,  1e-1, 1e-5, 0,    0,    0},    /* V */
 	{1e-8,  1e-7,  0,     0,    0,    0,    0,    0},    /* uA */
 	{1e-6,  1e-5,  0,     0,    0,    0,    0,    0},    /* mA */
@@ -96,8 +96,10 @@ static const float factors_19200_14B[8][8] = {
 static int parse_value(const uint8_t *buf, struct es519xx_info *info,
                        float *result)
 {
-	int i, intval, nb_digits = 4 + (info->packet_size == 14);
+	int i, intval, num_digits;
 	float floatval;
+
+	num_digits = 4 + ((info->packet_size == 14) ? 1 : 0);
 
 	/* Bytes 1-4 (or 5): Value (4 or 5 decimal digits) */
 	if (info->is_ol) {
@@ -110,15 +112,15 @@ static int parse_value(const uint8_t *buf, struct es519xx_info *info,
 		return SR_OK;
 	} else if (!isdigit(buf[1]) || !isdigit(buf[2]) ||
 	           !isdigit(buf[3]) || !isdigit(buf[4]) ||
-	           (nb_digits == 5 && !isdigit(buf[5]))) {
+	           (num_digits == 5 && !isdigit(buf[5]))) {
 		sr_err("Value contained invalid digits: %02x %02x %02x %02x "
 		       "(%c %c %c %c).", buf[1], buf[2], buf[3], buf[4],
 		       buf[1], buf[2], buf[3], buf[4]);
 		return SR_ERR;
 	}
-	intval = info->is_digit4;
-	for (i=0; i<nb_digits; i++)
-		intval = 10*intval + (buf[i+1] - '0');
+	intval = (info->is_digit4) ? 1 : 0;
+	for (i = 0; i < num_digits; i++)
+		intval = 10 * intval + (buf[i + 1] - '0');
 
 	/* Apply sign. */
 	intval *= info->is_sign ? -1 : 1;
@@ -130,14 +132,17 @@ static int parse_value(const uint8_t *buf, struct es519xx_info *info,
 	sr_spew("The display value is %f.", floatval);
 
 	*result = floatval;
+
 	return SR_OK;
 }
 
 static int parse_range(uint8_t b, float *floatval,
                        const struct es519xx_info *info)
 {
-	int mode, idx = b - '0';
+	int idx, mode;
 	float factor = 0;
+
+	idx = b - '0';
 
 	if (idx < 0 || idx > 7) {
 		sr_dbg("Invalid range byte / index: 0x%02x / 0x%02x.", b, idx);
@@ -153,9 +158,10 @@ static int parse_range(uint8_t b, float *floatval,
 		mode = 2; /* mA */
 	else if (info->is_current && info->is_auto)
 		mode = 3; /* A */
-	else if (info->is_current)
+	else if (info->is_current && !info->is_auto)
 		mode = 4; /* Manual A */
 	else if (info->is_rpm)
+		/* Not a typo, it's really index 4 in factors_2400_11b[][]. */
 		mode = 4; /* RPM */
 	else if (info->is_resistance)
 		mode = 5; /* Resistance */
@@ -170,20 +176,20 @@ static int parse_range(uint8_t b, float *floatval,
 
 	if (info->is_vbar) {
 		if (info->is_micro)
-			factor = (const float[]){ 1e-1, 1    }[idx];
+			factor = (const float[]){1e-1, 1}[idx];
 		else if (info->is_milli)
-			factor = (const float[]){ 1e-2, 1e-1 }[idx];
+			factor = (const float[]){1e-2, 1e-1}[idx];
 	}
 	else if (info->baudrate == 2400)
-		factor = factors_2400_11B[mode][idx];
+		factor = factors_2400_11b[mode][idx];
 	else if (info->fivedigits)
-		factor = factors_19200_11B_5digits[mode][idx];
+		factor = factors_19200_11b_5digits[mode][idx];
 	else if (info->clampmeter)
-		factor = factors_19200_11B_clampmeter[mode][idx];
+		factor = factors_19200_11b_clampmeter[mode][idx];
 	else if (info->packet_size == 11)
-		factor = factors_19200_11B[mode][idx];
+		factor = factors_19200_11b[mode][idx];
 	else if (info->packet_size == 14)
-		factor = factors_19200_14B[mode][idx];
+		factor = factors_19200_14b[mode][idx];
 
 	if (factor == 0) {
 		sr_dbg("Invalid factor for range byte: 0x%02x.", b);
@@ -199,59 +205,63 @@ static int parse_range(uint8_t b, float *floatval,
 
 static void parse_flags(const uint8_t *buf, struct es519xx_info *info)
 {
-	int function = 5 + (info->packet_size == 14), status = function + 1;
+	int function, status;
 
-	/* Status Byte */
+	function = 5 + ((info->packet_size == 14) ? 1 : 0);
+	status = function + 1;
+
+	/* Status byte */
 	if (info->alt_functions) {
 		info->is_sign  = (buf[status] & (1 << 3)) != 0;
-		info->is_batt  = (buf[status] & (1 << 2)) != 0; /* Battery low */
-		info->is_ol    = (buf[status] & (1 << 1)) != 0; /* Input overflow */
-		info->is_ol   |= (buf[status] & (1 << 0)) != 0; /* Input overflow */
+		info->is_batt  = (buf[status] & (1 << 2)) != 0; /* Bat. low */
+		info->is_ol    = (buf[status] & (1 << 1)) != 0; /* Overflow */
+		info->is_ol   |= (buf[status] & (1 << 0)) != 0; /* Overflow */
 	} else {
 		info->is_judge = (buf[status] & (1 << 3)) != 0;
 		info->is_sign  = (buf[status] & (1 << 2)) != 0;
-		info->is_batt  = (buf[status] & (1 << 1)) != 0; /* Battery low */
-		info->is_ol    = (buf[status] & (1 << 0)) != 0; /* Input overflow */
+		info->is_batt  = (buf[status] & (1 << 1)) != 0; /* Bat. low */
+		info->is_ol    = (buf[status] & (1 << 0)) != 0; /* Overflow */
 	}
 
 	if (info->packet_size == 14) {
-		/* Option 1 Byte */
-		info->is_max   = (buf[8] & (1 << 3)) != 0;
-		info->is_min   = (buf[8] & (1 << 2)) != 0;
-		info->is_rel   = (buf[8] & (1 << 1)) != 0;
-		info->is_rmr   = (buf[8] & (1 << 0)) != 0;
+		/* Option 1 byte */
+		info->is_max  = (buf[8] & (1 << 3)) != 0;
+		info->is_min  = (buf[8] & (1 << 2)) != 0;
+		info->is_rel  = (buf[8] & (1 << 1)) != 0;
+		info->is_rmr  = (buf[8] & (1 << 0)) != 0;
 
-		/* Option 2 Byte */
-		info->is_ul    = (buf[9] & (1 << 3)) != 0;
-		info->is_pmax  = (buf[9] & (1 << 2)) != 0;
-		info->is_pmin  = (buf[9] & (1 << 1)) != 0;
+		/* Option 2 byte */
+		info->is_ul   = (buf[9] & (1 << 3)) != 0; /* Underflow */
+		info->is_pmax = (buf[9] & (1 << 2)) != 0; /* Max. peak value */
+		info->is_pmin = (buf[9] & (1 << 1)) != 0; /* Min. peak value */
 
-		/* Option 3 Byte */
-		info->is_dc    = (buf[10] & (1 << 3)) != 0;
-		info->is_ac    = (buf[10] & (1 << 2)) != 0;
-		info->is_auto  = (buf[10] & (1 << 1)) != 0;
-		info->is_vahz  = (buf[10] & (1 << 0)) != 0;
+		/* Option 3 byte */
+		info->is_dc   = (buf[10] & (1 << 3)) != 0;
+		info->is_ac   = (buf[10] & (1 << 2)) != 0;
+		info->is_auto = (buf[10] & (1 << 1)) != 0;
+		info->is_vahz = (buf[10] & (1 << 0)) != 0;
 
+		/* LPF: Low-pass filter(s) */
 		if (info->selectable_lpf) {
-			/* Option 4 Byte */
-			info->is_hold  = (buf[11] & (1 << 3)) != 0;
-			info->is_vbar  = (buf[11] & (1 << 2)) != 0;
-			info->is_lpf1  = (buf[11] & (1 << 1)) != 0;
-			info->is_lpf0  = (buf[11] & (1 << 0)) != 0;
+			/* Option 4 byte */
+			info->is_hold = (buf[11] & (1 << 3)) != 0;
+			info->is_vbar = (buf[11] & (1 << 2)) != 0;
+			info->is_lpf1 = (buf[11] & (1 << 1)) != 0;
+			info->is_lpf0 = (buf[11] & (1 << 0)) != 0;
 		} else {
-			/* Option 4 Byte */
-			info->is_vbar  = (buf[11] & (1 << 2)) != 0;
-			info->is_hold  = (buf[11] & (1 << 1)) != 0;
-			info->is_lpf1  = (buf[11] & (1 << 0)) != 0;
+			/* Option 4 byte */
+			info->is_vbar = (buf[11] & (1 << 2)) != 0;
+			info->is_hold = (buf[11] & (1 << 1)) != 0;
+			info->is_lpf1 = (buf[11] & (1 << 0)) != 0;
 		}
 	} else if (info->alt_functions) {
-		/* Option 2 Byte */
-		info->is_dc    = (buf[8] & (1 << 3)) != 0;
-		info->is_auto  = (buf[8] & (1 << 2)) != 0;
-		info->is_apo   = (buf[8] & (1 << 0)) != 0;
-		info->is_ac    = !info->is_dc;
+		/* Option 2 byte */
+		info->is_dc   = (buf[8] & (1 << 3)) != 0;
+		info->is_auto = (buf[8] & (1 << 2)) != 0;
+		info->is_apo  = (buf[8] & (1 << 0)) != 0;
+		info->is_ac   = !info->is_dc;
 	} else {
-		/* Option 1 Byte */
+		/* Option 1 byte */
 		if (info->baudrate == 2400) {
 			info->is_pmax   = (buf[7] & (1 << 3)) != 0;
 			info->is_pmin   = (buf[7] & (1 << 2)) != 0;
@@ -271,17 +281,17 @@ static void parse_flags(const uint8_t *buf, struct es519xx_info *info)
 			info->is_min    = (buf[7] & (1 << 1)) != 0;
 		}
 
-		/* Option 2 Byte */
-		info->is_dc    = (buf[8] & (1 << 3)) != 0;
-		info->is_ac    = (buf[8] & (1 << 2)) != 0;
-		info->is_auto  = (buf[8] & (1 << 1)) != 0;
+		/* Option 2 byte */
+		info->is_dc   = (buf[8] & (1 << 3)) != 0;
+		info->is_ac   = (buf[8] & (1 << 2)) != 0;
+		info->is_auto = (buf[8] & (1 << 1)) != 0;
 		if (info->baudrate == 2400)
 			info->is_apo  = (buf[8] & (1 << 0)) != 0;
 		else
 			info->is_vahz = (buf[8] & (1 << 0)) != 0;
 	}
 
-	/* Function Byte */
+	/* Function byte */
 	if (info->alt_functions) {
 		switch (buf[function]) {
 		case 0x3f: /* A */
@@ -329,6 +339,7 @@ static void parse_flags(const uint8_t *buf, struct es519xx_info *info)
 			break;
 		}
 	} else {
+		/* Note: Some of these mappings are fixed up later. */
 		switch (buf[function]) {
 		case 0x3b: /* V */
 			info->is_voltage = TRUE;
@@ -377,6 +388,7 @@ static void parse_flags(const uint8_t *buf, struct es519xx_info *info)
 				info->is_celsius = TRUE;
 			else
 				info->is_fahrenheit = TRUE;
+			/* IMPORTANT: The digits always represent Celsius! */
 			break;
 		case 0x3e: /* ADP0 */
 			info->is_adp0 = TRUE;
@@ -402,7 +414,7 @@ static void parse_flags(const uint8_t *buf, struct es519xx_info *info)
 	}
 
 	if (info->baudrate == 2400) {
-		/* inverted mapping between mA and A, and no manual A */
+		/* Inverted mapping between mA and A, and no manual A. */
 		if (info->is_current && (info->is_milli || !info->is_auto)) {
 			info->is_milli = !info->is_milli;
 			info->is_auto = TRUE;
@@ -411,7 +423,7 @@ static void parse_flags(const uint8_t *buf, struct es519xx_info *info)
 }
 
 static void handle_flags(struct sr_datafeed_analog *analog,
-                         float *floatval, const struct es519xx_info *info)
+			 float *floatval, const struct es519xx_info *info)
 {
 	/*
 	 * Note: is_micro etc. are not used directly to multiply/divide
@@ -475,6 +487,11 @@ static void handle_flags(struct sr_datafeed_analog *analog,
 	if (info->is_diode)
 		analog->mqflags |= SR_MQFLAG_DIODE;
 	if (info->is_hold)
+		/*
+		* Note: HOLD only affects the number displayed on the LCD,
+		* but not the value sent via the protocol! It also does not
+		* affect the bargraph on the LCD.
+		*/
 		analog->mqflags |= SR_MQFLAG_HOLD;
 	if (info->is_max)
 		analog->mqflags |= SR_MQFLAG_MAX;
@@ -512,23 +529,23 @@ static gboolean flags_valid(const struct es519xx_info *info)
 	int count;
 
 	/* Does the packet have more than one multiplier? */
-	count  = info->is_micro;
-	count += info->is_milli;
+	count  = (info->is_micro) ? 1 : 0;
+	count += (info->is_milli) ? 1 : 0;
 	if (count > 1) {
 		sr_err("More than one multiplier detected in packet.");
 		return FALSE;
 	}
 
 	/* Does the packet "measure" more than one type of value? */
-	count  = info->is_voltage;
-	count += info->is_current;
-	count += info->is_resistance;
-	count += info->is_frequency;
-	count += info->is_capacitance;
-	count += info->is_temperature;
-	count += info->is_continuity;
-	count += info->is_diode;
-	count += info->is_rpm;
+	count  = (info->is_voltage) ? 1 : 0;
+	count += (info->is_current) ? 1 : 0;
+	count += (info->is_resistance) ? 1 : 0;
+	count += (info->is_frequency) ? 1 : 0;
+	count += (info->is_capacitance) ? 1 : 0;
+	count += (info->is_temperature) ? 1 : 0;
+	count += (info->is_continuity) ? 1 : 0;
+	count += (info->is_diode) ? 1 : 0;
+	count += (info->is_rpm) ? 1 : 0;
 	if (count > 1) {
 		sr_err("More than one measurement type detected in packet.");
 		return FALSE;
@@ -546,12 +563,14 @@ static gboolean flags_valid(const struct es519xx_info *info)
 static gboolean sr_es519xx_packet_valid(const uint8_t *buf,
                                         struct es519xx_info *info)
 {
-	int s = info->packet_size;
+	int s;
 
-	if (info->packet_size == 11 && memcmp(buf, buf + s, s))
+	s = info->packet_size;
+
+	if (s == 11 && memcmp(buf, buf + s, s))
 		return FALSE;
 
-	if (buf[s-2] != '\r' || buf[s-1] != '\n')
+	if (buf[s - 2] != '\r' || buf[s - 1] != '\n')
 		return FALSE;
 
 	parse_flags(buf, info);
@@ -581,166 +600,192 @@ static int sr_es519xx_parse(const uint8_t *buf, float *floatval,
 	return parse_range(buf[0], floatval, info);
 }
 
-
 /*
- * Functions for 2400 bauds 11 Bytes protocols.
+ * Functions for 2400 baud / 11 bytes protocols.
  * This includes ES51962, ES51971, ES51972, ES51978 and ES51989.
  */
-SR_PRIV gboolean sr_es519xx_2400_11B_packet_valid(const uint8_t *buf)
+SR_PRIV gboolean sr_es519xx_2400_11b_packet_valid(const uint8_t *buf)
 {
-	struct es519xx_info info = (const struct es519xx_info){ .baudrate = 2400,
-	                                                        .packet_size = 11 };
+	struct es519xx_info info;
+
+	info.baudrate = 2400;
+	info.packet_size = 11;
+
 	return sr_es519xx_packet_valid(buf, &info);
 }
 
-SR_PRIV int sr_es519xx_2400_11B_parse(const uint8_t *buf, float *floatval,
-                                      struct sr_datafeed_analog *analog,
-                                      void *info)
+SR_PRIV int sr_es519xx_2400_11b_parse(const uint8_t *buf, float *floatval,
+				struct sr_datafeed_analog *analog, void *info)
 {
-	struct es519xx_info *info_local = info;
-	*info_local = (const struct es519xx_info) { .baudrate = 2400,
-	                                            .packet_size = 11 };
+	struct es519xx_info *info_local;
+
+	info_local = info;
+	info_local->baudrate = 2400;
+	info_local->packet_size = 11;
+
 	return sr_es519xx_parse(buf, floatval, analog, info);
 }
 
-
 /*
- * Functions for 2400 bauds 11 Bytes protocols.
+ * Functions for 2400 baud / 11 byte protocols.
  * This includes ES51960, ES51977 and ES51988.
  */
-SR_PRIV gboolean sr_es519xx_2400_11B_alt_functions_packet_valid(const uint8_t *buf)
+SR_PRIV gboolean sr_es519xx_2400_11b_altfn_packet_valid(const uint8_t *buf)
 {
-	struct es519xx_info info = (const struct es519xx_info){ .baudrate = 2400,
-	                                                     .packet_size = 11,
-	                                                     .alt_functions = TRUE };
+	struct es519xx_info info;
+
+	info.baudrate = 2400;
+	info.packet_size = 11;
+	info.alt_functions = TRUE;
+
 	return sr_es519xx_packet_valid(buf, &info);
 }
 
-SR_PRIV int sr_es519xx_2400_11B_alt_functions_parse(const uint8_t *buf,
-                                      float *floatval,
-                                      struct sr_datafeed_analog *analog,
-                                      void *info)
+SR_PRIV int sr_es519xx_2400_11b_altfn_parse(const uint8_t *buf,
+		float *floatval, struct sr_datafeed_analog *analog, void *info)
 {
-	struct es519xx_info *info_local = info;
-	*info_local = (const struct es519xx_info) { .baudrate = 2400,
-	                                            .packet_size = 11,
-	                                            .alt_functions = TRUE };
+	struct es519xx_info *info_local;
+
+	info_local = info;
+	info_local->baudrate = 2400;
+	info_local->packet_size = 11;
+	info_local->alt_functions = TRUE;
+
 	return sr_es519xx_parse(buf, floatval, analog, info);
 }
 
-
 /*
- * Functions for 19200 bauds 11 Bytes protocols with 5 digits display
+ * Functions for 19200 baud / 11 bytes protocols with 5 digits display.
  * This includes ES51911, ES51916 and ES51918.
  */
-SR_PRIV gboolean sr_es519xx_19200_11B_5digits_packet_valid(const uint8_t *buf)
+SR_PRIV gboolean sr_es519xx_19200_11b_5digits_packet_valid(const uint8_t *buf)
 {
-	struct es519xx_info info = (const struct es519xx_info){ .baudrate = 19200,
-	                                                        .packet_size = 11,
-	                                                        .fivedigits = TRUE};
+	struct es519xx_info info;
+
+	info.baudrate = 19200;
+	info.packet_size = 11;
+	info.fivedigits = TRUE;
+
 	return sr_es519xx_packet_valid(buf, &info);
 }
 
-SR_PRIV int sr_es519xx_19200_11B_5difits_parse(const uint8_t *buf,
-               float *floatval, struct sr_datafeed_analog *analog, void *info)
+SR_PRIV int sr_es519xx_19200_11b_5difits_parse(const uint8_t *buf,
+		float *floatval, struct sr_datafeed_analog *analog, void *info)
 {
-	struct es519xx_info *info_local = info;
-	*info_local = (const struct es519xx_info) { .baudrate = 19200,
-	                                            .packet_size = 11,
-	                                            .fivedigits = TRUE };
+	struct es519xx_info *info_local;
+
+	info_local = info;
+	info_local->baudrate = 19200;
+	info_local->packet_size = 11;
+	info_local->fivedigits = TRUE;
+
 	return sr_es519xx_parse(buf, floatval, analog, info);
 }
 
-
 /*
- * Functions for 19200 bauds 11 Bytes protocols with clamp meter support
+ * Functions for 19200 baud / 11 bytes protocols with clamp meter support.
  * This includes ES51967 and ES51969.
  */
-SR_PRIV gboolean sr_es519xx_19200_11B_clamp_packet_valid(const uint8_t *buf)
+SR_PRIV gboolean sr_es519xx_19200_11b_clamp_packet_valid(const uint8_t *buf)
 {
-	struct es519xx_info info = (const struct es519xx_info){ .baudrate = 19200,
-	                                                        .packet_size = 11,
-	                                                        .clampmeter = TRUE};
+	struct es519xx_info info;
+
+	info.baudrate = 19200;
+	info.packet_size = 11;
+	info.clampmeter = TRUE;
+
 	return sr_es519xx_packet_valid(buf, &info);
 }
 
-SR_PRIV int sr_es519xx_19200_11B_clamp_parse(const uint8_t *buf,
-                                             float *floatval,
-                                             struct sr_datafeed_analog *analog,
-                                             void *info)
+SR_PRIV int sr_es519xx_19200_11b_clamp_parse(const uint8_t *buf,
+		float *floatval, struct sr_datafeed_analog *analog, void *info)
 {
-	struct es519xx_info *info_local = info;
-	*info_local = (const struct es519xx_info) { .baudrate = 19200,
-	                                            .packet_size = 11,
-	                                            .clampmeter = TRUE };
+	struct es519xx_info *info_local;
+
+	info_local = info;
+	info_local->baudrate = 19200;
+	info_local->packet_size = 11;
+	info_local->clampmeter = TRUE;
+
 	return sr_es519xx_parse(buf, floatval, analog, info);
 }
 
-
 /*
- * Functions for 19200 bauds 11 Bytes protocols.
+ * Functions for 19200 baud / 11 bytes protocols.
  * This includes ES51981, ES51982, ES51983, ES51984 and ES51986.
  */
-SR_PRIV gboolean sr_es519xx_19200_11B_packet_valid(const uint8_t *buf)
+SR_PRIV gboolean sr_es519xx_19200_11b_packet_valid(const uint8_t *buf)
 {
-	struct es519xx_info info = (const struct es519xx_info){ .baudrate = 19200,
-	                                                        .packet_size = 11 };
+	struct es519xx_info info;
+
+	info.baudrate = 19200;
+	info.packet_size = 11;
+
 	return sr_es519xx_packet_valid(buf, &info);
 }
 
-SR_PRIV int sr_es519xx_19200_11B_parse(const uint8_t *buf, float *floatval,
-                                       struct sr_datafeed_analog *analog,
-                                       void *info)
+SR_PRIV int sr_es519xx_19200_11b_parse(const uint8_t *buf, float *floatval,
+			struct sr_datafeed_analog *analog, void *info)
 {
-	struct es519xx_info *info_local = info;
-	*info_local = (const struct es519xx_info) { .baudrate = 19200,
-	                                            .packet_size = 11 };
+	struct es519xx_info *info_local;
+
+	info_local = info;
+	info_local->baudrate = 19200;
+	info_local->packet_size = 11;
+
 	return sr_es519xx_parse(buf, floatval, analog, info);
 }
 
-
 /*
- * Functions for 19200 bauds 14 Bytes protocols.
+ * Functions for 19200 baud / 14 bytes protocols.
  * This includes ES51921 and ES51922.
  */
-SR_PRIV gboolean sr_es519xx_19200_14B_packet_valid(const uint8_t *buf)
+SR_PRIV gboolean sr_es519xx_19200_14b_packet_valid(const uint8_t *buf)
 {
-	struct es519xx_info info = (const struct es519xx_info){ .baudrate = 19200,
-	                                                        .packet_size = 14 };
+	struct es519xx_info info;
+
+	info.baudrate = 19200;
+	info.packet_size = 14;
+
 	return sr_es519xx_packet_valid(buf, &info);
 }
 
-SR_PRIV int sr_es519xx_19200_14B_parse(const uint8_t *buf, float *floatval,
-                                       struct sr_datafeed_analog *analog,
-                                       void *info)
+SR_PRIV int sr_es519xx_19200_14b_parse(const uint8_t *buf, float *floatval,
+			struct sr_datafeed_analog *analog, void *info)
 {
-	struct es519xx_info *info_local = info;
-	*info_local = (const struct es519xx_info) { .baudrate = 19200,
-	                                            .packet_size = 14 };
+	struct es519xx_info *info_local;
+
+	info_local = info;
+	info_local->baudrate = 19200;
+	info_local->packet_size = 14;
+
 	return sr_es519xx_parse(buf, floatval, analog, info);
 }
 
-
 /*
- * Functions for 19200 bauds 14 Bytes protocols with selectable LPF.
+ * Functions for 19200 baud / 14 bytes protocols with selectable LPF.
  * This includes ES51931 and ES51932.
  */
-SR_PRIV gboolean sr_es519xx_19200_14B_selectable_lpfpacket_valid(const uint8_t *buf)
+SR_PRIV gboolean sr_es519xx_19200_14b_sel_lpf_packet_valid(const uint8_t *buf)
 {
-	struct es519xx_info info = (const struct es519xx_info){ .baudrate = 19200,
-	                                                   .packet_size = 14,
-	                                                   .selectable_lpf = TRUE };
+	struct es519xx_info info;
+
+	info.baudrate = 19200;
+	info.packet_size = 14;
+	info.selectable_lpf = TRUE;
+
 	return sr_es519xx_packet_valid(buf, &info);
 }
 
-SR_PRIV int sr_es519xx_19200_14B_selectable_lpf_parse(const uint8_t *buf,
-                                       float *floatval,
-                                       struct sr_datafeed_analog *analog,
-                                       void *info)
+SR_PRIV int sr_es519xx_19200_14b_sel_lpf_parse(const uint8_t *buf,
+		float *floatval, struct sr_datafeed_analog *analog, void *info)
 {
-	struct es519xx_info *info_local = info;
-	*info_local = (const struct es519xx_info) { .baudrate = 19200,
-	                                            .packet_size = 14,
-	                                            .selectable_lpf = TRUE };
+	struct es519xx_info *info_local;
+
+	info_local = info;
+	info_local->baudrate = 19200;
+	info_local->packet_size = 14;
+	info_local->selectable_lpf = TRUE;
+
 	return sr_es519xx_parse(buf, floatval, analog, info);
 }
