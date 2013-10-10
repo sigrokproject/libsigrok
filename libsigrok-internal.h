@@ -200,7 +200,11 @@ SR_PRIV int sr_es51922_parse(const uint8_t *buf, float *floatval,
 
 /*--- hardware/common/dmm/es519xx.c -----------------------------------------*/
 
-#define ES519XX_11B_PACKET_SIZE 11
+/**
+ * All 11-byte es519xx chips repeat each block twice for each conversion cycle
+ * so always read 2 blocks at a time.
+ */
+#define ES519XX_11B_PACKET_SIZE (11 * 2)
 #define ES519XX_14B_PACKET_SIZE 14
 
 struct es519xx_info {
