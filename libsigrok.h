@@ -217,6 +217,9 @@ enum {
 	 */
 	SR_UNIT_CONCENTRATION,
 	SR_UNIT_REVOLUTIONS_PER_MINUTE,
+	SR_UNIT_VOLT_AMPERE,
+	SR_UNIT_WATT,
+	SR_UNIT_WATT_HOUR,
 };
 
 /** Values for sr_datafeed_analog.flags. */
@@ -582,6 +585,9 @@ enum {
 
 	/** The device can measure humidity. */
 	SR_CONF_HYGROMETER,
+
+	/** The device can measure energy consumption. */
+	SR_CONF_ENERGYMETER,
 
 	/*--- Driver scan options -------------------------------------------*/
 

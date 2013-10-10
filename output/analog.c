@@ -175,6 +175,14 @@ static void fancyprint(int unit, int mqflags, float value, GString *out)
 		break;
 	case SR_UNIT_REVOLUTIONS_PER_MINUTE:
 		si_printf(value, out, "RPM");
+	case SR_UNIT_VOLT_AMPERE:
+		si_printf(value, out, "VA");
+		break;
+	case SR_UNIT_WATT:
+		si_printf(value, out, "W");
+		break;
+	case SR_UNIT_WATT_HOUR:
+		si_printf(value, out, "Wh");
 		break;
 	default:
 		si_printf(value, out, "");
