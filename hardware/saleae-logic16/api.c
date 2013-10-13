@@ -308,6 +308,20 @@ static int logic16_dev_open(struct sr_dev_inst *sdi)
 			break;
 		}
 
+		ret = libusb_claim_interface(usb->devhdl, USB_INTERFACE);
+		if (ret == LIBUSB_ERROR_BUSY) {
+			sr_err("Unable to claim USB interface. Another "
+			       "program or driver has already claimed it.");
+			break;
+		} else if (ret == LIBUSB_ERROR_NO_DEVICE) {
+			sr_err("Device has been disconnected.");
+			break;
+		} else if (ret != 0) {
+			sr_err("Unable to claim interface: %s.",
+			       libusb_error_name(ret));
+			break;
+		}
+
 		if ((ret = logic16_init_device(sdi)) != SR_OK) {
 			sr_err("Failed to init device.");
 			break;
@@ -321,21 +335,25 @@ static int logic16_dev_open(struct sr_dev_inst *sdi)
 	}
 	libusb_free_device_list(devlist, 1);
 
-	if (sdi->status != SR_ST_ACTIVE)
+	if (sdi->status != SR_ST_ACTIVE) {
+		if (usb->devhdl) {
+			libusb_release_interface(usb->devhdl, USB_INTERFACE);
+			libusb_close(usb->devhdl);
+			usb->devhdl = NULL;
+		}
 		return SR_ERR;
+	}
 
 	return SR_OK;
 }
 
 static int dev_open(struct sr_dev_inst *sdi)
 {
-	struct sr_usb_dev_inst *usb;
 	struct dev_context *devc;
 	int ret;
 	int64_t timediff_us, timediff_ms;
 
 	devc = sdi->priv;
-	usb = sdi->conn;
 
 	/*
 	 * If the firmware was recently uploaded, wait up to MAX_RENUM_DELAY_MS
@@ -368,25 +386,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 	if (ret != SR_OK) {
 		sr_err("Unable to open device.");
-		return SR_ERR;
-	}
-
-	ret = libusb_claim_interface(usb->devhdl, USB_INTERFACE);
-	if (ret != 0) {
-		switch (ret) {
-		case LIBUSB_ERROR_BUSY:
-			sr_err("Unable to claim USB interface. Another "
-			       "program or driver has already claimed it.");
-			break;
-		case LIBUSB_ERROR_NO_DEVICE:
-			sr_err("Device has been disconnected.");
-			break;
-		default:
-			sr_err("Unable to claim interface: %s.",
-			       libusb_error_name(ret));
-			break;
-		}
-
 		return SR_ERR;
 	}
 
