@@ -548,7 +548,7 @@ SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
 		return SR_ERR;
 	}
 
-	term.c_iflag &= ~(IXON | IXOFF);
+	term.c_iflag &= ~(IXON | IXOFF | IXANY);
 	term.c_cflag &= ~CRTSCTS;
 	switch (flowcontrol) {
 	case 0:
@@ -561,7 +561,7 @@ SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
 		break;
 	case 2:
 		sr_spew("Configuring XON/XOFF flow control.");
-		term.c_iflag |= IXON | IXOFF;
+		term.c_iflag |= (IXON | IXOFF | IXANY);
 		break;
 	default:
 		sr_err("Unsupported flow control setting %d.", flowcontrol);
