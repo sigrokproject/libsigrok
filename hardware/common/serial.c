@@ -569,7 +569,7 @@ SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
 	}
 
 	term.c_iflag &= ~IGNPAR;
-	term.c_cflag &= ~(PARODD | PARENB);
+	term.c_cflag &= ~(PARENB | PARODD);
 	switch (parity) {
 	case SERIAL_PARITY_NONE:
 		sr_spew("Configuring no parity.");
