@@ -17,164 +17,321 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <errno.h>
+#include <stdio.h>
+#include <string.h>
+
 #include "protocol.h"
+
+
+static const int32_t hwopts[] = {
+	SR_CONF_CONN,
+	SR_CONF_SERIALCOMM,
+};
+
+static const int32_t hwcaps[] = {
+	SR_CONF_MULTIMETER,
+	SR_CONF_LIMIT_SAMPLES,
+	SR_CONF_LIMIT_MSEC,
+	SR_CONF_CONTINUOUS,
+};
+
+
+#define SERIALCOMM "4800/8n1/dtr=1/rts=0/flow=1"
+
 
 SR_PRIV struct sr_dev_driver norma_dmm_driver_info;
 static struct sr_dev_driver *di = &norma_dmm_driver_info;
+
 
 static int init(struct sr_context *sr_ctx)
 {
 	return std_init(sr_ctx, di, LOG_PREFIX);
 }
 
+
 static GSList *scan(GSList *options)
 {
+	struct sr_dev_inst *sdi;
 	struct drv_context *drvc;
-	GSList *devices;
+	struct dev_context *devc;
+	struct sr_config *src;
+	struct sr_probe *probe;
+	struct sr_serial_dev_inst *serial;
+	GSList *l, *devices;
+	int len, cnt;
+	const char *conn, *serialcomm;
+	char *buf;
+	char fmttype[10];
+	char req[10];
+	int auxtype;
 
-	(void)options;
+	#define BUF_MAX (50)
 
 	devices = NULL;
 	drvc = di->priv;
 	drvc->instances = NULL;
+	conn = serialcomm = NULL;
 
-	/* TODO: scan for devices, either based on a SR_CONF_CONN option
-	 * or on a USB scan. */
+	for (l = options; l; l = l->next) {
+		src = l->data;
+		switch (src->key) {
+		case SR_CONF_CONN:
+			conn = g_variant_get_string(src->data, NULL);
+			break;
+		case SR_CONF_SERIALCOMM:
+			serialcomm = g_variant_get_string(src->data, NULL);
+			break;
+		}
+	}
+	if (!conn)
+		return NULL;
+	if (!serialcomm)
+		serialcomm = SERIALCOMM;
+
+	if (!(serial = sr_serial_dev_inst_new(conn, serialcomm)))
+		return NULL;
+
+	if (serial_open(serial, SERIAL_RDWR | SERIAL_NONBLOCK) != SR_OK)
+		return NULL;
+
+	serial_flush(serial);
+
+	len = BUF_MAX;
+	if (!(buf = g_try_malloc(len))) {
+		sr_err("Serial buffer malloc failed.");
+		return NULL;
+	}
+
+	snprintf(req, sizeof(req), "%s\r\n",
+		 nmadmm_requests[NMADMM_REQ_IDN].reqstr);
+	for (cnt = 0; cnt < 7; cnt++) {
+		if (serial_write(serial, req, strlen(req)) == -1) {
+			sr_err("Unable to send identification request: %d %s.",
+			errno, strerror(errno));
+			return NULL;
+		}
+		len = BUF_MAX;
+		serial_readline(serial, &buf, &len, 1500);
+		if (!len)
+			continue;
+		buf[BUF_MAX-1] = '\0';
+
+		/* Match id string, e.g. "1834 065 V1.06,IF V1.02" (DM950) */
+		if (g_regex_match_simple("^1834 [^,]*,IF V*", (char*)buf,0,0)) {
+			auxtype = xgittoint(buf[7]);
+				// TODO: Will this work with non-DM950?
+			snprintf(fmttype, sizeof(fmttype), "DM9%d0", auxtype);
+			sr_spew("Norma %s DMM %s detected!", fmttype, &buf[9]);
+
+			if (!(sdi = sr_dev_inst_new(0, SR_ST_INACTIVE,
+						"Norma", fmttype, buf + 9)))
+				return NULL;
+			if (!(devc = g_try_malloc0(sizeof(*devc)))) {
+				sr_err("Device context malloc failed.");
+				return NULL;
+			}
+			devc->type = auxtype;
+			devc->version = g_strdup(&buf[9]);
+			devc->elapsed_msec = g_timer_new();
+
+			sdi->conn = serial;
+			sdi->priv = devc;
+			sdi->driver = di;
+			if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE,
+				"P1")))
+				return NULL;
+			sdi->probes = g_slist_append(sdi->probes, probe);
+			drvc->instances = g_slist_append(drvc->instances, sdi);
+			devices = g_slist_append(devices, sdi);
+			break;
+		}
+		/* The interface of the DM9x0 contains a cap that needs to
+		 charge for up to 10s before the interface works, if not powered
+		 externally. Therefore wait a little to improve chances. */
+		if (cnt == 3) {
+			sr_info("Waiting 5s to allow interface to settle.");
+			g_usleep(5 * 1000 * 1000);
+		}
+	}
+
+	g_free(buf);
+
+	serial_close(serial);
+	if (!devices)
+		sr_serial_dev_inst_free(serial);
 
 	return devices;
 }
+
 
 static GSList *dev_list(void)
 {
 	return ((struct drv_context *)(di->priv))->instances;
 }
 
+
 static int dev_clear(void)
 {
 	return std_dev_clear(di, NULL);
 }
 
+
 static int dev_open(struct sr_dev_inst *sdi)
 {
-	(void)sdi;
+	struct sr_serial_dev_inst *serial;
 
-	/* TODO: get handle from sdi->conn and open it. */
+	serial = sdi->conn;
+	if (serial_open(serial, SERIAL_RDWR | SERIAL_NONBLOCK) != SR_OK)
+		return SR_ERR;
 
 	sdi->status = SR_ST_ACTIVE;
 
 	return SR_OK;
 }
 
+
 static int dev_close(struct sr_dev_inst *sdi)
 {
-	(void)sdi;
+	struct sr_serial_dev_inst *serial;
+	struct dev_context *devc;
 
-	/* TODO: get handle from sdi->conn and close it. */
+	serial = sdi->conn;
+	if (serial && serial->fd != -1) {
+		serial_close(serial);
+		sdi->status = SR_ST_INACTIVE;
+	}
 
-	sdi->status = SR_ST_INACTIVE;
+	// Free dynamically allocated resources.
+	if ((devc = sdi->priv) && devc->version) {
+		g_free(devc->version);
+		devc->version = NULL;
+		g_timer_destroy(devc->elapsed_msec);
+	}
 
 	return SR_OK;
 }
+
 
 static int cleanup(void)
 {
-	dev_clear();
-
-	/* TODO: free other driver resources, if any. */
-
-	return SR_OK;
+	return dev_clear();
 }
 
-static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi)
-{
-	int ret;
-
-	(void)sdi;
-	(void)data;
-
-	ret = SR_OK;
-	switch (key) {
-	/* TODO */
-	default:
-		return SR_ERR_NA;
-	}
-
-	return ret;
-}
 
 static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi)
 {
-	int ret;
-
-	(void)data;
+	struct dev_context *devc;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
-	ret = SR_OK;
-	switch (key) {
-	/* TODO */
-	default:
-		ret = SR_ERR_NA;
+	if (!(devc = sdi->priv)) {
+		sr_err("sdi->priv was NULL.");
+		return SR_ERR_BUG;
 	}
 
-	return ret;
-}
-
-static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
-{
-	int ret;
-
-	(void)sdi;
-	(void)data;
-
-	ret = SR_OK;
 	switch (key) {
-	/* TODO */
+	case SR_CONF_LIMIT_MSEC:
+		/* TODO: not yet implemented */
+		if (g_variant_get_uint64(data) == 0) {
+			sr_err("LIMIT_MSEC can't be 0.");
+			return SR_ERR;
+		}
+		devc->limit_msec = g_variant_get_uint64(data);
+		sr_dbg("Setting time limit to %" PRIu64 "ms.",
+		       devc->limit_msec);
+		break;
+	case SR_CONF_LIMIT_SAMPLES:
+		devc->limit_samples = g_variant_get_uint64(data);
+		sr_dbg("Setting sample limit to %" PRIu64 ".",
+		       devc->limit_samples);
+		break;
 	default:
 		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
+
+
+static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
+{
+	(void)sdi;
+
+	switch (key) {
+	case SR_CONF_SCAN_OPTIONS:
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+				hwopts, ARRAY_SIZE(hwopts), sizeof(int32_t));
+		break;
+	case SR_CONF_DEVICE_OPTIONS:
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+				hwcaps, ARRAY_SIZE(hwcaps), sizeof(int32_t));
+		break;
+	default:
+		return SR_ERR_NA;
+	}
+
+	return SR_OK;
+}
+
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 				    void *cb_data)
 {
+	struct dev_context *devc;
+	struct sr_serial_dev_inst *serial;
+
 	(void)sdi;
 	(void)cb_data;
 
+	if (!sdi || !cb_data || !(devc = sdi->priv))
+		return SR_ERR_BUG;
+
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
-	/* TODO: configure hardware, reset acquisition state, set up
-	 * callbacks and send header packet. */
+	devc->cb_data = cb_data;
+
+	/* Send header packet to the session bus. */
+	std_session_send_df_header(cb_data, LOG_PREFIX);
+
+	/* Start timer, if required. */
+	if (devc->limit_msec)
+		g_timer_start(devc->elapsed_msec);
+
+	/* Poll every 100ms, or whenever some data comes in. */
+	serial = sdi->conn;
+	sr_source_add(serial->fd, G_IO_IN, 100, norma_dmm_receive_data,
+		      (void *)sdi);
 
 	return SR_OK;
 }
+
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
-	(void)cb_data;
+	struct dev_context *devc;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
+	/* Stop timer, if required. */
+	if (sdi && (devc = sdi->priv) && devc->limit_msec)
+		g_timer_stop(devc->elapsed_msec);
 
-	/* TODO: stop acquisition. */
-
-	return SR_OK;
+	return std_dev_acquisition_stop_serial(sdi, cb_data, dev_close,
+			sdi->conn, LOG_PREFIX);
 }
+
 
 SR_PRIV struct sr_dev_driver norma_dmm_driver_info = {
 	.name = "norma-dmm",
-	.longname = "norma-dmm",
+	.longname = "Norma DM910..950, Siemens B1024..1028 DMMs",
 	.api_version = 1,
 	.init = init,
 	.cleanup = cleanup,
 	.scan = scan,
 	.dev_list = dev_list,
 	.dev_clear = dev_clear,
-	.config_get = config_get,
+	.config_get = NULL,
 	.config_set = config_set,
 	.config_list = config_list,
 	.dev_open = dev_open,

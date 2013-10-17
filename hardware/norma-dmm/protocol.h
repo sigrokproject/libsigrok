@@ -34,18 +34,48 @@
 #define sr_warn(s, args...) sr_warn(LOG_PREFIX s, ## args)
 #define sr_err(s, args...) sr_err(LOG_PREFIX s, ## args)
 
+#define NMADMM_BUFSIZE  256
+
+/** Norma DMM request types (used ones only, the multimeters support about 50).
+ */
+enum nmadmm_req_t {
+	NMADMM_REQ_IDN = 0,	/**< Request identity */
+	NMADMM_REQ_STATUS,	/**< Request device status (value + ...) */
+};
+
+/** Defines requests used to communicate with device. */
+struct nmadmm_req {
+	enum nmadmm_req_t req_t;	/** Request type. */
+	const char* reqstr;		/** Request string */
+};
+
+/** Strings for requests. */
+extern const struct nmadmm_req nmadmm_requests[];
+
 /** Private, per-device-instance driver context. */
 struct dev_context {
 	/* Model-specific information */
-
+	char*	version;	/**< Version string */
+	int	type;		/**< DM9x0, e.g. 5 = DM950 */
 	/* Acquisition settings */
+	uint64_t limit_samples;	/**< Target number of samples */
+	uint64_t limit_msec;	/**< Target sampling time */
+
+	/* Opaque pointer passed in by frontend. */
+	void *cb_data;
 
 	/* Operational state */
-
+	enum nmadmm_req_t last_req;	/**< Last request. */
+	gboolean last_req_pending;	/**< Last request not answered yet.*/
+	int	lowbatt;		/**< Low battery. 1=low, 2=critical.*/
 	/* Temporary state across callbacks */
-
+	uint64_t num_samples;		/**< Current #samples. */
+	GTimer* elapsed_msec;		/**< Used for sampling with limit_msec*/
+	unsigned char buf[NMADMM_BUFSIZE];	/**< Buffer for read callback */
+	int buflen;			/**< Data len in buf */
 };
 
 SR_PRIV int norma_dmm_receive_data(int fd, int revents, void *cb_data);
+SR_PRIV int xgittoint(char xgit);
 
 #endif
