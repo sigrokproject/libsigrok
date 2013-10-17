@@ -38,6 +38,7 @@ SUBDIRS = \
 	lascar-el-usb \
 	link-mso19 \
 	mic-985xx \
+	norma-dmm \
 	openbench-logic-sniffer \
 	rigol-ds1xx2 \
 	saleae-logic16 \
@@ -126,6 +127,10 @@ endif
 
 if HW_MIC_985XX
 libsigrokhardware_la_LIBADD += mic-985xx/libsigrok_hw_mic_985xx.la
+endif
+
+if HW_NORMA_DMM
+libsigrokhardware_la_LIBADD += norma-dmm/libsigrok_hw_norma_dmm.la
 endif
 
 if HW_OLS

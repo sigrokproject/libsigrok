@@ -139,6 +139,9 @@ extern SR_PRIV struct sr_dev_driver lascar_el_usb_driver_info;
 extern SR_PRIV struct sr_dev_driver mic_98581_driver_info;
 extern SR_PRIV struct sr_dev_driver mic_98583_driver_info;
 #endif
+#ifdef HAVE_HW_NORMA_DMM
+extern SR_PRIV struct sr_dev_driver norma_dmm_driver_info;
+#endif
 #ifdef HAVE_HW_OLS
 extern SR_PRIV struct sr_dev_driver ols_driver_info;
 #endif
@@ -255,6 +258,9 @@ static struct sr_dev_driver *drivers_list[] = {
 #ifdef HAVE_HW_MIC_985XX
 	&mic_98581_driver_info,
 	&mic_98583_driver_info,
+#endif
+#ifdef HAVE_HW_NORMA_DMM
+	&norma_dmm_driver_info,
 #endif
 #ifdef HAVE_HW_OLS
 	&ols_driver_info,

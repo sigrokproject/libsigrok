@@ -174,6 +174,11 @@ AC_ARG_ENABLE(mic-985xx, AC_HELP_STRING([--enable-mic-985xx],
 	[HW_MIC_985XX="$enableval"],
 	[HW_MIC_985XX=$HW_ENABLED_DEFAULT])
 
+AC_ARG_ENABLE(norma-dmm, AC_HELP_STRING([--enable-norma-dmm],
+	[enable Norma DMM support [default=yes]]),
+	[HW_NORMA_DMM="$enableval"],
+	[HW_NORMA_DMM=$HW_ENABLED_DEFAULT])
+
 AC_ARG_ENABLE(ols, AC_HELP_STRING([--enable-ols],
 	[enable OpenBench Logic Sniffer (OLS) support [default=yes]]),
 	[HW_OLS="$enableval"],
@@ -416,6 +421,11 @@ if test "x$HW_MIC_985XX" = "xyes"; then
 	AC_DEFINE(HAVE_HW_MIC_985XX, 1, [MIC 985xx support])
 fi
 
+AM_CONDITIONAL(HW_NORMA_DMM, test x$HW_NORMA_DMM = xyes)
+if test "x$HW_NORMA_DMM" = "xyes"; then
+       AC_DEFINE(HAVE_HW_NORMA_DMM, 1, [norma-dmm support])
+fi
+
 AM_CONDITIONAL(HW_OLS, test x$HW_OLS = xyes)
 if test "x$HW_OLS" = "xyes"; then
 	AC_DEFINE(HAVE_HW_OLS, 1, [OpenBench Logic Sniffer (OLS) support])
@@ -521,6 +531,7 @@ AC_CONFIG_FILES([Makefile version.h hardware/Makefile
 		 hardware/fx2lafw/Makefile
 		 hardware/hantek-dso/Makefile
 		 hardware/link-mso19/Makefile
+		 hardware/norma-dmm/Makefile
 		 hardware/openbench-logic-sniffer/Makefile
 		 hardware/serial-dmm/Makefile
 		 hardware/uni-t-dmm/Makefile
@@ -578,6 +589,7 @@ echo "  - kecheng-kc-330b................. $HW_KECHENG_KC_330B"
 echo "  - lascar-el-usb................... $HW_LASCAR_EL_USB"
 echo "  - link-mso19 (EXPERIMENTAL)....... $HW_LINK_MSO19"
 echo "  - mic-985xx....................... $HW_MIC_985XX"
+echo "  - norma-dmm....................... $HW_NORMA_DMM"
 echo "  - openbench-logic-sniffer......... $HW_OLS"
 echo "  - rigol-ds1xx2.................... $HW_RIGOL_DS1XX2"
 echo "  - saleae-logic16.................. $HW_SALEAE_LOGIC16"
