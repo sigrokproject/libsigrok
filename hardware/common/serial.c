@@ -598,6 +598,9 @@ SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
 	/* Disable canonical mode, and don't echo input characters. */
 	term.c_lflag &= ~(ICANON | ECHO);
 
+	/* Ignore modem status lines; enable receiver */
+	term.c_cflag |= (CLOCAL | CREAD);
+
 	/* Write the configured settings. */
 	if (tcsetattr(serial->fd, TCSADRAIN, &term) < 0) {
 		sr_err("tcsetattr() error: %s.", strerror(errno));
