@@ -117,8 +117,10 @@ SR_PRIV int std_session_send_df_header(const struct sr_dev_inst *sdi,
  * @param prefix A driver-specific prefix string used for log messages.
  *               Must not be NULL. An empty string is allowed.
  *
- * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or
- *         SR_ERR upon other errors.
+ * @retval SR_OK Success.
+ * @retval SR_ERR_ARG Invalid arguments.
+ * @retval SR_ERR_DEV_CLOSED Device is closed.
+ * @retval SR_ERR Other errors.
  */
 SR_PRIV int std_dev_acquisition_stop_serial(struct sr_dev_inst *sdi,
 			void *cb_data, dev_close_t dev_close_fn,
@@ -134,7 +136,7 @@ SR_PRIV int std_dev_acquisition_stop_serial(struct sr_dev_inst *sdi,
 
 	if (sdi->status != SR_ST_ACTIVE) {
 		sr_err("%sDevice inactive, can't stop acquisition.", prefix);
-		return SR_ERR;
+		return SR_ERR_DEV_CLOSED;
 	}
 
 	sr_dbg("%sStopping acquisition.", prefix);
