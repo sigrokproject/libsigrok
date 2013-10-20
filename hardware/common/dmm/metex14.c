@@ -45,72 +45,32 @@
 
 static int parse_value(const uint8_t *buf, float *result)
 {
-	int i, sign, intval = 0, factor, decimal_point = 0, is_ol;
-	float floatval;
-	uint8_t digit;
+	int i, is_ol, cnt;
+	char valstr[7 + 1];
 
-	/* Byte 3: Sign (' ' or '-') */
-	if (buf[3] == ' ') {
-		sign = 1;
-	} else if (buf[3] == '-') {
-		sign = -1;
-	} else {
-		sr_err("Invalid sign byte: 0x%02x.", buf[3]);
-		return SR_ERR;
+	/* Strip all spaces from bytes 2-8. */
+	memset(&valstr, 0, 7 + 1);
+	for (i = 0, cnt = 0; i < 7; i++) {
+		if (buf[2 + i] != ' ')
+			valstr[cnt++] = buf[2 + i];
 	}
 
 	/* Bytes 5-7: Over limit (various forms) */
 	is_ol = 0;
-	is_ol += (!strncmp((char *)&buf[5], ".OL", 3)) ? 1 : 0;
-	is_ol += (!strncmp((char *)&buf[5], "O.L", 3)) ? 1 : 0;
-	is_ol += (!strncmp((char *)&buf[5], "OL.", 3)) ? 1 : 0;
-	is_ol += (!strncmp((char *)&buf[5], " OL", 3)) ? 1 : 0;
+	is_ol += (!strcmp((const char *)&valstr, ".OL")) ? 1 : 0;
+	is_ol += (!strcmp((const char *)&valstr, "O.L")) ? 1 : 0;
+	is_ol += (!strcmp((const char *)&valstr, "OL.")) ? 1 : 0;
+	is_ol += (!strcmp((const char *)&valstr, "OL")) ? 1 : 0;
 	if (is_ol != 0) {
 		sr_spew("Over limit.");
 		*result = INFINITY;
 		return SR_OK;
 	}
 
-	/* Bytes 4-8: Value (up to 4 digits) and decimal point */
-	factor = 1000;
-	for (i = 0; i < 5; i++) {
-		digit = buf[4 + i];
-		/* Convert spaces to '0', so that we can parse them. */
-		if (digit == ' ')
-			digit = '0';
-		if (digit == '.') {
-			decimal_point = i;
-		} else if (isdigit(digit)) {
-			intval += (digit - '0') * factor;
-			factor /= 10;
-		} else {
-			sr_err("Invalid digit byte: 0x%02x.", digit);
-			return SR_ERR;
-		}
-	}
+	/* Bytes 2-8: Sign, value (up to 5 digits) and decimal point */
+	sscanf((const char *)&valstr, "%f", result);
 
-	floatval = (float)intval;
-
-	/* Decimal point position */
-	if (decimal_point == 0 || decimal_point == 4) {
-		/* TODO: Doesn't happen? */
-	} else if (decimal_point == 1) {
-		floatval /= 1000;
-	} else if (decimal_point == 2) {
-		floatval /= 100;
-	} else if (decimal_point == 3) {
-		floatval /= 10;
-	} else {
-		sr_err("Invalid decimal point position: %d.", decimal_point);
-		return SR_ERR;
-	}
-
-	/* Apply sign. */
-	floatval *= sign;
-
-	sr_spew("The display value is %f.", floatval);
-
-	*result = floatval;
+	sr_spew("The display value is %f.", *result);
 
 	return SR_OK;
 }
@@ -141,16 +101,16 @@ static void parse_flags(const char *buf, struct metex14_info *info)
 	if (info->is_dc || info->is_ac)
 		info->is_volt = TRUE;
 
-	/* Byte 2: Always space (0x20). */
+	/* Bytes 2-8: See parse_value(). */
 
-	/* Bytes 3-8: See parse_value(). */
-
-	/* Bytes 9-12: Unit */
+	/* Strip all spaces from bytes 9-12. */
 	memset(&unit, 0, 4 + 1);
 	for (i = 0, cnt = 0; i < 4; i++) {
 		if (buf[9 + i] != ' ')
 			unit[cnt++] = buf[9 + i];
 	}
+
+	/* Bytes 9-12: Unit */
 	u = (const char *)&unit;
 	if (!strcmp(u, "A"))
 		info->is_ampere = TRUE;
