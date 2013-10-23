@@ -24,6 +24,7 @@ noinst_LTLIBRARIES = libsigrokinput.la
 libsigrokinput_la_SOURCES = \
 	binary.c \
 	chronovu_la8.c \
+	csv.c \
 	input.c \
 	vcd.c \
 	wav.c
