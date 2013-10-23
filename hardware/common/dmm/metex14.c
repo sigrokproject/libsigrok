@@ -128,6 +128,8 @@ static void parse_flags(const char *buf, struct metex14_info *info)
 		info->is_kilo = info->is_ohm = TRUE;
 	else if (!strcasecmp(u, "MOhm"))
 		info->is_mega = info->is_ohm = TRUE;
+	else if (!strcasecmp(u, "pF"))
+		info->is_pico = info->is_farad = TRUE;
 	else if (!strcasecmp(u, "nF"))
 		info->is_nano = info->is_farad = TRUE;
 	else if (!strcasecmp(u, "uF"))
@@ -148,6 +150,8 @@ static void handle_flags(struct sr_datafeed_analog *analog, float *floatval,
 			 const struct metex14_info *info)
 {
 	/* Factors */
+	if (info->is_pico)
+		*floatval /= 1000000000000ULL;
 	if (info->is_nano)
 		*floatval /= 1000000000;
 	if (info->is_micro)
@@ -212,6 +216,7 @@ static gboolean flags_valid(const struct metex14_info *info)
 
 	/* Does the packet have more than one multiplier? */
 	count = 0;
+	count += (info->is_pico) ? 1 : 0;
 	count += (info->is_nano) ? 1 : 0;
 	count += (info->is_micro) ? 1 : 0;
 	count += (info->is_milli) ? 1 : 0;
