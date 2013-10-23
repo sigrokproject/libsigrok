@@ -57,10 +57,10 @@ static int parse_value(const uint8_t *buf, float *result)
 
 	/* Bytes 5-7: Over limit (various forms) */
 	is_ol = 0;
-	is_ol += (!strcmp((const char *)&valstr, ".OL")) ? 1 : 0;
-	is_ol += (!strcmp((const char *)&valstr, "O.L")) ? 1 : 0;
-	is_ol += (!strcmp((const char *)&valstr, "OL.")) ? 1 : 0;
-	is_ol += (!strcmp((const char *)&valstr, "OL")) ? 1 : 0;
+	is_ol += (!strcasecmp((const char *)&valstr, ".OL")) ? 1 : 0;
+	is_ol += (!strcasecmp((const char *)&valstr, "O.L")) ? 1 : 0;
+	is_ol += (!strcasecmp((const char *)&valstr, "OL.")) ? 1 : 0;
+	is_ol += (!strcasecmp((const char *)&valstr, "OL")) ? 1 : 0;
 	if (is_ol != 0) {
 		sr_spew("Over limit.");
 		*result = INFINITY;
@@ -112,33 +112,33 @@ static void parse_flags(const char *buf, struct metex14_info *info)
 
 	/* Bytes 9-12: Unit */
 	u = (const char *)&unit;
-	if (!strcmp(u, "A"))
+	if (!strcasecmp(u, "A"))
 		info->is_ampere = TRUE;
-	else if (!strcmp(u, "mA"))
+	else if (!strcasecmp(u, "mA"))
 		info->is_milli = info->is_ampere = TRUE;
-	else if (!strcmp(u, "uA"))
+	else if (!strcasecmp(u, "uA"))
 		info->is_micro = info->is_ampere = TRUE;
-	else if (!strcmp(u, "V"))
+	else if (!strcasecmp(u, "V"))
 		info->is_volt = TRUE;
-	else if (!strcmp(u, "mV"))
+	else if (!strcasecmp(u, "mV"))
 		info->is_milli = info->is_volt = TRUE;
-	else if (!strcmp(u, "Ohm"))
+	else if (!strcasecmp(u, "Ohm"))
 		info->is_ohm = TRUE;
-	else if (!strcmp(u, "KOhm"))
+	else if (!strcasecmp(u, "KOhm"))
 		info->is_kilo = info->is_ohm = TRUE;
-	else if (!strcmp(u, "MOhm"))
+	else if (!strcasecmp(u, "MOhm"))
 		info->is_mega = info->is_ohm = TRUE;
-	else if (!strcmp(u, "nF"))
+	else if (!strcasecmp(u, "nF"))
 		info->is_nano = info->is_farad = TRUE;
-	else if (!strcmp(u, "uF"))
+	else if (!strcasecmp(u, "uF"))
 		info->is_micro = info->is_farad = TRUE;
-	else if (!strcmp(u, "KHz"))
+	else if (!strcasecmp(u, "KHz"))
 		info->is_kilo = info->is_hertz = TRUE;
-	else if (!strcmp(u, "C"))
+	else if (!strcasecmp(u, "C"))
 		info->is_celsius = TRUE;
-	else if (!strcmp(u, "DB"))
+	else if (!strcasecmp(u, "DB"))
 		info->is_decibel = TRUE;
-	else if (!strcmp(u, ""))
+	else if (!strcasecmp(u, ""))
 		info->is_unitless = TRUE;
 
 	/* Byte 13: Always '\r' (carriage return, 0x0d, 13) */
