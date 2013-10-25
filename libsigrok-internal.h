@@ -219,6 +219,8 @@ SR_PRIV int serial_stream_detect(struct sr_serial_dev_inst *serial,
 				 uint8_t *buf, size_t *buflen,
 				 size_t packet_size, packet_valid_t is_valid,
 				 uint64_t timeout_ms, int baudrate);
+SR_PRIV int sr_serial_extract_options(GSList *options, const char **serial_device,
+				      const char **serial_options);
 #endif
 
 /*--- hardware/common/ezusb.c -----------------------------------------------*/
