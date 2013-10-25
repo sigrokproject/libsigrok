@@ -423,7 +423,7 @@ fi
 
 AM_CONDITIONAL(HW_NORMA_DMM, test x$HW_NORMA_DMM = xyes)
 if test "x$HW_NORMA_DMM" = "xyes"; then
-       AC_DEFINE(HAVE_HW_NORMA_DMM, 1, [norma-dmm support])
+       AC_DEFINE(HAVE_HW_NORMA_DMM, 1, [Norma DMM support])
 fi
 
 AM_CONDITIONAL(HW_OLS, test x$HW_OLS = xyes)

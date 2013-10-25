@@ -17,12 +17,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <errno.h>
-#include <stdio.h>
-#include <string.h>
-
 #include "protocol.h"
-
 
 static const int32_t hwopts[] = {
 	SR_CONF_CONN,
@@ -36,19 +31,17 @@ static const int32_t hwcaps[] = {
 	SR_CONF_CONTINUOUS,
 };
 
+#define BUF_MAX 50
 
 #define SERIALCOMM "4800/8n1/dtr=1/rts=0/flow=1"
 
-
 SR_PRIV struct sr_dev_driver norma_dmm_driver_info;
 static struct sr_dev_driver *di = &norma_dmm_driver_info;
-
 
 static int init(struct sr_context *sr_ctx)
 {
 	return std_init(sr_ctx, di, LOG_PREFIX);
 }
-
 
 static GSList *scan(GSList *options)
 {
@@ -65,8 +58,6 @@ static GSList *scan(GSList *options)
 	char fmttype[10];
 	char req[10];
 	int auxtype;
-
-	#define BUF_MAX (50)
 
 	devices = NULL;
 	drvc = di->priv;
@@ -97,28 +88,27 @@ static GSList *scan(GSList *options)
 
 	serial_flush(serial);
 
-	len = BUF_MAX;
-	if (!(buf = g_try_malloc(len))) {
+	if (!(buf = g_try_malloc(BUF_MAX))) {
 		sr_err("Serial buffer malloc failed.");
 		return NULL;
 	}
 
 	snprintf(req, sizeof(req), "%s\r\n",
-		 nmadmm_requests[NMADMM_REQ_IDN].reqstr);
+		 nmadmm_requests[NMADMM_REQ_IDN].req_str);
 	for (cnt = 0; cnt < 7; cnt++) {
 		if (serial_write(serial, req, strlen(req)) == -1) {
 			sr_err("Unable to send identification request: %d %s.",
-			errno, strerror(errno));
+			       errno, strerror(errno));
 			return NULL;
 		}
 		len = BUF_MAX;
 		serial_readline(serial, &buf, &len, 1500);
 		if (!len)
 			continue;
-		buf[BUF_MAX-1] = '\0';
+		buf[BUF_MAX - 1] = '\0';
 
-		/* Match id string, e.g. "1834 065 V1.06,IF V1.02" (DM950) */
-		if (g_regex_match_simple("^1834 [^,]*,IF V*", (char*)buf,0,0)) {
+		/* Match ID string, e.g. "1834 065 V1.06,IF V1.02" (DM950) */
+		if (g_regex_match_simple("^1834 [^,]*,IF V*", (char *)buf, 0, 0)) {
 			auxtype = xgittoint(buf[7]);
 				// TODO: Will this work with non-DM950?
 			snprintf(fmttype, sizeof(fmttype), "DM9%d0", auxtype);
@@ -127,7 +117,7 @@ static GSList *scan(GSList *options)
 			if (!(sdi = sr_dev_inst_new(0, SR_ST_INACTIVE,
 						"Norma", fmttype, buf + 9)))
 				return NULL;
-			if (!(devc = g_try_malloc0(sizeof(*devc)))) {
+			if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
 				sr_err("Device context malloc failed.");
 				return NULL;
 			}
@@ -146,9 +136,13 @@ static GSList *scan(GSList *options)
 			devices = g_slist_append(devices, sdi);
 			break;
 		}
-		/* The interface of the DM9x0 contains a cap that needs to
-		 charge for up to 10s before the interface works, if not powered
-		 externally. Therefore wait a little to improve chances. */
+
+		/*
+		 * The interface of the DM9x0 contains a cap that needs to
+		 * charge for up to 10s before the interface works, if not
+		 * powered externally. Therefore wait a little to improve
+		 * chances.
+		 */
 		if (cnt == 3) {
 			sr_info("Waiting 5s to allow interface to settle.");
 			g_usleep(5 * 1000 * 1000);
@@ -164,18 +158,15 @@ static GSList *scan(GSList *options)
 	return devices;
 }
 
-
 static GSList *dev_list(void)
 {
 	return ((struct drv_context *)(di->priv))->instances;
 }
 
-
 static int dev_clear(void)
 {
 	return std_dev_clear(di, NULL);
 }
-
 
 static int dev_open(struct sr_dev_inst *sdi)
 {
@@ -190,7 +181,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-
 static int dev_close(struct sr_dev_inst *sdi)
 {
 	struct sr_serial_dev_inst *serial;
@@ -202,7 +192,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 		sdi->status = SR_ST_INACTIVE;
 	}
 
-	// Free dynamically allocated resources.
+	/* Free dynamically allocated resources. */
 	if ((devc = sdi->priv) && devc->version) {
 		g_free(devc->version);
 		devc->version = NULL;
@@ -212,12 +202,10 @@ static int dev_close(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-
 static int cleanup(void)
 {
 	return dev_clear();
 }
-
 
 static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi)
 {
@@ -254,7 +242,6 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-
 static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 {
 	(void)sdi;
@@ -274,7 +261,6 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 
 	return SR_OK;
 }
-
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 				    void *cb_data)
@@ -308,7 +294,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-
 static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
 	struct dev_context *devc;
@@ -321,10 +306,9 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 			sdi->conn, LOG_PREFIX);
 }
 
-
 SR_PRIV struct sr_dev_driver norma_dmm_driver_info = {
 	.name = "norma-dmm",
-	.longname = "Norma DM910..950, Siemens B1024..1028 DMMs",
+	.longname = "Norma DM9x0 / Siemens B102x DMMs",
 	.api_version = 1,
 	.init = init,
 	.cleanup = cleanup,
