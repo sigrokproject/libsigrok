@@ -26,6 +26,7 @@
 #ifdef HAVE_LIBUSB_1_0
 #include <libusb.h>
 #endif
+#include <serialport.h>
 
 /**
  * @file
@@ -64,13 +65,14 @@ struct sr_usb_dev_inst {
 };
 #endif
 
-#define SERIAL_PARITY_NONE 0
-#define SERIAL_PARITY_EVEN 1
-#define SERIAL_PARITY_ODD  2
+#define SERIAL_PARITY_NONE SP_PARITY_NONE
+#define SERIAL_PARITY_EVEN SP_PARITY_EVEN
+#define SERIAL_PARITY_ODD  SP_PARITY_ODD
 struct sr_serial_dev_inst {
 	char *port;
 	char *serialcomm;
 	int fd;
+	struct sp_port data;
 };
 
 /* Private driver context. */
