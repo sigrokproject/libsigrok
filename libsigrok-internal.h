@@ -43,6 +43,13 @@
 #define ARRAY_AND_SIZE(a) (a), ARRAY_SIZE(a)
 #endif
 
+/* Portability fixes for FreeBSD. */
+#ifdef __FreeBSD__
+#define LIBUSB_CLASS_APPLICATION 0xfe
+#define libusb_handle_events_timeout_completed(ctx, tv, c) \
+	libusb_handle_events_timeout(ctx, tv)
+#endif
+
 struct sr_context {
 #ifdef HAVE_LIBUSB_1_0
 	libusb_context *libusb_ctx;
