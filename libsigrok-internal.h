@@ -238,6 +238,54 @@ SR_PRIV GSList *sr_usb_find(libusb_context *usb_ctx, const char *conn);
 SR_PRIV int sr_usb_open(libusb_context *usb_ctx, struct sr_usb_dev_inst *usb);
 #endif
 
+/*--- hardware/common/scpi.c ------------------------------------------------*/
+
+#ifdef HAVE_LIBSERIALPORT
+
+#define SCPI_CMD_IDN "*IDN?"
+#define SCPI_CMD_OPC "*OPC?"
+
+enum {
+	SCPI_CMD_SET_TRIGGER_SOURCE,
+	SCPI_CMD_SET_TIMEBASE,
+	SCPI_CMD_SET_VERTICAL_DIV,
+	SCPI_CMD_SET_TRIGGER_SLOPE,
+	SCPI_CMD_SET_COUPLING,
+	SCPI_CMD_SET_HORIZ_TRIGGERPOS,
+	SCPI_CMD_GET_ANALOG_CHAN_STATE,
+	SCPI_CMD_GET_DIG_CHAN_STATE,
+	SCPI_CMD_GET_TIMEBASE,
+	SCPI_CMD_GET_VERTICAL_DIV,
+	SCPI_CMD_GET_VERTICAL_OFFSET,
+	SCPI_CMD_GET_TRIGGER_SOURCE,
+	SCPI_CMD_GET_HORIZ_TRIGGERPOS,
+	SCPI_CMD_GET_TRIGGER_SLOPE,
+	SCPI_CMD_GET_COUPLING,
+	SCPI_CMD_SET_ANALOG_CHAN_STATE,
+	SCPI_CMD_SET_DIG_CHAN_STATE,
+	SCPI_CMD_GET_DIG_POD_STATE,
+	SCPI_CMD_SET_DIG_POD_STATE,
+	SCPI_CMD_GET_ANALOG_DATA,
+	SCPI_CMD_GET_DIG_DATA,
+};
+
+struct sr_scpi_hw_info {
+	char *manufacturer;
+	char *model;
+	char *serial_number;
+	char *firmware_version;
+};
+
+SR_PRIV int sr_scpi_send(struct sr_serial_dev_inst *serial,
+			 const char *command);
+SR_PRIV int sr_scpi_get_string(struct sr_serial_dev_inst *serial,
+			       const char *command, char **scpi_response);
+SR_PRIV int sr_scpi_get_hw_id(struct sr_serial_dev_inst *serial,
+			      struct sr_scpi_hw_info **scpi_reponse);
+SR_PRIV void sr_scpi_hw_info_free(struct sr_scpi_hw_info *hw_info);
+
+#endif
+
 /*--- hardware/common/dmm/es51922.c -----------------------------------------*/
 
 #define ES51922_PACKET_SIZE 14
