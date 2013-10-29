@@ -198,6 +198,7 @@ extern SR_PRIV struct sr_dev_driver peaktech_3410_driver_info;
 extern SR_PRIV struct sr_dev_driver mastech_mas345_driver_info;
 extern SR_PRIV struct sr_dev_driver va_va18b_driver_info;
 extern SR_PRIV struct sr_dev_driver metex_m3640d_driver_info;
+extern SR_PRIV struct sr_dev_driver metex_m4650cr_driver_info;
 extern SR_PRIV struct sr_dev_driver peaktech_4370_driver_info;
 extern SR_PRIV struct sr_dev_driver pce_pce_dm32_driver_info;
 extern SR_PRIV struct sr_dev_driver radioshack_22_168_driver_info;
@@ -319,6 +320,7 @@ static struct sr_dev_driver *drivers_list[] = {
 	&mastech_mas345_driver_info,
 	&va_va18b_driver_info,
 	&metex_m3640d_driver_info,
+	&metex_m4650cr_driver_info,
 	&peaktech_4370_driver_info,
 	&pce_pce_dm32_driver_info,
 	&radioshack_22_168_driver_info,

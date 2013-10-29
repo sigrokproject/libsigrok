@@ -38,6 +38,7 @@ enum {
 	MASTECH_MAS345,
 	VA_VA18B,
 	METEX_M3640D,
+	METEX_M4650CR,
 	PEAKTECH_4370,
 	PCE_PCE_DM32,
 	RADIOSHACK_22_168,
@@ -56,7 +57,7 @@ enum {
 	ISO_TECH_IDM103N,
 };
 
-#define DMM_COUNT 23
+#define DMM_COUNT 24
 
 struct dmm_info {
 	char *vendor;
@@ -105,6 +106,7 @@ SR_PRIV int receive_data_PEAKTECH_3410(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_MASTECH_MAS345(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_VA_VA18B(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_METEX_M3640D(int fd, int revents, void *cb_data);
+SR_PRIV int receive_data_METEX_M4650CR(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_PEAKTECH_4370(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_PCE_PCE_DM32(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_RADIOSHACK_22_168(int fd, int revents, void *cb_data);

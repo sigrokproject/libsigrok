@@ -48,6 +48,7 @@ SR_PRIV struct sr_dev_driver peaktech_3410_driver_info;
 SR_PRIV struct sr_dev_driver mastech_mas345_driver_info;
 SR_PRIV struct sr_dev_driver va_va18b_driver_info;
 SR_PRIV struct sr_dev_driver metex_m3640d_driver_info;
+SR_PRIV struct sr_dev_driver metex_m4650cr_driver_info;
 SR_PRIV struct sr_dev_driver peaktech_4370_driver_info;
 SR_PRIV struct sr_dev_driver pce_pce_dm32_driver_info;
 SR_PRIV struct sr_dev_driver radioshack_22_168_driver_info;
@@ -114,6 +115,13 @@ SR_PRIV struct dmm_info dmms[] = {
 		sr_metex14_packet_valid, sr_metex14_parse,
 		NULL,
 		&metex_m3640d_driver_info, receive_data_METEX_M3640D,
+	},
+	{
+		"Metex", "M-4650CR", "1200/7n2/rts=0/dtr=1", 1200,
+		METEX14_PACKET_SIZE, sr_metex14_packet_request,
+		sr_metex14_packet_valid, sr_metex14_parse,
+		NULL,
+		&metex_m4650cr_driver_info, receive_data_METEX_M4650CR,
 	},
 	{
 		"PeakTech", "4370", "1200/7n2/rts=0/dtr=1", 1200,
@@ -544,6 +552,7 @@ DRV(peaktech_3410, PEAKTECH_3410, "peaktech-3410", "PeakTech 3410")
 DRV(mastech_mas345, MASTECH_MAS345, "mastech-mas345", "MASTECH MAS345")
 DRV(va_va18b, VA_VA18B, "va-va18b", "V&A VA18B")
 DRV(metex_m3640d, METEX_M3640D, "metex-m3640d", "Metex M-3640D")
+DRV(metex_m4650cr, METEX_M4650CR, "metex-m4650cr", "Metex M-4650CR")
 DRV(peaktech_4370, PEAKTECH_4370, "peaktech-4370", "PeakTech 4370")
 DRV(pce_pce_dm32, PCE_PCE_DM32, "pce-pce-dm32", "PCE PCE-DM32")
 DRV(radioshack_22_168, RADIOSHACK_22_168, "radioshack-22-168", "RadioShack 22-168")
