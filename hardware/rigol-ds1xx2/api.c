@@ -149,33 +149,14 @@ static void clear_helper(void *priv)
 {
 	struct dev_context *devc;
 
-	for (l = drvc->instances; l; l = l->next) {
-		if (!(sdi = l->data))
-			continue;
-
-		if (sdi->conn)
-			sr_serial_dev_inst_free(sdi->conn);
-
-		g_slist_free(sdi->probe_groups);
-
-		if (!(devc = sdi->priv))
-			continue;
-
-		g_free(devc->coupling[0]);
-		g_free(devc->coupling[1]);
-		g_free(devc->trigger_source);
-		g_free(devc->trigger_slope);
-		g_slist_free(devc->analog_groups[0].probes);
-		g_slist_free(devc->analog_groups[1].probes);
-		g_slist_free(devc->digital_group.probes);
-
-		sr_dev_inst_free(sdi);
-	}
-
+	devc = priv;
 	g_free(devc->coupling[0]);
 	g_free(devc->coupling[1]);
 	g_free(devc->trigger_source);
 	g_free(devc->trigger_slope);
+	g_slist_free(devc->analog_groups[0].probes);
+	g_slist_free(devc->analog_groups[1].probes);
+	g_slist_free(devc->digital_group.probes);
 }
 
 static int dev_clear(void)
