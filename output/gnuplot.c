@@ -95,8 +95,8 @@ static int init(struct sr_output *o)
 	num_probes = g_slist_length(o->sdi->probes);
 	comment[0] = '\0';
 	samplerate = 0;
-	if (sr_config_get(o->sdi->driver, SR_CONF_SAMPLERATE, &gvar,
-			o->sdi) == SR_OK) {
+	if (sr_config_get(o->sdi->driver, o->sdi, NULL, SR_CONF_SAMPLERATE,
+			&gvar) == SR_OK) {
 		samplerate = g_variant_get_uint64(gvar);
 		g_variant_unref(gvar);
 		if (!(frequency_s = sr_samplerate_string(samplerate))) {

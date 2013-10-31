@@ -129,8 +129,8 @@ SR_PRIV int init(struct sr_output *o, int default_spl, enum outputmode mode)
 
 	snprintf(ctx->header, 511, "%s\n", PACKAGE_STRING);
 	num_probes = g_slist_length(o->sdi->probes);
-	if (sr_config_get(o->sdi->driver, SR_CONF_SAMPLERATE, &gvar,
-			o->sdi) == SR_OK) {
+	if (sr_config_get(o->sdi->driver, o->sdi, NULL, SR_CONF_SAMPLERATE,
+			&gvar) == SR_OK) {
 		samplerate = g_variant_get_uint64(gvar);
 		g_variant_unref(gvar);
 		if (!(samplerate_s = sr_samplerate_string(samplerate))) {

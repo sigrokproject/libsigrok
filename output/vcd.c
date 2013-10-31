@@ -95,8 +95,8 @@ static int init(struct sr_output *o)
 	g_string_append_printf(ctx->header, "$version %s %s $end\n",
 			PACKAGE, PACKAGE_VERSION);
 
-	if (sr_config_get(o->sdi->driver, SR_CONF_SAMPLERATE, &gvar,
-			o->sdi) == SR_OK) {
+	if (sr_config_get(o->sdi->driver, o->sdi, NULL, SR_CONF_SAMPLERATE,
+			&gvar) == SR_OK) {
 		ctx->samplerate = g_variant_get_uint64(gvar);
 		g_variant_unref(gvar);
 		if (!((samplerate_s = sr_samplerate_string(ctx->samplerate)))) {

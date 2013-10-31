@@ -183,12 +183,15 @@ static int cleanup(void)
 	return dev_clear();
 }
 
-static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi)
+static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
+		const struct sr_probe_group *probe_group)
 {
 	struct dev_context *devc;
 	GVariant *range[2];
 	uint64_t low, high;
 	int tmp, ret;
+
+	(void)probe_group;
 
 	if (!sdi)
 		return SR_ERR_ARG;
@@ -252,13 +255,16 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi)
 	return ret;
 }
 
-static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi)
+static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
+		const struct sr_probe_group *probe_group)
 {
 	struct dev_context *devc;
 	uint64_t tmp_u64, low, high;
 	unsigned int i;
 	int tmp, ret;
 	const char *tmp_str;
+
+	(void)probe_group;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
@@ -339,7 +345,8 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi)
 	return ret;
 }
 
-static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
+static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
+		const struct sr_probe_group *probe_group)
 {
 	GVariant *tuple, *range[2];
 	GVariantBuilder gvb;
@@ -347,6 +354,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi)
 	int ret;
 
 	(void)sdi;
+	(void)probe_group;
 
 	ret = SR_OK;
 	switch (key) {
