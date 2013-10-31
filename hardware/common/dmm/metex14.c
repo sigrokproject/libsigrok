@@ -61,6 +61,10 @@ static int parse_value(const uint8_t *buf, float *result)
 	is_ol += (!strcasecmp((const char *)&valstr, "O.L")) ? 1 : 0;
 	is_ol += (!strcasecmp((const char *)&valstr, "OL.")) ? 1 : 0;
 	is_ol += (!strcasecmp((const char *)&valstr, "OL")) ? 1 : 0;
+	is_ol += (!strcasecmp((const char *)&valstr, "-.OL")) ? 1 : 0;
+	is_ol += (!strcasecmp((const char *)&valstr, "-O.L")) ? 1 : 0;
+	is_ol += (!strcasecmp((const char *)&valstr, "-OL.")) ? 1 : 0;
+	is_ol += (!strcasecmp((const char *)&valstr, "-OL")) ? 1 : 0;
 	if (is_ol != 0) {
 		sr_spew("Over limit.");
 		*result = INFINITY;
