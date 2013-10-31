@@ -66,7 +66,7 @@ The following drivers/devices do not need any firmware upload:
  - mic-985xx
  - norma-dmm
  - openbench-logic-sniffer
- - rigol-ds1xx2
+ - rigol-ds
  - serial-dmm
  - teleinfo
  - tondaj-sl-814
@@ -118,7 +118,7 @@ The following drivers/devices do not require a serial port specification:
  - ikalogic-scanaplus
  - kecheng-kc-330b
  - lascar-el-usb
- - rigol-ds1xx2
+ - rigol-ds
  - saleae-logic16
  - uni-t-dmm
  - uni-t-ut32x
@@ -344,12 +344,12 @@ Example:
  $ sigrok-cli --driver ols:conn=/dev/ttyACM0 ...
 
 
-Rigol DS1xx2 oscilloscopes
---------------------------
+Rigol DS oscilloscopes
+----------------------
 
-The 'rigol-ds1xx2' driver (for the Rigol DS1052E and some other, similar DSOs)
-currently uses the Linux usbtmc kernel driver. This means it can currently
-only be built and used on Linux (i.e., it's non-portable).
+The 'rigol-ds' driver (for the Rigol DS series DSOs) currently uses the Linux
+usbtmc kernel driver. This means it can currently only be built and used on
+Linux (i.e., it's non-portable).
 
 The use of a kernel module also means it is dependent on the kernel version
 used, as well as on whether this specific module is available in the kernel.
@@ -360,4 +360,3 @@ module as opposed to a libusb-based driver that works in user-space.
 We plan to change the driver to use the 'librevisa' user-space shared
 library (which uses libusb) soon, which will fix all these issues and make
 the driver portable at the same time.
-

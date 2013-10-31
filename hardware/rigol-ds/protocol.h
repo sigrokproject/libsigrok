@@ -18,15 +18,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBSIGROK_HARDWARE_RIGOL_DS1XX2_PROTOCOL_H
-#define LIBSIGROK_HARDWARE_RIGOL_DS1XX2_PROTOCOL_H
+#ifndef LIBSIGROK_HARDWARE_RIGOL_DS_PROTOCOL_H
+#define LIBSIGROK_HARDWARE_RIGOL_DS_PROTOCOL_H
 
 #include <stdint.h>
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
 /* Message logging helpers with subsystem-specific prefix string. */
-#define LOG_PREFIX "rigol-ds1xx2: "
+#define LOG_PREFIX "rigol-ds: "
 #define sr_log(l, s, args...) sr_log(l, LOG_PREFIX s, ## args)
 #define sr_spew(s, args...) sr_spew(LOG_PREFIX s, ## args)
 #define sr_dbg(s, args...) sr_dbg(LOG_PREFIX s, ## args)
@@ -69,8 +69,8 @@ struct dev_context {
 	struct sr_probe *channel_frame;
 };
 
-SR_PRIV int rigol_ds1xx2_receive(int fd, int revents, void *cb_data);
-SR_PRIV int rigol_ds1xx2_send(const struct sr_dev_inst *sdi, const char *format, ...);
-SR_PRIV int rigol_ds1xx2_get_dev_cfg(const struct sr_dev_inst *sdi);
+SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data);
+SR_PRIV int rigol_ds_send(const struct sr_dev_inst *sdi, const char *format, ...);
+SR_PRIV int rigol_ds_get_dev_cfg(const struct sr_dev_inst *sdi);
 
 #endif

@@ -29,7 +29,7 @@
 #include "libsigrok-internal.h"
 #include "protocol.h"
 
-SR_PRIV int rigol_ds1xx2_receive(int fd, int revents, void *cb_data)
+SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 {
 	struct sr_dev_inst *sdi;
 	struct sr_serial_dev_inst *serial;
@@ -112,7 +112,7 @@ SR_PRIV int rigol_ds1xx2_receive(int fd, int revents, void *cb_data)
 			/* We got the frame for the first analog channel, but
 			 * there's a second analog channel. */
 			devc->channel_frame = devc->enabled_analog_probes->next->data;
-			rigol_ds1xx2_send(sdi, ":WAV:DATA? CHAN%c",
+			rigol_ds_send(sdi, ":WAV:DATA? CHAN%c",
 					devc->channel_frame->name[2]);
 		} else {
 			/* Done with both analog channels in this frame. */
@@ -120,7 +120,7 @@ SR_PRIV int rigol_ds1xx2_receive(int fd, int revents, void *cb_data)
 					&& devc->channel_frame != devc->enabled_digital_probes->data) {
 				/* Now we need to get the digital data. */
 				devc->channel_frame = devc->enabled_digital_probes->data;
-				rigol_ds1xx2_send(sdi, ":WAV:DATA? DIG");
+				rigol_ds_send(sdi, ":WAV:DATA? DIG");
 			} else if (++devc->num_frames == devc->limit_frames) {
 				/* End of last frame. */
 				packet.type = SR_DF_END;
@@ -130,11 +130,11 @@ SR_PRIV int rigol_ds1xx2_receive(int fd, int revents, void *cb_data)
 				/* Get the next frame, starting with the first analog channel. */
 				if (devc->enabled_analog_probes) {
 					devc->channel_frame = devc->enabled_analog_probes->data;
-					rigol_ds1xx2_send(sdi, ":WAV:DATA? CHAN%c",
+					rigol_ds_send(sdi, ":WAV:DATA? CHAN%c",
 							devc->channel_frame->name[2]);
 				} else {
 					devc->channel_frame = devc->enabled_digital_probes->data;
-					rigol_ds1xx2_send(sdi, ":WAV:DATA? DIG");
+					rigol_ds_send(sdi, ":WAV:DATA? DIG");
 				}
 			}
 		}
@@ -143,7 +143,7 @@ SR_PRIV int rigol_ds1xx2_receive(int fd, int revents, void *cb_data)
 	return TRUE;
 }
 
-SR_PRIV int rigol_ds1xx2_send(const struct sr_dev_inst *sdi, const char *format, ...)
+SR_PRIV int rigol_ds_send(const struct sr_dev_inst *sdi, const char *format, ...)
 {
 	va_list args;
 	char buf[256];
@@ -171,7 +171,7 @@ static int get_cfg(const struct sr_dev_inst *sdi, char *cmd, char *reply)
 {
 	int len;
 
-	if (rigol_ds1xx2_send(sdi, cmd) != SR_OK)
+	if (rigol_ds_send(sdi, cmd) != SR_OK)
 		return SR_ERR;
 
 	if ((len = serial_read(sdi->conn, reply, 255)) < 0)
@@ -209,7 +209,7 @@ static int get_cfg_string(const struct sr_dev_inst *sdi, char *cmd, char **buf)
 	return SR_OK;
 }
 
-SR_PRIV int rigol_ds1xx2_get_dev_cfg(const struct sr_dev_inst *sdi)
+SR_PRIV int rigol_ds_get_dev_cfg(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	char *t_s, *cmd;

@@ -189,10 +189,10 @@ AC_ARG_ENABLE(ols, AC_HELP_STRING([--enable-ols],
 	[HW_OLS="$enableval"],
 	[HW_OLS=$HW_ENABLED_DEFAULT])
 
-AC_ARG_ENABLE(rigol-ds1xx2, AC_HELP_STRING([--enable-rigol-ds1xx2],
-	[enable Rigol DS1xx2 support [default=yes]]),
-	[HW_RIGOL_DS1XX2="$enableval"],
-	[HW_RIGOL_DS1XX2=$HW_ENABLED_DEFAULT])
+AC_ARG_ENABLE(rigol-ds, AC_HELP_STRING([--enable-rigol-ds],
+	[enable Rigol DS support [default=yes]]),
+	[HW_RIGOL_DS="$enableval"],
+	[HW_RIGOL_DS=$HW_ENABLED_DEFAULT])
 
 AC_ARG_ENABLE(saleae-logic16, AC_HELP_STRING([--enable-saleae-logic16],
 	[enable Saleae Logic16 support [default=yes]]),
@@ -334,18 +334,18 @@ PKG_CHECK_MODULES([check], [check >= 0.9.4],
 	LIBS="$LIBS $check_LIBS"], [have_check="no"])
 AM_CONDITIONAL(HAVE_CHECK, test x"$have_check" = "xyes")
 
-# The Rigol DS1xx2 driver currently uses the Linux kernel usbtmc module
+# The Rigol DS driver currently uses the Linux kernel usbtmc module
 # (though it is planned to rewrite the driver to be portable later).
 # Thus, it will be disabled for non-Linux builds for now.
 case "$host" in
 *linux*)
 	# Do nothing. Whether the driver is enabled is determined by the
 	# previous --enable-all-drivers/--disable-all-drivers and/or any
-	# --enable-rigol-ds1xx2/--disable-rigol-ds1xx2 options.
+	# --enable-rigol-ds/--disable-rigol-ds options.
 	;;
 *)
 	# Disable the driver for builds that don't target Linux.
-	HW_RIGOL_DS1XX2="no"
+	HW_RIGOL_DS="no"
 	;;
 esac
 
@@ -458,9 +458,9 @@ if test "x$HW_OLS" = "xyes"; then
 	AC_DEFINE(HAVE_HW_OLS, 1, [OpenBench Logic Sniffer (OLS) support])
 fi
 
-AM_CONDITIONAL(HW_RIGOL_DS1XX2, test x$HW_RIGOL_DS1XX2 = xyes)
-if test "x$HW_RIGOL_DS1XX2" = "xyes"; then
-	AC_DEFINE(HAVE_HW_RIGOL_DS1XX2, 1, [Rigol DS1xx2 support])
+AM_CONDITIONAL(HW_RIGOL_DS, test x$HW_RIGOL_DS = xyes)
+if test "x$HW_RIGOL_DS" = "xyes"; then
+	AC_DEFINE(HAVE_HW_RIGOL_DS, 1, [Rigol DS support])
 fi
 
 AM_CONDITIONAL(HW_SALEAE_LOGIC16, test x$HW_SALEAE_LOGIC16 = xyes)
@@ -553,7 +553,7 @@ AC_CONFIG_FILES([Makefile version.h hardware/Makefile
 		 hardware/kecheng-kc-330b/Makefile
 		 hardware/lascar-el-usb/Makefile
 		 hardware/mic-985xx/Makefile
-		 hardware/rigol-ds1xx2/Makefile
+		 hardware/rigol-ds/Makefile
 		 hardware/saleae-logic16/Makefile
 		 hardware/teleinfo/Makefile
 		 hardware/tondaj-sl-814/Makefile
@@ -625,7 +625,7 @@ echo "  - link-mso19 (EXPERIMENTAL)....... $HW_LINK_MSO19"
 echo "  - mic-985xx....................... $HW_MIC_985XX"
 echo "  - norma-dmm....................... $HW_NORMA_DMM"
 echo "  - openbench-logic-sniffer......... $HW_OLS"
-echo "  - rigol-ds1xx2.................... $HW_RIGOL_DS1XX2"
+echo "  - rigol-ds........................ $HW_RIGOL_DS"
 echo "  - saleae-logic16.................. $HW_SALEAE_LOGIC16"
 echo "  - serial-dmm...................... $HW_SERIAL_DMM"
 echo "  - teleinfo........................ $HW_TELEINFO"

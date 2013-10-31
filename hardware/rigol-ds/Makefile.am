@@ -17,17 +17,17 @@
 ## along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##
 
-if HW_RIGOL_DS1XX2
+if HW_RIGOL_DS
 
 # Local lib, this is NOT meant to be installed!
-noinst_LTLIBRARIES = libsigrok_hw_rigol_ds1xx2.la
+noinst_LTLIBRARIES = libsigrok_hw_rigol_ds.la
 
-libsigrok_hw_rigol_ds1xx2_la_SOURCES = \
+libsigrok_hw_rigol_ds_la_SOURCES = \
 	api.c \
 	protocol.c \
 	protocol.h
 
-libsigrok_hw_rigol_ds1xx2_la_CFLAGS = \
+libsigrok_hw_rigol_ds_la_CFLAGS = \
 	-I$(top_srcdir)
 
 endif

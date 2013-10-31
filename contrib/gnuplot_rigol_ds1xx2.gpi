@@ -30,7 +30,7 @@ set output "sigrok_gnuplot.png"
 # Rigol DS1xx2 output is currently always 600 samples in size.
 # This script currently also assumes only one channel is acquired like this:
 #
-#   $ sigrok-cli --driver rigol-ds1xx2 --frames 1 -p CH1 ...
+#   $ sigrok-cli --driver rigol-ds --frames 1 -p CH1 ...
 #
 plot [0:600] \
 "sigrok_gnuplot.dat" using 1 with lines linewidth 2 title "CH1"

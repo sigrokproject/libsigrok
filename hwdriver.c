@@ -148,8 +148,8 @@ extern SR_PRIV struct sr_dev_driver norma_dmm_driver_info;
 #ifdef HAVE_HW_OLS
 extern SR_PRIV struct sr_dev_driver ols_driver_info;
 #endif
-#ifdef HAVE_HW_RIGOL_DS1XX2
-extern SR_PRIV struct sr_dev_driver rigol_ds1xx2_driver_info;
+#ifdef HAVE_HW_RIGOL_DS
+extern SR_PRIV struct sr_dev_driver rigol_ds_driver_info;
 #endif
 #ifdef HAVE_HW_SALEAE_LOGIC16
 extern SR_PRIV struct sr_dev_driver saleae_logic16_driver_info;
@@ -274,8 +274,8 @@ static struct sr_dev_driver *drivers_list[] = {
 #ifdef HAVE_HW_OLS
 	&ols_driver_info,
 #endif
-#ifdef HAVE_HW_RIGOL_DS1XX2
-	&rigol_ds1xx2_driver_info,
+#ifdef HAVE_HW_RIGOL_DS
+	&rigol_ds_driver_info,
 #endif
 #ifdef HAVE_HW_SALEAE_LOGIC16
 	&saleae_logic16_driver_info,

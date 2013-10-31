@@ -41,7 +41,7 @@ SUBDIRS = \
 	mic-985xx \
 	norma-dmm \
 	openbench-logic-sniffer \
-	rigol-ds1xx2 \
+	rigol-ds \
 	saleae-logic16 \
 	serial-dmm \
 	teleinfo \
@@ -142,8 +142,8 @@ if HW_OLS
 libsigrokhardware_la_LIBADD += openbench-logic-sniffer/libsigrok_hw_ols.la
 endif
 
-if HW_RIGOL_DS1XX2
-libsigrokhardware_la_LIBADD += rigol-ds1xx2/libsigrok_hw_rigol_ds1xx2.la
+if HW_RIGOL_DS
+libsigrokhardware_la_LIBADD += rigol-ds/libsigrok_hw_rigol_ds.la
 endif
 
 if HW_SALEAE_LOGIC16

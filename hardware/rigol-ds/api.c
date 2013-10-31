@@ -142,8 +142,8 @@ static const char *supported_models[] = {
 	"DS1152D",
 };
 
-SR_PRIV struct sr_dev_driver rigol_ds1xx2_driver_info;
-static struct sr_dev_driver *di = &rigol_ds1xx2_driver_info;
+SR_PRIV struct sr_dev_driver rigol_ds_driver_info;
+static struct sr_dev_driver *di = &rigol_ds_driver_info;
 
 static void clear_helper(void *priv)
 {
@@ -172,7 +172,7 @@ static int set_cfg(const struct sr_dev_inst *sdi, const char *format, ...)
 	va_start(args, format);
 	vsnprintf(buf, 255, format, args);
 	va_end(args);
-	if (rigol_ds1xx2_send(sdi, buf) != SR_OK)
+	if (rigol_ds_send(sdi, buf) != SR_OK)
 		return SR_ERR;
 
 	/* When setting a bunch of parameters in a row, the DS1052E scrambles
@@ -358,7 +358,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 	if (serial_open(sdi->conn, SERIAL_RDWR) != SR_OK)
 		return SR_ERR;
 
-	if (rigol_ds1xx2_get_dev_cfg(sdi) != SR_OK)
+	if (rigol_ds_get_dev_cfg(sdi) != SR_OK)
 		return SR_ERR;
 
 	sdi->status = SR_ST_ACTIVE;
@@ -673,7 +673,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 				/* Enabled channel is currently disabled, or vice versa. */
 				sprintf(cmd, ":CHAN%d:DISP %s", probe->index + 1,
 						probe->enabled ? "ON" : "OFF");
-				if (rigol_ds1xx2_send(sdi, cmd) != SR_OK)
+				if (rigol_ds_send(sdi, cmd) != SR_OK)
 					return SR_ERR;
 			}
 		} else if (probe->type == SR_PROBE_LOGIC) {
@@ -684,7 +684,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 				/* Enabled channel is currently disabled, or vice versa. */
 				sprintf(cmd, ":DIG%d:TURN %s", probe->index,
 						probe->enabled ? "ON" : "OFF");
-				if (rigol_ds1xx2_send(sdi, cmd) != SR_OK)
+				if (rigol_ds_send(sdi, cmd) != SR_OK)
 					return SR_ERR;
 			}
 		}
@@ -692,7 +692,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	if (!devc->enabled_analog_probes && !devc->enabled_digital_probes)
 		return SR_ERR;
 
-	sr_source_add(serial->fd, G_IO_IN, 50, rigol_ds1xx2_receive, (void *)sdi);
+	sr_source_add(serial->fd, G_IO_IN, 50, rigol_ds_receive, (void *)sdi);
 
 	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, LOG_PREFIX);
@@ -700,12 +700,12 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	/* Fetch the first frame. */
 	if (devc->enabled_analog_probes) {
 		devc->channel_frame = devc->enabled_analog_probes->data;
-		if (rigol_ds1xx2_send(sdi, ":WAV:DATA? CHAN%d",
+		if (rigol_ds_send(sdi, ":WAV:DATA? CHAN%d",
 				devc->channel_frame->index + 1) != SR_OK)
 			return SR_ERR;
 	} else {
 		devc->channel_frame = devc->enabled_digital_probes->data;
-		if (rigol_ds1xx2_send(sdi, ":WAV:DATA? DIG") != SR_OK)
+		if (rigol_ds_send(sdi, ":WAV:DATA? DIG") != SR_OK)
 			return SR_ERR;
 	}
 
@@ -738,9 +738,9 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 	return SR_OK;
 }
 
-SR_PRIV struct sr_dev_driver rigol_ds1xx2_driver_info = {
-	.name = "rigol-ds1xx2",
-	.longname = "Rigol DS1xx2",
+SR_PRIV struct sr_dev_driver rigol_ds_driver_info = {
+	.name = "rigol-ds",
+	.longname = "Rigol DS",
 	.api_version = 1,
 	.init = init,
 	.cleanup = cleanup,
