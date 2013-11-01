@@ -311,8 +311,8 @@ static int probe_port(const char *port, GSList **devices)
 
 	for (i = 0; i < NUM_VDIV; i++) {
 		if (!memcmp(&devc->model->min_vdiv, &vdivs[i], sizeof(uint64_t[2]))) {
-			devc->vdivs = &timebases[i];
-			devc->num_vdivs = NUM_VDIV - (&timebases[i] - &timebases[0]);
+			devc->vdivs = &vdivs[i];
+			devc->num_vdivs = NUM_VDIV - (&vdivs[i] - &vdivs[0]);
 		}
 	}
 
