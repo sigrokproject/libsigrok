@@ -22,6 +22,7 @@
 #define LIBSIGROK_HARDWARE_RIGOL_DS_PROTOCOL_H
 
 #include <stdint.h>
+#include <stdbool.h>
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
@@ -34,13 +35,29 @@
 #define sr_warn(s, args...) sr_warn(LOG_PREFIX s, ## args)
 #define sr_err(s, args...) sr_err(LOG_PREFIX s, ## args)
 
-#define ANALOG_WAVEFORM_SIZE 600
+#define DS1000_ANALOG_WAVEFORM_SIZE 600
+#define DS2000_ANALOG_WAVEFORM_SIZE 1400
 #define DIGITAL_WAVEFORM_SIZE 1210
+
+struct rigol_ds_model {
+	char *name;
+	unsigned int series;
+	uint64_t min_timebase[2];
+	uint64_t max_timebase[2];
+	uint64_t min_vdiv[2];
+	bool has_digital;
+};
 
 /** Private, per-device-instance driver context. */
 struct dev_context {
-	/* Device features */
-	gboolean has_digital;
+	/* Device model */
+	const struct rigol_ds_model *model;
+
+	/* Device properties */
+	const uint64_t (*timebases)[2];
+	uint64_t num_timebases;
+	const uint64_t (*vdivs)[2];
+	uint64_t num_vdivs;
 
 	/* Probe groups */
 	struct sr_probe_group analog_groups[2];
@@ -57,6 +74,7 @@ struct dev_context {
 	gboolean digital_channels[16];
 	float timebase;
 	float vdiv[2];
+	int vert_reference[2];
 	float vert_offset[2];
 	char *trigger_source;
 	float horiz_triggerpos;
@@ -65,10 +83,18 @@ struct dev_context {
 
 	/* Operational state */
 	uint64_t num_frames;
+	/* FIXME: misnomer, actually this is number of frame samples? */
 	uint64_t num_frame_bytes;
 	struct sr_probe *channel_frame;
+	/* Number of bytes in current data block, if 0 block header expected */
+	uint64_t num_block_bytes;
+	/* Number of data block bytes already read */
+	uint64_t num_block_read;
+	/* Trigger waiting status, 0 - don't wait */
+	int trigger_wait_status;
 };
 
+SR_PRIV int rigol_ds2xx2_acquisition_start(const struct sr_dev_inst *sdi, gboolean wait_for_trigger);
 SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data);
 SR_PRIV int rigol_ds_send(const struct sr_dev_inst *sdi, const char *format, ...);
 SR_PRIV int rigol_ds_get_dev_cfg(const struct sr_dev_inst *sdi);

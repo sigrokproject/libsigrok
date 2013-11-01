@@ -3,6 +3,7 @@
  *
  * Copyright (C) 2012 Martin Ling <martin-git@earth.li>
  * Copyright (C) 2013 Bert Vermeulen <bert@biot.com>
+ * Copyright (C) 2013 Mathias Grimmberger <mgri@zaphod.sax.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,9 +27,6 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 #include "protocol.h"
-
-#define NUM_TIMEBASE  12
-#define NUM_VDIV      8
 
 static const int32_t hwopts[] = {
 	SR_CONF_CONN,
@@ -85,10 +83,17 @@ static const uint64_t timebases[][2] = {
 	{ 10, 1 },
 	{ 20, 1 },
 	{ 50, 1 },
+	{ 100, 1 },
+	{ 200, 1 },
+	{ 500, 1 },
+	/* { 1000, 1 }, Confuses other code? */
 };
 
 static const uint64_t vdivs[][2] = {
+	/* microvolts */
+	{ 500, 1000000 },
 	/* millivolts */
+	{ 1, 1000 },
 	{ 2, 1000 },
 	{ 5, 1000 },
 	{ 10, 1000 },
@@ -103,6 +108,9 @@ static const uint64_t vdivs[][2] = {
 	{ 5, 1 },
 	{ 10, 1 },
 };
+
+#define NUM_TIMEBASE  ARRAY_SIZE(timebases)
+#define NUM_VDIV      ARRAY_SIZE(vdivs)
 
 static const char *trigger_sources[] = {
 	"CH1",
@@ -133,13 +141,17 @@ static const char *coupling[] = {
 	"GND",
 };
 
-static const char *supported_models[] = {
-	"DS1052E",
-	"DS1102E",
-	"DS1152E",
-	"DS1052D",
-	"DS1102D",
-	"DS1152D",
+/* name, series, min timebase, max timebase, min vdiv, digital channels */
+static const struct rigol_ds_model supported_models[] = {
+	{"DS1052E", 1, {5, 1000000000}, {50, 1}, {2, 1000}, false},
+	{"DS1102E", 1, {2, 1000000000}, {50, 1}, {2, 1000}, false},
+	{"DS1152E", 1, {2, 1000000000}, {50, 1}, {2, 1000}, false},
+	{"DS1052D", 1, {5, 1000000000}, {50, 1}, {2, 1000}, true},
+	{"DS1102D", 1, {2, 1000000000}, {50, 1}, {2, 1000}, true},
+	{"DS1152D", 1, {2, 1000000000}, {50, 1}, {2, 1000}, true},
+	{"DS2072", 2, {5, 1000000000}, {500, 1}, {500, 1000000}, false},
+	{"DS2102", 2, {5, 1000000000}, {500, 1}, {500, 1000000}, false},
+	{"DS2202", 2, {2, 1000000000}, {500, 1}, {500, 1000000}, false},
 };
 
 SR_PRIV struct sr_dev_driver rigol_ds_driver_info;
@@ -196,8 +208,8 @@ static int probe_port(const char *port, GSList **devices)
 	struct sr_probe *probe;
 	unsigned int i;
 	int len, num_tokens;
-	gboolean matched, has_digital;
-	const char *manufacturer, *model, *version;
+	const char *manufacturer, *model_name, *version;
+	const struct rigol_ds_model *model = NULL;
 	char buf[256];
 	gchar **tokens, *channel_name;
 
@@ -229,25 +241,23 @@ static int probe_port(const char *port, GSList **devices)
 	}
 
 	manufacturer = tokens[0];
-	model = tokens[1];
+	model_name = tokens[1];
 	version = tokens[3];
 
-	if (strcmp(manufacturer, "Rigol Technologies")) {
+	if (strcasecmp(manufacturer, "Rigol Technologies")) {
 		g_strfreev(tokens);
 		return SR_ERR_NA;
 	}
 
-	matched = has_digital = FALSE;
 	for (i = 0; i < ARRAY_SIZE(supported_models); i++) {
-		if (!strcmp(model, supported_models[i])) {
-			matched = TRUE;
-			has_digital = g_str_has_suffix(model, "D");
+		if (!strcmp(model_name, supported_models[i].name)) {
+			model = &supported_models[i];
 			break;
 		}
 	}
 
-	if (!matched || !(sdi = sr_dev_inst_new(0, SR_ST_ACTIVE,
-		manufacturer, model, version))) {
+	if (!model || !(sdi = sr_dev_inst_new(0, SR_ST_ACTIVE,
+		manufacturer, model_name, version))) {
 		g_strfreev(tokens);
 		return SR_ERR_NA;
 	}
@@ -262,7 +272,7 @@ static int probe_port(const char *port, GSList **devices)
 	if (!(devc = g_try_malloc0(sizeof(struct dev_context))))
 		return SR_ERR_MALLOC;
 	devc->limit_frames = 0;
-	devc->has_digital = has_digital;
+	devc->model = model;
 
 	for (i = 0; i < 2; i++) {
 		channel_name = (i == 0 ? "CH1" : "CH2");
@@ -275,7 +285,7 @@ static int probe_port(const char *port, GSList **devices)
 				&devc->analog_groups[i]);
 	}
 
-	if (devc->has_digital) {
+	if (devc->model->has_digital) {
 		for (i = 0; i < 16; i++) {
 			if (!(channel_name = g_strdup_printf("D%d", i)))
 				return SR_ERR_MALLOC;
@@ -291,6 +301,21 @@ static int probe_port(const char *port, GSList **devices)
 					&devc->digital_group);
 		}
 	}
+
+	for (i = 0; i < NUM_TIMEBASE; i++) {
+		if (!memcmp(&devc->model->min_timebase, &timebases[i], sizeof(uint64_t[2])))
+			devc->timebases = &timebases[i];
+		if (!memcmp(&devc->model->max_timebase, &timebases[i], sizeof(uint64_t[2])))
+			devc->num_timebases = &timebases[i] - devc->timebases + 1;
+	}
+
+	for (i = 0; i < NUM_VDIV; i++) {
+		if (!memcmp(&devc->model->min_vdiv, &vdivs[i], sizeof(uint64_t[2]))) {
+			devc->vdivs = &timebases[i];
+			devc->num_vdivs = NUM_VDIV - (&timebases[i] - &timebases[0]);
+		}
+	}
+
 	sdi->priv = devc;
 
 	*devices = g_slist_append(NULL, sdi);
@@ -404,7 +429,7 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 
 	switch (id) {
 	case SR_CONF_NUM_TIMEBASE:
-		*data = g_variant_new_int32(NUM_TIMEBASE);
+		*data = g_variant_new_int32(devc->num_timebases);
 		break;
 	case SR_CONF_NUM_VDIV:
 		if (!probe_group) {
@@ -413,7 +438,7 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 		}
 		for (i = 0; i < 2; i++) {
 			if (probe_group == &devc->analog_groups[i]) {
-				*data = g_variant_new_int32(NUM_VDIV);
+				*data = g_variant_new_int32(devc->num_vdivs);
 				return SR_OK;
 			}
 		}
@@ -470,19 +495,19 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 		devc->horiz_triggerpos = t_dbl;
 		/* We have the trigger offset as a percentage of the frame, but
 		 * need to express this in seconds. */
-		t_dbl = -(devc->horiz_triggerpos - 0.5) * devc->timebase * NUM_TIMEBASE;
+		t_dbl = -(devc->horiz_triggerpos - 0.5) * devc->timebase * devc->num_timebases;
 		ret = set_cfg(sdi, ":TIM:OFFS %.6f", t_dbl);
 		break;
 	case SR_CONF_TIMEBASE:
 		g_variant_get(data, "(tt)", &p, &q);
-		for (i = 0; i < ARRAY_SIZE(timebases); i++) {
-			if (timebases[i][0] == p && timebases[i][1] == q) {
+		for (i = 0; i < devc->num_timebases; i++) {
+			if (devc->timebases[i][0] == p && devc->timebases[i][1] == q) {
 				devc->timebase = (float)p / q;
 				ret = set_cfg(sdi, ":TIM:SCAL %.9f", devc->timebase);
 				break;
 			}
 		}
-		if (i == ARRAY_SIZE(timebases))
+		if (i == devc->num_timebases)
 			ret = SR_ERR_ARG;
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
@@ -559,7 +584,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	GVariant *tuple, *rational[2];
 	GVariantBuilder gvb;
 	unsigned int i;
-	struct dev_context *devc;
+	struct dev_context *devc = sdi->priv;
 
 	if (key == SR_CONF_SCAN_OPTIONS) {
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
@@ -619,9 +644,9 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 			return SR_ERR_PROBE_GROUP;
 		}
 		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
-		for (i = 0; i < ARRAY_SIZE(vdivs); i++) {
-			rational[0] = g_variant_new_uint64(vdivs[i][0]);
-			rational[1] = g_variant_new_uint64(vdivs[i][1]);
+		for (i = 0; i < devc->num_vdivs; i++) {
+			rational[0] = g_variant_new_uint64(devc->vdivs[i][0]);
+			rational[1] = g_variant_new_uint64(devc->vdivs[i][1]);
 			tuple = g_variant_new_tuple(rational, 2);
 			g_variant_builder_add_value(&gvb, tuple);
 		}
@@ -629,9 +654,9 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		break;
 	case SR_CONF_TIMEBASE:
 		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
-		for (i = 0; i < ARRAY_SIZE(timebases); i++) {
-			rational[0] = g_variant_new_uint64(timebases[i][0]);
-			rational[1] = g_variant_new_uint64(timebases[i][1]);
+		for (i = 0; i < devc->num_timebases; i++) {
+			rational[0] = g_variant_new_uint64(devc->timebases[i][0]);
+			rational[1] = g_variant_new_uint64(devc->timebases[i][1]);
 			tuple = g_variant_new_tuple(rational, 2);
 			g_variant_builder_add_value(&gvb, tuple);
 		}
@@ -639,7 +664,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
 		*data = g_variant_new_strv(trigger_sources,
-				devc->has_digital ? ARRAY_SIZE(trigger_sources) : 4);
+				devc->model->has_digital ? ARRAY_SIZE(trigger_sources) : 4);
 		break;
 	default:
 		return SR_ERR_NA;
@@ -697,19 +722,27 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, LOG_PREFIX);
 
-	/* Fetch the first frame. */
-	if (devc->enabled_analog_probes) {
-		devc->channel_frame = devc->enabled_analog_probes->data;
-		if (rigol_ds_send(sdi, ":WAV:DATA? CHAN%d",
-				devc->channel_frame->index + 1) != SR_OK)
-			return SR_ERR;
-	} else {
-		devc->channel_frame = devc->enabled_digital_probes->data;
-		if (rigol_ds_send(sdi, ":WAV:DATA? DIG") != SR_OK)
-			return SR_ERR;
-	}
+	if (devc->model->series == 1) {
+		/* Fetch the first frame. */
+		if (devc->enabled_analog_probes) {
+			devc->channel_frame = devc->enabled_analog_probes->data;
+			if (rigol_ds_send(sdi, ":WAV:DATA? CHAN%d",
+					devc->channel_frame->index + 1) != SR_OK)
+				return SR_ERR;
+		} else {
+			devc->channel_frame = devc->enabled_digital_probes->data;
+			if (rigol_ds_send(sdi, ":WAV:DATA? DIG") != SR_OK)
+				return SR_ERR;
+		}
 
-	devc->num_frame_bytes = 0;
+		devc->num_frame_bytes = 0;
+	} else {
+		if (devc->enabled_analog_probes) {
+			/* Assume there already was a trigger event - don't wait */
+			if (rigol_ds2xx2_acquisition_start(sdi, FALSE) != SR_OK)
+				return SR_ERR;
+		}
+	}
 
 	return SR_OK;
 }
