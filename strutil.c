@@ -21,6 +21,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
@@ -46,6 +47,126 @@
  *
  * @{
  */
+
+/**
+ * Convert a string representation of a numeric value to a long integer. The
+ * conversion is strict and will fail if the complete string does not represent
+ * a valid long integer. The function sets errno according to the details of the
+ * failure.
+ *
+ * @param str The string representation to convert.
+ * @param ret Pointer to long where the result of the conversion will be stored.
+ *
+ * @return SR_OK if conversion is successful, otherwise SR_ERR.
+ *
+ * @since 0.3.0
+ */
+SR_API int sr_atol(const char *str, long *ret)
+{
+	long tmp;
+	char *endptr = NULL;
+
+	errno = 0;
+	tmp = strtol(str, &endptr, 0);
+
+	if (!endptr || *endptr || errno) {
+		if (!errno)
+			errno = EINVAL;
+		return SR_ERR;
+	}
+
+	*ret = tmp;
+	return SR_OK;
+}
+
+/**
+ * Convert a string representation of a numeric value to an integer. The
+ * conversion is strict and will fail if the complete string does not represent
+ * a valid integer. The function sets errno according to the details of the
+ * failure.
+ *
+ * @param str The string representation to convert.
+ * @param ret Pointer to int where the result of the conversion will be stored.
+ *
+ * @return SR_OK if conversion is successful, otherwise SR_ERR.
+ *
+ * @since 0.3.0
+ */
+SR_API int sr_atoi(const char *str, int *ret)
+{
+	long tmp;
+
+	if (sr_atol(str, &tmp) != SR_OK)
+		return SR_ERR;
+
+	if ((int) tmp != tmp) {
+		errno = ERANGE;
+		return SR_ERR;
+	}
+
+	*ret = (int) tmp;
+	return SR_OK;
+}
+
+/**
+ * Convert a string representation of a numeric value to a double. The
+ * conversion is strict and will fail if the complete string does not represent
+ * a valid double. The function sets errno according to the details of the
+ * failure.
+ *
+ * @param str The string representation to convert.
+ * @param ret Pointer to double where the result of the conversion will be stored.
+ *
+ * @return SR_OK if conversion is successful, otherwise SR_ERR.
+ *
+ * @since 0.3.0
+ */
+SR_API int sr_atod(const char *str, double *ret)
+{
+	double tmp;
+	char *endptr = NULL;
+
+	errno = 0;
+	tmp = strtof(str, &endptr);
+
+	if (!endptr || *endptr || errno) {
+		if (!errno)
+			errno = EINVAL;
+		return SR_ERR;
+	}
+
+	*ret = tmp;
+	return SR_OK;
+}
+
+/**
+ * Convert a string representation of a numeric value to a float. The
+ * conversion is strict and will fail if the complete string does not represent
+ * a valid float. The function sets errno according to the details of the
+ * failure.
+ *
+ * @param str The string representation to convert.
+ * @param ret Pointer to float where the result of the conversion will be stored.
+ *
+ * @return SR_OK if conversion is successful, otherwise SR_ERR.
+ *
+ * @since 0.3.0
+ */
+SR_API int sr_atof(const char *str, float *ret)
+{
+	double tmp;
+
+	if (sr_atod(str, &tmp) != SR_OK)
+		return SR_ERR;
+
+	if ((float) tmp != tmp) {
+		errno = ERANGE;
+		return SR_ERR;
+	}
+
+	*ret = (float) tmp;
+	return SR_OK;
+}
 
 /**
  * Convert a numeric value value to its "natural" string representation
