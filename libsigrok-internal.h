@@ -280,6 +280,14 @@ SR_PRIV int sr_scpi_send(struct sr_serial_dev_inst *serial,
 			 const char *command);
 SR_PRIV int sr_scpi_get_string(struct sr_serial_dev_inst *serial,
 			       const char *command, char **scpi_response);
+SR_PRIV int sr_scpi_get_bool(struct sr_serial_dev_inst *serial,
+			     const char *command, gboolean *scpi_response);
+SR_PRIV int sr_scpi_get_int(struct sr_serial_dev_inst *serial,
+				  const char *command, int *scpi_response);
+SR_PRIV int sr_scpi_get_float(struct sr_serial_dev_inst *serial,
+			      const char *command, float *scpi_response);
+SR_PRIV int sr_scpi_get_double(struct sr_serial_dev_inst *serial,
+			      const char *command, double *scpi_response);
 SR_PRIV int sr_scpi_get_hw_id(struct sr_serial_dev_inst *serial,
 			      struct sr_scpi_hw_info **scpi_reponse);
 SR_PRIV void sr_scpi_hw_info_free(struct sr_scpi_hw_info *hw_info);
