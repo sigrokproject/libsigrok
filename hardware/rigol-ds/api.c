@@ -584,7 +584,10 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	GVariant *tuple, *rational[2];
 	GVariantBuilder gvb;
 	unsigned int i;
-	struct dev_context *devc = sdi->priv;
+	struct dev_context *devc = NULL;
+
+	if (sdi)
+		devc = sdi->priv;
 
 	if (key == SR_CONF_SCAN_OPTIONS) {
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
@@ -639,6 +642,9 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		*data = g_variant_new_strv(coupling, ARRAY_SIZE(coupling));
 		break;
 	case SR_CONF_VDIV:
+		if (!devc)
+			/* Can't know this until we have the exact model. */
+			return SR_ERR_ARG;
 		if (!probe_group) {
 			sr_err("No probe group specified.");
 			return SR_ERR_PROBE_GROUP;
@@ -653,6 +659,9 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		*data = g_variant_builder_end(&gvb);
 		break;
 	case SR_CONF_TIMEBASE:
+		if (!devc)
+			/* Can't know this until we have the exact model. */
+			return SR_ERR_ARG;
 		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
 		for (i = 0; i < devc->num_timebases; i++) {
 			rational[0] = g_variant_new_uint64(devc->timebases[i][0]);
@@ -663,6 +672,9 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		*data = g_variant_builder_end(&gvb);
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
+		if (!devc)
+			/* Can't know this until we have the exact model. */
+			return SR_ERR_ARG;
 		*data = g_variant_new_strv(trigger_sources,
 				devc->model->has_digital ? ARRAY_SIZE(trigger_sources) : 4);
 		break;
