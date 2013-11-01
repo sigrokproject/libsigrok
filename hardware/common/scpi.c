@@ -35,6 +35,46 @@
 #define SCPI_READ_RETRY_TIMEOUT 10000
 
 /**
+ * Parse a string representation of a boolean-like value into a gboolean.
+ * Similar to sr_parse_boolstring but rejects strings which do not represent
+ * a boolean-like value.
+ *
+ * @param str String to convert.
+ * @param ret Pointer to a gboolean where the result of the conversion will be
+ * stored.
+ *
+ * @return SR_OK on success, SR_ERR on failure.
+ */
+static int sr_parse_strict_bool(const char *str, gboolean *ret)
+{
+	if (!str)
+		return SR_ERR_ARG;
+
+	if (!g_strcmp0(str, "1") ||
+	    !g_ascii_strncasecmp(str, "y", 1) ||
+	    !g_ascii_strncasecmp(str, "t", 1) ||
+	    !g_ascii_strncasecmp(str, "yes", 3) ||
+	    !g_ascii_strncasecmp(str, "true", 4) ||
+	    !g_ascii_strncasecmp(str, "on", 2)) {
+
+		*ret = TRUE;
+		return SR_OK;
+
+	} else if (!g_strcmp0(str, "0") ||
+		   !g_ascii_strncasecmp(str, "n", 1) ||
+		   !g_ascii_strncasecmp(str, "f", 1) ||
+		   !g_ascii_strncasecmp(str, "no", 2) ||
+		   !g_ascii_strncasecmp(str, "false", 5) ||
+		   !g_ascii_strncasecmp(str, "off", 3)) {
+
+		*ret = FALSE;
+		return SR_OK;
+	}
+
+	return SR_ERR;
+}
+
+/**
  * Send a SCPI command.
  *
  * @param serial Previously initialized serial port structure.
