@@ -133,8 +133,10 @@ static const char *coupling[] = {
 static const char *supported_models[] = {
 	"DS1052E",
 	"DS1102E",
+	"DS1152E",
 	"DS1052D",
 	"DS1102D",
+	"DS1152D",
 };
 
 SR_PRIV struct sr_dev_driver rigol_ds1xx2_driver_info;
