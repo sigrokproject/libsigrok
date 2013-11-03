@@ -59,7 +59,9 @@ SR_PRIV int serial_open(struct sr_serial_dev_inst *serial, int flags)
 
 	sr_spew("Opening serial port '%s' (flags %d).", serial->port, flags);
 
-	ret = sp_open(&serial->data, serial->port, flags);
+	sp_get_port_by_name(serial->port, &serial->data);
+
+	ret = sp_open(serial->data, flags);
 
 	switch (ret)
 	{
@@ -74,7 +76,7 @@ SR_PRIV int serial_open(struct sr_serial_dev_inst *serial, int flags)
 	}
 
 #ifndef _WIN32
-	serial->fd = serial->data.fd;
+	serial->fd = serial->data->fd;
 #endif
 
 	if (serial->serialcomm)
@@ -109,7 +111,7 @@ SR_PRIV int serial_close(struct sr_serial_dev_inst *serial)
 	sr_spew("Closing serial port %s (fd %d).", serial->port, serial->fd);
 	ret = SR_OK;
 
-	ret = sp_close(&serial->data);
+	ret = sp_close(serial->data);
 
 	switch (ret)
 	{
@@ -153,7 +155,7 @@ SR_PRIV int serial_flush(struct sr_serial_dev_inst *serial)
 
 	sr_spew("Flushing serial port %s (fd %d).", serial->port, serial->fd);
 
-	ret = sp_flush(&serial->data);
+	ret = sp_flush(serial->data);
 
 	switch (ret)
 	{
@@ -196,7 +198,7 @@ SR_PRIV int serial_write(struct sr_serial_dev_inst *serial,
 		return -1;
 	}
 
-	ret = sp_write(&serial->data, buf, count);
+	ret = sp_write(serial->data, buf, count);
 
 	switch (ret)
 	{
@@ -241,7 +243,7 @@ SR_PRIV int serial_read(struct sr_serial_dev_inst *serial, void *buf,
 		return -1;
 	}
 
-	ret = sp_read(&serial->data, buf, count);
+	ret = sp_read(serial->data, buf, count);
 
 	switch (ret)
 	{
@@ -294,7 +296,7 @@ SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
 	sr_spew("Setting serial parameters on port %s (fd %d).", serial->port,
 		serial->fd);
 
-	ret = sp_set_params(&serial->data, baudrate, bits, parity, stopbits,
+	ret = sp_set_params(serial->data, baudrate, bits, parity, stopbits,
 			flowcontrol, rts, dtr);
 
 	switch (ret)

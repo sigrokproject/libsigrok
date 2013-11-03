@@ -72,7 +72,7 @@ struct sr_serial_dev_inst {
 	char *port;
 	char *serialcomm;
 	int fd;
-	struct sp_port data;
+	struct sp_port *data;
 };
 
 /* Private driver context. */
