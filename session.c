@@ -191,31 +191,6 @@ SR_API int sr_session_dev_add(const struct sr_dev_inst *sdi)
 }
 
 /**
- * List all device instances attached to the current session.
- *
- * @param devlist A pointer where the device instance list will be
- *                stored on return. If no devices are in the session,
- *                this will be NULL. Each element in the list points
- *                to a struct sr_dev_inst *.
- *                The list must be freed by the caller, but not the
- *                elements pointed to.
- *
- * @return SR_OK upon success, SR_ERR upon invalid arguments.
- */
-SR_API int sr_session_dev_list(GSList **devlist)
-{
-
-	*devlist = NULL;
-
-	if (!session)
-		return SR_ERR;
-
-	*devlist = g_slist_copy(session->devs);
-
-	return SR_OK;
-}
-
-/**
  * Remove all datafeed callbacks in the current session.
  *
  * @return SR_OK upon success, SR_ERR_BUG if no session exists.
