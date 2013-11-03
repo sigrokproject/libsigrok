@@ -1,3 +1,64 @@
+0.2.2 (2013-11-04)
+------------------
+
+Note: This release does NOT change the libsigrok API. While new config keys,
+      config info types, and unit codes have been added (additional enum
+      entries / numbers), no existing interfaces were added/changed/removed.
+      Frontends should continue to work fine without recompiling or relinking.
+
+ * New supported hardware:
+   - Logic analyzers:
+     - Saleae Logic16
+   - Thermometers:
+     - Center 309
+     - UNI-T UT325
+     - Voltcraft K204
+   - Multimeters:
+     - ISOTECH IDM103N
+     - Metex M-4650CR
+     - Norma DM950
+     - Voltcraft M-4650CR
+   - Energy meters:
+     - EDF Teleinfo
+ * New config keys:
+   - SR_CONF_VOLTAGE_THRESHOLD
+   - SR_CONF_EXTERNAL_CLOCK
+   - SR_CONF_SWAP
+   - SR_CONF_ENERGYMETER
+ * New config info types:
+   - SR_T_DOUBLE_RANGE
+ * New units:
+   - SR_UNIT_REVOLUTIONS_PER_MINUTE
+   - SR_UNIT_VOLT_AMPERE
+   - SR_UNIT_WATT
+   - SR_UNIT_WATT_HOUR
+ * New input modules:
+   - csv (comma-separated values)
+ * Bump required libzip version to >= 0.10.
+ * uni-t-dmm: This driver now requires the specification of the USB VID/PID
+   of the cable that is used. Example for sigrok-cli:
+    - Old: sigrok-cli --driver voltcraft-vc820 ...
+    - New: sigrok-cli --driver voltcraft-vc820:conn=1a86.e008 ...
+ * openbench-logic-sniffer:
+   - Initial test pattern support (SR_CONF_PATTERN_MODE).
+   - Initial external clock support (SR_CONF_EXTERNAL_CLOCK).
+   - Initial channel swap support (SR_CONF_SWAP).
+   - Various minor fixes and improvements.
+ * When a frontend adds a device instance to a running session, start
+   acquisition on it. This helps with the collectd use-case where devices
+   can be removed and added dynamically while a session is running.
+ * rigol-ds1xx2: Support newer Linux kernels with USBTMC in /sys/class/usbmisc.
+ * rigol-ds1xx2: Also detect the Rigol DS1152E/DS1152D.
+ * agilent-dmm: Fix a segfault happening in certain cases.
+ * output/analog: Support all currently known MQFLAGs.
+ * Fix a minor compile issue due to an incorrect #include.
+ * Fix two compile issues on FreeBSD (bug #185).
+ * es519xx: New generic parser for various Cyrustek DMM ICs.
+ * es51922/fs9721/fs9922/metex14: Use diode MQFLAG (bug #141).
+ * voltcraft-vc830: Fix diode mode handling (bug #142).
+ * Add the missing HACKING file to the tarball.
+ * README.devices: Updates/notes for newly added devices.
+
 0.2.1 (2013-08-07)
 ------------------
 
