@@ -218,6 +218,10 @@ When using any of the UT-D04 USB/HID cables you have to use the respective
 driver _without_ the '-ser' drivername suffix (internally all of these models
 are handled by the 'uni-t-dmm' driver).
 
+You also need to specify the USB vendor/device IDs of the cable.
+Autodetection is not possible here, since various other products use the
+USB VID/PID of those cables too, and there is no way to distinguish them.
+
 Since the UT-D04 cables are USB based (but don't use a USB-to-serial chip)
 there is no need to specify a serial port via 'conn', of course.
 However, the user running the frontend does also need to have permissions
@@ -225,8 +229,8 @@ to access the respective USB device (see above).
 
 Examples (sigrok-cli):
 
- $ sigrok-cli --driver uni-t-ut61e ...
- $ sigrok-cli --driver voltcraft-vc820 ...
+ $ sigrok-cli --driver uni-t-ut61e:conn=1a86.e008 ...
+ $ sigrok-cli --driver voltcraft-vc820:conn=04fa.2490 ...
 
 
 UNI-T UT-D04 cable issue on Linux
