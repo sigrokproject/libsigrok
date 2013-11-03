@@ -322,7 +322,7 @@ static int sanity_check_all_output_modules(void)
  *         the context will be free'd by sr_exit() as part of the libsigrok
  *         shutdown.
  *
- * @since 0.1.0 (but the API changed in 0.2.0)
+ * @since 0.2.0
  */
 SR_API int sr_init(struct sr_context **ctx)
 {
@@ -384,7 +384,7 @@ done:
  *
  * @return SR_OK upon success, a (negative) error code otherwise.
  *
- * @since 0.1.0 (but the API changed in 0.2.0)
+ * @since 0.2.0
  */
 SR_API int sr_exit(struct sr_context *ctx)
 {

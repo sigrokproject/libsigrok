@@ -80,7 +80,7 @@ SR_PRIV struct sr_probe *sr_probe_new(int index, int type,
  *
  * @return SR_OK on success, or SR_ERR_ARG on invalid arguments.
  *
- * @since 0.1.0 (but the API changed in 0.2.0)
+ * @since 0.2.0
  */
 SR_API int sr_dev_probe_name_set(const struct sr_dev_inst *sdi,
 		int probenum, const char *name)
@@ -154,7 +154,7 @@ SR_API int sr_dev_probe_enable(const struct sr_dev_inst *sdi, int probenum,
  *
  * @return SR_OK on success, or SR_ERR_ARG on invalid arguments.
  *
- * @since 0.1.0 (but the API changed in 0.2.0)
+ * @since 0.2.0
  */
 SR_API int sr_dev_trigger_set(const struct sr_dev_inst *sdi, int probenum,
 		const char *trigger)
@@ -196,7 +196,7 @@ SR_API int sr_dev_trigger_set(const struct sr_dev_inst *sdi, int probenum,
  *         FALSE is also returned on invalid input parameters or other
  *         error conditions.
  *
- * @since 0.1.0 (but the API changed in 0.2.0)
+ * @since 0.2.0
  */
 SR_API gboolean sr_dev_has_option(const struct sr_dev_inst *sdi, int key)
 {
@@ -352,7 +352,7 @@ SR_PRIV void sr_serial_dev_inst_free(struct sr_serial_dev_inst *serial)
  * @return The list of devices/instances of this driver, or NULL upon errors
  *         or if the list is empty.
  *
- * @since 0.1.0 (but the API changed in 0.2.0)
+ * @since 0.2.0
  */
 SR_API GSList *sr_dev_list(const struct sr_dev_driver *driver)
 {

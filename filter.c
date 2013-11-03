@@ -96,7 +96,7 @@
  *         If something other than SR_OK is returned, the values of
  *         out_unitsize, data_out, and length_out are undefined.
  *
- * @since 0.1.0 (but the API changed in 0.2.0)
+ * @since 0.2.0
  */
 SR_API int sr_filter_probes(unsigned int in_unitsize, unsigned int out_unitsize,
 			    const GArray *probe_array, const uint8_t *data_in,
