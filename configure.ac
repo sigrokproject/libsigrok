@@ -253,7 +253,7 @@ PKG_CHECK_MODULES([libzip], [libzip >= 0.10],
 
 # libserialport is always needed. Abort if it's not found.
 PKG_CHECK_MODULES([libserialport], [libserialport >= 0.1],
-	[CFLAGS="$CFLAGS $libserialport_CFLAGS"; LIBS="$LIBS $libzip_LIBS";
+	[CFLAGS="$CFLAGS $libserialport_CFLAGS"; LIBS="$LIBS $libserialport_LIBS";
 	SR_PKGLIBS="$SR_PKGLIBS libserialport"])
 
 # libusb-1.0 is only needed for some hardware drivers. Disable the respective
