@@ -45,7 +45,11 @@ You can apply it like this:
  $ cd libsigrok
  $ git am 0001-tondaj-sl-814-Initial-driver-skeleton.patch
 
-You can now edit the files in the hardware/tondaj-sl-814 directory as needed.
+You can now edit the files in the hardware/tondaj-sl-814 directory as needed
+and implement your driver based on the skeleton files there. That means your
+patch submission later will consist of at least two patches: the initial one
+adding the skeleton driver, and one or more additional patches that actually
+implement the respective driver code.
 
 
 The manual way:
@@ -71,6 +75,12 @@ See existing drivers or the 'new-driver' output for the details.
 Random notes
 ------------
 
+ - Don't do variable declarations in compound statements, only at the
+   beginning of a function.
+
+ - Generally avoid assigning values to variables at declaration time,
+   especially so for complex and/or run-time dependent values.
+
  - Consistently use g_try_malloc() / g_try_malloc0(). Do not use standard
    malloc()/calloc() if it can be avoided (sometimes other libs such
    as libftdi can return malloc()'d memory, for example).
@@ -95,7 +105,7 @@ Random notes
  - Consistently use the same naming convention for #include guards in headers:
    <PROJECTNAME>_<PATH_TO_FILE>_<FILE>
    This ensures that all #include guards are always unique and consistent.
-   Examples: LIBSIGROK_LIBSIGROK_H, LIBSIGROK_HARDWARE_ASIX_SIGMA_ASIX_SIGMA_H
+   Examples: LIBSIGROK_LIBSIGROK_H, LIBSIGROK_HARDWARE_MIC_985XX_PROTOCOL_H
 
  - Consistently use the same naming convention for API functions:
    <libprefix>_<groupname>_<action>().
@@ -144,20 +154,19 @@ Doxygen
    Variables that are "static" don't need to be marked like this.
 
  - Mark all public API functions (SR_API) with a @since tag which indicates
-   in which release the respective function was added. If the function has
-   existed before, but its API changed later, document this as well.
+   in which release the respective function was added (e.g. "@since 0.1.0").
+
+   If the function has existed before, but its API changed later, the @since
+   tag should mention only the release when the API last changed.
+
+   Example: The sr_foo() call was added in 0.1.0, but the API changed in
+   the later 0.2.0 release. The docs should read "@since 0.2.0" in that case.
 
    Non-public functions (static ones, and those marked SR_PRIV) don't need
    to have @since markers.
 
    The @since tag should be the last one, i.e. it should come after @param,
    @return, @see, and so on.
-
-   Examples:
-
-     @since 0.1.0
-
-     @since 0.1.1 (but the API changed in 0.2.0)
 
 
 Testsuite
