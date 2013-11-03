@@ -432,6 +432,11 @@ if test "x$HW_RIGOL_DS1XX2" = "xyes"; then
 	AC_DEFINE(HAVE_HW_RIGOL_DS1XX2, 1, [Rigol DS1xx2 support])
 fi
 
+AM_CONDITIONAL(HW_SALEAE_LOGIC16, test x$HW_SALEAE_LOGIC16 = xyes)
+if test "x$HW_SALEAE_LOGIC16" = "xyes"; then
+	AC_DEFINE(HAVE_HW_SALEAE_LOGIC16, 1, [Saleae Logic16 support])
+fi
+
 AM_CONDITIONAL(HW_SERIAL_DMM, test x$HW_SERIAL_DMM = xyes)
 if test "x$HW_SERIAL_DMM" = "xyes"; then
 	AC_DEFINE(HAVE_HW_SERIAL_DMM, 1, [Serial DMM support])
@@ -465,11 +470,6 @@ fi
 AM_CONDITIONAL(HW_ZEROPLUS_LOGIC_CUBE, test x$HW_ZEROPLUS_LOGIC_CUBE = xyes)
 if test "x$HW_ZEROPLUS_LOGIC_CUBE" = "xyes"; then
 	AC_DEFINE(HAVE_HW_ZEROPLUS_LOGIC_CUBE, 1, [ZEROPLUS Logic Cube support])
-fi
-
-AM_CONDITIONAL(HW_SALEAE_LOGIC16, test x$HW_SALEAE_LOGIC16 = xyes)
-if test "x$HW_SALEAE_LOGIC16" = "xyes"; then
-	AC_DEFINE(HAVE_HW_SALEAE_LOGIC16, 1, [Saleae Logic16 support])
 fi
 
 # Checks for header files.
