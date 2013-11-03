@@ -64,9 +64,11 @@ The following drivers/devices do not need any firmware upload:
  - lascar-el-usb
  - link-mso19
  - mic-985xx
+ - norma-dmm
  - openbench-logic-sniffer
  - rigol-ds1xx2
  - serial-dmm
+ - teleinfo
  - tondaj-sl-814
  - uni-t-dmm
  - uni-t-ut32x
@@ -98,8 +100,10 @@ The following drivers/devices require a serial port specification:
  - fluke-dmm
  - link-mso19
  - mic-985xx
+ - norma-dmm
  - openbench-logic-sniffer
  - serial-dmm
+ - teleinfo
  - tondaj-sl-814
 
 The following drivers/devices do not require a serial port specification:
