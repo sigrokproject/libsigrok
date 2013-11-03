@@ -203,10 +203,6 @@ AC_ARG_ENABLE(teleinfo, AC_HELP_STRING([--enable-teleinfo],
 	[enable Teleinfo support [default=yes]]),
 	[HW_TELEINFO="$enableval"],
 	[HW_TELEINFO=$HW_ENABLED_DEFAULT])
-AM_CONDITIONAL(HW_TELEINFO, test x$HW_TELEINFO = xyes)
-if test "x$HW_TELEINFO" = "xyes"; then
-	AC_DEFINE(HAVE_HW_TELEINFO, 1, [Teleinfo support])
-fi
 
 AC_ARG_ENABLE(tondaj-sl-814, AC_HELP_STRING([--enable-tondaj-sl-814],
 	[enable Tondaj SL-814 support [default=yes]]),
@@ -439,6 +435,11 @@ fi
 AM_CONDITIONAL(HW_SERIAL_DMM, test x$HW_SERIAL_DMM = xyes)
 if test "x$HW_SERIAL_DMM" = "xyes"; then
 	AC_DEFINE(HAVE_HW_SERIAL_DMM, 1, [Serial DMM support])
+fi
+
+AM_CONDITIONAL(HW_TELEINFO, test x$HW_TELEINFO = xyes)
+if test "x$HW_TELEINFO" = "xyes"; then
+	AC_DEFINE(HAVE_HW_TELEINFO, 1, [Teleinfo support])
 fi
 
 AM_CONDITIONAL(HW_TONDAJ_SL_814, test x$HW_TONDAJ_SL_814 = xyes)
