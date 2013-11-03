@@ -134,6 +134,9 @@ ATTRS{idVendor}=="1ab1", ATTRS{idProduct}=="0588", MODE="664", GROUP="plugdev"
 # MCU123 Saleae Logic clone (clone of the Saleae Logic)
 ATTRS{idVendor}=="0925", ATTRS{idProduct}=="3881", MODE="664", GROUP="plugdev"
 
+# Saleae Logic16
+ATTRS{idVendor}=="21a9", ATTRS{idProduct}=="1001", MODE="664", GROUP="plugdev"
+
 # UNI-T UT-D04 multimeter cable (for various UNI-T and rebranded DMMs)
 # http://sigrok.org/wiki/Device_cables#UNI-T_UT-D04
 ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="e008", MODE="664", GROUP="plugdev"
