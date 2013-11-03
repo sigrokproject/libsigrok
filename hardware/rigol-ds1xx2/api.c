@@ -46,7 +46,7 @@ static const int32_t hwcaps[] = {
 static const int32_t analog_hwcaps[] = {
 	SR_CONF_NUM_VDIV,
 	SR_CONF_VDIV,
-	SR_CONF_COUPLING
+	SR_CONF_COUPLING,
 };
 
 static const uint64_t timebases[][2] = {
@@ -487,10 +487,8 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 	case SR_CONF_VDIV:
 		g_variant_get(data, "(tt)", &p, &q);
 		for (i = 0; i < 2; i++) {
-			if (probe_group == &devc->analog_groups[i])
-			{
-				for (j = 0; j < ARRAY_SIZE(vdivs); j++)
-				{
+			if (probe_group == &devc->analog_groups[i]) {
+				for (j = 0; j < ARRAY_SIZE(vdivs); j++) {
 					if (vdivs[j][0] != p || vdivs[j][1] != q)
 						continue;
 					devc->vdiv[i] = (float)p / q;
@@ -502,14 +500,15 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 		}
 		return SR_ERR_NA;
 	case SR_CONF_COUPLING:
+		if (!probe_group) {
+			sr_err("No probe group specified.");
+			return SR_ERR_PROBE_GROUP;
+		}
 		tmp_str = g_variant_get_string(data, NULL);
 		for (i = 0; i < 2; i++) {
-			if (probe_group == &devc->analog_groups[i])
-			{
-				for (j = 0; j < ARRAY_SIZE(coupling); j++)
-				{
-					if (!strcmp(tmp_str, coupling[j]))
-					{
+			if (probe_group == &devc->analog_groups[i]) {
+				for (j = 0; j < ARRAY_SIZE(coupling); j++) {
+					if (!strcmp(tmp_str, coupling[j])) {
 						g_free(devc->coupling[i]);
 						devc->coupling[i] = g_strdup(coupling[j]);
 						return set_cfg(sdi, ":CHAN%d:COUP %s", i + 1,
