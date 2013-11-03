@@ -393,11 +393,24 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 	if (!sdi || !(devc = sdi->priv))
 		return SR_ERR_ARG;
 
+	/* If a probe group is specified, it must be a valid one. */
+	if (probe_group) {
+		if (probe_group != &devc->analog_groups[0]
+				&& probe_group != &devc->analog_groups[1]) {
+			sr_err("Invalid probe group specified.");
+			return SR_ERR;
+		}
+	}
+
 	switch (id) {
 	case SR_CONF_NUM_TIMEBASE:
 		*data = g_variant_new_int32(NUM_TIMEBASE);
 		break;
 	case SR_CONF_NUM_VDIV:
+		if (!probe_group) {
+			sr_err("No probe group specified.");
+			return SR_ERR_PROBE_GROUP;
+		}
 		for (i = 0; i < 2; i++) {
 			if (probe_group == &devc->analog_groups[i]) {
 				*data = g_variant_new_int32(NUM_VDIV);
@@ -427,6 +440,15 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
+
+	/* If a probe group is specified, it must be a valid one. */
+	if (probe_group) {
+		if (probe_group != &devc->analog_groups[0]
+				&& probe_group != &devc->analog_groups[1]) {
+			sr_err("Invalid probe group specified.");
+			return SR_ERR;
+		}
+	}
 
 	ret = SR_OK;
 	switch (id) {
@@ -485,6 +507,10 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 			ret = SR_ERR_ARG;
 		break;
 	case SR_CONF_VDIV:
+		if (!probe_group) {
+			sr_err("No probe group specified.");
+			return SR_ERR_PROBE_GROUP;
+		}
 		g_variant_get(data, "(tt)", &p, &q);
 		for (i = 0; i < 2; i++) {
 			if (probe_group == &devc->analog_groups[i]) {
@@ -549,9 +575,22 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	if (!sdi || !(devc = sdi->priv))
 		return SR_ERR_ARG;
 
+	/* If a probe group is specified, it must be a valid one. */
+	if (probe_group) {
+		if (probe_group != &devc->analog_groups[0]
+				&& probe_group != &devc->analog_groups[1]) {
+			sr_err("Invalid probe group specified.");
+			return SR_ERR;
+		}
+	}
+
 	switch (key) {
 		break;
 	case SR_CONF_DEVICE_OPTIONS:
+		if (!probe_group) {
+			sr_err("No probe group specified.");
+			return SR_ERR_PROBE_GROUP;
+		}
 		if (probe_group == &devc->digital_group) {
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
 				NULL, 0, sizeof(int32_t));
@@ -572,6 +611,9 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 				*data = g_variant_new_strv(coupling, ARRAY_SIZE(coupling));
 				return SR_OK;
 			}
+		if (!probe_group) {
+			sr_err("No probe group specified.");
+			return SR_ERR_PROBE_GROUP;
 		}
 		return SR_ERR_NA;
 	case SR_CONF_VDIV:
@@ -582,6 +624,9 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 				*data = g_variant_new_tuple(rational, 2);
 				return SR_OK;
 			}
+		if (!probe_group) {
+			sr_err("No probe group specified.");
+			return SR_ERR_PROBE_GROUP;
 		}
 		return SR_ERR_NA;
 	case SR_CONF_TIMEBASE:
