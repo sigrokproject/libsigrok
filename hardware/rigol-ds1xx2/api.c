@@ -607,29 +607,26 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		}
 		break;
 	case SR_CONF_COUPLING:
-		for (i = 0; i < 2; i++) {
-			if (probe_group == &devc->analog_groups[i]) {
-				*data = g_variant_new_strv(coupling, ARRAY_SIZE(coupling));
-				return SR_OK;
-			}
 		if (!probe_group) {
 			sr_err("No probe group specified.");
 			return SR_ERR_PROBE_GROUP;
 		}
-		return SR_ERR_NA;
+		*data = g_variant_new_strv(coupling, ARRAY_SIZE(coupling));
+		break;
 	case SR_CONF_VDIV:
-		for (i = 0; i < 2; i++) {
-			if (probe_group == &devc->analog_groups[i]) {
-				rational[0] = g_variant_new_uint64(vdivs[i][0]);
-				rational[1] = g_variant_new_uint64(vdivs[i][1]);
-				*data = g_variant_new_tuple(rational, 2);
-				return SR_OK;
-			}
 		if (!probe_group) {
 			sr_err("No probe group specified.");
 			return SR_ERR_PROBE_GROUP;
 		}
-		return SR_ERR_NA;
+		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
+		for (i = 0; i < ARRAY_SIZE(vdivs); i++) {
+			rational[0] = g_variant_new_uint64(vdivs[i][0]);
+			rational[1] = g_variant_new_uint64(vdivs[i][1]);
+			tuple = g_variant_new_tuple(rational, 2);
+			g_variant_builder_add_value(&gvb, tuple);
+		}
+		*data = g_variant_builder_end(&gvb);
+		break;
 	case SR_CONF_TIMEBASE:
 		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
 		for (i = 0; i < ARRAY_SIZE(timebases); i++) {
