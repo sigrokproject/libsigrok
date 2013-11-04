@@ -23,7 +23,7 @@
 ##
 
 ACTION!="add|change", GOTO="libsigrok_rules_end"
-SUBSYSTEM!="usb|usb_device", GOTO="libsigrok_rules_end"
+SUBSYSTEM!="usb|usbmisc|usb_device", GOTO="libsigrok_rules_end"
 
 # ASIX SIGMA
 # ASIX SIGMA2
