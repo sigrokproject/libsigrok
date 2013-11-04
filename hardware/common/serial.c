@@ -22,7 +22,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <glib.h>
-#include <serialport.h>
+#include <libserialport.h>
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
