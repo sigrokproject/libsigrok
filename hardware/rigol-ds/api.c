@@ -750,6 +750,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		devc->num_frame_bytes = 0;
 	} else {
 		if (devc->enabled_analog_probes) {
+			devc->channel_frame = devc->enabled_analog_probes->data;
 			/* Assume there already was a trigger event - don't wait */
 			if (rigol_ds2xx2_acquisition_start(sdi, FALSE) != SR_OK)
 				return SR_ERR;

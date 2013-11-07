@@ -169,8 +169,6 @@ SR_PRIV int rigol_ds2xx2_acquisition_start(const struct sr_dev_inst *sdi,
 	if (!(devc = sdi->priv))
 		return SR_ERR;
 
-	devc->channel_frame = devc->enabled_analog_probes->data;
-
 	sr_dbg("Starting acquisition on channel %d",
 		   devc->channel_frame->index + 1);
 
@@ -366,11 +364,11 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 				&& devc->enabled_analog_probes->next != NULL) {
 			/* We got the frame for the first analog channel, but
 			 * there's a second analog channel. */
+			devc->channel_frame = devc->enabled_analog_probes->next->data;
 			if (devc->model->series == 2) {
 				/* Do not wait for trigger to try and keep channel data related. */
 				rigol_ds2xx2_acquisition_start(sdi, FALSE);
 			} else {
-				devc->channel_frame = devc->enabled_analog_probes->next->data;
 				rigol_ds_send(sdi, ":WAV:DATA? CHAN%c",
 						devc->channel_frame->name[2]);
 			}
@@ -390,6 +388,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 				/* Get the next frame, starting with the first analog channel. */
 				if (devc->model->series == 2) {
 					if (devc->enabled_analog_probes) {
+						devc->channel_frame = devc->enabled_analog_probes->data;
 						/* Must wait for trigger because at
 						 * slow timebases the scope will
 						 * return old data otherwise. */
