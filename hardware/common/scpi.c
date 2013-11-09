@@ -308,6 +308,31 @@ SR_PRIV int sr_scpi_get_double(struct sr_serial_dev_inst *serial,
 }
 
 /**
+ * Send a SCPI *OPC? command, read the reply and return the result of the
+ * command.
+ *
+ * @param serial Previously initialized serial port structure.
+ *
+ * @return SR_OK on success, SR_ERR on failure.
+ */
+SR_PRIV int sr_scpi_get_opc(struct sr_serial_dev_inst *serial)
+{
+	unsigned int i;
+	gboolean opc;
+
+	for (i = 0; i < SCPI_READ_RETRIES; ++i) {
+		sr_scpi_get_bool(serial, SCPI_CMD_OPC, &opc);
+
+		if (opc)
+			return SR_OK;
+
+		g_usleep(SCPI_READ_RETRY_TIMEOUT);
+	}
+
+	return SR_ERR;
+}
+
+/**
  * Send the *IDN? SCPI command, receive the reply, parse it and store the
  * reply as a sr_scpi_hw_info structure in the supplied scpi_response pointer.
  *
