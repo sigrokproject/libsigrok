@@ -153,7 +153,7 @@ void srtest_set_samplerate(struct sr_dev_driver *driver, uint64_t samplerate)
 	sdi = g_slist_nth_data(driver->priv, 0);
 
 	gvar = g_variant_new_uint64(samplerate);
-	ret = driver->config_set(SR_CONF_SAMPLERATE, gvar, sdi);
+	ret = driver->config_set(SR_CONF_SAMPLERATE, gvar, sdi, NULL);
 	g_variant_unref(gvar);
 
 	fail_unless(ret == SR_OK, "%s: Failed to set SR_CONF_SAMPLERATE: %d.",
@@ -170,7 +170,7 @@ uint64_t srtest_get_samplerate(struct sr_dev_driver *driver)
 
 	sdi = g_slist_nth_data(driver->priv, 0);
 
-	ret = driver->config_get(SR_CONF_SAMPLERATE, &gvar, sdi);
+	ret = driver->config_get(SR_CONF_SAMPLERATE, &gvar, sdi, NULL);
 	samplerate = g_variant_get_uint64(gvar);
 	g_variant_unref(gvar);
 
