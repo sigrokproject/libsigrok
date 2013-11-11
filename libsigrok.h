@@ -550,11 +550,13 @@ struct sr_probe {
 	char *trigger;
 };
 
+/** Structure for groups of probes that have common properties. */
 struct sr_probe_group {
+	/** Name of the probe group. */
 	char *name;
-	/* List of sr_probe structs. */
+	/** List of sr_probe structs of the probes belonging to this group. */
 	GSList *probes;
-	/* Private data for driver use. */
+	/** Private data for driver use. */
 	void *priv;
 };
 
