@@ -55,7 +55,6 @@ struct dmm_info {
 	char *device;
 	uint32_t baudrate;
 	int packet_size;
-	int (*packet_request)(struct sr_serial_dev_inst *);
 	gboolean (*packet_valid)(const uint8_t *);
 	int (*packet_parse)(const uint8_t *, float *,
 			    struct sr_datafeed_analog *, void *);
