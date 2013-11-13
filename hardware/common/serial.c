@@ -108,7 +108,6 @@ SR_PRIV int serial_close(struct sr_serial_dev_inst *serial)
 	}
 
 	sr_spew("Closing serial port %s (fd %d).", serial->port, serial->fd);
-	ret = SR_OK;
 
 	ret = sp_close(serial->data);
 
@@ -125,7 +124,7 @@ SR_PRIV int serial_close(struct sr_serial_dev_inst *serial)
 
 	serial->fd = -1;
 
-	return ret;
+	return SR_OK;
 }
 
 /**
@@ -166,7 +165,7 @@ SR_PRIV int serial_flush(struct sr_serial_dev_inst *serial)
 		return SR_ERR;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 /**
@@ -176,7 +175,7 @@ SR_PRIV int serial_flush(struct sr_serial_dev_inst *serial)
  * @param buf Buffer containing the bytes to write.
  * @param count Number of bytes to write.
  *
- * @return The number of bytes written, or -1 upon failure.
+ * @return The number of bytes written, or a negative error code upon failure.
  */
 SR_PRIV int serial_write(struct sr_serial_dev_inst *serial,
 		const void *buf, size_t count)
@@ -186,13 +185,13 @@ SR_PRIV int serial_write(struct sr_serial_dev_inst *serial,
 
 	if (!serial) {
 		sr_dbg("Invalid serial port.");
-		return -1;
+		return SR_ERR;
 	}
 
 	if (serial->fd == -1) {
 		sr_dbg("Cannot use unopened serial port %s (fd %d).",
 				serial->port, serial->fd);
-		return -1;
+		return SR_ERR;
 	}
 
 	ret = sp_write(serial->data, buf, count);
@@ -220,7 +219,7 @@ SR_PRIV int serial_write(struct sr_serial_dev_inst *serial,
  * @param buf Buffer where to store the bytes that are read.
  * @param count The number of bytes to read.
  *
- * @return The number of bytes read, or -1 upon failure.
+ * @return The number of bytes read, or a negative error code upon failure.
  */
 SR_PRIV int serial_read(struct sr_serial_dev_inst *serial, void *buf,
 		size_t count)
@@ -230,13 +229,13 @@ SR_PRIV int serial_read(struct sr_serial_dev_inst *serial, void *buf,
 
 	if (!serial) {
 		sr_dbg("Invalid serial port.");
-		return -1;
+		return SR_ERR;
 	}
 
 	if (serial->fd == -1) {
 		sr_dbg("Cannot use unopened serial port %s (fd %d).",
 				serial->port, serial->fd);
-		return -1;
+		return SR_ERR;
 	}
 
 	ret = sp_read(serial->data, buf, count);
