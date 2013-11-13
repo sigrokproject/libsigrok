@@ -254,6 +254,7 @@ static gboolean flags_valid(const struct metex14_info *info)
 	return TRUE;
 }
 
+#ifdef HAVE_LIBSERIALPORT
 SR_PRIV int sr_metex14_packet_request(struct sr_serial_dev_inst *serial)
 {
 	const uint8_t wbuf = 'D';
@@ -262,6 +263,7 @@ SR_PRIV int sr_metex14_packet_request(struct sr_serial_dev_inst *serial)
 
 	return (serial_write(serial, &wbuf, 1) == 1) ? SR_OK : SR_ERR;
 }
+#endif
 
 SR_PRIV gboolean sr_metex14_packet_valid(const uint8_t *buf)
 {

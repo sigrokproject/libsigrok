@@ -251,10 +251,26 @@ PKG_CHECK_MODULES([libzip], [libzip >= 0.10],
 	[CFLAGS="$CFLAGS $libzip_CFLAGS"; LIBS="$LIBS $libzip_LIBS";
 	SR_PKGLIBS="$SR_PKGLIBS libzip"])
 
-# libserialport is always needed. Abort if it's not found.
+# libserialport is only needed for some hardware drivers. Disable the
+# respective drivers if it is not found.
 PKG_CHECK_MODULES([libserialport], [libserialport >= 0.1],
-	[CFLAGS="$CFLAGS $libserialport_CFLAGS"; LIBS="$LIBS $libserialport_LIBS";
-	SR_PKGLIBS="$SR_PKGLIBS libserialport"])
+	[have_libserialport="yes"; CFLAGS="$CFLAGS $libserialport_CFLAGS";
+	LIBS="$LIBS $libserialport_LIBS";
+	SR_PKGLIBS="$SR_PKGLIBS libserialport"],
+	[have_libserialport="no"; HW_AGILENT_DMM="no"; HW_BRYMEN_DMM="no";
+	HW_CEM_DT_885X="no"; HW_CENTER_3XX="no"; HW_COLEAD_SLM="no";
+	HW_FLUKE_DMM="no"; HW_LINK_MSO19="no"; HW_MIC_985XX="no";
+	HW_NORMA_DMM="no"; HW_OLS="no"; HW_RIGOL_DS1XX2="no";
+	HW_SERIAL_DMM="no"; HW_TELEINFO="no"; HW_TONDAJ_SL_814="no"])
+
+# Define HAVE_LIBSERIALPORT in config.h if we found libserialport.
+if test "x$have_libserialport" != "xno"; then
+	AC_DEFINE_UNQUOTED(HAVE_LIBSERIALPORT, [1],
+		[Specifies whether we have libserialport.])
+fi
+
+# Serial port helper code is only compiled in if libserialport was found.
+AM_CONDITIONAL(NEED_SERIAL, test "x$have_libserialport" != xno)
 
 # libusb-1.0 is only needed for some hardware drivers. Disable the respective
 # drivers if it is not found.
@@ -566,7 +582,7 @@ echo "Detected libraries:"
 echo
 
 # Note: This only works for libs with pkg-config integration.
-for lib in "glib-2.0 >= 2.32.0" "libzip >= 0.10" "libusb-1.0 >= 1.0.9" "libftdi >= 0.16" "libudev >= 151" "alsa >= 1.0" "check >= 0.9.4"; do
+for lib in "glib-2.0 >= 2.32.0" "libzip >= 0.10" "libserialport >= 0.1" "libusb-1.0 >= 1.0.9" "libftdi >= 0.16" "libudev >= 151" "alsa >= 1.0" "check >= 0.9.4"; do
 	if `$PKG_CONFIG --exists $lib`; then
 		ver=`$PKG_CONFIG --modversion $lib`
 		answer="yes ($ver)"

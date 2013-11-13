@@ -101,6 +101,8 @@ SR_PRIV int std_session_send_df_header(const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
+#ifdef HAVE_LIBSERIALPORT
+
 /*
  * Standard sr_session_stop() API helper.
  *
@@ -163,6 +165,8 @@ SR_PRIV int std_dev_acquisition_stop_serial(struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
+#endif
+
 /*
  * Standard driver dev_clear() helper.
  *
@@ -203,10 +207,12 @@ SR_PRIV int std_dev_clear(const struct sr_dev_driver *driver,
 			driver->dev_close(sdi);
 
 		if (sdi->conn) {
-			 if (sdi->inst_type == SR_INST_SERIAL)
+#if HAVE_LIBSERIALPORT
+			if (sdi->inst_type == SR_INST_SERIAL)
 				sr_serial_dev_inst_free(sdi->conn);
+#endif
 #if HAVE_LIBUSB_1_0
-			else if (sdi->inst_type == SR_INST_USB)
+			if (sdi->inst_type == SR_INST_USB)
 				sr_usb_dev_inst_free(sdi->conn);
 #endif
 		}

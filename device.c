@@ -299,6 +299,8 @@ SR_PRIV void sr_usb_dev_inst_free(struct sr_usb_dev_inst *usb)
 
 #endif
 
+#ifdef HAVE_LIBSERIALPORT
+
 /**
  * @private
  *
@@ -345,6 +347,8 @@ SR_PRIV void sr_serial_dev_inst_free(struct sr_serial_dev_inst *serial)
 	g_free(serial->serialcomm);
 	g_free(serial);
 }
+
+#endif
 
 /**
  * Get the list of devices/instances of the specified driver.

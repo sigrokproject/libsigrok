@@ -26,7 +26,9 @@
 #ifdef HAVE_LIBUSB_1_0
 #include <libusb.h>
 #endif
+#ifdef HAVE_LIBSERIALPORT
 #include <serialport.h>
+#endif
 
 /**
  * @file
@@ -65,6 +67,7 @@ struct sr_usb_dev_inst {
 };
 #endif
 
+#ifdef HAVE_LIBSERIALPORT
 #define SERIAL_PARITY_NONE SP_PARITY_NONE
 #define SERIAL_PARITY_EVEN SP_PARITY_EVEN
 #define SERIAL_PARITY_ODD  SP_PARITY_ODD
@@ -74,6 +77,7 @@ struct sr_serial_dev_inst {
 	int fd;
 	struct sp_port *data;
 };
+#endif
 
 /* Private driver context. */
 struct drv_context {
@@ -108,10 +112,12 @@ SR_PRIV GSList *sr_usb_find_usbtmc(libusb_context *usb_ctx);
 SR_PRIV void sr_usb_dev_inst_free(struct sr_usb_dev_inst *usb);
 #endif
 
+#ifdef HAVE_LIBSERIALPORT
 /* Serial-specific instances */
 SR_PRIV struct sr_serial_dev_inst *sr_serial_dev_inst_new(const char *port,
 		const char *serialcomm);
 SR_PRIV void sr_serial_dev_inst_free(struct sr_serial_dev_inst *serial);
+#endif
 
 
 /*--- hwdriver.c ------------------------------------------------------------*/
@@ -137,9 +143,11 @@ typedef void (*std_dev_clear_t)(void *priv);
 
 SR_PRIV int std_init(struct sr_context *sr_ctx, struct sr_dev_driver *di,
 		const char *prefix);
+#ifdef HAVE_LIBSERIALPORT
 SR_PRIV int std_dev_acquisition_stop_serial(struct sr_dev_inst *sdi,
 		void *cb_data, dev_close_t dev_close_fn,
 		struct sr_serial_dev_inst *serial, const char *prefix);
+#endif
 SR_PRIV int std_session_send_df_header(const struct sr_dev_inst *sdi,
 		const char *prefix);
 SR_PRIV int std_dev_clear(const struct sr_dev_driver *driver,
@@ -147,6 +155,7 @@ SR_PRIV int std_dev_clear(const struct sr_dev_driver *driver,
 
 /*--- hardware/common/serial.c ----------------------------------------------*/
 
+#ifdef HAVE_LIBSERIALPORT
 enum {
 	SERIAL_RDWR = 1,
 	SERIAL_RDONLY = 2,
@@ -172,6 +181,7 @@ SR_PRIV int serial_stream_detect(struct sr_serial_dev_inst *serial,
 				 uint8_t *buf, size_t *buflen,
 				 size_t packet_size, packet_valid_t is_valid,
 				 uint64_t timeout_ms, int baudrate);
+#endif
 
 /*--- hardware/common/ezusb.c -----------------------------------------------*/
 
@@ -298,7 +308,9 @@ struct metex14_info {
 	gboolean is_unitless;
 };
 
+#ifdef HAVE_LIBSERIALPORT
 SR_PRIV int sr_metex14_packet_request(struct sr_serial_dev_inst *serial);
+#endif
 SR_PRIV gboolean sr_metex14_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_metex14_parse(const uint8_t *buf, float *floatval,
 			     struct sr_datafeed_analog *analog, void *info);
