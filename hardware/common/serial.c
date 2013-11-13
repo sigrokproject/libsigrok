@@ -63,16 +63,15 @@ SR_PRIV int serial_open(struct sr_serial_dev_inst *serial, int flags)
 
 	ret = sp_open(serial->data, flags);
 
-	switch (ret)
-	{
-		case SP_ERR_ARG:
-			sr_err("Attempt to open serial port with invalid parameters.");
-			return SR_ERR_ARG;
-		case SP_ERR_FAIL:
-			error = sp_last_error_message();
-			sr_err("Error opening port: %s.", error);
-			sp_free_error_message(error);
-			return SR_ERR;
+	switch (ret) {
+	case SP_ERR_ARG:
+		sr_err("Attempt to open serial port with invalid parameters.");
+		return SR_ERR_ARG;
+	case SP_ERR_FAIL:
+		error = sp_last_error_message();
+		sr_err("Error opening port: %s.", error);
+		sp_free_error_message(error);
+		return SR_ERR;
 	}
 
 #ifndef _WIN32
@@ -113,16 +112,15 @@ SR_PRIV int serial_close(struct sr_serial_dev_inst *serial)
 
 	ret = sp_close(serial->data);
 
-	switch (ret)
-	{
-		case SP_ERR_ARG:
-			sr_err("Attempt to close an invalid serial port.");
-			return SR_ERR_ARG;
-		case SP_ERR_FAIL:
-			error = sp_last_error_message();
-			sr_err("Error closing port: %s.", error);
-			sp_free_error_message(error);
-			return SR_ERR;
+	switch (ret) {
+	case SP_ERR_ARG:
+		sr_err("Attempt to close an invalid serial port.");
+		return SR_ERR_ARG;
+	case SP_ERR_FAIL:
+		error = sp_last_error_message();
+		sr_err("Error closing port: %s.", error);
+		sp_free_error_message(error);
+		return SR_ERR;
 	}
 
 	serial->fd = -1;
@@ -157,16 +155,15 @@ SR_PRIV int serial_flush(struct sr_serial_dev_inst *serial)
 
 	ret = sp_flush(serial->data);
 
-	switch (ret)
-	{
-		case SP_ERR_ARG:
-			sr_err("Attempt to flush an invalid serial port.");
-			return SR_ERR_ARG;
-		case SP_ERR_FAIL:
-			error = sp_last_error_message();
-			sr_err("Error flushing port: %s.", error);
-			sp_free_error_message(error);
-			return SR_ERR;
+	switch (ret) {
+	case SP_ERR_ARG:
+		sr_err("Attempt to flush an invalid serial port.");
+		return SR_ERR_ARG;
+	case SP_ERR_FAIL:
+		error = sp_last_error_message();
+		sr_err("Error flushing port: %s.", error);
+		sp_free_error_message(error);
+		return SR_ERR;
 	}
 
 	return ret;
@@ -200,16 +197,15 @@ SR_PRIV int serial_write(struct sr_serial_dev_inst *serial,
 
 	ret = sp_write(serial->data, buf, count);
 
-	switch (ret)
-	{
-		case SP_ERR_ARG:
-			sr_err("Attempted serial port write with invalid arguments.");
-			return SR_ERR_ARG;
-		case SP_ERR_FAIL:
-			error = sp_last_error_message();
-			sr_err("Write error: %s.", error);
-			sp_free_error_message(error);
-			return SR_ERR;
+	switch (ret) {
+	case SP_ERR_ARG:
+		sr_err("Attempted serial port write with invalid arguments.");
+		return SR_ERR_ARG;
+	case SP_ERR_FAIL:
+		error = sp_last_error_message();
+		sr_err("Write error: %s.", error);
+		sp_free_error_message(error);
+		return SR_ERR;
 	}
 
 	sr_spew("Wrote %d/%d bytes (fd %d).", ret, count, serial->fd);
@@ -245,16 +241,15 @@ SR_PRIV int serial_read(struct sr_serial_dev_inst *serial, void *buf,
 
 	ret = sp_read(serial->data, buf, count);
 
-	switch (ret)
-	{
-		case SP_ERR_ARG:
-			sr_err("Attempted serial port read with invalid arguments.");
-			return SR_ERR_ARG;
-		case SP_ERR_FAIL:
-			error = sp_last_error_message();
-			sr_err("Read error: %s.", error);
-			sp_free_error_message(error);
-			return SR_ERR;
+	switch (ret) {
+	case SP_ERR_ARG:
+		sr_err("Attempted serial port read with invalid arguments.");
+		return SR_ERR_ARG;
+	case SP_ERR_FAIL:
+		error = sp_last_error_message();
+		sr_err("Read error: %s.", error);
+		sp_free_error_message(error);
+		return SR_ERR;
 	}
 
 	sr_spew("Read %d/%d bytes (fd %d).", ret, count, serial->fd);
@@ -299,16 +294,15 @@ SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
 	ret = sp_set_params(serial->data, baudrate, bits, parity, stopbits,
 			flowcontrol, rts, dtr);
 
-	switch (ret)
-	{
-		case SP_ERR_ARG:
-			sr_err("Invalid arguments for setting serial port parameters.");
-			return SR_ERR_ARG;
-		case SP_ERR_FAIL:
-			error = sp_last_error_message();
-			sr_err("Error setting serial port parameters: %s.", error);
-			sp_free_error_message(error);
-			return SR_ERR;
+	switch (ret) {
+	case SP_ERR_ARG:
+		sr_err("Invalid arguments for setting serial port parameters.");
+		return SR_ERR_ARG;
+	case SP_ERR_FAIL:
+		error = sp_last_error_message();
+		sr_err("Error setting serial port parameters: %s.", error);
+		sp_free_error_message(error);
+		return SR_ERR;
 	}
 
 	return SR_OK;
