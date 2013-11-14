@@ -277,6 +277,7 @@ SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
 {
 	int ret;
 	char *error;
+	struct sp_port_config config;
 
 	if (!serial) {
 		sr_dbg("Invalid serial port.");
@@ -292,8 +293,15 @@ SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
 	sr_spew("Setting serial parameters on port %s (fd %d).", serial->port,
 		serial->fd);
 
-	ret = sp_set_params(serial->data, baudrate, bits, parity, stopbits,
-			flowcontrol, rts, dtr);
+	config.baudrate = baudrate;
+	config.bits = bits;
+	config.parity = parity;
+	config.stopbits = stopbits;
+	config.flowcontrol = flowcontrol;
+	config.rts = rts;
+	config.dtr = dtr;
+
+	ret = sp_set_config(serial->data, &config);
 
 	switch (ret) {
 	case SP_ERR_ARG:
