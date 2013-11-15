@@ -27,7 +27,7 @@
 #include <libusb.h>
 #endif
 #ifdef HAVE_LIBSERIALPORT
-#include <serialport.h>
+#include <libserialport.h>
 #endif
 
 /**
