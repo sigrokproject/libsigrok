@@ -123,6 +123,8 @@ SR_PRIV int rigol_ds1xx2_receive(int fd, int revents, void *cb_data)
 				rigol_ds1xx2_send(sdi, ":WAV:DATA? DIG");
 			} else if (++devc->num_frames == devc->limit_frames) {
 				/* End of last frame. */
+				packet.type = SR_DF_END;
+				sr_session_send(sdi, &packet);
 				sdi->driver->dev_acquisition_stop(sdi, cb_data);
 			} else {
 				/* Get the next frame, starting with the first analog channel. */
