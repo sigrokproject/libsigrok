@@ -297,9 +297,11 @@ SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
 	config.bits = bits;
 	config.parity = parity;
 	config.stopbits = stopbits;
-	config.flowcontrol = flowcontrol;
-	config.rts = rts;
+	config.rts = flowcontrol == 1 ? SP_RTS_FLOW_CONTROL : rts;
+	config.cts = flowcontrol == 1 ? SP_CTS_FLOW_CONTROL : SP_CTS_IGNORE;
 	config.dtr = dtr;
+	config.dsr = SP_DSR_IGNORE;
+	config.xon_xoff = flowcontrol == 2 ? SP_XONXOFF_INOUT : SP_XONXOFF_DISABLED;
 
 	ret = sp_set_config(serial->data, &config);
 
