@@ -291,6 +291,8 @@ SR_PRIV int sr_scpi_get_double(struct sr_serial_dev_inst *serial,
 SR_PRIV int sr_scpi_get_opc(struct sr_serial_dev_inst *serial);
 SR_PRIV int sr_scpi_get_floatv(struct sr_serial_dev_inst *serial,
 			      const char *command, GArray **scpi_response);
+SR_PRIV int sr_scpi_get_uint8v(struct sr_serial_dev_inst *serial,
+			      const char *command, GArray **scpi_response);
 SR_PRIV int sr_scpi_get_hw_id(struct sr_serial_dev_inst *serial,
 			      struct sr_scpi_hw_info **scpi_reponse);
 SR_PRIV void sr_scpi_hw_info_free(struct sr_scpi_hw_info *hw_info);

@@ -392,6 +392,65 @@ SR_PRIV int sr_scpi_get_floatv(struct sr_serial_dev_inst *serial,
 }
 
 /**
+ * Send a SCPI command, read the reply, parse it as comma separated list of
+ * unsigned 8 bit integers and store the as an result in scpi_response.
+ *
+ * @param serial Previously initialized serial port structure.
+ * @param command The SCPI command to send to the device (can be NULL).
+ * @param scpi_response Pointer where to store the parsed result.
+ *
+ * @return SR_OK upon successfully parsing all values, SR_ERR upon a parsing
+ * error or upon no response. The allocated response must be freed by the caller
+ * in the case of an SR_OK as well as in the case of parsing error.
+ */
+SR_PRIV int sr_scpi_get_uint8v(struct sr_serial_dev_inst *serial,
+			      const char *command, GArray **scpi_response)
+{
+	int tmp;
+	int ret;
+	char *response;
+
+	gchar **ptr;
+	gchar **tokens;
+	GArray *response_array;
+
+	ret = SR_OK;
+	response = NULL;
+	tokens = NULL;
+
+	if (sr_scpi_get_string(serial, command, &response) != SR_OK)
+		if (!response)
+			return SR_ERR;
+
+	tokens = g_strsplit(response, ",", 0);
+	ptr = tokens;
+
+	response_array = g_array_sized_new(TRUE, FALSE, sizeof(uint8_t), 256);
+
+	while(*ptr) {
+		if (sr_atoi(*ptr, &tmp) == SR_OK)
+			response_array = g_array_append_val(response_array,
+							    tmp);
+		else
+			ret = SR_ERR;
+
+		ptr++;
+	}
+	g_strfreev(tokens);
+	g_free(response);
+
+	if (response_array->len == 0) {
+		g_array_free(response_array, TRUE);
+		*scpi_response = NULL;
+		return SR_ERR;
+	}
+
+	*scpi_response = response_array;
+
+	return ret;
+}
+
+/**
  * Send the *IDN? SCPI command, receive the reply, parse it and store the
  * reply as a sr_scpi_hw_info structure in the supplied scpi_response pointer.
  *
