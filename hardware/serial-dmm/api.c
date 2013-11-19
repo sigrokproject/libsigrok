@@ -68,14 +68,14 @@ SR_PRIV struct sr_dev_driver iso_tech_idm103n_driver_info;
 
 SR_PRIV struct dmm_info dmms[] = {
 	{
-		"Digitek", "DT4000ZC", "2400/8n1", 2400,
+		"Digitek", "DT4000ZC", "2400/8n1/dtr=1", 2400,
 		FS9721_PACKET_SIZE, NULL,
 		sr_fs9721_packet_valid, sr_fs9721_parse,
 		sr_fs9721_10_temp_c,
 		&digitek_dt4000zc_driver_info, receive_data_DIGITEK_DT4000ZC,
 	},
 	{
-		"TekPower", "TP4000ZC", "2400/8n1", 2400,
+		"TekPower", "TP4000ZC", "2400/8n1/dtr=1", 2400,
 		FS9721_PACKET_SIZE, NULL,
 		sr_fs9721_packet_valid, sr_fs9721_parse,
 		sr_fs9721_10_temp_c,
