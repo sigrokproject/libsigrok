@@ -209,7 +209,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 	struct sr_serial_dev_inst *serial;
 
 	serial = sdi->conn;
-	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
+	if (serial_open(serial, SERIAL_RDWR | SERIAL_NONBLOCK) != SR_OK)
 		return SR_ERR;
 
 	sdi->status = SR_ST_ACTIVE;
