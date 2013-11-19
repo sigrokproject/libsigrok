@@ -110,6 +110,7 @@ SR_PRIV int serial_close(struct sr_serial_dev_inst *serial)
 	sr_spew("Closing serial port %s (fd %d).", serial->port, serial->fd);
 
 	ret = sp_close(serial->data);
+	sp_free_port(serial->data);
 
 	switch (ret) {
 	case SP_ERR_ARG:
