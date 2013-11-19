@@ -31,6 +31,7 @@ SUBDIRS = \
 	demo \
 	fluke-dmm \
 	fx2lafw \
+	gmc-mh-1x-2x \
 	hantek-dso \
 	ikalogic-scanalogic2 \
 	ikalogic-scanaplus \
@@ -99,6 +100,10 @@ endif
 
 if HW_FX2LAFW
 libsigrokhardware_la_LIBADD += fx2lafw/libsigrok_hw_fx2lafw.la
+endif
+
+if HW_GMC_MH_1X_2X
+libsigrokhardware_la_LIBADD += gmc-mh-1x-2x/libsigrok_hw_gmc_mh_1x_2x.la
 endif
 
 if HW_HANTEK_DSO

@@ -123,6 +123,9 @@ extern SR_PRIV struct sr_dev_driver colead_slm_driver_info;
 #ifdef HAVE_HW_DEMO
 extern SR_PRIV struct sr_dev_driver demo_driver_info;
 #endif
+#ifdef HAVE_HW_GMC_MH_1X_2X
+extern SR_PRIV struct sr_dev_driver gmc_mh_1x_2x_rs232_driver_info;
+#endif
 #ifdef HAVE_HW_IKALOGIC_SCANALOGIC2
 extern SR_PRIV struct sr_dev_driver ikalogic_scanalogic2_driver_info;
 #endif
@@ -244,6 +247,9 @@ static struct sr_dev_driver *drivers_list[] = {
 #endif
 #ifdef HAVE_HW_DEMO
 	&demo_driver_info,
+#endif
+#ifdef HAVE_HW_GMC_MH_1X_2X
+	&gmc_mh_1x_2x_rs232_driver_info,
 #endif
 #ifdef HAVE_HW_IKALOGIC_SCANALOGIC2
 	&ikalogic_scanalogic2_driver_info,

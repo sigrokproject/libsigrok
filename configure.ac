@@ -139,6 +139,11 @@ AC_ARG_ENABLE(fx2lafw, AC_HELP_STRING([--enable-fx2lafw],
 	[HW_FX2LAFW="$enableval"],
 	[HW_FX2LAFW=$HW_ENABLED_DEFAULT])
 
+AC_ARG_ENABLE(gmc-mh-1x-2x, AC_HELP_STRING([--enable-gmc-mh-1x-2x],
+	[enable gmc-mh-1x-2x support [default=yes]]),
+	[HW_GMC_MH_1X_2X="$enableval"],
+	[HW_GMC_MH_1X_2X=$HW_ENABLED_DEFAULT])
+
 AC_ARG_ENABLE(hantek-dso, AC_HELP_STRING([--enable-hantek-dso],
 	[enable Hantek DSO support [default=yes]]),
 	[HW_HANTEK_DSO="$enableval"],
@@ -403,6 +408,11 @@ if test "x$HW_FX2LAFW" = "xyes"; then
 	AC_DEFINE(HAVE_HW_FX2LAFW, 1, [fx2lafw support])
 fi
 
+AM_CONDITIONAL(HW_GMC_MH_1X_2X, test x$HW_GMC_MH_1X_2X = xyes)
+if test "x$HW_GMC_MH_1X_2X" = "xyes"; then
+	AC_DEFINE(HAVE_HW_GMC_MH_1X_2X, 1, [gmc-mh-1x-2x support])
+fi
+
 AM_CONDITIONAL(HW_HANTEK_DSO, test x$HW_HANTEK_DSO = xyes)
 if test "x$HW_HANTEK_DSO" = "xyes"; then
 	AC_DEFINE(HAVE_HW_HANTEK_DSO, 1, [Hantek DSO support])
@@ -537,6 +547,7 @@ AC_CONFIG_FILES([Makefile version.h hardware/Makefile
 		 hardware/chronovu-la8/Makefile
 		 hardware/colead-slm/Makefile
 		 hardware/common/Makefile
+		 hardware/gmc-mh-1x-2x/Makefile
 		 hardware/ikalogic-scanalogic2/Makefile
 		 hardware/ikalogic-scanaplus/Makefile
 		 hardware/kecheng-kc-330b/Makefile
@@ -604,6 +615,7 @@ echo "  - colead-slm...................... $HW_COLEAD_SLM"
 echo "  - demo............................ $HW_DEMO"
 echo "  - fluke-dmm....................... $HW_FLUKE_DMM"
 echo "  - fx2lafw......................... $HW_FX2LAFW"
+echo "  - gmc-mh-1x-2x.................... $HW_GMC_MH_1X_2X"
 echo "  - hantek-dso...................... $HW_HANTEK_DSO"
 echo "  - ikalogic-scanalogic2............ $HW_IKALOGIC_SCANALOGIC2"
 echo "  - ikalogic-scanaplus.............. $HW_IKALOGIC_SCANAPLUS"
