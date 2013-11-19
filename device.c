@@ -265,6 +265,9 @@ SR_PRIV void sr_dev_inst_free(struct sr_dev_inst *sdi)
 	}
 	g_slist_free(sdi->probes);
 
+	if (sdi->probe_groups)
+		g_slist_free(sdi->probe_groups);
+
 	g_free(sdi->vendor);
 	g_free(sdi->model);
 	g_free(sdi->version);
