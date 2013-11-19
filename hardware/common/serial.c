@@ -253,7 +253,8 @@ SR_PRIV int serial_read(struct sr_serial_dev_inst *serial, void *buf,
 	// 	return SR_ERR;
 	}
 
-	sr_spew("Read %d/%d bytes (fd %d).", ret, count, serial->fd);
+	if (ret >= 0)
+		sr_spew("Read %d/%d bytes (fd %d).", ret, count, serial->fd);
 
 	return ret;
 }
