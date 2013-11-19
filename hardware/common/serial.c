@@ -350,7 +350,7 @@ SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
  *
  * @return SR_OK upon success, SR_ERR upon failure.
  */
-#define SERIAL_COMM_SPEC "^(\\d+)/([78])([neo])([12])(.*)$"
+#define SERIAL_COMM_SPEC "^(\\d+)/([5678])([neo])([12])(.*)$"
 SR_PRIV int serial_set_paramstr(struct sr_serial_dev_inst *serial,
 		const char *paramstr)
 {
