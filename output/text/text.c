@@ -171,6 +171,31 @@ err:
 	return ret;
 }
 
+SR_PRIV int text_cleanup(struct sr_output *o)
+{
+	struct context *ctx;
+
+	if (!o)
+		return SR_ERR_ARG;
+
+	ctx = o->internal;
+
+	g_free(ctx->header);
+	g_free(ctx->linebuf);
+	g_free(ctx->linevalues);
+
+	if (ctx->prevsample)
+		g_free(ctx->prevsample);
+
+	g_slist_free(ctx->probenames);
+
+	g_free(ctx);
+
+	o->internal = NULL;
+
+	return SR_OK;
+}
+
 SR_PRIV int event(struct sr_output *o, int event_type, uint8_t **data_out,
 		  uint64_t *length_out)
 {
@@ -195,8 +220,6 @@ SR_PRIV int event(struct sr_output *o, int event_type, uint8_t **data_out,
 		flush_linebufs(ctx, outbuf);
 		*data_out = outbuf;
 		*length_out = strlen((const char *)outbuf);
-		g_free(o->internal);
-		o->internal = NULL;
 		break;
 	default:
 		*data_out = NULL;

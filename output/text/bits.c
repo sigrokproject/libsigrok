@@ -116,4 +116,5 @@ SR_PRIV struct sr_output_format output_text_bits = {
 	.init = init_bits,
 	.data = data_bits,
 	.event = event,
+	.cleanup = text_cleanup,
 };

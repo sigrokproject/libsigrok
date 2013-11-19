@@ -48,6 +48,7 @@ struct context {
 
 SR_PRIV void flush_linebufs(struct context *ctx, uint8_t *outbuf);
 SR_PRIV int init(struct sr_output *o, int default_spl, enum outputmode mode);
+SR_PRIV int text_cleanup(struct sr_output *o);
 SR_PRIV int event(struct sr_output *o, int event_type, uint8_t **data_out,
 		  uint64_t *length_out);
 

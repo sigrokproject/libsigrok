@@ -133,4 +133,5 @@ SR_PRIV struct sr_output_format output_text_ascii = {
 	.init = init_ascii,
 	.data = data_ascii,
 	.event = event,
+	.cleanup = text_cleanup,
 };

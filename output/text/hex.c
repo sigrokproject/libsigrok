@@ -109,4 +109,5 @@ SR_PRIV struct sr_output_format output_text_hex = {
 	.init = init_hex,
 	.data = data_hex,
 	.event = event,
+	.cleanup = text_cleanup,
 };
