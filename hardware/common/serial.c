@@ -226,7 +226,7 @@ SR_PRIV int serial_read(struct sr_serial_dev_inst *serial, void *buf,
 		size_t count)
 {
 	ssize_t ret;
-	char *error;
+	//char *error;
 
 	if (!serial) {
 		sr_dbg("Invalid serial port.");
