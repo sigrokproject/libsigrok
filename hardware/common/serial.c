@@ -51,6 +51,7 @@ SR_PRIV int serial_open(struct sr_serial_dev_inst *serial, int flags)
 {
 	int ret;
 	char *error;
+	int sp_flags = 0;
 
 	if (!serial) {
 		sr_dbg("Invalid serial port.");
@@ -61,7 +62,14 @@ SR_PRIV int serial_open(struct sr_serial_dev_inst *serial, int flags)
 
 	sp_get_port_by_name(serial->port, &serial->data);
 
-	ret = sp_open(serial->data, flags);
+	if (flags & SERIAL_RDWR)
+		sp_flags = (SP_MODE_READ | SP_MODE_WRITE);
+	else if (flags & SERIAL_RDONLY)
+		sp_flags = SP_MODE_READ;
+	if (flags & SERIAL_NONBLOCK)
+		sp_flags |= SP_MODE_NONBLOCK;
+
+	ret = sp_open(serial->data, sp_flags);
 
 	switch (ret) {
 	case SP_ERR_ARG:
@@ -153,7 +161,7 @@ SR_PRIV int serial_flush(struct sr_serial_dev_inst *serial)
 
 	sr_spew("Flushing serial port %s (fd %d).", serial->port, serial->fd);
 
-	ret = sp_flush(serial->data);
+	ret = sp_flush(serial->data, SP_BUF_BOTH);
 
 	switch (ret) {
 	case SP_ERR_ARG:
@@ -296,7 +304,19 @@ SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
 
 	config.baudrate = baudrate;
 	config.bits = bits;
-	config.parity = parity;
+	switch (parity) {
+	case 0:
+		config.parity = SP_PARITY_NONE;
+		break;
+	case 1:
+		config.parity = SP_PARITY_EVEN;
+		break;
+	case 2:
+		config.parity = SP_PARITY_ODD;
+		break;
+	default:
+		return SR_ERR_ARG;
+	}
 	config.stopbits = stopbits;
 	config.rts = flowcontrol == 1 ? SP_RTS_FLOW_CONTROL : rts;
 	config.cts = flowcontrol == 1 ? SP_CTS_FLOW_CONTROL : SP_CTS_IGNORE;
