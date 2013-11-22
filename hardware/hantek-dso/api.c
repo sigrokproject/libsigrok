@@ -595,10 +595,6 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 
 	(void)probe_group;
 
-	if (!sdi)
-		return SR_ERR_ARG;
-
-	devc = sdi->priv;
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
@@ -609,6 +605,9 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 				devopts, ARRAY_SIZE(devopts), sizeof(int32_t));
 		break;
 	case SR_CONF_BUFFERSIZE:
+		if (!sdi)
+			return SR_ERR_ARG;
+		devc = sdi->priv;
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT64,
 				devc->profile->buffersizes, 2, sizeof(uint64_t));
 		break;
