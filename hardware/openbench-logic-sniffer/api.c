@@ -53,6 +53,11 @@ enum {
 	PATTERN_INTERNAL,
 };
 
+static const char *patterns[] = {
+	STR_PATTERN_EXTERNAL,
+	STR_PATTERN_INTERNAL,
+};
+
 /* Probes are numbered 0-31 (on the PCB silkscreen). */
 SR_PRIV const char *ols_probe_names[NUM_PROBES + 1] = {
 	"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12",
@@ -387,6 +392,9 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		break;
 	case SR_CONF_TRIGGER_TYPE:
 		*data = g_variant_new_string(TRIGGER_TYPE);
+		break;
+	case SR_CONF_PATTERN_MODE:
+		*data = g_variant_new_strv(patterns, ARRAY_SIZE(patterns));
 		break;
 	default:
 		return SR_ERR_NA;
