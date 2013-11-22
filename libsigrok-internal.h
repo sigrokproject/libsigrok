@@ -131,6 +131,35 @@ SR_PRIV int sr_source_add(int fd, int events, int timeout,
 
 /*--- session.c -------------------------------------------------------------*/
 
+struct sr_session {
+	/** List of struct sr_dev pointers. */
+	GSList *devs;
+	/** List of struct datafeed_callback pointers. */
+	GSList *datafeed_callbacks;
+	GTimeVal starttime;
+	gboolean running;
+
+	unsigned int num_sources;
+
+	/*
+	 * Both "sources" and "pollfds" are of the same size and contain pairs
+	 * of descriptor and callback function. We can not embed the GPollFD
+	 * into the source struct since we want to be able to pass the array
+	 * of all poll descriptors to g_poll().
+	 */
+	struct source *sources;
+	GPollFD *pollfds;
+	int source_timeout;
+
+	/*
+	 * These are our synchronization primitives for stopping the session in
+	 * an async fashion. We need to make sure the session is stopped from
+	 * within the session thread itself.
+	 */
+	GMutex stop_mutex;
+	gboolean abort_session;
+};
+
 SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
 		const struct sr_datafeed_packet *packet);
 SR_PRIV int sr_session_stop_sync(void);
