@@ -18,6 +18,11 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
+/** \file
+  * Standard API helper functions.
+  * @internal
+  */
+
 #include <glib.h>
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
@@ -32,7 +37,7 @@
  *
  * @param sr_ctx The libsigrok context to assign.
  * @param di The driver instance to use.
- * @param prefix A driver-specific prefix string used for log messages.
+ * @param[in] prefix A driver-specific prefix string used for log messages.
  *
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or
  *         SR_ERR_MALLOC upon memory allocation errors.

@@ -268,14 +268,17 @@ SR_PRIV int serial_read(struct sr_serial_dev_inst *serial, void *buf,
  * Set serial parameters for the specified serial port.
  *
  * @param serial Previously initialized serial port structure.
- * @param baudrate The baudrate to set.
- * @param bits The number of data bits to use.
- * @param parity The parity setting to use (0 = none, 1 = even, 2 = odd).
- * @param stopbits The number of stop bits to use (1 or 2).
- * @param flowcontrol The flow control settings to use (0 = none, 1 = RTS/CTS,
- *                    2 = XON/XOFF).
+ * @param[in] baudrate The baudrate to set.
+ * @param[in] bits The number of data bits to use (5, 6, 7 or 8).
+ * @param[in] parity The parity setting to use (0 = none, 1 = even, 2 = odd).
+ * @param[in] stopbits The number of stop bits to use (1 or 2).
+ * @param[in] flowcontrol The flow control settings to use (0 = none,
+ *                      1 = RTS/CTS, 2 = XON/XOFF).
+ * @param[in] rts Status of RTS line (0 or 1; required by some interfaces).
+ * @param[in] dtr Status of DTR line (0 or 1; required by some interfaces).
  *
- * @return SR_OK upon success, SR_ERR upon failure.
+ * @retval SR_OK Success
+ * @retval SR_ERR Failure.
  */
 SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
 			      int bits, int parity, int stopbits,
@@ -341,11 +344,13 @@ SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
  * Set serial parameters for the specified serial port.
  *
  * @param serial Previously initialized serial port structure.
- * @param paramstr A serial communication parameters string, in the form
- * of <speed>/<data bits><parity><stopbits><flow>, for example "9600/8n1" or
- * "600/7o2" or "460800/8n1/flow=2" where flow is 0 for none, 1 for rts/cts and 2 for xon/xoff.
+ * @param[in] paramstr A serial communication parameters string, in the form
+ * of \<speed\>/\<data bits\>\<parity\>\<stopbits\>\<flow\>, for example
+ * "9600/8n1" or "600/7o2" or "460800/8n1/flow=2" where flow is 0 for none,
+ * 1 for rts/cts and 2 for xon/xoff.
  *
- * @return SR_OK upon success, SR_ERR upon failure.
+ * @retval SR_OK Success.
+ * @retval SR_ERR Failure.
  */
 #define SERIAL_COMM_SPEC "^(\\d+)/([5678])([neo])([12])(.*)$"
 SR_PRIV int serial_set_paramstr(struct sr_serial_dev_inst *serial,
@@ -448,11 +453,12 @@ SR_PRIV int serial_set_paramstr(struct sr_serial_dev_inst *serial,
  * @param serial Previously initialized serial port structure.
  * @param buf Buffer where to store the bytes that are read.
  * @param buflen Size of the buffer.
- * @param timeout_ms How long to wait for a line to come in.
+ * @param[in] timeout_ms How long to wait for a line to come in.
  *
  * Reading stops when CR of LR is found, which is stripped from the buffer.
  *
- * @return SR_OK on success, SR_ERR on failure.
+ * @retval SR_OK Success.
+ * @retval SR_ERR Failure.
  */
 SR_PRIV int serial_readline(struct sr_serial_dev_inst *serial, char **buf,
 		int *buflen, gint64 timeout_ms)
@@ -507,17 +513,17 @@ SR_PRIV int serial_readline(struct sr_serial_dev_inst *serial, char **buf,
  *
  * @param serial Previously initialized serial port structure.
  * @param buf Buffer containing the bytes to write.
- * @param count Size of the buffer.
- * @param packet_size Size, in bytes, of a valid packet.
+ * @param buflen Size of the buffer.
+ * @param[in] packet_size Size, in bytes, of a valid packet.
  * @param is_valid Callback that assesses whether the packet is valid or not.
- * @param timeout_ms The timeout after which, if no packet is detected, to
+ * @param[in] timeout_ms The timeout after which, if no packet is detected, to
  *                   abort scanning.
- * @param baudrate The baudrate of the serial port. This parameter is not
+ * @param[in] baudrate The baudrate of the serial port. This parameter is not
  *                 critical, but it helps fine tune the serial port polling
  *                 delay.
  *
- * @return SR_OK if a valid packet is found within the given timeout,
- *         SR_ERR upon failure.
+ * @retval SR_OK Valid packet was found within the given timeout
+ * @retval SR_ERR Failure.
  */
 SR_PRIV int serial_stream_detect(struct sr_serial_dev_inst *serial,
 				 uint8_t *buf, size_t *buflen,

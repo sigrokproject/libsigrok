@@ -119,7 +119,8 @@ extern struct sr_session *session;
 /**
  * Sanity-check all libsigrok drivers.
  *
- * @return SR_OK if all drivers are OK, SR_ERR if one or more have issues.
+ * @retval SR_OK All drivers are OK
+ * @retval SR_ERR One or more drivers have issues.
  */
 static int sanity_check_all_drivers(void)
 {
@@ -209,7 +210,8 @@ static int sanity_check_all_drivers(void)
 /**
  * Sanity-check all libsigrok input modules.
  *
- * @return SR_OK if all modules are OK, SR_ERR if one or more have issues.
+ * @retval SR_OK All modules are OK
+ * @retval SR_ERR One or more modules have issues.
  */
 static int sanity_check_all_input_modules(void)
 {
@@ -258,7 +260,8 @@ static int sanity_check_all_input_modules(void)
 /**
  * Sanity-check all libsigrok output modules.
  *
- * @return SR_OK if all modules are OK, SR_ERR if one or more have issues.
+ * @retval SR_OK All modules are OK
+ * @retval SR_ERR One or more modules have issues.
  */
 static int sanity_check_all_output_modules(void)
 {
@@ -382,7 +385,8 @@ done:
  *
  * @param ctx Pointer to a libsigrok context struct. Must not be NULL.
  *
- * @return SR_OK upon success, a (negative) error code otherwise.
+ * @retval SR_OK Success
+ * @retval other Error code SR_ERR, ...
  *
  * @since 0.2.0
  */

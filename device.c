@@ -46,7 +46,15 @@
  * @{
  */
 
-/** @private */
+/** @private
+ *  Allocate and initialize new struct sr_probe
+ *  @param[in]  index \copydoc sr_probe::index
+ *  @param[in]  type \copydoc sr_probe::type
+ *  @param[in]  enabled \copydoc sr_probe::enabled
+ *  @param[in]  name \copydoc sr_probe::name
+ *
+ *  @return NULL (failure) or new struct sr_probe*.
+ */
 SR_PRIV struct sr_probe *sr_probe_new(int index, int type,
 		gboolean enabled, const char *name)
 {
@@ -73,9 +81,9 @@ SR_PRIV struct sr_probe *sr_probe_new(int index, int type,
  * removed, and the new name will be saved instead.
  *
  * @param sdi The device instance the probe is connected to.
- * @param probenum The number of the probe whose name to set.
+ * @param[in] probenum The number of the probe whose name to set.
  *                 Note that the probe numbers start at 0.
- * @param name The new name that the specified probe should get. A copy
+ * @param[in] name The new name that the specified probe should get. A copy
  *             of the string is made.
  *
  * @return SR_OK on success, or SR_ERR_ARG on invalid arguments.
@@ -148,9 +156,9 @@ SR_API int sr_dev_probe_enable(const struct sr_dev_inst *sdi, int probenum,
  * If the specified probe of this device already has a trigger, it will
  * be silently replaced.
  *
- * @param sdi Must not be NULL.
- * @param probenum The probe number, starting from 0.
- * @param trigger Trigger string, in the format used by sigrok-cli
+ * @param[in,out] sdi Pointer to the device instance; must not be NULL.
+ * @param[in] probenum Number of probe, starting at 0.
+ * @param[in] trigger Trigger string, in the format used by sigrok-cli
  *
  * @return SR_OK on success, or SR_ERR_ARG on invalid arguments.
  *
@@ -189,12 +197,12 @@ SR_API int sr_dev_trigger_set(const struct sr_dev_inst *sdi, int probenum,
  *            If the device's 'driver' field is NULL (virtual device), this
  *            function will always return FALSE (virtual devices don't have
  *            a hardware capabilities list).
- * @param key The option that should be checked for support on the
+ * @param[in] key The option that should be checked for is supported by the
  *            specified device.
  *
- * @return TRUE if the device has the specified option, FALSE otherwise.
- *         FALSE is also returned on invalid input parameters or other
- *         error conditions.
+ * @retval TRUE Device has the specified option
+ * @retval FALSE Device does not have the specified option, invalid input
+ *         parameters or other error conditions.
  *
  * @since 0.2.0
  */
@@ -225,7 +233,18 @@ SR_API gboolean sr_dev_has_option(const struct sr_dev_inst *sdi, int key)
 	return ret;
 }
 
-/** @private */
+/** @private
+ *  Allocate and init new device instance struct.
+ *  \param[in]  index   \copydoc sr_dev_inst::index
+ *  \param[in]  status  \copydoc sr_dev_inst::status
+ *  \param[in]  vendor  \copydoc sr_dev_inst::vendor
+ *  \param[in]  model   \copydoc sr_dev_inst::model
+ *  \param[in]  version \copydoc sr_dev_inst::version
+ *
+ *  \retval NULL Error
+ *  \retval struct sr_dev_inst *. Dynamically allocated, free using
+ *              sr_dev_inst_free().
+ */
 SR_PRIV struct sr_dev_inst *sr_dev_inst_new(int index, int status,
 		const char *vendor, const char *model, const char *version)
 {
@@ -251,7 +270,10 @@ SR_PRIV struct sr_dev_inst *sr_dev_inst_new(int index, int status,
 	return sdi;
 }
 
-/** @private */
+/** @private
+ *  Free device instance struct created by sr_dev_inst().
+ *  \param sdi  struct* to free.
+ */
 SR_PRIV void sr_dev_inst_free(struct sr_dev_inst *sdi)
 {
 	struct sr_probe *probe;
@@ -276,7 +298,15 @@ SR_PRIV void sr_dev_inst_free(struct sr_dev_inst *sdi)
 
 #ifdef HAVE_LIBUSB_1_0
 
-/** @private */
+/** @private
+ *  Allocate and init struct for USB device instance.
+ *  \param[in]  bus \copydoc sr_usb_dev_inst::bus
+ *  \param[in]  address \copydoc sr_usb_dev_inst::address
+ *  \param[in]  hdl \copydoc sr_usb_dev_inst::devhdl
+ *
+ *  \retval NULL Error
+ *  \retval other struct sr_usb_dev_inst * for USB device instance.
+ */
 SR_PRIV struct sr_usb_dev_inst *sr_usb_dev_inst_new(uint8_t bus,
 			uint8_t address, struct libusb_device_handle *hdl)
 {
@@ -294,7 +324,10 @@ SR_PRIV struct sr_usb_dev_inst *sr_usb_dev_inst_new(uint8_t bus,
 	return udi;
 }
 
-/** @private */
+/** @private
+ *  Free struct * allocated by sr_usb_dev_inst().
+ *  \param usb  struct* to free. Must not be NULL.
+ */
 SR_PRIV void sr_usb_dev_inst_free(struct sr_usb_dev_inst *usb)
 {
 	g_free(usb);
@@ -310,12 +343,12 @@ SR_PRIV void sr_usb_dev_inst_free(struct sr_usb_dev_inst *usb)
  * Both parameters are copied to newly allocated strings, and freed
  * automatically by sr_serial_dev_inst_free().
  *
- * @param pathname OS-specific serial port specification. Examples:
+ * @param[in] port OS-specific serial port specification. Examples:
  *                 "/dev/ttyUSB0", "/dev/ttyACM1", "/dev/tty.Modem-0", "COM1".
- * @param serialcomm A serial communication parameters string, in the form
- *                   of <speed>/<data bits><parity><stopbits>, for example
- *                   "9600/8n1" or "600/7o2". This is an optional parameter;
- *                   it may be filled in later.
+ * @param[in] serialcomm A serial communication parameters string, in the form
+ *              of \<speed\>/\<data bits\>\<parity\>\<stopbits\>, for example
+ *              "9600/8n1" or "600/7o2". This is an optional parameter;
+ *              it may be filled in later.
  *
  * @return A pointer to a newly initialized struct sr_serial_dev_inst,
  *         or NULL on error.
@@ -342,7 +375,10 @@ SR_PRIV struct sr_serial_dev_inst *sr_serial_dev_inst_new(const char *port,
 	return serial;
 }
 
-/** @private */
+/** @private
+ *  Free struct sr_serial_dev_inst * allocated by sr_serial_dev_inst().
+ *  \param serial   struct sr_serial_dev_inst * to free. Must not be NULL.
+ */
 SR_PRIV void sr_serial_dev_inst_free(struct sr_serial_dev_inst *serial)
 {
 	g_free(serial->port);

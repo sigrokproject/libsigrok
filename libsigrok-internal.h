@@ -17,6 +17,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/** @file
+  * @internal
+  */
+
 #ifndef LIBSIGROK_SIGROK_INTERNAL_H
 #define LIBSIGROK_SIGROK_INTERNAL_H
 
@@ -60,10 +64,11 @@ struct sr_context {
 };
 
 #ifdef HAVE_LIBUSB_1_0
+/** USB device instance */
 struct sr_usb_dev_inst {
-	uint8_t bus;
-	uint8_t address;
-	struct libusb_device_handle *devhdl;
+	uint8_t bus;       /**< USB bus */
+	uint8_t address;   /**< Device address on USB bus */
+	struct libusb_device_handle *devhdl;  /**< libusb device handle */
 };
 #endif
 
@@ -72,10 +77,10 @@ struct sr_usb_dev_inst {
 #define SERIAL_PARITY_EVEN SP_PARITY_EVEN
 #define SERIAL_PARITY_ODD  SP_PARITY_ODD
 struct sr_serial_dev_inst {
-	char *port;
-	char *serialcomm;
+	char *port;		/**< Port name, e.g. '/dev/tty42'. */
+	char *serialcomm;	/**< Comm params for serial_set_paramstr(). */
 	int nonblocking;
-	struct sp_port *data;
+	struct sp_port *data;	/**< libserialport port handle */
 };
 #endif
 
@@ -86,7 +91,7 @@ struct sr_usbtmc_dev_inst {
 
 /* Private driver context. */
 struct drv_context {
-	struct sr_context *sr_ctx;
+	struct sr_context *sr_ctx;  /**< sigrok context */
 	GSList *instances;
 };
 
@@ -164,8 +169,9 @@ struct sr_session {
 	 * an async fashion. We need to make sure the session is stopped from
 	 * within the session thread itself.
 	 */
-	GMutex stop_mutex;
+	GMutex stop_mutex;  /**< Mutex protecting access to abort_session. */
 	gboolean abort_session;
+			/**< Abort current session. See sr_session_stop(). */
 };
 
 SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,

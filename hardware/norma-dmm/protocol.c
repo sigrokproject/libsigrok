@@ -70,7 +70,7 @@ SR_PRIV int xgittoint(char xgit)
 }
 
 /**
- * Process received line. It consists of 20 hex digits + \r\n,
+ * Process received line. It consists of 20 hex digits + \\r\\n,
  * e.g. '08100400018100400000'.
  */
 static void nma_process_line(const struct sr_dev_inst *sdi)
