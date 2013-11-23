@@ -228,6 +228,7 @@ extern SR_PRIV struct sr_dev_driver uni_t_ut61e_driver_info;
 extern SR_PRIV struct sr_dev_driver voltcraft_vc820_driver_info;
 extern SR_PRIV struct sr_dev_driver voltcraft_vc830_driver_info;
 extern SR_PRIV struct sr_dev_driver voltcraft_vc840_driver_info;
+extern SR_PRIV struct sr_dev_driver tenma_72_7745_driver_info;
 #endif
 /** @endcond */
 
@@ -353,6 +354,7 @@ static struct sr_dev_driver *drivers_list[] = {
 	&voltcraft_vc820_driver_info,
 	&voltcraft_vc830_driver_info,
 	&voltcraft_vc840_driver_info,
+	&tenma_72_7745_driver_info,
 #endif
 	NULL,
 };

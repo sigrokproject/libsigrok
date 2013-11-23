@@ -46,9 +46,10 @@ enum {
 	VOLTCRAFT_VC820,
 	VOLTCRAFT_VC830,
 	VOLTCRAFT_VC840,
+	TENMA_72_7745,
 };
 
-#define DMM_COUNT 8
+#define DMM_COUNT 9
 
 struct dmm_info {
 	char *vendor;

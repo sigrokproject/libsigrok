@@ -45,6 +45,7 @@ SR_PRIV struct sr_dev_driver uni_t_ut61e_driver_info;
 SR_PRIV struct sr_dev_driver voltcraft_vc820_driver_info;
 SR_PRIV struct sr_dev_driver voltcraft_vc830_driver_info;
 SR_PRIV struct sr_dev_driver voltcraft_vc840_driver_info;
+SR_PRIV struct sr_dev_driver tenma_72_7745_driver_info;
 
 SR_PRIV struct dmm_info udmms[] = {
 	{
@@ -116,6 +117,15 @@ SR_PRIV struct dmm_info udmms[] = {
 		sr_fs9721_packet_valid, sr_fs9721_parse,
 		sr_fs9721_00_temp_c,
 		&voltcraft_vc840_driver_info, receive_data_VOLTCRAFT_VC840,
+	},
+	{
+		"Tenma", "72-7745", 2400,
+		FS9721_PACKET_SIZE,
+		sr_fs9721_packet_valid, sr_fs9721_parse,
+		sr_fs9721_00_temp_c,
+		&tenma_72_7745_driver_info,
+		/* This is a basic rebadge of the UT60E. */
+		receive_data_UNI_T_UT60E,
 	},
 };
 
@@ -378,3 +388,4 @@ DRV(uni_t_ut61e, UNI_T_UT61E, "uni-t-ut61e", "UNI-T UT61E")
 DRV(voltcraft_vc820, VOLTCRAFT_VC820, "voltcraft-vc820", "Voltcraft VC-820")
 DRV(voltcraft_vc830, VOLTCRAFT_VC830, "voltcraft-vc830", "Voltcraft VC-830")
 DRV(voltcraft_vc840, VOLTCRAFT_VC840, "voltcraft-vc840", "Voltcraft VC-840")
+DRV(tenma_72_7745, TENMA_72_7745, "tenma-72-7745", "Tenma 72-7745")
