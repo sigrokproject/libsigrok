@@ -286,7 +286,7 @@ SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
 {
 	int ret;
 	char *error;
-	struct sp_port_config config;
+	struct sp_port_config *config;
 
 	if (!serial) {
 		sr_dbg("Invalid serial port.");
@@ -302,29 +302,31 @@ SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
 	sr_spew("Setting serial parameters on port %s (fd %d).", serial->port,
 		serial->fd);
 
-	config.baudrate = baudrate;
-	config.bits = bits;
+	sp_new_config(&config);
+	sp_set_config_baudrate(config, baudrate);
+	sp_set_config_bits(config, bits);
 	switch (parity) {
 	case 0:
-		config.parity = SP_PARITY_NONE;
+		sp_set_config_parity(config, SP_PARITY_NONE);
 		break;
 	case 1:
-		config.parity = SP_PARITY_EVEN;
+		sp_set_config_parity(config, SP_PARITY_EVEN);
 		break;
 	case 2:
-		config.parity = SP_PARITY_ODD;
+		sp_set_config_parity(config, SP_PARITY_ODD);
 		break;
 	default:
 		return SR_ERR_ARG;
 	}
-	config.stopbits = stopbits;
-	config.rts = flowcontrol == 1 ? SP_RTS_FLOW_CONTROL : rts;
-	config.cts = flowcontrol == 1 ? SP_CTS_FLOW_CONTROL : SP_CTS_IGNORE;
-	config.dtr = dtr;
-	config.dsr = SP_DSR_IGNORE;
-	config.xon_xoff = flowcontrol == 2 ? SP_XONXOFF_INOUT : SP_XONXOFF_DISABLED;
+	sp_set_config_stopbits(config, stopbits);
+	sp_set_config_rts(config, flowcontrol == 1 ? SP_RTS_FLOW_CONTROL : rts);
+	sp_set_config_cts(config, flowcontrol == 1 ? SP_CTS_FLOW_CONTROL : SP_CTS_IGNORE);
+	sp_set_config_dtr(config, dtr);
+	sp_set_config_dsr(config, SP_DSR_IGNORE);
+	sp_set_config_xon_xoff(config, flowcontrol == 2 ? SP_XONXOFF_INOUT : SP_XONXOFF_DISABLED);
 
-	ret = sp_set_config(serial->data, &config);
+	ret = sp_set_config(serial->data, config);
+	sp_free_config(config);
 
 	switch (ret) {
 	case SP_ERR_ARG:
