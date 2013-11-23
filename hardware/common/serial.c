@@ -83,7 +83,7 @@ SR_PRIV int serial_open(struct sr_serial_dev_inst *serial, int flags)
 	}
 
 #ifndef _WIN32
-	serial->fd = serial->data->fd;
+	sp_get_port_handle(serial->data, &serial->fd);
 #endif
 
 	if (serial->serialcomm)
