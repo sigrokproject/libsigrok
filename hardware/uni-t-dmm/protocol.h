@@ -36,7 +36,6 @@
 #define sr_warn(s, args...) sr_warn(LOG_PREFIX s, ## args)
 #define sr_err(s, args...) sr_err(LOG_PREFIX s, ## args)
 
-/* Note: When adding entries here, don't forget to update DMM_COUNT. */
 enum {
 	TECPEL_DMM_8061,
 	UNI_T_UT60A,
@@ -48,8 +47,6 @@ enum {
 	VOLTCRAFT_VC840,
 	TENMA_72_7745,
 };
-
-#define DMM_COUNT 9
 
 struct dmm_info {
 	char *vendor;
@@ -63,8 +60,6 @@ struct dmm_info {
 	struct sr_dev_driver *di;
 	int (*receive_data)(int, int, void *);
 };
-
-extern SR_PRIV struct dmm_info udmms[DMM_COUNT];
 
 #define CHUNK_SIZE		8
 
