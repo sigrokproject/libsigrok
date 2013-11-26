@@ -318,6 +318,9 @@ static int init(struct sr_input *in, const char *filename)
 			if (num_probes < 1) {
 				release_context(ctx);
 				return SR_ERR;
+			} else if (num_probes > 64) {
+				sr_err("No more than 64 probes supported.");
+				return SR_ERR;
 			}
 		}
 		
