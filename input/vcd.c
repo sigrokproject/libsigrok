@@ -53,9 +53,8 @@
  * - analog, integer and real number variables
  * - $dumpvars initial value declaration
  * - $scope namespaces
+ * - more than 64 probes
  */
-
-/*  */
 
 #include <stdlib.h>
 #include <glib.h>
@@ -74,6 +73,23 @@
 #define sr_err(s, args...) sr_err(LOG_PREFIX s, ## args)
 
 #define DEFAULT_NUM_PROBES 8
+#define CHUNKSIZE 1024
+
+struct context {
+	uint64_t samplerate;
+	int maxprobes;
+	int probecount;
+	int downsample;
+	unsigned compress;
+	int64_t skip;
+	GSList *probes;
+};
+
+struct probe {
+	gchar *name;
+	gchar *identifier;
+};
+
 
 /* Read until specific type of character occurs in file.
  * Skip input if dest is NULL.
@@ -86,12 +102,10 @@ static gboolean read_until(FILE *file, GString *dest, char mode)
 {
 	char prev[4] = "";
 	long startpos = ftell(file);
-	for(;;)
-	{
+	for(;;) {
 		int c = fgetc(file);
 
-		if (c == EOF)
-		{
+		if (c == EOF) {
 			if (mode == '$')
 				sr_err("Unexpected EOF, read started at %ld.", startpos);
 			return FALSE;
@@ -100,17 +114,14 @@ static gboolean read_until(FILE *file, GString *dest, char mode)
 		if (mode == 'W' && g_ascii_isspace(c))
 			return TRUE;
 		
-		if (mode == 'N' && !g_ascii_isspace(c))
-		{
+		if (mode == 'N' && !g_ascii_isspace(c)) {
 			ungetc(c, file);
 			return TRUE;
 		}
 		
-		if (mode == '$')
-		{
+		if (mode == '$') {
 			prev[0] = prev[1]; prev[1] = prev[2]; prev[2] = prev[3]; prev[3] = c;
-			if (prev[0] == '$' && prev[1] == 'e' && prev[2] == 'n' && prev[3] == 'd')
-			{
+			if (prev[0] == '$' && prev[1] == 'e' && prev[2] == 'n' && prev[3] == 'd') {
 				if (dest != NULL)
 					g_string_truncate(dest, dest->len - 3);
 					
@@ -123,7 +134,8 @@ static gboolean read_until(FILE *file, GString *dest, char mode)
 	}
 }
 
-/* Reads a single VCD section from input file and parses it to structure.
+/*
+ * Reads a single VCD section from input file and parses it to structure.
  * e.g. $timescale 1ps $end  => "timescale" "1ps"
  */
 static gboolean parse_section(FILE *file, gchar **name, gchar **contents)
@@ -135,8 +147,7 @@ static gboolean parse_section(FILE *file, gchar **name, gchar **contents)
 	if (!read_until(file, NULL, 'N')) return FALSE;
 	
 	/* Section tag should start with $. */
-	if (fgetc(file) != '$')
-	{
+	if (fgetc(file) != '$') {
 		sr_err("Expected $ at beginning of section.");
 		return FALSE;
 	}
@@ -159,23 +170,6 @@ static gboolean parse_section(FILE *file, gchar **name, gchar **contents)
 	return status;
 }
 
-struct probe
-{
-	gchar *name;
-	gchar *identifier;
-};
-
-struct context
-{
-	uint64_t samplerate;
-	int maxprobes;
-	int probecount;
-	int downsample;
-	unsigned compress;
-	int64_t skip;
-	GSList *probes;
-};
-
 static void free_probe(void *data)
 {
 	struct probe *probe = data;
@@ -195,20 +189,17 @@ static void remove_empty_parts(gchar **parts)
 {
 	gchar **src = parts;
 	gchar **dest = parts;
-	while (*src != NULL)
-	{
+	while (*src != NULL) {
 		if (**src != '\0')
-		{
 			*dest++ = *src;
-		}
-		
 		src++;
 	}
 	
 	*dest = NULL;
 }
 
-/* Parse VCD header to get values for context structure.
+/*
+ * Parse VCD header to get values for context structure.
  * The context structure should be zeroed before calling this.
  */
 static gboolean parse_header(FILE *file, struct context *ctx)
@@ -218,60 +209,43 @@ static gboolean parse_header(FILE *file, struct context *ctx)
 	gboolean status = FALSE;
 	struct probe *probe;
 
-	while (parse_section(file, &name, &contents))
-	{
+	while (parse_section(file, &name, &contents)) {
 		sr_dbg("Section '%s', contents '%s'.", name, contents);
 	
-		if (g_strcmp0(name, "enddefinitions") == 0)
-		{
+		if (g_strcmp0(name, "enddefinitions") == 0) {
 			status = TRUE;
 			break;
-		}
-		else if (g_strcmp0(name, "timescale") == 0)
-		{
-			/* The standard allows for values 1, 10 or 100
-			 * and units s, ms, us, ns, ps and fs. */
-			if (sr_parse_period(contents, &p, &q) == SR_OK)
-			{
+		} else if (g_strcmp0(name, "timescale") == 0) {
+			/*
+			 * The standard allows for values 1, 10 or 100
+			 * and units s, ms, us, ns, ps and fs.
+			 * */
+			if (sr_parse_period(contents, &p, &q) == SR_OK) {
 				ctx->samplerate = q / p;
-				if (q % p != 0)
-				{
+				if (q % p != 0) {
 					/* Does not happen unless time value is non-standard */
 					sr_warn("Inexact rounding of samplerate, %" PRIu64 " / %" PRIu64 " to %" PRIu64 " Hz.",
 						q, p, ctx->samplerate);
 				}
 				
 				sr_dbg("Samplerate: %" PRIu64, ctx->samplerate);
-			}
-			else
-			{
+			} else {
 				sr_err("Parsing timescale failed.");
 			}
-		}
-		else if (g_strcmp0(name, "var") == 0)
-		{
+		} else if (g_strcmp0(name, "var") == 0) {
 			/* Format: $var type size identifier reference $end */
 			gchar **parts = g_strsplit_set(contents, " \r\n\t", 0);
 			remove_empty_parts(parts);
 			
 			if (g_strv_length(parts) != 4)
-			{
 				sr_warn("$var section should have 4 items");
-			}
 			else if (g_strcmp0(parts[0], "reg") != 0 && g_strcmp0(parts[0], "wire") != 0)
-			{
 				sr_info("Unsupported signal type: '%s'", parts[0]);
-			}
 			else if (strtol(parts[1], NULL, 10) != 1)
-			{
 				sr_info("Unsupported signal size: '%s'", parts[1]);
-			}
 			else if (ctx->probecount >= ctx->maxprobes)
-			{
 				sr_warn("Skipping '%s' because only %d probes requested.", parts[3], ctx->maxprobes);
-			}
-			else
-			{
+			else {
 				sr_info("Probe %d is '%s' identified by '%s'.", ctx->probecount, parts[3], parts[2]);
 				probe = g_malloc(sizeof(struct probe));
 				probe->identifier = g_strdup(parts[2]);
@@ -303,7 +277,8 @@ static int format_match(const char *filename)
 	if (file == NULL)
 		return FALSE;
 
-	/* If we can parse the first section correctly,
+	/*
+	 * If we can parse the first section correctly,
 	 * then it is assumed to be a VCD file.
 	 */
 	status = parse_section(file, &name, &contents);
@@ -340,8 +315,7 @@ static int init(struct sr_input *in, const char *filename)
 		param = g_hash_table_lookup(in->param, "numprobes");
 		if (param) {
 			num_probes = strtoul(param, NULL, 10);
-			if (num_probes < 1)
-			{
+			if (num_probes < 1) {
 				release_context(ctx);
 				return SR_ERR;
 			}
@@ -351,20 +325,16 @@ static int init(struct sr_input *in, const char *filename)
 		if (param) {
 			ctx->downsample = strtoul(param, NULL, 10);
 			if (ctx->downsample < 1)
-			{
 				ctx->downsample = 1;
-			}
 		}
 		
 		param = g_hash_table_lookup(in->param, "compress");
-		if (param) {
+		if (param)
 			ctx->compress = strtoul(param, NULL, 10);
-		}
 		
 		param = g_hash_table_lookup(in->param, "skip");
-		if (param) {
+		if (param)
 			ctx->skip = strtoul(param, NULL, 10) / ctx->downsample;
-		}
 	}
 	
 	/* Maximum number of probes to parse from the VCD */
@@ -377,8 +347,7 @@ static int init(struct sr_input *in, const char *filename)
 	for (i = 0; i < num_probes; i++) {
 		snprintf(name, SR_MAX_PROBENAME_LEN, "%d", i);
 		
-		if (!(probe = sr_probe_new(i, SR_PROBE_LOGIC, TRUE, name)))
-		{
+		if (!(probe = sr_probe_new(i, SR_PROBE_LOGIC, TRUE, name))) {
 			release_context(ctx);
 			return SR_ERR;
 		}
@@ -388,8 +357,6 @@ static int init(struct sr_input *in, const char *filename)
 
 	return SR_OK;
 }
-
-#define CHUNKSIZE 1024
 
 /* Send N samples of the given value. */
 static void send_samples(const struct sr_dev_inst *sdi, uint64_t sample, uint64_t count)
@@ -404,17 +371,14 @@ static void send_samples(const struct sr_dev_inst *sdi, uint64_t sample, uint64_
 		chunksize = count;
 
 	for (i = 0; i < chunksize; i++)
-	{
 		buffer[i] = sample;
-	}
 	
 	packet.type = SR_DF_LOGIC;
 	packet.payload = &logic;	
 	logic.unitsize = sizeof(uint64_t);
 	logic.data = buffer;
 	
-	while (count)
-	{
+	while (count) {
 		if (count < chunksize)
 			chunksize = count;
 	
@@ -434,10 +398,8 @@ static void parse_contents(FILE *file, const struct sr_dev_inst *sdi, struct con
 	uint64_t prev_values = 0;
 	
 	/* Read one space-delimited token at a time. */
-	while (read_until(file, NULL, 'N') && read_until(file, token, 'W'))
-	{
-		if (token->str[0] == '#' && g_ascii_isdigit(token->str[1]))
-		{
+	while (read_until(file, NULL, 'N') && read_until(file, token, 'W')) {
+		if (token->str[0] == '#' && g_ascii_isdigit(token->str[1])) {
 			/* Numeric value beginning with # is a new timestamp value */
 			uint64_t timestamp;
 			timestamp = strtoull(token->str + 1, NULL, 10);
@@ -445,25 +407,21 @@ static void parse_contents(FILE *file, const struct sr_dev_inst *sdi, struct con
 			if (ctx->downsample > 1)
 				timestamp /= ctx->downsample;
 			
-			/* Skip < 0 => skip until first timestamp.
+			/*
+			 * Skip < 0 => skip until first timestamp.
 			 * Skip = 0 => don't skip
 			 * Skip > 0 => skip until timestamp >= skip.
 			 */
-			if (ctx->skip < 0)
-			{
+			if (ctx->skip < 0) {
 				ctx->skip = timestamp;
 				prev_timestamp = timestamp;
-			}
-			else if (ctx->skip > 0 && timestamp < (uint64_t)ctx->skip)
-			{
+			} else if (ctx->skip > 0 && timestamp < (uint64_t)ctx->skip) {
 				prev_timestamp = ctx->skip;
 			}
-			else if (timestamp == prev_timestamp)
-			{
+			else if (timestamp == prev_timestamp) {
 				/* Ignore repeated timestamps (e.g. sigrok outputs these) */
 			}
-			else
-			{
+			else {
 				if (ctx->compress != 0 && timestamp - prev_timestamp > ctx->compress)
 				{
 					/* Compress long idle periods */
@@ -476,32 +434,24 @@ static void parse_contents(FILE *file, const struct sr_dev_inst *sdi, struct con
 				send_samples(sdi, prev_values, timestamp - prev_timestamp);
 				prev_timestamp = timestamp;
 			}
-		}
-		else if (token->str[0] == '$' && token->len > 1)
-		{
+		} else if (token->str[0] == '$' && token->len > 1) {
 			/* This is probably a $dumpvars, $comment or similar.
 			 * $dump* contain useful data, but other tags will be skipped until $end. */
-			if (g_strcmp0(token->str, "$dumpvars") == 0 ||
-			    g_strcmp0(token->str, "$dumpon") == 0 ||
-			    g_strcmp0(token->str, "$dumpoff") == 0 ||
-			    g_strcmp0(token->str, "$end") == 0)
-			{
+			if (g_strcmp0(token->str, "$dumpvars") == 0
+					|| g_strcmp0(token->str, "$dumpon") == 0
+					|| g_strcmp0(token->str, "$dumpoff") == 0
+					|| g_strcmp0(token->str, "$end") == 0) {
 				/* Ignore, parse contents as normally. */
-			}
-			else
-			{
+			} else {
 				/* Skip until $end */
 				read_until(file, NULL, '$');
 			}
 		}
-		else if (strchr("bBrR", token->str[0]) != NULL)
-		{
+		else if (strchr("bBrR", token->str[0]) != NULL) {
 			/* A vector value. Skip it and also the following identifier. */
 			read_until(file, NULL, 'N');
 			read_until(file, NULL, 'W');
-		}
-		else if (strchr("01xXzZ", token->str[0]) != NULL)
-		{
+		} else if (strchr("01xXzZ", token->str[0]) != NULL) {
 			/* A new 1-bit sample value */
 			int i, bit;
 			GSList *l;
@@ -510,8 +460,7 @@ static void parse_contents(FILE *file, const struct sr_dev_inst *sdi, struct con
 			bit = (token->str[0] == '1');
 		
 			g_string_erase(token, 0, 1);
-			if (token->len == 0)
-			{
+			if (token->len == 0) {
 				/* There was a space between value and identifier.
 				 * Read in the rest.
 				 */
@@ -519,12 +468,10 @@ static void parse_contents(FILE *file, const struct sr_dev_inst *sdi, struct con
 				read_until(file, token, 'W');
 			}
 			
-			for (i = 0, l = ctx->probes; i < ctx->probecount && l; i++, l = l->next)
-			{
+			for (i = 0, l = ctx->probes; i < ctx->probecount && l; i++, l = l->next) {
 				probe = l->data;
 
-				if (g_strcmp0(token->str, probe->identifier) == 0)
-				{
+				if (g_strcmp0(token->str, probe->identifier) == 0) {
 					sr_dbg("Probe %d new value %d.", i, bit);
 				
 					/* Found our probe */
@@ -538,12 +485,8 @@ static void parse_contents(FILE *file, const struct sr_dev_inst *sdi, struct con
 			}
 			
 			if (i == ctx->probecount)
-			{
 				sr_dbg("Did not find probe for identifier '%s'.", token->str);
-			}
-		}
-		else
-		{
+		} else {
 			sr_warn("Skipping unknown token '%s'.", token->str);
 		}
 		
@@ -567,8 +510,7 @@ static int loadfile(struct sr_input *in, const char *filename)
 	if ((file = fopen(filename, "r")) == NULL)
 		return SR_ERR;
 
-	if (!parse_header(file, ctx))
-	{
+	if (!parse_header(file, ctx)) {
 		sr_err("VCD parsing failed");
 		fclose(file);
 		return SR_ERR;
