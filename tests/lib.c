@@ -198,7 +198,7 @@ void srtest_check_samplerate(struct sr_context *sr_ctx, const char *drivername,
 void srtest_buf_to_file(const char *filename, const uint8_t *buf, uint64_t len)
 {
 	FILE *f;
-	GError *error;
+	GError *error = NULL;
 	gboolean ret;
 
 	f = g_fopen(filename, "wb");
