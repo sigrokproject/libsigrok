@@ -234,7 +234,7 @@ SR_PRIV int serial_read(struct sr_serial_dev_inst *serial, void *buf,
 		size_t count)
 {
 	ssize_t ret;
-	//char *error;
+	char *error;
 
 	if (!serial) {
 		sr_dbg("Invalid serial port.");
@@ -253,15 +253,14 @@ SR_PRIV int serial_read(struct sr_serial_dev_inst *serial, void *buf,
 	case SP_ERR_ARG:
 		sr_err("Attempted serial port read with invalid arguments.");
 		return SR_ERR_ARG;
-	// Temporarily disabled, will come back later.
-	// case SP_ERR_FAIL:
-	// 	error = sp_last_error_message();
-	// 	sr_err("Read error: %s.", error);
-	// 	sp_free_error_message(error);
-	// 	return SR_ERR;
+	case SP_ERR_FAIL:
+		error = sp_last_error_message();
+		sr_err("Read error: %s.", error);
+		sp_free_error_message(error);
+		return SR_ERR;
 	}
 
-	if (ret >= 0)
+	if (ret > 0)
 		sr_spew("Read %d/%d bytes (fd %d).", ret, count, serial->fd);
 
 	return ret;
