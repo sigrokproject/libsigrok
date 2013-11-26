@@ -190,7 +190,7 @@ static int receive(struct sr_output *o, const struct sr_dev_inst *sdi,
 		for (p = 0; p < ctx->num_enabled_probes; p++) {
 			index = g_array_index(ctx->probeindices, int, p);
 			curbit = (sample[p / 8] & (((uint8_t) 1) << index)) >> index;
-			prevbit = (ctx->prevsample[p / 8] & (((uint64_t) 1) << index)) >> index;
+			prevbit = (ctx->prevsample[p / 8] & (((uint8_t) 1) << index)) >> index;
 
 			/* VCD only contains deltas/changes of signals. */
 			if (prevbit == curbit)
