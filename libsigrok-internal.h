@@ -75,6 +75,7 @@ struct sr_serial_dev_inst {
 	char *port;
 	char *serialcomm;
 	int fd;
+	int nonblocking;
 	struct sp_port *data;
 };
 #endif

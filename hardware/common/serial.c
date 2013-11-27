@@ -66,8 +66,8 @@ SR_PRIV int serial_open(struct sr_serial_dev_inst *serial, int flags)
 		sp_flags = (SP_MODE_READ | SP_MODE_WRITE);
 	else if (flags & SERIAL_RDONLY)
 		sp_flags = SP_MODE_READ;
-	if (flags & SERIAL_NONBLOCK)
-		sp_flags |= SP_MODE_NONBLOCK;
+
+	serial->nonblocking = (flags & SERIAL_NONBLOCK) ? 1 : 0;
 
 	ret = sp_open(serial->data, sp_flags);
 
@@ -203,7 +203,10 @@ SR_PRIV int serial_write(struct sr_serial_dev_inst *serial,
 		return SR_ERR;
 	}
 
-	ret = sp_write(serial->data, buf, count);
+	if (serial->nonblocking)
+		ret = sp_nonblocking_write(serial->data, buf, count);
+	else
+		ret = sp_blocking_write(serial->data, buf, count, 0);
 
 	switch (ret) {
 	case SP_ERR_ARG:
@@ -247,7 +250,10 @@ SR_PRIV int serial_read(struct sr_serial_dev_inst *serial, void *buf,
 		return SR_ERR;
 	}
 
-	ret = sp_read(serial->data, buf, count);
+	if (serial->nonblocking)
+		ret = sp_nonblocking_read(serial->data, buf, count);
+	else
+		ret = sp_blocking_read(serial->data, buf, count, 0);
 
 	switch (ret) {
 	case SP_ERR_ARG:
