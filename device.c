@@ -350,8 +350,33 @@ SR_PRIV void sr_serial_dev_inst_free(struct sr_serial_dev_inst *serial)
 	g_free(serial->serialcomm);
 	g_free(serial);
 }
-
 #endif
+
+SR_PRIV struct sr_usbtmc_dev_inst *sr_usbtmc_dev_inst_new(const char *device)
+{
+	struct sr_usbtmc_dev_inst *usbtmc;
+
+	if (!device) {
+		sr_err("Device name required.");
+		return NULL;
+	}
+
+	if (!(usbtmc = g_try_malloc0(sizeof(struct sr_usbtmc_dev_inst)))) {
+		sr_err("USBTMC device instance malloc failed.");
+		return NULL;
+	}
+
+	usbtmc->device = g_strdup(device);
+	usbtmc->fd = -1;
+
+	return usbtmc;
+}
+
+SR_PRIV void sr_usbtmc_dev_inst_free(struct sr_usbtmc_dev_inst *usbtmc)
+{
+	g_free(usbtmc->device);
+	g_free(usbtmc);
+}
 
 /**
  * Get the list of devices/instances of the specified driver.

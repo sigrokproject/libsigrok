@@ -79,6 +79,11 @@ struct sr_serial_dev_inst {
 };
 #endif
 
+struct sr_usbtmc_dev_inst {
+	char *device;
+	int fd;
+};
+
 /* Private driver context. */
 struct drv_context {
 	struct sr_context *sr_ctx;
@@ -119,6 +124,9 @@ SR_PRIV struct sr_serial_dev_inst *sr_serial_dev_inst_new(const char *port,
 SR_PRIV void sr_serial_dev_inst_free(struct sr_serial_dev_inst *serial);
 #endif
 
+/* USBTMC-specific instances */
+SR_PRIV struct sr_usbtmc_dev_inst *sr_usbtmc_dev_inst_new(const char *device);
+SR_PRIV void sr_usbtmc_dev_inst_free(struct sr_usbtmc_dev_inst *usbtmc);
 
 /*--- hwdriver.c ------------------------------------------------------------*/
 

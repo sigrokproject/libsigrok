@@ -346,13 +346,13 @@ SR_PRIV int rigol_ds_channel_start(const struct sr_dev_inst *sdi)
 }
 
 /* Read the header of a data block */
-static int rigol_ds_read_header(struct sr_serial_dev_inst *serial)
+static int rigol_ds_read_header(struct sr_usbtmc_dev_inst *usbtmc)
 {
 	char start[3], length[10];
 	int len, tmp;
 
 	/* Read the hashsign and length digit. */
-	tmp = serial_read(serial, start, 2);
+	tmp = read(usbtmc->fd, start, 2);
 	start[2] = '\0';
 	if (tmp != 2)
 	{
@@ -367,7 +367,7 @@ static int rigol_ds_read_header(struct sr_serial_dev_inst *serial)
 	len = atoi(start + 1);
 
 	/* Read the data length. */
-	tmp = serial_read(serial, length, len);
+	tmp = read(usbtmc->fd, length, len);
 	length[len] = '\0';
 	if (tmp != len)
 	{
@@ -388,7 +388,7 @@ static int rigol_ds_read_header(struct sr_serial_dev_inst *serial)
 SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 {
 	struct sr_dev_inst *sdi;
-	struct sr_serial_dev_inst *serial;
+	struct sr_usbtmc_dev_inst *usbtmc;
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog analog;
@@ -405,7 +405,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 	if (!(devc = sdi->priv))
 		return TRUE;
 
-	serial = sdi->conn;
+	usbtmc = sdi->conn;
 
 	if (revents == G_IO_IN) {
 		if (devc->model->protocol == PROTOCOL_IEEE488_2) {
@@ -442,7 +442,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 				sr_dbg("New block header expected");
 				if (rigol_ds_send(sdi, ":WAV:DATA?") != SR_OK)
 					return TRUE;
-				len = rigol_ds_read_header(serial);
+				len = rigol_ds_read_header(usbtmc);
 				if (len == -1)
 					return TRUE;
 				/* At slow timebases in live capture the DS2072
@@ -454,7 +454,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 				if (devc->data_source == DATA_SOURCE_LIVE
 				    && (unsigned)len < devc->num_frame_bytes) {
 					sr_dbg("Discarding short data block");
-					serial_read(serial, devc->buffer, len + 1);
+					read(usbtmc->fd, devc->buffer, len + 1);
 					return TRUE;
 				}
 				devc->num_block_bytes = len;
@@ -465,12 +465,12 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 		probe = devc->channel_frame;
 		if (devc->model->protocol == PROTOCOL_IEEE488_2) {
 			len = devc->num_block_bytes - devc->num_block_read;
-			len = serial_read(serial, devc->buffer,
+			len = read(usbtmc->fd, devc->buffer,
 					len < ACQ_BUFFER_SIZE ? len : ACQ_BUFFER_SIZE);
 		} else {
 			waveform_size = probe->type == SR_PROBE_ANALOG ?
 					DS1000_ANALOG_LIVE_WAVEFORM_SIZE : DIGITAL_WAVEFORM_SIZE;
-			len = serial_read(serial, devc->buffer, waveform_size - devc->num_frame_bytes);
+			len = read(usbtmc->fd, devc->buffer, waveform_size - devc->num_frame_bytes);
 		}
 		sr_dbg("Received %d bytes.", len);
 		if (len == -1)
@@ -510,7 +510,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 					sr_dbg("Block has been completed");
 					/* Discard the terminating linefeed and prepare for
 					   possible next block */
-					serial_read(serial, devc->buffer, 1);
+					read(usbtmc->fd, devc->buffer, 1);
 					devc->num_block_bytes = 0;
 					if (devc->data_source != DATA_SOURCE_LIVE)
 						rigol_ds_set_wait_event(devc, WAIT_BLOCK);
@@ -611,13 +611,14 @@ SR_PRIV int rigol_ds_send(const struct sr_dev_inst *sdi, const char *format, ...
 	va_list args;
 	char buf[256];
 	int len, out, ret;
+	struct sr_usbtmc_dev_inst *usbtmc = sdi->conn;
 
 	va_start(args, format);
 	len = vsnprintf(buf, 255, format, args);
 	va_end(args);
 	strcat(buf, "\n");
 	len++;
-	out = serial_write(sdi->conn, buf, len);
+	out = write(usbtmc->fd, buf, len);
 	buf[len - 1] = '\0';
 	if (out != len) {
 		sr_dbg("Only sent %d/%d bytes of '%s'.", out, len, buf);
@@ -634,11 +635,12 @@ static int get_cfg(const struct sr_dev_inst *sdi, char *cmd, char *reply, size_t
 {
 	int len;
 	struct dev_context *devc = sdi->priv;
+	struct sr_usbtmc_dev_inst *usbtmc = sdi->conn;
 
 	if (rigol_ds_send(sdi, cmd) != SR_OK)
 		return SR_ERR;
 
-	if ((len = serial_read(sdi->conn, reply, maxlen - 1)) < 0)
+	if ((len = read(usbtmc->fd, reply, maxlen - 1)) < 0)
 		return SR_ERR;
 	reply[len] = '\0';
 

@@ -803,6 +803,8 @@ enum {
 	SR_INST_USB = 10000,
 	/** Device instance type for serial port devices. */
 	SR_INST_SERIAL,
+	/** Device instance type for USBTMC devices. */
+	SR_INST_USBTMC,
 };
 
 /** Device instance status. */
