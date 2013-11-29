@@ -81,11 +81,6 @@ static int receive_data(int fd, int revents, void *cb_data)
 			/* Already done with this instance. */
 			continue;
 
-		if (!(buf = g_try_malloc(CHUNKSIZE))) {
-			sr_err("%s: buf malloc failed", __func__);
-			return FALSE;
-		}
-
 		if (!vdev->capfile) {
 			/* No capture file opened yet, or finished with the last
 			 * chunked one. */
@@ -133,6 +128,11 @@ static int receive_data(int fd, int revents, void *cb_data)
 			}
 		}
 
+		if (!(buf = g_try_malloc(CHUNKSIZE))) {
+			sr_err("%s: buf malloc failed", __func__);
+			return FALSE;
+		}
+
 		ret = zip_fread(vdev->capfile, buf, CHUNKSIZE);
 		if (ret > 0) {
 			got_data = TRUE;
@@ -155,9 +155,11 @@ static int receive_data(int fd, int revents, void *cb_data)
 			} else {
 				/* There might be more chunks, so don't fall through
 				 * to the SR_DF_END here. */
+				g_free(buf);
 				return TRUE;
 			}
 		}
+		g_free(buf);
 	}
 
 	if (!got_data) {
