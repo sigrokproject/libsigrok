@@ -309,10 +309,10 @@ static int probe_port(const char *port, GSList **devices)
 			sdi->probes = g_slist_append(sdi->probes, probe);
 			devc->digital_group.probes = g_slist_append(
 					devc->digital_group.probes, probe);
-			devc->digital_group.name = "LA";
-			sdi->probe_groups = g_slist_append(sdi->probe_groups,
-					&devc->digital_group);
 		}
+		devc->digital_group.name = "LA";
+		sdi->probe_groups = g_slist_append(sdi->probe_groups,
+				&devc->digital_group);
 	}
 
 	for (i = 0; i < NUM_TIMEBASE; i++) {
