@@ -91,12 +91,21 @@ static int parse_int(const char *str, int *ret)
 	return SR_OK;
 }
 
-/*
- * Waiting for a trigger event will return a timeout after 2, 3 seconds in
- * order to not block the application.
- */
+/* Set the next event to wait for in rigol_ds_receive */
+static void rigol_ds_set_wait_event(struct dev_context *devc, enum wait_events event)
+{
+	if (event == WAIT_STOP)
+		devc->wait_status = 2;
+	else
+		devc->wait_status = 1;
+	devc->wait_event = event;
+}
 
-static int rigol_ds2xx2_trigger_wait(const struct sr_dev_inst *sdi)
+/*
+ * Waiting for a event will return a timeout after 2 to 3 seconds in order
+ * to not block the application.
+ */
+static int rigol_ds_event_wait(const struct sr_dev_inst *sdi, char status1, char status2)
 {
 	char buf[20];
 	struct dev_context *devc;
@@ -109,14 +118,14 @@ static int rigol_ds2xx2_trigger_wait(const struct sr_dev_inst *sdi)
 
 	/*
 	 * Trigger status may return:
-	 * "TD"   - triggered
-	 * "AUTO" - autotriggered
-	 * "RUN"  - running
-	 * "WAIT" - waiting for trigger
-	 * "STOP" - stopped
+	 * "TD" or "T'D" - triggered
+	 * "AUTO"        - autotriggered
+	 * "RUN"         - running
+	 * "WAIT"        - waiting for trigger
+	 * "STOP"        - stopped
 	 */
 
-	if (devc->trigger_wait_status == 1) {
+	if (devc->wait_status == 1) {
 		do {
 			if (time(NULL) - start >= 3) {
 				sr_dbg("Timeout waiting for trigger");
@@ -125,11 +134,11 @@ static int rigol_ds2xx2_trigger_wait(const struct sr_dev_inst *sdi)
 
 			if (get_cfg(sdi, ":TRIG:STAT?", buf, sizeof(buf)) != SR_OK)
 				return SR_ERR;
-		} while (buf[0] == 'T' || buf[0] == 'A');
+		} while (buf[0] == status1 || buf[0] == status2);
 
-		devc->trigger_wait_status = 2;
+		devc->wait_status = 2;
 	}
-	if (devc->trigger_wait_status == 2) {
+	if (devc->wait_status == 2) {
 		do {
 			if (time(NULL) - start >= 3) {
 				sr_dbg("Timeout waiting for trigger");
@@ -138,63 +147,206 @@ static int rigol_ds2xx2_trigger_wait(const struct sr_dev_inst *sdi)
 
 			if (get_cfg(sdi, ":TRIG:STAT?", buf, sizeof(buf)) != SR_OK)
 				return SR_ERR;
-		} while (buf[0] != 'T' && buf[0] != 'A');
+		} while (buf[0] != status1 && buf[0] != status2);
 
-		devc->trigger_wait_status = 0;
+		rigol_ds_set_wait_event(devc, WAIT_NONE);
 	}
 
 	return SR_OK;
 }
 
 /*
- * This needs to wait for a new trigger event to ensure that sample data is
- * not returned twice.
+ * For live capture we need to wait for a new trigger event to ensure that
+ * sample data is not returned twice.
  *
  * Unfortunately this will never really work because for sufficiently fast
- * timebases it just can't catch the status changes.
+ * timebases and trigger rates it just can't catch the status changes.
  *
  * What would be needed is a trigger event register with autoreset like the
  * Agilents have. The Rigols don't seem to have anything like this.
  *
  * The workaround is to only wait for the trigger when the timebase is slow
  * enough. Of course this means that for faster timebases sample data can be
- * returned multiple times.
+ * returned multiple times, this effect is mitigated somewhat by sleeping
+ * for about one sweep time in that case.
  */
+static int rigol_ds_trigger_wait(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	long s;
 
-SR_PRIV int rigol_ds2xx2_acquisition_start(const struct sr_dev_inst *sdi,
-					   gboolean wait_for_trigger)
+	if (!(devc = sdi->priv))
+		return SR_ERR;
+
+	/* 
+	 * If timebase < 50 msecs/DIV just sleep about one sweep time except
+	 * for really fast sweeps.
+	 */
+	if (devc->timebase < 0.0499)
+	{
+		if (devc->timebase > 0.99e-6) {
+			/*
+			 * Timebase * num hor. divs * 85(%) * 1e6(usecs) / 100
+			 * -> 85 percent of sweep time
+			 */
+			s = (devc->timebase * devc->model->num_horizontal_divs
+			     * 85e6) / 100L;
+			sr_spew("Sleeping for %ld usecs instead of trigger-wait", s);
+			g_usleep(s);
+		}
+		rigol_ds_set_wait_event(devc, WAIT_NONE);
+		return SR_OK;
+	} else {
+		return rigol_ds_event_wait(sdi, 'T', 'A');
+	}
+}
+
+/* Wait for scope to got to "Stop" in single shot mode */
+static int rigol_ds_stop_wait(const struct sr_dev_inst *sdi)
+{
+	return rigol_ds_event_wait(sdi, 'S', 'S');
+}
+
+/* Check that a single shot acquisition actually succeeded on the DS2000 */
+static int rigol_ds_check_stop(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	int tmp;
+
+	if (!(devc = sdi->priv))
+		return SR_ERR;
+
+	if (rigol_ds_send(sdi, ":WAV:SOUR CHAN%d",
+			  devc->channel_frame->index + 1) != SR_OK)
+		return SR_ERR;
+	/* Check that the number of samples will be accepted */
+	if (rigol_ds_send(sdi, ":WAV:POIN %d;*OPC", devc->analog_frame_size) != SR_OK)
+		return SR_ERR;
+	if (get_cfg_int(sdi, "*ESR?", &tmp) != SR_OK)
+		return SR_ERR;
+	/*
+	 * If we get an "Execution error" the scope went from "Single" to
+	 * "Stop" without actually triggering. There is no waveform
+	 * displayed and trying to download one will fail - the scope thinks
+	 * it has 1400 samples (like display memory) and the driver thinks
+	 * it has a different number of samples.
+	 *
+	 * In that case just try to capture something again. Might still
+	 * fail in interesting ways.
+	 *
+	 * Ain't firmware fun?
+	 */
+	if (tmp & 0x10) {
+		sr_warn("Single shot acquisition failed, retrying...");
+		/* Sleep a bit, otherwise the single shot will often fail */
+		g_usleep(500000);
+		rigol_ds_send(sdi, ":SING");
+		rigol_ds_set_wait_event(devc, WAIT_STOP);
+		return SR_ERR;
+	}
+
+	return SR_OK;
+}
+
+/* Wait for enough data becoming available in scope output buffer */
+static int rigol_ds_block_wait(const struct sr_dev_inst *sdi)
+{
+	char buf[30];
+	struct dev_context *devc;
+	time_t start;
+	int len;
+
+	if (!(devc = sdi->priv))
+		return SR_ERR;
+
+	start = time(NULL);
+
+	do {
+		if (time(NULL) - start >= 3) {
+			sr_dbg("Timeout waiting for data block");
+			return SR_ERR_TIMEOUT;
+		}
+
+		/*
+		 * The scope copies data really slowly from sample
+		 * memory to its output buffer, so try not to bother
+		 * it too much with SCPI requests but don't wait too
+		 * long for short sample frame sizes.
+		 */
+		g_usleep(devc->analog_frame_size < 15000 ? 100000 : 1000000);
+
+		/* "READ,nnnn" (still working) or "IDLE,nnnn" (finished) */
+		if (get_cfg(sdi, ":WAV:STAT?", buf, sizeof(buf)) != SR_OK)
+			return SR_ERR;
+
+		if (parse_int(buf + 5, &len) != SR_OK)
+			return SR_ERR;
+	} while (buf[0] == 'R' && len < 1000000);
+
+	rigol_ds_set_wait_event(devc, WAIT_NONE);
+
+	return SR_OK;
+}
+
+/* Start capturing a new frameset */
+SR_PRIV int rigol_ds_capture_start(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 
 	if (!(devc = sdi->priv))
 		return SR_ERR;
 
-	sr_dbg("Starting acquisition on channel %d",
-		   devc->channel_frame->index + 1);
+	sr_dbg("Starting data capture for frameset %lu of %lu",
+	       devc->num_frames + 1, devc->limit_frames);
 
 	if (rigol_ds_send(sdi, ":WAV:FORM BYTE") != SR_OK)
 		return SR_ERR;
-	if (rigol_ds_send(sdi, ":WAV:SOUR CHAN%d",
-				  devc->channel_frame->index + 1) != SR_OK)
-		return SR_ERR;
-	if (rigol_ds_send(sdi, ":WAV:MODE NORM") != SR_OK)
-		return SR_ERR;
-
-	devc->num_frame_bytes = 0;
-	devc->num_block_bytes = 0;
-
-	/* only wait for trigger if timbase 50 msecs/DIV or slower */
-	if (wait_for_trigger && devc->timebase > 0.0499)
-	{
-		devc->trigger_wait_status = 1;
+	if (devc->data_source == DATA_SOURCE_LIVE) {
+		if (rigol_ds_send(sdi, ":WAV:MODE NORM") != SR_OK)
+			return SR_ERR;
+		rigol_ds_set_wait_event(devc, WAIT_TRIGGER);
 	} else {
-		devc->trigger_wait_status = 0;
+		if (rigol_ds_send(sdi, ":WAV:MODE RAW") != SR_OK)
+			return SR_ERR;
+		if (rigol_ds_send(sdi, ":SING", devc->analog_frame_size) != SR_OK)
+			return SR_ERR;		
+		rigol_ds_set_wait_event(devc, WAIT_STOP);
 	}
 
 	return SR_OK;
 }
 
-static int rigol_ds2xx2_read_header(struct sr_serial_dev_inst *serial)
+/* Start reading data from the current channel */
+SR_PRIV int rigol_ds_channel_start(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+
+	if (!(devc = sdi->priv))
+		return SR_ERR;
+
+	sr_dbg("Starting reading data from channel %d",
+	       devc->channel_frame->index + 1);
+
+	if (rigol_ds_send(sdi, ":WAV:SOUR CHAN%d",
+			  devc->channel_frame->index + 1) != SR_OK)
+		return SR_ERR;
+	if (devc->data_source != DATA_SOURCE_LIVE) {
+		if (rigol_ds_send(sdi, ":WAV:RES") != SR_OK)
+			return SR_ERR;
+		if (rigol_ds_send(sdi, ":WAV:BEG") != SR_OK)
+			return SR_ERR;
+		rigol_ds_set_wait_event(devc, WAIT_BLOCK);
+	} else
+		rigol_ds_set_wait_event(devc, WAIT_NONE);
+
+	devc->num_frame_bytes = 0;
+	devc->num_block_bytes = 0;
+
+	return SR_OK;
+}
+
+/* Read the header of a data block */
+static int rigol_ds_read_header(struct sr_serial_dev_inst *serial)
 {
 	char start[3], length[10];
 	int len, tmp;
@@ -241,9 +393,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog analog;
 	struct sr_datafeed_logic logic;
-	unsigned char buf[DS2000_ANALOG_WAVEFORM_SIZE];
 	double vdiv, offset;
-	float data[DS2000_ANALOG_WAVEFORM_SIZE];
 	int len, i, waveform_size, vref;
 	struct sr_probe *probe;
 
@@ -258,41 +408,69 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 	serial = sdi->conn;
 
 	if (revents == G_IO_IN) {
-		if (devc->trigger_wait_status > 0) {
-			if (rigol_ds2xx2_trigger_wait(sdi) != SR_OK)
-				return TRUE;
-		}
+		if (devc->model->protocol == PROTOCOL_IEEE488_2) {
+			switch(devc->wait_event) {
+			case WAIT_NONE:
+				break;
 
-		if (devc->model->series == 2 && devc->num_block_bytes == 0) {
-			sr_dbg("New block header expected");
-			if (rigol_ds_send(sdi, ":WAV:DATA?") != SR_OK)
+			case WAIT_TRIGGER:
+				if (rigol_ds_trigger_wait(sdi) != SR_OK)
+					return TRUE;
+				if (rigol_ds_channel_start(sdi) != SR_OK)
+					return TRUE;
+				break;
+
+			case WAIT_BLOCK:
+				if (rigol_ds_block_wait(sdi) != SR_OK)
+					return TRUE;
+				break;
+
+			case WAIT_STOP:
+				if (rigol_ds_stop_wait(sdi) != SR_OK)
+					return TRUE;
+				if (rigol_ds_check_stop(sdi) != SR_OK)
+					return TRUE;
+				if (rigol_ds_channel_start(sdi) != SR_OK)
+					return TRUE;
 				return TRUE;
-			len = rigol_ds2xx2_read_header(serial);
-			if (len == -1)
-				return TRUE;
-			/* At slow timebases the scope sometimes returns
-			 * "short" data blocks, with apparently no way to
-			 * get the rest of the data. Discard these, the
-			 * complete data block will appear eventually.
-			 */
-			if (len < DS2000_ANALOG_WAVEFORM_SIZE) {
-				sr_dbg("Discarding short data block");
-				serial_read(serial, buf, len + 1);
-				return TRUE;
+
+			default:
+				sr_err("BUG: Unknown event target encountered");
 			}
-			devc->num_block_bytes = len;
-			devc->num_block_read = 0;
+		
+			if (devc->num_block_bytes == 0) {
+				sr_dbg("New block header expected");
+				if (rigol_ds_send(sdi, ":WAV:DATA?") != SR_OK)
+					return TRUE;
+				len = rigol_ds_read_header(serial);
+				if (len == -1)
+					return TRUE;
+				/* At slow timebases in live capture the DS2072
+				 * sometimes returns "short" data blocks, with
+				 * apparently no way to get the rest of the data.
+				 * Discard these, the complete data block will
+				 * appear eventually.
+				 */
+				if (devc->data_source == DATA_SOURCE_LIVE
+				    && (unsigned)len < devc->num_frame_bytes) {
+					sr_dbg("Discarding short data block");
+					serial_read(serial, devc->buffer, len + 1);
+					return TRUE;
+				}
+				devc->num_block_bytes = len;
+				devc->num_block_read = 0;
+			}
 		}
 
 		probe = devc->channel_frame;
-		if (devc->model->series == 2) {
+		if (devc->model->protocol == PROTOCOL_IEEE488_2) {
 			len = devc->num_block_bytes - devc->num_block_read;
-			len = serial_read(serial, buf,
-					len < DS2000_ANALOG_WAVEFORM_SIZE ? len : DS2000_ANALOG_WAVEFORM_SIZE);
+			len = serial_read(serial, devc->buffer,
+					len < ACQ_BUFFER_SIZE ? len : ACQ_BUFFER_SIZE);
 		} else {
 			waveform_size = probe->type == SR_PROBE_ANALOG ?
-					DS1000_ANALOG_WAVEFORM_SIZE : DIGITAL_WAVEFORM_SIZE;
-			len = serial_read(serial, buf, waveform_size - devc->num_frame_bytes);
+					DS1000_ANALOG_LIVE_WAVEFORM_SIZE : DIGITAL_WAVEFORM_SIZE;
+			len = serial_read(serial, devc->buffer, waveform_size - devc->num_frame_bytes);
 		}
 		sr_dbg("Received %d bytes.", len);
 		if (len == -1)
@@ -305,20 +483,20 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 		}
 
 		if (probe->type == SR_PROBE_ANALOG) {
-			if (devc->model->series == 2)
+			if (devc->model->protocol == PROTOCOL_IEEE488_2)
 				devc->num_block_read += len;
 			vref = devc->vert_reference[probe->index];
 			vdiv = devc->vdiv[probe->index] / 25.6;
 			offset = devc->vert_offset[probe->index];
-			if (devc->model->series == 2)
+			if (devc->model->protocol == PROTOCOL_IEEE488_2)
 				for (i = 0; i < len; i++)
-					data[i] = ((int)buf[i] - vref) * vdiv - offset;
+					devc->data[i] = ((int)devc->buffer[i] - vref) * vdiv - offset;
 			else
 				for (i = 0; i < len; i++)
-					data[i] = (128 - buf[i]) * vdiv - offset;
+					devc->data[i] = (128 - devc->buffer[i]) * vdiv - offset;
 			analog.probes = g_slist_append(NULL, probe);
 			analog.num_samples = len;
-			analog.data = data;
+			analog.data = devc->data;
 			analog.mq = SR_MQ_VOLTAGE;
 			analog.unit = SR_UNIT_VOLT;
 			analog.mqflags = 0;
@@ -327,23 +505,34 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 			sr_session_send(cb_data, &packet);
 			g_slist_free(analog.probes);
 
-			if (devc->model->series == 2) {
+			if (devc->model->protocol == PROTOCOL_IEEE488_2) {
+				if (devc->num_block_read == devc->num_block_bytes) {
+					sr_dbg("Block has been completed");
+					/* Discard the terminating linefeed and prepare for
+					   possible next block */
+					serial_read(serial, devc->buffer, 1);
+					devc->num_block_bytes = 0;
+					if (devc->data_source != DATA_SOURCE_LIVE)
+						rigol_ds_set_wait_event(devc, WAIT_BLOCK);
+				} else
+					sr_dbg("%d of %d block bytes read", devc->num_block_read, devc->num_block_bytes);
+
 				devc->num_frame_bytes += len;
 
-				if (devc->num_frame_bytes < DS2000_ANALOG_WAVEFORM_SIZE)
+				if (devc->num_frame_bytes < devc->analog_frame_size)
 					/* Don't have the whole frame yet. */
 					return TRUE;
 
 				sr_dbg("Frame completed, %d samples", devc->num_frame_bytes);
 			} else {
-				if (len != DS1000_ANALOG_WAVEFORM_SIZE)
+				if (len != DS1000_ANALOG_LIVE_WAVEFORM_SIZE)
 					/* Don't have the whole frame yet. */
 					return TRUE;
 			}
 		} else {
 			logic.length = len - 10;
 			logic.unitsize = 2;
-			logic.data = buf + 10;
+			logic.data = devc->buffer + 10;
 			packet.type = SR_DF_LOGIC;
 			packet.payload = &logic;
 			sr_session_send(cb_data, &packet);
@@ -356,8 +545,18 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 		/* End of the frame. */
 		packet.type = SR_DF_FRAME_END;
 		sr_session_send(sdi, &packet);
-		if (devc->model->series == 1)
+		if (devc->model->protocol == PROTOCOL_LEGACY)
 			devc->num_frame_bytes = 0;
+		else {
+			/* Signal end of data download to scope */
+			if (devc->data_source != DATA_SOURCE_LIVE)
+				/*
+				 * This causes a query error, without it switching
+				 * to the next channel causes an error. Fun with
+				 * firmware...
+				 */
+				rigol_ds_send(sdi, ":WAV:END");
+		}
 
 		if (devc->enabled_analog_probes
 				&& devc->channel_frame == devc->enabled_analog_probes->data
@@ -365,9 +564,8 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 			/* We got the frame for the first analog channel, but
 			 * there's a second analog channel. */
 			devc->channel_frame = devc->enabled_analog_probes->next->data;
-			if (devc->model->series == 2) {
-				/* Do not wait for trigger to try and keep channel data related. */
-				rigol_ds2xx2_acquisition_start(sdi, FALSE);
+			if (devc->model->protocol == PROTOCOL_IEEE488_2) {
+				rigol_ds_channel_start(sdi);
 			} else {
 				rigol_ds_send(sdi, ":WAV:DATA? CHAN%c",
 						devc->channel_frame->name[2]);
@@ -386,13 +584,10 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 				sdi->driver->dev_acquisition_stop(sdi, cb_data);
 			} else {
 				/* Get the next frame, starting with the first analog channel. */
-				if (devc->model->series == 2) {
+				if (devc->model->protocol == PROTOCOL_IEEE488_2) {
 					if (devc->enabled_analog_probes) {
 						devc->channel_frame = devc->enabled_analog_probes->data;
-						/* Must wait for trigger because at
-						 * slow timebases the scope will
-						 * return old data otherwise. */
-						rigol_ds2xx2_acquisition_start(sdi, TRUE);
+						rigol_ds_capture_start(sdi);
 					}
 				} else {
 					if (devc->enabled_analog_probes) {
@@ -447,7 +642,7 @@ static int get_cfg(const struct sr_dev_inst *sdi, char *cmd, char *reply, size_t
 		return SR_ERR;
 	reply[len] = '\0';
 
-	if (devc->model->series == 2) {
+	if (devc->model->protocol == PROTOCOL_IEEE488_2) {
 		/* get rid of trailing linefeed */
 		if (len >= 1 && reply[len-1] == '\n')
 			reply[len-1] = '\0';
@@ -545,7 +740,7 @@ SR_PRIV int rigol_ds_get_dev_cfg(const struct sr_dev_inst *sdi)
 		return SR_ERR;
 	sr_dbg("Current vertical gain CH1 %g CH2 %g", devc->vdiv[0], devc->vdiv[1]);
 
-	if (devc->model->series == 2) {
+	if (devc->model->protocol == PROTOCOL_IEEE488_2) {
 		/* Vertical reference - not certain if this is the place to read it. */
 		if (rigol_ds_send(sdi, ":WAV:SOUR CHAN1") != SR_OK)
 			return SR_ERR;

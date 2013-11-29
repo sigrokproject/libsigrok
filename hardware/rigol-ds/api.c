@@ -45,6 +45,7 @@ static const int32_t analog_hwcaps[] = {
 	SR_CONF_NUM_VDIV,
 	SR_CONF_VDIV,
 	SR_CONF_COUPLING,
+	SR_CONF_DATA_SOURCE,
 };
 
 static const uint64_t timebases[][2] = {
@@ -141,17 +142,27 @@ static const char *coupling[] = {
 	"GND",
 };
 
-/* name, series, min timebase, max timebase, min vdiv, digital channels */
+/* Do not change the order of entries */
+static const char *data_sources[] = {
+	"Live",
+	"Memory",
+	"Segmented",
+};
+
+/* 
+ * name, series, protocol flavor, min timebase, max timebase, min vdiv,
+ * digital channels, number of horizontal divs
+ */
 static const struct rigol_ds_model supported_models[] = {
-	{"DS1052E", 1, {5, 1000000000}, {50, 1}, {2, 1000}, false},
-	{"DS1102E", 1, {2, 1000000000}, {50, 1}, {2, 1000}, false},
-	{"DS1152E", 1, {2, 1000000000}, {50, 1}, {2, 1000}, false},
-	{"DS1052D", 1, {5, 1000000000}, {50, 1}, {2, 1000}, true},
-	{"DS1102D", 1, {2, 1000000000}, {50, 1}, {2, 1000}, true},
-	{"DS1152D", 1, {2, 1000000000}, {50, 1}, {2, 1000}, true},
-	{"DS2072", 2, {5, 1000000000}, {500, 1}, {500, 1000000}, false},
-	{"DS2102", 2, {5, 1000000000}, {500, 1}, {500, 1000000}, false},
-	{"DS2202", 2, {2, 1000000000}, {500, 1}, {500, 1000000}, false},
+	{"DS1052E", RIGOL_DS1000, PROTOCOL_LEGACY, {5, 1000000000}, {50, 1}, {2, 1000}, false, 12},
+	{"DS1102E", RIGOL_DS1000, PROTOCOL_LEGACY, {2, 1000000000}, {50, 1}, {2, 1000}, false, 12},
+	{"DS1152E", RIGOL_DS1000, PROTOCOL_LEGACY, {2, 1000000000}, {50, 1}, {2, 1000}, false, 12},
+	{"DS1052D", RIGOL_DS1000, PROTOCOL_LEGACY, {5, 1000000000}, {50, 1}, {2, 1000}, true, 12},
+	{"DS1102D", RIGOL_DS1000, PROTOCOL_LEGACY, {2, 1000000000}, {50, 1}, {2, 1000}, true, 12},
+	{"DS1152D", RIGOL_DS1000, PROTOCOL_LEGACY, {2, 1000000000}, {50, 1}, {2, 1000}, true, 12},
+	{"DS2072", RIGOL_DS2000, PROTOCOL_IEEE488_2, {5, 1000000000}, {500, 1}, {500, 1000000}, false, 14},
+	{"DS2102", RIGOL_DS2000, PROTOCOL_IEEE488_2, {5, 1000000000}, {500, 1}, {500, 1000000}, false, 14},
+	{"DS2202", RIGOL_DS2000, PROTOCOL_IEEE488_2, {2, 1000000000}, {500, 1}, {500, 1000000}, false, 14},
 };
 
 SR_PRIV struct sr_dev_driver rigol_ds_driver_info;
@@ -162,6 +173,8 @@ static void clear_helper(void *priv)
 	struct dev_context *devc;
 
 	devc = priv;
+	g_free(devc->data);
+	g_free(devc->buffer);
 	g_free(devc->coupling[0]);
 	g_free(devc->coupling[1]);
 	g_free(devc->trigger_source);
@@ -257,7 +270,7 @@ static int probe_port(const char *port, GSList **devices)
 	}
 
 	if (!model || !(sdi = sr_dev_inst_new(0, SR_ST_ACTIVE,
-		manufacturer, model_name, version))) {
+					      manufacturer, model_name, version))) {
 		g_strfreev(tokens);
 		return SR_ERR_NA;
 	}
@@ -315,6 +328,13 @@ static int probe_port(const char *port, GSList **devices)
 			devc->num_vdivs = NUM_VDIV - (&vdivs[i] - &vdivs[0]);
 		}
 	}
+
+	if (!(devc->buffer = g_try_malloc(ACQ_BUFFER_SIZE)))
+		return SR_ERR_MALLOC;
+	if (!(devc->data = g_try_malloc(ACQ_BUFFER_SIZE * sizeof(float))))
+		return SR_ERR_MALLOC;
+
+	devc->data_source = DATA_SOURCE_LIVE;
 
 	sdi->priv = devc;
 
@@ -443,6 +463,14 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 			}
 		}
 		return SR_ERR_NA;
+	case SR_CONF_DATA_SOURCE:
+		if (devc->data_source == DATA_SOURCE_LIVE)
+			*data = g_variant_new_string("Live");
+		else if (devc->data_source == DATA_SOURCE_MEMORY)
+			*data = g_variant_new_string("Memory");
+		else
+			*data = g_variant_new_string("Segmented");
+		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -570,6 +598,18 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 			}
 		}
 		return SR_ERR_NA;
+	case SR_CONF_DATA_SOURCE:
+		tmp_str = g_variant_get_string(data, NULL);
+		if (!strcmp(tmp_str, "Live"))
+			devc->data_source = DATA_SOURCE_LIVE;
+		else if (!strcmp(tmp_str, "Memory"))
+			devc->data_source = DATA_SOURCE_MEMORY;
+		else if (devc->model->protocol == PROTOCOL_IEEE488_2
+			 && !strcmp(tmp_str, "Segmented"))
+			devc->data_source = DATA_SOURCE_SEGMENTED;
+		else
+			return SR_ERR;
+		break;
 	default:
 		ret = SR_ERR_NA;
 		break;
@@ -678,6 +718,16 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		*data = g_variant_new_strv(trigger_sources,
 				devc->model->has_digital ? ARRAY_SIZE(trigger_sources) : 4);
 		break;
+	case SR_CONF_DATA_SOURCE:
+		if (!devc)
+			/* Can't know this until we have the exact model. */
+			return SR_ERR_ARG;
+		/* This needs tweaking by series/model! */
+		if (devc->model->series == RIGOL_DS2000)
+			*data = g_variant_new_strv(data_sources, ARRAY_SIZE(data_sources));
+		else
+			*data = g_variant_new_strv(data_sources, ARRAY_SIZE(data_sources) - 1);
+		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -698,6 +748,19 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 
 	serial = sdi->conn;
 	devc = sdi->priv;
+
+	if (devc->data_source == DATA_SOURCE_LIVE) {
+		if (rigol_ds_send(sdi, ":RUN") != SR_OK)
+			return SR_ERR;
+	} else if (devc->data_source == DATA_SOURCE_MEMORY) {
+		if (devc->model->series != RIGOL_DS2000) {
+			sr_err("Data source 'Memory' not supported for this device");
+			return SR_ERR;
+		}
+	} else if (devc->data_source == DATA_SOURCE_SEGMENTED) {
+		sr_err("Data source 'Segmented' not yet supported");
+		return SR_ERR;
+	}
 
 	for (l = sdi->probes; l; l = l->next) {
 		probe = l->data;
@@ -734,9 +797,10 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, LOG_PREFIX);
 
-	if (devc->model->series == 1) {
+	if (devc->model->protocol == PROTOCOL_LEGACY) {
 		/* Fetch the first frame. */
 		if (devc->enabled_analog_probes) {
+			devc->analog_frame_size = DS1000_ANALOG_LIVE_WAVEFORM_SIZE;
 			devc->channel_frame = devc->enabled_analog_probes->data;
 			if (rigol_ds_send(sdi, ":WAV:DATA? CHAN%d",
 					devc->channel_frame->index + 1) != SR_OK)
@@ -750,9 +814,25 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		devc->num_frame_bytes = 0;
 	} else {
 		if (devc->enabled_analog_probes) {
+			if (devc->data_source == DATA_SOURCE_MEMORY)
+			{
+				if (g_slist_length(devc->enabled_analog_probes) == 1)
+					devc->analog_frame_size = DS2000_ANALOG_MEM_WAVEFORM_SIZE_1C;
+				else
+					devc->analog_frame_size = DS2000_ANALOG_MEM_WAVEFORM_SIZE_2C;
+				/* Apparently for the DS2000 the memory
+				 * depth can only be set in Running state -
+				 * this matches the behaviour of the UI. */
+				if (rigol_ds_send(sdi, ":RUN") != SR_OK)
+					return SR_ERR;
+				if (rigol_ds_send(sdi, "ACQ:MDEP %d", devc->analog_frame_size) != SR_OK)
+					return SR_ERR;
+				if (rigol_ds_send(sdi, ":STOP") != SR_OK)
+					return SR_ERR;
+			} else
+				devc->analog_frame_size = DS2000_ANALOG_LIVE_WAVEFORM_SIZE;
 			devc->channel_frame = devc->enabled_analog_probes->data;
-			/* Assume there already was a trigger event - don't wait */
-			if (rigol_ds2xx2_acquisition_start(sdi, FALSE) != SR_OK)
+			if (rigol_ds_capture_start(sdi) != SR_OK)
 				return SR_ERR;
 		}
 	}

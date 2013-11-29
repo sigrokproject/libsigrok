@@ -35,17 +35,52 @@
 #define sr_warn(s, args...) sr_warn(LOG_PREFIX s, ## args)
 #define sr_err(s, args...) sr_err(LOG_PREFIX s, ## args)
 
-#define DS1000_ANALOG_WAVEFORM_SIZE 600
-#define DS2000_ANALOG_WAVEFORM_SIZE 1400
+#define DS1000_ANALOG_LIVE_WAVEFORM_SIZE 600
+#define DS2000_ANALOG_LIVE_WAVEFORM_SIZE 1400
+/* Needs to be made configurable later */
+#define DS2000_ANALOG_MEM_WAVEFORM_SIZE_1C 14000
+#define DS2000_ANALOG_MEM_WAVEFORM_SIZE_2C 7000
 #define DIGITAL_WAVEFORM_SIZE 1210
+/* Size of acquisition buffers */
+#define ACQ_BUFFER_SIZE 32768
+
+enum rigol_ds_series {
+	RIGOL_DS1000,
+	RIGOL_DS1000Z,
+	RIGOL_DS2000,
+	RIGOL_DS4000,
+	RIGOL_DS6000,
+};
+
+enum rigol_protocol_flavor {
+	/* Used by DS1000 series */
+	PROTOCOL_LEGACY,
+	/* Used by DS2000, DS4000, DS6000, ... series */
+	PROTOCOL_IEEE488_2,
+};
+
+enum data_source {
+	DATA_SOURCE_LIVE,
+	DATA_SOURCE_MEMORY,
+	DATA_SOURCE_SEGMENTED,
+};
 
 struct rigol_ds_model {
 	char *name;
-	unsigned int series;
+	enum rigol_ds_series series;
+	enum rigol_protocol_flavor protocol;
 	uint64_t min_timebase[2];
 	uint64_t max_timebase[2];
 	uint64_t min_vdiv[2];
 	bool has_digital;
+	int num_horizontal_divs;
+};
+
+enum wait_events {
+	WAIT_NONE,    /* Don't wait */
+	WAIT_TRIGGER, /* Wait for trigger (only live capture) */
+	WAIT_BLOCK,   /* Wait for block data (only when reading sample mem) */
+	WAIT_STOP,    /* Wait for scope stopping (only single shots) */
 };
 
 /** Private, per-device-instance driver context. */
@@ -68,6 +103,8 @@ struct dev_context {
 	GSList *enabled_digital_probes;
 	uint64_t limit_frames;
 	void *cb_data;
+	enum data_source data_source;
+	uint64_t analog_frame_size;
 
 	/* Device settings */
 	gboolean analog_channels[2];
@@ -90,11 +127,16 @@ struct dev_context {
 	uint64_t num_block_bytes;
 	/* Number of data block bytes already read */
 	uint64_t num_block_read;
-	/* Trigger waiting status, 0 - don't wait */
-	int trigger_wait_status;
+	/* What to wait for in *_receive */
+	enum wait_events wait_event;
+	/* Trigger/block copying/stop waiting status */
+	int wait_status;
+	/* Acq buffers used for reading from the scope and sending data to app */
+	unsigned char *buffer;
+	float *data;
 };
 
-SR_PRIV int rigol_ds2xx2_acquisition_start(const struct sr_dev_inst *sdi, gboolean wait_for_trigger);
+SR_PRIV int rigol_ds_capture_start(const struct sr_dev_inst *sdi);
 SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data);
 SR_PRIV int rigol_ds_send(const struct sr_dev_inst *sdi, const char *format, ...);
 SR_PRIV int rigol_ds_get_dev_cfg(const struct sr_dev_inst *sdi);
