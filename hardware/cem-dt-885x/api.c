@@ -415,7 +415,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 
 	/* Poll every 100ms, or whenever some data comes in. */
 	serial = sdi->conn;
-	sr_source_add(serial->fd, G_IO_IN, 150, cem_dt_885x_receive_data,
+	serial_source_add(serial, G_IO_IN, 150, cem_dt_885x_receive_data,
 			(void *)sdi);
 
 	return SR_OK;

@@ -363,7 +363,7 @@ static int dev_acq_start_1x_2x_rs232(const struct sr_dev_inst *sdi,
 
 	/* Poll every 40ms, or whenever some data comes in. */
 	serial = sdi->conn;
-	sr_source_add(serial->fd, G_IO_IN, 40, gmc_mh_1x_2x_receive_data,
+	serial_source_add(serial, G_IO_IN, 40, gmc_mh_1x_2x_receive_data,
 		(void *)sdi);
 
 	return SR_OK;

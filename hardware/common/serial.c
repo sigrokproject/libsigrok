@@ -638,3 +638,9 @@ SR_PRIV int sr_serial_extract_options(GSList *options, const char **serial_devic
 
 	return SR_OK;
 }
+
+SR_PRIV int serial_source_add(struct sr_serial_dev_inst *serial, int events,
+		int timeout, sr_receive_data_callback_t cb, void *cb_data)
+{
+	return sr_source_add(serial->fd, events, timeout, cb, cb_data);
+}

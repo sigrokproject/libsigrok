@@ -537,7 +537,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, LOG_PREFIX);
 
-	sr_source_add(serial->fd, G_IO_IN, -1, ols_receive_data, cb_data);
+	serial_source_add(serial, G_IO_IN, -1, ols_receive_data, cb_data);
 
 	return SR_OK;
 }

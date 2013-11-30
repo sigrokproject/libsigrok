@@ -53,7 +53,7 @@ SR_PRIV int scpi_serial_source_add(void *priv, int events, int timeout,
 {
 	struct sr_serial_dev_inst *serial = priv;
 
-	return sr_source_add(serial->fd, events, timeout, cb, cb_data);
+	return serial_source_add(serial, events, timeout, cb, cb_data);
 }
 
 SR_PRIV int scpi_serial_source_remove(void *priv)
