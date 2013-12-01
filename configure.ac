@@ -94,6 +94,11 @@ AC_ARG_ENABLE(alsa, AC_HELP_STRING([--enable-alsa],
 	[HW_ALSA="$enableval"],
 	[HW_ALSA=$HW_ENABLED_DEFAULT])
 
+AC_ARG_ENABLE(appa-55ii, AC_HELP_STRING([--enable-appa-55ii],
+	[enable APPA 55II support [default=yes]]),
+	[HW_APPA_55II="$enableval"],
+	[HW_APPA_55II=$HW_ENABLED_DEFAULT])
+
 AC_ARG_ENABLE(asix-sigma, AC_HELP_STRING([--enable-asix-sigma],
 	[enable ASIX SIGMA/SIGMA2 support [default=yes]]),
 	[HW_ASIX_SIGMA="$enableval"],
@@ -368,6 +373,11 @@ if test "x$HW_ALSA" = "xyes"; then
 	AC_DEFINE(HAVE_HW_ALSA, 1, [ALSA driver support])
 fi
 
+AM_CONDITIONAL(HW_APPA_55II, test x$HW_APPA_55II = xyes)
+if test "x$HW_APPA_55II" = "xyes"; then
+	AC_DEFINE(HAVE_HW_APPA_55II, 1, [APPA 55II support])
+fi
+
 AM_CONDITIONAL(HW_ASIX_SIGMA, test x$HW_ASIX_SIGMA = xyes)
 if test "x$HW_ASIX_SIGMA" = "xyes"; then
 	AC_DEFINE(HAVE_HW_ASIX_SIGMA, 1, [ASIX SIGMA/SIGMA2 support])
@@ -550,6 +560,7 @@ AC_SUBST(SR_PACKAGE_VERSION)
 AC_CONFIG_FILES([Makefile version.h hardware/Makefile
 		 hardware/agilent-dmm/Makefile
 		 hardware/alsa/Makefile
+		 hardware/appa-55ii/Makefile
 		 hardware/asix-sigma/Makefile
 		 hardware/brymen-dmm/Makefile
 		 hardware/cem-dt-885x/Makefile
@@ -617,6 +628,7 @@ done
 echo -e "\nEnabled hardware drivers:\n"
 echo "  - agilent-dmm..................... $HW_AGILENT_DMM"
 echo "  - alsa............................ $HW_ALSA"
+echo "  - appa-55ii....................... $HW_APPA_55II"
 echo "  - asix-sigma...................... $HW_ASIX_SIGMA"
 echo "  - brymen-dmm...................... $HW_BRYMEN_DMM"
 echo "  - cem-dt-885x..................... $HW_CEM_DT_885X"

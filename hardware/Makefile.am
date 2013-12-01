@@ -21,6 +21,7 @@
 SUBDIRS = \
 	agilent-dmm \
 	alsa \
+	appa-55ii \
 	asix-sigma \
 	brymen-dmm \
 	cem-dt-885x \
@@ -65,6 +66,10 @@ endif
 
 if HW_ALSA
 libsigrokhardware_la_LIBADD += alsa/libsigrok_hw_alsa.la
+endif
+
+if HW_APPA_55II
+libsigrokhardware_la_LIBADD += appa-55ii/libsigrok_hw_appa_55ii.la
 endif
 
 if HW_ASIX_SIGMA
