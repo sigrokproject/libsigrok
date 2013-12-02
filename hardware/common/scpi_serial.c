@@ -60,7 +60,7 @@ SR_PRIV int scpi_serial_source_remove(void *priv)
 {
 	struct sr_serial_dev_inst *serial = priv;
 
-	return sr_source_remove(serial->fd);
+	return serial_source_remove(serial);
 }
 
 SR_PRIV int scpi_serial_send(void *priv, const char *command)

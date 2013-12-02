@@ -230,6 +230,7 @@ SR_PRIV int sr_serial_extract_options(GSList *options, const char **serial_devic
 				      const char **serial_options);
 SR_PRIV int serial_source_add(struct sr_serial_dev_inst *serial, int events,
 		int timeout, sr_receive_data_callback_t cb, void *cb_data);
+SR_PRIV int serial_source_remove(struct sr_serial_dev_inst *serial);
 #endif
 
 /*--- hardware/common/ezusb.c -----------------------------------------------*/

@@ -644,3 +644,8 @@ SR_PRIV int serial_source_add(struct sr_serial_dev_inst *serial, int events,
 {
 	return sr_source_add(serial->fd, events, timeout, cb, cb_data);
 }
+
+SR_PRIV int serial_source_remove(struct sr_serial_dev_inst *serial)
+{
+	return sr_source_remove(serial->fd);
+}

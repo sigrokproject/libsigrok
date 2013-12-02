@@ -334,7 +334,7 @@ SR_PRIV void abort_acquisition(const struct sr_dev_inst *sdi)
 	struct sr_serial_dev_inst *serial;
 
 	serial = sdi->conn;
-	sr_source_remove(serial->fd);
+	serial_source_remove(serial);
 
 	/* Terminate session */
 	packet.type = SR_DF_END;
