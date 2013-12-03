@@ -38,6 +38,13 @@ static struct usb_id_info ho_models[] = {
 	{ 0x0403, 0xed73 }, /* HO730 */
 };
 
+enum {
+	PG_INVALID = -1,
+	PG_NONE,
+	PG_ANALOG,
+	PG_DIGITAL,
+};
+
 static int init(struct sr_context *sr_ctx)
 {
 	return std_init(sr_ctx, di, LOG_PREFIX);
@@ -197,7 +204,7 @@ static GSList *scan(GSList *options)
 
 	if (sr_serial_extract_options(options, &serial_device,
 				      &serial_options) == SR_OK) {
-		sdi = hameg_probe_serial_device(serial_device, serial_options);
+		sdi = hmo_probe_serial_device(serial_device, serial_options);
 		if (sdi != NULL) {
 			devices = g_slist_append(devices, sdi);
 			drvc->instances = g_slist_append(drvc->instances, sdi);
@@ -213,7 +220,7 @@ static GSList *scan(GSList *options)
 		}
 
 		for (l = tty_devs; l; l = l->next) {
-			sdi = hameg_probe_serial_device(l->data, serial_options);
+			sdi = hmo_probe_serial_device(l->data, serial_options);
 			if (sdi != NULL) {
 				devices = g_slist_append(devices, sdi);
 				drvc->instances = g_slist_append(drvc->instances, sdi);
@@ -240,7 +247,7 @@ static void clear_helper(void *priv)
 	devc = priv;
 	model = devc->model_config;
 
-	scope_state_free(devc->model_state);
+	hmo_scope_state_free(devc->model_state);
 
 	for (i = 0; i < model->analog_channels; ++i)
 		g_slist_free(devc->analog_groups[i].probes);
@@ -267,7 +274,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 	    serial_open(sdi->conn, SERIAL_RDWR | SERIAL_NONBLOCK) != SR_OK)
 		return SR_ERR;
 
-	if (scope_state_get(sdi) != SR_OK)
+	if (hmo_scope_state_get(sdi) != SR_OK)
 		return SR_ERR;
 
 	sdi->status = SR_ST_ACTIVE;
@@ -778,7 +785,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		return SR_ERR;
 	}
 
-	sr_source_add(serial->fd, G_IO_IN, 50, hameg_hmo_receive_data, (void *)sdi);
+	sr_source_add(serial->fd, G_IO_IN, 50, hmo_receive_data, (void *)sdi);
 
 	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, LOG_PREFIX);

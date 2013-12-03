@@ -398,7 +398,7 @@ static int digital_channel_state_get(struct sr_serial_dev_inst *serial,
 	return SR_OK;
 }
 
-SR_PRIV int scope_state_get(struct sr_dev_inst *sdi)
+SR_PRIV int hmo_scope_state_get(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct scope_state *state;
@@ -473,7 +473,7 @@ fail:
 	return NULL;
 }
 
-SR_PRIV void scope_state_free(struct scope_state *state)
+SR_PRIV void hmo_scope_state_free(struct scope_state *state)
 {
 	g_free(state->analog_channels);
 	g_free(state->digital_channels);
@@ -560,8 +560,8 @@ SR_PRIV int hmo_init_device(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-SR_PRIV struct sr_dev_inst *hameg_probe_serial_device(const char *serial_device,
-						      const char *serial_options)
+SR_PRIV struct sr_dev_inst *hmo_probe_serial_device(const char *serial_device,
+						    const char *serial_options)
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
@@ -622,7 +622,7 @@ fail:
 	return NULL;
 }
 
-SR_PRIV int hameg_hmo_receive_data(int fd, int revents, void *cb_data)
+SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 {
 	struct sr_probe *probe;
 	struct sr_dev_inst *sdi;
