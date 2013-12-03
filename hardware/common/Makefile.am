@@ -25,7 +25,7 @@ noinst_LTLIBRARIES = libsigrok_hw_common.la
 libsigrok_hw_common_la_SOURCES =
 
 if NEED_SERIAL
-libsigrok_hw_common_la_SOURCES += serial.c scpi.c scpi_serial.c
+libsigrok_hw_common_la_SOURCES += serial.c scpi.c scpi_serial.c scpi_usbtmc.c
 endif
 
 if NEED_USB

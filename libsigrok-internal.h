@@ -334,6 +334,10 @@ SR_PRIV void sr_scpi_hw_info_free(struct sr_scpi_hw_info *hw_info);
 SR_PRIV struct sr_scpi_dev_inst *scpi_serial_dev_inst_new(const char *port,
 		        const char *serialcomm);
 
+/*--- hardware/common/scpi_usbtmc.c -----------------------------------------*/
+
+SR_PRIV struct sr_scpi_dev_inst *scpi_usbtmc_dev_inst_new(const char *device);
+
 /*--- hardware/common/dmm/es51922.c -----------------------------------------*/
 
 #define ES51922_PACKET_SIZE 14
