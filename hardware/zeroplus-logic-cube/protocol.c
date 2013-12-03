@@ -75,8 +75,8 @@ SR_PRIV void set_triggerbar(struct dev_context *devc)
 	ramsize = get_memory_size(devc->memory_size) / 4;
 	if (devc->trigger) {
 		n = ramsize;
-		if (devc->max_memory_size < n)
-			n = devc->max_memory_size;
+		if (devc->max_sample_depth < n)
+			n = devc->max_sample_depth;
 		if (devc->limit_samples < n)
 			n = devc->limit_samples;
 		n = n * devc->capture_ratio / 100;

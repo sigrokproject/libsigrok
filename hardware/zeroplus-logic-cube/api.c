@@ -307,10 +307,10 @@ static GSList *scan(GSList *options)
 		devc->prof = prof;
 		devc->num_channels = prof->channels;
 #ifdef ZP_EXPERIMENTAL
-		devc->max_memory_size = 128 * 1024;
+		devc->max_sample_depth = 128 * 1024;
 		devc->max_samplerate = 200;
 #else
-		devc->max_memory_size = prof->sample_depth * 1024;
+		devc->max_sample_depth = prof->sample_depth * 1024;
 		devc->max_samplerate = prof->max_sampling_freq;
 #endif
 		devc->max_samplerate *= SR_MHZ(1);
@@ -617,8 +617,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	analyzer_read_start(usb->devhdl);
 	/* Send the incoming transfer to the session bus. */
 	n = get_memory_size(devc->memory_size);
-	if (devc->max_memory_size * 4 < n)
-		n = devc->max_memory_size * 4;
+	if (devc->max_sample_depth * 4 < n)
+		n = devc->max_sample_depth * 4;
 	for (packet_num = 0; packet_num < n / PACKET_SIZE; packet_num++) {
 		res = analyzer_read_data(usb->devhdl, buf, PACKET_SIZE);
 		sr_info("Tried to read %d bytes, actually read %d bytes.",

@@ -44,7 +44,7 @@ struct dev_context {
 	uint64_t limit_samples;
 	int num_channels;
 	int memory_size;
-	unsigned int max_memory_size;
+	unsigned int max_sample_depth;
 	//uint8_t probe_mask;
 	//uint8_t trigger_mask[NUM_TRIGGER_STAGES];
 	//uint8_t trigger_value[NUM_TRIGGER_STAGES];
