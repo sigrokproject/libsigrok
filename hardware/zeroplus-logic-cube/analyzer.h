@@ -92,6 +92,7 @@ SR_PRIV void analyzer_set_memory_size(unsigned int size);
 SR_PRIV void analyzer_add_trigger(int channel, int type);
 SR_PRIV void analyzer_set_trigger_count(int count);
 SR_PRIV void analyzer_add_filter(int channel, int type);
+SR_PRIV void analyzer_set_voltage_threshold(int thresh);
 
 SR_PRIV unsigned int analyzer_read_status(libusb_device_handle *devh);
 SR_PRIV unsigned int analyzer_read_id(libusb_device_handle *devh);

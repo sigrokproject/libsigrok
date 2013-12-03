@@ -17,6 +17,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <math.h>
 #include "protocol.h"
 
 SR_PRIV unsigned int get_memory_size(int type)
@@ -87,6 +88,22 @@ SR_PRIV int set_capture_ratio(struct dev_context *devc, uint64_t ratio)
 	devc->capture_ratio = ratio;
 
 	sr_info("Setting capture ratio to %d%%.", devc->capture_ratio);
+
+	return SR_OK;
+}
+
+SR_PRIV int set_voltage_threshold(struct dev_context *devc, double thresh)
+{
+	if (thresh > 6.0)
+		thresh = 6.0;
+	if (thresh < -6.0)
+		thresh = -6.0;
+
+	devc->cur_threshold = thresh;
+
+	analyzer_set_voltage_threshold((int) round(-9.1*thresh + 62.6));
+
+	sr_info("Setting voltage threshold to %fV.", devc->cur_threshold);
 
 	return SR_OK;
 }

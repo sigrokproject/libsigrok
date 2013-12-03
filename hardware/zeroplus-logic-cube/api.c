@@ -57,6 +57,7 @@ static const int32_t hwcaps[] = {
 	SR_CONF_LOGIC_ANALYZER,
 	SR_CONF_SAMPLERATE,
 	SR_CONF_CAPTURE_RATIO,
+	SR_CONF_VOLTAGE_THRESHOLD,
 	SR_CONF_LIMIT_SAMPLES,
 };
 
@@ -439,6 +440,9 @@ static int dev_open(struct sr_dev_inst *sdi)
 		devc->cur_samplerate = SR_MHZ(1);
 	}
 
+	if (devc->cur_threshold == 0)
+		set_voltage_threshold(devc, 1.5);
+
 	return SR_OK;
 }
 
@@ -491,6 +495,16 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 		} else
 			return SR_ERR;
 		break;
+	case SR_CONF_VOLTAGE_THRESHOLD:
+		if (sdi) {
+			GVariant *range[2];
+			devc = sdi->priv;
+			range[0] = g_variant_new_double(devc->cur_threshold);
+			range[1] = g_variant_new_double(devc->cur_threshold);
+			*data = g_variant_new_tuple(range, 2);
+		} else
+			return SR_ERR;
+		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -502,6 +516,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 		const struct sr_probe_group *probe_group)
 {
 	struct dev_context *devc;
+	gdouble low, high;
 
 	(void)probe_group;
 
@@ -520,6 +535,9 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 		return set_limit_samples(devc, g_variant_get_uint64(data));
 	case SR_CONF_CAPTURE_RATIO:
 		return set_capture_ratio(devc, g_variant_get_uint64(data));
+	case SR_CONF_VOLTAGE_THRESHOLD:
+		g_variant_get(data, "(dd)", &low, &high);
+		return set_voltage_threshold(devc, (low + high) / 2.0);
 	default:
 		return SR_ERR_NA;
 	}
@@ -533,6 +551,8 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	struct dev_context *devc;
 	GVariant *gvar;
 	GVariantBuilder gvb;
+	double v;
+	GVariant *range[2];
 
 	(void)probe_group;
 
@@ -562,6 +582,16 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		break;
 	case SR_CONF_TRIGGER_TYPE:
 		*data = g_variant_new_string(TRIGGER_TYPE);
+		break;
+	case SR_CONF_VOLTAGE_THRESHOLD:
+		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
+		for (v = -6.0; v <= 6.0; v += 0.1) {
+			range[0] = g_variant_new_double(v);
+			range[1] = g_variant_new_double(v);
+			gvar = g_variant_new_tuple(range, 2);
+			g_variant_builder_add_value(&gvb, gvar);
+		}
+		*data = g_variant_builder_end(&gvb);
 		break;
 	default:
 		return SR_ERR_NA;
