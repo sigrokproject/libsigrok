@@ -43,10 +43,16 @@
 #define STATUS_FLAG_READ	0x10
 #define STATUS_FLAG_20		0x20
 
+/* In bytes */
 #define MEMORY_SIZE_8K		0x00
 #define MEMORY_SIZE_64K		0x01
 #define MEMORY_SIZE_128K	0x02
+#define MEMORY_SIZE_256K	0x03
 #define MEMORY_SIZE_512K	0x04
+#define MEMORY_SIZE_1M		0x05
+#define MEMORY_SIZE_2M		0x06
+#define MEMORY_SIZE_4M		0x07
+#define MEMORY_SIZE_8M		0x08
 
 #define STATUS_BUSY		0x01	/* WTF / ??? */
 #define STATUS_READY		0x02
