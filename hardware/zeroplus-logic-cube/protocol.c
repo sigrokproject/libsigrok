@@ -93,27 +93,26 @@ SR_PRIV int set_capture_ratio(struct dev_context *devc, uint64_t ratio)
 
 SR_PRIV void set_triggerbar(struct dev_context *devc)
 {
-	unsigned int ramsize, n, triggerbar;
+	unsigned int trigger_depth, triggerbar, ramsize_trigger;
 
-	ramsize = get_memory_size(devc->memory_size) / 4;
-	if (devc->trigger) {
-		n = ramsize;
-		if (devc->max_sample_depth < n)
-			n = devc->max_sample_depth;
-		if (devc->limit_samples < n)
-			n = devc->limit_samples;
-		n = n * devc->capture_ratio / 100;
-		if (n > ramsize - 8)
-			triggerbar = ramsize - 8;
-		else
-			triggerbar = n;
-	} else {
+	trigger_depth = get_memory_size(devc->memory_size) / 4;
+	if (devc->limit_samples < trigger_depth)
+		trigger_depth = devc->limit_samples;
+	triggerbar = trigger_depth * devc->capture_ratio / 100;
+
+	ramsize_trigger = trigger_depth - triggerbar;
+	/* Matches USB packet captures from official app/driver */
+	if (triggerbar > 2)
+		triggerbar -= 2;
+	else {
+		ramsize_trigger -= 1;
 		triggerbar = 0;
 	}
+
 	analyzer_set_triggerbar_address(triggerbar);
-	analyzer_set_ramsize_trigger_address(ramsize - triggerbar);
+	analyzer_set_ramsize_trigger_address(ramsize_trigger);
 
 	sr_dbg("triggerbar_address = %d(0x%x)", triggerbar, triggerbar);
 	sr_dbg("ramsize_triggerbar_address = %d(0x%x)",
-	       ramsize - triggerbar, ramsize - triggerbar);
+	       ramsize_trigger, ramsize_trigger);
 }
