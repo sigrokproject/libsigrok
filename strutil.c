@@ -61,7 +61,7 @@
  *
  * @since 0.3.0
  */
-SR_API int sr_atol(const char *str, long *ret)
+SR_PRIV int sr_atol(const char *str, long *ret)
 {
 	long tmp;
 	char *endptr = NULL;
@@ -92,7 +92,7 @@ SR_API int sr_atol(const char *str, long *ret)
  *
  * @since 0.3.0
  */
-SR_API int sr_atoi(const char *str, int *ret)
+SR_PRIV int sr_atoi(const char *str, int *ret)
 {
 	long tmp;
 
@@ -121,7 +121,7 @@ SR_API int sr_atoi(const char *str, int *ret)
  *
  * @since 0.3.0
  */
-SR_API int sr_atod(const char *str, double *ret)
+SR_PRIV int sr_atod(const char *str, double *ret)
 {
 	double tmp;
 	char *endptr = NULL;
@@ -152,7 +152,7 @@ SR_API int sr_atod(const char *str, double *ret)
  *
  * @since 0.3.0
  */
-SR_API int sr_atof(const char *str, float *ret)
+SR_PRIV int sr_atof(const char *str, float *ret)
 {
 	double tmp;
 

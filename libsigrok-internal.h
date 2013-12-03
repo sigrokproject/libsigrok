@@ -191,6 +191,13 @@ SR_PRIV int std_session_send_df_header(const struct sr_dev_inst *sdi,
 SR_PRIV int std_dev_clear(const struct sr_dev_driver *driver,
 		std_dev_clear_t clear_private);
 
+/*--- strutil.c -------------------------------------------------------------*/
+
+SR_PRIV int sr_atol(const char *str, long *ret);
+SR_PRIV int sr_atoi(const char *str, int *ret);
+SR_PRIV int sr_atod(const char *str, double *ret);
+SR_PRIV int sr_atof(const char *str, float *ret);
+
 /*--- hardware/common/serial.c ----------------------------------------------*/
 
 #ifdef HAVE_LIBSERIALPORT

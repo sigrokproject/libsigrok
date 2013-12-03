@@ -141,10 +141,6 @@ SR_API uint64_t sr_parse_timestring(const char *timestring);
 SR_API gboolean sr_parse_boolstring(const char *boolstring);
 SR_API int sr_parse_period(const char *periodstr, uint64_t *p, uint64_t *q);
 SR_API int sr_parse_voltage(const char *voltstr, uint64_t *p, uint64_t *q);
-SR_API int sr_atol(const char *str, long *ret);
-SR_API int sr_atoi(const char *str, int *ret);
-SR_API int sr_atod(const char *str, double *ret);
-SR_API int sr_atof(const char *str, float *ret);
 
 /*--- version.c -------------------------------------------------------------*/
 
