@@ -147,6 +147,21 @@ SR_PRIV int sr_scpi_receive(struct sr_scpi_dev_inst *scpi,
 }
 
 /**
+ * Read part of a response from SCPI device.
+ *
+ * @param scpi Previously initialised SCPI device structure.
+ * @param buf Buffer to store result.
+ * @param maxlen Maximum number of bytes to read.
+ *
+ * @return Number of bytes read, or SR_ERR upon failure.
+ */
+SR_PRIV int sr_scpi_read(struct sr_scpi_dev_inst *scpi,
+			char *buf, int maxlen)
+{
+	return scpi->read(scpi->priv, buf, maxlen);
+}
+
+/**
  * Close SCPI device.
  *
  * @param scpi Previously initialized SCPI device structure.
