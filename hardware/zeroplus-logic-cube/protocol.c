@@ -57,6 +57,9 @@ SR_PRIV int clz(unsigned int x)
 
 SR_PRIV int set_limit_samples(struct dev_context *devc, uint64_t samples)
 {
+	if (samples > devc->max_sample_depth)
+		samples = devc->max_sample_depth;
+
 	devc->limit_samples = samples;
 
 	if (samples <= 2 * 1024)
