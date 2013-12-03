@@ -217,73 +217,60 @@ static int probe_port(const char *port, GSList **devices)
 {
 	struct dev_context *devc;
 	struct sr_dev_inst *sdi;
-	struct sr_usbtmc_dev_inst *usbtmc;
+	struct sr_scpi_dev_inst *scpi;
+	struct sr_scpi_hw_info *hw_info;
 	struct sr_probe *probe;
 	unsigned int i;
-	int len, num_tokens;
-	const char *manufacturer, *model_name, *version;
 	const struct rigol_ds_model *model = NULL;
-	char buf[256];
-	gchar **tokens, *channel_name;
+	gchar *channel_name;
 
 	*devices = NULL;
-	if (!(usbtmc = sr_usbtmc_dev_inst_new(port)))
+	if (!(scpi = scpi_usbtmc_dev_inst_new(port)))
 		return SR_ERR_MALLOC;
 
-	if ((usbtmc->fd = open(usbtmc->device, O_RDWR)) < 0)
+	if (sr_scpi_open(scpi) != SR_OK) {
+		sr_scpi_free(scpi);
 		return SR_ERR;
-	len = write(usbtmc->fd, "*IDN?", 5);
-	len = read(usbtmc->fd, buf, sizeof(buf));
-	if (close(usbtmc->fd) < 0)
+	};
+
+	if (sr_scpi_get_hw_id(scpi, &hw_info) != SR_OK) {
+		sr_info("Couldn't get IDN response.");
+		sr_scpi_close(scpi);
+		sr_scpi_free(scpi);
 		return SR_ERR;
-
-	sr_usbtmc_dev_inst_free(usbtmc);
-
-	if (len == 0)
-		return SR_ERR_NA;
-
-	buf[len] = 0;
-	tokens = g_strsplit(buf, ",", 0);
-	sr_dbg("response: %s [%s]", port, buf);
-
-	for (num_tokens = 0; tokens[num_tokens] != NULL; num_tokens++);
-
-	if (num_tokens < 4) {
-		g_strfreev(tokens);
-		return SR_ERR_NA;
 	}
 
-	manufacturer = tokens[0];
-	model_name = tokens[1];
-	version = tokens[3];
-
-	if (strcasecmp(manufacturer, "Rigol Technologies")) {
-		g_strfreev(tokens);
+	if (strcasecmp(hw_info->manufacturer, "Rigol Technologies")) {
+		sr_scpi_hw_info_free(hw_info);
+		sr_scpi_free(scpi);
 		return SR_ERR_NA;
 	}
 
 	for (i = 0; i < ARRAY_SIZE(supported_models); i++) {
-		if (!strcmp(model_name, supported_models[i].name)) {
+		if (!strcmp(hw_info->model, supported_models[i].name)) {
 			model = &supported_models[i];
 			break;
 		}
 	}
 
 	if (!model || !(sdi = sr_dev_inst_new(0, SR_ST_ACTIVE,
-					      manufacturer, model_name, version))) {
-		g_strfreev(tokens);
+					      hw_info->manufacturer, hw_info->model,
+						  hw_info->firmware_version))) {
+		sr_scpi_hw_info_free(hw_info);
+		sr_scpi_free(scpi);
 		return SR_ERR_NA;
 	}
 
-	g_strfreev(tokens);
+	sr_scpi_hw_info_free(hw_info);
 
-	if (!(sdi->conn = sr_usbtmc_dev_inst_new(port)))
-		return SR_ERR_MALLOC;
+	sdi->conn = scpi;
+
 	sdi->driver = di;
-	sdi->inst_type = SR_INST_USBTMC;
+	sdi->inst_type = SR_INST_SCPI;
 
 	if (!(devc = g_try_malloc0(sizeof(struct dev_context))))
 		return SR_ERR_MALLOC;
+
 	devc->limit_frames = 0;
 	devc->model = model;
 
@@ -399,9 +386,9 @@ static GSList *dev_list(void)
 
 static int dev_open(struct sr_dev_inst *sdi)
 {
-	struct sr_usbtmc_dev_inst *usbtmc = sdi->conn;
+	struct sr_scpi_dev_inst *scpi = sdi->conn;
 
-	if ((usbtmc->fd = open(usbtmc->device, O_RDWR)) < 0)
+	if (sr_scpi_open(scpi) < 0)
 		return SR_ERR;
 
 	if (rigol_ds_get_dev_cfg(sdi) != SR_OK)
@@ -414,12 +401,13 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 static int dev_close(struct sr_dev_inst *sdi)
 {
-	struct sr_usbtmc_dev_inst *usbtmc;
+	struct sr_scpi_dev_inst *scpi;
 
-	usbtmc = sdi->conn;
-	if (usbtmc && usbtmc->fd != -1) {
-		close(usbtmc->fd);
-		usbtmc->fd = -1;
+	scpi = sdi->conn;
+
+	if (scpi) {
+		if (sr_scpi_close(scpi) < 0)
+			return SR_ERR;
 		sdi->status = SR_ST_INACTIVE;
 	}
 
@@ -739,7 +727,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 {
-	struct sr_usbtmc_dev_inst *usbtmc;
+	struct sr_scpi_dev_inst *scpi;
 	struct dev_context *devc;
 	struct sr_probe *probe;
 	GSList *l;
@@ -748,7 +736,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
-	usbtmc = sdi->conn;
+	scpi = sdi->conn;
 	devc = sdi->priv;
 
 	if (devc->data_source == DATA_SOURCE_LIVE) {
@@ -794,7 +782,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	if (!devc->enabled_analog_probes && !devc->enabled_digital_probes)
 		return SR_ERR;
 
-	sr_source_add(usbtmc->fd, G_IO_IN, 50, rigol_ds_receive, (void *)sdi);
+	sr_scpi_source_add(scpi, G_IO_IN, 50, rigol_ds_receive, (void *)sdi);
 
 	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, LOG_PREFIX);
@@ -845,7 +833,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
 	struct dev_context *devc;
-	struct sr_usbtmc_dev_inst *usbtmc;
+	struct sr_scpi_dev_inst *scpi;
 
 	(void)cb_data;
 
@@ -860,8 +848,8 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 	g_slist_free(devc->enabled_digital_probes);
 	devc->enabled_analog_probes = NULL;
 	devc->enabled_digital_probes = NULL;
-	usbtmc = sdi->conn;
-	sr_source_remove(usbtmc->fd);
+	scpi = sdi->conn;
+	sr_scpi_source_remove(scpi);
 
 	return SR_OK;
 }
