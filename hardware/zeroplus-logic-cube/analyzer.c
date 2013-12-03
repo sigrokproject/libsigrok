@@ -404,7 +404,7 @@ SR_PRIV void analyzer_wait(libusb_device_handle *devh, int set, int unset)
 
 	while (1) {
 		status = gl_reg_read(devh, DEV_STATUS);
-		if ((status & set) && ((status & unset) == 0))
+		if ((!set || (status & set)) && ((status & unset) == 0))
 			return;
 	}
 }
@@ -614,7 +614,7 @@ SR_PRIV void analyzer_wait_button(libusb_device_handle *devh)
 
 SR_PRIV void analyzer_wait_data(libusb_device_handle *devh)
 {
-	analyzer_wait(devh, STATUS_READY | 8, STATUS_BUSY);
+	analyzer_wait(devh, 0, STATUS_BUSY);
 }
 
 SR_PRIV int analyzer_decompress(void *input, unsigned int input_len,
