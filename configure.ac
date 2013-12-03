@@ -269,7 +269,8 @@ PKG_CHECK_MODULES([libserialport], [libserialport >= 0.1.0],
 	SR_PKGLIBS="$SR_PKGLIBS libserialport"],
 	[have_libserialport="no"; HW_AGILENT_DMM="no"; HW_BRYMEN_DMM="no";
 	HW_CEM_DT_885X="no"; HW_CENTER_3XX="no"; HW_COLEAD_SLM="no";
-	HW_FLUKE_DMM="no"; HW_GMC_MH_1X_2X="no"; HW_LINK_MSO19="no"; HW_MIC_985XX="no";
+	HW_FLUKE_DMM="no"; HW_GMC_MH_1X_2X="no"; HW_HAMEG_HMO="no";
+	HW_LINK_MSO19="no"; HW_MIC_985XX="no";
 	HW_NORMA_DMM="no"; HW_OLS="no"; HW_RIGOL_DS="no";
 	HW_SERIAL_DMM="no"; HW_TELEINFO="no"; HW_TONDAJ_SL_814="no"])
 
