@@ -217,6 +217,8 @@ SR_PRIV int std_dev_clear(const struct sr_dev_driver *driver,
 #endif
 			if (sdi->inst_type == SR_INST_USBTMC)
 				sr_usbtmc_dev_inst_free(sdi->conn);
+			if (sdi->inst_type == SR_INST_SCPI)
+				sr_scpi_free(sdi->conn);
 		}
 		if (clear_private)
 			clear_private(sdi->priv);

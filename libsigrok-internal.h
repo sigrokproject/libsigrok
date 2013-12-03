@@ -285,28 +285,54 @@ struct sr_scpi_hw_info {
 	char *firmware_version;
 };
 
-SR_PRIV int sr_scpi_send(struct sr_serial_dev_inst *serial,
-			 const char *command);
-SR_PRIV int sr_scpi_get_string(struct sr_serial_dev_inst *serial,
-			       const char *command, char **scpi_response);
-SR_PRIV int sr_scpi_get_bool(struct sr_serial_dev_inst *serial,
-			     const char *command, gboolean *scpi_response);
-SR_PRIV int sr_scpi_get_int(struct sr_serial_dev_inst *serial,
-				  const char *command, int *scpi_response);
-SR_PRIV int sr_scpi_get_float(struct sr_serial_dev_inst *serial,
-			      const char *command, float *scpi_response);
-SR_PRIV int sr_scpi_get_double(struct sr_serial_dev_inst *serial,
-			      const char *command, double *scpi_response);
-SR_PRIV int sr_scpi_get_opc(struct sr_serial_dev_inst *serial);
-SR_PRIV int sr_scpi_get_floatv(struct sr_serial_dev_inst *serial,
-			      const char *command, GArray **scpi_response);
-SR_PRIV int sr_scpi_get_uint8v(struct sr_serial_dev_inst *serial,
-			      const char *command, GArray **scpi_response);
-SR_PRIV int sr_scpi_get_hw_id(struct sr_serial_dev_inst *serial,
-			      struct sr_scpi_hw_info **scpi_reponse);
+struct sr_scpi_dev_inst {
+	int (*open)(void *priv);
+	int (*source_add)(void *priv, int events,
+		int timeout, sr_receive_data_callback_t cb, void *cb_data);
+	int (*source_remove)(void *priv);
+	int (*send)(void *priv, const char *command);
+	int (*receive)(void *priv, char **scpi_response);
+	int (*close)(void *priv);
+	void (*free)(void *priv);
+	void *priv;
+};
+
+SR_PRIV int sr_scpi_open(struct sr_scpi_dev_inst *scpi);
+SR_PRIV int sr_scpi_source_add(struct sr_scpi_dev_inst *scpi, int events,
+		int timeout, sr_receive_data_callback_t cb, void *cb_data);
+SR_PRIV int sr_scpi_source_remove(struct sr_scpi_dev_inst *scpi);
+SR_PRIV int sr_scpi_send(struct sr_scpi_dev_inst *scpi,
+			const char *command);
+SR_PRIV int sr_scpi_receive(struct sr_scpi_dev_inst *scpi,
+			char **scpi_response);
+SR_PRIV int sr_scpi_close(struct sr_scpi_dev_inst *scpi);
+SR_PRIV void sr_scpi_free(struct sr_scpi_dev_inst *scpi);
+
+SR_PRIV int sr_scpi_get_string(struct sr_scpi_dev_inst *scpi,
+			const char *command, char **scpi_response);
+SR_PRIV int sr_scpi_get_bool(struct sr_scpi_dev_inst *scpi,
+			const char *command, gboolean *scpi_response);
+SR_PRIV int sr_scpi_get_int(struct sr_scpi_dev_inst *scpi,
+			const char *command, int *scpi_response);
+SR_PRIV int sr_scpi_get_float(struct sr_scpi_dev_inst *scpi,
+			const char *command, float *scpi_response);
+SR_PRIV int sr_scpi_get_double(struct sr_scpi_dev_inst *scpi,
+			const char *command, double *scpi_response);
+SR_PRIV int sr_scpi_get_opc(struct sr_scpi_dev_inst *scpi);
+SR_PRIV int sr_scpi_get_floatv(struct sr_scpi_dev_inst *scpi,
+			const char *command, GArray **scpi_response);
+SR_PRIV int sr_scpi_get_uint8v(struct sr_scpi_dev_inst *scpi,
+			const char *command, GArray **scpi_response);
+SR_PRIV int sr_scpi_get_hw_id(struct sr_scpi_dev_inst *scpi,
+			struct sr_scpi_hw_info **scpi_response);
 SR_PRIV void sr_scpi_hw_info_free(struct sr_scpi_hw_info *hw_info);
 
 #endif
+
+/*--- hardware/common/scpi_serial.c -----------------------------------------*/
+
+SR_PRIV struct sr_scpi_dev_inst *scpi_serial_dev_inst_new(const char *port,
+		        const char *serialcomm);
 
 /*--- hardware/common/dmm/es51922.c -----------------------------------------*/
 

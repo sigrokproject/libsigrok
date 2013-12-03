@@ -296,13 +296,13 @@ static void scope_state_dump(struct scope_config *config,
 		state->horiz_triggerpos);
 }
 
-static int scope_state_get_array_option(struct sr_serial_dev_inst *serial,
+static int scope_state_get_array_option(struct sr_scpi_dev_inst *scpi,
 		const char *command, const char *(*array)[], int *result)
 {
 	char *tmp;
 	unsigned int i;
 
-	if (sr_scpi_get_string(serial, command, &tmp) != SR_OK) {
+	if (sr_scpi_get_string(scpi, command, &tmp) != SR_OK) {
 		g_free(tmp);
 		return SR_ERR;
 	}
@@ -324,7 +324,7 @@ static int scope_state_get_array_option(struct sr_serial_dev_inst *serial,
 	return SR_OK;
 }
 
-static int analog_channel_state_get(struct sr_serial_dev_inst *serial,
+static int analog_channel_state_get(struct sr_scpi_dev_inst *scpi,
 				    struct scope_config *config,
 				    struct scope_state *state)
 {
@@ -336,7 +336,7 @@ static int analog_channel_state_get(struct sr_serial_dev_inst *serial,
 			   (*config->scpi_dialect)[SCPI_CMD_GET_ANALOG_CHAN_STATE],
 			   i + 1);
 
-		if (sr_scpi_get_bool(serial, command,
+		if (sr_scpi_get_bool(scpi, command,
 				     &state->analog_channels[i].state) != SR_OK)
 			return SR_ERR;
 
@@ -344,7 +344,7 @@ static int analog_channel_state_get(struct sr_serial_dev_inst *serial,
 			   (*config->scpi_dialect)[SCPI_CMD_GET_VERTICAL_DIV],
 			   i + 1);
 
-		if (sr_scpi_get_float(serial, command,
+		if (sr_scpi_get_float(scpi, command,
 				     &state->analog_channels[i].vdiv) != SR_OK)
 			return SR_ERR;
 
@@ -352,7 +352,7 @@ static int analog_channel_state_get(struct sr_serial_dev_inst *serial,
 			   (*config->scpi_dialect)[SCPI_CMD_GET_VERTICAL_OFFSET],
 			   i + 1);
 
-		if (sr_scpi_get_float(serial, command,
+		if (sr_scpi_get_float(scpi, command,
 				     &state->analog_channels[i].vertical_offset) != SR_OK)
 			return SR_ERR;
 
@@ -360,7 +360,7 @@ static int analog_channel_state_get(struct sr_serial_dev_inst *serial,
 			   (*config->scpi_dialect)[SCPI_CMD_GET_COUPLING],
 			   i + 1);
 
-		if (scope_state_get_array_option(serial, command, config->coupling_options,
+		if (scope_state_get_array_option(scpi, command, config->coupling_options,
 					 &state->analog_channels[i].coupling) != SR_OK)
 			return SR_ERR;
 	}
@@ -368,7 +368,7 @@ static int analog_channel_state_get(struct sr_serial_dev_inst *serial,
 	return SR_OK;
 }
 
-static int digital_channel_state_get(struct sr_serial_dev_inst *serial,
+static int digital_channel_state_get(struct sr_scpi_dev_inst *scpi,
 				     struct scope_config *config,
 				     struct scope_state *state)
 {
@@ -380,7 +380,7 @@ static int digital_channel_state_get(struct sr_serial_dev_inst *serial,
 			   (*config->scpi_dialect)[SCPI_CMD_GET_DIG_CHAN_STATE],
 			   i);
 
-		if (sr_scpi_get_bool(serial, command,
+		if (sr_scpi_get_bool(scpi, command,
 				     &state->digital_channels[i]) != SR_OK)
 			return SR_ERR;
 	}
@@ -390,7 +390,7 @@ static int digital_channel_state_get(struct sr_serial_dev_inst *serial,
 			   (*config->scpi_dialect)[SCPI_CMD_GET_DIG_POD_STATE],
 			   i + 1);
 
-		if (sr_scpi_get_bool(serial, command,
+		if (sr_scpi_get_bool(scpi, command,
 				     &state->digital_pods[i]) != SR_OK)
 			return SR_ERR;
 	}
@@ -566,21 +566,21 @@ SR_PRIV struct sr_dev_inst *hmo_probe_serial_device(const char *serial_device,
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 	struct sr_scpi_hw_info *hw_info;
-	struct sr_serial_dev_inst *serial;
+	struct sr_scpi_dev_inst *scpi;
 
 	sdi = NULL;
 	devc = NULL;
-	serial = NULL;
+	scpi = NULL;
 	hw_info = NULL;
 
-	if (!(serial = sr_serial_dev_inst_new(serial_device, serial_options)))
+	if (!(scpi = scpi_serial_dev_inst_new(serial_device, serial_options)))
 		goto fail;
 
 	sr_info("Probing %s.", serial_device);
-	if (serial_open(serial, SERIAL_RDWR | SERIAL_NONBLOCK) != SR_OK)
+	if (sr_scpi_open(scpi) != SR_OK)
 		goto fail;
 
-	if (sr_scpi_get_hw_id(serial, &hw_info) != SR_OK) {
+	if (sr_scpi_get_hw_id(scpi, &hw_info) != SR_OK) {
 		sr_info("Couldn't get IDN response.");
 		goto fail;
 	}
@@ -601,8 +601,8 @@ SR_PRIV struct sr_dev_inst *hmo_probe_serial_device(const char *serial_device,
 
 	sdi->driver = di;
 	sdi->priv = devc;
-	sdi->inst_type = SR_INST_SERIAL;
-	sdi->conn = serial;
+	sdi->inst_type = SR_INST_SCPI;
+	sdi->conn = scpi;
 
 	if (hmo_init_device(sdi) != SR_OK)
 		goto fail;
@@ -612,8 +612,8 @@ SR_PRIV struct sr_dev_inst *hmo_probe_serial_device(const char *serial_device,
 fail:
 	if (hw_info)
 		sr_scpi_hw_info_free(hw_info);
-	if (serial)
-		sr_serial_dev_inst_free(serial);
+	if (scpi)
+		sr_scpi_free(scpi);
 	if (sdi)
 		sr_dev_inst_free(sdi);
 	if (devc)

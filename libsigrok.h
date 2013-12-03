@@ -805,6 +805,8 @@ enum {
 	SR_INST_SERIAL,
 	/** Device instance type for USBTMC devices. */
 	SR_INST_USBTMC,
+	/** Device instance type for SCPI devices. */
+	SR_INST_SCPI,
 };
 
 /** Device instance status. */

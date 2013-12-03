@@ -270,8 +270,7 @@ static int dev_clear(void)
 
 static int dev_open(struct sr_dev_inst *sdi)
 {
-	if (sdi->status != SR_ST_ACTIVE &&
-	    serial_open(sdi->conn, SERIAL_RDWR | SERIAL_NONBLOCK) != SR_OK)
+	if (sdi->status != SR_ST_ACTIVE && sr_scpi_open(sdi->conn) != SR_OK)
 		return SR_ERR;
 
 	if (hmo_scope_state_get(sdi) != SR_OK)
@@ -287,7 +286,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 	if (sdi->status == SR_ST_INACTIVE)
 		return SR_OK;
 
-	serial_close(sdi->conn);
+	sr_scpi_close(sdi->conn);
 
 	sdi->status = SR_ST_INACTIVE;
 
@@ -679,10 +678,10 @@ static int hmo_setup_probes(const struct sr_dev_inst *sdi)
 	struct scope_config *model;
 	struct sr_probe *probe;
 	struct dev_context *devc;
-	struct sr_serial_dev_inst *serial;
+	struct sr_scpi_dev_inst *scpi;
 
 	devc = sdi->priv;
-	serial = sdi->conn;
+	scpi = sdi->conn;
 	state = devc->model_state;
 	model = devc->model_config;
 
@@ -698,7 +697,7 @@ static int hmo_setup_probes(const struct sr_dev_inst *sdi)
 				   (*model->scpi_dialect)[SCPI_CMD_SET_ANALOG_CHAN_STATE],
 				   probe->index + 1, probe->enabled);
 
-			if (sr_scpi_send(serial, command) != SR_OK)
+			if (sr_scpi_send(scpi, command) != SR_OK)
 				return SR_ERR;
 			state->analog_channels[probe->index].state = probe->enabled;
 			break;
@@ -716,7 +715,7 @@ static int hmo_setup_probes(const struct sr_dev_inst *sdi)
 				   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_CHAN_STATE],
 				   probe->index, probe->enabled);
 
-			if (sr_scpi_send(serial, command) != SR_OK)
+			if (sr_scpi_send(scpi, command) != SR_OK)
 				return SR_ERR;
 
 			state->digital_channels[probe->index] = probe->enabled;
@@ -732,7 +731,7 @@ static int hmo_setup_probes(const struct sr_dev_inst *sdi)
 		g_snprintf(command, sizeof(command),
 			   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_POD_STATE],
 			   i, pod_enabled[i - 1]);
-		if (sr_scpi_send(serial, command) != SR_OK)
+		if (sr_scpi_send(scpi, command) != SR_OK)
 			return SR_ERR;
 		state->digital_pods[i - 1] = pod_enabled[i - 1];
 	}
@@ -748,12 +747,12 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	gboolean digital_added;
 	struct sr_probe *probe;
 	struct dev_context *devc;
-	struct sr_serial_dev_inst *serial;
+	struct sr_scpi_dev_inst *scpi;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
-	serial = sdi->conn;
+	scpi = sdi->conn;
 	devc = sdi->priv;
 	digital_added = FALSE;
 
@@ -783,7 +782,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		return SR_ERR;
 	}
 
-	sr_source_add(serial->fd, G_IO_IN, 50, hmo_receive_data, (void *)sdi);
+	sr_scpi_source_add(scpi, G_IO_IN, 50, hmo_receive_data, (void *)sdi);
 
 	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, LOG_PREFIX);
@@ -796,7 +795,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
 	struct dev_context *devc;
-	struct sr_serial_dev_inst *serial;
+	struct sr_scpi_dev_inst *scpi;
 
 	(void)cb_data;
 
@@ -807,8 +806,8 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 
 	g_slist_free(devc->enabled_probes);
 	devc->enabled_probes = NULL;
-	serial = sdi->conn;
-	sr_source_remove(serial->fd);
+	scpi = sdi->conn;
+	sr_scpi_source_remove(scpi);
 
 	return SR_OK;
 }

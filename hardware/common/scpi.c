@@ -72,39 +72,109 @@ static int parse_strict_bool(const char *str, gboolean *ret)
 }
 
 /**
+ * Open SCPI device.
+ *
+ * @param scpi Previously initialized SCPI device structure.
+ *
+ * @return SR_OK on success, SR_ERR on failure.
+ */
+SR_PRIV int sr_scpi_open(struct sr_scpi_dev_inst *scpi)
+{
+	return scpi->open(scpi->priv);
+}
+
+/**
+ * Add an event source for an SCPI device.
+ *
+ * @param scpi Previously initialized SCPI device structure.
+ * @param events Events to check for.
+ * @param timeout Max time to wait before the callback is called, ignored if 0.
+ * @param cb Callback function to add. Must not be NULL.
+ * @param cb_data Data for the callback function. Can be NULL.
+ *
+ * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or
+ *         SR_ERR_MALLOC upon memory allocation errors.
+ */
+SR_PRIV int sr_scpi_source_add(struct sr_scpi_dev_inst *scpi, int events,
+		int timeout, sr_receive_data_callback_t cb, void *cb_data)
+{
+	return scpi->source_add(scpi->priv, events, timeout, cb, cb_data);
+}
+
+/**
+ * Remove event source for an SCPI device.
+ *
+ * @param scpi Previously initialized SCPI device structure.
+ *
+ * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or
+ *         SR_ERR_MALLOC upon memory allocation errors, SR_ERR_BUG upon
+ *         internal errors.
+ */
+SR_PRIV int sr_scpi_source_remove(struct sr_scpi_dev_inst *scpi)
+{
+	return scpi->source_remove(scpi->priv);
+}
+
+/**
  * Send a SCPI command.
  *
- * @param serial Previously initialized serial port structure.
+ * @param scpi Previously initialized SCPI device structure.
  * @param command The SCPI command to send to the device.
  *
  * @return SR_OK on success, SR_ERR on failure.
  */
-SR_PRIV int sr_scpi_send(struct sr_serial_dev_inst *serial,
+SR_PRIV int sr_scpi_send(struct sr_scpi_dev_inst *scpi,
 			 const char *command)
 {
-	int len, out;
-	gchar *terminated_command;
+	return scpi->send(scpi->priv, command);
+}
 
-	terminated_command = g_strconcat(command, "\n", NULL);
-	len = strlen(terminated_command);
-	out = serial_write(serial, terminated_command, len);
-	g_free(terminated_command);
+/**
+ * Receive an SCPI reply and store the reply in scpi_response.
+ *
+ * @param scpi Previously initialised SCPI device structure.
+ * @param scpi_response Pointer where to store the SCPI response.
+ *
+ * @return SR_OK upon fetching a full SCPI response, SR_ERR upon fetching an
+ *         incomplete or no response. The allocated response must be freed by
+ *         the caller in the case of a full response as well in the case of
+ *         an incomplete.
+ */
+SR_PRIV int sr_scpi_receive(struct sr_scpi_dev_inst *scpi,
+			char **scpi_response)
+{
+	return scpi->receive(scpi->priv, scpi_response);
+}
 
-	if (out != len) {
-		sr_dbg("Only sent %d/%d bytes of SCPI command: '%s'.", out,
-		       len, command);
-		return SR_ERR;
-	}
+/**
+ * Close SCPI device.
+ *
+ * @param scpi Previously initialized SCPI device structure.
+ *
+ * @return SR_OK on success, SR_ERR on failure.
+ */
+SR_PRIV int sr_scpi_close(struct sr_scpi_dev_inst *scpi)
+{
+	return scpi->close(scpi->priv);
+}
 
-	sr_spew("Successfully sent SCPI command: '%s'.", command);
-
-	return SR_OK;
+/**
+ * Free SCPI device.
+ *
+ * @param scpi Previously initialized SCPI device structure.
+ *
+ * @return SR_OK on success, SR_ERR on failure.
+ */
+SR_PRIV void sr_scpi_free(struct sr_scpi_dev_inst *scpi)
+{
+	scpi->free(scpi->priv);
+	g_free(scpi);
 }
 
 /**
  * Send a SCPI command, receive the reply and store the reply in scpi_response.
  *
- * @param serial Previously initialized serial port structure.
+ * @param scpi Previously initialised SCPI device structure.
  * @param command The SCPI command to send to the device (can be NULL).
  * @param scpi_response Pointer where to store the SCPI response.
  *
@@ -113,74 +183,27 @@ SR_PRIV int sr_scpi_send(struct sr_serial_dev_inst *serial,
  *         the caller in the case of a full response as well in the case of
  *         an incomplete.
  */
-SR_PRIV int sr_scpi_get_string(struct sr_serial_dev_inst *serial,
+SR_PRIV int sr_scpi_get_string(struct sr_scpi_dev_inst *scpi,
 			       const char *command, char **scpi_response)
 {
-	int len, ret;
-	char buf[256];
-	unsigned int i;
-	GString *response;
-
 	if (command)
-		if (sr_scpi_send(serial, command) != SR_OK)
+		if (sr_scpi_send(scpi, command) != SR_OK)
 			return SR_ERR;
 
-	response = g_string_sized_new(1024);
-
-	for (i = 0; i <= SCPI_READ_RETRIES; i++) {
-		while ((len = serial_read(serial, buf, sizeof(buf))) > 0)
-			response = g_string_append_len(response, buf, len);
-
-		if (response->len > 0 &&
-		    response->str[response->len-1] == '\n') {
-			sr_spew("Fetched full SCPI response.");
-			break;
-		}
-
-		g_usleep(SCPI_READ_RETRY_TIMEOUT);
-	}
-
-	if (response->len == 0) {
-		sr_dbg("No SCPI response received.");
-		g_string_free(response, TRUE);
-		*scpi_response = NULL;
-		return SR_ERR;
-	} else if (response->str[response->len - 1] == '\n') {
-		/*
-		 * The SCPI response contains a LF ('\n') at the end and we
-		 * don't need this so replace it with a '\0' and decrement
-		 * the length.
-		 */
-		response->str[--response->len] = '\0';
-		ret = SR_OK;
-	} else {
-		sr_warn("Incomplete SCPI response received!");
-		ret = SR_ERR;
-	}
-
-	/* Minor optimization: steal the string instead of copying. */
-	*scpi_response = response->str;
-
-	/* A SCPI response can be quite large, print at most 50 characters. */
-	sr_dbg("SCPI response for command %s received (length %d): '%.50s'",
-	       command, response->len, response->str);
-
-	g_string_free(response, FALSE);
-
-	return ret;
+	return sr_scpi_receive(scpi, scpi_response);
 }
 
 /**
  * Send a SCPI command, read the reply, parse it as a bool value and store the
  * result in scpi_response.
  *
- * @param serial Previously initialized serial port structure.
+ * @param scpi Previously initialised SCPI device structure.
  * @param command The SCPI command to send to the device (can be NULL).
  * @param scpi_response Pointer where to store the parsed result.
  *
  * @return SR_OK on success, SR_ERR on failure.
  */
-SR_PRIV int sr_scpi_get_bool(struct sr_serial_dev_inst *serial,
+SR_PRIV int sr_scpi_get_bool(struct sr_scpi_dev_inst *scpi,
 			     const char *command, gboolean *scpi_response)
 {
 	int ret;
@@ -188,7 +211,7 @@ SR_PRIV int sr_scpi_get_bool(struct sr_serial_dev_inst *serial,
 
 	response = NULL;
 
-	if (sr_scpi_get_string(serial, command, &response) != SR_OK)
+	if (sr_scpi_get_string(scpi, command, &response) != SR_OK)
 		if (!response)
 			return SR_ERR;
 
@@ -206,13 +229,13 @@ SR_PRIV int sr_scpi_get_bool(struct sr_serial_dev_inst *serial,
  * Send a SCPI command, read the reply, parse it as an integer and store the
  * result in scpi_response.
  *
- * @param serial Previously initialized serial port structure.
+ * @param scpi Previously initialised SCPI device structure.
  * @param command The SCPI command to send to the device (can be NULL).
  * @param scpi_response Pointer where to store the parsed result.
  *
  * @return SR_OK on success, SR_ERR on failure.
  */
-SR_PRIV int sr_scpi_get_int(struct sr_serial_dev_inst *serial,
+SR_PRIV int sr_scpi_get_int(struct sr_scpi_dev_inst *scpi,
 			    const char *command, int *scpi_response)
 {
 	int ret;
@@ -220,7 +243,7 @@ SR_PRIV int sr_scpi_get_int(struct sr_serial_dev_inst *serial,
 
 	response = NULL;
 
-	if (sr_scpi_get_string(serial, command, &response) != SR_OK)
+	if (sr_scpi_get_string(scpi, command, &response) != SR_OK)
 		if (!response)
 			return SR_ERR;
 
@@ -238,13 +261,13 @@ SR_PRIV int sr_scpi_get_int(struct sr_serial_dev_inst *serial,
  * Send a SCPI command, read the reply, parse it as a float and store the
  * result in scpi_response.
  *
- * @param serial Previously initialized serial port structure.
+ * @param scpi Previously initialised SCPI device structure.
  * @param command The SCPI command to send to the device (can be NULL).
  * @param scpi_response Pointer where to store the parsed result.
  *
  * @return SR_OK on success, SR_ERR on failure.
  */
-SR_PRIV int sr_scpi_get_float(struct sr_serial_dev_inst *serial,
+SR_PRIV int sr_scpi_get_float(struct sr_scpi_dev_inst *scpi,
 			      const char *command, float *scpi_response)
 {
 	int ret;
@@ -252,7 +275,7 @@ SR_PRIV int sr_scpi_get_float(struct sr_serial_dev_inst *serial,
 
 	response = NULL;
 
-	if (sr_scpi_get_string(serial, command, &response) != SR_OK)
+	if (sr_scpi_get_string(scpi, command, &response) != SR_OK)
 		if (!response)
 			return SR_ERR;
 
@@ -270,13 +293,13 @@ SR_PRIV int sr_scpi_get_float(struct sr_serial_dev_inst *serial,
  * Send a SCPI command, read the reply, parse it as a double and store the
  * result in scpi_response.
  *
- * @param serial Previously initialized serial port structure.
+ * @param scpi Previously initialised SCPI device structure.
  * @param command The SCPI command to send to the device (can be NULL).
  * @param scpi_response Pointer where to store the parsed result.
  *
  * @return SR_OK on success, SR_ERR on failure.
  */
-SR_PRIV int sr_scpi_get_double(struct sr_serial_dev_inst *serial,
+SR_PRIV int sr_scpi_get_double(struct sr_scpi_dev_inst *scpi,
 			       const char *command, double *scpi_response)
 {
 	int ret;
@@ -284,7 +307,7 @@ SR_PRIV int sr_scpi_get_double(struct sr_serial_dev_inst *serial,
 
 	response = NULL;
 
-	if (sr_scpi_get_string(serial, command, &response) != SR_OK)
+	if (sr_scpi_get_string(scpi, command, &response) != SR_OK)
 		if (!response)
 			return SR_ERR;
 
@@ -302,17 +325,17 @@ SR_PRIV int sr_scpi_get_double(struct sr_serial_dev_inst *serial,
  * Send a SCPI *OPC? command, read the reply and return the result of the
  * command.
  *
- * @param serial Previously initialized serial port structure.
+ * @param scpi Previously initialised SCPI device structure.
  *
  * @return SR_OK on success, SR_ERR on failure.
  */
-SR_PRIV int sr_scpi_get_opc(struct sr_serial_dev_inst *serial)
+SR_PRIV int sr_scpi_get_opc(struct sr_scpi_dev_inst *scpi)
 {
 	unsigned int i;
 	gboolean opc;
 
 	for (i = 0; i < SCPI_READ_RETRIES; ++i) {
-		sr_scpi_get_bool(serial, SCPI_CMD_OPC, &opc);
+		sr_scpi_get_bool(scpi, SCPI_CMD_OPC, &opc);
 		if (opc)
 			return SR_OK;
 		g_usleep(SCPI_READ_RETRY_TIMEOUT);
@@ -325,7 +348,7 @@ SR_PRIV int sr_scpi_get_opc(struct sr_serial_dev_inst *serial)
  * Send a SCPI command, read the reply, parse it as comma separated list of
  * floats and store the as an result in scpi_response.
  *
- * @param serial Previously initialized serial port structure.
+ * @param scpi Previously initialised SCPI device structure.
  * @param command The SCPI command to send to the device (can be NULL).
  * @param scpi_response Pointer where to store the parsed result.
  *
@@ -334,7 +357,7 @@ SR_PRIV int sr_scpi_get_opc(struct sr_serial_dev_inst *serial)
  *         the caller in the case of an SR_OK as well as in the case of
  *         parsing error.
  */
-SR_PRIV int sr_scpi_get_floatv(struct sr_serial_dev_inst *serial,
+SR_PRIV int sr_scpi_get_floatv(struct sr_scpi_dev_inst *scpi,
 			       const char *command, GArray **scpi_response)
 {
 	int ret;
@@ -347,7 +370,7 @@ SR_PRIV int sr_scpi_get_floatv(struct sr_serial_dev_inst *serial,
 	response = NULL;
 	tokens = NULL;
 
-	if (sr_scpi_get_string(serial, command, &response) != SR_OK)
+	if (sr_scpi_get_string(scpi, command, &response) != SR_OK)
 		if (!response)
 			return SR_ERR;
 
@@ -383,7 +406,7 @@ SR_PRIV int sr_scpi_get_floatv(struct sr_serial_dev_inst *serial,
  * Send a SCPI command, read the reply, parse it as comma separated list of
  * unsigned 8 bit integers and store the as an result in scpi_response.
  *
- * @param serial Previously initialized serial port structure.
+ * @param scpi Previously initialised SCPI device structure.
  * @param command The SCPI command to send to the device (can be NULL).
  * @param scpi_response Pointer where to store the parsed result.
  *
@@ -392,7 +415,7 @@ SR_PRIV int sr_scpi_get_floatv(struct sr_serial_dev_inst *serial,
  *         the caller in the case of an SR_OK as well as in the case of
  *         parsing error.
  */
-SR_PRIV int sr_scpi_get_uint8v(struct sr_serial_dev_inst *serial,
+SR_PRIV int sr_scpi_get_uint8v(struct sr_scpi_dev_inst *scpi,
 			       const char *command, GArray **scpi_response)
 {
 	int tmp, ret;
@@ -404,7 +427,7 @@ SR_PRIV int sr_scpi_get_uint8v(struct sr_serial_dev_inst *serial,
 	response = NULL;
 	tokens = NULL;
 
-	if (sr_scpi_get_string(serial, command, &response) != SR_OK)
+	if (sr_scpi_get_string(scpi, command, &response) != SR_OK)
 		if (!response)
 			return SR_ERR;
 
@@ -442,12 +465,12 @@ SR_PRIV int sr_scpi_get_uint8v(struct sr_serial_dev_inst *serial,
  *
  * The hw_info structure must be freed by the caller via sr_scpi_hw_info_free().
  *
- * @param serial Previously initialized serial port structure.
+ * @param scpi Previously initialised SCPI device structure.
  * @param scpi_response Pointer where to store the hw_info structure.
  *
  * @return SR_OK upon success, SR_ERR on failure.
  */
-SR_PRIV int sr_scpi_get_hw_id(struct sr_serial_dev_inst *serial,
+SR_PRIV int sr_scpi_get_hw_id(struct sr_scpi_dev_inst *scpi,
 			      struct sr_scpi_hw_info **scpi_response)
 {
 	int num_tokens;
@@ -458,7 +481,7 @@ SR_PRIV int sr_scpi_get_hw_id(struct sr_serial_dev_inst *serial,
 	response = NULL;
 	tokens = NULL;
 
-	if (sr_scpi_get_string(serial, SCPI_CMD_IDN, &response) != SR_OK)
+	if (sr_scpi_get_string(scpi, SCPI_CMD_IDN, &response) != SR_OK)
 		if (!response)
 			return SR_ERR;
 
