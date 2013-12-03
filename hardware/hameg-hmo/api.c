@@ -353,11 +353,11 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 			return SR_ERR_PROBE_GROUP;
 		} else if (pg_type == PG_ANALOG) {
 			for (i = 0; i < model->analog_channels; ++i) {
-				if (probe_group == &devc->analog_groups[i]) {
-					*data = g_variant_new_int32(model->num_ydivs);
-					ret = SR_OK;
-					break;
-				}
+				if (probe_group != &devc->analog_groups[i])
+					continue;
+				*data = g_variant_new_int32(model->num_ydivs);
+				ret = SR_OK;
+				break;
 			}
 
 		} else {
@@ -422,15 +422,15 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 	case SR_CONF_TRIGGER_SOURCE:
 		tmp = g_variant_get_string(data, NULL);
 		for (i = 0; (*model->trigger_sources)[i]; i++) {
-			if (!g_strcmp0(tmp, (*model->trigger_sources)[i])) {
-				state->trigger_source = i;
-				g_snprintf(command, sizeof(command),
-					   (*model->scpi_dialect)[SCPI_CMD_SET_TRIGGER_SOURCE],
-					   (*model->trigger_sources)[i]);
+			if (g_strcmp0(tmp, (*model->trigger_sources)[i]) != 0)
+				continue;
+			state->trigger_source = i;
+			g_snprintf(command, sizeof(command),
+				   (*model->scpi_dialect)[SCPI_CMD_SET_TRIGGER_SOURCE],
+				   (*model->trigger_sources)[i]);
 
-				ret = sr_scpi_send(sdi->conn, command);
-				break;
-			}
+			ret = sr_scpi_send(sdi->conn, command);
+			break;
 		}
 		break;
 	case SR_CONF_VDIV:
@@ -442,42 +442,42 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 		g_variant_get(data, "(tt)", &p, &q);
 
 		for (i = 0; i < model->num_vdivs; i++) {
-			if (p == (*model->vdivs)[i][0] &&
-			    q == (*model->vdivs)[i][1]) {
-				for (j = 1; j <= model->analog_channels; ++j) {
-					if (probe_group == &devc->analog_groups[j - 1]) {
-						state->analog_channels[j - 1].vdiv = (float) p / q;
-						g_snprintf(command, sizeof(command),
-							   (*model->scpi_dialect)[SCPI_CMD_SET_VERTICAL_DIV],
-							   j, state->analog_channels[j-1].vdiv);
+			if (p != (*model->vdivs)[i][0] ||
+			    q != (*model->vdivs)[i][1])
+				continue;
+			for (j = 1; j <= model->analog_channels; ++j) {
+				if (probe_group != &devc->analog_groups[j - 1])
+					continue;
+				state->analog_channels[j - 1].vdiv = (float) p / q;
+				g_snprintf(command, sizeof(command),
+					   (*model->scpi_dialect)[SCPI_CMD_SET_VERTICAL_DIV],
+					   j, state->analog_channels[j-1].vdiv);
 
-						if (sr_scpi_send(sdi->conn, command) != SR_OK ||
-						    sr_scpi_get_opc(sdi->conn) != SR_OK)
-							return SR_ERR;
+				if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+				    sr_scpi_get_opc(sdi->conn) != SR_OK)
+					return SR_ERR;
 
-						break;
-					}
-				}
-
-				ret = SR_OK;
 				break;
 			}
+
+			ret = SR_OK;
+			break;
 		}
 		break;
 	case SR_CONF_TIMEBASE:
 		g_variant_get(data, "(tt)", &p, &q);
 
 		for (i = 0; i < model->num_timebases; i++) {
-			if (p == (*model->timebases)[i][0] &&
-			    q == (*model->timebases)[i][1]) {
-				state->timebase = (float) p / q;
-				g_snprintf(command, sizeof(command),
-					   (*model->scpi_dialect)[SCPI_CMD_SET_TIMEBASE],
-					   state->timebase);
+			if (p != (*model->timebases)[i][0] ||
+			    q != (*model->timebases)[i][1])
+				continue;
+			state->timebase = (float) p / q;
+			g_snprintf(command, sizeof(command),
+				   (*model->scpi_dialect)[SCPI_CMD_SET_TIMEBASE],
+				   state->timebase);
 
-				ret = sr_scpi_send(sdi->conn, command);
-				break;
-			}
+			ret = sr_scpi_send(sdi->conn, command);
+			break;
 		}
 		break;
 	case SR_CONF_HORIZ_TRIGGERPOS:
@@ -516,25 +516,25 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 		tmp = g_variant_get_string(data, NULL);
 
 		for (i = 0; (*model->coupling_options)[i]; i++) {
-			if (!strcmp(tmp, (*model->coupling_options)[i])) {
-				for (j = 1; j <= model->analog_channels; ++j) {
-					if (probe_group == &devc->analog_groups[j - 1]) {
-						state->analog_channels[j-1].coupling = i;
+			if (strcmp(tmp, (*model->coupling_options)[i]) != 0)
+				continue;
+			for (j = 1; j <= model->analog_channels; ++j) {
+				if (probe_group != &devc->analog_groups[j - 1])
+					continue;
+				state->analog_channels[j-1].coupling = i;
 
-						g_snprintf(command, sizeof(command),
-							   (*model->scpi_dialect)[SCPI_CMD_SET_COUPLING],
-							   j, tmp);
+				g_snprintf(command, sizeof(command),
+					   (*model->scpi_dialect)[SCPI_CMD_SET_COUPLING],
+					   j, tmp);
 
-						if (sr_scpi_send(sdi->conn, command) != SR_OK ||
-						    sr_scpi_get_opc(sdi->conn) != SR_OK)
-							return SR_ERR;
-						break;
-					}
-				}
-
-				ret = SR_OK;
+				if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+				    sr_scpi_get_opc(sdi->conn) != SR_OK)
+					return SR_ERR;
 				break;
 			}
+
+			ret = SR_OK;
+			break;
 		}
 		break;
 	default:
@@ -692,15 +692,15 @@ static int hmo_setup_probes(const struct sr_dev_inst *sdi)
 		probe = l->data;
 		switch (probe->type) {
 		case SR_PROBE_ANALOG:
-			if (probe->enabled != state->analog_channels[probe->index].state) {
-				g_snprintf(command, sizeof(command),
-					   (*model->scpi_dialect)[SCPI_CMD_SET_ANALOG_CHAN_STATE],
-					   probe->index + 1, probe->enabled);
+			if (probe->enabled == state->analog_channels[probe->index].state)
+				break;
+			g_snprintf(command, sizeof(command),
+				   (*model->scpi_dialect)[SCPI_CMD_SET_ANALOG_CHAN_STATE],
+				   probe->index + 1, probe->enabled);
 
-				if (sr_scpi_send(serial, command) != SR_OK)
-					return SR_ERR;
-				state->analog_channels[probe->index].state = probe->enabled;
-			}
+			if (sr_scpi_send(serial, command) != SR_OK)
+				return SR_ERR;
+			state->analog_channels[probe->index].state = probe->enabled;
 			break;
 		case SR_PROBE_LOGIC:
 			/*
@@ -710,16 +710,16 @@ static int hmo_setup_probes(const struct sr_dev_inst *sdi)
 			if (probe->enabled)
 				pod_enabled[probe->index < 8 ? 0 : 1] = TRUE;
 
-			if (probe->enabled != state->digital_channels[probe->index]) {
-				g_snprintf(command, sizeof(command),
-					   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_CHAN_STATE],
-					   probe->index, probe->enabled);
+			if (probe->enabled == state->digital_channels[probe->index])
+				break;
+			g_snprintf(command, sizeof(command),
+				   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_CHAN_STATE],
+				   probe->index, probe->enabled);
 
-				if (sr_scpi_send(serial, command) != SR_OK)
-					return SR_ERR;
+			if (sr_scpi_send(serial, command) != SR_OK)
+				return SR_ERR;
 
-				state->digital_channels[probe->index] = probe->enabled;
-			}
+			state->digital_channels[probe->index] = probe->enabled;
 			break;
 		default:
 			return SR_ERR;
@@ -727,16 +727,14 @@ static int hmo_setup_probes(const struct sr_dev_inst *sdi)
 	}
 
 	for (i = 1; i <= model->digital_pods; ++i) {
-		if (state->digital_pods[i - 1] != pod_enabled[i - 1]) {
-			g_snprintf(command, sizeof(command),
-				   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_POD_STATE],
-				   i, pod_enabled[i - 1]);
-
-			if (sr_scpi_send(serial, command) != SR_OK)
-				return SR_ERR;
-
-			state->digital_pods[i - 1] = pod_enabled[i - 1];
-		}
+		if (state->digital_pods[i - 1] == pod_enabled[i - 1])
+			continue;
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_POD_STATE],
+			   i, pod_enabled[i - 1]);
+		if (sr_scpi_send(serial, command) != SR_OK)
+			return SR_ERR;
+		state->digital_pods[i - 1] = pod_enabled[i - 1];
 	}
 
 	g_free(pod_enabled);
@@ -761,14 +759,14 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 
 	for (l = sdi->probes; l; l = l->next) {
 		probe = l->data;
-		if (probe->enabled) {
-			/* Only add a single digital probe. */
-			if (probe->type != SR_PROBE_LOGIC || !digital_added) {
-				devc->enabled_probes = g_slist_append(
-						devc->enabled_probes, probe);
-				if (probe->type == SR_PROBE_LOGIC)
-					digital_added = TRUE;
-			}
+		if (!probe->enabled)
+			continue;
+		/* Only add a single digital probe. */
+		if (probe->type != SR_PROBE_LOGIC || !digital_added) {
+			devc->enabled_probes = g_slist_append(
+					devc->enabled_probes, probe);
+			if (probe->type == SR_PROBE_LOGIC)
+				digital_added = TRUE;
 		}
 	}
 
