@@ -98,7 +98,11 @@ SR_PRIV void set_triggerbar(struct dev_context *devc)
 	trigger_depth = get_memory_size(devc->memory_size) / 4;
 	if (devc->limit_samples < trigger_depth)
 		trigger_depth = devc->limit_samples;
-	triggerbar = trigger_depth * devc->capture_ratio / 100;
+
+	if (devc->trigger)
+		triggerbar = trigger_depth * devc->capture_ratio / 100;
+	else
+		triggerbar = 0;
 
 	ramsize_trigger = trigger_depth - triggerbar;
 	/* Matches USB packet captures from official app/driver */
