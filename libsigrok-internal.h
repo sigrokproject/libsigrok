@@ -249,8 +249,6 @@ SR_PRIV int sr_usb_open(libusb_context *usb_ctx, struct sr_usb_dev_inst *usb);
 
 /*--- hardware/common/scpi.c ------------------------------------------------*/
 
-#ifdef HAVE_LIBSERIALPORT
-
 #define SCPI_CMD_IDN "*IDN?"
 #define SCPI_CMD_OPC "*OPC?"
 
@@ -329,12 +327,12 @@ SR_PRIV int sr_scpi_get_hw_id(struct sr_scpi_dev_inst *scpi,
 			struct sr_scpi_hw_info **scpi_response);
 SR_PRIV void sr_scpi_hw_info_free(struct sr_scpi_hw_info *hw_info);
 
-#endif
-
 /*--- hardware/common/scpi_serial.c -----------------------------------------*/
 
+#ifdef HAVE_LIBSERIALPORT
 SR_PRIV struct sr_scpi_dev_inst *scpi_serial_dev_inst_new(const char *port,
 		        const char *serialcomm);
+#endif
 
 /*--- hardware/common/scpi_usbtmc.c -----------------------------------------*/
 
