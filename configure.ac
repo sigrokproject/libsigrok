@@ -149,11 +149,6 @@ AC_ARG_ENABLE(hameg-hmo, AC_HELP_STRING([--enable-hameg-hmo],
 	[HW_HAMEG_HMO="$enableval"],
 	[HW_HAMEG_HMO=$HW_ENABLED_DEFAULT])
 
-AM_CONDITIONAL(HW_HAMEG_HMO, test x$HW_HAMEG_HMO = xyes)
-if test "x$HW_HAMEG_HMO" = "xyes"; then
-	AC_DEFINE(HAVE_HW_HAMEG_HMO, 1, [Hameg HMO support])
-fi
-
 AC_ARG_ENABLE(hantek-dso, AC_HELP_STRING([--enable-hantek-dso],
 	[enable Hantek DSO support [default=yes]]),
 	[HW_HANTEK_DSO="$enableval"],
@@ -426,6 +421,11 @@ fi
 AM_CONDITIONAL(HW_HANTEK_DSO, test x$HW_HANTEK_DSO = xyes)
 if test "x$HW_HANTEK_DSO" = "xyes"; then
 	AC_DEFINE(HAVE_HW_HANTEK_DSO, 1, [Hantek DSO support])
+fi
+
+AM_CONDITIONAL(HW_HAMEG_HMO, test x$HW_HAMEG_HMO = xyes)
+if test "x$HW_HAMEG_HMO" = "xyes"; then
+	AC_DEFINE(HAVE_HW_HAMEG_HMO, 1, [Hameg HMO support])
 fi
 
 AM_CONDITIONAL(HW_IKALOGIC_SCANALOGIC2, test x$HW_IKALOGIC_SCANALOGIC2 = xyes)
