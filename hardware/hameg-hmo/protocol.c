@@ -261,7 +261,7 @@ static int check_manufacturer(const char *manufacturer)
 	unsigned int i;
 
 	for (i = 0; i < ARRAY_SIZE(manufacturers); ++i)
-		if (strcmp(manufacturer, manufacturers[i]) == 0)
+		if (!strcmp(manufacturer, manufacturers[i]))
 			return SR_OK;
 
 	return SR_ERR;
@@ -273,7 +273,7 @@ static void scope_state_dump(struct scope_config *config,
 	unsigned int i;
 
 	for (i = 0; i < config->analog_channels; ++i) {
-		sr_info("State of analog channel %d -> %s : %s %.3eV %.3e offset", i+1,
+		sr_info("State of analog channel %d -> %s : %s %.3eV %.3e offset", i + 1,
 			state->analog_channels[i].state ? "On" : "Off",
 			(*config->coupling_options)[state->analog_channels[i].coupling],
 			state->analog_channels[i].vdiv, state->analog_channels[i].vertical_offset);
@@ -297,15 +297,13 @@ static void scope_state_dump(struct scope_config *config,
 }
 
 static int scope_state_get_array_option(struct sr_serial_dev_inst *serial,
-					const char *command, const char *(*array)[],
-					int *result)
+		const char *command, const char *(*array)[], int *result)
 {
 	char *tmp;
 	unsigned int i;
 
 	if (sr_scpi_get_string(serial, command, &tmp) != SR_OK) {
-		if (tmp)
-			g_free(tmp);
+		g_free(tmp);
 		return SR_ERR;
 	}
 
@@ -416,21 +414,25 @@ SR_PRIV int scope_state_get(struct sr_dev_inst *sdi)
 	if (digital_channel_state_get(sdi->conn, config, state) != SR_OK)
 		return SR_ERR;
 
-	/* TODO check if value is sensible */
-	if (sr_scpi_get_float(sdi->conn, (*config->scpi_dialect)[SCPI_CMD_GET_TIMEBASE],
-			      &state->timebase) != SR_OK)
+	/* TODO: Check if value is sensible. */
+	if (sr_scpi_get_float(sdi->conn,
+			(*config->scpi_dialect)[SCPI_CMD_GET_TIMEBASE],
+			&state->timebase) != SR_OK)
 		return SR_ERR;
 
-	if (sr_scpi_get_float(sdi->conn, (*config->scpi_dialect)[SCPI_CMD_GET_HORIZ_TRIGGERPOS],
-			      &state->horiz_triggerpos) != SR_OK)
+	if (sr_scpi_get_float(sdi->conn,
+			(*config->scpi_dialect)[SCPI_CMD_GET_HORIZ_TRIGGERPOS],
+			&state->horiz_triggerpos) != SR_OK)
 		return SR_ERR;
 
-	if (scope_state_get_array_option(sdi->conn, (*config->scpi_dialect)[SCPI_CMD_GET_TRIGGER_SOURCE],
-				 config->trigger_sources, &state->trigger_source) != SR_OK)
+	if (scope_state_get_array_option(sdi->conn,
+			(*config->scpi_dialect)[SCPI_CMD_GET_TRIGGER_SOURCE],
+			config->trigger_sources, &state->trigger_source) != SR_OK)
 		return SR_ERR;
 
-	if (scope_state_get_array_option(sdi->conn, (*config->scpi_dialect)[SCPI_CMD_GET_TRIGGER_SLOPE],
-				 config->trigger_slopes, &state->trigger_slope) != SR_OK)
+	if (scope_state_get_array_option(sdi->conn,
+		(*config->scpi_dialect)[SCPI_CMD_GET_TRIGGER_SLOPE],
+		config->trigger_slopes, &state->trigger_slope) != SR_OK)
 		return SR_ERR;
 
 	scope_state_dump(config, state);
@@ -446,15 +448,15 @@ SR_PRIV struct scope_state *scope_state_new(struct scope_config *config)
 		return NULL;
 
 	if (!(state->analog_channels = g_try_malloc0_n(config->analog_channels,
-							    sizeof(struct analog_channel_state))))
+				    sizeof(struct analog_channel_state))))
 	    goto fail;
 
-	if (!(state->digital_channels = g_try_malloc0_n(config->digital_channels,
-							     sizeof(gboolean))))
+	if (!(state->digital_channels = g_try_malloc0_n(
+			config->digital_channels, sizeof(gboolean))))
 	    goto fail;
 
 	if (!(state->digital_pods = g_try_malloc0_n(config->digital_pods,
-							     sizeof(gboolean))))
+						     sizeof(gboolean))))
 	    goto fail;
 
 	return state;
@@ -483,16 +485,14 @@ SR_PRIV int hmo_init_device(struct sr_dev_inst *sdi)
 {
 	char tmp[25];
 	int model_index;
-	unsigned int i;
-	unsigned int j;
-
+	unsigned int i, j;
 	struct sr_probe *probe;
 	struct dev_context *devc;
 
 	devc = sdi->priv;
 	model_index = -1;
 
-	/* Find the exact model */
+	/* Find the exact model. */
 	for (i = 0; i < ARRAY_SIZE(scope_models); i++) {
 		for (j = 0; scope_models[i].name[j]; j++) {
 			if (!strcmp(sdi->model, scope_models[i].name[j])) {
@@ -505,7 +505,7 @@ SR_PRIV int hmo_init_device(struct sr_dev_inst *sdi)
 	}
 
 	if (model_index == -1) {
-		sr_dbg("Unsupported HMO device");
+		sr_dbg("Unsupported HMO device.");
 		return SR_ERR_NA;
 	}
 
@@ -517,37 +517,38 @@ SR_PRIV int hmo_init_device(struct sr_dev_inst *sdi)
 						   scope_models[model_index].digital_pods)))
 			return SR_ERR_MALLOC;
 
-	/* Add analog channels */
+	/* Add analog channels. */
 	for (i = 0; i < scope_models[model_index].analog_channels; i++) {
 		if (!(probe = sr_probe_new(i, SR_PROBE_ANALOG, TRUE,
-					   (*scope_models[model_index].analog_names)[i])))
+			   (*scope_models[model_index].analog_names)[i])))
 			return SR_ERR_MALLOC;
 		sdi->probes = g_slist_append(sdi->probes, probe);
 
-		devc->analog_groups[i].name = (char *) (*scope_models[model_index].analog_names)[i];
+		devc->analog_groups[i].name =
+			(char *)(*scope_models[model_index].analog_names)[i];
 		devc->analog_groups[i].probes = g_slist_append(NULL, probe);
 
 		sdi->probe_groups = g_slist_append(sdi->probe_groups,
 						   &devc->analog_groups[i]);
 	}
 
-	/* Add digital probe groups */
+	/* Add digital probe groups. */
 	for (i = 0; i < scope_models[model_index].digital_pods; ++i) {
 		g_snprintf(tmp, 25, "POD%d", i);
 		devc->digital_groups[i].name = g_strdup(tmp);
 		sdi->probe_groups = g_slist_append(sdi->probe_groups,
-						   &devc->digital_groups[i < 8 ? 0 : 1]);
+				   &devc->digital_groups[i < 8 ? 0 : 1]);
 	}
 
-	/* Add digital channels */
+	/* Add digital channels. */
 	for (i = 0; i < scope_models[model_index].digital_channels; i++) {
 		if (!(probe = sr_probe_new(i, SR_PROBE_LOGIC, TRUE,
-					   (*scope_models[model_index].digital_names)[i])))
+			   (*scope_models[model_index].digital_names)[i])))
 			return SR_ERR_MALLOC;
 		sdi->probes = g_slist_append(sdi->probes, probe);
 
-		devc->digital_groups[i < 8 ? 0 : 1].probes = g_slist_append(devc->digital_groups[i < 8 ? 0 : 1].probes,
-									    probe);
+		devc->digital_groups[i < 8 ? 0 : 1].probes = g_slist_append(
+			devc->digital_groups[i < 8 ? 0 : 1].probes, probe);
 	}
 
 	devc->model_config = &scope_models[model_index];
@@ -580,7 +581,7 @@ SR_PRIV struct sr_dev_inst *hameg_probe_serial_device(const char *serial_device,
 		goto fail;
 
 	if (sr_scpi_get_hw_id(serial, &hw_info) != SR_OK) {
-		sr_info("Couldn't get IDN response");
+		sr_info("Couldn't get IDN response.");
 		goto fail;
 	}
 
@@ -627,6 +628,9 @@ SR_PRIV int hameg_hmo_receive_data(int fd, int revents, void *cb_data)
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
+	GArray *data;
+	struct sr_datafeed_analog analog;
+	struct sr_datafeed_logic logic;
 
 	(void)fd;
 
@@ -641,10 +645,6 @@ SR_PRIV int hameg_hmo_receive_data(int fd, int revents, void *cb_data)
 
 		switch (probe->type) {
 		case SR_PROBE_ANALOG:
-		{
-			GArray *data;
-			struct sr_datafeed_analog analog;
-
 			if (sr_scpi_get_floatv(sdi->conn, NULL, &data) != SR_OK) {
 				if (data)
 					g_array_free(data, TRUE);
@@ -666,14 +666,8 @@ SR_PRIV int hameg_hmo_receive_data(int fd, int revents, void *cb_data)
 			sr_session_send(cb_data, &packet);
 			g_slist_free(analog.probes);
 			g_array_free(data, TRUE);
-		}
-		break;
-
+			break;
 		case SR_PROBE_LOGIC:
-		{
-			GArray *data;
-			struct sr_datafeed_logic logic;
-
 			if (sr_scpi_get_uint8v(sdi->conn, NULL, &data) != SR_OK) {
 				if (data)
 					g_free(data);
@@ -690,11 +684,9 @@ SR_PRIV int hameg_hmo_receive_data(int fd, int revents, void *cb_data)
 			packet.payload = &logic;
 			sr_session_send(cb_data, &packet);
 			g_array_free(data, TRUE);
-		}
-		break;
-
+			break;
 		default:
-			sr_err("Invalid probe type");
+			sr_err("Invalid probe type.");
 			break;
 		}
 
