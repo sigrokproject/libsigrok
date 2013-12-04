@@ -105,9 +105,12 @@ SR_PRIV int scpi_tcp_send(void *priv, const char *command)
 {
 	struct scpi_tcp *tcp = priv;
 	int len, out;
+	char *terminated_command;
 
-	len = strlen(command);
-	out = send(tcp->socket, command, len, 0);
+	terminated_command = g_strdup_printf("%s\r\n", command);
+	len = strlen(terminated_command);
+	out = send(tcp->socket, terminated_command, len, 0);
+	g_free(terminated_command);
 
 	if (out < 0) {
 		sr_err("Send error: %s", strerror(errno));
@@ -141,7 +144,7 @@ SR_PRIV int scpi_tcp_receive(void *priv, char **scpi_response)
 		return SR_ERR;
 	}
 
-	response = g_string_append_len(response, buf, len);
+	response = g_string_append_len(response, buf + 4, len - 4);
 
 	*scpi_response = response->str;
 
