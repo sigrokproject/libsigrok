@@ -37,6 +37,7 @@
 
 #define DS1000_ANALOG_LIVE_WAVEFORM_SIZE 600
 #define DS2000_ANALOG_LIVE_WAVEFORM_SIZE 1400
+#define VS5000_ANALOG_LIVE_WAVEFORM_SIZE 2048
 /* Needs to be made configurable later */
 #define DS2000_ANALOG_MEM_WAVEFORM_SIZE_1C 14000
 #define DS2000_ANALOG_MEM_WAVEFORM_SIZE_2C 7000
@@ -50,10 +51,11 @@ enum rigol_ds_series {
 	RIGOL_DS2000,
 	RIGOL_DS4000,
 	RIGOL_DS6000,
+	RIGOL_VS5000,
 };
 
 enum rigol_protocol_flavor {
-	/* Used by DS1000 series */
+	/* Used by DS1000 and VS5000 series */
 	PROTOCOL_LEGACY,
 	/* Used by DS2000, DS4000, DS6000, ... series */
 	PROTOCOL_IEEE488_2,

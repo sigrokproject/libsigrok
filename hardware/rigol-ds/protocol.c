@@ -469,7 +469,10 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 					len < ACQ_BUFFER_SIZE ? len : ACQ_BUFFER_SIZE);
 		} else {
 			waveform_size = probe->type == SR_PROBE_ANALOG ?
-					DS1000_ANALOG_LIVE_WAVEFORM_SIZE : DIGITAL_WAVEFORM_SIZE;
+					(devc->model->series == RIGOL_VS5000 ?
+						VS5000_ANALOG_LIVE_WAVEFORM_SIZE :
+						DS1000_ANALOG_LIVE_WAVEFORM_SIZE) :
+					DIGITAL_WAVEFORM_SIZE;
 			len = sr_scpi_read(scpi, (char *)devc->buffer,
 					waveform_size - devc->num_frame_bytes);
 		}
