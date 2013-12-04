@@ -138,6 +138,20 @@ SR_PRIV int scpi_serial_receive(void *priv, char **scpi_response)
 	return ret;
 }
 
+/* Some stubs to keep the compiler from whining. */
+static int scpi_serial_read(void *priv, char *buf, int maxlen)
+{
+	return serial_read(priv, buf, maxlen);
+}
+static int scpi_serial_close(void *priv)
+{
+	return serial_close(priv);
+}
+static void scpi_serial_free(void *priv)
+{
+	return sr_serial_dev_inst_free(priv);
+}
+
 SR_PRIV struct sr_scpi_dev_inst *scpi_serial_dev_inst_new(const char *port,
 		const char *serialcomm)
 {
@@ -157,9 +171,9 @@ SR_PRIV struct sr_scpi_dev_inst *scpi_serial_dev_inst_new(const char *port,
 	scpi->source_remove = scpi_serial_source_remove;
 	scpi->send = scpi_serial_send;
 	scpi->receive = scpi_serial_receive;
-	scpi->read = serial_read;
-	scpi->close = serial_close;
-	scpi->free = sr_serial_dev_inst_free;
+	scpi->read = scpi_serial_read;
+	scpi->close = scpi_serial_close;
+	scpi->free = scpi_serial_free;
 	scpi->priv = serial;
 
 	return scpi;
