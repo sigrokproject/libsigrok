@@ -242,16 +242,16 @@ static int probe_port(const char *resource, const char *serialcomm, GSList **dev
 	*devices = NULL;
 
 	if (strncmp(resource, usbtmc_prefix, strlen(usbtmc_prefix)) == 0) {
-		sr_dbg("Opening USBTMC device %s", resource);
+		sr_dbg("Opening USBTMC device %s.", resource);
 		if (!(scpi = scpi_usbtmc_dev_inst_new(resource)))
 			return SR_ERR_MALLOC;
 	} else if (strncmp(resource, tcp_prefix, strlen(tcp_prefix)) == 0) {
-		sr_dbg("Opening TCP connection %s", resource);
+		sr_dbg("Opening TCP connection %s.", resource);
 		tokens = g_strsplit(resource + strlen(tcp_prefix), "/", 0);
 		address = tokens[0];
 		port = tokens[1];
 		if (!address || !port || tokens[2]) {
-			sr_dbg("Invalid parameters");
+			sr_err("Invalid parameters.");
 			g_strfreev(tokens);
 			return SR_ERR_ARG;
 		}
@@ -260,7 +260,7 @@ static int probe_port(const char *resource, const char *serialcomm, GSList **dev
 		if (!scpi)
 			return SR_ERR_MALLOC;
 	} else {
-		sr_dbg("Opening serial device %s", resource);
+		sr_dbg("Opening serial device %s.", resource);
 		if (!(scpi = scpi_serial_dev_inst_new(resource, serialcomm)))
 			return SR_ERR_MALLOC;
 	}
