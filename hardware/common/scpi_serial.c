@@ -39,7 +39,13 @@ SR_PRIV int scpi_serial_open(void *priv)
 {
 	struct sr_serial_dev_inst *serial = priv;
 
-	return serial_open(serial, SERIAL_RDWR | SERIAL_NONBLOCK);
+	if (serial_open(serial, SERIAL_RDWR | SERIAL_NONBLOCK) != SR_OK)
+		return SR_ERR;
+
+	if (serial_flush(serial) != SR_OK)
+		return SR_ERR;
+
+	return SR_OK;
 }
 
 SR_PRIV int scpi_serial_source_add(void *priv, int events, int timeout,
