@@ -22,7 +22,6 @@
 
 #include <glib.h>
 #include <string.h>
-#include <stdarg.h>
 
 /* Message logging helpers with subsystem-specific prefix string. */
 #define LOG_PREFIX "scpi: "
@@ -127,22 +126,40 @@ SR_PRIV int sr_scpi_source_remove(struct sr_scpi_dev_inst *scpi)
 SR_PRIV int sr_scpi_send(struct sr_scpi_dev_inst *scpi,
 			 const char *format, ...)
 {
-	va_list args1, args2;
+	va_list args;
+	int ret;
+
+	va_start(args, format);
+	ret = sr_scpi_send_variadic(scpi, format, args);
+	va_end(args);
+
+	return ret;
+}
+
+/**
+ * Send a SCPI command with a variadic argument list.
+ *
+ * @param scpi Previously initialized SCPI device structure.
+ * @param format Format string.
+ * @param args Argument list.
+ *
+ * @return SR_OK on success, SR_ERR on failure.
+ */
+SR_PRIV int sr_scpi_send_variadic(struct sr_scpi_dev_inst *scpi,
+			 const char *format, va_list args)
+{
+	va_list args_copy;
 	char *buf;
 	int len, ret;
 
-	/* Copy arguments since we need to make two variadic calls. */
-	va_start(args1, format);
-	va_copy(args2, args1);
-
 	/* Get length of buffer required. */
-	len = vsnprintf(NULL, 0, format, args1);
-	va_end(args1);
+	va_copy(args_copy, args);
+	len = vsnprintf(NULL, 0, format, args_copy);
+	va_end(args_copy);
 
 	/* Allocate buffer and write out command. */
 	buf = g_malloc(len + 1);
-	vsprintf(buf, format, args2);
-	va_end(args2);
+	vsprintf(buf, format, args);
 
 	/* Send command. */
 	ret = scpi->send(scpi->priv, buf);

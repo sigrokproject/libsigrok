@@ -302,6 +302,8 @@ SR_PRIV int sr_scpi_source_add(struct sr_scpi_dev_inst *scpi, int events,
 SR_PRIV int sr_scpi_source_remove(struct sr_scpi_dev_inst *scpi);
 SR_PRIV int sr_scpi_send(struct sr_scpi_dev_inst *scpi,
 		const char *format, ...);
+SR_PRIV int sr_scpi_send_variadic(struct sr_scpi_dev_inst *scpi,
+		const char *format, va_list args);
 SR_PRIV int sr_scpi_receive(struct sr_scpi_dev_inst *scpi,
 			char **scpi_response);
 SR_PRIV int sr_scpi_read(struct sr_scpi_dev_inst *scpi, char *buf, int maxlen);
