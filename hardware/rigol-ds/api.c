@@ -215,11 +215,13 @@ static int init(struct sr_context *sr_ctx)
 	return std_init(sr_ctx, di, LOG_PREFIX);
 }
 
-static int probe_port(const char *port, const char *serialcomm, GSList **devices)
+static int probe_port(const char *resource, const char *serialcomm, GSList **devices)
 {
 	struct dev_context *devc;
 	struct sr_dev_inst *sdi;
 	const char *usbtmc_prefix = "/dev/usbtmc";
+	const char *tcp_prefix = "tcp/";
+	gchar **tokens, *address, *port;
 	struct sr_scpi_dev_inst *scpi;
 	struct sr_scpi_hw_info *hw_info;
 	struct sr_probe *probe;
@@ -229,12 +231,27 @@ static int probe_port(const char *port, const char *serialcomm, GSList **devices
 
 	*devices = NULL;
 
-
-	if (strncmp(port, usbtmc_prefix, strlen(usbtmc_prefix)) == 0) {
-		if (!(scpi = scpi_usbtmc_dev_inst_new(port)))
+	if (strncmp(resource, usbtmc_prefix, strlen(usbtmc_prefix)) == 0) {
+		sr_dbg("Opening USBTMC device %s", resource);
+		if (!(scpi = scpi_usbtmc_dev_inst_new(resource)))
+			return SR_ERR_MALLOC;
+	} else if (strncmp(resource, tcp_prefix, strlen(tcp_prefix)) == 0) {
+		sr_dbg("Opening TCP connection %s", resource);
+		tokens = g_strsplit(resource + strlen(tcp_prefix), "/", 0);
+		address = tokens[0];
+		port = tokens[1];
+		if (!address || !port || tokens[2]) {
+			sr_dbg("Invalid parameters");
+			g_strfreev(tokens);
+			return SR_ERR_ARG;
+		}
+		scpi = scpi_tcp_dev_inst_new(address, port);
+		g_strfreev(tokens);
+		if (!scpi)
 			return SR_ERR_MALLOC;
 	} else {
-		if (!(scpi = scpi_serial_dev_inst_new(port, serialcomm)))
+		sr_dbg("Opening serial device %s", resource);
+		if (!(scpi = scpi_serial_dev_inst_new(resource, serialcomm)))
 			return SR_ERR_MALLOC;
 	}
 
