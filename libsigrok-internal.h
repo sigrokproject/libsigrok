@@ -301,7 +301,7 @@ SR_PRIV int sr_scpi_source_add(struct sr_scpi_dev_inst *scpi, int events,
 		int timeout, sr_receive_data_callback_t cb, void *cb_data);
 SR_PRIV int sr_scpi_source_remove(struct sr_scpi_dev_inst *scpi);
 SR_PRIV int sr_scpi_send(struct sr_scpi_dev_inst *scpi,
-			const char *command);
+		const char *format, ...);
 SR_PRIV int sr_scpi_receive(struct sr_scpi_dev_inst *scpi,
 			char **scpi_response);
 SR_PRIV int sr_scpi_read(struct sr_scpi_dev_inst *scpi, char *buf, int maxlen);

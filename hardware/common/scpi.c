@@ -22,6 +22,7 @@
 
 #include <glib.h>
 #include <string.h>
+#include <stdarg.h>
 
 /* Message logging helpers with subsystem-specific prefix string. */
 #define LOG_PREFIX "scpi: "
@@ -119,14 +120,37 @@ SR_PRIV int sr_scpi_source_remove(struct sr_scpi_dev_inst *scpi)
  * Send a SCPI command.
  *
  * @param scpi Previously initialized SCPI device structure.
- * @param command The SCPI command to send to the device.
+ * @param format Format string, to be followed by any necessary arguments.
  *
  * @return SR_OK on success, SR_ERR on failure.
  */
 SR_PRIV int sr_scpi_send(struct sr_scpi_dev_inst *scpi,
-			 const char *command)
+			 const char *format, ...)
 {
-	return scpi->send(scpi->priv, command);
+	va_list args1, args2;
+	char *buf;
+	int len, ret;
+
+	/* Copy arguments since we need to make two variadic calls. */
+	va_start(args1, format);
+	va_copy(args2, args1);
+
+	/* Get length of buffer required. */
+	len = vsnprintf(NULL, 0, format, args1);
+	va_end(args1);
+
+	/* Allocate buffer and write out command. */
+	buf = g_malloc(len + 1);
+	vsprintf(buf, format, args2);
+	va_end(args2);
+
+	/* Send command. */
+	ret = scpi->send(scpi->priv, buf);
+
+	/* Free command buffer. */
+	g_free(buf);
+
+	return ret;
 }
 
 /**
