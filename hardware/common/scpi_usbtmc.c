@@ -111,7 +111,7 @@ SR_PRIV int scpi_usbtmc_receive(void *priv, char **scpi_response)
 	return SR_OK;
 }
 
-SR_PRIV int scpi_usbtmc_read(void *priv, unsigned char *buf, int maxlen)
+SR_PRIV int scpi_usbtmc_read(void *priv, char *buf, int maxlen)
 {
 	struct sr_usbtmc_dev_inst *usbtmc = priv;
 	int len;
@@ -136,6 +136,11 @@ SR_PRIV int scpi_usbtmc_close(void *priv)
 	return SR_OK;
 }
 
+static void scpi_usbtmc_free(void *priv)
+{
+	return sr_usbtmc_dev_inst_free(priv);
+}
+
 SR_PRIV struct sr_scpi_dev_inst *scpi_usbtmc_dev_inst_new(const char *device)
 {
 	struct sr_scpi_dev_inst *scpi;
@@ -156,7 +161,7 @@ SR_PRIV struct sr_scpi_dev_inst *scpi_usbtmc_dev_inst_new(const char *device)
 	scpi->receive = scpi_usbtmc_receive;
 	scpi->read = scpi_usbtmc_read;
 	scpi->close = scpi_usbtmc_close;
-	scpi->free = sr_usbtmc_dev_inst_free;
+	scpi->free = scpi_usbtmc_free;
 	scpi->priv = usbtmc;
 
 	return scpi;
