@@ -517,19 +517,15 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 						rigol_ds_set_wait_event(devc, WAIT_BLOCK);
 				} else
 					sr_dbg("%d of %d block bytes read", devc->num_block_read, devc->num_block_bytes);
-
-				devc->num_frame_bytes += len;
-
-				if (devc->num_frame_bytes < devc->analog_frame_size)
-					/* Don't have the whole frame yet. */
-					return TRUE;
-
-				sr_dbg("Frame completed, %d samples", devc->num_frame_bytes);
-			} else {
-				if (len != DS1000_ANALOG_LIVE_WAVEFORM_SIZE)
-					/* Don't have the whole frame yet. */
-					return TRUE;
 			}
+
+			devc->num_frame_bytes += len;
+
+			if (devc->num_frame_bytes < devc->analog_frame_size)
+				/* Don't have the whole frame yet. */
+				return TRUE;
+
+			sr_dbg("Frame completed, %d samples", devc->num_frame_bytes);
 		} else {
 			logic.length = len - 10;
 			logic.unitsize = 2;
