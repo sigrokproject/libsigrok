@@ -30,6 +30,7 @@
 
 static const int32_t hwopts[] = {
 	SR_CONF_CONN,
+	SR_CONF_SERIALCOMM
 };
 
 static const int32_t hwcaps[] = {
@@ -214,10 +215,11 @@ static int init(struct sr_context *sr_ctx)
 	return std_init(sr_ctx, di, LOG_PREFIX);
 }
 
-static int probe_port(const char *port, GSList **devices)
+static int probe_port(const char *port, const char *serialcomm, GSList **devices)
 {
 	struct dev_context *devc;
 	struct sr_dev_inst *sdi;
+	const char *usbtmc_prefix = "/dev/usbtmc";
 	struct sr_scpi_dev_inst *scpi;
 	struct sr_scpi_hw_info *hw_info;
 	struct sr_probe *probe;
@@ -226,8 +228,15 @@ static int probe_port(const char *port, GSList **devices)
 	gchar *channel_name;
 
 	*devices = NULL;
-	if (!(scpi = scpi_usbtmc_dev_inst_new(port)))
-		return SR_ERR_MALLOC;
+
+
+	if (strncmp(port, usbtmc_prefix, strlen(usbtmc_prefix)) == 0) {
+		if (!(scpi = scpi_usbtmc_dev_inst_new(port)))
+			return SR_ERR_MALLOC;
+	} else {
+		if (!(scpi = scpi_serial_dev_inst_new(port, serialcomm)))
+			return SR_ERR_MALLOC;
+	}
 
 	if (sr_scpi_open(scpi) != SR_OK) {
 		sr_scpi_free(scpi);
@@ -340,21 +349,30 @@ static GSList *scan(GSList *options)
 	int ret;
 	const gchar *dev_name;
 	gchar *port = NULL;
+	gchar *serialcomm = NULL;
 
 	drvc = di->priv;
 
 	for (l = options; l; l = l->next) {
 		src = l->data;
-		if (src->key == SR_CONF_CONN) {
+		switch (src->key) {
+		case SR_CONF_CONN:
 			port = (char *)g_variant_get_string(src->data, NULL);
+			break;
+		case SR_CONF_SERIALCOMM:
+			serialcomm = (char *)g_variant_get_string(src->data, NULL);
 			break;
 		}
 	}
 
 	devices = NULL;
 	if (port) {
-		if (probe_port(port, &devices) == SR_ERR_MALLOC)
+		if (probe_port(port, serialcomm, &devices) == SR_ERR_MALLOC) {
+			g_free(port);
+			if (serialcomm)
+				g_free(serialcomm);
 			return NULL;
+		}
 	} else {
 		if (!(dir = g_dir_open("/sys/class/usbmisc/", 0, NULL)))
 			if (!(dir = g_dir_open("/sys/class/usb/", 0, NULL)))
@@ -363,8 +381,10 @@ static GSList *scan(GSList *options)
 			if (strncmp(dev_name, "usbtmc", 6))
 				continue;
 			port = g_strconcat("/dev/", dev_name, NULL);
-			ret = probe_port(port, &devices);
+			ret = probe_port(port, serialcomm, &devices);
 			g_free(port);
+			if (serialcomm)
+				g_free(serialcomm);
 			if (ret == SR_ERR_MALLOC) {
 				g_dir_close(dir);
 				return NULL;
