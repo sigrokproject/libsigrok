@@ -336,6 +336,11 @@ SR_PRIV struct sr_scpi_dev_inst *scpi_serial_dev_inst_new(const char *port,
 		        const char *serialcomm);
 #endif
 
+/*--- hardware/common/scpi_tcp.c --------------------------------------------*/
+
+SR_PRIV struct sr_scpi_dev_inst *scpi_tcp_dev_inst_new(const char *address,
+			const char *port);
+
 /*--- hardware/common/scpi_usbtmc.c -----------------------------------------*/
 
 SR_PRIV struct sr_scpi_dev_inst *scpi_usbtmc_dev_inst_new(const char *device);
