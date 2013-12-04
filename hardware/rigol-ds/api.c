@@ -197,7 +197,7 @@ static int set_cfg(const struct sr_dev_inst *sdi, const char *format, ...)
 	va_start(args, format);
 	vsnprintf(buf, 255, format, args);
 	va_end(args);
-	if (rigol_ds_send(sdi, buf) != SR_OK)
+	if (sr_scpi_send(sdi->conn, buf) != SR_OK)
 		return SR_ERR;
 
 	/* When setting a bunch of parameters in a row, the DS1052E scrambles
@@ -740,7 +740,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	devc = sdi->priv;
 
 	if (devc->data_source == DATA_SOURCE_LIVE) {
-		if (rigol_ds_send(sdi, ":RUN") != SR_OK)
+		if (sr_scpi_send(sdi->conn, ":RUN") != SR_OK)
 			return SR_ERR;
 	} else if (devc->data_source == DATA_SOURCE_MEMORY) {
 		if (devc->model->series != RIGOL_DS2000) {
@@ -763,7 +763,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 				/* Enabled channel is currently disabled, or vice versa. */
 				sprintf(cmd, ":CHAN%d:DISP %s", probe->index + 1,
 						probe->enabled ? "ON" : "OFF");
-				if (rigol_ds_send(sdi, cmd) != SR_OK)
+				if (sr_scpi_send(sdi->conn, cmd) != SR_OK)
 					return SR_ERR;
 			}
 		} else if (probe->type == SR_PROBE_LOGIC) {
@@ -774,7 +774,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 				/* Enabled channel is currently disabled, or vice versa. */
 				sprintf(cmd, ":DIG%d:TURN %s", probe->index,
 						probe->enabled ? "ON" : "OFF");
-				if (rigol_ds_send(sdi, cmd) != SR_OK)
+				if (sr_scpi_send(sdi->conn, cmd) != SR_OK)
 					return SR_ERR;
 			}
 		}
@@ -792,12 +792,12 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		if (devc->enabled_analog_probes) {
 			devc->analog_frame_size = DS1000_ANALOG_LIVE_WAVEFORM_SIZE;
 			devc->channel_frame = devc->enabled_analog_probes->data;
-			if (rigol_ds_send(sdi, ":WAV:DATA? CHAN%d",
+			if (sr_scpi_send(sdi->conn, ":WAV:DATA? CHAN%d",
 					devc->channel_frame->index + 1) != SR_OK)
 				return SR_ERR;
 		} else {
 			devc->channel_frame = devc->enabled_digital_probes->data;
-			if (rigol_ds_send(sdi, ":WAV:DATA? DIG") != SR_OK)
+			if (sr_scpi_send(sdi->conn, ":WAV:DATA? DIG") != SR_OK)
 				return SR_ERR;
 		}
 
@@ -813,11 +813,11 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 				/* Apparently for the DS2000 the memory
 				 * depth can only be set in Running state -
 				 * this matches the behaviour of the UI. */
-				if (rigol_ds_send(sdi, ":RUN") != SR_OK)
+				if (sr_scpi_send(sdi->conn, ":RUN") != SR_OK)
 					return SR_ERR;
-				if (rigol_ds_send(sdi, "ACQ:MDEP %d", devc->analog_frame_size) != SR_OK)
+				if (sr_scpi_send(sdi->conn, "ACQ:MDEP %d", devc->analog_frame_size) != SR_OK)
 					return SR_ERR;
-				if (rigol_ds_send(sdi, ":STOP") != SR_OK)
+				if (sr_scpi_send(sdi->conn, ":STOP") != SR_OK)
 					return SR_ERR;
 			} else
 				devc->analog_frame_size = DS2000_ANALOG_LIVE_WAVEFORM_SIZE;
