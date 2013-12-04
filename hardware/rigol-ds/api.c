@@ -192,12 +192,13 @@ static int dev_clear(void)
 static int set_cfg(const struct sr_dev_inst *sdi, const char *format, ...)
 {
 	va_list args;
-	char buf[256];
+	int ret;
 
 	va_start(args, format);
-	vsnprintf(buf, 255, format, args);
+	ret = sr_scpi_send_variadic(sdi->conn, format, args);
 	va_end(args);
-	if (sr_scpi_send(sdi->conn, buf) != SR_OK)
+
+	if (ret != SR_OK)
 		return SR_ERR;
 
 	/* When setting a bunch of parameters in a row, the DS1052E scrambles
