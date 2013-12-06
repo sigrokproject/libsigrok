@@ -242,6 +242,12 @@ AC_ARG_ENABLE(zeroplus-logic-cube,
 
 # Checks for libraries.
 
+case "$host" in
+*mingw*)
+	# We need to link against the Winsock2 library for SCPI over TCP.
+	LIBS="$LIBS -lws2_32";;
+esac
+
 # This variable collects the pkg-config names of all detected libs.
 # It is then used to construct the "Requires.private:" field in the
 # libsigrok.pc file.
