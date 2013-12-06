@@ -340,21 +340,6 @@ PKG_CHECK_MODULES([check], [check >= 0.9.4],
 	LIBS="$LIBS $check_LIBS"], [have_check="no"])
 AM_CONDITIONAL(HAVE_CHECK, test x"$have_check" = "xyes")
 
-# The Rigol DS driver currently uses the Linux kernel usbtmc module
-# (though it is planned to rewrite the driver to be portable later).
-# Thus, it will be disabled for non-Linux builds for now.
-case "$host" in
-*linux*)
-	# Do nothing. Whether the driver is enabled is determined by the
-	# previous --enable-all-drivers/--disable-all-drivers and/or any
-	# --enable-rigol-ds/--disable-rigol-ds options.
-	;;
-*)
-	# Disable the driver for builds that don't target Linux.
-	HW_RIGOL_DS="no"
-	;;
-esac
-
 AC_SUBST(SR_PKGLIBS)
 
 # Now set AM_CONDITIONALs and AC_DEFINEs for the enabled/disabled drivers.
