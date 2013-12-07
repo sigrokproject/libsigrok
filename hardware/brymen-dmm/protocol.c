@@ -186,8 +186,8 @@ SR_PRIV int brymen_stream_detect(struct sr_serial_dev_inst *serial,
 
 	maxlen = *buflen;
 
-	sr_dbg("Detecting packets on FD %d (timeout = %" PRIu64
-	       "ms, baudrate = %d).", serial->fd, timeout_ms, baudrate);
+	sr_dbg("Detecting packets on %s (timeout = %" PRIu64
+	       "ms, baudrate = %d).", serial->port, timeout_ms, baudrate);
 
 	/* Assume 8n1 transmission. That is 10 bits for every byte. */
 	byte_delay_us = 10 * (1000000 / baudrate);
