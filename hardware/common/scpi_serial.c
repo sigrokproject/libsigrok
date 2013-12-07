@@ -65,20 +65,24 @@ SR_PRIV int scpi_serial_source_remove(void *priv)
 
 SR_PRIV int scpi_serial_send(void *priv, const char *command)
 {
-	int len, out;
+	int len, result, written;
 	gchar *terminated_command;
 	struct sr_serial_dev_inst *serial = priv;
 
 	terminated_command = g_strconcat(command, "\n", NULL);
 	len = strlen(terminated_command);
-	out = serial_write(serial, terminated_command, len);
-	g_free(terminated_command);
-
-	if (out != len) {
-		sr_dbg("Only sent %d/%d bytes of SCPI command: '%s'.", out,
-		       len, command);
-		return SR_ERR;
+	written = 0;
+	while (written < len) {
+		result = serial_write(serial, terminated_command + written, len - written);
+		if (result < 0) {
+			sr_err("Error while sending SCPI command: '%s'.", command);
+			g_free(terminated_command);
+			return SR_ERR;
+		}
+		written += result;
 	}
+
+	g_free(terminated_command);
 
 	sr_spew("Successfully sent SCPI command: '%s'.", command);
 
