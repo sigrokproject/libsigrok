@@ -279,6 +279,7 @@ static int probe_port(const char *resource, const char *serialcomm, GSList **dev
 
 	if (strcasecmp(hw_info->manufacturer, "Rigol Technologies")) {
 		sr_scpi_hw_info_free(hw_info);
+		sr_scpi_close(scpi);
 		sr_scpi_free(scpi);
 		return SR_ERR_NA;
 	}
@@ -294,11 +295,13 @@ static int probe_port(const char *resource, const char *serialcomm, GSList **dev
 					      hw_info->manufacturer, hw_info->model,
 						  hw_info->firmware_version))) {
 		sr_scpi_hw_info_free(hw_info);
+		sr_scpi_close(scpi);
 		sr_scpi_free(scpi);
 		return SR_ERR_NA;
 	}
 
 	sr_scpi_hw_info_free(hw_info);
+	sr_scpi_close(scpi);
 
 	sdi->conn = scpi;
 
