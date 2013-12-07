@@ -104,6 +104,32 @@ SR_PRIV int std_session_send_df_header(const struct sr_dev_inst *sdi,
 #ifdef HAVE_LIBSERIALPORT
 
 /*
+ * Standard serial driver dev_open() helper.
+ *
+ * This function can be used to implement the dev_open() driver API
+ * callback in drivers that use a serial port. The port is opened
+ * with the SERIAL_RDWR and SERIAL_NONBLOCK flags.
+ *
+ * If the open succeeded, the status field of the given sdi is set
+ * to SR_ST_ACTIVE.
+ *
+ * @retval SR_OK Success.
+ * @retval SR_ERR Serial port open failed.
+ */
+SR_PRIV int std_serial_dev_open(struct sr_dev_inst *sdi)
+{
+	struct sr_serial_dev_inst *serial;
+
+	serial = sdi->conn;
+	if (serial_open(serial, SERIAL_RDWR | SERIAL_NONBLOCK) != SR_OK)
+		return SR_ERR;
+
+	sdi->status = SR_ST_ACTIVE;
+
+	return SR_OK;
+}
+
+/*
  * Standard sr_session_stop() API helper.
  *
  * This function can be used to simplify most (serial port based) driver's
