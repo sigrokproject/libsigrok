@@ -642,10 +642,22 @@ SR_PRIV int sr_serial_extract_options(GSList *options, const char **serial_devic
 SR_PRIV int serial_source_add(struct sr_serial_dev_inst *serial, int events,
 		int timeout, sr_receive_data_callback_t cb, void *cb_data)
 {
-	return sr_source_add(serial->fd, events, timeout, cb, cb_data);
+#ifdef _WIN32
+	return SR_ERR;
+#else
+	int fd;
+	sp_get_port_handle(serial->data, &fd);
+	return sr_source_add(fd, events, timeout, cb, cb_data);
+#endif
 }
 
 SR_PRIV int serial_source_remove(struct sr_serial_dev_inst *serial)
 {
-	return sr_source_remove(serial->fd);
+#ifdef _WIN32
+	return SR_ERR;
+#else
+	int fd;
+	sp_get_port_handle(serial->data, &fd);
+	return sr_source_remove(fd);
+#endif
 }
