@@ -346,6 +346,14 @@ PKG_CHECK_MODULES([check], [check >= 0.9.4],
 	LIBS="$LIBS $check_LIBS"], [have_check="no"])
 AM_CONDITIONAL(HAVE_CHECK, test x"$have_check" = "xyes")
 
+# The OLS driver uses serial port file descriptors directly, and therefore
+# will not currently work on Windows.
+case "$host" in
+*mingw*)
+       HW_OLS="no"
+       ;;
+esac
+
 AC_SUBST(SR_PKGLIBS)
 
 # Now set AM_CONDITIONALs and AC_DEFINEs for the enabled/disabled drivers.
