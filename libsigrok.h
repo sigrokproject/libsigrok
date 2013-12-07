@@ -632,7 +632,7 @@ enum {
 	 * flow   0      no flow control
 	 *        1      hardware-based (RTS/CTS) flow control
 	 *        2      software-based (XON/XOFF) flow control
-	 * 
+	 *
 	 * This is always an optional parameter, since a driver typically
 	 * knows the speed at which the device wants to communicate.
 	 */
