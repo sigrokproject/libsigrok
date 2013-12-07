@@ -221,17 +221,6 @@ static int dev_clear_1x_2x_rs232(void)
 	return std_dev_clear(&gmc_mh_1x_2x_rs232_driver_info, NULL);
 }
 
-static int dev_open(struct sr_dev_inst *sdi)
-{
-	struct sr_serial_dev_inst *serial = sdi->conn;
-	if (serial_open(serial, SERIAL_RDWR | SERIAL_NONBLOCK) != SR_OK)
-		return SR_ERR;
-
-	sdi->status = SR_ST_ACTIVE;
-
-	return SR_OK;
-}
-
 static int dev_close(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
@@ -389,7 +378,7 @@ SR_PRIV struct sr_dev_driver gmc_mh_1x_2x_rs232_driver_info = {
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,
-	.dev_open = dev_open,
+	.dev_open = std_serial_dev_open,
 	.dev_close = dev_close,
 	.dev_acquisition_start = dev_acq_start_1x_2x_rs232,
 	.dev_acquisition_stop = dev_acq_stop,

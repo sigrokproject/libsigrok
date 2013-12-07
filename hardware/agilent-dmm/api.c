@@ -169,19 +169,6 @@ static GSList *dev_list(void)
 	return ((struct drv_context *)(di->priv))->instances;
 }
 
-static int dev_open(struct sr_dev_inst *sdi)
-{
-	struct sr_serial_dev_inst *serial;
-
-	serial = sdi->conn;
-	if (serial_open(serial, SERIAL_RDWR | SERIAL_NONBLOCK) != SR_OK)
-		return SR_ERR;
-
-	sdi->status = SR_ST_ACTIVE;
-
-	return SR_OK;
-}
-
 static int cleanup(void)
 {
 	return dev_clear();
@@ -290,7 +277,7 @@ SR_PRIV struct sr_dev_driver agdmm_driver_info = {
 	.config_get = NULL,
 	.config_set = config_set,
 	.config_list = config_list,
-	.dev_open = dev_open,
+	.dev_open = std_serial_dev_open,
 	.dev_close = std_serial_dev_close,
 	.dev_acquisition_start = dev_acquisition_start,
 	.dev_acquisition_stop = dev_acquisition_stop,

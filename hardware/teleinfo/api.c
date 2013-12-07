@@ -174,18 +174,6 @@ static int dev_clear(void)
 	return std_dev_clear(di, NULL);
 }
 
-static int dev_open(struct sr_dev_inst *sdi)
-{
-	struct sr_serial_dev_inst *serial = sdi->conn;
-
-	if (serial_open(serial, SERIAL_RDONLY | SERIAL_NONBLOCK) != SR_OK)
-		return SR_ERR;
-
-	sdi->status = SR_ST_ACTIVE;
-
-	return SR_OK;
-}
-
 static int cleanup(void)
 {
 	return dev_clear();
@@ -293,7 +281,7 @@ SR_PRIV struct sr_dev_driver teleinfo_driver_info = {
 	.dev_clear = dev_clear,
 	.config_set = config_set,
 	.config_list = config_list,
-	.dev_open = dev_open,
+	.dev_open = std_serial_dev_open,
 	.dev_close = std_serial_dev_close,
 	.dev_acquisition_start = dev_acquisition_start,
 	.dev_acquisition_stop = dev_acquisition_stop,
