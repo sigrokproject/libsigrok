@@ -230,3 +230,16 @@ SR_PRIV int std_dev_clear(const struct sr_dev_driver *driver,
 
 	return ret;
 }
+
+SR_PRIV int std_serial_close(struct sr_dev_inst *sdi)
+{
+	struct sr_serial_dev_inst *serial;
+
+	serial = sdi->conn;
+	if (serial && serial->fd != -1) {
+		serial_close(serial);
+		sdi->status = SR_ST_INACTIVE;
+	}
+
+	return SR_OK;
+}

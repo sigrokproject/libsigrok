@@ -190,6 +190,7 @@ SR_PRIV int std_session_send_df_header(const struct sr_dev_inst *sdi,
 		const char *prefix);
 SR_PRIV int std_dev_clear(const struct sr_dev_driver *driver,
 		std_dev_clear_t clear_private);
+SR_PRIV int std_serial_dev_close(struct sr_dev_inst *sdi);
 
 /*--- strutil.c -------------------------------------------------------------*/
 
