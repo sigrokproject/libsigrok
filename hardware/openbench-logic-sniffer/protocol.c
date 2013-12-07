@@ -18,6 +18,7 @@
  */
 
 #include "protocol.h"
+#include <libserialport.h>
 
 extern SR_PRIV struct sr_dev_driver ols_driver_info;
 static struct sr_dev_driver *di = &ols_driver_info;
@@ -354,6 +355,7 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 	int num_channels, offset, j;
 	unsigned int i;
 	unsigned char byte;
+	int serial_fd;
 
 	drvc = di->priv;
 
@@ -363,7 +365,8 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 		sdi = l->data;
 		devc = sdi->priv;
 		serial = sdi->conn;
-		if (serial->fd == fd)
+		sp_get_port_handle(serial->data, &serial_fd);
+		if (serial_fd == fd)
 			break;
 		devc = NULL;
 	}

@@ -18,6 +18,7 @@
  */
 
 #include "protocol.h"
+#include <libserialport.h>
 
 #define SERIALCOMM "115200/8n1"
 
@@ -152,7 +153,7 @@ static GSList *scan(GSList *options)
 	/* Wait 10ms for a response. */
 	g_usleep(10000);
 
-	probefd.fd = serial->fd;
+	sp_get_port_handle(serial->data, &probefd.fd);
 	probefd.events = G_IO_IN;
 	g_poll(&probefd, 1, 1);
 
