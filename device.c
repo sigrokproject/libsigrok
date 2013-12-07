@@ -338,7 +338,6 @@ SR_PRIV struct sr_serial_dev_inst *sr_serial_dev_inst_new(const char *port,
 	serial->port = g_strdup(port);
 	if (serialcomm)
 		serial->serialcomm = g_strdup(serialcomm);
-	serial->fd = -1;
 
 	return serial;
 }

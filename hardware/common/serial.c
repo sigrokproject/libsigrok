@@ -82,10 +82,6 @@ SR_PRIV int serial_open(struct sr_serial_dev_inst *serial, int flags)
 		return SR_ERR;
 	}
 
-#ifndef _WIN32
-	sp_get_port_handle(serial->data, &serial->fd);
-#endif
-
 	if (serial->serialcomm)
 		return serial_set_paramstr(serial, serial->serialcomm);
 	else
@@ -131,8 +127,6 @@ SR_PRIV int serial_close(struct sr_serial_dev_inst *serial)
 
 	sp_free_port(serial->data);
 	serial->data = NULL;
-
-	serial->fd = -1;
 
 	return SR_OK;
 }
