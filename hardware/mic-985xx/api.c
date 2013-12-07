@@ -254,8 +254,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
-	return std_dev_acquisition_stop_serial(sdi, cb_data, std_serial_dev_close,
-					       sdi->conn, LOG_PREFIX);
+	return std_serial_dev_acquisition_stop(sdi, cb_data, std_serial_dev_close,
+			sdi->conn, LOG_PREFIX);
 }
 
 /* Driver-specific API function wrappers */

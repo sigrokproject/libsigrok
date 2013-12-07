@@ -124,7 +124,7 @@ SR_PRIV int std_session_send_df_header(const struct sr_dev_inst *sdi,
  * @retval SR_ERR_DEV_CLOSED Device is closed.
  * @retval SR_ERR Other errors.
  */
-SR_PRIV int std_dev_acquisition_stop_serial(struct sr_dev_inst *sdi,
+SR_PRIV int std_serial_dev_acquisition_stop(struct sr_dev_inst *sdi,
 			void *cb_data, dev_close_t dev_close_fn,
 			struct sr_serial_dev_inst *serial, const char *prefix)
 {

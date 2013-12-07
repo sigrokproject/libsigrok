@@ -181,7 +181,7 @@ typedef void (*std_dev_clear_t)(void *priv);
 SR_PRIV int std_init(struct sr_context *sr_ctx, struct sr_dev_driver *di,
 		const char *prefix);
 #ifdef HAVE_LIBSERIALPORT
-SR_PRIV int std_dev_acquisition_stop_serial(struct sr_dev_inst *sdi,
+SR_PRIV int std_serial_dev_acquisition_stop(struct sr_dev_inst *sdi,
 		void *cb_data, dev_close_t dev_close_fn,
 		struct sr_serial_dev_inst *serial, const char *prefix);
 #endif
