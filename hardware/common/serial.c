@@ -109,16 +109,14 @@ SR_PRIV int serial_close(struct sr_serial_dev_inst *serial)
 		return SR_ERR;
 	}
 
-	if (serial->fd == -1) {
-		sr_dbg("Cannot close unopened serial port %s (fd %d).",
-				serial->port, serial->fd);
+	if (!serial->data) {
+		sr_dbg("Cannot close unopened serial port %s.", serial->port);
 		return SR_ERR;
 	}
 
-	sr_spew("Closing serial port %s (fd %d).", serial->port, serial->fd);
+	sr_spew("Closing serial port %s.", serial->port);
 
 	ret = sp_close(serial->data);
-	sp_free_port(serial->data);
 
 	switch (ret) {
 	case SP_ERR_ARG:
@@ -130,6 +128,9 @@ SR_PRIV int serial_close(struct sr_serial_dev_inst *serial)
 		sp_free_error_message(error);
 		return SR_ERR;
 	}
+
+	sp_free_port(serial->data);
+	serial->data = NULL;
 
 	serial->fd = -1;
 
@@ -153,13 +154,12 @@ SR_PRIV int serial_flush(struct sr_serial_dev_inst *serial)
 		return SR_ERR;
 	}
 
-	if (serial->fd == -1) {
-		sr_dbg("Cannot flush unopened serial port %s (fd %d).",
-				serial->port, serial->fd);
+	if (!serial->data) {
+		sr_dbg("Cannot flush unopened serial port %s.", serial->port);
 		return SR_ERR;
 	}
 
-	sr_spew("Flushing serial port %s (fd %d).", serial->port, serial->fd);
+	sr_spew("Flushing serial port %s.", serial->port);
 
 	ret = sp_flush(serial->data, SP_BUF_BOTH);
 
@@ -197,9 +197,8 @@ SR_PRIV int serial_write(struct sr_serial_dev_inst *serial,
 		return SR_ERR;
 	}
 
-	if (serial->fd == -1) {
-		sr_dbg("Cannot use unopened serial port %s (fd %d).",
-				serial->port, serial->fd);
+	if (!serial->data) {
+		sr_dbg("Cannot use unopened serial port %s.", serial->port);
 		return SR_ERR;
 	}
 
@@ -219,7 +218,7 @@ SR_PRIV int serial_write(struct sr_serial_dev_inst *serial,
 		return SR_ERR;
 	}
 
-	sr_spew("Wrote %d/%d bytes (fd %d).", ret, count, serial->fd);
+	sr_spew("Wrote %d/%d bytes.", ret, count);
 
 	return ret;
 }
@@ -244,9 +243,8 @@ SR_PRIV int serial_read(struct sr_serial_dev_inst *serial, void *buf,
 		return SR_ERR;
 	}
 
-	if (serial->fd == -1) {
-		sr_dbg("Cannot use unopened serial port %s (fd %d).",
-				serial->port, serial->fd);
+	if (!serial->data) {
+		sr_dbg("Cannot use unopened serial port %s.", serial->port);
 		return SR_ERR;
 	}
 
@@ -267,7 +265,7 @@ SR_PRIV int serial_read(struct sr_serial_dev_inst *serial, void *buf,
 	}
 
 	if (ret > 0)
-		sr_spew("Read %d/%d bytes (fd %d).", ret, count, serial->fd);
+		sr_spew("Read %d/%d bytes.", ret, count);
 
 	return ret;
 }
@@ -298,14 +296,12 @@ SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
 		return SR_ERR;
 	}
 
-	if (serial->fd == -1) {
-		sr_dbg("Cannot configure unopened serial port %s (fd %d).",
-		       serial->port, serial->fd);
+	if (!serial->data) {
+		sr_dbg("Cannot configure unopened serial port %s.", serial->port);
 		return SR_ERR;
 	}
 
-	sr_spew("Setting serial parameters on port %s (fd %d).", serial->port,
-		serial->fd);
+	sr_spew("Setting serial parameters on port %s.", serial->port);
 
 	sp_new_config(&config);
 	sp_set_config_baudrate(config, baudrate);
@@ -470,14 +466,13 @@ SR_PRIV int serial_readline(struct sr_serial_dev_inst *serial, char **buf,
 	gint64 start;
 	int maxlen, len;
 
-	if (!serial || serial->fd == -1) {
+	if (!serial) {
 		sr_dbg("Invalid serial port.");
 		return SR_ERR;
 	}
 
-	if (serial->fd == -1) {
-		sr_dbg("Cannot use unopened serial port %s (fd %d).",
-				serial->port, serial->fd);
+	if (!serial->data) {
+		sr_dbg("Cannot use unopened serial port %s.", serial->port);
 		return -1;
 	}
 
@@ -541,8 +536,8 @@ SR_PRIV int serial_stream_detect(struct sr_serial_dev_inst *serial,
 
 	maxlen = *buflen;
 
-	sr_dbg("Detecting packets on FD %d (timeout = %" PRIu64
-	       "ms, baudrate = %d).", serial->fd, timeout_ms, baudrate);
+	sr_dbg("Detecting packets on %s (timeout = %" PRIu64
+	       "ms, baudrate = %d).", serial->port, timeout_ms, baudrate);
 
 	if (maxlen < (packet_size / 2) ) {
 		sr_err("Buffer size must be at least twice the packet size.");
