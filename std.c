@@ -231,7 +231,7 @@ SR_PRIV int std_dev_clear(const struct sr_dev_driver *driver,
 	return ret;
 }
 
-SR_PRIV int std_serial_close(struct sr_dev_inst *sdi)
+SR_PRIV int std_serial_dev_close(struct sr_dev_inst *sdi)
 {
 	struct sr_serial_dev_inst *serial;
 

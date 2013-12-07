@@ -51,8 +51,6 @@ static const uint64_t samplerates[] = {
 SR_PRIV struct sr_dev_driver link_mso19_driver_info;
 static struct sr_dev_driver *di = &link_mso19_driver_info;
 
-static int dev_close(struct sr_dev_inst *sdi);
-
 /* TODO: Use sr_dev_inst to store connection handle & use std_dev_clear(). */
 static int dev_clear(void)
 {
@@ -79,7 +77,7 @@ static int dev_clear(void)
 			ret = SR_ERR_BUG;
 			continue;
 		}
-		dev_close(sdi);
+		std_serial_dev_close(sdi);
 		sr_serial_dev_inst_free(devc->serial);
 		sr_dev_inst_free(sdi);
 	}
@@ -268,20 +266,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 	//    if (ret != SR_OK)
 	//            return ret;
 	//    return SR_ERR;
-
-	return SR_OK;
-}
-
-static int dev_close(struct sr_dev_inst *sdi)
-{
-	struct dev_context *devc;
-
-	devc = sdi->priv;
-
-	if (devc->serial && devc->serial->fd != -1) {
-		serial_close(devc->serial);
-		sdi->status = SR_ST_INACTIVE;
-	}
 
 	return SR_OK;
 }
@@ -501,7 +485,7 @@ SR_PRIV struct sr_dev_driver link_mso19_driver_info = {
 	.config_set = config_set,
 	.config_list = config_list,
 	.dev_open = dev_open,
-	.dev_close = dev_close,
+	.dev_close = std_serial_dev_close,
 	.dev_acquisition_start = dev_acquisition_start,
 	.dev_acquisition_stop = dev_acquisition_stop,
 	.priv = NULL,

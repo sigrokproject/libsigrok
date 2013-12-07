@@ -170,19 +170,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int dev_close(struct sr_dev_inst *sdi)
-{
-	struct sr_serial_dev_inst *serial;
-
-	serial = sdi->conn;
-	if (serial && serial->fd != -1) {
-		serial_close(serial);
-		sdi->status = SR_ST_INACTIVE;
-	}
-
-	return SR_OK;
-}
-
 static int cleanup(int idx)
 {
 	return dev_clear(idx);
@@ -267,7 +254,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
-	return std_dev_acquisition_stop_serial(sdi, cb_data, dev_close,
+	return std_dev_acquisition_stop_serial(sdi, cb_data, std_serial_dev_close,
 					       sdi->conn, LOG_PREFIX);
 }
 
@@ -307,7 +294,7 @@ SR_PRIV struct sr_dev_driver ID##_driver_info = { \
 	.config_set = config_set, \
 	.config_list = config_list, \
 	.dev_open = dev_open, \
-	.dev_close = dev_close, \
+	.dev_close = std_serial_dev_close, \
 	.dev_acquisition_start = dev_acquisition_start_##ID_UPPER, \
 	.dev_acquisition_stop = dev_acquisition_stop, \
 	.priv = NULL, \

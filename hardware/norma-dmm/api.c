@@ -183,14 +183,9 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 static int dev_close(struct sr_dev_inst *sdi)
 {
-	struct sr_serial_dev_inst *serial;
 	struct dev_context *devc;
 
-	serial = sdi->conn;
-	if (serial && serial->fd != -1) {
-		serial_close(serial);
-		sdi->status = SR_ST_INACTIVE;
-	}
+	std_serial_dev_close(sdi);
 
 	/* Free dynamically allocated resources. */
 	if ((devc = sdi->priv) && devc->version) {
