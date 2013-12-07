@@ -236,7 +236,7 @@ SR_PRIV int std_serial_dev_close(struct sr_dev_inst *sdi)
 	struct sr_serial_dev_inst *serial;
 
 	serial = sdi->conn;
-	if (serial && serial->fd != -1) {
+	if (serial && sdi->status == SR_ST_ACTIVE) {
 		serial_close(serial);
 		sdi->status = SR_ST_INACTIVE;
 	}
