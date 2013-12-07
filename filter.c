@@ -151,7 +151,7 @@ SR_API int sr_filter_probes(unsigned int in_unitsize, unsigned int out_unitsize,
 	/* If we reached this point, not all probes are used, so "compress". */
 	in_offset = out_offset = 0;
 	while (in_offset <= length_in - in_unitsize) {
-		sample_in = data_in + in_offset;
+		sample_in = (uint8_t *)data_in + in_offset;
 		sample_out = (*data_out) + out_offset;
 		memset(sample_out, 0, out_unitsize);
 		out_bit = 0;
