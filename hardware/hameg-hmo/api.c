@@ -23,6 +23,13 @@
 
 #define SERIALCOMM "115200/8n1/flow=1"
 
+SR_PRIV struct sr_dev_driver hameg_hmo_driver_info;
+static struct sr_dev_driver *di = &hameg_hmo_driver_info;
+
+static const char *manufacturers[] = {
+	"HAMEG",
+};
+
 static const int32_t hwopts[] = {
 	SR_CONF_CONN,
 	SR_CONF_SERIALCOMM,
@@ -184,6 +191,79 @@ skip_device:
 #else
 	return NULL;
 #endif
+}
+
+static int check_manufacturer(const char *manufacturer)
+{
+	unsigned int i;
+
+	for (i = 0; i < ARRAY_SIZE(manufacturers); ++i)
+		if (!strcmp(manufacturer, manufacturers[i]))
+			return SR_OK;
+
+	return SR_ERR;
+}
+
+static struct sr_dev_inst *hmo_probe_serial_device(const char *serial_device,
+						    const char *serial_options)
+{
+	struct sr_dev_inst *sdi;
+	struct dev_context *devc;
+	struct sr_scpi_hw_info *hw_info;
+	struct sr_scpi_dev_inst *scpi;
+
+	sdi = NULL;
+	devc = NULL;
+	scpi = NULL;
+	hw_info = NULL;
+
+	if (!(scpi = scpi_serial_dev_inst_new(serial_device, serial_options)))
+		goto fail;
+
+	sr_info("Probing %s.", serial_device);
+	if (sr_scpi_open(scpi) != SR_OK)
+		goto fail;
+
+	if (sr_scpi_get_hw_id(scpi, &hw_info) != SR_OK) {
+		sr_info("Couldn't get IDN response.");
+		goto fail;
+	}
+
+	if (check_manufacturer(hw_info->manufacturer) != SR_OK)
+		goto fail;
+
+	if (!(sdi = sr_dev_inst_new(0, SR_ST_ACTIVE,
+				    hw_info->manufacturer, hw_info->model,
+				    hw_info->firmware_version))) {
+		goto fail;
+	}
+	sr_scpi_hw_info_free(hw_info);
+	hw_info = NULL;
+
+	if (!(devc = g_try_malloc0(sizeof(struct dev_context))))
+		goto fail;
+
+	sdi->driver = di;
+	sdi->priv = devc;
+	sdi->inst_type = SR_INST_SCPI;
+	sdi->conn = scpi;
+
+	if (hmo_init_device(sdi) != SR_OK)
+		goto fail;
+
+	return sdi;
+
+fail:
+	if (hw_info)
+		sr_scpi_hw_info_free(hw_info);
+	if (scpi)
+		sr_scpi_free(scpi);
+	if (sdi)
+		sr_dev_inst_free(sdi);
+	if (devc)
+		g_free(devc);
+
+	return NULL;
 }
 
 static GSList *scan(GSList *options)

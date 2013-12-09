@@ -38,9 +38,6 @@
 #define MAX_INSTRUMENT_VERSIONS 10
 #define MAX_COMMAND_SIZE 31
 
-SR_PRIV struct sr_dev_driver hameg_hmo_driver_info;
-static struct sr_dev_driver *di = &hameg_hmo_driver_info;
-
 struct scope_config {
 	const char *name[MAX_INSTRUMENT_VERSIONS];
 	const uint8_t analog_channels;
@@ -115,8 +112,6 @@ struct dev_context {
 SR_PRIV int hmo_init_device(struct sr_dev_inst *sdi);
 SR_PRIV int hmo_request_data(const struct sr_dev_inst *sdi);
 SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data);
-SR_PRIV struct sr_dev_inst *hmo_probe_serial_device(const char *serial_device,
-						    const char *serial_options);
 
 SR_PRIV struct scope_state *hmo_scope_state_new(struct scope_config *config);
 SR_PRIV void hmo_scope_state_free(struct scope_state *state);
