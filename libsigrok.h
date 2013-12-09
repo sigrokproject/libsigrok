@@ -149,15 +149,22 @@ enum {
 
 /** Value for sr_datafeed_packet.type. */
 enum {
-	SR_DF_HEADER = 10000,	/**< Payload is sr_datafeed_header. */
-	SR_DF_END,		/**< End of stream (no further data). */
-	SR_DF_META,		/**< Payload is struct sr_datafeed_meta */
-	SR_DF_TRIGGER,	/**< The trigger matched at this point in the data feed.
-			No payload. */
-	SR_DF_LOGIC,	/**< Payload is struct sr_datafeed_logic. */
-	SR_DF_ANALOG,	/**< Payload is struct sr_datafeed_analog. */
-	SR_DF_FRAME_BEGIN,	/**< Beginning of frame. No payload. */
-	SR_DF_FRAME_END,	/**< End of frame. No payload. */
+	/** Payload is sr_datafeed_header. */
+	SR_DF_HEADER = 10000,
+	/** End of stream (no further data). */
+	SR_DF_END,
+	/** Payload is struct sr_datafeed_meta */
+	SR_DF_META,
+	/** The trigger matched at this point in the data feed. No payload. */
+	SR_DF_TRIGGER,
+	/** Payload is struct sr_datafeed_logic. */
+	SR_DF_LOGIC,
+	/** Payload is struct sr_datafeed_analog. */
+	SR_DF_ANALOG,
+	/** Beginning of frame. No payload. */
+	SR_DF_FRAME_BEGIN,
+	/** End of frame. No payload. */
+	SR_DF_FRAME_END,
 };
 
 /** Measured quantity, sr_datafeed_analog.mq. */
@@ -168,34 +175,53 @@ enum {
 	SR_MQ_CAPACITANCE,
 	SR_MQ_TEMPERATURE,
 	SR_MQ_FREQUENCY,
-	SR_MQ_DUTY_CYCLE,	/**< Duty cycle, e.g. on/off ratio. */
-	SR_MQ_CONTINUITY,	/**< Continuity test. */
+	/** Duty cycle, e.g. on/off ratio. */
+	SR_MQ_DUTY_CYCLE,
+	/** Continuity test. */
+	SR_MQ_CONTINUITY,
 	SR_MQ_PULSE_WIDTH,
 	SR_MQ_CONDUCTANCE,
-	SR_MQ_POWER,		/**< Electrical power, usually in W, or dBm. */
-	SR_MQ_GAIN,	/**< Gain (a transistor's gain, or hFE, for example). */
+	/** Electrical power, usually in W, or dBm. */
+	SR_MQ_POWER,
+	/** Gain (a transistor's gain, or hFE, for example). */
+	SR_MQ_GAIN,
 	/** Logarithmic representation of sound pressure relative to a
 	 * reference value. */
 	SR_MQ_SOUND_PRESSURE_LEVEL,
-	SR_MQ_CARBON_MONOXIDE,   /**< Carbon monoxide level */
-	SR_MQ_RELATIVE_HUMIDITY,/**< Humidity */
-	SR_MQ_TIME,		/**< Time */
+	/** Carbon monoxide level */
+	SR_MQ_CARBON_MONOXIDE,
+	/** Humidity */
+	SR_MQ_RELATIVE_HUMIDITY,
+	/** Time */
+	SR_MQ_TIME,
 };
 
 /** Unit of measured quantity, sr_datafeed_analog.unit. */
 enum {
-	SR_UNIT_VOLT = 10000, /**< Volt */
-	SR_UNIT_AMPERE,	      /**< Ampere (current). */
-	SR_UNIT_OHM,	      /**< Ohm (resistance). */
-	SR_UNIT_FARAD,	      /**< Farad (capacity). */
-	SR_UNIT_KELVIN,	      /**< Kelvin (temperature). */
-	SR_UNIT_CELSIUS,      /**< Degrees Celsius (temperature). */
-	SR_UNIT_FAHRENHEIT,   /**< Degrees Fahrenheit (temperature). */
-	SR_UNIT_HERTZ,	      /**< Hertz (frequency, 1/s, [Hz]). */
-	SR_UNIT_PERCENTAGE,   /**< Percent value. */
-	SR_UNIT_BOOLEAN,      /**< Boolean value. */
-	SR_UNIT_SECOND,	      /**< Time in seconds. */
-	SR_UNIT_SIEMENS, /**< Unit of conductance, the inverse of resistance. */
+	/** Volt */
+	SR_UNIT_VOLT = 10000,
+	/** Ampere (current). */
+	SR_UNIT_AMPERE,
+	/** Ohm (resistance). */
+	SR_UNIT_OHM,
+	/** Farad (capacity). */
+	SR_UNIT_FARAD,
+	/** Kelvin (temperature). */
+	SR_UNIT_KELVIN,
+	/** Degrees Celsius (temperature). */
+	SR_UNIT_CELSIUS,
+	/** Degrees Fahrenheit (temperature). */
+	SR_UNIT_FAHRENHEIT,
+	/** Hertz (frequency, 1/s, [Hz]). */
+	SR_UNIT_HERTZ,
+	/** Percent value. */
+	SR_UNIT_PERCENTAGE,
+	/** Boolean value. */
+	SR_UNIT_BOOLEAN,
+	/** Time in seconds. */
+	SR_UNIT_SECOND,
+	/** Unit of conductance, the inverse of resistance. */
+	SR_UNIT_SIEMENS,
 	/**
 	 * An absolute measurement of power, in decibels, referenced to
 	 * 1 milliwatt (dBu).
@@ -217,10 +243,14 @@ enum {
 	 * represented as the fraction of number of particles of the substance.
 	 */
 	SR_UNIT_CONCENTRATION,
-	SR_UNIT_REVOLUTIONS_PER_MINUTE, /**< Revolutions per minute. */
-	SR_UNIT_VOLT_AMPERE,	/**< Apparent power [VA]. */
-	SR_UNIT_WATT,		/**< Real power [W]. */
-	SR_UNIT_WATT_HOUR,	/**< Consumption [Wh]. */
+	/** Revolutions per minute. */
+	SR_UNIT_REVOLUTIONS_PER_MINUTE,
+	/** Apparent power [VA]. */
+	SR_UNIT_VOLT_AMPERE,
+	/** Real power [W]. */
+	SR_UNIT_WATT,
+	/** Consumption [Wh]. */
+	SR_UNIT_WATT_HOUR,
 };
 
 /** Values for sr_datafeed_analog.flags. */
@@ -302,7 +332,8 @@ struct sr_datafeed_logic {
 struct sr_datafeed_analog {
 	/** The probes for which data is included in this packet. */
 	GSList *probes;
-	int num_samples;	/**< Number of samples in data */
+	/** Number of samples in data */
+	int num_samples;
 	/** Measured quantity (voltage, current, temperature, and so on).
 	 *  Use SR_MQ_VOLTAGE, ... */
 	int mq;
@@ -438,7 +469,8 @@ struct sr_output_format {
 	 */
 	char *description;
 
-	int df_type;	/**< Datafeed type, SR_DF_HEADER, etc. */
+	/** Datafeed type, SR_DF_HEADER, etc. */
+	int df_type;
 
 	/**
 	 * This function is called once, at the beginning of an output stream.
@@ -557,18 +589,25 @@ struct sr_output_format {
 
 /** Constants for probe type. */
 enum {
-    SR_PROBE_LOGIC = 10000, /**< Probe type is logic probe. */
-    SR_PROBE_ANALOG,        /**< Probe type is analog probe. */
+	/** Probe type is logic probe. */
+    SR_PROBE_LOGIC = 10000,
+	/** Probe type is analog probe. */
+    SR_PROBE_ANALOG,
 };
 
 /** Information on single probe. */
 struct sr_probe {
-        int index; /**< Number of probe, starting at 0. @deprecated The
-                index field will go: use g_slist_length(sdi->probes) instead. */
-	int type;	/**< Probe type (SR_PROBE_LOGIC, ...) */
-	gboolean enabled;   /**< Is this probe enabled? */
-	char *name;/**< Name of probe. */
-	char *trigger;/**< Trigger string, format like used by sigrok-cli */
+	/** Number of probes, starting at 0. @deprecated The index field
+	 * will go: use g_slist_length(sdi->probes) instead. */
+	int index;
+	/** Probe type (SR_PROBE_LOGIC, ...) */
+	int type;
+	/** Is this probe enabled? */
+	gboolean enabled;
+	/** Name of probe. */
+	char *name;
+	/** Trigger string, format like used by sigrok-cli */
+	char *trigger;
 };
 
 /** Structure for groups of probes that have common properties. */
@@ -583,17 +622,24 @@ struct sr_probe_group {
 
 /** Used for setting or getting value of a config item. */
 struct sr_config {
-	int key;		/**< Config key like SR_CONF_CONN, etc. */
-	GVariant *data;		/**< Key-specific data. */
+	/** Config key like SR_CONF_CONN, etc. */
+	int key;
+	/** Key-specific data. */
+	GVariant *data;
 };
 
 /** Information about a config key. */
 struct sr_config_info {
-	int key;		/**< Config key like SR_CONF_CONN, etc. */
-	int datatype;		/**< Data type like SR_T_CHAR, etc. */
-	char *id;		/**< Id string, e.g. "serialcomm". */
-	char *name;		/**< Name, e.g. "Serial communication". */
-	char *description;	/**< Verbose description (unused currently). */
+	/** Config key like SR_CONF_CONN, etc. */
+	int key;
+	/** Data type like SR_T_CHAR, etc. */
+	int datatype;
+	/** Id string, e.g. "serialcomm". */
+	char *id;
+	/** Name, e.g. "Serial communication". */
+	char *name;
+	/** Verbose description (unused currently). */
+	char *description;
 };
 
 /** Constants for device classes */
@@ -803,21 +849,31 @@ enum {
 	SR_CONF_DATALOG,
 };
 
-/** @private
- *  Device instance data
+/** Device instance data
  */
 struct sr_dev_inst {
-	struct sr_dev_driver *driver;   /**< Device driver. */
-	int index;	/**< Index of device in driver. */
-	int status;	/**< Device instance status. SR_ST_NOT_FOUND, etc. */
-	int inst_type;	/**< Device instance type. SR_INST_USB, etc. */
-	char *vendor;	/**< Device vendor. */
-	char *model;	/**< Device model. */
-	char *version;	/**< Device version. */
-	GSList *probes;	/**< List of probes. */
-	GSList *probe_groups;	/**< List of sr_probe_group structs */
-	void *conn;	/**< Device instance connection data (used?) */
-	void *priv;	/**< Device instance private data (used?) */
+	/** Device driver. */
+	struct sr_dev_driver *driver;
+	/** Index of device in driver. */
+	int index;
+	/** Device instance status. SR_ST_NOT_FOUND, etc. */
+	int status;
+	/** Device instance type. SR_INST_USB, etc. */
+	int inst_type;
+	/** Device vendor. */
+	char *vendor;
+	/** Device model. */
+	char *model;
+	/** Device version. */
+	char *version;
+	/** List of probes. */
+	GSList *probes;
+	/** List of sr_probe_group structs */
+	GSList *probe_groups;
+	/** Device instance connection data (used?) */
+	void *conn;
+	/** Device instance private data (used?) */
+	void *priv;
 };
 
 /** Types of device instance, struct sr_dev_inst.type */
@@ -847,13 +903,20 @@ enum {
 /** Device driver data */
 struct sr_dev_driver {
 	/* Driver-specific */
-	char *name;		/**< Driver name */
-	char *longname;		/**< Long name, e.g. device name. */
-	int api_version;	/**< API version (currently 1).	*/
-	int (*init) (struct sr_context *sr_ctx);	/**< Init driver */
-	int (*cleanup) (void);				/**< Free driver */
-	GSList *(*scan) (GSList *options);		/**< Scan for devices */
-	GSList *(*dev_list) (void);			/**< Get device list */
+	/** Driver name */
+	char *name;
+	/** Long name, e.g. device name. */
+	char *longname;
+	/** API version (currently 1).	*/
+	int api_version;
+	/** Init driver */
+	int (*init) (struct sr_context *sr_ctx);
+	/** Free driver */
+	int (*cleanup) (void);
+	/** Scan for devices */
+	GSList *(*scan) (GSList *options);
+	/** Get device list */
+	GSList *(*dev_list) (void);
 	int (*dev_clear) (void);
 	int (*config_get) (int id, GVariant **data,
 			const struct sr_dev_inst *sdi,
@@ -866,15 +929,20 @@ struct sr_dev_driver {
 			const struct sr_probe_group *probe_group);
 
 	/* Device-specific */
-	int (*dev_open) (struct sr_dev_inst *sdi);	/**< Open device */
-	int (*dev_close) (struct sr_dev_inst *sdi);	/**< Close device */
+	/** Open device */
+	int (*dev_open) (struct sr_dev_inst *sdi);
+	/** Close device */
+	int (*dev_close) (struct sr_dev_inst *sdi);
+	/** Start data aquisition. */
 	int (*dev_acquisition_start) (const struct sr_dev_inst *sdi,
-			void *cb_data);	/**< Start data aquisition. */
+			void *cb_data);
+	/** Stop data aquisition. */
 	int (*dev_acquisition_stop) (struct sr_dev_inst *sdi,
-			void *cb_data);	/**< Stop data aquisition. */
+			void *cb_data);
 
 	/* Dynamic */
-	void *priv;			/**< Device driver private data */
+	/** Device driver private data */
+	void *priv;
 };
 
 /**

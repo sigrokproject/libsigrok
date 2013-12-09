@@ -75,7 +75,7 @@ struct sr_session *session;
  *       The same question applies to all the other session functions.
  *
  * @retval NULL Error.
- * @retval other A pointer to the newly allocated session->
+ * @retval other A pointer to the newly allocated session.
  */
 SR_API struct sr_session *sr_session_new(void)
 {
