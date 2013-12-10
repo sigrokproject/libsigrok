@@ -363,7 +363,7 @@ SR_API int sr_init(struct sr_context **ctx)
 #ifdef HAVE_LIBUSB_1_0
 	ret = libusb_init(&context->libusb_ctx);
 	if (LIBUSB_SUCCESS != ret) {
-		sr_err("libusb_init() returned %s.\n", libusb_error_name(ret));
+		sr_err("libusb_init() returned %s.", libusb_error_name(ret));
 		ret = SR_ERR;
 		goto done;
 	}

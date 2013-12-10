@@ -291,7 +291,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 
 	if (!(vdev->archive = zip_open(vdev->sessionfile, 0, &ret))) {
 		sr_err("Failed to open session file '%s': "
-		       "zip error %d\n", vdev->sessionfile, ret);
+		       "zip error %d.", vdev->sessionfile, ret);
 		return SR_ERR;
 	}
 
