@@ -17,8 +17,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBSIGROK_SIGROK_H
-#define LIBSIGROK_SIGROK_H
+#ifndef LIBSIGROK_LIBSIGROK_H
+#define LIBSIGROK_LIBSIGROK_H
 
 #include <stdio.h>
 #include <sys/time.h>

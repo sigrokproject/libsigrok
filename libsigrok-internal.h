@@ -21,8 +21,8 @@
   * @internal
   */
 
-#ifndef LIBSIGROK_SIGROK_INTERNAL_H
-#define LIBSIGROK_SIGROK_INTERNAL_H
+#ifndef LIBSIGROK_LIBSIGROK_INTERNAL_H
+#define LIBSIGROK_LIBSIGROK_INTERNAL_H
 
 #include <stdarg.h>
 #include <glib.h>

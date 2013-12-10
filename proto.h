@@ -17,8 +17,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBSIGROK_SIGROK_PROTO_H
-#define LIBSIGROK_SIGROK_PROTO_H
+#ifndef LIBSIGROK_PROTO_H
+#define LIBSIGROK_PROTO_H
 
 /**
  * @file
