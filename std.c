@@ -135,6 +135,30 @@ SR_PRIV int std_serial_dev_open(struct sr_dev_inst *sdi)
 }
 
 /*
+ * Standard serial driver dev_close() helper.
+ *
+ * This function can be used to implement the dev_close() driver API
+ * callback in drivers that use a serial port.
+ *
+ * After closing the port, the status field of the given sdi is set
+ * to SR_ST_INACTIVE.
+ *
+ * @retval SR_OK Success.
+ */
+SR_PRIV int std_serial_dev_close(struct sr_dev_inst *sdi)
+{
+	struct sr_serial_dev_inst *serial;
+
+	serial = sdi->conn;
+	if (serial && sdi->status == SR_ST_ACTIVE) {
+		serial_close(serial);
+		sdi->status = SR_ST_INACTIVE;
+	}
+
+	return SR_OK;
+}
+
+/*
  * Standard sr_session_stop() API helper.
  *
  * This function can be used to simplify most (serial port based) driver's
@@ -262,15 +286,3 @@ SR_PRIV int std_dev_clear(const struct sr_dev_driver *driver,
 	return ret;
 }
 
-SR_PRIV int std_serial_dev_close(struct sr_dev_inst *sdi)
-{
-	struct sr_serial_dev_inst *serial;
-
-	serial = sdi->conn;
-	if (serial && sdi->status == SR_ST_ACTIVE) {
-		serial_close(serial);
-		sdi->status = SR_ST_INACTIVE;
-	}
-
-	return SR_OK;
-}
