@@ -50,6 +50,42 @@
 #define ARRAY_AND_SIZE(a) (a), ARRAY_SIZE(a)
 #endif
 
+/**
+ * Read a 16 bits big endian integer out of memory.
+ * @param x a pointer to the input memory
+ * @return the corresponding integer
+ */
+#define RB16(x)  ((((const uint8_t*)(x))[0] <<  8) |  \
+                   ((const uint8_t*)(x))[1])
+
+/**
+ * Read a 16 bits little endian integer out of memory.
+ * @param x a pointer to the input memory
+ * @return the corresponding integer
+ */
+#define RL16(x)  ((((const uint8_t*)(x))[1] <<  8) |  \
+                   ((const uint8_t*)(x))[0])
+
+/**
+ * Read a 32 bits big endian integer out of memory.
+ * @param x a pointer to the input memory
+ * @return the corresponding integer
+ */
+#define RB32(x)  ((((const uint8_t*)(x))[0] << 24) |  \
+                  (((const uint8_t*)(x))[1] << 16) |  \
+                  (((const uint8_t*)(x))[2] <<  8) |  \
+                   ((const uint8_t*)(x))[3])
+
+/**
+ * Read a 32 bits little endian integer out of memory.
+ * @param x a pointer to the input memory
+ * @return the corresponding integer
+ */
+#define RL32(x)  ((((const uint8_t*)(x))[3] << 24) |  \
+                  (((const uint8_t*)(x))[2] << 16) |  \
+                  (((const uint8_t*)(x))[1] <<  8) |  \
+                   ((const uint8_t*)(x))[0])
+
 /* Portability fixes for FreeBSD. */
 #ifdef __FreeBSD__
 #define LIBUSB_CLASS_APPLICATION 0xfe
