@@ -21,6 +21,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <zip.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <errno.h>
 #include <glib.h>
 #include <glib/gstdio.h>
 #include "config.h" /* Needed for PACKAGE_VERSION and others. */
@@ -54,6 +57,7 @@ extern SR_PRIV struct sr_dev_driver session_driver;
 /** @private */
 SR_PRIV int sr_sessionfile_check(const char *filename)
 {
+	struct stat st;
 	struct zip *archive;
 	struct zip_file *zf;
 	struct zip_stat zs;
@@ -62,6 +66,11 @@ SR_PRIV int sr_sessionfile_check(const char *filename)
 
 	if (!filename)
 		return SR_ERR_ARG;
+
+	if (stat(filename, &st) == -1) {
+		sr_err("Couldn't stat %s: %s", filename, strerror(errno));
+		return SR_ERR;
+	}
 
 	if (!(archive = zip_open(filename, 0, &ret)))
 		/* No logging: this can be used just to check if it's
