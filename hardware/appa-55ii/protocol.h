@@ -34,18 +34,36 @@
 #define sr_warn(s, args...) sr_warn(LOG_PREFIX s, ## args)
 #define sr_err(s, args...) sr_err(LOG_PREFIX s, ## args)
 
-/** Private, per-device-instance driver context. */
-struct dev_context {
-	/* Model-specific information */
+#define APPA_55II_NUM_PROBES  2
+#define APPA_55II_BUF_SIZE    (4 + 32 + 1)
+#define DEFAULT_DATA_SOURCE   DATA_SOURCE_LIVE
 
-	/* Acquisition settings */
-
-	/* Operational state */
-
-	/* Temporary state across callbacks */
-
+enum {
+	DATA_SOURCE_LIVE,
+	DATA_SOURCE_MEMORY,
 };
 
+/** Private, per-device-instance driver context. */
+struct dev_context {
+	/* Acquisition settings */
+	uint64_t limit_samples;   /**< The sampling limit (in number of samples). */
+	uint64_t limit_msec;      /**< The time limit (in milliseconds). */
+	gboolean data_source;     /**< Whether to read live samples or memory */
+	void *session_cb_data;    /**< Opaque pointer passed in by the frontend. */
+
+	/* Operational state */
+	uint64_t num_samples;     /**< The number of already received samples. */
+	int64_t start_time;       /**< The time at which sampling started. */
+
+	/* Temporary state across callbacks */
+	uint8_t buf[APPA_55II_BUF_SIZE];
+	unsigned int buf_len;
+	uint8_t log_buf[64];
+	unsigned int log_buf_len;
+	unsigned int num_log_records;
+};
+
+SR_PRIV gboolean appa_55ii_packet_valid(const uint8_t *buf);
 SR_PRIV int appa_55ii_receive_data(int fd, int revents, void *cb_data);
 
 #endif
