@@ -208,6 +208,8 @@ static void fancyprint(int unit, int mqflags, float value, GString *out)
 		g_string_append_printf(out, " AUTO");
 	if (mqflags & SR_MQFLAG_RELATIVE)
 		g_string_append_printf(out, " REL");
+	if (mqflags & SR_MQFLAG_AVG)
+		g_string_append_printf(out, " AVG");
 	g_string_append_c(out, '\n');
 }
 

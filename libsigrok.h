@@ -299,6 +299,8 @@ enum {
 	SR_MQFLAG_SPL_PCT_OVER_ALARM = 0x10000,
 	/** Time is duration (as opposed to epoch, ...). */
 	SR_MQFLAG_DURATION = 0x20000,
+	/** Device is in "avg" mode, averaging upon each new value. */
+	SR_MQFLAG_AVG = 0x40000,
 };
 
 /** sigrok context (opaque). @see sr_init(), sr_exit(). */
