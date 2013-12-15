@@ -25,7 +25,7 @@ import itertools
 
 __all__ = ['Error', 'Context', 'Driver', 'Device', 'Session', 'Packet', 'Log',
     'LogLevel', 'PacketType', 'Quantity', 'Unit', 'QuantityFlag', 'ConfigKey',
-	'ProbeType', 'Probe', 'ProbeGroup']
+    'ProbeType', 'Probe', 'ProbeGroup']
 
 class Error(Exception):
 
