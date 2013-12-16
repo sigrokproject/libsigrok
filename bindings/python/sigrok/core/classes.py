@@ -155,7 +155,7 @@ class Device(object):
         data = new_gvariant_ptr_ptr()
         try:
             check(sr_config_get(self.driver.struct, self.struct, None,
-                key, data))
+                key.id, data))
         except Error as error:
             if error.errno == SR_ERR_NA:
                 raise NotImplementedError(
@@ -171,7 +171,7 @@ class Device(object):
         except AttributeError:
             super(Device, self).__setattr__(name, value)
             return
-        check(sr_config_set(self.struct, None, key, python_to_gvariant(value)))
+        check(sr_config_set(self.struct, None, key.id, python_to_gvariant(value)))
 
     @property
     def vendor(self):
@@ -242,7 +242,7 @@ class ProbeGroup(object):
         data = new_gvariant_ptr_ptr()
         try:
             check(sr_config_get(self.device.driver.struct, self.device.struct,
-                self.struct, key, data))
+                self.struct, key.id, data))
         except Error as error:
             if error.errno == SR_ERR_NA:
                 raise NotImplementedError(
@@ -259,7 +259,7 @@ class ProbeGroup(object):
             super(ProbeGroup, self).__setattr__(name, value)
             return
         check(sr_config_set(self.device.struct, self.struct,
-            key, python_to_gvariant(value)))
+            key.id, python_to_gvariant(value)))
 
     @property
     def name(self):
