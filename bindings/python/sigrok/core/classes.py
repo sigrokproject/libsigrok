@@ -25,7 +25,8 @@ import itertools
 
 __all__ = ['Error', 'Context', 'Driver', 'Device', 'Session', 'Packet', 'Log',
     'LogLevel', 'PacketType', 'Quantity', 'Unit', 'QuantityFlag', 'ConfigKey',
-    'ProbeType', 'Probe', 'ProbeGroup']
+    'ProbeType', 'Probe', 'ProbeGroup', 'InputFormat', 'OutputFormat',
+    'InputFile']
 
 class Error(Exception):
 
@@ -433,6 +434,28 @@ class InputFormat(object):
     @property
     def description(self):
         return self.struct.description
+
+    def format_match(self, filename):
+        return bool(self.struct.call_format_match(filename))
+
+class InputFile(object):
+
+    def __init__(self, format, filename, **kwargs):
+        self.format = format
+        self.filename = filename
+        self.struct = sr_input()
+        self.struct.format = self.format.struct
+        self.struct.param = g_hash_table_new_full(
+            g_str_hash, g_str_equal, g_free, g_free)
+        for key, value in kwargs.items():
+            g_hash_table_insert(self.struct.param, g_strdup(key), g_strdup(str(value)))
+        check(self.format.struct.call_init(self.struct, self.filename))
+
+    def load(self):
+        check(self.format.struct.call_loadfile(self.struct, self.filename))
+
+    def __del__(self):
+        g_hash_table_destroy(self.struct.param)
 
 class OutputFormat(object):
 

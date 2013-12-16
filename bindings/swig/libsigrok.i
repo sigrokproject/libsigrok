@@ -49,6 +49,21 @@ double g_variant_get_double(GVariant *value);
 char *g_variant_get_string(GVariant *value, unsigned long *length);
 GVariant *g_variant_get_child_value(GVariant *value, unsigned long index);
 
+typedef guint (*GHashFunc)(gconstpointer key);
+typedef gboolean (*GEqualFunc)(gconstpointer a, gconstpointer b);
+typedef void (*GDestroyNotify)(gpointer data);
+
+GHashTable *g_hash_table_new_full(GHashFunc hash_func, GEqualFunc key_equal_func,
+        GDestroyNotify key_destroy_func, GDestroyNotify value_destroy_func);
+void g_hash_table_insert(GHashTable *hash_table, gpointer key, gpointer value);
+void g_hash_table_destroy(GHashTable *hash_table);
+
+%constant guint g_str_hash(gconstpointer v);
+%constant gboolean g_str_equal(gconstpointer v1, gconstpointer v2);;
+%constant void g_free(gpointer mem);
+
+gchar *g_strdup(const char *str);
+
 %include "libsigrok/libsigrok.h"
 #undef SR_API
 #define SR_API
@@ -68,3 +83,17 @@ GVariant *g_variant_get_child_value(GVariant *value, unsigned long index);
 %pointer_cast(void *, struct sr_datafeed_analog *, void_ptr_to_sr_datafeed_analog_ptr)
 %pointer_cast(void *, struct sr_probe *, void_ptr_to_sr_probe_ptr)
 %pointer_cast(void *, struct sr_probe_group *, void_ptr_to_sr_probe_group_ptr)
+
+%extend sr_input_format {
+        int call_format_match(const char *filename) {
+                return $self->format_match(filename);
+        }
+
+        int call_init(struct sr_input *in, const char *filename) {
+                return $self->init(in, filename);
+        }
+
+        int call_loadfile(struct sr_input *in, const char *filename) {
+                return $self->loadfile(in, filename);
+        }
+}
