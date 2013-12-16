@@ -87,6 +87,8 @@ class Context(object):
         self.struct = sr_context_ptr_ptr_value(context_ptr_ptr)
         self._drivers = None
         self._devices = {}
+        self._input_formats = None
+        self._output_formats = None
         self.session = None
 
     def __del__(self):
@@ -104,6 +106,32 @@ class Context(object):
                 else:
                     break
         return self._drivers
+
+    @property
+    def input_formats(self):
+        if not self._input_formats:
+            self._input_formats = {}
+            input_list = sr_input_list()
+            for i in itertools.count():
+                input_ptr = sr_input_format_ptr_array_getitem(input_list, i)
+                if input_ptr:
+                    self._input_formats[input_ptr.id] = InputFormat(self, input_ptr)
+                else:
+                    break
+        return self._input_formats
+
+    @property
+    def output_formats(self):
+        if not self._output_formats:
+            self._output_formats = {}
+            output_list = sr_output_list()
+            for i in itertools.count():
+                output_ptr = sr_output_format_ptr_array_getitem(output_list, i)
+                if output_ptr:
+                    self._output_formats[output_ptr.id] = OutputFormat(self, output_ptr)
+                else:
+                    break
+        return self._output_formats
 
 class Driver(object):
 
@@ -391,6 +419,34 @@ class Log(object):
     @domain.setter
     def domain(self, d):
         check(sr_log_logdomain_set(d))
+
+class InputFormat(object):
+
+    def __init__(self, context, struct):
+        self.context = context
+        self.struct = struct
+
+    @property
+    def id(self):
+        return self.struct.id
+
+    @property
+    def description(self):
+        return self.struct.description
+
+class OutputFormat(object):
+
+    def __init__(self, context, struct):
+        self.context = context
+        self.struct = struct
+
+    @property
+    def id(self):
+        return self.struct.id
+
+    @property
+    def description(self):
+        return self.struct.description
 
 class EnumValue(object):
 
