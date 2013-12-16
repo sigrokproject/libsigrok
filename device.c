@@ -48,10 +48,10 @@
 
 /** @private
  *  Allocate and initialize new struct sr_probe
- *  @param[in]  index \copydoc sr_probe::index
- *  @param[in]  type \copydoc sr_probe::type
- *  @param[in]  enabled \copydoc sr_probe::enabled
- *  @param[in]  name \copydoc sr_probe::name
+ *  @param[in]  index @copydoc sr_probe::index
+ *  @param[in]  type @copydoc sr_probe::type
+ *  @param[in]  enabled @copydoc sr_probe::enabled
+ *  @param[in]  name @copydoc sr_probe::name
  *
  *  @return NULL (failure) or new struct sr_probe*.
  */
@@ -235,14 +235,14 @@ SR_API gboolean sr_dev_has_option(const struct sr_dev_inst *sdi, int key)
 
 /** @private
  *  Allocate and init new device instance struct.
- *  \param[in]  index   \copydoc sr_dev_inst::index
- *  \param[in]  status  \copydoc sr_dev_inst::status
- *  \param[in]  vendor  \copydoc sr_dev_inst::vendor
- *  \param[in]  model   \copydoc sr_dev_inst::model
- *  \param[in]  version \copydoc sr_dev_inst::version
+ *  @param[in]  index   @copydoc sr_dev_inst::index
+ *  @param[in]  status  @copydoc sr_dev_inst::status
+ *  @param[in]  vendor  @copydoc sr_dev_inst::vendor
+ *  @param[in]  model   @copydoc sr_dev_inst::model
+ *  @param[in]  version @copydoc sr_dev_inst::version
  *
- *  \retval NULL Error
- *  \retval struct sr_dev_inst *. Dynamically allocated, free using
+ *  @retval NULL Error
+ *  @retval struct sr_dev_inst *. Dynamically allocated, free using
  *              sr_dev_inst_free().
  */
 SR_PRIV struct sr_dev_inst *sr_dev_inst_new(int index, int status,
@@ -272,7 +272,7 @@ SR_PRIV struct sr_dev_inst *sr_dev_inst_new(int index, int status,
 
 /** @private
  *  Free device instance struct created by sr_dev_inst().
- *  \param sdi  struct* to free.
+ *  @param sdi  struct* to free.
  */
 SR_PRIV void sr_dev_inst_free(struct sr_dev_inst *sdi)
 {
@@ -300,12 +300,12 @@ SR_PRIV void sr_dev_inst_free(struct sr_dev_inst *sdi)
 
 /** @private
  *  Allocate and init struct for USB device instance.
- *  \param[in]  bus \copydoc sr_usb_dev_inst::bus
- *  \param[in]  address \copydoc sr_usb_dev_inst::address
- *  \param[in]  hdl \copydoc sr_usb_dev_inst::devhdl
+ *  @param[in]  bus @copydoc sr_usb_dev_inst::bus
+ *  @param[in]  address @copydoc sr_usb_dev_inst::address
+ *  @param[in]  hdl @copydoc sr_usb_dev_inst::devhdl
  *
- *  \retval NULL Error
- *  \retval other struct sr_usb_dev_inst * for USB device instance.
+ *  @retval NULL Error
+ *  @retval other struct sr_usb_dev_inst * for USB device instance.
  */
 SR_PRIV struct sr_usb_dev_inst *sr_usb_dev_inst_new(uint8_t bus,
 			uint8_t address, struct libusb_device_handle *hdl)
@@ -326,7 +326,7 @@ SR_PRIV struct sr_usb_dev_inst *sr_usb_dev_inst_new(uint8_t bus,
 
 /** @private
  *  Free struct * allocated by sr_usb_dev_inst().
- *  \param usb  struct* to free. Must not be NULL.
+ *  @param usb  struct* to free. Must not be NULL.
  */
 SR_PRIV void sr_usb_dev_inst_free(struct sr_usb_dev_inst *usb)
 {
@@ -377,7 +377,7 @@ SR_PRIV struct sr_serial_dev_inst *sr_serial_dev_inst_new(const char *port,
 
 /** @private
  *  Free struct sr_serial_dev_inst * allocated by sr_serial_dev_inst().
- *  \param serial   struct sr_serial_dev_inst * to free. Must not be NULL.
+ *  @param serial   struct sr_serial_dev_inst * to free. Must not be NULL.
  */
 SR_PRIV void sr_serial_dev_inst_free(struct sr_serial_dev_inst *serial)
 {
