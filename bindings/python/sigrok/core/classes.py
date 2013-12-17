@@ -523,6 +523,28 @@ class Output(object):
     def __del__(self):
         check(self.format.struct.call_cleanup(self.struct))
 
+class ConfigInfo(object):
+
+    def __init__(self, key):
+        self.key = key
+        self.struct = sr_config_info_get(key.id)
+
+    @property
+    def datatype(self):
+        return DataType(self.struct.datatype)
+
+    @property
+    def id(self):
+        return self.struct.id
+
+    @property
+    def name(self):
+        return self.struct.name
+
+    @property
+    def description(self):
+        return self.struct.description
+
 class EnumValue(object):
 
     _enum_values = {}
@@ -562,6 +584,9 @@ class QuantityFlag(EnumValue):
 class ConfigKey(EnumValue):
     pass
 
+class DataType(EnumValue):
+    pass
+
 class ProbeType(EnumValue):
     pass
 
@@ -573,6 +598,7 @@ for symbol_name in dir(lowlevel):
         ('SR_UNIT_', Unit),
         ('SR_MQFLAG_', QuantityFlag),
         ('SR_CONF_', ConfigKey),
+        ('SR_T_', DataType),
         ('SR_PROBE_', ProbeType)]:
         if symbol_name.startswith(prefix):
             name = symbol_name[len(prefix):]
