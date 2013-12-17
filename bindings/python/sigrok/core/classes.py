@@ -151,7 +151,7 @@ class Driver(object):
             self._initialized = True
         options = []
         for name, value in kwargs.items():
-            key = getattr(ConfigKey, name.upper())
+            key = getattr(ConfigKey, name)
             src = sr_config()
             src.key = key.id
             src.data = python_to_gvariant(value)
@@ -180,7 +180,7 @@ class Device(object):
         self._probe_groups = None
 
     def __getattr__(self, name):
-        key = getattr(ConfigKey, name.upper())
+        key = getattr(ConfigKey, name)
         data = new_gvariant_ptr_ptr()
         try:
             check(sr_config_get(self.driver.struct, self.struct, None,
@@ -196,7 +196,7 @@ class Device(object):
 
     def __setattr__(self, name, value):
         try:
-            key = getattr(ConfigKey, name.upper())
+            key = getattr(ConfigKey, name)
         except AttributeError:
             super(Device, self).__setattr__(name, value)
             return
@@ -614,3 +614,5 @@ for symbol_name in dir(lowlevel):
                 obj.info = ConfigInfo(obj)
                 if obj.info:
                     setattr(cls, obj.info.id, obj)
+                else:
+                    setattr(cls, name.lower(), obj)
