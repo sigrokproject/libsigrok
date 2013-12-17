@@ -26,7 +26,7 @@ import itertools
 __all__ = ['Error', 'Context', 'Driver', 'Device', 'Session', 'Packet', 'Log',
     'LogLevel', 'PacketType', 'Quantity', 'Unit', 'QuantityFlag', 'ConfigKey',
     'ProbeType', 'Probe', 'ProbeGroup', 'InputFormat', 'OutputFormat',
-    'InputFile']
+    'InputFile', 'Output']
 
 class Error(Exception):
 
@@ -446,7 +446,7 @@ class InputFile(object):
         self.struct = sr_input()
         self.struct.format = self.format.struct
         self.struct.param = g_hash_table_new_full(
-            g_str_hash, g_str_equal, g_free, g_free)
+            g_str_hash_ptr, g_str_equal_ptr, g_free_ptr, g_free_ptr)
         for key, value in kwargs.items():
             g_hash_table_insert(self.struct.param, g_strdup(key), g_strdup(str(value)))
         check(self.format.struct.call_init(self.struct, self.filename))
@@ -470,6 +470,58 @@ class OutputFormat(object):
     @property
     def description(self):
         return self.struct.description
+
+class Output(object):
+
+    def __init__(self, format, device, param=None):
+        self.format = format
+        self.device = device
+        self.param = param
+        self.struct = sr_output()
+        self.struct.format = self.format.struct
+        self.struct.sdi = self.device.struct
+        self.struct.param = param
+        check(self.format.struct.call_init(self.struct))
+
+    def receive(self, packet):
+
+        output_buf_ptr = new_uint8_ptr_ptr()
+        output_len_ptr = new_uint64_ptr()
+        using_obsolete_api = False
+
+        if self.format.struct.event and packet.type in (
+                PacketType.TRIGGER, PacketType.FRAME_BEGIN,
+                PacketType.FRAME_END, PacketType.END):
+            check(self.format.struct.call_event(self.struct, packet.type.id,
+                output_buf_ptr, output_len_ptr))
+            using_obsolete_api = True
+        elif self.format.struct.data and packet.type.id == self.format.struct.df_type:
+            check(self.format.struct.call_data(self.struct,
+                packet.payload.struct.data, packet.payload.struct.length,
+                output_buf_ptr, output_len_ptr))
+            using_obsolete_api = True
+
+        if using_obsolete_api:
+            output_buf = uint8_ptr_ptr_value(output_buf_ptr)
+            output_len = uint64_ptr_value(output_len_ptr)
+            result = cdata(output_buf, output_len)
+            g_free(output_buf)
+            return result
+
+        if self.format.struct.receive:
+            out_ptr = new_gstring_ptr_ptr()
+            check(self.format.struct.call_receive(self.struct, self.device.struct,
+                packet.struct, out_ptr))
+            out = gstring_ptr_ptr_value(out_ptr)
+            if out:
+                result = out.str
+                g_string_free(out, True)
+                return result
+
+        return None
+
+    def __del__(self):
+        check(self.format.struct.call_cleanup(self.struct))
 
 class EnumValue(object):
 

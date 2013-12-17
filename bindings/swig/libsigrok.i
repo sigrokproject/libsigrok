@@ -26,6 +26,7 @@
 %}
 
 typedef void *gpointer;
+typedef int gboolean;
 
 typedef struct _GSList GSList;
 
@@ -58,11 +59,24 @@ GHashTable *g_hash_table_new_full(GHashFunc hash_func, GEqualFunc key_equal_func
 void g_hash_table_insert(GHashTable *hash_table, gpointer key, gpointer value);
 void g_hash_table_destroy(GHashTable *hash_table);
 
-%constant guint g_str_hash(gconstpointer v);
-%constant gboolean g_str_equal(gconstpointer v1, gconstpointer v2);;
-%constant void g_free(gpointer mem);
+%callback("%s_ptr");
+guint g_str_hash(gconstpointer v);
+gboolean g_str_equal(gconstpointer v1, gconstpointer v2);;
+void g_free(gpointer mem);
+%nocallback;
 
 gchar *g_strdup(const char *str);
+
+typedef struct _GString GString;
+
+struct _GString
+{
+  char *str;
+  gsize len;
+  gsize allocated_len;
+};
+
+gchar *g_string_free(GString *string, gboolean free_segment);
 
 %include "libsigrok/libsigrok.h"
 #undef SR_API
@@ -72,6 +86,9 @@ gchar *g_strdup(const char *str);
 %include "libsigrok/version.h"
 
 %array_class(float, float_array);
+%pointer_functions(uint8_t *, uint8_ptr_ptr);
+%pointer_functions(uint64_t, uint64_ptr);
+%pointer_functions(GString *, gstring_ptr_ptr);
 %pointer_functions(GVariant *, gvariant_ptr_ptr);
 %array_functions(GVariant *, gvariant_ptr_array);
 %pointer_functions(struct sr_context *, sr_context_ptr_ptr);
@@ -95,5 +112,30 @@ gchar *g_strdup(const char *str);
 
         int call_loadfile(struct sr_input *in, const char *filename) {
                 return $self->loadfile(in, filename);
+        }
+}
+
+%extend sr_output_format {
+        int call_init(struct sr_output *o) {
+                return $self->init(o);
+        }
+
+        int call_event(struct sr_output *o, int event_type, uint8_t **data_out,
+                        uint64_t *length_out) {
+                return $self->event(o, event_type, data_out, length_out);
+        }
+
+        int call_data(struct sr_output *o, const void *data_in,
+                        uint64_t length_in, uint8_t **data_out, uint64_t *length_out) {
+                return $self->data(o, data_in, length_in, data_out, length_out);
+        }
+
+        int call_receive(struct sr_output *o, const struct sr_dev_inst *sdi,
+                        const struct sr_datafeed_packet *packet, GString **out) {
+                return $self->receive(o, sdi, packet, out);
+        }
+
+        int call_cleanup(struct sr_output *o) {
+                return $self->cleanup(o);
         }
 }
