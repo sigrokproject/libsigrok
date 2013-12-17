@@ -77,7 +77,8 @@ SR_PRIV int serial_open(struct sr_serial_dev_inst *serial, int flags)
 		return SR_ERR_ARG;
 	case SP_ERR_FAIL:
 		error = sp_last_error_message();
-		sr_err("Error opening port: %s.", error);
+		sr_err("Error opening port (%d): %s.",
+			sp_last_error_code(), error);
 		sp_free_error_message(error);
 		return SR_ERR;
 	}
@@ -120,7 +121,8 @@ SR_PRIV int serial_close(struct sr_serial_dev_inst *serial)
 		return SR_ERR_ARG;
 	case SP_ERR_FAIL:
 		error = sp_last_error_message();
-		sr_err("Error closing port: %s.", error);
+		sr_err("Error closing port (%d): %s.",
+			sp_last_error_code(), error);
 		sp_free_error_message(error);
 		return SR_ERR;
 	}
@@ -163,7 +165,8 @@ SR_PRIV int serial_flush(struct sr_serial_dev_inst *serial)
 		return SR_ERR_ARG;
 	case SP_ERR_FAIL:
 		error = sp_last_error_message();
-		sr_err("Error flushing port: %s.", error);
+		sr_err("Error flushing port (%d): %s.",
+			sp_last_error_code(), error);
 		sp_free_error_message(error);
 		return SR_ERR;
 	}
@@ -207,7 +210,7 @@ SR_PRIV int serial_write(struct sr_serial_dev_inst *serial,
 		return SR_ERR_ARG;
 	case SP_ERR_FAIL:
 		error = sp_last_error_message();
-		sr_err("Write error: %s.", error);
+		sr_err("Write error (%d): %s.", sp_last_error_code(), error);
 		sp_free_error_message(error);
 		return SR_ERR;
 	}
@@ -253,7 +256,7 @@ SR_PRIV int serial_read(struct sr_serial_dev_inst *serial, void *buf,
 		return SR_ERR_ARG;
 	case SP_ERR_FAIL:
 		error = sp_last_error_message();
-		sr_err("Read error: %s.", error);
+		sr_err("Read error (%d): %s.", sp_last_error_code(), error);
 		sp_free_error_message(error);
 		return SR_ERR;
 	}
@@ -332,7 +335,8 @@ SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
 		return SR_ERR_ARG;
 	case SP_ERR_FAIL:
 		error = sp_last_error_message();
-		sr_err("Error setting serial port parameters: %s.", error);
+		sr_err("Error setting serial port parameters (%d): %s.",
+			sp_last_error_code(), error);
 		sp_free_error_message(error);
 		return SR_ERR;
 	}
