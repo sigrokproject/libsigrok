@@ -159,48 +159,23 @@ class Driver(object):
         option_list = python_to_gslist(options)
         device_list = sr_driver_scan(self.struct, option_list)
         g_slist_free(option_list)
-        devices = [Device(self, gpointer_to_sr_dev_inst_ptr(ptr))
+        devices = [HardwareDevice(self, gpointer_to_sr_dev_inst_ptr(ptr))
             for ptr in gslist_to_python(device_list)]
         g_slist_free(device_list)
         return devices
 
 class Device(object):
 
-    def __new__(cls, driver, struct):
+    def __new__(cls, struct, context):
         address = int(struct.this)
-        if address not in driver.context._devices:
-            device = super(Device, cls).__new__(cls, driver, struct)
-            driver.context._devices[address] = device
-        return driver.context._devices[address]
-
-    def __init__(self, driver, struct):
-        self.driver = driver
-        self.struct = struct
-        self._probes = None
-        self._probe_groups = None
-
-    def __getattr__(self, name):
-        key = getattr(ConfigKey, name)
-        data = new_gvariant_ptr_ptr()
-        try:
-            check(sr_config_get(self.driver.struct, self.struct, None,
-                key.id, data))
-        except Error as error:
-            if error.errno == SR_ERR_NA:
-                raise NotImplementedError(
-                    "Device does not implement %s" % name)
-            else:
-                raise AttributeError
-        value = gvariant_ptr_ptr_value(data)
-        return gvariant_to_python(value)
-
-    def __setattr__(self, name, value):
-        try:
-            key = getattr(ConfigKey, name)
-        except AttributeError:
-            super(Device, self).__setattr__(name, value)
-            return
-        check(sr_config_set(self.struct, None, key.id, python_to_gvariant(value)))
+        if address not in context._devices:
+            device = super(Device, cls).__new__(cls)
+            device.struct = struct
+            device.context = context
+            device._probes = None
+            device._probe_groups = None
+            context._devices[address] = device
+        return context._devices[address]
 
     @property
     def vendor(self):
@@ -237,6 +212,36 @@ class Device(object):
                     probe_group_ptr)
                 probe_group_list = probe_group_list.next
         return self._probe_groups
+
+class HardwareDevice(Device):
+
+    def __new__(cls, driver, struct):
+        device = Device.__new__(cls, struct, driver.context)
+        device.driver = driver
+        return device
+
+    def __getattr__(self, name):
+        key = getattr(ConfigKey, name)
+        data = new_gvariant_ptr_ptr()
+        try:
+            check(sr_config_get(self.driver.struct, self.struct, None,
+                key.id, data))
+        except Error as error:
+            if error.errno == SR_ERR_NA:
+                raise NotImplementedError(
+                    "Device does not implement %s" % name)
+            else:
+                raise AttributeError
+        value = gvariant_ptr_ptr_value(data)
+        return gvariant_to_python(value)
+
+    def __setattr__(self, name, value):
+        try:
+            key = getattr(ConfigKey, name)
+        except AttributeError:
+            super(Device, self).__setattr__(name, value)
+            return
+        check(sr_config_set(self.struct, None, key.id, python_to_gvariant(value)))
 
 class Probe(object):
 
@@ -450,12 +455,20 @@ class InputFile(object):
         for key, value in kwargs.items():
             g_hash_table_insert(self.struct.param, g_strdup(key), g_strdup(str(value)))
         check(self.format.struct.call_init(self.struct, self.filename))
+        self.device = InputFileDevice(self)
 
     def load(self):
         check(self.format.struct.call_loadfile(self.struct, self.filename))
 
     def __del__(self):
         g_hash_table_destroy(self.struct.param)
+
+class InputFileDevice(Device):
+
+    def __new__(cls, file):
+        device = Device.__new__(cls, file.struct.sdi, file.format.context)
+        device.file = file
+        return device
 
 class OutputFormat(object):
 
