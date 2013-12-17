@@ -19,6 +19,7 @@
 
 from functools import partial
 from fractions import Fraction
+from collections import OrderedDict
 from .lowlevel import *
 from . import lowlevel
 import itertools
@@ -111,7 +112,7 @@ class Context(object):
     @property
     def input_formats(self):
         if not self._input_formats:
-            self._input_formats = {}
+            self._input_formats = OrderedDict()
             input_list = sr_input_list()
             for i in itertools.count():
                 input_ptr = sr_input_format_ptr_array_getitem(input_list, i)
