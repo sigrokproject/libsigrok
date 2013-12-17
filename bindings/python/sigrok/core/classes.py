@@ -608,4 +608,9 @@ for symbol_name in dir(lowlevel):
         if symbol_name.startswith(prefix):
             name = symbol_name[len(prefix):]
             value = getattr(lowlevel, symbol_name)
-            setattr(cls, name, cls(value))
+            obj = cls(value)
+            setattr(cls, name, obj)
+            if cls is ConfigKey:
+                obj.info = ConfigInfo(obj)
+                if obj.info:
+                    setattr(cls, obj.info.id, obj)
