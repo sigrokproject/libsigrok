@@ -525,9 +525,14 @@ class Output(object):
 
 class ConfigInfo(object):
 
-    def __init__(self, key):
-        self.key = key
-        self.struct = sr_config_info_get(key.id)
+    def __new__(cls, key):
+        struct = sr_config_info_get(key.id)
+        if not struct:
+            return None
+        obj = super(ConfigInfo, cls).__new__(cls)
+        obj.key = key
+        obj.struct = struct
+        return obj
 
     @property
     def datatype(self):
