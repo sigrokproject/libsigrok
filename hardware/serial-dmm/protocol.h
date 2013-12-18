@@ -61,15 +61,15 @@ enum {
 #define DMM_COUNT 25
 
 struct dmm_info {
-	/** Manufacturer/brand */
+	/** Manufacturer/brand. */
 	char *vendor;
-	/** Model */
+	/** Model. */
 	char *device;
-	/** serialconn string */
+	/** serialconn string. */
 	char *conn;
-	/** Baud rate */
+	/** Baud rate. */
 	uint32_t baudrate;
-	/** Packet size [bytes]. */
+	/** Packet size in bytes. */
 	int packet_size;
 	/** Packet request function. */
 	int (*packet_request)(struct sr_serial_dev_inst *);

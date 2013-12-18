@@ -17,19 +17,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/** \file
- *  BBC Goerz Metrawatt M2110 ASCII protocol parser.
+/**
+ * @file
  *
- *  Most probably the simplest multimeter protocol ever ;-) .
+ * BBC Goerz Metrawatt M2110 ASCII protocol parser.
+ *
+ * Most probably the simplest multimeter protocol ever ;-) .
  */
-
 
 #include <string.h>
 #include <math.h>
 #include <glib.h>
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
-
 
 /* Message logging helpers with subsystem-specific prefix string. */
 #define LOG_PREFIX "bbcgm-m2110: "
@@ -47,10 +47,10 @@ SR_PRIV gboolean sr_m2110_packet_valid(const uint8_t *buf)
 	if ((buf[7] != '\r') || (buf[8] != '\n'))
 		return FALSE;
 
-	if (!strncmp((const char*)buf, "OVERRNG", 7))
+	if (!strncmp((const char *)buf, "OVERRNG", 7))
 		return TRUE;
 
-	if (sscanf((const char*)buf, "%f", &val) == 1)
+	if (sscanf((const char *)buf, "%f", &val) == 1)
 		return TRUE;
 	else
 		return FALSE;
@@ -63,14 +63,14 @@ SR_PRIV int sr_m2110_parse(const uint8_t *buf, float *floatval,
 
 	(void)info;
 
-	analog->mq = SR_MQ_GAIN; /* We don't know the unit, so that's the best we can do.*/
+	/* We don't know the unit, so that's the best we can do. */
+	analog->mq = SR_MQ_GAIN;
 	analog->unit = SR_UNIT_UNITLESS;
 	analog->mqflags = 0;
 
-	if (!strncmp((const char*)buf, "OVERRNG", 7)) {
+	if (!strncmp((const char *)buf, "OVERRNG", 7))
 		*floatval = INFINITY;
-	}
-	else if (sscanf((const char*)buf, "%f", &val) == 1)
+	else if (sscanf((const char *)buf, "%f", &val) == 1)
 		*floatval = val;
 
 	return SR_OK;
