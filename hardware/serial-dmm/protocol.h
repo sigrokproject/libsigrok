@@ -60,17 +60,28 @@ enum {
 #define DMM_COUNT 24
 
 struct dmm_info {
+	/** Manufacturer/brand */
 	char *vendor;
+	/** Model */
 	char *device;
+	/** serialconn string */
 	char *conn;
+	/** Baud rate */
 	uint32_t baudrate;
+	/** Packet size [bytes]. */
 	int packet_size;
+	/** Packet request function. */
 	int (*packet_request)(struct sr_serial_dev_inst *);
+	/** Packet validation function. */
 	gboolean (*packet_valid)(const uint8_t *);
+	/** Packet parsing function. */
 	int (*packet_parse)(const uint8_t *, float *,
 			    struct sr_datafeed_analog *, void *);
+	/** */
 	void (*dmm_details)(struct sr_datafeed_analog *, void *);
+	/** libsigrok driver info struct. */
 	struct sr_dev_driver *di;
+	/** Data reception function. */
 	int (*receive_data)(int, int, void *);
 };
 
