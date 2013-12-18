@@ -41,6 +41,7 @@ static const int32_t hwcaps[] = {
 	SR_CONF_CONTINUOUS,
 };
 
+SR_PRIV struct sr_dev_driver bbcgm_m2110_driver_info;
 SR_PRIV struct sr_dev_driver digitek_dt4000zc_driver_info;
 SR_PRIV struct sr_dev_driver tekpower_tp4000zc_driver_info;
 SR_PRIV struct sr_dev_driver metex_me31_driver_info;
@@ -67,6 +68,13 @@ SR_PRIV struct sr_dev_driver uni_t_ut61e_ser_driver_info;
 SR_PRIV struct sr_dev_driver iso_tech_idm103n_driver_info;
 
 SR_PRIV struct dmm_info dmms[] = {
+	{
+		"BBC Goertz Metrawatt", "M2110", "1200/7n2", 1200,
+		BBCGM_M2110_PACKET_SIZE, NULL,
+		sr_m2110_packet_valid, sr_m2110_parse,
+		NULL,
+		&bbcgm_m2110_driver_info, receive_data_BBCGM_M2110,
+	},
 	{
 		"Digitek", "DT4000ZC", "2400/8n1/dtr=1", 2400,
 		FS9721_PACKET_SIZE, NULL,
@@ -523,6 +531,7 @@ SR_PRIV struct sr_dev_driver ID##_driver_info = { \
 	.priv = NULL, \
 };
 
+DRV(bbcgm_m2110, BBCGM_M2110, "bbcgm-m2110", "BBC Goertz Metrawatt M2110")
 DRV(digitek_dt4000zc, DIGITEK_DT4000ZC, "digitek-dt4000zc", "Digitek DT4000ZC")
 DRV(tekpower_tp4000zc, TEKPOWER_TP4000ZC, "tekpower-tp4000zc", "TekPower TP4000ZC")
 DRV(metex_me31, METEX_ME31, "metex-me31", "Metex ME-31")

@@ -460,6 +460,14 @@ SR_PRIV void sr_fs9721_01_temp_c(struct sr_datafeed_analog *analog, void *info);
 SR_PRIV void sr_fs9721_10_temp_c(struct sr_datafeed_analog *analog, void *info);
 SR_PRIV void sr_fs9721_01_10_temp_f_c(struct sr_datafeed_analog *analog, void *info);
 
+/*--- hardware/common/dmm/m2110.c -----------------------------------------*/
+
+#define BBCGM_M2110_PACKET_SIZE 9
+
+SR_PRIV gboolean sr_m2110_packet_valid(const uint8_t *buf);
+SR_PRIV int sr_m2110_parse(const uint8_t *buf, float *floatval,
+			     struct sr_datafeed_analog *analog, void *info);
+
 /*--- hardware/common/dmm/metex14.c -----------------------------------------*/
 
 #define METEX14_PACKET_SIZE 14

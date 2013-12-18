@@ -160,6 +160,7 @@ SR_PRIV int receive_data_##ID_UPPER(int fd, int revents, void *cb_data) { \
 	return receive_data(fd, revents, ID_UPPER, &info, cb_data); }
 
 /* Driver-specific receive_data() wrappers */
+RECEIVE_DATA(BBCGM_M2110, metex14) /* metex14_info used as a dummy. */
 RECEIVE_DATA(DIGITEK_DT4000ZC, fs9721)
 RECEIVE_DATA(TEKPOWER_TP4000ZC, fs9721)
 RECEIVE_DATA(METEX_ME31, metex14)

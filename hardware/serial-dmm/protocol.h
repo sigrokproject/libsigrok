@@ -31,6 +31,7 @@
 
 /* Note: When adding entries here, don't forget to update DMM_COUNT. */
 enum {
+	BBCGM_M2110,
 	DIGITEK_DT4000ZC,
 	TEKPOWER_TP4000ZC,
 	METEX_ME31,
@@ -57,7 +58,7 @@ enum {
 	ISO_TECH_IDM103N,
 };
 
-#define DMM_COUNT 24
+#define DMM_COUNT 25
 
 struct dmm_info {
 	/** Manufacturer/brand */
@@ -110,6 +111,7 @@ struct dev_context {
 	int buflen;
 };
 
+SR_PRIV int receive_data_BBCGM_M2110(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_DIGITEK_DT4000ZC(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_TEKPOWER_TP4000ZC(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_METEX_ME31(int fd, int revents, void *cb_data);
