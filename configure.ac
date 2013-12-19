@@ -300,7 +300,7 @@ case "$host" in
 		[Specifies whether we have a libusb.h header.])
 	;;
 *)
-	PKG_CHECK_MODULES([libusb], [libusb-1.0 >= 1.0.9],
+	PKG_CHECK_MODULES([libusb], [libusb-1.0 >= 1.0.16],
 		[have_libusb1_0="yes"; CFLAGS="$CFLAGS $libusb_CFLAGS";
 		LIBS="$LIBS $libusb_LIBS";
 		SR_PKGLIBS="$SR_PKGLIBS libusb-1.0"],
@@ -604,7 +604,7 @@ echo "Detected libraries:"
 echo
 
 # Note: This only works for libs with pkg-config integration.
-for lib in "glib-2.0 >= 2.32.0" "libzip >= 0.10" "libserialport >= 0.1.0" "libusb-1.0 >= 1.0.9" "libftdi >= 0.16" "libudev >= 151" "alsa >= 1.0" "check >= 0.9.4"; do
+for lib in "glib-2.0 >= 2.32.0" "libzip >= 0.10" "libserialport >= 0.1.0" "libusb-1.0 >= 1.0.16" "libftdi >= 0.16" "libudev >= 151" "alsa >= 1.0" "check >= 0.9.4"; do
 	if `$PKG_CONFIG --exists $lib`; then
 		ver=`$PKG_CONFIG --modversion $lib`
 		answer="yes ($ver)"
