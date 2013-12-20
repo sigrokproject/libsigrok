@@ -88,6 +88,10 @@ struct sr_serial_dev_inst {
 	int nonblocking;
 	/** libserialport port handle */
 	struct sp_port *data;
+	/** libserialport event set */
+	struct sp_event_set *event_set;
+	/** GPollFDs for event polling */
+	GPollFD *pollfds;
 };
 #endif
 

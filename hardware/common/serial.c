@@ -638,25 +638,69 @@ SR_PRIV int sr_serial_extract_options(GSList *options, const char **serial_devic
 	return SR_OK;
 }
 
+#ifdef _WIN32
+typedef HANDLE event_handle;
+#else
+typedef int event_handle;
+#endif
+
 SR_PRIV int serial_source_add(struct sr_serial_dev_inst *serial, int events,
 		int timeout, sr_receive_data_callback_t cb, void *cb_data)
 {
-#ifdef _WIN32
-	return SR_ERR;
-#else
-	int fd;
-	sp_get_port_handle(serial->data, &fd);
-	return sr_source_add(fd, events, timeout, cb, cb_data);
-#endif
+	enum sp_event mask = 0;
+	unsigned int i;
+
+	if (sp_new_event_set(&serial->event_set) != SP_OK)
+		return SR_ERR;
+
+	if (events & G_IO_IN)
+		mask |= SP_EVENT_RX_READY;
+	if (events & G_IO_OUT)
+		mask |= SP_EVENT_TX_READY;
+	if (events & G_IO_ERR)
+		mask |= SP_EVENT_ERROR;
+
+	if (sp_add_port_events(serial->event_set, serial->data, mask) != SP_OK) {
+		sp_free_event_set(serial->event_set);
+		return SR_ERR;
+	}
+
+	serial->pollfds = (GPollFD *) g_malloc0(sizeof(GPollFD) * serial->event_set->count);
+
+	for (i = 0; i < serial->event_set->count; i++) {
+
+		serial->pollfds[i].fd = ((event_handle *) serial->event_set->handles)[i];
+
+		mask = serial->event_set->masks[i];
+
+		if (mask & SP_EVENT_RX_READY)
+			serial->pollfds[i].events |= G_IO_IN;
+		if (mask & SP_EVENT_TX_READY)
+			serial->pollfds[i].events |= G_IO_OUT;
+		if (mask & SP_EVENT_ERROR)
+			serial->pollfds[i].events |= G_IO_ERR;
+
+		if (sr_session_source_add_pollfd(&serial->pollfds[i],
+				timeout, cb, cb_data) != SR_OK)
+			return SR_ERR;
+	}
+
+	return SR_OK;
 }
 
 SR_PRIV int serial_source_remove(struct sr_serial_dev_inst *serial)
 {
-#ifdef _WIN32
-	return SR_ERR;
-#else
-	int fd;
-	sp_get_port_handle(serial->data, &fd);
-	return sr_source_remove(fd);
-#endif
+	unsigned int i;
+
+	for (i = 0; i < serial->event_set->count; i++)
+		if (sr_session_source_remove_pollfd(&serial->pollfds[i]) != SR_OK)
+			return SR_ERR;
+
+	g_free(serial->pollfds);
+	sp_free_event_set(serial->event_set);
+
+	serial->pollfds = NULL;
+	serial->event_set = NULL;
+
+	return SR_OK;
 }
