@@ -63,7 +63,6 @@ struct dev_context {
 
 	/* Operational state */
 	uint64_t num_samples;
-	int usbfd[10];
 	unsigned char buf[8];
 	struct libusb_transfer *xfer;
 	void *cb_data;

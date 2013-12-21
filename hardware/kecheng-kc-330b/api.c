@@ -432,9 +432,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	struct sr_config *src;
 	struct sr_usb_dev_inst *usb;
 	GVariant *gvar, *rational[2];
-	const struct libusb_pollfd **pfd;
 	const uint64_t *si;
-	int stored_mqflags, req_len, buf_len, len, ret, i;
+	int stored_mqflags, req_len, buf_len, len, ret;
 	unsigned char buf[9];
 
 	if (sdi->status != SR_ST_ACTIVE)
@@ -494,15 +493,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	if (!(devc->xfer = libusb_alloc_transfer(0)))
 		return SR_ERR;
 
-	pfd = libusb_get_pollfds(drvc->sr_ctx->libusb_ctx);
-	for (i = 0; pfd[i]; i++) {
-		/* Handle USB events every 10ms. */
-		sr_source_add(pfd[i]->fd, pfd[i]->events, 10,
-				kecheng_kc_330b_handle_events, (void *)sdi);
-		/* We'll need to remove this fd later. */
-		devc->usbfd[i] = pfd[i]->fd;
-	}
-	devc->usbfd[i] = -1;
+	usb_source_add(drvc->sr_ctx, 10,
+		kecheng_kc_330b_handle_events, (void *)sdi);
 
 	if (devc->data_source == DATA_SOURCE_LIVE) {
 		buf[0] = CMD_GET_LIVE_SPL;

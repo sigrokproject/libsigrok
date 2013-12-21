@@ -468,7 +468,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	struct drv_context *drvc;
 	struct sr_usb_dev_inst *usb;
 	struct libusb_transfer *transfer;
-	const struct libusb_pollfd **lupfd;
 	unsigned int i, timeout, num_transfers;
 	int ret;
 	unsigned char *buf;
@@ -524,17 +523,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		devc->submitted_transfers++;
 	}
 
-	lupfd = libusb_get_pollfds(drvc->sr_ctx->libusb_ctx);
-	for (i = 0; lupfd[i]; i++);
-	if (!(devc->usbfd = g_try_malloc(sizeof(struct libusb_pollfd) * (i + 1))))
-		return SR_ERR;
-	for (i = 0; lupfd[i]; i++) {
-		sr_source_add(lupfd[i]->fd, lupfd[i]->events,
-			      timeout, receive_data, NULL);
-		devc->usbfd[i] = lupfd[i]->fd;
-	}
-	devc->usbfd[i] = -1;
-	free(lupfd);
+	devc->ctx = drvc->sr_ctx;
+
+	usb_source_add(devc->ctx, timeout, receive_data, NULL);
 
 	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, LOG_PREFIX);

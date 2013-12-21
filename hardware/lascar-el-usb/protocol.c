@@ -488,22 +488,18 @@ static void lascar_el_usb_dispatch(struct sr_dev_inst *sdi, unsigned char *buf,
 
 SR_PRIV int lascar_el_usb_handle_events(int fd, int revents, void *cb_data)
 {
-	struct dev_context *devc;
 	struct drv_context *drvc = di->priv;
 	struct sr_datafeed_packet packet;
 	struct sr_dev_inst *sdi;
 	struct timeval tv;
-	int i;
 
 	(void)fd;
 	(void)revents;
 
 	sdi = cb_data;
-	devc = sdi->priv;
 
 	if (sdi->status == SR_ST_STOPPING) {
-		for (i = 0; devc->usbfd[i] != -1; i++)
-			sr_source_remove(devc->usbfd[i]);
+		usb_source_remove(drvc->sr_ctx);
 
 		packet.type = SR_DF_END;
 		sr_session_send(cb_data, &packet);

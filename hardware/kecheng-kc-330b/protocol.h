@@ -89,7 +89,6 @@ struct dev_context {
 	uint64_t num_samples;
 	uint64_t stored_samples;
 	void *cb_data;
-	int usbfd[10];
 	struct libusb_transfer *xfer;
 	unsigned char buf[128];
 

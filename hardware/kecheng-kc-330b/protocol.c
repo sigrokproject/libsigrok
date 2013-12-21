@@ -34,7 +34,7 @@ SR_PRIV int kecheng_kc_330b_handle_events(int fd, int revents, void *cb_data)
 	struct timeval tv;
 	const uint64_t *intv_entry;
 	gint64 now, interval;
-	int offset, len, ret, i;
+	int offset, len, ret;
 	unsigned char buf[4];
 
 	(void)fd;
@@ -51,8 +51,7 @@ SR_PRIV int kecheng_kc_330b_handle_events(int fd, int revents, void *cb_data)
 
 	if (sdi->status == SR_ST_STOPPING) {
 		libusb_free_transfer(devc->xfer);
-		for (i = 0; devc->usbfd[i] != -1; i++)
-			sr_source_remove(devc->usbfd[i]);
+		usb_source_remove(drvc->sr_ctx);
 		packet.type = SR_DF_END;
 		sr_session_send(cb_data, &packet);
 		sdi->status = SR_ST_ACTIVE;

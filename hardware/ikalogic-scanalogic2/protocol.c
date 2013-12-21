@@ -26,17 +26,14 @@ extern uint64_t sl2_samplerates[NUM_SAMPLERATES];
 
 static void stop_acquisition(struct sr_dev_inst *sdi)
 {
+	struct drv_context *drvc = sdi->driver->priv;
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
-	unsigned int i;
 
 	devc = sdi->priv;
 
 	/* Remove USB file descriptors from polling. */
-	for (i = 0; i < devc->num_usbfd; i++)
-		sr_source_remove(devc->usbfd[i]);
-
-	g_free(devc->usbfd);
+	usb_source_remove(drvc->sr_ctx);
 
 	packet.type = SR_DF_END;
 	sr_session_send(devc->cb_data, &packet);
@@ -46,17 +43,14 @@ static void stop_acquisition(struct sr_dev_inst *sdi)
 
 static void abort_acquisition(struct sr_dev_inst *sdi)
 {
+	struct drv_context *drvc = sdi->driver->priv;
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
-	unsigned int i;
 
 	devc = sdi->priv;
 
 	/* Remove USB file descriptors from polling. */
-	for (i = 0; i < devc->num_usbfd; i++)
-		sr_source_remove(devc->usbfd[i]);
-
-	g_free(devc->usbfd);
+	usb_source_remove(drvc->sr_ctx);
 
 	packet.type = SR_DF_END;
 	sr_session_send(devc->cb_data, &packet);

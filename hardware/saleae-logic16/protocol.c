@@ -579,18 +579,13 @@ SR_PRIV int logic16_init_device(const struct sr_dev_inst *sdi)
 static void finish_acquisition(struct dev_context *devc)
 {
 	struct sr_datafeed_packet packet;
-	int i;
 
 	/* Terminate session. */
 	packet.type = SR_DF_END;
 	sr_session_send(devc->cb_data, &packet);
 
 	/* Remove fds from polling. */
-	if (devc->usbfd != NULL) {
-		for (i = 0; devc->usbfd[i] != -1; i++)
-			sr_source_remove(devc->usbfd[i]);
-		g_free(devc->usbfd);
-	}
+	usb_source_remove(devc->ctx);
 
 	devc->num_transfers = 0;
 	g_free(devc->transfers);

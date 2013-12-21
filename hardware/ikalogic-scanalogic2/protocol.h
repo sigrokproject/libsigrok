@@ -161,9 +161,6 @@ struct dev_context {
 	/* Array to provide an index based access to all probes. */
 	const struct sr_probe *probes[NUM_PROBES];
 
-	unsigned int num_usbfd;
-	int *usbfd;
-
 	struct libusb_transfer *xfer_in, *xfer_out;
 
 	/*

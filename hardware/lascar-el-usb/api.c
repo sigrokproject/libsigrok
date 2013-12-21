@@ -340,10 +340,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	struct drv_context *drvc;
 	struct sr_usb_dev_inst *usb;
 	struct libusb_transfer *xfer_in, *xfer_out;
-	const struct libusb_pollfd **pfd;
 	struct timeval tv;
 	uint64_t interval;
-	int ret, i;
+	int ret;
 	unsigned char cmd[3], resp[4], *buf;
 
 	if (sdi->status != SR_ST_ACTIVE)
@@ -440,15 +439,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	devc->log_size = xfer_in->buffer[1] + (xfer_in->buffer[2] << 8);
 	libusb_free_transfer(xfer_out);
 
-	pfd = libusb_get_pollfds(drvc->sr_ctx->libusb_ctx);
-	for (i = 0; pfd[i]; i++) {
-		/* Handle USB events every 100ms, for decent latency. */
-		sr_source_add(pfd[i]->fd, pfd[i]->events, 100,
-				lascar_el_usb_handle_events, (void *)sdi);
-		/* We'll need to remove this fd later. */
-		devc->usbfd[i] = pfd[i]->fd;
-	}
-	devc->usbfd[i] = -1;
+	usb_source_add(drvc->sr_ctx, 100, lascar_el_usb_handle_events, (void *)sdi);
 
 	buf = g_try_malloc(4096);
 	libusb_fill_bulk_transfer(xfer_in, usb->devhdl, LASCAR_EP_IN,

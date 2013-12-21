@@ -805,8 +805,7 @@ static int handle_event(int fd, int revents, void *cb_data)
 	struct timeval tv;
 	struct dev_context *devc;
 	struct drv_context *drvc = di->priv;
-	const struct libusb_pollfd **lupfd;
-	int num_probes, i;
+	int num_probes;
 	uint32_t trigger_offset;
 	uint8_t capturestate;
 
@@ -822,10 +821,7 @@ static int handle_event(int fd, int revents, void *cb_data)
 		 * TODO: Doesn't really cancel pending transfers so they might
 		 * come in after SR_DF_END is sent.
 		 */
-		lupfd = libusb_get_pollfds(drvc->sr_ctx->libusb_ctx);
-		for (i = 0; lupfd[i]; i++)
-			sr_source_remove(lupfd[i]->fd);
-		free(lupfd);
+		usb_source_remove(drvc->sr_ctx);
 
 		packet.type = SR_DF_END;
 		sr_session_send(sdi, &packet);
@@ -915,10 +911,8 @@ static int handle_event(int fd, int revents, void *cb_data)
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 {
-	const struct libusb_pollfd **lupfd;
 	struct dev_context *devc;
 	struct drv_context *drvc = di->priv;
-	int i;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
@@ -938,11 +932,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		return SR_ERR;
 
 	devc->dev_state = CAPTURE;
-	lupfd = libusb_get_pollfds(drvc->sr_ctx->libusb_ctx);
-	for (i = 0; lupfd[i]; i++)
-		sr_source_add(lupfd[i]->fd, lupfd[i]->events, TICK,
-				handle_event, (void *)sdi);
-	free(lupfd);
+	usb_source_add(drvc->sr_ctx, TICK, handle_event, (void *)sdi);
 
 	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, LOG_PREFIX);

@@ -402,7 +402,6 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 {
-	const struct libusb_pollfd **pfd;
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	uint16_t trigger_bytes, tmp;
@@ -473,34 +472,12 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	tmp = GUINT16_TO_LE(devc->after_trigger_delay);
 	memcpy(devc->xfer_data_out + 10, &tmp, sizeof(tmp));
 
-	if (!(pfd = libusb_get_pollfds(drvc->sr_ctx->libusb_ctx))) {
-		sr_err("libusb_get_pollfds failed.");
-		return SR_ERR;
-	}
-
-	/* Count the number of file descriptors. */
-	for (devc->num_usbfd = 0; pfd[devc->num_usbfd]; devc->num_usbfd++);
-
-	if (!(devc->usbfd = g_try_malloc(devc->num_usbfd * sizeof(int)))) {
-		sr_err("File descriptor array malloc failed.");
-		free(pfd);
-		return SR_ERR_MALLOC;
-	}
-
 	if ((ret = libusb_submit_transfer(devc->xfer_out)) != 0) {
 		sr_err("Submit transfer failed: %s.", libusb_error_name(ret));
-		g_free(devc->usbfd);
 		return SR_ERR;
 	}
 
-	for (i = 0; i < devc->num_usbfd; i++) {
-		sr_source_add(pfd[i]->fd, pfd[i]->events, 100,
-			ikalogic_scanalogic2_receive_data, (void *)sdi);
-
-		devc->usbfd[i] = pfd[i]->fd;
-	}
-
-	free(pfd);
+	usb_source_add(drvc->sr_ctx, 100, ikalogic_scanalogic2_receive_data, (void *)sdi);
 
 	sr_dbg("Acquisition started successfully.");
 

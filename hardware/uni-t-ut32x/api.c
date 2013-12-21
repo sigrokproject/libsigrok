@@ -297,8 +297,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
-	const struct libusb_pollfd **pfd;
-	int len, ret, i;
+	int len, ret;
 	unsigned char cmd[2];
 
 	if (sdi->status != SR_ST_ACTIVE)
@@ -350,15 +349,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 		return SR_ERR;
 	}
 
-	pfd = libusb_get_pollfds(drvc->sr_ctx->libusb_ctx);
-	for (i = 0; pfd[i]; i++) {
-		/* Handle USB events every 10ms. */
-		sr_source_add(pfd[i]->fd, pfd[i]->events, 10,
-				uni_t_ut32x_handle_events, (void *)sdi);
-		/* We'll need to remove this fd later. */
-		devc->usbfd[i] = pfd[i]->fd;
-	}
-	devc->usbfd[i] = -1;
+	usb_source_add(drvc->sr_ctx, 10, uni_t_ut32x_handle_events, (void *)sdi);
 
 	return SR_OK;
 }

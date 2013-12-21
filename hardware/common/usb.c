@@ -243,3 +243,40 @@ SR_PRIV int sr_usb_open(libusb_context *usb_ctx, struct sr_usb_dev_inst *usb)
 
 	return ret;
 }
+
+SR_PRIV int usb_source_add(struct sr_context *ctx, int timeout,
+		sr_receive_data_callback_t cb, void *cb_data)
+{
+#ifdef _WIN32
+	sr_err("Operation not supported on Windows yet.");
+	return SR_ERR;
+#else
+	const struct libusb_pollfd **lupfd;
+	unsigned int i;
+
+	lupfd = libusb_get_pollfds(ctx->libusb_ctx);
+	for (i = 0; lupfd[i]; i++)
+		sr_source_add(lupfd[i]->fd, lupfd[i]->events, timeout, cb, cb_data);
+	free(lupfd);
+
+	return SR_OK;
+#endif
+}
+
+SR_PRIV int usb_source_remove(struct sr_context *ctx)
+{
+#ifdef _WIN32
+	sr_err("Operation not supported on Windows yet.");
+	return SR_ERR;
+#else
+	const struct libusb_pollfd **lupfd;
+	unsigned int i;
+
+	lupfd = libusb_get_pollfds(ctx->libusb_ctx);
+	for (i = 0; lupfd[i]; i++)
+		sr_source_remove(lupfd[i]->fd);
+	free(lupfd);
+
+	return SR_OK;
+#endif
+}

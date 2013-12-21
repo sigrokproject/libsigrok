@@ -49,9 +49,6 @@ struct dev_context {
 	/** The current number of already received samples. */
 	uint64_t num_samples;
 	gint64 end_time;
-
-	/* Only requires 3 really. */
-	int usbfd[10];
 };
 
 SR_PRIV int victor_dmm_receive_data(struct sr_dev_inst *sdi, unsigned char *buf);

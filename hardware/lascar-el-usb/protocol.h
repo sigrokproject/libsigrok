@@ -45,7 +45,6 @@
 struct dev_context {
 	void *cb_data;
 	const struct elusb_profile *profile;
-	int usbfd[10];
 	/* Generic EL-USB */
 	unsigned char config[MAX_CONFIGBLOCK_SIZE];
 	unsigned int log_size;

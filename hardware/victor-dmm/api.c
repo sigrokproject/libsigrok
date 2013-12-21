@@ -338,7 +338,6 @@ static int handle_events(int fd, int revents, void *cb_data)
 	struct sr_dev_inst *sdi;
 	struct timeval tv;
 	gint64 now;
-	int i;
 
 	(void)fd;
 	(void)revents;
@@ -353,8 +352,7 @@ static int handle_events(int fd, int revents, void *cb_data)
 	}
 
 	if (sdi->status == SR_ST_STOPPING) {
-		for (i = 0; devc->usbfd[i] != -1; i++)
-			sr_source_remove(devc->usbfd[i]);
+		usb_source_remove(drvc->sr_ctx);
 
 		dev_close(sdi);
 
@@ -373,10 +371,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 {
 	struct dev_context *devc;
 	struct drv_context *drvc = di->priv;
-	const struct libusb_pollfd **pfd;
 	struct sr_usb_dev_inst *usb;
 	struct libusb_transfer *transfer;
-	int ret, i;
+	int ret;
 	unsigned char *buf;
 
 	if (sdi->status != SR_ST_ACTIVE)
@@ -394,15 +391,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, LOG_PREFIX);
 
-	pfd = libusb_get_pollfds(drvc->sr_ctx->libusb_ctx);
-	for (i = 0; pfd[i]; i++) {
-		/* Handle USB events every 100ms, for decent latency. */
-		sr_source_add(pfd[i]->fd, pfd[i]->events, 100,
-				handle_events, (void *)sdi);
-		/* We'll need to remove this fd later. */
-		devc->usbfd[i] = pfd[i]->fd;
-	}
-	devc->usbfd[i] = -1;
+	usb_source_add(drvc->sr_ctx, 100, handle_events, (void *)sdi);
 
 	buf = g_try_malloc(DMM_DATA_SIZE);
 	transfer = libusb_alloc_transfer(0);

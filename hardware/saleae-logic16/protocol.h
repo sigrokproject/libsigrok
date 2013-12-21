@@ -82,7 +82,7 @@ struct dev_context {
 	void *cb_data;
 	unsigned int num_transfers;
 	struct libusb_transfer **transfers;
-	int *usbfd;
+	struct sr_context *ctx;
 };
 
 SR_PRIV int logic16_setup_acquisition(const struct sr_dev_inst *sdi,
