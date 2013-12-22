@@ -267,8 +267,11 @@ SR_PRIV int usb_callback(int fd, int revents, void *cb_data)
 
 	g_mutex_lock(&ctx->usb_mutex);
 	ret = ctx->usb_cb(fd, revents, ctx->usb_cb_data);
-	ResetEvent(ctx->usb_event);
-	g_mutex_unlock(&ctx->usb_mutex);
+
+	if (ctx->usb_thread_running) {
+		ResetEvent(ctx->usb_event);
+		g_mutex_unlock(&ctx->usb_mutex);
+	}
 
 	return ret;
 }
