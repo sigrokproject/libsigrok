@@ -181,7 +181,7 @@ SR_API int sr_session_load(const char *filename)
 							g_variant_new_uint64(tmp_u64), sdi, NULL);
 				} else if (!strcmp(keys[j], "total probes")) {
 					total_probes = strtoull(val, NULL, 10);
-					sdi->driver->config_set(SR_CONF_CAPTURE_NUM_PROBES,
+					sdi->driver->config_set(SR_CONF_NUM_LOGIC_PROBES,
 							g_variant_new_uint64(total_probes), sdi, NULL);
 					for (p = 0; p < total_probes; p++) {
 						snprintf(probename, SR_MAX_PROBENAME_LEN, "%" PRIu64, p);

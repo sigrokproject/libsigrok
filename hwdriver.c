@@ -96,6 +96,10 @@ static struct sr_config_info sr_config_info_data[] = {
 		"Power off", NULL},
 	{SR_CONF_DATA_SOURCE, SR_T_CHAR, "data_source",
 		"Data source", NULL},
+	{SR_CONF_NUM_LOGIC_PROBES, SR_T_INT32, "logic_probes",
+		"Number of logic probes", NULL},
+	{SR_CONF_NUM_ANALOG_PROBES, SR_T_INT32, "analog_probes",
+		"Number of analog probes", NULL},
 	{0, 0, NULL, NULL, NULL},
 };
 

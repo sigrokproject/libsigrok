@@ -244,7 +244,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 	case SR_CONF_CAPTURE_UNITSIZE:
 		vdev->unitsize = g_variant_get_uint64(data);
 		break;
-	case SR_CONF_CAPTURE_NUM_PROBES:
+	case SR_CONF_NUM_LOGIC_PROBES:
 		vdev->num_probes = g_variant_get_uint64(data);
 		break;
 	default:

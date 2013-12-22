@@ -145,6 +145,7 @@ enum {
 	SR_T_KEYVALUE,
 	SR_T_UINT64_RANGE,
 	SR_T_DOUBLE_RANGE,
+	SR_T_INT32,
 };
 
 /** Value for sr_datafeed_packet.type. */
@@ -785,7 +786,7 @@ enum {
 	/** Logic low-high threshold range. */
 	SR_CONF_VOLTAGE_THRESHOLD,
 
-	/** The device supports using a external clock. */
+	/** The device supports using an external clock. */
 	SR_CONF_EXTERNAL_CLOCK,
 
 	/**
@@ -794,11 +795,17 @@ enum {
 	 */
 	SR_CONF_SWAP,
 
-        /** Center frequency.
-         * The input signal is downmixed by this frequency before the ADC
-         * anti-aliasing filter.
-         */
-        SR_CONF_CENTER_FREQUENCY,
+	/** Center frequency.
+	 * The input signal is downmixed by this frequency before the ADC
+	 * anti-aliasing filter.
+	 */
+	SR_CONF_CENTER_FREQUENCY,
+
+	/** The device supports setting the number of logic probes. */
+	SR_CONF_NUM_LOGIC_PROBES,
+
+	/** The device supports setting the number of analog probes. */
+	SR_CONF_NUM_ANALOG_PROBES,
 
 	/*--- Special stuff -------------------------------------------------*/
 
@@ -816,9 +823,6 @@ enum {
 
 	/** The device supports specifying the capturefile unit size. */
 	SR_CONF_CAPTURE_UNITSIZE,
-
-	/** The device supports setting the number of probes. */
-	SR_CONF_CAPTURE_NUM_PROBES,
 
 	/** Power off the device. */
 	SR_CONF_POWER_OFF,
