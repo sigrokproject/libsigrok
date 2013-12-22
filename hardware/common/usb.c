@@ -277,6 +277,11 @@ SR_PRIV int usb_callback(int fd, int revents, void *cb_data)
 SR_PRIV int usb_source_add(struct sr_context *ctx, int timeout,
 		sr_receive_data_callback_t cb, void *cb_data)
 {
+	if (ctx->usb_source_present) {
+		sr_err("A USB event source is already present.");
+		return SR_ERR;
+	}
+
 #ifdef _WIN32
 	ctx->usb_event = CreateEvent(NULL, TRUE, FALSE, NULL);
 	g_mutex_init(&ctx->usb_mutex);
@@ -296,12 +301,16 @@ SR_PRIV int usb_source_add(struct sr_context *ctx, int timeout,
 		sr_source_add(lupfd[i]->fd, lupfd[i]->events, timeout, cb, cb_data);
 	free(lupfd);
 #endif
+	ctx->usb_source_present = TRUE;
 
 	return SR_OK;
 }
 
 SR_PRIV int usb_source_remove(struct sr_context *ctx)
 {
+	if (!ctx->usb_source_present)
+		return SR_OK;
+
 #ifdef _WIN32
 	ctx->usb_thread_running = FALSE;
 	g_mutex_unlock(&ctx->usb_mutex);
@@ -319,6 +328,7 @@ SR_PRIV int usb_source_remove(struct sr_context *ctx)
 		sr_source_remove(lupfd[i]->fd);
 	free(lupfd);
 #endif
+	ctx->usb_source_present = FALSE;
 
 	return SR_OK;
 }
