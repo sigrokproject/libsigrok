@@ -41,47 +41,45 @@
 #define sr_err(s, args...) sr_err(LOG_PREFIX s, ## args)
 
 /* TODO: Number of probes should be configurable. */
-#define NUM_PROBES             8
-
-#define DEMONAME               "Demo device"
+#define NUM_PROBES           8
 
 /* The size of chunks to send through the session bus. */
 /* TODO: Should be configurable. */
-#define BUFSIZE                4096
+#define LOGIC_BUFSIZE        4096
 
-#define STR_PATTERN_SIGROK   "sigrok"
-#define STR_PATTERN_RANDOM   "random"
-#define STR_PATTERN_INC      "incremental"
-#define STR_PATTERN_ALL_LOW  "all-low"
-#define STR_PATTERN_ALL_HIGH "all-high"
-
-/* Supported patterns which we can generate */
+/* Patterns we can generate */
 enum {
 	/**
-	 * Pattern which spells "sigrok" using '0's (with '1's as "background")
-	 * when displayed using the 'bits' output format.
+	 * Spells "sigrok" across 8 probes using '0's (with '1's as
+	 * "background") when displayed using the 'bits' output format.
 	 */
 	PATTERN_SIGROK,
 
-	/** Pattern which consists of (pseudo-)random values on all probes. */
+	/** Pseudo-)random values on all probes. */
 	PATTERN_RANDOM,
 
 	/**
-	 * Pattern which consists of incrementing numbers.
-	 * TODO: Better description.
+	 * Incrementing number across all probes.
 	 */
 	PATTERN_INC,
 
-	/** Pattern where all probes have a low logic state. */
+	/** All probes have a low logic state. */
 	PATTERN_ALL_LOW,
 
-	/** Pattern where all probes have a high logic state. */
+	/** All probes have a high logic state. */
 	PATTERN_ALL_HIGH,
+};
+
+static const char *pattern_strings[] = {
+	"sigrok",
+	"random",
+	"incremental",
+	"all-low",
+	"all-high",
 };
 
 /* Private, per-device-instance driver context. */
 struct dev_context {
-	struct sr_dev_inst *sdi;
 	int pipe_fds[2];
 	GIOChannel *channel;
 	uint64_t cur_samplerate;
@@ -91,6 +89,8 @@ struct dev_context {
 	uint64_t samples_counter;
 	void *cb_data;
 	int64_t starttime;
+	unsigned char logic_data[LOGIC_BUFSIZE];
+	uint64_t step;
 };
 
 static const int hwcaps[] = {
@@ -107,20 +107,6 @@ static const uint64_t samplerates[] = {
 	SR_HZ(1),
 	SR_GHZ(1),
 	SR_HZ(1),
-};
-
-static const char *pattern_strings[] = {
-	"sigrok",
-	"random",
-	"incremental",
-	"all-low",
-	"all-high",
-};
-
-/* We name the probes 0-7 on our demo driver. */
-static const char *probe_names[NUM_PROBES + 1] = {
-	"0", "1", "2", "3", "4", "5", "6", "7",
-	NULL,
 };
 
 static uint8_t pattern_sigrok[] = {
@@ -161,6 +147,7 @@ static GSList *scan(GSList *options)
 	struct dev_context *devc;
 	GSList *devices;
 	int i;
+	char probe_name[16];
 
 	(void)options;
 
@@ -168,16 +155,16 @@ static GSList *scan(GSList *options)
 
 	devices = NULL;
 
-	sdi = sr_dev_inst_new(0, SR_ST_ACTIVE, DEMONAME, NULL, NULL);
+	sdi = sr_dev_inst_new(0, SR_ST_ACTIVE, "Demo device", NULL, NULL);
 	if (!sdi) {
 		sr_err("Device instance creation failed.");
 		return NULL;
 	}
 	sdi->driver = di;
 
-	for (i = 0; probe_names[i]; i++) {
-		if (!(probe = sr_probe_new(i, SR_PROBE_LOGIC, TRUE,
-				probe_names[i])))
+	for (i = 0; i < NUM_PROBES; i++) {
+		sprintf(probe_name, "D%d", i);
+		if (!(probe = sr_probe_new(i, SR_PROBE_LOGIC, TRUE, probe_name)))
 			return NULL;
 		sdi->probes = g_slist_append(sdi->probes, probe);
 	}
@@ -190,11 +177,11 @@ static GSList *scan(GSList *options)
 		return NULL;
 	}
 
-	devc->sdi = sdi;
 	devc->cur_samplerate = SR_KHZ(200);
 	devc->limit_samples = 0;
 	devc->limit_msec = 0;
 	devc->sample_generator = PATTERN_SIGROK;
+	devc->step =0;
 
 	sdi->priv = devc;
 
@@ -243,23 +230,7 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 		*data = g_variant_new_uint64(devc->limit_msec);
 		break;
 	case SR_CONF_PATTERN_MODE:
-		switch (devc->sample_generator) {
-		case PATTERN_SIGROK:
-			*data = g_variant_new_string(STR_PATTERN_SIGROK);
-			break;
-		case PATTERN_RANDOM:
-			*data = g_variant_new_string(STR_PATTERN_RANDOM);
-			break;
-		case PATTERN_INC:
-			*data = g_variant_new_string(STR_PATTERN_INC);
-			break;
-		case PATTERN_ALL_LOW:
-			*data = g_variant_new_string(STR_PATTERN_ALL_LOW);
-			break;
-		case PATTERN_ALL_HIGH:
-			*data = g_variant_new_string(STR_PATTERN_ALL_HIGH);
-			break;
-		}
+		*data = g_variant_new_string(pattern_strings[devc->sample_generator]);
 		break;
 	default:
 		return SR_ERR_NA;
@@ -271,6 +242,7 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 		const struct sr_probe_group *probe_group)
 {
+	unsigned int i;
 	int ret;
 	const char *stropt;
 
@@ -282,39 +254,34 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 
 	if (id == SR_CONF_SAMPLERATE) {
 		devc->cur_samplerate = g_variant_get_uint64(data);
-		sr_dbg("%s: setting samplerate to %" PRIu64, __func__,
-		       devc->cur_samplerate);
+		sr_dbg("Setting samplerate to %" PRIu64, devc->cur_samplerate);
 		ret = SR_OK;
 	} else if (id == SR_CONF_LIMIT_SAMPLES) {
 		devc->limit_msec = 0;
 		devc->limit_samples = g_variant_get_uint64(data);
-		sr_dbg("%s: setting limit_samples to %" PRIu64, __func__,
-		       devc->limit_samples);
+		sr_dbg("Setting limit_samples to %" PRIu64, devc->limit_samples);
 		ret = SR_OK;
 	} else if (id == SR_CONF_LIMIT_MSEC) {
 		devc->limit_msec = g_variant_get_uint64(data);
 		devc->limit_samples = 0;
-		sr_dbg("%s: setting limit_msec to %" PRIu64, __func__,
-		       devc->limit_msec);
+		sr_dbg("Setting limit_msec to %" PRIu64, devc->limit_msec);
 		ret = SR_OK;
 	} else if (id == SR_CONF_PATTERN_MODE) {
 		stropt = g_variant_get_string(data, NULL);
-		ret = SR_OK;
-		if (!strcmp(stropt, STR_PATTERN_SIGROK)) {
-			devc->sample_generator = PATTERN_SIGROK;
-		} else if (!strcmp(stropt, STR_PATTERN_RANDOM)) {
-			devc->sample_generator = PATTERN_RANDOM;
-		} else if (!strcmp(stropt, STR_PATTERN_INC)) {
-			devc->sample_generator = PATTERN_INC;
-		} else if (!strcmp(stropt, STR_PATTERN_ALL_LOW)) {
-			devc->sample_generator = PATTERN_ALL_LOW;
-		} else if (!strcmp(stropt, STR_PATTERN_ALL_HIGH)) {
-			devc->sample_generator = PATTERN_ALL_HIGH;
-		} else {
-			ret = SR_ERR;
+		ret = SR_ERR;
+		for (i = 0; i < ARRAY_SIZE(pattern_strings); i++) {
+			if (!strcmp(stropt, pattern_strings[i])) {
+				devc->sample_generator = i;
+				ret = SR_OK;
+				break;
+			}
 		}
-		sr_dbg("%s: setting pattern to %d",
-			__func__, devc->sample_generator);
+		/* Might as well do this now. */
+		if (i == PATTERN_ALL_LOW)
+			memset(devc->logic_data, 0x00, LOGIC_BUFSIZE);
+		else if (i == PATTERN_ALL_HIGH)
+			memset(devc->logic_data, 0xff, LOGIC_BUFSIZE);
+		sr_dbg("Setting pattern to %s", pattern_strings[i]);
 	} else {
 		ret = SR_ERR_NA;
 	}
@@ -353,35 +320,31 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-static void samples_generator(uint8_t *buf, uint64_t size,
-			      struct dev_context *devc)
+static void sample_generator(struct sr_dev_inst *sdi, uint64_t size)
 {
-	static uint64_t p = 0;
+	struct dev_context *devc;
 	uint64_t i;
 
-	/* TODO: Needed? */
-	memset(buf, 0, size);
+	devc = sdi->priv;
 
 	switch (devc->sample_generator) {
-	case PATTERN_SIGROK: /* sigrok pattern */
+	case PATTERN_SIGROK:
 		for (i = 0; i < size; i++) {
-			*(buf + i) = ~(pattern_sigrok[
-				p++ % sizeof(pattern_sigrok)] >> 1);
+			devc->logic_data[i] = ~(pattern_sigrok[
+				devc->step++ % sizeof(pattern_sigrok)] >> 1);
 		}
 		break;
-	case PATTERN_RANDOM: /* Random */
+	case PATTERN_RANDOM:
 		for (i = 0; i < size; i++)
-			*(buf + i) = (uint8_t)(rand() & 0xff);
+			devc->logic_data[i] = (uint8_t)(rand() & 0xff);
 		break;
-	case PATTERN_INC: /* Simple increment */
+	case PATTERN_INC:
 		for (i = 0; i < size; i++)
-			*(buf + i) = p++;
+			devc->logic_data[i] = devc->step++;
 		break;
-	case PATTERN_ALL_LOW: /* All probes are low */
-		memset(buf, 0x00, size);
-		break;
-	case PATTERN_ALL_HIGH: /* All probes are high */
-		memset(buf, 0xff, size);
+	case PATTERN_ALL_LOW:
+	case PATTERN_ALL_HIGH:
+		/* These were set when the pattern mode was selected. */
 		break;
 	default:
 		sr_err("Unknown pattern: %d.", devc->sample_generator);
@@ -390,17 +353,20 @@ static void samples_generator(uint8_t *buf, uint64_t size,
 }
 
 /* Callback handling data */
-static int receive_data(int fd, int revents, void *cb_data)
+static int prepare_data(int fd, int revents, void *cb_data)
 {
-	struct dev_context *devc = cb_data;
+	struct sr_dev_inst *sdi;
+	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
-	uint8_t buf[BUFSIZE];
 	static uint64_t samples_to_send, expected_samplenum, sending_now;
 	int64_t time, elapsed;
 
 	(void)fd;
 	(void)revents;
+
+	sdi = cb_data;
+	devc = sdi->priv;
 
 	/* How many "virtual" samples should we have collected by now? */
 	time = g_get_monotonic_time();
@@ -415,15 +381,15 @@ static int receive_data(int fd, int revents, void *cb_data)
 	}
 
 	while (samples_to_send > 0) {
-		sending_now = MIN(samples_to_send, sizeof(buf));
+		sending_now = MIN(samples_to_send, LOGIC_BUFSIZE);
 		samples_to_send -= sending_now;
-		samples_generator(buf, sending_now, devc);
+		sample_generator(sdi, sending_now);
 
 		packet.type = SR_DF_LOGIC;
 		packet.payload = &logic;
 		logic.length = sending_now;
 		logic.unitsize = 1;
-		logic.data = buf;
+		logic.data = devc->logic_data;
 		sr_session_send(devc->cb_data, &packet);
 		devc->samples_counter += sending_now;
 	}
@@ -431,7 +397,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 	if (devc->limit_samples &&
 		devc->samples_counter >= devc->limit_samples) {
 		sr_info("Requested number of samples reached.");
-		dev_acquisition_stop(devc->sdi, cb_data);
+		dev_acquisition_stop(sdi, cb_data);
 		return TRUE;
 	}
 
@@ -440,11 +406,12 @@ static int receive_data(int fd, int revents, void *cb_data)
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 {
-	struct dev_context *const devc = sdi->priv;
+	struct dev_context *devc;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
+	devc = sdi->priv;
 	devc->cb_data = cb_data;
 	devc->samples_counter = 0;
 
@@ -456,7 +423,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	 * up a timeout-based polling mechanism.
 	 */
 	if (pipe(devc->pipe_fds)) {
-		/* TODO: Better error message. */
 		sr_err("%s: pipe() failed", __func__);
 		return SR_ERR;
 	}
@@ -472,7 +438,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	g_io_channel_set_buffered(devc->channel, FALSE);
 
 	sr_session_source_add_channel(devc->channel, G_IO_IN | G_IO_ERR,
-		    40, receive_data, devc);
+			40, prepare_data, (void *)sdi);
 
 	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, LOG_PREFIX);
