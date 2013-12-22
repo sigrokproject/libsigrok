@@ -304,6 +304,7 @@ SR_PRIV int usb_source_remove(struct sr_context *ctx)
 {
 #ifdef _WIN32
 	ctx->usb_thread_running = FALSE;
+	g_mutex_unlock(&ctx->usb_mutex);
 	libusb_unlock_events(ctx->libusb_ctx);
 	g_thread_join(ctx->usb_thread);
 	g_mutex_clear(&ctx->usb_mutex);
