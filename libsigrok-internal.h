@@ -60,6 +60,15 @@
 struct sr_context {
 #ifdef HAVE_LIBUSB_1_0
 	libusb_context *libusb_ctx;
+#ifdef _WIN32
+	GThread *usb_thread;
+	gboolean usb_thread_running;
+	GMutex usb_mutex;
+	HANDLE usb_event;
+	GPollFD usb_pollfd;
+	sr_receive_data_callback_t usb_cb;
+	void *usb_cb_data;
+#endif
 #endif
 };
 

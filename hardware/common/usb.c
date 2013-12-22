@@ -244,12 +244,49 @@ SR_PRIV int sr_usb_open(libusb_context *usb_ctx, struct sr_usb_dev_inst *usb)
 	return ret;
 }
 
+#ifdef _WIN32
+SR_PRIV gpointer usb_thread(gpointer data)
+{
+	struct sr_context *ctx = data;
+
+	while (ctx->usb_thread_running) {
+		g_mutex_lock(&ctx->usb_mutex);
+		libusb_wait_for_event(ctx->libusb_ctx, NULL);
+		SetEvent(ctx->usb_event);
+		g_mutex_unlock(&ctx->usb_mutex);
+		g_thread_yield();
+	}
+
+	return NULL;
+}
+
+SR_PRIV int usb_callback(int fd, int revents, void *cb_data)
+{
+	struct sr_context *ctx = cb_data;
+	int ret;
+
+	g_mutex_lock(&ctx->usb_mutex);
+	ret = ctx->usb_cb(fd, revents, ctx->usb_cb_data);
+	ResetEvent(ctx->usb_event);
+	g_mutex_unlock(&ctx->usb_mutex);
+
+	return ret;
+}
+#endif
+
 SR_PRIV int usb_source_add(struct sr_context *ctx, int timeout,
 		sr_receive_data_callback_t cb, void *cb_data)
 {
 #ifdef _WIN32
-	sr_err("Operation not supported on Windows yet.");
-	return SR_ERR;
+	ctx->usb_event = CreateEvent(NULL, TRUE, FALSE, NULL);
+	g_mutex_init(&ctx->usb_mutex);
+	ctx->usb_thread_running = TRUE;
+	ctx->usb_thread = g_thread_new("usb", usb_thread, ctx);
+	ctx->usb_pollfd.fd = ctx->usb_event;
+	ctx->usb_pollfd.events = G_IO_IN;
+	ctx->usb_cb = cb;
+	ctx->usb_cb_data = cb_data;
+	sr_session_source_add_pollfd(&ctx->usb_pollfd, timeout, usb_callback, ctx);
 #else
 	const struct libusb_pollfd **lupfd;
 	unsigned int i;
@@ -258,16 +295,20 @@ SR_PRIV int usb_source_add(struct sr_context *ctx, int timeout,
 	for (i = 0; lupfd[i]; i++)
 		sr_source_add(lupfd[i]->fd, lupfd[i]->events, timeout, cb, cb_data);
 	free(lupfd);
+#endif
 
 	return SR_OK;
-#endif
 }
 
 SR_PRIV int usb_source_remove(struct sr_context *ctx)
 {
 #ifdef _WIN32
-	sr_err("Operation not supported on Windows yet.");
-	return SR_ERR;
+	ctx->usb_thread_running = FALSE;
+	libusb_unlock_events(ctx->libusb_ctx);
+	g_thread_join(ctx->usb_thread);
+	g_mutex_clear(&ctx->usb_mutex);
+	sr_session_source_remove_pollfd(&ctx->usb_pollfd);
+	CloseHandle(ctx->usb_event);
 #else
 	const struct libusb_pollfd **lupfd;
 	unsigned int i;
@@ -276,7 +317,7 @@ SR_PRIV int usb_source_remove(struct sr_context *ctx)
 	for (i = 0; lupfd[i]; i++)
 		sr_source_remove(lupfd[i]->fd);
 	free(lupfd);
+#endif
 
 	return SR_OK;
-#endif
 }
