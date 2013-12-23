@@ -23,6 +23,8 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
+#define LOG_PREFIX "backend"
+
 extern struct sr_session *session;
 
 /**

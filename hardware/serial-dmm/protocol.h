@@ -20,14 +20,7 @@
 #ifndef LIBSIGROK_HARDWARE_SERIAL_DMM_PROTOCOL_H
 #define LIBSIGROK_HARDWARE_SERIAL_DMM_PROTOCOL_H
 
-/* Message logging helpers with subsystem-specific prefix string. */
-#define LOG_PREFIX "serial-dmm: "
-#define sr_log(l, s, args...) sr_log(l, LOG_PREFIX s, ## args)
-#define sr_spew(s, args...) sr_spew(LOG_PREFIX s, ## args)
-#define sr_dbg(s, args...) sr_dbg(LOG_PREFIX s, ## args)
-#define sr_info(s, args...) sr_info(LOG_PREFIX s, ## args)
-#define sr_warn(s, args...) sr_warn(LOG_PREFIX s, ## args)
-#define sr_err(s, args...) sr_err(LOG_PREFIX s, ## args)
+#define LOG_PREFIX "serial-dmm"
 
 /* Note: When adding entries here, don't forget to update DMM_COUNT. */
 enum {

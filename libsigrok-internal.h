@@ -162,6 +162,16 @@ SR_PRIV int sr_info(const char *format, ...);
 SR_PRIV int sr_warn(const char *format, ...);
 SR_PRIV int sr_err(const char *format, ...);
 
+/* Message logging helpers with subsystem-specific prefix string. */
+#ifndef NO_LOG_WRAPPERS
+#define sr_log(l, s, args...) sr_log(l, "%s: " s, LOG_PREFIX, ## args)
+#define sr_spew(s, args...) sr_spew("%s: " s, LOG_PREFIX, ## args)
+#define sr_dbg(s, args...) sr_dbg("%s: " s, LOG_PREFIX, ## args)
+#define sr_info(s, args...) sr_info("%s: " s, LOG_PREFIX, ## args)
+#define sr_warn(s, args...) sr_warn("%s: " s, LOG_PREFIX, ## args)
+#define sr_err(s, args...) sr_err("%s: " s, LOG_PREFIX, ## args)
+#endif
+
 /*--- device.c --------------------------------------------------------------*/
 
 SR_PRIV struct sr_probe *sr_probe_new(int index, int type,

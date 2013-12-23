@@ -27,6 +27,8 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
+#define LOG_PREFIX "std"
+
 /**
  * Standard sr_driver_init() API helper.
  *

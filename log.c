@@ -21,6 +21,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include "libsigrok.h"
+#define NO_LOG_WRAPPERS
 #include "libsigrok-internal.h"
 
 /**
