@@ -53,13 +53,17 @@ static GSList *scan(GSList *options)
 	struct sr_serial_dev_inst *serial;
 	struct sr_dev_inst *sdi;
 	struct sr_probe *probe;
-	GSList *devices = NULL, *l;
-	const char *conn = NULL, *serialcomm = NULL;
+	struct sr_config *src;
+	GSList *devices, *l;
+	const char *conn, *serialcomm;
 	uint8_t buf[50];
-	size_t len = sizeof(buf);
+	size_t len;
 
+	len = sizeof(buf);
+	devices = NULL;
+	conn = serialcomm = NULL;
 	for (l = options; l; l = l->next) {
-		struct sr_config *src = l->data;
+		src = l->data;
 		switch (src->key) {
 		case SR_CONF_CONN:
 			conn = g_variant_get_string(src->data, NULL);
@@ -87,7 +91,7 @@ static GSList *scan(GSList *options)
 
 	/* Let's get a bit of data and see if we can find a packet. */
 	if (serial_stream_detect(serial, buf, &len, 25,
-	                         appa_55ii_packet_valid, 500, 9600) != SR_OK)
+			appa_55ii_packet_valid, 500, 9600) != SR_OK)
 		goto scan_cleanup;
 
 	sr_info("Found device on port %s.", conn);
@@ -139,7 +143,7 @@ static int cleanup(void)
 }
 
 static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
-                      const struct sr_probe_group *probe_group)
+		const struct sr_probe_group *probe_group)
 {
 	struct dev_context *devc = sdi->priv;
 
@@ -166,6 +170,8 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 		const struct sr_probe_group *probe_group)
 {
 	struct dev_context *devc;
+	const char *tmp_str;
+	unsigned int i;
 
 	(void)probe_group;
 
@@ -187,9 +193,8 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 		sr_dbg("Setting time limit to %" PRIu64 "ms.", devc->limit_msec);
 		break;
 	case SR_CONF_DATA_SOURCE: {
-		const char *tmp_str = g_variant_get_string(data, NULL);
-		unsigned int i;
-		for (i=0; i<ARRAY_SIZE(data_sources); i++)
+		tmp_str = g_variant_get_string(data, NULL);
+		for (i = 0; i < ARRAY_SIZE(data_sources); i++)
 			if (!strcmp(tmp_str, data_sources[i])) {
 				devc->data_source = i;
 				break;
@@ -231,11 +236,12 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 }
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi,
-                                 void *cb_data)
+		void *cb_data)
 {
-	struct sr_serial_dev_inst *serial = sdi->conn;
+	struct sr_serial_dev_inst *serial;
 	struct dev_context *devc;
 
+	serial = sdi->conn;
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
@@ -266,7 +272,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
 	return std_serial_dev_acquisition_stop(sdi, cb_data, std_serial_dev_close,
-	                                       sdi->conn, LOG_PREFIX);
+			sdi->conn, LOG_PREFIX);
 }
 
 SR_PRIV struct sr_dev_driver appa_55ii_driver_info = {
