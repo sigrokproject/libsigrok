@@ -33,11 +33,10 @@
 
 #define LOG_PREFIX "demo"
 
-/* TODO: Number of probes should be configurable. */
-#define NUM_PROBES           8
+#define DEFAULT_NUM_LOGIC_PROBES     8
+#define DEFAULT_NUM_ANALOG_PROBES    4
 
 /* The size of chunks to send through the session bus. */
-/* TODO: Should be configurable. */
 #define LOGIC_BUFSIZE        4096
 
 /* Patterns we can generate */
@@ -45,14 +44,17 @@ enum {
 	/**
 	 * Spells "sigrok" across 8 probes using '0's (with '1's as
 	 * "background") when displayed using the 'bits' output format.
+	 * The pattern is repeasted every 8 probes, shifted to the right
+	 * in time by one bit.
 	 */
 	PATTERN_SIGROK,
 
-	/** Pseudo-)random values on all probes. */
+	/** Pseudo-random values on all probes. */
 	PATTERN_RANDOM,
 
 	/**
-	 * Incrementing number across all probes.
+	 * Incrementing number across 8 probes. The pattern is repeasted
+	 * every 8 probes, shifted to the right in time by one bit.
 	 */
 	PATTERN_INC,
 
@@ -78,12 +80,19 @@ struct dev_context {
 	uint64_t cur_samplerate;
 	uint64_t limit_samples;
 	uint64_t limit_msec;
-	uint8_t sample_generator;
 	uint64_t samples_counter;
-	void *cb_data;
 	int64_t starttime;
-	unsigned char logic_data[LOGIC_BUFSIZE];
 	uint64_t step;
+	int32_t num_logic_probes;
+	unsigned int logic_unitsize;
+	uint8_t logic_pattern;
+	unsigned char logic_data[LOGIC_BUFSIZE];
+	int32_t num_analog_probes;
+};
+
+static const int32_t hwopts[] = {
+	SR_CONF_NUM_LOGIC_PROBES,
+	SR_CONF_NUM_ANALOG_PROBES,
 };
 
 static const int hwcaps[] = {
@@ -113,14 +122,11 @@ static uint8_t pattern_sigrok[] = {
 	0xbe, 0xbe, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 };
 
-/* Private, per-device-instance driver context. */
-/* TODO: struct context as with the other drivers. */
-
-/* List of struct sr_dev_inst, maintained by dev_open()/dev_close(). */
 SR_PRIV struct sr_dev_driver demo_driver_info;
 static struct sr_dev_driver *di = &demo_driver_info;
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);
+
 
 static int dev_clear(void)
 {
@@ -134,20 +140,32 @@ static int init(struct sr_context *sr_ctx)
 
 static GSList *scan(GSList *options)
 {
-	struct sr_dev_inst *sdi;
-	struct sr_probe *probe;
 	struct drv_context *drvc;
 	struct dev_context *devc;
-	GSList *devices;
-	int i;
+	struct sr_dev_inst *sdi;
+	struct sr_probe *probe;
+	struct sr_config *src;
+	GSList *devices, *l;
+	int num_logic_probes, num_analog_probes, i;
 	char probe_name[16];
-
-	(void)options;
 
 	drvc = di->priv;
 
-	devices = NULL;
+	num_logic_probes = DEFAULT_NUM_LOGIC_PROBES;
+	num_analog_probes = DEFAULT_NUM_ANALOG_PROBES;
+	for (l = options; l; l = l->next) {
+		src = l->data;
+		switch (src->key) {
+		case SR_CONF_NUM_LOGIC_PROBES:
+			num_logic_probes = g_variant_get_int32(src->data);
+			break;
+		case SR_CONF_NUM_ANALOG_PROBES:
+			num_analog_probes = g_variant_get_int32(src->data);
+			break;
+		}
+	}
 
+	devices = NULL;
 	sdi = sr_dev_inst_new(0, SR_ST_ACTIVE, "Demo device", NULL, NULL);
 	if (!sdi) {
 		sr_err("Device instance creation failed.");
@@ -155,9 +173,16 @@ static GSList *scan(GSList *options)
 	}
 	sdi->driver = di;
 
-	for (i = 0; i < NUM_PROBES; i++) {
+	for (i = 0; i < num_logic_probes; i++) {
 		sprintf(probe_name, "D%d", i);
 		if (!(probe = sr_probe_new(i, SR_PROBE_LOGIC, TRUE, probe_name)))
+			return NULL;
+		sdi->probes = g_slist_append(sdi->probes, probe);
+	}
+
+	for (i = 0; i < num_analog_probes; i++) {
+		sprintf(probe_name, "A%d", i);
+		if (!(probe = sr_probe_new(i, SR_PROBE_ANALOG, TRUE, probe_name)))
 			return NULL;
 		sdi->probes = g_slist_append(sdi->probes, probe);
 	}
@@ -169,12 +194,14 @@ static GSList *scan(GSList *options)
 		sr_err("Device context malloc failed.");
 		return NULL;
 	}
-
 	devc->cur_samplerate = SR_KHZ(200);
 	devc->limit_samples = 0;
 	devc->limit_msec = 0;
-	devc->sample_generator = PATTERN_SIGROK;
-	devc->step =0;
+	devc->step = 0;
+	devc->num_logic_probes = num_logic_probes;
+	devc->logic_unitsize = (devc->num_logic_probes + 7) / 8;
+	devc->logic_pattern = PATTERN_SIGROK;
+	devc->num_analog_probes = num_analog_probes;
 
 	sdi->priv = devc;
 
@@ -208,10 +235,11 @@ static int cleanup(void)
 static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_probe_group *probe_group)
 {
-	struct dev_context *const devc = sdi->priv;
+	struct dev_context *devc;
 
 	(void)probe_group;
 
+	devc = sdi->priv;
 	switch (id) {
 	case SR_CONF_SAMPLERATE:
 		*data = g_variant_new_uint64(devc->cur_samplerate);
@@ -223,7 +251,13 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 		*data = g_variant_new_uint64(devc->limit_msec);
 		break;
 	case SR_CONF_PATTERN_MODE:
-		*data = g_variant_new_string(pattern_strings[devc->sample_generator]);
+		*data = g_variant_new_string(pattern_strings[devc->logic_pattern]);
+		break;
+	case SR_CONF_NUM_LOGIC_PROBES:
+		*data = g_variant_new_int32(devc->num_logic_probes);
+		break;
+	case SR_CONF_NUM_ANALOG_PROBES:
+		*data = g_variant_new_int32(devc->num_analog_probes);
 		break;
 	default:
 		return SR_ERR_NA;
@@ -264,7 +298,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 		ret = SR_ERR;
 		for (i = 0; i < ARRAY_SIZE(pattern_strings); i++) {
 			if (!strcmp(stropt, pattern_strings[i])) {
-				devc->sample_generator = i;
+				devc->logic_pattern = i;
 				ret = SR_OK;
 				break;
 			}
@@ -292,6 +326,10 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	(void)probe_group;
 
 	switch (key) {
+	case SR_CONF_SCAN_OPTIONS:
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+				hwopts, ARRAY_SIZE(hwopts), sizeof(int32_t));
+		break;
 	case SR_CONF_DEVICE_OPTIONS:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
 				hwcaps, ARRAY_SIZE(hwcaps), sizeof(int32_t));
@@ -313,18 +351,23 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-static void sample_generator(struct sr_dev_inst *sdi, uint64_t size)
+static void logic_generator(struct sr_dev_inst *sdi, uint64_t size)
 {
 	struct dev_context *devc;
-	uint64_t i;
+	uint64_t i, j;
+	uint8_t pat;
 
 	devc = sdi->priv;
 
-	switch (devc->sample_generator) {
+	switch (devc->logic_pattern) {
 	case PATTERN_SIGROK:
-		for (i = 0; i < size; i++) {
-			devc->logic_data[i] = ~(pattern_sigrok[
-				devc->step++ % sizeof(pattern_sigrok)] >> 1);
+		memset(devc->logic_data, 0x00, size);
+		for (i = 0; i < size; i += devc->logic_unitsize) {
+			for (j = 0; j < devc->logic_unitsize; j++) {
+				pat = pattern_sigrok[(devc->step + j) % sizeof(pattern_sigrok)] >> 1;
+				devc->logic_data[i + j] = ~pat;
+			}
+			devc->step++;
 		}
 		break;
 	case PATTERN_RANDOM:
@@ -332,15 +375,19 @@ static void sample_generator(struct sr_dev_inst *sdi, uint64_t size)
 			devc->logic_data[i] = (uint8_t)(rand() & 0xff);
 		break;
 	case PATTERN_INC:
-		for (i = 0; i < size; i++)
-			devc->logic_data[i] = devc->step++;
+		for (i = 0; i < size; i++) {
+			for (j = 0; j < devc->logic_unitsize; j++) {
+				devc->logic_data[i + j] = devc->step;
+			}
+			devc->step++;
+		}
 		break;
 	case PATTERN_ALL_LOW:
 	case PATTERN_ALL_HIGH:
 		/* These were set when the pattern mode was selected. */
 		break;
 	default:
-		sr_err("Unknown pattern: %d.", devc->sample_generator);
+		sr_err("Unknown pattern: %d.", devc->logic_pattern);
 		break;
 	}
 }
@@ -352,7 +399,7 @@ static int prepare_data(int fd, int revents, void *cb_data)
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
-	static uint64_t samples_to_send, expected_samplenum, sending_now;
+	uint64_t samples_to_send, expected_samplenum, sending_now;
 	int64_t time, elapsed;
 
 	(void)fd;
@@ -370,20 +417,21 @@ static int prepare_data(int fd, int revents, void *cb_data)
 
 	if (devc->limit_samples) {
 		samples_to_send = MIN(samples_to_send,
-				 devc->limit_samples - devc->samples_counter);
+				devc->limit_samples - devc->samples_counter);
 	}
 
 	while (samples_to_send > 0) {
-		sending_now = MIN(samples_to_send, LOGIC_BUFSIZE);
+		sending_now = MIN(samples_to_send, LOGIC_BUFSIZE / devc->logic_unitsize);
 		samples_to_send -= sending_now;
-		sample_generator(sdi, sending_now);
 
+		/* Logic */
+		logic_generator(sdi, sending_now * devc->logic_unitsize);
 		packet.type = SR_DF_LOGIC;
 		packet.payload = &logic;
-		logic.length = sending_now;
-		logic.unitsize = 1;
+		logic.length = sending_now * devc->logic_unitsize;
+		logic.unitsize = devc->logic_unitsize;
 		logic.data = devc->logic_data;
-		sr_session_send(devc->cb_data, &packet);
+		sr_session_send(sdi, &packet);
 		devc->samples_counter += sending_now;
 	}
 
@@ -405,7 +453,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		return SR_ERR_DEV_CLOSED;
 
 	devc = sdi->priv;
-	devc->cb_data = cb_data;
 	devc->samples_counter = 0;
 
 	/*
@@ -458,7 +505,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 
 	/* Send last packet. */
 	packet.type = SR_DF_END;
-	sr_session_send(devc->cb_data, &packet);
+	sr_session_send(sdi, &packet);
 
 	return SR_OK;
 }
