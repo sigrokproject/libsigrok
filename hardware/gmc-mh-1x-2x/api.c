@@ -18,7 +18,6 @@
  */
 
 #include <string.h>
-
 #include "protocol.h"
 
 /* Serial communication parameters for Metrahit 1x/2x with 'RS232' adaptor */
@@ -40,20 +39,20 @@ static const int32_t hwcaps[] = {
 	SR_CONF_CONTINUOUS,
 };
 
-/** Driver init function */
 static int init_1x_2x_rs232(struct sr_context *sr_ctx)
 {
 	return std_init(sr_ctx, &gmc_mh_1x_2x_rs232_driver_info, LOG_PREFIX);
 }
 
-
-/** Read single byte from serial port.
- *  \retval -1 Timeout or error.
- *  \retval other Byte.
+/**
+ * Read single byte from serial port.
+ *
+ * @retval -1 Timeout or error.
+ * @retval other Byte.
  */
 static int read_byte(struct sr_serial_dev_inst *serial, gint64 timeout)
 {
-	guint8 result = 0;
+	uint8_t result = 0;
 	int rc = 0;
 
 	for (;;) {
@@ -68,11 +67,13 @@ static int read_byte(struct sr_serial_dev_inst *serial, gint64 timeout)
 	}
 }
 
-/** Try to detect GMC 1x/2x multimeter model in send mode for max. 1 second.
- *  \param serial Configured, open serial port.
+/**
+ * Try to detect GMC 1x/2x multimeter model in send mode for max. 1 second.
  *
- *  \retval NULL Detection failed.
- *  \retval other Model code.
+ * @param serial Configured, open serial port.
+ *
+ * @retval NULL Detection failed.
+ * @retval other Model code.
  */
 static enum model scan_model_sm(struct sr_serial_dev_inst *serial)
 {
@@ -81,10 +82,12 @@ static enum model scan_model_sm(struct sr_serial_dev_inst *serial)
 	gint64 timeout_us;
 
 	model = SR_METRAHIT_NONE;
-	timeout_us = g_get_monotonic_time() + 1*1000*1000;
+	timeout_us = g_get_monotonic_time() + 1 * 1000 * 1000;
 
-	/* Try to find message consisting of device code and several
-	 * (at least 4) data bytes. */
+	/*
+	 * Try to find message consisting of device code and several
+	 * (at least 4) data bytes.
+	 */
 	for (bytecnt = 0; bytecnt < 100; bytecnt++) {
 		byte = read_byte(serial, timeout_us);
 		if ((byte == -1) || (timeout_us < g_get_monotonic_time()))
@@ -92,7 +95,7 @@ static enum model scan_model_sm(struct sr_serial_dev_inst *serial)
 		if ((byte & MSGID_MASK) == MSGID_INF) {
 			if (!(model = sr_gmc_decode_model_sm(byte & MSGC_MASK)))
 				break;
-			/* Now expect (at least) 4 data bytes */
+			/* Now expect (at least) 4 data bytes. */
 			for (cnt = 0; cnt < 4; cnt++) {
 				byte = read_byte(serial, timeout_us);
 				if ((byte == -1) ||
@@ -110,11 +113,14 @@ static enum model scan_model_sm(struct sr_serial_dev_inst *serial)
 	return model;
 }
 
-/** Scan for Metrahit 1x and Metrahit 2x in send mode using Gossen Metrawatt
- *  'RS232' interface. The older 1x models use 8192 and the newer 2x 9600 baud.
- *  The DMM usually sends up to about 20 messages per second. However, depending
- *  on configuration and measurement mode the intervals can be much larger and
- *  then the detection might not work.
+/**
+ * Scan for Metrahit 1x and Metrahit 2x in send mode using Gossen Metrawatt
+ * 'RS232' interface.
+ *
+ * The older 1x models use 8192 baud and the newer 2x 9600 baud.
+ * The DMM usually sends up to about 20 messages per second. However, depending
+ * on configuration and measurement mode the intervals can be much larger and
+ * then the detection might not work.
  */
 static GSList *scan_1x_2x_rs232(GSList *options)
 {
@@ -168,8 +174,10 @@ static GSList *scan_1x_2x_rs232(GSList *options)
 
 	model = scan_model_sm(serial);
 
-	/* If detection failed and no user-supplied parameters,
-	 * try second baud rate. */
+	/*
+	 * If detection failed and no user-supplied parameters,
+	 * try second baud rate.
+	 */
 	if ((model == SR_METRAHIT_NONE) && !serialcomm_given) {
 		serialcomm = SERIALCOMM_1X_RS232;
 		g_free(serial->serialcomm);
@@ -209,7 +217,6 @@ static GSList *scan_1x_2x_rs232(GSList *options)
 	return devices;
 }
 
-/** Driver device list function */
 static GSList *dev_list_1x_2x_rs232(void)
 {
 	return ((struct drv_context *)(gmc_mh_1x_2x_rs232_driver_info.priv))
@@ -323,7 +330,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 }
 
 static int dev_acq_start_1x_2x_rs232(const struct sr_dev_inst *sdi,
-				    void *cb_data)
+				     void *cb_data)
 {
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;

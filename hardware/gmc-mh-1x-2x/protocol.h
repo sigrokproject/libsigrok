@@ -37,25 +37,26 @@
 #define GMC_BUFSIZE  266
 
 /** Message ID bits 4, 5 */
-#define MSGID_MASK 0x30	/**< Mask to get message ID bits */
-#define MSGID_INF  0x00 /**< Start of message with device info */
-#define MSGID_D10  0x10	/**< Start of data message, non-displayed intermediate */
-#define MSGID_DTA  0x20 /**< Start of data message, displayed, averaged */
-#define MSGID_DATA 0x30	/**< Data byte in message */
+#define MSGID_MASK  0x30 /**< Mask to get message ID bits */
+#define MSGID_INF   0x00 /**< Start of message with device info */
+#define MSGID_D10   0x10 /**< Start of data message, non-displayed intermediate */
+#define MSGID_DTA   0x20 /**< Start of data message, displayed, averaged */
+#define MSGID_DATA  0x30 /**< Data byte in message */
 
-#define MSGC_MASK 0x0f	/**< Mask to get message byte contents */
+#define MSGC_MASK   0x0f  /**< Mask to get message byte contents */
 
 #define MSGSRC_MASK 0xc0 /**< Mask to get bits related to message source */
 
 #define bc(x) (x & MSGC_MASK) /**< Get contents from a byte */
 
-#define MASK_6BITS 0x3f /**< Mask lower six bits. */
+#define MASK_6BITS  0x3f /**< Mask lower six bits. */
 
-/** Internal multimeter model codes. In opposite to the multimeter models from
- *  protocol (see decode_model()), these codes allow working with ranges.
+/**
+ * Internal multimeter model codes. In opposite to the multimeter models from
+ * protocol (see decode_model()), these codes allow working with ranges.
  */
 enum model {
-	SR_METRAHIT_NONE	= 0,	/**< Value for uninitialized variable */
+	SR_METRAHIT_NONE	= 0,  /**< Value for uninitialized variable */
 	SR_METRAHIT_12S		= 12,
 	SR_METRAHIT_13S14A	= 13,
 	SR_METRAHIT_14S		= 14,
@@ -65,7 +66,7 @@ enum model {
 	SR_METRAHIT_16X = SR_METRAHIT_16I,  /**< All Metrahit 16 */
 	/* A Metrahit 17 exists, but seems not to have an IR interface. */
 	SR_METRAHIT_18S		= 18,
-	SR_METRAHIT_2X		= 20,	/**< For model type comparisons */
+	SR_METRAHIT_2X		= 20, /**< For model type comparisons */
 	SR_METRAHIT_22SM	= 22,
 	SR_METRAHIT_23S		= 23,
 	SR_METRAHIT_24S		= 24,
@@ -76,27 +77,19 @@ enum model {
 };
 
 /** Convert GMC model code in send mode to sigrok-internal one. */
-SR_PRIV int sr_gmc_decode_model_sm(guchar mcode);
+SR_PRIV int sr_gmc_decode_model_sm(uint8_t mcode);
 
-/** Convert GMC model code in bidirectional mode to sigrok-internal one.
-    \param[in] mcode Model code.
-
-    \return Model code
-*/
-SR_PRIV int sr_gmc_decode_model_bidi(guchar mcode);
-
-/** Create 14-bytes (42 byte) message used in bidirectional mode.
- *  \param[in] addr Target address. 0..15, 0=Broadcast.
- *  \param[in] func Function code.
- *  \param[in] params Further parameters, &char[9]. Unused bytes must be 0.
- *  \param[out] buf &guchar[42] Output buffer (3*14).
+/**
+ * Convert GMC model code in bidirectional mode to sigrok-internal one.
  *
+ * @param[in] mcode Model code.
+ *
+ * @return Model code.
  */
-void create_msg_14(guchar addr, guchar func, guchar* params, guchar* buf);
+SR_PRIV int sr_gmc_decode_model_bidi(uint8_t mcode);
 
-/** Get model string from sigrok-internal model code.
- */
-SR_PRIV const char* sr_gmc_model_str(enum model mcode);
+/** Get model string from sigrok-internal model code. */
+SR_PRIV const char *sr_gmc_model_str(enum model mcode);
 
 /** Private, per-device-instance driver context. */
 struct dev_context {
@@ -124,8 +117,8 @@ struct dev_context {
 
 	/* Temporary state across callbacks */
 	uint64_t num_samples;	/**< Current #samples for limit_samples */
-	GTimer* elapsed_msec;	/**< Used for sampling with limit_msec  */
-	unsigned char buf[GMC_BUFSIZE];	/**< Buffer for read callback */
+	GTimer *elapsed_msec;	/**< Used for sampling with limit_msec  */
+	uint8_t buf[GMC_BUFSIZE];	/**< Buffer for read callback */
 	int buflen;			/**< Data len in buf */
 };
 
