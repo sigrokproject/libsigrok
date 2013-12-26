@@ -26,6 +26,7 @@
 #define VENDOR_GMC "Gossen Metrawatt"
 
 SR_PRIV struct sr_dev_driver gmc_mh_1x_2x_rs232_driver_info;
+static struct sr_dev_driver *di = &gmc_mh_1x_2x_rs232_driver_info;
 
 static const int32_t hwopts[] = {
 	SR_CONF_CONN,
@@ -41,7 +42,7 @@ static const int32_t hwcaps[] = {
 
 static int init_1x_2x_rs232(struct sr_context *sr_ctx)
 {
-	return std_init(sr_ctx, &gmc_mh_1x_2x_rs232_driver_info, LOG_PREFIX);
+	return std_init(sr_ctx, di, LOG_PREFIX);
 }
 
 /**
@@ -136,7 +137,7 @@ static GSList *scan_1x_2x_rs232(GSList *options)
 	gboolean serialcomm_given;
 
 	devices = NULL;
-	drvc = (&gmc_mh_1x_2x_rs232_driver_info)->priv;
+	drvc = di->priv;
 	drvc->instances = NULL;
 	conn = serialcomm = NULL;
 	model = SR_METRAHIT_NONE;
@@ -205,7 +206,7 @@ static GSList *scan_1x_2x_rs232(GSList *options)
 
 		sdi->conn = serial;
 		sdi->priv = devc;
-		sdi->driver = &gmc_mh_1x_2x_rs232_driver_info;
+		sdi->driver = di;
 		if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "P1")))
 			return NULL;
 		sdi->probes = g_slist_append(sdi->probes, probe);
@@ -218,13 +219,12 @@ static GSList *scan_1x_2x_rs232(GSList *options)
 
 static GSList *dev_list_1x_2x_rs232(void)
 {
-	return ((struct drv_context *)(gmc_mh_1x_2x_rs232_driver_info.priv))
-			->instances;
+	return ((struct drv_context *)(di->priv))->instances;
 }
 
 static int dev_clear_1x_2x_rs232(void)
 {
-	return std_dev_clear(&gmc_mh_1x_2x_rs232_driver_info, NULL);
+	return std_dev_clear(di, NULL);
 }
 
 static int dev_close(struct sr_dev_inst *sdi)
