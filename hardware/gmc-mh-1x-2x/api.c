@@ -40,7 +40,7 @@ static const int32_t hwcaps[] = {
 	SR_CONF_CONTINUOUS,
 };
 
-static int init_1x_2x_rs232(struct sr_context *sr_ctx)
+static int init(struct sr_context *sr_ctx)
 {
 	return std_init(sr_ctx, di, LOG_PREFIX);
 }
@@ -123,7 +123,7 @@ static enum model scan_model_sm(struct sr_serial_dev_inst *serial)
  * on configuration and measurement mode the intervals can be much larger and
  * then the detection might not work.
  */
-static GSList *scan_1x_2x_rs232(GSList *options)
+static GSList *scan(GSList *options)
 {
 	struct sr_dev_inst *sdi;
 	struct drv_context *drvc;
@@ -143,7 +143,7 @@ static GSList *scan_1x_2x_rs232(GSList *options)
 	model = METRAHIT_NONE;
 	serialcomm_given = FALSE;
 
-	sr_spew("scan_1x_2x_rs232() called!");
+	sr_spew("scan() called!");
 
 	for (l = options; l; l = l->next) {
 		src = l->data;
@@ -217,12 +217,12 @@ static GSList *scan_1x_2x_rs232(GSList *options)
 	return devices;
 }
 
-static GSList *dev_list_1x_2x_rs232(void)
+static GSList *dev_list(void)
 {
 	return ((struct drv_context *)(di->priv))->instances;
 }
 
-static int dev_clear_1x_2x_rs232(void)
+static int dev_clear(void)
 {
 	return std_dev_clear(di, NULL);
 }
@@ -245,9 +245,9 @@ static int dev_close(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int cleanup_sm_rs232(void)
+static int cleanup(void)
 {
-	return dev_clear_1x_2x_rs232();
+	return dev_clear();
 }
 
 /** TODO */
@@ -329,8 +329,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-static int dev_acq_start_1x_2x_rs232(const struct sr_dev_inst *sdi,
-				     void *cb_data)
+static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 {
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
@@ -360,7 +359,7 @@ static int dev_acq_start_1x_2x_rs232(const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-static int dev_acq_stop(struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
 	struct dev_context *devc;
 
@@ -374,20 +373,19 @@ static int dev_acq_stop(struct sr_dev_inst *sdi, void *cb_data)
 
 SR_PRIV struct sr_dev_driver gmc_mh_1x_2x_rs232_driver_info = {
 	.name = "gmc-mh-1x-2x-rs232",
-	.longname =
-		"Gossen Metrawatt Metrahit 1x/2x DMMs, 'RS232' Interface",
+	.longname = "Gossen Metrawatt Metrahit 1x/2x, 'RS232' interface",
 	.api_version = 1,
-	.init = init_1x_2x_rs232,
-	.cleanup = cleanup_sm_rs232,
-	.scan = scan_1x_2x_rs232,
-	.dev_list = dev_list_1x_2x_rs232,
-	.dev_clear = dev_clear_1x_2x_rs232,
+	.init = init,
+	.cleanup = cleanup,
+	.scan = scan,
+	.dev_list = dev_list,
+	.dev_clear = dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,
 	.dev_open = std_serial_dev_open,
 	.dev_close = dev_close,
-	.dev_acquisition_start = dev_acq_start_1x_2x_rs232,
-	.dev_acquisition_stop = dev_acq_stop,
+	.dev_acquisition_start = dev_acquisition_start,
+	.dev_acquisition_stop = dev_acquisition_stop,
 	.priv = NULL,
 };
