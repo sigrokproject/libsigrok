@@ -271,8 +271,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
-	return std_serial_dev_acquisition_stop(sdi, cb_data, std_serial_dev_close,
-			sdi->conn, LOG_PREFIX);
+	return std_serial_dev_acquisition_stop(sdi, cb_data,
+			std_serial_dev_close, sdi->conn, LOG_PREFIX);
 }
 
 SR_PRIV struct sr_dev_driver appa_55ii_driver_info = {
@@ -291,4 +291,5 @@ SR_PRIV struct sr_dev_driver appa_55ii_driver_info = {
 	.dev_close = std_serial_dev_close,
 	.dev_acquisition_start = dev_acquisition_start,
 	.dev_acquisition_stop = dev_acquisition_stop,
+	.priv = NULL,
 };

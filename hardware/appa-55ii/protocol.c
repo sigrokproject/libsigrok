@@ -27,7 +27,7 @@ typedef enum {
     LOG_DATA     = 0x14,
     LOG_START    = 0x18,
     LOG_END      = 0x19,
-} PacketType;
+} packet_type_t;
 
 static gboolean appa_55ii_checksum(const uint8_t *buf)
 {
@@ -75,7 +75,7 @@ static float appa_55ii_temp(const uint8_t *buf, int probe)
 	int16_t temp;
 	uint8_t flags;
 
-	ptr	= buf + 4 + 14 + 3 * probe;
+	ptr = buf + 4 + 14 + 3 * probe;
 	temp = RL16(ptr);
 	flags = ptr[2];
 
@@ -89,12 +89,14 @@ static float appa_55ii_temp(const uint8_t *buf, int probe)
 
 static void appa_55ii_live_data(struct sr_dev_inst *sdi, const uint8_t *buf)
 {
-	struct dev_context *devc = sdi->priv;
+	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog analog;
 	struct sr_probe *probe;
 	float values[APPA_55II_NUM_PROBES], *val_ptr;
 	int i;
+
+	devc = sdi->priv;
 
 	if (devc->data_source != DATA_SOURCE_LIVE)
 		return;
@@ -135,7 +137,7 @@ static void appa_55ii_log_data_parse(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog analog = { 0 };
+	struct sr_datafeed_analog analog;
 	struct sr_probe *probe;
 	float values[APPA_55II_NUM_PROBES], *val_ptr;
 	const uint8_t *buf;
@@ -149,7 +151,7 @@ static void appa_55ii_log_data_parse(struct sr_dev_inst *sdi)
 		buf = devc->log_buf + offset;
 		val_ptr = values;
 
-		/* FIXME: timestamp should be sent in the packet */
+		/* FIXME: Timestamp should be sent in the packet. */
 		sr_dbg("Timestamp: %02d:%02d:%02d", buf[2], buf[3], buf[4]);
 
 		memset(&analog, 0, sizeof(analog));
@@ -192,7 +194,7 @@ static void appa_55ii_log_data(struct sr_dev_inst *sdi, const uint8_t *buf)
 	if (devc->data_source != DATA_SOURCE_MEMORY)
 		return;
 
-	ptr = buf + 4;;
+	ptr = buf + 4;
 	size = buf[3];
 	while (size > 0) {
 		s = MIN(size, sizeof(devc->log_buf) - devc->log_buf_len);
@@ -235,7 +237,7 @@ static const uint8_t *appa_55ii_parse_data(struct sr_dev_inst *sdi,
 		/* Skip broken packet. */
 		return buf + 4 + buf[3] + 1;
 
-	switch ((PacketType) buf[2]) {
+	switch ((packet_type_t)buf[2]) {
 	case LIVE_DATA:
 		appa_55ii_live_data(sdi, buf);
 		break;
@@ -249,6 +251,9 @@ static const uint8_t *appa_55ii_parse_data(struct sr_dev_inst *sdi,
 		break;
 	case LOG_END:
 		appa_55ii_log_end(sdi);
+		break;
+	default:
+		sr_warn("Invalid packet type: 0x%02x.", buf[2]);
 		break;
 	}
 
@@ -305,7 +310,8 @@ SR_PRIV int appa_55ii_receive_data(int fd, int revents, void *cb_data)
 		time = (g_get_monotonic_time() - devc->start_time) / 1000;
 		if (time > (int64_t)devc->limit_msec) {
 			sr_info("Requested time limit reached.");
-			sdi->driver->dev_acquisition_stop(sdi, devc->session_cb_data);
+			sdi->driver->dev_acquisition_stop(sdi,
+					devc->session_cb_data);
 			return TRUE;
 		}
 	}
