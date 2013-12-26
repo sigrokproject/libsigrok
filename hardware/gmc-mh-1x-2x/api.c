@@ -82,7 +82,7 @@ static enum model scan_model_sm(struct sr_serial_dev_inst *serial)
 	enum model model;
 	gint64 timeout_us;
 
-	model = SR_METRAHIT_NONE;
+	model = METRAHIT_NONE;
 	timeout_us = g_get_monotonic_time() + 1 * 1000 * 1000;
 
 	/*
@@ -94,7 +94,7 @@ static enum model scan_model_sm(struct sr_serial_dev_inst *serial)
 		if ((byte == -1) || (timeout_us < g_get_monotonic_time()))
 			break;
 		if ((byte & MSGID_MASK) == MSGID_INF) {
-			if (!(model = sr_gmc_decode_model_sm(byte & MSGC_MASK)))
+			if (!(model = gmc_decode_model_sm(byte & MSGC_MASK)))
 				break;
 			/* Now expect (at least) 4 data bytes. */
 			for (cnt = 0; cnt < 4; cnt++) {
@@ -102,7 +102,7 @@ static enum model scan_model_sm(struct sr_serial_dev_inst *serial)
 				if ((byte == -1) ||
 					((byte & MSGID_MASK) != MSGID_DATA))
 				{
-					model = SR_METRAHIT_NONE;
+					model = METRAHIT_NONE;
 					bytecnt = 100;
 					break;
 				}
@@ -140,7 +140,7 @@ static GSList *scan_1x_2x_rs232(GSList *options)
 	drvc = di->priv;
 	drvc->instances = NULL;
 	conn = serialcomm = NULL;
-	model = SR_METRAHIT_NONE;
+	model = METRAHIT_NONE;
 	serialcomm_given = FALSE;
 
 	sr_spew("scan_1x_2x_rs232() called!");
@@ -178,7 +178,7 @@ static GSList *scan_1x_2x_rs232(GSList *options)
 	 * If detection failed and no user-supplied parameters,
 	 * try second baud rate.
 	 */
-	if ((model == SR_METRAHIT_NONE) && !serialcomm_given) {
+	if ((model == METRAHIT_NONE) && !serialcomm_given) {
 		serialcomm = SERIALCOMM_1X_RS232;
 		g_free(serial->serialcomm);
 		serial->serialcomm = g_strdup(serialcomm);
@@ -188,10 +188,10 @@ static GSList *scan_1x_2x_rs232(GSList *options)
 		}
 	}
 
-	if (model != SR_METRAHIT_NONE) {
-		sr_spew("%s %s detected!", VENDOR_GMC, sr_gmc_model_str(model));
+	if (model != METRAHIT_NONE) {
+		sr_spew("%s %s detected!", VENDOR_GMC, gmc_model_str(model));
 		if (!(sdi = sr_dev_inst_new(0, SR_ST_INACTIVE, VENDOR_GMC,
-				sr_gmc_model_str(model), "")))
+				gmc_model_str(model), "")))
 			return NULL;
 		if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
 			sr_err("Device context malloc failed.");
@@ -239,7 +239,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 	if ((devc = sdi->priv) && devc->elapsed_msec) {
 		g_timer_destroy(devc->elapsed_msec);
 		devc->elapsed_msec = NULL;
-		devc->model = SR_METRAHIT_NONE;
+		devc->model = METRAHIT_NONE;
 	}
 
 	return SR_OK;

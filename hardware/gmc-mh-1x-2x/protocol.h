@@ -56,28 +56,28 @@
  * protocol (see decode_model()), these codes allow working with ranges.
  */
 enum model {
-	SR_METRAHIT_NONE	= 0,  /**< Value for uninitialized variable */
-	SR_METRAHIT_12S		= 12,
-	SR_METRAHIT_13S14A	= 13,
-	SR_METRAHIT_14S		= 14,
-	SR_METRAHIT_15S		= 15,
-	SR_METRAHIT_16S		= 16,
-	SR_METRAHIT_16I		= 17,
-	SR_METRAHIT_16X = SR_METRAHIT_16I,  /**< All Metrahit 16 */
+	METRAHIT_NONE		= 0,  /**< Value for uninitialized variable */
+	METRAHIT_12S		= 12,
+	METRAHIT_13S14A		= 13,
+	METRAHIT_14S		= 14,
+	METRAHIT_15S		= 15,
+	METRAHIT_16S		= 16,
+	METRAHIT_16I		= 17,
+	METRAHIT_16X = METRAHIT_16I,  /**< All Metrahit 16 */
 	/* A Metrahit 17 exists, but seems not to have an IR interface. */
-	SR_METRAHIT_18S		= 18,
-	SR_METRAHIT_2X		= 20, /**< For model type comparisons */
-	SR_METRAHIT_22SM	= 22,
-	SR_METRAHIT_23S		= 23,
-	SR_METRAHIT_24S		= 24,
-	SR_METRAHIT_25SM	= 25,
-	SR_METRAHIT_26S		= 26,
-	SR_METRAHIT_28S		= 28,
-	SR_METRAHIT_29S		= 29,
+	METRAHIT_18S		= 18,
+	METRAHIT_2X		= 20, /**< For model type comparisons */
+	METRAHIT_22SM		= 22,
+	METRAHIT_23S		= 23,
+	METRAHIT_24S		= 24,
+	METRAHIT_25SM		= 25,
+	METRAHIT_26S		= 26,
+	METRAHIT_28S		= 28,
+	METRAHIT_29S		= 29,
 };
 
 /** Convert GMC model code in send mode to sigrok-internal one. */
-SR_PRIV int sr_gmc_decode_model_sm(uint8_t mcode);
+SR_PRIV int gmc_decode_model_sm(uint8_t mcode);
 
 /**
  * Convert GMC model code in bidirectional mode to sigrok-internal one.
@@ -86,10 +86,10 @@ SR_PRIV int sr_gmc_decode_model_sm(uint8_t mcode);
  *
  * @return Model code.
  */
-SR_PRIV int sr_gmc_decode_model_bidi(uint8_t mcode);
+SR_PRIV int gmc_decode_model_bidi(uint8_t mcode);
 
 /** Get model string from sigrok-internal model code. */
-SR_PRIV const char *sr_gmc_model_str(enum model mcode);
+SR_PRIV const char *gmc_model_str(enum model mcode);
 
 /** Private, per-device-instance driver context. */
 struct dev_context {

@@ -51,7 +51,7 @@ static void decode_ctmv_16(uint8_t ctmv, struct dev_context *devc)
 			devc->mqflags |= SR_MQFLAG_DC;
 		if (ctmv >= 0x03) {
 			devc->mqflags |= SR_MQFLAG_AC;
-			if (devc->model >= SR_METRAHIT_16S)
+			if (devc->model >= METRAHIT_16S)
 				devc->mqflags |= SR_MQFLAG_RMS;
 		}
 		break;
@@ -92,7 +92,7 @@ static void decode_ctmv_16(uint8_t ctmv, struct dev_context *devc)
 	case 0x0f: /* A */
 		devc->mq = SR_MQ_CURRENT;
 		devc->unit = SR_UNIT_AMPERE;
-		if (devc->model == SR_METRAHIT_16S)
+		if (devc->model == METRAHIT_16S)
 			devc->mqflags |= SR_MQFLAG_RMS;
 		/* 16I A only with clamp, RMS questionable. */
 		break;
@@ -357,7 +357,7 @@ static void decode_ctmv_2x(uint8_t ctmv, struct dev_context *devc)
 			devc->mqflags |= SR_MQFLAG_DC;
 		if (ctmv >= 0x02) {
 			devc->mqflags |= SR_MQFLAG_AC;
-			if (devc->model >= SR_METRAHIT_24S)
+			if (devc->model >= METRAHIT_24S)
 				devc->model |= SR_MQFLAG_RMS;
 		}
 		break;
@@ -371,7 +371,7 @@ static void decode_ctmv_2x(uint8_t ctmv, struct dev_context *devc)
 		devc->mqflags |= SR_MQFLAG_DC;
 		if ((ctmv == 0x05) || (ctmv == 0x07)) {
 			devc->mqflags |= SR_MQFLAG_AC;
-			if (devc->model >= SR_METRAHIT_24S)
+			if (devc->model >= METRAHIT_24S)
 				devc->mqflags |= SR_MQFLAG_RMS;
 		}
 		break;
@@ -604,9 +604,9 @@ static void process_msg_dta_6(struct sr_dev_inst *sdi)
 	clean_rs_v(devc);
 
 	/* Byte 0, range and sign */
-	if (devc->model <= SR_METRAHIT_16X)
+	if (devc->model <= METRAHIT_16X)
 		decode_rs_16(bc(devc->buf[0]), devc);
-	else if (devc->model < SR_METRAHIT_2X)
+	else if (devc->model < METRAHIT_2X)
 		decode_rs_18(bc(devc->buf[0]), devc);
 	else
 		decode_rs_2x(bc(devc->buf[0]), devc);
@@ -642,19 +642,18 @@ static void process_msg_inf_5(struct sr_dev_inst *sdi)
 	clean_ctmv_rs_v(devc);
 
 	/* Process byte 0 */
-	model = sr_gmc_decode_model_sm(bc(devc->buf[0]));
+	model = gmc_decode_model_sm(bc(devc->buf[0]));
 	if (model != devc->model) {
 		sr_warn("Model mismatch in data: Detected %s, now %s",
-			sr_gmc_model_str(devc->model),
-			sr_gmc_model_str(model));
+			gmc_model_str(devc->model), gmc_model_str(model));
 	}
 
 	/* Process bytes 1-4 */
-	if (devc->model <= SR_METRAHIT_16X) {
+	if (devc->model <= METRAHIT_16X) {
 		decode_ctmv_16(bc(devc->buf[1]), devc);
 		decode_spc_16(bc(devc->buf[2]) | (bc(devc->buf[3]) << 4), devc);
 		decode_rs_16(bc(devc->buf[4]), devc);
-	} else if (devc->model <= SR_METRAHIT_18S) {
+	} else if (devc->model <= METRAHIT_18S) {
 		decode_ctmv_18(bc(devc->buf[1]), devc);
 		decode_spc_18(bc(devc->buf[2]) | (bc(devc->buf[3]) << 4), devc);
 		decode_rs_18(bc(devc->buf[4]), devc);
@@ -750,11 +749,10 @@ static void process_msg_inf_13(struct sr_dev_inst *sdi)
 	clean_ctmv_rs_v(devc);
 
 	/* Byte 0, model. */
-	model = sr_gmc_decode_model_sm(bc(devc->buf[0]));
+	model = gmc_decode_model_sm(bc(devc->buf[0]));
 	if (model != devc->model) {
 		sr_warn("Model mismatch in data: Detected %s, now %s",
-			sr_gmc_model_str(devc->model),
-			sr_gmc_model_str(model));
+			gmc_model_str(devc->model), gmc_model_str(model));
 	}
 
 	/* Bytes 1-4, 11. */
@@ -832,7 +830,7 @@ SR_PRIV int gmc_mh_1x_2x_receive_data(int fd, int revents, void *cb_data)
 					devc->buflen = 0;
 					continue;
 				} else if ((devc->buflen == 10) &&
-					 (devc->model <= SR_METRAHIT_18S)) {
+					 (devc->model <= METRAHIT_18S)) {
 					process_msg_inf_10(sdi);
 					devc->buflen = 0;
 					continue;
@@ -880,45 +878,45 @@ SR_PRIV int gmc_mh_1x_2x_receive_data(int fd, int revents, void *cb_data)
 }
 
 /** Decode model in "send mode". */
-SR_PRIV int sr_gmc_decode_model_sm(uint8_t mcode)
+SR_PRIV int gmc_decode_model_sm(uint8_t mcode)
 {
 	if (mcode > 0xf) {
 		sr_err("decode_model(%d): Model code 0..15 expected!", mcode);
-		return SR_METRAHIT_NONE;
+		return METRAHIT_NONE;
 	}
 
 	switch(mcode) {
 	case 0x04: /* 0100b */
-		return SR_METRAHIT_12S;
+		return METRAHIT_12S;
 	case 0x08: /* 1000b */
-		return SR_METRAHIT_13S14A;
+		return METRAHIT_13S14A;
 	case 0x09: /* 1001b */
-		return SR_METRAHIT_14S;
+		return METRAHIT_14S;
 	case 0x0A: /* 1010b */
-		return SR_METRAHIT_15S;
+		return METRAHIT_15S;
 	case 0x0B: /* 1011b */
-		return SR_METRAHIT_16S;
+		return METRAHIT_16S;
 	case 0x06: /* 0110b (undocumented by GMC!) */
-		return SR_METRAHIT_16I;
+		return METRAHIT_16I;
 	case 0x0D: /* 1101b */
-		return SR_METRAHIT_18S;
+		return METRAHIT_18S;
 	case 0x02: /* 0010b */
-		return SR_METRAHIT_22SM;
+		return METRAHIT_22SM;
 	case 0x03: /* 0011b */
-		return SR_METRAHIT_23S;
+		return METRAHIT_23S;
 	case 0x0f: /* 1111b */
-		return SR_METRAHIT_24S;
+		return METRAHIT_24S;
 	case 0x05: /* 0101b */
-		return SR_METRAHIT_25SM;
+		return METRAHIT_25SM;
 	case 0x01: /* 0001b */
-		return SR_METRAHIT_26S;
+		return METRAHIT_26S;
 	case 0x0c: /* 1100b */
-		return SR_METRAHIT_28S;
+		return METRAHIT_28S;
 	case 0x0e: /* 1110b */
-		return SR_METRAHIT_29S;
+		return METRAHIT_29S;
 	default:
 		sr_err("Unknown model code %d!", mcode);
-		return SR_METRAHIT_NONE;
+		return METRAHIT_NONE;
 	}
 }
 
@@ -929,61 +927,61 @@ SR_PRIV int sr_gmc_decode_model_sm(uint8_t mcode)
  *
  * @return Model code.
  */
-SR_PRIV int sr_gmc_decode_model_bidi(uint8_t mcode)
+SR_PRIV int gmc_decode_model_bidi(uint8_t mcode)
 {
 	switch (mcode) {
 	case 2:
-		return SR_METRAHIT_22SM;
+		return METRAHIT_22SM;
 	case 3:
-		return SR_METRAHIT_23S;
+		return METRAHIT_23S;
 	case 4:
-		return SR_METRAHIT_24S;
+		return METRAHIT_24S;
 	case 5:
-		return SR_METRAHIT_25SM;
+		return METRAHIT_25SM;
 	case 1:
-		return SR_METRAHIT_26S;
+		return METRAHIT_26S;
 	case 12:
-		return SR_METRAHIT_28S;
+		return METRAHIT_28S;
 	case 14:
-		return SR_METRAHIT_29S;
+		return METRAHIT_29S;
 	default:
 		sr_err("Unknown model code %d!", mcode);
-		return SR_METRAHIT_NONE;
+		return METRAHIT_NONE;
 	}
 }
 
-SR_PRIV const char *sr_gmc_model_str(enum model mcode)
+SR_PRIV const char *gmc_model_str(enum model mcode)
 {
 	switch (mcode) {
-	case SR_METRAHIT_NONE:
+	case METRAHIT_NONE:
 		return "-uninitialized model variable-";
-	case SR_METRAHIT_12S:
+	case METRAHIT_12S:
 		return "METRAHit 12S";
-	case SR_METRAHIT_13S14A:
+	case METRAHIT_13S14A:
 		return "METRAHit 13S/14A";
-	case SR_METRAHIT_14S:
+	case METRAHIT_14S:
 		return "METRAHit 14S";
-	case SR_METRAHIT_15S:
+	case METRAHIT_15S:
 		return "METRAHit 15S";
-	case SR_METRAHIT_16S:
+	case METRAHIT_16S:
 		return "METRAHit 16S";
-	case SR_METRAHIT_16I:
+	case METRAHIT_16I:
 		return "METRAHit 16I";
-	case SR_METRAHIT_18S:
+	case METRAHIT_18S:
 		return "METRAHit 18S";
-	case SR_METRAHIT_22SM:
+	case METRAHIT_22SM:
 		return "METRAHit 22S/M";
-	case SR_METRAHIT_23S:
+	case METRAHIT_23S:
 		return "METRAHit 23S";
-	case SR_METRAHIT_24S:
+	case METRAHIT_24S:
 		return "METRAHit 24S";
-	case SR_METRAHIT_25SM:
+	case METRAHIT_25SM:
 		return "METRAHit 25S/M";
-	case SR_METRAHIT_26S:
+	case METRAHIT_26S:
 		return "METRAHit 26S";
-	case SR_METRAHIT_28S:
+	case METRAHIT_28S:
 		return "METRAHit 28S";
-	case SR_METRAHIT_29S:
+	case METRAHIT_29S:
 		return "METRAHit 29S";
 	default:
 		return "Unknown model code";
