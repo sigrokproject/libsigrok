@@ -53,10 +53,13 @@ static GSList *scan(GSList *options)
 	GSList *devices = NULL, *l;
 	const char *conn = NULL, *serialcomm = NULL;
 	uint8_t buf[292];
-	size_t len = sizeof(buf);
+	size_t len;
+	struct sr_config *src;
+
+	len = sizeof(buf);
 
 	for (l = options; l; l = l->next) {
-		struct sr_config *src = l->data;
+		src = l->data;
 		switch (src->key) {
 		case SR_CONF_CONN:
 			conn = g_variant_get_string(src->data, NULL);
@@ -266,8 +269,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
-	return std_serial_dev_acquisition_stop(sdi, cb_data, std_serial_dev_close,
-			sdi->conn, LOG_PREFIX);
+	return std_serial_dev_acquisition_stop(sdi, cb_data,
+			std_serial_dev_close, sdi->conn, LOG_PREFIX);
 }
 
 SR_PRIV struct sr_dev_driver teleinfo_driver_info = {
@@ -279,10 +282,12 @@ SR_PRIV struct sr_dev_driver teleinfo_driver_info = {
 	.scan = scan,
 	.dev_list = dev_list,
 	.dev_clear = dev_clear,
+	.config_get = NULL,
 	.config_set = config_set,
 	.config_list = config_list,
 	.dev_open = std_serial_dev_open,
 	.dev_close = std_serial_dev_close,
 	.dev_acquisition_start = dev_acquisition_start,
 	.dev_acquisition_stop = dev_acquisition_stop,
+	.priv = NULL,
 };

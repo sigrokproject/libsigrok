@@ -125,7 +125,7 @@ static gboolean teleinfo_parse_group(struct sr_dev_inst *sdi,
                                      const uint8_t *group, char *optarif)
 {
 	char label[9], data[13], control, cr;
-	const char *str = (const char *) group;
+	const char *str = (const char *)group;
 	if (sscanf(str, "\x0A%8s %13s %c%c", label, data, &control, &cr) != 4
 	    || cr != CR)
 		return FALSE;
@@ -139,12 +139,13 @@ static const uint8_t *teleinfo_parse_data(struct sr_dev_inst *sdi,
                                           const uint8_t *buf, int len,
                                           char *optarif)
 {
-	const uint8_t *group_start = memchr(buf, LF, len);
+	const uint8_t *group_start, *group_end;
+
+	group_start = memchr(buf, LF, len);
 	if (!group_start)
 		return NULL;
 
-	const uint8_t *group_end = memchr(group_start, CR,
-	                                  len - (group_start - buf));
+	group_end = memchr(group_start, CR, len - (group_start - buf));
 	if (!group_end)
 		return NULL;
 
@@ -181,6 +182,7 @@ SR_PRIV int teleinfo_receive_data(int fd, int revents, void *cb_data)
 	struct sr_serial_dev_inst *serial;
 	const uint8_t *ptr, *next_ptr, *end_ptr;
 	int len;
+	int64_t time;
 
 	(void)fd;
 
@@ -220,7 +222,7 @@ SR_PRIV int teleinfo_receive_data(int fd, int revents, void *cb_data)
 	}
 
 	if (devc->limit_msec) {
-		int64_t time = (g_get_monotonic_time() - devc->start_time) / 1000;
+		time = (g_get_monotonic_time() - devc->start_time) / 1000;
 		if (time > (int64_t)devc->limit_msec) {
 			sr_info("Requested time limit reached.");
 			sdi->driver->dev_acquisition_stop(sdi, devc->session_cb_data);
