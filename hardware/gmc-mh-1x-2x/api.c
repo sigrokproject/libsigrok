@@ -134,7 +134,6 @@ static GSList *scan_1x_2x_rs232(GSList *options)
 	const char *conn, *serialcomm;
 	enum model model;
 	gboolean serialcomm_given;
-	int cnt;
 
 	devices = NULL;
 	drvc = (&gmc_mh_1x_2x_rs232_driver_info)->priv;
@@ -312,6 +311,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_probe_group *probe_group)
 {
 	(void)sdi;
+	(void)probe_group;
 
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
