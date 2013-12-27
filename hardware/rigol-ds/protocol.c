@@ -491,6 +491,8 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 		if (len == -1)
 			return TRUE;
 
+		devc->num_block_read += len;
+
 		if (devc->num_frame_samples == 0) {
 			/* Start of a new frame. */
 			packet.type = SR_DF_FRAME_BEGIN;
@@ -498,8 +500,6 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 		}
 
 		if (probe->type == SR_PROBE_ANALOG) {
-			if (devc->model->protocol == PROTOCOL_IEEE488_2)
-				devc->num_block_read += len;
 			vref = devc->vert_reference[probe->index];
 			vdiv = devc->vdiv[probe->index] / 25.6;
 			offset = devc->vert_offset[probe->index];
@@ -519,27 +519,6 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 			packet.payload = &analog;
 			sr_session_send(cb_data, &packet);
 			g_slist_free(analog.probes);
-
-			if (devc->model->protocol == PROTOCOL_IEEE488_2) {
-				if (devc->num_block_read == devc->num_block_bytes) {
-					sr_dbg("Block has been completed");
-					/* Discard the terminating linefeed and prepare for
-					   possible next block */
-					sr_scpi_read(scpi, (char *)devc->buffer, 1);
-					devc->num_block_bytes = 0;
-					if (devc->data_source != DATA_SOURCE_LIVE)
-						rigol_ds_set_wait_event(devc, WAIT_BLOCK);
-				} else
-					sr_dbg("%d of %d block bytes read", devc->num_block_read, devc->num_block_bytes);
-			}
-
-			devc->num_frame_samples += len;
-
-			if (devc->num_frame_samples < devc->analog_frame_size)
-				/* Don't have the whole frame yet. */
-				return TRUE;
-
-			sr_dbg("Frame completed, %d samples", devc->num_frame_samples);
 		} else {
 			logic.length = len - 10;
 			logic.unitsize = 2;
@@ -547,13 +526,32 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 			packet.type = SR_DF_LOGIC;
 			packet.payload = &logic;
 			sr_session_send(cb_data, &packet);
-
-			if (len != DIGITAL_WAVEFORM_SIZE)
-				/* Don't have the whole frame yet. */
-				return TRUE;
 		}
 
+		if (devc->num_block_read == devc->num_block_bytes) {
+			sr_dbg("Block has been completed");
+			if (devc->model->protocol == PROTOCOL_IEEE488_2) {
+				/* Discard the terminating linefeed and prepare for
+				   possible next block */
+				sr_scpi_read(scpi, (char *)devc->buffer, 1);
+				devc->num_block_bytes = 0;
+				if (devc->data_source != DATA_SOURCE_LIVE)
+					rigol_ds_set_wait_event(devc, WAIT_BLOCK);
+			}
+			devc->num_block_read = 0;
+		} else {
+			sr_dbg("%d of %d block bytes read", devc->num_block_read, devc->num_block_bytes);
+		}
+
+		devc->num_frame_samples += len;
+
+		if (devc->num_frame_samples < (probe->type == SR_PROBE_ANALOG ?
+					devc->analog_frame_size : DIGITAL_WAVEFORM_SIZE))
+			/* Don't have the whole frame yet. */
+			return TRUE;
+
 		/* End of the frame. */
+		sr_dbg("Frame completed, %d samples", devc->num_frame_samples);
 		packet.type = SR_DF_FRAME_END;
 		sr_session_send(sdi, &packet);
 		if (devc->model->protocol == PROTOCOL_IEEE488_2) {
