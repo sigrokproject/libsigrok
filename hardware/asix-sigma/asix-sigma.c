@@ -1061,7 +1061,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 
 		/* Find first ts. */
 		if (devc->state.chunks_downloaded == 0) {
-			devc->state.lastts = *(uint16_t *) buf - 1;
+			devc->state.lastts = RL16(buf) - 1;
 			devc->state.lastsample = 0;
 		}
 
