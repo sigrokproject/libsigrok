@@ -795,9 +795,11 @@ EXCLUDE_SYMLINKS       = NO
 #  - output/*: Only output.c contains public API, everything else doesn't.
 #  - tests/*: Unit tests, no public API stuff in there.
 #  - bindings/*: Language bindings, no public API stuff in there.
+#  - doxy/*: Potentially already generated docs, should not be scanned.
 #
 EXCLUDE_PATTERNS       = */hardware/* */input/* */output/* */tests/*
 EXCLUDE_PATTERNS      += */bindings/*
+EXCLUDE_PATTERNS      += */doxy/*
 INPUT                 += input/input.c output/output.c
 
 # The EXCLUDE_SYMBOLS tag can be used to specify one or more symbol names
