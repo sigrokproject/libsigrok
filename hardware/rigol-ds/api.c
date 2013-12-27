@@ -839,20 +839,14 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	std_session_send_df_header(cb_data, LOG_PREFIX);
 
 	if (devc->model->protocol == PROTOCOL_LEGACY) {
+		devc->analog_frame_size = DS1000_ANALOG_LIVE_WAVEFORM_SIZE;
 		/* Fetch the first frame. */
-		if (devc->enabled_analog_probes) {
-			devc->analog_frame_size = DS1000_ANALOG_LIVE_WAVEFORM_SIZE;
+		if (devc->enabled_analog_probes)
 			devc->channel = devc->enabled_analog_probes->data;
-			if (sr_scpi_send(sdi->conn, ":WAV:DATA? CHAN%d",
-					devc->channel->index + 1) != SR_OK)
-				return SR_ERR;
-		} else {
+		else
 			devc->channel = devc->enabled_digital_probes->data;
-			if (sr_scpi_send(sdi->conn, ":WAV:DATA? DIG") != SR_OK)
-				return SR_ERR;
-		}
-
-		devc->num_frame_samples = 0;
+		if (rigol_ds_channel_start(sdi) != SR_OK)
+			return SR_ERR;
 	} else {
 		if (devc->enabled_analog_probes) {
 			if (devc->data_source == DATA_SOURCE_MEMORY)

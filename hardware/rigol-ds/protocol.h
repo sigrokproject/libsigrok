@@ -135,6 +135,7 @@ struct dev_context {
 };
 
 SR_PRIV int rigol_ds_capture_start(const struct sr_dev_inst *sdi);
+SR_PRIV int rigol_ds_channel_start(const struct sr_dev_inst *sdi);
 SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data);
 SR_PRIV int rigol_ds_get_dev_cfg(const struct sr_dev_inst *sdi);
 
