@@ -782,7 +782,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	struct dev_context *devc;
 	struct sr_probe *probe;
 	GSList *l;
-	char cmd[256];
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
@@ -799,9 +798,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 						devc->enabled_analog_probes, probe);
 			if (probe->enabled != devc->analog_channels[probe->index]) {
 				/* Enabled channel is currently disabled, or vice versa. */
-				sprintf(cmd, ":CHAN%d:DISP %s", probe->index + 1,
-						probe->enabled ? "ON" : "OFF");
-				if (sr_scpi_send(sdi->conn, cmd) != SR_OK)
+				if (set_cfg(sdi, ":CHAN%d:DISP %s", probe->index + 1,
+						probe->enabled ? "ON" : "OFF") != SR_OK)
 					return SR_ERR;
 			}
 		} else if (probe->type == SR_PROBE_LOGIC) {
@@ -810,9 +808,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 						devc->enabled_digital_probes, probe);
 			if (probe->enabled != devc->digital_channels[probe->index]) {
 				/* Enabled channel is currently disabled, or vice versa. */
-				sprintf(cmd, ":DIG%d:TURN %s", probe->index,
-						probe->enabled ? "ON" : "OFF");
-				if (sr_scpi_send(sdi->conn, cmd) != SR_OK)
+				if (set_cfg(sdi, ":DIG%d:TURN %s", probe->index,
+						probe->enabled ? "ON" : "OFF") != SR_OK)
 					return SR_ERR;
 			}
 		}
@@ -822,7 +819,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		return SR_ERR;
 
 	if (devc->data_source == DATA_SOURCE_LIVE) {
-		if (sr_scpi_send(sdi->conn, ":RUN") != SR_OK)
+		if (set_cfg(sdi, ":RUN") != SR_OK)
 			return SR_ERR;
 	} else if (devc->data_source == DATA_SOURCE_MEMORY) {
 		if (devc->model->series != RIGOL_DS2000) {
@@ -859,11 +856,11 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 				/* Apparently for the DS2000 the memory
 				 * depth can only be set in Running state -
 				 * this matches the behaviour of the UI. */
-				if (sr_scpi_send(sdi->conn, ":RUN") != SR_OK)
+				if (set_cfg(sdi, ":RUN") != SR_OK)
 					return SR_ERR;
-				if (sr_scpi_send(sdi->conn, "ACQ:MDEP %d", devc->analog_frame_size) != SR_OK)
+				if (set_cfg(sdi, "ACQ:MDEP %d", devc->analog_frame_size) != SR_OK)
 					return SR_ERR;
-				if (sr_scpi_send(sdi->conn, ":STOP") != SR_OK)
+				if (set_cfg(sdi, ":STOP") != SR_OK)
 					return SR_ERR;
 			} else
 				devc->analog_frame_size = DS2000_ANALOG_LIVE_WAVEFORM_SIZE;
