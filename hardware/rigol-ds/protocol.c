@@ -217,7 +217,7 @@ static int rigol_ds_check_stop(const struct sr_dev_inst *sdi)
 		return SR_ERR;
 
 	if (sr_scpi_send(sdi->conn, ":WAV:SOUR CHAN%d",
-			  devc->channel_frame->index + 1) != SR_OK)
+			  devc->channel->index + 1) != SR_OK)
 		return SR_ERR;
 	/* Check that the number of samples will be accepted */
 	if (sr_scpi_send(sdi->conn, ":WAV:POIN %d;*OPC", devc->analog_frame_size) != SR_OK)
@@ -325,10 +325,10 @@ SR_PRIV int rigol_ds_channel_start(const struct sr_dev_inst *sdi)
 		return SR_ERR;
 
 	sr_dbg("Starting reading data from channel %d",
-	       devc->channel_frame->index + 1);
+	       devc->channel->index + 1);
 
 	if (sr_scpi_send(sdi->conn, ":WAV:SOUR CHAN%d",
-			  devc->channel_frame->index + 1) != SR_OK)
+			  devc->channel->index + 1) != SR_OK)
 		return SR_ERR;
 	if (devc->data_source != DATA_SOURCE_LIVE) {
 		if (sr_scpi_send(sdi->conn, ":WAV:RES") != SR_OK)
@@ -339,7 +339,7 @@ SR_PRIV int rigol_ds_channel_start(const struct sr_dev_inst *sdi)
 	} else
 		rigol_ds_set_wait_event(devc, WAIT_NONE);
 
-	devc->num_frame_bytes = 0;
+	devc->num_frame_samples = 0;
 	devc->num_block_bytes = 0;
 
 	return SR_OK;
@@ -452,7 +452,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 				 * appear eventually.
 				 */
 				if (devc->data_source == DATA_SOURCE_LIVE
-				    && (unsigned)len < devc->num_frame_bytes) {
+				    && (unsigned)len < devc->num_frame_samples) {
 					sr_dbg("Discarding short data block");
 					sr_scpi_read(scpi, (char *)devc->buffer, len + 1);
 					return TRUE;
@@ -462,7 +462,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 			}
 		}
 
-		probe = devc->channel_frame;
+		probe = devc->channel;
 		if (devc->model->protocol == PROTOCOL_IEEE488_2) {
 			len = devc->num_block_bytes - devc->num_block_read;
 			len = sr_scpi_read(scpi, (char *)devc->buffer,
@@ -474,13 +474,13 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 						DS1000_ANALOG_LIVE_WAVEFORM_SIZE) :
 					DIGITAL_WAVEFORM_SIZE;
 			len = sr_scpi_read(scpi, (char *)devc->buffer,
-					waveform_size - devc->num_frame_bytes);
+					waveform_size - devc->num_frame_samples);
 		}
 		sr_dbg("Received %d bytes.", len);
 		if (len == -1)
 			return TRUE;
 
-		if (devc->num_frame_bytes == 0) {
+		if (devc->num_frame_samples == 0) {
 			/* Start of a new frame. */
 			packet.type = SR_DF_FRAME_BEGIN;
 			sr_session_send(sdi, &packet);
@@ -522,13 +522,13 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 					sr_dbg("%d of %d block bytes read", devc->num_block_read, devc->num_block_bytes);
 			}
 
-			devc->num_frame_bytes += len;
+			devc->num_frame_samples += len;
 
-			if (devc->num_frame_bytes < devc->analog_frame_size)
+			if (devc->num_frame_samples < devc->analog_frame_size)
 				/* Don't have the whole frame yet. */
 				return TRUE;
 
-			sr_dbg("Frame completed, %d samples", devc->num_frame_bytes);
+			sr_dbg("Frame completed, %d samples", devc->num_frame_samples);
 		} else {
 			logic.length = len - 10;
 			logic.unitsize = 2;
@@ -546,7 +546,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 		packet.type = SR_DF_FRAME_END;
 		sr_session_send(sdi, &packet);
 		if (devc->model->protocol == PROTOCOL_LEGACY)
-			devc->num_frame_bytes = 0;
+			devc->num_frame_samples = 0;
 		else {
 			/* Signal end of data download to scope */
 			if (devc->data_source != DATA_SOURCE_LIVE)
@@ -559,23 +559,23 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 		}
 
 		if (devc->enabled_analog_probes
-				&& devc->channel_frame == devc->enabled_analog_probes->data
+				&& devc->channel == devc->enabled_analog_probes->data
 				&& devc->enabled_analog_probes->next != NULL) {
 			/* We got the frame for the first analog channel, but
 			 * there's a second analog channel. */
-			devc->channel_frame = devc->enabled_analog_probes->next->data;
+			devc->channel = devc->enabled_analog_probes->next->data;
 			if (devc->model->protocol == PROTOCOL_IEEE488_2) {
 				rigol_ds_channel_start(sdi);
 			} else {
 				sr_scpi_send(sdi->conn, ":WAV:DATA? CHAN%c",
-						devc->channel_frame->name[2]);
+						devc->channel->name[2]);
 			}
 		} else {
 			/* Done with both analog channels in this frame. */
 			if (devc->enabled_digital_probes
-					&& devc->channel_frame != devc->enabled_digital_probes->data) {
+					&& devc->channel != devc->enabled_digital_probes->data) {
 				/* Now we need to get the digital data. */
-				devc->channel_frame = devc->enabled_digital_probes->data;
+				devc->channel = devc->enabled_digital_probes->data;
 				sr_scpi_send(sdi->conn, ":WAV:DATA? DIG");
 			} else if (++devc->num_frames == devc->limit_frames) {
 				/* End of last frame. */
@@ -586,16 +586,16 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 				/* Get the next frame, starting with the first analog channel. */
 				if (devc->model->protocol == PROTOCOL_IEEE488_2) {
 					if (devc->enabled_analog_probes) {
-						devc->channel_frame = devc->enabled_analog_probes->data;
+						devc->channel = devc->enabled_analog_probes->data;
 						rigol_ds_capture_start(sdi);
 					}
 				} else {
 					if (devc->enabled_analog_probes) {
-						devc->channel_frame = devc->enabled_analog_probes->data;
+						devc->channel = devc->enabled_analog_probes->data;
 						sr_scpi_send(sdi->conn, ":WAV:DATA? CHAN%c",
-								devc->channel_frame->name[2]);
+								devc->channel->name[2]);
 					} else {
-						devc->channel_frame = devc->enabled_digital_probes->data;
+						devc->channel = devc->enabled_digital_probes->data;
 						sr_scpi_send(sdi->conn, ":WAV:DATA? DIG");
 					}
 				}

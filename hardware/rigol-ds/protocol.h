@@ -114,10 +114,13 @@ struct dev_context {
 	char *coupling[2];
 
 	/* Operational state */
+
+	/* Number of frames received in total. */
 	uint64_t num_frames;
-	/* FIXME: misnomer, actually this is number of frame samples? */
-	uint64_t num_frame_bytes;
-	struct sr_probe *channel_frame;
+	/* The channel we are currently receiving data for. */
+	struct sr_probe *channel;
+	/* Number of samples received in current frame. */
+	uint64_t num_frame_samples;
 	/* Number of bytes in current data block, if 0 block header expected */
 	uint64_t num_block_bytes;
 	/* Number of data block bytes already read */

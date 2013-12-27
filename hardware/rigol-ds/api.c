@@ -842,17 +842,17 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		/* Fetch the first frame. */
 		if (devc->enabled_analog_probes) {
 			devc->analog_frame_size = DS1000_ANALOG_LIVE_WAVEFORM_SIZE;
-			devc->channel_frame = devc->enabled_analog_probes->data;
+			devc->channel = devc->enabled_analog_probes->data;
 			if (sr_scpi_send(sdi->conn, ":WAV:DATA? CHAN%d",
-					devc->channel_frame->index + 1) != SR_OK)
+					devc->channel->index + 1) != SR_OK)
 				return SR_ERR;
 		} else {
-			devc->channel_frame = devc->enabled_digital_probes->data;
+			devc->channel = devc->enabled_digital_probes->data;
 			if (sr_scpi_send(sdi->conn, ":WAV:DATA? DIG") != SR_OK)
 				return SR_ERR;
 		}
 
-		devc->num_frame_bytes = 0;
+		devc->num_frame_samples = 0;
 	} else {
 		if (devc->enabled_analog_probes) {
 			if (devc->data_source == DATA_SOURCE_MEMORY)
@@ -872,7 +872,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 					return SR_ERR;
 			} else
 				devc->analog_frame_size = DS2000_ANALOG_LIVE_WAVEFORM_SIZE;
-			devc->channel_frame = devc->enabled_analog_probes->data;
+			devc->channel = devc->enabled_analog_probes->data;
 			if (rigol_ds_capture_start(sdi) != SR_OK)
 				return SR_ERR;
 		}
