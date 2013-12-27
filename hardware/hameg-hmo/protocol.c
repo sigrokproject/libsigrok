@@ -62,6 +62,7 @@ static const char *hmo_coupling_options[] = {
 	"AC",
 	"ACL",
 	"DC",
+	"DCL",
 	"GND",
 	NULL,
 };
