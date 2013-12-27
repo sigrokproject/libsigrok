@@ -837,7 +837,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	std_session_send_df_header(cb_data, LOG_PREFIX);
 
 	if (devc->model->protocol == PROTOCOL_LEGACY) {
-		devc->analog_frame_size = DS1000_ANALOG_LIVE_WAVEFORM_SIZE;
+		devc->analog_frame_size = (devc->model->series == RIGOL_VS5000 ?
+				VS5000_ANALOG_LIVE_WAVEFORM_SIZE :
+				DS1000_ANALOG_LIVE_WAVEFORM_SIZE);
 		/* Fetch the first frame. */
 		if (devc->enabled_analog_probes)
 			devc->channel = devc->enabled_analog_probes->data;
