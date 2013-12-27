@@ -790,19 +790,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	scpi = sdi->conn;
 	devc = sdi->priv;
 
-	if (devc->data_source == DATA_SOURCE_LIVE) {
-		if (sr_scpi_send(sdi->conn, ":RUN") != SR_OK)
-			return SR_ERR;
-	} else if (devc->data_source == DATA_SOURCE_MEMORY) {
-		if (devc->model->series != RIGOL_DS2000) {
-			sr_err("Data source 'Memory' not supported for this device");
-			return SR_ERR;
-		}
-	} else if (devc->data_source == DATA_SOURCE_SEGMENTED) {
-		sr_err("Data source 'Segmented' not yet supported");
-		return SR_ERR;
-	}
-
 	for (l = sdi->probes; l; l = l->next) {
 		probe = l->data;
 		sr_dbg("handling probe %s", probe->name);
@@ -830,8 +817,22 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 			}
 		}
 	}
+
 	if (!devc->enabled_analog_probes && !devc->enabled_digital_probes)
 		return SR_ERR;
+
+	if (devc->data_source == DATA_SOURCE_LIVE) {
+		if (sr_scpi_send(sdi->conn, ":RUN") != SR_OK)
+			return SR_ERR;
+	} else if (devc->data_source == DATA_SOURCE_MEMORY) {
+		if (devc->model->series != RIGOL_DS2000) {
+			sr_err("Data source 'Memory' not supported for this device");
+			return SR_ERR;
+		}
+	} else if (devc->data_source == DATA_SOURCE_SEGMENTED) {
+		sr_err("Data source 'Segmented' not yet supported");
+		return SR_ERR;
+	}
 
 	sr_scpi_source_add(scpi, G_IO_IN, 50, rigol_ds_receive, (void *)sdi);
 
