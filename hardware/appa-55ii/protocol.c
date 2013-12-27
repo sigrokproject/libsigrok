@@ -27,7 +27,7 @@ typedef enum {
     LOG_DATA     = 0x14,
     LOG_START    = 0x18,
     LOG_END      = 0x19,
-} packet_type_t;
+} packet_type;
 
 static gboolean appa_55ii_checksum(const uint8_t *buf)
 {
@@ -237,7 +237,7 @@ static const uint8_t *appa_55ii_parse_data(struct sr_dev_inst *sdi,
 		/* Skip broken packet. */
 		return buf + 4 + buf[3] + 1;
 
-	switch ((packet_type_t)buf[2]) {
+	switch ((packet_type)buf[2]) {
 	case LIVE_DATA:
 		appa_55ii_live_data(sdi, buf);
 		break;
