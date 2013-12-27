@@ -405,7 +405,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 	struct sr_datafeed_analog analog;
 	struct sr_datafeed_logic logic;
 	double vdiv, offset;
-	int len, i, waveform_size, vref;
+	int len, i, vref;
 	struct sr_probe *probe;
 
 	(void)fd;
@@ -448,8 +448,12 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 			default:
 				sr_err("BUG: Unknown event target encountered");
 			}
+		}
+
+		probe = devc->channel;
 		
-			if (devc->num_block_bytes == 0) {
+		if (devc->num_block_bytes == 0) {
+			if (devc->model->protocol == PROTOCOL_IEEE488_2) {
 				sr_dbg("New block header expected");
 				if (sr_scpi_send(sdi->conn, ":WAV:DATA?") != SR_OK)
 					return TRUE;
@@ -463,30 +467,26 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 				 * appear eventually.
 				 */
 				if (devc->data_source == DATA_SOURCE_LIVE
-				    && (unsigned)len < devc->num_frame_samples) {
+						&& (unsigned)len < devc->num_frame_samples) {
 					sr_dbg("Discarding short data block");
 					sr_scpi_read(scpi, (char *)devc->buffer, len + 1);
 					return TRUE;
 				}
 				devc->num_block_bytes = len;
-				devc->num_block_read = 0;
-			}
-		}
-
-		probe = devc->channel;
-		if (devc->model->protocol == PROTOCOL_IEEE488_2) {
-			len = devc->num_block_bytes - devc->num_block_read;
-			len = sr_scpi_read(scpi, (char *)devc->buffer,
-					len < ACQ_BUFFER_SIZE ? len : ACQ_BUFFER_SIZE);
-		} else {
-			waveform_size = probe->type == SR_PROBE_ANALOG ?
+			} else {
+				devc->num_block_bytes = probe->type == SR_PROBE_ANALOG ?
 					(devc->model->series == RIGOL_VS5000 ?
 						VS5000_ANALOG_LIVE_WAVEFORM_SIZE :
 						DS1000_ANALOG_LIVE_WAVEFORM_SIZE) :
 					DIGITAL_WAVEFORM_SIZE;
-			len = sr_scpi_read(scpi, (char *)devc->buffer,
-					waveform_size - devc->num_frame_samples);
+			}
+			devc->num_block_read = 0;
 		}
+
+		len = devc->num_block_bytes - devc->num_block_read;
+		len = sr_scpi_read(scpi, (char *)devc->buffer,
+				len < ACQ_BUFFER_SIZE ? len : ACQ_BUFFER_SIZE);
+
 		sr_dbg("Received %d bytes.", len);
 		if (len == -1)
 			return TRUE;
@@ -556,9 +556,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 		/* End of the frame. */
 		packet.type = SR_DF_FRAME_END;
 		sr_session_send(sdi, &packet);
-		if (devc->model->protocol == PROTOCOL_LEGACY)
-			devc->num_frame_samples = 0;
-		else {
+		if (devc->model->protocol == PROTOCOL_IEEE488_2) {
 			/* Signal end of data download to scope */
 			if (devc->data_source != DATA_SOURCE_LIVE)
 				/*
