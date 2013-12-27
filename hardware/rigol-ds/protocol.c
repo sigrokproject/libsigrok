@@ -328,7 +328,7 @@ SR_PRIV int rigol_ds_channel_start(const struct sr_dev_inst *sdi)
 	       devc->channel->index + 1);
 
 	if (devc->model->protocol == PROTOCOL_LEGACY) {
-		if (devc->channel->type == SR_DF_LOGIC) {
+		if (devc->channel->type == SR_PROBE_LOGIC) {
 			if (sr_scpi_send(sdi->conn, ":WAV:DATA? DIG") != SR_OK)
 				return SR_ERR;
 		} else {
