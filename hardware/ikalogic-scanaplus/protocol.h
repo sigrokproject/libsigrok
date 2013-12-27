@@ -28,7 +28,7 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
-#define LOG_PREFIX "scanaplus"
+#define LOG_PREFIX "ikalogic-scanaplus"
 
 #define COMPRESSED_BUF_SIZE		(64 * 1024)
 

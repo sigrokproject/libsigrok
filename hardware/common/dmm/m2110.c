@@ -31,6 +31,8 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
+#define LOG_PREFIX "m2110"
+
 SR_PRIV gboolean sr_m2110_packet_valid(const uint8_t *buf)
 {
 	float val;

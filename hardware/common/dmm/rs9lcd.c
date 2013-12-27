@@ -35,7 +35,7 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
-#define LOG_PREFIX "rs91lcd"
+#define LOG_PREFIX "rs9lcd"
 
 /* Byte 1 of the packet, and the modes it represents */
 #define IND1_HZ		(1 << 7)

@@ -29,7 +29,7 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
-#define LOG_PREFIX "mso19"
+#define LOG_PREFIX "link-mso19"
 
 #define USB_VENDOR		"3195"
 #define USB_PRODUCT		"f190"

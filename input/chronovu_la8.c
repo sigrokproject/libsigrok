@@ -25,7 +25,7 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
-#define LOG_PREFIX "input/chronovu-l8"
+#define LOG_PREFIX "input/chronovu-la8"
 
 #define NUM_PACKETS		2048
 #define PACKET_SIZE		4096

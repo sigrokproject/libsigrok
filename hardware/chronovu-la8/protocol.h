@@ -27,7 +27,7 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
-#define LOG_PREFIX "la8"
+#define LOG_PREFIX "chronovu-la8"
 
 #define USB_VENDOR_ID			0x0403
 #define USB_DESCRIPTION			"ChronoVu LA8"
