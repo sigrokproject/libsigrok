@@ -98,7 +98,7 @@ extern struct sr_session *session;
  *   	struct sr_context *sr_ctx;
  *
  *   	if ((ret = sr_init(&sr_ctx)) != SR_OK) {
- *   		printf("Error initializing libsigrok (%s): %s.",
+ *   		printf("Error initializing libsigrok (%s): %s.\n",
  *   		       sr_strerror_name(ret), sr_strerror(ret));
  *   		return 1;
  *   	}
@@ -106,7 +106,7 @@ extern struct sr_session *session;
  *   	// Use libsigrok functions here...
  *
  *   	if ((ret = sr_exit(sr_ctx)) != SR_OK) {
- *   		printf("Error shutting down libsigrok (%s): %s.",
+ *   		printf("Error shutting down libsigrok (%s): %s.\n",
  *   		       sr_strerror_name(ret), sr_strerror(ret));
  *   		return 1;
  *   	}

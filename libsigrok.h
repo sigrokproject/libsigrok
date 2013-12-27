@@ -303,7 +303,14 @@ enum {
 	SR_MQFLAG_AVG = 0x40000,
 };
 
-/** sigrok context (opaque). @see sr_init(), sr_exit(). */
+/**
+ * @struct sr_context
+ * Opaque structure representing a libsigrok context.
+ *
+ * None of the fields of this structure are meant to be accessed directly.
+ *
+ * @see sr_init(), sr_exit().
+ */
 struct sr_context;
 
 /** Packet in a sigrok data feed. */
@@ -948,6 +955,8 @@ struct sr_dev_driver {
 };
 
 /**
+ * @struct sr_session
+ *
  * Opaque data structure representing a libsigrok session. None of the fields
  * of this structure are meant to be accessed directly.
  */

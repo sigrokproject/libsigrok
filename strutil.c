@@ -42,6 +42,8 @@
  */
 
 /**
+ * @private
+ *
  * Convert a string representation of a numeric value to a long integer. The
  * conversion is strict and will fail if the complete string does not represent
  * a valid long integer. The function sets errno according to the details of the
@@ -73,6 +75,8 @@ SR_PRIV int sr_atol(const char *str, long *ret)
 }
 
 /**
+ * @private
+ *
  * Convert a string representation of a numeric value to an integer. The
  * conversion is strict and will fail if the complete string does not represent
  * a valid integer. The function sets errno according to the details of the
@@ -102,6 +106,8 @@ SR_PRIV int sr_atoi(const char *str, int *ret)
 }
 
 /**
+ * @private
+ *
  * Convert a string representation of a numeric value to a double. The
  * conversion is strict and will fail if the complete string does not represent
  * a valid double. The function sets errno according to the details of the
@@ -133,6 +139,8 @@ SR_PRIV int sr_atod(const char *str, double *ret)
 }
 
 /**
+ * @private
+ *
  * Convert a string representation of a numeric value to a float. The
  * conversion is strict and will fail if the complete string does not represent
  * a valid float. The function sets errno according to the details of the

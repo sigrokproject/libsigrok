@@ -380,6 +380,7 @@ SR_PRIV void sr_serial_dev_inst_free(struct sr_serial_dev_inst *serial)
 }
 #endif
 
+/** @private */
 SR_PRIV struct sr_usbtmc_dev_inst *sr_usbtmc_dev_inst_new(const char *device)
 {
 	struct sr_usbtmc_dev_inst *usbtmc;
@@ -400,6 +401,7 @@ SR_PRIV struct sr_usbtmc_dev_inst *sr_usbtmc_dev_inst_new(const char *device)
 	return usbtmc;
 }
 
+/** @private */
 SR_PRIV void sr_usbtmc_dev_inst_free(struct sr_usbtmc_dev_inst *usbtmc)
 {
 	g_free(usbtmc->device);
