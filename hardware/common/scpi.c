@@ -535,6 +535,8 @@ SR_PRIV int sr_scpi_get_hw_id(struct sr_scpi_dev_inst *scpi,
 		if (!response)
 			return SR_ERR;
 
+	sr_info("Got IDN string: '%s'", response);
+
 	/*
 	 * The response to a '*IDN?' is specified by the SCPI spec. It contains
 	 * a comma-separated list containing the manufacturer name, instrument
