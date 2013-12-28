@@ -679,6 +679,9 @@ enum {
 	/** The device can measure energy consumption. */
 	SR_CONF_ENERGYMETER,
 
+	/** The device can demodulate signals. */
+	SR_CONF_DEMODULATOR,
+
 	/*--- Driver scan options -------------------------------------------*/
 
 	/**
@@ -790,6 +793,12 @@ enum {
 	 * buffered and unbuffered channels.
 	 */
 	SR_CONF_SWAP,
+
+        /** Center frequency.
+         * The input signal is downmixed by this frequency before the ADC
+         * anti-aliasing filter.
+         */
+        SR_CONF_CENTER_FREQUENCY,
 
 	/*--- Special stuff -------------------------------------------------*/
 
