@@ -154,26 +154,31 @@ static const char *data_sources[] = {
  * name, series, protocol flavor, min timebase, max timebase, min vdiv,
  * digital channels, number of horizontal divs
  */
+
+#define RIGOL "Rigol Technologies"
+#define AGILENT "Agilent Technologies"
+
 static const struct rigol_ds_model supported_models[] = {
-	{"DS1052E", RIGOL_DS1000, PROTOCOL_LEGACY, {5, 1000000000}, {50, 1}, {2, 1000}, false, 12},
-	{"DS1102E", RIGOL_DS1000, PROTOCOL_LEGACY, {2, 1000000000}, {50, 1}, {2, 1000}, false, 12},
-	{"DS1152E", RIGOL_DS1000, PROTOCOL_LEGACY, {2, 1000000000}, {50, 1}, {2, 1000}, false, 12},
-	{"DS1052D", RIGOL_DS1000, PROTOCOL_LEGACY, {5, 1000000000}, {50, 1}, {2, 1000}, true, 12},
-	{"DS1102D", RIGOL_DS1000, PROTOCOL_LEGACY, {2, 1000000000}, {50, 1}, {2, 1000}, true, 12},
-	{"DS1152D", RIGOL_DS1000, PROTOCOL_LEGACY, {2, 1000000000}, {50, 1}, {2, 1000}, true, 12},
-	{"DS2072", RIGOL_DS2000, PROTOCOL_IEEE488_2, {5, 1000000000}, {500, 1}, {500, 1000000}, false, 14},
-	{"DS2102", RIGOL_DS2000, PROTOCOL_IEEE488_2, {5, 1000000000}, {500, 1}, {500, 1000000}, false, 14},
-	{"DS2202", RIGOL_DS2000, PROTOCOL_IEEE488_2, {2, 1000000000}, {500, 1}, {500, 1000000}, false, 14},
-	{"VS5022", RIGOL_VS5000, PROTOCOL_LEGACY, {20, 1000000000}, {50, 1}, {2, 1000}, false, 14},
-	{"VS5022D", RIGOL_VS5000, PROTOCOL_LEGACY, {20, 1000000000}, {50, 1}, {2, 1000}, true, 14},
-	{"VS5042", RIGOL_VS5000, PROTOCOL_LEGACY, {10, 1000000000}, {50, 1}, {2, 1000}, false, 14},
-	{"VS5042D", RIGOL_VS5000, PROTOCOL_LEGACY, {10, 1000000000}, {50, 1}, {2, 1000}, true, 14},
-	{"VS5062", RIGOL_VS5000, PROTOCOL_LEGACY, {5, 1000000000}, {50, 1}, {2, 1000}, false, 14},
-	{"VS5062D", RIGOL_VS5000, PROTOCOL_LEGACY, {5, 1000000000}, {50, 1}, {2, 1000}, true, 14},
-	{"VS5102", RIGOL_VS5000, PROTOCOL_LEGACY, {2, 1000000000}, {50, 1}, {2, 1000}, false, 14},
-	{"VS5102D", RIGOL_VS5000, PROTOCOL_LEGACY, {2, 1000000000}, {50, 1}, {2, 1000}, true, 14},
-	{"VS5202", RIGOL_VS5000, PROTOCOL_LEGACY, {2, 1000000000}, {50, 1}, {2, 1000}, false, 14},
-	{"VS5202D", RIGOL_VS5000, PROTOCOL_LEGACY, {2, 1000000000}, {50, 1}, {2, 1000}, true, 14},
+	{RIGOL, "DS1052E", RIGOL_DS1000, PROTOCOL_LEGACY, {5, 1000000000}, {50, 1}, {2, 1000}, false, 12},
+	{RIGOL, "DS1102E", RIGOL_DS1000, PROTOCOL_LEGACY, {2, 1000000000}, {50, 1}, {2, 1000}, false, 12},
+	{RIGOL, "DS1152E", RIGOL_DS1000, PROTOCOL_LEGACY, {2, 1000000000}, {50, 1}, {2, 1000}, false, 12},
+	{RIGOL, "DS1052D", RIGOL_DS1000, PROTOCOL_LEGACY, {5, 1000000000}, {50, 1}, {2, 1000}, true, 12},
+	{RIGOL, "DS1102D", RIGOL_DS1000, PROTOCOL_LEGACY, {2, 1000000000}, {50, 1}, {2, 1000}, true, 12},
+	{RIGOL, "DS1152D", RIGOL_DS1000, PROTOCOL_LEGACY, {2, 1000000000}, {50, 1}, {2, 1000}, true, 12},
+	{RIGOL, "DS2072", RIGOL_DS2000, PROTOCOL_IEEE488_2, {5, 1000000000}, {500, 1}, {500, 1000000}, false, 14},
+	{RIGOL, "DS2102", RIGOL_DS2000, PROTOCOL_IEEE488_2, {5, 1000000000}, {500, 1}, {500, 1000000}, false, 14},
+	{RIGOL, "DS2202", RIGOL_DS2000, PROTOCOL_IEEE488_2, {2, 1000000000}, {500, 1}, {500, 1000000}, false, 14},
+	{RIGOL, "VS5022", RIGOL_VS5000, PROTOCOL_LEGACY, {20, 1000000000}, {50, 1}, {2, 1000}, false, 14},
+	{RIGOL, "VS5022D", RIGOL_VS5000, PROTOCOL_LEGACY, {20, 1000000000}, {50, 1}, {2, 1000}, true, 14},
+	{RIGOL, "VS5042", RIGOL_VS5000, PROTOCOL_LEGACY, {10, 1000000000}, {50, 1}, {2, 1000}, false, 14},
+	{RIGOL, "VS5042D", RIGOL_VS5000, PROTOCOL_LEGACY, {10, 1000000000}, {50, 1}, {2, 1000}, true, 14},
+	{RIGOL, "VS5062", RIGOL_VS5000, PROTOCOL_LEGACY, {5, 1000000000}, {50, 1}, {2, 1000}, false, 14},
+	{RIGOL, "VS5062D", RIGOL_VS5000, PROTOCOL_LEGACY, {5, 1000000000}, {50, 1}, {2, 1000}, true, 14},
+	{RIGOL, "VS5102", RIGOL_VS5000, PROTOCOL_LEGACY, {2, 1000000000}, {50, 1}, {2, 1000}, false, 14},
+	{RIGOL, "VS5102D", RIGOL_VS5000, PROTOCOL_LEGACY, {2, 1000000000}, {50, 1}, {2, 1000}, true, 14},
+	{RIGOL, "VS5202", RIGOL_VS5000, PROTOCOL_LEGACY, {2, 1000000000}, {50, 1}, {2, 1000}, false, 14},
+	{RIGOL, "VS5202D", RIGOL_VS5000, PROTOCOL_LEGACY, {2, 1000000000}, {50, 1}, {2, 1000}, true, 14},
+	{AGILENT, "DSO1014A", AGILENT_DSO1000, PROTOCOL_IEEE488_2, {2, 1000000000}, {50, 1}, {2, 1000}, false, 12},
 };
 
 SR_PRIV struct sr_dev_driver rigol_ds_driver_info;
@@ -266,6 +271,7 @@ static int probe_port(const char *resource, const char *serialcomm, GSList **dev
 	}
 
 	if (sr_scpi_open(scpi) != SR_OK) {
+		sr_info("Couldn't open SCPI device.");
 		sr_scpi_free(scpi);
 		return SR_ERR;
 	};
@@ -277,15 +283,9 @@ static int probe_port(const char *resource, const char *serialcomm, GSList **dev
 		return SR_ERR;
 	}
 
-	if (strcasecmp(hw_info->manufacturer, "Rigol Technologies")) {
-		sr_scpi_hw_info_free(hw_info);
-		sr_scpi_close(scpi);
-		sr_scpi_free(scpi);
-		return SR_ERR_NA;
-	}
-
 	for (i = 0; i < ARRAY_SIZE(supported_models); i++) {
-		if (!strcmp(hw_info->model, supported_models[i].name)) {
+		if (!strcasecmp(hw_info->manufacturer, supported_models[i].vendor) &&
+				!strcmp(hw_info->model, supported_models[i].name)) {
 			model = &supported_models[i];
 			break;
 		}

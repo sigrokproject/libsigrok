@@ -45,6 +45,7 @@ enum rigol_ds_series {
 	RIGOL_DS4000,
 	RIGOL_DS6000,
 	RIGOL_VS5000,
+	AGILENT_DSO1000,
 };
 
 enum rigol_protocol_flavor {
@@ -61,6 +62,7 @@ enum data_source {
 };
 
 struct rigol_ds_model {
+	char *vendor;
 	char *name;
 	enum rigol_ds_series series;
 	enum rigol_protocol_flavor protocol;
