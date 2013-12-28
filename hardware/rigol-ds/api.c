@@ -864,8 +864,12 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 					return SR_ERR;
 				if (set_cfg(sdi, ":STOP") != SR_OK)
 					return SR_ERR;
-			} else
-				devc->analog_frame_size = DS2000_ANALOG_LIVE_WAVEFORM_SIZE;
+			} else {
+				if (devc->model->series == AGILENT_DSO1000)
+					devc->analog_frame_size = DSO1000_ANALOG_LIVE_WAVEFORM_SIZE;
+				else
+					devc->analog_frame_size = DS2000_ANALOG_LIVE_WAVEFORM_SIZE;
+			}
 			devc->channel = devc->enabled_analog_probes->data;
 			if (rigol_ds_capture_start(sdi) != SR_OK)
 				return SR_ERR;
