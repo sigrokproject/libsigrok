@@ -35,7 +35,7 @@
 #define LOG_PREFIX "es519xx"
 
 /* Factors for the respective measurement mode (0 means "invalid"). */
-static const float factors_2400_11b[8][8] = {
+static const float factors_2400_11b[9][8] = {
 	{1e-4,  1e-3,  1e-2,  1e-1, 1,    0,    0,    0   }, /* V */
 	{1e-7,  1e-6,  0,     0,    0,    0,    0,    0   }, /* uA */
 	{1e-5,  1e-4,  0,     0,    0,    0,    0,    0   }, /* mA */
@@ -44,8 +44,9 @@ static const float factors_2400_11b[8][8] = {
 	{1e-1,  1,     1e1,   1e2,  1e3,  1e4,  0,    0   }, /* Resistance */
 	{1,     1e1,   1e2,   1e3,  1e4,  1e5,  0,    0   }, /* Frequency */
 	{1e-12, 1e-11, 1e-10, 1e-9, 1e-8, 1e-7, 1e-6, 1e-5}, /* Capacitance */
+	{1e-3,  0,     0,     0,    0,    0,    0,    0   }, /* Diode */
 };
-static const float factors_19200_11b_5digits[8][8] = {
+static const float factors_19200_11b_5digits[9][8] = {
 	{1e-4,  1e-3,  1e-2,  1e-1, 1e-5, 0,    0,    0},    /* V */
 	{1e-8,  1e-7,  0,     0,    0,    0,    0,    0},    /* uA */
 	{1e-6,  1e-5,  0,     0,    0,    0,    0,    0},    /* mA */
@@ -54,8 +55,9 @@ static const float factors_19200_11b_5digits[8][8] = {
 	{1e-2,  1e-1,  1,     1e1,  1e2,  1e3,  1e4,  0},    /* Resistance */
 	{1e-1,  0,     1,     1e1,  1e2,  1e3,  1e4,  0},    /* Frequency */
 	{1e-12, 1e-11, 1e-10, 1e-9, 1e-8, 1e-7, 1e-6, 1e-5}, /* Capacitance */
+	{1e-4,  0,     0,     0,    0,    0,    0,    0   }, /* Diode */
 };
-static const float factors_19200_11b_clampmeter[8][8] = {
+static const float factors_19200_11b_clampmeter[9][8] = {
 	{1e-3,  1e-2,  1e-1,  1,    1e-4, 0,    0,    0},    /* V */
 	{1e-7,  1e-6,  0,     0,    0,    0,    0,    0},    /* uA */
 	{1e-5,  1e-4,  0,     0,    0,    0,    0,    0},    /* mA */
@@ -64,8 +66,9 @@ static const float factors_19200_11b_clampmeter[8][8] = {
 	{1e-1,  1,     1e1,   1e2,  1e3,  1e4,  0,    0},    /* Resistance */
 	{1e-1,  0,     1,     1e1,  1e2,  1e3,  1e4,  0},    /* Frequency */
 	{1e-12, 1e-11, 1e-10, 1e-9, 1e-8, 1e-7, 1e-6, 1e-5}, /* Capacitance */
+	{1e-3,  0,     0,     0,    0,    0,    0,    0   }, /* Diode */
 };
-static const float factors_19200_11b[8][8] = {
+static const float factors_19200_11b[9][8] = {
 	{1e-3,  1e-2,  1e-1,  1,    1e-4, 0,    0,    0},    /* V */
 	{1e-7,  1e-6,  0,     0,    0,    0,    0,    0},    /* uA */
 	{1e-5,  1e-4,  0,     0,    0,    0,    0,    0},    /* mA */
@@ -74,8 +77,9 @@ static const float factors_19200_11b[8][8] = {
 	{1e-1,  1,     1e1,   1e2,  1e3,  1e4,  0,    0},    /* Resistance */
 	{1,     1e1,   1e2,   1e3,  1e4,  0,    0,    0},    /* Frequency */
 	{1e-12, 1e-11, 1e-10, 1e-9, 1e-8, 1e-7, 1e-6, 0},    /* Capacitance */
+	{1e-3,  0,     0,     0,    0,    0,    0,    0},    /* Diode */
 };
-static const float factors_19200_14b[8][8] = {
+static const float factors_19200_14b[9][8] = {
 	{1e-4,  1e-3,  1e-2,  1e-1, 1e-5, 0,    0,    0},    /* V */
 	{1e-8,  1e-7,  0,     0,    0,    0,    0,    0},    /* uA */
 	{1e-6,  1e-5,  0,     0,    0,    0,    0,    0},    /* mA */
@@ -84,6 +88,7 @@ static const float factors_19200_14b[8][8] = {
 	{1e-2,  1e-1,  1,     1e1,  1e2,  1e3,  1e4,  0},    /* Resistance */
 	{1e-2,  1e-1,  0,     1,    1e1,  1e2,  1e3,  1e4},  /* Frequency */
 	{1e-12, 1e-11, 1e-10, 1e-9, 1e-8, 1e-7, 1e-6, 1e-5}, /* Capacitance */
+	{1e-4,  0,     0,     0,    0,    0,    0,    0   }, /* Diode */
 };
 
 static int parse_value(const uint8_t *buf, struct es519xx_info *info,
@@ -162,6 +167,8 @@ static int parse_range(uint8_t b, float *floatval,
 		mode = 6; /* Frequency */
 	else if (info->is_capacitance)
 		mode = 7; /* Capacitance */
+	else if (info->is_diode)
+		mode = 8; /* Diode */
 	else {
 		sr_dbg("Invalid mode, range byte was: 0x%02x.", b);
 		return SR_ERR;
