@@ -28,9 +28,19 @@
 
 #define LOG_PREFIX "scpi_usbtmc"
 
+#define MAX_READ_LENGTH 2048
+
+struct usbtmc_scpi {
+	struct sr_usbtmc_dev_inst *usbtmc;
+	char response_buffer[MAX_READ_LENGTH];
+	int response_length;
+	int response_bytes_read;
+};
+
 SR_PRIV int scpi_usbtmc_open(void *priv)
 {
-	struct sr_usbtmc_dev_inst *usbtmc = priv;
+	struct usbtmc_scpi *uscpi = priv;
+	struct sr_usbtmc_dev_inst *usbtmc = uscpi->usbtmc;
 
 	if ((usbtmc->fd = open(usbtmc->device, O_RDWR)) < 0)
 		return SR_ERR;
@@ -41,21 +51,24 @@ SR_PRIV int scpi_usbtmc_open(void *priv)
 SR_PRIV int scpi_usbtmc_source_add(void *priv, int events, int timeout,
 			sr_receive_data_callback_t cb, void *cb_data)
 {
-	struct sr_usbtmc_dev_inst *usbtmc = priv;
+	struct usbtmc_scpi *uscpi = priv;
+	struct sr_usbtmc_dev_inst *usbtmc = uscpi->usbtmc;
 
 	return sr_source_add(usbtmc->fd, events, timeout, cb, cb_data);
 }
 
 SR_PRIV int scpi_usbtmc_source_remove(void *priv)
 {
-	struct sr_usbtmc_dev_inst *usbtmc = priv;
+	struct usbtmc_scpi *uscpi = priv;
+	struct sr_usbtmc_dev_inst *usbtmc = uscpi->usbtmc;
 
 	return sr_source_remove(usbtmc->fd);
 }
 
 SR_PRIV int scpi_usbtmc_send(void *priv, const char *command)
 {
-	struct sr_usbtmc_dev_inst *usbtmc = priv;
+	struct usbtmc_scpi *uscpi = priv;
+	struct sr_usbtmc_dev_inst *usbtmc = uscpi->usbtmc;
 	int len, out;
 
 	len = strlen(command);
@@ -76,53 +89,56 @@ SR_PRIV int scpi_usbtmc_send(void *priv, const char *command)
 	return SR_OK;
 }
 
-SR_PRIV int scpi_usbtmc_receive(void *priv, char **scpi_response)
+SR_PRIV int scpi_usbtmc_read_begin(void *priv)
 {
-	struct sr_usbtmc_dev_inst *usbtmc = priv;
-	GString *response;
-	char buf[256];
+	struct usbtmc_scpi *uscpi = priv;
+	struct sr_usbtmc_dev_inst *usbtmc = uscpi->usbtmc;
 	int len;
 
-	response = g_string_sized_new(1024);
-
-	len = read(usbtmc->fd, buf, sizeof(buf));
+	len = read(usbtmc->fd, uscpi->response_buffer, MAX_READ_LENGTH);
 
 	if (len < 0) {
 		sr_err("Read error: %s", strerror(errno));
-		g_string_free(response, TRUE);
 		return SR_ERR;
 	}
 
-	response = g_string_append_len(response, buf, len);
-
-	*scpi_response = response->str;
-
-	sr_dbg("SCPI response received (length %d): '%.50s'",
-	       response->len, response->str);
-
-	g_string_free(response, FALSE);
+	uscpi->response_length = len;
+	uscpi->response_bytes_read = 0;
 
 	return SR_OK;
 }
 
-SR_PRIV int scpi_usbtmc_read(void *priv, char *buf, int maxlen)
+SR_PRIV int scpi_usbtmc_read_data(void *priv, char *buf, int maxlen)
 {
-	struct sr_usbtmc_dev_inst *usbtmc = priv;
-	int len;
+	struct usbtmc_scpi *uscpi = priv;
+	int read_length;
 
-	len = read(usbtmc->fd, buf, maxlen);
-
-	if (len < 0) {
-		sr_err("Read error: %s", strerror(errno));
+	if (uscpi->response_bytes_read >= uscpi->response_length)
 		return SR_ERR;
-	}
 
-	return len;
+	read_length = uscpi->response_length - uscpi->response_bytes_read;
+
+	if (read_length > maxlen)
+		read_length = maxlen;
+
+	memcpy(buf, uscpi->response_buffer + uscpi->response_bytes_read, read_length);
+
+	uscpi->response_bytes_read += read_length;
+
+	return read_length;
+}
+
+SR_PRIV int scpi_usbtmc_read_complete(void *priv)
+{
+	struct usbtmc_scpi *uscpi = priv;
+
+	return (uscpi->response_bytes_read >= uscpi->response_length);
 }
 
 SR_PRIV int scpi_usbtmc_close(void *priv)
 {
-	struct sr_usbtmc_dev_inst *usbtmc = priv;
+	struct usbtmc_scpi *uscpi = priv;
+	struct sr_usbtmc_dev_inst *usbtmc = uscpi->usbtmc;
 
 	if (close(usbtmc->fd) < 0)
 		return SR_ERR;
@@ -132,31 +148,38 @@ SR_PRIV int scpi_usbtmc_close(void *priv)
 
 static void scpi_usbtmc_free(void *priv)
 {
-	return sr_usbtmc_dev_inst_free(priv);
+	struct usbtmc_scpi *uscpi = priv;
+	struct sr_usbtmc_dev_inst *usbtmc = uscpi->usbtmc;
+
+	g_free(uscpi);
+	sr_usbtmc_dev_inst_free(usbtmc);
 }
 
 SR_PRIV struct sr_scpi_dev_inst *scpi_usbtmc_dev_inst_new(const char *device)
 {
 	struct sr_scpi_dev_inst *scpi;
+	struct usbtmc_scpi *uscpi;
 	struct sr_usbtmc_dev_inst *usbtmc;
 
-	scpi = g_try_malloc(sizeof(struct sr_scpi_dev_inst));
-
 	if (!(usbtmc = sr_usbtmc_dev_inst_new(device)))
-	{
-		g_free(scpi);
 		return NULL;
-	}
+
+	uscpi = g_malloc(sizeof(struct usbtmc_scpi));
+
+	uscpi->usbtmc = usbtmc;
+
+	scpi = g_malloc(sizeof(struct sr_scpi_dev_inst));
 
 	scpi->open = scpi_usbtmc_open;
 	scpi->source_add = scpi_usbtmc_source_add;
 	scpi->source_remove = scpi_usbtmc_source_remove;
 	scpi->send = scpi_usbtmc_send;
-	scpi->receive = scpi_usbtmc_receive;
-	scpi->read = scpi_usbtmc_read;
+	scpi->read_begin = scpi_usbtmc_read_begin;
+	scpi->read_data = scpi_usbtmc_read_data;
+	scpi->read_complete = scpi_usbtmc_read_complete;
 	scpi->close = scpi_usbtmc_close;
 	scpi->free = scpi_usbtmc_free;
-	scpi->priv = usbtmc;
+	scpi->priv = uscpi;
 
 	return scpi;
 }

@@ -29,9 +29,15 @@
 #define SCPI_READ_RETRIES 100
 #define SCPI_READ_RETRY_TIMEOUT 10000
 
+struct scpi_serial {
+	struct sr_serial_dev_inst *serial;
+	char last_character;
+};
+
 SR_PRIV int scpi_serial_open(void *priv)
 {
-	struct sr_serial_dev_inst *serial = priv;
+	struct scpi_serial *sscpi = priv;
+	struct sr_serial_dev_inst *serial = sscpi->serial;
 
 	if (serial_open(serial, SERIAL_RDWR | SERIAL_NONBLOCK) != SR_OK)
 		return SR_ERR;
@@ -45,14 +51,16 @@ SR_PRIV int scpi_serial_open(void *priv)
 SR_PRIV int scpi_serial_source_add(void *priv, int events, int timeout,
 			sr_receive_data_callback_t cb, void *cb_data)
 {
-	struct sr_serial_dev_inst *serial = priv;
+	struct scpi_serial *sscpi = priv;
+	struct sr_serial_dev_inst *serial = sscpi->serial;
 
 	return serial_source_add(serial, events, timeout, cb, cb_data);
 }
 
 SR_PRIV int scpi_serial_source_remove(void *priv)
 {
-	struct sr_serial_dev_inst *serial = priv;
+	struct scpi_serial *sscpi = priv;
+	struct sr_serial_dev_inst *serial = sscpi->serial;
 
 	return serial_source_remove(serial);
 }
@@ -61,7 +69,8 @@ SR_PRIV int scpi_serial_send(void *priv, const char *command)
 {
 	int len, result, written;
 	gchar *terminated_command;
-	struct sr_serial_dev_inst *serial = priv;
+	struct scpi_serial *sscpi = priv;
+	struct sr_serial_dev_inst *serial = sscpi->serial;
 
 	terminated_command = g_strconcat(command, "\n", NULL);
 	len = strlen(terminated_command);
@@ -89,7 +98,8 @@ SR_PRIV int scpi_serial_receive(void *priv, char **scpi_response)
 	char buf[256];
 	unsigned int i;
 	GString *response;
-	struct sr_serial_dev_inst *serial = priv;
+	struct scpi_serial *sscpi = priv;
+	struct sr_serial_dev_inst *serial = sscpi->serial;
 
 	response = g_string_sized_new(1024);
 
@@ -136,43 +146,84 @@ SR_PRIV int scpi_serial_receive(void *priv, char **scpi_response)
 	return ret;
 }
 
-/* Some stubs to keep the compiler from whining. */
-static int scpi_serial_read(void *priv, char *buf, int maxlen)
+SR_PRIV int scpi_serial_read_begin(void *priv)
 {
-	return serial_read(priv, buf, maxlen);
+	struct scpi_serial *sscpi = priv;
+
+	sscpi->last_character = '\0';
+
+	return SR_OK;
 }
+
+SR_PRIV int scpi_serial_read_data(void *priv, char *buf, int maxlen)
+{
+	struct scpi_serial *sscpi = priv;
+	int ret;
+
+	ret = serial_read(sscpi->serial, buf, maxlen);
+
+	if (ret < 0)
+		return ret;
+
+	if (ret > 0) {
+		sscpi->last_character = buf[ret - 1];
+		if (sscpi->last_character == '\n')
+			ret--;
+	}
+
+	return ret;
+}
+
+SR_PRIV int scpi_serial_read_complete(void *priv)
+{
+	struct scpi_serial *sscpi = priv;
+
+	return (sscpi->last_character == '\n');
+}
+
 static int scpi_serial_close(void *priv)
 {
-	return serial_close(priv);
+	struct scpi_serial *sscpi = priv;
+	struct sr_serial_dev_inst *serial = sscpi->serial;
+
+	return serial_close(serial);
 }
+
 static void scpi_serial_free(void *priv)
 {
-	return sr_serial_dev_inst_free(priv);
+	struct scpi_serial *sscpi = priv;
+	struct sr_serial_dev_inst *serial = sscpi->serial;
+
+	sr_serial_dev_inst_free(serial);
+	g_free(sscpi);
 }
 
 SR_PRIV struct sr_scpi_dev_inst *scpi_serial_dev_inst_new(const char *port,
 		const char *serialcomm)
 {
 	struct sr_scpi_dev_inst *scpi;
+	struct scpi_serial *sscpi;
 	struct sr_serial_dev_inst *serial;
 
-	scpi = g_try_malloc(sizeof(struct sr_scpi_dev_inst));
-
 	if (!(serial = sr_serial_dev_inst_new(port, serialcomm)))
-	{
-		g_free(scpi);
 		return NULL;
-	}
+
+	sscpi = g_malloc(sizeof(struct scpi_serial));
+
+	sscpi->serial = serial;
+
+	scpi = g_malloc(sizeof(struct sr_scpi_dev_inst));
 
 	scpi->open = scpi_serial_open;
 	scpi->source_add = scpi_serial_source_add;
 	scpi->source_remove = scpi_serial_source_remove;
 	scpi->send = scpi_serial_send;
-	scpi->receive = scpi_serial_receive;
-	scpi->read = scpi_serial_read;
+	scpi->read_begin = scpi_serial_read_begin;
+	scpi->read_data = scpi_serial_read_data;
+	scpi->read_complete = scpi_serial_read_complete;
 	scpi->close = scpi_serial_close;
 	scpi->free = scpi_serial_free;
-	scpi->priv = serial;
+	scpi->priv = sscpi;
 
 	return scpi;
 }

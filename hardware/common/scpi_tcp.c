@@ -39,10 +39,16 @@
 
 #define LOG_PREFIX "scpi_tcp"
 
+#define LENGTH_BYTES 4
+
 struct scpi_tcp {
 	char *address;
 	char *port;
 	int socket;
+	char length_buf[LENGTH_BYTES];
+	int length_bytes_read;
+	int response_length;
+	int response_bytes_read;
 };
 
 SR_PRIV int scpi_tcp_open(void *priv)
@@ -129,39 +135,39 @@ SR_PRIV int scpi_tcp_send(void *priv, const char *command)
 	return SR_OK;
 }
 
-SR_PRIV int scpi_tcp_receive(void *priv, char **scpi_response)
+SR_PRIV int scpi_tcp_read_begin(void *priv)
 {
 	struct scpi_tcp *tcp = priv;
-	GString *response;
-	char buf[256];
-	int len;
 
-	response = g_string_sized_new(1024);
-
-	len = recv(tcp->socket, buf, sizeof(buf), 0);
-
-	if (len < 0) {
-		sr_err("Receive error: %s", strerror(errno));
-		g_string_free(response, TRUE);
-		return SR_ERR;
-	}
-
-	response = g_string_append_len(response, buf + 4, len - 4);
-
-	*scpi_response = response->str;
-
-	sr_dbg("SCPI response received (length %d): '%.50s'",
-	       response->len, response->str);
-
-	g_string_free(response, FALSE);
+	tcp->response_bytes_read = 0;
+	tcp->length_bytes_read = 0;
 
 	return SR_OK;
 }
 
-SR_PRIV int scpi_tcp_read(void *priv, char *buf, int maxlen)
+SR_PRIV int scpi_tcp_read_data(void *priv, char *buf, int maxlen)
 {
 	struct scpi_tcp *tcp = priv;
 	int len;
+
+	if (tcp->length_bytes_read < LENGTH_BYTES) {
+		len = recv(tcp->socket, tcp->length_buf + tcp->length_bytes_read,
+				LENGTH_BYTES - tcp->length_bytes_read, 0);
+		if (len < 0) {
+			sr_err("Receive error: %s", strerror(errno));
+			return SR_ERR;
+		}
+
+		tcp->length_bytes_read += len;
+
+		if (tcp->length_bytes_read < LENGTH_BYTES)
+			return 0;
+		else
+			tcp->response_length = RL32(tcp->length_buf);
+	}
+
+	if (tcp->response_bytes_read >= tcp->response_length)
+		return SR_ERR;
 
 	len = recv(tcp->socket, buf, maxlen, 0);
 
@@ -170,7 +176,17 @@ SR_PRIV int scpi_tcp_read(void *priv, char *buf, int maxlen)
 		return SR_ERR;
 	}
 
+	tcp->response_bytes_read += len;
+
 	return len;
+}
+
+SR_PRIV int scpi_tcp_read_complete(void *priv)
+{
+	struct scpi_tcp *tcp = priv;
+
+	return (tcp->length_bytes_read == LENGTH_BYTES &&
+			tcp->response_bytes_read >= tcp->response_length);
 }
 
 SR_PRIV int scpi_tcp_close(void *priv)
@@ -209,8 +225,9 @@ SR_PRIV struct sr_scpi_dev_inst *scpi_tcp_dev_inst_new(const char *address,
 	scpi->source_add = scpi_tcp_source_add;
 	scpi->source_remove = scpi_tcp_source_remove;
 	scpi->send = scpi_tcp_send;
-	scpi->receive = scpi_tcp_receive;
-	scpi->read = scpi_tcp_read;
+	scpi->read_begin = scpi_tcp_read_begin;
+	scpi->read_data = scpi_tcp_read_data;
+	scpi->read_complete = scpi_tcp_read_complete;
 	scpi->close = scpi_tcp_close;
 	scpi->free = scpi_tcp_free;
 	scpi->priv = tcp;

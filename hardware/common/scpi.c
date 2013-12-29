@@ -165,20 +165,15 @@ SR_PRIV int sr_scpi_send_variadic(struct sr_scpi_dev_inst *scpi,
 }
 
 /**
- * Receive an SCPI reply and store the reply in scpi_response.
+ * Begin receiving an SCPI reply.
  *
  * @param scpi Previously initialised SCPI device structure.
- * @param scpi_response Pointer where to store the SCPI response.
  *
- * @return SR_OK upon fetching a full SCPI response, SR_ERR upon fetching an
- *         incomplete or no response. The allocated response must be freed by
- *         the caller in the case of a full response as well in the case of
- *         an incomplete.
+ * @return SR_OK on success, SR_ERR on failure.
  */
-SR_PRIV int sr_scpi_receive(struct sr_scpi_dev_inst *scpi,
-			char **scpi_response)
+SR_PRIV int sr_scpi_read_begin(struct sr_scpi_dev_inst *scpi)
 {
-	return scpi->receive(scpi->priv, scpi_response);
+	return scpi->read_begin(scpi->priv);
 }
 
 /**
@@ -190,10 +185,22 @@ SR_PRIV int sr_scpi_receive(struct sr_scpi_dev_inst *scpi,
  *
  * @return Number of bytes read, or SR_ERR upon failure.
  */
-SR_PRIV int sr_scpi_read(struct sr_scpi_dev_inst *scpi,
+SR_PRIV int sr_scpi_read_data(struct sr_scpi_dev_inst *scpi,
 			char *buf, int maxlen)
 {
-	return scpi->read(scpi->priv, buf, maxlen);
+	return scpi->read_data(scpi->priv, buf, maxlen);
+}
+
+/**
+ * Check whether a complete SCPI response has been received.
+ *
+ * @param scpi Previously initialised SCPI device structure.
+ *
+ * @return 1 if complete, 0 otherwise.
+ */
+SR_PRIV int sr_scpi_read_complete(struct sr_scpi_dev_inst *scpi)
+{
+	return scpi->read_complete(scpi->priv);
 }
 
 /**
@@ -228,19 +235,39 @@ SR_PRIV void sr_scpi_free(struct sr_scpi_dev_inst *scpi)
  * @param command The SCPI command to send to the device (can be NULL).
  * @param scpi_response Pointer where to store the SCPI response.
  *
- * @return SR_OK upon fetching a full SCPI response, SR_ERR upon fetching an
- *         incomplete or no response. The allocated response must be freed by
- *         the caller in the case of a full response as well in the case of
- *         an incomplete.
+ * @return SR_OK on success, SR_ERR on failure.
  */
 SR_PRIV int sr_scpi_get_string(struct sr_scpi_dev_inst *scpi,
 			       const char *command, char **scpi_response)
 {
+	char buf[256];
+	int len;
+	GString *response;
+
 	if (command)
 		if (sr_scpi_send(scpi, command) != SR_OK)
 			return SR_ERR;
 
-	return sr_scpi_receive(scpi, scpi_response);
+	if (sr_scpi_read_begin(scpi) != SR_OK)
+		return SR_ERR;
+
+	response = g_string_new("");
+
+	*scpi_response = NULL;
+
+	while (!sr_scpi_read_complete(scpi)) {
+		len = sr_scpi_read_data(scpi, buf, sizeof(buf));
+		if (len < 0) {
+			g_string_free(response, TRUE);
+			return SR_ERR;
+		}
+		g_string_append_len(response, buf, len);
+	}
+
+	*scpi_response = response->str;
+	g_string_free(response, FALSE);
+
+	return SR_OK;
 }
 
 /**

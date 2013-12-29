@@ -368,7 +368,7 @@ static int rigol_ds_read_header(struct sr_scpi_dev_inst *scpi)
 	int len, tmp;
 
 	/* Read the hashsign and length digit. */
-	tmp = sr_scpi_read(scpi, start, 2);
+	tmp = sr_scpi_read_data(scpi, start, 2);
 	start[2] = '\0';
 	if (tmp != 2)
 	{
@@ -383,7 +383,7 @@ static int rigol_ds_read_header(struct sr_scpi_dev_inst *scpi)
 	len = atoi(start + 1);
 
 	/* Read the data length. */
-	tmp = sr_scpi_read(scpi, length, len);
+	tmp = sr_scpi_read_data(scpi, length, len);
 	length[len] = '\0';
 	if (tmp != len)
 	{
@@ -458,6 +458,8 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 		probe = devc->channel_entry->data;
 		
 		if (devc->num_block_bytes == 0) {
+			if (sr_scpi_read_begin(scpi) != SR_OK)
+				return TRUE;
 			if (devc->model->protocol == PROTOCOL_IEEE488_2) {
 				sr_dbg("New block header expected");
 				if (sr_scpi_send(sdi->conn, ":WAV:DATA?") != SR_OK)
@@ -474,7 +476,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 				if (devc->data_source == DATA_SOURCE_LIVE
 						&& (unsigned)len < devc->num_frame_samples) {
 					sr_dbg("Discarding short data block");
-					sr_scpi_read(scpi, (char *)devc->buffer, len + 1);
+					sr_scpi_read_data(scpi, (char *)devc->buffer, len + 1);
 					return TRUE;
 				}
 				devc->num_block_bytes = len;
@@ -489,7 +491,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 		}
 
 		len = devc->num_block_bytes - devc->num_block_read;
-		len = sr_scpi_read(scpi, (char *)devc->buffer,
+		len = sr_scpi_read_data(scpi, (char *)devc->buffer,
 				len < ACQ_BUFFER_SIZE ? len : ACQ_BUFFER_SIZE);
 
 		sr_dbg("Received %d bytes.", len);
@@ -538,7 +540,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 			if (devc->model->protocol == PROTOCOL_IEEE488_2) {
 				/* Discard the terminating linefeed and prepare for
 				   possible next block */
-				sr_scpi_read(scpi, (char *)devc->buffer, 1);
+				sr_scpi_read_data(scpi, (char *)devc->buffer, 1);
 				devc->num_block_bytes = 0;
 				if (devc->data_source != DATA_SOURCE_LIVE)
 					rigol_ds_set_wait_event(devc, WAIT_BLOCK);
@@ -613,10 +615,7 @@ static int get_cfg(const struct sr_dev_inst *sdi, char *cmd, char *reply, size_t
 	struct sr_scpi_dev_inst *scpi = sdi->conn;
 	char *response;
 
-	if (sr_scpi_send(scpi, cmd) != SR_OK)
-		return SR_ERR;
-
-	if (sr_scpi_receive(scpi, &response) != SR_OK)
+	if (sr_scpi_get_string(scpi, cmd, &response) != SR_OK)
 		return SR_ERR;
 
 	g_strlcpy(reply, response, maxlen);
