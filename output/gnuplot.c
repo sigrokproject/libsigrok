@@ -80,8 +80,11 @@ static int init(struct sr_output *o)
 	ctx->num_enabled_probes = 0;
 	for (l = o->sdi->probes; l; l = l->next) {
 		probe = l->data;
-		if (probe->enabled)
-			ctx->num_enabled_probes++;
+		if (probe->type != SR_PROBE_LOGIC)
+			continue;
+		if (!probe->enabled)
+			continue;
+		ctx->num_enabled_probes++;
 	}
 	ctx->unitsize = (ctx->num_enabled_probes + 7) / 8;
 
@@ -106,6 +109,8 @@ static int init(struct sr_output *o)
 	wbuf[0] = '\0';
 	for (i = 0, l = o->sdi->probes; l; l = l->next, i++) {
 		probe = l->data;
+		if (probe->type != SR_PROBE_LOGIC)
+			continue;
 		if (!probe->enabled)
 			continue;
 		c = (char *)&wbuf + strlen((const char *)&wbuf);

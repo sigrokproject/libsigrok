@@ -62,6 +62,8 @@ static int init(struct sr_output *o)
 
 	for (l = o->sdi->probes; l; l = l->next) {
 		probe = l->data;
+		if (probe->type != SR_PROBE_LOGIC)
+			continue;
 		if (!probe->enabled)
 			continue;
 		ctx->probeindices = g_array_append_val(
@@ -124,6 +126,8 @@ static int init(struct sr_output *o)
 	/* Wires / channels */
 	for (i = 0, l = o->sdi->probes; l; l = l->next, i++) {
 		probe = l->data;
+		if (probe->type != SR_PROBE_LOGIC)
+			continue;
 		if (!probe->enabled)
 			continue;
 		g_string_append_printf(ctx->header, "$var wire 1 %c %s $end\n",

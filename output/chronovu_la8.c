@@ -108,6 +108,8 @@ static int init(struct sr_output *o)
 	/* Get the unitsize. */
 	for (l = o->sdi->probes; l; l = l->next) {
 		probe = l->data;
+		if (probe->type != SR_PROBE_LOGIC)
+			continue;
 		if (!probe->enabled)
 			continue;
 		ctx->num_enabled_probes++;

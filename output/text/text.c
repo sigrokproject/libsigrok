@@ -92,6 +92,8 @@ SR_PRIV int init(struct sr_output *o, int default_spl, enum outputmode mode)
 
 	for (l = o->sdi->probes; l; l = l->next) {
 		probe = l->data;
+		if (probe->type != SR_PROBE_LOGIC)
+			continue;
 		if (!probe->enabled)
 			continue;
 		ctx->probenames = g_slist_append(ctx->probenames, probe->name);

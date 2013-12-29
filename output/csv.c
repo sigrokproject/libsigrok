@@ -76,8 +76,11 @@ static int init(struct sr_output *o)
 	/* Get the number of probes, and the unitsize. */
 	for (l = o->sdi->probes; l; l = l->next) {
 		probe = l->data;
-		if (probe->enabled)
-			ctx->num_enabled_probes++;
+		if (probe->type != SR_PROBE_LOGIC)
+			continue;
+		if (!probe->enabled)
+			continue;
+		ctx->num_enabled_probes++;
 	}
 
 	ctx->unitsize = (ctx->num_enabled_probes + 7) / 8;
@@ -107,8 +110,11 @@ static int init(struct sr_output *o)
 			       ctx->num_enabled_probes, num_probes);
 	for (l = o->sdi->probes; l; l = l->next) {
 		probe = l->data;
-		if (probe->enabled)
-			g_string_append_printf(ctx->header, "%s, ", probe->name);
+		if (probe->type != SR_PROBE_LOGIC)
+			continue;
+		if (!probe->enabled)
+			continue;
+		g_string_append_printf(ctx->header, "%s, ", probe->name);
 	}
 	g_string_append_printf(ctx->header, "\n");
 

@@ -71,8 +71,11 @@ static GString *gen_header(const struct sr_dev_inst *sdi, struct context *ctx)
 	num_enabled_probes = 0;
 	for (l = sdi->probes; l; l = l->next) {
 		probe = l->data;
-		if (probe->enabled)
-			num_enabled_probes++;
+		if (probe->type != SR_PROBE_LOGIC)
+			continue;
+		if (!probe->enabled)
+			continue;
+		num_enabled_probes++;
 	}
 
 	s = g_string_sized_new(512);
