@@ -369,9 +369,9 @@ static void parse_flags(const uint8_t *buf, struct es519xx_info *info)
 		case 0x32: /* Frequency / RPM / duty cycle */
 			if (info->packet_size == 14) {
 				if (info->is_judge)
-					info->is_frequency = TRUE;
-				else
 					info->is_duty_cycle = TRUE;
+				else
+					info->is_frequency = TRUE;
 			} else {
 				if (info->is_judge)
 					info->is_rpm = TRUE;
