@@ -356,12 +356,9 @@ static int probe_port(const char *resource, const char *serialcomm, GSList **dev
 			devc->num_timebases = &timebases[i] - devc->timebases + 1;
 	}
 
-	for (i = 0; i < NUM_VDIV; i++) {
-		if (!memcmp(&devc->model->min_vdiv, &vdivs[i], sizeof(uint64_t[2]))) {
+	for (i = 0; i < NUM_VDIV; i++)
+		if (!memcmp(&devc->model->min_vdiv, &vdivs[i], sizeof(uint64_t[2])))
 			devc->vdivs = &vdivs[i];
-			devc->num_vdivs = NUM_VDIV - (&vdivs[i] - &vdivs[0]);
-		}
-	}
 
 	if (!(devc->buffer = g_try_malloc(ACQ_BUFFER_SIZE)))
 		return SR_ERR_MALLOC;
@@ -481,7 +478,6 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_probe_group *probe_group)
 {
 	struct dev_context *devc;
-	unsigned int i;
 
 	if (!sdi || !(devc = sdi->priv))
 		return SR_ERR_ARG;
@@ -497,20 +493,10 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 
 	switch (id) {
 	case SR_CONF_NUM_TIMEBASE:
-		*data = g_variant_new_int32(devc->num_timebases);
+		*data = g_variant_new_int32(devc->model->num_horizontal_divs);
 		break;
 	case SR_CONF_NUM_VDIV:
-		if (!probe_group) {
-			sr_err("No probe group specified.");
-			return SR_ERR_PROBE_GROUP;
-		}
-		for (i = 0; i < 2; i++) {
-			if (probe_group == &devc->analog_groups[i]) {
-				*data = g_variant_new_int32(devc->num_vdivs);
-				return SR_OK;
-			}
-		}
-		return SR_ERR_NA;
+		*data = g_variant_new_int32(8);
 	case SR_CONF_DATA_SOURCE:
 		if (devc->data_source == DATA_SOURCE_LIVE)
 			*data = g_variant_new_string("Live");
@@ -742,7 +728,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 			return SR_ERR_PROBE_GROUP;
 		}
 		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
-		for (i = 0; i < devc->num_vdivs; i++) {
+		for (i = 0; i < NUM_VDIV; i++) {
 			rational[0] = g_variant_new_uint64(devc->vdivs[i][0]);
 			rational[1] = g_variant_new_uint64(devc->vdivs[i][1]);
 			tuple = g_variant_new_tuple(rational, 2);
