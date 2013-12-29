@@ -156,7 +156,7 @@ static int parse_range(uint8_t b, float *floatval,
 	else if (info->is_rpm)
 		/* Not a typo, it's really index 4 in factors_2400_11b[][]. */
 		mode = 4; /* RPM */
-	else if (info->is_resistance)
+	else if (info->is_resistance || info->is_continuity)
 		mode = 5; /* Resistance */
 	else if (info->is_frequency)
 		mode = 6; /* Frequency */
@@ -455,7 +455,7 @@ static void handle_flags(struct sr_datafeed_analog *analog,
 	if (info->is_continuity) {
 		analog->mq = SR_MQ_CONTINUITY;
 		analog->unit = SR_UNIT_BOOLEAN;
-		*floatval = (*floatval < 0.0) ? 0.0 : 1.0;
+		*floatval = (*floatval < 0.0 || *floatval > 25.0) ? 0.0 : 1.0;
 	}
 	if (info->is_diode) {
 		analog->mq = SR_MQ_VOLTAGE;
@@ -588,9 +588,11 @@ static int sr_es519xx_parse(const uint8_t *buf, float *floatval,
 		return ret;
 	}
 
-	handle_flags(analog, floatval, info);
+	if ((ret = parse_range(buf[0], floatval, info)) != SR_OK)
+		return ret;
 
-	return parse_range(buf[0], floatval, info);
+	handle_flags(analog, floatval, info);
+	return SR_OK;
 }
 
 /*
