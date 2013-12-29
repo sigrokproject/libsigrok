@@ -230,7 +230,7 @@ static GSList *scan(GSList *options)
 				sr_err("Firmware upload failed for "
 				       "device %d.", devcnt);
 			sdi->inst_type = SR_INST_USB;
-			sdi->conn = sr_usb_dev_inst_new (libusb_get_bus_number(devlist[i]),
+			sdi->conn = sr_usb_dev_inst_new(libusb_get_bus_number(devlist[i]),
 					0xff, NULL);
 		}
 	}
@@ -291,7 +291,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 	ret = libusb_claim_interface(usb->devhdl, USB_INTERFACE);
 	if (ret != 0) {
-		switch(ret) {
+		switch (ret) {
 		case LIBUSB_ERROR_BUSY:
 			sr_err("Unable to claim USB interface. Another "
 			       "program or driver has already claimed it.");

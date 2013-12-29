@@ -355,7 +355,7 @@ SR_PRIV struct dev_context *fx2lafw_dev_new(void)
 	devc->fw_updated = 0;
 	devc->cur_samplerate = 0;
 	devc->limit_samples = 0;
-	devc->sample_wide = 0;
+	devc->sample_wide = FALSE;
 
 	return devc;
 }
@@ -432,6 +432,7 @@ SR_PRIV void fx2lafw_receive_transfer(struct libusb_transfer *transfer)
 	int trigger_offset, i, sample_width, cur_sample_count;
 	int trigger_offset_bytes;
 	uint8_t *cur_buf;
+	uint16_t cur_sample;
 
 	devc = transfer->user_data;
 
@@ -486,9 +487,9 @@ SR_PRIV void fx2lafw_receive_transfer(struct libusb_transfer *transfer)
 	if (devc->trigger_stage >= 0) {
 		for (i = 0; i < cur_sample_count; i++) {
 
-			const uint16_t cur_sample = devc->sample_wide ?
-				*((const uint16_t*)cur_buf + i) :
-				*((const uint8_t*)cur_buf + i);
+			cur_sample = devc->sample_wide ?
+				*((uint16_t *)cur_buf + i) :
+				*((uint8_t *)cur_buf + i);
 
 			if ((cur_sample & devc->trigger_mask[devc->trigger_stage]) ==
 				devc->trigger_value[devc->trigger_stage]) {
