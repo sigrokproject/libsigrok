@@ -516,7 +516,7 @@ SR_PRIV void fx2lafw_receive_transfer(struct libusb_transfer *transfer)
 					 */
 					packet.type = SR_DF_LOGIC;
 					packet.payload = &logic;
-					logic.unitsize = sizeof(*devc->trigger_buffer);
+					logic.unitsize = sample_width;
 					logic.length = devc->trigger_stage * logic.unitsize;
 					logic.data = devc->trigger_buffer;
 					sr_session_send(devc->cb_data, &packet);
