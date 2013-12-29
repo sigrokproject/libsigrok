@@ -39,6 +39,9 @@
 /* Size of acquisition buffers */
 #define ACQ_BUFFER_SIZE 32768
 
+#define MAX_ANALOG_PROBES 4
+#define MAX_DIGITAL_PROBES 16
+
 enum rigol_ds_series {
 	RIGOL_DS1000,
 	RIGOL_DS1000Z,
@@ -70,6 +73,7 @@ struct rigol_ds_model {
 	uint64_t min_timebase[2];
 	uint64_t max_timebase[2];
 	uint64_t min_vdiv[2];
+	unsigned int analog_channels;
 	bool has_digital;
 	int num_horizontal_divs;
 };
@@ -93,7 +97,7 @@ struct dev_context {
 	uint64_t num_vdivs;
 
 	/* Probe groups */
-	struct sr_probe_group analog_groups[2];
+	struct sr_probe_group analog_groups[MAX_ANALOG_PROBES];
 	struct sr_probe_group digital_group;
 
 	/* Acquisition settings */
@@ -105,23 +109,23 @@ struct dev_context {
 	uint64_t analog_frame_size;
 
 	/* Device settings */
-	gboolean analog_channels[2];
-	gboolean digital_channels[16];
+	gboolean analog_channels[MAX_ANALOG_PROBES];
+	gboolean digital_channels[MAX_DIGITAL_PROBES];
 	float timebase;
-	float vdiv[2];
-	int vert_reference[2];
-	float vert_offset[2];
+	float vdiv[MAX_ANALOG_PROBES];
+	int vert_reference[MAX_ANALOG_PROBES];
+	float vert_offset[MAX_ANALOG_PROBES];
 	char *trigger_source;
 	float horiz_triggerpos;
 	char *trigger_slope;
-	char *coupling[2];
+	char *coupling[MAX_ANALOG_PROBES];
 
 	/* Operational state */
 
 	/* Number of frames received in total. */
 	uint64_t num_frames;
-	/* The channel we are currently receiving data for. */
-	struct sr_probe *channel;
+	/* GSList entry for the current channel. */
+	GSList *channel_entry;
 	/* Number of samples received in current frame. */
 	uint64_t num_frame_samples;
 	/* Number of bytes in current data block, if 0 block header expected */

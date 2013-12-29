@@ -211,13 +211,16 @@ static int rigol_ds_stop_wait(const struct sr_dev_inst *sdi)
 static int rigol_ds_check_stop(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
+	struct sr_probe *probe;
 	int tmp;
 
 	if (!(devc = sdi->priv))
 		return SR_ERR;
 
+	probe = devc->channel_entry->data;
+
 	if (sr_scpi_send(sdi->conn, ":WAV:SOUR CHAN%d",
-			  devc->channel->index + 1) != SR_OK)
+			  probe->index + 1) != SR_OK)
 		return SR_ERR;
 	/* Check that the number of samples will be accepted */
 	if (sr_scpi_send(sdi->conn, ":WAV:POIN %d;*OPC", devc->analog_frame_size) != SR_OK)
@@ -320,25 +323,27 @@ SR_PRIV int rigol_ds_capture_start(const struct sr_dev_inst *sdi)
 SR_PRIV int rigol_ds_channel_start(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
+	struct sr_probe *probe;
 
 	if (!(devc = sdi->priv))
 		return SR_ERR;
 
-	sr_dbg("Starting reading data from channel %d",
-	       devc->channel->index + 1);
+	probe = devc->channel_entry->data;
+
+	sr_dbg("Starting reading data from channel %d", probe->index + 1);
 
 	if (devc->model->protocol == PROTOCOL_LEGACY) {
-		if (devc->channel->type == SR_PROBE_LOGIC) {
+		if (probe->type == SR_PROBE_LOGIC) {
 			if (sr_scpi_send(sdi->conn, ":WAV:DATA? DIG") != SR_OK)
 				return SR_ERR;
 		} else {
-			if (sr_scpi_send(sdi->conn, ":WAV:DATA? CHAN%c",
-					devc->channel->name[2]) != SR_OK)
+			if (sr_scpi_send(sdi->conn, ":WAV:DATA? CHAN%d",
+					probe->index + 1) != SR_OK)
 				return SR_ERR;
 		}
 	} else {
 		if (sr_scpi_send(sdi->conn, ":WAV:SOUR CHAN%d",
-				  devc->channel->index + 1) != SR_OK)
+				  probe->index + 1) != SR_OK)
 			return SR_ERR;
 		if (devc->data_source != DATA_SOURCE_LIVE) {
 			if (sr_scpi_send(sdi->conn, ":WAV:RES") != SR_OK)
@@ -450,7 +455,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 			}
 		}
 
-		probe = devc->channel;
+		probe = devc->channel_entry->data;
 		
 		if (devc->num_block_bytes == 0) {
 			if (devc->model->protocol == PROTOCOL_IEEE488_2) {
@@ -565,19 +570,18 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 				sr_scpi_send(sdi->conn, ":WAV:END");
 		}
 
-		if (devc->enabled_analog_probes
-				&& devc->channel == devc->enabled_analog_probes->data
-				&& devc->enabled_analog_probes->next != NULL) {
-			/* We got the frame for the first analog channel, but
-			 * there's a second analog channel. */
-			devc->channel = devc->enabled_analog_probes->next->data;
+		if (probe->type == SR_PROBE_ANALOG
+				&& devc->channel_entry->next != NULL) {
+			/* We got the frame for this analog channel, but
+			 * there's another analog channel. */
+			devc->channel_entry = devc->channel_entry->next;
 			rigol_ds_channel_start(sdi);
 		} else {
-			/* Done with both analog channels in this frame. */
+			/* Done with all analog channels in this frame. */
 			if (devc->enabled_digital_probes
-					&& devc->channel != devc->enabled_digital_probes->data) {
+					&& devc->channel_entry != devc->enabled_digital_probes) {
 				/* Now we need to get the digital data. */
-				devc->channel = devc->enabled_digital_probes->data;
+				devc->channel_entry = devc->enabled_digital_probes;
 				rigol_ds_channel_start(sdi);
 			} else if (++devc->num_frames == devc->limit_frames) {
 				/* End of last frame. */
@@ -587,9 +591,9 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 			} else {
 				/* Get the next frame, starting with the first analog channel. */
 				if (devc->enabled_analog_probes)
-					devc->channel = devc->enabled_analog_probes->data;
+					devc->channel_entry = devc->enabled_analog_probes;
 				else
-					devc->channel = devc->enabled_digital_probes->data;
+					devc->channel_entry = devc->enabled_digital_probes;
 
 				if (devc->model->protocol == PROTOCOL_LEGACY)
 					rigol_ds_channel_start(sdi);
@@ -673,35 +677,36 @@ SR_PRIV int rigol_ds_get_dev_cfg(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	char *t_s, *cmd;
-	int i, res;
+	unsigned int i;
+	int res;
 
 	devc = sdi->priv;
 
 	/* Analog channel state. */
-	if (get_cfg_string(sdi, ":CHAN1:DISP?", &t_s) != SR_OK)
-		return SR_ERR;
-	devc->analog_channels[0] = !strcmp(t_s, "ON") || !strcmp(t_s, "1");
-	g_free(t_s);
-	if (get_cfg_string(sdi, ":CHAN2:DISP?", &t_s) != SR_OK)
-		return SR_ERR;
-	devc->analog_channels[1] = !strcmp(t_s, "ON") || !strcmp(t_s, "1");
-	g_free(t_s);
-	sr_dbg("Current analog channel state CH1 %s CH2 %s",
-			devc->analog_channels[0] ? "on" : "off",
-			devc->analog_channels[1] ? "on" : "off");
+	for (i = 0; i < devc->model->analog_channels; i++) {
+		cmd = g_strdup_printf(":CHAN%d:DISP?", i + 1);
+		res = get_cfg_string(sdi, cmd, &t_s);
+		g_free(cmd);
+		if (res != SR_OK)
+			return SR_ERR;
+		devc->analog_channels[i] = !strcmp(t_s, "ON") || !strcmp(t_s, "1");
+	}
+	sr_dbg("Current analog channel state:");
+	for (i = 0; i < devc->model->analog_channels; i++)
+		sr_dbg("CH%d %s", i + 1, devc->analog_channels[i] ? "on" : "off");
 
 	/* Digital channel state. */
 	if (devc->model->has_digital) {
 		sr_dbg("Current digital channel state:");
 		for (i = 0; i < 16; i++) {
-			cmd = g_strdup_printf(":DIG%d:TURN?", i);
+			cmd = g_strdup_printf(":DIG%d:TURN?", i + 1);
 			res = get_cfg_string(sdi, cmd, &t_s);
 			g_free(cmd);
 			if (res != SR_OK)
 				return SR_ERR;
 			devc->digital_channels[i] = !strcmp(t_s, "ON") ? TRUE : FALSE;
 			g_free(t_s);
-			sr_dbg("D%d: %s", i, devc->digital_channels[i] ? "on" : "off");
+			sr_dbg("D%d: %s", i + 1, devc->digital_channels[i] ? "on" : "off");
 		}
 	}
 
@@ -711,41 +716,52 @@ SR_PRIV int rigol_ds_get_dev_cfg(const struct sr_dev_inst *sdi)
 	sr_dbg("Current timebase %g", devc->timebase);
 
 	/* Vertical gain. */
-	if (get_cfg_float(sdi, ":CHAN1:SCAL?", &devc->vdiv[0]) != SR_OK)
-		return SR_ERR;
-	if (get_cfg_float(sdi, ":CHAN2:SCAL?", &devc->vdiv[1]) != SR_OK)
-		return SR_ERR;
-	sr_dbg("Current vertical gain CH1 %g CH2 %g", devc->vdiv[0], devc->vdiv[1]);
+	for (i = 0; i < devc->model->analog_channels; i++) {
+		cmd = g_strdup_printf(":CHAN%d:SCAL?", i + 1);
+		res = get_cfg_float(sdi, cmd, &devc->vdiv[i]);
+		g_free(cmd);
+		if (res != SR_OK)
+			return SR_ERR;
+	}
+	sr_dbg("Current vertical gain:");
+	for (i = 0; i < devc->model->analog_channels; i++)
+		sr_dbg("CH%d %g", i + 1, devc->vdiv[i]);
 
+	sr_dbg("Current vertical reference:");
 	if (devc->model->protocol == PROTOCOL_IEEE488_2) {
 		/* Vertical reference - not certain if this is the place to read it. */
-		if (sr_scpi_send(sdi->conn, ":WAV:SOUR CHAN1") != SR_OK)
-			return SR_ERR;
-		if (get_cfg_int(sdi, ":WAV:YREF?", &devc->vert_reference[0]) != SR_OK)
-			return SR_ERR;
-		if (sr_scpi_send(sdi->conn, ":WAV:SOUR CHAN2") != SR_OK)
-			return SR_ERR;
-		if (get_cfg_int(sdi, ":WAV:YREF?", &devc->vert_reference[1]) != SR_OK)
-			return SR_ERR;
-		sr_dbg("Current vertical reference CH1 %d CH2 %d",
-				devc->vert_reference[0], devc->vert_reference[1]);
+		for (i = 0; i < devc->model->analog_channels; i++) {
+			if (sr_scpi_send(sdi->conn, ":WAV:SOUR CHAN%d", i + 1) != SR_OK)
+				return SR_ERR;
+			if (get_cfg_int(sdi, ":WAV:YREF?", &devc->vert_reference[i]) != SR_OK)
+				return SR_ERR;
+			sr_dbg("CH%d %d", i + 1, devc->vert_reference[i]);
+		}
 	}
 
 	/* Vertical offset. */
-	if (get_cfg_float(sdi, ":CHAN1:OFFS?", &devc->vert_offset[0]) != SR_OK)
-		return SR_ERR;
-	if (get_cfg_float(sdi, ":CHAN2:OFFS?", &devc->vert_offset[1]) != SR_OK)
-		return SR_ERR;
-	sr_dbg("Current vertical offset CH1 %g CH2 %g", devc->vert_offset[0],
-			devc->vert_offset[1]);
+	for (i = 0; i < devc->model->analog_channels; i++) {
+		cmd = g_strdup_printf(":CHAN%d:OFFS?", i + 1);
+		res = get_cfg_float(sdi, cmd, &devc->vert_offset[i]);
+		g_free(cmd);
+		if (res != SR_OK)
+			return SR_ERR;
+	}
+	sr_dbg("Current vertical offset:");
+	for (i = 0; i < devc->model->analog_channels; i++)
+		sr_dbg("CH%d %g", i + 1, devc->vert_offset[i]);
 
 	/* Coupling. */
-	if (get_cfg_string(sdi, ":CHAN1:COUP?", &devc->coupling[0]) != SR_OK)
-		return SR_ERR;
-	if (get_cfg_string(sdi, ":CHAN2:COUP?", &devc->coupling[1]) != SR_OK)
-		return SR_ERR;
-	sr_dbg("Current coupling CH1 %s CH2 %s", devc->coupling[0],
-			devc->coupling[1]);
+	for (i = 0; i < devc->model->analog_channels; i++) {
+		cmd = g_strdup_printf(":CHAN%d:COUP?", i + 1);
+		res = get_cfg_string(sdi, cmd, &devc->coupling[i]);
+		g_free(cmd);
+		if (res != SR_OK)
+			return SR_ERR;
+	}
+	sr_dbg("Current coupling:");
+	for (i = 0; i < devc->model->analog_channels; i++)
+		sr_dbg("CH%d %s", i + 1, devc->coupling[i]);
 
 	/* Trigger source. */
 	if (get_cfg_string(sdi, ":TRIG:EDGE:SOUR?", &devc->trigger_source) != SR_OK)

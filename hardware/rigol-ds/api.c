@@ -117,6 +117,8 @@ static const uint64_t vdivs[][2] = {
 static const char *trigger_sources[] = {
 	"CH1",
 	"CH2",
+	"CH3",
+	"CH4",
 	"EXT",
 	"AC Line",
 	"D0",
@@ -159,26 +161,26 @@ static const char *data_sources[] = {
 #define AGILENT "Agilent Technologies"
 
 static const struct rigol_ds_model supported_models[] = {
-	{RIGOL, "DS1052E", RIGOL_DS1000, PROTOCOL_LEGACY, {5, 1000000000}, {50, 1}, {2, 1000}, false, 12},
-	{RIGOL, "DS1102E", RIGOL_DS1000, PROTOCOL_LEGACY, {2, 1000000000}, {50, 1}, {2, 1000}, false, 12},
-	{RIGOL, "DS1152E", RIGOL_DS1000, PROTOCOL_LEGACY, {2, 1000000000}, {50, 1}, {2, 1000}, false, 12},
-	{RIGOL, "DS1052D", RIGOL_DS1000, PROTOCOL_LEGACY, {5, 1000000000}, {50, 1}, {2, 1000}, true, 12},
-	{RIGOL, "DS1102D", RIGOL_DS1000, PROTOCOL_LEGACY, {2, 1000000000}, {50, 1}, {2, 1000}, true, 12},
-	{RIGOL, "DS1152D", RIGOL_DS1000, PROTOCOL_LEGACY, {2, 1000000000}, {50, 1}, {2, 1000}, true, 12},
-	{RIGOL, "DS2072", RIGOL_DS2000, PROTOCOL_IEEE488_2, {5, 1000000000}, {500, 1}, {500, 1000000}, false, 14},
-	{RIGOL, "DS2102", RIGOL_DS2000, PROTOCOL_IEEE488_2, {5, 1000000000}, {500, 1}, {500, 1000000}, false, 14},
-	{RIGOL, "DS2202", RIGOL_DS2000, PROTOCOL_IEEE488_2, {2, 1000000000}, {500, 1}, {500, 1000000}, false, 14},
-	{RIGOL, "VS5022", RIGOL_VS5000, PROTOCOL_LEGACY, {20, 1000000000}, {50, 1}, {2, 1000}, false, 14},
-	{RIGOL, "VS5022D", RIGOL_VS5000, PROTOCOL_LEGACY, {20, 1000000000}, {50, 1}, {2, 1000}, true, 14},
-	{RIGOL, "VS5042", RIGOL_VS5000, PROTOCOL_LEGACY, {10, 1000000000}, {50, 1}, {2, 1000}, false, 14},
-	{RIGOL, "VS5042D", RIGOL_VS5000, PROTOCOL_LEGACY, {10, 1000000000}, {50, 1}, {2, 1000}, true, 14},
-	{RIGOL, "VS5062", RIGOL_VS5000, PROTOCOL_LEGACY, {5, 1000000000}, {50, 1}, {2, 1000}, false, 14},
-	{RIGOL, "VS5062D", RIGOL_VS5000, PROTOCOL_LEGACY, {5, 1000000000}, {50, 1}, {2, 1000}, true, 14},
-	{RIGOL, "VS5102", RIGOL_VS5000, PROTOCOL_LEGACY, {2, 1000000000}, {50, 1}, {2, 1000}, false, 14},
-	{RIGOL, "VS5102D", RIGOL_VS5000, PROTOCOL_LEGACY, {2, 1000000000}, {50, 1}, {2, 1000}, true, 14},
-	{RIGOL, "VS5202", RIGOL_VS5000, PROTOCOL_LEGACY, {2, 1000000000}, {50, 1}, {2, 1000}, false, 14},
-	{RIGOL, "VS5202D", RIGOL_VS5000, PROTOCOL_LEGACY, {2, 1000000000}, {50, 1}, {2, 1000}, true, 14},
-	{AGILENT, "DSO1014A", AGILENT_DSO1000, PROTOCOL_IEEE488_2, {2, 1000000000}, {50, 1}, {2, 1000}, false, 12},
+	{RIGOL, "DS1052E", RIGOL_DS1000, PROTOCOL_LEGACY, {5, 1000000000}, {50, 1}, {2, 1000}, 2, false, 12},
+	{RIGOL, "DS1102E", RIGOL_DS1000, PROTOCOL_LEGACY, {2, 1000000000}, {50, 1}, {2, 1000}, 2, false, 12},
+	{RIGOL, "DS1152E", RIGOL_DS1000, PROTOCOL_LEGACY, {2, 1000000000}, {50, 1}, {2, 1000}, 2, false, 12},
+	{RIGOL, "DS1052D", RIGOL_DS1000, PROTOCOL_LEGACY, {5, 1000000000}, {50, 1}, {2, 1000}, 2, true, 12},
+	{RIGOL, "DS1102D", RIGOL_DS1000, PROTOCOL_LEGACY, {2, 1000000000}, {50, 1}, {2, 1000}, 2, true, 12},
+	{RIGOL, "DS1152D", RIGOL_DS1000, PROTOCOL_LEGACY, {2, 1000000000}, {50, 1}, {2, 1000}, 2, true, 12},
+	{RIGOL, "DS2072", RIGOL_DS2000, PROTOCOL_IEEE488_2, {5, 1000000000}, {500, 1}, {500, 1000000}, 2, false, 14},
+	{RIGOL, "DS2102", RIGOL_DS2000, PROTOCOL_IEEE488_2, {5, 1000000000}, {500, 1}, {500, 1000000}, 2, false, 14},
+	{RIGOL, "DS2202", RIGOL_DS2000, PROTOCOL_IEEE488_2, {2, 1000000000}, {500, 1}, {500, 1000000}, 2, false, 14},
+	{RIGOL, "VS5022", RIGOL_VS5000, PROTOCOL_LEGACY, {20, 1000000000}, {50, 1}, {2, 1000}, 2, false, 14},
+	{RIGOL, "VS5022D", RIGOL_VS5000, PROTOCOL_LEGACY, {20, 1000000000}, {50, 1}, {2, 1000}, 2, true, 14},
+	{RIGOL, "VS5042", RIGOL_VS5000, PROTOCOL_LEGACY, {10, 1000000000}, {50, 1}, {2, 1000}, 2, false, 14},
+	{RIGOL, "VS5042D", RIGOL_VS5000, PROTOCOL_LEGACY, {10, 1000000000}, {50, 1}, {2, 1000}, 2, true, 14},
+	{RIGOL, "VS5062", RIGOL_VS5000, PROTOCOL_LEGACY, {5, 1000000000}, {50, 1}, {2, 1000}, 2, false, 14},
+	{RIGOL, "VS5062D", RIGOL_VS5000, PROTOCOL_LEGACY, {5, 1000000000}, {50, 1}, {2, 1000}, 2, true, 14},
+	{RIGOL, "VS5102", RIGOL_VS5000, PROTOCOL_LEGACY, {2, 1000000000}, {50, 1}, {2, 1000}, 2, false, 14},
+	{RIGOL, "VS5102D", RIGOL_VS5000, PROTOCOL_LEGACY, {2, 1000000000}, {50, 1}, {2, 1000}, 2, true, 14},
+	{RIGOL, "VS5202", RIGOL_VS5000, PROTOCOL_LEGACY, {2, 1000000000}, {50, 1}, {2, 1000}, 2, false, 14},
+	{RIGOL, "VS5202D", RIGOL_VS5000, PROTOCOL_LEGACY, {2, 1000000000}, {50, 1}, {2, 1000}, 2, true, 14},
+	{AGILENT, "DSO1014A", AGILENT_DSO1000, PROTOCOL_IEEE488_2, {2, 1000000000}, {50, 1}, {2, 1000}, 4, false, 12},
 };
 
 SR_PRIV struct sr_dev_driver rigol_ds_driver_info;
@@ -314,10 +316,10 @@ static int probe_port(const char *resource, const char *serialcomm, GSList **dev
 	devc->limit_frames = 0;
 	devc->model = model;
 
-	for (i = 0; i < 2; i++) {
-		channel_name = (i == 0 ? "CH1" : "CH2");
-		if (!(probe = sr_probe_new(i, SR_PROBE_ANALOG, TRUE, channel_name)))
+	for (i = 0; i < model->analog_channels; i++) {
+		if (!(channel_name = g_strdup_printf("CH%d", i + 1)))
 			return SR_ERR_MALLOC;
+		probe = sr_probe_new(i, SR_PROBE_ANALOG, TRUE, channel_name);
 		sdi->probes = g_slist_append(sdi->probes, probe);
 		devc->analog_groups[i].name = channel_name;
 		devc->analog_groups[i].probes = g_slist_append(NULL, probe);
@@ -591,6 +593,10 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 					tmp_str = "CHAN1";
 				else if (!strcmp(devc->trigger_source, "CH2"))
 					tmp_str = "CHAN2";
+				else if (!strcmp(devc->trigger_source, "CH3"))
+					tmp_str = "CHAN3";
+				else if (!strcmp(devc->trigger_source, "CH4"))
+					tmp_str = "CHAN4";
 				else
 					tmp_str = (char *)devc->trigger_source;
 				ret = set_cfg(sdi, ":TRIG:EDGE:SOUR %s", tmp_str);
@@ -836,15 +842,16 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, LOG_PREFIX);
 
+	if (devc->enabled_analog_probes)
+		devc->channel_entry = devc->enabled_analog_probes;
+	else
+		devc->channel_entry = devc->enabled_digital_probes;
+
 	if (devc->model->protocol == PROTOCOL_LEGACY) {
 		devc->analog_frame_size = (devc->model->series == RIGOL_VS5000 ?
 				VS5000_ANALOG_LIVE_WAVEFORM_SIZE :
 				DS1000_ANALOG_LIVE_WAVEFORM_SIZE);
 		/* Fetch the first frame. */
-		if (devc->enabled_analog_probes)
-			devc->channel = devc->enabled_analog_probes->data;
-		else
-			devc->channel = devc->enabled_digital_probes->data;
 		if (rigol_ds_channel_start(sdi) != SR_OK)
 			return SR_ERR;
 	} else {
@@ -870,7 +877,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 				else
 					devc->analog_frame_size = DS2000_ANALOG_LIVE_WAVEFORM_SIZE;
 			}
-			devc->channel = devc->enabled_analog_probes->data;
 			if (rigol_ds_capture_start(sdi) != SR_OK)
 				return SR_ERR;
 		}
