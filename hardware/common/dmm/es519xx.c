@@ -412,6 +412,23 @@ static void parse_flags(const uint8_t *buf, struct es519xx_info *info)
 		}
 	}
 
+	if (info->is_vahz && (info->is_voltage || info->is_current)) {
+		info->is_voltage = FALSE;
+		info->is_current = FALSE;
+		info->is_milli = info->is_micro = FALSE;
+		if (info->packet_size == 14) {
+			if (info->is_judge)
+				info->is_duty_cycle = TRUE;
+			else
+				info->is_frequency = TRUE;
+		} else {
+			if (info->is_judge)
+				info->is_rpm = TRUE;
+			else
+				info->is_frequency = TRUE;
+		}
+	}
+
 	if (info->is_current && (info->is_micro || info->is_milli) && info->is_vasel) {
 		info->is_current = info->is_auto = FALSE;
 		info->is_voltage = TRUE;
