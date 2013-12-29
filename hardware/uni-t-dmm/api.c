@@ -40,6 +40,7 @@ static const int32_t hwcaps[] = {
 SR_PRIV struct sr_dev_driver tecpel_dmm_8061_driver_info;
 SR_PRIV struct sr_dev_driver uni_t_ut60a_driver_info;
 SR_PRIV struct sr_dev_driver uni_t_ut60e_driver_info;
+SR_PRIV struct sr_dev_driver uni_t_ut61c_driver_info;
 SR_PRIV struct sr_dev_driver uni_t_ut61d_driver_info;
 SR_PRIV struct sr_dev_driver uni_t_ut61e_driver_info;
 SR_PRIV struct sr_dev_driver voltcraft_vc820_driver_info;
@@ -68,6 +69,13 @@ SR_PRIV struct dmm_info udmms[] = {
 		sr_fs9721_packet_valid, sr_fs9721_parse,
 		sr_fs9721_00_temp_c,
 		&uni_t_ut60e_driver_info, receive_data_UNI_T_UT60E,
+	},
+	{
+		"UNI-T", "UT61C", 2400,
+		FS9922_PACKET_SIZE,
+		sr_fs9922_packet_valid, sr_fs9922_parse,
+		NULL,
+		&uni_t_ut61c_driver_info, receive_data_UNI_T_UT61C,
 	},
 	{
 		"UNI-T", "UT61D", 2400,
@@ -383,6 +391,7 @@ SR_PRIV struct sr_dev_driver ID##_driver_info = { \
 DRV(tecpel_dmm_8061, TECPEL_DMM_8061, "tecpel-dmm-8061", "Tecpel DMM-8061")
 DRV(uni_t_ut60a, UNI_T_UT60A, "uni-t-ut60a", "UNI-T UT60A")
 DRV(uni_t_ut60e, UNI_T_UT60E, "uni-t-ut60e", "UNI-T UT60E")
+DRV(uni_t_ut61c, UNI_T_UT61C, "uni-t-ut61c", "UNI-T UT61C")
 DRV(uni_t_ut61d, UNI_T_UT61D, "uni-t-ut61d", "UNI-T UT61D")
 DRV(uni_t_ut61e, UNI_T_UT61E, "uni-t-ut61e", "UNI-T UT61E")
 DRV(voltcraft_vc820, VOLTCRAFT_VC820, "voltcraft-vc820", "Voltcraft VC-820")

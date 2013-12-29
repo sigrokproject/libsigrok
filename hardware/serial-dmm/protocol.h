@@ -46,12 +46,13 @@ enum {
 	VOLTCRAFT_VC840_SER,
 	UNI_T_UT60A_SER,
 	UNI_T_UT60E_SER,
+	UNI_T_UT61C_SER,
 	UNI_T_UT61D_SER,
 	UNI_T_UT61E_SER,
 	ISO_TECH_IDM103N,
 };
 
-#define DMM_COUNT 25
+#define DMM_COUNT 26
 
 struct dmm_info {
 	/** Manufacturer/brand. */
@@ -126,6 +127,7 @@ SR_PRIV int receive_data_VOLTCRAFT_VC830_SER(int fd, int revents, void *cb_data)
 SR_PRIV int receive_data_VOLTCRAFT_VC840_SER(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_UNI_T_UT60A_SER(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_UNI_T_UT60E_SER(int fd, int revents, void *cb_data);
+SR_PRIV int receive_data_UNI_T_UT61C_SER(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_UNI_T_UT61D_SER(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_UNI_T_UT61E_SER(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_ISO_TECH_IDM103N(int fd, int revents, void *cb_data);
