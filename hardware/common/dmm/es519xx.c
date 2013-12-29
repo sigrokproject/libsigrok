@@ -169,6 +169,8 @@ static int parse_range(uint8_t b, float *floatval,
 		mode = 7; /* Capacitance */
 	else if (info->is_diode)
 		mode = 8; /* Diode */
+	else if (info->is_duty_cycle)
+		mode = 0; /* Dummy, unused */
 	else {
 		sr_dbg("Invalid mode, range byte was: 0x%02x.", b);
 		return SR_ERR;
@@ -180,6 +182,8 @@ static int parse_range(uint8_t b, float *floatval,
 		else if (info->is_milli)
 			factor = (const float[]){1e-2, 1e-1}[idx];
 	}
+	else if (info->is_duty_cycle)
+		factor = 1e-1;
 	else if (info->baudrate == 2400)
 		factor = factors_2400_11b[mode][idx];
 	else if (info->fivedigits)
