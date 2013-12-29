@@ -138,7 +138,7 @@ static void decode_buf(struct sr_dev_inst *sdi, unsigned char *data)
 	}
 
 	/* Scale flags on the right, continued */
-	is_max = is_min = TRUE;
+	is_max = is_min = FALSE;
 	if (data[5] & 0x04)
 		is_max = TRUE;
 	if (data[5] & 0x08)
