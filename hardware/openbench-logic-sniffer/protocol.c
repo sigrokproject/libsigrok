@@ -381,8 +381,8 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 		 * longer than it takes to send a byte, that means it's
 		 * finished. We'll double that to 30ms to be sure...
 		 */
-		sr_source_remove(fd);
-		sr_source_add(fd, G_IO_IN, 30, ols_receive_data, cb_data);
+		serial_source_remove(serial);
+		serial_source_add(serial, G_IO_IN, 30, ols_receive_data, cb_data);
 		devc->raw_sample_buf = g_try_malloc(devc->limit_samples * 4);
 		if (!devc->raw_sample_buf) {
 			sr_err("Sample buffer malloc failed.");
