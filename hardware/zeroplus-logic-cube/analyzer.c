@@ -564,9 +564,19 @@ SR_PRIV void analyzer_set_ramsize_trigger_address(unsigned int address)
 	g_ramsize_triggerbar_addr = address;
 }
 
+SR_PRIV unsigned int analyzer_get_ramsize_trigger_address(void)
+{
+	return g_ramsize_triggerbar_addr;
+}
+
 SR_PRIV void analyzer_set_triggerbar_address(unsigned int address)
 {
 	g_triggerbar_addr = address;
+}
+
+SR_PRIV unsigned int analyzer_get_triggerbar_address(void)
+{
+	return g_triggerbar_addr;
 }
 
 SR_PRIV unsigned int analyzer_read_status(libusb_device_handle *devh)

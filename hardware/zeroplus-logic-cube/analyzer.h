@@ -85,6 +85,8 @@ enum {
 SR_PRIV void analyzer_set_freq(int freq, int scale);
 SR_PRIV void analyzer_set_ramsize_trigger_address(unsigned int address);
 SR_PRIV void analyzer_set_triggerbar_address(unsigned int address);
+SR_PRIV unsigned int  analyzer_get_ramsize_trigger_address(void );
+SR_PRIV unsigned int analyzer_get_triggerbar_address(void);
 SR_PRIV void analyzer_set_compression(unsigned int type);
 SR_PRIV void analyzer_set_memory_size(unsigned int size);
 SR_PRIV void analyzer_add_trigger(int channel, int type);
