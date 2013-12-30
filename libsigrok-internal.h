@@ -55,36 +55,36 @@
  * @param x a pointer to the input memory
  * @return the corresponding integer
  */
-#define RB16(x)  ((((const uint8_t*)(x))[0] <<  8) |  \
-                   ((const uint8_t*)(x))[1])
+#define RB16(x)  (((unsigned)((const uint8_t*)(x))[0] <<  8) |  \
+                   (unsigned)((const uint8_t*)(x))[1])
 
 /**
  * Read a 16 bits little endian integer out of memory.
  * @param x a pointer to the input memory
  * @return the corresponding integer
  */
-#define RL16(x)  ((((const uint8_t*)(x))[1] <<  8) |  \
-                   ((const uint8_t*)(x))[0])
+#define RL16(x)  (((unsigned)((const uint8_t*)(x))[1] <<  8) | \
+                   (unsigned)((const uint8_t*)(x))[0])
 
 /**
  * Read a 32 bits big endian integer out of memory.
  * @param x a pointer to the input memory
  * @return the corresponding integer
  */
-#define RB32(x)  ((((const uint8_t*)(x))[0] << 24) |  \
-                  (((const uint8_t*)(x))[1] << 16) |  \
-                  (((const uint8_t*)(x))[2] <<  8) |  \
-                   ((const uint8_t*)(x))[3])
+#define RB32(x)  (((unsigned)((const uint8_t*)(x))[0] << 24) | \
+                  ((unsigned)((const uint8_t*)(x))[1] << 16) |  \
+                  ((unsigned)((const uint8_t*)(x))[2] <<  8) |  \
+                   (unsigned)((const uint8_t*)(x))[3])
 
 /**
  * Read a 32 bits little endian integer out of memory.
  * @param x a pointer to the input memory
  * @return the corresponding integer
  */
-#define RL32(x)  ((((const uint8_t*)(x))[3] << 24) |  \
-                  (((const uint8_t*)(x))[2] << 16) |  \
-                  (((const uint8_t*)(x))[1] <<  8) |  \
-                   ((const uint8_t*)(x))[0])
+#define RL32(x)  (((unsigned)((const uint8_t*)(x))[3] << 24) | \
+                  ((unsigned)((const uint8_t*)(x))[2] << 16) |  \
+                  ((unsigned)((const uint8_t*)(x))[1] <<  8) |  \
+                   (unsigned)((const uint8_t*)(x))[0])
 
 /* Portability fixes for FreeBSD. */
 #ifdef __FreeBSD__
