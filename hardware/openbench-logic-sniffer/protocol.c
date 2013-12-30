@@ -30,7 +30,7 @@ SR_PRIV int send_shortcommand(struct sr_serial_dev_inst *serial,
 
 	sr_dbg("Sending cmd 0x%.2x.", command);
 	buf[0] = command;
-	if (serial_write(serial, buf, 1) != 1)
+	if (serial_write_blocking(serial, buf, 1) != 1)
 		return SR_ERR;
 
 	return SR_OK;
@@ -47,7 +47,7 @@ SR_PRIV int send_longcommand(struct sr_serial_dev_inst *serial,
 	buf[2] = (data & 0xff0000) >> 16;
 	buf[3] = (data & 0xff00) >> 8;
 	buf[4] = data & 0xff;
-	if (serial_write(serial, buf, 5) != 5)
+	if (serial_write_blocking(serial, buf, 5) != 5)
 		return SR_ERR;
 
 	return SR_OK;
@@ -176,7 +176,7 @@ SR_PRIV struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
 
 	key = 0xff;
 	while (key) {
-		if (serial_read(serial, &key, 1) != 1 || key == 0x00)
+		if (serial_read_blocking(serial, &key, 1) != 1 || key == 0x00)
 			break;
 		type = key >> 5;
 		token = key & 0x1f;
@@ -184,7 +184,7 @@ SR_PRIV struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
 		case 0:
 			/* NULL-terminated string */
 			tmp_str = g_string_new("");
-			while (serial_read(serial, &tmp_c, 1) == 1 && tmp_c != '\0')
+			while (serial_read_blocking(serial, &tmp_c, 1) == 1 && tmp_c != '\0')
 				g_string_append_c(tmp_str, tmp_c);
 			sr_dbg("Got metadata key 0x%.2x value '%s'.",
 			       key, tmp_str->str);
@@ -216,7 +216,7 @@ SR_PRIV struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
 			break;
 		case 1:
 			/* 32-bit unsigned integer */
-			if (serial_read(serial, &tmp_int, 4) != 4)
+			if (serial_read_blocking(serial, &tmp_int, 4) != 4)
 				break;
 			tmp_int = reverse32(tmp_int);
 			sr_dbg("Got metadata key 0x%.2x value 0x%.8x.",
@@ -255,7 +255,7 @@ SR_PRIV struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
 			break;
 		case 2:
 			/* 8-bit unsigned integer */
-			if (serial_read(serial, &tmp_c, 1) != 1)
+			if (serial_read_blocking(serial, &tmp_c, 1) != 1)
 				break;
 			sr_dbg("Got metadata key 0x%.2x value 0x%.2x.",
 			       key, tmp_c);
@@ -401,7 +401,7 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 	}
 
 	if (revents == G_IO_IN && devc->num_samples < devc->limit_samples) {
-		if (serial_read(serial, &byte, 1) != 1)
+		if (serial_read_nonblocking(serial, &byte, 1) != 1)
 			return FALSE;
 
 		/* Ignore it if we've read enough. */

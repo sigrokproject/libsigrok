@@ -159,7 +159,7 @@ static GSList *scan(GSList *options)
 
 	if (probefd.revents != G_IO_IN)
 		return NULL;
-	if (serial_read(serial, buf, 4) != 4)
+	if (serial_read_blocking(serial, buf, 4) != 4)
 		return NULL;
 	if (strncmp(buf, "1SLO", 4) && strncmp(buf, "1ALS", 4))
 		return NULL;
