@@ -484,6 +484,13 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 		} else
 			return SR_ERR;
 		break;
+	case SR_CONF_CAPTURE_RATIO:
+		if (sdi) {
+			devc = sdi->priv;
+			*data = g_variant_new_uint64(devc->capture_ratio);
+		} else
+			return SR_ERR;
+		break;
 	default:
 		return SR_ERR_NA;
 	}
