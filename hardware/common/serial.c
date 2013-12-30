@@ -167,17 +167,8 @@ SR_PRIV int serial_flush(struct sr_serial_dev_inst *serial)
 	return SR_OK;
 }
 
-/**
- * Write a number of bytes to the specified serial port.
- *
- * @param serial Previously initialized serial port structure.
- * @param buf Buffer containing the bytes to write.
- * @param count Number of bytes to write.
- *
- * @return The number of bytes written, or a negative error code upon failure.
- */
-SR_PRIV int serial_write(struct sr_serial_dev_inst *serial,
-		const void *buf, size_t count)
+static int _serial_write(struct sr_serial_dev_inst *serial,
+		const void *buf, size_t count, int nonblocking)
 {
 	ssize_t ret;
 	char *error;
@@ -192,7 +183,7 @@ SR_PRIV int serial_write(struct sr_serial_dev_inst *serial,
 		return SR_ERR;
 	}
 
-	if (serial->nonblocking)
+	if (nonblocking)
 		ret = sp_nonblocking_write(serial->data, buf, count);
 	else
 		ret = sp_blocking_write(serial->data, buf, count, 0);
@@ -214,16 +205,34 @@ SR_PRIV int serial_write(struct sr_serial_dev_inst *serial,
 }
 
 /**
- * Read a number of bytes from the specified serial port.
+ * Write a number of bytes to the specified serial port.
  *
  * @param serial Previously initialized serial port structure.
- * @param buf Buffer where to store the bytes that are read.
- * @param count The number of bytes to read.
+ * @param buf Buffer containing the bytes to write.
+ * @param count Number of bytes to write.
  *
- * @return The number of bytes read, or a negative error code upon failure.
+ * @return The number of bytes written, or a negative error code upon failure.
  */
-SR_PRIV int serial_read(struct sr_serial_dev_inst *serial, void *buf,
-		size_t count)
+SR_PRIV int serial_write(struct sr_serial_dev_inst *serial,
+		const void *buf, size_t count)
+{
+	return _serial_write(serial, buf, count, serial->nonblocking);
+}
+
+SR_PRIV int serial_write_blocking(struct sr_serial_dev_inst *serial,
+		const void *buf, size_t count)
+{
+	return _serial_write(serial, buf, count, 0);
+}
+
+SR_PRIV int serial_write_nonblocking(struct sr_serial_dev_inst *serial,
+		const void *buf, size_t count)
+{
+	return _serial_write(serial, buf, count, 1);
+}
+
+static int _serial_read(struct sr_serial_dev_inst *serial, void *buf,
+		size_t count, int nonblocking)
 {
 	ssize_t ret;
 	char *error;
@@ -238,7 +247,7 @@ SR_PRIV int serial_read(struct sr_serial_dev_inst *serial, void *buf,
 		return SR_ERR;
 	}
 
-	if (serial->nonblocking)
+	if (nonblocking)
 		ret = sp_nonblocking_read(serial->data, buf, count);
 	else
 		ret = sp_blocking_read(serial->data, buf, count, 0);
@@ -258,6 +267,33 @@ SR_PRIV int serial_read(struct sr_serial_dev_inst *serial, void *buf,
 		sr_spew("Read %d/%d bytes.", ret, count);
 
 	return ret;
+}
+
+/**
+ * Read a number of bytes from the specified serial port.
+ *
+ * @param serial Previously initialized serial port structure.
+ * @param buf Buffer where to store the bytes that are read.
+ * @param count The number of bytes to read.
+ *
+ * @return The number of bytes read, or a negative error code upon failure.
+ */
+SR_PRIV int serial_read(struct sr_serial_dev_inst *serial, void *buf,
+		size_t count)
+{
+	return _serial_read(serial, buf, count, serial->nonblocking);
+}
+
+SR_PRIV int serial_read_blocking(struct sr_serial_dev_inst *serial, void *buf,
+		size_t count)
+{
+	return _serial_read(serial, buf, count, 0);
+}
+
+SR_PRIV int serial_read_nonblocking(struct sr_serial_dev_inst *serial, void *buf,
+		size_t count)
+{
+	return _serial_read(serial, buf, count, 1);
 }
 
 /**

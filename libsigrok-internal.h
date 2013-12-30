@@ -290,7 +290,15 @@ SR_PRIV int serial_close(struct sr_serial_dev_inst *serial);
 SR_PRIV int serial_flush(struct sr_serial_dev_inst *serial);
 SR_PRIV int serial_write(struct sr_serial_dev_inst *serial,
 		const void *buf, size_t count);
+SR_PRIV int serial_write_blocking(struct sr_serial_dev_inst *serial,
+		const void *buf, size_t count);
+SR_PRIV int serial_write_nonblocking(struct sr_serial_dev_inst *serial,
+		const void *buf, size_t count);
 SR_PRIV int serial_read(struct sr_serial_dev_inst *serial, void *buf,
+		size_t count);
+SR_PRIV int serial_read_blocking(struct sr_serial_dev_inst *serial, void *buf,
+		size_t count);
+SR_PRIV int serial_read_nonblocking(struct sr_serial_dev_inst *serial, void *buf,
 		size_t count);
 SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
 		int bits, int parity, int stopbits, int flowcontrol, int rts, int dtr);
