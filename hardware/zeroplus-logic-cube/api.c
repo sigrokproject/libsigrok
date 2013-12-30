@@ -577,10 +577,21 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	struct sr_usb_dev_inst *usb;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
-	//uint64_t samples_read;
+	unsigned int samples_read;
 	int res;
 	unsigned int packet_num, n;
 	unsigned char *buf;
+	unsigned int status;
+	unsigned int stop_address;
+	unsigned int now_address;
+	unsigned int trigger_address;
+	unsigned int trigger_offset;
+	unsigned int triggerbar;
+	unsigned int ramsize_trigger;
+	unsigned int memory_size;
+	unsigned int valid_samples;
+	unsigned int discard;
+	int trigger_now;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
@@ -606,39 +617,138 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	sr_info("Waiting for data.");
 	analyzer_wait_data(usb->devhdl);
 
-	sr_info("Stop address    = 0x%x.",
-		analyzer_get_stop_address(usb->devhdl));
-	sr_info("Now address     = 0x%x.",
-		analyzer_get_now_address(usb->devhdl));
-	sr_info("Trigger address = 0x%x.",
-		analyzer_get_trigger_address(usb->devhdl));
+	status = analyzer_read_status(usb->devhdl);
+	stop_address = analyzer_get_stop_address(usb->devhdl);
+	now_address = analyzer_get_now_address(usb->devhdl);
+	trigger_address = analyzer_get_trigger_address(usb->devhdl);
+
+	triggerbar = analyzer_get_triggerbar_address();
+	ramsize_trigger = analyzer_get_ramsize_trigger_address();
+
+	n = get_memory_size(devc->memory_size);
+	memory_size = n / 4;
+
+	sr_info("Status = 0x%x.", status);
+	sr_info("Stop address       = 0x%x.", stop_address);
+	sr_info("Now address        = 0x%x.", now_address);
+	sr_info("Trigger address    = 0x%x.", trigger_address);
+	sr_info("Triggerbar address = 0x%x.", triggerbar);
+	sr_info("Ramsize trigger    = 0x%x.", ramsize_trigger);
+	sr_info("Memory size        = 0x%x.", memory_size);
 
 	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, LOG_PREFIX);
+
+	/* Check for empty capture */
+	if ((status & STATUS_READY) && !stop_address) {
+		packet.type = SR_DF_END;
+		sr_session_send(cb_data, &packet);
+		return SR_OK;
+	}
 
 	if (!(buf = g_try_malloc(PACKET_SIZE))) {
 		sr_err("Packet buffer malloc failed.");
 		return SR_ERR_MALLOC;
 	}
 
-	//samples_read = 0;
+	/* Check if the trigger is in the samples we are throwing away */
+	trigger_now = now_address == trigger_address ||
+		((now_address + 1) % memory_size) == trigger_address;
+
+	/*
+	 * STATUS_READY doesn't clear until now_address advances past
+	 * addr 0, but for our logic, clear it in that case
+	 */
+	if (!now_address)
+		status &= ~STATUS_READY;
+
 	analyzer_read_start(usb->devhdl);
+
+	/* Calculate how much data to discard */
+	discard = 0;
+	if (status & STATUS_READY) {
+		/*
+		 * We haven't wrapped around, we need to throw away data from
+		 * our current position to the end of the buffer.
+		 * Additionally, the first two samples captured are always
+		 * bogus.
+		 */
+		discard += memory_size - now_address + 2;
+		now_address = 2;
+	}
+
+	/* If we have more samples than we need, discard them */
+	valid_samples = (stop_address - now_address) % memory_size;
+	if (valid_samples > ramsize_trigger + triggerbar) {
+		discard += valid_samples - (ramsize_trigger + triggerbar);
+		now_address += valid_samples - (ramsize_trigger + triggerbar);
+	}
+
+	sr_info("Need to discard %d samples.", discard);
+
+	/* Calculate how far in the trigger is */
+	if (trigger_now)
+		trigger_offset = 0;
+	else
+		trigger_offset = (trigger_address - now_address) % memory_size;
+
+	/* Recalculate the number of samples available */
+	valid_samples = (stop_address - now_address) % memory_size;
+
 	/* Send the incoming transfer to the session bus. */
-	n = get_memory_size(devc->memory_size);
-	if (devc->max_sample_depth * 4 < n)
-		n = devc->max_sample_depth * 4;
+	samples_read = 0;
 	for (packet_num = 0; packet_num < n / PACKET_SIZE; packet_num++) {
+		unsigned int len;
+		unsigned int buf_offset;
+
 		res = analyzer_read_data(usb->devhdl, buf, PACKET_SIZE);
 		sr_info("Tried to read %d bytes, actually read %d bytes.",
 			PACKET_SIZE, res);
 
+		if (discard >= PACKET_SIZE / 4) {
+			discard -= PACKET_SIZE / 4;
+			continue;
+		}
+
+		len = PACKET_SIZE - discard * 4;
+		buf_offset = discard * 4;
+		discard = 0;
+
+		/* Check if we've read all the samples */
+		if (samples_read + len / 4 >= valid_samples)
+			len = (valid_samples - samples_read) * 4;
+		if (!len)
+			break;
+
+		if (samples_read < trigger_offset &&
+		    samples_read + len / 4 > trigger_offset) {
+			/* Send out samples remaining before trigger */
+			packet.type = SR_DF_LOGIC;
+			packet.payload = &logic;
+			logic.length = (trigger_offset - samples_read) * 4;
+			logic.unitsize = 4;
+			logic.data = buf + buf_offset;
+			sr_session_send(cb_data, &packet);
+			len -= logic.length;
+			samples_read += logic.length / 4;
+			buf_offset += logic.length;
+		}
+
+		if (samples_read == trigger_offset) {
+			/* Send out trigger */
+			packet.type = SR_DF_TRIGGER;
+			packet.payload = NULL;
+			sr_session_send(cb_data, &packet);
+		}
+
+		/* Send out data (or data after trigger) */
 		packet.type = SR_DF_LOGIC;
 		packet.payload = &logic;
-		logic.length = PACKET_SIZE;
+		logic.length = len;
 		logic.unitsize = 4;
-		logic.data = buf;
+		logic.data = buf + buf_offset;
 		sr_session_send(cb_data, &packet);
-		//samples_read += res / 4;
+		samples_read += len / 4;
 	}
 	analyzer_read_stop(usb->devhdl);
 	g_free(buf);
