@@ -477,10 +477,7 @@ SR_PRIV void analyzer_configure(libusb_device_handle *devh)
 	__analyzer_set_triggerbar_address(devh, g_triggerbar_addr);
 
 	/* Set_Dont_Care_TriggerBar */
-	if (g_triggerbar_addr)
-		gl_reg_write(devh, DONT_CARE_TRIGGERBAR, 0x00);
-	else
-		gl_reg_write(devh, DONT_CARE_TRIGGERBAR, 0x01);
+	gl_reg_write(devh, DONT_CARE_TRIGGERBAR, 0x01);
 
 	/* Enable_Status */
 	analyzer_set_filter(devh);
