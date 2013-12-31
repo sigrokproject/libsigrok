@@ -629,8 +629,9 @@ static int sr_es519xx_parse(const uint8_t *buf, float *floatval,
  */
 SR_PRIV gboolean sr_es519xx_2400_11b_packet_valid(const uint8_t *buf)
 {
-	struct es519xx_info info = { 0 };
+	struct es519xx_info info;
 
+	memset(&info, 0, sizeof(struct es519xx_info));
 	info.baudrate = 2400;
 	info.packet_size = 11;
 
@@ -656,8 +657,9 @@ SR_PRIV int sr_es519xx_2400_11b_parse(const uint8_t *buf, float *floatval,
  */
 SR_PRIV gboolean sr_es519xx_2400_11b_altfn_packet_valid(const uint8_t *buf)
 {
-	struct es519xx_info info = { 0 };
+	struct es519xx_info info;
 
+	memset(&info, 0, sizeof(struct es519xx_info));
 	info.baudrate = 2400;
 	info.packet_size = 11;
 	info.alt_functions = TRUE;
@@ -685,8 +687,9 @@ SR_PRIV int sr_es519xx_2400_11b_altfn_parse(const uint8_t *buf,
  */
 SR_PRIV gboolean sr_es519xx_19200_11b_5digits_packet_valid(const uint8_t *buf)
 {
-	struct es519xx_info info = { 0 };
+	struct es519xx_info info;
 
+	memset(&info, 0, sizeof(struct es519xx_info));
 	info.baudrate = 19200;
 	info.packet_size = 11;
 	info.fivedigits = TRUE;
@@ -714,8 +717,9 @@ SR_PRIV int sr_es519xx_19200_11b_5digits_parse(const uint8_t *buf,
  */
 SR_PRIV gboolean sr_es519xx_19200_11b_clamp_packet_valid(const uint8_t *buf)
 {
-	struct es519xx_info info = { 0 };
+	struct es519xx_info info;
 
+	memset(&info, 0, sizeof(struct es519xx_info));
 	info.baudrate = 19200;
 	info.packet_size = 11;
 	info.clampmeter = TRUE;
@@ -743,8 +747,9 @@ SR_PRIV int sr_es519xx_19200_11b_clamp_parse(const uint8_t *buf,
  */
 SR_PRIV gboolean sr_es519xx_19200_11b_packet_valid(const uint8_t *buf)
 {
-	struct es519xx_info info = { 0 };
+	struct es519xx_info info;
 
+	memset(&info, 0, sizeof(struct es519xx_info));
 	info.baudrate = 19200;
 	info.packet_size = 11;
 
@@ -770,8 +775,9 @@ SR_PRIV int sr_es519xx_19200_11b_parse(const uint8_t *buf, float *floatval,
  */
 SR_PRIV gboolean sr_es519xx_19200_14b_packet_valid(const uint8_t *buf)
 {
-	struct es519xx_info info = { 0 };
+	struct es519xx_info info;
 
+	memset(&info, 0, sizeof(struct es519xx_info));
 	info.baudrate = 19200;
 	info.packet_size = 14;
 
@@ -797,8 +803,9 @@ SR_PRIV int sr_es519xx_19200_14b_parse(const uint8_t *buf, float *floatval,
  */
 SR_PRIV gboolean sr_es519xx_19200_14b_sel_lpf_packet_valid(const uint8_t *buf)
 {
-	struct es519xx_info info = { 0 };
+	struct es519xx_info info;
 
+	memset(&info, 0, sizeof(struct es519xx_info));
 	info.baudrate = 19200;
 	info.packet_size = 14;
 	info.selectable_lpf = TRUE;
