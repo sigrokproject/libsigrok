@@ -130,7 +130,7 @@ static void decode_rs_16(uint8_t rs, struct dev_context *devc)
 				devc->mq = SR_MQ_TEMPERATURE;
 				devc->unit = SR_UNIT_CELSIUS;
 				devc->scale *= 0.01;
-			} else if ((devc->scale1000 == 2)) {
+			} else if (devc->scale1000 == 2) {
 				/* 16I Iso 500/1000V 3 GOhm */
 				devc->scale *= 0.1;
 			}
