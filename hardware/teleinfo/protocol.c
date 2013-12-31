@@ -57,14 +57,18 @@ static struct sr_probe *teleinfo_find_probe(struct sr_dev_inst *sdi,
 static void teleinfo_send_value(struct sr_dev_inst *sdi, const char *probe_name,
                                 float value, int mq, int unit)
 {
-	struct dev_context *devc = sdi->priv;
+	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog analog = { 0 };
-	struct sr_probe *probe = teleinfo_find_probe(sdi, probe_name);
+	struct sr_datafeed_analog analog;
+	struct sr_probe *probe;
+
+	devc = sdi->priv;
+	probe = teleinfo_find_probe(sdi, probe_name);
 
 	if (!probe || !probe->enabled)
 		return;
 
+	memset(&analog, 0, sizeof(struct sr_datafeed_analog));
 	analog.probes = g_slist_append(analog.probes, probe);
 	analog.num_samples = 1;
 	analog.mq = mq;
