@@ -122,7 +122,7 @@ static void fancyprint(int unit, int mqflags, float value, GString *out)
 		si_printf(value, out, "Hz");
 		break;
 	case SR_UNIT_PERCENTAGE:
-		g_string_append_printf(out, "%f%%", value);
+		g_string_append_printf(out, "%f %%", value);
 		break;
 	case SR_UNIT_BOOLEAN:
 		if (value > 0)
