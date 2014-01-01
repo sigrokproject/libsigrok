@@ -132,3 +132,21 @@ SR_PRIV int gl_reg_read(libusb_device_handle *devh, unsigned int reg)
 	ret = gl_read_data(devh);
 	return ret;
 }
+
+SR_PRIV int gl_reg_read_buf(libusb_device_handle *devh, unsigned int reg,
+		unsigned char *buf, unsigned int len)
+{
+	int ret;
+	unsigned int i;
+
+	ret = gl_write_address(devh, reg);
+	if (ret < 0)
+		return ret;
+	for (i = 0; i < len; i++) {
+		ret = gl_read_data(devh);
+		if (ret < 0)
+			return ret;
+		buf[i] = ret;
+	}
+	return 0;
+}

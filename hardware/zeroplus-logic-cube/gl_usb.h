@@ -40,5 +40,6 @@ SR_PRIV int gl_read_bulk(libusb_device_handle *devh, void *buffer,
 SR_PRIV int gl_reg_write(libusb_device_handle *devh, unsigned int reg,
 			 unsigned int val);
 SR_PRIV int gl_reg_read(libusb_device_handle *devh, unsigned int reg);
-
+SR_PRIV int gl_reg_read_buf(libusb_device_handle *devh, unsigned int reg,
+			unsigned char *buf, unsigned int len);
 #endif

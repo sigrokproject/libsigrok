@@ -411,12 +411,10 @@ SR_PRIV void analyzer_wait(libusb_device_handle *devh, int set, int unset)
 
 SR_PRIV void analyzer_read_start(libusb_device_handle *devh)
 {
-	int i;
-
 	analyzer_write_status(devh, 3, STATUS_FLAG_20 | STATUS_FLAG_READ);
 
-	for (i = 0; i < 8; i++)
-		(void)gl_reg_read(devh, READ_RAM_STATUS);
+	/* Prep for bulk reads */
+	gl_reg_read_buf(devh, READ_RAM_STATUS, NULL, 0);
 }
 
 SR_PRIV int analyzer_read_data(libusb_device_handle *devh, void *buffer,
