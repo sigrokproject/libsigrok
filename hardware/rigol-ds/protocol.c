@@ -457,13 +457,17 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 
 		probe = devc->channel_entry->data;
 		
+		if (devc->num_block_bytes == 0 &&
+		    devc->model->protocol == PROTOCOL_IEEE488_2) {
+				if (sr_scpi_send(sdi->conn, ":WAV:DATA?") != SR_OK)
+					return TRUE;
+		}
+
 		if (devc->num_block_bytes == 0) {
 			if (sr_scpi_read_begin(scpi) != SR_OK)
 				return TRUE;
 			if (devc->model->protocol == PROTOCOL_IEEE488_2) {
 				sr_dbg("New block header expected");
-				if (sr_scpi_send(sdi->conn, ":WAV:DATA?") != SR_OK)
-					return TRUE;
 				len = rigol_ds_read_header(scpi);
 				if (len == -1)
 					return TRUE;
