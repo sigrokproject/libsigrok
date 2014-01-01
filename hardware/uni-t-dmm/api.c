@@ -72,18 +72,18 @@ SR_PRIV struct dmm_info udmms[] = {
 		&uni_t_ut60e_driver_info, receive_data_UNI_T_UT60E,
 	},
 	{
-		"UNI-T", "UT61C", 2400,
-		FS9922_PACKET_SIZE,
-		sr_fs9922_packet_valid, sr_fs9922_parse,
-		NULL,
-		&uni_t_ut61c_driver_info, receive_data_UNI_T_UT61C,
-	},
-	{
 		"UNI-T", "UT61B", 2400,
 		FS9922_PACKET_SIZE,
 		sr_fs9922_packet_valid, sr_fs9922_parse,
 		NULL,
 		&uni_t_ut61b_driver_info, receive_data_UNI_T_UT61B,
+	},
+	{
+		"UNI-T", "UT61C", 2400,
+		FS9922_PACKET_SIZE,
+		sr_fs9922_packet_valid, sr_fs9922_parse,
+		NULL,
+		&uni_t_ut61c_driver_info, receive_data_UNI_T_UT61C,
 	},
 	{
 		"UNI-T", "UT61D", 2400,
