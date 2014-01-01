@@ -33,6 +33,7 @@ enum {
 	TECPEL_DMM_8061,
 	UNI_T_UT60A,
 	UNI_T_UT60E,
+	UNI_T_UT61B,
 	UNI_T_UT61C,
 	UNI_T_UT61D,
 	UNI_T_UT61E,
@@ -85,6 +86,7 @@ struct dev_context {
 SR_PRIV int receive_data_TECPEL_DMM_8061(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_UNI_T_UT60A(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_UNI_T_UT60E(int fd, int revents, void *cb_data);
+SR_PRIV int receive_data_UNI_T_UT61B(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_UNI_T_UT61C(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_UNI_T_UT61D(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_UNI_T_UT61E(int fd, int revents, void *cb_data);
