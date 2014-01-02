@@ -102,17 +102,17 @@ static void decode_ctmv_16(uint8_t ctmv, struct dev_context *devc)
 /**
  * Decode range/sign/acdc byte special chars (Metrahit 12-16).
  *
- * @param[in] spc Special characters 1 and 2 (s1 | (s2 << 4)).
+ * @param[in] rs Range and sign byte.
  */
 static void decode_rs_16(uint8_t rs, struct dev_context *devc)
 {
 	sr_spew("decode_rs_16(%d) scale = %f", rs, devc->scale);
 
-	if (rs & 0x08) /* Sign */
+	if (rs & 0x04) /* Sign */
 		devc->scale *= -1.0;
 
 	if (devc->mq == SR_MQ_CURRENT) {
-		if (rs & 0x04) /* Current is AC */
+		if (rs & 0x08) /* Current is AC */
 			devc->mqflags |= SR_MQFLAG_AC;
 		else
 			devc->mqflags |= SR_MQFLAG_DC;
