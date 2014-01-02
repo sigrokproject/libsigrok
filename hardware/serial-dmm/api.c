@@ -329,7 +329,7 @@ static GSList *sdmm_scan(const char *conn, const char *serialcomm, int dmm)
 	/* Let's get a bit of data and see if we can find a packet. */
 	len = sizeof(buf);
 	ret = serial_stream_detect(serial, buf, &len, dmms[dmm].packet_size,
-				   dmms[dmm].packet_valid, 1000,
+				   dmms[dmm].packet_valid, 3000,
 				   dmms[dmm].baudrate);
 	if (ret != SR_OK)
 		goto scan_cleanup;
