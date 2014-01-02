@@ -514,6 +514,7 @@ SR_PRIV void sr_fs9721_00_temp_c(struct sr_datafeed_analog *analog, void *info);
 SR_PRIV void sr_fs9721_01_temp_c(struct sr_datafeed_analog *analog, void *info);
 SR_PRIV void sr_fs9721_10_temp_c(struct sr_datafeed_analog *analog, void *info);
 SR_PRIV void sr_fs9721_01_10_temp_f_c(struct sr_datafeed_analog *analog, void *info);
+SR_PRIV void sr_fs9721_max_c_min(struct sr_datafeed_analog *analog, void *info);
 
 /*--- hardware/common/dmm/m2110.c -----------------------------------------*/
 

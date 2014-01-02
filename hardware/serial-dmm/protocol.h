@@ -31,6 +31,7 @@ enum {
 	PEAKTECH_3410,
 	MASTECH_MAS345,
 	VA_VA18B,
+	VA_VA40B,
 	METEX_M3640D,
 	METEX_M4650CR,
 	PEAKTECH_4370,
@@ -53,7 +54,7 @@ enum {
 	ISO_TECH_IDM103N,
 };
 
-#define DMM_COUNT 27
+#define DMM_COUNT 28
 
 struct dmm_info {
 	/** Manufacturer/brand. */
@@ -113,6 +114,7 @@ SR_PRIV int receive_data_METEX_ME31(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_PEAKTECH_3410(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_MASTECH_MAS345(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_VA_VA18B(int fd, int revents, void *cb_data);
+SR_PRIV int receive_data_VA_VA40B(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_METEX_M3640D(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_METEX_M4650CR(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_PEAKTECH_4370(int fd, int revents, void *cb_data);
@@ -137,6 +139,7 @@ SR_PRIV int receive_data_ISO_TECH_IDM103N(int fd, int revents, void *cb_data);
 SR_PRIV void dmm_details_tp4000zc(struct sr_datafeed_analog *analog, void *info);
 SR_PRIV void dmm_details_dt4000zc(struct sr_datafeed_analog *analog, void *info);
 SR_PRIV void dmm_details_va18b(struct sr_datafeed_analog *analog, void *info);
+SR_PRIV void dmm_details_va40b(struct sr_datafeed_analog *analog, void *info);
 SR_PRIV void dmm_details_pce_dm32(struct sr_datafeed_analog *analog, void *info);
 
 #endif

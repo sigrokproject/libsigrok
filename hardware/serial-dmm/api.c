@@ -48,6 +48,7 @@ SR_PRIV struct sr_dev_driver metex_me31_driver_info;
 SR_PRIV struct sr_dev_driver peaktech_3410_driver_info;
 SR_PRIV struct sr_dev_driver mastech_mas345_driver_info;
 SR_PRIV struct sr_dev_driver va_va18b_driver_info;
+SR_PRIV struct sr_dev_driver va_va40b_driver_info;
 SR_PRIV struct sr_dev_driver metex_m3640d_driver_info;
 SR_PRIV struct sr_dev_driver metex_m4650cr_driver_info;
 SR_PRIV struct sr_dev_driver peaktech_4370_driver_info;
@@ -118,6 +119,13 @@ SR_PRIV struct dmm_info dmms[] = {
 		sr_fs9721_packet_valid, sr_fs9721_parse,
 		sr_fs9721_01_temp_c,
 		&va_va18b_driver_info, receive_data_VA_VA18B,
+	},
+	{
+		"V&A", "VA40B", "2400/8n1", 2400,
+		FS9721_PACKET_SIZE, NULL,
+		sr_fs9721_packet_valid, sr_fs9721_parse,
+		sr_fs9721_max_c_min,
+		&va_va40b_driver_info, receive_data_VA_VA40B,
 	},
 	{
 		"Metex", "M-3640D", "1200/7n2/rts=0/dtr=1", 1200,
@@ -552,6 +560,7 @@ DRV(metex_me31, METEX_ME31, "metex-me31", "Metex ME-31")
 DRV(peaktech_3410, PEAKTECH_3410, "peaktech-3410", "PeakTech 3410")
 DRV(mastech_mas345, MASTECH_MAS345, "mastech-mas345", "MASTECH MAS345")
 DRV(va_va18b, VA_VA18B, "va-va18b", "V&A VA18B")
+DRV(va_va40b, VA_VA40B, "va-va40b", "V&A VA40B")
 DRV(metex_m3640d, METEX_M3640D, "metex-m3640d", "Metex M-3640D")
 DRV(metex_m4650cr, METEX_M4650CR, "metex-m4650cr", "Metex M-4650CR")
 DRV(peaktech_4370, PEAKTECH_4370, "peaktech-4370", "PeakTech 4370")
