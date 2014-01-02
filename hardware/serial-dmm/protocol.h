@@ -136,10 +136,4 @@ SR_PRIV int receive_data_UNI_T_UT61D_SER(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_UNI_T_UT61E_SER(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_ISO_TECH_IDM103N(int fd, int revents, void *cb_data);
 
-SR_PRIV void dmm_details_tp4000zc(struct sr_datafeed_analog *analog, void *info);
-SR_PRIV void dmm_details_dt4000zc(struct sr_datafeed_analog *analog, void *info);
-SR_PRIV void dmm_details_va18b(struct sr_datafeed_analog *analog, void *info);
-SR_PRIV void dmm_details_va40b(struct sr_datafeed_analog *analog, void *info);
-SR_PRIV void dmm_details_pce_dm32(struct sr_datafeed_analog *analog, void *info);
-
 #endif
