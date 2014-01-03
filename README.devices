@@ -295,6 +295,7 @@ a short list for convenience:
  - PCE PCE-DM32: Briefly press the "RS232" button.
  - RadioShack 22-812: Press and hold "SELECT" and "RANGE" together.
  - TekPower TP4000ZC: Briefly press the "RS232" button.
+ - UNI-T UT60G: Briefly press the "RS232C" button.
  - UNI-T UT61B/C/D: Press the "REL/RS232/USB" button for roughly 1 second.
  - UNI-T UT325: Briefly press the "SEND" button (as per manual). However, it
    appears that in practice you don't have to press the button (at least on

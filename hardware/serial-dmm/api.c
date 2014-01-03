@@ -64,6 +64,7 @@ SR_PRIV struct sr_dev_driver voltcraft_vc830_ser_driver_info;
 SR_PRIV struct sr_dev_driver voltcraft_vc840_ser_driver_info;
 SR_PRIV struct sr_dev_driver uni_t_ut60a_ser_driver_info;
 SR_PRIV struct sr_dev_driver uni_t_ut60e_ser_driver_info;
+SR_PRIV struct sr_dev_driver uni_t_ut60g_ser_driver_info;
 SR_PRIV struct sr_dev_driver uni_t_ut61b_ser_driver_info;
 SR_PRIV struct sr_dev_driver uni_t_ut61c_ser_driver_info;
 SR_PRIV struct sr_dev_driver uni_t_ut61d_ser_driver_info;
@@ -242,6 +243,14 @@ SR_PRIV struct dmm_info dmms[] = {
 		sr_fs9721_00_temp_c,
 		&uni_t_ut60e_ser_driver_info,
 		receive_data_UNI_T_UT60E_SER,
+	},
+	{
+		/* Note: ES51986 baudrate is actually 19230! */
+		"UNI-T", "UT60G (UT-D02 cable)", "19200/7o1/rts=0/dtr=1",
+		19200, ES519XX_11B_PACKET_SIZE, NULL,
+		sr_es519xx_19200_11b_packet_valid, sr_es519xx_19200_11b_parse,
+		NULL,
+		&uni_t_ut60g_ser_driver_info, receive_data_UNI_T_UT60G_SER,
 	},
 	{
 		"UNI-T", "UT61B (UT-D02 cable)", "2400/8n1/rts=0/dtr=1",
@@ -576,6 +585,7 @@ DRV(voltcraft_vc830_ser, VOLTCRAFT_VC830_SER, "voltcraft-vc830-ser", "Voltcraft 
 DRV(voltcraft_vc840_ser, VOLTCRAFT_VC840_SER, "voltcraft-vc840-ser", "Voltcraft VC-840 (UT-D02 cable)")
 DRV(uni_t_ut60a_ser, UNI_T_UT60A_SER, "uni-t-ut60a-ser", "UNI-T UT60A (UT-D02 cable)")
 DRV(uni_t_ut60e_ser, UNI_T_UT60E_SER, "uni-t-ut60e-ser", "UNI-T UT60E (UT-D02 cable)")
+DRV(uni_t_ut60g_ser, UNI_T_UT60G_SER, "uni-t-ut60g-ser", "UNI-T UT60G (UT-D02 cable)")
 DRV(uni_t_ut61b_ser, UNI_T_UT61B_SER, "uni-t-ut61b-ser", "UNI-T UT61B (UT-D02 cable)")
 DRV(uni_t_ut61c_ser, UNI_T_UT61C_SER, "uni-t-ut61c-ser", "UNI-T UT61C (UT-D02 cable)")
 DRV(uni_t_ut61d_ser, UNI_T_UT61D_SER, "uni-t-ut61d-ser", "UNI-T UT61D (UT-D02 cable)")

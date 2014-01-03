@@ -40,6 +40,7 @@ static const int32_t hwcaps[] = {
 SR_PRIV struct sr_dev_driver tecpel_dmm_8061_driver_info;
 SR_PRIV struct sr_dev_driver uni_t_ut60a_driver_info;
 SR_PRIV struct sr_dev_driver uni_t_ut60e_driver_info;
+SR_PRIV struct sr_dev_driver uni_t_ut60g_driver_info;
 SR_PRIV struct sr_dev_driver uni_t_ut61b_driver_info;
 SR_PRIV struct sr_dev_driver uni_t_ut61c_driver_info;
 SR_PRIV struct sr_dev_driver uni_t_ut61d_driver_info;
@@ -70,6 +71,22 @@ SR_PRIV struct dmm_info udmms[] = {
 		sr_fs9721_packet_valid, sr_fs9721_parse,
 		sr_fs9721_00_temp_c,
 		&uni_t_ut60e_driver_info, receive_data_UNI_T_UT60E,
+	},
+	{
+		/*
+		 * Important: The actual baudrate of the Cyrustek ES51986 chip
+		 * used in this DMM is 19230. However, the WCH CH9325 chip
+		 * (UART to USB/HID) used in (some versions of) the UNI-T
+		 * UT-D04 cable doesn't support 19230 baud. It only supports
+		 * 19200, and setting an unsupported baudrate will result in
+		 * the default of 2400 being used (which will not work with
+		 * this DMM, of course).
+		 */
+		"UNI-T", "UT60G", 19200,
+		ES519XX_11B_PACKET_SIZE,
+		sr_es519xx_19200_11b_packet_valid, sr_es519xx_19200_11b_parse,
+		NULL,
+		&uni_t_ut60g_driver_info, receive_data_UNI_T_UT60G,
 	},
 	{
 		"UNI-T", "UT61B", 2400,
@@ -399,6 +416,7 @@ SR_PRIV struct sr_dev_driver ID##_driver_info = { \
 DRV(tecpel_dmm_8061, TECPEL_DMM_8061, "tecpel-dmm-8061", "Tecpel DMM-8061")
 DRV(uni_t_ut60a, UNI_T_UT60A, "uni-t-ut60a", "UNI-T UT60A")
 DRV(uni_t_ut60e, UNI_T_UT60E, "uni-t-ut60e", "UNI-T UT60E")
+DRV(uni_t_ut60g, UNI_T_UT60G, "uni-t-ut60g", "UNI-T UT60G")
 DRV(uni_t_ut61b, UNI_T_UT61B, "uni-t-ut61b", "UNI-T UT61B")
 DRV(uni_t_ut61c, UNI_T_UT61C, "uni-t-ut61c", "UNI-T UT61C")
 DRV(uni_t_ut61d, UNI_T_UT61D, "uni-t-ut61d", "UNI-T UT61D")
