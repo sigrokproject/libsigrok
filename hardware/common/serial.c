@@ -374,21 +374,30 @@ SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
 }
 
 /**
- * Set serial parameters for the specified serial port.
+ * Set serial parameters for the specified serial port from parameter string.
  *
  * @param serial Previously initialized serial port structure.
- * @param[in] paramstr A serial communication parameters string, in the form
- * of \<speed\>/\<data bits\>\<parity\>\<stopbits\>\<flow\>, for example
- * "9600/8n1" or "600/7o2" or "460800/8n1/flow=2" where flow is 0 for none,
- * 1 for rts/cts and 2 for xon/xoff.
- *
+ * @param[in] paramstr A serial communication parameters string of the form
+ * "<baudrate>/<bits><parity><stopbits>{/<option>}".\n
+ *  Examples: "9600/8n1", "600/7o2/dtr=1/rts=0" or "460800/8n1/flow=2".\n
+ * \<baudrate\>=integer Baud rate.\n
+ * \<bits\>=5|6|7|8 Number of data bits.\n
+ * \<parity\>=n|e|o None, even, odd.\n
+ * \<stopbits\>=1|2 One or two stop bits.\n
+ * Options:\n
+ * dtr=0|1 Set DTR off resp. on.\n
+ * flow=0|1|2 Flow control. 0 for none, 1 for RTS/CTS, 2 for XON/XOFF.\n
+ * rts=0|1 Set RTS off resp. on.\n
+ * Please note that values and combinations of these parameters must be
+ * supported by the concrete serial interface hardware and the drivers for it.
  * @retval SR_OK Success.
  * @retval SR_ERR Failure.
  */
-#define SERIAL_COMM_SPEC "^(\\d+)/([5678])([neo])([12])(.*)$"
 SR_PRIV int serial_set_paramstr(struct sr_serial_dev_inst *serial,
 		const char *paramstr)
 {
+#define SERIAL_COMM_SPEC "^(\\d+)/([5678])([neo])([12])(.*)$"
+
 	GRegex *reg;
 	GMatchInfo *match;
 	int speed, databits, parity, stopbits, flow, rts, dtr, i;

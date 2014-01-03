@@ -51,6 +51,7 @@ The following drivers/devices do not need any firmware upload:
 
  - agilent-dmm
  - alsa
+ - bbcgm-m2110
  - brymen-dmm
  - cem-dt-885x
  - center-3xx
@@ -58,6 +59,7 @@ The following drivers/devices do not need any firmware upload:
  - colead-slm
  - demo
  - fluke-dmm
+ - gmc-mh-1x-2x-rs232
  - ikalogic-scanalogic2
  - ikalogic-scanaplus
  - kecheng-kc-330b
@@ -93,11 +95,13 @@ Example:
 The following drivers/devices require a serial port specification:
 
  - agilent-dmm
+ - bbcgm-m2110
  - brymen-dmm
  - cem-dt-885x
  - center-3xx
  - colead-slm
  - fluke-dmm
+ - gmc-mh-1x-2x-rs232
  - link-mso19
  - mic-985xx
  - norma-dmm
@@ -124,6 +128,20 @@ The following drivers/devices do not require a serial port specification:
  - uni-t-ut32x
  - victor-dmm
  - zeroplus-logic-cube
+
+
+Specifiying serial port parameters
+----------------------------------
+
+Every serial device's driver has default serial port parameters like baud
+rate, number of data bits, stop bits and handshake status. If a device requires
+different parameters, pass them as option "serialcomm" with the driver name.
+See libsigrok, docs for function serial_set_paramstr() for complete specs.
+
+Example:
+
+ $ sigrok-cli --driver <somedriver>:conn=<someconn>:serialcomm=9600/7n1/dtr=1
+
 
 
 Permissions of serial port based devices
@@ -264,7 +282,12 @@ unless a certain action has been performed by the user beforehand. This is
 usually mentioned in the vendor manual of the respective device, but here's
 a short list for convenience:
 
+ - bbcgm-m2110: Press button "Start/Reset" on interface panel on top.
  - Digitek DT4000ZC: Briefly press the "RS232" button.
+ - gmc-mh-1x-2x-rs232: Switch on device with buttons "DATA" pressed.
+   Additionally Metrahit 2x devices must be configured for interface "RS232".
+ - norma-dmm: If the interface does not work (e.g. USB-RS232 converter), switch
+   on device with "FUNC" button pressed to power interface from multimeter.
  - PCE PCE-DM32: Briefly press the "RS232" button.
  - RadioShack 22-812: Press and hold "SELECT" and "RANGE" together.
  - TekPower TP4000ZC: Briefly press the "RS232" button.
