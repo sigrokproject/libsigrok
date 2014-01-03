@@ -51,28 +51,29 @@ The following drivers/devices do not need any firmware upload:
 
  - agilent-dmm
  - alsa
- - bbcgm-m2110
+ - appa-55ii
  - brymen-dmm
  - cem-dt-885x
- - center-3xx
+ - center-3xx (including all subdrivers)
  - chronovu-la8
  - colead-slm
  - demo
  - fluke-dmm
- - gmc-mh-1x-2x-rs232
+ - gmc-mh-1x-2x
+ - hameg-hmo
  - ikalogic-scanalogic2
  - ikalogic-scanaplus
  - kecheng-kc-330b
  - lascar-el-usb
  - link-mso19
- - mic-985xx
+ - mic-985xx (including all subdrivers)
  - norma-dmm
  - openbench-logic-sniffer
  - rigol-ds
- - serial-dmm
+ - serial-dmm (including all subdrivers)
  - teleinfo
  - tondaj-sl-814
- - uni-t-dmm
+ - uni-t-dmm (including all subdrivers)
  - uni-t-ut32x
  - victor-dmm
  - zeroplus-logic-cube
@@ -95,18 +96,20 @@ Example:
 The following drivers/devices require a serial port specification:
 
  - agilent-dmm
- - bbcgm-m2110
+ - appa-55ii
  - brymen-dmm
  - cem-dt-885x
- - center-3xx
+ - center-3xx (including all subdrivers)
  - colead-slm
  - fluke-dmm
- - gmc-mh-1x-2x-rs232
+ - gmc-mh-1x-2x
+ - hameg-hmo
  - link-mso19
- - mic-985xx
+ - mic-985xx (including all subdrivers)
  - norma-dmm
  - openbench-logic-sniffer
- - serial-dmm
+ - rigol-ds (for RS232; not required for USBTMC or TCP)
+ - serial-dmm (including all subdrivers)
  - teleinfo
  - tondaj-sl-814
 
@@ -122,9 +125,9 @@ The following drivers/devices do not require a serial port specification:
  - ikalogic-scanaplus
  - kecheng-kc-330b
  - lascar-el-usb
- - rigol-ds
+ - rigol-ds (USBTMC or TCP)
  - saleae-logic16
- - uni-t-dmm
+ - uni-t-dmm (including all subdrivers)
  - uni-t-ut32x
  - victor-dmm
  - zeroplus-logic-cube
@@ -136,12 +139,11 @@ Specifiying serial port parameters
 Every serial device's driver has default serial port parameters like baud
 rate, number of data bits, stop bits and handshake status. If a device requires
 different parameters, pass them as option "serialcomm" with the driver name.
-See libsigrok, docs for function serial_set_paramstr() for complete specs.
+See libsigrok docs for function serial_set_paramstr() for complete specs.
 
 Example:
 
  $ sigrok-cli --driver <somedriver>:conn=<someconn>:serialcomm=9600/7n1/dtr=1
-
 
 
 Permissions of serial port based devices
@@ -282,12 +284,14 @@ unless a certain action has been performed by the user beforehand. This is
 usually mentioned in the vendor manual of the respective device, but here's
 a short list for convenience:
 
- - bbcgm-m2110: Press button "Start/Reset" on interface panel on top.
+ - BBC Goertz Metrawatt M2110: Briefly press the "Start/Reset" button on the
+   interface panel on top.
  - Digitek DT4000ZC: Briefly press the "RS232" button.
- - gmc-mh-1x-2x-rs232: Switch on device with buttons "DATA" pressed.
-   Additionally Metrahit 2x devices must be configured for interface "RS232".
- - norma-dmm: If the interface does not work (e.g. USB-RS232 converter), switch
-   on device with "FUNC" button pressed to power interface from multimeter.
+ - Gossen Metrawatt Metrahit devices: Power on the device with the "DATA"
+   button pressed. Additionally, Metrahit 2x devices must be configured for
+   interface "RS232".
+ - Norma DM950: If the interface doesn't work (e.g. USB-RS232 converter), power
+   on the device with "FUNC" pressed (to power the interface from the DMM).
  - PCE PCE-DM32: Briefly press the "RS232" button.
  - RadioShack 22-812: Press and hold "SELECT" and "RANGE" together.
  - TekPower TP4000ZC: Briefly press the "RS232" button.
@@ -295,9 +299,8 @@ a short list for convenience:
  - UNI-T UT325: Briefly press the "SEND" button (as per manual). However, it
    appears that in practice you don't have to press the button (at least on
    some versions of the device), simply connect the device via USB.
- - V&A VA18B: Keep the "Hz/DUTY" key pressed while powering on the device.
- - Victor 70C: Press the "REL/RS232" button for roughly 1 second.
- - Victor 86C: Press the "REL/RS232" button for roughly 1 second.
+ - V&A VA18B/VA40B: Keep the "Hz/DUTY" key pressed while powering on the DMM.
+ - Victor 70C/86C: Press the "REL/RS232" button for roughly 1 second.
  - Voltcraft VC-830: Press the "REL/PC" button for roughly 2 seconds.
 
 
