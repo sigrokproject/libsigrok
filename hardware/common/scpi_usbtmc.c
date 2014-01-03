@@ -113,6 +113,11 @@ SR_PRIV int scpi_usbtmc_read_data(void *priv, char *buf, int maxlen)
 	struct usbtmc_scpi *uscpi = priv;
 	int read_length;
 
+	if (uscpi->response_length == MAX_READ_LENGTH
+	    && uscpi->response_bytes_read == uscpi->response_length)
+		if (scpi_usbtmc_read_begin(uscpi) != SR_OK)
+			return SR_ERR;
+
 	if (uscpi->response_bytes_read >= uscpi->response_length)
 		return SR_ERR;
 
@@ -131,6 +136,10 @@ SR_PRIV int scpi_usbtmc_read_data(void *priv, char *buf, int maxlen)
 SR_PRIV int scpi_usbtmc_read_complete(void *priv)
 {
 	struct usbtmc_scpi *uscpi = priv;
+
+	if (uscpi->response_length == MAX_READ_LENGTH
+	    && uscpi->response_bytes_read == uscpi->response_length)
+		scpi_usbtmc_read_begin(uscpi);
 
 	return (uscpi->response_bytes_read >= uscpi->response_length);
 }
