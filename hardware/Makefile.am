@@ -23,6 +23,7 @@ SUBDIRS = \
 	alsa \
 	appa-55ii \
 	asix-sigma \
+	atten-pps3xxx \
 	brymen-dmm \
 	cem-dt-885x \
 	center-3xx \
@@ -74,6 +75,10 @@ endif
 
 if HW_ASIX_SIGMA
 libsigrokhardware_la_LIBADD += asix-sigma/libsigrok_hw_asix_sigma.la
+endif
+
+if HW_ATTEN_PPS3XXX
+libsigrokhardware_la_LIBADD += atten-pps3xxx/libsigrok_hw_atten_pps3xxx.la
 endif
 
 if HW_BRYMEN_DMM
