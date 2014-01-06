@@ -70,6 +70,7 @@ SR_PRIV struct sr_dev_driver uni_t_ut61c_ser_driver_info;
 SR_PRIV struct sr_dev_driver uni_t_ut61d_ser_driver_info;
 SR_PRIV struct sr_dev_driver uni_t_ut61e_ser_driver_info;
 SR_PRIV struct sr_dev_driver iso_tech_idm103n_driver_info;
+SR_PRIV struct sr_dev_driver tenma_72_7750_ser_driver_info;
 
 SR_PRIV struct dmm_info dmms[] = {
 	{
@@ -282,6 +283,14 @@ SR_PRIV struct dmm_info dmms[] = {
 		2400, ES519XX_11B_PACKET_SIZE, NULL,
 		sr_es519xx_2400_11b_packet_valid, sr_es519xx_2400_11b_parse, NULL,
 		&iso_tech_idm103n_driver_info, receive_data_ISO_TECH_IDM103N,
+	},
+	{
+		/* Note: ES51986 baudrate is actually 19230! */
+		"Tenma", "72-7750 (UT-D02 cable)", "19200/7o1/rts=0/dtr=1",
+		19200, ES519XX_11B_PACKET_SIZE, NULL,
+		sr_es519xx_19200_11b_packet_valid, sr_es519xx_19200_11b_parse,
+		NULL,
+		&tenma_72_7750_ser_driver_info, receive_data_TENMA_72_7750_SER,
 	},
 };
 
@@ -591,3 +600,4 @@ DRV(uni_t_ut61c_ser, UNI_T_UT61C_SER, "uni-t-ut61c-ser", "UNI-T UT61C (UT-D02 ca
 DRV(uni_t_ut61d_ser, UNI_T_UT61D_SER, "uni-t-ut61d-ser", "UNI-T UT61D (UT-D02 cable)")
 DRV(uni_t_ut61e_ser, UNI_T_UT61E_SER, "uni-t-ut61e-ser", "UNI-T UT61E (UT-D02 cable)")
 DRV(iso_tech_idm103n, ISO_TECH_IDM103N, "iso-tech-idm103n", "ISO-TECH IDM103N")
+DRV(tenma_72_7750_ser, TENMA_72_7750_SER, "tenma-72-7750-ser", "Tenma 72-7750 (UT-D02 cable)")

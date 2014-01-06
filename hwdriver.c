@@ -226,6 +226,7 @@ extern SR_PRIV struct sr_dev_driver uni_t_ut61c_ser_driver_info;
 extern SR_PRIV struct sr_dev_driver uni_t_ut61d_ser_driver_info;
 extern SR_PRIV struct sr_dev_driver uni_t_ut61e_ser_driver_info;
 extern SR_PRIV struct sr_dev_driver iso_tech_idm103n_driver_info;
+extern SR_PRIV struct sr_dev_driver tenma_72_7750_ser_driver_info;
 #endif
 #ifdef HAVE_HW_UNI_T_DMM
 extern SR_PRIV struct sr_dev_driver tecpel_dmm_8061_driver_info;
@@ -240,6 +241,7 @@ extern SR_PRIV struct sr_dev_driver voltcraft_vc820_driver_info;
 extern SR_PRIV struct sr_dev_driver voltcraft_vc830_driver_info;
 extern SR_PRIV struct sr_dev_driver voltcraft_vc840_driver_info;
 extern SR_PRIV struct sr_dev_driver tenma_72_7745_driver_info;
+extern SR_PRIV struct sr_dev_driver tenma_72_7750_driver_info;
 #endif
 /** @endcond */
 
@@ -366,6 +368,8 @@ static struct sr_dev_driver *drivers_list[] = {
 	&uni_t_ut61d_ser_driver_info,
 	&uni_t_ut61e_ser_driver_info,
 	&iso_tech_idm103n_driver_info,
+	&tenma_72_7745_ser_driver_info,
+	&tenma_72_7750_ser_driver_info,
 #endif
 #ifdef HAVE_HW_UNI_T_DMM
 	&tecpel_dmm_8061_driver_info,
@@ -380,6 +384,7 @@ static struct sr_dev_driver *drivers_list[] = {
 	&voltcraft_vc830_driver_info,
 	&voltcraft_vc840_driver_info,
 	&tenma_72_7745_driver_info,
+	&tenma_72_7750_driver_info,
 #endif
 	NULL,
 };

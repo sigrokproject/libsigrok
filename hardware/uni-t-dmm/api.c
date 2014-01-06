@@ -49,6 +49,7 @@ SR_PRIV struct sr_dev_driver voltcraft_vc820_driver_info;
 SR_PRIV struct sr_dev_driver voltcraft_vc830_driver_info;
 SR_PRIV struct sr_dev_driver voltcraft_vc840_driver_info;
 SR_PRIV struct sr_dev_driver tenma_72_7745_driver_info;
+SR_PRIV struct sr_dev_driver tenma_72_7750_driver_info;
 
 SR_PRIV struct dmm_info udmms[] = {
 	{
@@ -73,15 +74,7 @@ SR_PRIV struct dmm_info udmms[] = {
 		&uni_t_ut60e_driver_info, receive_data_UNI_T_UT60E,
 	},
 	{
-		/*
-		 * Important: The actual baudrate of the Cyrustek ES51986 chip
-		 * used in this DMM is 19230. However, the WCH CH9325 chip
-		 * (UART to USB/HID) used in (some versions of) the UNI-T
-		 * UT-D04 cable doesn't support 19230 baud. It only supports
-		 * 19200, and setting an unsupported baudrate will result in
-		 * the default of 2400 being used (which will not work with
-		 * this DMM, of course).
-		 */
+		/* The baudrate is actually 19230, see "Note 1" below. */
 		"UNI-T", "UT60G", 19200,
 		ES519XX_11B_PACKET_SIZE,
 		sr_es519xx_19200_11b_packet_valid, sr_es519xx_19200_11b_parse,
@@ -110,15 +103,7 @@ SR_PRIV struct dmm_info udmms[] = {
 		&uni_t_ut61d_driver_info, receive_data_UNI_T_UT61D,
 	},
 	{
-		/*
-		 * Important: The actual baudrate of the Cyrustek ES51922 chip
-		 * used in this DMM is 19230. However, the WCH CH9325 chip
-		 * (UART to USB/HID) used in (some versions of) the UNI-T
-		 * UT-D04 cable doesn't support 19230 baud. It only supports
-		 * 19200, and setting an unsupported baudrate will result in
-		 * the default of 2400 being used (which will not work with
-		 * this DMM, of course).
-		 */
+		/* The baudrate is actually 19230, see "Note 1" below. */
 		"UNI-T", "UT61E", 19200,
 		ES519XX_14B_PACKET_SIZE,
 		sr_es519xx_19200_14b_packet_valid, sr_es519xx_19200_14b_parse,
@@ -156,11 +141,25 @@ SR_PRIV struct dmm_info udmms[] = {
 		FS9721_PACKET_SIZE,
 		sr_fs9721_packet_valid, sr_fs9721_parse,
 		sr_fs9721_00_temp_c,
-		&tenma_72_7745_driver_info,
-		/* This is a basic rebadge of the UT60E. */
-		receive_data_UNI_T_UT60E,
+		&tenma_72_7745_driver_info, receive_data_TENMA_72_7745,
+	},
+	{
+		/* The baudrate is actually 19230, see "Note 1" below. */
+		"Tenma", "72-7750", 19200,
+		ES519XX_11B_PACKET_SIZE,
+		sr_es519xx_19200_11b_packet_valid, sr_es519xx_19200_11b_parse,
+		NULL,
+		&tenma_72_7750_driver_info, receive_data_TENMA_72_7750,
 	},
 };
+
+/*
+ * Note 1: The actual baudrate of the Cyrustek ES519xx chip used in this DMM
+ * is 19230. However, the WCH CH9325 chip (UART to USB/HID) used in (some
+ * versions of) the UNI-T UT-D04 cable doesn't support 19230 baud. It only
+ * supports 19200, and setting an unsupported baudrate will result in the
+ * default of 2400 being used (which will not work with this DMM, of course).
+ */
 
 static int dev_clear(int dmm)
 {
@@ -425,3 +424,4 @@ DRV(voltcraft_vc820, VOLTCRAFT_VC820, "voltcraft-vc820", "Voltcraft VC-820")
 DRV(voltcraft_vc830, VOLTCRAFT_VC830, "voltcraft-vc830", "Voltcraft VC-830")
 DRV(voltcraft_vc840, VOLTCRAFT_VC840, "voltcraft-vc840", "Voltcraft VC-840")
 DRV(tenma_72_7745, TENMA_72_7745, "tenma-72-7745", "Tenma 72-7745")
+DRV(tenma_72_7750, TENMA_72_7750, "tenma-72-7750", "Tenma 72-7750")

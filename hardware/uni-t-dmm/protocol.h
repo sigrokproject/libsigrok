@@ -42,6 +42,7 @@ enum {
 	VOLTCRAFT_VC830,
 	VOLTCRAFT_VC840,
 	TENMA_72_7745,
+	TENMA_72_7750,
 };
 
 struct dmm_info {
@@ -95,5 +96,7 @@ SR_PRIV int receive_data_UNI_T_UT61E(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_VOLTCRAFT_VC820(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_VOLTCRAFT_VC830(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_VOLTCRAFT_VC840(int fd, int revents, void *cb_data);
+SR_PRIV int receive_data_TENMA_72_7745(int fd, int revents, void *cb_data);
+SR_PRIV int receive_data_TENMA_72_7750(int fd, int revents, void *cb_data);
 
 #endif
