@@ -53,10 +53,11 @@ enum {
 	UNI_T_UT61D_SER,
 	UNI_T_UT61E_SER,
 	ISO_TECH_IDM103N,
+	TENMA_72_7745_SER,
 	TENMA_72_7750_SER,
 };
 
-#define DMM_COUNT 30
+#define DMM_COUNT 31
 
 struct dmm_info {
 	/** Manufacturer/brand. */
@@ -138,6 +139,7 @@ SR_PRIV int receive_data_UNI_T_UT61C_SER(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_UNI_T_UT61D_SER(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_UNI_T_UT61E_SER(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_ISO_TECH_IDM103N(int fd, int revents, void *cb_data);
+SR_PRIV int receive_data_TENMA_72_7745_SER(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_TENMA_72_7750_SER(int fd, int revents, void *cb_data);
 
 #endif
