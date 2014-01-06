@@ -167,7 +167,7 @@ static gboolean selection_good(const struct rs9lcd_packet *rs_packet)
 	count += (rs_packet->indicatrix2 & IND2_MICRO) ? 1 : 0;
 	count += (rs_packet->indicatrix2 & IND2_NANO)  ? 1 : 0;
 	if (count > 1) {
-		sr_err("More than one multiplier detected in packet.");
+		sr_dbg("More than one multiplier detected in packet.");
 		return FALSE;
 	}
 
@@ -183,7 +183,7 @@ static gboolean selection_good(const struct rs9lcd_packet *rs_packet)
 	count += (rs_packet->indicatrix2 & IND2_DUTY)  ? 1 : 0;
 	count += (rs_packet->indicatrix2 & IND2_HFE)   ? 1 : 0;
 	if (count > 1) {
-		sr_err("More than one measurement type detected in packet.");
+		sr_dbg("More than one measurement type detected in packet.");
 		return FALSE;
 	}
 
@@ -248,7 +248,7 @@ static uint8_t decode_digit(uint8_t raw_digit)
 	case LCD_9:
 		return 9;
 	default:
-		sr_err("Invalid digit byte: 0x%02x.", raw_digit);
+		sr_dbg("Invalid digit byte: 0x%02x.", raw_digit);
 		return 0xff;
 	}
 }
@@ -419,7 +419,7 @@ SR_PRIV int sr_rs9lcd_parse(const uint8_t *buf, float *floatval,
 		analog->mqflags |= SR_MQFLAG_AC;
 		break;
 	default:
-		sr_err("Unknown mode: %d.", rs_packet->mode);
+		sr_dbg("Unknown mode: %d.", rs_packet->mode);
 		break;
 	}
 

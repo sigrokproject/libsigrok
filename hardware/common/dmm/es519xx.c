@@ -111,7 +111,7 @@ static int parse_value(const uint8_t *buf, struct es519xx_info *info,
 	} else if (!isdigit(buf[1]) || !isdigit(buf[2]) ||
 	           !isdigit(buf[3]) || !isdigit(buf[4]) ||
 	           (num_digits == 5 && !isdigit(buf[5]))) {
-		sr_err("Value contained invalid digits: %02x %02x %02x %02x "
+		sr_dbg("Value contained invalid digits: %02x %02x %02x %02x "
 		       "(%c %c %c %c).", buf[1], buf[2], buf[3], buf[4],
 		       buf[1], buf[2], buf[3], buf[4]);
 		return SR_ERR;
@@ -339,7 +339,7 @@ static void parse_flags(const uint8_t *buf, struct es519xx_info *info)
 			info->is_adp3 = TRUE;
 			break;
 		default:
-			sr_err("Invalid function byte: 0x%02x.", buf[function]);
+			sr_dbg("Invalid function byte: 0x%02x.", buf[function]);
 			break;
 		}
 	} else {
@@ -407,7 +407,7 @@ static void parse_flags(const uint8_t *buf, struct es519xx_info *info)
 			info->is_adp3 = TRUE;
 			break;
 		default:
-			sr_err("Invalid function byte: 0x%02x.", buf[function]);
+			sr_dbg("Invalid function byte: 0x%02x.", buf[function]);
 			break;
 		}
 	}
@@ -553,7 +553,7 @@ static gboolean flags_valid(const struct es519xx_info *info)
 	count  = (info->is_micro) ? 1 : 0;
 	count += (info->is_milli) ? 1 : 0;
 	if (count > 1) {
-		sr_err("More than one multiplier detected in packet.");
+		sr_dbg("More than one multiplier detected in packet.");
 		return FALSE;
 	}
 
@@ -568,13 +568,13 @@ static gboolean flags_valid(const struct es519xx_info *info)
 	count += (info->is_diode) ? 1 : 0;
 	count += (info->is_rpm) ? 1 : 0;
 	if (count > 1) {
-		sr_err("More than one measurement type detected in packet.");
+		sr_dbg("More than one measurement type detected in packet.");
 		return FALSE;
 	}
 
 	/* Both AC and DC set? */
 	if (info->is_ac && info->is_dc) {
-		sr_err("Both AC and DC flags detected in packet.");
+		sr_dbg("Both AC and DC flags detected in packet.");
 		return FALSE;
 	}
 
@@ -612,7 +612,7 @@ static int sr_es519xx_parse(const uint8_t *buf, float *floatval,
 		return SR_ERR;
 
 	if ((ret = parse_value(buf, info, floatval)) != SR_OK) {
-		sr_err("Error parsing value: %d.", ret);
+		sr_dbg("Error parsing value: %d.", ret);
 		return ret;
 	}
 

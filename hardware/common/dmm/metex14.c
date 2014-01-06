@@ -220,7 +220,7 @@ static gboolean flags_valid(const struct metex14_info *info)
 	count += (info->is_kilo) ? 1 : 0;
 	count += (info->is_mega) ? 1 : 0;
 	if (count > 1) {
-		sr_err("More than one multiplier detected in packet.");
+		sr_dbg("More than one multiplier detected in packet.");
 		return FALSE;
 	}
 
@@ -234,13 +234,13 @@ static gboolean flags_valid(const struct metex14_info *info)
 	count += (info->is_diode) ? 1 : 0;
 	count += (info->is_frequency) ? 1 : 0;
 	if (count > 1) {
-		sr_err("More than one measurement type detected in packet.");
+		sr_dbg("More than one measurement type detected in packet.");
 		return FALSE;
 	}
 
 	/* Both AC and DC set? */
 	if (info->is_ac && info->is_dc) {
-		sr_err("Both AC and DC flags detected in packet.");
+		sr_dbg("Both AC and DC flags detected in packet.");
 		return FALSE;
 	}
 
@@ -301,7 +301,7 @@ SR_PRIV int sr_metex14_parse(const uint8_t *buf, float *floatval,
 	sr_dbg("DMM packet: \"%.13s\"", buf);
 
 	if ((ret = parse_value(buf, floatval)) != SR_OK) {
-		sr_err("Error parsing value: %d.", ret);
+		sr_dbg("Error parsing value: %d.", ret);
 		return ret;
 	}
 

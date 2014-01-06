@@ -64,7 +64,7 @@ static int parse_digit(uint8_t b)
 	case 0x3f:
 		return 9;
 	default:
-		sr_err("Invalid digit byte: 0x%02x.", b);
+		sr_dbg("Invalid digit byte: 0x%02x.", b);
 		return -1;
 	}
 }
@@ -76,7 +76,7 @@ static gboolean sync_nibbles_valid(const uint8_t *buf)
 	/* Check the synchronization nibbles, and make sure they all match. */
 	for (i = 0; i < FS9721_PACKET_SIZE; i++) {
 		if (((buf[i] >> 4) & 0x0f) != (i + 1)) {
-			sr_err("Sync nibble in byte %d (0x%02x) is invalid.",
+			sr_dbg("Sync nibble in byte %d (0x%02x) is invalid.",
 			       i, buf[i]);
 			return FALSE;
 		}
@@ -97,7 +97,7 @@ static gboolean flags_valid(const struct fs9721_info *info)
 	count += (info->is_kilo) ? 1 : 0;
 	count += (info->is_mega) ? 1 : 0;
 	if (count > 1) {
-		sr_err("More than one multiplier detected in packet.");
+		sr_dbg("More than one multiplier detected in packet.");
 		return FALSE;
 	}
 
@@ -110,19 +110,19 @@ static gboolean flags_valid(const struct fs9721_info *info)
 	count += (info->is_volt) ? 1 : 0;
 	count += (info->is_percent) ? 1 : 0;
 	if (count > 1) {
-		sr_err("More than one measurement type detected in packet.");
+		sr_dbg("More than one measurement type detected in packet.");
 		return FALSE;
 	}
 
 	/* Both AC and DC set? */
 	if (info->is_ac && info->is_dc) {
-		sr_err("Both AC and DC flags detected in packet.");
+		sr_dbg("Both AC and DC flags detected in packet.");
 		return FALSE;
 	}
 
 	/* RS232 flag not set? */
 	if (!info->is_rs232) {
-		sr_err("No RS232 flag detected in packet.");
+		sr_dbg("No RS232 flag detected in packet.");
 		return FALSE;
 	}
 
@@ -354,7 +354,7 @@ SR_PRIV int sr_fs9721_parse(const uint8_t *buf, float *floatval,
 	info_local = (struct fs9721_info *)info;
 
 	if ((ret = parse_value(buf, floatval)) != SR_OK) {
-		sr_err("Error parsing value: %d.", ret);
+		sr_dbg("Error parsing value: %d.", ret);
 		return ret;
 	}
 

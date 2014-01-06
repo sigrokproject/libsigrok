@@ -43,7 +43,7 @@ static gboolean flags_valid(const struct fs9922_info *info)
 	count += (info->is_kilo) ? 1 : 0;
 	count += (info->is_mega) ? 1 : 0;
 	if (count > 1) {
-		sr_err("More than one multiplier detected in packet.");
+		sr_dbg("More than one multiplier detected in packet.");
 		return FALSE;
 	}
 
@@ -66,19 +66,19 @@ static gboolean flags_valid(const struct fs9922_info *info)
 	count += (info->is_celsius) ? 1 : 0;
 	count += (info->is_fahrenheit) ? 1 : 0;
 	if (count > 1) {
-		sr_err("More than one measurement type detected in packet.");
+		sr_dbg("More than one measurement type detected in packet.");
 		return FALSE;
 	}
 
 	/* Both AC and DC set? */
 	if (info->is_ac && info->is_dc) {
-		sr_err("Both AC and DC flags detected in packet.");
+		sr_dbg("Both AC and DC flags detected in packet.");
 		return FALSE;
 	}
 
 	/* Both Celsius and Fahrenheit set? */
 	if (info->is_celsius && info->is_fahrenheit) {
-		sr_err("Both Celsius and Fahrenheit flags detected in packet.");
+		sr_dbg("Both Celsius and Fahrenheit flags detected in packet.");
 		return FALSE;
 	}
 
@@ -96,7 +96,7 @@ static int parse_value(const uint8_t *buf, float *result)
 	} else if (buf[0] == '-') {
 		sign = -1;
 	} else {
-		sr_err("Invalid sign byte: 0x%02x.", buf[0]);
+		sr_dbg("Invalid sign byte: 0x%02x.", buf[0]);
 		return SR_ERR;
 	}
 
@@ -111,7 +111,7 @@ static int parse_value(const uint8_t *buf, float *result)
 		return SR_OK;
 	} else if (!isdigit(buf[1]) || !isdigit(buf[2]) ||
 		   !isdigit(buf[3]) || !isdigit(buf[4])) {
-		sr_err("Value contained invalid digits: %02x %02x %02x %02x ("
+		sr_dbg("Value contained invalid digits: %02x %02x %02x %02x ("
 		       "%c %c %c %c).", buf[1], buf[2], buf[3], buf[4]);
 		return SR_ERR;
 	}
@@ -133,7 +133,7 @@ static int parse_value(const uint8_t *buf, float *result)
 	 * used, but '0'/'1'/'2'/'4' is actually correct.
 	 */
 	if (buf[6] != '0' && buf[6] != '1' && buf[6] != '2' && buf[6] != '4') {
-		sr_err("Invalid decimal point value: 0x%02x.", buf[6]);
+		sr_dbg("Invalid decimal point value: 0x%02x.", buf[6]);
 		return SR_ERR;
 	}
 	if (buf[6] == '0')
@@ -359,7 +359,7 @@ SR_PRIV int sr_fs9922_parse(const uint8_t *buf, float *floatval,
 	info_local = (struct fs9922_info *)info;
 
 	if ((ret = parse_value(buf, floatval)) != SR_OK) {
-		sr_err("Error parsing value: %d.", ret);
+		sr_dbg("Error parsing value: %d.", ret);
 		return ret;
 	}
 
