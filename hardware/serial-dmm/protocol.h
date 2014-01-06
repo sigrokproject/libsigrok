@@ -22,7 +22,6 @@
 
 #define LOG_PREFIX "serial-dmm"
 
-/* Note: When adding entries here, don't forget to update DMM_COUNT. */
 enum {
 	BBCGM_M2110,
 	DIGITEK_DT4000ZC,
@@ -57,8 +56,6 @@ enum {
 	TENMA_72_7750_SER,
 };
 
-#define DMM_COUNT 31
-
 struct dmm_info {
 	/** Manufacturer/brand. */
 	char *vendor;
@@ -85,7 +82,7 @@ struct dmm_info {
 	int (*receive_data)(int, int, void *);
 };
 
-extern SR_PRIV struct dmm_info dmms[DMM_COUNT];
+extern SR_PRIV struct dmm_info dmms[];
 
 #define DMM_BUFSIZE 256
 
