@@ -108,6 +108,8 @@ SR_API int sr_session_run(void);
 SR_API int sr_session_stop(void);
 SR_API int sr_session_save(const char *filename, const struct sr_dev_inst *sdi,
 		unsigned char *buf, int unitsize, int units);
+SR_API int sr_session_save_init(const char *filename, uint64_t samplerate,
+		char **probes);
 SR_API int sr_session_append(const char *filename, unsigned char *buf,
 		int unitsize, int units);
 SR_API int sr_session_source_add(int fd, int events, int timeout,

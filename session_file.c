@@ -226,21 +226,69 @@ SR_API int sr_session_load(const char *filename)
  * @param unitsize The number of bytes per sample.
  * @param units The number of samples.
  *
- * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or SR_ERR
- *         upon other errors.
+ * @retval SR_OK Success
+ * @retval SR_ERR_ARG Invalid arguments
+ * @retval SR_ERR Other errors
  */
 SR_API int sr_session_save(const char *filename, const struct sr_dev_inst *sdi,
 		unsigned char *buf, int unitsize, int units)
 {
+	struct sr_probe *probe;
 	GSList *l;
 	GVariant *gvar;
-	FILE *meta;
-	struct sr_probe *probe;
-	struct zip *zipfile;
-	struct zip_source *versrc, *metasrc, *logicsrc;
-	int tmpfile, ret, probecnt;
 	uint64_t samplerate;
-	char version[1], rawname[16], metafile[32], *s;
+	int cnt, ret;
+	char **probe_names;
+
+	samplerate = 0;
+	if (sr_dev_has_option(sdi, SR_CONF_SAMPLERATE)) {
+		if (sr_config_get(sdi->driver, sdi, NULL,
+					SR_CONF_SAMPLERATE, &gvar) == SR_OK) {
+			samplerate = g_variant_get_uint64(gvar);
+			g_variant_unref(gvar);
+		}
+	}
+
+	probe_names = g_malloc0(sizeof(char *) * (g_slist_length(sdi->probes) + 1));
+	cnt = 0;
+	for (l = sdi->probes; l; l = l->next) {
+		probe = l->data;
+		if (probe->enabled) {
+			if (probe->name)
+				/* Just borrowing the ptr. */
+				probe_names[cnt++] = probe->name;
+		}
+	}
+
+	if ((ret = sr_session_save_init(filename, samplerate, probe_names)) != SR_OK)
+		return ret;
+
+	ret = sr_session_append(filename, buf, unitsize, units);
+
+	return ret;
+}
+
+/**
+ * Initialize a saved session file.
+ *
+ * @param filename The name of the filename to save the current session as.
+ *                 Must not be NULL.
+ * @param samplerate The samplerate to store for this session.
+ * @param probes A NULL-terminated array of strings containing the names
+ * of all the probes active in this session.
+ *
+ * @retval SR_OK Success
+ * @retval SR_ERR_ARG Invalid arguments
+ * @retval SR_ERR Other errors
+ */
+SR_API int sr_session_save_init(const char *filename, uint64_t samplerate,
+		char **probes)
+{
+	FILE *meta;
+	struct zip *zipfile;
+	struct zip_source *versrc, *metasrc;
+	int tmpfile, cnt, ret, i;
+	char version[1], metafile[32], *s;
 
 	if (!filename) {
 		sr_err("%s: filename was NULL", __func__);
@@ -273,41 +321,20 @@ SR_API int sr_session_save(const char *filename, const struct sr_dev_inst *sdi,
 
 	/* metadata */
 	fprintf(meta, "[device 1]\n");
-	if (sdi->driver)
-		fprintf(meta, "driver = %s\n", sdi->driver->name);
 
 	/* metadata */
 	fprintf(meta, "capturefile = logic-1\n");
-	fprintf(meta, "unitsize = %d\n", unitsize);
-	fprintf(meta, "total probes = %d\n", g_slist_length(sdi->probes));
-	if (sr_dev_has_option(sdi, SR_CONF_SAMPLERATE)) {
-		if (sr_config_get(sdi->driver, sdi, NULL,
-					SR_CONF_SAMPLERATE, &gvar) == SR_OK) {
-			samplerate = g_variant_get_uint64(gvar);
-			s = sr_samplerate_string(samplerate);
-			fprintf(meta, "samplerate = %s\n", s);
-			g_free(s);
-			g_variant_unref(gvar);
-		}
-	}
-	probecnt = 1;
-	for (l = sdi->probes; l; l = l->next) {
-		probe = l->data;
-		if (probe->enabled) {
-			if (probe->name)
-				fprintf(meta, "probe%d = %s\n", probecnt, probe->name);
-			if (probe->trigger)
-				fprintf(meta, " trigger%d = %s\n", probecnt, probe->trigger);
-			probecnt++;
-		}
-	}
+	cnt = 0;
+	for (i = 0; probes[i]; i++)
+		cnt++;
+	fprintf(meta, "total probes = %d\n", cnt);
+	s = sr_samplerate_string(samplerate);
+	fprintf(meta, "samplerate = %s\n", s);
+	g_free(s);
 
-	if (!(logicsrc = zip_source_buffer(zipfile, buf,
-			   units * unitsize, FALSE)))
-		return SR_ERR;
-	snprintf(rawname, 15, "logic-1");
-	if (zip_add(zipfile, rawname, logicsrc) == -1)
-		return SR_ERR;
+	for (i = 0; probes[i]; i++)
+		fprintf(meta, "probe%d = %s\n", i + 1, probes[i]);
+
 	fclose(meta);
 
 	if (!(metasrc = zip_source_file(zipfile, metafile, 0, -1)))
@@ -328,13 +355,17 @@ SR_API int sr_session_save(const char *filename, const struct sr_dev_inst *sdi,
 /**
  * Append data to an existing session file.
  *
+ * The session file must have been created with sr_session_save_init()
+ * or sr_session_save() beforehand.
+ *
  * @param filename The name of the filename to append to. Must not be NULL.
  * @param buf The data to be appended.
  * @param unitsize The number of bytes per sample.
  * @param units The number of samples.
  *
- * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or SR_ERR
- *         upon other errors.
+ * @retval SR_OK Success
+ * @retval SR_ERR_ARG Invalid arguments
+ * @retval SR_ERR Other errors
  */
 SR_API int sr_session_append(const char *filename, unsigned char *buf,
 		int unitsize, int units)
@@ -342,15 +373,69 @@ SR_API int sr_session_append(const char *filename, unsigned char *buf,
 	struct zip *archive;
 	struct zip_source *logicsrc;
 	zip_int64_t num_files;
-	int chunk_num, next_chunk_num, ret, i;
+	struct zip_file *zf;
+	struct zip_stat zs;
+	struct zip_source *metasrc;
+	GKeyFile *kf;
+	GError *error;
+	gsize len;
+	int chunk_num, next_chunk_num, tmpfile, ret, i;
 	const char *entry_name;
-	char chunkname[16];
+	char *metafile, tmpname[32], chunkname[16];
 
 	if ((ret = sr_sessionfile_check(filename)) != SR_OK)
 		return ret;
 
 	if (!(archive = zip_open(filename, 0, &ret)))
 		return SR_ERR;
+
+	if (zip_stat(archive, "metadata", 0, &zs) == -1)
+		return SR_ERR;
+
+	metafile = g_malloc(zs.size);
+	zf = zip_fopen_index(archive, zs.index, 0);
+	zip_fread(zf, metafile, zs.size);
+	zip_fclose(zf);
+
+	/*
+	 * If the file was only initialized but doesn't yet have any
+	 * data it in, it won't have a unitsize field in metadata yet.
+	 */
+	error = NULL;
+	kf = g_key_file_new();
+	if (!g_key_file_load_from_data(kf, metafile, zs.size, 0, &error)) {
+		sr_err("Failed to parse metadata: %s.", error->message);
+		return SR_ERR;
+	}
+	g_free(metafile);
+	if (!g_key_file_has_key(kf, "device 1", "unitsize", &error)) {
+		if (error && error->code != G_KEY_FILE_ERROR_KEY_NOT_FOUND) {
+			sr_err("Failed to check unitsize key: %s", error ? error->message : "?");
+			return SR_ERR;
+		}
+		/* Add unitsize field. */
+		g_key_file_set_integer(kf, "device 1", "unitsize", unitsize);
+		metafile = g_key_file_to_data(kf, &len, &error);
+		strcpy(tmpname, "sigrok-meta-XXXXXX");
+		if ((tmpfile = g_mkstemp(tmpname)) == -1)
+			return SR_ERR;
+		if (write(tmpfile, metafile, len) < 0) {
+			sr_dbg("Failed to create new metadata: %s", strerror(errno));
+			return SR_ERR;
+		}
+		close(tmpfile);
+		if (!(metasrc = zip_source_file(archive, tmpname, 0, -1))) {
+			g_free(metafile);
+			sr_err("Failed to create zip source for metadata.");
+			return SR_ERR;
+		}
+		if (zip_replace(archive, zs.index, metasrc) == -1) {
+			sr_err("Failed to replace metadata file.");
+			return SR_ERR;
+		}
+		g_free(metafile);
+	}
+	g_key_file_free(kf);
 
 	next_chunk_num = 1;
 	num_files = zip_get_num_entries(archive, 0);
