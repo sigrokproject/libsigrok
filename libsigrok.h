@@ -683,6 +683,9 @@ enum {
 	/** The device can demodulate signals. */
 	SR_CONF_DEMODULATOR,
 
+	/** Programmable power supply. */
+	SR_CONF_POWER_SUPPLY,
+
 	/*--- Driver scan options -------------------------------------------*/
 
 	/**
@@ -806,6 +809,30 @@ enum {
 
 	/** The device supports setting the number of analog probes. */
 	SR_CONF_NUM_ANALOG_PROBES,
+
+	/** Output voltage. */
+	SR_CONF_OUTPUT_VOLTAGE,
+
+	/** Maximum output voltage. */
+	SR_CONF_OUTPUT_VOLTAGE_MAX,
+
+	/** Output current. */
+	SR_CONF_OUTPUT_CURRENT,
+
+	/** Maximum output current. */
+	SR_CONF_OUTPUT_CURRENT_MAX,
+
+	/** Enabling/disabling output. */
+	SR_CONF_OUTPUT_ENABLED,
+
+	/** Channel output configuration. */
+	SR_CONF_OUTPUT_CHANNEL,
+
+	/** Over-voltage protection (OVP) */
+	SR_CONF_OVER_VOLTAGE_PROTECTION,
+
+	/** Over-current protection (OCP) */
+	SR_CONF_OVER_CURRENT_PROTECTION,
 
 	/*--- Special stuff -------------------------------------------------*/
 
