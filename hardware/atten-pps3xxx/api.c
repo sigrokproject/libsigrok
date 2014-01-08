@@ -17,31 +17,189 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <string.h>
+#include <errno.h>
 #include "protocol.h"
 
-SR_PRIV struct sr_dev_driver atten_pps3xxx_driver_info;
-static struct sr_dev_driver *di = &atten_pps3xxx_driver_info;
+/*
+ * The default serial communication settings on the device are 9600
+ * baud, 9 data bits. The 9th bit isn't actually used, and the vendor
+ * software uses Mark parity to absorb the extra bit.
+ *
+ * Since 9 data bits is not a standard available in POSIX, we use two
+ * stop bits to skip over the extra bit instead.
+ */
+#define SERIALCOMM "9600/8n2"
+
+static const int32_t hwopts[] = {
+	SR_CONF_CONN,
+	SR_CONF_SERIALCOMM,
+};
+
+static const int32_t devopts[] = {
+	SR_CONF_POWER_SUPPLY,
+	SR_CONF_CONTINUOUS,
+};
+
+static const int32_t devopts_sdi[] = {
+	SR_CONF_POWER_SUPPLY,
+	SR_CONF_CONTINUOUS,
+	SR_CONF_OUTPUT_CHANNEL,
+	SR_CONF_OVER_CURRENT_PROTECTION,
+};
+
+static const int32_t devopts_pg[] = {
+	SR_CONF_POWER_SUPPLY,
+	SR_CONF_CONTINUOUS,
+	SR_CONF_OUTPUT_VOLTAGE,
+	SR_CONF_OUTPUT_VOLTAGE_MAX,
+	SR_CONF_OUTPUT_CURRENT,
+	SR_CONF_OUTPUT_CURRENT_MAX,
+	SR_CONF_OUTPUT_ENABLED,
+};
+
+static const char *channel_modes[] = {
+	"Independent",
+	"Series",
+	"Parallel",
+};
+
+static struct pps_model models[] = {
+	{ PPS_3203T_3S, "PPS3203T-3S",
+		CHANMODE_INDEPENDENT | CHANMODE_SERIES | CHANMODE_PARALLEL,
+		3,
+		{
+			/* Channel 1 */
+			{ { 0, 32, 0.01 }, { 0, 3, 0.001 } },
+			/* Channel 2 */
+			{ { 0, 32, 0.01 }, { 0, 3, 0.001 } },
+			/* Channel 3 */
+			{ { 0, 6, 0.01 }, { 0, 3, 0.001 } },
+		},
+	},
+};
+
+
+SR_PRIV struct sr_dev_driver atten_pps3203_driver_info;
+static struct sr_dev_driver *di = &atten_pps3203_driver_info;
 
 static int init(struct sr_context *sr_ctx)
 {
 	return std_init(sr_ctx, di, LOG_PREFIX);
 }
 
-static GSList *scan(GSList *options)
+static GSList *scan(GSList *options, int modelid)
 {
+	struct sr_dev_inst *sdi;
 	struct drv_context *drvc;
-	GSList *devices;
-
-	(void)options;
+	struct dev_context *devc;
+	struct sr_config *src;
+	struct sr_probe *probe;
+	struct sr_probe_group *pg;
+	struct sr_serial_dev_inst *serial;
+	GSList *l, *devices;
+	struct pps_model *model;
+	uint8_t packet[PACKET_SIZE];
+	unsigned int i;
+	int ret;
+	const char *conn, *serialcomm;
+	char channel[10];
 
 	devices = NULL;
 	drvc = di->priv;
 	drvc->instances = NULL;
 
-	/* TODO: scan for devices, either based on a SR_CONF_CONN option
-	 * or on a USB scan. */
+	conn = serialcomm = NULL;
+	for (l = options; l; l = l->next) {
+		src = l->data;
+		switch (src->key) {
+		case SR_CONF_CONN:
+			conn = g_variant_get_string(src->data, NULL);
+			break;
+		case SR_CONF_SERIALCOMM:
+			serialcomm = g_variant_get_string(src->data, NULL);
+			break;
+		}
+	}
+	if (!conn)
+		return NULL;
+	if (!serialcomm)
+		serialcomm = SERIALCOMM;
+
+	if (!(serial = sr_serial_dev_inst_new(conn, serialcomm)))
+		return NULL;
+
+	if (serial_open(serial, SERIAL_RDWR | SERIAL_NONBLOCK) != SR_OK)
+		return NULL;
+	serial_flush(serial);
+
+	/* This is how the vendor software probes for hardware. */
+	memset(packet, 0, PACKET_SIZE);
+	packet[0] = 0xaa;
+	packet[1] = 0xaa;
+	if (serial_write(serial, packet, PACKET_SIZE) == -1) {
+		sr_err("Unable to write while probing for hardware: %s",
+				strerror(errno));
+		return NULL;
+	}
+	/* The device responds with a 24-byte packet when it receives a packet.
+	 * At 9600 baud, 300ms is long enough for it to have arrived. */
+	g_usleep(300 * 1000);
+	memset(packet, 0, PACKET_SIZE);
+	if ((ret = serial_read_nonblocking(serial, packet, PACKET_SIZE)) < 0) {
+		sr_err("Unable to read while probing for hardware: %s",
+				strerror(errno));
+		return NULL;
+	}
+	if (ret != PACKET_SIZE || packet[0] != 0xaa || packet[1] != 0xaa) {
+		/* Doesn't look like an Atten PPS. */
+		return NULL;
+	}
+
+	model = NULL;
+	for (i = 0; i < ARRAY_SIZE(models); i++) {
+		if (models[i].modelid == modelid) {
+			model = &models[i];
+			break;
+		}
+	}
+	if (!model) {
+		sr_err("Unknown modelid %d", modelid);
+		return NULL;
+	}
+
+	sdi = sr_dev_inst_new(0, SR_ST_INACTIVE, "Atten", model->name, NULL);
+	sdi->driver = di;
+	sdi->inst_type = SR_INST_SERIAL;
+	sdi->conn = serial;
+	for (i = 0; i < MAX_CHANNELS; i++) {
+		snprintf(channel, 10, "CH%d", i + 1);
+		probe = sr_probe_new(i, SR_PROBE_ANALOG, TRUE, channel);
+		sdi->probes = g_slist_append(sdi->probes, probe);
+		pg = g_malloc(sizeof(struct sr_probe_group));
+		pg->name = g_strdup(channel);
+		pg->probes = g_slist_append(NULL, probe);
+		pg->priv = NULL;
+		sdi->probe_groups = g_slist_append(sdi->probe_groups, pg);
+	}
+
+	devc = g_malloc0(sizeof(struct dev_context));
+	devc->model = model;
+	devc->config = g_malloc0(sizeof(struct per_channel_config) * model->num_channels);
+	sdi->priv = devc;
+	drvc->instances = g_slist_append(drvc->instances, sdi);
+	devices = g_slist_append(devices, sdi);
+
+	serial_close(serial);
+	if (!devices)
+		sr_serial_dev_inst_free(serial);
 
 	return devices;
+}
+
+static GSList *scan_3203(GSList *options)
+{
+	return scan(options, PPS_3203T_3S);
 }
 
 static GSList *dev_list(void)
@@ -54,73 +212,165 @@ static int dev_clear(void)
 	return std_dev_clear(di, NULL);
 }
 
-static int dev_open(struct sr_dev_inst *sdi)
-{
-	(void)sdi;
-
-	/* TODO: get handle from sdi->conn and open it. */
-
-	sdi->status = SR_ST_ACTIVE;
-
-	return SR_OK;
-}
-
-static int dev_close(struct sr_dev_inst *sdi)
-{
-	(void)sdi;
-
-	/* TODO: get handle from sdi->conn and close it. */
-
-	sdi->status = SR_ST_INACTIVE;
-
-	return SR_OK;
-}
-
 static int cleanup(void)
 {
-	dev_clear();
-
-	/* TODO: free other driver resources, if any. */
-
-	return SR_OK;
+	return dev_clear();
 }
 
 static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_probe_group *probe_group)
 {
-	int ret;
+	struct dev_context *devc;
+	struct sr_probe *probe;
+	int channel, ret;
 
-	(void)sdi;
-	(void)data;
-	(void)probe_group;
+	if (!sdi)
+		return SR_ERR_ARG;
+
+	devc = sdi->priv;
 
 	ret = SR_OK;
-	switch (key) {
-	/* TODO */
-	default:
-		return SR_ERR_NA;
+	if (!probe_group) {
+		/* No probe group: global options. */
+		switch (key) {
+		case SR_CONF_OUTPUT_CHANNEL:
+			*data = g_variant_new_string(channel_modes[devc->channel_mode - 1]);
+			break;
+		case SR_CONF_OVER_CURRENT_PROTECTION:
+			*data = g_variant_new_boolean(devc->over_current_protection);
+			break;
+		default:
+			return SR_ERR_NA;
+		}
+	} else {
+		/* We only ever have one channel per probe group in this driver. */
+		probe = probe_group->probes->data;
+		channel = probe->index;
+
+		switch (key) {
+		case SR_CONF_OUTPUT_VOLTAGE:
+			*data = g_variant_new_double(devc->config[channel].output_voltage_last);
+			break;
+		case SR_CONF_OUTPUT_VOLTAGE_MAX:
+			*data = g_variant_new_double(devc->config[channel].output_voltage_max);
+			break;
+		case SR_CONF_OUTPUT_CURRENT:
+			*data = g_variant_new_double(devc->config[channel].output_current_last);
+			break;
+		case SR_CONF_OUTPUT_CURRENT_MAX:
+			*data = g_variant_new_double(devc->config[channel].output_current_max);
+			break;
+		case SR_CONF_OUTPUT_ENABLED:
+			*data = g_variant_new_boolean(devc->config[channel].output_enabled);
+			break;
+		default:
+			return SR_ERR_NA;
+		}
 	}
 
 	return ret;
 }
 
+static int find_str(const char *str, const char **strings, int array_size)
+{
+	int idx, i;
+
+	idx = -1;
+	for (i = 0; i < array_size; i++) {
+		if (!strcmp(str, strings[i])) {
+			idx = i;
+			break;
+		}
+	}
+
+	return idx;
+}
+
 static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 		const struct sr_probe_group *probe_group)
 {
-	int ret;
-
-	(void)data;
-	(void)probe_group;
+	struct dev_context *devc;
+	struct sr_probe *probe;
+	gdouble dval;
+	int channel, ret, ival;
+	const char *sval;
+	gboolean bval;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
 	ret = SR_OK;
-	switch (key) {
-	/* TODO */
-	default:
-		ret = SR_ERR_NA;
+	devc = sdi->priv;
+	if (!probe_group) {
+		/* No probe group: global options. */
+		switch (key) {
+		case SR_CONF_OUTPUT_CHANNEL:
+			sval = g_variant_get_string(data, NULL);
+			if ((ival = find_str(sval, channel_modes,
+							ARRAY_SIZE(channel_modes))) == -1) {
+				ret = SR_ERR_ARG;
+				break;
+			}
+			if (devc->model->channel_modes && (1 << ival) == 0) {
+				/* Not supported on this model. */
+				ret = SR_ERR_ARG;
+			}
+			if (ival == devc->channel_mode_set)
+				/* Nothing to do. */
+				break;
+			devc->channel_mode_set = ival;
+			if (devc->acquisition_running)
+				send_config(sdi);
+			break;
+		case SR_CONF_OVER_CURRENT_PROTECTION:
+			bval = g_variant_get_boolean(data);
+			if (bval == devc->over_current_protection_set)
+				/* Nothing to do. */
+				break;
+			devc->over_current_protection_set = bval;
+			if (devc->acquisition_running)
+				send_config(sdi);
+			break;
+		default:
+			return SR_ERR_NA;
+		}
+	} else {
+		/* Probe group specified: per-channel options. */
+		/* We only ever have one channel per probe group in this driver. */
+		probe = probe_group->probes->data;
+		channel = probe->index;
+
+		switch (key) {
+		case SR_CONF_OUTPUT_VOLTAGE_MAX:
+			dval = g_variant_get_double(data);
+			if (dval < 0 || dval > devc->model->channels[channel].voltage[1])
+				ret = SR_ERR_ARG;
+			devc->config[channel].output_voltage_max = dval;
+			if (devc->acquisition_running)
+				send_config(sdi);
+			break;
+		case SR_CONF_OUTPUT_CURRENT_MAX:
+			dval = g_variant_get_double(data);
+			if (dval < 0 || dval > devc->model->channels[channel].current[1])
+				ret = SR_ERR_ARG;
+			devc->config[channel].output_current_max = dval;
+			if (devc->acquisition_running)
+				send_config(sdi);
+			break;
+		case SR_CONF_OUTPUT_ENABLED:
+			bval = g_variant_get_boolean(data);
+			if (bval == devc->config[channel].output_enabled_set)
+				/* Nothing to do. */
+				break;
+			devc->config[channel].output_enabled_set = bval;
+			if (devc->acquisition_running)
+				send_config(sdi);
+			break;
+		default:
+			ret = SR_ERR_NA;
+		}
 	}
+
 
 	return ret;
 }
@@ -128,63 +378,151 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_probe_group *probe_group)
 {
-	int ret;
+	struct dev_context *devc;
+	struct sr_probe *probe;
+	GVariant *gvar;
+	GVariantBuilder gvb;
+	int channel, ret, i;
 
-	(void)sdi;
-	(void)data;
-	(void)probe_group;
+	/* Always available, even without sdi. */
+	if (key == SR_CONF_SCAN_OPTIONS) {
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+				hwopts, ARRAY_SIZE(hwopts), sizeof(int32_t));
+		return SR_OK;
+	}
+
+	if (!sdi) {
+		if (key == SR_CONF_DEVICE_OPTIONS) {
+			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+					devopts, ARRAY_SIZE(devopts), sizeof(int32_t));
+			return SR_OK;
+
+		} else {
+			/* Everything else needs an sdi. */
+			return SR_ERR_ARG;
+		}
+	}
+	devc = sdi->priv;
 
 	ret = SR_OK;
-	switch (key) {
-	/* TODO */
-	default:
-		return SR_ERR_NA;
+	if (!probe_group) {
+		/* No probe group: global options. */
+		switch (key) {
+		case SR_CONF_DEVICE_OPTIONS:
+			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+					devopts_sdi, ARRAY_SIZE(devopts_sdi), sizeof(int32_t));
+			break;
+		case SR_CONF_OUTPUT_CHANNEL:
+			if (devc->model->channel_modes == CHANMODE_INDEPENDENT) {
+				/* The 1-channel models. */
+				*data = g_variant_new_strv(channel_modes, 1);
+			} else {
+				/* The other models support all modes. */
+				*data = g_variant_new_strv(channel_modes, ARRAY_SIZE(channel_modes));
+			}
+			break;
+		default:
+			return SR_ERR_NA;
+		}
+	} else {
+		/* Probe group specified: per-channel options. */
+		if (!sdi)
+			return SR_ERR_ARG;
+		/* We only ever have one channel per probe group in this driver. */
+		probe = probe_group->probes->data;
+		channel = probe->index;
+
+		switch (key) {
+		case SR_CONF_DEVICE_OPTIONS:
+			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+					devopts_pg, ARRAY_SIZE(devopts_pg), sizeof(int32_t));
+			break;
+		case SR_CONF_OUTPUT_VOLTAGE_MAX:
+			g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
+			/* Min, max, step. */
+			for (i = 0; i < 3; i++) {
+				gvar = g_variant_new_double(devc->model->channels[channel].voltage[i]);
+				g_variant_builder_add_value(&gvb, gvar);
+			}
+			*data = g_variant_builder_end(&gvb);
+			break;
+		case SR_CONF_OUTPUT_CURRENT_MAX:
+			g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
+			/* Min, max, step. */
+			for (i = 0; i < 3; i++) {
+				gvar = g_variant_new_double(devc->model->channels[channel].current[i]);
+				g_variant_builder_add_value(&gvb, gvar);
+			}
+			*data = g_variant_builder_end(&gvb);
+			break;
+		default:
+			return SR_ERR_NA;
+		}
 	}
 
 	return ret;
 }
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi,
-				    void *cb_data)
+		void *cb_data)
 {
-	(void)sdi;
+	struct dev_context *devc;
+	struct sr_serial_dev_inst *serial;
+	uint8_t packet[PACKET_SIZE];
+
 	(void)cb_data;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
-	/* TODO: configure hardware, reset acquisition state, set up
-	 * callbacks and send header packet. */
+	devc = sdi->priv;
+	memset(devc->packet, 0x44, PACKET_SIZE);
+	devc->packet_size = 0;
+
+	devc->acquisition_running = TRUE;
+
+	serial = sdi->conn;
+	serial_source_add(serial, G_IO_IN, 50, atten_pps3xxx_receive_data, (void *)sdi);
+	std_session_send_df_header(cb_data, LOG_PREFIX);
+
+	/* Send a "probe" configuration packet now. */
+	memset(packet, 0, PACKET_SIZE);
+	packet[0] = 0xaa;
+	packet[1] = 0xaa;
+	send_packet(sdi, packet);
 
 	return SR_OK;
 }
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
+	struct dev_context *devc;
+
 	(void)cb_data;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
-	/* TODO: stop acquisition. */
+	devc = sdi->priv;
+	devc->acquisition_running = FALSE;
 
 	return SR_OK;
 }
 
-SR_PRIV struct sr_dev_driver atten_pps3xxx_driver_info = {
-	.name = "atten-pps3xxx",
-	.longname = "Atten PPS3xxx",
+SR_PRIV struct sr_dev_driver atten_pps3203_driver_info = {
+	.name = "atten-pps3203",
+	.longname = "Atten PPS3203T-3S",
 	.api_version = 1,
 	.init = init,
 	.cleanup = cleanup,
-	.scan = scan,
+	.scan = scan_3203,
 	.dev_list = dev_list,
 	.dev_clear = dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,
-	.dev_open = dev_open,
-	.dev_close = dev_close,
+	.dev_open = std_serial_dev_open,
+	.dev_close = std_serial_dev_close,
 	.dev_acquisition_start = dev_acquisition_start,
 	.dev_acquisition_stop = dev_acquisition_stop,
 	.priv = NULL,
