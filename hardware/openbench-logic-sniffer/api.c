@@ -37,6 +37,7 @@ static const int32_t hwcaps[] = {
 	SR_CONF_PATTERN_MODE,
 	SR_CONF_SWAP,
 	SR_CONF_RLE,
+	SR_CONF_MAX_UNCOMPRESSED_SAMPLES,
 };
 
 #define STR_PATTERN_EXTERNAL "external"
@@ -219,6 +220,7 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_probe_group *probe_group)
 {
 	struct dev_context *devc;
+	int num_channels, i;
 
 	(void)probe_group;
 
@@ -244,6 +246,24 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 		break;
 	case SR_CONF_RLE:
 		*data = g_variant_new_boolean(devc->flag_reg & FLAG_RLE ? TRUE : FALSE);
+		break;
+	case SR_CONF_MAX_UNCOMPRESSED_SAMPLES:
+		if (devc->flag_reg & FLAG_RLE)
+			return SR_ERR_NA;
+		if (devc->max_samples == 0)
+			/* Device didn't specify sample memory size in metadata. */
+			return SR_ERR_NA;
+		/*
+		 * Channel groups are turned off if no probes in that group are
+		 * enabled, making more room for samples for the enabled group.
+		 */
+		ols_configure_probes(sdi);
+		num_channels = 0;
+		for (i = 0; i < 4; i++) {
+			if (devc->probe_mask & (0xff << (i * 8)))
+				num_channels++;
+		}
+		*data = g_variant_new_uint64(devc->max_samples / num_channels);
 		break;
 	default:
 		return SR_ERR_NA;
