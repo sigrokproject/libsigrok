@@ -25,6 +25,7 @@ static const int hwcaps[] = {
 	SR_CONF_LIMIT_SAMPLES,
 	SR_CONF_TRIGGER_TYPE,
 	SR_CONF_CAPTURE_RATIO,
+	SR_CONF_MAX_UNCOMPRESSED_SAMPLES,
 };
 
 SR_PRIV const uint64_t sl2_samplerates[NUM_SAMPLERATES] = {
