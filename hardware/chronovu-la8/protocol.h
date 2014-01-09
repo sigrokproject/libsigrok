@@ -39,6 +39,7 @@
 #define TRIGGER_TYPE 			"01"
 #define SDRAM_SIZE			(8 * 1024 * 1024)
 #define MIN_NUM_SAMPLES			1
+#define MAX_NUM_SAMPLES			SDRAM_SIZE
 
 #define BS				4096 /* Block size */
 #define NUM_BLOCKS			2048 /* Number of blocks */

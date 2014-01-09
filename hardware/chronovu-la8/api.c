@@ -42,6 +42,7 @@ SR_PRIV const int32_t chronovu_la8_hwcaps[] = {
 	SR_CONF_SAMPLERATE,
 	SR_CONF_LIMIT_MSEC, /* TODO: Not yet implemented. */
 	SR_CONF_LIMIT_SAMPLES, /* TODO: Not yet implemented. */
+	SR_CONF_MAX_UNCOMPRESSED_SAMPLES,
 };
 
 /*
@@ -278,6 +279,9 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 				__func__, devc->cur_samplerate);
 		} else
 			return SR_ERR;
+		break;
+	case SR_CONF_MAX_UNCOMPRESSED_SAMPLES:
+		*data = g_variant_new_uint64(MAX_NUM_SAMPLES);
 		break;
 	default:
 		return SR_ERR_NA;
