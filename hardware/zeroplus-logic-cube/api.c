@@ -486,14 +486,14 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 			sr_spew("Returning samplerate: %" PRIu64 "Hz.",
 				devc->cur_samplerate);
 		} else
-			return SR_ERR;
+			return SR_ERR_ARG;
 		break;
 	case SR_CONF_CAPTURE_RATIO:
 		if (sdi) {
 			devc = sdi->priv;
 			*data = g_variant_new_uint64(devc->capture_ratio);
 		} else
-			return SR_ERR;
+			return SR_ERR_ARG;
 		break;
 	case SR_CONF_VOLTAGE_THRESHOLD:
 		if (sdi) {
@@ -502,6 +502,16 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 			range[0] = g_variant_new_double(devc->cur_threshold);
 			range[1] = g_variant_new_double(devc->cur_threshold);
 			*data = g_variant_new_tuple(range, 2);
+		} else
+			return SR_ERR_ARG;
+		break;
+	case SR_CONF_MAX_UNCOMPRESSED_SAMPLES:
+		if (sdi) {
+			/* As long as this driver doesn't support compression,
+			 * this is ok. When compression is enabled, this should
+			 * return SR_ERR_NA instead. */
+			devc = sdi->priv;
+			*data = g_variant_new_uint64(devc->max_sample_depth);
 		} else
 			return SR_ERR;
 		break;
