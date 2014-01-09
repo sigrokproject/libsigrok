@@ -325,6 +325,9 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	case SR_CONF_CAPTURE_RATIO:
 		*data = g_variant_new_uint64(devc->capture_ratio);
 		break;
+	case SR_CONF_MAX_UNCOMPRESSED_SAMPLES:
+		*data = g_variant_new_uint64(MAX_SAMPLES);
+		break;
 	default:
 		return SR_ERR_NA;
 	}
