@@ -266,6 +266,18 @@ SR_PKGLIBS=""
 # libm (the standard math library) is always needed.
 AC_SEARCH_LIBS([pow], [m])
 
+# RPC is only needed for VXI support
+AC_MSG_CHECKING([for RPC support])
+AC_LINK_IFELSE([AC_LANG_PROGRAM([#include <rpc/rpc.h>],
+                                [CLIENT *rpc_test(void)],
+                                [{ return clnt_create("", 0, 0, ""); }])],
+               [AC_MSG_RESULT([yes]); have_rpc=1],
+               [AC_MSG_RESULT([no]);  have_rpc=0])
+# Define HAVE_RPC in config.h if we found RPC support.
+AC_DEFINE_UNQUOTED(HAVE_RPC, [$have_rpc],[Specifies whether we have RPC support.])
+# VXI support is only compiled if RPC support was found.
+AM_CONDITIONAL(NEED_RPC, test "x$have_rpc" != x0)
+
 # libglib-2.0 is always needed. Abort if it's not found.
 # Note: glib-2.0 is part of the libsigrok API (hard pkg-config requirement).
 # We require at least 2.32.0 due to e.g. g_variant_new_fixed_array().

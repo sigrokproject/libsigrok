@@ -24,6 +24,10 @@ noinst_LTLIBRARIES = libsigrok_hw_common.la
 
 libsigrok_hw_common_la_SOURCES = scpi.c scpi_tcp.c
 
+if NEED_RPC
+libsigrok_hw_common_la_SOURCES += scpi_vxi.c vxi_clnt.c vxi_xdr.c
+endif
+
 if NEED_SERIAL
 libsigrok_hw_common_la_SOURCES += serial.c scpi_serial.c scpi_usbtmc.c
 endif

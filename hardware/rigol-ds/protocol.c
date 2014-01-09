@@ -423,7 +423,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 
 	scpi = sdi->conn;
 
-	if (revents == G_IO_IN) {
+	if (revents == G_IO_IN || revents == 0) {
 		if (devc->model->protocol == PROTOCOL_IEEE488_2) {
 			switch(devc->wait_event) {
 			case WAIT_NONE:

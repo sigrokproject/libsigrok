@@ -420,6 +420,11 @@ SR_PRIV int sr_scpi_get_hw_id(struct sr_scpi_dev_inst *scpi,
 			struct sr_scpi_hw_info **scpi_response);
 SR_PRIV void sr_scpi_hw_info_free(struct sr_scpi_hw_info *hw_info);
 
+/*--- hardware/common/scpi_vxi.c --------------------------------------------*/
+
+SR_PRIV struct sr_scpi_dev_inst *scpi_vxi_dev_inst_new(const char *address,
+			const char *instrument);
+
 /*--- hardware/common/scpi_serial.c -----------------------------------------*/
 
 #ifdef HAVE_LIBSERIALPORT

@@ -248,7 +248,8 @@ static int probe_port(const char *resource, const char *serialcomm, GSList **dev
 	struct sr_dev_inst *sdi;
 	const char *usbtmc_prefix = "/dev/usbtmc";
 	const char *tcp_prefix = "tcp/";
-	gchar **tokens, *address, *port;
+	const char *vxi_prefix = "vxi/";
+	gchar **tokens, *address, *port, *instrument;
 	struct sr_scpi_dev_inst *scpi;
 	struct sr_scpi_hw_info *hw_info;
 	struct sr_probe *probe;
@@ -273,6 +274,20 @@ static int probe_port(const char *resource, const char *serialcomm, GSList **dev
 			return SR_ERR_ARG;
 		}
 		scpi = scpi_tcp_dev_inst_new(address, port);
+		g_strfreev(tokens);
+		if (!scpi)
+			return SR_ERR_MALLOC;
+	} else if (HAVE_RPC && !strncmp(resource, vxi_prefix, strlen(vxi_prefix))) {
+		sr_dbg("Opening VXI connection %s.", resource);
+		tokens = g_strsplit(resource + strlen(tcp_prefix), "/", 0);
+		address = tokens[0];
+		instrument = tokens[1];
+		if (!address) {
+			sr_err("Invalid parameters.");
+			g_strfreev(tokens);
+			return SR_ERR_ARG;
+		}
+		scpi = scpi_vxi_dev_inst_new(address, instrument);
 		g_strfreev(tokens);
 		if (!scpi)
 			return SR_ERR_MALLOC;
