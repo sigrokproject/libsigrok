@@ -100,6 +100,8 @@ static struct sr_config_info sr_config_info_data[] = {
 		"Number of logic probes", NULL},
 	{SR_CONF_NUM_ANALOG_PROBES, SR_T_INT32, "analog_probes",
 		"Number of analog probes", NULL},
+	{SR_CONF_MAX_UNCOMPRESSED_SAMPLES, SR_T_UINT64, "max_uncompressed_samples",
+		"Maximum number of uncompressed samples", NULL},
 	{0, 0, NULL, NULL, NULL},
 };
 

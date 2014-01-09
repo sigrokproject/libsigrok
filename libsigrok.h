@@ -827,7 +827,8 @@ enum {
 	/** Power off the device. */
 	SR_CONF_POWER_OFF,
 
-	/** Data source for acquisition. If not present, acquisition from
+	/**
+	 * Data source for acquisition. If not present, acquisition from
 	 * the device is always "live", i.e. acquisition starts when the
 	 * frontend asks and the results are sent out as soon as possible.
 	 *
@@ -836,8 +837,21 @@ enum {
 	 * there is a choice. sr_config_list() returns those choices.
 	 *
 	 * In any case if a device has live acquisition capabilities, it
-	 * is always the default. */
+	 * is always the default.
+	 */
 	SR_CONF_DATA_SOURCE,
+
+	/**
+	 * On devices without sample compression (or compression turned off),
+	 * this returns the maximum number of samples that can be stored. This
+	 * can change as probes are disabled, depending on the hardware, so
+	 * should be queried after such changes are made. If not applicable,
+	 * fetching this value with sr_config_get() will return SR_ERR_NA.
+	 *
+	 * SR_CONF_LIMIT_SAMPLES should not be set to a higher value than
+	 * this value, if applicable.
+	 */
+	SR_CONF_MAX_UNCOMPRESSED_SAMPLES,
 
 	/*--- Acquisition modes ---------------------------------------------*/
 
