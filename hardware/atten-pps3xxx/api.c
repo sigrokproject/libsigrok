@@ -319,8 +319,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 				/* Nothing to do. */
 				break;
 			devc->channel_mode_set = ival;
-			if (devc->acquisition_running)
-				send_config(sdi);
+			devc->config_dirty = TRUE;
 			break;
 		case SR_CONF_OVER_CURRENT_PROTECTION:
 			bval = g_variant_get_boolean(data);
@@ -328,8 +327,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 				/* Nothing to do. */
 				break;
 			devc->over_current_protection_set = bval;
-			if (devc->acquisition_running)
-				send_config(sdi);
+			devc->config_dirty = TRUE;
 			break;
 		default:
 			return SR_ERR_NA;
@@ -346,16 +344,14 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 			if (dval < 0 || dval > devc->model->channels[channel].voltage[1])
 				ret = SR_ERR_ARG;
 			devc->config[channel].output_voltage_max = dval;
-			if (devc->acquisition_running)
-				send_config(sdi);
+			devc->config_dirty = TRUE;
 			break;
 		case SR_CONF_OUTPUT_CURRENT_MAX:
 			dval = g_variant_get_double(data);
 			if (dval < 0 || dval > devc->model->channels[channel].current[1])
 				ret = SR_ERR_ARG;
 			devc->config[channel].output_current_max = dval;
-			if (devc->acquisition_running)
-				send_config(sdi);
+			devc->config_dirty = TRUE;
 			break;
 		case SR_CONF_OUTPUT_ENABLED:
 			bval = g_variant_get_boolean(data);
@@ -363,8 +359,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 				/* Nothing to do. */
 				break;
 			devc->config[channel].output_enabled_set = bval;
-			if (devc->acquisition_running)
-				send_config(sdi);
+			devc->config_dirty = TRUE;
 			break;
 		default:
 			ret = SR_ERR_NA;
@@ -463,6 +458,20 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	return ret;
 }
 
+static int dev_close(struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+
+	devc = sdi->priv;
+	if (devc->config_dirty)
+		/* Some configuration changes were queued up but didn't
+		 * get sent to the device, likely because we were never
+		 * in acquisition mode. Send them out now. */
+		send_config(sdi);
+
+	return std_serial_dev_close(sdi);
+}
+
 static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 		void *cb_data)
 {
@@ -522,7 +531,7 @@ SR_PRIV struct sr_dev_driver atten_pps3203_driver_info = {
 	.config_set = config_set,
 	.config_list = config_list,
 	.dev_open = std_serial_dev_open,
-	.dev_close = std_serial_dev_close,
+	.dev_close = dev_close,
 	.dev_acquisition_start = dev_acquisition_start,
 	.dev_acquisition_stop = dev_acquisition_stop,
 	.priv = NULL,

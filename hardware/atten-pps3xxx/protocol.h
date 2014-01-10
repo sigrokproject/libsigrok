@@ -81,6 +81,7 @@ struct dev_context {
 	gboolean acquisition_running;
 
 	/* Operational state */
+	gboolean config_dirty;
 	struct per_channel_config *config;
 	/* Received from device. */
 	int channel_mode;

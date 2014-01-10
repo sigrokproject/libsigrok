@@ -122,6 +122,7 @@ SR_PRIV void send_config(const struct sr_dev_inst *sdi)
 		value += packet[i];
 	packet[i] = value & 0xff;
 	send_packet(sdi, packet);
+	devc->config_dirty = FALSE;
 
 }
 
