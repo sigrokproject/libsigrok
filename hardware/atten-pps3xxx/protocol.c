@@ -111,11 +111,11 @@ SR_PRIV void send_config(const struct sr_dev_inst *sdi)
 		value = devc->config[i].output_current_max * 1000;
 		packet[offset + 2] = (value >> 8) & 0xff;
 		packet[offset + 3] = value & 0xff;
-		if (devc->config[i].output_enabled)
+		if (devc->config[i].output_enabled_set)
 			packet[15] |= 1 << i;
 	}
-	packet[18] = devc->over_current_protection ? 1 : 0;
-	packet[19] = devc->channel_mode;
+	packet[18] = devc->over_current_protection_set ? 1 : 0;
+	packet[19] = devc->channel_mode_set;
 	/* Checksum. */
 	value = 0;
 	for (i = 0; i < PACKET_SIZE - 1; i++)
