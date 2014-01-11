@@ -165,7 +165,26 @@ SR_PRIV int scpi_tcp_read_begin(void *priv)
 	return SR_OK;
 }
 
-SR_PRIV int scpi_tcp_read_data(void *priv, char *buf, int maxlen)
+SR_PRIV int scpi_tcp_raw_read_data(void *priv, char *buf, int maxlen)
+{
+	struct scpi_tcp *tcp = priv;
+	int len;
+
+	len = recv(tcp->socket, buf, maxlen, 0);
+
+	if (len < 0) {
+		sr_err("Receive error: %s", strerror(errno));
+		return SR_ERR;
+	}
+
+	tcp->length_bytes_read = LENGTH_BYTES;
+	tcp->response_length = len < maxlen ? len : maxlen + 1;
+	tcp->response_bytes_read = len;
+
+	return len;
+}
+
+SR_PRIV int scpi_tcp_rigol_read_data(void *priv, char *buf, int maxlen)
 {
 	struct scpi_tcp *tcp = priv;
 	int len;
@@ -227,9 +246,9 @@ SR_PRIV void scpi_tcp_free(void *priv)
 	g_free(tcp->port);
 }
 
-SR_PRIV const struct sr_scpi_dev_inst scpi_tcp_dev = {
-	.name          = "TCP",
-	.prefix        = "tcp",
+SR_PRIV const struct sr_scpi_dev_inst scpi_tcp_raw_dev = {
+	.name          = "RAW TCP",
+	.prefix        = "tcp-raw",
 	.priv_size     = sizeof(struct scpi_tcp),
 	.dev_inst_new  = scpi_tcp_dev_inst_new,
 	.open          = scpi_tcp_open,
@@ -237,7 +256,23 @@ SR_PRIV const struct sr_scpi_dev_inst scpi_tcp_dev = {
 	.source_remove = scpi_tcp_source_remove,
 	.send          = scpi_tcp_send,
 	.read_begin    = scpi_tcp_read_begin,
-	.read_data     = scpi_tcp_read_data,
+	.read_data     = scpi_tcp_raw_read_data,
+	.read_complete = scpi_tcp_read_complete,
+	.close         = scpi_tcp_close,
+	.free          = scpi_tcp_free,
+};
+
+SR_PRIV const struct sr_scpi_dev_inst scpi_tcp_rigol_dev = {
+	.name          = "RIGOL TCP",
+	.prefix        = "tcp-rigol",
+	.priv_size     = sizeof(struct scpi_tcp),
+	.dev_inst_new  = scpi_tcp_dev_inst_new,
+	.open          = scpi_tcp_open,
+	.source_add    = scpi_tcp_source_add,
+	.source_remove = scpi_tcp_source_remove,
+	.send          = scpi_tcp_send,
+	.read_begin    = scpi_tcp_read_begin,
+	.read_data     = scpi_tcp_rigol_read_data,
 	.read_complete = scpi_tcp_read_complete,
 	.close         = scpi_tcp_close,
 	.free          = scpi_tcp_free,
