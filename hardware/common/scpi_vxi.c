@@ -37,6 +37,25 @@ struct scpi_vxi {
 	unsigned int read_complete;
 };
 
+static int scpi_vxi_dev_inst_new(void *priv, const char *resource,
+		char **params, const char *serialcomm)
+{
+	struct scpi_vxi *vxi = priv;
+
+	(void)resource;
+	(void)serialcomm;
+
+	if (!params || !params[1]) {
+		sr_err("Invalid parameters.");
+		return SR_ERR;
+	}
+
+	vxi->address    = g_strdup(params[1]);
+	vxi->instrument = g_strdup(params[2] ? params[2] : "inst0");
+
+	return SR_OK;
+}
+
 static int scpi_vxi_open(void *priv)
 {
 	struct scpi_vxi *vxi = priv;
@@ -193,31 +212,20 @@ static void scpi_vxi_free(void *priv)
 
 	g_free(vxi->address);
 	g_free(vxi->instrument);
-	g_free(vxi);
 }
 
-SR_PRIV struct sr_scpi_dev_inst *scpi_vxi_dev_inst_new(const char *address,
-			const char *instrument)
-{
-	struct sr_scpi_dev_inst *scpi;
-	struct scpi_vxi *vxi;
-
-	scpi = g_malloc(sizeof(struct sr_scpi_dev_inst));
-	vxi = g_malloc0(sizeof(struct scpi_vxi));
-
-	vxi->address = g_strdup(address);
-	vxi->instrument = g_strdup(instrument ? instrument : "inst0");
-
-	scpi->open = scpi_vxi_open;
-	scpi->source_add = scpi_vxi_source_add;
-	scpi->source_remove = scpi_vxi_source_remove;
-	scpi->send = scpi_vxi_send;
-	scpi->read_begin = scpi_vxi_read_begin;
-	scpi->read_data = scpi_vxi_read_data;
-	scpi->read_complete = scpi_vxi_read_complete;
-	scpi->close = scpi_vxi_close;
-	scpi->free = scpi_vxi_free;
-	scpi->priv = vxi;
-
-	return scpi;
-}
+SR_PRIV const struct sr_scpi_dev_inst scpi_vxi_dev = {
+	.name          = "VXI",
+	.prefix        = "vxi",
+	.priv_size     = sizeof(struct scpi_vxi),
+	.dev_inst_new  = scpi_vxi_dev_inst_new,
+	.open          = scpi_vxi_open,
+	.source_add    = scpi_vxi_source_add,
+	.source_remove = scpi_vxi_source_remove,
+	.send          = scpi_vxi_send,
+	.read_begin    = scpi_vxi_read_begin,
+	.read_data     = scpi_vxi_read_data,
+	.read_complete = scpi_vxi_read_complete,
+	.close         = scpi_vxi_close,
+	.free          = scpi_vxi_free,
+};

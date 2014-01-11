@@ -51,6 +51,26 @@ struct scpi_tcp {
 	int response_bytes_read;
 };
 
+static int scpi_tcp_dev_inst_new(void *priv, const char *resource,
+		char **params, const char *serialcomm)
+{
+	struct scpi_tcp *tcp = priv;
+
+	(void)resource;
+	(void)serialcomm;
+
+	if (!params || !params[1] || !params[2]) {
+		sr_err("Invalid parameters.");
+		return SR_ERR;
+	}
+
+	tcp->address = g_strdup(params[1]);
+	tcp->port    = g_strdup(params[2]);
+	tcp->socket  = -1;
+
+	return SR_OK;
+}
+
 SR_PRIV int scpi_tcp_open(void *priv)
 {
 	struct scpi_tcp *tcp = priv;
@@ -205,32 +225,20 @@ SR_PRIV void scpi_tcp_free(void *priv)
 
 	g_free(tcp->address);
 	g_free(tcp->port);
-	g_free(tcp);
 }
 
-SR_PRIV struct sr_scpi_dev_inst *scpi_tcp_dev_inst_new(const char *address,
-		const char *port)
-{
-	struct sr_scpi_dev_inst *scpi;
-	struct scpi_tcp *tcp;
-
-	scpi = g_malloc(sizeof(struct sr_scpi_dev_inst));
-	tcp = g_malloc0(sizeof(struct scpi_tcp));
-
-	tcp->address = g_strdup(address);
-	tcp->port = g_strdup(port);
-	tcp->socket = -1;
-
-	scpi->open = scpi_tcp_open;
-	scpi->source_add = scpi_tcp_source_add;
-	scpi->source_remove = scpi_tcp_source_remove;
-	scpi->send = scpi_tcp_send;
-	scpi->read_begin = scpi_tcp_read_begin;
-	scpi->read_data = scpi_tcp_read_data;
-	scpi->read_complete = scpi_tcp_read_complete;
-	scpi->close = scpi_tcp_close;
-	scpi->free = scpi_tcp_free;
-	scpi->priv = tcp;
-
-	return scpi;
-}
+SR_PRIV const struct sr_scpi_dev_inst scpi_tcp_dev = {
+	.name          = "TCP",
+	.prefix        = "tcp",
+	.priv_size     = sizeof(struct scpi_tcp),
+	.dev_inst_new  = scpi_tcp_dev_inst_new,
+	.open          = scpi_tcp_open,
+	.source_add    = scpi_tcp_source_add,
+	.source_remove = scpi_tcp_source_remove,
+	.send          = scpi_tcp_send,
+	.read_begin    = scpi_tcp_read_begin,
+	.read_data     = scpi_tcp_read_data,
+	.read_complete = scpi_tcp_read_complete,
+	.close         = scpi_tcp_close,
+	.free          = scpi_tcp_free,
+};

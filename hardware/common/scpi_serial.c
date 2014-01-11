@@ -34,6 +34,19 @@ struct scpi_serial {
 	char last_character;
 };
 
+static int scpi_serial_dev_inst_new(void *priv, const char *resource,
+		char **params, const char *serialcomm)
+{
+	struct scpi_serial *sscpi = priv;
+
+	(void)params;
+
+	if (!(sscpi->serial = sr_serial_dev_inst_new(resource, serialcomm)))
+		return SR_ERR;
+
+	return SR_OK;
+}
+
 SR_PRIV int scpi_serial_open(void *priv)
 {
 	struct scpi_serial *sscpi = priv;
@@ -184,46 +197,29 @@ SR_PRIV int scpi_serial_read_complete(void *priv)
 static int scpi_serial_close(void *priv)
 {
 	struct scpi_serial *sscpi = priv;
-	struct sr_serial_dev_inst *serial = sscpi->serial;
 
-	return serial_close(serial);
+	return serial_close(sscpi->serial);
 }
 
 static void scpi_serial_free(void *priv)
 {
 	struct scpi_serial *sscpi = priv;
-	struct sr_serial_dev_inst *serial = sscpi->serial;
 
-	sr_serial_dev_inst_free(serial);
-	g_free(sscpi);
+	sr_serial_dev_inst_free(sscpi->serial);
 }
 
-SR_PRIV struct sr_scpi_dev_inst *scpi_serial_dev_inst_new(const char *port,
-		const char *serialcomm)
-{
-	struct sr_scpi_dev_inst *scpi;
-	struct scpi_serial *sscpi;
-	struct sr_serial_dev_inst *serial;
-
-	if (!(serial = sr_serial_dev_inst_new(port, serialcomm)))
-		return NULL;
-
-	sscpi = g_malloc(sizeof(struct scpi_serial));
-
-	sscpi->serial = serial;
-
-	scpi = g_malloc(sizeof(struct sr_scpi_dev_inst));
-
-	scpi->open = scpi_serial_open;
-	scpi->source_add = scpi_serial_source_add;
-	scpi->source_remove = scpi_serial_source_remove;
-	scpi->send = scpi_serial_send;
-	scpi->read_begin = scpi_serial_read_begin;
-	scpi->read_data = scpi_serial_read_data;
-	scpi->read_complete = scpi_serial_read_complete;
-	scpi->close = scpi_serial_close;
-	scpi->free = scpi_serial_free;
-	scpi->priv = sscpi;
-
-	return scpi;
-}
+SR_PRIV const struct sr_scpi_dev_inst scpi_serial_dev = {
+	.name          = "serial",
+	.prefix        = "",
+	.priv_size     = sizeof(struct scpi_serial),
+	.dev_inst_new  = scpi_serial_dev_inst_new,
+	.open          = scpi_serial_open,
+	.source_add    = scpi_serial_source_add,
+	.source_remove = scpi_serial_source_remove,
+	.send          = scpi_serial_send,
+	.read_begin    = scpi_serial_read_begin,
+	.read_data     = scpi_serial_read_data,
+	.read_complete = scpi_serial_read_complete,
+	.close         = scpi_serial_close,
+	.free          = scpi_serial_free,
+};

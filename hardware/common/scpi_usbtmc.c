@@ -37,6 +37,20 @@ struct usbtmc_scpi {
 	int response_bytes_read;
 };
 
+static int scpi_usbtmc_dev_inst_new(void *priv, const char *resource,
+		char **params, const char *serialcomm)
+{
+	struct usbtmc_scpi *uscpi = priv;
+
+	(void)params;
+	(void)serialcomm;
+
+	if (!(uscpi->usbtmc = sr_usbtmc_dev_inst_new(resource)))
+		return SR_ERR;
+
+	return SR_OK;
+}
+
 SR_PRIV int scpi_usbtmc_open(void *priv)
 {
 	struct usbtmc_scpi *uscpi = priv;
@@ -147,9 +161,8 @@ SR_PRIV int scpi_usbtmc_read_complete(void *priv)
 SR_PRIV int scpi_usbtmc_close(void *priv)
 {
 	struct usbtmc_scpi *uscpi = priv;
-	struct sr_usbtmc_dev_inst *usbtmc = uscpi->usbtmc;
 
-	if (close(usbtmc->fd) < 0)
+	if (close(uscpi->usbtmc->fd) < 0)
 		return SR_ERR;
 
 	return SR_OK;
@@ -158,37 +171,22 @@ SR_PRIV int scpi_usbtmc_close(void *priv)
 static void scpi_usbtmc_free(void *priv)
 {
 	struct usbtmc_scpi *uscpi = priv;
-	struct sr_usbtmc_dev_inst *usbtmc = uscpi->usbtmc;
 
-	g_free(uscpi);
-	sr_usbtmc_dev_inst_free(usbtmc);
+	sr_usbtmc_dev_inst_free(uscpi->usbtmc);
 }
 
-SR_PRIV struct sr_scpi_dev_inst *scpi_usbtmc_dev_inst_new(const char *device)
-{
-	struct sr_scpi_dev_inst *scpi;
-	struct usbtmc_scpi *uscpi;
-	struct sr_usbtmc_dev_inst *usbtmc;
-
-	if (!(usbtmc = sr_usbtmc_dev_inst_new(device)))
-		return NULL;
-
-	uscpi = g_malloc(sizeof(struct usbtmc_scpi));
-
-	uscpi->usbtmc = usbtmc;
-
-	scpi = g_malloc(sizeof(struct sr_scpi_dev_inst));
-
-	scpi->open = scpi_usbtmc_open;
-	scpi->source_add = scpi_usbtmc_source_add;
-	scpi->source_remove = scpi_usbtmc_source_remove;
-	scpi->send = scpi_usbtmc_send;
-	scpi->read_begin = scpi_usbtmc_read_begin;
-	scpi->read_data = scpi_usbtmc_read_data;
-	scpi->read_complete = scpi_usbtmc_read_complete;
-	scpi->close = scpi_usbtmc_close;
-	scpi->free = scpi_usbtmc_free;
-	scpi->priv = uscpi;
-
-	return scpi;
-}
+SR_PRIV const struct sr_scpi_dev_inst scpi_usbtmc_dev = {
+	.name          = "USBTMC",
+	.prefix        = "/dev/usbtmc",
+	.priv_size     = sizeof(struct usbtmc_scpi),
+	.dev_inst_new  = scpi_usbtmc_dev_inst_new,
+	.open          = scpi_usbtmc_open,
+	.source_add    = scpi_usbtmc_source_add,
+	.source_remove = scpi_usbtmc_source_remove,
+	.send          = scpi_usbtmc_send,
+	.read_begin    = scpi_usbtmc_read_begin,
+	.read_data     = scpi_usbtmc_read_data,
+	.read_complete = scpi_usbtmc_read_complete,
+	.close         = scpi_usbtmc_close,
+	.free          = scpi_usbtmc_free,
+};

@@ -65,42 +65,48 @@ static int parse_strict_bool(const char *str, gboolean *ret)
 	return SR_ERR;
 }
 
+SR_PRIV extern const struct sr_scpi_dev_inst scpi_serial_dev;
+SR_PRIV extern const struct sr_scpi_dev_inst scpi_tcp_dev;
+SR_PRIV extern const struct sr_scpi_dev_inst scpi_usbtmc_dev;
+SR_PRIV extern const struct sr_scpi_dev_inst scpi_vxi_dev;
+
+static const struct sr_scpi_dev_inst *scpi_devs[] = {
+	&scpi_tcp_dev,
+	&scpi_usbtmc_dev,
+#ifdef HAVE_RPC
+	&scpi_vxi_dev,
+#endif
+#ifdef HAVE_LIBSERIALPORT
+	&scpi_serial_dev,  /* must be last as it matches any resource */
+#endif
+};
+
 SR_PRIV struct sr_scpi_dev_inst *scpi_dev_inst_new(const char *resource,
 		const char *serialcomm)
 {
 	struct sr_scpi_dev_inst *scpi = NULL;
-	const char *usbtmc_prefix = "/dev/usbtmc";
-	const char *tcp_prefix = "tcp/";
-	const char *vxi_prefix = "vxi/";
-	gchar **tokens, *address, *port, *instrument;
+	const struct sr_scpi_dev_inst *scpi_dev;
+	gchar **params;
+	unsigned i;
 
-	if (strncmp(resource, usbtmc_prefix, strlen(usbtmc_prefix)) == 0) {
-		sr_dbg("Opening USBTMC device %s.", resource);
-		scpi = scpi_usbtmc_dev_inst_new(resource);
-	} else if (strncmp(resource, tcp_prefix, strlen(tcp_prefix)) == 0) {
-		sr_dbg("Opening TCP connection %s.", resource);
-		tokens = g_strsplit(resource + strlen(tcp_prefix), "/", 0);
-		address = tokens[0];
-		port = tokens[1];
-		if (address && port && !tokens[2])
-			scpi = scpi_tcp_dev_inst_new(address, port);
-		else
-			sr_err("Invalid parameters.");
-		g_strfreev(tokens);
-	} else if (HAVE_RPC && !strncmp(resource, vxi_prefix, strlen(vxi_prefix))) {
-		sr_dbg("Opening VXI connection %s.", resource);
-		tokens = g_strsplit(resource + strlen(tcp_prefix), "/", 0);
-		address = tokens[0];
-		instrument = tokens[1];
-		if (address && (!instrument || !tokens[2]))
-			scpi = scpi_vxi_dev_inst_new(address, instrument);
-		else
-			sr_err("Invalid parameters.");
-		g_strfreev(tokens);
-	} else {
-		sr_dbg("Opening serial device %s.", resource);
-		scpi = scpi_serial_dev_inst_new(resource, serialcomm);
+	for (i = 0; i < ARRAY_SIZE(scpi_devs); i++) {
+		scpi_dev = scpi_devs[i];
+		if (!strncmp(resource, scpi_dev->prefix, strlen(scpi_dev->prefix))) {
+			sr_dbg("Opening %s device %s.", scpi_dev->name, resource);
+			scpi = g_malloc(sizeof(*scpi));
+			*scpi = *scpi_dev;
+			scpi->priv = g_malloc0(scpi->priv_size);
+			params = g_strsplit(resource, "/", 0);
+			if (scpi->dev_inst_new(scpi->priv, resource,
+			                       params, serialcomm) != SR_OK) {
+				sr_scpi_free(scpi);
+				scpi = NULL;
+			}
+			g_strfreev(params);
+			break;
+		}
 	}
+
 	return scpi;
 }
 
@@ -264,6 +270,7 @@ SR_PRIV int sr_scpi_close(struct sr_scpi_dev_inst *scpi)
 SR_PRIV void sr_scpi_free(struct sr_scpi_dev_inst *scpi)
 {
 	scpi->free(scpi->priv);
+	g_free(scpi->priv);
 	g_free(scpi);
 }
 

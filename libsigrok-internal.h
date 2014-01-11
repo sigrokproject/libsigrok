@@ -374,6 +374,11 @@ struct sr_scpi_hw_info {
 };
 
 struct sr_scpi_dev_inst {
+	const char *name;
+	const char *prefix;
+	int priv_size;
+	int (*dev_inst_new)(void *priv, const char *resource, char **params,
+		const char *serialcomm);
 	int (*open)(void *priv);
 	int (*source_add)(void *priv, int events,
 		int timeout, sr_receive_data_callback_t cb, void *cb_data);
@@ -421,27 +426,6 @@ SR_PRIV int sr_scpi_get_uint8v(struct sr_scpi_dev_inst *scpi,
 SR_PRIV int sr_scpi_get_hw_id(struct sr_scpi_dev_inst *scpi,
 			struct sr_scpi_hw_info **scpi_response);
 SR_PRIV void sr_scpi_hw_info_free(struct sr_scpi_hw_info *hw_info);
-
-/*--- hardware/common/scpi_vxi.c --------------------------------------------*/
-
-SR_PRIV struct sr_scpi_dev_inst *scpi_vxi_dev_inst_new(const char *address,
-			const char *instrument);
-
-/*--- hardware/common/scpi_serial.c -----------------------------------------*/
-
-#ifdef HAVE_LIBSERIALPORT
-SR_PRIV struct sr_scpi_dev_inst *scpi_serial_dev_inst_new(const char *port,
-		        const char *serialcomm);
-#endif
-
-/*--- hardware/common/scpi_tcp.c --------------------------------------------*/
-
-SR_PRIV struct sr_scpi_dev_inst *scpi_tcp_dev_inst_new(const char *address,
-			const char *port);
-
-/*--- hardware/common/scpi_usbtmc.c -----------------------------------------*/
-
-SR_PRIV struct sr_scpi_dev_inst *scpi_usbtmc_dev_inst_new(const char *device);
 
 /*--- hardware/common/dmm/es519xx.c -----------------------------------------*/
 
