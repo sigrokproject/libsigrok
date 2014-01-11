@@ -108,10 +108,6 @@ AC_ARG_ENABLE(atten-pps3xxx, AC_HELP_STRING([--enable-atten-pps3xxx],
 	[enable Atten PPS3xxx support [default=yes]]),
 	[HW_ATTEN_PPS3XXX="$enableval"],
 	[HW_ATTEN_PPS3XXX=$HW_ENABLED_DEFAULT])
-AM_CONDITIONAL(HW_ATTEN_PPS3XXX, test x$HW_ATTEN_PPS3XXX = xyes)
-if test "x$HW_ATTEN_PPS3XXX" = "xyes"; then
-	AC_DEFINE(HAVE_HW_ATTEN_PPS3XXX, 1, [Atten PPS3xxx support])
-fi
 
 AC_ARG_ENABLE(brymen-dmm, AC_HELP_STRING([--enable-brymen-dmm],
 	[enable Brymen DMM support [default=yes]]),
@@ -288,10 +284,10 @@ PKG_CHECK_MODULES([libserialport], [libserialport >= 0.1.0],
 	LIBS="$LIBS $libserialport_LIBS";
 	SR_PKGLIBS="$SR_PKGLIBS libserialport"],
 	[have_libserialport="no"; HW_AGILENT_DMM="no"; HW_APPA_55II="no";
-	HW_BRYMEN_DMM="no"; HW_CEM_DT_885X="no"; HW_CENTER_3XX="no";
-	HW_COLEAD_SLM="no"; HW_FLUKE_DMM="no"; HW_GMC_MH_1X_2X="no";
-	HW_HAMEG_HMO="no"; HW_LINK_MSO19="no"; HW_MIC_985XX="no";
-	HW_NORMA_DMM="no"; HW_OLS="no"; HW_RIGOL_DS="no";
+	HW_ATTEN_PPS3XXX="no"; HW_BRYMEN_DMM="no"; HW_CEM_DT_885X="no";
+	HW_CENTER_3XX="no"; HW_COLEAD_SLM="no"; HW_FLUKE_DMM="no";
+	HW_GMC_MH_1X_2X="no"; HW_HAMEG_HMO="no"; HW_LINK_MSO19="no";
+	HW_MIC_985XX="no"; HW_NORMA_DMM="no"; HW_OLS="no"; HW_RIGOL_DS="no";
 	HW_SERIAL_DMM="no"; HW_TELEINFO="no"; HW_TONDAJ_SL_814="no"])
 
 # Define HAVE_LIBSERIALPORT in config.h if we found libserialport.
@@ -390,6 +386,11 @@ fi
 AM_CONDITIONAL(HW_ASIX_SIGMA, test x$HW_ASIX_SIGMA = xyes)
 if test "x$HW_ASIX_SIGMA" = "xyes"; then
 	AC_DEFINE(HAVE_HW_ASIX_SIGMA, 1, [ASIX SIGMA/SIGMA2 support])
+fi
+
+AM_CONDITIONAL(HW_ATTEN_PPS3XXX, test x$HW_ATTEN_PPS3XXX = xyes)
+if test "x$HW_ATTEN_PPS3XXX" = "xyes"; then
+       AC_DEFINE(HAVE_HW_ATTEN_PPS3XXX, 1, [Atten PPS3xxx support])
 fi
 
 AM_CONDITIONAL(HW_BRYMEN_DMM, test x$HW_BRYMEN_DMM = xyes)
