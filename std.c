@@ -264,11 +264,11 @@ SR_PRIV int std_dev_clear(const struct sr_dev_driver *driver,
 			driver->dev_close(sdi);
 
 		if (sdi->conn) {
-#if HAVE_LIBSERIALPORT
+#ifdef HAVE_LIBSERIALPORT
 			if (sdi->inst_type == SR_INST_SERIAL)
 				sr_serial_dev_inst_free(sdi->conn);
 #endif
-#if HAVE_LIBUSB_1_0
+#ifdef HAVE_LIBUSB_1_0
 			if (sdi->inst_type == SR_INST_USB)
 				sr_usb_dev_inst_free(sdi->conn);
 #endif
