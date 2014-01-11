@@ -217,7 +217,7 @@ static struct sr_dev_inst *hmo_probe_serial_device(const char *serial_device,
 	scpi = NULL;
 	hw_info = NULL;
 
-	if (!(scpi = scpi_serial_dev_inst_new(serial_device, serial_options)))
+	if (!(scpi = scpi_dev_inst_new(serial_device, serial_options)))
 		goto fail;
 
 	sr_info("Probing %s.", serial_device);

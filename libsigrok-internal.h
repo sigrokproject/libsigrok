@@ -387,6 +387,8 @@ struct sr_scpi_dev_inst {
 	void *priv;
 };
 
+SR_PRIV struct sr_scpi_dev_inst *scpi_dev_inst_new(const char *resource,
+		const char *serialcomm);
 SR_PRIV int sr_scpi_open(struct sr_scpi_dev_inst *scpi);
 SR_PRIV int sr_scpi_source_add(struct sr_scpi_dev_inst *scpi, int events,
 		int timeout, sr_receive_data_callback_t cb, void *cb_data);

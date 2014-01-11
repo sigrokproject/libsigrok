@@ -65,6 +65,45 @@ static int parse_strict_bool(const char *str, gboolean *ret)
 	return SR_ERR;
 }
 
+SR_PRIV struct sr_scpi_dev_inst *scpi_dev_inst_new(const char *resource,
+		const char *serialcomm)
+{
+	struct sr_scpi_dev_inst *scpi = NULL;
+	const char *usbtmc_prefix = "/dev/usbtmc";
+	const char *tcp_prefix = "tcp/";
+	const char *vxi_prefix = "vxi/";
+	gchar **tokens, *address, *port, *instrument;
+
+	if (strncmp(resource, usbtmc_prefix, strlen(usbtmc_prefix)) == 0) {
+		sr_dbg("Opening USBTMC device %s.", resource);
+		scpi = scpi_usbtmc_dev_inst_new(resource);
+	} else if (strncmp(resource, tcp_prefix, strlen(tcp_prefix)) == 0) {
+		sr_dbg("Opening TCP connection %s.", resource);
+		tokens = g_strsplit(resource + strlen(tcp_prefix), "/", 0);
+		address = tokens[0];
+		port = tokens[1];
+		if (address && port && !tokens[2])
+			scpi = scpi_tcp_dev_inst_new(address, port);
+		else
+			sr_err("Invalid parameters.");
+		g_strfreev(tokens);
+	} else if (HAVE_RPC && !strncmp(resource, vxi_prefix, strlen(vxi_prefix))) {
+		sr_dbg("Opening VXI connection %s.", resource);
+		tokens = g_strsplit(resource + strlen(tcp_prefix), "/", 0);
+		address = tokens[0];
+		instrument = tokens[1];
+		if (address && (!instrument || !tokens[2]))
+			scpi = scpi_vxi_dev_inst_new(address, instrument);
+		else
+			sr_err("Invalid parameters.");
+		g_strfreev(tokens);
+	} else {
+		sr_dbg("Opening serial device %s.", resource);
+		scpi = scpi_serial_dev_inst_new(resource, serialcomm);
+	}
+	return scpi;
+}
+
 /**
  * Open SCPI device.
  *
