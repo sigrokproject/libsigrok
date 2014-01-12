@@ -41,9 +41,8 @@
 /* Size of the analog pattern space per channel. */
 #define ANALOG_BUFSIZE       4096
 
-/* Patterns we can generate */
+/* Logic patterns we can generate. */
 enum {
-	/* Logic */
 	/**
 	 * Spells "sigrok" across 8 probes using '0's (with '1's as
 	 * "background") when displayed using the 'bits' output format.
@@ -66,8 +65,10 @@ enum {
 
 	/** All probes have a high logic state. */
 	PATTERN_ALL_HIGH,
+};
 
-	/* Analog */
+/* Analog patterns we can generate. */
+enum {
 	/**
 	 * Square wave.
 	 */
@@ -106,6 +107,7 @@ struct dev_context {
 	/* Logic */
 	int32_t num_logic_probes;
 	unsigned int logic_unitsize;
+	/* There is only ever one logic probe group, so its pattern goes here. */
 	uint8_t logic_pattern;
 	unsigned char logic_data[LOGIC_BUFSIZE];
 	/* Analog */
@@ -319,8 +321,12 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_probe_group *probe_group)
 {
 	struct dev_context *devc;
+	struct sr_probe *probe;
+	struct analog_gen *ag;
+	int pattern;
 
-	(void)probe_group;
+	if (!sdi)
+		return SR_ERR_ARG;
 
 	devc = sdi->priv;
 	switch (id) {
@@ -334,7 +340,18 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 		*data = g_variant_new_uint64(devc->limit_msec);
 		break;
 	case SR_CONF_PATTERN_MODE:
-		*data = g_variant_new_string(logic_pattern_str[devc->logic_pattern]);
+		if (!probe_group)
+			return SR_ERR_PROBE_GROUP;
+		probe = probe_group->probes->data;
+		if (probe->type == SR_PROBE_LOGIC) {
+			pattern = devc->logic_pattern;
+			*data = g_variant_new_string(logic_pattern_str[pattern]);
+		} else if (probe->type == SR_PROBE_ANALOG) {
+			ag = probe_group->priv;
+			pattern = ag->pattern;
+			*data = g_variant_new_string(analog_pattern_str[pattern]);
+		} else
+			return SR_ERR_BUG;
 		break;
 	case SR_CONF_NUM_LOGIC_PROBES:
 		*data = g_variant_new_int32(devc->num_logic_probes);
@@ -353,9 +370,8 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 		const struct sr_probe_group *probe_group)
 {
 	struct dev_context *devc;
-	struct sr_probe_group *pg;
-	GSList *l;
-	int logic_pattern, analog_pattern, ret;
+	struct sr_probe *probe;
+	int pattern, ret;
 	unsigned int i;
 	const char *stropt;
 
@@ -364,66 +380,62 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
-	ret = SR_ERR;
-	if (id == SR_CONF_SAMPLERATE) {
+	ret = SR_OK;
+	switch (id) {
+	case SR_CONF_SAMPLERATE:
 		devc->cur_samplerate = g_variant_get_uint64(data);
 		sr_dbg("Setting samplerate to %" PRIu64, devc->cur_samplerate);
-		ret = SR_OK;
-	} else if (id == SR_CONF_LIMIT_SAMPLES) {
+		break;
+	case SR_CONF_LIMIT_SAMPLES:
 		devc->limit_msec = 0;
 		devc->limit_samples = g_variant_get_uint64(data);
 		sr_dbg("Setting sample limit to %" PRIu64, devc->limit_samples);
-		ret = SR_OK;
-	} else if (id == SR_CONF_LIMIT_MSEC) {
-		/* TODO: convert to limit_samples */
+		break;
+	case SR_CONF_LIMIT_MSEC:
 		devc->limit_msec = g_variant_get_uint64(data);
 		devc->limit_samples = 0;
 		sr_dbg("Setting time limit to %" PRIu64"ms", devc->limit_msec);
-		ret = SR_OK;
-	} else if (id == SR_CONF_PATTERN_MODE) {
+		break;
+	case SR_CONF_PATTERN_MODE:
+		if (!probe_group)
+			return SR_ERR_PROBE_GROUP;
 		stropt = g_variant_get_string(data, NULL);
-		logic_pattern = analog_pattern = -1;
-		/* Is it a logic pattern? */
-		for (i = 0; i < ARRAY_SIZE(logic_pattern_str); i++) {
-			if (!strcmp(stropt, logic_pattern_str[i])) {
-				logic_pattern = i;
-				break;
-			}
-		}
-		if (logic_pattern == -1) {
-			/* Is it an analog pattern? */
-			for (i = 0; i < ARRAY_SIZE(analog_pattern_str); i++) {
-				if (!strcmp(stropt, analog_pattern_str[i])) {
-					analog_pattern = i;
+		probe = probe_group->probes->data;
+		pattern = -1;
+		if (probe->type == SR_PROBE_LOGIC) {
+			for (i = 0; i < ARRAY_SIZE(logic_pattern_str); i++) {
+				if (!strcmp(stropt, logic_pattern_str[i])) {
+					pattern = i;
 					break;
 				}
 			}
-		}
-		if (logic_pattern > -1) {
-			devc->logic_pattern = logic_pattern;
-			/* Might as well do this now. */
-			if (logic_pattern == PATTERN_ALL_LOW)
+			if (pattern == -1)
+				return SR_ERR_ARG;
+			devc->logic_pattern = pattern;
+
+			/* Might as well do this now, these are static. */
+			if (pattern == PATTERN_ALL_LOW)
 				memset(devc->logic_data, 0x00, LOGIC_BUFSIZE);
-			else if (logic_pattern == PATTERN_ALL_HIGH)
+			else if (pattern == PATTERN_ALL_HIGH)
 				memset(devc->logic_data, 0xff, LOGIC_BUFSIZE);
-			ret = SR_OK;
-			sr_dbg("Setting logic pattern to %s", logic_pattern_str[logic_pattern]);
-		} else if (analog_pattern > -1) {
-			sr_dbg("Setting analog pattern to %s", analog_pattern_str[analog_pattern]);
-			if (probe_group)
-				set_analog_pattern(probe_group, analog_pattern);
-			else {
-				/* No probe group specified, apply pattern to all of them. */
-				for (l = sdi->probe_groups; l; l = l->next) {
-					pg = l->data;
-					set_analog_pattern(pg, analog_pattern);
+			sr_dbg("Setting logic pattern to %s",
+					logic_pattern_str[pattern]);
+		} else if (probe->type == SR_PROBE_ANALOG) {
+			for (i = 0; i < ARRAY_SIZE(analog_pattern_str); i++) {
+				if (!strcmp(stropt, analog_pattern_str[i])) {
+					pattern = i;
+					break;
 				}
-				ret = SR_OK;
 			}
-		} else {
-			ret = SR_ERR;
-		}
-	} else {
+			if (pattern == -1)
+				return SR_ERR_ARG;
+			sr_dbg("Setting analog pattern to %s",
+					analog_pattern_str[pattern]);
+			set_analog_pattern(probe_group, pattern);
+		} else
+			return SR_ERR_BUG;
+		break;
+	default:
 		ret = SR_ERR_NA;
 	}
 
@@ -475,9 +487,11 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 			if (probe->type == SR_PROBE_LOGIC)
 				*data = g_variant_new_strv(logic_pattern_str,
 						ARRAY_SIZE(logic_pattern_str));
-			else
+			else if (probe->type == SR_PROBE_ANALOG)
 				*data = g_variant_new_strv(analog_pattern_str,
 						ARRAY_SIZE(analog_pattern_str));
+			else
+				return SR_ERR_BUG;
 			break;
 		default:
 			return SR_ERR_NA;
