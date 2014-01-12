@@ -113,18 +113,21 @@ struct dev_context {
 	GSList *analog_probe_groups;
 };
 
-static const int32_t hwopts[] = {
+static const int32_t scanopts[] = {
 	SR_CONF_NUM_LOGIC_PROBES,
 	SR_CONF_NUM_ANALOG_PROBES,
 };
 
-static const int hwcaps[] = {
+static const int devopts[] = {
 	SR_CONF_LOGIC_ANALYZER,
 	SR_CONF_DEMO_DEV,
 	SR_CONF_SAMPLERATE,
-	SR_CONF_PATTERN_MODE,
 	SR_CONF_LIMIT_SAMPLES,
 	SR_CONF_LIMIT_MSEC,
+};
+
+static const int devopts_pg[] = {
+	SR_CONF_PATTERN_MODE,
 };
 
 static const uint64_t samplerates[] = {
@@ -430,33 +433,55 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_probe_group *probe_group)
 {
+	struct sr_probe *probe;
 	GVariant *gvar;
 	GVariantBuilder gvb;
 
 	(void)sdi;
-	(void)probe_group;
 
-	switch (key) {
-	case SR_CONF_SCAN_OPTIONS:
+	if (key == SR_CONF_SCAN_OPTIONS) {
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-				hwopts, ARRAY_SIZE(hwopts), sizeof(int32_t));
-		break;
-	case SR_CONF_DEVICE_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-				hwcaps, ARRAY_SIZE(hwcaps), sizeof(int32_t));
-		break;
-	case SR_CONF_SAMPLERATE:
-		g_variant_builder_init(&gvb, G_VARIANT_TYPE("a{sv}"));
-		gvar = g_variant_new_fixed_array(G_VARIANT_TYPE("t"), samplerates,
-				ARRAY_SIZE(samplerates), sizeof(uint64_t));
-		g_variant_builder_add(&gvb, "{sv}", "samplerate-steps", gvar);
-		*data = g_variant_builder_end(&gvb);
-		break;
-	case SR_CONF_PATTERN_MODE:
-		*data = g_variant_new_strv(logic_pattern_str, ARRAY_SIZE(logic_pattern_str));
-		break;
-	default:
-		return SR_ERR_NA;
+				scanopts, ARRAY_SIZE(scanopts), sizeof(int32_t));
+		return SR_OK;
+	}
+
+	if (!sdi)
+		return SR_ERR_ARG;
+
+	if (!probe_group) {
+		switch (key) {
+		case SR_CONF_DEVICE_OPTIONS:
+			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+					devopts, ARRAY_SIZE(devopts), sizeof(int32_t));
+			break;
+		case SR_CONF_SAMPLERATE:
+			g_variant_builder_init(&gvb, G_VARIANT_TYPE("a{sv}"));
+			gvar = g_variant_new_fixed_array(G_VARIANT_TYPE("t"), samplerates,
+					ARRAY_SIZE(samplerates), sizeof(uint64_t));
+			g_variant_builder_add(&gvb, "{sv}", "samplerate-steps", gvar);
+			*data = g_variant_builder_end(&gvb);
+			break;
+		default:
+			return SR_ERR_NA;
+		}
+	} else {
+		probe = probe_group->probes->data;
+		switch (key) {
+		case SR_CONF_DEVICE_OPTIONS:
+			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+					devopts_pg, ARRAY_SIZE(devopts_pg), sizeof(int32_t));
+			break;
+		case SR_CONF_PATTERN_MODE:
+			if (probe->type == SR_PROBE_LOGIC)
+				*data = g_variant_new_strv(logic_pattern_str,
+						ARRAY_SIZE(logic_pattern_str));
+			else
+				*data = g_variant_new_strv(analog_pattern_str,
+						ARRAY_SIZE(analog_pattern_str));
+			break;
+		default:
+			return SR_ERR_NA;
+		}
 	}
 
 	return SR_OK;
