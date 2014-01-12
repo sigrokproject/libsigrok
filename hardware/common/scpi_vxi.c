@@ -196,12 +196,16 @@ static int scpi_vxi_close(void *priv)
 	struct scpi_vxi *vxi = priv;
 	Device_Error *dev_error;
 
+	if (!vxi->client)
+		return SR_ERR;
+
 	if (!(dev_error = destroy_link_1(&vxi->link, vxi->client))) {
 		sr_err("Link destruction failed for %s", vxi->address);
 		return SR_ERR;
 	}
 
 	clnt_destroy(vxi->client);
+	vxi->client = NULL;
 
 	return SR_OK;
 }
