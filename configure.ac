@@ -219,6 +219,15 @@ AC_ARG_ENABLE(serial-dmm, AC_HELP_STRING([--enable-serial-dmm],
 	[HW_SERIAL_DMM="$enableval"],
 	[HW_SERIAL_DMM=$HW_ENABLED_DEFAULT])
 
+AC_ARG_ENABLE(sysclk-lwla, AC_HELP_STRING([--enable-sysclk-lwla],
+	[enable SysClk LWLA support [default=yes]]),
+	[HW_SYSCLK_LWLA="$enableval"],
+	[HW_SYSCLK_LWLA=$HW_ENABLED_DEFAULT])
+AM_CONDITIONAL(HW_SYSCLK_LWLA, test x$HW_SYSCLK_LWLA = xyes)
+if test "x$HW_SYSCLK_LWLA" = "xyes"; then
+	AC_DEFINE(HAVE_HW_SYSCLK_LWLA, 1, [SysClk LWLA support])
+fi
+
 AC_ARG_ENABLE(teleinfo, AC_HELP_STRING([--enable-teleinfo],
 	[enable Teleinfo support [default=yes]]),
 	[HW_TELEINFO="$enableval"],
@@ -600,6 +609,7 @@ AC_CONFIG_FILES([Makefile version.h hardware/Makefile
 		 hardware/mic-985xx/Makefile
 		 hardware/rigol-ds/Makefile
 		 hardware/saleae-logic16/Makefile
+		 hardware/sysclk-lwla/Makefile
 		 hardware/teleinfo/Makefile
 		 hardware/tondaj-sl-814/Makefile
 		 hardware/victor-dmm/Makefile
@@ -676,6 +686,7 @@ echo "  - openbench-logic-sniffer......... $HW_OLS"
 echo "  - rigol-ds........................ $HW_RIGOL_DS"
 echo "  - saleae-logic16.................. $HW_SALEAE_LOGIC16"
 echo "  - serial-dmm...................... $HW_SERIAL_DMM"
+echo "  - sysclk-lwla..................... $HW_SYSCLK_LWLA"
 echo "  - teleinfo........................ $HW_TELEINFO"
 echo "  - tondaj-sl-814................... $HW_TONDAJ_SL_814"
 echo "  - uni-t-dmm....................... $HW_UNI_T_DMM"
