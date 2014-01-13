@@ -19,11 +19,15 @@
 
 if HW_SYSCLK_LWLA
 
+AM_CPPFLAGS = -DFIRMWARE_DIR='"$(FIRMWARE_DIR)"'
+
 # Local lib, this is NOT meant to be installed!
 noinst_LTLIBRARIES = libsigrok_hw_sysclk_lwla.la
 
 libsigrok_hw_sysclk_lwla_la_SOURCES = \
 	api.c \
+	lwla.c \
+	lwla.h \
 	protocol.c \
 	protocol.h
 
