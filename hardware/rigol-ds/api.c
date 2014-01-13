@@ -721,6 +721,8 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		if (!devc)
 			/* Can't know this until we have the exact model. */
 			return SR_ERR_ARG;
+		if (devc->num_timebases <= 0)
+			return SR_ERR_NA;
 		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
 		for (i = 0; i < devc->num_timebases; i++) {
 			rational[0] = g_variant_new_uint64(devc->timebases[i][0]);
