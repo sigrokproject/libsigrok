@@ -234,7 +234,7 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		/* No probe group: global options. */
 		switch (key) {
 		case SR_CONF_OUTPUT_CHANNEL:
-			*data = g_variant_new_string(channel_modes[devc->channel_mode - 1]);
+			*data = g_variant_new_string(channel_modes[devc->channel_mode]);
 			break;
 		case SR_CONF_OVER_CURRENT_PROTECTION:
 			*data = g_variant_new_boolean(devc->over_current_protection);
