@@ -192,7 +192,7 @@ SR_API char *sr_si_string_u64(uint64_t x, const char *unit)
 		SR_GHZ(1000), SR_GHZ(1000 * 1000), SR_GHZ(1000 * 1000 * 1000),
 	};
 	const char *p, prefix[] = "\0kMGTPE";
-	char fmt[8], fract[20] = "", *f;
+	char fmt[16], fract[20] = "", *f;
 
 	if (unit == NULL)
 		unit = "";
@@ -200,7 +200,7 @@ SR_API char *sr_si_string_u64(uint64_t x, const char *unit)
 	for (i = 0; (quot = x / divisor[i]) >= 1000; i++);
 
 	if (i) {
-		sprintf(fmt, ".%%0%dlu", i * 3);
+		sprintf(fmt, ".%%0%d"PRIu64, i * 3);
 		f = fract + sprintf(fract, fmt, x % divisor[i]) - 1;
 
 		while (f >= fract && strchr("0.", *f))
