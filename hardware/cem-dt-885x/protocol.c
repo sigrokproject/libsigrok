@@ -405,7 +405,7 @@ SR_PRIV int cem_dt_885x_receive_data(int fd, int revents, void *cb_data)
 }
 
 
-static int wait_for_token(const struct sr_dev_inst *sdi, char *tokens, int timeout)
+static int wait_for_token(const struct sr_dev_inst *sdi, int8_t *tokens, int timeout)
 {
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
@@ -441,7 +441,7 @@ static int wait_for_token(const struct sr_dev_inst *sdi, char *tokens, int timeo
 /* cmd is the command to send, tokens are the tokens that denote the state
  * which the command affects. The first token is the desired state. */
 SR_PRIV int cem_dt_885x_toggle(const struct sr_dev_inst *sdi, uint8_t cmd,
-		char *tokens, int timeout)
+		int8_t *tokens, int timeout)
 {
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
@@ -469,7 +469,7 @@ SR_PRIV gboolean cem_dt_885x_recording_get(const struct sr_dev_inst *sdi,
 		int *state)
 {
 	struct dev_context *devc;
-	char tokens[5];
+	int8_t tokens[5];
 
 	devc = sdi->priv;
 	if (devc->recording == -1) {
@@ -490,7 +490,7 @@ SR_PRIV int cem_dt_885x_recording_set(const struct sr_dev_inst *sdi,
 {
 	struct dev_context *devc;
 	int ret;
-	char tokens[5];
+	int8_t tokens[5];
 
 	devc = sdi->priv;
 
@@ -526,7 +526,7 @@ SR_PRIV int cem_dt_885x_weight_freq_get(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	int cur_setting;
-	char tokens[5];
+	int8_t tokens[5];
 
 	devc = sdi->priv;
 
@@ -550,7 +550,7 @@ SR_PRIV int cem_dt_885x_weight_freq_set(const struct sr_dev_inst *sdi, int freqw
 {
 	struct dev_context *devc;
 	int cur_setting, ret;
-	char tokens[5];
+	int8_t tokens[5];
 
 	devc = sdi->priv;
 
@@ -588,7 +588,7 @@ SR_PRIV int cem_dt_885x_weight_time_get(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	int cur_setting;
-	char tokens[5];
+	int8_t tokens[5];
 
 	devc = sdi->priv;
 
@@ -612,7 +612,7 @@ SR_PRIV int cem_dt_885x_weight_time_set(const struct sr_dev_inst *sdi, int timew
 {
 	struct dev_context *devc;
 	int cur_setting, ret;
-	char tokens[5];
+	int8_t tokens[5];
 
 	devc = sdi->priv;
 
@@ -650,7 +650,7 @@ SR_PRIV int cem_dt_885x_holdmode_get(const struct sr_dev_inst *sdi,
 		gboolean *holdmode)
 {
 	struct dev_context *devc;
-	char tokens[5];
+	int8_t tokens[5];
 
 	devc = sdi->priv;
 
@@ -675,7 +675,7 @@ SR_PRIV int cem_dt_885x_holdmode_set(const struct sr_dev_inst *sdi, int holdmode
 {
 	struct dev_context *devc;
 	int cur_setting, ret;
-	char tokens[5];
+	int8_t tokens[5];
 
 	devc = sdi->priv;
 
@@ -719,7 +719,7 @@ SR_PRIV int cem_dt_885x_meas_range_get(const struct sr_dev_inst *sdi,
 		uint64_t *low, uint64_t *high)
 {
 	struct dev_context *devc;
-	char tokens[5];
+	int8_t tokens[5];
 
 	devc = sdi->priv;
 	if (devc->cur_meas_range == 0) {
@@ -762,7 +762,7 @@ SR_PRIV int cem_dt_885x_meas_range_set(const struct sr_dev_inst *sdi,
 {
 	struct dev_context *devc;
 	int ret;
-	char token, tokens[6];
+	int8_t token, tokens[6];
 
 	devc = sdi->priv;
 	if (low == 30 && high == 130)
