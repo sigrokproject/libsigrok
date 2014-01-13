@@ -126,6 +126,9 @@ ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="000a", MODE="664", GROUP="plugdev"
 # Rigol DS series
 ATTRS{idVendor}=="1ab1", ATTRS{idProduct}=="0588", MODE="664", GROUP="plugdev"
 
+# Rigol DG4000 series
+ATTRS{idVendor}=="1ab1", ATTRS{idProduct}=="0641", MODE="664", GROUP="plugdev"
+
 # Agilent DSO1000 series
 ATTRS{idVendor}=="0957", ATTRS{idProduct}=="0588", MODE="664", GROUP="plugdev"
 
