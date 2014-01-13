@@ -75,7 +75,7 @@ static const struct sr_scpi_dev_inst *scpi_devs[] = {
 	&scpi_tcp_raw_dev,
 	&scpi_tcp_rigol_dev,
 	&scpi_usbtmc_dev,
-#ifdef HAVE_RPC
+#if HAVE_RPC
 	&scpi_vxi_dev,
 #endif
 #ifdef HAVE_LIBSERIALPORT
