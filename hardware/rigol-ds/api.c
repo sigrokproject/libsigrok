@@ -672,7 +672,6 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	}
 
 	switch (key) {
-		break;
 	case SR_CONF_DEVICE_OPTIONS:
 		if (!probe_group) {
 			sr_err("No probe group specified.");
