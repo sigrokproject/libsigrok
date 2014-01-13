@@ -31,7 +31,7 @@
  */
 #define SERIALCOMM "9600/8n2"
 
-static const int32_t hwopts[] = {
+static const int32_t scanopts[] = {
 	SR_CONF_CONN,
 	SR_CONF_SERIALCOMM,
 };
@@ -39,18 +39,11 @@ static const int32_t hwopts[] = {
 static const int32_t devopts[] = {
 	SR_CONF_POWER_SUPPLY,
 	SR_CONF_CONTINUOUS,
-};
-
-static const int32_t devopts_sdi[] = {
-	SR_CONF_POWER_SUPPLY,
-	SR_CONF_CONTINUOUS,
 	SR_CONF_OUTPUT_CHANNEL,
 	SR_CONF_OVER_CURRENT_PROTECTION,
 };
 
 static const int32_t devopts_pg[] = {
-	SR_CONF_POWER_SUPPLY,
-	SR_CONF_CONTINUOUS,
 	SR_CONF_OUTPUT_VOLTAGE,
 	SR_CONF_OUTPUT_VOLTAGE_MAX,
 	SR_CONF_OUTPUT_CURRENT,
@@ -382,21 +375,12 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	/* Always available, even without sdi. */
 	if (key == SR_CONF_SCAN_OPTIONS) {
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-				hwopts, ARRAY_SIZE(hwopts), sizeof(int32_t));
+				scanopts, ARRAY_SIZE(scanopts), sizeof(int32_t));
 		return SR_OK;
 	}
 
-	if (!sdi) {
-		if (key == SR_CONF_DEVICE_OPTIONS) {
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-					devopts, ARRAY_SIZE(devopts), sizeof(int32_t));
-			return SR_OK;
-
-		} else {
-			/* Everything else needs an sdi. */
-			return SR_ERR_ARG;
-		}
-	}
+	if (!sdi)
+		return SR_ERR_ARG;
 	devc = sdi->priv;
 
 	ret = SR_OK;
@@ -405,7 +389,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		switch (key) {
 		case SR_CONF_DEVICE_OPTIONS:
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-					devopts_sdi, ARRAY_SIZE(devopts_sdi), sizeof(int32_t));
+					devopts, ARRAY_SIZE(devopts), sizeof(int32_t));
 			break;
 		case SR_CONF_OUTPUT_CHANNEL:
 			if (devc->model->channel_modes == CHANMODE_INDEPENDENT) {
