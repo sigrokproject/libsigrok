@@ -69,6 +69,7 @@ struct elusb_profile {
 
 SR_PRIV int lascar_get_config(libusb_device_handle *dev_hdl,
 		unsigned char *configblock, int *configlen);
+SR_PRIV struct sr_dev_inst *lascar_scan(int bus, int address);
 SR_PRIV int lascar_el_usb_handle_events(int fd, int revents, void *cb_data);
 SR_PRIV void lascar_el_usb_receive_transfer(struct libusb_transfer *transfer);
 SR_PRIV int lascar_start_logging(const struct sr_dev_inst *sdi);

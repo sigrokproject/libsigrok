@@ -19,10 +19,6 @@
 
 #include "protocol.h"
 
-/* parser.c */
-SR_PRIV int sr_brymen_parse(const uint8_t *buf, float *floatval,
-			    struct sr_datafeed_analog *analog, void *info);
-
 static void handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi)
 {
 	float floatval;

@@ -23,7 +23,6 @@
 #include "libsigrok-internal.h"
 #include "protocol.h"
 
-SR_PRIV struct sr_dev_inst *lascar_scan(int bus, int address);
 SR_PRIV struct sr_dev_driver lascar_el_usb_driver_info;
 static struct sr_dev_driver *di = &lascar_el_usb_driver_info;
 
