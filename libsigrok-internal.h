@@ -453,6 +453,9 @@ struct es519xx_info {
 SR_PRIV gboolean sr_es519xx_2400_11b_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_es519xx_2400_11b_parse(const uint8_t *buf, float *floatval,
 		struct sr_datafeed_analog *analog, void *info);
+SR_PRIV gboolean sr_es519xx_2400_11b_altfn_packet_valid(const uint8_t *buf);
+SR_PRIV int sr_es519xx_2400_11b_altfn_parse(const uint8_t *buf,
+		float *floatval, struct sr_datafeed_analog *analog, void *info);
 SR_PRIV gboolean sr_es519xx_19200_11b_5digits_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_es519xx_19200_11b_5digits_parse(const uint8_t *buf,
 		float *floatval, struct sr_datafeed_analog *analog, void *info);
