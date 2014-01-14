@@ -78,6 +78,7 @@ enum {
 	 */
 	PATTERN_SQUARE,
 	PATTERN_SINE,
+	PATTERN_TRIANGLE,
 };
 
 static const char *logic_pattern_str[] = {
@@ -91,6 +92,7 @@ static const char *logic_pattern_str[] = {
 static const char *analog_pattern_str[] = {
 	"square",
 	"sine",
+	"triangle",
 };
 
 struct analog_gen {
@@ -214,6 +216,21 @@ static void generate_analog_pattern(const struct sr_probe_group *probe_group, ui
 			t = (double) i / (double) sample_rate;
 			ag->pattern_data[i] = ANALOG_AMPLITUDE *
 						sin(2 * M_PI * frequency * t);
+		}
+
+		ag->num_samples = num_samples;
+		break;
+
+	case PATTERN_TRIANGLE:
+		frequency = sample_rate / ANALOG_SAMPLES_PER_PERIOD;
+
+		while (num_samples % ANALOG_SAMPLES_PER_PERIOD != 0)
+			num_samples--;
+
+		for (i = 0; i < num_samples; i++) {
+			t = (double) i / (double) sample_rate;
+			ag->pattern_data[i] = (2 * ANALOG_AMPLITUDE / M_PI) *
+						asin(sin(2 * M_PI * frequency * t));
 		}
 
 		ag->num_samples = num_samples;
