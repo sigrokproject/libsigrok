@@ -336,15 +336,3 @@ SR_PRIV int kecheng_kc_330b_log_info_get(const struct sr_dev_inst *sdi,
 
 	return SR_OK;
 }
-
-static int kecheng_kc_330b_log_date_time_get(const struct sr_dev_inst *sdi,
-		gboolean *tmp)
-{
-
-	(void)sdi;
-	(void)tmp;
-
-	/* TODO */
-
-	return SR_OK;
-}

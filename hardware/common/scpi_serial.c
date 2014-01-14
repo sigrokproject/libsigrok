@@ -105,60 +105,6 @@ static int scpi_serial_send(void *priv, const char *command)
 	return SR_OK;
 }
 
-static int scpi_serial_receive(void *priv, char **scpi_response)
-{
-	int len, ret;
-	char buf[256];
-	unsigned int i;
-	GString *response;
-	struct scpi_serial *sscpi = priv;
-	struct sr_serial_dev_inst *serial = sscpi->serial;
-
-	response = g_string_sized_new(1024);
-
-	for (i = 0; i <= SCPI_READ_RETRIES; i++) {
-		while ((len = serial_read(serial, buf, sizeof(buf))) > 0)
-			response = g_string_append_len(response, buf, len);
-
-		if (response->len > 0 &&
-		    response->str[response->len-1] == '\n') {
-			sr_spew("Fetched full SCPI response.");
-			break;
-		}
-
-		g_usleep(SCPI_READ_RETRY_TIMEOUT);
-	}
-
-	if (response->len == 0) {
-		sr_dbg("No SCPI response received.");
-		g_string_free(response, TRUE);
-		*scpi_response = NULL;
-		return SR_ERR;
-	} else if (response->str[response->len - 1] == '\n') {
-		/*
-		 * The SCPI response contains a LF ('\n') at the end and we
-		 * don't need this so replace it with a '\0' and decrement
-		 * the length.
-		 */
-		response->str[--response->len] = '\0';
-		ret = SR_OK;
-	} else {
-		sr_warn("Incomplete SCPI response received!");
-		ret = SR_ERR;
-	}
-
-	/* Minor optimization: steal the string instead of copying. */
-	*scpi_response = response->str;
-
-	/* A SCPI response can be quite large, print at most 50 characters. */
-	sr_dbg("SCPI response received (length %d): '%.50s'",
-	       response->len, response->str);
-
-	g_string_free(response, FALSE);
-
-	return ret;
-}
-
 static int scpi_serial_read_begin(void *priv)
 {
 	struct scpi_serial *sscpi = priv;
