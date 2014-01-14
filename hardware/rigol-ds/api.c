@@ -41,6 +41,7 @@ static const int32_t hwcaps[] = {
 	SR_CONF_HORIZ_TRIGGERPOS,
 	SR_CONF_NUM_TIMEBASE,
 	SR_CONF_LIMIT_FRAMES,
+	SR_CONF_SAMPLERATE,
 };
 
 static const int32_t analog_hwcaps[] = {
@@ -516,6 +517,15 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 			*data = g_variant_new_string("Memory");
 		else
 			*data = g_variant_new_string("Segmented");
+		break;
+	case SR_CONF_SAMPLERATE:
+		if (devc->data_source == DATA_SOURCE_LIVE) {
+			uint64_t samplerate = analog_frame_size(sdi) /
+				(devc->timebase * devc->model->num_horizontal_divs);
+			*data = g_variant_new_uint64(samplerate);
+		}
+		else
+			return SR_ERR_NA;
 		break;
 	default:
 		return SR_ERR_NA;
