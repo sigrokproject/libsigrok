@@ -745,20 +745,22 @@ SR_PRIV int lwla_set_clock_source(const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	int ret;
 	enum clock_source selected;
+	size_t idx;
 
 	devc = sdi->priv;
 	selected = devc->selected_clock_source;
 
 	if (devc->cur_clock_source != selected) {
 		devc->cur_clock_source = CLOCK_SOURCE_NONE;
-
-		if (selected >= 0 && selected < G_N_ELEMENTS(bitstream_map)) {
-			ret = lwla_send_bitstream(sdi->conn,
-						  bitstream_map[selected]);
-			if (ret == SR_OK)
-				devc->cur_clock_source = selected;
-			return ret;
+		idx = selected;
+		if (idx >= G_N_ELEMENTS(bitstream_map)) {
+			sr_err("Clock source (%d) out of range", selected);
+			return SR_ERR_BUG;
 		}
+		ret = lwla_send_bitstream(sdi->conn, bitstream_map[idx]);
+		if (ret == SR_OK)
+			devc->cur_clock_source = selected;
+		return ret;
 	}
 	return SR_OK;
 }
