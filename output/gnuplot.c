@@ -86,6 +86,11 @@ static int init(struct sr_output *o)
 			continue;
 		ctx->num_enabled_probes++;
 	}
+	if (ctx->num_enabled_probes <= 0) {
+		sr_err("%s: no logic probe enabled", __func__);
+		return SR_ERR;
+	}
+
 	ctx->unitsize = (ctx->num_enabled_probes + 7) / 8;
 
 	num_probes = g_slist_length(o->sdi->probes);
