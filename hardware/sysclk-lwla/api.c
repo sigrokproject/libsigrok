@@ -81,16 +81,24 @@ static GSList *scan(GSList *options)
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
+	struct sr_config *src;
+	const char *conn;
 	int device_index;
 
-	(void)options;
-
-	devices = NULL;
 	drvc = di->priv;
 	drvc->instances = NULL;
-	device_index = 0;
+	conn = USB_VID_PID;
 
-	usb_devices = sr_usb_find(drvc->sr_ctx->libusb_ctx, USB_VID_PID);
+	for (node = options; node != NULL; node = node->next) {
+		src = node->data;
+		if (src->key == SR_CONF_CONN) {
+			conn = g_variant_get_string(src->data, NULL);
+			break;
+		}
+	}
+	usb_devices = sr_usb_find(drvc->sr_ctx->libusb_ctx, conn);
+	devices = NULL;
+	device_index = 0;
 
 	for (node = usb_devices; node != NULL; node = node->next) {
 		usb = node->data;
