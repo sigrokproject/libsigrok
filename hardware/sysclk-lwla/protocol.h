@@ -185,7 +185,6 @@ struct dev_context {
 	int reg_write_len;
 
 	enum device_state state;
-	enum device_state next_state;
 
 	/** The currently configured clock source of the device. */
 	enum clock_source cur_clock_source;
