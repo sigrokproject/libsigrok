@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <math.h>
 #ifdef _WIN32
 #include <io.h>
 #include <fcntl.h>
@@ -40,6 +41,9 @@
 #define LOGIC_BUFSIZE        4096
 /* Size of the analog pattern space per channel. */
 #define ANALOG_BUFSIZE       4096
+
+#define ANALOG_AMPLITUDE 25
+#define ANALOG_SAMPLES_PER_PERIOD 20
 
 /* Logic patterns we can generate. */
 enum {
@@ -73,6 +77,7 @@ enum {
 	 * Square wave.
 	 */
 	PATTERN_SQUARE,
+	PATTERN_SINE,
 };
 
 static const char *logic_pattern_str[] = {
@@ -85,6 +90,7 @@ static const char *logic_pattern_str[] = {
 
 static const char *analog_pattern_str[] = {
 	"square",
+	"sine",
 };
 
 struct analog_gen {
@@ -165,19 +171,23 @@ static int init(struct sr_context *sr_ctx)
 	return std_init(sr_ctx, di, LOG_PREFIX);
 }
 
-static void set_analog_pattern(const struct sr_probe_group *probe_group, int pattern)
+static void generate_analog_pattern(const struct sr_probe_group *probe_group, uint64_t sample_rate)
 {
 	struct analog_gen *ag;
+	double t, frequency;
 	float value;
 	unsigned int num_samples, i;
 	int last_end;
 
 	ag = probe_group->priv;
-	ag->pattern = pattern;
+	num_samples = ANALOG_BUFSIZE / sizeof(float);
 
-	switch (pattern) {
+	sr_dbg("Generating %s pattern for probe group %s",
+	       analog_pattern_str[ag->pattern],
+	       probe_group->name);
+
+	switch (ag->pattern) {
 	case PATTERN_SQUARE:
-		num_samples = ANALOG_BUFSIZE / sizeof(float);
 		value = 5.0;
 		last_end = 0;
 		for (i = 0; i < num_samples; i++) {
@@ -188,6 +198,25 @@ static void set_analog_pattern(const struct sr_probe_group *probe_group, int pat
 			ag->pattern_data[i] = value;
 		}
 		ag->num_samples = last_end;
+		break;
+
+	case PATTERN_SINE:
+		frequency = sample_rate / ANALOG_SAMPLES_PER_PERIOD;
+
+		/* Make sure the number of samples we put out is an integer
+		 * multiple of our period size */
+		/* FIXME we actually need only one period. A ringbuffer would be
+		 * usefull here.*/
+		while (num_samples % ANALOG_SAMPLES_PER_PERIOD != 0)
+			num_samples--;
+
+		for (i = 0; i < num_samples; i++) {
+			t = (double) i / (double) sample_rate;
+			ag->pattern_data[i] = ANALOG_AMPLITUDE *
+						sin(2 * M_PI * frequency * t);
+		}
+
+		ag->num_samples = num_samples;
 		break;
 	}
 }
@@ -279,8 +308,8 @@ static GSList *scan(GSList *options)
 		ag->packet.mqflags = 0;
 		ag->packet.unit = SR_UNIT_VOLT;
 		ag->packet.data = ag->pattern_data;
+		ag->pattern = PATTERN_SINE;
 		pg->priv = ag;
-		set_analog_pattern(pg, PATTERN_SQUARE);
 
 		sdi->probe_groups = g_slist_append(sdi->probe_groups, pg);
 		devc->analog_probe_groups = g_slist_append(devc->analog_probe_groups, pg);
@@ -370,6 +399,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 		const struct sr_probe_group *probe_group)
 {
 	struct dev_context *devc;
+	struct analog_gen *ag;
 	struct sr_probe *probe;
 	int pattern, ret;
 	unsigned int i;
@@ -429,9 +459,11 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 			}
 			if (pattern == -1)
 				return SR_ERR_ARG;
-			sr_dbg("Setting analog pattern to %s",
+			sr_dbg("Setting analog pattern for probe group %s to %s",
+					probe_group->name,
 					analog_pattern_str[pattern]);
-			set_analog_pattern(probe_group, pattern);
+			ag = probe_group->priv;
+			ag->pattern = pattern;
 		} else
 			return SR_ERR_BUG;
 		break;
@@ -597,6 +629,12 @@ static int prepare_data(int fd, int revents, void *cb_data)
 				ag = pg->priv;
 				packet.type = SR_DF_ANALOG;
 				packet.payload = &ag->packet;
+
+				/* FIXME we should make sure we output a whole
+				 * period of data before we send out again the
+				 * beginning of our buffer. A ring buffer would
+				 * help here as well */
+
 				analog_samples = MIN(samples_to_send, ag->num_samples);
 				/* Whichever probe group gets there first. */
 				sending_now = MAX(sending_now, analog_samples);
@@ -621,6 +659,7 @@ static int prepare_data(int fd, int revents, void *cb_data)
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 {
+	GSList *l;
 	struct dev_context *devc;
 
 	if (sdi->status != SR_ST_ACTIVE)
@@ -640,6 +679,10 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	if (pipe(devc->pipe_fds)) {
 		sr_err("%s: pipe() failed", __func__);
 		return SR_ERR;
+	}
+
+	for (l = devc->analog_probe_groups; l; l = l->next) {
+		generate_analog_pattern(l->data, devc->cur_samplerate);
 	}
 
 	devc->channel = g_io_channel_unix_new(devc->pipe_fds[0]);
