@@ -220,13 +220,9 @@ AC_ARG_ENABLE(serial-dmm, AC_HELP_STRING([--enable-serial-dmm],
 	[HW_SERIAL_DMM=$HW_ENABLED_DEFAULT])
 
 AC_ARG_ENABLE(sysclk-lwla, AC_HELP_STRING([--enable-sysclk-lwla],
-	[enable SysClk LWLA support [default=yes]]),
+	[enable Sysclk LWLA support [default=yes]]),
 	[HW_SYSCLK_LWLA="$enableval"],
 	[HW_SYSCLK_LWLA=$HW_ENABLED_DEFAULT])
-AM_CONDITIONAL(HW_SYSCLK_LWLA, test x$HW_SYSCLK_LWLA = xyes)
-if test "x$HW_SYSCLK_LWLA" = "xyes"; then
-	AC_DEFINE(HAVE_HW_SYSCLK_LWLA, 1, [SysClk LWLA support])
-fi
 
 AC_ARG_ENABLE(teleinfo, AC_HELP_STRING([--enable-teleinfo],
 	[enable Teleinfo support [default=yes]]),
@@ -522,6 +518,11 @@ fi
 AM_CONDITIONAL(HW_SERIAL_DMM, test x$HW_SERIAL_DMM = xyes)
 if test "x$HW_SERIAL_DMM" = "xyes"; then
 	AC_DEFINE(HAVE_HW_SERIAL_DMM, 1, [Serial DMM support])
+fi
+
+AM_CONDITIONAL(HW_SYSCLK_LWLA, test x$HW_SYSCLK_LWLA = xyes)
+if test "x$HW_SYSCLK_LWLA" = "xyes"; then
+	AC_DEFINE(HAVE_HW_SYSCLK_LWLA, 1, [Sysclk LWLA support])
 fi
 
 AM_CONDITIONAL(HW_TELEINFO, test x$HW_TELEINFO = xyes)
