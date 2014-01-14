@@ -426,7 +426,7 @@ SR_PRIV int hmo_scope_state_get(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-SR_PRIV struct scope_state *scope_state_new(struct scope_config *config)
+static struct scope_state *scope_state_new(struct scope_config *config)
 {
 	struct scope_state *state;
 

@@ -55,7 +55,7 @@ static const struct elusb_profile profiles[] = {
 };
 
 
-SR_PRIV libusb_device_handle *lascar_open(struct libusb_device *dev)
+static libusb_device_handle *lascar_open(struct libusb_device *dev)
 {
 	libusb_device_handle *dev_hdl;
 	int ret;
@@ -202,7 +202,7 @@ cleanup:
 	return *configlen ? SR_OK : SR_ERR;
 }
 
-SR_PRIV int lascar_save_config(libusb_device_handle *dev_hdl,
+static int lascar_save_config(libusb_device_handle *dev_hdl,
 		unsigned char *config, int configlen)
 {
 	struct drv_context *drvc;

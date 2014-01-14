@@ -440,7 +440,7 @@ static int wait_for_token(const struct sr_dev_inst *sdi, int8_t *tokens, int tim
 
 /* cmd is the command to send, tokens are the tokens that denote the state
  * which the command affects. The first token is the desired state. */
-SR_PRIV int cem_dt_885x_toggle(const struct sr_dev_inst *sdi, uint8_t cmd,
+static int cem_dt_885x_toggle(const struct sr_dev_inst *sdi, uint8_t cmd,
 		int8_t *tokens, int timeout)
 {
 	struct dev_context *devc;

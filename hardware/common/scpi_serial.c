@@ -47,7 +47,7 @@ static int scpi_serial_dev_inst_new(void *priv, const char *resource,
 	return SR_OK;
 }
 
-SR_PRIV int scpi_serial_open(void *priv)
+static int scpi_serial_open(void *priv)
 {
 	struct scpi_serial *sscpi = priv;
 	struct sr_serial_dev_inst *serial = sscpi->serial;
@@ -61,7 +61,7 @@ SR_PRIV int scpi_serial_open(void *priv)
 	return SR_OK;
 }
 
-SR_PRIV int scpi_serial_source_add(void *priv, int events, int timeout,
+static int scpi_serial_source_add(void *priv, int events, int timeout,
 			sr_receive_data_callback_t cb, void *cb_data)
 {
 	struct scpi_serial *sscpi = priv;
@@ -70,7 +70,7 @@ SR_PRIV int scpi_serial_source_add(void *priv, int events, int timeout,
 	return serial_source_add(serial, events, timeout, cb, cb_data);
 }
 
-SR_PRIV int scpi_serial_source_remove(void *priv)
+static int scpi_serial_source_remove(void *priv)
 {
 	struct scpi_serial *sscpi = priv;
 	struct sr_serial_dev_inst *serial = sscpi->serial;
@@ -78,7 +78,7 @@ SR_PRIV int scpi_serial_source_remove(void *priv)
 	return serial_source_remove(serial);
 }
 
-SR_PRIV int scpi_serial_send(void *priv, const char *command)
+static int scpi_serial_send(void *priv, const char *command)
 {
 	int len, result, written;
 	gchar *terminated_command;
@@ -105,7 +105,7 @@ SR_PRIV int scpi_serial_send(void *priv, const char *command)
 	return SR_OK;
 }
 
-SR_PRIV int scpi_serial_receive(void *priv, char **scpi_response)
+static int scpi_serial_receive(void *priv, char **scpi_response)
 {
 	int len, ret;
 	char buf[256];
@@ -159,7 +159,7 @@ SR_PRIV int scpi_serial_receive(void *priv, char **scpi_response)
 	return ret;
 }
 
-SR_PRIV int scpi_serial_read_begin(void *priv)
+static int scpi_serial_read_begin(void *priv)
 {
 	struct scpi_serial *sscpi = priv;
 
@@ -168,7 +168,7 @@ SR_PRIV int scpi_serial_read_begin(void *priv)
 	return SR_OK;
 }
 
-SR_PRIV int scpi_serial_read_data(void *priv, char *buf, int maxlen)
+static int scpi_serial_read_data(void *priv, char *buf, int maxlen)
 {
 	struct scpi_serial *sscpi = priv;
 	int ret;
@@ -187,7 +187,7 @@ SR_PRIV int scpi_serial_read_data(void *priv, char *buf, int maxlen)
 	return ret;
 }
 
-SR_PRIV int scpi_serial_read_complete(void *priv)
+static int scpi_serial_read_complete(void *priv)
 {
 	struct scpi_serial *sscpi = priv;
 

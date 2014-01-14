@@ -51,7 +51,7 @@ static int scpi_usbtmc_dev_inst_new(void *priv, const char *resource,
 	return SR_OK;
 }
 
-SR_PRIV int scpi_usbtmc_open(void *priv)
+static int scpi_usbtmc_open(void *priv)
 {
 	struct usbtmc_scpi *uscpi = priv;
 	struct sr_usbtmc_dev_inst *usbtmc = uscpi->usbtmc;
@@ -62,7 +62,7 @@ SR_PRIV int scpi_usbtmc_open(void *priv)
 	return SR_OK;
 }
 
-SR_PRIV int scpi_usbtmc_source_add(void *priv, int events, int timeout,
+static int scpi_usbtmc_source_add(void *priv, int events, int timeout,
 			sr_receive_data_callback_t cb, void *cb_data)
 {
 	struct usbtmc_scpi *uscpi = priv;
@@ -71,7 +71,7 @@ SR_PRIV int scpi_usbtmc_source_add(void *priv, int events, int timeout,
 	return sr_source_add(usbtmc->fd, events, timeout, cb, cb_data);
 }
 
-SR_PRIV int scpi_usbtmc_source_remove(void *priv)
+static int scpi_usbtmc_source_remove(void *priv)
 {
 	struct usbtmc_scpi *uscpi = priv;
 	struct sr_usbtmc_dev_inst *usbtmc = uscpi->usbtmc;
@@ -79,7 +79,7 @@ SR_PRIV int scpi_usbtmc_source_remove(void *priv)
 	return sr_source_remove(usbtmc->fd);
 }
 
-SR_PRIV int scpi_usbtmc_send(void *priv, const char *command)
+static int scpi_usbtmc_send(void *priv, const char *command)
 {
 	struct usbtmc_scpi *uscpi = priv;
 	struct sr_usbtmc_dev_inst *usbtmc = uscpi->usbtmc;
@@ -103,7 +103,7 @@ SR_PRIV int scpi_usbtmc_send(void *priv, const char *command)
 	return SR_OK;
 }
 
-SR_PRIV int scpi_usbtmc_read_begin(void *priv)
+static int scpi_usbtmc_read_begin(void *priv)
 {
 	struct usbtmc_scpi *uscpi = priv;
 	struct sr_usbtmc_dev_inst *usbtmc = uscpi->usbtmc;
@@ -122,7 +122,7 @@ SR_PRIV int scpi_usbtmc_read_begin(void *priv)
 	return SR_OK;
 }
 
-SR_PRIV int scpi_usbtmc_read_data(void *priv, char *buf, int maxlen)
+static int scpi_usbtmc_read_data(void *priv, char *buf, int maxlen)
 {
 	struct usbtmc_scpi *uscpi = priv;
 	int read_length;
@@ -147,7 +147,7 @@ SR_PRIV int scpi_usbtmc_read_data(void *priv, char *buf, int maxlen)
 	return read_length;
 }
 
-SR_PRIV int scpi_usbtmc_read_complete(void *priv)
+static int scpi_usbtmc_read_complete(void *priv)
 {
 	struct usbtmc_scpi *uscpi = priv;
 
@@ -158,7 +158,7 @@ SR_PRIV int scpi_usbtmc_read_complete(void *priv)
 	return (uscpi->response_bytes_read >= uscpi->response_length);
 }
 
-SR_PRIV int scpi_usbtmc_close(void *priv)
+static int scpi_usbtmc_close(void *priv)
 {
 	struct usbtmc_scpi *uscpi = priv;
 

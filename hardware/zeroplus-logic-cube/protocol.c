@@ -30,7 +30,7 @@ SR_PRIV unsigned int get_memory_size(int type)
 		return 0;
 }
 
-SR_PRIV int clz(unsigned int x)
+static int clz(unsigned int x)
 {
 	int n = 0;
 	if (x == 0)

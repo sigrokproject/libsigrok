@@ -66,7 +66,7 @@ static int send_bulkcmd(const struct sr_dev_inst *sdi, uint8_t *cmdstring, int c
 	return SR_OK;
 }
 
-SR_PRIV int dso_getmps(libusb_device *dev)
+static int dso_getmps(libusb_device *dev)
 {
 	struct libusb_device_descriptor des;
 	struct libusb_config_descriptor *conf_dsc;
@@ -256,7 +256,7 @@ static int get_channel_offsets(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-SR_PRIV int dso_set_trigger_samplerate(const struct sr_dev_inst *sdi)
+static int dso_set_trigger_samplerate(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
@@ -373,7 +373,7 @@ SR_PRIV int dso_set_trigger_samplerate(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-SR_PRIV int dso_set_filters(const struct sr_dev_inst *sdi)
+static int dso_set_filters(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
@@ -415,7 +415,7 @@ SR_PRIV int dso_set_filters(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-SR_PRIV int dso_set_voltage(const struct sr_dev_inst *sdi)
+static int dso_set_voltage(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
@@ -485,7 +485,7 @@ SR_PRIV int dso_set_voltage(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-SR_PRIV int dso_set_relays(const struct sr_dev_inst *sdi)
+static int dso_set_relays(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
@@ -542,7 +542,7 @@ SR_PRIV int dso_set_relays(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-SR_PRIV int dso_set_voffsets(const struct sr_dev_inst *sdi)
+static int dso_set_voffsets(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
