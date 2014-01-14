@@ -456,6 +456,38 @@ static int cleanup(void)
 	return dev_clear();
 }
 
+static int analog_frame_size(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc = sdi->priv;
+	struct sr_probe *probe;
+	int analog_probes = 0;
+	GSList *l;
+
+	if (devc->model->protocol == PROTOCOL_LEGACY) {
+		if (devc->model->series == RIGOL_VS5000)
+			return VS5000_ANALOG_LIVE_WAVEFORM_SIZE;
+		else
+			return DS1000_ANALOG_LIVE_WAVEFORM_SIZE;
+	} else {
+		for (l = sdi->probes; l; l = l->next) {
+			probe = l->data;
+			if (probe->type == SR_PROBE_ANALOG && probe->enabled)
+				analog_probes++;
+		}
+		if (devc->data_source == DATA_SOURCE_MEMORY) {
+			if (analog_probes == 1)
+				return DS2000_ANALOG_MEM_WAVEFORM_SIZE_1C;
+			else
+				return DS2000_ANALOG_MEM_WAVEFORM_SIZE_2C;
+		} else {
+			if (devc->model->series == AGILENT_DSO1000)
+				return DSO1000_ANALOG_LIVE_WAVEFORM_SIZE;
+			else
+				return DS2000_ANALOG_LIVE_WAVEFORM_SIZE;
+		}
+	}
+}
+
 static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_probe_group *probe_group)
 {
@@ -817,10 +849,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	else
 		devc->channel_entry = devc->enabled_digital_probes;
 
+	devc->analog_frame_size = analog_frame_size(sdi);
+
 	if (devc->model->protocol == PROTOCOL_LEGACY) {
-		devc->analog_frame_size = (devc->model->series == RIGOL_VS5000 ?
-				VS5000_ANALOG_LIVE_WAVEFORM_SIZE :
-				DS1000_ANALOG_LIVE_WAVEFORM_SIZE);
 		/* Fetch the first frame. */
 		if (rigol_ds_channel_start(sdi) != SR_OK)
 			return SR_ERR;
@@ -828,10 +859,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		if (devc->enabled_analog_probes) {
 			if (devc->data_source == DATA_SOURCE_MEMORY)
 			{
-				if (g_slist_length(devc->enabled_analog_probes) == 1)
-					devc->analog_frame_size = DS2000_ANALOG_MEM_WAVEFORM_SIZE_1C;
-				else
-					devc->analog_frame_size = DS2000_ANALOG_MEM_WAVEFORM_SIZE_2C;
 				/* Apparently for the DS2000 the memory
 				 * depth can only be set in Running state -
 				 * this matches the behaviour of the UI. */
@@ -841,11 +868,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 					return SR_ERR;
 				if (set_cfg(sdi, ":STOP") != SR_OK)
 					return SR_ERR;
-			} else {
-				if (devc->model->series == AGILENT_DSO1000)
-					devc->analog_frame_size = DSO1000_ANALOG_LIVE_WAVEFORM_SIZE;
-				else
-					devc->analog_frame_size = DS2000_ANALOG_LIVE_WAVEFORM_SIZE;
 			}
 			if (rigol_ds_capture_start(sdi) != SR_OK)
 				return SR_ERR;
