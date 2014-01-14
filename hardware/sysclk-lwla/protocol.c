@@ -341,6 +341,8 @@ static void issue_stop_capture(const struct sr_dev_inst *sdi)
  */
 static void process_capture_status(const struct sr_dev_inst *sdi)
 {
+	uint64_t duration;
+	uint64_t timescale;
 	struct dev_context *devc;
 	struct acquisition_state *acq;
 
@@ -358,11 +360,16 @@ static void process_capture_status(const struct sr_dev_inst *sdi)
 	 * in the FPGA.  These fields are definitely less than 64 bit wide
 	 * internally, and the unused bits occasionally even contain garbage.
 	 */
-	acq->mem_addr_fill    = LWLA_READ32(&acq->xfer_buf_in[0]);
-	acq->captured_samples = LWLA_READ32(&acq->xfer_buf_in[8])
-				* (uint64_t)100000;
-	acq->capture_flags    = LWLA_READ32(&acq->xfer_buf_in[16])
+	acq->mem_addr_fill = LWLA_READ32(&acq->xfer_buf_in[0]);
+	duration           = LWLA_READ32(&acq->xfer_buf_in[8]);
+	acq->capture_flags = LWLA_READ32(&acq->xfer_buf_in[16])
 				& STATUS_FLAG_MASK;
+
+	/* The 125 MHz setting is special, and uses the same timebase
+	 * for the duration field as the 100 MHz setting.
+	 */
+	timescale = MIN(devc->samplerate, SR_MHZ(100));
+	acq->captured_samples = (duration * timescale) / 1000;
 
 	sr_spew("Captured %lu words, %" PRIu64 " samples, flags 0x%02X",
 		(unsigned long)acq->mem_addr_fill,
