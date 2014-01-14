@@ -40,6 +40,7 @@ static const int32_t hwcaps[] = {
 	SR_CONF_TRIGGER_SLOPE,
 	SR_CONF_HORIZ_TRIGGERPOS,
 	SR_CONF_NUM_TIMEBASE,
+	SR_CONF_LIMIT_FRAMES,
 };
 
 static const int32_t analog_hwcaps[] = {
