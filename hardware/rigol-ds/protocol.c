@@ -702,14 +702,14 @@ SR_PRIV int rigol_ds_get_dev_cfg(const struct sr_dev_inst *sdi)
 	if (devc->model->has_digital) {
 		sr_dbg("Current digital channel state:");
 		for (i = 0; i < 16; i++) {
-			cmd = g_strdup_printf(":DIG%d:TURN?", i + 1);
+			cmd = g_strdup_printf(":DIG%d:TURN?", i);
 			res = get_cfg_string(sdi, cmd, &t_s);
 			g_free(cmd);
 			if (res != SR_OK)
 				return SR_ERR;
 			devc->digital_channels[i] = !strcmp(t_s, "ON") ? TRUE : FALSE;
 			g_free(t_s);
-			sr_dbg("D%d: %s", i + 1, devc->digital_channels[i] ? "on" : "off");
+			sr_dbg("D%d: %s", i, devc->digital_channels[i] ? "on" : "off");
 		}
 	}
 
