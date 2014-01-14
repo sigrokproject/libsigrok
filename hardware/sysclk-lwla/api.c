@@ -65,7 +65,7 @@ static GSList *gen_probe_list(int num_probes)
 
 	for (i = num_probes; i > 0; --i) {
 		/* The LWLA series simply number probes from CH1 to CHxx. */
-		g_ascii_formatd(name, sizeof name, "CH%.0f", i);
+		g_snprintf(name, sizeof(name), "CH%d", i);
 
 		probe = sr_probe_new(i - 1, SR_PROBE_LOGIC, TRUE, name);
 		list = g_slist_prepend(list, probe);
