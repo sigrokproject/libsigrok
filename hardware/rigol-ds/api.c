@@ -464,12 +464,10 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 		return SR_ERR_ARG;
 
 	/* If a probe group is specified, it must be a valid one. */
-	if (probe_group) {
-		if (probe_group != &devc->analog_groups[0]
-				&& probe_group != &devc->analog_groups[1]) {
-			sr_err("Invalid probe group specified.");
-			return SR_ERR;
-		}
+	if (probe_group && !g_slist_find(sdi->probe_groups, probe_group))
+	{
+		sr_err("Invalid probe group specified.");
+		return SR_ERR;
 	}
 
 	switch (id) {
@@ -510,12 +508,10 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 		return SR_ERR_DEV_CLOSED;
 
 	/* If a probe group is specified, it must be a valid one. */
-	if (probe_group) {
-		if (probe_group != &devc->analog_groups[0]
-				&& probe_group != &devc->analog_groups[1]) {
-			sr_err("Invalid probe group specified.");
-			return SR_ERR;
-		}
+	if (probe_group && !g_slist_find(sdi->probe_groups, probe_group))
+	{
+		sr_err("Invalid probe group specified.");
+		return SR_ERR;
 	}
 
 	ret = SR_OK;
