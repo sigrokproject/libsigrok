@@ -590,9 +590,6 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 				devc->channel_entry = devc->enabled_digital_probes;
 				rigol_ds_channel_start(sdi);
 			} else if (++devc->num_frames == devc->limit_frames) {
-				/* End of last frame. */
-				packet.type = SR_DF_END;
-				sr_session_send(sdi, &packet);
 				sdi->driver->dev_acquisition_stop(sdi, cb_data);
 			} else {
 				/* Get the next frame, starting with the first analog channel. */
