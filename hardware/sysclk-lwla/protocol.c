@@ -83,7 +83,9 @@ static int capture_setup(const struct sr_dev_inst *sdi)
 	 * 100 MHz. At the highest samplerate of 125 MHz the clock divider
 	 * is bypassed.
 	 */
-	if (devc->samplerate > 0 && devc->samplerate < SR_MHZ(100))
+	if (devc->cur_clock_source == CLOCK_SOURCE_INT
+			&& devc->samplerate > 0
+			&& devc->samplerate < SR_MHZ(100))
 		divider_count = SR_MHZ(100) / devc->samplerate - 1;
 	else
 		divider_count = 0;
@@ -258,6 +260,10 @@ static void issue_read_start(const struct sr_dev_inst *sdi)
 		devc->state = STATE_READ_PREPARE;
 }
 
+/* Issue a command as an asynchronous USB transfer which returns the device
+ * to normal state after a read operation.  Sets a new device context state
+ * on success.
+ */
 static void issue_read_end(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
@@ -369,7 +375,7 @@ static void process_capture_status(const struct sr_dev_inst *sdi)
 	 * for the duration field as the 100 MHz setting.
 	 */
 	timescale = MIN(devc->samplerate, SR_MHZ(100));
-	acq->captured_samples = (duration * timescale) / 1000;
+	acq->captured_samples = duration * timescale / 1000;
 
 	sr_spew("Captured %lu words, %" PRIu64 " samples, flags 0x%02X",
 		(unsigned long)acq->mem_addr_fill,
@@ -773,6 +779,7 @@ SR_PRIV int lwla_setup_acquisition(const struct sr_dev_inst *sdi)
 	struct sr_usb_dev_inst *usb;
 	struct regval_pair regvals[7];
 	int ret;
+	gboolean bypass;
 
 	devc = sdi->priv;
 	usb  = sdi->conn;
@@ -795,8 +802,20 @@ SR_PRIV int lwla_setup_acquisition(const struct sr_dev_inst *sdi)
 	regvals[5].reg = REG_CMD_CTRL1;
 	regvals[5].val = 0;
 
+	switch (devc->cur_clock_source) {
+	case CLOCK_SOURCE_INT:
+		bypass = (devc->samplerate > SR_MHZ(100));
+		break;
+	case CLOCK_SOURCE_EXT_FALL:
+	case CLOCK_SOURCE_EXT_RISE:
+		bypass = TRUE;
+		break;
+	default:
+		bypass = FALSE;
+		break;
+	}
 	regvals[6].reg = REG_DIV_BYPASS;
-	regvals[6].val = (devc->samplerate > SR_MHZ(100)) ? 1 : 0;
+	regvals[6].val = bypass;
 
 	ret = lwla_write_regs(usb, regvals, G_N_ELEMENTS(regvals));
 	if (ret != SR_OK)
