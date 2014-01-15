@@ -357,17 +357,16 @@ static int configure_probes(const struct sr_dev_inst *sdi)
 	devc->trigger_edge_mask = 0;
 	devc->trigger_values = 0;
 
-	for (node = sdi->probes, probe_bit = 1;
-			node != NULL;
-			node = node->next, probe_bit <<= 1) {
-
-		if (probe_bit >= ((uint64_t)1 << NUM_PROBES)) {
-			sr_err("Channels over the limit of %d.", NUM_PROBES);
-			return SR_ERR;
-		}
+	for (node = sdi->probes; node != NULL; node = node->next) {
 		probe = node->data;
 		if (!probe || !probe->enabled)
 			continue;
+
+		if (probe->index >= NUM_PROBES) {
+			sr_err("Channel index %d out of range.", probe->index);
+			return SR_ERR_BUG;
+		}
+		probe_bit = (uint64_t)1 << probe->index;
 
 		/* Enable input channel for this probe. */
 		devc->channel_mask |= probe_bit;
