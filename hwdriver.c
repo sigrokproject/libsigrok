@@ -53,7 +53,7 @@ static struct sr_config_info sr_config_info_data[] = {
 	{SR_CONF_CAPTURE_RATIO, SR_T_UINT64, "captureratio",
 		"Pre-trigger capture ratio", NULL},
 	{SR_CONF_PATTERN_MODE, SR_T_CHAR, "pattern",
-		"Pattern generator mode", NULL},
+		"Pattern", NULL},
 	{SR_CONF_TRIGGER_TYPE, SR_T_CHAR, "triggertype",
 		"Trigger types", NULL},
 	{SR_CONF_EXTERNAL_CLOCK, SR_T_BOOL, "external_clock",

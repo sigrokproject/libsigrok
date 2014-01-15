@@ -192,7 +192,7 @@ static void generate_analog_pattern(const struct sr_probe_group *probe_group, ui
 
 	switch (ag->pattern) {
 	case PATTERN_SQUARE:
-		value = 5.0;
+		value = ANALOG_AMPLITUDE;
 		last_end = 0;
 		for (i = 0; i < num_samples; i++) {
 			if (i % 5 == 0)
