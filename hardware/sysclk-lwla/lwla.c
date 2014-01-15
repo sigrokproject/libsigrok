@@ -58,19 +58,18 @@ SR_PRIV int lwla_send_bitstream(const struct sr_usb_dev_inst *usb,
 	ret = libusb_bulk_transfer(usb->devhdl, EP_BITSTREAM,
 				   (unsigned char *)stream, length,
 				   &xfer_len, USB_TIMEOUT);
+	g_mapped_file_unref(file);
+
 	if (ret != 0) {
 		sr_err("Failed to transfer bitstream: %s.",
 		       libusb_error_name(ret));
-		g_mapped_file_unref(file);
 		return SR_ERR;
 	}
 	if (xfer_len != (int)length) {
 		sr_err("Failed to transfer bitstream: incorrect length "
 		       "%d != %d.", xfer_len, (int)length);
-		g_mapped_file_unref(file);
 		return SR_ERR;
 	}
-	g_mapped_file_unref(file);
 	sr_info("FPGA bitstream download of %d bytes done.", xfer_len);
 
 	/* This delay appears to be necessary for reliable operation. */
@@ -83,11 +82,12 @@ SR_PRIV int lwla_send_command(const struct sr_usb_dev_inst *usb,
 			      const uint16_t *command, int cmd_len)
 {
 	int ret;
-	int xfer_len = 0;
+	int xfer_len;
 
-	if (usb == NULL || command == NULL || cmd_len < 1)
+	if (usb == NULL || command == NULL || cmd_len <= 0)
 		return SR_ERR_ARG;
 
+	xfer_len = 0;
 	ret = libusb_bulk_transfer(usb->devhdl, EP_COMMAND,
 				   (unsigned char *)command, cmd_len * 2,
 				   &xfer_len, USB_TIMEOUT);
@@ -108,14 +108,12 @@ SR_PRIV int lwla_receive_reply(const struct sr_usb_dev_inst *usb,
 			       uint16_t *reply, int reply_len, int expect_len)
 {
 	int ret;
-	int xfer_len = 0;
+	int xfer_len;
 
-	if (reply_len == 0)
-		return SR_OK;
-
-	if (usb == NULL || reply == NULL || reply_len < 0)
+	if (usb == NULL || reply == NULL || reply_len <= 0)
 		return SR_ERR_ARG;
 
+	xfer_len = 0;
 	ret = libusb_bulk_transfer(usb->devhdl, EP_REPLY,
 				   (unsigned char *)reply, reply_len * 2,
 				   &xfer_len, USB_TIMEOUT);
@@ -136,7 +134,7 @@ SR_PRIV int lwla_read_reg(const struct sr_usb_dev_inst *usb,
 {
 	int ret;
 	uint16_t command[2];
-	uint16_t reply[256];
+	uint16_t reply[256]; /* full EP buffer to avoid overflows */
 
 	command[0] = LWLA_WORD(CMD_READ_REG);
 	command[1] = LWLA_WORD(reg);
