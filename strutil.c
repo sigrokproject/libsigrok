@@ -422,14 +422,19 @@ SR_API char **sr_parse_triggerstring(const struct sr_dev_inst *sdi,
 SR_API int sr_parse_sizestring(const char *sizestring, uint64_t *size)
 {
 	int multiplier, done;
+	double frac_part;
 	char *s;
 
 	*size = strtoull(sizestring, &s, 10);
 	multiplier = 0;
+	frac_part = 0;
 	done = FALSE;
 	while (s && *s && multiplier == 0 && !done) {
 		switch (*s) {
 		case ' ':
+			break;
+		case '.':
+			frac_part = g_ascii_strtod(s, &s);
 			break;
 		case 'k':
 		case 'K':
@@ -449,8 +454,11 @@ SR_API int sr_parse_sizestring(const char *sizestring, uint64_t *size)
 		}
 		s++;
 	}
-	if (multiplier > 0)
+	if (multiplier > 0) {
 		*size *= multiplier;
+		*size += frac_part * multiplier;
+	} else
+		*size += frac_part;
 
 	if (*s && strcasecmp(s, "Hz"))
 		return SR_ERR;
