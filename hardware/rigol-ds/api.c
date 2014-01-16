@@ -807,6 +807,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	scpi = sdi->conn;
 	devc = sdi->priv;
 
+	devc->num_frames = 0;
+
 	for (l = sdi->probes; l; l = l->next) {
 		probe = l->data;
 		sr_dbg("handling probe %s", probe->name);
