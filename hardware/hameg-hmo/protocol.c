@@ -53,6 +53,7 @@ static const int32_t hmo_hwcaps[] = {
 	SR_CONF_TRIGGER_SLOPE,
 	SR_CONF_HORIZ_TRIGGERPOS,
 	SR_CONF_SAMPLERATE,
+	SR_CONF_LIMIT_FRAMES,
 };
 
 static const int32_t hmo_analog_caps[] = {
