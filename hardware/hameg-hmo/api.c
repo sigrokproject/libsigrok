@@ -531,7 +531,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 			for (j = 1; j <= model->analog_channels; ++j) {
 				if (probe_group != &devc->analog_groups[j - 1])
 					continue;
-				state->analog_channels[j - 1].vdiv = (float) p / q;
+				state->analog_channels[j - 1].vdiv = i;
 				g_ascii_formatd(float_str, sizeof(float_str), "%E", (float) p / q);
 				g_snprintf(command, sizeof(command),
 					   (*model->scpi_dialect)[SCPI_CMD_SET_VERTICAL_DIV],
@@ -555,7 +555,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 			if (p != (*model->timebases)[i][0] ||
 			    q != (*model->timebases)[i][1])
 				continue;
-			state->timebase = (float) p / q;
+			state->timebase = i;
 			g_ascii_formatd(float_str, sizeof(float_str), "%E", (float) p / q);
 			g_snprintf(command, sizeof(command),
 				   (*model->scpi_dialect)[SCPI_CMD_SET_TIMEBASE],

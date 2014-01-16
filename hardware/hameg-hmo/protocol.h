@@ -69,7 +69,7 @@ struct scope_config {
 struct analog_channel_state {
 	int coupling;
 
-	float vdiv;
+	int vdiv;
 	float vertical_offset;
 
 	gboolean state;
@@ -80,7 +80,7 @@ struct scope_state {
 	gboolean *digital_channels;
 	gboolean *digital_pods;
 
-	float timebase;
+	int timebase;
 	float horiz_triggerpos;
 
 	int trigger_source;

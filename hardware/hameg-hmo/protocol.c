@@ -257,12 +257,15 @@ static void scope_state_dump(struct scope_config *config,
 			     struct scope_state *state)
 {
 	unsigned int i;
+	char *tmp;
 
 	for (i = 0; i < config->analog_channels; ++i) {
-		sr_info("State of analog channel %d -> %s : %s %.3eV %.3e offset", i + 1,
-			state->analog_channels[i].state ? "On" : "Off",
+		tmp = sr_voltage_string((*config->vdivs)[state->analog_channels[i].vdiv][0],
+					     (*config->vdivs)[state->analog_channels[i].vdiv][1]);
+		sr_info("State of analog channel  %d -> %s : %s (coupling) %s (vdiv) %2.2e (offset)",
+			i + 1, state->analog_channels[i].state ? "On" : "Off",
 			(*config->coupling_options)[state->analog_channels[i].coupling],
-			state->analog_channels[i].vdiv, state->analog_channels[i].vertical_offset);
+			tmp, state->analog_channels[i].vertical_offset);
 	}
 
 	for (i = 0; i < config->digital_channels; ++i) {
@@ -275,8 +278,12 @@ static void scope_state_dump(struct scope_config *config,
 			state->digital_pods[i] ? "On" : "Off");
 	}
 
-	sr_info("Current timebase: %.2es", state->timebase);
-	sr_info("Current trigger: %s (source), %s (slope) %.2e (offset)",
+	tmp = sr_period_string((*config->timebases)[state->timebase][0] *
+			       (*config->timebases)[state->timebase][1]);
+	sr_info("Current timebase: %s", tmp);
+	g_free(tmp);
+
+	sr_info("Current trigger: %s (source), %s (slope) %2.2e (offset)",
 		(*config->trigger_sources)[state->trigger_source],
 		(*config->trigger_slopes)[state->trigger_slope],
 		state->horiz_triggerpos);
@@ -314,7 +321,8 @@ static int analog_channel_state_get(struct sr_scpi_dev_inst *scpi,
 				    struct scope_config *config,
 				    struct scope_state *state)
 {
-	unsigned int i;
+	unsigned int i, j;
+	float tmp_float;
 	char command[MAX_COMMAND_SIZE];
 
 	for (i = 0; i < config->analog_channels; ++i) {
@@ -330,8 +338,16 @@ static int analog_channel_state_get(struct sr_scpi_dev_inst *scpi,
 			   (*config->scpi_dialect)[SCPI_CMD_GET_VERTICAL_DIV],
 			   i + 1);
 
-		if (sr_scpi_get_float(scpi, command,
-				     &state->analog_channels[i].vdiv) != SR_OK)
+		if (sr_scpi_get_float(scpi, command, &tmp_float) != SR_OK)
+			return SR_ERR;
+		for (j = 0; j < config->num_vdivs; j++) {
+			if (tmp_float == ((float) (*config->vdivs)[j][0] /
+					  (*config->vdivs)[j][1])) {
+				state->analog_channels[i].vdiv = j;
+				break;
+			}
+		}
+		if (i == config->num_vdivs)
 			return SR_ERR;
 
 		g_snprintf(command, sizeof(command),
@@ -389,10 +405,14 @@ SR_PRIV int hmo_scope_state_get(struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	struct scope_state *state;
 	struct scope_config *config;
+	float tmp_float;
+	unsigned int i;
 
 	devc = sdi->priv;
 	config = devc->model_config;
 	state = devc->model_state;
+
+	sr_info("Fetching scope state");
 
 	if (analog_channel_state_get(sdi->conn, config, state) != SR_OK)
 		return SR_ERR;
@@ -400,10 +420,19 @@ SR_PRIV int hmo_scope_state_get(struct sr_dev_inst *sdi)
 	if (digital_channel_state_get(sdi->conn, config, state) != SR_OK)
 		return SR_ERR;
 
-	/* TODO: Check if value is sensible. */
 	if (sr_scpi_get_float(sdi->conn,
 			(*config->scpi_dialect)[SCPI_CMD_GET_TIMEBASE],
-			&state->timebase) != SR_OK)
+			&tmp_float) != SR_OK)
+		return SR_ERR;
+
+	for (i = 0; i < config->num_timebases; i++) {
+		if (tmp_float == ((float) (*config->timebases)[i][0] /
+				  (*config->timebases)[i][1])) {
+			state->timebase = i;
+			break;
+		}
+	}
+	if (i == config->num_timebases)
 		return SR_ERR;
 
 	if (sr_scpi_get_float(sdi->conn,
@@ -420,6 +449,8 @@ SR_PRIV int hmo_scope_state_get(struct sr_dev_inst *sdi)
 		(*config->scpi_dialect)[SCPI_CMD_GET_TRIGGER_SLOPE],
 		config->trigger_slopes, &state->trigger_slope) != SR_OK)
 		return SR_ERR;
+
+	sr_info("Fetching finished.");
 
 	scope_state_dump(config, state);
 
