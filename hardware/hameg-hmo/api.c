@@ -449,6 +449,27 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 			ret = SR_ERR_NA;
 		}
 		break;
+	case SR_CONF_TRIGGER_SOURCE:
+		*data = g_variant_new_string((*model->trigger_sources)[state->trigger_source]);
+		ret = SR_OK;
+		break;
+	case SR_CONF_COUPLING:
+		if (pg_type == PG_NONE) {
+			sr_err("No probe group specified.");
+			return SR_ERR_PROBE_GROUP;
+		} else if (pg_type == PG_ANALOG) {
+			for (i = 0; i < model->analog_channels; ++i) {
+				if (probe_group != &devc->analog_groups[i])
+					continue;
+				*data = g_variant_new_string((*model->coupling_options)[state->analog_channels[i].coupling]);
+				ret = SR_OK;
+				break;
+			}
+
+		} else {
+			ret = SR_ERR_NA;
+		}
+		break;
 	case SR_CONF_SAMPLERATE:
 		*data = g_variant_new_uint64(state->sample_rate);
 		ret = SR_OK;
