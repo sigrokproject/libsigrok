@@ -823,9 +823,16 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 					return SR_ERR;
 			}
 		} else if (probe->type == SR_PROBE_LOGIC) {
-			if (probe->enabled)
+			if (probe->enabled) {
 				devc->enabled_digital_probes = g_slist_append(
 						devc->enabled_digital_probes, probe);
+				/* Turn on LA module if currently off. */
+				if (!devc->la_enabled) {
+					if (set_cfg(sdi, ":LA:DISP ON") != SR_OK)
+						return SR_ERR;
+					devc->la_enabled = TRUE;
+				}
+			}
 			if (probe->enabled != devc->digital_channels[probe->index]) {
 				/* Enabled channel is currently disabled, or vice versa. */
 				if (set_cfg(sdi, ":DIG%d:TURN %s", probe->index,
@@ -837,6 +844,11 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 
 	if (!devc->enabled_analog_probes && !devc->enabled_digital_probes)
 		return SR_ERR;
+
+	/* Turn off LA module if on and no digital probes selected. */
+	if (devc->la_enabled && !devc->enabled_digital_probes)
+		if (set_cfg(sdi, ":LA:DISP OFF") != SR_OK)
+			return SR_ERR;
 
 	if (devc->data_source == DATA_SOURCE_LIVE) {
 		if (set_cfg(sdi, ":RUN") != SR_OK)

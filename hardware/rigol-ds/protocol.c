@@ -697,7 +697,11 @@ SR_PRIV int rigol_ds_get_dev_cfg(const struct sr_dev_inst *sdi)
 
 	/* Digital channel state. */
 	if (devc->model->has_digital) {
-		sr_dbg("Current digital channel state:");
+		if (get_cfg_string(sdi, ":LA:DISP?", &t_s) != SR_OK)
+			return SR_ERR;
+		devc->la_enabled = !strcmp(t_s, "ON") ? TRUE : FALSE;
+		sr_dbg("Logic analyzer %s, current digital channel state:",
+				devc->la_enabled ? "enabled" : "disabled");
 		for (i = 0; i < 16; i++) {
 			cmd = g_strdup_printf(":DIG%d:TURN?", i);
 			res = get_cfg_string(sdi, cmd, &t_s);

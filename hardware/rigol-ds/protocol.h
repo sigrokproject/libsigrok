@@ -111,6 +111,7 @@ struct dev_context {
 	/* Device settings */
 	gboolean analog_channels[MAX_ANALOG_PROBES];
 	gboolean digital_channels[MAX_DIGITAL_PROBES];
+	gboolean la_enabled;
 	float timebase;
 	float vdiv[MAX_ANALOG_PROBES];
 	int vert_reference[MAX_ANALOG_PROBES];
