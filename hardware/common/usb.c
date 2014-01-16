@@ -238,7 +238,7 @@ SR_PRIV int sr_usb_open(libusb_context *usb_ctx, struct sr_usb_dev_inst *usb)
 }
 
 #ifdef _WIN32
-SR_PRIV gpointer usb_thread(gpointer data)
+static gpointer usb_thread(gpointer data)
 {
 	struct sr_context *ctx = data;
 
@@ -253,7 +253,7 @@ SR_PRIV gpointer usb_thread(gpointer data)
 	return NULL;
 }
 
-SR_PRIV int usb_callback(int fd, int revents, void *cb_data)
+static int usb_callback(int fd, int revents, void *cb_data)
 {
 	struct sr_context *ctx = cb_data;
 	int ret;
