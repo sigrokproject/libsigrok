@@ -404,7 +404,7 @@ SR_PRIV int sr_scpi_get_float(struct sr_scpi_dev_inst *scpi,
 		if (!response)
 			return SR_ERR;
 
-	if (sr_atof(response, scpi_response) == SR_OK)
+	if (sr_atof_ascii(response, scpi_response) == SR_OK)
 		ret = SR_OK;
 	else
 		ret = SR_ERR;
@@ -505,7 +505,7 @@ SR_PRIV int sr_scpi_get_floatv(struct sr_scpi_dev_inst *scpi,
 	response_array = g_array_sized_new(TRUE, FALSE, sizeof(float), 256);
 
 	while (*ptr) {
-		if (sr_atof(*ptr, &tmp) == SR_OK)
+		if (sr_atof_ascii(*ptr, &tmp) == SR_OK)
 			response_array = g_array_append_val(response_array,
 							    tmp);
 		else
