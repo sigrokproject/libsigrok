@@ -210,7 +210,7 @@ SR_API gboolean sr_dev_has_option(const struct sr_dev_inst *sdi, int key)
 		return FALSE;
 
 	if (sdi->driver->config_list(SR_CONF_DEVICE_OPTIONS,
-				&gvar, NULL, NULL) != SR_OK)
+				&gvar, sdi, NULL) != SR_OK)
 		return FALSE;
 
 	ret = FALSE;
