@@ -189,6 +189,9 @@ skip_device:
 
 	return tty_devs;
 #else
+	(void)vendor_id;
+	(void)product_id;
+
 	return NULL;
 #endif
 }
