@@ -170,6 +170,49 @@ SR_PRIV int sr_atof(const char *str, float *ret)
 }
 
 /**
+ * @private
+ *
+ * Convert a string representation of a numeric value to a float. The
+ * conversion is strict and will fail if the complete string does not represent
+ * a valid float. The function sets errno according to the details of the
+ * failure. This version ignores the locale.
+ *
+ * @param str The string representation to convert.
+ * @param ret Pointer to float where the result of the conversion will be stored.
+ *
+ * @return SR_OK if conversion is successful, otherwise SR_ERR.
+ *
+ * @since 0.3.0
+ */
+SR_PRIV int sr_atof_ascii(const char *str, float *ret)
+{
+	double tmp;
+	char *endptr = NULL;
+
+	errno = 0;
+	tmp = g_ascii_strtod(str, &endptr);
+
+	if (!endptr || *endptr || errno) {
+		if (!errno)
+			errno = EINVAL;
+		return SR_ERR;
+	}
+
+	/* FIXME This fails unexpectedly. Some other method to safel downcast
+	 * needs to be found. Checking against FLT_MAX doesn't work as well. */
+	/*
+	if ((float) tmp != tmp) {
+		errno = ERANGE;
+		sr_dbg("ERANGEEEE %e != %e", (float) tmp, tmp);
+		return SR_ERR;
+	}
+	*/
+
+	*ret = (float) tmp;
+	return SR_OK;
+}
+
+/**
  * Convert a numeric value value to its "natural" string representation
  * in SI units.
  *
