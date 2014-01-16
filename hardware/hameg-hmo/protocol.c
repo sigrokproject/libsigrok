@@ -453,11 +453,11 @@ SR_PRIV int hmo_update_sample_rate(const struct sr_dev_inst *sdi)
 	/* No channel is active, ask the instrument for the sample rate
 	 * in single shot mode */
 	if (!channel_found) {
-		g_snprintf(tmp_str, sizeof(tmp_str),
-			   (*config->scpi_dialect)[SCPI_CMD_GET_SAMPLE_RATE]);
-
-		if (sr_scpi_get_float(sdi->conn, tmp_str, &tmp_float) != SR_OK)
+		if (sr_scpi_get_float(sdi->conn,
+				      (*config->scpi_dialect)[SCPI_CMD_GET_SAMPLE_RATE],
+				      &tmp_float) != SR_OK)
 			return SR_ERR;
+
 		state->sample_rate = tmp_float;
 	} else {
 		if (sr_scpi_get_int(sdi->conn, tmp_str, &tmp) != SR_OK)
