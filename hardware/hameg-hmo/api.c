@@ -415,6 +415,7 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	unsigned int i;
 	struct dev_context *devc;
 	struct scope_config *model;
+	struct scope_state *state;
 
 	if (!sdi || !(devc = sdi->priv))
 		return SR_ERR_ARG;
@@ -424,6 +425,7 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 
 	ret = SR_ERR_NA;
 	model = devc->model_config;
+	state = devc->model_state;
 
 	switch (key) {
 	case SR_CONF_NUM_TIMEBASE:
@@ -446,6 +448,10 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		} else {
 			ret = SR_ERR_NA;
 		}
+		break;
+	case SR_CONF_SAMPLERATE:
+		*data = g_variant_new_uint64(state->sample_rate);
+		ret = SR_OK;
 		break;
 	default:
 		ret = SR_ERR_NA;

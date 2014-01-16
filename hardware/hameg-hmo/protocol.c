@@ -25,6 +25,8 @@ static const char *hameg_scpi_dialect[] = {
 	[SCPI_CMD_SET_TIMEBASE]		    = ":TIM:SCAL %s",
 	[SCPI_CMD_GET_COUPLING]		    = ":CHAN%d:COUP?",
 	[SCPI_CMD_SET_COUPLING]		    = ":CHAN%d:COUP %s",
+	[SCPI_CMD_GET_SAMPLE_RATE]	    = ":ACQ:SRAT?",
+	[SCPI_CMD_GET_SAMPLE_RATE_LIVE]	    = ":%s:DATA:POINTS?",
 	[SCPI_CMD_GET_ANALOG_DATA]	    = ":CHAN%d:DATA?",
 	[SCPI_CMD_GET_VERTICAL_DIV]	    = ":CHAN%d:SCAL?",
 	[SCPI_CMD_SET_VERTICAL_DIV]	    = ":CHAN%d:SCAL %s",
@@ -50,6 +52,7 @@ static const int32_t hmo_hwcaps[] = {
 	SR_CONF_NUM_TIMEBASE,
 	SR_CONF_TRIGGER_SLOPE,
 	SR_CONF_HORIZ_TRIGGERPOS,
+	SR_CONF_SAMPLERATE,
 };
 
 static const int32_t hmo_analog_caps[] = {
@@ -283,6 +286,10 @@ static void scope_state_dump(struct scope_config *config,
 	sr_info("Current timebase: %s", tmp);
 	g_free(tmp);
 
+	tmp = sr_samplerate_string(state->sample_rate);
+	sr_info("Current samplerate: %s", tmp);
+	g_free(tmp);
+
 	sr_info("Current trigger: %s (source), %s (slope) %2.2e (offset)",
 		(*config->trigger_sources)[state->trigger_source],
 		(*config->trigger_slopes)[state->trigger_slope],
@@ -400,6 +407,68 @@ static int digital_channel_state_get(struct sr_scpi_dev_inst *scpi,
 	return SR_OK;
 }
 
+SR_PRIV int hmo_update_sample_rate(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	struct scope_state *state;
+	struct scope_config *config;
+
+	int tmp;
+	unsigned int i;
+	float tmp_float;
+	gboolean channel_found;
+	char tmp_str[MAX_COMMAND_SIZE];
+	char chan_name[20];
+
+	devc = sdi->priv;
+	config = devc->model_config;
+	state = devc->model_state;
+	channel_found = FALSE;
+
+	for (i = 0; i < config->analog_channels; ++i) {
+		if (state->analog_channels[i].state) {
+			g_snprintf(chan_name, sizeof(chan_name), "CHAN%d", i + 1);
+			g_snprintf(tmp_str, sizeof(tmp_str),
+				   (*config->scpi_dialect)[SCPI_CMD_GET_SAMPLE_RATE_LIVE],
+				   chan_name);
+			channel_found = TRUE;
+			break;
+		}
+	}
+
+	if (!channel_found) {
+		for (i = 0; i < config->digital_pods; i++) {
+			if (state->digital_pods[i]) {
+				g_snprintf(chan_name, sizeof(chan_name), "POD%d", i);
+				g_snprintf(tmp_str, sizeof(tmp_str),
+					   (*config->scpi_dialect)[SCPI_CMD_GET_SAMPLE_RATE_LIVE],
+					   chan_name);
+				channel_found = TRUE;
+				break;
+			}
+		}
+	}
+
+	/* No channel is active, ask the instrument for the sample rate
+	 * in single shot mode */
+	if (!channel_found) {
+		g_snprintf(tmp_str, sizeof(tmp_str),
+			   (*config->scpi_dialect)[SCPI_CMD_GET_SAMPLE_RATE]);
+
+		if (sr_scpi_get_float(sdi->conn, tmp_str, &tmp_float) != SR_OK)
+			return SR_ERR;
+		state->sample_rate = tmp_float;
+	} else {
+		if (sr_scpi_get_int(sdi->conn, tmp_str, &tmp) != SR_OK)
+			return SR_ERR;
+		state->sample_rate = tmp / (((float) (*config->timebases)[state->timebase][0] /
+					     (*config->timebases)[state->timebase][1]) *
+					    config->num_xdivs);
+	}
+
+	return SR_OK;
+}
+
 SR_PRIV int hmo_scope_state_get(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
@@ -448,6 +517,9 @@ SR_PRIV int hmo_scope_state_get(struct sr_dev_inst *sdi)
 	if (scope_state_get_array_option(sdi->conn,
 		(*config->scpi_dialect)[SCPI_CMD_GET_TRIGGER_SLOPE],
 		config->trigger_slopes, &state->trigger_slope) != SR_OK)
+		return SR_ERR;
+
+	if (hmo_update_sample_rate(sdi) != SR_OK)
 		return SR_ERR;
 
 	sr_info("Fetching finished.");
