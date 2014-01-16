@@ -491,6 +491,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 	const char *tmp;
 	uint64_t p, q, tmp_u64;
 	double tmp_d;
+	gboolean update_sample_rate;
 
 	if (!sdi || !(devc = sdi->priv))
 		return SR_ERR_ARG;
@@ -500,6 +501,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 
 	model = devc->model_config;
 	state = devc->model_state;
+	update_sample_rate = FALSE;
 
 	ret = SR_ERR_NA;
 
@@ -568,6 +570,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 				   float_str);
 
 			ret = sr_scpi_send(sdi->conn, command);
+			update_sample_rate = TRUE;
 			break;
 		}
 		break;
@@ -635,6 +638,9 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 
 	if (ret == SR_OK)
 		ret = sr_scpi_get_opc(sdi->conn);
+
+	if (ret == SR_OK && update_sample_rate)
+		ret = hmo_update_sample_rate(sdi);
 
 	return ret;
 }
@@ -764,7 +770,7 @@ static int hmo_setup_probes(const struct sr_dev_inst *sdi)
 {
 	GSList *l;
 	unsigned int i;
-	gboolean *pod_enabled;
+	gboolean *pod_enabled, setup_changed;
 	char command[MAX_COMMAND_SIZE];
 	struct scope_state *state;
 	struct scope_config *model;
@@ -776,6 +782,7 @@ static int hmo_setup_probes(const struct sr_dev_inst *sdi)
 	scpi = sdi->conn;
 	state = devc->model_state;
 	model = devc->model_config;
+	setup_changed = FALSE;
 
 	pod_enabled = g_try_malloc0(sizeof(gboolean) * model->digital_pods);
 
@@ -792,6 +799,7 @@ static int hmo_setup_probes(const struct sr_dev_inst *sdi)
 			if (sr_scpi_send(scpi, command) != SR_OK)
 				return SR_ERR;
 			state->analog_channels[probe->index].state = probe->enabled;
+			setup_changed = TRUE;
 			break;
 		case SR_PROBE_LOGIC:
 			/*
@@ -811,6 +819,7 @@ static int hmo_setup_probes(const struct sr_dev_inst *sdi)
 				return SR_ERR;
 
 			state->digital_channels[probe->index] = probe->enabled;
+			setup_changed = TRUE;
 			break;
 		default:
 			return SR_ERR;
@@ -826,9 +835,13 @@ static int hmo_setup_probes(const struct sr_dev_inst *sdi)
 		if (sr_scpi_send(scpi, command) != SR_OK)
 			return SR_ERR;
 		state->digital_pods[i - 1] = pod_enabled[i - 1];
+		setup_changed = TRUE;
 	}
 
 	g_free(pod_enabled);
+
+	if (setup_changed && hmo_update_sample_rate(sdi) != SR_OK)
+		return SR_ERR;
 
 	return SR_OK;
 }
