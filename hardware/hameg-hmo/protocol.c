@@ -621,8 +621,6 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 			devc->current_probe = devc->current_probe->next;
 			hmo_request_data(sdi);
 		} else if (++devc->num_frames == devc->frame_limit) {
-			packet.type = SR_DF_END;
-			sr_session_send(sdi, &packet);
 			sdi->driver->dev_acquisition_stop(sdi, cb_data);
 		} else {
 			devc->current_probe = devc->enabled_probes;
