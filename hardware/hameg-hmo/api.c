@@ -251,6 +251,10 @@ static struct sr_dev_inst *hmo_probe_serial_device(const char *serial_device,
 	if (hmo_init_device(sdi) != SR_OK)
 		goto fail;
 
+	sr_scpi_close(sdi->conn);
+
+	sdi->status = SR_ST_INACTIVE;
+
 	return sdi;
 
 fail:
