@@ -935,6 +935,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 
 	devc = sdi->priv;
 
+	devc->num_frames = 0;
 	g_slist_free(devc->enabled_probes);
 	devc->enabled_probes = NULL;
 	scpi = sdi->conn;
