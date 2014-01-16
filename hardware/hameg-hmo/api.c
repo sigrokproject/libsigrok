@@ -474,7 +474,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 {
 	int ret, pg_type;
 	unsigned int i, j;
-	char command[MAX_COMMAND_SIZE];
+	char command[MAX_COMMAND_SIZE], float_str[30];
 	struct dev_context *devc;
 	struct scope_config *model;
 	struct scope_state *state;
@@ -528,9 +528,10 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 				if (probe_group != &devc->analog_groups[j - 1])
 					continue;
 				state->analog_channels[j - 1].vdiv = (float) p / q;
+				g_ascii_formatd(float_str, sizeof(float_str), "%E", (float) p / q);
 				g_snprintf(command, sizeof(command),
 					   (*model->scpi_dialect)[SCPI_CMD_SET_VERTICAL_DIV],
-					   j, state->analog_channels[j-1].vdiv);
+					   j, float_str);
 
 				if (sr_scpi_send(sdi->conn, command) != SR_OK ||
 				    sr_scpi_get_opc(sdi->conn) != SR_OK)
@@ -551,9 +552,10 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 			    q != (*model->timebases)[i][1])
 				continue;
 			state->timebase = (float) p / q;
+			g_ascii_formatd(float_str, sizeof(float_str), "%E", (float) p / q);
 			g_snprintf(command, sizeof(command),
 				   (*model->scpi_dialect)[SCPI_CMD_SET_TIMEBASE],
-				   state->timebase);
+				   float_str);
 
 			ret = sr_scpi_send(sdi->conn, command);
 			break;
