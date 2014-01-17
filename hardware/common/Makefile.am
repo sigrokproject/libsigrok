@@ -33,7 +33,7 @@ libsigrok_hw_common_la_SOURCES += serial.c scpi_serial.c
 endif
 
 if NEED_USB
-libsigrok_hw_common_la_SOURCES += ezusb.c usb.c
+libsigrok_hw_common_la_SOURCES += ezusb.c usb.c scpi_usbtmc_libusb.c
 endif
 
 if NEED_VISA
