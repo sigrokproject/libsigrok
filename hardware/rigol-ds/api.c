@@ -820,6 +820,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 				if (set_cfg(sdi, ":CHAN%d:DISP %s", probe->index + 1,
 						probe->enabled ? "ON" : "OFF") != SR_OK)
 					return SR_ERR;
+				devc->analog_channels[probe->index] = probe->enabled;
 			}
 		} else if (probe->type == SR_PROBE_LOGIC) {
 			if (probe->enabled) {
@@ -837,6 +838,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 				if (set_cfg(sdi, ":DIG%d:TURN %s", probe->index,
 						probe->enabled ? "ON" : "OFF") != SR_OK)
 					return SR_ERR;
+				devc->digital_channels[probe->index] = probe->enabled;
 			}
 		}
 	}
