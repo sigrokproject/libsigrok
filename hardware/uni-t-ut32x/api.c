@@ -75,7 +75,7 @@ static GSList *scan(GSList *options)
 		return NULL;
 
 	devices = NULL;
-	if ((usb_devices = sr_usb_find(drvc->sr_ctx->libusb_ctx, USB_CONN))) {
+	if ((usb_devices = sr_usb_find(drvc->sr_ctx->libusb_ctx, conn))) {
 		/* We have a list of sr_usb_dev_inst matching the connection
 		 * string. Wrap them in sr_dev_inst and we're done. */
 		for (l = usb_devices; l; l = l->next) {
