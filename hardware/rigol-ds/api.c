@@ -807,6 +807,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	struct sr_scpi_dev_inst *scpi;
 	struct dev_context *devc;
 	struct sr_probe *probe;
+	struct sr_datafeed_packet packet;
 	GSList *l;
 
 	if (sdi->status != SR_ST_ACTIVE)
@@ -907,6 +908,10 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 				return SR_ERR;
 		}
 	}
+
+	/* Start of first frame. */
+	packet.type = SR_DF_FRAME_BEGIN;
+	sr_session_send(cb_data, &packet);
 
 	return SR_OK;
 }

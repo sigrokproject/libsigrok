@@ -132,8 +132,8 @@ struct dev_context {
 	uint64_t num_frames;
 	/* GSList entry for the current channel. */
 	GSList *channel_entry;
-	/* Number of samples received in current frame. */
-	uint64_t num_frame_samples;
+	/* Number of bytes received for current channel. */
+	uint64_t num_channel_bytes;
 	/* Number of bytes in current data block, if 0 block header expected */
 	uint64_t num_block_bytes;
 	/* Number of data block bytes already read */

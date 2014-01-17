@@ -351,7 +351,7 @@ SR_PRIV int rigol_ds_channel_start(const struct sr_dev_inst *sdi)
 			rigol_ds_set_wait_event(devc, WAIT_NONE);
 	}
 
-	devc->num_frame_samples = 0;
+	devc->num_channel_bytes = 0;
 	devc->num_block_bytes = 0;
 
 	return SR_OK;
@@ -448,7 +448,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 
 		expected_data_bytes = probe->type == SR_PROBE_ANALOG ?
 				devc->analog_frame_size : devc->digital_frame_size;
-		
+
 		if (devc->num_block_bytes == 0 &&
 		    devc->model->series >= RIGOL_DS1000Z) {
 				if (sr_scpi_send(sdi->conn, ":WAV:DATA?") != SR_OK)
@@ -493,12 +493,6 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 			return TRUE;
 
 		devc->num_block_read += len;
-
-		if (devc->num_frame_samples == 0) {
-			/* Start of a new frame. */
-			packet.type = SR_DF_FRAME_BEGIN;
-			sr_session_send(sdi, &packet);
-		}
 
 		if (probe->type == SR_PROBE_ANALOG) {
 			vref = devc->vert_reference[probe->index];
@@ -551,16 +545,13 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 			sr_dbg("%d of %d block bytes read", devc->num_block_read, devc->num_block_bytes);
 		}
 
-		devc->num_frame_samples += len;
+		devc->num_channel_bytes += len;
 
-		if (devc->num_frame_samples < expected_data_bytes)
-			/* Don't have the whole frame yet. */
+		if (devc->num_channel_bytes < expected_data_bytes)
+			/* Don't have the full data for this channel yet, re-run. */
 			return TRUE;
 
-		/* End of the frame. */
-		sr_dbg("Frame completed, %d samples", devc->num_frame_samples);
-		packet.type = SR_DF_FRAME_END;
-		sr_session_send(sdi, &packet);
+		/* End of data for this channel. */
 		if (devc->model->series >= RIGOL_DS1000Z) {
 			/* Signal end of data download to scope */
 			if (devc->data_source != DATA_SOURCE_LIVE)
@@ -585,19 +576,30 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 				/* Now we need to get the digital data. */
 				devc->channel_entry = devc->enabled_digital_probes;
 				rigol_ds_channel_start(sdi);
-			} else if (++devc->num_frames == devc->limit_frames) {
-				sdi->driver->dev_acquisition_stop(sdi, cb_data);
 			} else {
-				/* Get the next frame, starting with the first analog channel. */
-				if (devc->enabled_analog_probes)
-					devc->channel_entry = devc->enabled_analog_probes;
-				else
-					devc->channel_entry = devc->enabled_digital_probes;
+				/* Done with this frame. */
+				packet.type = SR_DF_FRAME_END;
+				sr_session_send(cb_data, &packet);
 
-				if (devc->model->series < RIGOL_DS1000Z)
-					rigol_ds_channel_start(sdi);
-				else
-					rigol_ds_capture_start(sdi);
+				if (++devc->num_frames == devc->limit_frames) {
+					/* Last frame, stop capture. */
+					sdi->driver->dev_acquisition_stop(sdi, cb_data);
+				} else {
+					/* Get the next frame, starting with the first analog channel. */
+					if (devc->enabled_analog_probes)
+						devc->channel_entry = devc->enabled_analog_probes;
+					else
+						devc->channel_entry = devc->enabled_digital_probes;
+
+					if (devc->model->series < RIGOL_DS1000Z)
+						rigol_ds_channel_start(sdi);
+					else
+						rigol_ds_capture_start(sdi);
+
+					/* Start of next frame. */
+					packet.type = SR_DF_FRAME_BEGIN;
+					sr_session_send(cb_data, &packet);
+				}
 			}
 		}
 	}
