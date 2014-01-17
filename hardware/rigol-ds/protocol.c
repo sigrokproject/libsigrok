@@ -540,6 +540,11 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 				if (devc->data_source != DATA_SOURCE_LIVE)
 					rigol_ds_set_wait_event(devc, WAIT_BLOCK);
 			}
+			if (!sr_scpi_read_complete(scpi)) {
+				sr_err("Read should have been completed");
+				sdi->driver->dev_acquisition_stop(sdi, cb_data);
+				return TRUE;
+			}
 			devc->num_block_read = 0;
 		} else {
 			sr_dbg("%d of %d block bytes read", devc->num_block_read, devc->num_block_bytes);
