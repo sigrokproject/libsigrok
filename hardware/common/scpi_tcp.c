@@ -51,11 +51,12 @@ struct scpi_tcp {
 	int response_bytes_read;
 };
 
-static int scpi_tcp_dev_inst_new(void *priv, const char *resource,
-		char **params, const char *serialcomm)
+static int scpi_tcp_dev_inst_new(void *priv, struct drv_context *drvc,
+		const char *resource, char **params, const char *serialcomm)
 {
 	struct scpi_tcp *tcp = priv;
 
+	(void)drvc;
 	(void)resource;
 	(void)serialcomm;
 

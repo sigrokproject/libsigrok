@@ -438,8 +438,8 @@ struct sr_scpi_dev_inst {
 	const char *name;
 	const char *prefix;
 	int priv_size;
-	int (*dev_inst_new)(void *priv, const char *resource, char **params,
-		const char *serialcomm);
+	int (*dev_inst_new)(void *priv, struct drv_context *drvc,
+		const char *resource, char **params, const char *serialcomm);
 	int (*open)(void *priv);
 	int (*source_add)(void *priv, int events,
 		int timeout, sr_receive_data_callback_t cb, void *cb_data);
@@ -453,8 +453,8 @@ struct sr_scpi_dev_inst {
 	void *priv;
 };
 
-SR_PRIV struct sr_scpi_dev_inst *scpi_dev_inst_new(const char *resource,
-		const char *serialcomm);
+SR_PRIV struct sr_scpi_dev_inst *scpi_dev_inst_new(struct drv_context *drvc,
+		const char *resource, const char *serialcomm);
 SR_PRIV int sr_scpi_open(struct sr_scpi_dev_inst *scpi);
 SR_PRIV int sr_scpi_source_add(struct sr_scpi_dev_inst *scpi, int events,
 		int timeout, sr_receive_data_callback_t cb, void *cb_data);

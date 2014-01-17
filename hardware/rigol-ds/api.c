@@ -269,7 +269,7 @@ static int probe_port(const char *resource, const char *serialcomm, GSList **dev
 
 	*devices = NULL;
 
-	if (!(scpi = scpi_dev_inst_new(resource, serialcomm)))
+	if (!(scpi = scpi_dev_inst_new(di->priv, resource, serialcomm)))
 		return SR_ERR;
 
 	if (sr_scpi_open(scpi) != SR_OK) {

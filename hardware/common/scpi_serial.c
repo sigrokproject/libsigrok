@@ -35,11 +35,12 @@ struct scpi_serial {
 	size_t read;
 };
 
-static int scpi_serial_dev_inst_new(void *priv, const char *resource,
-		char **params, const char *serialcomm)
+static int scpi_serial_dev_inst_new(void *priv, struct drv_context *drvc,
+		const char *resource, char **params, const char *serialcomm)
 {
 	struct scpi_serial *sscpi = priv;
 
+	(void)drvc;
 	(void)params;
 
 	if (!(sscpi->serial = sr_serial_dev_inst_new(resource, serialcomm)))

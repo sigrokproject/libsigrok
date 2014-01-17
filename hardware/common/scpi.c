@@ -87,8 +87,8 @@ static const struct sr_scpi_dev_inst *scpi_devs[] = {
 #endif
 };
 
-SR_PRIV struct sr_scpi_dev_inst *scpi_dev_inst_new(const char *resource,
-		const char *serialcomm)
+SR_PRIV struct sr_scpi_dev_inst *scpi_dev_inst_new(struct drv_context *drvc,
+		const char *resource, const char *serialcomm)
 {
 	struct sr_scpi_dev_inst *scpi = NULL;
 	const struct sr_scpi_dev_inst *scpi_dev;
@@ -103,7 +103,7 @@ SR_PRIV struct sr_scpi_dev_inst *scpi_dev_inst_new(const char *resource,
 			*scpi = *scpi_dev;
 			scpi->priv = g_malloc0(scpi->priv_size);
 			params = g_strsplit(resource, "/", 0);
-			if (scpi->dev_inst_new(scpi->priv, resource,
+			if (scpi->dev_inst_new(scpi->priv, drvc, resource,
 			                       params, serialcomm) != SR_OK) {
 				sr_scpi_free(scpi);
 				scpi = NULL;

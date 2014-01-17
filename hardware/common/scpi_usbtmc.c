@@ -37,11 +37,12 @@ struct usbtmc_scpi {
 	int response_bytes_read;
 };
 
-static int scpi_usbtmc_dev_inst_new(void *priv, const char *resource,
-		char **params, const char *serialcomm)
+static int scpi_usbtmc_dev_inst_new(void *priv, struct drv_context *drvc,
+		const char *resource, char **params, const char *serialcomm)
 {
 	struct usbtmc_scpi *uscpi = priv;
 
+	(void)drvc;
 	(void)params;
 	(void)serialcomm;
 
