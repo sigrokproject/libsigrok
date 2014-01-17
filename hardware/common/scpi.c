@@ -604,7 +604,6 @@ SR_PRIV int sr_scpi_get_hw_id(struct sr_scpi_dev_inst *scpi,
 {
 	int num_tokens;
 	char *response;
-	char *newline;
 	gchar **tokens;
 	struct sr_scpi_hw_info *hw_info;
 
@@ -616,10 +615,6 @@ SR_PRIV int sr_scpi_get_hw_id(struct sr_scpi_dev_inst *scpi,
 			return SR_ERR;
 
 	sr_info("Got IDN string: '%s'", response);
-
-	/* Remove trailing newline if present. */
-	if ((newline = g_strrstr(response, "\n")))
-		newline[0] = '\0';
 
 	/*
 	 * The response to a '*IDN?' is specified by the SCPI spec. It contains
