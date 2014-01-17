@@ -163,12 +163,12 @@ static const char *data_sources[] = {
 #define AGILENT "Agilent Technologies"
 
 static const struct rigol_ds_model supported_models[] = {
-	{RIGOL, "DS1052E", RIGOL_DS1000, PROTOCOL_LEGACY, {5, 1000000000}, {50, 1}, {2, 1000}, 2, false, 12},
-	{RIGOL, "DS1102E", RIGOL_DS1000, PROTOCOL_LEGACY, {2, 1000000000}, {50, 1}, {2, 1000}, 2, false, 12},
-	{RIGOL, "DS1152E", RIGOL_DS1000, PROTOCOL_LEGACY, {2, 1000000000}, {50, 1}, {2, 1000}, 2, false, 12},
-	{RIGOL, "DS1052D", RIGOL_DS1000, PROTOCOL_LEGACY, {5, 1000000000}, {50, 1}, {2, 1000}, 2, true, 12},
-	{RIGOL, "DS1102D", RIGOL_DS1000, PROTOCOL_LEGACY, {2, 1000000000}, {50, 1}, {2, 1000}, 2, true, 12},
-	{RIGOL, "DS1152D", RIGOL_DS1000, PROTOCOL_LEGACY, {2, 1000000000}, {50, 1}, {2, 1000}, 2, true, 12},
+	{RIGOL, "DS1052E", RIGOL_DS1000, PROTOCOL_IEEE488_2, {5, 1000000000}, {50, 1}, {2, 1000}, 2, false, 12},
+	{RIGOL, "DS1102E", RIGOL_DS1000, PROTOCOL_IEEE488_2, {2, 1000000000}, {50, 1}, {2, 1000}, 2, false, 12},
+	{RIGOL, "DS1152E", RIGOL_DS1000, PROTOCOL_IEEE488_2, {2, 1000000000}, {50, 1}, {2, 1000}, 2, false, 12},
+	{RIGOL, "DS1052D", RIGOL_DS1000, PROTOCOL_IEEE488_2, {5, 1000000000}, {50, 1}, {2, 1000}, 2, true, 12},
+	{RIGOL, "DS1102D", RIGOL_DS1000, PROTOCOL_IEEE488_2, {2, 1000000000}, {50, 1}, {2, 1000}, 2, true, 12},
+	{RIGOL, "DS1152D", RIGOL_DS1000, PROTOCOL_IEEE488_2, {2, 1000000000}, {50, 1}, {2, 1000}, 2, true, 12},
 	{RIGOL, "DS2072", RIGOL_DS2000, PROTOCOL_IEEE488_2, {5, 1000000000}, {500, 1}, {500, 1000000}, 2, false, 14},
 	{RIGOL, "DS2102", RIGOL_DS2000, PROTOCOL_IEEE488_2, {5, 1000000000}, {500, 1}, {500, 1000000}, 2, false, 14},
 	{RIGOL, "DS2202", RIGOL_DS2000, PROTOCOL_IEEE488_2, {2, 1000000000}, {500, 1}, {500, 1000000}, 2, false, 14},
@@ -464,12 +464,12 @@ static int analog_frame_size(const struct sr_dev_inst *sdi)
 	int analog_probes = 0;
 	GSList *l;
 
-	if (devc->model->protocol == PROTOCOL_LEGACY) {
-		if (devc->model->series == RIGOL_VS5000)
-			return VS5000_ANALOG_LIVE_WAVEFORM_SIZE;
-		else
-			return DS1000_ANALOG_LIVE_WAVEFORM_SIZE;
-	} else {
+	switch (devc->model->series) {
+	case RIGOL_VS5000:
+		return VS5000_ANALOG_LIVE_WAVEFORM_SIZE;
+	case RIGOL_DS1000:
+		return DS1000_ANALOG_LIVE_WAVEFORM_SIZE;
+	default:
 		for (l = sdi->probes; l; l = l->next) {
 			probe = l->data;
 			if (probe->type == SR_PROBE_ANALOG && probe->enabled)
@@ -675,7 +675,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 			devc->data_source = DATA_SOURCE_LIVE;
 		else if (!strcmp(tmp_str, "Memory"))
 			devc->data_source = DATA_SOURCE_MEMORY;
-		else if (devc->model->protocol == PROTOCOL_IEEE488_2
+		else if (devc->model->series >= RIGOL_DS1000Z
 			 && !strcmp(tmp_str, "Segmented"))
 			devc->data_source = DATA_SOURCE_SEGMENTED;
 		else
@@ -891,7 +891,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	devc->analog_frame_size = analog_frame_size(sdi);
 	devc->digital_frame_size = digital_frame_size(sdi);
 
-	if (devc->model->protocol == PROTOCOL_LEGACY) {
+	if (devc->model->series < RIGOL_DS1000Z) {
 		/* Fetch the first frame. */
 		if (rigol_ds_channel_start(sdi) != SR_OK)
 			return SR_ERR;

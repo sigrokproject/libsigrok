@@ -331,7 +331,7 @@ SR_PRIV int rigol_ds_channel_start(const struct sr_dev_inst *sdi)
 
 	sr_dbg("Starting reading data from channel %d", probe->index + 1);
 
-	if (devc->model->protocol == PROTOCOL_LEGACY) {
+	if (devc->model->series < RIGOL_DS1000Z) {
 		if (probe->type == SR_PROBE_LOGIC) {
 			if (sr_scpi_send(sdi->conn, ":WAV:DATA? DIG") != SR_OK)
 				return SR_ERR;
@@ -419,8 +419,8 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 	scpi = sdi->conn;
 
 	if (revents == G_IO_IN || revents == 0) {
-		if (devc->model->protocol == PROTOCOL_IEEE488_2) {
-			switch (devc->wait_event) {
+		if (devc->model->series >= RIGOL_DS1000Z) {
+			switch(devc->wait_event) {
 			case WAIT_NONE:
 				break;
 			case WAIT_TRIGGER:
@@ -449,7 +449,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 		probe = devc->channel_entry->data;
 		
 		if (devc->num_block_bytes == 0 &&
-		    devc->model->protocol == PROTOCOL_IEEE488_2) {
+		    devc->model->series >= RIGOL_DS1000Z) {
 				if (sr_scpi_send(sdi->conn, ":WAV:DATA?") != SR_OK)
 					return TRUE;
 		}
@@ -502,7 +502,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 			vref = devc->vert_reference[probe->index];
 			vdiv = devc->vdiv[probe->index] / 25.6;
 			offset = devc->vert_offset[probe->index];
-			if (devc->model->protocol == PROTOCOL_IEEE488_2)
+			if (devc->model->series >= RIGOL_DS1000Z)
 				for (i = 0; i < len; i++)
 					devc->data[i] = ((int)devc->buffer[i] - vref) * vdiv - offset;
 			else
@@ -519,9 +519,9 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 			sr_session_send(cb_data, &packet);
 			g_slist_free(analog.probes);
 		} else {
-			logic.length = len - 10;
+			logic.length = len;
 			logic.unitsize = 2;
-			logic.data = devc->buffer + 10;
+			logic.data = devc->buffer;
 			packet.type = SR_DF_LOGIC;
 			packet.payload = &logic;
 			sr_session_send(cb_data, &packet);
@@ -529,10 +529,12 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 
 		if (devc->num_block_read == devc->num_block_bytes) {
 			sr_dbg("Block has been completed");
-			if (devc->model->protocol == PROTOCOL_IEEE488_2) {
-				/* Discard the terminating linefeed and prepare for
-				   possible next block */
+			if (devc->model->series >= RIGOL_DS1000Z) {
+				/* Discard the terminating linefeed */
 				sr_scpi_read_data(scpi, (char *)devc->buffer, 1);
+			}
+			if (devc->model->protocol == PROTOCOL_IEEE488_2) {
+				/* Prepare for possible next block */
 				devc->num_block_bytes = 0;
 				if (devc->data_source != DATA_SOURCE_LIVE)
 					rigol_ds_set_wait_event(devc, WAIT_BLOCK);
@@ -558,7 +560,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 		sr_dbg("Frame completed, %d samples", devc->num_frame_samples);
 		packet.type = SR_DF_FRAME_END;
 		sr_session_send(sdi, &packet);
-		if (devc->model->protocol == PROTOCOL_IEEE488_2) {
+		if (devc->model->series >= RIGOL_DS1000Z) {
 			/* Signal end of data download to scope */
 			if (devc->data_source != DATA_SOURCE_LIVE)
 				/*
@@ -591,7 +593,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 				else
 					devc->channel_entry = devc->enabled_digital_probes;
 
-				if (devc->model->protocol == PROTOCOL_LEGACY)
+				if (devc->model->series < RIGOL_DS1000Z)
 					rigol_ds_channel_start(sdi);
 				else
 					rigol_ds_capture_start(sdi);
@@ -616,7 +618,7 @@ static int get_cfg(const struct sr_dev_inst *sdi, char *cmd, char *reply, size_t
 	g_free(response);
 	len = strlen(reply);
 
-	if (devc->model->protocol == PROTOCOL_IEEE488_2) {
+	if (devc->model->series >= RIGOL_DS1000Z) {
 		/* get rid of trailing linefeed */
 		if (len >= 1 && reply[len-1] == '\n')
 			reply[len-1] = '\0';
@@ -725,7 +727,7 @@ SR_PRIV int rigol_ds_get_dev_cfg(const struct sr_dev_inst *sdi)
 		sr_dbg("CH%d %g", i + 1, devc->vdiv[i]);
 
 	sr_dbg("Current vertical reference:");
-	if (devc->model->protocol == PROTOCOL_IEEE488_2) {
+	if (devc->model->series >= RIGOL_DS1000Z) {
 		/* Vertical reference - not certain if this is the place to read it. */
 		for (i = 0; i < devc->model->analog_channels; i++) {
 			if (sr_scpi_send(sdi->conn, ":WAV:SOUR CHAN%d", i + 1) != SR_OK)
