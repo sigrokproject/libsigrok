@@ -231,12 +231,7 @@ static int set_cfg(const struct sr_dev_inst *sdi, const char *format, ...)
 	if (ret != SR_OK)
 		return SR_ERR;
 
-	/* When setting a bunch of parameters in a row, the DS1052E scrambles
-	 * some of them unless there is at least 100ms delay in between. */
-	sr_spew("delay %dms", 100);
-	g_usleep(100000);
-
-	return SR_OK;
+	return sr_scpi_get_opc(sdi->conn);
 }
 
 static int init(struct sr_context *sr_ctx)
