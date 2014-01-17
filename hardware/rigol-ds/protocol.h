@@ -28,14 +28,18 @@
 
 #define LOG_PREFIX "rigol-ds"
 
+/* Analog waveform block sizes */
 #define DS1000_ANALOG_LIVE_WAVEFORM_SIZE 600
 #define DS2000_ANALOG_LIVE_WAVEFORM_SIZE 1400
 #define VS5000_ANALOG_LIVE_WAVEFORM_SIZE 2048
 #define DSO1000_ANALOG_LIVE_WAVEFORM_SIZE 600
-/* Needs to be made configurable later */
 #define DS2000_ANALOG_MEM_WAVEFORM_SIZE_1C 14000
 #define DS2000_ANALOG_MEM_WAVEFORM_SIZE_2C 7000
-#define DIGITAL_WAVEFORM_SIZE 1210
+
+/* Digital waveform block size */
+#define DS1000_DIGITAL_WAVEFORM_SIZE 1200
+#define VS5000_DIGITAL_WAVEFORM_SIZE 4096
+
 /* Size of acquisition buffers */
 #define ACQ_BUFFER_SIZE 32768
 
@@ -107,6 +111,7 @@ struct dev_context {
 	void *cb_data;
 	enum data_source data_source;
 	uint64_t analog_frame_size;
+	uint64_t digital_frame_size;
 
 	/* Device settings */
 	gboolean analog_channels[MAX_ANALOG_PROBES];

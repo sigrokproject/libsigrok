@@ -477,10 +477,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 				devc->num_block_bytes = len;
 			} else {
 				devc->num_block_bytes = probe->type == SR_PROBE_ANALOG ?
-					(devc->model->series == RIGOL_VS5000 ?
-						VS5000_ANALOG_LIVE_WAVEFORM_SIZE :
-						DS1000_ANALOG_LIVE_WAVEFORM_SIZE) :
-					DIGITAL_WAVEFORM_SIZE;
+					devc->analog_frame_size : devc->digital_frame_size;
 			}
 			devc->num_block_read = 0;
 		}
@@ -553,7 +550,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 		devc->num_frame_samples += len;
 
 		if (devc->num_frame_samples < (probe->type == SR_PROBE_ANALOG ?
-					devc->analog_frame_size : DIGITAL_WAVEFORM_SIZE))
+					devc->analog_frame_size : devc->digital_frame_size))
 			/* Don't have the whole frame yet. */
 			return TRUE;
 

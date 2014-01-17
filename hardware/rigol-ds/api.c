@@ -489,6 +489,20 @@ static int analog_frame_size(const struct sr_dev_inst *sdi)
 	}
 }
 
+static int digital_frame_size(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc = sdi->priv;
+
+	switch (devc->model->series) {
+	case RIGOL_VS5000:
+		return VS5000_DIGITAL_WAVEFORM_SIZE;
+	case RIGOL_DS1000:
+		return DS1000_DIGITAL_WAVEFORM_SIZE;
+	default:
+		return 0;
+	}
+}
+
 static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_probe_group *probe_group)
 {
@@ -875,6 +889,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		devc->channel_entry = devc->enabled_digital_probes;
 
 	devc->analog_frame_size = analog_frame_size(sdi);
+	devc->digital_frame_size = digital_frame_size(sdi);
 
 	if (devc->model->protocol == PROTOCOL_LEGACY) {
 		/* Fetch the first frame. */
