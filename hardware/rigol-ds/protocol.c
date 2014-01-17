@@ -404,6 +404,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 	double vdiv, offset;
 	int len, i, vref;
 	struct sr_probe *probe;
+	gsize expected_data_bytes;
 
 	(void)fd;
 
@@ -444,6 +445,9 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 		}
 
 		probe = devc->channel_entry->data;
+
+		expected_data_bytes = probe->type == SR_PROBE_ANALOG ?
+				devc->analog_frame_size : devc->digital_frame_size;
 		
 		if (devc->num_block_bytes == 0 &&
 		    devc->model->series >= RIGOL_DS1000Z) {
@@ -452,8 +456,10 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 		}
 
 		if (devc->num_block_bytes == 0) {
+
 			if (sr_scpi_read_begin(scpi) != SR_OK)
 				return TRUE;
+
 			if (devc->model->protocol == PROTOCOL_IEEE488_2) {
 				sr_dbg("New block header expected");
 				len = rigol_ds_read_header(scpi);
@@ -466,15 +472,14 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 				 * appear eventually.
 				 */
 				if (devc->data_source == DATA_SOURCE_LIVE
-						&& (unsigned)len < devc->num_frame_samples) {
+						&& (unsigned)len < expected_data_bytes) {
 					sr_dbg("Discarding short data block");
 					sr_scpi_read_data(scpi, (char *)devc->buffer, len + 1);
 					return TRUE;
 				}
 				devc->num_block_bytes = len;
 			} else {
-				devc->num_block_bytes = probe->type == SR_PROBE_ANALOG ?
-					devc->analog_frame_size : devc->digital_frame_size;
+				devc->num_block_bytes = expected_data_bytes;
 			}
 			devc->num_block_read = 0;
 		}
@@ -548,8 +553,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 
 		devc->num_frame_samples += len;
 
-		if (devc->num_frame_samples < (probe->type == SR_PROBE_ANALOG ?
-					devc->analog_frame_size : devc->digital_frame_size))
+		if (devc->num_frame_samples < expected_data_bytes)
 			/* Don't have the whole frame yet. */
 			return TRUE;
 
