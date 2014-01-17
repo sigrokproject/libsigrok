@@ -21,14 +21,7 @@
 #include <stdlib.h>
 #include <check.h>
 #include "../libsigrok.h"
-
-Suite *suite_core(void);
-Suite *suite_driver_all(void);
-Suite *suite_input_all(void);
-Suite *suite_input_binary(void);
-Suite *suite_output_all(void);
-Suite *suite_strutil(void);
-Suite *suite_version(void);
+#include "lib.h"
 
 int main(void)
 {

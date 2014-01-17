@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <check.h>
 #include "../libsigrok.h"
+#include "lib.h"
 
 /*
  * Check the version number API calls and macros.
