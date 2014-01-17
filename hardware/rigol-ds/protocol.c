@@ -182,8 +182,7 @@ static int rigol_ds_trigger_wait(const struct sr_dev_inst *sdi)
 	 * If timebase < 50 msecs/DIV just sleep about one sweep time except
 	 * for really fast sweeps.
 	 */
-	if (devc->timebase < 0.0499)
-	{
+	if (devc->timebase < 0.0499) {
 		if (devc->timebase > 0.99e-6) {
 			/*
 			 * Timebase * num hor. divs * 85(%) * 1e6(usecs) / 100
@@ -370,13 +369,11 @@ static int rigol_ds_read_header(struct sr_scpi_dev_inst *scpi)
 	/* Read the hashsign and length digit. */
 	tmp = sr_scpi_read_data(scpi, start, 2);
 	start[2] = '\0';
-	if (tmp != 2)
-	{
+	if (tmp != 2) {
 		sr_err("Failed to read first two bytes of data block header.");
 		return -1;
 	}
-	if (start[0] != '#' || !isdigit(start[1]) || start[1] == '0')
-	{
+	if (start[0] != '#' || !isdigit(start[1]) || start[1] == '0') {
 		sr_err("Received invalid data block header start '%s'.", start);
 		return -1;
 	}
@@ -385,13 +382,11 @@ static int rigol_ds_read_header(struct sr_scpi_dev_inst *scpi)
 	/* Read the data length. */
 	tmp = sr_scpi_read_data(scpi, length, len);
 	length[len] = '\0';
-	if (tmp != len)
-	{
+	if (tmp != len) {
 		sr_err("Failed to read %d bytes of data block length.", len);
 		return -1;
 	}
-	if (parse_int(length, &len) != SR_OK)
-	{
+	if (parse_int(length, &len) != SR_OK) {
 		sr_err("Received invalid data block length '%s'.", length);
 		return -1;
 	}
@@ -425,22 +420,19 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 
 	if (revents == G_IO_IN || revents == 0) {
 		if (devc->model->protocol == PROTOCOL_IEEE488_2) {
-			switch(devc->wait_event) {
+			switch (devc->wait_event) {
 			case WAIT_NONE:
 				break;
-
 			case WAIT_TRIGGER:
 				if (rigol_ds_trigger_wait(sdi) != SR_OK)
 					return TRUE;
 				if (rigol_ds_channel_start(sdi) != SR_OK)
 					return TRUE;
 				break;
-
 			case WAIT_BLOCK:
 				if (rigol_ds_block_wait(sdi) != SR_OK)
 					return TRUE;
 				break;
-
 			case WAIT_STOP:
 				if (rigol_ds_stop_wait(sdi) != SR_OK)
 					return TRUE;
@@ -449,7 +441,6 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 				if (rigol_ds_channel_start(sdi) != SR_OK)
 					return TRUE;
 				return TRUE;
-
 			default:
 				sr_err("BUG: Unknown event target encountered");
 			}

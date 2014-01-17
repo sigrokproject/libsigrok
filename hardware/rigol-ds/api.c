@@ -493,13 +493,13 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_probe_group *probe_group)
 {
 	struct dev_context *devc;
+	uint64_t samplerate;
 
 	if (!sdi || !(devc = sdi->priv))
 		return SR_ERR_ARG;
 
 	/* If a probe group is specified, it must be a valid one. */
-	if (probe_group && !g_slist_find(sdi->probe_groups, probe_group))
-	{
+	if (probe_group && !g_slist_find(sdi->probe_groups, probe_group)) {
 		sr_err("Invalid probe group specified.");
 		return SR_ERR;
 	}
@@ -520,12 +520,12 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 		break;
 	case SR_CONF_SAMPLERATE:
 		if (devc->data_source == DATA_SOURCE_LIVE) {
-			uint64_t samplerate = analog_frame_size(sdi) /
+			samplerate = analog_frame_size(sdi) /
 				(devc->timebase * devc->model->num_horizontal_divs);
 			*data = g_variant_new_uint64(samplerate);
-		}
-		else
+		} else {
 			return SR_ERR_NA;
+		}
 		break;
 	default:
 		return SR_ERR_NA;
@@ -551,8 +551,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 		return SR_ERR_DEV_CLOSED;
 
 	/* If a probe group is specified, it must be a valid one. */
-	if (probe_group && !g_slist_find(sdi->probe_groups, probe_group))
-	{
+	if (probe_group && !g_slist_find(sdi->probe_groups, probe_group)) {
 		sr_err("Invalid probe group specified.");
 		return SR_ERR;
 	}
@@ -881,8 +880,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 			return SR_ERR;
 	} else {
 		if (devc->enabled_analog_probes) {
-			if (devc->data_source == DATA_SOURCE_MEMORY)
-			{
+			if (devc->data_source == DATA_SOURCE_MEMORY) {
 				/* Apparently for the DS2000 the memory
 				 * depth can only be set in Running state -
 				 * this matches the behaviour of the UI. */
