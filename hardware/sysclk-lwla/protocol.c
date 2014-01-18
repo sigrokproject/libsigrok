@@ -292,8 +292,7 @@ static void process_capture_length(const struct sr_dev_inst *sdi)
 	}
 	acq->mem_addr_fill = LWLA_READ32(acq->xfer_buf_in);
 
-	sr_dbg("%lu words in capture buffer.",
-	       (unsigned long)acq->mem_addr_fill);
+	sr_dbg("%zu words in capture buffer.", acq->mem_addr_fill);
 
 	if (acq->mem_addr_fill > 0 && sdi->status == SR_ST_ACTIVE)
 		issue_read_start(sdi);
@@ -349,6 +348,8 @@ static void process_capture_status(const struct sr_dev_inst *sdi)
 	uint64_t duration;
 	struct dev_context *devc;
 	struct acquisition_state *acq;
+	unsigned int mem_fill;
+	unsigned int flags;
 
 	devc = sdi->priv;
 	acq  = devc->acquisition;
@@ -364,10 +365,9 @@ static void process_capture_status(const struct sr_dev_inst *sdi)
 	 * in the FPGA.  These fields are definitely less than 64 bit wide
 	 * internally, and the unused bits occasionally even contain garbage.
 	 */
-	acq->mem_addr_fill = LWLA_READ32(&acq->xfer_buf_in[0]);
-	duration           = LWLA_READ32(&acq->xfer_buf_in[8]);
-	acq->capture_flags = LWLA_READ32(&acq->xfer_buf_in[16])
-				& STATUS_FLAG_MASK;
+	mem_fill = LWLA_READ32(&acq->xfer_buf_in[0]);
+	duration = LWLA_READ32(&acq->xfer_buf_in[8]);
+	flags    = LWLA_READ32(&acq->xfer_buf_in[16]) & STATUS_FLAG_MASK;
 
 	/* The LWLA1034 runs at 125 MHz if the clock divider is bypassed.
 	 * However, the time base used for the duration is apparently not
@@ -381,10 +381,16 @@ static void process_capture_status(const struct sr_dev_inst *sdi)
 	else
 		acq->duration_now = duration;
 
-	sr_spew("Captured %zu words, %" PRIu64 " ms, flags 0x%02X",
-		acq->mem_addr_fill, acq->duration_now, acq->capture_flags);
+	sr_spew("Captured %u words, %" PRIu64 " ms, flags 0x%02X.",
+		mem_fill, acq->duration_now, flags);
+
+	if ((flags & STATUS_TRIGGERED) > (acq->capture_flags & STATUS_TRIGGERED))
+		sr_info("Capture triggered.");
+
+	acq->capture_flags = flags;
 
 	if (acq->duration_now >= acq->duration_max) {
+		sr_dbg("Time limit reached, stopping capture.");
 		issue_stop_capture(sdi);
 		return;
 	}
@@ -473,8 +479,8 @@ static int process_sample_data(const struct sr_dev_inst *sdi)
 	actual_len = acq->xfer_in->actual_length;
 
 	if (actual_len != expect_len) {
-		sr_err("Received size %lu does not match expected size %lu.",
-		       (unsigned long)actual_len, (unsigned long)expect_len);
+		sr_err("Received size %zu does not match expected size %zu.",
+		       actual_len, expect_len);
 		devc->transfer_error = TRUE;
 		return SR_ERR;
 	}
@@ -710,21 +716,21 @@ SR_PRIV int lwla_init_device(const struct sr_dev_inst *sdi)
 	ret = lwla_read_reg(sdi->conn, REG_CMD_CTRL1, &value);
 	if (ret != SR_OK)
 		return ret;
-	sr_info("Received test word 0x%08X back.", value);
+	sr_dbg("Received test word 0x%08X back.", value);
 	if (value != 0x12345678)
 		return SR_ERR;
 
 	ret = lwla_read_reg(sdi->conn, REG_CMD_CTRL4, &value);
 	if (ret != SR_OK)
 		return ret;
-	sr_info("Received test word 0x%08X back.", value);
+	sr_dbg("Received test word 0x%08X back.", value);
 	if (value != 0x12345678)
 		return SR_ERR;
 
 	ret = lwla_read_reg(sdi->conn, REG_CMD_CTRL3, &value);
 	if (ret != SR_OK)
 		return ret;
-	sr_info("Received test word 0x%08X back.", value);
+	sr_dbg("Received test word 0x%08X back.", value);
 	if (value != 0x87654321)
 		return SR_ERR;
 
@@ -773,14 +779,24 @@ SR_PRIV int lwla_setup_acquisition(const struct sr_dev_inst *sdi)
 	usb  = sdi->conn;
 	acq  = devc->acquisition;
 
-	/* By default, run virtually unlimited. */
-	acq->duration_max = (devc->limit_msec > 0)
-		? devc->limit_msec : MAX_LIMIT_MSEC;
-	acq->samples_max = (devc->limit_samples > 0)
-		? devc->limit_samples : MAX_LIMIT_SAMPLES;
+	if (devc->limit_msec > 0) {
+		acq->duration_max = devc->limit_msec;
+		sr_info("Acquisition time limit %" PRIu64 " ms.",
+			devc->limit_msec);
+	} else
+		acq->duration_max = MAX_LIMIT_MSEC;
+
+	if (devc->limit_samples > 0) {
+		acq->samples_max = devc->limit_samples;
+		sr_info("Acquisition sample count limit %" PRIu64 ".",
+			devc->limit_samples);
+	} else
+		acq->samples_max = MAX_LIMIT_SAMPLES;
 
 	switch (devc->cur_clock_source) {
 	case CLOCK_SOURCE_INT:
+		sr_info("Internal clock, samplerate %" PRIu64 ".",
+			devc->samplerate);
 		if (devc->samplerate == 0)
 			return SR_ERR_BUG;
 		/* At 125 MHz, the clock divider is bypassed. */
@@ -795,7 +811,11 @@ SR_PRIV int lwla_setup_acquisition(const struct sr_dev_inst *sdi)
 					* devc->samplerate / 1000;
 		break;
 	case CLOCK_SOURCE_EXT_FALL:
+		sr_info("External clock, falling edge.");
+		acq->bypass_clockdiv = TRUE;
+		break;
 	case CLOCK_SOURCE_EXT_RISE:
+		sr_info("External clock, rising edge.");
 		acq->bypass_clockdiv = TRUE;
 		break;
 	default:
@@ -846,7 +866,9 @@ SR_PRIV int lwla_start_acquisition(const struct sr_dev_inst *sdi)
 	usb  = sdi->conn;
 	acq  = devc->acquisition;
 
-	acq->duration_now = 0;
+	acq->duration_now  = 0;
+	acq->mem_addr_fill = 0;
+	acq->capture_flags = 0;
 
 	libusb_fill_bulk_transfer(acq->xfer_out, usb->devhdl, EP_COMMAND,
 				  (unsigned char *)acq->xfer_buf_out, 0,

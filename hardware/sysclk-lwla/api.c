@@ -287,7 +287,6 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 	switch (key) {
 	case SR_CONF_SAMPLERATE:
 		value = g_variant_get_uint64(data);
-		sr_info("Setting samplerate %" PRIu64, value);
 		if (value < samplerates[G_N_ELEMENTS(samplerates) - 1]
 				|| value > samplerates[0])
 			return SR_ERR_SAMPLERATE;
