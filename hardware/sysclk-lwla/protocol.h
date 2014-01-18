@@ -44,7 +44,7 @@
 /** Unit and packet size for the sigrok logic datafeed.
  */
 #define UNIT_SIZE	((NUM_PROBES + 7) / 8)
-#define PACKET_SIZE	(10000 * UNIT_SIZE)	/* bytes */
+#define PACKET_LENGTH	10000	/* units */
 
 /** Size of the acquisition buffer in device memory units.
  */
@@ -158,7 +158,7 @@ struct acquisition_state {
 	size_t mem_addr_next;
 	size_t mem_addr_stop;
 
-	size_t out_offset;
+	size_t out_index;
 
 	struct libusb_transfer *xfer_in;
 	struct libusb_transfer *xfer_out;
@@ -175,7 +175,7 @@ struct acquisition_state {
 	uint16_t xfer_buf_in[MAX_ACQ_RECV_WORDS];
 
 	/* Payload buffer for sigrok logic packets. */
-	uint8_t out_packet[PACKET_SIZE];
+	uint8_t out_packet[PACKET_LENGTH * UNIT_SIZE];
 };
 
 /** Private, per-device-instance driver context.

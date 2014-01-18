@@ -238,8 +238,8 @@ static void issue_read_start(const struct sr_dev_inst *sdi)
 	acq->mem_addr_next = 4;
 	acq->mem_addr_stop = acq->mem_addr_fill;
 
-	/* Byte offset into the packet output buffer. */
-	acq->out_offset = 0;
+	/* Sample position in the packet output buffer. */
+	acq->out_index = 0;
 
 	regvals = devc->reg_write_seq;
 
@@ -434,49 +434,6 @@ static void request_read_mem(const struct sr_dev_inst *sdi)
 	}
 }
 
-/* Send a packet of logic samples to the session bus.  The payload is taken
- * from the acquisition state.  The return value indicates whether to stop
- * reading more samples.
- */
-static gboolean send_logic_packet(const struct sr_dev_inst *sdi)
-{
-	uint64_t samples;
-	struct dev_context *devc;
-	struct acquisition_state *acq;
-	struct sr_datafeed_packet packet;
-	struct sr_datafeed_logic  logic;
-	int last;
-
-	devc = sdi->priv;
-	acq  = devc->acquisition;
-
-	if (acq->samples_done >= acq->samples_max)
-		return TRUE;
-
-	packet.type    = SR_DF_LOGIC;
-	packet.payload = &logic;
-	logic.unitsize = UNIT_SIZE;
-	logic.data     = acq->out_packet;
-	logic.length   = acq->out_offset;
-
-	samples = acq->out_offset / UNIT_SIZE;
-	last = FALSE;
-
-	/* Cut the packet short if necessary. */
-	if (acq->samples_done + samples >= acq->samples_max) {
-		samples = acq->samples_max - acq->samples_done;
-		logic.length = samples * UNIT_SIZE;
-		last = TRUE;
-	}
-	acq->samples_done += samples;
-	acq->out_offset = 0;
-
-	/* Send off logic datafeed packet. */
-	sr_session_send(sdi, &packet);
-
-	return last;
-}
-
 /* Demangle and decompress incoming sample data from the capture buffer.
  * The data chunk is taken from the acquisition state, and is expected to
  * contain a multiple of 8 device words.
@@ -487,15 +444,19 @@ static gboolean send_logic_packet(const struct sr_dev_inst *sdi)
 static int process_sample_data(const struct sr_dev_inst *sdi)
 {
 	uint64_t sample;
-	uint64_t run_len;
 	uint64_t high_nibbles;
 	uint64_t word;
 	struct dev_context *devc;
 	struct acquisition_state *acq;
 	uint8_t *out_p;
 	uint16_t *slice;
+	struct sr_datafeed_packet packet;
+	struct sr_datafeed_logic logic;
 	size_t expect_len;
 	size_t actual_len;
+	size_t out_max_samples;
+	size_t out_run_samples;
+	size_t ri;
 	size_t in_words_left;
 	size_t si;
 
@@ -518,27 +479,49 @@ static int process_sample_data(const struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 	acq->mem_addr_done += in_words_left;
+
+	/* Prepare session packet. */
+	packet.type    = SR_DF_LOGIC;
+	packet.payload = &logic;
+	logic.unitsize = UNIT_SIZE;
+	logic.data     = acq->out_packet;
+
 	slice = acq->xfer_buf_in;
 	si = 0; /* word index within slice */
 
 	for (;;) {
-		sample = acq->sample;
+		/* Calculate number of samples to write into packet. */
+		out_max_samples = MIN(acq->samples_max - acq->samples_done,
+				      PACKET_LENGTH - acq->out_index);
+		out_run_samples = MIN(acq->run_len, out_max_samples);
+
 		/* Expand run-length samples into session packet. */
-		for (run_len = acq->run_len; run_len > 0; --run_len) {
-			out_p = &acq->out_packet[acq->out_offset];
+		sample = acq->sample;
+		out_p = &acq->out_packet[acq->out_index * UNIT_SIZE];
+
+		for (ri = 0; ri < out_run_samples; ++ri) {
 			out_p[0] =  sample        & 0xFF;
 			out_p[1] = (sample >>  8) & 0xFF;
 			out_p[2] = (sample >> 16) & 0xFF;
 			out_p[3] = (sample >> 24) & 0xFF;
 			out_p[4] = (sample >> 32) & 0xFF;
-			acq->out_offset += UNIT_SIZE;
-
-			/* Send out packet if it is full. */
-			if (acq->out_offset > PACKET_SIZE - UNIT_SIZE)
-				if (send_logic_packet(sdi))
-					return SR_OK; /* sample limit reached */
+			out_p += UNIT_SIZE;
 		}
-		acq->run_len = 0;
+		acq->run_len -= out_run_samples;
+		acq->out_index += out_run_samples;
+		acq->samples_done += out_run_samples;
+
+		/* Packet full or sample count limit reached? */
+		if (out_run_samples == out_max_samples) {
+			logic.length = acq->out_index * UNIT_SIZE;
+			sr_session_send(sdi, &packet);
+			acq->out_index = 0;
+
+			if (acq->samples_done >= acq->samples_max)
+				return SR_OK; /* sample limit reached */
+			if (acq->run_len > 0)
+				continue; /* need another packet */
+		}
 
 		if (in_words_left == 0)
 			break; /* done with current chunk */
@@ -566,10 +549,12 @@ static int process_sample_data(const struct sr_dev_inst *sdi)
 		--in_words_left;
 	}
 
-	/* Send out partially filled packet if it is the last one. */
-	if (acq->mem_addr_done >= acq->mem_addr_stop && acq->out_offset > 0)
-		send_logic_packet(sdi);
-
+	/* Send out partially filled packet if this was the last chunk. */
+	if (acq->mem_addr_done >= acq->mem_addr_stop && acq->out_index > 0) {
+		logic.length = acq->out_index * UNIT_SIZE;
+		sr_session_send(sdi, &packet);
+		acq->out_index = 0;
+	}
 	return SR_OK;
 }
 
