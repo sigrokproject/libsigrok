@@ -30,6 +30,7 @@ static const int32_t hwcaps[] = {
 	SR_CONF_SAMPLERATE,
 	SR_CONF_EXTERNAL_CLOCK,
 	SR_CONF_TRIGGER_TYPE,
+	SR_CONF_LIMIT_MSEC,
 	SR_CONF_LIMIT_SAMPLES,
 };
 
@@ -254,6 +255,9 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	case SR_CONF_SAMPLERATE:
 		*data = g_variant_new_uint64(devc->samplerate);
 		break;
+	case SR_CONF_LIMIT_MSEC:
+		*data = g_variant_new_uint64(devc->limit_msec);
+		break;
 	case SR_CONF_LIMIT_SAMPLES:
 		*data = g_variant_new_uint64(devc->limit_samples);
 		break;
@@ -271,8 +275,8 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 		      const struct sr_probe_group *probe_group)
 {
+	uint64_t value;
 	struct dev_context *devc;
-	uint64_t rate;
 
 	(void)probe_group;
 
@@ -282,15 +286,24 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 
 	switch (key) {
 	case SR_CONF_SAMPLERATE:
-		rate = g_variant_get_uint64(data);
-		sr_info("Setting samplerate %" G_GUINT64_FORMAT, rate);
-		if (rate > samplerates[0]
-		    || rate < samplerates[G_N_ELEMENTS(samplerates) - 1])
+		value = g_variant_get_uint64(data);
+		sr_info("Setting samplerate %" PRIu64, value);
+		if (value < samplerates[G_N_ELEMENTS(samplerates) - 1]
+				|| value > samplerates[0])
 			return SR_ERR_SAMPLERATE;
-		devc->samplerate = rate;
+		devc->samplerate = value;
+		break;
+	case SR_CONF_LIMIT_MSEC:
+		value = g_variant_get_uint64(data);
+		if (value > MAX_LIMIT_MSEC)
+			return SR_ERR_ARG;
+		devc->limit_msec = value;
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
-		devc->limit_samples = g_variant_get_uint64(data);
+		value = g_variant_get_uint64(data);
+		if (value > MAX_LIMIT_SAMPLES)
+			return SR_ERR_ARG;
+		devc->limit_samples = value;
 		break;
 	case SR_CONF_EXTERNAL_CLOCK:
 		if (g_variant_get_boolean(data)) {

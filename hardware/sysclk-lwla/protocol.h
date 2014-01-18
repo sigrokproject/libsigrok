@@ -89,6 +89,14 @@
  */
 #define DEFAULT_SAMPLERATE	SR_MHZ(125)
 
+/** Maximum configurable sample count limit.
+ */
+#define MAX_LIMIT_SAMPLES	(UINT64_C(1) << 48)
+
+/** Maximum configurable capture duration in milliseconds.
+ */
+#define MAX_LIMIT_MSEC		(UINT64_C(1) << 32)
+
 /** LWLA clock sources.
  */
 enum clock_source {
@@ -133,10 +141,15 @@ struct acquisition_state {
 	uint64_t sample;
 	uint64_t run_len;
 
-	/** Number of samples acquired so far. */
-	uint64_t captured_samples;
+	/** Maximum number of samples to process. */
+	uint64_t samples_max;
 	/** Number of samples sent to the session bus. */
-	uint64_t transferred_samples;
+	uint64_t samples_done;
+
+	/** Maximum duration of capture, in milliseconds. */
+	uint64_t duration_max;
+	/** Running capture duration since trigger event. */
+	uint64_t duration_now;
 
 	/** Capture memory fill level. */
 	size_t mem_addr_fill;
@@ -154,6 +167,9 @@ struct acquisition_state {
 
 	enum rle_state rle;
 
+	/** Whether to bypass the clock divider. */
+	gboolean bypass_clockdiv;
+
 	/* Payload data buffers for outgoing and incoming transfers. */
 	uint16_t xfer_buf_out[MAX_ACQ_SEND_WORDS];
 	uint16_t xfer_buf_in[MAX_ACQ_RECV_WORDS];
@@ -167,6 +183,9 @@ struct acquisition_state {
 struct dev_context {
 	/** The samplerate selected by the user. */
 	uint64_t samplerate;
+
+	/** The maximimum sampling duration, in milliseconds. */
+	uint64_t limit_msec;
 
 	/** The maximimum number of samples to acquire. */
 	uint64_t limit_samples;

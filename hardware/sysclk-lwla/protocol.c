@@ -64,11 +64,13 @@ static int submit_transfer(struct dev_context *devc,
 static int capture_setup(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
+	struct acquisition_state *acq;
 	uint64_t divider_count;
 	uint64_t memory_limit;
 	uint16_t command[3 + 10*4];
 
 	devc = sdi->priv;
+	acq  = devc->acquisition;
 
 	command[0] = LWLA_WORD(CMD_CAP_SETUP);
 	command[1] = LWLA_WORD(0); /* address */
@@ -83,9 +85,7 @@ static int capture_setup(const struct sr_dev_inst *sdi)
 	 * 100 MHz. At the highest samplerate of 125 MHz the clock divider
 	 * is bypassed.
 	 */
-	if (devc->cur_clock_source == CLOCK_SOURCE_INT
-			&& devc->samplerate > 0
-			&& devc->samplerate < SR_MHZ(100))
+	if (!acq->bypass_clockdiv && devc->samplerate > 0)
 		divider_count = SR_MHZ(100) / devc->samplerate - 1;
 	else
 		divider_count = 0;
@@ -231,8 +231,7 @@ static void issue_read_start(const struct sr_dev_inst *sdi)
 	acq->sample  = 0;
 	acq->run_len = 0;
 
-	acq->captured_samples    = 0;
-	acq->transferred_samples = 0;
+	acq->samples_done = 0;
 
 	/* For some reason, the start address is 4 rather than 0. */
 	acq->mem_addr_done = 4;
@@ -348,7 +347,6 @@ static void issue_stop_capture(const struct sr_dev_inst *sdi)
 static void process_capture_status(const struct sr_dev_inst *sdi)
 {
 	uint64_t duration;
-	uint64_t timescale;
 	struct dev_context *devc;
 	struct acquisition_state *acq;
 
@@ -371,17 +369,22 @@ static void process_capture_status(const struct sr_dev_inst *sdi)
 	acq->capture_flags = LWLA_READ32(&acq->xfer_buf_in[16])
 				& STATUS_FLAG_MASK;
 
-	/* The 125 MHz setting is special, and uses the same timebase
-	 * for the duration field as the 100 MHz setting.
+	/* The LWLA1034 runs at 125 MHz if the clock divider is bypassed.
+	 * However, the time base used for the duration is apparently not
+	 * adjusted for this "boost" mode.  Whereas normally the duration
+	 * unit is 1 ms, it is 0.8 ms when the clock divider is bypassed.
+	 * As 0.8 = 100 MHz / 125 MHz, it seems that the internal cycle
+	 * counter period is the same as at the 100 MHz setting.
 	 */
-	timescale = MIN(devc->samplerate, SR_MHZ(100));
-	acq->captured_samples = duration * timescale / 1000;
+	if (acq->bypass_clockdiv)
+		acq->duration_now = duration * 4 / 5;
+	else
+		acq->duration_now = duration;
 
-	sr_spew("Captured %lu words, %" PRIu64 " samples, flags 0x%02X",
-		(unsigned long)acq->mem_addr_fill,
-		acq->captured_samples, acq->capture_flags);
+	sr_spew("Captured %zu words, %" PRIu64 " ms, flags 0x%02X",
+		acq->mem_addr_fill, acq->duration_now, acq->capture_flags);
 
-	if (acq->captured_samples >= devc->limit_samples) {
+	if (acq->duration_now >= acq->duration_max) {
 		issue_stop_capture(sdi);
 		return;
 	}
@@ -447,7 +450,7 @@ static gboolean send_logic_packet(const struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 	acq  = devc->acquisition;
 
-	if (acq->transferred_samples >= devc->limit_samples)
+	if (acq->samples_done >= acq->samples_max)
 		return TRUE;
 
 	packet.type    = SR_DF_LOGIC;
@@ -460,12 +463,12 @@ static gboolean send_logic_packet(const struct sr_dev_inst *sdi)
 	last = FALSE;
 
 	/* Cut the packet short if necessary. */
-	if (acq->transferred_samples + samples >= devc->limit_samples) {
-		samples = devc->limit_samples - acq->transferred_samples;
+	if (acq->samples_done + samples >= acq->samples_max) {
+		samples = acq->samples_max - acq->samples_done;
 		logic.length = samples * UNIT_SIZE;
 		last = TRUE;
 	}
-	acq->transferred_samples += samples;
+	acq->samples_done += samples;
 	acq->out_offset = 0;
 
 	/* Send off logic datafeed packet. */
@@ -500,7 +503,7 @@ static int process_sample_data(const struct sr_dev_inst *sdi)
 	acq  = devc->acquisition;
 
 	if (acq->mem_addr_done >= acq->mem_addr_stop
-			|| acq->transferred_samples >= devc->limit_samples)
+			|| acq->samples_done >= acq->samples_max)
 		return SR_OK;
 
 	in_words_left = MIN(acq->mem_addr_stop - acq->mem_addr_done,
@@ -681,7 +684,7 @@ static void receive_transfer_in(struct libusb_transfer *transfer)
 	case STATE_READ_RESPONSE:
 		if (process_sample_data(sdi) == SR_OK
 				&& acq->mem_addr_next < acq->mem_addr_stop
-				&& acq->transferred_samples < devc->limit_samples)
+				&& acq->samples_done < acq->samples_max)
 			request_read_mem(sdi);
 		else
 			issue_read_end(sdi);
@@ -777,12 +780,43 @@ SR_PRIV int lwla_setup_acquisition(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
+	struct acquisition_state *acq;
 	struct regval_pair regvals[7];
 	int ret;
-	gboolean bypass;
 
 	devc = sdi->priv;
 	usb  = sdi->conn;
+	acq  = devc->acquisition;
+
+	/* By default, run virtually unlimited. */
+	acq->duration_max = (devc->limit_msec > 0)
+		? devc->limit_msec : MAX_LIMIT_MSEC;
+	acq->samples_max = (devc->limit_samples > 0)
+		? devc->limit_samples : MAX_LIMIT_SAMPLES;
+
+	switch (devc->cur_clock_source) {
+	case CLOCK_SOURCE_INT:
+		if (devc->samplerate == 0)
+			return SR_ERR_BUG;
+		/* At 125 MHz, the clock divider is bypassed. */
+		acq->bypass_clockdiv = (devc->samplerate > SR_MHZ(100));
+
+		/* If only one of the limits is set, derive the other one. */
+		if (devc->limit_msec == 0 && devc->limit_samples > 0)
+			acq->duration_max = devc->limit_samples
+					* 1000 / devc->samplerate + 1;
+		else if (devc->limit_samples == 0 && devc->limit_msec > 0)
+			acq->samples_max = devc->limit_msec
+					* devc->samplerate / 1000;
+		break;
+	case CLOCK_SOURCE_EXT_FALL:
+	case CLOCK_SOURCE_EXT_RISE:
+		acq->bypass_clockdiv = TRUE;
+		break;
+	default:
+		sr_err("No valid clock source has been configured.");
+		return SR_ERR;
+	}
 
 	regvals[0].reg = REG_MEM_CTRL2;
 	regvals[0].val = 2;
@@ -802,20 +836,8 @@ SR_PRIV int lwla_setup_acquisition(const struct sr_dev_inst *sdi)
 	regvals[5].reg = REG_CMD_CTRL1;
 	regvals[5].val = 0;
 
-	switch (devc->cur_clock_source) {
-	case CLOCK_SOURCE_INT:
-		bypass = (devc->samplerate > SR_MHZ(100));
-		break;
-	case CLOCK_SOURCE_EXT_FALL:
-	case CLOCK_SOURCE_EXT_RISE:
-		bypass = TRUE;
-		break;
-	default:
-		bypass = FALSE;
-		break;
-	}
 	regvals[6].reg = REG_DIV_BYPASS;
-	regvals[6].val = bypass;
+	regvals[6].val = acq->bypass_clockdiv;
 
 	ret = lwla_write_regs(usb, regvals, G_N_ELEMENTS(regvals));
 	if (ret != SR_OK)
@@ -838,6 +860,8 @@ SR_PRIV int lwla_start_acquisition(const struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 	usb  = sdi->conn;
 	acq  = devc->acquisition;
+
+	acq->duration_now = 0;
 
 	libusb_fill_bulk_transfer(acq->xfer_out, usb->devhdl, EP_COMMAND,
 				  (unsigned char *)acq->xfer_buf_out, 0,
