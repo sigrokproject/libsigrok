@@ -975,6 +975,9 @@ struct sr_dev_driver {
 	int (*config_set) (int id, GVariant *data,
 			const struct sr_dev_inst *sdi,
 			const struct sr_probe_group *probe_group);
+	int (*config_probe_set) (const struct sr_dev_inst *sdi,
+			struct sr_probe *probe, unsigned int changes);
+	int (*config_commit) (const struct sr_dev_inst *sdi);
 	int (*config_list) (int info_id, GVariant **data,
 			const struct sr_dev_inst *sdi,
 			const struct sr_probe_group *probe_group);

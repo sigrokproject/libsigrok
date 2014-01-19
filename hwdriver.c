@@ -634,6 +634,27 @@ SR_API int sr_config_set(const struct sr_dev_inst *sdi,
 }
 
 /**
+ * Apply configuration settings to the device hardware.
+ *
+ * @param sdi The device instance.
+ *
+ * @return SR_OK upon success or SR_ERR in case of error.
+ */
+SR_API int sr_config_commit(const struct sr_dev_inst *sdi)
+{
+	int ret;
+
+	if (!sdi || !sdi->driver)
+		ret = SR_ERR;
+	else if (!sdi->driver->config_commit)
+		ret = SR_OK;
+	else
+		ret = sdi->driver->config_commit(sdi);
+
+	return ret;
+}
+
+/**
  * List all possible values for a configuration key.
  *
  * @param driver The sr_dev_driver struct to query.

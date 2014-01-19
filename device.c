@@ -116,7 +116,9 @@ SR_API int sr_dev_probe_name_set(const struct sr_dev_inst *sdi,
  * @param probenum The probe number, starting from 0.
  * @param state TRUE to enable the probe, FALSE to disable.
  *
- * @return SR_OK on success, or SR_ERR_ARG on invalid arguments.
+ * @return SR_OK on success or SR_ERR on failure.  In case of invalid
+ *         arguments, SR_ERR_ARG is returned and the probe enabled state
+ *         remains unchanged.
  *
  * @since 0.2.0
  */
@@ -126,6 +128,7 @@ SR_API int sr_dev_probe_enable(const struct sr_dev_inst *sdi, int probenum,
 	GSList *l;
 	struct sr_probe *probe;
 	int ret;
+	gboolean was_enabled;
 
 	if (!sdi)
 		return SR_ERR_ARG;
@@ -134,8 +137,17 @@ SR_API int sr_dev_probe_enable(const struct sr_dev_inst *sdi, int probenum,
 	for (l = sdi->probes; l; l = l->next) {
 		probe = l->data;
 		if (probe->index == probenum) {
+			was_enabled = probe->enabled;
 			probe->enabled = state;
 			ret = SR_OK;
+			if (!state != !was_enabled && sdi->driver
+					&& sdi->driver->config_probe_set) {
+				ret = sdi->driver->config_probe_set(
+					sdi, probe, SR_PROBE_SET_ENABLED);
+				/* Roll back change if it wasn't applicable. */
+				if (ret == SR_ERR_ARG)
+					probe->enabled = was_enabled;
+			}
 			break;
 		}
 	}
@@ -153,7 +165,9 @@ SR_API int sr_dev_probe_enable(const struct sr_dev_inst *sdi, int probenum,
  * @param[in] probenum Number of probe, starting at 0.
  * @param[in] trigger Trigger string, in the format used by sigrok-cli
  *
- * @return SR_OK on success, or SR_ERR_ARG on invalid arguments.
+ * @return SR_OK on success or SR_ERR on failure.  In case of invalid
+ *         arguments, SR_ERR_ARG is returned and the trigger settings
+ *         remain unchanged.
  *
  * @since 0.2.0
  */
@@ -162,6 +176,7 @@ SR_API int sr_dev_trigger_set(const struct sr_dev_inst *sdi, int probenum,
 {
 	GSList *l;
 	struct sr_probe *probe;
+	char *old_trigger;
 	int ret;
 
 	if (!sdi)
@@ -171,10 +186,24 @@ SR_API int sr_dev_trigger_set(const struct sr_dev_inst *sdi, int probenum,
 	for (l = sdi->probes; l; l = l->next) {
 		probe = l->data;
 		if (probe->index == probenum) {
-			/* If the probe already has a trigger, kill it first. */
-			g_free(probe->trigger);
-			probe->trigger = g_strdup(trigger);
+			old_trigger = probe->trigger;
 			ret = SR_OK;
+			if (g_strcmp0(trigger, old_trigger) == 0)
+				break;
+			/* Set new trigger if it has changed. */
+			probe->trigger = g_strdup(trigger);
+
+			if (sdi->driver && sdi->driver->config_probe_set) {
+				ret = sdi->driver->config_probe_set(
+					sdi, probe, SR_PROBE_SET_TRIGGER);
+				/* Roll back change if it wasn't applicable. */
+				if (ret == SR_ERR_ARG) {
+					g_free(probe->trigger);
+					probe->trigger = old_trigger;
+					break;
+				}
+			}
+			g_free(old_trigger);
 			break;
 		}
 	}

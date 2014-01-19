@@ -77,6 +77,7 @@ SR_API int sr_config_get(const struct sr_dev_driver *driver,
 SR_API int sr_config_set(const struct sr_dev_inst *sdi,
 		const struct sr_probe_group *probe_group,
 		int key, GVariant *data);
+SR_API int sr_config_commit(const struct sr_dev_inst *sdi);
 SR_API int sr_config_list(const struct sr_dev_driver *driver,
 		const struct sr_dev_inst *sdi,
 		const struct sr_probe_group *probe_group,
