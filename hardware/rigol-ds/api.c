@@ -519,7 +519,7 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 		*data = g_variant_new_int32(devc->model->num_horizontal_divs);
 		break;
 	case SR_CONF_NUM_VDIV:
-		*data = g_variant_new_int32(8);
+		*data = g_variant_new_int32(NUM_VDIV);
 	case SR_CONF_DATA_SOURCE:
 		if (devc->data_source == DATA_SOURCE_LIVE)
 			*data = g_variant_new_string("Live");
