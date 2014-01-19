@@ -23,6 +23,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 #include <glib.h>
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
@@ -503,7 +504,13 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_probe_group *probe_group)
 {
 	struct dev_context *devc;
+	struct sr_probe *probe;
+	const char *tmp_str;
 	uint64_t samplerate;
+	int analog_channel = -1;
+	float smallest_diff = 0.0000000001;
+	int idx = -1;
+	unsigned i;
 
 	if (!sdi || !(devc = sdi->priv))
 		return SR_ERR_ARG;
@@ -512,6 +519,17 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 	if (probe_group && !g_slist_find(sdi->probe_groups, probe_group)) {
 		sr_err("Invalid probe group specified.");
 		return SR_ERR;
+	}
+
+	if (probe_group) {
+		probe = g_slist_nth_data(probe_group->probes, 0);
+		if (!probe)
+			return SR_ERR;
+		if (probe->type == SR_PROBE_ANALOG) {
+			if (probe->name[2] < '1' || probe->name[2] > '4')
+				return SR_ERR;
+			analog_channel = probe->name[2] - '1';
+		}
 	}
 
 	switch (id) {
@@ -536,6 +554,55 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 		} else {
 			return SR_ERR_NA;
 		}
+		break;
+	case SR_CONF_TRIGGER_SOURCE:
+		if (!strcmp(devc->trigger_source, "ACL"))
+			tmp_str = "AC Line";
+		else if (!strcmp(devc->trigger_source, "CHAN1"))
+			tmp_str = "CH1";
+		else if (!strcmp(devc->trigger_source, "CHAN2"))
+			tmp_str = "CH2";
+		else if (!strcmp(devc->trigger_source, "CHAN3"))
+			tmp_str = "CH3";
+		else if (!strcmp(devc->trigger_source, "CHAN4"))
+			tmp_str = "CH4";
+		else
+			tmp_str = devc->trigger_source;
+		*data = g_variant_new_string(tmp_str);
+		break;
+	case SR_CONF_TIMEBASE:
+		for (i = 0; i < devc->num_timebases; i++) {
+			float tb = (float)devc->timebases[i][0] / devc->timebases[i][1];
+			float diff = fabs(devc->timebase - tb);
+			if (diff < smallest_diff) {
+				smallest_diff = diff;
+				idx = i;
+			}
+		}
+		if (idx < 0)
+			return SR_ERR_NA;
+		*data = g_variant_new("(tt)", devc->timebases[idx][0],
+		                              devc->timebases[idx][1]);
+		break;
+	case SR_CONF_VDIV:
+		if (analog_channel < 0)
+			return SR_ERR_NA;
+		for (i = 0; i < ARRAY_SIZE(vdivs); i++) {
+			float vdiv = (float)vdivs[i][0] / vdivs[i][1];
+			float diff = fabs(devc->vdiv[analog_channel] - vdiv);
+			if (diff < smallest_diff) {
+				smallest_diff = diff;
+				idx = i;
+			}
+		}
+		if (idx < 0)
+			return SR_ERR_NA;
+		*data = g_variant_new("(tt)", vdivs[idx][0], vdivs[idx][1]);
+		break;
+	case SR_CONF_COUPLING:
+		if (analog_channel < 0)
+			return SR_ERR_NA;
+		*data = g_variant_new_string(devc->coupling[analog_channel]);
 		break;
 	default:
 		return SR_ERR_NA;
