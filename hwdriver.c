@@ -100,8 +100,6 @@ static struct sr_config_info sr_config_info_data[] = {
 		"Number of logic probes", NULL},
 	{SR_CONF_NUM_ANALOG_PROBES, SR_T_INT32, "analog_probes",
 		"Number of analog probes", NULL},
-	{SR_CONF_MAX_UNCOMPRESSED_SAMPLES, SR_T_UINT64, "max_uncompressed_samples",
-		"Maximum number of uncompressed samples", NULL},
 	{SR_CONF_OUTPUT_VOLTAGE, SR_T_FLOAT, "output_voltage",
 		"Current output voltage", NULL},
 	{SR_CONF_OUTPUT_VOLTAGE_MAX, SR_T_FLOAT, "output_voltage_max",
@@ -118,6 +116,8 @@ static struct sr_config_info sr_config_info_data[] = {
 		"Over-voltage protection", NULL},
 	{SR_CONF_OVER_CURRENT_PROTECTION, SR_T_BOOL, "ocp",
 		"Over-current protection", NULL},
+	{SR_CONF_LIMIT_SAMPLES, SR_T_UINT64, "limit_samples",
+		"Sample limit", NULL},
 	{0, 0, NULL, NULL, NULL},
 };
 

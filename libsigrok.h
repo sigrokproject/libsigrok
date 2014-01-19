@@ -868,18 +868,6 @@ enum {
 	 */
 	SR_CONF_DATA_SOURCE,
 
-	/**
-	 * On devices without sample compression (or compression turned off),
-	 * this returns the maximum number of samples that can be stored. This
-	 * can change as probes are disabled, depending on the hardware, so
-	 * should be queried after such changes are made. If not applicable,
-	 * fetching this value with sr_config_get() will return SR_ERR_NA.
-	 *
-	 * SR_CONF_LIMIT_SAMPLES should not be set to a higher value than
-	 * this value, if applicable.
-	 */
-	SR_CONF_MAX_UNCOMPRESSED_SAMPLES,
-
 	/*--- Acquisition modes ---------------------------------------------*/
 
 	/**

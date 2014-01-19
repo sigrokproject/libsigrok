@@ -42,7 +42,6 @@ SR_PRIV const int32_t chronovu_la8_hwcaps[] = {
 	SR_CONF_SAMPLERATE,
 	SR_CONF_LIMIT_MSEC, /* TODO: Not yet implemented. */
 	SR_CONF_LIMIT_SAMPLES, /* TODO: Not yet implemented. */
-	SR_CONF_MAX_UNCOMPRESSED_SAMPLES,
 };
 
 /*
@@ -280,9 +279,6 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 		} else
 			return SR_ERR;
 		break;
-	case SR_CONF_MAX_UNCOMPRESSED_SAMPLES:
-		*data = g_variant_new_uint64(MAX_NUM_SAMPLES);
-		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -339,7 +335,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_probe_group *probe_group)
 {
-	GVariant *gvar;
+	GVariant *gvar, *grange[2];
 	GVariantBuilder gvb;
 
 	(void)sdi;
@@ -361,6 +357,11 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 				sizeof(uint64_t));
 		g_variant_builder_add(&gvb, "{sv}", "samplerates", gvar);
 		*data = g_variant_builder_end(&gvb);
+		break;
+	case SR_CONF_LIMIT_SAMPLES:
+		grange[0] = g_variant_new_uint64(0);
+		grange[1] = g_variant_new_uint64(MAX_NUM_SAMPLES);
+		*data = g_variant_new_tuple(grange, 2);
 		break;
 	case SR_CONF_TRIGGER_TYPE:
 		*data = g_variant_new_string(TRIGGER_TYPE);

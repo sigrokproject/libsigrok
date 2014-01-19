@@ -59,7 +59,6 @@ static const int32_t hwcaps[] = {
 	SR_CONF_CAPTURE_RATIO,
 	SR_CONF_VOLTAGE_THRESHOLD,
 	SR_CONF_LIMIT_SAMPLES,
-	SR_CONF_MAX_UNCOMPRESSED_SAMPLES,
 };
 
 /*
@@ -506,16 +505,6 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 		} else
 			return SR_ERR_ARG;
 		break;
-	case SR_CONF_MAX_UNCOMPRESSED_SAMPLES:
-		if (sdi) {
-			/* As long as this driver doesn't support compression,
-			 * this is ok. When compression is enabled, this should
-			 * return SR_ERR_NA instead. */
-			devc = sdi->priv;
-			*data = g_variant_new_uint64(devc->max_sample_depth);
-		} else
-			return SR_ERR;
-		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -560,7 +549,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_probe_group *probe_group)
 {
 	struct dev_context *devc;
-	GVariant *gvar;
+	GVariant *gvar, *grange[2];
 	GVariantBuilder gvb;
 	double v;
 	GVariant *range[2];
@@ -603,6 +592,14 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 			g_variant_builder_add_value(&gvb, gvar);
 		}
 		*data = g_variant_builder_end(&gvb);
+		break;
+	case SR_CONF_LIMIT_SAMPLES:
+		if (!sdi)
+			return SR_ERR_ARG;
+		devc = sdi->priv;
+		grange[0] = g_variant_new_uint64(0);
+		grange[1] = g_variant_new_uint64(devc->max_sample_depth);
+		*data = g_variant_new_tuple(grange, 2);
 		break;
 	default:
 		return SR_ERR_NA;

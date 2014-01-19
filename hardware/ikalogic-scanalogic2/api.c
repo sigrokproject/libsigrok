@@ -25,7 +25,6 @@ static const int hwcaps[] = {
 	SR_CONF_LIMIT_SAMPLES,
 	SR_CONF_TRIGGER_TYPE,
 	SR_CONF_CAPTURE_RATIO,
-	SR_CONF_MAX_UNCOMPRESSED_SAMPLES,
 };
 
 SR_PRIV const uint64_t sl2_samplerates[NUM_SAMPLERATES] = {
@@ -326,9 +325,6 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	case SR_CONF_CAPTURE_RATIO:
 		*data = g_variant_new_uint64(devc->capture_ratio);
 		break;
-	case SR_CONF_MAX_UNCOMPRESSED_SAMPLES:
-		*data = g_variant_new_uint64(MAX_SAMPLES);
-		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -372,7 +368,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_probe_group *probe_group)
 {
-	GVariant *gvar;
+	GVariant *gvar, *grange[2];
 	GVariantBuilder gvb;
 	int ret;
 
@@ -396,6 +392,11 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		break;
 	case SR_CONF_TRIGGER_TYPE:
 		*data = g_variant_new_string(TRIGGER_TYPES);
+		break;
+	case SR_CONF_LIMIT_SAMPLES:
+		grange[0] = g_variant_new_uint64(0);
+		grange[1] = g_variant_new_uint64(MAX_SAMPLES);
+		*data = g_variant_new_tuple(grange, 2);
 		break;
 	default:
 		return SR_ERR_NA;
