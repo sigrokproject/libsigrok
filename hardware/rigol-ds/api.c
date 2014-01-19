@@ -552,6 +552,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 	unsigned int i, j;
 	int ret;
 	const char *tmp_str;
+	char buffer[16];
 
 	if (!(devc = sdi->priv))
 		return SR_ERR_ARG;
@@ -586,14 +587,17 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 		/* We have the trigger offset as a percentage of the frame, but
 		 * need to express this in seconds. */
 		t_dbl = -(devc->horiz_triggerpos - 0.5) * devc->timebase * devc->num_timebases;
-		ret = set_cfg(sdi, ":TIM:OFFS %.6f", t_dbl);
+		g_ascii_formatd(buffer, sizeof(buffer), "%.6f", t_dbl);
+		ret = set_cfg(sdi, ":TIM:OFFS %s", buffer);
 		break;
 	case SR_CONF_TIMEBASE:
 		g_variant_get(data, "(tt)", &p, &q);
 		for (i = 0; i < devc->num_timebases; i++) {
 			if (devc->timebases[i][0] == p && devc->timebases[i][1] == q) {
 				devc->timebase = (float)p / q;
-				ret = set_cfg(sdi, ":TIM:SCAL %.9f", devc->timebase);
+				g_ascii_formatd(buffer, sizeof(buffer), "%.9f",
+				                devc->timebase);
+				ret = set_cfg(sdi, ":TIM:SCAL %s", buffer);
 				break;
 			}
 		}
@@ -637,8 +641,10 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 					if (vdivs[j][0] != p || vdivs[j][1] != q)
 						continue;
 					devc->vdiv[i] = (float)p / q;
-					return set_cfg(sdi, ":CHAN%d:SCAL %.3f", i + 1,
-							devc->vdiv[i]);
+					g_ascii_formatd(buffer, sizeof(buffer), "%.3f",
+					                devc->vdiv[i]);
+					return set_cfg(sdi, ":CHAN%d:SCAL %s", i + 1,
+							buffer);
 				}
 				return SR_ERR_ARG;
 			}
