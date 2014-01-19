@@ -53,6 +53,7 @@ static const int32_t analog_hwcaps[] = {
 
 static const uint64_t timebases[][2] = {
 	/* nanoseconds */
+	{ 1, 1000000000 },
 	{ 2, 1000000000 },
 	{ 5, 1000000000 },
 	{ 10, 1000000000 },
@@ -90,7 +91,7 @@ static const uint64_t timebases[][2] = {
 	{ 100, 1 },
 	{ 200, 1 },
 	{ 500, 1 },
-	/* { 1000, 1 }, Confuses other code? */
+	{ 1000, 1 },
 };
 
 static const uint64_t vdivs[][2] = {
