@@ -176,12 +176,20 @@ SR_API int sr_session_dev_add(const struct sr_dev_inst *sdi)
 	session->devs = g_slist_append(session->devs, (gpointer)sdi);
 
 	if (session->running) {
-		/* Adding a device to a running session. Start acquisition
-		 * on that device now. */
+		/* Adding a device to a running session. Commit settings
+		 * and start acquisition on that device now. */
+		if ((ret = sr_config_commit(sdi)) != SR_OK) {
+			sr_err("Failed to commit device settings before "
+			       "starting acquisition in running session (%s)",
+			       sr_strerror(ret));
+			return ret;
+		}
 		if ((ret = sdi->driver->dev_acquisition_start(sdi,
-						(void *)sdi)) != SR_OK)
+						(void *)sdi)) != SR_OK) {
 			sr_err("Failed to start acquisition of device in "
-					"running session: %d", ret);
+			       "running session (%s)", sr_strerror(ret));
+			return ret;
+		}
 	}
 
 	return SR_OK;
@@ -354,6 +362,11 @@ SR_API int sr_session_start(void)
 	ret = SR_OK;
 	for (l = session->devs; l; l = l->next) {
 		sdi = l->data;
+		if ((ret = sr_config_commit(sdi)) != SR_OK) {
+			sr_err("Failed to commit device settings before "
+			       "starting acquisition (%s)", sr_strerror(ret));
+			break;
+		}
 		if ((ret = sdi->driver->dev_acquisition_start(sdi, sdi)) != SR_OK) {
 			sr_err("%s: could not start an acquisition "
 			       "(%s)", __func__, sr_strerror(ret));
