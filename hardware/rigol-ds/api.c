@@ -163,6 +163,8 @@ static const char *data_sources[] = {
 
 #define RIGOL "Rigol Technologies"
 #define AGILENT "Agilent Technologies"
+#define RIGOL_SHORT "Rigol"
+#define AGILENT_SHORT "Agilent"
 
 static const struct rigol_ds_model supported_models[] = {
 	{RIGOL, "DS1052E", RIGOL_DS1000, PROTOCOL_IEEE488_2, {5, 1000000000}, {50, 1}, {2, 1000}, 2, false, 12},
@@ -250,7 +252,7 @@ static int probe_port(const char *resource, const char *serialcomm, GSList **dev
 	struct sr_probe *probe;
 	unsigned int i;
 	const struct rigol_ds_model *model = NULL;
-	gchar *channel_name;
+	gchar *channel_name, *vendor;
 
 	*devices = NULL;
 
@@ -278,8 +280,14 @@ static int probe_port(const char *resource, const char *serialcomm, GSList **dev
 		}
 	}
 
+	if (!strcmp(hw_info->manufacturer, RIGOL))
+		vendor = RIGOL_SHORT;
+	else if (!strcmp(hw_info->manufacturer, AGILENT))
+		vendor = AGILENT_SHORT;
+	else
+		vendor = hw_info->manufacturer;
 	if (!model || !(sdi = sr_dev_inst_new(0, SR_ST_ACTIVE,
-					      hw_info->manufacturer, hw_info->model,
+					      vendor, hw_info->model,
 						  hw_info->firmware_version))) {
 		sr_scpi_hw_info_free(hw_info);
 		sr_scpi_close(scpi);
