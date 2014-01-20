@@ -409,13 +409,13 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 			return TRUE;
 
 		devc->sample[devc->num_bytes++] = byte;
-		sr_dbg("Received byte 0x%.2x.", byte);
+		sr_spew("Received byte 0x%.2x.", byte);
 		if (devc->num_bytes == num_channels) {
 			/* Got a full sample. Convert from the OLS's little-endian
 			 * sample to the local format. */
 			sample = devc->sample[0] | (devc->sample[1] << 8) \
 					| (devc->sample[2] << 16) | (devc->sample[3] << 24);
-			sr_dbg("Received sample 0x%.*x.", devc->num_bytes * 2, sample);
+			sr_spew("Received sample 0x%.*x.", devc->num_bytes * 2, sample);
 			if (devc->flag_reg & FLAG_RLE) {
 				/*
 				 * In RLE mode the high bit of the sample is the

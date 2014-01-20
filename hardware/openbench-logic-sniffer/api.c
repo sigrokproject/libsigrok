@@ -39,8 +39,9 @@ static const int32_t hwcaps[] = {
 	SR_CONF_RLE,
 };
 
-#define STR_PATTERN_EXTERNAL "external"
-#define STR_PATTERN_INTERNAL "internal"
+#define STR_PATTERN_NONE     "None"
+#define STR_PATTERN_EXTERNAL "External"
+#define STR_PATTERN_INTERNAL "Internal"
 
 /* Supported methods of test pattern outputs */
 enum {
@@ -55,6 +56,7 @@ enum {
 };
 
 static const char *patterns[] = {
+	STR_PATTERN_NONE,
 	STR_PATTERN_EXTERNAL,
 	STR_PATTERN_INTERNAL,
 };
@@ -241,6 +243,8 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 			*data = g_variant_new_string(STR_PATTERN_EXTERNAL);
 		else if (devc->flag_reg & FLAG_INTERNAL_TEST_MODE)
 			*data = g_variant_new_string(STR_PATTERN_INTERNAL);
+		else
+			*data = g_variant_new_string(STR_PATTERN_NONE);
 		break;
 	case SR_CONF_RLE:
 		*data = g_variant_new_boolean(devc->flag_reg & FLAG_RLE ? TRUE : FALSE);
@@ -256,8 +260,9 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 		const struct sr_probe_group *probe_group)
 {
 	struct dev_context *devc;
-	int ret;
+	uint16_t flag;
 	uint64_t tmp_u64;
+	int ret;
 	const char *stropt;
 
 	(void)probe_group;
@@ -302,14 +307,22 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 	case SR_CONF_PATTERN_MODE:
 		stropt = g_variant_get_string(data, NULL);
 		ret = SR_OK;
-		if (!strcmp(stropt, STR_PATTERN_INTERNAL)) {
+		flag = 0xffff;
+		if (!strcmp(stropt, STR_PATTERN_NONE)) {
+			sr_info("Disabling test modes.");
+			flag = 0x0000;
+		}else if (!strcmp(stropt, STR_PATTERN_INTERNAL)) {
 			sr_info("Enabling internal test mode.");
-			devc->flag_reg |= FLAG_INTERNAL_TEST_MODE;
+			flag = FLAG_INTERNAL_TEST_MODE;
 		} else if (!strcmp(stropt, STR_PATTERN_EXTERNAL)) {
 			sr_info("Enabling external test mode.");
-			devc->flag_reg |= FLAG_EXTERNAL_TEST_MODE;
+			flag = FLAG_EXTERNAL_TEST_MODE;
 		} else {
 			ret = SR_ERR;
+		}
+		if (flag != 0xffff) {
+			devc->flag_reg &= ~(FLAG_INTERNAL_TEST_MODE | FLAG_EXTERNAL_TEST_MODE);
+			devc->flag_reg |= flag;
 		}
 		break;
 	case SR_CONF_SWAP:
@@ -503,24 +516,29 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 		delaycount = readcount;
 	}
 
-	sr_info("Setting samplerate to %" PRIu64 "Hz (divider %u, "
-		"demux %s, noise_filter %s)", devc->cur_samplerate,
-		devc->cur_samplerate_divider,
-		devc->flag_reg & FLAG_DEMUX ? "on" : "off",
-		devc->flag_reg & FLAG_FILTER ? "on": "off");
+	/* Samplerate. */
+	sr_info("Setting samplerate to %" PRIu64 "Hz (divider %u)",
+			devc->cur_samplerate, devc->cur_samplerate_divider);
 	if (send_longcommand(serial, CMD_SET_DIVIDER,
 			reverse32(devc->cur_samplerate_divider)) != SR_OK)
 		return SR_ERR;
 
 	/* Send sample limit and pre/post-trigger capture ratio. */
+	sr_info("Setting sample limit %d, trigger point at %d",
+			(readcount - 1) * 4, (delaycount - 1) * 4);
 	data = ((readcount - 1) & 0xffff) << 16;
 	data |= (delaycount - 1) & 0xffff;
 	if (send_longcommand(serial, CMD_CAPTURE_SIZE, reverse16(data)) != SR_OK)
 		return SR_ERR;
 
-	/* The flag register wants them here, and 1 means "disable channel". */
+	/* Flag register. */
+	sr_info("Setting demux %s, noise_filter %s, extpat %s, intpat %s",
+			devc->flag_reg & FLAG_DEMUX ? "on" : "off",
+			devc->flag_reg & FLAG_FILTER ? "on": "off",
+			devc->flag_reg & FLAG_EXTERNAL_TEST_MODE ? "on": "off",
+			devc->flag_reg & FLAG_INTERNAL_TEST_MODE ? "on": "off");
+	/* 1 means "disable channel". */
 	devc->flag_reg |= ~(changrp_mask << 2) & 0x3c;
-	devc->rle_count = 0;
 	data = (devc->flag_reg << 24) | ((devc->flag_reg << 8) & 0xff0000);
 	if (send_longcommand(serial, CMD_SET_FLAGS, data) != SR_OK)
 		return SR_ERR;
@@ -530,7 +548,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 		return SR_ERR;
 
 	/* Reset all operational states. */
-	devc->num_transfers = devc->num_samples = devc->num_bytes = 0;
+	devc->rle_count = devc->num_transfers = 0;
+	devc->num_samples = devc->num_bytes = 0;
 	memset(devc->sample, 0, 4);
 
 	/* Send header packet to the session bus. */
