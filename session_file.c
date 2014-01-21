@@ -337,13 +337,18 @@ SR_API int sr_session_save_init(const char *filename, uint64_t samplerate,
 
 	fclose(meta);
 
-	if (!(metasrc = zip_source_file(zipfile, metafile, 0, -1)))
+	if (!(metasrc = zip_source_file(zipfile, metafile, 0, -1))) {
+		unlink(metafile);
 		return SR_ERR;
-	if (zip_add(zipfile, "metadata", metasrc) == -1)
+	}
+	if (zip_add(zipfile, "metadata", metasrc) == -1) {
+		unlink(metafile);
 		return SR_ERR;
+	}
 
 	if ((ret = zip_close(zipfile)) == -1) {
 		sr_info("error saving zipfile: %s", zip_strerror(zipfile));
+		unlink(metafile);
 		return SR_ERR;
 	}
 
@@ -408,6 +413,7 @@ SR_API int sr_session_append(const char *filename, unsigned char *buf,
 		return SR_ERR;
 	}
 	g_free(metafile);
+	tmpname[0] = '\0';
 	if (!g_key_file_has_key(kf, "device 1", "unitsize", &error)) {
 		if (error && error->code != G_KEY_FILE_ERROR_KEY_NOT_FOUND) {
 			sr_err("Failed to check unitsize key: %s", error ? error->message : "?");
@@ -421,16 +427,21 @@ SR_API int sr_session_append(const char *filename, unsigned char *buf,
 			return SR_ERR;
 		if (write(tmpfile, metafile, len) < 0) {
 			sr_dbg("Failed to create new metadata: %s", strerror(errno));
+			g_free(metafile);
+			unlink(tmpname);
 			return SR_ERR;
 		}
 		close(tmpfile);
 		if (!(metasrc = zip_source_file(archive, tmpname, 0, -1))) {
-			g_free(metafile);
 			sr_err("Failed to create zip source for metadata.");
+			g_free(metafile);
+			unlink(tmpname);
 			return SR_ERR;
 		}
 		if (zip_replace(archive, zs.index, metasrc) == -1) {
 			sr_err("Failed to replace metadata file.");
+			g_free(metafile);
+			unlink(tmpname);
 			return SR_ERR;
 		}
 		g_free(metafile);
@@ -448,6 +459,7 @@ SR_API int sr_session_append(const char *filename, unsigned char *buf,
 			 * Rename it to "logic-1-1" * and continue with chunk 2. */
 			if (zip_rename(archive, i, "logic-1-1") == -1) {
 				sr_err("Failed to rename 'logic-1' to 'logic-1-1'.");
+				unlink(tmpname);
 				return SR_ERR;
 			}
 			next_chunk_num = 2;
@@ -459,14 +471,20 @@ SR_API int sr_session_append(const char *filename, unsigned char *buf,
 		}
 	}
 	snprintf(chunkname, 15, "logic-1-%d", next_chunk_num);
-	if (!(logicsrc = zip_source_buffer(archive, buf, units * unitsize, FALSE)))
-		return SR_ERR;
-	if (zip_add(archive, chunkname, logicsrc) == -1)
-		return SR_ERR;
-	if ((ret = zip_close(archive)) == -1) {
-		sr_info("error saving session file: %s", zip_strerror(archive));
+	if (!(logicsrc = zip_source_buffer(archive, buf, units * unitsize, FALSE))) {
+		unlink(tmpname);
 		return SR_ERR;
 	}
+	if (zip_add(archive, chunkname, logicsrc) == -1) {
+		unlink(tmpname);
+		return SR_ERR;
+	}
+	if ((ret = zip_close(archive)) == -1) {
+		sr_info("error saving session file: %s", zip_strerror(archive));
+		unlink(tmpname);
+		return SR_ERR;
+	}
+	unlink(tmpname);
 
 	return SR_OK;
 }
