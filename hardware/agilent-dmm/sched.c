@@ -234,7 +234,7 @@ static int recv_fetc(const struct sr_dev_inst *sdi, GMatchInfo *match)
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog analog;
 	float fvalue;
-	char *mstr, *eptr;
+	char *mstr;
 
 	sr_spew("FETC reply '%s'.", g_match_info_get_string(match));
 	devc = sdi->priv;
@@ -252,12 +252,12 @@ static int recv_fetc(const struct sr_dev_inst *sdi, GMatchInfo *match)
 		fvalue = NAN;
 	} else {
 		mstr = g_match_info_fetch(match, 1);
-		fvalue = strtof(mstr, &eptr);
-		g_free(mstr);
-		if (fvalue == 0.0 && eptr == mstr) {
+		if (sr_atof_ascii(mstr, &fvalue) != SR_OK || fvalue == 0.0) {
+			g_free(mstr);
 			sr_err("Invalid float.");
 			return SR_ERR;
 		}
+		g_free(mstr);
 		if (devc->cur_divider > 0)
 			fvalue /= devc->cur_divider;
 	}
