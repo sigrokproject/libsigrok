@@ -158,12 +158,13 @@ static int parse_value(const char *strbuf, int len, float *floatval)
 	}
 
 	memset(str, 0, sizeof(str));
-	/* Spaces may interfere with strtod parsing the exponent. Strip them. */
-	for (s = 0, d = 0; s < len; s++)
+	/* Spaces may interfere with parsing the exponent. Strip them. */
+	for (s = 0, d = 0; s < len; s++) {
 		if (strbuf[s] != ' ')
 			str[d++] = strbuf[s];
-		/* Yes, it's that simple! */
-		*floatval = strtod(str, NULL);
+	}
+	if (sr_atof_ascii(str, floatval) != SR_OK)
+		return SR_ERR;
 
 	return SR_OK;
 }
@@ -188,8 +189,8 @@ static void parse_flags(const uint8_t *buf, struct brymen_flags *info)
 	info->is_ac		= (buf[4 + 0] & (1 << 0)) != 0;
 }
 
-SR_PRIV int sr_brymen_parse(const uint8_t *buf, float *floatval,
-			    struct sr_datafeed_analog *analog, void *info)
+SR_PRIV int brymen_parse(const uint8_t *buf, float *floatval,
+		struct sr_datafeed_analog *analog, void *info)
 {
 	struct brymen_flags flags;
 	struct brymen_header *hdr;
@@ -211,7 +212,8 @@ SR_PRIV int sr_brymen_parse(const uint8_t *buf, float *floatval,
 	sr_dbg("DMM packet: \"%.*s\"", asciilen, bfunc + 4);
 
 	parse_flags(buf, &flags);
-	parse_value((const char *)(bfunc + 4), asciilen, floatval);
+	if (parse_value((const char *)(bfunc + 4), asciilen, floatval) != SR_OK)
+		return SR_ERR;
 
 	if (flags.is_volt) {
 		analog->mq = SR_MQ_VOLTAGE;

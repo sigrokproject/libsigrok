@@ -31,7 +31,8 @@ static void handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi)
 	analog.num_samples = 1;
 	analog.mq = -1;
 
-	sr_brymen_parse(buf, &floatval, &analog, NULL);
+	if (brymen_parse(buf, &floatval, &analog, NULL) != SR_OK)
+		return;
 	analog.data = &floatval;
 
 	analog.probes = sdi->probes;
