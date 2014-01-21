@@ -40,10 +40,17 @@ static struct sr_datafeed_analog *handle_qm_18x(const struct sr_dev_inst *sdi,
 	if ((e = strstr(tokens[1], "Out of range"))) {
 		is_oor = TRUE;
 		fvalue = -1;
+		while(*e && *e != '.')
+			e++;
 	} else {
 		is_oor = FALSE;
-		fvalue = strtof(tokens[1], &e);
-		if (fvalue == 0.0 && e == tokens[1]) {
+		/* Delimit the float, since sr_atof_ascii() wants only
+		 * a valid float here. */
+		e = tokens[1];
+		while(*e && *e != ' ')
+			e++;
+		*e++ = '\0';
+		if (sr_atof_ascii(tokens[1], &fvalue) != SR_OK || fvalue == 0.0) {
 			/* Happens all the time, when switching modes. */
 			sr_dbg("Invalid float.");
 			return NULL;
@@ -154,14 +161,12 @@ static struct sr_datafeed_analog *handle_qm_28x(const struct sr_dev_inst *sdi,
 {
 	struct sr_datafeed_analog *analog;
 	float fvalue;
-	char *eptr;
 
 	if (!tokens[1])
 		return NULL;
 
-	fvalue = strtof(tokens[0], &eptr);
-	if (fvalue == 0.0 && eptr == tokens[0]) {
-		sr_err("Invalid float.");
+	if (sr_atof_ascii(tokens[0], &fvalue) != SR_OK || fvalue == 0.0) {
+		sr_err("Invalid float '%s'.", tokens[0]);
 		return NULL;
 	}
 
@@ -363,7 +368,6 @@ static void handle_qm_19x_data(const struct sr_dev_inst *sdi, char **tokens)
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog analog;
 	float fvalue;
-	char *eptr;
 
 	if (!strcmp(tokens[0], "9.9E+37")) {
 		/* An invalid measurement shows up on the display as "OL", but
@@ -371,8 +375,7 @@ static void handle_qm_19x_data(const struct sr_dev_inst *sdi, char **tokens)
 		 * is rather problematic, we'll cut through this here. */
 		fvalue = NAN;
 	} else {
-		fvalue = strtof(tokens[0], &eptr);
-		if (fvalue == 0.0 && eptr == tokens[0]) {
+		if (sr_atof_ascii(tokens[0], &fvalue) != SR_OK || fvalue == 0.0) {
 			sr_err("Invalid float '%s'.", tokens[0]);
 			return;
 		}
