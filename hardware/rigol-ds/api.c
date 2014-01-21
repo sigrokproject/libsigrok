@@ -225,6 +225,7 @@ static int dev_clear(void)
 
 static int set_cfg(const struct sr_dev_inst *sdi, const char *format, ...)
 {
+	struct dev_context *devc = sdi->priv;
 	va_list args;
 	int ret;
 
@@ -235,7 +236,14 @@ static int set_cfg(const struct sr_dev_inst *sdi, const char *format, ...)
 	if (ret != SR_OK)
 		return SR_ERR;
 
-	return sr_scpi_get_opc(sdi->conn);
+	if (devc->model->series == RIGOL_DS1000) {
+		/* The DS1000 series needs this stupid delay, *OPC? doesn't work. */
+		sr_spew("delay %dms", 100);
+		g_usleep(100000);
+		return SR_OK;
+	} else {
+		return sr_scpi_get_opc(sdi->conn);
+	}
 }
 
 static int init(struct sr_context *sr_ctx)
