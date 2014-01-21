@@ -265,7 +265,7 @@ static GSList *scan(GSList *options)
 	struct sr_config *src;
 	struct analog_gen *ag;
 	GSList *devices, *l;
-	int num_logic_probes, num_analog_probes, i;
+	int num_logic_probes, num_analog_probes, pattern, i;
 	char probe_name[16];
 
 	drvc = di->priv;
@@ -322,6 +322,8 @@ static GSList *scan(GSList *options)
 	sdi->probe_groups = g_slist_append(NULL, pg);
 
 	/* Analog probes, probe groups and pattern generators. */
+
+	pattern = 0;
 	for (i = 0; i < num_analog_probes; i++) {
 		sprintf(probe_name, "A%d", i);
 		if (!(probe = sr_probe_new(i + num_logic_probes,
@@ -343,11 +345,14 @@ static GSList *scan(GSList *options)
 		ag->packet.mqflags = 0;
 		ag->packet.unit = SR_UNIT_VOLT;
 		ag->packet.data = ag->pattern_data;
-		ag->pattern = PATTERN_SINE;
+		ag->pattern = pattern;
 		pg->priv = ag;
 
 		sdi->probe_groups = g_slist_append(sdi->probe_groups, pg);
 		devc->analog_probe_groups = g_slist_append(devc->analog_probe_groups, pg);
+
+		if (++pattern == ARRAY_SIZE(analog_pattern_str))
+			pattern = 0;
 	}
 
 	sdi->priv = devc;
