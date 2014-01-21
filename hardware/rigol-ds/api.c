@@ -481,8 +481,13 @@ static int dev_open(struct sr_dev_inst *sdi)
 static int dev_close(struct sr_dev_inst *sdi)
 {
 	struct sr_scpi_dev_inst *scpi;
+	struct dev_context *devc;
 
 	scpi = sdi->conn;
+	devc = sdi->priv;
+
+	if (devc->model->series != RIGOL_VS5000)
+		set_cfg(sdi, ":KEY:LOCK DISABLE");
 
 	if (scpi) {
 		if (sr_scpi_close(scpi) < 0)
