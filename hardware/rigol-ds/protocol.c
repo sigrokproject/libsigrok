@@ -460,7 +460,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 			if (sr_scpi_read_begin(scpi) != SR_OK)
 				return TRUE;
 
-			if (devc->model->protocol == PROTOCOL_IEEE488_2) {
+			if (devc->protocol == PROTOCOL_IEEE488_2) {
 				sr_dbg("New block header expected");
 				len = rigol_ds_read_header(scpi);
 				if (len == -1)
@@ -529,7 +529,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 				/* Discard the terminating linefeed */
 				sr_scpi_read_data(scpi, (char *)devc->buffer, 1);
 			}
-			if (devc->model->protocol == PROTOCOL_IEEE488_2) {
+			if (devc->protocol == PROTOCOL_IEEE488_2) {
 				/* Prepare for possible next block */
 				devc->num_block_bytes = 0;
 				if (devc->data_source != DATA_SOURCE_LIVE)

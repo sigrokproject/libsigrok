@@ -93,6 +93,7 @@ enum wait_events {
 struct dev_context {
 	/* Device model */
 	const struct rigol_ds_model *model;
+	enum rigol_protocol_flavor protocol;
 
 	/* Device properties */
 	const uint64_t (*timebases)[2];

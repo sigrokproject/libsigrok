@@ -250,9 +250,10 @@ static int probe_port(const char *resource, const char *serialcomm, GSList **dev
 	struct sr_scpi_dev_inst *scpi;
 	struct sr_scpi_hw_info *hw_info;
 	struct sr_probe *probe;
+	long n[3];
 	unsigned int i;
 	const struct rigol_ds_model *model = NULL;
-	gchar *channel_name, *vendor;
+	gchar *channel_name, *vendor, **version;
 
 	*devices = NULL;
 
@@ -295,7 +296,6 @@ static int probe_port(const char *resource, const char *serialcomm, GSList **dev
 		return SR_ERR_NA;
 	}
 
-	sr_scpi_hw_info_free(hw_info);
 	sr_scpi_close(scpi);
 
 	sdi->conn = scpi;
@@ -308,6 +308,34 @@ static int probe_port(const char *resource, const char *serialcomm, GSList **dev
 
 	devc->limit_frames = 0;
 	devc->model = model;
+	devc->protocol = model->protocol;
+
+	/* DS1000 models with firmware before 0.2.4 used the old
+	 * legacy protocol. */
+	if (model->series == RIGOL_DS1000) {
+		version = g_strsplit(hw_info->firmware_version, ".", 0);
+		do {
+			if (!version[0] || !version[1] || !version[2])
+				break;
+			if (version[0][0] == 0 || version[1][0] == 0 || version[2][0] == 0)
+				break;
+			for (i = 0; i < 3; i++) {
+				if (sr_atol(version[i], &n[i]) != SR_OK)
+					break;
+			}
+			if (i != 3)
+				break;
+			if (n[0] != 0 || n[1] > 2)
+				break;
+			if (n[1] == 2 && n[2] > 3)
+				break;
+			sr_dbg("Found DS1000 firmware < 0.2.4, using old protocol.");
+			devc->protocol = PROTOCOL_LEGACY;
+		} while(0);
+		g_strfreev(version);
+	}
+
+	sr_scpi_hw_info_free(hw_info);
 
 	for (i = 0; i < model->analog_channels; i++) {
 		if (!(channel_name = g_strdup_printf("CH%d", i + 1)))
