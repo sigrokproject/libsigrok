@@ -50,12 +50,12 @@ SR_PRIV int std_init(struct sr_context *sr_ctx, struct sr_dev_driver *di,
 	struct drv_context *drvc;
 
 	if (!di) {
-		sr_err("%sInvalid driver, cannot initialize.", prefix);
+		sr_err("%s: Invalid driver, cannot initialize.", prefix);
 		return SR_ERR_ARG;
 	}
 
 	if (!(drvc = g_try_malloc(sizeof(struct drv_context)))) {
-		sr_err("%sDriver context malloc failed.", prefix);
+		sr_err("%s: Driver context malloc failed.", prefix);
 		return SR_ERR_MALLOC;
 	}
 
@@ -91,17 +91,17 @@ SR_PRIV int std_session_send_df_header(const struct sr_dev_inst *sdi,
 		return SR_ERR_ARG;
 	}
 
-	sr_dbg("%sStarting acquisition.", prefix);
+	sr_dbg("%s: Starting acquisition.", prefix);
 
 	/* Send header packet to the session bus. */
-	sr_dbg("%sSending SR_DF_HEADER packet.", prefix);
+	sr_dbg("%s: Sending SR_DF_HEADER packet.", prefix);
 	packet.type = SR_DF_HEADER;
 	packet.payload = (uint8_t *)&header;
 	header.feed_version = 1;
 	gettimeofday(&header.starttime, NULL);
 
 	if ((ret = sr_session_send(sdi, &packet)) < 0) {
-		sr_err("%sFailed to send header packet: %d.", prefix, ret);
+		sr_err("%s: Failed to send header packet: %d.", prefix, ret);
 		return ret;
 	}
 
@@ -194,28 +194,28 @@ SR_PRIV int std_serial_dev_acquisition_stop(struct sr_dev_inst *sdi,
 	}
 
 	if (sdi->status != SR_ST_ACTIVE) {
-		sr_err("%sDevice inactive, can't stop acquisition.", prefix);
+		sr_err("%s: Device inactive, can't stop acquisition.", prefix);
 		return SR_ERR_DEV_CLOSED;
 	}
 
-	sr_dbg("%sStopping acquisition.", prefix);
+	sr_dbg("%s: Stopping acquisition.", prefix);
 
 	if ((ret = serial_source_remove(serial)) < 0) {
-		sr_err("%sFailed to remove source: %d.", prefix, ret);
+		sr_err("%s: Failed to remove source: %d.", prefix, ret);
 		return ret;
 	}
 
 	if ((ret = dev_close_fn(sdi)) < 0) {
-		sr_err("%sFailed to close device: %d.", prefix, ret);
+		sr_err("%s: Failed to close device: %d.", prefix, ret);
 		return ret;
 	}
 
 	/* Send SR_DF_END packet to the session bus. */
-	sr_dbg("%sSending SR_DF_END packet.", prefix);
+	sr_dbg("%s: Sending SR_DF_END packet.", prefix);
 	packet.type = SR_DF_END;
 	packet.payload = NULL;
 	if ((ret = sr_session_send(cb_data, &packet)) < 0) {
-		sr_err("%sFailed to send SR_DF_END packet: %d.", prefix, ret);
+		sr_err("%s: Failed to send SR_DF_END packet: %d.", prefix, ret);
 		return ret;
 	}
 
