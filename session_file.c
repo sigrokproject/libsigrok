@@ -253,11 +253,14 @@ SR_API int sr_session_save(const char *filename, const struct sr_dev_inst *sdi,
 	cnt = 0;
 	for (l = sdi->probes; l; l = l->next) {
 		probe = l->data;
-		if (probe->enabled) {
-			if (probe->name)
-				/* Just borrowing the ptr. */
-				probe_names[cnt++] = probe->name;
-		}
+		if (probe->type != SR_PROBE_LOGIC)
+			continue;
+		if (probe->enabled != TRUE)
+			continue;
+		if (!probe->name)
+			continue;
+		/* Just borrowing the ptr. */
+		probe_names[cnt++] = probe->name;
 	}
 
 	if ((ret = sr_session_save_init(filename, samplerate, probe_names)) != SR_OK)
