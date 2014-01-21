@@ -324,7 +324,8 @@ static GSList *scan(GSList *options)
 	/* Analog probes, probe groups and pattern generators. */
 	for (i = 0; i < num_analog_probes; i++) {
 		sprintf(probe_name, "A%d", i);
-		if (!(probe = sr_probe_new(i, SR_PROBE_ANALOG, TRUE, probe_name)))
+		if (!(probe = sr_probe_new(i + num_logic_probes,
+				SR_PROBE_ANALOG, TRUE, probe_name)))
 			return NULL;
 		sdi->probes = g_slist_append(sdi->probes, probe);
 
