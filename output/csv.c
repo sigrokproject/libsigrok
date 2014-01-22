@@ -150,6 +150,10 @@ static int receive(struct sr_output *o, const struct sr_dev_inst *sdi,
 				g_string_append_c(*out, c ? '1' : '0');
 				g_string_append_c(*out, ctx->separator);
 			}
+			if (i && j) {
+				/* Drop last separator. */
+				g_string_truncate(*out, (*out)->len - 1);
+			}
 			g_string_append_printf(*out, "\n");
 		}
 		break;
