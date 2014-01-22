@@ -56,21 +56,13 @@ static int init(struct sr_output *o)
 	int num_probes;
 	time_t t;
 
-	if (!o) {
-		sr_err("%s: o was NULL", __func__);
+	if (!o)
 		return SR_ERR_ARG;
-	}
 
-	if (!o->sdi) {
-		sr_err("%s: o->sdi was NULL", __func__);
+	if (!o->sdi)
 		return SR_ERR_ARG;
-	}
 
-	if (!(ctx = g_try_malloc0(sizeof(struct context)))) {
-		sr_err("%s: ctx malloc failed", __func__);
-		return SR_ERR_MALLOC;
-	}
-
+	ctx = g_try_malloc0(sizeof(struct context));
 	o->internal = ctx;
 
 	/* Get the number of probes, and the unitsize. */
@@ -121,94 +113,68 @@ static int init(struct sr_output *o)
 	return SR_OK;
 }
 
-static int event(struct sr_output *o, int event_type, uint8_t **data_out,
-		 uint64_t *length_out)
+static int receive(struct sr_output *o, const struct sr_dev_inst *sdi,
+		const struct sr_datafeed_packet *packet, GString **out)
 {
+	const struct sr_datafeed_logic *logic;
 	struct context *ctx;
+	uint64_t sample, i, j;
 
-	if (!o) {
-		sr_err("%s: o was NULL", __func__);
+	(void)sdi;
+
+	*out = NULL;
+	if (!o || !o->sdi)
 		return SR_ERR_ARG;
-	}
-
-	if (!(ctx = o->internal)) {
-		sr_err("%s: o->internal was NULL", __func__);
+	if (!(ctx = o->internal))
 		return SR_ERR_ARG;
-	}
 
-	if (!data_out) {
-		sr_err("%s: data_out was NULL", __func__);
-		return SR_ERR_ARG;
-	}
+	switch (packet->type) {
+	case SR_DF_LOGIC:
+		logic = packet->payload;
+		if (ctx->header) {
+			/*
+			 * First data packet: prime the output with the
+			 * previously prepared header.
+			 */
+			*out = ctx->header;
+			ctx->header = NULL;
+		} else {
+			*out = g_string_sized_new(512);
+		}
 
-	switch (event_type) {
-	case SR_DF_TRIGGER:
-		sr_dbg("%s: SR_DF_TRIGGER event", __func__);
-		/* TODO */
-		*data_out = NULL;
-		*length_out = 0;
+		for (i = 0; i <= logic->length - ctx->unitsize; i += ctx->unitsize) {
+			memcpy(&sample, logic->data + i, ctx->unitsize);
+			for (j = 0; j < ctx->num_enabled_probes; j++) {
+				g_string_append_printf(*out, "%d%c",
+					(int)((sample & (1 << j)) >> j),
+					ctx->separator);
+			}
+			g_string_append_printf(*out, "\n");
+		}
 		break;
 	case SR_DF_END:
-		sr_dbg("%s: SR_DF_END event", __func__);
-		/* TODO */
-		*data_out = NULL;
-		*length_out = 0;
 		g_free(o->internal);
 		o->internal = NULL;
-		break;
-	default:
-		sr_err("%s: unsupported event type: %d", __func__, event_type);
-		*data_out = NULL;
-		*length_out = 0;
 		break;
 	}
 
 	return SR_OK;
 }
 
-static int data(struct sr_output *o, const uint8_t *data_in,
-		uint64_t length_in, uint8_t **data_out, uint64_t *length_out)
+static int cleanup(struct sr_output *o)
 {
 	struct context *ctx;
-	GString *outstr;
-	uint64_t sample, i, j;
 
-	if (!o) {
-		sr_err("%s: o was NULL", __func__);
+	if (!o || !o->sdi)
 		return SR_ERR_ARG;
-	}
 
-	if (!(ctx = o->internal)) {
-		sr_err("%s: o->internal was NULL", __func__);
-		return SR_ERR_ARG;
+	if (o->internal) {
+		ctx = o->internal;
+		if (ctx->header)
+			g_string_free(ctx->header, TRUE);
+		g_free(o->internal);
+		o->internal = NULL;
 	}
-
-	if (!data_in) {
-		sr_err("%s: data_in was NULL", __func__);
-		return SR_ERR_ARG;
-	}
-
-	if (ctx->header) {
-		/* First data packet. */
-		outstr = ctx->header;
-		ctx->header = NULL;
-	} else {
-		outstr = g_string_sized_new(512);
-	}
-
-	for (i = 0; i <= length_in - ctx->unitsize; i += ctx->unitsize) {
-		memcpy(&sample, data_in + i, ctx->unitsize);
-		for (j = 0; j < ctx->num_enabled_probes; j++) {
-			g_string_append_printf(outstr, "%d%c",
-				(int)((sample & (1 << j)) >> j),
-				ctx->separator);
-		}
-		g_string_append_printf(outstr, "\n");
-	}
-
-	*data_out = (uint8_t *)outstr->str;
-	*length_out = outstr->len;
-	g_string_free(outstr, FALSE);
 
 	return SR_OK;
 }
@@ -218,6 +184,6 @@ SR_PRIV struct sr_output_format output_csv = {
 	.description = "Comma-separated values (CSV)",
 	.df_type = SR_DF_LOGIC,
 	.init = init,
-	.data = data,
-	.event = event,
+	.receive = receive,
+	.cleanup = cleanup,
 };
