@@ -401,49 +401,71 @@ SR_PRIV int rigol_ds_channel_start(const struct sr_dev_inst *sdi)
 				return SR_ERR;
 			if (rigol_ds_config_set(sdi, ":WAV:BEG") != SR_OK)
 				return SR_ERR;
-			rigol_ds_set_wait_event(devc, WAIT_BLOCK);
-		} else
-			rigol_ds_set_wait_event(devc, WAIT_NONE);
+		}
 	}
 
+	rigol_ds_set_wait_event(devc, WAIT_BLOCK);
+
 	devc->num_channel_bytes = 0;
+	devc->num_header_bytes = 0;
 	devc->num_block_bytes = 0;
 
 	return SR_OK;
 }
 
 /* Read the header of a data block */
-static int rigol_ds_read_header(struct sr_scpi_dev_inst *scpi)
+static int rigol_ds_read_header(struct sr_dev_inst *sdi)
 {
-	char start[3], length[10];
-	int len, tmp;
+	struct sr_scpi_dev_inst *scpi = sdi->conn;
+	struct dev_context *devc = sdi->priv;
+	char *buf = (char *) devc->buffer;
+	int len;
+	int tmp;
 
-	/* Read the hashsign and length digit. */
-	tmp = sr_scpi_read_data(scpi, start, 2);
-	start[2] = '\0';
-	if (tmp != 2) {
-		sr_err("Failed to read first two bytes of data block header.");
-		return -1;
+	/* Try to read the hashsign and length digit. */
+	if (devc->num_header_bytes < 2) {
+		tmp = sr_scpi_read_data(scpi, buf + devc->num_header_bytes,
+				2 - devc->num_header_bytes);
+		if (tmp < 0) {
+			sr_err("Read error while reading data header.");
+			return SR_ERR;
+		}
+		devc->num_header_bytes += tmp;
 	}
-	if (start[0] != '#' || !isdigit(start[1]) || start[1] == '0') {
-		sr_err("Received invalid data block header start '%s'.", start);
-		return -1;
+
+	if (devc->num_header_bytes < 2)
+		return 0;
+
+	if (buf[0] != '#' || !isdigit(buf[1]) || buf[1] == '0') {
+		sr_err("Received invalid data block header '%c%c'.", buf[0], buf[1]);
+		return SR_ERR;
 	}
-	len = atoi(start + 1);
+
+	len = buf[1] - '0';
+
+	/* Try to read the length. */
+	if (devc->num_header_bytes < 2 + len) {
+		tmp = sr_scpi_read_data(scpi, buf + devc->num_header_bytes,
+				2 + len - devc->num_header_bytes);
+		if (tmp < 0) {
+			sr_err("Read error while reading data header.");
+			return SR_ERR;
+		}
+		devc->num_header_bytes += tmp;
+	}
+
+	if (devc->num_header_bytes < 2 + len)
+		return 0;
 
 	/* Read the data length. */
-	tmp = sr_scpi_read_data(scpi, length, len);
-	length[len] = '\0';
-	if (tmp != len) {
-		sr_err("Failed to read %d bytes of data block length.", len);
-		return -1;
-	}
-	if (parse_int(length, &len) != SR_OK) {
-		sr_err("Received invalid data block length '%s'.", length);
+	buf[2 + len] = '\0';
+
+	if (parse_int(buf + 2, &len) != SR_OK) {
+		sr_err("Received invalid data block length '%s'.", buf + 2);
 		return -1;
 	}
 
-	sr_dbg("Received data block header: %s%s -> block length %d", start, length, len);
+	sr_dbg("Received data block header: '%s' -> block length %d", buf, len);
 
 	return len;
 }
@@ -512,9 +534,17 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 
 			if (devc->format == FORMAT_IEEE488_2) {
 				sr_dbg("New block header expected");
-				len = rigol_ds_read_header(scpi);
-				if (len == -1)
+				len = rigol_ds_read_header(sdi);
+				if (len == 0)
+					/* Still reading the header. */
 					return TRUE;
+				if (len == -1) {
+					sr_err("Read error, aborting capture.");
+					packet.type = SR_DF_FRAME_END;
+					sr_session_send(cb_data, &packet);
+					sdi->driver->dev_acquisition_stop(sdi, cb_data);
+					return TRUE;
+				}
 				/* At slow timebases in live capture the DS2072
 				 * sometimes returns "short" data blocks, with
 				 * apparently no way to get the rest of the data.
@@ -590,6 +620,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 			}
 			if (devc->format == FORMAT_IEEE488_2) {
 				/* Prepare for possible next block */
+				devc->num_header_bytes = 0;
 				devc->num_block_bytes = 0;
 				if (devc->data_source != DATA_SOURCE_LIVE)
 					rigol_ds_set_wait_event(devc, WAIT_BLOCK);
