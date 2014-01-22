@@ -148,6 +148,7 @@ struct dev_context {
 	float *data;
 };
 
+SR_PRIV int rigol_ds_config_set(const struct sr_dev_inst *sdi, const char *format, ...);
 SR_PRIV int rigol_ds_capture_start(const struct sr_dev_inst *sdi);
 SR_PRIV int rigol_ds_channel_start(const struct sr_dev_inst *sdi);
 SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data);

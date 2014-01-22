@@ -215,11 +215,11 @@ static int rigol_ds_check_stop(const struct sr_dev_inst *sdi)
 
 	probe = devc->channel_entry->data;
 
-	if (sr_scpi_send(sdi->conn, ":WAV:SOUR CHAN%d",
+	if (rigol_ds_config_set(sdi, ":WAV:SOUR CHAN%d",
 			  probe->index + 1) != SR_OK)
 		return SR_ERR;
 	/* Check that the number of samples will be accepted */
-	if (sr_scpi_send(sdi->conn, ":WAV:POIN %d;*OPC", devc->analog_frame_size) != SR_OK)
+	if (rigol_ds_config_set(sdi, ":WAV:POIN %d", devc->analog_frame_size) != SR_OK)
 		return SR_ERR;
 	if (sr_scpi_get_int(sdi->conn, "*ESR?", &tmp) != SR_OK)
 		return SR_ERR;
@@ -239,7 +239,7 @@ static int rigol_ds_check_stop(const struct sr_dev_inst *sdi)
 		sr_warn("Single shot acquisition failed, retrying...");
 		/* Sleep a bit, otherwise the single shot will often fail */
 		g_usleep(500000);
-		sr_scpi_send(sdi->conn, ":SING");
+		rigol_ds_config_set(sdi, ":SING");
 		rigol_ds_set_wait_event(devc, WAIT_STOP);
 		return SR_ERR;
 	}
@@ -287,6 +287,30 @@ static int rigol_ds_block_wait(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
+/* Send a configuration setting. */
+SR_PRIV int rigol_ds_config_set(const struct sr_dev_inst *sdi, const char *format, ...)
+{
+	struct dev_context *devc = sdi->priv;
+	va_list args;
+	int ret;
+
+	va_start(args, format);
+	ret = sr_scpi_send_variadic(sdi->conn, format, args);
+	va_end(args);
+
+	if (ret != SR_OK)
+		return SR_ERR;
+
+	if (devc->model->series == RIGOL_DS1000) {
+		/* The DS1000 series needs this stupid delay, *OPC? doesn't work. */
+		sr_spew("delay %dms", 100);
+		g_usleep(100000);
+		return SR_OK;
+	} else {
+		return sr_scpi_get_opc(sdi->conn);
+	}
+}
+
 /* Start capturing a new frameset */
 SR_PRIV int rigol_ds_capture_start(const struct sr_dev_inst *sdi)
 {
@@ -298,16 +322,16 @@ SR_PRIV int rigol_ds_capture_start(const struct sr_dev_inst *sdi)
 	sr_dbg("Starting data capture for frameset %lu of %lu",
 	       devc->num_frames + 1, devc->limit_frames);
 
-	if (sr_scpi_send(sdi->conn, ":WAV:FORM BYTE") != SR_OK)
+	if (rigol_ds_config_set(sdi, ":WAV:FORM BYTE") != SR_OK)
 		return SR_ERR;
 	if (devc->data_source == DATA_SOURCE_LIVE) {
-		if (sr_scpi_send(sdi->conn, ":WAV:MODE NORM") != SR_OK)
+		if (rigol_ds_config_set(sdi, ":WAV:MODE NORM") != SR_OK)
 			return SR_ERR;
 		rigol_ds_set_wait_event(devc, WAIT_TRIGGER);
 	} else {
-		if (sr_scpi_send(sdi->conn, ":WAV:MODE RAW") != SR_OK)
+		if (rigol_ds_config_set(sdi, ":WAV:MODE RAW") != SR_OK)
 			return SR_ERR;
-		if (sr_scpi_send(sdi->conn, ":SING", devc->analog_frame_size) != SR_OK)
+		if (rigol_ds_config_set(sdi, ":SING", devc->analog_frame_size) != SR_OK)
 			return SR_ERR;		
 		rigol_ds_set_wait_event(devc, WAIT_STOP);
 	}
@@ -338,13 +362,13 @@ SR_PRIV int rigol_ds_channel_start(const struct sr_dev_inst *sdi)
 				return SR_ERR;
 		}
 	} else {
-		if (sr_scpi_send(sdi->conn, ":WAV:SOUR CHAN%d",
+		if (rigol_ds_config_set(sdi, ":WAV:SOUR CHAN%d",
 				  probe->index + 1) != SR_OK)
 			return SR_ERR;
 		if (devc->data_source != DATA_SOURCE_LIVE) {
-			if (sr_scpi_send(sdi->conn, ":WAV:RES") != SR_OK)
+			if (rigol_ds_config_set(sdi, ":WAV:RES") != SR_OK)
 				return SR_ERR;
-			if (sr_scpi_send(sdi->conn, ":WAV:BEG") != SR_OK)
+			if (rigol_ds_config_set(sdi, ":WAV:BEG") != SR_OK)
 				return SR_ERR;
 			rigol_ds_set_wait_event(devc, WAIT_BLOCK);
 		} else
@@ -560,7 +584,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 				 * to the next channel causes an error. Fun with
 				 * firmware...
 				 */
-				sr_scpi_send(sdi->conn, ":WAV:END");
+				rigol_ds_config_set(sdi, ":WAV:END");
 		}
 
 		if (probe->type == SR_PROBE_ANALOG
@@ -669,7 +693,7 @@ SR_PRIV int rigol_ds_get_dev_cfg(const struct sr_dev_inst *sdi)
 	if (devc->model->series >= RIGOL_DS1000Z) {
 		/* Vertical reference - not certain if this is the place to read it. */
 		for (i = 0; i < devc->model->analog_channels; i++) {
-			if (sr_scpi_send(sdi->conn, ":WAV:SOUR CHAN%d", i + 1) != SR_OK)
+			if (rigol_ds_config_set(sdi, ":WAV:SOUR CHAN%d", i + 1) != SR_OK)
 				return SR_ERR;
 			if (sr_scpi_get_int(sdi->conn, ":WAV:YREF?", &devc->vert_reference[i]) != SR_OK)
 				return SR_ERR;

@@ -223,29 +223,6 @@ static int dev_clear(void)
 	return std_dev_clear(di, clear_helper);
 }
 
-static int set_cfg(const struct sr_dev_inst *sdi, const char *format, ...)
-{
-	struct dev_context *devc = sdi->priv;
-	va_list args;
-	int ret;
-
-	va_start(args, format);
-	ret = sr_scpi_send_variadic(sdi->conn, format, args);
-	va_end(args);
-
-	if (ret != SR_OK)
-		return SR_ERR;
-
-	if (devc->model->series == RIGOL_DS1000) {
-		/* The DS1000 series needs this stupid delay, *OPC? doesn't work. */
-		sr_spew("delay %dms", 100);
-		g_usleep(100000);
-		return SR_OK;
-	} else {
-		return sr_scpi_get_opc(sdi->conn);
-	}
-}
-
 static int init(struct sr_context *sr_ctx)
 {
 	return std_init(sr_ctx, di, LOG_PREFIX);
@@ -487,7 +464,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 
 	if (devc->model->series != RIGOL_VS5000)
-		set_cfg(sdi, ":KEY:LOCK DISABLE");
+		rigol_ds_config_set(sdi, ":KEY:LOCK DISABLE");
 
 	if (scpi) {
 		if (sr_scpi_close(scpi) < 0)
@@ -694,7 +671,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 			return SR_ERR;
 		g_free(devc->trigger_slope);
 		devc->trigger_slope = g_strdup(tmp_u64 ? "POS" : "NEG");
-		ret = set_cfg(sdi, ":TRIG:EDGE:SLOP %s", devc->trigger_slope);
+		ret = rigol_ds_config_set(sdi, ":TRIG:EDGE:SLOP %s", devc->trigger_slope);
 		break;
 	case SR_CONF_HORIZ_TRIGGERPOS:
 		t_dbl = g_variant_get_double(data);
@@ -705,7 +682,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 		 * need to express this in seconds. */
 		t_dbl = -(devc->horiz_triggerpos - 0.5) * devc->timebase * devc->num_timebases;
 		g_ascii_formatd(buffer, sizeof(buffer), "%.6f", t_dbl);
-		ret = set_cfg(sdi, ":TIM:OFFS %s", buffer);
+		ret = rigol_ds_config_set(sdi, ":TIM:OFFS %s", buffer);
 		break;
 	case SR_CONF_TIMEBASE:
 		g_variant_get(data, "(tt)", &p, &q);
@@ -714,7 +691,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 				devc->timebase = (float)p / q;
 				g_ascii_formatd(buffer, sizeof(buffer), "%.9f",
 				                devc->timebase);
-				ret = set_cfg(sdi, ":TIM:SCAL %s", buffer);
+				ret = rigol_ds_config_set(sdi, ":TIM:SCAL %s", buffer);
 				break;
 			}
 		}
@@ -739,7 +716,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 					tmp_str = "CHAN4";
 				else
 					tmp_str = (char *)devc->trigger_source;
-				ret = set_cfg(sdi, ":TRIG:EDGE:SOUR %s", tmp_str);
+				ret = rigol_ds_config_set(sdi, ":TRIG:EDGE:SOUR %s", tmp_str);
 				break;
 			}
 		}
@@ -760,7 +737,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 					devc->vdiv[i] = (float)p / q;
 					g_ascii_formatd(buffer, sizeof(buffer), "%.3f",
 					                devc->vdiv[i]);
-					return set_cfg(sdi, ":CHAN%d:SCAL %s", i + 1,
+					return rigol_ds_config_set(sdi, ":CHAN%d:SCAL %s", i + 1,
 							buffer);
 				}
 				return SR_ERR_ARG;
@@ -779,7 +756,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 					if (!strcmp(tmp_str, coupling[j])) {
 						g_free(devc->coupling[i]);
 						devc->coupling[i] = g_strdup(coupling[j]);
-						return set_cfg(sdi, ":CHAN%d:COUP %s", i + 1,
+						return rigol_ds_config_set(sdi, ":CHAN%d:COUP %s", i + 1,
 								devc->coupling[i]);
 					}
 				}
@@ -950,7 +927,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 						devc->enabled_analog_probes, probe);
 			if (probe->enabled != devc->analog_channels[probe->index]) {
 				/* Enabled channel is currently disabled, or vice versa. */
-				if (set_cfg(sdi, ":CHAN%d:DISP %s", probe->index + 1,
+				if (rigol_ds_config_set(sdi, ":CHAN%d:DISP %s", probe->index + 1,
 						probe->enabled ? "ON" : "OFF") != SR_OK)
 					return SR_ERR;
 				devc->analog_channels[probe->index] = probe->enabled;
@@ -961,14 +938,14 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 						devc->enabled_digital_probes, probe);
 				/* Turn on LA module if currently off. */
 				if (!devc->la_enabled) {
-					if (set_cfg(sdi, ":LA:DISP ON") != SR_OK)
+					if (rigol_ds_config_set(sdi, ":LA:DISP ON") != SR_OK)
 						return SR_ERR;
 					devc->la_enabled = TRUE;
 				}
 			}
 			if (probe->enabled != devc->digital_channels[probe->index]) {
 				/* Enabled channel is currently disabled, or vice versa. */
-				if (set_cfg(sdi, ":DIG%d:TURN %s", probe->index,
+				if (rigol_ds_config_set(sdi, ":DIG%d:TURN %s", probe->index,
 						probe->enabled ? "ON" : "OFF") != SR_OK)
 					return SR_ERR;
 				devc->digital_channels[probe->index] = probe->enabled;
@@ -981,11 +958,11 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 
 	/* Turn off LA module if on and no digital probes selected. */
 	if (devc->la_enabled && !devc->enabled_digital_probes)
-		if (set_cfg(sdi, ":LA:DISP OFF") != SR_OK)
+		if (rigol_ds_config_set(sdi, ":LA:DISP OFF") != SR_OK)
 			return SR_ERR;
 
 	if (devc->data_source == DATA_SOURCE_LIVE) {
-		if (set_cfg(sdi, ":RUN") != SR_OK)
+		if (rigol_ds_config_set(sdi, ":RUN") != SR_OK)
 			return SR_ERR;
 	} else if (devc->data_source == DATA_SOURCE_MEMORY) {
 		if (devc->model->series != RIGOL_DS2000) {
@@ -1020,11 +997,11 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 				/* Apparently for the DS2000 the memory
 				 * depth can only be set in Running state -
 				 * this matches the behaviour of the UI. */
-				if (set_cfg(sdi, ":RUN") != SR_OK)
+				if (rigol_ds_config_set(sdi, ":RUN") != SR_OK)
 					return SR_ERR;
-				if (set_cfg(sdi, "ACQ:MDEP %d", devc->analog_frame_size) != SR_OK)
+				if (rigol_ds_config_set(sdi, "ACQ:MDEP %d", devc->analog_frame_size) != SR_OK)
 					return SR_ERR;
-				if (set_cfg(sdi, ":STOP") != SR_OK)
+				if (rigol_ds_config_set(sdi, ":STOP") != SR_OK)
 					return SR_ERR;
 			}
 			if (rigol_ds_capture_start(sdi) != SR_OK)
