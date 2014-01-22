@@ -515,6 +515,9 @@ static int analog_frame_size(const struct sr_dev_inst *sdi)
 			analog_probes++;
 	}
 
+	if (analog_probes == 0)
+		return 0;
+
 	switch (devc->data_source) {
 	case DATA_SOURCE_LIVE:
 		return devc->model->series->live_samples;
