@@ -28,39 +28,23 @@
 
 #define LOG_PREFIX "rigol-ds"
 
-/* Analog waveform block sizes */
-#define DS1000_ANALOG_LIVE_WAVEFORM_SIZE 600
-#define DS2000_ANALOG_LIVE_WAVEFORM_SIZE 1400
-#define VS5000_ANALOG_LIVE_WAVEFORM_SIZE 2048
-#define DSO1000_ANALOG_LIVE_WAVEFORM_SIZE 600
-#define DS2000_ANALOG_MEM_WAVEFORM_SIZE_1C 14000
-#define DS2000_ANALOG_MEM_WAVEFORM_SIZE_2C 7000
-
-/* Digital waveform block size */
-#define DS1000_DIGITAL_WAVEFORM_SIZE 1200
-#define VS5000_DIGITAL_WAVEFORM_SIZE 4096
-
 /* Size of acquisition buffers */
 #define ACQ_BUFFER_SIZE 32768
 
 #define MAX_ANALOG_PROBES 4
 #define MAX_DIGITAL_PROBES 16
 
-enum rigol_ds_series {
-	RIGOL_VS5000,
-	RIGOL_DS1000,
-	RIGOL_DS1000Z,
-	RIGOL_DS2000,
-	RIGOL_DS4000,
-	RIGOL_DS6000,
-	AGILENT_DSO1000,
+enum protocol_version {
+	PROTOCOL_V1, /* VS5000 */
+	PROTOCOL_V2, /* DS1000 */
+	PROTOCOL_V3, /* DS2000, DSO1000 */
 };
 
-enum rigol_protocol_flavor {
-	/* Used by DS1000 and VS5000 series */
-	PROTOCOL_LEGACY,
-	/* Used by DS2000, DS4000, DS6000, ... series */
-	PROTOCOL_IEEE488_2,
+enum data_format {
+	/* Used by DS1000 versions up to 2.02, and VS5000 series */
+	FORMAT_RAW,
+	/* Used by DS1000 versions from 2.04 onwards and all later series */
+	FORMAT_IEEE488_2,
 };
 
 enum data_source {
@@ -69,17 +53,29 @@ enum data_source {
 	DATA_SOURCE_SEGMENTED,
 };
 
-struct rigol_ds_model {
-	char *vendor;
-	char *name;
-	enum rigol_ds_series series;
-	enum rigol_protocol_flavor protocol;
-	uint64_t min_timebase[2];
+struct rigol_ds_vendor {
+	const char *name;
+	const char *full_name;
+};
+
+struct rigol_ds_series {
+	const struct rigol_ds_vendor *vendor;
+	const char *name;
+	enum protocol_version protocol;
+	enum data_format format;
 	uint64_t max_timebase[2];
 	uint64_t min_vdiv[2];
+	int num_horizontal_divs;
+	int live_samples;
+	int buffer_samples;
+};
+
+struct rigol_ds_model {
+	const struct rigol_ds_series *series;
+	const char *name;
+	uint64_t min_timebase[2];
 	unsigned int analog_channels;
 	bool has_digital;
-	int num_horizontal_divs;
 };
 
 enum wait_events {
@@ -93,7 +89,7 @@ enum wait_events {
 struct dev_context {
 	/* Device model */
 	const struct rigol_ds_model *model;
-	enum rigol_protocol_flavor protocol;
+	enum data_format format;
 
 	/* Device properties */
 	const uint64_t (*timebases)[2];

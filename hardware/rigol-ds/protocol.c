@@ -185,7 +185,7 @@ static int rigol_ds_trigger_wait(const struct sr_dev_inst *sdi)
 			 * Timebase * num hor. divs * 85(%) * 1e6(usecs) / 100
 			 * -> 85 percent of sweep time
 			 */
-			s = (devc->timebase * devc->model->num_horizontal_divs
+			s = (devc->timebase * devc->model->series->num_horizontal_divs
 			     * 85e6) / 100L;
 			sr_spew("Sleeping for %ld usecs instead of trigger-wait", s);
 			g_usleep(s);
@@ -215,7 +215,7 @@ static int rigol_ds_check_stop(const struct sr_dev_inst *sdi)
 
 	probe = devc->channel_entry->data;
 
-	if (devc->model->series <= RIGOL_DS1000)
+	if (devc->model->series->protocol <= PROTOCOL_V2)
 		return SR_OK;
 
 	if (rigol_ds_config_set(sdi, ":WAV:SOUR CHAN%d",
@@ -304,7 +304,7 @@ SR_PRIV int rigol_ds_config_set(const struct sr_dev_inst *sdi, const char *forma
 	if (ret != SR_OK)
 		return SR_ERR;
 
-	if (devc->model->series == RIGOL_DS1000) {
+	if (devc->model->series->protocol == PROTOCOL_V2) {
 		/* The DS1000 series needs this stupid delay, *OPC? doesn't work. */
 		sr_spew("delay %dms", 100);
 		g_usleep(100000);
@@ -326,21 +326,16 @@ SR_PRIV int rigol_ds_capture_start(const struct sr_dev_inst *sdi)
 	sr_dbg("Starting data capture for frameset %lu of %lu",
 	       devc->num_frames + 1, devc->limit_frames);
 
-	if (devc->model->series >= RIGOL_DS1000Z)
-		if (rigol_ds_config_set(sdi, ":WAV:FORM BYTE") != SR_OK)
-			return SR_ERR;
-
-	if (devc->data_source == DATA_SOURCE_LIVE) {
-		if (devc->model->series <= RIGOL_DS1000) {
-			if (rigol_ds_config_set(sdi, ":WAV:POIN:MODE NORM") != SR_OK)
-				return SR_ERR;
-		} else {
-			if (rigol_ds_config_set(sdi, ":WAV:MODE NORM") != SR_OK)
-				return SR_ERR;
-		}
+	switch (devc->model->series->protocol) {
+	case PROTOCOL_V1:
 		rigol_ds_set_wait_event(devc, WAIT_TRIGGER);
-	} else {
-		if (devc->model->series <= RIGOL_DS1000) {
+		break;
+	case PROTOCOL_V2:
+		if (devc->data_source == DATA_SOURCE_LIVE) {
+			if (rigol_ds_config_set(sdi, ":WAV:POIN:MODE NORMAL") != SR_OK)
+				return SR_ERR;
+			rigol_ds_set_wait_event(devc, WAIT_TRIGGER);
+		} else {
 			if (rigol_ds_config_set(sdi, ":STOP") != SR_OK)
 				return SR_ERR;
 			if (rigol_ds_config_set(sdi, ":WAV:POIN:MODE RAW") != SR_OK)
@@ -351,13 +346,24 @@ SR_PRIV int rigol_ds_capture_start(const struct sr_dev_inst *sdi)
 				return SR_ERR;
 			if (rigol_ds_config_set(sdi, ":RUN") != SR_OK)
 				return SR_ERR;
+			rigol_ds_set_wait_event(devc, WAIT_STOP);
+		}
+		break;
+	case PROTOCOL_V3:
+		if (rigol_ds_config_set(sdi, ":WAV:FORM BYTE") != SR_OK)
+			return SR_ERR;
+		if (devc->data_source == DATA_SOURCE_LIVE) {
+			if (rigol_ds_config_set(sdi, ":WAV:MODE NORM") != SR_OK)
+				return SR_ERR;
+			rigol_ds_set_wait_event(devc, WAIT_TRIGGER);
 		} else {
 			if (rigol_ds_config_set(sdi, ":WAV:MODE RAW") != SR_OK)
 				return SR_ERR;
 			if (rigol_ds_config_set(sdi, ":SING") != SR_OK)
 				return SR_ERR;
+			rigol_ds_set_wait_event(devc, WAIT_STOP);
 		}
-		rigol_ds_set_wait_event(devc, WAIT_STOP);
+		break;
 	}
 
 	return SR_OK;
@@ -376,7 +382,7 @@ SR_PRIV int rigol_ds_channel_start(const struct sr_dev_inst *sdi)
 
 	sr_dbg("Starting reading data from channel %d", probe->index + 1);
 
-	if (devc->model->series < RIGOL_DS1000Z) {
+	if (devc->model->series->protocol <= PROTOCOL_V2) {
 		if (probe->type == SR_PROBE_LOGIC) {
 			if (sr_scpi_send(sdi->conn, ":WAV:DATA? DIG") != SR_OK)
 				return SR_ERR;
@@ -497,14 +503,14 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 				devc->analog_frame_size : devc->digital_frame_size;
 
 		if (devc->num_block_bytes == 0) {
-			if (devc->model->series >= RIGOL_DS1000Z)
+			if (devc->model->series->protocol >= PROTOCOL_V3)
 				if (sr_scpi_send(sdi->conn, ":WAV:DATA?") != SR_OK)
 					return TRUE;
 
 			if (sr_scpi_read_begin(scpi) != SR_OK)
 				return TRUE;
 
-			if (devc->protocol == PROTOCOL_IEEE488_2) {
+			if (devc->format == FORMAT_IEEE488_2) {
 				sr_dbg("New block header expected");
 				len = rigol_ds_read_header(scpi);
 				if (len == -1)
@@ -542,7 +548,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 			vref = devc->vert_reference[probe->index];
 			vdiv = devc->vdiv[probe->index] / 25.6;
 			offset = devc->vert_offset[probe->index];
-			if (devc->model->series >= RIGOL_DS1000Z)
+			if (devc->model->series->protocol >= PROTOCOL_V3)
 				for (i = 0; i < len; i++)
 					devc->data[i] = ((int)devc->buffer[i] - vref) * vdiv - offset;
 			else
@@ -569,7 +575,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 
 		if (devc->num_block_read == devc->num_block_bytes) {
 			sr_dbg("Block has been completed");
-			if (devc->protocol == PROTOCOL_IEEE488_2) {
+			if (devc->format == FORMAT_IEEE488_2) {
 				/* Discard the terminating linefeed */
 				sr_scpi_read_data(scpi, (char *)devc->buffer, 1);
 				/* Prepare for possible next block */
@@ -594,7 +600,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 			return TRUE;
 
 		/* End of data for this channel. */
-		if (devc->model->series >= RIGOL_DS1000Z) {
+		if (devc->model->series->protocol >= PROTOCOL_V3) {
 			/* Signal end of data download to scope */
 			if (devc->data_source != DATA_SOURCE_LIVE)
 				/*
@@ -705,7 +711,7 @@ SR_PRIV int rigol_ds_get_dev_cfg(const struct sr_dev_inst *sdi)
 		sr_dbg("CH%d %g", i + 1, devc->vdiv[i]);
 
 	sr_dbg("Current vertical reference:");
-	if (devc->model->series >= RIGOL_DS1000Z) {
+	if (devc->model->series->protocol >= PROTOCOL_V3) {
 		/* Vertical reference - not certain if this is the place to read it. */
 		for (i = 0; i < devc->model->analog_channels; i++) {
 			if (rigol_ds_config_set(sdi, ":WAV:SOUR CHAN%d", i + 1) != SR_OK)
