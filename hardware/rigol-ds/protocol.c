@@ -535,12 +535,16 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 		}
 
 		len = devc->num_block_bytes - devc->num_block_read;
-		len = sr_scpi_read_data(scpi, (char *)devc->buffer,
-				len < ACQ_BUFFER_SIZE ? len : ACQ_BUFFER_SIZE);
+		if (len > ACQ_BUFFER_SIZE)
+			len = ACQ_BUFFER_SIZE;
+		sr_dbg("Requesting read of %d bytes", len);
+
+		len = sr_scpi_read_data(scpi, (char *)devc->buffer, len);
+
+		if (len == -1)
+			return FALSE;
 
 		sr_dbg("Received %d bytes.", len);
-		if (len == -1)
-			return TRUE;
 
 		devc->num_block_read += len;
 
