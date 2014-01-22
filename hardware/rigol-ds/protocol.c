@@ -261,29 +261,32 @@ static int rigol_ds_block_wait(const struct sr_dev_inst *sdi)
 	if (!(devc = sdi->priv))
 		return SR_ERR;
 
-	start = time(NULL);
+	if (devc->model->series->protocol >= PROTOCOL_V3) {
 
-	do {
-		if (time(NULL) - start >= 3) {
-			sr_dbg("Timeout waiting for data block");
-			return SR_ERR_TIMEOUT;
-		}
+		start = time(NULL);
 
-		/*
-		 * The scope copies data really slowly from sample
-		 * memory to its output buffer, so try not to bother
-		 * it too much with SCPI requests but don't wait too
-		 * long for short sample frame sizes.
-		 */
-		g_usleep(devc->analog_frame_size < 15000 ? 100000 : 1000000);
+		do {
+			if (time(NULL) - start >= 3) {
+				sr_dbg("Timeout waiting for data block");
+				return SR_ERR_TIMEOUT;
+			}
 
-		/* "READ,nnnn" (still working) or "IDLE,nnnn" (finished) */
-		if (sr_scpi_get_string(sdi->conn, ":WAV:STAT?", &buf) != SR_OK)
-			return SR_ERR;
+			/*
+			 * The scope copies data really slowly from sample
+			 * memory to its output buffer, so try not to bother
+			 * it too much with SCPI requests but don't wait too
+			 * long for short sample frame sizes.
+			 */
+			g_usleep(devc->analog_frame_size < 15000 ? 100000 : 1000000);
 
-		if (parse_int(buf + 5, &len) != SR_OK)
-			return SR_ERR;
-	} while (buf[0] == 'R' && len < 1000000);
+			/* "READ,nnnn" (still working) or "IDLE,nnnn" (finished) */
+			if (sr_scpi_get_string(sdi->conn, ":WAV:STAT?", &buf) != SR_OK)
+				return SR_ERR;
+
+			if (parse_int(buf + 5, &len) != SR_OK)
+				return SR_ERR;
+		} while (buf[0] == 'R' && len < 1000000);
+	}
 
 	rigol_ds_set_wait_event(devc, WAIT_NONE);
 
