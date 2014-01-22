@@ -541,8 +541,13 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 
 		len = sr_scpi_read_data(scpi, (char *)devc->buffer, len);
 
-		if (len == -1)
-			return FALSE;
+		if (len == -1) {
+			sr_err("Read error, aborting capture.");
+			packet.type = SR_DF_FRAME_END;
+			sr_session_send(cb_data, &packet);
+			sdi->driver->dev_acquisition_stop(sdi, cb_data);
+			return TRUE;
+		}
 
 		sr_dbg("Received %d bytes.", len);
 
@@ -591,6 +596,8 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 			}
 			if (!sr_scpi_read_complete(scpi)) {
 				sr_err("Read should have been completed");
+				packet.type = SR_DF_FRAME_END;
+				sr_session_send(cb_data, &packet);
 				sdi->driver->dev_acquisition_stop(sdi, cb_data);
 				return TRUE;
 			}
