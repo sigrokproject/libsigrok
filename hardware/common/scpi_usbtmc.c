@@ -119,6 +119,8 @@ static int scpi_usbtmc_read_begin(void *priv)
 	uscpi->response_length = len;
 	uscpi->response_bytes_read = 0;
 
+	sr_spew("Read %d bytes from device into buffer", len);
+
 	return SR_OK;
 }
 
@@ -127,13 +129,18 @@ static int scpi_usbtmc_read_data(void *priv, char *buf, int maxlen)
 	struct usbtmc_scpi *uscpi = priv;
 	int read_length;
 
-	if (uscpi->response_length == MAX_READ_LENGTH
-	    && uscpi->response_bytes_read == uscpi->response_length)
-		if (scpi_usbtmc_read_begin(uscpi) != SR_OK)
-			return SR_ERR;
+	sr_spew("%d bytes requested", maxlen);
 
-	if (uscpi->response_bytes_read >= uscpi->response_length)
-		return SR_ERR;
+	if (uscpi->response_bytes_read == uscpi->response_length) {
+		sr_spew("Buffer is empty.");
+		if (uscpi->response_length == MAX_READ_LENGTH) {
+			sr_spew("Previous read was of maximum length, reading again.");
+			if (scpi_usbtmc_read_begin(uscpi) != SR_OK)
+				return SR_ERR;
+		} else {
+			return SR_ERR;
+		}
+	}
 
 	read_length = uscpi->response_length - uscpi->response_bytes_read;
 
@@ -143,6 +150,9 @@ static int scpi_usbtmc_read_data(void *priv, char *buf, int maxlen)
 	memcpy(buf, uscpi->response_buffer + uscpi->response_bytes_read, read_length);
 
 	uscpi->response_bytes_read += read_length;
+
+	sr_spew("Returned %d bytes from buffer, %d/%d bytes of buffer now read",
+			read_length, uscpi->response_bytes_read, uscpi->response_length);
 
 	return read_length;
 }
