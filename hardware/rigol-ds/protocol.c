@@ -575,9 +575,11 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 
 		if (devc->num_block_read == devc->num_block_bytes) {
 			sr_dbg("Block has been completed");
-			if (devc->format == FORMAT_IEEE488_2) {
+			if (devc->model->series->protocol >= PROTOCOL_V3) {
 				/* Discard the terminating linefeed */
 				sr_scpi_read_data(scpi, (char *)devc->buffer, 1);
+			}
+			if (devc->format == FORMAT_IEEE488_2) {
 				/* Prepare for possible next block */
 				devc->num_block_bytes = 0;
 				if (devc->data_source != DATA_SOURCE_LIVE)
