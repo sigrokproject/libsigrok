@@ -961,18 +961,34 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		if (rigol_ds_config_set(sdi, ":LA:DISP OFF") != SR_OK)
 			return SR_ERR;
 
-	if (devc->data_source == DATA_SOURCE_LIVE) {
-		if (rigol_ds_config_set(sdi, ":RUN") != SR_OK)
-			return SR_ERR;
-	} else if (devc->data_source == DATA_SOURCE_MEMORY) {
-		if (devc->model->series != RIGOL_DS2000) {
-			sr_err("Data source 'Memory' not supported for this device");
-			return SR_ERR;
-		}
-	} else if (devc->data_source == DATA_SOURCE_SEGMENTED) {
+	/* Set memory mode. */
+	if (devc->data_source == DATA_SOURCE_SEGMENTED) {
 		sr_err("Data source 'Segmented' not yet supported");
 		return SR_ERR;
 	}
+
+	devc->analog_frame_size = analog_frame_size(sdi);
+	devc->digital_frame_size = digital_frame_size(sdi);
+
+	if (devc->model->series <= RIGOL_DS1000) {
+		if (rigol_ds_config_set(sdi, ":ACQ:MDEP LONG") != SR_OK)
+			return SR_ERR;
+	} else {
+		/* Apparently for the DS2000 the memory
+		 * depth can only be set in Running state -
+		 * this matches the behaviour of the UI. */
+		if (rigol_ds_config_set(sdi, ":RUN") != SR_OK)
+			return SR_ERR;
+		if (rigol_ds_config_set(sdi, ":ACQ:MDEP %d",
+					devc->analog_frame_size) != SR_OK)
+			return SR_ERR;
+		if (rigol_ds_config_set(sdi, ":STOP") != SR_OK)
+			return SR_ERR;
+	}
+
+	if (devc->data_source == DATA_SOURCE_LIVE)
+		if (rigol_ds_config_set(sdi, ":RUN") != SR_OK)
+			return SR_ERR;
 
 	sr_scpi_source_add(scpi, G_IO_IN, 50, rigol_ds_receive, (void *)sdi);
 
@@ -984,30 +1000,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	else
 		devc->channel_entry = devc->enabled_digital_probes;
 
-	devc->analog_frame_size = analog_frame_size(sdi);
-	devc->digital_frame_size = digital_frame_size(sdi);
-
-	if (devc->model->series < RIGOL_DS1000Z) {
-		/* Fetch the first frame. */
-		if (rigol_ds_channel_start(sdi) != SR_OK)
-			return SR_ERR;
-	} else {
-		if (devc->enabled_analog_probes) {
-			if (devc->data_source == DATA_SOURCE_MEMORY) {
-				/* Apparently for the DS2000 the memory
-				 * depth can only be set in Running state -
-				 * this matches the behaviour of the UI. */
-				if (rigol_ds_config_set(sdi, ":RUN") != SR_OK)
-					return SR_ERR;
-				if (rigol_ds_config_set(sdi, "ACQ:MDEP %d", devc->analog_frame_size) != SR_OK)
-					return SR_ERR;
-				if (rigol_ds_config_set(sdi, ":STOP") != SR_OK)
-					return SR_ERR;
-			}
-			if (rigol_ds_capture_start(sdi) != SR_OK)
-				return SR_ERR;
-		}
-	}
+	if (rigol_ds_capture_start(sdi) != SR_OK)
+		return SR_ERR;
 
 	/* Start of first frame. */
 	packet.type = SR_DF_FRAME_BEGIN;
