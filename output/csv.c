@@ -118,7 +118,8 @@ static int receive(struct sr_output *o, const struct sr_dev_inst *sdi,
 {
 	const struct sr_datafeed_logic *logic;
 	struct context *ctx;
-	uint64_t sample, i, j;
+	uint64_t i, j;
+	gchar *p, c;
 
 	(void)sdi;
 
@@ -143,11 +144,11 @@ static int receive(struct sr_output *o, const struct sr_dev_inst *sdi,
 		}
 
 		for (i = 0; i <= logic->length - ctx->unitsize; i += ctx->unitsize) {
-			memcpy(&sample, logic->data + i, ctx->unitsize);
 			for (j = 0; j < ctx->num_enabled_probes; j++) {
-				g_string_append_printf(*out, "%d%c",
-					(int)((sample & (1 << j)) >> j),
-					ctx->separator);
+				p = logic->data + i + j / 8;
+				c = *p & (1 << (j % 8));
+				g_string_append_c(*out, c ? '1' : '0');
+				g_string_append_c(*out, ctx->separator);
 			}
 			g_string_append_printf(*out, "\n");
 		}
