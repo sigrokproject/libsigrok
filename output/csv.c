@@ -98,7 +98,7 @@ static int init(struct sr_output *o)
 			       ctx->samplerate);
 
 	/* Columns / channels */
-	g_string_append_printf(ctx->header, "; Channels (%d/%d): ",
+	g_string_append_printf(ctx->header, "; Channels (%d/%d):",
 			       ctx->num_enabled_probes, num_probes);
 	for (l = o->sdi->probes; l; l = l->next) {
 		probe = l->data;
@@ -106,8 +106,11 @@ static int init(struct sr_output *o)
 			continue;
 		if (!probe->enabled)
 			continue;
-		g_string_append_printf(ctx->header, "%s, ", probe->name);
+		g_string_append_printf(ctx->header, " %s,", probe->name);
 	}
+	if (o->sdi->probes)
+		/* Drop last separator. */
+		g_string_truncate(ctx->header, ctx->header->len - 1);
 	g_string_append_printf(ctx->header, "\n");
 
 	return SR_OK;
@@ -150,7 +153,7 @@ static int receive(struct sr_output *o, const struct sr_dev_inst *sdi,
 				g_string_append_c(*out, c ? '1' : '0');
 				g_string_append_c(*out, ctx->separator);
 			}
-			if (i && j) {
+			if (j) {
 				/* Drop last separator. */
 				g_string_truncate(*out, (*out)->len - 1);
 			}
