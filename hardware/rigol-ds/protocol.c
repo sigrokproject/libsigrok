@@ -422,18 +422,18 @@ static int rigol_ds_read_header(struct sr_dev_inst *sdi)
 	struct sr_scpi_dev_inst *scpi = sdi->conn;
 	struct dev_context *devc = sdi->priv;
 	char *buf = (char *) devc->buffer;
-	int len;
-	int tmp;
+	size_t header_length;
+	int ret;
 
 	/* Try to read the hashsign and length digit. */
 	if (devc->num_header_bytes < 2) {
-		tmp = sr_scpi_read_data(scpi, buf + devc->num_header_bytes,
+		ret = sr_scpi_read_data(scpi, buf + devc->num_header_bytes,
 				2 - devc->num_header_bytes);
-		if (tmp < 0) {
+		if (ret < 0) {
 			sr_err("Read error while reading data header.");
 			return SR_ERR;
 		}
-		devc->num_header_bytes += tmp;
+		devc->num_header_bytes += ret;
 	}
 
 	if (devc->num_header_bytes < 2)
@@ -444,33 +444,33 @@ static int rigol_ds_read_header(struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
-	len = buf[1] - '0';
+	header_length = 2 + buf[1] - '0';
 
 	/* Try to read the length. */
-	if (devc->num_header_bytes < 2 + len) {
-		tmp = sr_scpi_read_data(scpi, buf + devc->num_header_bytes,
-				2 + len - devc->num_header_bytes);
-		if (tmp < 0) {
+	if (devc->num_header_bytes < header_length) {
+		ret = sr_scpi_read_data(scpi, buf + devc->num_header_bytes,
+				header_length - devc->num_header_bytes);
+		if (ret < 0) {
 			sr_err("Read error while reading data header.");
 			return SR_ERR;
 		}
-		devc->num_header_bytes += tmp;
+		devc->num_header_bytes += ret;
 	}
 
-	if (devc->num_header_bytes < 2 + len)
+	if (devc->num_header_bytes < header_length)
 		return 0;
 
 	/* Read the data length. */
-	buf[2 + len] = '\0';
+	buf[header_length] = '\0';
 
-	if (parse_int(buf + 2, &len) != SR_OK) {
+	if (parse_int(buf + 2, &ret) != SR_OK) {
 		sr_err("Received invalid data block length '%s'.", buf + 2);
 		return -1;
 	}
 
-	sr_dbg("Received data block header: '%s' -> block length %d", buf, len);
+	sr_dbg("Received data block header: '%s' -> block length %d", buf, ret);
 
-	return len;
+	return ret;
 }
 
 SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
