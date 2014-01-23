@@ -81,10 +81,11 @@ SR_PRIV int sr_sessionfile_check(const char *filename)
 	zip_fclose(zf);
 	s[ret] = 0;
 	version = strtoull(s, NULL, 10);
-	if (version != 1) {
+	if (version > 2) {
 		sr_dbg("Cannot handle sigrok session file version %d.", version);
 		return SR_ERR;
 	}
+	sr_spew("Detected sigrok session file version %d.", version);
 
 	/* read "metadata" */
 	if (zip_stat(archive, "metadata", 0, &zs) == -1) {
@@ -304,7 +305,7 @@ SR_API int sr_session_save_init(const char *filename, uint64_t samplerate,
 		return SR_ERR;
 
 	/* "version" */
-	version[0] = '1';
+	version[0] = '2';
 	if (!(versrc = zip_source_buffer(zipfile, version, 1, 0)))
 		return SR_ERR;
 	if (zip_add(zipfile, "version", versrc) == -1) {
