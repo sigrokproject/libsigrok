@@ -91,7 +91,6 @@ static GSList *scan(GSList *options)
 	int device_index;
 
 	drvc = di->priv;
-	drvc->instances = NULL;
 	conn = USB_VID_PID;
 
 	for (node = options; node != NULL; node = node->next) {
@@ -103,7 +102,7 @@ static GSList *scan(GSList *options)
 	}
 	usb_devices = sr_usb_find(drvc->sr_ctx->libusb_ctx, conn);
 	devices = NULL;
-	device_index = 0;
+	device_index = g_slist_length(drvc->instances);
 
 	for (node = usb_devices; node != NULL; node = node->next) {
 		usb = node->data;
