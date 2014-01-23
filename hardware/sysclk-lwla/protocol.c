@@ -20,9 +20,6 @@
 #include "protocol.h"
 #include <string.h>
 
-/* Bit mask covering all 34 channels. */
-#define ALL_CHANNELS_MASK (((uint64_t)1 << NUM_PROBES) - 1)
-
 /* Bit mask for the RLE repeat-count-follows flag. */
 #define RLE_FLAG_LEN_FOLLOWS ((uint64_t)1 << 35)
 

@@ -41,6 +41,10 @@
 #define NUM_PROBES	34
 #define TRIGGER_TYPES	"01fr"
 
+/* Bit mask covering all 34 channels.
+ */
+#define ALL_CHANNELS_MASK (((uint64_t)1 << NUM_PROBES) - 1)
+
 /** Unit and packet size for the sigrok logic datafeed.
  */
 #define UNIT_SIZE	((NUM_PROBES + 7) / 8)

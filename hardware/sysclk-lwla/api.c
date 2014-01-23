@@ -79,12 +79,42 @@ static GSList *gen_probe_list(int num_probes)
 	return list;
 }
 
+static struct sr_dev_inst *dev_inst_new(int device_index)
+{
+	struct sr_dev_inst *sdi;
+	struct dev_context *devc;
+
+	/* Allocate memory for our private driver context. */
+	devc = g_try_new0(struct dev_context, 1);
+	if (!devc) {
+		sr_err("Device context malloc failed.");
+		return NULL;
+	}
+
+	/* Register the device with libsigrok. */
+	sdi = sr_dev_inst_new(device_index, SR_ST_INACTIVE,
+			      VENDOR_NAME, MODEL_NAME, NULL);
+	if (!sdi) {
+		sr_err("Failed to instantiate device.");
+		g_free(devc);
+		return NULL;
+	}
+
+	/* Enable all channels to match the default probe configuration. */
+	devc->channel_mask = ALL_CHANNELS_MASK;
+	devc->samplerate = DEFAULT_SAMPLERATE;
+
+	sdi->priv = devc;
+	sdi->probes = gen_probe_list(NUM_PROBES);
+
+	return sdi;
+}
+
 static GSList *scan(GSList *options)
 {
 	GSList *usb_devices, *devices, *node;
 	struct drv_context *drvc;
 	struct sr_dev_inst *sdi;
-	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
 	struct sr_config *src;
 	const char *conn;
@@ -107,28 +137,17 @@ static GSList *scan(GSList *options)
 	for (node = usb_devices; node != NULL; node = node->next) {
 		usb = node->data;
 
-		/* Allocate memory for our private driver context. */
-		devc = g_try_new0(struct dev_context, 1);
-		if (!devc) {
-			sr_err("Device context malloc failed.");
-			sr_usb_dev_inst_free(usb);
-			continue;
-		}
-		/* Register the device with libsigrok. */
-		sdi = sr_dev_inst_new(device_index, SR_ST_INACTIVE,
-				      VENDOR_NAME, MODEL_NAME, NULL);
+		/* Create sigrok device instance. */
+		sdi = dev_inst_new(device_index);
 		if (!sdi) {
-			sr_err("Failed to instantiate device.");
-			g_free(devc);
 			sr_usb_dev_inst_free(usb);
 			continue;
 		}
 		sdi->driver = di;
-		sdi->priv = devc;
 		sdi->inst_type = SR_INST_USB;
 		sdi->conn = usb;
-		sdi->probes = gen_probe_list(NUM_PROBES);
 
+		/* Register device instance with driver. */
 		drvc->instances = g_slist_append(drvc->instances, sdi);
 		devices = g_slist_append(devices, sdi);
 	}
@@ -167,7 +186,6 @@ static int dev_clear(void)
 static int dev_open(struct sr_dev_inst *sdi)
 {
 	struct drv_context *drvc;
-	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
 	int ret;
 
@@ -178,8 +196,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
-	usb  = sdi->conn;
-	devc = sdi->priv;
+	usb = sdi->conn;
 
 	ret = sr_usb_open(drvc->sr_ctx->libusb_ctx, usb);
 	if (ret != SR_OK)
@@ -193,10 +210,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 	}
 
 	sdi->status = SR_ST_INITIALIZING;
-
-	if (devc->samplerate == 0)
-		/* Apply default if the samplerate hasn't been set yet. */
-		devc->samplerate = DEFAULT_SAMPLERATE;
 
 	ret = lwla_init_device(sdi);
 
@@ -326,6 +339,71 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
+static int config_probe_set(const struct sr_dev_inst *sdi,
+			    struct sr_probe *probe, unsigned int changes)
+{
+	uint64_t probe_bit;
+	uint64_t trigger_mask;
+	uint64_t trigger_values;
+	uint64_t trigger_edge_mask;
+	struct dev_context *devc;
+
+	devc = sdi->priv;
+	if (!devc)
+		return SR_ERR_DEV_CLOSED;
+
+	if (probe->index < 0 || probe->index >= NUM_PROBES) {
+		sr_err("Probe index %d out of range.", probe->index);
+		return SR_ERR_BUG;
+	}
+	probe_bit = (uint64_t)1 << probe->index;
+
+	if ((changes & SR_PROBE_SET_ENABLED) != 0) {
+		/* Enable or disable input channel for this probe. */
+		if (probe->enabled)
+			devc->channel_mask |= probe_bit;
+		else
+			devc->channel_mask &= ~probe_bit;
+	}
+
+	if ((changes & SR_PROBE_SET_TRIGGER) != 0) {
+		trigger_mask = devc->trigger_mask & ~probe_bit;
+		trigger_values = devc->trigger_values & ~probe_bit;
+		trigger_edge_mask = devc->trigger_edge_mask & ~probe_bit;
+
+		if (probe->trigger && probe->trigger[0] != '\0') {
+			if (probe->trigger[1] != '\0') {
+				sr_warn("Trigger configuration \"%s\" with "
+					"multiple stages is not supported.",
+					probe->trigger);
+				return SR_ERR_ARG;
+			}
+			/* Enable trigger for this probe. */
+			trigger_mask |= probe_bit;
+
+			/* Configure edge mask and trigger value. */
+			switch (probe->trigger[0]) {
+			case '1': trigger_values |= probe_bit;
+			case '0': break;
+
+			case 'r': trigger_values |= probe_bit;
+			case 'f': trigger_edge_mask |= probe_bit;
+				  break;
+			default:
+				sr_warn("Trigger type '%c' is not supported.",
+					probe->trigger[0]);
+				return SR_ERR_ARG;
+			}
+		}
+		/* Store validated trigger setup. */
+		devc->trigger_mask = trigger_mask;
+		devc->trigger_values = trigger_values;
+		devc->trigger_edge_mask = trigger_edge_mask;
+	}
+
+	return SR_OK;
+}
+
 static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		       const struct sr_probe_group *probe_group)
 {
@@ -362,61 +440,6 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-static int configure_probes(const struct sr_dev_inst *sdi)
-{
-	struct dev_context *devc;
-	const struct sr_probe *probe;
-	const GSList *node;
-	uint64_t probe_bit;
-
-	devc = sdi->priv;
-
-	devc->channel_mask = 0;
-	devc->trigger_mask = 0;
-	devc->trigger_edge_mask = 0;
-	devc->trigger_values = 0;
-
-	for (node = sdi->probes; node != NULL; node = node->next) {
-		probe = node->data;
-		if (!probe || !probe->enabled)
-			continue;
-
-		if (probe->index >= NUM_PROBES) {
-			sr_err("Channel index %d out of range.", probe->index);
-			return SR_ERR_BUG;
-		}
-		probe_bit = (uint64_t)1 << probe->index;
-
-		/* Enable input channel for this probe. */
-		devc->channel_mask |= probe_bit;
-
-		if (!probe->trigger || probe->trigger[0] == '\0')
-			continue;
-
-		if (probe->trigger[1] != '\0') {
-			sr_err("Only one trigger stage is supported.");
-			return SR_ERR;
-		}
-		/* Enable trigger for this probe. */
-		devc->trigger_mask |= probe_bit;
-
-		/* Configure edge mask and trigger value. */
-		switch (probe->trigger[0]) {
-		case '1': devc->trigger_values |= probe_bit;
-		case '0': break;
-
-		case 'r': devc->trigger_values |= probe_bit;
-		case 'f': devc->trigger_edge_mask |= probe_bit;
-			  break;
-		default:
-			sr_err("Trigger type '%c' is not supported.",
-			       probe->trigger[0]);
-			return SR_ERR;
-		}
-	}
-	return SR_OK;
-}
-
 static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 {
 	struct drv_context *drvc;
@@ -442,13 +465,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 
 	devc->stopping_in_progress = FALSE;
 	devc->transfer_error = FALSE;
-
-	ret = configure_probes(sdi);
-	if (ret != SR_OK) {
-		sr_err("Failed to configure probes.");
-		lwla_free_acquisition_state(acq);
-		return ret;
-	}
 
 	sr_info("Starting acquisition.");
 
@@ -504,6 +520,7 @@ SR_PRIV struct sr_dev_driver sysclk_lwla_driver_info = {
 	.dev_clear = dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
+	.config_probe_set = config_probe_set,
 	.config_list = config_list,
 	.dev_open = dev_open,
 	.dev_close = dev_close,
