@@ -25,6 +25,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+static const int32_t hwopts[] = {
+	SR_CONF_CONN,
+};
+
 static const int32_t hwcaps[] = {
 	SR_CONF_LOGIC_ANALYZER,
 	SR_CONF_SAMPLERATE,
@@ -333,14 +337,18 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	(void)probe_group;
 
 	switch (key) {
+	case SR_CONF_SCAN_OPTIONS:
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+				hwopts, G_N_ELEMENTS(hwopts), sizeof(int32_t));
+		break;
 	case SR_CONF_DEVICE_OPTIONS:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-				hwcaps, ARRAY_SIZE(hwcaps), sizeof(int32_t));
+				hwcaps, G_N_ELEMENTS(hwcaps), sizeof(int32_t));
 		break;
 	case SR_CONF_SAMPLERATE:
 		g_variant_builder_init(&gvb, G_VARIANT_TYPE("a{sv}"));
 		gvar = g_variant_new_fixed_array(G_VARIANT_TYPE("t"),
-				samplerates, ARRAY_SIZE(samplerates),
+				samplerates, G_N_ELEMENTS(samplerates),
 				sizeof(uint64_t));
 		g_variant_builder_add(&gvb, "{sv}", "samplerates", gvar);
 		*data = g_variant_builder_end(&gvb);
