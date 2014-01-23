@@ -329,8 +329,6 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 			sr_info("Disabling external clock.");
 			devc->selected_clock_source = CLOCK_SOURCE_INT;
 		}
-		if (sdi->status == SR_ST_ACTIVE)
-			return lwla_set_clock_source(sdi);
 		break;
 	default:
 		return SR_ERR_NA;
@@ -402,6 +400,16 @@ static int config_probe_set(const struct sr_dev_inst *sdi,
 	}
 
 	return SR_OK;
+}
+
+static int config_commit(const struct sr_dev_inst *sdi)
+{
+	if (sdi->status != SR_ST_ACTIVE) {
+		sr_err("Device not ready (status %d).", (int)sdi->status);
+		return SR_ERR;
+	}
+
+	return lwla_set_clock_source(sdi);
 }
 
 static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
@@ -521,6 +529,7 @@ SR_PRIV struct sr_dev_driver sysclk_lwla_driver_info = {
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_probe_set = config_probe_set,
+	.config_commit = config_commit,
 	.config_list = config_list,
 	.dev_open = dev_open,
 	.dev_close = dev_close,
