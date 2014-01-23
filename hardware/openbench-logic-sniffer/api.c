@@ -422,7 +422,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	struct sr_serial_dev_inst *serial;
 	uint32_t trigger_config[4];
 	uint32_t data;
-	uint16_t readcount, delaycount;
+	uint16_t samplecount, readcount, delaycount;
 	uint8_t changrp_mask;
 	int num_channels;
 	int i;
@@ -456,7 +456,10 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	 * Limit readcount to prevent reading past the end of the hardware
 	 * buffer.
 	 */
-	readcount = MIN(devc->max_samples / num_channels, devc->limit_samples) / 4;
+	samplecount = MIN(devc->max_samples / num_channels, devc->limit_samples);
+	readcount = samplecount / 4;
+	if (samplecount % 4)
+		readcount++;
 
 	memset(trigger_config, 0, 16);
 	trigger_config[devc->num_stages] |= 0x08;
