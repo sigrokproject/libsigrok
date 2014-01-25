@@ -102,7 +102,7 @@ struct regval_pair {
 };
 
 SR_PRIV int lwla_send_bitstream(const struct sr_usb_dev_inst *usb,
-				const char *filename);
+				const char *basename);
 
 SR_PRIV int lwla_send_command(const struct sr_usb_dev_inst *usb,
 			      const uint16_t *command, int cmd_len);

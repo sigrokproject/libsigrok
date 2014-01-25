@@ -31,11 +31,11 @@
 
 /* The bitstream filenames are indexed by the clock source enumeration.
  */
-static const char *const bitstream_map[] = {
-	FIRMWARE_DIR "/sysclk-lwla1034-off.bitstream",
-	FIRMWARE_DIR "/sysclk-lwla1034-int.bitstream",
-	FIRMWARE_DIR "/sysclk-lwla1034-extpos.bitstream",
-	FIRMWARE_DIR "/sysclk-lwla1034-extneg.bitstream",
+static const char bitstream_map[][32] = {
+	"sysclk-lwla1034-off.rbf",
+	"sysclk-lwla1034-int.rbf",
+	"sysclk-lwla1034-extpos.rbf",
+	"sysclk-lwla1034-extneg.rbf",
 };
 
 /* Submit an already filled-in USB transfer.
