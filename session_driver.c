@@ -43,13 +43,14 @@ struct session_vdev {
 	int unitsize;
 	int num_probes;
 	int cur_chunk;
+	gboolean finished;
 };
 
 static GSList *dev_insts = NULL;
 static const int hwcaps[] = {
 	SR_CONF_CAPTUREFILE,
 	SR_CONF_CAPTURE_UNITSIZE,
-	0,
+	SR_CONF_SAMPLERATE,
 };
 
 static int receive_data(int fd, int revents, void *cb_data)
@@ -70,7 +71,8 @@ static int receive_data(int fd, int revents, void *cb_data)
 	got_data = FALSE;
 	for (l = dev_insts; l; l = l->next) {
 		sdi = l->data;
-		if (!(vdev = sdi->priv))
+		vdev = sdi->priv;
+		if (vdev->finished)
 			/* Already done with this instance. */
 			continue;
 
@@ -114,8 +116,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 				} else {
 					/* We got all the chunks, finish up. */
 					g_free(vdev->capturefile);
-					g_free(vdev);
-					sdi->priv = NULL;
+					vdev->finished = TRUE;
 					continue;
 				}
 			}
@@ -143,8 +144,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 			if (vdev->cur_chunk == 0) {
 				/* It was the only file. */
 				g_free(vdev->capturefile);
-				g_free(vdev);
-				sdi->priv = NULL;
+				vdev->finished = TRUE;
 			} else {
 				/* There might be more chunks, so don't fall through
 				 * to the SR_DF_END here. */
@@ -187,12 +187,19 @@ static int cleanup(void)
 
 static int dev_open(struct sr_dev_inst *sdi)
 {
-	if (!(sdi->priv = g_try_malloc0(sizeof(struct session_vdev)))) {
-		sr_err("Device context malloc failed.");
-		return SR_ERR_MALLOC;
-	}
+	struct session_vdev *vdev;
 
+	vdev = g_try_malloc0(sizeof(struct session_vdev));
+	sdi->priv = vdev;
 	dev_insts = g_slist_append(dev_insts, sdi);
+
+	return SR_OK;
+}
+
+static int dev_close(struct sr_dev_inst *sdi)
+{
+	g_free(sdi->priv);
+	sdi->priv = NULL;
 
 	return SR_OK;
 }
@@ -311,7 +318,7 @@ SR_PRIV struct sr_dev_driver session_driver = {
 	.config_set = config_set,
 	.config_list = config_list,
 	.dev_open = dev_open,
-	.dev_close = NULL,
+	.dev_close = dev_close,
 	.dev_acquisition_start = dev_acquisition_start,
 	.dev_acquisition_stop = NULL,
 	.priv = NULL,
