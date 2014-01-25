@@ -137,8 +137,8 @@ SR_PRIV int lwla_send_command(const struct sr_usb_dev_inst *usb,
 	int ret;
 	int xfer_len;
 
-	if (usb == NULL || command == NULL || cmd_len <= 0)
-		return SR_ERR_ARG;
+	if (!usb || !command || cmd_len <= 0)
+		return SR_ERR_BUG;
 
 	xfer_len = 0;
 	ret = libusb_bulk_transfer(usb->devhdl, EP_COMMAND,
@@ -163,8 +163,8 @@ SR_PRIV int lwla_receive_reply(const struct sr_usb_dev_inst *usb,
 	int ret;
 	int xfer_len;
 
-	if (usb == NULL || reply == NULL || reply_len <= 0)
-		return SR_ERR_ARG;
+	if (!usb || !reply || reply_len <= 0)
+		return SR_ERR_BUG;
 
 	xfer_len = 0;
 	ret = libusb_bulk_transfer(usb->devhdl, EP_REPLY,
