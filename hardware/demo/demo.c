@@ -111,7 +111,8 @@ struct dev_context {
 	uint64_t cur_samplerate;
 	uint64_t limit_samples;
 	uint64_t limit_msec;
-	uint64_t samples_counter;
+	uint64_t logic_counter;
+	uint64_t analog_counter;
 	int64_t starttime;
 	uint64_t step;
 	/* Logic */
@@ -624,7 +625,7 @@ static int prepare_data(int fd, int revents, void *cb_data)
 	struct sr_probe_group *pg;
 	struct analog_gen *ag;
 	GSList *l;
-	uint64_t samples_to_send, expected_samplenum, analog_samples, sending_now;
+	uint64_t logic_todo, analog_todo, expected_samplenum, analog_samples, sending_now;
 	int64_t time, elapsed;
 
 	(void)fd;
@@ -637,20 +638,20 @@ static int prepare_data(int fd, int revents, void *cb_data)
 	time = g_get_monotonic_time();
 	elapsed = time - devc->starttime;
 	expected_samplenum = elapsed * devc->cur_samplerate / 1000000;
+
 	/* Of those, how many do we still have to send? */
-	samples_to_send = expected_samplenum - devc->samples_counter;
+	logic_todo = expected_samplenum - devc->logic_counter;
+	analog_todo = expected_samplenum - devc->analog_counter;
 
 	if (devc->limit_samples) {
-		samples_to_send = MIN(samples_to_send,
-				devc->limit_samples - devc->samples_counter);
+		logic_todo = MIN(logic_todo, devc->limit_samples - devc->logic_counter);
+		analog_todo = MIN(analog_todo, devc->limit_samples - devc->analog_counter);
 	}
 
-	while (samples_to_send > 0) {
-		sending_now = 0;
-
+	while (logic_todo || analog_todo) {
 		/* Logic */
-		if (devc->num_logic_probes > 0) {
-			sending_now = MIN(samples_to_send,
+		if (devc->num_logic_probes > 0 && logic_todo > 0) {
+			sending_now = MIN(logic_todo,
 					LOGIC_BUFSIZE / devc->logic_unitsize);
 			logic_generator(sdi, sending_now * devc->logic_unitsize);
 			packet.type = SR_DF_LOGIC;
@@ -659,10 +660,12 @@ static int prepare_data(int fd, int revents, void *cb_data)
 			logic.unitsize = devc->logic_unitsize;
 			logic.data = devc->logic_data;
 			sr_session_send(sdi, &packet);
+			logic_todo -= sending_now;
+			devc->logic_counter += sending_now;
 		}
 
 		/* Analog, one probe at a time */
-		if (devc->num_analog_probes > 0) {
+		if (devc->num_analog_probes > 0 && analog_todo > 0) {
 			sending_now = 0;
 			for (l = devc->analog_probe_groups; l; l = l->next) {
 				pg = l->data;
@@ -675,21 +678,21 @@ static int prepare_data(int fd, int revents, void *cb_data)
 				 * beginning of our buffer. A ring buffer would
 				 * help here as well */
 
-				analog_samples = MIN(samples_to_send, ag->num_samples);
+				analog_samples = MIN(analog_todo, ag->num_samples);
 				/* Whichever probe group gets there first. */
 				sending_now = MAX(sending_now, analog_samples);
 				ag->packet.num_samples = analog_samples;
 				sr_session_send(sdi, &packet);
 			}
+			analog_todo -= sending_now;
+			devc->analog_counter += sending_now;
 		}
-
-		samples_to_send -= sending_now;
-		devc->samples_counter += sending_now;
 	}
 
 	if (devc->limit_samples &&
-		devc->samples_counter >= devc->limit_samples) {
-		sr_info("Requested number of samples reached.");
+			devc->logic_counter >= devc->limit_samples &&
+			devc->analog_counter >= devc->limit_samples) {
+		sr_dbg("Requested number of samples reached.");
 		dev_acquisition_stop(sdi, cb_data);
 		return TRUE;
 	}
@@ -707,7 +710,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 
 	/* TODO: don't start without a sample limit set */
 	devc = sdi->priv;
-	devc->samples_counter = 0;
+	devc->logic_counter = devc->analog_counter = 0;
 
 	/*
 	 * Setting two channels connected by a pipe is a remnant from when the
