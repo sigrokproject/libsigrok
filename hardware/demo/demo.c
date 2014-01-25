@@ -640,13 +640,8 @@ static int prepare_data(int fd, int revents, void *cb_data)
 	expected_samplenum = elapsed * devc->cur_samplerate / 1000000;
 
 	/* Of those, how many do we still have to send? */
-	logic_todo = expected_samplenum - devc->logic_counter;
-	analog_todo = expected_samplenum - devc->analog_counter;
-
-	if (devc->limit_samples) {
-		logic_todo = MIN(logic_todo, devc->limit_samples - devc->logic_counter);
-		analog_todo = MIN(analog_todo, devc->limit_samples - devc->analog_counter);
-	}
+	logic_todo = MIN(expected_samplenum, devc->limit_samples) - devc->logic_counter;
+	analog_todo = MIN(expected_samplenum, devc->limit_samples) - devc->analog_counter;
 
 	while (logic_todo || analog_todo) {
 		/* Logic */
@@ -689,8 +684,7 @@ static int prepare_data(int fd, int revents, void *cb_data)
 		}
 	}
 
-	if (devc->limit_samples &&
-			devc->logic_counter >= devc->limit_samples &&
+	if (devc->logic_counter >= devc->limit_samples &&
 			devc->analog_counter >= devc->limit_samples) {
 		sr_dbg("Requested number of samples reached.");
 		dev_acquisition_stop(sdi, cb_data);
@@ -708,8 +702,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
-	/* TODO: don't start without a sample limit set */
 	devc = sdi->priv;
+	if (devc->limit_samples == 0)
+		return SR_ERR;
 	devc->logic_counter = devc->analog_counter = 0;
 
 	/*
