@@ -63,6 +63,7 @@ static int capture_setup(const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	struct acquisition_state *acq;
 	uint64_t divider_count;
+	uint64_t trigger_mask;
 	uint64_t memory_limit;
 	uint16_t command[3 + 10*4];
 
@@ -102,10 +103,18 @@ static int capture_setup(const struct sr_dev_inst *sdi)
 	command[17] = LWLA_WORD_2(devc->trigger_edge_mask);
 	command[18] = LWLA_WORD_3(devc->trigger_edge_mask);
 
-	command[19] = LWLA_WORD_0(devc->trigger_mask);
-	command[20] = LWLA_WORD_1(devc->trigger_mask);
-	command[21] = LWLA_WORD_2(devc->trigger_mask);
-	command[22] = LWLA_WORD_3(devc->trigger_mask);
+	trigger_mask = devc->trigger_mask;
+	/* Set bits to select external TRG input edge. */
+	if (devc->cfg_trigger_source == TRIGGER_EXT_TRG)
+		switch (devc->cfg_trigger_slope) {
+		case SLOPE_POSITIVE: trigger_mask |= (uint64_t)1 << 35; break; 
+		case SLOPE_NEGATIVE: trigger_mask |= (uint64_t)1 << 34; break; 
+		}
+
+	command[19] = LWLA_WORD_0(trigger_mask);
+	command[20] = LWLA_WORD_1(trigger_mask);
+	command[21] = LWLA_WORD_2(trigger_mask);
+	command[22] = LWLA_WORD_3(trigger_mask);
 
 	/* Set the capture memory full threshold. This is slightly less
 	 * than the actual maximum, most likely in order to compensate for

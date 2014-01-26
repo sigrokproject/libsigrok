@@ -34,6 +34,8 @@ static const int32_t hwcaps[] = {
 	SR_CONF_SAMPLERATE,
 	SR_CONF_EXTERNAL_CLOCK,
 	SR_CONF_TRIGGER_TYPE,
+	SR_CONF_TRIGGER_SOURCE,
+	SR_CONF_TRIGGER_SLOPE,
 	SR_CONF_LIMIT_MSEC,
 	SR_CONF_LIMIT_SAMPLES,
 };
@@ -50,6 +52,16 @@ static const uint64_t samplerates[] = {
 	SR_KHZ(5),   SR_KHZ(2),   SR_KHZ(1),
 	SR_HZ(500),  SR_HZ(200),  SR_HZ(100),
 };
+
+/* Names assigned to available trigger sources.  Indices must match
+ * trigger_source enum values.
+ */
+static const char *const trigger_source_names[] = { "CH", "TRG" };
+
+/* Names assigned to available trigger slope choices.  Indices must
+ * match trigger_slope enum values.
+ */
+static const char *const trigger_slope_names[] = { "r", "f" };
 
 SR_PRIV struct sr_dev_driver sysclk_lwla_driver_info;
 static struct sr_dev_driver *const di = &sysclk_lwla_driver_info;
@@ -259,6 +271,7 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		      const struct sr_probe_group *probe_group)
 {
 	struct dev_context *devc;
+	size_t idx;
 
 	(void)probe_group;
 
@@ -281,6 +294,18 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		*data = g_variant_new_boolean(devc->selected_clock_source
 						>= CLOCK_SOURCE_EXT_RISE);
 		break;
+	case SR_CONF_TRIGGER_SOURCE:
+		idx = devc->cfg_trigger_source;
+		if (idx >= G_N_ELEMENTS(trigger_source_names))
+			return SR_ERR_BUG;
+		*data = g_variant_new_string(trigger_source_names[idx]);
+		break;
+	case SR_CONF_TRIGGER_SLOPE:
+		idx = devc->cfg_trigger_slope;
+		if (idx >= G_N_ELEMENTS(trigger_slope_names))
+			return SR_ERR_BUG;
+		*data = g_variant_new_string(trigger_slope_names[idx]);
+		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -288,11 +313,32 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
+/* Helper for mapping a string-typed configuration value to an index
+ * within a table of possible values.
+ */
+static int lookup_index(GVariant *value, const char *const *table, int len)
+{
+	const char *entry;
+	int i;
+
+	entry = g_variant_get_string(value, NULL);
+	if (!entry)
+		return -1;
+
+	/* Linear search is fine for very small tables. */
+	for (i = 0; i < len; ++i) {
+		if (strcmp(entry, table[i]) == 0)
+			return i;
+	}
+	return -1;
+}
+
 static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 		      const struct sr_probe_group *probe_group)
 {
 	uint64_t value;
 	struct dev_context *devc;
+	int idx;
 
 	(void)probe_group;
 
@@ -329,6 +375,20 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 			sr_info("Disabling external clock.");
 			devc->selected_clock_source = CLOCK_SOURCE_INT;
 		}
+		break;
+	case SR_CONF_TRIGGER_SOURCE:
+		idx = lookup_index(data, trigger_source_names,
+				   G_N_ELEMENTS(trigger_source_names));
+		if (idx < 0)
+			return SR_ERR_ARG;
+		devc->cfg_trigger_source = idx;
+		break;
+	case SR_CONF_TRIGGER_SLOPE:
+		idx = lookup_index(data, trigger_slope_names,
+				   G_N_ELEMENTS(trigger_slope_names));
+		if (idx < 0)
+			return SR_ERR_ARG;
+		devc->cfg_trigger_slope = idx;
 		break;
 	default:
 		return SR_ERR_NA;
@@ -440,6 +500,14 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		break;
 	case SR_CONF_TRIGGER_TYPE:
 		*data = g_variant_new_string(TRIGGER_TYPES);
+		break;
+	case SR_CONF_TRIGGER_SOURCE:
+		*data = g_variant_new_strv(trigger_source_names,
+					   G_N_ELEMENTS(trigger_source_names));
+		break;
+	case SR_CONF_TRIGGER_SLOPE:
+		*data = g_variant_new_strv(trigger_slope_names,
+					   G_N_ELEMENTS(trigger_slope_names));
 		break;
 	default:
 		return SR_ERR_NA;

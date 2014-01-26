@@ -110,6 +110,20 @@ enum clock_source {
 	CLOCK_SOURCE_EXT_FALL,
 };
 
+/** Available trigger sources.
+ */
+enum trigger_source {
+	TRIGGER_CHANNELS = 0,
+	TRIGGER_EXT_TRG,
+};
+
+/** Available edge choices for the external trigger.
+ */
+enum trigger_slope {
+	SLOPE_POSITIVE = 0,
+	SLOPE_NEGATIVE,
+};
+
 /** LWLA device states.
  */
 enum device_state {
@@ -213,6 +227,11 @@ struct dev_context {
 	enum clock_source cur_clock_source;
 	/** The clock source selected by the user. */
 	enum clock_source selected_clock_source;
+
+	/** Trigger source configuration setting. */
+	enum trigger_source cfg_trigger_source;
+	/** Trigger slope configuration setting. */
+	enum trigger_slope cfg_trigger_slope;
 
 	/* Indicates that stopping the acquisition is currently in progress. */
 	gboolean stopping_in_progress;
