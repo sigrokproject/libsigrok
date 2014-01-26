@@ -145,20 +145,20 @@ SR_PRIV int lwla_send_command(const struct sr_usb_dev_inst *usb,
 				   (unsigned char *)command, cmd_len * 2,
 				   &xfer_len, USB_TIMEOUT);
 	if (ret != 0) {
-		sr_dbg("Failed to send command %u: %s.",
-		       LWLA_READ16(command), libusb_error_name(ret));
+		sr_dbg("Failed to send command %d: %s.",
+		       LWLA_TO_UINT16(command[0]), libusb_error_name(ret));
 		return SR_ERR;
 	}
 	if (xfer_len != cmd_len * 2) {
-		sr_dbg("Failed to send command %u: incorrect length %d != %d.",
-		       LWLA_READ16(command), xfer_len, cmd_len * 2);
+		sr_dbg("Failed to send command %d: incorrect length %d != %d.",
+		       LWLA_TO_UINT16(command[0]), xfer_len, cmd_len * 2);
 		return SR_ERR;
 	}
 	return SR_OK;
 }
 
 SR_PRIV int lwla_receive_reply(const struct sr_usb_dev_inst *usb,
-			       uint16_t *reply, int reply_len, int expect_len)
+			       uint32_t *reply, int reply_len, int expect_len)
 {
 	int ret;
 	int xfer_len;
@@ -168,15 +168,15 @@ SR_PRIV int lwla_receive_reply(const struct sr_usb_dev_inst *usb,
 
 	xfer_len = 0;
 	ret = libusb_bulk_transfer(usb->devhdl, EP_REPLY,
-				   (unsigned char *)reply, reply_len * 2,
+				   (unsigned char *)reply, reply_len * 4,
 				   &xfer_len, USB_TIMEOUT);
 	if (ret != 0) {
 		sr_dbg("Failed to receive reply: %s.", libusb_error_name(ret));
 		return SR_ERR;
 	}
-	if (xfer_len != expect_len * 2) {
+	if (xfer_len != expect_len * 4) {
 		sr_dbg("Failed to receive reply: incorrect length %d != %d.",
-		       xfer_len, expect_len * 2);
+		       xfer_len, expect_len * 4);
 		return SR_ERR;
 	}
 	return SR_OK;
@@ -187,7 +187,7 @@ SR_PRIV int lwla_read_reg(const struct sr_usb_dev_inst *usb,
 {
 	int ret;
 	uint16_t command[2];
-	uint16_t reply[256]; /* full EP buffer to avoid overflows */
+	uint32_t reply[128]; /* full EP buffer to avoid overflows */
 
 	command[0] = LWLA_WORD(CMD_READ_REG);
 	command[1] = LWLA_WORD(reg);
@@ -197,10 +197,10 @@ SR_PRIV int lwla_read_reg(const struct sr_usb_dev_inst *usb,
 	if (ret != SR_OK)
 		return ret;
 
-	ret = lwla_receive_reply(usb, reply, G_N_ELEMENTS(reply), 2);
+	ret = lwla_receive_reply(usb, reply, G_N_ELEMENTS(reply), 1);
 
 	if (ret == SR_OK)
-		*value = LWLA_READ32(reply);
+		*value = LWLA_TO_UINT32(reply[0]);
 
 	return ret;
 }

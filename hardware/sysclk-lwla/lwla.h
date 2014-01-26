@@ -27,25 +27,25 @@
 
 struct sr_usb_dev_inst;
 
-/* Read mixed endian words from a buffer of 16-bit units. */
-#define LWLA_READ16(buf) GUINT16_FROM_LE(*(buf))
-#define LWLA_READ32(buf) \
-	(((uint32_t)GUINT16_FROM_LE((buf)[0]) << 16) | \
-	 ((uint32_t)GUINT16_FROM_LE((buf)[1])))
-#define LWLA_READ64(buf) \
-	(((uint64_t)LWLA_READ32((buf))) | \
-	 ((uint64_t)LWLA_READ32((buf) + 2) << 32))
+/* Rotate argument n bits to the left.
+ * This construct is an idiom recognized by GCC as bit rotation.
+ */
+#define LROTATE(a, n) (((a) << (n)) | ((a) >> (CHAR_BIT * sizeof(a) - (n))))
 
-/* Convert 16-bit argument to little endian. */
+/* Convert 16-bit little endian LWLA protocol word to machine word order. */
+#define LWLA_TO_UINT16(val) GUINT16_FROM_LE(val)
+
+/* Convert 32-bit mixed endian LWLA protocol word to machine word order. */
+#define LWLA_TO_UINT32(val) LROTATE(GUINT32_FROM_LE(val), 16)
+
+/* Convert 16-bit argument to LWLA protocol word. */
 #define LWLA_WORD(val) GUINT16_TO_LE(val)
 
-/* Extract 16-bit units from 32/64-bit value in mixed endian order. */
-#define LWLA_WORD_0(val) GUINT16_TO_LE(((val) & 0xFFFF0000u) >> 16)
-#define LWLA_WORD_1(val) GUINT16_TO_LE(((val) & 0x0000FFFFu))
-#define LWLA_WORD_2(val) \
-	GUINT16_TO_LE(((val) & G_GUINT64_CONSTANT(0xFFFF000000000000)) >> 48)
-#define LWLA_WORD_3(val) \
-	GUINT16_TO_LE(((val) & G_GUINT64_CONSTANT(0x0000FFFF00000000)) >> 32)
+/* Extract 16-bit units in mixed endian order from 32/64-bit value. */
+#define LWLA_WORD_0(val) GUINT16_TO_LE(((val) >> 16) & 0xFFFF)
+#define LWLA_WORD_1(val) GUINT16_TO_LE((val) & 0xFFFF)
+#define LWLA_WORD_2(val) GUINT16_TO_LE(((val) >> 48) & 0xFFFF)
+#define LWLA_WORD_3(val) GUINT16_TO_LE(((val) >> 32) & 0xFFFF)
 
 /** USB device end points.
  */
@@ -108,7 +108,7 @@ SR_PRIV int lwla_send_command(const struct sr_usb_dev_inst *usb,
 			      const uint16_t *command, int cmd_len);
 
 SR_PRIV int lwla_receive_reply(const struct sr_usb_dev_inst *usb,
-			       uint16_t *reply, int reply_len, int expect_len);
+			       uint32_t *reply, int reply_len, int expect_len);
 
 SR_PRIV int lwla_read_reg(const struct sr_usb_dev_inst *usb,
 			  uint16_t reg, uint32_t *value);

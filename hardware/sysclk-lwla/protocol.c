@@ -287,7 +287,7 @@ static void process_capture_length(const struct sr_dev_inst *sdi)
 		devc->transfer_error = TRUE;
 		return;
 	}
-	acq->mem_addr_fill = LWLA_READ32(acq->xfer_buf_in);
+	acq->mem_addr_fill = LWLA_TO_UINT32(acq->xfer_buf_in[0]);
 
 	sr_dbg("%zu words in capture buffer.", acq->mem_addr_fill);
 
@@ -362,9 +362,9 @@ static void process_capture_status(const struct sr_dev_inst *sdi)
 	 * in the FPGA.  These fields are definitely less than 64 bit wide
 	 * internally, and the unused bits occasionally even contain garbage.
 	 */
-	mem_fill = LWLA_READ32(&acq->xfer_buf_in[0]);
-	duration = LWLA_READ32(&acq->xfer_buf_in[8]);
-	flags    = LWLA_READ32(&acq->xfer_buf_in[16]) & STATUS_FLAG_MASK;
+	mem_fill = LWLA_TO_UINT32(acq->xfer_buf_in[0]);
+	duration = LWLA_TO_UINT32(acq->xfer_buf_in[4]);
+	flags    = LWLA_TO_UINT32(acq->xfer_buf_in[8]) & STATUS_FLAG_MASK;
 
 	/* The LWLA1034 runs at 125 MHz if the clock divider is bypassed.
 	 * However, the time base used for the duration is apparently not
@@ -452,7 +452,7 @@ static int process_sample_data(const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	struct acquisition_state *acq;
 	uint8_t *out_p;
-	uint16_t *slice;
+	uint32_t *slice;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
 	size_t expect_len;
@@ -472,7 +472,7 @@ static int process_sample_data(const struct sr_dev_inst *sdi)
 
 	in_words_left = MIN(acq->mem_addr_stop - acq->mem_addr_done,
 			    READ_CHUNK_LEN);
-	expect_len = LWLA1034_MEMBUF_LEN(in_words_left) * sizeof(uint16_t);
+	expect_len = LWLA1034_MEMBUF_LEN(in_words_left) * sizeof(uint32_t);
 	actual_len = acq->xfer_in->actual_length;
 
 	if (actual_len != expect_len) {
@@ -530,8 +530,8 @@ static int process_sample_data(const struct sr_dev_inst *sdi)
 			break; /* done with current chunk */
 
 		/* Now work on the current slice. */
-		high_nibbles = LWLA_READ32(&slice[8 * 2]);
-		word = LWLA_READ32(&slice[si * 2]);
+		high_nibbles = LWLA_TO_UINT32(slice[8]);
+		word = LWLA_TO_UINT32(slice[si]);
 		word |= (high_nibbles << (4 * si + 4)) & ((uint64_t)0xF << 32);
 
 		if (acq->rle == RLE_STATE_DATA) {
@@ -545,10 +545,9 @@ static int process_sample_data(const struct sr_dev_inst *sdi)
 		}
 
 		/* Move to next word. */
-		if (++si >= 8) {
-			si = 0;
-			slice += 9 * 2;
-		}
+		si = (si + 1) % 8;
+		if (si == 0)
+			slice += 9;
 		--in_words_left;
 	}
 

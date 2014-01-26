@@ -69,21 +69,21 @@
  */
 #define READ_CHUNK_LEN	(28 * 8)
 
-/** Calculate the required buffer size in 16-bit units for reading a given
+/** Calculate the required buffer size in 32-bit units for reading a given
  * number of device memory words.  Rounded to a multiple of 8 device words.
  */
-#define LWLA1034_MEMBUF_LEN(count) (((count) + 7) / 8 * 18)
+#define LWLA1034_MEMBUF_LEN(count) (((count) + 7) / 8 * 9)
 
 /** Maximum number of 16-bit words sent at a time during acquisition.
  * Used for allocating the libusb transfer buffer.
  */
 #define MAX_ACQ_SEND_WORDS	8 /* 5 for memory read request plus stuffing */
 
-/** Maximum number of 16-bit words received at a time during acquisition.
+/** Maximum number of 32-bit words received at a time during acquisition.
  * Round to the next multiple of the endpoint buffer size to avoid nasty
  * transfer overflow conditions on hiccups.
  */
-#define MAX_ACQ_RECV_WORDS	((READ_CHUNK_LEN / 4 * 9 + 255) / 256 * 256)
+#define MAX_ACQ_RECV_LEN	((READ_CHUNK_LEN / 8 * 9 + 127) / 128 * 128)
 
 /** Maximum length of a register write sequence.
  */
@@ -174,9 +174,9 @@ struct acquisition_state {
 	/** Whether to bypass the clock divider. */
 	gboolean bypass_clockdiv;
 
-	/* Payload data buffers for outgoing and incoming transfers. */
+	/* Payload data buffers for incoming and outgoing transfers. */
+	uint32_t xfer_buf_in[MAX_ACQ_RECV_LEN];
 	uint16_t xfer_buf_out[MAX_ACQ_SEND_WORDS];
-	uint16_t xfer_buf_in[MAX_ACQ_RECV_WORDS];
 
 	/* Payload buffer for sigrok logic packets. */
 	uint8_t out_packet[PACKET_LENGTH * UNIT_SIZE];
