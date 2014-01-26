@@ -62,7 +62,7 @@ static struct sr_config_info sr_config_info_data[] = {
 		"Swap channel order", NULL},
 	{SR_CONF_RLE, SR_T_BOOL, "rle",
 		"Run Length Encoding", NULL},
-	{SR_CONF_TRIGGER_SLOPE, SR_T_UINT64, "triggerslope",
+	{SR_CONF_TRIGGER_SLOPE, SR_T_CHAR, "triggerslope",
 		"Trigger slope", NULL},
 	{SR_CONF_TRIGGER_SOURCE, SR_T_CHAR, "triggersource",
 		"Trigger source", NULL},

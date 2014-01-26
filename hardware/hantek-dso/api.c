@@ -478,10 +478,11 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 		devc->limit_frames = g_variant_get_uint64(data);
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
-		tmp_u64 = g_variant_get_uint64(data);
-		if (tmp_u64 != SLOPE_NEGATIVE && tmp_u64 != SLOPE_POSITIVE)
-			ret = SR_ERR_ARG;
-		devc->triggerslope = tmp_u64;
+		tmp_str = g_variant_get_string(data, NULL);
+		if (!tmp_str || !(tmp_str[0] == 'f' || tmp_str[0] == 'r'))
+			return SR_ERR_ARG;
+		devc->triggerslope = (tmp_str[0] == 'r')
+			? SLOPE_POSITIVE : SLOPE_NEGATIVE;
 		break;
 	case SR_CONF_HORIZ_TRIGGERPOS:
 		tmp_double = g_variant_get_double(data);

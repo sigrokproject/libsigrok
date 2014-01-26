@@ -657,7 +657,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 		const struct sr_probe_group *probe_group)
 {
 	struct dev_context *devc;
-	uint64_t tmp_u64, p, q;
+	uint64_t p, q;
 	double t_dbl;
 	unsigned int i, j;
 	int ret;
@@ -682,11 +682,13 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 		devc->limit_frames = g_variant_get_uint64(data);
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
-		tmp_u64 = g_variant_get_uint64(data);
-		if (tmp_u64 != 0 && tmp_u64 != 1)
-			return SR_ERR;
+		tmp_str = g_variant_get_string(data, NULL);
+
+		if (!tmp_str || !(tmp_str[0] == 'f' || tmp_str[0] == 'r'))
+			return SR_ERR_ARG;
+
 		g_free(devc->trigger_slope);
-		devc->trigger_slope = g_strdup(tmp_u64 ? "POS" : "NEG");
+		devc->trigger_slope = g_strdup((tmp_str[0] == 'r') ? "POS" : "NEG");
 		ret = rigol_ds_config_set(sdi, ":TRIG:EDGE:SLOP %s", devc->trigger_slope);
 		break;
 	case SR_CONF_HORIZ_TRIGGERPOS:

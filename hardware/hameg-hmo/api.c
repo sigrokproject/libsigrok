@@ -513,7 +513,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 	struct scope_config *model;
 	struct scope_state *state;
 	const char *tmp;
-	uint64_t p, q, tmp_u64;
+	uint64_t p, q;
 	double tmp_d;
 	gboolean update_sample_rate;
 
@@ -612,16 +612,16 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 		ret = sr_scpi_send(sdi->conn, command);
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
-		tmp_u64 = g_variant_get_uint64(data);
+		tmp = g_variant_get_string(data, NULL);
 
-		if (tmp_u64 != 0 && tmp_u64 != 1)
-			return SR_ERR;
+		if (!tmp || !(tmp[0] == 'f' || tmp[0] == 'r'))
+			return SR_ERR_ARG;
 
-		state->trigger_slope = tmp_u64;
+		state->trigger_slope = (tmp[0] == 'r') ? 0 : 1;
 
 		g_snprintf(command, sizeof(command),
 			   (*model->scpi_dialect)[SCPI_CMD_SET_TRIGGER_SLOPE],
-			   tmp_u64 ? "POS" : "NEG");
+			   (state->trigger_slope == 0) ? "POS" : "NEG");
 
 		ret = sr_scpi_send(sdi->conn, command);
 		break;

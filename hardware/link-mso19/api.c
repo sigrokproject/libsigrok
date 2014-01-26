@@ -302,7 +302,8 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 {
 	int ret;
 	struct dev_context *devc;
-	uint64_t num_samples, slope;
+	uint64_t num_samples;
+	const char *slope;
 	int trigger_pos;
 	double pos;
 
@@ -334,12 +335,14 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 		ret = SR_OK;
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
-		slope = g_variant_get_uint64(data);
-		if (slope != SLOPE_NEGATIVE && slope != SLOPE_POSITIVE) {
+		slope = g_variant_get_string(data, NULL);
+
+		if (!slope || !(slope[0] == 'f' || slope[0] == 'r'))
 			sr_err("Invalid trigger slope");
 			ret = SR_ERR_ARG;
 		} else {
-			devc->trigger_slope = slope;
+			devc->trigger_slope = (slope[0] == 'r')
+				? SLOPE_POSITIVE : SLOPE_NEGATIVE;
 			ret = SR_OK;
 		}
 		break;
