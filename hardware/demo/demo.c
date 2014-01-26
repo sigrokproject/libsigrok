@@ -206,7 +206,7 @@ static void generate_analog_pattern(const struct sr_probe_group *probe_group, ui
 		break;
 
 	case PATTERN_SINE:
-		frequency = sample_rate / ANALOG_SAMPLES_PER_PERIOD;
+		frequency = (double) sample_rate / ANALOG_SAMPLES_PER_PERIOD;
 
 		/* Make sure the number of samples we put out is an integer
 		 * multiple of our period size */
@@ -225,7 +225,7 @@ static void generate_analog_pattern(const struct sr_probe_group *probe_group, ui
 		break;
 
 	case PATTERN_TRIANGLE:
-		frequency = sample_rate / ANALOG_SAMPLES_PER_PERIOD;
+		frequency = (double) sample_rate / ANALOG_SAMPLES_PER_PERIOD;
 
 		while (num_samples % ANALOG_SAMPLES_PER_PERIOD != 0)
 			num_samples--;
@@ -240,7 +240,7 @@ static void generate_analog_pattern(const struct sr_probe_group *probe_group, ui
 		break;
 
 	case PATTERN_SAWTOOTH:
-		frequency = sample_rate / ANALOG_SAMPLES_PER_PERIOD;
+		frequency = (double) sample_rate / ANALOG_SAMPLES_PER_PERIOD;
 
 		while (num_samples % ANALOG_SAMPLES_PER_PERIOD != 0)
 			num_samples--;
