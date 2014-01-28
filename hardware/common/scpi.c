@@ -319,7 +319,7 @@ SR_PRIV int sr_scpi_get_string(struct sr_scpi_dev_inst *scpi,
 	*scpi_response = response->str;
 	g_string_free(response, FALSE);
 
-	sr_spew("Got response: '%s'.", *scpi_response);
+	sr_spew("Got response: '%.70s'.", *scpi_response);
 
 	return SR_OK;
 }
