@@ -415,17 +415,52 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
+static int set_trigger(const struct sr_dev_inst *sdi, int stage)
+{
+	struct dev_context *devc;
+	struct sr_serial_dev_inst *serial;
+	uint8_t cmd, arg[4];
+
+	devc = sdi->priv;
+	serial = sdi->conn;
+
+	cmd = CMD_SET_TRIGGER_MASK + stage * 4;
+	arg[0] = devc->trigger_mask[stage] & 0xff;
+	arg[1] = (devc->trigger_mask[stage] >> 8) & 0xff;
+	arg[2] = (devc->trigger_mask[stage] >> 16) & 0xff;
+	arg[3] = (devc->trigger_mask[stage] >> 24) & 0xff;
+	if (send_longcommand(serial, cmd, arg) != SR_OK)
+		return SR_ERR;
+
+	cmd = CMD_SET_TRIGGER_VALUE + stage * 4;
+	arg[0] = devc->trigger_value[stage] & 0xff;
+	arg[1] = (devc->trigger_value[stage] >> 8) & 0xff;
+	arg[2] = (devc->trigger_value[stage] >> 16) & 0xff;
+	arg[3] = (devc->trigger_value[stage] >> 24) & 0xff;
+	if (send_longcommand(serial, cmd, arg) != SR_OK)
+		return SR_ERR;
+
+	cmd = CMD_SET_TRIGGER_CONFIG + stage * 4;
+	arg[0] = arg[1] = arg[3] = 0x00;
+	arg[2] = stage;
+	if (stage == devc->num_stages)
+		/* Last stage, fire when this one matches. */
+		arg[3] |= TRIGGER_START;
+	if (send_longcommand(serial, cmd, arg) != SR_OK)
+		return SR_ERR;
+
+	return SR_OK;
+}
+
 static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 		void *cb_data)
 {
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
-	uint32_t trigger_config[4];
-	uint32_t data;
 	uint16_t samplecount, readcount, delaycount;
-	uint8_t changrp_mask;
+	uint8_t changrp_mask, arg[4];
 	int num_channels;
-	int i;
+	int ret, i;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
@@ -458,92 +493,61 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	 */
 	samplecount = MIN(devc->max_samples / num_channels, devc->limit_samples);
 	readcount = samplecount / 4;
-	if (samplecount % 4)
+
+	/* Rather read too many samples than too few. */
+	if (samplecount % 4 != 0)
 		readcount++;
 
-	memset(trigger_config, 0, 16);
-	trigger_config[devc->num_stages] |= 0x08;
-	if (devc->trigger_mask[0]) {
+	/* Basic triggers. */
+	if (devc->trigger_mask[0] != 0x00000000) {
+		/* At least one probe has a trigger on it. */
 		delaycount = readcount * (1 - devc->capture_ratio / 100.0);
 		devc->trigger_at = (readcount - delaycount) * 4 - devc->num_stages;
-
-		if (send_longcommand(serial, CMD_SET_TRIGGER_MASK_0,
-			reverse32(devc->trigger_mask[0])) != SR_OK)
-			return SR_ERR;
-		if (send_longcommand(serial, CMD_SET_TRIGGER_VALUE_0,
-			reverse32(devc->trigger_value[0])) != SR_OK)
-			return SR_ERR;
-		if (send_longcommand(serial, CMD_SET_TRIGGER_CONFIG_0,
-			trigger_config[0]) != SR_OK)
-			return SR_ERR;
-
-		if (send_longcommand(serial, CMD_SET_TRIGGER_MASK_1,
-			reverse32(devc->trigger_mask[1])) != SR_OK)
-			return SR_ERR;
-		if (send_longcommand(serial, CMD_SET_TRIGGER_VALUE_1,
-			reverse32(devc->trigger_value[1])) != SR_OK)
-			return SR_ERR;
-		if (send_longcommand(serial, CMD_SET_TRIGGER_CONFIG_1,
-			trigger_config[1]) != SR_OK)
-			return SR_ERR;
-
-		if (send_longcommand(serial, CMD_SET_TRIGGER_MASK_2,
-			reverse32(devc->trigger_mask[2])) != SR_OK)
-			return SR_ERR;
-		if (send_longcommand(serial, CMD_SET_TRIGGER_VALUE_2,
-			reverse32(devc->trigger_value[2])) != SR_OK)
-			return SR_ERR;
-		if (send_longcommand(serial, CMD_SET_TRIGGER_CONFIG_2,
-			trigger_config[2]) != SR_OK)
-			return SR_ERR;
-
-		if (send_longcommand(serial, CMD_SET_TRIGGER_MASK_3,
-			reverse32(devc->trigger_mask[3])) != SR_OK)
-			return SR_ERR;
-		if (send_longcommand(serial, CMD_SET_TRIGGER_VALUE_3,
-			reverse32(devc->trigger_value[3])) != SR_OK)
-			return SR_ERR;
-		if (send_longcommand(serial, CMD_SET_TRIGGER_CONFIG_3,
-			trigger_config[3]) != SR_OK)
-			return SR_ERR;
+		for (i = 0; i <= devc->num_stages; i++) {
+			sr_dbg("Setting stage %d trigger.", i);
+			if ((ret = set_trigger(sdi, i)) != SR_OK)
+				return ret;
+		}
 	} else {
-		if (send_longcommand(serial, CMD_SET_TRIGGER_MASK_0,
-				devc->trigger_mask[0]) != SR_OK)
-			return SR_ERR;
-		if (send_longcommand(serial, CMD_SET_TRIGGER_VALUE_0,
-				devc->trigger_value[0]) != SR_OK)
-			return SR_ERR;
-		if (send_longcommand(serial, CMD_SET_TRIGGER_CONFIG_0,
-		     0x00000008) != SR_OK)
-			return SR_ERR;
+		/* No triggers configured, force trigger on first stage. */
+		sr_dbg("Forcing trigger at stage 0.");
+		if ((ret = set_trigger(sdi, 0)) != SR_OK)
+			return ret;
 		delaycount = readcount;
 	}
 
 	/* Samplerate. */
-	sr_info("Setting samplerate to %" PRIu64 "Hz (divider %u)",
+	sr_dbg("Setting samplerate to %" PRIu64 "Hz (divider %u)",
 			devc->cur_samplerate, devc->cur_samplerate_divider);
-	if (send_longcommand(serial, CMD_SET_DIVIDER,
-			reverse32(devc->cur_samplerate_divider)) != SR_OK)
+	arg[0] = devc->cur_samplerate_divider & 0xff;
+	arg[1] = (devc->cur_samplerate_divider & 0xff00) >> 8;
+	arg[2] = (devc->cur_samplerate_divider & 0xff0000) >> 16;
+	arg[3] = 0x00;
+	if (send_longcommand(serial, CMD_SET_DIVIDER, arg) != SR_OK)
 		return SR_ERR;
 
 	/* Send sample limit and pre/post-trigger capture ratio. */
-	sr_info("Setting sample limit %d, trigger point at %d",
+	sr_dbg("Setting sample limit %d, trigger point at %d",
 			(readcount - 1) * 4, (delaycount - 1) * 4);
-	data = ((readcount - 1) & 0xffff) << 16;
-	data |= (delaycount - 1) & 0xffff;
-	if (send_longcommand(serial, CMD_CAPTURE_SIZE, reverse16(data)) != SR_OK)
+	arg[0] = ((readcount - 1) & 0xff);
+	arg[1] = ((readcount - 1) & 0xff00) >> 8;
+	arg[2] = ((delaycount - 1) & 0xff);
+	arg[3] = ((delaycount - 1) & 0xff00) >> 8;
+	if (send_longcommand(serial, CMD_CAPTURE_SIZE, arg) != SR_OK)
 		return SR_ERR;
 
 	/* Flag register. */
-	sr_info("Setting demux %s, noise_filter %s, extpat %s, intpat %s",
+	sr_dbg("Setting demux %s, noise_filter %s, extpat %s, intpat %s",
 			devc->flag_reg & FLAG_DEMUX ? "on" : "off",
 			devc->flag_reg & FLAG_FILTER ? "on": "off",
 			devc->flag_reg & FLAG_EXTERNAL_TEST_MODE ? "on": "off",
 			devc->flag_reg & FLAG_INTERNAL_TEST_MODE ? "on": "off");
 	/* 1 means "disable channel". */
 	devc->flag_reg |= ~(changrp_mask << 2) & 0x3c;
-	data = (devc->flag_reg << 24) | ((devc->flag_reg << 8) & 0xff0000);
-	if (send_longcommand(serial, CMD_SET_FLAGS, data) != SR_OK)
+	arg[0] = devc->flag_reg & 0xff;
+	arg[1] = devc->flag_reg >> 8;
+	arg[2] = arg[3] = 0x00;
+	if (send_longcommand(serial, CMD_SET_FLAGS, arg) != SR_OK)
 		return SR_ERR;
 
 	/* Start acquisition on the device. */

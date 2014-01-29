@@ -37,16 +37,17 @@ SR_PRIV int send_shortcommand(struct sr_serial_dev_inst *serial,
 }
 
 SR_PRIV int send_longcommand(struct sr_serial_dev_inst *serial,
-		uint8_t command, uint32_t data)
+		uint8_t command, uint8_t *data)
 {
 	char buf[5];
 
-	sr_dbg("Sending cmd 0x%.2x data 0x%.8x.", command, data);
+	sr_dbg("Sending cmd 0x%.2x data 0x%.2x%.2x%.2x%.2x.", command,
+			data[0], data[1], data[2], data[3]);
 	buf[0] = command;
-	buf[1] = (data & 0xff000000) >> 24;
-	buf[2] = (data & 0xff0000) >> 16;
-	buf[3] = (data & 0xff00) >> 8;
-	buf[4] = data & 0xff;
+	buf[1] = data[0];
+	buf[2] = data[1];
+	buf[3] = data[2];
+	buf[4] = data[3];
 	if (serial_write_blocking(serial, buf, 5) != 5)
 		return SR_ERR;
 
@@ -97,11 +98,8 @@ SR_PRIV int ols_configure_probes(const struct sr_dev_inst *sdi)
 			if (*tc == '1')
 				devc->trigger_value[stage] |= probe_bit;
 			stage++;
-			if (stage > 3)
-				/*
-				 * TODO: Only supporting parallel mode, with
-				 * up to 4 stages.
-				 */
+			/* Only supporting parallel mode, with up to 4 stages. */
+			if (stage > 4)
 				return SR_ERR;
 		}
 		if (stage > devc->num_stages)
@@ -109,30 +107,6 @@ SR_PRIV int ols_configure_probes(const struct sr_dev_inst *sdi)
 	}
 
 	return SR_OK;
-}
-
-SR_PRIV uint32_t reverse16(uint32_t in)
-{
-	uint32_t out;
-
-	out = (in & 0xff) << 8;
-	out |= (in & 0xff00) >> 8;
-	out |= (in & 0xff0000) << 8;
-	out |= (in & 0xff000000) >> 8;
-
-	return out;
-}
-
-SR_PRIV uint32_t reverse32(uint32_t in)
-{
-	uint32_t out;
-
-	out = (in & 0xff) << 24;
-	out |= (in & 0xff00) << 8;
-	out |= (in & 0xff0000) >> 8;
-	out |= (in & 0xff000000) >> 24;
-
-	return out;
 }
 
 SR_PRIV struct dev_context *ols_dev_new(void)
@@ -218,7 +192,7 @@ SR_PRIV struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
 			/* 32-bit unsigned integer */
 			if (serial_read_blocking(serial, &tmp_int, 4) != 4)
 				break;
-			tmp_int = reverse32(tmp_int);
+			tmp_int = RB32(&tmp_int);
 			sr_dbg("Got metadata key 0x%.2x value 0x%.8x.",
 			       key, tmp_int);
 			switch (token) {
