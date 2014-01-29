@@ -834,6 +834,9 @@ enum {
 	/** Over-current protection (OCP) */
 	SR_CONF_OVER_CURRENT_PROTECTION,
 
+	/** Choice of clock edge for external clock ("r" or "f"). */
+	SR_CONF_CLOCK_EDGE,
+
 	/*--- Special stuff -------------------------------------------------*/
 
 	/** Scan options supported by the driver. */

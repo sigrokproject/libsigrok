@@ -118,6 +118,8 @@ static struct sr_config_info sr_config_info_data[] = {
 		"Over-current protection", NULL},
 	{SR_CONF_LIMIT_SAMPLES, SR_T_UINT64, "limit_samples",
 		"Sample limit", NULL},
+	{SR_CONF_CLOCK_EDGE, SR_T_CHAR, "clock_edge",
+		"Clock edge", NULL},
 	{0, 0, NULL, NULL, NULL},
 };
 
