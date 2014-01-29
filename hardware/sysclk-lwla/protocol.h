@@ -101,13 +101,20 @@
  */
 #define MAX_LIMIT_MSEC		(UINT64_C(1) << 32)
 
-/** LWLA clock sources.
+/** LWLA1034 FPGA clock configurations.
+ */
+enum clock_config {
+	CONF_CLOCK_NONE,
+	CONF_CLOCK_INT,
+	CONF_CLOCK_EXT_RISE,
+	CONF_CLOCK_EXT_FALL,
+};
+
+/** Available clock sources.
  */
 enum clock_source {
-	CLOCK_SOURCE_NONE,
-	CLOCK_SOURCE_INT,
-	CLOCK_SOURCE_EXT_RISE,
-	CLOCK_SOURCE_EXT_FALL,
+	CLOCK_INTERNAL,
+	CLOCK_EXT_CLK,
 };
 
 /** Available trigger sources.
@@ -117,11 +124,11 @@ enum trigger_source {
 	TRIGGER_EXT_TRG,
 };
 
-/** Available edge choices for the external trigger.
+/** Available edge choices for the external clock and trigger inputs.
  */
-enum trigger_slope {
-	SLOPE_POSITIVE = 0,
-	SLOPE_NEGATIVE,
+enum signal_edge {
+	EDGE_POSITIVE = 0,
+	EDGE_NEGATIVE,
 };
 
 /** LWLA device states.
@@ -223,15 +230,18 @@ struct dev_context {
 
 	enum device_state state;
 
-	/** The currently configured clock source of the device. */
-	enum clock_source cur_clock_source;
-	/** The clock source selected by the user. */
-	enum clock_source selected_clock_source;
+	/** The currently active clock configuration of the device. */
+	enum clock_config cur_clock_config;
+
+	/** Clock source configuration setting. */
+	enum clock_source cfg_clock_source;
+	/** Clock edge configuration setting. */
+	enum signal_edge cfg_clock_edge;
 
 	/** Trigger source configuration setting. */
 	enum trigger_source cfg_trigger_source;
 	/** Trigger slope configuration setting. */
-	enum trigger_slope cfg_trigger_slope;
+	enum signal_edge cfg_trigger_slope;
 
 	/* Indicates that stopping the acquisition is currently in progress. */
 	gboolean stopping_in_progress;
@@ -244,7 +254,7 @@ SR_PRIV struct acquisition_state *lwla_alloc_acquisition_state(void);
 SR_PRIV void lwla_free_acquisition_state(struct acquisition_state *acq);
 
 SR_PRIV int lwla_init_device(const struct sr_dev_inst *sdi);
-SR_PRIV int lwla_set_clock_source(const struct sr_dev_inst *sdi);
+SR_PRIV int lwla_set_clock_config(const struct sr_dev_inst *sdi);
 SR_PRIV int lwla_setup_acquisition(const struct sr_dev_inst *sdi);
 SR_PRIV int lwla_start_acquisition(const struct sr_dev_inst *sdi);
 SR_PRIV int lwla_abort_acquisition(const struct sr_dev_inst *sdi);

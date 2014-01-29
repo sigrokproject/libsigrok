@@ -29,7 +29,7 @@
 /* Number of 64-bit words read from the capture status memory. */
 #define CAP_STAT_LEN 5
 
-/* The bitstream filenames are indexed by the clock source enumeration.
+/* The bitstream filenames are indexed by the clock_config enumeration.
  */
 static const char bitstream_map[][32] = {
 	"sysclk-lwla1034-off.rbf",
@@ -107,8 +107,8 @@ static int capture_setup(const struct sr_dev_inst *sdi)
 	/* Set bits to select external TRG input edge. */
 	if (devc->cfg_trigger_source == TRIGGER_EXT_TRG)
 		switch (devc->cfg_trigger_slope) {
-		case SLOPE_POSITIVE: trigger_mask |= (uint64_t)1 << 35; break; 
-		case SLOPE_NEGATIVE: trigger_mask |= (uint64_t)1 << 34; break; 
+		case EDGE_POSITIVE: trigger_mask |= (uint64_t)1 << 35; break; 
+		case EDGE_NEGATIVE: trigger_mask |= (uint64_t)1 << 34; break; 
 		}
 
 	command[19] = LWLA_WORD_0(trigger_mask);
@@ -702,14 +702,10 @@ SR_PRIV int lwla_init_device(const struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
-	/* Select internal clock if it hasn't been set yet */
-	if (devc->selected_clock_source == CLOCK_SOURCE_NONE)
-		devc->selected_clock_source = CLOCK_SOURCE_INT;
-
 	/* Force reload of bitstream */
-	devc->cur_clock_source = CLOCK_SOURCE_NONE;
+	devc->cur_clock_config = CONF_CLOCK_NONE;
 
-	ret = lwla_set_clock_source(sdi);
+	ret = lwla_set_clock_config(sdi);
 
 	if (ret != SR_OK)
 		return ret;
@@ -742,29 +738,31 @@ SR_PRIV int lwla_init_device(const struct sr_dev_inst *sdi)
 	return ret;
 }
 
-/* Select the LWLA clock source.  If the clock source changed from the
- * previous setting, this will download a new bitstream to the FPGA.
+/* Select the LWLA clock configuration.  If the clock source changed from
+ * the previous setting, this will download a new bitstream to the FPGA.
  */
-SR_PRIV int lwla_set_clock_source(const struct sr_dev_inst *sdi)
+SR_PRIV int lwla_set_clock_config(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	int ret;
-	enum clock_source selected;
-	size_t idx;
+	enum clock_config choice;
 
 	devc = sdi->priv;
-	selected = devc->selected_clock_source;
 
-	if (devc->cur_clock_source != selected) {
-		devc->cur_clock_source = CLOCK_SOURCE_NONE;
-		idx = selected;
-		if (idx >= G_N_ELEMENTS(bitstream_map)) {
-			sr_err("Clock source (%d) out of range", selected);
-			return SR_ERR_BUG;
-		}
-		ret = lwla_send_bitstream(sdi->conn, bitstream_map[idx]);
+	if (sdi->status == SR_ST_INACTIVE)
+		choice = CONF_CLOCK_NONE;
+	else if (devc->cfg_clock_source == CLOCK_INTERNAL)
+		choice = CONF_CLOCK_INT;
+	else if (devc->cfg_clock_edge == EDGE_POSITIVE)
+		choice = CONF_CLOCK_EXT_RISE;
+	else
+		choice = CONF_CLOCK_EXT_FALL;
+
+	if (choice != devc->cur_clock_config) {
+		devc->cur_clock_config = CONF_CLOCK_NONE;
+		ret = lwla_send_bitstream(sdi->conn, bitstream_map[choice]);
 		if (ret == SR_OK)
-			devc->cur_clock_source = selected;
+			devc->cur_clock_config = choice;
 		return ret;
 	}
 	return SR_OK;
@@ -798,8 +796,7 @@ SR_PRIV int lwla_setup_acquisition(const struct sr_dev_inst *sdi)
 	} else
 		acq->samples_max = MAX_LIMIT_SAMPLES;
 
-	switch (devc->cur_clock_source) {
-	case CLOCK_SOURCE_INT:
+	if (devc->cfg_clock_source == CLOCK_INTERNAL) {
 		sr_info("Internal clock, samplerate %" PRIu64 ".",
 			devc->samplerate);
 		if (devc->samplerate == 0)
@@ -814,18 +811,13 @@ SR_PRIV int lwla_setup_acquisition(const struct sr_dev_inst *sdi)
 		else if (devc->limit_samples == 0 && devc->limit_msec > 0)
 			acq->samples_max = devc->limit_msec
 					* devc->samplerate / 1000;
-		break;
-	case CLOCK_SOURCE_EXT_FALL:
-		sr_info("External clock, falling edge.");
+	} else {
 		acq->bypass_clockdiv = TRUE;
-		break;
-	case CLOCK_SOURCE_EXT_RISE:
-		sr_info("External clock, rising edge.");
-		acq->bypass_clockdiv = TRUE;
-		break;
-	default:
-		sr_err("No valid clock source has been configured.");
-		return SR_ERR;
+
+		if (devc->cfg_clock_edge == EDGE_NEGATIVE)
+			sr_info("External clock, falling edge.");
+		else
+			sr_info("External clock, rising edge.");
 	}
 
 	regvals[0].reg = REG_MEM_CTRL2;

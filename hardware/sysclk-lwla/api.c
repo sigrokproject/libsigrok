@@ -33,6 +33,7 @@ static const int32_t hwcaps[] = {
 	SR_CONF_LOGIC_ANALYZER,
 	SR_CONF_SAMPLERATE,
 	SR_CONF_EXTERNAL_CLOCK,
+	SR_CONF_CLOCK_EDGE,
 	SR_CONF_TRIGGER_TYPE,
 	SR_CONF_TRIGGER_SOURCE,
 	SR_CONF_TRIGGER_SLOPE,
@@ -59,9 +60,9 @@ static const uint64_t samplerates[] = {
 static const char *const trigger_source_names[] = { "CH", "TRG" };
 
 /* Names assigned to available trigger slope choices.  Indices must
- * match trigger_slope enum values.
+ * match the signal_edge enum values.
  */
-static const char *const trigger_slope_names[] = { "r", "f" };
+static const char *const signal_edge_names[] = { "r", "f" };
 
 SR_PRIV struct sr_dev_driver sysclk_lwla_driver_info;
 static struct sr_dev_driver *const di = &sysclk_lwla_driver_info;
@@ -234,30 +235,26 @@ static int dev_open(struct sr_dev_inst *sdi)
 static int dev_close(struct sr_dev_inst *sdi)
 {
 	struct sr_usb_dev_inst *usb;
-	struct dev_context *devc;
 
 	if (!di->priv) {
 		sr_err("Driver was not initialized.");
 		return SR_ERR;
 	}
 
-	usb  = sdi->conn;
-	devc = sdi->priv;
-
+	usb = sdi->conn;
 	if (!usb->devhdl)
 		return SR_OK;
 
-	/* Trigger download of the shutdown bitstream. */
-	devc->selected_clock_source = CLOCK_SOURCE_NONE;
+	sdi->status = SR_ST_INACTIVE;
 
-	if (lwla_set_clock_source(sdi) != SR_OK)
+	/* Trigger download of the shutdown bitstream. */
+	if (lwla_set_clock_config(sdi) != SR_OK)
 		sr_err("Unable to shut down device.");
 
 	libusb_release_interface(usb->devhdl, USB_INTERFACE);
 	libusb_close(usb->devhdl);
 
 	usb->devhdl = NULL;
-	sdi->status = SR_ST_INACTIVE;
 
 	return SR_OK;
 }
@@ -291,8 +288,14 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		*data = g_variant_new_uint64(devc->limit_samples);
 		break;
 	case SR_CONF_EXTERNAL_CLOCK:
-		*data = g_variant_new_boolean(devc->selected_clock_source
-						>= CLOCK_SOURCE_EXT_RISE);
+		*data = g_variant_new_boolean(devc->cfg_clock_source
+						== CLOCK_EXT_CLK);
+		break;
+	case SR_CONF_CLOCK_EDGE:
+		idx = devc->cfg_clock_edge;
+		if (idx >= G_N_ELEMENTS(signal_edge_names))
+			return SR_ERR_BUG;
+		*data = g_variant_new_string(signal_edge_names[idx]);
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
 		idx = devc->cfg_trigger_source;
@@ -302,9 +305,9 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
 		idx = devc->cfg_trigger_slope;
-		if (idx >= G_N_ELEMENTS(trigger_slope_names))
+		if (idx >= G_N_ELEMENTS(signal_edge_names))
 			return SR_ERR_BUG;
-		*data = g_variant_new_string(trigger_slope_names[idx]);
+		*data = g_variant_new_string(signal_edge_names[idx]);
 		break;
 	default:
 		return SR_ERR_NA;
@@ -367,14 +370,15 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 		devc->limit_samples = value;
 		break;
 	case SR_CONF_EXTERNAL_CLOCK:
-		if (g_variant_get_boolean(data)) {
-			sr_info("Enabling external clock.");
-			/* TODO: Allow the external clock to be inverted */
-			devc->selected_clock_source = CLOCK_SOURCE_EXT_RISE;
-		} else {
-			sr_info("Disabling external clock.");
-			devc->selected_clock_source = CLOCK_SOURCE_INT;
-		}
+		devc->cfg_clock_source = (g_variant_get_boolean(data))
+			? CLOCK_EXT_CLK : CLOCK_INTERNAL;
+		break;
+	case SR_CONF_CLOCK_EDGE:
+		idx = lookup_index(data, signal_edge_names,
+				   G_N_ELEMENTS(signal_edge_names));
+		if (idx < 0)
+			return SR_ERR_ARG;
+		devc->cfg_clock_edge = idx;
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
 		idx = lookup_index(data, trigger_source_names,
@@ -384,8 +388,8 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 		devc->cfg_trigger_source = idx;
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
-		idx = lookup_index(data, trigger_slope_names,
-				   G_N_ELEMENTS(trigger_slope_names));
+		idx = lookup_index(data, signal_edge_names,
+				   G_N_ELEMENTS(signal_edge_names));
 		if (idx < 0)
 			return SR_ERR_ARG;
 		devc->cfg_trigger_slope = idx;
@@ -469,7 +473,7 @@ static int config_commit(const struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
-	return lwla_set_clock_source(sdi);
+	return lwla_set_clock_config(sdi);
 }
 
 static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
@@ -506,8 +510,9 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 					   G_N_ELEMENTS(trigger_source_names));
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
-		*data = g_variant_new_strv(trigger_slope_names,
-					   G_N_ELEMENTS(trigger_slope_names));
+	case SR_CONF_CLOCK_EDGE:
+		*data = g_variant_new_strv(signal_edge_names,
+					   G_N_ELEMENTS(signal_edge_names));
 		break;
 	default:
 		return SR_ERR_NA;
