@@ -20,7 +20,6 @@
 #ifndef LIBSIGROK_HARDWARE_SYSCLK_LWLA_PROTOCOL_H
 #define LIBSIGROK_HARDWARE_SYSCLK_LWLA_PROTOCOL_H
 
-/* Message logging helpers with subsystem-specific prefix string. */
 #define LOG_PREFIX "sysclk-lwla"
 
 #include "lwla.h"
