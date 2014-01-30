@@ -156,6 +156,7 @@ static int receive(struct sr_output *o, const struct sr_dev_inst *sdi,
 	unsigned int i;
 	int p, curbit, prevbit, index;
 	uint8_t *sample;
+	gboolean timestamp_written;
 
 	(void)sdi;
 
@@ -182,21 +183,36 @@ static int receive(struct sr_output *o, const struct sr_dev_inst *sdi,
 	logic = packet->payload;
 	for (i = 0; i <= logic->length - logic->unitsize; i += logic->unitsize) {
 		sample = logic->data + i;
+		timestamp_written = FALSE;
 
 		for (p = 0; p < ctx->num_enabled_probes; p++) {
 			index = g_array_index(ctx->probeindices, int, p);
-			curbit = ((unsigned)sample[index / 8] >> (index % 8)) & 1;
-			prevbit = ((unsigned)ctx->prevsample[index / 8] >> (index % 8)) & 1;
+
+			curbit = ((unsigned)sample[index / 8]
+					>> (index % 8)) & 1;
+			prevbit = ((unsigned)ctx->prevsample[index / 8]
+					>> (index % 8)) & 1;
 
 			/* VCD only contains deltas/changes of signals. */
 			if (prevbit == curbit && ctx->samplecount > 0)
 				continue;
 
+			/* Output timestamp of subsequent signal changes. */
+			if (!timestamp_written)
+				g_string_append_printf(*out, "#%.0f",
+					(double)ctx->samplecount /
+						ctx->samplerate * ctx->period);
+
 			/* Output which signal changed to which value. */
-			g_string_append_printf(*out, "#%.0f\n%i%c\n",
-				(double)ctx->samplecount / ctx->samplerate * ctx->period,
-				curbit, (char)('!' + p));
+			g_string_append_c(*out, ' ');
+			g_string_append_c(*out, '0' + curbit);
+			g_string_append_c(*out, '!' + p);
+
+			timestamp_written = TRUE;
 		}
+
+		if (timestamp_written)
+			g_string_append_c(*out, '\n');
 
 		ctx->samplecount++;
 		memcpy(ctx->prevsample, sample, ctx->unitsize);
