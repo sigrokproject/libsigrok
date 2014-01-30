@@ -91,6 +91,9 @@ struct dev_context {
 	unsigned int num_transfers;
 	unsigned int num_samples;
 	int num_bytes;
+	int cnt_bytes;
+	int cnt_samples;
+	int cnt_samples_rle;
 
 	/* Temporary variables */
 	unsigned int rle_count;

@@ -537,11 +537,12 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 		return SR_ERR;
 
 	/* Flag register. */
-	sr_dbg("Setting demux %s, noise_filter %s, extpat %s, intpat %s",
-			devc->flag_reg & FLAG_DEMUX ? "on" : "off",
-			devc->flag_reg & FLAG_FILTER ? "on": "off",
+	sr_dbg("Setting intpat %s, extpat %s, RLE %s, noise_filter %s, demux %s",
+			devc->flag_reg & FLAG_INTERNAL_TEST_MODE ? "on": "off",
 			devc->flag_reg & FLAG_EXTERNAL_TEST_MODE ? "on": "off",
-			devc->flag_reg & FLAG_INTERNAL_TEST_MODE ? "on": "off");
+			devc->flag_reg & FLAG_RLE ? "on" : "off",
+			devc->flag_reg & FLAG_FILTER ? "on": "off",
+			devc->flag_reg & FLAG_DEMUX ? "on" : "off");
 	/* 1 means "disable channel". */
 	devc->flag_reg |= ~(changrp_mask << 2) & 0x3c;
 	arg[0] = devc->flag_reg & 0xff;
@@ -557,6 +558,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	/* Reset all operational states. */
 	devc->rle_count = devc->num_transfers = 0;
 	devc->num_samples = devc->num_bytes = 0;
+	devc->cnt_bytes = devc->cnt_samples = devc->cnt_samples_rle = 0;
 	memset(devc->sample, 0, 4);
 
 	/* Send header packet to the session bus. */

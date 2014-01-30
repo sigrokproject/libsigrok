@@ -150,8 +150,12 @@ SR_PRIV struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
 
 	key = 0xff;
 	while (key) {
-		if (serial_read_blocking(serial, &key, 1) != 1 || key == 0x00)
+		if (serial_read_blocking(serial, &key, 1) != 1)
 			break;
+		if (key == 0x00) {
+			sr_dbg("Got metadata key 0x00, metadata ends.");
+			break;
+		}
 		type = key >> 5;
 		token = key & 0x1f;
 		switch (type) {
@@ -318,35 +322,21 @@ SR_PRIV void abort_acquisition(const struct sr_dev_inst *sdi)
 
 SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 {
-	struct drv_context *drvc;
 	struct dev_context *devc;
+	struct sr_dev_inst *sdi;
 	struct sr_serial_dev_inst *serial;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
-	struct sr_dev_inst *sdi;
-	GSList *l;
 	uint32_t sample;
 	int num_channels, offset, j;
 	unsigned int i;
 	unsigned char byte;
-	int serial_fd;
 
-	drvc = di->priv;
+	(void)fd;
 
-	/* Find this device's devc struct by its fd. */
-	devc = NULL;
-	for (l = drvc->instances; l; l = l->next) {
-		sdi = l->data;
-		devc = sdi->priv;
-		serial = sdi->conn;
-		sp_get_port_handle(serial->data, &serial_fd);
-		if (serial_fd == fd)
-			break;
-		devc = NULL;
-	}
-	if (!devc)
-		/* Shouldn't happen. */
-		return TRUE;
+	sdi = cb_data;
+	serial = sdi->conn;
+	devc = sdi->priv;
 
 	if (devc->num_transfers++ == 0) {
 		/*
@@ -367,7 +357,6 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 	}
 
 	num_channels = 0;
-
 	for (i = NUM_PROBES; i > 0x02; i /= 2) {
 		if ((devc->flag_reg & i) == 0) {
 			num_channels++;
@@ -377,6 +366,7 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 	if (revents == G_IO_IN && devc->num_samples < devc->limit_samples) {
 		if (serial_read_nonblocking(serial, &byte, 1) != 1)
 			return FALSE;
+		devc->cnt_bytes++;
 
 		/* Ignore it if we've read enough. */
 		if (devc->num_samples >= devc->limit_samples)
@@ -385,11 +375,15 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 		devc->sample[devc->num_bytes++] = byte;
 		sr_spew("Received byte 0x%.2x.", byte);
 		if (devc->num_bytes == num_channels) {
-			/* Got a full sample. Convert from the OLS's little-endian
-			 * sample to the local format. */
+			devc->cnt_samples++;
+			devc->cnt_samples_rle++;
+			/*
+			 * Got a full sample. Convert from the OLS's little-endian
+			 * sample to the local format.
+			 */
 			sample = devc->sample[0] | (devc->sample[1] << 8) \
 					| (devc->sample[2] << 16) | (devc->sample[3] << 24);
-			sr_spew("Received sample 0x%.*x.", devc->num_bytes * 2, sample);
+			sr_dbg("Received sample 0x%.*x.", devc->num_bytes * 2, sample);
 			if (devc->flag_reg & FLAG_RLE) {
 				/*
 				 * In RLE mode the high bit of the sample is the
@@ -400,6 +394,7 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 					/* Clear the high bit. */
 					sample &= ~(0x80 << (devc->num_bytes - 1) * 8);
 					devc->rle_count = sample;
+					devc->cnt_samples_rle += devc->rle_count;
 					sr_dbg("RLE count: %u.", devc->rle_count);
 					devc->num_bytes = 0;
 					return TRUE;
@@ -438,10 +433,11 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 					}
 				}
 				memcpy(devc->sample, devc->tmp_sample, 4);
-				sr_dbg("Full sample: 0x%.8x.", sample);
+				sr_spew("Expanded sample: 0x%.8x.", sample);
 			}
 
-			/* the OLS sends its sample buffer backwards.
+			/*
+			 * the OLS sends its sample buffer backwards.
 			 * store it in reverse order here, so we can dump
 			 * this on the session bus later.
 			 */
@@ -460,12 +456,16 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 		 * we've acquired all the samples we asked for -- we're done.
 		 * Send the (properly-ordered) buffer to the frontend.
 		 */
+		sr_dbg("Received %d bytes, %d samples, %d decompressed samples.",
+				devc->cnt_bytes, devc->cnt_samples,
+				devc->cnt_samples_rle);
 		if (devc->trigger_at != -1) {
-			/* a trigger was set up, so we need to tell the frontend
+			/*
+			 * A trigger was set up, so we need to tell the frontend
 			 * about it.
 			 */
 			if (devc->trigger_at > 0) {
-				/* there are pre-trigger samples, send those first */
+				/* There are pre-trigger samples, send those first. */
 				packet.type = SR_DF_LOGIC;
 				packet.payload = &logic;
 				logic.length = devc->trigger_at * 4;
@@ -475,11 +475,11 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 				sr_session_send(cb_data, &packet);
 			}
 
-			/* send the trigger */
+			/* Send the trigger. */
 			packet.type = SR_DF_TRIGGER;
 			sr_session_send(cb_data, &packet);
 
-			/* send post-trigger samples */
+			/* Send post-trigger samples. */
 			packet.type = SR_DF_LOGIC;
 			packet.payload = &logic;
 			logic.length = (devc->num_samples * 4) - (devc->trigger_at * 4);
