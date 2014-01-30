@@ -607,8 +607,7 @@ enum {
 
 /** Information on single probe. */
 struct sr_probe {
-	/** Number of probes, starting at 0. @deprecated The index field
-	 * will go: use g_slist_length(sdi->probes) instead. */
+	/** Number of probes, starting at 0. */
 	int index;
 	/** Probe type (SR_PROBE_LOGIC, ...) */
 	int type;
