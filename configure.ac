@@ -271,7 +271,7 @@ SR_PKGLIBS=""
 # libm (the standard math library) is always needed.
 AC_SEARCH_LIBS([pow], [m])
 
-# RPC is only needed for VXI support
+# RPC is only needed for VXI support.
 AC_MSG_CHECKING([for RPC support])
 AC_LINK_IFELSE([AC_LANG_PROGRAM([#include <rpc/rpc.h>],
                                 [CLIENT *rpc_test(void)],
@@ -279,9 +279,9 @@ AC_LINK_IFELSE([AC_LANG_PROGRAM([#include <rpc/rpc.h>],
                [AC_MSG_RESULT([yes]); have_rpc=1],
                [AC_MSG_RESULT([no]);  have_rpc=0])
 # Define HAVE_RPC in config.h if we found RPC support.
-AC_DEFINE_UNQUOTED(HAVE_RPC, [$have_rpc],[Specifies whether we have RPC support.])
+AC_DEFINE_UNQUOTED(HAVE_RPC, [$have_rpc], [Specifies whether we have RPC support.])
 # VXI support is only compiled if RPC support was found.
-AM_CONDITIONAL(NEED_RPC, test "x$have_rpc" != x0)
+AM_CONDITIONAL(NEED_RPC, test "x$have_rpc" != "x0")
 
 # libglib-2.0 is always needed. Abort if it's not found.
 # Note: glib-2.0 is part of the libsigrok API (hard pkg-config requirement).
@@ -557,23 +557,9 @@ fi
 
 # Checks for header files.
 # These are already checked: inttypes.h stdint.h stdlib.h string.h unistd.h.
-AC_CHECK_HEADERS([fcntl.h sys/time.h termios.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_BIGENDIAN
-AC_C_INLINE
-AC_TYPE_INT8_T
-AC_TYPE_INT16_T
-AC_TYPE_INT32_T
-AC_TYPE_INT64_T
-AC_TYPE_UINT8_T
-AC_TYPE_UINT16_T
-AC_TYPE_UINT32_T
-AC_TYPE_UINT64_T
-AC_TYPE_SIZE_T
-
-# Checks for library functions.
-AC_CHECK_FUNCS([gettimeofday memset strchr strcspn strdup strerror strncasecmp strstr strtol strtoul strtoull])
 
 AC_SUBST(FIRMWARE_DIR, "$datadir/sigrok-firmware")
 AC_SUBST(MAKEFLAGS, '--no-print-directory')
