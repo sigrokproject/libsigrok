@@ -35,6 +35,7 @@ struct context {
 	uint8_t *prevsample;
 	int period;
 	uint64_t samplerate;
+	uint64_t samplecount;
 	unsigned int unitsize;
 };
 
@@ -155,7 +156,6 @@ static int receive(struct sr_output *o, const struct sr_dev_inst *sdi,
 	unsigned int i;
 	int p, curbit, prevbit, index;
 	uint8_t *sample;
-	static uint64_t samplecount = 0;
 
 	(void)sdi;
 
@@ -174,31 +174,31 @@ static int receive(struct sr_output *o, const struct sr_dev_inst *sdi,
 		/* The header is still here, this must be the first packet. */
 		*out = ctx->header;
 		ctx->header = NULL;
+		ctx->samplecount = 0;
 	} else {
 		*out = g_string_sized_new(512);
 	}
 
 	logic = packet->payload;
 	for (i = 0; i <= logic->length - logic->unitsize; i += logic->unitsize) {
-		samplecount++;
-
 		sample = logic->data + i;
 
 		for (p = 0; p < ctx->num_enabled_probes; p++) {
 			index = g_array_index(ctx->probeindices, int, p);
-			curbit = (sample[p / 8] & (((uint8_t) 1) << index)) >> index;
-			prevbit = (ctx->prevsample[p / 8] & (((uint8_t) 1) << index)) >> index;
+			curbit = ((unsigned)sample[index / 8] >> (index % 8)) & 1;
+			prevbit = ((unsigned)ctx->prevsample[index / 8] >> (index % 8)) & 1;
 
 			/* VCD only contains deltas/changes of signals. */
-			if (prevbit == curbit)
+			if (prevbit == curbit && ctx->samplecount > 0)
 				continue;
 
 			/* Output which signal changed to which value. */
-			g_string_append_printf(*out, "#%" PRIu64 "\n%i%c\n",
-					(uint64_t)(((float)samplecount / ctx->samplerate)
-					* ctx->period), curbit, (char)('!' + p));
+			g_string_append_printf(*out, "#%.0f\n%i%c\n",
+				(double)ctx->samplecount / ctx->samplerate * ctx->period,
+				curbit, (char)('!' + p));
 		}
 
+		ctx->samplecount++;
 		memcpy(ctx->prevsample, sample, ctx->unitsize);
 	}
 
