@@ -39,8 +39,8 @@ struct context {
 	unsigned int unitsize;
 };
 
-static const char *vcd_header_comment = "\
-$comment\n  Acquisition with %d/%d probes at %s\n$end\n";
+static const char *const vcd_header_comment =
+	"$comment\n  Acquisition with %d/%d probes at %s\n$end\n";
 
 static int init(struct sr_output *o)
 {
@@ -136,7 +136,7 @@ static int init(struct sr_output *o)
 	}
 
 	g_string_append(ctx->header, "$upscope $end\n"
-			"$enddefinitions $end\n$dumpvars\n");
+			"$enddefinitions $end\n");
 
 	if (!(ctx->prevsample = g_try_malloc0(ctx->unitsize))) {
 		g_string_free(ctx->header, TRUE);
@@ -162,13 +162,10 @@ static int receive(struct sr_output *o, const struct sr_dev_inst *sdi,
 
 	*out = NULL;
 	if (!o || !o->internal)
-		return SR_ERR_ARG;
+		return SR_ERR_BUG;
 	ctx = o->internal;
 
-	if (packet->type == SR_DF_END) {
-		*out = g_string_new("$dumpoff\n$end\n");
-		return SR_OK;
-	} else if (packet->type != SR_DF_LOGIC)
+	if (packet->type != SR_DF_LOGIC)
 		return SR_OK;
 
 	if (ctx->header) {
