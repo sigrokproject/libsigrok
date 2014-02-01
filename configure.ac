@@ -316,6 +316,22 @@ fi
 # Serial port helper code is only compiled in if libserialport was found.
 AM_CONDITIONAL(NEED_SERIAL, test "x$have_libserialport" != xno)
 
+PKG_CHECK_MODULES([librevisa], [librevisa >= 0.0.20130812],
+	[CFLAGS="$CFLAGS $librevisa_CFLAGS";
+	LIBS="$LIBS $librevisa_LIBS";
+	SR_PKGLIBS="$SR_PKGLIBS librevisa"], [])
+
+# VISA SCPI backend is only compiled in if librevisa was found.
+AM_CONDITIONAL(NEED_VISA, test "x$have_librevisa" != xno)
+
+# Define HAVE_LIBREVISA in config.h if we found librevisa.
+if test "x$have_librevisa" != "xno"; then
+	AC_DEFINE_UNQUOTED(HAVE_LIBREVISA, [1],
+		[Specifies whether we have librevisa.])
+fi
+
+AM_CONDITIONAL(NEED_VISA, test "x$have_librevisa" != xno)
+
 # libusb-1.0 is only needed for some hardware drivers. Disable the respective
 # drivers if it is not found.
 case "$host" in
@@ -635,7 +651,7 @@ echo "Detected libraries:"
 echo
 
 # Note: This only works for libs with pkg-config integration.
-for lib in "glib-2.0 >= 2.32.0" "libzip >= 0.10" "libserialport >= 0.1.0" "libusb-1.0 >= 1.0.16" "libftdi >= 0.16" "libudev >= 151" "alsa >= 1.0" "check >= 0.9.4"; do
+for lib in "glib-2.0 >= 2.32.0" "libzip >= 0.10" "libserialport >= 0.1.0" "librevisa >= 0.0.20130812" "libusb-1.0 >= 1.0.16" "libftdi >= 0.16" "libudev >= 151" "alsa >= 1.0" "check >= 0.9.4"; do
 	if `$PKG_CONFIG --exists $lib`; then
 		ver=`$PKG_CONFIG --modversion $lib`
 		answer="yes ($ver)"

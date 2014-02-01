@@ -36,6 +36,10 @@ if NEED_USB
 libsigrok_hw_common_la_SOURCES += ezusb.c usb.c
 endif
 
+if NEED_VISA
+libsigrok_hw_common_la_SOURCES += scpi_visa.c
+endif
+
 libsigrok_hw_common_la_LIBADD = dmm/libsigrok_hw_common_dmm.la
 
 libsigrok_hw_common_la_CFLAGS = \
