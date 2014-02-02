@@ -51,6 +51,13 @@
 #endif
 
 /**
+ * Read a 8 bits integer out of memory.
+ * @param x a pointer to the input memory
+ * @return the corresponding integer
+ */
+#define R8(x)     ((unsigned)((const uint8_t*)(x))[0])
+
+/**
  * Read a 16 bits big endian integer out of memory.
  * @param x a pointer to the input memory
  * @return the corresponding integer
