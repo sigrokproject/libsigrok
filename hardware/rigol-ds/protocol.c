@@ -505,7 +505,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 				return TRUE;
 			if (rigol_ds_channel_start(sdi) != SR_OK)
 				return TRUE;
-			break;
+			return TRUE;
 		case WAIT_BLOCK:
 			if (rigol_ds_block_wait(sdi) != SR_OK)
 				return TRUE;
