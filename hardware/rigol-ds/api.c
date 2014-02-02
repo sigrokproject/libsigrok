@@ -255,11 +255,10 @@ static int init(struct sr_context *sr_ctx)
 	return std_init(sr_ctx, di, LOG_PREFIX);
 }
 
-static int probe_port(const char *resource, const char *serialcomm, GSList **devices)
+static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 {
 	struct dev_context *devc;
 	struct sr_dev_inst *sdi;
-	struct sr_scpi_dev_inst *scpi;
 	struct sr_scpi_hw_info *hw_info;
 	struct sr_probe *probe;
 	long n[3];
@@ -267,22 +266,11 @@ static int probe_port(const char *resource, const char *serialcomm, GSList **dev
 	const struct rigol_ds_model *model = NULL;
 	gchar *channel_name, **version;
 
-	*devices = NULL;
-
-	if (!(scpi = scpi_dev_inst_new(di->priv, resource, serialcomm)))
-		return SR_ERR;
-
-	if (sr_scpi_open(scpi) != SR_OK) {
-		sr_info("Couldn't open SCPI device.");
-		sr_scpi_free(scpi);
-		return SR_ERR;
-	};
-
 	if (sr_scpi_get_hw_id(scpi, &hw_info) != SR_OK) {
 		sr_info("Couldn't get IDN response.");
 		sr_scpi_close(scpi);
 		sr_scpi_free(scpi);
-		return SR_ERR;
+		return NULL;
 	}
 
 	for (i = 0; i < ARRAY_SIZE(supported_models); i++) {
@@ -301,7 +289,7 @@ static int probe_port(const char *resource, const char *serialcomm, GSList **dev
 		sr_scpi_hw_info_free(hw_info);
 		sr_scpi_close(scpi);
 		sr_scpi_free(scpi);
-		return SR_ERR_NA;
+		return NULL;
 	}
 
 	sr_scpi_close(scpi);
@@ -312,7 +300,7 @@ static int probe_port(const char *resource, const char *serialcomm, GSList **dev
 	sdi->inst_type = SR_INST_SCPI;
 
 	if (!(devc = g_try_malloc0(sizeof(struct dev_context))))
-		return SR_ERR_MALLOC;
+		return NULL;
 
 	devc->limit_frames = 0;
 	devc->model = model;
@@ -346,7 +334,7 @@ static int probe_port(const char *resource, const char *serialcomm, GSList **dev
 
 	for (i = 0; i < model->analog_channels; i++) {
 		if (!(channel_name = g_strdup_printf("CH%d", i + 1)))
-			return SR_ERR_MALLOC;
+			return NULL;
 		probe = sr_probe_new(i, SR_PROBE_ANALOG, TRUE, channel_name);
 		sdi->probes = g_slist_append(sdi->probes, probe);
 		devc->analog_groups[i].name = channel_name;
@@ -358,11 +346,11 @@ static int probe_port(const char *resource, const char *serialcomm, GSList **dev
 	if (devc->model->has_digital) {
 		for (i = 0; i < 16; i++) {
 			if (!(channel_name = g_strdup_printf("D%d", i)))
-				return SR_ERR_MALLOC;
+				return NULL;
 			probe = sr_probe_new(i, SR_PROBE_LOGIC, TRUE, channel_name);
 			g_free(channel_name);
 			if (!probe)
-				return SR_ERR_MALLOC;
+				return NULL;
 			sdi->probes = g_slist_append(sdi->probes, probe);
 			devc->digital_group.probes = g_slist_append(
 					devc->digital_group.probes, probe);
@@ -384,77 +372,20 @@ static int probe_port(const char *resource, const char *serialcomm, GSList **dev
 			devc->vdivs = &vdivs[i];
 
 	if (!(devc->buffer = g_try_malloc(ACQ_BUFFER_SIZE)))
-		return SR_ERR_MALLOC;
+		return NULL;
 	if (!(devc->data = g_try_malloc(ACQ_BUFFER_SIZE * sizeof(float))))
-		return SR_ERR_MALLOC;
+		return NULL;
 
 	devc->data_source = DATA_SOURCE_LIVE;
 
 	sdi->priv = devc;
 
-	*devices = g_slist_append(NULL, sdi);
-
-	return SR_OK;
+	return sdi;
 }
 
 static GSList *scan(GSList *options)
 {
-	struct drv_context *drvc;
-	struct sr_config *src;
-	GSList *l, *devices;
-	GDir *dir;
-	int ret;
-	const gchar *dev_name;
-	gchar *port = NULL;
-	gchar *serialcomm = NULL;
-
-	drvc = di->priv;
-
-	for (l = options; l; l = l->next) {
-		src = l->data;
-		switch (src->key) {
-		case SR_CONF_CONN:
-			port = (char *)g_variant_get_string(src->data, NULL);
-			break;
-		case SR_CONF_SERIALCOMM:
-			serialcomm = (char *)g_variant_get_string(src->data, NULL);
-			break;
-		}
-	}
-
-	devices = NULL;
-	if (port) {
-		if (probe_port(port, serialcomm, &devices) == SR_ERR_MALLOC) {
-			g_free(port);
-			if (serialcomm)
-				g_free(serialcomm);
-			return NULL;
-		}
-	} else {
-		if (!(dir = g_dir_open("/sys/class/usbmisc/", 0, NULL)))
-			if (!(dir = g_dir_open("/sys/class/usb/", 0, NULL)))
-				return NULL;
-		while ((dev_name = g_dir_read_name(dir))) {
-			if (strncmp(dev_name, "usbtmc", 6))
-				continue;
-			port = g_strconcat("/dev/", dev_name, NULL);
-			ret = probe_port(port, serialcomm, &devices);
-			g_free(port);
-			if (serialcomm)
-				g_free(serialcomm);
-			if (ret == SR_ERR_MALLOC) {
-				g_dir_close(dir);
-				return NULL;
-			}
-		}
-		g_dir_close(dir);
-	}
-
-	/* Tack a copy of the newly found devices onto the driver list. */
-	l = g_slist_copy(devices);
-	drvc->instances = g_slist_concat(drvc->instances, l);
-
-	return devices;
+	return sr_scpi_scan(di->priv, options, probe_device);
 }
 
 static GSList *dev_list(void)
