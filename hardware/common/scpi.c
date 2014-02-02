@@ -87,6 +87,78 @@ static const struct sr_scpi_dev_inst *scpi_devs[] = {
 #endif
 };
 
+static GSList *sr_scpi_scan_resource(struct drv_context *drvc,
+		const char *resource, const char *serialcomm,
+		struct sr_dev_inst *(*probe_device)(struct sr_scpi_dev_inst *scpi))
+{
+	struct sr_scpi_dev_inst *scpi;
+	struct sr_dev_inst *sdi;
+
+	if (!(scpi = scpi_dev_inst_new(drvc, resource, serialcomm)))
+		return NULL;
+
+	if (sr_scpi_open(scpi) != SR_OK) {
+		sr_info("Couldn't open SCPI device.");
+		sr_scpi_free(scpi);
+		return NULL;
+	};
+
+	if ((sdi = probe_device(scpi)))
+		return g_slist_append(NULL, sdi);
+
+	sr_scpi_close(scpi);
+	sr_scpi_free(scpi);
+	return NULL;
+}
+
+SR_PRIV GSList *sr_scpi_scan(struct drv_context *drvc, GSList *options,
+		struct sr_dev_inst *(*probe_device)(struct sr_scpi_dev_inst *scpi))
+{
+	GSList *resources, *l, *d, *devices = NULL;
+	const char *resource = NULL;
+	const char *serialcomm = NULL;
+	gchar **res;
+	unsigned i;
+
+	for (l = options; l; l = l->next) {
+		struct sr_config *src = l->data;
+		switch (src->key) {
+		case SR_CONF_CONN:
+			resource = g_variant_get_string(src->data, NULL);
+			break;
+		case SR_CONF_SERIALCOMM:
+			serialcomm = g_variant_get_string(src->data, NULL);
+			break;
+		}
+	}
+
+	for (i = 0; i < ARRAY_SIZE(scpi_devs); i++) {
+		if ((resource && strcmp(resource, scpi_devs[i]->prefix))
+		    || !scpi_devs[i]->scan)
+			continue;
+		resources = scpi_devs[i]->scan(drvc);
+		for (l = resources; l; l = l->next) {
+			res = g_strsplit(l->data, ":", 2);
+			if (res[0] && (d = sr_scpi_scan_resource(drvc, res[0],
+			               serialcomm ? serialcomm : res[1], probe_device)))
+				devices = g_slist_concat(devices, d);
+			g_strfreev(res);
+		}
+		g_slist_free_full(resources, g_free);
+	}
+
+	if (!devices && resource)
+		devices = sr_scpi_scan_resource(drvc, resource, serialcomm,
+		                                probe_device);
+
+	/* Tack a copy of the newly found devices onto the driver list. */
+	if (devices)
+		drvc->instances = g_slist_concat(drvc->instances,
+		                                 g_slist_copy(devices));
+
+	return devices;
+}
+
 SR_PRIV struct sr_scpi_dev_inst *scpi_dev_inst_new(struct drv_context *drvc,
 		const char *resource, const char *serialcomm)
 {

@@ -22,6 +22,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <glib.h>
+#include <glib/gstdio.h>
 #include <libserialport.h>
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
@@ -741,4 +742,143 @@ SR_PRIV int serial_source_remove(struct sr_serial_dev_inst *serial)
 	serial->event_set = NULL;
 
 	return SR_OK;
+}
+
+/**
+ * Find USB serial devices via the USB vendor ID and product ID.
+ *
+ * @param vendor_id Vendor ID of the USB device.
+ * @param product_id Product ID of the USB device.
+ *
+ * @return A GSList of strings containing the path of the serial device or
+ *         NULL if no serial device is found. The returned list must be freed
+ *         by the caller.
+ */
+SR_PRIV GSList *sr_serial_find_usb(uint16_t vendor_id, uint16_t product_id)
+{
+#ifdef __linux__
+	const gchar *usb_dev;
+	const char device_tree[] = "/sys/bus/usb/devices/";
+	GDir *devices_dir, *device_dir;
+	GSList *l = NULL;
+	GSList *tty_devs;
+	GSList *matched_paths;
+	FILE *fd;
+	char tmp[5];
+	gchar *vendor_path, *product_path, *path_copy;
+	gchar *prefix, *subdir_path, *device_path, *tty_path;
+	unsigned long read_vendor_id, read_product_id;
+	const char *file;
+
+	l = NULL;
+	tty_devs = NULL;
+	matched_paths = NULL;
+
+	if (!(devices_dir = g_dir_open(device_tree, 0, NULL)))
+		return NULL;
+
+	/*
+	 * Find potential candidates using the vendor ID and product ID
+	 * and store them in matched_paths.
+	 */
+	while ((usb_dev = g_dir_read_name(devices_dir))) {
+		vendor_path = g_strconcat(device_tree,
+					  usb_dev, "/idVendor", NULL);
+		product_path = g_strconcat(device_tree,
+					   usb_dev, "/idProduct", NULL);
+
+		if (!g_file_test(vendor_path, G_FILE_TEST_EXISTS) ||
+		    !g_file_test(product_path, G_FILE_TEST_EXISTS))
+			goto skip_device;
+
+		if ((fd = g_fopen(vendor_path, "r")) == NULL)
+			goto skip_device;
+
+		if (fgets(tmp, sizeof(tmp), fd) == NULL) {
+			fclose(fd);
+			goto skip_device;
+		}
+		read_vendor_id = strtoul(tmp, NULL, 16);
+
+		fclose(fd);
+
+		if ((fd = g_fopen(product_path, "r")) == NULL)
+			goto skip_device;
+
+		if (fgets(tmp, sizeof(tmp), fd) == NULL) {
+			fclose(fd);
+			goto skip_device;
+		}
+		read_product_id = strtoul(tmp, NULL, 16);
+
+		fclose(fd);
+
+		if (vendor_id == read_vendor_id &&
+		    product_id == read_product_id) {
+			path_copy = g_strdup(usb_dev);
+			matched_paths = g_slist_prepend(matched_paths,
+							path_copy);
+		}
+
+skip_device:
+		g_free(vendor_path);
+		g_free(product_path);
+	}
+	g_dir_close(devices_dir);
+
+	/* For every matched device try to find a ttyUSBX subfolder. */
+	for (l = matched_paths; l; l = l->next) {
+		subdir_path = NULL;
+
+		device_path = g_strconcat(device_tree, l->data, NULL);
+
+		if (!(device_dir = g_dir_open(device_path, 0, NULL))) {
+			g_free(device_path);
+			continue;
+		}
+
+		prefix = g_strconcat(l->data, ":", NULL);
+
+		while ((file = g_dir_read_name(device_dir))) {
+			if (g_str_has_prefix(file, prefix)) {
+				subdir_path = g_strconcat(device_path,
+						"/", file, NULL);
+				break;
+			}
+		}
+		g_dir_close(device_dir);
+
+		g_free(prefix);
+		g_free(device_path);
+
+		if (subdir_path) {
+			if (!(device_dir = g_dir_open(subdir_path, 0, NULL))) {
+				g_free(subdir_path);
+				continue;
+			}
+			g_free(subdir_path);
+
+			while ((file = g_dir_read_name(device_dir))) {
+				if (g_str_has_prefix(file, "ttyUSB")) {
+					tty_path = g_strconcat("/dev/",
+							       file, NULL);
+					sr_dbg("Found USB device %04x:%04x attached to %s.",
+					       vendor_id, product_id, tty_path);
+					tty_devs = g_slist_prepend(tty_devs,
+							tty_path);
+					break;
+				}
+			}
+			g_dir_close(device_dir);
+		}
+	}
+	g_slist_free_full(matched_paths, g_free);
+
+	return tty_devs;
+#else
+	(void)vendor_id;
+	(void)product_id;
+
+	return NULL;
+#endif
 }

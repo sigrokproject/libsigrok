@@ -37,6 +37,29 @@ struct usbtmc_scpi {
 	int response_bytes_read;
 };
 
+static GSList *scpi_usbtmc_scan(struct drv_context *drvc)
+{
+	GSList *resources = NULL;
+	GDir *dir;
+	const char *dev_name;
+	char *resource;
+
+	(void)drvc;
+
+	if (!(dir = g_dir_open("/sys/class/usbmisc/", 0, NULL)))
+		if (!(dir = g_dir_open("/sys/class/usb/", 0, NULL)))
+			return NULL;
+	while ((dev_name = g_dir_read_name(dir))) {
+		if (strncmp(dev_name, "usbtmc", 6))
+			continue;
+		resource = g_strconcat("/dev/", dev_name, NULL);
+		resources = g_slist_append(resources, resource);
+	}
+	g_dir_close(dir);
+
+	return resources;
+}
+
 static int scpi_usbtmc_dev_inst_new(void *priv, struct drv_context *drvc,
 		const char *resource, char **params, const char *serialcomm)
 {
@@ -190,6 +213,7 @@ SR_PRIV const struct sr_scpi_dev_inst scpi_usbtmc_dev = {
 	.name          = "USBTMC",
 	.prefix        = "/dev/usbtmc",
 	.priv_size     = sizeof(struct usbtmc_scpi),
+	.scan          = scpi_usbtmc_scan,
 	.dev_inst_new  = scpi_usbtmc_dev_inst_new,
 	.open          = scpi_usbtmc_open,
 	.source_add    = scpi_usbtmc_source_add,

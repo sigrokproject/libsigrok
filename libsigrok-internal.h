@@ -374,6 +374,7 @@ SR_PRIV int sr_serial_extract_options(GSList *options, const char **serial_devic
 SR_PRIV int serial_source_add(struct sr_serial_dev_inst *serial, int events,
 		int timeout, sr_receive_data_callback_t cb, void *cb_data);
 SR_PRIV int serial_source_remove(struct sr_serial_dev_inst *serial);
+SR_PRIV GSList *sr_serial_find_usb(uint16_t vendor_id, uint16_t product_id);
 #endif
 
 /*--- hardware/common/ezusb.c -----------------------------------------------*/
@@ -438,6 +439,7 @@ struct sr_scpi_dev_inst {
 	const char *name;
 	const char *prefix;
 	int priv_size;
+	GSList *(*scan)(struct drv_context *drvc);
 	int (*dev_inst_new)(void *priv, struct drv_context *drvc,
 		const char *resource, char **params, const char *serialcomm);
 	int (*open)(void *priv);
@@ -453,6 +455,8 @@ struct sr_scpi_dev_inst {
 	void *priv;
 };
 
+SR_PRIV GSList *sr_scpi_scan(struct drv_context *drvc, GSList *options,
+		struct sr_dev_inst *(*probe_device)(struct sr_scpi_dev_inst *scpi));
 SR_PRIV struct sr_scpi_dev_inst *scpi_dev_inst_new(struct drv_context *drvc,
 		const char *resource, const char *serialcomm);
 SR_PRIV int sr_scpi_open(struct sr_scpi_dev_inst *scpi);

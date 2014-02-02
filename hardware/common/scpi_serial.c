@@ -22,6 +22,7 @@
 #include "libsigrok-internal.h"
 
 #include <glib.h>
+#include <stdlib.h>
 #include <string.h>
 
 #define LOG_PREFIX "scpi_serial"
@@ -34,6 +35,41 @@ struct scpi_serial {
 	size_t count;
 	size_t read;
 };
+
+static struct {
+	uint16_t vendor_id;
+	uint16_t product_id;
+	const char *serialcomm;
+} scpi_serial_usb_ids[] = {
+	{ 0x0403, 0xed72, "115200/8n1/flow=1" }, /* Hameg HO720 */
+	{ 0x0403, 0xed73, "115200/8n1/flow=1" }, /* Hameg HO730 */
+};
+
+static GSList *scpi_serial_scan(struct drv_context *drvc)
+{
+	GSList *l, *r, *resources = NULL;
+	gchar *res;
+	unsigned i;
+
+	(void)drvc;
+
+	for (i = 0; i < ARRAY_SIZE(scpi_serial_usb_ids); i++) {
+		if ((l = sr_serial_find_usb(scpi_serial_usb_ids[i].vendor_id,
+		                            scpi_serial_usb_ids[i].product_id)) == NULL)
+			continue;
+		for (r = l; r; r = r->next) {
+			if (scpi_serial_usb_ids[i].serialcomm)
+				res = g_strdup_printf("%s:%s", (char *) r->data,
+				                      scpi_serial_usb_ids[i].serialcomm);
+			else
+				res = g_strdup(r->data);
+			resources = g_slist_append(resources, res);
+		}
+		g_slist_free_full(l, g_free);
+	}
+
+	return resources;
+}
 
 static int scpi_serial_dev_inst_new(void *priv, struct drv_context *drvc,
 		const char *resource, char **params, const char *serialcomm)
@@ -190,6 +226,7 @@ SR_PRIV const struct sr_scpi_dev_inst scpi_serial_dev = {
 	.name          = "serial",
 	.prefix        = "",
 	.priv_size     = sizeof(struct scpi_serial),
+	.scan          = scpi_serial_scan,
 	.dev_inst_new  = scpi_serial_dev_inst_new,
 	.open          = scpi_serial_open,
 	.source_add    = scpi_serial_source_add,
