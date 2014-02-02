@@ -488,7 +488,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 	scpi = sdi->conn;
 	devc = sdi->priv;
 
-	if (devc->model->series->protocol >= PROTOCOL_V2)
+	if (devc->model->series->protocol == PROTOCOL_V2)
 		rigol_ds_config_set(sdi, ":KEY:LOCK DISABLE");
 
 	if (scpi) {
