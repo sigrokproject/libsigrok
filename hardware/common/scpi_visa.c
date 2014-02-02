@@ -41,7 +41,7 @@ static int scpi_visa_dev_inst_new(void *priv, const char *resource,
 
 	if (!params || !params[1]) {
 		sr_err("Invalid parameters.");
-		return SR_ERR;
+		return SR_ERR_BUG;
 	}
 
 	vscpi->resource = g_strdup(params[1]);
@@ -58,8 +58,7 @@ static int scpi_visa_open(void *priv)
 		return SR_ERR;
 	}
 
-	if (viOpen(vscpi->rmgr, vscpi->resource, VI_NO_LOCK, 0, &vscpi->vi) != VI_SUCCESS)
-	{
+	if (viOpen(vscpi->rmgr, vscpi->resource, VI_NO_LOCK, 0, &vscpi->vi) != VI_SUCCESS) {
 		sr_err("Cannot open resource.");
 		return SR_ERR;
 	}
@@ -80,7 +79,7 @@ static int scpi_visa_source_remove(void *priv)
 {
 	(void) priv;
 
-	return sr_source_remove(-1);;
+	return sr_source_remove(-1);
 }
 
 static int scpi_visa_send(void *priv, const char *command)
@@ -118,9 +117,8 @@ static int scpi_visa_read_data(void *priv, char *buf, int maxlen)
 	struct scpi_visa *vscpi = priv;
 	ViUInt32 count;
 
-	if (viRead(vscpi->vi, (ViBuf) buf, maxlen, &count) != VI_SUCCESS)
-	{
-		sr_err("Read failed");
+	if (viRead(vscpi->vi, (ViBuf) buf, maxlen, &count) != VI_SUCCESS) {
+		sr_err("Read failed.");
 		return SR_ERR;
 	}
 
@@ -133,7 +131,7 @@ static int scpi_visa_read_complete(void *priv)
 	ViUInt16 status;
 
 	if (viReadSTB(vscpi->vi, &status) != VI_SUCCESS) {
-		sr_err("Failed to read status");
+		sr_err("Failed to read status.");
 		return SR_ERR;
 	}
 
