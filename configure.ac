@@ -317,9 +317,10 @@ fi
 AM_CONDITIONAL(NEED_SERIAL, test "x$have_libserialport" != xno)
 
 PKG_CHECK_MODULES([librevisa], [librevisa >= 0.0.20130812],
-	[CFLAGS="$CFLAGS $librevisa_CFLAGS";
+	[have_librevisa="yes"; CFLAGS="$CFLAGS $librevisa_CFLAGS";
 	LIBS="$LIBS $librevisa_LIBS";
-	SR_PKGLIBS="$SR_PKGLIBS librevisa"], [])
+	SR_PKGLIBS="$SR_PKGLIBS librevisa"],
+	[have_librevisa="no"])
 
 # VISA SCPI backend is only compiled in if librevisa was found.
 AM_CONDITIONAL(NEED_VISA, test "x$have_librevisa" != xno)
@@ -329,8 +330,6 @@ if test "x$have_librevisa" != "xno"; then
 	AC_DEFINE_UNQUOTED(HAVE_LIBREVISA, [1],
 		[Specifies whether we have librevisa.])
 fi
-
-AM_CONDITIONAL(NEED_VISA, test "x$have_librevisa" != xno)
 
 # libusb-1.0 is only needed for some hardware drivers. Disable the respective
 # drivers if it is not found.
