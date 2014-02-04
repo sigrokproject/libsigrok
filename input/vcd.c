@@ -93,14 +93,15 @@ struct probe {
  */
 static gboolean read_until(FILE *file, GString *dest, char mode)
 {
+	int  c;
 	char prev[4] = "";
-	long startpos = ftell(file);
+
 	for(;;) {
-		int c = fgetc(file);
+		c = fgetc(file);
 
 		if (c == EOF) {
 			if (mode == '$')
-				sr_err("Unexpected EOF, read started at %ld.", startpos);
+				sr_err("Unexpected EOF.");
 			return FALSE;
 		}
 
@@ -468,8 +469,6 @@ static void parse_contents(FILE *file, const struct sr_dev_inst *sdi, struct con
 				probe = l->data;
 
 				if (g_strcmp0(token->str, probe->identifier) == 0) {
-					sr_dbg("Probe %d new value %d.", i, bit);
-				
 					/* Found our probe */
 					if (bit)
 						prev_values |= (uint64_t)1 << i;
