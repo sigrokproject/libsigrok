@@ -165,9 +165,6 @@ static int receive(struct sr_output *o, const struct sr_dev_inst *sdi,
 		return SR_ERR_BUG;
 	ctx = o->internal;
 
-	if (packet->type != SR_DF_LOGIC)
-		return SR_OK;
-
 	if (ctx->header) {
 		/* The header is still here, this must be the first packet. */
 		*out = ctx->header;
@@ -175,6 +172,15 @@ static int receive(struct sr_output *o, const struct sr_dev_inst *sdi,
 		ctx->samplecount = 0;
 	} else {
 		*out = g_string_sized_new(512);
+	}
+
+	if (packet->type != SR_DF_LOGIC) {
+		if (packet->type == SR_DF_END)
+			/* Write final timestamp as length indicator. */
+			g_string_append_printf(*out, "#%.0f\n",
+				(double)ctx->samplecount /
+					ctx->samplerate * ctx->period);
+		return SR_OK;
 	}
 
 	logic = packet->payload;
