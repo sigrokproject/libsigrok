@@ -244,7 +244,6 @@ SR_PRIV void sr_dev_inst_free(struct sr_dev_inst *sdi);
 /* USB-specific instances */
 SR_PRIV struct sr_usb_dev_inst *sr_usb_dev_inst_new(uint8_t bus,
 		uint8_t address, struct libusb_device_handle *hdl);
-SR_PRIV GSList *sr_usb_find_usbtmc(libusb_context *usb_ctx);
 SR_PRIV void sr_usb_dev_inst_free(struct sr_usb_dev_inst *usb);
 #endif
 
