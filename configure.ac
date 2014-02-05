@@ -134,6 +134,11 @@ AC_ARG_ENABLE(colead-slm, AC_HELP_STRING([--enable-colead-slm],
 	[HW_COLEAD_SLM="$enableval"],
 	[HW_COLEAD_SLM=$HW_ENABLED_DEFAULT])
 
+AC_ARG_ENABLE(conrad-digi-35-cpu, AC_HELP_STRING([--enable-conrad-digi-35-cpu],
+	[enable Conrad DIGI 35 CPU support [default=yes]]),
+	[HW_CONRAD_DIGI_35_CPU="$enableval"],
+	[HW_CONRAD_DIGI_35_CPU=$HW_ENABLED_DEFAULT])
+
 AC_ARG_ENABLE(demo, AC_HELP_STRING([--enable-demo],
 	[enable demo driver support [default=yes]]),
 	[HW_DEMO="$enableval"],
@@ -274,10 +279,10 @@ AC_SEARCH_LIBS([pow], [m])
 # RPC is only needed for VXI support.
 AC_MSG_CHECKING([for RPC support])
 AC_LINK_IFELSE([AC_LANG_PROGRAM([#include <rpc/rpc.h>],
-                                [CLIENT *rpc_test(void)],
-                                [{ return clnt_create("", 0, 0, ""); }])],
-               [AC_MSG_RESULT([yes]); have_rpc=1],
-               [AC_MSG_RESULT([no]);  have_rpc=0])
+				[CLIENT *rpc_test(void)],
+				[{ return clnt_create("", 0, 0, ""); }])],
+	       [AC_MSG_RESULT([yes]); have_rpc=1],
+	       [AC_MSG_RESULT([no]);  have_rpc=0])
 # Define HAVE_RPC in config.h if we found RPC support.
 AC_DEFINE_UNQUOTED(HAVE_RPC, [$have_rpc], [Specifies whether we have RPC support.])
 # VXI support is only compiled if RPC support was found.
@@ -302,8 +307,8 @@ PKG_CHECK_MODULES([libserialport], [libserialport >= 0.1.0],
 	SR_PKGLIBS="$SR_PKGLIBS libserialport"],
 	[have_libserialport="no"; HW_AGILENT_DMM="no"; HW_APPA_55II="no";
 	HW_ATTEN_PPS3XXX="no"; HW_BRYMEN_DMM="no"; HW_CEM_DT_885X="no";
-	HW_CENTER_3XX="no"; HW_COLEAD_SLM="no"; HW_FLUKE_DMM="no";
-	HW_GMC_MH_1X_2X="no"; HW_HAMEG_HMO="no"; HW_LINK_MSO19="no";
+	HW_CENTER_3XX="no"; HW_COLEAD_SLM="no"; HW_CONRAD_DIGI_35_CPU="no";
+	HW_FLUKE_DMM="no"; HW_GMC_MH_1X_2X="no"; HW_HAMEG_HMO="no"; HW_LINK_MSO19="no";
 	HW_MIC_985XX="no"; HW_NORMA_DMM="no"; HW_OLS="no";
 	HW_SERIAL_DMM="no"; HW_TELEINFO="no"; HW_TONDAJ_SL_814="no"])
 
@@ -448,6 +453,11 @@ fi
 AM_CONDITIONAL(HW_COLEAD_SLM, test x$HW_COLEAD_SLM = xyes)
 if test "x$HW_COLEAD_SLM" = "xyes"; then
 	AC_DEFINE(HAVE_HW_COLEAD_SLM, 1, [Colead SLM support])
+fi
+
+AM_CONDITIONAL(HW_CONRAD_DIGI_35_CPU, test x$HW_CONRAD_DIGI_35_CPU = xyes)
+if test "x$HW_CONRAD_DIGI_35_CPU" = "xyes"; then
+	AC_DEFINE(HAVE_HW_CONRAD_DIGI_35_CPU, 1, [Conrad DIGI 35 CPU support])
 fi
 
 AM_CONDITIONAL(HW_DEMO, test x$HW_DEMO = xyes)
@@ -602,6 +612,7 @@ AC_CONFIG_FILES([Makefile version.h hardware/Makefile
 		 hardware/chronovu-la8/Makefile
 		 hardware/colead-slm/Makefile
 		 hardware/common/Makefile
+		 hardware/conrad-digi-35-cpu/Makefile
 		 hardware/gmc-mh-1x-2x/Makefile
 		 hardware/hameg-hmo/Makefile
 		 hardware/ikalogic-scanalogic2/Makefile
@@ -671,6 +682,7 @@ echo "  - cem-dt-885x..................... $HW_CEM_DT_885X"
 echo "  - center-3xx...................... $HW_CENTER_3XX"
 echo "  - chronovu-la8.................... $HW_CHRONOVU_LA8"
 echo "  - colead-slm...................... $HW_COLEAD_SLM"
+echo "  - conrad-digi-35-cpu.............. $HW_CONRAD_DIGI_35_CPU"
 echo "  - demo............................ $HW_DEMO"
 echo "  - fluke-dmm....................... $HW_FLUKE_DMM"
 echo "  - fx2lafw......................... $HW_FX2LAFW"

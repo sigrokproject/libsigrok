@@ -143,6 +143,9 @@ extern SR_PRIV struct sr_dev_driver voltcraft_k204_driver_info;
 #ifdef HAVE_HW_COLEAD_SLM
 extern SR_PRIV struct sr_dev_driver colead_slm_driver_info;
 #endif
+#ifdef HAVE_HW_CONRAD_DIGI_35_CPU
+extern SR_PRIV struct sr_dev_driver conrad_digi_35_cpu_driver_info;
+#endif
 #ifdef HAVE_HW_DEMO
 extern SR_PRIV struct sr_dev_driver demo_driver_info;
 #endif
@@ -292,6 +295,9 @@ static struct sr_dev_driver *drivers_list[] = {
 #endif
 #ifdef HAVE_HW_COLEAD_SLM
 	&colead_slm_driver_info,
+#endif
+#ifdef HAVE_HW_CONRAD_DIGI_35_CPU
+	&conrad_digi_35_cpu_driver_info,
 #endif
 #ifdef HAVE_HW_DEMO
 	&demo_driver_info,

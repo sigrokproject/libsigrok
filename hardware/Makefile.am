@@ -30,6 +30,7 @@ SUBDIRS = \
 	chronovu-la8 \
 	colead-slm \
 	common \
+	conrad-digi-35-cpu \
 	demo \
 	fluke-dmm \
 	fx2lafw \
@@ -100,6 +101,10 @@ endif
 
 if HW_COLEAD_SLM
 libsigrokhardware_la_LIBADD += colead-slm/libsigrok_hw_colead_slm.la
+endif
+
+if HW_CONRAD_DIGI_35_CPU
+libsigrokhardware_la_LIBADD += conrad-digi-35-cpu/libsigrok_hw_conrad_digi_35_cpu.la
 endif
 
 if HW_DEMO
