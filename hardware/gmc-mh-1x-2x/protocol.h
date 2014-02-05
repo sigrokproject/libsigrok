@@ -17,6 +17,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/** @file
+ *  Gossen Metrawatt Metrahit 1x/2x drivers
+ *  @private
+ */
+
 #ifndef LIBSIGROK_HARDWARE_GMC_MH_1X_2X_PROTOCOL_H
 #define LIBSIGROK_HARDWARE_GMC_MH_1X_2X_PROTOCOL_H
 
@@ -36,7 +41,7 @@
 #define MSGID_DTA   0x20 /**< Start of data message, displayed, averaged */
 #define MSGID_DATA  0x30 /**< Data byte in message */
 
-#define MSGC_MASK   0x0f  /**< Mask to get message byte contents */
+#define MSGC_MASK   0x0f  /**< Mask to get message byte contents in send mode */
 
 #define MSGSRC_MASK 0xc0 /**< Mask to get bits related to message source */
 
@@ -63,23 +68,11 @@ enum model {
 	METRAHIT_22SM		= 22,
 	METRAHIT_23S		= 23,
 	METRAHIT_24S		= 24,
-	METRAHIT_25SM		= 25,
-	METRAHIT_26S		= 26,
+	METRAHIT_25S		= 25,
+	METRAHIT_26SM		= 26,
 	METRAHIT_28S		= 28,
 	METRAHIT_29S		= 29,
 };
-
-/** Convert GMC model code in send mode to sigrok-internal one. */
-SR_PRIV int gmc_decode_model_sm(uint8_t mcode);
-
-/**
- * Convert GMC model code in bidirectional mode to sigrok-internal one.
- *
- * @param[in] mcode Model code.
- *
- * @return Model code.
- */
-SR_PRIV int gmc_decode_model_bidi(uint8_t mcode);
 
 /** Get model string from sigrok-internal model code. */
 SR_PRIV const char *gmc_model_str(enum model mcode);
@@ -116,5 +109,6 @@ struct dev_context {
 };
 
 SR_PRIV int gmc_mh_1x_2x_receive_data(int fd, int revents, void *cb_data);
+SR_PRIV int gmc_decode_model_sm(uint8_t mcode);
 
 #endif

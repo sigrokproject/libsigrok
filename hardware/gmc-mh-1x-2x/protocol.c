@@ -17,6 +17,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/** @file
+ *  Gossen Metrawatt Metrahit 1x/2x drivers
+ *  @private
+ */
+
 #include <math.h>
 #include <string.h>
 #include "protocol.h"
@@ -358,7 +363,7 @@ static void decode_ctmv_2x(uint8_t ctmv, struct dev_context *devc)
 		if (ctmv >= 0x02) {
 			devc->mqflags |= SR_MQFLAG_AC;
 			if (devc->model >= METRAHIT_24S)
-				devc->model |= SR_MQFLAG_RMS;
+				devc->mqflags |= SR_MQFLAG_RMS;
 		}
 		break;
 	case 0x04: /* 00100 mA DC */
@@ -384,10 +389,12 @@ static void decode_ctmv_2x(uint8_t ctmv, struct dev_context *devc)
 		devc->unit = SR_UNIT_FARAD;
 		devc->scale *= 0.1;
 		break;
-	case 0x0a: /* 01010 dB */
+	case 0x0a: /* 01010 dBV */
 		devc->mq = SR_MQ_VOLTAGE;
 		devc->unit = SR_UNIT_DECIBEL_VOLT;
 		devc->mqflags |= SR_MQFLAG_AC;
+		if (devc->model >= METRAHIT_24S)
+			devc->mqflags |= SR_MQFLAG_RMS;
 		break;
 	case 0x0b: /* 01011 Hz U ACDC */
 	case 0x0c: /* 01100 Hz U AC */
@@ -398,8 +405,9 @@ static void decode_ctmv_2x(uint8_t ctmv, struct dev_context *devc)
 			devc->mqflags |= SR_MQFLAG_DC;
 		break;
 	case 0x0d: /* 01101 W on power, mA range (29S only) */
+		devc->scale *= 0.001;
+		/* Fall through! */
 	case 0x0e: /* 01110 W on power, A range (29S only) */
-		/* TODO: Differences between Send Mode and bidir protocol here */
 		devc->mq = SR_MQ_POWER;
 		devc->unit = SR_UNIT_WATT;
 		break;
@@ -409,7 +417,6 @@ static void decode_ctmv_2x(uint8_t ctmv, struct dev_context *devc)
 		if (ctmv == 0x0f) {
 			devc->mq = SR_MQ_VOLTAGE;
 			devc->mqflags |= SR_MQFLAG_DIODE;
-			devc->scale *= 0.1;
 		} else {
 			devc->mq = SR_MQ_CONTINUITY;
 			devc->scale *= 0.00001;
@@ -476,9 +483,9 @@ static void decode_ctmv_2x(uint8_t ctmv, struct dev_context *devc)
 }
 
 /**
- * Decode range/sign/acdc byte special chars, Metrahit 2x.
+ * Decode range/sign/acdc byte special chars, Metrahit 2x, table TR.
  *
- * @param[in] rs Rance/sign byte.
+ * @param[in] rs Range/sign byte.
  */
 static void decode_rs_2x(uint8_t rs, struct dev_context *devc)
 {
@@ -486,7 +493,7 @@ static void decode_rs_2x(uint8_t rs, struct dev_context *devc)
 
 	/* Sign */
 	if (((devc->scale > 0) && (rs & 0x08)) ||
-		((devc->scale < 0) && !(rs & 0x08)))
+			((devc->scale < 0) && !(rs & 0x08)))
 		devc->scale *= -1.0;
 
 	/* Range */
@@ -497,17 +504,13 @@ static void decode_rs_2x(uint8_t rs, struct dev_context *devc)
 			devc->scale *= pow(10.0, -3);
 		else if (devc->vmains_29S)
 			devc->scale *= pow(10.0, range - 2);
-		else if(devc->mqflags & SR_MQFLAG_AC)
+	else
 			devc->scale *= pow(10.0, range - 6);
-		else /* "Undocumented feature": Between AC and DC
-			scaling differs by 1. */
-			devc->scale *= pow(10.0, range - 5);
 		break;
 	case SR_MQ_CURRENT:
-		if (devc->scale1000 == -1)
-			devc->scale *= pow(10.0, range - 5);
-		else
-			devc->scale *= pow(10.0, range - 4);
+	if (devc->scale1000 != -1) /* uA, mA */
+	    range += 1;/* mA and A ranges differ by 10^4, not 10^3!*/
+	devc->scale *= pow(10.0, range - 6);
 		break;
 	case SR_MQ_RESISTANCE:
 		devc->scale *= pow(10.0, range - 3);
@@ -521,6 +524,8 @@ static void decode_rs_2x(uint8_t rs, struct dev_context *devc)
 		devc->scale *= pow(10.0, - 2);
 		break;
 	case SR_MQ_CAPACITANCE:
+		if (range == 7)
+			range -= 1; /* Same value as range 6 */
 		devc->scale *= pow(10.0, range - 13);
 		break;
 	/* TODO: 29S Mains measurements. */
@@ -593,7 +598,7 @@ static void send_value(struct sr_dev_inst *sdi)
 	devc->num_samples++;
 }
 
-/** Process 6-byte data message, Metrahit 1x/2x. */
+/** Process 6-byte data message, Metrahit 1x/2x send mode. */
 static void process_msg_dta_6(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
@@ -608,8 +613,10 @@ static void process_msg_dta_6(struct sr_dev_inst *sdi)
 		decode_rs_16(bc(devc->buf[0]), devc);
 	else if (devc->model < METRAHIT_2X)
 		decode_rs_18(bc(devc->buf[0]), devc);
-	else
+    else {
 		decode_rs_2x(bc(devc->buf[0]), devc);
+	devc->scale *= 10; /* Compensate for format having only 5 digits, decode_rs_2x() assumes 6. */
+    }
 
 	/* Bytes 1-5, digits (ls first). */
 	for (cnt = 0; cnt < 5; cnt++) {
@@ -622,7 +629,8 @@ static void process_msg_dta_6(struct sr_dev_inst *sdi)
 		}
 		devc->value += pow(10.0, cnt) * dgt;
 	}
-	sr_spew("process_msg_dta_6() value=%f scale=%f scalet=%d",
+
+    sr_spew("process_msg_dta_6() value=%f scale=%f scale1000=%d",
 		devc->value, devc->scale, devc->scale1000);
 	if (devc->value != NAN)
 		devc->value *= devc->scale * pow(1000.0, devc->scale1000);
@@ -678,7 +686,10 @@ static void process_msg_inf_10(struct sr_dev_inst *sdi)
 	/* Now decode numbers */
 	for (cnt = 0; cnt < 5; cnt++) {
 		dgt = bc(devc->buf[5 + cnt]);
-		if (dgt >= 10) { /* Overload */
+	if (dgt == 11) { /* Empty digit */
+	    dgt = 0;
+	}
+	else if (dgt >= 12) { /* Overload */
 			devc->value = NAN;
 			devc->scale = 1.0;
 			break;
@@ -907,9 +918,9 @@ SR_PRIV int gmc_decode_model_sm(uint8_t mcode)
 	case 0x0f: /* 1111b */
 		return METRAHIT_24S;
 	case 0x05: /* 0101b */
-		return METRAHIT_25SM;
+	return METRAHIT_25S;
 	case 0x01: /* 0001b */
-		return METRAHIT_26S;
+	return METRAHIT_26SM;
 	case 0x0c: /* 1100b */
 		return METRAHIT_28S;
 	case 0x0e: /* 1110b */
@@ -920,16 +931,15 @@ SR_PRIV int gmc_decode_model_sm(uint8_t mcode)
 	}
 }
 
-/**
- * Decode model in bidirectional mode.
+/** Convert GMC model code in bidirectional mode to sigrok-internal one.
  *
- * @param[in] mcode Model code.
+ *  @param[in] mcode Model code.
  *
- * @return Model code.
+ *  @return Model code.
  */
-SR_PRIV int gmc_decode_model_bidi(uint8_t mcode)
+SR_PRIV int gmc_decode_model_bd(uint8_t mcode)
 {
-	switch (mcode) {
+	switch (mcode & 0x1f) {
 	case 2:
 		return METRAHIT_22SM;
 	case 3:
@@ -937,9 +947,9 @@ SR_PRIV int gmc_decode_model_bidi(uint8_t mcode)
 	case 4:
 		return METRAHIT_24S;
 	case 5:
-		return METRAHIT_25SM;
+		return METRAHIT_25S;
 	case 1:
-		return METRAHIT_26S;
+		return METRAHIT_26SM;
 	case 12:
 		return METRAHIT_28S;
 	case 14:
@@ -950,6 +960,12 @@ SR_PRIV int gmc_decode_model_bidi(uint8_t mcode)
 	}
 }
 
+/** Convert sigrok-internal model code to string.
+ *
+ *  @param[in] mcode Model code.
+ *
+ *  @return Model code string.
+ */
 SR_PRIV const char *gmc_model_str(enum model mcode)
 {
 	switch (mcode) {
@@ -975,10 +991,10 @@ SR_PRIV const char *gmc_model_str(enum model mcode)
 		return "METRAHit 23S";
 	case METRAHIT_24S:
 		return "METRAHit 24S";
-	case METRAHIT_25SM:
-		return "METRAHit 25S/M";
-	case METRAHIT_26S:
-		return "METRAHit 26S";
+	case METRAHIT_25S:
+		return "METRAHit 25S";
+	case METRAHIT_26SM:
+		return "METRAHit 26S/M";
 	case METRAHIT_28S:
 		return "METRAHit 28S";
 	case METRAHIT_29S:

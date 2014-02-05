@@ -17,16 +17,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/** @file
+ *  Gossen Metrawatt Metrahit 1x/2x drivers
+ *  @private
+ */
+
 #include <string.h>
 #include "protocol.h"
 
 /* Serial communication parameters for Metrahit 1x/2x with 'RS232' adaptor */
 #define SERIALCOMM_1X_RS232 "8228/6n1/dtr=1/rts=1/flow=0" /* =8192, closer with divider */
 #define SERIALCOMM_2X_RS232 "9600/6n1/dtr=1/rts=1/flow=0"
+#define SERIALCOMM_2X "9600/8n1/dtr=1/rts=1/flow=0"
 #define VENDOR_GMC "Gossen Metrawatt"
 
 SR_PRIV struct sr_dev_driver gmc_mh_1x_2x_rs232_driver_info;
-static struct sr_dev_driver *di = &gmc_mh_1x_2x_rs232_driver_info;
 
 static const int32_t hwopts[] = {
 	SR_CONF_CONN,
@@ -35,14 +40,23 @@ static const int32_t hwopts[] = {
 
 static const int32_t hwcaps[] = {
 	SR_CONF_MULTIMETER,
+	SR_CONF_THERMOMETER,    /**< All GMC 1x/2x multimeters seem to support this */
 	SR_CONF_LIMIT_SAMPLES,
 	SR_CONF_LIMIT_MSEC,
 	SR_CONF_CONTINUOUS,
 };
 
+/* TODO:
+ * - For the 29S SR_CONF_ENERGYMETER, too.
+ * - SR_CONF_PATTERN_MODE for some 2x devices
+ * - SR_CONF_DATALOG for 22M, 26M, 29S and storage adaptors.
+ * Need to implement device-specific lists.
+ */
+
+/** Init driver gmc_mh_1x_2x_rs232. */
 static int init(struct sr_context *sr_ctx)
 {
-	return std_init(sr_ctx, di, LOG_PREFIX);
+    return std_init(sr_ctx, &gmc_mh_1x_2x_rs232_driver_info, LOG_PREFIX);
 }
 
 /**
@@ -137,7 +151,7 @@ static GSList *scan(GSList *options)
 	gboolean serialcomm_given;
 
 	devices = NULL;
-	drvc = di->priv;
+	drvc = (&gmc_mh_1x_2x_rs232_driver_info)->priv;
 	drvc->instances = NULL;
 	conn = serialcomm = NULL;
 	model = METRAHIT_NONE;
@@ -206,7 +220,7 @@ static GSList *scan(GSList *options)
 
 		sdi->conn = serial;
 		sdi->priv = devc;
-		sdi->driver = di;
+		sdi->driver = &gmc_mh_1x_2x_rs232_driver_info;
 		if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "P1")))
 			return NULL;
 		sdi->probes = g_slist_append(sdi->probes, probe);
@@ -219,12 +233,12 @@ static GSList *scan(GSList *options)
 
 static GSList *dev_list(void)
 {
-	return ((struct drv_context *)(di->priv))->instances;
+   return ((struct drv_context *)(gmc_mh_1x_2x_rs232_driver_info.priv))->instances;
 }
 
 static int dev_clear(void)
 {
-	return std_dev_clear(di, NULL);
+	return std_dev_clear(&gmc_mh_1x_2x_rs232_driver_info, NULL);
 }
 
 static int dev_close(struct sr_dev_inst *sdi)
@@ -250,19 +264,27 @@ static int cleanup(void)
 	return dev_clear();
 }
 
-/** TODO */
+/** Get value of configuration item */
 static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_probe_group *probe_group)
 {
 	int ret;
+	ret = SR_OK;
+	struct dev_context *devc;
 
-	(void)sdi;
-	(void)data;
 	(void)probe_group;
+
+	if (!sdi || !(devc = sdi->priv))
+		return SR_ERR_ARG;
 
 	ret = SR_OK;
 	switch (key) {
-	/* TODO */
+	case SR_CONF_LIMIT_SAMPLES:
+		*data = g_variant_new_uint64(devc->limit_samples);
+		break;
+	case SR_CONF_LIMIT_MSEC:
+		*data = g_variant_new_uint64(devc->limit_msec);
+		break;
 	default:
 		return SR_ERR_NA;
 	}
