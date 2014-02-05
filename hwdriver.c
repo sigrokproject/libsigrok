@@ -148,6 +148,7 @@ extern SR_PRIV struct sr_dev_driver demo_driver_info;
 #endif
 #ifdef HAVE_HW_GMC_MH_1X_2X
 extern SR_PRIV struct sr_dev_driver gmc_mh_1x_2x_rs232_driver_info;
+extern SR_PRIV struct sr_dev_driver gmc_mh_2x_bd232_driver_info;
 #endif
 #ifdef HAVE_HW_HAMEG_HMO
 extern SR_PRIV struct sr_dev_driver hameg_hmo_driver_info;
@@ -297,6 +298,7 @@ static struct sr_dev_driver *drivers_list[] = {
 #endif
 #ifdef HAVE_HW_GMC_MH_1X_2X
 	&gmc_mh_1x_2x_rs232_driver_info,
+    &gmc_mh_2x_bd232_driver_info,
 #endif
 #ifdef HAVE_HW_HAMEG_HMO
 	&hameg_hmo_driver_info,

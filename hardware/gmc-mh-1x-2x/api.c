@@ -1,7 +1,7 @@
 /*
  * This file is part of the libsigrok project.
  *
- * Copyright (C) 2013 Matthias Heidbrink <m-sigrok@heidbrink.biz>
+ * Copyright (C) 2013, 2014 Matthias Heidbrink <m-sigrok@heidbrink.biz>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
 
 /** @file
  *  Gossen Metrawatt Metrahit 1x/2x drivers
- *  @private
+ *  @internal
  */
 
 #include <string.h>
@@ -32,19 +32,32 @@
 #define VENDOR_GMC "Gossen Metrawatt"
 
 SR_PRIV struct sr_dev_driver gmc_mh_1x_2x_rs232_driver_info;
+SR_PRIV struct sr_dev_driver gmc_mh_2x_bd232_driver_info;
 
 static const int32_t hwopts[] = {
 	SR_CONF_CONN,
 	SR_CONF_SERIALCOMM,
 };
 
-static const int32_t hwcaps[] = {
+/** Hardware capabilities for Metrahit 1x/2x devices in send mode. */
+static const int32_t hwcaps_sm[] = {
 	SR_CONF_MULTIMETER,
 	SR_CONF_THERMOMETER,    /**< All GMC 1x/2x multimeters seem to support this */
 	SR_CONF_LIMIT_SAMPLES,
 	SR_CONF_LIMIT_MSEC,
 	SR_CONF_CONTINUOUS,
 };
+
+/** Hardware capabilities for Metrahit 2x devices in bidirectional Mode. */
+static const int32_t hwcaps_bd[] = {
+	SR_CONF_MULTIMETER,
+	SR_CONF_THERMOMETER,    /**< All GMC 1x/2x multimeters seem to support this */
+	SR_CONF_LIMIT_SAMPLES,
+	SR_CONF_LIMIT_MSEC,
+	SR_CONF_CONTINUOUS,
+	SR_CONF_POWER_OFF,
+};
+
 
 /* TODO:
  * - For the 29S SR_CONF_ENERGYMETER, too.
@@ -54,9 +67,15 @@ static const int32_t hwcaps[] = {
  */
 
 /** Init driver gmc_mh_1x_2x_rs232. */
-static int init(struct sr_context *sr_ctx)
+static int init_1x_2x_rs232(struct sr_context *sr_ctx)
 {
-    return std_init(sr_ctx, &gmc_mh_1x_2x_rs232_driver_info, LOG_PREFIX);
+	return std_init(sr_ctx, &gmc_mh_1x_2x_rs232_driver_info, LOG_PREFIX);
+}
+
+/** Init driver gmc_mh_2x_bd232. */
+static int init_2x_bd232(struct sr_context *sr_ctx)
+{
+	return std_init(sr_ctx, &gmc_mh_2x_bd232_driver_info, LOG_PREFIX);
 }
 
 /**
@@ -114,7 +133,7 @@ static enum model scan_model_sm(struct sr_serial_dev_inst *serial)
 			for (cnt = 0; cnt < 4; cnt++) {
 				byte = read_byte(serial, timeout_us);
 				if ((byte == -1) ||
-					((byte & MSGID_MASK) != MSGID_DATA))
+						((byte & MSGID_MASK) != MSGID_DATA))
 				{
 					model = METRAHIT_NONE;
 					bytecnt = 100;
@@ -137,7 +156,7 @@ static enum model scan_model_sm(struct sr_serial_dev_inst *serial)
  * on configuration and measurement mode the intervals can be much larger and
  * then the detection might not work.
  */
-static GSList *scan(GSList *options)
+static GSList *scan_1x_2x_rs232(GSList *options)
 {
 	struct sr_dev_inst *sdi;
 	struct drv_context *drvc;
@@ -157,7 +176,7 @@ static GSList *scan(GSList *options)
 	model = METRAHIT_NONE;
 	serialcomm_given = FALSE;
 
-	sr_spew("scan() called!");
+	sr_spew("scan_1x_2x_rs232() called!");
 
 	for (l = options; l; l = l->next) {
 		src = l->data;
@@ -231,14 +250,157 @@ static GSList *scan(GSList *options)
 	return devices;
 }
 
-static GSList *dev_list(void)
+/** Scan for Metrahit 2x in a bidirectional mode using Gossen Metrawatt 'BD 232' interface.
+ *
+ */
+static GSList *scan_2x_bd232(GSList *options)
 {
-   return ((struct drv_context *)(gmc_mh_1x_2x_rs232_driver_info.priv))->instances;
+	struct sr_dev_inst *sdi;
+	struct drv_context *drvc;
+	struct dev_context *devc;
+	struct sr_config *src;
+	struct sr_probe *probe;
+	struct sr_serial_dev_inst *serial;
+	GSList *l, *devices;
+	const char *conn, *serialcomm;
+	int cnt, byte;
+	gint64 timeout_us;
+
+	sdi = NULL;
+	devc = NULL;
+	conn = serialcomm = NULL;
+	devices = NULL;
+
+	drvc = (&gmc_mh_2x_bd232_driver_info)->priv;
+	drvc->instances = NULL;
+
+	sr_spew("scan_2x_bd232() called!");
+
+	for (l = options; l; l = l->next) {
+		src = l->data;
+		switch (src->key) {
+		case SR_CONF_CONN:
+			conn = g_variant_get_string(src->data, NULL);
+			break;
+		case SR_CONF_SERIALCOMM:
+			serialcomm = g_variant_get_string(src->data, NULL);
+			break;
+		}
+	}
+	if (!conn)
+		return NULL;
+	if (!serialcomm)
+		serialcomm = SERIALCOMM_2X;
+
+	if (!(serial = sr_serial_dev_inst_new(conn, serialcomm)))
+		return NULL;
+
+	if (serial_open(serial, SERIAL_RDWR | SERIAL_NONBLOCK) != SR_OK)
+		goto exit_err;
+
+	if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
+		sr_err("Device context malloc failed.");
+		goto exit_err;
+	}
+
+	if (!(sdi = sr_dev_inst_new(0, SR_ST_INACTIVE, VENDOR_GMC, NULL, NULL)))
+		goto exit_err;
+
+	sdi->priv = devc;
+
+	/* Send message 03 "Query multimeter version and status" */
+	sdi->conn = serial;
+	sdi->priv = devc;
+	if (req_stat14(sdi, TRUE) != SR_OK)
+		goto exit_err;
+
+	/* Wait for reply from device(s) for up to 2s. */
+	timeout_us = g_get_monotonic_time() + 2*1000*1000;
+
+	while (timeout_us > g_get_monotonic_time()) {
+		/* Receive reply (14 bytes) */
+		devc->buflen = 0;
+		for (cnt = 0; cnt < 14; cnt++) {
+			byte = read_byte(serial, timeout_us);
+			if (byte != -1)
+				devc->buf[devc->buflen++] = (byte & MASK_6BITS);
+		}
+
+		if (devc->buflen != 14)
+			continue;
+
+		devc->addr = devc->buf[0];
+		process_msg14(sdi);
+		devc->buflen = 0;
+
+		if (devc->model != METRAHIT_NONE) {
+			sr_spew("%s %s detected!", VENDOR_GMC, gmc_model_str(devc->model));
+
+			devc->elapsed_msec = g_timer_new();
+
+			sdi->model = g_strdup(gmc_model_str(devc->model));
+			sdi->version = g_strdup_printf("Firmware %d.%d", devc->fw_ver_maj, devc->fw_ver_min);
+			sdi->conn = serial;
+			sdi->priv = devc;
+			sdi->driver = &gmc_mh_2x_bd232_driver_info;
+			if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "P1")))
+				goto exit_err;
+			sdi->probes = g_slist_append(sdi->probes, probe);
+			drvc->instances = g_slist_append(drvc->instances, sdi);
+			devices = g_slist_append(devices, sdi);
+
+			if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
+				sr_err("Device context malloc failed.");
+				goto exit_err;
+			}
+
+			if (!(sdi = sr_dev_inst_new(0, SR_ST_INACTIVE, VENDOR_GMC, NULL, NULL)))
+				goto exit_err;
+		}
+	};
+
+	/* Free last alloc if no device found */
+	if (devc->model == METRAHIT_NONE) {
+		g_free(devc);
+		sr_dev_inst_free(sdi);
+	}
+
+	return devices;
+
+exit_err:
+	sr_info("scan_2x_bd232(): Error!");
+
+	if (serial)
+		sr_serial_dev_inst_free(serial);
+	if (devc)
+		g_free(devc);
+	if (sdi)
+		sr_dev_inst_free(sdi);
+
+	return NULL;
 }
 
-static int dev_clear(void)
+/** Driver device list function */
+static GSList *dev_list_1x_2x_rs232(void)
+{
+	return ((struct drv_context *)(gmc_mh_1x_2x_rs232_driver_info.priv))->instances;
+}
+
+/** Driver device list function */
+static GSList *dev_list_2x_bd232(void)
+{
+	return ((struct drv_context *)(gmc_mh_2x_bd232_driver_info.priv))
+			->instances;
+}
+
+static int dev_clear_1x_2x_rs232(void)
 {
 	return std_dev_clear(&gmc_mh_1x_2x_rs232_driver_info, NULL);
+}
+
+static int dev_clear_2x_bd232(void)
+{
+	return std_dev_clear(&gmc_mh_2x_bd232_driver_info, NULL);
 }
 
 static int dev_close(struct sr_dev_inst *sdi)
@@ -259,16 +421,26 @@ static int dev_close(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int cleanup(void)
+static int cleanup_sm_rs232(void)
 {
-	return dev_clear();
+	return dev_clear_1x_2x_rs232();
+}
+
+static int cleanup_2x_bd232(void)
+{
+	return dev_clear_2x_bd232();
 }
 
 /** Get value of configuration item */
 static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_probe_group *probe_group)
+		      const struct sr_probe_group *probe_group)
 {
 	int ret;
+
+	(void)sdi;
+	(void)data;
+	(void)probe_group;
+
 	ret = SR_OK;
 	struct dev_context *devc;
 
@@ -285,6 +457,10 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	case SR_CONF_LIMIT_MSEC:
 		*data = g_variant_new_uint64(devc->limit_msec);
 		break;
+
+	case SR_CONF_POWER_OFF:
+		*data = g_variant_new_boolean(FALSE);
+		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -292,45 +468,9 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	return ret;
 }
 
-static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
-		const struct sr_probe_group *probe_group)
-{
-	struct dev_context *devc;
-
-	(void)probe_group;
-
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
-	if (!(devc = sdi->priv)) {
-		sr_err("sdi->priv was NULL.");
-		return SR_ERR_BUG;
-	}
-
-	switch (key) {
-	case SR_CONF_LIMIT_MSEC:
-		if (g_variant_get_uint64(data) == 0) {
-			sr_err("LIMIT_MSEC can't be 0.");
-			return SR_ERR;
-		}
-		devc->limit_msec = g_variant_get_uint64(data);
-		sr_dbg("Setting time limit to %" PRIu64 "ms.",
-		       devc->limit_msec);
-		break;
-	case SR_CONF_LIMIT_SAMPLES:
-		devc->limit_samples = g_variant_get_uint64(data);
-		sr_dbg("Setting sample limit to %" PRIu64 ".",
-		       devc->limit_samples);
-		break;
-	default:
-		return SR_ERR_NA;
-	}
-
-	return SR_OK;
-}
-
-static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_probe_group *probe_group)
+/** Implementation of config_list, auxiliary function for common parts, */
+static int config_list_common(int key, GVariant **data, const struct sr_dev_inst *sdi,
+			      const struct sr_probe_group *probe_group)
 {
 	(void)sdi;
 	(void)probe_group;
@@ -338,11 +478,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-				hwopts, ARRAY_SIZE(hwopts), sizeof(int32_t));
-		break;
-	case SR_CONF_DEVICE_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-				hwcaps, ARRAY_SIZE(hwcaps), sizeof(int32_t));
+						  hwopts, ARRAY_SIZE(hwopts), sizeof(int32_t));
 		break;
 	default:
 		return SR_ERR_NA;
@@ -351,7 +487,46 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
+/** Implementation of config_list for Metrahit 1x/2x send mode */
+static int config_list_sm(int key, GVariant **data, const struct sr_dev_inst *sdi,
+			  const struct sr_probe_group *probe_group)
+{
+	(void)sdi;
+	(void)probe_group;
+
+	switch (key) {
+	case SR_CONF_DEVICE_OPTIONS:
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+						  hwcaps_sm, ARRAY_SIZE(hwcaps_sm), sizeof(int32_t));
+		break;
+	default:
+		return config_list_common(key, data, sdi, probe_group);
+	}
+
+	return SR_OK;
+}
+
+/** Implementation of config_list for Metrahit 2x bidirectional mode */
+static int config_list_bd(int key, GVariant **data, const struct sr_dev_inst *sdi,
+			  const struct sr_probe_group *probe_group)
+{
+	(void)sdi;
+	(void)probe_group;
+
+	switch (key) {
+	case SR_CONF_DEVICE_OPTIONS:
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+						  hwcaps_bd, ARRAY_SIZE(hwcaps_bd), sizeof(int32_t));
+		break;
+	default:
+		return config_list_common(key, data, sdi, probe_group);
+	}
+
+	return SR_OK;
+}
+
+static int dev_acquisition_start_1x_2x_rs232(const struct sr_dev_inst *sdi,
+					     void *cb_data)
 {
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
@@ -376,9 +551,41 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	/* Poll every 40ms, or whenever some data comes in. */
 	serial = sdi->conn;
 	serial_source_add(serial, G_IO_IN, 40, gmc_mh_1x_2x_receive_data,
-		(void *)sdi);
+			  (void *)sdi);
 
 	return SR_OK;
+}
+
+static int dev_acquisition_start_2x_bd232(const struct sr_dev_inst *sdi,
+					  void *cb_data)
+{
+	struct dev_context *devc;
+	struct sr_serial_dev_inst *serial;
+
+	if (!sdi || !cb_data || !(devc = sdi->priv))
+		return SR_ERR_BUG;
+
+	if (sdi->status != SR_ST_ACTIVE)
+		return SR_ERR_DEV_CLOSED;
+
+	devc->cb_data = cb_data;
+	devc->settings_ok = FALSE;
+	devc->buflen = 0;
+
+	/* Send header packet to the session bus. */
+	std_session_send_df_header(cb_data, LOG_PREFIX);
+
+	/* Start timer, if required. */
+	if (devc->limit_msec)
+		g_timer_start(devc->elapsed_msec);
+
+	/* Poll every 40ms, or whenever some data comes in. */
+	serial = sdi->conn;
+	serial_source_add(serial, G_IO_IN, 40, gmc_mh_2x_receive_data,
+			  (void *)sdi);
+
+	/* Send start message */
+	return req_meas14(sdi);
 }
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
@@ -397,17 +604,36 @@ SR_PRIV struct sr_dev_driver gmc_mh_1x_2x_rs232_driver_info = {
 	.name = "gmc-mh-1x-2x-rs232",
 	.longname = "Gossen Metrawatt Metrahit 1x/2x, 'RS232' interface",
 	.api_version = 1,
-	.init = init,
-	.cleanup = cleanup,
-	.scan = scan,
-	.dev_list = dev_list,
-	.dev_clear = dev_clear,
+	.init = init_1x_2x_rs232,
+	.cleanup = cleanup_sm_rs232,
+	.scan = scan_1x_2x_rs232,
+	.dev_list = dev_list_1x_2x_rs232,
+	.dev_clear = dev_clear_1x_2x_rs232,
 	.config_get = config_get,
 	.config_set = config_set,
-	.config_list = config_list,
+	.config_list = config_list_sm,
 	.dev_open = std_serial_dev_open,
 	.dev_close = dev_close,
-	.dev_acquisition_start = dev_acquisition_start,
+	.dev_acquisition_start = dev_acquisition_start_1x_2x_rs232,
+	.dev_acquisition_stop = dev_acquisition_stop,
+	.priv = NULL,
+};
+
+SR_PRIV struct sr_dev_driver gmc_mh_2x_bd232_driver_info = {
+	.name = "gmc-mh-2x-bd232",
+	.longname = "Gossen Metrawatt Metrahit 2x, 'BD232' interface",
+	.api_version = 1,
+	.init = init_2x_bd232,
+	.cleanup = cleanup_2x_bd232,
+	.scan = scan_2x_bd232,
+	.dev_list = dev_list_2x_bd232,
+	.dev_clear = dev_clear_2x_bd232,
+	.config_get = config_get,
+	.config_set = config_set,
+	.config_list = config_list_bd,
+	.dev_open = std_serial_dev_open,
+	.dev_close = dev_close,
+	.dev_acquisition_start = dev_acquisition_start_2x_bd232,
 	.dev_acquisition_stop = dev_acquisition_stop,
 	.priv = NULL,
 };

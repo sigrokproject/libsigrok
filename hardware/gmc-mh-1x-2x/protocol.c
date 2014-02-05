@@ -1,7 +1,7 @@
 /*
  * This file is part of the libsigrok project.
  *
- * Copyright (C) 2013 Matthias Heidbrink <m-sigrok@heidbrink.biz>
+ * Copyright (C) 2013, 2014 Matthias Heidbrink <m-sigrok@heidbrink.biz>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,12 +19,16 @@
 
 /** @file
  *  Gossen Metrawatt Metrahit 1x/2x drivers
- *  @private
+ *  @internal
  */
 
 #include <math.h>
 #include <string.h>
 #include "protocol.h"
+
+/* Internal Headers */
+static guchar calc_chksum_14(guchar* dta);
+static int chk_msg14(struct sr_dev_inst *sdi);
 
 /** Set or clear flags in devc->mqflags. */
 static void setmqf(struct dev_context *devc, uint64_t flags, gboolean set)
@@ -237,7 +241,7 @@ static void decode_ctmv_18(uint8_t ctmv, struct dev_context *devc)
 		devc->mqflags |= SR_MQFLAG_AC; /* dB available for AC only */
 		break;
 	case 0x0e: /* 1110 Events AC, Events AC+DC. Actually delivers just
-				* current voltage via IR, nothing more. */
+		* current voltage via IR, nothing more. */
 		devc->mq = SR_MQ_VOLTAGE;
 		devc->unit = SR_UNIT_VOLT;
 		devc->mqflags |= SR_MQFLAG_AC | SR_MQFLAG_DC | SR_MQFLAG_RMS;
@@ -261,7 +265,7 @@ static void decode_rs_18(uint8_t rs, struct dev_context *devc)
 
 	/* Sign */
 	if (((devc->scale > 0) && (rs & 0x08)) ||
-		((devc->scale < 0) && !(rs & 0x08)))
+			((devc->scale < 0) && !(rs & 0x08)))
 		devc->scale *= -1.0;
 
 	/* Range */
@@ -293,15 +297,15 @@ static void decode_rs_18(uint8_t rs, struct dev_context *devc)
 		devc->scale *= pow(10.0, range - 2);
 		break;
 	case SR_MQ_FREQUENCY:
-		devc->scale *= pow(10.0, range - 3);
+		devc->scale *= pow(10.0, range - 2);
 		break;
 	case SR_MQ_TEMPERATURE:
 		devc->scale *= pow(10.0, range - 2);
 		break;
 	case SR_MQ_CAPACITANCE:
-		devc->scale *= pow(10.0, range - 14);
+		devc->scale *= pow(10.0, range - 13);
 		break;
-	/* TODO: 29S Mains measurements. */
+		/* TODO: 29S Mains measurements. */
 	}
 }
 
@@ -389,7 +393,7 @@ static void decode_ctmv_2x(uint8_t ctmv, struct dev_context *devc)
 		devc->unit = SR_UNIT_FARAD;
 		devc->scale *= 0.1;
 		break;
-	case 0x0a: /* 01010 dBV */
+	case 0x0a: /* 01010 V dB */
 		devc->mq = SR_MQ_VOLTAGE;
 		devc->unit = SR_UNIT_DECIBEL_VOLT;
 		devc->mqflags |= SR_MQFLAG_AC;
@@ -504,13 +508,13 @@ static void decode_rs_2x(uint8_t rs, struct dev_context *devc)
 			devc->scale *= pow(10.0, -3);
 		else if (devc->vmains_29S)
 			devc->scale *= pow(10.0, range - 2);
-	else
+		else
 			devc->scale *= pow(10.0, range - 6);
 		break;
 	case SR_MQ_CURRENT:
-	if (devc->scale1000 != -1) /* uA, mA */
-	    range += 1;/* mA and A ranges differ by 10^4, not 10^3!*/
-	devc->scale *= pow(10.0, range - 6);
+		if (devc->scale1000 != -1) /* uA, mA */
+			range += 1;/* mA and A ranges differ by 10^4, not 10^3!*/
+		devc->scale *= pow(10.0, range - 6);
 		break;
 	case SR_MQ_RESISTANCE:
 		devc->scale *= pow(10.0, range - 3);
@@ -531,6 +535,56 @@ static void decode_rs_2x(uint8_t rs, struct dev_context *devc)
 	/* TODO: 29S Mains measurements. */
 	}
 }
+
+/**
+ * Decode range/sign/acdc byte special chars, Metrahit 2x, table TR 2.
+ *
+ * @param[in] rs Range/sign byte.
+ */
+static void decode_rs_2x_TR2(uint8_t rs, struct dev_context *devc)
+{
+	int range;
+
+	/* Range */
+	range = rs & 0x07;
+	switch (devc->mq) {
+	case SR_MQ_CURRENT:
+		if (devc->scale1000 == -1) /* mA */
+			switch(range) {
+			case 0: case 1:	/* 100, 300 µA */
+				devc->scale *= pow(10.0, -6);
+				break;
+			case 2: case 3:	/* 1, 3 mA */
+				devc->scale *= pow(10.0, -5);
+				break;
+			case 4: case 5:	/* 10, 30 mA */
+				devc->scale *= pow(10.0, -4);
+				break;
+			case 6: case 7:	/* 100, 300 mA */
+				devc->scale *= pow(10.0, -3);
+				break;
+			}
+		else /* A */
+			switch(range) {
+			case 0: case 1:	/* 1, 3 A */
+				devc->scale *= pow(10.0, -5);
+				break;
+			case 2: /* 10 A */
+				devc->scale *= pow(10.0, -4);
+				break;
+			}
+		break;
+	default:
+		decode_rs_2x(rs, devc);
+		return;
+	}
+
+	/* Sign */
+	if (((devc->scale > 0) && (rs & 0x08)) ||
+			((devc->scale < 0) && !(rs & 0x08)))
+		devc->scale *= -1.0;
+}
+
 
 /**
  * Decode special chars (Metrahit 2x).
@@ -613,10 +667,10 @@ static void process_msg_dta_6(struct sr_dev_inst *sdi)
 		decode_rs_16(bc(devc->buf[0]), devc);
 	else if (devc->model < METRAHIT_2X)
 		decode_rs_18(bc(devc->buf[0]), devc);
-    else {
+	else {
 		decode_rs_2x(bc(devc->buf[0]), devc);
-	devc->scale *= 10; /* Compensate for format having only 5 digits, decode_rs_2x() assumes 6. */
-    }
+		devc->scale *= 10; /* Compensate for format having only 5 digits, decode_rs_2x() assumes 6. */
+	}
 
 	/* Bytes 1-5, digits (ls first). */
 	for (cnt = 0; cnt < 5; cnt++) {
@@ -630,7 +684,7 @@ static void process_msg_dta_6(struct sr_dev_inst *sdi)
 		devc->value += pow(10.0, cnt) * dgt;
 	}
 
-    sr_spew("process_msg_dta_6() value=%f scale=%f scale1000=%d",
+	sr_spew("process_msg_dta_6() value=%f scale=%f scale1000=%d",
 		devc->value, devc->scale, devc->scale1000);
 	if (devc->value != NAN)
 		devc->value *= devc->scale * pow(1000.0, devc->scale1000);
@@ -686,10 +740,10 @@ static void process_msg_inf_10(struct sr_dev_inst *sdi)
 	/* Now decode numbers */
 	for (cnt = 0; cnt < 5; cnt++) {
 		dgt = bc(devc->buf[5 + cnt]);
-	if (dgt == 11) { /* Empty digit */
-	    dgt = 0;
-	}
-	else if (dgt >= 12) { /* Overload */
+		if (dgt == 11) { /* Empty digit */
+			dgt = 0;
+		}
+		else if (dgt >= 12) { /* Overload */
 			devc->value = NAN;
 			devc->scale = 1.0;
 			break;
@@ -697,7 +751,7 @@ static void process_msg_inf_10(struct sr_dev_inst *sdi)
 		devc->value += pow(10.0, cnt) * dgt;
 	}
 	sr_spew("process_msg_inf_10() value=%f scale=%f scalet=%d",
-			devc->value, devc->scale,  devc->scale1000);
+		devc->value, devc->scale,  devc->scale1000);
 
 	if (devc->value != NAN)
 		devc->value *= devc->scale * pow(1000.0, devc->scale1000);
@@ -794,6 +848,228 @@ static void process_msg_inf_13(struct sr_dev_inst *sdi)
 	send_value(sdi);
 }
 
+/** Dump contents of 14-byte message.
+ *  @param buf Pointer to array of 14 data bytes.
+ *  @param[in] raw Write only data bytes, no interpretation.
+ */
+void dump_msg14(guchar* buf, gboolean raw)
+{
+	if (!buf)
+		return;
+
+	if (raw)
+		sr_spew("msg14: 0x %02x %02x %02x %02x %02x %02x %02x %02x "
+			"%02x %02x %02x %02x %02x %02x",
+			buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6],
+				buf[7], buf[8], buf[9], buf[10], buf[11], buf[12],
+				buf[13]);
+	else
+		sr_spew("msg14: 0x a=%d c1=%02x c2=%02x cmd=%02x dta=%02x "
+			"%02x %02x %02x %02x %02x %02x %02x %02x chs=%02x",
+			buf[1] == 0x2b?buf[0] >> 2:buf[0] % 0x0f, buf[1], buf[2], buf[3], buf[4], buf[5],
+				buf[6],	buf[7], buf[8], buf[9], buf[10], buf[11],
+				buf[12], buf[13]);
+}
+
+/** Calc checksum for 14 byte message type.
+ *
+ *  @param[in] dta Pointer to array of 13 data bytes.
+ *  @return Checksum.
+ */
+static guchar calc_chksum_14(guchar* dta)
+{
+	guchar cnt, chs;
+
+	for (chs = 0, cnt = 0; cnt < 13; cnt++)
+		chs += dta[cnt];
+
+	return (64 - chs) & MASK_6BITS;
+}
+
+/** Check 14-byte message, Metrahit 2x. */
+static int chk_msg14(struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	int retc;
+	gboolean isreq; /* Message is request to multimeter (otherwise response) */
+	uint8_t addr;  /* Adaptor address */
+
+	retc = SR_OK;
+
+	/* Check parameters and message */
+	if (!sdi || !(devc = sdi->priv))
+		return SR_ERR_ARG;
+
+	if (devc->buflen != 14) {
+		sr_err("process_msg_14(): Msg len 14 expected!");
+		return SR_ERR_ARG;
+	}
+
+	isreq = devc->buf[1] == 0x2b;
+	if (isreq)
+		addr = devc->buf[0] >> 2;
+	else
+		addr = devc->buf[0] & 0x0f;
+
+	if ((devc->addr != addr) && !(isreq && (addr == 0))) {
+		sr_err("process_msg_14(): Address mismatch, msg for other device!");
+		retc = SR_ERR_ARG;
+	}
+
+	if (devc->buf[1] == 0) { /* Error msg from device! */
+		retc = SR_ERR_ARG;
+		switch (devc->buf[2]) {
+		case 1: /* Not used */
+			sr_err("Device: Illegal error code!");
+			break;
+		case 2: /* Incorrect check sum of received block */
+			sr_err("Device: Incorrect checksum in cmd!");
+			break;
+		case 3: /* Incorrect length of received block */
+			sr_err("Device: Incorrect block length in cmd!");
+			break;
+		case 4: /* Incorrect 2nd or 3rd byte */
+			sr_err("Device: Incorrect byte 2 or 3 in cmd!");
+			break;
+		case 5: /* Parameter out of range */
+			sr_err("Device: Parameter out of range!");
+			break;
+		default:
+			sr_err("Device: Unknown error code!");
+		}
+		retc = SR_ERR_ARG;
+	}
+	else if (!isreq && ((devc->buf[1] != 0x27) || (devc->buf[2] != 0x3f))) {
+		sr_err("process_msg_14(): byte 1/2 unexpected!");
+		retc = SR_ERR_ARG;
+	}
+
+	if (calc_chksum_14(devc->buf) != devc->buf[13]) {
+		sr_err("process_msg_14(): Invalid checksum!");
+		retc = SR_ERR_ARG;
+	}
+
+	if (retc != SR_OK)
+		dump_msg14(devc->buf, TRUE);
+
+	return retc;
+}
+
+/** Check 14-byte message, Metrahit 2x. */
+SR_PRIV int process_msg14(struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	int retc;
+	uint8_t addr;
+	uint8_t cnt, dgt;
+
+	if ((retc = chk_msg14(sdi)) != SR_OK)
+		return retc;
+
+	devc = sdi->priv;
+
+	clean_ctmv_rs_v(devc);
+	addr = devc->buf[0] & MASK_6BITS;
+	if (addr != devc->addr)
+		sr_info("Device address mismatch %d/%d!", addr, devc->addr);
+
+	switch (devc->buf[3]) { /* That's the command this reply is for */
+	/* 0 cannot occur, the respective message is not a 14-byte message */
+	case 1: /* Read first free and occupied address */
+		sr_spew("Cmd %d unimplemented!", devc->buf[3]);
+		break;
+	case 2: /* Clear all RAM in multimeter */
+		sr_spew("Cmd %d unimplemented!", devc->buf[3]);
+		break;
+	case 3: /* Read firmware version and status */
+		sr_spew("Cmd 3, Read firmware and status", devc->buf[3]);
+		switch (devc->cmd_idx) {
+		case 0:
+			devc->fw_ver_maj = devc->buf[5];
+			devc->fw_ver_min = devc->buf[4];
+			sr_spew("Firmware version %d.%d", (int)devc->fw_ver_maj, (int)devc->fw_ver_min);
+			sr_spew("Rotary Switch Position (1..10): %d", (int)devc->buf[6]);
+			/** Docs say values 0..9, but that's not true */
+			sr_spew("Measurement Function: %d ", (int)devc->buf[7]);
+			decode_ctmv_2x(devc->buf[7], devc);
+			sr_spew("Range: 0x%x", devc->buf[8]);
+			decode_rs_2x_TR2(devc->buf[8] & 0x0f, devc);  /* Docs wrong, uses conversion table TR_2! */
+			devc->autorng = (devc->buf[8] & 0x20) == 0;
+			// TODO 9, 10: 29S special functions
+			devc->ubatt = 0.1 * (float)devc->buf[11];
+			devc->model = gmc_decode_model_bd(devc->buf[12]);
+			sr_spew("Model=%s, battery voltage=%2.1f V", gmc_model_str(devc->model), (double)devc->ubatt);
+			break;
+		case 1:
+			sr_spew("Internal version %d.%d", (int)devc->buf[5], (int)devc->buf[4]);
+			sr_spew("Comm mode: 0x%x", (int)devc->buf[6]);
+			sr_spew("Block cnt%%64: %d", (int)devc->buf[7]);
+			sr_spew("drpCi: %d  drpCh: %d", (int)devc->buf[8], (int)devc->buf[9]);
+			// Semantics undocumented. Possibly Metrahit 29S dropouts stuff?
+			break;
+		default:
+			sr_spew("Cmd 3: Unknown cmd_idx=%d", devc->cmd_idx);
+			break;
+		}
+		break;
+	case 4: /* Set real time, date, sample rate, trigger, ... */
+		sr_spew("Cmd %d unimplemented!", devc->buf[3]);
+		break;
+	case 5: /* Read real time, date, sample rate, trigger... */
+		sr_spew("Cmd %d unimplemented!", devc->buf[3]);
+		break;
+	case 6: /* Set modes or power off */
+		sr_spew("Cmd %d unimplemented!", devc->buf[3]);
+		break;
+	case 7: /* Set measurement function, range, autom/man. */
+		sr_spew("Cmd %d unimplemented!", devc->buf[3]);
+		break;
+	case 8: /* Get one measurement value */
+		sr_spew("Cmd 8, get one measurement value");
+		sr_spew("Measurement Function: %d ", (int)devc->buf[5]);
+		decode_ctmv_2x(devc->buf[5], devc);
+		if (!(devc->buf[6] & 0x10)) /* If bit4=0, old data. */
+			return SR_OK;
+
+		decode_rs_2x_TR2(devc->buf[6] & 0x0f, devc); // The docs say conversion table TR_3, but that does not work
+		setmqf(devc, SR_MQFLAG_AUTORANGE, devc->autorng);
+		/* 6 digits */
+		for (cnt = 0; cnt < 6; cnt++) {
+			dgt = bc(devc->buf[7 + cnt]);
+			if (dgt == 10) { /* Overload */
+				devc->value = NAN;
+				devc->scale = 1.0;
+				break;
+			}
+			else if (dgt == 13) { /* FUSE */
+				sr_err("FUSE!");
+			}
+			else if (dgt == 14) { /* Function recognition mode, OPEN */
+				sr_info("Function recognition mode, OPEN!");
+				devc->value = NAN;
+				devc->scale = 1.0;
+				break;
+			}
+			devc->value += pow(10.0, cnt) * dgt;
+		}
+		sr_spew("process_msg14() value=%f scale=%f scale1000=%d mq=%d "
+			"unit=%d mqflags=0x%02llx", devc->value, devc->scale,
+			devc->scale1000, devc->mq, devc->unit, devc->mqflags);
+		if (devc->value != NAN)
+			devc->value *= devc->scale * pow(1000.0, devc->scale1000);
+
+		send_value(sdi);
+
+		break;
+	default:
+		sr_spew("Unknown cmd %d!", devc->buf[3]);
+		break;
+	}
+
+	return SR_OK;
+}
+
+/** Data reception callback function. */
 SR_PRIV int gmc_mh_1x_2x_receive_data(int fd, int revents, void *cb_data)
 {
 	struct sr_dev_inst *sdi;
@@ -841,21 +1117,21 @@ SR_PRIV int gmc_mh_1x_2x_receive_data(int fd, int revents, void *cb_data)
 					devc->buflen = 0;
 					continue;
 				} else if ((devc->buflen == 10) &&
-					 (devc->model <= METRAHIT_18S)) {
+					   (devc->model <= METRAHIT_18S)) {
 					process_msg_inf_10(sdi);
 					devc->buflen = 0;
 					continue;
 				}
 				else if ((devc->buflen >= 5) &&
-					(devc->buf[devc->buflen - 1] &
-					MSGID_MASK) != MSGID_DATA) {
+					 (devc->buf[devc->buflen - 1] &
+					  MSGID_MASK) != MSGID_DATA) {
 					/*
 					 * Char just received is beginning
 					 * of next message.
 					 */
 					process_msg_inf_5(sdi);
 					devc->buf[0] =
-						devc->buf[devc->buflen - 1];
+							devc->buf[devc->buflen - 1];
 					devc->buflen = 1;
 					continue;
 				}
@@ -888,7 +1164,186 @@ SR_PRIV int gmc_mh_1x_2x_receive_data(int fd, int revents, void *cb_data)
 	return TRUE;
 }
 
-/** Decode model in "send mode". */
+SR_PRIV int gmc_mh_2x_receive_data(int fd, int revents, void *cb_data)
+{
+	struct sr_dev_inst *sdi;
+	struct dev_context *devc;
+	struct sr_serial_dev_inst *serial;
+	uint8_t buf;
+	int len;
+	gdouble elapsed_s;
+
+	(void)fd;
+
+	if (!(sdi = cb_data))
+		return TRUE;
+
+	if (!(devc = sdi->priv))
+		return TRUE;
+
+	serial = sdi->conn;
+
+	if (revents == G_IO_IN) { /* Serial data arrived. */
+		while (GMC_BUFSIZE - devc->buflen - 1 > 0) {
+			len = serial_read(serial, devc->buf + devc->buflen, 1);
+			if (len < 1)
+				break;
+			buf = *(devc->buf + devc->buflen);
+			sr_spew("read 0x%02x/%d/%d", buf, buf, buf & MASK_6BITS);
+			devc->buf[devc->buflen] &= MASK_6BITS;
+			devc->buflen += len;
+
+			if (devc->buflen == 14) {
+				devc->response_pending = FALSE;
+				sr_spew("gmc_mh_2x_receive_data processing msg");
+				process_msg14(sdi);
+				devc->buflen = 0;
+			}
+		}
+	}
+
+	/* If number of samples or time limit reached, stop aquisition. */
+	if (devc->limit_samples && (devc->num_samples >= devc->limit_samples))
+		sdi->driver->dev_acquisition_stop(sdi, cb_data);
+
+	if (devc->limit_msec) {
+		elapsed_s = g_timer_elapsed(devc->elapsed_msec, NULL);
+		if ((elapsed_s * 1000) >= devc->limit_msec)
+			sdi->driver->dev_acquisition_stop(sdi, cb_data);
+	}
+
+	/* Request next data set, if required */
+	if (sdi->status == SR_ST_ACTIVE) {
+		if (devc->response_pending) {
+			gint64 elapsed_us = g_get_monotonic_time() - devc->req_sent_at;
+			if (elapsed_us > 1*1000*1000) /* Timeout! */
+				devc->response_pending = FALSE;
+		}
+		if (!devc->response_pending) {
+			devc->cmd_seq++;
+			if (devc->cmd_seq % 10 == 0) {
+				if (req_stat14(sdi, FALSE) != SR_OK)
+					return FALSE;
+			}
+			else if (req_meas14(sdi) != SR_OK)
+				return FALSE;
+		}
+	}
+
+	return TRUE;
+}
+
+/** Create 14 (42) byte command for Metrahit 2x multimeter in bidir mode.
+ *
+ *  Actually creates 42 bytes due to the encoding method used.
+ *  @param[in] addr Device address (0=adapter, 1..15 multimeter; for byte 0).
+ *  @param[in] func Function code (byte 3).
+ *  @param[in] params Further parameters (9 bytes)
+ *  @param[out] buf Buffer to create msg in (42 bytes).
+ */
+void create_cmd_14(guchar addr, guchar func, guchar* params, guchar* buf)
+{
+	uint8_t dta[14];	/* Unencoded message */
+	int cnt;
+
+	if (!params || !buf)
+		return;
+
+	/* 0: Address */
+	dta[0] = ((addr << 2) | 0x03) & MASK_6BITS;
+
+	/* 1-3: Set command header */
+	dta[1] = 0x2b;
+	dta[2] = 0x3f;
+	dta[3] = func;
+
+	/* 4-12: Copy further parameters */
+	for (cnt = 0; cnt < 9; cnt++)
+		dta[cnt+4] = (params[cnt] & MASK_6BITS);
+
+	/* 13: Checksum (b complement) */
+	dta[13] = calc_chksum_14(dta);
+
+	/* The whole message is packed into 3 bytes per byte now (lower 6 bits only) the most
+	 * peculiar way I have ever seen. Possibly to improve IR communication? */
+	for (cnt = 0; cnt < 14; cnt++) {
+		buf[3*cnt] = (dta[cnt] & 0x01 ? 0x0f : 0) | (dta[cnt] & 0x02 ? 0xf0 : 0);
+		buf[3*cnt + 1] = (dta[cnt] & 0x04 ? 0x0f : 0) | (dta[cnt] & 0x08 ? 0xf0 : 0);
+		buf[3*cnt + 2] = (dta[cnt] & 0x10 ? 0x0f : 0) | (dta[cnt] & 0x20 ? 0xf0 : 0);
+	}
+}
+
+/** Request one measurement from 2x multimeter (msg 8).
+ *
+ */
+int req_meas14(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	struct sr_serial_dev_inst *serial;
+	uint8_t params[9];
+	uint8_t msg[42];
+
+	if (!sdi || !(devc = sdi->priv) || !(serial = sdi->conn))
+		return SR_ERR;
+
+	memset(params, 0, sizeof(params));
+	params[0] = 0;
+	devc->cmd_idx = 0;
+	create_cmd_14(devc->addr, 8, params, msg);
+	devc->req_sent_at = g_get_monotonic_time();
+	if (serial_write(serial, msg, sizeof(msg)) == -1) {
+		return SR_ERR;
+	}
+
+	devc->response_pending = TRUE;
+
+	return SR_OK;
+}
+
+/** Request status from 2x multimeter (msg 3).
+ *  @param[in] power_on Try to power on powered off multimeter by sending additional messages.
+ */
+int req_stat14(const struct sr_dev_inst *sdi, gboolean power_on)
+{
+	struct dev_context *devc;
+	struct sr_serial_dev_inst *serial;
+	uint8_t params[9];
+	uint8_t msg[42];
+
+	if (!sdi || !(devc = sdi->priv) || !(serial = sdi->conn))
+		return SR_ERR;
+
+	memset(params, 0, sizeof(params));
+	params[0] = 0;
+	devc->cmd_idx = 0;
+	create_cmd_14(devc->addr, 3, params, msg);
+
+	if (power_on) {
+		sr_info("Write some data and wait 3s to turn on powered off device...");
+		if ((serial_write(serial, msg, sizeof(msg)) == -1) ||
+				(serial_write(serial, msg, sizeof(msg)) == -1) ||
+				(serial_write(serial, msg, sizeof(msg)) == -1))
+			return SR_ERR;
+		g_usleep(3*1000*1000);
+		serial_flush(serial);
+	}
+
+	/* Write message and wait for reply */
+	devc->req_sent_at = g_get_monotonic_time();
+	if (serial_write(serial, msg, sizeof(msg)) == -1) {
+		return SR_ERR;
+	}
+
+	devc->response_pending = TRUE;
+
+	return SR_OK;
+}
+
+/** Decode model in "send mode".
+ *
+ * @param[in] mcode Model code.
+ * @return Model code.
+ */
 SR_PRIV int gmc_decode_model_sm(uint8_t mcode)
 {
 	if (mcode > 0xf) {
@@ -918,9 +1373,9 @@ SR_PRIV int gmc_decode_model_sm(uint8_t mcode)
 	case 0x0f: /* 1111b */
 		return METRAHIT_24S;
 	case 0x05: /* 0101b */
-	return METRAHIT_25S;
+		return METRAHIT_25S;
 	case 0x01: /* 0001b */
-	return METRAHIT_26SM;
+		return METRAHIT_26SM;
 	case 0x0c: /* 1100b */
 		return METRAHIT_28S;
 	case 0x0e: /* 1110b */
@@ -941,7 +1396,10 @@ SR_PRIV int gmc_decode_model_bd(uint8_t mcode)
 {
 	switch (mcode & 0x1f) {
 	case 2:
-		return METRAHIT_22SM;
+		if (mcode & 0x20)
+			return METRAHIT_22M;
+		else
+			return METRAHIT_22S;
 	case 3:
 		return METRAHIT_23S;
 	case 4:
@@ -949,7 +1407,10 @@ SR_PRIV int gmc_decode_model_bd(uint8_t mcode)
 	case 5:
 		return METRAHIT_25S;
 	case 1:
-		return METRAHIT_26SM;
+		if (mcode & 0x20)
+			return METRAHIT_26M;
+		else
+			return METRAHIT_26S;
 	case 12:
 		return METRAHIT_28S;
 	case 14:
@@ -987,6 +1448,10 @@ SR_PRIV const char *gmc_model_str(enum model mcode)
 		return "METRAHit 18S";
 	case METRAHIT_22SM:
 		return "METRAHit 22S/M";
+	case METRAHIT_22S:
+		return "METRAHit 22S";
+	case METRAHIT_22M:
+		return "METRAHit 22M";
 	case METRAHIT_23S:
 		return "METRAHit 23S";
 	case METRAHIT_24S:
@@ -995,6 +1460,10 @@ SR_PRIV const char *gmc_model_str(enum model mcode)
 		return "METRAHit 25S";
 	case METRAHIT_26SM:
 		return "METRAHit 26S/M";
+	case METRAHIT_26S:
+		return "METRAHit 26S";
+	case METRAHIT_26M:
+		return "METRAHit 26M";
 	case METRAHIT_28S:
 		return "METRAHit 28S";
 	case METRAHIT_29S:
@@ -1002,4 +1471,62 @@ SR_PRIV const char *gmc_model_str(enum model mcode)
 	default:
 		return "Unknown model code";
 	}
+}
+
+
+/** @copydoc sr_dev_driver.config_set
+ */
+SR_PRIV int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
+		       const struct sr_probe_group *probe_group)
+{
+	struct dev_context *devc;
+	uint8_t params[9];
+	uint8_t msg[42];
+
+	(void)probe_group;
+
+	if (sdi->status != SR_ST_ACTIVE)
+		return SR_ERR_DEV_CLOSED;
+
+	if (!(devc = sdi->priv)) {
+		sr_err("sdi->priv was NULL.");
+		return SR_ERR_BUG;
+	}
+
+	switch (key) {
+	case SR_CONF_POWER_OFF:
+		if (devc->model < METRAHIT_2X)
+			return SR_ERR_NA;
+		if (!g_variant_get_boolean(data))
+			return SR_ERR;
+		sr_info("Powering device off.");
+
+		memset(params, 0, sizeof(params));
+		params[0] = 5;
+		params[1] = 5;
+		create_cmd_14(devc->addr, 6, params, msg);
+		if (serial_write(sdi->conn, msg, sizeof(msg)) == -1)
+			return SR_ERR;
+		else
+			g_usleep(2000000); /* Wait to ensure transfer before interface switched off. */
+		break;
+	case SR_CONF_LIMIT_MSEC:
+		if (g_variant_get_uint64(data) == 0) {
+			sr_err("LIMIT_MSEC can't be 0.");
+			return SR_ERR;
+		}
+		devc->limit_msec = g_variant_get_uint64(data);
+		sr_dbg("Setting time limit to %" PRIu64 "ms.",
+		       devc->limit_msec);
+		break;
+	case SR_CONF_LIMIT_SAMPLES:
+		devc->limit_samples = g_variant_get_uint64(data);
+		sr_dbg("Setting sample limit to %" PRIu64 ".",
+		       devc->limit_samples);
+		break;
+	default:
+		return SR_ERR_NA;
+	}
+
+	return SR_OK;
 }

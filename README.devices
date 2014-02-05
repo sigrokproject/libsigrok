@@ -287,9 +287,11 @@ a short list for convenience:
  - BBC Goertz Metrawatt M2110: Briefly press the "Start/Reset" button on the
    interface panel on top.
  - Digitek DT4000ZC: Briefly press the "RS232" button.
- - Gossen Metrawatt Metrahit devices: Power on the device with the "DATA"
-   button pressed. Additionally, Metrahit 2x devices must be configured for
-   interface "RS232".
+ - Gossen Metrawatt Metrahit 1x/2x devices, driver gmc-mh-1x-2x-rs232:
+   Power on the device with the "DATA" button pressed. Additionally Metrahit
+   2x devices must be configured for the respective interface type.
+ - Gossen Metrawatt Metrahit 2x devices, driver gmc-mh-2x-bd232:
+   The device must be configured for the respective interface type.
  - Norma DM950: If the interface doesn't work (e.g. USB-RS232 converter), power
    on the device with "FUNC" pressed (to power the interface from the DMM).
  - PCE PCE-DM32: Briefly press the "RS232" button.
