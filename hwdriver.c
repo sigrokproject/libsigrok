@@ -445,9 +445,10 @@ SR_API struct sr_dev_driver **sr_driver_list(void)
  * @param driver The driver to initialize. This must be a pointer to one of
  *               the entries returned by sr_driver_list(). Must not be NULL.
  *
- * @return SR_OK upon success, SR_ERR_ARG upon invalid parameters,
- *         SR_ERR_BUG upon internal errors, or another negative error code
- *         upon other errors.
+ * @retval SR_OK Success
+ * @retval SR_ERR_ARG Invalid parameter(s).
+ * @retval SR_ERR_BUG Internal errors.
+ * @retval other Another negative error code upon other errors.
  */
 SR_API int sr_driver_init(struct sr_context *ctx, struct sr_dev_driver *driver)
 {
@@ -515,7 +516,8 @@ SR_API GSList *sr_driver_scan(struct sr_dev_driver *driver, GSList *options)
 	return l;
 }
 
-/** @private */
+/** Call driver cleanup function for all drivers.
+ *  @private */
 SR_PRIV void sr_hw_cleanup_all(void)
 {
 	int i;
@@ -528,8 +530,10 @@ SR_PRIV void sr_hw_cleanup_all(void)
 	}
 }
 
-/** A floating reference can be passed in for data.
- * @private */
+/** Allocate struct sr_config.
+ *  A floating reference can be passed in for data.
+ *  @private
+ */
 SR_PRIV struct sr_config *sr_config_new(int key, GVariant *data)
 {
 	struct sr_config *src;
@@ -542,7 +546,9 @@ SR_PRIV struct sr_config *sr_config_new(int key, GVariant *data)
 	return src;
 }
 
-/** @private */
+/** Free struct sr_config.
+ *  @private
+ */
 SR_PRIV void sr_config_free(struct sr_config *src)
 {
 
@@ -557,25 +563,26 @@ SR_PRIV void sr_config_free(struct sr_config *src)
 }
 
 /**
- * Returns information about the given driver or device instance.
+ * Query value of a configuration key at the given driver or device instance.
  *
- * @param driver The sr_dev_driver struct to query.
- * @param sdi (optional) If the key is specific to a device, this must
+ * @param[in] driver The sr_dev_driver struct to query.
+ * @param[in] sdi (optional) If the key is specific to a device, this must
  *            contain a pointer to the struct sr_dev_inst to be checked.
  *            Otherwise it must be NULL.
- * @param probe_group The probe group on the device for which to list the
+ * @param[in] probe_group The probe group on the device for which to list the
  *                    values, or NULL.
- * @param key The configuration key (SR_CONF_*).
- * @param data Pointer to a GVariant where the value will be stored. Must
- *             not be NULL. The caller is given ownership of the GVariant
+ * @param[in] key The configuration key (SR_CONF_*).
+ * @param[in,out] data Pointer to a GVariant where the value will be stored.
+ *             Must not be NULL. The caller is given ownership of the GVariant
  *             and must thus decrease the refcount after use. However if
  *             this function returns an error code, the field should be
  *             considered unused, and should not be unreferenced.
  *
- * @return SR_OK upon success or SR_ERR in case of error. Note SR_ERR_ARG
- *         may be returned by the driver indicating it doesn't know that key,
- *         but this is not to be flagged as an error by the caller; merely
- *         as an indication that it's not applicable.
+ * @retval SR_OK Success.
+ * @retval SR_ERR Error.
+ * @retval SR_ERR_ARG The driver doesn't know that key, but this is not to be
+ *          interpreted as an error by the caller; merely as an indication
+ *          that it's not applicable.
  */
 SR_API int sr_config_get(const struct sr_dev_driver *driver,
 		const struct sr_dev_inst *sdi,
@@ -600,20 +607,21 @@ SR_API int sr_config_get(const struct sr_dev_driver *driver,
 }
 
 /**
- * Set a configuration key in a device instance.
+ * Set value of a configuration key in a device instance.
  *
- * @param sdi The device instance.
- * @param probe_group The probe group on the device for which to list the
+ * @param[in] sdi The device instance.
+ * @param[in] probe_group The probe group on the device for which to list the
  *                    values, or NULL.
- * @param key The configuration key (SR_CONF_*).
+ * @param[in] key The configuration key (SR_CONF_*).
  * @param data The new value for the key, as a GVariant with GVariantType
  *        appropriate to that key. A floating reference can be passed
  *        in; its refcount will be sunk and unreferenced after use.
  *
- * @return SR_OK upon success or SR_ERR in case of error. Note SR_ERR_ARG
- *         may be returned by the driver indicating it doesn't know that key,
- *         but this is not to be flagged as an error by the caller; merely
- *         as an indication that it's not applicable.
+ * @retval SR_OK Success.
+ * @retval SR_ERR Error.
+ * @retval SR_ERR_ARG The driver doesn't know that key, but this is not to be
+ *          interpreted as an error by the caller; merely as an indication
+ *          that it's not applicable.
  */
 SR_API int sr_config_set(const struct sr_dev_inst *sdi,
 		const struct sr_probe_group *probe_group,
@@ -659,22 +667,23 @@ SR_API int sr_config_commit(const struct sr_dev_inst *sdi)
 /**
  * List all possible values for a configuration key.
  *
- * @param driver The sr_dev_driver struct to query.
- * @param sdi (optional) If the key is specific to a device, this must
+ * @param[in] driver The sr_dev_driver struct to query.
+ * @param[in] sdi (optional) If the key is specific to a device, this must
  *            contain a pointer to the struct sr_dev_inst to be checked.
- * @param probe_group The probe group on the device for which to list the
+ * @param[in] probe_group The probe group on the device for which to list the
  *                    values, or NULL.
- * @param key The configuration key (SR_CONF_*).
- * @param data A pointer to a GVariant where the list will be stored. The
- *             caller is given ownership of the GVariant and must thus
+ * @param[in] key The configuration key (SR_CONF_*).
+ * @param[in,out] data A pointer to a GVariant where the list will be stored.
+ *             The caller is given ownership of the GVariant and must thus
  *             unref the GVariant after use. However if this function
  *             returns an error code, the field should be considered
  *             unused, and should not be unreferenced.
  *
- * @return SR_OK upon success or SR_ERR in case of error. Note SR_ERR_ARG
- *         may be returned by the driver indicating it doesn't know that key,
- *         but this is not to be flagged as an error by the caller; merely
- *         as an indication that it's not applicable.
+ * @retval SR_OK Success.
+ * @retval SR_ERR Error.
+ * @retval SR_ERR_ARG The driver doesn't know that key, but this is not to be
+ *          interpreted as an error by the caller; merely as an indication
+ *          that it's not applicable.
  */
 SR_API int sr_config_list(const struct sr_dev_driver *driver,
 		const struct sr_dev_inst *sdi,
@@ -694,9 +703,9 @@ SR_API int sr_config_list(const struct sr_dev_driver *driver,
 }
 
 /**
- * Get information about a configuration key.
+ * Get information about a configuration key, by key.
  *
- * @param key The configuration key.
+ * @param[in] key The configuration key.
  *
  * @return A pointer to a struct sr_config_info, or NULL if the key
  *         was not found.
@@ -714,9 +723,9 @@ SR_API const struct sr_config_info *sr_config_info_get(int key)
 }
 
 /**
- * Get information about an configuration key, by name.
+ * Get information about a configuration key, by name.
  *
- * @param optname The configuration key.
+ * @param[in] optname The configuration key.
  *
  * @return A pointer to a struct sr_config_info, or NULL if the key
  *         was not found.
@@ -735,13 +744,17 @@ SR_API const struct sr_config_info *sr_config_info_name_get(const char *optname)
 
 /* Unnecessary level of indirection follows. */
 
-/** @private */
+/** @private
+ *  @see sr_session_source_remove()
+ */
 SR_PRIV int sr_source_remove(int fd)
 {
 	return sr_session_source_remove(fd);
 }
 
-/** @private */
+/** @private
+ *  @see sr_session_source_add()
+ */
 SR_PRIV int sr_source_add(int fd, int events, int timeout,
 			  sr_receive_data_callback_t cb, void *cb_data)
 {
