@@ -953,33 +953,55 @@ enum {
 	SR_ST_STOPPING,
 };
 
-/** Device driver data */
+/** Device driver data. See also http://sigrok.org/wiki/Hardware_driver_API . */
 struct sr_dev_driver {
 	/* Driver-specific */
-	/** Driver name */
+	/** Driver name. Lowercase a-z, 0-9 and dashes (-) only. */
 	char *name;
-	/** Long name, e.g. device name. */
+	/** Long name. Verbose driver name shown to user. */
 	char *longname;
 	/** API version (currently 1).	*/
 	int api_version;
-	/** Init driver */
+	/** Called when driver is loaded, e.g. program startup. */
 	int (*init) (struct sr_context *sr_ctx);
-	/** Free driver */
+	/** Called before driver is unloaded.
+	 *  Driver must free all resouces held by it. */
 	int (*cleanup) (void);
-	/** Scan for devices */
+	/** Scan for devices. Driver should do all initialisation required.
+	 *  Can be called several times, e.g. with different port options.
+	 *  \retval NULL Error or no devices found.
+	 *  \retval other GSList of a struct sr_dev_inst for each device.
+	 *                Must be freed by caller!
+	 */
 	GSList *(*scan) (GSList *options);
-	/** Get device list */
+	/** Get list of device instances the driver knows about.
+	 *  \returns NULL or GSList of a struct sr_dev_inst for each device.
+	 *           Must not be freed by caller!
+	 */
 	GSList *(*dev_list) (void);
+	/** Clear list of devices the driver knows about. */
 	int (*dev_clear) (void);
+	/** Query value of a configuration key in driver or given device instance.
+	 *  @see sr_config_get().
+	 */
 	int (*config_get) (int id, GVariant **data,
 			const struct sr_dev_inst *sdi,
 			const struct sr_probe_group *probe_group);
+	/** Set value of a configuration key in driver or a given device instance.
+	 *  @see sr_config_set(). */
 	int (*config_set) (int id, GVariant *data,
 			const struct sr_dev_inst *sdi,
 			const struct sr_probe_group *probe_group);
+	/** Probe status change.
+	 *  @see sr_dev_probe_enable(), sr_dev_trigger_set(). */
 	int (*config_probe_set) (const struct sr_dev_inst *sdi,
 			struct sr_probe *probe, unsigned int changes);
+	/** Apply configuration settings to the device hardware.
+	 *  @see sr_config_commit().*/
 	int (*config_commit) (const struct sr_dev_inst *sdi);
+	/** List all possible values for a configuration key in a device instance.
+	 *  @see sr_config_list().
+	 */
 	int (*config_list) (int info_id, GVariant **data,
 			const struct sr_dev_inst *sdi,
 			const struct sr_probe_group *probe_group);
@@ -989,15 +1011,15 @@ struct sr_dev_driver {
 	int (*dev_open) (struct sr_dev_inst *sdi);
 	/** Close device */
 	int (*dev_close) (struct sr_dev_inst *sdi);
-	/** Start data aquisition. */
+	/** Begin data aquisition on the specified device. */
 	int (*dev_acquisition_start) (const struct sr_dev_inst *sdi,
 			void *cb_data);
-	/** Stop data aquisition. */
+	/** End data aquisition on the specified device. */
 	int (*dev_acquisition_stop) (struct sr_dev_inst *sdi,
 			void *cb_data);
 
 	/* Dynamic */
-	/** Device driver private data */
+	/** Device driver private data. Initialized by init(). */
 	void *priv;
 };
 

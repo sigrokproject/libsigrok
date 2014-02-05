@@ -110,7 +110,7 @@ SR_PRIV int std_session_send_df_header(const struct sr_dev_inst *sdi,
 
 #ifdef HAVE_LIBSERIALPORT
 
-/*
+/**
  * Standard serial driver dev_open() helper.
  *
  * This function can be used to implement the dev_open() driver API
@@ -136,7 +136,7 @@ SR_PRIV int std_serial_dev_open(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-/*
+/**
  * Standard serial driver dev_close() helper.
  *
  * This function can be used to implement the dev_close() driver API
@@ -160,7 +160,7 @@ SR_PRIV int std_serial_dev_close(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-/*
+/**
  * Standard sr_session_stop() API helper.
  *
  * This function can be used to simplify most (serial port based) driver's
@@ -173,7 +173,7 @@ SR_PRIV int std_serial_dev_close(struct sr_dev_inst *sdi)
  *               	  Must not be NULL.
  * @param serial The serial device instance (struct serial_dev_inst *).
  *               Must not be NULL.
- * @param prefix A driver-specific prefix string used for log messages.
+ * @param[in] prefix A driver-specific prefix string used for log messages.
  *               Must not be NULL. An empty string is allowed.
  *
  * @retval SR_OK Success.
@@ -224,8 +224,10 @@ SR_PRIV int std_serial_dev_acquisition_stop(struct sr_dev_inst *sdi,
 
 #endif
 
-/*
+/**
  * Standard driver dev_clear() helper.
+ *
+ * Clear driver, this means, close all instances.
  *
  * This function can be used to implement the dev_clear() driver API
  * callback. dev_close() is called before every sr_dev_inst is cleared.
@@ -287,4 +289,3 @@ SR_PRIV int std_dev_clear(const struct sr_dev_driver *driver,
 
 	return ret;
 }
-
