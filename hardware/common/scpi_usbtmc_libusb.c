@@ -102,7 +102,12 @@ static GSList *scpi_usbtmc_libusb_scan(struct drv_context *drvc)
 	int confidx, intfidx, ret, i;
 	char *res;
 
-	libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &devlist);
+	ret = libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &devlist);
+	if (ret < 0) {
+		sr_err("Failed to get device list: %s.",
+		       libusb_error_name(ret));
+		return NULL;
+	}
 	for (i = 0; devlist[i]; i++) {
 		if ((ret = libusb_get_device_descriptor(devlist[i], &des))) {
 			sr_err("Failed to get device descriptor: %s.",
@@ -112,7 +117,8 @@ static GSList *scpi_usbtmc_libusb_scan(struct drv_context *drvc)
 
 		for (confidx = 0; confidx < des.bNumConfigurations; confidx++) {
 			if (libusb_get_config_descriptor(devlist[i], confidx, &confdes) != 0) {
-				sr_err("Failed to get configuration descriptor.");
+				sr_err("Failed to get configuration descriptor: %s.",
+				       libusb_error_name(ret));
 				break;
 			}
 			for (intfidx = 0; intfidx < confdes->bNumInterfaces; intfidx++) {
@@ -195,7 +201,8 @@ static int scpi_usbtmc_libusb_open(void *priv)
 
 	for (confidx = 0; confidx < des.bNumConfigurations; confidx++) {
 		if (libusb_get_config_descriptor(dev, confidx, &confdes) != 0) {
-			sr_err("Failed to get configuration descriptor.");
+			sr_err("Failed to get configuration descriptor: %s.",
+			       libusb_error_name(ret));
 			continue;
 		}
 		for (intfidx = 0; intfidx < confdes->bNumInterfaces; intfidx++) {
@@ -234,35 +241,49 @@ static int scpi_usbtmc_libusb_open(void *priv)
 	}
 
 	if (!found) {
-		sr_err("Failed to find USBTMC interface");
+		sr_err("Failed to find USBTMC interface.");
 		return SR_ERR;
 	}
 
 	if (libusb_kernel_driver_active(usb->devhdl, uscpi->interface) == 1) {
 		if ((ret = libusb_detach_kernel_driver(usb->devhdl,
 		                                       uscpi->interface)) < 0) {
-			sr_err("failed to detach kernel driver: %s",
-					libusb_error_name(ret));
+			sr_err("Failed to detach kernel driver: %s.",
+			       libusb_error_name(ret));
 			return SR_ERR;
 		}
 		uscpi->detached_kernel_driver = 1;
 	}
 
 	if ((ret = libusb_set_configuration(usb->devhdl, config))) {
-		sr_err("Failed to set configuration: %s.", libusb_error_name(ret));
+		sr_err("Failed to set configuration: %s.",
+		       libusb_error_name(ret));
 		return SR_ERR;
 	}
 
 	if ((ret = libusb_claim_interface(usb->devhdl, uscpi->interface))) {
-		sr_err("Failed to claim interface: %s.", libusb_error_name(ret));
+		sr_err("Failed to claim interface: %s.",
+		       libusb_error_name(ret));
 		return SR_ERR;
 	}
 
-	libusb_clear_halt(usb->devhdl, uscpi->bulk_in_ep);
-	libusb_clear_halt(usb->devhdl, uscpi->bulk_out_ep);
-	libusb_clear_halt(usb->devhdl, uscpi->interrupt_ep);
+	if ((ret = libusb_clear_halt(usb->devhdl, uscpi->bulk_in_ep)) < 0) {
+		sr_err("Failed to clear halt/stall condition for EP %d: %s.",
+		       uscpi->bulk_in_ep, libusb_error_name(ret));
+		return SR_ERR;
+	}
+	if ((ret = libusb_clear_halt(usb->devhdl, uscpi->bulk_out_ep)) < 0) {
+		sr_err("Failed to clear halt/stall condition for EP %d: %s.",
+		       uscpi->bulk_out_ep, libusb_error_name(ret));
+		return SR_ERR;
+	}
+	if ((ret = libusb_clear_halt(usb->devhdl, uscpi->interrupt_ep)) < 0) {
+		sr_err("Failed to clear halt/stall condition for EP %d: %s.",
+		       uscpi->interrupt_ep, libusb_error_name(ret));
+		return SR_ERR;
+	}
 
-	/* get capabilities */
+	/* Get capabilities. */
 	ret = libusb_control_transfer(usb->devhdl,
 	                              LIBUSB_ENDPOINT_IN         |
 	                              LIBUSB_REQUEST_TYPE_CLASS  |
@@ -276,7 +297,7 @@ static int scpi_usbtmc_libusb_open(void *priv)
 		uscpi->usbtmc_dev_cap = capabilities[ 5];
 		uscpi->usb488_dev_cap = capabilities[15];
 	}
-	sr_dbg("device capabilities: %s%s%s%s%s, %s, %s",
+	sr_dbg("Device capabilities: %s%s%s%s%s, %s, %s",
 	       uscpi->usb488_dev_cap & USB488_DEV_CAP_SCPI       ? "SCPI, "    : "",
 	       uscpi->usbtmc_dev_cap & USBTMC_DEV_CAP_TERMCHAR   ? "TermChar, ": "",
 	       uscpi->usbtmc_int_cap & USBTMC_INT_CAP_LISTEN_ONLY? "L3, " :
@@ -344,12 +365,12 @@ static int scpi_usbtmc_bulkout(struct scpi_usbtmc_libusb *uscpi,
 	int padded_size, ret, transferred;
 
 	if (data && size+USBTMC_BULK_HEADER_SIZE+3 > (int)sizeof(uscpi->buffer)) {
-		sr_err("USBTMC bulk out transfer too big");
+		sr_err("USBTMC bulk out transfer is too big.");
 		return SR_ERR;
 	}
 
 	uscpi->bTag++;
-	uscpi->bTag += !uscpi->bTag;  /* bTag == 0 is invalid so avoid it */
+	uscpi->bTag += !uscpi->bTag;  /* bTag == 0 is invalid so avoid it. */
 
 	usbtmc_bulk_out_header_write(uscpi->buffer, msg_id, uscpi->bTag,
 	                             size, transfer_attributes, 0);
@@ -365,12 +386,13 @@ static int scpi_usbtmc_bulkout(struct scpi_usbtmc_libusb *uscpi,
 	                           uscpi->buffer, padded_size, &transferred,
 	                           TRANSFER_TIMEOUT);
 	if (ret) {
-		sr_err("USBTMC bulk out transfer error: %d", ret);
+		sr_err("USBTMC bulk out transfer error: %s.",
+		       libusb_error_name(ret));
 		return SR_ERR;
 	}
 
 	if (transferred < padded_size) {
-		sr_dbg("USBTMC bulkout partial transfer (%d/%d bytes)",
+		sr_dbg("USBTMC bulk out partial transfer (%d/%d bytes).",
 		       transferred, padded_size);
 		return SR_ERR;
 	}
@@ -388,13 +410,14 @@ static int scpi_usbtmc_bulkin_start(struct scpi_usbtmc_libusb *uscpi,
 	ret = libusb_bulk_transfer(usb->devhdl, uscpi->bulk_in_ep, data, size,
 	                           &transferred, TRANSFER_TIMEOUT);
 	if (ret) {
-		sr_err("USBTMC bulk in transfer error: %d", ret);
+		sr_err("USBTMC bulk in transfer error: %s.",
+		       libusb_error_name(ret));
 		return SR_ERR;
 	}
 
 	if (usbtmc_bulk_in_header_read(data, msg_id, uscpi->bTag, &message_size,
 	                               transfer_attributes) != SR_OK) {
-		sr_err("USBTMC invalid bulk in header");
+		sr_err("USBTMC invalid bulk in header.");
 		return SR_ERR;
 	}
 
@@ -415,7 +438,8 @@ static int scpi_usbtmc_bulkin_continue(struct scpi_usbtmc_libusb *uscpi,
 	ret = libusb_bulk_transfer(usb->devhdl, uscpi->bulk_in_ep, data, size,
 	                           &transferred, TRANSFER_TIMEOUT);
 	if (ret) {
-		sr_err("USBTMC bulk in transfer error: %d", ret);
+		sr_err("USBTMC bulk in transfer error: %s.",
+		       libusb_error_name(ret));
 		return SR_ERR;
 	}
 
@@ -493,18 +517,33 @@ static int scpi_usbtmc_libusb_read_complete(void *priv)
 
 static int scpi_usbtmc_libusb_close(void *priv)
 {
+	int ret;
 	struct scpi_usbtmc_libusb *uscpi = priv;
 	struct sr_usb_dev_inst *usb = uscpi->usb;
 
 	if (!usb->devhdl)
 		return SR_ERR;
 
-	libusb_clear_halt(usb->devhdl, uscpi->bulk_in_ep);
-	libusb_clear_halt(usb->devhdl, uscpi->bulk_out_ep);
-	libusb_clear_halt(usb->devhdl, uscpi->interrupt_ep);
-	libusb_release_interface(usb->devhdl, uscpi->interface);
+	if ((ret = libusb_clear_halt(usb->devhdl, uscpi->bulk_in_ep)) < 0)
+		sr_err("Failed to clear halt/stall condition for EP %d: %s.",
+		       uscpi->bulk_in_ep, libusb_error_name(ret));
+	if ((ret = libusb_clear_halt(usb->devhdl, uscpi->bulk_out_ep)) < 0)
+		sr_err("Failed to clear halt/stall condition for EP %d: %s.",
+		       uscpi->bulk_out_ep, libusb_error_name(ret));
+	if ((ret = libusb_clear_halt(usb->devhdl, uscpi->interrupt_ep)) < 0)
+		sr_err("Failed to clear halt/stall condition for EP %d: %s.",
+		       uscpi->interrupt_ep, libusb_error_name(ret));
+
+	if ((ret = libusb_release_interface(usb->devhdl, uscpi->interface)) < 0)
+		sr_err("Failed to release interface: %s.",
+		       libusb_error_name(ret));
+	
 	if (uscpi->detached_kernel_driver) {
-		libusb_attach_kernel_driver(usb->devhdl, uscpi->interface);
+		if ((ret = libusb_attach_kernel_driver(usb->devhdl,
+						uscpi->interface)) < 0)
+			sr_err("Failed to re-attach kernel driver: %s.",
+			       libusb_error_name(ret));
+
 		uscpi->detached_kernel_driver = 0;
 	}
 	libusb_close(usb->devhdl);
@@ -518,7 +557,6 @@ static void scpi_usbtmc_libusb_free(void *priv)
 	struct scpi_usbtmc_libusb *uscpi = priv;
 	sr_usb_dev_inst_free(uscpi->usb);
 }
-
 
 SR_PRIV const struct sr_scpi_dev_inst scpi_usbtmc_libusb_dev = {
 	.name          = "USBTMC",
