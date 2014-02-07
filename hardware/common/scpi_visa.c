@@ -31,11 +31,12 @@ struct scpi_visa {
 	ViSession vi;
 };
 
-static int scpi_visa_dev_inst_new(void *priv, const char *resource,
-		char **params, const char *serialcomm)
+static int scpi_visa_dev_inst_new(void *priv, struct drv_context *drvc,
+		const char *resource, char **params, const char *serialcomm)
 {
 	struct scpi_visa *vscpi = priv;
 
+	(void)drvc;
 	(void)resource;
 	(void)serialcomm;
 
