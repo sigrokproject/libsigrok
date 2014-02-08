@@ -130,6 +130,9 @@ extern SR_PRIV struct sr_dev_driver appa_55ii_driver_info;
 #ifdef HAVE_HW_ATTEN_PPS3XXX
 extern SR_PRIV struct sr_dev_driver atten_pps3203_driver_info;
 #endif
+#ifdef HAVE_HW_BRYMEN_BM86X
+extern SR_PRIV struct sr_dev_driver brymen_bm86x_driver_info;
+#endif
 #ifdef HAVE_HW_BRYMEN_DMM
 extern SR_PRIV struct sr_dev_driver brymen_bm857_driver_info;
 #endif
@@ -282,6 +285,9 @@ static struct sr_dev_driver *drivers_list[] = {
 #endif
 #ifdef HAVE_HW_ATTEN_PPS3XXX
 	&atten_pps3203_driver_info,
+#endif
+#ifdef HAVE_HW_BRYMEN_BM86X
+	&brymen_bm86x_driver_info,
 #endif
 #ifdef HAVE_HW_BRYMEN_DMM
 	&brymen_bm857_driver_info,

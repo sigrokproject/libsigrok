@@ -109,6 +109,15 @@ AC_ARG_ENABLE(atten-pps3xxx, AC_HELP_STRING([--enable-atten-pps3xxx],
 	[HW_ATTEN_PPS3XXX="$enableval"],
 	[HW_ATTEN_PPS3XXX=$HW_ENABLED_DEFAULT])
 
+AC_ARG_ENABLE(brymen-bm86x, AC_HELP_STRING([--enable-brymen-bm86x],
+	[enable Brymen BM86X support [default=yes]]),
+	[HW_BRYMEN_BM86X="$enableval"],
+	[HW_BRYMEN_BM86X=$HW_ENABLED_DEFAULT])
+AM_CONDITIONAL(HW_BRYMEN_BM86X, test x$HW_BRYMEN_BM86X = xyes)
+if test "x$HW_BRYMEN_BM86X" = "xyes"; then
+	AC_DEFINE(HAVE_HW_BRYMEN_BM86X, 1, [Brymen BM86X support])
+fi
+
 AC_ARG_ENABLE(brymen-dmm, AC_HELP_STRING([--enable-brymen-dmm],
 	[enable Brymen DMM support [default=yes]]),
 	[HW_BRYMEN_DMM="$enableval"],
@@ -606,6 +615,7 @@ AC_CONFIG_FILES([Makefile version.h hardware/Makefile
 		 hardware/appa-55ii/Makefile
 		 hardware/asix-sigma/Makefile
 		 hardware/atten-pps3xxx/Makefile
+		 hardware/brymen-bm86x/Makefile
 		 hardware/brymen-dmm/Makefile
 		 hardware/cem-dt-885x/Makefile
 		 hardware/center-3xx/Makefile
@@ -677,6 +687,7 @@ echo "  - alsa............................ $HW_ALSA"
 echo "  - appa-55ii....................... $HW_APPA_55II"
 echo "  - asix-sigma...................... $HW_ASIX_SIGMA"
 echo "  - atten-pps3xxx................... $HW_ATTEN_PPS3XXX"
+echo "  - brymen-bm86x.................... $HW_BRYMEN_BM86X"
 echo "  - brymen-dmm...................... $HW_BRYMEN_DMM"
 echo "  - cem-dt-885x..................... $HW_CEM_DT_885X"
 echo "  - center-3xx...................... $HW_CENTER_3XX"
