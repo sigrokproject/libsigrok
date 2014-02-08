@@ -17,24 +17,43 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/** @file
+ *  <em>Conrad DIGI 35 CPU</em> power supply driver
+ *  @internal
+ */
+
 #include "protocol.h"
 
-SR_PRIV int conrad_digi_35_cpu_receive_data(int fd, int revents, void *cb_data)
+#include <errno.h>
+#include <string.h>
+
+/** Send command with parameter.
+ *
+ *  @param[in] cmd Command
+ *  @param[in] param Parameter (0..999, depending on command).
+ *
+ *  @retval SR_OK Success
+ *  @retval SR_ERR_ARG Invalid argument.
+ *  @retval SR_ERR Error.
+ */
+SR_PRIV int send_msg1(const struct sr_dev_inst *sdi, char cmd, int param)
 {
-	const struct sr_dev_inst *sdi;
-	struct dev_context *devc;
+	struct sr_serial_dev_inst *serial;
+	char buf[5];
 
-	(void)fd;
+	if (!sdi || !(serial = sdi->conn))
+		return SR_ERR_ARG;
 
-	if (!(sdi = cb_data))
-		return TRUE;
+	snprintf(buf, sizeof(buf), "%c%03d", cmd, param);
+	buf[4] = '\r';
 
-	if (!(devc = sdi->priv))
-		return TRUE;
+	sr_spew("send_msg1(): %c%c%c%c\\r", buf[0], buf[1], buf[2], buf[3]);
 
-	if (revents == G_IO_IN) {
-		/* TODO */
+	if (serial_write(serial, buf, sizeof(buf)) == -1) {
+		sr_err("Write error for cmd=%c: %d %s", cmd, errno, strerror(errno));
+		return SR_ERR;
 	}
+	g_usleep(50000); /* Wait 50 ms to ensure that the device does not swallow following commands. */
 
-	return TRUE;
+	return SR_OK;
 }

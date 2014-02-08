@@ -17,29 +17,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/** @file
+ *  <em>Conrad DIGI 35 CPU</em> power supply driver
+ *  @internal
+ */
+
 #ifndef LIBSIGROK_HARDWARE_CONRAD_DIGI_35_CPU_PROTOCOL_H
 #define LIBSIGROK_HARDWARE_CONRAD_DIGI_35_CPU_PROTOCOL_H
 
 #include <stdint.h>
 #include <glib.h>
+
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
 /* Message logging helpers with subsystem-specific prefix string. */
 #define LOG_PREFIX "conrad-digi-35-cpu"
 
-/** Private, per-device-instance driver context. */
-struct dev_context {
-	/* Model-specific information */
-
-	/* Acquisition settings */
-
-	/* Operational state */
-
-	/* Temporary state across callbacks */
-
-};
-
-SR_PRIV int conrad_digi_35_cpu_receive_data(int fd, int revents, void *cb_data);
+SR_PRIV int send_msg1(const struct sr_dev_inst *sdi, char cmd, int param);
 
 #endif
