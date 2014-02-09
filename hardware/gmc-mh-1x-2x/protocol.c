@@ -1320,11 +1320,15 @@ int req_stat14(const struct sr_dev_inst *sdi, gboolean power_on)
 
 	if (power_on) {
 		sr_info("Write some data and wait 3s to turn on powered off device...");
-		if ((serial_write(serial, msg, sizeof(msg)) == -1) ||
-				(serial_write(serial, msg, sizeof(msg)) == -1) ||
-				(serial_write(serial, msg, sizeof(msg)) == -1))
+		if (serial_write(serial, msg, sizeof(msg)) < 0)
 			return SR_ERR;
-		g_usleep(3*1000*1000);
+		g_usleep(1*1000*1000);
+		if (serial_write(serial, msg, sizeof(msg)) < 0)
+			return SR_ERR;
+		g_usleep(1*1000*1000);
+		if (serial_write(serial, msg, sizeof(msg)) < 0)
+			return SR_ERR;
+		g_usleep(1*1000*1000);
 		serial_flush(serial);
 	}
 

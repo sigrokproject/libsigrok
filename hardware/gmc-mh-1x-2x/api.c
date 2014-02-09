@@ -436,13 +436,13 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		      const struct sr_probe_group *probe_group)
 {
 	int ret;
+	struct dev_context *devc;
 
 	(void)sdi;
 	(void)data;
 	(void)probe_group;
 
 	ret = SR_OK;
-	struct dev_context *devc;
 
 	(void)probe_group;
 
@@ -621,7 +621,7 @@ SR_PRIV struct sr_dev_driver gmc_mh_1x_2x_rs232_driver_info = {
 
 SR_PRIV struct sr_dev_driver gmc_mh_2x_bd232_driver_info = {
 	.name = "gmc-mh-2x-bd232",
-	.longname = "Gossen Metrawatt Metrahit 2x, 'BD232' interface",
+	.longname = "Gossen Metrawatt Metrahit 2x, 'BD232'/'SI232-II' interface",
 	.api_version = 1,
 	.init = init_2x_bd232,
 	.cleanup = cleanup_2x_bd232,

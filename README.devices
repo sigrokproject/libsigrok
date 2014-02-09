@@ -10,7 +10,7 @@ Firmware
 --------
 
 Some devices supported by libsigrok need a firmware to be uploaded every time
-the device is connected to the PC (usually via USB), before it can be used. 
+the device is connected to the PC (usually via USB), before it can be used.
 
 The default location where libsigrok expects the firmware files is:
 
@@ -288,10 +288,16 @@ a short list for convenience:
    interface panel on top.
  - Digitek DT4000ZC: Briefly press the "RS232" button.
  - Gossen Metrawatt Metrahit 1x/2x devices, driver gmc-mh-1x-2x-rs232:
-   Power on the device with the "DATA" button pressed. Additionally Metrahit
-   2x devices must be configured for the respective interface type.
+   - Power on the device with the "DATA" button pressed.
+   - Metrahit 2x devices must be configured for the respective interface type.
  - Gossen Metrawatt Metrahit 2x devices, driver gmc-mh-2x-bd232:
-   The device must be configured for the respective interface type.
+   - 'BD232' interface:
+      The multimeter must be configured for the respective interface type.
+   - 'SI232-II' interface ("PC Mode"):
+      The multimeter must be configured for interface type 'BD232' (all),
+      'SI232 online' (28-29S) or 'SI232 store' (22-26x). The interface must
+      be configured to the same baud rate as the host (default 9600).
+      Multimeter and interface must be configured to the same address.
  - Norma DM950: If the interface doesn't work (e.g. USB-RS232 converter), power
    on the device with "FUNC" pressed (to power the interface from the DMM).
  - PCE PCE-DM32: Briefly press the "RS232" button.
