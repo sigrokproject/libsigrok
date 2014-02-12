@@ -602,7 +602,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 
 SR_PRIV struct sr_dev_driver gmc_mh_1x_2x_rs232_driver_info = {
 	.name = "gmc-mh-1x-2x-rs232",
-	.longname = "Gossen Metrawatt Metrahit 1x/2x, 'RS232' interface",
+	.longname = "Gossen Metrawatt Metrahit 1x/2x, RS232 interface",
 	.api_version = 1,
 	.init = init_1x_2x_rs232,
 	.cleanup = cleanup_sm_rs232,
@@ -621,7 +621,7 @@ SR_PRIV struct sr_dev_driver gmc_mh_1x_2x_rs232_driver_info = {
 
 SR_PRIV struct sr_dev_driver gmc_mh_2x_bd232_driver_info = {
 	.name = "gmc-mh-2x-bd232",
-	.longname = "Gossen Metrawatt Metrahit 2x, 'BD232'/'SI232-II' interface",
+	.longname = "Gossen Metrawatt Metrahit 2x, BD232/SI232-II interface",
 	.api_version = 1,
 	.init = init_2x_bd232,
 	.cleanup = cleanup_2x_bd232,
