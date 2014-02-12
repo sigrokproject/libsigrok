@@ -17,24 +17,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/** @file
- *  <em>Conrad DIGI 35 CPU</em> power supply driver
- *  @internal
+/**
+ * @file
+ * <em>Conrad DIGI 35 CPU</em> power supply driver
+ * @internal
  */
 
 #include "protocol.h"
 
-#include <errno.h>
-#include <string.h>
-
-/** Send command with parameter.
+/**
+ * Send command with parameter.
  *
- *  @param[in] cmd Command
- *  @param[in] param Parameter (0..999, depending on command).
+ * @param[in] cmd Command
+ * @param[in] param Parameter (0..999, depending on command).
  *
- *  @retval SR_OK Success
- *  @retval SR_ERR_ARG Invalid argument.
- *  @retval SR_ERR Error.
+ * @retval SR_OK Success.
+ * @retval SR_ERR_ARG Invalid argument.
+ * @retval SR_ERR Error.
  */
 SR_PRIV int send_msg1(const struct sr_dev_inst *sdi, char cmd, int param)
 {
@@ -53,7 +52,12 @@ SR_PRIV int send_msg1(const struct sr_dev_inst *sdi, char cmd, int param)
 		sr_err("Write error for cmd=%c: %d %s", cmd, errno, strerror(errno));
 		return SR_ERR;
 	}
-	g_usleep(50000); /* Wait 50 ms to ensure that the device does not swallow following commands. */
+
+	/*
+	 * Wait 50ms to ensure that the device does not swallow any of the
+	 * following commands.
+	 */
+	g_usleep(50000);
 
 	return SR_OK;
 }

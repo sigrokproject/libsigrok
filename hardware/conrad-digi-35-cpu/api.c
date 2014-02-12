@@ -24,6 +24,8 @@
 
 #include "protocol.h"
 
+#define SERIALCOMM "9600/8n1"
+
 static const int32_t hwopts[] = {
 	SR_CONF_CONN,
 	SR_CONF_SERIALCOMM,
@@ -33,13 +35,9 @@ static const int32_t hwcaps[] = {
 	SR_CONF_POWER_SUPPLY,
 	SR_CONF_OUTPUT_VOLTAGE,
 	SR_CONF_OUTPUT_CURRENT,
-	/* There is no SR_CONF_OUTPUT_ENABLED; cannot know or set status remotely. */
+	/* There's no SR_CONF_OUTPUT_ENABLED; can't know/set status remotely. */
 	SR_CONF_OVER_CURRENT_PROTECTION,
 };
-
-
-#define SERIALCOMM "9600/8n1"
-
 
 SR_PRIV struct sr_dev_driver conrad_digi_35_cpu_driver_info;
 static struct sr_dev_driver *di = &conrad_digi_35_cpu_driver_info;
@@ -80,9 +78,11 @@ static GSList *scan(GSList *options)
 	if (!serialcomm)
 		serialcomm = SERIALCOMM;
 
-	/* We cannot scan for this device because it is write-only.
+	/*
+	 * We cannot scan for this device because it is write-only.
 	 * So just check that the port parameters are valid and assume that
-	 * the device is there. */
+	 * the device is there.
+	 */
 
 	if (!(serial = sr_serial_dev_inst_new(conn, serialcomm)))
 		return NULL;
@@ -93,7 +93,7 @@ static GSList *scan(GSList *options)
 	serial_flush(serial);
 	serial_close(serial);
 
-	sr_spew("Conrad DIGI 35 CPU assumed at %s", conn);
+	sr_spew("Conrad DIGI 35 CPU assumed at %s.", conn);
 
 	if (!(sdi = sr_dev_inst_new(0, SR_ST_ACTIVE, "Conrad", "DIGI 35 CPU", "")))
 		return NULL;
@@ -123,9 +123,7 @@ static int dev_clear(void)
 
 static int cleanup(void)
 {
-	dev_clear();
-
-	return SR_OK;
+	return dev_clear();
 }
 
 static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
@@ -196,8 +194,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	return ret;
 }
 
-static int dev_acquisition_start_dummy(const struct sr_dev_inst *sdi,
-				    void *cb_data)
+static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 {
 	(void)cb_data;
 
@@ -207,7 +204,7 @@ static int dev_acquisition_start_dummy(const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-static int dev_acquisition_stop_dummy(struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
 	(void)cb_data;
 
@@ -231,7 +228,7 @@ SR_PRIV struct sr_dev_driver conrad_digi_35_cpu_driver_info = {
 	.config_list = config_list,
 	.dev_open = std_serial_dev_open,
 	.dev_close = std_serial_dev_close,
-	.dev_acquisition_start = dev_acquisition_start_dummy,
-	.dev_acquisition_stop = dev_acquisition_stop_dummy,
+	.dev_acquisition_start = dev_acquisition_start,
+	.dev_acquisition_stop = dev_acquisition_stop,
 	.priv = NULL,
 };
