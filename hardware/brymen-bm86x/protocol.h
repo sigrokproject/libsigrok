@@ -30,14 +30,18 @@
 
 /** Private, per-device-instance driver context. */
 struct dev_context {
-	/* Model-specific information */
-
 	/* Acquisition settings */
+	uint64_t limit_samples;    /**< The sampling limit (in number of samples).*/
+	uint64_t limit_msec;       /**< The time limit (in milliseconds). */
+	void *session_cb_data;     /**< Opaque pointer passed in by the frontend. */
 
 	/* Operational state */
+	int detached_kernel_driver;/**< Whether kernel driver was detached or not */
+	uint64_t num_samples;      /**< The number of already received samples. */
+	int64_t start_time;        /**< The time at which sampling started. */
 
 	/* Temporary state across callbacks */
-
+	int interrupt_pending;
 };
 
 SR_PRIV int brymen_bm86x_receive_data(int fd, int revents, void *cb_data);

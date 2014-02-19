@@ -52,6 +52,7 @@ The following drivers/devices do not need any firmware upload:
  - agilent-dmm
  - alsa
  - appa-55ii
+ - brymen-bm86x
  - brymen-dmm
  - cem-dt-885x
  - center-3xx (including all subdrivers)
@@ -117,6 +118,7 @@ The following drivers/devices do not require a serial port specification:
 
  - alsa
  - asix-sigma
+ - brymen-bm86x
  - chronovu-la8
  - demo
  - fx2lafw
