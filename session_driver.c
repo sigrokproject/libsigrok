@@ -127,8 +127,12 @@ static int receive_data(int fd, int revents, void *cb_data)
 			return FALSE;
 		}
 
-		ret = zip_fread(vdev->capfile, buf, CHUNKSIZE);
+		ret = zip_fread(vdev->capfile, buf,
+				CHUNKSIZE / vdev->unitsize * vdev->unitsize);
 		if (ret > 0) {
+			if (ret % vdev->unitsize != 0)
+				sr_warn("Read size %d not a multiple of the"
+					" unit size %d.", ret, vdev->unitsize);
 			got_data = TRUE;
 			packet.type = SR_DF_LOGIC;
 			packet.payload = &logic;
