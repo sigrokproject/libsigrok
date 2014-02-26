@@ -173,7 +173,7 @@ static int init(struct sr_context *sr_ctx)
 	return SR_OK;
 }
 
-static int cleanup(void)
+static int dev_clear(void)
 {
 	GSList *l;
 
@@ -310,10 +310,10 @@ SR_PRIV struct sr_dev_driver session_driver = {
 	.longname = "Session-emulating driver",
 	.api_version = 1,
 	.init = init,
-	.cleanup = cleanup,
+	.cleanup = dev_clear,
 	.scan = NULL,
 	.dev_list = NULL,
-	.dev_clear = NULL,
+	.dev_clear = dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,
