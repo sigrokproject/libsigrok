@@ -200,14 +200,9 @@ static GSList *dev_list(void)
 	return ((struct drv_context *)(di->priv))->instances;
 }
 
-static int dev_clear(void)
-{
-	return std_dev_clear(di, NULL);
-}
-
 static int cleanup(void)
 {
-	return dev_clear();
+	return std_dev_clear(di, NULL);
 }
 
 static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
@@ -510,7 +505,7 @@ SR_PRIV struct sr_dev_driver atten_pps3203_driver_info = {
 	.cleanup = cleanup,
 	.scan = scan_3203,
 	.dev_list = dev_list,
-	.dev_clear = dev_clear,
+	.dev_clear = NULL,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,

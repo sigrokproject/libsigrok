@@ -116,11 +116,6 @@ static GSList *dev_list(void)
 	return ((struct drv_context *)(di->priv))->instances;
 }
 
-static int dev_clear(void)
-{
-	return std_dev_clear(di, NULL);
-}
-
 static int dev_open(struct sr_dev_inst *sdi)
 {
 	struct drv_context *drvc;
@@ -196,7 +191,8 @@ static int cleanup(void)
 		/* Can get called on an unused driver, doesn't matter. */
 		return SR_OK;
 
-	ret = dev_clear();
+
+	ret = std_dev_clear(di, NULL);
 	g_free(drvc);
 	di->priv = NULL;
 
@@ -376,7 +372,7 @@ SR_PRIV struct sr_dev_driver uni_t_ut32x_driver_info = {
 	.cleanup = cleanup,
 	.scan = scan,
 	.dev_list = dev_list,
-	.dev_clear = dev_clear,
+	.dev_clear = NULL,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,

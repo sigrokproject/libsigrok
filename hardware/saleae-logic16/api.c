@@ -240,11 +240,6 @@ static GSList *dev_list(void)
 	return ((struct drv_context *)(di->priv))->instances;
 }
 
-static int dev_clear(void)
-{
-	return std_dev_clear(di, NULL);
-}
-
 static int logic16_dev_open(struct sr_dev_inst *sdi)
 {
 	libusb_device **devlist;
@@ -424,7 +419,8 @@ static int cleanup(void)
 		/* Can get called on an unused driver, doesn't matter. */
 		return SR_OK;
 
-	ret = dev_clear();
+
+	ret = std_dev_clear(di, NULL);
 	g_free(drvc);
 	di->priv = NULL;
 
@@ -808,7 +804,7 @@ SR_PRIV struct sr_dev_driver saleae_logic16_driver_info = {
 	.cleanup = cleanup,
 	.scan = scan,
 	.dev_list = dev_list,
-	.dev_clear = dev_clear,
+	.dev_clear = NULL,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,

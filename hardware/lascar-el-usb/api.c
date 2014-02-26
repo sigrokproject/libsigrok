@@ -37,11 +37,6 @@ static const int32_t hwcaps[] = {
 	SR_CONF_LIMIT_SAMPLES,
 };
 
-static int dev_clear(void)
-{
-	return std_dev_clear(di, NULL);
-}
-
 static int init(struct sr_context *sr_ctx)
 {
 	return std_init(sr_ctx, di, LOG_PREFIX);
@@ -155,7 +150,8 @@ static int cleanup(void)
 		/* Can get called on an unused driver, doesn't matter. */
 		return SR_OK;
 
-	ret = dev_clear();
+
+	ret = std_dev_clear(di, NULL);
 	g_free(drvc);
 	di->priv = NULL;
 
@@ -481,7 +477,7 @@ SR_PRIV struct sr_dev_driver lascar_el_usb_driver_info = {
 	.cleanup = cleanup,
 	.scan = scan,
 	.dev_list = dev_list,
-	.dev_clear = dev_clear,
+	.dev_clear = NULL,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,

@@ -393,16 +393,6 @@ static GSList *dev_list_2x_bd232(void)
 			->instances;
 }
 
-static int dev_clear_1x_2x_rs232(void)
-{
-	return std_dev_clear(&gmc_mh_1x_2x_rs232_driver_info, NULL);
-}
-
-static int dev_clear_2x_bd232(void)
-{
-	return std_dev_clear(&gmc_mh_2x_bd232_driver_info, NULL);
-}
-
 static int dev_close(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
@@ -423,12 +413,12 @@ static int dev_close(struct sr_dev_inst *sdi)
 
 static int cleanup_sm_rs232(void)
 {
-	return dev_clear_1x_2x_rs232();
+	return std_dev_clear(&gmc_mh_1x_2x_rs232_driver_info, NULL);
 }
 
 static int cleanup_2x_bd232(void)
 {
-	return dev_clear_2x_bd232();
+	return std_dev_clear(&gmc_mh_2x_bd232_driver_info, NULL);
 }
 
 /** Get value of configuration item */
@@ -608,7 +598,7 @@ SR_PRIV struct sr_dev_driver gmc_mh_1x_2x_rs232_driver_info = {
 	.cleanup = cleanup_sm_rs232,
 	.scan = scan_1x_2x_rs232,
 	.dev_list = dev_list_1x_2x_rs232,
-	.dev_clear = dev_clear_1x_2x_rs232,
+	.dev_clear = NULL,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list_sm,
@@ -627,7 +617,7 @@ SR_PRIV struct sr_dev_driver gmc_mh_2x_bd232_driver_info = {
 	.cleanup = cleanup_2x_bd232,
 	.scan = scan_2x_bd232,
 	.dev_list = dev_list_2x_bd232,
-	.dev_clear = dev_clear_2x_bd232,
+	.dev_clear = NULL,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list_bd,

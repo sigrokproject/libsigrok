@@ -172,14 +172,9 @@ static GSList *dev_list(void)
 	return ((struct drv_context *)(di->priv))->instances;
 }
 
-static int dev_clear(void)
-{
-	return std_dev_clear(di, NULL);
-}
-
 static int cleanup(void)
 {
-	return dev_clear();
+	return std_dev_clear(di, NULL);
 }
 
 static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
@@ -281,7 +276,7 @@ SR_PRIV struct sr_dev_driver teleinfo_driver_info = {
 	.cleanup = cleanup,
 	.scan = scan,
 	.dev_list = dev_list,
-	.dev_clear = dev_clear,
+	.dev_clear = NULL,
 	.config_get = NULL,
 	.config_set = config_set,
 	.config_list = config_list,
