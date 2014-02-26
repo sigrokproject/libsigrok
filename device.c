@@ -456,20 +456,31 @@ SR_API GSList *sr_dev_list(const struct sr_dev_driver *driver)
 }
 
 /**
- * Clear all devices/instances of the specified driver.
+ * Clear the list of device instances a driver knows about.
  *
- * @param driver The driver to use. Must not be NULL.
+ * @param driver The driver to use. This must be a pointer to one of
+ *               the entries returned by sr_driver_list(). Must not be NULL.
  *
- * @return SR_OK upon success, a negative error code upon errors.
+ * @retval SR_OK Success
+ * @retval SR_ERR_ARG Invalid driver
  *
  * @since 0.2.0
  */
 SR_API int sr_dev_clear(const struct sr_dev_driver *driver)
 {
-	if (driver && driver->dev_clear)
-		return driver->dev_clear();
+	int ret;
+
+	if (!driver) {
+		sr_err("Invalid driver.");
+		return SR_ERR_ARG;
+	}
+
+	if (driver->dev_clear)
+		ret = driver->dev_clear();
 	else
-		return SR_OK;
+		ret = std_dev_clear(driver, NULL);
+
+	return ret;
 }
 
 /**
