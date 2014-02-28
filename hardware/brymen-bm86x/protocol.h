@@ -25,7 +25,6 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
-/* Message logging helpers with subsystem-specific prefix string. */
 #define LOG_PREFIX "brymen-bm86x"
 
 /** Private, per-device-instance driver context. */
