@@ -115,7 +115,6 @@ static int receive_data(int fd, int revents, void *cb_data)
 					sr_dbg("Opened %s.", capturefile);
 				} else {
 					/* We got all the chunks, finish up. */
-					g_free(vdev->capturefile);
 					vdev->finished = TRUE;
 					continue;
 				}
@@ -147,7 +146,6 @@ static int receive_data(int fd, int revents, void *cb_data)
 			vdev->capfile = NULL;
 			if (vdev->cur_chunk == 0) {
 				/* It was the only file. */
-				g_free(vdev->capturefile);
 				vdev->finished = TRUE;
 			} else {
 				/* There might be more chunks, so don't fall through
@@ -202,6 +200,10 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 static int dev_close(struct sr_dev_inst *sdi)
 {
+	const struct session_vdev *const vdev = sdi->priv;
+	g_free(vdev->sessionfile);
+	g_free(vdev->capturefile);
+
 	g_free(sdi->priv);
 	sdi->priv = NULL;
 
@@ -245,10 +247,12 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 		sr_info("Setting samplerate to %" PRIu64 ".", vdev->samplerate);
 		break;
 	case SR_CONF_SESSIONFILE:
+		g_free(vdev->sessionfile);
 		vdev->sessionfile = g_strdup(g_variant_get_string(data, NULL));
 		sr_info("Setting sessionfile to '%s'.", vdev->sessionfile);
 		break;
 	case SR_CONF_CAPTUREFILE:
+		g_free(vdev->capturefile);
 		vdev->capturefile = g_strdup(g_variant_get_string(data, NULL));
 		sr_info("Setting capturefile to '%s'.", vdev->capturefile);
 		break;
@@ -289,6 +293,10 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	int ret;
 
 	vdev = sdi->priv;
+
+	vdev->bytes_read = 0;
+	vdev->cur_chunk = 0;
+	vdev->finished = FALSE;
 
 	sr_info("Opening archive %s file %s", vdev->sessionfile,
 		vdev->capturefile);
