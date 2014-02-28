@@ -113,10 +113,6 @@ AC_ARG_ENABLE(brymen-bm86x, AC_HELP_STRING([--enable-brymen-bm86x],
 	[enable Brymen BM86X support [default=yes]]),
 	[HW_BRYMEN_BM86X="$enableval"],
 	[HW_BRYMEN_BM86X=$HW_ENABLED_DEFAULT])
-AM_CONDITIONAL(HW_BRYMEN_BM86X, test x$HW_BRYMEN_BM86X = xyes)
-if test "x$HW_BRYMEN_BM86X" = "xyes"; then
-	AC_DEFINE(HAVE_HW_BRYMEN_BM86X, 1, [Brymen BM86X support])
-fi
 
 AC_ARG_ENABLE(brymen-dmm, AC_HELP_STRING([--enable-brymen-dmm],
 	[enable Brymen DMM support [default=yes]]),
@@ -437,6 +433,11 @@ fi
 AM_CONDITIONAL(HW_ATTEN_PPS3XXX, test x$HW_ATTEN_PPS3XXX = xyes)
 if test "x$HW_ATTEN_PPS3XXX" = "xyes"; then
        AC_DEFINE(HAVE_HW_ATTEN_PPS3XXX, 1, [Atten PPS3xxx support])
+fi
+
+AM_CONDITIONAL(HW_BRYMEN_BM86X, test x$HW_BRYMEN_BM86X = xyes)
+if test "x$HW_BRYMEN_BM86X" = "xyes"; then
+	AC_DEFINE(HAVE_HW_BRYMEN_BM86X, 1, [Brymen BM86X support])
 fi
 
 AM_CONDITIONAL(HW_BRYMEN_DMM, test x$HW_BRYMEN_DMM = xyes)
