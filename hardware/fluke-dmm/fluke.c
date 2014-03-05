@@ -435,7 +435,7 @@ static void handle_line(const struct sr_dev_inst *sdi)
 	analog = NULL;
 	tokens = g_strsplit(devc->buf, ",", 0);
 	if (tokens[0]) {
-		if (devc->profile->model == FLUKE_187) {
+		if (devc->profile->model == FLUKE_187 || devc->profile->model == FLUKE_189) {
 			devc->expect_response = FALSE;
 			analog = handle_qm_18x(sdi, tokens);
 		} else if (devc->profile->model == FLUKE_287) {
