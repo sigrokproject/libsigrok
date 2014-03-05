@@ -1011,10 +1011,10 @@ struct sr_dev_driver {
 	int (*dev_open) (struct sr_dev_inst *sdi);
 	/** Close device */
 	int (*dev_close) (struct sr_dev_inst *sdi);
-	/** Begin data aquisition on the specified device. */
+	/** Begin data acquisition on the specified device. */
 	int (*dev_acquisition_start) (const struct sr_dev_inst *sdi,
 			void *cb_data);
-	/** End data aquisition on the specified device. */
+	/** End data acquisition on the specified device. */
 	int (*dev_acquisition_stop) (struct sr_dev_inst *sdi,
 			void *cb_data);
 

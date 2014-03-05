@@ -1162,7 +1162,7 @@ SR_PRIV int gmc_mh_1x_2x_receive_data(int fd, int revents, void *cb_data)
 		}
 	}
 
-	/* If number of samples or time limit reached, stop aquisition. */
+	/* If number of samples or time limit reached, stop acquisition. */
 	if (devc->limit_samples && (devc->num_samples >= devc->limit_samples))
 		sdi->driver->dev_acquisition_stop(sdi, cb_data);
 
@@ -1213,7 +1213,7 @@ SR_PRIV int gmc_mh_2x_receive_data(int fd, int revents, void *cb_data)
 		}
 	}
 
-	/* If number of samples or time limit reached, stop aquisition. */
+	/* If number of samples or time limit reached, stop acquisition. */
 	if (devc->limit_samples && (devc->num_samples >= devc->limit_samples))
 		sdi->driver->dev_acquisition_stop(sdi, cb_data);
 

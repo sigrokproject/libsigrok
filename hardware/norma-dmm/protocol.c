@@ -401,7 +401,7 @@ SR_PRIV int norma_dmm_receive_data(int fd, int revents, void *cb_data)
 		}
 	}
 
-	/* If number of samples or time limit reached, stop aquisition. */
+	/* If number of samples or time limit reached, stop acquisition. */
 	terminating = FALSE;
 	if (devc->limit_samples && (devc->num_samples >= devc->limit_samples)) {
 		sdi->driver->dev_acquisition_stop(sdi, cb_data);

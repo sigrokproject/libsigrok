@@ -552,7 +552,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	devc->acquisition = acq;
 	ret = lwla_setup_acquisition(sdi);
 	if (ret != SR_OK) {
-		sr_err("Failed to set up aquisition.");
+		sr_err("Failed to set up acquisition.");
 		devc->acquisition = NULL;
 		lwla_free_acquisition_state(acq);
 		return ret;
@@ -560,7 +560,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 
 	ret = lwla_start_acquisition(sdi);
 	if (ret != SR_OK) {
-		sr_err("Failed to start aquisition.");
+		sr_err("Failed to start acquisition.");
 		devc->acquisition = NULL;
 		lwla_free_acquisition_state(acq);
 		return ret;
