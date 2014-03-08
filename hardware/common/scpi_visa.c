@@ -87,7 +87,7 @@ static int scpi_visa_send(void *priv, const char *command)
 {
 	struct scpi_visa *vscpi = priv;
 	gchar *terminated_command;
-	ViUInt32 written;
+	ViUInt32 written = 0;
 	int len;
 
 	terminated_command = g_strconcat(command, "\n", NULL);

@@ -21,6 +21,8 @@
  */
 
 #include <rpc/rpc.h>
+#include <string.h>
+
 #include "vxi.h"
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
