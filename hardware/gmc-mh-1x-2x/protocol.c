@@ -132,7 +132,7 @@ static void decode_rs_16(uint8_t rs, struct dev_context *devc)
 		if (devc->mq == SR_MQ_VOLTAGE) /* V */
 			devc->scale *= 0.1;
 		else if (devc->mq == SR_MQ_CURRENT) /* 000.0 µA */
-            devc->scale *= 0.00001;
+			devc->scale *= 0.00001;
 		else if (devc->mq == SR_MQ_RESISTANCE) {
 			if (devc->buflen >= 10) {
 				/* °C with 10 byte msg type, otherwise GOhm. */
@@ -1532,12 +1532,12 @@ SR_PRIV int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 		}
 		devc->limit_msec = g_variant_get_uint64(data);
 		sr_dbg("Setting time limit to %" PRIu64 "ms.",
-		       devc->limit_msec);
+			devc->limit_msec);
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
 		devc->limit_samples = g_variant_get_uint64(data);
 		sr_dbg("Setting sample limit to %" PRIu64 ".",
-		       devc->limit_samples);
+			devc->limit_samples);
 		break;
 	default:
 		return SR_ERR_NA;
