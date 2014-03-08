@@ -480,8 +480,19 @@ static void decode_ctmv_2x(uint8_t ctmv, struct dev_context *devc)
 		devc->unit = SR_UNIT_UNITLESS;
 		devc->mqflags |= SR_MQFLAG_AC;
 		break;
+	case 0x1f: /* 11111 Undocumented: 25S in stopwatch mode.
+			The value is voltage, not time, so treat it such. */
+		devc->mq = SR_MQ_VOLTAGE;
+		devc->unit = SR_UNIT_VOLT;
+		devc->mqflags |= SR_MQFLAG_DC;
+		break;
+	case 0x20: /* 100000 Undocumented: 25S in event count mode.
+		Value is 0 anyway. */
+		devc->mq = SR_MQ_VOLTAGE;
+		devc->unit = SR_UNIT_UNITLESS;
+		break;
 	default:
-		sr_err("decode_ctmv_2x(%d, ...): Unknown ctmv!");
+		sr_err("decode_ctmv_2x(%d, ...): Unknown ctmv!", ctmv);
 		break;
 	}
 }
