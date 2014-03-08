@@ -132,7 +132,7 @@ static void decode_rs_16(uint8_t rs, struct dev_context *devc)
 		if (devc->mq == SR_MQ_VOLTAGE) /* V */
 			devc->scale *= 0.1;
 		else if (devc->mq == SR_MQ_CURRENT) /* 000.0 µA */
-			devc->scale *= 0.0000001; /* Untested! */
+            devc->scale *= 0.00001;
 		else if (devc->mq == SR_MQ_RESISTANCE) {
 			if (devc->buflen >= 10) {
 				/* °C with 10 byte msg type, otherwise GOhm. */
