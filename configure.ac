@@ -356,10 +356,11 @@ case "$host" in
 		[have_libusb1_0="yes"; CFLAGS="$CFLAGS $libusb_CFLAGS";
 		LIBS="$LIBS $libusb_LIBS";
 		SR_PKGLIBS="$SR_PKGLIBS libusb-1.0"],
-		[have_libusb1_0="no"; HW_FX2LAFW="no"; HW_HANTEK_DSO="no";
-		HW_IKALOGIC_SCANALOGIC2="no"; HW_KECHENG_KC_330B="no";
-		HW_LASCAR_EL_USB="no"; HW_SYSCLK_LWLA="no";
-		HW_UNI_T_DMM="no"; HW_UNI_T_UT32X="no"; HW_VICTOR_DMM="no";
+		[have_libusb1_0="no"; HW_BRYMEN_BM86X="no"; HW_FX2LAFW="no";
+		HW_HANTEK_DSO="no"; HW_IKALOGIC_SCANALOGIC2="no";
+		HW_KECHENG_KC_330B="no"; HW_LASCAR_EL_USB="no";
+		HW_SYSCLK_LWLA="no"; HW_UNI_T_DMM="no";
+		HW_UNI_T_UT32X="no"; HW_VICTOR_DMM="no";
 		HW_ZEROPLUS_LOGIC_CUBE="no"; HW_SALEAE_LOGIC16="no"])
 
 	# Define HAVE_LIBUSB_1_0 in config.h if we found libusb-1.0.
