@@ -109,14 +109,14 @@ static GSList *scpi_usbtmc_libusb_scan(struct drv_context *drvc)
 		return NULL;
 	}
 	for (i = 0; devlist[i]; i++) {
-		if ((ret = libusb_get_device_descriptor(devlist[i], &des))) {
+		if ((ret = libusb_get_device_descriptor(devlist[i], &des)) < 0) {
 			sr_err("Failed to get device descriptor: %s.",
 			       libusb_error_name(ret));
 			continue;
 		}
 
 		for (confidx = 0; confidx < des.bNumConfigurations; confidx++) {
-			if (libusb_get_config_descriptor(devlist[i], confidx, &confdes) != 0) {
+			if (libusb_get_config_descriptor(devlist[i], confidx, &confdes) < 0) {
 				sr_err("Failed to get configuration descriptor: %s.",
 				       libusb_error_name(ret));
 				break;
@@ -193,14 +193,14 @@ static int scpi_usbtmc_libusb_open(void *priv)
 		return SR_ERR;
 
 	dev = libusb_get_device(usb->devhdl);
-	if ((ret = libusb_get_device_descriptor(dev, &des))) {
+	if ((ret = libusb_get_device_descriptor(dev, &des)) < 0) {
 		sr_err("Failed to get device descriptor: %s.",
 		       libusb_error_name(ret));
 		return SR_ERR;
 	}
 
 	for (confidx = 0; confidx < des.bNumConfigurations; confidx++) {
-		if (libusb_get_config_descriptor(dev, confidx, &confdes) != 0) {
+		if (libusb_get_config_descriptor(dev, confidx, &confdes) < 0) {
 			sr_err("Failed to get configuration descriptor: %s.",
 			       libusb_error_name(ret));
 			continue;
@@ -255,13 +255,13 @@ static int scpi_usbtmc_libusb_open(void *priv)
 		uscpi->detached_kernel_driver = 1;
 	}
 
-	if ((ret = libusb_set_configuration(usb->devhdl, config))) {
+	if ((ret = libusb_set_configuration(usb->devhdl, config)) < 0) {
 		sr_err("Failed to set configuration: %s.",
 		       libusb_error_name(ret));
 		return SR_ERR;
 	}
 
-	if ((ret = libusb_claim_interface(usb->devhdl, uscpi->interface))) {
+	if ((ret = libusb_claim_interface(usb->devhdl, uscpi->interface)) < 0) {
 		sr_err("Failed to claim interface: %s.",
 		       libusb_error_name(ret));
 		return SR_ERR;
@@ -385,7 +385,7 @@ static int scpi_usbtmc_bulkout(struct scpi_usbtmc_libusb *uscpi,
 	ret = libusb_bulk_transfer(usb->devhdl, uscpi->bulk_out_ep,
 	                           uscpi->buffer, padded_size, &transferred,
 	                           TRANSFER_TIMEOUT);
-	if (ret) {
+	if (ret < 0) {
 		sr_err("USBTMC bulk out transfer error: %s.",
 		       libusb_error_name(ret));
 		return SR_ERR;
@@ -409,7 +409,7 @@ static int scpi_usbtmc_bulkin_start(struct scpi_usbtmc_libusb *uscpi,
 
 	ret = libusb_bulk_transfer(usb->devhdl, uscpi->bulk_in_ep, data, size,
 	                           &transferred, TRANSFER_TIMEOUT);
-	if (ret) {
+	if (ret < 0) {
 		sr_err("USBTMC bulk in transfer error: %s.",
 		       libusb_error_name(ret));
 		return SR_ERR;
@@ -437,7 +437,7 @@ static int scpi_usbtmc_bulkin_continue(struct scpi_usbtmc_libusb *uscpi,
 
 	ret = libusb_bulk_transfer(usb->devhdl, uscpi->bulk_in_ep, data, size,
 	                           &transferred, TRANSFER_TIMEOUT);
-	if (ret) {
+	if (ret < 0) {
 		sr_err("USBTMC bulk in transfer error: %s.",
 		       libusb_error_name(ret));
 		return SR_ERR;
