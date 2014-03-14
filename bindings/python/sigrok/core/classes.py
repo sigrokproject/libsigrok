@@ -26,7 +26,7 @@ import itertools
 
 __all__ = ['Error', 'Context', 'Driver', 'Device', 'Session', 'Packet', 'Log',
     'LogLevel', 'PacketType', 'Quantity', 'Unit', 'QuantityFlag', 'ConfigKey',
-    'ProbeType', 'Probe', 'ProbeGroup', 'InputFormat', 'OutputFormat',
+    'ProbeType', 'Probe', 'ChannelGroup', 'InputFormat', 'OutputFormat',
     'InputFile', 'Output']
 
 class Error(Exception):
@@ -174,7 +174,7 @@ class Device(object):
             device.struct = struct
             device.context = context
             device._probes = None
-            device._probe_groups = None
+            device._channel_groups = None
             context._devices[address] = device
         return context._devices[address]
 
@@ -202,17 +202,17 @@ class Device(object):
         return self._probes
 
     @property
-    def probe_groups(self):
-        if self._probe_groups is None:
-            self._probe_groups = {}
-            probe_group_list = self.struct.probe_groups
-            while (probe_group_list):
-                probe_group_ptr = void_ptr_to_sr_probe_group_ptr(
-                    probe_group_list.data)
-                self._probe_groups[probe_group_ptr.name] = ProbeGroup(self,
-                    probe_group_ptr)
-                probe_group_list = probe_group_list.next
-        return self._probe_groups
+    def channel_groups(self):
+        if self._channel_groups is None:
+            self._channel_groups = {}
+            channel_group_list = self.struct.channel_groups
+            while (channel_group_list):
+                channel_group_ptr = void_ptr_to_sr_channel_group_ptr(
+                    channel_group_list.data)
+                self._channel_groups[channel_group_ptr.name] = ChannelGroup(self,
+                    channel_group_ptr)
+                channel_group_list = channel_group_list.next
+        return self._channel_groups
 
 class HardwareDevice(Device):
 
@@ -262,15 +262,15 @@ class Probe(object):
     def name(self):
         return self.struct.name
 
-class ProbeGroup(object):
+class ChannelGroup(object):
 
     def __init__(self, device, struct):
         self.device = device
         self.struct = struct
-        self._probes = None
+        self._channels = None
 
     def __iter__(self):
-        return iter(self.probes)
+        return iter(self.channels)
 
     def __getattr__(self, name):
         key = config_key(name)
@@ -281,7 +281,7 @@ class ProbeGroup(object):
         except Error as error:
             if error.errno == SR_ERR_NA:
                 raise NotImplementedError(
-                    "Probe group does not implement %s" % name)
+                    "Channel group does not implement %s" % name)
             else:
                 raise AttributeError
         value = gvariant_ptr_ptr_value(data)
@@ -291,7 +291,7 @@ class ProbeGroup(object):
         try:
             key = config_key(name)
         except AttributeError:
-            super(ProbeGroup, self).__setattr__(name, value)
+            super(ChannelGroup, self).__setattr__(name, value)
             return
         check(sr_config_set(self.device.struct, self.struct,
             key.id, python_to_gvariant(value)))
@@ -301,15 +301,15 @@ class ProbeGroup(object):
         return self.struct.name
 
     @property
-    def probes(self):
-        if self._probes is None:
-            self._probes = []
-            probe_list = self.struct.probes
-            while (probe_list):
-                probe_ptr = void_ptr_to_sr_probe_ptr(probe_list.data)
-                self._probes.append(Probe(self, probe_ptr))
-                probe_list = probe_list.next
-        return self._probes
+    def channels(self):
+        if self._channels is None:
+            self._channels = []
+            channel_list = self.struct.channels
+            while (channel_list):
+                channel_ptr = void_ptr_to_sr_probe_ptr(channel_list.data)
+                self._channels.append(Probe(self, probe_ptr))
+                channel_list = channel_list.next
+        return self._channels
 
 class Session(object):
 

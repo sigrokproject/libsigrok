@@ -428,7 +428,7 @@ static int cleanup(void)
 }
 
 static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_probe_group *probe_group)
+		const struct sr_channel_group *channel_group)
 {
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
@@ -437,7 +437,7 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	int ret;
 	unsigned int i;
 
-	(void)probe_group;
+	(void)channel_group;
 
 	ret = SR_OK;
 	switch (key) {
@@ -482,14 +482,14 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 }
 
 static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
-		const struct sr_probe_group *probe_group)
+		const struct sr_channel_group *channel_group)
 {
 	struct dev_context *devc;
 	gdouble low, high;
 	int ret;
 	unsigned int i;
 
-	(void)probe_group;
+	(void)channel_group;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
@@ -525,7 +525,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 }
 
 static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_probe_group *probe_group)
+		const struct sr_channel_group *channel_group)
 {
 	GVariant *gvar, *range[2];
 	GVariantBuilder gvb;
@@ -533,7 +533,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	unsigned int i;
 
 	(void)sdi;
-	(void)probe_group;
+	(void)channel_group;
 
 	ret = SR_OK;
 	switch (key) {

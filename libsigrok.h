@@ -73,7 +73,7 @@ enum {
 	SR_ERR_NA         = -6, /**< Not applicable. */
 	SR_ERR_DEV_CLOSED = -7, /**< Device is closed, but needs to be open. */
 	SR_ERR_TIMEOUT    = -8, /**< A timeout occurred. */
-	SR_ERR_PROBE_GROUP= -9, /**< A probe group must be specified. */
+	SR_ERR_PROBE_GROUP= -9, /**< A channel group must be specified. */
 
 	/*
 	 * Note: When adding entries here, don't forget to also update the
@@ -620,8 +620,8 @@ struct sr_probe {
 };
 
 /** Structure for groups of probes that have common properties. */
-struct sr_probe_group {
-	/** Name of the probe group. */
+struct sr_channel_group {
+	/** Name of the channel group. */
 	char *name;
 	/** List of sr_probe structs of the probes belonging to this group. */
 	GSList *probes;
@@ -921,8 +921,8 @@ struct sr_dev_inst {
 	char *version;
 	/** List of probes. */
 	GSList *probes;
-	/** List of sr_probe_group structs */
-	GSList *probe_groups;
+	/** List of sr_channel_group structs */
+	GSList *channel_groups;
 	/** Device instance connection data (used?) */
 	void *conn;
 	/** Device instance private data (used?) */
@@ -986,12 +986,12 @@ struct sr_dev_driver {
 	 */
 	int (*config_get) (int id, GVariant **data,
 			const struct sr_dev_inst *sdi,
-			const struct sr_probe_group *probe_group);
+			const struct sr_channel_group *channel_group);
 	/** Set value of a configuration key in driver or a given device instance.
 	 *  @see sr_config_set(). */
 	int (*config_set) (int id, GVariant *data,
 			const struct sr_dev_inst *sdi,
-			const struct sr_probe_group *probe_group);
+			const struct sr_channel_group *channel_group);
 	/** Probe status change.
 	 *  @see sr_dev_probe_enable(), sr_dev_trigger_set(). */
 	int (*config_probe_set) (const struct sr_dev_inst *sdi,
@@ -1004,7 +1004,7 @@ struct sr_dev_driver {
 	 */
 	int (*config_list) (int info_id, GVariant **data,
 			const struct sr_dev_inst *sdi,
-			const struct sr_probe_group *probe_group);
+			const struct sr_channel_group *channel_group);
 
 	/* Device-specific */
 	/** Open device */

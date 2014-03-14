@@ -587,7 +587,7 @@ SR_PRIV void sr_config_free(struct sr_config *src)
  * @param[in] sdi (optional) If the key is specific to a device, this must
  *            contain a pointer to the struct sr_dev_inst to be checked.
  *            Otherwise it must be NULL.
- * @param[in] probe_group The probe group on the device for which to list the
+ * @param[in] channel_group The channel group on the device for which to list the
  *                    values, or NULL.
  * @param[in] key The configuration key (SR_CONF_*).
  * @param[in,out] data Pointer to a GVariant where the value will be stored.
@@ -604,7 +604,7 @@ SR_PRIV void sr_config_free(struct sr_config *src)
  */
 SR_API int sr_config_get(const struct sr_dev_driver *driver,
 		const struct sr_dev_inst *sdi,
-		const struct sr_probe_group *probe_group,
+		const struct sr_channel_group *channel_group,
 		int key, GVariant **data)
 {
 	int ret;
@@ -615,7 +615,7 @@ SR_API int sr_config_get(const struct sr_dev_driver *driver,
 	if (!driver->config_get)
 		return SR_ERR_ARG;
 
-	if ((ret = driver->config_get(key, data, sdi, probe_group)) == SR_OK) {
+	if ((ret = driver->config_get(key, data, sdi, channel_group)) == SR_OK) {
 		/* Got a floating reference from the driver. Sink it here,
 		 * caller will need to unref when done with it. */
 		g_variant_ref_sink(*data);
@@ -628,7 +628,7 @@ SR_API int sr_config_get(const struct sr_dev_driver *driver,
  * Set value of a configuration key in a device instance.
  *
  * @param[in] sdi The device instance.
- * @param[in] probe_group The probe group on the device for which to list the
+ * @param[in] channel_group The channel group on the device for which to list the
  *                    values, or NULL.
  * @param[in] key The configuration key (SR_CONF_*).
  * @param data The new value for the key, as a GVariant with GVariantType
@@ -642,7 +642,7 @@ SR_API int sr_config_get(const struct sr_dev_driver *driver,
  *          that it's not applicable.
  */
 SR_API int sr_config_set(const struct sr_dev_inst *sdi,
-		const struct sr_probe_group *probe_group,
+		const struct sr_channel_group *channel_group,
 		int key, GVariant *data)
 {
 	int ret;
@@ -654,7 +654,7 @@ SR_API int sr_config_set(const struct sr_dev_inst *sdi,
 	else if (!sdi->driver->config_set)
 		ret = SR_ERR_ARG;
 	else
-		ret = sdi->driver->config_set(key, data, sdi, probe_group);
+		ret = sdi->driver->config_set(key, data, sdi, channel_group);
 
 	g_variant_unref(data);
 
@@ -688,7 +688,7 @@ SR_API int sr_config_commit(const struct sr_dev_inst *sdi)
  * @param[in] driver The sr_dev_driver struct to query.
  * @param[in] sdi (optional) If the key is specific to a device, this must
  *            contain a pointer to the struct sr_dev_inst to be checked.
- * @param[in] probe_group The probe group on the device for which to list the
+ * @param[in] channel_group The channel group on the device for which to list the
  *                    values, or NULL.
  * @param[in] key The configuration key (SR_CONF_*).
  * @param[in,out] data A pointer to a GVariant where the list will be stored.
@@ -705,7 +705,7 @@ SR_API int sr_config_commit(const struct sr_dev_inst *sdi)
  */
 SR_API int sr_config_list(const struct sr_dev_driver *driver,
 		const struct sr_dev_inst *sdi,
-		const struct sr_probe_group *probe_group,
+		const struct sr_channel_group *channel_group,
 		int key, GVariant **data)
 {
 	int ret;
@@ -714,7 +714,7 @@ SR_API int sr_config_list(const struct sr_dev_driver *driver,
 		ret = SR_ERR;
 	else if (!driver->config_list)
 		ret = SR_ERR_ARG;
-	else if ((ret = driver->config_list(key, data, sdi, probe_group)) == SR_OK)
+	else if ((ret = driver->config_list(key, data, sdi, channel_group)) == SR_OK)
 		g_variant_ref_sink(*data);
 
 	return ret;

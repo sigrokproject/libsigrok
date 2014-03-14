@@ -88,7 +88,7 @@ static GSList *scan(GSList *options, int modelid)
 	struct dev_context *devc;
 	struct sr_config *src;
 	struct sr_probe *probe;
-	struct sr_probe_group *pg;
+	struct sr_channel_group *pg;
 	struct sr_serial_dev_inst *serial;
 	GSList *l, *devices;
 	struct pps_model *model;
@@ -169,11 +169,11 @@ static GSList *scan(GSList *options, int modelid)
 		snprintf(channel, 10, "CH%d", i + 1);
 		probe = sr_probe_new(i, SR_PROBE_ANALOG, TRUE, channel);
 		sdi->probes = g_slist_append(sdi->probes, probe);
-		pg = g_malloc(sizeof(struct sr_probe_group));
+		pg = g_malloc(sizeof(struct sr_channel_group));
 		pg->name = g_strdup(channel);
 		pg->probes = g_slist_append(NULL, probe);
 		pg->priv = NULL;
-		sdi->probe_groups = g_slist_append(sdi->probe_groups, pg);
+		sdi->channel_groups = g_slist_append(sdi->channel_groups, pg);
 	}
 
 	devc = g_malloc0(sizeof(struct dev_context));
@@ -206,7 +206,7 @@ static int cleanup(void)
 }
 
 static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_probe_group *probe_group)
+		const struct sr_channel_group *channel_group)
 {
 	struct dev_context *devc;
 	struct sr_probe *probe;
@@ -218,8 +218,8 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	devc = sdi->priv;
 
 	ret = SR_OK;
-	if (!probe_group) {
-		/* No probe group: global options. */
+	if (!channel_group) {
+		/* No channel group: global options. */
 		switch (key) {
 		case SR_CONF_OUTPUT_CHANNEL:
 			*data = g_variant_new_string(channel_modes[devc->channel_mode]);
@@ -231,8 +231,8 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 			return SR_ERR_NA;
 		}
 	} else {
-		/* We only ever have one channel per probe group in this driver. */
-		probe = probe_group->probes->data;
+		/* We only ever have one channel per channel group in this driver. */
+		probe = channel_group->probes->data;
 		channel = probe->index;
 
 		switch (key) {
@@ -275,7 +275,7 @@ static int find_str(const char *str, const char **strings, int array_size)
 }
 
 static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
-		const struct sr_probe_group *probe_group)
+		const struct sr_channel_group *channel_group)
 {
 	struct dev_context *devc;
 	struct sr_probe *probe;
@@ -289,8 +289,8 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 
 	ret = SR_OK;
 	devc = sdi->priv;
-	if (!probe_group) {
-		/* No probe group: global options. */
+	if (!channel_group) {
+		/* No channel group: global options. */
 		switch (key) {
 		case SR_CONF_OUTPUT_CHANNEL:
 			sval = g_variant_get_string(data, NULL);
@@ -321,9 +321,9 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 			return SR_ERR_NA;
 		}
 	} else {
-		/* Probe group specified: per-channel options. */
-		/* We only ever have one channel per probe group in this driver. */
-		probe = probe_group->probes->data;
+		/* Channel group specified: per-channel options. */
+		/* We only ever have one channel per channel group in this driver. */
+		probe = channel_group->probes->data;
 		channel = probe->index;
 
 		switch (key) {
@@ -359,7 +359,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 }
 
 static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_probe_group *probe_group)
+		const struct sr_channel_group *channel_group)
 {
 	struct dev_context *devc;
 	struct sr_probe *probe;
@@ -379,8 +379,8 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	devc = sdi->priv;
 
 	ret = SR_OK;
-	if (!probe_group) {
-		/* No probe group: global options. */
+	if (!channel_group) {
+		/* No channel group: global options. */
 		switch (key) {
 		case SR_CONF_DEVICE_OPTIONS:
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
@@ -399,11 +399,11 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 			return SR_ERR_NA;
 		}
 	} else {
-		/* Probe group specified: per-channel options. */
+		/* Channel group specified: per-channel options. */
 		if (!sdi)
 			return SR_ERR_ARG;
-		/* We only ever have one channel per probe group in this driver. */
-		probe = probe_group->probes->data;
+		/* We only ever have one channel per channel group in this driver. */
+		probe = channel_group->probes->data;
 		channel = probe->index;
 
 		switch (key) {

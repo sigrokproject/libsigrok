@@ -76,8 +76,8 @@ SR_API const char *sr_strerror(int error_code)
 		return "device closed but should be open";
 	case SR_ERR_TIMEOUT:
 		return "timeout occurred";
-	case SR_ERR_PROBE_GROUP:
-		return "no probe group specified";
+	case SR_ERR_CHANNEL_GROUP:
+		return "no channel group specified";
 	default:
 		return "unknown error";
 	}
@@ -127,8 +127,8 @@ SR_API const char *sr_strerror_name(int error_code)
 		return "SR_ERR_DEV_CLOSED";
 	case SR_ERR_TIMEOUT:
 		return "SR_ERR_TIMEOUT";
-	case SR_ERR_PROBE_GROUP:
-		return "SR_PROBE_GROUP";
+	case SR_ERR_CHANNEL_GROUP:
+		return "SR_ERR_CHANNEL_GROUP";
 	default:
 		return "unknown error code";
 	}

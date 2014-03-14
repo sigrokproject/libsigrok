@@ -423,18 +423,18 @@ static int cleanup_2x_bd232(void)
 
 /** Get value of configuration item */
 static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
-		      const struct sr_probe_group *probe_group)
+		      const struct sr_channel_group *channel_group)
 {
 	int ret;
 	struct dev_context *devc;
 
 	(void)sdi;
 	(void)data;
-	(void)probe_group;
+	(void)channel_group;
 
 	ret = SR_OK;
 
-	(void)probe_group;
+	(void)channel_group;
 
 	if (!sdi || !(devc = sdi->priv))
 		return SR_ERR_ARG;
@@ -460,10 +460,10 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 
 /** Implementation of config_list, auxiliary function for common parts, */
 static int config_list_common(int key, GVariant **data, const struct sr_dev_inst *sdi,
-			      const struct sr_probe_group *probe_group)
+			      const struct sr_channel_group *channel_group)
 {
 	(void)sdi;
-	(void)probe_group;
+	(void)channel_group;
 
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
@@ -479,10 +479,10 @@ static int config_list_common(int key, GVariant **data, const struct sr_dev_inst
 
 /** Implementation of config_list for Metrahit 1x/2x send mode */
 static int config_list_sm(int key, GVariant **data, const struct sr_dev_inst *sdi,
-			  const struct sr_probe_group *probe_group)
+			  const struct sr_channel_group *channel_group)
 {
 	(void)sdi;
-	(void)probe_group;
+	(void)channel_group;
 
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
@@ -490,7 +490,7 @@ static int config_list_sm(int key, GVariant **data, const struct sr_dev_inst *sd
 						  hwcaps_sm, ARRAY_SIZE(hwcaps_sm), sizeof(int32_t));
 		break;
 	default:
-		return config_list_common(key, data, sdi, probe_group);
+		return config_list_common(key, data, sdi, channel_group);
 	}
 
 	return SR_OK;
@@ -498,10 +498,10 @@ static int config_list_sm(int key, GVariant **data, const struct sr_dev_inst *sd
 
 /** Implementation of config_list for Metrahit 2x bidirectional mode */
 static int config_list_bd(int key, GVariant **data, const struct sr_dev_inst *sdi,
-			  const struct sr_probe_group *probe_group)
+			  const struct sr_channel_group *channel_group)
 {
 	(void)sdi;
-	(void)probe_group;
+	(void)channel_group;
 
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
@@ -509,7 +509,7 @@ static int config_list_bd(int key, GVariant **data, const struct sr_dev_inst *sd
 						  hwcaps_bd, ARRAY_SIZE(hwcaps_bd), sizeof(int32_t));
 		break;
 	default:
-		return config_list_common(key, data, sdi, probe_group);
+		return config_list_common(key, data, sdi, channel_group);
 	}
 
 	return SR_OK;

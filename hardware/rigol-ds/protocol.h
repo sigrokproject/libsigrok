@@ -97,9 +97,9 @@ struct dev_context {
 	const uint64_t (*vdivs)[2];
 	uint64_t num_vdivs;
 
-	/* Probe groups */
-	struct sr_probe_group analog_groups[MAX_ANALOG_PROBES];
-	struct sr_probe_group digital_group;
+	/* Channel groups */
+	struct sr_channel_group analog_groups[MAX_ANALOG_PROBES];
+	struct sr_channel_group digital_group;
 
 	/* Acquisition settings */
 	GSList *enabled_analog_probes;

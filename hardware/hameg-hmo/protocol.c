@@ -604,11 +604,11 @@ SR_PRIV int hmo_init_device(struct sr_dev_inst *sdi)
 		return SR_ERR_NA;
 	}
 
-	if (!(devc->analog_groups = g_try_malloc0(sizeof(struct sr_probe_group) *
+	if (!(devc->analog_groups = g_try_malloc0(sizeof(struct sr_channel_group) *
 						  scope_models[model_index].analog_channels)))
 			return SR_ERR_MALLOC;
 
-	if (!(devc->digital_groups = g_try_malloc0(sizeof(struct sr_probe_group) *
+	if (!(devc->digital_groups = g_try_malloc0(sizeof(struct sr_channel_group) *
 						   scope_models[model_index].digital_pods)))
 			return SR_ERR_MALLOC;
 
@@ -623,15 +623,15 @@ SR_PRIV int hmo_init_device(struct sr_dev_inst *sdi)
 			(char *)(*scope_models[model_index].analog_names)[i];
 		devc->analog_groups[i].probes = g_slist_append(NULL, probe);
 
-		sdi->probe_groups = g_slist_append(sdi->probe_groups,
+		sdi->channel_groups = g_slist_append(sdi->channel_groups,
 						   &devc->analog_groups[i]);
 	}
 
-	/* Add digital probe groups. */
+	/* Add digital channel groups. */
 	for (i = 0; i < scope_models[model_index].digital_pods; ++i) {
 		g_snprintf(tmp, 25, "POD%d", i);
 		devc->digital_groups[i].name = g_strdup(tmp);
-		sdi->probe_groups = g_slist_append(sdi->probe_groups,
+		sdi->channel_groups = g_slist_append(sdi->channel_groups,
 				   &devc->digital_groups[i < 8 ? 0 : 1]);
 	}
 

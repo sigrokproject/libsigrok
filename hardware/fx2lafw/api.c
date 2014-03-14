@@ -347,13 +347,13 @@ static int cleanup(void)
 }
 
 static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_probe_group *probe_group)
+		const struct sr_channel_group *channel_group)
 {
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
 	char str[128];
 
-	(void)probe_group;
+	(void)channel_group;
 
 	switch (id) {
 	case SR_CONF_CONN:
@@ -381,12 +381,12 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 }
 
 static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
-		const struct sr_probe_group *probe_group)
+		const struct sr_channel_group *channel_group)
 {
 	struct dev_context *devc;
 	int ret;
 
-	(void)probe_group;
+	(void)channel_group;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR;
@@ -407,13 +407,13 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 }
 
 static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_probe_group *probe_group)
+		const struct sr_channel_group *channel_group)
 {
 	GVariant *gvar;
 	GVariantBuilder gvb;
 
 	(void)sdi;
-	(void)probe_group;
+	(void)channel_group;
 
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:

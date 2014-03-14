@@ -93,8 +93,8 @@ struct dev_context {
 	void *model_config;
 	void *model_state;
 
-	struct sr_probe_group *analog_groups;
-	struct sr_probe_group *digital_groups;
+	struct sr_channel_group *analog_groups;
+	struct sr_channel_group *digital_groups;
 
 	GSList *enabled_probes;
 	GSList *current_probe;
