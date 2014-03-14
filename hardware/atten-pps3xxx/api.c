@@ -171,7 +171,7 @@ static GSList *scan(GSList *options, int modelid)
 		sdi->probes = g_slist_append(sdi->probes, probe);
 		cg = g_malloc(sizeof(struct sr_channel_group));
 		cg->name = g_strdup(channel);
-		cg->probes = g_slist_append(NULL, probe);
+		cg->channels = g_slist_append(NULL, probe);
 		cg->priv = NULL;
 		sdi->channel_groups = g_slist_append(sdi->channel_groups, cg);
 	}
@@ -232,7 +232,7 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		}
 	} else {
 		/* We only ever have one channel per channel group in this driver. */
-		probe = channel_group->probes->data;
+		probe = channel_group->channels->data;
 		channel = probe->index;
 
 		switch (key) {
@@ -323,7 +323,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 	} else {
 		/* Channel group specified: per-channel options. */
 		/* We only ever have one channel per channel group in this driver. */
-		probe = channel_group->probes->data;
+		probe = channel_group->channels->data;
 		channel = probe->index;
 
 		switch (key) {
@@ -403,7 +403,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		if (!sdi)
 			return SR_ERR_ARG;
 		/* We only ever have one channel per channel group in this driver. */
-		probe = channel_group->probes->data;
+		probe = channel_group->channels->data;
 		channel = probe->index;
 
 		switch (key) {

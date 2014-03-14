@@ -621,7 +621,7 @@ SR_PRIV int hmo_init_device(struct sr_dev_inst *sdi)
 
 		devc->analog_groups[i].name =
 			(char *)(*scope_models[model_index].analog_names)[i];
-		devc->analog_groups[i].probes = g_slist_append(NULL, probe);
+		devc->analog_groups[i].channels = g_slist_append(NULL, probe);
 
 		sdi->channel_groups = g_slist_append(sdi->channel_groups,
 						   &devc->analog_groups[i]);
@@ -642,8 +642,8 @@ SR_PRIV int hmo_init_device(struct sr_dev_inst *sdi)
 			return SR_ERR_MALLOC;
 		sdi->probes = g_slist_append(sdi->probes, probe);
 
-		devc->digital_groups[i < 8 ? 0 : 1].probes = g_slist_append(
-			devc->digital_groups[i < 8 ? 0 : 1].probes, probe);
+		devc->digital_groups[i < 8 ? 0 : 1].channels = g_slist_append(
+			devc->digital_groups[i < 8 ? 0 : 1].channels, probe);
 	}
 
 	devc->model_config = &scope_models[model_index];

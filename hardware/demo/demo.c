@@ -306,14 +306,14 @@ static GSList *scan(GSList *options)
 	if (!(cg = g_try_malloc(sizeof(struct sr_channel_group))))
 		return NULL;
 	cg->name = g_strdup("Logic");
-	cg->probes = NULL;
+	cg->channels = NULL;
 	cg->priv = NULL;
 	for (i = 0; i < num_logic_probes; i++) {
 		sprintf(probe_name, "D%d", i);
 		if (!(probe = sr_probe_new(i, SR_PROBE_LOGIC, TRUE, probe_name)))
 			return NULL;
 		sdi->probes = g_slist_append(sdi->probes, probe);
-		cg->probes = g_slist_append(cg->probes, probe);
+		cg->channels = g_slist_append(cg->channels, probe);
 	}
 	sdi->channel_groups = g_slist_append(NULL, cg);
 
@@ -331,12 +331,12 @@ static GSList *scan(GSList *options)
 		if (!(cg = g_try_malloc(sizeof(struct sr_channel_group))))
 			return NULL;
 		cg->name = g_strdup(probe_name);
-		cg->probes = g_slist_append(NULL, probe);
+		cg->channels = g_slist_append(NULL, probe);
 
 		/* Every channel group gets a generator struct. */
 		if (!(ag = g_try_malloc(sizeof(struct analog_gen))))
 			return NULL;
-		ag->packet.probes = cg->probes;
+		ag->packet.probes = cg->channels;
 		ag->packet.mq = 0;
 		ag->packet.mqflags = 0;
 		ag->packet.unit = SR_UNIT_VOLT;
@@ -407,7 +407,7 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 	case SR_CONF_PATTERN_MODE:
 		if (!channel_group)
 			return SR_ERR_CHANNEL_GROUP;
-		probe = channel_group->probes->data;
+		probe = channel_group->channels->data;
 		if (probe->type == SR_PROBE_LOGIC) {
 			pattern = devc->logic_pattern;
 			*data = g_variant_new_string(logic_pattern_str[pattern]);
@@ -466,7 +466,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 		if (!channel_group)
 			return SR_ERR_CHANNEL_GROUP;
 		stropt = g_variant_get_string(data, NULL);
-		probe = channel_group->probes->data;
+		probe = channel_group->channels->data;
 		pattern = -1;
 		if (probe->type == SR_PROBE_LOGIC) {
 			for (i = 0; i < ARRAY_SIZE(logic_pattern_str); i++) {
@@ -545,7 +545,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 			return SR_ERR_NA;
 		}
 	} else {
-		probe = channel_group->probes->data;
+		probe = channel_group->channels->data;
 		switch (key) {
 		case SR_CONF_DEVICE_OPTIONS:
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,

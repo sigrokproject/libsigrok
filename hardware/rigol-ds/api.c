@@ -240,9 +240,9 @@ static void clear_helper(void *priv)
 	g_free(devc->coupling[1]);
 	g_free(devc->trigger_source);
 	g_free(devc->trigger_slope);
-	g_slist_free(devc->analog_groups[0].probes);
-	g_slist_free(devc->analog_groups[1].probes);
-	g_slist_free(devc->digital_group.probes);
+	g_slist_free(devc->analog_groups[0].channels);
+	g_slist_free(devc->analog_groups[1].channels);
+	g_slist_free(devc->digital_group.channels);
 }
 
 static int dev_clear(void)
@@ -338,7 +338,7 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 		probe = sr_probe_new(i, SR_PROBE_ANALOG, TRUE, channel_name);
 		sdi->probes = g_slist_append(sdi->probes, probe);
 		devc->analog_groups[i].name = channel_name;
-		devc->analog_groups[i].probes = g_slist_append(NULL, probe);
+		devc->analog_groups[i].channels = g_slist_append(NULL, probe);
 		sdi->channel_groups = g_slist_append(sdi->channel_groups,
 				&devc->analog_groups[i]);
 	}
@@ -352,8 +352,8 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 			if (!probe)
 				return NULL;
 			sdi->probes = g_slist_append(sdi->probes, probe);
-			devc->digital_group.probes = g_slist_append(
-					devc->digital_group.probes, probe);
+			devc->digital_group.channels = g_slist_append(
+					devc->digital_group.channels, probe);
 		}
 		devc->digital_group.name = "LA";
 		sdi->channel_groups = g_slist_append(sdi->channel_groups,
@@ -498,7 +498,7 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 	}
 
 	if (channel_group) {
-		probe = g_slist_nth_data(channel_group->probes, 0);
+		probe = g_slist_nth_data(channel_group->channels, 0);
 		if (!probe)
 			return SR_ERR;
 		if (probe->type == SR_PROBE_ANALOG) {

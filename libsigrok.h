@@ -64,16 +64,16 @@ extern "C" {
 
 /** Status/error codes returned by libsigrok functions. */
 enum {
-	SR_OK             =  0, /**< No error. */
-	SR_ERR            = -1, /**< Generic/unspecified error. */
-	SR_ERR_MALLOC     = -2, /**< Malloc/calloc/realloc error. */
-	SR_ERR_ARG        = -3, /**< Function argument error. */
-	SR_ERR_BUG        = -4, /**< Errors hinting at internal bugs. */
-	SR_ERR_SAMPLERATE = -5, /**< Incorrect samplerate. */
-	SR_ERR_NA         = -6, /**< Not applicable. */
-	SR_ERR_DEV_CLOSED = -7, /**< Device is closed, but needs to be open. */
-	SR_ERR_TIMEOUT    = -8, /**< A timeout occurred. */
-	SR_ERR_PROBE_GROUP= -9, /**< A channel group must be specified. */
+	SR_OK                =  0, /**< No error. */
+	SR_ERR               = -1, /**< Generic/unspecified error. */
+	SR_ERR_MALLOC        = -2, /**< Malloc/calloc/realloc error. */
+	SR_ERR_ARG           = -3, /**< Function argument error. */
+	SR_ERR_BUG           = -4, /**< Errors hinting at internal bugs. */
+	SR_ERR_SAMPLERATE    = -5, /**< Incorrect samplerate. */
+	SR_ERR_NA            = -6, /**< Not applicable. */
+	SR_ERR_DEV_CLOSED    = -7, /**< Device is closed, but must be open. */
+	SR_ERR_TIMEOUT       = -8, /**< A timeout occurred. */
+	SR_ERR_CHANNEL_GROUP = -9, /**< A channel group must be specified. */
 
 	/*
 	 * Note: When adding entries here, don't forget to also update the
@@ -619,12 +619,12 @@ struct sr_probe {
 	char *trigger;
 };
 
-/** Structure for groups of probes that have common properties. */
+/** Structure for groups of channels that have common properties. */
 struct sr_channel_group {
 	/** Name of the channel group. */
 	char *name;
-	/** List of sr_probe structs of the probes belonging to this group. */
-	GSList *probes;
+	/** List of sr_probe structs of the channels belonging to this group. */
+	GSList *channels;
 	/** Private data for driver use. */
 	void *priv;
 };

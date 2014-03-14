@@ -133,10 +133,10 @@ static void clear_helper(void *priv)
 	hmo_scope_state_free(devc->model_state);
 
 	for (i = 0; i < model->analog_channels; ++i)
-		g_slist_free(devc->analog_groups[i].probes);
+		g_slist_free(devc->analog_groups[i].channels);
 
 	for (i = 0; i < model->digital_pods; ++i) {
-		g_slist_free(devc->digital_groups[i].probes);
+		g_slist_free(devc->digital_groups[i].channels);
 		g_free(devc->digital_groups[i].name);
 	}
 
