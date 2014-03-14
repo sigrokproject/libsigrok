@@ -43,7 +43,7 @@ static const int32_t devopts[] = {
 	SR_CONF_OVER_CURRENT_PROTECTION,
 };
 
-static const int32_t devopts_pg[] = {
+static const int32_t devopts_cg[] = {
 	SR_CONF_OUTPUT_VOLTAGE,
 	SR_CONF_OUTPUT_VOLTAGE_MAX,
 	SR_CONF_OUTPUT_CURRENT,
@@ -88,7 +88,7 @@ static GSList *scan(GSList *options, int modelid)
 	struct dev_context *devc;
 	struct sr_config *src;
 	struct sr_probe *probe;
-	struct sr_channel_group *pg;
+	struct sr_channel_group *cg;
 	struct sr_serial_dev_inst *serial;
 	GSList *l, *devices;
 	struct pps_model *model;
@@ -169,11 +169,11 @@ static GSList *scan(GSList *options, int modelid)
 		snprintf(channel, 10, "CH%d", i + 1);
 		probe = sr_probe_new(i, SR_PROBE_ANALOG, TRUE, channel);
 		sdi->probes = g_slist_append(sdi->probes, probe);
-		pg = g_malloc(sizeof(struct sr_channel_group));
-		pg->name = g_strdup(channel);
-		pg->probes = g_slist_append(NULL, probe);
-		pg->priv = NULL;
-		sdi->channel_groups = g_slist_append(sdi->channel_groups, pg);
+		cg = g_malloc(sizeof(struct sr_channel_group));
+		cg->name = g_strdup(channel);
+		cg->probes = g_slist_append(NULL, probe);
+		cg->priv = NULL;
+		sdi->channel_groups = g_slist_append(sdi->channel_groups, cg);
 	}
 
 	devc = g_malloc0(sizeof(struct dev_context));
@@ -409,7 +409,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		switch (key) {
 		case SR_CONF_DEVICE_OPTIONS:
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-					devopts_pg, ARRAY_SIZE(devopts_pg), sizeof(int32_t));
+					devopts_cg, ARRAY_SIZE(devopts_cg), sizeof(int32_t));
 			break;
 		case SR_CONF_OUTPUT_VOLTAGE_MAX:
 			g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);

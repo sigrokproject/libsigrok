@@ -139,7 +139,7 @@ static const int devopts[] = {
 	SR_CONF_LIMIT_MSEC,
 };
 
-static const int devopts_pg[] = {
+static const int devopts_cg[] = {
 	SR_CONF_PATTERN_MODE,
 };
 
@@ -257,7 +257,7 @@ static GSList *scan(GSList *options)
 	struct dev_context *devc;
 	struct sr_dev_inst *sdi;
 	struct sr_probe *probe;
-	struct sr_channel_group *pg;
+	struct sr_channel_group *cg;
 	struct sr_config *src;
 	struct analog_gen *ag;
 	GSList *devices, *l;
@@ -303,19 +303,19 @@ static GSList *scan(GSList *options)
 	devc->analog_channel_groups = NULL;
 
 	/* Logic probes, all in one channel group. */
-	if (!(pg = g_try_malloc(sizeof(struct sr_channel_group))))
+	if (!(cg = g_try_malloc(sizeof(struct sr_channel_group))))
 		return NULL;
-	pg->name = g_strdup("Logic");
-	pg->probes = NULL;
-	pg->priv = NULL;
+	cg->name = g_strdup("Logic");
+	cg->probes = NULL;
+	cg->priv = NULL;
 	for (i = 0; i < num_logic_probes; i++) {
 		sprintf(probe_name, "D%d", i);
 		if (!(probe = sr_probe_new(i, SR_PROBE_LOGIC, TRUE, probe_name)))
 			return NULL;
 		sdi->probes = g_slist_append(sdi->probes, probe);
-		pg->probes = g_slist_append(pg->probes, probe);
+		cg->probes = g_slist_append(cg->probes, probe);
 	}
-	sdi->channel_groups = g_slist_append(NULL, pg);
+	sdi->channel_groups = g_slist_append(NULL, cg);
 
 	/* Analog probes, channel groups and pattern generators. */
 
@@ -328,24 +328,24 @@ static GSList *scan(GSList *options)
 		sdi->probes = g_slist_append(sdi->probes, probe);
 
 		/* Every analog probe gets its own channel group. */
-		if (!(pg = g_try_malloc(sizeof(struct sr_channel_group))))
+		if (!(cg = g_try_malloc(sizeof(struct sr_channel_group))))
 			return NULL;
-		pg->name = g_strdup(probe_name);
-		pg->probes = g_slist_append(NULL, probe);
+		cg->name = g_strdup(probe_name);
+		cg->probes = g_slist_append(NULL, probe);
 
 		/* Every channel group gets a generator struct. */
 		if (!(ag = g_try_malloc(sizeof(struct analog_gen))))
 			return NULL;
-		ag->packet.probes = pg->probes;
+		ag->packet.probes = cg->probes;
 		ag->packet.mq = 0;
 		ag->packet.mqflags = 0;
 		ag->packet.unit = SR_UNIT_VOLT;
 		ag->packet.data = ag->pattern_data;
 		ag->pattern = pattern;
-		pg->priv = ag;
+		cg->priv = ag;
 
-		sdi->channel_groups = g_slist_append(sdi->channel_groups, pg);
-		devc->analog_channel_groups = g_slist_append(devc->analog_channel_groups, pg);
+		sdi->channel_groups = g_slist_append(sdi->channel_groups, cg);
+		devc->analog_channel_groups = g_slist_append(devc->analog_channel_groups, cg);
 
 		if (++pattern == ARRAY_SIZE(analog_pattern_str))
 			pattern = 0;
@@ -549,7 +549,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		switch (key) {
 		case SR_CONF_DEVICE_OPTIONS:
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-					devopts_pg, ARRAY_SIZE(devopts_pg), sizeof(int32_t));
+					devopts_cg, ARRAY_SIZE(devopts_cg), sizeof(int32_t));
 			break;
 		case SR_CONF_PATTERN_MODE:
 			if (probe->type == SR_PROBE_LOGIC)
@@ -617,7 +617,7 @@ static int prepare_data(int fd, int revents, void *cb_data)
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
-	struct sr_channel_group *pg;
+	struct sr_channel_group *cg;
 	struct analog_gen *ag;
 	GSList *l;
 	uint64_t logic_todo, analog_todo, expected_samplenum, analog_samples, sending_now;
@@ -658,8 +658,8 @@ static int prepare_data(int fd, int revents, void *cb_data)
 		if (devc->num_analog_probes > 0 && analog_todo > 0) {
 			sending_now = 0;
 			for (l = devc->analog_channel_groups; l; l = l->next) {
-				pg = l->data;
-				ag = pg->priv;
+				cg = l->data;
+				ag = cg->priv;
 				packet.type = SR_DF_ANALOG;
 				packet.payload = &ag->packet;
 
