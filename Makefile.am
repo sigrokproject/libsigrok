@@ -73,7 +73,8 @@ if NEED_RPC
 libsigrok_la_SOURCES += \
 	hardware/common/scpi_vxi.c \
 	hardware/common/vxi_clnt.c \
-	hardware/common/vxi_xdr.c
+	hardware/common/vxi_xdr.c \
+	hardware/common/vxi.h
 endif
 if NEED_SERIAL
 libsigrok_la_SOURCES += \
