@@ -34,7 +34,7 @@ AC_CONFIG_MACRO_DIR([autostuff])
 AC_CONFIG_AUX_DIR([autostuff])
 
 # We require at least automake 1.11 (needed for 'silent rules').
-AM_INIT_AUTOMAKE([1.11 -Wall -Werror check-news color-tests])
+AM_INIT_AUTOMAKE([1.11 -Wall -Werror subdir-objects check-news color-tests])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 
@@ -611,52 +611,7 @@ AC_SUBST(SR_PACKAGE_VERSION_MINOR)
 AC_SUBST(SR_PACKAGE_VERSION_MICRO)
 AC_SUBST(SR_PACKAGE_VERSION)
 
-AC_CONFIG_FILES([Makefile version.h hardware/Makefile
-		 hardware/agilent-dmm/Makefile
-		 hardware/alsa/Makefile
-		 hardware/appa-55ii/Makefile
-		 hardware/asix-sigma/Makefile
-		 hardware/atten-pps3xxx/Makefile
-		 hardware/brymen-bm86x/Makefile
-		 hardware/brymen-dmm/Makefile
-		 hardware/cem-dt-885x/Makefile
-		 hardware/center-3xx/Makefile
-		 hardware/chronovu-la8/Makefile
-		 hardware/colead-slm/Makefile
-		 hardware/common/Makefile
-		 hardware/conrad-digi-35-cpu/Makefile
-		 hardware/gmc-mh-1x-2x/Makefile
-		 hardware/hameg-hmo/Makefile
-		 hardware/ikalogic-scanalogic2/Makefile
-		 hardware/ikalogic-scanaplus/Makefile
-		 hardware/kecheng-kc-330b/Makefile
-		 hardware/lascar-el-usb/Makefile
-		 hardware/mic-985xx/Makefile
-		 hardware/rigol-ds/Makefile
-		 hardware/saleae-logic16/Makefile
-		 hardware/sysclk-lwla/Makefile
-		 hardware/teleinfo/Makefile
-		 hardware/tondaj-sl-814/Makefile
-		 hardware/victor-dmm/Makefile
-		 hardware/common/dmm/Makefile
-		 hardware/demo/Makefile
-		 hardware/fluke-dmm/Makefile
-		 hardware/fx2lafw/Makefile
-		 hardware/hantek-dso/Makefile
-		 hardware/link-mso19/Makefile
-		 hardware/norma-dmm/Makefile
-		 hardware/openbench-logic-sniffer/Makefile
-		 hardware/serial-dmm/Makefile
-		 hardware/uni-t-dmm/Makefile
-		 hardware/uni-t-ut32x/Makefile
-		 hardware/zeroplus-logic-cube/Makefile
-		 input/Makefile
-		 output/Makefile
-		 output/text/Makefile
-		 libsigrok.pc
-		 contrib/Makefile
-		 tests/Makefile
-		])
+AC_CONFIG_FILES([Makefile version.h libsigrok.pc])
 
 AC_OUTPUT
 

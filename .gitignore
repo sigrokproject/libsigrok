@@ -26,6 +26,7 @@ tests/check_main
 .deps
 Makefile
 Makefile.in
+.dirstamp
 
 # build leftovers
 *~
