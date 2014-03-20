@@ -181,7 +181,7 @@ static GSList *scan(GSList *options, int dmm)
 	struct drv_context *drvc;
 	struct sr_usb_dev_inst *usb;
 	struct sr_config *src;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	const char *conn;
 
 	drvc = udmms[dmm].di->priv;

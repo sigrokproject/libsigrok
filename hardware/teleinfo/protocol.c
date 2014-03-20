@@ -41,12 +41,12 @@ static gboolean teleinfo_control_check(char *label, char *data, char control)
 
 static gint teleinfo_probe_compare(gconstpointer a, gconstpointer b)
 {
-	const struct sr_probe *probe = a;
+	const struct sr_channel *probe = a;
 	const char *name = b;
 	return strcmp(probe->name, name);
 }
 
-static struct sr_probe *teleinfo_find_probe(struct sr_dev_inst *sdi,
+static struct sr_channel *teleinfo_find_probe(struct sr_dev_inst *sdi,
                                             const char *name)
 {
 	GSList *elem = g_slist_find_custom(sdi->probes, name,
@@ -60,7 +60,7 @@ static void teleinfo_send_value(struct sr_dev_inst *sdi, const char *probe_name,
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog analog;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 
 	devc = sdi->priv;
 	probe = teleinfo_find_probe(sdi, probe_name);

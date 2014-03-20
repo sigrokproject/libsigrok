@@ -50,7 +50,7 @@ struct context {
 static int init(struct sr_output *o)
 {
 	struct context *ctx;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	GSList *l;
 	GVariant *gvar;
 	int num_probes;

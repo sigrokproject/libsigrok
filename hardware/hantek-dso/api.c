@@ -160,7 +160,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);
 static struct sr_dev_inst *dso_dev_new(int index, const struct dso_profile *prof)
 {
 	struct sr_dev_inst *sdi;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	int i;
@@ -213,7 +213,7 @@ static struct sr_dev_inst *dso_dev_new(int index, const struct dso_profile *prof
 static int configure_probes(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	const GSList *l;
 	int p;
 

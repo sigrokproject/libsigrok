@@ -438,7 +438,7 @@ SR_PRIV int mso_receive_data(int fd, int revents, void *cb_data)
 SR_PRIV int mso_configure_probes(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	GSList *l;
 	char *tc;
 
@@ -453,7 +453,7 @@ SR_PRIV int mso_configure_probes(const struct sr_dev_inst *sdi)
 	devc->use_trigger = FALSE;
 
 	for (l = sdi->probes; l; l = l->next) {
-		probe = (struct sr_probe *)l->data;
+		probe = (struct sr_channel *)l->data;
 		if (probe->enabled == FALSE)
 			continue;
 

@@ -113,7 +113,7 @@ SR_API int sr_session_load(const char *filename)
 	struct zip_file *zf;
 	struct zip_stat zs;
 	struct sr_dev_inst *sdi;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	int ret, probenum, devcnt, i, j;
 	uint64_t tmp_u64, total_probes, enabled_probes, p;
 	char **sections, **keys, *metafile, *val;
@@ -234,7 +234,7 @@ SR_API int sr_session_load(const char *filename)
 SR_API int sr_session_save(const char *filename, const struct sr_dev_inst *sdi,
 		unsigned char *buf, int unitsize, int units)
 {
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	GSList *l;
 	GVariant *gvar;
 	uint64_t samplerate;

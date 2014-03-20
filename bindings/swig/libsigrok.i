@@ -98,7 +98,7 @@ gchar *g_string_free(GString *string, gboolean free_segment);
 %pointer_cast(gpointer, struct sr_dev_inst *, gpointer_to_sr_dev_inst_ptr);
 %pointer_cast(void *, struct sr_datafeed_logic *, void_ptr_to_sr_datafeed_logic_ptr)
 %pointer_cast(void *, struct sr_datafeed_analog *, void_ptr_to_sr_datafeed_analog_ptr)
-%pointer_cast(void *, struct sr_probe *, void_ptr_to_sr_probe_ptr)
+%pointer_cast(void *, struct sr_channel *, void_ptr_to_sr_channel_ptr)
 %pointer_cast(void *, struct sr_channel_group *, void_ptr_to_sr_channel_group_ptr)
 
 %extend sr_input_format {

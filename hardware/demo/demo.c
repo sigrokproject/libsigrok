@@ -255,7 +255,7 @@ static GSList *scan(GSList *options)
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct sr_dev_inst *sdi;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	struct sr_channel_group *cg;
 	struct sr_config *src;
 	struct analog_gen *ag;
@@ -385,7 +385,7 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	struct analog_gen *ag;
 	int pattern;
 
@@ -435,7 +435,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 {
 	struct dev_context *devc;
 	struct analog_gen *ag;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	int pattern, ret;
 	unsigned int i;
 	const char *stropt;
@@ -511,7 +511,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	GVariant *gvar;
 	GVariantBuilder gvb;
 

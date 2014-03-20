@@ -136,7 +136,7 @@ static GSList *scan(GSList *options)
 	struct dev_context *devc;
 	struct sr_dev_inst *sdi;
 	struct sr_usb_dev_inst *usb;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	struct sr_config *src;
 	GSList *l, *devices, *conn_devices;
 	struct libusb_device_descriptor des;
@@ -624,7 +624,7 @@ static unsigned int get_timeout(struct dev_context *devc)
 static int configure_probes(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	GSList *l;
 	uint16_t probe_bit;
 
@@ -633,7 +633,7 @@ static int configure_probes(const struct sr_dev_inst *sdi)
 	devc->cur_channels = 0;
 	devc->num_channels = 0;
 	for (l = sdi->probes; l; l = l->next) {
-		probe = (struct sr_probe *)l->data;
+		probe = (struct sr_channel *)l->data;
 		if (probe->enabled == FALSE)
 			continue;
 

@@ -51,7 +51,7 @@ static const char *gnuplot_header_comment = "\
 static int init(struct sr_output *o)
 {
 	struct context *ctx;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	GSList *l;
 	GVariant *gvar;
 	uint64_t samplerate;

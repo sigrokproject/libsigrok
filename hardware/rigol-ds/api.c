@@ -260,7 +260,7 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	struct dev_context *devc;
 	struct sr_dev_inst *sdi;
 	struct sr_scpi_hw_info *hw_info;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	long n[3];
 	unsigned int i;
 	const struct rigol_ds_model *model = NULL;
@@ -439,7 +439,7 @@ static int cleanup(void)
 static int analog_frame_size(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc = sdi->priv;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	int analog_probes = 0;
 	GSList *l;
 
@@ -480,7 +480,7 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	const char *tmp_str;
 	uint64_t samplerate;
 	int analog_channel = -1;
@@ -865,7 +865,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 {
 	struct sr_scpi_dev_inst *scpi;
 	struct dev_context *devc;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	struct sr_datafeed_packet packet;
 	GSList *l;
 

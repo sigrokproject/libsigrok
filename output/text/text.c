@@ -74,7 +74,7 @@ SR_PRIV void flush_linebufs(struct context *ctx, uint8_t *outbuf)
 SR_PRIV int init(struct sr_output *o, int default_spl, enum outputmode mode)
 {
 	struct context *ctx;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	GSList *l;
 	GVariant *gvar;
 	uint64_t samplerate;

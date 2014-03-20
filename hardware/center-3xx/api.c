@@ -71,7 +71,7 @@ static GSList *center_scan(const char *conn, const char *serialcomm, int idx)
 	struct sr_dev_inst *sdi;
 	struct drv_context *drvc;
 	struct dev_context *devc;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	struct sr_serial_dev_inst *serial;
 	GSList *devices;
 

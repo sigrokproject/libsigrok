@@ -56,7 +56,7 @@ static GSList *scan(GSList *options)
 	struct dev_context *devc;
 	struct sr_dev_inst *sdi;
 	struct sr_config *src;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	GSList *devices, *l;
 	const char *conn, *serialcomm;
 

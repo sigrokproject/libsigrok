@@ -162,7 +162,7 @@ static GSList *scan_1x_2x_rs232(GSList *options)
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct sr_config *src;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	struct sr_serial_dev_inst *serial;
 	GSList *l, *devices;
 	const char *conn, *serialcomm;
@@ -259,7 +259,7 @@ static GSList *scan_2x_bd232(GSList *options)
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct sr_config *src;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	struct sr_serial_dev_inst *serial;
 	GSList *l, *devices;
 	const char *conn, *serialcomm;

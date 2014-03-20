@@ -57,7 +57,7 @@ SR_PRIV int send_longcommand(struct sr_serial_dev_inst *serial,
 SR_PRIV int ols_configure_probes(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	const struct sr_probe *probe;
+	const struct sr_channel *probe;
 	const GSList *l;
 	int probe_bit, stage, i;
 	char *tc;
@@ -72,7 +72,7 @@ SR_PRIV int ols_configure_probes(const struct sr_dev_inst *sdi)
 
 	devc->num_stages = 0;
 	for (l = sdi->probes; l; l = l->next) {
-		probe = (const struct sr_probe *)l->data;
+		probe = (const struct sr_channel *)l->data;
 		if (!probe->enabled)
 			continue;
 
@@ -134,7 +134,7 @@ SR_PRIV struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	uint32_t tmp_int, ui;
 	uint8_t key, type, token;
 	GString *tmp_str, *devname, *version;

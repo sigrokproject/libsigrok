@@ -63,7 +63,7 @@ static void alsa_scan_handle_dev(GSList **devices,
 	struct drv_context *drvc = NULL;
 	struct sr_dev_inst *sdi = NULL;
 	struct dev_context *devc = NULL;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	int ret;
 	unsigned int i, offset, channels, minrate, maxrate, rate;
 	uint64_t hwrates[ARRAY_SIZE(rates)];

@@ -581,7 +581,7 @@ SR_PRIV int hmo_init_device(struct sr_dev_inst *sdi)
 	char tmp[25];
 	int model_index;
 	unsigned int i, j;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	struct dev_context *devc;
 
 	devc = sdi->priv;
@@ -657,7 +657,7 @@ SR_PRIV int hmo_init_device(struct sr_dev_inst *sdi)
 
 SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 {
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;

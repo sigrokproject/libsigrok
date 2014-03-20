@@ -217,7 +217,7 @@ static GSList *scan(GSList *options)
 		sdi->priv = devc;
 
 		for (i = 0; i < NUM_PROBES; i++) {
-			struct sr_probe *probe;
+			struct sr_channel *probe;
 			ptype = (i == 0) ? SR_PROBE_ANALOG : SR_PROBE_LOGIC;
 			if (!(probe = sr_probe_new(i, ptype, TRUE,
 						   mso19_probe_names[i])))

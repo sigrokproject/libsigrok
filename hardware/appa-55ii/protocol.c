@@ -92,7 +92,7 @@ static void appa_55ii_live_data(struct sr_dev_inst *sdi, const uint8_t *buf)
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog analog;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	float values[APPA_55II_NUM_PROBES], *val_ptr;
 	int i;
 
@@ -138,7 +138,7 @@ static void appa_55ii_log_data_parse(struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog analog;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	float values[APPA_55II_NUM_PROBES], *val_ptr;
 	const uint8_t *buf;
 	int16_t temp;

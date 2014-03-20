@@ -152,7 +152,7 @@ struct dev_context {
 	void *cb_data;
 
 	/* Array to provide an index based access to all probes. */
-	const struct sr_probe *probes[NUM_PROBES];
+	const struct sr_channel *probes[NUM_PROBES];
 
 	struct libusb_transfer *xfer_in, *xfer_out;
 

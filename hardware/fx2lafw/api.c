@@ -126,7 +126,7 @@ static GSList *scan(GSList *options)
 	struct dev_context *devc;
 	struct sr_dev_inst *sdi;
 	struct sr_usb_dev_inst *usb;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	struct sr_config *src;
 	const struct fx2lafw_profile *prof;
 	GSList *l, *devices, *conn_devices;

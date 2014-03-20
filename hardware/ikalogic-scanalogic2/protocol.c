@@ -482,7 +482,7 @@ SR_PRIV int sl2_set_limit_samples(const struct sr_dev_inst *sdi,
 SR_PRIV void sl2_configure_trigger(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	uint8_t trigger_type;
 	int probe_index, num_triggers_anyedge;
 	char *trigger;

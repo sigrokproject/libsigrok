@@ -49,7 +49,7 @@ static GSList *scan(GSList *options)
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
 	struct sr_dev_inst *sdi;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	GSList *devices = NULL, *l;
 	const char *conn = NULL, *serialcomm = NULL;
 	uint8_t buf[292];

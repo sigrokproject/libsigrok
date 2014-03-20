@@ -79,7 +79,7 @@ static GSList *scan(GSList *options)
 	struct sr_config *src;
 	struct sr_serial_dev_inst *serial;
 	struct sr_dev_inst *sdi;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	GSList *l, *devices;
 	gint64 start;
 	const char *conn;

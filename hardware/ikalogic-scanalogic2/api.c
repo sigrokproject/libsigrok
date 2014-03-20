@@ -59,7 +59,7 @@ static GSList *scan(GSList *options)
 	GSList *usb_devices, *devices, *l;
 	struct drv_context *drvc;
 	struct sr_dev_inst *sdi;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
 	struct device_info dev_info;

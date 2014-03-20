@@ -432,7 +432,7 @@ static int init(struct sr_input *in, const char *filename)
 	GIOStatus status;
 	gsize i, term_pos;
 	char probe_name[SR_MAX_PROBENAME_LEN + 1];
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	char **columns;
 	gsize num_columns;
 	char *ptr;

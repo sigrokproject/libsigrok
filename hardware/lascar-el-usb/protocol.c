@@ -293,7 +293,7 @@ static struct sr_dev_inst *lascar_identify(unsigned char *config)
 	struct dev_context *devc;
 	const struct elusb_profile *profile;
 	struct sr_dev_inst *sdi;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	int modelid, i;
 	char firmware[5];
 
@@ -398,7 +398,7 @@ static void lascar_el_usb_dispatch(struct sr_dev_inst *sdi, unsigned char *buf,
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog analog;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	float *temp, *rh;
 	uint16_t s;
 	int samples, samples_left, i, j;

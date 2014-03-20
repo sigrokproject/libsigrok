@@ -287,7 +287,7 @@ SR_PRIV int la8_reset(struct dev_context *devc)
 SR_PRIV int configure_probes(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	const struct sr_probe *probe;
+	const struct sr_channel *probe;
 	const GSList *l;
 	uint8_t probe_bit;
 	char *tc;
@@ -297,7 +297,7 @@ SR_PRIV int configure_probes(const struct sr_dev_inst *sdi)
 	devc->trigger_mask = 0; /* Default to "don't care" for all probes. */
 
 	for (l = sdi->probes; l; l = l->next) {
-		probe = (struct sr_probe *)l->data;
+		probe = (struct sr_channel *)l->data;
 
 		if (!probe) {
 			sr_err("%s: probe was NULL.", __func__);

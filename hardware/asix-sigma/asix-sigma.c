@@ -402,7 +402,7 @@ static int init(struct sr_context *sr_ctx)
 static GSList *scan(GSList *options)
 {
 	struct sr_dev_inst *sdi;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	GSList *devices;
@@ -654,7 +654,7 @@ static int set_samplerate(const struct sr_dev_inst *sdi, uint64_t samplerate)
 static int configure_probes(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc = sdi->priv;
-	const struct sr_probe *probe;
+	const struct sr_channel *probe;
 	const GSList *l;
 	int trigger_set = 0;
 	int probebit;
@@ -662,7 +662,7 @@ static int configure_probes(const struct sr_dev_inst *sdi)
 	memset(&devc->trigger, 0, sizeof(struct sigma_trigger));
 
 	for (l = sdi->probes; l; l = l->next) {
-		probe = (struct sr_probe *)l->data;
+		probe = (struct sr_channel *)l->data;
 		probebit = 1 << (probe->index);
 
 		if (!probe->enabled || !probe->trigger)

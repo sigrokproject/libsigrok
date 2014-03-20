@@ -565,7 +565,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 SR_PRIV int hmo_request_data(const struct sr_dev_inst *sdi)
 {
 	char command[MAX_COMMAND_SIZE];
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	struct dev_context *devc;
 	struct scope_config *model;
 
@@ -596,7 +596,7 @@ SR_PRIV int hmo_request_data(const struct sr_dev_inst *sdi)
 static int hmo_check_probes(GSList *probes)
 {
 	GSList *l;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	gboolean enabled_pod1, enabled_pod2, enabled_chan3, enabled_chan4;
 
 	enabled_pod1 = enabled_pod2 = enabled_chan3 = enabled_chan4 = FALSE;
@@ -636,7 +636,7 @@ static int hmo_setup_probes(const struct sr_dev_inst *sdi)
 	char command[MAX_COMMAND_SIZE];
 	struct scope_state *state;
 	struct scope_config *model;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	struct dev_context *devc;
 	struct sr_scpi_dev_inst *scpi;
 
@@ -712,7 +712,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 {
 	GSList *l;
 	gboolean digital_added;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	struct dev_context *devc;
 	struct sr_scpi_dev_inst *scpi;
 

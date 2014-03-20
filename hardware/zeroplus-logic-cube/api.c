@@ -127,7 +127,7 @@ static int dev_close(struct sr_dev_inst *sdi);
 static int configure_probes(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	const struct sr_probe *probe;
+	const struct sr_channel *probe;
 	const GSList *l;
 	int probe_bit, stage, i;
 	char *tc;
@@ -143,7 +143,7 @@ static int configure_probes(const struct sr_dev_inst *sdi)
 
 	stage = -1;
 	for (l = sdi->probes; l; l = l->next) {
-		probe = (struct sr_probe *)l->data;
+		probe = (struct sr_channel *)l->data;
 		if (probe->enabled == FALSE)
 			continue;
 		probe_bit = 1 << (probe->index);
@@ -170,7 +170,7 @@ static int configure_probes(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	const GSList *l;
-	const struct sr_probe *probe;
+	const struct sr_channel *probe;
 	char *tc;
 	int type;
 
@@ -178,7 +178,7 @@ static int configure_probes(const struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 
 	for (l = sdi->probes; l; l = l->next) {
-		probe = (struct sr_probe *)l->data;
+		probe = (struct sr_channel *)l->data;
 		if (probe->enabled == FALSE)
 			continue;
 
@@ -247,7 +247,7 @@ static int init(struct sr_context *sr_ctx)
 static GSList *scan(GSList *options)
 {
 	struct sr_dev_inst *sdi;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	const struct zp_model *prof;

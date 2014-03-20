@@ -85,7 +85,7 @@ static int format_match(const char *filename)
 
 static int init(struct sr_input *in, const char *filename)
 {
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	struct context *ctx;
 	char buf[40], probename[8];
 	int i;

@@ -56,7 +56,7 @@ static int init(struct sr_output *o)
 
 static GString *gen_header(const struct sr_dev_inst *sdi, struct context *ctx)
 {
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	GSList *l;
 	GString *s;
 	GVariant *gvar;

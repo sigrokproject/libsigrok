@@ -295,7 +295,7 @@ SR_PRIV int fx2lafw_dev_open(struct sr_dev_inst *sdi, struct sr_dev_driver *di)
 SR_PRIV int fx2lafw_configure_probes(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	GSList *l;
 	int probe_bit, stage, i;
 	char *tc;
@@ -308,7 +308,7 @@ SR_PRIV int fx2lafw_configure_probes(const struct sr_dev_inst *sdi)
 
 	stage = -1;
 	for (l = sdi->probes; l; l = l->next) {
-		probe = (struct sr_probe *)l->data;
+		probe = (struct sr_channel *)l->data;
 		if (probe->enabled == FALSE)
 			continue;
 

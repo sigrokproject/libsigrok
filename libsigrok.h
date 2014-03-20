@@ -605,15 +605,15 @@ enum {
     SR_PROBE_ANALOG,
 };
 
-/** Information on single probe. */
-struct sr_probe {
-	/** Number of probes, starting at 0. */
+/** Information on single channel. */
+struct sr_channel {
+	/** Number of channels, starting at 0. */
 	int index;
-	/** Probe type (SR_PROBE_LOGIC, ...) */
+	/** Channel type (SR_PROBE_LOGIC, ...) */
 	int type;
-	/** Is this probe enabled? */
+	/** Is this channel enabled? */
 	gboolean enabled;
-	/** Name of probe. */
+	/** Name of channel. */
 	char *name;
 	/** Trigger string, format like used by sigrok-cli */
 	char *trigger;
@@ -623,7 +623,7 @@ struct sr_probe {
 struct sr_channel_group {
 	/** Name of the channel group. */
 	char *name;
-	/** List of sr_probe structs of the channels belonging to this group. */
+	/** List of sr_channel structs of the channels belonging to this group. */
 	GSList *channels;
 	/** Private data for driver use. */
 	void *priv;
@@ -995,7 +995,7 @@ struct sr_dev_driver {
 	/** Probe status change.
 	 *  @see sr_dev_probe_enable(), sr_dev_trigger_set(). */
 	int (*config_probe_set) (const struct sr_dev_inst *sdi,
-			struct sr_probe *probe, unsigned int changes);
+			struct sr_channel *probe, unsigned int changes);
 	/** Apply configuration settings to the device hardware.
 	 *  @see sr_config_commit().*/
 	int (*config_commit) (const struct sr_dev_inst *sdi);

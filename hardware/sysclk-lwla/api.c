@@ -75,7 +75,7 @@ static int init(struct sr_context *sr_ctx)
 static GSList *gen_probe_list(int num_probes)
 {
 	GSList *list;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	int i;
 	char name[8];
 
@@ -402,7 +402,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 }
 
 static int config_probe_set(const struct sr_dev_inst *sdi,
-			    struct sr_probe *probe, unsigned int changes)
+			    struct sr_channel *probe, unsigned int changes)
 {
 	uint64_t probe_bit;
 	uint64_t trigger_mask;

@@ -196,7 +196,7 @@ class Device(object):
             self._probes = {}
             probe_list = self.struct.probes
             while (probe_list):
-                probe_ptr = void_ptr_to_sr_probe_ptr(probe_list.data)
+                probe_ptr = void_ptr_to_sr_channel_ptr(probe_list.data)
                 self._probes[probe_ptr.name] = Probe(self, probe_ptr)
                 probe_list = probe_list.next
         return self._probes
@@ -306,7 +306,7 @@ class ChannelGroup(object):
             self._channels = []
             channel_list = self.struct.channels
             while (channel_list):
-                channel_ptr = void_ptr_to_sr_probe_ptr(channel_list.data)
+                channel_ptr = void_ptr_to_sr_channel_ptr(channel_list.data)
                 self._channels.append(Probe(self, probe_ptr))
                 channel_list = channel_list.next
         return self._channels

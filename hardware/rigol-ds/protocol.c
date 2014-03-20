@@ -207,7 +207,7 @@ static int rigol_ds_stop_wait(const struct sr_dev_inst *sdi)
 static int rigol_ds_check_stop(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	int tmp;
 
 	if (!(devc = sdi->priv))
@@ -376,7 +376,7 @@ SR_PRIV int rigol_ds_capture_start(const struct sr_dev_inst *sdi)
 SR_PRIV int rigol_ds_channel_start(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 
 	if (!(devc = sdi->priv))
 		return SR_ERR;
@@ -483,7 +483,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 	struct sr_datafeed_logic logic;
 	double vdiv, offset;
 	int len, i, vref;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	gsize expected_data_bytes;
 
 	(void)fd;

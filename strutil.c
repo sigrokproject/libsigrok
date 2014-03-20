@@ -381,7 +381,7 @@ SR_API char **sr_parse_triggerstring(const struct sr_dev_inst *sdi,
 {
 	GSList *l;
 	GVariant *gvar;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	int max_probes, probenum, i;
 	char **tokens, **triggerlist, *trigger, *tc;
 	const char *trigger_types;
@@ -406,7 +406,7 @@ SR_API char **sr_parse_triggerstring(const struct sr_dev_inst *sdi,
 	for (i = 0; tokens[i]; i++) {
 		probenum = -1;
 		for (l = sdi->probes; l; l = l->next) {
-			probe = (struct sr_probe *)l->data;
+			probe = (struct sr_channel *)l->data;
 			if (probe->enabled
 				&& !strncmp(probe->name, tokens[i],
 					strlen(probe->name))) {

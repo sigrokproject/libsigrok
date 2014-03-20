@@ -48,7 +48,7 @@ static GSList *scan(GSList *options)
 	struct sr_dev_inst *sdi;
 	struct sr_usb_dev_inst *usb;
 	struct sr_config *src;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	const char *conn;
 
 	drvc = di->priv;

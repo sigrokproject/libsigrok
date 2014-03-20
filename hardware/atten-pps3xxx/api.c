@@ -87,7 +87,7 @@ static GSList *scan(GSList *options, int modelid)
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct sr_config *src;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	struct sr_channel_group *cg;
 	struct sr_serial_dev_inst *serial;
 	GSList *l, *devices;
@@ -209,7 +209,7 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	int channel, ret;
 
 	if (!sdi)
@@ -278,7 +278,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	gdouble dval;
 	int channel, ret, ival;
 	const char *sval;
@@ -362,7 +362,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	GVariant *gvar;
 	GVariantBuilder gvb;
 	int channel, ret, i;

@@ -213,7 +213,7 @@ void srtest_buf_to_file(const char *filename, const uint8_t *buf, uint64_t len)
 
 GArray *srtest_get_enabled_logic_probes(const struct sr_dev_inst *sdi)
 {
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	GArray *probes;
 	GSList *l;
 

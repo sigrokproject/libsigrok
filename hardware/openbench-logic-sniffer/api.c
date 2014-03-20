@@ -90,7 +90,7 @@ static GSList *scan(GSList *options)
 	struct sr_dev_inst *sdi;
 	struct drv_context *drvc;
 	struct dev_context *devc;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	struct sr_serial_dev_inst *serial;
 	GPollFD probefd;
 	GSList *l, *devices;

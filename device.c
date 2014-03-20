@@ -40,20 +40,20 @@
  */
 
 /** @private
- *  Allocate and initialize new struct sr_probe
- *  @param[in]  index @copydoc sr_probe::index
- *  @param[in]  type @copydoc sr_probe::type
- *  @param[in]  enabled @copydoc sr_probe::enabled
- *  @param[in]  name @copydoc sr_probe::name
+ *  Allocate and initialize new struct sr_channel
+ *  @param[in]  index @copydoc sr_channel::index
+ *  @param[in]  type @copydoc sr_channel::type
+ *  @param[in]  enabled @copydoc sr_channel::enabled
+ *  @param[in]  name @copydoc sr_channel::name
  *
- *  @return NULL (failure) or new struct sr_probe*.
+ *  @return NULL (failure) or new struct sr_channel*.
  */
-SR_PRIV struct sr_probe *sr_probe_new(int index, int type,
+SR_PRIV struct sr_channel *sr_probe_new(int index, int type,
 		gboolean enabled, const char *name)
 {
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 
-	if (!(probe = g_try_malloc0(sizeof(struct sr_probe)))) {
+	if (!(probe = g_try_malloc0(sizeof(struct sr_channel)))) {
 		sr_err("Probe malloc failed.");
 		return NULL;
 	}
@@ -87,7 +87,7 @@ SR_API int sr_dev_probe_name_set(const struct sr_dev_inst *sdi,
 		int probenum, const char *name)
 {
 	GSList *l;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	int ret;
 
 	if (!sdi) {
@@ -126,7 +126,7 @@ SR_API int sr_dev_probe_enable(const struct sr_dev_inst *sdi, int probenum,
 		gboolean state)
 {
 	GSList *l;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	int ret;
 	gboolean was_enabled;
 
@@ -175,7 +175,7 @@ SR_API int sr_dev_trigger_set(const struct sr_dev_inst *sdi, int probenum,
 		const char *trigger)
 {
 	GSList *l;
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	char *old_trigger;
 	int ret;
 
@@ -298,7 +298,7 @@ SR_PRIV struct sr_dev_inst *sr_dev_inst_new(int index, int status,
  */
 SR_PRIV void sr_dev_inst_free(struct sr_dev_inst *sdi)
 {
-	struct sr_probe *probe;
+	struct sr_channel *probe;
 	GSList *l;
 
 	for (l = sdi->probes; l; l = l->next) {
