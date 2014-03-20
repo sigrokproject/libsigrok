@@ -249,13 +249,13 @@ static int cleanup(void)
 }
 
 static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *channel_group)
+		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 	GVariant *rational[2];
 	const uint64_t *si;
 
-	(void)channel_group;
+	(void)cg;
 
 	devc = sdi->priv;
 	switch (key) {
@@ -298,7 +298,7 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 }
 
 static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *channel_group)
+		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 	uint64_t p, q;
@@ -306,7 +306,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 	int tmp, ret;
 	const char *tmp_str;
 
-	(void)channel_group;
+	(void)cg;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
@@ -378,14 +378,14 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 }
 
 static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *channel_group)
+		const struct sr_channel_group *cg)
 {
 	GVariant *tuple, *rational[2];
 	GVariantBuilder gvb;
 	unsigned int i;
 
 	(void)sdi;
-	(void)channel_group;
+	(void)cg;
 
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:

@@ -211,11 +211,11 @@ static int dev_close(struct sr_dev_inst *sdi)
 }
 
 static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *channel_group)
+		const struct sr_channel_group *cg)
 {
 	struct session_vdev *vdev;
 
-	(void)channel_group;
+	(void)cg;
 
 	switch (id) {
 	case SR_CONF_SAMPLERATE:
@@ -233,11 +233,11 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 }
 
 static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *channel_group)
+		const struct sr_channel_group *cg)
 {
 	struct session_vdev *vdev;
 
-	(void)channel_group;
+	(void)cg;
 
 	vdev = sdi->priv;
 
@@ -270,10 +270,10 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 }
 
 static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *channel_group)
+		const struct sr_channel_group *cg)
 {
 	(void)sdi;
-	(void)channel_group;
+	(void)cg;
 
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:

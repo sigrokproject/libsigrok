@@ -265,12 +265,12 @@ static int cleanup(void)
 }
 
 static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
-		      const struct sr_channel_group *channel_group)
+		      const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 	size_t idx;
 
-	(void)channel_group;
+	(void)cg;
 
 	if (!sdi)
 		return SR_ERR_ARG;
@@ -337,13 +337,13 @@ static int lookup_index(GVariant *value, const char *const *table, int len)
 }
 
 static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
-		      const struct sr_channel_group *channel_group)
+		      const struct sr_channel_group *cg)
 {
 	uint64_t value;
 	struct dev_context *devc;
 	int idx;
 
-	(void)channel_group;
+	(void)cg;
 
 	devc = sdi->priv;
 	if (!devc)
@@ -477,13 +477,13 @@ static int config_commit(const struct sr_dev_inst *sdi)
 }
 
 static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
-		       const struct sr_channel_group *channel_group)
+		       const struct sr_channel_group *cg)
 {
 	GVariant *gvar;
 	GVariantBuilder gvb;
 
 	(void)sdi;
-	(void)channel_group;
+	(void)cg;
 
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:

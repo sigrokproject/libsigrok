@@ -206,7 +206,7 @@ static int cleanup(void)
 }
 
 static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *channel_group)
+		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 	struct sr_probe *probe;
@@ -218,7 +218,7 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	devc = sdi->priv;
 
 	ret = SR_OK;
-	if (!channel_group) {
+	if (!cg) {
 		/* No channel group: global options. */
 		switch (key) {
 		case SR_CONF_OUTPUT_CHANNEL:
@@ -232,7 +232,7 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		}
 	} else {
 		/* We only ever have one channel per channel group in this driver. */
-		probe = channel_group->channels->data;
+		probe = cg->channels->data;
 		channel = probe->index;
 
 		switch (key) {
@@ -275,7 +275,7 @@ static int find_str(const char *str, const char **strings, int array_size)
 }
 
 static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *channel_group)
+		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 	struct sr_probe *probe;
@@ -289,7 +289,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 
 	ret = SR_OK;
 	devc = sdi->priv;
-	if (!channel_group) {
+	if (!cg) {
 		/* No channel group: global options. */
 		switch (key) {
 		case SR_CONF_OUTPUT_CHANNEL:
@@ -323,7 +323,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 	} else {
 		/* Channel group specified: per-channel options. */
 		/* We only ever have one channel per channel group in this driver. */
-		probe = channel_group->channels->data;
+		probe = cg->channels->data;
 		channel = probe->index;
 
 		switch (key) {
@@ -359,7 +359,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 }
 
 static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *channel_group)
+		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 	struct sr_probe *probe;
@@ -379,7 +379,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	devc = sdi->priv;
 
 	ret = SR_OK;
-	if (!channel_group) {
+	if (!cg) {
 		/* No channel group: global options. */
 		switch (key) {
 		case SR_CONF_DEVICE_OPTIONS:
@@ -403,7 +403,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		if (!sdi)
 			return SR_ERR_ARG;
 		/* We only ever have one channel per channel group in this driver. */
-		probe = channel_group->channels->data;
+		probe = cg->channels->data;
 		channel = probe->index;
 
 		switch (key) {

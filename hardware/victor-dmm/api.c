@@ -202,12 +202,12 @@ static int cleanup(void)
 }
 
 static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *channel_group)
+		const struct sr_channel_group *cg)
 {
 	struct sr_usb_dev_inst *usb;
 	char str[128];
 
-	(void)channel_group;
+	(void)cg;
 
 	switch (id) {
 	case SR_CONF_CONN:
@@ -225,13 +225,13 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 }
 
 static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *channel_group)
+		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 	gint64 now;
 	int ret;
 
-	(void)channel_group;
+	(void)cg;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
@@ -264,10 +264,10 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 }
 
 static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *channel_group)
+		const struct sr_channel_group *cg)
 {
 	(void)sdi;
-	(void)channel_group;
+	(void)cg;
 
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:

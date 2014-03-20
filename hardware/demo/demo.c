@@ -171,7 +171,7 @@ static int init(struct sr_context *sr_ctx)
 	return std_init(sr_ctx, di, LOG_PREFIX);
 }
 
-static void generate_analog_pattern(const struct sr_channel_group *channel_group, uint64_t sample_rate)
+static void generate_analog_pattern(const struct sr_channel_group *cg, uint64_t sample_rate)
 {
 	struct analog_gen *ag;
 	double t, frequency;
@@ -179,12 +179,11 @@ static void generate_analog_pattern(const struct sr_channel_group *channel_group
 	unsigned int num_samples, i;
 	int last_end;
 
-	ag = channel_group->priv;
+	ag = cg->priv;
 	num_samples = ANALOG_BUFSIZE / sizeof(float);
 
 	sr_dbg("Generating %s pattern for channel group %s",
-	       analog_pattern_str[ag->pattern],
-	       channel_group->name);
+	       analog_pattern_str[ag->pattern], cg->name);
 
 	switch (ag->pattern) {
 	case PATTERN_SQUARE:
@@ -383,7 +382,7 @@ static int cleanup(void)
 }
 
 static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *channel_group)
+		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 	struct sr_probe *probe;
@@ -405,14 +404,14 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 		*data = g_variant_new_uint64(devc->limit_msec);
 		break;
 	case SR_CONF_PATTERN_MODE:
-		if (!channel_group)
+		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		probe = channel_group->channels->data;
+		probe = cg->channels->data;
 		if (probe->type == SR_PROBE_LOGIC) {
 			pattern = devc->logic_pattern;
 			*data = g_variant_new_string(logic_pattern_str[pattern]);
 		} else if (probe->type == SR_PROBE_ANALOG) {
-			ag = channel_group->priv;
+			ag = cg->priv;
 			pattern = ag->pattern;
 			*data = g_variant_new_string(analog_pattern_str[pattern]);
 		} else
@@ -432,7 +431,7 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 }
 
 static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *channel_group)
+		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 	struct analog_gen *ag;
@@ -463,10 +462,10 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 		sr_dbg("Setting time limit to %" PRIu64"ms", devc->limit_msec);
 		break;
 	case SR_CONF_PATTERN_MODE:
-		if (!channel_group)
+		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
 		stropt = g_variant_get_string(data, NULL);
-		probe = channel_group->channels->data;
+		probe = cg->channels->data;
 		pattern = -1;
 		if (probe->type == SR_PROBE_LOGIC) {
 			for (i = 0; i < ARRAY_SIZE(logic_pattern_str); i++) {
@@ -496,9 +495,8 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 			if (pattern == -1)
 				return SR_ERR_ARG;
 			sr_dbg("Setting analog pattern for channel group %s to %s",
-					channel_group->name,
-					analog_pattern_str[pattern]);
-			ag = channel_group->priv;
+					cg->name, analog_pattern_str[pattern]);
+			ag = cg->priv;
 			ag->pattern = pattern;
 		} else
 			return SR_ERR_BUG;
@@ -511,7 +509,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 }
 
 static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *channel_group)
+		const struct sr_channel_group *cg)
 {
 	struct sr_probe *probe;
 	GVariant *gvar;
@@ -528,7 +526,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	if (!sdi)
 		return SR_ERR_ARG;
 
-	if (!channel_group) {
+	if (!cg) {
 		switch (key) {
 		case SR_CONF_DEVICE_OPTIONS:
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
@@ -545,7 +543,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 			return SR_ERR_NA;
 		}
 	} else {
-		probe = channel_group->channels->data;
+		probe = cg->channels->data;
 		switch (key) {
 		case SR_CONF_DEVICE_OPTIONS:
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,

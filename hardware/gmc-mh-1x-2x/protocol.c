@@ -1492,13 +1492,13 @@ SR_PRIV const char *gmc_model_str(enum model mcode)
 /** @copydoc sr_dev_driver.config_set
  */
 SR_PRIV int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
-		       const struct sr_channel_group *channel_group)
+		       const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 	uint8_t params[9];
 	uint8_t msg[42];
 
-	(void)channel_group;
+	(void)cg;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;

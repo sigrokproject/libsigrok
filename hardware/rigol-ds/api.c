@@ -477,7 +477,7 @@ static int digital_frame_size(const struct sr_dev_inst *sdi)
 }
 
 static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *channel_group)
+		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 	struct sr_probe *probe;
@@ -492,13 +492,13 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 		return SR_ERR_ARG;
 
 	/* If a channel group is specified, it must be a valid one. */
-	if (channel_group && !g_slist_find(sdi->channel_groups, channel_group)) {
+	if (cg && !g_slist_find(sdi->channel_groups, cg)) {
 		sr_err("Invalid channel group specified.");
 		return SR_ERR;
 	}
 
-	if (channel_group) {
-		probe = g_slist_nth_data(channel_group->channels, 0);
+	if (cg) {
+		probe = g_slist_nth_data(cg->channels, 0);
 		if (!probe)
 			return SR_ERR;
 		if (probe->type == SR_PROBE_ANALOG) {
@@ -588,7 +588,7 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 }
 
 static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *channel_group)
+		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 	uint64_t p, q;
@@ -605,7 +605,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 		return SR_ERR_DEV_CLOSED;
 
 	/* If a channel group is specified, it must be a valid one. */
-	if (channel_group && !g_slist_find(sdi->channel_groups, channel_group)) {
+	if (cg && !g_slist_find(sdi->channel_groups, cg)) {
 		sr_err("Invalid channel group specified.");
 		return SR_ERR;
 	}
@@ -676,13 +676,13 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 			ret = SR_ERR_ARG;
 		break;
 	case SR_CONF_VDIV:
-		if (!channel_group) {
+		if (!cg) {
 			sr_err("No channel group specified.");
 			return SR_ERR_CHANNEL_GROUP;
 		}
 		g_variant_get(data, "(tt)", &p, &q);
 		for (i = 0; i < 2; i++) {
-			if (channel_group == &devc->analog_groups[i]) {
+			if (cg == &devc->analog_groups[i]) {
 				for (j = 0; j < ARRAY_SIZE(vdivs); j++) {
 					if (vdivs[j][0] != p || vdivs[j][1] != q)
 						continue;
@@ -697,13 +697,13 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 		}
 		return SR_ERR_NA;
 	case SR_CONF_COUPLING:
-		if (!channel_group) {
+		if (!cg) {
 			sr_err("No channel group specified.");
 			return SR_ERR_CHANNEL_GROUP;
 		}
 		tmp_str = g_variant_get_string(data, NULL);
 		for (i = 0; i < 2; i++) {
-			if (channel_group == &devc->analog_groups[i]) {
+			if (cg == &devc->analog_groups[i]) {
 				for (j = 0; j < ARRAY_SIZE(coupling); j++) {
 					if (!strcmp(tmp_str, coupling[j])) {
 						g_free(devc->coupling[i]);
@@ -738,7 +738,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 }
 
 static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *channel_group)
+		const struct sr_channel_group *cg)
 {
 	GVariant *tuple, *rational[2];
 	GVariantBuilder gvb;
@@ -752,7 +752,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
 				hwopts, ARRAY_SIZE(hwopts), sizeof(int32_t));
 		return SR_OK;
-	} else if (key == SR_CONF_DEVICE_OPTIONS && channel_group == NULL) {
+	} else if (key == SR_CONF_DEVICE_OPTIONS && cg == NULL) {
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
 			hwcaps, ARRAY_SIZE(hwcaps), sizeof(int32_t));
 		return SR_OK;
@@ -763,9 +763,9 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		return SR_ERR_ARG;
 
 	/* If a channel group is specified, it must be a valid one. */
-	if (channel_group) {
-		if (channel_group != &devc->analog_groups[0]
-				&& channel_group != &devc->analog_groups[1]) {
+	if (cg) {
+		if (cg != &devc->analog_groups[0]
+				&& cg != &devc->analog_groups[1]) {
 			sr_err("Invalid channel group specified.");
 			return SR_ERR;
 		}
@@ -773,17 +773,17 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
-		if (!channel_group) {
+		if (!cg) {
 			sr_err("No channel group specified.");
 			return SR_ERR_CHANNEL_GROUP;
 		}
-		if (channel_group == &devc->digital_group) {
+		if (cg == &devc->digital_group) {
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
 				NULL, 0, sizeof(int32_t));
 			return SR_OK;
 		} else {
 			for (i = 0; i < 2; i++) {
-				if (channel_group == &devc->analog_groups[i]) {
+				if (cg == &devc->analog_groups[i]) {
 					*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
 						analog_hwcaps, ARRAY_SIZE(analog_hwcaps), sizeof(int32_t));
 					return SR_OK;
@@ -793,7 +793,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		}
 		break;
 	case SR_CONF_COUPLING:
-		if (!channel_group) {
+		if (!cg) {
 			sr_err("No channel group specified.");
 			return SR_ERR_CHANNEL_GROUP;
 		}
@@ -803,7 +803,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		if (!devc)
 			/* Can't know this until we have the exact model. */
 			return SR_ERR_ARG;
-		if (!channel_group) {
+		if (!cg) {
 			sr_err("No channel group specified.");
 			return SR_ERR_CHANNEL_GROUP;
 		}

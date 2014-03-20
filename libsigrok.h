@@ -986,12 +986,12 @@ struct sr_dev_driver {
 	 */
 	int (*config_get) (int id, GVariant **data,
 			const struct sr_dev_inst *sdi,
-			const struct sr_channel_group *channel_group);
+			const struct sr_channel_group *cg);
 	/** Set value of a configuration key in driver or a given device instance.
 	 *  @see sr_config_set(). */
 	int (*config_set) (int id, GVariant *data,
 			const struct sr_dev_inst *sdi,
-			const struct sr_channel_group *channel_group);
+			const struct sr_channel_group *cg);
 	/** Probe status change.
 	 *  @see sr_dev_probe_enable(), sr_dev_trigger_set(). */
 	int (*config_probe_set) (const struct sr_dev_inst *sdi,
@@ -1004,7 +1004,7 @@ struct sr_dev_driver {
 	 */
 	int (*config_list) (int info_id, GVariant **data,
 			const struct sr_dev_inst *sdi,
-			const struct sr_channel_group *channel_group);
+			const struct sr_channel_group *cg);
 
 	/* Device-specific */
 	/** Open device */

@@ -184,22 +184,22 @@ static int cleanup(void)
 }
 
 static int check_channel_group(struct dev_context *devc,
-			     const struct sr_channel_group *channel_group)
+			     const struct sr_channel_group *cg)
 {
 	unsigned int i;
 	struct scope_config *model;
 
 	model = devc->model_config;
 
-	if (!channel_group)
+	if (!cg)
 		return PG_NONE;
 
 	for (i = 0; i < model->analog_channels; ++i)
-		if (channel_group == &devc->analog_groups[i])
+		if (cg == &devc->analog_groups[i])
 			return PG_ANALOG;
 
 	for (i = 0; i < model->digital_pods; ++i)
-		if (channel_group == &devc->digital_groups[i])
+		if (cg == &devc->digital_groups[i])
 			return PG_DIGITAL;
 
 	sr_err("Invalid channel group specified.");
@@ -208,7 +208,7 @@ static int check_channel_group(struct dev_context *devc,
 }
 
 static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
-		      const struct sr_channel_group *channel_group)
+		      const struct sr_channel_group *cg)
 {
 	int ret, pg_type;
 	unsigned int i;
@@ -219,7 +219,7 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	if (!sdi || !(devc = sdi->priv))
 		return SR_ERR_ARG;
 
-	if ((pg_type = check_channel_group(devc, channel_group)) == PG_INVALID)
+	if ((pg_type = check_channel_group(devc, cg)) == PG_INVALID)
 		return SR_ERR;
 
 	ret = SR_ERR_NA;
@@ -242,7 +242,7 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 			return SR_ERR_CHANNEL_GROUP;
 		} else if (pg_type == PG_ANALOG) {
 			for (i = 0; i < model->analog_channels; ++i) {
-				if (channel_group != &devc->analog_groups[i])
+				if (cg != &devc->analog_groups[i])
 					continue;
 				*data = g_variant_new_int32(model->num_ydivs);
 				ret = SR_OK;
@@ -290,7 +290,7 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 			return SR_ERR_CHANNEL_GROUP;
 		} else if (pg_type == PG_ANALOG) {
 			for (i = 0; i < model->analog_channels; ++i) {
-				if (channel_group != &devc->analog_groups[i])
+				if (cg != &devc->analog_groups[i])
 					continue;
 				*data = g_variant_new_string((*model->coupling_options)[state->analog_channels[i].coupling]);
 				ret = SR_OK;
@@ -332,7 +332,7 @@ static GVariant *build_tuples(const uint64_t (*array)[][2], unsigned int n)
 }
 
 static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
-		      const struct sr_channel_group *channel_group)
+		      const struct sr_channel_group *cg)
 {
 	int ret, pg_type;
 	unsigned int i, j;
@@ -348,7 +348,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 	if (!sdi || !(devc = sdi->priv))
 		return SR_ERR_ARG;
 
-	if ((pg_type = check_channel_group(devc, channel_group)) == PG_INVALID)
+	if ((pg_type = check_channel_group(devc, cg)) == PG_INVALID)
 		return SR_ERR;
 
 	model = devc->model_config;
@@ -389,7 +389,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 			    q != (*model->vdivs)[i][1])
 				continue;
 			for (j = 1; j <= model->analog_channels; ++j) {
-				if (channel_group != &devc->analog_groups[j - 1])
+				if (cg != &devc->analog_groups[j - 1])
 					continue;
 				state->analog_channels[j - 1].vdiv = i;
 				g_ascii_formatd(float_str, sizeof(float_str), "%E", (float) p / q);
@@ -471,7 +471,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 			if (strcmp(tmp, (*model->coupling_options)[i]) != 0)
 				continue;
 			for (j = 1; j <= model->analog_channels; ++j) {
-				if (channel_group != &devc->analog_groups[j - 1])
+				if (cg != &devc->analog_groups[j - 1])
 					continue;
 				state->analog_channels[j-1].coupling = i;
 
@@ -504,7 +504,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 }
 
 static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
-		       const struct sr_channel_group *channel_group)
+		       const struct sr_channel_group *cg)
 {
 	int pg_type;
 	struct dev_context *devc;
@@ -513,7 +513,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	if (!sdi || !(devc = sdi->priv))
 		return SR_ERR_ARG;
 
-	if ((pg_type = check_channel_group(devc, channel_group)) == PG_INVALID)
+	if ((pg_type = check_channel_group(devc, cg)) == PG_INVALID)
 		return SR_ERR;
 
 	model = devc->model_config;

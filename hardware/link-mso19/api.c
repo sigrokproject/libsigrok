@@ -276,11 +276,11 @@ static int cleanup(void)
 }
 
 static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *channel_group)
+		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 
-	(void)channel_group;
+	(void)cg;
 
 	switch (id) {
 	case SR_CONF_SAMPLERATE:
@@ -298,7 +298,7 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 }
 
 static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *channel_group)
+		const struct sr_channel_group *cg)
 {
 	int ret;
 	struct dev_context *devc;
@@ -307,7 +307,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 	int trigger_pos;
 	double pos;
 
-	(void)channel_group;
+	(void)cg;
 	devc = sdi->priv;
 
 	if (sdi->status != SR_ST_ACTIVE)
@@ -369,12 +369,12 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 }
 
 static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *channel_group)
+		const struct sr_channel_group *cg)
 {
 	GVariant *gvar;
 	GVariantBuilder gvb;
 
-	(void)channel_group;
+	(void)cg;
 	(void)sdi;
 
 	switch (key) {
