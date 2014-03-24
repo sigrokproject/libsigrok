@@ -116,7 +116,7 @@ static void send_samples(struct dev_context *devc, uint64_t samples_to_send)
 	packet.type = SR_DF_LOGIC;
 	packet.payload = &logic;
 	logic.length = samples_to_send * 2;
-	logic.unitsize = 2; /* We need 2 bytes for 9 probes. */
+	logic.unitsize = 2; /* We need 2 bytes for 9 channels. */
 	logic.data = devc->sample_buf;
 	sr_session_send(devc->cb_data, &packet);
 
@@ -267,17 +267,17 @@ SR_PRIV int scanaplus_start_acquisition(struct dev_context *devc)
 {
 	uint8_t buf[4];
 
-	/* Threshold and differential probe settings not yet implemented. */
+	/* Threshold and differential channel settings not yet implemented. */
 
 	buf[0] = 0x89;
-	buf[1] = 0x7f; /* Logic level threshold for probes 1-4. */
+	buf[1] = 0x7f; /* Logic level threshold for channels 1-4. */
 	buf[2] = 0x8a;
-	buf[3] = 0x7f; /* Logic level threshold for probes 5-9. */
+	buf[3] = 0x7f; /* Logic level threshold for channels 5-9. */
 	if (scanaplus_write(devc, (uint8_t *)&buf, 4) < 0)
 		return SR_ERR;
 
 	buf[0] = 0x88;
-	buf[1] = 0x40; /* Special config of probes 5/6 and 7/8. */
+	buf[1] = 0x40; /* Special config of channels 5/6 and 7/8. */
 	/* 0x40: normal, 0x50: ch56 diff, 0x48: ch78 diff, 0x58: ch5678 diff */
 	if (scanaplus_write(devc, (uint8_t *)&buf, 2) < 0)
 		return SR_ERR;
@@ -327,7 +327,7 @@ SR_PRIV int scanaplus_receive_data(int fd, int revents, void *cb_data)
 	/*
 	 * After a ScanaPLUS acquisition starts, a bunch of samples will be
 	 * returned as all-zero, no matter which signals are actually present
-	 * on the probes. This is probably due to the FPGA reconfiguring some
+	 * on the channels. This is probably due to the FPGA reconfiguring some
 	 * of its internal state/config during this time.
 	 *
 	 * As far as we know there is apparently no way for the PC-side to

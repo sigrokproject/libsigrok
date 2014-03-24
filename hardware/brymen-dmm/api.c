@@ -44,7 +44,7 @@ static GSList *brymen_scan(const char *conn, const char *serialcomm)
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 	struct drv_context *drvc;
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	struct sr_serial_dev_inst *serial;
 	GSList *devices;
 	int ret;
@@ -89,10 +89,10 @@ static GSList *brymen_scan(const char *conn, const char *serialcomm)
 	sdi->priv = devc;
 	sdi->driver = di;
 
-	if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "P1")))
+	if (!(ch = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "P1")))
 		goto scan_cleanup;
 
-	sdi->probes = g_slist_append(sdi->probes, probe);
+	sdi->channels = g_slist_append(sdi->channels, ch);
 	drvc->instances = g_slist_append(drvc->instances, sdi);
 	devices = g_slist_append(devices, sdi);
 

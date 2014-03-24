@@ -56,11 +56,11 @@ static int init(struct sr_output *o)
 
 static GString *gen_header(const struct sr_dev_inst *sdi, struct context *ctx)
 {
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	GSList *l;
 	GString *s;
 	GVariant *gvar;
-	int num_enabled_probes;
+	int num_enabled_channels;
 
 	if (!ctx->samplerate && sr_config_get(sdi->driver, sdi, NULL,
 			SR_CONF_SAMPLERATE, &gvar) == SR_OK) {
@@ -68,19 +68,19 @@ static GString *gen_header(const struct sr_dev_inst *sdi, struct context *ctx)
 		g_variant_unref(gvar);
 	}
 
-	num_enabled_probes = 0;
-	for (l = sdi->probes; l; l = l->next) {
-		probe = l->data;
-		if (probe->type != SR_PROBE_LOGIC)
+	num_enabled_channels = 0;
+	for (l = sdi->channels; l; l = l->next) {
+		ch = l->data;
+		if (ch->type != SR_PROBE_LOGIC)
 			continue;
-		if (!probe->enabled)
+		if (!ch->enabled)
 			continue;
-		num_enabled_probes++;
+		num_enabled_channels++;
 	}
 
 	s = g_string_sized_new(512);
 	g_string_append_printf(s, ";Rate: %"PRIu64"\n", ctx->samplerate);
-	g_string_append_printf(s, ";Channels: %d\n", num_enabled_probes);
+	g_string_append_printf(s, ";Channels: %d\n", num_enabled_channels);
 	g_string_append_printf(s, ";EnabledChannels: -1\n");
 	g_string_append_printf(s, ";Compressed: true\n");
 	g_string_append_printf(s, ";CursorEnabled: false\n");

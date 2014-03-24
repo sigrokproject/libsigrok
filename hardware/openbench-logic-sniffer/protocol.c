@@ -54,49 +54,49 @@ SR_PRIV int send_longcommand(struct sr_serial_dev_inst *serial,
 	return SR_OK;
 }
 
-SR_PRIV int ols_configure_probes(const struct sr_dev_inst *sdi)
+SR_PRIV int ols_configure_channels(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	const struct sr_channel *probe;
+	const struct sr_channel *ch;
 	const GSList *l;
-	int probe_bit, stage, i;
+	int channel_bit, stage, i;
 	char *tc;
 
 	devc = sdi->priv;
 
-	devc->probe_mask = 0;
+	devc->channel_mask = 0;
 	for (i = 0; i < NUM_TRIGGER_STAGES; i++) {
 		devc->trigger_mask[i] = 0;
 		devc->trigger_value[i] = 0;
 	}
 
 	devc->num_stages = 0;
-	for (l = sdi->probes; l; l = l->next) {
-		probe = (const struct sr_channel *)l->data;
-		if (!probe->enabled)
+	for (l = sdi->channels; l; l = l->next) {
+		ch = (const struct sr_channel *)l->data;
+		if (!ch->enabled)
 			continue;
 
-		if (probe->index >= devc->max_probes) {
-			sr_err("Channels over the limit of %d\n", devc->max_probes);
+		if (ch->index >= devc->max_channels) {
+			sr_err("Channels over the limit of %d\n", devc->max_channels);
 			return SR_ERR;
 		}
 
 		/*
-		 * Set up the probe mask for later configuration into the
+		 * Set up the channel mask for later configuration into the
 		 * flag register.
 		 */
-		probe_bit = 1 << (probe->index);
-		devc->probe_mask |= probe_bit;
+		channel_bit = 1 << (ch->index);
+		devc->channel_mask |= channel_bit;
 
-		if (!probe->trigger)
+		if (!ch->trigger)
 			continue;
 
 		/* Configure trigger mask and value. */
 		stage = 0;
-		for (tc = probe->trigger; tc && *tc; tc++) {
-			devc->trigger_mask[stage] |= probe_bit;
+		for (tc = ch->trigger; tc && *tc; tc++) {
+			devc->trigger_mask[stage] |= channel_bit;
 			if (*tc == '1')
-				devc->trigger_value[stage] |= probe_bit;
+				devc->trigger_value[stage] |= channel_bit;
 			stage++;
 			/* Only supporting parallel mode, with up to 4 stages. */
 			if (stage > 4)
@@ -124,7 +124,7 @@ SR_PRIV struct dev_context *ols_dev_new(void)
 	/* Acquisition settings */
 	devc->limit_samples = devc->capture_ratio = 0;
 	devc->trigger_at = -1;
-	devc->probe_mask = 0xffffffff;
+	devc->channel_mask = 0xffffffff;
 	devc->flag_reg = 0;
 
 	return devc;
@@ -134,7 +134,7 @@ SR_PRIV struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	uint32_t tmp_int, ui;
 	uint8_t key, type, token;
 	GString *tmp_str, *devname, *version;
@@ -201,12 +201,12 @@ SR_PRIV struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
 			       key, tmp_int);
 			switch (token) {
 			case 0x00:
-				/* Number of usable probes */
+				/* Number of usable channels */
 				for (ui = 0; ui < tmp_int; ui++) {
-					if (!(probe = sr_probe_new(ui, SR_PROBE_LOGIC, TRUE,
-							ols_probe_names[ui])))
+					if (!(ch = sr_probe_new(ui, SR_PROBE_LOGIC, TRUE,
+							ols_channel_names[ui])))
 						return 0;
-					sdi->probes = g_slist_append(sdi->probes, probe);
+					sdi->channels = g_slist_append(sdi->channels, ch);
 				}
 				break;
 			case 0x01:
@@ -239,12 +239,12 @@ SR_PRIV struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
 			       key, tmp_c);
 			switch (token) {
 			case 0x00:
-				/* Number of usable probes */
+				/* Number of usable channels */
 				for (ui = 0; ui < tmp_c; ui++) {
-					if (!(probe = sr_probe_new(ui, SR_PROBE_LOGIC, TRUE,
-							ols_probe_names[ui])))
+					if (!(ch = sr_probe_new(ui, SR_PROBE_LOGIC, TRUE,
+							ols_channel_names[ui])))
 						return 0;
-					sdi->probes = g_slist_append(sdi->probes, probe);
+					sdi->channels = g_slist_append(sdi->channels, ch);
 				}
 				break;
 			case 0x01:
@@ -284,13 +284,13 @@ SR_PRIV int ols_set_samplerate(const struct sr_dev_inst *sdi,
 		sr_info("Enabling demux mode.");
 		devc->flag_reg |= FLAG_DEMUX;
 		devc->flag_reg &= ~FLAG_FILTER;
-		devc->max_probes = NUM_PROBES / 2;
+		devc->max_channels = NUM_PROBES / 2;
 		devc->cur_samplerate_divider = (CLOCK_RATE * 2 / samplerate) - 1;
 	} else {
 		sr_info("Disabling demux mode.");
 		devc->flag_reg &= ~FLAG_DEMUX;
 		devc->flag_reg |= FLAG_FILTER;
-		devc->max_probes = NUM_PROBES;
+		devc->max_channels = NUM_PROBES;
 		devc->cur_samplerate_divider = (CLOCK_RATE / samplerate) - 1;
 	}
 
@@ -415,7 +415,7 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 				 * submitting it over the session bus --
 				 * whatever is listening on the bus will be
 				 * expecting a full 32-bit sample, based on
-				 * the number of probes.
+				 * the number of channels.
 				 */
 				j = 0;
 				memset(devc->tmp_sample, 0, 4);

@@ -35,7 +35,7 @@ static void handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi)
 		return;
 	analog.data = &floatval;
 
-	analog.probes = sdi->probes;
+	analog.channels = sdi->channels;
 
 	if (analog.mq != -1) {
 		/* Got a measurement. */

@@ -63,7 +63,7 @@ static void alsa_scan_handle_dev(GSList **devices,
 	struct drv_context *drvc = NULL;
 	struct sr_dev_inst *sdi = NULL;
 	struct dev_context *devc = NULL;
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	int ret;
 	unsigned int i, offset, channels, minrate, maxrate, rate;
 	uint64_t hwrates[ARRAY_SIZE(rates)];
@@ -76,7 +76,7 @@ static void alsa_scan_handle_dev(GSList **devices,
 
 	/*
 	 * Get hardware parameters:
-	 * The number of channels, for example, are our sigrok probes. Getting
+	 * The number of channels, for example, are our sigrok channels. Getting
 	 * this information needs a detour. We need to open the device, then
 	 * query it and/or test different parameters. A side-effect of is that
 	 * we create a snd_pcm_hw_params_t object. We take advantage of the
@@ -149,7 +149,7 @@ static void alsa_scan_handle_dev(GSList **devices,
 	}
 
 	devc->hwdev = g_strdup(alsaname);
-	devc->num_probes = channels;
+	devc->num_channels = channels;
 	devc->hw_params = hw_params;
 	memcpy(devrates, hwrates, offset * sizeof(uint64_t));
 	devc->samplerates = devrates;
@@ -157,11 +157,11 @@ static void alsa_scan_handle_dev(GSList **devices,
 	sdi->priv = devc;
 	sdi->driver = di;
 
-	for (i = 0; i < devc->num_probes; i++) {
+	for (i = 0; i < devc->num_channels; i++) {
 		snprintf(p_name, sizeof(p_name), "Ch_%d", i);
-		if (!(probe = sr_probe_new(i, SR_PROBE_ANALOG, TRUE, p_name)))
+		if (!(ch = sr_probe_new(i, SR_PROBE_ANALOG, TRUE, p_name)))
 			goto scan_error_cleanup;
-		sdi->probes = g_slist_append(sdi->probes, probe);
+		sdi->channels = g_slist_append(sdi->channels, ch);
 	}
 
 	drvc->instances = g_slist_append(drvc->instances, sdi);
@@ -202,8 +202,8 @@ scan_error_cleanup:
  *
  * We don't currently look at alsa subdevices. We only use subdevice 0.
  * Every input device will have its own channels (left, right, etc). Each of
- * those channels gets mapped to a different sigrok probe. A device with 4
- * channels will have 4 probes from sigrok's perspective.
+ * those channels gets mapped to a different sigrok channel. A device with 4
+ * channels will have 4 channels from sigrok's perspective.
  */
 SR_PRIV GSList *alsa_scan(GSList *options, struct sr_dev_driver *di)
 {
@@ -357,7 +357,7 @@ SR_PRIV int alsa_receive_data(int fd, int revents, void *cb_data)
 		sr_spew("Only got %d/%d samples.", count, samples_to_get);
 	}
 
-	analog.data = g_try_malloc0(count * sizeof(float) * devc->num_probes);
+	analog.data = g_try_malloc0(count * sizeof(float) * devc->num_channels);
 	if (!analog.data) {
 		sr_err("Failed to malloc sample buffer.");
 		return FALSE;
@@ -372,15 +372,15 @@ SR_PRIV int alsa_receive_data(int fd, int revents, void *cb_data)
 	 * audio data as a normalized float, and let the frontend or user worry
 	 * about the calibration.
 	 */
-	for (i = 0; i < count; i += devc->num_probes) {
-		for (x = 0; x < devc->num_probes; x++) {
+	for (i = 0; i < count; i += devc->num_channels) {
+		for (x = 0; x < devc->num_channels; x++) {
 			tmp16 = inbuf[i + x];
 			analog.data[offset++] = tmp16 * s16norm;
 		}
 	}
 
 	/* Send a sample packet with the analog values. */
-	analog.probes = sdi->probes;
+	analog.channels = sdi->channels;
 	analog.num_samples = count;
 	analog.mq = SR_MQ_VOLTAGE; /* FIXME */
 	analog.unit = SR_UNIT_VOLT; /* FIXME */

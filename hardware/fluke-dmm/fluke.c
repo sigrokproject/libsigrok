@@ -63,7 +63,7 @@ static struct sr_datafeed_analog *handle_qm_18x(const struct sr_dev_inst *sdi,
 		return NULL;
 	if (!(analog->data = g_try_malloc(sizeof(float))))
 		return NULL;
-	analog->probes = sdi->probes;
+	analog->channels = sdi->channels;
 	analog->num_samples = 1;
 	if (is_oor)
 		*analog->data = NAN;
@@ -174,7 +174,7 @@ static struct sr_datafeed_analog *handle_qm_28x(const struct sr_dev_inst *sdi,
 		return NULL;
 	if (!(analog->data = g_try_malloc(sizeof(float))))
 		return NULL;
-	analog->probes = sdi->probes;
+	analog->channels = sdi->channels;
 	analog->num_samples = 1;
 	*analog->data = fvalue;
 	analog->mq = -1;
@@ -396,7 +396,7 @@ static void handle_qm_19x_data(const struct sr_dev_inst *sdi, char **tokens)
 			fvalue = 1.0;
 	}
 
-	analog.probes = sdi->probes;
+	analog.channels = sdi->channels;
 	analog.num_samples = 1;
 	analog.data = &fvalue;
 	analog.mq = devc->mq;

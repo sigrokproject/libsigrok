@@ -266,7 +266,7 @@ static int recv_fetc(const struct sr_dev_inst *sdi, GMatchInfo *match)
 	analog.mq = devc->cur_mq;
 	analog.unit = devc->cur_unit;
 	analog.mqflags = devc->cur_mqflags;
-	analog.probes = sdi->probes;
+	analog.channels = sdi->channels;
 	analog.num_samples = 1;
 	analog.data = &fvalue;
 	packet.type = SR_DF_ANALOG;

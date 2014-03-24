@@ -72,21 +72,21 @@ static int init(struct sr_context *sr_ctx)
 	return std_init(sr_ctx, di, LOG_PREFIX);
 }
 
-static GSList *gen_probe_list(int num_probes)
+static GSList *gen_channel_list(int num_channels)
 {
 	GSList *list;
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	int i;
 	char name[8];
 
 	list = NULL;
 
-	for (i = num_probes; i > 0; --i) {
-		/* The LWLA series simply number probes from CH1 to CHxx. */
+	for (i = num_channels; i > 0; --i) {
+		/* The LWLA series simply number channels from CH1 to CHxx. */
 		g_snprintf(name, sizeof(name), "CH%d", i);
 
-		probe = sr_probe_new(i - 1, SR_PROBE_LOGIC, TRUE, name);
-		list = g_slist_prepend(list, probe);
+		ch = sr_probe_new(i - 1, SR_PROBE_LOGIC, TRUE, name);
+		list = g_slist_prepend(list, ch);
 	}
 
 	return list;
@@ -113,12 +113,12 @@ static struct sr_dev_inst *dev_inst_new(int device_index)
 		return NULL;
 	}
 
-	/* Enable all channels to match the default probe configuration. */
+	/* Enable all channels to match the default channel configuration. */
 	devc->channel_mask = ALL_CHANNELS_MASK;
 	devc->samplerate = DEFAULT_SAMPLERATE;
 
 	sdi->priv = devc;
-	sdi->probes = gen_probe_list(NUM_PROBES);
+	sdi->channels = gen_channel_list(NUM_PROBES);
 
 	return sdi;
 }
@@ -402,9 +402,9 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 }
 
 static int config_probe_set(const struct sr_dev_inst *sdi,
-			    struct sr_channel *probe, unsigned int changes)
+			    struct sr_channel *ch, unsigned int changes)
 {
-	uint64_t probe_bit;
+	uint64_t channel_bit;
 	uint64_t trigger_mask;
 	uint64_t trigger_values;
 	uint64_t trigger_edge_mask;
@@ -414,46 +414,46 @@ static int config_probe_set(const struct sr_dev_inst *sdi,
 	if (!devc)
 		return SR_ERR_DEV_CLOSED;
 
-	if (probe->index < 0 || probe->index >= NUM_PROBES) {
-		sr_err("Probe index %d out of range.", probe->index);
+	if (ch->index < 0 || ch->index >= NUM_PROBES) {
+		sr_err("Channel index %d out of range.", ch->index);
 		return SR_ERR_BUG;
 	}
-	probe_bit = (uint64_t)1 << probe->index;
+	channel_bit = (uint64_t)1 << ch->index;
 
 	if ((changes & SR_PROBE_SET_ENABLED) != 0) {
-		/* Enable or disable input channel for this probe. */
-		if (probe->enabled)
-			devc->channel_mask |= probe_bit;
+		/* Enable or disable input channel for this channel. */
+		if (ch->enabled)
+			devc->channel_mask |= channel_bit;
 		else
-			devc->channel_mask &= ~probe_bit;
+			devc->channel_mask &= ~channel_bit;
 	}
 
 	if ((changes & SR_PROBE_SET_TRIGGER) != 0) {
-		trigger_mask = devc->trigger_mask & ~probe_bit;
-		trigger_values = devc->trigger_values & ~probe_bit;
-		trigger_edge_mask = devc->trigger_edge_mask & ~probe_bit;
+		trigger_mask = devc->trigger_mask & ~channel_bit;
+		trigger_values = devc->trigger_values & ~channel_bit;
+		trigger_edge_mask = devc->trigger_edge_mask & ~channel_bit;
 
-		if (probe->trigger && probe->trigger[0] != '\0') {
-			if (probe->trigger[1] != '\0') {
+		if (ch->trigger && ch->trigger[0] != '\0') {
+			if (ch->trigger[1] != '\0') {
 				sr_warn("Trigger configuration \"%s\" with "
 					"multiple stages is not supported.",
-					probe->trigger);
+					ch->trigger);
 				return SR_ERR_ARG;
 			}
-			/* Enable trigger for this probe. */
-			trigger_mask |= probe_bit;
+			/* Enable trigger for this channel. */
+			trigger_mask |= channel_bit;
 
 			/* Configure edge mask and trigger value. */
-			switch (probe->trigger[0]) {
-			case '1': trigger_values |= probe_bit;
+			switch (ch->trigger[0]) {
+			case '1': trigger_values |= channel_bit;
 			case '0': break;
 
-			case 'r': trigger_values |= probe_bit;
-			case 'f': trigger_edge_mask |= probe_bit;
+			case 'r': trigger_values |= channel_bit;
+			case 'f': trigger_edge_mask |= channel_bit;
 				  break;
 			default:
 				sr_warn("Trigger type '%c' is not supported.",
-					probe->trigger[0]);
+					ch->trigger[0]);
 				return SR_ERR_ARG;
 			}
 		}

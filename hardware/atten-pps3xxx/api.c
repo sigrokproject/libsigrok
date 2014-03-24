@@ -87,7 +87,7 @@ static GSList *scan(GSList *options, int modelid)
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct sr_config *src;
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	struct sr_channel_group *cg;
 	struct sr_serial_dev_inst *serial;
 	GSList *l, *devices;
@@ -126,7 +126,7 @@ static GSList *scan(GSList *options, int modelid)
 		return NULL;
 	serial_flush(serial);
 
-	/* This is how the vendor software probes for hardware. */
+	/* This is how the vendor software channels for hardware. */
 	memset(packet, 0, PACKET_SIZE);
 	packet[0] = 0xaa;
 	packet[1] = 0xaa;
@@ -167,11 +167,11 @@ static GSList *scan(GSList *options, int modelid)
 	sdi->conn = serial;
 	for (i = 0; i < MAX_CHANNELS; i++) {
 		snprintf(channel, 10, "CH%d", i + 1);
-		probe = sr_probe_new(i, SR_PROBE_ANALOG, TRUE, channel);
-		sdi->probes = g_slist_append(sdi->probes, probe);
+		ch = sr_probe_new(i, SR_PROBE_ANALOG, TRUE, channel);
+		sdi->channels = g_slist_append(sdi->channels, ch);
 		cg = g_malloc(sizeof(struct sr_channel_group));
 		cg->name = g_strdup(channel);
-		cg->channels = g_slist_append(NULL, probe);
+		cg->channels = g_slist_append(NULL, ch);
 		cg->priv = NULL;
 		sdi->channel_groups = g_slist_append(sdi->channel_groups, cg);
 	}
@@ -209,7 +209,7 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	int channel, ret;
 
 	if (!sdi)
@@ -232,8 +232,8 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		}
 	} else {
 		/* We only ever have one channel per channel group in this driver. */
-		probe = cg->channels->data;
-		channel = probe->index;
+		ch = cg->channels->data;
+		channel = ch->index;
 
 		switch (key) {
 		case SR_CONF_OUTPUT_VOLTAGE:
@@ -278,7 +278,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	gdouble dval;
 	int channel, ret, ival;
 	const char *sval;
@@ -323,8 +323,8 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 	} else {
 		/* Channel group specified: per-channel options. */
 		/* We only ever have one channel per channel group in this driver. */
-		probe = cg->channels->data;
-		channel = probe->index;
+		ch = cg->channels->data;
+		channel = ch->index;
 
 		switch (key) {
 		case SR_CONF_OUTPUT_VOLTAGE_MAX:
@@ -362,7 +362,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	GVariant *gvar;
 	GVariantBuilder gvb;
 	int channel, ret, i;
@@ -403,8 +403,8 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		if (!sdi)
 			return SR_ERR_ARG;
 		/* We only ever have one channel per channel group in this driver. */
-		probe = cg->channels->data;
-		channel = probe->index;
+		ch = cg->channels->data;
+		channel = ch->index;
 
 		switch (key) {
 		case SR_CONF_DEVICE_OPTIONS:
@@ -473,7 +473,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	serial_source_add(serial, G_IO_IN, 50, atten_pps3xxx_receive_data, (void *)sdi);
 	std_session_send_df_header(cb_data, LOG_PREFIX);
 
-	/* Send a "probe" configuration packet now. */
+	/* Send a "channel" configuration packet now. */
 	memset(packet, 0, PACKET_SIZE);
 	packet[0] = 0xaa;
 	packet[1] = 0xaa;

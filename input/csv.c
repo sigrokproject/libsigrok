@@ -32,10 +32,10 @@
  *                single column mode and enables single column mode. Multi
  *                column mode is used if this parameter is omitted.
  *
- * numprobes:     Specifies the number of probes to use. In multi column mode
- *                the number of probes are the number of columns and in single
+ * numchannels:   Specifies the number of channels to use. In multi column mode
+ *                the number of channels are the number of columns and in single
  *                column mode the number of bits (LSB first) beginning at
- *                'first-probe'.
+ *                'first-channel'.
  *
  * delimiter:     Specifies the delimiter for columns. Must be at least one
  *                character. Comma is used as default delimiter.
@@ -52,13 +52,13 @@
  * samplerate:    Samplerate which the sample data was captured with. Default
  *                value is 0.
  *
- * first-probe:   Column number of the first probe in multi column mode and
- *                position of the bit for the first probe in single column mode.
+ * first-channel: Column number of the first channel in multi column mode and
+ *                position of the bit for the first channel in single column mode.
  *                Default value is 0.
  *
  * header:        Determines if the first line should be treated as header
- *                and used for probe names in multi column mode. Empty header
- *                names will be replaced by the probe number. If enabled in
+ *                and used for channel names in multi column mode. Empty header
+ *                names will be replaced by the channel number. If enabled in
  *                single column mode the first line will be skipped. Usage of
  *                header is disabled by default.
  *
@@ -77,8 +77,8 @@ struct context {
 	/* Current selected samplerate. */
 	uint64_t samplerate;
 
-	/* Number of probes. */
-	gsize num_probes;
+	/* Number of channels. */
+	gsize num_channels;
 
 	/* Column delimiter character(s). */
 	GString *delimiter;
@@ -94,23 +94,23 @@ struct context {
 
 	/*
 	 * Number of the first column to parse. Equivalent to the number of the
-	 * first probe in multi column mode and the single column number in
+	 * first channel in multi column mode and the single column number in
 	 * single column mode.
 	 */
 	gsize first_column;
 
 	/*
-	 * Column number of the first probe in multi column mode and position of
-	 * the bit for the first probe in single column mode.
+	 * Column number of the first channel in multi column mode and position of
+	 * the bit for the first channel in single column mode.
 	 */
-	gsize first_probe;
+	gsize first_channel;
 
 	/* Line number to start processing. */
 	gsize start_line;
 
 	/*
 	 * Determines if the first line should be treated as header and used for
-	 * probe names in multi column mode.
+	 * channel names in multi column mode.
 	 */
 	gboolean header;
 
@@ -203,11 +203,11 @@ static int parse_binstr(const char *str, struct context *ctx)
 	}
 
 	/* Clear buffer in order to set bits only. */
-	memset(ctx->sample_buffer, 0, (ctx->num_probes + 7) >> 3);
+	memset(ctx->sample_buffer, 0, (ctx->num_channels + 7) >> 3);
 
-	i = ctx->first_probe;
+	i = ctx->first_channel;
 
-	for (j = 0; i < length && j < ctx->num_probes; i++, j++) {
+	for (j = 0; i < length && j < ctx->num_channels; i++, j++) {
 		if (str[length - i - 1] == '1') {
 			ctx->sample_buffer[j / 8] |= (1 << (j % 8));
 		} else if (str[length - i - 1] != '0') {
@@ -235,12 +235,12 @@ static int parse_hexstr(const char *str, struct context *ctx)
 	}
 
 	/* Clear buffer in order to set bits only. */
-	memset(ctx->sample_buffer, 0, (ctx->num_probes + 7) >> 3);
+	memset(ctx->sample_buffer, 0, (ctx->num_channels + 7) >> 3);
 
 	/* Calculate the position of the first hexadecimal digit. */
-	i = ctx->first_probe / 4;
+	i = ctx->first_channel / 4;
 
-	for (j = 0; i < length && j < ctx->num_probes; i++) {
+	for (j = 0; i < length && j < ctx->num_channels; i++) {
 		c = str[length - i - 1];
 
 		if (!g_ascii_isxdigit(c)) {
@@ -251,9 +251,9 @@ static int parse_hexstr(const char *str, struct context *ctx)
 
 		value = g_ascii_xdigit_value(c);
 
-		k = (ctx->first_probe + j) % 4;
+		k = (ctx->first_channel + j) % 4;
 
-		for (; j < ctx->num_probes && k < 4; k++) {
+		for (; j < ctx->num_channels && k < 4; k++) {
 			if (value & (1 << k))
 				ctx->sample_buffer[j / 8] |= (1 << (j % 8));
 
@@ -279,12 +279,12 @@ static int parse_octstr(const char *str, struct context *ctx)
 	}
 
 	/* Clear buffer in order to set bits only. */
-	memset(ctx->sample_buffer, 0, (ctx->num_probes + 7) >> 3);
+	memset(ctx->sample_buffer, 0, (ctx->num_channels + 7) >> 3);
 
 	/* Calculate the position of the first octal digit. */
-	i = ctx->first_probe / 3;
+	i = ctx->first_channel / 3;
 
-	for (j = 0; i < length && j < ctx->num_probes; i++) {
+	for (j = 0; i < length && j < ctx->num_channels; i++) {
 		c = str[length - i - 1];
 
 		if (c < '0' || c > '7') {
@@ -295,9 +295,9 @@ static int parse_octstr(const char *str, struct context *ctx)
 
 		value = g_ascii_xdigit_value(c);
 
-		k = (ctx->first_probe + j) % 3;
+		k = (ctx->first_channel + j) % 3;
 
-		for (; j < ctx->num_probes && k < 3; k++) {
+		for (; j < ctx->num_channels && k < 3; k++) {
 			if (value & (1 << k))
 				ctx->sample_buffer[j / 8] |= (1 << (j % 8));
 
@@ -361,18 +361,18 @@ static int parse_multi_columns(char **columns, struct context *ctx)
 	gsize i;
 
 	/* Clear buffer in order to set bits only. */
-	memset(ctx->sample_buffer, 0, (ctx->num_probes + 7) >> 3);
+	memset(ctx->sample_buffer, 0, (ctx->num_channels + 7) >> 3);
 
-	for (i = 0; i < ctx->num_probes; i++) {
+	for (i = 0; i < ctx->num_channels; i++) {
 		if (columns[i][0] == '1') {
 			ctx->sample_buffer[i / 8] |= (1 << (i % 8));
 		} else if (!strlen(columns[i])) {
 			sr_err("Column %zu in line %zu is empty.",
-				ctx->first_probe + i, ctx->line_number);
+				ctx->first_channel + i, ctx->line_number);
 			return SR_ERR;
 		} else if (columns[i][0] != '0') {
 			sr_err("Invalid value '%s' in column %zu in line %zu.",
-				columns[i], ctx->first_probe + i,
+				columns[i], ctx->first_channel + i,
 				ctx->line_number);
 			return SR_ERR;
 		}
@@ -431,8 +431,8 @@ static int init(struct sr_input *in, const char *filename)
 	const char *param;
 	GIOStatus status;
 	gsize i, term_pos;
-	char probe_name[SR_MAX_PROBENAME_LEN + 1];
-	struct sr_channel *probe;
+	char channel_name[SR_MAX_PROBENAME_LEN + 1];
+	struct sr_channel *ch;
 	char **columns;
 	gsize num_columns;
 	char *ptr;
@@ -450,11 +450,11 @@ static int init(struct sr_input *in, const char *filename)
 	ctx->samplerate = 0;
 
 	/*
-	 * Enable auto-detection of the number of probes in multi column mode
-	 * and enforce the specification of the number of probes in single
+	 * Enable auto-detection of the number of channels in multi column mode
+	 * and enforce the specification of the number of channels in single
 	 * column mode.
 	 */
-	ctx->num_probes = 0;
+	ctx->num_channels = 0;
 
 	/* Set default delimiter. */
 	if (!(ctx->delimiter = g_string_new(","))) {
@@ -483,7 +483,7 @@ static int init(struct sr_input *in, const char *filename)
 	 * In multi column mode start parsing sample data at the first column
 	 * and in single column mode at the first bit.
 	 */
-	ctx->first_probe = 0;
+	ctx->first_channel = 0;
 
 	/* Start at the beginning of the file. */
 	ctx->start_line = 1;
@@ -511,8 +511,8 @@ static int init(struct sr_input *in, const char *filename)
 			}
 		}
 
-		if ((param = g_hash_table_lookup(in->param, "numprobes")))
-			ctx->num_probes = g_ascii_strtoull(param, NULL, 10);
+		if ((param = g_hash_table_lookup(in->param, "numchannels")))
+			ctx->num_channels = g_ascii_strtoull(param, NULL, 10);
 
 		if ((param = g_hash_table_lookup(in->param, "delimiter"))) {
 			if (!strlen(param)) {
@@ -542,8 +542,8 @@ static int init(struct sr_input *in, const char *filename)
 			}
 		}
 
-		if ((param = g_hash_table_lookup(in->param, "first-probe")))
-			ctx->first_probe = g_ascii_strtoull(param, NULL, 10);
+		if ((param = g_hash_table_lookup(in->param, "first-channel")))
+			ctx->first_channel = g_ascii_strtoull(param, NULL, 10);
 
 		if ((param = g_hash_table_lookup(in->param, "startline"))) {
 			ctx->start_line = g_ascii_strtoull(param, NULL, 10);
@@ -574,12 +574,12 @@ static int init(struct sr_input *in, const char *filename)
 	}
 
 	if (ctx->multi_column_mode)
-		ctx->first_column = ctx->first_probe;
+		ctx->first_column = ctx->first_channel;
 	else
 		ctx->first_column = ctx->single_column;
 
-	if (!ctx->multi_column_mode && !ctx->num_probes) {
-		sr_err("Number of probes needs to be specified in single column mode.");
+	if (!ctx->multi_column_mode && !ctx->num_channels) {
+		sr_err("Number of channels needs to be specified in single column mode.");
 		free_context(ctx);
 		return SR_ERR;
 	}
@@ -653,21 +653,21 @@ static int init(struct sr_input *in, const char *filename)
 
 	if (ctx->multi_column_mode) {
 		/*
-		 * Detect the number of probes in multi column mode
+		 * Detect the number of channels in multi column mode
 		 * automatically if not specified.
 		 */
-		if (!ctx->num_probes) {
-			ctx->num_probes = num_columns;
-			sr_info("Number of auto-detected probes: %zu.",
-				ctx->num_probes);
+		if (!ctx->num_channels) {
+			ctx->num_channels = num_columns;
+			sr_info("Number of auto-detected channels: %zu.",
+				ctx->num_channels);
 		}
 
 		/*
-		 * Ensure that the number of probes does not exceed the number
+		 * Ensure that the number of channels does not exceed the number
 		 * of columns in multi column mode.
 		 */
-		if (num_columns < ctx->num_probes) {
-			sr_err("Not enough columns for desired number of probes in line %zu.",
+		if (num_columns < ctx->num_channels) {
+			sr_err("Not enough columns for desired number of channels in line %zu.",
 				ctx->line_number);
 			g_strfreev(columns);
 			free_context(ctx);
@@ -675,32 +675,32 @@ static int init(struct sr_input *in, const char *filename)
 		}
 	}
 
-	for (i = 0; i < ctx->num_probes; i++) {
+	for (i = 0; i < ctx->num_channels; i++) {
 		if (ctx->header && ctx->multi_column_mode && strlen(columns[i]))
-			snprintf(probe_name, sizeof(probe_name), "%s",
+			snprintf(channel_name, sizeof(channel_name), "%s",
 				columns[i]);
 		else
-			snprintf(probe_name, sizeof(probe_name), "%zu", i);
+			snprintf(channel_name, sizeof(channel_name), "%zu", i);
 
-		probe = sr_probe_new(i, SR_PROBE_LOGIC, TRUE, probe_name);
+		ch = sr_probe_new(i, SR_PROBE_LOGIC, TRUE, channel_name);
 
-		if (!probe) {
-			sr_err("Probe creation failed.");
+		if (!ch) {
+			sr_err("Channel creation failed.");
 			free_context(ctx);
 			g_strfreev(columns);
 			return SR_ERR;
 		}
 
-		in->sdi->probes = g_slist_append(in->sdi->probes, probe);
+		in->sdi->channels = g_slist_append(in->sdi->channels, ch);
 	}
 
 	g_strfreev(columns);
 
 	/*
 	 * Calculate the minimum buffer size to store the sample data of the
-	 * probes.
+	 * channels.
 	 */
-	ctx->sample_buffer_size = (ctx->num_probes + 7) >> 3;
+	ctx->sample_buffer_size = (ctx->num_channels + 7) >> 3;
 
 	if (!(ctx->sample_buffer = g_try_malloc(ctx->sample_buffer_size))) {
 		sr_err("Sample buffer malloc failed.");
@@ -746,7 +746,7 @@ static int loadfile(struct sr_input *in, const char *filename)
 
 	/* Limit the number of columns to parse. */
 	if (ctx->multi_column_mode)
-		max_columns = ctx->num_probes;
+		max_columns = ctx->num_channels;
 	else
 		max_columns = 1;
 
@@ -810,11 +810,11 @@ static int loadfile(struct sr_input *in, const char *filename)
 		}
 
 		/*
-		 * Ensure that the number of probes does not exceed the number
+		 * Ensure that the number of channels does not exceed the number
 		 * of columns in multi column mode.
 		 */
-		if (ctx->multi_column_mode && num_columns < ctx->num_probes) {
-			sr_err("Not enough columns for desired number of probes in line %zu.",
+		if (ctx->multi_column_mode && num_columns < ctx->num_channels) {
+			sr_err("Not enough columns for desired number of channels in line %zu.",
 				ctx->line_number);
 			g_strfreev(columns);
 			free_context(ctx);

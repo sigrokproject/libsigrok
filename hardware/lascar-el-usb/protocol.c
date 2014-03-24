@@ -293,7 +293,7 @@ static struct sr_dev_inst *lascar_identify(unsigned char *config)
 	struct dev_context *devc;
 	const struct elusb_profile *profile;
 	struct sr_dev_inst *sdi;
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	int modelid, i;
 	char firmware[5];
 
@@ -329,21 +329,21 @@ static struct sr_dev_inst *lascar_identify(unsigned char *config)
 		sdi->driver = di;
 
 		if (profile->logformat == LOG_TEMP_RH) {
-			/* Model this as two probes: temperature and humidity. */
-			if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "Temp")))
+			/* Model this as two channels: temperature and humidity. */
+			if (!(ch = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "Temp")))
 				return NULL;
-			sdi->probes = g_slist_append(NULL, probe);
-			if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "Hum")))
+			sdi->channels = g_slist_append(NULL, ch);
+			if (!(ch = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "Hum")))
 				return NULL;
-			sdi->probes = g_slist_append(sdi->probes, probe);
+			sdi->channels = g_slist_append(sdi->channels, ch);
 		} else if (profile->logformat == LOG_CO) {
-			if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "CO")))
+			if (!(ch = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "CO")))
 				return NULL;
-			sdi->probes = g_slist_append(NULL, probe);
+			sdi->channels = g_slist_append(NULL, ch);
 		} else {
-			if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "P1")))
+			if (!(ch = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "P1")))
 				return NULL;
-			sdi->probes = g_slist_append(NULL, probe);
+			sdi->channels = g_slist_append(NULL, ch);
 		}
 
 		if (!(devc = g_try_malloc0(sizeof(struct dev_context))))
@@ -398,7 +398,7 @@ static void lascar_el_usb_dispatch(struct sr_dev_inst *sdi, unsigned char *buf,
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog analog;
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	float *temp, *rh;
 	uint16_t s;
 	int samples, samples_left, i, j;
@@ -435,9 +435,9 @@ static void lascar_el_usb_dispatch(struct sr_dev_inst *sdi, unsigned char *buf,
 		}
 		analog.num_samples = j;
 
-		probe = sdi->probes->data;
-		if (probe->enabled) {
-			analog.probes = g_slist_append(NULL, probe);
+		ch = sdi->channels->data;
+		if (ch->enabled) {
+			analog.channels = g_slist_append(NULL, ch);
 			analog.mq = SR_MQ_TEMPERATURE;
 			if (devc->temp_unit == 1)
 				analog.unit = SR_UNIT_FAHRENHEIT;
@@ -447,9 +447,9 @@ static void lascar_el_usb_dispatch(struct sr_dev_inst *sdi, unsigned char *buf,
 			sr_session_send(devc->cb_data, &packet);
 		}
 
-		probe = sdi->probes->next->data;
-		if (probe->enabled) {
-			analog.probes = g_slist_append(NULL, probe);
+		ch = sdi->channels->next->data;
+		if (ch->enabled) {
+			analog.channels = g_slist_append(NULL, ch);
 			analog.mq = SR_MQ_RELATIVE_HUMIDITY;
 			analog.unit = SR_UNIT_PERCENTAGE;
 			analog.data = rh;
@@ -462,7 +462,7 @@ static void lascar_el_usb_dispatch(struct sr_dev_inst *sdi, unsigned char *buf,
 	case LOG_CO:
 		packet.type = SR_DF_ANALOG;
 		packet.payload = &analog;
-		analog.probes = sdi->probes;
+		analog.channels = sdi->channels;
 		analog.num_samples = samples;
 		analog.mq = SR_MQ_CARBON_MONOXIDE;
 		analog.unit = SR_UNIT_CONCENTRATION;

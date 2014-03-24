@@ -31,12 +31,12 @@ enum outputmode {
 };
 
 struct context {
-	unsigned int num_enabled_probes;
+	unsigned int num_enabled_channels;
 	int samples_per_line;
 	unsigned int unitsize;
 	int line_offset;
 	int linebuf_len;
-	GSList *probenames;
+	GSList *channelnames;
 	uint8_t *linebuf;
 	int spl_cnt;
 	uint8_t *linevalues;

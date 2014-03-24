@@ -49,7 +49,7 @@ static GSList *scan(GSList *options)
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
 	struct sr_dev_inst *sdi;
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	GSList *devices = NULL, *l;
 	const char *conn = NULL, *serialcomm = NULL;
 	uint8_t buf[292];
@@ -107,56 +107,56 @@ static GSList *scan(GSList *options)
 	sdi->priv = devc;
 	sdi->driver = di;
 
-	if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "P")))
+	if (!(ch = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "P")))
 		goto scan_cleanup;
-	sdi->probes = g_slist_append(sdi->probes, probe);
+	sdi->channels = g_slist_append(sdi->channels, ch);
 
 	if (devc->optarif == OPTARIF_BASE) {
-		if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "BASE")))
+		if (!(ch = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "BASE")))
 			goto scan_cleanup;
-		sdi->probes = g_slist_append(sdi->probes, probe);
+		sdi->channels = g_slist_append(sdi->channels, ch);
 	} else if (devc->optarif == OPTARIF_HC) {
-		if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "HP")))
+		if (!(ch = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "HP")))
 			goto scan_cleanup;
-		sdi->probes = g_slist_append(sdi->probes, probe);
-		if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "HC")))
+		sdi->channels = g_slist_append(sdi->channels, ch);
+		if (!(ch = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "HC")))
 			goto scan_cleanup;
-		sdi->probes = g_slist_append(sdi->probes, probe);
+		sdi->channels = g_slist_append(sdi->channels, ch);
 	} else if (devc->optarif == OPTARIF_EJP) {
-		if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "HN")))
+		if (!(ch = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "HN")))
 			goto scan_cleanup;
-		sdi->probes = g_slist_append(sdi->probes, probe);
-		if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "HPM")))
+		sdi->channels = g_slist_append(sdi->channels, ch);
+		if (!(ch = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "HPM")))
 			goto scan_cleanup;
-		sdi->probes = g_slist_append(sdi->probes, probe);
+		sdi->channels = g_slist_append(sdi->channels, ch);
 	} else if (devc->optarif == OPTARIF_BBR) {
-		if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "HPJB")))
+		if (!(ch = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "HPJB")))
 			goto scan_cleanup;
-		sdi->probes = g_slist_append(sdi->probes, probe);
-		if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "HPJW")))
+		sdi->channels = g_slist_append(sdi->channels, ch);
+		if (!(ch = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "HPJW")))
 			goto scan_cleanup;
-		sdi->probes = g_slist_append(sdi->probes, probe);
-		if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "HPJR")))
+		sdi->channels = g_slist_append(sdi->channels, ch);
+		if (!(ch = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "HPJR")))
 			goto scan_cleanup;
-		sdi->probes = g_slist_append(sdi->probes, probe);
-		if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "HCJB")))
+		sdi->channels = g_slist_append(sdi->channels, ch);
+		if (!(ch = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "HCJB")))
 			goto scan_cleanup;
-		sdi->probes = g_slist_append(sdi->probes, probe);
-		if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "HCJW")))
+		sdi->channels = g_slist_append(sdi->channels, ch);
+		if (!(ch = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "HCJW")))
 			goto scan_cleanup;
-		sdi->probes = g_slist_append(sdi->probes, probe);
-		if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "HCJR")))
+		sdi->channels = g_slist_append(sdi->channels, ch);
+		if (!(ch = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "HCJR")))
 			goto scan_cleanup;
-		sdi->probes = g_slist_append(sdi->probes, probe);
+		sdi->channels = g_slist_append(sdi->channels, ch);
 	}
 
-	if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "IINST")))
+	if (!(ch = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "IINST")))
 		goto scan_cleanup;
-	sdi->probes = g_slist_append(sdi->probes, probe);
+	sdi->channels = g_slist_append(sdi->channels, ch);
 
-	if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "PAPP")))
+	if (!(ch = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "PAPP")))
 		goto scan_cleanup;
-	sdi->probes = g_slist_append(sdi->probes, probe);
+	sdi->channels = g_slist_append(sdi->channels, ch);
 
 	drvc->instances = g_slist_append(drvc->instances, sdi);
 	devices = g_slist_append(devices, sdi);

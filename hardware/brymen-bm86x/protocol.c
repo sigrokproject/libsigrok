@@ -208,22 +208,22 @@ static void brymen_bm86x_handle_packet(const struct sr_dev_inst *sdi,
 		/* Got a measurement. */
 		analog[0].num_samples = 1;
 		analog[0].data = &floatval[0];
-		analog[0].probes = g_slist_append(NULL, sdi->probes->data);
+		analog[0].channels = g_slist_append(NULL, sdi->channels->data);
 		packet.type = SR_DF_ANALOG;
 		packet.payload = &analog[0];
 		sr_session_send(devc->session_cb_data, &packet);
-		g_slist_free(analog[0].probes);
+		g_slist_free(analog[0].channels);
 	}
 
 	if (analog[1].mq != -1) {
 		/* Got a measurement. */
 		analog[1].num_samples = 1;
 		analog[1].data = &floatval[1];
-		analog[1].probes = g_slist_append(NULL, sdi->probes->next->data);
+		analog[1].channels = g_slist_append(NULL, sdi->channels->next->data);
 		packet.type = SR_DF_ANALOG;
 		packet.payload = &analog[1];
 		sr_session_send(devc->session_cb_data, &packet);
-		g_slist_free(analog[1].probes);
+		g_slist_free(analog[1].channels);
 	}
 
 	if (analog[0].mq != -1 || analog[1].mq != -1)

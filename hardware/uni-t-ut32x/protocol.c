@@ -82,7 +82,7 @@ static void process_packet(struct sr_dev_inst *sdi)
 	is_valid = TRUE;
 	if (devc->packet[1] == 0x3b && devc->packet[2] == 0x3b
 			&& devc->packet[3] == 0x3b && devc->packet[4] == 0x3b)
-		/* No measurement: missing probe, empty storage location, ... */
+		/* No measurement: missing channel, empty storage location, ... */
 		is_valid = FALSE;
 
 	temp = parse_temperature(devc->packet + 1);
@@ -109,21 +109,21 @@ static void process_packet(struct sr_dev_inst *sdi)
 		}
 		switch (devc->packet[13] - 0x30) {
 		case 0:
-			/* Probe T1. */
-			analog.probes = g_slist_append(NULL, g_slist_nth_data(sdi->probes, 0));
+			/* Channel T1. */
+			analog.channels = g_slist_append(NULL, g_slist_nth_data(sdi->channels, 0));
 			break;
 		case 1:
-			/* Probe T2. */
-			analog.probes = g_slist_append(NULL, g_slist_nth_data(sdi->probes, 1));
+			/* Channel T2. */
+			analog.channels = g_slist_append(NULL, g_slist_nth_data(sdi->channels, 1));
 			break;
 		case 2:
 		case 3:
-			/* Probe T1-T2. */
-			analog.probes = g_slist_append(NULL, g_slist_nth_data(sdi->probes, 2));
+			/* Channel T1-T2. */
+			analog.channels = g_slist_append(NULL, g_slist_nth_data(sdi->channels, 2));
 			analog.mqflags |= SR_MQFLAG_RELATIVE;
 			break;
 		default:
-			sr_err("Unknown probe 0x%.2x.", devc->packet[13]);
+			sr_err("Unknown channel 0x%.2x.", devc->packet[13]);
 			is_valid = FALSE;
 		}
 		if (is_valid) {
@@ -132,7 +132,7 @@ static void process_packet(struct sr_dev_inst *sdi)
 			packet.type = SR_DF_ANALOG;
 			packet.payload = &analog;
 			sr_session_send(devc->cb_data, &packet);
-			g_slist_free(analog.probes);
+			g_slist_free(analog.channels);
 		}
 	}
 

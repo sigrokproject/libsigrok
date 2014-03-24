@@ -41,7 +41,7 @@ SR_PRIV const uint64_t sl2_samplerates[NUM_SAMPLERATES] = {
 	SR_MHZ(20),
 };
 
-static const char *probe_names[NUM_PROBES + 1] = {
+static const char *channel_names[NUM_PROBES + 1] = {
 	"0", "1", "2", "3",
 	NULL,
 };
@@ -59,7 +59,7 @@ static GSList *scan(GSList *options)
 	GSList *usb_devices, *devices, *l;
 	struct drv_context *drvc;
 	struct sr_dev_inst *sdi;
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
 	struct device_info dev_info;
@@ -136,11 +136,11 @@ static GSList *scan(GSList *options)
 		sdi->inst_type = SR_INST_USB;
 		sdi->conn = usb;
 
-		for (i = 0; probe_names[i]; i++) {
-			probe = sr_probe_new(i, SR_PROBE_LOGIC, TRUE,
-				probe_names[i]);
-			sdi->probes = g_slist_append(sdi->probes, probe);
-			devc->probes[i] = probe;
+		for (i = 0; channel_names[i]; i++) {
+			ch = sr_probe_new(i, SR_PROBE_LOGIC, TRUE,
+				channel_names[i]);
+			sdi->channels = g_slist_append(sdi->channels, ch);
+			devc->channels[i] = ch;
 		}
 
 		devc->state = STATE_IDLE;
@@ -443,21 +443,21 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	if (trigger_bytes % PACKET_NUM_SAMPLE_BYTES != 0)
 		devc->num_sample_packets++;
 
-	devc->num_enabled_probes = 0;
+	devc->num_enabled_channels = 0;
 
 	/*
-	 * Count the number of enabled probes and number them for a sequential
+	 * Count the number of enabled channels and number them for a sequential
 	 * access.
 	 */
 	for (i = 0, j = 0; i < NUM_PROBES; i++) {
-		if (devc->probes[i]->enabled) {
-			devc->num_enabled_probes++;
-			devc->probe_map[j] = i;
+		if (devc->channels[i]->enabled) {
+			devc->num_enabled_channels++;
+			devc->channel_map[j] = i;
 			j++;
 		}
 	}
 
-	sr_dbg("Number of enabled probes: %i.", devc->num_enabled_probes);
+	sr_dbg("Number of enabled channels: %i.", devc->num_enabled_channels);
 
 	/* Set up the transfer buffer for the acquisition. */
 	devc->xfer_data_out[0] = CMD_SAMPLE;

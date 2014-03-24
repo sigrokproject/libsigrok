@@ -45,7 +45,7 @@ SR_PRIV int data_hex(struct sr_output *o, const uint8_t *data_in,
 	ctx = o->internal;
 	max_linelen = SR_MAX_PROBENAME_LEN + 3 + ctx->samples_per_line
 			+ ctx->samples_per_line / 2;
-	outsize = length_in / ctx->unitsize * ctx->num_enabled_probes
+	outsize = length_in / ctx->unitsize * ctx->num_enabled_channels
 			/ ctx->samples_per_line * max_linelen + 512;
 
 	if (!(outbuf = g_try_malloc0(outsize + 1))) {
@@ -65,7 +65,7 @@ SR_PRIV int data_hex(struct sr_output *o, const uint8_t *data_in,
 	for (offset = 0; offset <= length_in - ctx->unitsize;
 	     offset += ctx->unitsize) {
 		sample = data_in + offset;
-		for (p = 0; p < ctx->num_enabled_probes; p++) {
+		for (p = 0; p < ctx->num_enabled_channels; p++) {
 			ctx->linevalues[p] <<= 1;
 			if (sample[p / 8] & ((uint8_t) 1 << (p % 8)))
 				ctx->linevalues[p] |= 1;
@@ -76,7 +76,7 @@ SR_PRIV int data_hex(struct sr_output *o, const uint8_t *data_in,
 
 		/* Add a space after every complete hex byte. */
 		if ((ctx->spl_cnt & 7) == 0) {
-			for (p = 0; p < ctx->num_enabled_probes; p++)
+			for (p = 0; p < ctx->num_enabled_channels; p++)
 				ctx->linebuf[p * ctx->linebuf_len +
 					     ctx->line_offset + 2] = ' ';
 			ctx->line_offset += 3;

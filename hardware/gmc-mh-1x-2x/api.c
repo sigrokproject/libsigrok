@@ -162,7 +162,7 @@ static GSList *scan_1x_2x_rs232(GSList *options)
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct sr_config *src;
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	struct sr_serial_dev_inst *serial;
 	GSList *l, *devices;
 	const char *conn, *serialcomm;
@@ -240,9 +240,9 @@ static GSList *scan_1x_2x_rs232(GSList *options)
 		sdi->conn = serial;
 		sdi->priv = devc;
 		sdi->driver = &gmc_mh_1x_2x_rs232_driver_info;
-		if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "P1")))
+		if (!(ch = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "P1")))
 			return NULL;
-		sdi->probes = g_slist_append(sdi->probes, probe);
+		sdi->channels = g_slist_append(sdi->channels, ch);
 		drvc->instances = g_slist_append(drvc->instances, sdi);
 		devices = g_slist_append(devices, sdi);
 	}
@@ -259,7 +259,7 @@ static GSList *scan_2x_bd232(GSList *options)
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct sr_config *src;
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	struct sr_serial_dev_inst *serial;
 	GSList *l, *devices;
 	const char *conn, *serialcomm;
@@ -343,9 +343,9 @@ static GSList *scan_2x_bd232(GSList *options)
 			sdi->conn = serial;
 			sdi->priv = devc;
 			sdi->driver = &gmc_mh_2x_bd232_driver_info;
-			if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "P1")))
+			if (!(ch = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "P1")))
 				goto exit_err;
-			sdi->probes = g_slist_append(sdi->probes, probe);
+			sdi->channels = g_slist_append(sdi->channels, ch);
 			drvc->instances = g_slist_append(drvc->instances, sdi);
 			devices = g_slist_append(devices, sdi);
 

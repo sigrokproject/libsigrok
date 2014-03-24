@@ -74,7 +74,7 @@ struct dev_context {
 
 	/**
 	 * Trigger pattern (MSB = channel 7, LSB = channel 0).
-	 * A 1 bit matches a high signal, 0 matches a low signal on a probe.
+	 * A 1 bit matches a high signal, 0 matches a low signal on a channel.
 	 * Only low/high triggers (but not e.g. rising/falling) are supported.
 	 */
 	uint8_t trigger_pattern;
@@ -107,7 +107,7 @@ struct dev_context {
 /* protocol.c */
 extern const int32_t chronovu_la8_hwcaps[];
 extern uint64_t chronovu_la8_samplerates[];
-extern SR_PRIV const char *chronovu_la8_probe_names[];
+extern SR_PRIV const char *chronovu_la8_channel_names[];
 SR_PRIV void fill_supported_samplerates_if_needed(void);
 SR_PRIV int is_valid_samplerate(uint64_t samplerate);
 SR_PRIV uint8_t samplerate_to_divcount(uint64_t samplerate);
@@ -116,7 +116,7 @@ SR_PRIV int la8_read(struct dev_context *devc, uint8_t *buf, int size);
 SR_PRIV int la8_close(struct dev_context *devc);
 SR_PRIV int la8_close_usb_reset_sequencer(struct dev_context *devc);
 SR_PRIV int la8_reset(struct dev_context *devc);
-SR_PRIV int configure_probes(const struct sr_dev_inst *sdi);
+SR_PRIV int configure_channels(const struct sr_dev_inst *sdi);
 SR_PRIV int set_samplerate(const struct sr_dev_inst *sdi, uint64_t samplerate);
 SR_PRIV int la8_read_block(struct dev_context *devc);
 SR_PRIV void send_block_to_session_bus(struct dev_context *devc, int block);

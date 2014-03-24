@@ -96,8 +96,8 @@ struct dev_context {
 	struct sr_channel_group *analog_groups;
 	struct sr_channel_group *digital_groups;
 
-	GSList *enabled_probes;
-	GSList *current_probe;
+	GSList *enabled_channels;
+	GSList *current_channel;
 	uint64_t num_frames;
 
 	uint64_t frame_limit;

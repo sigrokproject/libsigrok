@@ -360,9 +360,9 @@ SR_API char *sr_voltage_string(uint64_t v_p, uint64_t v_q)
  *            intended. Must not be NULL. Also, sdi->driver and
  *            sdi->driver->info_get must not be NULL.
  * @param triggerstring The string containing the trigger specification for
- *        one or more probes of this device. Entries for multiple probes are
+ *        one or more channels of this device. Entries for multiple channels are
  *        comma-separated. Triggers are specified in the form key=value,
- *        where the key is a probe number (or probe name) and the value is
+ *        where the key is a channel number (or channel name) and the value is
  *        the requested trigger type. Valid trigger types currently
  *        include 'r' (rising edge), 'f' (falling edge), 'c' (any pin value
  *        change), '0' (low value), or '1' (high value).
@@ -370,27 +370,27 @@ SR_API char *sr_voltage_string(uint64_t v_p, uint64_t v_q)
  *
  * @return Pointer to a list of trigger types (strings), or NULL upon errors.
  *         The pointer list (if non-NULL) has as many entries as the
- *         respective device has probes (all physically available probes,
+ *         respective device has channels (all physically available channels,
  *         not just enabled ones). Entries of the list which don't have
  *         a trigger value set in 'triggerstring' are NULL, the other entries
  *         contain the respective trigger type which is requested for the
- *         respective probe (e.g. "r", "c", and so on).
+ *         respective channel (e.g. "r", "c", and so on).
  */
 SR_API char **sr_parse_triggerstring(const struct sr_dev_inst *sdi,
 				     const char *triggerstring)
 {
 	GSList *l;
 	GVariant *gvar;
-	struct sr_channel *probe;
-	int max_probes, probenum, i;
+	struct sr_channel *ch;
+	int max_channels, channelnum, i;
 	char **tokens, **triggerlist, *trigger, *tc;
 	const char *trigger_types;
 	gboolean error;
 
-	max_probes = g_slist_length(sdi->probes);
+	max_channels = g_slist_length(sdi->channels);
 	error = FALSE;
 
-	if (!(triggerlist = g_try_malloc0(max_probes * sizeof(char *)))) {
+	if (!(triggerlist = g_try_malloc0(max_channels * sizeof(char *)))) {
 		sr_err("%s: triggerlist malloc failed", __func__);
 		return NULL;
 	}
@@ -402,21 +402,21 @@ SR_API char **sr_parse_triggerstring(const struct sr_dev_inst *sdi,
 	}
 	trigger_types = g_variant_get_string(gvar, NULL);
 
-	tokens = g_strsplit(triggerstring, ",", max_probes);
+	tokens = g_strsplit(triggerstring, ",", max_channels);
 	for (i = 0; tokens[i]; i++) {
-		probenum = -1;
-		for (l = sdi->probes; l; l = l->next) {
-			probe = (struct sr_channel *)l->data;
-			if (probe->enabled
-				&& !strncmp(probe->name, tokens[i],
-					strlen(probe->name))) {
-				probenum = probe->index;
+		channelnum = -1;
+		for (l = sdi->channels; l; l = l->next) {
+			ch = (struct sr_channel *)l->data;
+			if (ch->enabled
+				&& !strncmp(ch->name, tokens[i],
+					strlen(ch->name))) {
+				channelnum = ch->index;
 				break;
 			}
 		}
 
-		if (probenum < 0 || probenum >= max_probes) {
-			sr_err("Invalid probe.");
+		if (channelnum < 0 || channelnum >= max_channels) {
+			sr_err("Invalid channel.");
 			error = TRUE;
 			break;
 		}
@@ -431,14 +431,14 @@ SR_API char **sr_parse_triggerstring(const struct sr_dev_inst *sdi,
 				}
 			}
 			if (!error)
-				triggerlist[probenum] = g_strdup(trigger);
+				triggerlist[channelnum] = g_strdup(trigger);
 		}
 	}
 	g_strfreev(tokens);
 	g_variant_unref(gvar);
 
 	if (error) {
-		for (i = 0; i < max_probes; i++)
+		for (i = 0; i < max_channels; i++)
 			g_free(triggerlist[i]);
 		g_free(triggerlist);
 		triggerlist = NULL;

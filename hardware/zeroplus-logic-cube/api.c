@@ -62,10 +62,10 @@ static const int32_t hwcaps[] = {
 };
 
 /*
- * ZEROPLUS LAP-C (16032) numbers the 16 probes A0-A7 and B0-B7.
+ * ZEROPLUS LAP-C (16032) numbers the 16 channels A0-A7 and B0-B7.
  * We currently ignore other untested/unsupported devices here.
  */
-static const char *probe_names[] = {
+static const char *channel_names[] = {
 	"A0", "A1", "A2", "A3", "A4", "A5", "A6", "A7",
 	"B0", "B1", "B2", "B3", "B4", "B5", "B6", "B7",
 	"C0", "C1", "C2", "C3", "C4", "C5", "C6", "C7",
@@ -124,37 +124,37 @@ const uint64_t samplerates_200[] = {
 static int dev_close(struct sr_dev_inst *sdi);
 
 #if 0
-static int configure_probes(const struct sr_dev_inst *sdi)
+static int configure_channels(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	const struct sr_channel *probe;
+	const struct sr_channel *ch;
 	const GSList *l;
-	int probe_bit, stage, i;
+	int channel_bit, stage, i;
 	char *tc;
 
 	/* Note: sdi and sdi->priv are non-NULL, the caller checked this. */
 	devc = sdi->priv;
 
-	devc->probe_mask = 0;
+	devc->channel_mask = 0;
 	for (i = 0; i < NUM_TRIGGER_STAGES; i++) {
 		devc->trigger_mask[i] = 0;
 		devc->trigger_value[i] = 0;
 	}
 
 	stage = -1;
-	for (l = sdi->probes; l; l = l->next) {
-		probe = (struct sr_channel *)l->data;
-		if (probe->enabled == FALSE)
+	for (l = sdi->channels; l; l = l->next) {
+		ch = (struct sr_channel *)l->data;
+		if (ch->enabled == FALSE)
 			continue;
-		probe_bit = 1 << (probe->index);
-		devc->probe_mask |= probe_bit;
+		channel_bit = 1 << (ch->index);
+		devc->channel_mask |= channel_bit;
 
-		if (probe->trigger) {
+		if (ch->trigger) {
 			stage = 0;
-			for (tc = probe->trigger; *tc; tc++) {
-				devc->trigger_mask[stage] |= probe_bit;
+			for (tc = ch->trigger; *tc; tc++) {
+				devc->trigger_mask[stage] |= channel_bit;
 				if (*tc == '1')
-					devc->trigger_value[stage] |= probe_bit;
+					devc->trigger_value[stage] |= channel_bit;
 				stage++;
 				if (stage > NUM_TRIGGER_STAGES)
 					return SR_ERR;
@@ -166,23 +166,23 @@ static int configure_probes(const struct sr_dev_inst *sdi)
 }
 #endif
 
-static int configure_probes(const struct sr_dev_inst *sdi)
+static int configure_channels(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	const GSList *l;
-	const struct sr_channel *probe;
+	const struct sr_channel *ch;
 	char *tc;
 	int type;
 
 	/* Note: sdi and sdi->priv are non-NULL, the caller checked this. */
 	devc = sdi->priv;
 
-	for (l = sdi->probes; l; l = l->next) {
-		probe = (struct sr_channel *)l->data;
-		if (probe->enabled == FALSE)
+	for (l = sdi->channels; l; l = l->next) {
+		ch = (struct sr_channel *)l->data;
+		if (ch->enabled == FALSE)
 			continue;
 
-		if ((tc = probe->trigger)) {
+		if ((tc = ch->trigger)) {
 			switch (*tc) {
 			case '1':
 				type = TRIGGER_HIGH;
@@ -204,7 +204,7 @@ static int configure_probes(const struct sr_dev_inst *sdi)
 			default:
 				return SR_ERR;
 			}
-			analyzer_add_trigger(probe->index, type);
+			analyzer_add_trigger(ch->index, type);
 			devc->trigger = 1;
 		}
 	}
@@ -247,7 +247,7 @@ static int init(struct sr_context *sr_ctx)
 static GSList *scan(GSList *options)
 {
 	struct sr_dev_inst *sdi;
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	const struct zp_model *prof;
@@ -314,12 +314,12 @@ static GSList *scan(GSList *options)
 		devc->memory_size = MEMORY_SIZE_8K;
 		// memset(devc->trigger_buffer, 0, NUM_TRIGGER_STAGES);
 
-		/* Fill in probelist according to this device's profile. */
+		/* Fill in channellist according to this device's profile. */
 		for (j = 0; j < devc->num_channels; j++) {
-			if (!(probe = sr_probe_new(j, SR_PROBE_LOGIC, TRUE,
-					probe_names[j])))
+			if (!(ch = sr_probe_new(j, SR_PROBE_LOGIC, TRUE,
+					channel_names[j])))
 				return NULL;
-			sdi->probes = g_slist_append(sdi->probes, probe);
+			sdi->channels = g_slist_append(sdi->channels, ch);
 		}
 
 		devices = g_slist_append(devices, sdi);
@@ -634,8 +634,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 		return SR_ERR_ARG;
 	}
 
-	if (configure_probes(sdi) != SR_OK) {
-		sr_err("Failed to configure probes.");
+	if (configure_channels(sdi) != SR_OK) {
+		sr_err("Failed to configure channels.");
 		return SR_ERR;
 	}
 

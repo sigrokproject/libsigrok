@@ -51,7 +51,7 @@ static GSList *scan(GSList *options)
 	struct dev_context *devc;
 	struct sr_dev_inst *sdi;
 	struct sr_config *src;
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	GSList *devices, *l;
 	const char *conn, *serialcomm;
 	struct sr_serial_dev_inst *serial;
@@ -106,12 +106,12 @@ static GSList *scan(GSList *options)
 
 	sdi->priv = devc;
 	sdi->driver = di;
-	probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "P1");
-	if (!probe) {
-		sr_err("Failed to create probe.");
+	ch = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "P1");
+	if (!ch) {
+		sr_err("Failed to create channel.");
 		return NULL;
 	}
-	sdi->probes = g_slist_append(sdi->probes, probe);
+	sdi->channels = g_slist_append(sdi->channels, ch);
 	drvc->instances = g_slist_append(drvc->instances, sdi);
 	devices = g_slist_append(devices, sdi);
 

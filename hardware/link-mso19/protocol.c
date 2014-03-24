@@ -435,10 +435,10 @@ SR_PRIV int mso_receive_data(int fd, int revents, void *cb_data)
 	return TRUE;
 }
 
-SR_PRIV int mso_configure_probes(const struct sr_dev_inst *sdi)
+SR_PRIV int mso_configure_channels(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	GSList *l;
 	char *tc;
 
@@ -452,21 +452,21 @@ SR_PRIV int mso_configure_probes(const struct sr_dev_inst *sdi)
 	devc->trigger_chan = 3;	//LA combination trigger
 	devc->use_trigger = FALSE;
 
-	for (l = sdi->probes; l; l = l->next) {
-		probe = (struct sr_channel *)l->data;
-		if (probe->enabled == FALSE)
+	for (l = sdi->channels; l; l = l->next) {
+		ch = (struct sr_channel *)l->data;
+		if (ch->enabled == FALSE)
 			continue;
 
-		int probe_bit = 1 << (probe->index);
-		if (!(probe->trigger))
+		int channel_bit = 1 << (ch->index);
+		if (!(ch->trigger))
 			continue;
 
 		devc->use_trigger = TRUE;
 		//Configure trigger mask and value.
-		for (tc = probe->trigger; *tc; tc++) {
-			devc->la_trigger_mask &= ~probe_bit;
+		for (tc = ch->trigger; *tc; tc++) {
+			devc->la_trigger_mask &= ~channel_bit;
 			if (*tc == '1')
-				devc->la_trigger |= probe_bit;
+				devc->la_trigger |= channel_bit;
 		}
 	}
 

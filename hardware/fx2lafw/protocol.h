@@ -103,7 +103,7 @@ SR_PRIV int fx2lafw_command_start_acquisition(libusb_device_handle *devhdl,
 		uint64_t samplerate, gboolean samplewide);
 SR_PRIV gboolean fx2lafw_check_conf_profile(libusb_device *dev);
 SR_PRIV int fx2lafw_dev_open(struct sr_dev_inst *sdi, struct sr_dev_driver *di);
-SR_PRIV int fx2lafw_configure_probes(const struct sr_dev_inst *sdi);
+SR_PRIV int fx2lafw_configure_channels(const struct sr_dev_inst *sdi);
 SR_PRIV struct dev_context *fx2lafw_dev_new(void);
 SR_PRIV void fx2lafw_abort_acquisition(struct dev_context *devc);
 SR_PRIV void fx2lafw_receive_transfer(struct libusb_transfer *transfer);

@@ -565,53 +565,53 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 SR_PRIV int hmo_request_data(const struct sr_dev_inst *sdi)
 {
 	char command[MAX_COMMAND_SIZE];
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	struct dev_context *devc;
 	struct scope_config *model;
 
 	devc = sdi->priv;
 	model = devc->model_config;
 
-	probe = devc->current_probe->data;
+	ch = devc->current_channel->data;
 
-	switch (probe->type) {
+	switch (ch->type) {
 	case SR_PROBE_ANALOG:
 		g_snprintf(command, sizeof(command),
 			   (*model->scpi_dialect)[SCPI_CMD_GET_ANALOG_DATA],
-			   probe->index + 1);
+			   ch->index + 1);
 		break;
 	case SR_PROBE_LOGIC:
 		g_snprintf(command, sizeof(command),
 			   (*model->scpi_dialect)[SCPI_CMD_GET_DIG_DATA],
-			   probe->index < 8 ? 1 : 2);
+			   ch->index < 8 ? 1 : 2);
 		break;
 	default:
-		sr_err("Invalid probe type.");
+		sr_err("Invalid channel type.");
 		break;
 	}
 
 	return sr_scpi_send(sdi->conn, command);
 }
 
-static int hmo_check_probes(GSList *probes)
+static int hmo_check_channels(GSList *channels)
 {
 	GSList *l;
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	gboolean enabled_pod1, enabled_pod2, enabled_chan3, enabled_chan4;
 
 	enabled_pod1 = enabled_pod2 = enabled_chan3 = enabled_chan4 = FALSE;
 
-	for (l = probes; l; l = l->next) {
-		probe = l->data;
-		switch (probe->type) {
+	for (l = channels; l; l = l->next) {
+		ch = l->data;
+		switch (ch->type) {
 		case SR_PROBE_ANALOG:
-			if (probe->index == 2)
+			if (ch->index == 2)
 				enabled_chan3 = TRUE;
-			else if (probe->index == 3)
+			else if (ch->index == 3)
 				enabled_chan4 = TRUE;
 			break;
 		case SR_PROBE_LOGIC:
-			if (probe->index < 8)
+			if (ch->index < 8)
 				enabled_pod1 = TRUE;
 			else
 				enabled_pod2 = TRUE;
@@ -628,7 +628,7 @@ static int hmo_check_probes(GSList *probes)
 	return SR_OK;
 }
 
-static int hmo_setup_probes(const struct sr_dev_inst *sdi)
+static int hmo_setup_channels(const struct sr_dev_inst *sdi)
 {
 	GSList *l;
 	unsigned int i;
@@ -636,7 +636,7 @@ static int hmo_setup_probes(const struct sr_dev_inst *sdi)
 	char command[MAX_COMMAND_SIZE];
 	struct scope_state *state;
 	struct scope_config *model;
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	struct dev_context *devc;
 	struct sr_scpi_dev_inst *scpi;
 
@@ -648,39 +648,39 @@ static int hmo_setup_probes(const struct sr_dev_inst *sdi)
 
 	pod_enabled = g_try_malloc0(sizeof(gboolean) * model->digital_pods);
 
-	for (l = sdi->probes; l; l = l->next) {
-		probe = l->data;
-		switch (probe->type) {
+	for (l = sdi->channels; l; l = l->next) {
+		ch = l->data;
+		switch (ch->type) {
 		case SR_PROBE_ANALOG:
-			if (probe->enabled == state->analog_channels[probe->index].state)
+			if (ch->enabled == state->analog_channels[ch->index].state)
 				break;
 			g_snprintf(command, sizeof(command),
 				   (*model->scpi_dialect)[SCPI_CMD_SET_ANALOG_CHAN_STATE],
-				   probe->index + 1, probe->enabled);
+				   ch->index + 1, ch->enabled);
 
 			if (sr_scpi_send(scpi, command) != SR_OK)
 				return SR_ERR;
-			state->analog_channels[probe->index].state = probe->enabled;
+			state->analog_channels[ch->index].state = ch->enabled;
 			setup_changed = TRUE;
 			break;
 		case SR_PROBE_LOGIC:
 			/*
 			 * A digital POD needs to be enabled for every group of
-			 * 8 probes.
+			 * 8 channels.
 			 */
-			if (probe->enabled)
-				pod_enabled[probe->index < 8 ? 0 : 1] = TRUE;
+			if (ch->enabled)
+				pod_enabled[ch->index < 8 ? 0 : 1] = TRUE;
 
-			if (probe->enabled == state->digital_channels[probe->index])
+			if (ch->enabled == state->digital_channels[ch->index])
 				break;
 			g_snprintf(command, sizeof(command),
 				   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_CHAN_STATE],
-				   probe->index, probe->enabled);
+				   ch->index, ch->enabled);
 
 			if (sr_scpi_send(scpi, command) != SR_OK)
 				return SR_ERR;
 
-			state->digital_channels[probe->index] = probe->enabled;
+			state->digital_channels[ch->index] = ch->enabled;
 			setup_changed = TRUE;
 			break;
 		default:
@@ -712,7 +712,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 {
 	GSList *l;
 	gboolean digital_added;
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	struct dev_context *devc;
 	struct sr_scpi_dev_inst *scpi;
 
@@ -723,29 +723,29 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	devc = sdi->priv;
 	digital_added = FALSE;
 
-	for (l = sdi->probes; l; l = l->next) {
-		probe = l->data;
-		if (!probe->enabled)
+	for (l = sdi->channels; l; l = l->next) {
+		ch = l->data;
+		if (!ch->enabled)
 			continue;
-		/* Only add a single digital probe. */
-		if (probe->type != SR_PROBE_LOGIC || !digital_added) {
-			devc->enabled_probes = g_slist_append(
-					devc->enabled_probes, probe);
-			if (probe->type == SR_PROBE_LOGIC)
+		/* Only add a single digital channel. */
+		if (ch->type != SR_PROBE_LOGIC || !digital_added) {
+			devc->enabled_channels = g_slist_append(
+					devc->enabled_channels, ch);
+			if (ch->type == SR_PROBE_LOGIC)
 				digital_added = TRUE;
 		}
 	}
 
-	if (!devc->enabled_probes)
+	if (!devc->enabled_channels)
 		return SR_ERR;
 
-	if (hmo_check_probes(devc->enabled_probes) != SR_OK) {
-		sr_err("Invalid probe configuration specified!");
+	if (hmo_check_channels(devc->enabled_channels) != SR_OK) {
+		sr_err("Invalid channel configuration specified!");
 		return SR_ERR_NA;
 	}
 
-	if (hmo_setup_probes(sdi) != SR_OK) {
-		sr_err("Failed to setup probe configuration!");
+	if (hmo_setup_channels(sdi) != SR_OK) {
+		sr_err("Failed to setup channel configuration!");
 		return SR_ERR;
 	}
 
@@ -754,7 +754,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, LOG_PREFIX);
 
-	devc->current_probe = devc->enabled_probes;
+	devc->current_channel = devc->enabled_channels;
 
 	return hmo_request_data(sdi);
 }
@@ -777,8 +777,8 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 	devc = sdi->priv;
 
 	devc->num_frames = 0;
-	g_slist_free(devc->enabled_probes);
-	devc->enabled_probes = NULL;
+	g_slist_free(devc->enabled_channels);
+	devc->enabled_channels = NULL;
 	scpi = sdi->conn;
 	sr_scpi_source_remove(scpi);
 

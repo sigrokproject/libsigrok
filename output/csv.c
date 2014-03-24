@@ -28,7 +28,7 @@
 #define LOG_PREFIX "output/csv"
 
 struct context {
-	unsigned int num_enabled_probes;
+	unsigned int num_enabled_channels;
 	unsigned int unitsize;
 	uint64_t samplerate;
 	GString *header;
@@ -43,17 +43,17 @@ struct context {
  *  - Option to (not) print samplenumber / time as extra column.
  *  - Option to "compress" output (only print changed samples, VCD-like).
  *  - Option to print comma-separated bits, or whole bytes/words (for 8/16
- *    probe LAs) as ASCII/hex etc. etc.
+ *    channel LAs) as ASCII/hex etc. etc.
  *  - Trigger support.
  */
 
 static int init(struct sr_output *o)
 {
 	struct context *ctx;
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	GSList *l;
 	GVariant *gvar;
-	int num_probes;
+	int num_channels;
 	time_t t;
 
 	if (!o)
@@ -65,19 +65,19 @@ static int init(struct sr_output *o)
 	ctx = g_try_malloc0(sizeof(struct context));
 	o->internal = ctx;
 
-	/* Get the number of probes, and the unitsize. */
-	for (l = o->sdi->probes; l; l = l->next) {
-		probe = l->data;
-		if (probe->type != SR_PROBE_LOGIC)
+	/* Get the number of channels, and the unitsize. */
+	for (l = o->sdi->channels; l; l = l->next) {
+		ch = l->data;
+		if (ch->type != SR_PROBE_LOGIC)
 			continue;
-		if (!probe->enabled)
+		if (!ch->enabled)
 			continue;
-		ctx->num_enabled_probes++;
+		ctx->num_enabled_channels++;
 	}
 
-	ctx->unitsize = (ctx->num_enabled_probes + 7) / 8;
+	ctx->unitsize = (ctx->num_enabled_channels + 7) / 8;
 
-	num_probes = g_slist_length(o->sdi->probes);
+	num_channels = g_slist_length(o->sdi->channels);
 
 	if (sr_config_get(o->sdi->driver, o->sdi, NULL, SR_CONF_SAMPLERATE,
 			&gvar) == SR_OK) {
@@ -99,16 +99,16 @@ static int init(struct sr_output *o)
 
 	/* Columns / channels */
 	g_string_append_printf(ctx->header, "; Channels (%d/%d):",
-			       ctx->num_enabled_probes, num_probes);
-	for (l = o->sdi->probes; l; l = l->next) {
-		probe = l->data;
-		if (probe->type != SR_PROBE_LOGIC)
+			       ctx->num_enabled_channels, num_channels);
+	for (l = o->sdi->channels; l; l = l->next) {
+		ch = l->data;
+		if (ch->type != SR_PROBE_LOGIC)
 			continue;
-		if (!probe->enabled)
+		if (!ch->enabled)
 			continue;
-		g_string_append_printf(ctx->header, " %s,", probe->name);
+		g_string_append_printf(ctx->header, " %s,", ch->name);
 	}
-	if (o->sdi->probes)
+	if (o->sdi->channels)
 		/* Drop last separator. */
 		g_string_truncate(ctx->header, ctx->header->len - 1);
 	g_string_append_printf(ctx->header, "\n");
@@ -147,7 +147,7 @@ static int receive(struct sr_output *o, const struct sr_dev_inst *sdi,
 		}
 
 		for (i = 0; i <= logic->length - ctx->unitsize; i += ctx->unitsize) {
-			for (j = 0; j < ctx->num_enabled_probes; j++) {
+			for (j = 0; j < ctx->num_enabled_channels; j++) {
 				p = logic->data + i + j / 8;
 				c = *p & (1 << (j % 8));
 				g_string_append_c(*out, c ? '1' : '0');

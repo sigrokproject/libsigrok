@@ -79,7 +79,7 @@ enum sigma_read_register {
 struct clockselect_50 {
 	uint8_t async;
 	uint8_t fraction;
-	uint16_t disabled_probes;
+	uint16_t disabled_channels;
 };
 
 /* The effect of all these are still a bit unclear. */
@@ -126,7 +126,7 @@ struct triggerlut {
 
 /* Trigger configuration */
 struct sigma_trigger {
-	/* Only two probes can be used in mask. */
+	/* Only two channels can be used in mask. */
 	uint16_t risingmask;
 	uint16_t fallingmask;
 
@@ -183,7 +183,7 @@ struct dev_context {
 	uint64_t limit_msec;
 	struct timeval start_tv;
 	int cur_firmware;
-	int num_probes;
+	int num_channels;
 	int samples_per_event;
 	int capture_ratio;
 	struct sigma_trigger trigger;

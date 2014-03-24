@@ -19,7 +19,7 @@
 
 /* The VCD input module has the following options:
  *
- * numprobes:   Maximum number of probes to use. The probes are
+ * numchannels: Maximum number of channels to use. The channels are
  *              detected in the same order as they are listed
  *              in the $var sections of the VCD file.
  *
@@ -53,7 +53,7 @@
  * - analog, integer and real number variables
  * - $dumpvars initial value declaration
  * - $scope namespaces
- * - more than 64 probes
+ * - more than 64 channels
  */
 
 #include <stdlib.h>
@@ -70,15 +70,15 @@
 
 struct context {
 	uint64_t samplerate;
-	int maxprobes;
-	int probecount;
+	int maxchannels;
+	int channelcount;
 	int downsample;
 	unsigned compress;
 	int64_t skip;
-	GSList *probes;
+	GSList *channels;
 };
 
-struct probe {
+struct vcd_channel {
 	gchar *name;
 	gchar *identifier;
 };
@@ -164,17 +164,17 @@ static gboolean parse_section(FILE *file, gchar **name, gchar **contents)
 	return status;
 }
 
-static void free_probe(void *data)
+static void free_channel(void *data)
 {
-	struct probe *probe = data;
-	g_free(probe->name);
-	g_free(probe->identifier);
-	g_free(probe);
+	struct vcd_channel *vcd_ch = data;
+	g_free(vcd_ch->name);
+	g_free(vcd_ch->identifier);
+	g_free(vcd_ch);
 }
 
 static void release_context(struct context *ctx)
 {
-	g_slist_free_full(ctx->probes, free_probe);
+	g_slist_free_full(ctx->channels, free_channel);
 	g_free(ctx);
 }
 
@@ -201,7 +201,7 @@ static gboolean parse_header(FILE *file, struct context *ctx)
 	uint64_t p, q;
 	gchar *name = NULL, *contents = NULL;
 	gboolean status = FALSE;
-	struct probe *probe;
+	struct vcd_channel *vcd_ch;
 
 	while (parse_section(file, &name, &contents)) {
 		sr_dbg("Section '%s', contents '%s'.", name, contents);
@@ -237,15 +237,15 @@ static gboolean parse_header(FILE *file, struct context *ctx)
 				sr_info("Unsupported signal type: '%s'", parts[0]);
 			else if (strtol(parts[1], NULL, 10) != 1)
 				sr_info("Unsupported signal size: '%s'", parts[1]);
-			else if (ctx->probecount >= ctx->maxprobes)
-				sr_warn("Skipping '%s' because only %d probes requested.", parts[3], ctx->maxprobes);
+			else if (ctx->channelcount >= ctx->maxchannels)
+				sr_warn("Skipping '%s' because only %d channels requested.", parts[3], ctx->maxchannels);
 			else {
-				sr_info("Probe %d is '%s' identified by '%s'.", ctx->probecount, parts[3], parts[2]);
-				probe = g_malloc(sizeof(struct probe));
-				probe->identifier = g_strdup(parts[2]);
-				probe->name = g_strdup(parts[3]);
-				ctx->probes = g_slist_append(ctx->probes, probe);
-				ctx->probecount++;
+				sr_info("Channel %d is '%s' identified by '%s'.", ctx->channelcount, parts[3], parts[2]);
+				vcd_ch = g_malloc(sizeof(struct vcd_channel));
+				vcd_ch->identifier = g_strdup(parts[2]);
+				vcd_ch->name = g_strdup(parts[3]);
+				ctx->channels = g_slist_append(ctx->channels, vcd_ch);
+				ctx->channelcount++;
 			}
 
 			g_strfreev(parts);
@@ -287,8 +287,8 @@ static int format_match(const char *filename)
 
 static int init(struct sr_input *in, const char *filename)
 {
-	struct sr_channel *probe;
-	int num_probes, i;
+	struct sr_channel *ch;
+	int num_channels, i;
 	char name[SR_MAX_PROBENAME_LEN + 1];
 	char *param;
 	struct context *ctx;
@@ -300,20 +300,20 @@ static int init(struct sr_input *in, const char *filename)
 		return SR_ERR_MALLOC;
 	}
 
-	num_probes = DEFAULT_NUM_PROBES;
+	num_channels = DEFAULT_NUM_PROBES;
 	ctx->samplerate = 0;
 	ctx->downsample = 1;
 	ctx->skip = -1;
 
 	if (in->param) {
-		param = g_hash_table_lookup(in->param, "numprobes");
+		param = g_hash_table_lookup(in->param, "numchannels");
 		if (param) {
-			num_probes = strtoul(param, NULL, 10);
-			if (num_probes < 1) {
+			num_channels = strtoul(param, NULL, 10);
+			if (num_channels < 1) {
 				release_context(ctx);
 				return SR_ERR;
-			} else if (num_probes > 64) {
-				sr_err("No more than 64 probes supported.");
+			} else if (num_channels > 64) {
+				sr_err("No more than 64 channels supported.");
 				return SR_ERR;
 			}
 		}
@@ -334,22 +334,22 @@ static int init(struct sr_input *in, const char *filename)
 			ctx->skip = strtoul(param, NULL, 10) / ctx->downsample;
 	}
 
-	/* Maximum number of probes to parse from the VCD */
-	ctx->maxprobes = num_probes;
+	/* Maximum number of channels to parse from the VCD */
+	ctx->maxchannels = num_channels;
 
 	/* Create a virtual device. */
 	in->sdi = sr_dev_inst_new(0, SR_ST_ACTIVE, NULL, NULL, NULL);
 	in->internal = ctx;
 
-	for (i = 0; i < num_probes; i++) {
+	for (i = 0; i < num_channels; i++) {
 		snprintf(name, SR_MAX_PROBENAME_LEN, "%d", i);
 
-		if (!(probe = sr_probe_new(i, SR_PROBE_LOGIC, TRUE, name))) {
+		if (!(ch = sr_probe_new(i, SR_PROBE_LOGIC, TRUE, name))) {
 			release_context(ctx);
 			return SR_ERR;
 		}
 
-		in->sdi->probes = g_slist_append(in->sdi->probes, probe);
+		in->sdi->channels = g_slist_append(in->sdi->channels, ch);
 	}
 
 	return SR_OK;
@@ -452,7 +452,7 @@ static void parse_contents(FILE *file, const struct sr_dev_inst *sdi, struct con
 			/* A new 1-bit sample value */
 			int i, bit;
 			GSList *l;
-			struct probe *probe;
+			struct vcd_channel *vcd_ch;
 
 			bit = (token->str[0] == '1');
 
@@ -465,11 +465,11 @@ static void parse_contents(FILE *file, const struct sr_dev_inst *sdi, struct con
 				read_until(file, token, 'W');
 			}
 
-			for (i = 0, l = ctx->probes; i < ctx->probecount && l; i++, l = l->next) {
-				probe = l->data;
+			for (i = 0, l = ctx->channels; i < ctx->channelcount && l; i++, l = l->next) {
+				vcd_ch = l->data;
 
-				if (g_strcmp0(token->str, probe->identifier) == 0) {
-					/* Found our probe */
+				if (g_strcmp0(token->str, vcd_ch->identifier) == 0) {
+					/* Found our channel */
 					if (bit)
 						prev_values |= (uint64_t)1 << i;
 					else
@@ -479,8 +479,8 @@ static void parse_contents(FILE *file, const struct sr_dev_inst *sdi, struct con
 				}
 			}
 
-			if (i == ctx->probecount)
-				sr_dbg("Did not find probe for identifier '%s'.", token->str);
+			if (i == ctx->channelcount)
+				sr_dbg("Did not find channel for identifier '%s'.", token->str);
 		} else {
 			sr_warn("Skipping unknown token '%s'.", token->str);
 		}

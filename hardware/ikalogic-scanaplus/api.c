@@ -36,8 +36,8 @@ static const int32_t hwcaps[] = {
 	SR_CONF_CONTINUOUS, // TODO?
 };
 
-/* Probes are numbered 1-9. */
-static const char *probe_names[] = {
+/* Channels are numbered 1-9. */
+static const char *channel_names[] = {
 	"1", "2", "3", "4", "5", "6", "7", "8", "9",
 	NULL,
 };
@@ -74,7 +74,7 @@ static int init(struct sr_context *sr_ctx)
 static GSList *scan(GSList *options)
 {
 	struct sr_dev_inst *sdi;
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	GSList *devices;
@@ -132,11 +132,11 @@ static GSList *scan(GSList *options)
 	sdi->driver = di;
 	sdi->priv = devc;
 
-	for (i = 0; probe_names[i]; i++) {
-		if (!(probe = sr_probe_new(i, SR_PROBE_LOGIC, TRUE,
-					   probe_names[i])))
+	for (i = 0; channel_names[i]; i++) {
+		if (!(ch = sr_probe_new(i, SR_PROBE_LOGIC, TRUE,
+					   channel_names[i])))
 			return NULL;
-		sdi->probes = g_slist_append(sdi->probes, probe);
+		sdi->channels = g_slist_append(sdi->channels, ch);
 	}
 
 	devices = g_slist_append(devices, sdi);
@@ -377,7 +377,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	if (!devc->ftdic)
 		return SR_ERR_BUG;
 
-	/* TODO: Configure probes later (thresholds etc.). */
+	/* TODO: Configure channels later (thresholds etc.). */
 
 	devc->cb_data = cb_data;
 

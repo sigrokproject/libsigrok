@@ -111,15 +111,15 @@ static int handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi, int idx)
 	/* Clear 'analog', otherwise it'll contain random garbage. */
 	memset(&analog, 0, sizeof(struct sr_datafeed_analog));
 
-	/* Common values for both probes. */
+	/* Common values for both channels. */
 	packet.type = SR_DF_ANALOG;
 	packet.payload = &analog;
 	analog.num_samples = 1;
 
 	/* Temperature. */
-	l = g_slist_copy(sdi->probes);
+	l = g_slist_copy(sdi->channels);
 	l = g_slist_remove_link(l, g_slist_nth(l, 1));
-	analog.probes = l;
+	analog.channels = l;
 	analog.mq = SR_MQ_TEMPERATURE;
 	analog.unit = SR_UNIT_CELSIUS; /* TODO: Use C/F correctly. */
 	analog.data = &temperature;
@@ -128,9 +128,9 @@ static int handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi, int idx)
 
 	/* Humidity. */
 	if (mic_devs[idx].has_humidity) {
-		l = g_slist_copy(sdi->probes);
+		l = g_slist_copy(sdi->channels);
 		l = g_slist_remove_link(l, g_slist_nth(l, 0));
-		analog.probes = l;
+		analog.channels = l;
 		analog.mq = SR_MQ_RELATIVE_HUMIDITY;
 		analog.unit = SR_UNIT_PERCENTAGE;
 		analog.data = &humidity;

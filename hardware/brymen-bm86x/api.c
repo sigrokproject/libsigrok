@@ -48,7 +48,7 @@ static GSList *scan(GSList *options)
 	struct sr_dev_inst *sdi;
 	struct sr_usb_dev_inst *usb;
 	struct sr_config *src;
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	const char *conn;
 
 	drvc = di->priv;
@@ -86,12 +86,12 @@ static GSList *scan(GSList *options)
 
 		sdi->priv = devc;
 		sdi->driver = di;
-		if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "P1")))
+		if (!(ch = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "P1")))
 			return NULL;
-		sdi->probes = g_slist_append(sdi->probes, probe);
-		if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "P2")))
+		sdi->channels = g_slist_append(sdi->channels, ch);
+		if (!(ch = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "P2")))
 			return NULL;
-		sdi->probes = g_slist_append(sdi->probes, probe);
+		sdi->channels = g_slist_append(sdi->channels, ch);
 
 		sdi->inst_type = SR_INST_USB;
 		sdi->conn = usb;

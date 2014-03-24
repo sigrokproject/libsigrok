@@ -51,32 +51,32 @@
 SR_PRIV struct sr_channel *sr_probe_new(int index, int type,
 		gboolean enabled, const char *name)
 {
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 
-	if (!(probe = g_try_malloc0(sizeof(struct sr_channel)))) {
-		sr_err("Probe malloc failed.");
+	if (!(ch = g_try_malloc0(sizeof(struct sr_channel)))) {
+		sr_err("Channel malloc failed.");
 		return NULL;
 	}
 
-	probe->index = index;
-	probe->type = type;
-	probe->enabled = enabled;
+	ch->index = index;
+	ch->type = type;
+	ch->enabled = enabled;
 	if (name)
-		probe->name = g_strdup(name);
+		ch->name = g_strdup(name);
 
-	return probe;
+	return ch;
 }
 
 /**
- * Set the name of the specified probe in the specified device.
+ * Set the name of the specified channel in the specified device.
  *
- * If the probe already has a different name assigned to it, it will be
+ * If the channel already has a different name assigned to it, it will be
  * removed, and the new name will be saved instead.
  *
- * @param sdi The device instance the probe is connected to.
- * @param[in] probenum The number of the probe whose name to set.
- *                 Note that the probe numbers start at 0.
- * @param[in] name The new name that the specified probe should get. A copy
+ * @param sdi The device instance the channel is connected to.
+ * @param[in] channelnum The number of the channel whose name to set.
+ *                 Note that the channel numbers start at 0.
+ * @param[in] name The new name that the specified channel should get. A copy
  *             of the string is made.
  *
  * @return SR_OK on success, or SR_ERR_ARG on invalid arguments.
@@ -84,10 +84,10 @@ SR_PRIV struct sr_channel *sr_probe_new(int index, int type,
  * @since 0.2.0
  */
 SR_API int sr_dev_probe_name_set(const struct sr_dev_inst *sdi,
-		int probenum, const char *name)
+		int channelnum, const char *name)
 {
 	GSList *l;
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	int ret;
 
 	if (!sdi) {
@@ -96,11 +96,11 @@ SR_API int sr_dev_probe_name_set(const struct sr_dev_inst *sdi,
 	}
 
 	ret = SR_ERR_ARG;
-	for (l = sdi->probes; l; l = l->next) {
-		probe = l->data;
-		if (probe->index == probenum) {
-			g_free(probe->name);
-			probe->name = g_strdup(name);
+	for (l = sdi->channels; l; l = l->next) {
+		ch = l->data;
+		if (ch->index == channelnum) {
+			g_free(ch->name);
+			ch->name = g_strdup(name);
 			ret = SR_OK;
 			break;
 		}
@@ -110,23 +110,23 @@ SR_API int sr_dev_probe_name_set(const struct sr_dev_inst *sdi,
 }
 
 /**
- * Enable or disable a probe on the specified device.
+ * Enable or disable a channel on the specified device.
  *
- * @param sdi The device instance the probe is connected to.
- * @param probenum The probe number, starting from 0.
- * @param state TRUE to enable the probe, FALSE to disable.
+ * @param sdi The device instance the channel is connected to.
+ * @param channelnum The channel number, starting from 0.
+ * @param state TRUE to enable the channel, FALSE to disable.
  *
  * @return SR_OK on success or SR_ERR on failure.  In case of invalid
- *         arguments, SR_ERR_ARG is returned and the probe enabled state
+ *         arguments, SR_ERR_ARG is returned and the channel enabled state
  *         remains unchanged.
  *
  * @since 0.2.0
  */
-SR_API int sr_dev_probe_enable(const struct sr_dev_inst *sdi, int probenum,
+SR_API int sr_dev_probe_enable(const struct sr_dev_inst *sdi, int channelnum,
 		gboolean state)
 {
 	GSList *l;
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	int ret;
 	gboolean was_enabled;
 
@@ -134,19 +134,19 @@ SR_API int sr_dev_probe_enable(const struct sr_dev_inst *sdi, int probenum,
 		return SR_ERR_ARG;
 
 	ret = SR_ERR_ARG;
-	for (l = sdi->probes; l; l = l->next) {
-		probe = l->data;
-		if (probe->index == probenum) {
-			was_enabled = probe->enabled;
-			probe->enabled = state;
+	for (l = sdi->channels; l; l = l->next) {
+		ch = l->data;
+		if (ch->index == channelnum) {
+			was_enabled = ch->enabled;
+			ch->enabled = state;
 			ret = SR_OK;
 			if (!state != !was_enabled && sdi->driver
 					&& sdi->driver->config_probe_set) {
 				ret = sdi->driver->config_probe_set(
-					sdi, probe, SR_PROBE_SET_ENABLED);
+					sdi, ch, SR_PROBE_SET_ENABLED);
 				/* Roll back change if it wasn't applicable. */
 				if (ret == SR_ERR_ARG)
-					probe->enabled = was_enabled;
+					ch->enabled = was_enabled;
 			}
 			break;
 		}
@@ -156,13 +156,13 @@ SR_API int sr_dev_probe_enable(const struct sr_dev_inst *sdi, int probenum,
 }
 
 /**
- * Add a trigger to the specified device (and the specified probe).
+ * Add a trigger to the specified device (and the specified channel).
  *
- * If the specified probe of this device already has a trigger, it will
+ * If the specified channel of this device already has a trigger, it will
  * be silently replaced.
  *
  * @param[in,out] sdi Pointer to the device instance; must not be NULL.
- * @param[in] probenum Number of probe, starting at 0.
+ * @param[in] channelnum Number of channel, starting at 0.
  * @param[in] trigger Trigger string, in the format used by sigrok-cli
  *
  * @return SR_OK on success or SR_ERR on failure.  In case of invalid
@@ -171,11 +171,11 @@ SR_API int sr_dev_probe_enable(const struct sr_dev_inst *sdi, int probenum,
  *
  * @since 0.2.0
  */
-SR_API int sr_dev_trigger_set(const struct sr_dev_inst *sdi, int probenum,
+SR_API int sr_dev_trigger_set(const struct sr_dev_inst *sdi, int channelnum,
 		const char *trigger)
 {
 	GSList *l;
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	char *old_trigger;
 	int ret;
 
@@ -183,23 +183,23 @@ SR_API int sr_dev_trigger_set(const struct sr_dev_inst *sdi, int probenum,
 		return SR_ERR_ARG;
 
 	ret = SR_ERR_ARG;
-	for (l = sdi->probes; l; l = l->next) {
-		probe = l->data;
-		if (probe->index == probenum) {
-			old_trigger = probe->trigger;
+	for (l = sdi->channels; l; l = l->next) {
+		ch = l->data;
+		if (ch->index == channelnum) {
+			old_trigger = ch->trigger;
 			ret = SR_OK;
 			if (g_strcmp0(trigger, old_trigger) == 0)
 				break;
 			/* Set new trigger if it has changed. */
-			probe->trigger = g_strdup(trigger);
+			ch->trigger = g_strdup(trigger);
 
 			if (sdi->driver && sdi->driver->config_probe_set) {
 				ret = sdi->driver->config_probe_set(
-					sdi, probe, SR_PROBE_SET_TRIGGER);
+					sdi, ch, SR_PROBE_SET_TRIGGER);
 				/* Roll back change if it wasn't applicable. */
 				if (ret == SR_ERR_ARG) {
-					g_free(probe->trigger);
-					probe->trigger = old_trigger;
+					g_free(ch->trigger);
+					ch->trigger = old_trigger;
 					break;
 				}
 			}
@@ -284,7 +284,7 @@ SR_PRIV struct sr_dev_inst *sr_dev_inst_new(int index, int status,
 	sdi->vendor = vendor ? g_strdup(vendor) : NULL;
 	sdi->model = model ? g_strdup(model) : NULL;
 	sdi->version = version ? g_strdup(version) : NULL;
-	sdi->probes = NULL;
+	sdi->channels = NULL;
 	sdi->channel_groups = NULL;
 	sdi->conn = NULL;
 	sdi->priv = NULL;
@@ -298,16 +298,16 @@ SR_PRIV struct sr_dev_inst *sr_dev_inst_new(int index, int status,
  */
 SR_PRIV void sr_dev_inst_free(struct sr_dev_inst *sdi)
 {
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	GSList *l;
 
-	for (l = sdi->probes; l; l = l->next) {
-		probe = l->data;
-		g_free(probe->name);
-		g_free(probe->trigger);
-		g_free(probe);
+	for (l = sdi->channels; l; l = l->next) {
+		ch = l->data;
+		g_free(ch->name);
+		g_free(ch->trigger);
+		g_free(ch);
 	}
-	g_slist_free(sdi->probes);
+	g_slist_free(sdi->channels);
 
 	if (sdi->channel_groups)
 		g_slist_free(sdi->channel_groups);

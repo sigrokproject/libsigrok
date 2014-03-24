@@ -648,7 +648,7 @@ static void send_value(struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 
 	memset(&analog, 0, sizeof(analog));
-	analog.probes = sdi->probes;
+	analog.channels = sdi->channels;
 	analog.num_samples = 1;
 	analog.mq = devc->mq;
 	analog.unit = devc->unit;

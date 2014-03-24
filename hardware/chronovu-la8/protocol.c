@@ -25,7 +25,7 @@
 #include "protocol.h"
 
 /* Probes are numbered 0-7. */
-SR_PRIV const char *chronovu_la8_probe_names[NUM_PROBES + 1] = {
+SR_PRIV const char *chronovu_la8_channel_names[NUM_PROBES + 1] = {
 	"0", "1", "2", "3", "4", "5", "6", "7",
 	NULL,
 };
@@ -284,46 +284,46 @@ SR_PRIV int la8_reset(struct dev_context *devc)
 	return SR_OK;
 }
 
-SR_PRIV int configure_probes(const struct sr_dev_inst *sdi)
+SR_PRIV int configure_channels(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	const struct sr_channel *probe;
+	const struct sr_channel *ch;
 	const GSList *l;
-	uint8_t probe_bit;
+	uint8_t channel_bit;
 	char *tc;
 
 	devc = sdi->priv;
 	devc->trigger_pattern = 0;
-	devc->trigger_mask = 0; /* Default to "don't care" for all probes. */
+	devc->trigger_mask = 0; /* Default to "don't care" for all channels. */
 
-	for (l = sdi->probes; l; l = l->next) {
-		probe = (struct sr_channel *)l->data;
+	for (l = sdi->channels; l; l = l->next) {
+		ch = (struct sr_channel *)l->data;
 
-		if (!probe) {
-			sr_err("%s: probe was NULL.", __func__);
+		if (!ch) {
+			sr_err("%s: channel was NULL.", __func__);
 			return SR_ERR;
 		}
 
-		/* Skip disabled probes. */
-		if (!probe->enabled)
+		/* Skip disabled channels. */
+		if (!ch->enabled)
 			continue;
 
-		/* Skip (enabled) probes with no configured trigger. */
-		if (!probe->trigger)
+		/* Skip (enabled) channels with no configured trigger. */
+		if (!ch->trigger)
 			continue;
 
-		/* Note: Must only be run if probe->trigger != NULL. */
-		if (probe->index < 0 || probe->index > 7) {
-			sr_err("%s: Invalid probe index %d, must be "
-			       "between 0 and 7.", __func__, probe->index);
+		/* Note: Must only be run if ch->trigger != NULL. */
+		if (ch->index < 0 || ch->index > 7) {
+			sr_err("%s: Invalid channel index %d, must be "
+			       "between 0 and 7.", __func__, ch->index);
 			return SR_ERR;
 		}
 
-		probe_bit = (1 << (probe->index));
+		channel_bit = (1 << (ch->index));
 
-		/* Configure the probe's trigger mask and trigger pattern. */
-		for (tc = probe->trigger; tc && *tc; tc++) {
-			devc->trigger_mask |= probe_bit;
+		/* Configure the channel's trigger mask and trigger pattern. */
+		for (tc = ch->trigger; tc && *tc; tc++) {
+			devc->trigger_mask |= channel_bit;
 
 			/* Sanity check, LA8 only supports low/high trigger. */
 			if (*tc != '0' && *tc != '1') {
@@ -333,7 +333,7 @@ SR_PRIV int configure_probes(const struct sr_dev_inst *sdi)
 			}
 
 			if (*tc == '1')
-				devc->trigger_pattern |= probe_bit;
+				devc->trigger_pattern |= channel_bit;
 		}
 	}
 

@@ -134,7 +134,7 @@ static void process_mset(const struct sr_dev_inst *sdi)
 		analog.mq = SR_MQ_SOUND_PRESSURE_LEVEL;
 		analog.mqflags = devc->cur_mqflags;
 		analog.unit = SR_UNIT_DECIBEL_SPL;
-		analog.probes = sdi->probes;
+		analog.channels = sdi->channels;
 		analog.num_samples = 1;
 		analog.data = &devc->last_spl;
 		packet.type = SR_DF_ANALOG;
@@ -193,7 +193,7 @@ static void send_data(const struct sr_dev_inst *sdi, unsigned char *data,
 	analog.mq = SR_MQ_SOUND_PRESSURE_LEVEL;
 	analog.mqflags = devc->cur_mqflags;
 	analog.unit = SR_UNIT_DECIBEL_SPL;
-	analog.probes = sdi->probes;
+	analog.channels = sdi->channels;
 	analog.num_samples = num_samples;
 	analog.data = fbuf;
 	packet.type = SR_DF_ANALOG;

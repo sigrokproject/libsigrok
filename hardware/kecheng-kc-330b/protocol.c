@@ -114,7 +114,7 @@ static void send_data(const struct sr_dev_inst *sdi, void *buf, unsigned int buf
 	analog.mq = SR_MQ_SOUND_PRESSURE_LEVEL;
 	analog.mqflags = devc->mqflags;
 	analog.unit = SR_UNIT_DECIBEL_SPL;
-	analog.probes = sdi->probes;
+	analog.channels = sdi->channels;
 	analog.num_samples = buf_len;
 	analog.data = buf;
 	packet.type = SR_DF_ANALOG;

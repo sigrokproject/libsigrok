@@ -112,7 +112,7 @@ static GSList *scan(GSList *options)
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct sr_dev_inst *sdi;
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	GSList *usb_devices, *devices, *l;
 	char *model;
 
@@ -135,9 +135,9 @@ static GSList *scan(GSList *options)
 			sdi->driver = di;
 			sdi->inst_type = SR_INST_USB;
 			sdi->conn = l->data;
-			if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "SPL")))
+			if (!(ch = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "SPL")))
 				return NULL;
-			sdi->probes = g_slist_append(sdi->probes, probe);
+			sdi->channels = g_slist_append(sdi->channels, ch);
 
 			if (!(devc = g_try_malloc(sizeof(struct dev_context)))) {
 				sr_dbg("Device context malloc failed.");

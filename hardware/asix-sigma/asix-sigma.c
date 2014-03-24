@@ -58,11 +58,11 @@ static const uint64_t samplerates[] = {
 };
 
 /*
- * Probe numbers seem to go from 1-16, according to this image:
+ * Channel numbers seem to go from 1-16, according to this image:
  * http://tools.asix.net/img/sigma_sigmacab_pins_720.jpg
  * (the cable has two additional GND pins, and a TI and TO pin)
  */
-static const char *probe_names[NUM_PROBES + 1] = {
+static const char *channel_names[NUM_PROBES + 1] = {
 	"1", "2", "3", "4", "5", "6", "7", "8",
 	"9", "10", "11", "12", "13", "14", "15", "16",
 	NULL,
@@ -402,7 +402,7 @@ static int init(struct sr_context *sr_ctx)
 static GSList *scan(GSList *options)
 {
 	struct sr_dev_inst *sdi;
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	GSList *devices;
@@ -450,7 +450,7 @@ static GSList *scan(GSList *options)
 	devc->period_ps = 0;
 	devc->limit_msec = 0;
 	devc->cur_firmware = -1;
-	devc->num_probes = 0;
+	devc->num_channels = 0;
 	devc->samples_per_event = 0;
 	devc->capture_ratio = 50;
 	devc->use_triggers = 0;
@@ -463,11 +463,11 @@ static GSList *scan(GSList *options)
 	}
 	sdi->driver = di;
 
-	for (i = 0; probe_names[i]; i++) {
-		if (!(probe = sr_probe_new(i, SR_PROBE_LOGIC, TRUE,
-				probe_names[i])))
+	for (i = 0; channel_names[i]; i++) {
+		if (!(ch = sr_probe_new(i, SR_PROBE_LOGIC, TRUE,
+				channel_names[i])))
 			return NULL;
-		sdi->probes = g_slist_append(sdi->probes, probe);
+		sdi->channels = g_slist_append(sdi->channels, ch);
 	}
 
 	devices = g_slist_append(devices, sdi);
@@ -624,20 +624,20 @@ static int set_samplerate(const struct sr_dev_inst *sdi, uint64_t samplerate)
 
 	if (samplerate <= SR_MHZ(50)) {
 		ret = upload_firmware(0, devc);
-		devc->num_probes = 16;
+		devc->num_channels = 16;
 	}
 	if (samplerate == SR_MHZ(100)) {
 		ret = upload_firmware(1, devc);
-		devc->num_probes = 8;
+		devc->num_channels = 8;
 	}
 	else if (samplerate == SR_MHZ(200)) {
 		ret = upload_firmware(2, devc);
-		devc->num_probes = 4;
+		devc->num_channels = 4;
 	}
 
 	devc->cur_samplerate = samplerate;
 	devc->period_ps = 1000000000000ULL / samplerate;
-	devc->samples_per_event = 16 / devc->num_probes;
+	devc->samples_per_event = 16 / devc->num_channels;
 	devc->state.state = SIGMA_IDLE;
 
 	return ret;
@@ -646,26 +646,26 @@ static int set_samplerate(const struct sr_dev_inst *sdi, uint64_t samplerate)
 /*
  * In 100 and 200 MHz mode, only a single pin rising/falling can be
  * set as trigger. In other modes, two rising/falling triggers can be set,
- * in addition to value/mask trigger for any number of probes.
+ * in addition to value/mask trigger for any number of channels.
  *
  * The Sigma supports complex triggers using boolean expressions, but this
  * has not been implemented yet.
  */
-static int configure_probes(const struct sr_dev_inst *sdi)
+static int configure_channels(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc = sdi->priv;
-	const struct sr_channel *probe;
+	const struct sr_channel *ch;
 	const GSList *l;
 	int trigger_set = 0;
-	int probebit;
+	int channelbit;
 
 	memset(&devc->trigger, 0, sizeof(struct sigma_trigger));
 
-	for (l = sdi->probes; l; l = l->next) {
-		probe = (struct sr_channel *)l->data;
-		probebit = 1 << (probe->index);
+	for (l = sdi->channels; l; l = l->next) {
+		ch = (struct sr_channel *)l->data;
+		channelbit = 1 << (ch->index);
 
-		if (!probe->enabled || !probe->trigger)
+		if (!ch->enabled || !ch->trigger)
 			continue;
 
 		if (devc->cur_samplerate >= SR_MHZ(100)) {
@@ -675,10 +675,10 @@ static int configure_probes(const struct sr_dev_inst *sdi)
 				       "200MHz mode is supported.");
 				return SR_ERR;
 			}
-			if (probe->trigger[0] == 'f')
-				devc->trigger.fallingmask |= probebit;
-			else if (probe->trigger[0] == 'r')
-				devc->trigger.risingmask |= probebit;
+			if (ch->trigger[0] == 'f')
+				devc->trigger.fallingmask |= channelbit;
+			else if (ch->trigger[0] == 'r')
+				devc->trigger.risingmask |= channelbit;
 			else {
 				sr_err("Only rising/falling trigger in 100 "
 				       "and 200MHz mode is supported.");
@@ -688,20 +688,20 @@ static int configure_probes(const struct sr_dev_inst *sdi)
 			++trigger_set;
 		} else {
 			/* Simple trigger support (event). */
-			if (probe->trigger[0] == '1') {
-				devc->trigger.simplevalue |= probebit;
-				devc->trigger.simplemask |= probebit;
+			if (ch->trigger[0] == '1') {
+				devc->trigger.simplevalue |= channelbit;
+				devc->trigger.simplemask |= channelbit;
 			}
-			else if (probe->trigger[0] == '0') {
-				devc->trigger.simplevalue &= ~probebit;
-				devc->trigger.simplemask |= probebit;
+			else if (ch->trigger[0] == '0') {
+				devc->trigger.simplevalue &= ~channelbit;
+				devc->trigger.simplemask |= channelbit;
 			}
-			else if (probe->trigger[0] == 'f') {
-				devc->trigger.fallingmask |= probebit;
+			else if (ch->trigger[0] == 'f') {
+				devc->trigger.fallingmask |= channelbit;
 				++trigger_set;
 			}
-			else if (probe->trigger[0] == 'r') {
-				devc->trigger.risingmask |= probebit;
+			else if (ch->trigger[0] == 'r') {
+				devc->trigger.risingmask |= channelbit;
 				++trigger_set;
 			}
 
@@ -945,8 +945,8 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 			for (k = 0; k < devc->samples_per_event; ++k) {
 				cur_sample = 0;
 
-				/* For each probe. */
-				for (l = 0; l < devc->num_probes; ++l)
+				/* For each channel. */
+				for (l = 0; l < devc->num_channels; ++l)
 					cur_sample |= (!!(event[j] & (1 << (l *
 					   devc->samples_per_event + k)))) << l;
 
@@ -1099,14 +1099,14 @@ static void build_lut_entry(uint16_t value, uint16_t mask, uint16_t *entry)
 {
 	int i, j, k, bit;
 
-	/* For each quad probe. */
+	/* For each quad channel. */
 	for (i = 0; i < 4; ++i) {
 		entry[i] = 0xffff;
 
 		/* For each bit in LUT. */
 		for (j = 0; j < 16; ++j)
 
-			/* For each probe in quad. */
+			/* For each channel in quad. */
 			for (k = 0; k < 4; ++k) {
 				bit = 1 << (i * 4 + k);
 
@@ -1265,8 +1265,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 
 	devc = sdi->priv;
 
-	if (configure_probes(sdi) != SR_OK) {
-		sr_err("Failed to configure probes.");
+	if (configure_channels(sdi) != SR_OK) {
+		sr_err("Failed to configure channels.");
 		return SR_ERR;
 	}
 
@@ -1319,10 +1319,10 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 
 	/* Set clock select register. */
 	if (devc->cur_samplerate == SR_MHZ(200))
-		/* Enable 4 probes. */
+		/* Enable 4 channels. */
 		sigma_set_register(WRITE_CLOCK_SELECT, 0xf0, devc);
 	else if (devc->cur_samplerate == SR_MHZ(100))
-		/* Enable 8 probes. */
+		/* Enable 8 channels. */
 		sigma_set_register(WRITE_CLOCK_SELECT, 0x00, devc);
 	else {
 		/*
@@ -1333,7 +1333,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 
 		clockselect.async = 0;
 		clockselect.fraction = frac;
-		clockselect.disabled_probes = 0;
+		clockselect.disabled_channels = 0;
 
 		sigma_write_register(WRITE_CLOCK_SELECT,
 				     (uint8_t *) &clockselect,

@@ -292,12 +292,12 @@ SR_PRIV int fx2lafw_dev_open(struct sr_dev_inst *sdi, struct sr_dev_driver *di)
 	return SR_OK;
 }
 
-SR_PRIV int fx2lafw_configure_probes(const struct sr_dev_inst *sdi)
+SR_PRIV int fx2lafw_configure_channels(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	GSList *l;
-	int probe_bit, stage, i;
+	int channel_bit, stage, i;
 	char *tc;
 
 	devc = sdi->priv;
@@ -307,23 +307,23 @@ SR_PRIV int fx2lafw_configure_probes(const struct sr_dev_inst *sdi)
 	}
 
 	stage = -1;
-	for (l = sdi->probes; l; l = l->next) {
-		probe = (struct sr_channel *)l->data;
-		if (probe->enabled == FALSE)
+	for (l = sdi->channels; l; l = l->next) {
+		ch = (struct sr_channel *)l->data;
+		if (ch->enabled == FALSE)
 			continue;
 
-		if (probe->index > 7)
+		if (ch->index > 7)
 			devc->sample_wide = TRUE;
 
-		probe_bit = 1 << (probe->index);
-		if (!(probe->trigger))
+		channel_bit = 1 << (ch->index);
+		if (!(ch->trigger))
 			continue;
 
 		stage = 0;
-		for (tc = probe->trigger; *tc; tc++) {
-			devc->trigger_mask[stage] |= probe_bit;
+		for (tc = ch->trigger; *tc; tc++) {
+			devc->trigger_mask[stage] |= channel_bit;
 			if (*tc == '1')
-				devc->trigger_value[stage] |= probe_bit;
+				devc->trigger_value[stage] |= channel_bit;
 			stage++;
 			if (stage > NUM_TRIGGER_STAGES)
 				return SR_ERR;

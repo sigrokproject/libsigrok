@@ -165,7 +165,7 @@ struct dev_context {
 	void *cb_data;
 	uint64_t limit_frames;
 	uint64_t num_frames;
-	GSList *enabled_probes;
+	GSList *enabled_channels;
 	/* We can't keep track of an FX2-based device after upgrading
 	 * the firmware (it re-enumerates into a different device address
 	 * after the upgrade) this is like a global lock. No device will open

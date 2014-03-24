@@ -50,7 +50,7 @@ SR_PRIV int data_bits(struct sr_output *o, const uint8_t *data_in,
          * extra output, e.g. trigger.
          */
 	outsize = 512 + (1 + (length_in / ctx->unitsize) / ctx->samples_per_line)
-            * (ctx->num_enabled_probes * max_linelen);
+            * (ctx->num_enabled_channels * max_linelen);
 
 	if (!(outbuf = g_try_malloc0(outsize + 1))) {
 		sr_err("%s: outbuf malloc failed", __func__);
@@ -69,7 +69,7 @@ SR_PRIV int data_bits(struct sr_output *o, const uint8_t *data_in,
 		for (offset = 0; offset <= length_in - ctx->unitsize;
 		     offset += ctx->unitsize) {
 			sample = data_in + offset;
-			for (p = 0; p < ctx->num_enabled_probes; p++) {
+			for (p = 0; p < ctx->num_enabled_channels; p++) {
 				c = (sample[p / 8] & ((uint8_t) 1 << (p % 8))) ? '1' : '0';
 				ctx->linebuf[p * ctx->linebuf_len +
 					     ctx->line_offset] = c;
@@ -79,7 +79,7 @@ SR_PRIV int data_bits(struct sr_output *o, const uint8_t *data_in,
 
 			/* Add a space every 8th bit. */
 			if ((ctx->spl_cnt & 7) == 0) {
-				for (p = 0; p < ctx->num_enabled_probes; p++)
+				for (p = 0; p < ctx->num_enabled_channels; p++)
 					ctx->linebuf[p * ctx->linebuf_len +
 						     ctx->line_offset] = ' ';
 				ctx->line_offset++;

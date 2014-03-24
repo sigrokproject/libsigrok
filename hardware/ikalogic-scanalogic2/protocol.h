@@ -151,8 +151,8 @@ struct dev_context {
 
 	void *cb_data;
 
-	/* Array to provide an index based access to all probes. */
-	const struct sr_channel *probes[NUM_PROBES];
+	/* Array to provide an index based access to all channels. */
+	const struct sr_channel *channels[NUM_PROBES];
 
 	struct libusb_transfer *xfer_in, *xfer_out;
 
@@ -208,11 +208,11 @@ struct dev_context {
 	/* Channel number that is currently processed. */
 	uint8_t channel;
 
-	/* Number of enabled probes. */
-	unsigned int num_enabled_probes;
+	/* Number of enabled channels. */
+	unsigned int num_enabled_channels;
 
-	/* Array to provide a sequential access to all enabled probe indices. */
-	uint8_t probe_map[NUM_PROBES];
+	/* Array to provide a sequential access to all enabled channel indices. */
+	uint8_t channel_map[NUM_PROBES];
 
 	/* Indicates whether a transfer failed. */
 	gboolean transfer_error;

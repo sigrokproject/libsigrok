@@ -349,7 +349,7 @@ static void nma_process_line(const struct sr_dev_inst *sdi)
 		(double)scale, (double)value);
 
 	/* Finish and send packet. */
-	analog.probes = sdi->probes;
+	analog.channels = sdi->channels;
 	analog.num_samples = 1;
 	analog.data = &value;
 

@@ -27,14 +27,14 @@
 #define LOG_PREFIX "output/analog"
 
 struct context {
-	int num_enabled_probes;
-	GPtrArray *probelist;
+	int num_enabled_channels;
+	GPtrArray *channellist;
 };
 
 static int init(struct sr_output *o)
 {
 	struct context *ctx;
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	GSList *l;
 
 	sr_spew("Initializing output module.");
@@ -48,14 +48,14 @@ static int init(struct sr_output *o)
 	}
 	o->internal = ctx;
 
-	/* Get the number of probes and their names. */
-	ctx->probelist = g_ptr_array_new();
-	for (l = o->sdi->probes; l; l = l->next) {
-		probe = l->data;
-		if (!probe || !probe->enabled)
+	/* Get the number of channels and their names. */
+	ctx->channellist = g_ptr_array_new();
+	for (l = o->sdi->channels; l; l = l->next) {
+		ch = l->data;
+		if (!ch || !ch->enabled)
 			continue;
-		g_ptr_array_add(ctx->probelist, probe->name);
-		ctx->num_enabled_probes++;
+		g_ptr_array_add(ctx->channellist, ch->name);
+		ctx->num_enabled_channels++;
 	}
 
 	return SR_OK;
@@ -210,7 +210,7 @@ static int receive(struct sr_output *o, const struct sr_dev_inst *sdi,
 		const struct sr_datafeed_packet *packet, GString **out)
 {
 	const struct sr_datafeed_analog *analog;
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	GSList *l;
 	const float *fdata;
 	int i, p;
@@ -233,9 +233,9 @@ static int receive(struct sr_output *o, const struct sr_dev_inst *sdi,
 		fdata = (const float *)analog->data;
 		*out = g_string_sized_new(512);
 		for (i = 0; i < analog->num_samples; i++) {
-			for (l = analog->probes, p = 0; l; l = l->next, p++) {
-				probe = l->data;
-				g_string_append_printf(*out, "%s: ", probe->name);
+			for (l = analog->channels, p = 0; l; l = l->next, p++) {
+				ch = l->data;
+				g_string_append_printf(*out, "%s: ", ch->name);
 				fancyprint(analog->unit, analog->mqflags,
 						fdata[i + p], *out);
 			}
@@ -254,7 +254,7 @@ static int cleanup(struct sr_output *o)
 		return SR_ERR_ARG;
 	ctx = o->internal;
 
-	g_ptr_array_free(ctx->probelist, 1);
+	g_ptr_array_free(ctx->channellist, 1);
 	g_free(ctx);
 	o->internal = NULL;
 

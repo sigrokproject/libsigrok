@@ -56,7 +56,7 @@ static GSList *scan(GSList *options)
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct sr_dev_inst *sdi;
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	struct libusb_device_descriptor des;
 	libusb_device **devlist;
 	GSList *devices;
@@ -88,9 +88,9 @@ static GSList *scan(GSList *options)
 			return NULL;
 		sdi->priv = devc;
 
-		if (!(probe = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "P1")))
+		if (!(ch = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "P1")))
 			return NULL;
-		sdi->probes = g_slist_append(NULL, probe);
+		sdi->channels = g_slist_append(NULL, ch);
 
 		if (!(sdi->conn = sr_usb_dev_inst_new(libusb_get_bus_number(devlist[i]),
 				libusb_get_device_address(devlist[i]), NULL)))

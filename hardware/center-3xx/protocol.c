@@ -136,7 +136,7 @@ static int handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi, int idx)
 		return SR_ERR;
 	}
 
-	/* Common values for all 4 probes. */
+	/* Common values for all 4 channels. */
 	packet.type = SR_DF_ANALOG;
 	packet.payload = &analog;
 	analog.mq = SR_MQ_TEMPERATURE;
@@ -146,8 +146,8 @@ static int handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi, int idx)
 	/* Send the values for T1 - T4. */
 	for (i = 0; i < 4; i++) {
 		l = NULL;
-		l = g_slist_append(l, g_slist_nth_data(sdi->probes, i));
-		analog.probes = l;
+		l = g_slist_append(l, g_slist_nth_data(sdi->channels, i));
+		analog.channels = l;
 		analog.data = &(info.temp[i]);
 		sr_session_send(devc->cb_data, &packet);
 		g_slist_free(l);

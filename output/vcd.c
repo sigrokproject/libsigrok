@@ -29,8 +29,8 @@
 #define LOG_PREFIX "output/vcd"
 
 struct context {
-	int num_enabled_probes;
-	GArray *probeindices;
+	int num_enabled_channels;
+	GArray *channelindices;
 	GString *header;
 	uint8_t *prevsample;
 	int period;
@@ -40,15 +40,15 @@ struct context {
 };
 
 static const char *const vcd_header_comment =
-	"$comment\n  Acquisition with %d/%d probes at %s\n$end\n";
+	"$comment\n  Acquisition with %d/%d channels at %s\n$end\n";
 
 static int init(struct sr_output *o)
 {
 	struct context *ctx;
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	GSList *l;
 	GVariant *gvar;
-	int num_probes, i;
+	int num_channels, i;
 	char *samplerate_s, *frequency_s, *timestamp;
 	time_t t;
 
@@ -58,27 +58,27 @@ static int init(struct sr_output *o)
 	}
 
 	o->internal = ctx;
-	ctx->num_enabled_probes = 0;
-	ctx->probeindices = g_array_new(FALSE, FALSE, sizeof(int));
+	ctx->num_enabled_channels = 0;
+	ctx->channelindices = g_array_new(FALSE, FALSE, sizeof(int));
 
-	for (l = o->sdi->probes; l; l = l->next) {
-		probe = l->data;
-		if (probe->type != SR_PROBE_LOGIC)
+	for (l = o->sdi->channels; l; l = l->next) {
+		ch = l->data;
+		if (ch->type != SR_PROBE_LOGIC)
 			continue;
-		if (!probe->enabled)
+		if (!ch->enabled)
 			continue;
-		ctx->probeindices = g_array_append_val(
-				ctx->probeindices, probe->index);
-		ctx->num_enabled_probes++;
+		ctx->channelindices = g_array_append_val(
+				ctx->channelindices, ch->index);
+		ctx->num_enabled_channels++;
 	}
-	if (ctx->num_enabled_probes > 94) {
-		sr_err("VCD only supports 94 probes.");
+	if (ctx->num_enabled_channels > 94) {
+		sr_err("VCD only supports 94 channels.");
 		return SR_ERR;
 	}
 
-	ctx->unitsize = (ctx->num_enabled_probes + 7) / 8;
+	ctx->unitsize = (ctx->num_enabled_channels + 7) / 8;
 	ctx->header = g_string_sized_new(512);
-	num_probes = g_slist_length(o->sdi->probes);
+	num_channels = g_slist_length(o->sdi->channels);
 
 	/* timestamp */
 	t = time(NULL);
@@ -101,7 +101,7 @@ static int init(struct sr_output *o)
 			return SR_ERR;
 		}
 		g_string_append_printf(ctx->header, vcd_header_comment,
-				 ctx->num_enabled_probes, num_probes, samplerate_s);
+				 ctx->num_enabled_channels, num_channels, samplerate_s);
 		g_free(samplerate_s);
 	}
 
@@ -125,14 +125,14 @@ static int init(struct sr_output *o)
 	g_string_append_printf(ctx->header, "$scope module %s $end\n", PACKAGE);
 
 	/* Wires / channels */
-	for (i = 0, l = o->sdi->probes; l; l = l->next, i++) {
-		probe = l->data;
-		if (probe->type != SR_PROBE_LOGIC)
+	for (i = 0, l = o->sdi->channels; l; l = l->next, i++) {
+		ch = l->data;
+		if (ch->type != SR_PROBE_LOGIC)
 			continue;
-		if (!probe->enabled)
+		if (!ch->enabled)
 			continue;
 		g_string_append_printf(ctx->header, "$var wire 1 %c %s $end\n",
-				(char)('!' + i), probe->name);
+				(char)('!' + i), ch->name);
 	}
 
 	g_string_append(ctx->header, "$upscope $end\n"
@@ -188,8 +188,8 @@ static int receive(struct sr_output *o, const struct sr_dev_inst *sdi,
 		sample = logic->data + i;
 		timestamp_written = FALSE;
 
-		for (p = 0; p < ctx->num_enabled_probes; p++) {
-			index = g_array_index(ctx->probeindices, int, p);
+		for (p = 0; p < ctx->num_enabled_channels; p++) {
+			index = g_array_index(ctx->channelindices, int, p);
 
 			curbit = ((unsigned)sample[index / 8]
 					>> (index % 8)) & 1;

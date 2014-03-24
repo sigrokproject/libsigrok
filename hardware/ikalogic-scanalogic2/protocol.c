@@ -65,7 +65,7 @@ static void buffer_sample_data(const struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
-	if (devc->probes[devc->channel]->enabled) {
+	if (devc->channels[devc->channel]->enabled) {
 		offset = devc->sample_packet * PACKET_NUM_SAMPLE_BYTES;
 
 		/*
@@ -101,8 +101,8 @@ static void process_sample_data(const struct sr_dev_inst *sdi)
 	 * enabled one for an uniform access to them. Note that the currently
 	 * received samples always belong to the last enabled channel.
 	 */
-	for (i = 0; i < devc->num_enabled_probes - 1; i++)
-		ptr[i] = devc->sample_buffer[devc->probe_map[i]] + offset;
+	for (i = 0; i < devc->num_enabled_channels - 1; i++)
+		ptr[i] = devc->sample_buffer[devc->channel_map[i]] + offset;
 
 	/*
 	 * Skip the first 4 bytes of the buffer because they contain channel
@@ -156,9 +156,9 @@ static void process_sample_data(const struct sr_dev_inst *sdi)
 			 * Extract the current sample for each enabled channel
 			 * and store them in the buffer.
 			 */
-			for (j = 0; j < devc->num_enabled_probes; j++) {
+			for (j = 0; j < devc->num_enabled_channels; j++) {
 				tmp = (ptr[j][i] & (1 << k)) >> k;
-				buffer[n] |= tmp << devc->probe_map[j];
+				buffer[n] |= tmp << devc->channel_map[j];
 			}
 
 			n++;
@@ -313,7 +313,7 @@ SR_PRIV void sl2_receive_transfer_in( struct libusb_transfer *transfer)
 			devc->wait_data_ready_time = g_get_monotonic_time();
 		}
 	} else if (devc->state == STATE_RECEIVE_DATA) {
-		last_channel = devc->probe_map[devc->num_enabled_probes - 1];
+		last_channel = devc->channel_map[devc->num_enabled_channels - 1];
 
 		if (devc->channel < last_channel) {
 			buffer_sample_data(sdi);
@@ -322,7 +322,7 @@ SR_PRIV void sl2_receive_transfer_in( struct libusb_transfer *transfer)
 		} else {
 			/*
 			 * Stop acquisition because all samples of enabled
-			 * probes are processed.
+			 * channels are processed.
 			 */
 			devc->next_state = STATE_RESET_AND_IDLE;
 		}
@@ -482,9 +482,9 @@ SR_PRIV int sl2_set_limit_samples(const struct sr_dev_inst *sdi,
 SR_PRIV void sl2_configure_trigger(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	uint8_t trigger_type;
-	int probe_index, num_triggers_anyedge;
+	int channel_index, num_triggers_anyedge;
 	char *trigger;
 	GSList *l;
 
@@ -496,11 +496,11 @@ SR_PRIV void sl2_configure_trigger(const struct sr_dev_inst *sdi)
 
 	num_triggers_anyedge = 0;
 
-	for (l = sdi->probes, probe_index = 0; l; l = l->next, probe_index++) {
-		probe = l->data;
-		trigger = probe->trigger;
+	for (l = sdi->channels, channel_index = 0; l; l = l->next, channel_index++) {
+		ch = l->data;
+		trigger = ch->trigger;
 
-		if (!trigger || !probe->enabled)
+		if (!trigger || !ch->enabled)
 			continue;
 
 		switch (*trigger) {
@@ -518,7 +518,7 @@ SR_PRIV void sl2_configure_trigger(const struct sr_dev_inst *sdi)
 			continue;
 		}
 
-		devc->trigger_channel = probe_index + 1;
+		devc->trigger_channel = channel_index + 1;
 		devc->trigger_type = trigger_type;
 	}
 

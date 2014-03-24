@@ -60,7 +60,7 @@ static const int32_t devopts[] = {
 	SR_CONF_NUM_VDIV,
 };
 
-static const char *probe_names[] = {
+static const char *channel_names[] = {
 	"CH1", "CH2",
 	NULL,
 };
@@ -160,7 +160,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);
 static struct sr_dev_inst *dso_dev_new(int index, const struct dso_profile *prof)
 {
 	struct sr_dev_inst *sdi;
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	int i;
@@ -172,14 +172,14 @@ static struct sr_dev_inst *dso_dev_new(int index, const struct dso_profile *prof
 	sdi->driver = di;
 
 	/*
-	 * Add only the real probes -- EXT isn't a source of data, only
+	 * Add only the real channels -- EXT isn't a source of data, only
 	 * a trigger source internal to the device.
 	 */
-	for (i = 0; probe_names[i]; i++) {
-		if (!(probe = sr_probe_new(i, SR_PROBE_ANALOG, TRUE,
-				probe_names[i])))
+	for (i = 0; channel_names[i]; i++) {
+		if (!(ch = sr_probe_new(i, SR_PROBE_ANALOG, TRUE,
+				channel_names[i])))
 			return NULL;
-		sdi->probes = g_slist_append(sdi->probes, probe);
+		sdi->channels = g_slist_append(sdi->channels, ch);
 	}
 
 	if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
@@ -210,25 +210,25 @@ static struct sr_dev_inst *dso_dev_new(int index, const struct dso_profile *prof
 	return sdi;
 }
 
-static int configure_probes(const struct sr_dev_inst *sdi)
+static int configure_channels(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	const GSList *l;
 	int p;
 
 	devc = sdi->priv;
 
-	g_slist_free(devc->enabled_probes);
+	g_slist_free(devc->enabled_channels);
 	devc->ch1_enabled = devc->ch2_enabled = FALSE;
-	for (l = sdi->probes, p = 0; l; l = l->next, p++) {
-		probe = l->data;
+	for (l = sdi->channels, p = 0; l; l = l->next, p++) {
+		ch = l->data;
 		if (p == 0)
-			devc->ch1_enabled = probe->enabled;
+			devc->ch1_enabled = ch->enabled;
 		else
-			devc->ch2_enabled = probe->enabled;
-		if (probe->enabled)
-			devc->enabled_probes = g_slist_append(devc->enabled_probes, probe);
+			devc->ch2_enabled = ch->enabled;
+		if (ch->enabled)
+			devc->enabled_channels = g_slist_append(devc->enabled_channels, ch);
 	}
 
 	return SR_OK;
@@ -240,7 +240,7 @@ static void clear_dev_context(void *priv)
 
 	devc = priv;
 	g_free(devc->triggersource);
-	g_slist_free(devc->enabled_probes);
+	g_slist_free(devc->enabled_channels);
 
 }
 
@@ -657,19 +657,19 @@ static void send_chunk(struct sr_dev_inst *sdi, unsigned char *buf,
 	struct sr_datafeed_analog analog;
 	struct dev_context *devc;
 	float ch1, ch2, range;
-	int num_probes, data_offset, i;
+	int num_channels, data_offset, i;
 
 	devc = sdi->priv;
-	num_probes = (devc->ch1_enabled && devc->ch2_enabled) ? 2 : 1;
+	num_channels = (devc->ch1_enabled && devc->ch2_enabled) ? 2 : 1;
 	packet.type = SR_DF_ANALOG;
 	packet.payload = &analog;
 	/* TODO: support for 5xxx series 9-bit samples */
-	analog.probes = devc->enabled_probes;
+	analog.channels = devc->enabled_channels;
 	analog.num_samples = num_samples;
 	analog.mq = SR_MQ_VOLTAGE;
 	analog.unit = SR_UNIT_VOLT;
 	/* TODO: Check malloc return value. */
-	analog.data = g_try_malloc(analog.num_samples * sizeof(float) * num_probes);
+	analog.data = g_try_malloc(analog.num_samples * sizeof(float) * num_channels);
 	data_offset = 0;
 	for (i = 0; i < analog.num_samples; i++) {
 		/*
@@ -806,7 +806,7 @@ static int handle_event(int fd, int revents, void *cb_data)
 	struct timeval tv;
 	struct dev_context *devc;
 	struct drv_context *drvc = di->priv;
-	int num_probes;
+	int num_channels;
 	uint32_t trigger_offset;
 	uint8_t capturestate;
 
@@ -876,9 +876,9 @@ static int handle_event(int fd, int revents, void *cb_data)
 		/* Remember where in the captured frame the trigger is. */
 		devc->trigger_offset = trigger_offset;
 
-		num_probes = (devc->ch1_enabled && devc->ch2_enabled) ? 2 : 1;
+		num_channels = (devc->ch1_enabled && devc->ch2_enabled) ? 2 : 1;
 		/* TODO: Check malloc return value. */
-		devc->framebuf = g_try_malloc(devc->framesize * num_probes * 2);
+		devc->framebuf = g_try_malloc(devc->framesize * num_channels * 2);
 		devc->samp_buffered = devc->samp_received = 0;
 
 		/* Tell the scope to send us the first frame. */
@@ -921,8 +921,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	devc = sdi->priv;
 	devc->cb_data = cb_data;
 
-	if (configure_probes(sdi) != SR_OK) {
-		sr_err("Failed to configure probes.");
+	if (configure_channels(sdi) != SR_OK) {
+		sr_err("Failed to configure channels.");
 		return SR_ERR;
 	}
 

@@ -102,8 +102,8 @@ struct dev_context {
 	struct sr_channel_group digital_group;
 
 	/* Acquisition settings */
-	GSList *enabled_analog_probes;
-	GSList *enabled_digital_probes;
+	GSList *enabled_analog_channels;
+	GSList *enabled_digital_channels;
 	uint64_t limit_frames;
 	void *cb_data;
 	enum data_source data_source;

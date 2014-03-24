@@ -28,7 +28,7 @@ static const int32_t hwcaps[] = {
 	SR_CONF_DATA_SOURCE,
 };
 
-static char *probes[] = {
+static char *channels[] = {
 	"T1",
 	"T2",
 	"T1-T2",
@@ -53,7 +53,7 @@ static GSList *scan(GSList *options)
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct sr_dev_inst *sdi;
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	struct sr_config *src;
 	GSList *usb_devices, *devices, *l;
 	int i;
@@ -86,12 +86,12 @@ static GSList *scan(GSList *options)
 			sdi->inst_type = SR_INST_USB;
 			sdi->conn = l->data;
 			for (i = 0; i < 3; i++) {
-				if (!(probe = sr_probe_new(i, SR_PROBE_ANALOG, TRUE,
-						probes[i]))) {
-					sr_dbg("Probe malloc failed.");
+				if (!(ch = sr_probe_new(i, SR_PROBE_ANALOG, TRUE,
+						channels[i]))) {
+					sr_dbg("Channel malloc failed.");
 					return NULL;
 				}
-				sdi->probes = g_slist_append(sdi->probes, probe);
+				sdi->channels = g_slist_append(sdi->channels, ch);
 			}
 
 			if (!(devc = g_try_malloc(sizeof(struct dev_context)))) {

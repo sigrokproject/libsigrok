@@ -79,7 +79,7 @@ static int init(struct sr_context *sr_ctx)
 static GSList *scan(GSList *options)
 {
 	struct sr_dev_inst *sdi;
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	GSList *devices;
@@ -107,7 +107,7 @@ static GSList *scan(GSList *options)
 	memset(devc->mangled_buf, 0, BS);
 	devc->final_buf = NULL;
 	devc->trigger_pattern = 0x00; /* Value irrelevant, see trigger_mask. */
-	devc->trigger_mask = 0x00; /* All probes are "don't care". */
+	devc->trigger_mask = 0x00; /* All channels are "don't care". */
 	devc->trigger_timeout = 10; /* Default to 10s trigger timeout. */
 	devc->trigger_found = 0;
 	devc->done = 0;
@@ -153,11 +153,11 @@ static GSList *scan(GSList *options)
 	sdi->driver = di;
 	sdi->priv = devc;
 
-	for (i = 0; chronovu_la8_probe_names[i]; i++) {
-		if (!(probe = sr_probe_new(i, SR_PROBE_LOGIC, TRUE,
-					   chronovu_la8_probe_names[i])))
+	for (i = 0; chronovu_la8_channel_names[i]; i++) {
+		if (!(ch = sr_probe_new(i, SR_PROBE_LOGIC, TRUE,
+					   chronovu_la8_channel_names[i])))
 			return NULL;
-		sdi->probes = g_slist_append(sdi->probes, probe);
+		sdi->channels = g_slist_append(sdi->channels, ch);
 	}
 
 	devices = g_slist_append(devices, sdi);
@@ -446,8 +446,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		return SR_ERR;
 	}
 
-	if (configure_probes(sdi) != SR_OK) {
-		sr_err("Failed to configure probes.");
+	if (configure_channels(sdi) != SR_OK) {
+		sr_err("Failed to configure channels.");
 		return SR_ERR;
 	}
 

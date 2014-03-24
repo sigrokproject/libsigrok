@@ -69,13 +69,13 @@ static uint64_t appa_55ii_flags(const uint8_t *buf)
 	return flags;
 }
 
-static float appa_55ii_temp(const uint8_t *buf, int probe)
+static float appa_55ii_temp(const uint8_t *buf, int ch)
 {
 	const uint8_t *ptr;
 	int16_t temp;
 	uint8_t flags;
 
-	ptr = buf + 4 + 14 + 3 * probe;
+	ptr = buf + 4 + 14 + 3 * ch;
 	temp = RL16(ptr);
 	flags = ptr[2];
 
@@ -92,7 +92,7 @@ static void appa_55ii_live_data(struct sr_dev_inst *sdi, const uint8_t *buf)
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog analog;
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	float values[APPA_55II_NUM_PROBES], *val_ptr;
 	int i;
 
@@ -110,17 +110,17 @@ static void appa_55ii_live_data(struct sr_dev_inst *sdi, const uint8_t *buf)
 	analog.data = values;
 
 	for (i = 0; i < APPA_55II_NUM_PROBES; i++) {
-		probe = g_slist_nth_data(sdi->probes, i);
-		if (!probe->enabled)
+		ch = g_slist_nth_data(sdi->channels, i);
+		if (!ch->enabled)
 			continue;
-		analog.probes = g_slist_append(analog.probes, probe);
+		analog.channels = g_slist_append(analog.channels, ch);
 		*val_ptr++ = appa_55ii_temp(buf, i);
 	}
 
 	packet.type = SR_DF_ANALOG;
 	packet.payload = &analog;
 	sr_session_send(devc->session_cb_data, &packet);
-	g_slist_free(analog.probes);
+	g_slist_free(analog.channels);
 
 	devc->num_samples++;
 }
@@ -138,7 +138,7 @@ static void appa_55ii_log_data_parse(struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog analog;
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	float values[APPA_55II_NUM_PROBES], *val_ptr;
 	const uint8_t *buf;
 	int16_t temp;
@@ -162,17 +162,17 @@ static void appa_55ii_log_data_parse(struct sr_dev_inst *sdi)
 
 		for (i = 0; i < APPA_55II_NUM_PROBES; i++) {
 			temp = RL16(buf + 12 + 2 * i);
-			probe = g_slist_nth_data(sdi->probes, i);
-			if (!probe->enabled)
+			ch = g_slist_nth_data(sdi->channels, i);
+			if (!ch->enabled)
 				continue;
-			analog.probes = g_slist_append(analog.probes, probe);
+			analog.channels = g_slist_append(analog.channels, ch);
 			*val_ptr++ = temp == 0x7FFF ? INFINITY : (float)temp / 10;
 		}
 
 		packet.type = SR_DF_ANALOG;
 		packet.payload = &analog;
 		sr_session_send(devc->session_cb_data, &packet);
-		g_slist_free(analog.probes);
+		g_slist_free(analog.channels);
 
 		devc->num_samples++;
 		devc->log_buf_len -= 20;

@@ -77,7 +77,7 @@ static void decode_packet(struct sr_dev_inst *sdi, int dmm, const uint8_t *buf,
 		udmms[dmm].dmm_details(&analog, info);
 
 	/* Send a sample packet with one analog value. */
-	analog.probes = sdi->probes;
+	analog.channels = sdi->channels;
 	analog.num_samples = 1;
 	analog.data = &floatval;
 	packet.type = SR_DF_ANALOG;

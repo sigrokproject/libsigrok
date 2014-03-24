@@ -45,8 +45,8 @@ static int format_match(const char *filename)
 
 static int init(struct sr_input *in, const char *filename)
 {
-	struct sr_channel *probe;
-	int num_probes, i;
+	struct sr_channel *ch;
+	int num_channels, i;
 	char name[SR_MAX_PROBENAME_LEN + 1];
 	char *param;
 	struct context *ctx;
@@ -58,14 +58,14 @@ static int init(struct sr_input *in, const char *filename)
 		return SR_ERR_MALLOC;
 	}
 
-	num_probes = DEFAULT_NUM_PROBES;
+	num_channels = DEFAULT_NUM_PROBES;
 	ctx->samplerate = 0;
 
 	if (in->param) {
-		param = g_hash_table_lookup(in->param, "numprobes");
+		param = g_hash_table_lookup(in->param, "numchannels");
 		if (param) {
-			num_probes = strtoul(param, NULL, 10);
-			if (num_probes < 1)
+			num_channels = strtoul(param, NULL, 10);
+			if (num_channels < 1)
 				return SR_ERR;
 		}
 
@@ -80,12 +80,12 @@ static int init(struct sr_input *in, const char *filename)
 	in->sdi = sr_dev_inst_new(0, SR_ST_ACTIVE, NULL, NULL, NULL);
 	in->internal = ctx;
 
-	for (i = 0; i < num_probes; i++) {
+	for (i = 0; i < num_channels; i++) {
 		snprintf(name, SR_MAX_PROBENAME_LEN, "%d", i);
 		/* TODO: Check return value. */
-		if (!(probe = sr_probe_new(i, SR_PROBE_LOGIC, TRUE, name)))
+		if (!(ch = sr_probe_new(i, SR_PROBE_LOGIC, TRUE, name)))
 			return SR_ERR;
-		in->sdi->probes = g_slist_append(in->sdi->probes, probe);
+		in->sdi->channels = g_slist_append(in->sdi->channels, ch);
 	}
 
 	return SR_OK;
@@ -98,7 +98,7 @@ static int loadfile(struct sr_input *in, const char *filename)
 	struct sr_datafeed_logic logic;
 	struct sr_config *src;
 	unsigned char buffer[CHUNKSIZE];
-	int fd, size, num_probes;
+	int fd, size, num_channels;
 	struct context *ctx;
 
 	ctx = in->internal;
@@ -106,7 +106,7 @@ static int loadfile(struct sr_input *in, const char *filename)
 	if ((fd = open(filename, O_RDONLY)) == -1)
 		return SR_ERR;
 
-	num_probes = g_slist_length(in->sdi->probes);
+	num_channels = g_slist_length(in->sdi->channels);
 
 	/* Send header packet to the session bus. */
 	std_session_send_df_header(in->sdi, LOG_PREFIX);
@@ -124,7 +124,7 @@ static int loadfile(struct sr_input *in, const char *filename)
 	/* Chop up the input file into chunks & send it to the session bus. */
 	packet.type = SR_DF_LOGIC;
 	packet.payload = &logic;
-	logic.unitsize = (num_probes + 7) / 8;
+	logic.unitsize = (num_channels + 7) / 8;
 	logic.data = buffer;
 	while ((size = read(fd, buffer, CHUNKSIZE)) > 0) {
 		logic.length = size;

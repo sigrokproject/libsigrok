@@ -48,7 +48,7 @@ static void handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi,
 
 	memset(&analog, 0, sizeof(struct sr_datafeed_analog));
 
-	analog.probes = sdi->probes;
+	analog.channels = sdi->channels;
 	analog.num_samples = 1;
 	analog.mq = -1;
 

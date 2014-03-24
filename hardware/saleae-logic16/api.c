@@ -55,7 +55,7 @@ static const int32_t hwcaps[] = {
 	SR_CONF_CONTINUOUS,
 };
 
-static const char *probe_names[] = {
+static const char *channel_names[] = {
 	"0", "1", "2", "3", "4", "5", "6", "7", "8",
 	"9", "10", "11", "12", "13", "14", "15",
 	NULL,
@@ -136,7 +136,7 @@ static GSList *scan(GSList *options)
 	struct dev_context *devc;
 	struct sr_dev_inst *sdi;
 	struct sr_usb_dev_inst *usb;
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	struct sr_config *src;
 	GSList *l, *devices, *conn_devices;
 	struct libusb_device_descriptor des;
@@ -194,11 +194,11 @@ static GSList *scan(GSList *options)
 			return NULL;
 		sdi->driver = di;
 
-		for (j = 0; probe_names[j]; j++) {
-			if (!(probe = sr_probe_new(j, SR_PROBE_LOGIC, TRUE,
-						   probe_names[j])))
+		for (j = 0; channel_names[j]; j++) {
+			if (!(ch = sr_probe_new(j, SR_PROBE_LOGIC, TRUE,
+						   channel_names[j])))
 				return NULL;
-			sdi->probes = g_slist_append(sdi->probes, probe);
+			sdi->channels = g_slist_append(sdi->channels, ch);
 		}
 
 		if (!(devc = g_try_malloc0(sizeof(struct dev_context))))
@@ -621,25 +621,25 @@ static unsigned int get_timeout(struct dev_context *devc)
 	return timeout + timeout / 4; /* Leave a headroom of 25% percent. */
 }
 
-static int configure_probes(const struct sr_dev_inst *sdi)
+static int configure_channels(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	GSList *l;
-	uint16_t probe_bit;
+	uint16_t channel_bit;
 
 	devc = sdi->priv;
 
 	devc->cur_channels = 0;
 	devc->num_channels = 0;
-	for (l = sdi->probes; l; l = l->next) {
-		probe = (struct sr_channel *)l->data;
-		if (probe->enabled == FALSE)
+	for (l = sdi->channels; l; l = l->next) {
+		ch = (struct sr_channel *)l->data;
+		if (ch->enabled == FALSE)
 			continue;
 
-		probe_bit = 1 << (probe->index);
+		channel_bit = 1 << (ch->index);
 
-		devc->cur_channels |= probe_bit;
+		devc->cur_channels |= channel_bit;
 
 #ifdef WORDS_BIGENDIAN
 		/*
@@ -647,10 +647,10 @@ static int configure_probes(const struct sr_dev_inst *sdi)
 		 * To speed things up during conversion, do the switcharoo
 		 * here instead.
 		 */
-		probe_bit = 1 << (probe->index ^ 8);
+		channel_bit = 1 << (ch->index ^ 8);
 #endif
 
-		devc->channel_masks[devc->num_channels++] = probe_bit;
+		devc->channel_masks[devc->num_channels++] = channel_bit;
 	}
 
 	return SR_OK;
@@ -700,8 +700,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	usb = sdi->conn;
 
 	/* Configures devc->cur_channels. */
-	if (configure_probes(sdi) != SR_OK) {
-		sr_err("Failed to configure probes.");
+	if (configure_channels(sdi) != SR_OK) {
+		sr_err("Failed to configure channels.");
 		return SR_ERR;
 	}
 

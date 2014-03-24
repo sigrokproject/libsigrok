@@ -207,19 +207,19 @@ static int rigol_ds_stop_wait(const struct sr_dev_inst *sdi)
 static int rigol_ds_check_stop(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	int tmp;
 
 	if (!(devc = sdi->priv))
 		return SR_ERR;
 
-	probe = devc->channel_entry->data;
+	ch = devc->channel_entry->data;
 
 	if (devc->model->series->protocol <= PROTOCOL_V2)
 		return SR_OK;
 
 	if (rigol_ds_config_set(sdi, ":WAV:SOUR CHAN%d",
-			  probe->index + 1) != SR_OK)
+			  ch->index + 1) != SR_OK)
 		return SR_ERR;
 	/* Check that the number of samples will be accepted */
 	if (rigol_ds_config_set(sdi, ":WAV:POIN %d", devc->analog_frame_size) != SR_OK)
@@ -376,28 +376,28 @@ SR_PRIV int rigol_ds_capture_start(const struct sr_dev_inst *sdi)
 SR_PRIV int rigol_ds_channel_start(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 
 	if (!(devc = sdi->priv))
 		return SR_ERR;
 
-	probe = devc->channel_entry->data;
+	ch = devc->channel_entry->data;
 
-	sr_dbg("Starting reading data from channel %d", probe->index + 1);
+	sr_dbg("Starting reading data from channel %d", ch->index + 1);
 
 	if (devc->model->series->protocol <= PROTOCOL_V2) {
-		if (probe->type == SR_PROBE_LOGIC) {
+		if (ch->type == SR_PROBE_LOGIC) {
 			if (sr_scpi_send(sdi->conn, ":WAV:DATA? DIG") != SR_OK)
 				return SR_ERR;
 		} else {
 			if (sr_scpi_send(sdi->conn, ":WAV:DATA? CHAN%d",
-					probe->index + 1) != SR_OK)
+					ch->index + 1) != SR_OK)
 				return SR_ERR;
 		}
 		rigol_ds_set_wait_event(devc, WAIT_NONE);
 	} else {
 		if (rigol_ds_config_set(sdi, ":WAV:SOUR CHAN%d",
-				  probe->index + 1) != SR_OK)
+				  ch->index + 1) != SR_OK)
 			return SR_ERR;
 		if (devc->data_source != DATA_SOURCE_LIVE) {
 			if (rigol_ds_config_set(sdi, ":WAV:RES") != SR_OK)
@@ -483,7 +483,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 	struct sr_datafeed_logic logic;
 	double vdiv, offset;
 	int len, i, vref;
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	gsize expected_data_bytes;
 
 	(void)fd;
@@ -522,9 +522,9 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 			sr_err("BUG: Unknown event target encountered");
 		}
 
-		probe = devc->channel_entry->data;
+		ch = devc->channel_entry->data;
 
-		expected_data_bytes = probe->type == SR_PROBE_ANALOG ?
+		expected_data_bytes = ch->type == SR_PROBE_ANALOG ?
 				devc->analog_frame_size : devc->digital_frame_size;
 
 		if (devc->num_block_bytes == 0) {
@@ -586,17 +586,17 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 
 		devc->num_block_read += len;
 
-		if (probe->type == SR_PROBE_ANALOG) {
-			vref = devc->vert_reference[probe->index];
-			vdiv = devc->vdiv[probe->index] / 25.6;
-			offset = devc->vert_offset[probe->index];
+		if (ch->type == SR_PROBE_ANALOG) {
+			vref = devc->vert_reference[ch->index];
+			vdiv = devc->vdiv[ch->index] / 25.6;
+			offset = devc->vert_offset[ch->index];
 			if (devc->model->series->protocol >= PROTOCOL_V3)
 				for (i = 0; i < len; i++)
 					devc->data[i] = ((int)devc->buffer[i] - vref) * vdiv - offset;
 			else
 				for (i = 0; i < len; i++)
 					devc->data[i] = (128 - devc->buffer[i]) * vdiv - offset;
-			analog.probes = g_slist_append(NULL, probe);
+			analog.channels = g_slist_append(NULL, ch);
 			analog.num_samples = len;
 			analog.data = devc->data;
 			analog.mq = SR_MQ_VOLTAGE;
@@ -605,7 +605,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 			packet.type = SR_DF_ANALOG;
 			packet.payload = &analog;
 			sr_session_send(cb_data, &packet);
-			g_slist_free(analog.probes);
+			g_slist_free(analog.channels);
 		} else {
 			logic.length = len;
 			logic.unitsize = 2;
@@ -658,7 +658,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 				rigol_ds_config_set(sdi, ":WAV:END");
 		}
 
-		if (probe->type == SR_PROBE_ANALOG
+		if (ch->type == SR_PROBE_ANALOG
 				&& devc->channel_entry->next != NULL) {
 			/* We got the frame for this analog channel, but
 			 * there's another analog channel. */
@@ -666,10 +666,10 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 			rigol_ds_channel_start(sdi);
 		} else {
 			/* Done with all analog channels in this frame. */
-			if (devc->enabled_digital_probes
-					&& devc->channel_entry != devc->enabled_digital_probes) {
+			if (devc->enabled_digital_channels
+					&& devc->channel_entry != devc->enabled_digital_channels) {
 				/* Now we need to get the digital data. */
-				devc->channel_entry = devc->enabled_digital_probes;
+				devc->channel_entry = devc->enabled_digital_channels;
 				rigol_ds_channel_start(sdi);
 			} else {
 				/* Done with this frame. */
@@ -681,10 +681,10 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 					sdi->driver->dev_acquisition_stop(sdi, cb_data);
 				} else {
 					/* Get the next frame, starting with the first analog channel. */
-					if (devc->enabled_analog_probes)
-						devc->channel_entry = devc->enabled_analog_probes;
+					if (devc->enabled_analog_channels)
+						devc->channel_entry = devc->enabled_analog_channels;
 					else
-						devc->channel_entry = devc->enabled_digital_probes;
+						devc->channel_entry = devc->enabled_digital_channels;
 
 					rigol_ds_capture_start(sdi);
 

@@ -39,37 +39,37 @@ static gboolean teleinfo_control_check(char *label, char *data, char control)
 	return ((sum & 0x3F) + ' ') == control;
 }
 
-static gint teleinfo_probe_compare(gconstpointer a, gconstpointer b)
+static gint teleinfo_channel_compare(gconstpointer a, gconstpointer b)
 {
-	const struct sr_channel *probe = a;
+	const struct sr_channel *ch = a;
 	const char *name = b;
-	return strcmp(probe->name, name);
+	return strcmp(ch->name, name);
 }
 
-static struct sr_channel *teleinfo_find_probe(struct sr_dev_inst *sdi,
+static struct sr_channel *teleinfo_find_channel(struct sr_dev_inst *sdi,
                                             const char *name)
 {
-	GSList *elem = g_slist_find_custom(sdi->probes, name,
-	                                   teleinfo_probe_compare);
+	GSList *elem = g_slist_find_custom(sdi->channels, name,
+	                                   teleinfo_channel_compare);
 	return elem ? elem->data : NULL;
 }
 
-static void teleinfo_send_value(struct sr_dev_inst *sdi, const char *probe_name,
+static void teleinfo_send_value(struct sr_dev_inst *sdi, const char *channel_name,
                                 float value, int mq, int unit)
 {
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog analog;
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 
 	devc = sdi->priv;
-	probe = teleinfo_find_probe(sdi, probe_name);
+	ch = teleinfo_find_channel(sdi, channel_name);
 
-	if (!probe || !probe->enabled)
+	if (!ch || !ch->enabled)
 		return;
 
 	memset(&analog, 0, sizeof(struct sr_datafeed_analog));
-	analog.probes = g_slist_append(analog.probes, probe);
+	analog.channels = g_slist_append(analog.channels, ch);
 	analog.num_samples = 1;
 	analog.mq = mq;
 	analog.unit = unit;
@@ -78,7 +78,7 @@ static void teleinfo_send_value(struct sr_dev_inst *sdi, const char *probe_name,
 	packet.type = SR_DF_ANALOG;
 	packet.payload = &analog;
 	sr_session_send(devc->session_cb_data, &packet);
-	g_slist_free(analog.probes);
+	g_slist_free(analog.channels);
 }
 
 static void teleinfo_handle_mesurement(struct sr_dev_inst *sdi,

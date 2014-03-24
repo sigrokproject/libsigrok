@@ -168,14 +168,14 @@ static const uint64_t hmo_vdivs[][2] = {
 	{ 10, 1 },
 };
 
-static const char *scope_analog_probe_names[] = {
+static const char *scope_analog_channel_names[] = {
 	"CH1",
 	"CH2",
 	"CH3",
 	"CH4",
 };
 
-static const char *scope_digital_probe_names[] = {
+static const char *scope_digital_channel_names[] = {
 	"D0",
 	"D1",
 	"D2",
@@ -201,8 +201,8 @@ static struct scope_config scope_models[] = {
 		.digital_channels = 8,
 		.digital_pods = 1,
 
-		.analog_names = &scope_analog_probe_names,
-		.digital_names = &scope_digital_probe_names,
+		.analog_names = &scope_analog_channel_names,
+		.digital_names = &scope_digital_channel_names,
 
 		.hw_caps = &hmo_hwcaps,
 		.num_hwcaps = ARRAY_SIZE(hmo_hwcaps),
@@ -231,8 +231,8 @@ static struct scope_config scope_models[] = {
 		.digital_channels = 8,
 		.digital_pods = 1,
 
-		.analog_names = &scope_analog_probe_names,
-		.digital_names = &scope_digital_probe_names,
+		.analog_names = &scope_analog_channel_names,
+		.digital_names = &scope_digital_channel_names,
 
 		.hw_caps = &hmo_hwcaps,
 		.num_hwcaps = ARRAY_SIZE(hmo_hwcaps),
@@ -581,7 +581,7 @@ SR_PRIV int hmo_init_device(struct sr_dev_inst *sdi)
 	char tmp[25];
 	int model_index;
 	unsigned int i, j;
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	struct dev_context *devc;
 
 	devc = sdi->priv;
@@ -614,14 +614,14 @@ SR_PRIV int hmo_init_device(struct sr_dev_inst *sdi)
 
 	/* Add analog channels. */
 	for (i = 0; i < scope_models[model_index].analog_channels; i++) {
-		if (!(probe = sr_probe_new(i, SR_PROBE_ANALOG, TRUE,
+		if (!(ch = sr_probe_new(i, SR_PROBE_ANALOG, TRUE,
 			   (*scope_models[model_index].analog_names)[i])))
 			return SR_ERR_MALLOC;
-		sdi->probes = g_slist_append(sdi->probes, probe);
+		sdi->channels = g_slist_append(sdi->channels, ch);
 
 		devc->analog_groups[i].name =
 			(char *)(*scope_models[model_index].analog_names)[i];
-		devc->analog_groups[i].channels = g_slist_append(NULL, probe);
+		devc->analog_groups[i].channels = g_slist_append(NULL, ch);
 
 		sdi->channel_groups = g_slist_append(sdi->channel_groups,
 						   &devc->analog_groups[i]);
@@ -637,13 +637,13 @@ SR_PRIV int hmo_init_device(struct sr_dev_inst *sdi)
 
 	/* Add digital channels. */
 	for (i = 0; i < scope_models[model_index].digital_channels; i++) {
-		if (!(probe = sr_probe_new(i, SR_PROBE_LOGIC, TRUE,
+		if (!(ch = sr_probe_new(i, SR_PROBE_LOGIC, TRUE,
 			   (*scope_models[model_index].digital_names)[i])))
 			return SR_ERR_MALLOC;
-		sdi->probes = g_slist_append(sdi->probes, probe);
+		sdi->channels = g_slist_append(sdi->channels, ch);
 
 		devc->digital_groups[i < 8 ? 0 : 1].channels = g_slist_append(
-			devc->digital_groups[i < 8 ? 0 : 1].channels, probe);
+			devc->digital_groups[i < 8 ? 0 : 1].channels, ch);
 	}
 
 	devc->model_config = &scope_models[model_index];
@@ -657,7 +657,7 @@ SR_PRIV int hmo_init_device(struct sr_dev_inst *sdi)
 
 SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 {
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
@@ -674,9 +674,9 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 		return TRUE;
 
 	if (revents == G_IO_IN) {
-		probe = devc->current_probe->data;
+		ch = devc->current_channel->data;
 
-		switch (probe->type) {
+		switch (ch->type) {
 		case SR_PROBE_ANALOG:
 			if (sr_scpi_get_floatv(sdi->conn, NULL, &data) != SR_OK) {
 				if (data)
@@ -688,7 +688,7 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 			packet.type = SR_DF_FRAME_BEGIN;
 			sr_session_send(sdi, &packet);
 
-			analog.probes = g_slist_append(NULL, probe);
+			analog.channels = g_slist_append(NULL, ch);
 			analog.num_samples = data->len;
 			analog.data = (float *) data->data;
 			analog.mq = SR_MQ_VOLTAGE;
@@ -697,7 +697,7 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 			packet.type = SR_DF_ANALOG;
 			packet.payload = &analog;
 			sr_session_send(cb_data, &packet);
-			g_slist_free(analog.probes);
+			g_slist_free(analog.channels);
 			g_array_free(data, TRUE);
 			break;
 		case SR_PROBE_LOGIC:
@@ -719,20 +719,20 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 			g_array_free(data, TRUE);
 			break;
 		default:
-			sr_err("Invalid probe type.");
+			sr_err("Invalid channel type.");
 			break;
 		}
 
 		packet.type = SR_DF_FRAME_END;
 		sr_session_send(sdi, &packet);
 
-		if (devc->current_probe->next) {
-			devc->current_probe = devc->current_probe->next;
+		if (devc->current_channel->next) {
+			devc->current_channel = devc->current_channel->next;
 			hmo_request_data(sdi);
 		} else if (++devc->num_frames == devc->frame_limit) {
 			sdi->driver->dev_acquisition_stop(sdi, cb_data);
 		} else {
-			devc->current_probe = devc->enabled_probes;
+			devc->current_channel = devc->enabled_channels;
 			hmo_request_data(sdi);
 		}
 	}

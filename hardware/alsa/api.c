@@ -255,9 +255,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		return SR_ERR;
 	}
 
-	sr_dbg("Setting audio channel count to %d.", devc->num_probes);
+	sr_dbg("Setting audio channel count to %d.", devc->num_channels);
 	ret = snd_pcm_hw_params_set_channels(devc->capture_handle,
-					     devc->hw_params, devc->num_probes);
+					     devc->hw_params, devc->num_channels);
 	if (ret < 0) {
 		sr_err("Can't set channel count: %s.", snd_strerror(ret));
 		return SR_ERR;

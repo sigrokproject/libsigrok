@@ -340,8 +340,8 @@ struct sr_datafeed_logic {
 
 /** Analog datafeed payload for type SR_DF_ANALOG. */
 struct sr_datafeed_analog {
-	/** The probes for which data is included in this packet. */
-	GSList *probes;
+	/** The channels for which data is included in this packet. */
+	GSList *channels;
 	/** Number of samples in data */
 	int num_samples;
 	/** Measured quantity (voltage, current, temperature, and so on).
@@ -352,7 +352,7 @@ struct sr_datafeed_analog {
 	/** Bitmap with extra information about the MQ. Use SR_MQFLAG_AC, ... */
 	uint64_t mqflags;
 	/** The analog value(s). The data is interleaved according to
-	 * the probes list. */
+	 * the channels list. */
 	float *data;
 };
 
@@ -438,7 +438,7 @@ struct sr_output {
 
 	/**
 	 * The device for which this output module is creating output. This
-	 * can be used by the module to find out probe names and numbers.
+	 * can be used by the module to find out channel names and numbers.
 	 */
 	struct sr_dev_inst *sdi;
 
@@ -919,8 +919,8 @@ struct sr_dev_inst {
 	char *model;
 	/** Device version. */
 	char *version;
-	/** List of probes. */
-	GSList *probes;
+	/** List of channels. */
+	GSList *channels;
 	/** List of sr_channel_group structs */
 	GSList *channel_groups;
 	/** Device instance connection data (used?) */
@@ -995,7 +995,7 @@ struct sr_dev_driver {
 	/** Probe status change.
 	 *  @see sr_dev_probe_enable(), sr_dev_trigger_set(). */
 	int (*config_probe_set) (const struct sr_dev_inst *sdi,
-			struct sr_channel *probe, unsigned int changes);
+			struct sr_channel *ch, unsigned int changes);
 	/** Apply configuration settings to the device hardware.
 	 *  @see sr_config_commit().*/
 	int (*config_commit) (const struct sr_dev_inst *sdi);

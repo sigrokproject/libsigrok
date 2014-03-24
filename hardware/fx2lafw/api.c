@@ -87,7 +87,7 @@ static const int32_t hwcaps[] = {
 	SR_CONF_CONTINUOUS,
 };
 
-static const char *probe_names[] = {
+static const char *channel_names[] = {
 	"0",  "1",  "2",  "3",  "4",  "5",  "6",  "7",
 	"8",  "9", "10", "11", "12", "13", "14", "15",
 	NULL,
@@ -126,13 +126,13 @@ static GSList *scan(GSList *options)
 	struct dev_context *devc;
 	struct sr_dev_inst *sdi;
 	struct sr_usb_dev_inst *usb;
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	struct sr_config *src;
 	const struct fx2lafw_profile *prof;
 	GSList *l, *devices, *conn_devices;
 	struct libusb_device_descriptor des;
 	libusb_device **devlist;
-	int devcnt, num_logic_probes, ret, i, j;
+	int devcnt, num_logic_channels, ret, i, j;
 	const char *conn;
 
 	drvc = di->priv;
@@ -194,13 +194,13 @@ static GSList *scan(GSList *options)
 			return NULL;
 		sdi->driver = di;
 
-		/* Fill in probelist according to this device's profile. */
-		num_logic_probes = prof->dev_caps & DEV_CAPS_16BIT ? 16 : 8;
-		for (j = 0; j < num_logic_probes; j++) {
-			if (!(probe = sr_probe_new(j, SR_PROBE_LOGIC, TRUE,
-					probe_names[j])))
+		/* Fill in channellist according to this device's profile. */
+		num_logic_channels = prof->dev_caps & DEV_CAPS_16BIT ? 16 : 8;
+		for (j = 0; j < num_logic_channels; j++) {
+			if (!(ch = sr_probe_new(j, SR_PROBE_LOGIC, TRUE,
+					channel_names[j])))
 				return NULL;
-			sdi->probes = g_slist_append(sdi->probes, probe);
+			sdi->channels = g_slist_append(sdi->channels, ch);
 		}
 
 		devc = fx2lafw_dev_new();
@@ -477,8 +477,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	usb = sdi->conn;
 
 	/* Configures devc->trigger_* and devc->sample_wide */
-	if (fx2lafw_configure_probes(sdi) != SR_OK) {
-		sr_err("Failed to configure probes.");
+	if (fx2lafw_configure_channels(sdi) != SR_OK) {
+		sr_err("Failed to configure channels.");
 		return SR_ERR;
 	}
 

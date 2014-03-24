@@ -50,7 +50,7 @@ SR_PRIV int data_ascii(struct sr_output *o, const uint8_t *data_in,
          * extra output, e.g. trigger.
          */
 	outsize = 512 + (1 + (length_in / ctx->unitsize) / ctx->samples_per_line)
-            * (ctx->num_enabled_probes * max_linelen);
+            * (ctx->num_enabled_channels * max_linelen);
 
 	if (!(outbuf = g_try_malloc0(outsize + 1))) {
 		sr_err("%s: outbuf malloc failed", __func__);
@@ -70,9 +70,9 @@ SR_PRIV int data_ascii(struct sr_output *o, const uint8_t *data_in,
 		     offset += ctx->unitsize) {
 			sample = data_in + offset;
 
-			char tmpval[ctx->num_enabled_probes];
+			char tmpval[ctx->num_enabled_channels];
 
-			for (p = 0; p < ctx->num_enabled_probes; p++) {
+			for (p = 0; p < ctx->num_enabled_channels; p++) {
 				uint8_t curbit = (sample[p / 8] & ((uint8_t) 1 << (p % 8)));
 				uint8_t prevbit = (ctx->prevsample[p / 8] &
 						((uint8_t) 1 << (p % 8)));
@@ -99,7 +99,7 @@ SR_PRIV int data_ascii(struct sr_output *o, const uint8_t *data_in,
 				ctx->mark_trigger = -1;
 			}
 
-			for (p = 0; p < ctx->num_enabled_probes; p++) {
+			for (p = 0; p < ctx->num_enabled_channels; p++) {
 				ctx->linebuf[p * ctx->linebuf_len +
 					     ctx->line_offset] = tmpval[p];
 			}

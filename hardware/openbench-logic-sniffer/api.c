@@ -61,8 +61,8 @@ static const char *patterns[] = {
 	STR_PATTERN_INTERNAL,
 };
 
-/* Probes are numbered 0-31 (on the PCB silkscreen). */
-SR_PRIV const char *ols_probe_names[NUM_PROBES + 1] = {
+/* Channels are numbered 0-31 (on the PCB silkscreen). */
+SR_PRIV const char *ols_channel_names[NUM_PROBES + 1] = {
 	"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12",
 	"13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23",
 	"24", "25", "26", "27", "28", "29", "30", "31",
@@ -90,7 +90,7 @@ static GSList *scan(GSList *options)
 	struct sr_dev_inst *sdi;
 	struct drv_context *drvc;
 	struct dev_context *devc;
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	struct sr_serial_dev_inst *serial;
 	GPollFD probefd;
 	GSList *l, *devices;
@@ -177,10 +177,10 @@ static GSList *scan(GSList *options)
 				"Sump", "Logic Analyzer", "v1.0");
 		sdi->driver = di;
 		for (i = 0; i < 32; i++) {
-			if (!(probe = sr_probe_new(i, SR_PROBE_LOGIC, TRUE,
-					ols_probe_names[i])))
+			if (!(ch = sr_probe_new(i, SR_PROBE_LOGIC, TRUE,
+					ols_channel_names[i])))
 				return 0;
-			sdi->probes = g_slist_append(sdi->probes, probe);
+			sdi->channels = g_slist_append(sdi->channels, ch);
 		}
 		devc = ols_dev_new();
 		sdi->priv = devc;
@@ -190,7 +190,7 @@ static GSList *scan(GSList *options)
 		sr_dbg("Failed to set default samplerate (%"PRIu64").",
 				DEFAULT_SAMPLERATE);
 	/* Clear trigger masks, values and stages. */
-	ols_configure_probes(sdi);
+	ols_configure_channels(sdi);
 	sdi->inst_type = SR_INST_SERIAL;
 	sdi->conn = serial;
 
@@ -390,13 +390,13 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 			/* Device didn't specify sample memory size in metadata. */
 			return SR_ERR_NA;
 		/*
-		 * Channel groups are turned off if no probes in that group are
+		 * Channel groups are turned off if no channels in that group are
 		 * enabled, making more room for samples for the enabled group.
 		*/
-		ols_configure_probes(sdi);
+		ols_configure_channels(sdi);
 		num_channels = 0;
 		for (i = 0; i < 4; i++) {
-			if (devc->probe_mask & (0xff << (i * 8)))
+			if (devc->channel_mask & (0xff << (i * 8)))
 				num_channels++;
 		}
 		grange[0] = g_variant_new_uint64(MIN_NUM_SAMPLES);
@@ -463,20 +463,20 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	devc = sdi->priv;
 	serial = sdi->conn;
 
-	if (ols_configure_probes(sdi) != SR_OK) {
-		sr_err("Failed to configure probes.");
+	if (ols_configure_channels(sdi) != SR_OK) {
+		sr_err("Failed to configure channels.");
 		return SR_ERR;
 	}
 
 	/*
 	 * Enable/disable channel groups in the flag register according to the
-	 * probe mask. Calculate this here, because num_channels is needed
+	 * channel mask. Calculate this here, because num_channels is needed
 	 * to limit readcount.
 	 */
 	changrp_mask = 0;
 	num_channels = 0;
 	for (i = 0; i < 4; i++) {
-		if (devc->probe_mask & (0xff << (i * 8))) {
+		if (devc->channel_mask & (0xff << (i * 8))) {
 			changrp_mask |= (1 << i);
 			num_channels++;
 		}
@@ -495,7 +495,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 
 	/* Basic triggers. */
 	if (devc->trigger_mask[0] != 0x00000000) {
-		/* At least one probe has a trigger on it. */
+		/* At least one channel has a trigger on it. */
 		delaycount = readcount * (1 - devc->capture_ratio / 100.0);
 		devc->trigger_at = (readcount - delaycount) * 4 - devc->num_stages;
 		for (i = 0; i <= devc->num_stages; i++) {

@@ -33,11 +33,11 @@ static const int32_t hwcaps[] = {
 };
 
 /*
- * Probes are numbered 0 to 7.
+ * Channels are numbered 0 to 7.
  *
  * See also: http://www.linkinstruments.com/images/mso19_1113.gif
  */
-SR_PRIV const char *mso19_probe_names[NUM_PROBES + 1] = {
+SR_PRIV const char *mso19_channel_names[NUM_PROBES + 1] = {
 	/* Note: DSO needs to be first. */
 	"DSO", "0", "1", "2", "3", "4", "5", "6", "7", NULL,
 };
@@ -217,12 +217,12 @@ static GSList *scan(GSList *options)
 		sdi->priv = devc;
 
 		for (i = 0; i < NUM_PROBES; i++) {
-			struct sr_channel *probe;
+			struct sr_channel *ch;
 			ptype = (i == 0) ? SR_PROBE_ANALOG : SR_PROBE_LOGIC;
-			if (!(probe = sr_probe_new(i, ptype, TRUE,
-						   mso19_probe_names[i])))
+			if (!(ch = sr_probe_new(i, ptype, TRUE,
+						   mso19_channel_names[i])))
 				return 0;
-			sdi->probes = g_slist_append(sdi->probes, probe);
+			sdi->channels = g_slist_append(sdi->channels, ch);
 		}
 
 		//Add the driver
@@ -409,8 +409,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 
 	devc = sdi->priv;
 
-	if (mso_configure_probes(sdi) != SR_OK) {
-		sr_err("Failed to configure probes.");
+	if (mso_configure_channels(sdi) != SR_OK) {
+		sr_err("Failed to configure channels.");
 		return SR_ERR;
 	}
 
@@ -457,7 +457,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, LOG_PREFIX);
 
-	/* Our first probe is analog, the other 8 are of type 'logic'. */
+	/* Our first channel is analog, the other 8 are of type 'logic'. */
 	/* TODO. */
 
 	serial_source_add(devc->serial, G_IO_IN, -1, mso_receive_data, cb_data);

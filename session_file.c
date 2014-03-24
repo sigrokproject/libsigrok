@@ -113,11 +113,11 @@ SR_API int sr_session_load(const char *filename)
 	struct zip_file *zf;
 	struct zip_stat zs;
 	struct sr_dev_inst *sdi;
-	struct sr_channel *probe;
-	int ret, probenum, devcnt, i, j;
-	uint64_t tmp_u64, total_probes, enabled_probes, p;
+	struct sr_channel *ch;
+	int ret, channelnum, devcnt, i, j;
+	uint64_t tmp_u64, total_channels, enabled_channels, p;
 	char **sections, **keys, *metafile, *val;
-	char probename[SR_MAX_PROBENAME_LEN + 1];
+	char channelname[SR_MAX_PROBENAME_LEN + 1];
 
 	if ((ret = sr_sessionfile_check(filename)) != SR_OK)
 		return ret;
@@ -155,7 +155,7 @@ SR_API int sr_session_load(const char *filename)
 		if (!strncmp(sections[i], "device ", 7)) {
 			/* device section */
 			sdi = NULL;
-			enabled_probes = total_probes = 0;
+			enabled_channels = total_channels = 0;
 			keys = g_key_file_get_keys(kf, sections[i], NULL, NULL);
 			for (j = 0; keys[j]; j++) {
 				val = g_key_file_get_string(kf, sections[i], keys[j], NULL);
@@ -181,32 +181,32 @@ SR_API int sr_session_load(const char *filename)
 					sdi->driver->config_set(SR_CONF_CAPTURE_UNITSIZE,
 							g_variant_new_uint64(tmp_u64), sdi, NULL);
 				} else if (!strcmp(keys[j], "total probes")) {
-					total_probes = strtoull(val, NULL, 10);
+					total_channels = strtoull(val, NULL, 10);
 					sdi->driver->config_set(SR_CONF_NUM_LOGIC_PROBES,
-							g_variant_new_uint64(total_probes), sdi, NULL);
-					for (p = 0; p < total_probes; p++) {
-						snprintf(probename, SR_MAX_PROBENAME_LEN, "%" PRIu64, p);
-						if (!(probe = sr_probe_new(p, SR_PROBE_LOGIC, TRUE,
-								probename)))
+							g_variant_new_uint64(total_channels), sdi, NULL);
+					for (p = 0; p < total_channels; p++) {
+						snprintf(channelname, SR_MAX_PROBENAME_LEN, "%" PRIu64, p);
+						if (!(ch = sr_probe_new(p, SR_PROBE_LOGIC, TRUE,
+								channelname)))
 							return SR_ERR;
-						sdi->probes = g_slist_append(sdi->probes, probe);
+						sdi->channels = g_slist_append(sdi->channels, ch);
 					}
 				} else if (!strncmp(keys[j], "probe", 5)) {
 					if (!sdi)
 						continue;
-					enabled_probes++;
+					enabled_channels++;
 					tmp_u64 = strtoul(keys[j]+5, NULL, 10);
 					/* sr_session_save() */
 					sr_dev_probe_name_set(sdi, tmp_u64 - 1, val);
 				} else if (!strncmp(keys[j], "trigger", 7)) {
-					probenum = strtoul(keys[j]+7, NULL, 10);
-					sr_dev_trigger_set(sdi, probenum, val);
+					channelnum = strtoul(keys[j]+7, NULL, 10);
+					sr_dev_trigger_set(sdi, channelnum, val);
 				}
 			}
 			g_strfreev(keys);
-			/* Disable probes not specifically listed. */
-			if (total_probes)
-				for (p = enabled_probes; p < total_probes; p++)
+			/* Disable channels not specifically listed. */
+			if (total_channels)
+				for (p = enabled_channels; p < total_channels; p++)
 					sr_dev_probe_enable(sdi, p, FALSE);
 		}
 		devcnt++;
@@ -234,12 +234,12 @@ SR_API int sr_session_load(const char *filename)
 SR_API int sr_session_save(const char *filename, const struct sr_dev_inst *sdi,
 		unsigned char *buf, int unitsize, int units)
 {
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	GSList *l;
 	GVariant *gvar;
 	uint64_t samplerate;
 	int cnt, ret;
-	char **probe_names;
+	char **channel_names;
 
 	samplerate = 0;
 	if (sr_dev_has_option(sdi, SR_CONF_SAMPLERATE)) {
@@ -250,21 +250,21 @@ SR_API int sr_session_save(const char *filename, const struct sr_dev_inst *sdi,
 		}
 	}
 
-	probe_names = g_malloc0(sizeof(char *) * (g_slist_length(sdi->probes) + 1));
+	channel_names = g_malloc0(sizeof(char *) * (g_slist_length(sdi->channels) + 1));
 	cnt = 0;
-	for (l = sdi->probes; l; l = l->next) {
-		probe = l->data;
-		if (probe->type != SR_PROBE_LOGIC)
+	for (l = sdi->channels; l; l = l->next) {
+		ch = l->data;
+		if (ch->type != SR_PROBE_LOGIC)
 			continue;
-		if (probe->enabled != TRUE)
+		if (ch->enabled != TRUE)
 			continue;
-		if (!probe->name)
+		if (!ch->name)
 			continue;
 		/* Just borrowing the ptr. */
-		probe_names[cnt++] = probe->name;
+		channel_names[cnt++] = ch->name;
 	}
 
-	if ((ret = sr_session_save_init(filename, samplerate, probe_names)) != SR_OK)
+	if ((ret = sr_session_save_init(filename, samplerate, channel_names)) != SR_OK)
 		return ret;
 
 	ret = sr_session_append(filename, buf, unitsize, units);
@@ -278,15 +278,15 @@ SR_API int sr_session_save(const char *filename, const struct sr_dev_inst *sdi,
  * @param filename The name of the filename to save the current session as.
  *                 Must not be NULL.
  * @param samplerate The samplerate to store for this session.
- * @param probes A NULL-terminated array of strings containing the names
- * of all the probes active in this session.
+ * @param channels A NULL-terminated array of strings containing the names
+ * of all the channels active in this session.
  *
  * @retval SR_OK Success
  * @retval SR_ERR_ARG Invalid arguments
  * @retval SR_ERR Other errors
  */
 SR_API int sr_session_save_init(const char *filename, uint64_t samplerate,
-		char **probes)
+		char **channels)
 {
 	FILE *meta;
 	struct zip *zipfile;
@@ -329,15 +329,15 @@ SR_API int sr_session_save_init(const char *filename, uint64_t samplerate,
 	/* metadata */
 	fprintf(meta, "capturefile = logic-1\n");
 	cnt = 0;
-	for (i = 0; probes[i]; i++)
+	for (i = 0; channels[i]; i++)
 		cnt++;
 	fprintf(meta, "total probes = %d\n", cnt);
 	s = sr_samplerate_string(samplerate);
 	fprintf(meta, "samplerate = %s\n", s);
 	g_free(s);
 
-	for (i = 0; probes[i]; i++)
-		fprintf(meta, "probe%d = %s\n", i + 1, probes[i]);
+	for (i = 0; channels[i]; i++)
+		fprintf(meta, "probe%d = %s\n", i + 1, channels[i]);
 
 	fclose(meta);
 

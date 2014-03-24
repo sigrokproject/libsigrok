@@ -45,7 +45,7 @@ static void handle_packet(const struct sr_dev_inst *sdi)
 	dump_packet("received", devc->packet);
 	packet.type = SR_DF_ANALOG;
 	packet.payload = &analog;
-	analog.probes = sdi->probes;
+	analog.channels = sdi->channels;
 	analog.num_samples = 1;
 
 	analog.mq = SR_MQ_VOLTAGE;

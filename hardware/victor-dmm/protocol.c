@@ -252,7 +252,7 @@ static void decode_buf(struct sr_dev_inst *sdi, unsigned char *data)
 	if (is_relative)
 		analog.mqflags |= SR_MQFLAG_RELATIVE;
 
-	analog.probes = sdi->probes;
+	analog.channels = sdi->channels;
 	analog.num_samples = 1;
 	analog.data = &fvalue;
 	packet.type = SR_DF_ANALOG;

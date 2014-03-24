@@ -27,7 +27,7 @@
 #define LOG_PREFIX "output/chronovu-la8"
 
 struct context {
-	unsigned int num_enabled_probes;
+	unsigned int num_enabled_channels;
 	unsigned int unitsize;
 	uint64_t trigger_point;
 	uint64_t samplerate;
@@ -84,7 +84,7 @@ static uint8_t samplerate_to_divcount(uint64_t samplerate)
 static int init(struct sr_output *o)
 {
 	struct context *ctx;
-	struct sr_channel *probe;
+	struct sr_channel *ch;
 	GSList *l;
 	GVariant *gvar;
 
@@ -106,15 +106,15 @@ static int init(struct sr_output *o)
 	o->internal = ctx;
 
 	/* Get the unitsize. */
-	for (l = o->sdi->probes; l; l = l->next) {
-		probe = l->data;
-		if (probe->type != SR_PROBE_LOGIC)
+	for (l = o->sdi->channels; l; l = l->next) {
+		ch = l->data;
+		if (ch->type != SR_PROBE_LOGIC)
 			continue;
-		if (!probe->enabled)
+		if (!ch->enabled)
 			continue;
-		ctx->num_enabled_probes++;
+		ctx->num_enabled_channels++;
 	}
-	ctx->unitsize = (ctx->num_enabled_probes + 7) / 8;
+	ctx->unitsize = (ctx->num_enabled_channels + 7) / 8;
 
 	if (sr_config_get(o->sdi->driver, o->sdi, NULL, SR_CONF_SAMPLERATE,
 			&gvar) == SR_OK) {
