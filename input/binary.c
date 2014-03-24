@@ -83,7 +83,7 @@ static int init(struct sr_input *in, const char *filename)
 	for (i = 0; i < num_channels; i++) {
 		snprintf(name, SR_MAX_PROBENAME_LEN, "%d", i);
 		/* TODO: Check return value. */
-		if (!(ch = sr_probe_new(i, SR_PROBE_LOGIC, TRUE, name)))
+		if (!(ch = sr_channel_new(i, SR_PROBE_LOGIC, TRUE, name)))
 			return SR_ERR;
 		in->sdi->channels = g_slist_append(in->sdi->channels, ch);
 	}

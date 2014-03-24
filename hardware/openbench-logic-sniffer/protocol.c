@@ -203,7 +203,7 @@ SR_PRIV struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
 			case 0x00:
 				/* Number of usable channels */
 				for (ui = 0; ui < tmp_int; ui++) {
-					if (!(ch = sr_probe_new(ui, SR_PROBE_LOGIC, TRUE,
+					if (!(ch = sr_channel_new(ui, SR_PROBE_LOGIC, TRUE,
 							ols_channel_names[ui])))
 						return 0;
 					sdi->channels = g_slist_append(sdi->channels, ch);
@@ -241,7 +241,7 @@ SR_PRIV struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
 			case 0x00:
 				/* Number of usable channels */
 				for (ui = 0; ui < tmp_c; ui++) {
-					if (!(ch = sr_probe_new(ui, SR_PROBE_LOGIC, TRUE,
+					if (!(ch = sr_channel_new(ui, SR_PROBE_LOGIC, TRUE,
 							ols_channel_names[ui])))
 						return 0;
 					sdi->channels = g_slist_append(sdi->channels, ch);

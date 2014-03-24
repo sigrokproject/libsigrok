@@ -86,10 +86,10 @@ static GSList *scan(GSList *options)
 
 		sdi->priv = devc;
 		sdi->driver = di;
-		if (!(ch = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "P1")))
+		if (!(ch = sr_channel_new(0, SR_PROBE_ANALOG, TRUE, "P1")))
 			return NULL;
 		sdi->channels = g_slist_append(sdi->channels, ch);
-		if (!(ch = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "P2")))
+		if (!(ch = sr_channel_new(0, SR_PROBE_ANALOG, TRUE, "P2")))
 			return NULL;
 		sdi->channels = g_slist_append(sdi->channels, ch);
 

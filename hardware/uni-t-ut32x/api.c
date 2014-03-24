@@ -86,7 +86,7 @@ static GSList *scan(GSList *options)
 			sdi->inst_type = SR_INST_USB;
 			sdi->conn = l->data;
 			for (i = 0; i < 3; i++) {
-				if (!(ch = sr_probe_new(i, SR_PROBE_ANALOG, TRUE,
+				if (!(ch = sr_channel_new(i, SR_PROBE_ANALOG, TRUE,
 						channels[i]))) {
 					sr_dbg("Channel malloc failed.");
 					return NULL;

@@ -48,7 +48,7 @@
  *
  *  @return NULL (failure) or new struct sr_channel*.
  */
-SR_PRIV struct sr_channel *sr_probe_new(int index, int type,
+SR_PRIV struct sr_channel *sr_channel_new(int index, int type,
 		gboolean enabled, const char *name)
 {
 	struct sr_channel *ch;

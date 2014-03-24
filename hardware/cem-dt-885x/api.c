@@ -126,7 +126,7 @@ static GSList *scan(GSList *options)
 			sdi->inst_type = SR_INST_SERIAL;
 			sdi->priv = devc;
 			sdi->driver = di;
-			if (!(ch = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "SPL")))
+			if (!(ch = sr_channel_new(0, SR_PROBE_ANALOG, TRUE, "SPL")))
 				return NULL;
 			sdi->channels = g_slist_append(sdi->channels, ch);
 			drvc->instances = g_slist_append(drvc->instances, sdi);

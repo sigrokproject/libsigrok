@@ -159,7 +159,7 @@ static void alsa_scan_handle_dev(GSList **devices,
 
 	for (i = 0; i < devc->num_channels; i++) {
 		snprintf(p_name, sizeof(p_name), "Ch_%d", i);
-		if (!(ch = sr_probe_new(i, SR_PROBE_ANALOG, TRUE, p_name)))
+		if (!(ch = sr_channel_new(i, SR_PROBE_ANALOG, TRUE, p_name)))
 			goto scan_error_cleanup;
 		sdi->channels = g_slist_append(sdi->channels, ch);
 	}

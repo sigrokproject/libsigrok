@@ -221,7 +221,7 @@ static GSList *scan(GSList *options, int dmm)
 		}
 		sdi->priv = devc;
 		sdi->driver = udmms[dmm].di;
-		if (!(ch = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "P1")))
+		if (!(ch = sr_channel_new(0, SR_PROBE_ANALOG, TRUE, "P1")))
 			return NULL;
 		sdi->channels = g_slist_append(sdi->channels, ch);
 

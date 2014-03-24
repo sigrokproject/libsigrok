@@ -176,7 +176,7 @@ static struct sr_dev_inst *dso_dev_new(int index, const struct dso_profile *prof
 	 * a trigger source internal to the device.
 	 */
 	for (i = 0; channel_names[i]; i++) {
-		if (!(ch = sr_probe_new(i, SR_PROBE_ANALOG, TRUE,
+		if (!(ch = sr_channel_new(i, SR_PROBE_ANALOG, TRUE,
 				channel_names[i])))
 			return NULL;
 		sdi->channels = g_slist_append(sdi->channels, ch);

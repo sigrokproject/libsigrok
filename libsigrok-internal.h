@@ -232,7 +232,7 @@ enum {
 	SR_PROBE_SET_TRIGGER = 1 << 1,
 };
 
-SR_PRIV struct sr_channel *sr_probe_new(int index, int type,
+SR_PRIV struct sr_channel *sr_channel_new(int index, int type,
 		gboolean enabled, const char *name);
 
 /* Generic device instances */

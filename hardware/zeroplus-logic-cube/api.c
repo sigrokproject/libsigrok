@@ -316,7 +316,7 @@ static GSList *scan(GSList *options)
 
 		/* Fill in channellist according to this device's profile. */
 		for (j = 0; j < devc->num_channels; j++) {
-			if (!(ch = sr_probe_new(j, SR_PROBE_LOGIC, TRUE,
+			if (!(ch = sr_channel_new(j, SR_PROBE_LOGIC, TRUE,
 					channel_names[j])))
 				return NULL;
 			sdi->channels = g_slist_append(sdi->channels, ch);

@@ -335,7 +335,7 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	for (i = 0; i < model->analog_channels; i++) {
 		if (!(channel_name = g_strdup_printf("CH%d", i + 1)))
 			return NULL;
-		ch = sr_probe_new(i, SR_PROBE_ANALOG, TRUE, channel_name);
+		ch = sr_channel_new(i, SR_PROBE_ANALOG, TRUE, channel_name);
 		sdi->channels = g_slist_append(sdi->channels, ch);
 		devc->analog_groups[i].name = channel_name;
 		devc->analog_groups[i].channels = g_slist_append(NULL, ch);
@@ -347,7 +347,7 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 		for (i = 0; i < 16; i++) {
 			if (!(channel_name = g_strdup_printf("D%d", i)))
 				return NULL;
-			ch = sr_probe_new(i, SR_PROBE_LOGIC, TRUE, channel_name);
+			ch = sr_channel_new(i, SR_PROBE_LOGIC, TRUE, channel_name);
 			g_free(channel_name);
 			if (!ch)
 				return NULL;

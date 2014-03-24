@@ -309,7 +309,7 @@ static GSList *scan(GSList *options)
 	cg->priv = NULL;
 	for (i = 0; i < num_logic_channels; i++) {
 		sprintf(channel_name, "D%d", i);
-		if (!(ch = sr_probe_new(i, SR_PROBE_LOGIC, TRUE, channel_name)))
+		if (!(ch = sr_channel_new(i, SR_PROBE_LOGIC, TRUE, channel_name)))
 			return NULL;
 		sdi->channels = g_slist_append(sdi->channels, ch);
 		cg->channels = g_slist_append(cg->channels, ch);
@@ -321,7 +321,7 @@ static GSList *scan(GSList *options)
 	pattern = 0;
 	for (i = 0; i < num_analog_channels; i++) {
 		sprintf(channel_name, "A%d", i);
-		if (!(ch = sr_probe_new(i + num_logic_channels,
+		if (!(ch = sr_channel_new(i + num_logic_channels,
 				SR_PROBE_ANALOG, TRUE, channel_name)))
 			return NULL;
 		sdi->channels = g_slist_append(sdi->channels, ch);

@@ -186,7 +186,7 @@ SR_API int sr_session_load(const char *filename)
 							g_variant_new_uint64(total_channels), sdi, NULL);
 					for (p = 0; p < total_channels; p++) {
 						snprintf(channelname, SR_MAX_PROBENAME_LEN, "%" PRIu64, p);
-						if (!(ch = sr_probe_new(p, SR_PROBE_LOGIC, TRUE,
+						if (!(ch = sr_channel_new(p, SR_PROBE_LOGIC, TRUE,
 								channelname)))
 							return SR_ERR;
 						sdi->channels = g_slist_append(sdi->channels, ch);

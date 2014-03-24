@@ -195,7 +195,7 @@ static GSList *scan(GSList *options)
 		sdi->driver = di;
 
 		for (j = 0; channel_names[j]; j++) {
-			if (!(ch = sr_probe_new(j, SR_PROBE_LOGIC, TRUE,
+			if (!(ch = sr_channel_new(j, SR_PROBE_LOGIC, TRUE,
 						   channel_names[j])))
 				return NULL;
 			sdi->channels = g_slist_append(sdi->channels, ch);

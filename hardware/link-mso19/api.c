@@ -219,7 +219,7 @@ static GSList *scan(GSList *options)
 		for (i = 0; i < NUM_PROBES; i++) {
 			struct sr_channel *ch;
 			ptype = (i == 0) ? SR_PROBE_ANALOG : SR_PROBE_LOGIC;
-			if (!(ch = sr_probe_new(i, ptype, TRUE,
+			if (!(ch = sr_channel_new(i, ptype, TRUE,
 						   mso19_channel_names[i])))
 				return 0;
 			sdi->channels = g_slist_append(sdi->channels, ch);

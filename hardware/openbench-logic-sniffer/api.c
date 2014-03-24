@@ -177,7 +177,7 @@ static GSList *scan(GSList *options)
 				"Sump", "Logic Analyzer", "v1.0");
 		sdi->driver = di;
 		for (i = 0; i < 32; i++) {
-			if (!(ch = sr_probe_new(i, SR_PROBE_LOGIC, TRUE,
+			if (!(ch = sr_channel_new(i, SR_PROBE_LOGIC, TRUE,
 					ols_channel_names[i])))
 				return 0;
 			sdi->channels = g_slist_append(sdi->channels, ch);

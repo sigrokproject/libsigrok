@@ -101,7 +101,7 @@ static GSList *scan(GSList *options)
 	sdi->conn = serial;
 	sdi->priv = NULL;
 	sdi->driver = di;
-	if (!(ch = sr_probe_new(0, SR_PROBE_ANALOG, TRUE, "CH1")))
+	if (!(ch = sr_channel_new(0, SR_PROBE_ANALOG, TRUE, "CH1")))
 		return NULL;
 	sdi->channels = g_slist_append(sdi->channels, ch);
 

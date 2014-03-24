@@ -344,7 +344,7 @@ static int init(struct sr_input *in, const char *filename)
 	for (i = 0; i < num_channels; i++) {
 		snprintf(name, SR_MAX_PROBENAME_LEN, "%d", i);
 
-		if (!(ch = sr_probe_new(i, SR_PROBE_LOGIC, TRUE, name))) {
+		if (!(ch = sr_channel_new(i, SR_PROBE_LOGIC, TRUE, name))) {
 			release_context(ctx);
 			return SR_ERR;
 		}

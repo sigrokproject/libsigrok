@@ -682,7 +682,7 @@ static int init(struct sr_input *in, const char *filename)
 		else
 			snprintf(channel_name, sizeof(channel_name), "%zu", i);
 
-		ch = sr_probe_new(i, SR_PROBE_LOGIC, TRUE, channel_name);
+		ch = sr_channel_new(i, SR_PROBE_LOGIC, TRUE, channel_name);
 
 		if (!ch) {
 			sr_err("Channel creation failed.");

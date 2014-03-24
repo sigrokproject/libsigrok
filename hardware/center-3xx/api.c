@@ -103,7 +103,7 @@ static GSList *center_scan(const char *conn, const char *serialcomm, int idx)
 	sdi->driver = center_devs[idx].di;
 
 	for (i = 0; i <  center_devs[idx].num_channels; i++) {
-		if (!(ch = sr_probe_new(i, SR_PROBE_ANALOG,
+		if (!(ch = sr_channel_new(i, SR_PROBE_ANALOG,
 					   TRUE, channel_names[i])))
 			goto scan_cleanup;
 		sdi->channels = g_slist_append(sdi->channels, ch);

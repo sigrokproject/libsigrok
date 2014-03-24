@@ -133,7 +133,7 @@ static GSList *scan(GSList *options)
 	sdi->priv = devc;
 
 	for (i = 0; channel_names[i]; i++) {
-		if (!(ch = sr_probe_new(i, SR_PROBE_LOGIC, TRUE,
+		if (!(ch = sr_channel_new(i, SR_PROBE_LOGIC, TRUE,
 					   channel_names[i])))
 			return NULL;
 		sdi->channels = g_slist_append(sdi->channels, ch);

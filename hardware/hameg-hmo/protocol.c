@@ -614,7 +614,7 @@ SR_PRIV int hmo_init_device(struct sr_dev_inst *sdi)
 
 	/* Add analog channels. */
 	for (i = 0; i < scope_models[model_index].analog_channels; i++) {
-		if (!(ch = sr_probe_new(i, SR_PROBE_ANALOG, TRUE,
+		if (!(ch = sr_channel_new(i, SR_PROBE_ANALOG, TRUE,
 			   (*scope_models[model_index].analog_names)[i])))
 			return SR_ERR_MALLOC;
 		sdi->channels = g_slist_append(sdi->channels, ch);
@@ -637,7 +637,7 @@ SR_PRIV int hmo_init_device(struct sr_dev_inst *sdi)
 
 	/* Add digital channels. */
 	for (i = 0; i < scope_models[model_index].digital_channels; i++) {
-		if (!(ch = sr_probe_new(i, SR_PROBE_LOGIC, TRUE,
+		if (!(ch = sr_channel_new(i, SR_PROBE_LOGIC, TRUE,
 			   (*scope_models[model_index].digital_names)[i])))
 			return SR_ERR_MALLOC;
 		sdi->channels = g_slist_append(sdi->channels, ch);

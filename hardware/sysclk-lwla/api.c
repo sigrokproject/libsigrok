@@ -85,7 +85,7 @@ static GSList *gen_channel_list(int num_channels)
 		/* The LWLA series simply number channels from CH1 to CHxx. */
 		g_snprintf(name, sizeof(name), "CH%d", i);
 
-		ch = sr_probe_new(i - 1, SR_PROBE_LOGIC, TRUE, name);
+		ch = sr_channel_new(i - 1, SR_PROBE_LOGIC, TRUE, name);
 		list = g_slist_prepend(list, ch);
 	}
 
