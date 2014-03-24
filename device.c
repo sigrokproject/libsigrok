@@ -83,7 +83,7 @@ SR_PRIV struct sr_channel *sr_channel_new(int index, int type,
  *
  * @since 0.2.0
  */
-SR_API int sr_dev_probe_name_set(const struct sr_dev_inst *sdi,
+SR_API int sr_dev_channel_name_set(const struct sr_dev_inst *sdi,
 		int channelnum, const char *name)
 {
 	GSList *l;
@@ -122,7 +122,7 @@ SR_API int sr_dev_probe_name_set(const struct sr_dev_inst *sdi,
  *
  * @since 0.2.0
  */
-SR_API int sr_dev_probe_enable(const struct sr_dev_inst *sdi, int channelnum,
+SR_API int sr_dev_channel_enable(const struct sr_dev_inst *sdi, int channelnum,
 		gboolean state)
 {
 	GSList *l;
@@ -141,8 +141,8 @@ SR_API int sr_dev_probe_enable(const struct sr_dev_inst *sdi, int channelnum,
 			ch->enabled = state;
 			ret = SR_OK;
 			if (!state != !was_enabled && sdi->driver
-					&& sdi->driver->config_probe_set) {
-				ret = sdi->driver->config_probe_set(
+					&& sdi->driver->config_channel_set) {
+				ret = sdi->driver->config_channel_set(
 					sdi, ch, SR_CHANNEL_SET_ENABLED);
 				/* Roll back change if it wasn't applicable. */
 				if (ret == SR_ERR_ARG)
@@ -193,8 +193,8 @@ SR_API int sr_dev_trigger_set(const struct sr_dev_inst *sdi, int channelnum,
 			/* Set new trigger if it has changed. */
 			ch->trigger = g_strdup(trigger);
 
-			if (sdi->driver && sdi->driver->config_probe_set) {
-				ret = sdi->driver->config_probe_set(
+			if (sdi->driver && sdi->driver->config_channel_set) {
+				ret = sdi->driver->config_channel_set(
 					sdi, ch, SR_CHANNEL_SET_TRIGGER);
 				/* Roll back change if it wasn't applicable. */
 				if (ret == SR_ERR_ARG) {

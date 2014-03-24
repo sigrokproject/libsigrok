@@ -993,8 +993,8 @@ struct sr_dev_driver {
 			const struct sr_dev_inst *sdi,
 			const struct sr_channel_group *cg);
 	/** Probe status change.
-	 *  @see sr_dev_probe_enable(), sr_dev_trigger_set(). */
-	int (*config_probe_set) (const struct sr_dev_inst *sdi,
+	 *  @see sr_dev_channel_enable(), sr_dev_trigger_set(). */
+	int (*config_channel_set) (const struct sr_dev_inst *sdi,
 			struct sr_channel *ch, unsigned int changes);
 	/** Apply configuration settings to the device hardware.
 	 *  @see sr_config_commit().*/

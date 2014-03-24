@@ -224,7 +224,7 @@ SR_PRIV int sr_err(const char *format, ...);
 
 /*--- device.c --------------------------------------------------------------*/
 
-/** Values for the changes argument of sr_dev_driver.config_probe_set. */
+/** Values for the changes argument of sr_dev_driver.config_channel_set. */
 enum {
 	/** The enabled state of the probe has been changed. */
 	SR_CHANNEL_SET_ENABLED = 1 << 0,

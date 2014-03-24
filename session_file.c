@@ -197,7 +197,7 @@ SR_API int sr_session_load(const char *filename)
 					enabled_channels++;
 					tmp_u64 = strtoul(keys[j]+5, NULL, 10);
 					/* sr_session_save() */
-					sr_dev_probe_name_set(sdi, tmp_u64 - 1, val);
+					sr_dev_channel_name_set(sdi, tmp_u64 - 1, val);
 				} else if (!strncmp(keys[j], "trigger", 7)) {
 					channelnum = strtoul(keys[j]+7, NULL, 10);
 					sr_dev_trigger_set(sdi, channelnum, val);
@@ -207,7 +207,7 @@ SR_API int sr_session_load(const char *filename)
 			/* Disable channels not specifically listed. */
 			if (total_channels)
 				for (p = enabled_channels; p < total_channels; p++)
-					sr_dev_probe_enable(sdi, p, FALSE);
+					sr_dev_channel_enable(sdi, p, FALSE);
 		}
 		devcnt++;
 	}

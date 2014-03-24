@@ -45,9 +45,9 @@ SR_API char *sr_log_logdomain_get(void);
 
 /*--- device.c --------------------------------------------------------------*/
 
-SR_API int sr_dev_probe_name_set(const struct sr_dev_inst *sdi,
+SR_API int sr_dev_channel_name_set(const struct sr_dev_inst *sdi,
 		int probenum, const char *name);
-SR_API int sr_dev_probe_enable(const struct sr_dev_inst *sdi, int probenum,
+SR_API int sr_dev_channel_enable(const struct sr_dev_inst *sdi, int probenum,
 		gboolean state);
 SR_API int sr_dev_trigger_set(const struct sr_dev_inst *sdi, int probenum,
 		const char *trigger);
@@ -59,7 +59,7 @@ SR_API int sr_dev_close(struct sr_dev_inst *sdi);
 
 /*--- filter.c --------------------------------------------------------------*/
 
-SR_API int sr_filter_probes(unsigned int in_unitsize, unsigned int out_unitsize,
+SR_API int sr_filter_channels(unsigned int in_unitsize, unsigned int out_unitsize,
 			    const GArray *probe_array, const uint8_t *data_in,
 			    uint64_t length_in, uint8_t **data_out,
 			    uint64_t *length_out);

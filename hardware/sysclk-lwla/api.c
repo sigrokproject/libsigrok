@@ -401,7 +401,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-static int config_probe_set(const struct sr_dev_inst *sdi,
+static int config_channel_set(const struct sr_dev_inst *sdi,
 			    struct sr_channel *ch, unsigned int changes)
 {
 	uint64_t channel_bit;
@@ -601,7 +601,7 @@ SR_PRIV struct sr_dev_driver sysclk_lwla_driver_info = {
 	.dev_clear = dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
-	.config_probe_set = config_probe_set,
+	.config_channel_set = config_channel_set,
 	.config_commit = config_commit,
 	.config_list = config_list,
 	.dev_open = dev_open,

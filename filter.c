@@ -91,7 +91,7 @@
  *
  * @since 0.2.0
  */
-SR_API int sr_filter_probes(unsigned int in_unitsize, unsigned int out_unitsize,
+SR_API int sr_filter_channels(unsigned int in_unitsize, unsigned int out_unitsize,
 			    const GArray *probe_array, const uint8_t *data_in,
 			    uint64_t length_in, uint8_t **data_out,
 			    uint64_t *length_out)
