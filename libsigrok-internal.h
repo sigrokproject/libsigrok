@@ -591,7 +591,7 @@ struct metex14_info {
 	gboolean is_diode, is_frequency, is_ampere, is_volt, is_farad;
 	gboolean is_hertz, is_ohm, is_celsius, is_pico, is_nano, is_micro;
 	gboolean is_milli, is_kilo, is_mega, is_gain, is_decibel, is_hfe;
-	gboolean is_unitless;
+	gboolean is_unitless, is_logic;
 };
 
 #ifdef HAVE_LIBSERIALPORT

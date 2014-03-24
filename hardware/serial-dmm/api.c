@@ -57,6 +57,7 @@ SR_PRIV struct sr_dev_driver radioshack_22_168_driver_info;
 SR_PRIV struct sr_dev_driver radioshack_22_805_driver_info;
 SR_PRIV struct sr_dev_driver radioshack_22_812_driver_info;
 SR_PRIV struct sr_dev_driver tecpel_dmm_8061_ser_driver_info;
+SR_PRIV struct sr_dev_driver voltcraft_m3650cr_driver_info;
 SR_PRIV struct sr_dev_driver voltcraft_m3650d_driver_info;
 SR_PRIV struct sr_dev_driver voltcraft_m4650cr_driver_info;
 SR_PRIV struct sr_dev_driver voltcraft_me42_driver_info;
@@ -187,6 +188,13 @@ SR_PRIV struct dmm_info dmms[] = {
 		sr_fs9721_00_temp_c,
 		&tecpel_dmm_8061_ser_driver_info,
 		receive_data_TECPEL_DMM_8061_SER,
+	},
+	{
+		"Voltcraft", "M-3650CR", "1200/7n2/rts=0/dtr=1", 1200,
+		METEX14_PACKET_SIZE, sr_metex14_packet_request,
+		sr_metex14_packet_valid, sr_metex14_parse,
+		NULL,
+		&voltcraft_m3650cr_driver_info, receive_data_VOLTCRAFT_M3650CR,
 	},
 	{
 		"Voltcraft", "M-3650D", "1200/7n2/rts=0/dtr=1", 1200,
@@ -605,6 +613,7 @@ DRV(radioshack_22_168, RADIOSHACK_22_168, "radioshack-22-168", "RadioShack 22-16
 DRV(radioshack_22_805, RADIOSHACK_22_805, "radioshack-22-805", "RadioShack 22-805")
 DRV(radioshack_22_812, RADIOSHACK_22_812, "radioshack-22-812", "RadioShack 22-812")
 DRV(tecpel_dmm_8061_ser, TECPEL_DMM_8061_SER, "tecpel-dmm-8061-ser", "Tecpel DMM-8061 (UT-D02 cable)")
+DRV(voltcraft_m3650cr, VOLTCRAFT_M3650CR, "voltcraft-m3650cr", "Voltcraft M-3650CR")
 DRV(voltcraft_m3650d, VOLTCRAFT_M3650D, "voltcraft-m3650d", "Voltcraft M-3650D")
 DRV(voltcraft_m4650cr, VOLTCRAFT_M4650CR, "voltcraft-m4650cr", "Voltcraft M-4650CR")
 DRV(voltcraft_me42, VOLTCRAFT_ME42, "voltcraft-me42", "Voltcraft ME-42")

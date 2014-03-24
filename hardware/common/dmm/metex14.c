@@ -18,9 +18,12 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-/*
+/**
+ * @file
+ *
  * Metex 14-bytes ASCII protocol parser.
  *
+ * @internal
  * This should work for various multimeters which use this kind of protocol,
  * even though there is some variation in which modes each DMM supports.
  *
@@ -36,7 +39,9 @@
 
 #define LOG_PREFIX "metex14"
 
-static int parse_value(const uint8_t *buf, float *result)
+/** Parse value from buf, byte 2-8. */
+static int parse_value(const uint8_t *buf, struct metex14_info *info,
+			float *result)
 {
 	int i, is_ol, cnt;
 	char valstr[7 + 1];
@@ -64,6 +69,21 @@ static int parse_value(const uint8_t *buf, float *result)
 		return SR_OK;
 	}
 
+	/* Logic functions */
+	if (!strcmp((const char *)&valstr, "READY") ||
+			!strcmp((const char *)&valstr, "FLOAT")) {
+		*result = INFINITY;
+		info->is_logic = TRUE;
+	} else if (!strcmp((const char *)&valstr, "Hi")) {
+		*result = 1.0;
+		info->is_logic = TRUE;
+	} else if (!strcmp((const char *)&valstr, "Lo")) {
+		*result = 0.0;
+		info->is_logic = TRUE;
+	}
+	if (info->is_logic)
+		return SR_OK;
+
 	/* Bytes 2-8: Sign, value (up to 5 digits) and decimal point */
 	sscanf((const char *)&valstr, "%f", result);
 
@@ -78,25 +98,9 @@ static void parse_flags(const char *buf, struct metex14_info *info)
 	char unit[4 + 1];
 	const char *u;
 
-	/* Bytes 0-1: Measurement mode */
-	/* Note: Protocol doesn't distinguish "resistance" from "beep" mode. */
-	info->is_ac          = !strncmp(buf, "AC", 2);
-	info->is_dc          = !strncmp(buf, "DC", 2);
-	info->is_resistance  = !strncmp(buf, "OH", 2);
-	info->is_capacity    = !strncmp(buf, "CA", 2);
-	info->is_temperature = !strncmp(buf, "TE", 2);
-	info->is_diode       = !strncmp(buf, "DI", 2);
-	info->is_frequency   = !strncmp(buf, "FR", 2);
-	info->is_gain        = !strncmp(buf, "DB", 2);
-	info->is_hfe         = !strncmp(buf, "HF", 2);
-
-	/*
-	 * Note: "DB" shows the logarithmic ratio of input voltage to a
-	 * pre-stored (user-changeable) value in the DMM.
-	 */
-
-	if (info->is_dc || info->is_ac)
-		info->is_volt = TRUE;
+	/* Bytes 0-1: Measurement mode AC, DC */
+	info->is_ac = !strncmp(buf, "AC", 2);
+	info->is_dc = !strncmp(buf, "DC", 2);
 
 	/* Bytes 2-8: See parse_value(). */
 
@@ -139,6 +143,27 @@ static void parse_flags(const char *buf, struct metex14_info *info)
 		info->is_decibel = TRUE;
 	else if (!strcasecmp(u, ""))
 		info->is_unitless = TRUE;
+
+	/* Bytes 0-1: Measurement mode, except AC/DC */
+	info->is_resistance  = !strncmp(buf, "OH", 2) ||
+		(!strncmp(buf, "  ", 2) && info->is_ohm);
+	info->is_capacity    = !strncmp(buf, "CA", 2) ||
+		(!strncmp(buf, "  ", 2) && info->is_farad);
+	info->is_temperature = !strncmp(buf, "TE", 2);
+	info->is_diode       = !strncmp(buf, "DI", 2) ||
+		(!strncmp(buf, "  ", 2) && info->is_volt && info->is_milli);
+	info->is_frequency   = !strncmp(buf, "FR", 2) ||
+		(!strncmp(buf, "  ", 2) && info->is_hertz);
+	info->is_gain        = !strncmp(buf, "DB", 2);
+	info->is_hfe         = !strncmp(buf, "HF", 2) ||
+		(!strncmp(buf, "  ", 2) && !info->is_volt && !info->is_ohm &&
+		 !info->is_logic && !info->is_farad && !info->is_hertz);
+	/*
+	 * Note:
+	 * - Protocol doesn't distinguish "resistance" from "beep" mode.
+	 * - "DB" shows the logarithmic ratio of input voltage to a
+	 *   pre-stored (user-changeable) value in the DMM.
+	 */
 
 	/* Byte 13: Always '\r' (carriage return, 0x0d, 13) */
 }
@@ -194,6 +219,10 @@ static void handle_flags(struct sr_datafeed_analog *analog, float *floatval,
 		analog->unit = SR_UNIT_DECIBEL_VOLT;
 	}
 	if (info->is_hfe) {
+		analog->mq = SR_MQ_GAIN;
+		analog->unit = SR_UNIT_UNITLESS;
+	}
+	if (info->is_logic) {
 		analog->mq = SR_MQ_GAIN;
 		analog->unit = SR_UNIT_UNITLESS;
 	}
@@ -300,12 +329,13 @@ SR_PRIV int sr_metex14_parse(const uint8_t *buf, float *floatval,
 	/* Don't print byte 13. That one contains the carriage return. */
 	sr_dbg("DMM packet: \"%.13s\"", buf);
 
-	if ((ret = parse_value(buf, floatval)) != SR_OK) {
+	memset(info_local, 0x00, sizeof(struct metex14_info));
+
+	if ((ret = parse_value(buf, info_local, floatval)) != SR_OK) {
 		sr_dbg("Error parsing value: %d.", ret);
 		return ret;
 	}
 
-	memset(info_local, 0x00, sizeof(struct metex14_info));
 	parse_flags((const char *)buf, info_local);
 	handle_flags(analog, floatval, info_local);
 

@@ -246,6 +246,7 @@ extern SR_PRIV struct sr_dev_driver radioshack_22_168_driver_info;
 extern SR_PRIV struct sr_dev_driver radioshack_22_805_driver_info;
 extern SR_PRIV struct sr_dev_driver radioshack_22_812_driver_info;
 extern SR_PRIV struct sr_dev_driver tecpel_dmm_8061_ser_driver_info;
+extern SR_PRIV struct sr_dev_driver voltcraft_m3650cr_driver_info;
 extern SR_PRIV struct sr_dev_driver voltcraft_m3650d_driver_info;
 extern SR_PRIV struct sr_dev_driver voltcraft_m4650cr_driver_info;
 extern SR_PRIV struct sr_dev_driver voltcraft_me42_driver_info;
@@ -311,7 +312,7 @@ static struct sr_dev_driver *drivers_list[] = {
 #endif
 #ifdef HAVE_HW_GMC_MH_1X_2X
 	&gmc_mh_1x_2x_rs232_driver_info,
-    &gmc_mh_2x_bd232_driver_info,
+	&gmc_mh_2x_bd232_driver_info,
 #endif
 #ifdef HAVE_HW_HAMEG_HMO
 	&hameg_hmo_driver_info,
@@ -403,6 +404,7 @@ static struct sr_dev_driver *drivers_list[] = {
 	&radioshack_22_805_driver_info,
 	&radioshack_22_812_driver_info,
 	&tecpel_dmm_8061_ser_driver_info,
+	&voltcraft_m3650cr_driver_info,
 	&voltcraft_m3650d_driver_info,
 	&voltcraft_m4650cr_driver_info,
 	&voltcraft_me42_driver_info,
