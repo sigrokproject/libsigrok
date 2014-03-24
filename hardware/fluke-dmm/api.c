@@ -135,7 +135,7 @@ static GSList *fluke_scan(const char *conn, const char *serialcomm)
 				sdi->conn = serial;
 				sdi->priv = devc;
 				sdi->driver = di;
-				if (!(ch = sr_channel_new(0, SR_PROBE_ANALOG, TRUE, "P1")))
+				if (!(ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "P1")))
 					return NULL;
 				sdi->channels = g_slist_append(sdi->channels, ch);
 				drvc->instances = g_slist_append(drvc->instances, sdi);

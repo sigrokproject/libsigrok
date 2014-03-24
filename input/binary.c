@@ -29,7 +29,7 @@
 #define LOG_PREFIX "input/binary"
 
 #define CHUNKSIZE             (512 * 1024)
-#define DEFAULT_NUM_PROBES    8
+#define DEFAULT_NUM_CHANNELS  8
 
 struct context {
 	uint64_t samplerate;
@@ -47,7 +47,7 @@ static int init(struct sr_input *in, const char *filename)
 {
 	struct sr_channel *ch;
 	int num_channels, i;
-	char name[SR_MAX_PROBENAME_LEN + 1];
+	char name[SR_MAX_CHANNELNAME_LEN + 1];
 	char *param;
 	struct context *ctx;
 
@@ -58,7 +58,7 @@ static int init(struct sr_input *in, const char *filename)
 		return SR_ERR_MALLOC;
 	}
 
-	num_channels = DEFAULT_NUM_PROBES;
+	num_channels = DEFAULT_NUM_CHANNELS;
 	ctx->samplerate = 0;
 
 	if (in->param) {
@@ -81,9 +81,9 @@ static int init(struct sr_input *in, const char *filename)
 	in->internal = ctx;
 
 	for (i = 0; i < num_channels; i++) {
-		snprintf(name, SR_MAX_PROBENAME_LEN, "%d", i);
+		snprintf(name, SR_MAX_CHANNELNAME_LEN, "%d", i);
 		/* TODO: Check return value. */
-		if (!(ch = sr_channel_new(i, SR_PROBE_LOGIC, TRUE, name)))
+		if (!(ch = sr_channel_new(i, SR_CHANNEL_LOGIC, TRUE, name)))
 			return SR_ERR;
 		in->sdi->channels = g_slist_append(in->sdi->channels, ch);
 	}

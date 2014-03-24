@@ -65,7 +65,7 @@
 
 #define LOG_PREFIX "input/vcd"
 
-#define DEFAULT_NUM_PROBES 8
+#define DEFAULT_NUM_CHANNELS 8
 #define CHUNKSIZE 1024
 
 struct context {
@@ -289,7 +289,7 @@ static int init(struct sr_input *in, const char *filename)
 {
 	struct sr_channel *ch;
 	int num_channels, i;
-	char name[SR_MAX_PROBENAME_LEN + 1];
+	char name[SR_MAX_CHANNELNAME_LEN + 1];
 	char *param;
 	struct context *ctx;
 
@@ -300,7 +300,7 @@ static int init(struct sr_input *in, const char *filename)
 		return SR_ERR_MALLOC;
 	}
 
-	num_channels = DEFAULT_NUM_PROBES;
+	num_channels = DEFAULT_NUM_CHANNELS;
 	ctx->samplerate = 0;
 	ctx->downsample = 1;
 	ctx->skip = -1;
@@ -342,9 +342,9 @@ static int init(struct sr_input *in, const char *filename)
 	in->internal = ctx;
 
 	for (i = 0; i < num_channels; i++) {
-		snprintf(name, SR_MAX_PROBENAME_LEN, "%d", i);
+		snprintf(name, SR_MAX_CHANNELNAME_LEN, "%d", i);
 
-		if (!(ch = sr_channel_new(i, SR_PROBE_LOGIC, TRUE, name))) {
+		if (!(ch = sr_channel_new(i, SR_CHANNEL_LOGIC, TRUE, name))) {
 			release_context(ctx);
 			return SR_ERR;
 		}

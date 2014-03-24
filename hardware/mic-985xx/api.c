@@ -101,12 +101,12 @@ static GSList *mic_scan(const char *conn, const char *serialcomm, int idx)
 	sdi->priv = devc;
 	sdi->driver = mic_devs[idx].di;
 
-	if (!(ch = sr_channel_new(0, SR_PROBE_ANALOG, TRUE, "Temperature")))
+	if (!(ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "Temperature")))
 		goto scan_cleanup;
 	sdi->channels = g_slist_append(sdi->channels, ch);
 
 	if (mic_devs[idx].has_humidity) {
-		if (!(ch = sr_channel_new(1, SR_PROBE_ANALOG, TRUE, "Humidity")))
+		if (!(ch = sr_channel_new(1, SR_CHANNEL_ANALOG, TRUE, "Humidity")))
 			goto scan_cleanup;
 		sdi->channels = g_slist_append(sdi->channels, ch);
 	}

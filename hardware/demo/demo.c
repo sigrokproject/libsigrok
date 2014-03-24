@@ -34,8 +34,8 @@
 
 #define LOG_PREFIX "demo"
 
-#define DEFAULT_NUM_LOGIC_PROBES     8
-#define DEFAULT_NUM_ANALOG_PROBES    4
+#define DEFAULT_NUM_LOGIC_CHANNELS     8
+#define DEFAULT_NUM_ANALOG_CHANNELS    4
 
 /* The size in bytes of chunks to send through the session bus. */
 #define LOGIC_BUFSIZE        4096
@@ -127,8 +127,8 @@ struct dev_context {
 };
 
 static const int32_t scanopts[] = {
-	SR_CONF_NUM_LOGIC_PROBES,
-	SR_CONF_NUM_ANALOG_PROBES,
+	SR_CONF_NUM_LOGIC_CHANNELS,
+	SR_CONF_NUM_ANALOG_CHANNELS,
 };
 
 static const int devopts[] = {
@@ -265,15 +265,15 @@ static GSList *scan(GSList *options)
 
 	drvc = di->priv;
 
-	num_logic_channels = DEFAULT_NUM_LOGIC_PROBES;
-	num_analog_channels = DEFAULT_NUM_ANALOG_PROBES;
+	num_logic_channels = DEFAULT_NUM_LOGIC_CHANNELS;
+	num_analog_channels = DEFAULT_NUM_ANALOG_CHANNELS;
 	for (l = options; l; l = l->next) {
 		src = l->data;
 		switch (src->key) {
-		case SR_CONF_NUM_LOGIC_PROBES:
+		case SR_CONF_NUM_LOGIC_CHANNELS:
 			num_logic_channels = g_variant_get_int32(src->data);
 			break;
-		case SR_CONF_NUM_ANALOG_PROBES:
+		case SR_CONF_NUM_ANALOG_CHANNELS:
 			num_analog_channels = g_variant_get_int32(src->data);
 			break;
 		}
@@ -309,7 +309,7 @@ static GSList *scan(GSList *options)
 	cg->priv = NULL;
 	for (i = 0; i < num_logic_channels; i++) {
 		sprintf(channel_name, "D%d", i);
-		if (!(ch = sr_channel_new(i, SR_PROBE_LOGIC, TRUE, channel_name)))
+		if (!(ch = sr_channel_new(i, SR_CHANNEL_LOGIC, TRUE, channel_name)))
 			return NULL;
 		sdi->channels = g_slist_append(sdi->channels, ch);
 		cg->channels = g_slist_append(cg->channels, ch);
@@ -322,7 +322,7 @@ static GSList *scan(GSList *options)
 	for (i = 0; i < num_analog_channels; i++) {
 		sprintf(channel_name, "A%d", i);
 		if (!(ch = sr_channel_new(i + num_logic_channels,
-				SR_PROBE_ANALOG, TRUE, channel_name)))
+				SR_CHANNEL_ANALOG, TRUE, channel_name)))
 			return NULL;
 		sdi->channels = g_slist_append(sdi->channels, ch);
 
@@ -407,20 +407,20 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
 		ch = cg->channels->data;
-		if (ch->type == SR_PROBE_LOGIC) {
+		if (ch->type == SR_CHANNEL_LOGIC) {
 			pattern = devc->logic_pattern;
 			*data = g_variant_new_string(logic_pattern_str[pattern]);
-		} else if (ch->type == SR_PROBE_ANALOG) {
+		} else if (ch->type == SR_CHANNEL_ANALOG) {
 			ag = cg->priv;
 			pattern = ag->pattern;
 			*data = g_variant_new_string(analog_pattern_str[pattern]);
 		} else
 			return SR_ERR_BUG;
 		break;
-	case SR_CONF_NUM_LOGIC_PROBES:
+	case SR_CONF_NUM_LOGIC_CHANNELS:
 		*data = g_variant_new_int32(devc->num_logic_channels);
 		break;
-	case SR_CONF_NUM_ANALOG_PROBES:
+	case SR_CONF_NUM_ANALOG_CHANNELS:
 		*data = g_variant_new_int32(devc->num_analog_channels);
 		break;
 	default:
@@ -467,7 +467,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 		stropt = g_variant_get_string(data, NULL);
 		ch = cg->channels->data;
 		pattern = -1;
-		if (ch->type == SR_PROBE_LOGIC) {
+		if (ch->type == SR_CHANNEL_LOGIC) {
 			for (i = 0; i < ARRAY_SIZE(logic_pattern_str); i++) {
 				if (!strcmp(stropt, logic_pattern_str[i])) {
 					pattern = i;
@@ -485,7 +485,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 				memset(devc->logic_data, 0xff, LOGIC_BUFSIZE);
 			sr_dbg("Setting logic pattern to %s",
 					logic_pattern_str[pattern]);
-		} else if (ch->type == SR_PROBE_ANALOG) {
+		} else if (ch->type == SR_CHANNEL_ANALOG) {
 			for (i = 0; i < ARRAY_SIZE(analog_pattern_str); i++) {
 				if (!strcmp(stropt, analog_pattern_str[i])) {
 					pattern = i;
@@ -550,10 +550,10 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 					devopts_cg, ARRAY_SIZE(devopts_cg), sizeof(int32_t));
 			break;
 		case SR_CONF_PATTERN_MODE:
-			if (ch->type == SR_PROBE_LOGIC)
+			if (ch->type == SR_CHANNEL_LOGIC)
 				*data = g_variant_new_strv(logic_pattern_str,
 						ARRAY_SIZE(logic_pattern_str));
-			else if (ch->type == SR_PROBE_ANALOG)
+			else if (ch->type == SR_CHANNEL_ANALOG)
 				*data = g_variant_new_strv(analog_pattern_str,
 						ARRAY_SIZE(analog_pattern_str));
 			else

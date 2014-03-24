@@ -240,7 +240,7 @@ static GSList *scan_1x_2x_rs232(GSList *options)
 		sdi->conn = serial;
 		sdi->priv = devc;
 		sdi->driver = &gmc_mh_1x_2x_rs232_driver_info;
-		if (!(ch = sr_channel_new(0, SR_PROBE_ANALOG, TRUE, "P1")))
+		if (!(ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "P1")))
 			return NULL;
 		sdi->channels = g_slist_append(sdi->channels, ch);
 		drvc->instances = g_slist_append(drvc->instances, sdi);
@@ -343,7 +343,7 @@ static GSList *scan_2x_bd232(GSList *options)
 			sdi->conn = serial;
 			sdi->priv = devc;
 			sdi->driver = &gmc_mh_2x_bd232_driver_info;
-			if (!(ch = sr_channel_new(0, SR_PROBE_ANALOG, TRUE, "P1")))
+			if (!(ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "P1")))
 				goto exit_err;
 			sdi->channels = g_slist_append(sdi->channels, ch);
 			drvc->instances = g_slist_append(drvc->instances, sdi);

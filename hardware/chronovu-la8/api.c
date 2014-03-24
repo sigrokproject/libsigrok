@@ -154,7 +154,7 @@ static GSList *scan(GSList *options)
 	sdi->priv = devc;
 
 	for (i = 0; chronovu_la8_channel_names[i]; i++) {
-		if (!(ch = sr_channel_new(i, SR_PROBE_LOGIC, TRUE,
+		if (!(ch = sr_channel_new(i, SR_CHANNEL_LOGIC, TRUE,
 					   chronovu_la8_channel_names[i])))
 			return NULL;
 		sdi->channels = g_slist_append(sdi->channels, ch);

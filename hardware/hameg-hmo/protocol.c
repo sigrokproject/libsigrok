@@ -614,7 +614,7 @@ SR_PRIV int hmo_init_device(struct sr_dev_inst *sdi)
 
 	/* Add analog channels. */
 	for (i = 0; i < scope_models[model_index].analog_channels; i++) {
-		if (!(ch = sr_channel_new(i, SR_PROBE_ANALOG, TRUE,
+		if (!(ch = sr_channel_new(i, SR_CHANNEL_ANALOG, TRUE,
 			   (*scope_models[model_index].analog_names)[i])))
 			return SR_ERR_MALLOC;
 		sdi->channels = g_slist_append(sdi->channels, ch);
@@ -637,7 +637,7 @@ SR_PRIV int hmo_init_device(struct sr_dev_inst *sdi)
 
 	/* Add digital channels. */
 	for (i = 0; i < scope_models[model_index].digital_channels; i++) {
-		if (!(ch = sr_channel_new(i, SR_PROBE_LOGIC, TRUE,
+		if (!(ch = sr_channel_new(i, SR_CHANNEL_LOGIC, TRUE,
 			   (*scope_models[model_index].digital_names)[i])))
 			return SR_ERR_MALLOC;
 		sdi->channels = g_slist_append(sdi->channels, ch);
@@ -677,7 +677,7 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 		ch = devc->current_channel->data;
 
 		switch (ch->type) {
-		case SR_PROBE_ANALOG:
+		case SR_CHANNEL_ANALOG:
 			if (sr_scpi_get_floatv(sdi->conn, NULL, &data) != SR_OK) {
 				if (data)
 					g_array_free(data, TRUE);
@@ -700,7 +700,7 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 			g_slist_free(analog.channels);
 			g_array_free(data, TRUE);
 			break;
-		case SR_PROBE_LOGIC:
+		case SR_CHANNEL_LOGIC:
 			if (sr_scpi_get_uint8v(sdi->conn, NULL, &data) != SR_OK) {
 				if (data)
 					g_free(data);

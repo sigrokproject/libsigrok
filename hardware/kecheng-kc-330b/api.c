@@ -135,7 +135,7 @@ static GSList *scan(GSList *options)
 			sdi->driver = di;
 			sdi->inst_type = SR_INST_USB;
 			sdi->conn = l->data;
-			if (!(ch = sr_channel_new(0, SR_PROBE_ANALOG, TRUE, "SPL")))
+			if (!(ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "SPL")))
 				return NULL;
 			sdi->channels = g_slist_append(sdi->channels, ch);
 

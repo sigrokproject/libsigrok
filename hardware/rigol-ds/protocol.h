@@ -31,8 +31,8 @@
 /* Size of acquisition buffers */
 #define ACQ_BUFFER_SIZE 32768
 
-#define MAX_ANALOG_PROBES 4
-#define MAX_DIGITAL_PROBES 16
+#define MAX_ANALOG_CHANNELS 4
+#define MAX_DIGITAL_CHANNELS 16
 
 enum protocol_version {
 	PROTOCOL_V1, /* VS5000 */
@@ -98,7 +98,7 @@ struct dev_context {
 	uint64_t num_vdivs;
 
 	/* Channel groups */
-	struct sr_channel_group analog_groups[MAX_ANALOG_PROBES];
+	struct sr_channel_group analog_groups[MAX_ANALOG_CHANNELS];
 	struct sr_channel_group digital_group;
 
 	/* Acquisition settings */
@@ -111,17 +111,17 @@ struct dev_context {
 	uint64_t digital_frame_size;
 
 	/* Device settings */
-	gboolean analog_channels[MAX_ANALOG_PROBES];
-	gboolean digital_channels[MAX_DIGITAL_PROBES];
+	gboolean analog_channels[MAX_ANALOG_CHANNELS];
+	gboolean digital_channels[MAX_DIGITAL_CHANNELS];
 	gboolean la_enabled;
 	float timebase;
-	float vdiv[MAX_ANALOG_PROBES];
-	int vert_reference[MAX_ANALOG_PROBES];
-	float vert_offset[MAX_ANALOG_PROBES];
+	float vdiv[MAX_ANALOG_CHANNELS];
+	int vert_reference[MAX_ANALOG_CHANNELS];
+	float vert_offset[MAX_ANALOG_CHANNELS];
 	char *trigger_source;
 	float horiz_triggerpos;
 	char *trigger_slope;
-	char *coupling[MAX_ANALOG_PROBES];
+	char *coupling[MAX_ANALOG_CHANNELS];
 
 	/* Operational state */
 

@@ -26,7 +26,7 @@ import itertools
 
 __all__ = ['Error', 'Context', 'Driver', 'Device', 'Session', 'Packet', 'Log',
     'LogLevel', 'PacketType', 'Quantity', 'Unit', 'QuantityFlag', 'ConfigKey',
-    'ProbeType', 'Probe', 'ChannelGroup', 'InputFormat', 'OutputFormat',
+    'ChannelType', 'Channel', 'ChannelGroup', 'InputFormat', 'OutputFormat',
     'InputFile', 'Output']
 
 class Error(Exception):
@@ -173,7 +173,7 @@ class Device(object):
             device = super(Device, cls).__new__(cls)
             device.struct = struct
             device.context = context
-            device._probes = None
+            device._channels = None
             device._channel_groups = None
             context._devices[address] = device
         return context._devices[address]
@@ -191,15 +191,15 @@ class Device(object):
         return self.struct.version
 
     @property
-    def probes(self):
-        if self._probes is None:
-            self._probes = {}
-            probe_list = self.struct.probes
-            while (probe_list):
-                probe_ptr = void_ptr_to_sr_channel_ptr(probe_list.data)
-                self._probes[probe_ptr.name] = Probe(self, probe_ptr)
-                probe_list = probe_list.next
-        return self._probes
+    def channels(self):
+        if self._channels is None:
+            self._channels = {}
+            channel_list = self.struct.channels
+            while (channel_list):
+                channel_ptr = void_ptr_to_sr_channel_ptr(channel_list.data)
+                self._channels[channel_ptr.name] = Channel(self, channel_ptr)
+                channel_list = channel_list.next
+        return self._channels
 
     @property
     def channel_groups(self):
@@ -244,7 +244,7 @@ class HardwareDevice(Device):
             return
         check(sr_config_set(self.struct, None, key.id, python_to_gvariant(value)))
 
-class Probe(object):
+class Channel(object):
 
     def __init__(self, device, struct):
         self.device = device
@@ -252,7 +252,7 @@ class Probe(object):
 
     @property
     def type(self):
-        return ProbeType(self.struct.type)
+        return ChannelType(self.struct.type)
 
     @property
     def enabled(self):
@@ -307,7 +307,7 @@ class ChannelGroup(object):
             channel_list = self.struct.channels
             while (channel_list):
                 channel_ptr = void_ptr_to_sr_channel_ptr(channel_list.data)
-                self._channels.append(Probe(self, probe_ptr))
+                self._channels.append(Channel(self, channel_ptr))
                 channel_list = channel_list.next
         return self._channels
 
@@ -606,7 +606,7 @@ class ConfigKey(EnumValue):
 class DataType(EnumValue):
     pass
 
-class ProbeType(EnumValue):
+class ChannelType(EnumValue):
     pass
 
 for symbol_name in dir(lowlevel):
@@ -618,7 +618,7 @@ for symbol_name in dir(lowlevel):
         ('SR_MQFLAG_', QuantityFlag),
         ('SR_CONF_', ConfigKey),
         ('SR_T_', DataType),
-        ('SR_PROBE_', ProbeType)]:
+        ('SR_CHANNEL_', ChannelType)]:
         if symbol_name.startswith(prefix):
             name = symbol_name[len(prefix):]
             value = getattr(lowlevel, symbol_name)

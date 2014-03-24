@@ -71,7 +71,7 @@ static GString *gen_header(const struct sr_dev_inst *sdi, struct context *ctx)
 	num_enabled_channels = 0;
 	for (l = sdi->channels; l; l = l->next) {
 		ch = l->data;
-		if (ch->type != SR_PROBE_LOGIC)
+		if (ch->type != SR_CHANNEL_LOGIC)
 			continue;
 		if (!ch->enabled)
 			continue;

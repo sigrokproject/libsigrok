@@ -41,7 +41,7 @@ SR_PRIV const uint64_t sl2_samplerates[NUM_SAMPLERATES] = {
 	SR_MHZ(20),
 };
 
-static const char *channel_names[NUM_PROBES + 1] = {
+static const char *channel_names[NUM_CHANNELS + 1] = {
 	"0", "1", "2", "3",
 	NULL,
 };
@@ -137,7 +137,7 @@ static GSList *scan(GSList *options)
 		sdi->conn = usb;
 
 		for (i = 0; channel_names[i]; i++) {
-			ch = sr_channel_new(i, SR_PROBE_LOGIC, TRUE,
+			ch = sr_channel_new(i, SR_CHANNEL_LOGIC, TRUE,
 				channel_names[i]);
 			sdi->channels = g_slist_append(sdi->channels, ch);
 			devc->channels[i] = ch;
@@ -449,7 +449,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	 * Count the number of enabled channels and number them for a sequential
 	 * access.
 	 */
-	for (i = 0, j = 0; i < NUM_PROBES; i++) {
+	for (i = 0, j = 0; i < NUM_CHANNELS; i++) {
 		if (devc->channels[i]->enabled) {
 			devc->num_enabled_channels++;
 			devc->channel_map[j] = i;

@@ -43,7 +43,7 @@ SR_PRIV int data_hex(struct sr_output *o, const uint8_t *data_in,
 	uint8_t *outbuf;
 
 	ctx = o->internal;
-	max_linelen = SR_MAX_PROBENAME_LEN + 3 + ctx->samples_per_line
+	max_linelen = SR_MAX_CHANNELNAME_LEN + 3 + ctx->samples_per_line
 			+ ctx->samples_per_line / 2;
 	outsize = length_in / ctx->unitsize * ctx->num_enabled_channels
 			/ ctx->samples_per_line * max_linelen + 512;

@@ -167,7 +167,7 @@ static GSList *scan(GSList *options, int modelid)
 	sdi->conn = serial;
 	for (i = 0; i < MAX_CHANNELS; i++) {
 		snprintf(channel, 10, "CH%d", i + 1);
-		ch = sr_channel_new(i, SR_PROBE_ANALOG, TRUE, channel);
+		ch = sr_channel_new(i, SR_CHANNEL_ANALOG, TRUE, channel);
 		sdi->channels = g_slist_append(sdi->channels, ch);
 		cg = g_malloc(sizeof(struct sr_channel_group));
 		cg->name = g_strdup(channel);

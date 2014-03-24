@@ -431,7 +431,7 @@ static int init(struct sr_input *in, const char *filename)
 	const char *param;
 	GIOStatus status;
 	gsize i, term_pos;
-	char channel_name[SR_MAX_PROBENAME_LEN + 1];
+	char channel_name[SR_MAX_CHANNELNAME_LEN + 1];
 	struct sr_channel *ch;
 	char **columns;
 	gsize num_columns;
@@ -682,7 +682,7 @@ static int init(struct sr_input *in, const char *filename)
 		else
 			snprintf(channel_name, sizeof(channel_name), "%zu", i);
 
-		ch = sr_channel_new(i, SR_PROBE_LOGIC, TRUE, channel_name);
+		ch = sr_channel_new(i, SR_CHANNEL_LOGIC, TRUE, channel_name);
 
 		if (!ch) {
 			sr_err("Channel creation failed.");

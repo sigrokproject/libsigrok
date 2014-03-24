@@ -227,9 +227,9 @@ SR_PRIV int sr_err(const char *format, ...);
 /** Values for the changes argument of sr_dev_driver.config_probe_set. */
 enum {
 	/** The enabled state of the probe has been changed. */
-	SR_PROBE_SET_ENABLED = 1 << 0,
+	SR_CHANNEL_SET_ENABLED = 1 << 0,
 	/** The trigger setup of the probe has been changed. */
-	SR_PROBE_SET_TRIGGER = 1 << 1,
+	SR_CHANNEL_SET_TRIGGER = 1 << 1,
 };
 
 SR_PRIV struct sr_channel *sr_channel_new(int index, int type,

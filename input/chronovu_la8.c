@@ -29,7 +29,7 @@
 
 #define NUM_PACKETS		2048
 #define PACKET_SIZE		4096
-#define DEFAULT_NUM_PROBES	8
+#define DEFAULT_NUM_CHANNELS	8
 
 /**
  * Convert the LA8 'divcount' value to the respective samplerate (in Hz).
@@ -98,12 +98,12 @@ static int init(struct sr_input *in, const char *filename)
 {
 	struct sr_channel *ch;
 	int num_channels, i;
-	char name[SR_MAX_PROBENAME_LEN + 1];
+	char name[SR_MAX_CHANNELNAME_LEN + 1];
 	char *param;
 
 	(void)filename;
 
-	num_channels = DEFAULT_NUM_PROBES;
+	num_channels = DEFAULT_NUM_CHANNELS;
 
 	if (in->param) {
 		param = g_hash_table_lookup(in->param, "numchannels");
@@ -120,9 +120,9 @@ static int init(struct sr_input *in, const char *filename)
 	in->sdi = sr_dev_inst_new(0, SR_ST_ACTIVE, NULL, NULL, NULL);
 
 	for (i = 0; i < num_channels; i++) {
-		snprintf(name, SR_MAX_PROBENAME_LEN, "%d", i);
+		snprintf(name, SR_MAX_CHANNELNAME_LEN, "%d", i);
 		/* TODO: Check return value. */
-		if (!(ch = sr_channel_new(i, SR_PROBE_LOGIC, TRUE, name)))
+		if (!(ch = sr_channel_new(i, SR_CHANNEL_LOGIC, TRUE, name)))
 			return SR_ERR;
 		in->sdi->channels = g_slist_append(in->sdi->channels, ch);
 	}

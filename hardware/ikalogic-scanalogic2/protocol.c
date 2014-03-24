@@ -89,7 +89,7 @@ static void process_sample_data(const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
-	uint8_t i, j, tmp, buffer[PACKET_NUM_SAMPLES], *ptr[NUM_PROBES];
+	uint8_t i, j, tmp, buffer[PACKET_NUM_SAMPLES], *ptr[NUM_CHANNELS];
 	uint16_t offset, n = 0;
 	int8_t k;
 
@@ -526,7 +526,7 @@ SR_PRIV void sl2_configure_trigger(const struct sr_dev_inst *sdi)
 	 * Set trigger to any edge on all channels if the trigger for each
 	 * channel is set to any edge.
 	 */
-	if (num_triggers_anyedge == NUM_PROBES) {
+	if (num_triggers_anyedge == NUM_CHANNELS) {
 		devc->trigger_channel = TRIGGER_CHANNEL_ALL;
 		devc->trigger_type = TRIGGER_TYPE_ANYEDGE;
 	}

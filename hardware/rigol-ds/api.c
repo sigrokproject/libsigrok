@@ -335,7 +335,7 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	for (i = 0; i < model->analog_channels; i++) {
 		if (!(channel_name = g_strdup_printf("CH%d", i + 1)))
 			return NULL;
-		ch = sr_channel_new(i, SR_PROBE_ANALOG, TRUE, channel_name);
+		ch = sr_channel_new(i, SR_CHANNEL_ANALOG, TRUE, channel_name);
 		sdi->channels = g_slist_append(sdi->channels, ch);
 		devc->analog_groups[i].name = channel_name;
 		devc->analog_groups[i].channels = g_slist_append(NULL, ch);
@@ -347,7 +347,7 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 		for (i = 0; i < 16; i++) {
 			if (!(channel_name = g_strdup_printf("D%d", i)))
 				return NULL;
-			ch = sr_channel_new(i, SR_PROBE_LOGIC, TRUE, channel_name);
+			ch = sr_channel_new(i, SR_CHANNEL_LOGIC, TRUE, channel_name);
 			g_free(channel_name);
 			if (!ch)
 				return NULL;
@@ -445,7 +445,7 @@ static int analog_frame_size(const struct sr_dev_inst *sdi)
 
 	for (l = sdi->channels; l; l = l->next) {
 		ch = l->data;
-		if (ch->type == SR_PROBE_ANALOG && ch->enabled)
+		if (ch->type == SR_CHANNEL_ANALOG && ch->enabled)
 			analog_channels++;
 	}
 
@@ -501,7 +501,7 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 		ch = g_slist_nth_data(cg->channels, 0);
 		if (!ch)
 			return SR_ERR;
-		if (ch->type == SR_PROBE_ANALOG) {
+		if (ch->type == SR_CHANNEL_ANALOG) {
 			if (ch->name[2] < '1' || ch->name[2] > '4')
 				return SR_ERR;
 			analog_channel = ch->name[2] - '1';
@@ -880,7 +880,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	for (l = sdi->channels; l; l = l->next) {
 		ch = l->data;
 		sr_dbg("handling channel %s", ch->name);
-		if (ch->type == SR_PROBE_ANALOG) {
+		if (ch->type == SR_CHANNEL_ANALOG) {
 			if (ch->enabled)
 				devc->enabled_analog_channels = g_slist_append(
 						devc->enabled_analog_channels, ch);
@@ -891,7 +891,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 					return SR_ERR;
 				devc->analog_channels[ch->index] = ch->enabled;
 			}
-		} else if (ch->type == SR_PROBE_LOGIC) {
+		} else if (ch->type == SR_CHANNEL_LOGIC) {
 			if (ch->enabled) {
 				devc->enabled_digital_channels = g_slist_append(
 						devc->enabled_digital_channels, ch);

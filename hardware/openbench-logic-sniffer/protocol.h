@@ -28,7 +28,7 @@
 
 #define LOG_PREFIX "ols"
 
-#define NUM_PROBES             32
+#define NUM_CHANNELS             32
 #define NUM_TRIGGER_STAGES     4
 #define TRIGGER_TYPE           "01"
 #define SERIAL_SPEED           B115200
@@ -56,7 +56,7 @@
 /* 12-13 unused, 14-15 RLE mode (we hardcode mode 0). */
 #define FLAG_INTERNAL_TEST_MODE    (1 << 11)
 #define FLAG_EXTERNAL_TEST_MODE    (1 << 10)
-#define FLAG_SWAP_PROBES           (1 << 9)
+#define FLAG_SWAP_CHANNELS           (1 << 9)
 #define FLAG_RLE                   (1 << 8)
 #define FLAG_SLOPE_FALLING         (1 << 7)
 #define FLAG_CLOCK_EXTERNAL        (1 << 6)
@@ -103,7 +103,7 @@ struct dev_context {
 };
 
 
-SR_PRIV extern const char *ols_channel_names[NUM_PROBES + 1];
+SR_PRIV extern const char *ols_channel_names[NUM_CHANNELS + 1];
 
 SR_PRIV int send_shortcommand(struct sr_serial_dev_inst *serial,
 		uint8_t command);

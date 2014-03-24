@@ -143,7 +143,7 @@ SR_API int sr_dev_probe_enable(const struct sr_dev_inst *sdi, int channelnum,
 			if (!state != !was_enabled && sdi->driver
 					&& sdi->driver->config_probe_set) {
 				ret = sdi->driver->config_probe_set(
-					sdi, ch, SR_PROBE_SET_ENABLED);
+					sdi, ch, SR_CHANNEL_SET_ENABLED);
 				/* Roll back change if it wasn't applicable. */
 				if (ret == SR_ERR_ARG)
 					ch->enabled = was_enabled;
@@ -195,7 +195,7 @@ SR_API int sr_dev_trigger_set(const struct sr_dev_inst *sdi, int channelnum,
 
 			if (sdi->driver && sdi->driver->config_probe_set) {
 				ret = sdi->driver->config_probe_set(
-					sdi, ch, SR_PROBE_SET_TRIGGER);
+					sdi, ch, SR_CHANNEL_SET_TRIGGER);
 				/* Roll back change if it wasn't applicable. */
 				if (ret == SR_ERR_ARG) {
 					g_free(ch->trigger);

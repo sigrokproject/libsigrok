@@ -92,7 +92,7 @@ SR_PRIV int init(struct sr_output *o, int default_spl, enum outputmode mode)
 
 	for (l = o->sdi->channels; l; l = l->next) {
 		ch = l->data;
-		if (ch->type != SR_PROBE_LOGIC)
+		if (ch->type != SR_CHANNEL_LOGIC)
 			continue;
 		if (!ch->enabled)
 			continue;

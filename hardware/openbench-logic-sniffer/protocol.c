@@ -203,7 +203,7 @@ SR_PRIV struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
 			case 0x00:
 				/* Number of usable channels */
 				for (ui = 0; ui < tmp_int; ui++) {
-					if (!(ch = sr_channel_new(ui, SR_PROBE_LOGIC, TRUE,
+					if (!(ch = sr_channel_new(ui, SR_CHANNEL_LOGIC, TRUE,
 							ols_channel_names[ui])))
 						return 0;
 					sdi->channels = g_slist_append(sdi->channels, ch);
@@ -241,7 +241,7 @@ SR_PRIV struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
 			case 0x00:
 				/* Number of usable channels */
 				for (ui = 0; ui < tmp_c; ui++) {
-					if (!(ch = sr_channel_new(ui, SR_PROBE_LOGIC, TRUE,
+					if (!(ch = sr_channel_new(ui, SR_CHANNEL_LOGIC, TRUE,
 							ols_channel_names[ui])))
 						return 0;
 					sdi->channels = g_slist_append(sdi->channels, ch);
@@ -284,13 +284,13 @@ SR_PRIV int ols_set_samplerate(const struct sr_dev_inst *sdi,
 		sr_info("Enabling demux mode.");
 		devc->flag_reg |= FLAG_DEMUX;
 		devc->flag_reg &= ~FLAG_FILTER;
-		devc->max_channels = NUM_PROBES / 2;
+		devc->max_channels = NUM_CHANNELS / 2;
 		devc->cur_samplerate_divider = (CLOCK_RATE * 2 / samplerate) - 1;
 	} else {
 		sr_info("Disabling demux mode.");
 		devc->flag_reg &= ~FLAG_DEMUX;
 		devc->flag_reg |= FLAG_FILTER;
-		devc->max_channels = NUM_PROBES;
+		devc->max_channels = NUM_CHANNELS;
 		devc->cur_samplerate_divider = (CLOCK_RATE / samplerate) - 1;
 	}
 
@@ -357,7 +357,7 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 	}
 
 	num_channels = 0;
-	for (i = NUM_PROBES; i > 0x02; i /= 2) {
+	for (i = NUM_CHANNELS; i > 0x02; i /= 2) {
 		if ((devc->flag_reg & i) == 0) {
 			num_channels++;
 		}

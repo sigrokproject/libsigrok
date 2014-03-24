@@ -37,7 +37,7 @@ static const int32_t hwcaps[] = {
  *
  * See also: http://www.linkinstruments.com/images/mso19_1113.gif
  */
-SR_PRIV const char *mso19_channel_names[NUM_PROBES + 1] = {
+SR_PRIV const char *mso19_channel_names[NUM_CHANNELS + 1] = {
 	/* Note: DSO needs to be first. */
 	"DSO", "0", "1", "2", "3", "4", "5", "6", "7", NULL,
 };
@@ -216,9 +216,9 @@ static GSList *scan(GSList *options)
 		sdi->driver = di;
 		sdi->priv = devc;
 
-		for (i = 0; i < NUM_PROBES; i++) {
+		for (i = 0; i < NUM_CHANNELS; i++) {
 			struct sr_channel *ch;
-			ptype = (i == 0) ? SR_PROBE_ANALOG : SR_PROBE_LOGIC;
+			ptype = (i == 0) ? SR_CHANNEL_ANALOG : SR_CHANNEL_LOGIC;
 			if (!(ch = sr_channel_new(i, ptype, TRUE,
 						   mso19_channel_names[i])))
 				return 0;

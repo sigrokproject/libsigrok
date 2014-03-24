@@ -220,7 +220,7 @@ GArray *srtest_get_enabled_logic_probes(const struct sr_dev_inst *sdi)
 	probes = g_array_new(FALSE, FALSE, sizeof(int));
 	for (l = sdi->probes; l; l = l->next) {
 		probe = l->data;
-		if (probe->type != SR_PROBE_LOGIC)
+		if (probe->type != SR_CHANNEL_LOGIC)
 			continue;
 		if (probe->enabled != TRUE)
 			continue;

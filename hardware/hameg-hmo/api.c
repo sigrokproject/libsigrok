@@ -575,12 +575,12 @@ SR_PRIV int hmo_request_data(const struct sr_dev_inst *sdi)
 	ch = devc->current_channel->data;
 
 	switch (ch->type) {
-	case SR_PROBE_ANALOG:
+	case SR_CHANNEL_ANALOG:
 		g_snprintf(command, sizeof(command),
 			   (*model->scpi_dialect)[SCPI_CMD_GET_ANALOG_DATA],
 			   ch->index + 1);
 		break;
-	case SR_PROBE_LOGIC:
+	case SR_CHANNEL_LOGIC:
 		g_snprintf(command, sizeof(command),
 			   (*model->scpi_dialect)[SCPI_CMD_GET_DIG_DATA],
 			   ch->index < 8 ? 1 : 2);
@@ -604,13 +604,13 @@ static int hmo_check_channels(GSList *channels)
 	for (l = channels; l; l = l->next) {
 		ch = l->data;
 		switch (ch->type) {
-		case SR_PROBE_ANALOG:
+		case SR_CHANNEL_ANALOG:
 			if (ch->index == 2)
 				enabled_chan3 = TRUE;
 			else if (ch->index == 3)
 				enabled_chan4 = TRUE;
 			break;
-		case SR_PROBE_LOGIC:
+		case SR_CHANNEL_LOGIC:
 			if (ch->index < 8)
 				enabled_pod1 = TRUE;
 			else
@@ -651,7 +651,7 @@ static int hmo_setup_channels(const struct sr_dev_inst *sdi)
 	for (l = sdi->channels; l; l = l->next) {
 		ch = l->data;
 		switch (ch->type) {
-		case SR_PROBE_ANALOG:
+		case SR_CHANNEL_ANALOG:
 			if (ch->enabled == state->analog_channels[ch->index].state)
 				break;
 			g_snprintf(command, sizeof(command),
@@ -663,7 +663,7 @@ static int hmo_setup_channels(const struct sr_dev_inst *sdi)
 			state->analog_channels[ch->index].state = ch->enabled;
 			setup_changed = TRUE;
 			break;
-		case SR_PROBE_LOGIC:
+		case SR_CHANNEL_LOGIC:
 			/*
 			 * A digital POD needs to be enabled for every group of
 			 * 8 channels.
@@ -728,10 +728,10 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		if (!ch->enabled)
 			continue;
 		/* Only add a single digital channel. */
-		if (ch->type != SR_PROBE_LOGIC || !digital_added) {
+		if (ch->type != SR_CHANNEL_LOGIC || !digital_added) {
 			devc->enabled_channels = g_slist_append(
 					devc->enabled_channels, ch);
-			if (ch->type == SR_PROBE_LOGIC)
+			if (ch->type == SR_CHANNEL_LOGIC)
 				digital_added = TRUE;
 		}
 	}

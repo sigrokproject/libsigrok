@@ -63,7 +63,7 @@ static int init(struct sr_output *o)
 
 	for (l = o->sdi->channels; l; l = l->next) {
 		ch = l->data;
-		if (ch->type != SR_PROBE_LOGIC)
+		if (ch->type != SR_CHANNEL_LOGIC)
 			continue;
 		if (!ch->enabled)
 			continue;
@@ -127,7 +127,7 @@ static int init(struct sr_output *o)
 	/* Wires / channels */
 	for (i = 0, l = o->sdi->channels; l; l = l->next, i++) {
 		ch = l->data;
-		if (ch->type != SR_PROBE_LOGIC)
+		if (ch->type != SR_CHANNEL_LOGIC)
 			continue;
 		if (!ch->enabled)
 			continue;

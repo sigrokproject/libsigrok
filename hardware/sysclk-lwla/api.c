@@ -85,7 +85,7 @@ static GSList *gen_channel_list(int num_channels)
 		/* The LWLA series simply number channels from CH1 to CHxx. */
 		g_snprintf(name, sizeof(name), "CH%d", i);
 
-		ch = sr_channel_new(i - 1, SR_PROBE_LOGIC, TRUE, name);
+		ch = sr_channel_new(i - 1, SR_CHANNEL_LOGIC, TRUE, name);
 		list = g_slist_prepend(list, ch);
 	}
 
@@ -118,7 +118,7 @@ static struct sr_dev_inst *dev_inst_new(int device_index)
 	devc->samplerate = DEFAULT_SAMPLERATE;
 
 	sdi->priv = devc;
-	sdi->channels = gen_channel_list(NUM_PROBES);
+	sdi->channels = gen_channel_list(NUM_CHANNELS);
 
 	return sdi;
 }
@@ -414,13 +414,13 @@ static int config_probe_set(const struct sr_dev_inst *sdi,
 	if (!devc)
 		return SR_ERR_DEV_CLOSED;
 
-	if (ch->index < 0 || ch->index >= NUM_PROBES) {
+	if (ch->index < 0 || ch->index >= NUM_CHANNELS) {
 		sr_err("Channel index %d out of range.", ch->index);
 		return SR_ERR_BUG;
 	}
 	channel_bit = (uint64_t)1 << ch->index;
 
-	if ((changes & SR_PROBE_SET_ENABLED) != 0) {
+	if ((changes & SR_CHANNEL_SET_ENABLED) != 0) {
 		/* Enable or disable input channel for this channel. */
 		if (ch->enabled)
 			devc->channel_mask |= channel_bit;
@@ -428,7 +428,7 @@ static int config_probe_set(const struct sr_dev_inst *sdi,
 			devc->channel_mask &= ~channel_bit;
 	}
 
-	if ((changes & SR_PROBE_SET_TRIGGER) != 0) {
+	if ((changes & SR_CHANNEL_SET_TRIGGER) != 0) {
 		trigger_mask = devc->trigger_mask & ~channel_bit;
 		trigger_values = devc->trigger_values & ~channel_bit;
 		trigger_edge_mask = devc->trigger_edge_mask & ~channel_bit;

@@ -117,7 +117,7 @@ SR_API int sr_session_load(const char *filename)
 	int ret, channelnum, devcnt, i, j;
 	uint64_t tmp_u64, total_channels, enabled_channels, p;
 	char **sections, **keys, *metafile, *val;
-	char channelname[SR_MAX_PROBENAME_LEN + 1];
+	char channelname[SR_MAX_CHANNELNAME_LEN + 1];
 
 	if ((ret = sr_sessionfile_check(filename)) != SR_OK)
 		return ret;
@@ -182,11 +182,11 @@ SR_API int sr_session_load(const char *filename)
 							g_variant_new_uint64(tmp_u64), sdi, NULL);
 				} else if (!strcmp(keys[j], "total probes")) {
 					total_channels = strtoull(val, NULL, 10);
-					sdi->driver->config_set(SR_CONF_NUM_LOGIC_PROBES,
+					sdi->driver->config_set(SR_CONF_NUM_LOGIC_CHANNELS,
 							g_variant_new_uint64(total_channels), sdi, NULL);
 					for (p = 0; p < total_channels; p++) {
-						snprintf(channelname, SR_MAX_PROBENAME_LEN, "%" PRIu64, p);
-						if (!(ch = sr_channel_new(p, SR_PROBE_LOGIC, TRUE,
+						snprintf(channelname, SR_MAX_CHANNELNAME_LEN, "%" PRIu64, p);
+						if (!(ch = sr_channel_new(p, SR_CHANNEL_LOGIC, TRUE,
 								channelname)))
 							return SR_ERR;
 						sdi->channels = g_slist_append(sdi->channels, ch);
@@ -254,7 +254,7 @@ SR_API int sr_session_save(const char *filename, const struct sr_dev_inst *sdi,
 	cnt = 0;
 	for (l = sdi->channels; l; l = l->next) {
 		ch = l->data;
-		if (ch->type != SR_PROBE_LOGIC)
+		if (ch->type != SR_CHANNEL_LOGIC)
 			continue;
 		if (ch->enabled != TRUE)
 			continue;

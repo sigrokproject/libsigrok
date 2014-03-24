@@ -114,7 +114,7 @@ static int init(struct sr_input *in, const char *filename)
 
 	for (i = 0; i < ctx->num_channels; i++) {
 		snprintf(channelname, 8, "CH%d", i + 1);
-		if (!(ch = sr_channel_new(0, SR_PROBE_ANALOG, TRUE, channelname)))
+		if (!(ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, channelname)))
 			return SR_ERR;
 		in->sdi->channels = g_slist_append(in->sdi->channels, ch);
 	}

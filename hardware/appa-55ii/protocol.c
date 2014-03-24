@@ -93,7 +93,7 @@ static void appa_55ii_live_data(struct sr_dev_inst *sdi, const uint8_t *buf)
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog analog;
 	struct sr_channel *ch;
-	float values[APPA_55II_NUM_PROBES], *val_ptr;
+	float values[APPA_55II_NUM_CHANNELS], *val_ptr;
 	int i;
 
 	devc = sdi->priv;
@@ -109,7 +109,7 @@ static void appa_55ii_live_data(struct sr_dev_inst *sdi, const uint8_t *buf)
 	analog.mqflags = appa_55ii_flags(buf);
 	analog.data = values;
 
-	for (i = 0; i < APPA_55II_NUM_PROBES; i++) {
+	for (i = 0; i < APPA_55II_NUM_CHANNELS; i++) {
 		ch = g_slist_nth_data(sdi->channels, i);
 		if (!ch->enabled)
 			continue;
@@ -139,7 +139,7 @@ static void appa_55ii_log_data_parse(struct sr_dev_inst *sdi)
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog analog;
 	struct sr_channel *ch;
-	float values[APPA_55II_NUM_PROBES], *val_ptr;
+	float values[APPA_55II_NUM_CHANNELS], *val_ptr;
 	const uint8_t *buf;
 	int16_t temp;
 	int offset, i;
@@ -160,7 +160,7 @@ static void appa_55ii_log_data_parse(struct sr_dev_inst *sdi)
 		analog.unit = SR_UNIT_CELSIUS;
 		analog.data = values;
 
-		for (i = 0; i < APPA_55II_NUM_PROBES; i++) {
+		for (i = 0; i < APPA_55II_NUM_CHANNELS; i++) {
 			temp = RL16(buf + 12 + 2 * i);
 			ch = g_slist_nth_data(sdi->channels, i);
 			if (!ch->enabled)

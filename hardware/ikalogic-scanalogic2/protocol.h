@@ -47,7 +47,7 @@
 #define USB_HID_REPORT_TYPE_FEATURE	0x300
 
 #define NUM_SAMPLERATES			11
-#define NUM_PROBES			4
+#define NUM_CHANNELS			4
 
 #define TRIGGER_TYPES			"rfc"
 
@@ -152,7 +152,7 @@ struct dev_context {
 	void *cb_data;
 
 	/* Array to provide an index based access to all channels. */
-	const struct sr_channel *channels[NUM_PROBES];
+	const struct sr_channel *channels[NUM_CHANNELS];
 
 	struct libusb_transfer *xfer_in, *xfer_out;
 
@@ -194,7 +194,7 @@ struct dev_context {
 	 * channel except the last one. The samples of the last channel will be
 	 * processed directly after they will be received.
 	 */
-	uint8_t sample_buffer[NUM_PROBES - 1][MAX_DEV_SAMPLE_BYTES];
+	uint8_t sample_buffer[NUM_CHANNELS - 1][MAX_DEV_SAMPLE_BYTES];
 
 	/* Expected number of sample packets for each channel. */
 	uint16_t num_sample_packets;
@@ -212,7 +212,7 @@ struct dev_context {
 	unsigned int num_enabled_channels;
 
 	/* Array to provide a sequential access to all enabled channel indices. */
-	uint8_t channel_map[NUM_PROBES];
+	uint8_t channel_map[NUM_CHANNELS];
 
 	/* Indicates whether a transfer failed. */
 	gboolean transfer_error;

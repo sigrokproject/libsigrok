@@ -81,7 +81,7 @@ enum {
 	 */
 };
 
-#define SR_MAX_PROBENAME_LEN 32
+#define SR_MAX_CHANNELNAME_LEN 32
 
 /* Handy little macros */
 #define SR_HZ(n)  (n)
@@ -600,16 +600,16 @@ struct sr_output_format {
 /** Constants for probe type. */
 enum {
 	/** Probe type is logic probe. */
-    SR_PROBE_LOGIC = 10000,
+    SR_CHANNEL_LOGIC = 10000,
 	/** Probe type is analog probe. */
-    SR_PROBE_ANALOG,
+    SR_CHANNEL_ANALOG,
 };
 
 /** Information on single channel. */
 struct sr_channel {
 	/** Number of channels, starting at 0. */
 	int index;
-	/** Channel type (SR_PROBE_LOGIC, ...) */
+	/** Channel type (SR_CHANNEL_LOGIC, ...) */
 	int type;
 	/** Is this channel enabled? */
 	gboolean enabled;
@@ -804,10 +804,10 @@ enum {
 	SR_CONF_CENTER_FREQUENCY,
 
 	/** The device supports setting the number of logic probes. */
-	SR_CONF_NUM_LOGIC_PROBES,
+	SR_CONF_NUM_LOGIC_CHANNELS,
 
 	/** The device supports setting the number of analog probes. */
-	SR_CONF_NUM_ANALOG_PROBES,
+	SR_CONF_NUM_ANALOG_CHANNELS,
 
 	/** Output voltage. */
 	SR_CONF_OUTPUT_VOLTAGE,

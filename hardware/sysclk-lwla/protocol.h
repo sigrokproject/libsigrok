@@ -37,16 +37,16 @@
 #define USB_INTERFACE	0
 #define USB_TIMEOUT	3000 /* ms */
 
-#define NUM_PROBES	34
+#define NUM_CHANNELS	34
 #define TRIGGER_TYPES	"01fr"
 
 /* Bit mask covering all 34 channels.
  */
-#define ALL_CHANNELS_MASK (((uint64_t)1 << NUM_PROBES) - 1)
+#define ALL_CHANNELS_MASK (((uint64_t)1 << NUM_CHANNELS) - 1)
 
 /** Unit and packet size for the sigrok logic datafeed.
  */
-#define UNIT_SIZE	((NUM_PROBES + 7) / 8)
+#define UNIT_SIZE	((NUM_CHANNELS + 7) / 8)
 #define PACKET_LENGTH	10000	/* units */
 
 /** Size of the acquisition buffer in device memory units.

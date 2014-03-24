@@ -545,7 +545,7 @@ static int process_sample_data(const struct sr_dev_inst *sdi)
 
 		if (acq->rle == RLE_STATE_DATA) {
 			acq->sample = word & ALL_CHANNELS_MASK;
-			acq->run_len = ((word >> NUM_PROBES) & 1) + 1;
+			acq->run_len = ((word >> NUM_CHANNELS) & 1) + 1;
 			if (word & RLE_FLAG_LEN_FOLLOWS)
 				acq->rle = RLE_STATE_LEN;
 		} else {

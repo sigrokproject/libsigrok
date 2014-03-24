@@ -62,7 +62,7 @@ static const char *patterns[] = {
 };
 
 /* Channels are numbered 0-31 (on the PCB silkscreen). */
-SR_PRIV const char *ols_channel_names[NUM_PROBES + 1] = {
+SR_PRIV const char *ols_channel_names[NUM_CHANNELS + 1] = {
 	"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12",
 	"13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23",
 	"24", "25", "26", "27", "28", "29", "30", "31",
@@ -177,7 +177,7 @@ static GSList *scan(GSList *options)
 				"Sump", "Logic Analyzer", "v1.0");
 		sdi->driver = di;
 		for (i = 0; i < 32; i++) {
-			if (!(ch = sr_channel_new(i, SR_PROBE_LOGIC, TRUE,
+			if (!(ch = sr_channel_new(i, SR_CHANNEL_LOGIC, TRUE,
 					ols_channel_names[i])))
 				return 0;
 			sdi->channels = g_slist_append(sdi->channels, ch);
@@ -323,10 +323,10 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 	case SR_CONF_SWAP:
 		if (g_variant_get_boolean(data)) {
 			sr_info("Enabling channel swapping.");
-			devc->flag_reg |= FLAG_SWAP_PROBES;
+			devc->flag_reg |= FLAG_SWAP_CHANNELS;
 		} else {
 			sr_info("Disabling channel swapping.");
-			devc->flag_reg &= ~FLAG_SWAP_PROBES;
+			devc->flag_reg &= ~FLAG_SWAP_CHANNELS;
 		}
 		ret = SR_OK;
 		break;

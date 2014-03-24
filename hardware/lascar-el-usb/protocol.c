@@ -330,18 +330,18 @@ static struct sr_dev_inst *lascar_identify(unsigned char *config)
 
 		if (profile->logformat == LOG_TEMP_RH) {
 			/* Model this as two channels: temperature and humidity. */
-			if (!(ch = sr_channel_new(0, SR_PROBE_ANALOG, TRUE, "Temp")))
+			if (!(ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "Temp")))
 				return NULL;
 			sdi->channels = g_slist_append(NULL, ch);
-			if (!(ch = sr_channel_new(0, SR_PROBE_ANALOG, TRUE, "Hum")))
+			if (!(ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "Hum")))
 				return NULL;
 			sdi->channels = g_slist_append(sdi->channels, ch);
 		} else if (profile->logformat == LOG_CO) {
-			if (!(ch = sr_channel_new(0, SR_PROBE_ANALOG, TRUE, "CO")))
+			if (!(ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "CO")))
 				return NULL;
 			sdi->channels = g_slist_append(NULL, ch);
 		} else {
-			if (!(ch = sr_channel_new(0, SR_PROBE_ANALOG, TRUE, "P1")))
+			if (!(ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "P1")))
 				return NULL;
 			sdi->channels = g_slist_append(NULL, ch);
 		}
