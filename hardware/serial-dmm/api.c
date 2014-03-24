@@ -59,6 +59,7 @@ SR_PRIV struct sr_dev_driver radioshack_22_812_driver_info;
 SR_PRIV struct sr_dev_driver tecpel_dmm_8061_ser_driver_info;
 SR_PRIV struct sr_dev_driver voltcraft_m3650d_driver_info;
 SR_PRIV struct sr_dev_driver voltcraft_m4650cr_driver_info;
+SR_PRIV struct sr_dev_driver voltcraft_me42_driver_info;
 SR_PRIV struct sr_dev_driver voltcraft_vc820_ser_driver_info;
 SR_PRIV struct sr_dev_driver voltcraft_vc830_ser_driver_info;
 SR_PRIV struct sr_dev_driver voltcraft_vc840_ser_driver_info;
@@ -200,6 +201,13 @@ SR_PRIV struct dmm_info dmms[] = {
 		sr_metex14_packet_valid, sr_metex14_parse,
 		NULL,
 		&voltcraft_m4650cr_driver_info, receive_data_VOLTCRAFT_M4650CR,
+	},
+	{
+		"Voltcraft", "ME-42", "600/7n2/rts=0/dtr=1", 600,
+		METEX14_PACKET_SIZE, sr_metex14_packet_request,
+		sr_metex14_packet_valid, sr_metex14_parse,
+		NULL,
+		&voltcraft_me42_driver_info, receive_data_VOLTCRAFT_ME42,
 	},
 	{
 		"Voltcraft", "VC-820 (UT-D02 cable)", "2400/8n1/rts=0/dtr=1",
@@ -599,6 +607,7 @@ DRV(radioshack_22_812, RADIOSHACK_22_812, "radioshack-22-812", "RadioShack 22-81
 DRV(tecpel_dmm_8061_ser, TECPEL_DMM_8061_SER, "tecpel-dmm-8061-ser", "Tecpel DMM-8061 (UT-D02 cable)")
 DRV(voltcraft_m3650d, VOLTCRAFT_M3650D, "voltcraft-m3650d", "Voltcraft M-3650D")
 DRV(voltcraft_m4650cr, VOLTCRAFT_M4650CR, "voltcraft-m4650cr", "Voltcraft M-4650CR")
+DRV(voltcraft_me42, VOLTCRAFT_ME42, "voltcraft-me42", "Voltcraft ME-42")
 DRV(voltcraft_vc820_ser, VOLTCRAFT_VC820_SER, "voltcraft-vc820-ser", "Voltcraft VC-820 (UT-D02 cable)")
 DRV(voltcraft_vc830_ser, VOLTCRAFT_VC830_SER, "voltcraft-vc830-ser", "Voltcraft VC-830 (UT-D02 cable)")
 DRV(voltcraft_vc840_ser, VOLTCRAFT_VC840_SER, "voltcraft-vc840-ser", "Voltcraft VC-840 (UT-D02 cable)")
