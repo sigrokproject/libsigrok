@@ -24,7 +24,7 @@
 #include "libsigrok-internal.h"
 #include "protocol.h"
 
-/* Probes are numbered 0-7. */
+/* Channels are numbered 0-7. */
 SR_PRIV const char *chronovu_la8_channel_names[NUM_CHANNELS + 1] = {
 	"0", "1", "2", "3", "4", "5", "6", "7",
 	NULL,

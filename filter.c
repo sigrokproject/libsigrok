@@ -29,39 +29,39 @@
 /**
  * @file
  *
- * Helper functions to filter out unused probes from samples.
+ * Helper functions to filter out unused channels from samples.
  */
 
 /**
- * @defgroup grp_filter Probe filter
+ * @defgroup grp_filter Channel filter
  *
- * Helper functions to filter out unused probes from samples.
+ * Helper functions to filter out unused channels from samples.
  *
  * @{
  */
 
 /**
- * Remove unused probes from samples.
+ * Remove unused channels from samples.
  *
- * Convert sample from maximum probes -- the way the hardware driver sent
+ * Convert sample from maximum channels -- the way the hardware driver sent
  * it -- to a sample taking up only as much space as required, with
- * unused probes removed.
+ * unused channels removed.
  *
- * The "unit size" is the number of bytes used to store probe values.
+ * The "unit size" is the number of bytes used to store channel values.
  * For example, a unit size of 1 means one byte is used (which can store
- * 8 probe values, each of them is 1 bit). A unit size of 2 means we can
- * store 16 probe values, 3 means we can store 24 probe values, and so on.
+ * 8 channel values, each of them is 1 bit). A unit size of 2 means we can
+ * store 16 channel values, 3 means we can store 24 channel values, and so on.
  *
  * If the data coming from the logic analyzer has a unit size of 4 for
- * example (as the device has 32 probes), but only 2 of them are actually
+ * example (as the device has 32 channels), but only 2 of them are actually
  * used in an acquisition, this function can convert the samples to only
  * use up 1 byte per sample (unit size = 1) instead of 4 bytes per sample.
  *
- * The output will contain the probe values in the order specified via the
- * probelist. For example, if in_unitsize = 4, probelist = [5, 16, 30], and
+ * The output will contain the channel values in the order specified via the
+ * channellist. For example, if in_unitsize = 4, channellist = [5, 16, 30], and
  * out_unitsize = 1, then the output samples (each of them one byte in size)
- * will have the following format: bit 0 = value of probe 5, bit 1 = value
- * of probe 16, bit 2 = value of probe 30. Unused bit(s) in the output byte(s)
+ * will have the following format: bit 0 = value of channel 5, bit 1 = value
+ * of channel 16, bit 2 = value of channel 30. Unused bit(s) in the output byte(s)
  * are zero.
  *
  * The caller must make sure that length_in is not bigger than the memory
@@ -72,8 +72,8 @@
  * @param out_unitsize The unit size (>= 1) the output shall have (data_out).
  *                     The requested unit size must be big enough to hold as
  *                     much data as is specified by the number of enabled
- *                     probes in 'probelist'.
- * @param probe_array Pointer to a list of probe numbers, numbered starting
+ *                     channels in 'channellist'.
+ * @param channel_array Pointer to a list of channel numbers, numbered starting
  *                    from 0. The list is terminated with -1.
  * @param data_in Pointer to the input data buffer. Must not be NULL.
  * @param length_in The input data length (>= 1), in number of bytes.
@@ -92,20 +92,20 @@
  * @since 0.2.0
  */
 SR_API int sr_filter_channels(unsigned int in_unitsize, unsigned int out_unitsize,
-			    const GArray *probe_array, const uint8_t *data_in,
+			    const GArray *channel_array, const uint8_t *data_in,
 			    uint64_t length_in, uint8_t **data_out,
 			    uint64_t *length_out)
 {
 	unsigned int in_offset, out_offset;
-	int *probelist, out_bit;
+	int *channellist, out_bit;
 	unsigned int i;
 	uint8_t *sample_in, *sample_out;
 
-	if (!probe_array) {
-		sr_err("%s: probe_array was NULL", __func__);
+	if (!channel_array) {
+		sr_err("%s: channel_array was NULL", __func__);
 		return SR_ERR_ARG;
 	}
-	probelist = (int *)probe_array->data;
+	channellist = (int *)channel_array->data;
 
 	if (!data_in) {
 		sr_err("%s: data_in was NULL", __func__);
@@ -122,10 +122,10 @@ SR_API int sr_filter_channels(unsigned int in_unitsize, unsigned int out_unitsiz
 		return SR_ERR_ARG;
 	}
 
-	/* Are there more probes than the target unit size supports? */
-	if (probe_array->len > out_unitsize * 8) {
-		sr_err("%s: too many probes (%d) for the target unit "
-		       "size (%d)", __func__, probe_array->len, out_unitsize);
+	/* Are there more channels than the target unit size supports? */
+	if (channel_array->len > out_unitsize * 8) {
+		sr_err("%s: too many channels (%d) for the target unit "
+		       "size (%d)", __func__, channel_array->len, out_unitsize);
 		return SR_ERR_ARG;
 	}
 
@@ -134,22 +134,22 @@ SR_API int sr_filter_channels(unsigned int in_unitsize, unsigned int out_unitsiz
 		return SR_ERR_MALLOC;
 	}
 
-	if (probe_array->len == in_unitsize * 8) {
-		/* All probes are used -- no need to compress anything. */
+	if (channel_array->len == in_unitsize * 8) {
+		/* All channels are used -- no need to compress anything. */
 		memcpy(*data_out, data_in, length_in);
 		*length_out = length_in;
 		return SR_OK;
 	}
 
-	/* If we reached this point, not all probes are used, so "compress". */
+	/* If we reached this point, not all channels are used, so "compress". */
 	in_offset = out_offset = 0;
 	while (in_offset <= length_in - in_unitsize) {
 		sample_in = (uint8_t *)data_in + in_offset;
 		sample_out = (*data_out) + out_offset;
 		memset(sample_out, 0, out_unitsize);
 		out_bit = 0;
-		for (i = 0; i < probe_array->len; i++) {
-			if (sample_in[probelist[i]>>3] & (1 << (probelist[i]&7)))
+		for (i = 0; i < channel_array->len; i++) {
+			if (sample_in[channellist[i]>>3] & (1 << (channellist[i]&7)))
 				sample_out[out_bit>>3] |= (1 << (out_bit&7));
 			out_bit++;
 		}

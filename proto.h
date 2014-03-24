@@ -46,10 +46,10 @@ SR_API char *sr_log_logdomain_get(void);
 /*--- device.c --------------------------------------------------------------*/
 
 SR_API int sr_dev_channel_name_set(const struct sr_dev_inst *sdi,
-		int probenum, const char *name);
-SR_API int sr_dev_channel_enable(const struct sr_dev_inst *sdi, int probenum,
+		int channelnum, const char *name);
+SR_API int sr_dev_channel_enable(const struct sr_dev_inst *sdi, int channelnum,
 		gboolean state);
-SR_API int sr_dev_trigger_set(const struct sr_dev_inst *sdi, int probenum,
+SR_API int sr_dev_trigger_set(const struct sr_dev_inst *sdi, int channelnum,
 		const char *trigger);
 SR_API gboolean sr_dev_has_option(const struct sr_dev_inst *sdi, int key);
 SR_API GSList *sr_dev_list(const struct sr_dev_driver *driver);
@@ -60,7 +60,7 @@ SR_API int sr_dev_close(struct sr_dev_inst *sdi);
 /*--- filter.c --------------------------------------------------------------*/
 
 SR_API int sr_filter_channels(unsigned int in_unitsize, unsigned int out_unitsize,
-			    const GArray *probe_array, const uint8_t *data_in,
+			    const GArray *channel_array, const uint8_t *data_in,
 			    uint64_t length_in, uint8_t **data_out,
 			    uint64_t *length_out);
 
@@ -110,7 +110,7 @@ SR_API int sr_session_stop(void);
 SR_API int sr_session_save(const char *filename, const struct sr_dev_inst *sdi,
 		unsigned char *buf, int unitsize, int units);
 SR_API int sr_session_save_init(const char *filename, uint64_t samplerate,
-		char **probes);
+		char **channels);
 SR_API int sr_session_append(const char *filename, unsigned char *buf,
 		int unitsize, int units);
 SR_API int sr_session_source_add(int fd, int events, int timeout,

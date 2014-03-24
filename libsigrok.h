@@ -597,12 +597,12 @@ struct sr_output_format {
 	int (*cleanup) (struct sr_output *o);
 };
 
-/** Constants for probe type. */
+/** Constants for channel type. */
 enum {
-	/** Probe type is logic probe. */
-    SR_CHANNEL_LOGIC = 10000,
-	/** Probe type is analog probe. */
-    SR_CHANNEL_ANALOG,
+	/** Channel type is logic channel. */
+	SR_CHANNEL_LOGIC = 10000,
+	/** Channel type is analog channel. */
+	SR_CHANNEL_ANALOG,
 };
 
 /** Information on single channel. */
@@ -803,10 +803,10 @@ enum {
 	 */
 	SR_CONF_CENTER_FREQUENCY,
 
-	/** The device supports setting the number of logic probes. */
+	/** The device supports setting the number of logic channels. */
 	SR_CONF_NUM_LOGIC_CHANNELS,
 
-	/** The device supports setting the number of analog probes. */
+	/** The device supports setting the number of analog channels. */
 	SR_CONF_NUM_ANALOG_CHANNELS,
 
 	/** Output voltage. */
@@ -992,7 +992,7 @@ struct sr_dev_driver {
 	int (*config_set) (int id, GVariant *data,
 			const struct sr_dev_inst *sdi,
 			const struct sr_channel_group *cg);
-	/** Probe status change.
+	/** Channel status change.
 	 *  @see sr_dev_channel_enable(), sr_dev_trigger_set(). */
 	int (*config_channel_set) (const struct sr_dev_inst *sdi,
 			struct sr_channel *ch, unsigned int changes);

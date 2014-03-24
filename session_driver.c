@@ -41,7 +41,7 @@ struct session_vdev {
 	int bytes_read;
 	uint64_t samplerate;
 	int unitsize;
-	int num_probes;
+	int num_channels;
 	int cur_chunk;
 	gboolean finished;
 };
@@ -260,7 +260,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 		vdev->unitsize = g_variant_get_uint64(data);
 		break;
 	case SR_CONF_NUM_LOGIC_CHANNELS:
-		vdev->num_probes = g_variant_get_uint64(data);
+		vdev->num_channels = g_variant_get_uint64(data);
 		break;
 	default:
 		return SR_ERR_NA;

@@ -34,7 +34,7 @@ static struct sr_context *sr_ctx;
 
 static uint64_t df_packet_counter = 0, sample_counter = 0;
 static gboolean have_seen_df_end = FALSE;
-static GArray *logic_probelist = NULL;
+static GArray *logic_channellist = NULL;
 static int check_to_perform;
 static uint64_t expected_samples;
 static uint64_t *expected_samplerate;
@@ -123,10 +123,10 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 		// g_debug("Received SR_DF_HEADER.");
 		// fail_unless(p != NULL, "SR_DF_HEADER payload was NULL.");
 
-		logic_probelist = srtest_get_enabled_logic_probes(sdi);
-		fail_unless(logic_probelist != NULL);
-		fail_unless(logic_probelist->len != 0);
-		// g_debug("Enabled probes: %d.", logic_probelist->len);
+		logic_channellist = srtest_get_enabled_logic_channels(sdi);
+		fail_unless(logic_channellist != NULL);
+		fail_unless(logic_channellist->len != 0);
+		// g_debug("Enabled channels: %d.", logic_channellist->len);
 		break;
 	case SR_DF_META:
 		// g_debug("Received SR_DF_META.");
@@ -208,7 +208,7 @@ static void check_buf(const char *filename, GHashTable *param,
 	/* Initialize global variables for this run. */
 	df_packet_counter = sample_counter = 0;
 	have_seen_df_end = FALSE;
-	logic_probelist = NULL;
+	logic_channellist = NULL;
 	check_to_perform = check;
 	expected_samples = samples;
 	expected_samplerate = samplerate;

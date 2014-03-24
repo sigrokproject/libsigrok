@@ -39,7 +39,7 @@ void srtest_check_samplerate(struct sr_context *sr_ctx, const char *drivername,
 			     uint64_t samplerate);
 
 void srtest_buf_to_file(const char *filename, const uint8_t *buf, uint64_t len);
-GArray *srtest_get_enabled_logic_probes(const struct sr_dev_inst *sdi);
+GArray *srtest_get_enabled_logic_channels(const struct sr_dev_inst *sdi);
 
 Suite *suite_core(void);
 Suite *suite_driver_all(void);

@@ -101,7 +101,7 @@ static GSList *scan(GSList *options)
 	GSList *l;
 	struct sr_config *src;
 	struct udev *udev;
-	int ptype;
+	int chtype;
 
 	for (l = options; l; l = l->next) {
 		src = l->data;
@@ -218,8 +218,8 @@ static GSList *scan(GSList *options)
 
 		for (i = 0; i < NUM_CHANNELS; i++) {
 			struct sr_channel *ch;
-			ptype = (i == 0) ? SR_CHANNEL_ANALOG : SR_CHANNEL_LOGIC;
-			if (!(ch = sr_channel_new(i, ptype, TRUE,
+			chtype = (i == 0) ? SR_CHANNEL_ANALOG : SR_CHANNEL_LOGIC;
+			if (!(ch = sr_channel_new(i, chtype, TRUE,
 						   mso19_channel_names[i])))
 				return 0;
 			sdi->channels = g_slist_append(sdi->channels, ch);

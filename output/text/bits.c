@@ -46,7 +46,7 @@ SR_PRIV int data_bits(struct sr_output *o, const uint8_t *data_in,
 	max_linelen = SR_MAX_CHANNELNAME_LEN + 3 + ctx->samples_per_line
 			+ ctx->samples_per_line / 8;
         /*
-         * Calculate space needed for probes. Set aside 512 bytes for
+         * Calculate space needed for channels. Set aside 512 bytes for
          * extra output, e.g. trigger.
          */
 	outsize = 512 + (1 + (length_in / ctx->unitsize) / ctx->samples_per_line)

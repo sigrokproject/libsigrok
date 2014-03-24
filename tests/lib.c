@@ -211,21 +211,21 @@ void srtest_buf_to_file(const char *filename, const uint8_t *buf, uint64_t len)
 	fclose(f);
 }
 
-GArray *srtest_get_enabled_logic_probes(const struct sr_dev_inst *sdi)
+GArray *srtest_get_enabled_logic_channels(const struct sr_dev_inst *sdi)
 {
 	struct sr_channel *ch;
-	GArray *probes;
+	GArray *channels;
 	GSList *l;
 
-	probes = g_array_new(FALSE, FALSE, sizeof(int));
-	for (l = sdi->probes; l; l = l->next) {
-		probe = l->data;
-		if (probe->type != SR_CHANNEL_LOGIC)
+	channels = g_array_new(FALSE, FALSE, sizeof(int));
+	for (l = sdi->channels; l; l = l->next) {
+		ch = l->data;
+		if (ch->type != SR_CHANNEL_LOGIC)
 			continue;
-		if (probe->enabled != TRUE)
+		if (ch->enabled != TRUE)
 			continue;
-		g_array_append_val(probes, probe->index);
+		g_array_append_val(channels, ch->index);
 	}
 
-	return probes;
+	return channels;
 }
