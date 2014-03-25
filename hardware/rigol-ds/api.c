@@ -143,6 +143,11 @@ static const char *trigger_sources[] = {
 	"D15",
 };
 
+static const char *trigger_slopes[] = {
+	"r",
+	"f",
+};
+
 static const char *coupling[] = {
 	"AC",
 	"DC",
@@ -546,6 +551,15 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 			tmp_str = devc->trigger_source;
 		*data = g_variant_new_string(tmp_str);
 		break;
+	case SR_CONF_TRIGGER_SLOPE:
+		if (!strcmp(devc->trigger_slope, "POS"))
+			tmp_str = "r";
+		else if (!strcmp(devc->trigger_slope, "NEG"))
+			tmp_str = "f";
+		else
+			return SR_ERR_NA;
+		*data = g_variant_new_string(tmp_str);
+		break;
 	case SR_CONF_TIMEBASE:
 		for (i = 0; i < devc->num_timebases; i++) {
 			float tb = (float)devc->timebases[i][0] / devc->timebases[i][1];
@@ -837,6 +851,9 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 			return SR_ERR_ARG;
 		*data = g_variant_new_strv(trigger_sources,
 				devc->model->has_digital ? ARRAY_SIZE(trigger_sources) : 4);
+		break;
+	case SR_CONF_TRIGGER_SLOPE:
+		*data = g_variant_new_strv(trigger_slopes, ARRAY_SIZE(trigger_slopes));
 		break;
 	case SR_CONF_DATA_SOURCE:
 		if (!devc)
