@@ -50,7 +50,7 @@ enum {
 	/**
 	 * Spells "sigrok" across 8 channels using '0's (with '1's as
 	 * "background") when displayed using the 'bits' output format.
-	 * The pattern is repeasted every 8 channels, shifted to the right
+	 * The pattern is repeated every 8 channels, shifted to the right
 	 * in time by one bit.
 	 */
 	PATTERN_SIGROK,
@@ -59,7 +59,7 @@ enum {
 	PATTERN_RANDOM,
 
 	/**
-	 * Incrementing number across 8 channels. The pattern is repeasted
+	 * Incrementing number across 8 channels. The pattern is repeated
 	 * every 8 channels, shifted to the right in time by one bit.
 	 */
 	PATTERN_INC,
