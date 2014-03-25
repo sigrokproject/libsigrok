@@ -40,7 +40,7 @@ static const char *hameg_scpi_dialect[] = {
 	[SCPI_CMD_SET_DIG_CHAN_STATE]	    = ":LOG%d:STAT %d",
 	[SCPI_CMD_GET_VERTICAL_OFFSET]	    = ":CHAN%d:POS?",
 	[SCPI_CMD_GET_HORIZ_TRIGGERPOS]	    = ":TIM:POS?",
-	[SCPI_CMD_SET_HORIZ_TRIGGERPOS]	    = ":TIM:POS %E",
+	[SCPI_CMD_SET_HORIZ_TRIGGERPOS]	    = ":TIM:POS %s",
 	[SCPI_CMD_GET_ANALOG_CHAN_STATE]    = ":CHAN%d:STAT?",
 	[SCPI_CMD_SET_ANALOG_CHAN_STATE]    = ":CHAN%d:STAT %d",
 };
@@ -291,7 +291,7 @@ static void scope_state_dump(struct scope_config *config,
 	sr_info("Current samplerate: %s", tmp);
 	g_free(tmp);
 
-	sr_info("Current trigger: %s (source), %s (slope) %2.2e (offset)",
+	sr_info("Current trigger: %s (source), %s (slope) %.2f (offset)",
 		(*config->trigger_sources)[state->trigger_source],
 		(*config->trigger_slopes)[state->trigger_slope],
 		state->horiz_triggerpos);
@@ -507,8 +507,13 @@ SR_PRIV int hmo_scope_state_get(struct sr_dev_inst *sdi)
 
 	if (sr_scpi_get_float(sdi->conn,
 			(*config->scpi_dialect)[SCPI_CMD_GET_HORIZ_TRIGGERPOS],
-			&state->horiz_triggerpos) != SR_OK)
+			&tmp_float) != SR_OK)
 		return SR_ERR;
+	state->horiz_triggerpos = tmp_float /
+		(((double) (*config->timebases)[state->timebase][0] /
+		  (*config->timebases)[state->timebase][1]) * config->num_xdivs);
+	state->horiz_triggerpos -= 0.5;
+	state->horiz_triggerpos *= -1;
 
 	if (scope_state_get_array_option(sdi->conn,
 			(*config->scpi_dialect)[SCPI_CMD_GET_TRIGGER_SOURCE],

@@ -400,10 +400,16 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 		if (tmp_d < 0.0 || tmp_d > 1.0)
 			return SR_ERR;
 
-		state->horiz_triggerpos = -(tmp_d - 0.5) * state->timebase * model->num_xdivs;
+		state->horiz_triggerpos = tmp_d;
+		tmp_d = -(tmp_d - 0.5) *
+			((double) (*model->timebases)[state->timebase][0] /
+			(*model->timebases)[state->timebase][1])
+			 * model->num_xdivs;
+
+		g_ascii_formatd(float_str, sizeof(float_str), "%E", tmp_d);
 		g_snprintf(command, sizeof(command),
 			   (*model->scpi_dialect)[SCPI_CMD_SET_HORIZ_TRIGGERPOS],
-			   state->horiz_triggerpos);
+			   float_str);
 
 		ret = sr_scpi_send(sdi->conn, command);
 		break;
