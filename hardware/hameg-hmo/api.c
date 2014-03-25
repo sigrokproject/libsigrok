@@ -511,6 +511,10 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		*data = g_variant_new_strv(*model->trigger_sources,
 			   g_strv_length((char **)*model->trigger_sources));
 		break;
+	case SR_CONF_TRIGGER_SLOPE:
+		*data = g_variant_new_strv(*model->trigger_slopes,
+			   g_strv_length((char **)*model->trigger_slopes));
+		break;
 	case SR_CONF_TIMEBASE:
 		*data = build_tuples(model->timebases, model->num_timebases);
 		break;
