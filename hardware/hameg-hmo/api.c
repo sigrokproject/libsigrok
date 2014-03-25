@@ -231,6 +231,11 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		*data = g_variant_new_int32(model->num_xdivs);
 		ret = SR_OK;
 		break;
+	case SR_CONF_TIMEBASE:
+		*data = g_variant_new("(tt)", (*model->timebases)[state->timebase][0],
+				      (*model->timebases)[state->timebase][1]);
+		ret = SR_OK;
+		break;
 	case SR_CONF_NUM_VDIV:
 		if (pg_type == PG_NONE) {
 			sr_err("No probe group specified.");
@@ -248,8 +253,35 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 			ret = SR_ERR_NA;
 		}
 		break;
+	case SR_CONF_VDIV:
+		if (pg_type == PG_NONE) {
+			sr_err("No probe group specified.");
+			return SR_ERR_PROBE_GROUP;
+		} else if (pg_type == PG_ANALOG) {
+			for (i = 0; i < model->analog_channels; ++i) {
+				if (probe_group != &devc->analog_groups[i])
+					continue;
+				*data = g_variant_new("(tt)",
+						      (*model->vdivs)[state->analog_channels[i].vdiv][0],
+						      (*model->vdivs)[state->analog_channels[i].vdiv][1]);
+				ret = SR_OK;
+				break;
+			}
+
+		} else {
+			ret = SR_ERR_NA;
+		}
+		break;
 	case SR_CONF_TRIGGER_SOURCE:
 		*data = g_variant_new_string((*model->trigger_sources)[state->trigger_source]);
+		ret = SR_OK;
+		break;
+	case SR_CONF_TRIGGER_SLOPE:
+		*data = g_variant_new_string((*model->trigger_slopes)[state->trigger_slope]);
+		ret = SR_OK;
+		break;
+	case SR_CONF_HORIZ_TRIGGERPOS:
+		*data = g_variant_new_double(state->horiz_triggerpos);
 		ret = SR_OK;
 		break;
 	case SR_CONF_COUPLING:
