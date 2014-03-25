@@ -35,10 +35,10 @@ static const int32_t hwopts[] = {
 };
 
 enum {
-	PG_INVALID = -1,
-	PG_NONE,
-	PG_ANALOG,
-	PG_DIGITAL,
+	CG_INVALID = -1,
+	CG_NONE,
+	CG_ANALOG,
+	CG_DIGITAL,
 };
 
 static int init(struct sr_context *sr_ctx)
@@ -192,25 +192,25 @@ static int check_channel_group(struct dev_context *devc,
 	model = devc->model_config;
 
 	if (!cg)
-		return PG_NONE;
+		return CG_NONE;
 
 	for (i = 0; i < model->analog_channels; ++i)
 		if (cg == &devc->analog_groups[i])
-			return PG_ANALOG;
+			return CG_ANALOG;
 
 	for (i = 0; i < model->digital_pods; ++i)
 		if (cg == &devc->digital_groups[i])
-			return PG_DIGITAL;
+			return CG_DIGITAL;
 
 	sr_err("Invalid channel group specified.");
 
-	return PG_INVALID;
+	return CG_INVALID;
 }
 
 static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		      const struct sr_channel_group *cg)
 {
-	int ret, pg_type;
+	int ret, cg_type;
 	unsigned int i;
 	struct dev_context *devc;
 	struct scope_config *model;
@@ -219,7 +219,7 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	if (!sdi || !(devc = sdi->priv))
 		return SR_ERR_ARG;
 
-	if ((pg_type = check_channel_group(devc, cg)) == PG_INVALID)
+	if ((cg_type = check_channel_group(devc, cg)) == CG_INVALID)
 		return SR_ERR;
 
 	ret = SR_ERR_NA;
@@ -237,10 +237,10 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		ret = SR_OK;
 		break;
 	case SR_CONF_NUM_VDIV:
-		if (pg_type == PG_NONE) {
+		if (cg_type == CG_NONE) {
 			sr_err("No channel group specified.");
 			return SR_ERR_CHANNEL_GROUP;
-		} else if (pg_type == PG_ANALOG) {
+		} else if (cg_type == CG_ANALOG) {
 			for (i = 0; i < model->analog_channels; ++i) {
 				if (cg != &devc->analog_groups[i])
 					continue;
@@ -254,12 +254,12 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		}
 		break;
 	case SR_CONF_VDIV:
-		if (pg_type == PG_NONE) {
-			sr_err("No probe group specified.");
-			return SR_ERR_PROBE_GROUP;
-		} else if (pg_type == PG_ANALOG) {
+		if (cg_type == CG_NONE) {
+			sr_err("No channel group specified.");
+			return SR_ERR_CHANNEL_GROUP;
+		} else if (cg_type == CG_ANALOG) {
 			for (i = 0; i < model->analog_channels; ++i) {
-				if (probe_group != &devc->analog_groups[i])
+				if (cg != &devc->analog_groups[i])
 					continue;
 				*data = g_variant_new("(tt)",
 						      (*model->vdivs)[state->analog_channels[i].vdiv][0],
@@ -285,10 +285,10 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		ret = SR_OK;
 		break;
 	case SR_CONF_COUPLING:
-		if (pg_type == PG_NONE) {
+		if (cg_type == CG_NONE) {
 			sr_err("No channel group specified.");
 			return SR_ERR_CHANNEL_GROUP;
-		} else if (pg_type == PG_ANALOG) {
+		} else if (cg_type == CG_ANALOG) {
 			for (i = 0; i < model->analog_channels; ++i) {
 				if (cg != &devc->analog_groups[i])
 					continue;
@@ -334,7 +334,7 @@ static GVariant *build_tuples(const uint64_t (*array)[][2], unsigned int n)
 static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 		      const struct sr_channel_group *cg)
 {
-	int ret, pg_type;
+	int ret, cg_type;
 	unsigned int i, j;
 	char command[MAX_COMMAND_SIZE], float_str[30];
 	struct dev_context *devc;
@@ -348,7 +348,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 	if (!sdi || !(devc = sdi->priv))
 		return SR_ERR_ARG;
 
-	if ((pg_type = check_channel_group(devc, cg)) == PG_INVALID)
+	if ((cg_type = check_channel_group(devc, cg)) == CG_INVALID)
 		return SR_ERR;
 
 	model = devc->model_config;
@@ -377,7 +377,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 		}
 		break;
 	case SR_CONF_VDIV:
-		if (pg_type == PG_NONE) {
+		if (cg_type == CG_NONE) {
 			sr_err("No channel group specified.");
 			return SR_ERR_CHANNEL_GROUP;
 		}
@@ -460,7 +460,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 		ret = sr_scpi_send(sdi->conn, command);
 		break;
 	case SR_CONF_COUPLING:
-		if (pg_type == PG_NONE) {
+		if (cg_type == CG_NONE) {
 			sr_err("No channel group specified.");
 			return SR_ERR_CHANNEL_GROUP;
 		}
@@ -506,25 +506,25 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		       const struct sr_channel_group *cg)
 {
-	int pg_type;
+	int cg_type;
 	struct dev_context *devc;
 	struct scope_config *model;
 
 	if (!sdi || !(devc = sdi->priv))
 		return SR_ERR_ARG;
 
-	if ((pg_type = check_channel_group(devc, cg)) == PG_INVALID)
+	if ((cg_type = check_channel_group(devc, cg)) == CG_INVALID)
 		return SR_ERR;
 
 	model = devc->model_config;
 
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
-		if (pg_type == PG_NONE) {
+		if (cg_type == CG_NONE) {
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
 				model->hw_caps, model->num_hwcaps,
 				sizeof(int32_t));
-		} else if (pg_type == PG_ANALOG) {
+		} else if (cg_type == CG_ANALOG) {
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
 				model->analog_hwcaps, model->num_analog_hwcaps,
 				sizeof(int32_t));
@@ -534,7 +534,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		}
 		break;
 	case SR_CONF_COUPLING:
-		if (pg_type == PG_NONE)
+		if (cg_type == CG_NONE)
 			return SR_ERR_CHANNEL_GROUP;
 		*data = g_variant_new_strv(*model->coupling_options,
 			   g_strv_length((char **)*model->coupling_options));
@@ -551,7 +551,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		*data = build_tuples(model->timebases, model->num_timebases);
 		break;
 	case SR_CONF_VDIV:
-		if (pg_type == PG_NONE)
+		if (cg_type == CG_NONE)
 			return SR_ERR_CHANNEL_GROUP;
 		*data = build_tuples(model->vdivs, model->num_vdivs);
 		break;
