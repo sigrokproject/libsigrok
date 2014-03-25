@@ -250,9 +250,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
 
-	(void)sdi;
-	(void)cb_data;
-
 	if (!sdi || !cb_data || !(devc = sdi->priv))
 		return SR_ERR_BUG;
 

@@ -428,13 +428,9 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	int ret;
 	struct dev_context *devc;
 
-	(void)sdi;
-	(void)data;
 	(void)cg;
 
 	ret = SR_OK;
-
-	(void)cg;
 
 	if (!sdi || !(devc = sdi->priv))
 		return SR_ERR_ARG;
@@ -447,7 +443,6 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	case SR_CONF_LIMIT_MSEC:
 		*data = g_variant_new_uint64(devc->limit_msec);
 		break;
-
 	case SR_CONF_POWER_OFF:
 		*data = g_variant_new_boolean(FALSE);
 		break;
@@ -481,8 +476,6 @@ static int config_list_common(int key, GVariant **data, const struct sr_dev_inst
 static int config_list_sm(int key, GVariant **data, const struct sr_dev_inst *sdi,
 			  const struct sr_channel_group *cg)
 {
-	(void)sdi;
-
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
@@ -499,8 +492,6 @@ static int config_list_sm(int key, GVariant **data, const struct sr_dev_inst *sd
 static int config_list_bd(int key, GVariant **data, const struct sr_dev_inst *sdi,
 			  const struct sr_channel_group *cg)
 {
-	(void)sdi;
-
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,

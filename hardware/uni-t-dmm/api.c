@@ -257,8 +257,6 @@ static int dev_open(struct sr_dev_inst *sdi, int dmm)
 
 static int dev_close(struct sr_dev_inst *sdi)
 {
-	(void)sdi;
-
 	/* TODO */
 
 	sdi->status = SR_ST_INACTIVE;
