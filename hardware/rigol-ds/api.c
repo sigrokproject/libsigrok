@@ -273,8 +273,6 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 
 	if (sr_scpi_get_hw_id(scpi, &hw_info) != SR_OK) {
 		sr_info("Couldn't get IDN response.");
-		sr_scpi_close(scpi);
-		sr_scpi_free(scpi);
 		return NULL;
 	}
 
@@ -292,12 +290,8 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 						  model->name,
 						  hw_info->firmware_version))) {
 		sr_scpi_hw_info_free(hw_info);
-		sr_scpi_close(scpi);
-		sr_scpi_free(scpi);
 		return NULL;
 	}
-
-	sr_scpi_close(scpi);
 
 	sdi->conn = scpi;
 
