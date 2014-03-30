@@ -1,7 +1,7 @@
 /*
  * This file is part of the libsigrok project.
  *
- * Copyright (C) 2011-2012 Uwe Hermann <uwe@hermann-uwe.de>
+ * Copyright (C) 2011-2014 Uwe Hermann <uwe@hermann-uwe.de>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,43 +18,39 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-#include <ftdi.h>
-#include <glib.h>
-#include "libsigrok.h"
-#include "libsigrok-internal.h"
 #include "protocol.h"
 
 /* Channels are numbered 0-7. */
-SR_PRIV const char *chronovu_la8_channel_names[NUM_CHANNELS + 1] = {
+SR_PRIV const char *cv_channel_names[NUM_CHANNELS + 1] = {
 	"0", "1", "2", "3", "4", "5", "6", "7",
 	NULL,
 };
 
-SR_PRIV void fill_supported_samplerates_if_needed(void)
+SR_PRIV void cv_fill_samplerates_if_needed(void)
 {
 	int i;
 
-	if (chronovu_la8_samplerates[0] != 0)
+	if (cv_samplerates[0] != 0)
 		return;
 
 	for (i = 0; i < 255; i++)
-		chronovu_la8_samplerates[254 - i] = SR_MHZ(100) / (i + 1);
+		cv_samplerates[254 - i] = SR_MHZ(100) / (i + 1);
 }
 
 /**
- * Check if the given samplerate is supported by the LA8 hardware.
+ * Check if the given samplerate is supported by the hardware.
  *
  * @param samplerate The samplerate (in Hz) to check.
  * @return 1 if the samplerate is supported/valid, 0 otherwise.
  */
-SR_PRIV int is_valid_samplerate(uint64_t samplerate)
+static int is_valid_samplerate(uint64_t samplerate)
 {
 	int i;
 
-	fill_supported_samplerates_if_needed();
+	cv_fill_samplerates_if_needed();
 
 	for (i = 0; i < 255; i++) {
-		if (chronovu_la8_samplerates[i] == samplerate)
+		if (cv_samplerates[i] == samplerate)
 			return 1;
 	}
 
@@ -64,7 +60,7 @@ SR_PRIV int is_valid_samplerate(uint64_t samplerate)
 }
 
 /**
- * Convert a samplerate (in Hz) to the 'divcount' value the LA8 wants.
+ * Convert a samplerate (in Hz) to the 'divcount' value the device wants.
  *
  * LA8 hardware: sample period = (divcount + 1) * 10ns.
  * Min. value for divcount: 0x00 (10ns sample period, 100MHz samplerate).
@@ -73,15 +69,15 @@ SR_PRIV int is_valid_samplerate(uint64_t samplerate)
  * @param samplerate The samplerate in Hz.
  * @return The divcount value as needed by the hardware, or 0xff upon errors.
  */
-SR_PRIV uint8_t samplerate_to_divcount(uint64_t samplerate)
+SR_PRIV uint8_t cv_samplerate_to_divcount(uint64_t samplerate)
 {
 	if (samplerate == 0) {
-		sr_err("%s: samplerate was 0.", __func__);
+		sr_err("Can't convert invalid samplerate of 0 Hz.");
 		return 0xff;
 	}
 
 	if (!is_valid_samplerate(samplerate)) {
-		sr_err("%s: Can't get divcount, samplerate invalid.", __func__);
+		sr_err("Can't get divcount, samplerate invalid.");
 		return 0xff;
 	}
 
@@ -89,85 +85,73 @@ SR_PRIV uint8_t samplerate_to_divcount(uint64_t samplerate)
 }
 
 /**
- * Write data of a certain length to the LA8's FTDI device.
+ * Write data of a certain length to the FTDI device.
  *
  * @param devc The struct containing private per-device-instance data. Must not
- *            be NULL. devc->ftdic must not be NULL either.
+ *             be NULL. devc->ftdic must not be NULL either.
  * @param buf The buffer containing the data to write. Must not be NULL.
- * @param size The number of bytes to write. Must be >= 0.
+ * @param size The number of bytes to write. Must be > 0.
+ *
  * @return The number of bytes written, or a negative value upon errors.
  */
-SR_PRIV int la8_write(struct dev_context *devc, uint8_t *buf, int size)
+SR_PRIV int cv_write(struct dev_context *devc, uint8_t *buf, int size)
 {
 	int bytes_written;
 
-	/* Note: Caller checked that devc and devc->ftdic != NULL. */
+	/* Note: Caller ensures devc/devc->ftdic/buf != NULL and size > 0. */
 
-	if (!buf) {
-		sr_err("%s: buf was NULL.", __func__);
+	if (!buf)
 		return SR_ERR_ARG;
-	}
 
-	if (size < 0) {
-		sr_err("%s: size was < 0.", __func__);
+	if (size < 0)
 		return SR_ERR_ARG;
-	}
 
 	bytes_written = ftdi_write_data(devc->ftdic, buf, size);
 
 	if (bytes_written < 0) {
-		sr_err("%s: ftdi_write_data: (%d) %s.", __func__,
+		sr_err("Failed to write data (%d): %s.",
 		       bytes_written, ftdi_get_error_string(devc->ftdic));
-		(void) la8_close_usb_reset_sequencer(devc); /* Ignore errors. */
+		(void) cv_close_usb_reset_sequencer(devc); /* Ignore errors. */
 	} else if (bytes_written != size) {
-		sr_err("%s: bytes to write: %d, bytes written: %d.",
-		       __func__, size, bytes_written);
-		(void) la8_close_usb_reset_sequencer(devc); /* Ignore errors. */
+		sr_err("Failed to write data, only %d/%d bytes written.",
+		       size, bytes_written);
+		(void) cv_close_usb_reset_sequencer(devc); /* Ignore errors. */
 	}
 
 	return bytes_written;
 }
 
 /**
- * Read a certain amount of bytes from the LA8's FTDI device.
+ * Read a certain amount of bytes from the FTDI device.
  *
  * @param devc The struct containing private per-device-instance data. Must not
- *            be NULL. devc->ftdic must not be NULL either.
+ *             be NULL. devc->ftdic must not be NULL either.
  * @param buf The buffer where the received data will be stored. Must not
  *            be NULL.
  * @param size The number of bytes to read. Must be >= 1.
+ *
  * @return The number of bytes read, or a negative value upon errors.
  */
-SR_PRIV int la8_read(struct dev_context *devc, uint8_t *buf, int size)
+static int cv_read(struct dev_context *devc, uint8_t *buf, int size)
 {
 	int bytes_read;
 
-	/* Note: Caller checked that devc and devc->ftdic != NULL. */
-
-	if (!buf) {
-		sr_err("%s: buf was NULL.", __func__);
-		return SR_ERR_ARG;
-	}
-
-	if (size <= 0) {
-		sr_err("%s: size was <= 0.", __func__);
-		return SR_ERR_ARG;
-	}
+	/* Note: Caller ensures devc/devc->ftdic/buf != NULL and size > 0. */
 
 	bytes_read = ftdi_read_data(devc->ftdic, buf, size);
 
 	if (bytes_read < 0) {
-		sr_err("%s: ftdi_read_data: (%d) %s.", __func__,
+		sr_err("Failed to read data (%d): %s.",
 		       bytes_read, ftdi_get_error_string(devc->ftdic));
 	} else if (bytes_read != size) {
-		// sr_err("%s: Bytes to read: %d, bytes read: %d.",
-		//        __func__, size, bytes_read);
+		// sr_err("Failed to read data, only %d/%d bytes read.",
+		//        bytes_read, size);
 	}
 
 	return bytes_read;
 }
 
-SR_PRIV int la8_close(struct dev_context *devc)
+SR_PRIV int cv_close(struct dev_context *devc)
 {
 	int ret;
 
@@ -190,31 +174,29 @@ SR_PRIV int la8_close(struct dev_context *devc)
 }
 
 /**
- * Close the ChronoVu LA8 USB port and reset the LA8 sequencer logic.
+ * Close the USB port and reset the sequencer logic.
  *
  * @param devc The struct containing private per-device-instance data.
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments.
  */
-SR_PRIV int la8_close_usb_reset_sequencer(struct dev_context *devc)
+SR_PRIV int cv_close_usb_reset_sequencer(struct dev_context *devc)
 {
-	/* Magic sequence of bytes for resetting the LA8 sequencer logic. */
+	/* Magic sequence of bytes for resetting the sequencer logic. */
 	uint8_t buf[8] = {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01};
 	int ret;
 
-	if (!devc) {
-		sr_err("%s: devc was NULL.", __func__);
+	if (!devc)
 		return SR_ERR_ARG;
-	}
 
 	if (!devc->ftdic) {
-		sr_err("%s: devc->ftdic was NULL.", __func__);
+		sr_err("devc->ftdic was NULL.");
 		return SR_ERR_ARG;
 	}
 
 	if (devc->ftdic->usb_dev) {
-		/* Reset the LA8 sequencer logic, then wait 100ms. */
+		/* Reset the sequencer logic, then wait 100ms. */
 		sr_dbg("Resetting sequencer logic.");
-		(void) la8_write(devc, buf, 8); /* Ignore errors. */
+		(void) cv_write(devc, buf, 8); /* Ignore errors. */
 		g_usleep(100 * 1000);
 
 		/* Purge FTDI buffers, then reset and close the FTDI device. */
@@ -240,14 +222,14 @@ SR_PRIV int la8_close_usb_reset_sequencer(struct dev_context *devc)
 }
 
 /**
- * Reset the ChronoVu LA8.
+ * Reset the ChronoVu device.
  *
- * The LA8 must be reset after a failed read/write operation or upon timeouts.
+ * A reset is required after a failed read/write operation or upon timeouts.
  *
  * @param devc The struct containing private per-device-instance data.
  * @return SR_OK upon success, SR_ERR upon failure.
  */
-SR_PRIV int la8_reset(struct dev_context *devc)
+static int cv_reset(struct dev_context *devc)
 {
 	uint8_t buf[BS];
 	time_t done, now;
@@ -271,20 +253,20 @@ SR_PRIV int la8_reset(struct dev_context *devc)
 	 */
 	done = 20 + time(NULL);
 	do {
-		/* TODO: Ignore errors? Check for < 0 at least! */
-		bytes_read = la8_read(devc, (uint8_t *)&buf, BS);
+		/* Try to read bytes until none are left (or errors occur). */
+		bytes_read = cv_read(devc, (uint8_t *)&buf, BS);
 		now = time(NULL);
 	} while ((done > now) && (bytes_read > 0));
 
-	/* Reset the LA8 sequencer logic and close the USB port. */
-	(void) la8_close_usb_reset_sequencer(devc); /* Ignore errors. */
+	/* Reset the sequencer logic and close the USB port. */
+	(void) cv_close_usb_reset_sequencer(devc); /* Ignore errors. */
 
 	sr_dbg("Device reset finished.");
 
 	return SR_OK;
 }
 
-SR_PRIV int configure_channels(const struct sr_dev_inst *sdi)
+SR_PRIV int cv_configure_channels(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	const struct sr_channel *ch;
@@ -343,7 +325,7 @@ SR_PRIV int configure_channels(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-SR_PRIV int set_samplerate(const struct sr_dev_inst *sdi, uint64_t samplerate)
+SR_PRIV int cv_set_samplerate(const struct sr_dev_inst *sdi, uint64_t samplerate)
 {
 	struct dev_context *devc;
 
@@ -353,11 +335,14 @@ SR_PRIV int set_samplerate(const struct sr_dev_inst *sdi, uint64_t samplerate)
 
 	sr_spew("Trying to set samplerate to %" PRIu64 "Hz.", samplerate);
 
-	fill_supported_samplerates_if_needed();
+	cv_fill_samplerates_if_needed();
 
 	/* Check if this is a samplerate supported by the hardware. */
-	if (!is_valid_samplerate(samplerate))
+	if (!is_valid_samplerate(samplerate)) {
+		sr_dbg("Failed to set invalid samplerate (%" PRIu64 "Hz).",
+		       samplerate);
 		return SR_ERR;
+	}
 
 	/* Set the new samplerate. */
 	devc->cur_samplerate = samplerate;
@@ -368,13 +353,14 @@ SR_PRIV int set_samplerate(const struct sr_dev_inst *sdi, uint64_t samplerate)
 }
 
 /**
- * Get a block of data from the LA8.
+ * Get a block of data from the device.
  *
  * @param devc The struct containing private per-device-instance data. Must not
- *            be NULL. devc->ftdic must not be NULL either.
+ *             be NULL. devc->ftdic must not be NULL either.
+ *
  * @return SR_OK upon success, or SR_ERR upon errors.
  */
-SR_PRIV int la8_read_block(struct dev_context *devc)
+SR_PRIV int cv_read_block(struct dev_context *devc)
 {
 	int i, byte_offset, m, mi, p, index, bytes_read;
 	time_t now;
@@ -383,13 +369,13 @@ SR_PRIV int la8_read_block(struct dev_context *devc)
 
 	sr_spew("Reading block %d.", devc->block_counter);
 
-	bytes_read = la8_read(devc, devc->mangled_buf, BS);
+	bytes_read = cv_read(devc, devc->mangled_buf, BS);
 
 	/* If first block read got 0 bytes, retry until success or timeout. */
 	if ((bytes_read == 0) && (devc->block_counter == 0)) {
 		do {
 			sr_spew("Reading block 0 (again).");
-			bytes_read = la8_read(devc, devc->mangled_buf, BS);
+			bytes_read = cv_read(devc, devc->mangled_buf, BS);
 			/* TODO: How to handle read errors here? */
 			now = time(NULL);
 		} while ((devc->done > now) && (bytes_read == 0));
@@ -398,7 +384,7 @@ SR_PRIV int la8_read_block(struct dev_context *devc)
 	/* Check if block read was successful or a timeout occured. */
 	if (bytes_read != BS) {
 		sr_err("Trigger timed out. Bytes read: %d.", bytes_read);
-		(void) la8_reset(devc); /* Ignore errors. */
+		(void) cv_reset(devc); /* Ignore errors. */
 		return SR_ERR;
 	}
 
@@ -417,7 +403,7 @@ SR_PRIV int la8_read_block(struct dev_context *devc)
 	return SR_OK;
 }
 
-SR_PRIV void send_block_to_session_bus(struct dev_context *devc, int block)
+SR_PRIV void cv_send_block_to_session_bus(struct dev_context *devc, int block)
 {
 	int i;
 	uint8_t sample, expected_sample;

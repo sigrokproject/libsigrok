@@ -1,7 +1,7 @@
 /*
  * This file is part of the libsigrok project.
  *
- * Copyright (C) 2011-2012 Uwe Hermann <uwe@hermann-uwe.de>
+ * Copyright (C) 2011-2014 Uwe Hermann <uwe@hermann-uwe.de>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,7 +38,6 @@
 #define NUM_CHANNELS			8
 #define TRIGGER_TYPE 			"01"
 #define SDRAM_SIZE			(8 * 1024 * 1024)
-#define MIN_NUM_SAMPLES			1
 #define MAX_NUM_SAMPLES			SDRAM_SIZE
 
 #define BS				4096 /* Block size */
@@ -91,34 +90,31 @@ struct dev_context {
 	/** Tells us whether an SR_DF_TRIGGER packet was already sent. */
 	int trigger_found;
 
-	/** TODO */
+	/** Used for keeping track how much time has passed. */
 	time_t done;
 
 	/** Counter/index for the data block to be read. */
 	int block_counter;
 
-	/** The divcount value (determines the sample period) for the LA8. */
+	/** The divcount value (determines the sample period). */
 	uint8_t divcount;
 
-	/** This ChronoVu LA8's USB PID (multiple versions exist). */
+	/** This ChronoVu device's USB PID. */
 	uint16_t usb_pid;
 };
 
 /* protocol.c */
-extern const int32_t chronovu_la8_hwcaps[];
-extern uint64_t chronovu_la8_samplerates[];
-extern SR_PRIV const char *chronovu_la8_channel_names[];
-SR_PRIV void fill_supported_samplerates_if_needed(void);
-SR_PRIV int is_valid_samplerate(uint64_t samplerate);
-SR_PRIV uint8_t samplerate_to_divcount(uint64_t samplerate);
-SR_PRIV int la8_write(struct dev_context *devc, uint8_t *buf, int size);
-SR_PRIV int la8_read(struct dev_context *devc, uint8_t *buf, int size);
-SR_PRIV int la8_close(struct dev_context *devc);
-SR_PRIV int la8_close_usb_reset_sequencer(struct dev_context *devc);
-SR_PRIV int la8_reset(struct dev_context *devc);
-SR_PRIV int configure_channels(const struct sr_dev_inst *sdi);
-SR_PRIV int set_samplerate(const struct sr_dev_inst *sdi, uint64_t samplerate);
-SR_PRIV int la8_read_block(struct dev_context *devc);
-SR_PRIV void send_block_to_session_bus(struct dev_context *devc, int block);
+extern const int32_t cv_hwcaps[];
+extern uint64_t cv_samplerates[];
+extern SR_PRIV const char *cv_channel_names[];
+SR_PRIV void cv_fill_samplerates_if_needed(void);
+SR_PRIV uint8_t cv_samplerate_to_divcount(uint64_t samplerate);
+SR_PRIV int cv_write(struct dev_context *devc, uint8_t *buf, int size);
+SR_PRIV int cv_close(struct dev_context *devc);
+SR_PRIV int cv_close_usb_reset_sequencer(struct dev_context *devc);
+SR_PRIV int cv_configure_channels(const struct sr_dev_inst *sdi);
+SR_PRIV int cv_set_samplerate(const struct sr_dev_inst *sdi, uint64_t samplerate);
+SR_PRIV int cv_read_block(struct dev_context *devc);
+SR_PRIV void cv_send_block_to_session_bus(struct dev_context *devc, int block);
 
 #endif
