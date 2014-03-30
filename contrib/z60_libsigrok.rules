@@ -35,6 +35,10 @@ ATTRS{idVendor}=="16d0", ATTRS{idProduct}=="0498", MODE="664", GROUP="plugdev"
 # CEM DT-8852
 ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", MODE="664", GROUP="plugdev"
 
+# ChronoVu LA8 (new VID/PID)
+# ChronoVu LA16 (new VID/PID)
+ATTRS{idVendor}=="0403", ATTRS{idProduct}=="8867", MODE="664", GROUP="plugdev"
+
 # CWAV USBee AX
 # ARMFLY AX-Pro (clone of the CWAV USBee AX)
 # ARMFLY Mini-Logic (clone of the CWAV USBee AX)
@@ -56,7 +60,8 @@ ATTRS{idVendor}=="08a9", ATTRS{idProduct}=="0009", MODE="664", GROUP="plugdev"
 ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="8613", MODE="664", GROUP="plugdev"
 
 # Dangerous Prototypes Buspirate (v3)
-# ChronoVu LA8
+# ChronoVu LA8 (old VID/PID)
+# ChronoVu LA16 (old VID/PID)
 ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", MODE="664", GROUP="plugdev"
 
 # Dangerous Prototypes Buspirate (v4)

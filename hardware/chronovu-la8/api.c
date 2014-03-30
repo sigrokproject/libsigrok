@@ -23,28 +23,24 @@
 SR_PRIV struct sr_dev_driver chronovu_la8_driver_info;
 static struct sr_dev_driver *di = &chronovu_la8_driver_info;
 
-/*
- * This will be initialized via config_list()/SR_CONF_SAMPLERATE.
- *
- * Min: 1 sample per 0.01us -> sample time is 0.084s, samplerate 100MHz
- * Max: 1 sample per 2.55us -> sample time is 21.391s, samplerate 392.15kHz
- */
-SR_PRIV uint64_t cv_samplerates[255] = { 0 };
-
-SR_PRIV const int32_t cv_hwcaps[] = {
+static const int32_t hwcaps[] = {
 	SR_CONF_LOGIC_ANALYZER,
 	SR_CONF_SAMPLERATE,
 	SR_CONF_LIMIT_MSEC, /* TODO: Not yet implemented. */
 	SR_CONF_LIMIT_SAMPLES, /* TODO: Not yet implemented. */
 };
 
-/*
- * The ChronoVu LA8 can have multiple PIDs. Older versions shipped with
- * a standard FTDI USB VID/PID of 0403:6001, newer ones have 0403:8867.
- */ 
-static const uint16_t usb_pids[] = {
-	0x6001,
-	0x8867,
+/* The ChronoVu LA8/LA16 can have multiple VID/PID pairs. */
+static struct {
+	uint16_t vid;
+	uint16_t pid;
+	int model;
+	const char *iproduct;
+} vid_pid[] = {
+	{ 0x0403, 0x6001, CHRONOVU_LA8,  "ChronoVu LA8"  },
+	{ 0x0403, 0x8867, CHRONOVU_LA8,  "ChronoVu LA8"  },
+	{ 0x0403, 0x6001, CHRONOVU_LA16, "ChronoVu LA16" },
+	{ 0x0403, 0x8867, CHRONOVU_LA16, "ChronoVu LA16" },
 };
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);
@@ -69,106 +65,127 @@ static int init(struct sr_context *sr_ctx)
 	return std_init(sr_ctx, di, LOG_PREFIX);
 }
 
-static GSList *scan(GSList *options)
+static int add_device(int idx, int model, GSList **devices)
 {
+	int ret;
+	unsigned int i;
 	struct sr_dev_inst *sdi;
-	struct sr_channel *ch;
 	struct drv_context *drvc;
 	struct dev_context *devc;
-	GSList *devices;
-	unsigned int i;
-	int ret;
+	struct sr_channel *ch;
 
-	(void)options;
+	ret = SR_OK;
 
 	drvc = di->priv;
-
-	devices = NULL;
 
 	/* Allocate memory for our private device context. */
 	devc = g_try_malloc(sizeof(struct dev_context));
 
 	/* Set some sane defaults. */
-	devc->ftdic = NULL;
-	devc->cur_samplerate = SR_MHZ(100); /* 100MHz == max. samplerate */
+	devc->prof = &cv_profiles[model];
+	devc->ftdic = NULL; /* Will be set in the open() API call. */
+	devc->cur_samplerate = 0; /* Set later (different for LA8/LA16). */
 	devc->limit_msec = 0;
 	devc->limit_samples = 0;
 	devc->cb_data = NULL;
 	memset(devc->mangled_buf, 0, BS);
 	devc->final_buf = NULL;
-	devc->trigger_pattern = 0x00; /* Value irrelevant, see trigger_mask. */
-	devc->trigger_mask = 0x00; /* All channels are "don't care". */
-	devc->trigger_timeout = 10; /* Default to 10s trigger timeout. */
+	devc->trigger_pattern = 0x0000; /* Irrelevant, see trigger_mask. */
+	devc->trigger_mask = 0x0000; /* All channels: "don't care". */
+	devc->trigger_edgemask = 0x0000; /* All channels: "state triggered". */
 	devc->trigger_found = 0;
 	devc->done = 0;
 	devc->block_counter = 0;
-	devc->divcount = 0; /* 10ns sample period == 100MHz samplerate */
-	devc->usb_pid = 0;
+	devc->divcount = 0;
+	devc->usb_vid = vid_pid[idx].vid;
+	devc->usb_pid = vid_pid[idx].pid;
+	memset(devc->samplerates, 0, sizeof(uint64_t) * 255);
 
 	/* Allocate memory where we'll store the de-mangled data. */
 	if (!(devc->final_buf = g_try_malloc(SDRAM_SIZE))) {
 		sr_err("Failed to allocate memory for sample buffer.");
+		ret = SR_ERR_MALLOC;
 		goto err_free_devc;
 	}
 
-	/* Allocate memory for the FTDI context (ftdic) and initialize it. */
-	if (!(devc->ftdic = ftdi_new())) {
-		sr_err("Failed to initialize libftdi.");
-		goto err_free_final_buf;
-	}
-
-	/* Check for the device and temporarily open it. */
-	for (i = 0; i < ARRAY_SIZE(usb_pids); i++) {
-		sr_dbg("Probing for VID/PID %04x:%04x.", USB_VENDOR_ID,
-		       usb_pids[i]);
-		ret = ftdi_usb_open_desc(devc->ftdic, USB_VENDOR_ID,
-					 usb_pids[i], USB_DESCRIPTION, NULL);
-		if (ret == 0) {
-			sr_dbg("Found LA8 device (%04x:%04x).",
-			       USB_VENDOR_ID, usb_pids[i]);
-			devc->usb_pid = usb_pids[i];
-		}
-	}
-
-	if (devc->usb_pid == 0)
-		goto err_free_ftdic;
+	/* We now know the device, set its max. samplerate as default. */
+	devc->cur_samplerate = devc->prof->max_samplerate;
 
 	/* Register the device with libsigrok. */
 	sdi = sr_dev_inst_new(0, SR_ST_INITIALIZING,
-			USB_VENDOR_NAME, USB_MODEL_NAME, USB_MODEL_VERSION);
+			      "ChronoVu", devc->prof->modelname, NULL);
 	if (!sdi) {
 		sr_err("Failed to create device instance.");
-		goto err_close_ftdic;
+		ret = SR_ERR;
+		goto err_free_final_buf;
 	}
 	sdi->driver = di;
 	sdi->priv = devc;
 
-	for (i = 0; cv_channel_names[i]; i++) {
+	for (i = 0; i < devc->prof->num_channels; i++) {
 		if (!(ch = sr_channel_new(i, SR_CHANNEL_LOGIC, TRUE,
-					  cv_channel_names[i])))
-			return NULL;
+					  cv_channel_names[i]))) {
+			ret = SR_ERR;
+			goto err_free_dev_inst;
+		}
 		sdi->channels = g_slist_append(sdi->channels, ch);
 	}
 
-	devices = g_slist_append(devices, sdi);
+	*devices = g_slist_append(*devices, sdi);
 	drvc->instances = g_slist_append(drvc->instances, sdi);
 
-	/* Close device. We'll reopen it again when we need it. */
-	(void) cv_close(devc); /* Log, but ignore errors. */
+	return SR_OK;
 
-	return devices;
-
-err_close_ftdic:
-	(void) cv_close(devc); /* Log, but ignore errors. */
-err_free_ftdic:
-	ftdi_free(devc->ftdic); /* NOT free() or g_free()! */
+err_free_dev_inst:
+	sr_dev_inst_free(sdi);
 err_free_final_buf:
 	g_free(devc->final_buf);
 err_free_devc:
 	g_free(devc);
-err_free_nothing:
 
-	return NULL;
+	return ret;
+}
+
+static GSList *scan(GSList *options)
+{
+	int ret;
+	unsigned int i;
+	GSList *devices;
+	struct ftdi_context *ftdic;
+
+	(void)options;
+
+	devices = NULL;
+
+	/* Allocate memory for the FTDI context and initialize it. */
+	if (!(ftdic = ftdi_new())) {
+		sr_err("Failed to initialize libftdi.");
+		return NULL;
+	}
+
+	/* Check for LA8 and/or LA16 devices with various VID/PIDs. */
+	for (i = 0; i < ARRAY_SIZE(vid_pid); i++) {
+		ret = ftdi_usb_open_desc(ftdic, vid_pid[i].vid,
+			vid_pid[i].pid, vid_pid[i].iproduct, NULL);
+		if (ret < 0)
+			continue; /* No device found. */
+
+		sr_dbg("Found %s device (%04x:%04x).",
+		       vid_pid[i].iproduct, vid_pid[i].vid, vid_pid[i].pid);
+
+		if ((ret = add_device(i, vid_pid[i].model, &devices)) < 0)
+			sr_dbg("Failed to add device: %d.", ret);
+
+		if ((ret = ftdi_usb_close(ftdic)) < 0)
+			sr_dbg("Failed to close FTDI device (%d): %s.",
+			       ret, ftdi_get_error_string(ftdic));
+	}
+
+	/* Close USB device, deinitialize and free the FTDI context. */
+	ftdi_free(ftdic);
+	ftdic = NULL;
+
+	return devices;
 }
 
 static GSList *dev_list(void)
@@ -181,19 +198,26 @@ static int dev_open(struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	int ret;
 
+	ret = SR_ERR;
+
 	if (!(devc = sdi->priv))
 		return SR_ERR_BUG;
 
-	sr_dbg("Opening LA8 device (%04x:%04x).", USB_VENDOR_ID,
-	       devc->usb_pid);
+	/* Allocate memory for the FTDI context and initialize it. */
+	if (!(devc->ftdic = ftdi_new())) {
+		sr_err("Failed to initialize libftdi.");
+		return SR_ERR;
+	}
+
+	sr_dbg("Opening %s device (%04x:%04x).", devc->prof->modelname,
+	       devc->usb_vid, devc->usb_pid);
 
 	/* Open the device. */
-	if ((ret = ftdi_usb_open_desc(devc->ftdic, USB_VENDOR_ID,
-			devc->usb_pid, USB_DESCRIPTION, NULL)) < 0) {
+	if ((ret = ftdi_usb_open_desc(devc->ftdic, devc->usb_vid,
+			devc->usb_pid, devc->prof->iproduct, NULL)) < 0) {
 		sr_err("Failed to open FTDI device (%d): %s.",
 		       ret, ftdi_get_error_string(devc->ftdic));
-		(void) cv_close_usb_reset_sequencer(devc); /* Ignore errors. */
-		return SR_ERR;
+		goto err_ftdi_free;
 	}
 	sr_dbg("Device opened successfully.");
 
@@ -201,8 +225,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 	if ((ret = ftdi_usb_purge_buffers(devc->ftdic)) < 0) {
 		sr_err("Failed to purge FTDI buffers (%d): %s.",
 		       ret, ftdi_get_error_string(devc->ftdic));
-		(void) cv_close_usb_reset_sequencer(devc); /* Ignore errors. */
-		goto err_dev_open_close_ftdic;
+		goto err_ftdi_free;
 	}
 	sr_dbg("FTDI buffers purged successfully.");
 
@@ -210,8 +233,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 	if ((ret = ftdi_setflowctrl(devc->ftdic, SIO_RTS_CTS_HS)) < 0) {
 		sr_err("Failed to enable FTDI flow control (%d): %s.",
 		       ret, ftdi_get_error_string(devc->ftdic));
-		(void) cv_close_usb_reset_sequencer(devc); /* Ignore errors. */
-		goto err_dev_open_close_ftdic;
+		goto err_ftdi_free;
 	}
 	sr_dbg("FTDI flow control enabled successfully.");
 
@@ -222,24 +244,25 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 	return SR_OK;
 
-err_dev_open_close_ftdic:
-	(void) cv_close(devc); /* Log, but ignore errors. */
-	return SR_ERR;
+err_ftdi_free:
+	ftdi_free(devc->ftdic); /* Close device (if open), free FTDI context. */
+	devc->ftdic = NULL;
+	return ret;
 }
 
 static int dev_close(struct sr_dev_inst *sdi)
 {
+	int ret;
 	struct dev_context *devc;
+
+	if (sdi->status != SR_ST_ACTIVE)
+		return SR_OK;
 
 	devc = sdi->priv;
 
-	if (sdi->status == SR_ST_ACTIVE) {
-		sr_dbg("Status ACTIVE, closing device.");
-		(void) cv_close_usb_reset_sequencer(devc); /* Ignore errors. */
-	} else {
-		sr_spew("Status not ACTIVE, nothing to do.");
-	}
-
+	if (devc->ftdic && (ret = ftdi_usb_close(devc->ftdic)) < 0)
+		sr_err("Failed to close FTDI device (%d): %s.",
+		       ret, ftdi_get_error_string(devc->ftdic));
 	sdi->status = SR_ST_INACTIVE;
 
 	return SR_OK;
@@ -285,7 +308,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 
 	switch (id) {
 	case SR_CONF_SAMPLERATE:
-		if (set_samplerate(sdi, g_variant_get_uint64(data)) < 0)
+		if (cv_set_samplerate(sdi, g_variant_get_uint64(data)) < 0)
 			return SR_ERR;
 		break;
 	case SR_CONF_LIMIT_MSEC:
@@ -310,21 +333,23 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 {
 	GVariant *gvar, *grange[2];
 	GVariantBuilder gvb;
+	struct dev_context *devc;
 
-	(void)sdi;
 	(void)cg;
 
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-				cv_hwcaps, ARRAY_SIZE(cv_hwcaps),
-				sizeof(int32_t));
+				hwcaps, ARRAY_SIZE(hwcaps), sizeof(int32_t));
 		break;
 	case SR_CONF_SAMPLERATE:
-		cv_fill_samplerates_if_needed();
+		if (!sdi || !sdi->priv || !(devc = sdi->priv))
+			return SR_ERR_BUG;
+		cv_fill_samplerates_if_needed(sdi);
 		g_variant_builder_init(&gvb, G_VARIANT_TYPE("a{sv}"));
 		gvar = g_variant_new_fixed_array(G_VARIANT_TYPE("t"),
-				cv_samplerates, ARRAY_SIZE(cv_samplerates),
+				devc->samplerates,
+				ARRAY_SIZE(devc->samplerates),
 				sizeof(uint64_t));
 		g_variant_builder_add(&gvb, "{sv}", "samplerates", gvar);
 		*data = g_variant_builder_end(&gvb);
@@ -335,7 +360,9 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		*data = g_variant_new_tuple(grange, 2);
 		break;
 	case SR_CONF_TRIGGER_TYPE:
-		*data = g_variant_new_string(TRIGGER_TYPE);
+		if (!sdi || !sdi->priv || !(devc = sdi->priv) || !devc->prof)
+			return SR_ERR_BUG;
+		*data = g_variant_new_string(devc->prof->trigger_type);
 		break;
 	default:
 		return SR_ERR_NA;
@@ -395,8 +422,8 @@ static int receive_data(int fd, int revents, void *cb_data)
 static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 {
 	struct dev_context *devc;
-	uint8_t buf[4];
-	int bytes_written;
+	uint8_t buf[8];
+	int bytes_to_write, bytes_written;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
@@ -411,7 +438,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		return SR_ERR_BUG;
 	}
 
-	devc->divcount = cv_samplerate_to_divcount(devc->cur_samplerate);
+	devc->divcount = cv_samplerate_to_divcount(sdi, devc->cur_samplerate);
 	if (devc->divcount == 0xff) {
 		sr_err("Invalid divcount/samplerate.");
 		return SR_ERR;
@@ -423,19 +450,29 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	}
 
 	/* Fill acquisition parameters into buf[]. */
-	buf[0] = devc->divcount;
-	buf[1] = 0xff; /* This byte must always be 0xff. */
-	buf[2] = devc->trigger_pattern;
-	buf[3] = devc->trigger_mask;
+	if (devc->prof->model == CHRONOVU_LA8) {
+		buf[0] = devc->divcount;
+		buf[1] = 0xff; /* This byte must always be 0xff. */
+		buf[2] = devc->trigger_pattern & 0xff;
+		buf[3] = devc->trigger_mask & 0xff;
+		bytes_to_write = 4;
+	} else {
+		buf[0] = devc->divcount;
+		buf[1] = 0xff; /* This byte must always be 0xff. */
+		buf[2] = (devc->trigger_pattern & 0xff00) >> 8;  /* LSB */
+		buf[3] = (devc->trigger_pattern & 0x00ff) >> 0;  /* MSB */
+		buf[4] = (devc->trigger_mask & 0xff00) >> 8;     /* LSB */
+		buf[5] = (devc->trigger_mask & 0x00ff) >> 0;     /* MSB */
+		buf[6] = (devc->trigger_edgemask & 0xff00) >> 8; /* LSB */
+		buf[7] = (devc->trigger_edgemask & 0x00ff) >> 0; /* MSB */
+		bytes_to_write = 8;
+	}
 
 	/* Start acquisition. */
-	bytes_written = cv_write(devc, buf, 4);
+	bytes_written = cv_write(devc, buf, bytes_to_write);
 
-	if (bytes_written < 0) {
-		sr_err("Acquisition failed to start: %d.", bytes_written);
-		return SR_ERR;
-	} else if (bytes_written != 4) {
-		sr_err("Acquisition failed to start: %d.", bytes_written);
+	if (bytes_written < 0 || bytes_written != bytes_to_write) {
+		sr_err("Acquisition failed to start.");
 		return SR_ERR;
 	}
 
@@ -447,8 +484,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	std_session_send_df_header(cb_data, LOG_PREFIX);
 
 	/* Time when we should be done (for detecting trigger timeouts). */
-	devc->done = (devc->divcount + 1) * 0.08388608 + time(NULL)
-			+ devc->trigger_timeout;
+	devc->done = (devc->divcount + 1) * devc->prof->trigger_constant +
+			g_get_monotonic_time() + (10 * G_TIME_SPAN_SECOND);
 	devc->block_counter = 0;
 	devc->trigger_found = 0;
 

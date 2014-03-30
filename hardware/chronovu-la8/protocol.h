@@ -24,27 +24,38 @@
 #include <glib.h>
 #include <ftdi.h>
 #include <stdint.h>
+#include <string.h>
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
-#define LOG_PREFIX "chronovu-la8"
+#define LOG_PREFIX "la8/la16"
 
-#define USB_VENDOR_ID			0x0403
-#define USB_DESCRIPTION			"ChronoVu LA8"
-#define USB_VENDOR_NAME			"ChronoVu"
-#define USB_MODEL_NAME			"LA8"
-#define USB_MODEL_VERSION		""
-
-#define NUM_CHANNELS			8
-#define TRIGGER_TYPE 			"01"
 #define SDRAM_SIZE			(8 * 1024 * 1024)
 #define MAX_NUM_SAMPLES			SDRAM_SIZE
 
 #define BS				4096 /* Block size */
 #define NUM_BLOCKS			2048 /* Number of blocks */
 
+enum {
+	CHRONOVU_LA8,
+	CHRONOVU_LA16,
+};
+
+struct cv_profile {
+	int model;
+	const char *modelname;
+	const char *iproduct; /* USB iProduct string */
+	unsigned int num_channels;
+	uint64_t max_samplerate;
+	const char *trigger_type;
+	float trigger_constant;
+};
+
 /* Private, per-device-instance driver context. */
 struct dev_context {
+	/** Device profile struct for this device. */
+	const struct cv_profile *prof;
+
 	/** FTDI device context (used by libftdi). */
 	struct ftdi_context *ftdic;
 
@@ -67,31 +78,39 @@ struct dev_context {
 
 	/**
 	 * An 8MB buffer where we'll store the de-mangled samples.
-	 * Format: Each sample is 1 byte, MSB is channel 7, LSB is channel 0.
+	 * LA8: Each sample is 1 byte, MSB is channel 7, LSB is channel 0.
+	 * LA16: Each sample is 2 bytes, MSB is channel 15, LSB is channel 0.
 	 */
 	uint8_t *final_buf;
 
 	/**
-	 * Trigger pattern (MSB = channel 7, LSB = channel 0).
+	 * Trigger pattern.
 	 * A 1 bit matches a high signal, 0 matches a low signal on a channel.
-	 * Only low/high triggers (but not e.g. rising/falling) are supported.
+	 *
+	 * If the resp. 'trigger_edgemask' bit is set, 1 means "rising edge",
+	 * and 0 means "falling edge".
 	 */
-	uint8_t trigger_pattern;
+	uint16_t trigger_pattern;
 
 	/**
-	 * Trigger mask (MSB = channel 7, LSB = channel 0).
+	 * Trigger mask.
 	 * A 1 bit means "must match trigger_pattern", 0 means "don't care".
 	 */
-	uint8_t trigger_mask;
+	uint16_t trigger_mask;
 
-	/** Time (in seconds) before the trigger times out. */
-	uint64_t trigger_timeout;
+	/**
+	 * Trigger edge mask.
+	 * A 1 bit means "edge triggered", 0 means "state triggered".
+	 *
+	 * Edge triggering is only supported on LA16 (but not LA8).
+	 */
+	uint16_t trigger_edgemask;
 
 	/** Tells us whether an SR_DF_TRIGGER packet was already sent. */
 	int trigger_found;
 
 	/** Used for keeping track how much time has passed. */
-	time_t done;
+	gint64 done;
 
 	/** Counter/index for the data block to be read. */
 	int block_counter;
@@ -99,19 +118,21 @@ struct dev_context {
 	/** The divcount value (determines the sample period). */
 	uint8_t divcount;
 
-	/** This ChronoVu device's USB PID. */
+	/** This ChronoVu device's USB VID/PID. */
+	uint16_t usb_vid;
 	uint16_t usb_pid;
+
+	/** Samplerates supported by this device. */
+	uint64_t samplerates[255];
 };
 
 /* protocol.c */
-extern const int32_t cv_hwcaps[];
-extern uint64_t cv_samplerates[];
 extern SR_PRIV const char *cv_channel_names[];
-SR_PRIV void cv_fill_samplerates_if_needed(void);
-SR_PRIV uint8_t cv_samplerate_to_divcount(uint64_t samplerate);
+extern const struct cv_profile cv_profiles[];
+SR_PRIV void cv_fill_samplerates_if_needed(const struct sr_dev_inst *sdi);
+SR_PRIV uint8_t cv_samplerate_to_divcount(const struct sr_dev_inst *sdi,
+					  uint64_t samplerate);
 SR_PRIV int cv_write(struct dev_context *devc, uint8_t *buf, int size);
-SR_PRIV int cv_close(struct dev_context *devc);
-SR_PRIV int cv_close_usb_reset_sequencer(struct dev_context *devc);
 SR_PRIV int cv_configure_channels(const struct sr_dev_inst *sdi);
 SR_PRIV int cv_set_samplerate(const struct sr_dev_inst *sdi, uint64_t samplerate);
 SR_PRIV int cv_read_block(struct dev_context *devc);
