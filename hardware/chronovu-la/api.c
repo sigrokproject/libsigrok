@@ -410,7 +410,14 @@ static int receive_data(int fd, int revents, void *cb_data)
 
 	sr_dbg("Sampling finished, sending data to session bus now.");
 
-	/* All data was received and demangled, send it to the session bus. */
+	/*
+	 * All data was received and demangled, send it to the session bus.
+	 *
+	 * Note: Due to the method how data is spread across the 8MByte of
+	 * SDRAM, we can _not_ send it to the session bus in a streaming
+	 * manner while we receive it. We have to receive and de-mangle the
+	 * full 8MByte first, only then the whole buffer contains valid data.
+	 */
 	for (i = 0; i < NUM_BLOCKS; i++)
 		cv_send_block_to_session_bus(devc, i);
 
