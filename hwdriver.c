@@ -208,8 +208,8 @@ extern SR_PRIV struct sr_dev_driver zeroplus_logic_cube_driver_info;
 #ifdef HAVE_HW_ASIX_SIGMA
 extern SR_PRIV struct sr_dev_driver asix_sigma_driver_info;
 #endif
-#ifdef HAVE_HW_CHRONOVU_LA8
-extern SR_PRIV struct sr_dev_driver chronovu_la8_driver_info;
+#ifdef HAVE_HW_CHRONOVU_LA
+extern SR_PRIV struct sr_dev_driver chronovu_la_driver_info;
 #endif
 #ifdef HAVE_HW_LINK_MSO19
 extern SR_PRIV struct sr_dev_driver link_mso19_driver_info;
@@ -366,8 +366,8 @@ static struct sr_dev_driver *drivers_list[] = {
 #ifdef HAVE_HW_ASIX_SIGMA
 	&asix_sigma_driver_info,
 #endif
-#ifdef HAVE_HW_CHRONOVU_LA8
-	&chronovu_la8_driver_info,
+#ifdef HAVE_HW_CHRONOVU_LA
+	&chronovu_la_driver_info,
 #endif
 #ifdef HAVE_HW_LINK_MSO19
 	&link_mso19_driver_info,

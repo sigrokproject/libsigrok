@@ -129,10 +129,10 @@ AC_ARG_ENABLE(center-3xx, AC_HELP_STRING([--enable-center-3xx],
 	[HW_CENTER_3XX="$enableval"],
 	[HW_CENTER_3XX=$HW_ENABLED_DEFAULT])
 
-AC_ARG_ENABLE(chronovu-la8, AC_HELP_STRING([--enable-chronovu-la8],
-	[enable ChronoVu LA8 support [default=yes]]),
-	[HW_CHRONOVU_LA8="$enableval"],
-	[HW_CHRONOVU_LA8=$HW_ENABLED_DEFAULT])
+AC_ARG_ENABLE(chronovu-la, AC_HELP_STRING([--enable-chronovu-la],
+	[enable ChronoVu LA support [default=yes]]),
+	[HW_CHRONOVU_LA="$enableval"],
+	[HW_CHRONOVU_LA=$HW_ENABLED_DEFAULT])
 
 AC_ARG_ENABLE(colead-slm, AC_HELP_STRING([--enable-colead-slm],
 	[enable Colead SLM support [default=yes]]),
@@ -379,7 +379,7 @@ PKG_CHECK_MODULES([libftdi], [libftdi >= 0.16],
 	[CFLAGS="$CFLAGS $libftdi_CFLAGS";
 	LIBS="$LIBS $libftdi_LIBS";
 	SR_PKGLIBS="$SR_PKGLIBS libftdi"],
-	[HW_ASIX_SIGMA="no"; HW_CHRONOVU_LA8="no"; HW_IKALOGIC_SCANAPLUS="no"])
+	[HW_ASIX_SIGMA="no"; HW_CHRONOVU_LA="no"; HW_IKALOGIC_SCANAPLUS="no"])
 
 # libudev is only needed for some hardware drivers. Disable them if not found.
 PKG_CHECK_MODULES([libudev], [libudev >= 151],
@@ -456,9 +456,9 @@ if test "x$HW_CENTER_3XX" = "xyes"; then
 	AC_DEFINE(HAVE_HW_CENTER_3XX, 1, [Center 3xx support])
 fi
 
-AM_CONDITIONAL(HW_CHRONOVU_LA8, test x$HW_CHRONOVU_LA8 = xyes)
-if test "x$HW_CHRONOVU_LA8" = "xyes"; then
-	AC_DEFINE(HAVE_HW_CHRONOVU_LA8, 1, [ChronoVu LA8 support])
+AM_CONDITIONAL(HW_CHRONOVU_LA, test x$HW_CHRONOVU_LA = xyes)
+if test "x$HW_CHRONOVU_LA" = "xyes"; then
+	AC_DEFINE(HAVE_HW_CHRONOVU_LA, 1, [ChronoVu LA support])
 fi
 
 AM_CONDITIONAL(HW_COLEAD_SLM, test x$HW_COLEAD_SLM = xyes)
@@ -648,7 +648,7 @@ echo "  - brymen-bm86x.................... $HW_BRYMEN_BM86X"
 echo "  - brymen-dmm...................... $HW_BRYMEN_DMM"
 echo "  - cem-dt-885x..................... $HW_CEM_DT_885X"
 echo "  - center-3xx...................... $HW_CENTER_3XX"
-echo "  - chronovu-la8.................... $HW_CHRONOVU_LA8"
+echo "  - chronovu-la..................... $HW_CHRONOVU_LA"
 echo "  - colead-slm...................... $HW_COLEAD_SLM"
 echo "  - conrad-digi-35-cpu.............. $HW_CONRAD_DIGI_35_CPU"
 echo "  - demo............................ $HW_DEMO"

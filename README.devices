@@ -56,7 +56,7 @@ The following drivers/devices do not need any firmware upload:
  - brymen-dmm
  - cem-dt-885x
  - center-3xx (including all subdrivers)
- - chronovu-la8
+ - chronovu-la
  - colead-slm
  - demo
  - fluke-dmm
@@ -119,7 +119,7 @@ The following drivers/devices do not require a serial port specification:
  - alsa
  - asix-sigma
  - brymen-bm86x
- - chronovu-la8
+ - chronovu-la
  - demo
  - fx2lafw
  - hantek-dso
@@ -340,20 +340,19 @@ system). Thus, this driver can currently only compile and work on Linux.
 We plan to fix this though, so that it'll work on all other OSes, too.
 
 
-ChronoVu LA8 USB VID/PIDs
--------------------------
+ChronoVu LA8/LA16 USB VID/PIDs
+------------------------------
 
-The ChronoVu LA8 logic analyzer is available in two revisions. Previously,
-the LA8 shipped with a USB VID/PID of 0403:6001, which is the standard ID
+The ChronoVu LA8/LA16 logic analyzer is available in two revisions. Previously,
+the device shipped with a USB VID/PID of 0403:6001, which is the standard ID
 for FTDI FT232 USB chips.
 
-Since this made it hard to distinguish the LA8 from any other device
+Since this made it hard to distinguish the LA8/LA16 from any other device
 with this FTDI chip connected to the PC, the vendor later shipped the
-LA8 with a USB VID/PID of 0403:8867.
+device with a USB VID/PID of 0403:8867.
 
-The 'chronovu-la8' driver in libsigrok supports both VID/PID pairs and
-automatically finds devices with either VID/PID pair. However, currently
-the driver will assume any device with VID/PID 0403:6001 is a ChronoVu LA8.
+The 'chronovu-la' driver in libsigrok supports both VID/PID pairs and
+automatically finds devices with either VID/PID pair.
 
 
 OLS

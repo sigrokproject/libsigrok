@@ -156,11 +156,11 @@ libsigrok_la_SOURCES += \
 	hardware/center-3xx/protocol.c \
 	hardware/center-3xx/api.c
 endif
-if HW_CHRONOVU_LA8
+if HW_CHRONOVU_LA
 libsigrok_la_SOURCES += \
-	hardware/chronovu-la8/protocol.h \
-	hardware/chronovu-la8/protocol.c \
-	hardware/chronovu-la8/api.c
+	hardware/chronovu-la/protocol.h \
+	hardware/chronovu-la/protocol.c \
+	hardware/chronovu-la/api.c
 endif
 if HW_COLEAD_SLM
 libsigrok_la_SOURCES += \

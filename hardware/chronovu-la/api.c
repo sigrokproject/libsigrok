@@ -20,8 +20,8 @@
 
 #include "protocol.h"
 
-SR_PRIV struct sr_dev_driver chronovu_la8_driver_info;
-static struct sr_dev_driver *di = &chronovu_la8_driver_info;
+SR_PRIV struct sr_dev_driver chronovu_la_driver_info;
+static struct sr_dev_driver *di = &chronovu_la_driver_info;
 
 static const int32_t hwcaps[] = {
 	SR_CONF_LOGIC_ANALYZER,
@@ -512,9 +512,9 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 	return SR_OK;
 }
 
-SR_PRIV struct sr_dev_driver chronovu_la8_driver_info = {
-	.name = "chronovu-la8",
-	.longname = "ChronoVu LA8",
+SR_PRIV struct sr_dev_driver chronovu_la_driver_info = {
+	.name = "chronovu-la",
+	.longname = "ChronoVu LA8/LA16",
 	.api_version = 1,
 	.init = init,
 	.cleanup = cleanup,
