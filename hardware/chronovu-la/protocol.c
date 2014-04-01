@@ -417,8 +417,8 @@ SR_PRIV int cv_read_block(struct dev_context *devc)
 
 SR_PRIV void cv_send_block_to_session_bus(struct dev_context *devc, int block)
 {
-	int i;
-	uint8_t sample, expected_sample;
+	int i, idx;
+	uint8_t sample, expected_sample, tmp8;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
 	int trigger_point; /* Relative trigger point (in this block). */
@@ -449,6 +449,16 @@ SR_PRIV void cv_send_block_to_session_bus(struct dev_context *devc, int block)
 			trigger_point = i;
 			devc->trigger_found = 1;
 			break;
+		}
+	}
+
+	/* Swap low and high bytes of the 16-bit LA16 samples. */
+	if (devc->prof->model == CHRONOVU_LA16) {
+		for (i = 0; i < BS; i += 2) {
+			idx = (block * BS) + i;
+			tmp8 = devc->final_buf[idx];
+			devc->final_buf[idx] = devc->final_buf[idx + 1];
+			devc->final_buf[idx + 1] = tmp8;
 		}
 	}
 
