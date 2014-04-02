@@ -168,8 +168,12 @@ static GSList *scan(GSList *options)
 	for (i = 0; i < ARRAY_SIZE(vid_pid); i++) {
 		ret = ftdi_usb_open_desc(ftdic, vid_pid[i].vid,
 			vid_pid[i].pid, vid_pid[i].iproduct, NULL);
+		/* Show errors other than "device not found". */
+		if (ret < 0 && ret != -3)
+			sr_dbg("Error finding/opening device (%d): %s.",
+			       ret, ftdi_get_error_string(ftdic));
 		if (ret < 0)
-			continue; /* No device found. */
+			continue; /* No device found, or not usable. */
 
 		sr_dbg("Found %s device (%04x:%04x).",
 		       vid_pid[i].iproduct, vid_pid[i].vid, vid_pid[i].pid);
