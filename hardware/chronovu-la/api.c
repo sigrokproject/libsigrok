@@ -355,8 +355,13 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		*data = g_variant_builder_end(&gvb);
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
+		if (!sdi || !sdi->priv || !(devc = sdi->priv) || !devc->prof)
+			return SR_ERR_BUG;
 		grange[0] = g_variant_new_uint64(0);
-		grange[1] = g_variant_new_uint64(MAX_NUM_SAMPLES);
+		if (devc->prof->model == CHRONOVU_LA8)
+			grange[1] = g_variant_new_uint64(MAX_NUM_SAMPLES);
+		else
+			grange[1] = g_variant_new_uint64(MAX_NUM_SAMPLES / 2);
 		*data = g_variant_new_tuple(grange, 2);
 		break;
 	case SR_CONF_TRIGGER_TYPE:
