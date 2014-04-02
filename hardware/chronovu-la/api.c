@@ -26,6 +26,7 @@ static struct sr_dev_driver *di = &chronovu_la_driver_info;
 static const int32_t hwcaps[] = {
 	SR_CONF_LOGIC_ANALYZER,
 	SR_CONF_SAMPLERATE,
+	SR_CONF_TRIGGER_TYPE,
 	SR_CONF_LIMIT_MSEC, /* TODO: Not yet implemented. */
 	SR_CONF_LIMIT_SAMPLES, /* TODO: Not yet implemented. */
 };

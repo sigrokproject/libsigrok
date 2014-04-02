@@ -71,6 +71,7 @@ static const char *channel_names[NUM_CHANNELS + 1] = {
 static const int32_t hwcaps[] = {
 	SR_CONF_LOGIC_ANALYZER,
 	SR_CONF_SAMPLERATE,
+	SR_CONF_TRIGGER_TYPE,
 	SR_CONF_CAPTURE_RATIO,
 	SR_CONF_LIMIT_MSEC,
 };
