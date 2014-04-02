@@ -87,7 +87,7 @@ static GSList *mic_scan(const char *conn, const char *serialcomm, int idx)
 
 	/* TODO: Fill in version from protocol response. */
 	if (!(sdi = sr_dev_inst_new(0, SR_ST_INACTIVE, mic_devs[idx].vendor,
-				    mic_devs[idx].device, "")))
+				    mic_devs[idx].device, NULL)))
 		goto scan_cleanup;
 
 	if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {

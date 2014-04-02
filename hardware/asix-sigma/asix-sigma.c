@@ -36,7 +36,6 @@
 #define USB_DESCRIPTION			"ASIX SIGMA"
 #define USB_VENDOR_NAME			"ASIX"
 #define USB_MODEL_NAME			"SIGMA"
-#define USB_MODEL_VERSION		""
 #define TRIGGER_TYPE 			"rf10"
 #define NUM_CHANNELS			16
 
@@ -458,7 +457,7 @@ static GSList *scan(GSList *options)
 
 	/* Register SIGMA device. */
 	if (!(sdi = sr_dev_inst_new(0, SR_ST_INITIALIZING, USB_VENDOR_NAME,
-				    USB_MODEL_NAME, USB_MODEL_VERSION))) {
+				    USB_MODEL_NAME, NULL))) {
 		sr_err("%s: sdi was NULL", __func__);
 		goto free;
 	}

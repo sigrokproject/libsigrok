@@ -224,7 +224,7 @@ static GSList *scan_1x_2x_rs232(GSList *options)
 	if (model != METRAHIT_NONE) {
 		sr_spew("%s %s detected!", VENDOR_GMC, gmc_model_str(model));
 		if (!(sdi = sr_dev_inst_new(0, SR_ST_INACTIVE, VENDOR_GMC,
-				gmc_model_str(model), "")))
+				gmc_model_str(model), NULL)))
 			return NULL;
 		if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
 			sr_err("Device context malloc failed.");
