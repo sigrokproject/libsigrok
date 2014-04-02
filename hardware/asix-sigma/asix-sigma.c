@@ -73,6 +73,7 @@ static const int32_t hwcaps[] = {
 	SR_CONF_TRIGGER_TYPE,
 	SR_CONF_CAPTURE_RATIO,
 	SR_CONF_LIMIT_MSEC,
+	SR_CONF_LIMIT_SAMPLES,
 };
 
 /* Force the FPGA to reboot. */
@@ -770,6 +771,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
+	uint64_t num_samples;
 	int ret;
 
 	(void)cg;
@@ -779,21 +781,29 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 
 	devc = sdi->priv;
 
-	if (id == SR_CONF_SAMPLERATE) {
+	switch (id) {
+	case SR_CONF_SAMPLERATE:
 		ret = set_samplerate(sdi, g_variant_get_uint64(data));
-	} else if (id == SR_CONF_LIMIT_MSEC) {
+		break;
+	case SR_CONF_LIMIT_MSEC:
 		devc->limit_msec = g_variant_get_uint64(data);
 		if (devc->limit_msec > 0)
 			ret = SR_OK;
 		else
 			ret = SR_ERR;
-	} else if (id == SR_CONF_CAPTURE_RATIO) {
+		break;
+	case SR_CONF_LIMIT_SAMPLES:
+		num_samples = g_variant_get_uint64(data);
+		devc->limit_msec = num_samples * 1000 / devc->cur_samplerate;
+		break;
+	case SR_CONF_CAPTURE_RATIO:
 		devc->capture_ratio = g_variant_get_uint64(data);
 		if (devc->capture_ratio < 0 || devc->capture_ratio > 100)
 			ret = SR_ERR;
 		else
 			ret = SR_OK;
-	} else {
+		break;
+	default:
 		ret = SR_ERR_NA;
 	}
 
@@ -1002,93 +1012,115 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 	return SR_OK;
 }
 
-static int receive_data(int fd, int revents, void *cb_data)
+static void download_capture(struct sr_dev_inst *sdi)
 {
-	struct sr_dev_inst *sdi = cb_data;
-	struct dev_context *devc = sdi->priv;
-	struct sr_datafeed_packet packet;
+	struct dev_context *devc;
 	const int chunks_per_read = 32;
 	unsigned char buf[chunks_per_read * CHUNK_SIZE];
-	int bufsz, numchunks, i, newchunks;
+	int bufsz, i, numchunks, newchunks;
+
+	sr_info("Downloading sample data.");
+
+	devc = sdi->priv;
+	devc->state.chunks_downloaded = 0;
+	numchunks = (devc->state.stoppos + 511) / 512;
+	newchunks = MIN(chunks_per_read, numchunks - devc->state.chunks_downloaded);
+
+	bufsz = sigma_read_dram(devc->state.chunks_downloaded, newchunks, buf, devc);
+	/* TODO: Check bufsz. For now, just avoid compiler warnings. */
+	(void)bufsz;
+
+	/* Find first ts. */
+	if (devc->state.chunks_downloaded == 0) {
+		devc->state.lastts = RL16(buf) - 1;
+		devc->state.lastsample = 0;
+	}
+
+	/* Decode chunks and send them to sigrok. */
+	for (i = 0; i < newchunks; ++i) {
+		int limit_chunk = 0;
+
+		/* The last chunk may potentially be only in part. */
+		if (devc->state.chunks_downloaded == numchunks - 1) {
+			/* Find the last valid timestamp */
+			limit_chunk = devc->state.stoppos % 512 + devc->state.lastts;
+		}
+
+		if (devc->state.chunks_downloaded + i == devc->state.triggerchunk)
+			decode_chunk_ts(buf + (i * CHUNK_SIZE),
+					&devc->state.lastts,
+					&devc->state.lastsample,
+					devc->state.triggerpos & 0x1ff,
+					limit_chunk, sdi);
+		else
+			decode_chunk_ts(buf + (i * CHUNK_SIZE),
+					&devc->state.lastts,
+					&devc->state.lastsample,
+					-1, limit_chunk, sdi);
+
+		++devc->state.chunks_downloaded;
+	}
+
+}
+
+static int receive_data(int fd, int revents, void *cb_data)
+{
+	struct sr_dev_inst *sdi;
+	struct dev_context *devc;
+	struct sr_datafeed_packet packet;
 	uint64_t running_msec;
 	struct timeval tv;
+	int numchunks;
+	uint8_t modestatus;
 
 	(void)fd;
 	(void)revents;
 
+	sdi = cb_data;
+	devc = sdi->priv;
+
 	/* Get the current position. */
 	sigma_read_pos(&devc->state.stoppos, &devc->state.triggerpos, devc);
-
-	numchunks = (devc->state.stoppos + 511) / 512;
 
 	if (devc->state.state == SIGMA_IDLE)
 		return TRUE;
 
 	if (devc->state.state == SIGMA_CAPTURE) {
+		numchunks = (devc->state.stoppos + 511) / 512;
+
 		/* Check if the timer has expired, or memory is full. */
 		gettimeofday(&tv, 0);
 		running_msec = (tv.tv_sec - devc->start_tv.tv_sec) * 1000 +
 			(tv.tv_usec - devc->start_tv.tv_usec) / 1000;
 
 		if (running_msec < devc->limit_msec && numchunks < 32767)
-			return TRUE; /* While capturing... */
-		else
-			dev_acquisition_stop(sdi, sdi);
-
-	}
-
-	if (devc->state.state == SIGMA_DOWNLOAD) {
-		if (devc->state.chunks_downloaded >= numchunks) {
-			/* End of samples. */
-			packet.type = SR_DF_END;
-			sr_session_send(devc->cb_data, &packet);
-
-			devc->state.state = SIGMA_IDLE;
-
+			/* Still capturing. */
 			return TRUE;
-		}
 
-		newchunks = MIN(chunks_per_read,
-				numchunks - devc->state.chunks_downloaded);
+		/* Stop acquisition. */
+		sigma_set_register(WRITE_MODE, 0x11, devc);
 
-		sr_info("Downloading sample data: %.0f %%.",
-			100.0 * devc->state.chunks_downloaded / numchunks);
+		/* Set SDRAM Read Enable. */
+		sigma_set_register(WRITE_MODE, 0x02, devc);
 
-		bufsz = sigma_read_dram(devc->state.chunks_downloaded,
-					newchunks, buf, devc);
-		/* TODO: Check bufsz. For now, just avoid compiler warnings. */
-		(void)bufsz;
+		/* Get the current position. */
+		sigma_read_pos(&devc->state.stoppos, &devc->state.triggerpos, devc);
 
-		/* Find first ts. */
-		if (devc->state.chunks_downloaded == 0) {
-			devc->state.lastts = RL16(buf) - 1;
-			devc->state.lastsample = 0;
-		}
+		/* Check if trigger has fired. */
+		modestatus = sigma_get_register(READ_MODE, devc);
+		if (modestatus & 0x20)
+			devc->state.triggerchunk = devc->state.triggerpos / 512;
+		else
+			devc->state.triggerchunk = -1;
 
-		/* Decode chunks and send them to sigrok. */
-		for (i = 0; i < newchunks; ++i) {
-			int limit_chunk = 0;
+		/* Transfer captured data from device. */
+		download_capture(sdi);
 
-			/* The last chunk may potentially be only in part. */
-			if (devc->state.chunks_downloaded == numchunks - 1) {
-				/* Find the last valid timestamp */
-				limit_chunk = devc->state.stoppos % 512 + devc->state.lastts;
-			}
+		/* All done. */
+		packet.type = SR_DF_END;
+		sr_session_send(sdi, &packet);
 
-			if (devc->state.chunks_downloaded + i == devc->state.triggerchunk)
-				decode_chunk_ts(buf + (i * CHUNK_SIZE),
-						&devc->state.lastts,
-						&devc->state.lastsample,
-						devc->state.triggerpos & 0x1ff,
-						limit_chunk, sdi);
-			else
-				decode_chunk_ts(buf + (i * CHUNK_SIZE),
-						&devc->state.lastts,
-						&devc->state.lastsample,
-						-1, limit_chunk, sdi);
-
-			++devc->state.chunks_downloaded;
-		}
+		dev_acquisition_stop(sdi, sdi);
 	}
 
 	return TRUE;
@@ -1364,36 +1396,13 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
 	struct dev_context *devc;
-	uint8_t modestatus;
 
 	(void)cb_data;
 
+	devc = sdi->priv;
+	devc->state.state = SIGMA_IDLE;
+
 	sr_source_remove(0);
-
-	if (!(devc = sdi->priv)) {
-		sr_err("%s: sdi->priv was NULL", __func__);
-		return SR_ERR_BUG;
-	}
-
-	/* Stop acquisition. */
-	sigma_set_register(WRITE_MODE, 0x11, devc);
-
-	/* Set SDRAM Read Enable. */
-	sigma_set_register(WRITE_MODE, 0x02, devc);
-
-	/* Get the current position. */
-	sigma_read_pos(&devc->state.stoppos, &devc->state.triggerpos, devc);
-
-	/* Check if trigger has fired. */
-	modestatus = sigma_get_register(READ_MODE, devc);
-	if (modestatus & 0x20)
-		devc->state.triggerchunk = devc->state.triggerpos / 512;
-	else
-		devc->state.triggerchunk = -1;
-
-	devc->state.chunks_downloaded = 0;
-
-	devc->state.state = SIGMA_DOWNLOAD;
 
 	return SR_OK;
 }
