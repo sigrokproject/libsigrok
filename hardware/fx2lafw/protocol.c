@@ -87,7 +87,7 @@ static int command_get_revid_version(libusb_device_handle *devhdl,
 SR_PRIV int fx2lafw_command_start_acquisition(libusb_device_handle *devhdl,
 		uint64_t samplerate, gboolean samplewide)
 {
-	struct cmd_start_acquisition cmd;
+	struct cmd_start_acquisition cmd = { 0 };
 	int delay = 0, ret;
 
 	/* Compute the sample rate. */
