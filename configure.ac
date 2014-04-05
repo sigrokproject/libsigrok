@@ -629,13 +629,16 @@ echo
 
 # Note: This only works for libs with pkg-config integration.
 for lib in "glib-2.0 >= 2.32.0" "libzip >= 0.10" "libserialport >= 0.1.0" "librevisa >= 0.0.20130812" "libusb-1.0 >= 1.0.16" "libftdi >= 0.16" "libudev >= 151" "alsa >= 1.0" "check >= 0.9.4"; do
+	optional="OPTIONAL"
+	if test "x$lib" = "xglib-2.0 >= 2.32.0"; then optional="REQUIRED"; fi
+	if test "x$lib" = "xlibzip >= 0.10"; then optional="REQUIRED"; fi
 	if `$PKG_CONFIG --exists $lib`; then
 		ver=`$PKG_CONFIG --modversion $lib`
 		answer="yes ($ver)"
 	else
 		answer="no"
 	fi
-	echo "  - $lib: $answer"
+	echo "  - ($optional) $lib: $answer"
 done
 
 echo -e "\nEnabled hardware drivers:\n"
