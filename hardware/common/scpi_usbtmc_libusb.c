@@ -270,12 +270,12 @@ static int scpi_usbtmc_libusb_open(void *priv)
 		return SR_ERR;
 	}
 
+	if (!uscpi->rigol_ds1000) {
 	if ((ret = libusb_clear_halt(usb->devhdl, uscpi->bulk_in_ep)) < 0) {
 		sr_err("Failed to clear halt/stall condition for EP %d: %s.",
 		       uscpi->bulk_in_ep, libusb_error_name(ret));
 		return SR_ERR;
 	}
-	if (!uscpi->rigol_ds1000)
 	if ((ret = libusb_clear_halt(usb->devhdl, uscpi->bulk_out_ep)) < 0) {
 		sr_err("Failed to clear halt/stall condition for EP %d: %s.",
 		       uscpi->bulk_out_ep, libusb_error_name(ret));
@@ -285,6 +285,7 @@ static int scpi_usbtmc_libusb_open(void *priv)
 		sr_err("Failed to clear halt/stall condition for EP %d: %s.",
 		       uscpi->interrupt_ep, libusb_error_name(ret));
 		return SR_ERR;
+	}
 	}
 
 	/* Get capabilities. */
@@ -528,16 +529,17 @@ static int scpi_usbtmc_libusb_close(void *priv)
 	if (!usb->devhdl)
 		return SR_ERR;
 
+	if (!uscpi->rigol_ds1000) {
 	if ((ret = libusb_clear_halt(usb->devhdl, uscpi->bulk_in_ep)) < 0)
 		sr_err("Failed to clear halt/stall condition for EP %d: %s.",
 		       uscpi->bulk_in_ep, libusb_error_name(ret));
-	if (!uscpi->rigol_ds1000)
 	if ((ret = libusb_clear_halt(usb->devhdl, uscpi->bulk_out_ep)) < 0)
 		sr_err("Failed to clear halt/stall condition for EP %d: %s.",
 		       uscpi->bulk_out_ep, libusb_error_name(ret));
 	if ((ret = libusb_clear_halt(usb->devhdl, uscpi->interrupt_ep)) < 0)
 		sr_err("Failed to clear halt/stall condition for EP %d: %s.",
 		       uscpi->interrupt_ep, libusb_error_name(ret));
+	}
 
 	if ((ret = libusb_release_interface(usb->devhdl, uscpi->interface)) < 0)
 		sr_err("Failed to release interface: %s.",
