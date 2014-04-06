@@ -942,7 +942,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 
 	switch (devc->model->series->protocol) {
 	case PROTOCOL_V2:
-		if (rigol_ds_config_set(sdi, ":ACQ:MDEP LONG") != SR_OK)
+		if (rigol_ds_config_set(sdi, ":ACQ:MEMD LONG") != SR_OK)
 			return SR_ERR;
 		break;
 	case PROTOCOL_V3:
