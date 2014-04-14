@@ -67,9 +67,10 @@ static int command_get_fw_version(libusb_device_handle *devhdl,
 	return SR_OK;
 }
 
-static int command_get_revid_version(libusb_device_handle *devhdl,
-				     uint8_t *revid)
+static int command_get_revid_version(struct sr_dev_inst *sdi, uint8_t *revid)
 {
+	struct sr_usb_dev_inst *usb = sdi->conn;
+	libusb_device_handle *devhdl = usb->devhdl;
 	int ret;
 
 	ret = libusb_control_transfer(devhdl, LIBUSB_REQUEST_TYPE_VENDOR |
@@ -84,9 +85,13 @@ static int command_get_revid_version(libusb_device_handle *devhdl,
 	return SR_OK;
 }
 
-SR_PRIV int fx2lafw_command_start_acquisition(libusb_device_handle *devhdl,
-		uint64_t samplerate, gboolean samplewide)
+SR_PRIV int fx2lafw_command_start_acquisition(const struct sr_dev_inst *sdi)
 {
+	struct dev_context *devc = sdi->priv;
+	struct sr_usb_dev_inst *usb = sdi->conn;
+	libusb_device_handle *devhdl = usb->devhdl;
+	uint64_t samplerate = devc->cur_samplerate;
+	gboolean samplewide = devc->sample_wide;
 	struct cmd_start_acquisition cmd = { 0 };
 	int delay = 0, ret;
 
@@ -255,7 +260,7 @@ SR_PRIV int fx2lafw_dev_open(struct sr_dev_inst *sdi, struct sr_dev_driver *di)
 			break;
 		}
 
-		ret = command_get_revid_version(usb->devhdl, &revid);
+		ret = command_get_revid_version(sdi, &revid);
 		if (ret != SR_OK) {
 			sr_err("Failed to get REVID.");
 			break;

@@ -527,8 +527,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, LOG_PREFIX);
 
-	if ((ret = fx2lafw_command_start_acquisition(usb->devhdl,
-		devc->cur_samplerate, devc->sample_wide)) != SR_OK) {
+	if ((ret = fx2lafw_command_start_acquisition(sdi)) != SR_OK) {
 		fx2lafw_abort_acquisition(devc);
 		return ret;
 	}

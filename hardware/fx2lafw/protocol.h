@@ -98,8 +98,7 @@ struct dev_context {
 	struct sr_context *ctx;
 };
 
-SR_PRIV int fx2lafw_command_start_acquisition(libusb_device_handle *devhdl,
-		uint64_t samplerate, gboolean samplewide);
+SR_PRIV int fx2lafw_command_start_acquisition(const struct sr_dev_inst *sdi);
 SR_PRIV gboolean fx2lafw_check_conf_profile(libusb_device *dev);
 SR_PRIV int fx2lafw_dev_open(struct sr_dev_inst *sdi, struct sr_dev_driver *di);
 SR_PRIV int fx2lafw_configure_channels(const struct sr_dev_inst *sdi);
