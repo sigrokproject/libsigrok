@@ -393,19 +393,26 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 
 	(void)cg;
 
+	if (!sdi)
+		return SR_ERR_ARG;
+
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR;
 
 	devc = sdi->priv;
 
-	if (id == SR_CONF_SAMPLERATE) {
-		devc->cur_samplerate = g_variant_get_uint64(data);
-		ret = SR_OK;
-	} else if (id == SR_CONF_LIMIT_SAMPLES) {
-		devc->limit_samples = g_variant_get_uint64(data);
-		ret = SR_OK;
-	} else {
-		ret = SR_ERR_NA;
+	ret = SR_OK;
+
+	switch (id)
+	{
+		case SR_CONF_SAMPLERATE:
+			devc->cur_samplerate = g_variant_get_uint64(data);
+			break;
+		case SR_CONF_LIMIT_SAMPLES:
+			devc->limit_samples = g_variant_get_uint64(data);
+			break;
+		default:
+			ret = SR_ERR_NA;
 	}
 
 	return ret;
