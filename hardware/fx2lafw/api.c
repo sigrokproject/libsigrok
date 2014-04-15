@@ -355,9 +355,14 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 
 	(void)cg;
 
+	if (!sdi)
+		return SR_ERR_ARG;
+
+	devc = sdi->priv;
+
 	switch (id) {
 	case SR_CONF_CONN:
-		if (!sdi || !sdi->conn)
+		if (!sdi->conn)
 			return SR_ERR_ARG;
 		usb = sdi->conn;
 		if (usb->address == 255)
@@ -367,10 +372,10 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 		snprintf(str, 128, "%d.%d", usb->bus, usb->address);
 		*data = g_variant_new_string(str);
 		break;
+	case SR_CONF_LIMIT_SAMPLES:
+		*data = g_variant_new_uint64(devc->limit_samples);
+		break;
 	case SR_CONF_SAMPLERATE:
-		if (!sdi)
-			return SR_ERR;
-		devc = sdi->priv;
 		*data = g_variant_new_uint64(devc->cur_samplerate);
 		break;
 	default:
