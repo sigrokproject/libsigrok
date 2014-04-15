@@ -63,6 +63,9 @@ struct fx2lafw_profile {
 	const char *firmware;
 
 	uint32_t dev_caps;
+
+	const char *usb_manufacturer;
+	const char *usb_product;
 };
 
 struct dev_context {

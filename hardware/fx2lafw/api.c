@@ -28,21 +28,21 @@ static const struct fx2lafw_profile supported_fx2[] = {
 	 */
 	{ 0x08a9, 0x0014, "CWAV", "USBee AX", NULL,
 		FIRMWARE_DIR "/fx2lafw-cwav-usbeeax.fw",
-		0 },
+		0, NULL, NULL},
 	/*
 	 * CWAV USBee DX
 	 * XZL-Studio DX
 	 */
 	{ 0x08a9, 0x0015, "CWAV", "USBee DX", NULL,
 		FIRMWARE_DIR "/fx2lafw-cwav-usbeedx.fw",
-		DEV_CAPS_16BIT },
+		DEV_CAPS_16BIT, NULL, NULL },
 
 	/*
 	 * CWAV USBee SX
 	 */
 	{ 0x08a9, 0x0009, "CWAV", "USBee SX", NULL,
 		FIRMWARE_DIR "/fx2lafw-cwav-usbeesx.fw",
-		0 },
+		0, NULL, NULL},
 
 	/*
 	 * Saleae Logic
@@ -52,7 +52,7 @@ static const struct fx2lafw_profile supported_fx2[] = {
 	 */
 	{ 0x0925, 0x3881, "Saleae", "Logic", NULL,
 		FIRMWARE_DIR "/fx2lafw-saleae-logic.fw",
-		0 },
+		0, NULL, NULL},
 
 	/*
 	 * Default Cypress FX2 without EEPROM, e.g.:
@@ -61,16 +61,16 @@ static const struct fx2lafw_profile supported_fx2[] = {
 	 */
 	{ 0x04B4, 0x8613, "Cypress", "FX2", NULL,
 		FIRMWARE_DIR "/fx2lafw-cypress-fx2.fw",
-		DEV_CAPS_16BIT },
+		DEV_CAPS_16BIT, NULL, NULL },
 
 	/*
 	 * Braintechnology USB-LPS
 	 */
 	{ 0x16d0, 0x0498, "Braintechnology", "USB-LPS", NULL,
 		FIRMWARE_DIR "/fx2lafw-braintechnology-usb-lps.fw",
-		DEV_CAPS_16BIT },
+		DEV_CAPS_16BIT, NULL, NULL },
 
-	{ 0, 0, 0, 0, 0, 0, 0 }
+	{ 0, 0, 0, 0, 0, 0, 0, 0, 0 }
 };
 
 static const int32_t hwopts[] = {
@@ -132,8 +132,10 @@ static GSList *scan(GSList *options)
 	GSList *l, *devices, *conn_devices;
 	struct libusb_device_descriptor des;
 	libusb_device **devlist;
+	struct libusb_device_handle *hdl;
 	int devcnt, num_logic_channels, ret, i, j;
 	const char *conn;
+	char manufacturer[64], product[64];
 
 	drvc = di->priv;
 
@@ -175,11 +177,41 @@ static GSList *scan(GSList *options)
 			continue;
 		}
 
+		if ((ret = libusb_open(devlist[i], &hdl)) < 0)
+			continue;
+
+		if (des.iManufacturer == 0) {
+			manufacturer[0] = '\0';
+		} else if ((ret = libusb_get_string_descriptor_ascii(hdl,
+				des.iManufacturer, (unsigned char *) manufacturer,
+				sizeof(manufacturer))) < 0) {
+			sr_warn("Failed to get manufacturer string descriptor: %s.",
+				libusb_error_name(ret));
+			continue;
+		}
+
+		if (des.iProduct == 0) {
+			product[0] = '\0';
+		} else if ((ret = libusb_get_string_descriptor_ascii(hdl,
+				des.iProduct, (unsigned char *) product,
+				sizeof(product))) < 0) {
+			sr_warn("Failed to get product string descriptor: %s.",
+				libusb_error_name(ret));
+			continue;
+		}
+
+		libusb_close(hdl);
+
 		prof = NULL;
 		for (j = 0; supported_fx2[j].vid; j++) {
 			if (des.idVendor == supported_fx2[j].vid &&
-				des.idProduct == supported_fx2[j].pid) {
+					des.idProduct == supported_fx2[j].pid &&
+					(!supported_fx2[j].usb_manufacturer ||
+					 !strcmp(manufacturer, supported_fx2[j].usb_manufacturer)) &&
+					(!supported_fx2[j].usb_manufacturer ||
+					 !strcmp(product, supported_fx2[j].usb_product))) {
 				prof = &supported_fx2[j];
+				break;
 			}
 		}
 
