@@ -29,9 +29,10 @@
 
 struct context {
 	unsigned int num_enabled_channels;
-	unsigned int unitsize;
-	char *header;
-	uint8_t *old_sample;
+	uint64_t samplecount;
+	GString *header;
+	uint8_t *prevsample;
+	int *channel_index;
 };
 
 static const char *gnuplot_header = "\
@@ -55,26 +56,20 @@ static int init(struct sr_output *o)
 	GSList *l;
 	GVariant *gvar;
 	uint64_t samplerate;
-	unsigned int i;
+	unsigned int i, j;
 	int num_channels;
 	char *c, *frequency_s;
 	char wbuf[1000], comment[128];
 	time_t t;
 
-	if (!o) {
-		sr_err("%s: o was NULL", __func__);
+	if (!o)
 		return SR_ERR_ARG;
-	}
 
-	if (!o->sdi) {
-		sr_err("%s: o->sdi was NULL", __func__);
+	if (!o->sdi)
 		return SR_ERR_ARG;
-	}
 
-	if (!(ctx = g_try_malloc0(sizeof(struct context)))) {
-		sr_err("%s: ctx malloc failed", __func__);
+	if (!(ctx = g_malloc0(sizeof(struct context))))
 		return SR_ERR_MALLOC;
-	}
 
 	o->internal = ctx;
 	ctx->num_enabled_channels = 0;
@@ -87,11 +82,10 @@ static int init(struct sr_output *o)
 		ctx->num_enabled_channels++;
 	}
 	if (ctx->num_enabled_channels <= 0) {
-		sr_err("%s: no logic channel enabled", __func__);
+		sr_err("No logic channel enabled.");
 		return SR_ERR;
 	}
-
-	ctx->unitsize = (ctx->num_enabled_channels + 7) / 8;
+	ctx->channel_index = g_malloc(sizeof(int) * ctx->num_enabled_channels);
 
 	num_channels = g_slist_length(o->sdi->channels);
 	comment[0] = '\0';
@@ -112,7 +106,7 @@ static int init(struct sr_output *o)
 
 	/* Columns / channels */
 	wbuf[0] = '\0';
-	for (i = 0, l = o->sdi->channels; l; l = l->next, i++) {
+	for (i = 0, j = 0, l = o->sdi->channels; l; l = l->next, i++) {
 		ch = l->data;
 		if (ch->type != SR_CHANNEL_LOGIC)
 			continue;
@@ -120,6 +114,8 @@ static int init(struct sr_output *o)
 			continue;
 		c = (char *)&wbuf + strlen((const char *)&wbuf);
 		sprintf(c, "# %d\t\t%s\n", i + 1, ch->name);
+		/* Remember the enabled channel's index while we're at it. */
+		ctx->channel_index[j++] = i;
 	}
 
 	if (!(frequency_s = sr_period_string(samplerate))) {
@@ -129,142 +125,92 @@ static int init(struct sr_output *o)
 	}
 
 	t = time(NULL);
-	ctx->header = g_strdup_printf(gnuplot_header, PACKAGE_STRING,
+	ctx->header = g_string_sized_new(512);
+	g_string_printf(ctx->header, gnuplot_header, PACKAGE_STRING,
 			ctime(&t), comment, frequency_s, (char *)&wbuf);
 	g_free(frequency_s);
-
-	if (!(ctx->old_sample = g_try_malloc0(ctx->unitsize))) {
-		sr_err("%s: ctx->old_sample malloc failed", __func__);
-		g_free(ctx->header);
-		g_free(ctx);
-		return SR_ERR_MALLOC;
-	}
 
 	return 0;
 }
 
-static int event(struct sr_output *o, int event_type, uint8_t **data_out,
-		 uint64_t *length_out)
+static int receive(struct sr_output *o, const struct sr_dev_inst *sdi,
+		const struct sr_datafeed_packet *packet, GString **out)
 {
-	if (!o) {
-		sr_err("%s: o was NULL", __func__);
-		return SR_ERR_ARG;
+	const struct sr_datafeed_logic *logic;
+	struct context *ctx;
+	const uint8_t *sample;
+	unsigned int curbit, p, idx, i;
+
+	(void)sdi;
+
+	*out = NULL;
+	if (!o || !o->internal)
+		return SR_ERR_BUG;
+	ctx = o->internal;
+
+	if (packet->type != SR_DF_LOGIC)
+		return SR_OK;
+	logic = packet->payload;
+
+	if (!ctx->prevsample) {
+		/* Can't allocate this until we know the stream's unitsize. */
+		if (!(ctx->prevsample = g_malloc0(logic->unitsize))) {
+			g_free(ctx);
+			sr_err("%s: ctx->prevsample malloc failed", __func__);
+			return SR_ERR_MALLOC;
+		}
 	}
 
-	if (!data_out) {
-		sr_err("%s: data_out was NULL", __func__);
-		return SR_ERR_ARG;
+	if (ctx->header) {
+		/* The header is still here, this must be the first packet. */
+		*out = ctx->header;
+		ctx->header = NULL;
+		ctx->samplecount = 0;
+	} else {
+		*out = g_string_sized_new(512);
 	}
 
-	if (!length_out) {
-		sr_err("%s: length_out was NULL", __func__);
-		return SR_ERR_ARG;
-	}
+	for (i = 0; i <= logic->length - logic->unitsize; i += logic->unitsize) {
+		sample = logic->data + i;
+		ctx->samplecount++;
 
-	switch (event_type) {
-	case SR_DF_TRIGGER:
-		/* TODO: Can a trigger mark be in a gnuplot data file? */
-		break;
-	case SR_DF_END:
-		g_free(o->internal);
-		o->internal = NULL;
-		break;
-	default:
-		sr_err("%s: unsupported event type: %d", __func__, event_type);
-		break;
-	}
+		/*
+		 * Don't output the same sample multiple times, but make
+		 * sure to output at least the first and last sample.
+		 */
+		if (i > 0 && i < logic->length - logic->unitsize) {
+			if (!memcmp(sample, ctx->prevsample, logic->unitsize))
+				continue;
+		}
+		memcpy(ctx->prevsample, sample, logic->unitsize);
 
-	*data_out = NULL;
-	*length_out = 0;
+		/* The first column is a counter (needed for gnuplot). */
+		g_string_append_printf(*out, "%" PRIu64 "\t", ctx->samplecount);
+
+		/* The next columns are the values of all channels. */
+		for (p = 0; p < ctx->num_enabled_channels; p++) {
+			idx = ctx->channel_index[p];
+			curbit = (sample[idx / 8] & ((uint8_t) (1 << (idx % 8)))) >> (idx % 8);
+			g_string_append_printf(*out, "%d ", curbit);
+		}
+		g_string_append_printf(*out, "\n");
+	}
 
 	return SR_OK;
 }
 
-static int data(struct sr_output *o, const uint8_t *data_in,
-		uint64_t length_in, uint8_t **data_out, uint64_t *length_out)
+static int cleanup(struct sr_output *o)
 {
 	struct context *ctx;
-	unsigned int max_linelen, outsize, p, curbit, i;
-	const uint8_t *sample;
-	static uint64_t samplecount = 0;
-	uint8_t *outbuf, *c;
 
-	if (!o) {
-		sr_err("%s: o was NULL", __func__);
-		return SR_ERR_ARG;
-	}
-
-	if (!o->internal) {
-		sr_err("%s: o->internal was NULL", __func__);
-		return SR_ERR_ARG;
-	}
-
-	if (!data_in) {
-		sr_err("%s: data_in was NULL", __func__);
-		return SR_ERR_ARG;
-	}
-
-	if (!data_out) {
-		sr_err("%s: data_out was NULL", __func__);
-		return SR_ERR_ARG;
-	}
-
-	if (!length_out) {
-		sr_err("%s: length_out was NULL", __func__);
-		return SR_ERR_ARG;
-	}
-
+	if (!o || !o->internal)
+		return SR_ERR_BUG;
 	ctx = o->internal;
-	max_linelen = 16 + ctx->num_enabled_channels * 2;
-	outsize = length_in / ctx->unitsize * max_linelen;
+	g_free(ctx->channel_index);
+	g_free(ctx->prevsample);
 	if (ctx->header)
-		outsize += strlen(ctx->header);
-
-	if (!(outbuf = g_try_malloc0(outsize))) {
-		sr_err("%s: outbuf malloc failed", __func__);
-		return SR_ERR_MALLOC;
-	}
-
-	outbuf[0] = '\0';
-	if (ctx->header) {
-		/* The header is still here, this must be the first packet. */
-		strncpy((char *)outbuf, ctx->header, outsize);
-		g_free(ctx->header);
-		ctx->header = NULL;
-	}
-
-	for (i = 0; i <= length_in - ctx->unitsize; i += ctx->unitsize) {
-
-		sample = data_in + i;
-
-		/*
-		 * Don't output the same samples multiple times. However, make
-		 * sure to output at least the first and last sample.
-		 */
-		if (samplecount++ != 0 &&
-				!memcmp(sample, ctx->old_sample, ctx->unitsize)) {
-			if (i != (length_in - ctx->unitsize))
-				continue;
-		}
-		memcpy(ctx->old_sample, sample, ctx->unitsize);
-
-		/* The first column is a counter (needed for gnuplot). */
-		c = outbuf + strlen((const char *)outbuf);
-		sprintf((char *)c, "%" PRIu64 "\t", samplecount++);
-
-		/* The next columns are the values of all channels. */
-		for (p = 0; p < ctx->num_enabled_channels; p++) {
-			curbit = (sample[p / 8] & ((uint8_t) (1 << (p % 8)))) >> (p % 8);
-			c = outbuf + strlen((const char *)outbuf);
-			sprintf((char *)c, "%d ", curbit);
-		}
-
-		c = outbuf + strlen((const char *)outbuf);
-		sprintf((char *)c, "\n");
-	}
-
-	*data_out = outbuf;
-	*length_out = strlen((const char *)outbuf);
+		g_string_free(ctx->header, TRUE);
+	g_free(ctx);
 
 	return SR_OK;
 }
@@ -274,6 +220,6 @@ SR_PRIV struct sr_output_format output_gnuplot = {
 	.description = "Gnuplot",
 	.df_type = SR_DF_LOGIC,
 	.init = init,
-	.data = data,
-	.event = event,
+	.receive = receive,
+	.cleanup = cleanup,
 };
