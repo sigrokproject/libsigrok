@@ -29,10 +29,10 @@
 
 struct context {
 	unsigned int num_enabled_channels;
-	unsigned int unitsize;
 	uint64_t samplerate;
 	GString *header;
 	char separator;
+	int *channel_index;
 };
 
 /*
@@ -53,7 +53,7 @@ static int init(struct sr_output *o)
 	struct sr_channel *ch;
 	GSList *l;
 	GVariant *gvar;
-	int num_channels;
+	int num_channels, i, j;
 	time_t t;
 
 	if (!o)
@@ -62,7 +62,7 @@ static int init(struct sr_output *o)
 	if (!o->sdi)
 		return SR_ERR_ARG;
 
-	ctx = g_try_malloc0(sizeof(struct context));
+	ctx = g_malloc0(sizeof(struct context));
 	o->internal = ctx;
 
 	/* Get the number of channels, and the unitsize. */
@@ -74,8 +74,7 @@ static int init(struct sr_output *o)
 			continue;
 		ctx->num_enabled_channels++;
 	}
-
-	ctx->unitsize = (ctx->num_enabled_channels + 7) / 8;
+	ctx->channel_index = g_malloc(sizeof(int) * ctx->num_enabled_channels);
 
 	num_channels = g_slist_length(o->sdi->channels);
 
@@ -100,13 +99,15 @@ static int init(struct sr_output *o)
 	/* Columns / channels */
 	g_string_append_printf(ctx->header, "; Channels (%d/%d):",
 			       ctx->num_enabled_channels, num_channels);
-	for (l = o->sdi->channels; l; l = l->next) {
+	for (i = 0, j = 0, l = o->sdi->channels; l; l = l->next, i++) {
 		ch = l->data;
 		if (ch->type != SR_CHANNEL_LOGIC)
 			continue;
 		if (!ch->enabled)
 			continue;
 		g_string_append_printf(ctx->header, " %s,", ch->name);
+		/* Remember the enabled channel's index while we're at it. */
+		ctx->channel_index[j++] = i;
 	}
 	if (o->sdi->channels)
 		/* Drop last separator. */
@@ -121,6 +122,7 @@ static int receive(struct sr_output *o, const struct sr_dev_inst *sdi,
 {
 	const struct sr_datafeed_logic *logic;
 	struct context *ctx;
+	int idx;
 	uint64_t i, j;
 	gchar *p, c;
 
@@ -146,10 +148,11 @@ static int receive(struct sr_output *o, const struct sr_dev_inst *sdi,
 			*out = g_string_sized_new(512);
 		}
 
-		for (i = 0; i <= logic->length - ctx->unitsize; i += ctx->unitsize) {
+		for (i = 0; i <= logic->length - logic->unitsize; i += logic->unitsize) {
 			for (j = 0; j < ctx->num_enabled_channels; j++) {
-				p = logic->data + i + j / 8;
-				c = *p & (1 << (j % 8));
+				idx = ctx->channel_index[j];
+				p = logic->data + i + idx / 8;
+				c = *p & (1 << (idx % 8));
 				g_string_append_c(*out, c ? '1' : '0');
 				g_string_append_c(*out, ctx->separator);
 			}
@@ -159,10 +162,6 @@ static int receive(struct sr_output *o, const struct sr_dev_inst *sdi,
 			}
 			g_string_append_printf(*out, "\n");
 		}
-		break;
-	case SR_DF_END:
-		g_free(o->internal);
-		o->internal = NULL;
 		break;
 	}
 
@@ -180,6 +179,7 @@ static int cleanup(struct sr_output *o)
 		ctx = o->internal;
 		if (ctx->header)
 			g_string_free(ctx->header, TRUE);
+		g_free(ctx->channel_index);
 		g_free(o->internal);
 		o->internal = NULL;
 	}
