@@ -36,7 +36,6 @@ struct context {
 	int period;
 	uint64_t samplerate;
 	uint64_t samplecount;
-	unsigned int unitsize;
 };
 
 static const char *const vcd_header_comment =
@@ -52,7 +51,7 @@ static int init(struct sr_output *o)
 	char *samplerate_s, *frequency_s, *timestamp;
 	time_t t;
 
-	if (!(ctx = g_try_malloc0(sizeof(struct context)))) {
+	if (!(ctx = g_malloc0(sizeof(struct context)))) {
 		sr_err("%s: ctx malloc failed", __func__);
 		return SR_ERR_MALLOC;
 	}
@@ -76,7 +75,6 @@ static int init(struct sr_output *o)
 		return SR_ERR;
 	}
 
-	ctx->unitsize = (ctx->num_enabled_channels + 7) / 8;
 	ctx->header = g_string_sized_new(512);
 	num_channels = g_slist_length(o->sdi->channels);
 
@@ -138,13 +136,6 @@ static int init(struct sr_output *o)
 	g_string_append(ctx->header, "$upscope $end\n"
 			"$enddefinitions $end\n");
 
-	if (!(ctx->prevsample = g_try_malloc0(ctx->unitsize))) {
-		g_string_free(ctx->header, TRUE);
-		g_free(ctx);
-		sr_err("%s: ctx->prevsample malloc failed", __func__);
-		return SR_ERR_MALLOC;
-	}
-
 	return SR_OK;
 }
 
@@ -184,6 +175,16 @@ static int receive(struct sr_output *o, const struct sr_dev_inst *sdi,
 	}
 
 	logic = packet->payload;
+
+	if (!ctx->prevsample) {
+		/* Can't allocate this until we know the stream's unitsize. */
+		if (!(ctx->prevsample = g_malloc0(logic->unitsize))) {
+			g_free(ctx);
+			sr_err("%s: ctx->prevsample malloc failed", __func__);
+			return SR_ERR_MALLOC;
+		}
+	}
+
 	for (i = 0; i <= logic->length - logic->unitsize; i += logic->unitsize) {
 		sample = logic->data + i;
 		timestamp_written = FALSE;
@@ -218,7 +219,7 @@ static int receive(struct sr_output *o, const struct sr_dev_inst *sdi,
 			g_string_append_c(*out, '\n');
 
 		ctx->samplecount++;
-		memcpy(ctx->prevsample, sample, ctx->unitsize);
+		memcpy(ctx->prevsample, sample, logic->unitsize);
 	}
 
 	return SR_OK;
@@ -232,6 +233,8 @@ static int cleanup(struct sr_output *o)
 		return SR_ERR_ARG;
 
 	ctx = o->internal;
+	g_free(ctx->prevsample);
+	g_array_free(ctx->channelindices, TRUE);
 	g_free(ctx);
 
 	return SR_OK;
