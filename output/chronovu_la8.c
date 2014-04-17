@@ -28,9 +28,11 @@
 
 struct context {
 	unsigned int num_enabled_channels;
-	unsigned int unitsize;
-	uint64_t trigger_point;
+	gboolean triggered;
 	uint64_t samplerate;
+	uint64_t samplecount;
+	int *channel_index;
+	GString *pretrig_buf;
 };
 
 /**
@@ -40,19 +42,16 @@ struct context {
  *
  * @return 1 if the samplerate is supported/valid, 0 otherwise.
  */
-static int is_valid_samplerate(uint64_t samplerate)
+static gboolean is_valid_samplerate(uint64_t samplerate)
 {
 	unsigned int i;
 
 	for (i = 0; i < 255; i++) {
 		if (samplerate == (SR_MHZ(100) / (i + 1)))
-			return 1;
+			return TRUE;
 	}
 
-	sr_warn("%s: invalid samplerate (%" PRIu64 "Hz)",
-		__func__, samplerate);
-
-	return 0;
+	return FALSE;
 }
 
 /**
@@ -68,13 +67,8 @@ static int is_valid_samplerate(uint64_t samplerate)
  */
 static uint8_t samplerate_to_divcount(uint64_t samplerate)
 {
-	if (samplerate == 0) {
-		sr_warn("%s: samplerate was 0", __func__);
-		return 0xff;
-	}
-
-	if (!is_valid_samplerate(samplerate)) {
-		sr_warn("%s: can't get divcount, samplerate invalid", __func__);
+	if (samplerate == 0 || !is_valid_samplerate(samplerate)) {
+		sr_warn("Invalid samplerate (%" PRIu64 "Hz)", samplerate);
 		return 0xff;
 	}
 
@@ -86,26 +80,13 @@ static int init(struct sr_output *o)
 	struct context *ctx;
 	struct sr_channel *ch;
 	GSList *l;
-	GVariant *gvar;
 
-	if (!o) {
-		sr_warn("%s: o was NULL", __func__);
+	if (!o || !o->sdi)
 		return SR_ERR_ARG;
-	}
 
-	if (!o->sdi) {
-		sr_warn("%s: o->sdi was NULL", __func__);
-		return SR_ERR_ARG;
-	}
-
-	if (!(ctx = g_try_malloc0(sizeof(struct context)))) {
-		sr_warn("%s: ctx malloc failed", __func__);
-		return SR_ERR_MALLOC;
-	}
-
+	ctx = g_malloc0(sizeof(struct context));
 	o->internal = ctx;
 
-	/* Get the unitsize. */
 	for (l = o->sdi->channels; l; l = l->next) {
 		ch = l->data;
 		if (ch->type != SR_CHANNEL_LOGIC)
@@ -114,111 +95,90 @@ static int init(struct sr_output *o)
 			continue;
 		ctx->num_enabled_channels++;
 	}
-	ctx->unitsize = (ctx->num_enabled_channels + 7) / 8;
-
-	if (sr_config_get(o->sdi->driver, o->sdi, NULL, SR_CONF_SAMPLERATE,
-			&gvar) == SR_OK) {
-		ctx->samplerate = g_variant_get_uint64(gvar);
-		g_variant_unref(gvar);
-	} else
-		ctx->samplerate = 0;
+	ctx->channel_index = g_malloc(sizeof(int) * ctx->num_enabled_channels);
+	ctx->pretrig_buf = g_string_sized_new(1024);
 
 	return SR_OK;
 }
 
-static int event(struct sr_output *o, int event_type, uint8_t **data_out,
-		 uint64_t *length_out)
+static int receive(struct sr_output *o, const struct sr_dev_inst *sdi,
+		const struct sr_datafeed_packet *packet, GString **out)
 {
+	const struct sr_datafeed_logic *logic;
 	struct context *ctx;
-	uint8_t *outbuf;
+	GVariant *gvar;
+	uint64_t samplerate;
+	gchar c[4];
 
-	if (!o) {
-		sr_warn("%s: o was NULL", __func__);
+	(void)sdi;
+
+	*out = NULL;
+	if (!o || !o->sdi)
 		return SR_ERR_ARG;
-	}
-
-	if (!(ctx = o->internal)) {
-		sr_warn("%s: o->internal was NULL", __func__);
+	if (!(ctx = o->internal))
 		return SR_ERR_ARG;
-	}
 
-	if (!data_out) {
-		sr_warn("%s: data_out was NULL", __func__);
-		return SR_ERR_ARG;
-	}
-
-	switch (event_type) {
+	switch (packet->type) {
+	case SR_DF_HEADER:
+		/* One byte for the 'divcount' value. */
+		if (sr_config_get(o->sdi->driver, o->sdi, NULL, SR_CONF_SAMPLERATE,
+				&gvar) == SR_OK) {
+			samplerate = g_variant_get_uint64(gvar);
+			g_variant_unref(gvar);
+		} else
+			samplerate = 0;
+		c[0] = samplerate_to_divcount(samplerate);
+		*out = g_string_new_len(c, 1);
+		ctx->triggered = FALSE;
+		break;
 	case SR_DF_TRIGGER:
-		sr_dbg("%s: SR_DF_TRIGGER event", __func__);
-		/* Save the trigger point for later (SR_DF_END). */
-		ctx->trigger_point = 0; /* TODO: Store _actual_ value. */
+		/* Four bytes (little endian) for the trigger point. */
+		c[0] = ctx->samplecount & 0xff;
+		c[1] = (ctx->samplecount >> 8) & 0xff;
+		c[2] = (ctx->samplecount >> 16) & 0xff;
+		c[3] = (ctx->samplecount >> 24) & 0xff;
+		*out = g_string_new_len(c, 4);
+		/* Flush the pre-trigger buffer. */
+		if (ctx->pretrig_buf->len)
+			g_string_append_len(*out, ctx->pretrig_buf->str,
+					ctx->pretrig_buf->len);
+		ctx->triggered = TRUE;
+		break;
+	case SR_DF_LOGIC:
+		logic = packet->payload;
+		if (!ctx->triggered)
+			g_string_append_len(ctx->pretrig_buf, logic->data, logic->length);
+		else
+			*out = g_string_new_len(logic->data, logic->length);
+		ctx->samplecount += logic->length / logic->unitsize;
 		break;
 	case SR_DF_END:
-		sr_dbg("%s: SR_DF_END event", __func__);
-		if (!(outbuf = g_try_malloc(4 + 1))) {
-			sr_warn("la8 out: %s: outbuf malloc failed", __func__);
-			return SR_ERR_MALLOC;
+		if (!ctx->triggered && ctx->pretrig_buf->len) {
+			/* We never got a trigger, submit an empty one. */
+			*out = g_string_sized_new(ctx->pretrig_buf->len + 4);
+			g_string_append_len(*out, "\x00\x00\x00\x00", 4);
+			g_string_append_len(*out, ctx->pretrig_buf->str, ctx->pretrig_buf->len);
 		}
-
-		/* One byte for the 'divcount' value. */
-		outbuf[0] = samplerate_to_divcount(ctx->samplerate);
-		// if (outbuf[0] == 0xff) {
-		// 	sr_warn("%s: invalid divcount", __func__);
-		// 	return SR_ERR;
-		// }
-
-		/* Four bytes (little endian) for the trigger point. */
-		outbuf[1] = (ctx->trigger_point >>  0) & 0xff;
-		outbuf[2] = (ctx->trigger_point >>  8) & 0xff;
-		outbuf[3] = (ctx->trigger_point >> 16) & 0xff;
-		outbuf[4] = (ctx->trigger_point >> 24) & 0xff;
-
-		*data_out = outbuf;
-		*length_out = 4 + 1;
-		g_free(o->internal);
-		o->internal = NULL;
-		break;
-	default:
-		sr_warn("%s: unsupported event type: %d", __func__,
-			event_type);
-		*data_out = NULL;
-		*length_out = 0;
 		break;
 	}
 
 	return SR_OK;
 }
 
-static int data(struct sr_output *o, const uint8_t *data_in,
-		uint64_t length_in, uint8_t **data_out, uint64_t *length_out)
+static int cleanup(struct sr_output *o)
 {
 	struct context *ctx;
-	uint8_t *outbuf;
 
-	if (!o) {
-		sr_warn("%s: o was NULL", __func__);
+	if (!o || !o->sdi)
 		return SR_ERR_ARG;
+
+	if (o->internal) {
+		ctx = o->internal;
+		g_string_free(ctx->pretrig_buf, TRUE);
+		g_free(ctx->channel_index);
+		g_free(o->internal);
+		o->internal = NULL;
 	}
-
-	if (!(ctx = o->internal)) {
-		sr_warn("%s: o->internal was NULL", __func__);
-		return SR_ERR_ARG;
-	}
-
-	if (!data_in) {
-		sr_warn("%s: data_in was NULL", __func__);
-		return SR_ERR_ARG;
-	}
-
-	if (!(outbuf = g_try_malloc0(length_in))) {
-		sr_warn("%s: outbuf malloc failed", __func__);
-		return SR_ERR_MALLOC;
-	}
-
-	memcpy(outbuf, data_in, length_in);
-
-	*data_out = outbuf;
-	*length_out = length_in;
 
 	return SR_OK;
 }
@@ -228,6 +188,6 @@ SR_PRIV struct sr_output_format output_chronovu_la8 = {
 	.description = "ChronoVu LA8",
 	.df_type = SR_DF_LOGIC,
 	.init = init,
-	.data = data,
-	.event = event,
+	.receive = receive,
+	.cleanup = cleanup,
 };
