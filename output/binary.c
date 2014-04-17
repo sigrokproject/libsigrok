@@ -26,36 +26,19 @@
 
 #define LOG_PREFIX "output/binary:"
 
-static int data(struct sr_output *o, const uint8_t *data_in,
-		uint64_t length_in, uint8_t **data_out, uint64_t *length_out)
+static int receive(struct sr_output *o, const struct sr_dev_inst *sdi,
+		const struct sr_datafeed_packet *packet, GString **out)
 {
-	uint8_t *outbuf;
+	const struct sr_datafeed_logic *logic;
 
 	(void)o;
+	(void)sdi;
 
-	if (!data_in) {
-		sr_err("%s: data_in was NULL", __func__);
-		return SR_ERR_ARG;
-	}
-
-	if (!length_out) {
-		sr_err("%s: length_out was NULL", __func__);
-		return SR_ERR_ARG;
-	}
-
-	if (length_in == 0) {
-		sr_err("%s: length_in was 0", __func__);
-		return SR_ERR_ARG;
-	}
-
-	if (!(outbuf = g_try_malloc0(length_in))) {
-		sr_err("%s: outbuf malloc failed", __func__);
-		return SR_ERR_MALLOC;
-	}
-
-	memcpy(outbuf, data_in, length_in);
-	*data_out = outbuf;
-	*length_out = length_in;
+	*out = NULL;
+	if (packet->type != SR_DF_LOGIC)
+		return SR_OK;
+	logic = packet->payload;
+	*out = g_string_new_len(logic->data, logic->length);
 
 	return SR_OK;
 }
@@ -65,6 +48,5 @@ SR_PRIV struct sr_output_format output_binary = {
 	.description = "Raw binary",
 	.df_type = SR_DF_LOGIC,
 	.init = NULL,
-	.data = data,
-	.event = NULL,
+	.receive = receive,
 };
