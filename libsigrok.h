@@ -92,7 +92,7 @@ enum {
 #define SR_HZ_TO_NS(n) ((uint64_t)(1000000000ULL) / (n))
 
 /** libsigrok loglevels. */
-enum {
+enum sr_loglevel {
 	SR_LOG_NONE = 0, /**< Output no messages at all. */
 	SR_LOG_ERR  = 1, /**< Output error messages. */
 	SR_LOG_WARN = 2, /**< Output warnings. */
@@ -135,7 +135,7 @@ enum {
 typedef int (*sr_receive_data_callback_t)(int fd, int revents, void *cb_data);
 
 /** Data types used by sr_config_info(). */
-enum {
+enum sr_datatype {
 	SR_T_UINT64 = 10000,
 	SR_T_CHAR,
 	SR_T_BOOL,
@@ -149,7 +149,7 @@ enum {
 };
 
 /** Value for sr_datafeed_packet.type. */
-enum {
+enum sr_packettype {
 	/** Payload is sr_datafeed_header. */
 	SR_DF_HEADER = 10000,
 	/** End of stream (no further data). */
@@ -169,7 +169,7 @@ enum {
 };
 
 /** Measured quantity, sr_datafeed_analog.mq. */
-enum {
+enum sr_mq {
 	SR_MQ_VOLTAGE = 10000,
 	SR_MQ_CURRENT,
 	SR_MQ_RESISTANCE,
@@ -198,7 +198,7 @@ enum {
 };
 
 /** Unit of measured quantity, sr_datafeed_analog.unit. */
-enum {
+enum sr_unit {
 	/** Volt */
 	SR_UNIT_VOLT = 10000,
 	/** Ampere (current). */
@@ -255,7 +255,7 @@ enum {
 };
 
 /** Values for sr_datafeed_analog.flags. */
-enum {
+enum sr_mqflag {
 	/** Voltage measurement is alternating current (AC). */
 	SR_MQFLAG_AC = 0x01,
 	/** Voltage measurement is direct current (DC). */
@@ -526,7 +526,7 @@ struct sr_output_format {
 };
 
 /** Constants for channel type. */
-enum {
+enum sr_channeltype {
 	/** Channel type is logic channel. */
 	SR_CHANNEL_LOGIC = 10000,
 	/** Channel type is analog channel. */
@@ -580,7 +580,7 @@ struct sr_config_info {
 };
 
 /** Constants for device classes */
-enum {
+enum sr_configkey {
 	/*--- Device classes ------------------------------------------------*/
 
 	/** The device can act as logic analyzer. */
