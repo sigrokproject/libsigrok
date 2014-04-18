@@ -44,7 +44,8 @@ AH_BOTTOM([#endif /* SR_CONFIG_H */])
 
 # Enable more compiler warnings via -Wall and -Wextra. Add -fvisibility=hidden
 # and enforce use of SR_API to explicitly mark all public API functions.
-CFLAGS="$CFLAGS -Wall -Wextra -Wmissing-prototypes -fvisibility=hidden"
+COMMON_FLAGS="$CFLAGS -Wall -Wextra -fvisibility=hidden"
+CFLAGS="$COMMON_FLAGS -Wmissing-prototypes"
 
 # Checks for programs.
 AC_PROG_CC
@@ -292,17 +293,17 @@ AM_CONDITIONAL(NEED_RPC, test "x$have_rpc" != "x0")
 # Note: glib-2.0 is part of the libsigrok API (hard pkg-config requirement).
 # We require at least 2.32.0 due to e.g. g_variant_new_fixed_array().
 AM_PATH_GLIB_2_0([2.32.0],
-	[CFLAGS="$CFLAGS $GLIB_CFLAGS"; LIBS="$LIBS $GLIB_LIBS"])
+	[LIB_CFLAGS="$LIB_CFLAGS $GLIB_CFLAGS"; LIBS="$LIBS $GLIB_LIBS"])
 
 # libzip is always needed. Abort if it's not found.
 PKG_CHECK_MODULES([libzip], [libzip >= 0.10],
-	[CFLAGS="$CFLAGS $libzip_CFLAGS"; LIBS="$LIBS $libzip_LIBS";
+	[LIB_CFLAGS="$LIB_CFLAGS $libzip_CFLAGS"; LIBS="$LIBS $libzip_LIBS";
 	SR_PKGLIBS="$SR_PKGLIBS libzip"])
 
 # libserialport is only needed for some hardware drivers. Disable the
 # respective drivers if it is not found.
 PKG_CHECK_MODULES([libserialport], [libserialport >= 0.1.0],
-	[have_libserialport="yes"; CFLAGS="$CFLAGS $libserialport_CFLAGS";
+	[have_libserialport="yes"; LIB_CFLAGS="$LIB_CFLAGS $libserialport_CFLAGS";
 	LIBS="$LIBS $libserialport_LIBS";
 	SR_PKGLIBS="$SR_PKGLIBS libserialport"],
 	[have_libserialport="no"; HW_AGILENT_DMM="no"; HW_APPA_55II="no";
@@ -322,7 +323,7 @@ fi
 AM_CONDITIONAL(NEED_SERIAL, test "x$have_libserialport" != xno)
 
 PKG_CHECK_MODULES([librevisa], [librevisa >= 0.0.20130812],
-	[have_librevisa="yes"; CFLAGS="$CFLAGS $librevisa_CFLAGS";
+	[have_librevisa="yes"; LIB_CFLAGS="$LIB_CFLAGS $librevisa_CFLAGS";
 	LIBS="$LIBS $librevisa_LIBS";
 	SR_PKGLIBS="$SR_PKGLIBS librevisa"],
 	[have_librevisa="no"])
@@ -348,7 +349,7 @@ case "$host" in
 	;;
 *)
 	PKG_CHECK_MODULES([libusb], [libusb-1.0 >= 1.0.16],
-		[have_libusb1_0="yes"; CFLAGS="$CFLAGS $libusb_CFLAGS";
+		[have_libusb1_0="yes"; LIB_CFLAGS="$LIB_CFLAGS $libusb_CFLAGS";
 		LIBS="$LIBS $libusb_LIBS";
 		SR_PKGLIBS="$SR_PKGLIBS libusb-1.0"],
 		[have_libusb1_0="no"; HW_BRYMEN_BM86X="no"; HW_FX2LAFW="no";
@@ -371,20 +372,20 @@ AM_CONDITIONAL(NEED_USB, test "x$have_libusb1_0" != xno)
 
 # libftdi is only needed for some hardware drivers. Disable them if not found.
 PKG_CHECK_MODULES([libftdi], [libftdi >= 0.16],
-	[CFLAGS="$CFLAGS $libftdi_CFLAGS";
+	[LIB_CFLAGS="$LIB_CFLAGS $libftdi_CFLAGS";
 	LIBS="$LIBS $libftdi_LIBS";
 	SR_PKGLIBS="$SR_PKGLIBS libftdi"],
 	[HW_ASIX_SIGMA="no"; HW_CHRONOVU_LA="no"; HW_IKALOGIC_SCANAPLUS="no"])
 
 # libudev is only needed for some hardware drivers. Disable them if not found.
 PKG_CHECK_MODULES([libudev], [libudev >= 151],
-	[CFLAGS="$CFLAGS $libudev_CFLAGS"; LIBS="$LIBS $libudev_LIBS";
+	[LIB_CFLAGS="$LIB_CFLAGS $libudev_CFLAGS"; LIBS="$LIBS $libudev_LIBS";
 	SR_PKGLIBS="$SR_PKGLIBS libudev"],
 	[HW_LINK_MSO19="no"])
 
 # The Check unit testing framework is optional. Disable if not found.
 PKG_CHECK_MODULES([check], [check >= 0.9.4],
-	[have_check="yes"; CFLAGS="$CFLAGS $check_CFLAGS";
+	[have_check="yes"; LIB_CFLAGS="$LIB_CFLAGS $check_CFLAGS";
 	LIBS="$LIBS $check_LIBS"], [have_check="no"])
 AM_CONDITIONAL(HAVE_CHECK, test x"$have_check" = "xyes")
 
@@ -397,6 +398,8 @@ case "$host" in
 esac
 
 AC_SUBST(SR_PKGLIBS)
+
+CFLAGS="$CFLAGS $LIB_CFLAGS"
 
 # Now set AM_CONDITIONALs and AC_DEFINEs for the enabled/disabled drivers.
 
