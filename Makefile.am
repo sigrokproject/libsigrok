@@ -105,12 +105,6 @@ libsigrok_la_SOURCES += \
 	hardware/agilent-dmm/agilent-dmm.h \
 	hardware/agilent-dmm/sched.c
 endif
-if HW_ALSA
-libsigrok_la_SOURCES += \
-	hardware/alsa/protocol.h \
-	hardware/alsa/protocol.c \
-	hardware/alsa/api.c
-endif
 if HW_APPA_55II
 libsigrok_la_SOURCES += \
 	hardware/appa-55ii/protocol.h \

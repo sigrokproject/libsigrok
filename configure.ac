@@ -89,11 +89,6 @@ AC_ARG_ENABLE(agilent-dmm, AC_HELP_STRING([--enable-agilent-dmm],
 	[HW_AGILENT_DMM="$enableval"],
 	[HW_AGILENT_DMM=$HW_ENABLED_DEFAULT])
 
-AC_ARG_ENABLE(alsa, AC_HELP_STRING([--enable-alsa],
-	[enable ALSA driver support [default=yes]]),
-	[HW_ALSA="$enableval"],
-	[HW_ALSA=$HW_ENABLED_DEFAULT])
-
 AC_ARG_ENABLE(appa-55ii, AC_HELP_STRING([--enable-appa-55ii],
 	[enable APPA 55II support [default=yes]]),
 	[HW_APPA_55II="$enableval"],
@@ -387,12 +382,6 @@ PKG_CHECK_MODULES([libudev], [libudev >= 151],
 	SR_PKGLIBS="$SR_PKGLIBS libudev"],
 	[HW_LINK_MSO19="no"])
 
-# ALSA is only needed for some hardware drivers. Disable them if not found.
-PKG_CHECK_MODULES([alsa], [alsa >= 1.0],
-	[CFLAGS="$CFLAGS $alsa_CFLAGS"; LIBS="$LIBS $alsa_LIBS";
-	SR_PKGLIBS="$SR_PKGLIBS alsa"],
-	[HW_ALSA="no"])
-
 # The Check unit testing framework is optional. Disable if not found.
 PKG_CHECK_MODULES([check], [check >= 0.9.4],
 	[have_check="yes"; CFLAGS="$CFLAGS $check_CFLAGS";
@@ -414,11 +403,6 @@ AC_SUBST(SR_PKGLIBS)
 AM_CONDITIONAL(HW_AGILENT_DMM, test x$HW_AGILENT_DMM = xyes)
 if test "x$HW_AGILENT_DMM" = "xyes"; then
 	AC_DEFINE(HAVE_HW_AGILENT_DMM, 1, [Agilent DMM support])
-fi
-
-AM_CONDITIONAL(HW_ALSA, test x$HW_ALSA = xyes)
-if test "x$HW_ALSA" = "xyes"; then
-	AC_DEFINE(HAVE_HW_ALSA, 1, [ALSA driver support])
 fi
 
 AM_CONDITIONAL(HW_APPA_55II, test x$HW_APPA_55II = xyes)
@@ -628,7 +612,7 @@ echo "Detected libraries:"
 echo
 
 # Note: This only works for libs with pkg-config integration.
-for lib in "glib-2.0 >= 2.32.0" "libzip >= 0.10" "libserialport >= 0.1.0" "librevisa >= 0.0.20130812" "libusb-1.0 >= 1.0.16" "libftdi >= 0.16" "libudev >= 151" "alsa >= 1.0" "check >= 0.9.4"; do
+for lib in "glib-2.0 >= 2.32.0" "libzip >= 0.10" "libserialport >= 0.1.0" "librevisa >= 0.0.20130812" "libusb-1.0 >= 1.0.16" "libftdi >= 0.16" "libudev >= 151" "check >= 0.9.4"; do
 	optional="OPTIONAL"
 	if test "x$lib" = "xglib-2.0 >= 2.32.0"; then optional="REQUIRED"; fi
 	if test "x$lib" = "xlibzip >= 0.10"; then optional="REQUIRED"; fi
@@ -643,7 +627,6 @@ done
 
 echo -e "\nEnabled hardware drivers:\n"
 echo "  - agilent-dmm..................... $HW_AGILENT_DMM"
-echo "  - alsa............................ $HW_ALSA"
 echo "  - appa-55ii....................... $HW_APPA_55II"
 echo "  - asix-sigma...................... $HW_ASIX_SIGMA"
 echo "  - atten-pps3xxx................... $HW_ATTEN_PPS3XXX"
