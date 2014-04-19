@@ -61,7 +61,7 @@ libsigrok_la_SOURCES += \
 	output/output.c \
 	output/text/text.c \
 	output/text/text.h \
-	output/text/hex.c \
+	output/hex.c \
 	output/text/ascii.c
 
 # Hardware (common files)
