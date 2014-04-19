@@ -49,7 +49,7 @@
  */
 
 /** @cond PRIVATE */
-extern SR_PRIV struct sr_output_format output_text_bits;
+extern SR_PRIV struct sr_output_format output_bits;
 extern SR_PRIV struct sr_output_format output_text_hex;
 extern SR_PRIV struct sr_output_format output_text_ascii;
 extern SR_PRIV struct sr_output_format output_binary;
@@ -63,7 +63,7 @@ extern SR_PRIV struct sr_output_format output_analog;
 /* @endcond */
 
 static struct sr_output_format *output_module_list[] = {
-	&output_text_bits,
+	&output_bits,
 	&output_text_hex,
 	&output_text_ascii,
 	&output_binary,

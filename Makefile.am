@@ -51,6 +51,7 @@ libsigrok_la_SOURCES += \
 # Output formats
 libsigrok_la_SOURCES += \
 	output/binary.c \
+	output/bits.c \
 	output/vcd.c \
 	output/ols.c \
 	output/gnuplot.c \
@@ -60,7 +61,6 @@ libsigrok_la_SOURCES += \
 	output/output.c \
 	output/text/text.c \
 	output/text/text.h \
-	output/text/bits.c \
 	output/text/hex.c \
 	output/text/ascii.c
 
