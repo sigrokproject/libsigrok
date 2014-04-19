@@ -46,7 +46,6 @@ static int receive(struct sr_output *o, const struct sr_dev_inst *sdi,
 SR_PRIV struct sr_output_format output_binary = {
 	.id = "binary",
 	.description = "Raw binary",
-	.df_type = SR_DF_LOGIC,
 	.init = NULL,
 	.receive = receive,
 };

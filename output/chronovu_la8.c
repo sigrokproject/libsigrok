@@ -2,6 +2,7 @@
  * This file is part of the libsigrok project.
  *
  * Copyright (C) 2011 Uwe Hermann <uwe@hermann-uwe.de>
+ * Copyright (C) 2014 Bert Vermeulen <bert@biot.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <stdlib.h>
@@ -186,7 +186,6 @@ static int cleanup(struct sr_output *o)
 SR_PRIV struct sr_output_format output_chronovu_la8 = {
 	.id = "chronovu-la8",
 	.description = "ChronoVu LA8",
-	.df_type = SR_DF_LOGIC,
 	.init = init,
 	.receive = receive,
 	.cleanup = cleanup,

@@ -243,7 +243,6 @@ static int cleanup(struct sr_output *o)
 struct sr_output_format output_vcd = {
 	.id = "vcd",
 	.description = "Value Change Dump (VCD)",
-	.df_type = SR_DF_LOGIC,
 	.init = init,
 	.receive = receive,
 	.cleanup = cleanup,

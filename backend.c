@@ -280,25 +280,13 @@ static int sanity_check_all_output_modules(void)
 			errors++;
 		}
 		if (!outputs[i]->description) {
-			sr_err("No description in module %d ('%s').", i, d);
+			sr_err("No description in module '%s'.", d);
 			errors++;
 		}
-		if (outputs[i]->df_type < 10000 || outputs[i]->df_type > 10007) {
-			sr_err("Invalid df_type %d in module %d ('%s').",
-			       outputs[i]->df_type, i, d);
+		if (!outputs[i]->receive) {
+			sr_err("No receive in module '%s'.", d);
 			errors++;
 		}
-
-		/* All modules must provide a data or recv API callback. */
-		if (!outputs[i]->data && !outputs[i]->receive) {
-			sr_err("No data/receive in module %d ('%s').", i, d);
-			errors++;
-		}
-
-		/*
-		 * Currently most API calls are optional (their function
-		 * pointers can thus be NULL) in theory: init, event, cleanup.
-		 */
 
 		if (errors == 0)
 			continue;

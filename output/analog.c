@@ -264,7 +264,6 @@ static int cleanup(struct sr_output *o)
 SR_PRIV struct sr_output_format output_analog = {
 	.id = "analog",
 	.description = "Analog data",
-	.df_type = SR_DF_ANALOG,
 	.init = init,
 	.receive = receive,
 	.cleanup = cleanup

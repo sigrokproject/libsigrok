@@ -151,7 +151,6 @@ static int cleanup(struct sr_output *o)
 SR_PRIV struct sr_output_format output_ols = {
 	.id = "ols",
 	.description = "OpenBench Logic Sniffer",
-	.df_type = SR_DF_LOGIC,
 	.init = init,
 	.receive = receive,
 	.cleanup = cleanup

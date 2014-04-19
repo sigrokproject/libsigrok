@@ -59,8 +59,6 @@ libsigrok_la_SOURCES += \
 	output/csv.c \
 	output/analog.c \
 	output/output.c \
-	output/text/text.c \
-	output/text/text.h \
 	output/hex.c \
 	output/ascii.c
 
