@@ -37,7 +37,6 @@
 #define USB_VENDOR_NAME			"ASIX"
 #define USB_MODEL_NAME			"SIGMA"
 #define TRIGGER_TYPE 			"rf10"
-#define NUM_CHANNELS			16
 
 SR_PRIV struct sr_dev_driver asix_sigma_driver_info;
 static struct sr_dev_driver *di = &asix_sigma_driver_info;
@@ -67,10 +66,9 @@ static const uint64_t samplerates[] = {
  * http://tools.asix.net/img/sigma_sigmacab_pins_720.jpg
  * (the cable has two additional GND pins, and a TI and TO pin)
  */
-static const char *channel_names[NUM_CHANNELS + 1] = {
+static const char *channel_names[] = {
 	"1", "2", "3", "4", "5", "6", "7", "8",
 	"9", "10", "11", "12", "13", "14", "15", "16",
-	NULL,
 };
 
 static const int32_t hwcaps[] = {
@@ -416,7 +414,8 @@ static GSList *scan(GSList *options)
 	struct ftdi_device_list *devlist;
 	char serial_txt[10];
 	uint32_t serial;
-	int ret, i;
+	int ret;
+	unsigned int i;
 
 	(void)options;
 
@@ -470,9 +469,10 @@ static GSList *scan(GSList *options)
 	}
 	sdi->driver = di;
 
-	for (i = 0; channel_names[i]; i++) {
-		if (!(ch = sr_channel_new(i, SR_CHANNEL_LOGIC, TRUE,
-				channel_names[i])))
+	for (i = 0; i < ARRAY_SIZE(channel_names); i++) {
+		ch = sr_channel_new(i, SR_CHANNEL_LOGIC, TRUE,
+				    channel_names[i]);
+		if (!ch)
 			return NULL;
 		sdi->channels = g_slist_append(sdi->channels, ch);
 	}
