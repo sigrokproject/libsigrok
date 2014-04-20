@@ -949,7 +949,7 @@ static uint16_t sigma_dram_cluster_ts(struct sigma_dram_cluster *cluster)
  */
 static int decode_chunk_ts(struct sigma_dram_line *dram_line, uint16_t *lastts,
 			   uint16_t *lastsample, int triggerpos,
-			   uint16_t limit_chunk, void *cb_data)
+			   uint16_t events_in_line, void *cb_data)
 {
 	uint8_t *buf = (uint8_t *)dram_line;
 	struct sigma_dram_cluster *dram_cluster;
@@ -979,15 +979,11 @@ static int decode_chunk_ts(struct sigma_dram_line *dram_line, uint16_t *lastts,
 	}
 
 	/* For each ts. */
-	for (i = 0; i < 64; i++) {
+	for (i = 0; i < (events_in_line / 7); i++) {
 		dram_cluster = &dram_line->cluster[i];
 		ts = sigma_dram_cluster_ts(dram_cluster);
 		tsdiff = ts - *lastts;
 		*lastts = ts;
-
-		/* Decode partial chunk. */
-		if (limit_chunk && ts > limit_chunk)
-			return SR_OK;
 
 		/* Pad last sample up to current point. */
 		numpad = tsdiff * devc->samples_per_event - clustersize;
@@ -1093,7 +1089,7 @@ static int download_capture(struct sr_dev_inst *sdi)
 
 	uint32_t i;
 	uint32_t dl_lines_total, dl_lines_curr, dl_lines_done;
-	uint32_t dl_trailing_events;
+	uint32_t dl_events_in_line = 64 * 7;
 	uint32_t trg_line = ~0;
 
 	dram_line = g_try_malloc0(chunks_per_read * sizeof(*dram_line));
@@ -1122,7 +1118,6 @@ static int download_capture(struct sr_dev_inst *sdi)
 	 * line can be only partial, containing less than 64 clusters.
 	 */
 	dl_lines_total = (stoppos >> 9) + 1;
-	dl_trailing_events = stoppos & 0x1ff;
 
 	dl_lines_done = 0;
 
@@ -1143,11 +1138,10 @@ static int download_capture(struct sr_dev_inst *sdi)
 		}
 
 		for (i = 0; i < dl_lines_curr; i++) {
-			uint32_t dl_limit = 0;
 			int trigger_line = -1;
 			/* The last "DRAM line" can be only partially full. */
 			if (dl_lines_done + i == dl_lines_total - 1)
-				dl_limit = dl_trailing_events;
+				dl_events_in_line = stoppos & 0x1ff;
 
 			/* Test if the trigger happened on this line. */
 			if (dl_lines_done + i == trg_line)
@@ -1156,7 +1150,8 @@ static int download_capture(struct sr_dev_inst *sdi)
 			decode_chunk_ts(dram_line + i,
 					&devc->state.lastts,
 					&devc->state.lastsample,
-					trigger_line, dl_limit, sdi);
+					trigger_line,
+					dl_events_in_line, sdi);
 		}
 
 		dl_lines_done += dl_lines_curr;
