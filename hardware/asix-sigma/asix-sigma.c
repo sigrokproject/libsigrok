@@ -947,10 +947,11 @@ static uint16_t sigma_dram_cluster_ts(struct sigma_dram_cluster *cluster)
  * For 50 MHz and below, events contain one sample for each channel,
  * spread 20 ns apart.
  */
-static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
+static int decode_chunk_ts(struct sigma_dram_line *dram_line, uint16_t *lastts,
 			   uint16_t *lastsample, int triggerpos,
 			   uint16_t limit_chunk, void *cb_data)
 {
+	uint8_t *buf = (uint8_t *)dram_line;
 	struct sr_dev_inst *sdi = cb_data;
 	struct dev_context *devc = sdi->priv;
 	uint16_t tsdiff, ts;
@@ -1083,7 +1084,6 @@ static int download_capture(struct sr_dev_inst *sdi)
 	struct dev_context *devc = sdi->priv;
 	const int chunks_per_read = 32;
 	struct sigma_dram_line *dram_line;
-	unsigned char *buf;
 	int bufsz;
 	uint32_t stoppos, triggerpos;
 	struct sr_datafeed_packet packet;
@@ -1097,8 +1097,6 @@ static int download_capture(struct sr_dev_inst *sdi)
 	dram_line = g_try_malloc0(chunks_per_read * sizeof(*dram_line));
 	if (!dram_line)
 		return FALSE;
-
-	buf = (unsigned char *)dram_line;
 
 	sr_info("Downloading sample data.");
 
@@ -1130,7 +1128,8 @@ static int download_capture(struct sr_dev_inst *sdi)
 		/* We can download only up-to 32 DRAM lines in one go! */
 		dl_lines_curr = MIN(chunks_per_read, dl_lines_total);
 
-		bufsz = sigma_read_dram(dl_lines_done, dl_lines_curr, buf, devc);
+		bufsz = sigma_read_dram(dl_lines_done, dl_lines_curr,
+					(uint8_t *)dram_line, devc);
 		/* TODO: Check bufsz. For now, just avoid compiler warnings. */
 		(void)bufsz;
 
@@ -1152,7 +1151,7 @@ static int download_capture(struct sr_dev_inst *sdi)
 			if (dl_lines_done + i == trg_line)
 				trigger_line = trg_line;
 
-			decode_chunk_ts(buf + (i * CHUNK_SIZE),
+			decode_chunk_ts(dram_line + i,
 					&devc->state.lastts,
 					&devc->state.lastsample,
 					trigger_line, dl_limit, sdi);
