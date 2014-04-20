@@ -55,17 +55,17 @@ enum sigma_read_register {
 	READ_TEST		= 15,
 };
 
-#define REG_ADDR_LOW		(0 << 4)
-#define REG_ADDR_HIGH		(1 << 4)
-#define REG_DATA_LOW		(2 << 4)
-#define REG_DATA_HIGH_WRITE	(3 << 4)
-#define REG_READ_ADDR		(4 << 4)
-#define REG_DRAM_WAIT_ACK	(5 << 4)
+#define REG_ADDR_LOW		(0x0 << 4)
+#define REG_ADDR_HIGH		(0x1 << 4)
+#define REG_DATA_LOW		(0x2 << 4)
+#define REG_DATA_HIGH_WRITE	(0x3 << 4)
+#define REG_READ_ADDR		(0x4 << 4)
+#define REG_DRAM_WAIT_ACK	(0x5 << 4)
 
 /* Bit (1 << 4) can be low or high (double buffer / cache) */
-#define REG_DRAM_BLOCK		(6 << 4)
-#define REG_DRAM_BLOCK_BEGIN	(8 << 4)
-#define REG_DRAM_BLOCK_DATA	(10 << 4)
+#define REG_DRAM_BLOCK		(0x6 << 4)
+#define REG_DRAM_BLOCK_BEGIN	(0x8 << 4)
+#define REG_DRAM_BLOCK_DATA	(0xa << 4)
 
 #define LEDSEL0			6
 #define LEDSEL1			7
