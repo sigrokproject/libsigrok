@@ -589,7 +589,7 @@ static int upload_firmware(int firmware_idx, struct dev_context *devc)
 	ftdi_usb_purge_buffers(ftdic);
 
 	/* Discard garbage. */
-	while (1 == sigma_read(&pins, 1, devc))
+	while (sigma_read(&pins, 1, devc) == 1)
 		;
 
 	/* Initialize the logic analyzer mode. */
