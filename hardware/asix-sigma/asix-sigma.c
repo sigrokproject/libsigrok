@@ -1134,23 +1134,26 @@ static int sigma_capture_mode(struct sr_dev_inst *sdi)
 	struct sr_datafeed_packet packet;
 	uint64_t running_msec;
 	struct timeval tv;
-	int numchunks;
 	uint8_t modestatus;
 
-	/* Get the current position. */
-	sigma_read_pos(&devc->state.stoppos, &devc->state.triggerpos,
-		       devc);
+	uint32_t stoppos, triggerpos;
 
-	numchunks = (devc->state.stoppos + 511) / 512;
-
-	/* Check if the timer has expired, or memory is full. */
+	/* Check if the selected sampling duration passed. */
 	gettimeofday(&tv, 0);
 	running_msec = (tv.tv_sec - devc->start_tv.tv_sec) * 1000 +
-		(tv.tv_usec - devc->start_tv.tv_usec) / 1000;
+		       (tv.tv_usec - devc->start_tv.tv_usec) / 1000;
+	if (running_msec >= devc->limit_msec)
+		goto download;
 
-	if (running_msec < devc->limit_msec && numchunks < 32767)
-		/* Still capturing. */
-		return TRUE;
+	/* Get the position in DRAM to which the FPGA is writing now. */
+	sigma_read_pos(&stoppos, &triggerpos, devc);
+	/* Test if DRAM is full and if so, download the data. */
+	if ((stoppos >> 9) == 32767)
+		goto download;
+
+	return TRUE;
+
+download:
 
 	/* Stop acquisition. */
 	sigma_set_register(WRITE_MODE, 0x11, devc);
