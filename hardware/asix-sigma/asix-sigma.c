@@ -80,16 +80,6 @@ static const int32_t hwcaps[] = {
 	SR_CONF_LIMIT_SAMPLES,
 };
 
-/* Force the FPGA to reboot. */
-static uint8_t suicide[] = {
-	0x84, 0x84, 0x88, 0x84, 0x88, 0x84, 0x88, 0x84,
-};
-
-/* Prepare to upload firmware (FPGA specific). */
-static uint8_t init_array[] = {
-	0x03, 0x03, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
-};
-
 /* Initialize the logic analyzer mode. */
 static uint8_t logic_mode_start[] = {
 	0x00, 0x40, 0x0f, 0x25, 0x35, 0x40,
@@ -497,6 +487,49 @@ static GSList *dev_list(void)
 	return ((struct drv_context *)(di->priv))->instances;
 }
 
+/*
+ * Configure the FPGA for bitbang mode.
+ * This sequence is documented in section 2. of the ASIX Sigma programming
+ * manual. This sequence is necessary to configure the FPGA in the Sigma
+ * into Bitbang mode, in which it can be programmed with the firmware.
+ */
+static int sigma_fpga_init_bitbang(struct dev_context *devc)
+{
+	uint8_t suicide[] = {
+		0x84, 0x84, 0x88, 0x84, 0x88, 0x84, 0x88, 0x84,
+	};
+	uint8_t init_array[] = {
+		0x01, 0x03, 0x03, 0x01, 0x01, 0x01, 0x01, 0x01,
+		0x01, 0x01,
+	};
+	int i, ret, timeout = 10000;
+	uint8_t data;
+
+	/* Section 2. part 1), do the FPGA suicide. */
+	sigma_write(suicide, sizeof(suicide), devc);
+	sigma_write(suicide, sizeof(suicide), devc);
+	sigma_write(suicide, sizeof(suicide), devc);
+	sigma_write(suicide, sizeof(suicide), devc);
+
+	/* Section 2. part 2), do pulse on D1. */
+	sigma_write(init_array, sizeof(init_array), devc);
+	ftdi_usb_purge_buffers(&devc->ftdic);
+
+	/* Wait until the FPGA asserts D6/INIT_B. */
+	for (i = 0; i < timeout; i++) {
+		ret = sigma_read(&data, 1, devc);
+		if (ret < 0)
+			return ret;
+		/* Test if pin D6 got asserted. */
+		if (data & (1 << 5))
+			return 0;
+		/* The D6 was not asserted yet, wait a bit. */
+		usleep(10000);
+	}
+
+	return SR_ERR_TIMEOUT;
+}
+
 static int upload_firmware(int firmware_idx, struct dev_context *devc)
 {
 	int ret;
@@ -527,23 +560,10 @@ static int upload_firmware(int firmware_idx, struct dev_context *devc)
 		return 0;
 	}
 
-	/* Force the FPGA to reboot. */
-	sigma_write(suicide, sizeof(suicide), devc);
-	sigma_write(suicide, sizeof(suicide), devc);
-	sigma_write(suicide, sizeof(suicide), devc);
-	sigma_write(suicide, sizeof(suicide), devc);
-
-	/* Prepare to upload firmware (FPGA specific). */
-	sigma_write(init_array, sizeof(init_array), devc);
-
-	ftdi_usb_purge_buffers(&devc->ftdic);
-
-	/* Wait until the FPGA asserts INIT_B. */
-	while (1) {
-		ret = sigma_read(result, 1, devc);
-		if (result[0] & 0x20)
-			break;
-	}
+	/* Initialize the FPGA for firmware upload. */
+	ret = sigma_fpga_init_bitbang(devc);
+	if (ret)
+		return ret;
 
 	/* Prepare firmware. */
 	snprintf(firmware_path, sizeof(firmware_path), "%s/%s", FIRMWARE_DIR,
