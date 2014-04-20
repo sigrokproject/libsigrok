@@ -299,78 +299,6 @@ static int sigma_write_trigger_lut(struct triggerlut *lut, struct dev_context *d
 	return SR_OK;
 }
 
-/*
- * Read the firmware from a file and transform it into a series of bitbang
- * pulses used to program the FPGA. Note that the *bb_cmd must be free()'d
- * by the caller of this function.
- */
-static int sigma_fw_2_bitbang(const char *filename,
-			      uint8_t **bb_cmd, gsize *bb_cmd_size)
-{
-	GMappedFile *file;
-	GError *error;
-	gsize i, file_size, bb_size;
-	gchar *firmware;
-	uint8_t *bb_stream, *bbs;
-	uint32_t imm;
-	int bit, v;
-	int ret = SR_OK;
-
-	/*
-	 * Map the file and make the mapped buffer writable.
-	 * NOTE: Using writable=TRUE does _NOT_ mean that file that is mapped
-	 *       will be modified. It will not be modified until someone uses
-	 *       g_file_set_contents() on it.
-	 */
-	error = NULL;
-	file = g_mapped_file_new(filename, TRUE, &error);
-	g_assert_no_error(error);
-
-	file_size = g_mapped_file_get_length(file);
-	firmware = g_mapped_file_get_contents(file);
-	g_assert(firmware);
-
-	/* Weird magic transformation below, I have no idea what it does. */
-	imm = 0x3f6df2ab;
-	for (i = 0; i < file_size; i++) {
-		imm = (imm + 0xa853753) % 177 + (imm * 0x8034052);
-		firmware[i] ^= imm & 0xff;
-	}
-
-	/*
-	 * Now that the firmware is "transformed", we will transcribe the
-	 * firmware blob into a sequence of toggles of the Dx wires. This
-	 * sequence will be fed directly into the Sigma, which must be in
-	 * the FPGA bitbang programming mode.
-	 */
-
-	/* Each bit of firmware is transcribed as two toggles of Dx wires. */
-	bb_size = file_size * 8 * 2;
-	bb_stream = (uint8_t *)g_try_malloc(bb_size);
-	if (!bb_stream) {
-		sr_err("%s: Failed to allocate bitbang stream", __func__);
-		ret = SR_ERR_MALLOC;
-		goto exit;
-	}
-
-	bbs = bb_stream;
-	for (i = 0; i < file_size; i++) {
-		for (bit = 7; bit >= 0; bit--) {
-			v = (firmware[i] & (1 << bit)) ? 0x40 : 0x00;
-			*bbs++ = v | 0x01;
-			*bbs++ = v;
-		}
-	}
-
-	/* The transformation completed successfully, return the result. */
-	*bb_cmd = bb_stream;
-	*bb_cmd_size = bb_size;
-
-exit:
-	g_mapped_file_unref(file);
-	return ret;
-}
-
 static void clear_helper(void *priv)
 {
 	struct dev_context *devc;
@@ -524,6 +452,78 @@ static int sigma_fpga_init_bitbang(struct dev_context *devc)
 	}
 
 	return SR_ERR_TIMEOUT;
+}
+
+/*
+ * Read the firmware from a file and transform it into a series of bitbang
+ * pulses used to program the FPGA. Note that the *bb_cmd must be free()'d
+ * by the caller of this function.
+ */
+static int sigma_fw_2_bitbang(const char *filename,
+			      uint8_t **bb_cmd, gsize *bb_cmd_size)
+{
+	GMappedFile *file;
+	GError *error;
+	gsize i, file_size, bb_size;
+	gchar *firmware;
+	uint8_t *bb_stream, *bbs;
+	uint32_t imm;
+	int bit, v;
+	int ret = SR_OK;
+
+	/*
+	 * Map the file and make the mapped buffer writable.
+	 * NOTE: Using writable=TRUE does _NOT_ mean that file that is mapped
+	 *       will be modified. It will not be modified until someone uses
+	 *       g_file_set_contents() on it.
+	 */
+	error = NULL;
+	file = g_mapped_file_new(filename, TRUE, &error);
+	g_assert_no_error(error);
+
+	file_size = g_mapped_file_get_length(file);
+	firmware = g_mapped_file_get_contents(file);
+	g_assert(firmware);
+
+	/* Weird magic transformation below, I have no idea what it does. */
+	imm = 0x3f6df2ab;
+	for (i = 0; i < file_size; i++) {
+		imm = (imm + 0xa853753) % 177 + (imm * 0x8034052);
+		firmware[i] ^= imm & 0xff;
+	}
+
+	/*
+	 * Now that the firmware is "transformed", we will transcribe the
+	 * firmware blob into a sequence of toggles of the Dx wires. This
+	 * sequence will be fed directly into the Sigma, which must be in
+	 * the FPGA bitbang programming mode.
+	 */
+
+	/* Each bit of firmware is transcribed as two toggles of Dx wires. */
+	bb_size = file_size * 8 * 2;
+	bb_stream = (uint8_t *)g_try_malloc(bb_size);
+	if (!bb_stream) {
+		sr_err("%s: Failed to allocate bitbang stream", __func__);
+		ret = SR_ERR_MALLOC;
+		goto exit;
+	}
+
+	bbs = bb_stream;
+	for (i = 0; i < file_size; i++) {
+		for (bit = 7; bit >= 0; bit--) {
+			v = (firmware[i] & (1 << bit)) ? 0x40 : 0x00;
+			*bbs++ = v | 0x01;
+			*bbs++ = v;
+		}
+	}
+
+	/* The transformation completed successfully, return the result. */
+	*bb_cmd = bb_stream;
+	*bb_cmd_size = bb_size;
+
+exit:
+	g_mapped_file_unref(file);
+	return ret;
 }
 
 static int upload_firmware(int firmware_idx, struct dev_context *devc)
