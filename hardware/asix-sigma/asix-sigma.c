@@ -543,25 +543,29 @@ static int upload_firmware(int firmware_idx, struct dev_context *devc)
 	size_t buf_size;
 	unsigned char result[32];
 	const char *firmware = sigma_firmware_files[firmware_idx];
+	struct ftdi_context *ftdic = &devc->ftdic;
 
 	/* Make sure it's an ASIX SIGMA. */
-	if ((ret = ftdi_usb_open_desc(&devc->ftdic,
-		USB_VENDOR, USB_PRODUCT, USB_DESCRIPTION, NULL)) < 0) {
+	ret = ftdi_usb_open_desc(ftdic, USB_VENDOR, USB_PRODUCT,
+				 USB_DESCRIPTION, NULL);
+	if (ret < 0) {
 		sr_err("ftdi_usb_open failed: %s",
-		       ftdi_get_error_string(&devc->ftdic));
+		       ftdi_get_error_string(ftdic));
 		return 0;
 	}
 
-	if ((ret = ftdi_set_bitmode(&devc->ftdic, 0xdf, BITMODE_BITBANG)) < 0) {
+	ret = ftdi_set_bitmode(ftdic, 0xdf, BITMODE_BITBANG);
+	if (ret < 0) {
 		sr_err("ftdi_set_bitmode failed: %s",
-		       ftdi_get_error_string(&devc->ftdic));
+		       ftdi_get_error_string(ftdic));
 		return 0;
 	}
 
 	/* Four times the speed of sigmalogan - Works well. */
-	if ((ret = ftdi_set_baudrate(&devc->ftdic, 750000)) < 0) {
+	ret = ftdi_set_baudrate(ftdic, 750000);
+	if (ret < 0) {
 		sr_err("ftdi_set_baudrate failed: %s",
-		       ftdi_get_error_string(&devc->ftdic));
+		       ftdi_get_error_string(ftdic));
 		return 0;
 	}
 
@@ -571,7 +575,8 @@ static int upload_firmware(int firmware_idx, struct dev_context *devc)
 		return ret;
 
 	/* Prepare firmware. */
-	if ((ret = bin2bitbang(firmware, &buf, &buf_size)) != SR_OK) {
+	ret = bin2bitbang(firmware, &buf, &buf_size);
+	if (ret != SR_OK) {
 		sr_err("An error occured while reading the firmware: %s",
 		       firmware);
 		return ret;
@@ -583,13 +588,14 @@ static int upload_firmware(int firmware_idx, struct dev_context *devc)
 
 	g_free(buf);
 
-	if ((ret = ftdi_set_bitmode(&devc->ftdic, 0x00, BITMODE_RESET)) < 0) {
+	ret = ftdi_set_bitmode(ftdic, 0x00, BITMODE_RESET);
+	if (ret < 0) {
 		sr_err("ftdi_set_bitmode failed: %s",
-		       ftdi_get_error_string(&devc->ftdic));
+		       ftdi_get_error_string(ftdic));
 		return SR_ERR;
 	}
 
-	ftdi_usb_purge_buffers(&devc->ftdic);
+	ftdi_usb_purge_buffers(ftdic);
 
 	/* Discard garbage. */
 	while (1 == sigma_read(&pins, 1, devc))
