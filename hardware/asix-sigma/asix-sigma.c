@@ -1075,11 +1075,15 @@ static int download_capture(struct sr_dev_inst *sdi)
 	const int chunks_per_read = 32;
 	struct sigma_dram_line *dram_line;
 	unsigned char *buf;
-	int bufsz, i, numchunks, newchunks;
+	int bufsz;
 	uint32_t stoppos, triggerpos;
-	int triggerchunk, chunks_downloaded;
 	struct sr_datafeed_packet packet;
 	uint8_t modestatus;
+
+	uint32_t i;
+	uint32_t dl_lines_total, dl_lines_curr, dl_lines_done;
+	uint32_t dl_trailing_events;
+	uint32_t trg_line;
 
 	dram_line = g_try_malloc0(chunks_per_read * sizeof(*dram_line));
 	if (!dram_line)
@@ -1101,47 +1105,55 @@ static int download_capture(struct sr_dev_inst *sdi)
 	/* Check if trigger has fired. */
 	modestatus = sigma_get_register(READ_MODE, devc);
 	if (modestatus & 0x20)
-		triggerchunk = triggerpos / 512;
+		trg_line = triggerpos >> 9;
 	else
-		triggerchunk = -1;
+		trg_line = ~0;
 
-	chunks_downloaded = 0;
-	numchunks = (stoppos + 511) / 512;
-	newchunks = MIN(chunks_per_read, numchunks - chunks_downloaded);
+	/*
+	 * Determine how many 1024b "DRAM lines" do we need to read from the
+	 * Sigma so we have a complete set of samples. Note that the last
+	 * line can be only partial, containing less than 64 clusters.
+	 */
+	dl_lines_total = (stoppos >> 9) + 1;
+	dl_trailing_events = stoppos & 0x1ff;
 
-	bufsz = sigma_read_dram(chunks_downloaded, newchunks, buf, devc);
-	/* TODO: Check bufsz. For now, just avoid compiler warnings. */
-	(void)bufsz;
+	dl_lines_done = 0;
 
-	/* Find first ts. */
-	if (chunks_downloaded == 0) {
-		devc->state.lastts = RL16(buf) - 1;
-		devc->state.lastsample = 0;
-	}
+	while (dl_lines_total > dl_lines_done) {
+		/* We can download only up-to 32 DRAM lines in one go! */
+		dl_lines_curr = MIN(chunks_per_read, dl_lines_total);
 
-	/* Decode chunks and send them to sigrok. */
-	for (i = 0; i < newchunks; ++i) {
-		int limit_chunk = 0;
+		bufsz = sigma_read_dram(dl_lines_done, dl_lines_curr, buf, devc);
+		/* TODO: Check bufsz. For now, just avoid compiler warnings. */
+		(void)bufsz;
 
-		/* The last chunk may potentially be only in part. */
-		if (chunks_downloaded == numchunks - 1) {
-			/* Find the last valid timestamp */
-			limit_chunk = stoppos % 512 + devc->state.lastts;
+		/* This is the first DRAM line, so find the initial timestamp. */
+		if (dl_lines_done == 0) {
+			devc->state.lastts = RL16(buf) - 1;
+			devc->state.lastsample = 0;
 		}
 
-		if (chunks_downloaded + i == triggerchunk)
-			decode_chunk_ts(buf + (i * CHUNK_SIZE),
-					&devc->state.lastts,
-					&devc->state.lastsample,
-					triggerpos & 0x1ff,
-					limit_chunk, sdi);
-		else
-			decode_chunk_ts(buf + (i * CHUNK_SIZE),
-					&devc->state.lastts,
-					&devc->state.lastsample,
-					-1, limit_chunk, sdi);
+		for (i = 0; i < dl_lines_curr; i++) {
+			uint32_t dl_limit = 0;
+			/* The last "DRAM line" can be only partially full. */
+			if (dl_lines_done + i == dl_lines_total - 1)
+				dl_limit = dl_trailing_events;
 
-		++chunks_downloaded;
+			if (dl_lines_done + i == trg_line)
+				decode_chunk_ts(buf + (i * CHUNK_SIZE),
+						&devc->state.lastts,
+						&devc->state.lastsample,
+						triggerpos & 0x1ff,
+						dl_limit, sdi);
+			else
+				decode_chunk_ts(buf + (i * CHUNK_SIZE),
+						&devc->state.lastts,
+						&devc->state.lastsample,
+						-1,
+						dl_limit, sdi);
+		}
+
+		dl_lines_done += dl_lines_curr;
 	}
 
 	/* All done. */
