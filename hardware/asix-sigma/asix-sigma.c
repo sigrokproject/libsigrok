@@ -952,6 +952,7 @@ static int decode_chunk_ts(struct sigma_dram_line *dram_line, uint16_t *lastts,
 			   uint16_t limit_chunk, void *cb_data)
 {
 	uint8_t *buf = (uint8_t *)dram_line;
+	struct sigma_dram_cluster *dram_cluster;
 	struct sr_dev_inst *sdi = cb_data;
 	struct dev_context *devc = sdi->priv;
 	uint16_t tsdiff, ts;
@@ -978,8 +979,9 @@ static int decode_chunk_ts(struct sigma_dram_line *dram_line, uint16_t *lastts,
 	}
 
 	/* For each ts. */
-	for (i = 0; i < 64; ++i) {
-		ts = *(uint16_t *) &buf[i * 16];
+	for (i = 0; i < 64; i++) {
+		dram_cluster = &dram_line->cluster[i];
+		ts = sigma_dram_cluster_ts(dram_cluster);
 		tsdiff = ts - *lastts;
 		*lastts = ts;
 
