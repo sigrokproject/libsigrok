@@ -942,6 +942,7 @@ static uint16_t sigma_dram_cluster_ts(struct sigma_dram_cluster *cluster)
 
 static void sigma_decode_dram_cluster(struct sigma_dram_cluster *dram_cluster,
 				      unsigned int events_in_cluster,
+				      unsigned int triggered,
 				      struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc = sdi->priv;
@@ -951,8 +952,6 @@ static void sigma_decode_dram_cluster(struct sigma_dram_cluster *dram_cluster,
 	uint16_t tsdiff, ts;
 	uint8_t samples[2048];
 	unsigned int i;
-
-	int triggerts = -1;
 
 	ts = sigma_dram_cluster_ts(dram_cluster);
 	tsdiff = ts - ss->lastts;
@@ -1001,7 +1000,7 @@ static void sigma_decode_dram_cluster(struct sigma_dram_cluster *dram_cluster,
 
 	/* Send data up to trigger point (if triggered). */
 	int trigger_offset = 0;
-	if ((int)i == triggerts) {
+	if (triggered) {
 		/*
 		 * Trigger is not always accurate to sample because of
 		 * pipeline delay. However, it always triggers before
@@ -1047,8 +1046,10 @@ static void sigma_decode_dram_cluster(struct sigma_dram_cluster *dram_cluster,
  * For 50 MHz and below, events contain one sample for each channel,
  * spread 20 ns apart.
  */
-static int decode_chunk_ts(struct sigma_dram_line *dram_line, int triggerpos,
-			   uint16_t events_in_line, void *cb_data)
+static int decode_chunk_ts(struct sigma_dram_line *dram_line,
+			   uint16_t events_in_line,
+			   uint32_t trigger_event,
+			   void *cb_data)
 {
 	struct sigma_dram_cluster *dram_cluster;
 	struct sr_dev_inst *sdi = cb_data;
@@ -1057,18 +1058,17 @@ static int decode_chunk_ts(struct sigma_dram_line *dram_line, int triggerpos,
 		(events_in_line + (EVENTS_PER_CLUSTER - 1)) / EVENTS_PER_CLUSTER;
 	unsigned int events_in_cluster;
 	unsigned int i;
-	int triggerts = -1;
+	uint32_t trigger_cluster = ~0, triggered = 0;
 
 	/* Check if trigger is in this chunk. */
-	if (triggerpos != -1) {
-		if (devc->cur_samplerate <= SR_MHZ(50))
-			triggerpos -= EVENTS_PER_CLUSTER - 1;
-
-		if (triggerpos < 0)
-			triggerpos = 0;
+	if (trigger_event < (64 * 7)) {
+		if (devc->cur_samplerate <= SR_MHZ(50)) {
+			trigger_event -= MIN(EVENTS_PER_CLUSTER - 1,
+					     trigger_event);
+		}
 
 		/* Find in which cluster the trigger occured. */
-		triggerts = triggerpos / EVENTS_PER_CLUSTER;
+		trigger_cluster = trigger_event / EVENTS_PER_CLUSTER;
 	}
 
 	/* For each full DRAM cluster. */
@@ -1083,7 +1083,9 @@ static int decode_chunk_ts(struct sigma_dram_line *dram_line, int triggerpos,
 			events_in_cluster = EVENTS_PER_CLUSTER;
 		}
 
-		sigma_decode_dram_cluster(dram_cluster, events_in_cluster, sdi);
+		triggered = (i == trigger_cluster);
+		sigma_decode_dram_cluster(dram_cluster, events_in_cluster,
+					  triggered, sdi);
 	}
 
 	return SR_OK;
@@ -1102,7 +1104,7 @@ static int download_capture(struct sr_dev_inst *sdi)
 	uint32_t i;
 	uint32_t dl_lines_total, dl_lines_curr, dl_lines_done;
 	uint32_t dl_events_in_line = 64 * 7;
-	uint32_t trg_line = ~0;
+	uint32_t trg_line = ~0, trg_event = ~0;
 
 	dram_line = g_try_malloc0(chunks_per_read * sizeof(*dram_line));
 	if (!dram_line)
@@ -1121,8 +1123,10 @@ static int download_capture(struct sr_dev_inst *sdi)
 
 	/* Check if trigger has fired. */
 	modestatus = sigma_get_register(READ_MODE, devc);
-	if (modestatus & 0x20)
+	if (modestatus & 0x20) {
 		trg_line = triggerpos >> 9;
+		trg_event = triggerpos & 0x1ff;
+	}
 
 	/*
 	 * Determine how many 1024b "DRAM lines" do we need to read from the
@@ -1150,17 +1154,17 @@ static int download_capture(struct sr_dev_inst *sdi)
 		}
 
 		for (i = 0; i < dl_lines_curr; i++) {
-			int trigger_line = -1;
+			uint32_t trigger_event = ~0;
 			/* The last "DRAM line" can be only partially full. */
 			if (dl_lines_done + i == dl_lines_total - 1)
 				dl_events_in_line = stoppos & 0x1ff;
 
 			/* Test if the trigger happened on this line. */
 			if (dl_lines_done + i == trg_line)
-				trigger_line = trg_line;
+				trigger_event = trg_event;
 
-			decode_chunk_ts(dram_line + i, trigger_line,
-					dl_events_in_line, sdi);
+			decode_chunk_ts(dram_line + i, dl_events_in_line,
+					trigger_event, sdi);
 		}
 
 		dl_lines_done += dl_lines_curr;
