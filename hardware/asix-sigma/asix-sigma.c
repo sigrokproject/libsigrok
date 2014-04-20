@@ -1069,16 +1069,34 @@ static int decode_chunk_ts(uint8_t *buf, uint16_t *lastts,
 	return SR_OK;
 }
 
-static void download_capture(struct sr_dev_inst *sdi)
+static int download_capture(struct sr_dev_inst *sdi)
 {
-	struct dev_context *devc;
+	struct dev_context *devc = sdi->priv;
 	const int chunks_per_read = 32;
 	unsigned char buf[chunks_per_read * CHUNK_SIZE];
 	int bufsz, i, numchunks, newchunks;
 
+	struct sr_datafeed_packet packet;
+	uint8_t modestatus;
+
 	sr_info("Downloading sample data.");
 
-	devc = sdi->priv;
+	/* Stop acquisition. */
+	sigma_set_register(WRITE_MODE, 0x11, devc);
+
+	/* Set SDRAM Read Enable. */
+	sigma_set_register(WRITE_MODE, 0x02, devc);
+
+	/* Get the current position. */
+	sigma_read_pos(&devc->state.stoppos, &devc->state.triggerpos, devc);
+
+	/* Check if trigger has fired. */
+	modestatus = sigma_get_register(READ_MODE, devc);
+	if (modestatus & 0x20)
+		devc->state.triggerchunk = devc->state.triggerpos / 512;
+	else
+		devc->state.triggerchunk = -1;
+
 	devc->state.chunks_downloaded = 0;
 	numchunks = (devc->state.stoppos + 511) / 512;
 	newchunks = MIN(chunks_per_read, numchunks - devc->state.chunks_downloaded);
@@ -1118,6 +1136,13 @@ static void download_capture(struct sr_dev_inst *sdi)
 		++devc->state.chunks_downloaded;
 	}
 
+	/* All done. */
+	packet.type = SR_DF_END;
+	sr_session_send(sdi, &packet);
+
+	dev_acquisition_stop(sdi, sdi);
+
+	return TRUE;
 }
 
 /*
@@ -1131,10 +1156,8 @@ static int sigma_capture_mode(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc = sdi->priv;
 
-	struct sr_datafeed_packet packet;
 	uint64_t running_msec;
 	struct timeval tv;
-	uint8_t modestatus;
 
 	uint32_t stoppos, triggerpos;
 
@@ -1143,42 +1166,13 @@ static int sigma_capture_mode(struct sr_dev_inst *sdi)
 	running_msec = (tv.tv_sec - devc->start_tv.tv_sec) * 1000 +
 		       (tv.tv_usec - devc->start_tv.tv_usec) / 1000;
 	if (running_msec >= devc->limit_msec)
-		goto download;
+		return download_capture(sdi);
 
 	/* Get the position in DRAM to which the FPGA is writing now. */
 	sigma_read_pos(&stoppos, &triggerpos, devc);
 	/* Test if DRAM is full and if so, download the data. */
 	if ((stoppos >> 9) == 32767)
-		goto download;
-
-	return TRUE;
-
-download:
-
-	/* Stop acquisition. */
-	sigma_set_register(WRITE_MODE, 0x11, devc);
-
-	/* Set SDRAM Read Enable. */
-	sigma_set_register(WRITE_MODE, 0x02, devc);
-
-	/* Get the current position. */
-	sigma_read_pos(&devc->state.stoppos, &devc->state.triggerpos, devc);
-
-	/* Check if trigger has fired. */
-	modestatus = sigma_get_register(READ_MODE, devc);
-	if (modestatus & 0x20)
-		devc->state.triggerchunk = devc->state.triggerpos / 512;
-	else
-		devc->state.triggerchunk = -1;
-
-	/* Transfer captured data from device. */
-	download_capture(sdi);
-
-	/* All done. */
-	packet.type = SR_DF_END;
-	sr_session_send(sdi, &packet);
-
-	dev_acquisition_stop(sdi, sdi);
+		return download_capture(sdi);
 
 	return TRUE;
 }
