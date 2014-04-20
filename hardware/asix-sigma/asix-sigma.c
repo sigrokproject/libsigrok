@@ -1120,15 +1120,70 @@ static void download_capture(struct sr_dev_inst *sdi)
 
 }
 
-static int receive_data(int fd, int revents, void *cb_data)
+/*
+ * Handle the Sigma when in CAPTURE mode. This function checks:
+ * - Sampling time ended
+ * - DRAM capacity overflow
+ * This function triggers download of the samples from Sigma
+ * in case either of the above conditions is true.
+ */
+static int sigma_capture_mode(struct sr_dev_inst *sdi)
 {
-	struct sr_dev_inst *sdi;
-	struct dev_context *devc;
+	struct dev_context *devc = sdi->priv;
+
 	struct sr_datafeed_packet packet;
 	uint64_t running_msec;
 	struct timeval tv;
 	int numchunks;
 	uint8_t modestatus;
+
+	/* Get the current position. */
+	sigma_read_pos(&devc->state.stoppos, &devc->state.triggerpos,
+		       devc);
+
+	numchunks = (devc->state.stoppos + 511) / 512;
+
+	/* Check if the timer has expired, or memory is full. */
+	gettimeofday(&tv, 0);
+	running_msec = (tv.tv_sec - devc->start_tv.tv_sec) * 1000 +
+		(tv.tv_usec - devc->start_tv.tv_usec) / 1000;
+
+	if (running_msec < devc->limit_msec && numchunks < 32767)
+		/* Still capturing. */
+		return TRUE;
+
+	/* Stop acquisition. */
+	sigma_set_register(WRITE_MODE, 0x11, devc);
+
+	/* Set SDRAM Read Enable. */
+	sigma_set_register(WRITE_MODE, 0x02, devc);
+
+	/* Get the current position. */
+	sigma_read_pos(&devc->state.stoppos, &devc->state.triggerpos, devc);
+
+	/* Check if trigger has fired. */
+	modestatus = sigma_get_register(READ_MODE, devc);
+	if (modestatus & 0x20)
+		devc->state.triggerchunk = devc->state.triggerpos / 512;
+	else
+		devc->state.triggerchunk = -1;
+
+	/* Transfer captured data from device. */
+	download_capture(sdi);
+
+	/* All done. */
+	packet.type = SR_DF_END;
+	sr_session_send(sdi, &packet);
+
+	dev_acquisition_stop(sdi, sdi);
+
+	return TRUE;
+}
+
+static int receive_data(int fd, int revents, void *cb_data)
+{
+	struct sr_dev_inst *sdi;
+	struct dev_context *devc;
 
 	(void)fd;
 	(void)revents;
@@ -1139,47 +1194,8 @@ static int receive_data(int fd, int revents, void *cb_data)
 	if (devc->state.state == SIGMA_IDLE)
 		return TRUE;
 
-	if (devc->state.state == SIGMA_CAPTURE) {
-		/* Get the current position. */
-		sigma_read_pos(&devc->state.stoppos, &devc->state.triggerpos,
-			       devc);
-
-		numchunks = (devc->state.stoppos + 511) / 512;
-
-		/* Check if the timer has expired, or memory is full. */
-		gettimeofday(&tv, 0);
-		running_msec = (tv.tv_sec - devc->start_tv.tv_sec) * 1000 +
-			(tv.tv_usec - devc->start_tv.tv_usec) / 1000;
-
-		if (running_msec < devc->limit_msec && numchunks < 32767)
-			/* Still capturing. */
-			return TRUE;
-
-		/* Stop acquisition. */
-		sigma_set_register(WRITE_MODE, 0x11, devc);
-
-		/* Set SDRAM Read Enable. */
-		sigma_set_register(WRITE_MODE, 0x02, devc);
-
-		/* Get the current position. */
-		sigma_read_pos(&devc->state.stoppos, &devc->state.triggerpos, devc);
-
-		/* Check if trigger has fired. */
-		modestatus = sigma_get_register(READ_MODE, devc);
-		if (modestatus & 0x20)
-			devc->state.triggerchunk = devc->state.triggerpos / 512;
-		else
-			devc->state.triggerchunk = -1;
-
-		/* Transfer captured data from device. */
-		download_capture(sdi);
-
-		/* All done. */
-		packet.type = SR_DF_END;
-		sr_session_send(sdi, &packet);
-
-		dev_acquisition_stop(sdi, sdi);
-	}
+	if (devc->state.state == SIGMA_CAPTURE)
+		return sigma_capture_mode(sdi);
 
 	return TRUE;
 }
