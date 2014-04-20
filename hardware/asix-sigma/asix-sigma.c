@@ -455,8 +455,22 @@ static int sigma_fpga_init_la(struct dev_context *devc)
 {
 	/* Initialize the logic analyzer mode. */
 	uint8_t logic_mode_start[] = {
-		0x00, 0x40, 0x0f, 0x25, 0x35, 0x40,
-		0x2a, 0x3a, 0x40, 0x03, 0x20, 0x38,
+		REG_ADDR_LOW  | (READ_ID & 0xf),
+		REG_ADDR_HIGH | (READ_ID >> 8),
+		REG_READ_ADDR,	/* Read ID register. */
+
+		REG_ADDR_LOW | (WRITE_TEST & 0xf),
+		REG_DATA_LOW | 0x5,
+		REG_DATA_HIGH_WRITE | 0x5,
+		REG_READ_ADDR,	/* Read scratch register. */
+
+		REG_DATA_LOW | 0xa,
+		REG_DATA_HIGH_WRITE | 0xa,
+		REG_READ_ADDR,	/* Read scratch register. */
+
+		REG_ADDR_LOW | (WRITE_MODE & 0xf),
+		REG_DATA_LOW | 0x0,
+		REG_DATA_HIGH_WRITE | 0x8,
 	};
 
 	uint8_t result[3];
@@ -465,7 +479,7 @@ static int sigma_fpga_init_la(struct dev_context *devc)
 	/* Initialize the logic analyzer mode. */
 	sigma_write(logic_mode_start, sizeof(logic_mode_start), devc);
 
-	/* Expect a 3 byte reply. */
+	/* Expect a 3 byte reply since we issued three READ requests. */
 	ret = sigma_read(result, 3, devc);
 	if (ret != 3)
 		goto err;
