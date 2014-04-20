@@ -80,12 +80,6 @@ static const int32_t hwcaps[] = {
 	SR_CONF_LIMIT_SAMPLES,
 };
 
-/* Initialize the logic analyzer mode. */
-static uint8_t logic_mode_start[] = {
-	0x00, 0x40, 0x0f, 0x25, 0x35, 0x40,
-	0x2a, 0x3a, 0x40, 0x03, 0x20, 0x38,
-};
-
 static const char *sigma_firmware_files[] = {
 	/* 50 MHz, supports 8 bit fractions */
 	FIRMWARE_DIR "/asix-sigma-50.fw",
@@ -455,6 +449,37 @@ static int sigma_fpga_init_bitbang(struct dev_context *devc)
 }
 
 /*
+ * Configure the FPGA for logic-analyzer mode.
+ */
+static int sigma_fpga_init_la(struct dev_context *devc)
+{
+	/* Initialize the logic analyzer mode. */
+	uint8_t logic_mode_start[] = {
+		0x00, 0x40, 0x0f, 0x25, 0x35, 0x40,
+		0x2a, 0x3a, 0x40, 0x03, 0x20, 0x38,
+	};
+
+	uint8_t result[3];
+	int ret;
+
+	/* Initialize the logic analyzer mode. */
+	sigma_write(logic_mode_start, sizeof(logic_mode_start), devc);
+
+	/* Expect a 3 byte reply. */
+	ret = sigma_read(result, 3, devc);
+	if (ret != 3)
+		goto err;
+
+	if (result[0] != 0xa6 || result[1] != 0x55 || result[2] != 0xaa)
+		goto err;
+
+	return SR_OK;
+err:
+	sr_err("Configuration failed. Invalid reply received.");
+	return SR_ERR;
+}
+
+/*
  * Read the firmware from a file and transform it into a series of bitbang
  * pulses used to program the FPGA. Note that the *bb_cmd must be free()'d
  * by the caller of this function.
@@ -532,7 +557,6 @@ static int upload_firmware(int firmware_idx, struct dev_context *devc)
 	unsigned char *buf;
 	unsigned char pins;
 	size_t buf_size;
-	unsigned char result[32];
 	const char *firmware = sigma_firmware_files[firmware_idx];
 	struct ftdi_context *ftdic = &devc->ftdic;
 
@@ -592,16 +616,10 @@ static int upload_firmware(int firmware_idx, struct dev_context *devc)
 	while (sigma_read(&pins, 1, devc) == 1)
 		;
 
-	/* Initialize the logic analyzer mode. */
-	sigma_write(logic_mode_start, sizeof(logic_mode_start), devc);
-
-	/* Expect a 3 byte reply. */
-	ret = sigma_read(result, 3, devc);
-	if (ret != 3 ||
-	    result[0] != 0xa6 || result[1] != 0x55 || result[2] != 0xaa) {
-		sr_err("Configuration failed. Invalid reply received.");
-		return SR_ERR;
-	}
+	/* Initialize the FPGA for logic-analyzer mode. */
+	ret = sigma_fpga_init_la(devc);
+	if (ret != SR_OK)
+		return ret;
 
 	devc->cur_firmware = firmware_idx;
 
