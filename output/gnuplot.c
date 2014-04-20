@@ -133,15 +133,13 @@ static int init(struct sr_output *o)
 	return 0;
 }
 
-static int receive(struct sr_output *o, const struct sr_dev_inst *sdi,
-		const struct sr_datafeed_packet *packet, GString **out)
+static int receive(struct sr_output *o, const struct sr_datafeed_packet *packet,
+		GString **out)
 {
 	const struct sr_datafeed_logic *logic;
 	struct context *ctx;
 	const uint8_t *sample;
 	unsigned int curbit, p, idx, i;
-
-	(void)sdi;
 
 	*out = NULL;
 	if (!o || !o->internal)

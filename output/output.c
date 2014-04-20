@@ -37,13 +37,11 @@
  * to change the frontends at all.
  *
  * All output modules are fed data in a stream. Devices that can stream data
- * into libsigrok live, instead of storing and then transferring the whole
- * buffer, can thus generate output live.
+ * into libsigrok, instead of storing and then transferring the whole buffer,
+ * can thus generate output live.
  *
- * Output modules are responsible for allocating enough memory to store
- * their own output, and passing a pointer to that memory (and length) of
- * the allocated memory back to the caller. The caller is then expected to
- * free this memory when finished with it.
+ * Output modules generate a newly allocated GString. The caller is then
+ * expected to free this with g_string_free() when finished with it.
  *
  * @{
  */
@@ -62,15 +60,15 @@ extern SR_PRIV struct sr_output_format output_analog;
 /* @endcond */
 
 static struct sr_output_format *output_module_list[] = {
-	&output_bits,
-	&output_hex,
 	&output_ascii,
 	&output_binary,
-	&output_vcd,
-	&output_ols,
-	&output_gnuplot,
-	&output_chronovu_la8,
+	&output_bits,
 	&output_csv,
+	&output_gnuplot,
+	&output_hex,
+	&output_ols,
+	&output_vcd,
+	&output_chronovu_la8,
 	&output_analog,
 	NULL,
 };
@@ -79,5 +77,41 @@ SR_API struct sr_output_format **sr_output_list(void)
 {
 	return output_module_list;
 }
+
+SR_API struct sr_output *sr_output_new(struct sr_output_format *of,
+		GHashTable *params, const struct sr_dev_inst *sdi)
+{
+	struct sr_output *o;
+
+	o = g_malloc(sizeof(struct sr_output));
+	o->format = of;
+	o->sdi = sdi;
+	o->params = params;
+	if (o->format->init && o->format->init(o) != SR_OK) {
+		g_free(o);
+		o = NULL;
+	}
+
+	return o;
+}
+
+SR_API int sr_output_send(struct sr_output *o,
+		const struct sr_datafeed_packet *packet, GString **out)
+{
+	return o->format->receive(o, packet, out);
+}
+
+SR_API int sr_output_free(struct sr_output *o)
+{
+	int ret;
+
+	ret = SR_OK;
+	if (o->format->cleanup)
+		ret = o->format->cleanup(o);
+	g_free(o);
+
+	return ret;
+}
+
 
 /** @} */

@@ -206,16 +206,14 @@ static void fancyprint(int unit, int mqflags, float value, GString *out)
 	g_string_append_c(out, '\n');
 }
 
-static int receive(struct sr_output *o, const struct sr_dev_inst *sdi,
-		const struct sr_datafeed_packet *packet, GString **out)
+static int receive(struct sr_output *o, const struct sr_datafeed_packet *packet,
+		GString **out)
 {
 	const struct sr_datafeed_analog *analog;
 	struct sr_channel *ch;
 	GSList *l;
 	const float *fdata;
 	int i, p;
-
-	(void)sdi;
 
 	*out = NULL;
 	if (!o || !o->sdi)

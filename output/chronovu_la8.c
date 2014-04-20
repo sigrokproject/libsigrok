@@ -101,16 +101,14 @@ static int init(struct sr_output *o)
 	return SR_OK;
 }
 
-static int receive(struct sr_output *o, const struct sr_dev_inst *sdi,
-		const struct sr_datafeed_packet *packet, GString **out)
+static int receive(struct sr_output *o, const struct sr_datafeed_packet *packet,
+		GString **out)
 {
 	const struct sr_datafeed_logic *logic;
 	struct context *ctx;
 	GVariant *gvar;
 	uint64_t samplerate;
 	gchar c[4];
-
-	(void)sdi;
 
 	*out = NULL;
 	if (!o || !o->sdi)

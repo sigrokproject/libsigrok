@@ -430,24 +430,21 @@ struct sr_input_format {
 
 /** Output (file) format struct. */
 struct sr_output {
-	/**
-	 * A pointer to this output format's 'struct sr_output_format'.
-	 * The frontend can use this to call the module's callbacks.
-	 */
+	/** A pointer to this output's format.  */
 	struct sr_output_format *format;
 
 	/**
 	 * The device for which this output module is creating output. This
 	 * can be used by the module to find out channel names and numbers.
 	 */
-	struct sr_dev_inst *sdi;
+	const struct sr_dev_inst *sdi;
 
 	/**
 	 * An optional parameter which the frontend can pass in to the
 	 * output module. How the string is interpreted is entirely up to
 	 * the module.
 	 */
-	char *param;
+	GHashTable *params;
 
 	/**
 	 * A generic pointer which can be used by the module to keep internal
@@ -514,7 +511,7 @@ struct sr_output_format {
 	 * @retval SR_OK Success
 	 * @retval other Negative error code.
 	 */
-	int (*receive) (struct sr_output *o, const struct sr_dev_inst *sdi,
+	int (*receive) (struct sr_output *o,
 			const struct sr_datafeed_packet *packet, GString **out);
 
 	/**

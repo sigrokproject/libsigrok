@@ -88,8 +88,8 @@ static GString *gen_header(const struct sr_dev_inst *sdi, struct context *ctx)
 	return s;
 }
 
-static int receive(struct sr_output *o, const struct sr_dev_inst *sdi,
-		const struct sr_datafeed_packet *packet, GString **out)
+static int receive(struct sr_output *o, const struct sr_datafeed_packet *packet,
+		GString **out)
 {
 	struct context *ctx;
 	const struct sr_datafeed_meta *meta;
@@ -117,7 +117,7 @@ static int receive(struct sr_output *o, const struct sr_dev_inst *sdi,
 		logic = packet->payload;
 		if (ctx->num_samples == 0) {
 			/* First logic packet in the feed. */
-			*out = gen_header(sdi, ctx);
+			*out = gen_header(o->sdi, ctx);
 		} else
 			*out = g_string_sized_new(512);
 		for (i = 0; i <= logic->length - logic->unitsize; i += logic->unitsize) {

@@ -24,15 +24,14 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
-#define LOG_PREFIX "output/binary:"
+#define LOG_PREFIX "output/binary"
 
-static int receive(struct sr_output *o, const struct sr_dev_inst *sdi,
-		const struct sr_datafeed_packet *packet, GString **out)
+static int receive(struct sr_output *o, const struct sr_datafeed_packet *packet,
+		GString **out)
 {
 	const struct sr_datafeed_logic *logic;
 
 	(void)o;
-	(void)sdi;
 
 	*out = NULL;
 	if (packet->type != SR_DF_LOGIC)
@@ -46,6 +45,5 @@ static int receive(struct sr_output *o, const struct sr_dev_inst *sdi,
 SR_PRIV struct sr_output_format output_binary = {
 	.id = "binary",
 	.description = "Raw binary",
-	.init = NULL,
 	.receive = receive,
 };

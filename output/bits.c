@@ -44,6 +44,8 @@ static int init(struct sr_output *o)
 	struct sr_channel *ch;
 	GSList *l;
 	GVariant *gvar;
+	GHashTableIter iter;
+	gpointer key, value;
 	uint64_t samplerate;
 	unsigned int i, j;
 	int spl, num_channels;
@@ -51,15 +53,24 @@ static int init(struct sr_output *o)
 
 	if (!o || !o->sdi)
 		return SR_ERR_ARG;
+
+	spl = DEFAULT_SAMPLES_PER_LINE;
+	g_hash_table_iter_init(&iter, o->params);
+	while (g_hash_table_iter_next(&iter, &key, &value)) {
+		if (!strcmp(key, "width")) {
+			if ((spl = strtoul(value, NULL, 10)) < 1) {
+				sr_err("Invalid width.");
+				return SR_ERR_ARG;
+			}
+		} else {
+			sr_err("Unknown parameter '%s'.", key);
+			return SR_ERR_ARG;
+		}
+	}
+
 	ctx = g_malloc0(sizeof(struct context));
 	o->internal = ctx;
 	ctx->trigger = -1;
-
-	if (o->param && o->param[0]) {
-		if ((spl = strtoul(o->param, NULL, 10)) < 1)
-			return SR_ERR_ARG;
-	} else
-		spl = DEFAULT_SAMPLES_PER_LINE;
 	ctx->samples_per_line = spl;
 
 	for (l = o->sdi->channels; l; l = l->next) {
@@ -104,16 +115,14 @@ static int init(struct sr_output *o)
 	return SR_OK;
 }
 
-static int receive(struct sr_output *o, const struct sr_dev_inst *sdi,
-		const struct sr_datafeed_packet *packet, GString **out)
+static int receive(struct sr_output *o, const struct sr_datafeed_packet *packet,
+		GString **out)
 {
 	const struct sr_datafeed_logic *logic;
 	struct context *ctx;
 	int idx, offset;
 	uint64_t i, j;
 	gchar *p, c;
-
-	(void)sdi;
 
 	*out = NULL;
 	if (!o || !o->sdi)

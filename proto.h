@@ -130,6 +130,11 @@ SR_API struct sr_input_format **sr_input_list(void);
 /*--- output/output.c -------------------------------------------------------*/
 
 SR_API struct sr_output_format **sr_output_list(void);
+SR_API struct sr_output *sr_output_new(struct sr_output_format *of,
+		GHashTable *params, const struct sr_dev_inst *sdi);
+SR_API int sr_output_send(struct sr_output *o,
+		const struct sr_datafeed_packet *packet, GString **out);
+SR_API int sr_output_free(struct sr_output *o);
 
 /*--- strutil.c -------------------------------------------------------------*/
 
