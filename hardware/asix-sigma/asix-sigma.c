@@ -1073,12 +1073,19 @@ static int download_capture(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc = sdi->priv;
 	const int chunks_per_read = 32;
-	unsigned char buf[chunks_per_read * CHUNK_SIZE];
+	struct sigma_dram_line *dram_line;
+	unsigned char *buf;
 	int bufsz, i, numchunks, newchunks;
 	uint32_t stoppos, triggerpos;
 	int triggerchunk, chunks_downloaded;
 	struct sr_datafeed_packet packet;
 	uint8_t modestatus;
+
+	dram_line = g_try_malloc0(chunks_per_read * sizeof(*dram_line));
+	if (!dram_line)
+		return FALSE;
+
+	buf = (unsigned char *)dram_line;
 
 	sr_info("Downloading sample data.");
 
@@ -1142,6 +1149,8 @@ static int download_capture(struct sr_dev_inst *sdi)
 	sr_session_send(sdi, &packet);
 
 	dev_acquisition_stop(sdi, sdi);
+
+	g_free(dram_line);
 
 	return TRUE;
 }

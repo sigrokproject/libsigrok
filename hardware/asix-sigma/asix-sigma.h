@@ -76,6 +76,25 @@ enum sigma_read_register {
 
 #define CHUNK_SIZE		1024
 
+/*
+ * The entire ASIX Sigma DRAM is an array of struct sigma_dram_line[1024];
+ */
+
+/* One "DRAM cluster" contains a timestamp and 7 samples, 16b total. */
+struct sigma_dram_cluster {
+	uint8_t		timestamp_lo;
+	uint8_t		timestamp_hi;
+	struct {
+		uint8_t	sample_hi;
+		uint8_t	sample_lo;
+	}		samples[7];
+};
+
+/* One "DRAM line" contains 64 "DRAM clusters", 1024b total. */
+struct sigma_dram_line {
+	struct sigma_dram_cluster	cluster[64];
+};
+
 struct clockselect_50 {
 	uint8_t async;
 	uint8_t fraction;
