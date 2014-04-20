@@ -199,6 +199,7 @@ struct dev_context {
 	struct timeval start_tv;
 	int cur_firmware;
 	int num_channels;
+	int cur_channels;
 	int samples_per_event;
 	int capture_ratio;
 	struct sigma_trigger trigger;

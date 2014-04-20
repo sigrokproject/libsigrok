@@ -829,7 +829,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 {
 	struct dev_context *devc;
 	uint64_t num_samples;
-	int ret;
+	int ret = 0;
 
 	(void)cg;
 
@@ -899,27 +899,29 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 }
 
 /* Software trigger to determine exact trigger position. */
-static int get_trigger_offset(uint16_t *samples, uint16_t last_sample,
+static int get_trigger_offset(uint8_t *samples, uint16_t last_sample,
 			      struct sigma_trigger *t)
 {
 	int i;
+	uint16_t sample = 0;
 
 	for (i = 0; i < 8; ++i) {
 		if (i > 0)
-			last_sample = samples[i-1];
+			last_sample = sample;
+		sample = samples[2 * i] | (samples[2 * i + 1] << 8);
 
 		/* Simple triggers. */
-		if ((samples[i] & t->simplemask) != t->simplevalue)
+		if ((sample & t->simplemask) != t->simplevalue)
 			continue;
 
 		/* Rising edge. */
-		if ((last_sample & t->risingmask) != 0 || (samples[i] &
-		    t->risingmask) != t->risingmask)
+		if (((last_sample & t->risingmask) != 0) ||
+		    ((sample & t->risingmask) != t->risingmask))
 			continue;
 
 		/* Falling edge. */
 		if ((last_sample & t->fallingmask) != t->fallingmask ||
-		    (samples[i] & t->fallingmask) != 0)
+		    (sample & t->fallingmask) != 0)
 			continue;
 
 		break;
@@ -951,20 +953,18 @@ static int decode_chunk_ts(struct sigma_dram_line *dram_line, uint16_t *lastts,
 			   uint16_t *lastsample, int triggerpos,
 			   uint16_t events_in_line, void *cb_data)
 {
-	uint8_t *buf = (uint8_t *)dram_line;
 	struct sigma_dram_cluster *dram_cluster;
 	struct sr_dev_inst *sdi = cb_data;
 	struct dev_context *devc = sdi->priv;
 	uint16_t tsdiff, ts;
-	uint16_t samples[65536 * devc->samples_per_event];
+	uint8_t samples[2048];
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
-	int i, j, k, l, numpad, tosend;
-	size_t n = 0, sent = 0;
-	int clustersize = EVENTS_PER_CLUSTER * devc->samples_per_event;
-	uint16_t *event;
-	uint16_t cur_sample;
+	unsigned int i, j;
 	int triggerts = -1;
+	unsigned int clusters_in_line =
+		(events_in_line + (EVENTS_PER_CLUSTER - 1)) / EVENTS_PER_CLUSTER;
+	unsigned int events_in_cluster;
 
 	/* Check if trigger is in this chunk. */
 	if (triggerpos != -1) {
@@ -975,81 +975,83 @@ static int decode_chunk_ts(struct sigma_dram_line *dram_line, uint16_t *lastts,
 			triggerpos = 0;
 
 		/* Find in which cluster the trigger occured. */
-		triggerts = triggerpos / 7;
+		triggerts = triggerpos / EVENTS_PER_CLUSTER;
 	}
 
-	/* For each ts. */
-	for (i = 0; i < (events_in_line / 7); i++) {
+	packet.type = SR_DF_LOGIC;
+	packet.payload = &logic;
+	logic.unitsize = 2;
+	logic.data = samples;
+
+	/* For each full DRAM cluster. */
+	for (i = 0; i < clusters_in_line; i++) {
 		dram_cluster = &dram_line->cluster[i];
+
 		ts = sigma_dram_cluster_ts(dram_cluster);
 		tsdiff = ts - *lastts;
 		*lastts = ts;
 
-		/* Pad last sample up to current point. */
-		numpad = tsdiff * devc->samples_per_event - clustersize;
-		if (numpad > 0) {
-			for (j = 0; j < numpad; ++j)
-				samples[j] = *lastsample;
+		logic.data = samples;
 
-			n = numpad;
-		}
+		/*
+		 * First of all, send Sigrok a copy of the last sample from
+		 * previous cluster as many times as needed to make up for
+		 * the differential characteristics of data we get from the
+		 * Sigma. Sigrok needs one sample of data per period.
+		 *
+		 * One DRAM cluster contains a timestamp and seven samples,
+		 * the units of timestamp are "devc->period_ps" , the first
+		 * sample in the cluster happens at the time of the timestamp
+		 * and the remaining samples happen at timestamp +1...+6 .
+		 */
+		for (ts = 0; ts < tsdiff - (EVENTS_PER_CLUSTER - 1); ts++) {
+			j = ts % 1024;
+			samples[2 * j + 0] = *lastsample & 0xff;
+			samples[2 * j + 1] = *lastsample >> 8;
 
-		/* Send samples between previous and this timestamp to sigrok. */
-		sent = 0;
-		while (sent < n) {
-			tosend = MIN(2048, n - sent);
-
-			packet.type = SR_DF_LOGIC;
-			packet.payload = &logic;
-			logic.length = tosend * sizeof(uint16_t);
-			logic.unitsize = 2;
-			logic.data = samples + sent;
-			sr_session_send(devc->cb_data, &packet);
-
-			sent += tosend;
-		}
-		n = 0;
-
-		event = (uint16_t *) &buf[i * 16 + 2];
-		cur_sample = 0;
-
-		/* For each event in cluster. */
-		for (j = 0; j < 7; ++j) {
-
-			/* For each sample in event. */
-			for (k = 0; k < devc->samples_per_event; ++k) {
-				cur_sample = 0;
-
-				/* For each channel. */
-				for (l = 0; l < devc->num_channels; ++l)
-					cur_sample |= (!!(event[j] & (1 << (l *
-					   devc->samples_per_event + k)))) << l;
-
-				samples[n++] = cur_sample;
+			/*
+			 * If we have 1024 samples ready or we're at the
+			 * end of submitting the padding samples, submit
+			 * the packet to Sigrok.
+			 */
+			if ((j == 1023) || (ts == (tsdiff - EVENTS_PER_CLUSTER))) {
+				logic.length = (j + 1) * logic.unitsize;
+				sr_session_send(devc->cb_data, &packet);
 			}
 		}
 
+		/* The last cluster might not be full. */
+		if ((i == clusters_in_line - 1) && (events_in_line % EVENTS_PER_CLUSTER))
+			events_in_cluster = events_in_line % EVENTS_PER_CLUSTER;
+		else
+			events_in_cluster = EVENTS_PER_CLUSTER;
+
+		/*
+		 * Parse the samples in current cluster and prepare them
+		 * to be submitted to Sigrok.
+		 */
+		for (j = 0; j < events_in_cluster; j++) {
+			samples[2 * j + 1] = dram_cluster->samples[j].sample_lo;
+			samples[2 * j + 0] = dram_cluster->samples[j].sample_hi;
+		}
+
 		/* Send data up to trigger point (if triggered). */
-		sent = 0;
-		if (i == triggerts) {
+		int trigger_offset = 0;
+		if ((int)i == triggerts) {
 			/*
 			 * Trigger is not always accurate to sample because of
 			 * pipeline delay. However, it always triggers before
 			 * the actual event. We therefore look at the next
 			 * samples to pinpoint the exact position of the trigger.
 			 */
-			tosend = get_trigger_offset(samples, *lastsample,
-						    &devc->trigger);
+			trigger_offset = get_trigger_offset(samples,
+						*lastsample, &devc->trigger);
 
-			if (tosend > 0) {
+			if (trigger_offset > 0) {
 				packet.type = SR_DF_LOGIC;
-				packet.payload = &logic;
-				logic.length = tosend * sizeof(uint16_t);
-				logic.unitsize = 2;
-				logic.data = samples;
+				logic.length = trigger_offset * logic.unitsize;
 				sr_session_send(devc->cb_data, &packet);
-
-				sent += tosend;
+				events_in_cluster -= trigger_offset;
 			}
 
 			/* Only send trigger if explicitly enabled. */
@@ -1059,19 +1061,16 @@ static int decode_chunk_ts(struct sigma_dram_line *dram_line, uint16_t *lastts,
 			}
 		}
 
-		/* Send rest of the chunk to sigrok. */
-		tosend = n - sent;
-
-		if (tosend > 0) {
+		if (events_in_cluster > 0) {
 			packet.type = SR_DF_LOGIC;
-			packet.payload = &logic;
-			logic.length = tosend * sizeof(uint16_t);
-			logic.unitsize = 2;
-			logic.data = samples + sent;
+			logic.length = events_in_cluster * logic.unitsize;
+			logic.data = samples +
+				(trigger_offset * logic.unitsize);
 			sr_session_send(devc->cb_data, &packet);
 		}
 
-		*lastsample = samples[n - 1];
+		*lastsample = samples[2 * (events_in_cluster - 1)] |
+			      (samples[2 * (events_in_cluster - 1) + 1] << 8);
 	}
 
 	return SR_OK;
