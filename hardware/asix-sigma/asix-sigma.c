@@ -86,12 +86,17 @@ static uint8_t logic_mode_start[] = {
 	0x2a, 0x3a, 0x40, 0x03, 0x20, 0x38,
 };
 
-static const char *firmware_files[] = {
-	"asix-sigma-50.fw",	/* 50 MHz, supports 8 bit fractions */
-	"asix-sigma-100.fw",	/* 100 MHz */
-	"asix-sigma-200.fw",	/* 200 MHz */
-	"asix-sigma-50sync.fw",	/* Synchronous clock from pin */
-	"asix-sigma-phasor.fw",	/* Frequency counter */
+static const char *sigma_firmware_files[] = {
+	/* 50 MHz, supports 8 bit fractions */
+	FIRMWARE_DIR "/asix-sigma-50.fw",
+	/* 100 MHz */
+	FIRMWARE_DIR "/asix-sigma-100.fw",
+	/* 200 MHz */
+	FIRMWARE_DIR "/asix-sigma-200.fw",
+	/* Synchronous clock from pin */
+	FIRMWARE_DIR "/asix-sigma-50sync.fw",
+	/* Frequency counter */
+	FIRMWARE_DIR "/asix-sigma-phasor.fw",
 };
 
 static int sigma_read(void *buf, size_t size, struct dev_context *devc)
@@ -537,7 +542,7 @@ static int upload_firmware(int firmware_idx, struct dev_context *devc)
 	unsigned char pins;
 	size_t buf_size;
 	unsigned char result[32];
-	char firmware_path[128];
+	const char *firmware = sigma_firmware_files[firmware_idx];
 
 	/* Make sure it's an ASIX SIGMA. */
 	if ((ret = ftdi_usb_open_desc(&devc->ftdic,
@@ -566,17 +571,14 @@ static int upload_firmware(int firmware_idx, struct dev_context *devc)
 		return ret;
 
 	/* Prepare firmware. */
-	snprintf(firmware_path, sizeof(firmware_path), "%s/%s", FIRMWARE_DIR,
-		 firmware_files[firmware_idx]);
-
-	if ((ret = bin2bitbang(firmware_path, &buf, &buf_size)) != SR_OK) {
+	if ((ret = bin2bitbang(firmware, &buf, &buf_size)) != SR_OK) {
 		sr_err("An error occured while reading the firmware: %s",
-		       firmware_path);
+		       firmware);
 		return ret;
 	}
 
 	/* Upload firmare. */
-	sr_info("Uploading firmware file '%s'.", firmware_files[firmware_idx]);
+	sr_info("Uploading firmware file '%s'.", firmware);
 	sigma_write(buf, buf_size, devc);
 
 	g_free(buf);
