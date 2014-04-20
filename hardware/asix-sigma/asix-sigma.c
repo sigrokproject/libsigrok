@@ -1136,13 +1136,14 @@ static int receive_data(int fd, int revents, void *cb_data)
 	sdi = cb_data;
 	devc = sdi->priv;
 
-	/* Get the current position. */
-	sigma_read_pos(&devc->state.stoppos, &devc->state.triggerpos, devc);
-
 	if (devc->state.state == SIGMA_IDLE)
 		return TRUE;
 
 	if (devc->state.state == SIGMA_CAPTURE) {
+		/* Get the current position. */
+		sigma_read_pos(&devc->state.stoppos, &devc->state.triggerpos,
+			       devc);
+
 		numchunks = (devc->state.stoppos + 511) / 512;
 
 		/* Check if the timer has expired, or memory is full. */
