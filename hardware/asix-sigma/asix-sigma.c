@@ -949,8 +949,7 @@ static uint16_t sigma_dram_cluster_ts(struct sigma_dram_cluster *cluster)
  * For 50 MHz and below, events contain one sample for each channel,
  * spread 20 ns apart.
  */
-static int decode_chunk_ts(struct sigma_dram_line *dram_line, uint16_t *lastts,
-			   uint16_t *lastsample, int triggerpos,
+static int decode_chunk_ts(struct sigma_dram_line *dram_line, int triggerpos,
 			   uint16_t events_in_line, void *cb_data)
 {
 	struct sigma_dram_cluster *dram_cluster;
@@ -965,6 +964,7 @@ static int decode_chunk_ts(struct sigma_dram_line *dram_line, uint16_t *lastts,
 	unsigned int clusters_in_line =
 		(events_in_line + (EVENTS_PER_CLUSTER - 1)) / EVENTS_PER_CLUSTER;
 	unsigned int events_in_cluster;
+	struct sigma_state *ss = &devc->state;
 
 	/* Check if trigger is in this chunk. */
 	if (triggerpos != -1) {
@@ -988,8 +988,8 @@ static int decode_chunk_ts(struct sigma_dram_line *dram_line, uint16_t *lastts,
 		dram_cluster = &dram_line->cluster[i];
 
 		ts = sigma_dram_cluster_ts(dram_cluster);
-		tsdiff = ts - *lastts;
-		*lastts = ts;
+		tsdiff = ts - ss->lastts;
+		ss->lastts = ts;
 
 		logic.data = samples;
 
@@ -1006,8 +1006,8 @@ static int decode_chunk_ts(struct sigma_dram_line *dram_line, uint16_t *lastts,
 		 */
 		for (ts = 0; ts < tsdiff - (EVENTS_PER_CLUSTER - 1); ts++) {
 			j = ts % 1024;
-			samples[2 * j + 0] = *lastsample & 0xff;
-			samples[2 * j + 1] = *lastsample >> 8;
+			samples[2 * j + 0] = ss->lastsample & 0xff;
+			samples[2 * j + 1] = ss->lastsample >> 8;
 
 			/*
 			 * If we have 1024 samples ready or we're at the
@@ -1045,7 +1045,7 @@ static int decode_chunk_ts(struct sigma_dram_line *dram_line, uint16_t *lastts,
 			 * samples to pinpoint the exact position of the trigger.
 			 */
 			trigger_offset = get_trigger_offset(samples,
-						*lastsample, &devc->trigger);
+						ss->lastsample, &devc->trigger);
 
 			if (trigger_offset > 0) {
 				packet.type = SR_DF_LOGIC;
@@ -1069,7 +1069,7 @@ static int decode_chunk_ts(struct sigma_dram_line *dram_line, uint16_t *lastts,
 			sr_session_send(devc->cb_data, &packet);
 		}
 
-		*lastsample = samples[2 * (events_in_cluster - 1)] |
+		ss->lastsample = samples[2 * (events_in_cluster - 1)] |
 			      (samples[2 * (events_in_cluster - 1) + 1] << 8);
 	}
 
@@ -1146,10 +1146,7 @@ static int download_capture(struct sr_dev_inst *sdi)
 			if (dl_lines_done + i == trg_line)
 				trigger_line = trg_line;
 
-			decode_chunk_ts(dram_line + i,
-					&devc->state.lastts,
-					&devc->state.lastsample,
-					trigger_line,
+			decode_chunk_ts(dram_line + i, trigger_line,
 					dl_events_in_line, sdi);
 		}
 
