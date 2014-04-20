@@ -1083,7 +1083,7 @@ static int download_capture(struct sr_dev_inst *sdi)
 	uint32_t i;
 	uint32_t dl_lines_total, dl_lines_curr, dl_lines_done;
 	uint32_t dl_trailing_events;
-	uint32_t trg_line;
+	uint32_t trg_line = ~0;
 
 	dram_line = g_try_malloc0(chunks_per_read * sizeof(*dram_line));
 	if (!dram_line)
@@ -1106,8 +1106,6 @@ static int download_capture(struct sr_dev_inst *sdi)
 	modestatus = sigma_get_register(READ_MODE, devc);
 	if (modestatus & 0x20)
 		trg_line = triggerpos >> 9;
-	else
-		trg_line = ~0;
 
 	/*
 	 * Determine how many 1024b "DRAM lines" do we need to read from the
@@ -1135,22 +1133,19 @@ static int download_capture(struct sr_dev_inst *sdi)
 
 		for (i = 0; i < dl_lines_curr; i++) {
 			uint32_t dl_limit = 0;
+			int trigger_line = -1;
 			/* The last "DRAM line" can be only partially full. */
 			if (dl_lines_done + i == dl_lines_total - 1)
 				dl_limit = dl_trailing_events;
 
+			/* Test if the trigger happened on this line. */
 			if (dl_lines_done + i == trg_line)
-				decode_chunk_ts(buf + (i * CHUNK_SIZE),
-						&devc->state.lastts,
-						&devc->state.lastsample,
-						triggerpos & 0x1ff,
-						dl_limit, sdi);
-			else
-				decode_chunk_ts(buf + (i * CHUNK_SIZE),
-						&devc->state.lastts,
-						&devc->state.lastsample,
-						-1,
-						dl_limit, sdi);
+				trigger_line = trg_line;
+
+			decode_chunk_ts(buf + (i * CHUNK_SIZE),
+					&devc->state.lastts,
+					&devc->state.lastsample,
+					trigger_line, dl_limit, sdi);
 		}
 
 		dl_lines_done += dl_lines_curr;
