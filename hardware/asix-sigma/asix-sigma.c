@@ -1075,7 +1075,8 @@ static int download_capture(struct sr_dev_inst *sdi)
 	const int chunks_per_read = 32;
 	unsigned char buf[chunks_per_read * CHUNK_SIZE];
 	int bufsz, i, numchunks, newchunks;
-
+	uint32_t stoppos, triggerpos;
+	int triggerchunk, chunks_downloaded;
 	struct sr_datafeed_packet packet;
 	uint8_t modestatus;
 
@@ -1088,25 +1089,25 @@ static int download_capture(struct sr_dev_inst *sdi)
 	sigma_set_register(WRITE_MODE, 0x02, devc);
 
 	/* Get the current position. */
-	sigma_read_pos(&devc->state.stoppos, &devc->state.triggerpos, devc);
+	sigma_read_pos(&stoppos, &triggerpos, devc);
 
 	/* Check if trigger has fired. */
 	modestatus = sigma_get_register(READ_MODE, devc);
 	if (modestatus & 0x20)
-		devc->state.triggerchunk = devc->state.triggerpos / 512;
+		triggerchunk = triggerpos / 512;
 	else
-		devc->state.triggerchunk = -1;
+		triggerchunk = -1;
 
-	devc->state.chunks_downloaded = 0;
-	numchunks = (devc->state.stoppos + 511) / 512;
-	newchunks = MIN(chunks_per_read, numchunks - devc->state.chunks_downloaded);
+	chunks_downloaded = 0;
+	numchunks = (stoppos + 511) / 512;
+	newchunks = MIN(chunks_per_read, numchunks - chunks_downloaded);
 
-	bufsz = sigma_read_dram(devc->state.chunks_downloaded, newchunks, buf, devc);
+	bufsz = sigma_read_dram(chunks_downloaded, newchunks, buf, devc);
 	/* TODO: Check bufsz. For now, just avoid compiler warnings. */
 	(void)bufsz;
 
 	/* Find first ts. */
-	if (devc->state.chunks_downloaded == 0) {
+	if (chunks_downloaded == 0) {
 		devc->state.lastts = RL16(buf) - 1;
 		devc->state.lastsample = 0;
 	}
@@ -1116,16 +1117,16 @@ static int download_capture(struct sr_dev_inst *sdi)
 		int limit_chunk = 0;
 
 		/* The last chunk may potentially be only in part. */
-		if (devc->state.chunks_downloaded == numchunks - 1) {
+		if (chunks_downloaded == numchunks - 1) {
 			/* Find the last valid timestamp */
-			limit_chunk = devc->state.stoppos % 512 + devc->state.lastts;
+			limit_chunk = stoppos % 512 + devc->state.lastts;
 		}
 
-		if (devc->state.chunks_downloaded + i == devc->state.triggerchunk)
+		if (chunks_downloaded + i == triggerchunk)
 			decode_chunk_ts(buf + (i * CHUNK_SIZE),
 					&devc->state.lastts,
 					&devc->state.lastsample,
-					devc->state.triggerpos & 0x1ff,
+					triggerpos & 0x1ff,
 					limit_chunk, sdi);
 		else
 			decode_chunk_ts(buf + (i * CHUNK_SIZE),
@@ -1133,7 +1134,7 @@ static int download_capture(struct sr_dev_inst *sdi)
 					&devc->state.lastsample,
 					-1, limit_chunk, sdi);
 
-		++devc->state.chunks_downloaded;
+		++chunks_downloaded;
 	}
 
 	/* All done. */

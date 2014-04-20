@@ -167,12 +167,8 @@ struct sigma_state {
 		SIGMA_DOWNLOAD,
 	} state;
 
-	uint32_t stoppos, triggerpos;
 	uint16_t lastts;
 	uint16_t lastsample;
-
-	int triggerchunk;
-	int chunks_downloaded;
 };
 
 /* Private, per-device-instance driver context. */
