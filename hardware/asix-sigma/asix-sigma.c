@@ -299,85 +299,76 @@ static int sigma_write_trigger_lut(struct triggerlut *lut, struct dev_context *d
 	return SR_OK;
 }
 
-/* Generate the bitbang stream for programming the FPGA. */
-static int bin2bitbang(const char *filename,
-		       unsigned char **buf, size_t *buf_size)
+/*
+ * Read the firmware from a file and transform it into a series of bitbang
+ * pulses used to program the FPGA. Note that the *bb_cmd must be free()'d
+ * by the caller of this function.
+ */
+static int sigma_fw_2_bitbang(const char *filename,
+			      uint8_t **bb_cmd, gsize *bb_cmd_size)
 {
-	FILE *f;
-	unsigned long file_size;
-	unsigned long offset = 0;
-	unsigned char *p;
-	uint8_t *firmware;
-	unsigned long fwsize = 0;
-	const int buffer_size = 65536;
-	size_t i;
-	int c, bit, v;
-	uint32_t imm = 0x3f6df2ab;
+	GMappedFile *file;
+	GError *error;
+	gsize i, file_size, bb_size;
+	gchar *firmware;
+	uint8_t *bb_stream, *bbs;
+	uint32_t imm;
+	int bit, v;
+	int ret = SR_OK;
 
-	f = g_fopen(filename, "rb");
-	if (!f) {
-		sr_err("g_fopen(\"%s\", \"rb\")", filename);
-		return SR_ERR;
-	}
+	/*
+	 * Map the file and make the mapped buffer writable.
+	 * NOTE: Using writable=TRUE does _NOT_ mean that file that is mapped
+	 *       will be modified. It will not be modified until someone uses
+	 *       g_file_set_contents() on it.
+	 */
+	error = NULL;
+	file = g_mapped_file_new(filename, TRUE, &error);
+	g_assert_no_error(error);
 
-	if (-1 == fseek(f, 0, SEEK_END)) {
-		sr_err("fseek on %s failed", filename);
-		fclose(f);
-		return SR_ERR;
-	}
+	file_size = g_mapped_file_get_length(file);
+	firmware = g_mapped_file_get_contents(file);
+	g_assert(firmware);
 
-	file_size = ftell(f);
-
-	fseek(f, 0, SEEK_SET);
-
-	if (!(firmware = g_try_malloc(buffer_size))) {
-		sr_err("%s: firmware malloc failed", __func__);
-		fclose(f);
-		return SR_ERR_MALLOC;
-	}
-
-	while ((c = getc(f)) != EOF) {
+	/* Weird magic transformation below, I have no idea what it does. */
+	imm = 0x3f6df2ab;
+	for (i = 0; i < file_size; i++) {
 		imm = (imm + 0xa853753) % 177 + (imm * 0x8034052);
-		firmware[fwsize++] = c ^ imm;
-	}
-	fclose(f);
-
-	if(fwsize != file_size) {
-	    sr_err("%s: Error reading firmware", filename);
-	    fclose(f);
-	    g_free(firmware);
-	    return SR_ERR;
+		firmware[i] ^= imm & 0xff;
 	}
 
-	*buf_size = fwsize * 2 * 8;
+	/*
+	 * Now that the firmware is "transformed", we will transcribe the
+	 * firmware blob into a sequence of toggles of the Dx wires. This
+	 * sequence will be fed directly into the Sigma, which must be in
+	 * the FPGA bitbang programming mode.
+	 */
 
-	*buf = p = (unsigned char *)g_try_malloc(*buf_size);
-	if (!p) {
-		sr_err("%s: buf/p malloc failed", __func__);
-		g_free(firmware);
-		return SR_ERR_MALLOC;
+	/* Each bit of firmware is transcribed as two toggles of Dx wires. */
+	bb_size = file_size * 8 * 2;
+	bb_stream = (uint8_t *)g_try_malloc(bb_size);
+	if (!bb_stream) {
+		sr_err("%s: Failed to allocate bitbang stream", __func__);
+		ret = SR_ERR_MALLOC;
+		goto exit;
 	}
 
-	for (i = 0; i < fwsize; ++i) {
-		for (bit = 7; bit >= 0; --bit) {
-			v = firmware[i] & 1 << bit ? 0x40 : 0x00;
-			p[offset++] = v | 0x01;
-			p[offset++] = v;
+	bbs = bb_stream;
+	for (i = 0; i < file_size; i++) {
+		for (bit = 7; bit >= 0; bit--) {
+			v = (firmware[i] & (1 << bit)) ? 0x40 : 0x00;
+			*bbs++ = v | 0x01;
+			*bbs++ = v;
 		}
 	}
 
-	g_free(firmware);
+	/* The transformation completed successfully, return the result. */
+	*bb_cmd = bb_stream;
+	*bb_cmd_size = bb_size;
 
-	if (offset != *buf_size) {
-		g_free(*buf);
-		sr_err("Error reading firmware %s "
-		       "offset=%ld, file_size=%ld, buf_size=%zd.",
-		       filename, offset, file_size, *buf_size);
-
-		return SR_ERR;
-	}
-
-	return SR_OK;
+exit:
+	g_mapped_file_unref(file);
+	return ret;
 }
 
 static void clear_helper(void *priv)
@@ -575,7 +566,7 @@ static int upload_firmware(int firmware_idx, struct dev_context *devc)
 		return ret;
 
 	/* Prepare firmware. */
-	ret = bin2bitbang(firmware, &buf, &buf_size);
+	ret = sigma_fw_2_bitbang(firmware, &buf, &buf_size);
 	if (ret != SR_OK) {
 		sr_err("An error occured while reading the firmware: %s",
 		       firmware);
