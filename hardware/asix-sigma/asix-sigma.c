@@ -929,6 +929,15 @@ static int get_trigger_offset(uint16_t *samples, uint16_t last_sample,
 	return i & 0x7;
 }
 
+
+/*
+ * Return the timestamp of "DRAM cluster".
+ */
+static uint16_t sigma_dram_cluster_ts(struct sigma_dram_cluster *cluster)
+{
+	return (cluster->timestamp_hi << 8) | cluster->timestamp_lo;
+}
+
 /*
  * Decode chunk of 1024 bytes, 64 clusters, 7 events per cluster.
  * Each event is 20ns apart, and can contain multiple samples.
@@ -1127,7 +1136,8 @@ static int download_capture(struct sr_dev_inst *sdi)
 
 		/* This is the first DRAM line, so find the initial timestamp. */
 		if (dl_lines_done == 0) {
-			devc->state.lastts = RL16(buf) - 1;
+			devc->state.lastts =
+				sigma_dram_cluster_ts(&dram_line[0].cluster[0]);
 			devc->state.lastsample = 0;
 		}
 
