@@ -20,5 +20,5 @@
 
 %module sigrok_lowlevel
 
-%include "../swig/libsigrok.i"
+%include "../swig/lowlevel.i"
 

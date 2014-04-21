@@ -19,7 +19,7 @@
 
 %module lowlevel
 
-%include "../../../swig/libsigrok.i"
+%include "../../../swig/lowlevel.i"
 
 %{
 
