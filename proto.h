@@ -57,13 +57,6 @@ SR_API int sr_dev_clear(const struct sr_dev_driver *driver);
 SR_API int sr_dev_open(struct sr_dev_inst *sdi);
 SR_API int sr_dev_close(struct sr_dev_inst *sdi);
 
-/*--- filter.c --------------------------------------------------------------*/
-
-SR_API int sr_filter_channels(unsigned int in_unitsize, unsigned int out_unitsize,
-			    const GArray *channel_array, const uint8_t *data_in,
-			    uint64_t length_in, uint8_t **data_out,
-			    uint64_t *length_out);
-
 /*--- hwdriver.c ------------------------------------------------------------*/
 
 SR_API struct sr_dev_driver **sr_driver_list(void);
