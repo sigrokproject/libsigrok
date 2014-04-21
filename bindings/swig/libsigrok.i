@@ -114,18 +114,3 @@ gchar *g_string_free(GString *string, gboolean free_segment);
                 return $self->loadfile(in, filename);
         }
 }
-
-%extend sr_output_format {
-        int call_init(struct sr_output *o) {
-                return $self->init(o);
-        }
-
-        int call_receive(struct sr_output *o,
-                        const struct sr_datafeed_packet *packet, GString **out) {
-                return $self->receive(o, packet, out);
-        }
-
-        int call_cleanup(struct sr_output *o) {
-                return $self->cleanup(o);
-        }
-}
