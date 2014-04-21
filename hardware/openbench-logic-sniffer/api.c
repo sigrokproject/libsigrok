@@ -399,6 +399,12 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 			if (devc->channel_mask & (0xff << (i * 8)))
 				num_channels++;
 		}
+		if (num_channels == 0) {
+			/* This can happen, but shouldn't cause too much drama.
+			 * However we can't continue because the code below would
+			 * divide by zero. */
+			break;
+		}
 		grange[0] = g_variant_new_uint64(MIN_NUM_SAMPLES);
 		grange[1] = g_variant_new_uint64(devc->max_samples / num_channels);
 		*data = g_variant_new_tuple(grange, 2);
