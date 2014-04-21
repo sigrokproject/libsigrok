@@ -197,7 +197,6 @@ static int cleanup(struct sr_output *o)
 	if (!(ctx = o->internal))
 		return SR_OK;
 
-	g_free(ctx->header);
 	g_free(ctx->channel_index);
 	g_free(ctx->channel_names);
 	for (i = 0; i < ctx->num_enabled_channels; i++)
