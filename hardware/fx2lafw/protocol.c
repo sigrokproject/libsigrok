@@ -330,14 +330,16 @@ SR_PRIV int fx2lafw_configure_channels(const struct sr_dev_inst *sdi)
 		}
 	}
 
-	if (stage == -1)
+	if (stage == -1) {
 		/*
 		 * We didn't configure any triggers, make sure acquisition
 		 * doesn't wait for any.
 		 */
-		devc->trigger_stage = TRIGGER_FIRED;
-	else
+		devc->trigger_fired = TRUE;
+	} else {
+		devc->trigger_fired = FALSE;
 		devc->trigger_stage = 0;
+	}
 
 	return SR_OK;
 }
@@ -364,7 +366,7 @@ SR_PRIV void fx2lafw_abort_acquisition(struct dev_context *devc)
 {
 	int i;
 
-	devc->num_samples = -1;
+	devc->acq_aborted = TRUE;
 
 	for (i = devc->num_transfers - 1; i >= 0; i--) {
 		if (devc->transfers[i])
@@ -429,8 +431,8 @@ SR_PRIV void fx2lafw_receive_transfer(struct libusb_transfer *transfer)
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
 	struct dev_context *devc;
-	int trigger_offset, i, sample_width, cur_sample_count;
-	int trigger_offset_bytes;
+	int cur_sample_count, num_samples, trigger_offset, sample_width;
+	int i;
 	uint8_t *cur_buf;
 	uint16_t cur_sample;
 
@@ -440,7 +442,7 @@ SR_PRIV void fx2lafw_receive_transfer(struct libusb_transfer *transfer)
 	 * If acquisition has already ended, just free any queued up
 	 * transfer that come in.
 	 */
-	if (devc->num_samples == -1) {
+	if (devc->acq_aborted) {
 		free_transfer(transfer);
 		return;
 	}
@@ -484,9 +486,8 @@ SR_PRIV void fx2lafw_receive_transfer(struct libusb_transfer *transfer)
 	}
 
 	trigger_offset = 0;
-	if (devc->trigger_stage >= 0) {
+	if (!devc->trigger_fired) {
 		for (i = 0; i < cur_sample_count; i++) {
-
 			cur_sample = devc->sample_wide ?
 				*((uint16_t *)cur_buf + i) :
 				*((uint8_t *)cur_buf + i);
@@ -517,11 +518,16 @@ SR_PRIV void fx2lafw_receive_transfer(struct libusb_transfer *transfer)
 					packet.type = SR_DF_LOGIC;
 					packet.payload = &logic;
 					logic.unitsize = sample_width;
-					logic.length = devc->trigger_stage * logic.unitsize;
+					if (devc->trigger_stage > devc->limit_samples)
+						num_samples = devc->trigger_stage;
+					else
+						num_samples = devc->limit_samples;
+					logic.length = num_samples * sample_width;
 					logic.data = devc->trigger_buffer;
 					sr_session_send(devc->cb_data, &packet);
+					devc->sent_samples += num_samples;
 
-					devc->trigger_stage = TRIGGER_FIRED;
+					devc->trigger_fired = TRUE;
 					break;
 				}
 			} else if (devc->trigger_stage > 0) {
@@ -541,19 +547,22 @@ SR_PRIV void fx2lafw_receive_transfer(struct libusb_transfer *transfer)
 		}
 	}
 
-	if (devc->trigger_stage == TRIGGER_FIRED) {
+	if (devc->trigger_fired) {
 		/* Send the incoming transfer to the session bus. */
-		trigger_offset_bytes = trigger_offset * sample_width;
 		packet.type = SR_DF_LOGIC;
 		packet.payload = &logic;
-		logic.length = transfer->actual_length - trigger_offset_bytes;
+		if (devc->sent_samples + cur_sample_count > devc->limit_samples)
+			num_samples = devc->limit_samples - devc->sent_samples;
+		else
+			num_samples = cur_sample_count;
+		logic.length = num_samples * sample_width;
 		logic.unitsize = sample_width;
-		logic.data = cur_buf + trigger_offset_bytes;
+		logic.data = cur_buf + trigger_offset * sample_width;
 		sr_session_send(devc->cb_data, &packet);
 
-		devc->num_samples += cur_sample_count;
+		devc->sent_samples += cur_sample_count;
 		if (devc->limit_samples &&
-			(unsigned int)devc->num_samples > devc->limit_samples) {
+			(unsigned int)devc->sent_samples > devc->limit_samples) {
 			fx2lafw_abort_acquisition(devc);
 			free_transfer(transfer);
 			return;

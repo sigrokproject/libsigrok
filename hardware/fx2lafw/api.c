@@ -483,7 +483,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	}
 
 	devc->cb_data = cb_data;
-	devc->num_samples = 0;
+	devc->sent_samples = 0;
+	devc->acq_aborted = FALSE;
 	devc->empty_transfer_count = 0;
 
 	timeout = fx2lafw_get_timeout(devc);

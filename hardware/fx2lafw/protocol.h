@@ -48,9 +48,6 @@
 /* 6 delay states of up to 256 clock ticks */
 #define MAX_SAMPLE_DELAY	(6 * 256)
 
-/* Software trigger implementation: positive values indicate trigger stage. */
-#define TRIGGER_FIRED          -1
-
 #define DEV_CAPS_16BIT_POS	0
 
 #define DEV_CAPS_16BIT		(1 << DEV_CAPS_16BIT_POS)
@@ -83,13 +80,15 @@ struct dev_context {
 	uint64_t limit_samples;
 
 	/* Operational settings */
+	gboolean trigger_fired;
+	gboolean acq_aborted;
 	gboolean sample_wide;
 	uint16_t trigger_mask[NUM_TRIGGER_STAGES];
 	uint16_t trigger_value[NUM_TRIGGER_STAGES];
-	int trigger_stage;
+	unsigned int trigger_stage;
 	uint16_t trigger_buffer[NUM_TRIGGER_STAGES];
 
-	int num_samples;
+	unsigned int sent_samples;
 	int submitted_transfers;
 	int empty_transfer_count;
 
