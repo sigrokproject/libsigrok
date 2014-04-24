@@ -431,8 +431,8 @@ SR_PRIV void fx2lafw_receive_transfer(struct libusb_transfer *transfer)
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
 	struct dev_context *devc;
-	int cur_sample_count, num_samples, trigger_offset, sample_width;
-	int i;
+	unsigned int trigger_offset, num_samples;
+	int cur_sample_count, sample_width, i;
 	uint8_t *cur_buf;
 	uint16_t cur_sample;
 
@@ -501,7 +501,7 @@ SR_PRIV void fx2lafw_receive_transfer(struct libusb_transfer *transfer)
 				if (devc->trigger_stage == NUM_TRIGGER_STAGES ||
 					devc->trigger_mask[devc->trigger_stage] == 0) {
 					/* Match on all trigger stages, we're done. */
-					trigger_offset = i + 1;
+					trigger_offset = i;
 
 					/*
 					 * TODO: Send pre-trigger buffer to session bus.
@@ -517,13 +517,13 @@ SR_PRIV void fx2lafw_receive_transfer(struct libusb_transfer *transfer)
 					 */
 					packet.type = SR_DF_LOGIC;
 					packet.payload = &logic;
-					logic.unitsize = sample_width;
-					if (devc->trigger_stage > devc->limit_samples)
-						num_samples = devc->trigger_stage;
-					else
-						num_samples = devc->limit_samples;
+					num_samples = cur_sample_count - trigger_offset;
+					if (devc->limit_samples &&
+							num_samples > devc->limit_samples - devc->sent_samples)
+						num_samples = devc->limit_samples - devc->sent_samples;
 					logic.length = num_samples * sample_width;
-					logic.data = devc->trigger_buffer;
+					logic.unitsize = sample_width;
+					logic.data = cur_buf + trigger_offset * sample_width;
 					sr_session_send(devc->cb_data, &packet);
 					devc->sent_samples += num_samples;
 
@@ -545,9 +545,7 @@ SR_PRIV void fx2lafw_receive_transfer(struct libusb_transfer *transfer)
 				devc->trigger_stage = 0;
 			}
 		}
-	}
-
-	if (devc->trigger_fired) {
+	} else if (devc->sent_samples < devc->limit_samples) {
 		/* Send the incoming transfer to the session bus. */
 		packet.type = SR_DF_LOGIC;
 		packet.payload = &logic;
@@ -557,21 +555,15 @@ SR_PRIV void fx2lafw_receive_transfer(struct libusb_transfer *transfer)
 			num_samples = cur_sample_count;
 		logic.length = num_samples * sample_width;
 		logic.unitsize = sample_width;
-		logic.data = cur_buf + trigger_offset * sample_width;
+		logic.data = cur_buf;
 		sr_session_send(devc->cb_data, &packet);
-
 		devc->sent_samples += cur_sample_count;
-		if (devc->limit_samples &&
-			(unsigned int)devc->sent_samples > devc->limit_samples) {
-			fx2lafw_abort_acquisition(devc);
-			free_transfer(transfer);
-			return;
-		}
-	} else {
-		/*
-		 * TODO: Buffer pre-trigger data in capture
-		 * ratio-sized buffer.
-		 */
+	}
+
+	if (devc->limit_samples && devc->sent_samples >= devc->limit_samples) {
+		fx2lafw_abort_acquisition(devc);
+		free_transfer(transfer);
+		return;
 	}
 
 	resubmit_transfer(transfer);
