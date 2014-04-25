@@ -507,8 +507,8 @@ static void datafeed_dump(const struct sr_datafeed_packet *packet)
 		break;
 	case SR_DF_LOGIC:
 		logic = packet->payload;
-		sr_dbg("bus: Received SR_DF_LOGIC packet (%" PRIu64 " bytes).",
-		       logic->length);
+		sr_dbg("bus: Received SR_DF_LOGIC packet (%" PRIu64 " bytes, "
+		       "unitsize = %d).", logic->length, logic->unitsize);
 		break;
 	case SR_DF_ANALOG:
 		analog = packet->payload;
