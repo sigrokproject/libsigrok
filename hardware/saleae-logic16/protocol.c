@@ -736,6 +736,14 @@ SR_PRIV void logic16_receive_transfer(struct libusb_transfer *transfer)
 				transfer->actual_length);
 
 	if (converted_length > 0) {
+		/* Cap sample count if needed */
+		if (devc->limit_samples &&
+		    (uint64_t)devc->num_samples + converted_length / 2
+		    > devc->limit_samples) {
+			converted_length =
+			  (devc->limit_samples - devc->num_samples) * 2;
+		}
+
 		/* Send the incoming transfer to the session bus. */
 		packet.type = SR_DF_LOGIC;
 		packet.payload = &logic;
@@ -746,7 +754,7 @@ SR_PRIV void logic16_receive_transfer(struct libusb_transfer *transfer)
 
 		devc->num_samples += converted_length / 2;
 		if (devc->limit_samples &&
-		    (uint64_t)devc->num_samples > devc->limit_samples) {
+		    (uint64_t)devc->num_samples >= devc->limit_samples) {
 			devc->num_samples = -2;
 			free_transfer(transfer);
 			return;
