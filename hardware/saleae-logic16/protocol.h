@@ -66,7 +66,7 @@ struct dev_context {
 	int64_t num_samples;
 	int submitted_transfers;
 	int empty_transfer_count;
-	int num_channels, cur_channel;
+	int num_channels, cur_channel, unitsize;
 	uint16_t channel_masks[16];
 	uint16_t channel_data[16];
 	uint8_t *convbuffer;

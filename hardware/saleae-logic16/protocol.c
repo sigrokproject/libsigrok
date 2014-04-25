@@ -628,9 +628,9 @@ static void resubmit_transfer(struct libusb_transfer *transfer)
 	sr_err("%s: %s", __func__, libusb_error_name(ret));
 }
 
-static size_t convert_sample_data(struct dev_context *devc,
-				  uint8_t *dest, size_t destcnt,
-				  const uint8_t *src, size_t srccnt)
+static size_t convert_sample_data_16(struct dev_context *devc,
+				     uint8_t *dest, size_t destcnt,
+				     const uint8_t *src, size_t srccnt)
 {
 	uint16_t *channel_data;
 	int i, cur_channel;
@@ -661,7 +661,7 @@ static size_t convert_sample_data(struct dev_context *devc,
 			memcpy(dest, channel_data, 16 * 2);
 			memset(channel_data, 0, 16 * 2);
 			dest += 16 * 2;
-			ret += 16 * 2;
+			ret += 16;
 			destcnt -= 16 * 2;
 		}
 	}
@@ -669,6 +669,60 @@ static size_t convert_sample_data(struct dev_context *devc,
 	devc->cur_channel = cur_channel;
 
 	return ret;
+}
+
+static size_t convert_sample_data_8(struct dev_context *devc,
+				    uint8_t *dest, size_t destcnt,
+				    const uint8_t *src, size_t srccnt)
+{
+	uint8_t *channel_data;
+	int i, cur_channel;
+	size_t ret = 0;
+	uint16_t sample;
+	uint8_t channel_mask;
+
+	srccnt /= 2;
+
+	channel_data = (uint8_t *)devc->channel_data;
+	cur_channel = devc->cur_channel;
+
+	while (srccnt--) {
+		sample = src[0] | (src[1] << 8);
+		src += 2;
+
+		channel_mask = devc->channel_masks[cur_channel];
+
+		for (i = 15; i >= 0; --i, sample >>= 1)
+			if (sample & 1)
+				channel_data[i] |= channel_mask;
+
+		if (++cur_channel == devc->num_channels) {
+			cur_channel = 0;
+			if (destcnt < 16) {
+				sr_err("Conversion buffer too small!");
+				break;
+			}
+			memcpy(dest, channel_data, 16);
+			memset(channel_data, 0, 16);
+			dest += 16;
+			ret += 16;
+			destcnt -= 16;
+		}
+	}
+
+	devc->cur_channel = cur_channel;
+
+	return ret;
+}
+
+static size_t convert_sample_data(struct dev_context *devc,
+				  uint8_t *dest, size_t destcnt,
+				  const uint8_t *src, size_t srccnt,
+				  int unitsize)
+{
+	return (unitsize == 2?
+		convert_sample_data_16(devc, dest, destcnt, src, srccnt) :
+		convert_sample_data_8(devc, dest, destcnt, src, srccnt));
 }
 
 SR_PRIV void logic16_receive_transfer(struct libusb_transfer *transfer)
@@ -733,26 +787,26 @@ SR_PRIV void logic16_receive_transfer(struct libusb_transfer *transfer)
 
 	converted_length = convert_sample_data(devc, devc->convbuffer,
 				devc->convbuffer_size, transfer->buffer,
-				transfer->actual_length);
+				transfer->actual_length, devc->unitsize);
 
 	if (converted_length > 0) {
 		/* Cap sample count if needed */
 		if (devc->limit_samples &&
-		    (uint64_t)devc->num_samples + converted_length / 2
+		    (uint64_t)devc->num_samples + converted_length
 		    > devc->limit_samples) {
 			converted_length =
-			  (devc->limit_samples - devc->num_samples) * 2;
+				devc->limit_samples - devc->num_samples;
 		}
 
 		/* Send the incoming transfer to the session bus. */
 		packet.type = SR_DF_LOGIC;
 		packet.payload = &logic;
-		logic.length = converted_length;
-		logic.unitsize = 2;
+		logic.length = converted_length * devc->unitsize;
+		logic.unitsize = devc->unitsize;
 		logic.data = devc->convbuffer;
 		sr_session_send(devc->cb_data, &packet);
 
-		devc->num_samples += converted_length / 2;
+		devc->num_samples += converted_length;
 		if (devc->limit_samples &&
 		    (uint64_t)devc->num_samples >= devc->limit_samples) {
 			devc->num_samples = -2;
