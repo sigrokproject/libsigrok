@@ -316,7 +316,7 @@ esac
 
 AC_SUBST(SR_PKGLIBS)
 
-CFLAGS="$CFLAGS $LIB_CFLAGS"
+CFLAGS="$CFLAGS -I./include/libsigrok $LIB_CFLAGS"
 
 # Now set AM_CONDITIONALs and AC_DEFINEs for the enabled/disabled drivers.
 
@@ -525,7 +525,7 @@ AC_SUBST(SR_PACKAGE_VERSION_MINOR)
 AC_SUBST(SR_PACKAGE_VERSION_MICRO)
 AC_SUBST(SR_PACKAGE_VERSION)
 
-AC_CONFIG_FILES([Makefile version.h libsigrok.pc])
+AC_CONFIG_FILES([Makefile include/libsigrok/version.h libsigrok.pc])
 
 AC_OUTPUT
 

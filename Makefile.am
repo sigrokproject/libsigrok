@@ -333,7 +333,10 @@ libsigrok_la_LIBADD = $(LIBOBJS)
 libsigrok_la_LDFLAGS = $(SR_LIB_LDFLAGS)
 
 library_includedir = $(includedir)/libsigrok
-library_include_HEADERS = libsigrok.h proto.h version.h
+library_include_HEADERS = \
+	include/libsigrok/libsigrok.h \
+	include/libsigrok/proto.h \
+	include/libsigrok/version.h
 noinst_HEADERS = libsigrok-internal.h
 
 pkgconfigdir = $(libdir)/pkgconfig
