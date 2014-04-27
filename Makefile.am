@@ -427,6 +427,50 @@ CLEAN_EXTRA += python-clean
 
 endif
 
+if BINDINGS_JAVA
+
+JDIR = bindings/java
+JPKG = org/sigrok/core/classes
+JINT = $(JDIR)/$(JPKG)/classes.i
+JSRC = $(JDIR)/$(JPKG)/classes_wrap.cxx
+JLIB = $(JDIR)/libsigrok_java_core_classes.so
+JJAR = $(JDIR)/sigrok-core.jar
+
+java-build: $(JJAR) $(JLIB)
+
+$(JSRC): $(JINT) bindings/swig/classes.i
+	swig -c++ -java -package org.sigrok.core.classes \
+		-Iinclude -Ibindings/cxx/include \
+		-outdir $(JDIR)/$(JPKG) $(JINT)
+
+$(JJAR): $(JSRC) $(JDIR)/$(JPKG)/*.java
+	$(JAVAC) -sourcepath $(JDIR) $(JDIR)/$(JPKG)/*.java
+	jar cf $(JJAR) -C $(JDIR) $(JPKG)
+
+$(JLIB): $(JSRC) bindings/cxx/libsigrokxx.la
+	$(CXX) $(CXXFLAGS) -L.libs -Lbindings/cxx/.libs \
+		-fno-strict-aliasing -fPIC -shared \
+		$(JDIR)/$(JPKG)/classes_wrap.cxx -lsigrokxx \
+		-o $(JLIB)
+
+java-install:
+	$(INSTALL) -d $(libdir)/jni
+	$(INSTALL) $(JLIB) -t $(libdir)/jni
+	$(INSTALL) -d $(datadir)/java
+	$(INSTALL) $(JJAR) -t $(datadir)/java
+
+java-clean:
+	rm $(JSRC)
+	rm $(JDIR)/$(JPKG)/*.class
+	rm $(JJAR)
+	rm $(JLIB)
+
+BUILD_EXTRA += java-build
+INSTALL_EXTRA += java-install
+CLEAN_EXTRA += java-clean
+
+endif
+
 all-local: $(BUILD_EXTRA)
 install-exec-local: $(INSTALL_EXTRA)
 clean-extra: $(CLEAN_EXTRA)

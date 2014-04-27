@@ -166,6 +166,11 @@ AC_ARG_ENABLE(python,
 	[build Python bindings [default=yes]]),
 	[BINDINGS_PYTHON="$enableval"], [BINDINGS_PYTHON="yes"])
 
+AC_ARG_ENABLE(java,
+	AC_HELP_STRING([--enable-java],
+	[build Java bindings [default=yes]]),
+	[BINDINGS_PYTHON="$enableval"], [BINDINGS_JAVA="yes"])
+
 # Check if the C++ compiler supports the C++11 standard.
 
 AX_CXX_COMPILE_STDCXX_11(,[optional])
@@ -174,10 +179,11 @@ if test "x$HAVE_CXX11" != "x1"; then
 	BINDINGS_CXX="no"
 fi
 
-# Python bindings depend on C++ bindings.
+# Python and Java bindings depend on C++ bindings.
 
 if test "x$BINDINGS_CXX" != "xyes"; then
 	BINDINGS_PYTHON="no"
+	BINDINGS_JAVA="no"
 fi
 
 # Checks for libraries.
@@ -361,6 +367,20 @@ AC_SUBST(SR_PKGLIBS)
 
 CFLAGS="$CFLAGS -I./include/libsigrok $LIB_CFLAGS"
 CXXFLAGS="$CXXFLAGS -I./include -I./bindings/cxx/include $LIB_CFLAGS"
+
+# Find Java compiler and JNI includes for Java bindings.
+
+AC_CHECK_PROG([HAVE_JAVAC], [javac], [yes], [no])
+
+if test "x$HAVE_JAVAC" = "xyes"; then
+	AX_PROG_JAVAC
+	AX_JNI_INCLUDE_DIR
+	for JNI_INCLUDE_DIR in $JNI_INCLUDE_DIRS; do
+		CXXFLAGS="$CXXFLAGS -I$JNI_INCLUDE_DIR"
+	done
+else
+	BINDINGS_JAVA="no"
+fi
 
 # Now set AM_CONDITIONALs and AC_DEFINEs for the enabled/disabled drivers.
 
@@ -553,6 +573,8 @@ AM_CONDITIONAL(BINDINGS_CXX, test x$BINDINGS_CXX = xyes)
 
 AM_CONDITIONAL(BINDINGS_PYTHON, test x$BINDINGS_PYTHON = xyes)
 
+AM_CONDITIONAL(BINDINGS_JAVA, test x$BINDINGS_JAVA = xyes)
+
 # Checks for header files.
 # These are already checked: inttypes.h stdint.h stdlib.h string.h unistd.h.
 
@@ -609,4 +631,5 @@ echo -e "\nEnabled hardware drivers:\n${driver_summary}"
 echo -e "\nEnabled language bindings:\n"
 echo "  - C++............................. $BINDINGS_CXX"
 echo "  - Python.......................... $BINDINGS_PYTHON"
+echo "  - Java............................ $BINDINGS_JAVA"
 echo
