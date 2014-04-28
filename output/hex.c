@@ -33,12 +33,13 @@ struct context {
 	int bit_cnt;
 	int spl_cnt;
 	int trigger;
+	uint64_t samplerate;
 	int *channel_index;
 	char **channel_names;
 	char **line_values;
 	uint8_t *sample_buf;
+	gboolean header_done;
 	GString **lines;
-	GString *header;
 };
 
 static int init(struct sr_output *o)
@@ -46,13 +47,10 @@ static int init(struct sr_output *o)
 	struct context *ctx;
 	struct sr_channel *ch;
 	GSList *l;
-	GVariant *gvar;
 	GHashTableIter iter;
 	gpointer key, value;
-	uint64_t samplerate;
 	unsigned int i, j;
-	int spl, num_channels;
-	char *samplerate_s;
+	int spl;
 
 	if (!o || !o->sdi)
 		return SR_ERR_ARG;
@@ -104,26 +102,48 @@ static int init(struct sr_output *o)
 		j++;
 	}
 
-	ctx->header = g_string_sized_new(512);
-	g_string_printf(ctx->header, "%s\n", PACKAGE_STRING);
-	num_channels = g_slist_length(o->sdi->channels);
-	if (sr_config_get(o->sdi->driver, o->sdi, NULL, SR_CONF_SAMPLERATE,
-			&gvar) == SR_OK) {
-		samplerate = g_variant_get_uint64(gvar);
-		samplerate_s = sr_samplerate_string(samplerate);
-		g_string_append_printf(ctx->header, "Acquisition with %d/%d channels at %s\n",
-			 ctx->num_enabled_channels, num_channels, samplerate_s);
-		g_free(samplerate_s);
-		g_variant_unref(gvar);
+	return SR_OK;
+}
+
+static GString *gen_header(struct sr_output *o)
+{
+	struct context *ctx;
+	GVariant *gvar;
+	GString *header;
+	int num_channels;
+	char *samplerate_s;
+
+	ctx = o->internal;
+	if (ctx->samplerate == 0) {
+		if (sr_config_get(o->sdi->driver, o->sdi, NULL, SR_CONF_SAMPLERATE,
+				&gvar) == SR_OK) {
+			ctx->samplerate = g_variant_get_uint64(gvar);
+			g_variant_unref(gvar);
+		}
 	}
 
-	return SR_OK;
+	header = g_string_sized_new(512);
+	g_string_printf(header, "%s\n", PACKAGE_STRING);
+	num_channels = g_slist_length(o->sdi->channels);
+	g_string_append_printf(header, "Acquisition with %d/%d channels",
+			ctx->num_enabled_channels, num_channels);
+	if (ctx->samplerate != 0) {
+		samplerate_s = sr_samplerate_string(ctx->samplerate);
+		g_string_append_printf(header, " at %s", samplerate_s);
+		g_free(samplerate_s);
+	}
+	g_string_append_printf(header, "\n");
+
+	return header;
 }
 
 static int receive(struct sr_output *o, const struct sr_datafeed_packet *packet,
 		GString **out)
 {
+	const struct sr_datafeed_meta *meta;
 	const struct sr_datafeed_logic *logic;
+	const struct sr_config *src;
+	GSList *l;
 	struct context *ctx;
 	int idx, pos, offset;
 	uint64_t i, j;
@@ -136,14 +156,22 @@ static int receive(struct sr_output *o, const struct sr_datafeed_packet *packet,
 		return SR_ERR_ARG;
 
 	switch (packet->type) {
+	case SR_DF_META:
+		meta = packet->payload;
+		for (l = meta->config; l; l = l->next) {
+			src = l->data;
+			if (src->key != SR_CONF_SAMPLERATE)
+				continue;
+			ctx->samplerate = g_variant_get_uint64(src->data);
+		}
+		break;
 	case SR_DF_TRIGGER:
 		ctx->trigger = ctx->spl_cnt;
 		break;
 	case SR_DF_LOGIC:
-		if (ctx->header) {
-			/* The header is still here, this must be the first packet. */
-			*out = ctx->header;
-			ctx->header = NULL;
+		if (!ctx->header_done) {
+			*out = gen_header(o);
+			ctx->header_done = TRUE;
 		} else
 			*out = g_string_sized_new(512);
 
@@ -216,8 +244,6 @@ static int cleanup(struct sr_output *o)
 	for (i = 0; i < ctx->num_enabled_channels; i++)
 		g_string_free(ctx->lines[i], TRUE);
 	g_free(ctx->lines);
-	if (ctx->header)
-		g_string_free(ctx->header, TRUE);
 	g_free(ctx);
 	o->internal = NULL;
 
