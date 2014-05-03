@@ -182,7 +182,7 @@ SR_PRIV int std_serial_dev_close(struct sr_dev_inst *sdi)
  * @retval SR_ERR Other errors.
  */
 SR_PRIV int std_serial_dev_acquisition_stop(struct sr_dev_inst *sdi,
-			void *cb_data, dev_close_t dev_close_fn,
+			void *cb_data, dev_close_callback dev_close_fn,
 			struct sr_serial_dev_inst *serial, const char *prefix)
 {
 	int ret;
@@ -245,7 +245,7 @@ SR_PRIV int std_serial_dev_acquisition_stop(struct sr_dev_inst *sdi,
  * @return SR_OK on success.
  */
 SR_PRIV int std_dev_clear(const struct sr_dev_driver *driver,
-		std_dev_clear_t clear_private)
+		std_dev_clear_callback clear_private)
 {
 	struct drv_context *drvc;
 	struct sr_dev_inst *sdi;

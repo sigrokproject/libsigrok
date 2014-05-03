@@ -33,12 +33,12 @@ SR_API int sr_exit(struct sr_context *ctx);
 
 /*--- log.c -----------------------------------------------------------------*/
 
-typedef int (*sr_log_callback_t)(void *cb_data, int loglevel,
-				 const char *format, va_list args);
+typedef int (*sr_log_callback)(void *cb_data, int loglevel,
+				const char *format, va_list args);
 
 SR_API int sr_log_loglevel_set(int loglevel);
 SR_API int sr_log_loglevel_get(void);
-SR_API int sr_log_callback_set(sr_log_callback_t cb, void *cb_data);
+SR_API int sr_log_callback_set(sr_log_callback cb, void *cb_data);
 SR_API int sr_log_callback_set_default(void);
 SR_API int sr_log_logdomain_set(const char *logdomain);
 SR_API char *sr_log_logdomain_get(void);
@@ -80,7 +80,7 @@ SR_API const struct sr_config_info *sr_config_info_name_get(const char *optname)
 
 /*--- session.c -------------------------------------------------------------*/
 
-typedef void (*sr_datafeed_callback_t)(const struct sr_dev_inst *sdi,
+typedef void (*sr_datafeed_callback)(const struct sr_dev_inst *sdi,
 		const struct sr_datafeed_packet *packet, void *cb_data);
 
 /* Session setup */
@@ -93,7 +93,7 @@ SR_API int sr_session_dev_list(GSList **devlist);
 
 /* Datafeed setup */
 SR_API int sr_session_datafeed_callback_remove_all(void);
-SR_API int sr_session_datafeed_callback_add(sr_datafeed_callback_t cb,
+SR_API int sr_session_datafeed_callback_add(sr_datafeed_callback cb,
 		void *cb_data);
 
 /* Session control */
@@ -107,11 +107,11 @@ SR_API int sr_session_save_init(const char *filename, uint64_t samplerate,
 SR_API int sr_session_append(const char *filename, unsigned char *buf,
 		int unitsize, int units);
 SR_API int sr_session_source_add(int fd, int events, int timeout,
-		sr_receive_data_callback_t cb, void *cb_data);
+		sr_receive_data_callback cb, void *cb_data);
 SR_API int sr_session_source_add_pollfd(GPollFD *pollfd, int timeout,
-		sr_receive_data_callback_t cb, void *cb_data);
+		sr_receive_data_callback cb, void *cb_data);
 SR_API int sr_session_source_add_channel(GIOChannel *channel, int events,
-		int timeout, sr_receive_data_callback_t cb, void *cb_data);
+		int timeout, sr_receive_data_callback cb, void *cb_data);
 SR_API int sr_session_source_remove(int fd);
 SR_API int sr_session_source_remove_pollfd(GPollFD *pollfd);
 SR_API int sr_session_source_remove_channel(GIOChannel *channel);

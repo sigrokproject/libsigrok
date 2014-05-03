@@ -174,7 +174,7 @@ SR_PRIV int brymen_dmm_receive_data(int fd, int revents, void *cb_data)
 SR_PRIV int brymen_stream_detect(struct sr_serial_dev_inst *serial,
 				uint8_t *buf, size_t *buflen,
 				packet_length_t get_packet_size,
-				packet_valid_t is_valid,
+				packet_valid_callback is_valid,
 				uint64_t timeout_ms, int baudrate)
 {
 	int64_t start, time, byte_delay_us;

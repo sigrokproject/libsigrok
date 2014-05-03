@@ -45,7 +45,7 @@
 
 struct source {
 	int timeout;
-	sr_receive_data_callback_t cb;
+	sr_receive_data_callback cb;
 	void *cb_data;
 
 	/* This is used to keep track of the object (fd, pollfd or channel) which is
@@ -55,7 +55,7 @@ struct source {
 };
 
 struct datafeed_callback {
-	sr_datafeed_callback_t cb;
+	sr_datafeed_callback cb;
 	void *cb_data;
 };
 
@@ -252,7 +252,7 @@ SR_API int sr_session_datafeed_callback_remove_all(void)
  * @retval SR_OK Success.
  * @retval SR_ERR_BUG No session exists.
  */
-SR_API int sr_session_datafeed_callback_add(sr_datafeed_callback_t cb, void *cb_data)
+SR_API int sr_session_datafeed_callback_add(sr_datafeed_callback cb, void *cb_data)
 {
 	struct datafeed_callback *cb_struct;
 
@@ -584,7 +584,7 @@ SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
  * @retval SR_ERR_MALLOC Memory allocation error.
  */
 static int _sr_session_source_add(GPollFD *pollfd, int timeout,
-	sr_receive_data_callback_t cb, void *cb_data, gintptr poll_object)
+	sr_receive_data_callback cb, void *cb_data, gintptr poll_object)
 {
 	struct source *new_sources, *s;
 	GPollFD *new_pollfds;
@@ -640,7 +640,7 @@ static int _sr_session_source_add(GPollFD *pollfd, int timeout,
  * @retval SR_ERR_MALLOC Memory allocation error.
  */
 SR_API int sr_session_source_add(int fd, int events, int timeout,
-		sr_receive_data_callback_t cb, void *cb_data)
+		sr_receive_data_callback cb, void *cb_data)
 {
 	GPollFD p;
 
@@ -663,7 +663,7 @@ SR_API int sr_session_source_add(int fd, int events, int timeout,
  * @retval SR_ERR_MALLOC Memory allocation error.
  */
 SR_API int sr_session_source_add_pollfd(GPollFD *pollfd, int timeout,
-		sr_receive_data_callback_t cb, void *cb_data)
+		sr_receive_data_callback cb, void *cb_data)
 {
 	return _sr_session_source_add(pollfd, timeout, cb,
 				      cb_data, (gintptr)pollfd);
@@ -683,7 +683,7 @@ SR_API int sr_session_source_add_pollfd(GPollFD *pollfd, int timeout,
  * @retval SR_ERR_MALLOC Memory allocation error.
  */
 SR_API int sr_session_source_add_channel(GIOChannel *channel, int events,
-		int timeout, sr_receive_data_callback_t cb, void *cb_data)
+		int timeout, sr_receive_data_callback cb, void *cb_data)
 {
 	GPollFD p;
 

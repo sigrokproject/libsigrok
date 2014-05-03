@@ -92,7 +92,7 @@ static int scpi_vxi_open(void *priv)
 }
 
 static int scpi_vxi_source_add(void *priv, int events, int timeout,
-			sr_receive_data_callback_t cb, void *cb_data)
+			sr_receive_data_callback cb, void *cb_data)
 {
 	(void)priv;
 

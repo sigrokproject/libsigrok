@@ -132,7 +132,7 @@ enum sr_loglevel {
 #endif
 
 /** Type definition for callback function for data reception. */
-typedef int (*sr_receive_data_callback_t)(int fd, int revents, void *cb_data);
+typedef int (*sr_receive_data_callback)(int fd, int revents, void *cb_data);
 
 /** Data types used by sr_config_info(). */
 enum sr_datatype {

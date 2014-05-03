@@ -570,7 +570,8 @@ SR_PRIV int serial_readline(struct sr_serial_dev_inst *serial, char **buf,
  */
 SR_PRIV int serial_stream_detect(struct sr_serial_dev_inst *serial,
 				 uint8_t *buf, size_t *buflen,
-				 size_t packet_size, packet_valid_t is_valid,
+				 size_t packet_size,
+				 packet_valid_callback is_valid,
 				 uint64_t timeout_ms, int baudrate)
 {
 	uint64_t start, time, byte_delay_us;
@@ -684,7 +685,7 @@ typedef int event_handle;
 #endif
 
 SR_PRIV int serial_source_add(struct sr_serial_dev_inst *serial, int events,
-		int timeout, sr_receive_data_callback_t cb, void *cb_data)
+		int timeout, sr_receive_data_callback cb, void *cb_data)
 {
 	enum sp_event mask = 0;
 	unsigned int i;

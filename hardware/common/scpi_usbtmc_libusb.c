@@ -317,7 +317,7 @@ static int scpi_usbtmc_libusb_open(void *priv)
 }
 
 static int scpi_usbtmc_libusb_source_add(void *priv, int events, int timeout,
-			sr_receive_data_callback_t cb, void *cb_data)
+			sr_receive_data_callback cb, void *cb_data)
 {
 	struct scpi_usbtmc_libusb *uscpi = priv;
 	(void)events;

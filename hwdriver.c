@@ -776,7 +776,7 @@ SR_PRIV int sr_source_remove(int fd)
  *  @see sr_session_source_add()
  */
 SR_PRIV int sr_source_add(int fd, int events, int timeout,
-			  sr_receive_data_callback_t cb, void *cb_data)
+			  sr_receive_data_callback cb, void *cb_data)
 {
 	return sr_session_source_add(fd, events, timeout, cb, cb_data);
 }

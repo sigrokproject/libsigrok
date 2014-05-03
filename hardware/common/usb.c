@@ -210,7 +210,7 @@ static int usb_callback(int fd, int revents, void *cb_data)
 #endif
 
 SR_PRIV int usb_source_add(struct sr_context *ctx, int timeout,
-		sr_receive_data_callback_t cb, void *cb_data)
+		sr_receive_data_callback cb, void *cb_data)
 {
 	if (ctx->usb_source_present) {
 		sr_err("A USB event source is already present.");

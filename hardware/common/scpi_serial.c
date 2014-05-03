@@ -103,7 +103,7 @@ static int scpi_serial_open(void *priv)
 }
 
 static int scpi_serial_source_add(void *priv, int events, int timeout,
-			sr_receive_data_callback_t cb, void *cb_data)
+			sr_receive_data_callback cb, void *cb_data)
 {
 	struct scpi_serial *sscpi = priv;
 	struct sr_serial_dev_inst *serial = sscpi->serial;

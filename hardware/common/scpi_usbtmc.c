@@ -87,7 +87,7 @@ static int scpi_usbtmc_open(void *priv)
 }
 
 static int scpi_usbtmc_source_add(void *priv, int events, int timeout,
-			sr_receive_data_callback_t cb, void *cb_data)
+			sr_receive_data_callback cb, void *cb_data)
 {
 	struct usbtmc_scpi *uscpi = priv;
 	struct sr_usbtmc_dev_inst *usbtmc = uscpi->usbtmc;

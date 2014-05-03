@@ -153,7 +153,7 @@ struct sr_context {
 	GMutex usb_mutex;
 	HANDLE usb_event;
 	GPollFD usb_pollfd;
-	sr_receive_data_callback_t usb_cb;
+	sr_receive_data_callback usb_cb;
 	void *usb_cb_data;
 #endif
 #endif
@@ -265,7 +265,7 @@ SR_PRIV struct sr_config *sr_config_new(int key, GVariant *data);
 SR_PRIV void sr_config_free(struct sr_config *src);
 SR_PRIV int sr_source_remove(int fd);
 SR_PRIV int sr_source_add(int fd, int events, int timeout,
-		sr_receive_data_callback_t cb, void *cb_data);
+		sr_receive_data_callback cb, void *cb_data);
 
 /*--- session.c -------------------------------------------------------------*/
 
@@ -307,21 +307,21 @@ SR_PRIV int sr_sessionfile_check(const char *filename);
 
 /*--- std.c -----------------------------------------------------------------*/
 
-typedef int (*dev_close_t)(struct sr_dev_inst *sdi);
-typedef void (*std_dev_clear_t)(void *priv);
+typedef int (*dev_close_callback)(struct sr_dev_inst *sdi);
+typedef void (*std_dev_clear_callback)(void *priv);
 
 SR_PRIV int std_init(struct sr_context *sr_ctx, struct sr_dev_driver *di,
 		const char *prefix);
 #ifdef HAVE_LIBSERIALPORT
 SR_PRIV int std_serial_dev_open(struct sr_dev_inst *sdi);
 SR_PRIV int std_serial_dev_acquisition_stop(struct sr_dev_inst *sdi,
-		void *cb_data, dev_close_t dev_close_fn,
+		void *cb_data, dev_close_callback dev_close_fn,
 		struct sr_serial_dev_inst *serial, const char *prefix);
 #endif
 SR_PRIV int std_session_send_df_header(const struct sr_dev_inst *sdi,
 		const char *prefix);
 SR_PRIV int std_dev_clear(const struct sr_dev_driver *driver,
-		std_dev_clear_t clear_private);
+		std_dev_clear_callback clear_private);
 SR_PRIV int std_serial_dev_close(struct sr_dev_inst *sdi);
 
 /*--- strutil.c -------------------------------------------------------------*/
@@ -341,7 +341,7 @@ enum {
 	SERIAL_NONBLOCK = 4,
 };
 
-typedef gboolean (*packet_valid_t)(const uint8_t *buf);
+typedef gboolean (*packet_valid_callback)(const uint8_t *buf);
 
 SR_PRIV int serial_open(struct sr_serial_dev_inst *serial, int flags);
 SR_PRIV int serial_close(struct sr_serial_dev_inst *serial);
@@ -366,12 +366,13 @@ SR_PRIV int serial_readline(struct sr_serial_dev_inst *serial, char **buf,
 		int *buflen, gint64 timeout_ms);
 SR_PRIV int serial_stream_detect(struct sr_serial_dev_inst *serial,
 				 uint8_t *buf, size_t *buflen,
-				 size_t packet_size, packet_valid_t is_valid,
+				 size_t packet_size,
+				 packet_valid_callback is_valid,
 				 uint64_t timeout_ms, int baudrate);
 SR_PRIV int sr_serial_extract_options(GSList *options, const char **serial_device,
 				      const char **serial_options);
 SR_PRIV int serial_source_add(struct sr_serial_dev_inst *serial, int events,
-		int timeout, sr_receive_data_callback_t cb, void *cb_data);
+		int timeout, sr_receive_data_callback cb, void *cb_data);
 SR_PRIV int serial_source_remove(struct sr_serial_dev_inst *serial);
 SR_PRIV GSList *sr_serial_find_usb(uint16_t vendor_id, uint16_t product_id);
 #endif
@@ -392,7 +393,7 @@ SR_PRIV int ezusb_upload_firmware(libusb_device *dev, int configuration,
 SR_PRIV GSList *sr_usb_find(libusb_context *usb_ctx, const char *conn);
 SR_PRIV int sr_usb_open(libusb_context *usb_ctx, struct sr_usb_dev_inst *usb);
 SR_PRIV int usb_source_add(struct sr_context *ctx, int timeout,
-		sr_receive_data_callback_t cb, void *cb_data);
+		sr_receive_data_callback cb, void *cb_data);
 SR_PRIV int usb_source_remove(struct sr_context *ctx);
 #endif
 
@@ -443,7 +444,7 @@ struct sr_scpi_dev_inst {
 		const char *resource, char **params, const char *serialcomm);
 	int (*open)(void *priv);
 	int (*source_add)(void *priv, int events,
-		int timeout, sr_receive_data_callback_t cb, void *cb_data);
+		int timeout, sr_receive_data_callback cb, void *cb_data);
 	int (*source_remove)(void *priv);
 	int (*send)(void *priv, const char *command);
 	int (*read_begin)(void *priv);
@@ -460,7 +461,7 @@ SR_PRIV struct sr_scpi_dev_inst *scpi_dev_inst_new(struct drv_context *drvc,
 		const char *resource, const char *serialcomm);
 SR_PRIV int sr_scpi_open(struct sr_scpi_dev_inst *scpi);
 SR_PRIV int sr_scpi_source_add(struct sr_scpi_dev_inst *scpi, int events,
-		int timeout, sr_receive_data_callback_t cb, void *cb_data);
+		int timeout, sr_receive_data_callback cb, void *cb_data);
 SR_PRIV int sr_scpi_source_remove(struct sr_scpi_dev_inst *scpi);
 SR_PRIV int sr_scpi_send(struct sr_scpi_dev_inst *scpi,
 		const char *format, ...);

@@ -217,7 +217,7 @@ SR_PRIV int sr_scpi_open(struct sr_scpi_dev_inst *scpi)
  *         SR_ERR_MALLOC upon memory allocation errors.
  */
 SR_PRIV int sr_scpi_source_add(struct sr_scpi_dev_inst *scpi, int events,
-		int timeout, sr_receive_data_callback_t cb, void *cb_data)
+		int timeout, sr_receive_data_callback cb, void *cb_data)
 {
 	return scpi->source_add(scpi->priv, events, timeout, cb, cb_data);
 }
