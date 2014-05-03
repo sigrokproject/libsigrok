@@ -18,21 +18,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <glib.h>
+#include <glib/gstdio.h>
 #include "protocol.h"
-
-/* Protocol commands */
-#define CMD_GET_FW_VERSION		0xb0
-#define CMD_START			0xb1
-#define CMD_GET_REVID_VERSION		0xb2
-
-#define CMD_START_FLAGS_WIDE_POS	5
-#define CMD_START_FLAGS_CLK_SRC_POS	6
-
-#define CMD_START_FLAGS_SAMPLE_8BIT	(0 << CMD_START_FLAGS_WIDE_POS)
-#define CMD_START_FLAGS_SAMPLE_16BIT	(1 << CMD_START_FLAGS_WIDE_POS)
-
-#define CMD_START_FLAGS_CLK_30MHZ	(0 << CMD_START_FLAGS_CLK_SRC_POS)
-#define CMD_START_FLAGS_CLK_48MHZ	(1 << CMD_START_FLAGS_CLK_SRC_POS)
 
 #pragma pack(push, 1)
 
@@ -69,13 +57,14 @@ static int command_get_fw_version(libusb_device_handle *devhdl,
 
 static int command_get_revid_version(struct sr_dev_inst *sdi, uint8_t *revid)
 {
+	struct dev_context *devc = sdi->priv;
 	struct sr_usb_dev_inst *usb = sdi->conn;
 	libusb_device_handle *devhdl = usb->devhdl;
-	int ret;
+	int cmd, ret;
 
+	cmd = devc->dslogic ? CMD_DSLOGIC_GET_REVID_VERSION : CMD_GET_REVID_VERSION;
 	ret = libusb_control_transfer(devhdl, LIBUSB_REQUEST_TYPE_VENDOR |
-		LIBUSB_ENDPOINT_IN, CMD_GET_REVID_VERSION, 0x0000, 0x0000,
-		revid, 1, 100);
+		LIBUSB_ENDPOINT_IN, cmd, 0x0000, 0x0000, revid, 1, 100);
 
 	if (ret < 0) {
 		sr_err("Unable to get REVID: %s.", libusb_error_name(ret));
@@ -149,10 +138,11 @@ SR_PRIV int fx2lafw_command_start_acquisition(const struct sr_dev_inst *sdi)
 /**
  * Check the USB configuration to determine if this is an fx2lafw device.
  *
- * @return TRUE if the device's configuration profile match fx2lafw
- *         configuration, FALSE otherwise.
+ * @return TRUE if the device's configuration profile matches fx2lafw
+ * configuration, FALSE otherwise.
  */
-SR_PRIV gboolean fx2lafw_check_conf_profile(libusb_device *dev)
+SR_PRIV gboolean match_manuf_prod(libusb_device *dev, const char *manufacturer,
+		const char *product)
 {
 	struct libusb_device_descriptor des;
 	struct libusb_device_handle *hdl;
@@ -170,18 +160,17 @@ SR_PRIV gboolean fx2lafw_check_conf_profile(libusb_device *dev)
 			break;
 
 		if (libusb_get_string_descriptor_ascii(hdl,
-		    des.iManufacturer, strdesc, sizeof(strdesc)) < 0)
+				des.iManufacturer, strdesc, sizeof(strdesc)) < 0)
 			break;
-		if (strncmp((const char *)strdesc, "sigrok", 6))
+		if (strncmp((const char *)strdesc, manufacturer, 6))
 			break;
 
 		if (libusb_get_string_descriptor_ascii(hdl,
 				des.iProduct, strdesc, sizeof(strdesc)) < 0)
 			break;
-		if (strncmp((const char *)strdesc, "fx2lafw", 7))
+		if (strncmp((const char *)strdesc, product, 7))
 			break;
 
-		/* If we made it here, it must be an fx2lafw. */
 		ret = TRUE;
 	}
 	if (hdl)

@@ -45,6 +45,20 @@ static const struct fx2lafw_profile supported_fx2[] = {
 		0, NULL, NULL},
 
 	/*
+	 * DreamSourceLab DSLogic (before FW upload)
+	 */
+	{ 0x2a0e, 0x0001, "DreamSourceLab", "DSLogic", NULL,
+		FIRMWARE_DIR "/dreamsourcelab-dslogic-fx2.fw",
+		DEV_CAPS_16BIT, NULL, NULL},
+
+	/*
+	 * DreamSourceLab DSLogic (after FW upload)
+	 */
+	{ 0x2a0e, 0x0001, "DreamSourceLab", "DSLogic", NULL,
+		FIRMWARE_DIR "/dreamsourcelab-dslogic-fx2.fw",
+		DEV_CAPS_16BIT, "DreamSourceLab", "DSLogic"},
+
+	/*
 	 * Saleae Logic
 	 * EE Electronics ESLA100
 	 * Robomotic MiniLogic
@@ -123,6 +137,25 @@ static const uint64_t samplerates[] = {
 	SR_MHZ(24),
 };
 
+static const uint64_t dslogic_samplerates[] = {
+	SR_KHZ(10),
+	SR_KHZ(20),
+	SR_KHZ(50),
+	SR_KHZ(100),
+	SR_KHZ(200),
+	SR_KHZ(500),
+	SR_MHZ(1),
+	SR_MHZ(2),
+	SR_MHZ(5),
+	SR_MHZ(10),
+	SR_MHZ(20),
+	SR_MHZ(25),
+	SR_MHZ(50),
+	SR_MHZ(100),
+	SR_MHZ(200),
+	SR_MHZ(400),
+};
+
 SR_PRIV struct sr_dev_driver fx2lafw_driver_info;
 static struct sr_dev_driver *di = &fx2lafw_driver_info;
 
@@ -141,6 +174,7 @@ static GSList *scan(GSList *options)
 	struct sr_config *src;
 	const struct fx2lafw_profile *prof;
 	GSList *l, *devices, *conn_devices;
+	gboolean has_firmware;
 	struct libusb_device_descriptor des;
 	libusb_device **devlist;
 	struct libusb_device_handle *hdl;
@@ -266,7 +300,21 @@ static GSList *scan(GSList *options)
 		drvc->instances = g_slist_append(drvc->instances, sdi);
 		devices = g_slist_append(devices, sdi);
 
-		if (fx2lafw_check_conf_profile(devlist[i])) {
+		if (strcmp(prof->model, "DSLogic")) {
+			devc->dslogic = FALSE;
+			devc->samplerates = samplerates;
+			devc->num_samplerates = ARRAY_SIZE(samplerates);
+			has_firmware = match_manuf_prod(devlist[i],
+					"sigrok", "fx2lafw");
+		} else {
+			devc->dslogic = TRUE;
+			devc->samplerates = dslogic_samplerates;
+			devc->num_samplerates = ARRAY_SIZE(dslogic_samplerates);
+			has_firmware = match_manuf_prod(devlist[i],
+					"DreamSourceLab", "DSLogic");
+		}
+
+		if (has_firmware) {
 			/* Already has the firmware, so fix the new address. */
 			sr_dbg("Found an fx2lafw device.");
 			sdi->status = SR_ST_INACTIVE;
@@ -362,9 +410,15 @@ static int dev_open(struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
+	if (devc->dslogic) {
+		if ((ret = dslogic_fpga_firmware_upload(usb->devhdl,
+				DSLOGIC_FPGA_FIRMWARE)) != SR_OK)
+			return ret;
+	}
+
 	if (devc->cur_samplerate == 0) {
 		/* Samplerate hasn't been set; default to the slowest one. */
-		devc->cur_samplerate = samplerates[0];
+		devc->cur_samplerate = devc->samplerates[0];
 	}
 
 	return SR_OK;
@@ -499,10 +553,10 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
+	struct dev_context *devc;
 	GVariant *gvar;
 	GVariantBuilder gvb;
 
-	(void)sdi;
 	(void)cg;
 
 	switch (key) {
@@ -519,9 +573,12 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 					devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
 		break;
 	case SR_CONF_SAMPLERATE:
+		if (!sdi->priv)
+			return SR_ERR_ARG;
+		devc = sdi->priv;
 		g_variant_builder_init(&gvb, G_VARIANT_TYPE("a{sv}"));
-		gvar = g_variant_new_fixed_array(G_VARIANT_TYPE("t"), samplerates,
-				ARRAY_SIZE(samplerates), sizeof(uint64_t));
+		gvar = g_variant_new_fixed_array(G_VARIANT_TYPE("t"), devc->samplerates,
+				devc->num_samplerates, sizeof(uint64_t));
 		g_variant_builder_add(&gvb, "{sv}", "samplerates", gvar);
 		*data = g_variant_builder_end(&gvb);
 		break;
