@@ -627,6 +627,9 @@ static int configure_channels(const struct sr_dev_inst *sdi)
 	struct sr_channel *ch;
 	GSList *l;
 	uint16_t channel_bit;
+#ifdef WORDS_BIGENDIAN
+	int i;
+#endif
 
 	devc = sdi->priv;
 
@@ -657,8 +660,7 @@ static int configure_channels(const struct sr_dev_inst *sdi)
 		devc->unitsize = 2;
 	} else {
 #ifdef WORDS_BIGENDIAN
-		int i;
-		for (i=0; i<devc->num_channels; i++)
+		for (i = 0; i < devc->num_channels; i++)
 			devc->channel_masks[i] >>= 8;
 #endif
 		devc->unitsize = 1;

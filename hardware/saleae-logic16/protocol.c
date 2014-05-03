@@ -720,7 +720,7 @@ static size_t convert_sample_data(struct dev_context *devc,
 				  const uint8_t *src, size_t srccnt,
 				  int unitsize)
 {
-	return (unitsize == 2?
+	return (unitsize == 2 ?
 		convert_sample_data_16(devc, dest, destcnt, src, srccnt) :
 		convert_sample_data_8(devc, dest, destcnt, src, srccnt));
 }
@@ -790,7 +790,7 @@ SR_PRIV void logic16_receive_transfer(struct libusb_transfer *transfer)
 				transfer->actual_length, devc->unitsize);
 
 	if (converted_length > 0) {
-		/* Cap sample count if needed */
+		/* Cap sample count if needed. */
 		if (devc->limit_samples &&
 		    (uint64_t)devc->num_samples + converted_length
 		    > devc->limit_samples) {
