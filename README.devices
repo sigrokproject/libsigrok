@@ -50,7 +50,6 @@ The following drivers/devices require a firmware upload upon connection:
 The following drivers/devices do not need any firmware upload:
 
  - agilent-dmm
- - alsa
  - appa-55ii
  - brymen-bm86x
  - brymen-dmm
@@ -116,7 +115,6 @@ The following drivers/devices require a serial port specification:
 
 The following drivers/devices do not require a serial port specification:
 
- - alsa
  - asix-sigma
  - brymen-bm86x
  - chronovu-la
@@ -314,20 +312,6 @@ a short list for convenience:
  - V&A VA18B/VA40B: Keep the "Hz/DUTY" key pressed while powering on the DMM.
  - Victor 70C/86C: Press the "REL/RS232" button for roughly 1 second.
  - Voltcraft VC-830: Press the "REL/PC" button for roughly 2 seconds.
-
-
-ALSA driver
------------
-
-The 'alsa' driver can be used to sample analog data using a PC's soundcard.
-I.e. the sound card can act as a simple oscilloscope (with some limitations)
-using commercial or DIY "sound card scope probe" cables.
-
-Since ALSA is a Linux-specific sound system, this driver will inherently
-only compile and work on Linux.
-
-We might write additional drivers to make a similar functionality available
-on other OSes at some point.
 
 
 Link Instruments MSO-19
