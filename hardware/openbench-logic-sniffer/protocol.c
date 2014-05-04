@@ -88,7 +88,7 @@ SR_PRIV int ols_convert_trigger(const struct sr_dev_inst *sdi)
 		devc->trigger_value[i] = 0;
 	}
 
-	if (!(trigger = sr_session_trigger_get()))
+	if (!(trigger = sr_session_trigger_get(sdi->session)))
 		return SR_OK;
 
 	devc->num_stages = g_slist_length(trigger->stages);

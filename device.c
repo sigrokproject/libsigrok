@@ -232,6 +232,7 @@ SR_PRIV struct sr_dev_inst *sr_dev_inst_new(int index, int status,
 	sdi->version = version ? g_strdup(version) : NULL;
 	sdi->channels = NULL;
 	sdi->channel_groups = NULL;
+	sdi->session = NULL;
 	sdi->conn = NULL;
 	sdi->priv = NULL;
 

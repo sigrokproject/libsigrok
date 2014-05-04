@@ -726,7 +726,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	devc->cur_channel = 0;
 	memset(devc->channel_data, 0, sizeof(devc->channel_data));
 
-	if ((trigger = sr_session_trigger_get())) {
+	if ((trigger = sr_session_trigger_get(sdi->session))) {
 		devc->stl = soft_trigger_logic_new(sdi, trigger);
 		devc->trigger_fired = FALSE;
 	} else

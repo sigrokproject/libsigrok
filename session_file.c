@@ -107,7 +107,7 @@ SR_PRIV int sr_sessionfile_check(const char *filename)
  *         SR_ERR_MALLOC upon memory allocation errors, or SR_ERR upon
  *         other errors.
  */
-SR_API int sr_session_load(const char *filename)
+SR_API int sr_session_load(const char *filename, struct sr_session **session)
 {
 	GKeyFile *kf;
 	GPtrArray *capturefiles;
@@ -145,7 +145,8 @@ SR_API int sr_session_load(const char *filename)
 		return SR_ERR;
 	}
 
-	sr_session_new();
+	if ((ret = sr_session_new(session)) != SR_OK)
+		return ret;
 
 	devcnt = 0;
 	capturefiles = g_ptr_array_new_with_free_func(g_free);
@@ -168,7 +169,7 @@ SR_API int sr_session_load(const char *filename)
 						/* first device, init the driver */
 						sdi->driver->init(NULL);
 					sr_dev_open(sdi);
-					sr_session_dev_add(sdi);
+					sr_session_dev_add(*session, sdi);
 					sdi->driver->config_set(SR_CONF_SESSIONFILE,
 							g_variant_new_string(filename), sdi, NULL);
 					sdi->driver->config_set(SR_CONF_CAPTUREFILE,
@@ -217,9 +218,9 @@ SR_API int sr_session_load(const char *filename)
 }
 
 /**
- * Save the current session to the specified file.
+ * Save a session to the specified file.
  *
- * @param filename The name of the filename to save the current session as.
+ * @param filename The name of the filename to save the session as.
  *                 Must not be NULL.
  * @param sdi The device instance from which the data was captured.
  * @param buf The data to be saved.
@@ -232,8 +233,9 @@ SR_API int sr_session_load(const char *filename)
  *
  * @since 0.2.0
  */
-SR_API int sr_session_save(const char *filename, const struct sr_dev_inst *sdi,
-		unsigned char *buf, int unitsize, int units)
+SR_API int sr_session_save(struct sr_session *session, const char *filename,
+		const struct sr_dev_inst *sdi, unsigned char *buf, int unitsize,
+		int units)
 {
 	struct sr_channel *ch;
 	GSList *l;
@@ -265,10 +267,11 @@ SR_API int sr_session_save(const char *filename, const struct sr_dev_inst *sdi,
 		channel_names[cnt++] = ch->name;
 	}
 
-	if ((ret = sr_session_save_init(filename, samplerate, channel_names)) != SR_OK)
+	if ((ret = sr_session_save_init(session, filename, samplerate,
+			channel_names)) != SR_OK)
 		return ret;
 
-	ret = sr_session_append(filename, buf, unitsize, units);
+	ret = sr_session_append(session, filename, buf, unitsize, units);
 
 	return ret;
 }
@@ -276,7 +279,7 @@ SR_API int sr_session_save(const char *filename, const struct sr_dev_inst *sdi,
 /**
  * Initialize a saved session file.
  *
- * @param filename The name of the filename to save the current session as.
+ * @param filename The name of the filename to save the session as.
  *                 Must not be NULL.
  * @param samplerate The samplerate to store for this session.
  * @param channels A NULL-terminated array of strings containing the names
@@ -288,14 +291,16 @@ SR_API int sr_session_save(const char *filename, const struct sr_dev_inst *sdi,
  *
  * @since 0.3.0
  */
-SR_API int sr_session_save_init(const char *filename, uint64_t samplerate,
-		char **channels)
+SR_API int sr_session_save_init(struct sr_session *session,
+		const char *filename, uint64_t samplerate, char **channels)
 {
 	FILE *meta;
 	struct zip *zipfile;
 	struct zip_source *versrc, *metasrc;
 	int tmpfile, cnt, ret, i;
 	char version[1], metafile[32], *s;
+
+	(void) session;
 
 	if (!filename) {
 		sr_err("%s: filename was NULL", __func__);
@@ -381,8 +386,8 @@ SR_API int sr_session_save_init(const char *filename, uint64_t samplerate,
  *
  * @since 0.3.0
  */
-SR_API int sr_session_append(const char *filename, unsigned char *buf,
-		int unitsize, int units)
+SR_API int sr_session_append(struct sr_session *session, const char *filename,
+		unsigned char *buf, int unitsize, int units)
 {
 	struct zip *archive;
 	struct zip_source *logicsrc;
@@ -396,6 +401,8 @@ SR_API int sr_session_append(const char *filename, unsigned char *buf,
 	int chunk_num, next_chunk_num, tmpfile, ret, i;
 	const char *entry_name;
 	char *metafile, tmpname[32], chunkname[16];
+
+	(void) session;
 
 	if ((ret = sr_sessionfile_check(filename)) != SR_OK)
 		return ret;

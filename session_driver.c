@@ -53,6 +53,8 @@ static const int hwcaps[] = {
 	SR_CONF_SAMPLERATE,
 };
 
+extern struct sr_session *sr_current_session;
+
 static int receive_data(int fd, int revents, void *cb_data)
 {
 	struct sr_dev_inst *sdi;
@@ -160,7 +162,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 	if (!got_data) {
 		packet.type = SR_DF_END;
 		sr_session_send(cb_data, &packet);
-		sr_session_source_remove(-1);
+		sr_session_source_remove(sr_current_session, -1);
 	}
 
 	return TRUE;
@@ -311,7 +313,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	std_session_send_df_header(cb_data, LOG_PREFIX);
 
 	/* freewheeling source */
-	sr_session_source_add(-1, 0, 0, receive_data, cb_data);
+	sr_session_source_add(sr_current_session, -1, 0, 0, receive_data, cb_data);
 
 	return SR_OK;
 }

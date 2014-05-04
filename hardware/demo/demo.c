@@ -726,7 +726,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	/* Make channels to unbuffered. */
 	g_io_channel_set_buffered(devc->channel, FALSE);
 
-	sr_session_source_add_channel(devc->channel, G_IO_IN | G_IO_ERR,
+	sr_source_add_channel(devc->channel, G_IO_IN | G_IO_ERR,
 			40, prepare_data, (void *)sdi);
 
 	/* Send header packet to the session bus. */
@@ -748,7 +748,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 	devc = sdi->priv;
 	sr_dbg("Stopping acquisition.");
 
-	sr_session_source_remove_channel(devc->channel);
+	sr_source_remove_channel(devc->channel);
 	g_io_channel_shutdown(devc->channel, FALSE, NULL);
 	g_io_channel_unref(devc->channel);
 	devc->channel = NULL;

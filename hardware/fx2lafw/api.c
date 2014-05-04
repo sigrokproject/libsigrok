@@ -535,7 +535,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	devc->acq_aborted = FALSE;
 	devc->empty_transfer_count = 0;
 
-	if ((trigger = sr_session_trigger_get())) {
+	if ((trigger = sr_session_trigger_get(sdi->session))) {
 		devc->stl = soft_trigger_logic_new(sdi, trigger);
 		devc->trigger_fired = FALSE;
 	} else

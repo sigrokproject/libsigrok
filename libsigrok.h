@@ -377,6 +377,16 @@ struct sr_trigger_match {
  */
 struct sr_context;
 
+/**
+ * @struct sr_session
+ * Opaque structure representing a libsigrok session.
+ *
+ * None of the fields of this structure are meant to be accessed directly.
+ *
+ * @see sr_session_new(), sr_session_destroy().
+ */
+struct sr_session;
+
 /** Packet in a sigrok data feed. */
 struct sr_datafeed_packet {
 	uint16_t type;
@@ -923,6 +933,8 @@ struct sr_dev_inst {
 	void *conn;
 	/** Device instance private data (used?) */
 	void *priv;
+	/** Session to which this device is currently assigned. */
+	struct sr_session *session;
 };
 
 /** Types of device instance, struct sr_dev_inst.type */

@@ -27,7 +27,7 @@
 #define LOG_PREFIX "backend"
 /** @endcond */
 
-extern struct sr_session *session;
+extern struct sr_session *sr_current_session;
 
 /**
  * @mainpage libsigrok API
@@ -360,7 +360,7 @@ SR_API int sr_init(struct sr_context **ctx)
 
 	*ctx = context;
 	context = NULL;
-	session = NULL;
+	sr_current_session = NULL;
 	ret = SR_OK;
 
 done:

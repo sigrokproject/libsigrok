@@ -272,7 +272,7 @@ SR_PRIV int cv_convert_trigger(const struct sr_dev_inst *sdi)
 	devc->trigger_mask = 0x0000; /* Default to "don't care". */
 	devc->trigger_edgemask = 0x0000; /* Default to "state triggered". */
 
-	if (!(trigger = sr_session_trigger_get()))
+	if (!(trigger = sr_session_trigger_get(sdi->session)))
 		return SR_OK;
 
 	if (g_slist_length(trigger->stages) > 1) {

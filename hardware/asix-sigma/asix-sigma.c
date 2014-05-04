@@ -726,7 +726,7 @@ static int convert_trigger(const struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 	memset(&devc->trigger, 0, sizeof(struct sigma_trigger));
-	if (!(trigger = sr_session_trigger_get()))
+	if (!(trigger = sr_session_trigger_get(sdi->session)))
 		return SR_OK;
 
 	trigger_set = 0;

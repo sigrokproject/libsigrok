@@ -494,7 +494,7 @@ SR_PRIV int sl2_convert_trigger(const struct sr_dev_inst *sdi)
 	devc->trigger_channel = TRIGGER_CHANNEL_0;
 	devc->trigger_type = TRIGGER_TYPE_NONE;
 
-	if (!(trigger = sr_session_trigger_get()))
+	if (!(trigger = sr_session_trigger_get(sdi->session)))
 		return SR_OK;
 
 	if (g_slist_length(trigger->stages) > 1) {

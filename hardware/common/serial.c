@@ -744,7 +744,7 @@ SR_PRIV int serial_source_add(struct sr_serial_dev_inst *serial, int events,
 		if (mask & SP_EVENT_ERROR)
 			serial->pollfds[i].events |= G_IO_ERR;
 
-		if (sr_session_source_add_pollfd(&serial->pollfds[i],
+		if (sr_source_add_pollfd(&serial->pollfds[i],
 				timeout, cb, cb_data) != SR_OK)
 			return SR_ERR;
 	}
@@ -757,7 +757,7 @@ SR_PRIV int serial_source_remove(struct sr_serial_dev_inst *serial)
 	unsigned int i;
 
 	for (i = 0; i < serial->event_set->count; i++)
-		if (sr_session_source_remove_pollfd(&serial->pollfds[i]) != SR_OK)
+		if (sr_source_remove_pollfd(&serial->pollfds[i]) != SR_OK)
 			return SR_ERR;
 
 	g_free(serial->pollfds);

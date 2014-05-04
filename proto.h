@@ -80,41 +80,47 @@ SR_API const struct sr_config_info *sr_config_info_name_get(const char *optname)
 
 typedef void (*sr_datafeed_callback)(const struct sr_dev_inst *sdi,
 		const struct sr_datafeed_packet *packet, void *cb_data);
-SR_API struct sr_trigger *sr_session_trigger_get(void);
+SR_API struct sr_trigger *sr_session_trigger_get(struct sr_session *session);
 
 /* Session setup */
-SR_API int sr_session_load(const char *filename);
-SR_API struct sr_session *sr_session_new(void);
-SR_API int sr_session_destroy(void);
-SR_API int sr_session_dev_remove_all(void);
-SR_API int sr_session_dev_add(const struct sr_dev_inst *sdi);
-SR_API int sr_session_dev_list(GSList **devlist);
-SR_API int sr_session_trigger_set(struct sr_trigger *trig);
+SR_API int sr_session_load(const char *filename, struct sr_session **session);
+SR_API int sr_session_new(struct sr_session **session);
+SR_API int sr_session_destroy(struct sr_session *session);
+SR_API int sr_session_dev_remove_all(struct sr_session *session);
+SR_API int sr_session_dev_add(struct sr_session *session,
+		struct sr_dev_inst *sdi);
+SR_API int sr_session_dev_list(struct sr_session *session, GSList **devlist);
+SR_API int sr_session_trigger_set(struct sr_session *session, struct sr_trigger *trig);
 
 /* Datafeed setup */
-SR_API int sr_session_datafeed_callback_remove_all(void);
-SR_API int sr_session_datafeed_callback_add(sr_datafeed_callback cb,
-		void *cb_data);
+SR_API int sr_session_datafeed_callback_remove_all(struct sr_session *session);
+SR_API int sr_session_datafeed_callback_add(struct sr_session *session,
+		sr_datafeed_callback cb, void *cb_data);
 
 /* Session control */
-SR_API int sr_session_start(void);
-SR_API int sr_session_run(void);
-SR_API int sr_session_stop(void);
-SR_API int sr_session_save(const char *filename, const struct sr_dev_inst *sdi,
-		unsigned char *buf, int unitsize, int units);
-SR_API int sr_session_save_init(const char *filename, uint64_t samplerate,
-		char **channels);
-SR_API int sr_session_append(const char *filename, unsigned char *buf,
-		int unitsize, int units);
-SR_API int sr_session_source_add(int fd, int events, int timeout,
+SR_API int sr_session_start(struct sr_session *session);
+SR_API int sr_session_run(struct sr_session *session);
+SR_API int sr_session_stop(struct sr_session *session);
+SR_API int sr_session_save(struct sr_session *session, const char *filename,
+		const struct sr_dev_inst *sdi, unsigned char *buf, int unitsize,
+		int units);
+SR_API int sr_session_save_init(struct sr_session *session,
+		const char *filename, uint64_t samplerate, char **channels);
+SR_API int sr_session_append(struct sr_session *session,
+		const char *filename, unsigned char *buf, int unitsize, int units);
+SR_API int sr_session_source_add(struct sr_session *session, int fd,
+		int events, int timeout, sr_receive_data_callback cb, void *cb_data);
+SR_API int sr_session_source_add_pollfd(struct sr_session *session,
+		GPollFD *pollfd, int timeout, sr_receive_data_callback cb,
+		void *cb_data);
+SR_API int sr_session_source_add_channel(struct sr_session *session,
+		GIOChannel *channel, int events, int timeout,
 		sr_receive_data_callback cb, void *cb_data);
-SR_API int sr_session_source_add_pollfd(GPollFD *pollfd, int timeout,
-		sr_receive_data_callback cb, void *cb_data);
-SR_API int sr_session_source_add_channel(GIOChannel *channel, int events,
-		int timeout, sr_receive_data_callback cb, void *cb_data);
-SR_API int sr_session_source_remove(int fd);
-SR_API int sr_session_source_remove_pollfd(GPollFD *pollfd);
-SR_API int sr_session_source_remove_channel(GIOChannel *channel);
+SR_API int sr_session_source_remove(struct sr_session *session, int fd);
+SR_API int sr_session_source_remove_pollfd(struct sr_session *session,
+		GPollFD *pollfd);
+SR_API int sr_session_source_remove_channel(struct sr_session *session,
+		GIOChannel *channel);
 
 /*--- input/input.c ---------------------------------------------------------*/
 

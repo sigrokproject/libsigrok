@@ -59,79 +59,91 @@ struct datafeed_callback {
 	void *cb_data;
 };
 
-/* There can only be one session at a time. */
-/* 'session' is not static, it's used elsewhere (via 'extern'). */
-struct sr_session *session;
+/* There can currently only be one session at a time. */
+/* 'sr_current_session' is not static, it's used elsewhere (via 'extern'). */
+struct sr_session *sr_current_session;
 
 /**
  * Create a new session.
- *
- * @todo Should it use the file-global "session" variable or take an argument?
- *       The same question applies to all the other session functions.
- *
- * @retval NULL Error.
- * @retval other A pointer to the newly allocated session.
- *
- * @since 0.1.0
- */
-SR_API struct sr_session *sr_session_new(void)
-{
-	if (!(session = g_try_malloc0(sizeof(struct sr_session)))) {
-		sr_err("Session malloc failed.");
-		return NULL;
-	}
-
-	session->source_timeout = -1;
-	session->running = FALSE;
-	session->abort_session = FALSE;
-	g_mutex_init(&session->stop_mutex);
-
-	return session;
-}
-
-/**
- * Destroy the current session.
- * This frees up all memory used by the session.
+ * Currently, there can be only one session at a time within the same process.
  *
  * @retval SR_OK Success.
- * @retval SR_ERR_BUG No session exists.
+ * @retval SR_ERR_BUG A session exists already.
  *
- * @since 0.1.0
+ * @since 0.4.0
  */
-SR_API int sr_session_destroy(void)
+SR_API int sr_session_new(struct sr_session **session)
 {
-	if (!session) {
-		sr_err("%s: session was NULL", __func__);
+	if (sr_current_session) {
+		sr_err("%s: session already exists", __func__);
 		return SR_ERR_BUG;
 	}
 
-	sr_session_dev_remove_all();
-	g_mutex_clear(&session->stop_mutex);
-	if (session->trigger)
-		sr_trigger_free(session->trigger);
+	sr_current_session = g_malloc0(sizeof(struct sr_session));
 
-	g_free(session);
-	session = NULL;
+	sr_current_session->source_timeout = -1;
+	sr_current_session->running = FALSE;
+	sr_current_session->abort_session = FALSE;
+	g_mutex_init(&sr_current_session->stop_mutex);
+
+	*session = sr_current_session;
 
 	return SR_OK;
 }
 
 /**
- * Remove all the devices from the current session.
+ * Destroy a session.
+ * This frees up all memory used by the session.
+ *
+ * @retval SR_OK Success.
+ * @retval SR_ERR_ARG Invalid session passed.
+ *
+ * @since 0.4.0
+ */
+SR_API int sr_session_destroy(struct sr_session *session)
+{
+	if (!session) {
+		sr_err("%s: session was NULL", __func__);
+		return SR_ERR_ARG;
+	}
+
+	sr_session_dev_remove_all(session);
+	g_mutex_clear(&session->stop_mutex);
+	if (session->trigger)
+		sr_trigger_free(session->trigger);
+
+	g_free(session);
+
+	if (session == sr_current_session)
+		sr_current_session = NULL;
+
+	return SR_OK;
+}
+
+/**
+ * Remove all the devices from a session.
  *
  * The session itself (i.e., the struct sr_session) is not free'd and still
  * exists after this function returns.
  *
  * @retval SR_OK Success.
- * @retval SR_ERR_BUG No session exists.
+ * @retval SR_ERR_BUG Invalid session passed.
  *
- * @since 0.1.0
+ * @since 0.4.0
  */
-SR_API int sr_session_dev_remove_all(void)
+SR_API int sr_session_dev_remove_all(struct sr_session *session)
 {
+	struct sr_dev_inst *sdi;
+	GSList *l;
+
 	if (!session) {
 		sr_err("%s: session was NULL", __func__);
-		return SR_ERR_BUG;
+		return SR_ERR_ARG;
+	}
+
+	for (l = session->devs; l; l = l->next) {
+		sdi = (struct sr_dev_inst *) l->data;
+		sdi->session = NULL;
 	}
 
 	g_slist_free(session->devs);
@@ -141,19 +153,19 @@ SR_API int sr_session_dev_remove_all(void)
 }
 
 /**
- * Add a device instance to the current session.
+ * Add a device instance to a session.
  *
- * @param sdi The device instance to add to the current session. Must not
+ * @param sdi The device instance to add to a session. Must not
  *            be NULL. Also, sdi->driver and sdi->driver->dev_open must
  *            not be NULL.
  *
  * @retval SR_OK Success.
  * @retval SR_ERR_ARG Invalid argument.
- * @retval SR_ERR_BUG No session exists.
  *
- * @since 0.2.0
+ * @since 0.4.0
  */
-SR_API int sr_session_dev_add(const struct sr_dev_inst *sdi)
+SR_API int sr_session_dev_add(struct sr_session *session,
+		struct sr_dev_inst *sdi)
 {
 	int ret;
 
@@ -164,7 +176,14 @@ SR_API int sr_session_dev_add(const struct sr_dev_inst *sdi)
 
 	if (!session) {
 		sr_err("%s: session was NULL", __func__);
-		return SR_ERR_BUG;
+		return SR_ERR_ARG;
+	}
+
+	/* If sdi->session is not NULL, the device is already in this or
+	 * another session. */
+	if (sdi->session) {
+		sr_err("%s: already assigned to session", __func__);
+		return SR_ERR_ARG;
 	}
 
 	/* If sdi->driver is NULL, this is a virtual device. */
@@ -173,6 +192,7 @@ SR_API int sr_session_dev_add(const struct sr_dev_inst *sdi)
 		       "a virtual device; continuing", __func__);
 		/* Just add the device, don't run dev_open(). */
 		session->devs = g_slist_append(session->devs, (gpointer)sdi);
+		sdi->session = session;
 		return SR_OK;
 	}
 
@@ -183,6 +203,7 @@ SR_API int sr_session_dev_add(const struct sr_dev_inst *sdi)
 	}
 
 	session->devs = g_slist_append(session->devs, (gpointer)sdi);
+	sdi->session = session;
 
 	if (session->running) {
 		/* Adding a device to a running session. Commit settings
@@ -205,7 +226,7 @@ SR_API int sr_session_dev_add(const struct sr_dev_inst *sdi)
 }
 
 /**
- * List all device instances attached to the current session.
+ * List all device instances attached to a session.
  *
  * @param devlist A pointer where the device instance list will be
  *                stored on return. If no devices are in the session,
@@ -215,17 +236,17 @@ SR_API int sr_session_dev_add(const struct sr_dev_inst *sdi)
  *                elements pointed to.
  *
  * @retval SR_OK Success.
- * @retval SR_ERR Invalid argument.
+ * @retval SR_ERR_ARG Invalid argument.
  *
- * @since 0.3.0
+ * @since 0.4.0
  */
-SR_API int sr_session_dev_list(GSList **devlist)
+SR_API int sr_session_dev_list(struct sr_session *session, GSList **devlist)
 {
-
-	*devlist = NULL;
-
 	if (!session)
-		return SR_ERR;
+		return SR_ERR_ARG;
+
+	if (!devlist)
+		return SR_ERR_ARG;
 
 	*devlist = g_slist_copy(session->devs);
 
@@ -233,18 +254,18 @@ SR_API int sr_session_dev_list(GSList **devlist)
 }
 
 /**
- * Remove all datafeed callbacks in the current session.
+ * Remove all datafeed callbacks in a session.
  *
  * @retval SR_OK Success.
- * @retval SR_ERR_BUG No session exists.
+ * @retval SR_ERR_ARG Invalid session passed.
  *
- * @since 0.1.0
+ * @since 0.4.0
  */
-SR_API int sr_session_datafeed_callback_remove_all(void)
+SR_API int sr_session_datafeed_callback_remove_all(struct sr_session *session)
 {
 	if (!session) {
 		sr_err("%s: session was NULL", __func__);
-		return SR_ERR_BUG;
+		return SR_ERR_ARG;
 	}
 
 	g_slist_free_full(session->datafeed_callbacks, g_free);
@@ -254,7 +275,7 @@ SR_API int sr_session_datafeed_callback_remove_all(void)
 }
 
 /**
- * Add a datafeed callback to the current session.
+ * Add a datafeed callback to a session.
  *
  * @param cb Function to call when a chunk of data is received.
  *           Must not be NULL.
@@ -265,7 +286,8 @@ SR_API int sr_session_datafeed_callback_remove_all(void)
  *
  * @since 0.3.0
  */
-SR_API int sr_session_datafeed_callback_add(sr_datafeed_callback cb, void *cb_data)
+SR_API int sr_session_datafeed_callback_add(struct sr_session *session,
+		sr_datafeed_callback cb, void *cb_data)
 {
 	struct datafeed_callback *cb_struct;
 
@@ -291,12 +313,12 @@ SR_API int sr_session_datafeed_callback_add(sr_datafeed_callback cb, void *cb_da
 	return SR_OK;
 }
 
-SR_API struct sr_trigger *sr_session_trigger_get(void)
+SR_API struct sr_trigger *sr_session_trigger_get(struct sr_session *session)
 {
 	return session->trigger;
 }
 
-SR_API int sr_session_trigger_set(struct sr_trigger *trig)
+SR_API int sr_session_trigger_set(struct sr_session *session, struct sr_trigger *trig)
 {
 	session->trigger = trig;
 
@@ -304,7 +326,7 @@ SR_API int sr_session_trigger_set(struct sr_trigger *trig)
 }
 
 /**
- * Call every device in the session's callback.
+ * Call every device in the current session's callback.
  *
  * For sessions not driven by select loops such as sr_session_run(),
  * but driven by another scheduler, this can be used to poll the devices
@@ -322,6 +344,7 @@ SR_API int sr_session_trigger_set(struct sr_trigger *trig)
  */
 static int sr_session_iteration(gboolean block)
 {
+	struct sr_session *session = sr_current_session;
 	unsigned int i;
 	int ret;
 
@@ -338,7 +361,8 @@ static int sr_session_iteration(gboolean block)
 			if (!session->sources[i].cb(session->pollfds[i].fd,
 					session->pollfds[i].revents,
 					session->sources[i].cb_data))
-				sr_session_source_remove(session->sources[i].poll_object);
+				sr_session_source_remove(session,
+						session->sources[i].poll_object);
 		}
 		/*
 		 * We want to take as little time as possible to stop
@@ -348,7 +372,7 @@ static int sr_session_iteration(gboolean block)
 		 */
 		g_mutex_lock(&session->stop_mutex);
 		if (session->abort_session) {
-			sr_session_stop_sync();
+			sr_session_stop_sync(session);
 			/* But once is enough. */
 			session->abort_session = FALSE;
 		}
@@ -397,29 +421,26 @@ static int verify_trigger(struct sr_trigger *trigger)
 /**
  * Start a session.
  *
- * There can only be one session at a time.
- *
  * @retval SR_OK Success.
- * @retval SR_ERR Error occured.
+ * @retval SR_ERR_ARG Invalid session passed.
  *
- * @since 0.1.0
+ * @since 0.4.0
  */
-SR_API int sr_session_start(void)
+SR_API int sr_session_start(struct sr_session *session)
 {
 	struct sr_dev_inst *sdi;
 	GSList *l;
 	int ret;
 
 	if (!session) {
-		sr_err("%s: session was NULL; a session must be "
-		       "created before starting it.", __func__);
-		return SR_ERR_BUG;
+		sr_err("%s: session was NULL", __func__);
+		return SR_ERR_ARG;
 	}
 
 	if (!session->devs) {
 		sr_err("%s: session->devs was NULL; a session "
 		       "cannot be started without devices.", __func__);
-		return SR_ERR_BUG;
+		return SR_ERR_ARG;
 	}
 
 	if (session->trigger && verify_trigger(session->trigger) != SR_OK)
@@ -448,26 +469,25 @@ SR_API int sr_session_start(void)
 }
 
 /**
- * Run the session.
+ * Run a session.
  *
  * @retval SR_OK Success.
- * @retval SR_ERR_BUG Error occured.
+ * @retval SR_ERR_ARG Invalid session passed.
  *
- * @since 0.1.0
+ * @since 0.4.0
  */
-SR_API int sr_session_run(void)
+SR_API int sr_session_run(struct sr_session *session)
 {
 	if (!session) {
-		sr_err("%s: session was NULL; a session must be "
-		       "created first, before running it.", __func__);
-		return SR_ERR_BUG;
+		sr_err("%s: session was NULL", __func__);
+		return SR_ERR_ARG;
 	}
 
 	if (!session->devs) {
 		/* TODO: Actually the case? */
 		sr_err("%s: session->devs was NULL; a session "
 		       "cannot be run without devices.", __func__);
-		return SR_ERR_BUG;
+		return SR_ERR_ARG;
 	}
 	session->running = TRUE;
 
@@ -488,27 +508,27 @@ SR_API int sr_session_run(void)
 }
 
 /**
- * Stop the current session.
+ * Stop a session.
  *
- * The current session is stopped immediately, with all acquisition sessions
- * being stopped and hardware drivers cleaned up.
+ * The session is stopped immediately, with all acquisition sessions stopped
+ * and hardware drivers cleaned up.
  *
  * This must be called from within the session thread, to prevent freeing
  * resources that the session thread will try to use.
  *
  * @retval SR_OK Success.
- * @retval SR_ERR_BUG No session exists.
+ * @retval SR_ERR_ARG Invalid session passed.
  *
  * @private
  */
-SR_PRIV int sr_session_stop_sync(void)
+SR_PRIV int sr_session_stop_sync(struct sr_session *session)
 {
 	struct sr_dev_inst *sdi;
 	GSList *l;
 
 	if (!session) {
 		sr_err("%s: session was NULL", __func__);
-		return SR_ERR_BUG;
+		return SR_ERR_ARG;
 	}
 
 	sr_info("Stopping.");
@@ -526,10 +546,10 @@ SR_PRIV int sr_session_stop_sync(void)
 }
 
 /**
- * Stop the current session.
+ * Stop a session.
  *
- * The current session is stopped immediately, with all acquisition sessions
- * being stopped and hardware drivers cleaned up.
+ * The session is stopped immediately, with all acquisition sessions being
+ * stopped and hardware drivers cleaned up.
  *
  * If the session is run in a separate thread, this function will not block
  * until the session is finished executing. It is the caller's responsibility
@@ -537,11 +557,11 @@ SR_PRIV int sr_session_stop_sync(void)
  * completely decommissioned.
  *
  * @retval SR_OK Success.
- * @retval SR_ERR_BUG No session exists.
+ * @retval SR_ERR_ARG Invalid session passed.
  *
- * @since 0.1.0
+ * @since 0.4.0
  */
-SR_API int sr_session_stop(void)
+SR_API int sr_session_stop(struct sr_session *session)
 {
 	if (!session) {
 		sr_err("%s: session was NULL", __func__);
@@ -629,7 +649,7 @@ SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
 		return SR_ERR_ARG;
 	}
 
-	for (l = session->datafeed_callbacks; l; l = l->next) {
+	for (l = sr_current_session->datafeed_callbacks; l; l = l->next) {
 		if (sr_log_loglevel_get() >= SR_LOG_DBG)
 			datafeed_dump(packet);
 		cb_struct = l->data;
@@ -656,6 +676,7 @@ SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
 static int _sr_session_source_add(GPollFD *pollfd, int timeout,
 	sr_receive_data_callback cb, void *cb_data, gintptr poll_object)
 {
+	struct sr_session *session = sr_current_session;
 	struct source *new_sources, *s;
 	GPollFD *new_pollfds;
 
@@ -711,10 +732,12 @@ static int _sr_session_source_add(GPollFD *pollfd, int timeout,
  *
  * @since 0.3.0
  */
-SR_API int sr_session_source_add(int fd, int events, int timeout,
-		sr_receive_data_callback cb, void *cb_data)
+SR_API int sr_session_source_add(struct sr_session *session, int fd,
+		int events, int timeout, sr_receive_data_callback cb, void *cb_data)
 {
 	GPollFD p;
+
+	(void) session;
 
 	p.fd = fd;
 	p.events = events;
@@ -736,9 +759,12 @@ SR_API int sr_session_source_add(int fd, int events, int timeout,
  *
  * @since 0.3.0
  */
-SR_API int sr_session_source_add_pollfd(GPollFD *pollfd, int timeout,
-		sr_receive_data_callback cb, void *cb_data)
+SR_API int sr_session_source_add_pollfd(struct sr_session *session,
+		GPollFD *pollfd, int timeout, sr_receive_data_callback cb,
+		void *cb_data)
 {
+	(void) session;
+
 	return _sr_session_source_add(pollfd, timeout, cb,
 				      cb_data, (gintptr)pollfd);
 }
@@ -758,10 +784,13 @@ SR_API int sr_session_source_add_pollfd(GPollFD *pollfd, int timeout,
  *
  * @since 0.3.0
  */
-SR_API int sr_session_source_add_channel(GIOChannel *channel, int events,
-		int timeout, sr_receive_data_callback cb, void *cb_data)
+SR_API int sr_session_source_add_channel(struct sr_session *session,
+		GIOChannel *channel, int events, int timeout,
+		sr_receive_data_callback cb, void *cb_data)
 {
 	GPollFD p;
+
+	(void) session;
 
 #ifdef _WIN32
 	g_io_channel_win32_make_pollfd(channel, events, &p);
@@ -787,6 +816,7 @@ SR_API int sr_session_source_add_channel(GIOChannel *channel, int events,
  */
 static int _sr_session_source_remove(gintptr poll_object)
 {
+	struct sr_session *session = sr_current_session;
 	struct source *new_sources;
 	GPollFD *new_pollfds;
 	unsigned int old;
@@ -844,8 +874,10 @@ static int _sr_session_source_remove(gintptr poll_object)
  *
  * @since 0.3.0
  */
-SR_API int sr_session_source_remove(int fd)
+SR_API int sr_session_source_remove(struct sr_session *session, int fd)
 {
+	(void) session;
+
 	return _sr_session_source_remove((gintptr)fd);
 }
 
@@ -860,8 +892,11 @@ SR_API int sr_session_source_remove(int fd)
  *
  * @since 0.2.0
  */
-SR_API int sr_session_source_remove_pollfd(GPollFD *pollfd)
+SR_API int sr_session_source_remove_pollfd(struct sr_session *session,
+		GPollFD *pollfd)
 {
+	(void) session;
+
 	return _sr_session_source_remove((gintptr)pollfd);
 }
 
@@ -877,8 +912,11 @@ SR_API int sr_session_source_remove_pollfd(GPollFD *pollfd)
  *
  * @since 0.2.0
  */
-SR_API int sr_session_source_remove_channel(GIOChannel *channel)
+SR_API int sr_session_source_remove_channel(struct sr_session *session,
+		GIOChannel *channel)
 {
+	(void) session;
+
 	return _sr_session_source_remove((gintptr)channel);
 }
 

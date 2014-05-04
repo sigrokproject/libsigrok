@@ -753,7 +753,7 @@ SR_PRIV int lwla_convert_trigger(const struct sr_dev_inst *sdi)
 	devc->trigger_values = 0;
 	devc->trigger_edge_mask = 0;
 
-	if (!(trigger = sr_session_trigger_get()))
+	if (!(trigger = sr_session_trigger_get(sdi->session)))
 		return SR_OK;
 
 	if (g_slist_length(trigger->stages) > 1) {

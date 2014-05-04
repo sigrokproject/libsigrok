@@ -499,7 +499,7 @@ SR_PRIV int analyzer_add_triggers(const struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
-	if (!(trigger = sr_session_trigger_get()))
+	if (!(trigger = sr_session_trigger_get(sdi->session)))
 		return SR_OK;
 
 	for (l = trigger->stages; l; l = l->next) {

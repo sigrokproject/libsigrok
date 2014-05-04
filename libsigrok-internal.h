@@ -262,7 +262,13 @@ SR_PRIV void sr_hw_cleanup_all(void);
 SR_PRIV struct sr_config *sr_config_new(int key, GVariant *data);
 SR_PRIV void sr_config_free(struct sr_config *src);
 SR_PRIV int sr_source_remove(int fd);
+SR_PRIV int sr_source_remove_pollfd(GPollFD *pollfd);
+SR_PRIV int sr_source_remove_channel(GIOChannel *channel);
 SR_PRIV int sr_source_add(int fd, int events, int timeout,
+		sr_receive_data_callback cb, void *cb_data);
+SR_PRIV int sr_source_add_pollfd(GPollFD *pollfd, int timeout,
+		sr_receive_data_callback cb, void *cb_data);
+SR_PRIV int sr_source_add_channel(GIOChannel *channel, int events, int timeout,
 		sr_receive_data_callback cb, void *cb_data);
 
 /*--- session.c -------------------------------------------------------------*/
@@ -301,7 +307,7 @@ struct sr_session {
 
 SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
 		const struct sr_datafeed_packet *packet);
-SR_PRIV int sr_session_stop_sync(void);
+SR_PRIV int sr_session_stop_sync(struct sr_session *session);
 SR_PRIV int sr_sessionfile_check(const char *filename);
 
 /*--- std.c -----------------------------------------------------------------*/
