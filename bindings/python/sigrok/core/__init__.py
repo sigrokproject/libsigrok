@@ -17,6 +17,5 @@
 ## along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##
 
-from . import lowlevel
 from . import classes
 from .classes import *
