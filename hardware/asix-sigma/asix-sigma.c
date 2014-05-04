@@ -809,13 +809,19 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 
 	(void)cg;
 
+	if (!sdi)
+		return SR_ERR;
+	devc = sdi->priv;
+
 	switch (id) {
 	case SR_CONF_SAMPLERATE:
-		if (sdi) {
-			devc = sdi->priv;
-			*data = g_variant_new_uint64(devc->cur_samplerate);
-		} else
-			return SR_ERR;
+		*data = g_variant_new_uint64(devc->cur_samplerate);
+		break;
+	case SR_CONF_LIMIT_MSEC:
+		*data = g_variant_new_uint64(devc->limit_msec);
+		break;
+	case SR_CONF_CAPTURE_RATIO:
+		*data = g_variant_new_uint64(devc->capture_ratio);
 		break;
 	default:
 		return SR_ERR_NA;
