@@ -372,20 +372,3 @@ Example:
 
  $ sigrok-cli --driver ols:conn=/dev/ttyACM0 ...
 
-
-Rigol DS oscilloscopes
-----------------------
-
-The 'rigol-ds' driver (for the Rigol DS series DSOs) currently uses the Linux
-usbtmc kernel driver. This means it can currently only be built and used on
-Linux (i.e., it's non-portable).
-
-The use of a kernel module also means it is dependent on the kernel version
-used, as well as on whether this specific module is available in the kernel.
-Additionally, the usbtmc kernel module has been known to have various bugs
-in some versions. These are some (but not all) drawbacks of using a kernel
-module as opposed to a libusb-based driver that works in user-space.
-
-We plan to change the driver to use the 'librevisa' user-space shared
-library (which uses libusb) soon, which will fix all these issues and make
-the driver portable at the same time.

@@ -64,8 +64,7 @@ libsigrok_la_SOURCES += \
 # Hardware (common files)
 libsigrok_la_SOURCES += \
 	hardware/common/scpi.c \
-	hardware/common/scpi_tcp.c \
-	hardware/common/scpi_usbtmc.c
+	hardware/common/scpi_tcp.c
 if NEED_RPC
 libsigrok_la_SOURCES += \
 	hardware/common/scpi_vxi.c \
