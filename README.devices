@@ -35,7 +35,7 @@ The following drivers/devices require a firmware upload upon connection:
 
  - fx2lafw: Logic analyzers based on the Cypress FX2(LP) chip need the
    firmware files from the 'sigrok-firmware-fx2lafw' repository/project.
-   The firmware is written from scratch and licensed under the GPLv2+.
+   The firmware is written from scratch and licensed under the GNU GPLv2+.
 
  - hantek-dso: The Hantek DSO-2090 (and other supported models of the same
    series of Hantek PC oscilloscopes) need firmware files.
@@ -47,19 +47,25 @@ The following drivers/devices require a firmware upload upon connection:
    These can be extracted from the vendor's Linux application using a tool
    from our 'sigrok-util' repository/project.
 
+ - sysclk-lwla: The Sysclk LWLA1034 requires various bitstream files.
+   These files are available from our 'sigrok-firmware' repository/project
+   under a license which allows us to redistribute them.
+
 The following drivers/devices do not need any firmware upload:
 
  - agilent-dmm
  - appa-55ii
+ - atten-pps3xxx
  - brymen-bm86x
  - brymen-dmm
  - cem-dt-885x
  - center-3xx (including all subdrivers)
  - chronovu-la
  - colead-slm
+ - conrad-digi-35-cpu
  - demo
  - fluke-dmm
- - gmc-mh-1x-2x
+ - gmc-mh-1x-2x (including all subdrivers)
  - hameg-hmo
  - ikalogic-scanalogic2
  - ikalogic-scanaplus
@@ -97,12 +103,14 @@ The following drivers/devices require a serial port specification:
 
  - agilent-dmm
  - appa-55ii
+ - atten-pps3xxx
  - brymen-dmm
  - cem-dt-885x
  - center-3xx (including all subdrivers)
  - colead-slm
+ - conrad-digi-35-cpu
  - fluke-dmm
- - gmc-mh-1x-2x
+ - gmc-mh-1x-2x (including all subdrivers)
  - hameg-hmo
  - link-mso19
  - mic-985xx (including all subdrivers)
@@ -127,6 +135,7 @@ The following drivers/devices do not require a serial port specification:
  - lascar-el-usb
  - rigol-ds (USBTMC or TCP)
  - saleae-logic16
+ - sysclk-lwla
  - uni-t-dmm (including all subdrivers)
  - uni-t-ut32x
  - victor-dmm
@@ -139,7 +148,7 @@ Specifiying serial port parameters
 Every serial device's driver has default serial port parameters like baud
 rate, number of data bits, stop bits and handshake status. If a device requires
 different parameters, pass them as option "serialcomm" with the driver name.
-See libsigrok docs for function serial_set_paramstr() for complete specs.
+See libsigrok docs for the function serial_set_paramstr() for complete specs.
 
 Example:
 
@@ -342,11 +351,10 @@ automatically finds devices with either VID/PID pair.
 OLS
 ---
 
-The Dangerous Prototypes Openbench Logic Sniffer (OLS) logic analyzer is
-supported by the 'ols' driver in libsigrok. This driver assumes a somewhat
-recent firmware has been flashed onto the OLS (it doesn't need a firmware
-upload every time it's attached via USB, since the firmware is stored in the
-device permanently).
+The Dangerous Prototypes Openbench Logic Sniffer (OLS) logic analyzer
+driver in libsigrok assumes a somewhat recent firmware has been flashed onto
+the OLS (it doesn't need a firmware upload every time it's attached via USB,
+since the firmware is stored in the device permanently).
 
 The most recent firmware version that is tested is 3.07.
 
