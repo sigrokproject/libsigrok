@@ -222,12 +222,6 @@ libsigrok_la_SOURCES += \
 	hardware/lascar-el-usb/protocol.c \
 	hardware/lascar-el-usb/api.c
 endif
-if HW_LINK_MSO19
-libsigrok_la_SOURCES += \
-	hardware/link-mso19/protocol.h \
-	hardware/link-mso19/protocol.c \
-	hardware/link-mso19/api.c
-endif
 if HW_MIC_985XX
 libsigrok_la_SOURCES += \
 	hardware/mic-985xx/protocol.h \

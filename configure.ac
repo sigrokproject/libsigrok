@@ -190,11 +190,6 @@ AC_ARG_ENABLE(lascar-el-usb, AC_HELP_STRING([--enable-lascar-el-usb],
 	[HW_LASCAR_EL_USB="$enableval"],
 	[HW_LASCAR_EL_USB=$HW_ENABLED_DEFAULT])
 
-AC_ARG_ENABLE(link-mso19, AC_HELP_STRING([--enable-link-mso19],
-	[enable Link Instruments MSO-19 support [default=no]]),
-	[HW_LINK_MSO19="$enableval"],
-	[HW_LINK_MSO19="no"])
-
 AC_ARG_ENABLE(mic-985xx, AC_HELP_STRING([--enable-mic-985xx],
 	[enable MIC 985xx support [default=yes]]),
 	[HW_MIC_985XX="$enableval"],
@@ -309,7 +304,7 @@ PKG_CHECK_MODULES([libserialport], [libserialport >= 0.1.0],
 	[have_libserialport="no"; HW_AGILENT_DMM="no"; HW_APPA_55II="no";
 	HW_ATTEN_PPS3XXX="no"; HW_BRYMEN_DMM="no"; HW_CEM_DT_885X="no";
 	HW_CENTER_3XX="no"; HW_COLEAD_SLM="no"; HW_CONRAD_DIGI_35_CPU="no";
-	HW_FLUKE_DMM="no"; HW_GMC_MH_1X_2X="no"; HW_HAMEG_HMO="no"; HW_LINK_MSO19="no";
+	HW_FLUKE_DMM="no"; HW_GMC_MH_1X_2X="no"; HW_HAMEG_HMO="no";
 	HW_MIC_985XX="no"; HW_NORMA_DMM="no"; HW_OLS="no";
 	HW_SERIAL_DMM="no"; HW_TELEINFO="no"; HW_TONDAJ_SL_814="no"])
 
@@ -376,12 +371,6 @@ PKG_CHECK_MODULES([libftdi], [libftdi >= 0.16],
 	LIBS="$LIBS $libftdi_LIBS";
 	SR_PKGLIBS="$SR_PKGLIBS libftdi"],
 	[HW_ASIX_SIGMA="no"; HW_CHRONOVU_LA="no"; HW_IKALOGIC_SCANAPLUS="no"])
-
-# libudev is only needed for some hardware drivers. Disable them if not found.
-PKG_CHECK_MODULES([libudev], [libudev >= 151],
-	[LIB_CFLAGS="$LIB_CFLAGS $libudev_CFLAGS"; LIBS="$LIBS $libudev_LIBS";
-	SR_PKGLIBS="$SR_PKGLIBS libudev"],
-	[HW_LINK_MSO19="no"])
 
 # The Check unit testing framework is optional. Disable if not found.
 PKG_CHECK_MODULES([check], [check >= 0.9.4],
@@ -508,11 +497,6 @@ if test "x$HW_LASCAR_EL_USB" = "xyes"; then
 	AC_DEFINE(HAVE_HW_LASCAR_EL_USB, 1, [Lascar EL-USB support])
 fi
 
-AM_CONDITIONAL(HW_LINK_MSO19, test x$HW_LINK_MSO19 = xyes)
-if test "x$HW_LINK_MSO19" = "xyes"; then
-	AC_DEFINE(HAVE_HW_LINK_MSO19, 1, [Link Instruments MSO-19 support])
-fi
-
 AM_CONDITIONAL(HW_MIC_985XX, test x$HW_MIC_985XX = xyes)
 if test "x$HW_MIC_985XX" = "xyes"; then
 	AC_DEFINE(HAVE_HW_MIC_985XX, 1, [MIC 985xx support])
@@ -615,7 +599,7 @@ echo "Detected libraries:"
 echo
 
 # Note: This only works for libs with pkg-config integration.
-for lib in "glib-2.0 >= 2.32.0" "libzip >= 0.10" "libserialport >= 0.1.0" "librevisa >= 0.0.20130812" "libusb-1.0 >= 1.0.16" "libftdi >= 0.16" "libudev >= 151" "check >= 0.9.4"; do
+for lib in "glib-2.0 >= 2.32.0" "libzip >= 0.10" "libserialport >= 0.1.0" "librevisa >= 0.0.20130812" "libusb-1.0 >= 1.0.16" "libftdi >= 0.16" "check >= 0.9.4"; do
 	optional="OPTIONAL"
 	if test "x$lib" = "xglib-2.0 >= 2.32.0"; then optional="REQUIRED"; fi
 	if test "x$lib" = "xlibzip >= 0.10"; then optional="REQUIRED"; fi
@@ -650,7 +634,6 @@ echo "  - ikalogic-scanalogic2............ $HW_IKALOGIC_SCANALOGIC2"
 echo "  - ikalogic-scanaplus.............. $HW_IKALOGIC_SCANAPLUS"
 echo "  - kecheng-kc-330b................. $HW_KECHENG_KC_330B"
 echo "  - lascar-el-usb................... $HW_LASCAR_EL_USB"
-echo "  - link-mso19 (EXPERIMENTAL)....... $HW_LINK_MSO19"
 echo "  - mic-985xx....................... $HW_MIC_985XX"
 echo "  - norma-dmm....................... $HW_NORMA_DMM"
 echo "  - openbench-logic-sniffer......... $HW_OLS"

@@ -323,16 +323,6 @@ a short list for convenience:
  - Voltcraft VC-830: Press the "REL/PC" button for roughly 2 seconds.
 
 
-Link Instruments MSO-19
------------------------
-
-The driver for the Link Instruments MSO-19 mixed-signal oscilloscope (MSO)
-is currently using libudev (which is a library for the Linux-specific udev
-system). Thus, this driver can currently only compile and work on Linux.
-
-We plan to fix this though, so that it'll work on all other OSes, too.
-
-
 ChronoVu LA8/LA16 USB VID/PIDs
 ------------------------------
 
