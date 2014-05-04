@@ -272,8 +272,13 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	gchar *channel_name, **version;
 
 	if (sr_scpi_get_hw_id(scpi, &hw_info) != SR_OK) {
-		sr_info("Couldn't get IDN response.");
-		return NULL;
+		sr_info("Couldn't get IDN response, retrying.");
+		sr_scpi_close(scpi);
+		sr_scpi_open(scpi);
+		if (sr_scpi_get_hw_id(scpi, &hw_info) != SR_OK) {
+			sr_info("Couldn't get IDN response.");
+			return NULL;
+		}
 	}
 
 	for (i = 0; i < ARRAY_SIZE(supported_models); i++) {
