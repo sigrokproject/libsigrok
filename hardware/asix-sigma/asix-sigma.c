@@ -682,20 +682,20 @@ static int set_samplerate(const struct sr_dev_inst *sdi, uint64_t samplerate)
 	if (samplerate <= SR_MHZ(50)) {
 		ret = upload_firmware(0, devc);
 		devc->num_channels = 16;
-	}
-	if (samplerate == SR_MHZ(100)) {
+	} else if (samplerate == SR_MHZ(100)) {
 		ret = upload_firmware(1, devc);
 		devc->num_channels = 8;
-	}
-	else if (samplerate == SR_MHZ(200)) {
+	} else if (samplerate == SR_MHZ(200)) {
 		ret = upload_firmware(2, devc);
 		devc->num_channels = 4;
 	}
 
-	devc->cur_samplerate = samplerate;
-	devc->period_ps = 1000000000000ULL / samplerate;
-	devc->samples_per_event = 16 / devc->num_channels;
-	devc->state.state = SIGMA_IDLE;
+	if (ret == SR_OK) {
+		devc->cur_samplerate = samplerate;
+		devc->period_ps = 1000000000000ULL / samplerate;
+		devc->samples_per_event = 16 / devc->num_channels;
+		devc->state.state = SIGMA_IDLE;
+	}
 
 	return ret;
 }
@@ -833,8 +833,8 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	uint64_t num_samples;
-	int ret = 0;
+	uint64_t tmp;
+	int ret;
 
 	(void)cg;
 
@@ -843,27 +843,28 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 
 	devc = sdi->priv;
 
+	ret = SR_OK;
 	switch (id) {
 	case SR_CONF_SAMPLERATE:
 		ret = set_samplerate(sdi, g_variant_get_uint64(data));
 		break;
 	case SR_CONF_LIMIT_MSEC:
-		devc->limit_msec = g_variant_get_uint64(data);
-		if (devc->limit_msec > 0)
-			ret = SR_OK;
+		tmp = g_variant_get_uint64(data);
+		if (tmp > 0)
+			devc->limit_msec = g_variant_get_uint64(data);
 		else
 			ret = SR_ERR;
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
-		num_samples = g_variant_get_uint64(data);
-		devc->limit_msec = num_samples * 1000 / devc->cur_samplerate;
+		tmp = g_variant_get_uint64(data);
+		devc->limit_msec = tmp * 1000 / devc->cur_samplerate;
 		break;
 	case SR_CONF_CAPTURE_RATIO:
-		devc->capture_ratio = g_variant_get_uint64(data);
-		if (devc->capture_ratio < 0 || devc->capture_ratio > 100)
-			ret = SR_ERR;
+		tmp = g_variant_get_uint64(data);
+		if (tmp <= 100)
+			devc->capture_ratio = tmp;
 		else
-			ret = SR_OK;
+			ret = SR_ERR;
 		break;
 	default:
 		ret = SR_ERR_NA;
