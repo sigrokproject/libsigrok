@@ -41,7 +41,7 @@
  */
 
 /* Currently selected libsigrok loglevel. Default: SR_LOG_WARN. */
-static int sr_loglevel = SR_LOG_WARN; /* Show errors+warnings per default. */
+static int cur_loglevel = SR_LOG_WARN; /* Show errors+warnings per default. */
 
 /* Function prototype. */
 static int sr_logv(void *cb_data, int loglevel, const char *format,
@@ -87,7 +87,7 @@ SR_API int sr_log_loglevel_set(int loglevel)
 		return SR_ERR_ARG;
 	}
 
-	sr_loglevel = loglevel;
+	cur_loglevel = loglevel;
 
 	sr_dbg("libsigrok loglevel set to %d.", loglevel);
 
@@ -103,7 +103,7 @@ SR_API int sr_log_loglevel_set(int loglevel)
  */
 SR_API int sr_log_loglevel_get(void)
 {
-	return sr_loglevel;
+	return cur_loglevel;
 }
 
 /**
@@ -210,7 +210,7 @@ static int sr_logv(void *cb_data, int loglevel, const char *format, va_list args
 	(void)cb_data;
 
 	/* Only output messages of at least the selected loglevel(s). */
-	if (loglevel > sr_loglevel)
+	if (loglevel > cur_loglevel)
 		return SR_OK; /* TODO? */
 
 	if (sr_log_domain[0] != '\0')
