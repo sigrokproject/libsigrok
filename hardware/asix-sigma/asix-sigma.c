@@ -77,7 +77,6 @@ static const int32_t hwcaps[] = {
 	SR_CONF_TRIGGER_TYPE,
 	SR_CONF_CAPTURE_RATIO,
 	SR_CONF_LIMIT_MSEC,
-	SR_CONF_LIMIT_SAMPLES,
 };
 
 static const char *sigma_firmware_files[] = {
