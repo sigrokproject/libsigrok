@@ -63,7 +63,7 @@ extern "C" {
  */
 
 /** Status/error codes returned by libsigrok functions. */
-enum {
+enum sr_error_code {
 	SR_OK                =  0, /**< No error. */
 	SR_ERR               = -1, /**< Generic/unspecified error. */
 	SR_ERR_MALLOC        = -2, /**< Malloc/calloc/realloc error. */
@@ -864,7 +864,7 @@ struct sr_dev_inst {
 };
 
 /** Types of device instance, struct sr_dev_inst.type */
-enum {
+enum sr_dev_inst_type {
 	/** Device instance type for USB devices. */
 	SR_INST_USB = 10000,
 	/** Device instance type for serial port devices. */
@@ -874,7 +874,7 @@ enum {
 };
 
 /** Device instance status, struct sr_dev_inst.status */
-enum {
+enum sr_dev_inst_status {
 	/** The device instance was not found. */
 	SR_ST_NOT_FOUND = 10000,
 	/** The device instance was found, but is still booting. */
