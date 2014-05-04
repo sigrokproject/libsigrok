@@ -228,6 +228,8 @@ SR_PRIV int sr_atof_ascii(const char *str, float *ret)
  * @return A g_try_malloc()ed string representation of the samplerate value,
  *         or NULL upon errors. The caller is responsible to g_free() the
  *         memory.
+ *
+ * @since 0.2.0
  */
 SR_API char *sr_si_string_u64(uint64_t x, const char *unit)
 {
@@ -268,6 +270,8 @@ SR_API char *sr_si_string_u64(uint64_t x, const char *unit)
  * @return A g_try_malloc()ed string representation of the samplerate value,
  *         or NULL upon errors. The caller is responsible to g_free() the
  *         memory.
+ *
+ * @since 0.1.0
  */
 SR_API char *sr_samplerate_string(uint64_t samplerate)
 {
@@ -285,6 +289,8 @@ SR_API char *sr_samplerate_string(uint64_t samplerate)
  * @return A g_try_malloc()ed string representation of the frequency value,
  *         or NULL upon errors. The caller is responsible to g_free() the
  *         memory.
+ *
+ * @since 0.1.0
  */
 SR_API char *sr_period_string(uint64_t frequency)
 {
@@ -328,6 +334,8 @@ SR_API char *sr_period_string(uint64_t frequency)
  * @return A g_try_malloc()ed string representation of the voltage value,
  *         or NULL upon errors. The caller is responsible to g_free() the
  *         memory.
+ *
+ * @since 0.2.0
  */
 SR_API char *sr_voltage_string(uint64_t v_p, uint64_t v_q)
 {
@@ -377,6 +385,8 @@ SR_API char *sr_voltage_string(uint64_t v_p, uint64_t v_q)
  *         a trigger value set in 'triggerstring' are NULL, the other entries
  *         contain the respective trigger type which is requested for the
  *         respective channel (e.g. "r", "c", and so on).
+ *
+ * @since 0.2.0
  */
 SR_API char **sr_parse_triggerstring(const struct sr_dev_inst *sdi,
 				     const char *triggerstring)
@@ -463,6 +473,8 @@ SR_API char **sr_parse_triggerstring(const struct sr_dev_inst *sdi,
  * @param size Pointer to uint64_t which will contain the string's size value.
  *
  * @return SR_OK upon success, SR_ERR upon errors.
+ *
+ * @since 0.1.0
  */
 SR_API int sr_parse_sizestring(const char *sizestring, uint64_t *size)
 {
@@ -528,6 +540,8 @@ SR_API int sr_parse_sizestring(const char *sizestring, uint64_t *size)
  * @todo Add support for "m" (minutes) and others.
  * @todo Add support for picoseconds?
  * @todo Allow both lower-case and upper-case? If no, document it.
+ *
+ * @since 0.1.0
  */
 SR_API uint64_t sr_parse_timestring(const char *timestring)
 {
@@ -554,6 +568,7 @@ SR_API uint64_t sr_parse_timestring(const char *timestring)
 	return time_msec;
 }
 
+/** @since 0.1.0 */
 SR_API gboolean sr_parse_boolstring(const char *boolstr)
 {
 	if (!boolstr)
@@ -568,6 +583,7 @@ SR_API gboolean sr_parse_boolstring(const char *boolstr)
 	return FALSE;
 }
 
+/** @since 0.2.0 */
 SR_API int sr_parse_period(const char *periodstr, uint64_t *p, uint64_t *q)
 {
 	char *s;
@@ -600,7 +616,7 @@ SR_API int sr_parse_period(const char *periodstr, uint64_t *p, uint64_t *q)
 	return SR_OK;
 }
 
-
+/** @since 0.2.0 */
 SR_API int sr_parse_voltage(const char *voltstr, uint64_t *p, uint64_t *q)
 {
 	char *s;

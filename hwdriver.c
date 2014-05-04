@@ -440,6 +440,8 @@ static struct sr_dev_driver *drivers_list[] = {
  * Return the list of supported hardware drivers.
  *
  * @return Pointer to the NULL-terminated list of hardware driver pointers.
+ *
+ * @since 0.1.0
  */
 SR_API struct sr_dev_driver **sr_driver_list(void)
 {
@@ -463,6 +465,8 @@ SR_API struct sr_dev_driver **sr_driver_list(void)
  * @retval SR_ERR_ARG Invalid parameter(s).
  * @retval SR_ERR_BUG Internal errors.
  * @retval other Another negative error code upon other errors.
+ *
+ * @since 0.2.0
  */
 SR_API int sr_driver_init(struct sr_context *ctx, struct sr_dev_driver *driver)
 {
@@ -507,6 +511,8 @@ SR_API int sr_driver_init(struct sr_context *ctx, struct sr_dev_driver *driver)
  *         found (or errors were encountered). This list must be freed by the
  *         caller using g_slist_free(), but without freeing the data pointed
  *         to in the list.
+ *
+ * @since 0.2.0
  */
 SR_API GSList *sr_driver_scan(struct sr_dev_driver *driver, GSList *options)
 {
@@ -597,6 +603,8 @@ SR_PRIV void sr_config_free(struct sr_config *src)
  * @retval SR_ERR_ARG The driver doesn't know that key, but this is not to be
  *          interpreted as an error by the caller; merely as an indication
  *          that it's not applicable.
+ *
+ * @since 0.3.0
  */
 SR_API int sr_config_get(const struct sr_dev_driver *driver,
 		const struct sr_dev_inst *sdi,
@@ -636,6 +644,8 @@ SR_API int sr_config_get(const struct sr_dev_driver *driver,
  * @retval SR_ERR_ARG The driver doesn't know that key, but this is not to be
  *          interpreted as an error by the caller; merely as an indication
  *          that it's not applicable.
+ *
+ * @since 0.3.0
  */
 SR_API int sr_config_set(const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg,
@@ -663,6 +673,8 @@ SR_API int sr_config_set(const struct sr_dev_inst *sdi,
  * @param sdi The device instance.
  *
  * @return SR_OK upon success or SR_ERR in case of error.
+ *
+ * @since 0.3.0
  */
 SR_API int sr_config_commit(const struct sr_dev_inst *sdi)
 {
@@ -698,6 +710,8 @@ SR_API int sr_config_commit(const struct sr_dev_inst *sdi)
  * @retval SR_ERR_ARG The driver doesn't know that key, but this is not to be
  *          interpreted as an error by the caller; merely as an indication
  *          that it's not applicable.
+ *
+ * @since 0.3.0
  */
 SR_API int sr_config_list(const struct sr_dev_driver *driver,
 		const struct sr_dev_inst *sdi,
@@ -723,6 +737,8 @@ SR_API int sr_config_list(const struct sr_dev_driver *driver,
  *
  * @return A pointer to a struct sr_config_info, or NULL if the key
  *         was not found.
+ *
+ * @since 0.2.0
  */
 SR_API const struct sr_config_info *sr_config_info_get(int key)
 {
@@ -743,6 +759,8 @@ SR_API const struct sr_config_info *sr_config_info_get(int key)
  *
  * @return A pointer to a struct sr_config_info, or NULL if the key
  *         was not found.
+ *
+ * @since 0.2.0
  */
 SR_API const struct sr_config_info *sr_config_info_name_get(const char *optname)
 {

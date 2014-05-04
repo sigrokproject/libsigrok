@@ -83,7 +83,7 @@ SR_PRIV struct sr_channel *sr_channel_new(int index, int type,
  *
  * @return SR_OK on success, or SR_ERR_ARG on invalid arguments.
  *
- * @since 0.2.0
+ * @since 0.3.0
  */
 SR_API int sr_dev_channel_name_set(const struct sr_dev_inst *sdi,
 		int channelnum, const char *name)
@@ -122,7 +122,7 @@ SR_API int sr_dev_channel_name_set(const struct sr_dev_inst *sdi,
  *         arguments, SR_ERR_ARG is returned and the channel enabled state
  *         remains unchanged.
  *
- * @since 0.2.0
+ * @since 0.3.0
  */
 SR_API int sr_dev_channel_enable(const struct sr_dev_inst *sdi, int channelnum,
 		gboolean state)

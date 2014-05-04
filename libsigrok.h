@@ -41,9 +41,9 @@ extern "C" {
  *
  * The correct way to get/use the libsigrok API functions is:
  *
-   @code{.c}
-     #include <libsigrok/libsigrok.h>
-   @endcode
+ * @code{.c}
+ *   #include <libsigrok/libsigrok.h>
+ * @endcode
  */
 
 /*

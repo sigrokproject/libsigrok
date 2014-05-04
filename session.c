@@ -71,6 +71,8 @@ struct sr_session *session;
  *
  * @retval NULL Error.
  * @retval other A pointer to the newly allocated session.
+ *
+ * @since 0.1.0
  */
 SR_API struct sr_session *sr_session_new(void)
 {
@@ -93,6 +95,8 @@ SR_API struct sr_session *sr_session_new(void)
  *
  * @retval SR_OK Success.
  * @retval SR_ERR_BUG No session exists.
+ *
+ * @since 0.1.0
  */
 SR_API int sr_session_destroy(void)
 {
@@ -121,6 +125,8 @@ SR_API int sr_session_destroy(void)
  *
  * @retval SR_OK Success.
  * @retval SR_ERR_BUG No session exists.
+ *
+ * @since 0.1.0
  */
 SR_API int sr_session_dev_remove_all(void)
 {
@@ -145,6 +151,8 @@ SR_API int sr_session_dev_remove_all(void)
  * @retval SR_OK Success.
  * @retval SR_ERR_ARG Invalid argument.
  * @retval SR_ERR_BUG No session exists.
+ *
+ * @since 0.2.0
  */
 SR_API int sr_session_dev_add(const struct sr_dev_inst *sdi)
 {
@@ -209,6 +217,8 @@ SR_API int sr_session_dev_add(const struct sr_dev_inst *sdi)
  *
  * @retval SR_OK Success.
  * @retval SR_ERR Invalid argument.
+ *
+ * @since 0.3.0
  */
 SR_API int sr_session_dev_list(GSList **devlist)
 {
@@ -228,6 +238,8 @@ SR_API int sr_session_dev_list(GSList **devlist)
  *
  * @retval SR_OK Success.
  * @retval SR_ERR_BUG No session exists.
+ *
+ * @since 0.1.0
  */
 SR_API int sr_session_datafeed_callback_remove_all(void)
 {
@@ -251,6 +263,8 @@ SR_API int sr_session_datafeed_callback_remove_all(void)
  *
  * @retval SR_OK Success.
  * @retval SR_ERR_BUG No session exists.
+ *
+ * @since 0.3.0
  */
 SR_API int sr_session_datafeed_callback_add(sr_datafeed_callback cb, void *cb_data)
 {
@@ -340,6 +354,8 @@ static int sr_session_iteration(gboolean block)
  *
  * @retval SR_OK Success.
  * @retval SR_ERR Error occured.
+ *
+ * @since 0.1.0
  */
 SR_API int sr_session_start(void)
 {
@@ -386,6 +402,8 @@ SR_API int sr_session_start(void)
  *
  * @retval SR_OK Success.
  * @retval SR_ERR_BUG Error occured.
+ *
+ * @since 0.1.0
  */
 SR_API int sr_session_run(void)
 {
@@ -470,6 +488,8 @@ SR_PRIV int sr_session_stop_sync(void)
  *
  * @retval SR_OK Success.
  * @retval SR_ERR_BUG No session exists.
+ *
+ * @since 0.1.0
  */
 SR_API int sr_session_stop(void)
 {
@@ -638,6 +658,8 @@ static int _sr_session_source_add(GPollFD *pollfd, int timeout,
  * @retval SR_OK Success.
  * @retval SR_ERR_ARG Invalid argument.
  * @retval SR_ERR_MALLOC Memory allocation error.
+ *
+ * @since 0.3.0
  */
 SR_API int sr_session_source_add(int fd, int events, int timeout,
 		sr_receive_data_callback cb, void *cb_data)
@@ -661,6 +683,8 @@ SR_API int sr_session_source_add(int fd, int events, int timeout,
  * @retval SR_OK Success.
  * @retval SR_ERR_ARG Invalid argument.
  * @retval SR_ERR_MALLOC Memory allocation error.
+ *
+ * @since 0.3.0
  */
 SR_API int sr_session_source_add_pollfd(GPollFD *pollfd, int timeout,
 		sr_receive_data_callback cb, void *cb_data)
@@ -681,6 +705,8 @@ SR_API int sr_session_source_add_pollfd(GPollFD *pollfd, int timeout,
  * @retval SR_OK Success.
  * @retval SR_ERR_ARG Invalid argument.
  * @retval SR_ERR_MALLOC Memory allocation error.
+ *
+ * @since 0.3.0
  */
 SR_API int sr_session_source_add_channel(GIOChannel *channel, int events,
 		int timeout, sr_receive_data_callback cb, void *cb_data)
@@ -765,6 +791,8 @@ static int _sr_session_source_remove(gintptr poll_object)
  * @retval SR_ERR_ARG Invalid argument
  * @retval SR_ERR_MALLOC Memory allocation error.
  * @retval SR_ERR_BUG Internal error.
+ *
+ * @since 0.3.0
  */
 SR_API int sr_session_source_remove(int fd)
 {
@@ -779,6 +807,8 @@ SR_API int sr_session_source_remove(int fd)
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or
  *         SR_ERR_MALLOC upon memory allocation errors, SR_ERR_BUG upon
  *         internal errors.
+ *
+ * @since 0.2.0
  */
 SR_API int sr_session_source_remove_pollfd(GPollFD *pollfd)
 {
@@ -794,6 +824,8 @@ SR_API int sr_session_source_remove_pollfd(GPollFD *pollfd)
  * @retval SR_ERR_ARG Invalid argument.
  * @retval SR_ERR_MALLOC Memory allocation error.
  * @return SR_ERR_BUG Internal error.
+ *
+ * @since 0.2.0
  */
 SR_API int sr_session_source_remove_channel(GIOChannel *channel)
 {

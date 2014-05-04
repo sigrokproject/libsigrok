@@ -164,7 +164,7 @@ SR_API char *sr_log_logdomain_get(void)
  *
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments.
  *
- * @since 0.1.0
+ * @since 0.3.0
  */
 SR_API int sr_log_callback_set(sr_log_callback cb, void *cb_data)
 {

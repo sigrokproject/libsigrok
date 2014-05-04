@@ -67,6 +67,7 @@ static struct sr_input_format *input_module_list[] = {
 	NULL,
 };
 
+/** @since 0.1.0 */
 SR_API struct sr_input_format **sr_input_list(void)
 {
 	return input_module_list;

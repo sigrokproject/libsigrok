@@ -73,11 +73,13 @@ static struct sr_output_format *output_module_list[] = {
 	NULL,
 };
 
+/** @since 0.1.0 */
 SR_API struct sr_output_format **sr_output_list(void)
 {
 	return output_module_list;
 }
 
+/** @since 0.3.0 */
 SR_API struct sr_output *sr_output_new(struct sr_output_format *of,
 		GHashTable *params, const struct sr_dev_inst *sdi)
 {
@@ -95,12 +97,14 @@ SR_API struct sr_output *sr_output_new(struct sr_output_format *of,
 	return o;
 }
 
+/** @since 0.3.0 */
 SR_API int sr_output_send(struct sr_output *o,
 		const struct sr_datafeed_packet *packet, GString **out)
 {
 	return o->format->receive(o, packet, out);
 }
 
+/** @since 0.3.0 */
 SR_API int sr_output_free(struct sr_output *o)
 {
 	int ret;
@@ -112,6 +116,5 @@ SR_API int sr_output_free(struct sr_output *o)
 
 	return ret;
 }
-
 
 /** @} */

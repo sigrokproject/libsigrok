@@ -232,6 +232,8 @@ SR_API int sr_session_load(const char *filename)
  * @retval SR_OK Success
  * @retval SR_ERR_ARG Invalid arguments
  * @retval SR_ERR Other errors
+ *
+ * @since 0.2.0
  */
 SR_API int sr_session_save(const char *filename, const struct sr_dev_inst *sdi,
 		unsigned char *buf, int unitsize, int units)
@@ -286,6 +288,8 @@ SR_API int sr_session_save(const char *filename, const struct sr_dev_inst *sdi,
  * @retval SR_OK Success
  * @retval SR_ERR_ARG Invalid arguments
  * @retval SR_ERR Other errors
+ *
+ * @since 0.3.0
  */
 SR_API int sr_session_save_init(const char *filename, uint64_t samplerate,
 		char **channels)
@@ -377,6 +381,8 @@ SR_API int sr_session_save_init(const char *filename, uint64_t samplerate,
  * @retval SR_OK Success
  * @retval SR_ERR_ARG Invalid arguments
  * @retval SR_ERR Other errors
+ *
+ * @since 0.3.0
  */
 SR_API int sr_session_append(const char *filename, unsigned char *buf,
 		int unitsize, int units)
