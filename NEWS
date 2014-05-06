@@ -1,3 +1,219 @@
+0.3.0 (2014-05-06)
+------------------
+
+Note: This release DOES change the libsigrok API. That means it is NOT
+      backwards-compatible and frontends will need updates.
+
+ * New supported hardware:
+   - Logic analyzers:
+     - ChronoVu LA16
+     - Sysclk LWLA1034
+   - Oscilloscopes:
+     - Agilent DSO1000 series (various models)
+     - Hameg HMO compact series (various models)
+     - Rigol DS2000 series (various models)
+     - Rigol VS5000 series (various models)
+   - Multimeters:
+     - BBC Goerz Metrawatt M2110
+     - Brymen BM869
+     - Fluke 189
+     - Gossen Metrawatt MetraHIT 1x/2x series (various models)
+     - Tenma 72-7745 (rebadged UNI-T UT60E)
+     - Tenma 72-7750 (rebadged UNI-T UT60G)
+     - UNI-T UT60G
+     - UNI-T UT61B
+     - UNI-T UT61C
+     - V&A VA40B
+     - Voltcraft M-3650CR
+     - Voltcraft ME-42
+   - Thermometers:
+     - APPA 55II
+   - Programmable power supplies:
+     - Atten PPS3000 series (various models, tested on PPS3203T-3S).
+     - Conrad DIGI 35 CPU
+ * Add support for channel groups.
+ * Add generic SCPI backend code which can be used via various transports:
+   - Serial ports
+   - USBTMC
+   - TCP/RAW
+   - TCP/Rigol (Rigol-VS5000 series specific)
+   - VXI
+   - librevisa
+ * udev rules file: Add entries for newly supported hardware.
+ * New config keys:
+   - SR_CONF_DEMODULATOR
+   - SR_CONF_CENTER_FREQUENCY
+   - SR_CONF_NUM_LOGIC_CHANNELS
+   - SR_CONF_NUM_ANALOG_CHANNELS
+   - SR_CONF_CLOCK_EDGE
+   - SR_CONF_POWER_SUPPLY
+   - SR_CONF_OUTPUT_VOLTAGE
+   - SR_CONF_OUTPUT_VOLTAGE_MAX
+   - SR_CONF_OUTPUT_CURRENT
+   - SR_CONF_OUTPUT_CURRENT_MAX
+   - SR_CONF_OUTPUT_ENABLED
+   - SR_CONF_OUTPUT_CHANNEL
+   - SR_CONF_OVER_VOLTAGE_PROTECTION
+   - SR_CONF_OVER_CURRENT_PROTECTION
+   - SR_CONF_DEVICE_MODE
+   - SR_CONF_TEST_MODE
+ * New config info types:
+   - SR_T_INT32
+ * New measurement quantity keys:
+   - SR_MQ_TIME
+ * New measurement quantity flags:
+   - SR_MQFLAG_DURATION
+   - SR_MQFLAG_AVG
+ * New device instance types:
+   - SR_INST_SCPI
+ * New error codes:
+   - SR_ERR_CHANNEL_GROUP
+ ∗ The SR_T_CHAR config type has been renamed to SR_T_STRING.
+ * New build dependencies:
+   - libserialport >= 0.1.0 (optional).
+     - All drivers that talk to serial ports now require libserialport.
+     - If libserialport is not found, those drivers will not be built.
+   - librevisa >= 0.0.20130812 (optional, only used by some drivers).
+ * Dropped build dependecies:
+   - libasound2 is no longer required (only the removed alsa driver used it).
+   - libudev is no longer required (only the removed link-mso19 driver used it).
+ * Serial port handling code:
+   - Add support for 5/6 data bits and non-standard baud rates.
+   - Fix an issue related to nonblocking reads (bug #188).
+   - Fix an 'invalid arguments' condition causing problems (bug #192).
+ * alsa: This driver was removed (also fixes bugs #28, #61, #96, #114).
+ * asix-sigma:
+   - Publish SR_CONF_CAPTURE_RATIO correctly (bugs #287, #291).
+   - Don't set invalid config options (bug #86).
+   - Various other bugfixes.
+ * cem-dt-885x: Fix a code portability issue (bug #267).
+ * chronovu-la:
+   - Rename the 'chronovu-la8' driver to 'chronovu-la'.
+   - Add support for the ChronoVu LA16.
+   - Fix a segfault when doing multiple acquisitions on an LA8 (bug #247).
+   - Document that streaming is not possible for LA8/LA16 (bug #261).
+ * demo:
+   - Add support for analog channels (bug #11).
+   - Make the number of channels user-configurable.
+   - Add per-channel-group options.
+   - Implement analog sample patterns: sine, triangle, sawtooth.
+   - Fix a samplerate related issue with rates >= 50kHz (bugs #294, #295).
+   - Fix an issue causing data glitches every 40ms (bug #297).
+   - Fix an issue related to channel group handling (bug #262).
+ * digitek-dt4000zc: Fix driver on NetBSD due to missing DTR=1 (bug #189).
+ * fx2lafw:
+   - Fix incorrect unitsize when a trigger fires (bug #182).
+   - Implement config_get() for SR_CONF_LIMIT_SAMPLES.
+   - Don't send more samples than requested to the session bus.
+ * gmc-mh-1x-2x:
+   - Add new (sub)driver 'gmc-mh-2x-bd232'.
+   - Add support for the SI232-II interface.
+ * hameg-hmo:
+   - Fix a build issue on Mac OS X (bug #216).
+   - Various fixes related to frame limit, samplerate, options, etc.
+ * link-mso19: Drop unfinished driver for now (until it starts working).
+ * openbench-logic-sniffer:
+   - Fix a serial port related issue/hang, seen on (e.g.) NetBSD.
+   - Fix an SR_CONF_PATTERN_MODE related problem (bugs #184, #190).
+   - Fix a serial (non)blocking mode issue (bug #231).
+   - Temporarily disable the driver on Windows (needs portability fixes).
+   - Fix an endianness issue in the protocol handling (bug #135).
+   - Fix a sampling issue when (samples % 4) != 0 (bug #200).
+   - Fix an issue occuring when all channels were disabled (bugs #316, #347).
+   - Add an option to turn test patterns off again (bug #293).
+ * rigol-ds:
+   - Rename the 'rigol-ds1xx2' driver to 'rigol-ds'.
+   - Add support for more models and unify the driver code (bug #212).
+   - Add support for RS232 connectivity (previously only USBTMC worked).
+   - Enable the driver on non-Linux platforms since all transports the driver
+     uses are provided by cross-platform code/libs now (e.g. serial, USBTMC).
+   - Add support for 4 channels (required by some models).
+   - Add support for channel groups.
+   - Advertise SR_CONF_LIMIT_FRAMES support.
+   - Fix an issue with SR_DF_END sending.
+   - Enable/disable LA pod when (de)selecting digital channels.
+   - Disable key lock when closing device.
+   - Work around issues due to DS1000 specific protocol changes (bug #283).
+   - Fix incorrect digital channel numbers on some models (bug #269).
+   - Fix an issue with partial data reads (bugs #220, #209, #207).
+ * saleae-logic16:
+   - Fix an issue related to USB device claiming (bug #159).
+   - Don't send more samples than requested to the session bus (bug #350).
+   - Use unitsize 1 (not 2) if none of channels 8-15 are used.
+ * serial-dmm: Fix some parse issues by increasing a timeout.
+ * sysclk-lwla: Fix a sampling issue related to a glib API call (bug #270).
+ * uni-t-ut32x: Fix typo which prevented usage with multiple devices.
+ * victor-dmm: Fix MIN/MAX always being reported (bug #228).
+ * zeroplus-logic-cube:
+   - Add support for 32-channel models and additional memory sizes.
+   - Fix a frontend issue due to missing SR_CONF_CAPTURE_RATIO.
+   - Fix an issue causing pre-trigger garbage data to be sent (bug #222).
+   - Add initial voltage threshold support.
+ * Various drivers:
+   - Expose missing SR_CONF_TRIGGER_TYPE.
+   - Report max. possible number of samples (bugs #197, #258, #263).
+ * Output modules:
+   - Skip analog channels in logic-only output formats.
+   - Remove the obolete output module API, add wrapper calls for the new one.
+   - Stop using the obsolete output API (bugs #288, #47, #48).
+   - Properly receive and handle samplerate metadata (bug #46).
+ * input/vcd: Abort with an error upon > 64 channels (bug #194).
+ * output/vcd:
+   - Fix output for more than 8 channels.
+   - Output timestamp only once per change.
+   - Minor whitespace changes of output files to make them more readable.
+   - Remove bogus $dumpvars and $dumpoff commands.
+   - Various bugfixes and portability fixes.
+ * output/csv:
+   - Remove a 64-channel limit (bug #193).
+   - Fix an issue resulting in incorrect trailing commas (bug #230).
+   - Fix an issue where all timestamps would be zero (bug #35).
+ * Rename 'probe' to 'channel' in all places, since libsigrok supports a lot
+   of gear where 'channel' fits better (bug #259).
+ * Change TRIGGER_SLOPE from SR_T_UINT64 to SR_T_STRING.
+ * Windows support improvements:
+   - Use libserialport (+other backend code) to fix serial devices (bug #91).
+   - Add serial source addition/removal backend code (bug #206).
+   - Add backend code for properly supporting USB based devices.
+ * Fix various memory leaks in the backend code.
+ * Fix some incorrect parsing of floating point numbers in the strutil code.
+ * Fix various endianness issues in backend code and drivers (bug #266).
+ * Fix a few issues related to incorrect parsing with non-ANSI-C locales
+   (bugs #271, #272, #273, #274).
+ * Fix an issue related to data being sent to the libsigrok session which
+   was not a multiple of the unit/sample size (bugs, #289, #290).
+ * Drop the es51922 DMM parser (replaced by the generic es519xx parser).
+ * libsigrok session files:
+   - The libsigrok session file format (for *.sr files) has changed, and the
+     file format 'version' field is bumped to 2. Older libsigrok versions will
+     not be able to handle version 2 files, but new libsigrok versions can
+     handle both version 1 and version 2 files. New libsigrok versions will
+     always write/output version 2 files.
+   - Fix an issue resulting in left-over temporary files (bug #276).
+   - Fix an issue with analog probes (unsupported) in *.sr files (bug #277).
+   - Fix an issue with missing samplerate from session files (bug #275).
+ * Improved API documentation.
+ * Major API changes (overview):
+   - Change various function/macro names related to the probe->channel rename.
+   - Change various functions due to the new channel group feature.
+   - All enums in the public API now have names (e.g. 'enum sr_mqflag').
+   - The lib no longer defineѕ names with _t suffix (POSIX reserved).
+   - New API calls:
+      - sr_session_dev_list()
+      - sr_session_save_init()
+      - sr_session_append()
+      - sr_config_commit()
+      - sr_output_new()
+      - sr_output_send()
+      - sr_output_free()
+   - Obsoleted and removed API calls:
+      - sr_filter_channels()
+   - 'struct sr_session' is now opaque (contents shouldn't be used directly).
+   - Please see the Doxygen API documentation for further details.
+ * Build system:
+   - Switch to a non-recursive automake setup (fewer files, faster builds).
+   - configure: Clearly mark required and optional libs.
+
 0.2.2 (2013-11-04)
 ------------------
 
