@@ -137,7 +137,7 @@ typedef int (*sr_receive_data_callback)(int fd, int revents, void *cb_data);
 /** Data types used by sr_config_info(). */
 enum sr_datatype {
 	SR_T_UINT64 = 10000,
-	SR_T_CHAR,
+	SR_T_STRING,
 	SR_T_BOOL,
 	SR_T_FLOAT,
 	SR_T_RATIONAL_PERIOD,
@@ -569,7 +569,7 @@ struct sr_config {
 struct sr_config_info {
 	/** Config key like SR_CONF_CONN, etc. */
 	int key;
-	/** Data type like SR_T_CHAR, etc. */
+	/** Data type like SR_T_STRING, etc. */
 	int datatype;
 	/** Id string, e.g. "serialcomm". */
 	char *id;
