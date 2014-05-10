@@ -20,6 +20,11 @@
 #ifndef LIBSIGROK_HARDWARE_PIPISTRELLO_OLS_PROTOCOL_H
 #define LIBSIGROK_HARDWARE_PIPISTRELLO_OLS_PROTOCOL_H
 
+#define USB_VENDOR_ID			0x0403
+#define USB_DEVICE_ID			0x6010
+#define USB_VENDOR_NAME		"Saanlima"
+#define USB_IPRODUCT			"Pipistrello LX45"
+
 #include <stdint.h>
 #include <string.h>
 #include <glib.h>
