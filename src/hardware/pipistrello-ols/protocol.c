@@ -134,7 +134,7 @@ SR_PRIV int p_ols_open(struct dev_context *devc)
 	return SR_OK;
 
 err_open_close_ftdic:
-	ftdi_usb_close(devc->ftdic))
+	ftdi_usb_close(devc->ftdic);
 	return SR_ERR;
 }
 

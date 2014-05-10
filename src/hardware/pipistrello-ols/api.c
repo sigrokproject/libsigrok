@@ -437,7 +437,6 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 static int dev_open(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	int ret;
 
 	devc = sdi->priv;
 
