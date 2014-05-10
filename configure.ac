@@ -129,6 +129,7 @@ DRIVER([MIC 985xx], [mic-985xx])
 DRIVER([Motech LPS 30x], [motech-lps-30x])
 DRIVER([Norma DMM], [norma-dmm])
 DRIVER([OpenBench Logic Sniffer], [openbench-logic-sniffer])
+DRIVER([Pipistrello-OLS], [pipistrello-ols])
 DRIVER([Rigol DS], [rigol-ds])
 DRIVER([Saleae Logic16], [saleae-logic16])
 DRIVER([serial DMM], [serial-dmm])
@@ -375,6 +376,7 @@ fi
 
 if test "x$have_libftdi" = "xno"; then
 	HW_ASIX_SIGMA="no"; HW_CHRONOVU_LA="no"; HW_IKALOGIC_SCANAPLUS="no";
+	HW_PIPISTRELLO_OLS="no";
 fi
 
 # glibmm-2.4 is needed for the C++ bindings.
@@ -579,6 +581,11 @@ fi
 AM_CONDITIONAL(HW_OPENBENCH_LOGIC_SNIFFER, test x$HW_OPENBENCH_LOGIC_SNIFFER = xyes)
 if test "x$HW_OPENBENCH_LOGIC_SNIFFER" = "xyes"; then
 	AC_DEFINE(HAVE_HW_OPENBENCH_LOGIC_SNIFFER, 1, [OpenBench Logic Sniffer (OLS) support])
+fi
+
+AM_CONDITIONAL(HW_PIPISTRELLO_OLS, test x$HW_PIPISTRELLO_OLS = xyes)
+if test "x$HW_PIPISTRELLO_OLS" = "xyes"; then
+	AC_DEFINE(HAVE_HW_PIPISTRELLO_OLS, 1, [Pipistrello OLS support])
 fi
 
 AM_CONDITIONAL(HW_RIGOL_DS, test x$HW_RIGOL_DS = xyes)

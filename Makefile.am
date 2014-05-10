@@ -264,6 +264,12 @@ libsigrok_la_SOURCES += \
 	src/hardware/openbench-logic-sniffer/protocol.c \
 	src/hardware/openbench-logic-sniffer/api.c
 endif
+if HW_PIPISTRELLO_OLS
+libsigrok_la_SOURCES += \
+	src/hardware/pipistrello-ols/protocol.h \
+	src/hardware/pipistrello-ols/protocol.c \
+	src/hardware/pipistrello-ols/api.c
+endif
 if HW_RIGOL_DS
 libsigrok_la_SOURCES += \
 	src/hardware/rigol-ds/protocol.h \

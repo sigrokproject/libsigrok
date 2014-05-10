@@ -75,6 +75,7 @@ The following drivers/devices do not need any firmware upload:
  - mic-985xx (including all subdrivers)
  - norma-dmm
  - openbench-logic-sniffer
+ - pipistrello-ols
  - rigol-ds
  - serial-dmm (including all subdrivers)
  - teleinfo
@@ -133,6 +134,7 @@ The following drivers/devices do not require a serial port specification:
  - ikalogic-scanaplus
  - kecheng-kc-330b
  - lascar-el-usb
+ - pipistrello-ols
  - rigol-ds (USBTMC or TCP)
  - saleae-logic16
  - sysclk-lwla
