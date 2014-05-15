@@ -75,6 +75,9 @@ ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", MODE="664", GROUP="plugdev"
 # Dangerous Prototypes Buspirate (v4)
 ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="fb00", MODE="664", GROUP="plugdev"
 
+# DreamSourceLab DSLogic
+ATTRS{idVendor}=="2a0e", ATTRS{idProduct}=="0001", MODE="664", GROUP="plugdev"
+
 # Hantek DSO-2090
 # lsusb: "04b4:2090 Cypress Semiconductor Corp."
 # lsusb after FW upload: "04b5:2090 ROHM LSI Systems USA, LLC"
