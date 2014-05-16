@@ -19,6 +19,7 @@
  */
 
 #include "protocol.h"
+#include "dslogic.h"
 
 static const struct fx2lafw_profile supported_fx2[] = {
 	/*
@@ -411,7 +412,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 	}
 
 	if (devc->dslogic) {
-		if ((ret = dslogic_fpga_firmware_upload(usb->devhdl,
+		if ((ret = dslogic_fpga_firmware_upload(sdi,
 				DSLOGIC_FPGA_FIRMWARE)) != SR_OK)
 			return ret;
 	}
@@ -611,22 +612,17 @@ static int receive_data(int fd, int revents, void *cb_data)
 	return TRUE;
 }
 
-static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
+static int start_transfers(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	struct drv_context *drvc;
 	struct sr_usb_dev_inst *usb;
 	struct sr_trigger *trigger;
 	struct libusb_transfer *transfer;
-	unsigned int i, timeout, num_transfers;
-	int ret;
+	unsigned int i, num_transfers;
+	int endpoint, timeout, ret;
 	unsigned char *buf;
 	size_t size;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
-	drvc = di->priv;
 	devc = sdi->priv;
 	usb = sdi->conn;
 
@@ -647,6 +643,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		devc->trigger_fired = TRUE;
 
 	timeout = fx2lafw_get_timeout(devc);
+
 	num_transfers = fx2lafw_get_number_of_transfers(devc);
 	size = fx2lafw_get_buffer_size(devc);
 	devc->submitted_transfers = 0;
@@ -657,6 +654,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		return SR_ERR_MALLOC;
 	}
 
+	timeout = fx2lafw_get_timeout(devc);
+	endpoint = devc->dslogic ? 6 : 2;
 	devc->num_transfers = num_transfers;
 	for (i = 0; i < num_transfers; i++) {
 		if (!(buf = g_try_malloc(size))) {
@@ -665,7 +664,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		}
 		transfer = libusb_alloc_transfer(0);
 		libusb_fill_bulk_transfer(transfer, usb->devhdl,
-				2 | LIBUSB_ENDPOINT_IN, buf, size,
+				endpoint | LIBUSB_ENDPOINT_IN, buf, size,
 				fx2lafw_receive_transfer, (void *)sdi, timeout);
 		if ((ret = libusb_submit_transfer(transfer)) != 0) {
 			sr_err("Failed to submit transfer: %s.",
@@ -679,16 +678,101 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		devc->submitted_transfers++;
 	}
 
-	devc->ctx = drvc->sr_ctx;
+	/* Send header packet to the session bus. */
+	std_session_send_df_header(devc->cb_data, LOG_PREFIX);
 
 	usb_source_add(sdi->session, devc->ctx, timeout, receive_data, NULL);
 
-	/* Send header packet to the session bus. */
-	std_session_send_df_header(cb_data, LOG_PREFIX);
+	return SR_OK;
+}
 
-	if ((ret = fx2lafw_command_start_acquisition(sdi)) != SR_OK) {
-		fx2lafw_abort_acquisition(devc);
+static void dslogic_trigger_receive(struct libusb_transfer *transfer)
+{
+	const struct sr_dev_inst *sdi;
+	struct dslogic_trigger_pos *tpos;
+
+	sdi = transfer->user_data;
+
+	if (transfer->status == LIBUSB_TRANSFER_COMPLETED
+			&& transfer->actual_length == sizeof(struct dslogic_trigger_pos)) {
+		tpos = (struct dslogic_trigger_pos *)transfer->buffer;
+		sr_dbg("tpos real_pos %.8x ram_saddr %.8x", tpos->real_pos, tpos->ram_saddr);
+		g_free(tpos);
+		start_transfers(sdi);
+	}
+
+	libusb_free_transfer(transfer);
+
+}
+
+static int dslogic_trigger_request(const struct sr_dev_inst *sdi)
+{
+	struct sr_usb_dev_inst *usb;
+	struct libusb_transfer *transfer;
+	struct dslogic_trigger_pos *tpos;
+	int ret;
+
+	usb = sdi->conn;
+
+	if ((ret = dslogic_stop_acquisition(sdi)) != SR_OK)
 		return ret;
+
+	if ((ret = dslogic_fpga_configure(sdi)) != SR_OK)
+		return ret;
+
+	if ((ret = dslogic_start_acquisition(sdi)) != SR_OK)
+		return ret;
+
+	sr_dbg("Getting trigger.");
+	tpos = g_malloc(sizeof(struct dslogic_trigger_pos));
+	transfer = libusb_alloc_transfer(0);
+	libusb_fill_bulk_transfer(transfer, usb->devhdl, 6 | LIBUSB_ENDPOINT_IN,
+			(unsigned char *)tpos, sizeof(struct dslogic_trigger_pos),
+			dslogic_trigger_receive, (void *)sdi, 0);
+	if ((ret = libusb_submit_transfer(transfer)) < 0) {
+		sr_err("Failed to request trigger: %s.", libusb_error_name(ret));
+		libusb_free_transfer(transfer);
+		g_free(tpos);
+		return SR_ERR;
+	}
+
+	return ret;
+}
+
+static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
+{
+	struct drv_context *drvc;
+	struct dev_context *devc;
+	int timeout, ret;
+
+	if (sdi->status != SR_ST_ACTIVE)
+		return SR_ERR_DEV_CLOSED;
+
+	drvc = di->priv;
+	devc = sdi->priv;
+
+	/* Configures devc->trigger_* and devc->sample_wide */
+	if (fx2lafw_configure_channels(sdi) != SR_OK) {
+		sr_err("Failed to configure channels.");
+		return SR_ERR;
+	}
+
+	devc->ctx = drvc->sr_ctx;
+	devc->cb_data = cb_data;
+	devc->sent_samples = 0;
+	devc->empty_transfer_count = 0;
+	devc->acq_aborted = FALSE;
+
+	timeout = fx2lafw_get_timeout(devc);
+	usb_source_add(devc->ctx, timeout, receive_data, NULL);
+
+	if (devc->dslogic) {
+		dslogic_trigger_request(sdi);
+	}
+	else {
+		if ((ret = fx2lafw_command_start_acquisition(sdi)) != SR_OK)
+			return ret;
+		start_transfers(sdi);
 	}
 
 	return SR_OK;

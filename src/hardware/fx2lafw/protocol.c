@@ -21,6 +21,7 @@
 #include <glib.h>
 #include <glib/gstdio.h>
 #include "protocol.h"
+#include "dslogic.h"
 
 #pragma pack(push, 1)
 
@@ -62,7 +63,7 @@ static int command_get_revid_version(struct sr_dev_inst *sdi, uint8_t *revid)
 	libusb_device_handle *devhdl = usb->devhdl;
 	int cmd, ret;
 
-	cmd = devc->dslogic ? CMD_DSLOGIC_GET_REVID_VERSION : CMD_GET_REVID_VERSION;
+	cmd = devc->dslogic ? DS_CMD_GET_REVID_VERSION : CMD_GET_REVID_VERSION;
 	ret = libusb_control_transfer(devhdl, LIBUSB_REQUEST_TYPE_VENDOR |
 		LIBUSB_ENDPOINT_IN, cmd, 0x0000, 0x0000, revid, 1, 100);
 
@@ -107,7 +108,7 @@ SR_PRIV int fx2lafw_command_start_acquisition(const struct sr_dev_inst *sdi)
 		delay = SR_MHZ(30) / samplerate - 1;
 	}
 
-	sr_info("GPIF delay = %d, clocksource = %sMHz.", delay,
+	sr_dbg("GPIF delay = %d, clocksource = %sMHz.", delay,
 		(cmd.flags & CMD_START_FLAGS_CLK_48MHZ) ? "48" : "30");
 
 	if (delay <= 0 || delay > MAX_SAMPLE_DELAY) {
@@ -395,7 +396,7 @@ SR_PRIV void fx2lafw_receive_transfer(struct libusb_transfer *transfer)
 		return;
 	}
 
-	sr_info("receive_transfer(): status %d received %d bytes.",
+	sr_dbg("receive_transfer(): status %d received %d bytes.",
 		transfer->status, transfer->actual_length);
 
 	/* Save incoming transfer before reusing the transfer struct. */

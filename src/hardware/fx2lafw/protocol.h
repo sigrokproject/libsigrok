@@ -67,15 +67,6 @@
 #define CMD_START_FLAGS_CLK_30MHZ	(0 << CMD_START_FLAGS_CLK_SRC_POS)
 #define CMD_START_FLAGS_CLK_48MHZ	(1 << CMD_START_FLAGS_CLK_SRC_POS)
 
-/* Modified protocol commands & flags used by DSLogic */
-#define CMD_DSLOGIC_GET_REVID_VERSION	0xb1
-#define CMD_DSLOGIC_START	0xb2
-#define CMD_DSLOGIC_CONFIG	0xb3
-#define CMD_DSLOGIC_SETTING	0xb4
-
-#define CMD_START_FLAGS_DSLOGIC_STOP_POS	7
-#define CMD_START_FLAGS_DSLOGIC_STOP (1 << CMD_START_FLAGS_DSLOGIC_STOP_POS)
-
 struct fx2lafw_profile {
 	uint16_t vid;
 	uint16_t pid;
@@ -128,6 +119,8 @@ struct dev_context {
 
 	/* Is this a DSLogic? */
 	gboolean dslogic;
+	uint16_t dslogic_mode;
+	int dslogic_external_clock;
 };
 
 SR_PRIV int fx2lafw_command_start_acquisition(const struct sr_dev_inst *sdi);
@@ -140,7 +133,4 @@ SR_PRIV void fx2lafw_receive_transfer(struct libusb_transfer *transfer);
 SR_PRIV size_t fx2lafw_get_buffer_size(struct dev_context *devc);
 SR_PRIV unsigned int fx2lafw_get_number_of_transfers(struct dev_context *devc);
 SR_PRIV unsigned int fx2lafw_get_timeout(struct dev_context *devc);
-
-int dslogic_fpga_firmware_upload(struct libusb_device_handle *hdl,
-		const char *filename);
 #endif
