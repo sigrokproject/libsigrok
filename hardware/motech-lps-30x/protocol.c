@@ -66,12 +66,10 @@ static void send_data(struct sr_dev_inst *sdi)
 static void process_line(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	struct sr_serial_dev_inst *serial;
 	double dbl;
 	int auxint;
 
 	devc = sdi->priv;
-	serial = sdi->conn;
 
 	switch (devc->acq_req_pending) {
 	case 0: /* Should not happen... */

@@ -612,7 +612,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 
 	devc = sdi->priv;
 
-	/* Cannot change settings while aquisition active, would cause a mess with commands.
+	/* Cannot change settings while acquisition active, would cause a mess with commands.
 	 * Changing this would be possible, but tricky. */
 	if (devc->acq_running)
 		return SR_ERR_NA;
