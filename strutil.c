@@ -46,7 +46,7 @@
 /**
  * @private
  *
- * Convert a string representation of a numeric value to a long integer. The
+ * Convert a string representation of a numeric value (base 10) to a long integer. The
  * conversion is strict and will fail if the complete string does not represent
  * a valid long integer. The function sets errno according to the details of the
  * failure.
@@ -54,7 +54,8 @@
  * @param str The string representation to convert.
  * @param ret Pointer to long where the result of the conversion will be stored.
  *
- * @return SR_OK if conversion is successful, otherwise SR_ERR.
+ * @retval SR_OK Conversion successful.
+ * @retval SR_ERR Failure.
  *
  * @since 0.3.0
  */
@@ -64,7 +65,7 @@ SR_PRIV int sr_atol(const char *str, long *ret)
 	char *endptr = NULL;
 
 	errno = 0;
-	tmp = strtol(str, &endptr, 0);
+	tmp = strtol(str, &endptr, 10);
 
 	if (!endptr || *endptr || errno) {
 		if (!errno)
@@ -79,7 +80,7 @@ SR_PRIV int sr_atol(const char *str, long *ret)
 /**
  * @private
  *
- * Convert a string representation of a numeric value to an integer. The
+ * Convert a string representation of a numeric value (base 10) to an integer. The
  * conversion is strict and will fail if the complete string does not represent
  * a valid integer. The function sets errno according to the details of the
  * failure.
@@ -87,7 +88,8 @@ SR_PRIV int sr_atol(const char *str, long *ret)
  * @param str The string representation to convert.
  * @param ret Pointer to int where the result of the conversion will be stored.
  *
- * @return SR_OK if conversion is successful, otherwise SR_ERR.
+ * @retval SR_OK Conversion successful.
+ * @retval SR_ERR Failure.
  *
  * @since 0.3.0
  */
@@ -118,7 +120,8 @@ SR_PRIV int sr_atoi(const char *str, int *ret)
  * @param str The string representation to convert.
  * @param ret Pointer to double where the result of the conversion will be stored.
  *
- * @return SR_OK if conversion is successful, otherwise SR_ERR.
+ * @retval SR_OK Conversion successful.
+ * @retval SR_ERR Failure.
  *
  * @since 0.3.0
  */
@@ -151,7 +154,8 @@ SR_PRIV int sr_atod(const char *str, double *ret)
  * @param str The string representation to convert.
  * @param ret Pointer to float where the result of the conversion will be stored.
  *
- * @return SR_OK if conversion is successful, otherwise SR_ERR.
+ * @retval SR_OK Conversion successful.
+ * @retval SR_ERR Failure.
  *
  * @since 0.3.0
  */
@@ -182,7 +186,8 @@ SR_PRIV int sr_atof(const char *str, float *ret)
  * @param str The string representation to convert.
  * @param ret Pointer to float where the result of the conversion will be stored.
  *
- * @return SR_OK if conversion is successful, otherwise SR_ERR.
+ * @retval SR_OK Conversion successful.
+ * @retval SR_ERR Failure.
  *
  * @since 0.3.0
  */
