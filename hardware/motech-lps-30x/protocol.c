@@ -139,7 +139,6 @@ SR_PRIV int motech_lps_30x_receive_data(int fd, int revents, void *cb_data)
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
-	// char achar;
 	int len;
 	gdouble elapsed_s;
 
@@ -165,9 +164,6 @@ SR_PRIV int motech_lps_30x_receive_data(int fd, int revents, void *cb_data)
 				devc->buflen = 0;
 				continue;
 			}
-
-			// achar = *(devc->buf + devc->buflen);
-			// sr_spew("read 0x%02x/%d/'%c'", achar, achar, achar);
 
 			devc->buflen += len;
 			devc->buf[devc->buflen] = '\0';

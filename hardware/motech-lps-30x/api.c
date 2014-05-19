@@ -281,7 +281,6 @@ SR_PRIV int lps_query_status(struct sr_dev_inst* sdi)
 {
 	char buf[LINELEN_MAX];
 	int stat;
-	const char* ptr;
 	struct dev_context* devc;
 
 	devc = (struct dev_context*)sdi->priv;
@@ -293,11 +292,7 @@ SR_PRIV int lps_query_status(struct sr_dev_inst* sdi)
 		return SR_ERR;
 	}
 
-	/* Jump across leading zeros to prevent sr_atoi() believing this to be octal. */
-	for (ptr = buf; isspace(*buf) || (*ptr == '0'); ptr++)
-		;
-
-	if (sr_atoi(ptr, &stat) != SR_OK)
+	if (sr_atoi(buf, &stat) != SR_OK)
 		return SR_ERR;
 
 	return lps_process_status(sdi, stat);
@@ -369,7 +364,7 @@ SR_PRIV int lps_read_reply(struct sr_serial_dev_inst *serial, char **buf, int *b
 
 /** Scan for LPS-300 series device.
  */
-static GSList *doScan(lps_modelid modelid, struct sr_dev_driver *drv, GSList *options)
+static GSList *do_scan(lps_modelid modelid, struct sr_dev_driver *drv, GSList *options)
 {
 	struct sr_dev_inst *sdi;
 	struct drv_context *drvc;
@@ -511,7 +506,7 @@ exit_err:
 /** Scan for LPS-301 device. */
 static GSList *scan_lps301(GSList *options)
 {
-	return doScan(LPS_301, &motech_lps_301_driver_info, options);
+	return do_scan(LPS_301, &motech_lps_301_driver_info, options);
 }
 
 static GSList *doDevList(struct sr_dev_driver *drv)
