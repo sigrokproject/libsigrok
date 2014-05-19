@@ -195,6 +195,11 @@ AC_ARG_ENABLE(mic-985xx, AC_HELP_STRING([--enable-mic-985xx],
 	[HW_MIC_985XX="$enableval"],
 	[HW_MIC_985XX=$HW_ENABLED_DEFAULT])
 
+AC_ARG_ENABLE(motech-lps-30x, AC_HELP_STRING([--enable-motech-lps-30x],
+	[enable motech-lps-30x support [default=yes]]),
+	[HW_MOTECH_LPS_30X="$enableval"],
+	[HW_MOTECH_LPS_30X=$HW_ENABLED_DEFAULT])
+
 AC_ARG_ENABLE(norma-dmm, AC_HELP_STRING([--enable-norma-dmm],
 	[enable Norma DMM support [default=yes]]),
 	[HW_NORMA_DMM="$enableval"],
@@ -305,8 +310,9 @@ PKG_CHECK_MODULES([libserialport], [libserialport >= 0.1.0],
 	HW_ATTEN_PPS3XXX="no"; HW_BRYMEN_DMM="no"; HW_CEM_DT_885X="no";
 	HW_CENTER_3XX="no"; HW_COLEAD_SLM="no"; HW_CONRAD_DIGI_35_CPU="no";
 	HW_FLUKE_DMM="no"; HW_GMC_MH_1X_2X="no"; HW_HAMEG_HMO="no";
-	HW_MIC_985XX="no"; HW_NORMA_DMM="no"; HW_OLS="no";
-	HW_SERIAL_DMM="no"; HW_TELEINFO="no"; HW_TONDAJ_SL_814="no"])
+	HW_MIC_985XX="no"; HW_MOTECH_LPS_30X="no"; HW_NORMA_DMM="no";
+	HW_OLS="no"; HW_SERIAL_DMM="no"; HW_TELEINFO="no";
+	HW_TONDAJ_SL_814="no"])
 
 # Define HAVE_LIBSERIALPORT in config.h if we found libserialport.
 if test "x$have_libserialport" != "xno"; then
@@ -502,6 +508,11 @@ if test "x$HW_MIC_985XX" = "xyes"; then
 	AC_DEFINE(HAVE_HW_MIC_985XX, 1, [MIC 985xx support])
 fi
 
+AM_CONDITIONAL(HW_MOTECH_LPS_30X, test x$HW_MOTECH_LPS_30X = xyes)
+if test "x$HW_MOTECH_LPS_30X" = "xyes"; then
+	AC_DEFINE(HAVE_HW_MOTECH_LPS_30X, 1, [motech-lps-30x support])
+fi
+
 AM_CONDITIONAL(HW_NORMA_DMM, test x$HW_NORMA_DMM = xyes)
 if test "x$HW_NORMA_DMM" = "xyes"; then
        AC_DEFINE(HAVE_HW_NORMA_DMM, 1, [Norma DMM support])
@@ -635,6 +646,7 @@ echo "  - ikalogic-scanaplus.............. $HW_IKALOGIC_SCANAPLUS"
 echo "  - kecheng-kc-330b................. $HW_KECHENG_KC_330B"
 echo "  - lascar-el-usb................... $HW_LASCAR_EL_USB"
 echo "  - mic-985xx....................... $HW_MIC_985XX"
+echo "  - motech-lps-30x.................. $HW_MOTECH_LPS_30X"
 echo "  - norma-dmm....................... $HW_NORMA_DMM"
 echo "  - openbench-logic-sniffer......... $HW_OLS"
 echo "  - rigol-ds........................ $HW_RIGOL_DS"

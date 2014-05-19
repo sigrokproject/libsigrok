@@ -228,6 +228,12 @@ libsigrok_la_SOURCES += \
 	hardware/mic-985xx/protocol.c \
 	hardware/mic-985xx/api.c
 endif
+if HW_MOTECH_LPS_30X
+libsigrok_la_SOURCES += \
+	hardware/motech-lps-30x/protocol.h \
+	hardware/motech-lps-30x/protocol.c \
+	hardware/motech-lps-30x/api.c
+endif
 if HW_NORMA_DMM
 libsigrok_la_SOURCES += \
 	hardware/norma-dmm/protocol.h \
