@@ -236,7 +236,7 @@ enum sr_unit {
 	 * a unitless quantity, for example.
 	 */
 	SR_UNIT_UNITLESS,
-	/** Sound pressure level relative so 20 micropascals. */
+	/** Sound pressure level, in decibels, relative to 20 micropascals. */
 	SR_UNIT_DECIBEL_SPL,
 	/**
 	 * Normalized (0 to 1) concentration of a substance or compound with 0

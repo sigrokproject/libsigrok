@@ -81,7 +81,8 @@ extern struct sr_session *session;
  *
  * Initializing and shutting down libsigrok.
  *
- * Before using any of the libsigrok functionality, sr_init() must
+ * Before using any of the libsigrok functionality (except
+ * sr_log_loglevel_set() and sr_log_opts_set()), sr_init() must
  * be called to initialize the library, which will return a struct sr_context
  * when the initialization was successful.
  *

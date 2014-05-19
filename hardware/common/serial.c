@@ -39,7 +39,8 @@
  * If the serial structure contains a serialcomm string, it will be
  * passed to serial_set_paramstr() after the port is opened.
  *
- * @return SR_OK on success, SR_ERR on failure.
+ * @retval SR_OK Success.
+ * @retval SR_ERR Failure.
  */
 SR_PRIV int serial_open(struct sr_serial_dev_inst *serial, int flags)
 {
@@ -88,7 +89,8 @@ SR_PRIV int serial_open(struct sr_serial_dev_inst *serial, int flags)
  *
  * @param serial Previously initialized serial port structure.
  *
- * @return SR_OK on success, SR_ERR on failure.
+ * @retval SR_OK Success.
+ * @retval SR_ERR Failure.
  */
 SR_PRIV int serial_close(struct sr_serial_dev_inst *serial)
 {
@@ -132,7 +134,8 @@ SR_PRIV int serial_close(struct sr_serial_dev_inst *serial)
  *
  * @param serial Previously initialized serial port structure.
  *
- * @return SR_OK on success, SR_ERR on failure.
+ * @retval SR_OK Success.
+ * @retval SR_ERR Failure.
  */
 SR_PRIV int serial_flush(struct sr_serial_dev_inst *serial)
 {
@@ -310,7 +313,7 @@ SR_PRIV int serial_read_nonblocking(struct sr_serial_dev_inst *serial, void *buf
  * @param[in] rts Status of RTS line (0 or 1; required by some interfaces).
  * @param[in] dtr Status of DTR line (0 or 1; required by some interfaces).
  *
- * @retval SR_OK Success
+ * @retval SR_OK Success.
  * @retval SR_ERR Failure.
  */
 SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
@@ -565,7 +568,7 @@ SR_PRIV int serial_readline(struct sr_serial_dev_inst *serial, char **buf,
  *                 critical, but it helps fine tune the serial port polling
  *                 delay.
  *
- * @retval SR_OK Valid packet was found within the given timeout
+ * @retval SR_OK Valid packet was found within the given timeout.
  * @retval SR_ERR Failure.
  */
 SR_PRIV int serial_stream_detect(struct sr_serial_dev_inst *serial,
@@ -748,8 +751,8 @@ SR_PRIV int serial_source_remove(struct sr_serial_dev_inst *serial)
 /**
  * Find USB serial devices via the USB vendor ID and product ID.
  *
- * @param vendor_id Vendor ID of the USB device.
- * @param product_id Product ID of the USB device.
+ * @param[in] vendor_id Vendor ID of the USB device.
+ * @param[in] product_id Product ID of the USB device.
  *
  * @return A GSList of strings containing the path of the serial device or
  *         NULL if no serial device is found. The returned list must be freed

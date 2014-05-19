@@ -388,8 +388,8 @@ AM_CONDITIONAL(HAVE_CHECK, test x"$have_check" = "xyes")
 # will not currently work on Windows.
 case "$host" in
 *mingw*)
-       HW_OLS="no"
-       ;;
+	HW_OLS="no"
+	;;
 esac
 
 AC_SUBST(SR_PKGLIBS)
@@ -415,7 +415,7 @@ fi
 
 AM_CONDITIONAL(HW_ATTEN_PPS3XXX, test x$HW_ATTEN_PPS3XXX = xyes)
 if test "x$HW_ATTEN_PPS3XXX" = "xyes"; then
-       AC_DEFINE(HAVE_HW_ATTEN_PPS3XXX, 1, [Atten PPS3xxx support])
+	AC_DEFINE(HAVE_HW_ATTEN_PPS3XXX, 1, [Atten PPS3xxx support])
 fi
 
 AM_CONDITIONAL(HW_BRYMEN_BM86X, test x$HW_BRYMEN_BM86X = xyes)
@@ -515,7 +515,7 @@ fi
 
 AM_CONDITIONAL(HW_NORMA_DMM, test x$HW_NORMA_DMM = xyes)
 if test "x$HW_NORMA_DMM" = "xyes"; then
-       AC_DEFINE(HAVE_HW_NORMA_DMM, 1, [Norma DMM support])
+	AC_DEFINE(HAVE_HW_NORMA_DMM, 1, [Norma DMM support])
 fi
 
 AM_CONDITIONAL(HW_OLS, test x$HW_OLS = xyes)
