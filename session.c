@@ -292,6 +292,18 @@ SR_API int sr_session_datafeed_callback_add(sr_datafeed_callback cb, void *cb_da
 	return SR_OK;
 }
 
+SR_PRIV struct sr_trigger *sr_session_trigger_get(void)
+{
+	return session->trigger;
+}
+
+SR_API int sr_session_trigger_set(struct sr_trigger *trig)
+{
+	session->trigger = trig;
+
+	return SR_OK;
+}
+
 /**
  * Call every device in the session's callback.
  *
@@ -347,6 +359,42 @@ static int sr_session_iteration(gboolean block)
 	return SR_OK;
 }
 
+
+static int verify_trigger(struct sr_trigger *trigger)
+{
+	struct sr_trigger_stage *stage;
+	struct sr_trigger_match *match;
+	GSList *l, *m;
+
+	if (!trigger->stages) {
+		sr_err("No trigger stages defined.");
+		return SR_ERR;
+	}
+
+	sr_spew("Checking trigger:");
+	for (l = trigger->stages; l; l = l->next) {
+		stage = l->data;
+		if (!stage->matches) {
+			sr_err("Stage %d has no matches defined.", stage->stage);
+			return SR_ERR;
+		}
+		for (m = stage->matches; m; m = m->next) {
+			match = m->data;
+			if (!match->channel) {
+				sr_err("Stage %d match has no channel.", stage->stage);
+				return SR_ERR;
+			}
+			if (!match->match) {
+				sr_err("Stage %d match is not defined.", stage->stage);
+				return SR_ERR;
+			}
+			sr_spew("Stage %d match on channel %s, match %d", stage->stage,
+					match->channel->name, match->match);
+		}
+	}
+
+	return SR_OK;
+}
 /**
  * Start a session.
  *
@@ -374,6 +422,9 @@ SR_API int sr_session_start(void)
 		       "cannot be started without devices.", __func__);
 		return SR_ERR_BUG;
 	}
+
+	if (session->trigger && verify_trigger(session->trigger) != SR_OK)
+		return SR_ERR;
 
 	sr_info("Starting.");
 

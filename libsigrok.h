@@ -304,6 +304,59 @@ enum sr_mqflag {
 	SR_MQFLAG_AVG = 0x40000,
 };
 
+enum sr_trigger_matches {
+	SR_TRIGGER_ZERO = 1,
+	SR_TRIGGER_ONE,
+	SR_TRIGGER_RISING,
+	SR_TRIGGER_FALLING,
+	SR_TRIGGER_EDGE,
+	SR_TRIGGER_OVER,
+	SR_TRIGGER_UNDER,
+};
+
+/** The representation of a trigger, consisting of one or more stages
+ * containing one or more matches on a channel.
+ */
+struct sr_trigger {
+	/** A name for this trigger. This may be NULL if none is needed. */
+	char *name;
+	/** List of pointers to struct sr_trigger_stage. */
+	GSList *stages;
+};
+
+/** A trigger stage. */
+struct sr_trigger_stage {
+	/** Starts at 0. */
+	int stage;
+	/** List of pointers to struct sr_trigger_match. */
+	GSList *matches;
+};
+
+/** A channel to match and what to match it on. */
+struct sr_trigger_match {
+	/** The channel to trigger on. */
+	struct sr_channel *channel;
+	/** The trigger match to use.
+	 * For logic channels, only the following matches may be used:
+	 * SR_TRIGGER_ZERO
+	 * SR_TRIGGER_ONE
+	 * SR_TRIGGER_RISING
+	 * SR_TRIGGER_FALLING
+	 * SR_TRIGGER_EDGE
+	 *
+	 * For analog channels, only these matches may be used:
+	 * SR_TRIGGER_RISING
+	 * SR_TRIGGER_FALLING
+	 * SR_TRIGGER_OVER
+	 * SR_TRIGGER_UNDER
+	 *
+	 */
+	int match;
+	/** If the trigger match is one of SR_TRIGGER_OVER or SR_TRIGGER_UNDER,
+	 * this contains the value to compare against. */
+	float value;
+};
+
 /**
  * @struct sr_context
  * Opaque structure representing a libsigrok context.
@@ -535,7 +588,8 @@ enum sr_channeltype {
 
 /** Information on single channel. */
 struct sr_channel {
-	/** Number of channels, starting at 0. */
+	/** The index of this channel, starting at 0. Logic channels will
+	 * be encoded according to this index in SR_DF_LOGIC packets. */
 	int index;
 	/** Channel type (SR_CHANNEL_LOGIC, ...) */
 	int type;
@@ -543,8 +597,6 @@ struct sr_channel {
 	gboolean enabled;
 	/** Name of channel. */
 	char *name;
-	/** Trigger string, format like used by sigrok-cli */
-	char *trigger;
 };
 
 /** Structure for groups of channels that have common properties. */

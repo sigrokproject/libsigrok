@@ -90,6 +90,7 @@ SR_API int sr_session_destroy(void);
 SR_API int sr_session_dev_remove_all(void);
 SR_API int sr_session_dev_add(const struct sr_dev_inst *sdi);
 SR_API int sr_session_dev_list(GSList **devlist);
+SR_API int sr_session_trigger_set(struct sr_trigger *trig);
 
 /* Datafeed setup */
 SR_API int sr_session_datafeed_callback_remove_all(void);
@@ -128,6 +129,14 @@ SR_API struct sr_output *sr_output_new(struct sr_output_format *of,
 SR_API int sr_output_send(struct sr_output *o,
 		const struct sr_datafeed_packet *packet, GString **out);
 SR_API int sr_output_free(struct sr_output *o);
+
+/*--- trigger.c -------------------------------------------------------------*/
+
+SR_API struct sr_trigger *sr_trigger_new(char *name);
+SR_API void sr_trigger_free(struct sr_trigger *trig);
+SR_API struct sr_trigger_stage *sr_trigger_stage_new(struct sr_trigger *trig);
+SR_API int sr_trigger_match_add(struct sr_trigger_stage *stage,
+		struct sr_channel *ch, int trigger_match, float value);
 
 /*--- strutil.c -------------------------------------------------------------*/
 

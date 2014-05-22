@@ -228,8 +228,6 @@ SR_PRIV int sr_err(const char *format, ...);
 enum {
 	/** The enabled state of the channel has been changed. */
 	SR_CHANNEL_SET_ENABLED = 1 << 0,
-	/** The trigger setup of the channel has been changed. */
-	SR_CHANNEL_SET_TRIGGER = 1 << 1,
 };
 
 SR_PRIV struct sr_channel *sr_channel_new(int index, int type,
@@ -274,6 +272,7 @@ struct sr_session {
 	GSList *devs;
 	/** List of struct datafeed_callback pointers. */
 	GSList *datafeed_callbacks;
+	struct sr_trigger *trigger;
 	GTimeVal starttime;
 	gboolean running;
 
@@ -304,6 +303,7 @@ SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
 		const struct sr_datafeed_packet *packet);
 SR_PRIV int sr_session_stop_sync(void);
 SR_PRIV int sr_sessionfile_check(const char *filename);
+SR_PRIV struct sr_trigger *sr_session_trigger_get(void);
 
 /*--- std.c -----------------------------------------------------------------*/
 
