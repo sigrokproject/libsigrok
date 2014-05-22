@@ -476,7 +476,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		*data = g_variant_builder_end(&gvb);
 		break;
 	case SR_CONF_TRIGGER_TYPE:
-		*data = g_variant_new_string(TRIGGER_TYPE);
+		*data = g_variant_new_string(SOFT_TRIGGER_TYPES);
 		break;
 	default:
 		return SR_ERR_NA;
