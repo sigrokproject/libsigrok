@@ -68,6 +68,37 @@ static void handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi,
 	}
 }
 
+/** Request packet, if required. */
+SR_PRIV int req_packet(struct sr_dev_inst *sdi, int dmm)
+{
+	struct dev_context *devc;
+	struct sr_serial_dev_inst *serial;
+	int ret;
+
+	if (!dmms[dmm].packet_request)
+		return SR_OK;
+
+	devc = sdi->priv;
+	serial = sdi->conn;
+
+	if (devc->req_next_at && (devc->req_next_at > g_get_monotonic_time())) {
+		sr_spew("Not requesting new packet yet, %" PRIi64 " ms left.",
+			((devc->req_next_at - g_get_monotonic_time()) / 1000));
+		return SR_OK;
+	}
+
+	ret = dmms[dmm].packet_request(serial);
+	if (ret < 0) {
+		sr_err("Failed to request packet: %d.", ret);
+		return ret;
+	}
+
+	if (dmms[dmm].req_timeout_ms)
+		devc->req_next_at = g_get_monotonic_time() + (dmms[dmm].req_timeout_ms * 1000);
+
+	return SR_OK;
+}
+
 static void handle_new_data(struct sr_dev_inst *sdi, int dmm, void *info)
 {
 	struct dev_context *devc;
@@ -93,6 +124,14 @@ static void handle_new_data(struct sr_dev_inst *sdi, int dmm, void *info)
 		if (dmms[dmm].packet_valid(devc->buf + offset)) {
 			handle_packet(devc->buf + offset, sdi, dmm, info);
 			offset += dmms[dmm].packet_size;
+
+			/* Request next packet, if required. */
+			if (!dmms[dmm].packet_request)
+				break;
+			if (dmms[dmm].req_timeout_ms || dmms[dmm].req_delay_ms)
+				devc->req_next_at = g_get_monotonic_time() +
+					dmms[dmm].req_delay_ms * 1000;
+			req_packet(sdi, dmm);
 		} else {
 			offset++;
 		}
@@ -108,9 +147,7 @@ static int receive_data(int fd, int revents, int dmm, void *info, void *cb_data)
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
-	struct sr_serial_dev_inst *serial;
 	int64_t time;
-	int ret;
 
 	(void)fd;
 
@@ -120,20 +157,13 @@ static int receive_data(int fd, int revents, int dmm, void *info, void *cb_data)
 	if (!(devc = sdi->priv))
 		return TRUE;
 
-	serial = sdi->conn;
-
 	if (revents == G_IO_IN) {
 		/* Serial data arrived. */
 		handle_new_data(sdi, dmm, info);
 	} else {
-		/* Timeout, send another packet request (if DMM needs it). */
-		if (dmms[dmm].packet_request) {
-			ret = dmms[dmm].packet_request(serial);
-			if (ret < 0) {
-				sr_err("Failed to request packet: %d.", ret);
-				return FALSE;
-			}
-		}
+		/* Timeout; send another packet request if DMM needs it. */
+		if (dmms[dmm].packet_request && (req_packet(sdi, dmm) < 0))
+			return FALSE;
 	}
 
 	if (devc->limit_samples && devc->num_samples >= devc->limit_samples) {

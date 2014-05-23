@@ -69,6 +69,12 @@ struct dmm_info {
 	uint32_t baudrate;
 	/** Packet size in bytes. */
 	int packet_size;
+	/** Request timeout [ms] before request is considered lost and a new
+	 *  one is sent. Used only if device needs polling. */
+	int64_t req_timeout_ms;
+	/** Delay between reception of packet and next request. Some DMMs
+	 *  need this. Used only if device needs polling. */
+	int64_t req_delay_ms;
 	/** Packet request function. */
 	int (*packet_request)(struct sr_serial_dev_inst *);
 	/** Packet validation function. */
@@ -102,12 +108,19 @@ struct dev_context {
 	/** The current number of already received samples. */
 	uint64_t num_samples;
 
+	/** The starting time of current sampling run. */
 	int64_t starttime;
 
 	uint8_t buf[DMM_BUFSIZE];
 	int bufoffset;
 	int buflen;
+
+	/** The timestamp [µs] to send the next request.
+	 *  Used only if device needs polling. */
+	int64_t req_next_at;
 };
+
+SR_PRIV int req_packet(struct sr_dev_inst *sdi, int dmm);
 
 SR_PRIV int receive_data_BBCGM_M2110(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_DIGITEK_DT4000ZC(int fd, int revents, void *cb_data);
