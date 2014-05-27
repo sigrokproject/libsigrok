@@ -23,8 +23,14 @@ static const int hwcaps[] = {
 	SR_CONF_LOGIC_ANALYZER,
 	SR_CONF_SAMPLERATE,
 	SR_CONF_LIMIT_SAMPLES,
-	SR_CONF_TRIGGER_TYPE,
+	SR_CONF_TRIGGER_MATCH,
 	SR_CONF_CAPTURE_RATIO,
+};
+
+static const int32_t trigger_matches[] = {
+	SR_TRIGGER_RISING,
+	SR_TRIGGER_FALLING,
+	SR_TRIGGER_EDGE,
 };
 
 SR_PRIV const uint64_t sl2_samplerates[NUM_SAMPLERATES] = {
@@ -390,8 +396,10 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		g_variant_builder_add(&gvb, "{sv}", "samplerates", gvar);
 		*data = g_variant_builder_end(&gvb);
 		break;
-	case SR_CONF_TRIGGER_TYPE:
-		*data = g_variant_new_string(TRIGGER_TYPES);
+	case SR_CONF_TRIGGER_MATCH:
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+				trigger_matches, ARRAY_SIZE(trigger_matches),
+				sizeof(int32_t));
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
 		grange[0] = g_variant_new_uint64(0);
@@ -431,7 +439,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	 * The trigger must be configured first because the calculation of the
 	 * pre and post trigger samples depends on a configured trigger.
 	 */
-	sl2_configure_trigger(sdi);
+	sl2_convert_trigger(sdi);
 	sl2_calculate_trigger_samples(sdi);
 
 	trigger_bytes = devc->pre_trigger_bytes + devc->post_trigger_bytes;

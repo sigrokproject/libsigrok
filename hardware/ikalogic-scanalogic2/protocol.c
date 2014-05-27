@@ -479,14 +479,14 @@ SR_PRIV int sl2_set_limit_samples(const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-SR_PRIV void sl2_configure_trigger(const struct sr_dev_inst *sdi)
+SR_PRIV int sl2_convert_trigger(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	struct sr_channel *ch;
-	uint8_t trigger_type;
-	int channel_index, num_triggers_anyedge;
-	char *trigger;
-	GSList *l;
+	struct sr_trigger *trigger;
+	struct sr_trigger_stage *stage;
+	struct sr_trigger_match *match;
+	const GSList *l, *m;
+	int num_triggers_anyedge;
 
 	devc = sdi->priv;
 
@@ -494,32 +494,36 @@ SR_PRIV void sl2_configure_trigger(const struct sr_dev_inst *sdi)
 	devc->trigger_channel = TRIGGER_CHANNEL_0;
 	devc->trigger_type = TRIGGER_TYPE_NONE;
 
+	if (!(trigger = sr_session_trigger_get()))
+		return SR_OK;
+
+	if (g_slist_length(trigger->stages) > 1) {
+		sr_err("This device only supports 1 trigger stage.");
+		return SR_ERR;
+	}
+
 	num_triggers_anyedge = 0;
-
-	for (l = sdi->channels, channel_index = 0; l; l = l->next, channel_index++) {
-		ch = l->data;
-		trigger = ch->trigger;
-
-		if (!trigger || !ch->enabled)
-			continue;
-
-		switch (*trigger) {
-		case 'r':
-			trigger_type = TRIGGER_TYPE_POSEDGE;
-			break;
-		case 'f':
-			trigger_type = TRIGGER_TYPE_NEGEDGE;
-			break;
-		case 'c':
-			trigger_type = TRIGGER_TYPE_ANYEDGE;
-			num_triggers_anyedge++;
-			break;
-		default:
-			continue;
+	for (l = trigger->stages; l; l = l->next) {
+		stage = l->data;
+		for (m = stage->matches; m; m = m->next) {
+			match = m->data;
+			if (!match->channel->enabled)
+				/* Ignore disabled channels with a trigger. */
+				continue;
+			devc->trigger_channel = match->channel->index + 1;
+			switch (match->match) {
+			case SR_TRIGGER_RISING:
+				devc->trigger_type = TRIGGER_TYPE_POSEDGE;
+				break;
+			case SR_TRIGGER_FALLING:
+				devc->trigger_type = TRIGGER_TYPE_NEGEDGE;
+				break;
+			case SR_TRIGGER_EDGE:
+				devc->trigger_type = TRIGGER_TYPE_ANYEDGE;
+				num_triggers_anyedge++;
+				break;
+			}
 		}
-
-		devc->trigger_channel = channel_index + 1;
-		devc->trigger_type = trigger_type;
 	}
 
 	/*
@@ -533,6 +537,8 @@ SR_PRIV void sl2_configure_trigger(const struct sr_dev_inst *sdi)
 
 	sr_dbg("Trigger set to channel 0x%02x and type 0x%02x.",
 		devc->trigger_channel, devc->trigger_type);
+
+	return SR_OK;
 }
 
 SR_PRIV int sl2_set_capture_ratio(const struct sr_dev_inst *sdi,

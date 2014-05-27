@@ -49,8 +49,6 @@
 #define NUM_SAMPLERATES			11
 #define NUM_CHANNELS			4
 
-#define TRIGGER_TYPES			"rfc"
-
 /*
  * Number of sample bytes and samples the device can acquire. Note that the
  * vendor software can acquire 32736 sample bytes only but the device is capable
@@ -225,7 +223,7 @@ SR_PRIV int sl2_set_samplerate(const struct sr_dev_inst *sdi,
 		uint64_t samplerate);
 SR_PRIV int sl2_set_limit_samples(const struct sr_dev_inst *sdi,
 				  uint64_t limit_samples);
-SR_PRIV void sl2_configure_trigger(const struct sr_dev_inst *sdi);
+SR_PRIV int sl2_convert_trigger(const struct sr_dev_inst *sdi);
 SR_PRIV int sl2_set_capture_ratio(const struct sr_dev_inst *sdi,
 				  uint64_t capture_ratio);
 SR_PRIV int sl2_set_after_trigger_delay(const struct sr_dev_inst *sdi,
