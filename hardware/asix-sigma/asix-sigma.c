@@ -36,7 +36,6 @@
 #define USB_DESCRIPTION			"ASIX SIGMA"
 #define USB_VENDOR_NAME			"ASIX"
 #define USB_MODEL_NAME			"SIGMA"
-#define TRIGGER_TYPE 			"rf10"
 
 SR_PRIV struct sr_dev_driver asix_sigma_driver_info;
 static struct sr_dev_driver *di = &asix_sigma_driver_info;
@@ -74,9 +73,16 @@ static const char *channel_names[] = {
 static const int32_t hwcaps[] = {
 	SR_CONF_LOGIC_ANALYZER,
 	SR_CONF_SAMPLERATE,
-	SR_CONF_TRIGGER_TYPE,
+	SR_CONF_TRIGGER_MATCH,
 	SR_CONF_CAPTURE_RATIO,
 	SR_CONF_LIMIT_MSEC,
+};
+
+static const int32_t trigger_matches[] = {
+	SR_TRIGGER_ZERO,
+	SR_TRIGGER_ONE,
+	SR_TRIGGER_RISING,
+	SR_TRIGGER_FALLING,
 };
 
 static const char *sigma_firmware_files[] = {
@@ -708,75 +714,80 @@ static int set_samplerate(const struct sr_dev_inst *sdi, uint64_t samplerate)
  * The Sigma supports complex triggers using boolean expressions, but this
  * has not been implemented yet.
  */
-static int configure_channels(const struct sr_dev_inst *sdi)
+static int convert_trigger(const struct sr_dev_inst *sdi)
 {
-	struct dev_context *devc = sdi->priv;
-	const struct sr_channel *ch;
-	const GSList *l;
-	int trigger_set = 0;
-	int channelbit;
+	struct dev_context *devc;
+	struct sr_trigger *trigger;
+	struct sr_trigger_stage *stage;
+	struct sr_trigger_match *match;
+	const GSList *l, *m;
+	int channelbit, trigger_set;
 
+	devc = sdi->priv;
 	memset(&devc->trigger, 0, sizeof(struct sigma_trigger));
+	if (!(trigger = sr_session_trigger_get()))
+		return SR_OK;
 
-	for (l = sdi->channels; l; l = l->next) {
-		ch = (struct sr_channel *)l->data;
-		channelbit = 1 << (ch->index);
+	trigger_set = 0;
+	for (l = trigger->stages; l; l = l->next) {
+		stage = l->data;
+		for (m = stage->matches; m; m = m->next) {
+			match = m->data;
+			if (!match->channel->enabled)
+				/* Ignore disabled channels with a trigger. */
+				continue;
+			channelbit = 1 << (match->channel->index);
+			if (devc->cur_samplerate >= SR_MHZ(100)) {
+				/* Fast trigger support. */
+				if (trigger_set) {
+					sr_err("Only a single pin trigger is "
+							"supported in 100 and 200MHz mode.");
+					return SR_ERR;
+				}
+				if (match->match == SR_TRIGGER_FALLING)
+					devc->trigger.fallingmask |= channelbit;
+				else if (match->match == SR_TRIGGER_RISING)
+					devc->trigger.risingmask |= channelbit;
+				else {
+					sr_err("Only rising/falling trigger is "
+							"supported in 100 and 200MHz mode.");
+					return SR_ERR;
+				}
 
-		if (!ch->enabled || !ch->trigger)
-			continue;
-
-		if (devc->cur_samplerate >= SR_MHZ(100)) {
-			/* Fast trigger support. */
-			if (trigger_set) {
-				sr_err("Only a single pin trigger in 100 and "
-				       "200MHz mode is supported.");
-				return SR_ERR;
-			}
-			if (ch->trigger[0] == 'f')
-				devc->trigger.fallingmask |= channelbit;
-			else if (ch->trigger[0] == 'r')
-				devc->trigger.risingmask |= channelbit;
-			else {
-				sr_err("Only rising/falling trigger in 100 "
-				       "and 200MHz mode is supported.");
-				return SR_ERR;
-			}
-
-			++trigger_set;
-		} else {
-			/* Simple trigger support (event). */
-			if (ch->trigger[0] == '1') {
-				devc->trigger.simplevalue |= channelbit;
-				devc->trigger.simplemask |= channelbit;
-			}
-			else if (ch->trigger[0] == '0') {
-				devc->trigger.simplevalue &= ~channelbit;
-				devc->trigger.simplemask |= channelbit;
-			}
-			else if (ch->trigger[0] == 'f') {
-				devc->trigger.fallingmask |= channelbit;
 				++trigger_set;
-			}
-			else if (ch->trigger[0] == 'r') {
-				devc->trigger.risingmask |= channelbit;
-				++trigger_set;
-			}
+			} else {
+				/* Simple trigger support (event). */
+				if (match->match == SR_TRIGGER_ONE) {
+					devc->trigger.simplevalue |= channelbit;
+					devc->trigger.simplemask |= channelbit;
+				}
+				else if (match->match == SR_TRIGGER_ZERO) {
+					devc->trigger.simplevalue &= ~channelbit;
+					devc->trigger.simplemask |= channelbit;
+				}
+				else if (match->match == SR_TRIGGER_FALLING) {
+					devc->trigger.fallingmask |= channelbit;
+					++trigger_set;
+				}
+				else if (match->match == SR_TRIGGER_RISING) {
+					devc->trigger.risingmask |= channelbit;
+					++trigger_set;
+				}
 
-			/*
-			 * Actually, Sigma supports 2 rising/falling triggers,
-			 * but they are ORed and the current trigger syntax
-			 * does not permit ORed triggers.
-			 */
-			if (trigger_set > 1) {
-				sr_err("Only 1 rising/falling trigger "
-				       "is supported.");
-				return SR_ERR;
+				/*
+				 * Actually, Sigma supports 2 rising/falling triggers,
+				 * but they are ORed and the current trigger syntax
+				 * does not permit ORed triggers.
+				 */
+				if (trigger_set > 1) {
+					sr_err("Only 1 rising/falling trigger "
+						   "is supported.");
+					return SR_ERR;
+				}
 			}
 		}
-
-		if (trigger_set)
-			devc->use_triggers = 1;
 	}
+
 
 	return SR_OK;
 }
@@ -894,8 +905,10 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		g_variant_builder_add(&gvb, "{sv}", "samplerates", gvar);
 		*data = g_variant_builder_end(&gvb);
 		break;
-	case SR_CONF_TRIGGER_TYPE:
-		*data = g_variant_new_string(TRIGGER_TYPE);
+	case SR_CONF_TRIGGER_MATCH:
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+				trigger_matches, ARRAY_SIZE(trigger_matches),
+				sizeof(int32_t));
 		break;
 	default:
 		return SR_ERR_NA;
@@ -1410,8 +1423,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 
 	devc = sdi->priv;
 
-	if (configure_channels(sdi) != SR_OK) {
-		sr_err("Failed to configure channels.");
+	if (convert_trigger(sdi) != SR_OK) {
+		sr_err("Failed to configure triggers.");
 		return SR_ERR;
 	}
 
