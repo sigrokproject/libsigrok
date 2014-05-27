@@ -116,7 +116,7 @@ SR_API int sr_session_load(const char *filename)
 	struct zip_stat zs;
 	struct sr_dev_inst *sdi;
 	struct sr_channel *ch;
-	int ret, channelnum, devcnt, i, j;
+	int devcnt, ret, i, j;
 	uint64_t tmp_u64, total_channels, enabled_channels, p;
 	char **sections, **keys, *metafile, *val;
 	char channelname[SR_MAX_CHANNELNAME_LEN + 1];
@@ -200,9 +200,6 @@ SR_API int sr_session_load(const char *filename)
 					tmp_u64 = strtoul(keys[j]+5, NULL, 10);
 					/* sr_session_save() */
 					sr_dev_channel_name_set(sdi, tmp_u64 - 1, val);
-				} else if (!strncmp(keys[j], "trigger", 7)) {
-					channelnum = strtoul(keys[j]+7, NULL, 10);
-					sr_dev_trigger_set(sdi, channelnum, val);
 				}
 			}
 			g_strfreev(keys);
