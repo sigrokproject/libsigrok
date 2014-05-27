@@ -34,11 +34,18 @@ static const int32_t hwcaps[] = {
 	SR_CONF_SAMPLERATE,
 	SR_CONF_EXTERNAL_CLOCK,
 	SR_CONF_CLOCK_EDGE,
-	SR_CONF_TRIGGER_TYPE,
+	SR_CONF_TRIGGER_MATCH,
 	SR_CONF_TRIGGER_SOURCE,
 	SR_CONF_TRIGGER_SLOPE,
 	SR_CONF_LIMIT_MSEC,
 	SR_CONF_LIMIT_SAMPLES,
+};
+
+static const int32_t trigger_matches[] = {
+	SR_TRIGGER_ZERO,
+	SR_TRIGGER_ONE,
+	SR_TRIGGER_RISING,
+	SR_TRIGGER_FALLING,
 };
 
 /* The hardware supports more samplerates than these, but these are the
@@ -402,12 +409,9 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 }
 
 static int config_channel_set(const struct sr_dev_inst *sdi,
-			    struct sr_channel *ch, unsigned int changes)
+		struct sr_channel *ch, unsigned int changes)
 {
 	uint64_t channel_bit;
-	uint64_t trigger_mask;
-	uint64_t trigger_values;
-	uint64_t trigger_edge_mask;
 	struct dev_context *devc;
 
 	devc = sdi->priv;
@@ -426,41 +430,6 @@ static int config_channel_set(const struct sr_dev_inst *sdi,
 			devc->channel_mask |= channel_bit;
 		else
 			devc->channel_mask &= ~channel_bit;
-	}
-
-	if ((changes & SR_CHANNEL_SET_TRIGGER) != 0) {
-		trigger_mask = devc->trigger_mask & ~channel_bit;
-		trigger_values = devc->trigger_values & ~channel_bit;
-		trigger_edge_mask = devc->trigger_edge_mask & ~channel_bit;
-
-		if (ch->trigger && ch->trigger[0] != '\0') {
-			if (ch->trigger[1] != '\0') {
-				sr_warn("Trigger configuration \"%s\" with "
-					"multiple stages is not supported.",
-					ch->trigger);
-				return SR_ERR_ARG;
-			}
-			/* Enable trigger for this channel. */
-			trigger_mask |= channel_bit;
-
-			/* Configure edge mask and trigger value. */
-			switch (ch->trigger[0]) {
-			case '1': trigger_values |= channel_bit;
-			case '0': break;
-
-			case 'r': trigger_values |= channel_bit;
-			case 'f': trigger_edge_mask |= channel_bit;
-				  break;
-			default:
-				sr_warn("Trigger type '%c' is not supported.",
-					ch->trigger[0]);
-				return SR_ERR_ARG;
-			}
-		}
-		/* Store validated trigger setup. */
-		devc->trigger_mask = trigger_mask;
-		devc->trigger_values = trigger_values;
-		devc->trigger_edge_mask = trigger_edge_mask;
 	}
 
 	return SR_OK;
@@ -502,8 +471,10 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		g_variant_builder_add(&gvb, "{sv}", "samplerates", gvar);
 		*data = g_variant_builder_end(&gvb);
 		break;
-	case SR_CONF_TRIGGER_TYPE:
-		*data = g_variant_new_string(TRIGGER_TYPES);
+	case SR_CONF_TRIGGER_MATCH:
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+				trigger_matches, ARRAY_SIZE(trigger_matches),
+				sizeof(int32_t));
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
 		*data = g_variant_new_strv(trigger_source_names,
@@ -550,6 +521,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	sr_info("Starting acquisition.");
 
 	devc->acquisition = acq;
+	lwla_convert_trigger(sdi);
 	ret = lwla_setup_acquisition(sdi);
 	if (ret != SR_OK) {
 		sr_err("Failed to set up acquisition.");

@@ -738,6 +738,55 @@ SR_PRIV int lwla_init_device(const struct sr_dev_inst *sdi)
 	return ret;
 }
 
+SR_PRIV int lwla_convert_trigger(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	struct sr_trigger *trigger;
+	struct sr_trigger_stage *stage;
+	struct sr_trigger_match *match;
+	const GSList *l, *m;
+	uint64_t channel_index;
+
+	devc = sdi->priv;
+
+	devc->trigger_mask = 0;
+	devc->trigger_values = 0;
+	devc->trigger_edge_mask = 0;
+
+	if (!(trigger = sr_session_trigger_get()))
+		return SR_OK;
+
+	if (g_slist_length(trigger->stages) > 1) {
+		sr_err("This device only supports 1 trigger stage.");
+		return SR_ERR;
+	}
+
+	for (l = trigger->stages; l; l = l->next) {
+		stage = l->data;
+		for (m = stage->matches; m; m = m->next) {
+			match = m->data;
+			if (!match->channel->enabled)
+				/* Ignore disabled channels with a trigger. */
+				continue;
+			channel_index = 1 << match->channel->index;
+			devc->trigger_mask |= channel_index;
+			switch (match->match) {
+			case SR_TRIGGER_ONE:
+				devc->trigger_values |= channel_index;
+				break;
+			case SR_TRIGGER_RISING:
+				devc->trigger_values |= channel_index;
+				/* Fall through for edge mask. */
+			case SR_TRIGGER_FALLING:
+				devc->trigger_edge_mask |= channel_index;
+				break;
+			}
+		}
+	}
+
+	return SR_OK;
+}
+
 /* Select the LWLA clock configuration.  If the clock source changed from
  * the previous setting, this will download a new bitstream to the FPGA.
  */
