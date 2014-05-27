@@ -738,8 +738,8 @@ enum sr_configkey {
 	/** Coupling. */
 	SR_CONF_COUPLING,
 
-	/** Trigger types.  */
-	SR_CONF_TRIGGER_TYPE,
+	/** Trigger matches.  */
+	SR_CONF_TRIGGER_MATCH,
 
 	/** The device supports setting its sample interval, in ms. */
 	SR_CONF_SAMPLE_INTERVAL,
