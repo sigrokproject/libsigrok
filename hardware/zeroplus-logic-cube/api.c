@@ -23,7 +23,6 @@
 #define USB_INTERFACE			0
 #define USB_CONFIGURATION		1
 #define NUM_TRIGGER_STAGES		4
-#define TRIGGER_TYPE 			"01"
 #define PACKET_SIZE			2048	/* ?? */
 
 //#define ZP_EXPERIMENTAL
@@ -56,10 +55,15 @@ static const struct zp_model zeroplus_models[] = {
 static const int32_t hwcaps[] = {
 	SR_CONF_LOGIC_ANALYZER,
 	SR_CONF_SAMPLERATE,
-	SR_CONF_TRIGGER_TYPE,
+	SR_CONF_TRIGGER_MATCH,
 	SR_CONF_CAPTURE_RATIO,
 	SR_CONF_VOLTAGE_THRESHOLD,
 	SR_CONF_LIMIT_SAMPLES,
+};
+
+static const int32_t trigger_matches[] = {
+	SR_TRIGGER_ZERO,
+	SR_TRIGGER_ONE,
 };
 
 /*
@@ -123,95 +127,6 @@ const uint64_t samplerates_200[] = {
 };
 
 static int dev_close(struct sr_dev_inst *sdi);
-
-#if 0
-static int configure_channels(const struct sr_dev_inst *sdi)
-{
-	struct dev_context *devc;
-	const struct sr_channel *ch;
-	const GSList *l;
-	int channel_bit, stage, i;
-	char *tc;
-
-	/* Note: sdi and sdi->priv are non-NULL, the caller checked this. */
-	devc = sdi->priv;
-
-	devc->channel_mask = 0;
-	for (i = 0; i < NUM_TRIGGER_STAGES; i++) {
-		devc->trigger_mask[i] = 0;
-		devc->trigger_value[i] = 0;
-	}
-
-	stage = -1;
-	for (l = sdi->channels; l; l = l->next) {
-		ch = (struct sr_channel *)l->data;
-		if (ch->enabled == FALSE)
-			continue;
-		channel_bit = 1 << (ch->index);
-		devc->channel_mask |= channel_bit;
-
-		if (ch->trigger) {
-			stage = 0;
-			for (tc = ch->trigger; *tc; tc++) {
-				devc->trigger_mask[stage] |= channel_bit;
-				if (*tc == '1')
-					devc->trigger_value[stage] |= channel_bit;
-				stage++;
-				if (stage > NUM_TRIGGER_STAGES)
-					return SR_ERR;
-			}
-		}
-	}
-
-	return SR_OK;
-}
-#endif
-
-static int configure_channels(const struct sr_dev_inst *sdi)
-{
-	struct dev_context *devc;
-	const GSList *l;
-	const struct sr_channel *ch;
-	char *tc;
-	int type;
-
-	/* Note: sdi and sdi->priv are non-NULL, the caller checked this. */
-	devc = sdi->priv;
-
-	for (l = sdi->channels; l; l = l->next) {
-		ch = (struct sr_channel *)l->data;
-		if (ch->enabled == FALSE)
-			continue;
-
-		if ((tc = ch->trigger)) {
-			switch (*tc) {
-			case '1':
-				type = TRIGGER_HIGH;
-				break;
-			case '0':
-				type = TRIGGER_LOW;
-				break;
-#if 0
-			case 'r':
-				type = TRIGGER_POSEDGE;
-				break;
-			case 'f':
-				type = TRIGGER_NEGEDGE;
-				break;
-			case 'c':
-				type = TRIGGER_ANYEDGE;
-				break;
-#endif
-			default:
-				return SR_ERR;
-			}
-			analyzer_add_trigger(ch->index, type);
-			devc->trigger = 1;
-		}
-	}
-
-	return SR_OK;
-}
 
 SR_PRIV int zp_set_samplerate(struct dev_context *devc, uint64_t samplerate)
 {
@@ -576,8 +491,10 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		g_variant_builder_add(&gvb, "{sv}", "samplerates", gvar);
 		*data = g_variant_builder_end(&gvb);
 		break;
-	case SR_CONF_TRIGGER_TYPE:
-		*data = g_variant_new_string(TRIGGER_TYPE);
+	case SR_CONF_TRIGGER_MATCH:
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+				trigger_matches, ARRAY_SIZE(trigger_matches),
+				sizeof(int32_t));
 		break;
 	case SR_CONF_VOLTAGE_THRESHOLD:
 		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
@@ -635,8 +552,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 		return SR_ERR_ARG;
 	}
 
-	if (configure_channels(sdi) != SR_OK) {
-		sr_err("Failed to configure channels.");
+	if (analyzer_add_triggers(sdi) != SR_OK) {
+		sr_err("Failed to configure triggers.");
 		return SR_ERR;
 	}
 

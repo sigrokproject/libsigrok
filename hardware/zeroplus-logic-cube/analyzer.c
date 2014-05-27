@@ -488,29 +488,43 @@ SR_PRIV void analyzer_configure(libusb_device_handle *devh)
 	__analyzer_set_compression(devh, g_compression);
 }
 
-SR_PRIV void analyzer_add_trigger(int channel, int type)
+SR_PRIV int analyzer_add_triggers(const struct sr_dev_inst *sdi)
 {
-	switch (type) {
-	case TRIGGER_HIGH:
-		g_trigger_status[channel / 4] |= 1 << (channel % 4 * 2);
-		break;
-	case TRIGGER_LOW:
-		g_trigger_status[channel / 4] |= 2 << (channel % 4 * 2);
-		break;
-#if 0
-	case TRIGGER_POSEDGE:
-		g_trigger_status[8] = 0x40 | channel;
-		break;
-	case TRIGGER_NEGEDGE:
-		g_trigger_status[8] = 0x80 | channel;
-		break;
-	case TRIGGER_ANYEDGE:
-		g_trigger_status[8] = 0xc0 | channel;
-		break;
-#endif
-	default:
-		break;
+	struct dev_context *devc;
+	struct sr_trigger *trigger;
+	struct sr_trigger_stage *stage;
+	struct sr_trigger_match *match;
+	GSList *l, *m;
+	int channel;
+
+	devc = sdi->priv;
+
+	if (!(trigger = sr_session_trigger_get()))
+		return SR_OK;
+
+	for (l = trigger->stages; l; l = l->next) {
+		stage = l->data;
+		for (m = stage->matches; m; m = m->next) {
+			match = m->data;
+			devc->trigger = 1;
+			if (!match->channel->enabled)
+				/* Ignore disabled channels with a trigger. */
+				continue;
+			channel = match->channel->index;
+			switch (match->match) {
+			case SR_TRIGGER_ZERO:
+				g_trigger_status[channel / 4] |= 2 << (channel % 4 * 2);
+			case SR_TRIGGER_ONE:
+				g_trigger_status[channel / 4] |= 1 << (channel % 4 * 2);
+				break;
+			default:
+				sr_err("Unsupported match %d", match->match);
+				return SR_ERR;
+			}
+		}
 	}
+
+	return SR_OK;
 }
 
 SR_PRIV void analyzer_add_filter(int channel, int type)

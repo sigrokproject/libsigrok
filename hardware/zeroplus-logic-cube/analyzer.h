@@ -74,14 +74,6 @@
 #define COMPRESSION_ENABLE	0x8001
 #define COMPRESSION_DOUBLE	0x8002
 
-enum {
-	TRIGGER_HIGH = 0,
-	TRIGGER_LOW,
-	TRIGGER_POSEDGE,
-	TRIGGER_NEGEDGE,
-	TRIGGER_ANYEDGE,
-};
-
 SR_PRIV void analyzer_set_freq(int freq, int scale);
 SR_PRIV void analyzer_set_ramsize_trigger_address(unsigned int address);
 SR_PRIV void analyzer_set_triggerbar_address(unsigned int address);
@@ -89,7 +81,7 @@ SR_PRIV unsigned int  analyzer_get_ramsize_trigger_address(void );
 SR_PRIV unsigned int analyzer_get_triggerbar_address(void);
 SR_PRIV void analyzer_set_compression(unsigned int type);
 SR_PRIV void analyzer_set_memory_size(unsigned int size);
-SR_PRIV void analyzer_add_trigger(int channel, int type);
+SR_PRIV int analyzer_add_triggers(const struct sr_dev_inst *sdi);
 SR_PRIV void analyzer_set_trigger_count(int count);
 SR_PRIV void analyzer_add_filter(int channel, int type);
 SR_PRIV void analyzer_set_voltage_threshold(int thresh);
