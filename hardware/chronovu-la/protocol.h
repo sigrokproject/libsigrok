@@ -47,7 +47,7 @@ struct cv_profile {
 	const char *iproduct; /* USB iProduct string */
 	unsigned int num_channels;
 	uint64_t max_samplerate;
-	const char *trigger_type;
+	const int num_trigger_matches;
 	float trigger_constant;
 };
 
@@ -133,7 +133,7 @@ SR_PRIV void cv_fill_samplerates_if_needed(const struct sr_dev_inst *sdi);
 SR_PRIV uint8_t cv_samplerate_to_divcount(const struct sr_dev_inst *sdi,
 					  uint64_t samplerate);
 SR_PRIV int cv_write(struct dev_context *devc, uint8_t *buf, int size);
-SR_PRIV int cv_configure_channels(const struct sr_dev_inst *sdi);
+SR_PRIV int cv_convert_trigger(const struct sr_dev_inst *sdi);
 SR_PRIV int cv_set_samplerate(const struct sr_dev_inst *sdi, uint64_t samplerate);
 SR_PRIV int cv_read_block(struct dev_context *devc);
 SR_PRIV void cv_send_block_to_session_bus(struct dev_context *devc, int block);

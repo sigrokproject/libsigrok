@@ -21,11 +21,9 @@
 #include "protocol.h"
 
 SR_PRIV const struct cv_profile cv_profiles[] = {
-	{ CHRONOVU_LA8,  "LA8",  "ChronoVu LA8",  8,  SR_MHZ(100), "01",
-	  0.8388608 },
-	{ CHRONOVU_LA16, "LA16", "ChronoVu LA16", 16, SR_MHZ(200), "01rf",
-	  0.042 },
-	{ 0, NULL, NULL, 0, 0, NULL, 0.0 },
+	{ CHRONOVU_LA8,  "LA8",  "ChronoVu LA8",  8,  SR_MHZ(100), 2, 0.8388608 },
+	{ CHRONOVU_LA16, "LA16", "ChronoVu LA16", 16, SR_MHZ(200), 4, 0.042 },
+	{ 0, NULL, NULL, 0, 0, 0, 0.0 },
 };
 
 /* LA8: channels are numbered 0-7. LA16: channels are numbered 0-15. */
@@ -260,73 +258,60 @@ static int reset_device(struct dev_context *devc)
 	return SR_OK;
 }
 
-SR_PRIV int cv_configure_channels(const struct sr_dev_inst *sdi)
+SR_PRIV int cv_convert_trigger(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	const struct sr_channel *ch;
-	const GSList *l;
+	struct sr_trigger *trigger;
+	struct sr_trigger_stage *stage;
+	struct sr_trigger_match *match;
+	const GSList *l, *m;
 	uint16_t channel_bit;
-	char *tc;
 
 	devc = sdi->priv;
 	devc->trigger_pattern = 0x0000; /* Default to "low" trigger. */
 	devc->trigger_mask = 0x0000; /* Default to "don't care". */
 	devc->trigger_edgemask = 0x0000; /* Default to "state triggered". */
 
-	for (l = sdi->channels; l; l = l->next) {
-		ch = (struct sr_channel *)l->data;
+	if (!(trigger = sr_session_trigger_get()))
+		return SR_OK;
 
-		if (!ch) {
-			sr_err("%s: channel was NULL.", __func__);
-			return SR_ERR;
-		}
+	if (g_slist_length(trigger->stages) > 1) {
+		sr_err("This device only supports 1 trigger stage.");
+		return SR_ERR;
+	}
 
-		/* Skip disabled channels. */
-		if (!ch->enabled)
-			continue;
-
-		/* Skip (enabled) channels with no configured trigger. */
-		if (!ch->trigger)
-			continue;
-
-		/* Note: Must only be run if ch->trigger != NULL. */
-		if (ch->index < 0 || ch->index > (int)devc->prof->num_channels - 1) {
-			sr_err("Invalid channel index %d, must be "
-			       "between 0 and %d.", ch->index,
-			       devc->prof->num_channels - 1);
-			return SR_ERR;
-		}
-
-		channel_bit = (1 << (ch->index));
-
-		/* Configure the channel's trigger pattern/mask/edgemask. */
-		for (tc = ch->trigger; tc && *tc; tc++) {
-			devc->trigger_mask |= channel_bit;
-
-			/* Sanity check, LA8 only supports low/high trigger. */
-			if ((devc->prof->model == CHRONOVU_LA8) &&
-			    (*tc != '0' && *tc != '1')) {
-				sr_err("Invalid trigger '%c', only "
-				       "'0'/'1' supported.", *tc);
+	for (l = trigger->stages; l; l = l->next) {
+		stage = l->data;
+		for (m = stage->matches; m; m = m->next) {
+			match = m->data;
+			if (!match->channel->enabled)
+				/* Ignore disabled channels with a trigger. */
+				continue;
+			if (devc->prof->model == CHRONOVU_LA8 &&
+					(match->match == SR_TRIGGER_RISING
+					|| match->match == SR_TRIGGER_FALLING)) {
+				sr_err("This model supports only simple triggers.");
 				return SR_ERR;
 			}
+			channel_bit = (1 << (match->channel->index));
 
 			/* state: 1 == high, edge: 1 == rising edge. */
-			if (*tc == '1' || *tc == 'r')
+			if (match->match == SR_TRIGGER_ONE
+					|| match->match == SR_TRIGGER_RISING)
 				devc->trigger_pattern |= channel_bit;
 
 			/* LA16 (but not LA8) supports edge triggering. */
 			if ((devc->prof->model == CHRONOVU_LA16)) {
-				if (*tc == 'r' || *tc == 'f')
-					devc->trigger_edgemask |= channel_bit;
+				if (match->match == SR_TRIGGER_RISING
+						|| match->match == SR_TRIGGER_FALLING)
+						devc->trigger_edgemask |= channel_bit;
 			}
-
 		}
 	}
 
 	sr_dbg("Trigger pattern/mask/edgemask = 0x%04x / 0x%04x / 0x%04x.",
-	       devc->trigger_pattern, devc->trigger_mask,
-	       devc->trigger_edgemask);
+			devc->trigger_pattern, devc->trigger_mask,
+			devc->trigger_edgemask);
 
 	return SR_OK;
 }

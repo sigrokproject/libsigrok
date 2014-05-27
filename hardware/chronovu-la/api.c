@@ -26,9 +26,16 @@ static struct sr_dev_driver *di = &chronovu_la_driver_info;
 static const int32_t hwcaps[] = {
 	SR_CONF_LOGIC_ANALYZER,
 	SR_CONF_SAMPLERATE,
-	SR_CONF_TRIGGER_TYPE,
+	SR_CONF_TRIGGER_MATCH,
 	SR_CONF_LIMIT_MSEC, /* TODO: Not yet implemented. */
 	SR_CONF_LIMIT_SAMPLES, /* TODO: Not yet implemented. */
+};
+
+static const int32_t trigger_matches[] = {
+	SR_TRIGGER_ZERO,
+	SR_TRIGGER_ONE,
+	SR_TRIGGER_RISING,
+	SR_TRIGGER_FALLING,
 };
 
 /* The ChronoVu LA8/LA16 can have multiple VID/PID pairs. */
@@ -369,10 +376,11 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 			grange[1] = g_variant_new_uint64(MAX_NUM_SAMPLES / 2);
 		*data = g_variant_new_tuple(grange, 2);
 		break;
-	case SR_CONF_TRIGGER_TYPE:
+	case SR_CONF_TRIGGER_MATCH:
 		if (!sdi || !sdi->priv || !(devc = sdi->priv) || !devc->prof)
-			return SR_ERR_BUG;
-		*data = g_variant_new_string(devc->prof->trigger_type);
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+				trigger_matches, devc->prof->num_trigger_matches,
+				sizeof(int32_t));
 		break;
 	default:
 		return SR_ERR_NA;
@@ -461,8 +469,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		return SR_ERR;
 	}
 
-	if (cv_configure_channels(sdi) != SR_OK) {
-		sr_err("Failed to configure channels.");
+	if (cv_convert_trigger(sdi) != SR_OK) {
+		sr_err("Failed to configure trigger.");
 		return SR_ERR;
 	}
 
