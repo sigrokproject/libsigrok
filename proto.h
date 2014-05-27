@@ -49,8 +49,6 @@ SR_API int sr_dev_channel_name_set(const struct sr_dev_inst *sdi,
 		int channelnum, const char *name);
 SR_API int sr_dev_channel_enable(const struct sr_dev_inst *sdi, int channelnum,
 		gboolean state);
-SR_API int sr_dev_trigger_set(const struct sr_dev_inst *sdi, int channelnum,
-		const char *trigger);
 SR_API gboolean sr_dev_has_option(const struct sr_dev_inst *sdi, int key);
 SR_API GSList *sr_dev_list(const struct sr_dev_driver *driver);
 SR_API int sr_dev_clear(const struct sr_dev_driver *driver);

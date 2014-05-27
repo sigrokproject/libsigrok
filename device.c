@@ -158,62 +158,6 @@ SR_API int sr_dev_channel_enable(const struct sr_dev_inst *sdi, int channelnum,
 }
 
 /**
- * Add a trigger to the specified device (and the specified channel).
- *
- * If the specified channel of this device already has a trigger, it will
- * be silently replaced.
- *
- * @param[in,out] sdi Pointer to the device instance; must not be NULL.
- * @param[in] channelnum Number of channel, starting at 0.
- * @param[in] trigger Trigger string, in the format used by sigrok-cli
- *
- * @return SR_OK on success or SR_ERR on failure.  In case of invalid
- *         arguments, SR_ERR_ARG is returned and the trigger settings
- *         remain unchanged.
- *
- * @since 0.2.0
- */
-SR_API int sr_dev_trigger_set(const struct sr_dev_inst *sdi, int channelnum,
-		const char *trigger)
-{
-	GSList *l;
-	struct sr_channel *ch;
-	char *old_trigger;
-	int ret;
-
-	if (!sdi)
-		return SR_ERR_ARG;
-
-	ret = SR_ERR_ARG;
-	for (l = sdi->channels; l; l = l->next) {
-		ch = l->data;
-		if (ch->index == channelnum) {
-			old_trigger = ch->trigger;
-			ret = SR_OK;
-			if (g_strcmp0(trigger, old_trigger) == 0)
-				break;
-			/* Set new trigger if it has changed. */
-			ch->trigger = g_strdup(trigger);
-
-			if (sdi->driver && sdi->driver->config_channel_set) {
-				ret = sdi->driver->config_channel_set(
-					sdi, ch, SR_CHANNEL_SET_TRIGGER);
-				/* Roll back change if it wasn't applicable. */
-				if (ret == SR_ERR_ARG) {
-					g_free(ch->trigger);
-					ch->trigger = old_trigger;
-					break;
-				}
-			}
-			g_free(old_trigger);
-			break;
-		}
-	}
-
-	return ret;
-}
-
-/**
  * Determine whether the specified device instance has the specified
  * capability.
  *

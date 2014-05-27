@@ -979,7 +979,7 @@ struct sr_dev_driver {
 			const struct sr_dev_inst *sdi,
 			const struct sr_channel_group *cg);
 	/** Channel status change.
-	 *  @see sr_dev_channel_enable(), sr_dev_trigger_set(). */
+	 *  @see sr_dev_channel_enable(). */
 	int (*config_channel_set) (const struct sr_dev_inst *sdi,
 			struct sr_channel *ch, unsigned int changes);
 	/** Apply configuration settings to the device hardware.
