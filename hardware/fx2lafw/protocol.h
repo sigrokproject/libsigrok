@@ -34,7 +34,6 @@
 #define USB_INTERFACE		0
 #define USB_CONFIGURATION	1
 #define NUM_TRIGGER_STAGES	4
-#define SOFT_TRIGGER_TYPES	"01"
 
 #define MAX_RENUM_DELAY_MS	3000
 #define NUM_SIMUL_TRANSFERS	32
@@ -86,10 +85,8 @@ struct dev_context {
 	gboolean trigger_fired;
 	gboolean acq_aborted;
 	gboolean sample_wide;
-	uint16_t trigger_mask[NUM_TRIGGER_STAGES];
-	uint16_t trigger_value[NUM_TRIGGER_STAGES];
-	unsigned int trigger_stage;
-	uint16_t trigger_buffer[NUM_TRIGGER_STAGES];
+	unsigned int cur_trigger_stage;
+	int cur_trigger_step;
 
 	unsigned int sent_samples;
 	int submitted_transfers;
@@ -104,7 +101,6 @@ struct dev_context {
 SR_PRIV int fx2lafw_command_start_acquisition(const struct sr_dev_inst *sdi);
 SR_PRIV gboolean fx2lafw_check_conf_profile(libusb_device *dev);
 SR_PRIV int fx2lafw_dev_open(struct sr_dev_inst *sdi, struct sr_dev_driver *di);
-SR_PRIV int fx2lafw_configure_channels(const struct sr_dev_inst *sdi);
 SR_PRIV struct dev_context *fx2lafw_dev_new(void);
 SR_PRIV void fx2lafw_abort_acquisition(struct dev_context *devc);
 SR_PRIV void fx2lafw_receive_transfer(struct libusb_transfer *transfer);

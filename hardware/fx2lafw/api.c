@@ -79,7 +79,7 @@ static const int32_t hwopts[] = {
 
 static const int32_t hwcaps[] = {
 	SR_CONF_LOGIC_ANALYZER,
-	SR_CONF_TRIGGER_TYPE,
+	SR_CONF_TRIGGER_MATCH,
 	SR_CONF_SAMPLERATE,
 
 	/* These are really implemented in the driver, not the hardware. */
@@ -91,6 +91,11 @@ static const char *channel_names[] = {
 	"0",  "1",  "2",  "3",  "4",  "5",  "6",  "7",
 	"8",  "9", "10", "11", "12", "13", "14", "15",
 	NULL,
+};
+
+static const int32_t soft_trigger_matches[] = {
+	SR_TRIGGER_ZERO,
+	SR_TRIGGER_ONE,
 };
 
 static const uint64_t samplerates[] = {
@@ -369,7 +374,6 @@ static int cleanup(void)
 	if (!(drvc = di->priv))
 		return SR_OK;
 
-
 	ret = std_dev_clear(di, NULL);
 
 	g_free(drvc);
@@ -475,8 +479,10 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		g_variant_builder_add(&gvb, "{sv}", "samplerates", gvar);
 		*data = g_variant_builder_end(&gvb);
 		break;
-	case SR_CONF_TRIGGER_TYPE:
-		*data = g_variant_new_string(SOFT_TRIGGER_TYPES);
+	case SR_CONF_TRIGGER_MATCH:
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+				soft_trigger_matches, ARRAY_SIZE(soft_trigger_matches),
+				sizeof(int32_t));
 		break;
 	default:
 		return SR_ERR_NA;
@@ -520,16 +526,17 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	devc = sdi->priv;
 	usb = sdi->conn;
 
-	/* Configures devc->trigger_* and devc->sample_wide */
-	if (fx2lafw_configure_channels(sdi) != SR_OK) {
-		sr_err("Failed to configure channels.");
-		return SR_ERR;
-	}
-
 	devc->cb_data = cb_data;
 	devc->sent_samples = 0;
 	devc->acq_aborted = FALSE;
 	devc->empty_transfer_count = 0;
+
+	if (sr_session_trigger_get()) {
+		devc->trigger_fired = FALSE;
+		devc->cur_trigger_stage = 0;
+		devc->cur_trigger_step = 0;
+	} else
+		devc->trigger_fired = TRUE;
 
 	timeout = fx2lafw_get_timeout(devc);
 	num_transfers = fx2lafw_get_number_of_transfers(devc);
@@ -551,7 +558,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		transfer = libusb_alloc_transfer(0);
 		libusb_fill_bulk_transfer(transfer, usb->devhdl,
 				2 | LIBUSB_ENDPOINT_IN, buf, size,
-				fx2lafw_receive_transfer, devc, timeout);
+				fx2lafw_receive_transfer, (void *)sdi, timeout);
 		if ((ret = libusb_submit_transfer(transfer)) != 0) {
 			sr_err("Failed to submit transfer: %s.",
 			       libusb_error_name(ret));

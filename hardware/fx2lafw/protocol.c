@@ -297,58 +297,6 @@ SR_PRIV int fx2lafw_dev_open(struct sr_dev_inst *sdi, struct sr_dev_driver *di)
 	return SR_OK;
 }
 
-SR_PRIV int fx2lafw_configure_channels(const struct sr_dev_inst *sdi)
-{
-	struct dev_context *devc;
-	struct sr_channel *ch;
-	GSList *l;
-	int channel_bit, stage, i;
-	char *tc;
-
-	devc = sdi->priv;
-	for (i = 0; i < NUM_TRIGGER_STAGES; i++) {
-		devc->trigger_mask[i] = 0;
-		devc->trigger_value[i] = 0;
-	}
-
-	stage = -1;
-	for (l = sdi->channels; l; l = l->next) {
-		ch = (struct sr_channel *)l->data;
-		if (ch->enabled == FALSE)
-			continue;
-
-		if (ch->index > 7)
-			devc->sample_wide = TRUE;
-
-		channel_bit = 1 << (ch->index);
-		if (!(ch->trigger))
-			continue;
-
-		stage = 0;
-		for (tc = ch->trigger; *tc; tc++) {
-			devc->trigger_mask[stage] |= channel_bit;
-			if (*tc == '1')
-				devc->trigger_value[stage] |= channel_bit;
-			stage++;
-			if (stage > NUM_TRIGGER_STAGES)
-				return SR_ERR;
-		}
-	}
-
-	if (stage == -1) {
-		/*
-		 * We didn't configure any triggers, make sure acquisition
-		 * doesn't wait for any.
-		 */
-		devc->trigger_fired = TRUE;
-	} else {
-		devc->trigger_fired = FALSE;
-		devc->trigger_stage = 0;
-	}
-
-	return SR_OK;
-}
-
 SR_PRIV struct dev_context *fx2lafw_dev_new(void)
 {
 	struct dev_context *devc;
@@ -396,10 +344,12 @@ static void finish_acquisition(struct dev_context *devc)
 
 static void free_transfer(struct libusb_transfer *transfer)
 {
+	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 	unsigned int i;
 
-	devc = transfer->user_data;
+	sdi = transfer->user_data;
+	devc = sdi->priv;
 
 	g_free(transfer->buffer);
 	transfer->buffer = NULL;
@@ -424,24 +374,112 @@ static void resubmit_transfer(struct libusb_transfer *transfer)
 	if ((ret = libusb_submit_transfer(transfer)) == LIBUSB_SUCCESS)
 		return;
 
-	free_transfer(transfer);
-	/* TODO: Stop session? */
-
 	sr_err("%s: %s", __func__, libusb_error_name(ret));
+	free_transfer(transfer);
+
+}
+
+static gboolean check_match(uint16_t sample, struct sr_trigger_match *match)
+{
+	gboolean bit, result;
+
+	result = FALSE;
+	bit = sample & (1 << match->channel->index);
+	if (match->match == SR_TRIGGER_ZERO && !bit)
+		result = TRUE;
+	else if (match->match == SR_TRIGGER_ONE && bit)
+		result = TRUE;
+
+	return result;
+}
+
+/* Returns the offset (in samples) within buf of where the trigger
+ * occurred, or -1 if not triggered. */
+static int soft_trigger(struct sr_dev_inst *sdi, uint8_t *buf,
+		int len)
+{
+	struct dev_context *devc;
+	struct sr_datafeed_packet packet;
+	struct sr_trigger *trigger;
+	struct sr_trigger_stage *stage;
+	struct sr_trigger_match *match;
+	GSList *l, *lst;;
+	int offset;
+	uint16_t sample;
+	int unitsize, i;
+	gboolean match_found;
+
+	devc = sdi->priv;
+	offset = -1;
+	trigger = sr_session_trigger_get();
+	unitsize = devc->sample_wide ? 2 : 1;
+	for (i = 0; i < len; i += unitsize) {
+		memcpy(&sample, buf + i, unitsize);
+
+		lst = g_slist_nth(trigger->stages, devc->cur_trigger_stage);
+		stage = lst->data;
+		if (!stage->matches)
+			/* No matches supplied, client error. */
+			return SR_ERR_ARG;
+
+		match_found = TRUE;
+		for (l = stage->matches; l; l = l->next) {
+			match = l->data;
+			if (!match->channel->enabled)
+				/* Ignore disabled channels with a trigger. */
+				continue;
+			if (!check_match(sample, match)) {
+				match_found = FALSE;
+				break;
+			}
+		}
+		if (match_found) {
+			/* Matched on the current stage. */
+			if (lst->next) {
+				/* Advance to next stage. */
+				devc->cur_trigger_stage++;
+			} else {
+				/* Matched on last stage, fire trigger. */
+				offset = i / unitsize;
+
+				packet.type = SR_DF_TRIGGER;
+				packet.payload = NULL;
+				sr_session_send(devc->cb_data, &packet);
+				break;
+			}
+		} else if (devc->cur_trigger_stage > 0) {
+			/*
+			 * We had a match at an earlier stage, but failed on the
+			 * current stage. However, we may have a match on this
+			 * stage in the next bit -- trigger on 0001 will fail on
+			 * seeing 00001, so we need to go back to stage 0 -- but
+			 * at the next sample from the one that matched originally,
+			 * which the counter increment at the end of the loop
+			 * takes care of.
+			 */
+			i -= devc->cur_trigger_stage * unitsize;
+			if (i < -1)
+				i = -1; /* Oops, went back past this buffer. */
+			/* Reset trigger stage. */
+			devc->cur_trigger_stage = 0;
+		}
+	}
+
+	return offset;
 }
 
 SR_PRIV void fx2lafw_receive_transfer(struct libusb_transfer *transfer)
 {
+	struct sr_dev_inst *sdi;
+	struct dev_context *devc;
 	gboolean packet_has_error = FALSE;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
-	struct dev_context *devc;
-	unsigned int trigger_offset, num_samples;
-	int cur_sample_count, sample_width, i;
-	uint8_t *cur_buf;
-	uint16_t cur_sample;
+	unsigned int num_samples;
+	int trigger_offset, cur_sample_count, unitsize;
 
-	devc = transfer->user_data;
+	sdi = transfer->user_data;
+	devc = sdi->priv;
 
 	/*
 	 * If acquisition has already ended, just free any queued up
@@ -456,9 +494,8 @@ SR_PRIV void fx2lafw_receive_transfer(struct libusb_transfer *transfer)
 		transfer->status, transfer->actual_length);
 
 	/* Save incoming transfer before reusing the transfer struct. */
-	cur_buf = transfer->buffer;
-	sample_width = devc->sample_wide ? 2 : 1;
-	cur_sample_count = transfer->actual_length / sample_width;
+	unitsize = devc->sample_wide ? 2 : 1;
+	cur_sample_count = transfer->actual_length / unitsize;
 
 	switch (transfer->status) {
 	case LIBUSB_TRANSFER_NO_DEVICE:
@@ -490,88 +527,45 @@ SR_PRIV void fx2lafw_receive_transfer(struct libusb_transfer *transfer)
 		devc->empty_transfer_count = 0;
 	}
 
-	trigger_offset = 0;
-	if (!devc->trigger_fired) {
-		for (i = 0; i < cur_sample_count; i++) {
-			cur_sample = devc->sample_wide ?
-				*((uint16_t *)cur_buf + i) :
-				*((uint8_t *)cur_buf + i);
-
-			if ((cur_sample & devc->trigger_mask[devc->trigger_stage]) ==
-				devc->trigger_value[devc->trigger_stage]) {
-				/* Match on this trigger stage. */
-				devc->trigger_buffer[devc->trigger_stage] = cur_sample;
-				devc->trigger_stage++;
-
-				if (devc->trigger_stage == NUM_TRIGGER_STAGES ||
-					devc->trigger_mask[devc->trigger_stage] == 0) {
-					/* Match on all trigger stages, we're done. */
-					trigger_offset = i;
-
-					/*
-					 * TODO: Send pre-trigger buffer to session bus.
-					 * Tell the frontend we hit the trigger here.
-					 */
-					packet.type = SR_DF_TRIGGER;
-					packet.payload = NULL;
-					sr_session_send(devc->cb_data, &packet);
-
-					/*
-					 * Send the samples that triggered it,
-					 * since we're skipping past them.
-					 */
-					packet.type = SR_DF_LOGIC;
-					packet.payload = &logic;
-					num_samples = cur_sample_count - trigger_offset;
-					if (devc->limit_samples &&
-							num_samples > devc->limit_samples - devc->sent_samples)
-						num_samples = devc->limit_samples - devc->sent_samples;
-					logic.length = num_samples * sample_width;
-					logic.unitsize = sample_width;
-					logic.data = cur_buf + trigger_offset * sample_width;
-					sr_session_send(devc->cb_data, &packet);
-					devc->sent_samples += num_samples;
-
-					devc->trigger_fired = TRUE;
-					break;
-				}
-			} else if (devc->trigger_stage > 0) {
-				/*
-				 * We had a match before, but not in the next sample. However, we may
-				 * have a match on this stage in the next bit -- trigger on 0001 will
-				 * fail on seeing 00001, so we need to go back to stage 0 -- but at
-				 * the next sample from the one that matched originally, which the
-				 * counter increment at the end of the loop takes care of.
-				 */
-				i -= devc->trigger_stage;
-				if (i < -1)
-					i = -1; /* Oops, went back past this buffer. */
-				/* Reset trigger stage. */
-				devc->trigger_stage = 0;
-			}
+	if (devc->trigger_fired) {
+		if (devc->sent_samples < devc->limit_samples) {
+			/* Send the incoming transfer to the session bus. */
+			packet.type = SR_DF_LOGIC;
+			packet.payload = &logic;
+			if (devc->sent_samples + cur_sample_count > devc->limit_samples)
+				num_samples = devc->limit_samples - devc->sent_samples;
+			else
+				num_samples = cur_sample_count;
+			logic.length = num_samples * unitsize;
+			logic.unitsize = unitsize;
+			logic.data = transfer->buffer;
+			sr_session_send(devc->cb_data, &packet);
+			devc->sent_samples += cur_sample_count;
 		}
-	} else if (devc->sent_samples < devc->limit_samples) {
-		/* Send the incoming transfer to the session bus. */
-		packet.type = SR_DF_LOGIC;
-		packet.payload = &logic;
-		if (devc->sent_samples + cur_sample_count > devc->limit_samples)
-			num_samples = devc->limit_samples - devc->sent_samples;
-		else
-			num_samples = cur_sample_count;
-		logic.length = num_samples * sample_width;
-		logic.unitsize = sample_width;
-		logic.data = cur_buf;
-		sr_session_send(devc->cb_data, &packet);
-		devc->sent_samples += cur_sample_count;
+	} else {
+		trigger_offset = soft_trigger(sdi, transfer->buffer, transfer->actual_length);
+		if (trigger_offset > -1) {
+			packet.type = SR_DF_LOGIC;
+			packet.payload = &logic;
+			num_samples = cur_sample_count - trigger_offset;
+			if (devc->limit_samples &&
+					num_samples > devc->limit_samples - devc->sent_samples)
+				num_samples = devc->limit_samples - devc->sent_samples;
+			logic.length = num_samples * unitsize;
+			logic.unitsize = unitsize;
+			logic.data = transfer->buffer + trigger_offset * unitsize;
+			sr_session_send(devc->cb_data, &packet);
+			devc->sent_samples += num_samples;
+
+			devc->trigger_fired = TRUE;
+		}
 	}
 
 	if (devc->limit_samples && devc->sent_samples >= devc->limit_samples) {
 		fx2lafw_abort_acquisition(devc);
 		free_transfer(transfer);
-		return;
-	}
-
-	resubmit_transfer(transfer);
+	} else
+		resubmit_transfer(transfer);
 }
 
 static unsigned int to_bytes_per_ms(unsigned int samplerate)
