@@ -30,7 +30,6 @@
 
 #define NUM_CHANNELS             32
 #define NUM_TRIGGER_STAGES     4
-#define TRIGGER_TYPE           "01"
 #define SERIAL_SPEED           B115200
 #define CLOCK_RATE             SR_MHZ(100)
 #define MIN_NUM_SAMPLES        4
@@ -82,8 +81,8 @@ struct dev_context {
 	int capture_ratio;
 	int trigger_at;
 	uint32_t channel_mask;
-	uint32_t trigger_mask[4];
-	uint32_t trigger_value[4];
+	uint32_t trigger_mask[NUM_TRIGGER_STAGES];
+	uint32_t trigger_value[NUM_TRIGGER_STAGES];
 	int num_stages;
 	uint16_t flag_reg;
 
@@ -109,7 +108,8 @@ SR_PRIV int send_shortcommand(struct sr_serial_dev_inst *serial,
 		uint8_t command);
 SR_PRIV int send_longcommand(struct sr_serial_dev_inst *serial,
 		uint8_t command, uint8_t *data);
-SR_PRIV int ols_configure_channels(const struct sr_dev_inst *sdi);
+SR_PRIV void ols_channel_mask(const struct sr_dev_inst *sdi);
+SR_PRIV int ols_convert_trigger(const struct sr_dev_inst *sdi);
 SR_PRIV struct dev_context *ols_dev_new(void);
 SR_PRIV struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial);
 SR_PRIV int ols_set_samplerate(const struct sr_dev_inst *sdi,

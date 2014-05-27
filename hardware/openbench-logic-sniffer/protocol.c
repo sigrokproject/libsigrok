@@ -54,56 +54,61 @@ SR_PRIV int send_longcommand(struct sr_serial_dev_inst *serial,
 	return SR_OK;
 }
 
-SR_PRIV int ols_configure_channels(const struct sr_dev_inst *sdi)
+/* Configures the channel mask based on which channels are enabled. */
+SR_PRIV void ols_channel_mask(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	const struct sr_channel *ch;
+	struct sr_channel *channel;
 	const GSList *l;
-	int channel_bit, stage, i;
-	char *tc;
 
 	devc = sdi->priv;
 
 	devc->channel_mask = 0;
+	for (l = sdi->channels; l; l = l->next) {
+		channel = l->data;
+		if (channel->enabled)
+			devc->channel_mask |= 1 << channel->index;
+	}
+}
+
+SR_PRIV int ols_convert_trigger(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	struct sr_trigger *trigger;
+	struct sr_trigger_stage *stage;
+	struct sr_trigger_match *match;
+	const GSList *l, *m;
+	int i;
+
+	devc = sdi->priv;
+
+	devc->num_stages = 0;
 	for (i = 0; i < NUM_TRIGGER_STAGES; i++) {
 		devc->trigger_mask[i] = 0;
 		devc->trigger_value[i] = 0;
 	}
 
-	devc->num_stages = 0;
-	for (l = sdi->channels; l; l = l->next) {
-		ch = (const struct sr_channel *)l->data;
-		if (!ch->enabled)
-			continue;
+	if (!(trigger = sr_session_trigger_get()))
+		return SR_OK;
 
-		if (ch->index >= devc->max_channels) {
-			sr_err("Channels over the limit of %d\n", devc->max_channels);
-			return SR_ERR;
+	devc->num_stages = g_slist_length(trigger->stages);
+	if (devc->num_stages > NUM_TRIGGER_STAGES) {
+		sr_err("This device only supports %d trigger stages.",
+				NUM_TRIGGER_STAGES);
+		return SR_ERR;
+	}
+
+	for (l = trigger->stages; l; l = l->next) {
+		stage = l->data;
+		for (m = stage->matches; m; m = m->next) {
+			match = m->data;
+			if (!match->channel->enabled)
+				/* Ignore disabled channels with a trigger. */
+				continue;
+			devc->trigger_mask[stage->stage] |= 1 << match->channel->index;
+			if (match->match == SR_TRIGGER_ONE)
+				devc->trigger_value[stage->stage] |= 1 << match->channel->index;
 		}
-
-		/*
-		 * Set up the channel mask for later configuration into the
-		 * flag register.
-		 */
-		channel_bit = 1 << (ch->index);
-		devc->channel_mask |= channel_bit;
-
-		if (!ch->trigger)
-			continue;
-
-		/* Configure trigger mask and value. */
-		stage = 0;
-		for (tc = ch->trigger; tc && *tc; tc++) {
-			devc->trigger_mask[stage] |= channel_bit;
-			if (*tc == '1')
-				devc->trigger_value[stage] |= channel_bit;
-			stage++;
-			/* Only supporting parallel mode, with up to 4 stages. */
-			if (stage > 4)
-				return SR_ERR;
-		}
-		if (stage > devc->num_stages)
-			devc->num_stages = stage - 1;
 	}
 
 	return SR_OK;
@@ -328,7 +333,7 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
 	uint32_t sample;
-	int num_channels, offset, j;
+	int num_ols_changrp, offset, j;
 	unsigned int i;
 	unsigned char byte;
 
@@ -356,10 +361,10 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 		memset(devc->raw_sample_buf, 0x82, devc->limit_samples * 4);
 	}
 
-	num_channels = 0;
+	num_ols_changrp = 0;
 	for (i = NUM_CHANNELS; i > 0x02; i /= 2) {
 		if ((devc->flag_reg & i) == 0) {
-			num_channels++;
+			num_ols_changrp++;
 		}
 	}
 
@@ -374,7 +379,7 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 
 		devc->sample[devc->num_bytes++] = byte;
 		sr_spew("Received byte 0x%.2x.", byte);
-		if (devc->num_bytes == num_channels) {
+		if (devc->num_bytes == num_ols_changrp) {
 			devc->cnt_samples++;
 			devc->cnt_samples_rle++;
 			/*
@@ -407,7 +412,7 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 				devc->num_samples = devc->limit_samples;
 			}
 
-			if (num_channels < 4) {
+			if (num_ols_changrp < 4) {
 				/*
 				 * Some channel groups may have been turned
 				 * off, to speed up transfer between the

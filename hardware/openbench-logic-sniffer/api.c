@@ -30,13 +30,18 @@ static const int32_t hwopts[] = {
 static const int32_t hwcaps[] = {
 	SR_CONF_LOGIC_ANALYZER,
 	SR_CONF_SAMPLERATE,
-	SR_CONF_TRIGGER_TYPE,
+	SR_CONF_TRIGGER_MATCH,
 	SR_CONF_CAPTURE_RATIO,
 	SR_CONF_LIMIT_SAMPLES,
 	SR_CONF_EXTERNAL_CLOCK,
 	SR_CONF_PATTERN_MODE,
 	SR_CONF_SWAP,
 	SR_CONF_RLE,
+};
+
+static const int32_t trigger_matches[] = {
+	SR_TRIGGER_ZERO,
+	SR_TRIGGER_ONE,
 };
 
 #define STR_PATTERN_NONE     "None"
@@ -189,8 +194,6 @@ static GSList *scan(GSList *options)
 	if (ols_set_samplerate(sdi, DEFAULT_SAMPLERATE) != SR_OK)
 		sr_dbg("Failed to set default samplerate (%"PRIu64").",
 				DEFAULT_SAMPLERATE);
-	/* Clear trigger masks, values and stages. */
-	ols_configure_channels(sdi);
 	sdi->inst_type = SR_INST_SERIAL;
 	sdi->conn = serial;
 
@@ -354,7 +357,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	struct dev_context *devc;
 	GVariant *gvar, *grange[2];
 	GVariantBuilder gvb;
-	int num_channels, i;
+	int num_ols_changrp, i;
 
 	(void)cg;
 
@@ -374,8 +377,10 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		g_variant_builder_add(&gvb, "{sv}", "samplerate-steps", gvar);
 		*data = g_variant_builder_end(&gvb);
 		break;
-	case SR_CONF_TRIGGER_TYPE:
-		*data = g_variant_new_string(TRIGGER_TYPE);
+	case SR_CONF_TRIGGER_MATCH:
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+				trigger_matches, ARRAY_SIZE(trigger_matches),
+				sizeof(int32_t));
 		break;
 	case SR_CONF_PATTERN_MODE:
 		*data = g_variant_new_strv(patterns, ARRAY_SIZE(patterns));
@@ -393,20 +398,17 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		 * Channel groups are turned off if no channels in that group are
 		 * enabled, making more room for samples for the enabled group.
 		*/
-		ols_configure_channels(sdi);
-		num_channels = 0;
+		ols_channel_mask(sdi);
+		num_ols_changrp = 0;
 		for (i = 0; i < 4; i++) {
 			if (devc->channel_mask & (0xff << (i * 8)))
-				num_channels++;
-		}
-		if (num_channels == 0) {
-			/* This can happen, but shouldn't cause too much drama.
-			 * However we can't continue because the code below would
-			 * divide by zero. */
-			break;
+				num_ols_changrp++;
 		}
 		grange[0] = g_variant_new_uint64(MIN_NUM_SAMPLES);
-		grange[1] = g_variant_new_uint64(devc->max_samples / num_channels);
+		if (num_ols_changrp)
+			grange[1] = g_variant_new_uint64(devc->max_samples / num_ols_changrp);
+		else
+			grange[1] = g_variant_new_uint64(MIN_NUM_SAMPLES);
 		*data = g_variant_new_tuple(grange, 2);
 		break;
 	default:
@@ -459,8 +461,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
 	uint16_t samplecount, readcount, delaycount;
-	uint8_t changrp_mask, arg[4];
-	int num_channels;
+	uint8_t ols_changrp_mask, arg[4];
+	int num_ols_changrp;
 	int ret, i;
 
 	if (sdi->status != SR_ST_ACTIVE)
@@ -469,22 +471,14 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	devc = sdi->priv;
 	serial = sdi->conn;
 
-	if (ols_configure_channels(sdi) != SR_OK) {
-		sr_err("Failed to configure channels.");
-		return SR_ERR;
-	}
+	ols_channel_mask(sdi);
 
-	/*
-	 * Enable/disable channel groups in the flag register according to the
-	 * channel mask. Calculate this here, because num_channels is needed
-	 * to limit readcount.
-	 */
-	changrp_mask = 0;
-	num_channels = 0;
+	num_ols_changrp = 0;
+	ols_changrp_mask = 0;
 	for (i = 0; i < 4; i++) {
 		if (devc->channel_mask & (0xff << (i * 8))) {
-			changrp_mask |= (1 << i);
-			num_channels++;
+			ols_changrp_mask |= (1 << i);
+			num_ols_changrp++;
 		}
 	}
 
@@ -492,7 +486,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	 * Limit readcount to prevent reading past the end of the hardware
 	 * buffer.
 	 */
-	samplecount = MIN(devc->max_samples / num_channels, devc->limit_samples);
+	samplecount = MIN(devc->max_samples / num_ols_changrp, devc->limit_samples);
 	readcount = samplecount / 4;
 
 	/* Rather read too many samples than too few. */
@@ -500,12 +494,15 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 		readcount++;
 
 	/* Basic triggers. */
-	if (devc->trigger_mask[0] != 0x00000000) {
-		/* At least one channel has a trigger on it. */
+	if (ols_convert_trigger(sdi) != SR_OK) {
+		sr_err("Failed to configure channels.");
+		return SR_ERR;
+	}
+	if (devc->num_stages > 0) {
 		delaycount = readcount * (1 - devc->capture_ratio / 100.0);
 		devc->trigger_at = (readcount - delaycount) * 4 - devc->num_stages;
 		for (i = 0; i <= devc->num_stages; i++) {
-			sr_dbg("Setting stage %d trigger.", i);
+			sr_dbg("Setting OLS stage %d trigger.", i);
 			if ((ret = set_trigger(sdi, i)) != SR_OK)
 				return ret;
 		}
@@ -544,8 +541,11 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 			devc->flag_reg & FLAG_RLE ? "on" : "off",
 			devc->flag_reg & FLAG_FILTER ? "on": "off",
 			devc->flag_reg & FLAG_DEMUX ? "on" : "off");
-	/* 1 means "disable channel". */
-	devc->flag_reg |= ~(changrp_mask << 2) & 0x3c;
+	/*
+	 * Enable/disable OLS channel groups in the flag register according
+	 * to the channel mask. 1 means "disable channel".
+	 */
+	devc->flag_reg |= ~(ols_changrp_mask << 2) & 0x3c;
 	arg[0] = devc->flag_reg & 0xff;
 	arg[1] = devc->flag_reg >> 8;
 	arg[2] = arg[3] = 0x00;
