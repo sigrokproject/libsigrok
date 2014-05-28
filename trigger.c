@@ -44,7 +44,7 @@ SR_API void sr_trigger_free(struct sr_trigger *trig)
 		stage = l->data;
 		g_slist_free_full(stage->matches, g_free);
 	}
-	g_slist_free_full(trig->stages, (GDestroyNotify)g_slist_free);
+	g_slist_free_full(trig->stages, g_free);
 
 	g_free(trig->name);
 	g_free(trig);
