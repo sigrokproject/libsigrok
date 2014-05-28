@@ -106,10 +106,9 @@ SR_API int sr_session_destroy(void)
 	}
 
 	sr_session_dev_remove_all();
-
-	/* TODO: Error checks needed? */
-
 	g_mutex_clear(&session->stop_mutex);
+	if (session->trigger)
+		sr_trigger_free(session->trigger);
 
 	g_free(session);
 	session = NULL;
