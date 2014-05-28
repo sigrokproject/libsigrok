@@ -33,6 +33,7 @@ libsigrok_la_SOURCES = \
 	session_driver.c \
 	hwdriver.c \
 	trigger.c \
+	soft-trigger.c \
 	strutil.c \
 	log.c \
 	version.c \

@@ -332,6 +332,23 @@ SR_PRIV int sr_atod(const char *str, double *ret);
 SR_PRIV int sr_atof(const char *str, float *ret);
 SR_PRIV int sr_atof_ascii(const char *str, float *ret);
 
+/*--- soft-trigger.c --------------------------------------------------------*/
+
+struct soft_trigger_logic {
+	const struct sr_dev_inst *sdi;
+	const struct sr_trigger *trigger;
+	int count;
+	int unitsize;
+	int cur_stage;
+	uint8_t *prev_sample;
+};
+
+SR_PRIV struct soft_trigger_logic *soft_trigger_logic_new(
+		const struct sr_dev_inst *sdi, struct sr_trigger *trigger);
+SR_PRIV void soft_trigger_logic_free(struct soft_trigger_logic *st);
+SR_PRIV int soft_trigger_logic_check(struct soft_trigger_logic *st, uint8_t *buf,
+		int len);
+
 /*--- hardware/common/serial.c ----------------------------------------------*/
 
 #ifdef HAVE_LIBSERIALPORT
