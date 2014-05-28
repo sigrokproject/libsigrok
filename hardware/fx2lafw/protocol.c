@@ -311,6 +311,7 @@ SR_PRIV struct dev_context *fx2lafw_dev_new(void)
 	devc->cur_samplerate = 0;
 	devc->limit_samples = 0;
 	devc->sample_wide = FALSE;
+	devc->stl = NULL;
 
 	return devc;
 }
@@ -340,6 +341,11 @@ static void finish_acquisition(struct dev_context *devc)
 
 	devc->num_transfers = 0;
 	g_free(devc->transfers);
+
+	if (devc->stl) {
+		soft_trigger_logic_free(devc->stl);
+		devc->stl = NULL;
+	}
 }
 
 static void free_transfer(struct libusb_transfer *transfer)
@@ -377,95 +383,6 @@ static void resubmit_transfer(struct libusb_transfer *transfer)
 	sr_err("%s: %s", __func__, libusb_error_name(ret));
 	free_transfer(transfer);
 
-}
-
-static gboolean check_match(uint16_t sample, struct sr_trigger_match *match)
-{
-	gboolean bit, result;
-
-	result = FALSE;
-	bit = sample & (1 << match->channel->index);
-	if (match->match == SR_TRIGGER_ZERO && !bit)
-		result = TRUE;
-	else if (match->match == SR_TRIGGER_ONE && bit)
-		result = TRUE;
-
-	return result;
-}
-
-/* Returns the offset (in samples) within buf of where the trigger
- * occurred, or -1 if not triggered. */
-static int soft_trigger(struct sr_dev_inst *sdi, uint8_t *buf,
-		int len)
-{
-	struct dev_context *devc;
-	struct sr_datafeed_packet packet;
-	struct sr_trigger *trigger;
-	struct sr_trigger_stage *stage;
-	struct sr_trigger_match *match;
-	GSList *l, *lst;;
-	int offset;
-	uint16_t sample;
-	int unitsize, i;
-	gboolean match_found;
-
-	devc = sdi->priv;
-	offset = -1;
-	trigger = sr_session_trigger_get();
-	unitsize = devc->sample_wide ? 2 : 1;
-	for (i = 0; i < len; i += unitsize) {
-		memcpy(&sample, buf + i, unitsize);
-
-		lst = g_slist_nth(trigger->stages, devc->cur_trigger_stage);
-		stage = lst->data;
-		if (!stage->matches)
-			/* No matches supplied, client error. */
-			return SR_ERR_ARG;
-
-		match_found = TRUE;
-		for (l = stage->matches; l; l = l->next) {
-			match = l->data;
-			if (!match->channel->enabled)
-				/* Ignore disabled channels with a trigger. */
-				continue;
-			if (!check_match(sample, match)) {
-				match_found = FALSE;
-				break;
-			}
-		}
-		if (match_found) {
-			/* Matched on the current stage. */
-			if (lst->next) {
-				/* Advance to next stage. */
-				devc->cur_trigger_stage++;
-			} else {
-				/* Matched on last stage, fire trigger. */
-				offset = i / unitsize;
-
-				packet.type = SR_DF_TRIGGER;
-				packet.payload = NULL;
-				sr_session_send(devc->cb_data, &packet);
-				break;
-			}
-		} else if (devc->cur_trigger_stage > 0) {
-			/*
-			 * We had a match at an earlier stage, but failed on the
-			 * current stage. However, we may have a match on this
-			 * stage in the next bit -- trigger on 0001 will fail on
-			 * seeing 00001, so we need to go back to stage 0 -- but
-			 * at the next sample from the one that matched originally,
-			 * which the counter increment at the end of the loop
-			 * takes care of.
-			 */
-			i -= devc->cur_trigger_stage * unitsize;
-			if (i < -1)
-				i = -1; /* Oops, went back past this buffer. */
-			/* Reset trigger stage. */
-			devc->cur_trigger_stage = 0;
-		}
-	}
-
-	return offset;
 }
 
 SR_PRIV void fx2lafw_receive_transfer(struct libusb_transfer *transfer)
@@ -543,7 +460,8 @@ SR_PRIV void fx2lafw_receive_transfer(struct libusb_transfer *transfer)
 			devc->sent_samples += cur_sample_count;
 		}
 	} else {
-		trigger_offset = soft_trigger(sdi, transfer->buffer, transfer->actual_length);
+		trigger_offset = soft_trigger_logic_check(devc->stl,
+				transfer->buffer, transfer->actual_length);
 		if (trigger_offset > -1) {
 			packet.type = SR_DF_LOGIC;
 			packet.payload = &logic;

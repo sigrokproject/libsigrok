@@ -96,6 +96,9 @@ static const char *channel_names[] = {
 static const int32_t soft_trigger_matches[] = {
 	SR_TRIGGER_ZERO,
 	SR_TRIGGER_ONE,
+	SR_TRIGGER_RISING,
+	SR_TRIGGER_FALLING,
+	SR_TRIGGER_EDGE,
 };
 
 static const uint64_t samplerates[] = {
@@ -513,6 +516,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	struct dev_context *devc;
 	struct drv_context *drvc;
 	struct sr_usb_dev_inst *usb;
+	struct sr_trigger *trigger;
 	struct libusb_transfer *transfer;
 	unsigned int i, timeout, num_transfers;
 	int ret;
@@ -531,10 +535,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	devc->acq_aborted = FALSE;
 	devc->empty_transfer_count = 0;
 
-	if (sr_session_trigger_get()) {
+	if ((trigger = sr_session_trigger_get())) {
+		devc->stl = soft_trigger_logic_new(sdi, trigger);
 		devc->trigger_fired = FALSE;
-		devc->cur_trigger_stage = 0;
-		devc->cur_trigger_step = 0;
 	} else
 		devc->trigger_fired = TRUE;
 
