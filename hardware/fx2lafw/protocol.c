@@ -457,7 +457,7 @@ SR_PRIV void fx2lafw_receive_transfer(struct libusb_transfer *transfer)
 			logic.unitsize = unitsize;
 			logic.data = transfer->buffer;
 			sr_session_send(devc->cb_data, &packet);
-			devc->sent_samples += cur_sample_count;
+			devc->sent_samples += num_samples;
 		}
 	} else {
 		trigger_offset = soft_trigger_logic_check(devc->stl,
