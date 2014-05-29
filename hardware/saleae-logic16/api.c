@@ -670,16 +670,6 @@ static int configure_channels(const struct sr_dev_inst *sdi)
 		devc->channel_masks[devc->num_channels++] = channel_bit;
 	}
 
-	if (devc->cur_channels & ~0xff) {
-		devc->unitsize = 2;
-	} else {
-#ifdef WORDS_BIGENDIAN
-		for (i = 0; i < devc->num_channels; i++)
-			devc->channel_masks[i] >>= 8;
-#endif
-		devc->unitsize = 1;
-	}
-
 	return SR_OK;
 }
 
