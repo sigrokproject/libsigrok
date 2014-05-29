@@ -590,6 +590,10 @@ static void finish_acquisition(struct dev_context *devc)
 	devc->num_transfers = 0;
 	g_free(devc->transfers);
 	g_free(devc->convbuffer);
+	if (devc->stl) {
+		soft_trigger_logic_free(devc->stl);
+		devc->stl = NULL;
+	}
 }
 
 static void free_transfer(struct libusb_transfer *transfer)
@@ -731,7 +735,8 @@ SR_PRIV void logic16_receive_transfer(struct libusb_transfer *transfer)
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
 	struct dev_context *devc;
-	size_t converted_length;
+	size_t new_samples, num_samples;
+	int trigger_offset;
 
 	devc = transfer->user_data;
 
@@ -739,7 +744,7 @@ SR_PRIV void logic16_receive_transfer(struct libusb_transfer *transfer)
 	 * If acquisition has already ended, just free any queued up
 	 * transfer that come in.
 	 */
-	if (devc->num_samples < 0) {
+	if (devc->sent_samples < 0) {
 		free_transfer(transfer);
 		return;
 	}
@@ -749,7 +754,7 @@ SR_PRIV void logic16_receive_transfer(struct libusb_transfer *transfer)
 
 	switch (transfer->status) {
 	case LIBUSB_TRANSFER_NO_DEVICE:
-		devc->num_samples = -2;
+		devc->sent_samples = -2;
 		free_transfer(transfer);
 		return;
 	case LIBUSB_TRANSFER_COMPLETED:
@@ -775,7 +780,7 @@ SR_PRIV void logic16_receive_transfer(struct libusb_transfer *transfer)
 			 * The FX2 gave up. End the acquisition, the frontend
 			 * will work out that the samplecount is short.
 			 */
-			devc->num_samples = -2;
+			devc->sent_samples = -2;
 			free_transfer(transfer);
 		} else {
 			resubmit_transfer(transfer);
@@ -785,31 +790,46 @@ SR_PRIV void logic16_receive_transfer(struct libusb_transfer *transfer)
 		devc->empty_transfer_count = 0;
 	}
 
-	converted_length = convert_sample_data(devc, devc->convbuffer,
-				devc->convbuffer_size, transfer->buffer,
-				transfer->actual_length, devc->unitsize);
+	new_samples = convert_sample_data(devc, devc->convbuffer,
+			devc->convbuffer_size, transfer->buffer,
+			transfer->actual_length, devc->unitsize);
 
-	if (converted_length > 0) {
-		/* Cap sample count if needed. */
-		if (devc->limit_samples &&
-		    (uint64_t)devc->num_samples + converted_length
-		    > devc->limit_samples) {
-			converted_length =
-				devc->limit_samples - devc->num_samples;
+	if (new_samples > 0) {
+		if (devc->trigger_fired) {
+			/* Send the incoming transfer to the session bus. */
+			packet.type = SR_DF_LOGIC;
+			packet.payload = &logic;
+			if (devc->limit_samples &&
+					new_samples > devc->limit_samples - devc->sent_samples)
+				new_samples = devc->limit_samples - devc->sent_samples;
+			logic.length = new_samples * devc->unitsize;
+			logic.unitsize = devc->unitsize;
+			logic.data = devc->convbuffer;
+			sr_session_send(devc->cb_data, &packet);
+			devc->sent_samples += new_samples;
+		} else {
+			trigger_offset = soft_trigger_logic_check(devc->stl,
+					devc->convbuffer, new_samples * devc->unitsize);
+			if (trigger_offset > -1) {
+				packet.type = SR_DF_LOGIC;
+				packet.payload = &logic;
+				num_samples = new_samples - trigger_offset;
+				if (devc->limit_samples &&
+						num_samples > devc->limit_samples - devc->sent_samples)
+					num_samples = devc->limit_samples - devc->sent_samples;
+				logic.length = num_samples * devc->unitsize;
+				logic.unitsize = devc->unitsize;
+				logic.data = devc->convbuffer + trigger_offset * devc->unitsize;
+				sr_session_send(devc->cb_data, &packet);
+				devc->sent_samples += num_samples;
+
+				devc->trigger_fired = TRUE;
+			}
 		}
 
-		/* Send the incoming transfer to the session bus. */
-		packet.type = SR_DF_LOGIC;
-		packet.payload = &logic;
-		logic.length = converted_length * devc->unitsize;
-		logic.unitsize = devc->unitsize;
-		logic.data = devc->convbuffer;
-		sr_session_send(devc->cb_data, &packet);
-
-		devc->num_samples += converted_length;
 		if (devc->limit_samples &&
-		    (uint64_t)devc->num_samples >= devc->limit_samples) {
-			devc->num_samples = -2;
+				(uint64_t)devc->sent_samples >= devc->limit_samples) {
+			devc->sent_samples = -2;
 			free_transfer(transfer);
 			return;
 		}

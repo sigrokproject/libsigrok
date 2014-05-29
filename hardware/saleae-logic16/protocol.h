@@ -63,7 +63,7 @@ struct dev_context {
 	/* EEPROM data from address 8. */
 	uint8_t eeprom_data[8];
 
-	int64_t num_samples;
+	int64_t sent_samples;
 	int submitted_transfers;
 	int empty_transfer_count;
 	int num_channels, cur_channel, unitsize;
@@ -71,6 +71,8 @@ struct dev_context {
 	uint16_t channel_data[16];
 	uint8_t *convbuffer;
 	size_t convbuffer_size;
+	struct soft_trigger_logic *stl;
+	gboolean trigger_fired;
 
 	void *cb_data;
 	unsigned int num_transfers;

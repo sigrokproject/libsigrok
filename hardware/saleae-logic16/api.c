@@ -49,10 +49,19 @@ static const int32_t hwcaps[] = {
 	SR_CONF_LOGIC_ANALYZER,
 	SR_CONF_SAMPLERATE,
 	SR_CONF_VOLTAGE_THRESHOLD,
+	SR_CONF_TRIGGER_MATCH,
 
 	/* These are really implemented in the driver, not the hardware. */
 	SR_CONF_LIMIT_SAMPLES,
 	SR_CONF_CONTINUOUS,
+};
+
+static const int32_t soft_trigger_matches[] = {
+	SR_TRIGGER_ZERO,
+	SR_TRIGGER_ONE,
+	SR_TRIGGER_RISING,
+	SR_TRIGGER_FALLING,
+	SR_TRIGGER_EDGE,
 };
 
 static const char *channel_names[] = {
@@ -562,6 +571,11 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		}
 		*data = g_variant_builder_end(&gvb);
 		break;
+	case SR_CONF_TRIGGER_MATCH:
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+				soft_trigger_matches, ARRAY_SIZE(soft_trigger_matches),
+				sizeof(int32_t));
+		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -573,7 +587,7 @@ static void abort_acquisition(struct dev_context *devc)
 {
 	int i;
 
-	devc->num_samples = -1;
+	devc->sent_samples = -1;
 
 	for (i = devc->num_transfers - 1; i >= 0; i--) {
 		if (devc->transfers[i])
@@ -686,7 +700,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 	tv.tv_sec = tv.tv_usec = 0;
 	libusb_handle_events_timeout(drvc->sr_ctx->libusb_ctx, &tv);
 
-	if (devc->num_samples == -2) {
+	if (devc->sent_samples == -2) {
 		logic16_abort_acquisition(sdi);
 		abort_acquisition(devc);
 	}
@@ -699,6 +713,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	struct dev_context *devc;
 	struct drv_context *drvc;
 	struct sr_usb_dev_inst *usb;
+	struct sr_trigger *trigger;
 	struct libusb_transfer *transfer;
 	unsigned int i, timeout, num_transfers;
 	int ret;
@@ -719,10 +734,16 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	}
 
 	devc->cb_data = cb_data;
-	devc->num_samples = 0;
+	devc->sent_samples = 0;
 	devc->empty_transfer_count = 0;
 	devc->cur_channel = 0;
 	memset(devc->channel_data, 0, sizeof(devc->channel_data));
+
+	if ((trigger = sr_session_trigger_get())) {
+		devc->stl = soft_trigger_logic_new(sdi, trigger);
+		devc->trigger_fired = FALSE;
+	} else
+		devc->trigger_fired = TRUE;
 
 	timeout = get_timeout(devc);
 	num_transfers = get_number_of_transfers(devc);
