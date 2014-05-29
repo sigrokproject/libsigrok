@@ -167,6 +167,7 @@ SR_PRIV int p_ols_configure_channels(const struct sr_dev_inst *sdi)
 	for (i = 0; i < NUM_TRIGGER_STAGES; i++) {
 		devc->trigger_mask[i] = 0;
 		devc->trigger_value[i] = 0;
+		devc->trigger_edge[i] = 0;
 	}
 
 	devc->num_stages = 0;
@@ -194,8 +195,10 @@ SR_PRIV int p_ols_configure_channels(const struct sr_dev_inst *sdi)
 		stage = 0;
 		for (tc = ch->trigger; tc && *tc; tc++) {
 			devc->trigger_mask[stage] |= channel_bit;
-			if (*tc == '1')
+			if ((*tc == '1') || (*tc == 'r'))
 				devc->trigger_value[stage] |= channel_bit;
+			if ((*tc == 'r') || (*tc == 'f'))
+				devc->trigger_edge[stage] |= channel_bit;
 			stage++;
 			/* Only supporting parallel mode, with up to 4 stages. */
 			if (stage > 3)

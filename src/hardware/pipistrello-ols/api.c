@@ -501,6 +501,14 @@ static int set_trigger(const struct sr_dev_inst *sdi, int stage)
 	if (write_longcommand(devc, cmd, arg) != SR_OK)
 		return SR_ERR;
 
+	cmd = CMD_SET_TRIGGER_EDGE + stage * 4;
+	arg[0] = devc->trigger_edge[stage] & 0xff;
+	arg[1] = (devc->trigger_edge[stage] >> 8) & 0xff;
+	arg[2] = (devc->trigger_edge[stage] >> 16) & 0xff;
+	arg[3] = (devc->trigger_edge[stage] >> 24) & 0xff;
+	if (write_longcommand(devc, cmd, arg) != SR_OK)
+		return SR_ERR;
+
 	return SR_OK;
 }
 
@@ -583,13 +591,13 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	arg[1] = ((readcount - 1) & 0xff00) >> 8;
 	arg[2] = ((readcount - 1) & 0xff0000) >> 16;
 	arg[3] = ((readcount - 1) & 0xff000000) >> 24;
-	if (write_longcommand(devc, CMD_CAPTURE_COUNT, arg) != SR_OK)
+	if (write_longcommand(devc, CMD_CAPTURE_DELAY, arg) != SR_OK)
 		return SR_ERR;
 	arg[0] = ((delaycount - 1) & 0xff);
 	arg[1] = ((delaycount - 1) & 0xff00) >> 8;
 	arg[2] = ((delaycount - 1) & 0xff0000) >> 16;
 	arg[3] = ((delaycount - 1) & 0xff000000) >> 24;
-	if (write_longcommand(devc, CMD_CAPTURE_DELAY, arg) != SR_OK)
+	if (write_longcommand(devc, CMD_CAPTURE_COUNT, arg) != SR_OK)
 		return SR_ERR;
 	/* Flag register. */
 	sr_dbg("Setting intpat %s, extpat %s, RLE %s, noise_filter %s, demux %s",

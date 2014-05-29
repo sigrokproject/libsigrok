@@ -39,7 +39,7 @@
 
 #define NUM_CHANNELS           32
 #define NUM_TRIGGER_STAGES     4
-#define TRIGGER_TYPE           "01"
+#define TRIGGER_TYPE           "01rf"
 #define CLOCK_RATE             SR_MHZ(100)
 #define MIN_NUM_SAMPLES        4
 #define DEFAULT_SAMPLERATE     SR_MHZ(100)
@@ -57,6 +57,7 @@
 #define CMD_SET_TRIGGER_MASK       0xc0
 #define CMD_SET_TRIGGER_VALUE      0xc1
 #define CMD_SET_TRIGGER_CONFIG     0xc2
+#define CMD_SET_TRIGGER_EDGE       0xc3
 
 /* Trigger config */
 #define TRIGGER_START              (1 << 3)
@@ -97,6 +98,7 @@ struct dev_context {
 	uint32_t channel_mask;
 	uint32_t trigger_mask[4];
 	uint32_t trigger_value[4];
+	uint32_t trigger_edge[4];
 	int num_stages;
 	uint16_t flag_reg;
 
