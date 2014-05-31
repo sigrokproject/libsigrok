@@ -133,7 +133,7 @@ SR_API int sr_output_free(struct sr_output *o);
 
 SR_API struct sr_trigger *sr_trigger_new(char *name);
 SR_API void sr_trigger_free(struct sr_trigger *trig);
-SR_API struct sr_trigger_stage *sr_trigger_stage_new(struct sr_trigger *trig);
+SR_API struct sr_trigger_stage *sr_trigger_stage_add(struct sr_trigger *trig);
 SR_API int sr_trigger_match_add(struct sr_trigger_stage *stage,
 		struct sr_channel *ch, int trigger_match, float value);
 
