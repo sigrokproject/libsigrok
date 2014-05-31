@@ -291,7 +291,7 @@ SR_API int sr_session_datafeed_callback_add(sr_datafeed_callback cb, void *cb_da
 	return SR_OK;
 }
 
-SR_PRIV struct sr_trigger *sr_session_trigger_get(void)
+SR_API struct sr_trigger *sr_session_trigger_get(void)
 {
 	return session->trigger;
 }

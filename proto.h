@@ -80,6 +80,7 @@ SR_API const struct sr_config_info *sr_config_info_name_get(const char *optname)
 
 typedef void (*sr_datafeed_callback)(const struct sr_dev_inst *sdi,
 		const struct sr_datafeed_packet *packet, void *cb_data);
+SR_API struct sr_trigger *sr_session_trigger_get(void);
 
 /* Session setup */
 SR_API int sr_session_load(const char *filename);
