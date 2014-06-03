@@ -378,6 +378,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		break;
 	case SR_CONF_TRIGGER_MATCH:
 		if (!sdi || !sdi->priv || !(devc = sdi->priv) || !devc->prof)
+			return SR_ERR_BUG;
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
 				trigger_matches, devc->prof->num_trigger_matches,
 				sizeof(int32_t));
