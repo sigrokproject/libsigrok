@@ -291,7 +291,7 @@ SR_PRIV struct sr_dev_inst *p_ols_get_metadata(uint8_t *buf, int bytes_read, str
 				break;
 			case 0x01:
 				/* Amount of sample memory available (bytes) */
-				devc->max_samples = tmp_int;
+				devc->max_samplebytes = tmp_int;
 				break;
 			case 0x02:
 				/* Amount of dynamic memory available (bytes) */
@@ -415,7 +415,7 @@ SR_PRIV int p_ols_receive_data(int fd, int revents, void *cb_data)
 		memset(devc->raw_sample_buf, 0x82, devc->limit_samples * 4);
 	}
 
-	if (devc->num_samples < devc->limit_samples) {
+	if ((devc->num_samples < devc->limit_samples) && (devc->cnt_samples < devc->max_samples)) {
 
 		num_channels = 0;
 		for (i = NUM_CHANNELS; i > 0x02; i /= 2) {
@@ -423,6 +423,7 @@ SR_PRIV int p_ols_receive_data(int fd, int revents, void *cb_data)
 				num_channels++;
 			}
 		}
+		sr_dbg("num_channels = %d", num_channels);
 
 		/* Get a block of data. */
 		bytes_read = ftdi_read_data(devc->ftdic, devc->ftdi_buf, FTDI_BUF_SIZE);
@@ -446,40 +447,44 @@ SR_PRIV int p_ols_receive_data(int fd, int revents, void *cb_data)
 
 			devc->sample[devc->num_bytes++] = byte;
 			sr_spew("Received byte 0x%.2x.", byte);
-			if (devc->num_bytes == num_channels) {
-				devc->cnt_samples++;
-				devc->cnt_samples_rle++;
-				/*
-				 * Got a full sample. Convert from the OLS's little-endian
-				 * sample to the local format.
-				 */
-				sample = devc->sample[0] | (devc->sample[1] << 8) \
-						| (devc->sample[2] << 16) | (devc->sample[3] << 24);
-				sr_spew("Received sample 0x%.*x.", devc->num_bytes * 2, sample);
-				if (devc->flag_reg & FLAG_RLE) {
+
+			if ((devc->flag_reg & FLAG_DEMUX) && (devc->flag_reg & FLAG_RLE)) {
+				/* RLE in demux mode must be processed differently 
+				* since in this case the RLE encoder is operating on pairs of samples.
+				*/
+				if (devc->num_bytes == num_channels * 2) {
+					devc->cnt_samples += 2;
+					devc->cnt_samples_rle += 2;
 					/*
-					 * In RLE mode the high bit of the sample is the
-					 * "count" flag, meaning this sample is the number
-					 * of times the previous sample occurred.
+					 * Got a sample pair. Convert from the OLS's little-endian
+					 * sample to the local format.
+					 */
+					sample = devc->sample[0] | (devc->sample[1] << 8) \
+							| (devc->sample[2] << 16) | (devc->sample[3] << 24);
+					sr_spew("Received sample pair 0x%.*x.", devc->num_bytes * 2, sample);
+
+					/*
+					 * In RLE mode the high bit of the sample pair is the
+					 * "count" flag, meaning this sample pair is the number
+					 * of times the previous sample pair occurred.
 					 */
 					if (devc->sample[devc->num_bytes - 1] & 0x80) {
 						/* Clear the high bit. */
 						sample &= ~(0x80 << (devc->num_bytes - 1) * 8);
 						devc->rle_count = sample;
-						devc->cnt_samples_rle += devc->rle_count;
-						sr_dbg("RLE count: %u.", devc->rle_count);
+						devc->cnt_samples_rle += devc->rle_count * 2;
+						sr_dbg("RLE count: %u.", devc->rle_count * 2);
 						devc->num_bytes = 0;
 						continue;
 					}
-				}
-				devc->num_samples += devc->rle_count + 1;
-				if (devc->num_samples > devc->limit_samples) {
-					/* Save us from overrunning the buffer. */
-					devc->rle_count -= devc->num_samples - devc->limit_samples;
-					devc->num_samples = devc->limit_samples;
-				}
+					devc->num_samples += (devc->rle_count + 1) * 2;
+					if (devc->num_samples > devc->limit_samples) {
+						/* Save us from overrunning the buffer. */
+						devc->rle_count -= (devc->num_samples - devc->limit_samples) / 2;
+						devc->num_samples = devc->limit_samples;
+						index = bytes_read;
+					}
 
-				if (num_channels < 4) {
 					/*
 					 * Some channel groups may have been turned
 					 * off, to speed up transfer between the
@@ -490,8 +495,9 @@ SR_PRIV int p_ols_receive_data(int fd, int revents, void *cb_data)
 					 * the number of channels.
 					 */
 					j = 0;
+					/* expand first sample */
 					memset(devc->tmp_sample, 0, 4);
-					for (i = 0; i < 4; i++) {
+					for (i = 0; i < 2; i++) {
 						if (((devc->flag_reg >> 2) & (1 << i)) == 0) {
 							/*
 							 * This channel group was
@@ -499,32 +505,127 @@ SR_PRIV int p_ols_receive_data(int fd, int revents, void *cb_data)
 							 * sample.
 							 */
 							devc->tmp_sample[i] = devc->sample[j++];
-						} else if (devc->flag_reg & FLAG_DEMUX && (i > 2)) {
-							/* group 2 & 3 get added to 0 & 1 */
-							devc->tmp_sample[i - 2] = devc->sample[j++];
+						} 
+					}
+					/* Clear out the most significant bit of the sample */
+					devc->tmp_sample[devc->num_bytes - 1] &= 0x7f;
+					sr_spew("Expanded sample 1: 0x%.8x.", devc->tmp_sample);
+
+					/* expand second sample */
+					memset(devc->tmp_sample2, 0, 4);
+					for (i = 0; i < 2; i++) {
+						if (((devc->flag_reg >> 2) & (1 << i)) == 0) {
+							/*
+							 * This channel group was
+							 * enabled, copy from received
+							 * sample.
+							 */
+							devc->tmp_sample2[i] = devc->sample[j++];
+						} 
+					}
+					/* Clear out the most significant bit of the sample */
+					devc->tmp_sample2[devc->num_bytes - 1] &= 0x7f;
+					sr_spew("Expanded sample 2: 0x%.8x.", devc->tmp_sample2);
+
+					/*
+					 * OLS sends its sample buffer backwards.
+					 * store it in reverse order here, so we can dump
+					 * this on the session bus later.
+					 */
+					offset = (devc->limit_samples - devc->num_samples) * 4;
+					for (i = 0; i <= devc->rle_count; i++) {
+						memcpy(devc->raw_sample_buf + offset + (i * 8),
+									 devc->tmp_sample2, 4);
+						memcpy(devc->raw_sample_buf + offset + (4 + (i * 8)),
+									 devc->tmp_sample, 4);
+					}
+					memset(devc->sample, 0, 4);
+					devc->num_bytes = 0;
+					devc->rle_count = 0;
+				}
+			}
+			else {
+				if (devc->num_bytes == num_channels) {
+					devc->cnt_samples++;
+					devc->cnt_samples_rle++;
+					/*
+					 * Got a full sample. Convert from the OLS's little-endian
+					 * sample to the local format.
+					 */
+					sample = devc->sample[0] | (devc->sample[1] << 8) \
+							| (devc->sample[2] << 16) | (devc->sample[3] << 24);
+					sr_spew("Received sample 0x%.*x.", devc->num_bytes * 2, sample);
+					if (devc->flag_reg & FLAG_RLE) {
+						/*
+						 * In RLE mode the high bit of the sample is the
+						 * "count" flag, meaning this sample is the number
+						 * of times the previous sample occurred.
+						 */
+						if (devc->sample[devc->num_bytes - 1] & 0x80) {
+							/* Clear the high bit. */
+							sample &= ~(0x80 << (devc->num_bytes - 1) * 8);
+							devc->rle_count = sample;
+							devc->cnt_samples_rle += devc->rle_count;
+							sr_dbg("RLE count: %u.", devc->rle_count);
+							devc->num_bytes = 0;
+							continue;
 						}
 					}
-					memcpy(devc->sample, devc->tmp_sample, 4);
-					sr_spew("Expanded sample: 0x%.8x.", sample);
-				}
+					devc->num_samples += devc->rle_count + 1;
+					if (devc->num_samples > devc->limit_samples) {
+						/* Save us from overrunning the buffer. */
+						devc->rle_count -= devc->num_samples - devc->limit_samples;
+						devc->num_samples = devc->limit_samples;
+						index = bytes_read;
+					}
 
-				/*
-				 * Pipistrello OLS sends its sample buffer backwards.
-				 * store it in reverse order here, so we can dump
-				 * this on the session bus later.
-				 */
-				offset = (devc->limit_samples - devc->num_samples) * 4;
-				for (i = 0; i <= devc->rle_count; i++) {
-					memcpy(devc->raw_sample_buf + offset + (i * 4),
-					       devc->sample, 4);
+					if (num_channels < 4) {
+						/*
+						 * Some channel groups may have been turned
+						 * off, to speed up transfer between the
+						 * hardware and the PC. Expand that here before
+						 * submitting it over the session bus --
+						 * whatever is listening on the bus will be
+						 * expecting a full 32-bit sample, based on
+						 * the number of channels.
+						 */
+						j = 0;
+						memset(devc->tmp_sample, 0, 4);
+						for (i = 0; i < 4; i++) {
+							if (((devc->flag_reg >> 2) & (1 << i)) == 0) {
+								/*
+								 * This channel group was
+								 * enabled, copy from received
+								 * sample.
+								 */
+								devc->tmp_sample[i] = devc->sample[j++];
+							} 
+						}
+						memcpy(devc->sample, devc->tmp_sample, 4);
+						sr_spew("Expanded sample: 0x%.8x.", sample);
+					}
+
+					/*
+					 * Pipistrello OLS sends its sample buffer backwards.
+					 * store it in reverse order here, so we can dump
+					 * this on the session bus later.
+					 */
+					offset = (devc->limit_samples - devc->num_samples) * 4;
+					for (i = 0; i <= devc->rle_count; i++) {
+						memcpy(devc->raw_sample_buf + offset + (i * 4),
+									 devc->sample, 4);
+					}
+					memset(devc->sample, 0, 4);
+					devc->num_bytes = 0;
+					devc->rle_count = 0;
 				}
-				memset(devc->sample, 0, 4);
-				devc->num_bytes = 0;
-				devc->rle_count = 0;
 			}
 		}
 		return TRUE;
 	} else {
+		do bytes_read = ftdi_read_data(devc->ftdic, devc->ftdi_buf, FTDI_BUF_SIZE);
+		while (bytes_read > 0);
+
 		/*
 		 * We've acquired all the samples we asked for -- we're done.
 		 * Send the (properly-ordered) buffer to the frontend.

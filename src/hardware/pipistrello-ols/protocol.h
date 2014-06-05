@@ -85,13 +85,14 @@ struct dev_context {
 
 	/* Fixed device settings */
 	int max_channels;
-	uint32_t max_samples;
+	uint32_t max_samplebytes;
 	uint32_t max_samplerate;
 	uint32_t protocol_version;
 
 	/* Acquisition settings */
 	uint64_t cur_samplerate;
 	uint32_t cur_samplerate_divider;
+	uint32_t max_samples;
 	uint64_t limit_samples;
 	int capture_ratio;
 	int trigger_at;
@@ -107,13 +108,14 @@ struct dev_context {
 	unsigned int num_samples;
 	int num_bytes;
 	int cnt_bytes;
-	int cnt_samples;
+	unsigned int cnt_samples;
 	int cnt_samples_rle;
 
 	/* Temporary variables */
 	unsigned int rle_count;
 	unsigned char sample[4];
 	unsigned char tmp_sample[4];
+	unsigned char tmp_sample2[4];
 	unsigned char *raw_sample_buf;
 };
 

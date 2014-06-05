@@ -99,7 +99,7 @@ static GSList *scan(GSList *options)
 	}
 
 	/* Device-specific settings */
-	devc->max_samples = devc->max_samplerate = devc->protocol_version = 0;
+	devc->max_samplebytes = devc->max_samplerate = devc->protocol_version = 0;
 
 	/* Acquisition settings */
 	devc->limit_samples = devc->capture_ratio = 0;
@@ -404,7 +404,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		devc = sdi->priv;
 		if (devc->flag_reg & FLAG_RLE)
 			return SR_ERR_NA;
-		if (devc->max_samples == 0)
+		if (devc->max_samplebytes == 0)
 			/* Device didn't specify sample memory size in metadata. */
 			return SR_ERR_NA;
 		/*
@@ -423,8 +423,11 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 			 * divide by zero. */
 			break;
 		}
+		/* 3 channel groups takes as many bytes as 4 channel groups */
+		if (num_channels == 3)
+			num_channels = 4;
 		grange[0] = g_variant_new_uint64(MIN_NUM_SAMPLES);
-		grange[1] = g_variant_new_uint64(devc->max_samples / num_channels);
+		grange[1] = g_variant_new_uint64(devc->max_samplebytes / num_channels);
 		*data = g_variant_new_tuple(grange, 2);
 		break;
 	default:
@@ -518,7 +521,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	struct dev_context *devc;
 	uint32_t samplecount, readcount, delaycount;
 	uint8_t changrp_mask, arg[4];
-	int num_channels;
+	uint16_t flag_tmp;
+	int num_channels, samplespercount;
 	int ret, i;
 
 	if (sdi->status != SR_ST_ACTIVE)
@@ -544,6 +548,11 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 			num_channels++;
 		}
 	}
+	/* 3 channel groups takes as many bytes as 4 channel groups */
+	if (num_channels == 3)
+		num_channels = 4;
+	/* maximum number of samples (or RLE counts) the buffer memory can hold */
+	devc->max_samples = devc->max_samplebytes / num_channels;
 
 	/*
 	 * Limit readcount to prevent reading past the end of the hardware
@@ -551,19 +560,28 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	 */
 	sr_dbg("max_samples = %d", devc->max_samples);
 	sr_dbg("limit_samples = %d", devc->limit_samples);
-	samplecount = MIN(devc->max_samples / num_channels, devc->limit_samples);
-	readcount = samplecount / 4;
+	samplecount = MIN(devc->max_samples, devc->limit_samples);
 	sr_dbg("Samplecount = %d", samplecount);
 
+	/* In demux mode the OLS is processing two samples per clock */
+	if (devc->flag_reg & FLAG_DEMUX) {
+		samplespercount = 8;
+	}
+	else {
+		samplespercount = 4;
+	}
+
+	readcount = samplecount / samplespercount;
+
 	/* Rather read too many samples than too few. */
-	if (samplecount % 4 != 0)
+	if (samplecount % samplespercount != 0)
 		readcount++;
 
 	/* Basic triggers. */
 	if (devc->trigger_mask[0] != 0x00000000) {
 		/* At least one channel has a trigger on it. */
 		delaycount = readcount * (1 - devc->capture_ratio / 100.0);
-		devc->trigger_at = (readcount - delaycount) * 4 - devc->num_stages;
+		devc->trigger_at = (readcount - delaycount) * samplespercount - devc->num_stages;
 		for (i = 0; i <= devc->num_stages; i++) {
 			sr_dbg("Setting stage %d trigger.", i);
 			if ((ret = set_trigger(sdi, i)) != SR_OK)
@@ -607,10 +625,26 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 			devc->flag_reg & FLAG_FILTER ? "on": "off",
 			devc->flag_reg & FLAG_DEMUX ? "on" : "off");
 
-	/* 1 means "disable channel". */
+	/*
+	* Enable/disable OLS channel groups in the flag register according
+	* to the channel mask. 1 means "disable channel".
+	*/
+	devc->flag_reg &= ~0x3c;
 	devc->flag_reg |= ~(changrp_mask << 2) & 0x3c;
-	arg[0] = devc->flag_reg & 0xff;
-	arg[1] = devc->flag_reg >> 8;
+	sr_dbg("flag_reg = %x", devc->flag_reg);
+
+	/*
+	* In demux mode the OLS is processing two 8-bit or 16-bit samples 
+	* in parallel and for this to work the lower two bits of the four 
+	* "channel_disable" bits must be replicated to the upper two bits.
+	*/
+	flag_tmp = devc->flag_reg;
+	if (devc->flag_reg & FLAG_DEMUX) {
+		flag_tmp &= ~0x30;
+		flag_tmp |= ~(changrp_mask << 4) & 0x30;
+	}
+	arg[0] = flag_tmp & 0xff;
+	arg[1] = flag_tmp >> 8;
 	arg[2] = arg[3] = 0x00;
 	if (write_longcommand(devc, CMD_SET_FLAGS, arg) != SR_OK)
 		return SR_ERR;
