@@ -36,14 +36,42 @@ static const int32_t hwcaps[] = {
 #define SERIALCOMM "4800/8n1/dtr=1/rts=0/flow=1"
 
 SR_PRIV struct sr_dev_driver norma_dmm_driver_info;
-static struct sr_dev_driver *di = &norma_dmm_driver_info;
+SR_PRIV struct sr_dev_driver siemens_b102x_driver_info;
 
-static int init(struct sr_context *sr_ctx)
+static const char* get_brandstr(struct sr_dev_driver* drv)
 {
-	return std_init(sr_ctx, di, LOG_PREFIX);
+	if (drv == &norma_dmm_driver_info)
+		return "Norma";
+	else
+		return "Siemens";
 }
 
-static GSList *scan(GSList *options)
+static const char* get_typestr(int type, struct sr_dev_driver* drv)
+{
+	static const char* nameref[5][2] = {
+		{"DM910", "B1024"},
+		{"DM920", "B1025"},
+		{"DM930", "B1026"},
+		{"DM940", "B1027"},
+		{"DM950", "B1028"}};
+
+	if ((type < 1) || (type > 5))
+		return "Unknown type!";
+
+	return nameref[type-1][(drv == &siemens_b102x_driver_info)];
+}
+
+static int init_norma_dmm(struct sr_context *sr_ctx)
+{
+	return std_init(sr_ctx, &norma_dmm_driver_info, LOG_PREFIX);
+}
+
+static int init_siemens_b102x(struct sr_context *sr_ctx)
+{
+	return std_init(sr_ctx, &siemens_b102x_driver_info, LOG_PREFIX);
+}
+
+static GSList *do_scan(struct sr_dev_driver* drv, GSList *options)
 {
 	struct sr_dev_inst *sdi;
 	struct drv_context *drvc;
@@ -55,12 +83,11 @@ static GSList *scan(GSList *options)
 	int len, cnt;
 	const char *conn, *serialcomm;
 	char *buf;
-	char fmttype[10];
 	char req[10];
 	int auxtype;
 
 	devices = NULL;
-	drvc = di->priv;
+	drvc = drv->priv;
 	drvc->instances = NULL;
 	conn = serialcomm = NULL;
 
@@ -110,12 +137,10 @@ static GSList *scan(GSList *options)
 		/* Match ID string, e.g. "1834 065 V1.06,IF V1.02" (DM950) */
 		if (g_regex_match_simple("^1834 [^,]*,IF V*", (char *)buf, 0, 0)) {
 			auxtype = xgittoint(buf[7]);
-				// TODO: Will this work with non-DM950?
-			snprintf(fmttype, sizeof(fmttype), "DM9%d0", auxtype);
-			sr_spew("Norma %s DMM %s detected!", fmttype, &buf[9]);
+			sr_spew("%s %s DMM %s detected!", get_brandstr(drv), get_typestr(auxtype, drv), buf + 9);
 
 			if (!(sdi = sr_dev_inst_new(0, SR_ST_INACTIVE,
-						"Norma", fmttype, buf + 9)))
+						get_brandstr(drv), get_typestr(auxtype, drv), buf + 9)))
 				return NULL;
 			if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
 				sr_err("Device context malloc failed.");
@@ -127,7 +152,7 @@ static GSList *scan(GSList *options)
 
 			sdi->conn = serial;
 			sdi->priv = devc;
-			sdi->driver = di;
+			sdi->driver = drv;
 			if (!(ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE,
 				"P1")))
 				return NULL;
@@ -158,9 +183,24 @@ static GSList *scan(GSList *options)
 	return devices;
 }
 
-static GSList *dev_list(void)
+static GSList *scan_norma_dmm(GSList *options)
 {
-	return ((struct drv_context *)(di->priv))->instances;
+	return do_scan(&norma_dmm_driver_info, options);
+}
+
+static GSList *scan_siemens_b102x(GSList *options)
+{
+	return do_scan(&siemens_b102x_driver_info, options);
+}
+
+static GSList *dev_list_norma_dmm(void)
+{
+	return ((struct drv_context *)(norma_dmm_driver_info.priv))->instances;
+}
+
+static GSList *dev_list_siemens_b102x(void)
+{
+	return ((struct drv_context *)(siemens_b102x_driver_info.priv))->instances;
 }
 
 static int dev_close(struct sr_dev_inst *sdi)
@@ -179,9 +219,14 @@ static int dev_close(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int cleanup(void)
+static int cleanup_norma_dmm(void)
 {
-	return std_dev_clear(di, NULL);
+	return std_dev_clear(&norma_dmm_driver_info, NULL);
+}
+
+static int cleanup_siemens_b102x(void)
+{
+	return std_dev_clear(&siemens_b102x_driver_info, NULL);
 }
 
 static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
@@ -201,7 +246,6 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 
 	switch (key) {
 	case SR_CONF_LIMIT_MSEC:
-		/* TODO: not yet implemented */
 		if (g_variant_get_uint64(data) == 0) {
 			sr_err("LIMIT_MSEC can't be 0.");
 			return SR_ERR;
@@ -287,12 +331,32 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 
 SR_PRIV struct sr_dev_driver norma_dmm_driver_info = {
 	.name = "norma-dmm",
-	.longname = "Norma DM9x0 / Siemens B102x DMMs",
+	.longname = "Norma DM9x0 DMMs",
 	.api_version = 1,
-	.init = init,
-	.cleanup = cleanup,
-	.scan = scan,
-	.dev_list = dev_list,
+	.init = init_norma_dmm,
+	.cleanup = cleanup_norma_dmm,
+	.scan = scan_norma_dmm,
+	.dev_list = dev_list_norma_dmm,
+	.dev_clear = NULL,
+	.config_get = NULL,
+	.config_set = config_set,
+	.config_list = config_list,
+	.dev_open = std_serial_dev_open,
+	.dev_close = dev_close,
+	.dev_acquisition_start = dev_acquisition_start,
+	.dev_acquisition_stop = dev_acquisition_stop,
+	.priv = NULL,
+};
+
+
+SR_PRIV struct sr_dev_driver siemens_b102x_driver_info = {
+	.name = "siemens-b102x",
+	.longname = "Siemens B102x DMMs",
+	.api_version = 1,
+	.init = init_siemens_b102x,
+	.cleanup = cleanup_siemens_b102x,
+	.scan = scan_siemens_b102x,
+	.dev_list = dev_list_siemens_b102x,
 	.dev_clear = NULL,
 	.config_get = NULL,
 	.config_set = config_set,

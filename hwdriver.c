@@ -182,6 +182,7 @@ extern SR_PRIV struct sr_dev_driver motech_lps_301_driver_info;
 #endif
 #ifdef HAVE_HW_NORMA_DMM
 extern SR_PRIV struct sr_dev_driver norma_dmm_driver_info;
+extern SR_PRIV struct sr_dev_driver siemens_b102x_driver_info;
 #endif
 #ifdef HAVE_HW_OLS
 extern SR_PRIV struct sr_dev_driver ols_driver_info;
@@ -340,6 +341,7 @@ static struct sr_dev_driver *drivers_list[] = {
 #endif
 #ifdef HAVE_HW_NORMA_DMM
 	&norma_dmm_driver_info,
+	&siemens_b102x_driver_info,
 #endif
 #ifdef HAVE_HW_OLS
 	&ols_driver_info,
