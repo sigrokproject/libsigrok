@@ -17,6 +17,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/** @file
+ *  Norma DM9x0/Siemens B102x DMMs driver.
+ *  @internal
+ */
+
 #include "protocol.h"
 
 SR_PRIV const struct nmadmm_req nmadmm_requests[] = {
@@ -49,6 +54,8 @@ static int nma_send_req(const struct sr_dev_inst *sdi, int req, char *params)
 		devc->last_req_pending = FALSE;
 		return SR_ERR;
 	}
+
+	devc->req_sent_at = g_get_monotonic_time();
 
 	return SR_OK;
 }
@@ -417,9 +424,18 @@ SR_PRIV int norma_dmm_receive_data(int fd, int revents, void *cb_data)
 	}
 
 	/* Request next package. */
-	if (!terminating && !devc->last_req_pending) {
-		if (nma_send_req(sdi, NMADMM_REQ_STATUS, NULL) != SR_OK)
-			return FALSE;
+	if (!terminating) {
+		if (devc->last_req_pending) {
+			gint64 elapsed_us = g_get_monotonic_time() - devc->req_sent_at;
+			if (elapsed_us > NMADMM_TIMEOUT_MS * 1000) {/* Timeout! */
+				sr_spew("Request timeout!");
+				devc->last_req_pending = FALSE;
+			}
+		}
+		if (!devc->last_req_pending) {
+			if (nma_send_req(sdi, NMADMM_REQ_STATUS, NULL) != SR_OK)
+				return FALSE;
+		}
 	}
 
 	return TRUE;

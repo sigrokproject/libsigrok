@@ -17,6 +17,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/** @file
+ *  Norma DM9x0/Siemens B102x DMMs driver.
+ *  @internal
+ */
+
 #include "protocol.h"
 
 static const int32_t hwopts[] = {
@@ -122,6 +127,7 @@ static GSList *do_scan(struct sr_dev_driver* drv, GSList *options)
 
 	snprintf(req, sizeof(req), "%s\r\n",
 		 nmadmm_requests[NMADMM_REQ_IDN].req_str);
+	g_usleep(150 * 1000); /* Wait a little to allow serial port to settle. */
 	for (cnt = 0; cnt < 7; cnt++) {
 		if (serial_write(serial, req, strlen(req)) == -1) {
 			sr_err("Unable to send identification request: %d %s.",
@@ -129,7 +135,7 @@ static GSList *do_scan(struct sr_dev_driver* drv, GSList *options)
 			return NULL;
 		}
 		len = BUF_MAX;
-		serial_readline(serial, &buf, &len, 1500);
+		serial_readline(serial, &buf, &len, NMADMM_TIMEOUT_MS);
 		if (!len)
 			continue;
 		buf[BUF_MAX - 1] = '\0';

@@ -29,9 +29,16 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
+/** @file
+ *  Norma DM9x0/Siemens B102x DMMs driver.
+ *  @internal
+ */
+
 #define LOG_PREFIX "norma-dmm"
 
 #define NMADMM_BUFSIZE  256
+
+#define NMADMM_TIMEOUT_MS 2000 /**< Request timeout. */
 
 /** Norma DMM request types (used ones only, the DMMs support about 50). */
 enum {
@@ -63,6 +70,7 @@ struct dev_context {
 
 	/* Operational state */
 	int last_req;			/**< Last request. */
+	int64_t req_sent_at;		/**< Request sent. */
 	gboolean last_req_pending;	/**< Last request not answered yet. */
 	int lowbatt;			/**< Low battery. 1=low, 2=critical. */
 
