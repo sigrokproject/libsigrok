@@ -420,8 +420,7 @@ fi
 
 # The Check unit testing framework is optional. Disable if not found.
 PKG_CHECK_MODULES([check], [check >= 0.9.4],
-	[have_check="yes"; LIB_CFLAGS="$LIB_CFLAGS $check_CFLAGS";
-	LIBS="$LIBS $check_LIBS"], [have_check="no"])
+	[have_check="yes"], [have_check="no"])
 AM_CONDITIONAL(HAVE_CHECK, test x"$have_check" = "xyes")
 
 # The OLS driver uses serial port file descriptors directly, and therefore
