@@ -27,6 +27,7 @@
 #include <glib/gstdio.h>
 #include <ftdi.h>
 #include <string.h>
+#include <unistd.h>
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 #include "asix-sigma.h"
@@ -1113,7 +1114,7 @@ static int decode_chunk_ts(struct sigma_dram_line *dram_line,
 static int download_capture(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc = sdi->priv;
-	const int chunks_per_read = 32;
+	const uint32_t chunks_per_read = 32;
 	struct sigma_dram_line *dram_line;
 	int bufsz;
 	uint32_t stoppos, triggerpos;
