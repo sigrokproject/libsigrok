@@ -406,7 +406,11 @@ if test "x$enable_libftdi" != "xno"; then
 		[have_libftdi="yes"; LIB_CFLAGS="$LIB_CFLAGS $libftdi_CFLAGS";
 		LIBS="$LIBS $libftdi_LIBS";
 		SR_PKGLIBS="$SR_PKGLIBS libftdi"],
-		[have_libftdi="no"])
+		[PKG_CHECK_MODULES([libftdi1], [libftdi1 >= 1.1],
+			[LIB_CFLAGS="$LIB_CFLAGS $libftdi1_CFLAGS";
+			LIBS="$LIBS $libftdi1_LIBS";
+			SR_PKGLIBS="$SR_PKGLIBS libftdi1"],
+			[have_libftdi="no"])])
 	if test "x$enable_libftdi$have_libftdi" = "xyesno"; then
 		AC_MSG_ERROR([libftdi support requested, but it was not found])
 	fi
@@ -649,7 +653,7 @@ echo "Detected libraries:"
 echo
 
 # Note: This only works for libs with pkg-config integration.
-for lib in "glib-2.0 >= 2.32.0" "libzip >= 0.10" "libserialport >= 0.1.0" "librevisa >= 0.0.20130812" "libusb-1.0 >= 1.0.16" "libftdi >= 0.16" "check >= 0.9.4"; do
+for lib in "glib-2.0 >= 2.32.0" "libzip >= 0.10" "libserialport >= 0.1.0" "librevisa >= 0.0.20130812" "libusb-1.0 >= 1.0.16" "libftdi >= 0.16" "libftdi1 >= 1.1" "check >= 0.9.4"; do
 	optional="OPTIONAL"
 	if test "x$lib" = "xglib-2.0 >= 2.32.0"; then optional="REQUIRED"; fi
 	if test "x$lib" = "xlibzip >= 0.10"; then optional="REQUIRED"; fi
