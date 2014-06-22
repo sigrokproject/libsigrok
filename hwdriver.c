@@ -173,6 +173,9 @@ extern SR_PRIV struct sr_dev_driver kecheng_kc_330b_driver_info;
 #ifdef HAVE_HW_LASCAR_EL_USB
 extern SR_PRIV struct sr_dev_driver lascar_el_usb_driver_info;
 #endif
+#ifdef HAVE_HW_MANSON_HCS_3XXX
+extern SR_PRIV struct sr_dev_driver manson_hcs_3xxx_driver_info;
+#endif
 #ifdef HAVE_HW_MIC_985XX
 extern SR_PRIV struct sr_dev_driver mic_98581_driver_info;
 extern SR_PRIV struct sr_dev_driver mic_98583_driver_info;
@@ -331,6 +334,9 @@ static struct sr_dev_driver *drivers_list[] = {
 #endif
 #ifdef HAVE_HW_LASCAR_EL_USB
 	&lascar_el_usb_driver_info,
+#endif
+#ifdef HAVE_HW_MANSON_HCS_3XXX
+	&manson_hcs_3xxx_driver_info,
 #endif
 #ifdef HAVE_HW_MIC_985XX
 	&mic_98581_driver_info,

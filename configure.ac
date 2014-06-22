@@ -190,6 +190,11 @@ AC_ARG_ENABLE(lascar-el-usb, AC_HELP_STRING([--enable-lascar-el-usb],
 	[HW_LASCAR_EL_USB="$enableval"],
 	[HW_LASCAR_EL_USB=$HW_ENABLED_DEFAULT])
 
+AC_ARG_ENABLE(manson-hcs-3xxx, AC_HELP_STRING([--enable-manson-hcs-3xxx],
+	[enable Manson HCS-3xxx support [default=yes]]),
+	[HW_MANSON_HCS_3XXX="$enableval"],
+	[HW_MANSON_HCS_3XXX=$HW_ENABLED_DEFAULT])
+
 AC_ARG_ENABLE(mic-985xx, AC_HELP_STRING([--enable-mic-985xx],
 	[enable MIC 985xx support [default=yes]]),
 	[HW_MIC_985XX="$enableval"],
@@ -546,6 +551,11 @@ if test "x$HW_LASCAR_EL_USB" = "xyes"; then
 	AC_DEFINE(HAVE_HW_LASCAR_EL_USB, 1, [Lascar EL-USB support])
 fi
 
+AM_CONDITIONAL(HW_MANSON_HCS_3XXX, test x$HW_MANSON_HCS_3XXX = xyes)
+if test "x$HW_MANSON_HCS_3XXX" = "xyes"; then
+	AC_DEFINE(HAVE_HW_MANSON_HCS_3XXX, 1, [Manson HCS-3xxx support])
+fi
+
 AM_CONDITIONAL(HW_MIC_985XX, test x$HW_MIC_985XX = xyes)
 if test "x$HW_MIC_985XX" = "xyes"; then
 	AC_DEFINE(HAVE_HW_MIC_985XX, 1, [MIC 985xx support])
@@ -688,6 +698,7 @@ echo "  - ikalogic-scanalogic2............ $HW_IKALOGIC_SCANALOGIC2"
 echo "  - ikalogic-scanaplus.............. $HW_IKALOGIC_SCANAPLUS"
 echo "  - kecheng-kc-330b................. $HW_KECHENG_KC_330B"
 echo "  - lascar-el-usb................... $HW_LASCAR_EL_USB"
+echo "  - manson-hcs-3xxx................. $HW_MANSON_HCS_3XXX"
 echo "  - mic-985xx....................... $HW_MIC_985XX"
 echo "  - motech-lps-30x.................. $HW_MOTECH_LPS_30X"
 echo "  - norma-dmm....................... $HW_NORMA_DMM"

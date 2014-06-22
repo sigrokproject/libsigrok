@@ -224,6 +224,12 @@ libsigrok_la_SOURCES += \
 	hardware/lascar-el-usb/protocol.c \
 	hardware/lascar-el-usb/api.c
 endif
+if HW_MANSON_HCS_3XXX
+libsigrok_la_SOURCES += \
+	hardware/manson-hcs-3xxx/protocol.h \
+	hardware/manson-hcs-3xxx/protocol.c \
+	hardware/manson-hcs-3xxx/api.c
+endif
 if HW_MIC_985XX
 libsigrok_la_SOURCES += \
 	hardware/mic-985xx/protocol.h \
