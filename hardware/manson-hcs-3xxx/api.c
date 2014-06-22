@@ -20,8 +20,35 @@
 
 #include "protocol.h"
 
+static const int32_t hwopts[] = {
+	SR_CONF_CONN,
+	SR_CONF_SERIALCOMM,
+};
+
+static const int32_t devopts[] = {
+	SR_CONF_POWER_SUPPLY,
+	SR_CONF_LIMIT_SAMPLES,
+	SR_CONF_LIMIT_MSEC,
+	SR_CONF_CONTINUOUS,
+	SR_CONF_OUTPUT_VOLTAGE,
+	SR_CONF_OUTPUT_CURRENT,
+};
+
+/* Note: All models have one power supply output only. */
+static struct hcs_model models[] = {
+	{ MANSON_HCS_3200, "HCS-3200", { 1, 18, 0.1 }, { 0, 20, 0.01 } },
+	{ MANSON_HCS_3202, "HCS-3202", { 1, 36, 0.1 }, { 0, 10, 0.01 } },
+	{ MANSON_HCS_3204, "HCS-3204", { 1, 60, 0.1 }, { 0,  5, 0.01 } },
+	{ 0, NULL, { 0, 0, 0 }, { 0, 0, 0 }, },
+};
+
 SR_PRIV struct sr_dev_driver manson_hcs_3xxx_driver_info;
 static struct sr_dev_driver *di = &manson_hcs_3xxx_driver_info;
+
+static int dev_clear(void)
+{
+	return std_dev_clear(di, NULL);
+}
 
 static int init(struct sr_context *sr_ctx)
 {
@@ -30,14 +57,98 @@ static int init(struct sr_context *sr_ctx)
 
 static GSList *scan(GSList *options)
 {
+	int i, model_id;
 	struct drv_context *drvc;
-	GSList *devices;
+	struct dev_context *devc;
+	struct sr_dev_inst *sdi;
+	struct sr_config *src;
+	struct sr_channel *ch;
+	GSList *devices, *l;
+	const char *conn, *serialcomm;
+	struct sr_serial_dev_inst *serial;
+	char reply[50], **tokens;
 
-	(void)options;
-
-	devices = NULL;
 	drvc = di->priv;
 	drvc->instances = NULL;
+	devices = NULL;
+	conn = NULL;
+	serialcomm = NULL;
+
+	for (l = options; l; l = l->next) {
+		src = l->data;
+		switch (src->key) {
+		case SR_CONF_CONN:
+			conn = g_variant_get_string(src->data, NULL);
+			break;
+		case SR_CONF_SERIALCOMM:
+			serialcomm = g_variant_get_string(src->data, NULL);
+			break;
+		default:
+			sr_err("Unknown option %d, skipping.", src->key);
+			break;
+		}
+	}
+
+	if (!conn)
+		return NULL;
+	if (!serialcomm)
+		serialcomm = "9600/8n1";
+
+	if (!(serial = sr_serial_dev_inst_new(conn, serialcomm)))
+		return NULL;
+
+	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
+		return NULL;
+
+	serial_flush(serial);
+
+	sr_info("Probing serial port %s.", conn);
+
+	/* Get the device model. */
+	memset(&reply, 0, sizeof(reply));
+	serial_write_blocking(serial, "GMOD\r", 5);
+	serial_read_blocking(serial, &reply, 8);
+	tokens = g_strsplit((const gchar *)&reply, "\r", 2);
+
+	model_id = -1;
+	for (i = 0; models[i].name != NULL; i++) {
+		if (!strcmp(models[i].name + 4, tokens[0]))
+			model_id = i;
+	}
+	if (model_id < 0) {
+		sr_err("Unknown model '%s' detected, aborting.", tokens[0]);
+		return NULL;
+	}
+
+	if (!(sdi = sr_dev_inst_new(0, SR_ST_INACTIVE, "Manson",
+				    models[model_id].name, NULL))) {
+		sr_err("Failed to create device instance.");
+		return NULL;
+	}
+
+	g_strfreev(tokens);
+
+	sdi->inst_type = SR_INST_SERIAL;
+	sdi->conn = serial;
+	sdi->driver = di;
+
+	if (!(ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "CH1"))) {
+		sr_err("Failed to create channel.");
+		return NULL;
+	}
+	sdi->channels = g_slist_append(sdi->channels, ch);
+
+	devc = g_malloc0(sizeof(struct dev_context));
+	devc->model = &models[model_id];
+
+	sdi->priv = devc;
+
+	drvc->instances = g_slist_append(drvc->instances, sdi);
+	devices = g_slist_append(devices, sdi);
+
+	serial_close(serial);
+	if (!devices)
+		sr_serial_dev_inst_free(serial);
 
 	return devices;
 }
@@ -45,29 +156,6 @@ static GSList *scan(GSList *options)
 static GSList *dev_list(void)
 {
 	return ((struct drv_context *)(di->priv))->instances;
-}
-
-static int dev_clear(void)
-{
-	return std_dev_clear(di, NULL);
-}
-
-static int dev_open(struct sr_dev_inst *sdi)
-{
-	(void)sdi;
-
-	sdi->status = SR_ST_ACTIVE;
-
-	return SR_OK;
-}
-
-static int dev_close(struct sr_dev_inst *sdi)
-{
-	(void)sdi;
-
-	sdi->status = SR_ST_INACTIVE;
-
-	return SR_OK;
 }
 
 static int cleanup(void)
@@ -78,79 +166,117 @@ static int cleanup(void)
 static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
-	int ret;
+	struct dev_context *devc;
 
-	(void)sdi;
-	(void)data;
 	(void)cg;
 
-	ret = SR_OK;
+	if (!sdi)
+		return SR_ERR_ARG;
+
+	devc = sdi->priv;
+
 	switch (key) {
+	case SR_CONF_LIMIT_SAMPLES:
+		*data = g_variant_new_uint64(devc->limit_samples);
+		break;
+	case SR_CONF_LIMIT_MSEC:
+		*data = g_variant_new_uint64(devc->limit_msec);
+		break;
+	case SR_CONF_OUTPUT_VOLTAGE:
+		*data = g_variant_new_double(devc->voltage);
+		break;
+	case SR_CONF_OUTPUT_CURRENT:
+		*data = g_variant_new_double(devc->current);
+		break;
 	default:
 		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
-	int ret;
+	struct dev_context *devc;
 
-	(void)data;
 	(void)cg;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
-	ret = SR_OK;
+	devc = sdi->priv;
+
 	switch (key) {
+	case SR_CONF_LIMIT_MSEC:
+		if (g_variant_get_uint64(data) == 0)
+			return SR_ERR_ARG;
+		devc->limit_msec = g_variant_get_uint64(data);
+		break;
+	case SR_CONF_LIMIT_SAMPLES:
+		if (g_variant_get_uint64(data) == 0)
+			return SR_ERR_ARG;
+		devc->limit_samples = g_variant_get_uint64(data);
+		break;
 	default:
-		ret = SR_ERR_NA;
+		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
-	int ret;
-
 	(void)sdi;
-	(void)data;
 	(void)cg;
 
-	ret = SR_OK;
 	switch (key) {
+	case SR_CONF_SCAN_OPTIONS:
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+			hwopts, ARRAY_SIZE(hwopts), sizeof(int32_t));
+		break;
+	case SR_CONF_DEVICE_OPTIONS:
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+			devopts, ARRAY_SIZE(devopts), sizeof(int32_t));
+		break;
 	default:
 		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
-static int dev_acquisition_start(const struct sr_dev_inst *sdi,
-				    void *cb_data)
+static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 {
-	(void)sdi;
-	(void)cb_data;
+	struct dev_context *devc;
+	struct sr_serial_dev_inst *serial;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
+
+	devc = sdi->priv;
+	devc->cb_data = cb_data;
+
+	/* Send header packet to the session bus. */
+	std_session_send_df_header(cb_data, LOG_PREFIX);
+
+	devc->starttime = g_get_monotonic_time();
+	devc->num_samples = 0;
+	devc->reply_pending = FALSE;
+	devc->req_sent_at = 0;
+
+	/* Poll every 10ms, or whenever some data comes in. */
+	serial = sdi->conn;
+	serial_source_add(serial, G_IO_IN, 10, hcs_receive_data, (void *)sdi);
 
 	return SR_OK;
 }
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
-	(void)cb_data;
-
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
-	return SR_OK;
+	return std_serial_dev_acquisition_stop(sdi, cb_data,
+			std_serial_dev_close, sdi->conn, LOG_PREFIX);
 }
 
 SR_PRIV struct sr_dev_driver manson_hcs_3xxx_driver_info = {
@@ -165,8 +291,8 @@ SR_PRIV struct sr_dev_driver manson_hcs_3xxx_driver_info = {
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,
-	.dev_open = dev_open,
-	.dev_close = dev_close,
+	.dev_open = std_serial_dev_open,
+	.dev_close = std_serial_dev_close,
 	.dev_acquisition_start = dev_acquisition_start,
 	.dev_acquisition_stop = dev_acquisition_stop,
 	.priv = NULL,
