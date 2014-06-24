@@ -248,6 +248,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/center-3xx/protocol.c \
 	src/hardware/center-3xx/api.c
 endif
+if HW_CHROMIUM_TWINKIE
+src_libdrivers_la_SOURCES += \
+	src/hardware/chromium-twinkie/protocol.h \
+	src/hardware/chromium-twinkie/protocol.c \
+	src/hardware/chromium-twinkie/api.c
+endif
 if HW_CHRONOVU_LA
 src_libdrivers_la_SOURCES += \
 	src/hardware/chronovu-la/protocol.h \
