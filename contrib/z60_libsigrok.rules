@@ -45,6 +45,9 @@ ATTRS{idVendor}=="16d0", ATTRS{idProduct}=="0498", MODE="660", GROUP="plugdev", 
 # CEM DT-8852
 ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", MODE="660", GROUP="plugdev", TAG+="uaccess"
 
+# Chromium Twinkie dongle
+ATTRS{idVendor}=="18d1", ATTRS{idProduct}=="500a", MODE="664", GROUP="plugdev"
+
 # ChronoVu LA8 (new VID/PID)
 # ChronoVu LA16 (new VID/PID)
 ATTRS{idVendor}=="0403", ATTRS{idProduct}=="8867", MODE="660", GROUP="plugdev", TAG+="uaccess"
