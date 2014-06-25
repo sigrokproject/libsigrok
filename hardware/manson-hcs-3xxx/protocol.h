@@ -2,6 +2,7 @@
  * This file is part of the libsigrok project.
  *
  * Copyright (C) 2014 Uwe Hermann <uwe@hermann-uwe.de>
+ * Copyright (C) 2014 Matthias Heidbrink <m-sigrok@heidbrink.biz>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,16 +32,30 @@
 #define LOG_PREFIX "manson-hcs-3xxx"
 
 enum {
+	MANSON_HCS_3100,
+	MANSON_HCS_3102,
+	MANSON_HCS_3104,
+	MANSON_HCS_3150,
 	MANSON_HCS_3200,
 	MANSON_HCS_3202,
 	MANSON_HCS_3204,
+	MANSON_HCS_3300,
+	MANSON_HCS_3302,
+	MANSON_HCS_3304,
+	MANSON_HCS_3400,
+	MANSON_HCS_3402,
+	MANSON_HCS_3404,
+	MANSON_HCS_3600,
+	MANSON_HCS_3602,
+	MANSON_HCS_3604,
 };
 
 struct hcs_model {
-	int model_id;
-	char *name;
-	double voltage[3]; /* Min, max, step */
-	double current[3]; /* Min, max, step */
+	int model_id;      /**< Model info */
+	char *name;        /**< Model name */
+	char *id;          /**< Model ID, like delivered by interface */
+	double voltage[3]; /**< Min, max, step */
+	double current[3]; /**< Min, max, step */
 };
 
 /** Private, per-device-instance driver context. */

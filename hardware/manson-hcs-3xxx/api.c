@@ -2,6 +2,7 @@
  * This file is part of the libsigrok project.
  *
  * Copyright (C) 2014 Uwe Hermann <uwe@hermann-uwe.de>
+ * Copyright (C) 2014 Matthias Heidbrink <m-sigrok@heidbrink.biz>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,10 +37,23 @@ static const int32_t devopts[] = {
 
 /* Note: All models have one power supply output only. */
 static struct hcs_model models[] = {
-	{ MANSON_HCS_3200, "HCS-3200", { 1, 18, 0.1 }, { 0, 20, 0.01 } },
-	{ MANSON_HCS_3202, "HCS-3202", { 1, 36, 0.1 }, { 0, 10, 0.01 } },
-	{ MANSON_HCS_3204, "HCS-3204", { 1, 60, 0.1 }, { 0,  5, 0.01 } },
-	{ 0, NULL, { 0, 0, 0 }, { 0, 0, 0 }, },
+	{ MANSON_HCS_3100, "HCS-3100",     "3100", { 1, 18, 0.1 }, { 0, 10,   0.10 } },
+	{ MANSON_HCS_3102, "HCS-3102",     "3102", { 1, 36, 0.1 }, { 0,  5,   0.01 } },
+	{ MANSON_HCS_3104, "HCS-3104",     "3104", { 1, 60, 0.1 }, { 0,  2.5, 0.01 } },
+	{ MANSON_HCS_3150, "HCS-3150",     "3150", { 1, 18, 0.1 }, { 0, 15,   0.10 } },
+	{ MANSON_HCS_3200, "HCS-3200",     "3200", { 1, 18, 0.1 }, { 0, 20,   0.10 } },
+	{ MANSON_HCS_3202, "HCS-3202",     "3202", { 1, 36, 0.1 }, { 0, 10,   0.10 } },
+	{ MANSON_HCS_3204, "HCS-3204",     "3204", { 1, 60, 0.1 }, { 0,  5,   0.01 } },
+	{ MANSON_HCS_3300, "HCS-3300-USB", "3300", { 1, 16, 0.1 }, { 0, 30,   0.10 } },
+	{ MANSON_HCS_3302, "HCS-3302-USB", "3302", { 1, 32, 0.1 }, { 0, 15,   0.10 } },
+	{ MANSON_HCS_3304, "HCS-3304-USB", "3304", { 1, 60, 0.1 }, { 0,  8,   0.10 } },
+	{ MANSON_HCS_3400, "HCS-3400-USB", "3400", { 1, 16, 0.1 }, { 0, 40,   0.10 } },
+	{ MANSON_HCS_3402, "HCS-3402-USB", "3402", { 1, 32, 0.1 }, { 0, 20,   0.10 } },
+	{ MANSON_HCS_3404, "HCS-3404-USB", "3404", { 1, 60, 0.1 }, { 0, 10,   0.10 } },
+	{ MANSON_HCS_3600, "HCS-3600-USB", "3600", { 1, 16, 0.1 }, { 0, 60,   0.10 } },
+	{ MANSON_HCS_3602, "HCS-3602-USB", "3602", { 1, 32, 0.1 }, { 0, 30,   0.10 } },
+	{ MANSON_HCS_3604, "HCS-3604-USB", "3604", { 1, 60, 0.1 }, { 0, 15,   0.10 } },
+	{ 0, NULL, NULL, { 0, 0, 0 }, { 0, 0, 0 }, },
 };
 
 SR_PRIV struct sr_dev_driver manson_hcs_3xxx_driver_info;
@@ -111,12 +125,12 @@ static GSList *scan(GSList *options)
 	tokens = g_strsplit((const gchar *)&reply, "\r", 2);
 
 	model_id = -1;
-	for (i = 0; models[i].name != NULL; i++) {
-		if (!strcmp(models[i].name + 4, tokens[0]))
+	for (i = 0; models[i].id != NULL; i++) {
+		if (!strcmp(models[i].id, tokens[0]))
 			model_id = i;
 	}
 	if (model_id < 0) {
-		sr_err("Unknown model '%s' detected, aborting.", tokens[0]);
+		sr_err("Unknown model id '%s' detected, aborting.", tokens[0]);
 		return NULL;
 	}
 
