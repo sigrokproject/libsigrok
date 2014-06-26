@@ -33,7 +33,7 @@
  * Open the specified serial port.
  *
  * @param serial Previously initialized serial port structure.
- * @param flags Flags to use when opening the serial port. Possible flags
+ * @param[in] flags Flags to use when opening the serial port. Possible flags
  *              include SERIAL_RDWR, SERIAL_RDONLY, SERIAL_NONBLOCK.
  *
  * If the serial structure contains a serialcomm string, it will be
@@ -212,10 +212,12 @@ static int _serial_write(struct sr_serial_dev_inst *serial,
  * Write a number of bytes to the specified serial port.
  *
  * @param serial Previously initialized serial port structure.
- * @param buf Buffer containing the bytes to write.
- * @param count Number of bytes to write.
+ * @param[in] buf Buffer containing the bytes to write.
+ * @param[in] count Number of bytes to write.
  *
- * @return The number of bytes written, or a negative error code upon failure.
+ * @retval SR_ERR_ARG Invalid argument.
+ * @retval SR_ERR Other error.
+ * @retval other The number of bytes written.
  */
 SR_PRIV int serial_write(struct sr_serial_dev_inst *serial,
 		const void *buf, size_t count)
@@ -223,12 +225,20 @@ SR_PRIV int serial_write(struct sr_serial_dev_inst *serial,
 	return _serial_write(serial, buf, count, serial->nonblocking);
 }
 
+/**
+ * Write a number of bytes to the specified serial port, blocking until finished.
+ * @copydetails serial_write()
+ */
 SR_PRIV int serial_write_blocking(struct sr_serial_dev_inst *serial,
 		const void *buf, size_t count)
 {
 	return _serial_write(serial, buf, count, 0);
 }
 
+/**
+ * Write a number of bytes to the specified serial port, return immediately.
+ * @copydetails serial_write()
+*/
 SR_PRIV int serial_write_nonblocking(struct sr_serial_dev_inst *serial,
 		const void *buf, size_t count)
 {
@@ -278,9 +288,11 @@ static int _serial_read(struct sr_serial_dev_inst *serial, void *buf,
  *
  * @param serial Previously initialized serial port structure.
  * @param buf Buffer where to store the bytes that are read.
- * @param count The number of bytes to read.
+ * @param[in] count The number of bytes to read.
  *
- * @return The number of bytes read, or a negative error code upon failure.
+ * @retval SR_ERR_ARG Invalid argument.
+ * @retval SR_ERR     Other error.
+ * @retval other      The number of bytes read.
  */
 SR_PRIV int serial_read(struct sr_serial_dev_inst *serial, void *buf,
 		size_t count)
@@ -288,12 +300,21 @@ SR_PRIV int serial_read(struct sr_serial_dev_inst *serial, void *buf,
 	return _serial_read(serial, buf, count, serial->nonblocking);
 }
 
+/**
+ * Read a number of bytes from the specified serial port, block until finished.
+ * @copydetails serial_read()
+ */
 SR_PRIV int serial_read_blocking(struct sr_serial_dev_inst *serial, void *buf,
 		size_t count)
 {
 	return _serial_read(serial, buf, count, 0);
 }
 
+/**
+ * Try to read up to @a count bytes from the specified serial port, return
+ * immediately with what's available.
+ * @copydetails serial_read()
+ */
 SR_PRIV int serial_read_nonblocking(struct sr_serial_dev_inst *serial, void *buf,
 		size_t count)
 {
