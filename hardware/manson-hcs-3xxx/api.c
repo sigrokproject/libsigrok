@@ -32,12 +32,18 @@ static const int32_t hwopts[] = {
 };
 
 static const int32_t devopts[] = {
+	/* Device class */
 	SR_CONF_POWER_SUPPLY,
+	/* Aquisition modes. */
 	SR_CONF_LIMIT_SAMPLES,
 	SR_CONF_LIMIT_MSEC,
 	SR_CONF_CONTINUOUS,
-	SR_CONF_OUTPUT_VOLTAGE,
+	/* Device configuration */
 	SR_CONF_OUTPUT_CURRENT,
+	SR_CONF_OUTPUT_CURRENT_MAX,
+	SR_CONF_OUTPUT_ENABLED,
+	SR_CONF_OUTPUT_VOLTAGE,
+	SR_CONF_OUTPUT_VOLTAGE_MAX,
 };
 
 /* Note: All models have one power supply output only. */
@@ -218,11 +224,20 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	case SR_CONF_LIMIT_MSEC:
 		*data = g_variant_new_uint64(devc->limit_msec);
 		break;
+	case SR_CONF_OUTPUT_CURRENT:
+		*data = g_variant_new_double(devc->current);
+		break;
+	case SR_CONF_OUTPUT_CURRENT_MAX:
+		*data = g_variant_new_double(devc->current_max);
+		break;
+	case SR_CONF_OUTPUT_ENABLED:
+		*data = g_variant_new_boolean(devc->output_enabled);
+		break;
 	case SR_CONF_OUTPUT_VOLTAGE:
 		*data = g_variant_new_double(devc->voltage);
 		break;
-	case SR_CONF_OUTPUT_CURRENT:
-		*data = g_variant_new_double(devc->current);
+	case SR_CONF_OUTPUT_VOLTAGE_MAX:
+		*data = g_variant_new_double(devc->voltage_max);
 		break;
 	default:
 		return SR_ERR_NA;
@@ -235,6 +250,8 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
+	gboolean bval;
+	gdouble dval;
 
 	(void)cg;
 
@@ -254,6 +271,37 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 			return SR_ERR_ARG;
 		devc->limit_samples = g_variant_get_uint64(data);
 		break;
+	case SR_CONF_OUTPUT_CURRENT_MAX:
+		dval = g_variant_get_double(data);
+		if (dval < devc->model->current[0] || dval > devc->model->current[1])
+			return SR_ERR_ARG;
+
+		if ((hcs_send_cmd(sdi->conn, "CURR%03.0f\r",
+			(dval / devc->model->current[2])) < 0) ||
+		    (hcs_read_reply(sdi->conn, 1, devc->buf, sizeof(devc->buf)) < 0))
+			return SR_ERR;
+		devc->current_max = dval;
+		break;
+	case SR_CONF_OUTPUT_ENABLED:
+		bval = g_variant_get_boolean(data);
+		if (bval == devc->output_enabled) /* Nothing to do. */
+			break;
+		if ((hcs_send_cmd(sdi->conn, "SOUT%1d\r", !bval) < 0) ||
+		    (hcs_read_reply(sdi->conn, 1, devc->buf, sizeof(devc->buf)) < 0))
+			return SR_ERR;
+		devc->output_enabled = bval;
+		break;
+	case SR_CONF_OUTPUT_VOLTAGE_MAX:
+		dval = g_variant_get_double(data);
+		if (dval < devc->model->voltage[0] || dval > devc->model->voltage[1])
+			return SR_ERR_ARG;
+
+		if ((hcs_send_cmd(sdi->conn, "VOLT%03.0f\r",
+			(dval / devc->model->voltage[2])) < 0) ||
+		    (hcs_read_reply(sdi->conn, 1, devc->buf, sizeof(devc->buf)) < 0))
+			return SR_ERR;
+		devc->voltage_max = dval;
+		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -264,8 +312,16 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
-	(void)sdi;
+	struct dev_context *devc;
+	GVariant *gvar;
+	GVariantBuilder gvb;
+	int idx;
+
 	(void)cg;
+
+	if (!sdi)
+		return SR_ERR_ARG;
+	devc = sdi->priv;
 
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
@@ -275,6 +331,24 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	case SR_CONF_DEVICE_OPTIONS:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
 			devopts, ARRAY_SIZE(devopts), sizeof(int32_t));
+		break;
+	case SR_CONF_OUTPUT_CURRENT_MAX:
+		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
+		/* Min, max, step. */
+		for (idx = 0; idx < 3; idx++) {
+			gvar = g_variant_new_double(devc->model->current[idx]);
+			g_variant_builder_add_value(&gvb, gvar);
+		}
+		*data = g_variant_builder_end(&gvb);
+		break;
+	case SR_CONF_OUTPUT_VOLTAGE_MAX:
+		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
+		/* Min, max, step. */
+		for (idx = 0; idx < 3; idx++) {
+			gvar = g_variant_new_double(devc->model->voltage[idx]);
+			g_variant_builder_add_value(&gvb, gvar);
+		}
+		*data = g_variant_builder_end(&gvb);
 		break;
 	default:
 		return SR_ERR_NA;
