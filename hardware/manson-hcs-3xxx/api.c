@@ -91,7 +91,7 @@ static GSList *scan(GSList *options)
 	GSList *devices, *l;
 	const char *conn, *serialcomm;
 	struct sr_serial_dev_inst *serial;
-	char reply[50], **tokens;
+	char reply[50], **tokens, *dummy;
 
 	drvc = di->priv;
 	drvc->instances = NULL;
@@ -171,13 +171,24 @@ static GSList *scan(GSList *options)
 
 	sdi->priv = devc;
 
-	/* Get current device status. */
+	/* Get current voltage, current, status. */
 	if ((hcs_send_cmd(serial, "GETD\r") < 0) ||
 	    (hcs_read_reply(serial, 2, reply, sizeof(reply)) < 0))
-		return NULL;
+		goto exit_err;
 	tokens = g_strsplit((const gchar *)&reply, "\r", 2);
 	if (hcs_parse_volt_curr_mode(sdi, tokens) < 0)
 		goto exit_err;
+	g_strfreev(tokens);
+
+	/* Get max. voltage and current. */
+	if ((hcs_send_cmd(serial, "GMAX\r") < 0) ||
+	    (hcs_read_reply(serial, 2, reply, sizeof(reply)) < 0))
+		goto exit_err;
+	tokens = g_strsplit((const gchar *)&reply, "\r", 2);
+	devc->current_max_device = g_strtod(&tokens[0][3], &dummy) * devc->model->current[2];
+	tokens[0][3] = '\0';
+	devc->voltage_max_device = g_strtod(tokens[0], &dummy) * devc->model->voltage[2];
+	g_strfreev(tokens);
 
 	drvc->instances = g_slist_append(drvc->instances, sdi);
 	devices = g_slist_append(devices, sdi);
@@ -273,7 +284,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 		break;
 	case SR_CONF_OUTPUT_CURRENT_MAX:
 		dval = g_variant_get_double(data);
-		if (dval < devc->model->current[0] || dval > devc->model->current[1])
+		if (dval < devc->model->current[0] || dval > devc->current_max_device)
 			return SR_ERR_ARG;
 
 		if ((hcs_send_cmd(sdi->conn, "CURR%03.0f\r",
@@ -293,7 +304,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 		break;
 	case SR_CONF_OUTPUT_VOLTAGE_MAX:
 		dval = g_variant_get_double(data);
-		if (dval < devc->model->voltage[0] || dval > devc->model->voltage[1])
+		if (dval < devc->model->voltage[0] || dval > devc->voltage_max_device)
 			return SR_ERR_ARG;
 
 		if ((hcs_send_cmd(sdi->conn, "VOLT%03.0f\r",
@@ -315,6 +326,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	struct dev_context *devc;
 	GVariant *gvar;
 	GVariantBuilder gvb;
+	double dval;
 	int idx;
 
 	(void)cg;
@@ -336,7 +348,11 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
 		/* Min, max, step. */
 		for (idx = 0; idx < 3; idx++) {
-			gvar = g_variant_new_double(devc->model->current[idx]);
+			if (idx == 1)
+				dval = devc->current_max_device;
+			else
+				dval = devc->model->current[idx];
+			gvar = g_variant_new_double(dval);
 			g_variant_builder_add_value(&gvb, gvar);
 		}
 		*data = g_variant_builder_end(&gvb);
@@ -345,7 +361,11 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
 		/* Min, max, step. */
 		for (idx = 0; idx < 3; idx++) {
-			gvar = g_variant_new_double(devc->model->voltage[idx]);
+			if (idx == 1)
+				dval = devc->voltage_max_device;
+			else
+				dval = devc->model->voltage[idx];
+			gvar = g_variant_new_double(dval);
 			g_variant_builder_add_value(&gvb, gvar);
 		}
 		*data = g_variant_builder_end(&gvb);

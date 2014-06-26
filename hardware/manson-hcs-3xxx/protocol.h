@@ -78,9 +78,11 @@ struct dev_context {
 	void *cb_data;
 
 	float current;		/**< Last current value [A] read from device. */
-	float current_max;	/**< Output current set */
+	float current_max;	/**< Output current set. */
+	float current_max_device;/**< Device-provided maximum output current. */
 	float voltage;		/**< Last voltage value [V] read from device. */
-	float voltage_max;	/**< Output voltage set */
+	float voltage_max;	/**< Output voltage set. */
+	float voltage_max_device;/**< Device-provided maximum output voltage. */
 	gboolean cc_mode;	/**< Device is in constant current mode (otherwise constant voltage). */
 
 	gboolean output_enabled; /**< Is the output enabled? */
