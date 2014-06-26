@@ -19,6 +19,11 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
+/** @file
+  *  <em>Manson HCS-3xxx Series</em> power supply driver
+  *  @internal
+  */
+
 #include "protocol.h"
 
 static const int32_t hwopts[] = {
@@ -87,6 +92,7 @@ static GSList *scan(GSList *options)
 	devices = NULL;
 	conn = NULL;
 	serialcomm = NULL;
+	devc = NULL;
 
 	for (l = options; l; l = l->next) {
 		src = l->data;
@@ -120,8 +126,9 @@ static GSList *scan(GSList *options)
 
 	/* Get the device model. */
 	memset(&reply, 0, sizeof(reply));
-	serial_write_blocking(serial, "GMOD\r", 5);
-	serial_read_blocking(serial, &reply, 8);
+	if ((hcs_send_cmd(serial, "GMOD\r") < 0) ||
+	    (hcs_read_reply(serial, 2, reply, sizeof(reply)) < 0))
+		return NULL;
 	tokens = g_strsplit((const gchar *)&reply, "\r", 2);
 
 	model_id = -1;
@@ -129,18 +136,19 @@ static GSList *scan(GSList *options)
 		if (!strcmp(models[i].id, tokens[0]))
 			model_id = i;
 	}
+	g_strfreev(tokens);
+
 	if (model_id < 0) {
 		sr_err("Unknown model id '%s' detected, aborting.", tokens[0]);
 		return NULL;
 	}
 
+	/* Init device instance, etc. */
 	if (!(sdi = sr_dev_inst_new(0, SR_ST_INACTIVE, "Manson",
 				    models[model_id].name, NULL))) {
 		sr_err("Failed to create device instance.");
 		return NULL;
 	}
-
-	g_strfreev(tokens);
 
 	sdi->inst_type = SR_INST_SERIAL;
 	sdi->conn = serial;
@@ -148,7 +156,7 @@ static GSList *scan(GSList *options)
 
 	if (!(ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "CH1"))) {
 		sr_err("Failed to create channel.");
-		return NULL;
+		goto exit_err;
 	}
 	sdi->channels = g_slist_append(sdi->channels, ch);
 
@@ -156,6 +164,14 @@ static GSList *scan(GSList *options)
 	devc->model = &models[model_id];
 
 	sdi->priv = devc;
+
+	/* Get current device status. */
+	if ((hcs_send_cmd(serial, "GETD\r") < 0) ||
+	    (hcs_read_reply(serial, 2, reply, sizeof(reply)) < 0))
+		return NULL;
+	tokens = g_strsplit((const gchar *)&reply, "\r", 2);
+	if (hcs_parse_volt_curr_mode(sdi, tokens) < 0)
+		goto exit_err;
 
 	drvc->instances = g_slist_append(drvc->instances, sdi);
 	devices = g_slist_append(devices, sdi);
@@ -165,6 +181,12 @@ static GSList *scan(GSList *options)
 		sr_serial_dev_inst_free(serial);
 
 	return devices;
+
+exit_err:
+	sr_dev_inst_free(sdi);
+	if (devc)
+		g_free(devc);
+	return NULL;
 }
 
 static GSList *dev_list(void)

@@ -19,6 +19,11 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
+/** @file
+  *  <em>Manson HCS-3xxx Series</em> power supply driver
+  *  @internal
+  */
+
 #ifndef LIBSIGROK_HARDWARE_MANSON_HCS_3XXX_PROTOCOL_H
 #define LIBSIGROK_HARDWARE_MANSON_HCS_3XXX_PROTOCOL_H
 
@@ -50,6 +55,7 @@ enum {
 	MANSON_HCS_3604,
 };
 
+/** Information on a single model. */
 struct hcs_model {
 	int model_id;      /**< Model info */
 	char *name;        /**< Model name */
@@ -60,7 +66,7 @@ struct hcs_model {
 
 /** Private, per-device-instance driver context. */
 struct dev_context {
-	struct hcs_model *model;
+	struct hcs_model *model; /**< Model informaion. */
 
 	uint64_t limit_samples;
 	uint64_t limit_msec;
@@ -71,14 +77,19 @@ struct dev_context {
 
 	void *cb_data;
 
-	float voltage;
-	float current;
-	gboolean cc_mode;
+	float voltage;		/**< Last voltage value [V] read from device. */
+	float current;		/**< Last current value [A] read from device. */
+	gboolean cc_mode;	/**< Device is in constant current mode (otherwise constant voltage). */
+
+	gboolean output_enabled; /**< Is the output enabled? */
 
 	char buf[50];
 	int buflen;
 };
 
+SR_PRIV int hcs_parse_volt_curr_mode(struct sr_dev_inst *sdi, char **tokens);
+SR_PRIV int hcs_read_reply(struct sr_serial_dev_inst *serial, int lines, char* buf, int buflen);
+SR_PRIV int hcs_send_cmd(struct sr_serial_dev_inst *serial, const char *cmd, ...);
 SR_PRIV int hcs_receive_data(int fd, int revents, void *cb_data);
 
 #endif

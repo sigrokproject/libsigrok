@@ -2,6 +2,7 @@
  * This file is part of the libsigrok project.
  *
  * Copyright (C) 2014 Uwe Hermann <uwe@hermann-uwe.de>
+ * Copyright (C) 2014 Matthias Heidbrink <m-sigrok@heidbrink.biz>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,30 +19,76 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
+/** @file
+  *  <em>Manson HCS-3xxx Series</em> power supply driver
+  *  @internal
+  */
+
 #include "protocol.h"
 
 #define REQ_TIMEOUT_MS 500
 
-static int send_cmd(struct sr_serial_dev_inst *serial, const char *cmd)
+SR_PRIV int hcs_send_cmd(struct sr_serial_dev_inst *serial, const char *cmd, ...)
 {
 	int ret;
+	char cmdbuf[50];
 	char *cmd_esc;
+	va_list args;
 
-	cmd_esc = g_strescape(cmd, NULL);
+	va_start(args, cmd);
+	vsnprintf(cmdbuf, sizeof(cmdbuf), cmd, args);
+	va_end(args);
+
+	cmd_esc = g_strescape(cmdbuf, NULL);
 	sr_dbg("Sending '%s'.", cmd_esc);
+	g_free(cmd_esc);
 
-	if ((ret = serial_write_blocking(serial, cmd, strlen(cmd))) < 0) {
+	if ((ret = serial_write_blocking(serial, cmdbuf, strlen(cmdbuf))) < 0) {
 		sr_err("Error sending command: %d.", ret);
-		g_free(cmd_esc);
 		return ret;
 	}
-
-	g_free(cmd_esc);
 
 	return ret;
 }
 
-static int parse_volt_curr_mode(struct sr_dev_inst *sdi, char **tokens)
+/**
+ * Read data from interface into buffer blocking until @a lines number of \\r chars
+ * received.
+ * @param serial Previously initialized serial port structure.
+ * @param[in] lines Number of \\r-terminated lines to read (1-n).
+ * @param     buf Buffer for result. Contents is NUL-terminated on success.
+ * @param[in] buflen Buffer length (>0).
+ * @retval SR_OK Lines received and ending with "OK\r" (success).
+ * @retval SR_ERR Error.
+ * @retval SR_ERR_ARG Invalid argument.
+ */
+SR_PRIV int hcs_read_reply(struct sr_serial_dev_inst *serial, int lines, char* buf, int buflen)
+{
+	int l_recv = 0;
+	int bufpos = 0;
+	int retc;
+
+	if (!serial || (lines <= 0) || !buf || (buflen <= 0))
+		return SR_ERR_ARG;
+
+	while ((l_recv < lines) && (bufpos < (buflen + 1))) {
+		retc = serial_read_blocking(serial, &buf[bufpos], 1);
+		if (retc != 1)
+			return SR_ERR;
+		if (buf[bufpos] == '\r')
+			l_recv++;
+		bufpos++;
+	}
+	buf[bufpos] = '\0';
+
+	if ((l_recv == lines) && (g_str_has_suffix(buf, "OK\r")))
+		return SR_OK;
+	else
+		return SR_ERR;
+}
+
+/** Interpret result of GETD command. */
+SR_PRIV int hcs_parse_volt_curr_mode(struct sr_dev_inst *sdi, char **tokens)
 {
 	char *str;
 	double val;
@@ -63,6 +110,9 @@ static int parse_volt_curr_mode(struct sr_dev_inst *sdi, char **tokens)
 
 	/* Byte 8: Mode ('0' means CV, '1' means CC). */
 	devc->cc_mode = (tokens[0][8] == '1');
+
+	/* Output enabled? Works because voltage cannot be set to 0.0 directly. */
+	devc->output_enabled = devc->voltage != 0.0;
 
 	return SR_OK;
 }
@@ -99,20 +149,21 @@ static int parse_reply(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	char *reply_esc, **tokens;
+	int retc;
 
 	devc = sdi->priv;
 
 	reply_esc = g_strescape(devc->buf, NULL);
 	sr_dbg("Received '%s'.", reply_esc);
+	g_free(reply_esc);
 
 	tokens = g_strsplit(devc->buf, "\r", 0);
-
-	if (parse_volt_curr_mode(sdi, tokens) < 0)
-		return SR_ERR;
-	send_sample(sdi);
-
-	g_free(reply_esc);
+	retc = hcs_parse_volt_curr_mode(sdi, tokens);
 	g_strfreev(tokens);
+	if (retc < 0)
+		return SR_ERR;
+
+	send_sample(sdi);
 
 	return SR_OK;
 }
@@ -147,6 +198,7 @@ static int handle_new_data(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
+/** Driver/serial data reception function. */
 SR_PRIV int hcs_receive_data(int fd, int revents, void *cb_data)
 {
 	struct sr_dev_inst *sdi;
@@ -196,7 +248,7 @@ SR_PRIV int hcs_receive_data(int fd, int revents, void *cb_data)
 		}
 
 		/* Send command to get voltage, current, and mode (CC or CV). */
-		if (send_cmd(serial, "GETD\r") < 0)
+		if (hcs_send_cmd(serial, "GETD\r") < 0)
 			return TRUE;
 
 		devc->req_sent_at = g_get_monotonic_time();
