@@ -338,8 +338,8 @@ if test "x$have_libserialport" = "xno"; then
 	HW_ATTEN_PPS3XXX="no"; HW_BRYMEN_DMM="no"; HW_CEM_DT_885X="no";
 	HW_CENTER_3XX="no"; HW_COLEAD_SLM="no"; HW_CONRAD_DIGI_35_CPU="no";
 	HW_FLUKE_DMM="no"; HW_GMC_MH_1X_2X="no"; HW_HAMEG_HMO="no";
-	HW_MIC_985XX="no"; HW_MOTECH_LPS_30X="no"; HW_NORMA_DMM="no";
-	HW_OLS="no"; HW_SERIAL_DMM="no"; HW_TELEINFO="no";
+	HW_MANSON_HCS_3XXX="no"; HW_MIC_985XX="no"; HW_MOTECH_LPS_30X="no";
+	HW_NORMA_DMM="no"; HW_OLS="no"; HW_SERIAL_DMM="no"; HW_TELEINFO="no";
 	HW_TONDAJ_SL_814="no";
 else
 	AC_DEFINE_UNQUOTED(HAVE_LIBSERIALPORT, [1],
