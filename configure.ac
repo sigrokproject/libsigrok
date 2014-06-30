@@ -240,6 +240,11 @@ AC_ARG_ENABLE(teleinfo, AC_HELP_STRING([--enable-teleinfo],
 	[HW_TELEINFO="$enableval"],
 	[HW_TELEINFO=$HW_ENABLED_DEFAULT])
 
+AC_ARG_ENABLE(testo, AC_HELP_STRING([--enable-testo],
+	[enable Testo support [default=yes]]),
+	[HW_TESTO="$enableval"],
+	[HW_TESTO=$HW_ENABLED_DEFAULT])
+
 AC_ARG_ENABLE(tondaj-sl-814, AC_HELP_STRING([--enable-tondaj-sl-814],
 	[enable Tondaj SL-814 support [default=yes]]),
 	[HW_TONDAJ_SL_814="$enableval"],
@@ -394,7 +399,7 @@ if test "x$have_libusb1_0" = "xno"; then
 	HW_BRYMEN_BM86X="no"; HW_FX2LAFW="no";
 	HW_HANTEK_DSO="no"; HW_IKALOGIC_SCANALOGIC2="no";
 	HW_KECHENG_KC_330B="no"; HW_LASCAR_EL_USB="no";
-	HW_SYSCLK_LWLA="no"; HW_UNI_T_DMM="no";
+	HW_SYSCLK_LWLA="no"; HW_TESTO="no"; HW_UNI_T_DMM="no";
 	HW_UNI_T_UT32X="no"; HW_VICTOR_DMM="no";
 	HW_ZEROPLUS_LOGIC_CUBE="no"; HW_SALEAE_LOGIC16="no";
 else
@@ -601,6 +606,11 @@ if test "x$HW_TELEINFO" = "xyes"; then
 	AC_DEFINE(HAVE_HW_TELEINFO, 1, [Teleinfo support])
 fi
 
+AM_CONDITIONAL(HW_TESTO, test x$HW_TESTO = xyes)
+if test "x$HW_TESTO" = "xyes"; then
+	AC_DEFINE(HAVE_HW_TESTO, 1, [Testo support])
+fi
+
 AM_CONDITIONAL(HW_TONDAJ_SL_814, test x$HW_TONDAJ_SL_814 = xyes)
 if test "x$HW_TONDAJ_SL_814" = "xyes"; then
 	AC_DEFINE(HAVE_HW_TONDAJ_SL_814, 1, [Tondaj SL-814 support])
@@ -708,6 +718,7 @@ echo "  - saleae-logic16.................. $HW_SALEAE_LOGIC16"
 echo "  - serial-dmm...................... $HW_SERIAL_DMM"
 echo "  - sysclk-lwla..................... $HW_SYSCLK_LWLA"
 echo "  - teleinfo........................ $HW_TELEINFO"
+echo "  - testo........................... $HW_TESTO"
 echo "  - tondaj-sl-814................... $HW_TONDAJ_SL_814"
 echo "  - uni-t-dmm....................... $HW_UNI_T_DMM"
 echo "  - uni-t-ut32x..................... $HW_UNI_T_UT32X"

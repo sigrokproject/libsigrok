@@ -286,6 +286,12 @@ libsigrok_la_SOURCES += \
 	hardware/teleinfo/protocol.c \
 	hardware/teleinfo/api.c
 endif
+if HW_TESTO
+libsigrok_la_SOURCES += \
+	hardware/testo/protocol.h \
+	hardware/testo/protocol.c \
+	hardware/testo/api.c
+endif
 if HW_TONDAJ_SL_814
 libsigrok_la_SOURCES += \
 	hardware/tondaj-sl-814/protocol.h \
