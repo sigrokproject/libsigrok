@@ -153,6 +153,9 @@ ATTRS{idVendor}=="21a9", ATTRS{idProduct}=="1001", MODE="664", GROUP="plugdev"
 # SysClk LWLA1034
 ATTRS{idVendor}=="2961", ATTRS{idProduct}=="6689", MODE="664", GROUP="plugdev"
 
+# Testo 435
+ATTRS{idVendor}=="128d", ATTRS{idProduct}=="0003", MODE="664", GROUP="plugdev"
+
 # UNI-T UT-D04 multimeter cable (for various UNI-T and rebranded DMMs)
 # http://sigrok.org/wiki/Device_cables#UNI-T_UT-D04
 # UNI-T UT325
