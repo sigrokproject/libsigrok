@@ -178,6 +178,15 @@ static void fancyprint(int unit, int mqflags, float value, GString *out)
 	case SR_UNIT_WATT_HOUR:
 		si_printf(value, out, "Wh");
 		break;
+	case SR_UNIT_METER_SECOND:
+		si_printf(value, out, "m/s");
+		break;
+	case SR_UNIT_HECTOPASCAL:
+		si_printf(value, out, "hPa");
+		break;
+	case SR_UNIT_HUMIDITY_293K:
+		si_printf(value, out, "%rF");
+		break;
 	default:
 		si_printf(value, out, "");
 		break;
