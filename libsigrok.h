@@ -195,6 +195,10 @@ enum sr_mq {
 	SR_MQ_RELATIVE_HUMIDITY,
 	/** Time */
 	SR_MQ_TIME,
+	/** Wind speed */
+	SR_MQ_WIND_SPEED,
+	/** Pressure */
+	SR_MQ_PRESSURE,
 };
 
 /** Unit of measured quantity, sr_datafeed_analog.unit. */
@@ -252,6 +256,12 @@ enum sr_unit {
 	SR_UNIT_WATT,
 	/** Consumption [Wh]. */
 	SR_UNIT_WATT_HOUR,
+	/** Wind speed in meters per second. */
+	SR_UNIT_METER_SECOND,
+	/** Pressure in hectopascal */
+	SR_UNIT_HECTOPASCAL,
+	/** Relative humidity assuming air temperature of 293 kelvin (%rF). */
+	SR_UNIT_HUMIDITY_293K,
 };
 
 /** Values for sr_datafeed_analog.flags. */
