@@ -27,18 +27,56 @@
 
 #define LOG_PREFIX "testo"
 
+#define MAX_REPLY_SIZE       128
+#define MAX_CHANNELS         16
+
+/* FTDI commands */
+#define FTDI_SET_MODEMCTRL   0x01
+#define FTDI_SET_FLOWCTRL    0x02
+#define FTDI_SET_BAUDRATE    0x03
+#define FTDI_SET_PARAMS      0x04
+/* FTDI command values */
+#define FTDI_BAUDRATE_115200 0x001a
+#define FTDI_PARAMS_8N1      0x0008
+#define FTDI_FLOW_NONE       0x0008
+#define FTDI_MODEM_ALLHIGH   0x0303
+#define FTDI_INDEX           0x0000
+/* FTDI USB stuff */
+#define EP_IN                1 | LIBUSB_ENDPOINT_IN
+#define EP_OUT               2 | LIBUSB_ENDPOINT_OUT
+
+struct testo_model {
+	char *name;
+	int request_size;
+	unsigned char *request;
+};
+
 /** Private, per-device-instance driver context. */
 struct dev_context {
 	/* Model-specific information */
+	struct testo_model *model;
 
 	/* Acquisition settings */
+	uint64_t limit_msec;
+	uint64_t limit_samples;
+	void *cb_data;
 
 	/* Operational state */
+	gint64 end_time;
+	uint64_t num_samples;
+	uint8_t channel_units[MAX_CHANNELS];
+	int num_channels;
 
 	/* Temporary state across callbacks */
-
+	struct libusb_transfer *out_transfer;
+	unsigned char reply[MAX_REPLY_SIZE];
+	int reply_size;
 };
 
-SR_PRIV int testo_receive_data(int fd, int revents, void *cb_data);
-
+SR_PRIV int testo_set_serial_params(struct sr_usb_dev_inst *usb);
+SR_PRIV int testo_probe_channels(struct sr_dev_inst *sdi);
+SR_PRIV void receive_transfer(struct libusb_transfer *transfer);
+SR_PRIV int testo_request_packet(const struct sr_dev_inst *sdi);
+SR_PRIV gboolean testo_check_packet(unsigned char *buf, int len);
+SR_PRIV void testo_receive_packet(const struct sr_dev_inst *sdi);
 #endif
