@@ -320,6 +320,7 @@ static void receive_data(struct sr_dev_inst *sdi, unsigned char *data, int len)
 {
 	struct dev_context *devc;
 	int packet_size;
+	uint16_t crc;
 
 	devc = sdi->priv;
 
@@ -333,18 +334,30 @@ static void receive_data(struct sr_dev_inst *sdi, unsigned char *data, int len)
 	memcpy(devc->reply + devc->reply_size, data, len);
 	devc->reply_size += len;
 	/* Sixth byte contains the length of the packet. */
-	if (devc->reply_size >= 7) {
-		packet_size = 7 + devc->reply[6] * 7 + 2;
-	   	if (devc->reply_size >= packet_size) {
-			testo_receive_packet(sdi);
-			devc->num_samples++;
-			devc->reply_size = 0;
-			if (devc->limit_samples && devc->num_samples >= devc->limit_samples)
-				dev_acquisition_stop(sdi, devc->cb_data);
-			else
-				testo_request_packet(sdi);
-		}
+	if (devc->reply_size < 7)
+		return;
+
+	packet_size = 7 + devc->reply[6] * 7 + 2;
+	if (devc->reply_size < packet_size)
+		return;
+
+	if (!testo_check_packet_prefix(devc->reply, devc->reply_size))
+		return;
+
+	crc = crc16_mcrf4xx(0xffff, devc->reply, devc->reply_size - 2);
+	if ((crc & 0xff) == devc->reply[devc->reply_size - 2]
+			&& (crc >> 8) == devc->reply[devc->reply_size - 1]) {
+		testo_receive_packet(sdi);
+		devc->num_samples++;
+	} else {
+		sr_dbg("Packet has invalid CRC.");
 	}
+
+	devc->reply_size = 0;
+	if (devc->limit_samples && devc->num_samples >= devc->limit_samples)
+		dev_acquisition_stop(sdi, devc->cb_data);
+	else
+		testo_request_packet(sdi);
 
 }
 

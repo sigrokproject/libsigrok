@@ -51,6 +51,7 @@ SR_PRIV int testo_set_serial_params(struct sr_usb_dev_inst *usb)
 	return SR_OK;
 }
 
+
 /* Due to the modular nature of the Testo hardware, you can't assume
  * which measurements the device will supply. Fetch a single result
  * set synchronously to see which measurements it has. */
@@ -66,13 +67,21 @@ SR_PRIV int testo_probe_channels(struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 	usb = sdi->conn;
 
+	sr_dbg("Probing for channels.");
 	if (sdi->driver->dev_open(sdi) != SR_OK)
 		return SR_ERR;
 	if (testo_set_serial_params(usb) != SR_OK)
 		return SR_ERR;
+
+	/* Flush anything buffered from a previous run. */
+	do {
+		libusb_bulk_transfer(usb->devhdl, EP_IN, buf, MAX_REPLY_SIZE, &len, 10);
+	} while (len > 2);
+
 	if (libusb_bulk_transfer(usb->devhdl, EP_OUT, devc->model->request,
 			devc->model->request_size, &devc->reply_size, 10) < 0)
 		return SR_ERR;
+
 	packet_len = 0;
 	while(TRUE) {
 		if (libusb_bulk_transfer(usb->devhdl, EP_IN, buf, MAX_REPLY_SIZE,
@@ -81,20 +90,26 @@ SR_PRIV int testo_probe_channels(struct sr_dev_inst *sdi)
 		if (len == 2)
 			/* FTDI cruft */
 			continue;
-		sr_dbg("got %d", len);
 		if (packet_len + len - 2 > MAX_REPLY_SIZE)
 			return SR_ERR;
+
 		memcpy(packet + packet_len, buf + 2, len - 2);
 		packet_len += len - 2;
+		if (packet_len < 5)
+			/* Not even enough to check prefix yet. */
+			continue;
 
-		if (packet_len >= 7) {
-			if (!testo_check_packet(packet, packet_len))
-				return SR_ERR;
-			if (packet_len >= 7 + packet[6] * 7 + 2)
-				/* Got a complete packet. */
-				break;
+		if (!testo_check_packet_prefix(packet, packet_len)) {
+			/* Tail end of some previous data, drop it. */
+			packet_len = 0;
+			continue;
 		}
+
+		if (packet_len >= 7 + packet[6] * 7 + 2)
+			/* Got a complete packet. */
+			break;
 	}
+	sdi->driver->dev_close(sdi);
 
 	if (packet[6] > MAX_CHANNELS) {
 		sr_err("Device says it has %d channels!", packet[6]);
@@ -125,8 +140,8 @@ SR_PRIV int testo_probe_channels(struct sr_dev_inst *sdi)
 		sdi->channels = g_slist_append(sdi->channels, ch);
 	}
 	devc->num_channels = packet[6];
-
-	sdi->driver->dev_close(sdi);
+	sr_dbg("Found %d channel%s.", devc->num_channels,
+			devc->num_channels > 1 ? "s" : "");
 
 	return SR_OK;
 }
@@ -156,7 +171,7 @@ SR_PRIV int testo_request_packet(const struct sr_dev_inst *sdi)
 
 /* Check if the packet is well-formed. This matches packets for the
  * Testo 175/177/400/650/950/435/635/735/445/645/945/946/545. */
-SR_PRIV gboolean testo_check_packet(unsigned char *buf, int len)
+SR_PRIV gboolean testo_check_packet_prefix(unsigned char *buf, int len)
 {
 	int i;
 	unsigned char check[] = { 0x21, 0, 0, 0, 1 };
@@ -171,9 +186,27 @@ SR_PRIV gboolean testo_check_packet(unsigned char *buf, int len)
 		}
 	}
 
-	/* TODO: check FCS, algorithm corresponds to python crcmod crc-16-mcrf4xx */
-
 	return TRUE;
+}
+
+SR_PRIV uint16_t crc16_mcrf4xx(uint16_t crc, uint8_t *data, size_t len)
+{
+	int i;
+
+	if (!data || !len)
+		return crc;
+
+	while (len--) {
+		crc ^= *data++;
+		for (i = 0; i < 8; i++) {
+			if (crc & 1)
+				crc = (crc >> 1) ^ 0x8408;
+			else
+				crc = (crc >> 1);
+		}
+	}
+
+	return crc;
 }
 
 static float binary32_le_to_float(unsigned char *buf)
@@ -211,9 +244,6 @@ SR_PRIV void testo_receive_packet(const struct sr_dev_inst *sdi)
 		g_string_free(dbg, TRUE);
 	}
 
-	if (!testo_check_packet(devc->reply, devc->reply_size))
-		return;
-
 	packet.type = SR_DF_ANALOG;
 	packet.payload = &analog;
 	analog.num_samples = 1;
@@ -223,7 +253,6 @@ SR_PRIV void testo_receive_packet(const struct sr_dev_inst *sdi)
 	for (i = 0; i < devc->reply[6]; i++) {
 		buf = devc->reply + 7 + i * 7;
 		value = binary32_le_to_float(buf);
-		sr_dbg("value: %f unit %d exp %d", value, buf[4], buf[6]);
 		switch (buf[4]) {
 		case 1:
 			analog.mq = SR_MQ_TEMPERATURE;
@@ -242,7 +271,7 @@ SR_PRIV void testo_receive_packet(const struct sr_dev_inst *sdi)
 			analog.unit = SR_UNIT_HECTOPASCAL;
 			break;
 		default:
-			sr_dbg("Unsupported measurement unit %d", buf[4]);
+			sr_dbg("Unsupported measurement unit %d.", buf[4]);
 			return;
 		}
 
@@ -257,7 +286,6 @@ SR_PRIV void testo_receive_packet(const struct sr_dev_inst *sdi)
 			return;
 		}
 		ch = g_slist_nth_data(sdi->channels, i);
-		sr_dbg("channel %d name %s unit %d", i, ch->name, analog.unit);
 		analog.channels = g_slist_append(NULL, ch);
 		sr_session_send(sdi, &packet);
 		g_slist_free(analog.channels);

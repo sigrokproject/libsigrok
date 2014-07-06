@@ -77,6 +77,7 @@ SR_PRIV int testo_set_serial_params(struct sr_usb_dev_inst *usb);
 SR_PRIV int testo_probe_channels(struct sr_dev_inst *sdi);
 SR_PRIV void receive_transfer(struct libusb_transfer *transfer);
 SR_PRIV int testo_request_packet(const struct sr_dev_inst *sdi);
-SR_PRIV gboolean testo_check_packet(unsigned char *buf, int len);
+SR_PRIV gboolean testo_check_packet_prefix(unsigned char *buf, int len);
+SR_PRIV uint16_t crc16_mcrf4xx(uint16_t crc, uint8_t *data, size_t len);
 SR_PRIV void testo_receive_packet(const struct sr_dev_inst *sdi);
 #endif
