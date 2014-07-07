@@ -186,6 +186,16 @@ static int dev_open(struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
+	if (libusb_has_capability(LIBUSB_CAP_SUPPORTS_DETACH_KERNEL_DRIVER)) {
+		if (libusb_kernel_driver_active(usb->devhdl, 0) == 1) {
+			if ((ret = libusb_detach_kernel_driver(usb->devhdl, 0)) < 0) {
+				sr_err("Failed to detach kernel driver: %s.",
+					   libusb_error_name(ret));
+				return SR_ERR;
+			}
+		}
+	}
+
 	if ((ret = libusb_claim_interface(usb->devhdl, 0))) {
 		sr_err("Failed to claim interface: %s.", libusb_error_name(ret));
 		return SR_ERR;
@@ -345,8 +355,7 @@ static void receive_data(struct sr_dev_inst *sdi, unsigned char *data, int len)
 		return;
 
 	crc = crc16_mcrf4xx(0xffff, devc->reply, devc->reply_size - 2);
-	if ((crc & 0xff) == devc->reply[devc->reply_size - 2]
-			&& (crc >> 8) == devc->reply[devc->reply_size - 1]) {
+	if (crc == RL16(&devc->reply[devc->reply_size - 2])) {
 		testo_receive_packet(sdi);
 		devc->num_samples++;
 	} else {
