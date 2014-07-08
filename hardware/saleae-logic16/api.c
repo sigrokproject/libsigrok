@@ -641,9 +641,6 @@ static int configure_channels(const struct sr_dev_inst *sdi)
 	struct sr_channel *ch;
 	GSList *l;
 	uint16_t channel_bit;
-#ifdef WORDS_BIGENDIAN
-	int i;
-#endif
 
 	devc = sdi->priv;
 
