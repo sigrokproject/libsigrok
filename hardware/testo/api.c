@@ -18,7 +18,6 @@
  */
 
 #include <string.h>
-#include <libserialport.h>
 #include "protocol.h"
 
 #define SERIALCOMM "115200/8n1"
