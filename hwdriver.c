@@ -28,9 +28,6 @@
 #include "libsigrok-internal.h"
 
 /** @cond PRIVATE */
-#ifdef HAVE_HW_TESTO
-extern SR_PRIV struct sr_dev_driver testo_driver_info;
-#endif
 #define LOG_PREFIX "hwdriver"
 /** @endcond */
 
