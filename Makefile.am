@@ -248,7 +248,7 @@ libsigrok_la_SOURCES += \
 	hardware/norma-dmm/protocol.c \
 	hardware/norma-dmm/api.c
 endif
-if HW_OLS
+if HW_OPENBENCH_LOGIC_SNIFFER
 libsigrok_la_SOURCES += \
 	hardware/openbench-logic-sniffer/protocol.h \
 	hardware/openbench-logic-sniffer/protocol.c \

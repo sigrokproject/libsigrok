@@ -85,191 +85,60 @@ AC_ARG_ENABLE(all-drivers, AC_HELP_STRING([--enable-all-drivers],
 	[HW_ENABLED_DEFAULT="$enableval"],
 	[HW_ENABLED_DEFAULT="yes"])
 
-AC_ARG_ENABLE(agilent-dmm, AC_HELP_STRING([--enable-agilent-dmm],
-	[enable Agilent DMM support [default=yes]]),
-	[HW_AGILENT_DMM="$enableval"],
-	[HW_AGILENT_DMM=$HW_ENABLED_DEFAULT])
+# Usage: DRIVER([Device name], [driver-name])
+# An optional third argument [no] disables that driver.
+m4_define([driverize], [m4_tolower(m4_bpatsubst([$1], [[^0-9a-zA-Z-]+], [-]))])
+m4_define([upperize], [m4_toupper(m4_bpatsubst([$1], [[^0-9a-zA-Z_]+], [_]))])
+AC_DEFUN([DRIVER], [
+	if test -z "$3"; then
+		default=$HW_ENABLED_DEFAULT
+	else
+		default="$3"
+	fi
+	AC_ARG_ENABLE($2, AC_HELP_STRING([--enable-$2], [enable $1 support]),
+		[m4_join([], [HW_], upperize([$2]))="$enableval"],
+		[m4_join([], [HW_], upperize([$2]))=$default])
+	dots=$(expr substr ".............................." 1 $(expr 32 - length $2))
+	driver_summary="${driver_summary}  - $2${dots} ${m4_join([], [HW_], upperize([$2]))}\n"
+])
 
-AC_ARG_ENABLE(appa-55ii, AC_HELP_STRING([--enable-appa-55ii],
-	[enable APPA 55II support [default=yes]]),
-	[HW_APPA_55II="$enableval"],
-	[HW_APPA_55II=$HW_ENABLED_DEFAULT])
-
-AC_ARG_ENABLE(asix-sigma, AC_HELP_STRING([--enable-asix-sigma],
-	[enable ASIX SIGMA/SIGMA2 support [default=yes]]),
-	[HW_ASIX_SIGMA="$enableval"],
-	[HW_ASIX_SIGMA=$HW_ENABLED_DEFAULT])
-
-AC_ARG_ENABLE(atten-pps3xxx, AC_HELP_STRING([--enable-atten-pps3xxx],
-	[enable Atten PPS3xxx support [default=yes]]),
-	[HW_ATTEN_PPS3XXX="$enableval"],
-	[HW_ATTEN_PPS3XXX=$HW_ENABLED_DEFAULT])
-
-AC_ARG_ENABLE(brymen-bm86x, AC_HELP_STRING([--enable-brymen-bm86x],
-	[enable Brymen BM86X support [default=yes]]),
-	[HW_BRYMEN_BM86X="$enableval"],
-	[HW_BRYMEN_BM86X=$HW_ENABLED_DEFAULT])
-
-AC_ARG_ENABLE(brymen-dmm, AC_HELP_STRING([--enable-brymen-dmm],
-	[enable Brymen DMM support [default=yes]]),
-	[HW_BRYMEN_DMM="$enableval"],
-	[HW_BRYMEN_DMM=$HW_ENABLED_DEFAULT])
-
-AC_ARG_ENABLE(cem-dt-885x, AC_HELP_STRING([--enable-cem-dt-885x],
-	[enable CEM DT-885x support [default=yes]]),
-	[HW_CEM_DT_885X="$enableval"],
-	[HW_CEM_DT_885X=$HW_ENABLED_DEFAULT])
-
-AC_ARG_ENABLE(center-3xx, AC_HELP_STRING([--enable-center-3xx],
-	[enable Center 3xx support [default=yes]]),
-	[HW_CENTER_3XX="$enableval"],
-	[HW_CENTER_3XX=$HW_ENABLED_DEFAULT])
-
-AC_ARG_ENABLE(chronovu-la, AC_HELP_STRING([--enable-chronovu-la],
-	[enable ChronoVu LA support [default=yes]]),
-	[HW_CHRONOVU_LA="$enableval"],
-	[HW_CHRONOVU_LA=$HW_ENABLED_DEFAULT])
-
-AC_ARG_ENABLE(colead-slm, AC_HELP_STRING([--enable-colead-slm],
-	[enable Colead SLM support [default=yes]]),
-	[HW_COLEAD_SLM="$enableval"],
-	[HW_COLEAD_SLM=$HW_ENABLED_DEFAULT])
-
-AC_ARG_ENABLE(conrad-digi-35-cpu, AC_HELP_STRING([--enable-conrad-digi-35-cpu],
-	[enable Conrad DIGI 35 CPU support [default=yes]]),
-	[HW_CONRAD_DIGI_35_CPU="$enableval"],
-	[HW_CONRAD_DIGI_35_CPU=$HW_ENABLED_DEFAULT])
-
-AC_ARG_ENABLE(demo, AC_HELP_STRING([--enable-demo],
-	[enable demo driver support [default=yes]]),
-	[HW_DEMO="$enableval"],
-	[HW_DEMO=$HW_ENABLED_DEFAULT])
-
-AC_ARG_ENABLE(fluke-dmm, AC_HELP_STRING([--enable-fluke-dmm],
-	[enable Fluke DMM support [default=yes]]),
-	[HW_FLUKE_DMM="$enableval"],
-	[HW_FLUKE_DMM=$HW_ENABLED_DEFAULT])
-
-AC_ARG_ENABLE(fx2lafw, AC_HELP_STRING([--enable-fx2lafw],
-	[enable fx2lafw support (for FX2 LAs). [default=yes]]),
-	[HW_FX2LAFW="$enableval"],
-	[HW_FX2LAFW=$HW_ENABLED_DEFAULT])
-
-AC_ARG_ENABLE(gmc-mh-1x-2x, AC_HELP_STRING([--enable-gmc-mh-1x-2x],
-	[enable gmc-mh-1x-2x support [default=yes]]),
-	[HW_GMC_MH_1X_2X="$enableval"],
-	[HW_GMC_MH_1X_2X=$HW_ENABLED_DEFAULT])
-
-AC_ARG_ENABLE(hameg-hmo, AC_HELP_STRING([--enable-hameg-hmo],
-	[enable Hameg HMO support [default=yes]]),
-	[HW_HAMEG_HMO="$enableval"],
-	[HW_HAMEG_HMO=$HW_ENABLED_DEFAULT])
-
-AC_ARG_ENABLE(hantek-dso, AC_HELP_STRING([--enable-hantek-dso],
-	[enable Hantek DSO support [default=yes]]),
-	[HW_HANTEK_DSO="$enableval"],
-	[HW_HANTEK_DSO=$HW_ENABLED_DEFAULT])
-
-AC_ARG_ENABLE(ikalogic-scanalogic2, AC_HELP_STRING([--enable-ikalogic-scanalogic2],
-	[enable IKALOGIC Scanalogic-2 support [default=yes]]),
-	[HW_IKALOGIC_SCANALOGIC2="$enableval"],
-	[HW_IKALOGIC_SCANALOGIC2=$HW_ENABLED_DEFAULT])
-
-AC_ARG_ENABLE(ikalogic-scanaplus, AC_HELP_STRING([--enable-ikalogic-scanaplus],
-	[enable IKALOGIC ScanaPLUS support [default=yes]]),
-	[HW_IKALOGIC_SCANAPLUS="$enableval"],
-	[HW_IKALOGIC_SCANAPLUS=$HW_ENABLED_DEFAULT])
-
-AC_ARG_ENABLE(kecheng-kc-330b, AC_HELP_STRING([--enable-kecheng-kc-330b],
-	[enable Kecheng KC-330B support [default=yes]]),
-	[HW_KECHENG_KC_330B="$enableval"],
-	[HW_KECHENG_KC_330B=$HW_ENABLED_DEFAULT])
-
-AC_ARG_ENABLE(lascar-el-usb, AC_HELP_STRING([--enable-lascar-el-usb],
-	[enable Lascar EL-USB support [default=yes]]),
-	[HW_LASCAR_EL_USB="$enableval"],
-	[HW_LASCAR_EL_USB=$HW_ENABLED_DEFAULT])
-
-AC_ARG_ENABLE(manson-hcs-3xxx, AC_HELP_STRING([--enable-manson-hcs-3xxx],
-	[enable Manson HCS-3xxx support [default=yes]]),
-	[HW_MANSON_HCS_3XXX="$enableval"],
-	[HW_MANSON_HCS_3XXX=$HW_ENABLED_DEFAULT])
-
-AC_ARG_ENABLE(mic-985xx, AC_HELP_STRING([--enable-mic-985xx],
-	[enable MIC 985xx support [default=yes]]),
-	[HW_MIC_985XX="$enableval"],
-	[HW_MIC_985XX=$HW_ENABLED_DEFAULT])
-
-AC_ARG_ENABLE(motech-lps-30x, AC_HELP_STRING([--enable-motech-lps-30x],
-	[enable motech-lps-30x support [default=yes]]),
-	[HW_MOTECH_LPS_30X="$enableval"],
-	[HW_MOTECH_LPS_30X=$HW_ENABLED_DEFAULT])
-
-AC_ARG_ENABLE(norma-dmm, AC_HELP_STRING([--enable-norma-dmm],
-	[enable Norma DMM support [default=yes]]),
-	[HW_NORMA_DMM="$enableval"],
-	[HW_NORMA_DMM=$HW_ENABLED_DEFAULT])
-
-AC_ARG_ENABLE(ols, AC_HELP_STRING([--enable-ols],
-	[enable OpenBench Logic Sniffer (OLS) support [default=yes]]),
-	[HW_OLS="$enableval"],
-	[HW_OLS=$HW_ENABLED_DEFAULT])
-
-AC_ARG_ENABLE(rigol-ds, AC_HELP_STRING([--enable-rigol-ds],
-	[enable Rigol DS support [default=yes]]),
-	[HW_RIGOL_DS="$enableval"],
-	[HW_RIGOL_DS=$HW_ENABLED_DEFAULT])
-
-AC_ARG_ENABLE(saleae-logic16, AC_HELP_STRING([--enable-saleae-logic16],
-	[enable Saleae Logic16 support [default=yes]]),
-	[HW_SALEAE_LOGIC16="$enableval"],
-	[HW_SALEAE_LOGIC16=$HW_ENABLED_DEFAULT])
-
-AC_ARG_ENABLE(serial-dmm, AC_HELP_STRING([--enable-serial-dmm],
-	[enable serial DMM support [default=yes]]),
-	[HW_SERIAL_DMM="$enableval"],
-	[HW_SERIAL_DMM=$HW_ENABLED_DEFAULT])
-
-AC_ARG_ENABLE(sysclk-lwla, AC_HELP_STRING([--enable-sysclk-lwla],
-	[enable Sysclk LWLA support [default=yes]]),
-	[HW_SYSCLK_LWLA="$enableval"],
-	[HW_SYSCLK_LWLA=$HW_ENABLED_DEFAULT])
-
-AC_ARG_ENABLE(teleinfo, AC_HELP_STRING([--enable-teleinfo],
-	[enable Teleinfo support [default=yes]]),
-	[HW_TELEINFO="$enableval"],
-	[HW_TELEINFO=$HW_ENABLED_DEFAULT])
-
-AC_ARG_ENABLE(testo, AC_HELP_STRING([--enable-testo],
-	[enable Testo support [default=yes]]),
-	[HW_TESTO="$enableval"],
-	[HW_TESTO=$HW_ENABLED_DEFAULT])
-
-AC_ARG_ENABLE(tondaj-sl-814, AC_HELP_STRING([--enable-tondaj-sl-814],
-	[enable Tondaj SL-814 support [default=yes]]),
-	[HW_TONDAJ_SL_814="$enableval"],
-	[HW_TONDAJ_SL_814=$HW_ENABLED_DEFAULT])
-
-AC_ARG_ENABLE(uni-t-dmm, AC_HELP_STRING([--enable-uni-t-dmm],
-	[enable UNI-T DMM support [default=yes]]),
-	[HW_UNI_T_DMM="$enableval"],
-	[HW_UNI_T_DMM=$HW_ENABLED_DEFAULT])
-
-AC_ARG_ENABLE(uni-t-ut32x, AC_HELP_STRING([--enable-uni-t-ut32x],
-	[enable UNI-T UT32x support [default=yes]]),
-	[HW_UNI_T_UT32X="$enableval"],
-	[HW_UNI_T_UT32X=$HW_ENABLED_DEFAULT])
-
-AC_ARG_ENABLE(victor-dmm, AC_HELP_STRING([--enable-victor-dmm],
-	[enable victor-dmm support [default=yes]]),
-	[HW_VICTOR_DMM="$enableval"],
-	[HW_VICTOR_DMM=$HW_ENABLED_DEFAULT])
-
-AC_ARG_ENABLE(zeroplus-logic-cube,
-	AC_HELP_STRING([--enable-zeroplus-logic-cube],
-	[enable ZEROPLUS Logic Cube support [default=yes]]),
-	[HW_ZEROPLUS_LOGIC_CUBE="$enableval"],
-	[HW_ZEROPLUS_LOGIC_CUBE=$HW_ENABLED_DEFAULT])
+DRIVER([Agilent DMM], [agilent-dmm])
+DRIVER([Appa 55II], [appa-55ii])
+DRIVER([ASIX SIGMA/SIGMA2], [asix-sigma])
+DRIVER([Atten PPS3xxx], [atten-pps3xxx])
+DRIVER([Brymen BM86x], [brymen-bm86x])
+DRIVER([Brymen DMM], [brymen-dmm])
+DRIVER([CEM DT-885x], [cem-dt-885x])
+DRIVER([Center 3xx], [center-3xx])
+DRIVER([ChronoVu LA], [chronovu-la])
+DRIVER([Colead SLM], [colead-slm])
+DRIVER([Conrad DIGI 35 CPU], [conrad-digi-35-cpu])
+DRIVER([demo], [demo])
+DRIVER([Fluke DMM], [fluke-dmm])
+DRIVER([fx2lafw], [fx2lafw])
+DRIVER([GMC MH 1x/2x], [gmc-mh-1x-2x])
+DRIVER([Hameg HMO], [hameg-hmo])
+DRIVER([Hantek DSO], [hantek-dso])
+DRIVER([Ikalogic Scanalogic-2], [ikalogic-scanalogic2])
+DRIVER([Ikalogic Scanaplus], [ikalogic-scanaplus])
+DRIVER([Kecheng KC-330B], [kecheng-kc-330b])
+DRIVER([Lascar EL-USB], [lascar-el-usb])
+DRIVER([Manson HCS-3xxx], [manson-hcs-3xxx])
+DRIVER([MIC 985xx], [mic-985xx])
+DRIVER([Motech LPS 30x], [motech-lps-30x])
+DRIVER([Norma DMM], [norma-dmm])
+DRIVER([OpenBench Logic Sniffer], [openbench-logic-sniffer])
+DRIVER([Rigol DS], [rigol-ds])
+DRIVER([Saleae Logic16], [saleae-logic16])
+DRIVER([serial DMM], [serial-dmm])
+DRIVER([Sysclk LWLA], [sysclk-lwla])
+DRIVER([Teleinfo], [teleinfo])
+DRIVER([Testo], [testo])
+DRIVER([Tondaj SL-814], [tondaj-sl-814])
+DRIVER([UNI-T DMM], [uni-t-dmm])
+DRIVER([UNI-T UT32x], [uni-t-ut32x])
+DRIVER([Victor DMM], [victor-dmm])
+DRIVER([ZEROPLUS Logic Cube], [zeroplus-logic-cube])
 
 AC_ARG_ENABLE(libserialport,
 	AC_HELP_STRING([--disable-libserialport],
@@ -344,8 +213,8 @@ if test "x$have_libserialport" = "xno"; then
 	HW_CENTER_3XX="no"; HW_COLEAD_SLM="no"; HW_CONRAD_DIGI_35_CPU="no";
 	HW_FLUKE_DMM="no"; HW_GMC_MH_1X_2X="no"; HW_HAMEG_HMO="no";
 	HW_MANSON_HCS_3XXX="no"; HW_MIC_985XX="no"; HW_MOTECH_LPS_30X="no";
-	HW_NORMA_DMM="no"; HW_OLS="no"; HW_SERIAL_DMM="no"; HW_TELEINFO="no";
-	HW_TONDAJ_SL_814="no";
+	HW_NORMA_DMM="no"; HW_OPENBENCH_LOGIC_SNIFFER="no"; HW_SERIAL_DMM="no";
+	HW_TELEINFO="no"; HW_TONDAJ_SL_814="no";
 else
 	AC_DEFINE_UNQUOTED(HAVE_LIBSERIALPORT, [1],
 		[Specifies whether we have libserialport.])
@@ -441,7 +310,7 @@ AM_CONDITIONAL(HAVE_CHECK, test x"$have_check" = "xyes")
 # will not currently work on Windows.
 case "$host" in
 *mingw*)
-	HW_OLS="no"
+	HW_OPENBENCH_LOGIC_SNIFFER="no"
 	;;
 esac
 
@@ -576,9 +445,9 @@ if test "x$HW_NORMA_DMM" = "xyes"; then
 	AC_DEFINE(HAVE_HW_NORMA_DMM, 1, [Norma DMM support])
 fi
 
-AM_CONDITIONAL(HW_OLS, test x$HW_OLS = xyes)
-if test "x$HW_OLS" = "xyes"; then
-	AC_DEFINE(HAVE_HW_OLS, 1, [OpenBench Logic Sniffer (OLS) support])
+AM_CONDITIONAL(HW_OPENBENCH_LOGIC_SNIFFER, test x$HW_OPENBENCH_LOGIC_SNIFFER = xyes)
+if test "x$HW_OPENBENCH_LOGIC_SNIFFER" = "xyes"; then
+	AC_DEFINE(HAVE_HW_OPENBENCH_LOGIC_SNIFFER, 1, [OpenBench Logic Sniffer (OLS) support])
 fi
 
 AM_CONDITIONAL(HW_RIGOL_DS, test x$HW_RIGOL_DS = xyes)
@@ -686,43 +555,5 @@ for lib in "glib-2.0 >= 2.32.0" "libzip >= 0.10" "libserialport >= 0.1.0" "libre
 	echo "  - ($optional) $lib: $answer"
 done
 
-echo -e "\nEnabled hardware drivers:\n"
-echo "  - agilent-dmm..................... $HW_AGILENT_DMM"
-echo "  - appa-55ii....................... $HW_APPA_55II"
-echo "  - asix-sigma...................... $HW_ASIX_SIGMA"
-echo "  - atten-pps3xxx................... $HW_ATTEN_PPS3XXX"
-echo "  - brymen-bm86x.................... $HW_BRYMEN_BM86X"
-echo "  - brymen-dmm...................... $HW_BRYMEN_DMM"
-echo "  - cem-dt-885x..................... $HW_CEM_DT_885X"
-echo "  - center-3xx...................... $HW_CENTER_3XX"
-echo "  - chronovu-la..................... $HW_CHRONOVU_LA"
-echo "  - colead-slm...................... $HW_COLEAD_SLM"
-echo "  - conrad-digi-35-cpu.............. $HW_CONRAD_DIGI_35_CPU"
-echo "  - demo............................ $HW_DEMO"
-echo "  - fluke-dmm....................... $HW_FLUKE_DMM"
-echo "  - fx2lafw......................... $HW_FX2LAFW"
-echo "  - gmc-mh-1x-2x.................... $HW_GMC_MH_1X_2X"
-echo "  - hameg-hmo....................... $HW_HAMEG_HMO"
-echo "  - hantek-dso...................... $HW_HANTEK_DSO"
-echo "  - ikalogic-scanalogic2............ $HW_IKALOGIC_SCANALOGIC2"
-echo "  - ikalogic-scanaplus.............. $HW_IKALOGIC_SCANAPLUS"
-echo "  - kecheng-kc-330b................. $HW_KECHENG_KC_330B"
-echo "  - lascar-el-usb................... $HW_LASCAR_EL_USB"
-echo "  - manson-hcs-3xxx................. $HW_MANSON_HCS_3XXX"
-echo "  - mic-985xx....................... $HW_MIC_985XX"
-echo "  - motech-lps-30x.................. $HW_MOTECH_LPS_30X"
-echo "  - norma-dmm....................... $HW_NORMA_DMM"
-echo "  - openbench-logic-sniffer......... $HW_OLS"
-echo "  - rigol-ds........................ $HW_RIGOL_DS"
-echo "  - saleae-logic16.................. $HW_SALEAE_LOGIC16"
-echo "  - serial-dmm...................... $HW_SERIAL_DMM"
-echo "  - sysclk-lwla..................... $HW_SYSCLK_LWLA"
-echo "  - teleinfo........................ $HW_TELEINFO"
-echo "  - testo........................... $HW_TESTO"
-echo "  - tondaj-sl-814................... $HW_TONDAJ_SL_814"
-echo "  - uni-t-dmm....................... $HW_UNI_T_DMM"
-echo "  - uni-t-ut32x..................... $HW_UNI_T_UT32X"
-echo "  - victor-dmm...................... $HW_VICTOR_DMM"
-echo "  - zeroplus-logic-cube............. $HW_ZEROPLUS_LOGIC_CUBE"
-echo
+echo -e "\nEnabled hardware drivers:\n${driver_summary}"
 
