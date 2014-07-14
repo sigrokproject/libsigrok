@@ -120,19 +120,9 @@ gchar *g_string_free(GString *string, gboolean free_segment);
                 return $self->init(o);
         }
 
-        int call_event(struct sr_output *o, int event_type, uint8_t **data_out,
-                        uint64_t *length_out) {
-                return $self->event(o, event_type, data_out, length_out);
-        }
-
-        int call_data(struct sr_output *o, const void *data_in,
-                        uint64_t length_in, uint8_t **data_out, uint64_t *length_out) {
-                return $self->data(o, data_in, length_in, data_out, length_out);
-        }
-
-        int call_receive(struct sr_output *o, const struct sr_dev_inst *sdi,
+        int call_receive(struct sr_output *o,
                         const struct sr_datafeed_packet *packet, GString **out) {
-                return $self->receive(o, sdi, packet, out);
+                return $self->receive(o, packet, out);
         }
 
         int call_cleanup(struct sr_output *o) {
