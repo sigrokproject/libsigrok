@@ -213,9 +213,8 @@ static int scpi_usbtmc_libusb_open(void *priv)
 			    intfdes->bInterfaceProtocol != USBTMC_USB488)
 				continue;
 			uscpi->interface = intfdes->bInterfaceNumber;
-			sr_dbg("Interface %d", uscpi->interface);
 			config = confdes->bConfigurationValue;
-			sr_dbg("Configuration %d", config);
+			sr_dbg("Interface %d configuration %d.", uscpi->interface, config);
 			for (epidx = 0; epidx < intfdes->bNumEndpoints; epidx++) {
 				ep = &intfdes->endpoint[epidx];
 				if (ep->bmAttributes == LIBUSB_TRANSFER_TYPE_BULK &&
@@ -226,12 +225,12 @@ static int scpi_usbtmc_libusb_open(void *priv)
 				if (ep->bmAttributes == LIBUSB_TRANSFER_TYPE_BULK &&
 				    ep->bEndpointAddress & (LIBUSB_ENDPOINT_DIR_MASK)) {
 					uscpi->bulk_in_ep = ep->bEndpointAddress;
-					sr_dbg("Bulk IN EP %d", uscpi->bulk_in_ep);
+					sr_dbg("Bulk IN EP %d", uscpi->bulk_in_ep & 0x7f);
 				}
 				if (ep->bmAttributes == LIBUSB_TRANSFER_TYPE_INTERRUPT &&
 				    ep->bEndpointAddress & (LIBUSB_ENDPOINT_DIR_MASK)) {
 					uscpi->interrupt_ep = ep->bEndpointAddress;
-					sr_dbg("Interrupt EP %d", uscpi->interrupt_ep);
+					sr_dbg("Interrupt EP %d", uscpi->interrupt_ep & 0x7f);
 				}
 			}
 			found = 1;
