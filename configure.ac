@@ -46,10 +46,12 @@ AH_BOTTOM([#endif /* SR_CONFIG_H */])
 # and enforce use of SR_API to explicitly mark all public API functions.
 COMMON_FLAGS="$CFLAGS -Wall -Wextra -fvisibility=hidden"
 CFLAGS="$COMMON_FLAGS -Wmissing-prototypes"
+CXXFLAGS="-std=c++11 $COMMON_FLAGS"
 
 # Checks for programs.
 AC_PROG_CC
 AC_PROG_CPP
+AC_PROG_CXX
 AC_PROG_INSTALL
 AC_PROG_LN_S
 
@@ -151,6 +153,21 @@ AC_ARG_ENABLE(libftdi,
 AC_ARG_ENABLE(libusb,
 	AC_HELP_STRING([--disable-libusb],
 	[disable libusb support [default=detect]]))
+
+# Language binding '--enable' options
+
+AC_ARG_ENABLE(c++,
+	AC_HELP_STRING([--enable-cxx],
+	[build C++ bindings [default=yes]]),
+	[BINDINGS_CXX="$enableval"], [BINDINGS_CXX="yes"])
+
+# Check if the C++ compiler supports the C++11 standard.
+
+AX_CXX_COMPILE_STDCXX_11(,[optional])
+
+if test "x$HAVE_CXX11" != "x1"; then
+	BINDINGS_CXX="no"
+fi
 
 # Checks for libraries.
 
@@ -301,6 +318,11 @@ if test "x$have_libftdi" = "xno"; then
 	HW_ASIX_SIGMA="no"; HW_CHRONOVU_LA="no"; HW_IKALOGIC_SCANAPLUS="no";
 fi
 
+# glibmm-2.4 is needed for the C++ bindings.
+PKG_CHECK_MODULES([glibmm], [glibmm-2.4 >= 2.32.0],
+	[CXXFLAGS="$CXXFLAGS $glibmm_CFLAGS";
+	CXXLIBS="$CXXLIBS $glibmm_LIBS"], [BINDINGS_CXX="no"])
+
 # The Check unit testing framework is optional. Disable if not found.
 PKG_CHECK_MODULES([check], [check >= 0.9.4],
 	[have_check="yes"], [have_check="no"])
@@ -317,6 +339,7 @@ esac
 AC_SUBST(SR_PKGLIBS)
 
 CFLAGS="$CFLAGS -I./include/libsigrok $LIB_CFLAGS"
+CXXFLAGS="$CXXFLAGS -I./include -I./bindings/cxx/include $LIB_CFLAGS"
 
 # Now set AM_CONDITIONALs and AC_DEFINEs for the enabled/disabled drivers.
 
@@ -505,6 +528,8 @@ if test "x$HW_ZEROPLUS_LOGIC_CUBE" = "xyes"; then
 	AC_DEFINE(HAVE_HW_ZEROPLUS_LOGIC_CUBE, 1, [ZEROPLUS Logic Cube support])
 fi
 
+AM_CONDITIONAL(BINDINGS_CXX, test x$BINDINGS_CXX = xyes)
+
 # Checks for header files.
 # These are already checked: inttypes.h stdint.h stdlib.h string.h unistd.h.
 
@@ -525,7 +550,8 @@ AC_SUBST(SR_PACKAGE_VERSION_MINOR)
 AC_SUBST(SR_PACKAGE_VERSION_MICRO)
 AC_SUBST(SR_PACKAGE_VERSION)
 
-AC_CONFIG_FILES([Makefile include/libsigrok/version.h libsigrok.pc])
+AC_CONFIG_FILES([Makefile include/libsigrok/version.h libsigrok.pc
+	bindings/cxx/libsigrokxx.pc])
 
 AC_OUTPUT
 
@@ -557,3 +583,6 @@ done
 
 echo -e "\nEnabled hardware drivers:\n${driver_summary}"
 
+echo -e "\nEnabled language bindings:\n"
+echo "  - C++............................. $BINDINGS_CXX"
+echo

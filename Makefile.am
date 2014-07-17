@@ -379,6 +379,33 @@ tests_check_main_LDADD = $(top_builddir)/libsigrok.la @check_LIBS@
 
 endif
 
+if BINDINGS_CXX
+
+lib_LTLIBRARIES += bindings/cxx/libsigrokxx.la
+
+bindings_cxx_libsigrokxx_la_SOURCES = bindings/cxx/classes.cpp
+
+bindings_cxx_libsigrokxx_la_LIBADD = -lsigrok $(glibmm_LIBS)
+
+bindings_cxx_libsigrokxx_la_LDFLAGS = $(SR_LIB_LDFLAGS)
+
+library_include_HEADERS += \
+	bindings/cxx/include/libsigrok/libsigrok.hpp \
+	bindings/cxx/include/libsigrok/enums.hpp
+
+pkgconfig_DATA += bindings/cxx/libsigrokxx.pc
+
+bindings/cxx/classes.lo: bindings/cxx/enums.cpp
+
+bindings/cxx/enums.cpp: bindings/cxx/enums.py bindings/cxx/libsigrok.xml \
+		bindings/cxx/ConfigKey_methods.cpp bindings/cxx/QuantityFlag_methods.cpp
+	python $<
+
+bindings/cxx/libsigrok.xml: include/libsigrok/libsigrok.h
+	gccxml $(CFLAGS) -DGLIB_DISABLE_DEPRECATION_WARNINGS $< -fxml=$@
+
+endif
+
 MAINTAINERCLEANFILES = ChangeLog
 
 .PHONY: ChangeLog
