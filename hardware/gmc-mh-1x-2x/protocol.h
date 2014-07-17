@@ -60,10 +60,11 @@ enum model {
 	METRAHIT_14S		= 14,
 	METRAHIT_15S		= 15,
 	METRAHIT_16S		= 16,
-	METRAHIT_16I		= 17,
-	METRAHIT_16X = METRAHIT_16I,  /**< All Metrahit 16 */
+	METRAHIT_16I		= 17, /**< Metrahit 16I, L */
+	METRAHIT_16T		= 18, /**< Metrahit 16T, U, KMM2002 */
+	METRAHIT_16X = METRAHIT_16T,  /**< All Metrahit 16 */
 	/* A Metrahit 17 exists, but seems not to have an IR interface. */
-	METRAHIT_18S		= 18,
+	METRAHIT_18S		= 19,
 	METRAHIT_2X		= 20, /**< For model type comparisons */
 	METRAHIT_22SM		= METRAHIT_2X + 1,	/**< Send mode */
 	METRAHIT_22S		= METRAHIT_22SM + 1,	/**< Bidi mode */

@@ -1379,21 +1379,23 @@ SR_PRIV int gmc_decode_model_sm(uint8_t mcode)
 		return METRAHIT_16S;
 	case 0x06: /* 0110b (undocumented by GMC!) */
 		return METRAHIT_16I;
+	case 0x07: /* 0111b (undocumented by GMC!) */
+		return METRAHIT_16T;
 	case 0x0D: /* 1101b */
 		return METRAHIT_18S;
 	case 0x02: /* 0010b */
 		return METRAHIT_22SM;
 	case 0x03: /* 0011b */
 		return METRAHIT_23S;
-	case 0x0f: /* 1111b */
+	case 0x0F: /* 1111b */
 		return METRAHIT_24S;
 	case 0x05: /* 0101b */
 		return METRAHIT_25S;
 	case 0x01: /* 0001b */
 		return METRAHIT_26SM;
-	case 0x0c: /* 1100b */
+	case 0x0C: /* 1100b */
 		return METRAHIT_28S;
-	case 0x0e: /* 1110b */
+	case 0x0E: /* 1110b */
 		return METRAHIT_29S;
 	default:
 		sr_err("Unknown model code %d!", mcode);
@@ -1458,7 +1460,9 @@ SR_PRIV const char *gmc_model_str(enum model mcode)
 	case METRAHIT_16S:
 		return "METRAHit 16S";
 	case METRAHIT_16I:
-		return "METRAHit 16I";
+		return "METRAHit 16I/16L";
+	case METRAHIT_16T:
+		return "METRAHit 16T/16U/KMM2002";
 	case METRAHIT_18S:
 		return "METRAHit 18S";
 	case METRAHIT_22SM:
