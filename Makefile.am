@@ -406,6 +406,31 @@ bindings/cxx/libsigrok.xml: include/libsigrok/libsigrok.h
 
 endif
 
+BUILD_EXTRA =
+INSTALL_EXTRA =
+CLEAN_EXTRA =
+
+if BINDINGS_PYTHON
+
+python-build: bindings/cxx/libsigrokxx.la
+	cd bindings/python && python setup.py build
+
+python-install:
+	cd bindings/python && python setup.py install
+
+python-clean:
+	cd bindings/python && python setup.py clean --all
+
+BUILD_EXTRA += python-build
+INSTALL_EXTRA += python-install
+CLEAN_EXTRA += python-clean
+
+endif
+
+all-local: $(BUILD_EXTRA)
+install-exec-local: $(INSTALL_EXTRA)
+clean-extra: $(CLEAN_EXTRA)
+
 MAINTAINERCLEANFILES = ChangeLog
 
 .PHONY: ChangeLog

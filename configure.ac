@@ -161,12 +161,23 @@ AC_ARG_ENABLE(c++,
 	[build C++ bindings [default=yes]]),
 	[BINDINGS_CXX="$enableval"], [BINDINGS_CXX="yes"])
 
+AC_ARG_ENABLE(python,
+	AC_HELP_STRING([--enable-python],
+	[build Python bindings [default=yes]]),
+	[BINDINGS_PYTHON="$enableval"], [BINDINGS_PYTHON="yes"])
+
 # Check if the C++ compiler supports the C++11 standard.
 
 AX_CXX_COMPILE_STDCXX_11(,[optional])
 
 if test "x$HAVE_CXX11" != "x1"; then
 	BINDINGS_CXX="no"
+fi
+
+# Python bindings depend on C++ bindings.
+
+if test "x$BINDINGS_CXX" != "xyes"; then
+	BINDINGS_PYTHON="no"
 fi
 
 # Checks for libraries.
@@ -322,6 +333,16 @@ fi
 PKG_CHECK_MODULES([glibmm], [glibmm-2.4 >= 2.32.0],
 	[CXXFLAGS="$CXXFLAGS $glibmm_CFLAGS";
 	CXXLIBS="$CXXLIBS $glibmm_LIBS"], [BINDINGS_CXX="no"])
+
+# Python is needed for the Python bindings.
+PKG_CHECK_MODULES([python], [python3 >= 2.7],
+        [CXXFLAGS="$CXXFLAGS $python_CFLAGS";
+        CXXLIBS="$CXXLIBS $python_LIBS"], [BINDINGS_PYTHON="no"])
+
+# PyGObject is needed for the Python bindings.
+PKG_CHECK_MODULES([pygobject], [pygobject-3.0],
+        [CXXFLAGS="$CXXFLAGS $pygobject_CFLAGS";
+        CXXLIBS="$CXXLIBS $pygobject_LIBS"], [BINDINGS_PYTHON="no"])
 
 # The Check unit testing framework is optional. Disable if not found.
 PKG_CHECK_MODULES([check], [check >= 0.9.4],
@@ -530,6 +551,8 @@ fi
 
 AM_CONDITIONAL(BINDINGS_CXX, test x$BINDINGS_CXX = xyes)
 
+AM_CONDITIONAL(BINDINGS_PYTHON, test x$BINDINGS_PYTHON = xyes)
+
 # Checks for header files.
 # These are already checked: inttypes.h stdint.h stdlib.h string.h unistd.h.
 
@@ -585,4 +608,5 @@ echo -e "\nEnabled hardware drivers:\n${driver_summary}"
 
 echo -e "\nEnabled language bindings:\n"
 echo "  - C++............................. $BINDINGS_CXX"
+echo "  - Python.......................... $BINDINGS_PYTHON"
 echo

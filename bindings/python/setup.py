@@ -19,12 +19,24 @@
 
 from setuptools import setup, find_packages, Extension
 import subprocess
+import os
+
+env = os.environ.copy()
 
 sr_includes, sr_lib_dirs, sr_libs, (sr_version,) = [
     subprocess.check_output(
-        ["pkg-config", option, "libsigrok"]).decode().rstrip().split(' ')
+            ["pkg-config", option, "glib-2.0", "glibmm-2.4", "pygobject-3.0"]
+        ).decode().rstrip().split(' ')
     for option in
         ("--cflags-only-I", "--libs-only-L", "--libs-only-l", "--modversion")]
+
+includes = ['../../include', '../cxx/include'] + [i[2:] for i in sr_includes]
+libdirs = ['../../.libs', '../cxx/.libs'] + [l[2:] for l in sr_lib_dirs]
+libs = [l[2:] for l in sr_libs]
+
+extension_options = dict(
+    include_dirs = includes,
+    library_dirs = libdirs)
 
 setup(
     name = 'libsigrok',
@@ -35,10 +47,15 @@ setup(
     ext_modules = [
         Extension('sigrok.core._lowlevel',
             sources = ['sigrok/core/lowlevel.i'],
-            swig_opts = ['-threads'] + sr_includes,
-            include_dirs = [i[2:] for i in sr_includes],
-            library_dirs = [l[2:] for l in sr_lib_dirs],
-            libraries = [l[2:] for l in sr_libs]
-        )
+            swig_opts = ['-threads', '-I../../include'],
+            libraries = libs + ['sigrok'],
+            **extension_options),
+        Extension('sigrok.core._classes',
+            sources = ['sigrok/core/classes.i'],
+            swig_opts = ['-c++', '-threads'] + 
+                ['-I%s' % i for i in includes],
+            extra_compile_args = ['-std=c++11'],
+            libraries = libs + ['sigrokxx'],
+            **extension_options)
     ],
 )
