@@ -24,7 +24,7 @@
 #define LOG_PREFIX "trigger"
 /* * @endcond */
    
-SR_API struct sr_trigger *sr_trigger_new(char *name)
+SR_API struct sr_trigger *sr_trigger_new(const char *name)
 {
 	struct sr_trigger *trig;
 
