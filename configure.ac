@@ -169,7 +169,7 @@ AC_ARG_ENABLE(python,
 AC_ARG_ENABLE(java,
 	AC_HELP_STRING([--enable-java],
 	[build Java bindings [default=yes]]),
-	[BINDINGS_PYTHON="$enableval"], [BINDINGS_JAVA="yes"])
+	[BINDINGS_JAVA="$enableval"], [BINDINGS_JAVA="yes"])
 
 # Check if the C++ compiler supports the C++11 standard.
 
