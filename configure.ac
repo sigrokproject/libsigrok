@@ -173,7 +173,8 @@ AC_ARG_ENABLE(java,
 
 # Check if the C++ compiler supports the C++11 standard.
 
-AX_CXX_COMPILE_STDCXX_11(,[optional])
+m4_ifdef([AX_CXX_COMPILE_STDCXX_11], [AX_CXX_COMPILE_STDCXX_11(,[optional])],
+	[AC_MSG_NOTICE([Missing macro m4_toupper(aX_CXX_COMPILE_STDCXX_11), no C++11 check])])
 
 if test "x$HAVE_CXX11" != "x1"; then
 	BINDINGS_CXX="no"
