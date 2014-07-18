@@ -180,6 +180,29 @@ if test "x$HAVE_CXX11" != "x1"; then
 	BINDINGS_CXX="no"
 fi
 
+# The C++ bindings use gccxml to parse libsigrok symbols.
+AC_CHECK_PROG([HAVE_GCCXML], [gccxml], [yes])
+if test "x$HAVE_GCCXML" != "xyes"; then
+	BINDINGS_CXX="no"
+fi
+
+# Python is needed for the C++ (and Python) bindings.
+PKG_CHECK_MODULES([python], [python3 >= 2.7],
+        [CXXFLAGS="$CXXFLAGS $python_CFLAGS";
+        CXXLIBS="$CXXLIBS $python_LIBS"],
+		[BINDINGS_CXX="no"])
+
+# The C++ bindings need the pygccxml Python module.
+m4_ifdef([AX_PYTHON_MODULE], [AX_PYTHON_MODULE([pygccxml])],
+	# We'll let it go through even if the macro wasn't found, the python
+	# module may still be there.
+	[HAVE_PYTHON_PYGCCXML="yes";
+		AC_MSG_NOTICE([Missing macro m4_toupper(aX_PYTHON_MODULE), no pygccxml check])]
+)
+if test "x$HAVE_PYMOD_PYGCCXML" != "xyes"; then
+	BINDINGS_CXX="no"
+fi
+
 # Python and Java bindings depend on C++ bindings.
 
 if test "x$BINDINGS_CXX" != "xyes"; then
@@ -340,11 +363,6 @@ fi
 PKG_CHECK_MODULES([glibmm], [glibmm-2.4 >= 2.32.0],
 	[CXXFLAGS="$CXXFLAGS $glibmm_CFLAGS";
 	CXXLIBS="$CXXLIBS $glibmm_LIBS"], [BINDINGS_CXX="no"])
-
-# Python is needed for the Python bindings.
-PKG_CHECK_MODULES([python], [python3 >= 2.7],
-        [CXXFLAGS="$CXXFLAGS $python_CFLAGS";
-        CXXLIBS="$CXXLIBS $python_LIBS"], [BINDINGS_PYTHON="no"])
 
 # PyGObject is needed for the Python bindings.
 PKG_CHECK_MODULES([pygobject], [pygobject-3.0],
