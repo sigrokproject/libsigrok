@@ -400,7 +400,7 @@ library_include_HEADERS += \
 pkgconfig_DATA += bindings/cxx/libsigrokxx.pc
 
 bindings/cxx/libsigrok.xml: include/libsigrok/libsigrok.h
-	gccxml $(CFLAGS) -DGLIB_DISABLE_DEPRECATION_WARNINGS $< -fxml=$@
+	$(AM_V_GEN)gccxml $(CFLAGS) -DGLIB_DISABLE_DEPRECATION_WARNINGS $< -fxml=$@
 
 bindings/cxx/enums.cpp: bindings/cxx/enums.timestamp
 
@@ -408,8 +408,8 @@ bindings/cxx/include/libsigrok/enums.hpp: bindings/cxx/enums.timestamp
 
 bindings/cxx/enums.timestamp: bindings/cxx/enums.py bindings/cxx/libsigrok.xml \
 		bindings/cxx/ConfigKey_methods.cpp bindings/cxx/QuantityFlag_methods.cpp
-	python $<
-	touch $@
+	$(AM_V_GEN)python $<
+	$(AM_V_at)touch $@
 
 bindings/cxx/classes.lo: bindings/cxx/classes.cpp bindings/cxx/enums.cpp \
 		$(library_include_HEADERS)
@@ -432,16 +432,16 @@ python-build: $(PDIR)/timestamp
 
 $(PDIR)/timestamp: bindings/cxx/libsigrokxx.la $(PDIR)/sigrok/core/classes.i \
 		$(library_include_HEADERS)
-	cd $(PDIR) && python setup.py clean --all
-	cd $(PDIR) && python setup.py build
-	touch $(PDIR)/timestamp
+	$(AM_V_at)cd $(PDIR) && python setup.py --quiet clean --all
+	$(AM_V_GEN)cd $(PDIR) && python setup.py --quiet build
+	$(AM_V_at)touch $(PDIR)/timestamp
 
 python-install:
-	cd $(PDIR) && python setup.py install --prefix $(prefix)
+	cd $(PDIR) && python setup.py --quiet install --prefix $(prefix)
 
 python-clean:
-	cd $(PDIR) && python setup.py clean --all
-	rm -f $(PDIR)/timestamp
+	$(AM_V_at)cd $(PDIR) && python setup.py --quiet clean --all
+	$(AM_V_at)rm -f $(PDIR)/timestamp
 
 BUILD_EXTRA += python-build
 INSTALL_EXTRA += python-install
@@ -461,16 +461,16 @@ JJAR = $(JDIR)/sigrok-core.jar
 java-build: $(JJAR) $(JLIB)
 
 $(JSRC): $(JINT) bindings/swig/classes.i $(library_include_HEADERS)
-	swig -c++ -java -package org.sigrok.core.classes \
+	$(AM_V_GEN)swig -c++ -java -package org.sigrok.core.classes \
 		-Iinclude -Ibindings/cxx/include \
 		-outdir $(JDIR)/$(JPKG) $(JINT)
 
 $(JJAR): $(JSRC) $(JDIR)/$(JPKG)/*.java
-	$(JAVAC) -sourcepath $(JDIR) $(JDIR)/$(JPKG)/*.java
-	jar cf $(JJAR) -C $(JDIR) $(JPKG)
+	$(AM_V_GEN)$(JAVAC) -sourcepath $(JDIR) $(JDIR)/$(JPKG)/*.java
+	$(AM_V_at)jar cf $(JJAR) -C $(JDIR) $(JPKG)
 
 $(JLIB): $(JSRC) bindings/cxx/libsigrokxx.la $(library_include_HEADERS)
-	$(CXX) $(CXXFLAGS) -L.libs -Lbindings/cxx/.libs \
+	$(AM_V_GEN)$(CXX) $(CXXFLAGS) -L.libs -Lbindings/cxx/.libs \
 		-fno-strict-aliasing -fPIC -shared \
 		$(JDIR)/$(JPKG)/classes_wrap.cxx -lsigrokxx \
 		-o $(JLIB)
