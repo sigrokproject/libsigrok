@@ -156,20 +156,25 @@ AC_ARG_ENABLE(libusb,
 
 # Language binding '--enable' options
 
-AC_ARG_ENABLE(c++,
+AC_ARG_ENABLE(bindings,
+	AC_HELP_STRING([--enable-bindings],
+	[build language bindings [default=yes]]),
+	[BINDINGS_ALL="$enableval"], [BINDINGS_ALL="yes"])
+
+AC_ARG_ENABLE(cxx,
 	AC_HELP_STRING([--enable-cxx],
 	[build C++ bindings [default=yes]]),
-	[BINDINGS_CXX="$enableval"], [BINDINGS_CXX="yes"])
+	[BINDINGS_CXX="$enableval"], [BINDINGS_CXX=$BINDINGS_ALL])
 
 AC_ARG_ENABLE(python,
 	AC_HELP_STRING([--enable-python],
 	[build Python bindings [default=yes]]),
-	[BINDINGS_PYTHON="$enableval"], [BINDINGS_PYTHON="yes"])
+	[BINDINGS_PYTHON="$enableval"], [BINDINGS_PYTHON=$BINDINGS_ALL])
 
 AC_ARG_ENABLE(java,
 	AC_HELP_STRING([--enable-java],
 	[build Java bindings [default=yes]]),
-	[BINDINGS_JAVA="$enableval"], [BINDINGS_JAVA="yes"])
+	[BINDINGS_JAVA="$enableval"], [BINDINGS_JAVA=$BINDINGS_ALL])
 
 # Check if the C++ compiler supports the C++11 standard.
 
