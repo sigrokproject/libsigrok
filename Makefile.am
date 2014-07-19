@@ -379,6 +379,10 @@ tests_check_main_LDADD = $(top_builddir)/libsigrok.la @check_LIBS@
 
 endif
 
+BUILD_EXTRA =
+INSTALL_EXTRA =
+CLEAN_EXTRA =
+
 if BINDINGS_CXX
 
 lib_LTLIBRARIES += bindings/cxx/libsigrokxx.la
@@ -395,20 +399,30 @@ library_include_HEADERS += \
 
 pkgconfig_DATA += bindings/cxx/libsigrokxx.pc
 
-bindings/cxx/classes.lo: bindings/cxx/enums.cpp
-
-bindings/cxx/enums.cpp: bindings/cxx/enums.py bindings/cxx/libsigrok.xml \
-		bindings/cxx/ConfigKey_methods.cpp bindings/cxx/QuantityFlag_methods.cpp
-	python $<
-
 bindings/cxx/libsigrok.xml: include/libsigrok/libsigrok.h
 	gccxml $(CFLAGS) -DGLIB_DISABLE_DEPRECATION_WARNINGS $< -fxml=$@
 
-endif
+bindings/cxx/enums.cpp: bindings/cxx/enums.timestamp
 
-BUILD_EXTRA =
-INSTALL_EXTRA =
-CLEAN_EXTRA =
+bindings/cxx/include/libsigrok/enums.hpp: bindings/cxx/enums.timestamp
+
+bindings/cxx/enums.timestamp: bindings/cxx/enums.py bindings/cxx/libsigrok.xml \
+		bindings/cxx/ConfigKey_methods.cpp bindings/cxx/QuantityFlag_methods.cpp
+	python $<
+	touch $@
+
+bindings/cxx/classes.lo: bindings/cxx/classes.cpp bindings/cxx/enums.cpp \
+		$(library_include_HEADERS)
+
+cxx-clean:
+	rm -f bindings/cxx/libsigrok.xml
+	rm -f bindings/cxx/enums.cpp
+	rm -f bindings/cxx/include/libsigrok/enums.hpp
+	rm -f bindings/cxx/enums.timestamp
+
+CLEAN_EXTRA += cxx-clean
+
+endif
 
 if BINDINGS_PYTHON
 
@@ -416,7 +430,8 @@ PDIR = bindings/python
 
 python-build: $(PDIR)/timestamp
 
-$(PDIR)/timestamp: bindings/cxx/libsigrokxx.la $(PDIR)/sigrok/core/classes.i
+$(PDIR)/timestamp: bindings/cxx/libsigrokxx.la $(PDIR)/sigrok/core/classes.i \
+		$(library_include_HEADERS)
 	cd $(PDIR) && python setup.py clean --all
 	cd $(PDIR) && python setup.py build
 	touch $(PDIR)/timestamp
@@ -445,7 +460,7 @@ JJAR = $(JDIR)/sigrok-core.jar
 
 java-build: $(JJAR) $(JLIB)
 
-$(JSRC): $(JINT) bindings/swig/classes.i
+$(JSRC): $(JINT) bindings/swig/classes.i $(library_include_HEADERS)
 	swig -c++ -java -package org.sigrok.core.classes \
 		-Iinclude -Ibindings/cxx/include \
 		-outdir $(JDIR)/$(JPKG) $(JINT)
@@ -454,7 +469,7 @@ $(JJAR): $(JSRC) $(JDIR)/$(JPKG)/*.java
 	$(JAVAC) -sourcepath $(JDIR) $(JDIR)/$(JPKG)/*.java
 	jar cf $(JJAR) -C $(JDIR) $(JPKG)
 
-$(JLIB): $(JSRC) bindings/cxx/libsigrokxx.la
+$(JLIB): $(JSRC) bindings/cxx/libsigrokxx.la $(library_include_HEADERS)
 	$(CXX) $(CXXFLAGS) -L.libs -Lbindings/cxx/.libs \
 		-fno-strict-aliasing -fPIC -shared \
 		$(JDIR)/$(JPKG)/classes_wrap.cxx -lsigrokxx \
