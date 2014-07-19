@@ -416,7 +416,7 @@ python-build: bindings/cxx/libsigrokxx.la
 	cd bindings/python && python setup.py build
 
 python-install:
-	cd bindings/python && python setup.py install
+	cd bindings/python && python setup.py install --prefix $(prefix)
 
 python-clean:
 	cd bindings/python && python setup.py clean --all
