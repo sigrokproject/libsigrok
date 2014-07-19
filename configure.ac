@@ -367,7 +367,12 @@ PKG_CHECK_MODULES([glibmm], [glibmm-2.4 >= 2.32.0],
 # PyGObject is needed for the Python bindings.
 PKG_CHECK_MODULES([pygobject], [pygobject-3.0],
         [CXXFLAGS="$CXXFLAGS $pygobject_CFLAGS";
-        CXXLIBS="$CXXLIBS $pygobject_LIBS"], [BINDINGS_PYTHON="no"])
+        CXXLIBS="$CXXLIBS $pygobject_LIBS";
+	PKG_CHECK_MODULES([pygobject_3_7_91], [pygobject-3.0 >= 3.7.91],
+		[pyg_flags_signed=0], [pyg_flags_signed=1]);
+	AC_DEFINE_UNQUOTED(PYGOBJECT_FLAGS_SIGNED, [$pyg_flags_signed],
+		[Whether last argument to pyg_flags_get_value() is signed])],
+	[BINDINGS_PYTHON="no"])
 
 # The Check unit testing framework is optional. Disable if not found.
 PKG_CHECK_MODULES([check], [check >= 0.9.4],

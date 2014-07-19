@@ -26,6 +26,14 @@ PyObject *GLib;
 PyTypeObject *IOChannel;
 PyTypeObject *PollFD;
 
+#include "../../../../config.h"
+
+#if PYGOBJECT_FLAGS_SIGNED
+typedef gint pyg_flags_type;
+#else
+typedef guint pyg_flags_type;
+#endif
+
 %}
 
 %init %{
@@ -64,7 +72,7 @@ PyTypeObject *PollFD;
 
 /* Map from Glib::IOCondition to GLib.IOCondition. */
 %typecheck(SWIG_TYPECHECK_POINTER) Glib::IOCondition {
-    gint flags;
+    pyg_flags_type flags;
     $1 = pygobject_check($input, &PyGFlags_Type) &&
          (pyg_flags_get_value(G_TYPE_IO_CONDITION, $input, &flags) != -1);
 }
@@ -72,7 +80,7 @@ PyTypeObject *PollFD;
 %typemap(in) Glib::IOCondition {
     if (!pygobject_check($input, &PyGFlags_Type))
         SWIG_exception(SWIG_TypeError, "Expected GLib.IOCondition value");
-    gint flags;
+    pyg_flags_type flags;
     if (pyg_flags_get_value(G_TYPE_IO_CONDITION, $input, &flags) == -1)
         SWIG_exception(SWIG_TypeError, "Not a valid Glib.IOCondition value");
     $1 = (Glib::IOCondition) flags;
@@ -97,7 +105,7 @@ PyTypeObject *PollFD;
         SWIG_exception(SWIG_TypeError, "Expected GLib.PollFD");
     PyObject *fd_obj = PyObject_GetAttrString($input, "fd");
     PyObject *events_obj = PyObject_GetAttrString($input, "events");
-    gint flags;
+    pyg_flags_type flags;
     pyg_flags_get_value(G_TYPE_IO_CONDITION, events_obj, &flags);
     int fd = PyInt_AsLong(fd_obj);
     Glib::IOCondition events = (Glib::IOCondition) flags;
