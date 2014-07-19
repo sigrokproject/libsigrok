@@ -385,7 +385,7 @@ lib_LTLIBRARIES += bindings/cxx/libsigrokxx.la
 
 bindings_cxx_libsigrokxx_la_SOURCES = bindings/cxx/classes.cpp
 
-bindings_cxx_libsigrokxx_la_LIBADD = -lsigrok $(glibmm_LIBS)
+bindings_cxx_libsigrokxx_la_LIBADD = libsigrok.la $(glibmm_LIBS)
 
 bindings_cxx_libsigrokxx_la_LDFLAGS = $(SR_LIB_LDFLAGS)
 
@@ -412,14 +412,21 @@ CLEAN_EXTRA =
 
 if BINDINGS_PYTHON
 
-python-build: bindings/cxx/libsigrokxx.la
-	cd bindings/python && python setup.py build
+PDIR = bindings/python
+
+python-build: $(PDIR)/timestamp
+
+$(PDIR)/timestamp: bindings/cxx/libsigrokxx.la $(PDIR)/sigrok/core/classes.i
+	cd $(PDIR) && python setup.py clean --all
+	cd $(PDIR) && python setup.py build
+	touch $(PDIR)/timestamp
 
 python-install:
-	cd bindings/python && python setup.py install --prefix $(prefix)
+	cd $(PDIR) && python setup.py install --prefix $(prefix)
 
 python-clean:
-	cd bindings/python && python setup.py clean --all
+	cd $(PDIR) && python setup.py clean --all
+	rm -f $(PDIR)/timestamp
 
 BUILD_EXTRA += python-build
 INSTALL_EXTRA += python-install
@@ -460,10 +467,10 @@ java-install:
 	$(INSTALL) $(JJAR) -t $(datadir)/java
 
 java-clean:
-	rm $(JSRC)
-	rm $(JDIR)/$(JPKG)/*.class
-	rm $(JJAR)
-	rm $(JLIB)
+	rm -f $(JSRC)
+	rm -f $(JDIR)/$(JPKG)/*.class
+	rm -f $(JJAR)
+	rm -f $(JLIB)
 
 BUILD_EXTRA += java-build
 INSTALL_EXTRA += java-install
@@ -473,7 +480,7 @@ endif
 
 all-local: $(BUILD_EXTRA)
 install-exec-local: $(INSTALL_EXTRA)
-clean-extra: $(CLEAN_EXTRA)
+clean-local: $(CLEAN_EXTRA)
 
 MAINTAINERCLEANFILES = ChangeLog
 
