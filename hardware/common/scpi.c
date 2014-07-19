@@ -89,7 +89,7 @@ static const struct sr_scpi_dev_inst *scpi_devs[] = {
 #endif
 };
 
-static GSList *sr_scpi_scan_resource(struct drv_context *drvc,
+static struct sr_dev_inst *sr_scpi_scan_resource(struct drv_context *drvc,
 		const char *resource, const char *serialcomm,
 		struct sr_dev_inst *(*probe_device)(struct sr_scpi_dev_inst *scpi))
 {
@@ -106,7 +106,7 @@ static GSList *sr_scpi_scan_resource(struct drv_context *drvc,
 	};
 
 	if ((sdi = probe_device(scpi)))
-		return g_slist_append(NULL, sdi);
+		return sdi;
 
 	sr_scpi_close(scpi);
 	sr_scpi_free(scpi);
@@ -116,7 +116,8 @@ static GSList *sr_scpi_scan_resource(struct drv_context *drvc,
 SR_PRIV GSList *sr_scpi_scan(struct drv_context *drvc, GSList *options,
 		struct sr_dev_inst *(*probe_device)(struct sr_scpi_dev_inst *scpi))
 {
-	GSList *resources, *l, *d, *devices = NULL;
+	GSList *resources, *l, *devices;
+	struct sr_dev_inst *sdi;
 	const char *resource = NULL;
 	const char *serialcomm = NULL;
 	gchar **res;
@@ -134,6 +135,7 @@ SR_PRIV GSList *sr_scpi_scan(struct drv_context *drvc, GSList *options,
 		}
 	}
 
+	devices = NULL;
 	for (i = 0; i < ARRAY_SIZE(scpi_devs); i++) {
 		if ((resource && strcmp(resource, scpi_devs[i]->prefix))
 		    || !scpi_devs[i]->scan)
@@ -141,22 +143,22 @@ SR_PRIV GSList *sr_scpi_scan(struct drv_context *drvc, GSList *options,
 		resources = scpi_devs[i]->scan(drvc);
 		for (l = resources; l; l = l->next) {
 			res = g_strsplit(l->data, ":", 2);
-			if (res[0] && (d = sr_scpi_scan_resource(drvc, res[0],
+			if (res[0] && (sdi = sr_scpi_scan_resource(drvc, res[0],
 			               serialcomm ? serialcomm : res[1], probe_device)))
-				devices = g_slist_concat(devices, d);
+				devices = g_slist_append(devices, sdi);
 			g_strfreev(res);
 		}
 		g_slist_free_full(resources, g_free);
 	}
 
-	if (!devices && resource)
-		devices = sr_scpi_scan_resource(drvc, resource, serialcomm,
-		                                probe_device);
+	if (!devices && resource) {
+		sdi = sr_scpi_scan_resource(drvc, resource, serialcomm, probe_device);
+		devices = g_slist_append(NULL, sdi);
+	}
 
 	/* Tack a copy of the newly found devices onto the driver list. */
 	if (devices)
-		drvc->instances = g_slist_concat(drvc->instances,
-		                                 g_slist_copy(devices));
+		drvc->instances = g_slist_concat(drvc->instances, g_slist_copy(devices));
 
 	return devices;
 }
