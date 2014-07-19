@@ -38,6 +38,7 @@ setup(
     packages = find_packages(),
     version = sr_version,
     description = "libsigrok API wrapper",
+    zip_safe = False,
     ext_modules = [
         Extension('sigrok.core._classes',
             sources = ['sigrok/core/classes.i'],
