@@ -17,6 +17,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#pragma SWIG nowarn=325,401
+
 %{
 #include "libsigrok/libsigrok.hpp"
 using namespace std;
