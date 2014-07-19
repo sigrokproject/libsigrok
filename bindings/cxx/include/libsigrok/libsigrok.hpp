@@ -312,6 +312,7 @@ protected:
 		void operator()(Trigger *trigger) { delete trigger; }
 	};
 	friend class Context;
+	friend class Session;
 };
 
 /** Trigger stage */
@@ -443,6 +444,10 @@ public:
 	void begin_save(string filename);
 	/** Append a packet to the session file being saved. */
 	void append(shared_ptr<Device> device, shared_ptr<Packet> packet);
+	/** Get current trigger setting. */
+	shared_ptr<Trigger> get_trigger();
+	/** Set trigger setting. */
+	void set_trigger(shared_ptr<Trigger> trigger);
 protected:
 	Session(shared_ptr<Context> context);
 	Session(shared_ptr<Context> context, string filename);
@@ -456,6 +461,7 @@ protected:
 	bool save_initialized;
 	string save_filename;
 	uint64_t save_samplerate;
+	shared_ptr<Trigger> trigger;
 	/** Deleter needed to allow shared_ptr use with protected destructor. */
 	class Deleter
 	{

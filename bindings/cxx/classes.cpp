@@ -902,6 +902,17 @@ void Session::remove_source(shared_ptr<EventSource> source)
 	source_callbacks.erase(source);
 }
 
+shared_ptr<Trigger> Session::get_trigger()
+{
+	return trigger;
+}
+
+void Session::set_trigger(shared_ptr<Trigger> trigger)
+{
+	check(sr_session_trigger_set(structure, trigger->structure));
+	this->trigger = trigger;
+}
+
 Packet::Packet(const struct sr_datafeed_packet *structure) :
 	structure(structure)
 {

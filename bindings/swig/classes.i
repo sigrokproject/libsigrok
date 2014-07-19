@@ -220,6 +220,9 @@ typedef std::map<std::string, std::shared_ptr<sigrok::ChannelGroup> >
     std::vector<std::shared_ptr<sigrok::Device> >,
     devices, get_devices);
 
+%attributestring(sigrok::Session,
+    std::shared_ptr<sigrok::Trigger>, trigger, get_trigger, set_trigger)
+
 %attribute(sigrok::Packet, sigrok::PacketPayload *, payload, get_payload);
 
 %attribute(sigrok::Analog, int, num_samples, get_num_samples);
