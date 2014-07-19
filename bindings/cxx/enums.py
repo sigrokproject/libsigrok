@@ -17,9 +17,18 @@
 ## along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##
 
+import logging, warnings
 from pygccxml import parser, declarations
 from collections import OrderedDict
 import sys, os, re
+
+class crapfilter(logging.Filter):
+    def filter(self, record):
+        if record.msg.find('GCCXML version') > -1:
+            return 0
+        return 1
+logger = logging.getLogger('pygccxml.cxx_parser').addFilter(crapfilter())
+warnings.filterwarnings('ignore', message="unable to find out array size from expression")
 
 # Get directory this script is in.
 dirname = os.path.dirname(os.path.realpath(__file__))
