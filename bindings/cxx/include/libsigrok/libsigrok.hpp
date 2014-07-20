@@ -477,6 +477,8 @@ protected:
 class SR_API Packet
 {
 public:
+	/** Type of this packet. */
+	const PacketType *get_type();
 	/** Payload of this packet. */
 	PacketPayload *get_payload();
 protected:

@@ -939,6 +939,11 @@ Packet::~Packet()
 	delete payload;
 }
 
+const PacketType *Packet::get_type()
+{
+	return PacketType::get(structure->type);
+}
+
 PacketPayload *Packet::get_payload()
 {
 	return payload;
