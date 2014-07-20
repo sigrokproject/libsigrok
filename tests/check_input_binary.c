@@ -204,6 +204,7 @@ static void check_buf(const char *filename, GHashTable *param,
 	int ret;
 	struct sr_input *in;
 	struct sr_input_format *in_format;
+	struct sr_session *session;
 
 	/* Initialize global variables for this run. */
 	df_packet_counter = sample_counter = 0;
@@ -226,11 +227,11 @@ static void check_buf(const char *filename, GHashTable *param,
 	ret = in->format->init(in, filename);
 	fail_unless(ret == SR_OK, "Input format init error: %d", ret);
 	
-	sr_session_new();
-	sr_session_datafeed_callback_add(datafeed_in, NULL);
-	sr_session_dev_add(in->sdi);
+	sr_session_new(&session);
+	sr_session_datafeed_callback_add(session, datafeed_in, NULL);
+	sr_session_dev_add(session, in->sdi);
 	in_format->loadfile(in, filename);
-	sr_session_destroy();
+	sr_session_destroy(session);
 
 	g_unlink(filename); /* Delete file again. */
 }
