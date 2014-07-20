@@ -361,7 +361,7 @@ TESTS = tests/check_main
 check_PROGRAMS = ${TESTS}
 
 tests_check_main_SOURCES = \
-	libsigrok.h \
+	include/libsigrok/libsigrok.h \
 	tests/lib.c \
 	tests/lib.h \
 	tests/check_main.c \

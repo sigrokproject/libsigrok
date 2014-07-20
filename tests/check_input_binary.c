@@ -20,7 +20,7 @@
 
 #include <check.h>
 #include <glib/gstdio.h>
-#include "../libsigrok.h"
+#include "../include/libsigrok/libsigrok.h"
 #include "lib.h"
 
 #define FILENAME		"foo.dat"

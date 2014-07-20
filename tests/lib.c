@@ -23,7 +23,7 @@
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <check.h>
-#include "../libsigrok.h"
+#include "../include/libsigrok/libsigrok.h"
 #include "lib.h"
 
 /* Get a libsigrok driver by name. */
