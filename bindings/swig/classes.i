@@ -70,6 +70,8 @@ template< class T > class enable_shared_from_this;
 %shared_ptr(sigrok::Session);
 %shared_ptr(sigrok::Packet);
 %shared_ptr(sigrok::PacketPayload);
+%shared_ptr(sigrok::Header);
+%shared_ptr(sigrok::Meta);
 %shared_ptr(sigrok::Analog);
 %shared_ptr(sigrok::Logic);
 %shared_ptr(sigrok::InputFormat);
@@ -143,6 +145,8 @@ typedef std::map<std::string, std::shared_ptr<sigrok::OutputFormat> >
     map_string_OutputFormat;
 typedef std::map<std::string, std::shared_ptr<sigrok::ChannelGroup> >
     map_string_ChannelGroup;
+typedef std::map<const sigrok::ConfigKey *, Glib::VariantBase>
+    map_ConfigKey_Variant;
 }
 
 %attributeval(sigrok::Context,
@@ -221,9 +225,12 @@ typedef std::map<std::string, std::shared_ptr<sigrok::ChannelGroup> >
     devices, get_devices);
 
 %attributestring(sigrok::Session,
-    std::shared_ptr<sigrok::Trigger>, trigger, get_trigger, set_trigger)
+    std::shared_ptr<sigrok::Trigger>, trigger, get_trigger, set_trigger);
 
-%attribute(sigrok::Packet, sigrok::PacketPayload *, payload, get_payload);
+%attributestring(sigrok::Packet,
+    std::shared_ptr<sigrok::PacketPayload>, payload, get_payload);
+
+%attributeval(sigrok::Meta, map_ConfigKey_Variant, config, get_config);
 
 %attribute(sigrok::Analog, int, num_samples, get_num_samples);
 %attribute(sigrok::Analog, const sigrok::Quantity *, mq, get_mq);

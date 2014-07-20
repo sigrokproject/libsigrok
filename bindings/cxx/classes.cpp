@@ -600,7 +600,7 @@ void DatafeedCallbackData::run(const struct sr_dev_inst *sdi,
 	const struct sr_datafeed_packet *pkt)
 {
 	auto device = session->devices[sdi];
-	auto packet = shared_ptr<Packet>(new Packet(pkt), Packet::Deleter());
+	auto packet = shared_ptr<Packet>(new Packet(device, pkt), Packet::Deleter());
 	callback(device, packet);
 }
 
@@ -893,11 +893,23 @@ void Session::set_trigger(shared_ptr<Trigger> trigger)
 	this->trigger = trigger;
 }
 
-Packet::Packet(const struct sr_datafeed_packet *structure) :
-	structure(structure)
+Packet::Packet(shared_ptr<Device> device,
+	const struct sr_datafeed_packet *structure) :
+	structure(structure),
+	device(device)
 {
 	switch (structure->type)
 	{
+		case SR_DF_HEADER:
+			payload = new Header(
+				static_cast<const struct sr_datafeed_header *>(
+					structure->payload));
+			break;
+		case SR_DF_META:
+			payload = new Meta(
+				static_cast<const struct sr_datafeed_meta *>(
+					structure->payload));
+			break;
 		case SR_DF_LOGIC:
 			payload = new Logic(
 				static_cast<const struct sr_datafeed_logic *>(
@@ -907,9 +919,6 @@ Packet::Packet(const struct sr_datafeed_packet *structure) :
 			payload = new Analog(
 				static_cast<const struct sr_datafeed_analog *>(
 					structure->payload));
-			break;
-		default:
-			payload = NULL;
 			break;
 	}
 }
@@ -925,9 +934,9 @@ const PacketType *Packet::get_type()
 	return PacketType::get(structure->type);
 }
 
-PacketPayload *Packet::get_payload()
+shared_ptr<PacketPayload> Packet::get_payload()
 {
-	return payload;
+	return payload->get_shared_pointer(this);
 }
 
 PacketPayload::PacketPayload()
@@ -938,28 +947,77 @@ PacketPayload::~PacketPayload()
 {
 }
 
-Logic::Logic(const struct sr_datafeed_logic *structure) : PacketPayload(),
-	structure(structure),
-	data(static_cast<uint8_t *>(structure->data),
-		static_cast<uint8_t *>(structure->data) + structure->length) {}
+Header::Header(const struct sr_datafeed_header *structure) :
+	PacketPayload(),
+	StructureWrapper<Packet, const struct sr_datafeed_header>(structure)
+{
+}
+
+Header::~Header()
+{
+}
+
+int Header::get_feed_version()
+{
+	return structure->feed_version;
+}
+
+Glib::TimeVal Header::get_start_time()
+{
+	return Glib::TimeVal(
+		structure->starttime.tv_sec,
+		structure->starttime.tv_usec);
+}
+
+Meta::Meta(const struct sr_datafeed_meta *structure) :
+	PacketPayload(),
+	StructureWrapper<Packet, const struct sr_datafeed_meta>(structure)
+{
+}
+
+Meta::~Meta()
+{
+}
+
+map<const ConfigKey *, Glib::VariantBase> Meta::get_config()
+{
+	map<const ConfigKey *, Glib::VariantBase> result;
+	for (auto l = structure->config; l; l = l->next)
+	{
+		auto config = (struct sr_config *) l->data;
+		result[ConfigKey::get(config->key)] = Glib::VariantBase(config->data);
+	}
+	return result;
+}
+
+Logic::Logic(const struct sr_datafeed_logic *structure) :
+	PacketPayload(),
+	StructureWrapper<Packet, const struct sr_datafeed_logic>(structure)
+{
+}
 
 Logic::~Logic()
 {
 }
 
-void *Logic::get_data()
+void *Logic::get_data_pointer()
 {
 	return structure->data;
 }
 
-size_t Logic::get_data_size()
+size_t Logic::get_data_length()
 {
 	return structure->length;
 }
 
+unsigned int Logic::get_unit_size()
+{
+	return structure->unitsize;
+}
+
 Analog::Analog(const struct sr_datafeed_analog *structure) :
 	PacketPayload(),
-	structure(structure)
+	StructureWrapper<Packet, const struct sr_datafeed_analog>(structure)
 {
 }
 
@@ -967,19 +1025,23 @@ Analog::~Analog()
 {
 }
 
-void *Analog::get_data()
+float *Analog::get_data_pointer()
 {
 	return structure->data;
-}
-
-size_t Analog::get_data_size()
-{
-	return structure->num_samples * sizeof(float);
 }
 
 unsigned int Analog::get_num_samples()
 {
 	return structure->num_samples;
+}
+
+vector<shared_ptr<Channel>> Analog::get_channels()
+{
+	vector<shared_ptr<Channel>> result;
+	for (auto l = structure->channels; l; l = l->next)
+		result.push_back(parent->device->get_channel(
+			(struct sr_channel *)l->data));
+	return result;
 }
 
 const Quantity *Analog::get_mq()

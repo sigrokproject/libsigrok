@@ -157,6 +157,10 @@ STRING_TO_SHARED_PTR_MAP(OutputFormat)
 
 MAP_COMMON(const sigrok::ConfigKey *, Glib::VariantBase, ConfigKey, Variant)
 
+%typemap(jni) std::map<const sigrok::ConfigKey, Glib::VariantBase> "jobject"
+%typemap(jtype) std::map<const sigrok::ConfigKey, Glib::VariantBase>
+  "java.util.Map<ConfigKey,Variant>"
+
 %typemap(out) std::map<const sigrok::ConfigKey *, Glib::VariantBase> {
   jclass HashMap = jenv->FindClass("java/util/HashMap");
   jmethodID HashMap_init = jenv->GetMethodID(HashMap, "<init>", "()V");

@@ -304,6 +304,7 @@ protected:
 	friend class Channel;
 	friend class ChannelGroup;
 	friend class Output;
+	friend class Analog;
 };
 
 /** A real hardware device, connected via a driver */
@@ -546,17 +547,19 @@ protected:
 };
 
 /** A packet on the session datafeed */
-class SR_API Packet
+class SR_API Packet : public enable_shared_from_this<Packet>
 {
 public:
 	/** Type of this packet. */
 	const PacketType *get_type();
 	/** Payload of this packet. */
-	PacketPayload *get_payload();
+	shared_ptr<PacketPayload> get_payload();
 protected:
-	Packet(const struct sr_datafeed_packet *structure);
+	Packet(shared_ptr<Device> device,
+		const struct sr_datafeed_packet *structure);
 	~Packet();
 	const struct sr_datafeed_packet *structure;
+	shared_ptr<Device> device;
 	PacketPayload *payload;
 	/** Deleter needed to allow shared_ptr use with protected destructor. */
 	class Deleter
@@ -568,6 +571,10 @@ protected:
 	friend class Session;
 	friend class Output;
 	friend class DatafeedCallbackData;
+	friend class Header;
+	friend class Meta;
+	friend class Logic;
+	friend class Analog;
 };
 
 /** Abstract base class for datafeed packet payloads */
@@ -576,31 +583,77 @@ class SR_API PacketPayload
 protected:
 	PacketPayload();
 	virtual ~PacketPayload() = 0;
-	virtual void *get_data() = 0;
-	virtual size_t get_data_size() = 0;
+	shared_ptr<PacketPayload> get_shared_pointer(Packet *parent) {
+		return static_pointer_cast<PacketPayload>(get_shared_pointer(parent));
+	}
+	/** Deleter needed to allow shared_ptr use with protected destructor. */
+	class Deleter
+	{
+	public:
+		void operator()(PacketPayload *payload) { delete payload; }
+	};
+	friend class Deleter;
 	friend class Packet;
 	friend class Output;
 };
 
-/** Payload of a datafeed packet with logic data */
-class SR_API Logic : public PacketPayload
+/** Payload of a datafeed header packet */
+class SR_API Header : public PacketPayload,
+	public StructureWrapper<Packet, const struct sr_datafeed_header>
 {
+public:
+	int get_feed_version();
+	Glib::TimeVal get_start_time();
+protected:
+	Header(const struct sr_datafeed_header *structure);
+	~Header();
+	const struct sr_datafeed_header *structure;
+	friend class Packet;
+};
+
+/** Payload of a datafeed metadata packet */
+class SR_API Meta : public PacketPayload,
+	public StructureWrapper<Packet, const struct sr_datafeed_meta>
+{
+public:
+	map<const ConfigKey *, Glib::VariantBase> get_config();
+protected:
+	Meta(const struct sr_datafeed_meta *structure);
+	~Meta();
+	const struct sr_datafeed_meta *structure;
+	map<const ConfigKey *, Glib::VariantBase> config;
+	friend class Packet;
+};
+
+/** Payload of a datafeed packet with logic data */
+class SR_API Logic : public PacketPayload,
+	public StructureWrapper<Packet, const struct sr_datafeed_logic>
+{
+public:
+	/* Pointer to data. */
+	void *get_data_pointer();
+	/* Data length in bytes. */
+	size_t get_data_length();
+	/* Size of each sample in bytes. */
+	unsigned int get_unit_size();
 protected:
 	Logic(const struct sr_datafeed_logic *structure);
 	~Logic();
 	const struct sr_datafeed_logic *structure;
-	vector<uint8_t> data;
-	void *get_data();
-	size_t get_data_size();
 	friend class Packet;
 };
 
 /** Payload of a datafeed packet with analog data */
-class SR_API Analog : public PacketPayload
+class SR_API Analog : public PacketPayload,
+	public StructureWrapper<Packet, const struct sr_datafeed_analog>
 {
 public:
+	/** Pointer to data. */
+	float *get_data_pointer();
 	/** Number of samples in this packet. */
 	unsigned int get_num_samples();
+	/** Channels for which this packet contains data. */
+	vector<shared_ptr<Channel> > get_channels();
 	/** Measured quantity of the samples in this packet. */
 	const Quantity *get_mq();
 	/** Unit of the samples in this packet. */
@@ -611,8 +664,6 @@ protected:
 	Analog(const struct sr_datafeed_analog *structure);
 	~Analog();
 	const struct sr_datafeed_analog *structure;
-	void *get_data();
-	size_t get_data_size();
 	friend class Packet;
 };
 
