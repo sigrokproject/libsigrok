@@ -153,7 +153,7 @@ SR_PRIV int atten_pps3xxx_receive_data(int fd, int revents, void *cb_data)
 			if (devc->acquisition_running)
 				send_config(sdi);
 			else {
-				serial_source_remove(serial);
+				serial_source_remove(sdi->session, serial);
 				packet.type = SR_DF_END;
 				sr_session_send(sdi, &packet);
 			}

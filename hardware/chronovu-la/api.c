@@ -507,7 +507,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	devc->cb_data = cb_data;
 
 	/* Send header packet to the session bus. */
-	std_session_send_df_header(cb_data, LOG_PREFIX);
+	std_session_send_df_header(sdi, LOG_PREFIX);
 
 	/* Time when we should be done (for detecting trigger timeouts). */
 	devc->done = (devc->divcount + 1) * devc->prof->trigger_constant +
@@ -516,7 +516,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	devc->trigger_found = 0;
 
 	/* Hook up a dummy handler to receive data from the device. */
-	sr_source_add(-1, G_IO_IN, 0, receive_data, (void *)sdi);
+	sr_session_source_add(sdi->session, -1, G_IO_IN, 0, receive_data, (void *)sdi);
 
 	return SR_OK;
 }
@@ -525,15 +525,15 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
 	struct sr_datafeed_packet packet;
 
-	(void)sdi;
+	(void)cb_data;
 
 	sr_dbg("Stopping acquisition.");
-	sr_source_remove(-1);
+	sr_session_source_remove(sdi->session, -1);
 
 	/* Send end packet to the session bus. */
 	sr_dbg("Sending SR_DF_END.");
 	packet.type = SR_DF_END;
-	sr_session_send(cb_data, &packet);
+	sr_session_send(sdi, &packet);
 
 	return SR_OK;
 }

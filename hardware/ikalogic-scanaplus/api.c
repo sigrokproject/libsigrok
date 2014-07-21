@@ -393,10 +393,10 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		return ret;
 
 	/* Send header packet to the session bus. */
-	std_session_send_df_header(cb_data, LOG_PREFIX);
+	std_session_send_df_header(sdi, LOG_PREFIX);
 
 	/* Hook up a dummy handler to receive data from the device. */
-	sr_source_add(-1, G_IO_IN, 0, scanaplus_receive_data, (void *)sdi);
+	sr_session_source_add(sdi->session, -1, G_IO_IN, 0, scanaplus_receive_data, (void *)sdi);
 
 	return SR_OK;
 }
@@ -405,15 +405,15 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
 	struct sr_datafeed_packet packet;
 
-	(void)sdi;
+	(void)cb_data;
 
 	sr_dbg("Stopping acquisition.");
-	sr_source_remove(-1);
+	sr_session_source_remove(sdi->session, -1);
 
 	/* Send end packet to the session bus. */
 	sr_dbg("Sending SR_DF_END.");
 	packet.type = SR_DF_END;
-	sr_session_send(cb_data, &packet);
+	sr_session_send(sdi, &packet);
 
 	return SR_OK;
 }

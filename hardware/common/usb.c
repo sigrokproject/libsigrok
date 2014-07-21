@@ -209,8 +209,8 @@ static int usb_callback(int fd, int revents, void *cb_data)
 }
 #endif
 
-SR_PRIV int usb_source_add(struct sr_context *ctx, int timeout,
-		sr_receive_data_callback cb, void *cb_data)
+SR_PRIV int usb_source_add(struct sr_session *session, struct sr_context *ctx,
+		int timeout, sr_receive_data_callback cb, void *cb_data)
 {
 	if (ctx->usb_source_present) {
 		sr_err("A USB event source is already present.");
@@ -226,14 +226,16 @@ SR_PRIV int usb_source_add(struct sr_context *ctx, int timeout,
 	ctx->usb_pollfd.events = G_IO_IN;
 	ctx->usb_cb = cb;
 	ctx->usb_cb_data = cb_data;
-	sr_session_source_add_pollfd(&ctx->usb_pollfd, timeout, usb_callback, ctx);
+	sr_session_source_add_pollfd(session, &ctx->usb_pollfd, timeout,
+			usb_callback, ctx);
 #else
 	const struct libusb_pollfd **lupfd;
 	unsigned int i;
 
 	lupfd = libusb_get_pollfds(ctx->libusb_ctx);
 	for (i = 0; lupfd[i]; i++)
-		sr_source_add(lupfd[i]->fd, lupfd[i]->events, timeout, cb, cb_data);
+		sr_session_source_add(session, lupfd[i]->fd, lupfd[i]->events,
+				timeout, cb, cb_data);
 	free(lupfd);
 #endif
 	ctx->usb_source_present = TRUE;
@@ -241,7 +243,7 @@ SR_PRIV int usb_source_add(struct sr_context *ctx, int timeout,
 	return SR_OK;
 }
 
-SR_PRIV int usb_source_remove(struct sr_context *ctx)
+SR_PRIV int usb_source_remove(struct sr_session *session, struct sr_context *ctx)
 {
 	if (!ctx->usb_source_present)
 		return SR_OK;
@@ -252,7 +254,7 @@ SR_PRIV int usb_source_remove(struct sr_context *ctx)
 	libusb_unlock_events(ctx->libusb_ctx);
 	g_thread_join(ctx->usb_thread);
 	g_mutex_clear(&ctx->usb_mutex);
-	sr_session_source_remove_pollfd(&ctx->usb_pollfd);
+	sr_session_source_remove_pollfd(session, &ctx->usb_pollfd);
 	CloseHandle(ctx->usb_event);
 #else
 	const struct libusb_pollfd **lupfd;
@@ -260,7 +262,7 @@ SR_PRIV int usb_source_remove(struct sr_context *ctx)
 
 	lupfd = libusb_get_pollfds(ctx->libusb_ctx);
 	for (i = 0; lupfd[i]; i++)
-		sr_source_remove(lupfd[i]->fd);
+		sr_session_source_remove(session, lupfd[i]->fd);
 	free(lupfd);
 #endif
 	ctx->usb_source_present = FALSE;

@@ -33,7 +33,7 @@ static void stop_acquisition(struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 
 	/* Remove USB file descriptors from polling. */
-	usb_source_remove(drvc->sr_ctx);
+	usb_source_remove(sdi->session, drvc->sr_ctx);
 
 	packet.type = SR_DF_END;
 	sr_session_send(devc->cb_data, &packet);
@@ -50,7 +50,7 @@ static void abort_acquisition(struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 
 	/* Remove USB file descriptors from polling. */
-	usb_source_remove(drvc->sr_ctx);
+	usb_source_remove(sdi->session, drvc->sr_ctx);
 
 	packet.type = SR_DF_END;
 	sr_session_send(devc->cb_data, &packet);

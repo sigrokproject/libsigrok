@@ -489,7 +489,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	if (!(devc->xfer = libusb_alloc_transfer(0)))
 		return SR_ERR;
 
-	usb_source_add(drvc->sr_ctx, 10,
+	usb_source_add(sdi->session, drvc->sr_ctx, 10,
 		kecheng_kc_330b_handle_events, (void *)sdi);
 
 	if (devc->data_source == DATA_SOURCE_LIVE) {

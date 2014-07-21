@@ -91,20 +91,20 @@ static int scpi_vxi_open(void *priv)
 	return SR_OK;
 }
 
-static int scpi_vxi_source_add(void *priv, int events, int timeout,
-			sr_receive_data_callback cb, void *cb_data)
+static int scpi_vxi_source_add(struct sr_session *session, void *priv,
+		int events, int timeout, sr_receive_data_callback cb, void *cb_data)
 {
 	(void)priv;
 
 	/* Hook up a dummy handler to receive data from the device. */
-	return sr_source_add(-1, events, timeout, cb, cb_data);
+	return sr_session_source_add(session, -1, events, timeout, cb, cb_data);
 }
 
-static int scpi_vxi_source_remove(void *priv)
+static int scpi_vxi_source_remove(struct sr_session *session, void *priv)
 {
 	(void)priv;
 
-	return sr_source_remove(-1);
+	return sr_session_source_remove(session, -1);
 }
 
 /* Operation Flags */

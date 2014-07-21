@@ -316,18 +316,20 @@ static int scpi_usbtmc_libusb_open(void *priv)
 	return SR_OK;
 }
 
-static int scpi_usbtmc_libusb_source_add(void *priv, int events, int timeout,
-			sr_receive_data_callback cb, void *cb_data)
+static int scpi_usbtmc_libusb_source_add(struct sr_session *session,
+		void *priv, int events, int timeout, sr_receive_data_callback cb,
+		void *cb_data)
 {
 	struct scpi_usbtmc_libusb *uscpi = priv;
 	(void)events;
-	return usb_source_add(uscpi->ctx, timeout, cb, cb_data);
+	return usb_source_add(session, uscpi->ctx, timeout, cb, cb_data);
 }
 
-static int scpi_usbtmc_libusb_source_remove(void *priv)
+static int scpi_usbtmc_libusb_source_remove(struct sr_session *session,
+		void *priv)
 {
 	struct scpi_usbtmc_libusb *uscpi = priv;
-	return usb_source_remove(uscpi->ctx);
+	return usb_source_remove(session, uscpi->ctx);
 }
 
 static void usbtmc_bulk_out_header_write(void *header, uint8_t MsgID,

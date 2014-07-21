@@ -692,6 +692,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	GSList *l;
 	struct dev_context *devc;
 
+	(void)cb_data;
+
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
@@ -726,11 +728,11 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	/* Make channels to unbuffered. */
 	g_io_channel_set_buffered(devc->channel, FALSE);
 
-	sr_source_add_channel(devc->channel, G_IO_IN | G_IO_ERR,
+	sr_session_source_add_channel(sdi->session, devc->channel, G_IO_IN | G_IO_ERR,
 			40, prepare_data, (void *)sdi);
 
 	/* Send header packet to the session bus. */
-	std_session_send_df_header(cb_data, LOG_PREFIX);
+	std_session_send_df_header(sdi, LOG_PREFIX);
 
 	/* We use this timestamp to decide how many more samples to send. */
 	devc->starttime = g_get_monotonic_time();
@@ -748,7 +750,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 	devc = sdi->priv;
 	sr_dbg("Stopping acquisition.");
 
-	sr_source_remove_channel(devc->channel);
+	sr_session_source_remove_channel(sdi->session, devc->channel);
 	g_io_channel_shutdown(devc->channel, FALSE, NULL);
 	g_io_channel_unref(devc->channel);
 	devc->channel = NULL;

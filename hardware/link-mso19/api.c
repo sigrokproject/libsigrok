@@ -461,7 +461,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	/* Our first channel is analog, the other 8 are of type 'logic'. */
 	/* TODO. */
 
-	serial_source_add(devc->serial, G_IO_IN, -1, mso_receive_data, cb_data);
+	serial_source_add(sdi->session, devc->serial, G_IO_IN, -1,
+			mso_receive_data, cb_data);
 
 	return SR_OK;
 }

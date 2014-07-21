@@ -393,9 +393,11 @@ SR_PRIV int serial_stream_detect(struct sr_serial_dev_inst *serial,
 				 uint64_t timeout_ms, int baudrate);
 SR_PRIV int sr_serial_extract_options(GSList *options, const char **serial_device,
 				      const char **serial_options);
-SR_PRIV int serial_source_add(struct sr_serial_dev_inst *serial, int events,
-		int timeout, sr_receive_data_callback cb, void *cb_data);
-SR_PRIV int serial_source_remove(struct sr_serial_dev_inst *serial);
+SR_PRIV int serial_source_add(struct sr_session *session,
+		struct sr_serial_dev_inst *serial, int events, int timeout,
+		sr_receive_data_callback cb, void *cb_data);
+SR_PRIV int serial_source_remove(struct sr_session *session,
+		struct sr_serial_dev_inst *serial);
 SR_PRIV GSList *sr_serial_find_usb(uint16_t vendor_id, uint16_t product_id);
 #endif
 
@@ -414,9 +416,9 @@ SR_PRIV int ezusb_upload_firmware(libusb_device *dev, int configuration,
 #ifdef HAVE_LIBUSB_1_0
 SR_PRIV GSList *sr_usb_find(libusb_context *usb_ctx, const char *conn);
 SR_PRIV int sr_usb_open(libusb_context *usb_ctx, struct sr_usb_dev_inst *usb);
-SR_PRIV int usb_source_add(struct sr_context *ctx, int timeout,
-		sr_receive_data_callback cb, void *cb_data);
-SR_PRIV int usb_source_remove(struct sr_context *ctx);
+SR_PRIV int usb_source_add(struct sr_session *session, struct sr_context *ctx,
+		int timeout, sr_receive_data_callback cb, void *cb_data);
+SR_PRIV int usb_source_remove(struct sr_session *session, struct sr_context *ctx);
 #endif
 
 /*--- hardware/common/scpi.c ------------------------------------------------*/
@@ -465,9 +467,9 @@ struct sr_scpi_dev_inst {
 	int (*dev_inst_new)(void *priv, struct drv_context *drvc,
 		const char *resource, char **params, const char *serialcomm);
 	int (*open)(void *priv);
-	int (*source_add)(void *priv, int events,
+	int (*source_add)(struct sr_session *session, void *priv, int events,
 		int timeout, sr_receive_data_callback cb, void *cb_data);
-	int (*source_remove)(void *priv);
+	int (*source_remove)(struct sr_session *session, void *priv);
 	int (*send)(void *priv, const char *command);
 	int (*read_begin)(void *priv);
 	int (*read_data)(void *priv, char *buf, int maxlen);
@@ -482,9 +484,11 @@ SR_PRIV GSList *sr_scpi_scan(struct drv_context *drvc, GSList *options,
 SR_PRIV struct sr_scpi_dev_inst *scpi_dev_inst_new(struct drv_context *drvc,
 		const char *resource, const char *serialcomm);
 SR_PRIV int sr_scpi_open(struct sr_scpi_dev_inst *scpi);
-SR_PRIV int sr_scpi_source_add(struct sr_scpi_dev_inst *scpi, int events,
-		int timeout, sr_receive_data_callback cb, void *cb_data);
-SR_PRIV int sr_scpi_source_remove(struct sr_scpi_dev_inst *scpi);
+SR_PRIV int sr_scpi_source_add(struct sr_session *session,
+		struct sr_scpi_dev_inst *scpi, int events, int timeout,
+		sr_receive_data_callback cb, void *cb_data);
+SR_PRIV int sr_scpi_source_remove(struct sr_session *session,
+		struct sr_scpi_dev_inst *scpi);
 SR_PRIV int sr_scpi_send(struct sr_scpi_dev_inst *scpi,
 		const char *format, ...);
 SR_PRIV int sr_scpi_send_variadic(struct sr_scpi_dev_inst *scpi,

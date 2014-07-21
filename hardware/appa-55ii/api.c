@@ -259,7 +259,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	std_session_send_df_header(cb_data, LOG_PREFIX);
 
 	/* Poll every 50ms, or whenever some data comes in. */
-	serial_source_add(serial, G_IO_IN, 50, appa_55ii_receive_data, (void *)sdi);
+	serial_source_add(sdi->session, serial, G_IO_IN, 50,
+			appa_55ii_receive_data, (void *)sdi);
 
 	return SR_OK;
 }

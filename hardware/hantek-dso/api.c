@@ -822,7 +822,7 @@ static int handle_event(int fd, int revents, void *cb_data)
 		 * TODO: Doesn't really cancel pending transfers so they might
 		 * come in after SR_DF_END is sent.
 		 */
-		usb_source_remove(drvc->sr_ctx);
+		usb_source_remove(sdi->session, drvc->sr_ctx);
 
 		packet.type = SR_DF_END;
 		sr_session_send(sdi, &packet);
@@ -933,7 +933,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		return SR_ERR;
 
 	devc->dev_state = CAPTURE;
-	usb_source_add(drvc->sr_ctx, TICK, handle_event, (void *)sdi);
+	usb_source_add(sdi->session, drvc->sr_ctx, TICK, handle_event, (void *)sdi);
 
 	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, LOG_PREFIX);

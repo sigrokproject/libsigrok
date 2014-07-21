@@ -749,7 +749,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		return SR_ERR;
 	}
 
-	sr_scpi_source_add(scpi, G_IO_IN, 50, hmo_receive_data, (void *)sdi);
+	sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 50,
+			hmo_receive_data, (void *)sdi);
 
 	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, LOG_PREFIX);
@@ -780,7 +781,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 	g_slist_free(devc->enabled_channels);
 	devc->enabled_channels = NULL;
 	scpi = sdi->conn;
-	sr_scpi_source_remove(scpi);
+	sr_scpi_source_remove(sdi->session, scpi);
 
 	return SR_OK;
 }

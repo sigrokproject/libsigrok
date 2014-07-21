@@ -814,7 +814,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	devc->acq_running = TRUE;
 
 	serial = sdi->conn;
-	serial_source_add(serial, G_IO_IN, 50, motech_lps_30x_receive_data, (void *)sdi);
+	serial_source_add(sdi->session, serial, G_IO_IN, 50,
+			motech_lps_30x_receive_data, (void *)sdi);
 	std_session_send_df_header(cb_data, LOG_PREFIX);
 
 	/* Start timer, if required. */

@@ -345,7 +345,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 		return SR_ERR;
 	}
 
-	usb_source_add(drvc->sr_ctx, 10, uni_t_ut32x_handle_events, (void *)sdi);
+	usb_source_add(sdi->session, drvc->sr_ctx, 10,
+			uni_t_ut32x_handle_events, (void *)sdi);
 
 	return SR_OK;
 }

@@ -348,7 +348,7 @@ static int handle_events(int fd, int revents, void *cb_data)
 	}
 
 	if (sdi->status == SR_ST_STOPPING) {
-		usb_source_remove(drvc->sr_ctx);
+		usb_source_remove(sdi->session, drvc->sr_ctx);
 
 		dev_close(sdi);
 
@@ -387,7 +387,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, LOG_PREFIX);
 
-	usb_source_add(drvc->sr_ctx, 100, handle_events, (void *)sdi);
+	usb_source_add(sdi->session, drvc->sr_ctx, 100,
+			handle_events, (void *)sdi);
 
 	buf = g_try_malloc(DMM_DATA_SIZE);
 	transfer = libusb_alloc_transfer(0);

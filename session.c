@@ -673,10 +673,9 @@ SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
  * @retval SR_ERR_ARG Invalid argument.
  * @retval SR_ERR_MALLOC Memory allocation error.
  */
-static int _sr_session_source_add(GPollFD *pollfd, int timeout,
-	sr_receive_data_callback cb, void *cb_data, gintptr poll_object)
+static int _sr_session_source_add(struct sr_session *session, GPollFD *pollfd,
+		int timeout, sr_receive_data_callback cb, void *cb_data, gintptr poll_object)
 {
-	struct sr_session *session = sr_current_session;
 	struct source *new_sources, *s;
 	GPollFD *new_pollfds;
 
@@ -742,7 +741,7 @@ SR_API int sr_session_source_add(struct sr_session *session, int fd,
 	p.fd = fd;
 	p.events = events;
 
-	return _sr_session_source_add(&p, timeout, cb, cb_data, (gintptr)fd);
+	return _sr_session_source_add(session, &p, timeout, cb, cb_data, (gintptr)fd);
 }
 
 /**
@@ -765,7 +764,7 @@ SR_API int sr_session_source_add_pollfd(struct sr_session *session,
 {
 	(void) session;
 
-	return _sr_session_source_add(pollfd, timeout, cb,
+	return _sr_session_source_add(session, pollfd, timeout, cb,
 				      cb_data, (gintptr)pollfd);
 }
 
@@ -799,7 +798,7 @@ SR_API int sr_session_source_add_channel(struct sr_session *session,
 	p.events = events;
 #endif
 
-	return _sr_session_source_add(&p, timeout, cb, cb_data, (gintptr)channel);
+	return _sr_session_source_add(session, &p, timeout, cb, cb_data, (gintptr)channel);
 }
 
 /**
@@ -814,9 +813,8 @@ SR_API int sr_session_source_add_channel(struct sr_session *session,
  * @retval SR_ERR_MALLOC Memory allocation error
  * @retval SR_ERR_BUG Internal error
  */
-static int _sr_session_source_remove(gintptr poll_object)
+static int _sr_session_source_remove(struct sr_session *session, gintptr poll_object)
 {
-	struct sr_session *session = sr_current_session;
 	struct source *new_sources;
 	GPollFD *new_pollfds;
 	unsigned int old;
@@ -878,7 +876,7 @@ SR_API int sr_session_source_remove(struct sr_session *session, int fd)
 {
 	(void) session;
 
-	return _sr_session_source_remove((gintptr)fd);
+	return _sr_session_source_remove(session, (gintptr)fd);
 }
 
 /**
@@ -897,7 +895,7 @@ SR_API int sr_session_source_remove_pollfd(struct sr_session *session,
 {
 	(void) session;
 
-	return _sr_session_source_remove((gintptr)pollfd);
+	return _sr_session_source_remove(session, (gintptr)pollfd);
 }
 
 /**
@@ -917,7 +915,7 @@ SR_API int sr_session_source_remove_channel(struct sr_session *session,
 {
 	(void) session;
 
-	return _sr_session_source_remove((gintptr)channel);
+	return _sr_session_source_remove(session, (gintptr)channel);
 }
 
 /** @} */

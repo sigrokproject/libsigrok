@@ -216,10 +216,11 @@ SR_PRIV int sr_scpi_open(struct sr_scpi_dev_inst *scpi)
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or
  *         SR_ERR_MALLOC upon memory allocation errors.
  */
-SR_PRIV int sr_scpi_source_add(struct sr_scpi_dev_inst *scpi, int events,
-		int timeout, sr_receive_data_callback cb, void *cb_data)
+SR_PRIV int sr_scpi_source_add(struct sr_session *session,
+		struct sr_scpi_dev_inst *scpi, int events, int timeout,
+		sr_receive_data_callback cb, void *cb_data)
 {
-	return scpi->source_add(scpi->priv, events, timeout, cb, cb_data);
+	return scpi->source_add(session, scpi->priv, events, timeout, cb, cb_data);
 }
 
 /**
@@ -231,9 +232,10 @@ SR_PRIV int sr_scpi_source_add(struct sr_scpi_dev_inst *scpi, int events,
  *         SR_ERR_MALLOC upon memory allocation errors, SR_ERR_BUG upon
  *         internal errors.
  */
-SR_PRIV int sr_scpi_source_remove(struct sr_scpi_dev_inst *scpi)
+SR_PRIV int sr_scpi_source_remove(struct sr_session *session,
+		struct sr_scpi_dev_inst *scpi)
 {
-	return scpi->source_remove(scpi->priv);
+	return scpi->source_remove(session, scpi->priv);
 }
 
 /**

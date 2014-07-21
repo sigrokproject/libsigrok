@@ -328,16 +328,19 @@ SR_PRIV void fx2lafw_abort_acquisition(struct dev_context *devc)
 	}
 }
 
-static void finish_acquisition(struct dev_context *devc)
+static void finish_acquisition(struct sr_dev_inst *sdi)
 {
 	struct sr_datafeed_packet packet;
+	struct dev_context *devc;
+
+	devc = sdi->priv;
 
 	/* Terminate session. */
 	packet.type = SR_DF_END;
-	sr_session_send(devc->cb_data, &packet);
+	sr_session_send(sdi, &packet);
 
 	/* Remove fds from polling. */
-	usb_source_remove(devc->ctx);
+	usb_source_remove(sdi->session, devc->ctx);
 
 	devc->num_transfers = 0;
 	g_free(devc->transfers);
@@ -370,7 +373,7 @@ static void free_transfer(struct libusb_transfer *transfer)
 
 	devc->submitted_transfers--;
 	if (devc->submitted_transfers == 0)
-		finish_acquisition(devc);
+		finish_acquisition(sdi);
 }
 
 static void resubmit_transfer(struct libusb_transfer *transfer)

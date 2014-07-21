@@ -115,19 +115,20 @@ static int scpi_tcp_open(void *priv)
 	return SR_OK;
 }
 
-static int scpi_tcp_source_add(void *priv, int events, int timeout,
-			sr_receive_data_callback cb, void *cb_data)
+static int scpi_tcp_source_add(struct sr_session *session, void *priv,
+		int events, int timeout, sr_receive_data_callback cb, void *cb_data)
 {
 	struct scpi_tcp *tcp = priv;
 
-	return sr_source_add(tcp->socket, events, timeout, cb, cb_data);
+	return sr_session_source_add(session, tcp->socket, events, timeout,
+			cb, cb_data);
 }
 
-static int scpi_tcp_source_remove(void *priv)
+static int scpi_tcp_source_remove(struct sr_session *session, void *priv)
 {
 	struct scpi_tcp *tcp = priv;
 
-	return sr_source_remove(tcp->socket);
+	return sr_session_source_remove(session, tcp->socket);
 }
 
 static int scpi_tcp_send(void *priv, const char *command)

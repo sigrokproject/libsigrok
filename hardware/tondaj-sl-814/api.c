@@ -192,7 +192,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 
 	/* Poll every 500ms, or whenever some data comes in. */
 	serial = sdi->conn;
-	serial_source_add(serial, G_IO_IN, 500,
+	serial_source_add(sdi->session, serial, G_IO_IN, 500,
 		      tondaj_sl_814_receive_data, (void *)sdi);
 
 	return SR_OK;

@@ -499,7 +499,7 @@ SR_PRIV int lascar_el_usb_handle_events(int fd, int revents, void *cb_data)
 	sdi = cb_data;
 
 	if (sdi->status == SR_ST_STOPPING) {
-		usb_source_remove(drvc->sr_ctx);
+		usb_source_remove(sdi->session, drvc->sr_ctx);
 
 		packet.type = SR_DF_END;
 		sr_session_send(cb_data, &packet);

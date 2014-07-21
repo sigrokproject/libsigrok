@@ -338,9 +338,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	devc->starttime = g_get_monotonic_time();
 
 	/* Send header packet to the session bus. */
-	std_session_send_df_header(cb_data, LOG_PREFIX);
+	std_session_send_df_header(sdi, LOG_PREFIX);
 
-	sr_source_add(0, 0, 10 /* poll_timeout */,
+	sr_session_source_add(sdi->session, 0, 0, 10 /* poll_timeout */,
 		      udmms[dmm].receive_data, (void *)sdi);
 
 	return SR_OK;
@@ -350,17 +350,16 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
 	struct sr_datafeed_packet packet;
 
-	(void)sdi;
+	(void)cb_data;
 
 	sr_dbg("Stopping acquisition.");
 
 	/* Send end packet to the session bus. */
 	sr_dbg("Sending SR_DF_END.");
 	packet.type = SR_DF_END;
-	sr_session_send(cb_data, &packet);
+	sr_session_send(sdi, &packet);
 
-	/* TODO? */
-	sr_source_remove(0);
+	sr_session_source_remove(sdi->session, 0);
 
 	return SR_OK;
 }

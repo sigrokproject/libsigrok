@@ -970,7 +970,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		if (rigol_ds_config_set(sdi, ":RUN") != SR_OK)
 			return SR_ERR;
 
-	sr_scpi_source_add(scpi, G_IO_IN, 50, rigol_ds_receive, (void *)sdi);
+	sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 50,
+			rigol_ds_receive, (void *)sdi);
 
 	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, LOG_PREFIX);
@@ -1014,7 +1015,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 	devc->enabled_analog_channels = NULL;
 	devc->enabled_digital_channels = NULL;
 	scpi = sdi->conn;
-	sr_scpi_source_remove(scpi);
+	sr_scpi_source_remove(sdi->session, scpi);
 
 	return SR_OK;
 }

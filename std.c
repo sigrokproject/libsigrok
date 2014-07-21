@@ -200,7 +200,7 @@ SR_PRIV int std_serial_dev_acquisition_stop(struct sr_dev_inst *sdi,
 
 	sr_dbg("%s: Stopping acquisition.", prefix);
 
-	if ((ret = serial_source_remove(serial)) < 0) {
+	if ((ret = serial_source_remove(sdi->session, serial)) < 0) {
 		sr_err("%s: Failed to remove source: %d.", prefix, ret);
 		return ret;
 	}

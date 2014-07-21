@@ -490,7 +490,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		return SR_ERR;
 	}
 
-	usb_source_add(drvc->sr_ctx, 100, ikalogic_scanalogic2_receive_data, (void *)sdi);
+	usb_source_add(sdi->session, drvc->sr_ctx, 100,
+			ikalogic_scanalogic2_receive_data, (void *)sdi);
 
 	sr_dbg("Acquisition started successfully.");
 

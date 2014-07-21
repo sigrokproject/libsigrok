@@ -1005,7 +1005,7 @@ static void sigma_decode_dram_cluster(struct sigma_dram_cluster *dram_cluster,
 		 */
 		if ((i == 1023) || (ts == (tsdiff - EVENTS_PER_CLUSTER))) {
 			logic.length = (i + 1) * logic.unitsize;
-			sr_session_send(devc->cb_data, &packet);
+			sr_session_send(sdi, &packet);
 		}
 	}
 
@@ -1033,14 +1033,14 @@ static void sigma_decode_dram_cluster(struct sigma_dram_cluster *dram_cluster,
 		if (trigger_offset > 0) {
 			packet.type = SR_DF_LOGIC;
 			logic.length = trigger_offset * logic.unitsize;
-			sr_session_send(devc->cb_data, &packet);
+			sr_session_send(sdi, &packet);
 			events_in_cluster -= trigger_offset;
 		}
 
 		/* Only send trigger if explicitly enabled. */
 		if (devc->use_triggers) {
 			packet.type = SR_DF_TRIGGER;
-			sr_session_send(devc->cb_data, &packet);
+			sr_session_send(sdi, &packet);
 		}
 	}
 
@@ -1048,7 +1048,7 @@ static void sigma_decode_dram_cluster(struct sigma_dram_cluster *dram_cluster,
 		packet.type = SR_DF_LOGIC;
 		logic.length = events_in_cluster * logic.unitsize;
 		logic.data = samples + (trigger_offset * logic.unitsize);
-		sr_session_send(devc->cb_data, &packet);
+		sr_session_send(sdi, &packet);
 	}
 
 	ss->lastsample =
@@ -1069,10 +1069,9 @@ static void sigma_decode_dram_cluster(struct sigma_dram_cluster *dram_cluster,
 static int decode_chunk_ts(struct sigma_dram_line *dram_line,
 			   uint16_t events_in_line,
 			   uint32_t trigger_event,
-			   void *cb_data)
+			   struct sr_dev_inst *sdi)
 {
 	struct sigma_dram_cluster *dram_cluster;
-	struct sr_dev_inst *sdi = cb_data;
 	struct dev_context *devc = sdi->priv;
 	unsigned int clusters_in_line =
 		(events_in_line + (EVENTS_PER_CLUSTER - 1)) / EVENTS_PER_CLUSTER;
@@ -1510,10 +1509,10 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	devc->cb_data = cb_data;
 
 	/* Send header packet to the session bus. */
-	std_session_send_df_header(cb_data, LOG_PREFIX);
+	std_session_send_df_header(sdi, LOG_PREFIX);
 
 	/* Add capture source. */
-	sr_source_add(0, G_IO_IN, 10, receive_data, (void *)sdi);
+	sr_session_source_add(sdi->session, 0, G_IO_IN, 10, receive_data, (void *)sdi);
 
 	devc->state.state = SIGMA_CAPTURE;
 
@@ -1529,7 +1528,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 	devc = sdi->priv;
 	devc->state.state = SIGMA_IDLE;
 
-	sr_source_remove(0);
+	sr_session_source_remove(sdi->session, 0);
 
 	return SR_OK;
 }

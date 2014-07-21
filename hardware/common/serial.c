@@ -708,8 +708,9 @@ typedef HANDLE event_handle;
 typedef int event_handle;
 #endif
 
-SR_PRIV int serial_source_add(struct sr_serial_dev_inst *serial, int events,
-		int timeout, sr_receive_data_callback cb, void *cb_data)
+SR_PRIV int serial_source_add(struct sr_session *session,
+		struct sr_serial_dev_inst *serial, int events, int timeout,
+		sr_receive_data_callback cb, void *cb_data)
 {
 	enum sp_event mask = 0;
 	unsigned int i;
@@ -744,20 +745,21 @@ SR_PRIV int serial_source_add(struct sr_serial_dev_inst *serial, int events,
 		if (mask & SP_EVENT_ERROR)
 			serial->pollfds[i].events |= G_IO_ERR;
 
-		if (sr_source_add_pollfd(&serial->pollfds[i],
-				timeout, cb, cb_data) != SR_OK)
+		if (sr_session_source_add_pollfd(session, &serial->pollfds[i],
+					timeout, cb, cb_data) != SR_OK)
 			return SR_ERR;
 	}
 
 	return SR_OK;
 }
 
-SR_PRIV int serial_source_remove(struct sr_serial_dev_inst *serial)
+SR_PRIV int serial_source_remove(struct sr_session *session,
+		struct sr_serial_dev_inst *serial)
 {
 	unsigned int i;
 
 	for (i = 0; i < serial->event_set->count; i++)
-		if (sr_source_remove_pollfd(&serial->pollfds[i]) != SR_OK)
+		if (sr_session_source_remove_pollfd(session, &serial->pollfds[i]) != SR_OK)
 			return SR_ERR;
 
 	g_free(serial->pollfds);

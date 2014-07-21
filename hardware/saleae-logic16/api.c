@@ -773,7 +773,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		transfer = libusb_alloc_transfer(0);
 		libusb_fill_bulk_transfer(transfer, usb->devhdl,
 				2 | LIBUSB_ENDPOINT_IN, buf, size,
-				logic16_receive_transfer, devc, timeout);
+				logic16_receive_transfer, (void *)sdi, timeout);
 		if ((ret = libusb_submit_transfer(transfer)) != 0) {
 			sr_err("Failed to submit transfer: %s.",
 			       libusb_error_name(ret));
@@ -788,7 +788,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 
 	devc->ctx = drvc->sr_ctx;
 
-	usb_source_add(devc->ctx, timeout, receive_data, (void *)sdi);
+	usb_source_add(sdi->session, devc->ctx, timeout, receive_data, (void *)sdi);
 
 	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, LOG_PREFIX);

@@ -102,21 +102,21 @@ static int scpi_serial_open(void *priv)
 	return SR_OK;
 }
 
-static int scpi_serial_source_add(void *priv, int events, int timeout,
-			sr_receive_data_callback cb, void *cb_data)
+static int scpi_serial_source_add(struct sr_session *session, void *priv,
+		int events, int timeout, sr_receive_data_callback cb, void *cb_data)
 {
 	struct scpi_serial *sscpi = priv;
 	struct sr_serial_dev_inst *serial = sscpi->serial;
 
-	return serial_source_add(serial, events, timeout, cb, cb_data);
+	return serial_source_add(session, serial, events, timeout, cb, cb_data);
 }
 
-static int scpi_serial_source_remove(void *priv)
+static int scpi_serial_source_remove(struct sr_session *session, void *priv)
 {
 	struct scpi_serial *sscpi = priv;
 	struct sr_serial_dev_inst *serial = sscpi->serial;
 
-	return serial_source_remove(serial);
+	return serial_source_remove(session, serial);
 }
 
 static int scpi_serial_send(void *priv, const char *command)

@@ -32,7 +32,6 @@ struct dev_context {
 	/* Acquisition settings */
 	uint64_t limit_samples;    /**< The sampling limit (in number of samples).*/
 	uint64_t limit_msec;       /**< The time limit (in milliseconds). */
-	void *session_cb_data;     /**< Opaque pointer passed in by the frontend. */
 
 	/* Operational state */
 	int detached_kernel_driver;/**< Whether kernel driver was detached or not */

@@ -537,7 +537,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		lwla_free_acquisition_state(acq);
 		return ret;
 	}
-	usb_source_add(drvc->sr_ctx, 100, &lwla_receive_data,
+	usb_source_add(sdi->session, drvc->sr_ctx, 100, &lwla_receive_data,
 		       (struct sr_dev_inst *)sdi);
 
 	sr_info("Waiting for data.");

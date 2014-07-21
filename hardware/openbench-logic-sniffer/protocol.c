@@ -318,7 +318,7 @@ SR_PRIV void abort_acquisition(const struct sr_dev_inst *sdi)
 	struct sr_serial_dev_inst *serial;
 
 	serial = sdi->conn;
-	serial_source_remove(serial);
+	serial_source_remove(sdi->session, serial);
 
 	/* Terminate session */
 	packet.type = SR_DF_END;
@@ -350,8 +350,9 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 		 * longer than it takes to send a byte, that means it's
 		 * finished. We'll double that to 30ms to be sure...
 		 */
-		serial_source_remove(serial);
-		serial_source_add(serial, G_IO_IN, 30, ols_receive_data, cb_data);
+		serial_source_remove(sdi->session, serial);
+		serial_source_add(sdi->session, serial, G_IO_IN, 30,
+				ols_receive_data, cb_data);
 		devc->raw_sample_buf = g_try_malloc(devc->limit_samples * 4);
 		if (!devc->raw_sample_buf) {
 			sr_err("Sample buffer malloc failed.");

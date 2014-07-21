@@ -33,6 +33,9 @@
 #define CHUNKSIZE (512 * 1024)
 /** @endcond */
 
+SR_PRIV struct sr_dev_driver session_driver_info;
+static struct sr_dev_driver *di = &session_driver_info;
+
 struct session_vdev {
 	char *sessionfile;
 	char *capturefile;
@@ -46,14 +49,11 @@ struct session_vdev {
 	gboolean finished;
 };
 
-static GSList *dev_insts = NULL;
 static const int hwcaps[] = {
 	SR_CONF_CAPTUREFILE,
 	SR_CONF_CAPTURE_UNITSIZE,
 	SR_CONF_SAMPLERATE,
 };
-
-extern struct sr_session *sr_current_session;
 
 static int receive_data(int fd, int revents, void *cb_data)
 {
@@ -62,7 +62,6 @@ static int receive_data(int fd, int revents, void *cb_data)
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
 	struct zip_stat zs;
-	GSList *l;
 	int ret, got_data;
 	char capturefile[16];
 	void *buf;
@@ -70,14 +69,10 @@ static int receive_data(int fd, int revents, void *cb_data)
 	(void)fd;
 	(void)revents;
 
+	sdi = cb_data;
 	got_data = FALSE;
-	for (l = dev_insts; l; l = l->next) {
-		sdi = l->data;
-		vdev = sdi->priv;
-		if (vdev->finished)
-			/* Already done with this instance. */
-			continue;
-
+	vdev = sdi->priv;
+	if (!vdev->finished) {
 		if (!vdev->capfile) {
 			/* No capture file opened yet, or finished with the last
 			 * chunked one. */
@@ -118,7 +113,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 				} else {
 					/* We got all the chunks, finish up. */
 					vdev->finished = TRUE;
-					continue;
+					return TRUE;
 				}
 			}
 		}
@@ -141,7 +136,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 			logic.unitsize = vdev->unitsize;
 			logic.data = buf;
 			vdev->bytes_read += ret;
-			sr_session_send(cb_data, &packet);
+			sr_session_send(sdi, &packet);
 		} else {
 			/* done with this capture file */
 			zip_fclose(vdev->capfile);
@@ -161,8 +156,8 @@ static int receive_data(int fd, int revents, void *cb_data)
 
 	if (!got_data) {
 		packet.type = SR_DF_END;
-		sr_session_send(cb_data, &packet);
-		sr_session_source_remove(sr_current_session, -1);
+		sr_session_send(sdi, &packet);
+		sr_session_source_remove(sdi->session, -1);
 	}
 
 	return TRUE;
@@ -172,30 +167,32 @@ static int receive_data(int fd, int revents, void *cb_data)
 
 static int init(struct sr_context *sr_ctx)
 {
-	(void)sr_ctx;
-
-	return SR_OK;
+	return std_init(sr_ctx, di, LOG_PREFIX);
 }
 
 static int dev_clear(void)
 {
+	struct drv_context *drvc;
 	GSList *l;
 
-	for (l = dev_insts; l; l = l->next)
+	drvc = di->priv;
+	for (l = drvc->instances; l; l = l->next)
 		sr_dev_inst_free(l->data);
-	g_slist_free(dev_insts);
-	dev_insts = NULL;
+	g_slist_free(drvc->instances);
+	drvc->instances = NULL;
 
 	return SR_OK;
 }
 
 static int dev_open(struct sr_dev_inst *sdi)
 {
+	struct drv_context *drvc;
 	struct session_vdev *vdev;
 
-	vdev = g_try_malloc0(sizeof(struct session_vdev));
+	drvc = di->priv;
+	vdev = g_malloc0(sizeof(struct session_vdev));
 	sdi->priv = vdev;
-	dev_insts = g_slist_append(dev_insts, sdi);
+	drvc->instances = g_slist_append(drvc->instances, sdi);
 
 	return SR_OK;
 }
@@ -294,8 +291,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	struct session_vdev *vdev;
 	int ret;
 
-	vdev = sdi->priv;
+	(void)cb_data;
 
+	vdev = sdi->priv;
 	vdev->bytes_read = 0;
 	vdev->cur_chunk = 0;
 	vdev->finished = FALSE;
@@ -310,10 +308,10 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	}
 
 	/* Send header packet to the session bus. */
-	std_session_send_df_header(cb_data, LOG_PREFIX);
+	std_session_send_df_header(sdi, LOG_PREFIX);
 
 	/* freewheeling source */
-	sr_session_source_add(sr_current_session, -1, 0, 0, receive_data, cb_data);
+	sr_session_source_add(sdi->session, -1, 0, 0, receive_data, (void *)sdi);
 
 	return SR_OK;
 }

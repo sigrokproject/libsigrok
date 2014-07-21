@@ -211,7 +211,7 @@ static void brymen_bm86x_handle_packet(const struct sr_dev_inst *sdi,
 		analog[0].channels = g_slist_append(NULL, sdi->channels->data);
 		packet.type = SR_DF_ANALOG;
 		packet.payload = &analog[0];
-		sr_session_send(devc->session_cb_data, &packet);
+		sr_session_send(sdi, &packet);
 		g_slist_free(analog[0].channels);
 	}
 
@@ -222,7 +222,7 @@ static void brymen_bm86x_handle_packet(const struct sr_dev_inst *sdi,
 		analog[1].channels = g_slist_append(NULL, sdi->channels->next->data);
 		packet.type = SR_DF_ANALOG;
 		packet.payload = &analog[1];
-		sr_session_send(devc->session_cb_data, &packet);
+		sr_session_send(sdi, &packet);
 		g_slist_free(analog[1].channels);
 	}
 

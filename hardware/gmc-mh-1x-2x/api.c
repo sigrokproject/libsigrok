@@ -529,8 +529,8 @@ static int dev_acquisition_start_1x_2x_rs232(const struct sr_dev_inst *sdi,
 
 	/* Poll every 40ms, or whenever some data comes in. */
 	serial = sdi->conn;
-	serial_source_add(serial, G_IO_IN, 40, gmc_mh_1x_2x_receive_data,
-			  (void *)sdi);
+	serial_source_add(sdi->session, serial, G_IO_IN, 40,
+			gmc_mh_1x_2x_receive_data, (void *)sdi);
 
 	return SR_OK;
 }
@@ -560,8 +560,8 @@ static int dev_acquisition_start_2x_bd232(const struct sr_dev_inst *sdi,
 
 	/* Poll every 40ms, or whenever some data comes in. */
 	serial = sdi->conn;
-	serial_source_add(serial, G_IO_IN, 40, gmc_mh_2x_receive_data,
-			  (void *)sdi);
+	serial_source_add(sdi->session, serial, G_IO_IN, 40,
+			gmc_mh_2x_receive_data, (void *)sdi);
 
 	/* Send start message */
 	return req_meas14(sdi);
