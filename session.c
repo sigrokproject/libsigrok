@@ -59,10 +59,6 @@ struct datafeed_callback {
 	void *cb_data;
 };
 
-/* There can currently only be one session at a time. */
-/* 'sr_current_session' is not static, it's used elsewhere (via 'extern'). */
-struct sr_session *sr_current_session;
-
 /**
  * Create a new session.
  * Currently, there can be only one session at a time within the same process.
@@ -72,21 +68,18 @@ struct sr_session *sr_current_session;
  *
  * @since 0.4.0
  */
-SR_API int sr_session_new(struct sr_session **session)
+SR_API int sr_session_new(struct sr_session **new_session)
 {
-	if (sr_current_session) {
-		sr_err("%s: session already exists", __func__);
-		return SR_ERR_BUG;
-	}
+	struct sr_session *session;
 
-	sr_current_session = g_malloc0(sizeof(struct sr_session));
+	session = g_malloc0(sizeof(struct sr_session));
 
-	sr_current_session->source_timeout = -1;
-	sr_current_session->running = FALSE;
-	sr_current_session->abort_session = FALSE;
-	g_mutex_init(&sr_current_session->stop_mutex);
+	session->source_timeout = -1;
+	session->running = FALSE;
+	session->abort_session = FALSE;
+	g_mutex_init(&session->stop_mutex);
 
-	*session = sr_current_session;
+	*new_session = session;
 
 	return SR_OK;
 }
@@ -113,9 +106,6 @@ SR_API int sr_session_destroy(struct sr_session *session)
 		sr_trigger_free(session->trigger);
 
 	g_free(session);
-
-	if (session == sr_current_session)
-		sr_current_session = NULL;
 
 	return SR_OK;
 }
@@ -342,9 +332,8 @@ SR_API int sr_session_trigger_set(struct sr_session *session, struct sr_trigger 
  * @retval SR_OK Success.
  * @retval SR_ERR Error occured.
  */
-static int sr_session_iteration(gboolean block)
+static int sr_session_iteration(struct sr_session *session, gboolean block)
 {
-	struct sr_session *session = sr_current_session;
 	unsigned int i;
 	int ret;
 
@@ -501,7 +490,7 @@ SR_API int sr_session_run(struct sr_session *session)
 	} else {
 		/* Real sources, use g_poll() main loop. */
 		while (session->num_sources)
-			sr_session_iteration(TRUE);
+			sr_session_iteration(session, TRUE);
 	}
 
 	return SR_OK;
@@ -649,7 +638,7 @@ SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
 		return SR_ERR_ARG;
 	}
 
-	for (l = sr_current_session->datafeed_callbacks; l; l = l->next) {
+	for (l = sdi->session->datafeed_callbacks; l; l = l->next) {
 		if (sr_log_loglevel_get() >= SR_LOG_DBG)
 			datafeed_dump(packet);
 		cb_struct = l->data;

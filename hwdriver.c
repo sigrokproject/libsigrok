@@ -127,8 +127,6 @@ static struct sr_config_info sr_config_info_data[] = {
 	{0, 0, NULL, NULL, NULL},
 };
 
-extern struct sr_session *sr_current_session;
-
 /**
  * Return the list of supported hardware drivers.
  *
