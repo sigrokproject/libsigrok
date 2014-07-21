@@ -20,318 +20,318 @@
 
 ACLOCAL_AMFLAGS = -I autostuff
 
-AM_CPPFLAGS = -DFIRMWARE_DIR='"$(FIRMWARE_DIR)"'
+AM_CPPFLAGS = -Isrc -DFIRMWARE_DIR='"$(FIRMWARE_DIR)"'
 
 lib_LTLIBRARIES = libsigrok.la
 
 # Backend files
 libsigrok_la_SOURCES = \
-	backend.c \
-	device.c \
-	session.c \
-	session_file.c \
-	session_driver.c \
-	drivers.c \
-	hwdriver.c \
-	trigger.c \
-	soft-trigger.c \
-	strutil.c \
-	log.c \
-	version.c \
-	error.c \
-	std.c
+	src/backend.c \
+	src/device.c \
+	src/session.c \
+	src/session_file.c \
+	src/session_driver.c \
+	src/drivers.c \
+	src/hwdriver.c \
+	src/trigger.c \
+	src/soft-trigger.c \
+	src/strutil.c \
+	src/log.c \
+	src/version.c \
+	src/error.c \
+	src/std.c
 
-# Input formats
+# Input modules
 libsigrok_la_SOURCES += \
-	input/binary.c \
-	input/chronovu_la8.c \
-	input/csv.c \
-	input/input.c \
-	input/vcd.c \
-	input/wav.c
+	src/input/binary.c \
+	src/input/chronovu_la8.c \
+	src/input/csv.c \
+	src/input/input.c \
+	src/input/vcd.c \
+	src/input/wav.c
 
-# Output formats
+# Output modules
 libsigrok_la_SOURCES += \
-	output/output.c \
-	output/analog.c \
-	output/ascii.c \
-	output/bits.c \
-	output/binary.c \
-	output/csv.c \
-	output/chronovu_la8.c \
-	output/gnuplot.c \
-	output/hex.c \
-	output/ols.c \
-	output/vcd.c
+	src/output/output.c \
+	src/output/analog.c \
+	src/output/ascii.c \
+	src/output/bits.c \
+	src/output/binary.c \
+	src/output/csv.c \
+	src/output/chronovu_la8.c \
+	src/output/gnuplot.c \
+	src/output/hex.c \
+	src/output/ols.c \
+	src/output/vcd.c
 
-# Hardware (common files)
+# SCPI support
 libsigrok_la_SOURCES += \
-	hardware/common/scpi.c \
-	hardware/common/scpi_tcp.c
+	src/scpi/scpi.c \
+	src/scpi/scpi_tcp.c
 if NEED_RPC
 libsigrok_la_SOURCES += \
-	hardware/common/scpi_vxi.c \
-	hardware/common/vxi_clnt.c \
-	hardware/common/vxi_xdr.c \
-	hardware/common/vxi.h
+	src/scpi/scpi_vxi.c \
+	src/scpi/vxi_clnt.c \
+	src/scpi/vxi_xdr.c \
+	src/scpi/vxi.h
 endif
 if NEED_SERIAL
 libsigrok_la_SOURCES += \
-	hardware/common/serial.c \
-	hardware/common/scpi_serial.c
+	src/serial.c \
+	src/scpi/scpi_serial.c
 endif
 if NEED_USB
 libsigrok_la_SOURCES += \
-	hardware/common/ezusb.c \
-	hardware/common/usb.c \
-	hardware/common/scpi_usbtmc_libusb.c
+	src/ezusb.c \
+	src/usb.c \
+	src/scpi/scpi_usbtmc_libusb.c
 endif
 if NEED_VISA
 libsigrok_la_SOURCES += \
-	hardware/common/scpi_visa.c
+	src/scpi/scpi_visa.c
 endif
 
-# Hardware (DMM parsers)
+# Hardware (DMM chip parsers)
 libsigrok_la_SOURCES += \
-	hardware/common/dmm/es519xx.c \
-	hardware/common/dmm/fs9721.c \
-	hardware/common/dmm/fs9922.c \
-	hardware/common/dmm/m2110.c \
-	hardware/common/dmm/metex14.c \
-	hardware/common/dmm/rs9lcd.c
+	src/dmm/es519xx.c \
+	src/dmm/fs9721.c \
+	src/dmm/fs9922.c \
+	src/dmm/m2110.c \
+	src/dmm/metex14.c \
+	src/dmm/rs9lcd.c
 
 # Hardware drivers
 if HW_AGILENT_DMM
 libsigrok_la_SOURCES += \
-	hardware/agilent-dmm/api.c \
-	hardware/agilent-dmm/agilent-dmm.h \
-	hardware/agilent-dmm/sched.c
+	src/hardware/agilent-dmm/api.c \
+	src/hardware/agilent-dmm/agilent-dmm.h \
+	src/hardware/agilent-dmm/sched.c
 endif
 if HW_APPA_55II
 libsigrok_la_SOURCES += \
-	hardware/appa-55ii/protocol.h \
-	hardware/appa-55ii/protocol.c \
-	hardware/appa-55ii/api.c
+	src/hardware/appa-55ii/protocol.h \
+	src/hardware/appa-55ii/protocol.c \
+	src/hardware/appa-55ii/api.c
 endif
 if HW_ASIX_SIGMA
 libsigrok_la_SOURCES += \
-	hardware/asix-sigma/asix-sigma.h \
-	hardware/asix-sigma/asix-sigma.c
+	src/hardware/asix-sigma/asix-sigma.h \
+	src/hardware/asix-sigma/asix-sigma.c
 endif
 if HW_ATTEN_PPS3XXX
 libsigrok_la_SOURCES += \
-	hardware/atten-pps3xxx/protocol.h \
-	hardware/atten-pps3xxx/protocol.c \
-	hardware/atten-pps3xxx/api.c
+	src/hardware/atten-pps3xxx/protocol.h \
+	src/hardware/atten-pps3xxx/protocol.c \
+	src/hardware/atten-pps3xxx/api.c
 endif
 if HW_BEAGLELOGIC
 libsigrok_la_SOURCES += \
-	hardware/beaglelogic/protocol.h \
-	hardware/beaglelogic/protocol.c \
-	hardware/beaglelogic/api.c
+	src/hardware/beaglelogic/protocol.h \
+	src/hardware/beaglelogic/protocol.c \
+	src/hardware/beaglelogic/api.c
 endif
 if HW_BRYMEN_BM86X
 libsigrok_la_SOURCES += \
-	hardware/brymen-bm86x/protocol.h \
-	hardware/brymen-bm86x/protocol.c \
-	hardware/brymen-bm86x/api.c
+	src/hardware/brymen-bm86x/protocol.h \
+	src/hardware/brymen-bm86x/protocol.c \
+	src/hardware/brymen-bm86x/api.c
 endif
 if HW_BRYMEN_DMM
 libsigrok_la_SOURCES += \
-	hardware/brymen-dmm/parser.c \
-	hardware/brymen-dmm/protocol.h \
-	hardware/brymen-dmm/protocol.c \
-	hardware/brymen-dmm/api.c
+	src/hardware/brymen-dmm/parser.c \
+	src/hardware/brymen-dmm/protocol.h \
+	src/hardware/brymen-dmm/protocol.c \
+	src/hardware/brymen-dmm/api.c
 endif
 if HW_CEM_DT_885X
 libsigrok_la_SOURCES += \
-	hardware/cem-dt-885x/protocol.h \
-	hardware/cem-dt-885x/protocol.c \
-	hardware/cem-dt-885x/api.c
+	src/hardware/cem-dt-885x/protocol.h \
+	src/hardware/cem-dt-885x/protocol.c \
+	src/hardware/cem-dt-885x/api.c
 endif
 if HW_CENTER_3XX
 libsigrok_la_SOURCES += \
-	hardware/center-3xx/protocol.h \
-	hardware/center-3xx/protocol.c \
-	hardware/center-3xx/api.c
+	src/hardware/center-3xx/protocol.h \
+	src/hardware/center-3xx/protocol.c \
+	src/hardware/center-3xx/api.c
 endif
 if HW_CHRONOVU_LA
 libsigrok_la_SOURCES += \
-	hardware/chronovu-la/protocol.h \
-	hardware/chronovu-la/protocol.c \
-	hardware/chronovu-la/api.c
+	src/hardware/chronovu-la/protocol.h \
+	src/hardware/chronovu-la/protocol.c \
+	src/hardware/chronovu-la/api.c
 endif
 if HW_COLEAD_SLM
 libsigrok_la_SOURCES += \
-	hardware/colead-slm/protocol.h \
-	hardware/colead-slm/protocol.c \
-	hardware/colead-slm/api.c
+	src/hardware/colead-slm/protocol.h \
+	src/hardware/colead-slm/protocol.c \
+	src/hardware/colead-slm/api.c
 endif
 if HW_CONRAD_DIGI_35_CPU
 libsigrok_la_SOURCES += \
-	hardware/conrad-digi-35-cpu/protocol.h \
-	hardware/conrad-digi-35-cpu/protocol.c \
-	hardware/conrad-digi-35-cpu/api.c
+	src/hardware/conrad-digi-35-cpu/protocol.h \
+	src/hardware/conrad-digi-35-cpu/protocol.c \
+	src/hardware/conrad-digi-35-cpu/api.c
 endif
 if HW_DEMO
 libsigrok_la_SOURCES += \
-	hardware/demo/demo.c
+	src/hardware/demo/demo.c
 endif
 if HW_FLUKE_DMM
 libsigrok_la_SOURCES += \
-	hardware/fluke-dmm/fluke-dmm.h \
-	hardware/fluke-dmm/fluke.c \
-	hardware/fluke-dmm/api.c
+	src/hardware/fluke-dmm/fluke-dmm.h \
+	src/hardware/fluke-dmm/fluke.c \
+	src/hardware/fluke-dmm/api.c
 endif
 if HW_FX2LAFW
 libsigrok_la_SOURCES += \
-	hardware/fx2lafw/protocol.h \
-	hardware/fx2lafw/protocol.c \
-	hardware/fx2lafw/api.c
+	src/hardware/fx2lafw/protocol.h \
+	src/hardware/fx2lafw/protocol.c \
+	src/hardware/fx2lafw/api.c
 endif
 if HW_GMC_MH_1X_2X
 libsigrok_la_SOURCES += \
-	hardware/gmc-mh-1x-2x/protocol.h \
-	hardware/gmc-mh-1x-2x/protocol.c \
-	hardware/gmc-mh-1x-2x/api.c
+	src/hardware/gmc-mh-1x-2x/protocol.h \
+	src/hardware/gmc-mh-1x-2x/protocol.c \
+	src/hardware/gmc-mh-1x-2x/api.c
 endif
 if HW_HAMEG_HMO
 libsigrok_la_SOURCES += \
-	hardware/hameg-hmo/protocol.h \
-	hardware/hameg-hmo/protocol.c \
-	hardware/hameg-hmo/api.c
+	src/hardware/hameg-hmo/protocol.h \
+	src/hardware/hameg-hmo/protocol.c \
+	src/hardware/hameg-hmo/api.c
 endif
 if HW_HANTEK_DSO
 libsigrok_la_SOURCES += \
-	hardware/hantek-dso/dso.h \
-	hardware/hantek-dso/dso.c \
-	hardware/hantek-dso/api.c
+	src/hardware/hantek-dso/dso.h \
+	src/hardware/hantek-dso/dso.c \
+	src/hardware/hantek-dso/api.c
 endif
 if HW_IKALOGIC_SCANALOGIC2
 libsigrok_la_SOURCES += \
-	hardware/ikalogic-scanalogic2/protocol.h \
-	hardware/ikalogic-scanalogic2/protocol.c \
-	hardware/ikalogic-scanalogic2/api.c
+	src/hardware/ikalogic-scanalogic2/protocol.h \
+	src/hardware/ikalogic-scanalogic2/protocol.c \
+	src/hardware/ikalogic-scanalogic2/api.c
 endif
 if HW_IKALOGIC_SCANAPLUS
 libsigrok_la_SOURCES += \
-	hardware/ikalogic-scanaplus/protocol.h \
-	hardware/ikalogic-scanaplus/protocol.c \
-	hardware/ikalogic-scanaplus/api.c
+	src/hardware/ikalogic-scanaplus/protocol.h \
+	src/hardware/ikalogic-scanaplus/protocol.c \
+	src/hardware/ikalogic-scanaplus/api.c
 endif
 if HW_KECHENG_KC_330B
 libsigrok_la_SOURCES += \
-	hardware/kecheng-kc-330b/protocol.h \
-	hardware/kecheng-kc-330b/protocol.c \
-	hardware/kecheng-kc-330b/api.c
+	src/hardware/kecheng-kc-330b/protocol.h \
+	src/hardware/kecheng-kc-330b/protocol.c \
+	src/hardware/kecheng-kc-330b/api.c
 endif
 if HW_LASCAR_EL_USB
 libsigrok_la_SOURCES += \
-	hardware/lascar-el-usb/protocol.h \
-	hardware/lascar-el-usb/protocol.c \
-	hardware/lascar-el-usb/api.c
+	src/hardware/lascar-el-usb/protocol.h \
+	src/hardware/lascar-el-usb/protocol.c \
+	src/hardware/lascar-el-usb/api.c
 endif
 if HW_MANSON_HCS_3XXX
 libsigrok_la_SOURCES += \
-	hardware/manson-hcs-3xxx/protocol.h \
-	hardware/manson-hcs-3xxx/protocol.c \
-	hardware/manson-hcs-3xxx/api.c
+	src/hardware/manson-hcs-3xxx/protocol.h \
+	src/hardware/manson-hcs-3xxx/protocol.c \
+	src/hardware/manson-hcs-3xxx/api.c
 endif
 if HW_MIC_985XX
 libsigrok_la_SOURCES += \
-	hardware/mic-985xx/protocol.h \
-	hardware/mic-985xx/protocol.c \
-	hardware/mic-985xx/api.c
+	src/hardware/mic-985xx/protocol.h \
+	src/hardware/mic-985xx/protocol.c \
+	src/hardware/mic-985xx/api.c
 endif
 if HW_MOTECH_LPS_30X
 libsigrok_la_SOURCES += \
-	hardware/motech-lps-30x/protocol.h \
-	hardware/motech-lps-30x/protocol.c \
-	hardware/motech-lps-30x/api.c
+	src/hardware/motech-lps-30x/protocol.h \
+	src/hardware/motech-lps-30x/protocol.c \
+	src/hardware/motech-lps-30x/api.c
 endif
 if HW_NORMA_DMM
 libsigrok_la_SOURCES += \
-	hardware/norma-dmm/protocol.h \
-	hardware/norma-dmm/protocol.c \
-	hardware/norma-dmm/api.c
+	src/hardware/norma-dmm/protocol.h \
+	src/hardware/norma-dmm/protocol.c \
+	src/hardware/norma-dmm/api.c
 endif
 if HW_OPENBENCH_LOGIC_SNIFFER
 libsigrok_la_SOURCES += \
-	hardware/openbench-logic-sniffer/protocol.h \
-	hardware/openbench-logic-sniffer/protocol.c \
-	hardware/openbench-logic-sniffer/api.c
+	src/hardware/openbench-logic-sniffer/protocol.h \
+	src/hardware/openbench-logic-sniffer/protocol.c \
+	src/hardware/openbench-logic-sniffer/api.c
 endif
 if HW_RIGOL_DS
 libsigrok_la_SOURCES += \
-	hardware/rigol-ds/protocol.h \
-	hardware/rigol-ds/protocol.c \
-	hardware/rigol-ds/api.c
+	src/hardware/rigol-ds/protocol.h \
+	src/hardware/rigol-ds/protocol.c \
+	src/hardware/rigol-ds/api.c
 endif
 if HW_SALEAE_LOGIC16
 libsigrok_la_SOURCES += \
-	hardware/saleae-logic16/protocol.h \
-	hardware/saleae-logic16/protocol.c \
-	hardware/saleae-logic16/api.c
+	src/hardware/saleae-logic16/protocol.h \
+	src/hardware/saleae-logic16/protocol.c \
+	src/hardware/saleae-logic16/api.c
 endif
 if HW_SERIAL_DMM
 libsigrok_la_SOURCES += \
-	hardware/serial-dmm/protocol.h \
-	hardware/serial-dmm/protocol.c \
-	hardware/serial-dmm/api.c
+	src/hardware/serial-dmm/protocol.h \
+	src/hardware/serial-dmm/protocol.c \
+	src/hardware/serial-dmm/api.c
 endif
 if HW_SYSCLK_LWLA
 libsigrok_la_SOURCES += \
-	hardware/sysclk-lwla/lwla.h \
-	hardware/sysclk-lwla/lwla.c \
-	hardware/sysclk-lwla/protocol.h \
-	hardware/sysclk-lwla/protocol.c \
-	hardware/sysclk-lwla/api.c
+	src/hardware/sysclk-lwla/lwla.h \
+	src/hardware/sysclk-lwla/lwla.c \
+	src/hardware/sysclk-lwla/protocol.h \
+	src/hardware/sysclk-lwla/protocol.c \
+	src/hardware/sysclk-lwla/api.c
 endif
 if HW_TELEINFO
 libsigrok_la_SOURCES += \
-	hardware/teleinfo/protocol.h \
-	hardware/teleinfo/protocol.c \
-	hardware/teleinfo/api.c
+	src/hardware/teleinfo/protocol.h \
+	src/hardware/teleinfo/protocol.c \
+	src/hardware/teleinfo/api.c
 endif
 if HW_TESTO
 libsigrok_la_SOURCES += \
-	hardware/testo/protocol.h \
-	hardware/testo/protocol.c \
-	hardware/testo/api.c
+	src/hardware/testo/protocol.h \
+	src/hardware/testo/protocol.c \
+	src/hardware/testo/api.c
 endif
 if HW_TONDAJ_SL_814
 libsigrok_la_SOURCES += \
-	hardware/tondaj-sl-814/protocol.h \
-	hardware/tondaj-sl-814/protocol.c \
-	hardware/tondaj-sl-814/api.c
+	src/hardware/tondaj-sl-814/protocol.h \
+	src/hardware/tondaj-sl-814/protocol.c \
+	src/hardware/tondaj-sl-814/api.c
 endif
 if HW_UNI_T_DMM
 libsigrok_la_SOURCES += \
-	hardware/uni-t-dmm/protocol.h \
-	hardware/uni-t-dmm/protocol.c \
-	hardware/uni-t-dmm/api.c
+	src/hardware/uni-t-dmm/protocol.h \
+	src/hardware/uni-t-dmm/protocol.c \
+	src/hardware/uni-t-dmm/api.c
 endif
 if HW_UNI_T_UT32X
 libsigrok_la_SOURCES += \
-	hardware/uni-t-ut32x/protocol.h \
-	hardware/uni-t-ut32x/protocol.c \
-	hardware/uni-t-ut32x/api.c
+	src/hardware/uni-t-ut32x/protocol.h \
+	src/hardware/uni-t-ut32x/protocol.c \
+	src/hardware/uni-t-ut32x/api.c
 endif
 if HW_VICTOR_DMM
 libsigrok_la_SOURCES += \
-	hardware/victor-dmm/protocol.h \
-	hardware/victor-dmm/protocol.c \
-	hardware/victor-dmm/api.c
+	src/hardware/victor-dmm/protocol.h \
+	src/hardware/victor-dmm/protocol.c \
+	src/hardware/victor-dmm/api.c
 endif
 if HW_ZEROPLUS_LOGIC_CUBE
 libsigrok_la_SOURCES += \
-	hardware/zeroplus-logic-cube/analyzer.c \
-	hardware/zeroplus-logic-cube/analyzer.h \
-	hardware/zeroplus-logic-cube/gl_usb.h \
-	hardware/zeroplus-logic-cube/gl_usb.c \
-	hardware/zeroplus-logic-cube/protocol.h \
-	hardware/zeroplus-logic-cube/protocol.c \
-	hardware/zeroplus-logic-cube/api.c
+	src/hardware/zeroplus-logic-cube/analyzer.c \
+	src/hardware/zeroplus-logic-cube/analyzer.h \
+	src/hardware/zeroplus-logic-cube/gl_usb.h \
+	src/hardware/zeroplus-logic-cube/gl_usb.c \
+	src/hardware/zeroplus-logic-cube/protocol.h \
+	src/hardware/zeroplus-logic-cube/protocol.c \
+	src/hardware/zeroplus-logic-cube/api.c
 endif
 
 libsigrok_la_LIBADD = $(LIBOBJS)
@@ -343,7 +343,7 @@ library_include_HEADERS = \
 	include/libsigrok/libsigrok.h \
 	include/libsigrok/proto.h \
 	include/libsigrok/version.h
-noinst_HEADERS = libsigrok-internal.h
+noinst_HEADERS = src/libsigrok-internal.h
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libsigrok.pc
