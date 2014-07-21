@@ -18,22 +18,94 @@
  */
 
 #include "protocol.h"
+#include <errno.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
+/* Define data packet size independent of packet (bufunitsize bytes) size
+ * from the BeagleLogic kernel module */
+#define PACKET_SIZE	(512 * 1024)
+
+/* This implementation is zero copy from the libsigrok side.
+ * It does not copy any data, just passes a pointer from the mmap'ed
+ * kernel buffers appropriately. It is up to the application which is
+ * using libsigrok to decide how to deal with the data.
+ */
 SR_PRIV int beaglelogic_receive_data(int fd, int revents, void *cb_data)
 {
 	const struct sr_dev_inst *sdi;
 	struct dev_context *devc;
+	struct sr_datafeed_packet packet;
+	struct sr_datafeed_logic logic;
 
-	(void)fd;
+	int trigger_offset;
+	uint32_t packetsize;
+	uint64_t bytes_remaining;
 
-	if (!(sdi = cb_data))
+	if (!(sdi = cb_data) || !(devc = sdi->priv))
 		return TRUE;
 
-	if (!(devc = sdi->priv))
-		return TRUE;
+	packetsize = PACKET_SIZE;
+	logic.unitsize = SAMPLEUNIT_TO_BYTES(devc->sampleunit);
 
 	if (revents == G_IO_IN) {
-		/* TODO */
+		sr_info("In callback G_IO_IN, offset=%d", devc->offset);
+
+		bytes_remaining = (devc->limit_samples * logic.unitsize) -
+				devc->bytes_read;
+
+		/* Configure data packet */
+		packet.type = SR_DF_LOGIC;
+		packet.payload = &logic;
+		logic.data = devc->sample_buf + devc->offset;
+		logic.length = MIN(packetsize, bytes_remaining);
+
+		if (devc->trigger_fired) {
+			/* Send the incoming transfer to the session bus. */
+			sr_session_send(devc->cb_data, &packet);
+		} else {
+			/* Check for trigger */
+			trigger_offset = soft_trigger_logic_check(devc->stl,
+						logic.data,
+						packetsize);
+
+			if (trigger_offset > -1) {
+				trigger_offset *= logic.unitsize;
+				logic.length = MIN(packetsize - trigger_offset,
+						bytes_remaining);
+				logic.data += trigger_offset;
+
+				sr_session_send(devc->cb_data, &packet);
+
+				devc->trigger_fired = TRUE;
+			}
+		}
+
+		/* Move the read pointer forward */
+		lseek(fd, packetsize, SEEK_CUR);
+
+		/* Update byte count and offset (roll over if needed) */
+		devc->bytes_read += logic.length;
+		if ((devc->offset += packetsize) >= devc->buffersize) {
+			/* One shot capture, we abort and settle with less than
+			 * the required number of samples */
+			if (devc->triggerflags)
+				devc->offset = 0;
+			else
+				packetsize = 0;
+		}
+	}
+
+	/* EOF Received or we have reached the limit */
+	if (devc->bytes_read >= devc->limit_samples * logic.unitsize ||
+			packetsize == 0) {
+		/* Send EOA Packet, stop polling */
+		packet.type = SR_DF_END;
+		packet.payload = NULL;
+		sr_session_send(devc->cb_data, &packet);
+
+		sr_session_source_remove_pollfd(sdi->session, &devc->pollfd);
 	}
 
 	return TRUE;
