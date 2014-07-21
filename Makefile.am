@@ -124,6 +124,12 @@ libsigrok_la_SOURCES += \
 	hardware/atten-pps3xxx/protocol.c \
 	hardware/atten-pps3xxx/api.c
 endif
+if HW_BEAGLELOGIC
+libsigrok_la_SOURCES += \
+	hardware/beaglelogic/protocol.h \
+	hardware/beaglelogic/protocol.c \
+	hardware/beaglelogic/api.c
+endif
 if HW_BRYMEN_BM86X
 libsigrok_la_SOURCES += \
 	hardware/brymen-bm86x/protocol.h \

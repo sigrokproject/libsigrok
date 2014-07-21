@@ -108,6 +108,7 @@ DRIVER([Agilent DMM], [agilent-dmm])
 DRIVER([Appa 55II], [appa-55ii])
 DRIVER([ASIX SIGMA/SIGMA2], [asix-sigma])
 DRIVER([Atten PPS3xxx], [atten-pps3xxx])
+DRIVER([BeagleLogic], [beaglelogic])
 DRIVER([Brymen BM86x], [brymen-bm86x])
 DRIVER([Brymen DMM], [brymen-dmm])
 DRIVER([CEM DT-885x], [cem-dt-885x])
@@ -431,6 +432,11 @@ fi
 AM_CONDITIONAL(HW_ATTEN_PPS3XXX, test x$HW_ATTEN_PPS3XXX = xyes)
 if test "x$HW_ATTEN_PPS3XXX" = "xyes"; then
 	AC_DEFINE(HAVE_HW_ATTEN_PPS3XXX, 1, [Atten PPS3xxx support])
+fi
+
+AM_CONDITIONAL(HW_BEAGLELOGIC, test x$HW_BEAGLELOGIC = xyes)
+if test "x$HW_BEAGLELOGIC" = "xyes"; then
+	AC_DEFINE(HAVE_HW_BEAGLELOGIC, 1, [BeagleLogic support])
 fi
 
 AM_CONDITIONAL(HW_BRYMEN_BM86X, test x$HW_BRYMEN_BM86X = xyes)

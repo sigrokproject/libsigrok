@@ -33,6 +33,9 @@ extern SR_PRIV struct sr_dev_driver asix_sigma_driver_info;
 #ifdef HAVE_HW_ATTEN_PPS3XXX
 extern SR_PRIV struct sr_dev_driver atten_pps3203_driver_info;
 #endif
+#ifdef HAVE_HW_BEAGLELOGIC
+extern SR_PRIV struct sr_dev_driver beaglelogic_driver_info;
+#endif
 #ifdef HAVE_HW_BRYMEN_BM86X
 extern SR_PRIV struct sr_dev_driver brymen_bm86x_driver_info;
 #endif
@@ -196,6 +199,9 @@ SR_PRIV struct sr_dev_driver *drivers_list[] = {
 #endif
 #ifdef HAVE_HW_ATTEN_PPS3XXX
 	&atten_pps3203_driver_info,
+#endif
+#ifdef HAVE_HW_BEAGLELOGIC
+	&beaglelogic_driver_info,
 #endif
 #ifdef HAVE_HW_BRYMEN_BM86X
 	&brymen_bm86x_driver_info,
