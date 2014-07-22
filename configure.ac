@@ -80,8 +80,6 @@ AC_SUBST(SR_LIB_VERSION_AGE)
 AC_SUBST(SR_LIB_VERSION)
 AC_SUBST(SR_LIB_LDFLAGS)
 
-# Hardware support '--enable' options.
-
 AC_ARG_ENABLE(all-drivers, AC_HELP_STRING([--enable-all-drivers],
 	[enable all drivers by default [default=yes]]),
 	[HW_ENABLED_DEFAULT="$enableval"],
@@ -100,8 +98,8 @@ AC_DEFUN([DRIVER], [
 	AC_ARG_ENABLE($2, AC_HELP_STRING([--enable-$2], [enable $1 support]),
 		[m4_join([], [HW_], upperize([$2]))="$enableval"],
 		[m4_join([], [HW_], upperize([$2]))=$default])
-	dots=$(expr substr ".............................." 1 $(expr 32 - length $2))
-	driver_summary="${driver_summary}  - $2${dots} ${m4_join([], [HW_], upperize([$2]))}\n"
+	dots=$(echo -n ".............................." | cut -c 1-$(expr 32 - $(echo -n $2|wc -c)))
+	driver_summary="${driver_summary}  - $2${dots} \${m4_join([], [HW_], upperize([$2]))}@"
 ])
 
 DRIVER([Agilent DMM], [agilent-dmm])
@@ -661,10 +659,10 @@ for lib in "glib-2.0 >= 2.32.0" "libzip >= 0.10" "libserialport >= 0.1.0" "libre
 	echo "  - ($optional) $lib: $answer"
 done
 
-echo -e "\nEnabled hardware drivers:\n${driver_summary}"
+eval echo -e "@Enabled hardware drivers:@@${driver_summary}" | tr @ \\n
 
-echo -e "\nEnabled language bindings:\n"
-echo "  - C++............................. $BINDINGS_CXX"
-echo "  - Python.......................... $BINDINGS_PYTHON"
-echo "  - Java............................ $BINDINGS_JAVA"
+echo -e "Enabled language bindings:\n"
+echo " - C++............................. $BINDINGS_CXX"
+echo " - Python.......................... $BINDINGS_PYTHON"
+echo " - Java............................ $BINDINGS_JAVA"
 echo
