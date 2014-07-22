@@ -90,13 +90,10 @@ the library as a whole is licensed under the terms of the GPLv3+.
 Please see the individual source files for the full list of copyright holders.
 
 
-Mailing lists
--------------
-
-There are two mailing lists for sigrok/libsigrok:
+Mailing list
+------------
 
  https://lists.sourceforge.net/lists/listinfo/sigrok-devel
- https://lists.sourceforge.net/lists/listinfo/sigrok-commits
 
 
 IRC

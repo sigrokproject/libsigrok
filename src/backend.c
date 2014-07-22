@@ -55,7 +55,7 @@
  *
  * @section sec_mailinglists Mailing lists
  *
- * There are two mailing lists for sigrok/libsigrok: <a href="https://lists.sourceforge.net/lists/listinfo/sigrok-devel">sigrok-devel</a> and <a href="https://lists.sourceforge.net/lists/listinfo/sigrok-commits">sigrok-commits</a>.
+ * There is one mailing list for sigrok/libsigrok: <a href="https://lists.sourceforge.net/lists/listinfo/sigrok-devel">sigrok-devel</a>.
  *
  * @section sec_irc IRC
  *
