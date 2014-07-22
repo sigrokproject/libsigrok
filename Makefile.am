@@ -126,6 +126,7 @@ libsigrok_la_SOURCES += \
 endif
 if HW_BEAGLELOGIC
 libsigrok_la_SOURCES += \
+	src/hardware/beaglelogic/beaglelogic.h \
 	src/hardware/beaglelogic/protocol.h \
 	src/hardware/beaglelogic/protocol.c \
 	src/hardware/beaglelogic/api.c
