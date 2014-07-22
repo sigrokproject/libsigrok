@@ -448,11 +448,11 @@ SR_PRIV void fx2lafw_receive_transfer(struct libusb_transfer *transfer)
 	}
 
 	if (devc->trigger_fired) {
-		if (devc->sent_samples < devc->limit_samples) {
+		if (!devc->limit_samples || devc->sent_samples < devc->limit_samples) {
 			/* Send the incoming transfer to the session bus. */
 			packet.type = SR_DF_LOGIC;
 			packet.payload = &logic;
-			if (devc->sent_samples + cur_sample_count > devc->limit_samples)
+			if (devc->limit_samples && devc->sent_samples + cur_sample_count > devc->limit_samples)
 				num_samples = devc->limit_samples - devc->sent_samples;
 			else
 				num_samples = cur_sample_count;
