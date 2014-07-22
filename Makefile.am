@@ -436,18 +436,22 @@ PDIR = bindings/python
 
 python-build: $(PDIR)/timestamp
 
-python-cleanclean:
-	$(AM_V_at)cd $(PDIR) && python setup.py --quiet clean --all 2> >(grep -v "can't clean it")
+python-quietclean:
+	$(AM_V_at)python $(PDIR)/setup.py --quiet clean --all 3>&1 1>&2 2>&3 \
+		| grep -v "can.t clean it"; true
 
 $(PDIR)/timestamp: bindings/cxx/libsigrokxx.la $(PDIR)/sigrok/core/classes.i \
-		$(library_include_HEADERS) python-cleanclean
-	$(AM_V_GEN)cd $(PDIR) && python setup.py --quiet build 2> >(grep -v "command line option.*Wstrict-prototypes")
+		$(library_include_HEADERS)
+	$(AM_V_at)$(MAKE) python-quietclean
+	$(AM_V_GEN)cd $(PDIR) && python setup.py --quiet build 3>&1 1>&2 2>&3 \
+		| grep -v "command line option.*Wstrict-prototypes"; true
 	$(AM_V_at)touch $(PDIR)/timestamp
 
 python-install:
 	cd $(PDIR) && python setup.py --quiet install --prefix $(prefix)
 
-python-clean: python-cleanclean
+python-clean:
+	$(AM_V_at)$(MAKE) python-quietclean
 	$(AM_V_at)rm -f $(PDIR)/timestamp
 
 BUILD_EXTRA += python-build
