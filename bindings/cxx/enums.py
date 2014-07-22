@@ -35,7 +35,7 @@ dirname = os.path.dirname(os.path.realpath(__file__))
 
 # Parse GCCXML output to get declaration tree.
 decls = parser.parse_xml_file(
-    os.path.join(dirname, "libsigrok.xml"), parser.config_t())
+    os.path.join(dirname, "libsigrok.xml"), parser.gccxml_configuration_t())
 
 # Get global namespace from declaration tree.
 ns = declarations.get_global_namespace(decls)
