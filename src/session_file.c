@@ -300,7 +300,7 @@ SR_API int sr_session_save_init(struct sr_session *session,
 	int tmpfile, cnt, ret, i;
 	char version[1], metafile[32], *s;
 
-	(void) session;
+	(void)session;
 
 	if (!filename) {
 		sr_err("%s: filename was NULL", __func__);
@@ -402,7 +402,7 @@ SR_API int sr_session_append(struct sr_session *session, const char *filename,
 	const char *entry_name;
 	char *metafile, tmpname[32], chunkname[16];
 
-	(void) session;
+	(void)session;
 
 	if ((ret = sr_sessionfile_check(filename)) != SR_OK)
 		return ret;

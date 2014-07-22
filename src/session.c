@@ -725,8 +725,6 @@ SR_API int sr_session_source_add(struct sr_session *session, int fd,
 {
 	GPollFD p;
 
-	(void) session;
-
 	p.fd = fd;
 	p.events = events;
 
@@ -751,8 +749,6 @@ SR_API int sr_session_source_add_pollfd(struct sr_session *session,
 		GPollFD *pollfd, int timeout, sr_receive_data_callback cb,
 		void *cb_data)
 {
-	(void) session;
-
 	return _sr_session_source_add(session, pollfd, timeout, cb,
 				      cb_data, (gintptr)pollfd);
 }
@@ -777,8 +773,6 @@ SR_API int sr_session_source_add_channel(struct sr_session *session,
 		sr_receive_data_callback cb, void *cb_data)
 {
 	GPollFD p;
-
-	(void) session;
 
 #ifdef _WIN32
 	g_io_channel_win32_make_pollfd(channel, events, &p);
@@ -863,8 +857,6 @@ static int _sr_session_source_remove(struct sr_session *session, gintptr poll_ob
  */
 SR_API int sr_session_source_remove(struct sr_session *session, int fd)
 {
-	(void) session;
-
 	return _sr_session_source_remove(session, (gintptr)fd);
 }
 
@@ -882,8 +874,6 @@ SR_API int sr_session_source_remove(struct sr_session *session, int fd)
 SR_API int sr_session_source_remove_pollfd(struct sr_session *session,
 		GPollFD *pollfd)
 {
-	(void) session;
-
 	return _sr_session_source_remove(session, (gintptr)pollfd);
 }
 
@@ -902,8 +892,6 @@ SR_API int sr_session_source_remove_pollfd(struct sr_session *session,
 SR_API int sr_session_source_remove_channel(struct sr_session *session,
 		GIOChannel *channel)
 {
-	(void) session;
-
 	return _sr_session_source_remove(session, (gintptr)channel);
 }
 
