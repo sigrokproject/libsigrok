@@ -369,7 +369,7 @@ PKG_CHECK_MODULES([glibmm], [glibmm-2.4 >= 2.32.0],
 	CXXLIBS="$CXXLIBS $glibmm_LIBS"], [BINDINGS_CXX="no"])
 
 # PyGObject is needed for the Python bindings.
-PKG_CHECK_MODULES([pygobject], [pygobject-3.0],
+PKG_CHECK_MODULES([pygobject], [pygobject-3.0 >= 3.0.0],
         [CXXFLAGS="$CXXFLAGS $pygobject_CFLAGS";
         CXXLIBS="$CXXLIBS $pygobject_LIBS";
 	PKG_CHECK_MODULES([pygobject_3_7_91], [pygobject-3.0 >= 3.7.91],
