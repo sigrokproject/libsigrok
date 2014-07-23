@@ -181,20 +181,20 @@ m4_ifdef([AX_CXX_COMPILE_STDCXX_11], [AX_CXX_COMPILE_STDCXX_11(,[optional])],
 	[AC_MSG_NOTICE([Missing macro m4_toupper(aX_CXX_COMPILE_STDCXX_11), no C++11 check])])
 
 if test "x$HAVE_CXX11" != "x1"; then
-	BINDINGS_CXX="no"
+	BINDINGS_CXX="no"; cxx_msg="C++11 compiler required"
 fi
 
 # The C++ bindings use gccxml to parse libsigrok symbols.
 AC_CHECK_PROG([HAVE_GCCXML], [gccxml], [yes])
 if test "x$HAVE_GCCXML" != "xyes"; then
-	BINDINGS_CXX="no"
+	BINDINGS_CXX="no"; cxx_msg="gccxml required"
 fi
 
 # Python is needed for the C++ (and Python) bindings.
 PKG_CHECK_MODULES([python], [python >= 2.7],
         [CXXFLAGS="$CXXFLAGS $python_CFLAGS";
         CXXLIBS="$CXXLIBS $python_LIBS"],
-		[BINDINGS_CXX="no"])
+		[BINDINGS_CXX="no"; cxx_msg="Python required"])
 
 # The C++ bindings need the pygccxml Python module.
 m4_ifdef([AX_PYTHON_MODULE], [AX_PYTHON_MODULE([pygccxml])],
@@ -204,7 +204,7 @@ m4_ifdef([AX_PYTHON_MODULE], [AX_PYTHON_MODULE([pygccxml])],
 		AC_MSG_NOTICE([Missing macro m4_toupper(aX_PYTHON_MODULE), no pygccxml check])]
 )
 if test "x$HAVE_PYMOD_PYGCCXML" != "xyes"; then
-	BINDINGS_CXX="no"
+	BINDINGS_CXX="no"; cxx_msg="Python pygccxml module required"
 fi
 
 # The C++ bindings need the setuptools Python module.
@@ -215,20 +215,14 @@ m4_ifdef([AX_PYTHON_MODULE], [AX_PYTHON_MODULE([setuptools])],
 		AC_MSG_NOTICE([Missing macro m4_toupper(aX_PYTHON_MODULE), no setuptools check])]
 )
 if test "x$HAVE_PYMOD_SETUPTOOLS" != "xyes"; then
-	BINDINGS_CXX="no"
+	BINDINGS_CXX="no"; cxx_msg="Python setuptools module required"
 fi
 
 # The Python and Java bindings use swig to generate code.
 AC_CHECK_PROG([HAVE_SWIG], [swig], [yes])
 if test "x$HAVE_SWIG" != "xyes"; then
-	BINDINGS_PYTHON="no"
-	BINDINGS_JAVA="no"
-fi
-
-# Python and Java bindings depend on C++ bindings.
-if test "x$BINDINGS_CXX" != "xyes"; then
-	BINDINGS_PYTHON="no"
-	BINDINGS_JAVA="no"
+	BINDINGS_PYTHON="no"; python_msg="swig required"
+	BINDINGS_JAVA="no"; java_msg="swig required"
 fi
 
 # Checks for libraries.
@@ -383,7 +377,8 @@ fi
 # glibmm-2.4 is needed for the C++ bindings.
 PKG_CHECK_MODULES([glibmm], [glibmm-2.4 >= 2.32.0],
 	[CXXFLAGS="$CXXFLAGS $glibmm_CFLAGS";
-	CXXLIBS="$CXXLIBS $glibmm_LIBS"], [BINDINGS_CXX="no"])
+	CXXLIBS="$CXXLIBS $glibmm_LIBS"],
+	[BINDINGS_CXX="no"; cxx_msg="glibmm required"])
 
 # PyGObject is needed for the Python bindings.
 PKG_CHECK_MODULES([pygobject], [pygobject-3.0 >= 3.0.0],
@@ -393,7 +388,7 @@ PKG_CHECK_MODULES([pygobject], [pygobject-3.0 >= 3.0.0],
 		[pyg_flags_signed=0], [pyg_flags_signed=1]);
 	AC_DEFINE_UNQUOTED(PYGOBJECT_FLAGS_SIGNED, [$pyg_flags_signed],
 		[Whether last argument to pyg_flags_get_value() is signed])],
-	[BINDINGS_PYTHON="no"])
+	[BINDINGS_PYTHON="no"; python_msg="Python pygobject module required"])
 
 # The Check unit testing framework is optional. Disable if not found.
 PKG_CHECK_MODULES([check], [check >= 0.9.4],
@@ -424,7 +419,13 @@ if test "x$HAVE_JAVAC" = "xyes"; then
 		CXXFLAGS="$CXXFLAGS -I$JNI_INCLUDE_DIR"
 	done
 else
-	BINDINGS_JAVA="no"
+	BINDINGS_JAVA="no"; java_msg="Java compiler required"
+fi
+
+# Python and Java bindings depend on C++ bindings.
+if test "x$BINDINGS_CXX" != "xyes"; then
+	BINDINGS_PYTHON="no"; python_msg="C++ bindings required"
+	BINDINGS_JAVA="no"; java_msg="C++ bindings required"
 fi
 
 # Now set AM_CONDITIONALs and AC_DEFINEs for the enabled/disabled drivers.
@@ -678,8 +679,34 @@ done
 
 eval echo -e "@Enabled hardware drivers:@@${driver_summary}" | tr @ \\n
 
+# Prepare final bindings report messages
+final_cxx=""
+final_python=""
+final_java=""
+if test "$enable_bindings" = "no"; then
+	final_cxx=" (disabled)"
+	final_python=" (disabled)"
+	final_java=" (disabled)"
+else
+	if test "$enable_cxx" = "no"; then
+		final_cxx=" (disabled)"
+	elif test "$BINDINGS_CXX" = "no"; then
+		final_cxx=" ($cxx_msg)"
+	fi
+	if test "$enable_python" = "no"; then
+		final_python=" (disabled)"
+	elif test "$BINDINGS_PYTHON" = "no"; then
+		final_python=" ($python_msg)"
+	fi
+	if test "$enable_java" = "no"; then
+		final_java=" (disabled)"
+	elif test "$BINDINGS_JAVA" = "no"; then
+		final_java=" ($java_msg)"
+	fi
+fi
+
 echo -e "Enabled language bindings:\n"
-echo " - C++............................. $BINDINGS_CXX"
-echo " - Python.......................... $BINDINGS_PYTHON"
-echo " - Java............................ $BINDINGS_JAVA"
+echo " - C++............................. $BINDINGS_CXX$final_cxx"
+echo " - Python.......................... $BINDINGS_PYTHON$final_python"
+echo " - Java............................ $BINDINGS_JAVA$final_java"
 echo
