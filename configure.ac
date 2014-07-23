@@ -190,11 +190,17 @@ if test "x$HAVE_GCCXML" != "xyes"; then
 	BINDINGS_CXX="no"; cxx_msg="gccxml required"
 fi
 
-# Python is needed for the C++ (and Python) bindings.
+# Python is needed for the C++ bindings.
+AC_CHECK_PROG([HAVE_PYTHON], [python], [yes])
+if test "x$HAVE_PYTHON" != "xyes"; then
+	BINDINGS_CXX="no"; cxx_msg="Python required"
+fi
+
+# The Python bindings need Python development files
 PKG_CHECK_MODULES([python], [python >= 2.7],
         [CXXFLAGS="$CXXFLAGS $python_CFLAGS";
         CXXLIBS="$CXXLIBS $python_LIBS"],
-		[BINDINGS_CXX="no"; cxx_msg="Python required"])
+		[BINDINGS_PYTHON="no"; python_msg="Python headers required"])
 
 # The C++ bindings need the pygccxml Python module.
 m4_ifdef([AX_PYTHON_MODULE], [AX_PYTHON_MODULE([pygccxml])],
@@ -207,7 +213,7 @@ if test "x$HAVE_PYMOD_PYGCCXML" != "xyes"; then
 	BINDINGS_CXX="no"; cxx_msg="Python pygccxml module required"
 fi
 
-# The C++ bindings need the setuptools Python module.
+# The Python bindings need the setuptools Python module.
 m4_ifdef([AX_PYTHON_MODULE], [AX_PYTHON_MODULE([setuptools])],
 	# We'll let it go through even if the macro wasn't found, the python
 	# module may still be there.
@@ -215,7 +221,7 @@ m4_ifdef([AX_PYTHON_MODULE], [AX_PYTHON_MODULE([setuptools])],
 		AC_MSG_NOTICE([Missing macro m4_toupper(aX_PYTHON_MODULE), no setuptools check])]
 )
 if test "x$HAVE_PYMOD_SETUPTOOLS" != "xyes"; then
-	BINDINGS_CXX="no"; cxx_msg="Python setuptools module required"
+	BINDINGS_PYTHON="no"; python_msg="Python setuptools module required"
 fi
 
 # The Python and Java bindings use swig to generate code.
