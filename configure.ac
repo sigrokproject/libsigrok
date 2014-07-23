@@ -207,8 +207,25 @@ if test "x$HAVE_PYMOD_PYGCCXML" != "xyes"; then
 	BINDINGS_CXX="no"
 fi
 
-# Python and Java bindings depend on C++ bindings.
+# The C++ bindings need the setuptools Python module.
+m4_ifdef([AX_PYTHON_MODULE], [AX_PYTHON_MODULE([setuptools])],
+	# We'll let it go through even if the macro wasn't found, the python
+	# module may still be there.
+	[HAVE_PYTHON_SETUPTOOLS="yes";
+		AC_MSG_NOTICE([Missing macro m4_toupper(aX_PYTHON_MODULE), no setuptools check])]
+)
+if test "x$HAVE_PYMOD_SETUPTOOLS" != "xyes"; then
+	BINDINGS_CXX="no"
+fi
 
+# The Python and Java bindings use swig to generate code.
+AC_CHECK_PROG([HAVE_SWIG], [swig], [yes])
+if test "x$HAVE_SWIG" != "xyes"; then
+	BINDINGS_PYTHON="no"
+	BINDINGS_JAVA="no"
+fi
+
+# Python and Java bindings depend on C++ bindings.
 if test "x$BINDINGS_CXX" != "xyes"; then
 	BINDINGS_PYTHON="no"
 	BINDINGS_JAVA="no"
