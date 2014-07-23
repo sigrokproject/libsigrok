@@ -191,7 +191,7 @@ if test "x$HAVE_GCCXML" != "xyes"; then
 fi
 
 # Python is needed for the C++ (and Python) bindings.
-PKG_CHECK_MODULES([python], [python3 >= 2.7],
+PKG_CHECK_MODULES([python], [python >= 2.7],
         [CXXFLAGS="$CXXFLAGS $python_CFLAGS";
         CXXLIBS="$CXXLIBS $python_LIBS"],
 		[BINDINGS_CXX="no"])
