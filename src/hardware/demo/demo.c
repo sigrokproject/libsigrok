@@ -109,6 +109,7 @@ struct dev_context {
 	int pipe_fds[2];
 	GIOChannel *channel;
 	uint64_t cur_samplerate;
+	gboolean continuous;
 	uint64_t limit_samples;
 	uint64_t limit_msec;
 	uint64_t logic_counter;
@@ -135,6 +136,7 @@ static const int devopts[] = {
 	SR_CONF_LOGIC_ANALYZER,
 	SR_CONF_DEMO_DEV,
 	SR_CONF_SAMPLERATE,
+	SR_CONF_CONTINUOUS,
 	SR_CONF_LIMIT_SAMPLES,
 	SR_CONF_LIMIT_MSEC,
 };
@@ -295,6 +297,7 @@ static GSList *scan(GSList *options)
 	devc->limit_samples = 0;
 	devc->limit_msec = 0;
 	devc->step = 0;
+	devc->continuous = FALSE;
 	devc->num_logic_channels = num_logic_channels;
 	devc->logic_unitsize = (devc->num_logic_channels + 7) / 8;
 	devc->logic_pattern = PATTERN_SIGROK;
@@ -618,7 +621,7 @@ static int prepare_data(int fd, int revents, void *cb_data)
 	struct sr_channel_group *cg;
 	struct analog_gen *ag;
 	GSList *l;
-	uint64_t logic_todo, analog_todo, expected_samplenum, analog_samples, sending_now;
+	uint64_t logic_todo, analog_todo, expected_samplenum, analog_sent, sending_now;
 	int64_t time, elapsed;
 
 	(void)fd;
@@ -626,21 +629,27 @@ static int prepare_data(int fd, int revents, void *cb_data)
 
 	sdi = cb_data;
 	devc = sdi->priv;
+	logic_todo = analog_todo = 0;
 
-	/* How many "virtual" samples should we have collected by now? */
+	/* How many samples should we have sent by now? */
 	time = g_get_monotonic_time();
 	elapsed = time - devc->starttime;
 	expected_samplenum = elapsed * devc->cur_samplerate / 1000000;
 
+	/* But never more than the limit, if there is one. */
+	if (!devc->continuous)
+		expected_samplenum = MIN(expected_samplenum, devc->limit_samples);
+
 	/* Of those, how many do we still have to send? */
-	logic_todo = MIN(expected_samplenum, devc->limit_samples) - devc->logic_counter;
-	analog_todo = MIN(expected_samplenum, devc->limit_samples) - devc->analog_counter;
+	if (devc->num_logic_channels)
+		logic_todo = expected_samplenum - devc->logic_counter;
+	if (devc->num_analog_channels)
+		analog_todo = expected_samplenum - devc->analog_counter;
 
 	while (logic_todo || analog_todo) {
 		/* Logic */
-		if (devc->num_logic_channels > 0 && logic_todo > 0) {
-			sending_now = MIN(logic_todo,
-					LOGIC_BUFSIZE / devc->logic_unitsize);
+		if (logic_todo > 0) {
+			sending_now = MIN(logic_todo, LOGIC_BUFSIZE / devc->logic_unitsize);
 			logic_generator(sdi, sending_now * devc->logic_unitsize);
 			packet.type = SR_DF_LOGIC;
 			packet.payload = &logic;
@@ -653,8 +662,8 @@ static int prepare_data(int fd, int revents, void *cb_data)
 		}
 
 		/* Analog, one channel at a time */
-		if (devc->num_analog_channels > 0 && analog_todo > 0) {
-			sending_now = 0;
+		if (analog_todo > 0) {
+			analog_sent = 0;
 			for (l = devc->analog_channel_groups; l; l = l->next) {
 				cg = l->data;
 				ag = cg->priv;
@@ -666,19 +675,21 @@ static int prepare_data(int fd, int revents, void *cb_data)
 				 * beginning of our buffer. A ring buffer would
 				 * help here as well */
 
-				analog_samples = MIN(analog_todo, ag->num_samples);
-				/* Whichever channel group gets there first. */
-				sending_now = MAX(sending_now, analog_samples);
-				ag->packet.num_samples = analog_samples;
+				sending_now = MIN(analog_todo, ag->num_samples);
+				ag->packet.num_samples = sending_now;
 				sr_session_send(sdi, &packet);
+
+				/* Whichever channel group gets there first. */
+				analog_sent = MAX(analog_sent, sending_now);
 			}
-			analog_todo -= sending_now;
-			devc->analog_counter += sending_now;
+			analog_todo -= analog_sent;
+			devc->analog_counter += analog_sent;
 		}
 	}
 
-	if (devc->logic_counter >= devc->limit_samples &&
-			devc->analog_counter >= devc->limit_samples) {
+	if (!devc->continuous
+			&& (!devc->num_logic_channels || devc->logic_counter >= devc->limit_samples)
+			&& (!devc->num_analog_channels || devc->analog_counter >= devc->limit_samples)) {
 		sr_dbg("Requested number of samples reached.");
 		dev_acquisition_stop(sdi, cb_data);
 		return TRUE;
@@ -698,8 +709,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		return SR_ERR_DEV_CLOSED;
 
 	devc = sdi->priv;
-	if (devc->limit_samples == 0)
-		return SR_ERR;
+	devc->continuous = !devc->limit_samples;
 	devc->logic_counter = devc->analog_counter = 0;
 
 	/*
@@ -714,22 +724,20 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		return SR_ERR;
 	}
 
-	for (l = devc->analog_channel_groups; l; l = l->next) {
+	for (l = devc->analog_channel_groups; l; l = l->next)
 		generate_analog_pattern(l->data, devc->cur_samplerate);
-	}
 
 	devc->channel = g_io_channel_unix_new(devc->pipe_fds[0]);
-
 	g_io_channel_set_flags(devc->channel, G_IO_FLAG_NONBLOCK, NULL);
 
 	/* Set channel encoding to binary (default is UTF-8). */
 	g_io_channel_set_encoding(devc->channel, NULL, NULL);
 
-	/* Make channels to unbuffered. */
+	/* Make channels unbuffered. */
 	g_io_channel_set_buffered(devc->channel, FALSE);
 
-	sr_session_source_add_channel(sdi->session, devc->channel, G_IO_IN | G_IO_ERR,
-			40, prepare_data, (void *)sdi);
+	sr_session_source_add_channel(sdi->session, devc->channel,
+			G_IO_IN | G_IO_ERR, 40, prepare_data, (void *)sdi);
 
 	/* Send header packet to the session bus. */
 	std_session_send_df_header(sdi, LOG_PREFIX);
