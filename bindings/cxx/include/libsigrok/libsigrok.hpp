@@ -17,6 +17,56 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/**
+
+@mainpage API Reference
+
+Introduction
+------------
+
+The sigrok++ API provides an object-oriented C++ interface to the functionality
+in libsigrok, including automatic memory and resource management.
+
+It is built on top of the public libsigrok C API, and is designed to be used as
+a standalone alternative API. Programs should not mix usage of the C and C++
+APIs; the C++ interface code needs to have full control of all C API calls for
+resources to be managed correctly.
+
+Memory management
+-----------------
+
+All runtime objects created through the C++ API are passed and accessed via
+shared pointers, using the C++11 std::shared_ptr implementation. This means
+that a reference count is kept for each object.
+
+Shared pointers can be copied and assigned in a user's program, automatically
+updating their reference count and deleting objects when they are no longer in
+use. The C++ interface code also keeps track of internal dependencies between
+libsigrok resources, and ensures that objects are not prematurely deleted when
+their resources are in use by other objects.
+
+This means that management of sigrok++ objects and their underlying libsigrok
+resources can be treated as fully automatic. As long as all shared pointers to
+objects are deleted or reassigned when no longer in use, all underlying
+resources will be released at the right time.
+
+Getting started
+---------------
+
+Usage of the C++ API needs to begin with a call to sigrok::Context::create().
+This will create the global libsigrok context and returns a shared pointer to
+the sigrok::Context object. Methods on this object provide access to the
+hardware drivers, input and output formats supported by the library, as well
+as means of creating other objects such as sessions and triggers.
+
+Error handling
+--------------
+
+When any libsigrok C API call returns an error, a sigrok::Error exception is
+raised, which provides access to the error code and description.
+
+*/
+
 #ifndef LIBSIGROK_HPP
 #define LIBSIGROK_HPP
 
@@ -72,12 +122,12 @@ public:
 	const char *what() const throw();
 };
 
-/** Base template for most classes which wrap a struct type from libsigrok. */
+/* Base template for most classes which wrap a struct type from libsigrok. */
 template <class Parent, typename Struct> class SR_API StructureWrapper :
 	public enable_shared_from_this<StructureWrapper<Parent, Struct> >
 {
 public:
-	/** Parent object which owns this child object's underlying structure.
+	/*  Parent object which owns this child object's underlying structure.
 
 		This shared pointer will be null when this child is unused, but
 		will be assigned to point to the parent before any shared pointer
@@ -103,7 +153,7 @@ protected:
 /** Type of log callback */
 typedef function<void(const LogLevel *, string message)> LogCallbackFunction;
 
-/** Context */
+/** The global libsigrok context */
 class SR_API Context : public enable_shared_from_this<Context>
 {
 public:
@@ -157,7 +207,7 @@ protected:
 	friend class Driver;
 };
 
-/** Hardware driver */
+/** A hardware driver provided by the library */
 class SR_API Driver : public StructureWrapper<Context, struct sr_dev_driver>
 {
 public:
@@ -199,7 +249,7 @@ protected:
 	struct sr_channel_group *config_channel_group;
 };
 
-/** Generic device (may be real or from an input file) */
+/** A generic device, either hardware or virtual */
 class SR_API Device :
 	public Configurable,
 	public StructureWrapper<Context, struct sr_dev_inst>
@@ -234,7 +284,7 @@ protected:
 	friend class Output;
 };
 
-/** Hardware device (connected via a driver) */
+/** A real hardware device, connected via a driver */
 class SR_API HardwareDevice : public Device
 {
 public:
@@ -251,7 +301,7 @@ protected:
 	friend class ChannelGroup;
 };
 
-/** Channel */
+/** A channel on a device */
 class SR_API Channel : public StructureWrapper<Device, struct sr_channel>
 {
 public:
@@ -275,7 +325,7 @@ protected:
 	friend class TriggerStage;
 };
 
-/** Channel group */
+/** A group of channels on a device, which share some configuration */
 class SR_API ChannelGroup :
 	public StructureWrapper<HardwareDevice, struct sr_channel_group>,
 	public Configurable
@@ -292,7 +342,7 @@ protected:
 	friend class HardwareDevice;
 };
 
-/** Trigger */
+/** A trigger configuration */
 class SR_API Trigger : public enable_shared_from_this<Trigger>
 {
 public:
@@ -315,7 +365,7 @@ protected:
 	friend class Session;
 };
 
-/** Trigger stage */
+/** A stage in a trigger configuration */
 class SR_API TriggerStage : public StructureWrapper<Trigger, struct sr_trigger_stage>
 {
 public:
@@ -330,7 +380,7 @@ protected:
 	friend class Trigger;
 };
 
-/** Trigger match */
+/** A match condition in a trigger configuration  */
 class SR_API TriggerMatch : public StructureWrapper<TriggerStage, struct sr_trigger_match>
 {
 public:
@@ -348,7 +398,7 @@ protected:
 typedef function<void(shared_ptr<Device>, shared_ptr<Packet>)>
 	DatafeedCallbackFunction;
 
-/** Data required for C callback function to call a C++ datafeed callback */
+/* Data required for C callback function to call a C++ datafeed callback */
 class SR_PRIV DatafeedCallbackData
 {
 public:
@@ -366,7 +416,7 @@ protected:
 typedef function<bool(Glib::IOCondition)>
 	SourceCallbackFunction;
 
-/** Data required for C callback function to call a C++ source callback */
+/* Data required for C callback function to call a C++ source callback */
 class SR_PRIV SourceCallbackData
 {
 public:
@@ -377,7 +427,7 @@ protected:
 	friend class Session;
 };
 
-/** Event source. */
+/** An I/O event source */
 class SR_API EventSource
 {
 public:
@@ -416,7 +466,7 @@ protected:
 	friend class SourceCallbackData;
 };
 
-/** Session */
+/** A sigrok session */
 class SR_API Session 
 {
 public:
@@ -473,7 +523,7 @@ protected:
 	friend class DatafeedCallbackData;
 };
 
-/** Datafeed packet */
+/** A packet on the session datafeed */
 class SR_API Packet
 {
 public:
@@ -498,7 +548,7 @@ protected:
 	friend class DatafeedCallbackData;
 };
 
-/** Abstract base class for datafeed packet payloads. */
+/** Abstract base class for datafeed packet payloads */
 class SR_API PacketPayload
 {
 protected:
@@ -510,7 +560,7 @@ protected:
 	friend class Output;
 };
 
-/** Logic data payload */
+/** Payload of a datafeed packet with logic data */
 class SR_API Logic : public PacketPayload
 {
 protected:
@@ -523,7 +573,7 @@ protected:
 	friend class Packet;
 };
 
-/** Analog data payload */
+/** Payload of a datafeed packet with analog data */
 class SR_API Analog : public PacketPayload
 {
 public:
@@ -544,7 +594,7 @@ protected:
 	friend class Packet;
 };
 
-/** Input format */
+/** An input format supported by the library */
 class SR_API InputFormat :
 	public StructureWrapper<Context, struct sr_input_format>
 {
@@ -565,7 +615,7 @@ protected:
 	friend class InputFileDevice;
 };
 
-/** Virtual device associated with an input file */
+/** A virtual device associated with an input file */
 class SR_API InputFileDevice : public Device
 {
 public:
@@ -588,7 +638,7 @@ protected:
 	friend class InputFormat;
 };
 
-/** Output format */
+/** An output format supported by the library */
 class SR_API OutputFormat :
 	public StructureWrapper<Context, struct sr_output_format>
 {
@@ -606,7 +656,7 @@ protected:
 	friend class Output;
 };
 
-/** Output instance (an output format applied to a device) */
+/** An output instance (an output format applied to a device) */
 class SR_API Output
 {
 public:
