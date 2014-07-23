@@ -428,6 +428,8 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
+	uint64_t arg;
+	unsigned int i;
 	int ret;
 
 	(void)cg;
@@ -445,7 +447,15 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 	switch (id)
 	{
 		case SR_CONF_SAMPLERATE:
-			devc->cur_samplerate = g_variant_get_uint64(data);
+			arg = g_variant_get_uint64(data);
+			for (i = 0; i < ARRAY_SIZE(samplerates); i++) {
+				if (samplerates[i] == arg) {
+					devc->cur_samplerate = arg;
+					break;
+				}
+			}
+			if (i == ARRAY_SIZE(samplerates))
+				ret = SR_ERR_ARG;
 			break;
 		case SR_CONF_LIMIT_SAMPLES:
 			devc->limit_samples = g_variant_get_uint64(data);
