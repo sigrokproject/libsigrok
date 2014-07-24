@@ -346,11 +346,19 @@ Device::Device(struct sr_dev_inst *structure) :
 		auto channel = (struct sr_channel *) entry->data;
 		channels[channel] = new Channel(channel);
 	}
+
+	for (GSList *entry = structure->channel_groups; entry; entry = entry->next)
+	{
+		auto group = (struct sr_channel_group *) entry->data;
+		channel_groups[group->name] = new ChannelGroup(this, group);
+	}
 }
 
 Device::~Device()
 {
 	for (auto entry : channels)
+		delete entry.second;
+	for (auto entry : channel_groups)
 		delete entry.second;
 }
 
@@ -384,6 +392,20 @@ shared_ptr<Channel> Device::get_channel(struct sr_channel *ptr)
 		channels[ptr]->get_shared_pointer(this));
 }
 
+map<string, shared_ptr<ChannelGroup>>
+Device::get_channel_groups()
+{
+	map<string, shared_ptr<ChannelGroup>> result;
+	for (auto entry: channel_groups)
+	{
+		auto name = entry.first;
+		auto channel_group = entry.second;
+		result[name] = static_pointer_cast<ChannelGroup>(
+			channel_group->get_shared_pointer(this));
+	}
+	return result;
+}
+
 void Device::open()
 {
 	check(sr_dev_open(structure));
@@ -398,36 +420,15 @@ HardwareDevice::HardwareDevice(Driver *driver, struct sr_dev_inst *structure) :
 	Device(structure),
 	driver(driver)
 {
-	for (GSList *entry = structure->channel_groups; entry; entry = entry->next)
-	{
-		auto group = (struct sr_channel_group *) entry->data;
-		channel_groups[group->name] = new ChannelGroup(this, group);
-	}
 }
 
 HardwareDevice::~HardwareDevice()
 {
-	for (auto entry : channel_groups)
-		delete entry.second;
 }
 
 shared_ptr<Driver> HardwareDevice::get_driver()
 {
 	return static_pointer_cast<Driver>(driver->get_shared_pointer(parent));
-}
-
-map<string, shared_ptr<ChannelGroup>>
-HardwareDevice::get_channel_groups()
-{
-	map<string, shared_ptr<ChannelGroup>> result;
-	for (auto entry: channel_groups)
-	{
-		auto name = entry.first;
-		auto channel_group = entry.second;
-		result[name] = static_pointer_cast<ChannelGroup>(
-			channel_group->get_shared_pointer(this));
-	}
-	return result;
 }
 
 Channel::Channel(struct sr_channel *structure) :
@@ -465,9 +466,9 @@ void Channel::set_enabled(bool value)
 	check(sr_dev_channel_enable(parent->structure, structure->index, value));
 }
 
-ChannelGroup::ChannelGroup(HardwareDevice *device,
+ChannelGroup::ChannelGroup(Device *device,
 		struct sr_channel_group *structure) :
-	StructureWrapper<HardwareDevice, struct sr_channel_group>(structure),
+	StructureWrapper<Device, struct sr_channel_group>(structure),
 	Configurable(device->structure->driver, device->structure, structure)
 {
 	for (GSList *entry = structure->channels; entry; entry = entry->next)

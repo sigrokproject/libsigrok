@@ -188,13 +188,13 @@ typedef std::map<const sigrok::ConfigKey *, Glib::VariantBase>
     std::vector<std::shared_ptr<sigrok::Channel> >,
     channels, get_channels);
 
+%attributeval(sigrok::Device, map_string_ChannelGroup,
+    channel_groups, get_channel_groups);
+
 /* Using %attributestring for shared_ptr attribute. See
    http://sourceforge.net/p/swig/mailman/message/31832070/ */
 %attributestring(sigrok::HardwareDevice,
     std::shared_ptr<sigrok::Driver>, driver, get_driver);
-
-%attributeval(sigrok::HardwareDevice, map_string_ChannelGroup,
-    channel_groups, get_channel_groups);
 
 %attributestring(sigrok::Channel, std::string, name, get_name, set_name);
 %attribute(sigrok::Channel, bool, enabled, get_enabled, set_enabled);

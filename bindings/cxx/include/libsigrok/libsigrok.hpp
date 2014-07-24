@@ -284,6 +284,8 @@ public:
 	string get_version();
 	/** List of the channels available on this device. */
 	vector<shared_ptr<Channel> > get_channels();
+	/** Channel groups available on this device, indexed by name. */
+	map<string, shared_ptr<ChannelGroup> > get_channel_groups();
 	/** Open device. */
 	void open();
 	/** Close device. */
@@ -293,6 +295,7 @@ protected:
 	~Device();
 	shared_ptr<Channel> get_channel(struct sr_channel *ptr);
 	map<struct sr_channel *, Channel *> channels;
+	map<string, ChannelGroup *> channel_groups;
 	/** Deleter needed to allow shared_ptr use with protected destructor. */
 	class Deleter
 	{
@@ -313,13 +316,10 @@ class SR_API HardwareDevice : public Device
 public:
 	/** Driver providing this device. */
 	shared_ptr<Driver> get_driver();
-	/** Channel groups available on this device, indexed by name. */
-	map<string, shared_ptr<ChannelGroup> > get_channel_groups();
 protected:
 	HardwareDevice(Driver *driver, struct sr_dev_inst *structure);
 	~HardwareDevice();
 	Driver *driver;
-	map<string, ChannelGroup *> channel_groups;
 	friend class Driver;
 	friend class ChannelGroup;
 };
@@ -350,7 +350,7 @@ protected:
 
 /** A group of channels on a device, which share some configuration */
 class SR_API ChannelGroup :
-	public StructureWrapper<HardwareDevice, struct sr_channel_group>,
+	public StructureWrapper<Device, struct sr_channel_group>,
 	public Configurable
 {
 public:
@@ -359,10 +359,10 @@ public:
 	/** List of the channels in this group. */
 	vector<shared_ptr<Channel> > get_channels();
 protected:
-	ChannelGroup(HardwareDevice *device, struct sr_channel_group *structure);
+	ChannelGroup(Device *device, struct sr_channel_group *structure);
 	~ChannelGroup();
 	vector<Channel *> channels;
-	friend class HardwareDevice;
+	friend class Device;
 };
 
 /** A trigger configuration */
