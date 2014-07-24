@@ -916,7 +916,8 @@ Packet::Packet(const struct sr_datafeed_packet *structure) :
 
 Packet::~Packet()
 {
-	delete payload;
+	if (payload)
+		delete payload;
 }
 
 const PacketType *Packet::get_type()
