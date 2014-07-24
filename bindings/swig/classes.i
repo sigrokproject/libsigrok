@@ -200,6 +200,7 @@ typedef std::map<const sigrok::ConfigKey *, Glib::VariantBase>
 %attributestring(sigrok::Channel, std::string, name, get_name, set_name);
 %attribute(sigrok::Channel, bool, enabled, get_enabled, set_enabled);
 %attribute(sigrok::Channel, const sigrok::ChannelType *, type, get_type);
+%attribute(sigrok::Channel, unsigned int, index, get_index);
 
 %attributestring(sigrok::ChannelGroup, std::string, name, get_name);
 %attributeval(sigrok::ChannelGroup,

@@ -482,6 +482,11 @@ void Channel::set_enabled(bool value)
 	check(sr_dev_channel_enable(parent->structure, structure->index, value));
 }
 
+unsigned int Channel::get_index()
+{
+	return structure->index;
+}
+
 ChannelGroup::ChannelGroup(Device *device,
 		struct sr_channel_group *structure) :
 	StructureWrapper<Device, struct sr_channel_group>(structure),

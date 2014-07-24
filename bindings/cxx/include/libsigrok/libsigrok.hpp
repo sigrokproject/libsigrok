@@ -340,6 +340,8 @@ public:
 	bool get_enabled();
 	/** Set the enabled status of this channel. */
 	void set_enabled(bool value);
+	/** Get the index number of this channel. */
+	unsigned int get_index();
 protected:
 	Channel(struct sr_channel *structure);
 	~Channel();
