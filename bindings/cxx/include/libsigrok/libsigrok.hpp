@@ -516,7 +516,9 @@ public:
 	/** Begin saving session to a file. */
 	void begin_save(string filename);
 	/** Append a packet to the session file being saved. */
-	void append(shared_ptr<Device> device, shared_ptr<Packet> packet);
+	void append(shared_ptr<Packet> packet);
+	/** Append raw logic data to the session file being saved. */
+	void append(void *data, size_t length, unsigned int unit_size);
 	/** Get current trigger setting. */
 	shared_ptr<Trigger> get_trigger();
 	/** Set trigger setting. */

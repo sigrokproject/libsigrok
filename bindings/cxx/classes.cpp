@@ -729,7 +729,7 @@ void Session::begin_save(string filename)
 	save_samplerate = 0;
 }
 
-void Session::append(shared_ptr<Device> device, shared_ptr<Packet> packet)
+void Session::append(shared_ptr<Packet> packet)
 {
 	if (!saving)
 		throw Error(SR_ERR);
@@ -756,8 +756,9 @@ void Session::append(shared_ptr<Device> device, shared_ptr<Packet> packet)
 			{
 				GVariant *samplerate;
 
-				check(sr_config_get(device->structure->driver,
-					device->structure, NULL, SR_CONF_SAMPLERATE, &samplerate));
+				check(sr_config_get(packet->device->structure->driver,
+					packet->device->structure, NULL, SR_CONF_SAMPLERATE,
+					&samplerate));
 
 				save_samplerate = g_variant_get_uint64(samplerate);
 
@@ -768,7 +769,7 @@ void Session::append(shared_ptr<Device> device, shared_ptr<Packet> packet)
 			{
 				vector<shared_ptr<Channel>> save_channels;
 
-				for (auto channel : device->get_channels())
+				for (auto channel : packet->device->get_channels())
 					if (channel->structure->enabled &&
 							channel->structure->type == SR_CHANNEL_LOGIC)
 						save_channels.push_back(channel);
@@ -799,6 +800,12 @@ void Session::append(shared_ptr<Device> device, shared_ptr<Packet> packet)
 				logic->length / logic->unitsize));
 		}
 	}
+}
+
+void Session::append(void *data, size_t length, unsigned int unit_size)
+{
+	check(sr_session_append(structure, save_filename.c_str(),
+		(uint8_t *) data, unit_size, length));
 }
 
 static void datafeed_callback(const struct sr_dev_inst *sdi,
