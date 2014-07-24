@@ -180,6 +180,7 @@ typedef std::map<const sigrok::ConfigKey *, Glib::VariantBase>
 %attributestring(sigrok::OutputFormat,
     std::string, description, get_description);
 
+%attributestring(sigrok::Device, std::string, description, get_description);
 %attributestring(sigrok::Device, std::string, vendor, get_vendor);
 %attributestring(sigrok::Device, std::string, model, get_model);
 %attributestring(sigrok::Device, std::string, version, get_version);

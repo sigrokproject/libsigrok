@@ -276,6 +276,8 @@ class SR_API Device :
 	public StructureWrapper<Context, struct sr_dev_inst>
 {
 public:
+	/** Description identifying this device. */
+	string get_description();
 	/** Vendor name for this device. */
 	string get_vendor();
 	/** Model name for this device. */

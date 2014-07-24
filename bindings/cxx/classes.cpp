@@ -19,6 +19,8 @@
 
 #include "libsigrok/libsigrok.hpp"
 
+#include <sstream>
+
 namespace sigrok
 {
 
@@ -360,6 +362,20 @@ Device::~Device()
 		delete entry.second;
 	for (auto entry : channel_groups)
 		delete entry.second;
+}
+
+string Device::get_description()
+{
+	ostringstream s;
+
+	vector<string> parts =
+		{get_vendor(), get_model(), get_version()};
+
+	for (string part : parts)
+		if (part.length() > 0)
+			s << part;
+
+	return s.str();
 }
 
 string Device::get_vendor()
