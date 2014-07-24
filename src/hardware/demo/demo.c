@@ -379,9 +379,25 @@ static int dev_close(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
+static void clear_helper(void *priv)
+{
+	struct dev_context *devc;
+	struct sr_channel_group *cg;
+	GSList *l;
+
+	devc = priv;
+	for (l = devc->analog_channel_groups; l; l = l->next) {
+		cg = l->data;
+		/* Analog generators. */
+		g_free(cg->priv);
+	}
+	g_slist_free(devc->analog_channel_groups);
+	g_free(devc);
+}
+
 static int cleanup(void)
 {
-	return std_dev_clear(di, NULL);
+	return std_dev_clear(di, clear_helper);
 }
 
 static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
