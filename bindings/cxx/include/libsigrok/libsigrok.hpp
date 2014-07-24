@@ -126,7 +126,7 @@ public:
 template <class Parent, typename Struct> class SR_API StructureWrapper :
 	public enable_shared_from_this<StructureWrapper<Parent, Struct> >
 {
-public:
+protected:
 	/*  Parent object which owns this child object's underlying structure.
 
 		This shared pointer will be null when this child is unused, but
@@ -141,7 +141,28 @@ public:
 		the parent are called at the correct time, i.e. only when all
 		references to both the parent and all its children are gone. */
 	shared_ptr<Parent> parent;
+
+public:
+	shared_ptr<StructureWrapper<Parent, Struct> >
+	get_shared_pointer(Parent *parent)
+	{
+		this->parent = static_pointer_cast<Parent>(parent->shared_from_this());
+		return shared_ptr<StructureWrapper<Parent, Struct> >(
+			this, reset_parent);
+	}
+	shared_ptr<StructureWrapper<Parent, Struct> >
+	get_shared_pointer(shared_ptr<Parent> parent)
+	{
+		this->parent = parent;
+		return shared_ptr<StructureWrapper<Parent, Struct> >(
+			this, reset_parent);
+	}
 protected:
+	static void reset_parent(StructureWrapper<Parent, Struct> *object)
+	{
+		object->parent.reset();
+	}
+
 	Struct *structure;
 
 	StructureWrapper<Parent, Struct>(Struct *structure) :

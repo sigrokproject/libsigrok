@@ -22,12 +22,6 @@
 namespace sigrok
 {
 
-/** Custom shared_ptr deleter for children owned by their parent object. */
-template <class T> void reset_parent(T *child)
-{
-	child->parent.reset();
-}
-
 /** Helper function to translate C errors to C++ exceptions. */
 static void check(int result)
 {
@@ -113,8 +107,8 @@ map<string, shared_ptr<Driver>> Context::get_drivers()
 	{
 		auto name = entry.first;
 		auto driver = entry.second;
-		driver->parent = static_pointer_cast<Context>(shared_from_this());
-		result[name] = shared_ptr<Driver>(driver, reset_parent<Driver>);
+		result[name] = static_pointer_cast<Driver>(
+			driver->get_shared_pointer(this));
 	}
 	return result;
 }
@@ -126,9 +120,8 @@ map<string, shared_ptr<InputFormat>> Context::get_input_formats()
 	{
 		auto name = entry.first;
 		auto input_format = entry.second;
-		input_format->parent = static_pointer_cast<Context>(shared_from_this());
-		result[name] = shared_ptr<InputFormat>(input_format,
-			reset_parent<InputFormat>);
+		result[name] = static_pointer_cast<InputFormat>(
+			input_format->get_shared_pointer(this));
 	}
 	return result;
 }
@@ -140,9 +133,8 @@ map<string, shared_ptr<OutputFormat>> Context::get_output_formats()
 	{
 		auto name = entry.first;
 		auto output_format = entry.second;
-		output_format->parent = static_pointer_cast<Context>(shared_from_this());
-		result[name] = shared_ptr<OutputFormat>(output_format,
-			reset_parent<OutputFormat>);
+		result[name] = static_pointer_cast<OutputFormat>(
+			output_format->get_shared_pointer(this));
 	}
 	return result;
 }
@@ -301,11 +293,8 @@ vector<shared_ptr<HardwareDevice>> Driver::scan(
 	/* Create list of shared pointers to device instances for return. */
 	vector<shared_ptr<HardwareDevice>> result;
 	for (auto device : devices)
-	{
-		device->parent = parent->shared_from_this();
-		result.push_back(shared_ptr<HardwareDevice>(device,
-			reset_parent<HardwareDevice>));
-	}
+		result.push_back(static_pointer_cast<HardwareDevice>(
+			device->get_shared_pointer(parent)));
 	return result;
 }
 
@@ -384,10 +373,8 @@ vector<shared_ptr<Channel>> Device::get_channels()
 {
 	vector<shared_ptr<Channel>> result;
 	for (auto channel : channels)
-	{
-		channel->parent = static_pointer_cast<Device>(shared_from_this());
-		result.push_back(shared_ptr<Channel>(channel, reset_parent<Channel>));
-	}
+		result.push_back(static_pointer_cast<Channel>(
+			channel->get_shared_pointer(this)));
 	return result;
 }
 
@@ -420,7 +407,7 @@ HardwareDevice::~HardwareDevice()
 
 shared_ptr<Driver> HardwareDevice::get_driver()
 {
-	return static_pointer_cast<Driver>(driver->shared_from_this());
+	return static_pointer_cast<Driver>(driver->get_shared_pointer(parent));
 }
 
 map<string, shared_ptr<ChannelGroup>>
@@ -431,10 +418,8 @@ HardwareDevice::get_channel_groups()
 	{
 		auto name = entry.first;
 		auto channel_group = entry.second;
-		channel_group->parent =
-			static_pointer_cast<HardwareDevice>(shared_from_this());
-		result[name] = shared_ptr<ChannelGroup>(channel_group,
-			reset_parent<ChannelGroup>);
+		result[name] = static_pointer_cast<ChannelGroup>(
+			channel_group->get_shared_pointer(this));
 	}
 	return result;
 }
@@ -501,10 +486,8 @@ vector<shared_ptr<Channel>> ChannelGroup::get_channels()
 {
 	vector<shared_ptr<Channel>> result;
 	for (auto channel : channels)
-	{
-		channel->parent = static_pointer_cast<Device>(parent->shared_from_this());
-		result.push_back(shared_ptr<Channel>(channel, reset_parent<Channel>));
-	}
+		result.push_back(static_pointer_cast<Channel>(
+			channel->get_shared_pointer(parent)));
 	return result;
 }
 
@@ -532,10 +515,8 @@ vector<shared_ptr<TriggerStage>> Trigger::get_stages()
 {
 	vector<shared_ptr<TriggerStage>> result;
 	for (auto stage : stages)
-	{
-		stage->parent = static_pointer_cast<Trigger>(shared_from_this());
-		result.push_back(shared_ptr<TriggerStage>(stage, reset_parent<TriggerStage>));
-	}
+		result.push_back(static_pointer_cast<TriggerStage>(
+			stage->get_shared_pointer(this)));
 	return result;
 }
 
@@ -543,8 +524,8 @@ shared_ptr<TriggerStage> Trigger::add_stage()
 {
 	auto stage = new TriggerStage(sr_trigger_stage_add(structure));
 	stages.push_back(stage);
-	stage->parent = static_pointer_cast<Trigger>(shared_from_this());
-	return shared_ptr<TriggerStage>(stage, reset_parent<TriggerStage>);
+	return static_pointer_cast<TriggerStage>(
+		stage->get_shared_pointer(this));
 }
 
 TriggerStage::TriggerStage(struct sr_trigger_stage *structure) : 
@@ -567,10 +548,8 @@ vector<shared_ptr<TriggerMatch>> TriggerStage::get_matches()
 {
 	vector<shared_ptr<TriggerMatch>> result;
 	for (auto match : matches)
-	{
-		match->parent = static_pointer_cast<TriggerStage>(shared_from_this());
-		result.push_back(shared_ptr<TriggerMatch>(match, reset_parent<TriggerMatch>));
-	}
+		result.push_back(static_pointer_cast<TriggerMatch>(
+			match->get_shared_pointer(this)));
 	return result;
 }
 
