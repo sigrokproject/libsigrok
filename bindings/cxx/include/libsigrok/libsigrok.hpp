@@ -258,7 +258,7 @@ public:
 	/** Set configuration for the given key to a specified value. */
 	void config_set(const ConfigKey *key, Glib::VariantBase value);
 	/** Enumerate available values for the given configuration key. */
-	Glib::VariantBase config_list(const ConfigKey *key);
+	Glib::VariantContainerBase config_list(const ConfigKey *key);
 protected:
 	Configurable(
 		struct sr_dev_driver *driver,

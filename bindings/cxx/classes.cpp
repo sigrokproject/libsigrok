@@ -328,13 +328,13 @@ void Configurable::config_set(const ConfigKey *key, Glib::VariantBase value)
 		key->get_id(), value.gobj()));
 }
 
-Glib::VariantBase Configurable::config_list(const ConfigKey *key)
+Glib::VariantContainerBase Configurable::config_list(const ConfigKey *key)
 {
 	GVariant *data;
 	check(sr_config_list(
 		config_driver, config_sdi, config_channel_group,
 		key->get_id(), &data));
-	return Glib::VariantBase(data);
+	return Glib::VariantContainerBase(data);
 }
 
 Device::Device(struct sr_dev_inst *structure) :
