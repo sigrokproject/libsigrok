@@ -291,7 +291,8 @@ public:
 protected:
 	Device(struct sr_dev_inst *structure);
 	~Device();
-	vector<Channel *> channels;
+	shared_ptr<Channel> get_channel(struct sr_channel *ptr);
+	map<struct sr_channel *, Channel *> channels;
 	/** Deleter needed to allow shared_ptr use with protected destructor. */
 	class Deleter
 	{

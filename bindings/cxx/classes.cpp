@@ -344,14 +344,14 @@ Device::Device(struct sr_dev_inst *structure) :
 	for (GSList *entry = structure->channels; entry; entry = entry->next)
 	{
 		auto channel = (struct sr_channel *) entry->data;
-		channels.push_back(new Channel(channel));
+		channels[channel] = new Channel(channel);
 	}
 }
 
 Device::~Device()
 {
-	for (auto channel : channels)
-		delete channel;
+	for (auto entry : channels)
+		delete entry.second;
 }
 
 string Device::get_vendor()
@@ -372,10 +372,16 @@ string Device::get_version()
 vector<shared_ptr<Channel>> Device::get_channels()
 {
 	vector<shared_ptr<Channel>> result;
-	for (auto channel : channels)
+	for (auto entry : channels)
 		result.push_back(static_pointer_cast<Channel>(
-			channel->get_shared_pointer(this)));
+			entry.second->get_shared_pointer(this)));
 	return result;
+}
+
+shared_ptr<Channel> Device::get_channel(struct sr_channel *ptr)
+{
+	return static_pointer_cast<Channel>(
+		channels[ptr]->get_shared_pointer(this));
 }
 
 void Device::open()
@@ -465,12 +471,7 @@ ChannelGroup::ChannelGroup(HardwareDevice *device,
 	Configurable(device->structure->driver, device->structure, structure)
 {
 	for (GSList *entry = structure->channels; entry; entry = entry->next)
-	{
-		auto channel = (struct sr_channel *) entry->data;
-		for (auto device_channel : device->channels)
-			if (channel == device_channel->structure)
-				channels.push_back(device_channel);
-	}
+		channels.push_back(device->channels[(struct sr_channel *)entry->data]);
 }
 
 ChannelGroup::~ChannelGroup()
