@@ -65,6 +65,6 @@ Glib::VariantBase ConfigKey::parse_string(string value) const
 			throw Error(SR_ERR_BUG);
 	}
 
-	return Glib::VariantBase(variant, true);
+	return Glib::VariantBase(variant, false);
 }
 
