@@ -39,7 +39,7 @@ struct context {
 	GString **lines;
 };
 
-static int init(struct sr_output *o)
+static int init(struct sr_output *o, GHashTable *options)
 {
 	struct context *ctx;
 	struct sr_channel *ch;
@@ -47,22 +47,27 @@ static int init(struct sr_output *o)
 	GHashTableIter iter;
 	gpointer key, value;
 	unsigned int i, j;
-	int spl;
+	uint32_t spl;
 
 	if (!o || !o->sdi)
 		return SR_ERR_ARG;
 
 	spl = DEFAULT_SAMPLES_PER_LINE;
-	g_hash_table_iter_init(&iter, o->params);
-	while (g_hash_table_iter_next(&iter, &key, &value)) {
-		if (!strcmp(key, "width")) {
-			if ((spl = strtoul(value, NULL, 10)) < 1) {
-				sr_err("Invalid width.");
-				return SR_ERR_ARG;
+	if (options) {
+		g_hash_table_iter_init(&iter, options);
+		while (g_hash_table_iter_next(&iter, &key, &value)) {
+			if (!strcmp(key, "width")) {
+				if (!g_variant_is_of_type(value, G_VARIANT_TYPE_UINT32)) {
+					sr_err("Invalid type for 'width' option.");
+					return SR_ERR_ARG;
+				}
+				if (!(spl = g_variant_get_uint32(value))) {
+					sr_err("Invalid width.");
+					return SR_ERR_ARG;
+				}
+			} else {
+				sr_err("Unknown option '%s'.", key);
 			}
-		} else {
-			sr_err("Unknown parameter '%s'.", key);
-			return SR_ERR_ARG;
 		}
 	}
 
@@ -100,7 +105,7 @@ static int init(struct sr_output *o)
 	return SR_OK;
 }
 
-static GString *gen_header(struct sr_output *o)
+static GString *gen_header(const struct sr_output *o)
 {
 	struct context *ctx;
 	GVariant *gvar;
@@ -132,7 +137,7 @@ static GString *gen_header(struct sr_output *o)
 	return header;
 }
 
-static int receive(struct sr_output *o, const struct sr_datafeed_packet *packet,
+static int receive(const struct sr_output *o, const struct sr_datafeed_packet *packet,
 		GString **out)
 {
 	const struct sr_datafeed_meta *meta;
@@ -236,9 +241,27 @@ static int cleanup(struct sr_output *o)
 	return SR_OK;
 }
 
-SR_PRIV struct sr_output_format output_bits = {
+static struct sr_option options[] = {
+	{ "width", "Width", "Number of samples per line", NULL, NULL },
+	{ 0 }
+};
+
+static struct sr_option *get_options(gboolean cached)
+{
+	if (cached)
+		return options;
+
+	options[0].def = g_variant_new_uint32(DEFAULT_SAMPLES_PER_LINE);
+	g_variant_ref_sink(options[0].def);
+
+	return options;
+}
+
+SR_PRIV struct sr_output_module output_bits = {
 	.id = "bits",
-	.description = "Bits",
+	.name = "Bits",
+	.desc = "0/1 digits",
+	.options = get_options,
 	.init = init,
 	.receive = receive,
 	.cleanup = cleanup,

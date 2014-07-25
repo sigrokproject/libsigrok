@@ -265,7 +265,7 @@ static int sanity_check_all_input_modules(void)
 static int sanity_check_all_output_modules(void)
 {
 	int i, errors, ret = SR_OK;
-	struct sr_output_format **outputs;
+	const struct sr_output_module **outputs;
 	const char *d;
 
 	sr_spew("Sanity-checking all output modules.");
@@ -280,7 +280,11 @@ static int sanity_check_all_output_modules(void)
 			sr_err("No ID in module %d ('%s').", i, d);
 			errors++;
 		}
-		if (!outputs[i]->description) {
+		if (!outputs[i]->name) {
+			sr_err("No name in module %d ('%s').", i, d);
+			errors++;
+		}
+		if (!outputs[i]->desc) {
 			sr_err("No description in module '%s'.", d);
 			errors++;
 		}

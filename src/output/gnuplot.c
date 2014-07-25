@@ -44,12 +44,14 @@ static const char *gnuplot_header2 = "\
 # 0\t\tSample counter (for internal gnuplot purposes)\n";
 
 
-static int init(struct sr_output *o)
+static int init(struct sr_output *o, GHashTable *options)
 {
 	struct context *ctx;
 	struct sr_channel *ch;
 	GSList *l;
 	unsigned int i;
+
+	(void)options;
 
 	if (!o || !o->sdi)
 		return SR_ERR_ARG;
@@ -84,7 +86,7 @@ static int init(struct sr_output *o)
 	return SR_OK;
 }
 
-static GString *gen_header(struct sr_output *o)
+static GString *gen_header(const struct sr_output *o)
 {
 	struct context *ctx;
 	struct sr_channel *ch;
@@ -130,7 +132,7 @@ static GString *gen_header(struct sr_output *o)
 	return header;
 }
 
-static int receive(struct sr_output *o, const struct sr_datafeed_packet *packet,
+static int receive(const struct sr_output *o, const struct sr_datafeed_packet *packet,
 		GString **out)
 {
 	const struct sr_datafeed_meta *meta;
@@ -215,9 +217,11 @@ static int cleanup(struct sr_output *o)
 	return SR_OK;
 }
 
-SR_PRIV struct sr_output_format output_gnuplot = {
+SR_PRIV struct sr_output_module output_gnuplot = {
 	.id = "gnuplot",
-	.description = "Gnuplot",
+	.name = "Gnuplot",
+	.desc = "Gnuplot file format",
+	.options = NULL,
 	.init = init,
 	.receive = receive,
 	.cleanup = cleanup,

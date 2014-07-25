@@ -64,25 +64,6 @@ struct sr_input_format *srtest_input_get(const char *id)
 	return input;
 }
 
-/* Get a libsigrok output format by ID. */
-struct sr_output_format *srtest_output_get(const char *id)
-{
-	struct sr_output_format **outputs, *output = NULL;
-	int i;
-
-	outputs = sr_output_list();
-	fail_unless(outputs != NULL, "No output modules found.");
-
-	for (i = 0; outputs[i]; i++) {
-		if (strcmp(outputs[i]->id, id))
-			continue;
-		output = outputs[i];
-	}
-	fail_unless(output != NULL, "Output module '%s' not found.", id);
-
-	return output;
-}
-
 /* Initialize a libsigrok driver. */
 void srtest_driver_init(struct sr_context *sr_ctx, struct sr_dev_driver *driver)
 {

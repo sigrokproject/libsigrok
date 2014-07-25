@@ -25,7 +25,6 @@
 
 struct sr_dev_driver *srtest_driver_get(const char *drivername);
 struct sr_input_format *srtest_input_get(const char *id);
-struct sr_output_format *srtest_output_get(const char *id);
 
 void srtest_driver_init(struct sr_context *sr_ctx, struct sr_dev_driver *driver);
 void srtest_driver_init_all(struct sr_context *sr_ctx);

@@ -75,11 +75,13 @@ static uint8_t samplerate_to_divcount(uint64_t samplerate)
 	return (SR_MHZ(100) / samplerate) - 1;
 }
 
-static int init(struct sr_output *o)
+static int init(struct sr_output *o, GHashTable *options)
 {
 	struct context *ctx;
 	struct sr_channel *ch;
 	GSList *l;
+
+	(void)options;
 
 	if (!o || !o->sdi)
 		return SR_ERR_ARG;
@@ -101,7 +103,7 @@ static int init(struct sr_output *o)
 	return SR_OK;
 }
 
-static int receive(struct sr_output *o, const struct sr_datafeed_packet *packet,
+static int receive(const struct sr_output *o, const struct sr_datafeed_packet *packet,
 		GString **out)
 {
 	const struct sr_datafeed_logic *logic;
@@ -181,9 +183,11 @@ static int cleanup(struct sr_output *o)
 	return SR_OK;
 }
 
-SR_PRIV struct sr_output_format output_chronovu_la8 = {
+SR_PRIV struct sr_output_module output_chronovu_la8 = {
 	.id = "chronovu-la8",
-	.description = "ChronoVu LA8",
+	.name = "ChronoVu LA8",
+	.desc = "ChronoVu LA8 native file format",
+	.options = NULL,
 	.init = init,
 	.receive = receive,
 	.cleanup = cleanup,

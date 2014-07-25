@@ -31,13 +31,13 @@ struct context {
 	GPtrArray *channellist;
 };
 
-static int init(struct sr_output *o)
+static int init(struct sr_output *o, GHashTable *options)
 {
 	struct context *ctx;
 	struct sr_channel *ch;
 	GSList *l;
 
-	sr_spew("Initializing output module.");
+	(void)options;
 
 	if (!o || !o->sdi)
 		return SR_ERR_ARG;
@@ -215,7 +215,7 @@ static void fancyprint(int unit, int mqflags, float value, GString *out)
 	g_string_append_c(out, '\n');
 }
 
-static int receive(struct sr_output *o, const struct sr_datafeed_packet *packet,
+static int receive(const struct sr_output *o, const struct sr_datafeed_packet *packet,
 		GString **out)
 {
 	const struct sr_datafeed_analog *analog;
@@ -268,9 +268,11 @@ static int cleanup(struct sr_output *o)
 	return SR_OK;
 }
 
-SR_PRIV struct sr_output_format output_analog = {
+SR_PRIV struct sr_output_module output_analog = {
 	.id = "analog",
-	.description = "Analog data",
+	.name = "Analog",
+	.desc = "Analog data and types",
+	.options = NULL,
 	.init = init,
 	.receive = receive,
 	.cleanup = cleanup

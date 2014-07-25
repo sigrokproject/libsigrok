@@ -26,7 +26,7 @@
 
 #define LOG_PREFIX "output/binary"
 
-static int receive(struct sr_output *o, const struct sr_datafeed_packet *packet,
+static int receive(const struct sr_output *o, const struct sr_datafeed_packet *packet,
 		GString **out)
 {
 	const struct sr_datafeed_logic *logic;
@@ -42,8 +42,10 @@ static int receive(struct sr_output *o, const struct sr_datafeed_packet *packet,
 	return SR_OK;
 }
 
-SR_PRIV struct sr_output_format output_binary = {
+SR_PRIV struct sr_output_module output_binary = {
 	.id = "binary",
-	.description = "Raw binary",
+	.name = "Binary",
+	.desc = "Raw binary",
+	.options = NULL,
 	.receive = receive,
 };

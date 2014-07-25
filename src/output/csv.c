@@ -47,12 +47,14 @@ struct context {
  *  - Trigger support.
  */
 
-static int init(struct sr_output *o)
+static int init(struct sr_output *o, GHashTable *options)
 {
 	struct context *ctx;
 	struct sr_channel *ch;
 	GSList *l;
 	int i;
+
+	(void)options;
 
 	if (!o || !o->sdi)
 		return SR_ERR_ARG;
@@ -85,7 +87,7 @@ static int init(struct sr_output *o)
 	return SR_OK;
 }
 
-static GString *gen_header(struct sr_output *o)
+static GString *gen_header(const struct sr_output *o)
 {
 	struct context *ctx;
 	struct sr_channel *ch;
@@ -137,7 +139,7 @@ static GString *gen_header(struct sr_output *o)
 	return header;
 }
 
-static int receive(struct sr_output *o, const struct sr_datafeed_packet *packet,
+static int receive(const struct sr_output *o, const struct sr_datafeed_packet *packet,
 		GString **out)
 {
 	const struct sr_datafeed_meta *meta;
@@ -211,9 +213,11 @@ static int cleanup(struct sr_output *o)
 	return SR_OK;
 }
 
-SR_PRIV struct sr_output_format output_csv = {
+SR_PRIV struct sr_output_module output_csv = {
 	.id = "csv",
-	.description = "Comma-separated values (CSV)",
+	.name = "CSV",
+	.desc = "Comma-separated values",
+	.options = NULL,
 	.init = init,
 	.receive = receive,
 	.cleanup = cleanup,

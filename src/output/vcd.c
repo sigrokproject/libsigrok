@@ -42,12 +42,14 @@ struct context {
 static const char *const vcd_header_comment =
 	"$comment\n  Acquisition with %d/%d channels at %s\n$end\n";
 
-static int init(struct sr_output *o)
+static int init(struct sr_output *o, GHashTable *options)
 {
 	struct context *ctx;
 	struct sr_channel *ch;
 	GSList *l;
 	int num_enabled_channels, i;
+
+	(void)options;
 
 	num_enabled_channels = 0;
 	for (l = o->sdi->channels; l; l = l->next) {
@@ -81,7 +83,7 @@ static int init(struct sr_output *o)
 	return SR_OK;
 }
 
-static GString *gen_header(struct sr_output *o)
+static GString *gen_header(const struct sr_output *o)
 {
 	struct context *ctx;
 	struct sr_channel *ch;
@@ -154,7 +156,7 @@ static GString *gen_header(struct sr_output *o)
 	return header;
 }
 
-static int receive(struct sr_output *o, const struct sr_datafeed_packet *packet,
+static int receive(const struct sr_output *o, const struct sr_datafeed_packet *packet,
 		GString **out)
 {
 	const struct sr_datafeed_meta *meta;
@@ -260,9 +262,11 @@ static int cleanup(struct sr_output *o)
 	return SR_OK;
 }
 
-struct sr_output_format output_vcd = {
+struct sr_output_module output_vcd = {
 	.id = "vcd",
-	.description = "Value Change Dump (VCD)",
+	.name = "VCD",
+	.desc = "Value Change Dump",
+	.options = NULL,
 	.init = init,
 	.receive = receive,
 	.cleanup = cleanup,

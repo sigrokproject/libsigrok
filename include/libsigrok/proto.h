@@ -128,12 +128,18 @@ SR_API struct sr_input_format **sr_input_list(void);
 
 /*--- output/output.c -------------------------------------------------------*/
 
-SR_API struct sr_output_format **sr_output_list(void);
-SR_API struct sr_output *sr_output_new(struct sr_output_format *of,
+SR_API const struct sr_output_module **sr_output_list(void);
+SR_API const char *sr_output_id_get(const struct sr_output_module *o);
+SR_API const char *sr_output_name_get(const struct sr_output_module *o);
+SR_API const char *sr_output_description_get(const struct sr_output_module *o);
+SR_API const struct sr_output_module *sr_output_find(char *id);
+SR_API const struct sr_option *sr_output_options_get(const struct sr_output_module *o);
+SR_API void sr_output_options_free(const struct sr_output_module *o);
+SR_API const struct sr_output *sr_output_new(const struct sr_output_module *o,
 		GHashTable *params, const struct sr_dev_inst *sdi);
-SR_API int sr_output_send(struct sr_output *o,
+SR_API int sr_output_send(const struct sr_output *o,
 		const struct sr_datafeed_packet *packet, GString **out);
-SR_API int sr_output_free(struct sr_output *o);
+SR_API int sr_output_free(const struct sr_output *o);
 
 /*--- trigger.c -------------------------------------------------------------*/
 

@@ -38,9 +38,11 @@ struct context {
 	uint64_t num_samples;
 };
 
-static int init(struct sr_output *o)
+static int init(struct sr_output *o, GHashTable *options)
 {
 	struct context *ctx;
+
+	(void)options;
 
 	if (!(ctx = g_try_malloc(sizeof(struct context)))) {
 		sr_err("%s: ctx malloc failed", __func__);
@@ -88,7 +90,7 @@ static GString *gen_header(const struct sr_dev_inst *sdi, struct context *ctx)
 	return s;
 }
 
-static int receive(struct sr_output *o, const struct sr_datafeed_packet *packet,
+static int receive(const struct sr_output *o, const struct sr_datafeed_packet *packet,
 		GString **out)
 {
 	struct context *ctx;
@@ -148,9 +150,11 @@ static int cleanup(struct sr_output *o)
 	return SR_OK;
 }
 
-SR_PRIV struct sr_output_format output_ols = {
+SR_PRIV struct sr_output_module output_ols = {
 	.id = "ols",
-	.description = "OpenBench Logic Sniffer",
+	.name = "OLS",
+	.desc = "OpenBench Logic Sniffer",
+	.options = NULL,
 	.init = init,
 	.receive = receive,
 	.cleanup = cleanup
