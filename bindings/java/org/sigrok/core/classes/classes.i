@@ -204,7 +204,7 @@ MAP_COMMON(const sigrok::ConfigKey *, Glib::VariantBase, ConfigKey, Variant)
   std::shared_ptr<sigrok::Output> create_output(
     std::shared_ptr<sigrok::Device> device)
   {
-    std::map<std::string, std::string> options;
+    std::map<std::string, Glib::VariantBase> options;
     return $self->create_output(device, options);
   }
 }
