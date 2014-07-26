@@ -59,6 +59,7 @@ libsigrok_la_SOURCES += \
 	src/output/binary.c \
 	src/output/csv.c \
 	src/output/chronovu_la8.c \
+	src/output/wav.c \
 	src/output/gnuplot.c \
 	src/output/hex.c \
 	src/output/ols.c \

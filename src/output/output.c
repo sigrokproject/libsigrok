@@ -60,6 +60,7 @@ extern SR_PRIV struct sr_output_module output_gnuplot;
 extern SR_PRIV struct sr_output_module output_chronovu_la8;
 extern SR_PRIV struct sr_output_module output_csv;
 extern SR_PRIV struct sr_output_module output_analog;
+extern SR_PRIV struct sr_output_module output_wav;
 /* @endcond */
 
 static const struct sr_output_module *output_module_list[] = {
@@ -73,6 +74,7 @@ static const struct sr_output_module *output_module_list[] = {
 	&output_vcd,
 	&output_chronovu_la8,
 	&output_analog,
+	&output_wav,
 	NULL,
 };
 
