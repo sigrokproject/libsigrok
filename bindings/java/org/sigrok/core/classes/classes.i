@@ -7,6 +7,13 @@
   }
 %}
 
+/* Import interfaces. */
+%pragma(java) jniclassimports=%{
+  import org.sigrok.core.interfaces.LogCallback;
+  import org.sigrok.core.interfaces.DatafeedCallback;
+  import org.sigrok.core.interfaces.SourceCallback;
+%}
+
 /* Map Java FileDescriptor objects to int fds */
 %typemap(jni) int fd "jobject"
 %typemap(jtype) int fd "java.io.FileDescriptor"
@@ -210,6 +217,9 @@ MAP_COMMON(const sigrok::ConfigKey *, Glib::VariantBase, ConfigKey, Variant)
 
 /* Support Java log callbacks. */
 
+%typemap(javaimports) sigrok::Context
+  "import org.sigrok.core.interfaces.LogCallback;"
+
 %inline {
 typedef jobject jlogcallback;
 }
@@ -248,6 +258,9 @@ typedef jobject jlogcallback;
 }
 
 /* Support Java datafeed callbacks. */
+
+%typemap(javaimports) sigrok::Session
+  "import org.sigrok.core.interfaces.DatafeedCallback;"
 
 %inline {
 typedef jobject jdatafeedcallback;
@@ -295,6 +308,9 @@ typedef jobject jdatafeedcallback;
 }
 
 /* Support Java event source callbacks. */
+
+%typemap(javaimports) sigrok::EventSource
+  "import org.sigrok.core.interfaces.SourceCallback;"
 
 %inline {
 typedef jobject jsourcecallback;

@@ -1,4 +1,4 @@
-package org.sigrok.core.classes;
+package org.sigrok.core.interfaces;
 
 public interface SourceCallback 
 {

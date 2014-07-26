@@ -464,28 +464,29 @@ endif
 if BINDINGS_JAVA
 
 JDIR = bindings/java
-JPKG = org/sigrok/core/classes
-JINT = $(JDIR)/$(JPKG)/classes.i
-JSRC = $(JDIR)/$(JPKG)/classes_wrap.cxx
+JPKG = org/sigrok/core
+JCLS = $(JDIR)/$(JPKG)/classes
+JINT = $(JDIR)/$(JPKG)/interfaces
+JSRC = $(JCLS)/*.java $(JINT)/*.java
+JSWG = $(JCLS)/classes.i
+JCXX = $(JCLS)/classes_wrap.cxx
 JLIB = $(JDIR)/libsigrok_java_core_classes.so
 JJAR = $(JDIR)/sigrok-core.jar
 
 java-build: $(JJAR) $(JLIB)
 
-$(JSRC): $(JINT) bindings/swig/classes.i $(library_include_HEADERS)
+$(JCXX): $(JSWG) bindings/swig/classes.i $(library_include_HEADERS)
 	$(AM_V_GEN)swig -c++ -java -package org.sigrok.core.classes \
-		-Iinclude -Ibindings/cxx/include \
-		-outdir $(JDIR)/$(JPKG) $(JINT)
+		-Iinclude -Ibindings/cxx/include -outdir $(JCLS) $(JSWG)
 
-$(JJAR): $(JSRC) $(JDIR)/$(JPKG)/*.java
-	$(AM_V_GEN)$(JAVAC) -sourcepath $(JDIR) $(JDIR)/$(JPKG)/*.java
+$(JJAR): $(JCXX)
+	$(AM_V_GEN)$(JAVAC) -sourcepath $(JDIR) $(JSRC)
 	$(AM_V_at)jar cf $(JJAR) -C $(JDIR) $(JPKG)
 
-$(JLIB): $(JSRC) bindings/cxx/libsigrokxx.la $(library_include_HEADERS)
+$(JLIB): $(JCXX) bindings/cxx/libsigrokxx.la $(library_include_HEADERS)
 	$(AM_V_GEN)$(CXX) $(CXXFLAGS) -L.libs -Lbindings/cxx/.libs \
-		-fno-strict-aliasing -fPIC -shared \
-		$(JDIR)/$(JPKG)/classes_wrap.cxx -lsigrokxx \
-		-o $(JLIB)
+		-fno-strict-aliasing -fPIC -shared $(JCLS)/classes_wrap.cxx \
+		-lsigrokxx -o $(JLIB)
 
 java-install:
 	$(INSTALL) -d $(libdir)/jni
@@ -494,8 +495,10 @@ java-install:
 	$(INSTALL) $(JJAR) -t $(datadir)/java
 
 java-clean:
-	rm -f $(JSRC)
-	rm -f $(JDIR)/$(JPKG)/*.class
+	rm -f $(JCXX)
+	rm -f $(JCLS)/*.java
+	rm -f $(JCLS)/*.class
+	rm -f $(JINT)/*.class
 	rm -f $(JJAR)
 	rm -f $(JLIB)
 
