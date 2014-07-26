@@ -111,6 +111,7 @@ class SR_API QuantityFlag;
 class SR_API InputFileDevice;
 class SR_API Output;
 class SR_API DataType;
+class SR_API Option;
 
 /** Exception thrown when an error code is returned by any libsigrok call. */
 class SR_API Error: public exception
@@ -717,19 +718,52 @@ protected:
 	friend class InputFormat;
 };
 
+/** An option used by an output format */
+class SR_API Option
+{
+public:
+	/** Short name of this option suitable for command line usage. */
+	string get_id();
+	/** Short name of this option suitable for GUI usage. */
+	string get_name();
+	/** Description of this option in a sentence. */
+	string get_description();
+	/** Default value for this option. */
+	Glib::VariantBase get_default_value();
+	/** Possible values for this option, if a limited set. */
+	vector<Glib::VariantBase> get_values();
+protected:
+	Option(const struct sr_option *structure,
+		shared_ptr<const struct sr_option> structure_array);
+	~Option();
+	const struct sr_option *structure;
+	shared_ptr<const struct sr_option> structure_array;
+	/** Deleter needed to allow shared_ptr use with protected destructor. */
+	class Deleter
+	{
+	public:
+		void operator()(Option *option) { delete option; }
+	};
+	friend class Deleter;
+	friend class OutputFormat;
+};
+
 /** An output format supported by the library */
 class SR_API OutputFormat :
-	public StructureWrapper<Context, struct sr_output_format>
+	public StructureWrapper<Context, const struct sr_output_module>
 {
 public:
 	/** Name of this output format. */
 	string get_name();
 	/** Description of this output format. */
 	string get_description();
+	/** Options supported by this output format. */
+	map<string, shared_ptr<Option> > get_options();
 	/** Create an output using this format. */
-	shared_ptr<Output> create_output(shared_ptr<Device> device, map<string, string> options = {});
+	shared_ptr<Output> create_output(shared_ptr<Device> device,
+		map<string, Glib::VariantBase> options = {});
 protected:
-	OutputFormat(struct sr_output_format *structure);
+	OutputFormat(const struct sr_output_module *structure);
 	~OutputFormat();
 	friend class Context;
 	friend class Output;
@@ -744,12 +778,12 @@ public:
 protected:
 	Output(shared_ptr<OutputFormat> format, shared_ptr<Device> device);
 	Output(shared_ptr<OutputFormat> format,
-		shared_ptr<Device> device, map<string, string> options);
+		shared_ptr<Device> device, map<string, Glib::VariantBase> options);
 	~Output();
-	struct sr_output *structure;
+	const struct sr_output *structure;
 	const shared_ptr<OutputFormat> format;
 	const shared_ptr<Device> device;
-	const map<string, string> options;
+	const map<string, Glib::VariantBase> options;
 	/** Deleter needed to allow shared_ptr use with protected destructor. */
 	class Deleter
 	{

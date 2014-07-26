@@ -41,8 +41,7 @@ static const char *valid_string(const char *input)
 }
 
 /** Helper function to convert between map<string, string> and GHashTable */
-
-static GHashTable *map_to_hash(map<string, string> input)
+static GHashTable *map_to_hash_string(map<string, string> input)
 {
 	auto output = g_hash_table_new_full(
 		g_str_hash, g_str_equal, g_free, g_free);
@@ -50,6 +49,19 @@ static GHashTable *map_to_hash(map<string, string> input)
 		g_hash_table_insert(output,
 			g_strdup(entry.first.c_str()),
 			g_strdup(entry.second.c_str()));
+    return output;
+}
+
+/** Helper function to convert between map<string, VariantBase> and GHashTable */
+static GHashTable *map_to_hash_variant(map<string, Glib::VariantBase> input)
+{
+	auto output = g_hash_table_new_full(
+		g_variant_hash, g_variant_equal, g_free,
+		(void (*)(void *))g_variant_unref);
+	for (auto entry : input)
+		g_hash_table_insert(output,
+			g_strdup(entry.first.c_str()),
+			entry.second.gobj_copy());
     return output;
 }
 
@@ -85,10 +97,10 @@ Context::Context() :
 		for (int i = 0; input_list[i]; i++)
 			input_formats[input_list[i]->id] =
 				new InputFormat(input_list[i]);
-	struct sr_output_format **output_list = sr_output_list();
+	const struct sr_output_module **output_list = sr_output_list();
 	if (output_list)
 		for (int i = 0; output_list[i]; i++)
-			output_formats[output_list[i]->id] =
+			output_formats[sr_output_id_get(output_list[i])] =
 				new OutputFormat(output_list[i]);
 }
 
@@ -1116,7 +1128,7 @@ shared_ptr<InputFileDevice> InputFormat::open_file(string filename,
 		map<string, string> options)
 {
 	auto input = g_new(struct sr_input, 1);
-	input->param = map_to_hash(options);
+	input->param = map_to_hash_string(options);
 
 	/** Run initialisation. */
 	check(structure->init(input, filename.c_str()));
@@ -1147,8 +1159,47 @@ void InputFileDevice::load()
 	check(format->structure->loadfile(input, filename.c_str()));
 }
 
-OutputFormat::OutputFormat(struct sr_output_format *structure) :
-	StructureWrapper<Context, struct sr_output_format>(structure)
+Option::Option(const struct sr_option *structure,
+		shared_ptr<const struct sr_option> structure_array) :
+	structure(structure),
+	structure_array(structure_array)
+{
+}
+
+Option::~Option()
+{
+}
+
+string Option::get_id()
+{
+	return valid_string(structure->id);
+}
+
+string Option::get_name()
+{
+	return valid_string(structure->name);
+}
+
+string Option::get_description()
+{
+	return valid_string(structure->desc);
+}
+
+Glib::VariantBase Option::get_default_value()
+{
+	return Glib::VariantBase(structure->def, true);
+}
+
+vector<Glib::VariantBase> Option::get_values()
+{
+	vector<Glib::VariantBase> result;
+	for (auto l = structure->values; l; l = l->next)
+		result.push_back(Glib::VariantBase((GVariant *) l->data, true));
+	return result;
+}
+
+OutputFormat::OutputFormat(const struct sr_output_module *structure) :
+	StructureWrapper<Context, const struct sr_output_module>(structure)
 {
 }
 
@@ -1158,16 +1209,29 @@ OutputFormat::~OutputFormat()
 
 string OutputFormat::get_name()
 {
-	return valid_string(structure->id);
+	return valid_string(sr_output_id_get(structure));
 }
 
 string OutputFormat::get_description()
 {
-	return valid_string(structure->description);
+	return valid_string(sr_output_description_get(structure));
+}
+
+map<string, shared_ptr<Option>> OutputFormat::get_options()
+{
+	const struct sr_option *option = sr_output_options_get(structure);
+	auto option_array = shared_ptr<const struct sr_option>(
+		option, [=](const struct sr_option *) {
+			sr_output_options_free(structure); });
+	map<string, shared_ptr<Option>> result;
+	for (; option->id; option++)
+		result[option->id] = shared_ptr<Option>(
+			new Option(option, option_array), Option::Deleter());
+	return result;
 }
 
 shared_ptr<Output> OutputFormat::create_output(
-	shared_ptr<Device> device, map<string, string> options)
+	shared_ptr<Device> device, map<string, Glib::VariantBase> options)
 {
 	return shared_ptr<Output>(
 		new Output(
@@ -1177,16 +1241,15 @@ shared_ptr<Output> OutputFormat::create_output(
 }
 
 Output::Output(shared_ptr<OutputFormat> format,
-		shared_ptr<Device> device, map<string, string> options) :
+		shared_ptr<Device> device, map<string, Glib::VariantBase> options) :
 	structure(sr_output_new(format->structure,
-		map_to_hash(options), device->structure)),
+		map_to_hash_variant(options), device->structure)),
 	format(format), device(device), options(options)
 {
 }
 
 Output::~Output()
 {
-	g_hash_table_unref(structure->params);
 	check(sr_output_free(structure));
 }
 

@@ -76,6 +76,7 @@ template< class T > class enable_shared_from_this;
 %shared_ptr(sigrok::Logic);
 %shared_ptr(sigrok::InputFormat);
 %shared_ptr(sigrok::InputFileDevice);
+%shared_ptr(sigrok::Option);
 %shared_ptr(sigrok::OutputFormat);
 %shared_ptr(sigrok::Output);
 %shared_ptr(sigrok::Trigger);
@@ -111,6 +112,16 @@ template< class T > class enable_shared_from_this;
 %template(ConfigMap)
     std::map<const sigrok::ConfigKey *, Glib::VariantBase>;
 
+%template(OptionVector)
+    std::vector<std::shared_ptr<sigrok::Option> >;
+%template(OptionMap)
+    std::map<std::string, std::shared_ptr<sigrok::Option> >;
+
+%template(VariantVector)
+    std::vector<Glib::VariantBase>;
+%template(VariantMap)
+    std::map<std::string, Glib::VariantBase>;
+
 %template(QuantityFlagVector)
     std::vector<const sigrok::QuantityFlag *>;
 
@@ -145,6 +156,10 @@ typedef std::map<std::string, std::shared_ptr<sigrok::OutputFormat> >
     map_string_OutputFormat;
 typedef std::map<std::string, std::shared_ptr<sigrok::ChannelGroup> >
     map_string_ChannelGroup;
+typedef std::map<std::string, std::shared_ptr<sigrok::Option> >
+    map_string_Option;
+typedef std::map<std::string, Glib::VariantBase>
+    map_string_Variant;
 typedef std::map<const sigrok::ConfigKey *, Glib::VariantBase>
     map_ConfigKey_Variant;
 }
@@ -175,10 +190,24 @@ typedef std::map<const sigrok::ConfigKey *, Glib::VariantBase>
 %attributestring(sigrok::InputFormat,
     std::string, description, get_description);
 
+%attributestring(sigrok::Option,
+    std::string, id, get_id);
+%attributestring(sigrok::Option,
+    std::string, name, get_name);
+%attributestring(sigrok::Option,
+    std::string, description, get_description);
+/* Currently broken on Python due to some issue with variant typemaps. */
+/* %attributeval(sigrok::Option,
+    Glib::VariantBase, default_value, get_default_value); */
+%attributeval(sigrok::Option,
+    std::vector<Glib::VariantBase>, values, get_values);
+
 %attributestring(sigrok::OutputFormat,
     std::string, name, get_name);
 %attributestring(sigrok::OutputFormat,
     std::string, description, get_description);
+%attributeval(sigrok::OutputFormat,
+    map_string_Option, options, get_options);
 
 %attributestring(sigrok::Device, std::string, description, get_description);
 %attributestring(sigrok::Device, std::string, vendor, get_vendor);

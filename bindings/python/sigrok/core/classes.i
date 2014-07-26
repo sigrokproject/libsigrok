@@ -236,7 +236,7 @@ typedef guint pyg_flags_type;
 #include "libsigrok/libsigrok.hpp"
 
 /* Convert from a Python dict to a std::map<std::string, std::string> */
-std::map<std::string, std::string> dict_to_map(PyObject *dict)
+std::map<std::string, std::string> dict_to_map_string(PyObject *dict)
 {
     if (!PyDict_Check(dict))
         throw sigrok::Error(SR_ERR_ARG);
@@ -278,6 +278,51 @@ Glib::VariantBase python_to_variant_by_key(PyObject *input, const sigrok::Config
         return Glib::Variant<gint32>::create(PyInt_AsLong(input));
     else
         throw sigrok::Error(SR_ERR_ARG);
+}
+
+/* Convert from a Python type to Glib::Variant, according to Option data type. */
+Glib::VariantBase python_to_variant_by_option(PyObject *input,
+    std::shared_ptr<sigrok::Option> option)
+{
+    GVariantType *type = option->get_default_value().get_type().gobj();
+
+    if (type == G_VARIANT_TYPE_UINT64 && PyInt_Check(input))
+        return Glib::Variant<guint64>::create(PyInt_AsLong(input));
+    if (type == G_VARIANT_TYPE_UINT64 && PyLong_Check(input))
+        return Glib::Variant<guint64>::create(PyLong_AsLong(input));
+    else if (type == G_VARIANT_TYPE_STRING && PyString_Check(input))
+        return Glib::Variant<std::string>::create(PyString_AsString(input));
+    else if (type == G_VARIANT_TYPE_BOOLEAN && PyBool_Check(input))
+        return Glib::Variant<bool>::create(input == Py_True);
+    else if (type == G_VARIANT_TYPE_DOUBLE && PyFloat_Check(input))
+        return Glib::Variant<double>::create(PyFloat_AsDouble(input));
+    else if (type == G_VARIANT_TYPE_INT32 && PyInt_Check(input))
+        return Glib::Variant<gint32>::create(PyInt_AsLong(input));
+    else
+        throw sigrok::Error(SR_ERR_ARG);
+}
+
+/* Convert from a Python dict to a std::map<std::string, std::string> */
+std::map<std::string, Glib::VariantBase> dict_to_map_options(PyObject *dict,
+    std::map<std::string, std::shared_ptr<sigrok::Option> > options)
+{
+    if (!PyDict_Check(dict))
+        throw sigrok::Error(SR_ERR_ARG);
+
+    std::map<std::string, Glib::VariantBase> output;
+
+    PyObject *py_key, *py_value;
+    Py_ssize_t pos = 0;
+
+    while (PyDict_Next(dict, &pos, &py_key, &py_value)) {
+        if (!PyString_Check(py_key))
+            throw sigrok::Error(SR_ERR_ARG);
+        auto key = PyString_AsString(py_key);
+        auto value = python_to_variant_by_option(py_value, options[key]);
+        output[key] = value;
+    }
+
+    return output;
 }
 
 %}
@@ -327,7 +372,7 @@ Glib::VariantBase python_to_variant_by_key(PyObject *input, const sigrok::Config
 {
     std::shared_ptr<sigrok::InputFileDevice> _open_file_kwargs(std::string filename, PyObject *dict)
     {
-        return $self->open_file(filename, dict_to_map(dict));
+        return $self->open_file(filename, dict_to_map_string(dict));
     }
 }
 
@@ -345,7 +390,8 @@ Glib::VariantBase python_to_variant_by_key(PyObject *input, const sigrok::Config
     std::shared_ptr<sigrok::Output> _create_output_kwargs(
         std::shared_ptr<sigrok::Device> device, PyObject *dict)
     {
-        return $self->create_output(device, dict_to_map(dict));
+        return $self->create_output(device,
+            dict_to_map_options(dict, $self->get_options()));
     }
 }
 
