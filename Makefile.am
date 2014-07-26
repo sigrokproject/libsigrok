@@ -442,7 +442,7 @@ python-quietclean:
 		| grep -v "can.t clean it"; true
 
 $(PDIR)/timestamp: bindings/cxx/libsigrokxx.la $(PDIR)/sigrok/core/classes.i \
-		$(library_include_HEADERS)
+		bindings/swig/classes.i $(library_include_HEADERS)
 	$(AM_V_at)$(MAKE) python-quietclean
 	$(AM_V_GEN)cd $(PDIR) && python setup.py --quiet build 3>&1 1>&2 2>&3 \
 		| grep -v "command line option.*Wstrict-prototypes"; true
