@@ -438,7 +438,7 @@ PDIR = bindings/python
 python-build: $(PDIR)/timestamp
 
 python-quietclean:
-	$(AM_V_at)python $(PDIR)/setup.py --quiet clean --all 3>&1 1>&2 2>&3 \
+	$(AM_V_at)cd $(PDIR) && python setup.py --quiet clean --all 3>&1 1>&2 2>&3 \
 		| grep -v "can.t clean it"; true
 
 $(PDIR)/timestamp: bindings/cxx/libsigrokxx.la $(PDIR)/sigrok/core/classes.i \
