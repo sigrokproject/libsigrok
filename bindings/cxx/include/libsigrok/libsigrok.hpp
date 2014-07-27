@@ -193,21 +193,26 @@ public:
 	map<string, shared_ptr<OutputFormat> > get_output_formats();
 	/** Current log level. */
 	const LogLevel *get_log_level();
-	/** Set the log level. */
+	/** Set the log level.
+	 * @param level LogLevel to use. */
 	void set_log_level(const LogLevel *level);
 	/** Current log domain. */
 	string get_log_domain();
-	/** Set the log domain. */
+	/** Set the log domain.
+	 * @param value Log domain prefix string. */
 	void set_log_domain(string value);
-	/** Set the log callback. */
+	/** Set the log callback.
+	 * @param callback Callback of the form callback(LogLevel, string). */
 	void set_log_callback(LogCallbackFunction callback);
 	/** Set the log callback to the default handler. */
 	void set_log_callback_default();
 	/** Create a new session. */
 	shared_ptr<Session> create_session();
-	/** Load a saved session. */
+	/** Load a saved session.
+	 * @param filename File name string. */
 	shared_ptr<Session> load_session(string filename);
-	/** Create a new trigger. */
+	/** Create a new trigger.
+	 * @param name Name string for new trigger. */
 	shared_ptr<Trigger> create_trigger(string name);
 protected:
 	struct sr_context *structure;
@@ -237,7 +242,8 @@ public:
 	string get_name();
 	/** Long name for this driver. */
 	string get_long_name();
-	/** Scan for devices and return a list of devices found. */
+	/** Scan for devices and return a list of devices found.
+	 * @param options Mapping of (ConfigKey, value) pairs. */
 	vector<shared_ptr<HardwareDevice> > scan(
 		map<const ConfigKey *, Glib::VariantBase> options = {});
 protected:
@@ -254,11 +260,15 @@ protected:
 class SR_API Configurable
 {
 public:
-	/** Read configuration for the given key. */
+	/** Read configuration for the given key.
+	 * @param key ConfigKey to read. */
 	Glib::VariantBase config_get(const ConfigKey *key);
-	/** Set configuration for the given key to a specified value. */
+	/** Set configuration for the given key to a specified value.
+	 * @param key ConfigKey to set.
+	 * @param value Value to set. */
 	void config_set(const ConfigKey *key, Glib::VariantBase value);
-	/** Enumerate available values for the given configuration key. */
+	/** Enumerate available values for the given configuration key.
+	 * @param key ConfigKey to enumerate values for. */
 	Glib::VariantContainerBase config_list(const ConfigKey *key);
 protected:
 	Configurable(
@@ -333,13 +343,15 @@ class SR_API Channel : public StructureWrapper<Device, struct sr_channel>
 public:
 	/** Current name of this channel. */
 	string get_name();
-	/** Set the name of this channel. */
+	/** Set the name of this channel. *
+	 * @param name Name string to set. */
 	void set_name(string name);
 	/** Type of this channel. */
 	const ChannelType *get_type();
 	/** Enabled status of this channel. */
 	bool get_enabled();
-	/** Set the enabled status of this channel. */
+	/** Set the enabled status of this channel.
+	 * @param value Boolean value to set. */
 	void set_enabled(bool value);
 	/** Get the index number of this channel. */
 	unsigned int get_index();
@@ -374,8 +386,11 @@ protected:
 class SR_API Trigger : public enable_shared_from_this<Trigger>
 {
 public:
+	/** Name of this trigger configuration. */
 	string get_name();
+	/** List of the stages in this trigger. */
 	vector<shared_ptr<TriggerStage> > get_stages();
+	/** Add a new stage to this trigger. */
 	shared_ptr<TriggerStage> add_stage();
 protected:
 	Trigger(shared_ptr<Context> context, string name);
@@ -397,9 +412,18 @@ protected:
 class SR_API TriggerStage : public StructureWrapper<Trigger, struct sr_trigger_stage>
 {
 public:
+	/** Index number of this stage. */
 	int get_number();
+	/** List of match conditions on this stage. */
 	vector<shared_ptr<TriggerMatch> > get_matches();
+	/** Add a new match condition to this stage.
+	 * @param channel Channel to match on.
+	 * @param type TriggerMatchType to apply. */
 	void add_match(shared_ptr<Channel> channel, const TriggerMatchType *type);
+	/** Add a new match condition to this stage.
+	 * @param channel Channel to match on.
+	 * @param type TriggerMatchType to apply.
+	 * @param value Threshold value. */
 	void add_match(shared_ptr<Channel> channel, const TriggerMatchType *type, float value);
 protected:
 	vector<TriggerMatch *> matches;
@@ -412,8 +436,11 @@ protected:
 class SR_API TriggerMatch : public StructureWrapper<TriggerStage, struct sr_trigger_match>
 {
 public:
+	/** Channel this condition matches on. */
 	shared_ptr<Channel> get_channel();
+	/** Type of match. */
 	const TriggerMatchType *get_type();
+	/** Threshold value. */
 	float get_value();
 protected:
 	TriggerMatch(struct sr_trigger_match *structure, shared_ptr<Channel> channel);
@@ -459,13 +486,24 @@ protected:
 class SR_API EventSource
 {
 public:
-	/** Create an event source from a file descriptor. */
+	/** Create an event source from a file descriptor.
+	 * @param fd File descriptor.
+	 * @param events GLib IOCondition event mask.
+	 * @param timeout Timeout in milliseconds.
+	 * @param callback Callback of the form callback(events) */
 	static shared_ptr<EventSource> create(int fd, Glib::IOCondition events,
 		int timeout, SourceCallbackFunction callback);
-	/** Create an event source from a Glib::PollFD */
+	/** Create an event source from a GLib PollFD
+	 * @param pollfd GLib PollFD
+	 * @param timeout Timeout in milliseconds.
+	 * @param callback Callback of the form callback(events) */
 	static shared_ptr<EventSource> create(Glib::PollFD pollfd, int timeout,
 		SourceCallbackFunction callback);
-	/** Create an event source from a Glib::IOChannel */
+	/** Create an event source from a GLib IOChannel
+	 * @param channel GLib IOChannel.
+	 * @param events GLib IOCondition event mask.
+	 * @param timeout Timeout in milliseconds.
+	 * @param callback Callback of the form callback(events) */
 	static shared_ptr<EventSource> create(
 		Glib::RefPtr<Glib::IOChannel> channel, Glib::IOCondition events,
 		int timeout, SourceCallbackFunction callback);
@@ -498,19 +536,23 @@ protected:
 class SR_API Session 
 {
 public:
-	/** Add a device to this session. */
+	/** Add a device to this session.
+	 * @param device Device to add. */
 	void add_device(shared_ptr<Device> device);
 	/** List devices attached to this session. */
 	vector<shared_ptr<Device> > get_devices();
 	/** Remove all devices from this session. */
 	void remove_devices();
-	/** Add a datafeed callback to this session. */
+	/** Add a datafeed callback to this session.
+	 * @param callback Callback of the form callback(Device, Packet). */
 	void add_datafeed_callback(DatafeedCallbackFunction callback);
 	/** Remove all datafeed callbacks from this session. */
 	void remove_datafeed_callbacks();
-	/** Add an event source. */
+	/** Add an I/O event source.
+	 * @param source EventSource to add. */
 	void add_source(shared_ptr<EventSource> source);
-	/** Remove an event source. */
+	/** Remove an event source.
+	 * @param source EventSource to remove. */
 	void remove_source(shared_ptr<EventSource> source);
 	/** Start the session. */
 	void start();
@@ -518,15 +560,18 @@ public:
 	void run();
 	/** Stop the session. */
 	void stop();
-	/** Begin saving session to a file. */
+	/** Begin saving session to a file.
+	 * @param filename File name string. */
 	void begin_save(string filename);
-	/** Append a packet to the session file being saved. */
+	/** Append a packet to the session file being saved.
+	 * @param packet Packet to append. */
 	void append(shared_ptr<Packet> packet);
 	/** Append raw logic data to the session file being saved. */
 	void append(void *data, size_t length, unsigned int unit_size);
 	/** Get current trigger setting. */
 	shared_ptr<Trigger> get_trigger();
-	/** Set trigger setting. */
+	/** Set trigger setting.
+	 * @param trigger Trigger object to use. */
 	void set_trigger(shared_ptr<Trigger> trigger);
 protected:
 	Session(shared_ptr<Context> context);
@@ -609,7 +654,9 @@ class SR_API Header : public PacketPayload,
 	public StructureWrapper<Packet, const struct sr_datafeed_header>
 {
 public:
+	/* Feed version number. */
 	int get_feed_version();
+	/* Start time of this session. */
 	Glib::TimeVal get_start_time();
 protected:
 	Header(const struct sr_datafeed_header *structure);
@@ -623,6 +670,7 @@ class SR_API Meta : public PacketPayload,
 	public StructureWrapper<Packet, const struct sr_datafeed_meta>
 {
 public:
+	/* Mapping of (ConfigKey, value) pairs. */
 	map<const ConfigKey *, Glib::VariantBase> get_config();
 protected:
 	Meta(const struct sr_datafeed_meta *structure);
@@ -683,9 +731,12 @@ public:
 	string get_name();
 	/** Description of this input format. */
 	string get_description();
-	/** Check whether a given file matches this input format. */
+	/** Check whether a given file matches this input format.
+	 * @param filename File name string. */
 	bool format_match(string filename);
-	/** Open a file using this input format. */
+	/** Open a file using this input format.
+	 * @param filename File name string.
+	 * @param options Mapping of (option name, value) strings. */
 	shared_ptr<InputFileDevice> open_file(string filename,
 		map<string, string> options = {});
 protected:
@@ -759,7 +810,9 @@ public:
 	string get_description();
 	/** Options supported by this output format. */
 	map<string, shared_ptr<Option> > get_options();
-	/** Create an output using this format. */
+	/** Create an output using this format.
+	 * @param device Device to output for.
+	 * @param options Mapping of (option name, value) pairs. */
 	shared_ptr<Output> create_output(shared_ptr<Device> device,
 		map<string, Glib::VariantBase> options = {});
 protected:
@@ -773,7 +826,8 @@ protected:
 class SR_API Output
 {
 public:
-	/** Update output with data from the given packet. */
+	/** Update output with data from the given packet.
+	 * @param packet Packet to handle. */
 	string receive(shared_ptr<Packet> packet);
 protected:
 	Output(shared_ptr<OutputFormat> format, shared_ptr<Device> device);
