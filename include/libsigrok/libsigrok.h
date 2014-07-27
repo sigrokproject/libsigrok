@@ -756,6 +756,9 @@ enum sr_configkey {
 	/** Choice of clock edge for external clock ("r" or "f"). */
 	SR_CONF_CLOCK_EDGE,
 
+	/** Amplitude of a source without strictly-defined MQ. */
+	SR_CONF_AMPLITUDE,
+
 	/*--- Special stuff -------------------------------------------------*/
 
 	/** Scan options supported by the driver. */

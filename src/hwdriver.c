@@ -124,6 +124,8 @@ static struct sr_config_info sr_config_info_data[] = {
 		"Sample limit", NULL},
 	{SR_CONF_CLOCK_EDGE, SR_T_STRING, "clock_edge",
 		"Clock edge", NULL},
+	{SR_CONF_AMPLITUDE, SR_T_FLOAT, "amplitude",
+		"Amplitude", NULL},
 	{0, 0, NULL, NULL, NULL},
 };
 
