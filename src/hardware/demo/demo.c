@@ -42,7 +42,7 @@
 /* Size of the analog pattern space per channel. */
 #define ANALOG_BUFSIZE       4096
 
-#define ANALOG_AMPLITUDE 25
+#define DEFAULT_ANALOG_AMPLITUDE 25
 #define ANALOG_SAMPLES_PER_PERIOD 20
 
 /* Logic patterns we can generate. */
@@ -99,6 +99,7 @@ static const char *analog_pattern_str[] = {
 
 struct analog_gen {
 	int pattern;
+	float amplitude;
 	float pattern_data[ANALOG_BUFSIZE];
 	unsigned int num_samples;
 	struct sr_datafeed_analog packet;
@@ -143,6 +144,7 @@ static const int devopts[] = {
 
 static const int devopts_cg[] = {
 	SR_CONF_PATTERN_MODE,
+	SR_CONF_AMPLITUDE,
 };
 
 static const uint64_t samplerates[] = {
@@ -189,7 +191,7 @@ static void generate_analog_pattern(const struct sr_channel_group *cg, uint64_t 
 
 	switch (ag->pattern) {
 	case PATTERN_SQUARE:
-		value = ANALOG_AMPLITUDE;
+		value = ag->amplitude;
 		last_end = 0;
 		for (i = 0; i < num_samples; i++) {
 			if (i % 5 == 0)
@@ -213,7 +215,7 @@ static void generate_analog_pattern(const struct sr_channel_group *cg, uint64_t 
 
 		for (i = 0; i < num_samples; i++) {
 			t = (double) i / (double) sample_rate;
-			ag->pattern_data[i] = ANALOG_AMPLITUDE *
+			ag->pattern_data[i] = ag->amplitude *
 						sin(2 * M_PI * frequency * t);
 		}
 
@@ -228,7 +230,7 @@ static void generate_analog_pattern(const struct sr_channel_group *cg, uint64_t 
 
 		for (i = 0; i < num_samples; i++) {
 			t = (double) i / (double) sample_rate;
-			ag->pattern_data[i] = (2 * ANALOG_AMPLITUDE / M_PI) *
+			ag->pattern_data[i] = (2 * ag->amplitude / M_PI) *
 						asin(sin(2 * M_PI * frequency * t));
 		}
 
@@ -243,7 +245,7 @@ static void generate_analog_pattern(const struct sr_channel_group *cg, uint64_t 
 
 		for (i = 0; i < num_samples; i++) {
 			t = (double) i / (double) sample_rate;
-			ag->pattern_data[i] = 2 * ANALOG_AMPLITUDE *
+			ag->pattern_data[i] = 2 * ag->amplitude *
 						((t * frequency) - floor(0.5f + t * frequency));
 		}
 
@@ -338,6 +340,7 @@ static GSList *scan(GSList *options)
 		/* Every channel group gets a generator struct. */
 		if (!(ag = g_try_malloc(sizeof(struct analog_gen))))
 			return NULL;
+		ag->amplitude = DEFAULT_ANALOG_AMPLITUDE;
 		ag->packet.channels = cg->channels;
 		ag->packet.mq = 0;
 		ag->packet.mqflags = 0;
@@ -442,6 +445,15 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 	case SR_CONF_NUM_ANALOG_CHANNELS:
 		*data = g_variant_new_int32(devc->num_analog_channels);
 		break;
+	case SR_CONF_AMPLITUDE:
+		if (!cg)
+			return SR_ERR_CHANNEL_GROUP;
+		ch = cg->channels->data;
+		if (ch->type != SR_CHANNEL_ANALOG)
+			return SR_ERR_ARG;
+		ag = cg->priv;
+		*data = g_variant_new_double(ag->amplitude);
+		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -519,6 +531,15 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 			ag->pattern = pattern;
 		} else
 			return SR_ERR_BUG;
+		break;
+	case SR_CONF_AMPLITUDE:
+		if (!cg)
+			return SR_ERR_CHANNEL_GROUP;
+		ch = cg->channels->data;
+		if (ch->type != SR_CHANNEL_ANALOG)
+			return SR_ERR_ARG;
+		ag = cg->priv;
+		ag->amplitude = g_variant_get_double(data);
 		break;
 	default:
 		ret = SR_ERR_NA;
