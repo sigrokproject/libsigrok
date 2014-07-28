@@ -125,7 +125,7 @@ struct dev_context {
 	unsigned char logic_data[LOGIC_BUFSIZE];
 	/* Analog */
 	int32_t num_analog_channels;
-	GSList *analog_channel_groups;
+	GHashTable *ch_ag;
 };
 
 static const int32_t scanopts[] = {
@@ -142,7 +142,11 @@ static const int devopts[] = {
 	SR_CONF_LIMIT_MSEC,
 };
 
-static const int devopts_cg[] = {
+static const int devopts_cg_logic[] = {
+	SR_CONF_PATTERN_MODE,
+};
+
+static const int devopts_cg_analog[] = {
 	SR_CONF_PATTERN_MODE,
 	SR_CONF_AMPLITUDE,
 };
@@ -175,19 +179,16 @@ static int init(struct sr_context *sr_ctx)
 	return std_init(sr_ctx, di, LOG_PREFIX);
 }
 
-static void generate_analog_pattern(const struct sr_channel_group *cg, uint64_t sample_rate)
+static void generate_analog_pattern(struct analog_gen *ag, uint64_t sample_rate)
 {
-	struct analog_gen *ag;
 	double t, frequency;
 	float value;
 	unsigned int num_samples, i;
 	int last_end;
 
-	ag = cg->priv;
-	num_samples = ANALOG_BUFSIZE / sizeof(float);
+	sr_dbg("Generating %s pattern.", analog_pattern_str[ag->pattern]);
 
-	sr_dbg("Generating %s pattern for channel group %s",
-	       analog_pattern_str[ag->pattern], cg->name);
+	num_samples = ANALOG_BUFSIZE / sizeof(float);
 
 	switch (ag->pattern) {
 	case PATTERN_SQUARE:
@@ -260,7 +261,7 @@ static GSList *scan(GSList *options)
 	struct dev_context *devc;
 	struct sr_dev_inst *sdi;
 	struct sr_channel *ch;
-	struct sr_channel_group *cg;
+	struct sr_channel_group *cg, *acg;
 	struct sr_config *src;
 	struct analog_gen *ag;
 	GSList *devices, *l;
@@ -291,10 +292,7 @@ static GSList *scan(GSList *options)
 	}
 	sdi->driver = di;
 
-	if (!(devc = g_try_malloc(sizeof(struct dev_context)))) {
-		sr_err("Device context malloc failed.");
-		return NULL;
-	}
+	devc = g_malloc(sizeof(struct dev_context));
 	devc->cur_samplerate = SR_KHZ(200);
 	devc->limit_samples = 0;
 	devc->limit_msec = 0;
@@ -304,14 +302,10 @@ static GSList *scan(GSList *options)
 	devc->logic_unitsize = (devc->num_logic_channels + 7) / 8;
 	devc->logic_pattern = PATTERN_SIGROK;
 	devc->num_analog_channels = num_analog_channels;
-	devc->analog_channel_groups = NULL;
 
 	/* Logic channels, all in one channel group. */
-	if (!(cg = g_try_malloc(sizeof(struct sr_channel_group))))
-		return NULL;
+	cg = g_malloc0(sizeof(struct sr_channel_group));
 	cg->name = g_strdup("Logic");
-	cg->channels = NULL;
-	cg->priv = NULL;
 	for (i = 0; i < num_logic_channels; i++) {
 		sprintf(channel_name, "D%d", i);
 		if (!(ch = sr_channel_new(i, SR_CHANNEL_LOGIC, TRUE, channel_name)))
@@ -322,24 +316,28 @@ static GSList *scan(GSList *options)
 	sdi->channel_groups = g_slist_append(NULL, cg);
 
 	/* Analog channels, channel groups and pattern generators. */
-
 	pattern = 0;
-	for (i = 0; i < num_analog_channels; i++) {
-		sprintf(channel_name, "A%d", i);
-		if (!(ch = sr_channel_new(i + num_logic_channels,
-				SR_CHANNEL_ANALOG, TRUE, channel_name)))
-			return NULL;
-		sdi->channels = g_slist_append(sdi->channels, ch);
+	/* An "Analog" channel group with all analog channels in it. */
+	acg = g_malloc0(sizeof(struct sr_channel_group));
+	acg->name = g_strdup("Analog");
+	sdi->channel_groups = g_slist_append(sdi->channel_groups, acg);
 
-		/* Every analog channel gets its own channel group. */
-		if (!(cg = g_try_malloc(sizeof(struct sr_channel_group))))
-			return NULL;
+	devc->ch_ag = g_hash_table_new(g_direct_hash, g_direct_equal);
+	for (i = 0; i < num_analog_channels; i++) {
+		snprintf(channel_name, 16, "A%d", i);
+		ch = sr_channel_new(i + num_logic_channels, SR_CHANNEL_ANALOG,
+				TRUE, channel_name);
+		sdi->channels = g_slist_append(sdi->channels, ch);
+		acg->channels = g_slist_append(acg->channels, ch);
+
+		/* Every analog channel gets its own channel group as well. */
+		cg = g_malloc0(sizeof(struct sr_channel_group));
 		cg->name = g_strdup(channel_name);
 		cg->channels = g_slist_append(NULL, ch);
+		sdi->channel_groups = g_slist_append(sdi->channel_groups, cg);
 
-		/* Every channel group gets a generator struct. */
-		if (!(ag = g_try_malloc(sizeof(struct analog_gen))))
-			return NULL;
+		/* Every channel gets a generator struct. */
+		ag = g_malloc(sizeof(struct analog_gen));
 		ag->amplitude = DEFAULT_ANALOG_AMPLITUDE;
 		ag->packet.channels = cg->channels;
 		ag->packet.mq = 0;
@@ -347,10 +345,7 @@ static GSList *scan(GSList *options)
 		ag->packet.unit = SR_UNIT_VOLT;
 		ag->packet.data = ag->pattern_data;
 		ag->pattern = pattern;
-		cg->priv = ag;
-
-		sdi->channel_groups = g_slist_append(sdi->channel_groups, cg);
-		devc->analog_channel_groups = g_slist_append(devc->analog_channel_groups, cg);
+		g_hash_table_insert(devc->ch_ag, ch, ag);
 
 		if (++pattern == ARRAY_SIZE(analog_pattern_str))
 			pattern = 0;
@@ -385,16 +380,16 @@ static int dev_close(struct sr_dev_inst *sdi)
 static void clear_helper(void *priv)
 {
 	struct dev_context *devc;
-	struct sr_channel_group *cg;
-	GSList *l;
+	GHashTableIter iter;
+	void *value;
 
 	devc = priv;
-	for (l = devc->analog_channel_groups; l; l = l->next) {
-		cg = l->data;
-		/* Analog generators. */
-		g_free(cg->priv);
-	}
-	g_slist_free(devc->analog_channel_groups);
+
+	/* Analog generators. */
+	g_hash_table_iter_init(&iter, devc->ch_ag);
+	while (g_hash_table_iter_next(&iter, NULL, &value))
+		g_free(value);
+	g_hash_table_unref(devc->ch_ag);
 	g_free(devc);
 }
 
@@ -428,12 +423,13 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 	case SR_CONF_PATTERN_MODE:
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
+		/* Any channel in the group will do. */
 		ch = cg->channels->data;
 		if (ch->type == SR_CHANNEL_LOGIC) {
 			pattern = devc->logic_pattern;
 			*data = g_variant_new_string(logic_pattern_str[pattern]);
 		} else if (ch->type == SR_CHANNEL_ANALOG) {
-			ag = cg->priv;
+			ag = g_hash_table_lookup(devc->ch_ag, ch);
 			pattern = ag->pattern;
 			*data = g_variant_new_string(analog_pattern_str[pattern]);
 		} else
@@ -448,10 +444,11 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 	case SR_CONF_AMPLITUDE:
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
+		/* Any channel in the group will do. */
 		ch = cg->channels->data;
 		if (ch->type != SR_CHANNEL_ANALOG)
 			return SR_ERR_ARG;
-		ag = cg->priv;
+		ag = g_hash_table_lookup(devc->ch_ag, ch);
 		*data = g_variant_new_double(ag->amplitude);
 		break;
 	default:
@@ -467,7 +464,8 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 	struct dev_context *devc;
 	struct analog_gen *ag;
 	struct sr_channel *ch;
-	int pattern, ret;
+	GSList *l;
+	int logic_pattern, analog_pattern, ret;
 	unsigned int i;
 	const char *stropt;
 
@@ -497,49 +495,55 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 			return SR_ERR_CHANNEL_GROUP;
 		stropt = g_variant_get_string(data, NULL);
 		ch = cg->channels->data;
-		pattern = -1;
-		if (ch->type == SR_CHANNEL_LOGIC) {
-			for (i = 0; i < ARRAY_SIZE(logic_pattern_str); i++) {
-				if (!strcmp(stropt, logic_pattern_str[i])) {
-					pattern = i;
-					break;
-				}
+		logic_pattern = analog_pattern = -1;
+		for (i = 0; i < ARRAY_SIZE(logic_pattern_str); i++) {
+			if (!strcmp(stropt, logic_pattern_str[i])) {
+				logic_pattern = i;
+				break;
 			}
-			if (pattern == -1)
-				return SR_ERR_ARG;
-			devc->logic_pattern = pattern;
-
-			/* Might as well do this now, these are static. */
-			if (pattern == PATTERN_ALL_LOW)
-				memset(devc->logic_data, 0x00, LOGIC_BUFSIZE);
-			else if (pattern == PATTERN_ALL_HIGH)
-				memset(devc->logic_data, 0xff, LOGIC_BUFSIZE);
-			sr_dbg("Setting logic pattern to %s",
-					logic_pattern_str[pattern]);
-		} else if (ch->type == SR_CHANNEL_ANALOG) {
-			for (i = 0; i < ARRAY_SIZE(analog_pattern_str); i++) {
-				if (!strcmp(stropt, analog_pattern_str[i])) {
-					pattern = i;
-					break;
-				}
+		}
+		for (i = 0; i < ARRAY_SIZE(analog_pattern_str); i++) {
+			if (!strcmp(stropt, analog_pattern_str[i])) {
+				analog_pattern = i;
+				break;
 			}
-			if (pattern == -1)
-				return SR_ERR_ARG;
-			sr_dbg("Setting analog pattern for channel group %s to %s",
-					cg->name, analog_pattern_str[pattern]);
-			ag = cg->priv;
-			ag->pattern = pattern;
-		} else
-			return SR_ERR_BUG;
+		}
+		if (logic_pattern == -1 && analog_pattern == -1)
+			return SR_ERR_ARG;
+		for (l = cg->channels; l; l = l->next) {
+			ch = l->data;
+			if (ch->type == SR_CHANNEL_LOGIC) {
+				if (logic_pattern == -1)
+					return SR_ERR_ARG;
+				sr_dbg("Setting logic pattern to %s",
+						logic_pattern_str[logic_pattern]);
+				devc->logic_pattern = logic_pattern;
+				/* Might as well do this now, these are static. */
+				if (logic_pattern == PATTERN_ALL_LOW)
+					memset(devc->logic_data, 0x00, LOGIC_BUFSIZE);
+				else if (logic_pattern == PATTERN_ALL_HIGH)
+					memset(devc->logic_data, 0xff, LOGIC_BUFSIZE);
+			} else if (ch->type == SR_CHANNEL_ANALOG) {
+				if (analog_pattern == -1)
+					return SR_ERR_ARG;
+				sr_dbg("Setting analog pattern for channel %s to %s",
+						ch->name, analog_pattern_str[analog_pattern]);
+				ag = g_hash_table_lookup(devc->ch_ag, ch);
+				ag->pattern = analog_pattern;
+			} else
+				return SR_ERR_BUG;
+		}
 		break;
 	case SR_CONF_AMPLITUDE:
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		ch = cg->channels->data;
-		if (ch->type != SR_CHANNEL_ANALOG)
-			return SR_ERR_ARG;
-		ag = cg->priv;
-		ag->amplitude = g_variant_get_double(data);
+		for (l = cg->channels; l; l = l->next) {
+			ch = l->data;
+			if (ch->type != SR_CHANNEL_ANALOG)
+				return SR_ERR_ARG;
+			ag = g_hash_table_lookup(devc->ch_ag, ch);
+			ag->amplitude = g_variant_get_double(data);
+		}
 		break;
 	default:
 		ret = SR_ERR_NA;
@@ -583,11 +587,20 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 			return SR_ERR_NA;
 		}
 	} else {
+		/* Any channel in the group will do. */
 		ch = cg->channels->data;
 		switch (key) {
 		case SR_CONF_DEVICE_OPTIONS:
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-					devopts_cg, ARRAY_SIZE(devopts_cg), sizeof(int32_t));
+			if (ch->type == SR_CHANNEL_LOGIC)
+				*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+						devopts_cg_logic, ARRAY_SIZE(devopts_cg_logic),
+						sizeof(int32_t));
+			else if (ch->type == SR_CHANNEL_ANALOG)
+				*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+						devopts_cg_analog, ARRAY_SIZE(devopts_cg_analog),
+						sizeof(int32_t));
+			else
+				return SR_ERR_BUG;
 			break;
 		case SR_CONF_PATTERN_MODE:
 			if (ch->type == SR_CHANNEL_LOGIC)
@@ -655,9 +668,9 @@ static int prepare_data(int fd, int revents, void *cb_data)
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
-	struct sr_channel_group *cg;
 	struct analog_gen *ag;
-	GSList *l;
+	GHashTableIter iter;
+	void *value;
 	uint64_t logic_todo, analog_todo, expected_samplenum, analog_sent, sending_now;
 	int64_t time, elapsed;
 
@@ -701,9 +714,10 @@ static int prepare_data(int fd, int revents, void *cb_data)
 		/* Analog, one channel at a time */
 		if (analog_todo > 0) {
 			analog_sent = 0;
-			for (l = devc->analog_channel_groups; l; l = l->next) {
-				cg = l->data;
-				ag = cg->priv;
+
+			g_hash_table_iter_init(&iter, devc->ch_ag);
+			while (g_hash_table_iter_next(&iter, NULL, &value)) {
+				ag = value;
 				packet.type = SR_DF_ANALOG;
 				packet.payload = &ag->packet;
 
@@ -737,8 +751,9 @@ static int prepare_data(int fd, int revents, void *cb_data)
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 {
-	GSList *l;
 	struct dev_context *devc;
+	GHashTableIter iter;
+	void *value;
 
 	(void)cb_data;
 
@@ -761,8 +776,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		return SR_ERR;
 	}
 
-	for (l = devc->analog_channel_groups; l; l = l->next)
-		generate_analog_pattern(l->data, devc->cur_samplerate);
+	g_hash_table_iter_init(&iter, devc->ch_ag);
+	while (g_hash_table_iter_next(&iter, NULL, &value))
+		generate_analog_pattern(value, devc->cur_samplerate);
 
 	devc->channel = g_io_channel_unix_new(devc->pipe_fds[0]);
 	g_io_channel_set_flags(devc->channel, G_IO_FLAG_NONBLOCK, NULL);
