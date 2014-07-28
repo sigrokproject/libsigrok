@@ -60,7 +60,7 @@ static int init(struct sr_output *o, GHashTable *options)
 		return SR_ERR_ARG;
 
 	ctx = g_malloc0(sizeof(struct context));
-	o->internal = ctx;
+	o->priv = ctx;
 	ctx->separator = ',';
 
 	/* Get the number of channels, and the unitsize. */
@@ -98,7 +98,7 @@ static GString *gen_header(const struct sr_output *o)
 	int num_channels, i;
 	char *samplerate_s;
 
-	ctx = o->internal;
+	ctx = o->priv;
 	header = g_string_sized_new(512);
 
 	/* Some metadata */
@@ -154,7 +154,7 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 	*out = NULL;
 	if (!o || !o->sdi)
 		return SR_ERR_ARG;
-	if (!(ctx = o->internal))
+	if (!(ctx = o->priv))
 		return SR_ERR_ARG;
 
 	switch (packet->type) {
@@ -203,11 +203,11 @@ static int cleanup(struct sr_output *o)
 	if (!o || !o->sdi)
 		return SR_ERR_ARG;
 
-	if (o->internal) {
-		ctx = o->internal;
+	if (o->priv) {
+		ctx = o->priv;
 		g_free(ctx->channel_index);
-		g_free(o->internal);
-		o->internal = NULL;
+		g_free(o->priv);
+		o->priv = NULL;
 	}
 
 	return SR_OK;

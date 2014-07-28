@@ -87,7 +87,7 @@ static int init(struct sr_output *o, GHashTable *options)
 		return SR_ERR_ARG;
 
 	ctx = g_malloc0(sizeof(struct context));
-	o->internal = ctx;
+	o->priv = ctx;
 
 	for (l = o->sdi->channels; l; l = l->next) {
 		ch = l->data;
@@ -115,7 +115,7 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 	*out = NULL;
 	if (!o || !o->sdi)
 		return SR_ERR_ARG;
-	if (!(ctx = o->internal))
+	if (!(ctx = o->priv))
 		return SR_ERR_ARG;
 
 	switch (packet->type) {
@@ -172,12 +172,12 @@ static int cleanup(struct sr_output *o)
 	if (!o || !o->sdi)
 		return SR_ERR_ARG;
 
-	if (o->internal) {
-		ctx = o->internal;
+	if (o->priv) {
+		ctx = o->priv;
 		g_string_free(ctx->pretrig_buf, TRUE);
 		g_free(ctx->channel_index);
-		g_free(o->internal);
-		o->internal = NULL;
+		g_free(o->priv);
+		o->priv = NULL;
 	}
 
 	return SR_OK;

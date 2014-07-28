@@ -46,7 +46,7 @@ static int init(struct sr_output *o, GHashTable *options)
 		sr_err("Output module context malloc failed.");
 		return SR_ERR_MALLOC;
 	}
-	o->internal = ctx;
+	o->priv = ctx;
 
 	/* Get the number of channels and their names. */
 	ctx->channellist = g_ptr_array_new();
@@ -259,11 +259,11 @@ static int cleanup(struct sr_output *o)
 
 	if (!o || !o->sdi)
 		return SR_ERR_ARG;
-	ctx = o->internal;
+	ctx = o->priv;
 
 	g_ptr_array_free(ctx->channellist, 1);
 	g_free(ctx);
-	o->internal = NULL;
+	o->priv = NULL;
 
 	return SR_OK;
 }

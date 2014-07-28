@@ -77,7 +77,7 @@ static int init(struct sr_output *o, GHashTable *options)
 	}
 
 	ctx = g_malloc0(sizeof(struct context));
-	o->internal = ctx;
+	o->priv = ctx;
 	ctx->trigger = -1;
 	ctx->samples_per_line = spl;
 
@@ -119,7 +119,7 @@ static GString *gen_header(const struct sr_output *o)
 	int num_channels;
 	char *samplerate_s;
 
-	ctx = o->internal;
+	ctx = o->priv;
 	if (ctx->samplerate == 0) {
 		if (sr_config_get(o->sdi->driver, o->sdi, NULL, SR_CONF_SAMPLERATE,
 				&gvar) == SR_OK) {
@@ -158,7 +158,7 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 	*out = NULL;
 	if (!o || !o->sdi)
 		return SR_ERR_ARG;
-	if (!(ctx = o->internal))
+	if (!(ctx = o->priv))
 		return SR_ERR_ARG;
 
 	switch (packet->type) {
@@ -240,7 +240,7 @@ static int cleanup(struct sr_output *o)
 	if (!o)
 		return SR_ERR_ARG;
 
-	if (!(ctx = o->internal))
+	if (!(ctx = o->priv))
 		return SR_OK;
 
 	g_free(ctx->channel_index);
@@ -250,7 +250,7 @@ static int cleanup(struct sr_output *o)
 		g_string_free(ctx->lines[i], TRUE);
 	g_free(ctx->lines);
 	g_free(ctx);
-	o->internal = NULL;
+	o->priv = NULL;
 
 	return SR_OK;
 }

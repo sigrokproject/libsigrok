@@ -177,7 +177,7 @@ struct sr_output {
 	 * For example, the module might store a pointer to a chunk of output
 	 * there, and only flush it when it reaches a certain size.
 	 */
-	void *internal;
+	void *priv;
 };
 
 /** Output module driver. */

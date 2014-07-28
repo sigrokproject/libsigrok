@@ -66,7 +66,7 @@ static int init(struct sr_output *o, GHashTable *options)
 	}
 
 	ctx = g_malloc0(sizeof(struct context));
-	o->internal = ctx;
+	o->priv = ctx;
 	ctx->num_enabled_channels = num_enabled_channels;
 	ctx->channel_index = g_malloc(sizeof(int) * ctx->num_enabled_channels);
 
@@ -94,7 +94,7 @@ static GString *gen_header(const struct sr_output *o)
 	int num_channels, i;
 	char *samplerate_s, *frequency_s, *timestamp;
 
-	ctx = o->internal;
+	ctx = o->priv;
 	header = g_string_sized_new(512);
 	num_channels = g_slist_length(o->sdi->channels);
 
@@ -170,9 +170,9 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 	gboolean timestamp_written;
 
 	*out = NULL;
-	if (!o || !o->internal)
+	if (!o || !o->priv)
 		return SR_ERR_BUG;
-	ctx = o->internal;
+	ctx = o->priv;
 
 	switch (packet->type) {
 	case SR_DF_META:
@@ -251,10 +251,10 @@ static int cleanup(struct sr_output *o)
 {
 	struct context *ctx;
 
-	if (!o || !o->internal)
+	if (!o || !o->priv)
 		return SR_ERR_ARG;
 
-	ctx = o->internal;
+	ctx = o->priv;
 	g_free(ctx->prevsample);
 	g_free(ctx->channel_index);
 	g_free(ctx);
