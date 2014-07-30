@@ -149,6 +149,7 @@ extern SR_PRIV struct sr_dev_driver uni_t_ut61e_ser_driver_info;
 extern SR_PRIV struct sr_dev_driver iso_tech_idm103n_driver_info;
 extern SR_PRIV struct sr_dev_driver tenma_72_7745_ser_driver_info;
 extern SR_PRIV struct sr_dev_driver tenma_72_7750_ser_driver_info;
+extern SR_PRIV struct sr_dev_driver brymen_bm25x_ser_driver_info;
 #endif
 #ifdef HAVE_HW_SYSCLK_LWLA
 extern SR_PRIV struct sr_dev_driver sysclk_lwla_driver_info;
@@ -316,6 +317,7 @@ SR_PRIV struct sr_dev_driver *drivers_list[] = {
 	&iso_tech_idm103n_driver_info,
 	&tenma_72_7745_ser_driver_info,
 	&tenma_72_7750_ser_driver_info,
+	&brymen_bm25x_ser_driver_info,
 #endif
 #ifdef HAVE_HW_SYSCLK_LWLA
 	&sysclk_lwla_driver_info,

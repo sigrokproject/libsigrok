@@ -99,7 +99,8 @@ libsigrok_la_SOURCES += \
 	src/dmm/fs9922.c \
 	src/dmm/m2110.c \
 	src/dmm/metex14.c \
-	src/dmm/rs9lcd.c
+	src/dmm/rs9lcd.c \
+	src/dmm/bm25x.c
 
 # Hardware drivers
 if HW_AGILENT_DMM

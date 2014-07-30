@@ -740,4 +740,15 @@ SR_PRIV gboolean sr_rs9lcd_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_rs9lcd_parse(const uint8_t *buf, float *floatval,
 			    struct sr_datafeed_analog *analog, void *info);
 
+/*--- hardware/common/dmm/bm25x.c -----------------------------------------*/
+
+#define BRYMEN_BM25X_PACKET_SIZE 15
+
+/* Dummy info struct. The parser does not use it. */
+struct bm25x_info { int dummy; };
+
+SR_PRIV gboolean sr_brymen_bm25x_packet_valid(const uint8_t *buf);
+SR_PRIV int sr_brymen_bm25x_parse(const uint8_t *buf, float *floatval,
+			     struct sr_datafeed_analog *analog, void *info);
+
 #endif
