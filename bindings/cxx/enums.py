@@ -27,15 +27,15 @@ index_file = sys.argv[1]
 dirname = os.path.dirname(os.path.realpath(__file__))
 
 mapping = dict([
-    ('sr_loglevel', 'LogLevel'),
-    ('sr_packettype', 'PacketType'),
-    ('sr_mq', 'Quantity'),
-    ('sr_unit', 'Unit'),
-    ('sr_mqflag', 'QuantityFlag'),
-    ('sr_configkey', 'ConfigKey'),
-    ('sr_datatype', 'DataType'),
-    ('sr_channeltype', 'ChannelType'),
-    ('sr_trigger_matches', 'TriggerMatchType')])
+    ('sr_loglevel', ('LogLevel', 'Log verbosity level')),
+    ('sr_packettype', ('PacketType', 'Type of datafeed packet')),
+    ('sr_mq', ('Quantity', 'Measured quantity')),
+    ('sr_unit', ('Unit', 'Unit of measurement')),
+    ('sr_mqflag', ('QuantityFlag', 'Flag applied to measured quantity')),
+    ('sr_configkey', ('ConfigKey', 'Configuration key')),
+    ('sr_datatype', ('DataType', 'Configuration data type')),
+    ('sr_channeltype', ('ChannelType', 'Channel type')),
+    ('sr_trigger_matches', ('TriggerMatchType', 'Trigger match type'))])
 
 index = ElementTree.parse(index_file)
 
@@ -68,6 +68,7 @@ for file in (header, code):
 
 # Template for beginning of class declaration and public members.
 header_public_template = """
+/** {brief} */
 class SR_API {classname} : public EnumValue<enum {enumname}>
 {{
 public:
@@ -94,18 +95,26 @@ const {classname} *{classname}::get(int id)
 }}
 """
 
-for enum, classname in classes.items():
+def get_text(node):
+    return str.join('\n\n',
+        [p.text.rstrip() for p in node.findall('para')])
+
+for enum, (classname, classbrief) in classes.items():
 
     enum_name = enum.find('name').text
-    member_names = [m.find('name').text for m in enum.findall('enumvalue')]
+    members = enum.findall('enumvalue')
+    member_names = [m.find('name').text for m in members]
     trimmed_names = [re.sub("^SR_[A-Z]+_", "", n) for n in member_names]
+    briefs = [get_text(m.find('briefdescription')) for m in members]
 
     # Begin class and public declarations
     print >> header, header_public_template.format(
-        classname=classname, enumname=enum_name)
+        brief=classbrief, classname=classname, enumname=enum_name)
 
     # Declare public pointers for each enum value
-    for trimmed_name in trimmed_names:
+    for trimmed_name, brief in zip(trimmed_names, briefs):
+        if brief:
+            print >> header, '\t/** %s */' % brief
         print >> header, '\tstatic const %s * const %s;' % (
             classname, trimmed_name)
 
