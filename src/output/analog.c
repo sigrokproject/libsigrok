@@ -222,7 +222,7 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 	struct sr_channel *ch;
 	GSList *l;
 	const float *fdata;
-	int i, p;
+	int num_channels, i, c;
 
 	*out = NULL;
 	if (!o || !o->sdi)
@@ -239,12 +239,13 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 		analog = packet->payload;
 		fdata = (const float *)analog->data;
 		*out = g_string_sized_new(512);
+		num_channels = g_slist_length(analog->channels);
 		for (i = 0; i < analog->num_samples; i++) {
-			for (l = analog->channels, p = 0; l; l = l->next, p++) {
+			for (l = analog->channels, c = 0; l; l = l->next, c++) {
 				ch = l->data;
 				g_string_append_printf(*out, "%s: ", ch->name);
 				fancyprint(analog->unit, analog->mqflags,
-						fdata[i + p], *out);
+						fdata[i * num_channels + c], *out);
 			}
 		}
 		break;
