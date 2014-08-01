@@ -57,29 +57,26 @@ static int realloc_chanbufs(const struct sr_output *o, int size)
 static int flush_chanbufs(const struct sr_output *o, GString *out)
 {
 	struct out_context *outc;
-	int size, i, j;
-	char *buf, **bufp;
+	int num_samples, i, j;
+	char *buf, *bufp;
 
 	outc = o->priv;
 
 	/* Any one of them will do. */
-	size = outc->chanbuf_used[0];
-	if (!(buf = g_try_malloc(4 * size * outc->num_channels))) {
+	num_samples = outc->chanbuf_used[0];
+	if (!(buf = g_try_malloc(4 * num_samples * outc->num_channels))) {
 		sr_err("Unable to allocate enough interleaved output buffer memory.");
 		return SR_ERR;
 	}
-	bufp = g_malloc(sizeof(char *) * outc->num_channels);
-	for (i = 0; i < outc->num_channels; i++)
-		bufp[i] = buf + i * 4;
 
-	for (i = 0; i < size * 4; i += 4) {
+	bufp = buf;
+	for (i = 0; i < num_samples; i++) {
 		for (j = 0; j < outc->num_channels; j++) {
-			memcpy(bufp[j], outc->chanbuf[j] + i, 4);
-			bufp[j] += outc->num_channels * 4;
+			memcpy(bufp, outc->chanbuf[j] + i * 4, 4);
+			bufp += 4;
 		}
 	}
-	g_string_append_len(out, buf, 4 * size * outc->num_channels);
-	g_free(bufp);
+	g_string_append_len(out, buf, 4 * num_samples * outc->num_channels);
 	g_free(buf);
 
 	for (i = 0; i < outc->num_channels; i++)
@@ -292,7 +289,7 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 			for (j = 0; j < num_channels; j++) {
 				idx = chan_idx[j];
 				buf = outc->chanbuf[idx] + outc->chanbuf_used[idx]++ * 4;
-				float_to_le(buf, analog->data[i + j]);
+				float_to_le(buf, analog->data[i * num_channels + j]);
 			}
 		}
 		g_free(chan_idx);
