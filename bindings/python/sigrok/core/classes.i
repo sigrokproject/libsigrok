@@ -332,6 +332,8 @@ std::map<std::string, Glib::VariantBase> dict_to_map_options(PyObject *dict,
 %ignore sigrok::InputFormat::open_file;
 %ignore sigrok::OutputFormat::create_output;
 
+%include "doc.i"
+
 %include "../../../swig/classes.i"
 
 /* Support Driver.scan() with keyword arguments. */

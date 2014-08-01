@@ -425,6 +425,7 @@ bindings/cxx/classes.lo: bindings/cxx/classes.cpp bindings/cxx/enums.cpp \
 
 cxx-clean:
 	rm -rf doxy/
+	rm -rf bindings/cxx/doxy/
 	rm -f bindings/cxx/enums.cpp
 	rm -f bindings/cxx/include/libsigrok/enums.hpp
 	rm -f bindings/cxx/enums.timestamp
@@ -433,9 +434,19 @@ CLEAN_EXTRA += cxx-clean
 
 endif
 
+CPPXMLDOC = bindings/cxx/doxy/xml/index.xml
+
+$(CPPXMLDOC): bindings/cxx/include/libsigrok/libsigrok.hpp \
+		bindings/cxx/enums.timestamp
+	$(AM_V_GEN)cd bindings/cxx && doxygen Doxyfile
+
 if BINDINGS_PYTHON
 
 PDIR = bindings/python
+PDOC = bindings/python/sigrok/core/doc.i
+
+$(PDOC): bindings/swig/doc.py $(CPPXMLDOC)
+	$(AM_V_GEN)python bindings/swig/doc.py python $(CPPXMLDOC) > $@
 
 python-build: $(PDIR)/timestamp
 
@@ -444,7 +455,7 @@ python-quietclean:
 		| grep -v "can.t clean it"; true
 
 $(PDIR)/timestamp: bindings/cxx/libsigrokxx.la $(PDIR)/sigrok/core/classes.i \
-		bindings/swig/classes.i $(library_include_HEADERS)
+		bindings/swig/classes.i $(PDOC) $(library_include_HEADERS)
 	$(AM_V_at)$(MAKE) python-quietclean
 	$(AM_V_GEN)cd $(PDIR) && python setup.py --quiet build 3>&1 1>&2 2>&3 \
 		| grep -v "command line option.*Wstrict-prototypes"; true
@@ -471,13 +482,17 @@ JCLS = $(JDIR)/$(JPKG)/classes
 JINT = $(JDIR)/$(JPKG)/interfaces
 JSRC = $(JCLS)/*.java $(JINT)/*.java
 JSWG = $(JCLS)/classes.i
+JDOC = $(JCLS)/doc.i
 JCXX = $(JCLS)/classes_wrap.cxx
 JLIB = $(JDIR)/libsigrok_java_core_classes.so
 JJAR = $(JDIR)/sigrok-core.jar
 
 java-build: $(JJAR) $(JLIB)
 
-$(JCXX): $(JSWG) bindings/swig/classes.i $(library_include_HEADERS)
+$(JDOC): bindings/swig/doc.py $(CPPXMLDOC)
+	$(AM_V_GEN)python bindings/swig/doc.py java $(CPPXMLDOC) > $@
+
+$(JCXX): $(JSWG) $(JDOC) bindings/swig/classes.i $(library_include_HEADERS)
 	$(AM_V_GEN)swig -c++ -java -package org.sigrok.core.classes \
 		-Iinclude -Ibindings/cxx/include -outdir $(JCLS) $(JSWG)
 
