@@ -522,6 +522,10 @@ java-clean:
 	rm -f $(JINT)/*.class
 	rm -f $(JJAR)
 	rm -f $(JLIB)
+	rm -rf $(JDIR)/doxy/
+
+java-doc:
+	$(AM_v_at)cd $(JDIR) && doxygen Doxyfile
 
 BUILD_EXTRA += java-build
 INSTALL_EXTRA += java-install

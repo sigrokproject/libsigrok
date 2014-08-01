@@ -7,11 +7,36 @@
   }
 %}
 
-/* Import interfaces. */
+/* Documentation & importing interfaces. */
 %pragma(java) jniclassimports=%{
-  import org.sigrok.core.interfaces.LogCallback;
-  import org.sigrok.core.interfaces.DatafeedCallback;
-  import org.sigrok.core.interfaces.SourceCallback;
+/**
+ * @mainpage API Reference
+ * 
+ * Introduction
+ * ------------
+ * 
+ * The sigrok-java API provides an object-oriented Java interface to the
+ * functionality in libsigrok. It is built on top of the sigrok++ C++ API.
+ * 
+ * Getting started
+ * ---------------
+ * 
+ * Usage of the sigrok-java API needs to begin with a call to Context.create().
+ * This will create the global libsigrok context and returns a Context object.
+ * Methods on this object provide access to the hardware drivers, input and
+ * output formats supported by the library, as well as means of creating other
+ * objects such as sessions and triggers.
+ * 
+ * Error handling
+ * --------------
+ * 
+ * When any libsigrok C API call returns an error, an Error exception is raised,
+ * which provides access to the error code and description.
+ */
+
+import org.sigrok.core.interfaces.LogCallback;
+import org.sigrok.core.interfaces.DatafeedCallback;
+import org.sigrok.core.interfaces.SourceCallback;
 %}
 
 /* Map Java FileDescriptor objects to int fds */
