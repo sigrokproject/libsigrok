@@ -467,6 +467,10 @@ python-install:
 python-clean:
 	$(AM_V_at)$(MAKE) python-quietclean
 	$(AM_V_at)rm -f $(PDIR)/timestamp
+	$(AM_V_at)rm -rf $(PDIR)/doxy/
+
+python-doc:
+	$(AM_V_at)cd $(PDIR) && doxygen Doxyfile
 
 BUILD_EXTRA += python-build
 INSTALL_EXTRA += python-install
