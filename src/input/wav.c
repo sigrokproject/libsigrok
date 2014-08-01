@@ -21,18 +21,27 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <ctype.h>
 #include <string.h>
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
 #define LOG_PREFIX "input/wav"
 
+/* How many bytes at a time to process and send to the session bus. */
 #define CHUNK_SIZE 4096
+/* Expect to find the "data" chunk within this offset from the start. */
+#define MAX_DATA_CHUNK_OFFSET    256
+
+#define WAVE_FORMAT_PCM          1
+#define WAVE_FORMAT_IEEE_FLOAT   3
 
 struct context {
 	uint64_t samplerate;
 	int samplesize;
 	int num_channels;
+	int unitsize;
+	int fmt_code;
 };
 
 static int get_wav_header(const char *filename, char *buf)
@@ -64,6 +73,7 @@ static int get_wav_header(const char *filename, char *buf)
 static int format_match(const char *filename)
 {
 	char buf[40];
+	uint16_t fmt_code;
 
 	if (get_wav_header(filename, buf) != SR_OK)
 		return FALSE;
@@ -74,10 +84,9 @@ static int format_match(const char *filename)
 		return FALSE;
 	if (strncmp(buf + 12, "fmt ", 4))
 		return FALSE;
-	if (GUINT16_FROM_LE(*(uint16_t *)(buf + 20)) != 1)
-		/* Not PCM. */
-		return FALSE;
-	if (strncmp(buf + 36, "data", 4))
+	fmt_code = GUINT16_FROM_LE(*(uint16_t *)(buf + 20));
+	if (fmt_code != WAVE_FORMAT_PCM
+			&& fmt_code != WAVE_FORMAT_IEEE_FLOAT)
 		return FALSE;
 
 	return TRUE;
@@ -100,26 +109,56 @@ static int init(struct sr_input *in, const char *filename)
 	in->sdi = sr_dev_inst_new(0, SR_ST_ACTIVE, NULL, NULL, NULL);
 	in->sdi->priv = ctx;
 
+	ctx->fmt_code = GUINT16_FROM_LE(*(uint16_t *)(buf + 20));
    	ctx->samplerate = GUINT32_FROM_LE(*(uint32_t *)(buf + 24));
-	ctx->samplesize = GUINT16_FROM_LE(*(uint16_t *)(buf + 34)) / 8;
-	if (ctx->samplesize != 1 && ctx->samplesize != 2 && ctx->samplesize != 4) {
-		sr_err("only 8, 16 or 32 bits per sample supported.");
-		return SR_ERR;
-	}
+	ctx->samplesize = GUINT16_FROM_LE(*(uint16_t *)(buf + 32));
+	ctx->num_channels = GUINT16_FROM_LE(*(uint16_t *)(buf + 22));
+	ctx->unitsize = ctx->samplesize / ctx->num_channels;
 
-	if ((ctx->num_channels = GUINT16_FROM_LE(*(uint16_t *)(buf + 22))) > 20) {
-		sr_err("%d channels seems crazy.", ctx->num_channels);
-		return SR_ERR;
+	if (ctx->fmt_code == WAVE_FORMAT_PCM) {
+		if (ctx->samplesize != 1 && ctx->samplesize != 2
+				&& ctx->samplesize != 4) {
+			sr_err("only 8, 16 or 32 bits per sample supported.");
+			return SR_ERR;
+		}
+	} else {
+		/* WAVE_FORMAT_IEEE_FLOAT */
+		if (ctx->samplesize / ctx->num_channels != 4) {
+			sr_err("only 32-bit floats supported.");
+			return SR_ERR;
+		}
 	}
 
 	for (i = 0; i < ctx->num_channels; i++) {
 		snprintf(channelname, 8, "CH%d", i + 1);
-		if (!(ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, channelname)))
-			return SR_ERR;
+		ch = sr_channel_new(i, SR_CHANNEL_ANALOG, TRUE, channelname);
 		in->sdi->channels = g_slist_append(in->sdi->channels, ch);
 	}
 
 	return SR_OK;
+}
+
+static int find_data_chunk(uint8_t *buf, int initial_offset)
+{
+	int offset, i;
+
+	offset = initial_offset;
+	while(offset < MAX_DATA_CHUNK_OFFSET) {
+		if (!memcmp(buf + offset, "data", 4))
+			/* Skip into the samples. */
+			return offset + 8;
+		for (i = 0; i < 4; i++) {
+			if (!isalpha(buf[offset + i])
+					&& !isascii(buf[offset + i])
+					&& !isblank(buf[offset + i]))
+				/* Doesn't look like a chunk ID. */
+				return -1;
+		}
+		/* Skip past this chunk. */
+		offset += 8 + GUINT32_FROM_LE(*(uint32_t *)(buf + offset + 4));
+	}
+
+	return offset;
 }
 
 static int loadfile(struct sr_input *in, const char *filename)
@@ -131,14 +170,15 @@ static int loadfile(struct sr_input *in, const char *filename)
 	struct context *ctx;
 	float fdata[CHUNK_SIZE];
 	uint64_t sample;
-	int num_samples, chunk_samples, s, c, fd, l;
-	char buf[CHUNK_SIZE];
+	int offset, chunk_samples, samplenum, fd, l, i;
+	uint8_t buf[CHUNK_SIZE], *s, *d;
 
 	ctx = in->sdi->priv;
 
 	/* Send header packet to the session bus. */
 	std_session_send_df_header(in->sdi, LOG_PREFIX);
 
+	/* Send the samplerate. */
 	packet.type = SR_DF_META;
 	packet.payload = &meta;
 	src = sr_config_new(SR_CONF_SAMPLERATE,
@@ -149,32 +189,54 @@ static int loadfile(struct sr_input *in, const char *filename)
 
 	if ((fd = open(filename, O_RDONLY)) == -1)
 		return SR_ERR;
+	if (read(fd, buf, MAX_DATA_CHUNK_OFFSET) < MAX_DATA_CHUNK_OFFSET)
+		return -1;
 
-	lseek(fd, 40, SEEK_SET);
-	l = read(fd, buf, 4);
-	num_samples = GUINT32_FROM_LE((uint32_t)*(buf));
-	num_samples /= ctx->samplesize / ctx->num_channels;
+	/* Skip past size of 'fmt ' chunk. */
+	i = 20 + GUINT32_FROM_LE(*(uint32_t *)(buf + 16));
+	offset = find_data_chunk(buf, i);
+	if (offset < 0) {
+		sr_err("Couldn't find data chunk.");
+		return SR_ERR;
+	}
+	if (lseek(fd, offset, SEEK_SET) == -1)
+		return SR_ERR;
+
+	memset(fdata, 0, CHUNK_SIZE);
 	while (TRUE) {
 		if ((l = read(fd, buf, CHUNK_SIZE)) < 1)
 			break;
-		chunk_samples = l / ctx->samplesize / ctx->num_channels;
-		for (s = 0; s < chunk_samples; s++) {
-			for (c = 0; c < ctx->num_channels; c++) {
+		chunk_samples = l / ctx->num_channels / ctx->unitsize;
+		s = buf;
+		d = (uint8_t *)fdata;
+		for (samplenum = 0; samplenum < chunk_samples * ctx->num_channels; samplenum++) {
+			if (ctx->fmt_code == WAVE_FORMAT_PCM) {
 				sample = 0;
-				memcpy(&sample, buf + s * ctx->samplesize + c, ctx->samplesize);
+				memcpy(&sample, s, ctx->unitsize);
 				switch (ctx->samplesize) {
 				case 1:
 					/* 8-bit PCM samples are unsigned. */
-					fdata[s + c] = (uint8_t)sample / 255.0;
+					fdata[samplenum] = (uint8_t)sample / 255.0;
 					break;
 				case 2:
-					fdata[s + c] = GINT16_FROM_LE(sample) / 32767.0;
+					fdata[samplenum] = GINT16_FROM_LE(sample) / 32767.0;
 					break;
 				case 4:
-					fdata[s + c] = GINT32_FROM_LE(sample) / 65535.0;
+					fdata[samplenum] = GINT32_FROM_LE(sample) / 65535.0;
 					break;
 				}
+			} else {
+				/* BINARY32 float */
+#ifdef WORDS_BIGENDIAN
+				for (i = 0; i < ctx->unitsize; i++)
+					d[i] = s[ctx->unitsize - i];
+#else
+				memcpy(d, s, ctx->unitsize);
+#endif
 			}
+			s += ctx->unitsize;
+			d += ctx->unitsize;
+
 		}
 		packet.type = SR_DF_ANALOG;
 		packet.payload = &analog;
