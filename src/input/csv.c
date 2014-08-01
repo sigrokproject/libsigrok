@@ -134,6 +134,10 @@ struct context {
 
 static int format_match(const char *filename)
 {
+	/* Require .csv extension. */
+	if (strcmp(filename + strlen(filename) - 4, ".csv"))
+		return FALSE;
+
 	if (!filename) {
 		sr_err("%s: filename was NULL.", __func__);
 		return FALSE;
