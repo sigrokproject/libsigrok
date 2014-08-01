@@ -50,10 +50,26 @@ for compound in index.findall('compound'):
         for function in section.findall('memberdef'):
             function_name = function.find('name').text
             brief = get_text(function.find('briefdescription'))
+            parameters = {}
+            for para in function.find('detaileddescription').findall('para'):
+                paramlist = para.find('parameterlist')
+                if paramlist is not None:
+                    for param in paramlist.findall('parameteritem'):
+                        namelist = param.find('parameternamelist')
+                        name = namelist.find('parametername').text
+                        description = get_text(param.find('parameterdescription'))
+                        if description:
+                            parameters[name] = description
             if brief:
                 if language == 'python':
-                    print '%%feature("docstring") %s::%s "%s";' % (
-                        class_name, function_name, brief)
+                    print str.join('\n', [
+                        '%%feature("docstring") %s::%s "%s' % (
+                            class_name, function_name, brief)] + [
+                        '@param %s %s' % (name, desc)
+                            for name, desc in parameters.items()]) + '";'
                 elif language == 'java':
-                    print '%%javamethodmodifiers %s::%s "/** %s */\npublic"' % (
-                    class_name, function_name, brief)
+                    print str.join('\n', [
+                        '%%javamethodmodifiers %s::%s "/** %s' % (
+                            class_name, function_name, brief)] + [
+                        '   * @param %s %s' % (name, desc)
+                            for name, desc in parameters.items()]) + ' */\npublic"'
