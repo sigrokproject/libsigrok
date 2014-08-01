@@ -17,28 +17,14 @@
 ## along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##
 
-import logging, warnings
-from pygccxml import parser, declarations
+from xml.etree import ElementTree
 from collections import OrderedDict
 import sys, os, re
 
-class crapfilter(logging.Filter):
-    def filter(self, record):
-        if record.msg.find('GCCXML version') > -1:
-            return 0
-        return 1
-logger = logging.getLogger('pygccxml.cxx_parser').addFilter(crapfilter())
-warnings.filterwarnings('ignore', message="unable to find out array size from expression")
+index_file = sys.argv[1]
 
 # Get directory this script is in.
 dirname = os.path.dirname(os.path.realpath(__file__))
-
-# Parse GCCXML output to get declaration tree.
-decls = parser.parse_xml_file(
-    os.path.join(dirname, "libsigrok.xml"), parser.gccxml_configuration_t())
-
-# Get global namespace from declaration tree.
-ns = declarations.get_global_namespace(decls)
 
 mapping = dict([
     ('sr_loglevel', 'LogLevel'),
@@ -51,13 +37,28 @@ mapping = dict([
     ('sr_channeltype', 'ChannelType'),
     ('sr_trigger_matches', 'TriggerMatchType')])
 
-classes = OrderedDict()
+index = ElementTree.parse(index_file)
 
 # Build mapping between class names and enumerations.
-for enum in ns.enumerations():
-    if enum.name in mapping:
-        classname = mapping[enum.name]
-        classes[classname] = enum
+
+classes = OrderedDict()
+
+for compound in index.findall('compound'):
+    if compound.attrib['kind'] != 'file':
+        continue
+    filename = os.path.join(
+        os.path.dirname(index_file),
+        '%s.xml' % compound.attrib['refid'])
+    doc = ElementTree.parse(filename)
+    for section in doc.find('compounddef').findall('sectiondef'):
+        if section.attrib["kind"] != 'enum':
+            continue
+        for member in section.findall('memberdef'):
+            if member.attrib["kind"] != 'enum':
+                continue
+            name = member.find('name').text
+            if name in mapping:
+                classes[member] = mapping[name]
 
 header = open(os.path.join(dirname, 'include/libsigrok/enums.hpp'), 'w')
 code = open(os.path.join(dirname, 'enums.cpp'), 'w')
@@ -93,16 +94,20 @@ const {classname} *{classname}::get(int id)
 }}
 """
 
-for classname, enum in classes.items():
+for enum, classname in classes.items():
+
+    enum_name = enum.find('name').text
+    member_names = [m.find('name').text for m in enum.findall('enumvalue')]
+    trimmed_names = [re.sub("^SR_[A-Z]+_", "", n) for n in member_names]
 
     # Begin class and public declarations
     print >> header, header_public_template.format(
-        classname=classname, enumname=enum.name)
+        classname=classname, enumname=enum_name)
 
     # Declare public pointers for each enum value
-    for name, value in enum.values:
-        trimmed_name = re.sub("^SR_[A-Z]+_", "", name)
-        print >> header, '\tstatic const %s * const %s;' % (classname, trimmed_name)
+    for trimmed_name in trimmed_names:
+        print >> header, '\tstatic const %s * const %s;' % (
+            classname, trimmed_name)
 
     # Declare additional methods if present
     filename = os.path.join(dirname, "%s_methods.hpp" % classname)
@@ -111,11 +116,10 @@ for classname, enum in classes.items():
 
     # Begin private declarations
     print >> header, header_private_template.format(
-        classname=classname, enumname=enum.name)
+        classname=classname, enumname=enum_name)
 
     # Declare private constants for each enum value
-    for name, value in enum.values:
-        trimmed_name = re.sub("^SR_[A-Z]+_", "", name)
+    for trimmed_name in trimmed_names:
         print >> header, '\tstatic const %s _%s;' % (classname, trimmed_name)
 
     # End class declaration
@@ -123,25 +127,22 @@ for classname, enum in classes.items():
 
     # Begin class code
     print >> code, code_template.format(
-        classname=classname, enumname=enum.name)
+        classname=classname, enumname=enum_name)
 
     # Define private constants for each enum value
-    for name, value in enum.values:
-        trimmed_name = re.sub("^SR_[A-Z]+_", "", name)
+    for name, trimmed_name in zip(member_names, trimmed_names):
         print >> code, 'const %s %s::_%s = %s(%s, "%s");' % (
             classname, classname, trimmed_name, classname, name, trimmed_name)
 
     # Define public pointers for each enum value
-    for name, value in enum.values:
-        trimmed_name = re.sub("^SR_[A-Z]+_", "", name)
+    for trimmed_name in trimmed_names:
         print >> code, 'const %s * const %s::%s = &%s::_%s;' % (
             classname, classname, trimmed_name, classname, trimmed_name)
 
     # Define map of enum values to constants
     print >> code, 'const std::map<enum %s, const %s *> %s::values = {' % (
-        enum.name, classname, classname)
-    for name, value in enum.values:
-        trimmed_name = re.sub("^SR_[A-Z]+_", "", name)
+        enum_name, classname, classname)
+    for name, trimmed_name in zip(member_names, trimmed_names):
         print >> code, '\t{%s, %s::%s},' % (name, classname, trimmed_name)
     print >> code, '};'
 

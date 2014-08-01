@@ -408,23 +408,23 @@ library_include_HEADERS += \
 
 pkgconfig_DATA += bindings/cxx/libsigrokxx.pc
 
-bindings/cxx/libsigrok.xml: include/libsigrok/libsigrok.h
-	$(AM_V_GEN)gccxml $(CFLAGS) -DGLIB_DISABLE_DEPRECATION_WARNINGS $< -fxml=$@
+doxy/xml/index.xml: include/libsigrok/libsigrok.h
+	$(AM_V_GEN)doxygen Doxyfile
 
 bindings/cxx/enums.cpp: bindings/cxx/enums.timestamp
 
 bindings/cxx/include/libsigrok/enums.hpp: bindings/cxx/enums.timestamp
 
-bindings/cxx/enums.timestamp: bindings/cxx/enums.py bindings/cxx/libsigrok.xml \
+bindings/cxx/enums.timestamp: bindings/cxx/enums.py doxy/xml/index.xml \
 		bindings/cxx/ConfigKey_methods.cpp bindings/cxx/QuantityFlag_methods.cpp
-	$(AM_V_GEN)python $<
+	$(AM_V_GEN)python $< doxy/xml/index.xml
 	$(AM_V_at)touch $@
 
 bindings/cxx/classes.lo: bindings/cxx/classes.cpp bindings/cxx/enums.cpp \
 		$(library_include_HEADERS)
 
 cxx-clean:
-	rm -f bindings/cxx/libsigrok.xml
+	rm -rf doxy/
 	rm -f bindings/cxx/enums.cpp
 	rm -f bindings/cxx/include/libsigrok/enums.hpp
 	rm -f bindings/cxx/enums.timestamp

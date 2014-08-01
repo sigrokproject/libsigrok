@@ -184,10 +184,10 @@ if test "x$HAVE_CXX11" != "x1"; then
 	BINDINGS_CXX="no"; cxx_msg="C++11 compiler required"
 fi
 
-# The C++ bindings use gccxml to parse libsigrok symbols.
-AC_CHECK_PROG([HAVE_GCCXML], [gccxml], [yes])
-if test "x$HAVE_GCCXML" != "xyes"; then
-	BINDINGS_CXX="no"; cxx_msg="gccxml required"
+# The C++ bindings use doxygen to parse libsigrok symbols.
+AC_CHECK_PROG([HAVE_DOXYGEN], [doxygen], [yes])
+if test "x$HAVE_DOXYGEN" != "xyes"; then
+	BINDINGS_CXX="no"; cxx_msg="doxygen required"
 fi
 
 # Python is needed for the C++ bindings.
@@ -201,17 +201,6 @@ PKG_CHECK_MODULES([python], [python >= 2.7],
         [CXXFLAGS="$CXXFLAGS $python_CFLAGS";
         CXXLIBS="$CXXLIBS $python_LIBS"],
 		[BINDINGS_PYTHON="no"; python_msg="Python headers required"])
-
-# The C++ bindings need the pygccxml Python module.
-m4_ifdef([AX_PYTHON_MODULE], [AX_PYTHON_MODULE([pygccxml])],
-	# We'll let it go through even if the macro wasn't found, the python
-	# module may still be there.
-	[HAVE_PYTHON_PYGCCXML="yes";
-		AC_MSG_NOTICE([Missing macro m4_toupper(aX_PYTHON_MODULE), no pygccxml check])]
-)
-if test "x$HAVE_PYMOD_PYGCCXML" != "xyes"; then
-	BINDINGS_CXX="no"; cxx_msg="Python pygccxml module required"
-fi
 
 # The Python bindings need the setuptools Python module.
 m4_ifdef([AX_PYTHON_MODULE], [AX_PYTHON_MODULE([setuptools])],
