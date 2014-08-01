@@ -141,10 +141,8 @@ static gboolean parse_section(FILE *file, gchar **name, gchar **contents)
 	if (!read_until(file, NULL, 'N')) return FALSE;
 
 	/* Section tag should start with $. */
-	if (fgetc(file) != '$') {
-		sr_err("Expected $ at beginning of section.");
+	if (fgetc(file) != '$')
 		return FALSE;
-	}
 
 	/* Read the section tag */
 	sname = g_string_sized_new(32);
