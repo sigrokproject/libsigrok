@@ -264,7 +264,8 @@ SR_API const struct sr_output *sr_output_new(const struct sr_output_module *o,
 		g_free(op);
 		op = NULL;
 	}
-	g_hash_table_destroy(new_opts);
+	if (new_opts)
+		g_hash_table_destroy(new_opts);
 
 	return op;
 }
