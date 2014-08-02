@@ -212,15 +212,59 @@ SR_API const struct sr_output *sr_output_new(const struct sr_output_module *o,
 		GHashTable *options, const struct sr_dev_inst *sdi)
 {
 	struct sr_output *op;
+	struct sr_option *mod_opts;
+	const GVariantType *gvt;
+	GHashTable *new_opts;
+	GHashTableIter iter;
+	gpointer key, value;
+	int i;
 
 	op = g_malloc(sizeof(struct sr_output));
 	op->module = o;
 	op->sdi = sdi;
 
-	if (op->module->init && op->module->init(op, options) != SR_OK) {
+	if (options) {
+		new_opts = g_hash_table_new_full(g_str_hash, g_str_equal, g_free,
+				(GDestroyNotify)g_variant_unref);
+		mod_opts = o->options();
+		for (i = 0; mod_opts[i].id; i++) {
+			if (g_hash_table_lookup_extended(options, mod_opts[i].id,
+					&key, &value)) {
+				/* Option not given: insert the default value. */
+				gvt = g_variant_get_type(mod_opts[i].def);
+				if (!g_variant_is_of_type(value, gvt)) {
+					sr_err("Invalid type for '%s' option.", key);
+					g_free(op);
+					return NULL;
+				}
+				g_hash_table_insert(new_opts, g_strdup(mod_opts[i].id),
+						g_variant_ref(value));
+			} else {
+				/* Pass option along. */
+				g_hash_table_insert(new_opts, g_strdup(mod_opts[i].id),
+						g_variant_ref(mod_opts[i].def));
+			}
+		}
+
+		/* Make sure no invalid options were given. */
+		g_hash_table_iter_init(&iter, options);
+		while (g_hash_table_iter_next(&iter, &key, &value)) {
+			if (!g_hash_table_lookup(new_opts, key)) {
+				sr_err("Output module '%s' has no option '%s'", o->id, key);
+				g_hash_table_destroy(new_opts);
+				g_free(op);
+				return NULL;
+			}
+		}
+	} else
+		new_opts = NULL;
+
+	if (op->module->init && op->module->init(op, new_opts) != SR_OK) {
+		g_hash_table_destroy(new_opts);
 		g_free(op);
 		op = NULL;
 	}
+	g_hash_table_destroy(new_opts);
 
 	return op;
 }

@@ -91,28 +91,10 @@ static int init(struct sr_output *o, GHashTable *options)
 	struct out_context *outc;
 	struct sr_channel *ch;
 	GSList *l;
-	GHashTableIter iter;
-	gpointer key, value;
 
 	outc = g_malloc0(sizeof(struct out_context));
 	o->priv = outc;
-
-	outc->scale = 0.0;
-	if (options) {
-		g_hash_table_iter_init(&iter, options);
-		while (g_hash_table_iter_next(&iter, &key, &value)) {
-			if (!strcmp(key, "scale")) {
-				if (!g_variant_is_of_type(value, G_VARIANT_TYPE_DOUBLE)) {
-					sr_err("Invalid type for 'scale' option.");
-					return SR_ERR_ARG;
-				}
-				outc->scale = g_variant_get_double(value);
-			} else {
-				sr_err("Unknown option '%s'.", key);
-				return SR_ERR_ARG;
-			}
-		}
-	}
+	outc->scale = g_variant_get_double(g_hash_table_lookup(options, "scale"));
 
 	for (l = o->sdi->channels; l; l = l->next) {
 		ch = l->data;
@@ -359,7 +341,7 @@ static struct sr_option options[] = {
 static struct sr_option *get_options(void)
 {
 	if (!options[0].def) {
-		options[0].def = g_variant_new_double(0);
+		options[0].def = g_variant_new_double(0.0);
 		g_variant_ref_sink(options[0].def);
 	}
 

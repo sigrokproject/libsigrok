@@ -30,7 +30,7 @@
 
 struct context {
 	unsigned int num_enabled_channels;
-	int samples_per_line;
+	int spl;
 	int bit_cnt;
 	int spl_cnt;
 	int trigger;
@@ -49,37 +49,15 @@ static int init(struct sr_output *o, GHashTable *options)
 	struct context *ctx;
 	struct sr_channel *ch;
 	GSList *l;
-	GHashTableIter iter;
-	gpointer key, value;
 	unsigned int i, j;
-	uint32_t spl;
 
 	if (!o || !o->sdi)
 		return SR_ERR_ARG;
 
-	spl = DEFAULT_SAMPLES_PER_LINE;
-	if (options) {
-		g_hash_table_iter_init(&iter, options);
-		while (g_hash_table_iter_next(&iter, &key, &value)) {
-			if (!strcmp(key, "width")) {
-				if (!g_variant_is_of_type(value, G_VARIANT_TYPE_UINT32)) {
-					sr_err("Invalid type for 'width' option.");
-					return SR_ERR_ARG;
-				}
-				if (!(spl = g_variant_get_uint32(value))) {
-					sr_err("Invalid width.");
-					return SR_ERR_ARG;
-				}
-			} else {
-				sr_err("Unknown option '%s'.", key);
-			}
-		}
-	}
-
 	ctx = g_malloc0(sizeof(struct context));
 	o->priv = ctx;
 	ctx->trigger = -1;
-	ctx->samples_per_line = spl;
+	ctx->spl = g_variant_get_uint32(g_hash_table_lookup(options, "width"));
 
 	for (l = o->sdi->channels; l; l = l->next) {
 		ch = l->data;
@@ -199,7 +177,7 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 				}
 				g_string_append_c(ctx->lines[j], c);
 
-				if (ctx->spl_cnt == ctx->samples_per_line) {
+				if (ctx->spl_cnt == ctx->spl) {
 					/* Flush line buffers. */
 					g_string_append_len(*out, ctx->lines[j]->str, ctx->lines[j]->len);
 					g_string_append_c(*out, '\n');
@@ -211,7 +189,7 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 					g_string_printf(ctx->lines[j], "%s:", ctx->channel_names[j]);
 				}
 			}
-			if (ctx->spl_cnt == ctx->samples_per_line)
+			if (ctx->spl_cnt == ctx->spl)
 				/* Line buffers were already flushed. */
 				ctx->spl_cnt = 0;
 			memcpy(ctx->prev_sample, logic->data + i, logic->unitsize);
