@@ -260,13 +260,12 @@ static struct sr_option options[] = {
 	{ 0 }
 };
 
-static struct sr_option *get_options(gboolean cached)
+static struct sr_option *get_options(void)
 {
-	if (cached)
-		return options;
-
-	options[0].def = g_variant_new_uint32(DEFAULT_SAMPLES_PER_LINE);
-	g_variant_ref_sink(options[0].def);
+	if (!options[0].def) {
+		options[0].def = g_variant_new_uint32(DEFAULT_SAMPLES_PER_LINE);
+		g_variant_ref_sink(options[0].def);
+	}
 
 	return options;
 }

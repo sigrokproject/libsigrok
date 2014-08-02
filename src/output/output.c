@@ -166,7 +166,7 @@ SR_API const struct sr_option *sr_output_options_get(const struct sr_output_modu
 	if (!o || !o->options)
 		return NULL;
 
-	return o->options(FALSE);
+	return o->options();
 }
 
 /**
@@ -182,7 +182,7 @@ SR_API void sr_output_options_free(const struct sr_output_module *o)
 	if (!o || !o->options)
 		return;
 
-	for (opt = o->options(TRUE); opt->id; opt++) {
+	for (opt = o->options(); opt->id; opt++) {
 		if (opt->def) {
 			g_variant_unref(opt->def);
 			opt->def = NULL;
@@ -216,6 +216,7 @@ SR_API const struct sr_output *sr_output_new(const struct sr_output_module *o,
 	op = g_malloc(sizeof(struct sr_output));
 	op->module = o;
 	op->sdi = sdi;
+
 	if (op->module->init && op->module->init(op, options) != SR_OK) {
 		g_free(op);
 		op = NULL;

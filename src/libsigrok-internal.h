@@ -209,7 +209,7 @@ struct sr_output_module {
 	 * If cached is TRUE, no new GVariants are created for the def and
 	 * values fields; instead, the current values are returned.
 	 */
-	struct sr_option *(*options) (gboolean cached);
+	struct sr_option *(*options) (void);
 
 	/**
 	 * This function is called once, at the beginning of an output stream.
