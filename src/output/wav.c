@@ -27,6 +27,7 @@
 #define MIN_DATA_CHUNK_SAMPLES 10
 
 struct out_context {
+	double scale;
 	gboolean header_done;
 	uint64_t samplerate;
 	int num_channels;
@@ -90,11 +91,28 @@ static int init(struct sr_output *o, GHashTable *options)
 	struct out_context *outc;
 	struct sr_channel *ch;
 	GSList *l;
-
-	(void)options;
+	GHashTableIter iter;
+	gpointer key, value;
 
 	outc = g_malloc0(sizeof(struct out_context));
 	o->priv = outc;
+
+	outc->scale = 0.0;
+	if (options) {
+		g_hash_table_iter_init(&iter, options);
+		while (g_hash_table_iter_next(&iter, &key, &value)) {
+			if (!strcmp(key, "scale")) {
+				if (!g_variant_is_of_type(value, G_VARIANT_TYPE_DOUBLE)) {
+					sr_err("Invalid type for 'scale' option.");
+					return SR_ERR_ARG;
+				}
+				outc->scale = g_variant_get_double(value);
+			} else {
+				sr_err("Unknown option '%s'.", key);
+				return SR_ERR_ARG;
+			}
+		}
+	}
 
 	for (l = o->sdi->channels; l; l = l->next) {
 		ch = l->data;
@@ -238,6 +256,7 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 	const struct sr_config *src;
 	struct sr_channel *ch;
 	GSList *l;
+	float f;
 	int num_channels, size, *chan_idx, idx, i, j;
 	uint8_t *buf;
 
@@ -289,7 +308,10 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 			for (j = 0; j < num_channels; j++) {
 				idx = chan_idx[j];
 				buf = outc->chanbuf[idx] + outc->chanbuf_used[idx]++ * 4;
-				float_to_le(buf, analog->data[i * num_channels + j]);
+				f = analog->data[i * num_channels + j];
+				if (outc->scale != 0.0)
+					f /= outc->scale;
+				float_to_le(buf, f);
 			}
 		}
 		g_free(chan_idx);
@@ -329,10 +351,27 @@ static int cleanup(struct sr_output *o)
 	return SR_OK;
 }
 
+static struct sr_option options[] = {
+	{ "scale", "Scale", "Scale values by factor", NULL, NULL },
+	{ 0 }
+};
+
+static struct sr_option *get_options(gboolean cached)
+{
+	if (cached)
+		return options;
+
+	options[0].def = g_variant_new_double(0);
+	g_variant_ref_sink(options[0].def);
+
+	return options;
+}
+
 SR_PRIV struct sr_output_module output_wav = {
 	.id = "wav",
 	.name = "WAV",
 	.desc = "WAVE file format",
+	.options = get_options,
 	.init = init,
 	.receive = receive,
 	.cleanup = cleanup,
