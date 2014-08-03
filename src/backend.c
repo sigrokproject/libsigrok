@@ -215,7 +215,7 @@ static int sanity_check_all_drivers(void)
 static int sanity_check_all_input_modules(void)
 {
 	int i, errors, ret = SR_OK;
-	struct sr_input_format **inputs;
+	struct sr_input_module **inputs;
 	const char *d;
 
 	sr_spew("Sanity-checking all input modules.");

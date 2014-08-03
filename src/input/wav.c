@@ -256,7 +256,7 @@ static int loadfile(struct sr_input *in, const char *filename)
 }
 
 
-SR_PRIV struct sr_input_format input_wav = {
+SR_PRIV struct sr_input_module input_wav = {
 	.id = "wav",
 	.description = "WAV file",
 	.format_match = format_match,

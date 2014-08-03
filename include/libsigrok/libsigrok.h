@@ -443,13 +443,13 @@ struct sr_option {
 	GSList *values;
 };
 
-/** Input (file) format struct. */
+/** Input (file) module struct. */
 struct sr_input {
 	/**
-	 * A pointer to this input format's 'struct sr_input_format'.
+	 * A pointer to this input module's 'struct sr_input_module'.
 	 * The frontend can use this to call the module's callbacks.
 	 */
-	struct sr_input_format *format;
+	struct sr_input_module *module;
 
 	GHashTable *param;
 
@@ -458,13 +458,13 @@ struct sr_input {
 	void *internal;
 };
 
-/** Input (file) format driver. */
-struct sr_input_format {
-	/** The unique ID for this input format. Must not be NULL. */
+/** Input (file) module driver. */
+struct sr_input_module {
+	/** The unique ID for this input module. Must not be NULL. */
 	char *id;
 
 	/**
-	 * A short description of the input format, which can (for example)
+	 * A short description of the input module, which can (for example)
 	 * be displayed to the user by frontends. Must not be NULL.
 	 */
 	char *description;

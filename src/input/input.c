@@ -27,9 +27,9 @@
  */
 
 /**
- * @defgroup grp_input Input formats
+ * @defgroup grp_input Input modules
  *
- * Input file/data format handling.
+ * Input file/data module handling.
  *
  * libsigrok can process acquisition data in several different ways.
  * Aside from acquiring data from a hardware device, it can also take it from
@@ -43,21 +43,21 @@
  * Every input module is "pluggable", meaning it's handled as being separate
  * from the main libsigrok, but linked in to it statically. To keep things
  * modular and separate like this, functions within an input module should be
- * declared static, with only the respective 'struct sr_input_format' being
+ * declared static, with only the respective 'struct sr_input_module' being
  * exported for use into the wider libsigrok namespace.
  *
  * @{
  */
 
 /** @cond PRIVATE */
-extern SR_PRIV struct sr_input_format input_chronovu_la8;
-extern SR_PRIV struct sr_input_format input_csv;
-extern SR_PRIV struct sr_input_format input_binary;
-extern SR_PRIV struct sr_input_format input_vcd;
-extern SR_PRIV struct sr_input_format input_wav;
+extern SR_PRIV struct sr_input_module input_chronovu_la8;
+extern SR_PRIV struct sr_input_module input_csv;
+extern SR_PRIV struct sr_input_module input_binary;
+extern SR_PRIV struct sr_input_module input_vcd;
+extern SR_PRIV struct sr_input_module input_wav;
 /* @endcond */
 
-static struct sr_input_format *input_module_list[] = {
+static struct sr_input_module *input_module_list[] = {
 	&input_vcd,
 	&input_chronovu_la8,
 	&input_wav,
@@ -68,7 +68,7 @@ static struct sr_input_format *input_module_list[] = {
 };
 
 /** @since 0.1.0 */
-SR_API struct sr_input_format **sr_input_list(void)
+SR_API struct sr_input_module **sr_input_list(void)
 {
 	return input_module_list;
 }

@@ -535,7 +535,7 @@ static int loadfile(struct sr_input *in, const char *filename)
 	return SR_OK;
 }
 
-SR_PRIV struct sr_input_format input_vcd = {
+SR_PRIV struct sr_input_module input_vcd = {
 	.id = "vcd",
 	.description = "Value Change Dump",
 	.format_match = format_match,

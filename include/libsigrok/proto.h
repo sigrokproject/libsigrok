@@ -124,7 +124,7 @@ SR_API int sr_session_source_remove_channel(struct sr_session *session,
 
 /*--- input/input.c ---------------------------------------------------------*/
 
-SR_API struct sr_input_format **sr_input_list(void);
+SR_API struct sr_input_module **sr_input_list(void);
 
 /*--- output/output.c -------------------------------------------------------*/
 

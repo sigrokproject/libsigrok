@@ -197,7 +197,7 @@ static int loadfile(struct sr_input *in, const char *filename)
 	return SR_OK;
 }
 
-SR_PRIV struct sr_input_format input_chronovu_la8 = {
+SR_PRIV struct sr_input_module input_chronovu_la8 = {
 	.id = "chronovu-la8",
 	.description = "ChronoVu LA8",
 	.format_match = format_match,
