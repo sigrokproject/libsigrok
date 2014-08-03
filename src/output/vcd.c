@@ -39,9 +39,6 @@ struct context {
 	uint64_t samplecount;
 };
 
-static const char *const vcd_header_comment =
-	"$comment\n  Acquisition with %d/%d channels at %s\n$end\n";
-
 static int init(struct sr_output *o, GHashTable *options)
 {
 	struct context *ctx;
