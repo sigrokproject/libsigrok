@@ -29,7 +29,7 @@ static const char *manufacturers[] = {
 	"HAMEG",
 };
 
-static const int32_t hwopts[] = {
+static const int32_t scanopts[] = {
 	SR_CONF_CONN,
 	SR_CONF_SERIALCOMM,
 };
@@ -519,6 +519,10 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	model = devc->model_config;
 
 	switch (key) {
+	case SR_CONF_SCAN_OPTIONS:
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+				scanopts, ARRAY_SIZE(scanopts), sizeof(int32_t));
+		break;
 	case SR_CONF_DEVICE_OPTIONS:
 		if (cg_type == CG_NONE) {
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
