@@ -409,6 +409,10 @@ case "$host" in
 	;;
 esac
 
+# The BeagleLogic driver needs sys/mman.h and sys/ioctl.h. Don't try to
+# build it if these headers aren't available.
+AC_CHECK_HEADERS([sys/mman.h sys/ioctl.h], [], [HW_BEAGLELOGIC="no"])
+
 AC_SUBST(SR_PKGLIBS)
 
 CFLAGS="$CFLAGS -I./include/libsigrok $LIB_CFLAGS"
@@ -633,7 +637,8 @@ AM_CONDITIONAL(BINDINGS_PYTHON, test x$BINDINGS_PYTHON = xyes)
 AM_CONDITIONAL(BINDINGS_JAVA, test x$BINDINGS_JAVA = xyes)
 
 # Checks for header files.
-# These are already checked: inttypes.h stdint.h stdlib.h string.h unistd.h.
+# These are already implicitly checked: inttypes.h stdint.h stdlib.h string.h
+# unistd.h memory.h strings.h dlfcn.h sys/types.h sys/stat.h.
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_BIGENDIAN
