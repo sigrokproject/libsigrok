@@ -355,8 +355,10 @@ static int analog_channel_state_get(struct sr_scpi_dev_inst *scpi,
 				break;
 			}
 		}
-		if (i == config->num_vdivs)
+		if (j == config->num_vdivs) {
+			sr_err("Could not determine array index for vertical div scale.");
 			return SR_ERR;
+		}
 
 		g_snprintf(command, sizeof(command),
 			   (*config->scpi_dialect)[SCPI_CMD_GET_VERTICAL_OFFSET],
@@ -502,8 +504,10 @@ SR_PRIV int hmo_scope_state_get(struct sr_dev_inst *sdi)
 			break;
 		}
 	}
-	if (i == config->num_timebases)
+	if (i == config->num_timebases) {
+		sr_err("Could not determine array index for time base.");
 		return SR_ERR;
+	}
 
 	if (sr_scpi_get_float(sdi->conn,
 			(*config->scpi_dialect)[SCPI_CMD_GET_HORIZ_TRIGGERPOS],
