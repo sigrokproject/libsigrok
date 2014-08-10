@@ -31,7 +31,7 @@
 /**
  * @file
  *
- * Input file/data format handling.
+ * Input module handling.
  */
 
 /**
@@ -40,13 +40,13 @@
  * Input file/data module handling.
  *
  * libsigrok can process acquisition data in several different ways.
- * Aside from acquiring data from a hardware device, it can also take it from
- * a file in various formats (binary, CSV, VCD, and so on).
+ * Aside from acquiring data from a hardware device, it can also take it
+ * from a file in various formats (binary, CSV, VCD, and so on).
  *
- * Like everything in libsigrok that handles data, processing is done in a
- * streaming manner -- input should be supplied to libsigrok a chunk at a time.
- * This way anything that processes data can do so in real time, without the
- * user having to wait for the whole thing to be finished.
+ * Like all libsigrok data handling, processing is done in a streaming
+ * manner: input should be supplied a chunk at a time. This way anything
+ * that processes data can do so in real time, without the user having
+ * to wait for the whole thing to be finished.
  *
  * Every input module is "pluggable", meaning it's handled as being separate
  * from the main libsigrok, but linked in to it statically. To keep things
@@ -75,7 +75,11 @@ static const struct sr_input_module *input_module_list[] = {
 	NULL,
 };
 
-/** @since 0.4.0 */
+/**
+ * Returns a NULL-terminated list of all available input modules.
+ *
+ * @since 0.4.0
+ */
 SR_API const struct sr_input_module **sr_input_list(void)
 {
 	return input_module_list;
@@ -164,7 +168,7 @@ SR_API const struct sr_option *sr_input_options_get(const struct sr_input_module
 
 /**
  * After a call to sr_input_options_get(), this function cleans up all
- * the resources allocated by that call.
+ * resources allocated by that call.
  *
  * @since 0.4.0
  */
@@ -194,9 +198,9 @@ SR_API void sr_input_options_free(const struct sr_input_module *o)
  * This function is used when a client wants to use a specific input
  * module to parse a stream. No effort is made to identify the format.
  *
- * <code>options</code> is a *HashTable with the keys corresponding with
- * the module options' <code>id</code> field. The values should be GVariant
- * pointers with sunk * references, of the same GVariantType as the option's
+ * @param options GHashTable consisting of keys corresponding with
+ * the module options \c id field. The values should be GVariant
+ * pointers with sunk references, of the same GVariantType as the option's
  * default value.
  *
  * @since 0.4.0
@@ -447,6 +451,12 @@ SR_API const struct sr_input *sr_input_scan_file(const char *filename)
 	return in;
 }
 
+/**
+ * Return the input instance's (virtual) device instance. This can be
+ * used to find out the number of channels and other information.
+ *
+ * @since 0.4.0
+ */
 SR_API struct sr_dev_inst *sr_input_dev_inst_get(const struct sr_input *in)
 {
 	return in->sdi;
