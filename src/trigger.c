@@ -24,6 +24,20 @@
 #define LOG_PREFIX "trigger"
 /* * @endcond */
    
+/**
+ * @file
+ *
+ * Creating, using, or destroying triggers.
+ */
+
+/**
+ * @defgroup grp_trigger Trigger handling
+ *
+ * Creating, using, or destroying triggers.
+ *
+ * @{
+ */
+
 SR_API struct sr_trigger *sr_trigger_new(const char *name)
 {
 	struct sr_trigger *trig;
@@ -94,3 +108,5 @@ SR_API int sr_trigger_match_add(struct sr_trigger_stage *stage,
 
 	return SR_OK;
 }
+
+/** @} */
