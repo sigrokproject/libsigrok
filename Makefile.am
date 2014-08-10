@@ -409,7 +409,7 @@ library_include_HEADERS += \
 pkgconfig_DATA += bindings/cxx/libsigrokxx.pc
 
 doxy/xml/index.xml: include/libsigrok/libsigrok.h
-	$(AM_V_GEN)doxygen Doxyfile
+	$(AM_V_GEN)doxygen Doxyfile 2>/dev/null
 
 bindings/cxx/enums.cpp: bindings/cxx/enums.timestamp
 
@@ -438,7 +438,7 @@ CPPXMLDOC = bindings/cxx/doxy/xml/index.xml
 
 $(CPPXMLDOC): bindings/cxx/include/libsigrok/libsigrok.hpp \
 		bindings/cxx/enums.timestamp
-	$(AM_V_GEN)cd bindings/cxx && doxygen Doxyfile
+	$(AM_V_GEN)cd bindings/cxx && doxygen Doxyfile 2>/dev/null
 
 if BINDINGS_PYTHON
 
@@ -470,7 +470,7 @@ python-clean:
 	$(AM_V_at)rm -rf $(PDIR)/doxy/
 
 python-doc:
-	$(AM_V_at)cd $(PDIR) && doxygen Doxyfile
+	$(AM_V_at)cd $(PDIR) && doxygen Doxyfile 2>/dev/null
 
 BUILD_EXTRA += python-build
 INSTALL_EXTRA += python-install
@@ -525,7 +525,7 @@ java-clean:
 	rm -rf $(JDIR)/doxy/
 
 java-doc:
-	$(AM_v_at)cd $(JDIR) && doxygen Doxyfile
+	$(AM_v_at)cd $(JDIR) && doxygen Doxyfile 2>/dev/null
 
 BUILD_EXTRA += java-build
 INSTALL_EXTRA += java-install
