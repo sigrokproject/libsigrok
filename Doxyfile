@@ -778,7 +778,9 @@ RECURSIVE              = YES
 # Note that relative paths are relative to the directory from which doxygen is
 # run.
 
-EXCLUDE                = config.h libsigrok-internal.h session_driver.c std.c
+EXCLUDE                = config.h src/libsigrok-internal.h src/session_driver.c
+EXCLUDE               += src/std.c src/drivers.c src/ezusb.c src/serial.c
+EXCLUDE               += src/soft-trigger.c src/usb.c
 
 # The EXCLUDE_SYMLINKS tag can be used to select whether or not files or
 # directories that are symbolic links (a Unix file system feature) are excluded
@@ -797,19 +799,25 @@ EXCLUDE_SYMLINKS       = NO
 #
 # Ignore the following files and directories (see also EXCLUDE above):
 #  - config.h: Non-public stuff, the file doesn't get installed.
-#  - libsigrok-internal.h: Non-public stuff, the file doesn't get installed.
-#  - session_driver.c: Special driver for "virtual" devices, non-public.
-#  - std.c: Non-public helpers, no public API stuff in there.
-#  - hardware/*: Only driver-specific stuff, no public API stuff in there.
-#  - input/*: Only input.c contains public API, everything else doesn't.
-#  - output/*: Only output.c contains public API, everything else doesn't.
+#  - src/libsigrok-internal.h: Non-public stuff, the file doesn't get installed.
+#  - src/session_driver.c: Special driver for "virtual" devices, non-public.
+#  - src/std.c: Non-public helpers, no public API stuff in there.
+#  - src/drivers.c: Non-public helpers, no public API stuff in there.
+#  - src/ezusb.c: Non-public helpers, no public API stuff in there.
+#  - src/serial.c: Non-public helpers, no public API stuff in there.
+#  - src/soft-trigger.c: Non-public helpers, no public API stuff in there.
+#  - src/usb.c: Non-public helpers, no public API stuff in there.
+#  - src/hardware/*: Only driver-specific stuff, no public API stuff in there.
+#  - src/input/*: Only input.c contains public API, everything else doesn't.
+#  - src/output/*: Only output.c contains public API, everything else doesn't.
+#  - src/scpi/*: Non-public helpers, no public API stuff in there.
+#  - src/dmm/*: Non-public helpers, no public API stuff in there.
 #  - tests/*: Unit tests, no public API stuff in there.
 #  - bindings/*: Language bindings, no public API stuff in there.
 #  - doxy/*: Potentially already generated docs, should not be scanned.
 #
-EXCLUDE_PATTERNS       = */hardware/* */input/* */output/* */tests/*
-EXCLUDE_PATTERNS      += */bindings/*
-EXCLUDE_PATTERNS      += */doxy/*
+EXCLUDE_PATTERNS       = */hardware/* */input/* */output/* */scpi/* */dmm/*
+EXCLUDE_PATTERNS      += */tests/* */bindings/* */doxy/*
 INPUT                 += src/input/input.c src/output/output.c
 
 # The EXCLUDE_SYMBOLS tag can be used to specify one or more symbol names
