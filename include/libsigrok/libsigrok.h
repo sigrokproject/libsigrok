@@ -443,6 +443,21 @@ struct sr_option {
 	GSList *values;
 };
 
+/** Input module metadata keys. */
+enum sr_input_meta_keys {
+	/** The input filename, if there is one. */
+	SR_INPUT_META_FILENAME = 0x01,
+	/** The input file's size in bytes. */
+	SR_INPUT_META_FILESIZE = 0x02,
+	/** The first 128 bytes of the file, provided as a GString. */
+	SR_INPUT_META_HEADER = 0x04,
+	/** The file's MIME type. */
+	SR_INPUT_META_MIMETYPE = 0x08,
+
+	/** The module cannot identify a file without this metadata. */
+	SR_INPUT_META_REQUIRED = 0x80,
+};
+
 struct sr_input;
 struct sr_input_module;
 struct sr_output;

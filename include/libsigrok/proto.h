@@ -124,7 +124,20 @@ SR_API int sr_session_source_remove_channel(struct sr_session *session,
 
 /*--- input/input.c ---------------------------------------------------------*/
 
-SR_API struct sr_input_module **sr_input_list(void);
+SR_API const struct sr_input_module **sr_input_list(void);
+SR_API const char *sr_input_id_get(const struct sr_input_module *in);
+SR_API const char *sr_input_name_get(const struct sr_input_module *in);
+SR_API const char *sr_input_description_get(const struct sr_input_module *in);
+SR_API const struct sr_input_module *sr_input_find(char *id);
+SR_API const struct sr_option *sr_input_options_get(const struct sr_input_module *in);
+SR_API void sr_input_options_free(const struct sr_input_module *in);
+SR_API struct sr_input *sr_input_new(const struct sr_input_module *imod,
+		GHashTable *options);
+SR_API const struct sr_input *sr_input_scan_buffer(GString *buf);
+SR_API const struct sr_input *sr_input_scan_file(const char *filename);
+SR_API struct sr_dev_inst *sr_input_dev_inst_get(const struct sr_input *in);
+SR_API int sr_input_send(const struct sr_input *in, GString *buf);
+SR_API int sr_input_free(const struct sr_input *in);
 
 /*--- output/output.c -------------------------------------------------------*/
 

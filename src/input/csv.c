@@ -865,7 +865,7 @@ static int loadfile(struct sr_input *in, const char *filename)
 
 SR_PRIV struct sr_input_module input_csv = {
 	.id = "csv",
-	.description = "Comma-separated values (CSV)",
+	.desc = "Comma-separated values (CSV)",
 	.format_match = format_match,
 	.init = init,
 	.loadfile = loadfile,

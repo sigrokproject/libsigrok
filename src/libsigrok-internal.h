@@ -172,37 +172,66 @@ struct sr_context {
 struct sr_input {
 	/**
 	 * A pointer to this input module's 'struct sr_input_module'.
-	 * The frontend can use this to call the module's callbacks.
 	 */
-	struct sr_input_module *module;
-
-	GHashTable *param;
-
+	const struct sr_input_module *module;
+	GString *buf;
 	struct sr_dev_inst *sdi;
-
-	void *internal;
+	void *priv;
 };
 
 /** Input (file) module driver. */
 struct sr_input_module {
-	/** The unique ID for this input module. Must not be NULL. */
-	char *id;
-
 	/**
-	 * A short description of the input module, which can (for example)
-	 * be displayed to the user by frontends. Must not be NULL.
+	 * A unique ID for this output module, suitable for use in command-line
+	 * clients, [a-z0-9-]. Must not be NULL.
 	 */
-	char *description;
+	const char *id;
 
 	/**
-	 * Check if this input module can load and parse the specified file.
+	 * A unique name for this output module, suitable for use in GUI
+	 * clients, can contain UTF-8. Must not be NULL.
+	 */
+	const char *name;
+
+	/**
+	 * A short description of the output module. Must not be NULL.
 	 *
-	 * @param[in] filename The name (and path) of the file to check.
+	 * This can be displayed by frontends, e.g. when selecting the output
+	 * module for saving a file.
+	 */
+	const char *desc;
+
+	/**
+	 * Zero-terminated list of metadata items the module needs to be able
+	 * to identify an input stream. Can be all-zero, if the module cannot
+	 * identify streams at all, i.e. has to be forced into use.
+	 *
+	 * Each item is one of:
+	 *   SR_INPUT_META_FILENAME
+	 *   SR_INPUT_META_FILESIZE
+	 *   SR_INPUT_META_HEADER
+	 *   SR_INPUT_META_MIMETYPE
+	 *
+	 * If the high bit (SR_INPUT META_REQUIRED) is set, the module cannot
+	 * identify a stream without the given metadata.
+	 */
+	const uint8_t metadata[8];
+
+	/**
+	 * Returns a NULL-terminated list of options this module can take.
+	 * Can be NULL, if the module has no options.
+	 */
+	struct sr_option *(*options) (void);
+
+	/**
+	 * Check if this input module can load and parse the specified stream.
+	 *
+	 * @param[in] metadata Metadata the module can use to identify the stream.
 	 *
 	 * @retval TRUE This module knows the format.
 	 * @retval FALSE This module does not know the format.
 	 */
-	int (*format_match) (const char *filename);
+	int (*format_match) (GHashTable *metadata);
 
 	/**
 	 * Initialize the input module.
@@ -215,7 +244,7 @@ struct sr_input_module {
 	 * @retval SR_OK Success
 	 * @retval other Negative error code.
 	 */
-	int (*init) (struct sr_input *in, const char *filename);
+	int (*init) (struct sr_input *in, GHashTable *options);
 
 	/**
 	 * Load a file, parsing the input according to the file's format.
@@ -232,12 +261,22 @@ struct sr_input_module {
 	 * @param in A pointer to a valid 'struct sr_input' that the caller
 	 *           has to allocate and provide to this function. It is also
 	 *           the responsibility of the caller to free it later.
-	 * @param filename The name (and path) of the file to use.
+	 * @param f The name (and path) of the file to use.
 	 *
 	 * @retval SR_OK Success
 	 * @retval other Negative error code.
 	 */
-	int (*loadfile) (struct sr_input *in, const char *filename);
+	int (*receive) (const struct sr_input *in, GString *buf);
+
+	/**
+	 * This function is called after the caller is finished using
+	 * the input module, and can be used to free any internal
+	 * resources the module may keep.
+	 *
+	 * @retval SR_OK Success
+	 * @retval other Negative error code.
+	 */
+	int (*cleanup) (struct sr_input *in);
 };
 
 /** Output module instance. */

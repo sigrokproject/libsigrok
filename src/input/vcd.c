@@ -537,7 +537,7 @@ static int loadfile(struct sr_input *in, const char *filename)
 
 SR_PRIV struct sr_input_module input_vcd = {
 	.id = "vcd",
-	.description = "Value Change Dump",
+	.desc = "Value Change Dump",
 	.format_match = format_match,
 	.init = init,
 	.loadfile = loadfile,

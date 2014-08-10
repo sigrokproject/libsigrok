@@ -144,7 +144,7 @@ static int loadfile(struct sr_input *in, const char *filename)
 
 SR_PRIV struct sr_input_module input_binary = {
 	.id = "binary",
-	.description = "Raw binary",
+	.desc = "Raw binary",
 	.format_match = format_match,
 	.init = init,
 	.loadfile = loadfile,

@@ -42,12 +42,12 @@ libsigrok_la_SOURCES = \
 	src/std.c
 
 # Input modules
+#	src/input/binary.c \
+#	src/input/chronovu_la8.c \
+#	src/input/csv.c \
+#	src/input/vcd.c
 libsigrok_la_SOURCES += \
-	src/input/binary.c \
-	src/input/chronovu_la8.c \
-	src/input/csv.c \
 	src/input/input.c \
-	src/input/vcd.c \
 	src/input/wav.c
 
 # Output modules
