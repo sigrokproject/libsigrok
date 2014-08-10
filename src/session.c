@@ -61,7 +61,10 @@ struct datafeed_callback {
 
 /**
  * Create a new session.
- * Currently, there can be only one session at a time within the same process.
+ *
+ * @param new_session This will contain a pointer to the newly created
+ *                    session if the return value is SR_OK, otherwise the value
+ *                    is undefined and should not be used. Must not be NULL.
  *
  * @retval SR_OK Success.
  * @retval SR_ERR_BUG A session exists already.
@@ -87,6 +90,8 @@ SR_API int sr_session_new(struct sr_session **new_session)
 /**
  * Destroy a session.
  * This frees up all memory used by the session.
+ *
+ * @param session The session to destroy. Must not be NULL.
  *
  * @retval SR_OK Success.
  * @retval SR_ERR_ARG Invalid session passed.
@@ -115,6 +120,8 @@ SR_API int sr_session_destroy(struct sr_session *session)
  *
  * The session itself (i.e., the struct sr_session) is not free'd and still
  * exists after this function returns.
+ *
+ * @param session The session to use. Must not be NULL.
  *
  * @retval SR_OK Success.
  * @retval SR_ERR_BUG Invalid session passed.
@@ -145,6 +152,7 @@ SR_API int sr_session_dev_remove_all(struct sr_session *session)
 /**
  * Add a device instance to a session.
  *
+ * @param session The session to add to. Must not be NULL.
  * @param sdi The device instance to add to a session. Must not
  *            be NULL. Also, sdi->driver and sdi->driver->dev_open must
  *            not be NULL.
@@ -218,6 +226,7 @@ SR_API int sr_session_dev_add(struct sr_session *session,
 /**
  * List all device instances attached to a session.
  *
+ * @param session The session to use. Must not be NULL.
  * @param devlist A pointer where the device instance list will be
  *                stored on return. If no devices are in the session,
  *                this will be NULL. Each element in the list points
@@ -246,6 +255,8 @@ SR_API int sr_session_dev_list(struct sr_session *session, GSList **devlist)
 /**
  * Remove all datafeed callbacks in a session.
  *
+ * @param session The session to use. Must not be NULL.
+ *
  * @retval SR_OK Success.
  * @retval SR_ERR_ARG Invalid session passed.
  *
@@ -267,6 +278,7 @@ SR_API int sr_session_datafeed_callback_remove_all(struct sr_session *session)
 /**
  * Add a datafeed callback to a session.
  *
+ * @param session The session to use. Must not be NULL.
  * @param cb Function to call when a chunk of data is received.
  *           Must not be NULL.
  * @param cb_data Opaque pointer passed in by the caller.
@@ -322,6 +334,7 @@ SR_API int sr_session_trigger_set(struct sr_session *session, struct sr_trigger 
  * but driven by another scheduler, this can be used to poll the devices
  * from within that scheduler.
  *
+ * @param session The session to use. Must not be NULL.
  * @param block If TRUE, this call will wait for any of the session's
  *              sources to fire an event on the file descriptors, or
  *              any of their timeouts to activate. In other words, this
@@ -410,6 +423,8 @@ static int verify_trigger(struct sr_trigger *trigger)
 /**
  * Start a session.
  *
+ * @param session The session to use. Must not be NULL.
+ *
  * @retval SR_OK Success.
  * @retval SR_ERR_ARG Invalid session passed.
  *
@@ -460,6 +475,8 @@ SR_API int sr_session_start(struct sr_session *session)
 /**
  * Run a session.
  *
+ * @param session The session to use. Must not be NULL.
+ *
  * @retval SR_OK Success.
  * @retval SR_ERR_ARG Invalid session passed.
  *
@@ -505,6 +522,8 @@ SR_API int sr_session_run(struct sr_session *session)
  * This must be called from within the session thread, to prevent freeing
  * resources that the session thread will try to use.
  *
+ * @param session The session to use. Must not be NULL.
+ *
  * @retval SR_OK Success.
  * @retval SR_ERR_ARG Invalid session passed.
  *
@@ -544,6 +563,8 @@ SR_PRIV int sr_session_stop_sync(struct sr_session *session)
  * until the session is finished executing. It is the caller's responsibility
  * to wait for the session thread to return before assuming that the session is
  * completely decommissioned.
+ *
+ * @param session The session to use. Must not be NULL.
  *
  * @retval SR_OK Success.
  * @retval SR_ERR_ARG Invalid session passed.
@@ -651,6 +672,7 @@ SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
 /**
  * Add an event source for a file descriptor.
  *
+ * @param session The session to use. Must not be NULL.
  * @param pollfd The GPollFD.
  * @param[in] timeout Max time to wait before the callback is called,
  *              ignored if 0.
@@ -708,6 +730,7 @@ static int _sr_session_source_add(struct sr_session *session, GPollFD *pollfd,
 /**
  * Add an event source for a file descriptor.
  *
+ * @param session The session to use. Must not be NULL.
  * @param fd The file descriptor.
  * @param events Events to check for.
  * @param timeout Max time to wait before the callback is called, ignored if 0.
@@ -734,6 +757,7 @@ SR_API int sr_session_source_add(struct sr_session *session, int fd,
 /**
  * Add an event source for a GPollFD.
  *
+ * @param session The session to use. Must not be NULL.
  * @param pollfd The GPollFD.
  * @param timeout Max time to wait before the callback is called, ignored if 0.
  * @param cb Callback function to add. Must not be NULL.
@@ -756,6 +780,7 @@ SR_API int sr_session_source_add_pollfd(struct sr_session *session,
 /**
  * Add an event source for a GIOChannel.
  *
+ * @param session The session to use. Must not be NULL.
  * @param channel The GIOChannel.
  * @param events Events to poll on.
  * @param timeout Max time to wait before the callback is called, ignored if 0.
@@ -789,6 +814,7 @@ SR_API int sr_session_source_add_channel(struct sr_session *session,
  *
  * @todo Add more error checks and logging.
  *
+ * @param session The session to use. Must not be NULL.
  * @param poll_object The channel for which the source should be removed.
  *
  * @retval SR_OK Success
@@ -846,6 +872,7 @@ static int _sr_session_source_remove(struct sr_session *session, gintptr poll_ob
 /**
  * Remove the source belonging to the specified file descriptor.
  *
+ * @param session The session to use. Must not be NULL.
  * @param fd The file descriptor for which the source should be removed.
  *
  * @retval SR_OK Success
@@ -863,6 +890,7 @@ SR_API int sr_session_source_remove(struct sr_session *session, int fd)
 /**
  * Remove the source belonging to the specified poll descriptor.
  *
+ * @param session The session to use. Must not be NULL.
  * @param pollfd The poll descriptor for which the source should be removed.
  *
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or
@@ -880,6 +908,7 @@ SR_API int sr_session_source_remove_pollfd(struct sr_session *session,
 /**
  * Remove the source belonging to the specified channel.
  *
+ * @param session The session to use. Must not be NULL.
  * @param channel The channel for which the source should be removed.
  *
  * @retval SR_OK Success.

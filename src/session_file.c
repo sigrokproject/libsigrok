@@ -102,6 +102,7 @@ SR_PRIV int sr_sessionfile_check(const char *filename)
  * Load the session from the specified filename.
  *
  * @param filename The name of the session file to load. Must not be NULL.
+ * @param session The session to load the file into. Must not be NULL.
  *
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments,
  *         SR_ERR_MALLOC upon memory allocation errors, or SR_ERR upon
@@ -220,6 +221,7 @@ SR_API int sr_session_load(const char *filename, struct sr_session **session)
 /**
  * Save a session to the specified file.
  *
+ * @param session The session to save to the specified file. Must not be NULL.
  * @param filename The name of the filename to save the session as.
  *                 Must not be NULL.
  * @param sdi The device instance from which the data was captured.
@@ -279,6 +281,7 @@ SR_API int sr_session_save(struct sr_session *session, const char *filename,
 /**
  * Initialize a saved session file.
  *
+ * @param session The session to use. Must not be NULL.
  * @param filename The name of the filename to save the session as.
  *                 Must not be NULL.
  * @param samplerate The samplerate to store for this session.
@@ -375,6 +378,7 @@ SR_API int sr_session_save_init(struct sr_session *session,
  * The session file must have been created with sr_session_save_init()
  * or sr_session_save() beforehand.
  *
+ * @param session The session to use. Must not be NULL.
  * @param filename The name of the filename to append to. Must not be NULL.
  * @param buf The data to be appended.
  * @param unitsize The number of bytes per sample.

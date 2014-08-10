@@ -207,6 +207,7 @@ SR_PRIV int sr_scpi_open(struct sr_scpi_dev_inst *scpi)
 /**
  * Add an event source for an SCPI device.
  *
+ * @param session The session to add the event source to.
  * @param scpi Previously initialized SCPI device structure.
  * @param events Events to check for.
  * @param timeout Max time to wait before the callback is called, ignored if 0.
@@ -226,6 +227,7 @@ SR_PRIV int sr_scpi_source_add(struct sr_session *session,
 /**
  * Remove event source for an SCPI device.
  *
+ * @param session The session to remove the event source from.
  * @param scpi Previously initialized SCPI device structure.
  *
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or
