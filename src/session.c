@@ -67,13 +67,16 @@ struct datafeed_callback {
  *                    is undefined and should not be used. Must not be NULL.
  *
  * @retval SR_OK Success.
- * @retval SR_ERR_BUG A session exists already.
+ * @retval SR_ERR_ARG Invalid argument.
  *
  * @since 0.4.0
  */
 SR_API int sr_session_new(struct sr_session **new_session)
 {
 	struct sr_session *session;
+
+	if (!new_session)
+		return SR_ERR_ARG;
 
 	session = g_malloc0(sizeof(struct sr_session));
 
