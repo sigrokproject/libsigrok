@@ -26,6 +26,24 @@
 #include "../include/libsigrok/libsigrok.h"
 #include "lib.h"
 
+struct sr_context *srtest_ctx;
+
+void srtest_setup(void)
+{
+	int ret;
+
+	ret = sr_init(&srtest_ctx);
+	fail_unless(ret == SR_OK, "sr_init() failed: %d.", ret);
+}
+
+void srtest_teardown(void)
+{
+	int ret;
+
+	ret = sr_exit(srtest_ctx);
+	fail_unless(ret == SR_OK, "sr_exit() failed: %d.", ret);
+}
+
 /* Get a libsigrok driver by name. */
 struct sr_dev_driver *srtest_driver_get(const char *drivername)
 {

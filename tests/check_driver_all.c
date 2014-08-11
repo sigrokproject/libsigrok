@@ -23,24 +23,6 @@
 #include "../include/libsigrok/libsigrok.h"
 #include "lib.h"
 
-struct sr_context *sr_ctx;
-
-static void setup(void)
-{
-	int ret;
-
-	ret = sr_init(&sr_ctx);
-	fail_unless(ret == SR_OK, "sr_init() failed: %d.", ret);
-}
-
-static void teardown(void)
-{
-	int ret;
-
-	ret = sr_exit(sr_ctx);
-	fail_unless(ret == SR_OK, "sr_exit() failed: %d.", ret);
-}
-
 /* Check whether at least one driver is available. */
 START_TEST(test_driver_available)
 {
@@ -54,7 +36,7 @@ END_TEST
 /* Check whether initializing all drivers works. */
 START_TEST(test_driver_init_all)
 {
-	srtest_driver_init_all(sr_ctx);
+	srtest_driver_init_all(srtest_ctx);
 }
 END_TEST
 
@@ -85,7 +67,7 @@ Suite *suite_driver_all(void)
 	s = suite_create("driver-all");
 
 	tc = tcase_create("config");
-	tcase_add_checked_fixture(tc, setup, teardown);
+	tcase_add_checked_fixture(tc, srtest_setup, srtest_teardown);
 	tcase_add_test(tc, test_driver_available);
 	tcase_add_test(tc, test_driver_init_all);
 	// TODO: Currently broken.

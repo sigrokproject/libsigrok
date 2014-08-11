@@ -23,6 +23,11 @@
 
 #include "../include/libsigrok/libsigrok.h"
 
+extern struct sr_context *srtest_ctx;
+
+void srtest_setup(void);
+void srtest_teardown(void);
+
 struct sr_dev_driver *srtest_driver_get(const char *drivername);
 struct sr_input_format *srtest_input_get(const char *id);
 

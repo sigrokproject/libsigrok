@@ -22,24 +22,6 @@
 #include "../include/libsigrok/libsigrok.h"
 #include "lib.h"
 
-struct sr_context *sr_ctx;
-
-static void setup(void)
-{
-	int ret;
-
-	ret = sr_init(&sr_ctx);
-	fail_unless(ret == SR_OK, "sr_init() failed: %d.", ret);
-}
-
-static void teardown(void)
-{
-	int ret;
-
-	ret = sr_exit(sr_ctx);
-	fail_unless(ret == SR_OK, "sr_exit() failed: %d.", ret);
-}
-
 static void test_samplerate(uint64_t samplerate, const char *expected)
 {
 	char *s;
@@ -180,7 +162,7 @@ Suite *suite_strutil(void)
 	s = suite_create("strutil");
 
 	tc = tcase_create("sr_samplerate_string");
-	tcase_add_checked_fixture(tc, setup, teardown);
+	tcase_add_checked_fixture(tc, srtest_setup, srtest_teardown);
 	tcase_add_test(tc, test_hz);
 	tcase_add_test(tc, test_khz);
 	tcase_add_test(tc, test_mhz);
