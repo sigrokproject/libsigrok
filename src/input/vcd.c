@@ -2,6 +2,7 @@
  * This file is part of the libsigrok project.
  *
  * Copyright (C) 2012 Petteri Aimonen <jpa@sr.mail.kapsi.fi>
+ * Copyright (C) 2014 Bert Vermeulen <bert@biot.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -69,12 +70,14 @@
 #define CHUNKSIZE 1024
 
 struct context {
+	gboolean got_header;
 	uint64_t samplerate;
-	int maxchannels;
-	int channelcount;
+	unsigned int maxchannels;
+	unsigned int channelcount;
 	int downsample;
 	unsigned compress;
 	int64_t skip;
+	gboolean skip_until_end;
 	GSList *channels;
 };
 
@@ -84,81 +87,56 @@ struct vcd_channel {
 };
 
 
-/* Read until specific type of character occurs in file.
- * Skip input if dest is NULL.
- * Modes:
- * 'W' read until whitespace
- * 'N' read until non-whitespace, and ungetc() the character
- * '$' read until $end
- */
-static gboolean read_until(FILE *file, GString *dest, char mode)
-{
-	int  c;
-	char prev[4] = "";
-
-	for(;;) {
-		c = fgetc(file);
-
-		if (c == EOF) {
-			if (mode == '$')
-				sr_err("Unexpected EOF.");
-			return FALSE;
-		}
-
-		if (mode == 'W' && g_ascii_isspace(c))
-			return TRUE;
-
-		if (mode == 'N' && !g_ascii_isspace(c)) {
-			ungetc(c, file);
-			return TRUE;
-		}
-
-		if (mode == '$') {
-			prev[0] = prev[1]; prev[1] = prev[2]; prev[2] = prev[3]; prev[3] = c;
-			if (prev[0] == '$' && prev[1] == 'e' && prev[2] == 'n' && prev[3] == 'd') {
-				if (dest != NULL)
-					g_string_truncate(dest, dest->len - 3);
-
-				return TRUE;
-			}
-		}
-
-		if (dest != NULL)
-			g_string_append_c(dest, c);
-	}
-}
-
 /*
- * Reads a single VCD section from input file and parses it to structure.
+ * Reads a single VCD section from input file and parses it to name/contents.
  * e.g. $timescale 1ps $end  => "timescale" "1ps"
  */
-static gboolean parse_section(FILE *file, gchar **name, gchar **contents)
+static gboolean parse_section(GString *buf, gchar **name, gchar **contents)
 {
+	GString *sname, *scontent;
 	gboolean status;
-	GString *sname, *scontents;
+	unsigned int pos;
 
-	/* Skip any initial white-space */
-	if (!read_until(file, NULL, 'N')) return FALSE;
+	*name = *contents = NULL;
+	status = FALSE;
+	pos = 0;
+
+	/* Skip any initial white-space. */
+	while (pos < buf->len && g_ascii_isspace(buf->str[pos]))
+		pos++;
 
 	/* Section tag should start with $. */
-	if (fgetc(file) != '$')
+	if (buf->str[pos++] != '$')
 		return FALSE;
 
-	/* Read the section tag */
 	sname = g_string_sized_new(32);
-	status = read_until(file, sname, 'W');
+	scontent = g_string_sized_new(128);
 
-	/* Skip whitespace before content */
-	status = status && read_until(file, NULL, 'N');
+	/* Read the section tag. */
+	while (pos < buf->len && !g_ascii_isspace(buf->str[pos]))
+		g_string_append_c(sname, buf->str[pos++]);
 
-	/* Read the content */
-	scontents = g_string_sized_new(128);
-	status = status && read_until(file, scontents, '$');
-	g_strchomp(scontents->str);
+	/* Skip whitespace before content. */
+	while (pos < buf->len && g_ascii_isspace(buf->str[pos]))
+		pos++;
 
-	/* Release strings if status is FALSE, return them if status is TRUE */
+	/* Read the content. */
+	while (pos < buf->len - 4 && strncmp(buf->str + pos, "$end", 4))
+		g_string_append_c(scontent, buf->str[pos++]);
+
+	if (sname->len && pos < buf->len - 4 && !strncmp(buf->str + pos, "$end", 4)) {
+		status = TRUE;
+		pos += 4;
+		while (pos < buf->len && g_ascii_isspace(buf->str[pos]))
+			pos++;
+		g_string_erase(buf, 0, pos);
+	}
+
 	*name = g_string_free(sname, !status);
-	*contents = g_string_free(scontents, !status);
+	*contents = g_string_free(scontent, !status);
+	if (*contents)
+		g_strchomp(*contents);
+
 	return status;
 }
 
@@ -168,12 +146,6 @@ static void free_channel(void *data)
 	g_free(vcd_ch->name);
 	g_free(vcd_ch->identifier);
 	g_free(vcd_ch);
-}
-
-static void release_context(struct context *ctx)
-{
-	g_slist_free_full(ctx->channels, free_channel);
-	g_free(ctx);
 }
 
 /* Remove empty parts from an array returned by g_strsplit. */
@@ -194,14 +166,18 @@ static void remove_empty_parts(gchar **parts)
  * Parse VCD header to get values for context structure.
  * The context structure should be zeroed before calling this.
  */
-static gboolean parse_header(FILE *file, struct context *ctx)
+static gboolean parse_header(const struct sr_input *in, GString *buf)
 {
-	uint64_t p, q;
-	gchar *name = NULL, *contents = NULL;
-	gboolean status = FALSE;
 	struct vcd_channel *vcd_ch;
+	uint64_t p, q;
+	struct context *inc;
+	gboolean status;
+	gchar *name, *contents, **parts;
 
-	while (parse_section(file, &name, &contents)) {
+	inc = in->priv;
+	name = contents = NULL;
+	status = FALSE;
+	while (parse_section(buf, &name, &contents)) {
 		sr_dbg("Section '%s', contents '%s'.", name, contents);
 
 		if (g_strcmp0(name, "enddefinitions") == 0) {
@@ -211,22 +187,22 @@ static gboolean parse_header(FILE *file, struct context *ctx)
 			/*
 			 * The standard allows for values 1, 10 or 100
 			 * and units s, ms, us, ns, ps and fs.
-			 * */
+			 */
 			if (sr_parse_period(contents, &p, &q) == SR_OK) {
-				ctx->samplerate = q / p;
+				inc->samplerate = q / p;
 				if (q % p != 0) {
 					/* Does not happen unless time value is non-standard */
 					sr_warn("Inexact rounding of samplerate, %" PRIu64 " / %" PRIu64 " to %" PRIu64 " Hz.",
-						q, p, ctx->samplerate);
+						q, p, inc->samplerate);
 				}
 
-				sr_dbg("Samplerate: %" PRIu64, ctx->samplerate);
+				sr_dbg("Samplerate: %" PRIu64, inc->samplerate);
 			} else {
 				sr_err("Parsing timescale failed.");
 			}
 		} else if (g_strcmp0(name, "var") == 0) {
 			/* Format: $var type size identifier reference $end */
-			gchar **parts = g_strsplit_set(contents, " \r\n\t", 0);
+			parts = g_strsplit_set(contents, " \r\n\t", 0);
 			remove_empty_parts(parts);
 
 			if (g_strv_length(parts) != 4)
@@ -235,15 +211,17 @@ static gboolean parse_header(FILE *file, struct context *ctx)
 				sr_info("Unsupported signal type: '%s'", parts[0]);
 			else if (strtol(parts[1], NULL, 10) != 1)
 				sr_info("Unsupported signal size: '%s'", parts[1]);
-			else if (ctx->channelcount >= ctx->maxchannels)
-				sr_warn("Skipping '%s' because only %d channels requested.", parts[3], ctx->maxchannels);
+			else if (inc->channelcount >= inc->maxchannels)
+				sr_warn("Skipping '%s' because only %d channels requested.",
+						parts[3], inc->maxchannels);
 			else {
-				sr_info("Channel %d is '%s' identified by '%s'.", ctx->channelcount, parts[3], parts[2]);
+				sr_info("Channel %d is '%s' identified by '%s'.",
+						inc->channelcount, parts[3], parts[2]);
 				vcd_ch = g_malloc(sizeof(struct vcd_channel));
 				vcd_ch->identifier = g_strdup(parts[2]);
 				vcd_ch->name = g_strdup(parts[3]);
-				ctx->channels = g_slist_append(ctx->channels, vcd_ch);
-				ctx->channelcount++;
+				inc->channels = g_slist_append(inc->channels, vcd_ch);
+				inc->channelcount++;
 			}
 
 			g_strfreev(parts);
@@ -252,105 +230,33 @@ static gboolean parse_header(FILE *file, struct context *ctx)
 		g_free(name); name = NULL;
 		g_free(contents); contents = NULL;
 	}
-
 	g_free(name);
 	g_free(contents);
+
+	inc->got_header = status;
 
 	return status;
 }
 
-static int format_match(const char *filename)
+static int format_match(GHashTable *metadata)
 {
-	FILE *file;
-	gchar *name = NULL, *contents = NULL;
+	GString *buf, *tmpbuf;
 	gboolean status;
+	gchar *name, *contents;
 
-	file = fopen(filename, "r");
-	if (file == NULL)
-		return FALSE;
+	buf = g_hash_table_lookup(metadata, GINT_TO_POINTER(SR_INPUT_META_HEADER));
+	tmpbuf = g_string_new_len(buf->str, buf->len);
 
 	/*
 	 * If we can parse the first section correctly,
 	 * then it is assumed to be a VCD file.
 	 */
-	status = parse_section(file, &name, &contents);
-	status = status && (*name != '\0');
-
+	status = parse_section(tmpbuf, &name, &contents);
+	g_string_free(tmpbuf, TRUE);
 	g_free(name);
 	g_free(contents);
-	fclose(file);
 
 	return status;
-}
-
-static int init(struct sr_input *in, const char *filename)
-{
-	struct sr_channel *ch;
-	int num_channels, i;
-	char name[SR_MAX_CHANNELNAME_LEN + 1];
-	char *param;
-	struct context *ctx;
-
-	(void)filename;
-
-	if (!(ctx = g_try_malloc0(sizeof(*ctx)))) {
-		sr_err("Input format context malloc failed.");
-		return SR_ERR_MALLOC;
-	}
-
-	num_channels = DEFAULT_NUM_CHANNELS;
-	ctx->samplerate = 0;
-	ctx->downsample = 1;
-	ctx->skip = -1;
-
-	if (in->param) {
-		param = g_hash_table_lookup(in->param, "numchannels");
-		if (param) {
-			num_channels = strtoul(param, NULL, 10);
-			if (num_channels < 1) {
-				release_context(ctx);
-				return SR_ERR;
-			} else if (num_channels > 64) {
-				sr_err("No more than 64 channels supported.");
-				return SR_ERR;
-			}
-		}
-
-		param = g_hash_table_lookup(in->param, "downsample");
-		if (param) {
-			ctx->downsample = strtoul(param, NULL, 10);
-			if (ctx->downsample < 1)
-				ctx->downsample = 1;
-		}
-
-		param = g_hash_table_lookup(in->param, "compress");
-		if (param)
-			ctx->compress = strtoul(param, NULL, 10);
-
-		param = g_hash_table_lookup(in->param, "skip");
-		if (param)
-			ctx->skip = strtoul(param, NULL, 10) / ctx->downsample;
-	}
-
-	/* Maximum number of channels to parse from the VCD */
-	ctx->maxchannels = num_channels;
-
-	/* Create a virtual device. */
-	in->sdi = sr_dev_inst_new(0, SR_ST_ACTIVE, NULL, NULL, NULL);
-	in->internal = ctx;
-
-	for (i = 0; i < num_channels; i++) {
-		snprintf(name, SR_MAX_CHANNELNAME_LEN, "%d", i);
-
-		if (!(ch = sr_channel_new(i, SR_CHANNEL_LOGIC, TRUE, name))) {
-			release_context(ctx);
-			return SR_ERR;
-		}
-
-		in->sdi->channels = g_slist_append(in->sdi->channels, ch);
-	}
-
-	return SR_OK;
 }
 
 /* Send N samples of the given value. */
@@ -384,161 +290,262 @@ static void send_samples(const struct sr_dev_inst *sdi, uint64_t sample, uint64_
 	}
 }
 
-/* Parse the data section of VCD */
-static void parse_contents(FILE *file, const struct sr_dev_inst *sdi, struct context *ctx)
+/* Parse a set of lines from the data section. */
+static void parse_contents(const struct sr_input *in, char *data)
 {
-	GString *token = g_string_sized_new(32);
+	struct context *inc;
+	struct vcd_channel *vcd_ch;
+	GSList *l;
+	uint64_t timestamp, prev_timestamp, prev_values;
+	unsigned int bit, i, j;
+	char **tokens;
 
-	uint64_t prev_timestamp = 0;
-	uint64_t prev_values = 0;
+	inc = in->priv;
+	prev_timestamp = prev_values = 0;
 
 	/* Read one space-delimited token at a time. */
-	while (read_until(file, NULL, 'N') && read_until(file, token, 'W')) {
-		if (token->str[0] == '#' && g_ascii_isdigit(token->str[1])) {
+	tokens = g_strsplit_set(data, " \t\r\n", 0);
+	remove_empty_parts(tokens);
+	for (i = 0; tokens[i]; i++) {
+		if (inc->skip_until_end) {
+			if (!strcmp(tokens[i], "$end")) {
+				/* Done with unhandled/unknown section. */
+				inc->skip_until_end = FALSE;
+				break;
+			}
+		}
+		if (tokens[i][0] == '#' && g_ascii_isdigit(tokens[i][1])) {
 			/* Numeric value beginning with # is a new timestamp value */
-			uint64_t timestamp;
-			timestamp = strtoull(token->str + 1, NULL, 10);
+			timestamp = strtoull(tokens[i] + 1, NULL, 10);
 
-			if (ctx->downsample > 1)
-				timestamp /= ctx->downsample;
+			if (inc->downsample > 1)
+				timestamp /= inc->downsample;
 
 			/*
 			 * Skip < 0 => skip until first timestamp.
 			 * Skip = 0 => don't skip
 			 * Skip > 0 => skip until timestamp >= skip.
 			 */
-			if (ctx->skip < 0) {
-				ctx->skip = timestamp;
+			if (inc->skip < 0) {
+				inc->skip = timestamp;
 				prev_timestamp = timestamp;
-			} else if (ctx->skip > 0 && timestamp < (uint64_t)ctx->skip) {
-				prev_timestamp = ctx->skip;
-			}
-			else if (timestamp == prev_timestamp) {
+			} else if (inc->skip > 0 && timestamp < (uint64_t)inc->skip) {
+				prev_timestamp = inc->skip;
+			} else if (timestamp == prev_timestamp) {
 				/* Ignore repeated timestamps (e.g. sigrok outputs these) */
-			}
-			else {
-				if (ctx->compress != 0 && timestamp - prev_timestamp > ctx->compress)
-				{
+			} else {
+				if (inc->compress != 0 && timestamp - prev_timestamp > inc->compress) {
 					/* Compress long idle periods */
-					prev_timestamp = timestamp - ctx->compress;
+					prev_timestamp = timestamp - inc->compress;
 				}
 
 				sr_dbg("New timestamp: %" PRIu64, timestamp);
 
 				/* Generate samples from prev_timestamp up to timestamp - 1. */
-				send_samples(sdi, prev_values, timestamp - prev_timestamp);
+				send_samples(in->sdi, prev_values, timestamp - prev_timestamp);
 				prev_timestamp = timestamp;
 			}
-		} else if (token->str[0] == '$' && token->len > 1) {
-			/* This is probably a $dumpvars, $comment or similar.
-			 * $dump* contain useful data, but other tags will be skipped until $end. */
-			if (g_strcmp0(token->str, "$dumpvars") == 0
-					|| g_strcmp0(token->str, "$dumpon") == 0
-					|| g_strcmp0(token->str, "$dumpoff") == 0
-					|| g_strcmp0(token->str, "$end") == 0) {
+		} else if (tokens[i][0] == '$' && tokens[i][1] != '\0') {
+			/*
+			 * This is probably a $dumpvars, $comment or similar.
+			 * $dump* contain useful data.
+			 */
+			if (g_strcmp0(tokens[i], "$dumpvars") == 0
+					|| g_strcmp0(tokens[i], "$dumpon") == 0
+					|| g_strcmp0(tokens[i], "$dumpoff") == 0
+					|| g_strcmp0(tokens[i], "$end") == 0) {
 				/* Ignore, parse contents as normally. */
 			} else {
-				/* Skip until $end */
-				read_until(file, NULL, '$');
+				/* Ignore this and future lines until $end. */
+				inc->skip_until_end = TRUE;
+				break;
 			}
-		}
-		else if (strchr("bBrR", token->str[0]) != NULL) {
-			/* A vector value. Skip it and also the following identifier. */
-			read_until(file, NULL, 'N');
-			read_until(file, NULL, 'W');
-		} else if (strchr("01xXzZ", token->str[0]) != NULL) {
+		} else if (strchr("bBrR", tokens[i][0]) != NULL) {
+			/* A vector value, not supported yet. */
+			break;
+		} else if (strchr("01xXzZ", tokens[i][0]) != NULL) {
 			/* A new 1-bit sample value */
-			int i, bit;
-			GSList *l;
-			struct vcd_channel *vcd_ch;
+			bit = (tokens[i][0] == '1');
 
-			bit = (token->str[0] == '1');
-
-			g_string_erase(token, 0, 1);
-			if (token->len == 0) {
-				/* There was a space between value and identifier.
-				 * Read in the rest.
-				 */
-				read_until(file, NULL, 'N');
-				read_until(file, token, 'W');
+			/*
+			 * The identifier is either the next character, or, if
+			 * there was whitespace after the bit, the next token.
+			 */
+			if (tokens[i][1] == '\0') {
+				if (!tokens[++i])
+					/* Missing identifier */
+					continue;
+			} else {
+				for (j = 1; tokens[i][j]; j++)
+					tokens[i][j - 1] = tokens[i][j];
+				tokens[i][j - 1] = '\0';
 			}
 
-			for (i = 0, l = ctx->channels; i < ctx->channelcount && l; i++, l = l->next) {
+			for (j = 0, l = inc->channels; j < inc->channelcount && l; j++, l = l->next) {
 				vcd_ch = l->data;
-
-				if (g_strcmp0(token->str, vcd_ch->identifier) == 0) {
+				if (g_strcmp0(tokens[i], vcd_ch->identifier) == 0) {
 					/* Found our channel */
 					if (bit)
-						prev_values |= (uint64_t)1 << i;
+						prev_values |= (uint64_t)1 << j;
 					else
-						prev_values &= ~((uint64_t)1 << i);
-
+						prev_values &= ~((uint64_t)1 << j);
 					break;
 				}
 			}
-
-			if (i == ctx->channelcount)
-				sr_dbg("Did not find channel for identifier '%s'.", token->str);
+			if (j == inc->channelcount)
+				sr_dbg("Did not find channel for identifier '%s'.", tokens[i]);
 		} else {
-			sr_warn("Skipping unknown token '%s'.", token->str);
+			sr_warn("Skipping unknown token '%s'.", tokens[i]);
 		}
-
-		g_string_truncate(token, 0);
 	}
-
-	g_string_free(token, TRUE);
+	g_strfreev(tokens);
 }
 
-static int loadfile(struct sr_input *in, const char *filename)
+static int init(struct sr_input *in, GHashTable *options)
 {
-	struct sr_datafeed_packet packet;
-	struct sr_datafeed_meta meta;
-	struct sr_config *src;
-	FILE *file;
-	struct context *ctx;
-	uint64_t samplerate;
+	struct sr_channel *ch;
+	int num_channels, i;
+	char name[16];
+	struct context *inc;
 
-	ctx = in->internal;
+	inc = g_malloc0(sizeof(struct context));
 
-	if ((file = fopen(filename, "r")) == NULL)
-		return SR_ERR;
-
-	if (!parse_header(file, ctx)) {
-		sr_err("VCD parsing failed");
-		fclose(file);
-		return SR_ERR;
+	num_channels = g_variant_get_int32(g_hash_table_lookup(options, "numchannels"));
+	if (num_channels < 1) {
+		sr_err("Invalid value for numchannels: must be at least 1.");
+		return SR_ERR_ARG;
 	}
+	if (num_channels > 64) {
+		sr_err("No more than 64 channels supported.");
+		return SR_ERR_ARG;
+	}
+	inc->maxchannels = num_channels;
 
-	/* Send header packet to the session bus. */
-	std_session_send_df_header(in->sdi, LOG_PREFIX);
+	inc->downsample = g_variant_get_int32(g_hash_table_lookup(options, "downsample"));
+	if (inc->downsample < 1)
+		inc->downsample = 1;
 
-	/* Send metadata about the SR_DF_LOGIC packets to come. */
-	packet.type = SR_DF_META;
-	packet.payload = &meta;
-	samplerate = ctx->samplerate / ctx->downsample;
-	src = sr_config_new(SR_CONF_SAMPLERATE, g_variant_new_uint64(samplerate));
-	meta.config = g_slist_append(NULL, src);
-	sr_session_send(in->sdi, &packet);
-	sr_config_free(src);
+	inc->compress = g_variant_get_int32(g_hash_table_lookup(options, "compress"));
+	inc->skip = g_variant_get_int32(g_hash_table_lookup(options, "skip"));
+	inc->skip /= inc->downsample;
 
-	/* Parse the contents of the VCD file */
-	parse_contents(file, in->sdi, ctx);
+	/* Create a virtual device. */
+	in->sdi = sr_dev_inst_new(0, SR_ST_ACTIVE, NULL, NULL, NULL);
+	in->priv = inc;
 
-	/* Send end packet to the session bus. */
-	packet.type = SR_DF_END;
-	sr_session_send(in->sdi, &packet);
-
-	fclose(file);
-	release_context(ctx);
-	in->internal = NULL;
+	for (i = 0; i < num_channels; i++) {
+		snprintf(name, 16, "%d", i);
+		ch = sr_channel_new(i, SR_CHANNEL_LOGIC, TRUE, name);
+		in->sdi->channels = g_slist_append(in->sdi->channels, ch);
+	}
 
 	return SR_OK;
 }
 
+static gboolean have_header(GString *buf)
+{
+	unsigned int pos;
+	char *p;
+
+	if (!(p = g_strstr_len(buf->str, buf->len, "$enddefinitions")))
+		return FALSE;
+	pos = p - buf->str + 15;
+	while (pos < buf->len - 4 && g_ascii_isspace(buf->str[pos]))
+		pos++;
+	if (!strncmp(buf->str + pos, "$end", 4))
+		return TRUE;
+
+	return FALSE;
+}
+
+static int receive(const struct sr_input *in, GString *buf)
+{
+	struct sr_datafeed_packet packet;
+	struct sr_datafeed_meta meta;
+	struct sr_config *src;
+	struct context *inc;
+	uint64_t samplerate;
+	char *p;
+
+	if (buf->len == 0) {
+		/* End of stream. */
+		packet.type = SR_DF_END;
+		sr_session_send(in->sdi, &packet);
+		return SR_OK;
+	}
+
+	g_string_append_len(in->buf, buf->str, buf->len);
+
+	inc = in->priv;
+	if (!inc->got_header) {
+		if (!have_header(in->buf))
+			return SR_OK;
+		if (!parse_header(in, in->buf) != SR_OK)
+			/* There was a header in there, but it was malformed. */
+			return SR_ERR;
+
+		std_session_send_df_header(in->sdi, LOG_PREFIX);
+
+		packet.type = SR_DF_META;
+		packet.payload = &meta;
+		samplerate = inc->samplerate / inc->downsample;
+		src = sr_config_new(SR_CONF_SAMPLERATE, g_variant_new_uint64(samplerate));
+		meta.config = g_slist_append(NULL, src);
+		sr_session_send(in->sdi, &packet);
+		sr_config_free(src);
+	}
+
+	while ((p = g_strrstr_len(in->buf->str, in->buf->len, "\n"))) {
+		*p = '\0';
+		g_strstrip(in->buf->str);
+		if (in->buf->str[0] != '\0')
+			parse_contents(in, in->buf->str);
+		g_string_erase(in->buf, 0, p - in->buf->str + 1);
+	}
+
+	return SR_OK;
+}
+
+static int cleanup(struct sr_input *in)
+{
+	struct context *inc;
+
+	inc = in->priv;
+	g_slist_free_full(inc->channels, free_channel);
+	g_free(inc);
+	in->priv = NULL;
+
+	return SR_OK;
+}
+
+static struct sr_option options[] = {
+	{ "numchannels", "Max channels", "Maximum number of channels", NULL, NULL },
+	{ "skip", "Skip", "Skip until timestamp", NULL, NULL },
+	{ "downsample", "Downsample", "Divide samplerate by factor", NULL, NULL },
+	{ "compress", "Compress", "Compress idle periods longer than this value", NULL, NULL },
+	{ 0 }
+};
+
+static struct sr_option *get_options(void)
+{
+	if (!options[0].def) {
+		options[0].def = g_variant_ref_sink(g_variant_new_int32(DEFAULT_NUM_CHANNELS));
+		options[1].def = g_variant_ref_sink(g_variant_new_int32(-1));
+		options[2].def = g_variant_ref_sink(g_variant_new_int32(1));
+		options[3].def = g_variant_ref_sink(g_variant_new_int32(0));
+	}
+
+	return options;
+}
+
 SR_PRIV struct sr_input_module input_vcd = {
 	.id = "vcd",
+	.name = "VCD",
 	.desc = "Value Change Dump",
+	.metadata = { SR_INPUT_META_HEADER | SR_INPUT_META_REQUIRED },
+	.options = get_options,
 	.format_match = format_match,
 	.init = init,
-	.loadfile = loadfile,
+	.receive = receive,
+	.cleanup = cleanup,
 };

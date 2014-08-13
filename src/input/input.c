@@ -66,7 +66,7 @@ extern SR_PRIV struct sr_input_module input_wav;
 /* @endcond */
 
 static const struct sr_input_module *input_module_list[] = {
-//	&input_vcd,
+	&input_vcd,
 //	&input_chronovu_la8,
 	&input_wav,
 //	&input_csv,
@@ -219,13 +219,13 @@ SR_API struct sr_input *sr_input_new(const struct sr_input_module *imod,
 	in = g_malloc0(sizeof(struct sr_input));
 	in->module = imod;
 
-	if (options) {
-		new_opts = g_hash_table_new_full(g_str_hash, g_str_equal, g_free,
-				(GDestroyNotify)g_variant_unref);
+	new_opts = g_hash_table_new_full(g_str_hash, g_str_equal, g_free,
+			(GDestroyNotify)g_variant_unref);
+	if (imod->options) {
 		mod_opts = imod->options();
 		for (i = 0; mod_opts[i].id; i++) {
-			if (g_hash_table_lookup_extended(options, mod_opts[i].id,
-					&key, &value)) {
+			if (options && g_hash_table_lookup_extended(options,
+					mod_opts[i].id, &key, &value)) {
 				/* Option not given: insert the default value. */
 				gvt = g_variant_get_type(mod_opts[i].def);
 				if (!g_variant_is_of_type(value, gvt)) {
@@ -243,17 +243,18 @@ SR_API struct sr_input *sr_input_new(const struct sr_input_module *imod,
 		}
 
 		/* Make sure no invalid options were given. */
-		g_hash_table_iter_init(&iter, options);
-		while (g_hash_table_iter_next(&iter, &key, &value)) {
-			if (!g_hash_table_lookup(new_opts, key)) {
-				sr_err("Input module '%s' has no option '%s'", imod->id, key);
-				g_hash_table_destroy(new_opts);
-				g_free(in);
-				return NULL;
+		if (options) {
+			g_hash_table_iter_init(&iter, options);
+			while (g_hash_table_iter_next(&iter, &key, &value)) {
+				if (!g_hash_table_lookup(new_opts, key)) {
+					sr_err("Input module '%s' has no option '%s'", imod->id, key);
+					g_hash_table_destroy(new_opts);
+					g_free(in);
+					return NULL;
+				}
 			}
 		}
-	} else
-		new_opts = NULL;
+	}
 
 	if (in->module->init && in->module->init(in, new_opts) != SR_OK) {
 		g_hash_table_destroy(new_opts);
@@ -273,7 +274,7 @@ static gboolean check_required_metadata(const uint8_t *metadata, uint8_t *avail)
 	uint8_t reqd;
 
 	for (m = 0; metadata[m]; m++) {
-		if (!metadata[m] & SR_INPUT_META_REQUIRED)
+		if (!(metadata[m] & SR_INPUT_META_REQUIRED))
 			continue;
 		reqd = metadata[m] & ~SR_INPUT_META_REQUIRED;
 		for (a = 0; avail[a]; a++) {
@@ -490,6 +491,8 @@ SR_API int sr_input_free(const struct sr_input *in)
 	ret = SR_OK;
 	if (in->module->cleanup)
 		ret = in->module->cleanup((struct sr_input *)in);
+	if (in->sdi)
+		sr_dev_inst_free(in->sdi);
 	if (in->buf)
 		g_string_free(in->buf, TRUE);
 	g_free((gpointer)in);

@@ -145,7 +145,7 @@ static int find_data_chunk(GString *buf, int initial_offset)
 	return offset;
 }
 
-static int initial_receive(const struct sr_input *in)
+static int initial_receive(struct sr_input *in)
 {
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_meta meta;
@@ -159,7 +159,7 @@ static int initial_receive(const struct sr_input *in)
 		/* Shouldn't happen. */
 		return SR_ERR;
 
-	inc = in->sdi->priv = g_malloc(sizeof(struct context));
+	inc = in->priv = g_malloc(sizeof(struct context));
 	if (parse_wav_header(in->buf, inc) != SR_OK)
 		return SR_ERR;
 
@@ -191,7 +191,7 @@ static void send_chunk(const struct sr_input *in, int offset, int num_samples)
 	int total_samples, samplenum;
 	char *s, *d;
 
-	inc = in->sdi->priv;
+	inc = in->priv;
 
 	s = in->buf->str + offset;
 	d = (char *)fdata;
@@ -251,8 +251,8 @@ static int receive(const struct sr_input *in, GString *buf)
 
 	g_string_append_len(in->buf, buf->str, buf->len);
 
-	if (!in->sdi->priv) {
-		if (initial_receive(in) != SR_OK)
+	if (!in->priv) {
+		if (initial_receive((struct sr_input *)in) != SR_OK)
 			return SR_ERR;
 		if (in->buf->len < MIN_DATA_CHUNK_OFFSET) {
 			/*
@@ -262,7 +262,7 @@ static int receive(const struct sr_input *in, GString *buf)
 			return SR_OK;
 		}
 	}
-	inc = in->sdi->priv;
+	inc = in->priv;
 
 	if (!inc->found_data) {
 		/* Skip past size of 'fmt ' chunk. */
@@ -306,6 +306,14 @@ static int receive(const struct sr_input *in, GString *buf)
 	return SR_OK;
 }
 
+static int cleanup(struct sr_input *in)
+{
+	g_free(in->priv);
+	in->priv = NULL;
+
+	return SR_OK;
+}
+
 SR_PRIV struct sr_input_module input_wav = {
 	.id = "wav",
 	.name = "WAV",
@@ -314,5 +322,6 @@ SR_PRIV struct sr_input_module input_wav = {
 	.format_match = format_match,
 	.init = init,
 	.receive = receive,
+	.cleanup = cleanup,
 };
 
