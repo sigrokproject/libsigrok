@@ -79,7 +79,7 @@ static const struct sr_output_module *output_module_list[] = {
 };
 
 /**
- * Returns a NULL-terminated list of all the available output modules.
+ * Returns a NULL-terminated list of all available output modules.
  *
  * @since 0.4.0
  */
@@ -171,7 +171,7 @@ SR_API const struct sr_option *sr_output_options_get(const struct sr_output_modu
 
 /**
  * After a call to sr_output_options_get(), this function cleans up all
- * the resources allocated by that call.
+ * resources allocated by that call.
  *
  * @since 0.4.0
  */
@@ -223,14 +223,14 @@ SR_API const struct sr_output *sr_output_new(const struct sr_output_module *o,
 	op->module = o;
 	op->sdi = sdi;
 
-	if (options) {
-		new_opts = g_hash_table_new_full(g_str_hash, g_str_equal, g_free,
-				(GDestroyNotify)g_variant_unref);
+	new_opts = g_hash_table_new_full(g_str_hash, g_str_equal, g_free,
+			(GDestroyNotify)g_variant_unref);
+	if (o->options) {
 		mod_opts = o->options();
 		for (i = 0; mod_opts[i].id; i++) {
-			if (g_hash_table_lookup_extended(options, mod_opts[i].id,
-					&key, &value)) {
-				/* Option not given: insert the default value. */
+			if (options && g_hash_table_lookup_extended(options,
+					mod_opts[i].id, &key, &value)) {
+				/* Pass option along. */
 				gvt = g_variant_get_type(mod_opts[i].def);
 				if (!g_variant_is_of_type(value, gvt)) {
 					sr_err("Invalid type for '%s' option.", key);
@@ -240,24 +240,25 @@ SR_API const struct sr_output *sr_output_new(const struct sr_output_module *o,
 				g_hash_table_insert(new_opts, g_strdup(mod_opts[i].id),
 						g_variant_ref(value));
 			} else {
-				/* Pass option along. */
+				/* Option not given: insert the default value. */
 				g_hash_table_insert(new_opts, g_strdup(mod_opts[i].id),
 						g_variant_ref(mod_opts[i].def));
 			}
 		}
 
 		/* Make sure no invalid options were given. */
-		g_hash_table_iter_init(&iter, options);
-		while (g_hash_table_iter_next(&iter, &key, &value)) {
-			if (!g_hash_table_lookup(new_opts, key)) {
-				sr_err("Output module '%s' has no option '%s'", o->id, key);
-				g_hash_table_destroy(new_opts);
-				g_free(op);
-				return NULL;
+		if (options) {
+			g_hash_table_iter_init(&iter, options);
+			while (g_hash_table_iter_next(&iter, &key, &value)) {
+				if (!g_hash_table_lookup(new_opts, key)) {
+					sr_err("Output module '%s' has no option '%s'", o->id, key);
+					g_hash_table_destroy(new_opts);
+					g_free(op);
+					return NULL;
+				}
 			}
 		}
-	} else
-		new_opts = NULL;
+	}
 
 	if (op->module->init && op->module->init(op, new_opts) != SR_OK) {
 		g_hash_table_destroy(new_opts);
