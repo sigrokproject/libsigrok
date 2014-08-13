@@ -189,8 +189,6 @@ SR_API int sr_session_dev_add(struct sr_session *session,
 
 	/* If sdi->driver is NULL, this is a virtual device. */
 	if (!sdi->driver) {
-		sr_dbg("%s: sdi->driver was NULL, this seems to be "
-		       "a virtual device; continuing", __func__);
 		/* Just add the device, don't run dev_open(). */
 		session->devs = g_slist_append(session->devs, (gpointer)sdi);
 		sdi->session = session;
