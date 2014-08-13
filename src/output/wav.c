@@ -229,6 +229,7 @@ static int check_chanbuf_size(const struct sr_output *o)
 
 	return size;
 }
+
 static int receive(const struct sr_output *o, const struct sr_datafeed_packet *packet,
 		GString **out)
 {
@@ -340,10 +341,8 @@ static struct sr_option options[] = {
 
 static struct sr_option *get_options(void)
 {
-	if (!options[0].def) {
-		options[0].def = g_variant_new_double(0.0);
-		g_variant_ref_sink(options[0].def);
-	}
+	if (!options[0].def)
+		options[0].def = g_variant_ref_sink(g_variant_new_double(0.0));
 
 	return options;
 }
