@@ -727,6 +727,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	devc = sdi->priv;
 	digital_added = FALSE;
 
+	g_slist_free(devc->enabled_channels);
+	devc->enabled_channels = NULL;
+
 	for (l = sdi->channels; l; l = l->next) {
 		ch = l->data;
 		if (!ch->enabled)
