@@ -439,7 +439,7 @@ CPPXMLDOC = bindings/cxx/doxy/xml/index.xml
 
 $(CPPXMLDOC): bindings/cxx/include/libsigrok/libsigrok.hpp \
 		bindings/cxx/enums.timestamp
-	$(AM_V_GEN)cd bindings/cxx && doxygen Doxyfile 2>/dev/null
+	$(AM_V_GEN)cd $(srcdir)/bindings/cxx && BUILDDIR=$(abs_builddir)/bindings/cxx/ doxygen Doxyfile 2>/dev/null
 
 if BINDINGS_PYTHON
 
@@ -485,7 +485,7 @@ JDIR = bindings/java
 JPKG = org/sigrok/core
 JCLS = $(JDIR)/$(JPKG)/classes
 JINT = $(JDIR)/$(JPKG)/interfaces
-JSRC = $(JCLS)/*.java $(JINT)/*.java
+JSRC = $(JCLS)/*.java $(srcdir)/$(JINT)/*.java
 JSWG = $(JCLS)/classes.i
 JDOC = $(JCLS)/doc.i
 JCXX = $(JCLS)/classes_wrap.cxx
@@ -495,14 +495,15 @@ JJAR = $(JDIR)/sigrok-core.jar
 java-build: $(JJAR) $(JLIB)
 
 $(JDOC): bindings/swig/doc.py $(CPPXMLDOC)
-	$(AM_V_GEN)python bindings/swig/doc.py java $(CPPXMLDOC) > $@
+	$(AM_V_at)test -d $(JCLS) || mkdir -p $(JCLS)
+	$(AM_V_GEN)python $< java $(CPPXMLDOC) > $@
 
 $(JCXX): $(JSWG) $(JDOC) bindings/swig/classes.i $(library_include_HEADERS)
 	$(AM_V_GEN)swig -c++ -java -package org.sigrok.core.classes \
-		-Iinclude -Ibindings/cxx/include -outdir $(JCLS) $(JSWG)
+		-I$(srcdir)/include -I$(srcdir)/bindings/cxx/include -I$(srcdir) -I$(JCLS) -Ibindings/cxx/include -outdir $(JCLS) -o $@ $<
 
 $(JJAR): $(JCXX)
-	$(AM_V_GEN)$(JAVAC) -sourcepath $(JDIR) $(JSRC)
+	$(AM_V_GEN)$(JAVAC) -sourcepath $(JDIR) -d $(JDIR) $(JSRC)
 	$(AM_V_at)jar cf $(JJAR) -C $(JDIR) $(JPKG)
 
 $(JLIB): $(JCXX) bindings/cxx/libsigrokxx.la $(library_include_HEADERS)
@@ -526,7 +527,7 @@ java-clean:
 	rm -rf $(JDIR)/doxy/
 
 java-doc:
-	$(AM_v_at)cd $(JDIR) && doxygen Doxyfile 2>/dev/null
+	$(AM_V_at)cd $(srcdir)/$(JDIR) && BUILDDIR=$(abs_builddir)/$(JDIR)/ doxygen Doxyfile 2>/dev/null
 
 BUILD_EXTRA += java-build
 INSTALL_EXTRA += java-install

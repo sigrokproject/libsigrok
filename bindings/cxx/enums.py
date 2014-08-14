@@ -26,6 +26,10 @@ index_file = sys.argv[1]
 # Get directory this script is in.
 dirname = os.path.dirname(os.path.realpath(__file__))
 
+outdirname = "bindings/cxx"
+if not os.path.exists(os.path.join(outdirname, 'include/libsigrok')):
+    os.makedirs(os.path.join(outdirname, 'include/libsigrok'))
+
 mapping = dict([
     ('sr_loglevel', ('LogLevel', 'Log verbosity level')),
     ('sr_packettype', ('PacketType', 'Type of datafeed packet')),
@@ -60,8 +64,8 @@ for compound in index.findall('compound'):
             if name in mapping:
                 classes[member] = mapping[name]
 
-header = open(os.path.join(dirname, 'include/libsigrok/enums.hpp'), 'w')
-code = open(os.path.join(dirname, 'enums.cpp'), 'w')
+header = open(os.path.join(outdirname, 'include/libsigrok/enums.hpp'), 'w')
+code = open(os.path.join(outdirname, 'enums.cpp'), 'w')
 
 for file in (header, code):
     print >> file, "/* Generated file - edit enums.py instead! */"
