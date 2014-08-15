@@ -205,11 +205,8 @@ struct sr_output_module {
 	/**
 	 * Returns a NULL-terminated list of options this module can take.
 	 * Can be NULL, if the module has no options.
-	 *
-	 * If cached is TRUE, no new GVariants are created for the def and
-	 * values fields; instead, the current values are returned.
 	 */
-	struct sr_option *(*options) (void);
+	const struct sr_option *(*options) (void);
 
 	/**
 	 * This function is called once, at the beginning of an output stream.

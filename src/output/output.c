@@ -225,7 +225,7 @@ SR_API const struct sr_output *sr_output_new(const struct sr_output_module *o,
 		GHashTable *options, const struct sr_dev_inst *sdi)
 {
 	struct sr_output *op;
-	struct sr_option *mod_opts;
+	const struct sr_option *mod_opts;
 	const GVariantType *gvt;
 	GHashTable *new_opts;
 	GHashTableIter iter;

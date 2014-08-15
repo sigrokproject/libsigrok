@@ -339,7 +339,7 @@ static struct sr_option options[] = {
 	{ 0 }
 };
 
-static struct sr_option *get_options(void)
+static const struct sr_option *get_options(void)
 {
 	if (!options[0].def)
 		options[0].def = g_variant_ref_sink(g_variant_new_double(0.0));
