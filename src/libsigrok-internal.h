@@ -197,21 +197,21 @@ struct sr_input {
 /** Input (file) module driver. */
 struct sr_input_module {
 	/**
-	 * A unique ID for this output module, suitable for use in command-line
+	 * A unique ID for this input module, suitable for use in command-line
 	 * clients, [a-z0-9-]. Must not be NULL.
 	 */
 	const char *id;
 
 	/**
-	 * A unique name for this output module, suitable for use in GUI
+	 * A unique name for this input module, suitable for use in GUI
 	 * clients, can contain UTF-8. Must not be NULL.
 	 */
 	const char *name;
 
 	/**
-	 * A short description of the output module. Must not be NULL.
+	 * A short description of the input module. Must not be NULL.
 	 *
-	 * This can be displayed by frontends, e.g. when selecting the output
+	 * This can be displayed by frontends, e.g. when selecting the input
 	 * module for saving a file.
 	 */
 	const char *desc;
