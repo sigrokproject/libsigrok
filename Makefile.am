@@ -410,7 +410,7 @@ library_include_HEADERS += \
 pkgconfig_DATA += bindings/cxx/libsigrokxx.pc
 
 doxy/xml/index.xml: include/libsigrok/libsigrok.h
-	$(AM_V_GEN)doxygen Doxyfile 2>/dev/null
+	$(AM_V_GEN)cd $(srcdir) && BUILDDIR=$(abs_builddir)/ doxygen Doxyfile 2>/dev/null
 
 bindings/cxx/enums.cpp: bindings/cxx/enums.timestamp
 
