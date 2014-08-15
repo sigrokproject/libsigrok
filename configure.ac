@@ -200,7 +200,10 @@ fi
 PKG_CHECK_MODULES([python], [python >= 2.7],
         [CXXFLAGS="$CXXFLAGS $python_CFLAGS";
         CXXLIBS="$CXXLIBS $python_LIBS"],
-		[BINDINGS_PYTHON="no"; python_msg="Python headers required"])
+[PKG_CHECK_MODULES([python27], [python-2.7 >= 2.7],
+        [CXXFLAGS="$CXXFLAGS $python27_CFLAGS";
+        CXXLIBS="$CXXLIBS $python27_LIBS"],
+		[BINDINGS_PYTHON="no"; python_msg="Python headers required"])])
 
 # The Python bindings need the setuptools Python module.
 m4_ifdef([AX_PYTHON_MODULE], [AX_PYTHON_MODULE([setuptools])],
