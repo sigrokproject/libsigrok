@@ -133,8 +133,8 @@ SR_API const char *sr_output_id_get(const struct sr_output_module *o);
 SR_API const char *sr_output_name_get(const struct sr_output_module *o);
 SR_API const char *sr_output_description_get(const struct sr_output_module *o);
 SR_API const struct sr_output_module *sr_output_find(char *id);
-SR_API const struct sr_option *sr_output_options_get(const struct sr_output_module *o);
-SR_API void sr_output_options_free(const struct sr_output_module *o);
+SR_API const struct sr_option **sr_output_options_get(const struct sr_output_module *o);
+SR_API void sr_output_options_free(const struct sr_option **opts);
 SR_API const struct sr_output *sr_output_new(const struct sr_output_module *o,
 		GHashTable *params, const struct sr_dev_inst *sdi);
 SR_API int sr_output_send(const struct sr_output *o,
