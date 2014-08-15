@@ -157,29 +157,41 @@ SR_API const struct sr_input_module *sr_input_find(char *id)
  *
  * @since 0.4.0
  */
-SR_API const struct sr_option *sr_input_options_get(const struct sr_input_module *o)
+SR_API const struct sr_option **sr_input_options_get(const struct sr_input_module *imod)
 {
+	const struct sr_option *mod_opts, **opts;
+	int size, i;
 
-	if (!o || !o->options)
+	if (!imod || !imod->options)
 		return NULL;
 
-	return o->options();
+	mod_opts = imod->options();
+
+	for (size = 1; mod_opts[size].id; size++)
+		;
+	opts = g_malloc(size * sizeof(struct sr_option *));
+
+	for (i = 0; i < size; i++)
+		opts[i] = &mod_opts[i];
+	opts[i] = NULL;
+
+	return opts;
 }
 
 /**
  * After a call to sr_input_options_get(), this function cleans up all
- * resources allocated by that call.
+ * resources returned by that call.
  *
  * @since 0.4.0
  */
-SR_API void sr_input_options_free(const struct sr_input_module *o)
+SR_API void sr_input_options_free(const struct sr_option **options)
 {
 	struct sr_option *opt;
 
-	if (!o || !o->options)
+	if (!options)
 		return;
 
-	for (opt = o->options(); opt->id; opt++) {
+	for (opt = (struct sr_option *)options[0]; opt; opt++) {
 		if (opt->def) {
 			g_variant_unref(opt->def);
 			opt->def = NULL;
@@ -190,6 +202,7 @@ SR_API void sr_input_options_free(const struct sr_input_module *o)
 			opt->values = NULL;
 		}
 	}
+	g_free(options);
 }
 
 /**
