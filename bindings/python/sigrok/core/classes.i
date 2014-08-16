@@ -51,7 +51,7 @@ PyObject *GLib;
 PyTypeObject *IOChannel;
 PyTypeObject *PollFD;
 
-#include "../../../../config.h"
+#include "config.h"
 
 #if PYGOBJECT_FLAGS_SIGNED
 typedef gint pyg_flags_type;

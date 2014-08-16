@@ -447,23 +447,24 @@ PDIR = bindings/python
 PDOC = bindings/python/sigrok/core/doc.i
 
 $(PDOC): bindings/swig/doc.py $(CPPXMLDOC)
-	$(AM_V_GEN)python bindings/swig/doc.py python $(CPPXMLDOC) > $@
+	$(AM_V_at)test -d $(PDIR)/sigrok/core || mkdir -p $(PDIR)/sigrok/core
+	$(AM_V_GEN)python $< python $(CPPXMLDOC) > $@
 
 python-build: $(PDIR)/timestamp
 
 python-quietclean:
-	$(AM_V_at)cd $(PDIR) && python setup.py --quiet clean --all 3>&1 1>&2 2>&3 \
+	$(AM_V_at)cd $(PDIR) && python $(abs_srcdir)/$(PDIR)/setup.py --quiet clean --all 3>&1 1>&2 2>&3 \
 		| grep -v "can.t clean it"; true
 
 $(PDIR)/timestamp: bindings/cxx/libsigrokxx.la $(PDIR)/sigrok/core/classes.i \
 		bindings/swig/classes.i $(PDOC) $(library_include_HEADERS)
 	$(AM_V_at)$(MAKE) python-quietclean
-	$(AM_V_GEN)cd $(PDIR) && python setup.py --quiet build 3>&1 1>&2 2>&3 \
+	$(AM_V_GEN)cd $(PDIR) && python $(abs_srcdir)/$(PDIR)/setup.py --quiet build 3>&1 1>&2 2>&3 \
 		| grep -v "command line option.*Wstrict-prototypes"; true
 	$(AM_V_at)touch $(PDIR)/timestamp
 
 python-install:
-	cd $(PDIR) && python setup.py --quiet install --prefix $(prefix)
+	cd $(PDIR) && python $(abs_srcdir)/$(PDIR)/setup.py --quiet install --prefix $(prefix)
 
 python-clean:
 	$(AM_V_at)$(MAKE) python-quietclean
@@ -471,7 +472,7 @@ python-clean:
 	$(AM_V_at)rm -rf $(PDIR)/doxy/
 
 python-doc:
-	$(AM_V_at)cd $(PDIR) && doxygen Doxyfile 2>/dev/null
+	$(AM_V_at)cd $(srcdir)/$(PDIR) && BUILDDIR=$(abs_builddir)/$(PDIR)/ doxygen Doxyfile 2>/dev/null
 
 BUILD_EXTRA += python-build
 INSTALL_EXTRA += python-install
