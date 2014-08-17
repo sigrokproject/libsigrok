@@ -88,11 +88,11 @@ END_TEST
 /* Check whether sr_output_options_get() works. */
 START_TEST(test_output_options)
 {
-	const struct sr_option *opt;
+	const struct sr_option **opt;
 
 	opt = sr_output_options_get(sr_output_find("bits"));
 	fail_unless(opt != NULL, "Couldn't find 'bits' options.");
-	fail_unless(!strcmp(opt->id, "width"), "Wrong 'bits' option found!");
+	fail_unless(!strcmp((*opt)->id, "width"), "Wrong 'bits' option found!");
 }
 END_TEST
 
