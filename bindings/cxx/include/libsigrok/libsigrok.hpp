@@ -785,10 +785,10 @@ public:
 	vector<Glib::VariantBase> get_values();
 protected:
 	Option(const struct sr_option *structure,
-		shared_ptr<const struct sr_option> structure_array);
+		shared_ptr<const struct sr_option *> structure_array);
 	~Option();
 	const struct sr_option *structure;
-	shared_ptr<const struct sr_option> structure_array;
+	shared_ptr<const struct sr_option *> structure_array;
 	/** Deleter needed to allow shared_ptr use with protected destructor. */
 	class Deleter
 	{
