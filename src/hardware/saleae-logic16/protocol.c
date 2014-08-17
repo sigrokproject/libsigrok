@@ -464,6 +464,9 @@ SR_PRIV int logic16_setup_acquisition(const struct sr_dev_inst *sdi,
 	if ((ret = read_fpga_register(sdi, 1, &reg1)) != SR_OK)
 		return ret;
 
+	/* Ignore FIFO overflow on previous capture */
+	reg1 &= ~0x20;
+
 	if (reg1 != 0x08) {
 		sr_dbg("Invalid state at acquisition setup: 0x%02x != 0x08.", reg1);
 		return SR_ERR;
@@ -540,8 +543,8 @@ SR_PRIV int logic16_abort_acquisition(const struct sr_dev_inst *sdi)
 	if ((ret = read_fpga_register(sdi, 1, &reg1)) != SR_OK)
 		return ret;
 
-	if (reg1 != 0x08) {
-		sr_dbg("Invalid state at acquisition stop: 0x%02x != 0x08.", reg1);
+	if ((reg1 & ~0x20) != 0x08) {
+		sr_dbg("Invalid state at acquisition stop: 0x%02x != 0x08.", reg1 & ~0x20);
 		return SR_ERR;
 	}
 
@@ -550,6 +553,11 @@ SR_PRIV int logic16_abort_acquisition(const struct sr_dev_inst *sdi)
 
 	if ((ret = read_fpga_register(sdi, 9, &reg9)) != SR_OK)
 		return ret;
+
+	if (reg1 & 0x20) {
+		sr_warn("FIFO overflow, capture data may be truncated.");
+		return SR_ERR;
+	}
 
 	return SR_OK;
 }
