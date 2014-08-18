@@ -274,7 +274,6 @@ SR_API const struct sr_output *sr_output_new(const struct sr_output_module *o,
 	}
 
 	if (op->module->init && op->module->init(op, new_opts) != SR_OK) {
-		g_hash_table_destroy(new_opts);
 		g_free(op);
 		op = NULL;
 	}
