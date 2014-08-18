@@ -270,12 +270,12 @@ SR_API struct sr_input *sr_input_new(const struct sr_input_module *imod,
 	}
 
 	if (in->module->init && in->module->init(in, new_opts) != SR_OK) {
-		g_hash_table_destroy(new_opts);
 		g_free(in);
 		in = NULL;
 	}
 	if (new_opts)
 		g_hash_table_destroy(new_opts);
+	in->buf = g_string_sized_new(128);
 
 	return in;
 }
@@ -357,7 +357,7 @@ SR_API const struct sr_input *sr_input_scan_buffer(GString *buf)
 
 		/* Found a matching module. */
 		in = sr_input_new(imod, NULL);
-		in->buf = g_string_new_len(buf->str, buf->len);
+		g_string_insert_len(in->buf, 0, buf->str, buf->len);
 		break;
 	}
 
@@ -456,7 +456,7 @@ SR_API const struct sr_input *sr_input_scan_file(const char *filename)
 
 		/* Found a matching module. */
 		in = sr_input_new(imod, NULL);
-		in->buf = g_string_new_len(buf->str, buf->len);
+		g_string_insert_len(in->buf, 0, buf->str, buf->len);
 		break;
 	}
 	if (!in && buf)
