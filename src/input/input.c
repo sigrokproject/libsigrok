@@ -167,9 +167,9 @@ SR_API const struct sr_option **sr_input_options_get(const struct sr_input_modul
 
 	mod_opts = imod->options();
 
-	for (size = 1; mod_opts[size].id; size++)
+	for (size = 0; mod_opts[size].id; size++)
 		;
-	opts = g_malloc(size * sizeof(struct sr_option *));
+	opts = g_malloc((size + 1) * sizeof(struct sr_option *));
 
 	for (i = 0; i < size; i++)
 		opts[i] = &mod_opts[i];
@@ -186,20 +186,20 @@ SR_API const struct sr_option **sr_input_options_get(const struct sr_input_modul
  */
 SR_API void sr_input_options_free(const struct sr_option **options)
 {
-	struct sr_option *opt;
+	int i;
 
 	if (!options)
 		return;
 
-	for (opt = (struct sr_option *)options[0]; opt; opt++) {
-		if (opt->def) {
-			g_variant_unref(opt->def);
-			opt->def = NULL;
+	for (i = 0; options[i]; i++) {
+		if (options[i]->def) {
+			g_variant_unref(options[i]->def);
+			((struct sr_option *)options[i])->def = NULL;
 		}
 
-		if (opt->values) {
-			g_slist_free_full(opt->values, (GDestroyNotify)g_variant_unref);
-			opt->values = NULL;
+		if (options[i]->values) {
+			g_slist_free_full(options[i]->values, (GDestroyNotify)g_variant_unref);
+			((struct sr_option *)options[i])->values = NULL;
 		}
 	}
 	g_free(options);
