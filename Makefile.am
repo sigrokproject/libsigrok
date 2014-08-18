@@ -44,10 +44,10 @@ libsigrok_la_SOURCES = \
 # Input modules
 #	src/input/binary.c \
 #	src/input/chronovu_la8.c \
-#	src/input/csv.c \
 #
 libsigrok_la_SOURCES += \
 	src/input/input.c \
+	src/input/csv.c \
 	src/input/vcd.c \
 	src/input/wav.c
 

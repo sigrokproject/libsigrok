@@ -74,6 +74,8 @@ enum {
 };
 
 struct context {
+	gboolean started;
+
 	/* Current selected samplerate. */
 	uint64_t samplerate;
 
@@ -85,6 +87,9 @@ struct context {
 
 	/* Comment prefix character(s). */
 	GString *comment;
+
+	/* Termination  character(s) used in current stream. */
+	char *termination;
 
 	/* Determines if sample data is stored in multiple columns. */
 	gboolean multi_column_mode;
@@ -123,100 +128,55 @@ struct context {
 	/* Buffer to store sample data. */
 	uint8_t *sample_buffer;
 
-	GIOChannel *channel;
-
-	/* Buffer for the current line. */
-	GString *buffer;
-
 	/* Current line number. */
 	gsize line_number;
 };
 
-static int format_match(const char *filename)
+static int format_match(GHashTable *metadata)
 {
-	/* Require .csv extension. */
-	if (strcmp(filename + strlen(filename) - 4, ".csv"))
-		return FALSE;
+	char *buf;
 
-	if (!filename) {
-		sr_err("%s: filename was NULL.", __func__);
-		return FALSE;
-	}
+	buf = g_hash_table_lookup(metadata, GINT_TO_POINTER(SR_INPUT_META_MIMETYPE));
+	if (!strcmp(buf, "text/csv"))
+		return TRUE;
 
-	if (!g_file_test(filename, G_FILE_TEST_EXISTS)) {
-		sr_err("Input file '%s' does not exist.", filename);
-		return FALSE;
-	}
-
-	if (!g_file_test(filename, G_FILE_TEST_IS_REGULAR)) {
-		sr_err("Input file '%s' not a regular file.", filename);
-		return FALSE;
-	}
-
-	return TRUE;
+	return FALSE;
 }
 
-static void free_context(struct context *ctx)
-{
-	if (!ctx)
-		return;
-
-	if (ctx->delimiter)
-		g_string_free(ctx->delimiter, TRUE);
-
-	if (ctx->comment)
-		g_string_free(ctx->comment, TRUE);
-
-	if (ctx->channel) {
-		g_io_channel_shutdown(ctx->channel, FALSE, NULL);
-		g_io_channel_unref(ctx->channel);
-	}
-
-	if (ctx->sample_buffer)
-		g_free(ctx->sample_buffer);
-
-	if (ctx->buffer)
-		g_string_free(ctx->buffer, TRUE);
-
-	g_free(ctx);
-}
-
-static void strip_comment(GString *string, const GString *prefix)
+static void strip_comment(char *buf, const GString *prefix)
 {
 	char *ptr;
 
 	if (!prefix->len)
 		return;
 
-	if (!(ptr = strstr(string->str, prefix->str)))
-		return;
-
-	g_string_truncate(string, ptr - string->str);
+	if ((ptr = strstr(buf, prefix->str)))
+		*ptr = '\0';
 }
 
-static int parse_binstr(const char *str, struct context *ctx)
+static int parse_binstr(const char *str, struct context *inc)
 {
 	gsize i, j, length;
 
 	length = strlen(str);
 
 	if (!length) {
-		sr_err("Column %zu in line %zu is empty.", ctx->single_column,
-			ctx->line_number);
+		sr_err("Column %zu in line %zu is empty.", inc->single_column,
+			inc->line_number);
 		return SR_ERR;
 	}
 
 	/* Clear buffer in order to set bits only. */
-	memset(ctx->sample_buffer, 0, (ctx->num_channels + 7) >> 3);
+	memset(inc->sample_buffer, 0, (inc->num_channels + 7) >> 3);
 
-	i = ctx->first_channel;
+	i = inc->first_channel;
 
-	for (j = 0; i < length && j < ctx->num_channels; i++, j++) {
+	for (j = 0; i < length && j < inc->num_channels; i++, j++) {
 		if (str[length - i - 1] == '1') {
-			ctx->sample_buffer[j / 8] |= (1 << (j % 8));
+			inc->sample_buffer[j / 8] |= (1 << (j % 8));
 		} else if (str[length - i - 1] != '0') {
 			sr_err("Invalid value '%s' in column %zu in line %zu.",
-				str, ctx->single_column, ctx->line_number);
+				str, inc->single_column, inc->line_number);
 			return SR_ERR;
 		}
 	}
@@ -224,7 +184,7 @@ static int parse_binstr(const char *str, struct context *ctx)
 	return SR_OK;
 }
 
-static int parse_hexstr(const char *str, struct context *ctx)
+static int parse_hexstr(const char *str, struct context *inc)
 {
 	gsize i, j, k, length;
 	uint8_t value;
@@ -233,33 +193,33 @@ static int parse_hexstr(const char *str, struct context *ctx)
 	length = strlen(str);
 
 	if (!length) {
-		sr_err("Column %zu in line %zu is empty.", ctx->single_column,
-			ctx->line_number);
+		sr_err("Column %zu in line %zu is empty.", inc->single_column,
+			inc->line_number);
 		return SR_ERR;
 	}
 
 	/* Clear buffer in order to set bits only. */
-	memset(ctx->sample_buffer, 0, (ctx->num_channels + 7) >> 3);
+	memset(inc->sample_buffer, 0, (inc->num_channels + 7) >> 3);
 
 	/* Calculate the position of the first hexadecimal digit. */
-	i = ctx->first_channel / 4;
+	i = inc->first_channel / 4;
 
-	for (j = 0; i < length && j < ctx->num_channels; i++) {
+	for (j = 0; i < length && j < inc->num_channels; i++) {
 		c = str[length - i - 1];
 
 		if (!g_ascii_isxdigit(c)) {
 			sr_err("Invalid value '%s' in column %zu in line %zu.",
-				str, ctx->single_column, ctx->line_number);
+				str, inc->single_column, inc->line_number);
 			return SR_ERR;
 		}
 
 		value = g_ascii_xdigit_value(c);
 
-		k = (ctx->first_channel + j) % 4;
+		k = (inc->first_channel + j) % 4;
 
-		for (; j < ctx->num_channels && k < 4; k++) {
+		for (; j < inc->num_channels && k < 4; k++) {
 			if (value & (1 << k))
-				ctx->sample_buffer[j / 8] |= (1 << (j % 8));
+				inc->sample_buffer[j / 8] |= (1 << (j % 8));
 
 			j++;
 		}
@@ -268,7 +228,7 @@ static int parse_hexstr(const char *str, struct context *ctx)
 	return SR_OK;
 }
 
-static int parse_octstr(const char *str, struct context *ctx)
+static int parse_octstr(const char *str, struct context *inc)
 {
 	gsize i, j, k, length;
 	uint8_t value;
@@ -277,33 +237,33 @@ static int parse_octstr(const char *str, struct context *ctx)
 	length = strlen(str);
 
 	if (!length) {
-		sr_err("Column %zu in line %zu is empty.", ctx->single_column,
-			ctx->line_number);
+		sr_err("Column %zu in line %zu is empty.", inc->single_column,
+			inc->line_number);
 		return SR_ERR;
 	}
 
 	/* Clear buffer in order to set bits only. */
-	memset(ctx->sample_buffer, 0, (ctx->num_channels + 7) >> 3);
+	memset(inc->sample_buffer, 0, (inc->num_channels + 7) >> 3);
 
 	/* Calculate the position of the first octal digit. */
-	i = ctx->first_channel / 3;
+	i = inc->first_channel / 3;
 
-	for (j = 0; i < length && j < ctx->num_channels; i++) {
+	for (j = 0; i < length && j < inc->num_channels; i++) {
 		c = str[length - i - 1];
 
 		if (c < '0' || c > '7') {
 			sr_err("Invalid value '%s' in column %zu in line %zu.",
-				str, ctx->single_column, ctx->line_number);
+				str, inc->single_column, inc->line_number);
 			return SR_ERR;
 		}
 
 		value = g_ascii_xdigit_value(c);
 
-		k = (ctx->first_channel + j) % 3;
+		k = (inc->first_channel + j) % 3;
 
-		for (; j < ctx->num_channels && k < 3; k++) {
+		for (; j < inc->num_channels && k < 3; k++) {
 			if (value & (1 << k))
-				ctx->sample_buffer[j / 8] |= (1 << (j % 8));
+				inc->sample_buffer[j / 8] |= (1 << (j % 8));
 
 			j++;
 		}
@@ -312,7 +272,7 @@ static int parse_octstr(const char *str, struct context *ctx)
 	return SR_OK;
 }
 
-static char **parse_line(const struct context *ctx, int max_columns)
+static char **parse_line(char *buf, struct context *inc, int max_columns)
 {
 	const char *str, *remainder;
 	GSList *list, *l;
@@ -324,11 +284,11 @@ static char **parse_line(const struct context *ctx, int max_columns)
 	k = 0;
 	list = NULL;
 
-	remainder = ctx->buffer->str;
-	str = strstr(remainder, ctx->delimiter->str);
+	remainder = buf;
+	str = strstr(remainder, inc->delimiter->str);
 
 	while (str && max_columns) {
-		if (n >= ctx->first_column) {
+		if (n >= inc->first_column) {
 			column = g_strndup(remainder, str - remainder);
 			list = g_slist_prepend(list, g_strstrip(column));
 
@@ -336,12 +296,12 @@ static char **parse_line(const struct context *ctx, int max_columns)
 			k++;
 		}
 
-		remainder = str + ctx->delimiter->len;
-		str = strstr(remainder, ctx->delimiter->str);
+		remainder = str + inc->delimiter->len;
+		str = strstr(remainder, inc->delimiter->str);
 		n++;
 	}
 
-	if (ctx->buffer->len && max_columns && n >= ctx->first_column) {
+	if (buf[0] && max_columns && n >= inc->first_column) {
 		column = g_strdup(remainder);
 		list = g_slist_prepend(list, g_strstrip(column));
 		k++;
@@ -360,24 +320,24 @@ static char **parse_line(const struct context *ctx, int max_columns)
 	return columns;
 }
 
-static int parse_multi_columns(char **columns, struct context *ctx)
+static int parse_multi_columns(char **columns, struct context *inc)
 {
 	gsize i;
 
 	/* Clear buffer in order to set bits only. */
-	memset(ctx->sample_buffer, 0, (ctx->num_channels + 7) >> 3);
+	memset(inc->sample_buffer, 0, (inc->num_channels + 7) >> 3);
 
-	for (i = 0; i < ctx->num_channels; i++) {
+	for (i = 0; i < inc->num_channels; i++) {
 		if (columns[i][0] == '1') {
-			ctx->sample_buffer[i / 8] |= (1 << (i % 8));
+			inc->sample_buffer[i / 8] |= (1 << (i % 8));
 		} else if (!strlen(columns[i])) {
 			sr_err("Column %zu in line %zu is empty.",
-				ctx->first_channel + i, ctx->line_number);
+				inc->first_channel + i, inc->line_number);
 			return SR_ERR;
 		} else if (columns[i][0] != '0') {
 			sr_err("Invalid value '%s' in column %zu in line %zu.",
-				columns[i], ctx->first_channel + i,
-				ctx->line_number);
+				columns[i], inc->first_channel + i,
+				inc->line_number);
 			return SR_ERR;
 		}
 	}
@@ -385,21 +345,21 @@ static int parse_multi_columns(char **columns, struct context *ctx)
 	return SR_OK;
 }
 
-static int parse_single_column(const char *column, struct context *ctx)
+static int parse_single_column(const char *column, struct context *inc)
 {
 	int res;
 
 	res = SR_ERR;
 
-	switch(ctx->format) {
+	switch(inc->format) {
 	case FORMAT_BIN:
-		res = parse_binstr(column, ctx);
+		res = parse_binstr(column, inc);
 		break;
 	case FORMAT_HEX:
-		res = parse_hexstr(column, ctx);
+		res = parse_hexstr(column, inc);
 		break;
 	case FORMAT_OCT:
-		res = parse_octstr(column, ctx);
+		res = parse_octstr(column, inc);
 		break;
 	}
 
@@ -407,11 +367,11 @@ static int parse_single_column(const char *column, struct context *ctx)
 }
 
 static int send_samples(const struct sr_dev_inst *sdi, uint8_t *buffer,
-			gsize buffer_size, gsize count)
+		gsize buffer_size, gsize count)
 {
-	int res;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
+	int res;
 	gsize i;
 
 	packet.type = SR_DF_LOGIC;
@@ -428,445 +388,413 @@ static int send_samples(const struct sr_dev_inst *sdi, uint8_t *buffer,
 	return SR_OK;
 }
 
-static int init(struct sr_input *in, const char *filename)
+static int init(struct sr_input *in, GHashTable *options)
 {
-	int res;
-	struct context *ctx;
-	const char *param;
-	GIOStatus status;
-	gsize i, term_pos;
-	char channel_name[SR_MAX_CHANNELNAME_LEN + 1];
-	struct sr_channel *ch;
-	char **columns;
-	gsize num_columns;
-	char *ptr;
+	struct context *inc;
+	const char *s;
 
-	if (!(ctx = g_try_malloc0(sizeof(struct context)))) {
-		sr_err("Context malloc failed.");
-		return SR_ERR_MALLOC;
-	}
-
-	/* Create a virtual device. */
 	in->sdi = sr_dev_inst_new(0, SR_ST_ACTIVE, NULL, NULL, NULL);
-	in->internal = ctx;
+	in->priv = inc = g_malloc0(sizeof(struct context));
 
-	/* Set default samplerate. */
-	ctx->samplerate = 0;
+	inc->single_column = g_variant_get_int32(g_hash_table_lookup(options, "single-column"));
+	inc->multi_column_mode = inc->single_column == 0;
 
-	/*
-	 * Enable auto-detection of the number of channels in multi column mode
-	 * and enforce the specification of the number of channels in single
-	 * column mode.
-	 */
-	ctx->num_channels = 0;
+	inc->num_channels = g_variant_get_int32(g_hash_table_lookup(options, "numchannels"));
 
-	/* Set default delimiter. */
-	if (!(ctx->delimiter = g_string_new(","))) {
-		sr_err("Delimiter malloc failed.");
-		free_context(ctx);
-		return SR_ERR_MALLOC;
+	inc->delimiter = g_string_new(g_variant_get_string(
+			g_hash_table_lookup(options, "delimiter"), NULL));
+	if (inc->delimiter->len == 0) {
+		sr_err("Delimiter must be at least one character.");
+		return SR_ERR_ARG;
 	}
 
-	/*
-	 * Set default comment prefix. Note that an empty comment prefix
-	 * disables removing of comments.
-	 */
-	if (!(ctx->comment = g_string_new(""))) {
-		sr_err("Comment malloc failed.");
-		free_context(ctx);
-		return SR_ERR_MALLOC;
+	s = g_variant_get_string(g_hash_table_lookup(options, "format"), NULL);
+	if (!g_ascii_strncasecmp(s, "bin", 3)) {
+		inc->format = FORMAT_BIN;
+	} else if (!g_ascii_strncasecmp(s, "hex", 3)) {
+		inc->format = FORMAT_HEX;
+	} else if (!g_ascii_strncasecmp(s, "oct", 3)) {
+		inc->format = FORMAT_OCT;
+	} else {
+		sr_err("Invalid format: '%s'", s);
+		return SR_ERR_ARG;
 	}
 
-	/* Enable multi column mode by default. */
-	ctx->multi_column_mode = TRUE;
-
-	/* Use first column as default single column number. */
-	ctx->single_column = 0;
-
-	/*
-	 * In multi column mode start parsing sample data at the first column
-	 * and in single column mode at the first bit.
-	 */
-	ctx->first_channel = 0;
-
-	/* Start at the beginning of the file. */
-	ctx->start_line = 1;
-
-	/* Disable the usage of the first line as header by default. */
-	ctx->header = FALSE;
-
-	/* Set default format for single column mode. */
-	ctx->format = FORMAT_BIN;
-
-	if (!(ctx->buffer = g_string_new(""))) {
-		sr_err("Line buffer malloc failed.");
-		free_context(ctx);
-		return SR_ERR_MALLOC;
+	inc->comment = g_string_new(g_variant_get_string(
+			g_hash_table_lookup(options, "comment"), NULL));
+	if (g_string_equal(inc->comment, inc->delimiter)) {
+		/* That's never going to work. Likely the result of the user
+		 * setting the delimiter to ; -- the default comment. Clearing
+		 * the comment setting will work in that case. */
+		g_string_truncate(inc->comment, 0);
 	}
 
-	if (in->param) {
-		if ((param = g_hash_table_lookup(in->param, "samplerate"))) {
-			res = sr_parse_sizestring(param, &ctx->samplerate);
-
-			if (res != SR_OK) {
-				sr_err("Invalid samplerate: %s.", param);
-				free_context(ctx);
-				return SR_ERR_ARG;
-			}
-		}
-
-		if ((param = g_hash_table_lookup(in->param, "numchannels")))
-			ctx->num_channels = g_ascii_strtoull(param, NULL, 10);
-
-		if ((param = g_hash_table_lookup(in->param, "delimiter"))) {
-			if (!strlen(param)) {
-				sr_err("Delimiter must be at least one character.");
-				free_context(ctx);
-				return SR_ERR_ARG;
-			}
-
-			if (!g_ascii_strcasecmp(param, "\\t"))
-				g_string_assign(ctx->delimiter, "\t");
-			else
-				g_string_assign(ctx->delimiter, param);
-		}
-
-		if ((param = g_hash_table_lookup(in->param, "comment")))
-			g_string_assign(ctx->comment, param);
-
-		if ((param = g_hash_table_lookup(in->param, "single-column"))) {
-			ctx->single_column = g_ascii_strtoull(param, &ptr, 10);
-			ctx->multi_column_mode = FALSE;
-
-			if (param == ptr) {
-				sr_err("Invalid single-colum number: %s.",
-					param);
-				free_context(ctx);
-				return SR_ERR_ARG;
-			}
-		}
-
-		if ((param = g_hash_table_lookup(in->param, "first-channel")))
-			ctx->first_channel = g_ascii_strtoull(param, NULL, 10);
-
-		if ((param = g_hash_table_lookup(in->param, "startline"))) {
-			ctx->start_line = g_ascii_strtoull(param, NULL, 10);
-
-			if (ctx->start_line < 1) {
-				sr_err("Invalid start line: %s.", param);
-				free_context(ctx);
-				return SR_ERR_ARG;
-			}
-		}
-
-		if ((param = g_hash_table_lookup(in->param, "header")))
-			ctx->header = sr_parse_boolstring(param);
-
-		if ((param = g_hash_table_lookup(in->param, "format"))) {
-			if (!g_ascii_strncasecmp(param, "bin", 3)) {
-				ctx->format = FORMAT_BIN;
-			} else if (!g_ascii_strncasecmp(param, "hex", 3)) {
-				ctx->format = FORMAT_HEX;
-			} else if (!g_ascii_strncasecmp(param, "oct", 3)) {
-				ctx->format = FORMAT_OCT;
-			} else {
-				sr_err("Invalid format: %s.", param);
-				free_context(ctx);
-				return SR_ERR;
-			}
-		}
+	s = g_variant_get_string(g_hash_table_lookup(options, "samplerate"), NULL);
+	if (sr_parse_sizestring(s, &inc->samplerate) != SR_OK) {
+		sr_err("Invalid samplerate '%s'.", s);
+		return SR_ERR_ARG;
 	}
 
-	if (ctx->multi_column_mode)
-		ctx->first_column = ctx->first_channel;
+	inc->first_channel = g_variant_get_int32(g_hash_table_lookup(options, "first-channel"));
+
+	inc->header = g_variant_get_boolean(g_hash_table_lookup(options, "header"));
+
+	inc->start_line = g_variant_get_int32(g_hash_table_lookup(options, "startline"));
+	if (inc->start_line < 1) {
+		sr_err("Invalid start line %d.", inc->start_line);
+		return SR_ERR_ARG;
+	}
+
+	if (inc->multi_column_mode)
+		inc->first_column = inc->first_channel;
 	else
-		ctx->first_column = ctx->single_column;
+		inc->first_column = inc->single_column;
 
-	if (!ctx->multi_column_mode && !ctx->num_channels) {
+	if (!inc->multi_column_mode && !inc->num_channels) {
 		sr_err("Number of channels needs to be specified in single column mode.");
-		free_context(ctx);
-		return SR_ERR;
+		return SR_ERR_ARG;
 	}
 
-	if (!(ctx->channel = g_io_channel_new_file(filename, "r", NULL))) {
-		sr_err("Input file '%s' could not be opened.", filename);
-		free_context(ctx);
-		return SR_ERR;
-	}
+	return SR_OK;
+}
 
-	while (TRUE) {
-		ctx->line_number++;
-		status = g_io_channel_read_line_string(ctx->channel,
-			ctx->buffer, &term_pos, NULL);
+static char *get_line_termination(GString *buf)
+{
+	char *term;
 
-		if (status == G_IO_STATUS_EOF) {
-			sr_err("Input file is empty.");
-			free_context(ctx);
-			return SR_ERR;
+	term = NULL;
+	if (g_strstr_len(buf->str, buf->len, "\r\n"))
+		term = "\r\n";
+	else if (memchr(buf->str, '\n', buf->len))
+		term = "\n";
+	else if (memchr(buf->str, '\r', buf->len))
+		term = "\r";
+
+	return term;
+}
+
+static int initial_parse(const struct sr_input *in, GString *buf)
+{
+	struct context *inc;
+	struct sr_channel *ch;
+	GString *channel_name;
+	gsize num_columns, l, i;
+	unsigned int line_number;
+	int ret;
+	char **lines, **columns;
+
+	ret = SR_OK;
+	inc = in->priv;
+	columns = NULL;
+
+	line_number = 0;
+	lines = g_strsplit_set(buf->str, "\r\n", 0);
+	for (l = 0; lines[l]; l++) {
+		line_number++;
+		if (inc->start_line > line_number) {
+			sr_spew("Line %zu skipped.", line_number);
+			continue;
 		}
-
-		if (status != G_IO_STATUS_NORMAL) {
-			sr_err("Error while reading line %zu.",
-				ctx->line_number);
-			free_context(ctx);
-			return SR_ERR;
+		if (lines[l][0] == '\0') {
+			sr_spew("Blank line %zu skipped.", line_number);
+			continue;
 		}
-
-		if (ctx->start_line > ctx->line_number) {
-			sr_spew("Line %zu skipped.", ctx->line_number);
+		strip_comment(lines[l], inc->comment);
+		if (lines[l][0] == '\0') {
+			sr_spew("Comment-only line %zu skipped.", line_number);
 			continue;
 		}
 
-		/* Remove line termination character(s). */
-		g_string_truncate(ctx->buffer, term_pos);
-
-		if (!ctx->buffer->len) {
-			sr_spew("Blank line %zu skipped.", ctx->line_number);
-			continue;
-		}
-
-		/* Remove trailing comment. */
-		strip_comment(ctx->buffer, ctx->comment);
-
-		if (ctx->buffer->len)
-			break;
-
-		sr_spew("Comment-only line %zu skipped.", ctx->line_number);
+		/* Reached first proper line. */
+		break;
+	}
+	if (!lines[l]) {
+		/* Not enough data for a proper line yet. */
+		ret = SR_OK_CONTINUE;
+		goto out;
 	}
 
 	/*
 	 * In order to determine the number of columns parse the current line
 	 * without limiting the number of columns.
 	 */
-	if (!(columns = parse_line(ctx, -1))) {
-		sr_err("Error while parsing line %zu.", ctx->line_number);
-		free_context(ctx);
-		return SR_ERR;
+	if (!(columns = parse_line(lines[l], inc, -1))) {
+		sr_err("Error while parsing line %zu.", line_number);
+		ret = SR_ERR;
+		goto out;
 	}
-
 	num_columns = g_strv_length(columns);
 
 	/* Ensure that the first column is not out of bounds. */
 	if (!num_columns) {
 		sr_err("Column %zu in line %zu is out of bounds.",
-			ctx->first_column, ctx->line_number);
-		g_strfreev(columns);
-		free_context(ctx);
-		return SR_ERR;
+			inc->first_column, line_number);
+		ret = SR_ERR;
+		goto out;
 	}
 
-	if (ctx->multi_column_mode) {
+	if (inc->multi_column_mode) {
 		/*
 		 * Detect the number of channels in multi column mode
 		 * automatically if not specified.
 		 */
-		if (!ctx->num_channels) {
-			ctx->num_channels = num_columns;
-			sr_info("Number of auto-detected channels: %zu.",
-				ctx->num_channels);
+		if (!inc->num_channels) {
+			inc->num_channels = num_columns;
+			sr_dbg("Number of auto-detected channels: %zu.",
+				inc->num_channels);
 		}
 
 		/*
 		 * Ensure that the number of channels does not exceed the number
 		 * of columns in multi column mode.
 		 */
-		if (num_columns < ctx->num_channels) {
+		if (num_columns < inc->num_channels) {
 			sr_err("Not enough columns for desired number of channels in line %zu.",
-				ctx->line_number);
-			g_strfreev(columns);
-			free_context(ctx);
-			return SR_ERR;
+				line_number);
+			ret = SR_ERR;
+			goto out;
 		}
 	}
 
-	for (i = 0; i < ctx->num_channels; i++) {
-		if (ctx->header && ctx->multi_column_mode && strlen(columns[i]))
-			snprintf(channel_name, sizeof(channel_name), "%s",
-				columns[i]);
+	channel_name = g_string_sized_new(64);
+	for (i = 0; i < inc->num_channels; i++) {
+		if (inc->header && inc->multi_column_mode && strlen(columns[i]))
+			g_string_assign(channel_name, columns[i]);
 		else
-			snprintf(channel_name, sizeof(channel_name), "%zu", i);
-
-		ch = sr_channel_new(i, SR_CHANNEL_LOGIC, TRUE, channel_name);
-
-		if (!ch) {
-			sr_err("Channel creation failed.");
-			free_context(ctx);
-			g_strfreev(columns);
-			return SR_ERR;
-		}
-
+			g_string_printf(channel_name, "%lu", i);
+		ch = sr_channel_new(i, SR_CHANNEL_LOGIC, TRUE, channel_name->str);
 		in->sdi->channels = g_slist_append(in->sdi->channels, ch);
 	}
-
-	g_strfreev(columns);
+	g_string_free(channel_name, TRUE);
 
 	/*
 	 * Calculate the minimum buffer size to store the sample data of the
 	 * channels.
 	 */
-	ctx->sample_buffer_size = (ctx->num_channels + 7) >> 3;
+	inc->sample_buffer_size = (inc->num_channels + 7) >> 3;
+	inc->sample_buffer = g_malloc(inc->sample_buffer_size);
 
-	if (!(ctx->sample_buffer = g_try_malloc(ctx->sample_buffer_size))) {
-		sr_err("Sample buffer malloc failed.");
-		free_context(ctx);
-		return SR_ERR_MALLOC;
-	}
+out:
+	if (columns)
+		g_strfreev(columns);
+	g_strfreev(lines);
 
-	return SR_OK;
+	return ret;
 }
 
-static int loadfile(struct sr_input *in, const char *filename)
+static int initial_receive(const struct sr_input *in)
 {
-	int res;
-	struct context *ctx;
+	struct context *inc;
+	GString *new_buf;
+	int len, ret;
+	char *termination, *p;
+
+	inc = in->priv;
+
+	if (!(termination = get_line_termination(in->buf)))
+		/* Don't have a full line yet. */
+		return SR_OK_CONTINUE;
+
+	if (!(p = g_strrstr_len(in->buf->str, in->buf->len, termination)))
+		/* Don't have a full line yet. */
+		return SR_OK_CONTINUE;
+	len = p - in->buf->str - 1;
+	new_buf = g_string_new_len(in->buf->str, len);
+	g_string_append_c(new_buf, '\0');
+
+	inc->termination = g_strdup(termination);
+
+	if (in->buf->str[0] != '\0')
+		ret = initial_parse(in, new_buf);
+	else
+		ret = SR_OK;
+
+	g_string_free(new_buf, TRUE);
+
+	return ret;
+}
+
+static int receive(const struct sr_input *in, GString *buf)
+{
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_meta meta;
-	struct sr_config *cfg;
-	GIOStatus status;
-	gboolean read_new_line;
-	gsize term_pos;
-	char **columns;
+	struct sr_config *src;
+	struct context *inc;
 	gsize num_columns;
-	int max_columns;
+	uint64_t samplerate;
+	int max_columns, ret, l;
+	char *p, **lines, **columns;
 
-	(void)filename;
+	g_string_append_len(in->buf, buf->str, buf->len);
 
-	ctx = in->internal;
+	inc = in->priv;
+	if (!inc->termination) {
+		ret = initial_receive(in);
+		if (ret == SR_OK_CONTINUE)
+			/* Not enough data yet. */
+			return SR_OK_CONTINUE;
+		else if (ret != SR_OK)
+			return SR_ERR;
 
-	/* Send header packet to the session bus. */
-	std_session_send_df_header(in->sdi, LOG_PREFIX);
+		inc->started = TRUE;
+		std_session_send_df_header(in->sdi, LOG_PREFIX);
 
-	if (ctx->samplerate) {
-		packet.type = SR_DF_META;
-		packet.payload = &meta;
-		cfg = sr_config_new(SR_CONF_SAMPLERATE,
-			g_variant_new_uint64(ctx->samplerate));
-		meta.config = g_slist_append(NULL, cfg);
-		sr_session_send(in->sdi, &packet);
-		sr_config_free(cfg);
+		if (inc->samplerate) {
+			packet.type = SR_DF_META;
+			packet.payload = &meta;
+			samplerate = inc->samplerate;
+			src = sr_config_new(SR_CONF_SAMPLERATE, g_variant_new_uint64(samplerate));
+			meta.config = g_slist_append(NULL, src);
+			sr_session_send(in->sdi, &packet);
+			sr_config_free(src);
+		}
 	}
 
-	read_new_line = FALSE;
+	if (!(p = g_strrstr_len(in->buf->str, in->buf->len, inc->termination)))
+		/* Don't have a full line. */
+		return SR_ERR;
+
+	*p = '\0';
+	g_strstrip(in->buf->str);
 
 	/* Limit the number of columns to parse. */
-	if (ctx->multi_column_mode)
-		max_columns = ctx->num_channels;
+	if (inc->multi_column_mode)
+		max_columns = inc->num_channels;
 	else
 		max_columns = 1;
 
-	while (TRUE) {
-		/*
-		 * Skip reading a new line for the first time if the last read
-		 * line was not a header because the sample data is not parsed
-		 * yet.
-		 */
-		if (read_new_line || ctx->header) {
-			ctx->line_number++;
-			status = g_io_channel_read_line_string(ctx->channel,
-				ctx->buffer, &term_pos, NULL);
-
-			if (status == G_IO_STATUS_EOF)
-				break;
-
-			if (status != G_IO_STATUS_NORMAL) {
-				sr_err("Error while reading line %zu.",
-					ctx->line_number);
-				free_context(ctx);
-				return SR_ERR;
-			}
-
-			/* Remove line termination character(s). */
-			g_string_truncate(ctx->buffer, term_pos);
-		}
-
-		read_new_line = TRUE;
-
-		if (!ctx->buffer->len) {
-			sr_spew("Blank line %zu skipped.", ctx->line_number);
+	lines = g_strsplit_set(in->buf->str, "\r\n", 0);
+	for (l = 0; lines[l]; l++) {
+		inc->line_number++;
+		if (lines[l][0] == '\0') {
+			sr_spew("Blank line %zu skipped.", inc->line_number);
 			continue;
 		}
 
 		/* Remove trailing comment. */
-		strip_comment(ctx->buffer, ctx->comment);
-
-		if (!ctx->buffer->len) {
-			sr_spew("Comment-only line %zu skipped.",
-				ctx->line_number);
+		strip_comment(lines[l], inc->comment);
+		if (lines[l][0] == '\0') {
+			sr_spew("Comment-only line %zu skipped.", inc->line_number);
 			continue;
 		}
 
-		if (!(columns = parse_line(ctx, max_columns))) {
-			sr_err("Error while parsing line %zu.",
-				ctx->line_number);
-			free_context(ctx);
+		if (!(columns = parse_line(lines[l], inc, max_columns))) {
+			sr_err("Error while parsing line %zu.", inc->line_number);
 			return SR_ERR;
 		}
-
 		num_columns = g_strv_length(columns);
-
-		/* Ensure that the first column is not out of bounds. */
 		if (!num_columns) {
 			sr_err("Column %zu in line %zu is out of bounds.",
-				ctx->first_column, ctx->line_number);
+				inc->first_column, inc->line_number);
 			g_strfreev(columns);
-			free_context(ctx);
 			return SR_ERR;
 		}
-
 		/*
 		 * Ensure that the number of channels does not exceed the number
 		 * of columns in multi column mode.
 		 */
-		if (ctx->multi_column_mode && num_columns < ctx->num_channels) {
+		if (inc->multi_column_mode && num_columns < inc->num_channels) {
 			sr_err("Not enough columns for desired number of channels in line %zu.",
-				ctx->line_number);
+				inc->line_number);
 			g_strfreev(columns);
-			free_context(ctx);
 			return SR_ERR;
 		}
 
-		if (ctx->multi_column_mode)
-			res = parse_multi_columns(columns, ctx);
+		if (inc->multi_column_mode)
+			ret = parse_multi_columns(columns, inc);
 		else
-			res = parse_single_column(columns[0], ctx);
-
-		if (res != SR_OK) {
+			ret = parse_single_column(columns[0], inc);
+		if (ret != SR_OK) {
 			g_strfreev(columns);
-			free_context(ctx);
 			return SR_ERR;
 		}
-
-		g_strfreev(columns);
-
-		/*
-		 * TODO: Parse sample numbers / timestamps and use it for
-		 * decompression.
-		 */
 
 		/* Send sample data to the session bus. */
-		res = send_samples(in->sdi, ctx->sample_buffer,
-			ctx->sample_buffer_size, 1);
-
-		if (res != SR_OK) {
+		ret = send_samples(in->sdi, inc->sample_buffer,
+			inc->sample_buffer_size, 1);
+		if (ret != SR_OK) {
 			sr_err("Sending samples failed.");
-			free_context(ctx);
 			return SR_ERR;
 		}
+		g_strfreev(columns);
 	}
-
-	/* Send end packet to the session bus. */
-	packet.type = SR_DF_END;
-	sr_session_send(in->sdi, &packet);
-
-	free_context(ctx);
+	g_strfreev(lines);
+	g_string_erase(in->buf, 0, p - in->buf->str + 1);
 
 	return SR_OK;
 }
 
+static int cleanup(struct sr_input *in)
+{
+	struct context *inc;
+	struct sr_datafeed_packet packet;
+
+	inc = in->priv;
+	if (!inc)
+		return SR_OK;
+
+	if (inc->started) {
+		/* End of stream. */
+		packet.type = SR_DF_END;
+		sr_session_send(in->sdi, &packet);
+	}
+
+	if (inc->delimiter)
+		g_string_free(inc->delimiter, TRUE);
+
+	if (inc->comment)
+		g_string_free(inc->comment, TRUE);
+
+	if (inc->termination)
+		g_free(inc->termination);
+
+	if (inc->sample_buffer)
+		g_free(inc->sample_buffer);
+
+	g_free(inc);
+	in->priv = NULL;
+
+	return SR_OK;
+}
+
+static struct sr_option options[] = {
+	{ "single-column", "Single column", "Enable/specify single column", NULL, NULL },
+	{ "numchannels", "Max channels", "Number of channels", NULL, NULL },
+	{ "delimiter", "Delimiter", "Column delimiter", NULL, NULL },
+	{ "format", "Format", "Numeric format", NULL, NULL },
+	{ "comment", "Comment", "Comment prefix character", NULL, NULL },
+	{ "samplerate", "Samplerate", "Samplerate used during capture", NULL, NULL },
+	{ "first-channel", "First channel", "Column number of first channel", NULL, NULL },
+	{ "header", "Header", "Treat first line as header with channel names", NULL, NULL },
+	{ "startline", "Start line", "Line number at which to start processing samples", NULL, NULL },
+	{ 0 }
+};
+
+static struct sr_option *get_options(void)
+{
+	if (!options[0].def) {
+		options[0].def = g_variant_ref_sink(g_variant_new_int32(0));
+		options[1].def = g_variant_ref_sink(g_variant_new_int32(0));
+		options[2].def = g_variant_ref_sink(g_variant_new_string(","));
+		options[3].def = g_variant_ref_sink(g_variant_new_string("bin"));
+		options[4].def = g_variant_ref_sink(g_variant_new_string(";"));
+		options[5].def = g_variant_ref_sink(g_variant_new_string("0"));
+		options[6].def = g_variant_ref_sink(g_variant_new_int32(0));
+		options[7].def = g_variant_ref_sink(g_variant_new_boolean(FALSE));
+		options[8].def = g_variant_ref_sink(g_variant_new_int32(1));
+	}
+
+	return options;
+}
+
 SR_PRIV struct sr_input_module input_csv = {
 	.id = "csv",
-	.desc = "Comma-separated values (CSV)",
+	.name = "CSV",
+	.desc = "Comma-separated values",
+	.metadata = { SR_INPUT_META_MIMETYPE },
+	.options = get_options,
 	.format_match = format_match,
 	.init = init,
-	.loadfile = loadfile,
+	.receive = receive,
+	.cleanup = cleanup,
 };
