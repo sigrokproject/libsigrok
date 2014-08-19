@@ -27,180 +27,150 @@
 
 #define LOG_PREFIX "input/chronovu-la8"
 
-#define NUM_PACKETS		2048
-#define PACKET_SIZE		4096
-#define DEFAULT_NUM_CHANNELS	8
+#define DEFAULT_NUM_CHANNELS    8
+#define DEFAULT_SAMPLERATE      "100MHz"
+#define MAX_CHUNK_SIZE          4096
+#define CHRONOVU_LA8_FILESIZE   8 * 1024 * 1024 + 5
 
-/**
- * Convert the LA8 'divcount' value to the respective samplerate (in Hz).
- *
- * LA8 hardware: sample period = (divcount + 1) * 10ns.
- * Min. value for divcount: 0x00 (10ns sample period, 100MHz samplerate).
- * Max. value for divcount: 0xfe (2550ns sample period, 392.15kHz samplerate).
- *
- * @param divcount The divcount value as needed by the hardware.
- *
- * @return The samplerate in Hz, or 0xffffffffffffffff upon errors.
- */
-static uint64_t divcount_to_samplerate(uint8_t divcount)
+struct context {
+	gboolean started;
+	uint64_t samplerate;
+};
+
+static int format_match(GHashTable *metadata)
 {
-	if (divcount == 0xff)
-		return 0xffffffffffffffffULL;
+	int size;
 
-	return SR_MHZ(100) / (divcount + 1);
+	size = GPOINTER_TO_INT(g_hash_table_lookup(metadata,
+			GINT_TO_POINTER(SR_INPUT_META_FILESIZE)));
+	if (size == CHRONOVU_LA8_FILESIZE)
+		return TRUE;
+
+	return FALSE;
 }
 
-static int format_match(const char *filename)
-{
-	struct stat stat_buf;
-	int ret;
-
-	if (!filename) {
-		sr_err("%s: filename was NULL", __func__);
-		// return SR_ERR; /* FIXME */
-		return FALSE;
-	}
-
-	if (!g_file_test(filename, G_FILE_TEST_EXISTS)) {
-		sr_err("%s: input file '%s' does not exist",
-		       __func__, filename);
-		// return SR_ERR; /* FIXME */
-		return FALSE;
-	}
-
-	if (!g_file_test(filename, G_FILE_TEST_IS_REGULAR)) {
-		sr_err("%s: input file '%s' not a regular file",
-		       __func__, filename);
-		// return SR_ERR; /* FIXME */
-		return FALSE;
-	}
-
-	/* Only accept files of length 8MB + 5 bytes. */
-	ret = stat(filename, &stat_buf);
-	if (ret != 0) {
-		sr_err("%s: Error getting file size of '%s'",
-		       __func__, filename);
-		return FALSE;
-	}
-	if (stat_buf.st_size != (8 * 1024 * 1024 + 5)) {
-		sr_dbg("%s: File size must be exactly 8388613 bytes ("
-		       "it actually is %d bytes in size), so this is not a "
-		       "ChronoVu LA8 file.", __func__, stat_buf.st_size);
-		return FALSE;
-	}
-
-	/* TODO: Check for divcount != 0xff. */
-
-	return TRUE;
-}
-
-static int init(struct sr_input *in, const char *filename)
+static int init(struct sr_input *in, GHashTable *options)
 {
 	struct sr_channel *ch;
+	struct context *inc;
+	uint64_t samplerate;
 	int num_channels, i;
-	char name[SR_MAX_CHANNELNAME_LEN + 1];
-	char *param;
+	const char *s;
+	char name[16];
 
-	(void)filename;
-
-	num_channels = DEFAULT_NUM_CHANNELS;
-
-	if (in->param) {
-		param = g_hash_table_lookup(in->param, "numchannels");
-		if (param) {
-			num_channels = strtoul(param, NULL, 10);
-			if (num_channels < 1) {
-				sr_err("%s: strtoul failed", __func__);
-				return SR_ERR;
-			}
-		}
+	num_channels = g_variant_get_int32(g_hash_table_lookup(options, "numchannels"));
+	if (num_channels < 1) {
+		sr_err("Invalid value for numchannels: must be at least 1.");
+		return SR_ERR_ARG;
 	}
 
-	/* Create a virtual device. */
+	s = g_variant_get_string(g_hash_table_lookup(options, "samplerate"), NULL);
+	if (sr_parse_sizestring(s, &samplerate) != SR_OK) {
+		sr_err("Invalid samplerate '%s'.", s);
+		return SR_ERR_ARG;
+	}
+
 	in->sdi = sr_dev_inst_new(0, SR_ST_ACTIVE, NULL, NULL, NULL);
+	in->priv = inc = g_malloc0(sizeof(struct context));
+	inc->samplerate = samplerate;
 
 	for (i = 0; i < num_channels; i++) {
-		snprintf(name, SR_MAX_CHANNELNAME_LEN, "%d", i);
-		/* TODO: Check return value. */
-		if (!(ch = sr_channel_new(i, SR_CHANNEL_LOGIC, TRUE, name)))
-			return SR_ERR;
+		snprintf(name, 16, "%d", i);
+		ch = sr_channel_new(i, SR_CHANNEL_LOGIC, TRUE, name);
 		in->sdi->channels = g_slist_append(in->sdi->channels, ch);
 	}
 
 	return SR_OK;
 }
 
-static int loadfile(struct sr_input *in, const char *filename)
+static int receive(const struct sr_input *in, GString *buf)
 {
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_meta meta;
 	struct sr_datafeed_logic logic;
 	struct sr_config *src;
-	uint8_t buf[PACKET_SIZE], divcount;
-	int i, fd, size, num_channels;
-	uint64_t samplerate;
+	struct context *inc;
+	gsize chunk_size, i;
+	int chunk, num_channels;
 
-	/* TODO: Use glib functions! GIOChannel, g_fopen, etc. */
-	if ((fd = open(filename, O_RDONLY)) == -1) {
-		sr_err("%s: file open failed", __func__);
-		return SR_ERR;
-	}
+	inc = in->priv;
+
+	g_string_append_len(in->buf, buf->str, buf->len);
 
 	num_channels = g_slist_length(in->sdi->channels);
 
-	/* Seek to the end of the file, and read the divcount byte. */
-	divcount = 0x00; /* TODO: Don't hardcode! */
-
-	/* Convert the divcount value to a samplerate. */
-	samplerate = divcount_to_samplerate(divcount);
-	if (samplerate == 0xffffffffffffffffULL) {
-		close(fd); /* FIXME */
-		return SR_ERR;
-	}
-	sr_dbg("%s: samplerate is %" PRIu64, __func__, samplerate);
-
-	/* Send header packet to the session bus. */
 	std_session_send_df_header(in->sdi, LOG_PREFIX);
+	inc->started = TRUE;
 
-	/* Send metadata about the SR_DF_LOGIC packets to come. */
 	packet.type = SR_DF_META;
 	packet.payload = &meta;
-	src = sr_config_new(SR_CONF_SAMPLERATE, g_variant_new_uint64(samplerate));
+	src = sr_config_new(SR_CONF_SAMPLERATE, g_variant_new_uint64(inc->samplerate));
 	meta.config = g_slist_append(NULL, src);
 	sr_session_send(in->sdi, &packet);
 	sr_config_free(src);
 
-	/* TODO: Handle trigger point. */
-
-	/* Send data packets to the session bus. */
-	sr_dbg("%s: sending SR_DF_LOGIC data packets", __func__);
 	packet.type = SR_DF_LOGIC;
 	packet.payload = &logic;
 	logic.unitsize = (num_channels + 7) / 8;
-	logic.data = buf;
+	logic.data = in->buf->str;
 
-	/* Send 8MB of total data to the session bus in small chunks. */
-	for (i = 0; i < NUM_PACKETS; i++) {
-		/* TODO: Handle errors, handle incomplete reads. */
-		size = read(fd, buf, PACKET_SIZE);
-		logic.length = size;
+	/* Cut off at multiple of unitsize. */
+	chunk_size = in->buf->len / logic.unitsize * logic.unitsize;
+
+	chunk = 0;
+	for (i = 0; i < chunk_size; i += chunk) {
+		chunk = MAX(MAX_CHUNK_SIZE, chunk_size - i);
+		logic.length = chunk;
 		sr_session_send(in->sdi, &packet);
 	}
-	close(fd); /* FIXME */
 
-	/* Send end packet to the session bus. */
-	sr_dbg("%s: sending SR_DF_END", __func__);
-	packet.type = SR_DF_END;
-	packet.payload = NULL;
-	sr_session_send(in->sdi, &packet);
+	if (in->buf->len > chunk_size)
+		g_string_erase(in->buf, 0, in->buf->len - chunk_size);
 
 	return SR_OK;
 }
 
+static int cleanup(struct sr_input *in)
+{
+	struct sr_datafeed_packet packet;
+	struct context *inc;
+
+	inc = in->priv;
+
+	if (inc->started) {
+		packet.type = SR_DF_END;
+		sr_session_send(in->sdi, &packet);
+	}
+	g_free(in->priv);
+	in->priv = NULL;
+
+	return SR_OK;
+}
+
+static struct sr_option options[] = {
+	{ "numchannels", "Number of channels", "Number of channels", NULL, NULL },
+	{ "samplerate", "Sample rate", "Sample rate", NULL, NULL },
+	{ 0 }
+};
+
+static struct sr_option *get_options(void)
+{
+	if (!options[0].def) {
+		options[0].def = g_variant_ref_sink(g_variant_new_int32(DEFAULT_NUM_CHANNELS));
+		options[1].def = g_variant_ref_sink(g_variant_new_string(DEFAULT_SAMPLERATE));
+	}
+
+	return options;
+}
+
 SR_PRIV struct sr_input_module input_chronovu_la8 = {
 	.id = "chronovu-la8",
+	.name = "Chronovu-LA8",
 	.desc = "ChronoVu LA8",
+	.metadata = { SR_INPUT_META_FILESIZE | SR_INPUT_META_REQUIRED },
+	.options = get_options,
 	.format_match = format_match,
 	.init = init,
-	.loadfile = loadfile,
+	.receive = receive,
+	.cleanup = cleanup,
 };
