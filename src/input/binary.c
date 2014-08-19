@@ -28,124 +28,135 @@
 
 #define LOG_PREFIX "input/binary"
 
-#define CHUNKSIZE             (512 * 1024)
+#define MAX_CHUNK_SIZE        4096
 #define DEFAULT_NUM_CHANNELS  8
+#define DEFAULT_SAMPLERATE    "0"
 
 struct context {
+	gboolean started;
 	uint64_t samplerate;
 };
 
-static int format_match(const char *filename)
-{
-	(void)filename;
-
-	/* This module will handle anything you throw at it. */
-	return TRUE;
-}
-
-static int init(struct sr_input *in, const char *filename)
+static int init(struct sr_input *in, GHashTable *options)
 {
 	struct sr_channel *ch;
+	struct context *inc;
+	uint64_t samplerate;
 	int num_channels, i;
-	char name[SR_MAX_CHANNELNAME_LEN + 1];
-	char *param;
-	struct context *ctx;
+	const char *s;
+	char name[16];
 
-	(void)filename;
-
-	if (!(ctx = g_try_malloc0(sizeof(*ctx)))) {
-		sr_err("Input format context malloc failed.");
-		return SR_ERR_MALLOC;
+	num_channels = g_variant_get_int32(g_hash_table_lookup(options, "numchannels"));
+	if (num_channels < 1) {
+		sr_err("Invalid value for numchannels: must be at least 1.");
+		return SR_ERR_ARG;
 	}
 
-	num_channels = DEFAULT_NUM_CHANNELS;
-	ctx->samplerate = 0;
-
-	if (in->param) {
-		param = g_hash_table_lookup(in->param, "numchannels");
-		if (param) {
-			num_channels = strtoul(param, NULL, 10);
-			if (num_channels < 1)
-				return SR_ERR;
-		}
-
-		param = g_hash_table_lookup(in->param, "samplerate");
-		if (param) {
-			if (sr_parse_sizestring(param, &ctx->samplerate) != SR_OK)
-				return SR_ERR;
-		}
+	s = g_variant_get_string(g_hash_table_lookup(options, "samplerate"), NULL);
+	if (sr_parse_sizestring(s, &samplerate) != SR_OK) {
+		sr_err("Invalid samplerate '%s'.", s);
+		return SR_ERR_ARG;
 	}
 
-	/* Create a virtual device. */
 	in->sdi = sr_dev_inst_new(0, SR_ST_ACTIVE, NULL, NULL, NULL);
-	in->internal = ctx;
+	in->priv = inc = g_malloc0(sizeof(struct context));
+	inc->samplerate = samplerate;
 
 	for (i = 0; i < num_channels; i++) {
-		snprintf(name, SR_MAX_CHANNELNAME_LEN, "%d", i);
-		/* TODO: Check return value. */
-		if (!(ch = sr_channel_new(i, SR_CHANNEL_LOGIC, TRUE, name)))
-			return SR_ERR;
+		snprintf(name, 16, "%d", i);
+		ch = sr_channel_new(i, SR_CHANNEL_LOGIC, TRUE, name);
 		in->sdi->channels = g_slist_append(in->sdi->channels, ch);
 	}
 
 	return SR_OK;
 }
 
-static int loadfile(struct sr_input *in, const char *filename)
+static int receive(const struct sr_input *in, GString *buf)
 {
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_meta meta;
 	struct sr_datafeed_logic logic;
 	struct sr_config *src;
-	unsigned char buffer[CHUNKSIZE];
-	int fd, size, num_channels;
-	struct context *ctx;
+	struct context *inc;
+	gsize chunk_size, i;
+	int chunk, num_channels;
 
-	ctx = in->internal;
+	inc = in->priv;
 
-	if ((fd = open(filename, O_RDONLY)) == -1)
-		return SR_ERR;
+	g_string_append_len(in->buf, buf->str, buf->len);
 
 	num_channels = g_slist_length(in->sdi->channels);
 
-	/* Send header packet to the session bus. */
 	std_session_send_df_header(in->sdi, LOG_PREFIX);
+	inc->started = TRUE;
 
-	if (ctx->samplerate) {
-		packet.type = SR_DF_META;
-		packet.payload = &meta;
-		src = sr_config_new(SR_CONF_SAMPLERATE,
-				g_variant_new_uint64(ctx->samplerate));
-		meta.config = g_slist_append(NULL, src);
-		sr_session_send(in->sdi, &packet);
-		sr_config_free(src);
-	}
+	packet.type = SR_DF_META;
+	packet.payload = &meta;
+	src = sr_config_new(SR_CONF_SAMPLERATE, g_variant_new_uint64(inc->samplerate));
+	meta.config = g_slist_append(NULL, src);
+	sr_session_send(in->sdi, &packet);
+	sr_config_free(src);
 
-	/* Chop up the input file into chunks & send it to the session bus. */
 	packet.type = SR_DF_LOGIC;
 	packet.payload = &logic;
 	logic.unitsize = (num_channels + 7) / 8;
-	logic.data = buffer;
-	while ((size = read(fd, buffer, CHUNKSIZE)) > 0) {
-		logic.length = size;
+	logic.data = in->buf->str;
+
+	/* Cut off at multiple of unitsize. */
+	chunk_size = in->buf->len / logic.unitsize * logic.unitsize;
+
+	chunk = 0;
+	for (i = 0; i < chunk_size; i += chunk) {
+		chunk = MAX(MAX_CHUNK_SIZE, chunk_size - i);
+		logic.length = chunk;
 		sr_session_send(in->sdi, &packet);
 	}
-	close(fd);
 
-	/* Send end packet to the session bus. */
-	packet.type = SR_DF_END;
-	sr_session_send(in->sdi, &packet);
-
-	g_free(ctx);
-	in->internal = NULL;
+	if (in->buf->len > chunk_size)
+		g_string_erase(in->buf, 0, in->buf->len - chunk_size);
 
 	return SR_OK;
 }
 
+static int cleanup(struct sr_input *in)
+{
+	struct sr_datafeed_packet packet;
+	struct context *inc;
+
+	inc = in->priv;
+
+	if (inc->started) {
+		packet.type = SR_DF_END;
+		sr_session_send(in->sdi, &packet);
+	}
+	g_free(in->priv);
+	in->priv = NULL;
+
+	return SR_OK;
+}
+
+static struct sr_option options[] = {
+	{ "numchannels", "Number of channels", "Number of channels", NULL, NULL },
+	{ "samplerate", "Sample rate", "Sample rate", NULL, NULL },
+	{ 0 }
+};
+
+static struct sr_option *get_options(void)
+{
+	if (!options[0].def) {
+		options[0].def = g_variant_ref_sink(g_variant_new_int32(DEFAULT_NUM_CHANNELS));
+		options[1].def = g_variant_ref_sink(g_variant_new_string(DEFAULT_SAMPLERATE));
+	}
+
+	return options;
+}
+
 SR_PRIV struct sr_input_module input_binary = {
 	.id = "binary",
+	.name = "Binary",
 	.desc = "Raw binary",
-	.format_match = format_match,
+	.options = get_options,
 	.init = init,
-	.loadfile = loadfile,
+	.receive = receive,
+	.cleanup = cleanup,
 };

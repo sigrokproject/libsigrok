@@ -66,12 +66,11 @@ extern SR_PRIV struct sr_input_module input_wav;
 /* @endcond */
 
 static const struct sr_input_module *input_module_list[] = {
-	&input_vcd,
+	&input_binary,
 	&input_chronovu_la8,
-	&input_wav,
 	&input_csv,
-	/* This one has to be last, because it will take any input. */
-//	&input_binary,
+	&input_vcd,
+	&input_wav,
 	NULL,
 };
 
