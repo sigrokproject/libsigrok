@@ -312,6 +312,12 @@ static gboolean check_required_metadata(const uint8_t *metadata, uint8_t *avail)
  * If an input module is found, an instance is created and returned.
  * Otherwise, NULL is returned.
  *
+ * If an instance is created, it has the given buffer used for scanning
+ * already submitted to it, to be processed before more data is sent.
+ * This allows a frontend to submit an initial chunk of a non-seekable
+ * stream, such as stdin, without having to keep it around and submit
+ * it again later.
+ *
  */
 SR_API const struct sr_input *sr_input_scan_buffer(GString *buf)
 {
@@ -460,7 +466,6 @@ SR_API const struct sr_input *sr_input_scan_file(const char *filename)
 
 		/* Found a matching module. */
 		in = sr_input_new(imod, NULL);
-		g_string_insert_len(in->buf, 0, buf->str, buf->len);
 		break;
 	}
 	g_string_free(header_buf, TRUE);
