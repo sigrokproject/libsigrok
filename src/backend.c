@@ -238,10 +238,6 @@ static int sanity_check_all_input_modules(void)
 			sr_err("No description in module %d ('%s').", i, d);
 			errors++;
 		}
-		if (!inputs[i]->format_match) {
-			sr_err("No format_match in module %d ('%s').", i, d);
-			errors++;
-		}
 		if (!inputs[i]->init) {
 			sr_err("No init in module %d ('%s').", i, d);
 			errors++;
