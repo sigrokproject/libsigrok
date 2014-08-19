@@ -70,6 +70,7 @@
 #define CHUNKSIZE 1024
 
 struct context {
+	gboolean started;
 	gboolean got_header;
 	uint64_t samplerate;
 	unsigned int maxchannels;
@@ -467,13 +468,6 @@ static int receive(const struct sr_input *in, GString *buf)
 	uint64_t samplerate;
 	char *p;
 
-	if (buf->len == 0) {
-		/* End of stream. */
-		packet.type = SR_DF_END;
-		sr_session_send(in->sdi, &packet);
-		return SR_OK;
-	}
-
 	g_string_append_len(in->buf, buf->str, buf->len);
 
 	inc = in->priv;
@@ -485,6 +479,7 @@ static int receive(const struct sr_input *in, GString *buf)
 			return SR_ERR;
 
 		std_session_send_df_header(in->sdi, LOG_PREFIX);
+		inc->started = TRUE;
 
 		packet.type = SR_DF_META;
 		packet.payload = &meta;
@@ -508,9 +503,16 @@ static int receive(const struct sr_input *in, GString *buf)
 
 static int cleanup(struct sr_input *in)
 {
+	struct sr_datafeed_packet packet;
 	struct context *inc;
 
 	inc = in->priv;
+	if (inc->started) {
+		/* End of stream. */
+		packet.type = SR_DF_END;
+		sr_session_send(in->sdi, &packet);
+	}
+
 	g_slist_free_full(inc->channels, free_channel);
 	g_free(inc);
 	in->priv = NULL;
