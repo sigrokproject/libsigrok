@@ -430,7 +430,6 @@ static int init(struct sr_input *in, GHashTable *options)
 	inc->skip = g_variant_get_int32(g_hash_table_lookup(options, "skip"));
 	inc->skip /= inc->downsample;
 
-	/* Create a virtual device. */
 	in->sdi = sr_dev_inst_new(0, SR_ST_ACTIVE, NULL, NULL, NULL);
 	in->priv = inc;
 
@@ -521,7 +520,7 @@ static int cleanup(struct sr_input *in)
 }
 
 static struct sr_option options[] = {
-	{ "numchannels", "Max channels", "Maximum number of channels", NULL, NULL },
+	{ "numchannels", "Number of channels", "Number of channels", NULL, NULL },
 	{ "skip", "Skip", "Skip until timestamp", NULL, NULL },
 	{ "downsample", "Downsample", "Divide samplerate by factor", NULL, NULL },
 	{ "compress", "Compress", "Compress idle periods longer than this value", NULL, NULL },
