@@ -238,16 +238,8 @@ static void send_chunk(const struct sr_input *in, int offset, int num_samples)
 
 static int receive(const struct sr_input *in, GString *buf)
 {
-	struct sr_datafeed_packet packet;
 	struct context *inc;
 	int offset, chunk_samples, total_samples, processed, max_chunk_samples, num_samples, i;
-
-	if (buf->len == 0) {
-		/* End of stream. */
-		packet.type = SR_DF_END;
-		sr_session_send(in->sdi, &packet);
-		return SR_OK;
-	}
 
 	g_string_append_len(in->buf, buf->str, buf->len);
 
@@ -308,8 +300,16 @@ static int receive(const struct sr_input *in, GString *buf)
 
 static int cleanup(struct sr_input *in)
 {
-	g_free(in->priv);
-	in->priv = NULL;
+	struct sr_datafeed_packet packet;
+
+	if (in->priv) {
+		/* End of stream. */
+		packet.type = SR_DF_END;
+		sr_session_send(in->sdi, &packet);
+
+		g_free(in->priv);
+		in->priv = NULL;
+	}
 
 	return SR_OK;
 }
