@@ -376,7 +376,7 @@ SR_API const struct sr_input *sr_input_scan_file(const char *filename)
 	struct sr_input *in;
 	const struct sr_input_module *imod;
 	GHashTable *meta;
-	GString *buf;
+	GString *header_buf;
 	struct stat st;
 	unsigned int midx, m, i;
 	int fd;
@@ -405,8 +405,10 @@ SR_API const struct sr_input *sr_input_scan_file(const char *filename)
 	/* TODO: MIME type */
 
 	in = NULL;
-	buf = NULL;
+	header_buf = g_string_sized_new(128);
 	for (i = 0; input_module_list[i]; i++) {
+		g_string_truncate(header_buf, 0);
+
 		imod = input_module_list[i];
 		if (!imod->metadata[0]) {
 			/* Module has no metadata for matching so will take
@@ -420,28 +422,30 @@ SR_API const struct sr_input *sr_input_scan_file(const char *filename)
 		meta = g_hash_table_new(NULL, NULL);
 		for (m = 0; m < sizeof(imod->metadata); m++) {
 			mitem = imod->metadata[m] & ~SR_INPUT_META_REQUIRED;
+			if (!mitem)
+				/* Metadata list is 0-terminated. */
+				break;
 			if (mitem == SR_INPUT_META_FILENAME)
 				g_hash_table_insert(meta, GINT_TO_POINTER(mitem),
 						(gpointer)filename);
-			else if (mitem == SR_INPUT_META_FILESIZE)
+			else if (mitem == SR_INPUT_META_FILESIZE) {
+				sr_dbg("inserting fs %d", st.st_size);
 				g_hash_table_insert(meta, GINT_TO_POINTER(mitem),
 						GINT_TO_POINTER(st.st_size));
-			else if (mitem == SR_INPUT_META_HEADER) {
-				buf = g_string_sized_new(128);
+			} else if (mitem == SR_INPUT_META_HEADER) {
 				if ((fd = open(filename, O_RDONLY)) < 0) {
 					sr_err("%s", strerror(errno));
 					return NULL;
 				}
-				size = read(fd, buf->str, 128);
-				buf->len = size;
+				size = read(fd, header_buf->str, 128);
+				header_buf->len = size;
 				close(fd);
 				if (size <= 0) {
-					g_string_free(buf, TRUE);
+					g_string_free(header_buf, TRUE);
 					sr_err("%s", strerror(errno));
 					return NULL;
 				}
-				g_hash_table_insert(meta, GINT_TO_POINTER(mitem), buf);
-				g_string_free(buf, TRUE);
+				g_hash_table_insert(meta, GINT_TO_POINTER(mitem), header_buf);
 			}
 		}
 		if (g_hash_table_size(meta) == 0) {
@@ -459,8 +463,7 @@ SR_API const struct sr_input *sr_input_scan_file(const char *filename)
 		g_string_insert_len(in->buf, 0, buf->str, buf->len);
 		break;
 	}
-	if (!in && buf)
-		g_string_free(buf, TRUE);
+	g_string_free(header_buf, TRUE);
 
 	return in;
 }
