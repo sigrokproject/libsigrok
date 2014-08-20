@@ -270,7 +270,7 @@ PKG_CHECK_MODULES([libzip], [libzip >= 0.10],
 # libserialport is only needed for some hardware drivers. Disable the
 # respective drivers if it is not found.
 if test "x$enable_libserialport" != "xno"; then
-	PKG_CHECK_MODULES([libserialport], [libserialport >= 0.1.0],
+	PKG_CHECK_MODULES([libserialport], [libserialport >= 0.2.0],
 		[have_libserialport="yes"; LIB_CFLAGS="$LIB_CFLAGS $libserialport_CFLAGS";
 		LIBS="$LIBS $libserialport_LIBS";
 		SR_PKGLIBS="$SR_PKGLIBS libserialport"],
@@ -681,7 +681,7 @@ echo "Detected libraries:"
 echo
 
 # Note: This only works for libs with pkg-config integration.
-for lib in "glib-2.0 >= 2.32.0" "libzip >= 0.10" "libserialport >= 0.1.0" "librevisa >= 0.0.20130812" "libusb-1.0 >= 1.0.16" "libftdi >= 0.16" "libftdi1 >= 1.0" "glibmm-2.4 >= 2.32.0" "pygobject-3.0 >= 3.0.0" "check >= 0.9.4"; do
+for lib in "glib-2.0 >= 2.32.0" "libzip >= 0.10" "libserialport >= 0.2.0" "librevisa >= 0.0.20130812" "libusb-1.0 >= 1.0.16" "libftdi >= 0.16" "libftdi1 >= 1.0" "glibmm-2.4 >= 2.32.0" "pygobject-3.0 >= 3.0.0" "check >= 0.9.4"; do
 	optional="OPTIONAL"
 	if test "x$lib" = "xglib-2.0 >= 2.32.0"; then optional="REQUIRED"; fi
 	if test "x$lib" = "xlibzip >= 0.10"; then optional="REQUIRED"; fi
