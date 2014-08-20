@@ -94,6 +94,11 @@ SR_PRIV int sr_sessionfile_check(const char *filename)
 		return SR_ERR;
 	}
 
+	if ((ret = zip_close(archive)) == -1) {
+		sr_dbg("error closing zipfile: %s", zip_strerror(archive));
+		return SR_ERR;
+	}
+
 	return SR_OK;
 }
 
