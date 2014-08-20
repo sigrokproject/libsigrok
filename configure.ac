@@ -175,6 +175,11 @@ AC_ARG_ENABLE(java,
 	[build Java bindings [default=yes]]),
 	[BINDINGS_JAVA="$enableval"], [BINDINGS_JAVA=$BINDINGS_ALL])
 
+AC_ARG_WITH(jni-include-path,
+	AC_HELP_STRING([--with-jni-include-path=path],
+	[specify include path for JNI [default=autodetect]]),
+	[JNI_INCLUDE_DIRS="$withval"], [JNI_INCLUDE_DIRS=auto])
+
 # Check if the C++ compiler supports the C++11 standard.
 
 m4_ifdef([AX_CXX_COMPILE_STDCXX_11], [AX_CXX_COMPILE_STDCXX_11(,[optional])],
@@ -416,10 +421,19 @@ AC_CHECK_PROG([HAVE_JAVAC], [javac], [yes], [no])
 
 if test "x$HAVE_JAVAC" = "xyes"; then
 	AX_PROG_JAVAC
-	AX_JNI_INCLUDE_DIR
+	if test "x$JNI_INCLUDE_DIRS" = "xauto"; then
+		if test "x$cross_compiling" = "xyes"; then
+			JNI_INCLUDE_DIRS=
+		else
+			AX_JNI_INCLUDE_DIR
+		fi
+	fi
 	for JNI_INCLUDE_DIR in $JNI_INCLUDE_DIRS; do
 		CXXFLAGS="$CXXFLAGS -I$JNI_INCLUDE_DIR"
 	done
+	AC_LANG_PUSH([C++])
+	AC_CHECK_HEADERS([jni.h], [], [BINDINGS_JAVA="no"; java_msg="Java JNI headers required"])
+	AC_LANG_POP([C++])
 else
 	BINDINGS_JAVA="no"; java_msg="Java compiler required"
 fi
