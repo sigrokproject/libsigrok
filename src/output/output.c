@@ -172,7 +172,7 @@ SR_API const struct sr_option **sr_output_options_get(const struct sr_output_mod
 
 	for (size = 1; mod_opts[size].id; size++)
 		;
-	opts = g_malloc(size * sizeof(struct sr_option *));
+	opts = g_malloc((size + 1) * sizeof(struct sr_option *));
 
 	for (i = 0; i < size; i++)
 		opts[i] = &mod_opts[i];
