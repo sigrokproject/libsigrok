@@ -59,6 +59,7 @@ static void clear_helper(void *priv)
 	ftdi_free(devc->ftdic);
 	g_free(devc->compressed_buf);
 	g_free(devc->sample_buf);
+	g_free(devc);
 }
 
 static int dev_clear(void)
