@@ -32,14 +32,13 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
-#define LOG_PREFIX "pipistrello_ols"
+#define LOG_PREFIX "p-ols"
 
 #define FTDI_BUF_SIZE          (16 * 1024)
 
 
 #define NUM_CHANNELS           32
 #define NUM_TRIGGER_STAGES     4
-#define TRIGGER_TYPE           "01rf"
 #define CLOCK_RATE             SR_MHZ(100)
 #define MIN_NUM_SAMPLES        4
 #define DEFAULT_SAMPLERATE     SR_MHZ(100)
@@ -97,9 +96,9 @@ struct dev_context {
 	int capture_ratio;
 	int trigger_at;
 	uint32_t channel_mask;
-	uint32_t trigger_mask[4];
-	uint32_t trigger_value[4];
-	uint32_t trigger_edge[4];
+	uint32_t trigger_mask[NUM_TRIGGER_STAGES];
+	uint32_t trigger_value[NUM_TRIGGER_STAGES];
+	uint32_t trigger_edge[NUM_TRIGGER_STAGES];
 	int num_stages;
 	uint16_t flag_reg;
 
@@ -125,7 +124,8 @@ SR_PRIV int write_shortcommand(struct dev_context *devc, uint8_t command);
 SR_PRIV int write_longcommand(struct dev_context *devc, uint8_t command, uint8_t *data);
 SR_PRIV int p_ols_open(struct dev_context *devc);
 SR_PRIV int p_ols_close(struct dev_context *devc);
-SR_PRIV int p_ols_configure_channels(const struct sr_dev_inst *sdi);
+SR_PRIV void pols_channel_mask(const struct sr_dev_inst *sdi);
+SR_PRIV int pols_convert_trigger(const struct sr_dev_inst *sdi);
 SR_PRIV struct sr_dev_inst *p_ols_get_metadata(uint8_t *buf, int bytes_read, struct dev_context *devc);
 SR_PRIV int p_ols_set_samplerate(const struct sr_dev_inst *sdi, uint64_t samplerate);
 SR_PRIV int p_ols_receive_data(int fd, int revents, void *cb_data);

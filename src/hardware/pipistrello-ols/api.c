@@ -22,13 +22,20 @@
 static const int32_t hwcaps[] = {
 	SR_CONF_LOGIC_ANALYZER,
 	SR_CONF_SAMPLERATE,
-	SR_CONF_TRIGGER_TYPE,
+	SR_CONF_TRIGGER_MATCH,
 	SR_CONF_CAPTURE_RATIO,
 	SR_CONF_LIMIT_SAMPLES,
 	SR_CONF_PATTERN_MODE,
 	SR_CONF_EXTERNAL_CLOCK,
 	SR_CONF_SWAP,
 	SR_CONF_RLE,
+};
+
+static const int32_t trigger_matches[] = {
+	SR_TRIGGER_ZERO,
+	SR_TRIGGER_ONE,
+	SR_TRIGGER_RISING,
+	SR_TRIGGER_FALLING,
 };
 
 #define STR_PATTERN_NONE     "None"
@@ -184,8 +191,6 @@ static GSList *scan(GSList *options)
 	if (p_ols_set_samplerate(sdi, DEFAULT_SAMPLERATE) != SR_OK)
 		sr_dbg("Failed to set default samplerate (%"PRIu64").",
 				DEFAULT_SAMPLERATE);
-	/* Clear trigger masks, values and stages. */
-	p_ols_configure_channels(sdi);
 
 	drvc->instances = g_slist_append(drvc->instances, sdi);
 	devices = g_slist_append(devices, sdi);
@@ -376,7 +381,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	struct dev_context *devc;
 	GVariant *gvar, *grange[2];
 	GVariantBuilder gvb;
-	int num_channels, i;
+	int num_pols_changrp, i;
 
 	(void)cg;
 
@@ -392,8 +397,10 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		g_variant_builder_add(&gvb, "{sv}", "samplerate-steps", gvar);
 		*data = g_variant_builder_end(&gvb);
 		break;
-	case SR_CONF_TRIGGER_TYPE:
-		*data = g_variant_new_string(TRIGGER_TYPE);
+	case SR_CONF_TRIGGER_MATCH:
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+				trigger_matches, ARRAY_SIZE(trigger_matches),
+				sizeof(int32_t));
 		break;
 	case SR_CONF_PATTERN_MODE:
 		*data = g_variant_new_strv(patterns, ARRAY_SIZE(patterns));
@@ -411,23 +418,20 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		 * Channel groups are turned off if no channels in that group are
 		 * enabled, making more room for samples for the enabled group.
 		*/
-		p_ols_configure_channels(sdi);
-		num_channels = 0;
+		pols_channel_mask(sdi);
+		num_pols_changrp = 0;
 		for (i = 0; i < 4; i++) {
 			if (devc->channel_mask & (0xff << (i * 8)))
-				num_channels++;
-		}
-		if (num_channels == 0) {
-			/* This can happen, but shouldn't cause too much drama.
-			 * However we can't continue because the code below would
-			 * divide by zero. */
-			break;
+				num_pols_changrp++;
 		}
 		/* 3 channel groups takes as many bytes as 4 channel groups */
-		if (num_channels == 3)
-			num_channels = 4;
+		if (num_pols_changrp == 3)
+			num_pols_changrp = 4;
 		grange[0] = g_variant_new_uint64(MIN_NUM_SAMPLES);
-		grange[1] = g_variant_new_uint64(devc->max_samplebytes / num_channels);
+		if (num_pols_changrp)
+			grange[1] = g_variant_new_uint64(devc->max_samplebytes / num_pols_changrp);
+		else
+			grange[1] = g_variant_new_uint64(MIN_NUM_SAMPLES);
 		*data = g_variant_new_tuple(grange, 2);
 		break;
 	default:
@@ -520,9 +524,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 {
 	struct dev_context *devc;
 	uint32_t samplecount, readcount, delaycount;
-	uint8_t changrp_mask, arg[4];
+	uint8_t pols_changrp_mask, arg[4];
 	uint16_t flag_tmp;
-	int num_channels, samplespercount;
+	int num_pols_changrp, samplespercount;
 	int ret, i;
 
 	if (sdi->status != SR_ST_ACTIVE)
@@ -530,29 +534,26 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 
 	devc = sdi->priv;
 
-	if (p_ols_configure_channels(sdi) != SR_OK) {
-		sr_err("Failed to configure channels.");
-		return SR_ERR;
-	}
+	pols_channel_mask(sdi);
 
 	/*
 	 * Enable/disable channel groups in the flag register according to the
-	 * channel mask. Calculate this here, because num_channels is needed
-	 * to limit readcount.
+	 * channel mask. Calculate this here, because num_pols_changrp is
+	 * needed to limit readcount.
 	 */
-	changrp_mask = 0;
-	num_channels = 0;
+	pols_changrp_mask = 0;
+	num_pols_changrp = 0;
 	for (i = 0; i < 4; i++) {
 		if (devc->channel_mask & (0xff << (i * 8))) {
-			changrp_mask |= (1 << i);
-			num_channels++;
+			pols_changrp_mask |= (1 << i);
+			num_pols_changrp++;
 		}
 	}
 	/* 3 channel groups takes as many bytes as 4 channel groups */
-	if (num_channels == 3)
-		num_channels = 4;
+	if (num_pols_changrp == 3)
+		num_pols_changrp = 4;
 	/* maximum number of samples (or RLE counts) the buffer memory can hold */
-	devc->max_samples = devc->max_samplebytes / num_channels;
+	devc->max_samples = devc->max_samplebytes / num_pols_changrp;
 
 	/*
 	 * Limit readcount to prevent reading past the end of the hardware
@@ -578,12 +579,15 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 		readcount++;
 
 	/* Basic triggers. */
-	if (devc->trigger_mask[0] != 0x00000000) {
-		/* At least one channel has a trigger on it. */
+	if (pols_convert_trigger(sdi) != SR_OK) {
+		sr_err("Failed to configure channels.");
+		return SR_ERR;
+	}
+	if (devc->num_stages > 0) {
 		delaycount = readcount * (1 - devc->capture_ratio / 100.0);
 		devc->trigger_at = (readcount - delaycount) * samplespercount - devc->num_stages;
 		for (i = 0; i <= devc->num_stages; i++) {
-			sr_dbg("Setting stage %d trigger.", i);
+			sr_dbg("Setting p-ols stage %d trigger.", i);
 			if ((ret = set_trigger(sdi, i)) != SR_OK)
 				return ret;
 		}
@@ -604,6 +608,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	arg[3] = 0x00;
 	if (write_longcommand(devc, CMD_SET_DIVIDER, arg) != SR_OK)
 		return SR_ERR;
+
 	/* Send extended sample limit and pre/post-trigger capture ratio. */
 	arg[0] = ((readcount - 1) & 0xff);
 	arg[1] = ((readcount - 1) & 0xff00) >> 8;
@@ -617,6 +622,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	arg[3] = ((delaycount - 1) & 0xff000000) >> 24;
 	if (write_longcommand(devc, CMD_CAPTURE_COUNT, arg) != SR_OK)
 		return SR_ERR;
+
 	/* Flag register. */
 	sr_dbg("Setting intpat %s, extpat %s, RLE %s, noise_filter %s, demux %s",
 			devc->flag_reg & FLAG_INTERNAL_TEST_MODE ? "on": "off",
@@ -630,7 +636,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	* to the channel mask. 1 means "disable channel".
 	*/
 	devc->flag_reg &= ~0x3c;
-	devc->flag_reg |= ~(changrp_mask << 2) & 0x3c;
+	devc->flag_reg |= ~(pols_changrp_mask << 2) & 0x3c;
 	sr_dbg("flag_reg = %x", devc->flag_reg);
 
 	/*
@@ -641,7 +647,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	flag_tmp = devc->flag_reg;
 	if (devc->flag_reg & FLAG_DEMUX) {
 		flag_tmp &= ~0x30;
-		flag_tmp |= ~(changrp_mask << 4) & 0x30;
+		flag_tmp |= ~(pols_changrp_mask << 4) & 0x30;
 	}
 	arg[0] = flag_tmp & 0xff;
 	arg[1] = flag_tmp >> 8;
@@ -663,7 +669,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	std_session_send_df_header(cb_data, LOG_PREFIX);
 
 	/* Hook up a dummy handler to receive data from the device. */
-	sr_source_add(-1, G_IO_IN, 0, p_ols_receive_data, (void *)sdi);
+	sr_session_source_add(sdi->session, 0, G_IO_IN, 10, p_ols_receive_data,
+			cb_data);
 
 	return SR_OK;
 }
@@ -684,7 +691,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 	write_shortcommand(devc, CMD_RESET);
 	write_shortcommand(devc, CMD_RESET);
 
-	sr_source_remove(-1);
+	sr_session_source_remove(sdi->session, 0);
 
 	/* Send end packet to the session bus. */
 	sr_dbg("Sending SR_DF_END.");
@@ -695,7 +702,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 }
 
 SR_PRIV struct sr_dev_driver p_ols_driver_info = {
-	.name = "p_ols",
+	.name = "p-ols",
 	.longname = "Pipistrello OLS",
 	.api_version = 1,
 	.init = init,

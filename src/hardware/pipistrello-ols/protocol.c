@@ -153,59 +153,64 @@ SR_PRIV int p_ols_close(struct dev_context *devc)
 	return SR_OK;
 }
 
-SR_PRIV int p_ols_configure_channels(const struct sr_dev_inst *sdi)
+/* Configures the channel mask based on which channels are enabled. */
+SR_PRIV void pols_channel_mask(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	const struct sr_channel *ch;
+	struct sr_channel *channel;
 	const GSList *l;
-	int channel_bit, stage, i;
-	char *tc;
 
 	devc = sdi->priv;
 
 	devc->channel_mask = 0;
+	for (l = sdi->channels; l; l = l->next) {
+		channel = l->data;
+		if (channel->enabled)
+			devc->channel_mask |= 1 << channel->index;
+	}
+}
+
+SR_PRIV int pols_convert_trigger(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	struct sr_trigger *trigger;
+	struct sr_trigger_stage *stage;
+	struct sr_trigger_match *match;
+	const GSList *l, *m;
+	int i;
+
+	devc = sdi->priv;
+
+	devc->num_stages = 0;
 	for (i = 0; i < NUM_TRIGGER_STAGES; i++) {
 		devc->trigger_mask[i] = 0;
 		devc->trigger_value[i] = 0;
 		devc->trigger_edge[i] = 0;
 	}
 
-	devc->num_stages = 0;
-	for (l = sdi->channels; l; l = l->next) {
-		ch = (const struct sr_channel *)l->data;
-		if (!ch->enabled)
-			continue;
+	if (!(trigger = sr_session_trigger_get(sdi->session)))
+		return SR_OK;
 
-		if (ch->index >= devc->max_channels) {
-			sr_err("Channels over the limit of %d\n", devc->max_channels);
-			return SR_ERR;
+	devc->num_stages = g_slist_length(trigger->stages);
+	if (devc->num_stages > NUM_TRIGGER_STAGES) {
+		sr_err("This device only supports %d trigger stages.",
+				NUM_TRIGGER_STAGES);
+		return SR_ERR;
+	}
+
+	for (l = trigger->stages; l; l = l->next) {
+		stage = l->data;
+		for (m = stage->matches; m; m = m->next) {
+			match = m->data;
+			if (!match->channel->enabled)
+				/* Ignore disabled channels with a trigger. */
+				continue;
+			devc->trigger_mask[stage->stage] |= 1 << match->channel->index;
+			if (match->match == SR_TRIGGER_ONE || match->match == SR_TRIGGER_RISING)
+				devc->trigger_value[stage->stage] |= 1 << match->channel->index;
+			if (match->match == SR_TRIGGER_RISING || match->match == SR_TRIGGER_FALLING)
+				devc->trigger_edge[stage->stage] |= 1 << match->channel->index;
 		}
-
-		/*
-		 * Set up the channel mask for later configuration into the
-		 * flag register.
-		 */
-		channel_bit = 1 << (ch->index);
-		devc->channel_mask |= channel_bit;
-
-		if (!ch->trigger)
-			continue;
-
-		/* Configure trigger mask and value. */
-		stage = 0;
-		for (tc = ch->trigger; tc && *tc; tc++) {
-			devc->trigger_mask[stage] |= channel_bit;
-			if ((*tc == '1') || (*tc == 'r'))
-				devc->trigger_value[stage] |= channel_bit;
-			if ((*tc == 'r') || (*tc == 'f'))
-				devc->trigger_edge[stage] |= channel_bit;
-			stage++;
-			/* Only supporting parallel mode, with up to 4 stages. */
-			if (stage > 3)
-				return SR_ERR;
-		}
-		if (stage > devc->num_stages)
-			devc->num_stages = stage - 1;
 	}
 
 	return SR_OK;
