@@ -177,7 +177,7 @@ enum series {
 /* short name, full name */
 static const struct rigol_ds_vendor supported_vendors[] = {
 	[RIGOL] = {"Rigol", "Rigol Technologies"},
-	[AGILENT] = {"Agilent", "Rigol Technologies"},
+	[AGILENT] = {"Agilent", "Agilent Technologies"},
 };
 
 #define VENDOR(x) &supported_vendors[x]
