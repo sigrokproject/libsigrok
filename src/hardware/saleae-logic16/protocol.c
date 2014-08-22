@@ -292,8 +292,8 @@ static int prime_fpga(const struct sr_dev_inst *sdi)
 	if ((ret = read_fpga_register(sdi, 0, &version)) != SR_OK)
 		return ret;
 
-	if (version != 0x10) {
-		sr_err("Invalid FPGA bitstream version: 0x%02x != 0x10.", version);
+	if (version != 0x10 && version != 0x40 && version != 0x41) {
+		sr_err("Unsupported FPGA version: 0x%02x.", version);
 		return SR_ERR;
 	}
 
@@ -337,53 +337,55 @@ static int upload_fpga_bitstream(const struct sr_dev_inst *sdi,
 	if (devc->cur_voltage_range == vrange)
 		return SR_OK;
 
-	switch (vrange) {
-	case VOLTAGE_RANGE_18_33_V:
-		filename = FPGA_FIRMWARE_18;
-		break;
-	case VOLTAGE_RANGE_5_V:
-		filename = FPGA_FIRMWARE_33;
-		break;
-	default:
-		sr_err("Unsupported voltage range.");
-		return SR_ERR;
-	}
-
-	sr_info("Uploading FPGA bitstream at %s.", filename);
-	if ((fw = g_fopen(filename, "rb")) == NULL) {
-		sr_err("Unable to open bitstream file %s for reading: %s.",
-		       filename, strerror(errno));
-		return SR_ERR;
-	}
-
-	buf[0] = COMMAND_FPGA_UPLOAD_INIT;
-	if ((ret = do_ep1_command(sdi, buf, 1, NULL, 0)) != SR_OK) {
-		fclose(fw);
-		return ret;
-	}
-
-	while (1) {
-		chunksize = fread(buf, 1, sizeof(buf), fw);
-		if (chunksize == 0)
+	if (devc->fpga_variant == FPGA_VARIANT_ORIGINAL) {
+		switch (vrange) {
+		case VOLTAGE_RANGE_18_33_V:
+			filename = FPGA_FIRMWARE_18;
 			break;
-
-		for (offset = 0; offset < chunksize; offset += 62) {
-			len = (offset + 62 > chunksize ?
-				chunksize - offset : 62);
-			command[0] = COMMAND_FPGA_UPLOAD_SEND_DATA;
-			command[1] = len;
-			memcpy(command + 2, buf + offset, len);
-			ret = do_ep1_command(sdi, command, len + 2, NULL, 0);
-			if (ret != SR_OK) {
-				fclose(fw);
-				return ret;
-			}
+		case VOLTAGE_RANGE_5_V:
+			filename = FPGA_FIRMWARE_33;
+			break;
+		default:
+			sr_err("Unsupported voltage range.");
+			return SR_ERR;
 		}
 
-		sr_info("Uploaded %d bytes.", chunksize);
+		sr_info("Uploading FPGA bitstream at %s.", filename);
+		if ((fw = g_fopen(filename, "rb")) == NULL) {
+			sr_err("Unable to open bitstream file %s for reading: %s.",
+			       filename, strerror(errno));
+			return SR_ERR;
+		}
+
+		buf[0] = COMMAND_FPGA_UPLOAD_INIT;
+		if ((ret = do_ep1_command(sdi, buf, 1, NULL, 0)) != SR_OK) {
+			fclose(fw);
+			return ret;
+		}
+
+		while (1) {
+			chunksize = fread(buf, 1, sizeof(buf), fw);
+			if (chunksize == 0)
+				break;
+
+			for (offset = 0; offset < chunksize; offset += 62) {
+				len = (offset + 62 > chunksize ?
+					chunksize - offset : 62);
+				command[0] = COMMAND_FPGA_UPLOAD_SEND_DATA;
+				command[1] = len;
+				memcpy(command + 2, buf + offset, len);
+				ret = do_ep1_command(sdi, command, len + 2, NULL, 0);
+				if (ret != SR_OK) {
+					fclose(fw);
+					return ret;
+				}
+			}
+
+			sr_info("Uploaded %d bytes.", chunksize);
+		}
+		fclose(fw);
+		sr_info("FPGA bitstream upload done.");
 	}
-	fclose(fw);
-	sr_info("FPGA bitstream upload done.");
 
 	if ((ret = prime_fpga(sdi)) != SR_OK)
 		return ret;
@@ -467,7 +469,7 @@ SR_PRIV int logic16_setup_acquisition(const struct sr_dev_inst *sdi,
 	/* Ignore FIFO overflow on previous capture */
 	reg1 &= ~0x20;
 
-	if (reg1 != 0x08) {
+	if (devc->fpga_variant == FPGA_VARIANT_ORIGINAL && reg1 != 0x08) {
 		sr_dbg("Invalid state at acquisition setup: 0x%02x != 0x08.", reg1);
 		return SR_ERR;
 	}
@@ -496,7 +498,7 @@ SR_PRIV int logic16_setup_acquisition(const struct sr_dev_inst *sdi,
 	if ((ret = read_fpga_register(sdi, 1, &reg1)) != SR_OK)
 		return ret;
 
-	if (reg1 != 0x48) {
+	if (devc->fpga_variant == FPGA_VARIANT_ORIGINAL && reg1 != 0x48) {
 		sr_dbg("Invalid state at acquisition setup: 0x%02x != 0x48.", reg1);
 		return SR_ERR;
 	}
@@ -504,7 +506,7 @@ SR_PRIV int logic16_setup_acquisition(const struct sr_dev_inst *sdi,
 	if ((ret = read_fpga_register(sdi, 10, &reg10)) != SR_OK)
 		return ret;
 
-	if (reg10 != clock_select) {
+	if (devc->fpga_variant == FPGA_VARIANT_ORIGINAL && reg10 != clock_select) {
 		sr_dbg("Invalid state at acquisition setup: 0x%02x != 0x%02x.",
 		       reg10, clock_select);
 		return SR_ERR;
@@ -533,6 +535,9 @@ SR_PRIV int logic16_abort_acquisition(const struct sr_dev_inst *sdi)
 	};
 	int ret;
 	uint8_t reg1, reg8, reg9;
+	struct dev_context *devc;
+
+	devc = sdi->priv;
 
 	if ((ret = do_ep1_command(sdi, command, 1, NULL, 0)) != SR_OK)
 		return ret;
@@ -543,7 +548,7 @@ SR_PRIV int logic16_abort_acquisition(const struct sr_dev_inst *sdi)
 	if ((ret = read_fpga_register(sdi, 1, &reg1)) != SR_OK)
 		return ret;
 
-	if ((reg1 & ~0x20) != 0x08) {
+	if (devc->fpga_variant == FPGA_VARIANT_ORIGINAL && (reg1 & ~0x20) != 0x08) {
 		sr_dbg("Invalid state at acquisition stop: 0x%02x != 0x08.", reg1 & ~0x20);
 		return SR_ERR;
 	}
@@ -554,7 +559,7 @@ SR_PRIV int logic16_abort_acquisition(const struct sr_dev_inst *sdi)
 	if ((ret = read_fpga_register(sdi, 9, &reg9)) != SR_OK)
 		return ret;
 
-	if (reg1 & 0x20) {
+	if (devc->fpga_variant == FPGA_VARIANT_ORIGINAL && reg1 & 0x20) {
 		sr_warn("FIFO overflow, capture data may be truncated.");
 		return SR_ERR;
 	}
@@ -564,6 +569,7 @@ SR_PRIV int logic16_abort_acquisition(const struct sr_dev_inst *sdi)
 
 SR_PRIV int logic16_init_device(const struct sr_dev_inst *sdi)
 {
+	uint8_t version;
 	struct dev_context *devc;
 	int ret;
 
@@ -576,6 +582,17 @@ SR_PRIV int logic16_init_device(const struct sr_dev_inst *sdi)
 
 	if ((ret = read_eeprom(sdi, 8, 8, devc->eeprom_data)) != SR_OK)
 		return ret;
+
+	/* mcupro Saleae16 has firmware pre-stored in FPGA.
+	   So, we can query it right away. */
+	if (read_fpga_register(sdi, 0, &version) == SR_OK &&
+	    (version == 0x40 || version == 0x41)) {
+		sr_info("mcupro Saleae16 detected.");
+		devc->fpga_variant = FPGA_VARIANT_MCUPRO;
+	} else {
+		sr_info("Original Saleae Logic16 detected.");
+		devc->fpga_variant = FPGA_VARIANT_ORIGINAL;
+	}
 
 	ret = upload_fpga_bitstream(sdi, devc->selected_voltage_range);
 	if (ret != SR_OK)

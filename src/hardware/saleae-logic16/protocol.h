@@ -35,8 +35,16 @@ enum voltage_range {
 	VOLTAGE_RANGE_5_V,	/* 5V logic */
 };
 
+enum fpga_variant {
+	FPGA_VARIANT_ORIGINAL,
+	FPGA_VARIANT_MCUPRO    /* mcupro clone v4.6 with Actel FPGA */
+};
+
 /** Private, per-device-instance driver context. */
 struct dev_context {
+	/** Distinguishing between original Logic16 and clones */
+	enum fpga_variant fpga_variant;
+
 	/*
 	 * Since we can't keep track of a Logic16 device after upgrading
 	 * the firmware (it renumerates into a different device address
