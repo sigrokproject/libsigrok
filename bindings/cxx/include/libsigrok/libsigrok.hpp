@@ -108,7 +108,8 @@ class SR_API PacketType;
 class SR_API Quantity;
 class SR_API Unit;
 class SR_API QuantityFlag;
-class SR_API InputFileDevice;
+class SR_API Input;
+class SR_API InputDevice;
 class SR_API Output;
 class SR_API DataType;
 class SR_API Option;
@@ -214,6 +215,12 @@ public:
 	/** Create a new trigger.
 	 * @param name Name string for new trigger. */
 	shared_ptr<Trigger> create_trigger(string name);
+	/** Open an input file.
+	 * @param filename File name string. */
+	shared_ptr<Input> open_file(string filename);
+	/** Open an input stream based on header data.
+	 * @param header Initial data from stream. */
+	shared_ptr<Input> open_stream(string header);
 protected:
 	struct sr_context *structure;
 	map<string, Driver *> drivers;
@@ -724,49 +731,66 @@ protected:
 
 /** An input format supported by the library */
 class SR_API InputFormat :
-	public StructureWrapper<Context, struct sr_input_format>
+	public StructureWrapper<Context, const struct sr_input_module>
 {
 public:
 	/** Name of this input format. */
 	string get_name();
 	/** Description of this input format. */
 	string get_description();
-	/** Check whether a given file matches this input format.
-	 * @param filename File name string. */
-	bool format_match(string filename);
-	/** Open a file using this input format.
-	 * @param filename File name string.
-	 * @param options Mapping of (option name, value) strings. */
-	shared_ptr<InputFileDevice> open_file(string filename,
-		map<string, string> options = {});
+	/** Options supported by this input format. */
+	map<string, shared_ptr<Option> > get_options();
+	/** Create an input using this input format.
+	 * @param options Mapping of (option name, value) pairs. */
+	shared_ptr<Input> create_input(map<string, Glib::VariantBase> options = {});
 protected:
-	InputFormat(struct sr_input_format *structure);
+	InputFormat(const struct sr_input_module *structure);
 	~InputFormat();
 	friend class Context;
-	friend class InputFileDevice;
+	friend class InputDevice;
 };
 
-/** A virtual device associated with an input file */
-class SR_API InputFileDevice : public Device
+/** An input instance (an input format applied to a file or stream) */
+class SR_API Input : public enable_shared_from_this<Input>
 {
 public:
-	/** Load data from file. */
-	void load();
+	/** Virtual device associated with this input. */
+	shared_ptr<InputDevice> get_device();
+	/** Send next stream data.
+	 * @param data Next stream data. */
+	void send(string data);
 protected:
-	InputFileDevice(shared_ptr<InputFormat> format,
-		struct sr_input *input, string filename);
-	~InputFileDevice();
-	struct sr_input *input;
-	shared_ptr<InputFormat> format;
-	string filename;
+	Input(shared_ptr<Context> context, const struct sr_input *structure);
+	~Input();
+	const struct sr_input *structure;
+	shared_ptr<Context> context;
+	InputDevice *device;
 	/** Deleter needed to allow shared_ptr use with protected destructor. */
 	class Deleter
 	{
 	public:
-		void operator()(InputFileDevice *device) { delete device; }
+		void operator()(Input *input) { delete input; }
 	};
 	friend class Deleter;
+	friend class Context;
 	friend class InputFormat;
+};
+
+/** A virtual device associated with an input */
+class SR_API InputDevice : public Device
+{
+protected:
+	InputDevice(shared_ptr<Input> input, struct sr_dev_inst *sdi);
+	~InputDevice();
+	shared_ptr<Input> input;
+	/** Deleter needed to allow shared_ptr use with protected destructor. */
+	class Deleter
+	{
+	public:
+		void operator()(InputDevice *device) { delete device; }
+	};
+	friend class Deleter;
+	friend class Input;
 };
 
 /** An option used by an output format */

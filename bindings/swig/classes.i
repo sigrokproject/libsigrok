@@ -75,7 +75,8 @@ template< class T > class enable_shared_from_this;
 %shared_ptr(sigrok::Analog);
 %shared_ptr(sigrok::Logic);
 %shared_ptr(sigrok::InputFormat);
-%shared_ptr(sigrok::InputFileDevice);
+%shared_ptr(sigrok::Input);
+%shared_ptr(sigrok::InputDevice);
 %shared_ptr(sigrok::Option);
 %shared_ptr(sigrok::OutputFormat);
 %shared_ptr(sigrok::Output);
@@ -189,6 +190,9 @@ typedef std::map<const sigrok::ConfigKey *, Glib::VariantBase>
     std::string, name, get_name);
 %attributestring(sigrok::InputFormat,
     std::string, description, get_description);
+
+%attributestring(sigrok::Input,
+    std::shared_ptr<sigrok::InputDevice>, device, get_device);
 
 %attributestring(sigrok::Option,
     std::string, id, get_id);

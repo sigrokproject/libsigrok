@@ -224,6 +224,15 @@ MAP_COMMON(const sigrok::ConfigKey *, Glib::VariantBase, ConfigKey, Variant)
   }
 }
 
+/* Support InputFormat.create_input() with no options. */
+%extend sigrok::InputFormat {
+  std::shared_ptr<sigrok::Input> create_input()
+  {
+    std::map<std::string, Glib::VariantBase> options;
+    return $self->create_input(options);
+  }
+}
+
 /* Support OutputFormat.create_output(device) with no options. */
 %extend sigrok::OutputFormat {
   std::shared_ptr<sigrok::Output> create_output(

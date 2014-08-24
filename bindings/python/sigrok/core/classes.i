@@ -354,7 +354,7 @@ std::map<std::string, Glib::VariantBase> dict_to_map_options(PyObject *dict,
 
 /* Ignore these methods, we will override them below. */
 %ignore sigrok::Driver::scan;
-%ignore sigrok::InputFormat::open_file;
+%ignore sigrok::InputFormat::create_input;
 %ignore sigrok::OutputFormat::create_output;
 
 %include "doc.i"
@@ -394,21 +394,22 @@ std::map<std::string, Glib::VariantBase> dict_to_map_options(PyObject *dict,
     Driver.scan = _Driver_scan
 }
 
-/* Support InputFormat.open_file() with keyword arguments. */
+/* Support InputFormat.create_input() with keyword arguments. */
 %extend sigrok::InputFormat
 {
-    std::shared_ptr<sigrok::InputFileDevice> _open_file_kwargs(std::string filename, PyObject *dict)
+    std::shared_ptr<sigrok::Input> _create_input_kwargs(PyObject *dict)
     {
-        return $self->open_file(filename, dict_to_map_string(dict));
+        return $self->create_input(
+            dict_to_map_options(dict, $self->get_options()));
     }
 }
 
 %pythoncode
 {
-    def _InputFormat_open_file(self, filename, **kwargs):
-        return self._open_file_kwargs(filename, kwargs)
+    def _InputFormat_create_input(self, **kwargs):
+        return self._create_input(kwargs)
 
-    InputFormat.open_file = _InputFormat_open_file
+    InputFormat.create_input = _InputFormat_create_input
 }
 
 /* Support OutputFormat.create_output() with keyword arguments. */
