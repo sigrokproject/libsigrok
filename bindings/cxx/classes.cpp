@@ -361,7 +361,7 @@ Glib::VariantContainerBase Configurable::config_list(const ConfigKey *key)
 
 Device::Device(struct sr_dev_inst *structure) :
 	Configurable(structure->driver, structure, NULL),
-	StructureWrapper<Context, struct sr_dev_inst>(structure)
+	structure(structure)
 {
 	for (GSList *entry = structure->channels; entry; entry = entry->next)
 	{
@@ -453,6 +453,7 @@ void Device::close()
 }
 
 HardwareDevice::HardwareDevice(Driver *driver, struct sr_dev_inst *structure) :
+	StructureWrapper(structure),
 	Device(structure),
 	driver(driver)
 {
@@ -1155,7 +1156,7 @@ shared_ptr<InputDevice> Input::get_device()
 	}
 
 	return static_pointer_cast<InputDevice>(
-		device->get_shared_pointer(context->shared_from_this()));
+		device->get_shared_pointer(shared_from_this()));
 }
 
 void Input::send(string data)
@@ -1173,8 +1174,10 @@ Input::~Input()
 	check(sr_input_free(structure));
 }
 
-InputDevice::InputDevice(shared_ptr<Input> input, struct sr_dev_inst *sdi) :
-	Device(sdi),
+InputDevice::InputDevice(shared_ptr<Input> input,
+		struct sr_dev_inst *structure) :
+	StructureWrapper(structure),
+	Device(structure),
 	input(input)
 {
 }
