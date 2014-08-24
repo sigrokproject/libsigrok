@@ -1128,6 +1128,19 @@ string InputFormat::get_description()
 	return valid_string(sr_input_description_get(structure));
 }
 
+map<string, shared_ptr<Option>> InputFormat::get_options()
+{
+	const struct sr_option *option = sr_input_options_get(structure);
+	auto option_array = shared_ptr<const struct sr_option>(
+		option, [=](const struct sr_option *) {
+			sr_input_options_free(structure); });
+	map<string, shared_ptr<Option>> result;
+	for (; option->id; option++)
+		result[option->id] = shared_ptr<Option>(
+			new Option(option, option_array), Option::Deleter());
+	return result;
+}
+
 shared_ptr<Input> InputFormat::create_input(
 	map<string, Glib::VariantBase> options)
 {

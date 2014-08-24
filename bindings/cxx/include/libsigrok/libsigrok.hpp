@@ -825,6 +825,7 @@ protected:
 		void operator()(Option *option) { delete option; }
 	};
 	friend class Deleter;
+	friend class InputFormat;
 	friend class OutputFormat;
 };
 
