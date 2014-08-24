@@ -1130,14 +1130,13 @@ string InputFormat::get_description()
 
 map<string, shared_ptr<Option>> InputFormat::get_options()
 {
-	const struct sr_option *option = sr_input_options_get(structure);
-	auto option_array = shared_ptr<const struct sr_option>(
-		option, [=](const struct sr_option *) {
-			sr_input_options_free(structure); });
+	const struct sr_option **options = sr_input_options_get(structure);
+	auto option_array = shared_ptr<const struct sr_option *>(
+		options, sr_input_options_free);
 	map<string, shared_ptr<Option>> result;
-	for (; option->id; option++)
-		result[option->id] = shared_ptr<Option>(
-			new Option(option, option_array), Option::Deleter());
+	for (int i = 0; options[i]; i++)
+		result[options[i]->id] = shared_ptr<Option>(
+			new Option(options[i], option_array), Option::Deleter());
 	return result;
 }
 
