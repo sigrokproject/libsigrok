@@ -608,13 +608,11 @@ SR_PRIV int hmo_init_device(struct sr_dev_inst *sdi)
 		return SR_ERR_NA;
 	}
 
-	if (!(devc->analog_groups = g_try_malloc0(sizeof(struct sr_channel_group) *
-						  scope_models[model_index].analog_channels)))
-			return SR_ERR_MALLOC;
+	devc->analog_groups = g_malloc0(sizeof(struct sr_channel_group*) *
+					scope_models[model_index].analog_channels);
 
-	if (!(devc->digital_groups = g_try_malloc0(sizeof(struct sr_channel_group) *
-						   scope_models[model_index].digital_pods)))
-			return SR_ERR_MALLOC;
+	devc->digital_groups = g_malloc0(sizeof(struct sr_channel_group*) *
+					 scope_models[model_index].digital_pods);
 
 	/* Add analog channels. */
 	for (i = 0; i < scope_models[model_index].analog_channels; i++) {
@@ -623,20 +621,25 @@ SR_PRIV int hmo_init_device(struct sr_dev_inst *sdi)
 			return SR_ERR_MALLOC;
 		sdi->channels = g_slist_append(sdi->channels, ch);
 
-		devc->analog_groups[i].name =
-			(char *)(*scope_models[model_index].analog_names)[i];
-		devc->analog_groups[i].channels = g_slist_append(NULL, ch);
+		devc->analog_groups[i] = g_malloc0(sizeof(struct sr_channel_group));
+
+		devc->analog_groups[i]->name = g_strdup(
+			(char *)(*scope_models[model_index].analog_names)[i]);
+		devc->analog_groups[i]->channels = g_slist_append(NULL, ch);
 
 		sdi->channel_groups = g_slist_append(sdi->channel_groups,
-						   &devc->analog_groups[i]);
+						   devc->analog_groups[i]);
 	}
 
 	/* Add digital channel groups. */
 	for (i = 0; i < scope_models[model_index].digital_pods; ++i) {
 		g_snprintf(tmp, 25, "POD%d", i);
-		devc->digital_groups[i].name = g_strdup(tmp);
+
+		devc->digital_groups[i] = g_malloc0(sizeof(struct sr_channel_group));
+
+		devc->digital_groups[i]->name = g_strdup(tmp);
 		sdi->channel_groups = g_slist_append(sdi->channel_groups,
-				   &devc->digital_groups[i < 8 ? 0 : 1]);
+				   devc->digital_groups[i < 8 ? 0 : 1]);
 	}
 
 	/* Add digital channels. */
@@ -646,8 +649,8 @@ SR_PRIV int hmo_init_device(struct sr_dev_inst *sdi)
 			return SR_ERR_MALLOC;
 		sdi->channels = g_slist_append(sdi->channels, ch);
 
-		devc->digital_groups[i < 8 ? 0 : 1].channels = g_slist_append(
-			devc->digital_groups[i < 8 ? 0 : 1].channels, ch);
+		devc->digital_groups[i < 8 ? 0 : 1]->channels = g_slist_append(
+			devc->digital_groups[i < 8 ? 0 : 1]->channels, ch);
 	}
 
 	devc->model_config = &scope_models[model_index];

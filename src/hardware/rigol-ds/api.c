@@ -245,9 +245,9 @@ static void clear_helper(void *priv)
 	g_free(devc->coupling[1]);
 	g_free(devc->trigger_source);
 	g_free(devc->trigger_slope);
-	g_slist_free(devc->analog_groups[0].channels);
-	g_slist_free(devc->analog_groups[1].channels);
-	g_slist_free(devc->digital_group.channels);
+	g_free(devc->analog_groups);
+	g_free(devc->digital_group);
+	g_free(devc);
 }
 
 static int dev_clear(void)
@@ -336,18 +336,26 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 
 	sr_scpi_hw_info_free(hw_info);
 
+	devc->analog_groups = g_malloc0(sizeof(struct sr_channel_group*) *
+					model->analog_channels);
+
 	for (i = 0; i < model->analog_channels; i++) {
 		if (!(channel_name = g_strdup_printf("CH%d", i + 1)))
 			return NULL;
 		ch = sr_channel_new(i, SR_CHANNEL_ANALOG, TRUE, channel_name);
 		sdi->channels = g_slist_append(sdi->channels, ch);
-		devc->analog_groups[i].name = channel_name;
-		devc->analog_groups[i].channels = g_slist_append(NULL, ch);
+
+		devc->analog_groups[i] = g_malloc0(sizeof(struct sr_channel_group));
+
+		devc->analog_groups[i]->name = channel_name;
+		devc->analog_groups[i]->channels = g_slist_append(NULL, ch);
 		sdi->channel_groups = g_slist_append(sdi->channel_groups,
-				&devc->analog_groups[i]);
+				devc->analog_groups[i]);
 	}
 
 	if (devc->model->has_digital) {
+		devc->digital_group = g_malloc0(sizeof(struct sr_channel_group*));
+
 		for (i = 0; i < 16; i++) {
 			if (!(channel_name = g_strdup_printf("D%d", i)))
 				return NULL;
@@ -356,12 +364,12 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 			if (!ch)
 				return NULL;
 			sdi->channels = g_slist_append(sdi->channels, ch);
-			devc->digital_group.channels = g_slist_append(
-					devc->digital_group.channels, ch);
+			devc->digital_group->channels = g_slist_append(
+					devc->digital_group->channels, ch);
 		}
-		devc->digital_group.name = "LA";
+		devc->digital_group->name = g_strdup("LA");
 		sdi->channel_groups = g_slist_append(sdi->channel_groups,
-				&devc->digital_group);
+				devc->digital_group);
 	}
 
 	for (i = 0; i < NUM_TIMEBASE; i++) {
@@ -695,7 +703,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 		}
 		g_variant_get(data, "(tt)", &p, &q);
 		for (i = 0; i < 2; i++) {
-			if (cg == &devc->analog_groups[i]) {
+			if (cg == devc->analog_groups[i]) {
 				for (j = 0; j < ARRAY_SIZE(vdivs); j++) {
 					if (vdivs[j][0] != p || vdivs[j][1] != q)
 						continue;
@@ -716,7 +724,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 		}
 		tmp_str = g_variant_get_string(data, NULL);
 		for (i = 0; i < 2; i++) {
-			if (cg == &devc->analog_groups[i]) {
+			if (cg == devc->analog_groups[i]) {
 				for (j = 0; j < ARRAY_SIZE(coupling); j++) {
 					if (!strcmp(tmp_str, coupling[j])) {
 						g_free(devc->coupling[i]);
@@ -777,8 +785,8 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 
 	/* If a channel group is specified, it must be a valid one. */
 	if (cg) {
-		if (cg != &devc->analog_groups[0]
-				&& cg != &devc->analog_groups[1]) {
+		if (cg != devc->analog_groups[0]
+				&& cg != devc->analog_groups[1]) {
 			sr_err("Invalid channel group specified.");
 			return SR_ERR;
 		}
@@ -790,13 +798,13 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 			sr_err("No channel group specified.");
 			return SR_ERR_CHANNEL_GROUP;
 		}
-		if (cg == &devc->digital_group) {
+		if (cg == devc->digital_group) {
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
 				NULL, 0, sizeof(int32_t));
 			return SR_OK;
 		} else {
 			for (i = 0; i < 2; i++) {
-				if (cg == &devc->analog_groups[i]) {
+				if (cg == devc->analog_groups[i]) {
 					*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
 						analog_hwcaps, ARRAY_SIZE(analog_hwcaps), sizeof(int32_t));
 					return SR_OK;

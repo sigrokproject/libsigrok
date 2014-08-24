@@ -98,8 +98,8 @@ struct dev_context {
 	uint64_t num_vdivs;
 
 	/* Channel groups */
-	struct sr_channel_group analog_groups[MAX_ANALOG_CHANNELS];
-	struct sr_channel_group digital_group;
+	struct sr_channel_group **analog_groups;
+	struct sr_channel_group *digital_group;
 
 	/* Acquisition settings */
 	GSList *enabled_analog_channels;

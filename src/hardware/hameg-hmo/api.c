@@ -123,22 +123,11 @@ static GSList *dev_list(void)
 
 static void clear_helper(void *priv)
 {
-	unsigned int i;
 	struct dev_context *devc;
-	struct scope_config *model;
 
 	devc = priv;
-	model = devc->model_config;
 
 	hmo_scope_state_free(devc->model_state);
-
-	for (i = 0; i < model->analog_channels; ++i)
-		g_slist_free(devc->analog_groups[i].channels);
-
-	for (i = 0; i < model->digital_pods; ++i) {
-		g_slist_free(devc->digital_groups[i].channels);
-		g_free(devc->digital_groups[i].name);
-	}
 
 	g_free(devc->analog_groups);
 	g_free(devc->digital_groups);
@@ -195,11 +184,11 @@ static int check_channel_group(struct dev_context *devc,
 		return CG_NONE;
 
 	for (i = 0; i < model->analog_channels; ++i)
-		if (cg == &devc->analog_groups[i])
+		if (cg == devc->analog_groups[i])
 			return CG_ANALOG;
 
 	for (i = 0; i < model->digital_pods; ++i)
-		if (cg == &devc->digital_groups[i])
+		if (cg == devc->digital_groups[i])
 			return CG_DIGITAL;
 
 	sr_err("Invalid channel group specified.");
@@ -242,7 +231,7 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 			return SR_ERR_CHANNEL_GROUP;
 		} else if (cg_type == CG_ANALOG) {
 			for (i = 0; i < model->analog_channels; ++i) {
-				if (cg != &devc->analog_groups[i])
+				if (cg != devc->analog_groups[i])
 					continue;
 				*data = g_variant_new_int32(model->num_ydivs);
 				ret = SR_OK;
@@ -259,7 +248,7 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 			return SR_ERR_CHANNEL_GROUP;
 		} else if (cg_type == CG_ANALOG) {
 			for (i = 0; i < model->analog_channels; ++i) {
-				if (cg != &devc->analog_groups[i])
+				if (cg != devc->analog_groups[i])
 					continue;
 				*data = g_variant_new("(tt)",
 						      (*model->vdivs)[state->analog_channels[i].vdiv][0],
@@ -290,7 +279,7 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 			return SR_ERR_CHANNEL_GROUP;
 		} else if (cg_type == CG_ANALOG) {
 			for (i = 0; i < model->analog_channels; ++i) {
-				if (cg != &devc->analog_groups[i])
+				if (cg != devc->analog_groups[i])
 					continue;
 				*data = g_variant_new_string((*model->coupling_options)[state->analog_channels[i].coupling]);
 				ret = SR_OK;
@@ -389,7 +378,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 			    q != (*model->vdivs)[i][1])
 				continue;
 			for (j = 1; j <= model->analog_channels; ++j) {
-				if (cg != &devc->analog_groups[j - 1])
+				if (cg != devc->analog_groups[j - 1])
 					continue;
 				state->analog_channels[j - 1].vdiv = i;
 				g_ascii_formatd(float_str, sizeof(float_str), "%E", (float) p / q);
@@ -471,7 +460,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 			if (strcmp(tmp, (*model->coupling_options)[i]) != 0)
 				continue;
 			for (j = 1; j <= model->analog_channels; ++j) {
-				if (cg != &devc->analog_groups[j - 1])
+				if (cg != devc->analog_groups[j - 1])
 					continue;
 				state->analog_channels[j-1].coupling = i;
 
