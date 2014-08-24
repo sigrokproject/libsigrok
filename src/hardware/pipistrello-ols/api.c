@@ -519,6 +519,35 @@ static int set_trigger(const struct sr_dev_inst *sdi, int stage)
 	return SR_OK;
 }
 
+static int disable_trigger(const struct sr_dev_inst *sdi, int stage)
+{
+	struct dev_context *devc;
+	uint8_t cmd, arg[4];
+
+	devc = sdi->priv;
+
+	cmd = CMD_SET_TRIGGER_MASK + stage * 4;
+	arg[0] = arg[1] = arg[2] = arg[3] = 0x00;
+	if (write_longcommand(devc, cmd, arg) != SR_OK)
+		return SR_ERR;
+
+	cmd = CMD_SET_TRIGGER_VALUE + stage * 4;
+	if (write_longcommand(devc, cmd, arg) != SR_OK)
+		return SR_ERR;
+
+	cmd = CMD_SET_TRIGGER_CONFIG + stage * 4;
+	arg[2] = 0x03;
+	if (write_longcommand(devc, cmd, arg) != SR_OK)
+		return SR_ERR;
+
+	cmd = CMD_SET_TRIGGER_EDGE + stage * 4;
+	arg[2] = 0x00;
+	if (write_longcommand(devc, cmd, arg) != SR_OK)
+		return SR_ERR;
+
+	return SR_OK;
+}
+
 static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 		void *cb_data)
 {
@@ -583,13 +612,21 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 		sr_err("Failed to configure channels.");
 		return SR_ERR;
 	}
+
 	if (devc->num_stages > 0) {
 		delaycount = readcount * (1 - devc->capture_ratio / 100.0);
 		devc->trigger_at = (readcount - delaycount) * samplespercount - devc->num_stages;
-		for (i = 0; i <= devc->num_stages; i++) {
-			sr_dbg("Setting p-ols stage %d trigger.", i);
-			if ((ret = set_trigger(sdi, i)) != SR_OK)
-				return ret;
+		for (i = 0; i < NUM_TRIGGER_STAGES; i++) {
+			if (i <= devc->num_stages) {
+				sr_dbg("Setting p-ols stage %d trigger.", i);
+				if ((ret = set_trigger(sdi, i)) != SR_OK)
+					return ret;
+			}
+			else {
+				sr_dbg("Disabling p-ols stage %d trigger.", i);
+				if ((ret = disable_trigger(sdi, i)) != SR_OK)
+					return ret;
+			}
 		}
 	} else {
 		/* No triggers configured, force trigger on first stage. */

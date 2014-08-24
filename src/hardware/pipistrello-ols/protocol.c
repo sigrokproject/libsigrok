@@ -428,7 +428,6 @@ SR_PRIV int p_ols_receive_data(int fd, int revents, void *cb_data)
 				num_channels++;
 			}
 		}
-		sr_dbg("num_channels = %d", num_channels);
 
 		/* Get a block of data. */
 		bytes_read = ftdi_read_data(devc->ftdic, devc->ftdi_buf, FTDI_BUF_SIZE);
