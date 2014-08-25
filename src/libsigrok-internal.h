@@ -143,6 +143,15 @@
 	libusb_handle_events_timeout(ctx, tv)
 #endif
 
+/* Static definitions of structs ending with an all-zero entry are a
+ * problem when compiling with -Wmissing-field-initializers: GCC
+ * suppresses the warning only with { 0 }, clang wants { } */
+#ifdef __clang__
+#define ALL_ZERO { }
+#else
+#define ALL_ZERO { 0 }
+#endif
+
 struct sr_context {
 #ifdef HAVE_LIBUSB_1_0
 	libusb_context *libusb_ctx;

@@ -336,7 +336,7 @@ static int cleanup(struct sr_output *o)
 
 static struct sr_option options[] = {
 	{ "scale", "Scale", "Scale values by factor", NULL, NULL },
-	{ 0 }
+	ALL_ZERO
 };
 
 static const struct sr_option *get_options(void)

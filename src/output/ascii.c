@@ -235,7 +235,7 @@ static int cleanup(struct sr_output *o)
 
 static struct sr_option options[] = {
 	{ "width", "Width", "Number of samples per line", NULL, NULL },
-	{ 0 }
+	ALL_ZERO
 };
 
 static const struct sr_option *get_options(void)
