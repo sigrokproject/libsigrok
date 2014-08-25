@@ -87,21 +87,25 @@ static int command_get_revid_version(struct sr_dev_inst *sdi, uint8_t *revid)
 
 SR_PRIV int fx2lafw_command_start_acquisition(const struct sr_dev_inst *sdi)
 {
-	struct dev_context *devc = sdi->priv;
-	struct sr_usb_dev_inst *usb = sdi->conn;
-	libusb_device_handle *devhdl = usb->devhdl;
-	uint64_t samplerate = devc->cur_samplerate;
-	gboolean samplewide = devc->sample_wide;
-	struct cmd_start_acquisition cmd = { 0 };
-	int delay = 0, ret;
+	struct dev_context *devc;
+	struct sr_usb_dev_inst *usb;
+	uint64_t samplerate;
+	struct cmd_start_acquisition cmd;
+	int delay, ret;
+
+	devc = sdi->priv;
+	usb = sdi->conn;
+	samplerate = devc->cur_samplerate;
 
 	/* Compute the sample rate. */
-	if (samplewide && samplerate > MAX_16BIT_SAMPLE_RATE) {
+	if (devc->sample_wide && samplerate > MAX_16BIT_SAMPLE_RATE) {
 		sr_err("Unable to sample at %" PRIu64 "Hz "
 		       "when collecting 16-bit samples.", samplerate);
 		return SR_ERR;
 	}
 
+	delay = 0;
+	cmd.flags = cmd.sample_delay_h = cmd.sample_delay_l = 0;
 	if ((SR_MHZ(48) % samplerate) == 0) {
 		cmd.flags = CMD_START_FLAGS_CLK_48MHZ;
 		delay = SR_MHZ(48) / samplerate - 1;
@@ -126,11 +130,11 @@ SR_PRIV int fx2lafw_command_start_acquisition(const struct sr_dev_inst *sdi)
 	cmd.sample_delay_l = delay & 0xff;
 
 	/* Select the sampling width. */
-	cmd.flags |= samplewide ? CMD_START_FLAGS_SAMPLE_16BIT :
+	cmd.flags |= devc->sample_wide ? CMD_START_FLAGS_SAMPLE_16BIT :
 		CMD_START_FLAGS_SAMPLE_8BIT;
 
 	/* Send the control message. */
-	ret = libusb_control_transfer(devhdl, LIBUSB_REQUEST_TYPE_VENDOR |
+	ret = libusb_control_transfer(usb->devhdl, LIBUSB_REQUEST_TYPE_VENDOR |
 			LIBUSB_ENDPOINT_OUT, CMD_START, 0x0000, 0x0000,
 			(unsigned char *)&cmd, sizeof(cmd), 100);
 	if (ret < 0) {
