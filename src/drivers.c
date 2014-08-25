@@ -187,6 +187,9 @@ extern SR_PRIV struct sr_dev_driver uni_t_ut32x_driver_info;
 #ifdef HAVE_HW_VICTOR_DMM
 extern SR_PRIV struct sr_dev_driver victor_dmm_driver_info;
 #endif
+#ifdef HAVE_HW_YOKOGAWA_DLM
+extern SR_PRIV struct sr_dev_driver yokogawa_dlm_driver_info;
+#endif
 #ifdef HAVE_HW_ZEROPLUS_LOGIC_CUBE
 extern SR_PRIV struct sr_dev_driver zeroplus_logic_cube_driver_info;
 #endif
@@ -357,6 +360,9 @@ SR_PRIV struct sr_dev_driver *drivers_list[] = {
 #endif
 #ifdef HAVE_HW_VICTOR_DMM
 	&victor_dmm_driver_info,
+#endif
+#ifdef HAVE_HW_YOKOGAWA_DLM
+	&yokogawa_dlm_driver_info,
 #endif
 #ifdef HAVE_HW_ZEROPLUS_LOGIC_CUBE
 	&zeroplus_logic_cube_driver_info,

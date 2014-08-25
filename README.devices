@@ -83,6 +83,7 @@ The following drivers/devices do not need any firmware upload:
  - uni-t-dmm (including all subdrivers)
  - uni-t-ut32x
  - victor-dmm
+ - yokogawa-dlm
  - zeroplus-logic-cube
 
 
@@ -141,6 +142,7 @@ The following drivers/devices do not require a serial port specification:
  - uni-t-dmm (including all subdrivers)
  - uni-t-ut32x
  - victor-dmm
+ - yokogawa-dlm (USBTMC or TCP)
  - zeroplus-logic-cube
 
 

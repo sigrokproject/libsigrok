@@ -140,6 +140,7 @@ DRIVER([Tondaj SL-814], [tondaj-sl-814])
 DRIVER([UNI-T DMM], [uni-t-dmm])
 DRIVER([UNI-T UT32x], [uni-t-ut32x])
 DRIVER([Victor DMM], [victor-dmm])
+DRIVER([Yokogawa DL/DLM], [yokogawa-dlm])
 DRIVER([ZEROPLUS Logic Cube], [zeroplus-logic-cube])
 
 AC_ARG_ENABLE(libserialport,
@@ -636,6 +637,11 @@ fi
 AM_CONDITIONAL(HW_VICTOR_DMM, test x$HW_VICTOR_DMM = xyes)
 if test "x$HW_VICTOR_DMM" = "xyes"; then
 	AC_DEFINE(HAVE_HW_VICTOR_DMM, 1, [Victor DMM support])
+fi
+
+AM_CONDITIONAL(HW_YOKOGAWA_DLM, test x$HW_YOKOGAWA_DLM = xyes)
+if test "x$HW_YOKOGAWA_DLM" = "xyes"; then
+	AC_DEFINE(HAVE_HW_YOKOGAWA_DLM, 1, [Yokogawa DL/DLM support])
 fi
 
 AM_CONDITIONAL(HW_ZEROPLUS_LOGIC_CUBE, test x$HW_ZEROPLUS_LOGIC_CUBE = xyes)

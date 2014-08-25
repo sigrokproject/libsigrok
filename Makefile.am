@@ -332,6 +332,14 @@ libsigrok_la_SOURCES += \
 	src/hardware/victor-dmm/protocol.c \
 	src/hardware/victor-dmm/api.c
 endif
+if HW_YOKOGAWA_DLM
+libsigrok_la_SOURCES += \
+	src/hardware/yokogawa-dlm/protocol.h \
+	src/hardware/yokogawa-dlm/protocol.c \
+	src/hardware/yokogawa-dlm/protocol_wrappers.h \
+	src/hardware/yokogawa-dlm/protocol_wrappers.c \
+	src/hardware/yokogawa-dlm/api.c
+endif
 if HW_ZEROPLUS_LOGIC_CUBE
 libsigrok_la_SOURCES += \
 	src/hardware/zeroplus-logic-cube/analyzer.c \
