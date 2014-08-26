@@ -51,32 +51,41 @@
 #endif
 
 /**
- * Read a 8 bits integer out of memory.
+ * Read a 8 bits unsigned integer out of memory.
  * @param x a pointer to the input memory
- * @return the corresponding integer
+ * @return the corresponding unsigned integer
  */
 #define R8(x)     ((unsigned)((const uint8_t*)(x))[0])
 
 /**
- * Read a 16 bits big endian integer out of memory.
+ * Read a 16 bits big endian unsigned integer out of memory.
  * @param x a pointer to the input memory
- * @return the corresponding integer
+ * @return the corresponding unsigned integer
  */
 #define RB16(x)  (((unsigned)((const uint8_t*)(x))[0] <<  8) |  \
                    (unsigned)((const uint8_t*)(x))[1])
 
 /**
- * Read a 16 bits little endian integer out of memory.
+ * Read a 16 bits little endian unsigned integer out of memory.
  * @param x a pointer to the input memory
- * @return the corresponding integer
+ * @return the corresponding unsigned integer
  */
 #define RL16(x)  (((unsigned)((const uint8_t*)(x))[1] <<  8) | \
                    (unsigned)((const uint8_t*)(x))[0])
 
 /**
- * Read a 32 bits big endian integer out of memory.
+ * Read a 16 bits little endian signed integer out of memory.
  * @param x a pointer to the input memory
- * @return the corresponding integer
+ * @return the corresponding signed integer
+ */
+#define RL16S(x)  ((int16_t) \
+		          (((unsigned)((const uint8_t*)(x))[1] <<  8) | \
+                    (unsigned)((const uint8_t*)(x))[0]))
+
+/**
+ * Read a 32 bits big endian unsigned integer out of memory.
+ * @param x a pointer to the input memory
+ * @return the corresponding unsigned integer
  */
 #define RB32(x)  (((unsigned)((const uint8_t*)(x))[0] << 24) | \
                   ((unsigned)((const uint8_t*)(x))[1] << 16) |  \
@@ -84,9 +93,9 @@
                    (unsigned)((const uint8_t*)(x))[3])
 
 /**
- * Read a 32 bits little endian integer out of memory.
+ * Read a 32 bits little endian unsigned integer out of memory.
  * @param x a pointer to the input memory
- * @return the corresponding integer
+ * @return the corresponding unsigned integer
  */
 #define RL32(x)  (((unsigned)((const uint8_t*)(x))[3] << 24) | \
                   ((unsigned)((const uint8_t*)(x))[2] << 16) |  \
@@ -94,32 +103,43 @@
                    (unsigned)((const uint8_t*)(x))[0])
 
 /**
- * Write a 8 bits integer to memory.
+ * Read a 32 bits little endian signed integer out of memory.
+ * @param x a pointer to the input memory
+ * @return the corresponding signed integer
+ */
+#define RL32S(x)  ((int32_t) \
+                 (((unsigned)((const uint8_t*)(x))[3] << 24) | \
+                  ((unsigned)((const uint8_t*)(x))[2] << 16) |  \
+                  ((unsigned)((const uint8_t*)(x))[1] <<  8) |  \
+                   (unsigned)((const uint8_t*)(x))[0]))
+
+/**
+ * Write a 8 bits unsigned integer to memory.
  * @param p a pointer to the output memory
- * @param x the input integer
+ * @param x the input unsigned integer
  */
 #define W8(p, x)    do { ((uint8_t*)(p))[0] = (uint8_t) (x);      } while(0)
 
 /**
- * Write a 16 bits integer to memory stored as big endian.
+ * Write a 16 bits unsigned integer to memory stored as big endian.
  * @param p a pointer to the output memory
- * @param x the input integer
+ * @param x the input unsigned integer
  */
 #define WB16(p, x)  do { ((uint8_t*)(p))[1] = (uint8_t) (x);      \
                          ((uint8_t*)(p))[0] = (uint8_t)((x)>>8);  } while(0)
 
 /**
- * Write a 16 bits integer to memory stored as little endian.
+ * Write a 16 bits unsigned integer to memory stored as little endian.
  * @param p a pointer to the output memory
- * @param x the input integer
+ * @param x the input unsigned integer
  */
 #define WL16(p, x)  do { ((uint8_t*)(p))[0] = (uint8_t) (x);      \
                          ((uint8_t*)(p))[1] = (uint8_t)((x)>>8);  } while(0)
 
 /**
- * Write a 32 bits integer to memory stored as big endian.
+ * Write a 32 bits unsigned integer to memory stored as big endian.
  * @param p a pointer to the output memory
- * @param x the input integer
+ * @param x the input unsigned integer
  */
 #define WB32(p, x)  do { ((uint8_t*)(p))[3] = (uint8_t) (x);      \
                          ((uint8_t*)(p))[2] = (uint8_t)((x)>>8);  \
@@ -127,9 +147,9 @@
                          ((uint8_t*)(p))[0] = (uint8_t)((x)>>24); } while(0)
 
 /**
- * Write a 32 bits integer to memory stored as little endian.
+ * Write a 32 bits unsigned integer to memory stored as little endian.
  * @param p a pointer to the output memory
- * @param x the input integer
+ * @param x the input unsigned integer
  */
 #define WL32(p, x)  do { ((uint8_t*)(p))[0] = (uint8_t) (x);      \
                          ((uint8_t*)(p))[1] = (uint8_t)((x)>>8);  \
