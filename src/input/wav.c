@@ -23,6 +23,7 @@
 #include <fcntl.h>
 #include <ctype.h>
 #include <string.h>
+#include <stdint.h>
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
@@ -58,10 +59,10 @@ static int parse_wav_header(GString *buf, struct context *inc)
 		return SR_ERR;
 	}
 
-	fmt_code = GUINT16_FROM_LE(*(uint16_t *)(buf->str + 20));
-	samplerate = GUINT32_FROM_LE(*(uint32_t *)(buf->str + 24));
-	samplesize = GUINT16_FROM_LE(*(uint16_t *)(buf->str + 32));
-	num_channels = GUINT16_FROM_LE(*(uint16_t *)(buf->str + 22));
+	fmt_code = RL16(buf->str + 20);
+	samplerate = RL32(buf->str + 24);
+	samplesize = RL16(buf->str + 32);
+	num_channels = RL16(buf->str + 22);
 	/* TODO div0 */
 	unitsize = samplesize / num_channels;
 
@@ -139,7 +140,7 @@ static int find_data_chunk(GString *buf, int initial_offset)
 				return -1;
 		}
 		/* Skip past this chunk. */
-		offset += 8 + GUINT32_FROM_LE(*(uint32_t *)(buf->str + offset + 4));
+		offset += 8 + RL32(buf->str + offset + 4);
 	}
 
 	return offset;
@@ -204,13 +205,13 @@ static void send_chunk(const struct sr_input *in, int offset, int num_samples)
 			switch (inc->samplesize) {
 			case 1:
 				/* 8-bit PCM samples are unsigned. */
-				fdata[samplenum] = (uint8_t)sample / 255.0;
+				fdata[samplenum] = (uint8_t)sample / (float)255;
 				break;
 			case 2:
-				fdata[samplenum] = GINT16_FROM_LE(sample) / 32767.0;
+				fdata[samplenum] = RL16S(&sample) / (float)INT16_MAX;
 				break;
 			case 4:
-				fdata[samplenum] = GINT32_FROM_LE(sample) / 65535.0;
+				fdata[samplenum] = RL32S(&sample) / (float)INT32_MAX;
 				break;
 			}
 		} else {
@@ -258,7 +259,7 @@ static int receive(const struct sr_input *in, GString *buf)
 
 	if (!inc->found_data) {
 		/* Skip past size of 'fmt ' chunk. */
-		i = 20 + GUINT32_FROM_LE(*(uint32_t *)(in->buf->str + 16));
+		i = 20 + RL32(in->buf->str + 16);
 		offset = find_data_chunk(in->buf, i);
 		if (offset < 0) {
 			if (in->buf->len > MAX_DATA_CHUNK_OFFSET) {
