@@ -27,4 +27,64 @@
 #include "libsigrok-internal.h"
 #include "protocol.h"
 
+extern int dlm_timebase_get(struct sr_scpi_dev_inst *scpi,
+		gchar **response);
+extern int dlm_timebase_set(struct sr_scpi_dev_inst *scpi,
+		const gchar *value);
+extern int dlm_horiz_trigger_pos_get(struct sr_scpi_dev_inst *scpi,
+		float *response);
+extern int dlm_horiz_trigger_pos_set(struct sr_scpi_dev_inst *scpi,
+		const gchar *value);
+extern int dlm_trigger_source_get(struct sr_scpi_dev_inst *scpi,
+		gchar **response);
+extern int dlm_trigger_source_set(struct sr_scpi_dev_inst *scpi,
+		const gchar *value);
+extern int dlm_trigger_slope_get(struct sr_scpi_dev_inst *scpi,
+		int *value);
+extern int dlm_trigger_slope_set(struct sr_scpi_dev_inst *scpi,
+		const int value);
+
+extern int dlm_analog_chan_state_get(struct sr_scpi_dev_inst *scpi, int channel,
+		gboolean *response);
+extern int dlm_analog_chan_state_set(struct sr_scpi_dev_inst *scpi, int channel,
+		const gboolean value);
+extern int dlm_analog_chan_vdiv_get(struct sr_scpi_dev_inst *scpi, int channel,
+		gchar **response);
+extern int dlm_analog_chan_vdiv_set(struct sr_scpi_dev_inst *scpi, int channel,
+		const gchar *value);
+extern int dlm_analog_chan_voffs_get(struct sr_scpi_dev_inst *scpi, int channel,
+		float *response);
+extern int dlm_analog_chan_srate_get(struct sr_scpi_dev_inst *scpi, int channel,
+		float *response);
+extern int dlm_analog_chan_coupl_get(struct sr_scpi_dev_inst *scpi, int channel,
+		gchar **response);
+extern int dlm_analog_chan_coupl_set(struct sr_scpi_dev_inst *scpi, int channel,
+		const gchar *value);
+extern int dlm_analog_chan_wrange_get(struct sr_scpi_dev_inst *scpi, int channel,
+		float *response);
+extern int dlm_analog_chan_woffs_get(struct sr_scpi_dev_inst *scpi, int channel,
+		float *response);
+
+extern int dlm_digital_chan_state_get(struct sr_scpi_dev_inst *scpi, int channel,
+		gboolean *response);
+extern int dlm_digital_chan_state_set(struct sr_scpi_dev_inst *scpi, int channel,
+		const gboolean value);
+extern int dlm_digital_pod_state_get(struct sr_scpi_dev_inst *scpi, int pod,
+		gboolean *response);
+extern int dlm_digital_pod_state_set(struct sr_scpi_dev_inst *scpi, int pod,
+		const gboolean value);
+
+extern int dlm_response_headers_set(struct sr_scpi_dev_inst *scpi,
+		const gboolean value);
+extern int dlm_acquisition_stop(struct sr_scpi_dev_inst *scpi);
+
+extern int dlm_acq_length_get(struct sr_scpi_dev_inst *scpi,
+		int *response);
+extern int dlm_chunks_per_acq_get(struct sr_scpi_dev_inst *scpi,
+		int *response);
+extern int dlm_start_frame_set(struct sr_scpi_dev_inst *scpi, int value);
+extern int dlm_data_get(struct sr_scpi_dev_inst *scpi, int acquisition_num);
+extern int dlm_analog_data_get(struct sr_scpi_dev_inst *scpi, int channel);
+extern int dlm_digital_data_get(struct sr_scpi_dev_inst *scpi);
+
 #endif

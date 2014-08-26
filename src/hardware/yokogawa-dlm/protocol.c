@@ -18,5 +18,978 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/** @file
+ * <em>Yokogawa DL/DLM series</em> oscilloscope driver
+ * @internal
+ */
+
 #include "protocol.h"
 
+static const int32_t dlm_hwcaps[] = {
+	SR_CONF_LOGIC_ANALYZER,
+	SR_CONF_OSCILLOSCOPE,
+	SR_CONF_TRIGGER_SLOPE,
+	SR_CONF_TRIGGER_SOURCE,
+	SR_CONF_TIMEBASE,
+	SR_CONF_NUM_TIMEBASE,
+	SR_CONF_HORIZ_TRIGGERPOS,
+};
+
+static const int32_t dlm_analog_caps[] = {
+	SR_CONF_VDIV,
+	SR_CONF_COUPLING,
+	SR_CONF_NUM_VDIV,
+};
+
+static const char *dlm_coupling_options[] = {
+	"AC",
+	"DC",
+	"DC50",
+	"GND",
+	NULL,
+};
+
+/* Note: Values must correlate to the trigger_slopes values */
+static const char *dlm_trigger_slopes[] = {
+	"r",
+	"f",
+	NULL,
+};
+
+static const char *dlm_2ch_trigger_sources[] = {
+	"1",
+	"2",
+	"LINE",
+	"EXT",
+	NULL,
+};
+
+/* TODO: Is BITx handled correctly or is Dx required? */
+static const char *dlm_4ch_trigger_sources[] = {
+	"1",
+	"2",
+	"3",
+	"4",
+	"LINE",
+	"EXT",
+	"BIT1",
+	"BIT2",
+	"BIT3",
+	"BIT4",
+	"BIT5",
+	"BIT6",
+	"BIT7",
+	"BIT8",
+	NULL,
+};
+
+static const uint64_t dlm_timebases[][2] = {
+	/* nanoseconds */
+	{ 1, 1000000000 },
+	{ 2, 1000000000 },
+	{ 5, 1000000000 },
+	{ 10, 1000000000 },
+	{ 20, 1000000000 },
+	{ 50, 1000000000 },
+	{ 100, 1000000000 },
+	{ 200, 1000000000 },
+	{ 500, 1000000000 },
+	/* microseconds */
+	{ 1, 1000000 },
+	{ 2, 1000000 },
+	{ 5, 1000000 },
+	{ 10, 1000000 },
+	{ 20, 1000000 },
+	{ 50, 1000000 },
+	{ 100, 1000000 },
+	{ 200, 1000000 },
+	{ 500, 1000000 },
+	/* milliseconds */
+	{ 1, 1000 },
+	{ 2, 1000 },
+	{ 5, 1000 },
+	{ 10, 1000 },
+	{ 20, 1000 },
+	{ 50, 1000 },
+	{ 100, 1000 },
+	{ 200, 1000 },
+	{ 500, 1000 },
+	/* seconds */
+	{ 1, 1 },
+	{ 2, 1 },
+	{ 5, 1 },
+	{ 10, 1 },
+	{ 20, 1 },
+	{ 50, 1 },
+	{ 100, 1 },
+	{ 200, 1 },
+	{ 500, 1 },
+};
+
+static const uint64_t dlm_vdivs[][2] = {
+	/* millivolts */
+	{ 2, 1000 },
+	{ 5, 1000 },
+	{ 10, 1000 },
+	{ 20, 1000 },
+	{ 50, 1000 },
+	{ 100, 1000 },
+	{ 200, 1000 },
+	{ 500, 1000 },
+	/* volts */
+	{ 1, 1 },
+	{ 2, 1 },
+	{ 5, 1 },
+	{ 10, 1 },
+	{ 20, 1 },
+	{ 50, 1 },
+	{ 100, 1 },
+	{ 200, 1 },
+	{ 500, 1 },
+};
+
+static const char *scope_analog_channel_names[] = {
+	"1",
+	"2",
+	"3",
+	"4"
+};
+
+static const char *scope_digital_channel_names[] = {
+	"D0",
+	"D1",
+	"D2",
+	"D3",
+	"D4",
+	"D5",
+	"D6",
+	"D7"
+};
+
+static struct scope_config scope_models[] = {
+	{
+		.model_id   = {"710105",  "710115",  "710125",  NULL},
+		.model_name = {"DLM2022", "DLM2032", "DLM2052", NULL},
+		.analog_channels = 2,
+		.digital_channels = 0,
+		.pods = 0,
+
+		.analog_names = &scope_analog_channel_names,
+		.digital_names = &scope_digital_channel_names,
+
+		.hw_caps = &dlm_hwcaps,
+		.num_hwcaps = ARRAY_SIZE(dlm_hwcaps),
+
+		.analog_hwcaps = &dlm_analog_caps,
+		.num_analog_hwcaps = ARRAY_SIZE(dlm_analog_caps),
+
+		.coupling_options = &dlm_coupling_options,
+		.trigger_sources = &dlm_2ch_trigger_sources,
+		.trigger_slopes = &dlm_trigger_slopes,
+
+		.timebases = &dlm_timebases,
+		.num_timebases = ARRAY_SIZE(dlm_timebases),
+
+		.vdivs = &dlm_vdivs,
+		.num_vdivs = ARRAY_SIZE(dlm_vdivs),
+
+		.num_xdivs = 10,
+		.num_ydivs = 8,
+	},
+	{
+		.model_id    = {"710110",  "710120",  "710130",  NULL},
+		.model_name  = {"DLM2024", "DLM2034", "DLM2054", NULL},
+		.analog_channels = 4,
+		.digital_channels = 8,
+		.pods = 1,
+
+		.analog_names = &scope_analog_channel_names,
+		.digital_names = &scope_digital_channel_names,
+
+		.hw_caps = &dlm_hwcaps,
+		.num_hwcaps = ARRAY_SIZE(dlm_hwcaps),
+
+		.analog_hwcaps = &dlm_analog_caps,
+		.num_analog_hwcaps = ARRAY_SIZE(dlm_analog_caps),
+
+		.coupling_options = &dlm_coupling_options,
+		.trigger_sources = &dlm_4ch_trigger_sources,
+		.trigger_slopes = &dlm_trigger_slopes,
+
+		.timebases = &dlm_timebases,
+		.num_timebases = ARRAY_SIZE(dlm_timebases),
+
+		.vdivs = &dlm_vdivs,
+		.num_vdivs = ARRAY_SIZE(dlm_vdivs),
+
+		.num_xdivs = 10,
+		.num_ydivs = 8,
+	},
+};
+
+/**
+ * Prints out the state of the device as we currently know it.
+ *
+ * @param config This is the scope configuration.
+ * @param state The current scope state to print.
+ */
+static void scope_state_dump(struct scope_config *config,
+		struct scope_state *state)
+{
+	unsigned int i;
+	char *tmp;
+
+	for (i = 0; i < config->analog_channels; ++i) {
+		tmp = sr_voltage_string((*config->vdivs)[state->analog_states[i].vdiv][0],
+					(*config->vdivs)[state->analog_states[i].vdiv][1]);
+		sr_info("State of analog channel  %d -> %s : %s (coupling) %s (vdiv) %2.2e (offset)",
+			i + 1, state->analog_states[i].state ? "On" : "Off",
+			(*config->coupling_options)[state->analog_states[i].coupling],
+			tmp, state->analog_states[i].vertical_offset);
+	}
+
+	for (i = 0; i < config->digital_channels; ++i) {
+		sr_info("State of digital channel %d -> %s", i,
+			state->digital_states[i] ? "On" : "Off");
+	}
+
+	for (i = 0; i < config->pods; ++i) {
+		sr_info("State of digital POD %d -> %s", i,
+			state->pod_states[i] ? "On" : "Off");
+	}
+
+	tmp = sr_period_string((*config->timebases)[state->timebase][0] *
+			       (*config->timebases)[state->timebase][1]);
+	sr_info("Current timebase: %s", tmp);
+	g_free(tmp);
+
+	tmp = sr_samplerate_string(state->sample_rate);
+	sr_info("Current samplerate: %s", tmp);
+	g_free(tmp);
+
+	sr_info("Current trigger: %s (source), %s (slope) %.2f (offset)",
+		(*config->trigger_sources)[state->trigger_source],
+		(*config->trigger_slopes)[state->trigger_slope],
+		state->horiz_triggerpos);
+}
+
+/**
+ * Searches through an array of strings and returns the index to the
+ * array where a given string is located.
+ *
+ * @param value The string to search for.
+ * @param array The array of strings.
+ * @param result The index at which value is located in array. -1 on error.
+ *
+ * @return SR_ERR when value couldn't be found, SR_OK otherwise.
+ */
+static int array_option_get(char *value, const char *(*array)[],
+		int *result)
+{
+	unsigned int i;
+
+	*result = -1;
+
+	for (i = 0; (*array)[i]; ++i)
+		if (!g_strcmp0(value, (*array)[i])) {
+			*result = i;
+			break;
+		}
+
+	if (*result == -1)
+		return SR_ERR;
+
+	return SR_OK;
+}
+
+/**
+ * This function takes a value of the form "2.000E-03", converts it to a
+ * significand / factor pair and returns the index of an array where
+ * a matching pair was found.
+ *
+ * It's a bit convoluted because of floating-point issues. The value "10.00E-09"
+ * is parsed by g_ascii_strtod() as 0.000000009999999939, for example.
+ * Therefore it's easier to break the number up into two strings and handle
+ * them separately.
+ *
+ * @param value The string to be parsed.
+ * @param array The array of s/f pairs.
+ * @param array_len The number of pairs in the array.
+ * @param result The index at which a matching pair was found.
+ *
+ * @return SR_ERR on any parsing error, SR_OK otherwise.
+ */
+static int array_float_get(gchar *value, const uint64_t array[][2],
+		int array_len, int *result)
+{
+	int i;
+	uint64_t f;
+	float s;
+	gchar ss[10], es[10];
+
+	memset(ss, 0, sizeof(ss));
+	memset(es, 0, sizeof(es));
+
+	strncpy(ss, value, 5);
+	strncpy(es, &(value[6]), 3);
+
+	if (sr_atof_ascii(ss, &s) != SR_OK)
+		return SR_ERR;
+	if (sr_atoi(es, &i) != SR_OK)
+		return SR_ERR;
+
+	/* Transform e.g. 10^-03 to 1000 as the array stores the inverse. */
+	f = pow(10, abs(i));
+
+	/* Adjust the significand/factor pair to make sure
+	 * that f is a multiple of 1000.
+	 */
+	while ((int)fmod(log10(f), 3) > 0) { s *= 10; f *= 10; }
+
+	/* Truncate s to circumvent rounding errors. */
+	s = (int)s;
+
+	for (i = 0; i < array_len; i++) {
+		if ( (s == array[i][0]) && (f == array[i][1]) ) {
+			*result = i;
+			return SR_OK;
+		}
+	}
+
+	return SR_ERR;
+}
+
+/**
+ * Obtains information about all analog channels from the oscilloscope.
+ * The internal state information is updated accordingly.
+ *
+ * @param scpi An open SCPI connection.
+ * @param config The device's device configuration.
+ * @param state The device's state information.
+ *
+ * @return SR_ERR on error, SR_OK otherwise.
+ */
+static int analog_channel_state_get(struct sr_scpi_dev_inst *scpi,
+				    struct scope_config *config,
+				    struct scope_state *state)
+{
+	int i, j;
+	gchar *response;
+
+	for (i = 0; i < config->analog_channels; ++i) {
+
+		if (dlm_analog_chan_state_get(scpi, i + 1,
+					      &state->analog_states[i].state) != SR_OK)
+			return SR_ERR;
+
+		if (dlm_analog_chan_vdiv_get(scpi, i + 1, &response) != SR_OK)
+			return SR_ERR;
+
+		if (array_float_get(response, *config->vdivs, config->num_vdivs,
+				    &j) != SR_OK) {
+			g_free(response);
+			return SR_ERR;
+		}
+
+		g_free(response);
+		state->analog_states[i].vdiv = j;
+
+		if (dlm_analog_chan_voffs_get(scpi, i + 1,
+					      &state->analog_states[i].vertical_offset) != SR_OK)
+			return SR_ERR;
+
+		if (dlm_analog_chan_wrange_get(scpi, i + 1,
+					       &state->analog_states[i].waveform_range) != SR_OK)
+			return SR_ERR;
+
+		if (dlm_analog_chan_woffs_get(scpi, i + 1,
+					      &state->analog_states[i].waveform_offset) != SR_OK)
+			return SR_ERR;
+
+		if (dlm_analog_chan_coupl_get(scpi, i + 1, &response) != SR_OK) {
+			g_free(response);
+			return SR_ERR;
+		}
+
+		if (array_option_get(response, config->coupling_options,
+				     &state->analog_states[i].coupling) != SR_OK) {
+			g_free(response);
+			return SR_ERR;
+		}
+		g_free(response);
+	}
+
+	return SR_OK;
+}
+
+/**
+ * Obtains information about all digital channels from the oscilloscope.
+ * The internal state information is updated accordingly.
+ *
+ * @param scpi An open SCPI connection.
+ * @param config The device's device configuration.
+ * @param state The device's state information.
+ *
+ * @return SR_ERR on error, SR_OK otherwise.
+ */
+static int digital_channel_state_get(struct sr_scpi_dev_inst *scpi,
+				     struct scope_config *config,
+				     struct scope_state *state)
+{
+	unsigned int i;
+
+	if (!config->digital_channels)
+		{
+			sr_warn("Tried obtaining digital channel states on a " \
+				"model without digital inputs.");
+			return SR_OK;
+		}
+
+	for (i = 0; i < config->digital_channels; ++i) {
+		if (dlm_digital_chan_state_get(scpi, i + 1,
+				&state->digital_states[i]) != SR_OK) {
+			return SR_ERR;
+		}
+	}
+
+	if (!config->pods)
+	{
+		sr_warn("Tried obtaining pod states on a model without pods.");
+		return SR_OK;
+	}
+
+	for (i = 0; i < config->pods; ++i) {
+		if (dlm_digital_pod_state_get(scpi, i + 'A',
+				&state->pod_states[i]) != SR_OK)
+			return SR_ERR;
+	}
+
+	return SR_OK;
+}
+
+/**
+ * Obtains information about the sample rate from the oscilloscope.
+ * The internal state information is updated accordingly.
+ *
+ * @param sdi The device instance.
+ *
+ * @return SR_ERR on error, SR_OK otherwise.
+ */
+SR_PRIV int dlm_sample_rate_query(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	struct scope_state *state;
+	float tmp_float;
+
+	devc = sdi->priv;
+	state = devc->model_state;
+
+	/* No need to find an active channel to query the sample rate:
+	 * querying any channel will do, so we use channel 1 all the time.
+	 */
+	if (dlm_analog_chan_srate_get(sdi->conn, 1, &tmp_float) != SR_OK)
+		return SR_ERR;
+
+	state->sample_rate = tmp_float;
+
+	return SR_OK;
+}
+
+/**
+ * Obtains information about the current device state from the oscilloscope,
+ * including all analog and digital channel configurations.
+ * The internal state information is updated accordingly.
+ *
+ * @param sdi The device instance.
+ *
+ * @return SR_ERR on error, SR_OK otherwise.
+ */
+SR_PRIV int dlm_scope_state_query(struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	struct scope_state *state;
+	struct scope_config *config;
+	float tmp_float;
+	gchar *response;
+	int i;
+
+	devc = sdi->priv;
+	config = devc->model_config;
+	state = devc->model_state;
+
+	if (analog_channel_state_get(sdi->conn, config, state) != SR_OK)
+		return SR_ERR;
+
+	if (digital_channel_state_get(sdi->conn, config, state) != SR_OK)
+		return SR_ERR;
+
+	if (dlm_timebase_get(sdi->conn, &response) != SR_OK)
+		return SR_ERR;
+
+	if (array_float_get(response, *config->timebases,
+			    config->num_timebases, &i) != SR_OK) {
+		g_free(response);
+		return SR_ERR;
+	}
+
+	g_free(response);
+	state->timebase = i;
+
+	if (dlm_horiz_trigger_pos_get(sdi->conn, &tmp_float) != SR_OK)
+		return SR_ERR;
+
+	/* TODO: Check if the calculation makes sense for the DLM. */
+	state->horiz_triggerpos = tmp_float /
+		(((double)(*config->timebases)[state->timebase][0] /
+		(*config->timebases)[state->timebase][1]) * config->num_xdivs);
+	state->horiz_triggerpos -= 0.5;
+	state->horiz_triggerpos *= -1;
+
+	if (dlm_trigger_source_get(sdi->conn, &response) != SR_OK) {
+		g_free(response);
+		return SR_ERR;
+	}
+
+	if (array_option_get(response, config->trigger_sources,
+			     &state->trigger_source) != SR_OK) {
+		g_free(response);
+		return SR_ERR;
+	}
+
+	g_free(response);
+
+	if (dlm_trigger_slope_get(sdi->conn, &i) != SR_OK)
+		return SR_ERR;
+
+	state->trigger_slope = i;
+
+	dlm_sample_rate_query(sdi);
+
+	scope_state_dump(config, state);
+
+	return SR_OK;
+}
+
+/**
+ * Creates a new device state structure.
+ *
+ * @param config The device configuration to use.
+ *
+ * @return The newly allocated scope_state struct or NULL on error.
+ */
+static struct scope_state *dlm_scope_state_new(struct scope_config *config)
+{
+	struct scope_state *state;
+
+	if (!(state = g_try_malloc0(sizeof(struct scope_state))))
+		return NULL;
+
+	state->analog_states = g_malloc0(config->analog_channels *
+					 sizeof(struct analog_channel_state));
+
+	state->digital_states = g_malloc0(config->digital_channels *
+					  sizeof(gboolean));
+
+	state->pod_states = g_malloc0(config->pods * sizeof(gboolean));
+
+	return state;
+}
+
+/**
+ * Frees the memory that was allocated by a call to dlm_scope_state_new().
+ *
+ * @param state The device state structure whose memory is to be freed.
+ */
+SR_PRIV void dlm_scope_state_destroy(struct scope_state *state)
+{
+	g_free(state->analog_states);
+	g_free(state->digital_states);
+	g_free(state->pod_states);
+	g_free(state);
+}
+
+SR_PRIV int dlm_model_get(char *model_id, char **model_name, int *model_index)
+{
+	unsigned int i, j;
+
+	*model_index = -1;
+	*model_name = NULL;
+
+	for (i = 0; i < ARRAY_SIZE(scope_models); i++) {
+		for (j = 0; scope_models[i].model_id[j]; j++) {
+			if (!strcmp(model_id, scope_models[i].model_id[j])) {
+				*model_index = i;
+				*model_name = (char *)scope_models[i].model_name[j];
+				break;
+			}
+		}
+		if (*model_index != -1)
+			break;
+	}
+
+	if (*model_index == -1) {
+		sr_err("Found unsupported DLM device with model identifier %s.",
+		       model_id);
+		return SR_ERR_NA;
+	}
+
+	return SR_OK;
+}
+
+/**
+ * Attempts to initialize a DL/DLM device and prepares internal structures
+ * if a suitable device was found.
+ *
+ * @param sdi The device instance.
+ */
+SR_PRIV int dlm_device_init(struct sr_dev_inst *sdi, int model_index)
+{
+	char tmp[25];
+	int i;
+	struct sr_channel *ch;
+	struct dev_context *devc;
+
+	devc = sdi->priv;
+
+	devc->analog_groups = g_malloc0(sizeof(struct sr_channel_group*) *
+				scope_models[model_index].analog_channels);
+
+	devc->digital_groups = g_malloc0(sizeof(struct sr_channel_group*) *
+				scope_models[model_index].digital_channels);
+
+	/* Add analog channels. */
+	for (i = 0; i < scope_models[model_index].analog_channels; i++) {
+		if (!(ch = sr_channel_new(i, SR_CHANNEL_ANALOG, TRUE,
+				(*scope_models[model_index].analog_names)[i])))
+			return SR_ERR_MALLOC;
+		sdi->channels = g_slist_append(sdi->channels, ch);
+
+		devc->analog_groups[i] = g_malloc0(sizeof(struct sr_channel_group));
+
+		devc->analog_groups[i]->name = g_strdup(
+			(char *)(*scope_models[model_index].analog_names)[i]);
+		devc->analog_groups[i]->channels = g_slist_append(NULL, ch);
+
+		sdi->channel_groups = g_slist_append(sdi->channel_groups,
+			devc->analog_groups[i]);
+	}
+
+	/* Add digital channel groups. */
+	for (i = 0; i < scope_models[model_index].pods; ++i) {
+		g_snprintf(tmp, sizeof(tmp), "POD%d", i);
+
+		devc->digital_groups[i] = g_malloc0(sizeof(struct sr_channel_group));
+		if (!devc->digital_groups[i])
+			return SR_ERR_MALLOC;
+
+		devc->digital_groups[i]->name = g_strdup(tmp);
+		sdi->channel_groups = g_slist_append(sdi->channel_groups,
+				devc->digital_groups[i]);
+	}
+
+	/* Add digital channels. */
+	for (i = 0; i < scope_models[model_index].digital_channels; i++) {
+		if (!(ch = sr_channel_new(i, SR_CHANNEL_LOGIC, TRUE,
+				(*scope_models[model_index].digital_names)[i])))
+			return SR_ERR_MALLOC;
+		sdi->channels = g_slist_append(sdi->channels, ch);
+
+		devc->digital_groups[i / 8]->channels = g_slist_append(
+			devc->digital_groups[i / 8]->channels, ch);
+	}
+	devc->model_config = &scope_models[model_index];
+	devc->frame_limit = 0;
+
+	if (!(devc->model_state = dlm_scope_state_new(devc->model_config)))
+		return SR_ERR_MALLOC;
+
+	/* Disable non-standard response behavior. */
+	if (dlm_response_headers_set(sdi->conn, FALSE) != SR_OK)
+		return SR_ERR;
+
+	return SR_OK;
+}
+
+/**
+ * Send an SCPI command, read the reply and store the result in scpi_response
+ * without performing any processing on it.
+ *
+ * @param scpi Previously initialised SCPI device structure.
+ * @param command The SCPI command to send to the device (can be NULL).
+ * @param scpi_response Pointer where to store the parsed result.
+ *
+ * @return SR_OK on success, SR_ERR on failure.
+ */
+static int dlm_scpi_get_raw(struct sr_scpi_dev_inst *scpi,
+			    const char *command, GArray **scpi_response)
+{
+	char buf[256];
+	int len;
+
+	if (command)
+		if (sr_scpi_send(scpi, command) != SR_OK)
+			return SR_ERR;
+
+	if (sr_scpi_read_begin(scpi) != SR_OK)
+		return SR_ERR;
+
+	*scpi_response = g_array_new(FALSE, FALSE, sizeof(uint8_t));
+
+	while (!sr_scpi_read_complete(scpi)) {
+		len = sr_scpi_read_data(scpi, buf, sizeof(buf));
+		if (len < 0) {
+			g_array_free(*scpi_response, TRUE);
+			*scpi_response = NULL;
+			return SR_ERR;
+		}
+		g_array_append_vals(*scpi_response, buf, len);
+	}
+
+	return SR_OK;
+}
+
+/**
+ * Reads and removes the block data header from a given data input.
+ * Format is #ndddd... with n being the number of decimal digits d.
+ * The string dddd... contains the decimal-encoded length of the data.
+ * Example: #9000000013 would yield a length of 13 bytes.
+ *
+ * @param data The input data.
+ * @param len The determined input data length.
+ */
+static int dlm_block_data_header_process(GArray *data, int *len)
+{
+	int i, n;
+	gchar s[20];
+
+	if (g_array_index(data, gchar, 0) != '#')
+		return SR_ERR;
+
+	n = (uint8_t)(g_array_index(data, gchar, 1) - '0');
+
+	for (i = 0; i < n; i++)
+		s[i] = g_array_index(data, gchar, 2 + i);
+	s[i] = 0;
+
+	if (sr_atoi(s, len) != SR_OK)
+		return SR_ERR;
+
+	g_array_remove_range(data, 0, 2 + n);
+
+	return SR_OK;
+}
+
+/**
+ * Turns raw sample data into voltages and sends them off to the session bus.
+ *
+ * @param data The raw sample data.
+ * @samples Number of samples that were acquired.
+ * @ch_state Pointer to the state of the channel whose data we're processing.
+ * @sdi The device instance.
+ *
+ * @return SR_ERR when data is trucated, SR_OK otherwise.
+ */
+static int dlm_analog_samples_send(GArray *data, int samples,
+				   struct analog_channel_state *ch_state,
+				   struct sr_dev_inst *sdi)
+{
+	int i;
+	float voltage, range, offset;
+	GArray *float_data;
+	struct dev_context *devc;
+	struct sr_channel *ch;
+	struct sr_datafeed_analog analog;
+	struct sr_datafeed_packet packet;
+
+	if (data->len < samples * sizeof(uint8_t)) {
+		sr_err("Truncated waveform data packet received.");
+		return SR_ERR;
+	}
+
+	devc = sdi->priv;
+	ch = devc->current_channel->data;
+
+	range  = ch_state->waveform_range;
+	offset = ch_state->waveform_offset;
+
+	/* Convert byte sample to voltage according to
+	 * page 269 of the Communication Interface User's Manual.
+	 */
+	float_data = g_array_new(FALSE, FALSE, sizeof(float));
+	for (i = 0; i < samples; i++) {
+		voltage = (float)g_array_index(data, int8_t, i);
+		voltage = (range * voltage /
+			   DLM_DIVISION_FOR_BYTE_FORMAT) + offset;
+		g_array_append_val(float_data, voltage);
+	}
+
+	analog.channels = g_slist_append(NULL, ch);
+	analog.num_samples = float_data->len;
+	analog.data = (float*)float_data->data;
+	analog.mq = SR_MQ_VOLTAGE;
+	analog.unit = SR_UNIT_VOLT;
+	analog.mqflags = 0;
+	packet.type = SR_DF_ANALOG;
+	packet.payload = &analog;
+	sr_session_send(sdi, &packet);
+	g_slist_free(analog.channels);
+
+	g_array_free(float_data, TRUE);
+	g_array_remove_range(data, 0, samples * sizeof(uint8_t));
+
+	return SR_OK;
+}
+
+/**
+ * Sends logic sample data off to the session bus.
+ *
+ * @param data The raw sample data.
+ * @samples Number of samples that were acquired.
+ * @ch_state Pointer to the state of the channel whose data we're processing.
+ * @sdi The device instance.
+ *
+ * @return SR_ERR when data is trucated, SR_OK otherwise.
+ */
+static int dlm_digital_samples_send(GArray *data, int samples,
+				   struct sr_dev_inst *sdi)
+{
+	struct sr_datafeed_logic logic;
+	struct sr_datafeed_packet packet;
+
+	if (data->len < samples * sizeof(uint8_t)) {
+		sr_err("Truncated waveform data packet received.");
+		return SR_ERR;
+	}
+
+	logic.length = samples;
+	logic.unitsize = 1;
+	logic.data = data->data;
+	packet.type = SR_DF_LOGIC;
+	packet.payload = &logic;
+	sr_session_send(sdi, &packet);
+
+	g_array_remove_range(data, 0, samples * sizeof(uint8_t));
+
+	return SR_OK;
+}
+
+/**
+ * Attempts to query sample data from the oscilloscope in order to send it
+ * to the session bus for further processing.
+ *
+ * @param fd The file descriptor used as the event source.
+ * @param revents The received events.
+ * @param cb_data Callback data, in this case our device instance.
+ *
+ * @return TRUE in case of success or a recoverable error,
+ *  FALSE when a fatal error was encountered.
+ */
+SR_PRIV int dlm_data_receive(int fd, int revents, void *cb_data)
+{
+	struct sr_channel *ch;
+	struct sr_dev_inst *sdi;
+	struct scope_state *model_state;
+	struct dev_context *devc;
+	struct sr_datafeed_packet packet;
+	GArray *data;
+	int result, num_bytes, samples;
+
+	(void)fd;
+	(void)revents;
+
+	if (!(sdi = cb_data))
+		return FALSE;
+
+	if (!(devc = sdi->priv))
+		return FALSE;
+
+	if (!(model_state = (struct scope_state*)devc->model_state))
+		return FALSE;
+
+	if (dlm_acq_length_get(sdi->conn, &samples) != SR_OK) {
+		sr_err("Failed to query acquisition length.");
+		return TRUE;
+	}
+
+	packet.type = SR_DF_FRAME_BEGIN;
+	sr_session_send(sdi, &packet);
+
+	/* Request data for all active channels. */
+	for (devc->current_channel = devc->enabled_channels;
+	     devc->current_channel;
+	     devc->current_channel = devc->current_channel->next) {
+		ch = devc->current_channel->data;
+
+		switch (ch->type) {
+		case SR_CHANNEL_ANALOG:
+			result = dlm_analog_data_get(sdi->conn, ch->index + 1);
+			break;
+		case SR_CHANNEL_LOGIC:
+			result = dlm_digital_data_get(sdi->conn);
+			break;
+		default:
+			sr_err("Invalid channel type encountered (%d).",
+			       ch->type);
+			continue;
+		}
+
+		if (result != SR_OK) {
+			sr_err("Failed to query aquisition data.");
+			goto fail;
+		}
+
+		data = NULL;
+		if (dlm_scpi_get_raw(sdi->conn, NULL, &data) != SR_OK) {
+			sr_err("Failed to receive waveform data from device.");
+			goto fail;
+		}
+
+		if (dlm_block_data_header_process(data, &num_bytes) != SR_OK) {
+			sr_err("Encountered malformed block data header.");
+			goto fail;
+		}
+
+		if (num_bytes == 0) {
+			sr_warn("Zero-length waveform data packet received. " \
+				"Live mode not supported yet, stopping " \
+				"acquisition and retrying.");
+			/* Don't care about return value here. */
+			dlm_acquisition_stop(sdi->conn);
+			goto fail;
+		}
+
+		switch (ch->type) {
+		case SR_CHANNEL_ANALOG:
+			if (dlm_analog_samples_send(data, samples,
+					&model_state->analog_states[ch->index],
+					sdi) != SR_OK)
+				goto fail;
+			break;
+
+		case SR_CHANNEL_LOGIC:
+			if (dlm_digital_samples_send(data, samples,
+						     sdi) != SR_OK)
+				goto fail;
+			break;
+
+		default:
+			sr_err("Invalid channel type encountered.");
+			break;
+		}
+
+		g_array_free(data, TRUE);
+	}
+
+	packet.type = SR_DF_FRAME_END;
+	sr_session_send(sdi, &packet);
+
+	sdi->driver->dev_acquisition_stop(sdi, cb_data);
+
+	return TRUE;
+
+fail:
+	if (data)
+		g_array_free(data, TRUE);
+
+	return TRUE;
+}
