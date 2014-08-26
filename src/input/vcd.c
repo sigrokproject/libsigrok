@@ -524,7 +524,7 @@ static struct sr_option options[] = {
 	{ "skip", "Skip", "Skip until timestamp", NULL, NULL },
 	{ "downsample", "Downsample", "Divide samplerate by factor", NULL, NULL },
 	{ "compress", "Compress", "Compress idle periods longer than this value", NULL, NULL },
-	{ 0 }
+	ALL_ZERO
 };
 
 static struct sr_option *get_options(void)

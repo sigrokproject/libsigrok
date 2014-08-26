@@ -150,7 +150,7 @@ static int cleanup(struct sr_input *in)
 static struct sr_option options[] = {
 	{ "numchannels", "Number of channels", "Number of channels", NULL, NULL },
 	{ "samplerate", "Sample rate", "Sample rate", NULL, NULL },
-	{ 0 }
+	ALL_ZERO
 };
 
 static struct sr_option *get_options(void)

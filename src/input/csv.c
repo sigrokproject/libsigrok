@@ -767,7 +767,7 @@ static struct sr_option options[] = {
 	{ "first-channel", "First channel", "Column number of first channel", NULL, NULL },
 	{ "header", "Header", "Treat first line as header with channel names", NULL, NULL },
 	{ "startline", "Start line", "Line number at which to start processing samples", NULL, NULL },
-	{ 0 }
+	ALL_ZERO
 };
 
 static struct sr_option *get_options(void)
