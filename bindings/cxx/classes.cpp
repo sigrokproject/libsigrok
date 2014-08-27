@@ -229,20 +229,21 @@ shared_ptr<Trigger> Context::create_trigger(string name)
 
 shared_ptr<Input> Context::open_file(string filename)
 {
-	auto input = sr_input_scan_file(filename.c_str());
-	if (!input)
-		throw Error(SR_ERR_NA);
+	const struct sr_input *input;
+
+	check( sr_input_scan_file(filename.c_str(), &input));
 	return shared_ptr<Input>(
 		new Input(shared_from_this(), input), Input::Deleter());
 }
 
 shared_ptr<Input> Context::open_stream(string header)
 {
+	const struct sr_input *input;
+
 	auto gstr = g_string_new(header.c_str());
-	auto input = sr_input_scan_buffer(gstr);
-	g_string_free(gstr, false);
-	if (!input)
-		throw Error(SR_ERR_NA);
+	auto ret = sr_input_scan_buffer(gstr, &input);
+	g_string_free(gstr, true);
+	check(ret);
 	return shared_ptr<Input>(
 		new Input(shared_from_this(), input), Input::Deleter());
 }
