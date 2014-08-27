@@ -57,7 +57,7 @@ static int parse_wav_header(GString *buf, struct context *inc)
 	unsigned int fmt_code, samplesize, num_channels, unitsize;
 
 	if (buf->len < MIN_DATA_CHUNK_OFFSET)
-		return SR_ERR;
+		return SR_OK_CONTINUE;
 
 	fmt_code = RL16(buf->str + 20);
 	samplerate = RL32(buf->str + 24);
@@ -65,7 +65,7 @@ static int parse_wav_header(GString *buf, struct context *inc)
 	samplesize = RL16(buf->str + 32);
 	if (samplesize != 1 && samplesize != 2 && samplesize != 4) {
 		sr_err("Only 8, 16 or 32 bits per sample supported.");
-		return SR_ERR;
+		return SR_ERR_DATA;
 	}
 
 	num_channels = RL16(buf->str + 22);
@@ -77,7 +77,7 @@ static int parse_wav_header(GString *buf, struct context *inc)
 	} else if (fmt_code == WAVE_FORMAT_IEEE_FLOAT) {
 		if (unitsize != 4) {
 			sr_err("only 32-bit floats supported.");
-			return SR_ERR;
+			return SR_ERR_DATA;
 		}
 	} else if (fmt_code == WAVE_FORMAT_EXTENSIBLE) {
 		if (buf->len < 70)
@@ -94,17 +94,17 @@ static int parse_wav_header(GString *buf, struct context *inc)
 		}
 		if (RL16(buf->str + 34) != RL16(buf->str + 38)) {
 			sr_err("Reduced valid bits per sample not supported.");
-			return SR_ERR;
+			return SR_ERR_DATA;
 		}
 		/* Real format code is the first two bytes of the GUID. */
 		fmt_code = RL16(buf->str + 44);
 		if (fmt_code != WAVE_FORMAT_PCM && fmt_code != WAVE_FORMAT_IEEE_FLOAT) {
 			sr_err("Only PCM and floating point samples are supported.");
-			return SR_ERR;
+			return SR_ERR_DATA;
 		}
 	} else {
 		sr_err("Only PCM and floating point samples are supported.");
-		return SR_ERR;
+		return SR_ERR_DATA;
 	}
 
 	if (inc) {
@@ -122,22 +122,23 @@ static int parse_wav_header(GString *buf, struct context *inc)
 static int format_match(GHashTable *metadata)
 {
 	GString *buf;
+	int ret;
 
 	buf = g_hash_table_lookup(metadata, GINT_TO_POINTER(SR_INPUT_META_HEADER));
 	if (strncmp(buf->str, "RIFF", 4))
-		return FALSE;
+		return SR_ERR;
 	if (strncmp(buf->str + 8, "WAVE", 4))
-		return FALSE;
+		return SR_ERR;
 	if (strncmp(buf->str + 12, "fmt ", 4))
-		return FALSE;
+		return SR_ERR;
 	/*
 	 * Only gets called when we already know this is a WAV file, so
 	 * this parser can log error messages.
 	 */
-	if (parse_wav_header(buf, NULL) != SR_OK)
-		return FALSE;
+	if ((ret = parse_wav_header(buf, NULL)) != SR_OK)
+		return ret;
 
-	return TRUE;
+	return SR_OK;
 }
 
 static int init(struct sr_input *in, GHashTable *options)
@@ -179,7 +180,7 @@ static int initial_receive(struct sr_input *in)
 	struct sr_channel *ch;
 	struct sr_config *src;
 	struct context *inc;
-	int i;
+	int ret, i;
 	char channelname[8];
 
 	if (!in->buf)
@@ -187,8 +188,8 @@ static int initial_receive(struct sr_input *in)
 		return SR_ERR;
 
 	inc = in->priv = g_malloc(sizeof(struct context));
-	if (parse_wav_header(in->buf, inc) != SR_OK)
-		return SR_ERR;
+	if ((ret = parse_wav_header(in->buf, inc)) != SR_OK)
+		return ret;
 
 	for (i = 0; i < inc->num_channels; i++) {
 		snprintf(channelname, 8, "CH%d", i + 1);

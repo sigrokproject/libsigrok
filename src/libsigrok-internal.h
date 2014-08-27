@@ -263,8 +263,13 @@ struct sr_input_module {
 	 *
 	 * @param[in] metadata Metadata the module can use to identify the stream.
 	 *
-	 * @retval TRUE This module knows the format.
-	 * @retval FALSE This module does not know the format.
+	 * @retval SR_OK This module knows the format.
+	 * @retval SR_OK_CONTINUE There wasn't enough data for this module to
+	 *   positively identify the format.
+	 * @retval SR_ERR_DATA This module knows the format, but cannot handle it.
+	 *   This means the stream is either corrupt, or indicates a feature
+	 *   that the module does not support.
+	 * @retval SR_ERR This module does not know the format.
 	 */
 	int (*format_match) (GHashTable *metadata);
 

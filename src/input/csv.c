@@ -138,9 +138,9 @@ static int format_match(GHashTable *metadata)
 
 	buf = g_hash_table_lookup(metadata, GINT_TO_POINTER(SR_INPUT_META_MIMETYPE));
 	if (!strcmp(buf, "text/csv"))
-		return TRUE;
+		return SR_OK;
 
-	return FALSE;
+	return SR_ERR;
 }
 
 static void strip_comment(char *buf, const GString *prefix)

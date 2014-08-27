@@ -308,8 +308,8 @@ static gboolean check_required_metadata(const uint8_t *metadata, uint8_t *avail)
  * the input modules to find a match. This is format-dependent, but
  * 128 bytes is normally enough.
  *
- * If an input module is found, an instance is created and returned.
- * Otherwise, NULL is returned.
+ * If an input module is found, an instance is created into *in.
+ * Otherwise, *in contains NULL.
  *
  * If an instance is created, it has the given buffer used for scanning
  * already submitted to it, to be processed before more data is sent.
@@ -318,19 +318,20 @@ static gboolean check_required_metadata(const uint8_t *metadata, uint8_t *avail)
  * it again later.
  *
  */
-SR_API const struct sr_input *sr_input_scan_buffer(GString *buf)
+SR_API int sr_input_scan_buffer(GString *buf, const struct sr_input **in)
 {
-	struct sr_input *in;
 	const struct sr_input_module *imod;
 	GHashTable *meta;
 	unsigned int m, i;
+	int ret;
 	uint8_t mitem, avail_metadata[8];
 
 	/* No more metadata to be had from a buffer. */
 	avail_metadata[0] = SR_INPUT_META_HEADER;
 	avail_metadata[1] = 0;
 
-	in = NULL;
+	*in = NULL;
+	ret = SR_ERR;
 	for (i = 0; input_module_list[i]; i++) {
 		imod = input_module_list[i];
 		if (!imod->metadata[0]) {
@@ -353,54 +354,61 @@ SR_API const struct sr_input *sr_input_scan_buffer(GString *buf)
 			g_hash_table_destroy(meta);
 			continue;
 		}
-		if (!imod->format_match(meta)) {
-			/* Module didn't recognize this buffer. */
-			g_hash_table_destroy(meta);
-			continue;
-		}
+		sr_spew("Trying module %s.", imod->id);
+		ret = imod->format_match(meta);
 		g_hash_table_destroy(meta);
+		if (ret == SR_ERR_DATA) {
+			/* Module recognized this buffer, but cannot handle it. */
+			break;
+		} else if (ret == SR_ERR) {
+			/* Module didn't recognize this buffer. */
+			continue;
+		} else if (ret != SR_OK) {
+			/* Can be SR_OK_CONTINUE. */
+			return ret;
+		}
 
 		/* Found a matching module. */
-		in = sr_input_new(imod, NULL);
-		g_string_insert_len(in->buf, 0, buf->str, buf->len);
+		sr_spew("Module %s matched.", imod->id);
+		*in = sr_input_new(imod, NULL);
+		g_string_insert_len((*in)->buf, 0, buf->str, buf->len);
 		break;
 	}
 
-	return in;
+	return ret;
 }
 
 /**
  * Try to find an input module that can parse the given file.
  *
- * If an input module is found, an instance is created and returned.
- * Otherwise, NULL is returned.
+ * If an input module is found, an instance is created into *in.
+ * Otherwise, *in contains NULL.
  *
  */
-SR_API const struct sr_input *sr_input_scan_file(const char *filename)
+SR_API int sr_input_scan_file(const char *filename, const struct sr_input **in)
 {
-	struct sr_input *in;
 	const struct sr_input_module *imod;
 	GHashTable *meta;
 	GString *header_buf;
 	struct stat st;
 	unsigned int midx, m, i;
-	int fd;
+	int fd, ret;
 	ssize_t size;
 	uint8_t mitem, avail_metadata[8];
 
 	if (!filename || !filename[0]) {
 		sr_err("Invalid filename.");
-		return NULL;
+		return SR_ERR_ARG;
 	}
 
 	if (!g_file_test(filename, G_FILE_TEST_EXISTS)) {
 		sr_err("No such file.");
-		return NULL;
+		return SR_ERR_ARG;
 	}
 
 	if (stat(filename, &st) < 0) {
 		sr_err("%s", strerror(errno));
-		return NULL;
+		return SR_ERR_ARG;
 	}
 
 	midx = 0;
@@ -409,7 +417,8 @@ SR_API const struct sr_input *sr_input_scan_file(const char *filename)
 	avail_metadata[midx++] = SR_INPUT_META_HEADER;
 	/* TODO: MIME type */
 
-	in = NULL;
+	*in = NULL;
+	ret = SR_ERR;
 	header_buf = g_string_sized_new(128);
 	for (i = 0; input_module_list[i]; i++) {
 		g_string_truncate(header_buf, 0);
@@ -430,17 +439,16 @@ SR_API const struct sr_input *sr_input_scan_file(const char *filename)
 			if (!mitem)
 				/* Metadata list is 0-terminated. */
 				break;
-			if (mitem == SR_INPUT_META_FILENAME)
+			if (mitem == SR_INPUT_META_FILENAME) {
 				g_hash_table_insert(meta, GINT_TO_POINTER(mitem),
 						(gpointer)filename);
-			else if (mitem == SR_INPUT_META_FILESIZE) {
-				sr_dbg("inserting fs %d", st.st_size);
+			} else if (mitem == SR_INPUT_META_FILESIZE) {
 				g_hash_table_insert(meta, GINT_TO_POINTER(mitem),
 						GINT_TO_POINTER(st.st_size));
 			} else if (mitem == SR_INPUT_META_HEADER) {
 				if ((fd = open(filename, O_RDONLY)) < 0) {
 					sr_err("%s", strerror(errno));
-					return NULL;
+					return SR_ERR;
 				}
 				size = read(fd, header_buf->str, 128);
 				header_buf->len = size;
@@ -448,7 +456,7 @@ SR_API const struct sr_input *sr_input_scan_file(const char *filename)
 				if (size <= 0) {
 					g_string_free(header_buf, TRUE);
 					sr_err("%s", strerror(errno));
-					return NULL;
+					return SR_ERR;
 				}
 				g_hash_table_insert(meta, GINT_TO_POINTER(mitem), header_buf);
 			}
@@ -459,17 +467,28 @@ SR_API const struct sr_input *sr_input_scan_file(const char *filename)
 			g_hash_table_destroy(meta);
 			continue;
 		}
-		if (!imod->format_match(meta))
+		sr_spew("Trying module %s.", imod->id);
+		ret = imod->format_match(meta);
+		g_hash_table_destroy(meta);
+		if (ret == SR_ERR_DATA) {
+			/* Module recognized this buffer, but cannot handle it. */
+			break;
+		} else if (ret == SR_ERR) {
 			/* Module didn't recognize this buffer. */
 			continue;
+		} else if (ret != SR_OK) {
+			/* Can be SR_OK_CONTINUE. */
+			return ret;
+		}
 
 		/* Found a matching module. */
-		in = sr_input_new(imod, NULL);
+		sr_spew("Module %s matched.", imod->id);
+		*in = sr_input_new(imod, NULL);
 		break;
 	}
 	g_string_free(header_buf, TRUE);
 
-	return in;
+	return ret;
 }
 
 /**

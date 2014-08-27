@@ -44,9 +44,9 @@ static int format_match(GHashTable *metadata)
 	size = GPOINTER_TO_INT(g_hash_table_lookup(metadata,
 			GINT_TO_POINTER(SR_INPUT_META_FILESIZE)));
 	if (size == CHRONOVU_LA8_FILESIZE)
-		return TRUE;
+		return SR_OK;
 
-	return FALSE;
+	return SR_ERR;
 }
 
 static int init(struct sr_input *in, GHashTable *options)

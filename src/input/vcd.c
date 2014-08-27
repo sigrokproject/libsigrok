@@ -257,7 +257,7 @@ static int format_match(GHashTable *metadata)
 	g_free(name);
 	g_free(contents);
 
-	return status;
+	return status ? SR_OK : SR_ERR;
 }
 
 /* Send N samples of the given value. */
