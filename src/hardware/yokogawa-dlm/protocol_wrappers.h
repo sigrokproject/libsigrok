@@ -79,7 +79,7 @@ extern int dlm_response_headers_set(struct sr_scpi_dev_inst *scpi,
 extern int dlm_acquisition_stop(struct sr_scpi_dev_inst *scpi);
 
 extern int dlm_acq_length_get(struct sr_scpi_dev_inst *scpi,
-		int *response);
+		uint32_t *response);
 extern int dlm_chunks_per_acq_get(struct sr_scpi_dev_inst *scpi,
 		int *response);
 extern int dlm_start_frame_set(struct sr_scpi_dev_inst *scpi, int value);

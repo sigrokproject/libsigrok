@@ -670,8 +670,12 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		return SR_ERR;
 	}
 
+	/* Request data for the first enabled channel. */
+	devc->current_channel = devc->enabled_channels;
+	dlm_channel_data_request(sdi);
+
 	/* Call our callback when data comes in or after 50ms. */
-	sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 50,
+	sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 10,
 			dlm_data_receive, (void *)sdi);
 
 	return SR_OK;
@@ -680,7 +684,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
 	struct dev_context *devc;
-	struct sr_scpi_dev_inst *scpi;
 	struct sr_datafeed_packet packet;
 
 	(void)cb_data;
@@ -697,8 +700,8 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 	devc->num_frames = 0;
 	g_slist_free(devc->enabled_channels);
 	devc->enabled_channels = NULL;
-	scpi = sdi->conn;
-	sr_scpi_source_remove(sdi->session, scpi);
+
+	sr_scpi_source_remove(sdi->session, sdi->conn);
 
 	return SR_OK;
 }

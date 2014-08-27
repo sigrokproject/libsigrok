@@ -33,6 +33,8 @@
 #define LOG_PREFIX "yokogawa-dlm"
 #define MAX_INSTRUMENT_VERSIONS 4
 
+#define RECEIVE_BUFFER_SIZE (4096)
+
 /* See Communication Interface User's Manual on p. 268 (:WAVeform:ALL:SEND?). */
 #define DLM_MAX_FRAME_LENGTH (12500)
 /* See Communication Interface User's Manual on p. 269 (:WAVeform:SEND?). */
@@ -101,6 +103,7 @@ struct scope_state {
 	int trigger_source;
 	int trigger_slope;
 	uint64_t sample_rate;
+	uint32_t samples_per_frame;
 };
 
 /** Private, per-device-instance driver context. */
@@ -116,6 +119,9 @@ struct dev_context {
 	uint64_t num_frames;
 
 	uint64_t frame_limit;
+
+	char receive_buffer[RECEIVE_BUFFER_SIZE];
+	gboolean data_pending;
 };
 
 /*--- api.c -----------------------------------------------------------------*/
@@ -129,5 +135,7 @@ SR_PRIV int dlm_data_receive(int fd, int revents, void *cb_data);
 SR_PRIV void dlm_scope_state_destroy(struct scope_state *state);
 SR_PRIV int dlm_scope_state_query(struct sr_dev_inst *sdi);
 SR_PRIV int dlm_sample_rate_query(const struct sr_dev_inst *sdi);
+
+SR_PRIV int dlm_channel_data_request(const struct sr_dev_inst *sdi);
 
 #endif

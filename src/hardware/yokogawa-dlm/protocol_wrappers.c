@@ -270,9 +270,25 @@ int dlm_acquisition_stop(struct sr_scpi_dev_inst *scpi)
 
 
 int dlm_acq_length_get(struct sr_scpi_dev_inst *scpi,
-		int *response)
+		uint32_t *response)
 {
-	return sr_scpi_get_int(scpi, ":WAVEFORM:LENGTH?", response);
+	int ret;
+	char *s;
+	long tmp;
+
+	if (sr_scpi_get_string(scpi, ":WAVEFORM:LENGTH?", &s) != SR_OK)
+		if (!s)
+			return SR_ERR;
+
+	if (sr_atol(s, &tmp) == SR_OK)
+		ret = SR_OK;
+	else
+		ret = SR_ERR;
+
+	g_free(s);
+	*response = tmp;
+
+	return ret;
 }
 
 int dlm_chunks_per_acq_get(struct sr_scpi_dev_inst *scpi, int *response)

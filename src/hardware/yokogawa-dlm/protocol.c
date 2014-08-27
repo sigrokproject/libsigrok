@@ -267,6 +267,9 @@ static void scope_state_dump(struct scope_config *config,
 	sr_info("Current samplerate: %s", tmp);
 	g_free(tmp);
 
+	sr_info("Current samples per acquisition (i.e. frame): %d",
+		state->samples_per_frame);
+
 	sr_info("Current trigger: %s (source), %s (slope) %.2f (offset)",
 		(*config->trigger_sources)[state->trigger_source],
 		(*config->trigger_slopes)[state->trigger_slope],
@@ -563,6 +566,11 @@ SR_PRIV int dlm_scope_state_query(struct sr_dev_inst *sdi)
 
 	state->trigger_slope = i;
 
+	if (dlm_acq_length_get(sdi->conn, &state->samples_per_frame) != SR_OK) {
+		sr_err("Failed to query acquisition length.");
+		return SR_ERR;
+	}
+
 	dlm_sample_rate_query(sdi);
 
 	scope_state_dump(config, state);
@@ -710,42 +718,34 @@ SR_PRIV int dlm_device_init(struct sr_dev_inst *sdi, int model_index)
 	return SR_OK;
 }
 
-/**
- * Send an SCPI command, read the reply and store the result in scpi_response
- * without performing any processing on it.
- *
- * @param scpi Previously initialised SCPI device structure.
- * @param command The SCPI command to send to the device (can be NULL).
- * @param scpi_response Pointer where to store the parsed result.
- *
- * @return SR_OK on success, SR_ERR on failure.
- */
-static int dlm_scpi_get_raw(struct sr_scpi_dev_inst *scpi,
-			    const char *command, GArray **scpi_response)
+SR_PRIV int dlm_channel_data_request(const struct sr_dev_inst *sdi)
 {
-	char buf[256];
-	int len;
+	struct dev_context *devc;
+	struct sr_channel *ch;
+	int result;
 
-	if (command)
-		if (sr_scpi_send(scpi, command) != SR_OK)
-			return SR_ERR;
+	devc = sdi->priv;
+	ch = devc->current_channel->data;
 
-	if (sr_scpi_read_begin(scpi) != SR_OK)
-		return SR_ERR;
-
-	*scpi_response = g_array_new(FALSE, FALSE, sizeof(uint8_t));
-
-	while (!sr_scpi_read_complete(scpi)) {
-		len = sr_scpi_read_data(scpi, buf, sizeof(buf));
-		if (len < 0) {
-			g_array_free(*scpi_response, TRUE);
-			*scpi_response = NULL;
-			return SR_ERR;
-		}
-		g_array_append_vals(*scpi_response, buf, len);
+	switch (ch->type) {
+	case SR_CHANNEL_ANALOG:
+		result = dlm_analog_data_get(sdi->conn, ch->index + 1);
+		break;
+	case SR_CHANNEL_LOGIC:
+		result = dlm_digital_data_get(sdi->conn);
+		break;
+	default:
+		sr_err("Invalid channel type encountered (%d).",
+				ch->type);
+		result = SR_ERR;
 	}
 
-	return SR_OK;
+	if (result == SR_OK)
+		devc->data_pending = TRUE;
+	else
+		devc->data_pending = FALSE;
+
+	return result;
 }
 
 /**
@@ -783,31 +783,33 @@ static int dlm_block_data_header_process(GArray *data, int *len)
  * Turns raw sample data into voltages and sends them off to the session bus.
  *
  * @param data The raw sample data.
- * @samples Number of samples that were acquired.
  * @ch_state Pointer to the state of the channel whose data we're processing.
  * @sdi The device instance.
  *
  * @return SR_ERR when data is trucated, SR_OK otherwise.
  */
-static int dlm_analog_samples_send(GArray *data, int samples,
+static int dlm_analog_samples_send(GArray *data,
 				   struct analog_channel_state *ch_state,
 				   struct sr_dev_inst *sdi)
 {
-	int i;
+	uint32_t i, samples;
 	float voltage, range, offset;
 	GArray *float_data;
 	struct dev_context *devc;
+	struct scope_state *model_state;
 	struct sr_channel *ch;
 	struct sr_datafeed_analog analog;
 	struct sr_datafeed_packet packet;
+
+	devc = sdi->priv;
+	model_state = devc->model_state;
+	samples = model_state->samples_per_frame;
+	ch = devc->current_channel->data;
 
 	if (data->len < samples * sizeof(uint8_t)) {
 		sr_err("Truncated waveform data packet received.");
 		return SR_ERR;
 	}
-
-	devc = sdi->priv;
-	ch = devc->current_channel->data;
 
 	range  = ch_state->waveform_range;
 	offset = ch_state->waveform_offset;
@@ -844,17 +846,23 @@ static int dlm_analog_samples_send(GArray *data, int samples,
  * Sends logic sample data off to the session bus.
  *
  * @param data The raw sample data.
- * @samples Number of samples that were acquired.
  * @ch_state Pointer to the state of the channel whose data we're processing.
  * @sdi The device instance.
  *
  * @return SR_ERR when data is trucated, SR_OK otherwise.
  */
-static int dlm_digital_samples_send(GArray *data, int samples,
+static int dlm_digital_samples_send(GArray *data,
 				   struct sr_dev_inst *sdi)
 {
+	struct dev_context *devc;
+	struct scope_state *model_state;
+	uint32_t samples;
 	struct sr_datafeed_logic logic;
 	struct sr_datafeed_packet packet;
+
+	devc = sdi->priv;
+	model_state = devc->model_state;
+	samples = model_state->samples_per_frame;
 
 	if (data->len < samples * sizeof(uint8_t)) {
 		sr_err("Truncated waveform data packet received.");
@@ -886,13 +894,13 @@ static int dlm_digital_samples_send(GArray *data, int samples,
  */
 SR_PRIV int dlm_data_receive(int fd, int revents, void *cb_data)
 {
-	struct sr_channel *ch;
 	struct sr_dev_inst *sdi;
 	struct scope_state *model_state;
 	struct dev_context *devc;
+	struct sr_channel *ch;
 	struct sr_datafeed_packet packet;
-	GArray *data;
-	int result, num_bytes, samples;
+	int chunk_len, num_bytes;
+	static GArray *data = NULL;
 
 	(void)fd;
 	(void)revents;
@@ -906,90 +914,105 @@ SR_PRIV int dlm_data_receive(int fd, int revents, void *cb_data)
 	if (!(model_state = (struct scope_state*)devc->model_state))
 		return FALSE;
 
-	if (dlm_acq_length_get(sdi->conn, &samples) != SR_OK) {
-		sr_err("Failed to query acquisition length.");
+	/* Are we waiting for a response from the device? */
+	if (!devc->data_pending)
+		return TRUE;
+
+	/* Check if a new query response is coming our way. */
+	if (!data) {
+		if (sr_scpi_read_begin(sdi->conn) == SR_OK)
+			/* The 16 here accounts for the header and EOL. */
+			data = g_array_sized_new(FALSE, FALSE, sizeof(uint8_t),
+						 16 + model_state->samples_per_frame);
+		else
+			return TRUE;
+	}
+
+	/* Store incoming data. */
+	chunk_len = sr_scpi_read_data(sdi->conn, devc->receive_buffer,
+				      RECEIVE_BUFFER_SIZE);
+	if (chunk_len < 0) {
+		sr_err("Error while reading data: %d", chunk_len);
+		goto fail;
+	}
+	g_array_append_vals(data, devc->receive_buffer, chunk_len);
+
+	/* Read the entire query response before processing. */
+	if (!sr_scpi_read_complete(sdi->conn))
+		return TRUE;
+
+	/* We finished reading and are no longer waiting for data. */
+	devc->data_pending = FALSE;
+
+	/* Signal the beginning of a new frame if this is the first channel. */
+	if (devc->current_channel == devc->enabled_channels) {
+		packet.type = SR_DF_FRAME_BEGIN;
+		sr_session_send(sdi, &packet);
+	}
+
+	if (dlm_block_data_header_process(data, &num_bytes) != SR_OK) {
+		sr_err("Encountered malformed block data header.");
+		goto fail;
+	}
+
+	if (num_bytes == 0) {
+		sr_warn("Zero-length waveform data packet received. " \
+			"Live mode not supported yet, stopping " \
+			"acquisition and retrying.");
+		/* Don't care about return value here. */
+		dlm_acquisition_stop(sdi->conn);
+		g_array_free(data, TRUE);
 		return TRUE;
 	}
 
-	packet.type = SR_DF_FRAME_BEGIN;
-	sr_session_send(sdi, &packet);
-
-	/* Request data for all active channels. */
-	for (devc->current_channel = devc->enabled_channels;
-	     devc->current_channel;
-	     devc->current_channel = devc->current_channel->next) {
-		ch = devc->current_channel->data;
-
-		switch (ch->type) {
-		case SR_CHANNEL_ANALOG:
-			result = dlm_analog_data_get(sdi->conn, ch->index + 1);
-			break;
-		case SR_CHANNEL_LOGIC:
-			result = dlm_digital_data_get(sdi->conn);
-			break;
-		default:
-			sr_err("Invalid channel type encountered (%d).",
-			       ch->type);
-			continue;
-		}
-
-		if (result != SR_OK) {
-			sr_err("Failed to query aquisition data.");
+	ch = devc->current_channel->data;
+	switch (ch->type) {
+	case SR_CHANNEL_ANALOG:
+		if (dlm_analog_samples_send(data,
+				&model_state->analog_states[ch->index],
+				sdi) != SR_OK)
 			goto fail;
-		}
-
-		data = NULL;
-		if (dlm_scpi_get_raw(sdi->conn, NULL, &data) != SR_OK) {
-			sr_err("Failed to receive waveform data from device.");
+		break;
+	case SR_CHANNEL_LOGIC:
+		if (dlm_digital_samples_send(data, sdi) != SR_OK)
 			goto fail;
-		}
-
-		if (dlm_block_data_header_process(data, &num_bytes) != SR_OK) {
-			sr_err("Encountered malformed block data header.");
-			goto fail;
-		}
-
-		if (num_bytes == 0) {
-			sr_warn("Zero-length waveform data packet received. " \
-				"Live mode not supported yet, stopping " \
-				"acquisition and retrying.");
-			/* Don't care about return value here. */
-			dlm_acquisition_stop(sdi->conn);
-			goto fail;
-		}
-
-		switch (ch->type) {
-		case SR_CHANNEL_ANALOG:
-			if (dlm_analog_samples_send(data, samples,
-					&model_state->analog_states[ch->index],
-					sdi) != SR_OK)
-				goto fail;
-			break;
-
-		case SR_CHANNEL_LOGIC:
-			if (dlm_digital_samples_send(data, samples,
-						     sdi) != SR_OK)
-				goto fail;
-			break;
-
-		default:
-			sr_err("Invalid channel type encountered.");
-			break;
-		}
-
-		g_array_free(data, TRUE);
+		break;
+	default:
+		sr_err("Invalid channel type encountered.");
+		break;
 	}
 
-	packet.type = SR_DF_FRAME_END;
-	sr_session_send(sdi, &packet);
+	g_array_free(data, TRUE);
+	data = NULL;
 
-	sdi->driver->dev_acquisition_stop(sdi, cb_data);
+	/* Signal the end of this frame if this was the last enabled channel
+	 * and set the next enabled channel. Then, request its data.
+	 */
+	if (!devc->current_channel->next) {
+		packet.type = SR_DF_FRAME_END;
+		sr_session_send(sdi, &packet);
+		devc->current_channel = devc->enabled_channels;
+
+		/* As of now we only support importing the current acquisition
+		 * data so we're going to stop at this point.
+		 */
+		sdi->driver->dev_acquisition_stop(sdi, cb_data);
+		return TRUE;
+	} else
+		devc->current_channel = devc->current_channel->next;
+
+	if (dlm_channel_data_request(sdi) != SR_OK) {
+		sr_err("Failed to request aquisition data.");
+		goto fail;
+	}
 
 	return TRUE;
 
 fail:
-	if (data)
+	if (data) {
 		g_array_free(data, TRUE);
+		data = NULL;
+	}
 
-	return TRUE;
+	return FALSE;
 }
