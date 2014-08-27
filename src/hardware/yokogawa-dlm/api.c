@@ -674,8 +674,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	devc->current_channel = devc->enabled_channels;
 	dlm_channel_data_request(sdi);
 
-	/* Call our callback when data comes in or after 50ms. */
-	sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 10,
+	/* Call our callback when data comes in or after 5ms. */
+	sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 5,
 			dlm_data_receive, (void *)sdi);
 
 	return SR_OK;

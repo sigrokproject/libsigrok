@@ -962,6 +962,7 @@ SR_PRIV int dlm_data_receive(int fd, int revents, void *cb_data)
 		/* Don't care about return value here. */
 		dlm_acquisition_stop(sdi->conn);
 		g_array_free(data, TRUE);
+		dlm_channel_data_request(sdi);
 		return TRUE;
 	}
 
