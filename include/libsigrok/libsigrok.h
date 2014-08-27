@@ -75,6 +75,7 @@ enum sr_error_code {
 	SR_ERR_DEV_CLOSED    = -7, /**< Device is closed, but must be open. */
 	SR_ERR_TIMEOUT       = -8, /**< A timeout occurred. */
 	SR_ERR_CHANNEL_GROUP = -9, /**< A channel group must be specified. */
+	SR_ERR_DATA          =-10, /**< Data is invalid.  */
 
 	/*
 	 * Note: When adding entries here, don't forget to also update the

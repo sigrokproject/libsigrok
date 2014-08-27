@@ -78,6 +78,8 @@ SR_API const char *sr_strerror(int error_code)
 		return "timeout occurred";
 	case SR_ERR_CHANNEL_GROUP:
 		return "no channel group specified";
+	case SR_ERR_DATA:
+		return "data is invalid";
 	default:
 		return "unknown error";
 	}
