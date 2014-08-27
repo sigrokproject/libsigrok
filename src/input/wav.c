@@ -38,8 +38,9 @@
 /* Expect to find the "data" chunk within this offset from the start. */
 #define MAX_DATA_CHUNK_OFFSET    256
 
-#define WAVE_FORMAT_PCM          1
-#define WAVE_FORMAT_IEEE_FLOAT   3
+#define WAVE_FORMAT_PCM          0x0001
+#define WAVE_FORMAT_IEEE_FLOAT   0x0003
+#define WAVE_FORMAT_EXTENSIBLE   0xfffe
 
 struct context {
 	int fmt_code;
@@ -53,27 +54,52 @@ struct context {
 static int parse_wav_header(GString *buf, struct context *inc)
 {
 	uint64_t samplerate;
-	int fmt_code, samplesize, num_channels, unitsize;
+	unsigned int fmt_code, samplesize, num_channels, unitsize;
 
-	if (buf->len < MIN_DATA_CHUNK_OFFSET) {
+	if (buf->len < MIN_DATA_CHUNK_OFFSET)
 		return SR_ERR;
-	}
 
 	fmt_code = RL16(buf->str + 20);
 	samplerate = RL32(buf->str + 24);
+
 	samplesize = RL16(buf->str + 32);
+	if (samplesize != 1 && samplesize != 2 && samplesize != 4) {
+		sr_err("Only 8, 16 or 32 bits per sample supported.");
+		return SR_ERR;
+	}
+
 	num_channels = RL16(buf->str + 22);
-	/* TODO div0 */
+	if (num_channels == 0)
+		return SR_ERR;
 	unitsize = samplesize / num_channels;
 
 	if (fmt_code == WAVE_FORMAT_PCM) {
-		if (samplesize != 1 && samplesize != 2 && samplesize != 4) {
-			sr_err("only 8, 16 or 32 bits per sample supported.");
-			return SR_ERR;
-		}
 	} else if (fmt_code == WAVE_FORMAT_IEEE_FLOAT) {
 		if (unitsize != 4) {
 			sr_err("only 32-bit floats supported.");
+			return SR_ERR;
+		}
+	} else if (fmt_code == WAVE_FORMAT_EXTENSIBLE) {
+		if (buf->len < 70)
+			/* Not enough for extensible header and next chunk. */
+			return SR_OK_CONTINUE;
+
+		if (RL16(buf->str + 16) != 40) {
+			sr_err("WAV extensible format chunk must be 40 bytes.");
+			return SR_ERR;
+		}
+		if (RL16(buf->str + 36) != 22) {
+			sr_err("WAV extension must be 22 bytes.");
+			return SR_ERR;
+		}
+		if (RL16(buf->str + 34) != RL16(buf->str + 38)) {
+			sr_err("Reduced valid bits per sample not supported.");
+			return SR_ERR;
+		}
+		/* Real format code is the first two bytes of the GUID. */
+		fmt_code = RL16(buf->str + 44);
+		if (fmt_code != WAVE_FORMAT_PCM && fmt_code != WAVE_FORMAT_IEEE_FLOAT) {
+			sr_err("Only PCM and floating point samples are supported.");
 			return SR_ERR;
 		}
 	} else {
