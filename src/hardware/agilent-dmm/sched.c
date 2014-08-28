@@ -252,7 +252,7 @@ static int recv_fetc(const struct sr_dev_inst *sdi, GMatchInfo *match)
 		fvalue = NAN;
 	} else {
 		mstr = g_match_info_fetch(match, 1);
-		if (sr_atof_ascii(mstr, &fvalue) != SR_OK || fvalue == 0.0) {
+		if (sr_atof_ascii(mstr, &fvalue) != SR_OK) {
 			g_free(mstr);
 			sr_err("Invalid float.");
 			return SR_ERR;
