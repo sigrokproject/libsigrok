@@ -256,7 +256,7 @@ static int recv_fetc(const struct sr_dev_inst *sdi, GMatchInfo *match)
 		mstr = g_match_info_fetch(match, 1);
 		if (sr_atof_ascii(mstr, &fvalue) != SR_OK) {
 			g_free(mstr);
-			sr_err("Invalid float.");
+			sr_dbg("Invalid float.");
 			return SR_ERR;
 		}
 		g_free(mstr);
@@ -349,12 +349,15 @@ static int recv_conf_u123x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 	if (g_match_info_get_match_count(match) == 4) {
 		mstr = g_match_info_fetch(match, 3);
 		/* Third value, if present, is always AC or DC. */
-		if (!strcmp(mstr, "AC"))
+		if (!strcmp(mstr, "AC")) {
 			devc->cur_mqflags |= SR_MQFLAG_AC;
-		else if (!strcmp(mstr, "DC"))
+			if (devc->cur_mq == SR_MQ_VOLTAGE)
+				devc->cur_mqflags |= SR_MQFLAG_RMS;
+		} else if (!strcmp(mstr, "DC")) {
 			devc->cur_mqflags |= SR_MQFLAG_DC;
-		else
+		} else {
 			sr_dbg("Unknown third argument.");
+		}
 		g_free(mstr);
 	} else
 		devc->cur_mqflags &= ~(SR_MQFLAG_AC | SR_MQFLAG_DC);
@@ -376,13 +379,16 @@ static int recv_conf_u125x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 		devc->cur_mqflags = 0;
 		devc->cur_divider = 0;
 		if (mstr[4] == ':') {
-			if (!strcmp(mstr + 4, "AC"))
-				devc->cur_mqflags |= SR_MQFLAG_AC;
-			else if (!strcmp(mstr + 4, "DC"))
+			if (!strcmp(mstr + 4, "AC")) {
+				devc->cur_mqflags |= SR_MQFLAG_AC | SR_MQFLAG_RMS;
+			} else if (!strcmp(mstr + 4, "DC")) {
 				devc->cur_mqflags |= SR_MQFLAG_DC;
-			else
-				/* "ACDC" appears as well, no idea what it means. */
+			} else if (!strcmp(mstr + 4, "ACDC")) {
+				/* AC + DC offset */
+				devc->cur_mqflags |= SR_MQFLAG_AC | SR_MQFLAG_DC | SR_MQFLAG_RMS;
+			} else {
 				devc->cur_mqflags &= ~(SR_MQFLAG_AC | SR_MQFLAG_DC);
+			}
 		} else
 			devc->cur_mqflags &= ~(SR_MQFLAG_AC | SR_MQFLAG_DC);
 	} else if(!strcmp(mstr, "CURR")) {
@@ -400,8 +406,9 @@ static int recv_conf_u125x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 		}
 		devc->cur_mqflags = 0;
 		devc->cur_divider = 0;
-	} else
+	} else {
 		sr_dbg("Unknown first argument.");
+	}
 	g_free(mstr);
 
 	return SR_OK;
