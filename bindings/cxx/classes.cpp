@@ -44,8 +44,7 @@ static const char *valid_string(const char *input)
 static GHashTable *map_to_hash_variant(map<string, Glib::VariantBase> input)
 {
 	auto output = g_hash_table_new_full(
-		g_variant_hash, g_variant_equal, g_free,
-		(void (*)(void *))g_variant_unref);
+		g_str_hash, g_str_equal, g_free, (GDestroyNotify) g_variant_unref);
 	for (auto entry : input)
 		g_hash_table_insert(output,
 			g_strdup(entry.first.c_str()),
