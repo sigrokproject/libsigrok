@@ -234,6 +234,7 @@ static int recv_fetc(const struct sr_dev_inst *sdi, GMatchInfo *match)
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog analog;
 	float fvalue;
+	const char *s;
 	char *mstr;
 
 	sr_spew("FETC reply '%s'.", g_match_info_get_string(match));
@@ -245,7 +246,8 @@ static int recv_fetc(const struct sr_dev_inst *sdi, GMatchInfo *match)
 		 * get metadata soon enough. */
 		return SR_OK;
 
-	if (!strcmp(g_match_info_get_string(match), "+9.90000000E+37")) {
+	s = g_match_info_get_string(match);
+	if (!strcmp(s, "-9.90000000E+37") || !strcmp(s, "+9.90000000E+37")) {
 		/* An invalid measurement shows up on the display as "O.L", but
 		 * comes through like this. Since comparing 38-digit floats
 		 * is rather problematic, we'll cut through this here. */
