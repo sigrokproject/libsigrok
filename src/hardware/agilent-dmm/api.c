@@ -39,9 +39,8 @@ static const int32_t hwcaps[] = {
 	SR_CONF_CONTINUOUS,
 };
 
-extern const struct agdmm_job agdmm_jobs_u123x[];
+extern const struct agdmm_job agdmm_jobs_u12xx[];
 extern const struct agdmm_recv agdmm_recvs_u123x[];
-extern const struct agdmm_job agdmm_jobs_u125x[];
 extern const struct agdmm_recv agdmm_recvs_u125x[];
 
 /* This works on all the Agilent U12xxA series, although the
@@ -49,13 +48,17 @@ extern const struct agdmm_recv agdmm_recvs_u125x[];
 #define SERIALCOMM "9600/8n1"
 
 static const struct agdmm_profile supported_agdmm[] = {
-	{ AGILENT_U1231A, "U1231A", agdmm_jobs_u123x, agdmm_recvs_u123x },
-	{ AGILENT_U1232A, "U1232A", agdmm_jobs_u123x, agdmm_recvs_u123x },
-	{ AGILENT_U1233A, "U1233A", agdmm_jobs_u123x, agdmm_recvs_u123x },
-	{ AGILENT_U1251A, "U1251A", agdmm_jobs_u125x, agdmm_recvs_u125x },
-	{ AGILENT_U1252A, "U1252A", agdmm_jobs_u125x, agdmm_recvs_u125x },
-	{ AGILENT_U1253A, "U1253A", agdmm_jobs_u125x, agdmm_recvs_u125x },
-	{ 0, NULL, NULL, NULL }
+	{ AGILENT_U1231, "U1231A", agdmm_jobs_u12xx, agdmm_recvs_u123x },
+	{ AGILENT_U1232, "U1232A", agdmm_jobs_u12xx, agdmm_recvs_u123x },
+	{ AGILENT_U1233, "U1233A", agdmm_jobs_u12xx, agdmm_recvs_u123x },
+
+	{ AGILENT_U1251, "U1251A", agdmm_jobs_u12xx, agdmm_recvs_u125x },
+	{ AGILENT_U1252, "U1252A", agdmm_jobs_u12xx, agdmm_recvs_u125x },
+	{ AGILENT_U1253, "U1253A", agdmm_jobs_u12xx, agdmm_recvs_u125x },
+	{ AGILENT_U1251, "U1251B", agdmm_jobs_u12xx, agdmm_recvs_u125x },
+	{ AGILENT_U1252, "U1252B", agdmm_jobs_u12xx, agdmm_recvs_u125x },
+	{ AGILENT_U1253, "U1253B", agdmm_jobs_u12xx, agdmm_recvs_u125x },
+	ALL_ZERO
 };
 
 SR_PRIV struct sr_dev_driver agdmm_driver_info;

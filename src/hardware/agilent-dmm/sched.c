@@ -448,7 +448,8 @@ static int recv_switch(const struct sr_dev_inst *sdi, GMatchInfo *match)
 	return SR_OK;
 }
 
-SR_PRIV const struct agdmm_job agdmm_jobs_u123x[] = {
+/* Poll keys/switches and values at 7Hz, mode at 1Hz. */
+SR_PRIV const struct agdmm_job agdmm_jobs_u12xx[] = {
 	{ 143, send_stat },
 	{ 1000, send_conf },
 	{ 143, send_fetc },
@@ -463,13 +464,6 @@ SR_PRIV const struct agdmm_recv agdmm_recvs_u123x[] = {
 	{ "^\"(RES|CAP),(\\d)\"$", recv_conf_u123x},
 	{ "^\"(DIOD)\"$", recv_conf },
 	{ NULL, NULL }
-};
-
-SR_PRIV const struct agdmm_job agdmm_jobs_u125x[] = {
-	{ 143, send_stat },
-	{ 1000, send_conf },
-	{ 143, send_fetc },
-	{ 0, NULL }
 };
 
 SR_PRIV const struct agdmm_recv agdmm_recvs_u125x[] = {
