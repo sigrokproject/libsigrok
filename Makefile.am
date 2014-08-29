@@ -506,6 +506,7 @@ $(JDOC): bindings/swig/doc.py $(CPPXMLDOC)
 	$(AM_V_GEN)python $< java $(CPPXMLDOC) > $@
 
 $(JCXX): $(JSWG) $(JDOC) bindings/swig/classes.i $(library_include_HEADERS)
+	$(AM_V_at)make java-clean
 	$(AM_V_GEN)swig -c++ -java -package org.sigrok.core.classes \
 		-I$(srcdir)/include -I$(srcdir)/bindings/cxx/include -I$(srcdir) -I$(JCLS) -Ibindings/cxx/include -outdir $(JCLS) -o $@ $<
 
