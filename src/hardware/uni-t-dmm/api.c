@@ -168,8 +168,6 @@ static int dev_clear(int dmm)
 
 static int init(struct sr_context *sr_ctx, int dmm)
 {
-	sr_dbg("Selected '%s' subdriver.", udmms[dmm].di->name);
-
 	return std_init(sr_ctx, udmms[dmm].di, LOG_PREFIX);
 }
 

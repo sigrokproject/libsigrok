@@ -335,8 +335,6 @@ static int dev_clear(int dmm)
 
 static int init(struct sr_context *sr_ctx, int dmm)
 {
-	sr_dbg("Selected '%s' subdriver.", dmms[dmm].di->name);
-
 	return std_init(sr_ctx, dmms[dmm].di, LOG_PREFIX);
 }
 

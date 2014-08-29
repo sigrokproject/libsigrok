@@ -60,8 +60,6 @@ static int dev_clear(int idx)
 
 static int init(struct sr_context *sr_ctx, int idx)
 {
-	sr_dbg("Selected '%s' subdriver.", center_devs[idx].di->name);
-
 	return std_init(sr_ctx, center_devs[idx].di, LOG_PREFIX);
 }
 

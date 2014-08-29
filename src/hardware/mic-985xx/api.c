@@ -56,8 +56,6 @@ static int dev_clear(int idx)
 
 static int init(struct sr_context *sr_ctx, int idx)
 {
-	sr_dbg("Selected '%s' subdriver.", mic_devs[idx].di->name);
-
 	return std_init(sr_ctx, mic_devs[idx].di, LOG_PREFIX);
 }
 
