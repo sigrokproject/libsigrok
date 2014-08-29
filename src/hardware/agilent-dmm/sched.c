@@ -197,6 +197,38 @@ static int recv_stat_u123x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 	return SR_OK;
 }
 
+static int recv_stat_u124x(const struct sr_dev_inst *sdi, GMatchInfo *match)
+{
+	struct dev_context *devc;
+	char *s;
+
+	devc = sdi->priv;
+	s = g_match_info_fetch(match, 1);
+	sr_spew("STAT response '%s'.", s);
+
+	/* Max, Min or Avg mode -- no way to tell which, so we'll
+	 * set both flags to denote it's not a normal measurement. */
+	if (s[0] == '1')
+		devc->cur_mqflags |= SR_MQFLAG_MAX | SR_MQFLAG_MIN;
+	else
+		devc->cur_mqflags &= ~(SR_MQFLAG_MAX | SR_MQFLAG_MIN);
+
+	if (s[1] == '1')
+		devc->cur_mqflags |= SR_MQFLAG_RELATIVE;
+	else
+		devc->cur_mqflags &= ~SR_MQFLAG_RELATIVE;
+
+	/* Hold mode. */
+	if (s[7] == '1')
+		devc->cur_mqflags |= SR_MQFLAG_HOLD;
+	else
+		devc->cur_mqflags &= ~SR_MQFLAG_HOLD;
+
+	g_free(s);
+
+	return SR_OK;
+}
+
 static int recv_stat_u125x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 {
 	struct dev_context *devc;
@@ -365,7 +397,7 @@ static int recv_conf_u123x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 	return SR_OK;
 }
 
-static int recv_conf_u125x(const struct sr_dev_inst *sdi, GMatchInfo *match)
+static int recv_conf_u124x_5x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 {
 	struct dev_context *devc;
 	char *mstr;
@@ -466,12 +498,22 @@ SR_PRIV const struct agdmm_recv agdmm_recvs_u123x[] = {
 	{ NULL, NULL }
 };
 
+SR_PRIV const struct agdmm_recv agdmm_recvs_u124x[] = {
+	{ "^\"(\\d\\d.{18}\\d)\"$", recv_stat_u124x },
+	{ "^\\*([0-9])$", recv_switch },
+	{ "^([-+][0-9]\\.[0-9]{8}E[-+][0-9]{2})$", recv_fetc },
+	{ "^(VOLT|CURR|RES|CAP) ([-+][0-9\\.E\\-+]+),([-+][0-9\\.E\\-+]+)$", recv_conf_u124x_5x },
+	{ "^(VOLT:[ACD]+) ([-+][0-9\\.E\\-+]+),([-+][0-9\\.E\\-+]+)$", recv_conf_u124x_5x },
+	{ "^\"(DIOD)\"$", recv_conf },
+	{ NULL, NULL }
+};
+
 SR_PRIV const struct agdmm_recv agdmm_recvs_u125x[] = {
 	{ "^\"(\\d\\d.{18}\\d)\"$", recv_stat_u125x },
 	{ "^\\*([0-9])$", recv_switch },
 	{ "^([-+][0-9]\\.[0-9]{8}E[-+][0-9]{2})$", recv_fetc },
-	{ "^(VOLT|CURR|RES|CAP) ([-+][0-9\\.E\\-+]+),([-+][0-9\\.E\\-+]+)$", recv_conf_u125x },
-	{ "^(VOLT:[ACD]+) ([-+][0-9\\.E\\-+]+),([-+][0-9\\.E\\-+]+)$", recv_conf_u125x },
+	{ "^(VOLT|CURR|RES|CAP) ([-+][0-9\\.E\\-+]+),([-+][0-9\\.E\\-+]+)$", recv_conf_u124x_5x },
+	{ "^(VOLT:[ACD]+) ([-+][0-9\\.E\\-+]+),([-+][0-9\\.E\\-+]+)$", recv_conf_u124x_5x },
 	{ "^\"(DIOD)\"$", recv_conf },
 	{ NULL, NULL }
 };
