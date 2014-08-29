@@ -63,25 +63,6 @@ struct sr_dev_driver *srtest_driver_get(const char *drivername)
 	return driver;
 }
 
-/* Get a libsigrok input format by ID. */
-struct sr_input_format *srtest_input_get(const char *id)
-{
-	struct sr_input_format **inputs, *input = NULL;
-	int i;
-
-	inputs = sr_input_list();
-	fail_unless(inputs != NULL, "No input modules found.");
-
-	for (i = 0; inputs[i]; i++) {
-		if (strcmp(inputs[i]->id, id))
-			continue;
-		input = inputs[i];
-	}
-	fail_unless(input != NULL, "Input module '%s' not found.", id);
-
-	return input;
-}
-
 /* Initialize a libsigrok driver. */
 void srtest_driver_init(struct sr_context *sr_ctx, struct sr_dev_driver *driver)
 {
@@ -107,40 +88,6 @@ void srtest_driver_init_all(struct sr_context *sr_ctx)
 		fail_unless(ret == SR_OK, "Failed to init '%s' driver: %d.",
 			    driver->name, ret);
 	}
-}
-
-/* Initialize a libsigrok input module. */
-void srtest_input_init(struct sr_context *sr_ctx, struct sr_input_format *input)
-{
-	int ret;
-	struct sr_input *in;
-
-	(void)sr_ctx;
-
-	in = g_try_malloc0(sizeof(struct sr_input));
-	fail_unless(in != NULL);
-
-	in->format = input;
-	in->param = NULL;
-
-	ret = in->format->init(in, "nonexisting.dat");
-	fail_unless(ret == SR_OK, "Failed to init '%s' input module: %d.",
-		    input->id, ret);
-
-	g_free(in);
-}
-
-/* Initialize all libsigrok input modules. */
-void srtest_input_init_all(struct sr_context *sr_ctx)
-{
-	struct sr_input_format **inputs;
-	int i;
-
-	inputs = sr_input_list();
-	fail_unless(inputs != NULL, "No input modules found.");
-
-	for (i = 0; inputs[i]; i++)
-		srtest_input_init(sr_ctx, inputs[i]);
 }
 
 /* Set the samplerate for the respective driver to the specified value. */
@@ -193,21 +140,6 @@ void srtest_check_samplerate(struct sr_context *sr_ctx, const char *drivername,
 	s = srtest_get_samplerate(driver);
 	fail_unless(s == samplerate, "%s: Incorrect samplerate: %" PRIu64 ".",
 		    drivername, s);
-}
-
-void srtest_buf_to_file(const char *filename, const uint8_t *buf, uint64_t len)
-{
-	FILE *f;
-	GError *error = NULL;
-	gboolean ret;
-
-	f = g_fopen(filename, "wb");
-	fail_unless(f != NULL);
-
-	ret = g_file_set_contents(filename, (const gchar *)buf, len, &error);
-	fail_unless(ret == TRUE);
-
-	fclose(f);
 }
 
 GArray *srtest_get_enabled_logic_channels(const struct sr_dev_inst *sdi)

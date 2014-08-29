@@ -1,7 +1,7 @@
 /*
  * This file is part of the libsigrok project.
  *
- * Copyright (C) 2013 Uwe Hermann <uwe@hermann-uwe.de>
+ * Copyright (C) 2013-2014 Uwe Hermann <uwe@hermann-uwe.de>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@
 /* Check whether at least one input module is available. */
 START_TEST(test_input_available)
 {
-	struct sr_input_format **inputs;
+	const struct sr_input_module **inputs;
 
 	inputs = sr_input_list();
 	fail_unless(inputs != NULL, "No input modules found.");

@@ -1,7 +1,7 @@
 /*
  * This file is part of the libsigrok project.
  *
- * Copyright (C) 2013 Uwe Hermann <uwe@hermann-uwe.de>
+ * Copyright (C) 2013-2014 Uwe Hermann <uwe@hermann-uwe.de>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,12 +23,13 @@
 #include "../include/libsigrok/libsigrok.h"
 #include "lib.h"
 
-#define FILENAME		"foo.dat"
-#define MAX_FILESIZE		(1 * 1000000)
+#define BUFSIZE 1000000
 
-#define CHECK_ALL_LOW		0
-#define CHECK_ALL_HIGH		1
-#define CHECK_HELLO_WORLD	2
+enum {
+	CHECK_ALL_LOW,
+	CHECK_ALL_HIGH,
+	CHECK_HELLO_WORLD,
+};
 
 static uint64_t df_packet_counter = 0, sample_counter = 0;
 static gboolean have_seen_df_end = FALSE;
@@ -37,37 +38,37 @@ static int check_to_perform;
 static uint64_t expected_samples;
 static uint64_t *expected_samplerate;
 
-static void check_all_low(const struct sr_datafeed_logic *logic)
+static void check_all_low(const struct sr_datafeed_logic *logic, uint64_t n)
 {
 	uint64_t i;
 	uint8_t *data;
 
-	for (i = 0; i < logic->length; i++) {
+	for (i = 0; i < n; i++) {
 		data = logic->data;
 		if (data[i * logic->unitsize] != 0)
 			fail("Logic data was not all-0x00.");
 	}
 }
 
-static void check_all_high(const struct sr_datafeed_logic *logic)
+static void check_all_high(const struct sr_datafeed_logic *logic, uint64_t n)
 {
 	uint64_t i;
 	uint8_t *data;
 
-	for (i = 0; i < logic->length; i++) {
+	for (i = 0; i < n; i++) {
 		data = logic->data;
 		if (data[i * logic->unitsize] != 0xff)
 			fail("Logic data was not all-0xff.");
 	}
 }
 
-static void check_hello_world(const struct sr_datafeed_logic *logic)
+static void check_hello_world(const struct sr_datafeed_logic *logic, uint64_t n)
 {
 	uint64_t i;
 	uint8_t *data, b;
 	const char *h = "Hello world";
 
-	for (i = 0; i < logic->length; i++) {
+	for (i = 0; i < n; i++) {
 		data = logic->data;
 		b = data[sample_counter + i];
 		if (b != h[sample_counter + i])
@@ -152,11 +153,11 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 		// 	"unitsize %d).", logic->length, logic->unitsize);
 
 		if (check_to_perform == CHECK_ALL_LOW)
-			check_all_low(logic);
+			check_all_low(logic, expected_samples);
 		else if (check_to_perform == CHECK_ALL_HIGH)
-			check_all_high(logic);
+			check_all_high(logic, expected_samples);
 		else if (check_to_perform == CHECK_HELLO_WORLD)
-			check_hello_world(logic);
+			check_hello_world(logic, expected_samples);
 
 		sample_counter += logic->length / logic->unitsize;
 
@@ -179,14 +180,15 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 	}
 }
 
-static void check_buf(const char *filename, GHashTable *param,
-		const uint8_t *buf, int check, uint64_t samples,
-		uint64_t *samplerate)
+static void check_buf(GHashTable *options, const uint8_t *buf, int check,
+		uint64_t samples, uint64_t *samplerate)
 {
 	int ret;
 	struct sr_input *in;
-	struct sr_input_format *in_format;
+	const struct sr_input_module *imod;
 	struct sr_session *session;
+	struct sr_dev_inst *sdi;
+	GString *gbuf;
 
 	/* Initialize global variables for this run. */
 	df_packet_counter = sample_counter = 0;
@@ -196,52 +198,58 @@ static void check_buf(const char *filename, GHashTable *param,
 	expected_samples = samples;
 	expected_samplerate = samplerate;
 
-	in_format = srtest_input_get("binary");
+	gbuf = g_string_new_len((gchar *)buf, (gssize)samples);
 
-	in = g_try_malloc0(sizeof(struct sr_input));
-	fail_unless(in != NULL);
+	imod = sr_input_find("binary");
+	fail_unless(imod != NULL, "Failed to find input module.");
 
-	in->format = in_format;
-	in->param = param;
+	in = sr_input_new(imod, options);
+	fail_unless(in != NULL, "Failed to create input instance.");
 
-	srtest_buf_to_file(filename, buf, samples); /* Create a file. */
+	sdi = sr_input_dev_inst_get(in);
+	fail_unless(sdi != NULL, "Failed to get device instance.");
 
-	ret = in->format->init(in, filename);
-	fail_unless(ret == SR_OK, "Input format init error: %d", ret);
-	
 	sr_session_new(&session);
 	sr_session_datafeed_callback_add(session, datafeed_in, NULL);
-	sr_session_dev_add(session, in->sdi);
-	in_format->loadfile(in, filename);
+	sr_session_dev_add(session, sdi);
+
+	ret = sr_input_send(in, gbuf);
+	fail_unless(ret == SR_OK, "sr_input_send() error: %d", ret);
+
+	ret = sr_input_free(in);
+	fail_unless(ret == SR_OK, "Failed to free input instance: %d", ret);
+
 	sr_session_destroy(session);
 
-	g_unlink(filename); /* Delete file again. */
+	g_string_free(gbuf, TRUE);
 }
 
 START_TEST(test_input_binary_all_low)
 {
 	uint64_t i, samplerate;
+	GHashTable *options;
 	uint8_t *buf;
-	GHashTable *param;
+	GVariant *gvar;
 
-	buf = g_try_malloc0(MAX_FILESIZE);
-	fail_unless(buf != NULL);
+	buf = g_malloc0(BUFSIZE);
 
-	param = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
-	fail_unless(param != NULL);
-	g_hash_table_insert(param, g_strdup("samplerate"), g_strdup("1250"));
+	gvar = g_variant_new_uint64(1250);
+	options = g_hash_table_new_full(g_str_hash, g_str_equal, g_free,
+			(GDestroyNotify)g_variant_unref);
+	g_hash_table_insert(options, g_strdup("samplerate"),
+		g_variant_ref_sink(gvar));
 	samplerate = SR_HZ(1250);
 
 	/* Check various filesizes, with/without specifying a samplerate. */
-	check_buf(FILENAME, NULL, buf, CHECK_ALL_LOW, 0, NULL);
-	check_buf(FILENAME, param, buf, CHECK_ALL_LOW, 0, &samplerate);
-	for (i = 1; i < MAX_FILESIZE; i *= 3) {
-		check_buf(FILENAME, NULL, buf, CHECK_ALL_LOW, i, NULL);
-		check_buf(FILENAME, param, buf, CHECK_ALL_LOW, i, &samplerate);
+	check_buf(NULL, buf, CHECK_ALL_LOW, 0, NULL);
+	check_buf(options, buf, CHECK_ALL_LOW, 0, &samplerate);
+	for (i = 1; i < BUFSIZE; i *= 3) {
+		check_buf(NULL, buf, CHECK_ALL_LOW, i, NULL);
+		check_buf(options, buf, CHECK_ALL_LOW, i, &samplerate);
 
 	}
 
-	g_hash_table_destroy(param);
+	g_hash_table_destroy(options);
 	g_free(buf);
 }
 END_TEST
@@ -251,12 +259,12 @@ START_TEST(test_input_binary_all_high)
 	uint64_t i;
 	uint8_t *buf;
 
-	buf = g_try_malloc(MAX_FILESIZE);
-	memset(buf, 0xff, MAX_FILESIZE);
+	buf = g_malloc(BUFSIZE);
+	memset(buf, 0xff, BUFSIZE);
 
-	check_buf(FILENAME, NULL, buf, CHECK_ALL_LOW, 0, NULL);
-	for (i = 1; i < MAX_FILESIZE; i *= 3)
-		check_buf(FILENAME, NULL, buf, CHECK_ALL_HIGH, i, NULL);
+	check_buf(NULL, buf, CHECK_ALL_HIGH, 0, NULL);
+	for (i = 1; i < BUFSIZE; i *= 3)
+		check_buf(NULL, buf, CHECK_ALL_HIGH, i, NULL);
 
 	g_free(buf);
 }
@@ -265,13 +273,15 @@ END_TEST
 START_TEST(test_input_binary_all_high_loop)
 {
 	uint8_t *buf;
+	uint64_t bufsize;
 
 	/* Note: _i is the loop variable from tcase_add_loop_test(). */
 
-	buf = g_try_malloc((_i * 10) + 1);
-	memset(buf, 0xff, _i * 10);
+	bufsize = (_i * 10);
+	buf = g_malloc(BUFSIZE);
+	memset(buf, 0xff, BUFSIZE);
 
-	check_buf(FILENAME, NULL, buf, CHECK_ALL_HIGH, _i * 10, NULL);
+	check_buf(NULL, buf, CHECK_ALL_HIGH, bufsize, NULL);
 
 	g_free(buf);
 }
@@ -281,20 +291,23 @@ START_TEST(test_input_binary_hello_world)
 {
 	uint64_t samplerate;
 	uint8_t *buf;
-	GHashTable *param;
+	GHashTable *options;
+	GVariant *gvar;
 
 	buf = (uint8_t *)g_strdup("Hello world");
 
-	param = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
-	fail_unless(param != NULL);
-	g_hash_table_insert(param, g_strdup("samplerate"), g_strdup("1250"));
+	gvar = g_variant_new_uint64(1250);
+	options = g_hash_table_new_full(g_str_hash, g_str_equal, g_free,
+			(GDestroyNotify)g_variant_unref);
+	g_hash_table_insert(options, g_strdup("samplerate"),
+			g_variant_ref_sink(gvar));
 	samplerate = SR_HZ(1250);
 
 	/* Check with and without specifying a samplerate. */
-	check_buf(FILENAME, NULL, buf, CHECK_HELLO_WORLD, 11, NULL);
-	check_buf(FILENAME, param, buf, CHECK_HELLO_WORLD, 11, &samplerate);
+	check_buf(NULL, buf, CHECK_HELLO_WORLD, 11, NULL);
+	check_buf(options, buf, CHECK_HELLO_WORLD, 11, &samplerate);
 
-	g_hash_table_destroy(param);
+	g_hash_table_destroy(options);
 	g_free(buf);
 }
 END_TEST
@@ -310,7 +323,7 @@ Suite *suite_input_binary(void)
 	tcase_add_checked_fixture(tc, srtest_setup, srtest_teardown);
 	tcase_add_test(tc, test_input_binary_all_low);
 	tcase_add_test(tc, test_input_binary_all_high);
-	tcase_add_loop_test(tc, test_input_binary_all_high_loop, 0, 10);
+	tcase_add_loop_test(tc, test_input_binary_all_high_loop, 1, 10);
 	tcase_add_test(tc, test_input_binary_hello_world);
 	suite_add_tcase(s, tc);
 
