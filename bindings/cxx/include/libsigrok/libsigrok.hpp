@@ -289,9 +289,7 @@ protected:
 };
 
 /** A generic device, either hardware or virtual */
-class SR_API Device :
-	public enable_shared_from_this<Device>,
-	public Configurable
+class SR_API Device : public Configurable
 {
 public:
 	/** Description identifying this device. */
@@ -313,6 +311,7 @@ public:
 protected:
 	Device(struct sr_dev_inst *structure);
 	~Device();
+	virtual shared_ptr<Device> get_shared_from_this() = 0;
 	shared_ptr<Channel> get_channel(struct sr_channel *ptr);
 	struct sr_dev_inst *structure;
 	map<struct sr_channel *, Channel *> channels;
@@ -342,6 +341,7 @@ public:
 protected:
 	HardwareDevice(Driver *driver, struct sr_dev_inst *structure);
 	~HardwareDevice();
+	shared_ptr<Device> get_shared_from_this();
 	Driver *driver;
 	friend class Driver;
 	friend class ChannelGroup;
@@ -765,6 +765,7 @@ public:
 protected:
 	Input(shared_ptr<Context> context, const struct sr_input *structure);
 	~Input();
+	shared_ptr<Device> get_shared_from_this();
 	const struct sr_input *structure;
 	shared_ptr<Context> context;
 	InputDevice *device;
@@ -787,6 +788,7 @@ class SR_API InputDevice :
 protected:
 	InputDevice(shared_ptr<Input> input, struct sr_dev_inst *sdi);
 	~InputDevice();
+	shared_ptr<Device> get_shared_from_this();
 	shared_ptr<Input> input;
 	/** Deleter needed to allow shared_ptr use with protected destructor. */
 	class Deleter

@@ -419,14 +419,14 @@ vector<shared_ptr<Channel>> Device::get_channels()
 	vector<shared_ptr<Channel>> result;
 	for (auto entry : channels)
 		result.push_back(static_pointer_cast<Channel>(
-			entry.second->get_shared_pointer(this)));
+			entry.second->get_shared_pointer(get_shared_from_this())));
 	return result;
 }
 
 shared_ptr<Channel> Device::get_channel(struct sr_channel *ptr)
 {
 	return static_pointer_cast<Channel>(
-		channels[ptr]->get_shared_pointer(this));
+		channels[ptr]->get_shared_pointer(get_shared_from_this()));
 }
 
 map<string, shared_ptr<ChannelGroup>>
@@ -438,7 +438,7 @@ Device::get_channel_groups()
 		auto name = entry.first;
 		auto channel_group = entry.second;
 		result[name] = static_pointer_cast<ChannelGroup>(
-			channel_group->get_shared_pointer(this));
+			channel_group->get_shared_pointer(get_shared_from_this()));
 	}
 	return result;
 }
@@ -462,6 +462,12 @@ HardwareDevice::HardwareDevice(Driver *driver, struct sr_dev_inst *structure) :
 
 HardwareDevice::~HardwareDevice()
 {
+}
+
+shared_ptr<Device> HardwareDevice::get_shared_from_this()
+{
+	return static_pointer_cast<Device>(
+		static_pointer_cast<HardwareDevice>(shared_from_this()));
 }
 
 shared_ptr<Driver> HardwareDevice::get_driver()
@@ -735,9 +741,6 @@ vector<shared_ptr<Device>> Session::get_devices()
 	for (GSList *dev = dev_list; dev; dev = dev->next)
 	{
 		auto sdi = (struct sr_dev_inst *) dev->data;
-		if (devices.count(sdi) == 0)
-			devices[sdi] = shared_ptr<Device>(
-				new Device(sdi), Device::Deleter());
 		result.push_back(devices[sdi]);
 	}
 	return result;
@@ -1197,6 +1200,12 @@ InputDevice::InputDevice(shared_ptr<Input> input,
 
 InputDevice::~InputDevice()
 {
+}
+
+shared_ptr<Device> InputDevice::get_shared_from_this()
+{
+	return static_pointer_cast<Device>(
+		static_pointer_cast<InputDevice>(shared_from_this()));
 }
 
 Option::Option(const struct sr_option *structure,
