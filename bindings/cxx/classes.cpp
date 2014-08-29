@@ -973,6 +973,9 @@ Packet::Packet(shared_ptr<Device> device,
 				static_cast<const struct sr_datafeed_analog *>(
 					structure->payload));
 			break;
+		default:
+			payload = nullptr;
+			break;
 	}
 }
 
@@ -989,7 +992,10 @@ const PacketType *Packet::get_type()
 
 shared_ptr<PacketPayload> Packet::get_payload()
 {
-	return payload->get_shared_pointer(this);
+	if (payload)
+		return payload->get_shared_pointer(this);
+	else
+		throw Error(SR_ERR_NA);
 }
 
 PacketPayload::PacketPayload()
@@ -1001,13 +1007,21 @@ PacketPayload::~PacketPayload()
 }
 
 Header::Header(const struct sr_datafeed_header *structure) :
-	PacketPayload(),
-	StructureWrapper<Packet, const struct sr_datafeed_header>(structure)
+	StructureWrapper<Packet, const struct sr_datafeed_header>(structure),
+	PacketPayload()
 {
 }
 
 Header::~Header()
 {
+}
+
+shared_ptr<PacketPayload> Header::get_shared_pointer(Packet *parent)
+{
+	return static_pointer_cast<PacketPayload>(
+		static_pointer_cast<Header>(
+		StructureWrapper<Packet, const struct sr_datafeed_header>::
+			get_shared_pointer(parent)));
 }
 
 int Header::get_feed_version()
@@ -1023,13 +1037,21 @@ Glib::TimeVal Header::get_start_time()
 }
 
 Meta::Meta(const struct sr_datafeed_meta *structure) :
-	PacketPayload(),
-	StructureWrapper<Packet, const struct sr_datafeed_meta>(structure)
+	StructureWrapper<Packet, const struct sr_datafeed_meta>(structure),
+	PacketPayload()
 {
 }
 
 Meta::~Meta()
 {
+}
+
+shared_ptr<PacketPayload> Meta::get_shared_pointer(Packet *parent)
+{
+	return static_pointer_cast<PacketPayload>(
+		static_pointer_cast<Meta>(
+		StructureWrapper<Packet, const struct sr_datafeed_meta>::
+			get_shared_pointer(parent)));
 }
 
 map<const ConfigKey *, Glib::VariantBase> Meta::get_config()
@@ -1044,13 +1066,21 @@ map<const ConfigKey *, Glib::VariantBase> Meta::get_config()
 }
 
 Logic::Logic(const struct sr_datafeed_logic *structure) :
-	PacketPayload(),
-	StructureWrapper<Packet, const struct sr_datafeed_logic>(structure)
+	StructureWrapper<Packet, const struct sr_datafeed_logic>(structure),
+	PacketPayload()
 {
 }
 
 Logic::~Logic()
 {
+}
+
+shared_ptr<PacketPayload> Logic::get_shared_pointer(Packet *parent)
+{
+	return static_pointer_cast<PacketPayload>(
+		static_pointer_cast<Logic>(
+		StructureWrapper<Packet, const struct sr_datafeed_logic>::
+			get_shared_pointer(parent)));
 }
 
 void *Logic::get_data_pointer()
@@ -1069,13 +1099,21 @@ unsigned int Logic::get_unit_size()
 }
 
 Analog::Analog(const struct sr_datafeed_analog *structure) :
-	PacketPayload(),
-	StructureWrapper<Packet, const struct sr_datafeed_analog>(structure)
+	StructureWrapper<Packet, const struct sr_datafeed_analog>(structure),
+	PacketPayload()
 {
 }
 
 Analog::~Analog()
 {
+}
+
+shared_ptr<PacketPayload> Analog::get_shared_pointer(Packet *parent)
+{
+	return static_pointer_cast<PacketPayload>(
+		static_pointer_cast<Analog>(
+		StructureWrapper<Packet, const struct sr_datafeed_analog>::
+			get_shared_pointer(parent)));
 }
 
 float *Analog::get_data_pointer()
