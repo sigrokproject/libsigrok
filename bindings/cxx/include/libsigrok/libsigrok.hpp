@@ -148,6 +148,8 @@ public:
 	shared_ptr<StructureWrapper<Parent, Struct> >
 	get_shared_pointer(Parent *parent)
 	{
+		if (!parent)
+			throw Error(SR_ERR_BUG);
 		this->parent = static_pointer_cast<Parent>(parent->shared_from_this());
 		return shared_ptr<StructureWrapper<Parent, Struct> >(
 			this, reset_parent);
@@ -155,6 +157,8 @@ public:
 	shared_ptr<StructureWrapper<Parent, Struct> >
 	get_shared_pointer(shared_ptr<Parent> parent)
 	{
+		if (!parent)
+			throw Error(SR_ERR_BUG);
 		this->parent = parent;
 		return shared_ptr<StructureWrapper<Parent, Struct> >(
 			this, reset_parent);
@@ -162,6 +166,8 @@ public:
 protected:
 	static void reset_parent(StructureWrapper<Parent, Struct> *object)
 	{
+		if (!object->parent)
+			throw Error(SR_ERR_BUG);
 		object->parent.reset();
 	}
 
