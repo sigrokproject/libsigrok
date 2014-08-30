@@ -429,11 +429,7 @@ static int init(struct sr_input *in, GHashTable *options)
 		g_string_truncate(inc->comment, 0);
 	}
 
-	s = g_variant_get_string(g_hash_table_lookup(options, "samplerate"), NULL);
-	if (sr_parse_sizestring(s, &inc->samplerate) != SR_OK) {
-		sr_err("Invalid samplerate '%s'.", s);
-		return SR_ERR_ARG;
-	}
+	inc->samplerate = g_variant_get_uint64(g_hash_table_lookup(options, "samplerate"));
 
 	inc->first_channel = g_variant_get_int32(g_hash_table_lookup(options, "first-channel"));
 
@@ -778,7 +774,7 @@ static struct sr_option *get_options(void)
 		options[2].def = g_variant_ref_sink(g_variant_new_string(","));
 		options[3].def = g_variant_ref_sink(g_variant_new_string("bin"));
 		options[4].def = g_variant_ref_sink(g_variant_new_string(";"));
-		options[5].def = g_variant_ref_sink(g_variant_new_string("0"));
+		options[5].def = g_variant_ref_sink(g_variant_new_uint64(0));
 		options[6].def = g_variant_ref_sink(g_variant_new_int32(0));
 		options[7].def = g_variant_ref_sink(g_variant_new_boolean(FALSE));
 		options[8].def = g_variant_ref_sink(g_variant_new_int32(1));
