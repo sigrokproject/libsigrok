@@ -41,6 +41,7 @@ static const int32_t hwcaps[] = {
 
 extern const struct agdmm_job agdmm_jobs_u12xx[];
 extern const struct agdmm_recv agdmm_recvs_u123x[];
+extern const struct agdmm_recv agdmm_recvs_u124x[];
 extern const struct agdmm_recv agdmm_recvs_u125x[];
 
 /* This works on all the Agilent U12xxA series, although the
@@ -51,6 +52,9 @@ static const struct agdmm_profile supported_agdmm[] = {
 	{ AGILENT_U1231, "U1231A", agdmm_jobs_u12xx, agdmm_recvs_u123x },
 	{ AGILENT_U1232, "U1232A", agdmm_jobs_u12xx, agdmm_recvs_u123x },
 	{ AGILENT_U1233, "U1233A", agdmm_jobs_u12xx, agdmm_recvs_u123x },
+
+	{ AGILENT_U1241, "U1241A", agdmm_jobs_u12xx, agdmm_recvs_u124x },
+	{ AGILENT_U1242, "U1242A", agdmm_jobs_u12xx, agdmm_recvs_u124x },
 
 	{ AGILENT_U1251, "U1251A", agdmm_jobs_u12xx, agdmm_recvs_u125x },
 	{ AGILENT_U1252, "U1252A", agdmm_jobs_u12xx, agdmm_recvs_u125x },
