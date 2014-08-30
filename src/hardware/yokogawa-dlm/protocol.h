@@ -79,8 +79,6 @@ struct scope_config {
 
 	const uint8_t num_xdivs;
 	const uint8_t num_ydivs;
-
-	const char *(*scpi_dialect)[];
 };
 
 struct analog_channel_state {

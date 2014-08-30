@@ -63,14 +63,13 @@ static struct sr_dev_inst *probe_usbtmc_device(struct sr_scpi_dev_inst *scpi)
 		goto fail;
 
 	if (!(sdi = sr_dev_inst_new(0, SR_ST_ACTIVE, MANUFACTURER_NAME,
-				    model_name, NULL)))
+			model_name, NULL)))
 		goto fail;
 
 	sr_scpi_hw_info_free(hw_info);
 	hw_info = NULL;
 
-	if (!(devc = g_try_malloc0(sizeof(struct dev_context))))
-		goto fail;
+	devc = g_malloc0(sizeof(struct dev_context));
 
 	sdi->driver = di;
 	sdi->priv = devc;
@@ -168,7 +167,7 @@ static int cleanup(void)
  * @retval CG_INVALID cg is something else
  */
 static int check_channel_group(struct dev_context *devc,
-			     const struct sr_channel_group *cg)
+			const struct sr_channel_group *cg)
 {
 	unsigned int i;
 	struct scope_config *model;
@@ -191,7 +190,7 @@ static int check_channel_group(struct dev_context *devc,
 }
 
 static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
-		      const struct sr_channel_group *cg)
+		const struct sr_channel_group *cg)
 {
 	int ret, cg_type;
 	unsigned int i;
@@ -216,8 +215,8 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		break;
 	case SR_CONF_TIMEBASE:
 		*data = g_variant_new("(tt)",
-				      (*model->timebases)[state->timebase][0],
-				      (*model->timebases)[state->timebase][1]);
+				(*model->timebases)[state->timebase][0],
+				(*model->timebases)[state->timebase][1]);
 		ret = SR_OK;
 		break;
 	case SR_CONF_NUM_VDIV:
@@ -244,8 +243,8 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 			if (cg != devc->analog_groups[i])
 				continue;
 			*data = g_variant_new("(tt)",
-					      (*model->vdivs)[state->analog_states[i].vdiv][0],
-					      (*model->vdivs)[state->analog_states[i].vdiv][1]);
+					(*model->vdivs)[state->analog_states[i].vdiv][0],
+					(*model->vdivs)[state->analog_states[i].vdiv][1]);
 			ret = SR_OK;
 			break;
 		}
@@ -309,7 +308,7 @@ static GVariant *build_tuples(const uint64_t (*array)[][2], unsigned int n)
 }
 
 static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
-		      const struct sr_channel_group *cg)
+		const struct sr_channel_group *cg)
 {
 	int ret, cg_type;
 	unsigned int i, j;
@@ -360,7 +359,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 
 		for (i = 0; i < model->num_vdivs; i++) {
 			if (p != (*model->vdivs)[i][0] ||
-			    q != (*model->vdivs)[i][1])
+					q != (*model->vdivs)[i][1])
 				continue;
 			for (j = 1; j <= model->analog_channels; ++j) {
 				if (cg != devc->analog_groups[j - 1])
@@ -369,7 +368,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 				g_ascii_formatd(float_str, sizeof(float_str),
 						"%E", (float) p / q);
 				if (dlm_analog_chan_vdiv_set(sdi->conn, j, float_str) != SR_OK ||
-				    sr_scpi_get_opc(sdi->conn) != SR_OK)
+						sr_scpi_get_opc(sdi->conn) != SR_OK)
 					return SR_ERR;
 
 				break;
@@ -384,7 +383,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 
 		for (i = 0; i < model->num_timebases; i++) {
 			if (p != (*model->timebases)[i][0] ||
-			    q != (*model->timebases)[i][1])
+					q != (*model->timebases)[i][1])
 				continue;
 			state->timebase = i;
 			g_ascii_formatd(float_str, sizeof(float_str),
@@ -403,9 +402,9 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 
 		state->horiz_triggerpos = tmp_d;
 		tmp_d = -(tmp_d - 0.5) *
-			((double) (*model->timebases)[state->timebase][0] /
-			(*model->timebases)[state->timebase][1])
-			 * model->num_xdivs;
+				((double) (*model->timebases)[state->timebase][0] /
+				(*model->timebases)[state->timebase][1])
+				* model->num_xdivs;
 
 		g_ascii_formatd(float_str, sizeof(float_str), "%E", tmp_d);
 		ret = dlm_horiz_trigger_pos_set(sdi->conn, float_str);
@@ -439,7 +438,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 				state->analog_states[j-1].coupling = i;
 
 				if (dlm_analog_chan_coupl_set(sdi->conn, j, tmp) != SR_OK ||
-				    sr_scpi_get_opc(sdi->conn) != SR_OK)
+						sr_scpi_get_opc(sdi->conn) != SR_OK)
 					return SR_ERR;
 				break;
 			}
@@ -463,7 +462,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 }
 
 static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
-		       const struct sr_channel_group *cg)
+		const struct sr_channel_group *cg)
 {
 	int cg_type;
 	struct dev_context *devc;
@@ -497,15 +496,15 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		if (cg_type == CG_NONE)
 			return SR_ERR_CHANNEL_GROUP;
 		*data = g_variant_new_strv(*model->coupling_options,
-			   g_strv_length((char **)*model->coupling_options));
+				g_strv_length((char **)*model->coupling_options));
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
 		*data = g_variant_new_strv(*model->trigger_sources,
-			   g_strv_length((char **)*model->trigger_sources));
+				g_strv_length((char **)*model->trigger_sources));
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
 		*data = g_variant_new_strv(*model->trigger_slopes,
-			   g_strv_length((char **)*model->trigger_slopes));
+				g_strv_length((char **)*model->trigger_slopes));
 		break;
 	case SR_CONF_TIMEBASE:
 		*data = build_tuples(model->timebases, model->num_timebases);
@@ -570,7 +569,7 @@ static int dlm_setup_channels(const struct sr_dev_inst *sdi)
 	model = devc->model_config;
 	setup_changed = FALSE;
 
-	pod_enabled = g_try_malloc0(sizeof(gboolean) * model->pods);
+	pod_enabled = g_malloc0(sizeof(gboolean) * model->pods);
 
 	for (l = sdi->channels; l; l = l->next) {
 		ch = l->data;
@@ -580,7 +579,7 @@ static int dlm_setup_channels(const struct sr_dev_inst *sdi)
 				break;
 
 			if (dlm_analog_chan_state_set(scpi, ch->index + 1,
-						      ch->enabled) != SR_OK)
+					ch->enabled) != SR_OK)
 				return SR_ERR;
 
 			state->analog_states[ch->index].state = ch->enabled;
@@ -594,7 +593,7 @@ static int dlm_setup_channels(const struct sr_dev_inst *sdi)
 				break;
 
 			if (dlm_digital_chan_state_set(scpi, ch->index + 1,
-						       ch->enabled) != SR_OK)
+					ch->enabled) != SR_OK)
 				return SR_ERR;
 
 			state->digital_states[ch->index] = ch->enabled;
@@ -610,7 +609,7 @@ static int dlm_setup_channels(const struct sr_dev_inst *sdi)
 			continue;
 
 		if (dlm_digital_pod_state_set(scpi, i,
-					      pod_enabled[i - 1]) != SR_OK)
+				pod_enabled[i - 1]) != SR_OK)
 			return SR_ERR;
 
 		state->pod_states[i - 1] = pod_enabled[i - 1];
@@ -635,7 +634,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 
 	(void)cb_data;
 
-	if (sdi->status != SR_ST_ACTIVE) return SR_ERR_DEV_CLOSED;
+	if (sdi->status != SR_ST_ACTIVE)
+		return SR_ERR_DEV_CLOSED;
 
 	scpi = sdi->conn;
 	devc = sdi->priv;
@@ -651,9 +651,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		/* Only add a single digital channel. */
 		if (ch->type != SR_CHANNEL_LOGIC || !digital_added) {
 			devc->enabled_channels = g_slist_append(
-					devc->enabled_channels, ch);
-		if (ch->type == SR_CHANNEL_LOGIC)
-			digital_added = TRUE;
+				devc->enabled_channels, ch);
+			if (ch->type == SR_CHANNEL_LOGIC)
+				digital_added = TRUE;
 		}
 	}
 
@@ -708,7 +708,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 
 SR_PRIV struct sr_dev_driver yokogawa_dlm_driver_info = {
 	.name = "yokogawa-dlm",
-	.longname = "Yokogawa DL/DLM driver",
+	.longname = "Yokogawa DL/DLM",
 	.api_version = 1,
 	.init = init,
 	.cleanup = cleanup,

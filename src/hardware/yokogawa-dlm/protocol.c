@@ -241,25 +241,25 @@ static void scope_state_dump(struct scope_config *config,
 
 	for (i = 0; i < config->analog_channels; ++i) {
 		tmp = sr_voltage_string((*config->vdivs)[state->analog_states[i].vdiv][0],
-					(*config->vdivs)[state->analog_states[i].vdiv][1]);
+				(*config->vdivs)[state->analog_states[i].vdiv][1]);
 		sr_info("State of analog channel  %d -> %s : %s (coupling) %s (vdiv) %2.2e (offset)",
-			i + 1, state->analog_states[i].state ? "On" : "Off",
-			(*config->coupling_options)[state->analog_states[i].coupling],
-			tmp, state->analog_states[i].vertical_offset);
+				i + 1, state->analog_states[i].state ? "On" : "Off",
+				(*config->coupling_options)[state->analog_states[i].coupling],
+				tmp, state->analog_states[i].vertical_offset);
 	}
 
 	for (i = 0; i < config->digital_channels; ++i) {
 		sr_info("State of digital channel %d -> %s", i,
-			state->digital_states[i] ? "On" : "Off");
+				state->digital_states[i] ? "On" : "Off");
 	}
 
 	for (i = 0; i < config->pods; ++i) {
 		sr_info("State of digital POD %d -> %s", i,
-			state->pod_states[i] ? "On" : "Off");
+				state->pod_states[i] ? "On" : "Off");
 	}
 
 	tmp = sr_period_string((*config->timebases)[state->timebase][0] *
-			       (*config->timebases)[state->timebase][1]);
+			(*config->timebases)[state->timebase][1]);
 	sr_info("Current timebase: %s", tmp);
 	g_free(tmp);
 
@@ -268,12 +268,12 @@ static void scope_state_dump(struct scope_config *config,
 	g_free(tmp);
 
 	sr_info("Current samples per acquisition (i.e. frame): %d",
-		state->samples_per_frame);
+			state->samples_per_frame);
 
 	sr_info("Current trigger: %s (source), %s (slope) %.2f (offset)",
-		(*config->trigger_sources)[state->trigger_source],
-		(*config->trigger_slopes)[state->trigger_slope],
-		state->horiz_triggerpos);
+			(*config->trigger_sources)[state->trigger_source],
+			(*config->trigger_slopes)[state->trigger_slope],
+			state->horiz_triggerpos);
 }
 
 /**
@@ -328,6 +328,7 @@ static int array_float_get(gchar *value, const uint64_t array[][2],
 	int i;
 	uint64_t f;
 	float s;
+	unsigned int s_int;
 	gchar ss[10], es[10];
 
 	memset(ss, 0, sizeof(ss));
@@ -350,10 +351,10 @@ static int array_float_get(gchar *value, const uint64_t array[][2],
 	while ((int)fmod(log10(f), 3) > 0) { s *= 10; f *= 10; }
 
 	/* Truncate s to circumvent rounding errors. */
-	s = (int)s;
+	s_int = (unsigned int)s;
 
 	for (i = 0; i < array_len; i++) {
-		if ( (s == array[i][0]) && (f == array[i][1]) ) {
+		if ( (s_int == array[i][0]) && (f == array[i][1]) ) {
 			*result = i;
 			return SR_OK;
 		}
@@ -373,8 +374,8 @@ static int array_float_get(gchar *value, const uint64_t array[][2],
  * @return SR_ERR on error, SR_OK otherwise.
  */
 static int analog_channel_state_get(struct sr_scpi_dev_inst *scpi,
-				    struct scope_config *config,
-				    struct scope_state *state)
+		struct scope_config *config,
+		struct scope_state *state)
 {
 	int i, j;
 	gchar *response;
@@ -382,14 +383,14 @@ static int analog_channel_state_get(struct sr_scpi_dev_inst *scpi,
 	for (i = 0; i < config->analog_channels; ++i) {
 
 		if (dlm_analog_chan_state_get(scpi, i + 1,
-					      &state->analog_states[i].state) != SR_OK)
+				&state->analog_states[i].state) != SR_OK)
 			return SR_ERR;
 
 		if (dlm_analog_chan_vdiv_get(scpi, i + 1, &response) != SR_OK)
 			return SR_ERR;
 
 		if (array_float_get(response, *config->vdivs, config->num_vdivs,
-				    &j) != SR_OK) {
+				&j) != SR_OK) {
 			g_free(response);
 			return SR_ERR;
 		}
@@ -398,15 +399,15 @@ static int analog_channel_state_get(struct sr_scpi_dev_inst *scpi,
 		state->analog_states[i].vdiv = j;
 
 		if (dlm_analog_chan_voffs_get(scpi, i + 1,
-					      &state->analog_states[i].vertical_offset) != SR_OK)
+				&state->analog_states[i].vertical_offset) != SR_OK)
 			return SR_ERR;
 
 		if (dlm_analog_chan_wrange_get(scpi, i + 1,
-					       &state->analog_states[i].waveform_range) != SR_OK)
+				&state->analog_states[i].waveform_range) != SR_OK)
 			return SR_ERR;
 
 		if (dlm_analog_chan_woffs_get(scpi, i + 1,
-					      &state->analog_states[i].waveform_offset) != SR_OK)
+				&state->analog_states[i].waveform_offset) != SR_OK)
 			return SR_ERR;
 
 		if (dlm_analog_chan_coupl_get(scpi, i + 1, &response) != SR_OK) {
@@ -415,7 +416,7 @@ static int analog_channel_state_get(struct sr_scpi_dev_inst *scpi,
 		}
 
 		if (array_option_get(response, config->coupling_options,
-				     &state->analog_states[i].coupling) != SR_OK) {
+				&state->analog_states[i].coupling) != SR_OK) {
 			g_free(response);
 			return SR_ERR;
 		}
@@ -436,15 +437,15 @@ static int analog_channel_state_get(struct sr_scpi_dev_inst *scpi,
  * @return SR_ERR on error, SR_OK otherwise.
  */
 static int digital_channel_state_get(struct sr_scpi_dev_inst *scpi,
-				     struct scope_config *config,
-				     struct scope_state *state)
+		struct scope_config *config,
+		struct scope_state *state)
 {
 	unsigned int i;
 
 	if (!config->digital_channels)
 		{
 			sr_warn("Tried obtaining digital channel states on a " \
-				"model without digital inputs.");
+					"model without digital inputs.");
 			return SR_OK;
 		}
 
@@ -530,7 +531,7 @@ SR_PRIV int dlm_scope_state_query(struct sr_dev_inst *sdi)
 		return SR_ERR;
 
 	if (array_float_get(response, *config->timebases,
-			    config->num_timebases, &i) != SR_OK) {
+			config->num_timebases, &i) != SR_OK) {
 		g_free(response);
 		return SR_ERR;
 	}
@@ -543,8 +544,8 @@ SR_PRIV int dlm_scope_state_query(struct sr_dev_inst *sdi)
 
 	/* TODO: Check if the calculation makes sense for the DLM. */
 	state->horiz_triggerpos = tmp_float /
-		(((double)(*config->timebases)[state->timebase][0] /
-		(*config->timebases)[state->timebase][1]) * config->num_xdivs);
+			(((double)(*config->timebases)[state->timebase][0] /
+			(*config->timebases)[state->timebase][1]) * config->num_xdivs);
 	state->horiz_triggerpos -= 0.5;
 	state->horiz_triggerpos *= -1;
 
@@ -554,7 +555,7 @@ SR_PRIV int dlm_scope_state_query(struct sr_dev_inst *sdi)
 	}
 
 	if (array_option_get(response, config->trigger_sources,
-			     &state->trigger_source) != SR_OK) {
+			&state->trigger_source) != SR_OK) {
 		g_free(response);
 		return SR_ERR;
 	}
@@ -583,20 +584,19 @@ SR_PRIV int dlm_scope_state_query(struct sr_dev_inst *sdi)
  *
  * @param config The device configuration to use.
  *
- * @return The newly allocated scope_state struct or NULL on error.
+ * @return The newly allocated scope_state struct.
  */
 static struct scope_state *dlm_scope_state_new(struct scope_config *config)
 {
 	struct scope_state *state;
 
-	if (!(state = g_try_malloc0(sizeof(struct scope_state))))
-		return NULL;
+	state = g_malloc0(sizeof(struct scope_state));
 
 	state->analog_states = g_malloc0(config->analog_channels *
-					 sizeof(struct analog_channel_state));
+			sizeof(struct analog_channel_state));
 
 	state->digital_states = g_malloc0(config->digital_channels *
-					  sizeof(gboolean));
+			sizeof(gboolean));
 
 	state->pod_states = g_malloc0(config->pods * sizeof(gboolean));
 
@@ -637,7 +637,7 @@ SR_PRIV int dlm_model_get(char *model_id, char **model_name, int *model_index)
 
 	if (*model_index == -1) {
 		sr_err("Found unsupported DLM device with model identifier %s.",
-		       model_id);
+				model_id);
 		return SR_ERR_NA;
 	}
 
@@ -660,10 +660,10 @@ SR_PRIV int dlm_device_init(struct sr_dev_inst *sdi, int model_index)
 	devc = sdi->priv;
 
 	devc->analog_groups = g_malloc0(sizeof(struct sr_channel_group*) *
-				scope_models[model_index].analog_channels);
+			scope_models[model_index].analog_channels);
 
 	devc->digital_groups = g_malloc0(sizeof(struct sr_channel_group*) *
-				scope_models[model_index].digital_channels);
+			scope_models[model_index].digital_channels);
 
 	/* Add analog channels. */
 	for (i = 0; i < scope_models[model_index].analog_channels; i++) {
@@ -675,11 +675,11 @@ SR_PRIV int dlm_device_init(struct sr_dev_inst *sdi, int model_index)
 		devc->analog_groups[i] = g_malloc0(sizeof(struct sr_channel_group));
 
 		devc->analog_groups[i]->name = g_strdup(
-			(char *)(*scope_models[model_index].analog_names)[i]);
+				(char *)(*scope_models[model_index].analog_names)[i]);
 		devc->analog_groups[i]->channels = g_slist_append(NULL, ch);
 
 		sdi->channel_groups = g_slist_append(sdi->channel_groups,
-			devc->analog_groups[i]);
+				devc->analog_groups[i]);
 	}
 
 	/* Add digital channel groups. */
@@ -703,7 +703,7 @@ SR_PRIV int dlm_device_init(struct sr_dev_inst *sdi, int model_index)
 		sdi->channels = g_slist_append(sdi->channels, ch);
 
 		devc->digital_groups[i / 8]->channels = g_slist_append(
-			devc->digital_groups[i / 8]->channels, ch);
+				devc->digital_groups[i / 8]->channels, ch);
 	}
 	devc->model_config = &scope_models[model_index];
 	devc->frame_limit = 0;
@@ -789,8 +789,8 @@ static int dlm_block_data_header_process(GArray *data, int *len)
  * @return SR_ERR when data is trucated, SR_OK otherwise.
  */
 static int dlm_analog_samples_send(GArray *data,
-				   struct analog_channel_state *ch_state,
-				   struct sr_dev_inst *sdi)
+		struct analog_channel_state *ch_state,
+		struct sr_dev_inst *sdi)
 {
 	uint32_t i, samples;
 	float voltage, range, offset;
@@ -821,7 +821,7 @@ static int dlm_analog_samples_send(GArray *data,
 	for (i = 0; i < samples; i++) {
 		voltage = (float)g_array_index(data, int8_t, i);
 		voltage = (range * voltage /
-			   DLM_DIVISION_FOR_BYTE_FORMAT) + offset;
+				DLM_DIVISION_FOR_BYTE_FORMAT) + offset;
 		g_array_append_val(float_data, voltage);
 	}
 
@@ -852,7 +852,7 @@ static int dlm_analog_samples_send(GArray *data,
  * @return SR_ERR when data is trucated, SR_OK otherwise.
  */
 static int dlm_digital_samples_send(GArray *data,
-				   struct sr_dev_inst *sdi)
+		struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct scope_state *model_state;
@@ -923,14 +923,14 @@ SR_PRIV int dlm_data_receive(int fd, int revents, void *cb_data)
 		if (sr_scpi_read_begin(sdi->conn) == SR_OK)
 			/* The 16 here accounts for the header and EOL. */
 			data = g_array_sized_new(FALSE, FALSE, sizeof(uint8_t),
-						 16 + model_state->samples_per_frame);
+					16 + model_state->samples_per_frame);
 		else
 			return TRUE;
 	}
 
 	/* Store incoming data. */
 	chunk_len = sr_scpi_read_data(sdi->conn, devc->receive_buffer,
-				      RECEIVE_BUFFER_SIZE);
+			RECEIVE_BUFFER_SIZE);
 	if (chunk_len < 0) {
 		sr_err("Error while reading data: %d", chunk_len);
 		goto fail;
@@ -957,8 +957,8 @@ SR_PRIV int dlm_data_receive(int fd, int revents, void *cb_data)
 
 	if (num_bytes == 0) {
 		sr_warn("Zero-length waveform data packet received. " \
-			"Live mode not supported yet, stopping " \
-			"acquisition and retrying.");
+				"Live mode not supported yet, stopping " \
+				"acquisition and retrying.");
 		/* Don't care about return value here. */
 		dlm_acquisition_stop(sdi->conn);
 		g_array_free(data, TRUE);
