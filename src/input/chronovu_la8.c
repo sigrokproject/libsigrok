@@ -28,7 +28,7 @@
 #define LOG_PREFIX "input/chronovu-la8"
 
 #define DEFAULT_NUM_CHANNELS    8
-#define DEFAULT_SAMPLERATE      "100MHz"
+#define DEFAULT_SAMPLERATE      100000000L
 #define MAX_CHUNK_SIZE          4096
 #define CHRONOVU_LA8_FILESIZE   8 * 1024 * 1024 + 5
 
@@ -53,9 +53,7 @@ static int init(struct sr_input *in, GHashTable *options)
 {
 	struct sr_channel *ch;
 	struct context *inc;
-	uint64_t samplerate;
 	int num_channels, i;
-	const char *s;
 	char name[16];
 
 	num_channels = g_variant_get_int32(g_hash_table_lookup(options, "numchannels"));
@@ -64,15 +62,10 @@ static int init(struct sr_input *in, GHashTable *options)
 		return SR_ERR_ARG;
 	}
 
-	s = g_variant_get_string(g_hash_table_lookup(options, "samplerate"), NULL);
-	if (sr_parse_sizestring(s, &samplerate) != SR_OK) {
-		sr_err("Invalid samplerate '%s'.", s);
-		return SR_ERR_ARG;
-	}
-
 	in->sdi = sr_dev_inst_new(0, SR_ST_ACTIVE, NULL, NULL, NULL);
 	in->priv = inc = g_malloc0(sizeof(struct context));
-	inc->samplerate = samplerate;
+
+	inc->samplerate = g_variant_get_uint64(g_hash_table_lookup(options, "samplerate"));
 
 	for (i = 0; i < num_channels; i++) {
 		snprintf(name, 16, "%d", i);
@@ -157,7 +150,7 @@ static struct sr_option *get_options(void)
 {
 	if (!options[0].def) {
 		options[0].def = g_variant_ref_sink(g_variant_new_int32(DEFAULT_NUM_CHANNELS));
-		options[1].def = g_variant_ref_sink(g_variant_new_string(DEFAULT_SAMPLERATE));
+		options[1].def = g_variant_ref_sink(g_variant_new_uint64(DEFAULT_SAMPLERATE));
 	}
 
 	return options;
