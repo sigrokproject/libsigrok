@@ -534,13 +534,13 @@ java-install:
 	$(INSTALL) $(JJAR) -t $(datadir)/java
 
 java-clean:
-	rm -f $(JCXX)
-	rm -f $(JCLS)/*.java
-	rm -f $(JCLS)/*.class
-	rm -f $(JINT)/*.class
-	rm -f $(JJAR)
-	rm -f $(JLIB)
-	rm -rf $(JDIR)/doxy/
+	$(AM_V_at)rm -f $(JCXX)
+	$(AM_V_at)rm -f $(JCLS)/*.java
+	$(AM_V_at)rm -f $(JCLS)/*.class
+	$(AM_V_at)rm -f $(JINT)/*.class
+	$(AM_V_at)rm -f $(JJAR)
+	$(AM_V_at)rm -f $(JLIB)
+	$(AM_V_at)rm -rf $(JDIR)/doxy/
 
 java-doc:
 	$(AM_V_at)cd $(srcdir)/$(JDIR) && BUILDDIR=$(abs_builddir)/$(JDIR)/ doxygen Doxyfile 2>/dev/null
