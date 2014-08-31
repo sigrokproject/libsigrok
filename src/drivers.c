@@ -118,6 +118,9 @@ extern SR_PRIV struct sr_dev_driver rigol_ds_driver_info;
 #ifdef HAVE_HW_SALEAE_LOGIC16
 extern SR_PRIV struct sr_dev_driver saleae_logic16_driver_info;
 #endif
+#ifdef HAVE_HW_SCPI_PPS
+extern SR_PRIV struct sr_dev_driver scpi_pps_driver_info;
+#endif
 #ifdef HAVE_HW_SERIAL_DMM
 extern SR_PRIV struct sr_dev_driver bbcgm_m2110_driver_info;
 extern SR_PRIV struct sr_dev_driver digitek_dt4000zc_driver_info;
@@ -291,6 +294,9 @@ SR_PRIV struct sr_dev_driver *drivers_list[] = {
 #endif
 #ifdef HAVE_HW_SALEAE_LOGIC16
 	&saleae_logic16_driver_info,
+#endif
+#ifdef HAVE_HW_SCPI_PPS
+	&scpi_pps_driver_info,
 #endif
 #ifdef HAVE_HW_SERIAL_DMM
 	&bbcgm_m2110_driver_info,

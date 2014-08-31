@@ -286,6 +286,12 @@ libsigrok_la_SOURCES += \
 	src/hardware/saleae-logic16/protocol.c \
 	src/hardware/saleae-logic16/api.c
 endif
+if HW_SCPI_PPS
+libsigrok_la_SOURCES += \
+	src/hardware/scpi-pps/protocol.h \
+	src/hardware/scpi-pps/protocol.c \
+	src/hardware/scpi-pps/api.c
+endif
 if HW_SERIAL_DMM
 libsigrok_la_SOURCES += \
 	src/hardware/serial-dmm/protocol.h \

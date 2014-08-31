@@ -132,6 +132,7 @@ DRIVER([OpenBench Logic Sniffer], [openbench-logic-sniffer])
 DRIVER([Pipistrello-OLS], [pipistrello-ols])
 DRIVER([Rigol DS], [rigol-ds])
 DRIVER([Saleae Logic16], [saleae-logic16])
+DRIVER([SCPI PPS], [scpi-pps])
 DRIVER([serial DMM], [serial-dmm])
 DRIVER([Sysclk LWLA], [sysclk-lwla])
 DRIVER([Teleinfo], [teleinfo])
@@ -623,6 +624,11 @@ fi
 AM_CONDITIONAL(HW_SALEAE_LOGIC16, test x$HW_SALEAE_LOGIC16 = xyes)
 if test "x$HW_SALEAE_LOGIC16" = "xyes"; then
 	AC_DEFINE(HAVE_HW_SALEAE_LOGIC16, 1, [Saleae Logic16 support])
+fi
+
+AM_CONDITIONAL(HW_SCPI_PPS, test x$HW_SCPI_PPS = xyes)
+if test "x$HW_SCPI_PPS" = "xyes"; then
+	AC_DEFINE(HAVE_HW_SCPI_PPS, 1, [SCPI PPS support])
 fi
 
 AM_CONDITIONAL(HW_SERIAL_DMM, test x$HW_SERIAL_DMM = xyes)
