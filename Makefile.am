@@ -523,7 +523,7 @@ $(JJAR): $(JCXX)
 	$(AM_V_at)jar cf $(JJAR) -C $(JDIR) $(JPKG)
 
 $(JLIB): $(JCXX) bindings/cxx/libsigrokxx.la $(library_include_HEADERS)
-	$(AM_V_GEN)$(CXX) $(CXXFLAGS) -L.libs -Lbindings/cxx/.libs \
+	$(AM_V_GEN)$(CXXCOMPILE) -L.libs -Lbindings/cxx/.libs \
 		-fno-strict-aliasing -fPIC -shared $(JCLS)/classes_wrap.cxx \
 		-lsigrokxx -o $(JLIB)
 
