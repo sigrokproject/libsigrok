@@ -113,6 +113,8 @@ SR_API const char *sr_strerror_name(int error_code)
 	 */
 
 	switch (error_code) {
+	case SR_OK_CONTINUE:
+		return "SR_OK_CONTINUE";
 	case SR_OK:
 		return "SR_OK";
 	case SR_ERR:
@@ -133,6 +135,8 @@ SR_API const char *sr_strerror_name(int error_code)
 		return "SR_ERR_TIMEOUT";
 	case SR_ERR_CHANNEL_GROUP:
 		return "SR_ERR_CHANNEL_GROUP";
+	case SR_ERR_DATA:
+		return "SR_ERR_DATA";
 	default:
 		return "unknown error code";
 	}
