@@ -386,6 +386,19 @@ PKG_CHECK_MODULES([glibmm], [glibmm-2.4 >= 2.32.0],
 	CXXLIBS="$CXXLIBS $glibmm_LIBS"],
 	[BINDINGS_CXX="no"; cxx_msg="glibmm required"])
 
+# C++ bindings want stoi and stod
+if test "x$BINDINGS_CXX" == "xyes"; then
+	AC_LANG_PUSH([C++])
+	AC_MSG_CHECKING([for stoi and stod])
+	AC_COMPILE_IFELSE([AC_LANG_PROGRAM([#include <string>],
+					   [{ return std::stoi("1")+std::stod("1.0"); }])],
+	       [AC_MSG_RESULT([yes]);
+		AC_DEFINE_UNQUOTED(HAVE_STOI_STOD, [1],
+		[Specifies whether we have the stoi and stod functions.])],
+	       [AC_MSG_RESULT([no])])
+	AC_LANG_POP([C++])
+fi
+
 # PyGObject is needed for the Python bindings.
 PKG_CHECK_MODULES([pygobject], [pygobject-3.0 >= 3.0.0],
         [CXXFLAGS="$CXXFLAGS $pygobject_CFLAGS";

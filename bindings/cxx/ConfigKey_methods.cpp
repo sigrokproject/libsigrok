@@ -30,6 +30,46 @@ const ConfigKey *ConfigKey::get(string identifier)
 	return get(info->key);
 }
 
+#include "config.h"
+
+#ifndef HAVE_STOI_STOD
+
+/* Fallback implementation of stoi and stod */
+
+#include <cstdlib>
+#include <cerrno>
+#include <stdexcept>
+#include <limits>
+
+static inline int stoi( const std::string& str )
+{
+	char *endptr;
+	errno = 0;
+	const long ret = std::strtol(str.c_str(), &endptr, 10);
+	if (endptr == str.c_str())
+		throw std::invalid_argument("stoi");
+	else if (errno == ERANGE ||
+		 ret < std::numeric_limits<int>::min() ||
+		 ret > std::numeric_limits<int>::max())
+		throw std::out_of_range("stoi");
+	else
+		return ret;
+}
+
+static inline double stod( const std::string& str )
+{
+	char *endptr;
+	errno = 0;
+	const double ret = std::strtod(str.c_str(), &endptr);
+	if (endptr == str.c_str())
+		throw std::invalid_argument("stod");
+	else if (errno == ERANGE)
+		throw std::out_of_range("stod");
+	else
+		return ret;
+}
+#endif
+
 Glib::VariantBase ConfigKey::parse_string(string value) const
 {
 	GVariant *variant;
