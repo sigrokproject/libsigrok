@@ -773,7 +773,6 @@ public:
 protected:
 	Input(shared_ptr<Context> context, const struct sr_input *structure);
 	~Input();
-	shared_ptr<Device> get_shared_from_this();
 	const struct sr_input *structure;
 	shared_ptr<Context> context;
 	InputDevice *device;
