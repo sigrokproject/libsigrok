@@ -75,6 +75,7 @@ enum model {
 	METRAHIT_26SM		= METRAHIT_25S + 1,	/**< Send mode */
 	METRAHIT_26S		= METRAHIT_26SM + 1,	/**< Bidi mode */
 	METRAHIT_26M		= METRAHIT_26S + 1,	/**< Bidi mode */
+	/* The Metrahit 27x and 28Cx have a totally different protocol */
 	METRAHIT_28S		= METRAHIT_26M + 1,
 	METRAHIT_29S		= METRAHIT_28S + 1,
 };
@@ -101,7 +102,6 @@ struct dev_context {
 	float value;		/**< Measured value */
 	float scale;		/**< Scale for value. */
 	int8_t scale1000;   /**< Additional scale factor 1000x. */
-	gboolean vmains_29S;	/**< Measured ctmv is V mains (29S only). */
 	int addr;           /**< Device address (1..15). */
 	int cmd_idx;        /**< Parameter "Idx" (Index) of current command, if required. */
 	int cmd_seq;        /**< Command sequence. Used to query status every n messages. */

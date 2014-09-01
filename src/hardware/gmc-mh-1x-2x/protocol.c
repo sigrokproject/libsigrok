@@ -282,8 +282,6 @@ static void decode_rs_18(uint8_t rs, struct dev_context *devc)
 			 * identify relative mode.
 			 */
 		}
-		else if (devc->vmains_29S)
-			devc->scale *= pow(10.0, range - 2);
 		else
 			devc->scale *= pow(10.0, range - 5);
 		break;
@@ -346,8 +344,8 @@ static void decode_spc_18(uint8_t spc, struct dev_context *devc)
  */
 static void decode_ctmv_2x(uint8_t ctmv, struct dev_context *devc)
 {
-	if ((ctmv > 0x1c) || (!devc)) {
-		sr_err("decode_ctmv_2x(%d): invalid param(s)!", ctmv);
+	if ((ctmv > 0x20) || (!devc)) {
+		sr_err("decode_ctmv_2x(0x%x): invalid param(s)!", ctmv);
 		return;
 	}
 
@@ -373,6 +371,7 @@ static void decode_ctmv_2x(uint8_t ctmv, struct dev_context *devc)
 	case 0x04: /* 00100 mA DC */
 	case 0x05: /* 00101 mA AC+DC */
 		devc->scale1000 = -1;
+		/* Fall through! */
 	case 0x06: /* 00110 A DC */
 	case 0x07: /* 00111 A AC+DC */
 		devc->mq = SR_MQ_CURRENT;
@@ -409,11 +408,14 @@ static void decode_ctmv_2x(uint8_t ctmv, struct dev_context *devc)
 			devc->mqflags |= SR_MQFLAG_DC;
 		break;
 	case 0x0d: /* 01101 W on power, mA range (29S only) */
-		devc->scale *= 0.001;
+		devc->scale *= 0.1;
 		/* Fall through! */
 	case 0x0e: /* 01110 W on power, A range (29S only) */
+		devc->scale *= 0.1;
+		devc->scale1000 = -1;
 		devc->mq = SR_MQ_POWER;
 		devc->unit = SR_UNIT_WATT;
+		devc->mqflags |= (SR_MQFLAG_AC | SR_MQFLAG_DC | SR_MQFLAG_RMS);
 		break;
 	case 0x0f: /* 01111 Diode */
 	case 0x10: /* 10000 Diode with buzzer (actually cont. with voltage) */
@@ -437,7 +439,8 @@ static void decode_ctmv_2x(uint8_t ctmv, struct dev_context *devc)
 		devc->unit = SR_UNIT_CELSIUS;
 		/* This can be Fahrenheit. That is detected by range=4 later. */
 		break;
-	/* 0x13 10011, 0x14 10100 unsed */
+	/* 0x13 10011 unused */
+	/* 0x14 10100 unused */
 	case 0x15: /* 10101 Press (29S only) */
 		/* TODO: What does that mean? Possibly phase shift?
 		   Then we need a unit/flag for it. */
@@ -452,8 +455,7 @@ static void decode_ctmv_2x(uint8_t ctmv, struct dev_context *devc)
 	case 0x17: /* 10111 TRMS V on mains (29S only) */
 		devc->mq = SR_MQ_VOLTAGE;
 		devc->unit = SR_UNIT_VOLT;
-		devc->mqflags |= (SR_MQFLAG_AC | SR_MQFLAG_RMS);
-		devc->vmains_29S = TRUE;
+		devc->mqflags |= (SR_MQFLAG_AC | SR_MQFLAG_DC | SR_MQFLAG_RMS);
 		break;
 	case 0x18: /* 11000 Counter (zero crossings of a signal) */
 		devc->mq = SR_MQ_VOLTAGE;
@@ -468,11 +470,11 @@ static void decode_ctmv_2x(uint8_t ctmv, struct dev_context *devc)
 		if (ctmv <= 0x19)
 			devc->mqflags |= SR_MQFLAG_DC;
 		break;
-	case 0x1b: /* 11011 pulse on mains (29S only) */
-		/* TODO: No unit or flags for this yet! */
-		devc->mq = SR_MQ_VOLTAGE;
-		devc->unit = SR_UNIT_UNITLESS;
-		devc->mqflags |= SR_MQFLAG_AC;
+	case 0x1b: /* 11011 Milliamperes in power mode (29S only); error in docs, "pulse on mains" */
+		devc->mq = SR_MQ_CURRENT;
+		devc->unit = SR_UNIT_AMPERE;
+		devc->mqflags |= (SR_MQFLAG_AC | SR_MQFLAG_DC | SR_MQFLAG_RMS);
+		devc->scale1000 = -1;
 		break;
 	case 0x1c: /* 11100 dropout on mains (29S only) */
 		/* TODO: No unit or flags for this yet! */
@@ -480,14 +482,20 @@ static void decode_ctmv_2x(uint8_t ctmv, struct dev_context *devc)
 		devc->unit = SR_UNIT_UNITLESS;
 		devc->mqflags |= SR_MQFLAG_AC;
 		break;
-	case 0x1f: /* 11111 Undocumented: 25S in stopwatch mode.
+	case 0x1d: /* 11101 Voltage in power mode (29S); undocumented! */
+		devc->mq = SR_MQ_VOLTAGE;
+		devc->unit = SR_UNIT_VOLT;
+		devc->mqflags |= (SR_MQFLAG_AC | SR_MQFLAG_DC | SR_MQFLAG_RMS);
+		break;
+	/* 0x1e: 11110 Undocumented */
+	case 0x1f: /* 11111 25S in stopwatch mode; undocumented!
 			The value is voltage, not time, so treat it such. */
 		devc->mq = SR_MQ_VOLTAGE;
 		devc->unit = SR_UNIT_VOLT;
 		devc->mqflags |= SR_MQFLAG_DC;
 		break;
-	case 0x20: /* 100000 Undocumented: 25S in event count mode.
-		Value is 0 anyway. */
+	case 0x20: /* 100000 25S in event count mode; undocumented!
+			Value is 0 anyway. */
 		devc->mq = SR_MQ_VOLTAGE;
 		devc->unit = SR_UNIT_UNITLESS;
 		break;
@@ -517,8 +525,6 @@ static void decode_rs_2x(uint8_t rs, struct dev_context *devc)
 	case SR_MQ_VOLTAGE:
 		if (devc->unit == SR_UNIT_DECIBEL_VOLT)
 			devc->scale *= pow(10.0, -3);
-		else if (devc->vmains_29S)
-			devc->scale *= pow(10.0, range - 2);
 		else
 			devc->scale *= pow(10.0, range - 6);
 		break;
@@ -634,7 +640,6 @@ static void clean_ctmv_rs_v(struct dev_context *devc)
 	devc->unit = 0;
 	devc->mqflags = 0;
 	devc->scale1000 = 0;
-	devc->vmains_29S = FALSE;
 	clean_rs_v(devc);
 }
 
