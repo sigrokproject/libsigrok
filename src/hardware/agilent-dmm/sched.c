@@ -411,11 +411,11 @@ static int recv_conf_u124x_5x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 		devc->cur_mqflags = 0;
 		devc->cur_divider = 0;
 		if (mstr[4] == ':') {
-			if (!strcmp(mstr + 4, "AC")) {
+			if (!strncmp(mstr + 5, "AC", 2)) {
 				devc->cur_mqflags |= SR_MQFLAG_AC | SR_MQFLAG_RMS;
-			} else if (!strcmp(mstr + 4, "DC")) {
+			} else if (!strncmp(mstr + 5, "DC", 2)) {
 				devc->cur_mqflags |= SR_MQFLAG_DC;
-			} else if (!strcmp(mstr + 4, "ACDC")) {
+			} else if (!strncmp(mstr + 5, "ACDC", 4)) {
 				/* AC + DC offset */
 				devc->cur_mqflags |= SR_MQFLAG_AC | SR_MQFLAG_DC | SR_MQFLAG_RMS;
 			} else {
@@ -502,8 +502,8 @@ SR_PRIV const struct agdmm_recv agdmm_recvs_u124x[] = {
 	{ "^\"(\\d\\d.{18}\\d)\"$", recv_stat_u124x },
 	{ "^\\*([0-9])$", recv_switch },
 	{ "^([-+][0-9]\\.[0-9]{8}E[-+][0-9]{2})$", recv_fetc },
-	{ "^(VOLT|CURR|RES|CAP) ([-+][0-9\\.E\\-+]+),([-+][0-9\\.E\\-+]+)$", recv_conf_u124x_5x },
-	{ "^(VOLT:[ACD]+) ([-+][0-9\\.E\\-+]+),([-+][0-9\\.E\\-+]+)$", recv_conf_u124x_5x },
+	{ "^\"(VOLT|CURR|RES|CAP) ([-+][0-9\\.E\\-+]+),([-+][0-9\\.E\\-+]+)\"$", recv_conf_u124x_5x },
+	{ "^\"(VOLT:[ACD]+) ([-+][0-9\\.E\\-+]+),([-+][0-9\\.E\\-+]+)\"$", recv_conf_u124x_5x },
 	{ "^\"(DIOD)\"$", recv_conf },
 	{ NULL, NULL }
 };
@@ -512,8 +512,8 @@ SR_PRIV const struct agdmm_recv agdmm_recvs_u125x[] = {
 	{ "^\"(\\d\\d.{18}\\d)\"$", recv_stat_u125x },
 	{ "^\\*([0-9])$", recv_switch },
 	{ "^([-+][0-9]\\.[0-9]{8}E[-+][0-9]{2})$", recv_fetc },
-	{ "^(VOLT|CURR|RES|CAP) ([-+][0-9\\.E\\-+]+),([-+][0-9\\.E\\-+]+)$", recv_conf_u124x_5x },
-	{ "^(VOLT:[ACD]+) ([-+][0-9\\.E\\-+]+),([-+][0-9\\.E\\-+]+)$", recv_conf_u124x_5x },
+	{ "^\"(VOLT|CURR|RES|CAP) ([-+][0-9\\.E\\-+]+),([-+][0-9\\.E\\-+]+)\"$", recv_conf_u124x_5x },
+	{ "^\"(VOLT:[ACD]+) ([-+][0-9\\.E\\-+]+),([-+][0-9\\.E\\-+]+)\"$", recv_conf_u124x_5x },
 	{ "^\"(DIOD)\"$", recv_conf },
 	{ NULL, NULL }
 };

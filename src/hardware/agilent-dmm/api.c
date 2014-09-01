@@ -55,6 +55,8 @@ static const struct agdmm_profile supported_agdmm[] = {
 
 	{ AGILENT_U1241, "U1241A", agdmm_jobs_u12xx, agdmm_recvs_u124x },
 	{ AGILENT_U1242, "U1242A", agdmm_jobs_u12xx, agdmm_recvs_u124x },
+	{ AGILENT_U1241, "U1241B", agdmm_jobs_u12xx, agdmm_recvs_u124x },
+	{ AGILENT_U1242, "U1242B", agdmm_jobs_u12xx, agdmm_recvs_u124x },
 
 	{ AGILENT_U1251, "U1251A", agdmm_jobs_u12xx, agdmm_recvs_u125x },
 	{ AGILENT_U1252, "U1252A", agdmm_jobs_u12xx, agdmm_recvs_u125x },
@@ -125,7 +127,7 @@ static GSList *scan(GSList *options)
 		sr_err("Serial buffer malloc failed.");
 		return NULL;
 	}
-	serial_readline(serial, &buf, &len, 150);
+	serial_readline(serial, &buf, &len, 250);
 	if (!len)
 		return NULL;
 
