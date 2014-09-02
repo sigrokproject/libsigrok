@@ -108,8 +108,7 @@ map<string, shared_ptr<Driver>> Context::get_drivers()
 	{
 		auto name = entry.first;
 		auto driver = entry.second;
-		result[name] = static_pointer_cast<Driver>(
-			driver->get_shared_pointer(this));
+		result[name] = driver->get_shared_pointer(this);
 	}
 	return result;
 }
@@ -121,8 +120,7 @@ map<string, shared_ptr<InputFormat>> Context::get_input_formats()
 	{
 		auto name = entry.first;
 		auto input_format = entry.second;
-		result[name] = static_pointer_cast<InputFormat>(
-			input_format->get_shared_pointer(this));
+		result[name] = input_format->get_shared_pointer(this);
 	}
 	return result;
 }
@@ -134,8 +132,7 @@ map<string, shared_ptr<OutputFormat>> Context::get_output_formats()
 	{
 		auto name = entry.first;
 		auto output_format = entry.second;
-		result[name] = static_pointer_cast<OutputFormat>(
-			output_format->get_shared_pointer(this));
+		result[name] = output_format->get_shared_pointer(this);
 	}
 	return result;
 }
@@ -315,8 +312,7 @@ vector<shared_ptr<HardwareDevice>> Driver::scan(
 	/* Create list of shared pointers to device instances for return. */
 	vector<shared_ptr<HardwareDevice>> result;
 	for (auto device : devices)
-		result.push_back(static_pointer_cast<HardwareDevice>(
-			device->get_shared_pointer(parent)));
+		result.push_back(device->get_shared_pointer(parent));
 	return result;
 }
 
@@ -417,15 +413,13 @@ vector<shared_ptr<Channel>> Device::get_channels()
 {
 	vector<shared_ptr<Channel>> result;
 	for (auto entry : channels)
-		result.push_back(static_pointer_cast<Channel>(
-			entry.second->get_shared_pointer(get_shared_from_this())));
+		result.push_back(entry.second->get_shared_pointer(get_shared_from_this()));
 	return result;
 }
 
 shared_ptr<Channel> Device::get_channel(struct sr_channel *ptr)
 {
-	return static_pointer_cast<Channel>(
-		channels[ptr]->get_shared_pointer(get_shared_from_this()));
+	return channels[ptr]->get_shared_pointer(get_shared_from_this());
 }
 
 map<string, shared_ptr<ChannelGroup>>
@@ -436,8 +430,7 @@ Device::get_channel_groups()
 	{
 		auto name = entry.first;
 		auto channel_group = entry.second;
-		result[name] = static_pointer_cast<ChannelGroup>(
-			channel_group->get_shared_pointer(get_shared_from_this()));
+		result[name] = channel_group->get_shared_pointer(get_shared_from_this());
 	}
 	return result;
 }
@@ -465,13 +458,12 @@ HardwareDevice::~HardwareDevice()
 
 shared_ptr<Device> HardwareDevice::get_shared_from_this()
 {
-	return static_pointer_cast<Device>(
-		static_pointer_cast<HardwareDevice>(shared_from_this()));
+	return static_pointer_cast<Device>(shared_from_this());
 }
 
 shared_ptr<Driver> HardwareDevice::get_driver()
 {
-	return static_pointer_cast<Driver>(driver->get_shared_pointer(parent));
+	return driver->get_shared_pointer(parent);
 }
 
 Channel::Channel(struct sr_channel *structure) :
@@ -536,8 +528,7 @@ vector<shared_ptr<Channel>> ChannelGroup::get_channels()
 {
 	vector<shared_ptr<Channel>> result;
 	for (auto channel : channels)
-		result.push_back(static_pointer_cast<Channel>(
-			channel->get_shared_pointer(parent)));
+		result.push_back(channel->get_shared_pointer(parent));
 	return result;
 }
 
@@ -565,8 +556,7 @@ vector<shared_ptr<TriggerStage>> Trigger::get_stages()
 {
 	vector<shared_ptr<TriggerStage>> result;
 	for (auto stage : stages)
-		result.push_back(static_pointer_cast<TriggerStage>(
-			stage->get_shared_pointer(this)));
+		result.push_back(stage->get_shared_pointer(this));
 	return result;
 }
 
@@ -574,8 +564,7 @@ shared_ptr<TriggerStage> Trigger::add_stage()
 {
 	auto stage = new TriggerStage(sr_trigger_stage_add(structure));
 	stages.push_back(stage);
-	return static_pointer_cast<TriggerStage>(
-		stage->get_shared_pointer(this));
+	return stage->get_shared_pointer(this);
 }
 
 TriggerStage::TriggerStage(struct sr_trigger_stage *structure) : 
@@ -598,8 +587,7 @@ vector<shared_ptr<TriggerMatch>> TriggerStage::get_matches()
 {
 	vector<shared_ptr<TriggerMatch>> result;
 	for (auto match : matches)
-		result.push_back(static_pointer_cast<TriggerMatch>(
-			match->get_shared_pointer(this)));
+		result.push_back(match->get_shared_pointer(this));
 	return result;
 }
 
@@ -1018,9 +1006,7 @@ Header::~Header()
 
 shared_ptr<PacketPayload> Header::get_shared_pointer(Packet *parent)
 {
-	return static_pointer_cast<PacketPayload>(
-		static_pointer_cast<Header>(
-		StructureWrapper::get_shared_pointer(parent)));
+	return static_pointer_cast<PacketPayload>(get_shared_pointer(parent));
 }
 
 int Header::get_feed_version()
@@ -1047,9 +1033,7 @@ Meta::~Meta()
 
 shared_ptr<PacketPayload> Meta::get_shared_pointer(Packet *parent)
 {
-	return static_pointer_cast<PacketPayload>(
-		static_pointer_cast<Meta>(
-		StructureWrapper::get_shared_pointer(parent)));
+	return static_pointer_cast<PacketPayload>(get_shared_pointer(parent));
 }
 
 map<const ConfigKey *, Glib::VariantBase> Meta::get_config()
@@ -1075,9 +1059,7 @@ Logic::~Logic()
 
 shared_ptr<PacketPayload> Logic::get_shared_pointer(Packet *parent)
 {
-	return static_pointer_cast<PacketPayload>(
-		static_pointer_cast<Logic>(
-		StructureWrapper::get_shared_pointer(parent)));
+	return static_pointer_cast<PacketPayload>(get_shared_pointer(parent));
 }
 
 void *Logic::get_data_pointer()
@@ -1107,9 +1089,7 @@ Analog::~Analog()
 
 shared_ptr<PacketPayload> Analog::get_shared_pointer(Packet *parent)
 {
-	return static_pointer_cast<PacketPayload>(
-		static_pointer_cast<Analog>(
-			StructureWrapper::get_shared_pointer(parent)));
+	return static_pointer_cast<PacketPayload>(get_shared_pointer(parent));
 }
 
 float *Analog::get_data_pointer()
@@ -1204,8 +1184,7 @@ shared_ptr<InputDevice> Input::get_device()
 		device = new InputDevice(shared_from_this(), sdi);
 	}
 
-	return static_pointer_cast<InputDevice>(
-		device->get_shared_pointer(shared_from_this()));
+	return device->get_shared_pointer(shared_from_this());
 }
 
 void Input::send(string data)
@@ -1237,8 +1216,7 @@ InputDevice::~InputDevice()
 
 shared_ptr<Device> InputDevice::get_shared_from_this()
 {
-	return static_pointer_cast<Device>(
-		static_pointer_cast<InputDevice>(shared_from_this()));
+	return static_pointer_cast<Device>(shared_from_this());
 }
 
 Option::Option(const struct sr_option *structure,
@@ -1315,9 +1293,7 @@ shared_ptr<Output> OutputFormat::create_output(
 	shared_ptr<Device> device, map<string, Glib::VariantBase> options)
 {
 	return shared_ptr<Output>(
-		new Output(
-			static_pointer_cast<OutputFormat>(shared_from_this()),
-				device, options),
+		new Output(shared_from_this(), device, options),
 		Output::Deleter());
 }
 

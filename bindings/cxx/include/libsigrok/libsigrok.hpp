@@ -125,7 +125,8 @@ public:
 };
 
 /* Base template for most classes which wrap a struct type from libsigrok. */
-template <class Parent, typename Struct> class SR_API StructureWrapper
+template <class Class, class Parent, typename Struct>
+class SR_API StructureWrapper
 {
 protected:
 	/*  Parent object which owns this child object's underlying structure.
@@ -144,26 +145,24 @@ protected:
 	shared_ptr<Parent> parent;
 
 	/* Weak pointer for shared_from_this() implementation. */
-	weak_ptr<StructureWrapper<Parent, Struct> > weak_this;
+	weak_ptr<Class> weak_this;
 
 public:
 	/* Note, this implementation will create a new smart_ptr if none exists. */
-	shared_ptr<StructureWrapper<Parent, Struct> > shared_from_this()
+	shared_ptr<Class> shared_from_this()
 	{
-		shared_ptr<StructureWrapper<Parent, Struct> > shared;
+		shared_ptr<Class> shared;
 
 		if (!(shared = weak_this.lock()))
 		{
-			shared = shared_ptr<StructureWrapper<Parent, Struct> >(
-				this, reset_parent);
+			shared = shared_ptr<Class>((Class *) this, reset_parent);
 			weak_this = shared;
 		}
 
 		return shared;
 	}
 
-	shared_ptr<StructureWrapper<Parent, Struct> >
-	get_shared_pointer(shared_ptr<Parent> parent)
+	shared_ptr<Class> get_shared_pointer(shared_ptr<Parent> parent)
 	{
 		if (!parent)
 			throw Error(SR_ERR_BUG);
@@ -171,16 +170,14 @@ public:
 		return shared_from_this();
 	}
 
-	shared_ptr<StructureWrapper<Parent, Struct> >
-	get_shared_pointer(Parent *parent)
+	shared_ptr<Class> get_shared_pointer(Parent *parent)
 	{
 		if (!parent)
 			throw Error(SR_ERR_BUG);
-		return get_shared_pointer(static_pointer_cast<Parent>(
-			parent->shared_from_this()));
+		return get_shared_pointer(parent->shared_from_this());
 	}
 protected:
-	static void reset_parent(StructureWrapper<Parent, Struct> *object)
+	static void reset_parent(Class *object)
 	{
 		if (!object->parent)
 			throw Error(SR_ERR_BUG);
@@ -189,7 +186,7 @@ protected:
 
 	Struct *structure;
 
-	StructureWrapper<Parent, Struct>(Struct *structure) :
+	StructureWrapper<Class, Parent, Struct>(Struct *structure) :
 		structure(structure)
 	{
 	}
@@ -264,7 +261,8 @@ protected:
 };
 
 /** A hardware driver provided by the library */
-class SR_API Driver : public StructureWrapper<Context, struct sr_dev_driver>
+class SR_API Driver :
+	public StructureWrapper<Driver, Context, struct sr_dev_driver>
 {
 public:
 	/** Name of this driver. */
@@ -354,7 +352,7 @@ protected:
 
 /** A real hardware device, connected via a driver */
 class SR_API HardwareDevice :
-	public StructureWrapper<Context, struct sr_dev_inst>,
+	public StructureWrapper<HardwareDevice, Context, struct sr_dev_inst>,
 	public Device
 {
 public:
@@ -370,7 +368,8 @@ protected:
 };
 
 /** A channel on a device */
-class SR_API Channel : public StructureWrapper<Device, struct sr_channel>
+class SR_API Channel :
+	public StructureWrapper<Channel, Device, struct sr_channel>
 {
 public:
 	/** Current name of this channel. */
@@ -399,7 +398,7 @@ protected:
 
 /** A group of channels on a device, which share some configuration */
 class SR_API ChannelGroup :
-	public StructureWrapper<Device, struct sr_channel_group>,
+	public StructureWrapper<ChannelGroup, Device, struct sr_channel_group>,
 	public Configurable
 {
 public:
@@ -441,7 +440,8 @@ protected:
 };
 
 /** A stage in a trigger configuration */
-class SR_API TriggerStage : public StructureWrapper<Trigger, struct sr_trigger_stage>
+class SR_API TriggerStage :
+	public StructureWrapper<TriggerStage, Trigger, struct sr_trigger_stage>
 {
 public:
 	/** Index number of this stage. */
@@ -465,7 +465,8 @@ protected:
 };
 
 /** A match condition in a trigger configuration  */
-class SR_API TriggerMatch : public StructureWrapper<TriggerStage, struct sr_trigger_match>
+class SR_API TriggerMatch :
+	public StructureWrapper<TriggerMatch, TriggerStage, struct sr_trigger_match>
 {
 public:
 	/** Channel this condition matches on. */
@@ -681,7 +682,7 @@ protected:
 
 /** Payload of a datafeed header packet */
 class SR_API Header :
-	public StructureWrapper<Packet, const struct sr_datafeed_header>,
+	public StructureWrapper<Header, Packet, const struct sr_datafeed_header>,
 	public PacketPayload
 {
 public:
@@ -698,7 +699,7 @@ protected:
 
 /** Payload of a datafeed metadata packet */
 class SR_API Meta :
-	public StructureWrapper<Packet, const struct sr_datafeed_meta>,
+	public StructureWrapper<Meta, Packet, const struct sr_datafeed_meta>,
 	public PacketPayload
 {
 public:
@@ -714,7 +715,7 @@ protected:
 
 /** Payload of a datafeed packet with logic data */
 class SR_API Logic :
-	public StructureWrapper<Packet, const struct sr_datafeed_logic>,
+	public StructureWrapper<Logic, Packet, const struct sr_datafeed_logic>,
 	public PacketPayload
 {
 public:
@@ -733,7 +734,7 @@ protected:
 
 /** Payload of a datafeed packet with analog data */
 class SR_API Analog :
-	public StructureWrapper<Packet, const struct sr_datafeed_analog>,
+	public StructureWrapper<Analog, Packet, const struct sr_datafeed_analog>,
 	public PacketPayload
 {
 public:
@@ -758,7 +759,7 @@ protected:
 
 /** An input format supported by the library */
 class SR_API InputFormat :
-	public StructureWrapper<Context, const struct sr_input_module>
+	public StructureWrapper<InputFormat, Context, const struct sr_input_module>
 {
 public:
 	/** Name of this input format. */
@@ -805,7 +806,7 @@ protected:
 
 /** A virtual device associated with an input */
 class SR_API InputDevice :
-	public StructureWrapper<Input, struct sr_dev_inst>,
+	public StructureWrapper<InputDevice, Input, struct sr_dev_inst>,
 	public Device
 {
 protected:
@@ -856,7 +857,7 @@ protected:
 
 /** An output format supported by the library */
 class SR_API OutputFormat :
-	public StructureWrapper<Context, const struct sr_output_module>
+	public StructureWrapper<OutputFormat, Context, const struct sr_output_module>
 {
 public:
 	/** Name of this output format. */
