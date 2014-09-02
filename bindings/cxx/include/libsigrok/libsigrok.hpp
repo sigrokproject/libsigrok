@@ -192,11 +192,32 @@ protected:
 	}
 };
 
+/* Base template for classes whose resources are owned by the user. */
+template <class Class, typename Struct>
+class SR_API UserOwned : public enable_shared_from_this<Class>
+{
+public:
+	shared_ptr<Class> shared_from_this()
+	{
+		auto shared = enable_shared_from_this<Class>::shared_from_this();
+		if (!shared)
+			throw Error(SR_ERR_BUG);
+		return shared;
+	}
+protected:
+	Struct *structure;
+
+	UserOwned<Class, Struct>(Struct *structure) :
+		structure(structure)
+	{
+	}
+};
+
 /** Type of log callback */
 typedef function<void(const LogLevel *, string message)> LogCallbackFunction;
 
 /** The global libsigrok context */
-class SR_API Context : public enable_shared_from_this<Context>
+class SR_API Context : public UserOwned<Context, struct sr_context>
 {
 public:
 	/** Create new context */
@@ -241,7 +262,6 @@ public:
 	 * @param header Initial data from stream. */
 	shared_ptr<Input> open_stream(string header);
 protected:
-	struct sr_context *structure;
 	map<string, Driver *> drivers;
 	map<string, InputFormat *> input_formats;
 	map<string, OutputFormat *> output_formats;
@@ -414,7 +434,7 @@ protected:
 };
 
 /** A trigger configuration */
-class SR_API Trigger : public enable_shared_from_this<Trigger>
+class SR_API Trigger : public UserOwned<Trigger, struct sr_trigger>
 {
 public:
 	/** Name of this trigger configuration. */
@@ -426,7 +446,6 @@ public:
 protected:
 	Trigger(shared_ptr<Context> context, string name);
 	~Trigger();
-	struct sr_trigger *structure;
 	shared_ptr<Context> context;
 	vector<TriggerStage *> stages;
 	/** Deleter needed to allow shared_ptr use with protected destructor. */
@@ -566,7 +585,7 @@ protected:
 };
 
 /** A sigrok session */
-class SR_API Session 
+class SR_API Session : public UserOwned<Session, struct sr_session>
 {
 public:
 	/** Add a device to this session.
@@ -610,7 +629,6 @@ protected:
 	Session(shared_ptr<Context> context);
 	Session(shared_ptr<Context> context, string filename);
 	~Session();
-	struct sr_session *structure;
 	const shared_ptr<Context> context;
 	map<const struct sr_dev_inst *, shared_ptr<Device> > devices;
 	vector<DatafeedCallbackData *> datafeed_callbacks;
@@ -632,7 +650,7 @@ protected:
 };
 
 /** A packet on the session datafeed */
-class SR_API Packet : public enable_shared_from_this<Packet>
+class SR_API Packet : public UserOwned<Packet, const struct sr_datafeed_packet>
 {
 public:
 	/** Type of this packet. */
@@ -643,7 +661,6 @@ protected:
 	Packet(shared_ptr<Device> device,
 		const struct sr_datafeed_packet *structure);
 	~Packet();
-	const struct sr_datafeed_packet *structure;
 	shared_ptr<Device> device;
 	PacketPayload *payload;
 	/** Deleter needed to allow shared_ptr use with protected destructor. */
@@ -779,7 +796,7 @@ protected:
 };
 
 /** An input instance (an input format applied to a file or stream) */
-class SR_API Input : public enable_shared_from_this<Input>
+class SR_API Input : public UserOwned<Input, const struct sr_input>
 {
 public:
 	/** Virtual device associated with this input. */
@@ -790,7 +807,6 @@ public:
 protected:
 	Input(shared_ptr<Context> context, const struct sr_input *structure);
 	~Input();
-	const struct sr_input *structure;
 	shared_ptr<Context> context;
 	InputDevice *device;
 	/** Deleter needed to allow shared_ptr use with protected destructor. */
@@ -825,7 +841,7 @@ protected:
 };
 
 /** An option used by an output format */
-class SR_API Option
+class SR_API Option : public UserOwned<Option, const struct sr_option>
 {
 public:
 	/** Short name of this option suitable for command line usage. */
@@ -842,7 +858,6 @@ protected:
 	Option(const struct sr_option *structure,
 		shared_ptr<const struct sr_option *> structure_array);
 	~Option();
-	const struct sr_option *structure;
 	shared_ptr<const struct sr_option *> structure_array;
 	/** Deleter needed to allow shared_ptr use with protected destructor. */
 	class Deleter
@@ -879,7 +894,7 @@ protected:
 };
 
 /** An output instance (an output format applied to a device) */
-class SR_API Output
+class SR_API Output : public UserOwned<Output, const struct sr_output>
 {
 public:
 	/** Update output with data from the given packet.
@@ -890,7 +905,6 @@ protected:
 	Output(shared_ptr<OutputFormat> format,
 		shared_ptr<Device> device, map<string, Glib::VariantBase> options);
 	~Output();
-	const struct sr_output *structure;
 	const shared_ptr<OutputFormat> format;
 	const shared_ptr<Device> device;
 	const map<string, Glib::VariantBase> options;

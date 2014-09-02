@@ -71,9 +71,11 @@ shared_ptr<Context> Context::create()
 }
 
 Context::Context() :
+	UserOwned(structure),
 	session(NULL)
 {
 	check(sr_init(&structure));
+
 	struct sr_dev_driver **driver_list = sr_driver_list();
 	if (driver_list)
 		for (int i = 0; driver_list[i]; i++)
@@ -533,7 +535,8 @@ vector<shared_ptr<Channel>> ChannelGroup::get_channels()
 }
 
 Trigger::Trigger(shared_ptr<Context> context, string name) : 
-	structure(sr_trigger_new(name.c_str())), context(context)
+	UserOwned(sr_trigger_new(name.c_str())),
+	context(context)
 {
 	for (auto stage = structure->stages; stage; stage = stage->next)
 		stages.push_back(new TriggerStage((struct sr_trigger_stage *) stage->data));
@@ -690,6 +693,7 @@ EventSource::~EventSource()
 }
 
 Session::Session(shared_ptr<Context> context) :
+	UserOwned(structure),
 	context(context), saving(false)
 {
 	check(sr_session_new(&structure));
@@ -697,6 +701,7 @@ Session::Session(shared_ptr<Context> context) :
 }
 
 Session::Session(shared_ptr<Context> context, string filename) :
+	UserOwned(structure),
 	context(context), saving(false)
 {
 	check(sr_session_load(filename.c_str(), &structure));
@@ -936,7 +941,7 @@ void Session::set_trigger(shared_ptr<Trigger> trigger)
 
 Packet::Packet(shared_ptr<Device> device,
 	const struct sr_datafeed_packet *structure) :
-	structure(structure),
+	UserOwned(structure),
 	device(device)
 {
 	switch (structure->type)
@@ -1168,7 +1173,7 @@ shared_ptr<Input> InputFormat::create_input(
 }
 
 Input::Input(shared_ptr<Context> context, const struct sr_input *structure) :
-	structure(structure),
+	UserOwned(structure),
 	context(context),
 	device(nullptr)
 {
@@ -1221,7 +1226,7 @@ shared_ptr<Device> InputDevice::get_shared_from_this()
 
 Option::Option(const struct sr_option *structure,
 		shared_ptr<const struct sr_option *> structure_array) :
-	structure(structure),
+	UserOwned(structure),
 	structure_array(structure_array)
 {
 }
@@ -1299,7 +1304,7 @@ shared_ptr<Output> OutputFormat::create_output(
 
 Output::Output(shared_ptr<OutputFormat> format,
 		shared_ptr<Device> device, map<string, Glib::VariantBase> options) :
-	structure(sr_output_new(format->structure,
+	UserOwned(sr_output_new(format->structure,
 		map_to_hash_variant(options), device->structure)),
 	format(format), device(device), options(options)
 {
