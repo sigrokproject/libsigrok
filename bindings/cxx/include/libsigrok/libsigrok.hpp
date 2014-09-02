@@ -125,8 +125,7 @@ public:
 };
 
 /* Base template for most classes which wrap a struct type from libsigrok. */
-template <class Parent, typename Struct> class SR_API StructureWrapper :
-	public enable_shared_from_this<StructureWrapper<Parent, Struct> >
+template <class Parent, typename Struct> class SR_API StructureWrapper
 {
 protected:
 	/*  Parent object which owns this child object's underlying structure.
@@ -144,24 +143,41 @@ protected:
 		references to both the parent and all its children are gone. */
 	shared_ptr<Parent> parent;
 
+	/* Weak pointer for shared_from_this() implementation. */
+	weak_ptr<StructureWrapper<Parent, Struct> > weak_this;
+
 public:
-	shared_ptr<StructureWrapper<Parent, Struct> >
-	get_shared_pointer(Parent *parent)
+	/* Note, this implementation will create a new smart_ptr if none exists. */
+	shared_ptr<StructureWrapper<Parent, Struct> > shared_from_this()
 	{
-		if (!parent)
-			throw Error(SR_ERR_BUG);
-		this->parent = static_pointer_cast<Parent>(parent->shared_from_this());
-		return shared_ptr<StructureWrapper<Parent, Struct> >(
-			this, reset_parent);
+		shared_ptr<StructureWrapper<Parent, Struct> > shared;
+
+		if (!(shared = weak_this.lock()))
+		{
+			shared = shared_ptr<StructureWrapper<Parent, Struct> >(
+				this, reset_parent);
+			weak_this = shared;
+		}
+
+		return shared;
 	}
+
 	shared_ptr<StructureWrapper<Parent, Struct> >
 	get_shared_pointer(shared_ptr<Parent> parent)
 	{
 		if (!parent)
 			throw Error(SR_ERR_BUG);
 		this->parent = parent;
-		return shared_ptr<StructureWrapper<Parent, Struct> >(
-			this, reset_parent);
+		return shared_from_this();
+	}
+
+	shared_ptr<StructureWrapper<Parent, Struct> >
+	get_shared_pointer(Parent *parent)
+	{
+		if (!parent)
+			throw Error(SR_ERR_BUG);
+		return get_shared_pointer(static_pointer_cast<Parent>(
+			parent->shared_from_this()));
 	}
 protected:
 	static void reset_parent(StructureWrapper<Parent, Struct> *object)
