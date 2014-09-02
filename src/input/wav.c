@@ -63,7 +63,7 @@ static int parse_wav_header(GString *buf, struct context *inc)
 	samplerate = RL32(buf->str + 24);
 
 	samplesize = RL16(buf->str + 32);
-	if (samplesize != 1 && samplesize != 2 && samplesize != 4) {
+	if (samplesize != 8 && samplesize != 16 && samplesize != 32) {
 		sr_err("Only 8, 16 or 32 bits per sample supported.");
 		return SR_ERR_DATA;
 	}
