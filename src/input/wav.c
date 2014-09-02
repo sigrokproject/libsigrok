@@ -102,6 +102,10 @@ static int parse_wav_header(GString *buf, struct context *inc)
 			sr_err("Only PCM and floating point samples are supported.");
 			return SR_ERR_DATA;
 		}
+		if (fmt_code == WAVE_FORMAT_IEEE_FLOAT && unitsize != 4) {
+			sr_err("only 32-bit floats supported.");
+			return SR_ERR_DATA;
+		}
 	} else {
 		sr_err("Only PCM and floating point samples are supported.");
 		return SR_ERR_DATA;
@@ -244,8 +248,9 @@ static void send_chunk(const struct sr_input *in, int offset, int num_samples)
 		} else {
 			/* BINARY32 float */
 #ifdef WORDS_BIGENDIAN
+			int i;
 			for (i = 0; i < inc->unitsize; i++)
-				d[i] = s[inc->unitsize - i];
+				d[i] = s[inc->unitsize - 1 - i];
 #else
 			memcpy(d, s, inc->unitsize);
 #endif
