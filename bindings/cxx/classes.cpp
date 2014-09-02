@@ -245,7 +245,7 @@ shared_ptr<Input> Context::open_stream(string header)
 }
 
 Driver::Driver(struct sr_dev_driver *structure) :
-	StructureWrapper(structure),
+	ParentOwned(structure),
 	initialized(false)
 {
 }
@@ -446,7 +446,7 @@ void Device::close()
 }
 
 HardwareDevice::HardwareDevice(Driver *driver, struct sr_dev_inst *structure) :
-	StructureWrapper(structure),
+	ParentOwned(structure),
 	Device(structure),
 	driver(driver)
 {
@@ -467,7 +467,7 @@ shared_ptr<Driver> HardwareDevice::get_driver()
 }
 
 Channel::Channel(struct sr_channel *structure) :
-	StructureWrapper(structure),
+	ParentOwned(structure),
 	type(ChannelType::get(structure->type))
 {
 }
@@ -508,7 +508,7 @@ unsigned int Channel::get_index()
 
 ChannelGroup::ChannelGroup(Device *device,
 		struct sr_channel_group *structure) :
-	StructureWrapper(structure),
+	ParentOwned(structure),
 	Configurable(device->structure->driver, device->structure, structure)
 {
 	for (GSList *entry = structure->channels; entry; entry = entry->next)
@@ -568,7 +568,7 @@ shared_ptr<TriggerStage> Trigger::add_stage()
 }
 
 TriggerStage::TriggerStage(struct sr_trigger_stage *structure) : 
-	StructureWrapper(structure)
+	ParentOwned(structure)
 {
 }
 
@@ -604,7 +604,7 @@ void TriggerStage::add_match(shared_ptr<Channel> channel, const TriggerMatchType
 }
 
 TriggerMatch::TriggerMatch(struct sr_trigger_match *structure, shared_ptr<Channel> channel) :
-	StructureWrapper(structure), channel(channel)
+	ParentOwned(structure), channel(channel)
 {
 }
 
@@ -995,7 +995,7 @@ PacketPayload::~PacketPayload()
 }
 
 Header::Header(const struct sr_datafeed_header *structure) :
-	StructureWrapper(structure),
+	ParentOwned(structure),
 	PacketPayload()
 {
 }
@@ -1022,7 +1022,7 @@ Glib::TimeVal Header::get_start_time()
 }
 
 Meta::Meta(const struct sr_datafeed_meta *structure) :
-	StructureWrapper(structure),
+	ParentOwned(structure),
 	PacketPayload()
 {
 }
@@ -1048,7 +1048,7 @@ map<const ConfigKey *, Glib::VariantBase> Meta::get_config()
 }
 
 Logic::Logic(const struct sr_datafeed_logic *structure) :
-	StructureWrapper(structure),
+	ParentOwned(structure),
 	PacketPayload()
 {
 }
@@ -1078,7 +1078,7 @@ unsigned int Logic::get_unit_size()
 }
 
 Analog::Analog(const struct sr_datafeed_analog *structure) :
-	StructureWrapper(structure),
+	ParentOwned(structure),
 	PacketPayload()
 {
 }
@@ -1127,7 +1127,7 @@ vector<const QuantityFlag *> Analog::get_mq_flags()
 }
 
 InputFormat::InputFormat(const struct sr_input_module *structure) :
-	StructureWrapper(structure)
+	ParentOwned(structure)
 {
 }
 
@@ -1204,7 +1204,7 @@ Input::~Input()
 
 InputDevice::InputDevice(shared_ptr<Input> input,
 		struct sr_dev_inst *structure) :
-	StructureWrapper(structure),
+	ParentOwned(structure),
 	Device(structure),
 	input(input)
 {
@@ -1259,7 +1259,7 @@ vector<Glib::VariantBase> Option::get_values()
 }
 
 OutputFormat::OutputFormat(const struct sr_output_module *structure) :
-	StructureWrapper(structure)
+	ParentOwned(structure)
 {
 }
 
