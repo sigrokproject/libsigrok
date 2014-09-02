@@ -211,6 +211,13 @@ protected:
 		structure(structure)
 	{
 	}
+
+	/* Deleter needed to allow shared_ptr use with protected destructor. */
+	class Deleter
+	{
+	public:
+		void operator()(Class *object) { delete object; }
+	};
 };
 
 /** Type of log callback */
@@ -269,12 +276,6 @@ protected:
 	LogCallbackFunction log_callback;
 	Context();
 	~Context();
-	/** Deleter needed to allow shared_ptr use with protected destructor. */
-	class Deleter
-	{
-	public:
-		void operator()(Context *context) { delete context; }
-	};
 	friend class Deleter;
 	friend class Session;
 	friend class Driver;
@@ -448,12 +449,7 @@ protected:
 	~Trigger();
 	shared_ptr<Context> context;
 	vector<TriggerStage *> stages;
-	/** Deleter needed to allow shared_ptr use with protected destructor. */
-	class Deleter
-	{
-	public:
-		void operator()(Trigger *trigger) { delete trigger; }
-	};
+	friend class Deleter;
 	friend class Context;
 	friend class Session;
 };
@@ -638,12 +634,6 @@ protected:
 	string save_filename;
 	uint64_t save_samplerate;
 	shared_ptr<Trigger> trigger;
-	/** Deleter needed to allow shared_ptr use with protected destructor. */
-	class Deleter
-	{
-	public:
-		void operator()(Session *session) { delete session; }
-	};
 	friend class Deleter;
 	friend class Context;
 	friend class DatafeedCallbackData;
@@ -663,12 +653,6 @@ protected:
 	~Packet();
 	shared_ptr<Device> device;
 	PacketPayload *payload;
-	/** Deleter needed to allow shared_ptr use with protected destructor. */
-	class Deleter
-	{
-	public:
-		void operator()(Packet *packet) { delete packet; }
-	};
 	friend class Deleter;
 	friend class Session;
 	friend class Output;
@@ -809,12 +793,6 @@ protected:
 	~Input();
 	shared_ptr<Context> context;
 	InputDevice *device;
-	/** Deleter needed to allow shared_ptr use with protected destructor. */
-	class Deleter
-	{
-	public:
-		void operator()(Input *input) { delete input; }
-	};
 	friend class Deleter;
 	friend class Context;
 	friend class InputFormat;
@@ -830,13 +808,6 @@ protected:
 	~InputDevice();
 	shared_ptr<Device> get_shared_from_this();
 	shared_ptr<Input> input;
-	/** Deleter needed to allow shared_ptr use with protected destructor. */
-	class Deleter
-	{
-	public:
-		void operator()(InputDevice *device) { delete device; }
-	};
-	friend class Deleter;
 	friend class Input;
 };
 
@@ -859,12 +830,6 @@ protected:
 		shared_ptr<const struct sr_option *> structure_array);
 	~Option();
 	shared_ptr<const struct sr_option *> structure_array;
-	/** Deleter needed to allow shared_ptr use with protected destructor. */
-	class Deleter
-	{
-	public:
-		void operator()(Option *option) { delete option; }
-	};
 	friend class Deleter;
 	friend class InputFormat;
 	friend class OutputFormat;
@@ -908,12 +873,6 @@ protected:
 	const shared_ptr<OutputFormat> format;
 	const shared_ptr<Device> device;
 	const map<string, Glib::VariantBase> options;
-	/** Deleter needed to allow shared_ptr use with protected destructor. */
-	class Deleter
-	{
-	public:
-		void operator()(Output *output) { delete output; }
-	};
 	friend class Deleter;
 	friend class OutputFormat;
 };
