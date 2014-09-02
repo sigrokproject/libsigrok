@@ -248,7 +248,7 @@ shared_ptr<Input> Context::open_stream(string header)
 }
 
 Driver::Driver(struct sr_dev_driver *structure) :
-	StructureWrapper<Context, struct sr_dev_driver>(structure),
+	StructureWrapper(structure),
 	initialized(false)
 {
 }
@@ -475,7 +475,7 @@ shared_ptr<Driver> HardwareDevice::get_driver()
 }
 
 Channel::Channel(struct sr_channel *structure) :
-	StructureWrapper<Device, struct sr_channel>(structure),
+	StructureWrapper(structure),
 	type(ChannelType::get(structure->type))
 {
 }
@@ -516,7 +516,7 @@ unsigned int Channel::get_index()
 
 ChannelGroup::ChannelGroup(Device *device,
 		struct sr_channel_group *structure) :
-	StructureWrapper<Device, struct sr_channel_group>(structure),
+	StructureWrapper(structure),
 	Configurable(device->structure->driver, device->structure, structure)
 {
 	for (GSList *entry = structure->channels; entry; entry = entry->next)
@@ -579,7 +579,7 @@ shared_ptr<TriggerStage> Trigger::add_stage()
 }
 
 TriggerStage::TriggerStage(struct sr_trigger_stage *structure) : 
-	StructureWrapper<Trigger, struct sr_trigger_stage>(structure)
+	StructureWrapper(structure)
 {
 }
 
@@ -616,7 +616,7 @@ void TriggerStage::add_match(shared_ptr<Channel> channel, const TriggerMatchType
 }
 
 TriggerMatch::TriggerMatch(struct sr_trigger_match *structure, shared_ptr<Channel> channel) :
-	StructureWrapper<TriggerStage, struct sr_trigger_match>(structure), channel(channel)
+	StructureWrapper(structure), channel(channel)
 {
 }
 
@@ -1007,7 +1007,7 @@ PacketPayload::~PacketPayload()
 }
 
 Header::Header(const struct sr_datafeed_header *structure) :
-	StructureWrapper<Packet, const struct sr_datafeed_header>(structure),
+	StructureWrapper(structure),
 	PacketPayload()
 {
 }
@@ -1020,8 +1020,7 @@ shared_ptr<PacketPayload> Header::get_shared_pointer(Packet *parent)
 {
 	return static_pointer_cast<PacketPayload>(
 		static_pointer_cast<Header>(
-		StructureWrapper<Packet, const struct sr_datafeed_header>::
-			get_shared_pointer(parent)));
+		StructureWrapper::get_shared_pointer(parent)));
 }
 
 int Header::get_feed_version()
@@ -1037,7 +1036,7 @@ Glib::TimeVal Header::get_start_time()
 }
 
 Meta::Meta(const struct sr_datafeed_meta *structure) :
-	StructureWrapper<Packet, const struct sr_datafeed_meta>(structure),
+	StructureWrapper(structure),
 	PacketPayload()
 {
 }
@@ -1050,8 +1049,7 @@ shared_ptr<PacketPayload> Meta::get_shared_pointer(Packet *parent)
 {
 	return static_pointer_cast<PacketPayload>(
 		static_pointer_cast<Meta>(
-		StructureWrapper<Packet, const struct sr_datafeed_meta>::
-			get_shared_pointer(parent)));
+		StructureWrapper::get_shared_pointer(parent)));
 }
 
 map<const ConfigKey *, Glib::VariantBase> Meta::get_config()
@@ -1066,7 +1064,7 @@ map<const ConfigKey *, Glib::VariantBase> Meta::get_config()
 }
 
 Logic::Logic(const struct sr_datafeed_logic *structure) :
-	StructureWrapper<Packet, const struct sr_datafeed_logic>(structure),
+	StructureWrapper(structure),
 	PacketPayload()
 {
 }
@@ -1079,8 +1077,7 @@ shared_ptr<PacketPayload> Logic::get_shared_pointer(Packet *parent)
 {
 	return static_pointer_cast<PacketPayload>(
 		static_pointer_cast<Logic>(
-		StructureWrapper<Packet, const struct sr_datafeed_logic>::
-			get_shared_pointer(parent)));
+		StructureWrapper::get_shared_pointer(parent)));
 }
 
 void *Logic::get_data_pointer()
@@ -1099,7 +1096,7 @@ unsigned int Logic::get_unit_size()
 }
 
 Analog::Analog(const struct sr_datafeed_analog *structure) :
-	StructureWrapper<Packet, const struct sr_datafeed_analog>(structure),
+	StructureWrapper(structure),
 	PacketPayload()
 {
 }
@@ -1112,8 +1109,7 @@ shared_ptr<PacketPayload> Analog::get_shared_pointer(Packet *parent)
 {
 	return static_pointer_cast<PacketPayload>(
 		static_pointer_cast<Analog>(
-		StructureWrapper<Packet, const struct sr_datafeed_analog>::
-			get_shared_pointer(parent)));
+			StructureWrapper::get_shared_pointer(parent)));
 }
 
 float *Analog::get_data_pointer()
@@ -1151,7 +1147,7 @@ vector<const QuantityFlag *> Analog::get_mq_flags()
 }
 
 InputFormat::InputFormat(const struct sr_input_module *structure) :
-	StructureWrapper<Context, const struct sr_input_module>(structure)
+	StructureWrapper(structure)
 {
 }
 
@@ -1285,7 +1281,7 @@ vector<Glib::VariantBase> Option::get_values()
 }
 
 OutputFormat::OutputFormat(const struct sr_output_module *structure) :
-	StructureWrapper<Context, const struct sr_output_module>(structure)
+	StructureWrapper(structure)
 {
 }
 
