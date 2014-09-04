@@ -161,6 +161,9 @@ static void brymen_bm86x_parse(unsigned char *buf, float *floatval,
 		} else if (buf[9] & 0x04) {
 			analog[1].mq = SR_MQ_CURRENT;
 			analog[1].unit = SR_UNIT_AMPERE;
+		} else if (buf[9] & 0x08) {
+			analog[1].mq = SR_MQ_CURRENT;
+			analog[1].unit = SR_UNIT_PERCENTAGE;
 		} else if (buf[14] & 0x04) {
 			analog[1].mq = SR_MQ_FREQUENCY;
 			analog[1].unit = SR_UNIT_HERTZ;
