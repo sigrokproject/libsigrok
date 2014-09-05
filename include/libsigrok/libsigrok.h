@@ -661,35 +661,116 @@ enum sr_configkey {
 	/** The device supports setting the number of analog channels. */
 	SR_CONF_NUM_ANALOG_CHANNELS,
 
-	/** Output voltage. */
+	/**
+	 * Output voltage.
+	 * @arg type: double
+	 * @arg get: get output voltage
+	 */
 	SR_CONF_OUTPUT_VOLTAGE,
 
-	/** Maximum output voltage. */
+	/**
+	 * Maximum output voltage.
+	 * @arg type: double
+	 * @arg get: get maximum output voltage limit
+	 * @arg set: change output voltage limit
+	 */
 	SR_CONF_OUTPUT_VOLTAGE_MAX,
 
-	/** Output current. */
+	/**
+	 * Output current.
+	 * @arg type: double
+	 * @arg get: get output current
+	 */
 	SR_CONF_OUTPUT_CURRENT,
 
-	/** Maximum output current. */
+	/**
+	 * Maximum output current.
+	 * @arg type: double
+	 * @arg get: get maximum output voltage limit
+	 * @arg set: change output voltage limit
+	 */
 	SR_CONF_OUTPUT_CURRENT_MAX,
 
-	/** Enabling/disabling output. */
+	/**
+	 * Enabling/disabling output.
+	 * @arg type: boolean
+	 * @arg get: @b true if currently enabled
+	 * @arg set: enable/disable
+	 */
 	SR_CONF_OUTPUT_ENABLED,
 
-	/** Channel output configuration. */
-	SR_CONF_OUTPUT_CHANNEL,
+	/**
+	 * Output channel configuration.
+	 * @arg type: string
+	 * @arg get: get current setting
+	 * @arg set: change current setting
+	 * @arg list: array of possible values
+	 */
+	SR_CONF_OUTPUT_CHANNEL_CONFIG,
 
-	/** Over-voltage protection (OVP) */
-	SR_CONF_OVER_VOLTAGE_PROTECTION,
+	/**
+	 * Over-voltage protection (OVP) feature
+	 * @arg type: boolean
+	 * @arg get: @b true if currently enabled
+	 * @arg set: enable/disable
+	 */
+	SR_CONF_OVER_VOLTAGE_PROTECTION_ENABLED,
 
-	/** Over-current protection (OCP) */
-	SR_CONF_OVER_CURRENT_PROTECTION,
+	/**
+	 * Over-voltage protection (OVP) active
+	 * @arg type: boolean
+	 * @arg get: @b true if device has activated OVP, i.e. the output voltage
+	 *      exceeds the over-voltage protection threshold.
+	 */
+	SR_CONF_OVER_VOLTAGE_PROTECTION_ACTIVE,
+
+	/**
+	 * Over-voltage protection (OVP) threshold
+	 * @arg type: double (voltage)
+	 * @arg get: get current threshold
+	 * @arg set: set new threshold
+	 */
+	SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD,
+
+	/**
+	 * Over-current protection (OCP) feature
+	 * @arg type: boolean
+	 * @arg get: @b true if currently enabled
+	 * @arg set: enable/disable
+	 */
+	SR_CONF_OVER_CURRENT_PROTECTION_ENABLED,
+
+	/**
+	 * Over-current protection (OCP) active
+	 * @arg type: boolean
+	 * @arg get: @b true if device has activated OCP, i.e. the output current
+	 *      exceeds the over-current protection threshold.
+	 */
+	SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE,
+
+	/**
+	 * Over-current protection (OCP) threshold
+	 * @arg type: double (current)
+	 * @arg get: get current threshold
+	 * @arg set: set new threshold
+	 */
+	SR_CONF_OVER_CURRENT_PROTECTION_THRESHOLD,
 
 	/** Choice of clock edge for external clock ("r" or "f"). */
 	SR_CONF_CLOCK_EDGE,
 
 	/** Amplitude of a source without strictly-defined MQ. */
 	SR_CONF_AMPLITUDE,
+
+	/**
+	 * Output channel regulation
+	 * get: "CV", "CC" or "UR", denoting constant voltage, constant current
+	 *      or unregulated.
+	 */
+	SR_CONF_OUTPUT_REGULATION,
+
+	/** Over-temperature protection (OTP) */
+	SR_CONF_OVER_TEMPERATURE_PROTECTION,
 
 	/*--- Special stuff -------------------------------------------------*/
 

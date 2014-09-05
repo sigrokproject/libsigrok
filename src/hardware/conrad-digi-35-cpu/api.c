@@ -36,7 +36,7 @@ static const int32_t hwcaps[] = {
 	SR_CONF_OUTPUT_VOLTAGE,
 	SR_CONF_OUTPUT_CURRENT,
 	/* There's no SR_CONF_OUTPUT_ENABLED; can't know/set status remotely. */
-	SR_CONF_OVER_CURRENT_PROTECTION,
+	SR_CONF_OVER_CURRENT_PROTECTION_ENABLED,
 };
 
 SR_PRIV struct sr_dev_driver conrad_digi_35_cpu_driver_info;
@@ -151,7 +151,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 		ret = send_msg1(sdi, 'C', (int) (dblval * 100 + 0.5));
 		break;
 	/* No SR_CONF_OUTPUT_ENABLED :-( . */
-	case SR_CONF_OVER_CURRENT_PROTECTION:
+	case SR_CONF_OVER_CURRENT_PROTECTION_ENABLED:
 		if (g_variant_get_boolean(data))
 			ret = send_msg1(sdi, 'V', 900);
 		else /* Constant current mode */

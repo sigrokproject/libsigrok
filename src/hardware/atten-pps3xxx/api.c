@@ -39,8 +39,8 @@ static const int32_t scanopts[] = {
 static const int32_t devopts[] = {
 	SR_CONF_POWER_SUPPLY,
 	SR_CONF_CONTINUOUS,
-	SR_CONF_OUTPUT_CHANNEL,
-	SR_CONF_OVER_CURRENT_PROTECTION,
+	SR_CONF_OUTPUT_CHANNEL_CONFIG,
+	SR_CONF_OVER_CURRENT_PROTECTION_ENABLED,
 };
 
 static const int32_t devopts_cg[] = {
@@ -221,10 +221,10 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	if (!cg) {
 		/* No channel group: global options. */
 		switch (key) {
-		case SR_CONF_OUTPUT_CHANNEL:
+		case SR_CONF_OUTPUT_CHANNEL_CONFIG:
 			*data = g_variant_new_string(channel_modes[devc->channel_mode]);
 			break;
-		case SR_CONF_OVER_CURRENT_PROTECTION:
+		case SR_CONF_OVER_CURRENT_PROTECTION_ENABLED:
 			*data = g_variant_new_boolean(devc->over_current_protection);
 			break;
 		default:
@@ -292,7 +292,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 	if (!cg) {
 		/* No channel group: global options. */
 		switch (key) {
-		case SR_CONF_OUTPUT_CHANNEL:
+		case SR_CONF_OUTPUT_CHANNEL_CONFIG:
 			sval = g_variant_get_string(data, NULL);
 			if ((ival = find_str(sval, channel_modes,
 							ARRAY_SIZE(channel_modes))) == -1) {
@@ -309,7 +309,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 			devc->channel_mode_set = ival;
 			devc->config_dirty = TRUE;
 			break;
-		case SR_CONF_OVER_CURRENT_PROTECTION:
+		case SR_CONF_OVER_CURRENT_PROTECTION_ENABLED:
 			bval = g_variant_get_boolean(data);
 			if (bval == devc->over_current_protection_set)
 				/* Nothing to do. */
@@ -386,7 +386,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
 					devopts, ARRAY_SIZE(devopts), sizeof(int32_t));
 			break;
-		case SR_CONF_OUTPUT_CHANNEL:
+		case SR_CONF_OUTPUT_CHANNEL_CONFIG:
 			if (devc->model->channel_modes == CHANMODE_INDEPENDENT) {
 				/* The 1-channel models. */
 				*data = g_variant_new_strv(channel_modes, 1);

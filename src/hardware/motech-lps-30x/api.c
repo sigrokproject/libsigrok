@@ -58,7 +58,7 @@ static const int32_t hwcaps[] = {
 	SR_CONF_LIMIT_MSEC,
 	SR_CONF_CONTINUOUS,
 	/* Device configuration */
-	SR_CONF_OUTPUT_CHANNEL,
+	SR_CONF_OUTPUT_CHANNEL_CONFIG,
 };
 
 /** Hardware capabilities channel 1, 2. */
@@ -561,7 +561,7 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		case SR_CONF_LIMIT_MSEC:
 			*data = g_variant_new_uint64(devc->limit_msec);
 			break;
-		case SR_CONF_OUTPUT_CHANNEL:
+		case SR_CONF_OUTPUT_CHANNEL_CONFIG:
 			*data = g_variant_new_string(channel_modes[devc->tracking_mode]);
 			break;
 		default:
@@ -634,7 +634,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 			sr_dbg("Setting sample limit to %" PRIu64 ".",
 				devc->limit_samples);
 			break;
-		case SR_CONF_OUTPUT_CHANNEL:
+		case SR_CONF_OUTPUT_CHANNEL_CONFIG:
 			sval = g_variant_get_string(data, NULL);
 			found = FALSE;
 			for (idx = 0; idx < (int)ARRAY_SIZE(channel_modes); idx++)
@@ -748,7 +748,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
 							  hwcaps, ARRAY_SIZE(hwcaps), sizeof(int32_t));
 			return SR_OK;
-		case SR_CONF_OUTPUT_CHANNEL:
+		case SR_CONF_OUTPUT_CHANNEL_CONFIG:
 			if (devc->model->modelid <= LPS_303) {
 				/* The 1-channel models. */
 				*data = g_variant_new_strv(channel_modes, 1);
