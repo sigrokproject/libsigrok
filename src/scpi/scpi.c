@@ -71,7 +71,7 @@ SR_PRIV extern const struct sr_scpi_dev_inst scpi_tcp_rigol_dev;
 SR_PRIV extern const struct sr_scpi_dev_inst scpi_usbtmc_libusb_dev;
 SR_PRIV extern const struct sr_scpi_dev_inst scpi_vxi_dev;
 SR_PRIV extern const struct sr_scpi_dev_inst scpi_visa_dev;
-SR_PRIV extern const struct sr_scpi_dev_inst scpi_gpib_dev;
+SR_PRIV extern const struct sr_scpi_dev_inst scpi_libgpib_dev;
 
 static const struct sr_scpi_dev_inst *scpi_devs[] = {
 	&scpi_tcp_raw_dev,
@@ -86,7 +86,7 @@ static const struct sr_scpi_dev_inst *scpi_devs[] = {
 	&scpi_visa_dev,
 #endif
 #ifdef HAVE_LIBGPIB
-	&scpi_gpib_dev,
+	&scpi_libgpib_dev,
 #endif
 #ifdef HAVE_LIBSERIALPORT
 	&scpi_serial_dev,  /* must be last as it matches any resource */

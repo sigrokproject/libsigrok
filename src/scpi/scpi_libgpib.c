@@ -149,9 +149,9 @@ static void scpi_gpib_free(void *priv)
 	g_free(gscpi->name);
 }
 
-SR_PRIV const struct sr_scpi_dev_inst scpi_gpib_dev = {
+SR_PRIV const struct sr_scpi_dev_inst scpi_libgpib_dev = {
 	.name = "GPIB",
-	.prefix = "gpib",
+	.prefix = "libgpib",
 	.priv_size = sizeof(struct scpi_gpib),
 	.dev_inst_new = scpi_gpib_dev_inst_new,
 	.open = scpi_gpib_open,

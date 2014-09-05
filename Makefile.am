@@ -93,7 +93,7 @@ libsigrok_la_SOURCES += \
 endif
 if NEED_GPIB
 libsigrok_la_SOURCES += \
-	src/scpi/scpi_gpib.c
+	src/scpi/scpi_libgpib.c
 endif
 
 # Hardware (DMM chip parsers)
