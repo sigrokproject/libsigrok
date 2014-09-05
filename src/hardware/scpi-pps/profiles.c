@@ -39,13 +39,13 @@ const char *get_vendor(const char *raw_vendor)
 }
 
 /* Rigol DP800 series */
-static const int32_t devopts_rigol_dp800[] = {
+static const int32_t rigol_dp800_devopts[] = {
 	SR_CONF_POWER_SUPPLY,
 	SR_CONF_CONTINUOUS,
 	SR_CONF_OVER_TEMPERATURE_PROTECTION,
 };
 
-static const int32_t devopts_cg_rigol_dp800[] = {
+static const int32_t rigol_dp800_devopts_cg[] = {
 	SR_CONF_OUTPUT_REGULATION,
 	SR_CONF_OVER_VOLTAGE_PROTECTION_ENABLED,
 	SR_CONF_OVER_VOLTAGE_PROTECTION_ACTIVE,
@@ -60,19 +60,25 @@ static const int32_t devopts_cg_rigol_dp800[] = {
 	SR_CONF_OUTPUT_ENABLED,
 };
 
-struct channel_spec ch_rigol_dp800[] = {
-	{ "1", { 0, 30, 0.010 }, { 0, 3, 0.010 } },
-	{ "2", { 0, 30, 0.010 }, { 0, 3, 0.010 } },
-	{ "3", { 0, 5, 0.010 }, { 0, 3, 0.010 } },
+struct channel_spec rigol_dp831_ch[] = {
+	{ "1", { 0, 8, 0.001 }, { 0, 5, 0.0003 } },
+	{ "2", { 0, 30, 0.001 }, { 0, 2, 0.0001 } },
+	{ "3", { 0, -30, 0.001 }, { 0, 2, 0.0001 } },
 };
 
-struct channel_group_spec cg_rigol_dp800[] = {
+struct channel_spec rigol_dp832_ch[] = {
+	{ "1", { 0, 30, 0.001 }, { 0, 3, 0.001 } },
+	{ "2", { 0, 30, 0.001 }, { 0, 3, 0.001 } },
+	{ "3", { 0, 5, 0.001 }, { 0, 3, 0.001 } },
+};
+
+struct channel_group_spec rigol_dp800_cg[] = {
 	{ "1", CH_IDX(0), PPS_OVP | PPS_OCP },
 	{ "2", CH_IDX(1), PPS_OVP | PPS_OCP },
 	{ "3", CH_IDX(2), PPS_OVP | PPS_OCP },
 };
 
-struct scpi_command cmd_rigol_dp800[] = {
+struct scpi_command rigol_dp800_cmd[] = {
 	{ SCPI_CMD_KEY_UNLOCK, "SYST:KLOCK OFF" },
 	{ SCPI_CMD_GET_MEAS_VOLTAGE, ":MEAS:VOLT? CH%s" },
 	{ SCPI_CMD_GET_MEAS_CURRENT, ":MEAS:CURR? CH%s" },
@@ -100,12 +106,19 @@ struct scpi_command cmd_rigol_dp800[] = {
 
 SR_PRIV const struct scpi_pps pps_profiles[] = {
 	/* Rigol DP800 series */
-	{ "Rigol", "DP832", PPS_OTP,
-		ARRAY_AND_SIZE(devopts_rigol_dp800),
-		ARRAY_AND_SIZE(devopts_cg_rigol_dp800),
-		ARRAY_AND_SIZE(ch_rigol_dp800),
-		ARRAY_AND_SIZE(cg_rigol_dp800),
-		ARRAY_AND_SIZE(cmd_rigol_dp800),
+	{ "Rigol", "^DP831A$", PPS_OTP,
+		ARRAY_AND_SIZE(rigol_dp800_devopts),
+		ARRAY_AND_SIZE(rigol_dp800_devopts_cg),
+		ARRAY_AND_SIZE(rigol_dp831_ch),
+		ARRAY_AND_SIZE(rigol_dp800_cg),
+		ARRAY_AND_SIZE(rigol_dp800_cmd),
+	},
+	{ "Rigol", "^(DP832|DP832A)$", PPS_OTP,
+		ARRAY_AND_SIZE(rigol_dp800_devopts),
+		ARRAY_AND_SIZE(rigol_dp800_devopts_cg),
+		ARRAY_AND_SIZE(rigol_dp832_ch),
+		ARRAY_AND_SIZE(rigol_dp800_cg),
+		ARRAY_AND_SIZE(rigol_dp800_cmd),
 	},
 };
 SR_PRIV unsigned int num_pps_profiles = ARRAY_SIZE(pps_profiles);
