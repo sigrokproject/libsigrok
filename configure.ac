@@ -316,6 +316,14 @@ if test "x$have_librevisa" != "xno"; then
 		[Specifies whether we have librevisa.])
 fi
 
+# GPIB backend is only compiled in if libgpib headers found.
+AC_CHECK_HEADERS([gpib/ib.h], [LIBS="$LIBS -lgpib"], [have_libgpib="no"])
+AM_CONDITIONAL(NEED_GPIB, test "x$have_libgpib" != xno)
+if test "x$have_libgpib" != "xno"; then
+	AC_DEFINE_UNQUOTED(HAVE_LIBGPIB, [1],
+		[Specifies whether we have libgpib.])
+fi
+
 # libusb-1.0 is only needed for some hardware drivers. Disable the respective
 # drivers if it is not found.
 if test "x$enable_libusb" != "xno"; then
