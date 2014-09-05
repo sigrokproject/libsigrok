@@ -70,8 +70,8 @@ enum pps_features {
 };
 
 struct scpi_pps {
-	char *idn_vendor;
-	char *idn_model;
+	char *vendor;
+	char *model;
 	uint64_t features;
 	const int32_t *devopts;
 	unsigned int num_devopts;

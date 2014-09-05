@@ -45,6 +45,8 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	const struct scpi_pps *device;
 	const struct channel_group_spec *cgs;
 	struct pps_channel_group *pcg;
+	GRegex *model_re;
+	GMatchInfo *model_mi;
 	uint64_t mask;
 	unsigned int i, j;
 	const char *vendor;
@@ -57,20 +59,23 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	device = NULL;
 	for (i = 0; i < num_pps_profiles; i++) {
 		vendor = get_vendor(hw_info->manufacturer);
-		if (strcasecmp(vendor, pps_profiles[i].idn_vendor))
+		if (strcasecmp(vendor, pps_profiles[i].vendor))
 			continue;
-		if (!strcmp(hw_info->model, pps_profiles[i].idn_model)) {
+		model_re = g_regex_new(pps_profiles[i].model, 0, 0, NULL);
+		if (g_regex_match(model_re, hw_info->model, 0, &model_mi))
 			device = &pps_profiles[i];
+		g_match_info_unref(model_mi);
+		g_regex_unref(model_re);
+		if (device)
 			break;
-		}
 	}
 	if (!device) {
 		sr_scpi_hw_info_free(hw_info);
 		return NULL;
 	}
 
-	sdi = sr_dev_inst_new(0, SR_ST_ACTIVE, vendor,
-			device->idn_model, hw_info->firmware_version);
+	sdi = sr_dev_inst_new(0, SR_ST_ACTIVE, vendor, hw_info->model,
+			hw_info->firmware_version);
 	sdi->conn = scpi;
 	sdi->driver = di;
 	sdi->inst_type = SR_INST_SCPI;
