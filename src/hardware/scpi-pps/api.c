@@ -22,8 +22,8 @@
 
 SR_PRIV struct sr_dev_driver scpi_pps_driver_info;
 static struct sr_dev_driver *di = &scpi_pps_driver_info;
-SR_PRIV const struct scpi_pps pps_profiles[] = {};
-unsigned int num_pps_profiles;
+extern unsigned int num_pps_profiles;
+extern const struct scpi_pps pps_profiles[];
 
 static const int32_t scanopts[] = {
 	SR_CONF_CONN,

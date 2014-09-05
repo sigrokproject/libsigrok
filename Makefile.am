@@ -290,6 +290,7 @@ if HW_SCPI_PPS
 libsigrok_la_SOURCES += \
 	src/hardware/scpi-pps/protocol.h \
 	src/hardware/scpi-pps/protocol.c \
+	src/hardware/scpi-pps/profiles.c \
 	src/hardware/scpi-pps/api.c
 endif
 if HW_SERIAL_DMM
