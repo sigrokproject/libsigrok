@@ -301,13 +301,12 @@ fi
 # Serial port helper code is only compiled in if libserialport was found.
 AM_CONDITIONAL(NEED_SERIAL, test "x$have_libserialport" != xno)
 
+# VISA SCPI backend is only compiled in if librevisa was found.
 PKG_CHECK_MODULES([librevisa], [librevisa >= 0.0.20130812],
 	[have_librevisa="yes"; LIB_CFLAGS="$LIB_CFLAGS $librevisa_CFLAGS";
 	LIBS="$LIBS $librevisa_LIBS";
 	SR_PKGLIBS="$SR_PKGLIBS librevisa"],
 	[have_librevisa="no"])
-
-# VISA SCPI backend is only compiled in if librevisa was found.
 AM_CONDITIONAL(NEED_VISA, test "x$have_librevisa" != xno)
 
 # Define HAVE_LIBREVISA in config.h if we found librevisa.
@@ -317,8 +316,14 @@ if test "x$have_librevisa" != "xno"; then
 fi
 
 # GPIB backend is only compiled in if libgpib headers found.
-AC_CHECK_HEADERS([gpib/ib.h], [LIBS="$LIBS -lgpib"], [have_libgpib="no"])
+PKG_CHECK_MODULES([libgpib], [libgpib],
+	[have_libgpib="yes"; LIB_CFLAGS="$LIB_CFLAGS $libgpib_CFLAGS";
+	LIBS="$LIBS $libgpib_LIBS";
+	SR_PKGLIBS="$SR_PKGLIBS libgpib"],
+	[have_libgpib="no"])
 AM_CONDITIONAL(NEED_GPIB, test "x$have_libgpib" != xno)
+
+# Define HAVE_LIBGPIB in config.h if we found libgpib.
 if test "x$have_libgpib" != "xno"; then
 	AC_DEFINE_UNQUOTED(HAVE_LIBGPIB, [1],
 		[Specifies whether we have libgpib.])
@@ -715,7 +720,11 @@ echo "Detected libraries:"
 echo
 
 # Note: This only works for libs with pkg-config integration.
-for lib in "glib-2.0 >= 2.32.0" "libzip >= 0.10" "libserialport >= 0.2.0" "librevisa >= 0.0.20130812" "libusb-1.0 >= 1.0.16" "libftdi >= 0.16" "libftdi1 >= 1.0" "glibmm-2.4 >= 2.32.0" "pygobject-3.0 >= 3.0.0" "check >= 0.9.4"; do
+for lib in "glib-2.0 >= 2.32.0" "libzip >= 0.10" "libserialport >= 0.2.0" \
+	"librevisa >= 0.0.20130812" "libusb-1.0 >= 1.0.16" "libftdi >= 0.16" \
+	"libftdi1 >= 1.0" "glibmm-2.4 >= 2.32.0" "pygobject-3.0 >= 3.0.0" \
+	"check >= 0.9.4" "libgpib"
+do
 	optional="OPTIONAL"
 	if test "x$lib" = "xglib-2.0 >= 2.32.0"; then optional="REQUIRED"; fi
 	if test "x$lib" = "xlibzip >= 0.10"; then optional="REQUIRED"; fi
