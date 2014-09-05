@@ -70,8 +70,6 @@ enum pps_features {
 };
 
 struct scpi_pps {
-	int vendor_id;
-	char *vendor;
 	char *idn_vendor;
 	char *idn_model;
 	uint64_t features;
@@ -130,6 +128,7 @@ struct dev_context {
 	struct sr_channel *cur_channel;
 };
 
+const char *get_vendor(const char *raw_vendor);
 SR_PRIV int scpi_cmd(const struct sr_dev_inst *sdi, int command, ...);
 SR_PRIV int scpi_pps_receive_data(int fd, int revents, void *cb_data);
 

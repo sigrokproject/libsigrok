@@ -47,6 +47,7 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	struct pps_channel_group *pcg;
 	uint64_t mask;
 	unsigned int i, j;
+	const char *vendor;
 
 	if (sr_scpi_get_hw_id(scpi, &hw_info) != SR_OK) {
 		sr_info("Couldn't get IDN response.");
@@ -55,8 +56,10 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 
 	device = NULL;
 	for (i = 0; i < num_pps_profiles; i++) {
-		if (!strcasecmp(hw_info->manufacturer, pps_profiles[i].idn_vendor) &&
-				!strcmp(hw_info->model, pps_profiles[i].idn_model)) {
+		vendor = get_vendor(hw_info->manufacturer);
+		if (strcasecmp(vendor, pps_profiles[i].idn_vendor))
+			continue;
+		if (!strcmp(hw_info->model, pps_profiles[i].idn_model)) {
 			device = &pps_profiles[i];
 			break;
 		}
@@ -66,8 +69,8 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 		return NULL;
 	}
 
-	sdi = sr_dev_inst_new(0, SR_ST_ACTIVE, device->vendor, device->idn_model,
-			hw_info->firmware_version);
+	sdi = sr_dev_inst_new(0, SR_ST_ACTIVE, vendor,
+			device->idn_model, hw_info->firmware_version);
 	sdi->conn = scpi;
 	sdi->driver = di;
 	sdi->inst_type = SR_INST_SCPI;

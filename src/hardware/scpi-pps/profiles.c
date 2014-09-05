@@ -17,13 +17,26 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <string.h>
 #include "protocol.h"
 
 #define CH_IDX(x) (1 << x)
 
-enum vendors {
-	RIGOL,
+const char *pps_vendors[][2] = {
+	{ "RIGOL TECHNOLOGIES", "Rigol" },
 };
+
+const char *get_vendor(const char *raw_vendor)
+{
+	unsigned int i;
+
+	for (i = 0; i < ARRAY_SIZE(pps_vendors); i++) {
+		if (!strcasecmp(raw_vendor, pps_vendors[i][0]))
+			return pps_vendors[i][1];
+	}
+
+	return raw_vendor;
+}
 
 /* Rigol DP800 series */
 static const int32_t devopts_rigol_dp800[] = {
@@ -87,7 +100,7 @@ struct scpi_command cmd_rigol_dp800[] = {
 
 SR_PRIV const struct scpi_pps pps_profiles[] = {
 	/* Rigol DP800 series */
-	{ RIGOL, "Rigol", "RIGOL TECHNOLOGIES", "DP832", PPS_OTP,
+	{ "Rigol", "DP832", PPS_OTP,
 		ARRAY_AND_SIZE(devopts_rigol_dp800),
 		ARRAY_AND_SIZE(devopts_cg_rigol_dp800),
 		ARRAY_AND_SIZE(ch_rigol_dp800),
