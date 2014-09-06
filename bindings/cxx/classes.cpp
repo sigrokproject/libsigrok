@@ -465,8 +465,10 @@ string Device::get_version()
 vector<shared_ptr<Channel>> Device::get_channels()
 {
 	vector<shared_ptr<Channel>> result;
-	for (auto entry : channels)
-		result.push_back(entry.second->get_shared_pointer(get_shared_from_this()));
+	for (auto channel = structure->channels; channel; channel = channel->next)
+		result.push_back(
+			channels[(struct sr_channel *) channel->data]->get_shared_pointer(
+				get_shared_from_this()));
 	return result;
 }
 
