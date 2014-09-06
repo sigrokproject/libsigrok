@@ -248,6 +248,7 @@ shared_ptr<Input> Context::open_stream(string header)
 
 Driver::Driver(struct sr_dev_driver *structure) :
 	ParentOwned(structure),
+	Configurable(structure, NULL, NULL),
 	initialized(false)
 {
 }

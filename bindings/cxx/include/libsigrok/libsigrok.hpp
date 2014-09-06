@@ -281,29 +281,6 @@ protected:
 	friend class Driver;
 };
 
-/** A hardware driver provided by the library */
-class SR_API Driver :
-	public ParentOwned<Driver, Context, struct sr_dev_driver>
-{
-public:
-	/** Name of this driver. */
-	string get_name();
-	/** Long name for this driver. */
-	string get_long_name();
-	/** Scan for devices and return a list of devices found.
-	 * @param options Mapping of (ConfigKey, value) pairs. */
-	vector<shared_ptr<HardwareDevice> > scan(
-		map<const ConfigKey *, Glib::VariantBase> options = {});
-protected:
-	bool initialized;
-	vector<HardwareDevice *> devices;
-	Driver(struct sr_dev_driver *structure);
-	~Driver();
-	friend class Context;
-	friend class HardwareDevice;
-	friend class ChannelGroup;
-};
-
 /** An object that can be configured. */
 class SR_API Configurable
 {
@@ -327,6 +304,30 @@ protected:
 	struct sr_dev_driver *config_driver;
 	struct sr_dev_inst *config_sdi;
 	struct sr_channel_group *config_channel_group;
+};
+
+/** A hardware driver provided by the library */
+class SR_API Driver :
+	public ParentOwned<Driver, Context, struct sr_dev_driver>,
+	public Configurable
+{
+public:
+	/** Name of this driver. */
+	string get_name();
+	/** Long name for this driver. */
+	string get_long_name();
+	/** Scan for devices and return a list of devices found.
+	 * @param options Mapping of (ConfigKey, value) pairs. */
+	vector<shared_ptr<HardwareDevice> > scan(
+		map<const ConfigKey *, Glib::VariantBase> options = {});
+protected:
+	bool initialized;
+	vector<HardwareDevice *> devices;
+	Driver(struct sr_dev_driver *structure);
+	~Driver();
+	friend class Context;
+	friend class HardwareDevice;
+	friend class ChannelGroup;
 };
 
 /** A generic device, either hardware or virtual */
