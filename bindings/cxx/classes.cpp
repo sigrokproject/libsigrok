@@ -380,6 +380,34 @@ vector<const ConfigKey *> Configurable::config_keys(const ConfigKey *key)
 	return result;
 }
 
+bool Configurable::config_check(const ConfigKey *key,
+	const ConfigKey *index_key)
+{
+	GVariant *gvar_opts;
+	gsize num_opts;
+	const int32_t *opts;
+
+	if (sr_config_list(config_driver, config_sdi, config_channel_group,
+			index_key->get_id(), &gvar_opts) != SR_OK)
+		return false;
+
+	opts = (const int32_t *) g_variant_get_fixed_array(
+		gvar_opts, &num_opts, sizeof(int32_t));
+
+	for (gsize i = 0; i < num_opts; i++)
+	{
+		if (opts[i] == key->get_id())
+		{
+			g_variant_unref(gvar_opts);
+			return true;
+		}
+	}
+
+	g_variant_unref(gvar_opts);
+
+	return false;
+}
+
 Device::Device(struct sr_dev_inst *structure) :
 	Configurable(structure->driver, structure, NULL),
 	structure(structure)

@@ -297,6 +297,8 @@ public:
 	Glib::VariantContainerBase config_list(const ConfigKey *key);
 	/** Enumerate available keys, according to a given index key. */
 	vector<const ConfigKey *> config_keys(const ConfigKey *key);
+	/** Check for a key in the list from a given index key. */
+	bool config_check(const ConfigKey *key, const ConfigKey *index_key);
 protected:
 	Configurable(
 		struct sr_dev_driver *driver,
