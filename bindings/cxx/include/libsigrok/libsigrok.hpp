@@ -295,6 +295,8 @@ public:
 	/** Enumerate available values for the given configuration key.
 	 * @param key ConfigKey to enumerate values for. */
 	Glib::VariantContainerBase config_list(const ConfigKey *key);
+	/** Enumerate available keys, according to a given index key. */
+	vector<const ConfigKey *> config_keys(const ConfigKey *key);
 protected:
 	Configurable(
 		struct sr_dev_driver *driver,

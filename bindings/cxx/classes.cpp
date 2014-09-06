@@ -358,6 +358,28 @@ Glib::VariantContainerBase Configurable::config_list(const ConfigKey *key)
 	return Glib::VariantContainerBase(data);
 }
 
+vector<const ConfigKey *> Configurable::config_keys(const ConfigKey *key)
+{
+	GVariant *gvar_opts;
+	gsize num_opts;
+	const int32_t *opts;
+	vector<const ConfigKey *> result;
+
+	check(sr_config_list(
+		config_driver, config_sdi, config_channel_group,
+		key->get_id(), &gvar_opts));
+
+	opts = (const int32_t *) g_variant_get_fixed_array(
+		gvar_opts, &num_opts, sizeof(int32_t));
+
+	for (gsize i = 0; i < num_opts; i++)
+		result.push_back(ConfigKey::get(opts[i]));
+
+	g_variant_unref(gvar_opts);
+
+	return result;
+}
+
 Device::Device(struct sr_dev_inst *structure) :
 	Configurable(structure->driver, structure, NULL),
 	structure(structure)
