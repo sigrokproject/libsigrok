@@ -1011,7 +1011,8 @@ Header::~Header()
 
 shared_ptr<PacketPayload> Header::get_shared_pointer(Packet *parent)
 {
-	return static_pointer_cast<PacketPayload>(get_shared_pointer(parent));
+	return static_pointer_cast<PacketPayload>(
+		ParentOwned::get_shared_pointer(parent));
 }
 
 int Header::get_feed_version()
@@ -1038,7 +1039,8 @@ Meta::~Meta()
 
 shared_ptr<PacketPayload> Meta::get_shared_pointer(Packet *parent)
 {
-	return static_pointer_cast<PacketPayload>(get_shared_pointer(parent));
+	return static_pointer_cast<PacketPayload>(
+		ParentOwned::get_shared_pointer(parent));
 }
 
 map<const ConfigKey *, Glib::VariantBase> Meta::get_config()
@@ -1064,7 +1066,8 @@ Logic::~Logic()
 
 shared_ptr<PacketPayload> Logic::get_shared_pointer(Packet *parent)
 {
-	return static_pointer_cast<PacketPayload>(get_shared_pointer(parent));
+	return static_pointer_cast<PacketPayload>(
+		ParentOwned::get_shared_pointer(parent));
 }
 
 void *Logic::get_data_pointer()
@@ -1094,7 +1097,8 @@ Analog::~Analog()
 
 shared_ptr<PacketPayload> Analog::get_shared_pointer(Packet *parent)
 {
-	return static_pointer_cast<PacketPayload>(get_shared_pointer(parent));
+	return static_pointer_cast<PacketPayload>(
+		ParentOwned::get_shared_pointer(parent));
 }
 
 float *Analog::get_data_pointer()
