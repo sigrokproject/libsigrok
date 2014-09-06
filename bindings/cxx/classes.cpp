@@ -229,7 +229,7 @@ shared_ptr<Input> Context::open_file(string filename)
 {
 	const struct sr_input *input;
 
-	check( sr_input_scan_file(filename.c_str(), &input));
+	check(sr_input_scan_file(filename.c_str(), &input));
 	return shared_ptr<Input>(
 		new Input(shared_from_this(), input), Input::Deleter());
 }
