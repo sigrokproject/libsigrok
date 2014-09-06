@@ -745,6 +745,21 @@ EventSource::~EventSource()
 {
 }
 
+SessionDevice::SessionDevice(struct sr_dev_inst *structure) :
+	ParentOwned(structure),
+	Device(structure)
+{
+}
+
+SessionDevice::~SessionDevice()
+{
+}
+
+shared_ptr<Device> SessionDevice::get_shared_from_this()
+{
+	return static_pointer_cast<Device>(shared_from_this());
+}
+
 Session::Session(shared_ptr<Context> context) :
 	UserOwned(structure),
 	context(context), saving(false)
@@ -758,6 +773,15 @@ Session::Session(shared_ptr<Context> context, string filename) :
 	context(context), saving(false)
 {
 	check(sr_session_load(filename.c_str(), &structure));
+	GSList *dev_list;
+	check(sr_session_dev_list(structure, &dev_list));
+	for (GSList *dev = dev_list; dev; dev = dev->next)
+	{
+		auto sdi = (struct sr_dev_inst *) dev->data;
+		auto device = new SessionDevice(sdi);
+		devices[sdi] = shared_ptr<SessionDevice>(device,
+			SessionDevice::Deleter());
+	}
 	context->session = this;
 }
 

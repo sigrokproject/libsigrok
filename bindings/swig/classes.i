@@ -68,6 +68,7 @@ template< class T > class enable_shared_from_this;
 %shared_ptr(sigrok::ChannelGroup);
 %shared_ptr(sigrok::EventSource);
 %shared_ptr(sigrok::Session);
+%shared_ptr(sigrok::SessionDevice);
 %shared_ptr(sigrok::Packet);
 %shared_ptr(sigrok::PacketPayload);
 %shared_ptr(sigrok::Header);

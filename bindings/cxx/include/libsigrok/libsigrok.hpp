@@ -585,6 +585,25 @@ protected:
 	friend class SourceCallbackData;
 };
 
+/** A virtual device associated with a stored session */
+class SR_API SessionDevice :
+	public ParentOwned<SessionDevice, Session, struct sr_dev_inst>,
+	public Device
+{
+protected:
+	SessionDevice(struct sr_dev_inst *sdi);
+	~SessionDevice();
+	shared_ptr<Device> get_shared_from_this();
+	/** Deleter needed to allow shared_ptr use with protected destructor. */
+	class Deleter
+	{
+	public:
+		void operator()(SessionDevice *device) { delete device; }
+	};
+	friend class Deleter;
+	friend class Session;
+};
+
 /** A sigrok session */
 class SR_API Session : public UserOwned<Session, struct sr_session>
 {
