@@ -237,12 +237,13 @@ static struct sr_dev_driver *di = &rigol_ds_driver_info;
 static void clear_helper(void *priv)
 {
 	struct dev_context *devc;
+	unsigned int i;
 
 	devc = priv;
 	g_free(devc->data);
 	g_free(devc->buffer);
-	g_free(devc->coupling[0]);
-	g_free(devc->coupling[1]);
+	for (i = 0; i < ARRAY_SIZE(devc->coupling); i++)
+		g_free(devc->coupling[i]);
 	g_free(devc->trigger_source);
 	g_free(devc->trigger_slope);
 	g_free(devc->analog_groups);
@@ -356,7 +357,7 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	if (devc->model->has_digital) {
 		devc->digital_group = g_malloc0(sizeof(struct sr_channel_group*));
 
-		for (i = 0; i < 16; i++) {
+		for (i = 0; i < ARRAY_SIZE(devc->digital_channels); i++) {
 			if (!(channel_name = g_strdup_printf("D%d", i)))
 				return NULL;
 			ch = sr_channel_new(i, SR_CHANNEL_LOGIC, TRUE, channel_name);
@@ -702,7 +703,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 			return SR_ERR_CHANNEL_GROUP;
 		}
 		g_variant_get(data, "(tt)", &p, &q);
-		for (i = 0; i < 2; i++) {
+		for (i = 0; i < devc->model->analog_channels; i++) {
 			if (cg == devc->analog_groups[i]) {
 				for (j = 0; j < ARRAY_SIZE(vdivs); j++) {
 					if (vdivs[j][0] != p || vdivs[j][1] != q)
@@ -723,7 +724,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 			return SR_ERR_CHANNEL_GROUP;
 		}
 		tmp_str = g_variant_get_string(data, NULL);
-		for (i = 0; i < 2; i++) {
+		for (i = 0; i < devc->model->analog_channels; i++) {
 			if (cg == devc->analog_groups[i]) {
 				for (j = 0; j < ARRAY_SIZE(coupling); j++) {
 					if (!strcmp(tmp_str, coupling[j])) {
@@ -785,8 +786,10 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 
 	/* If a channel group is specified, it must be a valid one. */
 	if (cg) {
-		if (cg != devc->analog_groups[0]
-				&& cg != devc->analog_groups[1]) {
+		for (i = 0; i < devc->model->analog_channels; i++)
+			if (cg == devc->analog_groups[i])
+				break;
+		if (i >= devc->model->analog_channels) {
 			sr_err("Invalid channel group specified.");
 			return SR_ERR;
 		}
@@ -803,7 +806,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 				NULL, 0, sizeof(int32_t));
 			return SR_OK;
 		} else {
-			for (i = 0; i < 2; i++) {
+			for (i = 0; i < devc->model->analog_channels; i++) {
 				if (cg == devc->analog_groups[i]) {
 					*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
 						analog_hwcaps, ARRAY_SIZE(analog_hwcaps), sizeof(int32_t));

@@ -728,7 +728,7 @@ SR_PRIV int rigol_ds_get_dev_cfg(const struct sr_dev_inst *sdi)
 		devc->la_enabled = !strcmp(t_s, "ON") ? TRUE : FALSE;
 		sr_dbg("Logic analyzer %s, current digital channel state:",
 				devc->la_enabled ? "enabled" : "disabled");
-		for (i = 0; i < 16; i++) {
+		for (i = 0; i < ARRAY_SIZE(devc->digital_channels); i++) {
 			cmd = g_strdup_printf(":DIG%d:TURN?", i);
 			res = sr_scpi_get_string(sdi->conn, cmd, &t_s);
 			g_free(cmd);
