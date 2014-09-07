@@ -51,8 +51,6 @@ enum pps_scpi_cmds {
 	SCPI_CMD_GET_OVER_CURRENT_PROTECTION_ACTIVE,
 	SCPI_CMD_GET_OVER_CURRENT_PROTECTION_THRESHOLD,
 	SCPI_CMD_SET_OVER_CURRENT_PROTECTION_THRESHOLD,
-	SCPI_CMD_GET_OUTPUT_CHANNEL_CONFIG,
-	SCPI_CMD_SET_OUTPUT_CHANNEL_CONFIG,
 };
 
 /*
@@ -129,7 +127,10 @@ struct dev_context {
 };
 
 const char *get_vendor(const char *raw_vendor);
+SR_PRIV char *scpi_cmd_get(const struct sr_dev_inst *sdi, int command);
 SR_PRIV int scpi_cmd(const struct sr_dev_inst *sdi, int command, ...);
+SR_PRIV int scpi_cmd_resp(const struct sr_dev_inst *sdi, GVariant **gvar,
+		const GVariantType *gvtype, int command, ...);
 SR_PRIV int scpi_pps_receive_data(int fd, int revents, void *cb_data);
 
 #endif

@@ -171,8 +171,9 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	struct dev_context *devc;
 	struct sr_scpi_dev_inst *scpi;
 	struct sr_channel *ch;
-	double d;
-	int ret;
+	const GVariantType *gvtype;
+	unsigned int i;
+	int cmd, ret;
 	char *s;
 
 	if (!sdi)
@@ -181,43 +182,88 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	devc = sdi->priv;
 	scpi = sdi->conn;
 
-	ret = SR_OK;
-	if (!cg) {
-		/* No channel group: global options. */
-		switch (key) {
-		case SR_CONF_OVER_TEMPERATURE_PROTECTION:
-			ret = SR_ERR;
-			if (scpi_cmd(sdi, SCPI_CMD_GET_OVER_TEMPERATURE_PROTECTION) == SR_OK) {
-				if (sr_scpi_get_string(scpi, NULL, &s) == SR_OK) {
-					*data = g_variant_new_boolean(!strcmp(s, "ON"));
-					ret = SR_OK;
-				}
-			}
-			break;
-			return SR_ERR_NA;
-			break;
-		case SR_CONF_OUTPUT_CHANNEL_CONFIG:
-			ret = SR_ERR;
-			if (scpi_cmd(sdi, SCPI_CMD_GET_OUTPUT_CHANNEL_CONFIG) == SR_OK) {
-				if (sr_scpi_get_string(scpi, NULL, &s) == SR_OK) {
-					*data = g_variant_new_string(s);
-					g_free(s);
-					ret = SR_OK;
-				}
-			}
-			break;
-		default:
-			return SR_ERR_NA;
-		}
-	} else {
+	if (cg) {
 		/*
 		 * These options only apply to channel groups with a single
 		 * channel -- they're per-channel settings for the device.
 		 */
 		if (g_slist_length(cg->channels) > 1)
 			return SR_ERR_NA;
-		ch = cg->channels->data;
 
+		/*
+		 * Config keys are handled below depending on whether a channel
+		 * group was provided by the frontend. However some of these
+		 * take a CG on one PPS but not on others. Check the device's
+		 * profile for that here, and NULL out the channel group as needed.
+		 */
+		for (i = 0; i < devc->device->num_devopts; i++) {
+			if (devc->device->devopts[i] == key) {
+				cg = NULL;
+				break;
+			}
+		}
+
+		ch = cg->channels->data;
+	}
+
+	gvtype = NULL;
+	cmd = -1;
+	switch (key) {
+	case SR_CONF_OUTPUT_ENABLED:
+		gvtype = G_VARIANT_TYPE_BOOLEAN;
+		cmd = SCPI_CMD_GET_OUTPUT_ENABLED;
+		break;
+	case SR_CONF_OUTPUT_VOLTAGE:
+		gvtype = G_VARIANT_TYPE_DOUBLE;
+		cmd = SCPI_CMD_GET_MEAS_VOLTAGE;
+		break;
+	case SR_CONF_OUTPUT_VOLTAGE_MAX:
+		gvtype = G_VARIANT_TYPE_DOUBLE;
+		cmd = SCPI_CMD_GET_VOLTAGE_MAX;
+		break;
+	case SR_CONF_OUTPUT_CURRENT:
+		gvtype = G_VARIANT_TYPE_DOUBLE;
+		cmd = SCPI_CMD_GET_MEAS_CURRENT;
+		break;
+	case SR_CONF_OUTPUT_CURRENT_MAX:
+		gvtype = G_VARIANT_TYPE_DOUBLE;
+		cmd = SCPI_CMD_GET_CURRENT_MAX;
+		break;
+	case SR_CONF_OVER_VOLTAGE_PROTECTION_ENABLED:
+		gvtype = G_VARIANT_TYPE_BOOLEAN;
+		cmd = SCPI_CMD_GET_OVER_VOLTAGE_PROTECTION_ENABLED;
+		break;
+	case SR_CONF_OVER_VOLTAGE_PROTECTION_ACTIVE:
+		gvtype = G_VARIANT_TYPE_BOOLEAN;
+		cmd = SCPI_CMD_GET_OVER_VOLTAGE_PROTECTION_ACTIVE;
+		break;
+	case SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD:
+		gvtype = G_VARIANT_TYPE_DOUBLE;
+		cmd = SCPI_CMD_GET_OVER_VOLTAGE_PROTECTION_THRESHOLD;
+		break;
+	case SR_CONF_OVER_CURRENT_PROTECTION_ENABLED:
+		gvtype = G_VARIANT_TYPE_BOOLEAN;
+		cmd = SCPI_CMD_GET_OVER_CURRENT_PROTECTION_ENABLED;
+		break;
+	case SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE:
+		gvtype = G_VARIANT_TYPE_BOOLEAN;
+		cmd = SCPI_CMD_GET_OVER_CURRENT_PROTECTION_ACTIVE;
+		break;
+	case SR_CONF_OVER_CURRENT_PROTECTION_THRESHOLD:
+		gvtype = G_VARIANT_TYPE_DOUBLE;
+		cmd = SCPI_CMD_GET_OVER_CURRENT_PROTECTION_THRESHOLD;
+		break;
+	case SR_CONF_OVER_TEMPERATURE_PROTECTION:
+		gvtype = G_VARIANT_TYPE_BOOLEAN;
+		cmd = SCPI_CMD_GET_OVER_TEMPERATURE_PROTECTION;
+		break;
+	}
+	if (gvtype) {
+		if (cg)
+			ret = scpi_cmd_resp(sdi, data, gvtype, cmd, ch->name);
+		else
+			ret = scpi_cmd_resp(sdi, data, gvtype, cmd);
+	} else if (cg) {
 		switch (key) {
 		case SR_CONF_OUTPUT_REGULATION:
 			ret = SR_ERR;
@@ -233,115 +279,11 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 				}
 			}
 			break;
-		case SR_CONF_OVER_VOLTAGE_PROTECTION_ENABLED:
-			ret = SR_ERR;
-			if (scpi_cmd(sdi, SCPI_CMD_GET_OVER_VOLTAGE_PROTECTION_ENABLED,
-					ch->name) == SR_OK) {
-				if (sr_scpi_get_string(scpi, NULL, &s) == SR_OK) {
-					*data = g_variant_new_boolean(!strcmp(s, "ON"));
-					ret = SR_OK;
-				}
-			}
-			break;
-		case SR_CONF_OVER_VOLTAGE_PROTECTION_ACTIVE:
-			ret = SR_ERR;
-			if (scpi_cmd(sdi, SCPI_CMD_GET_OVER_VOLTAGE_PROTECTION_ACTIVE,
-					ch->name) == SR_OK) {
-				if (sr_scpi_get_string(scpi, NULL, &s) == SR_OK) {
-					*data = g_variant_new_boolean(!strcmp(s, "YES"));
-					ret = SR_OK;
-				}
-			}
-			break;
-		case SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD:
-			ret = SR_ERR;
-			if (scpi_cmd(sdi, SCPI_CMD_GET_OVER_VOLTAGE_PROTECTION_THRESHOLD,
-					ch->name) == SR_OK) {
-				if (sr_scpi_get_double(scpi, NULL, &d) == SR_OK) {
-					*data = g_variant_new_double(d);
-					ret = SR_OK;
-				}
-			}
-			break;
-		case SR_CONF_OVER_CURRENT_PROTECTION_ENABLED:
-			ret = SR_ERR;
-			if (scpi_cmd(sdi, SCPI_CMD_GET_OVER_CURRENT_PROTECTION_ENABLED,
-					ch->name) == SR_OK) {
-				if (sr_scpi_get_string(scpi, NULL, &s) == SR_OK) {
-					*data = g_variant_new_boolean(!strcmp(s, "ON"));
-					ret = SR_OK;
-				}
-			}
-			break;
-		case SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE:
-			ret = SR_ERR;
-			if (scpi_cmd(sdi, SCPI_CMD_GET_OVER_CURRENT_PROTECTION_ACTIVE,
-					ch->name) == SR_OK) {
-				if (sr_scpi_get_string(scpi, NULL, &s) == SR_OK) {
-					*data = g_variant_new_boolean(!strcmp(s, "YES"));
-					ret = SR_OK;
-				}
-			}
-			break;
-		case SR_CONF_OVER_CURRENT_PROTECTION_THRESHOLD:
-			ret = SR_ERR;
-			if (scpi_cmd(sdi, SCPI_CMD_GET_OVER_CURRENT_PROTECTION_THRESHOLD,
-					ch->name) == SR_OK) {
-				if (sr_scpi_get_double(scpi, NULL, &d) == SR_OK) {
-					*data = g_variant_new_double(d);
-					ret = SR_OK;
-				}
-			}
-			break;
-		case SR_CONF_OUTPUT_VOLTAGE:
-			ret = SR_ERR;
-			if (scpi_cmd(sdi, SCPI_CMD_GET_MEAS_VOLTAGE, ch->name) == SR_OK) {
-				if (sr_scpi_get_double(scpi, NULL, &d) == SR_OK) {
-					*data = g_variant_new_double(d);
-					ret = SR_OK;
-				}
-			}
-			break;
-		case SR_CONF_OUTPUT_VOLTAGE_MAX:
-			ret = SR_ERR;
-			if (scpi_cmd(sdi, SCPI_CMD_GET_VOLTAGE_MAX, ch->name) == SR_OK) {
-				if (sr_scpi_get_double(scpi, NULL, &d) == SR_OK) {
-					*data = g_variant_new_double(d);
-					ret = SR_OK;
-				}
-			}
-			break;
-		case SR_CONF_OUTPUT_CURRENT:
-			ret = SR_ERR;
-			if (scpi_cmd(sdi, SCPI_CMD_GET_MEAS_CURRENT, ch->name) == SR_OK) {
-				if (sr_scpi_get_double(scpi, NULL, &d) == SR_OK) {
-					*data = g_variant_new_double(d);
-					ret = SR_OK;
-				}
-			}
-			break;
-		case SR_CONF_OUTPUT_CURRENT_MAX:
-			ret = SR_ERR;
-			if (scpi_cmd(sdi, SCPI_CMD_GET_CURRENT_MAX, ch->name) == SR_OK) {
-				if (sr_scpi_get_double(scpi, NULL, &d) == SR_OK) {
-					*data = g_variant_new_double(d);
-					ret = SR_OK;
-				}
-			}
-			break;
-		case SR_CONF_OUTPUT_ENABLED:
-			ret = SR_ERR;
-			if (scpi_cmd(sdi, SCPI_CMD_GET_OUTPUT_ENABLED, ch->name) == SR_OK) {
-				if (sr_scpi_get_string(scpi, NULL, &s) == SR_OK) {
-					*data = g_variant_new_boolean(!strcmp(s, "ON"));
-					ret = SR_OK;
-				}
-			}
-			break;
 		default:
-			return SR_ERR_NA;
+			ret = SR_ERR_NA;
 		}
-	}
+	} else
+		ret = SR_ERR_NA;
 
 	return ret;
 }
@@ -357,20 +299,25 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
-
 	ret = SR_OK;
 	if (!cg) {
 		switch (key) {
 		/* No channel group: global options. */
+		case SR_CONF_OUTPUT_ENABLED:
+			s = g_variant_get_boolean(data) ? "ON" : "OFF";
+			ret = scpi_cmd(sdi, SCPI_CMD_SET_OUTPUT_ENABLED, s);
+			break;
+		case SR_CONF_OUTPUT_VOLTAGE_MAX:
+			d = g_variant_get_double(data);
+			ret = scpi_cmd(sdi, SCPI_CMD_SET_VOLTAGE_MAX, d);
+			break;
+		case SR_CONF_OUTPUT_CURRENT_MAX:
+			d = g_variant_get_double(data);
+			ret = scpi_cmd(sdi, SCPI_CMD_SET_CURRENT_MAX, d);
+			break;
 		case SR_CONF_OVER_TEMPERATURE_PROTECTION:
 			s = g_variant_get_boolean(data) ? "ON" : "OFF";
-			if (scpi_cmd(sdi, SCPI_CMD_SET_OVER_TEMPERATURE_PROTECTION, s) < 0)
-				ret = SR_ERR;
-			break;
-		case SR_CONF_OUTPUT_CHANNEL_CONFIG:
-			s = g_variant_get_string(data, NULL);
-			if (scpi_cmd(sdi, SCPI_CMD_SET_OUTPUT_CHANNEL_CONFIG, s) < 0)
-				ret = SR_ERR;
+			ret = scpi_cmd(sdi, SCPI_CMD_SET_OVER_TEMPERATURE_PROTECTION, s);
 			break;
 		default:
 			ret = SR_ERR_NA;
@@ -383,44 +330,37 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 			return SR_ERR_NA;
 		ch = cg->channels->data;
 		switch (key) {
+		case SR_CONF_OUTPUT_ENABLED:
+			s = g_variant_get_boolean(data) ? "ON" : "OFF";
+			ret = scpi_cmd(sdi, SCPI_CMD_SET_OUTPUT_ENABLED, ch->name, s);
+			break;
 		case SR_CONF_OUTPUT_VOLTAGE_MAX:
 			d = g_variant_get_double(data);
-			if (scpi_cmd(sdi, SCPI_CMD_SET_VOLTAGE_MAX, ch->name, d) < 0)
-				ret = SR_ERR;
+			ret = scpi_cmd(sdi, SCPI_CMD_SET_VOLTAGE_MAX, ch->name, d);
 			break;
 		case SR_CONF_OUTPUT_CURRENT_MAX:
 			d = g_variant_get_double(data);
-			if (scpi_cmd(sdi, SCPI_CMD_SET_CURRENT_MAX, ch->name, d) < 0)
-				ret = SR_ERR;
-			break;
-		case SR_CONF_OUTPUT_ENABLED:
-			s = g_variant_get_boolean(data) ? "ON" : "OFF";
-			if (scpi_cmd(sdi, SCPI_CMD_SET_OUTPUT_ENABLED, ch->name, s) < 0)
-				ret = SR_ERR;
+			ret = scpi_cmd(sdi, SCPI_CMD_SET_CURRENT_MAX, ch->name, d);
 			break;
 		case SR_CONF_OVER_VOLTAGE_PROTECTION_ENABLED:
 			s = g_variant_get_boolean(data) ? "ON" : "OFF";
-			if (scpi_cmd(sdi, SCPI_CMD_SET_OVER_VOLTAGE_PROTECTION_ENABLED,
-					ch->name, s) < 0)
-				ret = SR_ERR;
+			ret = scpi_cmd(sdi, SCPI_CMD_SET_OVER_VOLTAGE_PROTECTION_ENABLED,
+					ch->name, s);
 			break;
 		case SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD:
 			d = g_variant_get_double(data);
-			if (scpi_cmd(sdi, SCPI_CMD_SET_OVER_VOLTAGE_PROTECTION_THRESHOLD,
-					ch->name, d) < 0)
-				ret = SR_ERR;
+			ret = scpi_cmd(sdi, SCPI_CMD_SET_OVER_VOLTAGE_PROTECTION_THRESHOLD,
+					ch->name, d);
 			break;
 		case SR_CONF_OVER_CURRENT_PROTECTION_ENABLED:
 			s = g_variant_get_boolean(data) ? "ON" : "OFF";
-			if (scpi_cmd(sdi, SCPI_CMD_SET_OVER_CURRENT_PROTECTION_ENABLED,
-					ch->name, s) < 0)
-				ret = SR_ERR;
+			ret = scpi_cmd(sdi, SCPI_CMD_SET_OVER_CURRENT_PROTECTION_ENABLED,
+					ch->name, s);
 			break;
 		case SR_CONF_OVER_CURRENT_PROTECTION_THRESHOLD:
 			d = g_variant_get_double(data);
-			if (scpi_cmd(sdi, SCPI_CMD_SET_OVER_CURRENT_PROTECTION_THRESHOLD,
-					ch->name, d) < 0)
-				ret = SR_ERR;
+			ret = scpi_cmd(sdi, SCPI_CMD_SET_OVER_CURRENT_PROTECTION_THRESHOLD,
+					ch->name, d);
 			break;
 		default:
 			ret = SR_ERR_NA;
@@ -462,6 +402,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 					sizeof(int32_t));
 			break;
 		case SR_CONF_OUTPUT_CHANNEL_CONFIG:
+			/* Not used. */
 			i = 0;
 			if (devc->device->features & PPS_INDEPENDENT)
 				s[i++] = "Independent";

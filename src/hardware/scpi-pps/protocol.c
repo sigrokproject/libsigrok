@@ -21,13 +21,10 @@
 #include <stdarg.h>
 #include "protocol.h"
 
-SR_PRIV int scpi_cmd(const struct sr_dev_inst *sdi, int command, ...)
+SR_PRIV char *scpi_cmd_get(const struct sr_dev_inst *sdi, int command)
 {
-	va_list args;
 	struct dev_context *devc;
-	struct sr_scpi_dev_inst *scpi;
 	unsigned int i;
-	int ret;
 	char *cmd;
 
 	devc = sdi->priv;
@@ -38,7 +35,18 @@ SR_PRIV int scpi_cmd(const struct sr_dev_inst *sdi, int command, ...)
 			break;
 		}
 	}
-	if (!cmd) {
+
+	return cmd;
+}
+
+SR_PRIV int scpi_cmd(const struct sr_dev_inst *sdi, int command, ...)
+{
+	struct sr_scpi_dev_inst *scpi;
+	va_list args;
+	int ret;
+	char *cmd;
+
+	if (!(cmd = scpi_cmd_get(sdi, command))) {
 		/* Device does not implement this command, that's OK. */
 		return SR_OK_CONTINUE;
 	}
@@ -47,6 +55,47 @@ SR_PRIV int scpi_cmd(const struct sr_dev_inst *sdi, int command, ...)
 	va_start(args, command);
 	ret = sr_scpi_send_variadic(scpi, cmd, args);
 	va_end(args);
+
+	return ret;
+}
+
+SR_PRIV int scpi_cmd_resp(const struct sr_dev_inst *sdi, GVariant **gvar,
+		const GVariantType *gvtype, int command, ...)
+{
+	struct sr_scpi_dev_inst *scpi;
+	va_list args;
+	double d;
+	int ret;
+	char *cmd, *s;
+
+	if (!(cmd = scpi_cmd_get(sdi, command))) {
+		/* Device does not implement this command, that's OK. */
+		return SR_OK_CONTINUE;
+	}
+
+	scpi = sdi->conn;
+	va_start(args, command);
+	ret = sr_scpi_send_variadic(scpi, cmd, args);
+	va_end(args);
+	if (ret != SR_OK)
+		return ret;
+
+	if (g_variant_type_equal(gvtype, G_VARIANT_TYPE_BOOLEAN)) {
+		if ((ret = sr_scpi_get_string(scpi, NULL, &s)) != SR_OK)
+			return ret;
+		if (!strcasecmp(s, "ON") || !strcasecmp(s, "1") || !strcasecmp(s, "YES"))
+			*gvar = g_variant_new_boolean(TRUE);
+		else if (!strcasecmp(s, "OFF") || !strcasecmp(s, "0") || !strcasecmp(s, "NO"))
+			*gvar = g_variant_new_boolean(FALSE);
+		else
+			ret = SR_ERR;
+	} if (g_variant_type_equal(gvtype, G_VARIANT_TYPE_DOUBLE)) {
+		if ((ret = sr_scpi_get_double(scpi, NULL, &d)) == SR_OK)
+			*gvar = g_variant_new_double(d);
+	} if (g_variant_type_equal(gvtype, G_VARIANT_TYPE_STRING)) {
+		if ((ret = sr_scpi_get_string(scpi, NULL, &s)) == SR_OK)
+			*gvar = g_variant_new_string(s);
+	}
 
 	return ret;
 }
