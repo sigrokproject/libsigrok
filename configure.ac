@@ -156,7 +156,7 @@ AC_ARG_ENABLE(libusb,
 	AC_HELP_STRING([--disable-libusb],
 	[disable libusb support [default=detect]]))
 
-# Language binding '--enable' options
+# Language binding '--enable' options:
 
 AC_ARG_ENABLE(bindings,
 	AC_HELP_STRING([--enable-bindings],
@@ -192,10 +192,10 @@ if test "x$HAVE_CXX11" != "x1"; then
 	BINDINGS_CXX="no"; cxx_msg="C++11 compiler required"
 fi
 
-# The C++ bindings use doxygen to parse libsigrok symbols.
+# The C++ bindings use Doxygen to parse libsigrok symbols.
 AC_CHECK_PROG([HAVE_DOXYGEN], [doxygen], [yes])
 if test "x$HAVE_DOXYGEN" != "xyes"; then
-	BINDINGS_CXX="no"; cxx_msg="doxygen required"
+	BINDINGS_CXX="no"; cxx_msg="Doxygen required"
 fi
 
 # Python is needed for the C++ bindings.
@@ -204,18 +204,18 @@ if test "x$HAVE_PYTHON" != "xyes"; then
 	BINDINGS_CXX="no"; cxx_msg="Python required"
 fi
 
-# The Python bindings need Python development files
+# The Python bindings need Python development files.
 PKG_CHECK_MODULES([python], [python >= 2.7],
-        [CXXFLAGS="$CXXFLAGS $python_CFLAGS";
-        CXXLIBS="$CXXLIBS $python_LIBS"],
+	[CXXFLAGS="$CXXFLAGS $python_CFLAGS";
+	CXXLIBS="$CXXLIBS $python_LIBS"],
 [PKG_CHECK_MODULES([python27], [python-2.7 >= 2.7],
-        [CXXFLAGS="$CXXFLAGS $python27_CFLAGS";
-        CXXLIBS="$CXXLIBS $python27_LIBS"],
+	[CXXFLAGS="$CXXFLAGS $python27_CFLAGS";
+	CXXLIBS="$CXXLIBS $python27_LIBS"],
 		[BINDINGS_PYTHON="no"; python_msg="Python headers required"])])
 
 # The Python bindings need the setuptools Python module.
 m4_ifdef([AX_PYTHON_MODULE], [AX_PYTHON_MODULE([setuptools])],
-	# We'll let it go through even if the macro wasn't found, the python
+	# We'll let it go through even if the macro wasn't found, the Python
 	# module may still be there.
 	[HAVE_PYTHON_SETUPTOOLS="yes";
 		AC_MSG_NOTICE([Missing macro m4_toupper(aX_PYTHON_MODULE), no setuptools check])]
@@ -224,11 +224,11 @@ if test "x$HAVE_PYMOD_SETUPTOOLS" != "xyes"; then
 	BINDINGS_PYTHON="no"; python_msg="Python setuptools module required"
 fi
 
-# The Python and Java bindings use swig to generate code.
+# The Python and Java bindings use SWIG to generate code.
 AC_CHECK_PROG([HAVE_SWIG], [swig], [yes])
 if test "x$HAVE_SWIG" != "xyes"; then
-	BINDINGS_PYTHON="no"; python_msg="swig required"
-	BINDINGS_JAVA="no"; java_msg="swig required"
+	BINDINGS_PYTHON="no"; python_msg="SWIG required"
+	BINDINGS_JAVA="no"; java_msg="SWIG required"
 fi
 
 # Checks for libraries.
@@ -250,10 +250,10 @@ AC_SEARCH_LIBS([pow], [m])
 # RPC is only needed for VXI support.
 AC_MSG_CHECKING([for RPC support])
 AC_LINK_IFELSE([AC_LANG_PROGRAM([#include <rpc/rpc.h>],
-				[CLIENT *rpc_test(void)],
-				[{ return clnt_create("", 0, 0, ""); }])],
-	       [AC_MSG_RESULT([yes]); have_rpc=1],
-	       [AC_MSG_RESULT([no]);  have_rpc=0])
+			[CLIENT *rpc_test(void)],
+			[{ return clnt_create("", 0, 0, ""); }])],
+		[AC_MSG_RESULT([yes]); have_rpc=1],
+		[AC_MSG_RESULT([no]);  have_rpc=0])
 # Define HAVE_RPC in config.h if we found RPC support.
 AC_DEFINE_UNQUOTED(HAVE_RPC, [$have_rpc], [Specifies whether we have RPC support.])
 # VXI support is only compiled if RPC support was found.
@@ -279,13 +279,11 @@ if test "x$enable_libserialport" != "xno"; then
 		SR_PKGLIBS="$SR_PKGLIBS libserialport"],
 		[have_libserialport="no"])
 	if test "x$enable_libserialport$have_libserialport" = "xyesno"; then
-		AC_MSG_ERROR([libserialport support requested, but it was not found])
+		AC_MSG_ERROR([libserialport support requested, but it was not found.])
 	fi
 else
 	have_libserialport="no"
 fi
-
-# Define HAVE_LIBSERIALPORT in config.h if we found libserialport.
 if test "x$have_libserialport" = "xno"; then
 	HW_AGILENT_DMM="no"; HW_APPA_55II="no";
 	HW_ATTEN_PPS3XXX="no"; HW_BRYMEN_DMM="no"; HW_CEM_DT_885X="no";
@@ -295,6 +293,7 @@ if test "x$have_libserialport" = "xno"; then
 	HW_NORMA_DMM="no"; HW_OPENBENCH_LOGIC_SNIFFER="no"; HW_SERIAL_DMM="no";
 	HW_TELEINFO="no"; HW_TONDAJ_SL_814="no";
 else
+	# Define HAVE_LIBSERIALPORT in config.h if we found libserialport.
 	AC_DEFINE_UNQUOTED(HAVE_LIBSERIALPORT, [1],
 		[Specifies whether we have libserialport.])
 fi
@@ -302,30 +301,28 @@ fi
 # Serial port helper code is only compiled in if libserialport was found.
 AM_CONDITIONAL(NEED_SERIAL, test "x$have_libserialport" != xno)
 
-# VISA SCPI backend is only compiled in if librevisa was found.
+# The VISA SCPI backend is only compiled in if librevisa was found.
 PKG_CHECK_MODULES([librevisa], [librevisa >= 0.0.20130812],
 	[have_librevisa="yes"; LIB_CFLAGS="$LIB_CFLAGS $librevisa_CFLAGS";
 	LIBS="$LIBS $librevisa_LIBS";
 	SR_PKGLIBS="$SR_PKGLIBS librevisa"],
 	[have_librevisa="no"])
 AM_CONDITIONAL(NEED_VISA, test "x$have_librevisa" != xno)
-
-# Define HAVE_LIBREVISA in config.h if we found librevisa.
 if test "x$have_librevisa" != "xno"; then
+	# Define HAVE_LIBREVISA in config.h if we found librevisa.
 	AC_DEFINE_UNQUOTED(HAVE_LIBREVISA, [1],
 		[Specifies whether we have librevisa.])
 fi
 
-# GPIB backend is only compiled in if libgpib headers found.
+# The GPIB SCPI backend is only compiled in if libgpib is found.
 PKG_CHECK_MODULES([libgpib], [libgpib],
 	[have_libgpib="yes"; LIB_CFLAGS="$LIB_CFLAGS $libgpib_CFLAGS";
 	LIBS="$LIBS $libgpib_LIBS";
 	SR_PKGLIBS="$SR_PKGLIBS libgpib"],
 	[have_libgpib="no"])
 AM_CONDITIONAL(NEED_GPIB, test "x$have_libgpib" != xno)
-
-# Define HAVE_LIBGPIB in config.h if we found libgpib.
 if test "x$have_libgpib" != "xno"; then
+	# Define HAVE_LIBGPIB in config.h if we found libgpib.
 	AC_DEFINE_UNQUOTED(HAVE_LIBGPIB, [1],
 		[Specifies whether we have libgpib.])
 fi
@@ -347,15 +344,13 @@ if test "x$enable_libusb" != "xno"; then
 			SR_PKGLIBS="$SR_PKGLIBS libusb-1.0"],
 			[have_libusb1_0="no"])
 		if test "x$enable_libusb$have_libusb1_0" = "xyesno"; then
-			AC_MSG_ERROR([libusb support requested, but it was not found])
+			AC_MSG_ERROR([libusb support requested, but it was not found.])
 		fi
 		;;
 	esac
 else
 	have_libusb1_0="no"
 fi
-
-# Define HAVE_LIBUSB_1_0 in config.h if we found libusb-1.0.
 if test "x$have_libusb1_0" = "xno"; then
 	HW_BRYMEN_BM86X="no"; HW_FX2LAFW="no";
 	HW_HANTEK_DSO="no"; HW_IKALOGIC_SCANALOGIC2="no";
@@ -364,8 +359,9 @@ if test "x$have_libusb1_0" = "xno"; then
 	HW_UNI_T_UT32X="no"; HW_VICTOR_DMM="no";
 	HW_ZEROPLUS_LOGIC_CUBE="no"; HW_SALEAE_LOGIC16="no";
 else
+	# Define HAVE_LIBUSB_1_0 in config.h if we found libusb-1.0.
 	AC_DEFINE_UNQUOTED(HAVE_LIBUSB_1_0, [1],
-		[Specifies whether we have a libusb.h header.])
+		[Specifies whether we have libusb-1.0.])
 fi
 
 # USB + FX2 firmware helper code is only compiled in if libusb-1.0 was found.
@@ -383,12 +379,11 @@ if test "x$enable_libftdi" != "xno"; then
 			SR_PKGLIBS="$SR_PKGLIBS libftdi1"],
 			[have_libftdi="no"])])
 	if test "x$enable_libftdi$have_libftdi" = "xyesno"; then
-		AC_MSG_ERROR([libftdi support requested, but it was not found])
+		AC_MSG_ERROR([libftdi support requested, but it was not found.])
 	fi
 else
 	have_libftdi="no"
 fi
-
 if test "x$have_libftdi" = "xno"; then
 	HW_ASIX_SIGMA="no"; HW_CHRONOVU_LA="no"; HW_IKALOGIC_SCANAPLUS="no";
 	HW_PIPISTRELLO_OLS="no";
@@ -400,27 +395,27 @@ PKG_CHECK_MODULES([glibmm], [glibmm-2.4 >= 2.32.0],
 	CXXLIBS="$CXXLIBS $glibmm_LIBS"],
 	[BINDINGS_CXX="no"; cxx_msg="glibmm required"])
 
-# C++ bindings want stoi and stod
+# C++ bindings want stoi and stod.
 if test "x$BINDINGS_CXX" == "xyes"; then
 	AC_LANG_PUSH([C++])
 	AC_MSG_CHECKING([for stoi and stod])
 	AC_COMPILE_IFELSE([AC_LANG_PROGRAM([#include <string>],
-					   [{ return std::stoi("1")+std::stod("1.0"); }])],
-	       [AC_MSG_RESULT([yes]);
+		[{ return std::stoi("1") + std::stod("1.0"); }])],
+		[AC_MSG_RESULT([yes]);
 		AC_DEFINE_UNQUOTED(HAVE_STOI_STOD, [1],
 		[Specifies whether we have the stoi and stod functions.])],
-	       [AC_MSG_RESULT([no])])
+		[AC_MSG_RESULT([no])])
 	AC_LANG_POP([C++])
 fi
 
 # PyGObject is needed for the Python bindings.
 PKG_CHECK_MODULES([pygobject], [pygobject-3.0 >= 3.0.0],
-        [CXXFLAGS="$CXXFLAGS $pygobject_CFLAGS";
-        CXXLIBS="$CXXLIBS $pygobject_LIBS";
+	[CXXFLAGS="$CXXFLAGS $pygobject_CFLAGS";
+	CXXLIBS="$CXXLIBS $pygobject_LIBS";
 	PKG_CHECK_MODULES([pygobject_3_7_91], [pygobject-3.0 >= 3.7.91],
 		[pyg_flags_signed=0], [pyg_flags_signed=1]);
 	AC_DEFINE_UNQUOTED(PYGOBJECT_FLAGS_SIGNED, [$pyg_flags_signed],
-		[Whether last argument to pyg_flags_get_value() is signed])],
+		[Whether last argument to pyg_flags_get_value() is signed.])],
 	[BINDINGS_PYTHON="no"; python_msg="Python pygobject module required"])
 
 # The Check unit testing framework is optional. Disable if not found.
@@ -446,9 +441,7 @@ CFLAGS="$CFLAGS -Iinclude/libsigrok -I${srcdir}/include/libsigrok $LIB_CFLAGS"
 CXXFLAGS="$CXXFLAGS -Iinclude/libsigrok -I${srcdir}/include -Ibindings/cxx -Ibindings/cxx/include/libsigrok -I${srcdir}/bindings/cxx/include $LIB_CFLAGS"
 
 # Find Java compiler and JNI includes for Java bindings.
-
 AC_CHECK_PROG([HAVE_JAVAC], [javac], [yes], [no])
-
 if test "x$HAVE_JAVAC" = "xyes"; then
 	AX_PROG_JAVAC
 	if test "x$JNI_INCLUDE_DIRS" = "xauto"; then
@@ -556,14 +549,14 @@ if test "x$HW_GMC_MH_1X_2X" = "xyes"; then
 	AC_DEFINE(HAVE_HW_GMC_MH_1X_2X, 1, [gmc-mh-1x-2x support])
 fi
 
-AM_CONDITIONAL(HW_HANTEK_DSO, test x$HW_HANTEK_DSO = xyes)
-if test "x$HW_HANTEK_DSO" = "xyes"; then
-	AC_DEFINE(HAVE_HW_HANTEK_DSO, 1, [Hantek DSO support])
-fi
-
 AM_CONDITIONAL(HW_HAMEG_HMO, test x$HW_HAMEG_HMO = xyes)
 if test "x$HW_HAMEG_HMO" = "xyes"; then
 	AC_DEFINE(HAVE_HW_HAMEG_HMO, 1, [Hameg HMO support])
+fi
+
+AM_CONDITIONAL(HW_HANTEK_DSO, test x$HW_HANTEK_DSO = xyes)
+if test "x$HW_HANTEK_DSO" = "xyes"; then
+	AC_DEFINE(HAVE_HW_HANTEK_DSO, 1, [Hantek DSO support])
 fi
 
 AM_CONDITIONAL(HW_IKALOGIC_SCANALOGIC2, test x$HW_IKALOGIC_SCANALOGIC2 = xyes)
@@ -728,8 +721,8 @@ echo
 # Note: This only works for libs with pkg-config integration.
 for lib in "glib-2.0 >= 2.32.0" "libzip >= 0.10" "libserialport >= 0.2.0" \
 	"librevisa >= 0.0.20130812" "libusb-1.0 >= 1.0.16" "libftdi >= 0.16" \
-	"libftdi1 >= 1.0" "glibmm-2.4 >= 2.32.0" "pygobject-3.0 >= 3.0.0" \
-	"check >= 0.9.4" "libgpib"
+	"libftdi1 >= 1.0" "libgpib" "glibmm-2.4 >= 2.32.0" \
+	"pygobject-3.0 >= 3.0.0" "check >= 0.9.4"
 do
 	optional="OPTIONAL"
 	if test "x$lib" = "xglib-2.0 >= 2.32.0"; then optional="REQUIRED"; fi
@@ -745,7 +738,7 @@ done
 
 eval echo -e "@Enabled hardware drivers:@@${driver_summary}" | tr @ \\n
 
-# Prepare final bindings report messages
+# Prepare final bindings report messages.
 final_cxx=""
 final_python=""
 final_java=""
