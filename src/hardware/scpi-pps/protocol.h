@@ -101,6 +101,18 @@ struct channel_group_spec {
 	uint64_t features;
 };
 
+struct pps_channel {
+	int mq;
+	unsigned int hw_output_idx;
+	char *hwname;
+};
+
+struct pps_channel_instance {
+	int mq;
+	int command;
+	char *prefix;
+};
+
 struct pps_channel_group {
 	uint64_t features;
 };
@@ -122,7 +134,6 @@ struct dev_context {
 	/* Operational state */
 
 	/* Temporary state across callbacks */
-	int state;
 	struct sr_channel *cur_channel;
 };
 

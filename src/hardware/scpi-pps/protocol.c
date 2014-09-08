@@ -107,8 +107,10 @@ SR_PRIV int scpi_pps_receive_data(int fd, int revents, void *cb_data)
 	struct sr_datafeed_analog analog;
 	const struct sr_dev_inst *sdi;
 	struct sr_scpi_dev_inst *scpi;
+	struct pps_channel *pch;
 	GSList *l;
 	float f;
+	int cmd;
 
 	(void)fd;
 	(void)revents;
@@ -119,51 +121,47 @@ SR_PRIV int scpi_pps_receive_data(int fd, int revents, void *cb_data)
 	if (!(devc = sdi->priv))
 		return TRUE;
 
-	if (devc->state == STATE_STOP)
-		return TRUE;
-
 	scpi = sdi->conn;
 
 	/* Retrieve requested value for this state. */
 	if (sr_scpi_get_float(scpi, NULL, &f) == SR_OK) {
+		pch = devc->cur_channel->priv;
 		packet.type = SR_DF_ANALOG;
 		packet.payload = &analog;
 		analog.channels = g_slist_append(NULL, devc->cur_channel);
 		analog.num_samples = 1;
-		if (devc->state == STATE_VOLTAGE) {
-			analog.mq = SR_MQ_VOLTAGE;
+		analog.mq = pch->mq;
+		if (pch->mq == SR_MQ_VOLTAGE)
 			analog.unit = SR_UNIT_VOLT;
-		} else {
-			analog.mq = SR_MQ_CURRENT;
+		else if (pch->mq == SR_MQ_CURRENT)
 			analog.unit = SR_UNIT_AMPERE;
-		}
+		else if (pch->mq == SR_MQ_POWER)
+			analog.unit = SR_UNIT_WATT;
 		analog.mqflags = SR_MQFLAG_DC;
 		analog.data = &f;
 		sr_session_send(sdi, &packet);
 		g_slist_free(analog.channels);
 	}
 
-	if (devc->state == STATE_VOLTAGE) {
-		/* Just got voltage, request current for this channel. */
-		devc->state = STATE_CURRENT;
-		scpi_cmd(sdi, SCPI_CMD_GET_MEAS_CURRENT, devc->cur_channel->name);
-	} else if (devc->state == STATE_CURRENT) {
-		/*
-		 * Done with voltage and current for this channel, switch to
-		 * the next enabled channel.
-		 */
-		do {
-			l = g_slist_find(sdi->channels, devc->cur_channel);
-			if (l->next)
-				devc->cur_channel = l->next->data;
-			else
-				devc->cur_channel = sdi->channels->data;
-		} while (!devc->cur_channel->enabled);
+	/* Find next enabled channel. */
+	do {
+		l = g_slist_find(sdi->channels, devc->cur_channel);
+		if (l->next)
+			devc->cur_channel = l->next->data;
+		else
+			devc->cur_channel = sdi->channels->data;
+	} while (!devc->cur_channel->enabled);
 
-		/* Request voltage. */
-		devc->state = STATE_VOLTAGE;
-		scpi_cmd(sdi, SCPI_CMD_GET_MEAS_VOLTAGE, devc->cur_channel->name);
-	}
+	pch = devc->cur_channel->priv;
+	if (pch->mq == SR_MQ_VOLTAGE)
+		cmd = SCPI_CMD_GET_MEAS_VOLTAGE;
+	else if (pch->mq == SR_MQ_CURRENT)
+		cmd = SCPI_CMD_GET_MEAS_CURRENT;
+	else if (pch->mq == SR_MQ_POWER)
+		cmd = SCPI_CMD_GET_MEAS_POWER;
+	else
+		return SR_ERR;
+	scpi_cmd(sdi, cmd, pch->hwname);
 
 	return TRUE;
 }

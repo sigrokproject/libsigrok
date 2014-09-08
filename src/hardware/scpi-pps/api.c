@@ -30,6 +30,12 @@ static const int32_t scanopts[] = {
 	SR_CONF_SERIALCOMM,
 };
 
+static struct pps_channel_instance pci[] = {
+	{ SR_MQ_VOLTAGE, SCPI_CMD_GET_MEAS_VOLTAGE, "V" },
+	{ SR_MQ_CURRENT, SCPI_CMD_GET_MEAS_CURRENT, "I" },
+	{ SR_MQ_POWER, SCPI_CMD_GET_MEAS_POWER, "P" },
+};
+
 static int init(struct sr_context *sr_ctx)
 {
 	return std_init(sr_ctx, di, LOG_PREFIX);
@@ -43,13 +49,16 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	struct sr_channel_group *cg;
 	struct sr_channel *ch;
 	const struct scpi_pps *device;
+	struct pps_channel *pch;
 	const struct channel_group_spec *cgs;
 	struct pps_channel_group *pcg;
 	GRegex *model_re;
 	GMatchInfo *model_mi;
+	GSList *l;
 	uint64_t mask;
-	unsigned int i, j;
+	unsigned int ch_num, ch_idx, old_idx, i, j;
 	const char *vendor;
+	char ch_name[16];
 
 	if (sr_scpi_get_hw_id(scpi, &hw_info) != SR_OK) {
 		sr_info("Couldn't get IDN response.");
@@ -83,10 +92,31 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	devc->device = device;
 	sdi->priv = devc;
 
-	for (i = 0; i < device->num_channels; i++) {
-		ch = sr_channel_new(i, SR_CHANNEL_ANALOG, TRUE,
-				device->channels[i].name);
-		sdi->channels = g_slist_append(sdi->channels, ch);
+	ch_idx = 0;
+	for (ch_num = 0; ch_num < device->num_channels; ch_num++) {
+		/* Create one channel per measurable output unit. */
+		old_idx = ch_idx;
+		for (i = 0; i < ARRAY_SIZE(pci); i++) {
+			if (!scpi_cmd_get(sdi, pci[i].command))
+				continue;
+			g_snprintf(ch_name, 16, "%s%s", pci[i].prefix,
+					device->channels[ch_num].name);
+			ch = sr_channel_new(ch_idx++, SR_CHANNEL_ANALOG, TRUE, ch_name);
+			pch = g_malloc0(sizeof(struct pps_channel));
+			pch->hw_output_idx = ch_num;
+			pch->hwname = device->channels[ch_num].name;
+			pch->mq = pci[i].mq;
+			ch->priv = pch;
+			sdi->channels = g_slist_append(sdi->channels, ch);
+		}
+		if (ch_idx == old_idx) {
+			/*
+			 * Didn't create any channels for this hardware output.
+			 * This can happen if the device has no measurement capability.
+			 */
+			g_free(pch);
+			continue;
+		}
 	}
 
 	for (i = 0; i < device->num_channel_groups; i++) {
@@ -95,8 +125,12 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 		cg->name = g_strdup(cgs->name);
 		for (j = 0, mask = 1; j < 64; j++, mask <<= 1) {
 			if (cgs->channel_index_mask & mask) {
-				ch = g_slist_nth_data(sdi->channels, j);
-				cg->channels = g_slist_append(cg->channels, ch);
+				for (l = sdi->channels; l; l = l->next) {
+					ch = l->data;
+					pch = ch->priv;
+					if (pch->hw_output_idx == j)
+						cg->channels = g_slist_append(cg->channels, ch);
+				}
 			}
 		}
 		pcg = g_malloc0(sizeof(struct pps_channel_group));
@@ -171,6 +205,7 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	struct dev_context *devc;
 	struct sr_scpi_dev_inst *scpi;
 	struct sr_channel *ch;
+	struct pps_channel *pch;
 	const GVariantType *gvtype;
 	unsigned int i;
 	int cmd, ret;
@@ -187,8 +222,6 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		 * These options only apply to channel groups with a single
 		 * channel -- they're per-channel settings for the device.
 		 */
-		if (g_slist_length(cg->channels) > 1)
-			return SR_ERR_NA;
 
 		/*
 		 * Config keys are handled below depending on whether a channel
@@ -204,6 +237,7 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		}
 
 		ch = cg->channels->data;
+		pch = ch->priv;
 	}
 
 	gvtype = NULL;
@@ -260,14 +294,14 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	}
 	if (gvtype) {
 		if (cg)
-			ret = scpi_cmd_resp(sdi, data, gvtype, cmd, ch->name);
+			ret = scpi_cmd_resp(sdi, data, gvtype, cmd, pch->hwname);
 		else
 			ret = scpi_cmd_resp(sdi, data, gvtype, cmd);
 	} else if (cg) {
 		switch (key) {
 		case SR_CONF_OUTPUT_REGULATION:
 			ret = SR_ERR;
-			if (scpi_cmd(sdi, SCPI_CMD_GET_OUTPUT_REGULATION, ch->name) == SR_OK) {
+			if (scpi_cmd(sdi, SCPI_CMD_GET_OUTPUT_REGULATION, pch->hwname) == SR_OK) {
 				if (sr_scpi_get_string(scpi, NULL, &s) == SR_OK) {
 					if (strcmp(s, "CC") && strcmp(s, "CV") && strcmp(s, "UR")) {
 						sr_dbg("Unknown response to SCPI_CMD_GET_OUTPUT_REGULATION: %s", s);
@@ -292,6 +326,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
 	struct sr_channel *ch;
+	struct pps_channel *pch;
 	double d;
 	int ret;
 	const char *s;
@@ -329,38 +364,39 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 		if (g_slist_length(cg->channels) > 1)
 			return SR_ERR_NA;
 		ch = cg->channels->data;
+		pch = ch->priv;
 		switch (key) {
 		case SR_CONF_OUTPUT_ENABLED:
 			s = g_variant_get_boolean(data) ? "ON" : "OFF";
-			ret = scpi_cmd(sdi, SCPI_CMD_SET_OUTPUT_ENABLED, ch->name, s);
+			ret = scpi_cmd(sdi, SCPI_CMD_SET_OUTPUT_ENABLED, pch->hwname, s);
 			break;
 		case SR_CONF_OUTPUT_VOLTAGE_MAX:
 			d = g_variant_get_double(data);
-			ret = scpi_cmd(sdi, SCPI_CMD_SET_VOLTAGE_MAX, ch->name, d);
+			ret = scpi_cmd(sdi, SCPI_CMD_SET_VOLTAGE_MAX, pch->hwname, d);
 			break;
 		case SR_CONF_OUTPUT_CURRENT_MAX:
 			d = g_variant_get_double(data);
-			ret = scpi_cmd(sdi, SCPI_CMD_SET_CURRENT_MAX, ch->name, d);
+			ret = scpi_cmd(sdi, SCPI_CMD_SET_CURRENT_MAX, pch->hwname, d);
 			break;
 		case SR_CONF_OVER_VOLTAGE_PROTECTION_ENABLED:
 			s = g_variant_get_boolean(data) ? "ON" : "OFF";
 			ret = scpi_cmd(sdi, SCPI_CMD_SET_OVER_VOLTAGE_PROTECTION_ENABLED,
-					ch->name, s);
+					pch->hwname, s);
 			break;
 		case SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD:
 			d = g_variant_get_double(data);
 			ret = scpi_cmd(sdi, SCPI_CMD_SET_OVER_VOLTAGE_PROTECTION_THRESHOLD,
-					ch->name, d);
+					pch->hwname, d);
 			break;
 		case SR_CONF_OVER_CURRENT_PROTECTION_ENABLED:
 			s = g_variant_get_boolean(data) ? "ON" : "OFF";
 			ret = scpi_cmd(sdi, SCPI_CMD_SET_OVER_CURRENT_PROTECTION_ENABLED,
-					ch->name, s);
+					pch->hwname, s);
 			break;
 		case SR_CONF_OVER_CURRENT_PROTECTION_THRESHOLD:
 			d = g_variant_get_double(data);
 			ret = scpi_cmd(sdi, SCPI_CMD_SET_OVER_CURRENT_PROTECTION_THRESHOLD,
-					ch->name, d);
+					pch->hwname, d);
 			break;
 		default:
 			ret = SR_ERR_NA;
@@ -424,17 +460,12 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		}
 	} else {
 		/* Channel group specified. */
-		if (!sdi)
-			return SR_ERR_ARG;
 		/*
 		 * Per-channel-group options depending on a channel are actually
 		 * done with the first channel. Channel groups in PPS can have
 		 * more than one channel, but they will typically be of equal
-		 * specification for use in series or parallel mode. Drop requests
-		 * for groups with more than one channel just to make sure.
+		 * specification for use in series or parallel mode.
 		 */
-		if (g_slist_length(cg->channels) > 1)
-			return SR_ERR_NA;
 		ch = cg->channels->data;
 
 		switch (key) {
@@ -477,7 +508,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	struct dev_context *devc;
 	struct sr_scpi_dev_inst *scpi;
 	struct sr_channel *ch;
-	int ret;
+	struct pps_channel *pch;
+	int cmd, ret;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
@@ -486,23 +518,30 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	scpi = sdi->conn;
 	devc->cb_data = cb_data;
 
-	if ((ret = sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 100,
+	if ((ret = sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 10,
 			scpi_pps_receive_data, (void *)sdi)) != SR_OK)
 		return ret;
 	std_session_send_df_header(sdi, LOG_PREFIX);
 
-	/* Prime the pipe. */
-	devc->state = STATE_VOLTAGE;
+	/* Prime the pipe with the first channel's fetch. */
 	ch = sdi->channels->data;
+	pch = ch->priv;
 	devc->cur_channel = ch;
-	scpi_cmd(sdi, SCPI_CMD_GET_MEAS_VOLTAGE, ch->name);
+	if (pch->mq == SR_MQ_VOLTAGE)
+		cmd = SCPI_CMD_GET_MEAS_VOLTAGE;
+	else if (pch->mq == SR_MQ_CURRENT)
+		cmd = SCPI_CMD_GET_MEAS_CURRENT;
+	else if (pch->mq == SR_MQ_POWER)
+		cmd = SCPI_CMD_GET_MEAS_POWER;
+	else
+		return SR_ERR;
+	scpi_cmd(sdi, cmd, pch->hwname);
 
 	return SR_OK;
 }
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
-	struct dev_context *devc;
 	struct sr_scpi_dev_inst *scpi;
 	float f;
 
@@ -511,7 +550,6 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
-	devc = sdi->priv;
 	scpi = sdi->conn;
 
 	/*
@@ -521,9 +559,6 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 	 */
 	sr_scpi_get_float(scpi, NULL, &f);
 	sr_scpi_source_remove(sdi->session, scpi);
-
-	/* Just in case something is queued up. */
-	devc->state = STATE_STOP;
 
 	return SR_OK;
 }
