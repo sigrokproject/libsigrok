@@ -56,7 +56,7 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	GMatchInfo *model_mi;
 	GSList *l;
 	uint64_t mask;
-	unsigned int ch_num, ch_idx, old_idx, i, j;
+	unsigned int ch_num, ch_idx, i, j;
 	const char *vendor;
 	char ch_name[16];
 
@@ -95,7 +95,6 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	ch_idx = 0;
 	for (ch_num = 0; ch_num < device->num_channels; ch_num++) {
 		/* Create one channel per measurable output unit. */
-		old_idx = ch_idx;
 		for (i = 0; i < ARRAY_SIZE(pci); i++) {
 			if (!scpi_cmd_get(sdi, pci[i].command))
 				continue;
@@ -108,14 +107,6 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 			pch->mq = pci[i].mq;
 			ch->priv = pch;
 			sdi->channels = g_slist_append(sdi->channels, ch);
-		}
-		if (ch_idx == old_idx) {
-			/*
-			 * Didn't create any channels for this hardware output.
-			 * This can happen if the device has no measurement capability.
-			 */
-			g_free(pch);
-			continue;
 		}
 	}
 
