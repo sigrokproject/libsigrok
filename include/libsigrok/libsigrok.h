@@ -469,6 +469,8 @@ struct sr_channel {
 	gboolean enabled;
 	/** Name of channel. */
 	char *name;
+	/** Private data for driver use. */
+	void *priv;
 };
 
 /** Structure for groups of channels that have common properties. */

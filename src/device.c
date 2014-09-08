@@ -251,6 +251,7 @@ SR_PRIV void sr_dev_inst_free(struct sr_dev_inst *sdi)
 	for (l = sdi->channels; l; l = l->next) {
 		ch = l->data;
 		g_free(ch->name);
+		g_free(ch->priv);
 		g_free(ch);
 	}
 	g_slist_free(sdi->channels);
