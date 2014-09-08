@@ -24,6 +24,7 @@
 
 const char *pps_vendors[][2] = {
 	{ "RIGOL TECHNOLOGIES", "Rigol" },
+	{ "HEWLETT-PACKARD", "HP" },
 };
 
 const char *get_vendor(const char *raw_vendor)
@@ -104,7 +105,60 @@ struct scpi_command rigol_dp800_cmd[] = {
 	{ SCPI_CMD_SET_OVER_CURRENT_PROTECTION_THRESHOLD, ":OUTP:OCP:VAL CH%s,%.6f" },
 };
 
+/* HP 663x series */
+static const int32_t hp_6632b_devopts[] = {
+	SR_CONF_POWER_SUPPLY,
+	SR_CONF_CONTINUOUS,
+	SR_CONF_OUTPUT_ENABLED,
+	SR_CONF_OUTPUT_VOLTAGE,
+	SR_CONF_OUTPUT_CURRENT,
+	SR_CONF_OUTPUT_VOLTAGE_MAX,
+	SR_CONF_OUTPUT_CURRENT_MAX,
+//	SR_CONF_OVER_TEMPERATURE_PROTECTION,
+};
+
+static const int32_t hp_6632b_devopts_cg[] = {
+/*
+	SR_CONF_OVER_CURRENT_PROTECTION_ENABLED,
+	SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD,
+	SR_CONF_OUTPUT_REGULATION,
+	SR_CONF_OVER_VOLTAGE_PROTECTION_ENABLED,
+	SR_CONF_OVER_VOLTAGE_PROTECTION_ACTIVE,
+	SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE,
+	SR_CONF_OVER_CURRENT_PROTECTION_THRESHOLD,
+*/
+};
+
+struct channel_spec hp_6632b_ch[] = {
+	{ "1", { 0, 20.475, 0.005 }, { 0, 5.1188, 0.00132 } },
+};
+
+struct channel_group_spec hp_6632b_cg[] = {
+	{ "1", CH_IDX(0), 0 },
+};
+
+struct scpi_command hp_6632b_cmd[] = {
+	{ SCPI_CMD_GET_OUTPUT_ENABLED, "OUTP:STAT?" },
+	{ SCPI_CMD_SET_OUTPUT_ENABLED, "OUTP:STAT %s" },
+	{ SCPI_CMD_GET_MEAS_VOLTAGE, ":MEAS:VOLT?" },
+	{ SCPI_CMD_GET_MEAS_CURRENT, ":MEAS:CURR?" },
+	{ SCPI_CMD_GET_VOLTAGE_MAX, ":SOUR:VOLT?" },
+	{ SCPI_CMD_SET_VOLTAGE_MAX, ":SOUR:VOLT %.6f" },
+	{ SCPI_CMD_GET_CURRENT_MAX, ":SOUR:CURR?" },
+	{ SCPI_CMD_SET_CURRENT_MAX, ":SOUR:CURR %.6f" },
+};
+
+
 SR_PRIV const struct scpi_pps pps_profiles[] = {
+	/* HP 6632B */
+	{ "HP", "6632B", 0,
+		ARRAY_AND_SIZE(hp_6632b_devopts),
+		ARRAY_AND_SIZE(hp_6632b_devopts_cg),
+		ARRAY_AND_SIZE(hp_6632b_ch),
+		ARRAY_AND_SIZE(hp_6632b_cg),
+		ARRAY_AND_SIZE(hp_6632b_cmd),
+	},
+
 	/* Rigol DP800 series */
 	{ "Rigol", "^DP831A$", PPS_OTP,
 		ARRAY_AND_SIZE(rigol_dp800_devopts),
