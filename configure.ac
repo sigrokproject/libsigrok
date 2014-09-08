@@ -764,7 +764,20 @@ else
 	fi
 fi
 
-echo -e "Enabled language bindings:\n"
+echo "Enabled SCPI backends:"
+echo " - TCP............................. yes"
+if test "x$have_rpc" = "x0"; then
+echo " - RPC............................. no"
+else
+echo " - RPC............................. yes"
+fi
+echo " - serial.......................... $have_libserialport"
+echo " - VISA............................ $have_librevisa"
+echo " - GPIB............................ $have_libgpib"
+echo " - USBTMC.......................... $have_libusb1_0"
+echo
+
+echo "Enabled language bindings:"
 echo " - C++............................. $BINDINGS_CXX$final_cxx"
 echo " - Python.......................... $BINDINGS_PYTHON$final_python"
 echo " - Java............................ $BINDINGS_JAVA$final_java"
