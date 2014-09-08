@@ -470,209 +470,127 @@ fi
 # Now set AM_CONDITIONALs and AC_DEFINEs for the enabled/disabled drivers.
 
 AM_CONDITIONAL(HW_AGILENT_DMM, test x$HW_AGILENT_DMM = xyes)
-if test "x$HW_AGILENT_DMM" = "xyes"; then
-	AC_DEFINE(HAVE_HW_AGILENT_DMM, 1, [.])
-fi
+if test "x$HW_AGILENT_DMM" = "xyes"; then AC_DEFINE(HAVE_HW_AGILENT_DMM, 1, [.]) fi
 
 AM_CONDITIONAL(HW_APPA_55II, test x$HW_APPA_55II = xyes)
-if test "x$HW_APPA_55II" = "xyes"; then
-	AC_DEFINE(HAVE_HW_APPA_55II, 1, [.])
-fi
+if test "x$HW_APPA_55II" = "xyes"; then AC_DEFINE(HAVE_HW_APPA_55II, 1, [.]) fi
 
 AM_CONDITIONAL(HW_ASIX_SIGMA, test x$HW_ASIX_SIGMA = xyes)
-if test "x$HW_ASIX_SIGMA" = "xyes"; then
-	AC_DEFINE(HAVE_HW_ASIX_SIGMA, 1, [.])
-fi
+if test "x$HW_ASIX_SIGMA" = "xyes"; then AC_DEFINE(HAVE_HW_ASIX_SIGMA, 1, [.]) fi
 
 AM_CONDITIONAL(HW_ATTEN_PPS3XXX, test x$HW_ATTEN_PPS3XXX = xyes)
-if test "x$HW_ATTEN_PPS3XXX" = "xyes"; then
-	AC_DEFINE(HAVE_HW_ATTEN_PPS3XXX, 1, [.])
-fi
+if test "x$HW_ATTEN_PPS3XXX" = "xyes"; then AC_DEFINE(HAVE_HW_ATTEN_PPS3XXX, 1, [.]) fi
 
 AM_CONDITIONAL(HW_BEAGLELOGIC, test x$HW_BEAGLELOGIC = xyes)
-if test "x$HW_BEAGLELOGIC" = "xyes"; then
-	AC_DEFINE(HAVE_HW_BEAGLELOGIC, 1, [.])
-fi
+if test "x$HW_BEAGLELOGIC" = "xyes"; then AC_DEFINE(HAVE_HW_BEAGLELOGIC, 1, [.]) fi
 
 AM_CONDITIONAL(HW_BRYMEN_BM86X, test x$HW_BRYMEN_BM86X = xyes)
-if test "x$HW_BRYMEN_BM86X" = "xyes"; then
-	AC_DEFINE(HAVE_HW_BRYMEN_BM86X, 1, [.])
-fi
+if test "x$HW_BRYMEN_BM86X" = "xyes"; then AC_DEFINE(HAVE_HW_BRYMEN_BM86X, 1, [.]) fi
 
 AM_CONDITIONAL(HW_BRYMEN_DMM, test x$HW_BRYMEN_DMM = xyes)
-if test "x$HW_BRYMEN_DMM" = "xyes"; then
-	AC_DEFINE(HAVE_HW_BRYMEN_DMM, 1, [.])
-fi
+if test "x$HW_BRYMEN_DMM" = "xyes"; then AC_DEFINE(HAVE_HW_BRYMEN_DMM, 1, [.]) fi
 
 AM_CONDITIONAL(HW_CEM_DT_885X, test x$HW_CEM_DT_885X = xyes)
-if test "x$HW_CEM_DT_885X" = "xyes"; then
-	AC_DEFINE(HAVE_HW_CEM_DT_885X, 1, [.])
-fi
+if test "x$HW_CEM_DT_885X" = "xyes"; then AC_DEFINE(HAVE_HW_CEM_DT_885X, 1, [.]) fi
 
 AM_CONDITIONAL(HW_CENTER_3XX, test x$HW_CENTER_3XX = xyes)
-if test "x$HW_CENTER_3XX" = "xyes"; then
-	AC_DEFINE(HAVE_HW_CENTER_3XX, 1, [.])
-fi
+if test "x$HW_CENTER_3XX" = "xyes"; then AC_DEFINE(HAVE_HW_CENTER_3XX, 1, [.]) fi
 
 AM_CONDITIONAL(HW_CHRONOVU_LA, test x$HW_CHRONOVU_LA = xyes)
-if test "x$HW_CHRONOVU_LA" = "xyes"; then
-	AC_DEFINE(HAVE_HW_CHRONOVU_LA, 1, [.])
-fi
+if test "x$HW_CHRONOVU_LA" = "xyes"; then AC_DEFINE(HAVE_HW_CHRONOVU_LA, 1, [.]) fi
 
 AM_CONDITIONAL(HW_COLEAD_SLM, test x$HW_COLEAD_SLM = xyes)
-if test "x$HW_COLEAD_SLM" = "xyes"; then
-	AC_DEFINE(HAVE_HW_COLEAD_SLM, 1, [.])
-fi
+if test "x$HW_COLEAD_SLM" = "xyes"; then AC_DEFINE(HAVE_HW_COLEAD_SLM, 1, [.]) fi
 
 AM_CONDITIONAL(HW_CONRAD_DIGI_35_CPU, test x$HW_CONRAD_DIGI_35_CPU = xyes)
-if test "x$HW_CONRAD_DIGI_35_CPU" = "xyes"; then
-	AC_DEFINE(HAVE_HW_CONRAD_DIGI_35_CPU, 1, [.])
-fi
+if test "x$HW_CONRAD_DIGI_35_CPU" = "xyes"; then AC_DEFINE(HAVE_HW_CONRAD_DIGI_35_CPU, 1, [.]) fi
 
 AM_CONDITIONAL(HW_DEMO, test x$HW_DEMO = xyes)
-if test "x$HW_DEMO" = "xyes"; then
-	AC_DEFINE(HAVE_HW_DEMO, 1, [.])
-fi
+if test "x$HW_DEMO" = "xyes"; then AC_DEFINE(HAVE_HW_DEMO, 1, [.]) fi
 
 AM_CONDITIONAL(HW_FLUKE_DMM, test x$HW_FLUKE_DMM = xyes)
-if test "x$HW_FLUKE_DMM" = "xyes"; then
-	AC_DEFINE(HAVE_HW_FLUKE_DMM, 1, [.])
-fi
+if test "x$HW_FLUKE_DMM" = "xyes"; then AC_DEFINE(HAVE_HW_FLUKE_DMM, 1, [.]) fi
 
 AM_CONDITIONAL(HW_FX2LAFW, test x$HW_FX2LAFW = xyes)
-if test "x$HW_FX2LAFW" = "xyes"; then
-	AC_DEFINE(HAVE_HW_FX2LAFW, 1, [.])
-fi
+if test "x$HW_FX2LAFW" = "xyes"; then AC_DEFINE(HAVE_HW_FX2LAFW, 1, [.]) fi
 
 AM_CONDITIONAL(HW_GMC_MH_1X_2X, test x$HW_GMC_MH_1X_2X = xyes)
-if test "x$HW_GMC_MH_1X_2X" = "xyes"; then
-	AC_DEFINE(HAVE_HW_GMC_MH_1X_2X, 1, [.])
-fi
+if test "x$HW_GMC_MH_1X_2X" = "xyes"; then AC_DEFINE(HAVE_HW_GMC_MH_1X_2X, 1, [.]) fi
 
 AM_CONDITIONAL(HW_HAMEG_HMO, test x$HW_HAMEG_HMO = xyes)
-if test "x$HW_HAMEG_HMO" = "xyes"; then
-	AC_DEFINE(HAVE_HW_HAMEG_HMO, 1, [.])
-fi
+if test "x$HW_HAMEG_HMO" = "xyes"; then AC_DEFINE(HAVE_HW_HAMEG_HMO, 1, [.]) fi
 
 AM_CONDITIONAL(HW_HANTEK_DSO, test x$HW_HANTEK_DSO = xyes)
-if test "x$HW_HANTEK_DSO" = "xyes"; then
-	AC_DEFINE(HAVE_HW_HANTEK_DSO, 1, [.])
-fi
+if test "x$HW_HANTEK_DSO" = "xyes"; then AC_DEFINE(HAVE_HW_HANTEK_DSO, 1, [.]) fi
 
 AM_CONDITIONAL(HW_IKALOGIC_SCANALOGIC2, test x$HW_IKALOGIC_SCANALOGIC2 = xyes)
-if test "x$HW_IKALOGIC_SCANALOGIC2" = "xyes"; then
-	AC_DEFINE(HAVE_HW_IKALOGIC_SCANALOGIC2, 1, [.])
-fi
+if test "x$HW_IKALOGIC_SCANALOGIC2" = "xyes"; then AC_DEFINE(HAVE_HW_IKALOGIC_SCANALOGIC2, 1, [.]) fi
 
 AM_CONDITIONAL(HW_IKALOGIC_SCANAPLUS, test x$HW_IKALOGIC_SCANAPLUS = xyes)
-if test "x$HW_IKALOGIC_SCANAPLUS" = "xyes"; then
-	AC_DEFINE(HAVE_HW_IKALOGIC_SCANAPLUS, 1, [.])
-fi
+if test "x$HW_IKALOGIC_SCANAPLUS" = "xyes"; then AC_DEFINE(HAVE_HW_IKALOGIC_SCANAPLUS, 1, [.]) fi
 
 AM_CONDITIONAL(HW_KECHENG_KC_330B, test x$HW_KECHENG_KC_330B = xyes)
-if test "x$HW_KECHENG_KC_330B" = "xyes"; then
-	AC_DEFINE(HAVE_HW_KECHENG_KC_330B, 1, [.])
-fi
+if test "x$HW_KECHENG_KC_330B" = "xyes"; then AC_DEFINE(HAVE_HW_KECHENG_KC_330B, 1, [.]) fi
 
 AM_CONDITIONAL(HW_LASCAR_EL_USB, test x$HW_LASCAR_EL_USB = xyes)
-if test "x$HW_LASCAR_EL_USB" = "xyes"; then
-	AC_DEFINE(HAVE_HW_LASCAR_EL_USB, 1, [.])
-fi
+if test "x$HW_LASCAR_EL_USB" = "xyes"; then AC_DEFINE(HAVE_HW_LASCAR_EL_USB, 1, [.]) fi
 
 AM_CONDITIONAL(HW_MANSON_HCS_3XXX, test x$HW_MANSON_HCS_3XXX = xyes)
-if test "x$HW_MANSON_HCS_3XXX" = "xyes"; then
-	AC_DEFINE(HAVE_HW_MANSON_HCS_3XXX, 1, [.])
-fi
+if test "x$HW_MANSON_HCS_3XXX" = "xyes"; then AC_DEFINE(HAVE_HW_MANSON_HCS_3XXX, 1, [.]) fi
 
 AM_CONDITIONAL(HW_MIC_985XX, test x$HW_MIC_985XX = xyes)
-if test "x$HW_MIC_985XX" = "xyes"; then
-	AC_DEFINE(HAVE_HW_MIC_985XX, 1, [.])
-fi
+if test "x$HW_MIC_985XX" = "xyes"; then AC_DEFINE(HAVE_HW_MIC_985XX, 1, [.]) fi
 
 AM_CONDITIONAL(HW_MOTECH_LPS_30X, test x$HW_MOTECH_LPS_30X = xyes)
-if test "x$HW_MOTECH_LPS_30X" = "xyes"; then
-	AC_DEFINE(HAVE_HW_MOTECH_LPS_30X, 1, [.])
-fi
+if test "x$HW_MOTECH_LPS_30X" = "xyes"; then AC_DEFINE(HAVE_HW_MOTECH_LPS_30X, 1, [.]) fi
 
 AM_CONDITIONAL(HW_NORMA_DMM, test x$HW_NORMA_DMM = xyes)
-if test "x$HW_NORMA_DMM" = "xyes"; then
-	AC_DEFINE(HAVE_HW_NORMA_DMM, 1, [.])
-fi
+if test "x$HW_NORMA_DMM" = "xyes"; then AC_DEFINE(HAVE_HW_NORMA_DMM, 1, [.]) fi
 
 AM_CONDITIONAL(HW_OPENBENCH_LOGIC_SNIFFER, test x$HW_OPENBENCH_LOGIC_SNIFFER = xyes)
-if test "x$HW_OPENBENCH_LOGIC_SNIFFER" = "xyes"; then
-	AC_DEFINE(HAVE_HW_OPENBENCH_LOGIC_SNIFFER, 1, [.])
-fi
+if test "x$HW_OPENBENCH_LOGIC_SNIFFER" = "xyes"; then AC_DEFINE(HAVE_HW_OPENBENCH_LOGIC_SNIFFER, 1, [.]) fi
 
 AM_CONDITIONAL(HW_PIPISTRELLO_OLS, test x$HW_PIPISTRELLO_OLS = xyes)
-if test "x$HW_PIPISTRELLO_OLS" = "xyes"; then
-	AC_DEFINE(HAVE_HW_PIPISTRELLO_OLS, 1, [.])
-fi
+if test "x$HW_PIPISTRELLO_OLS" = "xyes"; then AC_DEFINE(HAVE_HW_PIPISTRELLO_OLS, 1, [.]) fi
 
 AM_CONDITIONAL(HW_RIGOL_DS, test x$HW_RIGOL_DS = xyes)
-if test "x$HW_RIGOL_DS" = "xyes"; then
-	AC_DEFINE(HAVE_HW_RIGOL_DS, 1, [.])
-fi
+if test "x$HW_RIGOL_DS" = "xyes"; then AC_DEFINE(HAVE_HW_RIGOL_DS, 1, [.]) fi
 
 AM_CONDITIONAL(HW_SALEAE_LOGIC16, test x$HW_SALEAE_LOGIC16 = xyes)
-if test "x$HW_SALEAE_LOGIC16" = "xyes"; then
-	AC_DEFINE(HAVE_HW_SALEAE_LOGIC16, 1, [.])
-fi
+if test "x$HW_SALEAE_LOGIC16" = "xyes"; then AC_DEFINE(HAVE_HW_SALEAE_LOGIC16, 1, [.]) fi
 
 AM_CONDITIONAL(HW_SCPI_PPS, test x$HW_SCPI_PPS = xyes)
-if test "x$HW_SCPI_PPS" = "xyes"; then
-	AC_DEFINE(HAVE_HW_SCPI_PPS, 1, [.])
-fi
+if test "x$HW_SCPI_PPS" = "xyes"; then AC_DEFINE(HAVE_HW_SCPI_PPS, 1, [.]) fi
 
 AM_CONDITIONAL(HW_SERIAL_DMM, test x$HW_SERIAL_DMM = xyes)
-if test "x$HW_SERIAL_DMM" = "xyes"; then
-	AC_DEFINE(HAVE_HW_SERIAL_DMM, 1, [.])
-fi
+if test "x$HW_SERIAL_DMM" = "xyes"; then AC_DEFINE(HAVE_HW_SERIAL_DMM, 1, [.]) fi
 
 AM_CONDITIONAL(HW_SYSCLK_LWLA, test x$HW_SYSCLK_LWLA = xyes)
-if test "x$HW_SYSCLK_LWLA" = "xyes"; then
-	AC_DEFINE(HAVE_HW_SYSCLK_LWLA, 1, [.])
-fi
+if test "x$HW_SYSCLK_LWLA" = "xyes"; then AC_DEFINE(HAVE_HW_SYSCLK_LWLA, 1, [.]) fi
 
 AM_CONDITIONAL(HW_TELEINFO, test x$HW_TELEINFO = xyes)
-if test "x$HW_TELEINFO" = "xyes"; then
-	AC_DEFINE(HAVE_HW_TELEINFO, 1, [.])
-fi
+if test "x$HW_TELEINFO" = "xyes"; then AC_DEFINE(HAVE_HW_TELEINFO, 1, [.]) fi
 
 AM_CONDITIONAL(HW_TESTO, test x$HW_TESTO = xyes)
-if test "x$HW_TESTO" = "xyes"; then
-	AC_DEFINE(HAVE_HW_TESTO, 1, [.])
-fi
+if test "x$HW_TESTO" = "xyes"; then AC_DEFINE(HAVE_HW_TESTO, 1, [.]) fi
 
 AM_CONDITIONAL(HW_TONDAJ_SL_814, test x$HW_TONDAJ_SL_814 = xyes)
-if test "x$HW_TONDAJ_SL_814" = "xyes"; then
-	AC_DEFINE(HAVE_HW_TONDAJ_SL_814, 1, [.])
-fi
+if test "x$HW_TONDAJ_SL_814" = "xyes"; then AC_DEFINE(HAVE_HW_TONDAJ_SL_814, 1, [.]) fi
 
 AM_CONDITIONAL(HW_UNI_T_DMM, test x$HW_UNI_T_DMM = xyes)
-if test "x$HW_UNI_T_DMM" = "xyes"; then
-	AC_DEFINE(HAVE_HW_UNI_T_DMM, 1, [.])
-fi
+if test "x$HW_UNI_T_DMM" = "xyes"; then AC_DEFINE(HAVE_HW_UNI_T_DMM, 1, [.]) fi
 
 AM_CONDITIONAL(HW_UNI_T_UT32X, test x$HW_UNI_T_UT32X = xyes)
-if test "x$HW_UNI_T_UT32X" = "xyes"; then
-	AC_DEFINE(HAVE_HW_UNI_T_UT32X, 1, [.])
-fi
+if test "x$HW_UNI_T_UT32X" = "xyes"; then AC_DEFINE(HAVE_HW_UNI_T_UT32X, 1, [.]) fi
 
 AM_CONDITIONAL(HW_VICTOR_DMM, test x$HW_VICTOR_DMM = xyes)
-if test "x$HW_VICTOR_DMM" = "xyes"; then
-	AC_DEFINE(HAVE_HW_VICTOR_DMM, 1, [.])
-fi
+if test "x$HW_VICTOR_DMM" = "xyes"; then AC_DEFINE(HAVE_HW_VICTOR_DMM, 1, [.]) fi
 
 AM_CONDITIONAL(HW_YOKOGAWA_DLM, test x$HW_YOKOGAWA_DLM = xyes)
-if test "x$HW_YOKOGAWA_DLM" = "xyes"; then
-	AC_DEFINE(HAVE_HW_YOKOGAWA_DLM, 1, [.])
-fi
+if test "x$HW_YOKOGAWA_DLM" = "xyes"; then AC_DEFINE(HAVE_HW_YOKOGAWA_DLM, 1, [.]) fi
 
 AM_CONDITIONAL(HW_ZEROPLUS_LOGIC_CUBE, test x$HW_ZEROPLUS_LOGIC_CUBE = xyes)
-if test "x$HW_ZEROPLUS_LOGIC_CUBE" = "xyes"; then
-	AC_DEFINE(HAVE_HW_ZEROPLUS_LOGIC_CUBE, 1, [.])
-fi
+if test "x$HW_ZEROPLUS_LOGIC_CUBE" = "xyes"; then AC_DEFINE(HAVE_HW_ZEROPLUS_LOGIC_CUBE, 1, [.]) fi
 
 AM_CONDITIONAL(BINDINGS_CXX, test x$BINDINGS_CXX = xyes)
 
