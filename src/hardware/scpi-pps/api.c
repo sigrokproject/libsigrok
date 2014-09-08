@@ -331,6 +331,9 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 	int ret;
 	const char *s;
 
+	if (!sdi)
+		return SR_ERR_ARG;
+
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
@@ -359,10 +362,6 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 		}
 	} else {
 		/* Channel group specified. */
-		if (!sdi)
-			return SR_ERR_ARG;
-		if (g_slist_length(cg->channels) > 1)
-			return SR_ERR_NA;
 		ch = cg->channels->data;
 		pch = ch->priv;
 		switch (key) {
