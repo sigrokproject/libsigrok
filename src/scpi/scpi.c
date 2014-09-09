@@ -157,7 +157,8 @@ SR_PRIV GSList *sr_scpi_scan(struct drv_context *drvc, GSList *options,
 
 	if (!devices && resource) {
 		sdi = sr_scpi_scan_resource(drvc, resource, serialcomm, probe_device);
-		devices = g_slist_append(NULL, sdi);
+		if (sdi)
+			devices = g_slist_append(NULL, sdi);
 	}
 
 	/* Tack a copy of the newly found devices onto the driver list. */
