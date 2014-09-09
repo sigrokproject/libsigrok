@@ -39,6 +39,8 @@ const char *get_vendor(const char *raw_vendor)
 	return raw_vendor;
 }
 
+static const int32_t devopts_none[] = { };
+
 /* Rigol DP800 series */
 static const int32_t rigol_dp800_devopts[] = {
 	SR_CONF_POWER_SUPPLY,
@@ -105,7 +107,7 @@ struct scpi_command rigol_dp800_cmd[] = {
 	{ SCPI_CMD_SET_OVER_CURRENT_PROTECTION_THRESHOLD, ":OUTP:OCP:VAL CH%s,%.6f" },
 };
 
-/* HP 663x series */
+/* HP 663xx series */
 static const int32_t hp_6632b_devopts[] = {
 	SR_CONF_POWER_SUPPLY,
 	SR_CONF_CONTINUOUS,
@@ -114,19 +116,6 @@ static const int32_t hp_6632b_devopts[] = {
 	SR_CONF_OUTPUT_CURRENT,
 	SR_CONF_OUTPUT_VOLTAGE_MAX,
 	SR_CONF_OUTPUT_CURRENT_MAX,
-//	SR_CONF_OVER_TEMPERATURE_PROTECTION,
-};
-
-static const int32_t hp_6632b_devopts_cg[] = {
-/*
-	SR_CONF_OVER_CURRENT_PROTECTION_ENABLED,
-	SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD,
-	SR_CONF_OUTPUT_REGULATION,
-	SR_CONF_OVER_VOLTAGE_PROTECTION_ENABLED,
-	SR_CONF_OVER_VOLTAGE_PROTECTION_ACTIVE,
-	SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE,
-	SR_CONF_OVER_CURRENT_PROTECTION_THRESHOLD,
-*/
 };
 
 struct channel_spec hp_6632b_ch[] = {
@@ -153,7 +142,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 	/* HP 6632B */
 	{ "HP", "6632B", 0,
 		ARRAY_AND_SIZE(hp_6632b_devopts),
-		ARRAY_AND_SIZE(hp_6632b_devopts_cg),
+		ARRAY_AND_SIZE(devopts_none),
 		ARRAY_AND_SIZE(hp_6632b_ch),
 		ARRAY_AND_SIZE(hp_6632b_cg),
 		ARRAY_AND_SIZE(hp_6632b_cmd),
