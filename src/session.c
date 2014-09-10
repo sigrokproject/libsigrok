@@ -434,8 +434,9 @@ static int verify_trigger(struct sr_trigger *trigger)
 SR_API int sr_session_start(struct sr_session *session)
 {
 	struct sr_dev_inst *sdi;
-	GSList *l;
-	int ret;
+	struct sr_channel *ch;
+	GSList *l, *c;
+	int enabled_channels, ret;
 
 	if (!session) {
 		sr_err("%s: session was NULL", __func__);
@@ -456,6 +457,21 @@ SR_API int sr_session_start(struct sr_session *session)
 	ret = SR_OK;
 	for (l = session->devs; l; l = l->next) {
 		sdi = l->data;
+		enabled_channels = 0;
+		for (c = sdi->channels; c; c = c->next) {
+			ch = c->data;
+			if (ch->enabled) {
+				enabled_channels++;
+				break;
+			}
+		}
+		if (enabled_channels == 0) {
+			ret = SR_ERR;
+			sr_err("%s instance %d has no enabled channels!",
+					sdi->driver->name, sdi->index);
+			break;
+		}
+
 		if ((ret = sr_config_commit(sdi)) != SR_OK) {
 			sr_err("Failed to commit device settings before "
 			       "starting acquisition (%s)", sr_strerror(ret));
