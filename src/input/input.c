@@ -512,6 +512,7 @@ SR_API struct sr_dev_inst *sr_input_dev_inst_get(const struct sr_input *in)
  */
 SR_API int sr_input_send(const struct sr_input *in, GString *buf)
 {
+	sr_spew("Sending %d bytes to %s module.", buf->len, in->module->id);
 	return in->module->receive(in, buf);
 }
 
