@@ -80,33 +80,33 @@ static int receive(const struct sr_input *in, GString *buf)
 
 	num_channels = g_slist_length(in->sdi->channels);
 
-	std_session_send_df_header(in->sdi, LOG_PREFIX);
-	inc->started = TRUE;
+	if (!inc->started) {
+		std_session_send_df_header(in->sdi, LOG_PREFIX);
+		inc->started = TRUE;
 
-	packet.type = SR_DF_META;
-	packet.payload = &meta;
-	src = sr_config_new(SR_CONF_SAMPLERATE, g_variant_new_uint64(inc->samplerate));
-	meta.config = g_slist_append(NULL, src);
-	sr_session_send(in->sdi, &packet);
-	sr_config_free(src);
+		packet.type = SR_DF_META;
+		packet.payload = &meta;
+		src = sr_config_new(SR_CONF_SAMPLERATE, g_variant_new_uint64(inc->samplerate));
+		meta.config = g_slist_append(NULL, src);
+		sr_session_send(in->sdi, &packet);
+		sr_config_free(src);
+	}
 
 	packet.type = SR_DF_LOGIC;
 	packet.payload = &logic;
 	logic.unitsize = (num_channels + 7) / 8;
-	logic.data = in->buf->str;
 
 	/* Cut off at multiple of unitsize. */
 	chunk_size = in->buf->len / logic.unitsize * logic.unitsize;
 
 	chunk = 0;
 	for (i = 0; i < chunk_size; i += chunk) {
-		chunk = MAX(MAX_CHUNK_SIZE, chunk_size - i);
+		logic.data = in->buf->str + i;
+		chunk = MIN(MAX_CHUNK_SIZE, chunk_size - i);
 		logic.length = chunk;
 		sr_session_send(in->sdi, &packet);
 	}
-
-	if (in->buf->len > chunk_size)
-		g_string_erase(in->buf, 0, in->buf->len - chunk_size);
+	g_string_erase(in->buf, 0, chunk_size);
 
 	return SR_OK;
 }
