@@ -82,7 +82,7 @@ public:
 # Template for beginning of private members.
 header_private_template = """
 private:
-    static const std::map<enum {enumname}, const {classname} *> values;
+    static const std::map<enum {enumname}, const {classname} *> _values;
     {classname}(enum {enumname} id, const char name[]);
 """
 
@@ -95,7 +95,7 @@ code_template = """
 
 const {classname} *{classname}::get(int id)
 {{
-    return {classname}::values.at(static_cast<{enumname}>(id));
+    return {classname}::_values.at(static_cast<{enumname}>(id));
 }}
 """
 
@@ -153,7 +153,7 @@ for enum, (classname, classbrief) in classes.items():
             classname, classname, trimmed_name, classname, trimmed_name)
 
     # Define map of enum values to constants
-    print >> code, 'const std::map<enum %s, const %s *> %s::values = {' % (
+    print >> code, 'const std::map<enum %s, const %s *> %s::_values = {' % (
         enum_name, classname, classname)
     for name, trimmed_name in zip(member_names, trimmed_names):
         print >> code, '\t{%s, %s::%s},' % (name, classname, trimmed_name)

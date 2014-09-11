@@ -287,7 +287,7 @@ std::map<std::string, std::string> dict_to_map_string(PyObject *dict)
 /* Convert from a Python type to Glib::Variant, according to config key data type. */
 Glib::VariantBase python_to_variant_by_key(PyObject *input, const sigrok::ConfigKey *key)
 {
-    enum sr_datatype type = key->get_data_type()->get_id();
+    enum sr_datatype type = key->data_type()->id();
 
     if (type == SR_T_UINT64 && PyInt_Check(input))
         return Glib::Variant<guint64>::create(PyInt_AsLong(input));
@@ -309,7 +309,7 @@ Glib::VariantBase python_to_variant_by_key(PyObject *input, const sigrok::Config
 Glib::VariantBase python_to_variant_by_option(PyObject *input,
     std::shared_ptr<sigrok::Option> option)
 {
-    GVariantType *type = option->get_default_value().get_type().gobj();
+    GVariantType *type = option->default_value().get_type().gobj();
 
     if (type == G_VARIANT_TYPE_UINT64 && PyInt_Check(input))
         return Glib::Variant<guint64>::create(PyInt_AsLong(input));
@@ -400,7 +400,7 @@ std::map<std::string, Glib::VariantBase> dict_to_map_options(PyObject *dict,
     std::shared_ptr<sigrok::Input> _create_input_kwargs(PyObject *dict)
     {
         return $self->create_input(
-            dict_to_map_options(dict, $self->get_options()));
+            dict_to_map_options(dict, $self->options()));
     }
 }
 
@@ -419,7 +419,7 @@ std::map<std::string, Glib::VariantBase> dict_to_map_options(PyObject *dict,
         std::shared_ptr<sigrok::Device> device, PyObject *dict)
     {
         return $self->create_output(device,
-            dict_to_map_options(dict, $self->get_options()));
+            dict_to_map_options(dict, $self->options()));
     }
 }
 

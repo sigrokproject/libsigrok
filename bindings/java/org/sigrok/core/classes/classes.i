@@ -376,8 +376,5 @@ typedef jobject jsourcecallback;
   }
 }
 
-/* Currently broken due to some std::map typemap issues. */
-%ignore sigrok::Meta::get_config;
-
 %include "doc.i"
 %include "bindings/swig/classes.i"

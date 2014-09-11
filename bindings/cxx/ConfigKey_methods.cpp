@@ -1,22 +1,22 @@
-const DataType *ConfigKey::get_data_type() const
+const DataType *ConfigKey::data_type() const
 {
-	const struct sr_config_info *info = sr_config_info_get(id);
+	const struct sr_config_info *info = sr_config_info_get(_id);
 	if (!info)
 		throw Error(SR_ERR_NA);
 	return DataType::get(info->datatype);
 }
 
-string ConfigKey::get_identifier() const
+string ConfigKey::identifier() const
 {
-	const struct sr_config_info *info = sr_config_info_get(id);
+	const struct sr_config_info *info = sr_config_info_get(_id);
 	if (!info)
 		throw Error(SR_ERR_NA);
 	return valid_string(info->id);
 }
 
-string ConfigKey::get_description() const
+string ConfigKey::description() const
 {
-	const struct sr_config_info *info = sr_config_info_get(id);
+	const struct sr_config_info *info = sr_config_info_get(_id);
 	if (!info)
 		throw Error(SR_ERR_NA);
 	return valid_string(info->name);
@@ -75,7 +75,7 @@ Glib::VariantBase ConfigKey::parse_string(string value) const
 	GVariant *variant;
 	uint64_t p, q;
 
-	switch (get_data_type()->get_id())
+	switch (data_type()->id())
 	{
 		case SR_T_UINT64:
 			check(sr_parse_sizestring(value.c_str(), &p));

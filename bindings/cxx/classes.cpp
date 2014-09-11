@@ -71,42 +71,42 @@ shared_ptr<Context> Context::create()
 }
 
 Context::Context() :
-	UserOwned(structure),
-	session(NULL)
+	UserOwned(_structure),
+	_session(NULL)
 {
-	check(sr_init(&structure));
+	check(sr_init(&_structure));
 
 	struct sr_dev_driver **driver_list = sr_driver_list();
 	if (driver_list)
 		for (int i = 0; driver_list[i]; i++)
-			drivers[driver_list[i]->name] =
+			_drivers[driver_list[i]->name] =
 				new Driver(driver_list[i]);
 	const struct sr_input_module **input_list = sr_input_list();
 	if (input_list)
 		for (int i = 0; input_list[i]; i++)
-			input_formats[sr_input_id_get(input_list[i])] =
+			_input_formats[sr_input_id_get(input_list[i])] =
 				new InputFormat(input_list[i]);
 	const struct sr_output_module **output_list = sr_output_list();
 	if (output_list)
 		for (int i = 0; output_list[i]; i++)
-			output_formats[sr_output_id_get(output_list[i])] =
+			_output_formats[sr_output_id_get(output_list[i])] =
 				new OutputFormat(output_list[i]);
 }
 
-string Context::get_package_version()
+string Context::package_version()
 {
 	return sr_package_version_string_get();
 }
 
-string Context::get_lib_version()
+string Context::lib_version()
 {
 	return sr_lib_version_string_get();
 }
 
-map<string, shared_ptr<Driver>> Context::get_drivers()
+map<string, shared_ptr<Driver>> Context::drivers()
 {
 	map<string, shared_ptr<Driver>> result;
-	for (auto entry: drivers)
+	for (auto entry: _drivers)
 	{
 		auto name = entry.first;
 		auto driver = entry.second;
@@ -115,10 +115,10 @@ map<string, shared_ptr<Driver>> Context::get_drivers()
 	return result;
 }
 
-map<string, shared_ptr<InputFormat>> Context::get_input_formats()
+map<string, shared_ptr<InputFormat>> Context::input_formats()
 {
 	map<string, shared_ptr<InputFormat>> result;
-	for (auto entry: input_formats)
+	for (auto entry: _input_formats)
 	{
 		auto name = entry.first;
 		auto input_format = entry.second;
@@ -127,10 +127,10 @@ map<string, shared_ptr<InputFormat>> Context::get_input_formats()
 	return result;
 }
 
-map<string, shared_ptr<OutputFormat>> Context::get_output_formats()
+map<string, shared_ptr<OutputFormat>> Context::output_formats()
 {
 	map<string, shared_ptr<OutputFormat>> result;
-	for (auto entry: output_formats)
+	for (auto entry: _output_formats)
 	{
 		auto name = entry.first;
 		auto output_format = entry.second;
@@ -141,26 +141,26 @@ map<string, shared_ptr<OutputFormat>> Context::get_output_formats()
 
 Context::~Context()
 {
-	for (auto entry : drivers)
+	for (auto entry : _drivers)
 		delete entry.second;
-	for (auto entry : input_formats)
+	for (auto entry : _input_formats)
 		delete entry.second;
-	for (auto entry : output_formats)
+	for (auto entry : _output_formats)
 		delete entry.second;
-	check(sr_exit(structure));
+	check(sr_exit(_structure));
 }
 
-const LogLevel *Context::get_log_level()
+const LogLevel *Context::log_level()
 {
 	return LogLevel::get(sr_log_loglevel_get());
 }
 
 void Context::set_log_level(const LogLevel *level)
 {
-	check(sr_log_loglevel_set(level->get_id()));
+	check(sr_log_loglevel_set(level->id()));
 }
 
-string Context::get_log_domain()
+string Context::log_domain()
 {
 	return valid_string(sr_log_logdomain_get());
 }
@@ -197,14 +197,14 @@ static int call_log_callback(void *cb_data, int loglevel, const char *format, va
 
 void Context::set_log_callback(LogCallbackFunction callback)
 {
-	log_callback = callback;
-	check(sr_log_callback_set(call_log_callback, &log_callback));
+	_log_callback = callback;
+	check(sr_log_callback_set(call_log_callback, &_log_callback));
 } 
 
 void Context::set_log_callback_default()
 {
 	check(sr_log_callback_set_default());
-	log_callback = nullptr;
+	_log_callback = nullptr;
 } 
 
 shared_ptr<Session> Context::create_session()
@@ -249,40 +249,40 @@ shared_ptr<Input> Context::open_stream(string header)
 Driver::Driver(struct sr_dev_driver *structure) :
 	ParentOwned(structure),
 	Configurable(structure, NULL, NULL),
-	initialized(false)
+	_initialized(false)
 {
 }
 
 Driver::~Driver()
 {
-	for (auto device : devices)
+	for (auto device : _devices)
 		delete device;
 }
 
-string Driver::get_name()
+string Driver::name()
 {
-	return valid_string(structure->name);
+	return valid_string(_structure->name);
 }
 
-string Driver::get_long_name()
+string Driver::long_name()
 {
-	return valid_string(structure->longname);
+	return valid_string(_structure->longname);
 }
 
 vector<shared_ptr<HardwareDevice>> Driver::scan(
 	map<const ConfigKey *, Glib::VariantBase> options)
 {
 	/* Initialise the driver if not yet done. */
-	if (!initialized)
+	if (!_initialized)
 	{
-		check(sr_driver_init(parent->structure, structure));
-		initialized = true;
+		check(sr_driver_init(_parent->_structure, _structure));
+		_initialized = true;
 	}
 
 	/* Clear all existing instances. */
-	for (auto device : devices)
+	for (auto device : _devices)
 		delete device;
-	devices.clear();
+	_devices.clear();
 
 	/* Translate scan options to GSList of struct sr_config pointers. */
 	GSList *option_list = NULL;
@@ -291,13 +291,13 @@ vector<shared_ptr<HardwareDevice>> Driver::scan(
 		auto key = entry.first;
 		auto value = entry.second;
 		auto config = g_new(struct sr_config, 1);
-		config->key = key->get_id();
+		config->key = key->id();
 		config->data = value.gobj();
 		option_list = g_slist_append(option_list, config);
 	}
 
 	/* Run scan. */
-	GSList *device_list = sr_driver_scan(structure, option_list);
+	GSList *device_list = sr_driver_scan(_structure, option_list);
 
 	/* Free option list. */
 	g_slist_free_full(option_list, g_free);
@@ -306,7 +306,7 @@ vector<shared_ptr<HardwareDevice>> Driver::scan(
 	for (GSList *device = device_list; device; device = device->next)
 	{
 		auto sdi = (struct sr_dev_inst *) device->data;
-		devices.push_back(new HardwareDevice(this, sdi));
+		_devices.push_back(new HardwareDevice(this, sdi));
 	}
 
 	/* Free GSList returned from scan. */
@@ -314,8 +314,8 @@ vector<shared_ptr<HardwareDevice>> Driver::scan(
 
 	/* Create list of shared pointers to device instances for return. */
 	vector<shared_ptr<HardwareDevice>> result;
-	for (auto device : devices)
-		result.push_back(device->get_shared_pointer(parent));
+	for (auto device : _devices)
+		result.push_back(device->get_shared_pointer(_parent));
 	return result;
 }
 
@@ -338,7 +338,7 @@ Glib::VariantBase Configurable::config_get(const ConfigKey *key)
 	GVariant *data;
 	check(sr_config_get(
 		config_driver, config_sdi, config_channel_group,
-		key->get_id(), &data));
+		key->id(), &data));
 	return Glib::VariantBase(data);
 }
 
@@ -346,7 +346,7 @@ void Configurable::config_set(const ConfigKey *key, Glib::VariantBase value)
 {
 	check(sr_config_set(
 		config_sdi, config_channel_group,
-		key->get_id(), value.gobj()));
+		key->id(), value.gobj()));
 }
 
 Glib::VariantContainerBase Configurable::config_list(const ConfigKey *key)
@@ -354,7 +354,7 @@ Glib::VariantContainerBase Configurable::config_list(const ConfigKey *key)
 	GVariant *data;
 	check(sr_config_list(
 		config_driver, config_sdi, config_channel_group,
-		key->get_id(), &data));
+		key->id(), &data));
 	return Glib::VariantContainerBase(data);
 }
 
@@ -367,7 +367,7 @@ vector<const ConfigKey *> Configurable::config_keys(const ConfigKey *key)
 
 	check(sr_config_list(
 		config_driver, config_sdi, config_channel_group,
-		key->get_id(), &gvar_opts));
+		key->id(), &gvar_opts));
 
 	opts = (const int32_t *) g_variant_get_fixed_array(
 		gvar_opts, &num_opts, sizeof(int32_t));
@@ -388,7 +388,7 @@ bool Configurable::config_check(const ConfigKey *key,
 	const int32_t *opts;
 
 	if (sr_config_list(config_driver, config_sdi, config_channel_group,
-			index_key->get_id(), &gvar_opts) != SR_OK)
+			index_key->id(), &gvar_opts) != SR_OK)
 		return false;
 
 	opts = (const int32_t *) g_variant_get_fixed_array(
@@ -396,7 +396,7 @@ bool Configurable::config_check(const ConfigKey *key,
 
 	for (gsize i = 0; i < num_opts; i++)
 	{
-		if (opts[i] == key->get_id())
+		if (opts[i] == key->id())
 		{
 			g_variant_unref(gvar_opts);
 			return true;
@@ -410,35 +410,35 @@ bool Configurable::config_check(const ConfigKey *key,
 
 Device::Device(struct sr_dev_inst *structure) :
 	Configurable(structure->driver, structure, NULL),
-	structure(structure)
+	_structure(structure)
 {
 	for (GSList *entry = structure->channels; entry; entry = entry->next)
 	{
 		auto channel = (struct sr_channel *) entry->data;
-		channels[channel] = new Channel(channel);
+		_channels[channel] = new Channel(channel);
 	}
 
 	for (GSList *entry = structure->channel_groups; entry; entry = entry->next)
 	{
 		auto group = (struct sr_channel_group *) entry->data;
-		channel_groups[group->name] = new ChannelGroup(this, group);
+		_channel_groups[group->name] = new ChannelGroup(this, group);
 	}
 }
 
 Device::~Device()
 {
-	for (auto entry : channels)
+	for (auto entry : _channels)
 		delete entry.second;
-	for (auto entry : channel_groups)
+	for (auto entry : _channel_groups)
 		delete entry.second;
 }
 
-string Device::get_description()
+string Device::description()
 {
 	ostringstream s;
 
 	vector<string> parts =
-		{get_vendor(), get_model(), get_version()};
+		{vendor(), model(), version()};
 
 	for (string part : parts)
 		if (part.length() > 0)
@@ -447,41 +447,41 @@ string Device::get_description()
 	return s.str();
 }
 
-string Device::get_vendor()
+string Device::vendor()
 {
-	return valid_string(structure->vendor);
+	return valid_string(_structure->vendor);
 }
 
-string Device::get_model()
+string Device::model()
 {
-	return valid_string(structure->model);
+	return valid_string(_structure->model);
 }
 
-string Device::get_version()
+string Device::version()
 {
-	return valid_string(structure->version);
+	return valid_string(_structure->version);
 }
 
-vector<shared_ptr<Channel>> Device::get_channels()
+vector<shared_ptr<Channel>> Device::channels()
 {
 	vector<shared_ptr<Channel>> result;
-	for (auto channel = structure->channels; channel; channel = channel->next)
+	for (auto channel = _structure->channels; channel; channel = channel->next)
 		result.push_back(
-			channels[(struct sr_channel *) channel->data]->get_shared_pointer(
+			_channels[(struct sr_channel *) channel->data]->get_shared_pointer(
 				get_shared_from_this()));
 	return result;
 }
 
 shared_ptr<Channel> Device::get_channel(struct sr_channel *ptr)
 {
-	return channels[ptr]->get_shared_pointer(get_shared_from_this());
+	return _channels[ptr]->get_shared_pointer(get_shared_from_this());
 }
 
 map<string, shared_ptr<ChannelGroup>>
-Device::get_channel_groups()
+Device::channel_groups()
 {
 	map<string, shared_ptr<ChannelGroup>> result;
-	for (auto entry: channel_groups)
+	for (auto entry: _channel_groups)
 	{
 		auto name = entry.first;
 		auto channel_group = entry.second;
@@ -492,18 +492,18 @@ Device::get_channel_groups()
 
 void Device::open()
 {
-	check(sr_dev_open(structure));
+	check(sr_dev_open(_structure));
 }
 
 void Device::close()
 {
-	check(sr_dev_close(structure));
+	check(sr_dev_close(_structure));
 }
 
 HardwareDevice::HardwareDevice(Driver *driver, struct sr_dev_inst *structure) :
 	ParentOwned(structure),
 	Device(structure),
-	driver(driver)
+	_driver(driver)
 {
 }
 
@@ -516,14 +516,14 @@ shared_ptr<Device> HardwareDevice::get_shared_from_this()
 	return static_pointer_cast<Device>(shared_from_this());
 }
 
-shared_ptr<Driver> HardwareDevice::get_driver()
+shared_ptr<Driver> HardwareDevice::driver()
 {
-	return driver->get_shared_pointer(parent);
+	return _driver->get_shared_pointer(_parent);
 }
 
 Channel::Channel(struct sr_channel *structure) :
 	ParentOwned(structure),
-	type(ChannelType::get(structure->type))
+	_type(ChannelType::get(_structure->type))
 {
 }
 
@@ -531,95 +531,97 @@ Channel::~Channel()
 {
 }
 
-string Channel::get_name()
+string Channel::name()
 {
-	return valid_string(structure->name);
+	return valid_string(_structure->name);
 }
 
 void Channel::set_name(string name)
 {
-	check(sr_dev_channel_name_set(parent->structure, structure->index, name.c_str()));
+	check(sr_dev_channel_name_set(_parent->_structure,
+		_structure->index, name.c_str()));
 }
 
-const ChannelType *Channel::get_type()
+const ChannelType *Channel::type()
 {
-	return ChannelType::get(structure->type);
+	return ChannelType::get(_structure->type);
 }
 
-bool Channel::get_enabled()
+bool Channel::enabled()
 {
-	return structure->enabled;
+	return _structure->enabled;
 }
 
 void Channel::set_enabled(bool value)
 {
-	check(sr_dev_channel_enable(parent->structure, structure->index, value));
+	check(sr_dev_channel_enable(_parent->_structure, _structure->index, value));
 }
 
-unsigned int Channel::get_index()
+unsigned int Channel::index()
 {
-	return structure->index;
+	return _structure->index;
 }
 
 ChannelGroup::ChannelGroup(Device *device,
 		struct sr_channel_group *structure) :
 	ParentOwned(structure),
-	Configurable(device->structure->driver, device->structure, structure)
+	Configurable(device->_structure->driver, device->_structure, structure)
 {
 	for (GSList *entry = structure->channels; entry; entry = entry->next)
-		channels.push_back(device->channels[(struct sr_channel *)entry->data]);
+		_channels.push_back(device->_channels[(struct sr_channel *)entry->data]);
 }
 
 ChannelGroup::~ChannelGroup()
 {
 }
 
-string ChannelGroup::get_name()
+string ChannelGroup::name()
 {
-	return valid_string(structure->name);
+	return valid_string(_structure->name);
 }
 
-vector<shared_ptr<Channel>> ChannelGroup::get_channels()
+vector<shared_ptr<Channel>> ChannelGroup::channels()
 {
 	vector<shared_ptr<Channel>> result;
-	for (auto channel : channels)
-		result.push_back(channel->get_shared_pointer(parent));
+	for (auto channel : _channels)
+		result.push_back(channel->get_shared_pointer(_parent));
 	return result;
 }
 
 Trigger::Trigger(shared_ptr<Context> context, string name) : 
 	UserOwned(sr_trigger_new(name.c_str())),
-	context(context)
+	_context(context)
 {
-	for (auto stage = structure->stages; stage; stage = stage->next)
-		stages.push_back(new TriggerStage((struct sr_trigger_stage *) stage->data));
+	for (auto stage = _structure->stages; stage; stage = stage->next)
+		_stages.push_back(
+			new TriggerStage((struct sr_trigger_stage *) stage->data));
 }
 
 Trigger::~Trigger()
 {
-	for (auto stage: stages)
+	for (auto stage: _stages)
 		delete stage;
 
-	sr_trigger_free(structure);
+	sr_trigger_free(_structure);
 }
 
-string Trigger::get_name()
+string Trigger::name()
 {
-	return structure->name;
+	return _structure->name;
 }
 
-vector<shared_ptr<TriggerStage>> Trigger::get_stages()
+vector<shared_ptr<TriggerStage>> Trigger::stages()
 {
 	vector<shared_ptr<TriggerStage>> result;
-	for (auto stage : stages)
+	for (auto stage : _stages)
 		result.push_back(stage->get_shared_pointer(this));
 	return result;
 }
 
 shared_ptr<TriggerStage> Trigger::add_stage()
 {
-	auto stage = new TriggerStage(sr_trigger_stage_add(structure));
-	stages.push_back(stage);
+	auto stage = new TriggerStage(sr_trigger_stage_add(_structure));
+	_stages.push_back(stage);
 	return stage->get_shared_pointer(this);
 }
 
@@ -630,37 +632,43 @@ TriggerStage::TriggerStage(struct sr_trigger_stage *structure) :
 
 TriggerStage::~TriggerStage()
 {
-	for (auto match : matches)
+	for (auto match : _matches)
 		delete match;
 }
 	
-int TriggerStage::get_number()
+int TriggerStage::number()
 {
-	return structure->stage;
+	return _structure->stage;
 }
 
-vector<shared_ptr<TriggerMatch>> TriggerStage::get_matches()
+vector<shared_ptr<TriggerMatch>> TriggerStage::matches()
 {
 	vector<shared_ptr<TriggerMatch>> result;
-	for (auto match : matches)
+	for (auto match : _matches)
 		result.push_back(match->get_shared_pointer(this));
 	return result;
 }
 
-void TriggerStage::add_match(shared_ptr<Channel> channel, const TriggerMatchType *type, float value)
+void TriggerStage::add_match(shared_ptr<Channel> channel,
+	const TriggerMatchType *type, float value)
 {
-	check(sr_trigger_match_add(structure, channel->structure, type->get_id(), value));
-	matches.push_back(new TriggerMatch(
-		(struct sr_trigger_match *) g_slist_last(structure->matches)->data, channel));
+	check(sr_trigger_match_add(_structure,
+		channel->_structure, type->id(), value));
+	_matches.push_back(new TriggerMatch(
+		(struct sr_trigger_match *) g_slist_last(
+			_structure->matches)->data, channel));
 }
 
-void TriggerStage::add_match(shared_ptr<Channel> channel, const TriggerMatchType *type)
+void TriggerStage::add_match(shared_ptr<Channel> channel,
+	const TriggerMatchType *type)
 {
 	add_match(channel, type, NAN);
 }
 
-TriggerMatch::TriggerMatch(struct sr_trigger_match *structure, shared_ptr<Channel> channel) :
-	ParentOwned(structure), channel(channel)
+TriggerMatch::TriggerMatch(struct sr_trigger_match *structure,
+		shared_ptr<Channel> channel) :
+	ParentOwned(structure),
+	_channel(channel)
 {
 }
 
@@ -668,52 +676,53 @@ TriggerMatch::~TriggerMatch()
 {
 }
 
-shared_ptr<Channel> TriggerMatch::get_channel()
+shared_ptr<Channel> TriggerMatch::channel()
 {
-	return channel;
+	return _channel;
 }
 
-const TriggerMatchType *TriggerMatch::get_type()
+const TriggerMatchType *TriggerMatch::type()
 {
-	return TriggerMatchType::get(structure->match);
+	return TriggerMatchType::get(_structure->match);
 }
 
-float TriggerMatch::get_value()
+float TriggerMatch::value()
 {
-	return structure->value;
+	return _structure->value;
 }
 
 DatafeedCallbackData::DatafeedCallbackData(Session *session,
 		DatafeedCallbackFunction callback) :
-	callback(callback), session(session)
+	_callback(callback),
+	_session(session)
 {
 }
 
 void DatafeedCallbackData::run(const struct sr_dev_inst *sdi,
 	const struct sr_datafeed_packet *pkt)
 {
-	auto device = session->devices[sdi];
+	auto device = _session->_devices[sdi];
 	auto packet = shared_ptr<Packet>(new Packet(device, pkt), Packet::Deleter());
-	callback(device, packet);
+	_callback(device, packet);
 }
 
 SourceCallbackData::SourceCallbackData(shared_ptr<EventSource> source) :
-	source(source)
+	_source(source)
 {
 }
 
 bool SourceCallbackData::run(int revents)
 {
-	return source->callback((Glib::IOCondition) revents);
+	return _source->_callback((Glib::IOCondition) revents);
 }
 
 shared_ptr<EventSource> EventSource::create(int fd, Glib::IOCondition events,
 	int timeout, SourceCallbackFunction callback)
 {
 	auto result = new EventSource(timeout, callback);
-	result->type = EventSource::SOURCE_FD;
-	result->fd = fd;
-	result->events = events;
+	result->_type = EventSource::SOURCE_FD;
+	result->_fd = fd;
+	result->_events = events;
 	return shared_ptr<EventSource>(result, EventSource::Deleter());
 }
 
@@ -721,8 +730,8 @@ shared_ptr<EventSource> EventSource::create(Glib::PollFD pollfd, int timeout,
 	SourceCallbackFunction callback)
 {
 	auto result = new EventSource(timeout, callback);
-	result->type = EventSource::SOURCE_POLLFD;
-	result->pollfd = pollfd;
+	result->_type = EventSource::SOURCE_POLLFD;
+	result->_pollfd = pollfd;
 	return shared_ptr<EventSource>(result, EventSource::Deleter());
 }
 
@@ -730,14 +739,15 @@ shared_ptr<EventSource> EventSource::create(Glib::RefPtr<Glib::IOChannel> channe
 	Glib::IOCondition events, int timeout, SourceCallbackFunction callback)
 {
 	auto result = new EventSource(timeout, callback);
-	result->type = EventSource::SOURCE_IOCHANNEL;
-	result->channel = channel;
-	result->events = events;
+	result->_type = EventSource::SOURCE_IOCHANNEL;
+	result->_channel = channel;
+	result->_events = events;
 	return shared_ptr<EventSource>(result, EventSource::Deleter());
 }
 
 EventSource::EventSource(int timeout, SourceCallbackFunction callback) :
-	timeout(timeout), callback(callback)
+	_timeout(timeout),
+	_callback(callback)
 {
 }
 
@@ -761,156 +771,158 @@ shared_ptr<Device> SessionDevice::get_shared_from_this()
 }
 
 Session::Session(shared_ptr<Context> context) :
-	UserOwned(structure),
-	context(context), saving(false)
+	UserOwned(_structure),
+	_context(context),
+	_saving(false)
 {
-	check(sr_session_new(&structure));
-	context->session = this;
+	check(sr_session_new(&_structure));
+	_context->_session = this;
 }
 
 Session::Session(shared_ptr<Context> context, string filename) :
-	UserOwned(structure),
-	context(context), saving(false)
+	UserOwned(_structure),
+	_context(context),
+	_saving(false)
 {
-	check(sr_session_load(filename.c_str(), &structure));
+	check(sr_session_load(filename.c_str(), &_structure));
 	GSList *dev_list;
-	check(sr_session_dev_list(structure, &dev_list));
+	check(sr_session_dev_list(_structure, &dev_list));
 	for (GSList *dev = dev_list; dev; dev = dev->next)
 	{
 		auto sdi = (struct sr_dev_inst *) dev->data;
 		auto device = new SessionDevice(sdi);
-		devices[sdi] = shared_ptr<SessionDevice>(device,
+		_devices[sdi] = shared_ptr<SessionDevice>(device,
 			SessionDevice::Deleter());
 	}
-	context->session = this;
+	_context->_session = this;
 }
 
 Session::~Session()
 {
-	check(sr_session_destroy(structure));
+	check(sr_session_destroy(_structure));
 
-	for (auto callback : datafeed_callbacks)
+	for (auto callback : _datafeed_callbacks)
 		delete callback;
 
-	for (auto entry : source_callbacks)
+	for (auto entry : _source_callbacks)
 		delete entry.second;
 }
 
 void Session::add_device(shared_ptr<Device> device)
 {
-	check(sr_session_dev_add(structure, device->structure));
-	devices[device->structure] = device;
+	check(sr_session_dev_add(_structure, device->_structure));
+	_devices[device->_structure] = device;
 }
 
-vector<shared_ptr<Device>> Session::get_devices()
+vector<shared_ptr<Device>> Session::devices()
 {
 	GSList *dev_list;
-	check(sr_session_dev_list(structure, &dev_list));
+	check(sr_session_dev_list(_structure, &dev_list));
 	vector<shared_ptr<Device>> result;
 	for (GSList *dev = dev_list; dev; dev = dev->next)
 	{
 		auto sdi = (struct sr_dev_inst *) dev->data;
-		result.push_back(devices[sdi]);
+		result.push_back(_devices[sdi]);
 	}
 	return result;
 }
 
 void Session::remove_devices()
 {
-	devices.clear();
-	check(sr_session_dev_remove_all(structure));
+	_devices.clear();
+	check(sr_session_dev_remove_all(_structure));
 }
 
 void Session::start()
 {
-	check(sr_session_start(structure));
+	check(sr_session_start(_structure));
 }
 
 void Session::run()
 {
-	check(sr_session_run(structure));
+	check(sr_session_run(_structure));
 }
 
 void Session::stop()
 {
-	check(sr_session_stop(structure));
+	check(sr_session_stop(_structure));
 }
 
 void Session::begin_save(string filename)
 {
-	saving = true;
-	save_initialized = false;
-	save_filename = filename;
-	save_samplerate = 0;
+	_saving = true;
+	_save_initialized = false;
+	_save_filename = filename;
+	_save_samplerate = 0;
 }
 
 void Session::append(shared_ptr<Packet> packet)
 {
-	if (!saving)
+	if (!_saving)
 		throw Error(SR_ERR);
 
-	switch (packet->structure->type)
+	switch (packet->_structure->type)
 	{
 		case SR_DF_META:
 		{
 			auto meta = (const struct sr_datafeed_meta *)
-				packet->structure->payload;
+				packet->_structure->payload;
 
 			for (auto l = meta->config; l; l = l->next)
 			{
 				auto config = (struct sr_config *) l->data;
 				if (config->key == SR_CONF_SAMPLERATE)
-					save_samplerate = g_variant_get_uint64(config->data);
+					_save_samplerate = g_variant_get_uint64(config->data);
 			}
 
 			break;
 		}
 		case SR_DF_LOGIC:
 		{
-			if (save_samplerate == 0)
+			if (_save_samplerate == 0)
 			{
 				GVariant *samplerate;
 
-				check(sr_config_get(packet->device->structure->driver,
-					packet->device->structure, NULL, SR_CONF_SAMPLERATE,
+				check(sr_config_get(packet->_device->_structure->driver,
+					packet->_device->_structure, NULL, SR_CONF_SAMPLERATE,
 					&samplerate));
 
-				save_samplerate = g_variant_get_uint64(samplerate);
+				_save_samplerate = g_variant_get_uint64(samplerate);
 
 				g_variant_unref(samplerate);
 			}
 
-			if (!save_initialized)
+			if (!_save_initialized)
 			{
 				vector<shared_ptr<Channel>> save_channels;
 
-				for (auto channel : packet->device->get_channels())
-					if (channel->structure->enabled &&
-							channel->structure->type == SR_CHANNEL_LOGIC)
+				for (auto channel : packet->_device->channels())
+					if (channel->_structure->enabled &&
+							channel->_structure->type == SR_CHANNEL_LOGIC)
 						save_channels.push_back(channel);
 
 				auto channels = g_new(char *, save_channels.size());
 
 				int i = 0;
 				for (auto channel : save_channels)
-						channels[i++] = channel->structure->name;
+						channels[i++] = channel->_structure->name;
 				channels[i] = NULL;
 
-				int ret = sr_session_save_init(structure, save_filename.c_str(),
-						save_samplerate, channels);
+				int ret = sr_session_save_init(_structure, _save_filename.c_str(),
+						_save_samplerate, channels);
 
 				g_free(channels);
 
 				if (ret != SR_OK)
 					throw Error(ret);
 
-				save_initialized = true;
+				_save_initialized = true;
 			}
 
 			auto logic = (const struct sr_datafeed_logic *)
-				packet->structure->payload;
+				packet->_structure->payload;
 
-			check(sr_session_append(structure, save_filename.c_str(),
+			check(sr_session_append(_structure, _save_filename.c_str(),
 				(uint8_t *) logic->data, logic->unitsize,
 				logic->length / logic->unitsize));
 		}
@@ -919,7 +931,7 @@ void Session::append(shared_ptr<Packet> packet)
 
 void Session::append(void *data, size_t length, unsigned int unit_size)
 {
-	check(sr_session_append(structure, save_filename.c_str(),
+	check(sr_session_append(_structure, _save_filename.c_str(),
 		(uint8_t *) data, unit_size, length));
 }
 
@@ -933,16 +945,17 @@ static void datafeed_callback(const struct sr_dev_inst *sdi,
 void Session::add_datafeed_callback(DatafeedCallbackFunction callback)
 {
 	auto cb_data = new DatafeedCallbackData(this, callback);
-	check(sr_session_datafeed_callback_add(structure, datafeed_callback, cb_data));
-	datafeed_callbacks.push_back(cb_data);
+	check(sr_session_datafeed_callback_add(_structure,
+		datafeed_callback, cb_data));
+	_datafeed_callbacks.push_back(cb_data);
 }
 
 void Session::remove_datafeed_callbacks(void)
 {
-	check(sr_session_datafeed_callback_remove_all(structure));
-	for (auto callback : datafeed_callbacks)
+	check(sr_session_datafeed_callback_remove_all(_structure));
+	for (auto callback : _datafeed_callbacks)
 		delete callback;
-	datafeed_callbacks.clear();
+	_datafeed_callbacks.clear();
 }
 
 static int source_callback(int fd, int revents, void *cb_data)
@@ -954,116 +967,116 @@ static int source_callback(int fd, int revents, void *cb_data)
 
 void Session::add_source(shared_ptr<EventSource> source)
 {
-	if (source_callbacks.count(source) == 1)
+	if (_source_callbacks.count(source) == 1)
 		throw Error(SR_ERR_ARG);
 
 	auto cb_data = new SourceCallbackData(source);
 
-	switch (source->type)
+	switch (source->_type)
 	{
 		case EventSource::SOURCE_FD:
-			check(sr_session_source_add(structure, source->fd, source->events,
-				source->timeout, source_callback, cb_data));
+			check(sr_session_source_add(_structure, source->_fd, source->_events,
+				source->_timeout, source_callback, cb_data));
 			break;
 		case EventSource::SOURCE_POLLFD:
-			check(sr_session_source_add_pollfd(structure,
-				source->pollfd.gobj(), source->timeout, source_callback,
+			check(sr_session_source_add_pollfd(_structure,
+				source->_pollfd.gobj(), source->_timeout, source_callback,
 				cb_data));
 			break;
 		case EventSource::SOURCE_IOCHANNEL:
-			check(sr_session_source_add_channel(structure,
-				source->channel->gobj(), source->events, source->timeout,
+			check(sr_session_source_add_channel(_structure,
+				source->_channel->gobj(), source->_events, source->_timeout,
 				source_callback, cb_data));
 			break;
 	}
 
-	source_callbacks[source] = cb_data;
+	_source_callbacks[source] = cb_data;
 }
 
 void Session::remove_source(shared_ptr<EventSource> source)
 {
-	if (source_callbacks.count(source) == 0)
+	if (_source_callbacks.count(source) == 0)
 		throw Error(SR_ERR_ARG);
 
-	switch (source->type)
+	switch (source->_type)
 	{
 		case EventSource::SOURCE_FD:
-			check(sr_session_source_remove(structure, source->fd));
+			check(sr_session_source_remove(_structure, source->_fd));
 			break;
 		case EventSource::SOURCE_POLLFD:
-			check(sr_session_source_remove_pollfd(structure,
-				source->pollfd.gobj()));
+			check(sr_session_source_remove_pollfd(_structure,
+				source->_pollfd.gobj()));
 			break;
 		case EventSource::SOURCE_IOCHANNEL:
-			check(sr_session_source_remove_channel(structure,
-				source->channel->gobj()));
+			check(sr_session_source_remove_channel(_structure,
+				source->_channel->gobj()));
 			break;
 	}
 
-	delete source_callbacks[source];
+	delete _source_callbacks[source];
 
-	source_callbacks.erase(source);
+	_source_callbacks.erase(source);
 }
 
-shared_ptr<Trigger> Session::get_trigger()
+shared_ptr<Trigger> Session::trigger()
 {
-	return trigger;
+	return _trigger;
 }
 
 void Session::set_trigger(shared_ptr<Trigger> trigger)
 {
-	check(sr_session_trigger_set(structure, trigger->structure));
-	this->trigger = trigger;
+	check(sr_session_trigger_set(_structure, trigger->_structure));
+	_trigger = trigger;
 }
 
 Packet::Packet(shared_ptr<Device> device,
 	const struct sr_datafeed_packet *structure) :
 	UserOwned(structure),
-	device(device)
+	_device(device)
 {
 	switch (structure->type)
 	{
 		case SR_DF_HEADER:
-			payload = new Header(
+			_payload = new Header(
 				static_cast<const struct sr_datafeed_header *>(
 					structure->payload));
 			break;
 		case SR_DF_META:
-			payload = new Meta(
+			_payload = new Meta(
 				static_cast<const struct sr_datafeed_meta *>(
 					structure->payload));
 			break;
 		case SR_DF_LOGIC:
-			payload = new Logic(
+			_payload = new Logic(
 				static_cast<const struct sr_datafeed_logic *>(
 					structure->payload));
 			break;
 		case SR_DF_ANALOG:
-			payload = new Analog(
+			_payload = new Analog(
 				static_cast<const struct sr_datafeed_analog *>(
 					structure->payload));
 			break;
 		default:
-			payload = nullptr;
+			_payload = nullptr;
 			break;
 	}
 }
 
 Packet::~Packet()
 {
-	if (payload)
-		delete payload;
+	if (_payload)
+		delete _payload;
 }
 
-const PacketType *Packet::get_type()
+const PacketType *Packet::type()
 {
-	return PacketType::get(structure->type);
+	return PacketType::get(_structure->type);
 }
 
-shared_ptr<PacketPayload> Packet::get_payload()
+shared_ptr<PacketPayload> Packet::payload()
 {
-	if (payload)
-		return payload->get_shared_pointer(this);
+	if (_payload)
+		return _payload->get_shared_pointer(this);
 	else
 		throw Error(SR_ERR_NA);
 }
@@ -1086,22 +1099,22 @@ Header::~Header()
 {
 }
 
-shared_ptr<PacketPayload> Header::get_shared_pointer(Packet *parent)
+shared_ptr<PacketPayload> Header::get_shared_pointer(Packet *_parent)
 {
 	return static_pointer_cast<PacketPayload>(
-		ParentOwned::get_shared_pointer(parent));
+		ParentOwned::get_shared_pointer(_parent));
 }
 
-int Header::get_feed_version()
+int Header::feed_version()
 {
-	return structure->feed_version;
+	return _structure->feed_version;
 }
 
-Glib::TimeVal Header::get_start_time()
+Glib::TimeVal Header::start_time()
 {
 	return Glib::TimeVal(
-		structure->starttime.tv_sec,
-		structure->starttime.tv_usec);
+		_structure->starttime.tv_sec,
+		_structure->starttime.tv_usec);
 }
 
 Meta::Meta(const struct sr_datafeed_meta *structure) :
@@ -1114,16 +1127,16 @@ Meta::~Meta()
 {
 }
 
-shared_ptr<PacketPayload> Meta::get_shared_pointer(Packet *parent)
+shared_ptr<PacketPayload> Meta::get_shared_pointer(Packet *_parent)
 {
 	return static_pointer_cast<PacketPayload>(
-		ParentOwned::get_shared_pointer(parent));
+		ParentOwned::get_shared_pointer(_parent));
 }
 
-map<const ConfigKey *, Glib::VariantBase> Meta::get_config()
+map<const ConfigKey *, Glib::VariantBase> Meta::config()
 {
 	map<const ConfigKey *, Glib::VariantBase> result;
-	for (auto l = structure->config; l; l = l->next)
+	for (auto l = _structure->config; l; l = l->next)
 	{
 		auto config = (struct sr_config *) l->data;
 		result[ConfigKey::get(config->key)] = Glib::VariantBase(config->data);
@@ -1141,25 +1154,25 @@ Logic::~Logic()
 {
 }
 
-shared_ptr<PacketPayload> Logic::get_shared_pointer(Packet *parent)
+shared_ptr<PacketPayload> Logic::get_shared_pointer(Packet *_parent)
 {
 	return static_pointer_cast<PacketPayload>(
-		ParentOwned::get_shared_pointer(parent));
+		ParentOwned::get_shared_pointer(_parent));
 }
 
-void *Logic::get_data_pointer()
+void *Logic::data_pointer()
 {
-	return structure->data;
+	return _structure->data;
 }
 
-size_t Logic::get_data_length()
+size_t Logic::data_length()
 {
-	return structure->length;
+	return _structure->length;
 }
 
-unsigned int Logic::get_unit_size()
+unsigned int Logic::unit_size()
 {
-	return structure->unitsize;
+	return _structure->unitsize;
 }
 
 Analog::Analog(const struct sr_datafeed_analog *structure) :
@@ -1172,44 +1185,44 @@ Analog::~Analog()
 {
 }
 
-shared_ptr<PacketPayload> Analog::get_shared_pointer(Packet *parent)
+shared_ptr<PacketPayload> Analog::get_shared_pointer(Packet *_parent)
 {
 	return static_pointer_cast<PacketPayload>(
-		ParentOwned::get_shared_pointer(parent));
+		ParentOwned::get_shared_pointer(_parent));
 }
 
-float *Analog::get_data_pointer()
+float *Analog::data_pointer()
 {
-	return structure->data;
+	return _structure->data;
 }
 
-unsigned int Analog::get_num_samples()
+unsigned int Analog::num_samples()
 {
-	return structure->num_samples;
+	return _structure->num_samples;
 }
 
-vector<shared_ptr<Channel>> Analog::get_channels()
+vector<shared_ptr<Channel>> Analog::channels()
 {
 	vector<shared_ptr<Channel>> result;
-	for (auto l = structure->channels; l; l = l->next)
-		result.push_back(parent->device->get_channel(
+	for (auto l = _structure->channels; l; l = l->next)
+		result.push_back(_parent->_device->get_channel(
 			(struct sr_channel *)l->data));
 	return result;
 }
 
-const Quantity *Analog::get_mq()
+const Quantity *Analog::mq()
 {
-	return Quantity::get(structure->mq);
+	return Quantity::get(_structure->mq);
 }
 
-const Unit *Analog::get_unit()
+const Unit *Analog::unit()
 {
-	return Unit::get(structure->unit);
+	return Unit::get(_structure->unit);
 }
 
-vector<const QuantityFlag *> Analog::get_mq_flags()
+vector<const QuantityFlag *> Analog::mq_flags()
 {
-	return QuantityFlag::flags_from_mask(structure->mqflags);
+	return QuantityFlag::flags_from_mask(_structure->mqflags);
 }
 
 InputFormat::InputFormat(const struct sr_input_module *structure) :
@@ -1221,19 +1234,19 @@ InputFormat::~InputFormat()
 {
 }
 
-string InputFormat::get_name()
+string InputFormat::name()
 {
-	return valid_string(sr_input_id_get(structure));
+	return valid_string(sr_input_id_get(_structure));
 }
 
-string InputFormat::get_description()
+string InputFormat::description()
 {
-	return valid_string(sr_input_description_get(structure));
+	return valid_string(sr_input_description_get(_structure));
 }
 
-map<string, shared_ptr<Option>> InputFormat::get_options()
+map<string, shared_ptr<Option>> InputFormat::options()
 {
-	const struct sr_option **options = sr_input_options_get(structure);
+	const struct sr_option **options = sr_input_options_get(_structure);
 	auto option_array = shared_ptr<const struct sr_option *>(
 		options, sr_input_options_free);
 	map<string, shared_ptr<Option>> result;
@@ -1246,53 +1259,53 @@ map<string, shared_ptr<Option>> InputFormat::get_options()
 shared_ptr<Input> InputFormat::create_input(
 	map<string, Glib::VariantBase> options)
 {
-	auto input = sr_input_new(structure, map_to_hash_variant(options));
+	auto input = sr_input_new(_structure, map_to_hash_variant(options));
 	if (!input)
 		throw Error(SR_ERR_ARG);
 	return shared_ptr<Input>(
-		new Input(parent->shared_from_this(), input), Input::Deleter());
+		new Input(_parent->shared_from_this(), input), Input::Deleter());
 }
 
 Input::Input(shared_ptr<Context> context, const struct sr_input *structure) :
 	UserOwned(structure),
-	context(context),
-	device(nullptr)
+	_context(context),
+	_device(nullptr)
 {
 }
 
-shared_ptr<InputDevice> Input::get_device()
+shared_ptr<InputDevice> Input::device()
 {
-	if (!device)
+	if (!_device)
 	{
-		auto sdi = sr_input_dev_inst_get(structure);
+		auto sdi = sr_input_dev_inst_get(_structure);
 		if (!sdi)
 			throw Error(SR_ERR_NA);
-		device = new InputDevice(shared_from_this(), sdi);
+		_device = new InputDevice(shared_from_this(), sdi);
 	}
 
-	return device->get_shared_pointer(shared_from_this());
+	return _device->get_shared_pointer(shared_from_this());
 }
 
 void Input::send(string data)
 {
 	auto gstr = g_string_new(data.c_str());
-	auto ret = sr_input_send(structure, gstr);
+	auto ret = sr_input_send(_structure, gstr);
 	g_string_free(gstr, false);
 	check(ret);
 }
 
 Input::~Input()
 {
-	if (device)
-		delete device;
-	check(sr_input_free(structure));
+	if (_device)
+		delete _device;
+	check(sr_input_free(_structure));
 }
 
 InputDevice::InputDevice(shared_ptr<Input> input,
 		struct sr_dev_inst *structure) :
 	ParentOwned(structure),
 	Device(structure),
-	input(input)
+	_input(input)
 {
 }
 
@@ -1308,7 +1321,7 @@ shared_ptr<Device> InputDevice::get_shared_from_this()
 Option::Option(const struct sr_option *structure,
 		shared_ptr<const struct sr_option *> structure_array) :
 	UserOwned(structure),
-	structure_array(structure_array)
+	_structure_array(structure_array)
 {
 }
 
@@ -1316,30 +1329,30 @@ Option::~Option()
 {
 }
 
-string Option::get_id()
+string Option::id()
 {
-	return valid_string(structure->id);
+	return valid_string(_structure->id);
 }
 
-string Option::get_name()
+string Option::name()
 {
-	return valid_string(structure->name);
+	return valid_string(_structure->name);
 }
 
-string Option::get_description()
+string Option::description()
 {
-	return valid_string(structure->desc);
+	return valid_string(_structure->desc);
 }
 
-Glib::VariantBase Option::get_default_value()
+Glib::VariantBase Option::default_value()
 {
-	return Glib::VariantBase(structure->def, true);
+	return Glib::VariantBase(_structure->def, true);
 }
 
-vector<Glib::VariantBase> Option::get_values()
+vector<Glib::VariantBase> Option::values()
 {
 	vector<Glib::VariantBase> result;
-	for (auto l = structure->values; l; l = l->next)
+	for (auto l = _structure->values; l; l = l->next)
 		result.push_back(Glib::VariantBase((GVariant *) l->data, true));
 	return result;
 }
@@ -1353,19 +1366,19 @@ OutputFormat::~OutputFormat()
 {
 }
 
-string OutputFormat::get_name()
+string OutputFormat::name()
 {
-	return valid_string(sr_output_id_get(structure));
+	return valid_string(sr_output_id_get(_structure));
 }
 
-string OutputFormat::get_description()
+string OutputFormat::description()
 {
-	return valid_string(sr_output_description_get(structure));
+	return valid_string(sr_output_description_get(_structure));
 }
 
-map<string, shared_ptr<Option>> OutputFormat::get_options()
+map<string, shared_ptr<Option>> OutputFormat::options()
 {
-	const struct sr_option **options = sr_output_options_get(structure);
+	const struct sr_option **options = sr_output_options_get(_structure);
 	auto option_array = shared_ptr<const struct sr_option *>(
 		options, sr_output_options_free);
 	map<string, shared_ptr<Option>> result;
@@ -1385,21 +1398,23 @@ shared_ptr<Output> OutputFormat::create_output(
 
 Output::Output(shared_ptr<OutputFormat> format,
 		shared_ptr<Device> device, map<string, Glib::VariantBase> options) :
-	UserOwned(sr_output_new(format->structure,
-		map_to_hash_variant(options), device->structure)),
-	format(format), device(device), options(options)
+	UserOwned(sr_output_new(format->_structure,
+		map_to_hash_variant(options), device->_structure)),
+	_format(format),
+	_device(device),
+	_options(options)
 {
 }
 
 Output::~Output()
 {
-	check(sr_output_free(structure));
+	check(sr_output_free(_structure));
 }
 
 string Output::receive(shared_ptr<Packet> packet)
 {
 	GString *out;
-	check(sr_output_send(structure, packet->structure, &out));
+	check(sr_output_send(_structure, packet->_structure, &out));
 	if (out)
 	{
 		auto result = string(out->str, out->str + out->len);

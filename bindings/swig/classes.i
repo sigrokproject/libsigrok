@@ -139,12 +139,6 @@ template< class T > class enable_shared_from_this;
 %ignore sigrok::DatafeedCallbackData;
 %ignore sigrok::SourceCallbackData;
 
-%include "libsigrok/libsigrok.hpp"
-
-namespace sigrok {
-%include "libsigrok/enums.hpp"
-}
-
 #define SWIG_ATTRIBUTE_TEMPLATE
 
 %include "attribute.i"
@@ -167,108 +161,114 @@ typedef std::map<const sigrok::ConfigKey *, Glib::VariantBase>
 }
 
 %attributeval(sigrok::Context,
-    map_string_Driver, drivers, get_drivers);
+    map_string_Driver, drivers, drivers);
 %attributeval(sigrok::Context,
-    map_string_InputFormat, input_formats, get_input_formats);
+    map_string_InputFormat, input_formats, input_formats);
 %attributeval(sigrok::Context,
-    map_string_OutputFormat, output_formats, get_output_formats);
+    map_string_OutputFormat, output_formats, output_formats);
 
 %attributestring(sigrok::Context,
-    std::string, package_version, get_package_version);
+    std::string, package_version, package_version);
 %attributestring(sigrok::Context,
-    std::string, lib_version, get_lib_version);
+    std::string, lib_version, lib_version);
 
 %attribute(sigrok::Context,
-    const sigrok::LogLevel *, log_level, get_log_level, set_log_level);
+    const sigrok::LogLevel *, log_level, log_level, set_log_level);
 
 %attributestring(sigrok::Context,
-    std::string, log_domain, get_log_domain, set_log_domain);
+    std::string, log_domain, log_domain, set_log_domain);
 
-%attributestring(sigrok::Driver, std::string, name, get_name);
-%attributestring(sigrok::Driver, std::string, long_name, get_long_name);
+%attributestring(sigrok::Driver, std::string, name, name);
+%attributestring(sigrok::Driver, std::string, long_name, long_name);
 
 %attributestring(sigrok::InputFormat,
-    std::string, name, get_name);
+    std::string, name, name);
 %attributestring(sigrok::InputFormat,
-    std::string, description, get_description);
+    std::string, description, description);
 
 %attributestring(sigrok::Input,
-    std::shared_ptr<sigrok::InputDevice>, device, get_device);
+    std::shared_ptr<sigrok::InputDevice>, device, device);
 
 %attributestring(sigrok::Option,
-    std::string, id, get_id);
+    std::string, id, id);
 %attributestring(sigrok::Option,
-    std::string, name, get_name);
+    std::string, name, name);
 %attributestring(sigrok::Option,
-    std::string, description, get_description);
+    std::string, description, description);
 /* Currently broken on Python due to some issue with variant typemaps. */
 /* %attributeval(sigrok::Option,
-    Glib::VariantBase, default_value, get_default_value); */
+    Glib::VariantBase, default_value, default_value); */
 %attributeval(sigrok::Option,
-    std::vector<Glib::VariantBase>, values, get_values);
+    std::vector<Glib::VariantBase>, values, values);
 
 %attributestring(sigrok::OutputFormat,
-    std::string, name, get_name);
+    std::string, name, name);
 %attributestring(sigrok::OutputFormat,
-    std::string, description, get_description);
+    std::string, description, description);
 %attributeval(sigrok::OutputFormat,
-    map_string_Option, options, get_options);
+    map_string_Option, options, options);
 
-%attributestring(sigrok::Device, std::string, description, get_description);
-%attributestring(sigrok::Device, std::string, vendor, get_vendor);
-%attributestring(sigrok::Device, std::string, model, get_model);
-%attributestring(sigrok::Device, std::string, version, get_version);
+%attributestring(sigrok::Device, std::string, description, description);
+%attributestring(sigrok::Device, std::string, vendor, vendor);
+%attributestring(sigrok::Device, std::string, model, model);
+%attributestring(sigrok::Device, std::string, version, version);
 
 %attributeval(sigrok::Device,
     std::vector<std::shared_ptr<sigrok::Channel> >,
-    channels, get_channels);
+    channels, channels);
 
 %attributeval(sigrok::Device, map_string_ChannelGroup,
-    channel_groups, get_channel_groups);
+    channel_groups, channel_groups);
 
 /* Using %attributestring for shared_ptr attribute. See
    http://sourceforge.net/p/swig/mailman/message/31832070/ */
 %attributestring(sigrok::HardwareDevice,
-    std::shared_ptr<sigrok::Driver>, driver, get_driver);
+    std::shared_ptr<sigrok::Driver>, driver, driver);
 
-%attributestring(sigrok::Channel, std::string, name, get_name, set_name);
-%attribute(sigrok::Channel, bool, enabled, get_enabled, set_enabled);
-%attribute(sigrok::Channel, const sigrok::ChannelType *, type, get_type);
-%attribute(sigrok::Channel, unsigned int, index, get_index);
+%attributestring(sigrok::Channel, std::string, name, name, set_name);
+%attribute(sigrok::Channel, bool, enabled, enabled, set_enabled);
+%attribute(sigrok::Channel, const sigrok::ChannelType *, type, type);
+%attribute(sigrok::Channel, unsigned int, index, index);
 
-%attributestring(sigrok::ChannelGroup, std::string, name, get_name);
+%attributestring(sigrok::ChannelGroup, std::string, name, name);
 %attributeval(sigrok::ChannelGroup,
     std::vector<std::shared_ptr<sigrok::Channel> >,
-    channels, get_channels);
+    channels, channels);
 
-%attributestring(sigrok::Trigger, std::string, name, get_name);
+%attributestring(sigrok::Trigger, std::string, name, name);
 %attributeval(sigrok::Trigger,
     std::vector<std::shared_ptr<sigrok::TriggerStage> >,
-    stages, get_stages);
+    stages, stages);
 
-%attribute(sigrok::TriggerStage, int, number, get_number);
+%attribute(sigrok::TriggerStage, int, number, number);
 %attributeval(sigrok::TriggerStage,
     std::vector<std::shared_ptr<sigrok::TriggerMatch> >,
-    matches, get_matches);
+    matches, matches);
 
 %attributestring(sigrok::TriggerMatch,
-    std::shared_ptr<sigrok::Channel>, channel, get_channel);
-%attribute(sigrok::TriggerMatch, const sigrok::TriggerMatchType *, type, get_type);
-%attribute(sigrok::TriggerMatch, float, value, get_value);
+    std::shared_ptr<sigrok::Channel>, channel, channel);
+%attribute(sigrok::TriggerMatch, const sigrok::TriggerMatchType *, type, type);
+%attribute(sigrok::TriggerMatch, float, value, value);
 
 %attributeval(sigrok::Session,
     std::vector<std::shared_ptr<sigrok::Device> >,
-    devices, get_devices);
+    devices, devices);
 
 %attributestring(sigrok::Session,
-    std::shared_ptr<sigrok::Trigger>, trigger, get_trigger, set_trigger);
+    std::shared_ptr<sigrok::Trigger>, trigger, trigger, set_trigger);
 
 %attributestring(sigrok::Packet,
-    std::shared_ptr<sigrok::PacketPayload>, payload, get_payload);
+    std::shared_ptr<sigrok::PacketPayload>, payload, payload);
 
-%attributeval(sigrok::Meta, map_ConfigKey_Variant, config, get_config);
+%attributeval(sigrok::Meta, map_ConfigKey_Variant, config, config);
 
-%attribute(sigrok::Analog, int, num_samples, get_num_samples);
-%attribute(sigrok::Analog, const sigrok::Quantity *, mq, get_mq);
-%attribute(sigrok::Analog, const sigrok::Unit *, unit, get_unit);
-%attributeval(sigrok::Analog, std::vector<const sigrok::QuantityFlag *>, mq_flags, get_mq_flags);
+%attribute(sigrok::Analog, int, num_samples, num_samples);
+%attribute(sigrok::Analog, const sigrok::Quantity *, mq, mq);
+%attribute(sigrok::Analog, const sigrok::Unit *, unit, unit);
+%attributeval(sigrok::Analog, std::vector<const sigrok::QuantityFlag *>, mq_flags, mq_flags);
+
+%include "libsigrok/libsigrok.hpp"
+
+namespace sigrok {
+%include "libsigrok/enums.hpp"
+}
