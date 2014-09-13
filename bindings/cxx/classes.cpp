@@ -20,6 +20,7 @@
 #include "libsigrok/libsigrok.hpp"
 
 #include <sstream>
+#include <cmath>
 
 namespace sigrok
 {
