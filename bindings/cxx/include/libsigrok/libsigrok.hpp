@@ -323,7 +323,8 @@ public:
 	/** Scan for devices and return a list of devices found.
 	 * @param options Mapping of (ConfigKey, value) pairs. */
 	vector<shared_ptr<HardwareDevice> > scan(
-		map<const ConfigKey *, Glib::VariantBase> options = {});
+		map<const ConfigKey *, Glib::VariantBase> options =
+			map<const ConfigKey *, Glib::VariantBase>());
 protected:
 	bool _initialized;
 	vector<HardwareDevice *> _devices;
@@ -795,7 +796,8 @@ public:
 	map<string, shared_ptr<Option> > options();
 	/** Create an input using this input format.
 	 * @param options Mapping of (option name, value) pairs. */
-	shared_ptr<Input> create_input(map<string, Glib::VariantBase> options = {});
+	shared_ptr<Input> create_input(map<string, Glib::VariantBase> options =
+		map<string, Glib::VariantBase>());
 protected:
 	InputFormat(const struct sr_input_module *structure);
 	~InputFormat();
@@ -874,7 +876,8 @@ public:
 	 * @param device Device to output for.
 	 * @param options Mapping of (option name, value) pairs. */
 	shared_ptr<Output> create_output(shared_ptr<Device> device,
-		map<string, Glib::VariantBase> options = {});
+		map<string, Glib::VariantBase> options =
+			map<string, Glib::VariantBase>());
 protected:
 	OutputFormat(const struct sr_output_module *structure);
 	~OutputFormat();
