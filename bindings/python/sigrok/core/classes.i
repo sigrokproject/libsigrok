@@ -294,7 +294,7 @@ Glib::VariantBase python_to_variant_by_key(PyObject *input, const sigrok::Config
     if (type == SR_T_UINT64 && PyLong_Check(input))
         return Glib::Variant<guint64>::create(PyLong_AsLong(input));
     else if (type == SR_T_STRING && PyString_Check(input))
-        return Glib::Variant<std::string>::create(PyString_AsString(input));
+        return Glib::Variant<Glib::ustring>::create(PyString_AsString(input));
     else if (type == SR_T_BOOL && PyBool_Check(input))
         return Glib::Variant<bool>::create(input == Py_True);
     else if (type == SR_T_FLOAT && PyFloat_Check(input))
@@ -316,7 +316,7 @@ Glib::VariantBase python_to_variant_by_option(PyObject *input,
     if (type == G_VARIANT_TYPE_UINT64 && PyLong_Check(input))
         return Glib::Variant<guint64>::create(PyLong_AsLong(input));
     else if (type == G_VARIANT_TYPE_STRING && PyString_Check(input))
-        return Glib::Variant<std::string>::create(PyString_AsString(input));
+        return Glib::Variant<Glib::ustring>::create(PyString_AsString(input));
     else if (type == G_VARIANT_TYPE_BOOLEAN && PyBool_Check(input))
         return Glib::Variant<bool>::create(input == Py_True);
     else if (type == G_VARIANT_TYPE_DOUBLE && PyFloat_Check(input))
