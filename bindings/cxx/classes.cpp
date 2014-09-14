@@ -256,8 +256,6 @@ Driver::Driver(struct sr_dev_driver *structure) :
 
 Driver::~Driver()
 {
-	for (auto device : _devices)
-		delete device;
 }
 
 string Driver::name()
@@ -280,11 +278,6 @@ vector<shared_ptr<HardwareDevice>> Driver::scan(
 		_initialized = true;
 	}
 
-	/* Clear all existing instances. */
-	for (auto device : _devices)
-		delete device;
-	_devices.clear();
-
 	/* Translate scan options to GSList of struct sr_config pointers. */
 	GSList *option_list = NULL;
 	for (auto entry : options)
@@ -303,20 +296,20 @@ vector<shared_ptr<HardwareDevice>> Driver::scan(
 	/* Free option list. */
 	g_slist_free_full(option_list, g_free);
 
+
 	/* Create device objects. */
+	vector<shared_ptr<HardwareDevice>> result;
 	for (GSList *device = device_list; device; device = device->next)
 	{
 		auto sdi = (struct sr_dev_inst *) device->data;
-		_devices.push_back(new HardwareDevice(this, sdi));
+		result.push_back(shared_ptr<HardwareDevice>(
+			new HardwareDevice(shared_from_this(), sdi),
+			HardwareDevice::Deleter()));
 	}
 
 	/* Free GSList returned from scan. */
 	g_slist_free(device_list);
 
-	/* Create list of shared pointers to device instances for return. */
-	vector<shared_ptr<HardwareDevice>> result;
-	for (auto device : _devices)
-		result.push_back(device->get_shared_pointer(_parent));
 	return result;
 }
 
@@ -501,8 +494,9 @@ void Device::close()
 	check(sr_dev_close(_structure));
 }
 
-HardwareDevice::HardwareDevice(Driver *driver, struct sr_dev_inst *structure) :
-	ParentOwned(structure),
+HardwareDevice::HardwareDevice(shared_ptr<Driver> driver,
+		struct sr_dev_inst *structure) :
+	UserOwned(structure),
 	Device(structure),
 	_driver(driver)
 {
@@ -519,7 +513,7 @@ shared_ptr<Device> HardwareDevice::get_shared_from_this()
 
 shared_ptr<Driver> HardwareDevice::driver()
 {
-	return _driver->get_shared_pointer(_parent);
+	return _driver;
 }
 
 Channel::Channel(struct sr_channel *structure) :

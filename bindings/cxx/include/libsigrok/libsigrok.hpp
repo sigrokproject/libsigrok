@@ -379,17 +379,24 @@ protected:
 
 /** A real hardware device, connected via a driver */
 class SR_API HardwareDevice :
-	public ParentOwned<HardwareDevice, Context, struct sr_dev_inst>,
+	public UserOwned<HardwareDevice, struct sr_dev_inst>,
 	public Device
 {
 public:
 	/** Driver providing this device. */
 	shared_ptr<Driver> driver();
 protected:
-	HardwareDevice(Driver *driver, struct sr_dev_inst *structure);
+	HardwareDevice(shared_ptr<Driver> driver, struct sr_dev_inst *structure);
 	~HardwareDevice();
 	shared_ptr<Device> get_shared_from_this();
-	Driver *_driver;
+	shared_ptr<Driver> _driver;
+	/** Deleter needed to allow shared_ptr use with protected destructor. */
+	class Deleter
+	{
+	public:
+		void operator()(HardwareDevice *device) { delete device; }
+	};
+	friend class Deleter;
 	friend class Driver;
 	friend class ChannelGroup;
 };
