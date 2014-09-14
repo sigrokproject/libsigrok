@@ -141,6 +141,52 @@ static struct sr_config_info sr_config_info_data[] = {
 	{0, 0, NULL, NULL, NULL},
 };
 
+SR_PRIV const GVariantType *sr_variant_type_get(int datatype)
+{
+	switch (datatype) {
+	case SR_T_INT32:
+		return G_VARIANT_TYPE_INT32;
+	case SR_T_UINT64:
+		return G_VARIANT_TYPE_UINT64;
+	case SR_T_STRING:
+		return G_VARIANT_TYPE_STRING;
+	case SR_T_BOOL:
+		return G_VARIANT_TYPE_BOOLEAN;
+	case SR_T_FLOAT:
+		return G_VARIANT_TYPE_DOUBLE;
+	case SR_T_RATIONAL_PERIOD:
+	case SR_T_RATIONAL_VOLT:
+	case SR_T_UINT64_RANGE:
+	case SR_T_DOUBLE_RANGE:
+		return G_VARIANT_TYPE_TUPLE;
+	case SR_T_KEYVALUE:
+		return G_VARIANT_TYPE_DICTIONARY;
+	default:
+		return NULL;
+	}
+}
+
+SR_PRIV int sr_variant_type_check(int key, GVariant *value)
+{
+	const struct sr_config_info *info;
+	const GVariantType *type, *expected;
+	info = sr_config_info_get(key);
+	if (!info)
+		return SR_OK;
+	expected = sr_variant_type_get(info->datatype);
+	type = g_variant_get_type(value);
+	if (!g_variant_type_equal(type, expected)) {
+		gchar *expected_string = g_variant_type_dup_string(expected);
+		gchar *type_string = g_variant_type_dup_string(type);
+		sr_err("Wrong variant type for key '%s': expected '%s', got '%s'",
+			info->name, expected_string, type_string);
+		g_free(expected_string);
+		g_free(type_string);
+		return SR_ERR_ARG;
+	}
+	return SR_OK;
+}
+
 /**
  * Return the list of supported hardware drivers.
  *
@@ -222,6 +268,7 @@ SR_API int sr_driver_init(struct sr_context *ctx, struct sr_dev_driver *driver)
 SR_API GSList *sr_driver_scan(struct sr_dev_driver *driver, GSList *options)
 {
 	GSList *l;
+	struct sr_config *src;
 
 	if (!driver) {
 		sr_err("Invalid driver, can't scan for devices.");
@@ -231,6 +278,12 @@ SR_API GSList *sr_driver_scan(struct sr_dev_driver *driver, GSList *options)
 	if (!driver->priv) {
 		sr_err("Driver not initialized, can't scan for devices.");
 		return NULL;
+	}
+
+	for (l = options; l; l = l->next) {
+		src = l->data;
+		if (sr_variant_type_check(src->key, src->data) != SR_OK)
+			return NULL;
 	}
 
 	l = driver->scan(options);
@@ -364,7 +417,7 @@ SR_API int sr_config_set(const struct sr_dev_inst *sdi,
 		ret = SR_ERR;
 	else if (!sdi->driver->config_set)
 		ret = SR_ERR_ARG;
-	else
+	else if ((ret = sr_variant_type_check(key, data)) == SR_OK)
 		ret = sdi->driver->config_set(key, data, sdi, cg);
 
 	g_variant_unref(data);

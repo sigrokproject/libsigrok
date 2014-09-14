@@ -516,6 +516,8 @@ SR_PRIV void sr_usbtmc_dev_inst_free(struct sr_usbtmc_dev_inst *usbtmc);
 
 /*--- hwdriver.c ------------------------------------------------------------*/
 
+SR_PRIV const GVariantType *sr_variant_type_get(int datatype);
+SR_PRIV int sr_variant_type_check(int key, GVariant *data);
 SR_PRIV void sr_hw_cleanup_all(void);
 SR_PRIV struct sr_config *sr_config_new(int key, GVariant *data);
 SR_PRIV void sr_config_free(struct sr_config *src);
