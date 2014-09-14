@@ -17,6 +17,7 @@
 ## along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##
 
+from __future__ import print_function
 from xml.etree import ElementTree
 import sys, os
 
@@ -40,10 +41,10 @@ for compound in index.findall('compound'):
     brief = get_text(cls.find('briefdescription'))
     if brief:
         if language == 'python':
-            print '%%feature("docstring") %s "%s";' % (class_name, brief)
+            print('%%feature("docstring") %s "%s";' % (class_name, brief))
         elif language == 'java':
-            print '%%typemap(javaclassmodifiers) %s "/** %s */\npublic class"' % (
-            class_name, brief)
+            print('%%typemap(javaclassmodifiers) %s "/** %s */\npublic class"' % (
+            class_name, brief))
     for section in cls.findall('sectiondef'):
         if section.attrib['kind'] != 'public-func':
             continue
@@ -62,14 +63,14 @@ for compound in index.findall('compound'):
                             parameters[name] = description
             if brief:
                 if language == 'python':
-                    print str.join('\n', [
+                    print(str.join('\n', [
                         '%%feature("docstring") %s::%s "%s' % (
                             class_name, function_name, brief)] + [
                         '@param %s %s' % (name, desc)
-                            for name, desc in parameters.items()]) + '";'
+                            for name, desc in parameters.items()]) + '";')
                 elif language == 'java':
-                    print str.join('\n', [
+                    print(str.join('\n', [
                         '%%javamethodmodifiers %s::%s "/** %s' % (
                             class_name, function_name, brief)] + [
                         '   * @param %s %s' % (name, desc)
-                            for name, desc in parameters.items()]) + ' */\npublic"'
+                            for name, desc in parameters.items()]) + ' */\npublic"')
