@@ -199,10 +199,8 @@ if test "x$HAVE_DOXYGEN" != "xyes"; then
 fi
 
 # Python is needed for the C++ bindings.
-AC_CHECK_PROG([HAVE_PYTHON], [python], [yes])
-if test "x$HAVE_PYTHON" != "xyes"; then
-	BINDINGS_CXX="no"; cxx_msg="Python required"
-fi
+AM_PATH_PYTHON([2.7], [HAVE_PYTHON="yes"],
+	[HAVE_PYTHON="no"; BINDINGS_CXX="no"; cxx_msg="Python required"])
 
 # The Python bindings need Python development files.
 PKG_CHECK_MODULES([python], [python >= 2.7],
