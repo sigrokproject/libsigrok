@@ -34,7 +34,7 @@
 SR_PRIV struct sr_dev_driver gmc_mh_1x_2x_rs232_driver_info;
 SR_PRIV struct sr_dev_driver gmc_mh_2x_bd232_driver_info;
 
-static const uint32_t hwopts[] = {
+static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 	SR_CONF_SERIALCOMM,
 };
@@ -463,7 +463,7 @@ static int config_list_common(uint32_t key, GVariant **data, const struct sr_dev
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-						  hwopts, ARRAY_SIZE(hwopts), sizeof(uint32_t));
+						  scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
 		break;
 	default:
 		return SR_ERR_NA;
