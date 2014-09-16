@@ -86,7 +86,7 @@ SR_PRIV void send_packet(const struct sr_dev_inst *sdi, uint8_t *packet)
 	struct sr_serial_dev_inst *serial;
 
 	serial = sdi->conn;
-	if (serial_write(serial, packet, PACKET_SIZE) == -1)
+	if (serial_write_blocking(serial, packet, PACKET_SIZE) == -1)
 		sr_dbg("Failed to send packet: %s", strerror(errno));
 	dump_packet("sent", packet);
 }
