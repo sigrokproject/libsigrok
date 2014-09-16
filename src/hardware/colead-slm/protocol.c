@@ -207,7 +207,7 @@ SR_PRIV int colead_slm_receive_data(int fd, int revents, void *cb_data)
 			 * we don't want it. */
 			return TRUE;
 		/* Got 0x10, "measurement ready". */
-		if (serial_write(serial, "\x20", 1) == -1)
+		if (serial_write_blocking(serial, "\x20", 1) == -1)
 			sr_err("unable to send command: %s", strerror(errno));
 		else {
 			devc->state = COMMAND_SENT;
