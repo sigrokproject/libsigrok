@@ -110,7 +110,7 @@ static void handle_new_data(struct sr_dev_inst *sdi, int dmm, void *info)
 
 	/* Try to get as much data as the buffer can hold. */
 	len = DMM_BUFSIZE - devc->buflen;
-	len = serial_read(serial, devc->buf + devc->buflen, len);
+	len = serial_read_nonblocking(serial, devc->buf + devc->buflen, len);
 	if (len == 0)
 		return; /* No new bytes, nothing to do. */
 	if (len < 0) {
