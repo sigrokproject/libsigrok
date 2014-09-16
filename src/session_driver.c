@@ -49,7 +49,7 @@ struct session_vdev {
 	gboolean finished;
 };
 
-static const uint32_t hwcaps[] = {
+static const uint32_t devopts[] = {
 	SR_CONF_CAPTUREFILE,
 	SR_CONF_CAPTURE_UNITSIZE,
 	SR_CONF_SAMPLERATE,
@@ -277,7 +277,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				hwcaps, ARRAY_SIZE(hwcaps), sizeof(uint32_t));
+				devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
 		break;
 	default:
 		return SR_ERR_NA;

@@ -342,7 +342,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		break;
 	case SR_CONF_DEVICE_OPTIONS:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-			devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
+				devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
 		break;
 	case SR_CONF_OUTPUT_CURRENT_MAX:
 		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);

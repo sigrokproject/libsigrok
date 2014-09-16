@@ -29,7 +29,7 @@ static const uint32_t hwopts[] = {
 	SR_CONF_CONN,
 };
 
-static const uint32_t hwcaps[] = {
+static const uint32_t devopts[] = {
 	SR_CONF_LOGIC_ANALYZER,
 	SR_CONF_SAMPLERATE,
 	SR_CONF_EXTERNAL_CLOCK,
@@ -461,7 +461,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		break;
 	case SR_CONF_DEVICE_OPTIONS:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				hwcaps, G_N_ELEMENTS(hwcaps), sizeof(uint32_t));
+				devopts, G_N_ELEMENTS(devopts), sizeof(uint32_t));
 		break;
 	case SR_CONF_SAMPLERATE:
 		g_variant_builder_init(&gvb, G_VARIANT_TYPE("a{sv}"));

@@ -483,10 +483,10 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	case SR_CONF_DEVICE_OPTIONS:
 		if (cg_type == CG_NONE) {
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				model->hw_caps, model->num_hwcaps, sizeof(uint32_t));
+				model->devopts, model->num_devopts, sizeof(uint32_t));
 		} else if (cg_type == CG_ANALOG) {
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				model->analog_hwcaps, model->num_analog_hwcaps,	sizeof(uint32_t));
+				model->analog_devopts, model->num_analog_devopts,	sizeof(uint32_t));
 		} else {
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
 				NULL, 0, sizeof(uint32_t));

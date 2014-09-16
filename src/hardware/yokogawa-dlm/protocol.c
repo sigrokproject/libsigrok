@@ -25,7 +25,7 @@
 
 #include "protocol.h"
 
-static const uint32_t dlm_hwcaps[] = {
+static const uint32_t dlm_devopts[] = {
 	SR_CONF_LOGIC_ANALYZER,
 	SR_CONF_OSCILLOSCOPE,
 	SR_CONF_TRIGGER_SLOPE,
@@ -35,7 +35,7 @@ static const uint32_t dlm_hwcaps[] = {
 	SR_CONF_HORIZ_TRIGGERPOS,
 };
 
-static const uint32_t dlm_analog_caps[] = {
+static const uint32_t dlm_analog_devopts[] = {
 	SR_CONF_VDIV,
 	SR_CONF_COUPLING,
 	SR_CONF_NUM_VDIV,
@@ -177,11 +177,11 @@ static struct scope_config scope_models[] = {
 		.analog_names = &scope_analog_channel_names,
 		.digital_names = &scope_digital_channel_names,
 
-		.hw_caps = &dlm_hwcaps,
-		.num_hwcaps = ARRAY_SIZE(dlm_hwcaps),
+		.devopts = &dlm_devopts,
+		.num_devopts = ARRAY_SIZE(dlm_devopts),
 
-		.analog_hwcaps = &dlm_analog_caps,
-		.num_analog_hwcaps = ARRAY_SIZE(dlm_analog_caps),
+		.analog_devopts = &dlm_analog_devopts,
+		.num_analog_devopts = ARRAY_SIZE(dlm_analog_devopts),
 
 		.coupling_options = &dlm_coupling_options,
 		.trigger_sources = &dlm_2ch_trigger_sources,
@@ -206,11 +206,11 @@ static struct scope_config scope_models[] = {
 		.analog_names = &scope_analog_channel_names,
 		.digital_names = &scope_digital_channel_names,
 
-		.hw_caps = &dlm_hwcaps,
-		.num_hwcaps = ARRAY_SIZE(dlm_hwcaps),
+		.devopts = &dlm_devopts,
+		.num_devopts = ARRAY_SIZE(dlm_devopts),
 
-		.analog_hwcaps = &dlm_analog_caps,
-		.num_analog_hwcaps = ARRAY_SIZE(dlm_analog_caps),
+		.analog_devopts = &dlm_analog_devopts,
+		.num_analog_devopts = ARRAY_SIZE(dlm_analog_devopts),
 
 		.coupling_options = &dlm_coupling_options,
 		.trigger_sources = &dlm_4ch_trigger_sources,

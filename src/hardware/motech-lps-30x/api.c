@@ -50,7 +50,7 @@ static const uint32_t hwopts[] = {
 };
 
 /** Hardware capabilities generic. */
-static const uint32_t hwcaps[] = {
+static const uint32_t devopts[] = {
 	/* Device class */
 	SR_CONF_POWER_SUPPLY,
 	/* Aquisition modes. */
@@ -62,7 +62,7 @@ static const uint32_t hwcaps[] = {
 };
 
 /** Hardware capabilities channel 1, 2. */
-static const uint32_t hwcaps_ch12[] = {
+static const uint32_t devopts_ch12[] = {
 	SR_CONF_OUTPUT_VOLTAGE,
 	SR_CONF_OUTPUT_VOLTAGE_MAX,
 	SR_CONF_OUTPUT_CURRENT,
@@ -71,7 +71,7 @@ static const uint32_t hwcaps_ch12[] = {
 };
 
 /** Hardware capabilities channel 3. (LPS-304/305 only). */
-static const uint32_t hwcaps_ch3[] = {
+static const uint32_t devopts_ch3[] = {
 	SR_CONF_OUTPUT_VOLTAGE,
 	SR_CONF_OUTPUT_ENABLED,
 };
@@ -746,7 +746,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		switch (key) {
 		case SR_CONF_DEVICE_OPTIONS:
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-							  hwcaps, ARRAY_SIZE(hwcaps), sizeof(uint32_t));
+					devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
 			return SR_OK;
 		case SR_CONF_OUTPUT_CHANNEL_CONFIG:
 			if (devc->model->modelid <= LPS_303) {
@@ -770,10 +770,10 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	case SR_CONF_DEVICE_OPTIONS:
 		if ((ch_idx == 0) || (ch_idx == 1)) /* CH1, CH2 */
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				  hwcaps_ch12, ARRAY_SIZE(hwcaps_ch12), sizeof(uint32_t));
+				  devopts_ch12, ARRAY_SIZE(devopts_ch12), sizeof(uint32_t));
 		else /* Must be CH3 */
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				  hwcaps_ch3, ARRAY_SIZE(hwcaps_ch3), sizeof(uint32_t));
+				  devopts_ch3, ARRAY_SIZE(devopts_ch3), sizeof(uint32_t));
 		break;
 	case SR_CONF_OUTPUT_VOLTAGE_MAX:
 		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);

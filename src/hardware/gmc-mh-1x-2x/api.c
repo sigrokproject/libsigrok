@@ -40,7 +40,7 @@ static const uint32_t hwopts[] = {
 };
 
 /** Hardware capabilities for Metrahit 1x/2x devices in send mode. */
-static const uint32_t hwcaps_sm[] = {
+static const uint32_t devopts_sm[] = {
 	SR_CONF_MULTIMETER,
 	SR_CONF_THERMOMETER,    /**< All GMC 1x/2x multimeters seem to support this */
 	SR_CONF_LIMIT_SAMPLES,
@@ -49,7 +49,7 @@ static const uint32_t hwcaps_sm[] = {
 };
 
 /** Hardware capabilities for Metrahit 2x devices in bidirectional Mode. */
-static const uint32_t hwcaps_bd[] = {
+static const uint32_t devopts_bd[] = {
 	SR_CONF_MULTIMETER,
 	SR_CONF_THERMOMETER,    /**< All GMC 1x/2x multimeters seem to support this */
 	SR_CONF_LIMIT_SAMPLES,
@@ -479,7 +479,7 @@ static int config_list_sm(uint32_t key, GVariant **data, const struct sr_dev_ins
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-						  hwcaps_sm, ARRAY_SIZE(hwcaps_sm), sizeof(uint32_t));
+						  devopts_sm, ARRAY_SIZE(devopts_sm), sizeof(uint32_t));
 		break;
 	default:
 		return config_list_common(key, data, sdi, cg);
@@ -495,7 +495,7 @@ static int config_list_bd(uint32_t key, GVariant **data, const struct sr_dev_ins
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-						  hwcaps_bd, ARRAY_SIZE(hwcaps_bd), sizeof(uint32_t));
+						  devopts_bd, ARRAY_SIZE(devopts_bd), sizeof(uint32_t));
 		break;
 	default:
 		return config_list_common(key, data, sdi, cg);

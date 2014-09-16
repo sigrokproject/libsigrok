@@ -34,7 +34,7 @@ static const uint32_t hwopts[] = {
 	SR_CONF_SERIALCOMM
 };
 
-static const uint32_t hwcaps[] = {
+static const uint32_t devopts[] = {
 	SR_CONF_OSCILLOSCOPE,
 	SR_CONF_TIMEBASE,
 	SR_CONF_TRIGGER_SOURCE,
@@ -45,7 +45,7 @@ static const uint32_t hwcaps[] = {
 	SR_CONF_SAMPLERATE,
 };
 
-static const uint32_t analog_hwcaps[] = {
+static const uint32_t analog_devopts[] = {
 	SR_CONF_NUM_VDIV,
 	SR_CONF_VDIV,
 	SR_CONF_COUPLING,
@@ -776,7 +776,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		return SR_OK;
 	} else if (key == SR_CONF_DEVICE_OPTIONS && cg == NULL) {
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-			hwcaps, ARRAY_SIZE(hwcaps), sizeof(uint32_t));
+				devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
 		return SR_OK;
 	}
 
@@ -809,7 +809,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 			for (i = 0; i < devc->model->analog_channels; i++) {
 				if (cg == devc->analog_groups[i]) {
 					*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-						analog_hwcaps, ARRAY_SIZE(analog_hwcaps), sizeof(uint32_t));
+						analog_devopts, ARRAY_SIZE(analog_devopts), sizeof(uint32_t));
 					return SR_OK;
 				}
 			}
