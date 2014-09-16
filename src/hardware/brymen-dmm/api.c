@@ -54,7 +54,7 @@ static GSList *brymen_scan(const char *conn, const char *serialcomm)
 	if (!(serial = sr_serial_dev_inst_new(conn, serialcomm)))
 		return NULL;
 
-	if (serial_open(serial, SERIAL_RDWR | SERIAL_NONBLOCK) != SR_OK)
+	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
 		return NULL;
 
 	sr_info("Probing port %s.", conn);
