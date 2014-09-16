@@ -26,12 +26,12 @@
 
 #define SERIALCOMM "9600/8n1"
 
-static const int32_t hwopts[] = {
+static const uint32_t hwopts[] = {
 	SR_CONF_CONN,
 	SR_CONF_SERIALCOMM,
 };
 
-static const int32_t hwcaps[] = {
+static const uint32_t hwcaps[] = {
 	SR_CONF_POWER_SUPPLY,
 	SR_CONF_OUTPUT_VOLTAGE,
 	SR_CONF_OUTPUT_CURRENT,
@@ -121,7 +121,7 @@ static int cleanup(void)
 	return std_dev_clear(di, NULL);
 }
 
-static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
+static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
 	int ret;
@@ -164,7 +164,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 	return ret;
 }
 
-static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
+static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
 	int ret;
@@ -175,12 +175,12 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-				hwopts, ARRAY_SIZE(hwopts), sizeof(int32_t));
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+				hwopts, ARRAY_SIZE(hwopts), sizeof(uint32_t));
 		break;
 	case SR_CONF_DEVICE_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-				hwcaps, ARRAY_SIZE(hwcaps), sizeof(int32_t));
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+				hwcaps, ARRAY_SIZE(hwcaps), sizeof(uint32_t));
 		break;
 	default:
 		return SR_ERR_NA;

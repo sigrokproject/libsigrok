@@ -24,7 +24,7 @@ SR_PRIV struct sr_dev_driver beaglelogic_driver_info;
 static struct sr_dev_driver *di = &beaglelogic_driver_info;
 
 /* Hardware capabiities */
-static const int32_t hwcaps[] = {
+static const uint32_t hwcaps[] = {
 	SR_CONF_LOGIC_ANALYZER,
 	SR_CONF_SAMPLERATE,
 	SR_CONF_TRIGGER_MATCH,
@@ -223,7 +223,7 @@ static int cleanup(void)
 	return SR_OK;
 }
 
-static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
+static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc = sdi->priv;
@@ -249,7 +249,7 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
+static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc = sdi->priv;
@@ -289,7 +289,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
+static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
 	int ret;
@@ -303,8 +303,8 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-				hwcaps, ARRAY_SIZE(hwcaps), sizeof(int32_t));
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+				hwcaps, ARRAY_SIZE(hwcaps), sizeof(uint32_t));
 		break;
 	case SR_CONF_SAMPLERATE:
 		g_variant_builder_init(&gvb, G_VARIANT_TYPE("a{sv}"));
@@ -314,7 +314,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		*data = g_variant_builder_end(&gvb);
 		break;
 	case SR_CONF_TRIGGER_MATCH:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
 				soft_trigger_matches, ARRAY_SIZE(soft_trigger_matches),
 				sizeof(int32_t));
 		break;

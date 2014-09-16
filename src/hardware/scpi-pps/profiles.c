@@ -39,16 +39,16 @@ const char *get_vendor(const char *raw_vendor)
 	return raw_vendor;
 }
 
-static const int32_t devopts_none[] = { };
+static const uint32_t devopts_none[] = { };
 
 /* Rigol DP800 series */
-static const int32_t rigol_dp800_devopts[] = {
+static const uint32_t rigol_dp800_devopts[] = {
 	SR_CONF_POWER_SUPPLY,
 	SR_CONF_CONTINUOUS,
 	SR_CONF_OVER_TEMPERATURE_PROTECTION,
 };
 
-static const int32_t rigol_dp800_devopts_cg[] = {
+static const uint32_t rigol_dp800_devopts_cg[] = {
 	SR_CONF_OUTPUT_REGULATION,
 	SR_CONF_OVER_VOLTAGE_PROTECTION_ENABLED,
 	SR_CONF_OVER_VOLTAGE_PROTECTION_ACTIVE,
@@ -108,7 +108,7 @@ struct scpi_command rigol_dp800_cmd[] = {
 };
 
 /* HP 663xx series */
-static const int32_t hp_6632b_devopts[] = {
+static const uint32_t hp_6632b_devopts[] = {
 	SR_CONF_POWER_SUPPLY,
 	SR_CONF_CONTINUOUS,
 	SR_CONF_OUTPUT_ENABLED,

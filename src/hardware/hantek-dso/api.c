@@ -40,11 +40,11 @@
 #define NUM_TIMEBASE  10
 #define NUM_VDIV      8
 
-static const int32_t scanopts[] = {
+static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 };
 
-static const int32_t devopts[] = {
+static const uint32_t devopts[] = {
 	SR_CONF_OSCILLOSCOPE,
 	SR_CONF_LIMIT_FRAMES,
 	SR_CONF_CONTINUOUS,
@@ -422,7 +422,7 @@ static int cleanup(void)
 	return dev_clear();
 }
 
-static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
+static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
 	struct sr_usb_dev_inst *usb;
@@ -430,7 +430,7 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 
 	(void)cg;
 
-	switch (id) {
+	switch (key) {
 	case SR_CONF_CONN:
 		if (!sdi || !sdi->conn)
 			return SR_ERR_ARG;
@@ -455,7 +455,7 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
+static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
@@ -473,7 +473,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 
 	ret = SR_OK;
 	devc = sdi->priv;
-	switch (id) {
+	switch (key) {
 	case SR_CONF_LIMIT_FRAMES:
 		devc->limit_frames = g_variant_get_uint64(data);
 		break;
@@ -586,7 +586,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 	return ret;
 }
 
-static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
+static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
@@ -598,12 +598,12 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-				scanopts, ARRAY_SIZE(scanopts), sizeof(int32_t));
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+				scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
 		break;
 	case SR_CONF_DEVICE_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-				devopts, ARRAY_SIZE(devopts), sizeof(int32_t));
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+				devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
 		break;
 	case SR_CONF_BUFFERSIZE:
 		if (!sdi)

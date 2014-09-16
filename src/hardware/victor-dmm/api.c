@@ -35,11 +35,11 @@ SR_PRIV struct sr_dev_driver victor_dmm_driver_info;
 static struct sr_dev_driver *di = &victor_dmm_driver_info;
 static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);
 
-static const int32_t hwopts[] = {
+static const uint32_t hwopts[] = {
 	SR_CONF_CONN,
 };
 
-static const int32_t hwcaps[] = {
+static const uint32_t hwcaps[] = {
 	SR_CONF_MULTIMETER,
 	SR_CONF_LIMIT_MSEC,
 	SR_CONF_LIMIT_SAMPLES,
@@ -201,7 +201,7 @@ static int cleanup(void)
 	return ret;
 }
 
-static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
+static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
 	struct sr_usb_dev_inst *usb;
@@ -209,7 +209,7 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 
 	(void)cg;
 
-	switch (id) {
+	switch (key) {
 	case SR_CONF_CONN:
 		if (!sdi || !sdi->conn)
 			return SR_ERR_ARG;
@@ -224,7 +224,7 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
+static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
@@ -243,7 +243,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 
 	devc = sdi->priv;
 	ret = SR_OK;
-	switch (id) {
+	switch (key) {
 	case SR_CONF_LIMIT_MSEC:
 		devc->limit_msec = g_variant_get_uint64(data);
 		now = g_get_monotonic_time() / 1000;
@@ -263,7 +263,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 	return ret;
 }
 
-static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
+static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
 	(void)sdi;
@@ -271,12 +271,12 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-				hwopts, ARRAY_SIZE(hwopts), sizeof(int32_t));
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+				hwopts, ARRAY_SIZE(hwopts), sizeof(uint32_t));
 		break;
 	case SR_CONF_DEVICE_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-				hwcaps, ARRAY_SIZE(hwcaps), sizeof(int32_t));
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+				hwcaps, ARRAY_SIZE(hwcaps), sizeof(uint32_t));
 		break;
 	default:
 		return SR_ERR_NA;

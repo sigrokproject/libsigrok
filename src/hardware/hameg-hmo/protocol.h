@@ -40,10 +40,10 @@ struct scope_config {
 	const char *(*analog_names)[];
 	const char *(*digital_names)[];
 
-	const int32_t (*hw_caps)[];
+	const uint32_t (*hw_caps)[];
 	const uint8_t num_hwcaps;
 
-	const int32_t (*analog_hwcaps)[];
+	const uint32_t (*analog_hwcaps)[];
 	const uint8_t num_analog_hwcaps;
 
 	const char *(*coupling_options)[];

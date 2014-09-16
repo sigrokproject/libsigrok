@@ -71,9 +71,9 @@ struct scpi_pps {
 	char *vendor;
 	char *model;
 	uint64_t features;
-	const int32_t *devopts;
+	const uint32_t *devopts;
 	unsigned int num_devopts;
-	const int32_t *devopts_cg;
+	const uint32_t *devopts_cg;
 	unsigned int num_devopts_cg;
 	struct channel_spec *channels;
 	unsigned int num_channels;

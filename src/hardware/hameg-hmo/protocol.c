@@ -45,7 +45,7 @@ static const char *hameg_scpi_dialect[] = {
 	[SCPI_CMD_SET_ANALOG_CHAN_STATE]    = ":CHAN%d:STAT %d",
 };
 
-static const int32_t hmo_hwcaps[] = {
+static const uint32_t hmo_hwcaps[] = {
 	SR_CONF_OSCILLOSCOPE,
 	SR_CONF_TRIGGER_SOURCE,
 	SR_CONF_TIMEBASE,
@@ -56,7 +56,7 @@ static const int32_t hmo_hwcaps[] = {
 	SR_CONF_LIMIT_FRAMES,
 };
 
-static const int32_t hmo_analog_caps[] = {
+static const uint32_t hmo_analog_caps[] = {
 	SR_CONF_NUM_VDIV,
 	SR_CONF_COUPLING,
 	SR_CONF_VDIV,

@@ -486,7 +486,7 @@ struct sr_channel_group {
 /** Used for setting or getting value of a config item. */
 struct sr_config {
 	/** Config key like SR_CONF_CONN, etc. */
-	int key;
+	uint32_t key;
 	/** Key-specific data. */
 	GVariant *data;
 };
@@ -494,7 +494,7 @@ struct sr_config {
 /** Information about a config key. */
 struct sr_config_info {
 	/** Config key like SR_CONF_CONN, etc. */
-	int key;
+	uint32_t key;
 	/** Data type like SR_T_STRING, etc. */
 	int datatype;
 	/** Id string, e.g. "serialcomm". */
@@ -930,12 +930,12 @@ struct sr_dev_driver {
 	/** Query value of a configuration key in driver or given device instance.
 	 *  @see sr_config_get().
 	 */
-	int (*config_get) (int id, GVariant **data,
+	int (*config_get) (uint32_t key, GVariant **data,
 			const struct sr_dev_inst *sdi,
 			const struct sr_channel_group *cg);
 	/** Set value of a configuration key in driver or a given device instance.
 	 *  @see sr_config_set(). */
-	int (*config_set) (int id, GVariant *data,
+	int (*config_set) (uint32_t key, GVariant *data,
 			const struct sr_dev_inst *sdi,
 			const struct sr_channel_group *cg);
 	/** Channel status change.
@@ -948,7 +948,7 @@ struct sr_dev_driver {
 	/** List all possible values for a configuration key in a device instance.
 	 *  @see sr_config_list().
 	 */
-	int (*config_list) (int info_id, GVariant **data,
+	int (*config_list) (uint32_t key, GVariant **data,
 			const struct sr_dev_inst *sdi,
 			const struct sr_channel_group *cg);
 

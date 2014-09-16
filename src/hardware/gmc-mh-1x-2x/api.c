@@ -34,13 +34,13 @@
 SR_PRIV struct sr_dev_driver gmc_mh_1x_2x_rs232_driver_info;
 SR_PRIV struct sr_dev_driver gmc_mh_2x_bd232_driver_info;
 
-static const int32_t hwopts[] = {
+static const uint32_t hwopts[] = {
 	SR_CONF_CONN,
 	SR_CONF_SERIALCOMM,
 };
 
 /** Hardware capabilities for Metrahit 1x/2x devices in send mode. */
-static const int32_t hwcaps_sm[] = {
+static const uint32_t hwcaps_sm[] = {
 	SR_CONF_MULTIMETER,
 	SR_CONF_THERMOMETER,    /**< All GMC 1x/2x multimeters seem to support this */
 	SR_CONF_LIMIT_SAMPLES,
@@ -49,7 +49,7 @@ static const int32_t hwcaps_sm[] = {
 };
 
 /** Hardware capabilities for Metrahit 2x devices in bidirectional Mode. */
-static const int32_t hwcaps_bd[] = {
+static const uint32_t hwcaps_bd[] = {
 	SR_CONF_MULTIMETER,
 	SR_CONF_THERMOMETER,    /**< All GMC 1x/2x multimeters seem to support this */
 	SR_CONF_LIMIT_SAMPLES,
@@ -422,8 +422,8 @@ static int cleanup_2x_bd232(void)
 }
 
 /** Get value of configuration item */
-static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
-		      const struct sr_channel_group *cg)
+static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
+		const struct sr_channel_group *cg)
 {
 	int ret;
 	struct dev_context *devc;
@@ -454,16 +454,16 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 }
 
 /** Implementation of config_list, auxiliary function for common parts, */
-static int config_list_common(int key, GVariant **data, const struct sr_dev_inst *sdi,
-			      const struct sr_channel_group *cg)
+static int config_list_common(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
+		const struct sr_channel_group *cg)
 {
 	(void)sdi;
 	(void)cg;
 
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-						  hwopts, ARRAY_SIZE(hwopts), sizeof(int32_t));
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+						  hwopts, ARRAY_SIZE(hwopts), sizeof(uint32_t));
 		break;
 	default:
 		return SR_ERR_NA;
@@ -473,13 +473,13 @@ static int config_list_common(int key, GVariant **data, const struct sr_dev_inst
 }
 
 /** Implementation of config_list for Metrahit 1x/2x send mode */
-static int config_list_sm(int key, GVariant **data, const struct sr_dev_inst *sdi,
+static int config_list_sm(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 			  const struct sr_channel_group *cg)
 {
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-						  hwcaps_sm, ARRAY_SIZE(hwcaps_sm), sizeof(int32_t));
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+						  hwcaps_sm, ARRAY_SIZE(hwcaps_sm), sizeof(uint32_t));
 		break;
 	default:
 		return config_list_common(key, data, sdi, cg);
@@ -489,13 +489,13 @@ static int config_list_sm(int key, GVariant **data, const struct sr_dev_inst *sd
 }
 
 /** Implementation of config_list for Metrahit 2x bidirectional mode */
-static int config_list_bd(int key, GVariant **data, const struct sr_dev_inst *sdi,
+static int config_list_bd(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 			  const struct sr_channel_group *cg)
 {
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-						  hwcaps_bd, ARRAY_SIZE(hwcaps_bd), sizeof(int32_t));
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+						  hwcaps_bd, ARRAY_SIZE(hwcaps_bd), sizeof(uint32_t));
 		break;
 	default:
 		return config_list_common(key, data, sdi, cg);

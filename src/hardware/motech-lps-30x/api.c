@@ -44,13 +44,13 @@ SR_PRIV int lps_query_status(struct sr_dev_inst* sdi);
 #define VENDOR_MOTECH "Motech"
 
 /** Driver scanning options. */
-static const int32_t hwopts[] = {
+static const uint32_t hwopts[] = {
 	SR_CONF_CONN,
 	SR_CONF_SERIALCOMM,
 };
 
 /** Hardware capabilities generic. */
-static const int32_t hwcaps[] = {
+static const uint32_t hwcaps[] = {
 	/* Device class */
 	SR_CONF_POWER_SUPPLY,
 	/* Aquisition modes. */
@@ -62,7 +62,7 @@ static const int32_t hwcaps[] = {
 };
 
 /** Hardware capabilities channel 1, 2. */
-static const int32_t hwcaps_ch12[] = {
+static const uint32_t hwcaps_ch12[] = {
 	SR_CONF_OUTPUT_VOLTAGE,
 	SR_CONF_OUTPUT_VOLTAGE_MAX,
 	SR_CONF_OUTPUT_CURRENT,
@@ -71,7 +71,7 @@ static const int32_t hwcaps_ch12[] = {
 };
 
 /** Hardware capabilities channel 3. (LPS-304/305 only). */
-static const int32_t hwcaps_ch3[] = {
+static const uint32_t hwcaps_ch3[] = {
 	SR_CONF_OUTPUT_VOLTAGE,
 	SR_CONF_OUTPUT_ENABLED,
 };
@@ -540,7 +540,7 @@ static int cleanup(void)
 	return dev_clear_lps301();
 }
 
-static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
+static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
@@ -595,7 +595,7 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
+static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
@@ -717,7 +717,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
+static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
@@ -731,8 +731,8 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	/* Driver options, no device instance necessary. */
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-						  hwopts, ARRAY_SIZE(hwopts), sizeof(int32_t));
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+						  hwopts, ARRAY_SIZE(hwopts), sizeof(uint32_t));
 		return SR_OK;
 	default:
 		if (sdi == NULL)
@@ -741,12 +741,12 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		devc = sdi->priv;
 	}
 
-	/* Device options, independant from channel groups. */
+	/* Device options, independent from channel groups. */
 	if (cg == NULL) {
 		switch (key) {
 		case SR_CONF_DEVICE_OPTIONS:
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-							  hwcaps, ARRAY_SIZE(hwcaps), sizeof(int32_t));
+			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+							  hwcaps, ARRAY_SIZE(hwcaps), sizeof(uint32_t));
 			return SR_OK;
 		case SR_CONF_OUTPUT_CHANNEL_CONFIG:
 			if (devc->model->modelid <= LPS_303) {
@@ -769,11 +769,11 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
 		if ((ch_idx == 0) || (ch_idx == 1)) /* CH1, CH2 */
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-				  hwcaps_ch12, ARRAY_SIZE(hwcaps_ch12), sizeof(int32_t));
+			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+				  hwcaps_ch12, ARRAY_SIZE(hwcaps_ch12), sizeof(uint32_t));
 		else /* Must be CH3 */
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-				  hwcaps_ch3, ARRAY_SIZE(hwcaps_ch3), sizeof(int32_t));
+			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+				  hwcaps_ch3, ARRAY_SIZE(hwcaps_ch3), sizeof(uint32_t));
 		break;
 	case SR_CONF_OUTPUT_VOLTAGE_MAX:
 		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);

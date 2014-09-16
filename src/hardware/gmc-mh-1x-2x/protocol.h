@@ -120,7 +120,7 @@ struct dev_context {
 };
 
 /* Forward declarations */
-SR_PRIV int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
+SR_PRIV int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg);
 SR_PRIV void create_cmd_14(guchar addr, guchar func, guchar* params, guchar* buf);
 SR_PRIV void dump_msg14(guchar* buf, gboolean raw);

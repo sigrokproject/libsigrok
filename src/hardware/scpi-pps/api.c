@@ -25,7 +25,7 @@ static struct sr_dev_driver *di = &scpi_pps_driver_info;
 extern unsigned int num_pps_profiles;
 extern const struct scpi_pps pps_profiles[];
 
-static const int32_t scanopts[] = {
+static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 	SR_CONF_SERIALCOMM,
 };
@@ -190,7 +190,7 @@ static int cleanup(void)
 	return SR_OK;
 }
 
-static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
+static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
@@ -313,7 +313,7 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	return ret;
 }
 
-static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
+static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
 	struct sr_channel *ch;
@@ -396,7 +396,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 	return ret;
 }
 
-static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
+static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
@@ -409,8 +409,8 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 
 	/* Always available, even without sdi. */
 	if (key == SR_CONF_SCAN_OPTIONS) {
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-				scanopts, ARRAY_SIZE(scanopts), sizeof(int32_t));
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+				scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
 		return SR_OK;
 	}
 
@@ -423,9 +423,9 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		/* No channel group: global options. */
 		switch (key) {
 		case SR_CONF_DEVICE_OPTIONS:
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
 					devc->device->devopts, devc->device->num_devopts,
-					sizeof(int32_t));
+					sizeof(uint32_t));
 			break;
 		case SR_CONF_OUTPUT_CHANNEL_CONFIG:
 			/* Not used. */
@@ -460,9 +460,9 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 
 		switch (key) {
 		case SR_CONF_DEVICE_OPTIONS:
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
 					devc->device->devopts_cg, devc->device->num_devopts_cg,
-					sizeof(int32_t));
+					sizeof(uint32_t));
 			break;
 		case SR_CONF_OUTPUT_VOLTAGE_MAX:
 			ch_spec = &(devc->device->channels[ch->index]);

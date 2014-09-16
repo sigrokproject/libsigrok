@@ -29,12 +29,12 @@
 #include "libsigrok-internal.h"
 #include "protocol.h"
 
-static const int32_t hwopts[] = {
+static const uint32_t hwopts[] = {
 	SR_CONF_CONN,
 	SR_CONF_SERIALCOMM
 };
 
-static const int32_t hwcaps[] = {
+static const uint32_t hwcaps[] = {
 	SR_CONF_OSCILLOSCOPE,
 	SR_CONF_TIMEBASE,
 	SR_CONF_TRIGGER_SOURCE,
@@ -45,7 +45,7 @@ static const int32_t hwcaps[] = {
 	SR_CONF_SAMPLERATE,
 };
 
-static const int32_t analog_hwcaps[] = {
+static const uint32_t analog_hwcaps[] = {
 	SR_CONF_NUM_VDIV,
 	SR_CONF_VDIV,
 	SR_CONF_COUPLING,
@@ -489,7 +489,7 @@ static int digital_frame_size(const struct sr_dev_inst *sdi)
 	}
 }
 
-static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
+static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
@@ -521,7 +521,7 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 		}
 	}
 
-	switch (id) {
+	switch (key) {
 	case SR_CONF_NUM_TIMEBASE:
 		*data = g_variant_new_int32(devc->model->series->num_horizontal_divs);
 		break;
@@ -609,7 +609,7 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
+static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
@@ -633,7 +633,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 	}
 
 	ret = SR_OK;
-	switch (id) {
+	switch (key) {
 	case SR_CONF_LIMIT_FRAMES:
 		devc->limit_frames = g_variant_get_uint64(data);
 		break;
@@ -759,7 +759,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 	return ret;
 }
 
-static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
+static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
 	GVariant *tuple, *rational[2];
@@ -771,12 +771,12 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		devc = sdi->priv;
 
 	if (key == SR_CONF_SCAN_OPTIONS) {
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-				hwopts, ARRAY_SIZE(hwopts), sizeof(int32_t));
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+				hwopts, ARRAY_SIZE(hwopts), sizeof(uint32_t));
 		return SR_OK;
 	} else if (key == SR_CONF_DEVICE_OPTIONS && cg == NULL) {
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-			hwcaps, ARRAY_SIZE(hwcaps), sizeof(int32_t));
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+			hwcaps, ARRAY_SIZE(hwcaps), sizeof(uint32_t));
 		return SR_OK;
 	}
 
@@ -802,14 +802,14 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 			return SR_ERR_CHANNEL_GROUP;
 		}
 		if (cg == devc->digital_group) {
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-				NULL, 0, sizeof(int32_t));
+			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+				NULL, 0, sizeof(uint32_t));
 			return SR_OK;
 		} else {
 			for (i = 0; i < devc->model->analog_channels; i++) {
 				if (cg == devc->analog_groups[i]) {
-					*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-						analog_hwcaps, ARRAY_SIZE(analog_hwcaps), sizeof(int32_t));
+					*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+						analog_hwcaps, ARRAY_SIZE(analog_hwcaps), sizeof(uint32_t));
 					return SR_OK;
 				}
 			}

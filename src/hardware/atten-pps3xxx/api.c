@@ -31,19 +31,19 @@
  */
 #define SERIALCOMM "9600/8n2"
 
-static const int32_t scanopts[] = {
+static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 	SR_CONF_SERIALCOMM,
 };
 
-static const int32_t devopts[] = {
+static const uint32_t devopts[] = {
 	SR_CONF_POWER_SUPPLY,
 	SR_CONF_CONTINUOUS,
 	SR_CONF_OUTPUT_CHANNEL_CONFIG,
 	SR_CONF_OVER_CURRENT_PROTECTION_ENABLED,
 };
 
-static const int32_t devopts_cg[] = {
+static const uint32_t devopts_cg[] = {
 	SR_CONF_OUTPUT_VOLTAGE,
 	SR_CONF_OUTPUT_VOLTAGE_MAX,
 	SR_CONF_OUTPUT_CURRENT,
@@ -205,7 +205,7 @@ static int cleanup(void)
 	return std_dev_clear(di, NULL);
 }
 
-static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
+static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
@@ -274,7 +274,7 @@ static int find_str(const char *str, const char **strings, int array_size)
 	return idx;
 }
 
-static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
+static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
@@ -358,7 +358,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 	return ret;
 }
 
-static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
+static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
@@ -369,8 +369,8 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 
 	/* Always available, even without sdi. */
 	if (key == SR_CONF_SCAN_OPTIONS) {
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-				scanopts, ARRAY_SIZE(scanopts), sizeof(int32_t));
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+				scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
 		return SR_OK;
 	}
 
@@ -383,8 +383,8 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		/* No channel group: global options. */
 		switch (key) {
 		case SR_CONF_DEVICE_OPTIONS:
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-					devopts, ARRAY_SIZE(devopts), sizeof(int32_t));
+			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+					devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
 			break;
 		case SR_CONF_OUTPUT_CHANNEL_CONFIG:
 			if (devc->model->channel_modes == CHANMODE_INDEPENDENT) {
@@ -408,8 +408,8 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 
 		switch (key) {
 		case SR_CONF_DEVICE_OPTIONS:
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-					devopts_cg, ARRAY_SIZE(devopts_cg), sizeof(int32_t));
+			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+					devopts_cg, ARRAY_SIZE(devopts_cg), sizeof(uint32_t));
 			break;
 		case SR_CONF_OUTPUT_VOLTAGE_MAX:
 			g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);

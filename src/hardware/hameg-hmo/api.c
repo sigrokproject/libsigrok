@@ -29,7 +29,7 @@ static const char *manufacturers[] = {
 	"HAMEG",
 };
 
-static const int32_t scanopts[] = {
+static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 	SR_CONF_SERIALCOMM,
 };
@@ -196,7 +196,7 @@ static int check_channel_group(struct dev_context *devc,
 	return CG_INVALID;
 }
 
-static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
+static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 		      const struct sr_channel_group *cg)
 {
 	int ret, cg_type;
@@ -320,7 +320,7 @@ static GVariant *build_tuples(const uint64_t (*array)[][2], unsigned int n)
 	return g_variant_builder_end(&gvb);
 }
 
-static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
+static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
 		      const struct sr_channel_group *cg)
 {
 	int ret, cg_type;
@@ -492,7 +492,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 	return ret;
 }
 
-static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
+static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 		       const struct sr_channel_group *cg)
 {
 	int cg_type;
@@ -509,21 +509,21 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-				scanopts, ARRAY_SIZE(scanopts), sizeof(int32_t));
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+				scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
 		break;
 	case SR_CONF_DEVICE_OPTIONS:
 		if (cg_type == CG_NONE) {
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
 				model->hw_caps, model->num_hwcaps,
-				sizeof(int32_t));
+				sizeof(uint32_t));
 		} else if (cg_type == CG_ANALOG) {
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
 				model->analog_hwcaps, model->num_analog_hwcaps,
-				sizeof(int32_t));
+				sizeof(uint32_t));
 		} else {
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-				NULL, 0, sizeof(int32_t));
+			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+				NULL, 0, sizeof(uint32_t));
 		}
 		break;
 	case SR_CONF_COUPLING:

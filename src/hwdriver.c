@@ -166,7 +166,7 @@ SR_PRIV const GVariantType *sr_variant_type_get(int datatype)
 	}
 }
 
-SR_PRIV int sr_variant_type_check(int key, GVariant *value)
+SR_PRIV int sr_variant_type_check(uint32_t key, GVariant *value)
 {
 	const struct sr_config_info *info;
 	const GVariantType *type, *expected;
@@ -312,7 +312,7 @@ SR_PRIV void sr_hw_cleanup_all(void)
  *  A floating reference can be passed in for data.
  *  @private
  */
-SR_PRIV struct sr_config *sr_config_new(int key, GVariant *data)
+SR_PRIV struct sr_config *sr_config_new(uint32_t key, GVariant *data)
 {
 	struct sr_config *src;
 
@@ -367,7 +367,7 @@ SR_PRIV void sr_config_free(struct sr_config *src)
 SR_API int sr_config_get(const struct sr_dev_driver *driver,
 		const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg,
-		int key, GVariant **data)
+		uint32_t key, GVariant **data)
 {
 	int ret;
 
@@ -407,7 +407,7 @@ SR_API int sr_config_get(const struct sr_dev_driver *driver,
  */
 SR_API int sr_config_set(const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg,
-		int key, GVariant *data)
+		uint32_t key, GVariant *data)
 {
 	int ret;
 
@@ -474,7 +474,7 @@ SR_API int sr_config_commit(const struct sr_dev_inst *sdi)
 SR_API int sr_config_list(const struct sr_dev_driver *driver,
 		const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg,
-		int key, GVariant **data)
+		uint32_t key, GVariant **data)
 {
 	int ret;
 
@@ -498,7 +498,7 @@ SR_API int sr_config_list(const struct sr_dev_driver *driver,
  *
  * @since 0.2.0
  */
-SR_API const struct sr_config_info *sr_config_info_get(int key)
+SR_API const struct sr_config_info *sr_config_info_get(uint32_t key)
 {
 	int i;
 

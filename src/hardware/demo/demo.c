@@ -128,7 +128,7 @@ struct dev_context {
 	GHashTable *ch_ag;
 };
 
-static const int32_t scanopts[] = {
+static const uint32_t scanopts[] = {
 	SR_CONF_NUM_LOGIC_CHANNELS,
 	SR_CONF_NUM_ANALOG_CHANNELS,
 };
@@ -398,7 +398,7 @@ static int cleanup(void)
 	return std_dev_clear(di, clear_helper);
 }
 
-static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
+static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
@@ -410,7 +410,7 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 		return SR_ERR_ARG;
 
 	devc = sdi->priv;
-	switch (id) {
+	switch (key) {
 	case SR_CONF_SAMPLERATE:
 		*data = g_variant_new_uint64(devc->cur_samplerate);
 		break;
@@ -458,7 +458,7 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
+static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
@@ -475,7 +475,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 		return SR_ERR_DEV_CLOSED;
 
 	ret = SR_OK;
-	switch (id) {
+	switch (key) {
 	case SR_CONF_SAMPLERATE:
 		devc->cur_samplerate = g_variant_get_uint64(data);
 		sr_dbg("Setting samplerate to %" PRIu64, devc->cur_samplerate);
@@ -552,7 +552,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 	return ret;
 }
 
-static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
+static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
 	struct sr_channel *ch;
@@ -562,8 +562,8 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	(void)sdi;
 
 	if (key == SR_CONF_SCAN_OPTIONS) {
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-				scanopts, ARRAY_SIZE(scanopts), sizeof(int32_t));
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+				scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
 		return SR_OK;
 	}
 
@@ -573,8 +573,8 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	if (!cg) {
 		switch (key) {
 		case SR_CONF_DEVICE_OPTIONS:
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-					devopts, ARRAY_SIZE(devopts), sizeof(int32_t));
+			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+					devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
 			break;
 		case SR_CONF_SAMPLERATE:
 			g_variant_builder_init(&gvb, G_VARIANT_TYPE("a{sv}"));
@@ -594,11 +594,11 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 			if (ch->type == SR_CHANNEL_LOGIC)
 				*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
 						devopts_cg_logic, ARRAY_SIZE(devopts_cg_logic),
-						sizeof(int32_t));
+						sizeof(uint32_t));
 			else if (ch->type == SR_CHANNEL_ANALOG)
 				*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
 						devopts_cg_analog, ARRAY_SIZE(devopts_cg_analog),
-						sizeof(int32_t));
+						sizeof(uint32_t));
 			else
 				return SR_ERR_BUG;
 			break;

@@ -25,7 +25,7 @@
 
 #include "protocol.h"
 
-static const int32_t dlm_hwcaps[] = {
+static const uint32_t dlm_hwcaps[] = {
 	SR_CONF_LOGIC_ANALYZER,
 	SR_CONF_OSCILLOSCOPE,
 	SR_CONF_TRIGGER_SLOPE,
@@ -35,7 +35,7 @@ static const int32_t dlm_hwcaps[] = {
 	SR_CONF_HORIZ_TRIGGERPOS,
 };
 
-static const int32_t dlm_analog_caps[] = {
+static const uint32_t dlm_analog_caps[] = {
 	SR_CONF_VDIV,
 	SR_CONF_COUPLING,
 	SR_CONF_NUM_VDIV,
