@@ -23,7 +23,12 @@
 SR_PRIV struct sr_dev_driver beaglelogic_driver_info;
 static struct sr_dev_driver *di = &beaglelogic_driver_info;
 
-/* Hardware capabiities */
+/* Scan options */
+static const uint32_t scanopts[] = {
+	SR_CONF_NUM_LOGIC_CHANNELS,
+};
+
+/* Hardware capabilities */
 static const uint32_t devopts[] = {
 	SR_CONF_LOGIC_ANALYZER,
 	SR_CONF_SAMPLERATE,
@@ -52,9 +57,9 @@ SR_PRIV const char *beaglelogic_channel_names[NUM_CHANNELS + 1] = {
 
 /* Possible sample rates : 10 Hz to 100 MHz = (100 / x) MHz */
 static const uint64_t samplerates[] = {
-		SR_HZ(10),
-		SR_MHZ(100),
-		SR_HZ(1),
+	SR_HZ(10),
+	SR_MHZ(100),
+	SR_HZ(1),
 };
 
 static int init(struct sr_context *sr_ctx)
@@ -302,6 +307,10 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 
 	ret = SR_OK;
 	switch (key) {
+	case SR_CONF_SCAN_OPTIONS:
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+				scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
+		break;
 	case SR_CONF_DEVICE_OPTIONS:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
 				devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
