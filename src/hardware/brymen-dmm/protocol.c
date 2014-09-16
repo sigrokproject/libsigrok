@@ -57,7 +57,7 @@ static void handle_new_data(struct sr_dev_inst *sdi)
 
 	/* Try to get as much data as the buffer can hold. */
 	len = DMM_BUFSIZE - devc->buflen;
-	len = serial_read(serial, devc->buf + devc->buflen, len);
+	len = serial_read_nonblocking(serial, devc->buf + devc->buflen, len);
 	if (len < 1) {
 		sr_err("Serial port read error: %d.", len);
 		return;
@@ -192,7 +192,7 @@ SR_PRIV int brymen_stream_detect(struct sr_serial_dev_inst *serial,
 
 	packet_len = i = ibuf = len = 0;
 	while (ibuf < maxlen) {
-		len = serial_read(serial, &buf[ibuf], maxlen - ibuf);
+		len = serial_read_nonblocking(serial, &buf[ibuf], maxlen - ibuf);
 		if (len > 0) {
 			ibuf += len;
 			sr_spew("Read %d bytes.", len);
