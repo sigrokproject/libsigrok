@@ -177,7 +177,7 @@ static int handle_new_data(struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 	serial = sdi->conn;
 
-	len = serial_read(serial, devc->buf + devc->buflen, 1);
+	len = serial_read_blocking(serial, devc->buf + devc->buflen, 1);
 	if (len < 1)
 		return SR_ERR;
 
