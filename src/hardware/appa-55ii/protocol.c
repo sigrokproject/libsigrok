@@ -277,7 +277,7 @@ SR_PRIV int appa_55ii_receive_data(int fd, int revents, void *cb_data)
 
 	/* Try to get as much data as the buffer can hold. */
 	len = sizeof(devc->buf) - devc->buf_len;
-	len = serial_read(serial, devc->buf + devc->buf_len, len);
+	len = serial_read_nonblocking(serial, devc->buf + devc->buf_len, len);
 	if (len < 1) {
 		sr_err("Serial port read error: %d.", len);
 		return FALSE;

@@ -80,7 +80,7 @@ static GSList *scan(GSList *options)
 
 	if (!(serial = sr_serial_dev_inst_new(conn, serialcomm)))
 		return NULL;
-	if (serial_open(serial, SERIAL_RDONLY | SERIAL_NONBLOCK) != SR_OK)
+	if (serial_open(serial, SERIAL_RDONLY) != SR_OK)
 		return NULL;
 
 	sr_info("Probing serial port %s.", conn);
