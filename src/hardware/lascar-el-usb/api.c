@@ -33,8 +33,9 @@ static const uint32_t scanopts[] = {
 static const uint32_t devopts[] = {
 	SR_CONF_THERMOMETER,
 	SR_CONF_HYGROMETER,
-	SR_CONF_DATALOG,
-	SR_CONF_LIMIT_SAMPLES,
+	SR_CONF_CONN | SR_CONF_GET,
+	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_DATALOG | SR_CONF_GET | SR_CONF_SET,
 };
 
 static int init(struct sr_context *sr_ctx)

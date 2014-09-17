@@ -28,9 +28,9 @@ static const uint32_t scanopts[] = {
 static const uint32_t devopts[] = {
 	SR_CONF_THERMOMETER,
 	SR_CONF_HYGROMETER,
-	SR_CONF_LIMIT_SAMPLES,
-	SR_CONF_LIMIT_MSEC,
 	SR_CONF_CONTINUOUS,
+	SR_CONF_LIMIT_SAMPLES | SR_CONF_SET,
+	SR_CONF_LIMIT_MSEC | SR_CONF_SET,
 };
 
 SR_PRIV struct sr_dev_driver mic_98581_driver_info;

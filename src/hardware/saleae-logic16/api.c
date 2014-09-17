@@ -47,13 +47,12 @@ static const uint32_t scanopts[] = {
 
 static const uint32_t devopts[] = {
 	SR_CONF_LOGIC_ANALYZER,
-	SR_CONF_SAMPLERATE,
-	SR_CONF_VOLTAGE_THRESHOLD,
-	SR_CONF_TRIGGER_MATCH,
-
-	/* These are really implemented in the driver, not the hardware. */
-	SR_CONF_LIMIT_SAMPLES,
 	SR_CONF_CONTINUOUS,
+	SR_CONF_LIMIT_SAMPLES | SR_CONF_SET,
+	SR_CONF_CONN | SR_CONF_GET,
+	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_VOLTAGE_THRESHOLD | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST,
 };
 
 static const int32_t soft_trigger_matches[] = {

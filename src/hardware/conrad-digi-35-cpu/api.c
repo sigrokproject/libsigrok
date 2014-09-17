@@ -33,10 +33,9 @@ static const uint32_t scanopts[] = {
 
 static const uint32_t devopts[] = {
 	SR_CONF_POWER_SUPPLY,
-	SR_CONF_OUTPUT_VOLTAGE,
-	SR_CONF_OUTPUT_CURRENT,
-	/* There's no SR_CONF_OUTPUT_ENABLED; can't know/set status remotely. */
-	SR_CONF_OVER_CURRENT_PROTECTION_ENABLED,
+	SR_CONF_OUTPUT_VOLTAGE | SR_CONF_SET,
+	SR_CONF_OUTPUT_CURRENT | SR_CONF_SET,
+	SR_CONF_OVER_CURRENT_PROTECTION_ENABLED | SR_CONF_SET,
 };
 
 SR_PRIV struct sr_dev_driver conrad_digi_35_cpu_driver_info;
@@ -150,7 +149,6 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		}
 		ret = send_msg1(sdi, 'C', (int) (dblval * 100 + 0.5));
 		break;
-	/* No SR_CONF_OUTPUT_ENABLED :-( . */
 	case SR_CONF_OVER_CURRENT_PROTECTION_ENABLED:
 		if (g_variant_get_boolean(data))
 			ret = send_msg1(sdi, 'V', 900);

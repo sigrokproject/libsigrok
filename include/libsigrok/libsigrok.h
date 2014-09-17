@@ -505,6 +505,11 @@ struct sr_config_info {
 	char *description;
 };
 
+#define SR_CONF_GET  (1 << 31)
+#define SR_CONF_SET  (1 << 30)
+#define SR_CONF_LIST (1 << 29)
+#define SR_CONF_MASK 0x1fffffff
+
 /** Constants for device classes */
 enum sr_configkey {
 	/*--- Device classes ------------------------------------------------*/

@@ -25,10 +25,10 @@ static struct sr_dev_driver *di = &chronovu_la_driver_info;
 
 static const uint32_t devopts[] = {
 	SR_CONF_LOGIC_ANALYZER,
-	SR_CONF_SAMPLERATE,
-	SR_CONF_TRIGGER_MATCH,
-	SR_CONF_LIMIT_MSEC, /* TODO: Not yet implemented. */
-	SR_CONF_LIMIT_SAMPLES, /* TODO: Not yet implemented. */
+	SR_CONF_LIMIT_MSEC | SR_CONF_SET,
+	SR_CONF_LIMIT_SAMPLES | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST,
 };
 
 static const int32_t trigger_matches[] = {

@@ -33,8 +33,8 @@ static const uint32_t scanopts[] = {
 
 static const uint32_t devopts[] = {
 	SR_CONF_SOUNDLEVELMETER,
-	SR_CONF_LIMIT_SAMPLES,
 	SR_CONF_CONTINUOUS,
+	SR_CONF_LIMIT_SAMPLES | SR_CONF_SET,
 };
 
 SR_PRIV struct sr_dev_driver tondaj_sl_814_driver_info;

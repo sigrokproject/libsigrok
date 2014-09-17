@@ -31,13 +31,11 @@ static const uint32_t scanopts[] = {
 /* Hardware capabilities */
 static const uint32_t devopts[] = {
 	SR_CONF_LOGIC_ANALYZER,
-	SR_CONF_SAMPLERATE,
-	SR_CONF_TRIGGER_MATCH,
-
-	SR_CONF_LIMIT_SAMPLES,
 	SR_CONF_CONTINUOUS,
-
-	SR_CONF_NUM_LOGIC_CHANNELS,
+	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST,
+	SR_CONF_NUM_LOGIC_CHANNELS | SR_CONF_GET,
 };
 
 /* Trigger matching capabilities */
