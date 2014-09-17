@@ -477,9 +477,6 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	model = devc->model_config;
 
 	switch (key) {
-	case SR_CONF_SCAN_OPTIONS:
-		*data = NULL;
-		break;
 	case SR_CONF_DEVICE_OPTIONS:
 		if (cg_type == CG_NONE) {
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
