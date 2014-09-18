@@ -676,6 +676,11 @@ SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
 		return SR_ERR_ARG;
 	}
 
+	if (!sdi->session) {
+		sr_err("%s: session was NULL", __func__);
+		return SR_ERR_BUG;
+	}
+
 	for (l = sdi->session->datafeed_callbacks; l; l = l->next) {
 		if (sr_log_loglevel_get() >= SR_LOG_DBG)
 			datafeed_dump(packet);
