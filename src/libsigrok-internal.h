@@ -79,7 +79,7 @@
  * @return the corresponding signed integer
  */
 #define RL16S(x)  ((int16_t) \
-		          (((unsigned)((const uint8_t*)(x))[1] <<  8) | \
+                  (((unsigned)((const uint8_t*)(x))[1] <<  8) | \
                     (unsigned)((const uint8_t*)(x))[0]))
 
 /**

@@ -321,7 +321,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		*data = g_variant_builder_end(&gvb);
 		break;
 	case SR_CONF_TRIGGER_MATCH:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
 				soft_trigger_matches, ARRAY_SIZE(soft_trigger_matches),
 				sizeof(int32_t));
 		break;
