@@ -167,7 +167,7 @@ int tondaj_sl_814_receive_data(int fd, int revents, void *cb_data)
 		devc->state = GET_PACKET;
 	} else if (devc->state == GET_PACKET) {
 		/* Read a packet from the device. */
-		ret = serial_read(serial, devc->buf + devc->buflen,
+		ret = serial_read_nonblocking(serial, devc->buf + devc->buflen,
 				  4 - devc->buflen);
 		if (ret < 0) {
 			sr_err("Error reading packet: %d.", ret);
