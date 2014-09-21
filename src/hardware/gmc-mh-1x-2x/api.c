@@ -90,7 +90,7 @@ static int read_byte(struct sr_serial_dev_inst *serial, gint64 timeout)
 	int rc = 0;
 
 	for (;;) {
-		rc = serial_read(serial, &result, 1);
+		rc = serial_read_nonblocking(serial, &result, 1);
 		if (rc == 1) {
 			sr_spew("read: 0x%02x/%d", result, result);
 			return result;
