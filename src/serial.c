@@ -530,7 +530,7 @@ SR_PRIV int serial_set_paramstr(struct sr_serial_dev_inst *serial,
 SR_PRIV int serial_readline(struct sr_serial_dev_inst *serial, char **buf,
 		int *buflen, gint64 timeout_ms)
 {
-	gint64 start;
+	gint64 start, remaining;
 	int maxlen, len;
 
 	if (!serial) {
@@ -543,8 +543,8 @@ SR_PRIV int serial_readline(struct sr_serial_dev_inst *serial, char **buf,
 		return -1;
 	}
 
-	timeout_ms *= 1000;
 	start = g_get_monotonic_time();
+	remaining = timeout_ms;
 
 	maxlen = *buflen;
 	*buflen = len = 0;
@@ -552,7 +552,7 @@ SR_PRIV int serial_readline(struct sr_serial_dev_inst *serial, char **buf,
 		len = maxlen - *buflen - 1;
 		if (len < 1)
 			break;
-		len = serial_read(serial, *buf + *buflen, 1);
+		len = sp_blocking_read(serial->data, *buf + *buflen, 1, remaining);
 		if (len > 0) {
 			*buflen += len;
 			*(*buf + *buflen) = '\0';
@@ -563,7 +563,9 @@ SR_PRIV int serial_readline(struct sr_serial_dev_inst *serial, char **buf,
 				break;
 			}
 		}
-		if (g_get_monotonic_time() - start > timeout_ms)
+		/* Reduce timeout by time elapsed. */
+		remaining = timeout_ms - ((g_get_monotonic_time() - start) / 1000);
+		if (remaining <= 0)
 			/* Timeout */
 			break;
 		if (len < 1)
