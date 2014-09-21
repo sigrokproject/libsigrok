@@ -438,8 +438,6 @@ struct sr_serial_dev_inst {
 	char *port;
 	/** Comm params for serial_set_paramstr(). */
 	char *serialcomm;
-	/** Port is non-blocking. */
-	int nonblocking;
 	/** libserialport port handle */
 	struct sp_port *data;
 	/** libserialport event set */
@@ -620,7 +618,6 @@ SR_PRIV int soft_trigger_logic_check(struct soft_trigger_logic *st, uint8_t *buf
 enum {
 	SERIAL_RDWR = 1,
 	SERIAL_RDONLY = 2,
-	SERIAL_NONBLOCK = 4,
 };
 
 typedef gboolean (*packet_valid_callback)(const uint8_t *buf);
@@ -628,14 +625,10 @@ typedef gboolean (*packet_valid_callback)(const uint8_t *buf);
 SR_PRIV int serial_open(struct sr_serial_dev_inst *serial, int flags);
 SR_PRIV int serial_close(struct sr_serial_dev_inst *serial);
 SR_PRIV int serial_flush(struct sr_serial_dev_inst *serial);
-SR_PRIV int serial_write(struct sr_serial_dev_inst *serial,
-		const void *buf, size_t count);
 SR_PRIV int serial_write_blocking(struct sr_serial_dev_inst *serial,
 		const void *buf, size_t count);
 SR_PRIV int serial_write_nonblocking(struct sr_serial_dev_inst *serial,
 		const void *buf, size_t count);
-SR_PRIV int serial_read(struct sr_serial_dev_inst *serial, void *buf,
-		size_t count);
 SR_PRIV int serial_read_blocking(struct sr_serial_dev_inst *serial, void *buf,
 		size_t count);
 SR_PRIV int serial_read_nonblocking(struct sr_serial_dev_inst *serial, void *buf,
