@@ -135,7 +135,7 @@ static GSList *scan(GSList *options)
 	 * have a match.
 	 */
 	sr_info("Probing %s.", conn);
-	if (serial_open(serial, SERIAL_RDWR | SERIAL_NONBLOCK) != SR_OK)
+	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
 		return NULL;
 
 	ret = SR_OK;
