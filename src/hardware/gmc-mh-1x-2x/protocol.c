@@ -1107,7 +1107,7 @@ SR_PRIV int gmc_mh_1x_2x_receive_data(int fd, int revents, void *cb_data)
 
 	if (revents == G_IO_IN) { /* Serial data arrived. */
 		while (GMC_BUFSIZE - devc->buflen - 1 > 0) {
-			len = serial_read(serial, devc->buf + devc->buflen, 1);
+			len = serial_read_nonblocking(serial, devc->buf + devc->buflen, 1);
 			if (len < 1)
 				break;
 			buf = *(devc->buf + devc->buflen);
@@ -1201,7 +1201,7 @@ SR_PRIV int gmc_mh_2x_receive_data(int fd, int revents, void *cb_data)
 
 	if (revents == G_IO_IN) { /* Serial data arrived. */
 		while (GMC_BUFSIZE - devc->buflen - 1 > 0) {
-			len = serial_read(serial, devc->buf + devc->buflen, 1);
+			len = serial_read_nonblocking(serial, devc->buf + devc->buflen, 1);
 			if (len < 1)
 				break;
 			buf = *(devc->buf + devc->buflen);
