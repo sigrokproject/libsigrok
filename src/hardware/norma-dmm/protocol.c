@@ -391,7 +391,7 @@ SR_PRIV int norma_dmm_receive_data(int fd, int revents, void *cb_data)
 	if (revents == G_IO_IN) {
 		/* Serial data arrived. */
 		while (NMADMM_BUFSIZE - devc->buflen - 1 > 0) {
-			len = serial_read(serial, devc->buf + devc->buflen, 1);
+			len = serial_read_nonblocking(serial, devc->buf + devc->buflen, 1);
 			if (len < 1)
 				break;
 			devc->buflen += len;
