@@ -90,7 +90,7 @@ static int scpi_serial_open(void *priv)
 	struct scpi_serial *sscpi = priv;
 	struct sr_serial_dev_inst *serial = sscpi->serial;
 
-	if (serial_open(serial, SERIAL_RDWR | SERIAL_NONBLOCK) != SR_OK)
+	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
 		return SR_ERR;
 
 	if (serial_flush(serial) != SR_OK)
@@ -130,7 +130,8 @@ static int scpi_serial_send(void *priv, const char *command)
 	len = strlen(terminated_command);
 	written = 0;
 	while (written < len) {
-		result = serial_write(serial, terminated_command + written, len - written);
+		result = serial_write_nonblocking(serial,
+				terminated_command + written, len - written);
 		if (result < 0) {
 			sr_err("Error while sending SCPI command: '%s'.", command);
 			g_free(terminated_command);
@@ -162,7 +163,7 @@ static int scpi_serial_read_data(void *priv, char *buf, int maxlen)
 
 	/* Try to read new data into the buffer if there is space. */
 	if (len > 0) {
-		ret = serial_read(sscpi->serial, sscpi->buffer + sscpi->read,
+		ret = serial_read_nonblocking(sscpi->serial, sscpi->buffer + sscpi->read,
 				BUFFER_SIZE - sscpi->count);
 
 		if (ret < 0)
