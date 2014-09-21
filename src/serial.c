@@ -618,7 +618,7 @@ SR_PRIV int serial_stream_detect(struct sr_serial_dev_inst *serial,
 
 	i = ibuf = len = 0;
 	while (ibuf < maxlen) {
-		len = serial_read(serial, &buf[ibuf], 1);
+		len = serial_read_nonblocking(serial, &buf[ibuf], 1);
 		if (len > 0) {
 			ibuf += len;
 		} else if (len == 0) {
