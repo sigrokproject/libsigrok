@@ -201,7 +201,7 @@ SR_PRIV int colead_slm_receive_data(int fd, int revents, void *cb_data)
 
 	serial = sdi->conn;
 	if (devc->state == IDLE) {
-		if (serial_read(serial, buf, 128) != 1 || buf[0] != 0x10)
+		if (serial_read_nonblocking(serial, buf, 128) != 1 || buf[0] != 0x10)
 			/* Nothing there, or caught the tail end of a previous packet,
 			 * or some garbage. Unless it's a single "data ready" byte,
 			 * we don't want it. */
@@ -214,7 +214,7 @@ SR_PRIV int colead_slm_receive_data(int fd, int revents, void *cb_data)
 			devc->buflen = 0;
 		}
 	} else {
-		len = serial_read(serial, devc->buf + devc->buflen,
+		len = serial_read_nonblocking(serial, devc->buf + devc->buflen,
 				10 - devc->buflen);
 		if (len < 1)
 			return TRUE;
