@@ -198,7 +198,7 @@ static GSList *scan_1x_2x_rs232(GSList *options)
 	if (!(serial = sr_serial_dev_inst_new(conn, serialcomm)))
 		return NULL;
 
-	if (serial_open(serial, SERIAL_RDWR | SERIAL_NONBLOCK) != SR_OK) {
+	if (serial_open(serial, SERIAL_RDWR) != SR_OK) {
 		sr_serial_dev_inst_free(serial);
 		return NULL;
 	}
@@ -295,7 +295,7 @@ static GSList *scan_2x_bd232(GSList *options)
 	if (!(serial = sr_serial_dev_inst_new(conn, serialcomm)))
 		return NULL;
 
-	if (serial_open(serial, SERIAL_RDWR | SERIAL_NONBLOCK) != SR_OK)
+	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
 		goto exit_err;
 
 	if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
