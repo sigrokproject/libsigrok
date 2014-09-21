@@ -1529,7 +1529,7 @@ SR_PRIV int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *s
 		params[0] = 5;
 		params[1] = 5;
 		create_cmd_14(devc->addr, 6, params, msg);
-		if (serial_write(sdi->conn, msg, sizeof(msg)) == -1)
+		if (serial_write_blocking(sdi->conn, msg, sizeof(msg)) < 0)
 			return SR_ERR;
 		else
 			g_usleep(2000000); /* Wait to ensure transfer before interface switched off. */
