@@ -71,7 +71,7 @@ static GSList *mic_scan(const char *conn, const char *serialcomm, int idx)
 	if (!(serial = sr_serial_dev_inst_new(conn, serialcomm)))
 		return NULL;
 
-	if (serial_open(serial, SERIAL_RDWR | SERIAL_NONBLOCK) != SR_OK)
+	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
 		return NULL;
 
 	drvc = mic_devs[idx].di->priv;
