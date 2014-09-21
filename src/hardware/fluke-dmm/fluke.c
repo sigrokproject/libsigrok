@@ -456,9 +456,8 @@ static void handle_line(const struct sr_dev_inst *sdi)
 					/* Slip the request in now, before the main
 					 * timer loop asks for metadata again. */
 					n = sprintf(cmd, "QM %d\r", devc->meas_type);
-					if (serial_write(serial, cmd, n) == -1)
-						sr_err("Unable to send QM (measurement): %s.",
-								strerror(errno));
+					if (serial_write_blocking(serial, cmd, n) < 0)
+						sr_err("Unable to send QM (measurement).");
 				}
 			} else {
 				/* Response to QM <n> measurement request. */
@@ -526,8 +525,8 @@ SR_PRIV int fluke_receive_data(int fd, int revents, void *cb_data)
 	 * out-of-sync or temporary disconnect issues. */
 	if ((devc->expect_response == FALSE && elapsed > devc->profile->poll_period)
 			|| elapsed > devc->profile->timeout) {
-		if (serial_write(serial, "QM\r", 3) == -1)
-			sr_err("Unable to send QM: %s.", strerror(errno));
+		if (serial_write_blocking(serial, "QM\r", 3) < 0)
+			sr_err("Unable to send QM.");
 		devc->cmd_sent_at = now;
 		devc->expect_response = TRUE;
 	}
