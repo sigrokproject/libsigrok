@@ -129,9 +129,8 @@ static GSList *do_scan(struct sr_dev_driver* drv, GSList *options)
 		 nmadmm_requests[NMADMM_REQ_IDN].req_str);
 	g_usleep(150 * 1000); /* Wait a little to allow serial port to settle. */
 	for (cnt = 0; cnt < 7; cnt++) {
-		if (serial_write(serial, req, strlen(req)) == -1) {
-			sr_err("Unable to send identification request: %d %s.",
-			       errno, strerror(errno));
+		if (serial_write_blocking(serial, req, strlen(req)) < 0) {
+			sr_err("Unable to send identification request.");
 			return NULL;
 		}
 		len = BUF_MAX;
