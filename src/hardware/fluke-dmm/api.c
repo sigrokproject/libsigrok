@@ -78,7 +78,7 @@ static GSList *fluke_scan(const char *conn, const char *serialcomm)
 	if (!(serial = sr_serial_dev_inst_new(conn, serialcomm)))
 		return NULL;
 
-	if (serial_open(serial, SERIAL_RDWR | SERIAL_NONBLOCK) != SR_OK)
+	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
 		return NULL;
 
 	drvc = di->priv;
@@ -90,9 +90,8 @@ static GSList *fluke_scan(const char *conn, const char *serialcomm)
 	while (!devices && retry < 3) {
 		retry++;
 		serial_flush(serial);
-		if (serial_write(serial, "ID\r", 3) == -1) {
-			sr_err("Unable to send ID string: %s.",
-			       strerror(errno));
+		if (serial_write_blocking(serial, "ID\r", 3) < 0) {
+			sr_err("Unable to send ID string");
 			continue;
 		}
 
@@ -286,8 +285,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	serial_source_add(sdi->session, serial, G_IO_IN, 50,
 			fluke_receive_data, (void *)sdi);
 
-	if (serial_write(serial, "QM\r", 3) == -1) {
-		sr_err("Unable to send QM: %s.", strerror(errno));
+	if (serial_write_blocking(serial, "QM\r", 3) < 0) {
+		sr_err("Unable to send QM.");
 		return SR_ERR;
 	}
 	devc->cmd_sent_at = g_get_monotonic_time() / 1000;
