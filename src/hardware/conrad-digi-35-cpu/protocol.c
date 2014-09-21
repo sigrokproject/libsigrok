@@ -48,7 +48,7 @@ SR_PRIV int send_msg1(const struct sr_dev_inst *sdi, char cmd, int param)
 
 	sr_spew("send_msg1(): %c%c%c%c\\r", buf[0], buf[1], buf[2], buf[3]);
 
-	if (serial_write(serial, buf, sizeof(buf)) == -1) {
+	if (serial_write_blocking(serial, buf, sizeof(buf)) == -1) {
 		sr_err("Write error for cmd=%c: %d %s", cmd, errno, strerror(errno));
 		return SR_ERR;
 	}
