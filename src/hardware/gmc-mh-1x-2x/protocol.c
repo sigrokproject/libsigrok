@@ -1307,7 +1307,7 @@ int req_meas14(const struct sr_dev_inst *sdi)
 	devc->cmd_idx = 0;
 	create_cmd_14(devc->addr, 8, params, msg);
 	devc->req_sent_at = g_get_monotonic_time();
-	if (serial_write(serial, msg, sizeof(msg)) == -1) {
+	if (serial_write_blocking(serial, msg, sizeof(msg)) < 0) {
 		return SR_ERR;
 	}
 
@@ -1336,13 +1336,13 @@ int req_stat14(const struct sr_dev_inst *sdi, gboolean power_on)
 
 	if (power_on) {
 		sr_info("Write some data and wait 3s to turn on powered off device...");
-		if (serial_write(serial, msg, sizeof(msg)) < 0)
+		if (serial_write_blocking(serial, msg, sizeof(msg)) < 0)
 			return SR_ERR;
 		g_usleep(1*1000*1000);
-		if (serial_write(serial, msg, sizeof(msg)) < 0)
+		if (serial_write_blocking(serial, msg, sizeof(msg)) < 0)
 			return SR_ERR;
 		g_usleep(1*1000*1000);
-		if (serial_write(serial, msg, sizeof(msg)) < 0)
+		if (serial_write_blocking(serial, msg, sizeof(msg)) < 0)
 			return SR_ERR;
 		g_usleep(1*1000*1000);
 		serial_flush(serial);
@@ -1350,7 +1350,7 @@ int req_stat14(const struct sr_dev_inst *sdi, gboolean power_on)
 
 	/* Write message and wait for reply */
 	devc->req_sent_at = g_get_monotonic_time();
-	if (serial_write(serial, msg, sizeof(msg)) == -1) {
+	if (serial_write_blocking(serial, msg, sizeof(msg)) < 0) {
 		return SR_ERR;
 	}
 
