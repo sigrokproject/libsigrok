@@ -385,7 +385,7 @@ SR_PRIV int cem_dt_885x_receive_data(int fd, int revents, void *cb_data)
 	devc = sdi->priv;
 	serial = sdi->conn;
 	if (revents == G_IO_IN) {
-		if (serial_read(serial, &c, 1) != 1)
+		if (serial_read_nonblocking(serial, &c, 1) != 1)
 			return TRUE;
 		process_byte(sdi, c, TRUE);
 
@@ -396,7 +396,7 @@ SR_PRIV int cem_dt_885x_receive_data(int fd, int revents, void *cb_data)
 			} else {
 				/* Tell device to start transferring from memory. */
 				cmd = CMD_TRANSFER_MEMORY;
-				serial_write(serial, &cmd, 1);
+				serial_write_nonblocking(serial, &cmd, 1);
 			}
 		}
 	}
@@ -418,7 +418,7 @@ static int wait_for_token(const struct sr_dev_inst *sdi, int8_t *tokens, int tim
 	devc->state = ST_INIT;
 	start_time = g_get_monotonic_time() / 1000;
 	while (TRUE) {
-		if (serial_read(serial, &c, 1) != 1)
+		if (serial_read_nonblocking(serial, &c, 1) != 1)
 			/* Device might have gone away. */
 			return SR_ERR;
 		process_byte(sdi, c, FALSE);
@@ -453,7 +453,7 @@ static int cem_dt_885x_toggle(const struct sr_dev_inst *sdi, uint8_t cmd,
 	 * only thing to do is wait for the token that will confirm
 	 * whether the command worked or not, and resend if needed. */
 	while (TRUE) {
-		if (serial_write(serial, (const void *)&cmd, 1) != 1)
+		if (serial_write_nonblocking(serial, (const void *)&cmd, 1) != 1)
 			return SR_ERR;
 		if (wait_for_token(sdi, tokens, timeout) == SR_ERR)
 			return SR_ERR;
@@ -811,20 +811,14 @@ SR_PRIV int cem_dt_885x_power_off(const struct sr_dev_inst *sdi)
 
 	serial = sdi->conn;
 
-	/* Reopen the port in non-blocking mode, so we can properly
-	 * detect when the device stops communicating. */
-	serial_close(serial);
-	if (serial_open(serial, SERIAL_RDWR | SERIAL_NONBLOCK) != SR_OK)
-		return SR_ERR;
-
 	cmd = CMD_TOGGLE_POWER_OFF;
 	while (TRUE) {
 		serial_flush(serial);
-		if (serial_write(serial, (const void *)&cmd, 1) != 1)
+		if (serial_write_nonblocking(serial, (const void *)&cmd, 1) != 1)
 			return SR_ERR;
 		/* It never takes more than 23ms for the next token to arrive. */
 		g_usleep(25 * 1000);
-		if (serial_read(serial, &c, 1) != 1)
+		if (serial_read_nonblocking(serial, &c, 1) != 1)
 			/* Device is no longer responding. Good! */
 			break;
 	}

@@ -97,14 +97,14 @@ static GSList *scan(GSList *options)
 	if (!(serial = sr_serial_dev_inst_new(conn, SERIALCOMM)))
 		return NULL;
 
-	if (serial_open(serial, SERIAL_RDONLY | SERIAL_NONBLOCK) != SR_OK)
+	if (serial_open(serial, SERIAL_RDONLY) != SR_OK)
 		return NULL;
 
 	devices = NULL;
 	drvc = di->priv;
 	start = g_get_monotonic_time();
 	while (g_get_monotonic_time() - start < MAX_SCAN_TIME) {
-		if (serial_read(serial, &c, 1) == 1 && c == 0xa5) {
+		if (serial_read_nonblocking(serial, &c, 1) == 1 && c == 0xa5) {
 			/* Found one. */
 			if (!(sdi = sr_dev_inst_new(0, SR_ST_INACTIVE, "CEM",
 					"DT-885x", NULL)))
