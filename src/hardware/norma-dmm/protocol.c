@@ -48,9 +48,8 @@ static int nma_send_req(const struct sr_dev_inst *sdi, int req, char *params)
 	devc->last_req = req;
 	devc->last_req_pending = TRUE;
 
-	if (serial_write(serial, buf, len) == -1) {
-		sr_err("Unable to send request: %d %s.",
-			errno, strerror(errno));
+	if (serial_write_blocking(serial, buf, len) < 0) {
+		sr_err("Unable to send request.");
 		devc->last_req_pending = FALSE;
 		return SR_ERR;
 	}
