@@ -552,6 +552,7 @@ SR_API int sr_input_free(const struct sr_input *in)
 	}
 	if (in->buf)
 		g_string_free(in->buf, TRUE);
+	g_free(in->priv);
 	g_free((gpointer)in);
 
 	return ret;

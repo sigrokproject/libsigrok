@@ -133,8 +133,6 @@ static int cleanup(struct sr_input *in)
 		packet.type = SR_DF_END;
 		sr_session_send(in->sdi, &packet);
 	}
-	g_free(in->priv);
-	in->priv = NULL;
 
 	return SR_OK;
 }

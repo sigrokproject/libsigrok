@@ -753,9 +753,6 @@ static int cleanup(struct sr_input *in)
 	if (inc->sample_buffer)
 		g_free(inc->sample_buffer);
 
-	g_free(inc);
-	in->priv = NULL;
-
 	return SR_OK;
 }
 

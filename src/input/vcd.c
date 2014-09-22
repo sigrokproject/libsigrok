@@ -519,8 +519,6 @@ static int cleanup(struct sr_input *in)
 	}
 
 	g_slist_free_full(inc->channels, free_channel);
-	g_free(inc);
-	in->priv = NULL;
 
 	return SR_OK;
 }
