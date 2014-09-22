@@ -20,6 +20,7 @@
  */
 
 #include <stdlib.h>
+#include <memory.h>
 #include <glib.h>
 #include <libusb.h>
 #include "libsigrok.h"
@@ -266,6 +267,31 @@ SR_PRIV int usb_source_remove(struct sr_session *session, struct sr_context *ctx
 	free(lupfd);
 #endif
 	ctx->usb_source_present = FALSE;
+
+	return SR_OK;
+}
+
+SR_PRIV int usb_get_port_path(libusb_device *dev, const char *path, int path_len)
+{
+	gchar s[64];
+	gchar tmp_s[8];
+	uint8_t port_numbers[32];
+	int i;
+
+	memset(port_numbers, 0, sizeof(port_numbers));
+	libusb_get_port_numbers(dev, port_numbers, sizeof(port_numbers));
+
+	g_snprintf((gchar*)&s, sizeof(s), "usb/%d-%d",
+			libusb_get_bus_number(dev), port_numbers[0]);
+
+	i = 1;
+	while (port_numbers[i]) {
+		g_snprintf(tmp_s, sizeof(tmp_s), ".%d", port_numbers[i]);
+		g_strlcat((gchar*)&s, tmp_s, sizeof(s));
+		i++;
+	}
+
+	g_strlcpy((gchar*)path, s, path_len);
 
 	return SR_OK;
 }
