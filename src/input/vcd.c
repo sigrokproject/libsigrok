@@ -409,8 +409,6 @@ static int init(struct sr_input *in, GHashTable *options)
 	char name[16];
 	struct context *inc;
 
-	inc = g_malloc0(sizeof(struct context));
-
 	num_channels = g_variant_get_int32(g_hash_table_lookup(options, "numchannels"));
 	if (num_channels < 1) {
 		sr_err("Invalid value for numchannels: must be at least 1.");
@@ -420,6 +418,7 @@ static int init(struct sr_input *in, GHashTable *options)
 		sr_err("No more than 64 channels supported.");
 		return SR_ERR_ARG;
 	}
+	inc = in->priv = g_malloc0(sizeof(struct context));
 	inc->maxchannels = num_channels;
 
 	inc->downsample = g_variant_get_int32(g_hash_table_lookup(options, "downsample"));
@@ -458,7 +457,7 @@ static gboolean have_header(GString *buf)
 	return FALSE;
 }
 
-static int receive(const struct sr_input *in, GString *buf)
+static int receive(struct sr_input *in, GString *buf)
 {
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_meta meta;
@@ -477,8 +476,13 @@ static int receive(const struct sr_input *in, GString *buf)
 			/* There was a header in there, but it was malformed. */
 			return SR_ERR;
 
+		in->sdi_ready = TRUE;
+		/* sdi is ready, notify frontend. */
+		return SR_OK;
+	}
+
+	if (!inc->started) {
 		std_session_send_df_header(in->sdi, LOG_PREFIX);
-		inc->started = TRUE;
 
 		packet.type = SR_DF_META;
 		packet.payload = &meta;
@@ -487,6 +491,8 @@ static int receive(const struct sr_input *in, GString *buf)
 		meta.config = g_slist_append(NULL, src);
 		sr_session_send(in->sdi, &packet);
 		sr_config_free(src);
+
+		inc->started = TRUE;
 	}
 
 	while ((p = g_strrstr_len(in->buf->str, in->buf->len, "\n"))) {

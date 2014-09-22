@@ -589,11 +589,11 @@ static int initial_receive(const struct sr_input *in)
 
 	if (!(termination = get_line_termination(in->buf)))
 		/* Don't have a full line yet. */
-		return SR_OK_CONTINUE;
+		return SR_ERR_NA;
 
 	if (!(p = g_strrstr_len(in->buf->str, in->buf->len, termination)))
 		/* Don't have a full line yet. */
-		return SR_OK_CONTINUE;
+		return SR_ERR_NA;
 	len = p - in->buf->str - 1;
 	new_buf = g_string_new_len(in->buf->str, len);
 	g_string_append_c(new_buf, '\0');
@@ -610,7 +610,7 @@ static int initial_receive(const struct sr_input *in)
 	return ret;
 }
 
-static int receive(const struct sr_input *in, GString *buf)
+static int receive(struct sr_input *in, GString *buf)
 {
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_meta meta;
@@ -625,14 +625,18 @@ static int receive(const struct sr_input *in, GString *buf)
 
 	inc = in->priv;
 	if (!inc->termination) {
-		ret = initial_receive(in);
-		if (ret == SR_OK_CONTINUE)
+		if ((ret = initial_receive(in)) == SR_ERR_NA)
 			/* Not enough data yet. */
-			return SR_OK_CONTINUE;
+			return SR_OK;
 		else if (ret != SR_OK)
 			return SR_ERR;
 
-		inc->started = TRUE;
+		/* sdi is ready, notify frontend. */
+		in->sdi_ready = TRUE;
+		return SR_OK;
+	}
+
+	if (!inc->started) {
 		std_session_send_df_header(in->sdi, LOG_PREFIX);
 
 		if (inc->samplerate) {
@@ -644,6 +648,8 @@ static int receive(const struct sr_input *in, GString *buf)
 			sr_session_send(in->sdi, &packet);
 			sr_config_free(src);
 		}
+
+		inc->started = TRUE;
 	}
 
 	if (!(p = g_strrstr_len(in->buf->str, in->buf->len, inc->termination)))

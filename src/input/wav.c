@@ -43,6 +43,7 @@
 #define WAVE_FORMAT_EXTENSIBLE   0xfffe
 
 struct context {
+	gboolean started;
 	int fmt_code;
 	uint64_t samplerate;
 	int samplesize;
@@ -57,7 +58,7 @@ static int parse_wav_header(GString *buf, struct context *inc)
 	unsigned int fmt_code, samplesize, num_channels, unitsize;
 
 	if (buf->len < MIN_DATA_CHUNK_OFFSET)
-		return SR_OK_CONTINUE;
+		return SR_ERR_NA;
 
 	fmt_code = RL16(buf->str + 20);
 	samplerate = RL32(buf->str + 24);
@@ -82,7 +83,7 @@ static int parse_wav_header(GString *buf, struct context *inc)
 	} else if (fmt_code == WAVE_FORMAT_EXTENSIBLE) {
 		if (buf->len < 70)
 			/* Not enough for extensible header and next chunk. */
-			return SR_OK_CONTINUE;
+			return SR_ERR_NA;
 
 		if (RL16(buf->str + 16) != 40) {
 			sr_err("WAV extensible format chunk must be 40 bytes.");
@@ -150,6 +151,7 @@ static int init(struct sr_input *in, GHashTable *options)
 	(void)options;
 
 	in->sdi = sr_dev_inst_new(SR_ST_ACTIVE, NULL, NULL, NULL);
+	in->priv = g_malloc0(sizeof(struct context));
 
 	return SR_OK;
 }
@@ -175,42 +177,6 @@ static int find_data_chunk(GString *buf, int initial_offset)
 	}
 
 	return offset;
-}
-
-static int initial_receive(struct sr_input *in)
-{
-	struct sr_datafeed_packet packet;
-	struct sr_datafeed_meta meta;
-	struct sr_channel *ch;
-	struct sr_config *src;
-	struct context *inc;
-	int ret, i;
-	char channelname[8];
-
-	if (!in->buf)
-		/* Shouldn't happen. */
-		return SR_ERR;
-
-	inc = in->priv = g_malloc(sizeof(struct context));
-	if ((ret = parse_wav_header(in->buf, inc)) != SR_OK)
-		return ret;
-
-	for (i = 0; i < inc->num_channels; i++) {
-		snprintf(channelname, 8, "CH%d", i + 1);
-		ch = sr_channel_new(i, SR_CHANNEL_ANALOG, TRUE, channelname);
-		in->sdi->channels = g_slist_append(in->sdi->channels, ch);
-	}
-
-	std_session_send_df_header(in->sdi, LOG_PREFIX);
-
-	packet.type = SR_DF_META;
-	packet.payload = &meta;
-	src = sr_config_new(SR_CONF_SAMPLERATE, g_variant_new_uint64(inc->samplerate));
-	meta.config = g_slist_append(NULL, src);
-	sr_session_send(in->sdi, &packet);
-	sr_config_free(src);
-
-	return SR_OK;
 }
 
 static void send_chunk(const struct sr_input *in, int offset, int num_samples)
@@ -269,25 +235,58 @@ static void send_chunk(const struct sr_input *in, int offset, int num_samples)
 	sr_session_send(in->sdi, &packet);
 }
 
-static int receive(const struct sr_input *in, GString *buf)
+static int receive(struct sr_input *in, GString *buf)
 {
+	struct sr_datafeed_packet packet;
+	struct sr_datafeed_meta meta;
+	struct sr_channel *ch;
+	struct sr_config *src;
 	struct context *inc;
-	int offset, chunk_samples, total_samples, processed, max_chunk_samples, num_samples, i;
+	int offset, chunk_samples, total_samples, processed, max_chunk_samples;
+	int num_samples, ret, i;
+	char channelname[8];
 
 	g_string_append_len(in->buf, buf->str, buf->len);
 
-	if (!in->priv) {
-		if (initial_receive((struct sr_input *)in) != SR_OK)
-			return SR_ERR;
-		if (in->buf->len < MIN_DATA_CHUNK_OFFSET) {
-			/*
-			 * Don't even get started until there's enough room
-			 * for the data segment to start.
-			 */
-			return SR_OK;
-		}
+	if (in->buf->len < MIN_DATA_CHUNK_OFFSET) {
+		/*
+		 * Don't even try until there's enough room
+		 * for the data segment to start.
+		 */
+		return SR_OK;
 	}
+
 	inc = in->priv;
+	if (!in->sdi_ready) {
+		if ((ret = parse_wav_header(in->buf, inc)) == SR_ERR_NA)
+			/* Not enough data yet. */
+			return SR_OK;
+		else if (ret != SR_OK)
+			return ret;
+
+		/* sdi is ready, notify frontend. */
+		in->sdi_ready = TRUE;
+		return SR_OK;
+	}
+
+	if (!inc->started) {
+		for (i = 0; i < inc->num_channels; i++) {
+			snprintf(channelname, 8, "CH%d", i + 1);
+			ch = sr_channel_new(i, SR_CHANNEL_ANALOG, TRUE, channelname);
+			in->sdi->channels = g_slist_append(in->sdi->channels, ch);
+		}
+
+		std_session_send_df_header(in->sdi, LOG_PREFIX);
+
+		packet.type = SR_DF_META;
+		packet.payload = &meta;
+		src = sr_config_new(SR_CONF_SAMPLERATE, g_variant_new_uint64(inc->samplerate));
+		meta.config = g_slist_append(NULL, src);
+		sr_session_send(in->sdi, &packet);
+		sr_config_free(src);
+
+		inc->started = TRUE;
+	}
 
 	if (!inc->found_data) {
 		/* Skip past size of 'fmt ' chunk. */
@@ -334,15 +333,16 @@ static int receive(const struct sr_input *in, GString *buf)
 static int cleanup(struct sr_input *in)
 {
 	struct sr_datafeed_packet packet;
+	struct context *inc;
 
-	if (in->priv) {
+	inc = in->priv;
+	if (inc->started) {
 		/* End of stream. */
 		packet.type = SR_DF_END;
 		sr_session_send(in->sdi, &packet);
-
-		g_free(in->priv);
-		in->priv = NULL;
 	}
+	g_free(in->priv);
+	in->priv = NULL;
 
 	return SR_OK;
 }

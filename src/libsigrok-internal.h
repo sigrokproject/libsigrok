@@ -211,6 +211,7 @@ struct sr_input {
 	const struct sr_input_module *module;
 	GString *buf;
 	struct sr_dev_inst *sdi;
+	gboolean sdi_ready;
 	void *priv;
 };
 
@@ -306,7 +307,7 @@ struct sr_input_module {
 	 * @retval SR_OK Success
 	 * @retval other Negative error code.
 	 */
-	int (*receive) (const struct sr_input *in, GString *buf);
+	int (*receive) (struct sr_input *in, GString *buf);
 
 	/**
 	 * This function is called after the caller is finished using

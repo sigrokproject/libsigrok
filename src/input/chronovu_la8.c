@@ -76,7 +76,7 @@ static int init(struct sr_input *in, GHashTable *options)
 	return SR_OK;
 }
 
-static int receive(const struct sr_input *in, GString *buf)
+static int receive(struct sr_input *in, GString *buf)
 {
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_meta meta;
@@ -92,16 +92,25 @@ static int receive(const struct sr_input *in, GString *buf)
 
 	num_channels = g_slist_length(in->sdi->channels);
 
+	if (!in->sdi_ready) {
+		/* sdi is ready, notify frontend. */
+		in->sdi_ready = TRUE;
+		return SR_OK;
+	}
+
 	if (!inc->started) {
 		std_session_send_df_header(in->sdi, LOG_PREFIX);
-		inc->started = TRUE;
 
-		packet.type = SR_DF_META;
-		packet.payload = &meta;
-		src = sr_config_new(SR_CONF_SAMPLERATE, g_variant_new_uint64(inc->samplerate));
-		meta.config = g_slist_append(NULL, src);
-		sr_session_send(in->sdi, &packet);
-		sr_config_free(src);
+		if (inc->samplerate) {
+			packet.type = SR_DF_META;
+			packet.payload = &meta;
+			src = sr_config_new(SR_CONF_SAMPLERATE, g_variant_new_uint64(inc->samplerate));
+			meta.config = g_slist_append(NULL, src);
+			sr_session_send(in->sdi, &packet);
+			sr_config_free(src);
+		}
+
+		inc->started = TRUE;
 	}
 
 	packet.type = SR_DF_LOGIC;
@@ -125,10 +134,12 @@ static int receive(const struct sr_input *in, GString *buf)
 
 static int cleanup(struct sr_input *in)
 {
-	struct sr_datafeed_packet packet;
 	struct context *inc;
+	struct sr_datafeed_packet packet;
 
 	inc = in->priv;
+	if (!inc)
+		return SR_OK;
 
 	if (inc->started) {
 		packet.type = SR_DF_END;
