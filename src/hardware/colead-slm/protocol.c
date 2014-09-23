@@ -173,6 +173,9 @@ static void process_packet(const struct sr_dev_inst *sdi)
 	sr_session_send(devc->cb_data, &packet);
 
 	devc->num_samples++;
+	if (devc->num_samples >= devc->limit_samples)
+		sdi->driver->dev_acquisition_stop((struct sr_dev_inst *)sdi,
+				devc->cb_data);
 
 }
 
