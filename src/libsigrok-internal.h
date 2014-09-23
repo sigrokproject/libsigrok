@@ -265,7 +265,7 @@ struct sr_input_module {
 	 * @param[in] metadata Metadata the module can use to identify the stream.
 	 *
 	 * @retval SR_OK This module knows the format.
-	 * @retval SR_OK_CONTINUE There wasn't enough data for this module to
+	 * @retval SR_ERR_NA There wasn't enough data for this module to
 	 *   positively identify the format.
 	 * @retval SR_ERR_DATA This module knows the format, but cannot handle it.
 	 *   This means the stream is either corrupt, or indicates a feature
@@ -277,44 +277,42 @@ struct sr_input_module {
 	/**
 	 * Initialize the input module.
 	 *
-	 * @param in A pointer to a valid 'struct sr_input' that the caller
-	 *           has to allocate and provide to this function. It is also
-	 *           the responsibility of the caller to free it later.
-	 * @param[in] filename The name (and path) of the file to use.
-	 *
 	 * @retval SR_OK Success
 	 * @retval other Negative error code.
 	 */
 	int (*init) (struct sr_input *in, GHashTable *options);
 
 	/**
-	 * Load a file, parsing the input according to the file's format.
+	 * Send data to the specified input instance.
 	 *
-	 * This function will send datafeed packets to the session bus, so
-	 * the calling frontend must have registered its session callbacks
-	 * beforehand.
+	 * When an input module instance is created with sr_input_new(), this
+	 * function is used to feed data to the instance.
 	 *
-	 * The packet types sent across the session bus by this function must
-	 * include at least SR_DF_HEADER, SR_DF_END, and an appropriate data
-	 * type such as SR_DF_LOGIC. It may also send a SR_DF_TRIGGER packet
-	 * if appropriate.
-	 *
-	 * @param in A pointer to a valid 'struct sr_input' that the caller
-	 *           has to allocate and provide to this function. It is also
-	 *           the responsibility of the caller to free it later.
-	 * @param f The name (and path) of the file to use.
+	 * As enough data gets fed into this function to completely populate
+	 * the device instance associated with this input instance, this is
+	 * guaranteed to return the moment it's ready. This gives the caller
+	 * the chance to examine the device instance, attach session callbacks
+	 * and so on.
 	 *
 	 * @retval SR_OK Success
 	 * @retval other Negative error code.
 	 */
 	int (*receive) (struct sr_input *in, GString *buf);
 
+	/**
+	 * Signal the input module no more data will come.
+	 *
+	 * This will cause the module to process any data it may have buffered.
+	 * The SR_DF_END packet will also typically be sent at this time.
+	 */
 	int (*end) (struct sr_input *in);
 
 	/**
 	 * This function is called after the caller is finished using
 	 * the input module, and can be used to free any internal
 	 * resources the module may keep.
+	 *
+	 * This function is optional.
 	 *
 	 * @retval SR_OK Success
 	 * @retval other Negative error code.
