@@ -506,7 +506,7 @@ static int initial_parse(const struct sr_input *in, GString *buf)
 	}
 	if (!lines[l]) {
 		/* Not enough data for a proper line yet. */
-		ret = SR_OK_CONTINUE;
+		ret = SR_ERR_NA;
 		goto out;
 	}
 

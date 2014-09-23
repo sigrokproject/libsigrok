@@ -364,7 +364,7 @@ SR_API int sr_input_scan_buffer(GString *buf, const struct sr_input **in)
 			/* Module didn't recognize this buffer. */
 			continue;
 		} else if (ret != SR_OK) {
-			/* Can be SR_OK_CONTINUE. */
+			/* Can be SR_ERR_NA. */
 			return ret;
 		}
 
@@ -477,7 +477,7 @@ SR_API int sr_input_scan_file(const char *filename, const struct sr_input **in)
 			/* Module didn't recognize this buffer. */
 			continue;
 		} else if (ret != SR_OK) {
-			/* Can be SR_OK_CONTINUE. */
+			/* Can be SR_ERR_NA. */
 			return ret;
 		}
 
@@ -519,7 +519,7 @@ SR_API struct sr_dev_inst *sr_input_dev_inst_get(const struct sr_input *in)
  * the device instance associated with this input instance, this is
  * guaranteed to return the moment it's ready. This gives the caller
  * the chance to examine the device instance, attach session callbacks
- * and on so.
+ * and so on.
  *
  * @since 0.4.0
  */
