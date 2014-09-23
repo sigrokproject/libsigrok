@@ -235,40 +235,18 @@ static void send_chunk(const struct sr_input *in, int offset, int num_samples)
 	sr_session_send(in->sdi, &packet);
 }
 
-static int receive(struct sr_input *in, GString *buf)
+static int process_buffer(struct sr_input *in)
 {
+	struct context *inc;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_meta meta;
 	struct sr_channel *ch;
 	struct sr_config *src;
-	struct context *inc;
 	int offset, chunk_samples, total_samples, processed, max_chunk_samples;
-	int num_samples, ret, i;
+	int num_samples, i;
 	char channelname[8];
 
-	g_string_append_len(in->buf, buf->str, buf->len);
-
-	if (in->buf->len < MIN_DATA_CHUNK_OFFSET) {
-		/*
-		 * Don't even try until there's enough room
-		 * for the data segment to start.
-		 */
-		return SR_OK;
-	}
-
 	inc = in->priv;
-	if (!in->sdi_ready) {
-		if ((ret = parse_wav_header(in->buf, inc)) == SR_ERR_NA)
-			/* Not enough data yet. */
-			return SR_OK;
-		else if (ret != SR_OK)
-			return ret;
-
-		/* sdi is ready, notify frontend. */
-		in->sdi_ready = TRUE;
-		return SR_OK;
-	}
-
 	if (!inc->started) {
 		for (i = 0; i < inc->num_channels; i++) {
 			snprintf(channelname, 8, "CH%d", i + 1);
@@ -330,19 +308,57 @@ static int receive(struct sr_input *in, GString *buf)
 	return SR_OK;
 }
 
-static int cleanup(struct sr_input *in)
+static int receive(struct sr_input *in, GString *buf)
+{
+	struct context *inc;
+	int ret;
+
+	g_string_append_len(in->buf, buf->str, buf->len);
+
+	if (in->buf->len < MIN_DATA_CHUNK_OFFSET) {
+		/*
+		 * Don't even try until there's enough room
+		 * for the data segment to start.
+		 */
+		return SR_OK;
+	}
+
+	inc = in->priv;
+	if (!in->sdi_ready) {
+		if ((ret = parse_wav_header(in->buf, inc)) == SR_ERR_NA)
+			/* Not enough data yet. */
+			return SR_OK;
+		else if (ret != SR_OK)
+			return ret;
+
+		/* sdi is ready, notify frontend. */
+		in->sdi_ready = TRUE;
+		return SR_OK;
+	}
+
+	ret = process_buffer(in);
+
+	return SR_OK;
+}
+
+static int end(struct sr_input *in)
 {
 	struct sr_datafeed_packet packet;
 	struct context *inc;
+	int ret;
+
+	if (in->sdi_ready)
+		ret = process_buffer(in);
+	else
+		ret = SR_OK;
 
 	inc = in->priv;
 	if (inc->started) {
-		/* End of stream. */
 		packet.type = SR_DF_END;
 		sr_session_send(in->sdi, &packet);
 	}
 
-	return SR_OK;
+	return ret;
 }
 
 SR_PRIV struct sr_input_module input_wav = {
@@ -353,6 +369,6 @@ SR_PRIV struct sr_input_module input_wav = {
 	.format_match = format_match,
 	.init = init,
 	.receive = receive,
-	.cleanup = cleanup,
+	.end = end,
 };
 

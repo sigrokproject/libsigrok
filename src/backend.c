@@ -246,6 +246,10 @@ static int sanity_check_all_input_modules(void)
 			sr_err("No receive in module %d ('%s').", i, d);
 			errors++;
 		}
+		if (!inputs[i]->end) {
+			sr_err("No end in module %d ('%s').", i, d);
+			errors++;
+		}
 
 		if (errors == 0)
 			continue;

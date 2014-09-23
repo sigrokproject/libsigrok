@@ -137,6 +137,7 @@ SR_API int sr_input_scan_buffer(GString *buf, const struct sr_input **in);
 SR_API int sr_input_scan_file(const char *filename, const struct sr_input **in);
 SR_API struct sr_dev_inst *sr_input_dev_inst_get(const struct sr_input *in);
 SR_API int sr_input_send(const struct sr_input *in, GString *buf);
+SR_API int sr_input_end(const struct sr_input *in);
 SR_API int sr_input_free(const struct sr_input *in);
 
 /*--- output/output.c -------------------------------------------------------*/

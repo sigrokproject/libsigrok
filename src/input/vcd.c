@@ -457,7 +457,7 @@ static gboolean have_header(GString *buf)
 	return FALSE;
 }
 
-static int receive(struct sr_input *in, GString *buf)
+static int process_buffer(struct sr_input *in)
 {
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_meta meta;
@@ -466,21 +466,7 @@ static int receive(struct sr_input *in, GString *buf)
 	uint64_t samplerate;
 	char *p;
 
-	g_string_append_len(in->buf, buf->str, buf->len);
-
 	inc = in->priv;
-	if (!inc->got_header) {
-		if (!have_header(in->buf))
-			return SR_OK;
-		if (!parse_header(in, in->buf) != SR_OK)
-			/* There was a header in there, but it was malformed. */
-			return SR_ERR;
-
-		in->sdi_ready = TRUE;
-		/* sdi is ready, notify frontend. */
-		return SR_OK;
-	}
-
 	if (!inc->started) {
 		std_session_send_df_header(in->sdi, LOG_PREFIX);
 
@@ -506,18 +492,56 @@ static int receive(struct sr_input *in, GString *buf)
 	return SR_OK;
 }
 
-static int cleanup(struct sr_input *in)
+static int receive(struct sr_input *in, GString *buf)
+{
+	struct context *inc;
+	int ret;
+
+	g_string_append_len(in->buf, buf->str, buf->len);
+
+	inc = in->priv;
+	if (!inc->got_header) {
+		if (!have_header(in->buf))
+			return SR_OK;
+		if (!parse_header(in, in->buf) != SR_OK)
+			/* There was a header in there, but it was malformed. */
+			return SR_ERR;
+
+		in->sdi_ready = TRUE;
+		/* sdi is ready, notify frontend. */
+		return SR_OK;
+	}
+
+	ret = process_buffer(in);
+
+	return ret;
+}
+
+static int end(struct sr_input *in)
 {
 	struct sr_datafeed_packet packet;
 	struct context *inc;
+	int ret;
+
+	if (in->sdi_ready)
+		ret = process_buffer(in);
+	else
+		ret = SR_OK;
 
 	inc = in->priv;
 	if (inc->started) {
-		/* End of stream. */
 		packet.type = SR_DF_END;
 		sr_session_send(in->sdi, &packet);
 	}
 
+	return ret;
+}
+
+static int cleanup(struct sr_input *in)
+{
+	struct context *inc;
+
+	inc = in->priv;
 	g_slist_free_full(inc->channels, free_channel);
 
 	return SR_OK;
@@ -552,5 +576,6 @@ SR_PRIV struct sr_input_module input_vcd = {
 	.format_match = format_match,
 	.init = init,
 	.receive = receive,
+	.end = end,
 	.cleanup = cleanup,
 };

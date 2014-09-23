@@ -610,7 +610,7 @@ static int initial_receive(const struct sr_input *in)
 	return ret;
 }
 
-static int receive(struct sr_input *in, GString *buf)
+static int process_buffer(struct sr_input *in)
 {
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_meta meta;
@@ -621,21 +621,7 @@ static int receive(struct sr_input *in, GString *buf)
 	int max_columns, ret, l;
 	char *p, **lines, **columns;
 
-	g_string_append_len(in->buf, buf->str, buf->len);
-
 	inc = in->priv;
-	if (!inc->termination) {
-		if ((ret = initial_receive(in)) == SR_ERR_NA)
-			/* Not enough data yet. */
-			return SR_OK;
-		else if (ret != SR_OK)
-			return SR_ERR;
-
-		/* sdi is ready, notify frontend. */
-		in->sdi_ready = TRUE;
-		return SR_OK;
-	}
-
 	if (!inc->started) {
 		std_session_send_df_header(in->sdi, LOG_PREFIX);
 
@@ -723,23 +709,60 @@ static int receive(struct sr_input *in, GString *buf)
 	g_strfreev(lines);
 	g_string_erase(in->buf, 0, p - in->buf->str + 1);
 
-	return SR_OK;
+	return ret;
 }
 
-static int cleanup(struct sr_input *in)
+static int receive(struct sr_input *in, GString *buf)
+{
+	struct context *inc;
+	int ret;
+
+	g_string_append_len(in->buf, buf->str, buf->len);
+
+	inc = in->priv;
+	if (!inc->termination) {
+		if ((ret = initial_receive(in)) == SR_ERR_NA)
+			/* Not enough data yet. */
+			return SR_OK;
+		else if (ret != SR_OK)
+			return SR_ERR;
+
+		/* sdi is ready, notify frontend. */
+		in->sdi_ready = TRUE;
+		return SR_OK;
+	}
+
+	ret = process_buffer(in);
+
+	return ret;
+}
+
+static int end(struct sr_input *in)
 {
 	struct context *inc;
 	struct sr_datafeed_packet packet;
+	int ret;
+
+	if (in->sdi_ready)
+		ret = process_buffer(in);
+	else
+		ret = SR_OK;
 
 	inc = in->priv;
-	if (!inc)
-		return SR_OK;
-
 	if (inc->started) {
 		/* End of stream. */
 		packet.type = SR_DF_END;
 		sr_session_send(in->sdi, &packet);
 	}
+
+	return ret;
+}
+
+static int cleanup(struct sr_input *in)
+{
+	struct context *inc;
+
+	inc = in->priv;
 
 	if (inc->delimiter)
 		g_string_free(inc->delimiter, TRUE);
@@ -795,5 +818,6 @@ SR_PRIV struct sr_input_module input_csv = {
 	.format_match = format_match,
 	.init = init,
 	.receive = receive,
+	.end = end,
 	.cleanup = cleanup,
 };

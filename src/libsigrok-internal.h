@@ -309,6 +309,8 @@ struct sr_input_module {
 	 */
 	int (*receive) (struct sr_input *in, GString *buf);
 
+	int (*end) (struct sr_input *in);
+
 	/**
 	 * This function is called after the caller is finished using
 	 * the input module, and can be used to free any internal

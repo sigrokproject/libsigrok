@@ -530,6 +530,20 @@ SR_API int sr_input_send(const struct sr_input *in, GString *buf)
 }
 
 /**
+ * Signal the input module no more data will come.
+ *
+ * This will cause the module to process any data it may have buffered.
+ * The SR_DF_END packet will also typically be sent at this time.
+ *
+ * @since 0.4.0
+ */
+SR_API int sr_input_end(const struct sr_input *in)
+{
+	sr_spew("Calling end() on %s module.", in->module->id);
+	return in->module->end((struct sr_input *)in);
+}
+
+/**
  * Free the specified input instance and all associated resources.
  *
  * @since 0.4.0

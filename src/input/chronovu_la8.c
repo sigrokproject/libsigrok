@@ -76,7 +76,7 @@ static int init(struct sr_input *in, GHashTable *options)
 	return SR_OK;
 }
 
-static int receive(struct sr_input *in, GString *buf)
+static int process_buffer(struct sr_input *in)
 {
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_meta meta;
@@ -84,20 +84,9 @@ static int receive(struct sr_input *in, GString *buf)
 	struct sr_config *src;
 	struct context *inc;
 	gsize chunk_size, i;
-	int chunk, num_channels;
+	int chunk;
 
 	inc = in->priv;
-
-	g_string_append_len(in->buf, buf->str, buf->len);
-
-	num_channels = g_slist_length(in->sdi->channels);
-
-	if (!in->sdi_ready) {
-		/* sdi is ready, notify frontend. */
-		in->sdi_ready = TRUE;
-		return SR_OK;
-	}
-
 	if (!inc->started) {
 		std_session_send_df_header(in->sdi, LOG_PREFIX);
 
@@ -115,7 +104,7 @@ static int receive(struct sr_input *in, GString *buf)
 
 	packet.type = SR_DF_LOGIC;
 	packet.payload = &logic;
-	logic.unitsize = (num_channels + 7) / 8;
+	logic.unitsize = (g_slist_length(in->sdi->channels) + 7) / 8;
 
 	/* Cut off at multiple of unitsize. */
 	chunk_size = in->buf->len / logic.unitsize * logic.unitsize;
@@ -132,21 +121,41 @@ static int receive(struct sr_input *in, GString *buf)
 	return SR_OK;
 }
 
-static int cleanup(struct sr_input *in)
+static int receive(struct sr_input *in, GString *buf)
+{
+	int ret;
+
+	g_string_append_len(in->buf, buf->str, buf->len);
+
+	if (!in->sdi_ready) {
+		/* sdi is ready, notify frontend. */
+		in->sdi_ready = TRUE;
+		return SR_OK;
+	}
+
+	ret = process_buffer(in);
+
+	return ret;
+}
+
+static int end(struct sr_input *in)
 {
 	struct context *inc;
 	struct sr_datafeed_packet packet;
+	int ret;
+
+	if (in->sdi_ready)
+		ret = process_buffer(in);
+	else
+		ret = SR_OK;
 
 	inc = in->priv;
-	if (!inc)
-		return SR_OK;
-
 	if (inc->started) {
 		packet.type = SR_DF_END;
 		sr_session_send(in->sdi, &packet);
 	}
 
-	return SR_OK;
+	return ret;
 }
 
 static struct sr_option options[] = {
@@ -174,5 +183,5 @@ SR_PRIV struct sr_input_module input_chronovu_la8 = {
 	.format_match = format_match,
 	.init = init,
 	.receive = receive,
-	.cleanup = cleanup,
+	.end = end,
 };
