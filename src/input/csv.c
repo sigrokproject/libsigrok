@@ -758,7 +758,7 @@ static int end(struct sr_input *in)
 	return ret;
 }
 
-static int cleanup(struct sr_input *in)
+static void cleanup(struct sr_input *in)
 {
 	struct context *inc;
 
@@ -775,8 +775,6 @@ static int cleanup(struct sr_input *in)
 
 	if (inc->sample_buffer)
 		g_free(inc->sample_buffer);
-
-	return SR_OK;
 }
 
 static struct sr_option options[] = {

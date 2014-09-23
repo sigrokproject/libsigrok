@@ -537,14 +537,12 @@ static int end(struct sr_input *in)
 	return ret;
 }
 
-static int cleanup(struct sr_input *in)
+static void cleanup(struct sr_input *in)
 {
 	struct context *inc;
 
 	inc = in->priv;
 	g_slist_free_full(inc->channels, free_channel);
-
-	return SR_OK;
 }
 
 static struct sr_option options[] = {

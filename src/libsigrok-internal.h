@@ -319,7 +319,7 @@ struct sr_input_module {
 	 * @retval SR_OK Success
 	 * @retval other Negative error code.
 	 */
-	int (*cleanup) (struct sr_input *in);
+	void (*cleanup) (struct sr_input *in);
 };
 
 /** Output module instance. */

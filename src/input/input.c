@@ -548,28 +548,22 @@ SR_API int sr_input_end(const struct sr_input *in)
  *
  * @since 0.4.0
  */
-SR_API int sr_input_free(const struct sr_input *in)
+SR_API void sr_input_free(const struct sr_input *in)
 {
-	int ret;
-
 	if (!in)
-		return SR_ERR_ARG;
+		return;
 
-	ret = SR_OK;
 	if (in->module->cleanup)
-		ret = in->module->cleanup((struct sr_input *)in);
+		in->module->cleanup((struct sr_input *)in);
 	if (in->sdi)
 		sr_dev_inst_free(in->sdi);
 	if (in->buf->len > 64) {
 		/* That seems more than just some sub-unitsize leftover... */
 		sr_warn("Found %d unprocessed bytes at free time.", in->buf->len);
 	}
-	if (in->buf)
-		g_string_free(in->buf, TRUE);
+	g_string_free(in->buf, TRUE);
 	g_free(in->priv);
 	g_free((gpointer)in);
-
-	return ret;
 }
 
 
