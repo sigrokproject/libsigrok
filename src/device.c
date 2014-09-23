@@ -230,6 +230,8 @@ SR_PRIV struct sr_dev_inst *sr_dev_inst_new(int index, int status,
 	sdi->vendor = vendor ? g_strdup(vendor) : NULL;
 	sdi->model = model ? g_strdup(model) : NULL;
 	sdi->version = version ? g_strdup(version) : NULL;
+	sdi->serial_num = NULL;
+	sdi->connection_id = NULL;
 	sdi->channels = NULL;
 	sdi->channel_groups = NULL;
 	sdi->session = NULL;
@@ -262,6 +264,8 @@ SR_PRIV void sr_dev_inst_free(struct sr_dev_inst *sdi)
 	g_free(sdi->vendor);
 	g_free(sdi->model);
 	g_free(sdi->version);
+	g_free(sdi->serial_num);
+	g_free(sdi->connection_id);
 	g_free(sdi);
 }
 

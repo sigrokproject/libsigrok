@@ -868,6 +868,10 @@ struct sr_dev_inst {
 	char *model;
 	/** Device version. */
 	char *version;
+	/** Serial number. */
+	char *serial_num;
+	/** Connection string to uniquely identify devices. */
+	char *connection_id;
 	/** List of channels. */
 	GSList *channels;
 	/** List of sr_channel_group structs */
