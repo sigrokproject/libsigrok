@@ -661,7 +661,7 @@ static void datafeed_dump(const struct sr_datafeed_packet *packet)
  * @private
  */
 SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
-			    const struct sr_datafeed_packet *packet)
+		const struct sr_datafeed_packet *packet)
 {
 	GSList *l;
 	struct datafeed_callback *cb_struct;
@@ -796,7 +796,7 @@ SR_API int sr_session_source_add_pollfd(struct sr_session *session,
 		void *cb_data)
 {
 	return _sr_session_source_add(session, pollfd, timeout, cb,
-				      cb_data, (gintptr)pollfd);
+			cb_data, (gintptr)pollfd);
 }
 
 /**
@@ -944,6 +944,121 @@ SR_API int sr_session_source_remove_channel(struct sr_session *session,
 		GIOChannel *channel)
 {
 	return _sr_session_source_remove(session, (gintptr)channel);
+}
+
+static void *copy_src(struct sr_config *src)
+{
+	struct sr_config *new_src;
+
+	new_src = g_malloc(sizeof(struct sr_config));
+	memcpy(new_src, src, sizeof(struct sr_config));
+	g_variant_ref(src->data);
+
+	return new_src;
+}
+
+SR_PRIV int sr_packet_copy(const struct sr_datafeed_packet *packet,
+		struct sr_datafeed_packet **copy)
+{
+	const struct sr_datafeed_meta *meta;
+	struct sr_datafeed_meta *meta_copy;
+	const struct sr_datafeed_logic *logic;
+	struct sr_datafeed_logic *logic_copy;
+	const struct sr_datafeed_analog *analog;
+	struct sr_datafeed_analog *analog_copy;
+	uint8_t *payload;
+
+	*copy = g_malloc0(sizeof(struct sr_datafeed_packet));
+	(*copy)->type = packet->type;
+
+	switch (packet->type) {
+	case SR_DF_TRIGGER:
+	case SR_DF_END:
+		/* No payload. */
+		break;
+	case SR_DF_HEADER:
+		payload = g_malloc(sizeof(struct sr_datafeed_header));
+		memcpy(payload, packet->payload, sizeof(struct sr_datafeed_header));
+		(*copy)->payload = payload;
+		break;
+	case SR_DF_META:
+		meta = packet->payload;
+		meta_copy = g_malloc(sizeof(struct sr_datafeed_meta));
+		meta_copy->config = g_slist_copy_deep(meta->config,
+				(GCopyFunc)copy_src, NULL);
+		(*copy)->payload = meta_copy;
+		break;
+	case SR_DF_LOGIC:
+		logic = packet->payload;
+		logic_copy = g_malloc(sizeof(logic));
+		logic_copy->length = logic->length;
+		logic_copy->unitsize = logic->unitsize;
+		memcpy(logic_copy->data, logic->data, logic->length * logic->unitsize);
+		(*copy)->payload = logic_copy;
+		break;
+	case SR_DF_ANALOG:
+		analog = packet->payload;
+		analog_copy = g_malloc(sizeof(analog));
+		analog_copy->channels = g_slist_copy(analog->channels);
+		analog_copy->num_samples = analog->num_samples;
+		analog_copy->mq = analog->mq;
+		analog_copy->unit = analog->unit;
+		analog_copy->mqflags = analog->mqflags;
+		memcpy(analog_copy->data, analog->data,
+				analog->num_samples * sizeof(float));
+		(*copy)->payload = analog_copy;
+		break;
+	default:
+		sr_err("Unknown packet type %d", packet->type);
+		return SR_ERR;
+	}
+
+	return SR_OK;
+}
+
+void sr_packet_free(struct sr_datafeed_packet *packet)
+{
+	const struct sr_datafeed_meta *meta;
+	const struct sr_datafeed_logic *logic;
+	const struct sr_datafeed_analog *analog;
+	struct sr_config *src;
+	GSList *l;
+
+	switch (packet->type) {
+	case SR_DF_TRIGGER:
+	case SR_DF_END:
+		/* No payload. */
+		break;
+	case SR_DF_HEADER:
+		/* Payload is a simple struct. */
+		g_free((void *)packet->payload);
+		break;
+	case SR_DF_META:
+		meta = packet->payload;
+		for (l = meta->config; l; l = l->next) {
+			src = l->data;
+			g_variant_unref(src->data);
+			g_free(src);
+		}
+		g_slist_free(meta->config);
+		g_free((void *)packet->payload);
+		break;
+	case SR_DF_LOGIC:
+		logic = packet->payload;
+		g_free(logic->data);
+		g_free((void *)packet->payload);
+		break;
+	case SR_DF_ANALOG:
+		analog = packet->payload;
+		g_slist_free(analog->channels);
+		g_free(analog->data);
+		g_free((void *)packet->payload);
+		break;
+	default:
+		sr_err("Unknown packet type %d", packet->type);
+	}
+	g_free(packet);
+
 }
 
 /** @} */
