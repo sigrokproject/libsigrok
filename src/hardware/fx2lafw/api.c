@@ -140,9 +140,9 @@ static GSList *scan(GSList *options)
 	struct libusb_device_descriptor des;
 	libusb_device **devlist;
 	struct libusb_device_handle *hdl;
-	int devcnt, num_logic_channels, ret, i, j;
+	int num_logic_channels, ret, i, j;
 	const char *conn;
-	char manufacturer[64], product[64];
+	char manufacturer[64], product[64], serial_num[64], connection_id[64];
 
 	drvc = di->priv;
 
@@ -207,6 +207,18 @@ static GSList *scan(GSList *options)
 			continue;
 		}
 
+		if (des.iSerialNumber == 0) {
+			serial_num[0] = '\0';
+		} else if ((ret = libusb_get_string_descriptor_ascii(hdl,
+				des.iSerialNumber, (unsigned char *) serial_num,
+				sizeof(serial_num))) < 0) {
+			sr_warn("Failed to get serial number string descriptor: %s.",
+				libusb_error_name(ret));
+			continue;
+		}
+
+		usb_get_port_path(devlist[i], connection_id, sizeof(connection_id));
+
 		libusb_close(hdl);
 
 		prof = NULL;
@@ -226,12 +238,13 @@ static GSList *scan(GSList *options)
 		if (!prof)
 			continue;
 
-		devcnt = g_slist_length(drvc->instances);
-		sdi = sr_dev_inst_new(devcnt, SR_ST_INITIALIZING,
+		sdi = sr_dev_inst_new(0, SR_ST_INITIALIZING,
 			prof->vendor, prof->model, prof->model_version);
 		if (!sdi)
 			return NULL;
 		sdi->driver = di;
+		sdi->serial_num = g_strdup(serial_num);
+		sdi->connection_id = g_strdup(connection_id);
 
 		/* Fill in channellist according to this device's profile. */
 		num_logic_channels = prof->dev_caps & DEV_CAPS_16BIT ? 16 : 8;
@@ -262,7 +275,9 @@ static GSList *scan(GSList *options)
 				devc->fw_updated = g_get_monotonic_time();
 			else
 				sr_err("Firmware upload failed for "
-				       "device %d.", devcnt);
+				       "device %d.%d (logical).",
+				       libusb_get_bus_number(devlist[i]),
+				       libusb_get_device_address(devlist[i]));
 			sdi->inst_type = SR_INST_USB;
 			sdi->conn = sr_usb_dev_inst_new(libusb_get_bus_number(devlist[i]),
 					0xff, NULL);
@@ -358,8 +373,8 @@ static int dev_close(struct sr_dev_inst *sdi)
 	if (usb->devhdl == NULL)
 		return SR_ERR;
 
-	sr_info("fx2lafw: Closing device %d on %d.%d interface %d.",
-		sdi->index, usb->bus, usb->address, USB_INTERFACE);
+	sr_info("fx2lafw: Closing device on %d.%d (logical) / %s (physical) interface %d.",
+		usb->bus, usb->address, sdi->connection_id, USB_INTERFACE);
 	libusb_release_interface(usb->devhdl, USB_INTERFACE);
 	libusb_close(usb->devhdl);
 	usb->devhdl = NULL;

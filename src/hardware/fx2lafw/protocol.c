@@ -198,8 +198,9 @@ SR_PRIV int fx2lafw_dev_open(struct sr_dev_inst *sdi, struct sr_dev_driver *di)
 	struct dev_context *devc;
 	struct drv_context *drvc;
 	struct version_info vi;
-	int ret, skip, i, device_count;
+	int ret, i, device_count;
 	uint8_t revid;
+	char connection_id[64];
 
 	drvc = di->priv;
 	devc = sdi->priv;
@@ -209,7 +210,6 @@ SR_PRIV int fx2lafw_dev_open(struct sr_dev_inst *sdi, struct sr_dev_driver *di)
 		/* Device is already in use. */
 		return SR_ERR;
 
-	skip = 0;
 	device_count = libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &devlist);
 	if (device_count < 0) {
 		sr_err("Failed to get device list: %s.",
@@ -228,19 +228,13 @@ SR_PRIV int fx2lafw_dev_open(struct sr_dev_inst *sdi, struct sr_dev_driver *di)
 		    || des.idProduct != devc->profile->pid)
 			continue;
 
-		if (sdi->status == SR_ST_INITIALIZING) {
-			if (skip != sdi->index) {
-				/* Skip devices of this type that aren't the one we want. */
-				skip += 1;
-				continue;
-			}
-		} else if (sdi->status == SR_ST_INACTIVE) {
+		if ((sdi->status == SR_ST_INITIALIZING) ||
+				(sdi->status == SR_ST_INACTIVE)) {
 			/*
-			 * This device is fully enumerated, so we need to find
-			 * this device by vendor, product, bus and address.
+			 * Check device by its physical USB bus/port address.
 			 */
-			if (libusb_get_bus_number(devlist[i]) != usb->bus
-				|| libusb_get_device_address(devlist[i]) != usb->address)
+			usb_get_port_path(devlist[i], connection_id, sizeof(connection_id));
+			if (strcmp(sdi->connection_id, connection_id))
 				/* This is not the one. */
 				continue;
 		}
@@ -283,9 +277,9 @@ SR_PRIV int fx2lafw_dev_open(struct sr_dev_inst *sdi, struct sr_dev_driver *di)
 		}
 
 		sdi->status = SR_ST_ACTIVE;
-		sr_info("Opened device %d on %d.%d, "
+		sr_info("Opened device on %d.%d (logical) / %s (physical), "
 			"interface %d, firmware %d.%d.",
-			sdi->index, usb->bus, usb->address,
+			usb->bus, usb->address, connection_id,
 			USB_INTERFACE, vi.major, vi.minor);
 
 		sr_info("Detected REVID=%d, it's a Cypress CY7C68013%s.",
