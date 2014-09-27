@@ -430,7 +430,7 @@ static int init(struct sr_input *in, GHashTable *options)
 	inc->skip = g_variant_get_int32(g_hash_table_lookup(options, "skip"));
 	inc->skip /= inc->downsample;
 
-	in->sdi = sr_dev_inst_new(0, SR_ST_ACTIVE, NULL, NULL, NULL);
+	in->sdi = sr_dev_inst_new(SR_ST_ACTIVE, NULL, NULL, NULL);
 	in->priv = inc;
 
 	for (i = 0; i < num_channels; i++) {
