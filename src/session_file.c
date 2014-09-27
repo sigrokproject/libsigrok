@@ -47,6 +47,8 @@
  */
 
 extern SR_PRIV struct sr_dev_driver session_driver;
+static int session_driver_initialized = 0;
+
 
 /** @private */
 SR_PRIV int sr_sessionfile_check(const char *filename)
@@ -121,7 +123,7 @@ SR_API int sr_session_load(const char *filename, struct sr_session **session)
 	struct zip_stat zs;
 	struct sr_dev_inst *sdi;
 	struct sr_channel *ch;
-	int devcnt, ret, i, j;
+	int ret, i, j;
 	uint64_t tmp_u64, total_channels, enabled_channels, p;
 	char **sections, **keys, *metafile, *val;
 	char channelname[SR_MAX_CHANNELNAME_LEN + 1];
@@ -153,7 +155,6 @@ SR_API int sr_session_load(const char *filename, struct sr_session **session)
 	if ((ret = sr_session_new(session)) != SR_OK)
 		return ret;
 
-	devcnt = 0;
 	capturefiles = g_ptr_array_new_with_free_func(g_free);
 	sections = g_key_file_get_groups(kf, NULL);
 	for (i = 0; sections[i]; i++) {
@@ -168,11 +169,13 @@ SR_API int sr_session_load(const char *filename, struct sr_session **session)
 			for (j = 0; keys[j]; j++) {
 				val = g_key_file_get_string(kf, sections[i], keys[j], NULL);
 				if (!strcmp(keys[j], "capturefile")) {
-					sdi = sr_dev_inst_new(devcnt, SR_ST_ACTIVE, NULL, NULL, NULL);
+					sdi = sr_dev_inst_new(SR_ST_ACTIVE, NULL, NULL, NULL);
 					sdi->driver = &session_driver;
-					if (devcnt == 0)
+					if (!session_driver_initialized) {
 						/* first device, init the driver */
+						session_driver_initialized = 1;
 						sdi->driver->init(NULL);
+					}
 					sr_dev_open(sdi);
 					sr_session_dev_add(*session, sdi);
 					sdi->driver->config_set(SR_CONF_SESSIONFILE,
@@ -214,7 +217,6 @@ SR_API int sr_session_load(const char *filename, struct sr_session **session)
 				for (p = enabled_channels; p < total_channels; p++)
 					sr_dev_channel_enable(sdi, p, FALSE);
 		}
-		devcnt++;
 	}
 	g_strfreev(sections);
 	g_key_file_free(kf);
