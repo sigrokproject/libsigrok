@@ -213,7 +213,7 @@ SR_API gboolean sr_dev_has_option(const struct sr_dev_inst *sdi, int key)
  *  @retval struct sr_dev_inst *. Dynamically allocated, free using
  *              sr_dev_inst_free().
  */
-SR_PRIV struct sr_dev_inst *sr_dev_inst_new(int index, int status,
+SR_PRIV struct sr_dev_inst *sr_dev_inst_new(int status,
 		const char *vendor, const char *model, const char *version)
 {
 	struct sr_dev_inst *sdi;
@@ -224,7 +224,6 @@ SR_PRIV struct sr_dev_inst *sr_dev_inst_new(int index, int status,
 	}
 
 	sdi->driver = NULL;
-	sdi->index = index;
 	sdi->status = status;
 	sdi->inst_type = -1;
 	sdi->vendor = vendor ? g_strdup(vendor) : NULL;

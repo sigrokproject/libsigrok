@@ -856,8 +856,6 @@ enum sr_configkey {
 struct sr_dev_inst {
 	/** Device driver. */
 	struct sr_dev_driver *driver;
-	/** Index of device in driver. */
-	int index;
 	/** Device instance status. SR_ST_NOT_FOUND, etc. */
 	int status;
 	/** Device instance type. SR_INST_USB, etc. */

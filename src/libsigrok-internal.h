@@ -490,7 +490,7 @@ SR_PRIV struct sr_channel *sr_channel_new(int index, int type,
 		gboolean enabled, const char *name);
 
 /* Generic device instances */
-SR_PRIV struct sr_dev_inst *sr_dev_inst_new(int index, int status,
+SR_PRIV struct sr_dev_inst *sr_dev_inst_new(int status,
 		const char *vendor, const char *model, const char *version);
 SR_PRIV void sr_dev_inst_free(struct sr_dev_inst *sdi);
 

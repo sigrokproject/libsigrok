@@ -467,8 +467,8 @@ SR_API int sr_session_start(struct sr_session *session)
 		}
 		if (enabled_channels == 0) {
 			ret = SR_ERR;
-			sr_err("%s instance %d has no enabled channels!",
-					sdi->driver->name, sdi->index);
+			sr_err("%s using connection %s has no enabled channels!",
+					sdi->driver->name, sdi->connection_id);
 			break;
 		}
 
