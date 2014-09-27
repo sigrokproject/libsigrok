@@ -22,6 +22,7 @@
 #define LIBSIGROK_HARDWARE_ZEROPLUS_LOGIC_CUBE_PROTOCOL_H
 
 #include <stdint.h>
+#include <string.h>
 #include <glib.h>
 #include <libusb.h>
 #include "libsigrok.h"
