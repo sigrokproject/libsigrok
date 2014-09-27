@@ -173,7 +173,6 @@ static GSList *scan(GSList *options)
 	if (g_poll(&probefd, 1, 10) > 0) {
 		/* Got metadata. */
 		sdi = get_metadata(serial);
-		sdi->index = 0;
 		devc = sdi->priv;
 	} else {
 		/* Not an OLS -- some other board that uses the sump protocol. */

@@ -185,7 +185,6 @@ static GSList *scan(GSList *options)
 
 	/* Parse the metadata. */
 	sdi = p_ols_get_metadata((uint8_t *)buf, bytes_read, devc);
-	sdi->index = 0;
 
 	/* Configure samplerate and divider. */
 	if (p_ols_set_samplerate(sdi, DEFAULT_SAMPLERATE) != SR_OK)
