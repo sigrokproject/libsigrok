@@ -69,15 +69,15 @@ static GSList *scan(GSList *options)
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
 	struct device_info dev_info;
-	int ret, device_index, i;
+	int ret, i;
 	char *fw_ver_str;
+	char connection_id[64];
 
 	(void)options;
 
 	devices = NULL;
 	drvc = di->priv;
 	drvc->instances = NULL;
-	device_index = 0;
 
 	usb_devices = sr_usb_find(drvc->sr_ctx->libusb_ctx, USB_VID_PID);
 
@@ -125,7 +125,7 @@ static GSList *scan(GSList *options)
 			continue;
 		}
 
-		sdi = sr_dev_inst_new(device_index, SR_ST_INACTIVE, VENDOR_NAME,
+		sdi = sr_dev_inst_new(SR_ST_INACTIVE, VENDOR_NAME,
 			MODEL_NAME, fw_ver_str);
 		g_free(fw_ver_str);
 		if (!sdi) {
@@ -137,10 +137,15 @@ static GSList *scan(GSList *options)
 			continue;
 		}
 
+		usb_get_port_path(libusb_get_device(usb->devhdl),
+				connection_id, sizeof(connection_id));
+
 		sdi->priv = devc;
 		sdi->driver = di;
 		sdi->inst_type = SR_INST_USB;
 		sdi->conn = usb;
+		sdi->serial_num = g_strdup_printf("%d", dev_info.serial);
+		sdi->connection_id = g_strdup(connection_id);
 
 		for (i = 0; channel_names[i]; i++) {
 			ch = sr_channel_new(i, SR_CHANNEL_LOGIC, TRUE,
@@ -182,8 +187,6 @@ static GSList *scan(GSList *options)
 
 		drvc->instances = g_slist_append(drvc->instances, sdi);
 		devices = g_slist_append(devices, sdi);
-
-		device_index++;
 	}
 
 	g_slist_free(usb_devices);
