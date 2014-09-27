@@ -821,6 +821,8 @@ public:
 	/** Send next stream data.
 	 * @param data Next stream data. */
 	void send(string data);
+	/** Signal end of input data. */
+	void end();
 protected:
 	Input(shared_ptr<Context> context, const struct sr_input *structure);
 	~Input();

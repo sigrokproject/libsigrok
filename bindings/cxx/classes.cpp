@@ -1289,11 +1289,16 @@ void Input::send(string data)
 	check(ret);
 }
 
+void Input::end()
+{
+	check(sr_input_end(_structure));
+}
+
 Input::~Input()
 {
 	if (_device)
 		delete _device;
-	check(sr_input_free(_structure));
+	sr_input_free(_structure);
 }
 
 InputDevice::InputDevice(shared_ptr<Input> input,
