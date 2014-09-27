@@ -221,7 +221,7 @@ static GSList *scan(GSList *options)
 		sr_info("Found ZEROPLUS %s.", prof->model_name);
 
 		/* Register the device with libsigrok. */
-		if (!(sdi = sr_dev_inst_new(0, SR_ST_INACTIVE,
+		if (!(sdi = sr_dev_inst_new(SR_ST_INACTIVE,
 				VENDOR_NAME, prof->model_name, NULL))) {
 			sr_err("%s: sr_dev_inst_new failed", __func__);
 			return NULL;

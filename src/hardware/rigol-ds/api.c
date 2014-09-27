@@ -291,7 +291,7 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 		}
 	}
 
-	if (!model || !(sdi = sr_dev_inst_new(0, SR_ST_ACTIVE,
+	if (!model || !(sdi = sr_dev_inst_new(SR_ST_ACTIVE,
 					      model->series->vendor->name,
 						  model->name,
 						  hw_info->firmware_version))) {

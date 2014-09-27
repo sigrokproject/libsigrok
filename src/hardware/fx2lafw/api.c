@@ -238,7 +238,7 @@ static GSList *scan(GSList *options)
 		if (!prof)
 			continue;
 
-		sdi = sr_dev_inst_new(0, SR_ST_INITIALIZING,
+		sdi = sr_dev_inst_new(SR_ST_INITIALIZING,
 			prof->vendor, prof->model, prof->model_version);
 		if (!sdi)
 			return NULL;

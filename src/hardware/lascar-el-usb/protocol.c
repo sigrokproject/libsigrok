@@ -323,7 +323,7 @@ static struct sr_dev_inst *lascar_identify(unsigned char *config)
 			return NULL;
 		}
 
-		if (!(sdi = sr_dev_inst_new(0, SR_ST_INACTIVE, LASCAR_VENDOR,
+		if (!(sdi = sr_dev_inst_new(SR_ST_INACTIVE, LASCAR_VENDOR,
 				profile->modelname, firmware)))
 			return NULL;
 		sdi->driver = di;

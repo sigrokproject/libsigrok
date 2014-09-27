@@ -97,7 +97,7 @@ static GSList *scan(GSList *options)
 	if (!g_file_test(BEAGLELOGIC_DEV_NODE, G_FILE_TEST_EXISTS))
 		return NULL;
 
-	sdi = sr_dev_inst_new(0, SR_ST_INACTIVE, NULL, "BeagleLogic", "1.0");
+	sdi = sr_dev_inst_new(SR_ST_INACTIVE, NULL, "BeagleLogic", "1.0");
 	sdi->driver = di;
 
 	/* Unless explicitly specified, keep max channels to 8 only */

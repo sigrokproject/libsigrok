@@ -92,7 +92,7 @@ static GSList *scan(GSList *options)
 
 	sr_info("Found device on port %s.", conn);
 
-	if (!(sdi = sr_dev_inst_new(0, SR_ST_INACTIVE, "EDF", "Teleinfo", NULL)))
+	if (!(sdi = sr_dev_inst_new(SR_ST_INACTIVE, "EDF", "Teleinfo", NULL)))
 		goto scan_cleanup;
 
 	if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {

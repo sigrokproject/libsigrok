@@ -84,7 +84,7 @@ static GSList *scan(GSList *options)
 	if (!serialcomm)
 		serialcomm = SERIALCOMM;
 
-	if (!(sdi = sr_dev_inst_new(0, SR_ST_INACTIVE, "Tondaj",
+	if (!(sdi = sr_dev_inst_new(SR_ST_INACTIVE, "Tondaj",
 				    "SL-814", NULL))) {
 		sr_err("Failed to create device instance.");
 		return NULL;

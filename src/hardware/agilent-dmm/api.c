@@ -137,7 +137,7 @@ static GSList *scan(GSList *options)
 		for (i = 0; supported_agdmm[i].model; i++) {
 			if (strcmp(supported_agdmm[i].modelname, tokens[1]))
 				continue;
-			if (!(sdi = sr_dev_inst_new(0, SR_ST_INACTIVE, "Agilent",
+			if (!(sdi = sr_dev_inst_new(SR_ST_INACTIVE, "Agilent",
 					tokens[1], tokens[3])))
 				return NULL;
 			if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {

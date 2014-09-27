@@ -79,7 +79,7 @@ static GSList *scan(GSList *options)
 		/* We have a list of sr_usb_dev_inst matching the connection
 		 * string. Wrap them in sr_dev_inst and we're done. */
 		for (l = usb_devices; l; l = l->next) {
-			if (!(sdi = sr_dev_inst_new(0, SR_ST_INACTIVE, VENDOR,
+			if (!(sdi = sr_dev_inst_new(SR_ST_INACTIVE, VENDOR,
 					MODEL, NULL)))
 				return NULL;
 			sdi->driver = di;

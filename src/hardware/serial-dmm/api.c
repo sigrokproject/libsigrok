@@ -397,7 +397,7 @@ static GSList *sdmm_scan(const char *conn, const char *serialcomm, int dmm)
 
 	sr_info("Found device on port %s.", conn);
 
-	if (!(sdi = sr_dev_inst_new(0, SR_ST_INACTIVE, dmms[dmm].vendor,
+	if (!(sdi = sr_dev_inst_new(SR_ST_INACTIVE, dmms[dmm].vendor,
 				    dmms[dmm].device, NULL)))
 		goto scan_cleanup;
 

@@ -75,7 +75,7 @@ static struct sr_dev_inst *hmo_probe_serial_device(struct sr_scpi_dev_inst *scpi
 	if (check_manufacturer(hw_info->manufacturer) != SR_OK)
 		goto fail;
 
-	if (!(sdi = sr_dev_inst_new(0, SR_ST_ACTIVE,
+	if (!(sdi = sr_dev_inst_new(SR_ST_ACTIVE,
 				    hw_info->manufacturer, hw_info->model,
 				    hw_info->firmware_version))) {
 		goto fail;

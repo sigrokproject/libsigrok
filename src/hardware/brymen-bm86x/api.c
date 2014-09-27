@@ -73,7 +73,7 @@ static GSList *scan(GSList *options)
 	for (l = usb_devices; l; l = l->next) {
 		usb = l->data;
 
-		if (!(sdi = sr_dev_inst_new(0, SR_ST_INACTIVE,
+		if (!(sdi = sr_dev_inst_new(SR_ST_INACTIVE,
 		                            "Brymen", "BM869", NULL))) {
 			sr_err("sr_dev_inst_new returned NULL.");
 			return NULL;

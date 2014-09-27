@@ -94,7 +94,7 @@ static GSList *scan(GSList *options)
 
 	sr_spew("Conrad DIGI 35 CPU assumed at %s.", conn);
 
-	if (!(sdi = sr_dev_inst_new(0, SR_ST_ACTIVE, "Conrad", "DIGI 35 CPU", NULL)))
+	if (!(sdi = sr_dev_inst_new(SR_ST_ACTIVE, "Conrad", "DIGI 35 CPU", NULL)))
 		return NULL;
 
 	sdi->conn = serial;

@@ -123,7 +123,7 @@ static GSList *scan(GSList *options)
 	}
 
 	/* Register the device with libsigrok. */
-	sdi = sr_dev_inst_new(0, SR_ST_INITIALIZING,
+	sdi = sr_dev_inst_new(SR_ST_INITIALIZING,
 			USB_VENDOR_NAME, USB_MODEL_NAME, NULL);
 	if (!sdi) {
 		sr_err("Failed to create device instance.");

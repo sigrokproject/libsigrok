@@ -122,7 +122,7 @@ static GSList *fluke_scan(const char *conn, const char *serialcomm)
 					continue;
 				/* Skip leading spaces in version number. */
 				for (s = 0; tokens[1][s] == ' '; s++);
-				if (!(sdi = sr_dev_inst_new(0, SR_ST_INACTIVE, "Fluke",
+				if (!(sdi = sr_dev_inst_new(SR_ST_INACTIVE, "Fluke",
 						tokens[0] + 6, tokens[1] + s)))
 					return NULL;
 				if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {

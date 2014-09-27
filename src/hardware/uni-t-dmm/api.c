@@ -212,7 +212,7 @@ static GSList *scan(GSList *options, int dmm)
 
 		devc->first_run = TRUE;
 
-		if (!(sdi = sr_dev_inst_new(0, SR_ST_INACTIVE,
+		if (!(sdi = sr_dev_inst_new(SR_ST_INACTIVE,
 				udmms[dmm].vendor, udmms[dmm].device, NULL))) {
 			sr_err("sr_dev_inst_new returned NULL.");
 			return NULL;

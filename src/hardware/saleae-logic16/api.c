@@ -198,7 +198,7 @@ static GSList *scan(GSList *options)
 		if (des.idVendor != LOGIC16_VID || des.idProduct != LOGIC16_PID)
 			continue;
 
-		sdi = sr_dev_inst_new(0, SR_ST_INITIALIZING,
+		sdi = sr_dev_inst_new(SR_ST_INITIALIZING,
 				      "Saleae", "Logic16", NULL);
 		if (!sdi)
 			return NULL;

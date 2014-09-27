@@ -106,7 +106,7 @@ static GSList *scan(GSList *options)
 	while (g_get_monotonic_time() - start < MAX_SCAN_TIME) {
 		if (serial_read_nonblocking(serial, &c, 1) == 1 && c == 0xa5) {
 			/* Found one. */
-			if (!(sdi = sr_dev_inst_new(0, SR_ST_INACTIVE, "CEM",
+			if (!(sdi = sr_dev_inst_new(SR_ST_INACTIVE, "CEM",
 					"DT-885x", NULL)))
 				return NULL;
 

@@ -83,7 +83,7 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 		return NULL;
 	}
 
-	sdi = sr_dev_inst_new(0, SR_ST_ACTIVE, vendor, hw_info->model,
+	sdi = sr_dev_inst_new(SR_ST_ACTIVE, vendor, hw_info->model,
 			hw_info->firmware_version);
 	sdi->conn = scpi;
 	sdi->driver = di;

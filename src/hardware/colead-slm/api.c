@@ -82,7 +82,7 @@ static GSList *scan(GSList *options)
 	if (!serialcomm)
 		serialcomm = SERIALCOMM;
 
-	if (!(sdi = sr_dev_inst_new(0, SR_ST_INACTIVE, "Colead",
+	if (!(sdi = sr_dev_inst_new(SR_ST_INACTIVE, "Colead",
 			"SL-5868P", NULL)))
 		return NULL;
 

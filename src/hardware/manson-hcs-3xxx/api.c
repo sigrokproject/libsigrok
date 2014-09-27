@@ -150,7 +150,7 @@ static GSList *scan(GSList *options)
 	}
 
 	/* Init device instance, etc. */
-	if (!(sdi = sr_dev_inst_new(0, SR_ST_INACTIVE, "Manson",
+	if (!(sdi = sr_dev_inst_new(SR_ST_INACTIVE, "Manson",
 				    models[model_id].name, NULL))) {
 		sr_err("Failed to create device instance.");
 		return NULL;

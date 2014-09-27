@@ -85,7 +85,7 @@ static GSList *center_scan(const char *conn, const char *serialcomm, int idx)
 
 	sr_info("Found device on port %s.", conn);
 
-	if (!(sdi = sr_dev_inst_new(0, SR_ST_INACTIVE, center_devs[idx].vendor,
+	if (!(sdi = sr_dev_inst_new(SR_ST_INACTIVE, center_devs[idx].vendor,
 				    center_devs[idx].device, NULL)))
 		goto scan_cleanup;
 

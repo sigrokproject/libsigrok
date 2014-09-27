@@ -120,7 +120,7 @@ static int add_device(int idx, int model, GSList **devices)
 	devc->cur_samplerate = devc->prof->max_samplerate;
 
 	/* Register the device with libsigrok. */
-	sdi = sr_dev_inst_new(0, SR_ST_INITIALIZING,
+	sdi = sr_dev_inst_new(SR_ST_INITIALIZING,
 			      "ChronoVu", devc->prof->modelname, NULL);
 	if (!sdi) {
 		sr_err("Failed to create device instance.");

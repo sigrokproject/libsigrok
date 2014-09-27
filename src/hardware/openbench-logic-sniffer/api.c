@@ -177,7 +177,7 @@ static GSList *scan(GSList *options)
 	} else {
 		/* Not an OLS -- some other board that uses the sump protocol. */
 		sr_info("Device does not support metadata.");
-		sdi = sr_dev_inst_new(0, SR_ST_INACTIVE,
+		sdi = sr_dev_inst_new(SR_ST_INACTIVE,
 				"Sump", "Logic Analyzer", "v1.0");
 		sdi->driver = di;
 		for (i = 0; i < 32; i++) {

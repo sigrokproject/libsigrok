@@ -144,7 +144,7 @@ static GSList *do_scan(struct sr_dev_driver* drv, GSList *options)
 			auxtype = xgittoint(buf[7]);
 			sr_spew("%s %s DMM %s detected!", get_brandstr(drv), get_typestr(auxtype, drv), buf + 9);
 
-			if (!(sdi = sr_dev_inst_new(0, SR_ST_INACTIVE,
+			if (!(sdi = sr_dev_inst_new(SR_ST_INACTIVE,
 						get_brandstr(drv), get_typestr(auxtype, drv), buf + 9)))
 				return NULL;
 			if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {

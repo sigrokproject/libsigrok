@@ -203,7 +203,7 @@ static GSList *scan(GSList *options)
 			return devices;
 		}
 
-		struct sr_dev_inst *sdi = sr_dev_inst_new(0, SR_ST_INACTIVE,
+		struct sr_dev_inst *sdi = sr_dev_inst_new(SR_ST_INACTIVE,
 						manufacturer, product, hwrev);
 
 		if (!sdi) {

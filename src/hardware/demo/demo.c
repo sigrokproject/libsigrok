@@ -287,7 +287,7 @@ static GSList *scan(GSList *options)
 	}
 
 	devices = NULL;
-	sdi = sr_dev_inst_new(0, SR_ST_ACTIVE, "Demo device", NULL, NULL);
+	sdi = sr_dev_inst_new(SR_ST_ACTIVE, "Demo device", NULL, NULL);
 	if (!sdi) {
 		sr_err("Device instance creation failed.");
 		return NULL;
