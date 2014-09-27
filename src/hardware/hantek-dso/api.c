@@ -158,7 +158,7 @@ static struct sr_dev_driver *di = &hantek_dso_driver_info;
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);
 
-static struct sr_dev_inst *dso_dev_new(int index, const struct dso_profile *prof)
+static struct sr_dev_inst *dso_dev_new(const struct dso_profile *prof)
 {
 	struct sr_dev_inst *sdi;
 	struct sr_channel *ch;
@@ -166,7 +166,7 @@ static struct sr_dev_inst *dso_dev_new(int index, const struct dso_profile *prof
 	struct dev_context *devc;
 	int i;
 
-	sdi = sr_dev_inst_new(index, SR_ST_INITIALIZING,
+	sdi = sr_dev_inst_new(0, SR_ST_INITIALIZING,
 		prof->vendor, prof->model, NULL);
 	if (!sdi)
 		return NULL;
@@ -266,12 +266,12 @@ static GSList *scan(GSList *options)
 	GSList *l, *devices, *conn_devices;
 	struct libusb_device_descriptor des;
 	libusb_device **devlist;
-	int devcnt, ret, i, j;
+	int ret, i, j;
 	const char *conn;
+	char connection_id[64];
 
 	drvc = di->priv;
 
-	devcnt = 0;
 	devices = 0;
 
 	conn = NULL;
@@ -310,6 +310,8 @@ static GSList *scan(GSList *options)
 			continue;
 		}
 
+		usb_get_port_path(devlist[i], connection_id, sizeof(connection_id));
+
 		prof = NULL;
 		for (j = 0; dev_profiles[j].orig_vid; j++) {
 			if (des.idVendor == dev_profiles[j].orig_vid
@@ -317,7 +319,8 @@ static GSList *scan(GSList *options)
 				/* Device matches the pre-firmware profile. */
 				prof = &dev_profiles[j];
 				sr_dbg("Found a %s %s.", prof->vendor, prof->model);
-				sdi = dso_dev_new(devcnt, prof);
+				sdi = dso_dev_new(prof);
+				sdi->connection_id = g_strdup(connection_id);
 				devices = g_slist_append(devices, sdi);
 				devc = sdi->priv;
 				if (ezusb_upload_firmware(devlist[i], USB_CONFIGURATION,
@@ -325,19 +328,18 @@ static GSList *scan(GSList *options)
 					/* Remember when the firmware on this device was updated */
 					devc->fw_updated = g_get_monotonic_time();
 				else
-					sr_err("Firmware upload failed for "
-					        "device %d.", devcnt);
+					sr_err("Firmware upload failed");
 				/* Dummy USB address of 0xff will get overwritten later. */
 				sdi->conn = sr_usb_dev_inst_new(
 						libusb_get_bus_number(devlist[i]), 0xff, NULL);
-				devcnt++;
 				break;
 			} else if (des.idVendor == dev_profiles[j].fw_vid
 				&& des.idProduct == dev_profiles[j].fw_pid) {
 				/* Device matches the post-firmware profile. */
 				prof = &dev_profiles[j];
 				sr_dbg("Found a %s %s.", prof->vendor, prof->model);
-				sdi = dso_dev_new(devcnt, prof);
+				sdi = dso_dev_new(prof);
+				sdi->connection_id = g_strdup(connection_id);
 				sdi->status = SR_ST_INACTIVE;
 				devices = g_slist_append(devices, sdi);
 				devc = sdi->priv;
@@ -345,7 +347,6 @@ static GSList *scan(GSList *options)
 				sdi->conn = sr_usb_dev_inst_new(
 						libusb_get_bus_number(devlist[i]),
 						libusb_get_device_address(devlist[i]), NULL);
-				devcnt++;
 				break;
 			}
 		}

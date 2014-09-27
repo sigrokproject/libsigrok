@@ -113,7 +113,8 @@ SR_PRIV int dso_open(struct sr_dev_inst *sdi)
 	struct sr_usb_dev_inst *usb;
 	struct libusb_device_descriptor des;
 	libusb_device **devlist;
-	int err, skip, i;
+	int err, i;
+	char connection_id[64];
 
 	devc = sdi->priv;
 	usb = sdi->conn;
@@ -122,7 +123,6 @@ SR_PRIV int dso_open(struct sr_dev_inst *sdi)
 		/* already in use */
 		return SR_ERR;
 
-	skip = 0;
 	libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &devlist);
 	for (i = 0; devlist[i]; i++) {
 		if ((err = libusb_get_device_descriptor(devlist[i], &des))) {
@@ -135,20 +135,14 @@ SR_PRIV int dso_open(struct sr_dev_inst *sdi)
 		    || des.idProduct != devc->profile->fw_pid)
 			continue;
 
-		if (sdi->status == SR_ST_INITIALIZING) {
-			if (skip != sdi->index) {
-				/* Skip devices of this type that aren't the one we want. */
-				skip += 1;
-				continue;
-			}
-		} else if (sdi->status == SR_ST_INACTIVE) {
+		if ((sdi->status == SR_ST_INITIALIZING) ||
+				(sdi->status == SR_ST_INACTIVE)) {
 			/*
-			 * This device is fully enumerated, so we need to find
-			 * this device by vendor, product, bus and address.
+			 * Check device by its physical USB bus/port address.
 			 */
-			if (libusb_get_bus_number(devlist[i]) != usb->bus
-				|| libusb_get_device_address(devlist[i]) != usb->address)
-				/* this is not the one */
+			usb_get_port_path(devlist[i], connection_id, sizeof(connection_id));
+			if (strcmp(sdi->connection_id, connection_id))
+				/* This is not the one. */
 				continue;
 		}
 
@@ -164,9 +158,10 @@ SR_PRIV int dso_open(struct sr_dev_inst *sdi)
 				sr_err("Wrong endpoint profile.");
 			else {
 				sdi->status = SR_ST_ACTIVE;
-				sr_info("Opened device %d on %d.%d interface %d.",
-					sdi->index, usb->bus,
-					usb->address, USB_INTERFACE);
+				sr_info("Opened device on %d.%d (logical) / "
+						"%s (physical) interface %d.",
+					usb->bus, usb->address,
+					sdi->connection_id, USB_INTERFACE);
 			}
 		} else {
 			sr_err("Failed to open device: %s.",
@@ -193,8 +188,8 @@ SR_PRIV void dso_close(struct sr_dev_inst *sdi)
 	if (usb->devhdl == NULL)
 		return;
 
-	sr_info("Closing device %d on %d.%d interface %d.", sdi->index,
-		usb->bus, usb->address, USB_INTERFACE);
+	sr_info("Closing device on %d.%d (logical) / %s (physical) interface %d.",
+			usb->bus, usb->address, sdi->connection_id, USB_INTERFACE);
 	libusb_release_interface(usb->devhdl, USB_INTERFACE);
 	libusb_close(usb->devhdl);
 	usb->devhdl = NULL;
