@@ -1307,7 +1307,7 @@ int req_meas14(const struct sr_dev_inst *sdi)
 	devc->cmd_idx = 0;
 	create_cmd_14(devc->addr, 8, params, msg);
 	devc->req_sent_at = g_get_monotonic_time();
-	if (serial_write_blocking(serial, msg, sizeof(msg)) == -1) {
+	if (serial_write_blocking(serial, msg, sizeof(msg)) < sizeof(msg)) {
 		return SR_ERR;
 	}
 
@@ -1350,7 +1350,7 @@ int req_stat14(const struct sr_dev_inst *sdi, gboolean power_on)
 
 	/* Write message and wait for reply */
 	devc->req_sent_at = g_get_monotonic_time();
-	if (serial_write_blocking(serial, msg, sizeof(msg)) == -1) {
+	if (serial_write_blocking(serial, msg, sizeof(msg)) < sizeof(msg)) {
 		return SR_ERR;
 	}
 
