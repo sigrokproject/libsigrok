@@ -170,7 +170,7 @@ SR_PRIV int serial_flush(struct sr_serial_dev_inst *serial)
 }
 
 static int _serial_write(struct sr_serial_dev_inst *serial,
-		const void *buf, size_t count, int nonblocking)
+		const void *buf, size_t count, int nonblocking, unsigned int timeout_ms)
 {
 	ssize_t ret;
 	char *error;
@@ -188,7 +188,7 @@ static int _serial_write(struct sr_serial_dev_inst *serial,
 	if (nonblocking)
 		ret = sp_nonblocking_write(serial->data, buf, count);
 	else
-		ret = sp_blocking_write(serial->data, buf, count, 0);
+		ret = sp_blocking_write(serial->data, buf, count, timeout_ms);
 
 	switch (ret) {
 	case SP_ERR_ARG:
@@ -212,15 +212,17 @@ static int _serial_write(struct sr_serial_dev_inst *serial,
  * @param serial Previously initialized serial port structure.
  * @param[in] buf Buffer containing the bytes to write.
  * @param[in] count Number of bytes to write.
+ * @param[in] timeout_ms Timeout in ms, or 0 for no timeout.
  *
  * @retval SR_ERR_ARG Invalid argument.
  * @retval SR_ERR Other error.
- * @retval other The number of bytes written.
+ * @retval other The number of bytes written. If this is less than the number
+ * specified in the call, the timeout was reached.
  */
 SR_PRIV int serial_write_blocking(struct sr_serial_dev_inst *serial,
-		const void *buf, size_t count)
+		const void *buf, size_t count, unsigned int timeout_ms)
 {
-	return _serial_write(serial, buf, count, 0);
+	return _serial_write(serial, buf, count, 0, timeout_ms);
 }
 
 /**
@@ -237,11 +239,11 @@ SR_PRIV int serial_write_blocking(struct sr_serial_dev_inst *serial,
 SR_PRIV int serial_write_nonblocking(struct sr_serial_dev_inst *serial,
 		const void *buf, size_t count)
 {
-	return _serial_write(serial, buf, count, 1);
+	return _serial_write(serial, buf, count, 1, 0);
 }
 
 static int _serial_read(struct sr_serial_dev_inst *serial, void *buf,
-		size_t count, int nonblocking)
+		size_t count, int nonblocking, unsigned int timeout_ms)
 {
 	ssize_t ret;
 	char *error;
@@ -259,7 +261,7 @@ static int _serial_read(struct sr_serial_dev_inst *serial, void *buf,
 	if (nonblocking)
 		ret = sp_nonblocking_read(serial->data, buf, count);
 	else
-		ret = sp_blocking_read(serial->data, buf, count, 0);
+		ret = sp_blocking_read(serial->data, buf, count, timeout_ms);
 
 	switch (ret) {
 	case SP_ERR_ARG:
@@ -284,15 +286,17 @@ static int _serial_read(struct sr_serial_dev_inst *serial, void *buf,
  * @param serial Previously initialized serial port structure.
  * @param buf Buffer where to store the bytes that are read.
  * @param[in] count The number of bytes to read.
+ * @param[in] timeout_ms Timeout in ms, or 0 for no timeout.
  *
  * @retval SR_ERR_ARG Invalid argument.
  * @retval SR_ERR     Other error.
- * @retval other      The number of bytes read.
+ * @retval other      The number of bytes read. If this is less than the number
+ * requested, the timeout was reached.
  */
 SR_PRIV int serial_read_blocking(struct sr_serial_dev_inst *serial, void *buf,
-		size_t count)
+		size_t count, unsigned int timeout_ms)
 {
-	return _serial_read(serial, buf, count, 0);
+	return _serial_read(serial, buf, count, 0, timeout_ms);
 }
 
 /**
@@ -310,7 +314,7 @@ SR_PRIV int serial_read_blocking(struct sr_serial_dev_inst *serial, void *buf,
 SR_PRIV int serial_read_nonblocking(struct sr_serial_dev_inst *serial, void *buf,
 		size_t count)
 {
-	return _serial_read(serial, buf, count, 1);
+	return _serial_read(serial, buf, count, 1, 0);
 }
 
 /**

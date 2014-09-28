@@ -31,7 +31,7 @@ static int center_send(struct sr_serial_dev_inst *serial, const char *cmd)
 {
 	int ret;
 
-	if ((ret = serial_write_blocking(serial, cmd, strlen(cmd))) < 0) {
+	if ((ret = serial_write_blocking(serial, cmd, strlen(cmd), 0)) < 0) {
 		sr_err("Error sending '%s' command: %d.", cmd, ret);
 		return SR_ERR;
 	}

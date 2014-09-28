@@ -130,7 +130,7 @@ static GSList *scan(GSList *options, int modelid)
 	memset(packet, 0, PACKET_SIZE);
 	packet[0] = 0xaa;
 	packet[1] = 0xaa;
-	if (serial_write_blocking(serial, packet, PACKET_SIZE) < PACKET_SIZE) {
+	if (serial_write_blocking(serial, packet, PACKET_SIZE, 0) < PACKET_SIZE) {
 		sr_err("Unable to write while probing for hardware.");
 		return NULL;
 	}

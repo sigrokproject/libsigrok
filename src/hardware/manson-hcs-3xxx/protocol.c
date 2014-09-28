@@ -43,7 +43,7 @@ SR_PRIV int hcs_send_cmd(struct sr_serial_dev_inst *serial, const char *cmd, ...
 	sr_dbg("Sending '%s'.", cmd_esc);
 	g_free(cmd_esc);
 
-	if ((ret = serial_write_blocking(serial, cmdbuf, strlen(cmdbuf))) < 0) {
+	if ((ret = serial_write_blocking(serial, cmdbuf, strlen(cmdbuf), 0)) < 0) {
 		sr_err("Error sending command: %d.", ret);
 		return ret;
 	}
@@ -72,7 +72,7 @@ SR_PRIV int hcs_read_reply(struct sr_serial_dev_inst *serial, int lines, char* b
 		return SR_ERR_ARG;
 
 	while ((l_recv < lines) && (bufpos < (buflen + 1))) {
-		retc = serial_read_blocking(serial, &buf[bufpos], 1);
+		retc = serial_read_blocking(serial, &buf[bufpos], 1, 0);
 		if (retc != 1)
 			return SR_ERR;
 		if (buf[bufpos] == '\r')
@@ -177,7 +177,7 @@ static int handle_new_data(struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 	serial = sdi->conn;
 
-	len = serial_read_blocking(serial, devc->buf + devc->buflen, 1);
+	len = serial_read_blocking(serial, devc->buf + devc->buflen, 1, 0);
 	if (len < 1)
 		return SR_ERR;
 

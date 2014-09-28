@@ -30,7 +30,7 @@ SR_PRIV int send_shortcommand(struct sr_serial_dev_inst *serial,
 
 	sr_dbg("Sending cmd 0x%.2x.", command);
 	buf[0] = command;
-	if (serial_write_blocking(serial, buf, 1) != 1)
+	if (serial_write_blocking(serial, buf, 1, 0) != 1)
 		return SR_ERR;
 
 	return SR_OK;
@@ -48,7 +48,7 @@ SR_PRIV int send_longcommand(struct sr_serial_dev_inst *serial,
 	buf[2] = data[1];
 	buf[3] = data[2];
 	buf[4] = data[3];
-	if (serial_write_blocking(serial, buf, 5) != 5)
+	if (serial_write_blocking(serial, buf, 5, 0) != 5)
 		return SR_ERR;
 
 	return SR_OK;
@@ -155,7 +155,7 @@ SR_PRIV struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
 
 	key = 0xff;
 	while (key) {
-		if (serial_read_blocking(serial, &key, 1) != 1)
+		if (serial_read_blocking(serial, &key, 1, 0) != 1)
 			break;
 		if (key == 0x00) {
 			sr_dbg("Got metadata key 0x00, metadata ends.");
@@ -167,7 +167,7 @@ SR_PRIV struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
 		case 0:
 			/* NULL-terminated string */
 			tmp_str = g_string_new("");
-			while (serial_read_blocking(serial, &tmp_c, 1) == 1 && tmp_c != '\0')
+			while (serial_read_blocking(serial, &tmp_c, 1, 0) == 1 && tmp_c != '\0')
 				g_string_append_c(tmp_str, tmp_c);
 			sr_dbg("Got metadata key 0x%.2x value '%s'.",
 			       key, tmp_str->str);
@@ -199,7 +199,7 @@ SR_PRIV struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
 			break;
 		case 1:
 			/* 32-bit unsigned integer */
-			if (serial_read_blocking(serial, &tmp_int, 4) != 4)
+			if (serial_read_blocking(serial, &tmp_int, 4, 0) != 4)
 				break;
 			tmp_int = RB32(&tmp_int);
 			sr_dbg("Got metadata key 0x%.2x value 0x%.8x.",
@@ -238,7 +238,7 @@ SR_PRIV struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
 			break;
 		case 2:
 			/* 8-bit unsigned integer */
-			if (serial_read_blocking(serial, &tmp_c, 1) != 1)
+			if (serial_read_blocking(serial, &tmp_c, 1, 0) != 1)
 				break;
 			sr_dbg("Got metadata key 0x%.2x value 0x%.2x.",
 			       key, tmp_c);
