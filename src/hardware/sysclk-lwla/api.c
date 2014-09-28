@@ -99,7 +99,7 @@ static GSList *gen_channel_list(int num_channels)
 	return list;
 }
 
-static struct sr_dev_inst *dev_inst_new(int device_index)
+static struct sr_dev_inst *dev_inst_new()
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
@@ -112,7 +112,7 @@ static struct sr_dev_inst *dev_inst_new(int device_index)
 	}
 
 	/* Register the device with libsigrok. */
-	sdi = sr_dev_inst_new(device_index, SR_ST_INACTIVE,
+	sdi = sr_dev_inst_new(SR_ST_INACTIVE,
 			      VENDOR_NAME, MODEL_NAME, NULL);
 	if (!sdi) {
 		sr_err("Failed to instantiate device.");
@@ -138,7 +138,7 @@ static GSList *scan(GSList *options)
 	struct sr_usb_dev_inst *usb;
 	struct sr_config *src;
 	const char *conn;
-	int device_index;
+	char connection_id[64];
 
 	drvc = di->priv;
 	conn = USB_VID_PID;
@@ -152,13 +152,15 @@ static GSList *scan(GSList *options)
 	}
 	usb_devices = sr_usb_find(drvc->sr_ctx->libusb_ctx, conn);
 	devices = NULL;
-	device_index = g_slist_length(drvc->instances);
 
 	for (node = usb_devices; node != NULL; node = node->next) {
 		usb = node->data;
 
+		usb_get_port_path(libusb_get_device(usb->devhdl),
+				connection_id, sizeof(connection_id));
+
 		/* Create sigrok device instance. */
-		sdi = dev_inst_new(device_index);
+		sdi = dev_inst_new();
 		if (!sdi) {
 			sr_usb_dev_inst_free(usb);
 			continue;
@@ -166,6 +168,7 @@ static GSList *scan(GSList *options)
 		sdi->driver = di;
 		sdi->inst_type = SR_INST_USB;
 		sdi->conn = usb;
+		sdi->connection_id = g_strdup(connection_id);
 
 		/* Register device instance with driver. */
 		drvc->instances = g_slist_append(drvc->instances, sdi);
