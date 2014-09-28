@@ -61,7 +61,8 @@ static GSList *scan(GSList *options)
 	struct libusb_device_descriptor des;
 	libusb_device **devlist;
 	GSList *devices;
-	int ret, devcnt, i;
+	int ret, i;
+	char connection_id[64];
 
 	(void)options;
 
@@ -79,11 +80,13 @@ static GSList *scan(GSList *options)
 		if (des.idVendor != VICTOR_VID || des.idProduct != VICTOR_PID)
 			continue;
 
-		devcnt = g_slist_length(drvc->instances);
-		if (!(sdi = sr_dev_inst_new(devcnt, SR_ST_INACTIVE,
+		usb_get_port_path(devlist[i], connection_id, sizeof(connection_id));
+
+		if (!(sdi = sr_dev_inst_new(SR_ST_INACTIVE,
 				VICTOR_VENDOR, NULL, NULL)))
 			return NULL;
 		sdi->driver = di;
+		sdi->connection_id = g_strdup(connection_id);
 
 		if (!(devc = g_try_malloc0(sizeof(struct dev_context))))
 			return NULL;
@@ -117,6 +120,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 	struct sr_usb_dev_inst *usb;
 	libusb_device **devlist;
 	int ret, i;
+	char connection_id[64];
 
 	if (!di->priv) {
 		sr_err("Driver was not initialized.");
@@ -127,8 +131,8 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 	libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &devlist);
 	for (i = 0; devlist[i]; i++) {
-		if (libusb_get_bus_number(devlist[i]) != usb->bus
-				|| libusb_get_device_address(devlist[i]) != usb->address)
+		usb_get_port_path(devlist[i], connection_id, sizeof(connection_id));
+		if (strcmp(sdi->connection_id, connection_id))
 			continue;
 		if ((ret = libusb_open(devlist[i], &usb->devhdl))) {
 			sr_err("Failed to open device: %s.", libusb_error_name(ret));
