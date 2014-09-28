@@ -183,6 +183,7 @@ SR_PRIV struct sr_scpi_dev_inst *scpi_dev_inst_new(struct drv_context *drvc,
 			scpi = g_malloc(sizeof(*scpi));
 			*scpi = *scpi_dev;
 			scpi->priv = g_malloc0(scpi->priv_size);
+			scpi->read_timeout_ms = 1000;
 			params = g_strsplit(resource, "/", 0);
 			if (scpi->dev_inst_new(scpi->priv, drvc, resource,
 			                       params, serialcomm) != SR_OK) {
@@ -380,6 +381,8 @@ SR_PRIV int sr_scpi_get_string(struct sr_scpi_dev_inst *scpi,
 	char buf[256];
 	int len;
 	GString *response;
+	gint64 start;
+	unsigned int elapsed_ms;
 
 	if (command)
 		if (sr_scpi_send(scpi, command) != SR_OK)
@@ -387,6 +390,8 @@ SR_PRIV int sr_scpi_get_string(struct sr_scpi_dev_inst *scpi,
 
 	if (sr_scpi_read_begin(scpi) != SR_OK)
 		return SR_ERR;
+
+	start = g_get_monotonic_time();
 
 	response = g_string_new("");
 
@@ -399,6 +404,13 @@ SR_PRIV int sr_scpi_get_string(struct sr_scpi_dev_inst *scpi,
 			return SR_ERR;
 		}
 		g_string_append_len(response, buf, len);
+		elapsed_ms = (g_get_monotonic_time() - start) / 1000;
+		if (elapsed_ms >= scpi->read_timeout_ms)
+		{
+			sr_err("Timed out waiting for SCPI response.");
+			g_string_free(response, TRUE);
+			return SR_ERR;
+		}
 	}
 
 	/* Get rid of trailing linefeed if present */
