@@ -356,18 +356,18 @@ vector<const ConfigKey *> Configurable::config_keys(const ConfigKey *key)
 {
 	GVariant *gvar_opts;
 	gsize num_opts;
-	const int32_t *opts;
+	const uint32_t *opts;
 	vector<const ConfigKey *> result;
 
 	check(sr_config_list(
 		config_driver, config_sdi, config_channel_group,
 		key->id(), &gvar_opts));
 
-	opts = (const int32_t *) g_variant_get_fixed_array(
-		gvar_opts, &num_opts, sizeof(int32_t));
+	opts = (const uint32_t *) g_variant_get_fixed_array(
+		gvar_opts, &num_opts, sizeof(uint32_t));
 
 	for (gsize i = 0; i < num_opts; i++)
-		result.push_back(ConfigKey::get(opts[i]));
+		result.push_back(ConfigKey::get(opts[i] & SR_CONF_MASK));
 
 	g_variant_unref(gvar_opts);
 
@@ -379,18 +379,18 @@ bool Configurable::config_check(const ConfigKey *key,
 {
 	GVariant *gvar_opts;
 	gsize num_opts;
-	const int32_t *opts;
+	const uint32_t *opts;
 
 	if (sr_config_list(config_driver, config_sdi, config_channel_group,
 			index_key->id(), &gvar_opts) != SR_OK)
 		return false;
 
-	opts = (const int32_t *) g_variant_get_fixed_array(
-		gvar_opts, &num_opts, sizeof(int32_t));
+	opts = (const uint32_t *) g_variant_get_fixed_array(
+		gvar_opts, &num_opts, sizeof(uint32_t));
 
 	for (gsize i = 0; i < num_opts; i++)
 	{
-		if (opts[i] == key->id())
+		if ((opts[i] & SR_CONF_MASK) == key->id())
 		{
 			g_variant_unref(gvar_opts);
 			return true;
