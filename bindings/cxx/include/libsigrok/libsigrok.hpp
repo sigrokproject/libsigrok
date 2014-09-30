@@ -347,7 +347,7 @@ class SR_API Device : public Configurable
 {
 public:
 	/** Description identifying this device. */
-	string description();
+	virtual string description();
 	/** Vendor name for this device. */
 	string vendor();
 	/** Model name for this device. */
@@ -609,6 +609,8 @@ class SR_API SessionDevice :
 	public ParentOwned<SessionDevice, Session, struct sr_dev_inst>,
 	public Device
 {
+	/** Description identifying this device. */
+	string description();
 protected:
 	SessionDevice(struct sr_dev_inst *sdi);
 	~SessionDevice();
@@ -674,6 +676,7 @@ protected:
 	map<const struct sr_dev_inst *, shared_ptr<Device> > _other_devices;
 	vector<DatafeedCallbackData *> _datafeed_callbacks;
 	map<shared_ptr<EventSource>, SourceCallbackData *> _source_callbacks;
+	string _filename;
 	bool _saving;
 	bool _save_initialized;
 	string _save_filename;
@@ -682,6 +685,7 @@ protected:
 	friend class Deleter;
 	friend class Context;
 	friend class DatafeedCallbackData;
+	friend class SessionDevice;
 };
 
 /** A packet on the session datafeed */
@@ -851,6 +855,9 @@ class SR_API InputDevice :
 	public ParentOwned<InputDevice, Input, struct sr_dev_inst>,
 	public Device
 {
+public:
+	/** Description identifying this device. */
+	string description();
 protected:
 	InputDevice(shared_ptr<Input> input, struct sr_dev_inst *sdi);
 	~InputDevice();

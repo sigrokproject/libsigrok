@@ -789,6 +789,11 @@ SessionDevice::~SessionDevice()
 {
 }
 
+string SessionDevice::description()
+{
+	return _parent->_filename;
+}
+
 shared_ptr<Device> SessionDevice::get_shared_from_this()
 {
 	return static_pointer_cast<Device>(shared_from_this());
@@ -806,6 +811,7 @@ Session::Session(shared_ptr<Context> context) :
 Session::Session(shared_ptr<Context> context, string filename) :
 	UserOwned(_structure),
 	_context(context),
+	_filename(filename),
 	_saving(false)
 {
 	check(sr_session_load(filename.c_str(), &_structure));
@@ -1362,6 +1368,11 @@ InputDevice::InputDevice(shared_ptr<Input> input,
 
 InputDevice::~InputDevice()
 {
+}
+
+string InputDevice::description()
+{
+	return "<input data>";
 }
 
 shared_ptr<Device> InputDevice::get_shared_from_this()
