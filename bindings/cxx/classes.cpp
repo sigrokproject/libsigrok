@@ -448,6 +448,11 @@ string Device::description()
 		if (part.length() > 0)
 			s << part;
 
+	if (serial_number().length() > 0)
+		s << serial_number();
+	else
+		s << connection_id();
+
 	return s.str();
 }
 
@@ -464,6 +469,16 @@ string Device::model()
 string Device::version()
 {
 	return valid_string(_structure->version);
+}
+
+string Device::serial_number()
+{
+	return valid_string(_structure->serial_num);
+}
+
+string Device::connection_id()
+{
+	return valid_string(_structure->connection_id);
 }
 
 vector<shared_ptr<Channel>> Device::channels()

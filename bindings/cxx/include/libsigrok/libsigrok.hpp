@@ -354,6 +354,10 @@ public:
 	string model();
 	/** Version string for this device. */
 	string version();
+	/** Serial number for this device. */
+	string serial_number();
+	/** Connection ID for this device. */
+	string connection_id();
 	/** List of the channels available on this device. */
 	vector<shared_ptr<Channel> > channels();
 	/** Channel groups available on this device, indexed by name. */
