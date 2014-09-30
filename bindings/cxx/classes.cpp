@@ -352,12 +352,12 @@ Glib::VariantContainerBase Configurable::config_list(const ConfigKey *key)
 	return Glib::VariantContainerBase(data);
 }
 
-vector<const ConfigKey *> Configurable::config_keys(const ConfigKey *key)
+map<const ConfigKey *, set<Capability>> Configurable::config_keys(const ConfigKey *key)
 {
 	GVariant *gvar_opts;
 	gsize num_opts;
 	const uint32_t *opts;
-	vector<const ConfigKey *> result;
+	map<const ConfigKey *, set<Capability>> result;
 
 	check(sr_config_list(
 		config_driver, config_sdi, config_channel_group,
@@ -367,7 +367,17 @@ vector<const ConfigKey *> Configurable::config_keys(const ConfigKey *key)
 		gvar_opts, &num_opts, sizeof(uint32_t));
 
 	for (gsize i = 0; i < num_opts; i++)
-		result.push_back(ConfigKey::get(opts[i] & SR_CONF_MASK));
+	{
+		auto key = ConfigKey::get(opts[i] & SR_CONF_MASK);
+		set<Capability> capabilities;
+		if (opts[i] & SR_CONF_GET)
+			capabilities.insert(GET);
+		if (opts[i] & SR_CONF_SET)
+			capabilities.insert(SET);
+		if (opts[i] & SR_CONF_LIST)
+			capabilities.insert(LIST);
+		result[key] = capabilities;
+	}
 
 	g_variant_unref(gvar_opts);
 

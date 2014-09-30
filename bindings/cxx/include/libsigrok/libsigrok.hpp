@@ -77,6 +77,7 @@ raised, which provides access to the error code and description.
 #include <memory>
 #include <vector>
 #include <map>
+#include <set>
 
 namespace sigrok
 {
@@ -281,6 +282,12 @@ protected:
 	friend class Driver;
 };
 
+enum Capability {
+	GET = SR_CONF_GET,
+	SET = SR_CONF_SET,
+	LIST = SR_CONF_LIST
+};
+
 /** An object that can be configured. */
 class SR_API Configurable
 {
@@ -296,7 +303,7 @@ public:
 	 * @param key ConfigKey to enumerate values for. */
 	Glib::VariantContainerBase config_list(const ConfigKey *key);
 	/** Enumerate available keys, according to a given index key. */
-	vector<const ConfigKey *> config_keys(const ConfigKey *key);
+	map<const ConfigKey *, set<Capability> > config_keys(const ConfigKey *key);
 	/** Check for a key in the list from a given index key. */
 	bool config_check(const ConfigKey *key, const ConfigKey *index_key);
 protected:
