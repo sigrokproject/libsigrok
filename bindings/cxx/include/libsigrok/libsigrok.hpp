@@ -668,8 +668,10 @@ protected:
 	Session(shared_ptr<Context> context);
 	Session(shared_ptr<Context> context, string filename);
 	~Session();
+	shared_ptr<Device> get_device(const struct sr_dev_inst *sdi);
 	const shared_ptr<Context> _context;
-	map<const struct sr_dev_inst *, shared_ptr<Device> > _devices;
+	map<const struct sr_dev_inst *, SessionDevice *> _owned_devices;
+	map<const struct sr_dev_inst *, shared_ptr<Device> > _other_devices;
 	vector<DatafeedCallbackData *> _datafeed_callbacks;
 	map<shared_ptr<EventSource>, SourceCallbackData *> _source_callbacks;
 	bool _saving;

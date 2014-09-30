@@ -725,7 +725,7 @@ DatafeedCallbackData::DatafeedCallbackData(Session *session,
 void DatafeedCallbackData::run(const struct sr_dev_inst *sdi,
 	const struct sr_datafeed_packet *pkt)
 {
-	auto device = _session->_devices[sdi];
+	auto device = _session->get_device(sdi);
 	auto packet = shared_ptr<Packet>(new Packet(device, pkt), Packet::Deleter());
 	_callback(device, packet);
 }
@@ -814,9 +814,7 @@ Session::Session(shared_ptr<Context> context, string filename) :
 	for (GSList *dev = dev_list; dev; dev = dev->next)
 	{
 		auto sdi = (struct sr_dev_inst *) dev->data;
-		auto device = new SessionDevice(sdi);
-		_devices[sdi] = shared_ptr<SessionDevice>(device,
-			SessionDevice::Deleter());
+		_owned_devices[sdi] = new SessionDevice(sdi);
 	}
 	_context->_session = this;
 }
@@ -830,12 +828,26 @@ Session::~Session()
 
 	for (auto entry : _source_callbacks)
 		delete entry.second;
+
+	for (auto entry : _owned_devices)
+		delete entry.second;
+}
+
+shared_ptr<Device> Session::get_device(const struct sr_dev_inst *sdi)
+{
+	if (_owned_devices.count(sdi))
+		return static_pointer_cast<Device>(
+			_owned_devices[sdi]->get_shared_pointer(this));
+	else if (_other_devices.count(sdi))
+		return _other_devices[sdi];
+	else
+		throw Error(SR_ERR_BUG);
 }
 
 void Session::add_device(shared_ptr<Device> device)
 {
 	check(sr_session_dev_add(_structure, device->_structure));
-	_devices[device->_structure] = device;
+	_other_devices[device->_structure] = device;
 }
 
 vector<shared_ptr<Device>> Session::devices()
@@ -846,14 +858,24 @@ vector<shared_ptr<Device>> Session::devices()
 	for (GSList *dev = dev_list; dev; dev = dev->next)
 	{
 		auto sdi = (struct sr_dev_inst *) dev->data;
-		result.push_back(_devices[sdi]);
+		result.push_back(get_device(sdi));
 	}
 	return result;
 }
 
 void Session::remove_devices()
 {
-	_devices.clear();
+	for (auto entry : _owned_devices)
+	{
+		// We own this device. Make sure it's not referenced.
+		auto device = entry.second;
+		auto ptr = device->get_shared_pointer(this);
+		if (ptr.use_count() > 1)
+			throw Error(SR_ERR_BUG);
+		delete device;
+	}
+	_owned_devices.clear();
+	_other_devices.clear();
 	check(sr_session_dev_remove_all(_structure));
 }
 
