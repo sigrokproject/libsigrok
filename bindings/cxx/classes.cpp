@@ -442,16 +442,20 @@ string Device::description()
 	ostringstream s;
 
 	vector<string> parts =
-		{vendor(), model(), version()};
+		{vendor(), model(), version(), serial_number()};
 
-	for (string part : parts)
-		if (part.length() > 0)
-			s << part;
+	for (size_t i = 0; i < parts.size(); i++)
+	{
+		if (parts[i].length() > 0)
+		{
+			if (i != 0)
+				s << " ";
+			s << parts[i];
+		}
+	}
 
-	if (serial_number().length() > 0)
-		s << serial_number();
-	else
-		s << connection_id();
+	if (serial_number().length() == 0 && connection_id().length() > 0)
+		s << " " << connection_id();
 
 	return s.str();
 }
