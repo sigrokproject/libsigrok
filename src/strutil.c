@@ -426,7 +426,7 @@ SR_API int sr_parse_sizestring(const char *sizestring, uint64_t *size)
 	} else
 		*size += frac_part;
 
-	if (*s && strcasecmp(s, "Hz"))
+	if (s && *s && strcasecmp(s, "Hz"))
 		return SR_ERR;
 
 	return SR_OK;
