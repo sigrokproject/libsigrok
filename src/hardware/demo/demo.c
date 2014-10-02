@@ -496,7 +496,6 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
 		stropt = g_variant_get_string(data, NULL);
-		ch = cg->channels->data;
 		logic_pattern = analog_pattern = -1;
 		for (i = 0; i < ARRAY_SIZE(logic_pattern_str); i++) {
 			if (!strcmp(stropt, logic_pattern_str[i])) {
