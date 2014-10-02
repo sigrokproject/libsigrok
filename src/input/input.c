@@ -271,15 +271,17 @@ SR_API struct sr_input *sr_input_new(const struct sr_input_module *imod,
 	if (in->module->init && in->module->init(in, new_opts) != SR_OK) {
 		g_free(in);
 		in = NULL;
+	} else {
+		in->buf = g_string_sized_new(128);
 	}
+
 	if (new_opts)
 		g_hash_table_destroy(new_opts);
-	in->buf = g_string_sized_new(128);
 
 	return in;
 }
 
-/* Returns TRUE is all required meta items are available. */
+/* Returns TRUE if all required meta items are available. */
 static gboolean check_required_metadata(const uint8_t *metadata, uint8_t *avail)
 {
 	int m, a;
