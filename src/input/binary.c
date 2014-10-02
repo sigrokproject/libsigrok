@@ -97,7 +97,6 @@ static int process_buffer(struct sr_input *in)
 	/* Cut off at multiple of unitsize. */
 	chunk_size = in->buf->len / logic.unitsize * logic.unitsize;
 
-	chunk = 0;
 	for (i = 0; i < chunk_size; i += chunk) {
 		logic.data = in->buf->str + i;
 		chunk = MIN(MAX_CHUNK_SIZE, chunk_size - i);
