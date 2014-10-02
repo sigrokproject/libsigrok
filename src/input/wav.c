@@ -338,7 +338,7 @@ static int receive(struct sr_input *in, GString *buf)
 
 	ret = process_buffer(in);
 
-	return SR_OK;
+	return ret;
 }
 
 static int end(struct sr_input *in)

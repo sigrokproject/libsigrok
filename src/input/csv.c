@@ -651,6 +651,7 @@ static int process_buffer(struct sr_input *in)
 	else
 		max_columns = 1;
 
+	ret = SR_OK;
 	lines = g_strsplit_set(in->buf->str, "\r\n", 0);
 	for (l = 0; lines[l]; l++) {
 		inc->line_number++;
