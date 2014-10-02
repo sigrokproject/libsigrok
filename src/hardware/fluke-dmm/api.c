@@ -176,6 +176,7 @@ static GSList *scan(GSList *options)
 	if (!conn)
 		return NULL;
 
+	devices = NULL;
 	if (serialcomm) {
 		/* Use the provided comm specs. */
 		devices = fluke_scan(conn, serialcomm);
