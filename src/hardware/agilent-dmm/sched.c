@@ -137,9 +137,9 @@ static int agdmm_send(const struct sr_dev_inst *sdi, const char *cmd)
 	sr_spew("Sending '%s'.", cmd);
 	strncpy(buf, cmd, 28);
 	if (!strncmp(buf, "*IDN?", 5))
-		strncat(buf, "\r\n", 32);
+		strcat(buf, "\r\n");
 	else
-		strncat(buf, "\n\r\n", 32);
+		strcat(buf, "\n\r\n");
 	if (serial_write_blocking(serial, buf, strlen(buf)) == -1) {
 		sr_err("Failed to send: %s.", strerror(errno));
 		return SR_ERR;
