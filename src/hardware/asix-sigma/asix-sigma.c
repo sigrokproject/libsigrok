@@ -201,10 +201,10 @@ static int sigma_read_pos(uint32_t *stoppos, uint32_t *triggerpos,
 
 	/* Not really sure why this must be done, but according to spec. */
 	if ((--*stoppos & 0x1ff) == 0x1ff)
-		stoppos -= 64;
+		*stoppos -= 64;
 
 	if ((*--triggerpos & 0x1ff) == 0x1ff)
-		triggerpos -= 64;
+		*triggerpos -= 64;
 
 	return 1;
 }
@@ -1342,6 +1342,7 @@ static void add_trigger_function(enum triggerop oper, enum triggerfunc func,
 		aset = (*mask >> i) & 1;
 		bset = x[b][a];
 
+		rset = 0;
 		if (func == FUNC_AND || func == FUNC_NAND)
 			rset = aset & bset;
 		else if (func == FUNC_OR || func == FUNC_NOR)
