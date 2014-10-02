@@ -133,7 +133,7 @@ static int scpi_vxi_send(void *priv, const char *command)
 	if (!(write_resp = device_write_1(&write_parms, vxi->client))
 	    || write_resp->error) {
 		sr_err("Device write failed for %s with error %d",
-		       vxi->address, write_resp->error);
+		       vxi->address, write_resp ? write_resp->error : 0);
 		return SR_ERR;
 	}
 
@@ -178,7 +178,7 @@ static int scpi_vxi_read_data(void *priv, char *buf, int maxlen)
 	if (!(read_resp = device_read_1(&read_parms, vxi->client))
 	    || read_resp->error) {
 		sr_err("Device read failed for %s with error %d",
-		       vxi->address, read_resp->error);
+		       vxi->address, read_resp ? read_resp->error : 0);
 		return SR_ERR;
 	}
 
