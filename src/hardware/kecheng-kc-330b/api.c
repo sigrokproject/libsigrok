@@ -430,7 +430,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	struct sr_usb_dev_inst *usb;
 	GVariant *gvar, *rational[2];
 	const uint64_t *si;
-	int stored_mqflags, req_len, buf_len, len, ret;
+	int req_len, buf_len, len, ret;
 	unsigned char buf[9];
 
 	if (sdi->status != SR_ST_ACTIVE)
@@ -462,8 +462,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	} else {
 		if (kecheng_kc_330b_log_info_get(sdi, buf) != SR_OK)
 			return SR_ERR;
-		stored_mqflags = buf[4] ? SR_MQFLAG_SPL_TIME_WEIGHT_S : SR_MQFLAG_SPL_TIME_WEIGHT_F;
-		stored_mqflags |= buf[5] ? SR_MQFLAG_SPL_FREQ_WEIGHT_C : SR_MQFLAG_SPL_FREQ_WEIGHT_A;
+		devc->mqflags = buf[4] ? SR_MQFLAG_SPL_TIME_WEIGHT_S : SR_MQFLAG_SPL_TIME_WEIGHT_F;
+		devc->mqflags |= buf[5] ? SR_MQFLAG_SPL_FREQ_WEIGHT_C : SR_MQFLAG_SPL_FREQ_WEIGHT_A;
 		devc->stored_samples = (buf[7] << 8) | buf[8];
 		if (devc->stored_samples == 0) {
 			/* Notify frontend of empty log by sending start/end packets. */
