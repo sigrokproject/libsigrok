@@ -342,7 +342,6 @@ static GSList *scan(GSList *options)
 				sdi->connection_id = g_strdup(connection_id);
 				sdi->status = SR_ST_INACTIVE;
 				devices = g_slist_append(devices, sdi);
-				devc = sdi->priv;
 				sdi->inst_type = SR_INST_USB;
 				sdi->conn = sr_usb_dev_inst_new(
 						libusb_get_bus_number(devlist[i]),
