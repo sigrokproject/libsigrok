@@ -142,7 +142,8 @@ static int add_device(int idx, int model, GSList **devices)
 	*devices = g_slist_append(*devices, sdi);
 	drvc->instances = g_slist_append(drvc->instances, sdi);
 
-	return SR_OK;
+	if (ret == SR_OK)
+		return SR_OK;
 
 err_free_dev_inst:
 	sr_dev_inst_free(sdi);
@@ -210,8 +211,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	int ret;
 
-	ret = SR_ERR;
-
 	if (!(devc = sdi->priv))
 		return SR_ERR_BUG;
 
@@ -254,7 +253,8 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 	sdi->status = SR_ST_ACTIVE;
 
-	return SR_OK;
+	if (ret == SR_OK)
+		return SR_OK;
 
 err_ftdi_free:
 	ftdi_free(devc->ftdic); /* Close device (if open), free FTDI context. */
