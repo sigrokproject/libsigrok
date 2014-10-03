@@ -207,7 +207,6 @@ static void check_buf(GHashTable *options, const uint8_t *buf, int check,
 	fail_unless(in != NULL, "Failed to create input instance.");
 
 	sdi = sr_input_dev_inst_get(in);
-	fail_unless(sdi != NULL, "Failed to get device instance.");
 
 	sr_session_new(&session);
 	sr_session_datafeed_callback_add(session, datafeed_in, NULL);
@@ -215,9 +214,7 @@ static void check_buf(GHashTable *options, const uint8_t *buf, int check,
 
 	ret = sr_input_send(in, gbuf);
 	fail_unless(ret == SR_OK, "sr_input_send() error: %d", ret);
-
-	ret = sr_input_free(in);
-	fail_unless(ret == SR_OK, "Failed to free input instance: %d", ret);
+	sr_input_free(in);
 
 	sr_session_destroy(session);
 
