@@ -557,7 +557,7 @@ static int initial_parse(const struct sr_input *in, GString *buf)
 		if (inc->header && inc->multi_column_mode && strlen(columns[i]))
 			g_string_assign(channel_name, columns[i]);
 		else
-			g_string_printf(channel_name, "%lu", i);
+			g_string_printf(channel_name, "%zu", i);
 		ch = sr_channel_new(i, SR_CHANNEL_LOGIC, TRUE, channel_name->str);
 		in->sdi->channels = g_slist_append(in->sdi->channels, ch);
 	}
