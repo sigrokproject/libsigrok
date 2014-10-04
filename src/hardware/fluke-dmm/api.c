@@ -90,7 +90,7 @@ static GSList *fluke_scan(const char *conn, const char *serialcomm)
 	while (!devices && retry < 3) {
 		retry++;
 		serial_flush(serial);
-		if (serial_write_blocking(serial, "ID\r", 3, 0) < 0) {
+		if (serial_write_blocking(serial, "ID\r", 3, SERIAL_WRITE_TIMEOUT_MS) < 0) {
 			sr_err("Unable to send ID string");
 			continue;
 		}
@@ -286,7 +286,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	serial_source_add(sdi->session, serial, G_IO_IN, 50,
 			fluke_receive_data, (void *)sdi);
 
-	if (serial_write_blocking(serial, "QM\r", 3, 0) < 0) {
+	if (serial_write_blocking(serial, "QM\r", 3, SERIAL_WRITE_TIMEOUT_MS) < 0) {
 		sr_err("Unable to send QM.");
 		return SR_ERR;
 	}
