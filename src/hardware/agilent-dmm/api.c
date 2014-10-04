@@ -116,7 +116,7 @@ static GSList *scan(GSList *options)
 		return NULL;
 
 	serial_flush(serial);
-	if (serial_write_blocking(serial, "*IDN?\r\n", 7, 0) < 7) {
+	if (serial_write_blocking(serial, "*IDN?\r\n", 7, SERIAL_WRITE_TIMEOUT_MS) < 7) {
 		sr_err("Unable to send identification string.");
 		return NULL;
 	}

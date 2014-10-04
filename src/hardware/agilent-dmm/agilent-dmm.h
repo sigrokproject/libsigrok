@@ -24,6 +24,9 @@
 
 #define AGDMM_BUFSIZE  256
 
+/* Always USB-serial, 1ms is plenty. */
+#define SERIAL_WRITE_TIMEOUT_MS 1
+
 /* Supported models */
 enum {
 	AGILENT_U1231 = 1,
