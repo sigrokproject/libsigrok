@@ -92,6 +92,7 @@ static GSList *scan(GSList *options, int modelid)
 	struct sr_serial_dev_inst *serial;
 	GSList *l, *devices;
 	struct pps_model *model;
+	float byte_delay_ms;
 	uint8_t packet[PACKET_SIZE];
 	unsigned int i;
 	int ret;
@@ -126,11 +127,20 @@ static GSList *scan(GSList *options, int modelid)
 		return NULL;
 	serial_flush(serial);
 
-	/* This is how the vendor software channels for hardware. */
+	/* How long it takes for a byte to transfer over the serial port. */
+	if (sp_get_port_transport(serial->data) == SP_TRANSPORT_NATIVE)
+		/* 11 bits at 9600 bps. */
+		byte_delay_ms = 1.15;
+	else
+		/* Emulated serial over USB or bluetooth is just enqueueing. */
+		byte_delay_ms = 0;
+
+	/* This is how the vendor software scans for hardware. */
 	memset(packet, 0, PACKET_SIZE);
 	packet[0] = 0xaa;
 	packet[1] = 0xaa;
-	if (serial_write_blocking(serial, packet, PACKET_SIZE, 0) < PACKET_SIZE) {
+	if (serial_write_blocking(serial, packet, PACKET_SIZE,
+			byte_delay_ms * PACKET_SIZE + 1) < PACKET_SIZE) {
 		sr_err("Unable to write while probing for hardware.");
 		return NULL;
 	}
@@ -178,6 +188,7 @@ static GSList *scan(GSList *options, int modelid)
 	devc = g_malloc0(sizeof(struct dev_context));
 	devc->model = model;
 	devc->config = g_malloc0(sizeof(struct per_channel_config) * model->num_channels);
+	devc->byte_delay_ms = byte_delay_ms;
 	sdi->priv = devc;
 	drvc->instances = g_slist_append(drvc->instances, sdi);
 	devices = g_slist_append(devices, sdi);
