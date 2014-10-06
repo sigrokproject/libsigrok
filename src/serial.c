@@ -798,3 +798,43 @@ SR_PRIV GSList *sr_serial_find_usb(uint16_t vendor_id, uint16_t product_id)
 	sp_free_port_list(ports);
 	return tty_devs;
 }
+
+SR_PRIV int serial_timeout(struct sr_serial_dev_inst *port, int num_bytes)
+{
+	struct sp_port_config *config;
+	int timeout_ms, bits, baud, tmp;
+
+	/* Default to 1s. */
+	timeout_ms = 1000;
+
+	if (sp_new_config(&config) < 0)
+		return timeout_ms;
+
+	bits = baud = 0;
+	do {
+		if (sp_get_config(port->data, config) < 0)
+			break;
+
+		/* Start bit. */
+		bits = 1;
+		if (sp_get_config_bits(config, &tmp) < 0)
+			break;
+		bits += tmp;
+		if (sp_get_config_stopbits(config, &tmp) < 0)
+			break;
+		bits += tmp;
+		if (sp_get_config_baudrate(config, &tmp) < 0)
+			break;
+		baud = tmp;
+	} while (FALSE);
+
+	if (bits && baud) {
+		/* Throw in 10ms for misc OS overhead. */
+		timeout_ms = 10;
+		timeout_ms += ((1000.0 / baud) * bits) * num_bytes;
+	}
+
+	sp_free_config(config);
+
+	return timeout_ms;
+}

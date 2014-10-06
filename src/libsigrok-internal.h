@@ -656,6 +656,7 @@ SR_PRIV int serial_source_add(struct sr_session *session,
 SR_PRIV int serial_source_remove(struct sr_session *session,
 		struct sr_serial_dev_inst *serial);
 SR_PRIV GSList *sr_serial_find_usb(uint16_t vendor_id, uint16_t product_id);
+SR_PRIV int serial_timeout(struct sr_serial_dev_inst *port, int num_bytes);
 #endif
 
 /*--- hardware/common/ezusb.c -----------------------------------------------*/
