@@ -82,7 +82,8 @@ struct dev_context {
 	/* Operational state */
 	gboolean config_dirty;
 	struct per_channel_config *config;
-	float byte_delay_ms;
+	/* Blocking write timeout for packet. */
+	int delay_ms;
 	/* Received from device. */
 	int channel_mode;
 	gboolean over_current_protection;

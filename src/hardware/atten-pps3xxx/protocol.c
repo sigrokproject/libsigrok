@@ -88,8 +88,7 @@ SR_PRIV void send_packet(const struct sr_dev_inst *sdi, uint8_t *packet)
 
 	devc = sdi->priv;
 	serial = sdi->conn;
-	if (serial_write_blocking(serial, packet, PACKET_SIZE,
-			devc->byte_delay_ms * PACKET_SIZE + 1) < PACKET_SIZE)
+	if (serial_write_blocking(serial, packet, PACKET_SIZE, devc->delay_ms) < PACKET_SIZE)
 		sr_dbg("Failed to send packet.");
 	dump_packet("sent", packet);
 }
