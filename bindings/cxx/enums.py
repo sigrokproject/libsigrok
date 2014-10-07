@@ -95,6 +95,9 @@ code_template = """
 
 const {classname} *{classname}::get(int id)
 {{
+    if (_values.find(static_cast<{enumname}>(id)) == _values.end())
+        throw Error(SR_ERR_ARG);
+
     return {classname}::_values.at(static_cast<{enumname}>(id));
 }}
 """
