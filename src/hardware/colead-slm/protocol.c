@@ -184,7 +184,7 @@ SR_PRIV int colead_slm_receive_data(int fd, int revents, void *cb_data)
 	const struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
-	int len;
+	int delay_ms, len;
 	char buf[128];
 
 	(void)fd;
@@ -207,7 +207,8 @@ SR_PRIV int colead_slm_receive_data(int fd, int revents, void *cb_data)
 			 * we don't want it. */
 			return TRUE;
 		/* Got 0x10, "measurement ready". */
-		if (serial_write_blocking(serial, "\x20", 1, 0) < 1)
+		delay_ms = serial_timeout(serial, 1);
+		if (serial_write_blocking(serial, "\x20", 1, delay_ms) < 1)
 			sr_err("unable to send command");
 		else {
 			devc->state = COMMAND_SENT;
