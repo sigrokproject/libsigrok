@@ -191,7 +191,7 @@ SR_API gboolean sr_dev_has_option(const struct sr_dev_inst *sdi, int key)
 	ret = FALSE;
 	devopts = g_variant_get_fixed_array(gvar, &num_opts, sizeof(int32_t));
 	for (i = 0; i < num_opts; i++) {
-		if (devopts[i] == key) {
+		if ((devopts[i] & SR_CONF_MASK) == key) {
 			ret = TRUE;
 			break;
 		}
