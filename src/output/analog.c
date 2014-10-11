@@ -105,6 +105,9 @@ static void fancyprint(int unit, int mqflags, float value, GString *out)
 	case SR_UNIT_FARAD:
 		si_printf(value, out, "F");
 		break;
+	case SR_UNIT_HENRY:
+		si_printf(value, out, "H");
+		break;
 	case SR_UNIT_KELVIN:
 		si_printf(value, out, "K");
 		break;
@@ -187,6 +190,10 @@ static void fancyprint(int unit, int mqflags, float value, GString *out)
 	case SR_UNIT_HUMIDITY_293K:
 		si_printf(value, out, "%rF");
 		break;
+	case SR_UNIT_DEGREE:
+		si_printf(value, out, "");
+		g_string_append_unichar(out, 0x00b0);
+		break;
 	default:
 		si_printf(value, out, "");
 		break;
@@ -212,6 +219,12 @@ static void fancyprint(int unit, int mqflags, float value, GString *out)
 		g_string_append_printf(out, " REL");
 	if (mqflags & SR_MQFLAG_AVG)
 		g_string_append_printf(out, " AVG");
+	if (mqflags & SR_MQFLAG_REFERENCE)
+		g_string_append_printf(out, " REF");
+	if (mqflags & SR_MQFLAG_AUTOMQ)
+		g_string_append_printf(out, " AUTOMQ");
+	if (mqflags & SR_MQFLAG_AUTOMODEL)
+		g_string_append_printf(out, " AUTOMODEL");
 	g_string_append_c(out, '\n');
 }
 
