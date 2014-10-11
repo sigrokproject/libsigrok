@@ -910,4 +910,24 @@ SR_PRIV gboolean sr_brymen_bm25x_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_brymen_bm25x_parse(const uint8_t *buf, float *floatval,
 			     struct sr_datafeed_analog *analog, void *info);
 
+/*--- hardware/common/lcr/es51919.c ---------------------------------------*/
+
+SR_PRIV void es51919_serial_clean(void *priv);
+SR_PRIV struct sr_dev_inst *es51919_serial_scan(GSList *options,
+						const char *vendor,
+						const char *model);
+SR_PRIV int es51919_serial_config_get(uint32_t key, GVariant **data,
+				      const struct sr_dev_inst *sdi,
+				      const struct sr_channel_group *cg);
+SR_PRIV int es51919_serial_config_set(uint32_t key, GVariant *data,
+				      const struct sr_dev_inst *sdi,
+				      const struct sr_channel_group *cg);
+SR_PRIV int es51919_serial_config_list(uint32_t key, GVariant **data,
+				       const struct sr_dev_inst *sdi,
+				       const struct sr_channel_group *cg);
+SR_PRIV int es51919_serial_acquisition_start(const struct sr_dev_inst *sdi,
+					     void *cb_data);
+SR_PRIV int es51919_serial_acquisition_stop(struct sr_dev_inst *sdi,
+					    void *cb_data);
+
 #endif

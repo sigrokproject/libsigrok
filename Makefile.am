@@ -106,6 +106,10 @@ libsigrok_la_SOURCES += \
 	src/dmm/rs9lcd.c \
 	src/dmm/bm25x.c
 
+# Hardware (LCR chip parsers)
+libsigrok_la_SOURCES += \
+	src/lcr/es51919.c
+
 # Hardware drivers
 if HW_AGILENT_DMM
 libsigrok_la_SOURCES += \
