@@ -812,6 +812,9 @@ enum sr_configkey {
 	/** Over-temperature protection (OTP) */
 	SR_CONF_OVER_TEMPERATURE_PROTECTION,
 
+	/** Output frequency in Hz. */
+	SR_CONF_OUTPUT_FREQUENCY,
+
 	/*--- Special stuff -------------------------------------------------*/
 
 	/** Scan options supported by the driver. */
