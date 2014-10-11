@@ -574,6 +574,9 @@ enum sr_configkey {
 	/** Programmable power supply. */
 	SR_CONF_POWER_SUPPLY,
 
+	/** LCR meter. */
+	SR_CONF_LCR_METER,
+
 	/*--- Driver scan options -------------------------------------------*/
 
 	/**
