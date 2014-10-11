@@ -219,6 +219,8 @@ enum sr_mq {
 	SR_MQ_QUALITY_FACTOR,
 	/** Phase angle. */
 	SR_MQ_PHASE_ANGLE,
+	/** Difference from reference value. */
+	SR_MQ_DIFFERENCE,
 };
 
 /** Unit of measured quantity, sr_datafeed_analog.unit. */
@@ -336,6 +338,8 @@ enum sr_mqflag {
 	SR_MQFLAG_DURATION = 0x20000,
 	/** Device is in "avg" mode, averaging upon each new value. */
 	SR_MQFLAG_AVG = 0x40000,
+	/** Reference value shown. */
+	SR_MQFLAG_REFERENCE = 0x80000,
 };
 
 enum sr_trigger_matches {
