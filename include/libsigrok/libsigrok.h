@@ -264,6 +264,10 @@ enum sr_unit {
 	SR_UNIT_HECTOPASCAL,
 	/** Relative humidity assuming air temperature of 293 kelvin (%rF). */
 	SR_UNIT_HUMIDITY_293K,
+	/** Plane angle in 1/360th of a full circle. */
+	SR_UNIT_DEGREE,
+	/** Henry (inductance). */
+	SR_UNIT_HENRY,
 };
 
 /** Values for sr_datafeed_analog.flags. */
