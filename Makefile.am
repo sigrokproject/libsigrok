@@ -188,6 +188,10 @@ if HW_DEMO
 libsigrok_la_SOURCES += \
 	src/hardware/demo/demo.c
 endif
+if HW_DEREE_DE5000
+libsigrok_la_SOURCES += \
+	src/hardware/deree-de5000/api.c
+endif
 if HW_FLUKE_DMM
 libsigrok_la_SOURCES += \
 	src/hardware/fluke-dmm/fluke-dmm.h \

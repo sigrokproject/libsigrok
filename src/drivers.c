@@ -61,6 +61,9 @@ extern SR_PRIV struct sr_dev_driver conrad_digi_35_cpu_driver_info;
 #ifdef HAVE_HW_DEMO
 extern SR_PRIV struct sr_dev_driver demo_driver_info;
 #endif
+#ifdef HAVE_HW_DEREE_DE5000
+extern SR_PRIV struct sr_dev_driver deree_de5000_driver_info;
+#endif
 #ifdef HAVE_HW_FLUKE_DMM
 extern SR_PRIV struct sr_dev_driver flukedmm_driver_info;
 #endif
@@ -237,6 +240,9 @@ SR_PRIV struct sr_dev_driver *drivers_list[] = {
 #endif
 #ifdef HAVE_HW_DEMO
 	&demo_driver_info,
+#endif
+#ifdef HAVE_HW_DEREE_DE5000
+	&deree_de5000_driver_info,
 #endif
 #ifdef HAVE_HW_FLUKE_DMM
 	&flukedmm_driver_info,
