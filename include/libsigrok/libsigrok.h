@@ -201,6 +201,24 @@ enum sr_mq {
 	SR_MQ_WIND_SPEED,
 	/** Pressure */
 	SR_MQ_PRESSURE,
+	/** Parallel inductance (LCR meter model). */
+	SR_MQ_PARALLEL_INDUCTANCE,
+	/** Parallel capacitance (LCR meter model). */
+	SR_MQ_PARALLEL_CAPACITANCE,
+	/** Parallel resistance (LCR meter model). */
+	SR_MQ_PARALLEL_RESISTANCE,
+	/** Serial inductance (LCR meter model). */
+	SR_MQ_SERIAL_INDUCTANCE,
+	/** Serial capacitance (LCR meter model). */
+	SR_MQ_SERIAL_CAPACITANCE,
+	/** Serial resistance (LCR meter model). */
+	SR_MQ_SERIAL_RESISTANCE,
+	/** Dissipation factor. */
+	SR_MQ_DISSIPATION_FACTOR,
+	/** Quality factor. */
+	SR_MQ_QUALITY_FACTOR,
+	/** Phase angle. */
+	SR_MQ_PHASE_ANGLE,
 };
 
 /** Unit of measured quantity, sr_datafeed_analog.unit. */
