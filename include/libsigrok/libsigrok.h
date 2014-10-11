@@ -340,6 +340,10 @@ enum sr_mqflag {
 	SR_MQFLAG_AVG = 0x40000,
 	/** Reference value shown. */
 	SR_MQFLAG_REFERENCE = 0x80000,
+	/** Device selects the measured quantity automatically. */
+	SR_MQFLAG_AUTOMQ = 0x100000,
+	/** Device selects the measurement model automatically. */
+	SR_MQFLAG_AUTOMODEL = 0x200000,
 };
 
 enum sr_trigger_matches {
