@@ -113,6 +113,8 @@ SR_API int sr_session_destroy(struct sr_session *session)
 	if (session->trigger)
 		sr_trigger_free(session->trigger);
 
+	g_slist_free_full(session->owned_devs, (GDestroyNotify)sr_dev_inst_free);
+
 	g_free(session);
 
 	return SR_OK;

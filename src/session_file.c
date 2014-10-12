@@ -179,6 +179,8 @@ SR_API int sr_session_load(const char *filename, struct sr_session **session)
 					}
 					sr_dev_open(sdi);
 					sr_session_dev_add(*session, sdi);
+					(*session)->owned_devs = g_slist_append(
+							(*session)->owned_devs, sdi);
 					sdi->driver->config_set(SR_CONF_SESSIONFILE,
 							g_variant_new_string(filename), sdi, NULL);
 					sdi->driver->config_set(SR_CONF_CAPTUREFILE,

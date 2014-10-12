@@ -535,6 +535,8 @@ SR_PRIV int sr_source_add_channel(GIOChannel *channel, int events, int timeout,
 struct sr_session {
 	/** List of struct sr_dev_inst pointers. */
 	GSList *devs;
+	/** List of struct sr_dev_inst pointers owned by this session. */
+	GSList *owned_devs;
 	/** List of struct datafeed_callback pointers. */
 	GSList *datafeed_callbacks;
 	struct sr_trigger *trigger;
