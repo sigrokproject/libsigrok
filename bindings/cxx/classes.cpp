@@ -1071,6 +1071,11 @@ void Session::set_trigger(shared_ptr<Trigger> trigger)
 	_trigger = trigger;
 }
 
+string Session::filename()
+{
+	return _filename;
+}
+
 Packet::Packet(shared_ptr<Device> device,
 	const struct sr_datafeed_packet *structure) :
 	UserOwned(structure),

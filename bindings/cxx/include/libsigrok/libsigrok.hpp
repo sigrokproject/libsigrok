@@ -672,6 +672,8 @@ public:
 	/** Set trigger setting.
 	 * @param trigger Trigger object to use. */
 	void set_trigger(shared_ptr<Trigger> trigger);
+	/** Get filename this session was loaded from. */
+	string filename();
 protected:
 	Session(shared_ptr<Context> context);
 	Session(shared_ptr<Context> context, string filename);
