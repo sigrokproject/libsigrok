@@ -871,16 +871,6 @@ vector<shared_ptr<Device>> Session::devices()
 
 void Session::remove_devices()
 {
-	for (auto entry : _owned_devices)
-	{
-		// We own this device. Make sure it's not referenced.
-		auto device = entry.second;
-		auto ptr = device->get_shared_pointer(this);
-		if (ptr.use_count() > 1)
-			throw Error(SR_ERR_BUG);
-		delete device;
-	}
-	_owned_devices.clear();
 	_other_devices.clear();
 	check(sr_session_dev_remove_all(_structure));
 }
