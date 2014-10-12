@@ -616,7 +616,7 @@ SR_PRIV void soft_trigger_logic_free(struct soft_trigger_logic *st);
 SR_PRIV int soft_trigger_logic_check(struct soft_trigger_logic *st, uint8_t *buf,
 		int len);
 
-/*--- hardware/common/serial.c ----------------------------------------------*/
+/*--- hardware/serial.c -----------------------------------------------------*/
 
 #ifdef HAVE_LIBSERIALPORT
 enum {
@@ -659,7 +659,7 @@ SR_PRIV GSList *sr_serial_find_usb(uint16_t vendor_id, uint16_t product_id);
 SR_PRIV int serial_timeout(struct sr_serial_dev_inst *port, int num_bytes);
 #endif
 
-/*--- hardware/common/ezusb.c -----------------------------------------------*/
+/*--- hardware/ezusb.c ------------------------------------------------------*/
 
 #ifdef HAVE_LIBUSB_1_0
 SR_PRIV int ezusb_reset(struct libusb_device_handle *hdl, int set_clear);
@@ -669,7 +669,7 @@ SR_PRIV int ezusb_upload_firmware(libusb_device *dev, int configuration,
 				  const char *filename);
 #endif
 
-/*--- hardware/common/usb.c -------------------------------------------------*/
+/*--- hardware/usb.c --------------------------------------------------------*/
 
 #ifdef HAVE_LIBUSB_1_0
 SR_PRIV GSList *sr_usb_find(libusb_context *usb_ctx, const char *conn);
@@ -680,7 +680,7 @@ SR_PRIV int usb_source_remove(struct sr_session *session, struct sr_context *ctx
 SR_PRIV int usb_get_port_path(libusb_device *dev, char *path, int path_len);
 #endif
 
-/*--- hardware/common/scpi.c ------------------------------------------------*/
+/*--- hardware/scpi.c -------------------------------------------------------*/
 
 #define SCPI_CMD_IDN "*IDN?"
 #define SCPI_CMD_OPC "*OPC?"
@@ -778,7 +778,7 @@ SR_PRIV int sr_scpi_get_hw_id(struct sr_scpi_dev_inst *scpi,
 			struct sr_scpi_hw_info **scpi_response);
 SR_PRIV void sr_scpi_hw_info_free(struct sr_scpi_hw_info *hw_info);
 
-/*--- hardware/common/dmm/es519xx.c -----------------------------------------*/
+/*--- hardware/dmm/es519xx.c ------------------------------------------------*/
 
 /**
  * All 11-byte es519xx chips repeat each block twice for each conversion cycle
@@ -823,7 +823,7 @@ SR_PRIV gboolean sr_es519xx_19200_14b_sel_lpf_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_es519xx_19200_14b_sel_lpf_parse(const uint8_t *buf,
 		float *floatval, struct sr_datafeed_analog *analog, void *info);
 
-/*--- hardware/common/dmm/fs9922.c ------------------------------------------*/
+/*--- hardware/dmm/fs9922.c -------------------------------------------------*/
 
 #define FS9922_PACKET_SIZE 14
 
@@ -841,7 +841,7 @@ SR_PRIV int sr_fs9922_parse(const uint8_t *buf, float *floatval,
 			    struct sr_datafeed_analog *analog, void *info);
 SR_PRIV void sr_fs9922_z1_diode(struct sr_datafeed_analog *analog, void *info);
 
-/*--- hardware/common/dmm/fs9721.c ------------------------------------------*/
+/*--- hardware/dmm/fs9721.c -------------------------------------------------*/
 
 #define FS9721_PACKET_SIZE 14
 
@@ -861,7 +861,7 @@ SR_PRIV void sr_fs9721_10_temp_c(struct sr_datafeed_analog *analog, void *info);
 SR_PRIV void sr_fs9721_01_10_temp_f_c(struct sr_datafeed_analog *analog, void *info);
 SR_PRIV void sr_fs9721_max_c_min(struct sr_datafeed_analog *analog, void *info);
 
-/*--- hardware/common/dmm/m2110.c -----------------------------------------*/
+/*--- hardware/dmm/m2110.c --------------------------------------------------*/
 
 #define BBCGM_M2110_PACKET_SIZE 9
 
@@ -869,7 +869,7 @@ SR_PRIV gboolean sr_m2110_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_m2110_parse(const uint8_t *buf, float *floatval,
 			     struct sr_datafeed_analog *analog, void *info);
 
-/*--- hardware/common/dmm/metex14.c -----------------------------------------*/
+/*--- hardware/dmm/metex14.c ------------------------------------------------*/
 
 #define METEX14_PACKET_SIZE 14
 
@@ -888,7 +888,7 @@ SR_PRIV gboolean sr_metex14_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_metex14_parse(const uint8_t *buf, float *floatval,
 			     struct sr_datafeed_analog *analog, void *info);
 
-/*--- hardware/common/dmm/rs9lcd.c ------------------------------------------*/
+/*--- hardware/dmm/rs9lcd.c -------------------------------------------------*/
 
 #define RS9LCD_PACKET_SIZE 9
 
@@ -899,7 +899,7 @@ SR_PRIV gboolean sr_rs9lcd_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_rs9lcd_parse(const uint8_t *buf, float *floatval,
 			    struct sr_datafeed_analog *analog, void *info);
 
-/*--- hardware/common/dmm/bm25x.c -----------------------------------------*/
+/*--- hardware/dmm/bm25x.c --------------------------------------------------*/
 
 #define BRYMEN_BM25X_PACKET_SIZE 15
 
@@ -910,7 +910,7 @@ SR_PRIV gboolean sr_brymen_bm25x_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_brymen_bm25x_parse(const uint8_t *buf, float *floatval,
 			     struct sr_datafeed_analog *analog, void *info);
 
-/*--- hardware/common/lcr/es51919.c ---------------------------------------*/
+/*--- hardware/lcr/es51919.c ------------------------------------------------*/
 
 SR_PRIV void es51919_serial_clean(void *priv);
 SR_PRIV struct sr_dev_inst *es51919_serial_scan(GSList *options,
