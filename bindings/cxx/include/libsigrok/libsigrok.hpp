@@ -149,6 +149,12 @@ protected:
 	weak_ptr<Class> _weak_this;
 
 public:
+	/* Get parent object that owns this object. */
+	shared_ptr<Parent> parent()
+	{
+		return _parent;
+	}
+
 	/* Note, this implementation will create a new smart_ptr if none exists. */
 	shared_ptr<Class> shared_from_this()
 	{
