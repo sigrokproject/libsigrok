@@ -34,7 +34,7 @@ Requirements
  - automake >= 1.11
  - libtool
  - pkg-config >= 0.22
- - libglib >= 2.32.0
+ - libglib >= 2.34.0
  - libzip >= 0.10
  - libserialport >= 0.1.0 (optional, used by some drivers)
  - librevisa >= 0.0.20130812 (optional, used by some drivers)
