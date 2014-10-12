@@ -208,7 +208,6 @@ typedef std::map<const sigrok::ConfigKey *, Glib::VariantBase>
 %attributeval(sigrok::OutputFormat,
     map_string_Option, options, options);
 
-%attributestring(sigrok::Device, std::string, description, description);
 %attributestring(sigrok::Device, std::string, vendor, vendor);
 %attributestring(sigrok::Device, std::string, model, model);
 %attributestring(sigrok::Device, std::string, version, version);

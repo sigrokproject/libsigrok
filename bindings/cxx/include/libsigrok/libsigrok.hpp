@@ -352,8 +352,6 @@ protected:
 class SR_API Device : public Configurable
 {
 public:
-	/** Description identifying this device. */
-	virtual string description();
 	/** Vendor name for this device. */
 	string vendor();
 	/** Model name for this device. */
@@ -615,8 +613,6 @@ class SR_API SessionDevice :
 	public ParentOwned<SessionDevice, Session, struct sr_dev_inst>,
 	public Device
 {
-	/** Description identifying this device. */
-	string description();
 protected:
 	SessionDevice(struct sr_dev_inst *sdi);
 	~SessionDevice();
@@ -863,9 +859,6 @@ class SR_API InputDevice :
 	public ParentOwned<InputDevice, Input, struct sr_dev_inst>,
 	public Device
 {
-public:
-	/** Description identifying this device. */
-	string description();
 protected:
 	InputDevice(shared_ptr<Input> input, struct sr_dev_inst *sdi);
 	~InputDevice();
