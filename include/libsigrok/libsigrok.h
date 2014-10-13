@@ -207,12 +207,12 @@ enum sr_mq {
 	SR_MQ_PARALLEL_CAPACITANCE,
 	/** Parallel resistance (LCR meter model). */
 	SR_MQ_PARALLEL_RESISTANCE,
-	/** Serial inductance (LCR meter model). */
-	SR_MQ_SERIAL_INDUCTANCE,
-	/** Serial capacitance (LCR meter model). */
-	SR_MQ_SERIAL_CAPACITANCE,
-	/** Serial resistance (LCR meter model). */
-	SR_MQ_SERIAL_RESISTANCE,
+	/** Series inductance (LCR meter model). */
+	SR_MQ_SERIES_INDUCTANCE,
+	/** Series capacitance (LCR meter model). */
+	SR_MQ_SERIES_CAPACITANCE,
+	/** Series resistance (LCR meter model). */
+	SR_MQ_SERIES_RESISTANCE,
 	/** Dissipation factor. */
 	SR_MQ_DISSIPATION_FACTOR,
 	/** Quality factor. */

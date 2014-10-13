@@ -415,15 +415,15 @@ static int parse_mq(const uint8_t *buf, int is_secondary, int is_parallel)
 {
 	switch (is_secondary << 8 | buf[0]) {
 	case 0x001:
-		return is_parallel ?
-			SR_MQ_PARALLEL_INDUCTANCE : SR_MQ_SERIAL_INDUCTANCE;
+	        return is_parallel ?
+			SR_MQ_PARALLEL_INDUCTANCE : SR_MQ_SERIES_INDUCTANCE;
 	case 0x002:
 		return is_parallel ?
-			SR_MQ_PARALLEL_CAPACITANCE : SR_MQ_SERIAL_CAPACITANCE;
+			SR_MQ_PARALLEL_CAPACITANCE : SR_MQ_SERIES_CAPACITANCE;
 	case 0x003:
 	case 0x103:
 		return is_parallel ?
-			SR_MQ_PARALLEL_RESISTANCE : SR_MQ_SERIAL_RESISTANCE;
+			SR_MQ_PARALLEL_RESISTANCE : SR_MQ_SERIES_RESISTANCE;
 	case 0x004:
 		return SR_MQ_RESISTANCE;
 	case 0x100:
