@@ -423,14 +423,6 @@ PKG_CHECK_MODULES([check], [check >= 0.9.4],
 	[have_check="yes"], [have_check="no"])
 AM_CONDITIONAL(HAVE_CHECK, test x"$have_check" = "xyes")
 
-# The OLS driver uses serial port file descriptors directly, and therefore
-# will not currently work on Windows.
-case "$host" in
-*mingw*)
-	HW_OPENBENCH_LOGIC_SNIFFER="no"
-	;;
-esac
-
 # The BeagleLogic driver needs sys/mman.h and sys/ioctl.h. Don't try to
 # build it if these headers aren't available.
 AC_CHECK_HEADERS([sys/mman.h sys/ioctl.h], [], [HW_BEAGLELOGIC="no"])
