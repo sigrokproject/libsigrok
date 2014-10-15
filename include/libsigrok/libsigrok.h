@@ -704,32 +704,32 @@ enum sr_configkey {
 	/**
 	 * Output voltage.
 	 * @arg type: double
-	 * @arg get: get output voltage
+	 * @arg get: get measured output voltage
 	 */
 	SR_CONF_OUTPUT_VOLTAGE,
 
 	/**
-	 * Maximum output voltage.
+	 * Maximum output voltage target.
 	 * @arg type: double
-	 * @arg get: get maximum output voltage limit
-	 * @arg set: change output voltage limit
+	 * @arg get: get output voltage target
+	 * @arg set: change output voltage target
 	 */
-	SR_CONF_OUTPUT_VOLTAGE_MAX,
+	SR_CONF_OUTPUT_VOLTAGE_TARGET,
 
 	/**
 	 * Output current.
 	 * @arg type: double
-	 * @arg get: get output current
+	 * @arg get: get measured output current
 	 */
 	SR_CONF_OUTPUT_CURRENT,
 
 	/**
-	 * Maximum output current.
+	 * Output current limit.
 	 * @arg type: double
-	 * @arg get: get maximum output voltage limit
-	 * @arg set: change output voltage limit
+	 * @arg get: get output current limit
+	 * @arg set: change output current limit
 	 */
-	SR_CONF_OUTPUT_CURRENT_MAX,
+	SR_CONF_OUTPUT_CURRENT_LIMIT,
 
 	/**
 	 * Enabling/disabling output.

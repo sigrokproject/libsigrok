@@ -64,9 +64,9 @@ static const uint32_t devopts[] = {
 /** Hardware capabilities channel 1, 2. */
 static const uint32_t devopts_ch12[] = {
 	SR_CONF_OUTPUT_VOLTAGE | SR_CONF_GET,
-	SR_CONF_OUTPUT_VOLTAGE_MAX | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_OUTPUT_VOLTAGE_TARGET | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_OUTPUT_CURRENT | SR_CONF_GET,
-	SR_CONF_OUTPUT_CURRENT_MAX | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_OUTPUT_CURRENT_LIMIT | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_OUTPUT_ENABLED | SR_CONF_GET | SR_CONF_SET,
 };
 
@@ -575,13 +575,13 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		case SR_CONF_OUTPUT_VOLTAGE:
 			*data = g_variant_new_double(devc->channel_status[ch_idx].output_voltage_last);
 			break;
-		case SR_CONF_OUTPUT_VOLTAGE_MAX:
+		case SR_CONF_OUTPUT_VOLTAGE_TARGET:
 			*data = g_variant_new_double(devc->channel_status[ch_idx].output_voltage_max);
 			break;
 		case SR_CONF_OUTPUT_CURRENT:
 			*data = g_variant_new_double(devc->channel_status[ch_idx].output_current_last);
 			break;
-		case SR_CONF_OUTPUT_CURRENT_MAX:
+		case SR_CONF_OUTPUT_CURRENT_LIMIT:
 			*data = g_variant_new_double(devc->channel_status[ch_idx].output_current_max);
 			break;
 		case SR_CONF_OUTPUT_ENABLED:
@@ -664,7 +664,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		ch_idx = ch->index;
 
 		switch (key) {
-		case SR_CONF_OUTPUT_VOLTAGE_MAX:
+		case SR_CONF_OUTPUT_VOLTAGE_TARGET:
 			dval = g_variant_get_double(data);
 			if (dval < 0 || dval > devc->model->channels[ch_idx].voltage[1])
 				return SR_ERR_ARG;
@@ -685,7 +685,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 			else
 				return lps_cmd_ok(sdi->conn, "VSET%d %05.3f", ch_idx+1, dval);
 			break;
-		case SR_CONF_OUTPUT_CURRENT_MAX:
+		case SR_CONF_OUTPUT_CURRENT_LIMIT:
 			dval = g_variant_get_double(data);
 			if (dval < 0 || dval > devc->model->channels[ch_idx].current[1])
 				return SR_ERR_ARG;
@@ -775,7 +775,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
 				  devopts_ch3, ARRAY_SIZE(devopts_ch3), sizeof(uint32_t));
 		break;
-	case SR_CONF_OUTPUT_VOLTAGE_MAX:
+	case SR_CONF_OUTPUT_VOLTAGE_TARGET:
 		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
 		/* Min, max, step. */
 		for (i = 0; i < 3; i++) {
@@ -784,7 +784,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		}
 		*data = g_variant_builder_end(&gvb);
 		break;
-	case SR_CONF_OUTPUT_CURRENT_MAX:
+	case SR_CONF_OUTPUT_CURRENT_LIMIT:
 		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
 		/* Min, max, step. */
 		for (i = 0; i < 3; i++) {

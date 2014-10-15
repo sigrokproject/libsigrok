@@ -242,17 +242,17 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		gvtype = G_VARIANT_TYPE_DOUBLE;
 		cmd = SCPI_CMD_GET_MEAS_VOLTAGE;
 		break;
-	case SR_CONF_OUTPUT_VOLTAGE_MAX:
+	case SR_CONF_OUTPUT_VOLTAGE_TARGET:
 		gvtype = G_VARIANT_TYPE_DOUBLE;
-		cmd = SCPI_CMD_GET_VOLTAGE_MAX;
+		cmd = SCPI_CMD_GET_VOLTAGE_TARGET;
 		break;
 	case SR_CONF_OUTPUT_CURRENT:
 		gvtype = G_VARIANT_TYPE_DOUBLE;
 		cmd = SCPI_CMD_GET_MEAS_CURRENT;
 		break;
-	case SR_CONF_OUTPUT_CURRENT_MAX:
+	case SR_CONF_OUTPUT_CURRENT_LIMIT:
 		gvtype = G_VARIANT_TYPE_DOUBLE;
-		cmd = SCPI_CMD_GET_CURRENT_MAX;
+		cmd = SCPI_CMD_GET_CURRENT_LIMIT;
 		break;
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_ENABLED:
 		gvtype = G_VARIANT_TYPE_BOOLEAN;
@@ -337,13 +337,13 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 			else
 				ret = scpi_cmd(sdi, SCPI_CMD_SET_OUTPUT_DISABLE);
 			break;
-		case SR_CONF_OUTPUT_VOLTAGE_MAX:
+		case SR_CONF_OUTPUT_VOLTAGE_TARGET:
 			d = g_variant_get_double(data);
-			ret = scpi_cmd(sdi, SCPI_CMD_SET_VOLTAGE_MAX, d);
+			ret = scpi_cmd(sdi, SCPI_CMD_SET_VOLTAGE_TARGET, d);
 			break;
-		case SR_CONF_OUTPUT_CURRENT_MAX:
+		case SR_CONF_OUTPUT_CURRENT_LIMIT:
 			d = g_variant_get_double(data);
-			ret = scpi_cmd(sdi, SCPI_CMD_SET_CURRENT_MAX, d);
+			ret = scpi_cmd(sdi, SCPI_CMD_SET_CURRENT_LIMIT, d);
 			break;
 		case SR_CONF_OVER_TEMPERATURE_PROTECTION:
 			if (g_variant_get_boolean(data))
@@ -365,13 +365,13 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 			else
 				ret = scpi_cmd(sdi, SCPI_CMD_SET_OUTPUT_DISABLE, pch->hwname);
 			break;
-		case SR_CONF_OUTPUT_VOLTAGE_MAX:
+		case SR_CONF_OUTPUT_VOLTAGE_TARGET:
 			d = g_variant_get_double(data);
-			ret = scpi_cmd(sdi, SCPI_CMD_SET_VOLTAGE_MAX, pch->hwname, d);
+			ret = scpi_cmd(sdi, SCPI_CMD_SET_VOLTAGE_TARGET, pch->hwname, d);
 			break;
-		case SR_CONF_OUTPUT_CURRENT_MAX:
+		case SR_CONF_OUTPUT_CURRENT_LIMIT:
 			d = g_variant_get_double(data);
-			ret = scpi_cmd(sdi, SCPI_CMD_SET_CURRENT_MAX, pch->hwname, d);
+			ret = scpi_cmd(sdi, SCPI_CMD_SET_CURRENT_LIMIT, pch->hwname, d);
 			break;
 		case SR_CONF_OVER_VOLTAGE_PROTECTION_ENABLED:
 			if (g_variant_get_boolean(data))
@@ -475,7 +475,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 					devc->device->devopts_cg, devc->device->num_devopts_cg,
 					sizeof(uint32_t));
 			break;
-		case SR_CONF_OUTPUT_VOLTAGE_MAX:
+		case SR_CONF_OUTPUT_VOLTAGE_TARGET:
 			ch_spec = &(devc->device->channels[ch->index]);
 			g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
 			/* Min, max, write resolution. */
@@ -485,7 +485,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 			}
 			*data = g_variant_builder_end(&gvb);
 			break;
-		case SR_CONF_OUTPUT_CURRENT_MAX:
+		case SR_CONF_OUTPUT_CURRENT_LIMIT:
 			g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
 			/* Min, max, step. */
 			for (i = 0; i < 3; i++) {
