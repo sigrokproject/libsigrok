@@ -138,7 +138,6 @@ static GSList *scan(GSList *options)
 	struct sr_usb_dev_inst *usb;
 	struct sr_config *src;
 	const char *conn;
-	char connection_id[64];
 
 	drvc = di->priv;
 	conn = USB_VID_PID;
@@ -156,9 +155,6 @@ static GSList *scan(GSList *options)
 	for (node = usb_devices; node != NULL; node = node->next) {
 		usb = node->data;
 
-		usb_get_port_path(libusb_get_device(usb->devhdl),
-				connection_id, sizeof(connection_id));
-
 		/* Create sigrok device instance. */
 		sdi = dev_inst_new();
 		if (!sdi) {
@@ -168,7 +164,6 @@ static GSList *scan(GSList *options)
 		sdi->driver = di;
 		sdi->inst_type = SR_INST_USB;
 		sdi->conn = usb;
-		sdi->connection_id = g_strdup(connection_id);
 
 		/* Register device instance with driver. */
 		drvc->instances = g_slist_append(drvc->instances, sdi);
