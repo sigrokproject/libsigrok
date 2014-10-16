@@ -28,7 +28,9 @@
 #define LOG_PREFIX "scpi-pps"
 
 enum pps_scpi_cmds {
-	SCPI_CMD_KEY_UNLOCK,
+	SCPI_CMD_REMOTE,
+	SCPI_CMD_LOCAL,
+	SCPI_CMD_SELECT_CHANNEL,
 	SCPI_CMD_GET_MEAS_VOLTAGE,
 	SCPI_CMD_GET_MEAS_CURRENT,
 	SCPI_CMD_GET_MEAS_POWER,
@@ -146,6 +148,7 @@ SR_PRIV char *scpi_cmd_get(const struct sr_dev_inst *sdi, int command);
 SR_PRIV int scpi_cmd(const struct sr_dev_inst *sdi, int command, ...);
 SR_PRIV int scpi_cmd_resp(const struct sr_dev_inst *sdi, GVariant **gvar,
 		const GVariantType *gvtype, int command, ...);
+SR_PRIV int select_channel(const struct sr_dev_inst *sdi, struct sr_channel *ch);
 SR_PRIV int scpi_pps_receive_data(int fd, int revents, void *cb_data);
 
 #endif

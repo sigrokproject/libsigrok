@@ -130,8 +130,7 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 		sdi->channel_groups = g_slist_append(sdi->channel_groups, cg);
 	}
 
-	/* SCPI devices commonly lock the panel keys when accessed remotely. */
-	scpi_cmd(sdi, SCPI_CMD_KEY_UNLOCK);
+	scpi_cmd(sdi, SCPI_CMD_LOCAL);
 	sr_scpi_close(scpi);
 
 	return sdi;
@@ -165,6 +164,8 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 	sdi->status = SR_ST_ACTIVE;
 
+	scpi_cmd(sdi, SCPI_CMD_REMOTE);
+
 	return SR_OK;
 }
 
@@ -177,7 +178,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 
 	scpi = sdi->conn;
 	if (scpi) {
-		scpi_cmd(sdi, SCPI_CMD_KEY_UNLOCK);
+		scpi_cmd(sdi, SCPI_CMD_LOCAL);
 		sr_scpi_close(scpi);
 		sdi->status = SR_ST_INACTIVE;
 	}
@@ -194,19 +195,15 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	struct sr_scpi_dev_inst *scpi;
-	struct sr_channel *ch;
-	struct pps_channel *pch;
 	const GVariantType *gvtype;
 	unsigned int i;
 	int cmd, ret;
-	char *s;
+	const char *s;
 
 	if (!sdi)
 		return SR_ERR_ARG;
 
 	devc = sdi->priv;
-	scpi = sdi->conn;
 
 	if (cg) {
 		/*
@@ -226,9 +223,6 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 				break;
 			}
 		}
-
-		ch = cg->channels->data;
-		pch = ch->priv;
 	}
 
 	gvtype = NULL;
@@ -282,30 +276,32 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		gvtype = G_VARIANT_TYPE_BOOLEAN;
 		cmd = SCPI_CMD_GET_OVER_TEMPERATURE_PROTECTION;
 		break;
+	case SR_CONF_OUTPUT_REGULATION:
+		gvtype = G_VARIANT_TYPE_STRING;
+		cmd = SCPI_CMD_GET_OUTPUT_REGULATION;
 	}
 	if (gvtype) {
 		if (cg)
-			ret = scpi_cmd_resp(sdi, data, gvtype, cmd, pch->hwname);
-		else
-			ret = scpi_cmd_resp(sdi, data, gvtype, cmd);
-	} else if (cg) {
-		switch (key) {
-		case SR_CONF_OUTPUT_REGULATION:
-			ret = SR_ERR;
-			if (scpi_cmd(sdi, SCPI_CMD_GET_OUTPUT_REGULATION, pch->hwname) == SR_OK) {
-				if (sr_scpi_get_string(scpi, NULL, &s) == SR_OK) {
-					if (strcmp(s, "CC") && strcmp(s, "CV") && strcmp(s, "UR")) {
-						sr_dbg("Unknown response to SCPI_CMD_GET_OUTPUT_REGULATION: %s", s);
-					} else {
-						*data = g_variant_new_string(s);
-						g_free(s);
-						ret = SR_OK;
-					}
+			select_channel(sdi, cg->channels->data);
+		ret = scpi_cmd_resp(sdi, data, gvtype, cmd);
+
+		if (gvtype == G_VARIANT_TYPE_STRING && ret == SR_OK) {
+			/* Non-standard data type responses. */
+			switch (key) {
+			case SCPI_CMD_GET_OUTPUT_REGULATION:
+				/*
+				 * This is specific to the Rigol DP800 series.
+				 * We return the same string for now until more
+				 * models with this key are supported. Do a check
+				 * just for the hell of it.
+				 */
+				s = g_variant_get_string(*data, NULL);
+				if (strcmp(s, "CC") && strcmp(s, "CV") && strcmp(s, "UR")) {
+					sr_dbg("Unknown response to SCPI_CMD_GET_OUTPUT_REGULATION: %s", s);
+					ret = SR_ERR_DATA;
 				}
+				break;
 			}
-			break;
-		default:
-			ret = SR_ERR_NA;
 		}
 	} else
 		ret = SR_ERR_NA;
@@ -316,8 +312,6 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
-	struct sr_channel *ch;
-	struct pps_channel *pch;
 	double d;
 	int ret;
 
@@ -327,81 +321,54 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
-	ret = SR_OK;
-	if (!cg) {
-		switch (key) {
-		/* No channel group: global options. */
-		case SR_CONF_OUTPUT_ENABLED:
-			if (g_variant_get_boolean(data))
-				ret = scpi_cmd(sdi, SCPI_CMD_SET_OUTPUT_ENABLE);
-			else
-				ret = scpi_cmd(sdi, SCPI_CMD_SET_OUTPUT_DISABLE);
-			break;
-		case SR_CONF_OUTPUT_VOLTAGE_TARGET:
-			d = g_variant_get_double(data);
-			ret = scpi_cmd(sdi, SCPI_CMD_SET_VOLTAGE_TARGET, d);
-			break;
-		case SR_CONF_OUTPUT_CURRENT_LIMIT:
-			d = g_variant_get_double(data);
-			ret = scpi_cmd(sdi, SCPI_CMD_SET_CURRENT_LIMIT, d);
-			break;
-		case SR_CONF_OVER_TEMPERATURE_PROTECTION:
-			if (g_variant_get_boolean(data))
-				ret = scpi_cmd(sdi, SCPI_CMD_SET_OVER_TEMPERATURE_PROTECTION_ENABLE);
-			else
-				ret = scpi_cmd(sdi, SCPI_CMD_SET_OVER_TEMPERATURE_PROTECTION_DISABLE);
-			break;
-		default:
-			ret = SR_ERR_NA;
-		}
-	} else {
+	if (cg)
 		/* Channel group specified. */
-		ch = cg->channels->data;
-		pch = ch->priv;
-		switch (key) {
-		case SR_CONF_OUTPUT_ENABLED:
-			if (g_variant_get_boolean(data))
-				ret = scpi_cmd(sdi, SCPI_CMD_SET_OUTPUT_ENABLE, pch->hwname);
-			else
-				ret = scpi_cmd(sdi, SCPI_CMD_SET_OUTPUT_DISABLE, pch->hwname);
-			break;
-		case SR_CONF_OUTPUT_VOLTAGE_TARGET:
-			d = g_variant_get_double(data);
-			ret = scpi_cmd(sdi, SCPI_CMD_SET_VOLTAGE_TARGET, pch->hwname, d);
-			break;
-		case SR_CONF_OUTPUT_CURRENT_LIMIT:
-			d = g_variant_get_double(data);
-			ret = scpi_cmd(sdi, SCPI_CMD_SET_CURRENT_LIMIT, pch->hwname, d);
-			break;
-		case SR_CONF_OVER_VOLTAGE_PROTECTION_ENABLED:
-			if (g_variant_get_boolean(data))
-				ret = scpi_cmd(sdi, SCPI_CMD_SET_OVER_VOLTAGE_PROTECTION_ENABLE,
-						pch->hwname);
-			else
-				ret = scpi_cmd(sdi, SCPI_CMD_SET_OVER_VOLTAGE_PROTECTION_DISABLE,
-						pch->hwname);
-			break;
-		case SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD:
-			d = g_variant_get_double(data);
-			ret = scpi_cmd(sdi, SCPI_CMD_SET_OVER_VOLTAGE_PROTECTION_THRESHOLD,
-					pch->hwname, d);
-			break;
-		case SR_CONF_OVER_CURRENT_PROTECTION_ENABLED:
-			if (g_variant_get_boolean(data))
-				ret = scpi_cmd(sdi, SCPI_CMD_SET_OVER_CURRENT_PROTECTION_ENABLE,
-						pch->hwname);
-			else
-				ret = scpi_cmd(sdi, SCPI_CMD_SET_OVER_CURRENT_PROTECTION_DISABLE,
-						pch->hwname);
-			break;
-		case SR_CONF_OVER_CURRENT_PROTECTION_THRESHOLD:
-			d = g_variant_get_double(data);
-			ret = scpi_cmd(sdi, SCPI_CMD_SET_OVER_CURRENT_PROTECTION_THRESHOLD,
-					pch->hwname, d);
-			break;
-		default:
-			ret = SR_ERR_NA;
-		}
+		select_channel(sdi, cg->channels->data);
+
+	ret = SR_OK;
+	switch (key) {
+	case SR_CONF_OUTPUT_ENABLED:
+		if (g_variant_get_boolean(data))
+			ret = scpi_cmd(sdi, SCPI_CMD_SET_OUTPUT_ENABLE);
+		else
+			ret = scpi_cmd(sdi, SCPI_CMD_SET_OUTPUT_DISABLE);
+		break;
+	case SR_CONF_OUTPUT_VOLTAGE_TARGET:
+		d = g_variant_get_double(data);
+		ret = scpi_cmd(sdi, SCPI_CMD_SET_VOLTAGE_TARGET, d);
+		break;
+	case SR_CONF_OUTPUT_CURRENT_LIMIT:
+		d = g_variant_get_double(data);
+		ret = scpi_cmd(sdi, SCPI_CMD_SET_CURRENT_LIMIT, d);
+		break;
+	case SR_CONF_OVER_VOLTAGE_PROTECTION_ENABLED:
+		if (g_variant_get_boolean(data))
+			ret = scpi_cmd(sdi, SCPI_CMD_SET_OVER_VOLTAGE_PROTECTION_ENABLE);
+		else
+			ret = scpi_cmd(sdi, SCPI_CMD_SET_OVER_VOLTAGE_PROTECTION_DISABLE);
+		break;
+	case SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD:
+		d = g_variant_get_double(data);
+		ret = scpi_cmd(sdi, SCPI_CMD_SET_OVER_VOLTAGE_PROTECTION_THRESHOLD, d);
+		break;
+	case SR_CONF_OVER_CURRENT_PROTECTION_ENABLED:
+		if (g_variant_get_boolean(data))
+			ret = scpi_cmd(sdi, SCPI_CMD_SET_OVER_CURRENT_PROTECTION_ENABLE);
+		else
+			ret = scpi_cmd(sdi, SCPI_CMD_SET_OVER_CURRENT_PROTECTION_DISABLE);
+		break;
+	case SR_CONF_OVER_CURRENT_PROTECTION_THRESHOLD:
+		d = g_variant_get_double(data);
+		ret = scpi_cmd(sdi, SCPI_CMD_SET_OVER_CURRENT_PROTECTION_THRESHOLD, d);
+		break;
+	case SR_CONF_OVER_TEMPERATURE_PROTECTION:
+		if (g_variant_get_boolean(data))
+			ret = scpi_cmd(sdi, SCPI_CMD_SET_OVER_TEMPERATURE_PROTECTION_ENABLE);
+		else
+			ret = scpi_cmd(sdi, SCPI_CMD_SET_OVER_TEMPERATURE_PROTECTION_DISABLE);
+		break;
+	default:
+		ret = SR_ERR_NA;
 	}
 
 	return ret;
@@ -527,7 +494,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	/* Prime the pipe with the first channel's fetch. */
 	ch = sdi->channels->data;
 	pch = ch->priv;
-	devc->cur_channel = ch;
+	select_channel(sdi, ch);
 	if (pch->mq == SR_MQ_VOLTAGE)
 		cmd = SCPI_CMD_GET_MEAS_VOLTAGE;
 	else if (pch->mq == SR_MQ_CURRENT)
