@@ -188,7 +188,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 
 static int cleanup(void)
 {
-	return SR_OK;
+	return std_dev_clear(di, NULL);
 }
 
 static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
@@ -510,6 +510,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
+	struct sr_datafeed_packet packet;
 	struct sr_scpi_dev_inst *scpi;
 	float f;
 
@@ -527,6 +528,9 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 	 */
 	sr_scpi_get_float(scpi, NULL, &f);
 	sr_scpi_source_remove(sdi->session, scpi);
+
+	packet.type = SR_DF_END;
+	sr_session_send(sdi, &packet);
 
 	return SR_OK;
 }
