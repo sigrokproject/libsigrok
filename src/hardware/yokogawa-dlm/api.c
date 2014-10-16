@@ -63,8 +63,10 @@ static struct sr_dev_inst *probe_usbtmc_device(struct sr_scpi_dev_inst *scpi)
 		goto fail;
 
 	if (!(sdi = sr_dev_inst_new(SR_ST_ACTIVE, MANUFACTURER_NAME,
-			model_name, NULL)))
+			model_name, hw_info->firmware_version)))
 		goto fail;
+
+	sdi->serial_num = g_strdup(hw_info->serial_number);
 
 	sr_scpi_hw_info_free(hw_info);
 	hw_info = NULL;
