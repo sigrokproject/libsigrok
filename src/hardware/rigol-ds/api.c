@@ -300,9 +300,9 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	}
 
 	sdi->conn = scpi;
-
 	sdi->driver = di;
 	sdi->inst_type = SR_INST_SCPI;
+	sdi->serial_num = g_strdup(hw_info->serial_number);
 
 	if (!(devc = g_try_malloc0(sizeof(struct dev_context))))
 		return NULL;
