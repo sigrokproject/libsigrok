@@ -30,6 +30,9 @@
 enum pps_scpi_cmds {
 	SCPI_CMD_REMOTE,
 	SCPI_CMD_LOCAL,
+	SCPI_CMD_BEEPER,
+	SCPI_CMD_BEEPER_ENABLE,
+	SCPI_CMD_BEEPER_DISABLE,
 	SCPI_CMD_SELECT_CHANNEL,
 	SCPI_CMD_GET_MEAS_VOLTAGE,
 	SCPI_CMD_GET_MEAS_CURRENT,
@@ -138,6 +141,7 @@ struct dev_context {
 	void *cb_data;
 
 	/* Operational state */
+	gboolean beeper_was_set;
 
 	/* Temporary state across callbacks */
 	struct sr_channel *cur_channel;

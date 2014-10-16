@@ -84,6 +84,9 @@ struct channel_group_spec rigol_dp800_cg[] = {
 struct scpi_command rigol_dp800_cmd[] = {
 	{ SCPI_CMD_REMOTE, "SYST:REMOTE" },
 	{ SCPI_CMD_LOCAL, "SYST:LOCAL" },
+	{ SCPI_CMD_BEEPER, "SYST:BEEP:STAT?" },
+	{ SCPI_CMD_BEEPER_ENABLE, "SYST:BEEP:STAT ON" },
+	{ SCPI_CMD_BEEPER_DISABLE, "SYST:BEEP:STAT OFF" },
 	{ SCPI_CMD_SELECT_CHANNEL, ":INST:NSEL %s" },
 	{ SCPI_CMD_GET_MEAS_VOLTAGE, ":MEAS:VOLT?" },
 	{ SCPI_CMD_GET_MEAS_CURRENT, ":MEAS:CURR?" },

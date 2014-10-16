@@ -153,7 +153,9 @@ static int dev_clear(void)
 
 static int dev_open(struct sr_dev_inst *sdi)
 {
+	struct dev_context *devc;
 	struct sr_scpi_dev_inst *scpi;
+	GVariant *beeper;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR;
@@ -165,6 +167,15 @@ static int dev_open(struct sr_dev_inst *sdi)
 	sdi->status = SR_ST_ACTIVE;
 
 	scpi_cmd(sdi, SCPI_CMD_REMOTE);
+	devc = sdi->priv;
+	devc->beeper_was_set = FALSE;
+	if (scpi_cmd_resp(sdi, &beeper, G_VARIANT_TYPE_BOOLEAN, SCPI_CMD_BEEPER) == SR_OK) {
+		if (g_variant_get_boolean(beeper)) {
+			devc->beeper_was_set = TRUE;
+			scpi_cmd(sdi, SCPI_CMD_BEEPER_DISABLE);
+		}
+		g_variant_unref(beeper);
+	}
 
 	return SR_OK;
 }
@@ -172,12 +183,16 @@ static int dev_open(struct sr_dev_inst *sdi)
 static int dev_close(struct sr_dev_inst *sdi)
 {
 	struct sr_scpi_dev_inst *scpi;
+	struct dev_context *devc;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
+	devc = sdi->priv;
 	scpi = sdi->conn;
 	if (scpi) {
+		if (devc->beeper_was_set)
+			scpi_cmd(sdi, SCPI_CMD_BEEPER_ENABLE);
 		scpi_cmd(sdi, SCPI_CMD_LOCAL);
 		sr_scpi_close(scpi);
 		sdi->status = SR_ST_INACTIVE;
