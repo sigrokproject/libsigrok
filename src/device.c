@@ -570,6 +570,18 @@ SR_API const char *sr_dev_inst_connid_get(struct sr_dev_inst *sdi)
 	if (!sdi)
 		return NULL;
 
+	#ifdef HAVE_LIBSERIALPORT
+	struct sr_serial_dev_inst *serial;
+
+	if ((!sdi->connection_id) && (sdi->inst_type == SR_INST_SERIAL)) {
+		/* connection_id isn't populated, let's do that here. */
+
+		serial = sdi->conn;
+		sdi->connection_id = g_strdup(serial->port);
+	}
+	#endif
+
+
 	if ((!sdi->connection_id) && (sdi->inst_type == SR_INST_USB)) {
 		/* connection_id isn't populated, let's do that here. */
 
