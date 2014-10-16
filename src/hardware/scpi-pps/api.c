@@ -88,6 +88,11 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	sdi->conn = scpi;
 	sdi->driver = di;
 	sdi->inst_type = SR_INST_SCPI;
+	sdi->serial_num = g_strdup(hw_info->serial_number);
+
+	sr_scpi_hw_info_free(hw_info);
+	hw_info = NULL;
+
 	devc = g_malloc0(sizeof(struct dev_context));
 	devc->device = device;
 	sdi->priv = devc;
