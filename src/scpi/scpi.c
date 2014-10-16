@@ -148,8 +148,10 @@ SR_PRIV GSList *sr_scpi_scan(struct drv_context *drvc, GSList *options,
 		for (l = resources; l; l = l->next) {
 			res = g_strsplit(l->data, ":", 2);
 			if (res[0] && (sdi = sr_scpi_scan_resource(drvc, res[0],
-			               serialcomm ? serialcomm : res[1], probe_device)))
+			               serialcomm ? serialcomm : res[1], probe_device))) {
 				devices = g_slist_append(devices, sdi);
+				sdi->connection_id = g_strdup(l->data);
+			}
 			g_strfreev(res);
 		}
 		g_slist_free_full(resources, g_free);
