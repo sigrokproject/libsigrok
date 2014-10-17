@@ -103,7 +103,7 @@ SR_PRIV int scpi_cmd_resp(const struct sr_dev_inst *sdi, GVariant **gvar,
 SR_PRIV int select_channel(const struct sr_dev_inst *sdi, struct sr_channel *ch)
 {
 	struct dev_context *devc;
-	struct pps_channel *pch;
+	struct pps_channel *cur_pch, *new_pch;
 	int ret;
 
 	if (g_slist_length(sdi->channels) == 1)
@@ -113,11 +113,38 @@ SR_PRIV int select_channel(const struct sr_dev_inst *sdi, struct sr_channel *ch)
 	if (ch == devc->cur_channel)
 		return SR_OK;
 
-	pch = ch->priv;
-	if ((ret = scpi_cmd(sdi, SCPI_CMD_SELECT_CHANNEL, pch->hwname)) == SR_OK)
+	new_pch = ch->priv;
+	if (devc->cur_channel) {
+		cur_pch = devc->cur_channel->priv;
+		if (cur_pch->hw_output_idx == new_pch->hw_output_idx) {
+			/* Same underlying output channel. */
+			devc->cur_channel = ch;
+			return SR_OK;
+		}
+	}
+
+	if ((ret = scpi_cmd(sdi, SCPI_CMD_SELECT_CHANNEL, new_pch->hwname)) == SR_OK)
 		devc->cur_channel = ch;
 
 	return ret;
+}
+
+SR_PRIV struct sr_channel *next_enabled_channel(const struct sr_dev_inst *sdi,
+		struct sr_channel *cur_channel)
+{
+	struct sr_channel *next_channel;
+	GSList *l;
+
+	next_channel = cur_channel;
+	do {
+		l = g_slist_find(sdi->channels, next_channel);
+		if (l && l->next)
+			next_channel = l->next->data;
+		else
+			next_channel = sdi->channels->data;
+	} while (!next_channel->enabled);
+
+	return next_channel;
 }
 
 SR_PRIV int scpi_pps_receive_data(int fd, int revents, void *cb_data)
@@ -129,7 +156,6 @@ SR_PRIV int scpi_pps_receive_data(int fd, int revents, void *cb_data)
 	struct sr_channel *next_channel;
 	struct sr_scpi_dev_inst *scpi;
 	struct pps_channel *pch;
-	GSList *l;
 	float f;
 	int cmd;
 
@@ -165,17 +191,8 @@ SR_PRIV int scpi_pps_receive_data(int fd, int revents, void *cb_data)
 	}
 
 	if (g_slist_length(sdi->channels) > 1) {
-		/* Find next enabled channel. */
-		next_channel = devc->cur_channel;
-		do {
-			l = g_slist_find(sdi->channels, next_channel);
-			if (l->next)
-				next_channel = l->next->data;
-			else
-				next_channel = sdi->channels->data;
-		} while (!next_channel->enabled);
-		select_channel(sdi, next_channel);
-		if (devc->cur_channel != next_channel) {
+		next_channel = next_enabled_channel(sdi, devc->cur_channel);
+		if (select_channel(sdi, next_channel) != SR_OK) {
 			sr_err("Failed to select channel %s", next_channel->name);
 			return FALSE;
 		}
@@ -190,7 +207,7 @@ SR_PRIV int scpi_pps_receive_data(int fd, int revents, void *cb_data)
 		cmd = SCPI_CMD_GET_MEAS_POWER;
 	else
 		return SR_ERR;
-	scpi_cmd(sdi, cmd, pch->hwname);
+	scpi_cmd(sdi, cmd);
 
 	return TRUE;
 }

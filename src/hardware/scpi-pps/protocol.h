@@ -153,6 +153,8 @@ SR_PRIV int scpi_cmd(const struct sr_dev_inst *sdi, int command, ...);
 SR_PRIV int scpi_cmd_resp(const struct sr_dev_inst *sdi, GVariant **gvar,
 		const GVariantType *gvtype, int command, ...);
 SR_PRIV int select_channel(const struct sr_dev_inst *sdi, struct sr_channel *ch);
+SR_PRIV struct sr_channel *next_enabled_channel(const struct sr_dev_inst *sdi,
+		struct sr_channel *cur_channel);
 SR_PRIV int scpi_pps_receive_data(int fd, int revents, void *cb_data);
 
 #endif
