@@ -507,9 +507,10 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	std_session_send_df_header(sdi, LOG_PREFIX);
 
 	/* Prime the pipe with the first channel's fetch. */
-	ch = sdi->channels->data;
+	ch = next_enabled_channel(sdi, NULL);
 	pch = ch->priv;
-	select_channel(sdi, ch);
+	if ((ret = select_channel(sdi, ch)) != SR_OK)
+		return ret;
 	if (pch->mq == SR_MQ_VOLTAGE)
 		cmd = SCPI_CMD_GET_MEAS_VOLTAGE;
 	else if (pch->mq == SR_MQ_CURRENT)
