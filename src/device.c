@@ -247,6 +247,7 @@ SR_PRIV struct sr_dev_inst *sr_dev_inst_new(int status,
 SR_PRIV void sr_dev_inst_free(struct sr_dev_inst *sdi)
 {
 	struct sr_channel *ch;
+	struct sr_channel_group *cg;
 	GSList *l;
 
 	for (l = sdi->channels; l; l = l->next) {
@@ -257,8 +258,11 @@ SR_PRIV void sr_dev_inst_free(struct sr_dev_inst *sdi)
 	}
 	g_slist_free(sdi->channels);
 
-	if (sdi->channel_groups)
-		g_slist_free(sdi->channel_groups);
+	for (l = sdi->channel_groups; l; l = l->next) {
+		cg = l->data;
+		g_free(cg->priv);
+	}
+	g_slist_free(sdi->channel_groups);
 
 	g_free(sdi->vendor);
 	g_free(sdi->model);
