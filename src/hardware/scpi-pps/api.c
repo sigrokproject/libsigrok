@@ -252,7 +252,6 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 	const GVariantType *gvtype;
 	unsigned int i;
 	int cmd, ret;
-	const char *s;
 
 	if (!sdi)
 		return SR_ERR_ARG;
@@ -338,25 +337,6 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		if (cg)
 			select_channel(sdi, cg->channels->data);
 		ret = scpi_cmd_resp(sdi, data, gvtype, cmd);
-
-		if (gvtype == G_VARIANT_TYPE_STRING && ret == SR_OK) {
-			/* Non-standard data type responses. */
-			switch (key) {
-			case SCPI_CMD_GET_OUTPUT_REGULATION:
-				/*
-				 * This is specific to the Rigol DP800 series.
-				 * We return the same string for now until more
-				 * models with this key are supported. Do a check
-				 * just for the hell of it.
-				 */
-				s = g_variant_get_string(*data, NULL);
-				if (strcmp(s, "CC") && strcmp(s, "CV") && strcmp(s, "UR")) {
-					sr_dbg("Unknown response to SCPI_CMD_GET_OUTPUT_REGULATION: %s", s);
-					ret = SR_ERR_DATA;
-				}
-				break;
-			}
-		}
 	} else
 		ret = SR_ERR_NA;
 

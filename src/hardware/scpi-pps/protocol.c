@@ -80,21 +80,45 @@ SR_PRIV int scpi_cmd_resp(const struct sr_dev_inst *sdi, GVariant **gvar,
 	if (ret != SR_OK)
 		return ret;
 
-	if (g_variant_type_equal(gvtype, G_VARIANT_TYPE_BOOLEAN)) {
+	/* Non-standard data type responses. */
+	if (command == SCPI_CMD_GET_OUTPUT_REGULATION) {
+		/*
+		 * The Rigol DP800 series return CV/CC/UR, Philips PM2800
+		 * return VOLT/CURR. We always return a GVariant string in
+		 * the Rigol notation.
+		 */
 		if ((ret = sr_scpi_get_string(scpi, NULL, &s)) != SR_OK)
 			return ret;
-		if (!strcasecmp(s, "ON") || !strcasecmp(s, "1") || !strcasecmp(s, "YES"))
-			*gvar = g_variant_new_boolean(TRUE);
-		else if (!strcasecmp(s, "OFF") || !strcasecmp(s, "0") || !strcasecmp(s, "NO"))
-			*gvar = g_variant_new_boolean(FALSE);
-		else
-			ret = SR_ERR;
-	} if (g_variant_type_equal(gvtype, G_VARIANT_TYPE_DOUBLE)) {
-		if ((ret = sr_scpi_get_double(scpi, NULL, &d)) == SR_OK)
-			*gvar = g_variant_new_double(d);
-	} if (g_variant_type_equal(gvtype, G_VARIANT_TYPE_STRING)) {
-		if ((ret = sr_scpi_get_string(scpi, NULL, &s)) == SR_OK)
-			*gvar = g_variant_new_string(s);
+		if (!strcmp(s, "CV") || !strcmp(s, "VOLT")) {
+			*gvar = g_variant_new_string("CV");
+		} else if (!strcmp(s, "CC") || !strcmp(s, "CURR")) {
+			*gvar = g_variant_new_string("CC");
+		} else if (!strcmp(s, "UR")) {
+			*gvar = g_variant_new_string("UR");
+		} else {
+			sr_dbg("Unknown response to SCPI_CMD_GET_OUTPUT_REGULATION: %s", s);
+			ret = SR_ERR_DATA;
+		}
+		g_free(s);
+	} else {
+		/* Straight SCPI getters to GVariant types. */
+		if (g_variant_type_equal(gvtype, G_VARIANT_TYPE_BOOLEAN)) {
+			if ((ret = sr_scpi_get_string(scpi, NULL, &s)) != SR_OK)
+				return ret;
+			if (!strcasecmp(s, "ON") || !strcasecmp(s, "1") || !strcasecmp(s, "YES"))
+				*gvar = g_variant_new_boolean(TRUE);
+			else if (!strcasecmp(s, "OFF") || !strcasecmp(s, "0") || !strcasecmp(s, "NO"))
+				*gvar = g_variant_new_boolean(FALSE);
+			else
+				ret = SR_ERR;
+			g_free(s);
+		} if (g_variant_type_equal(gvtype, G_VARIANT_TYPE_DOUBLE)) {
+			if ((ret = sr_scpi_get_double(scpi, NULL, &d)) == SR_OK)
+				*gvar = g_variant_new_double(d);
+		} if (g_variant_type_equal(gvtype, G_VARIANT_TYPE_STRING)) {
+			if ((ret = sr_scpi_get_string(scpi, NULL, &s)) == SR_OK)
+				*gvar = g_variant_new_string(s);
+		}
 	}
 
 	return ret;
