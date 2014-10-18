@@ -954,7 +954,7 @@ struct sr_dev_driver {
 	/** Called when driver is loaded, e.g. program startup. */
 	int (*init) (struct sr_context *sr_ctx);
 	/** Called before driver is unloaded.
-	 *  Driver must free all resouces held by it. */
+	 *  Driver must free all resources held by it. */
 	int (*cleanup) (void);
 	/** Scan for devices. Driver should do all initialisation required.
 	 *  Can be called several times, e.g. with different port options.
