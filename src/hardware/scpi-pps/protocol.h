@@ -90,6 +90,9 @@ struct scpi_pps {
 	unsigned int num_channel_groups;
 	struct scpi_command *commands;
 	unsigned int num_commands;
+	int (*probe_channels) (struct sr_dev_inst *sdi, struct sr_scpi_hw_info *hwinfo,
+		struct channel_spec **channels, unsigned int *num_channels,
+		struct channel_group_spec **channel_groups, unsigned int *num_channel_groups);
 };
 
 struct channel_spec {
@@ -142,6 +145,8 @@ struct dev_context {
 
 	/* Operational state */
 	gboolean beeper_was_set;
+	struct channel_spec *channels;
+	struct channel_group_spec *channel_groups;
 
 	/* Temporary state across callbacks */
 	struct sr_channel *cur_channel;

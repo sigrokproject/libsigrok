@@ -50,13 +50,15 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	struct sr_channel *ch;
 	const struct scpi_pps *device;
 	struct pps_channel *pch;
-	const struct channel_group_spec *cgs;
+	struct channel_spec *channels;
+	struct channel_group_spec *channel_groups, *cgs;
 	struct pps_channel_group *pcg;
 	GRegex *model_re;
 	GMatchInfo *model_mi;
 	GSList *l;
 	uint64_t mask;
-	unsigned int ch_num, ch_idx, i, j;
+	unsigned int num_channels, num_channel_groups, ch_num, ch_idx, i, j;
+	int ret;
 	const char *vendor;
 	char ch_name[16];
 
@@ -90,33 +92,52 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	sdi->inst_type = SR_INST_SCPI;
 	sdi->serial_num = g_strdup(hw_info->serial_number);
 
-	sr_scpi_hw_info_free(hw_info);
-	hw_info = NULL;
-
 	devc = g_malloc0(sizeof(struct dev_context));
 	devc->device = device;
 	sdi->priv = devc;
 
+	if (device->num_channels) {
+		/* Static channels and groups. */
+		channels = device->channels;
+		num_channels = device->num_channels;
+		channel_groups = device->channel_groups;
+		num_channel_groups = device->num_channel_groups;
+	} else {
+		/* Channels and groups need to be probed. */
+		ret = device->probe_channels(sdi, hw_info, &channels, &num_channels,
+				&channel_groups, &num_channel_groups);
+		if (ret != SR_OK) {
+			sr_err("Failed to probe for channels.");
+			return NULL;
+		}
+		/*
+		 * Since these were dynamically allocated, we'll need to free them
+		 * later.
+		 */
+		devc->channels = channels;
+		devc->channel_groups = channel_groups;
+	}
+
 	ch_idx = 0;
-	for (ch_num = 0; ch_num < device->num_channels; ch_num++) {
+	for (ch_num = 0; ch_num < num_channels; ch_num++) {
 		/* Create one channel per measurable output unit. */
 		for (i = 0; i < ARRAY_SIZE(pci); i++) {
 			if (!scpi_cmd_get(sdi, pci[i].command))
 				continue;
 			g_snprintf(ch_name, 16, "%s%s", pci[i].prefix,
-					device->channels[ch_num].name);
+					channels[ch_num].name);
 			ch = sr_channel_new(ch_idx++, SR_CHANNEL_ANALOG, TRUE, ch_name);
 			pch = g_malloc0(sizeof(struct pps_channel));
 			pch->hw_output_idx = ch_num;
-			pch->hwname = device->channels[ch_num].name;
+			pch->hwname = channels[ch_num].name;
 			pch->mq = pci[i].mq;
 			ch->priv = pch;
 			sdi->channels = g_slist_append(sdi->channels, ch);
 		}
 	}
 
-	for (i = 0; i < device->num_channel_groups; i++) {
-		cgs = &device->channel_groups[i];
+	for (i = 0; i < num_channel_groups; i++) {
+		cgs = &channel_groups[i];
 		cg = g_malloc0(sizeof(struct sr_channel_group));
 		cg->name = g_strdup(cgs->name);
 		for (j = 0, mask = 1; j < 64; j++, mask <<= 1) {
@@ -134,6 +155,9 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 		cg->priv = pcg;
 		sdi->channel_groups = g_slist_append(sdi->channel_groups, cg);
 	}
+
+	sr_scpi_hw_info_free(hw_info);
+	hw_info = NULL;
 
 	scpi_cmd(sdi, SCPI_CMD_LOCAL);
 	sr_scpi_close(scpi);
@@ -206,9 +230,19 @@ static int dev_close(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
+static void clear_helper(void *priv)
+{
+	struct dev_context *devc;
+
+	devc = priv;
+	g_free(devc->channels);
+	g_free(devc->channel_groups);
+	g_free(devc);
+}
+
 static int cleanup(void)
 {
-	return std_dev_clear(di, NULL);
+	return std_dev_clear(di, clear_helper);
 }
 
 static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
