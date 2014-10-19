@@ -667,6 +667,13 @@ static int process_buffer(struct sr_input *in)
 			continue;
 		}
 
+		/* Skip the header line, its content was used as the channel names. */
+		if (inc->header) {
+			sr_spew("Header line %zu skipped.", inc->line_number);
+			inc->header = FALSE;
+			continue;
+		}
+
 		if (!(columns = parse_line(lines[l], inc, max_columns))) {
 			sr_err("Error while parsing line %zu.", inc->line_number);
 			return SR_ERR;
