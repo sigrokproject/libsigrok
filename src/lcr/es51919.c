@@ -294,6 +294,23 @@ static int send_config_update(struct sr_dev_inst *sdi, struct sr_config *cfg)
 	return sr_session_send(sdi, &packet);
 }
 
+static int send_config_update_key(struct sr_dev_inst *sdi, uint32_t key,
+				  GVariant *var)
+{
+	struct sr_config *cfg;
+	int ret;
+
+	cfg = sr_config_new(key, var);
+	if (!cfg)
+		return SR_ERR;
+
+	ret = send_config_update(sdi, cfg);
+	sr_config_free(cfg);
+
+	return ret;
+
+}
+
 /*
  * Cyrustek ES51919 LCR chipset host protocol.
  *
@@ -393,6 +410,26 @@ static const uint64_t frequencies[] = {
 	100, 120, 1000, 10000, 100000, 0,
 };
 
+enum { QUANT_AUTO = 5, };
+
+static const char *const quantities1[] = {
+	"NONE", "INDUCTANCE", "CAPACITANCE", "RESISTANCE", "RESISTANCE", "AUTO",
+};
+
+static const char *const list_quantities1[] = {
+	"NONE", "INDUCTANCE", "CAPACITANCE", "RESISTANCE", "AUTO",
+};
+
+static const char *const quantities2[] = {
+	"NONE", "DISSIPATION", "QUALITY", "RESISTANCE", "ANGLE", "AUTO",
+};
+
+enum { MODEL_NONE, MODEL_PAR, MODEL_SER, MODEL_AUTO, };
+
+static const char *const models[] = {
+	"NONE", "PARALLEL", "SERIES", "AUTO",
+};
+
 /** Private, per-device-instance driver context. */
 struct dev_context {
 	/** Opaque pointer passed in by the frontend. */
@@ -409,10 +446,28 @@ struct dev_context {
 
 	/** The frequency of the test signal (index to frequencies[]). */
 	unsigned int freq;
+
+	/** Measured primary quantity (index to quantities1[]). */
+	unsigned int quant1;
+
+	/** Measured secondary quantity (index to quantities2[]). */
+	unsigned int quant2;
+
+	/** Equivalent circuit model (index to models[]). */
+	unsigned int model;
 };
 
-static int parse_mq(const uint8_t *buf, int is_secondary, int is_parallel)
+static const uint8_t *pkt_to_buf(const uint8_t *pkt, int is_secondary)
 {
+	return is_secondary ? pkt + 10 : pkt + 5;
+}
+
+static int parse_mq(const uint8_t *pkt, int is_secondary, int is_parallel)
+{
+	const uint8_t *buf;
+
+	buf = pkt_to_buf(pkt, is_secondary);
+
 	switch (is_secondary << 8 | buf[0]) {
 	case 0x001:
 	        return is_parallel ?
@@ -479,7 +534,7 @@ static void parse_measurement(const uint8_t *pkt, float *floatval,
 	const uint8_t *buf;
 	int state;
 
-	buf = pkt + (is_secondary ? 10 : 5);
+	buf = pkt_to_buf(pkt, is_secondary);
 
 	analog->mq = -1;
 	analog->mqflags = 0;
@@ -499,16 +554,12 @@ static void parse_measurement(const uint8_t *pkt, float *floatval,
 			analog->mqflags |= SR_MQFLAG_HOLD;
 		if (pkt[2] & 0x02)
 			analog->mqflags |= SR_MQFLAG_REFERENCE;
-		if (pkt[2] & 0x20)
-			analog->mqflags |= SR_MQFLAG_AUTOMQ;
-		if (pkt[2] & 0x40)
-			analog->mqflags |= SR_MQFLAG_AUTOMODEL;
 	} else {
 		if (pkt[2] & 0x04)
 			analog->mqflags |= SR_MQFLAG_RELATIVE;
 	}
 
-	if ((analog->mq = parse_mq(buf, is_secondary, pkt[2] & 0x80)) < 0)
+	if ((analog->mq = parse_mq(pkt, is_secondary, pkt[2] & 0x80)) < 0)
 		return;
 
 	if ((buf[3] >> 3) >= ARRAY_SIZE(units)) {
@@ -523,7 +574,7 @@ static void parse_measurement(const uint8_t *pkt, float *floatval,
 	*floatval *= (state == 0) ? units[buf[3] >> 3].mult : INFINITY;
 }
 
-static unsigned int parse_frequency(const uint8_t *pkt)
+static unsigned int parse_freq(const uint8_t *pkt)
 {
 	unsigned int freq;
 
@@ -535,6 +586,31 @@ static unsigned int parse_frequency(const uint8_t *pkt)
 	}
 
 	return freq;
+}
+
+static unsigned int parse_quant(const uint8_t *pkt, int is_secondary)
+{
+	const uint8_t *buf;
+
+	if (pkt[2] & 0x20)
+		return QUANT_AUTO;
+
+	buf = pkt_to_buf(pkt, is_secondary);
+
+	return buf[0];
+}
+
+static unsigned int parse_model(const uint8_t *pkt)
+{
+	if (pkt[2] & 0x40)
+		return MODEL_AUTO;
+	else if (parse_mq(pkt, 0, 0) == SR_MQ_RESISTANCE)
+		return MODEL_NONE;
+	else if (pkt[2] & 0x80)
+		return MODEL_PAR;
+	else
+		return MODEL_SER;
+
 }
 
 static gboolean packet_valid(const uint8_t *pkt)
@@ -552,24 +628,38 @@ static gboolean packet_valid(const uint8_t *pkt)
 	return FALSE;
 }
 
-static int send_frequency_update(struct sr_dev_inst *sdi, unsigned int freq)
+static int do_config_update(struct sr_dev_inst *sdi, uint32_t key,
+			    GVariant *var)
 {
-	struct sr_config *cfg;
 	struct dev_context *devc;
-	int ret;
 
 	devc = sdi->priv;
 
-	cfg = sr_config_new(SR_CONF_OUTPUT_FREQUENCY,
-			    g_variant_new_uint64(frequencies[freq]));
+	return send_config_update_key(devc->cb_data, key, var);
+}
 
-	if (!cfg)
-		return SR_ERR;
+static int send_freq_update(struct sr_dev_inst *sdi, unsigned int freq)
+{
+	return do_config_update(sdi, SR_CONF_OUTPUT_FREQUENCY,
+				g_variant_new_uint64(frequencies[freq]));
+}
 
-	ret = send_config_update(devc->cb_data, cfg);
-	sr_config_free(cfg);
+static int send_quant1_update(struct sr_dev_inst *sdi, unsigned int quant)
+{
+	return do_config_update(sdi, SR_CONF_MEASURED_QUANTITY,
+				g_variant_new_string(quantities1[quant]));
+}
 
-	return ret;
+static int send_quant2_update(struct sr_dev_inst *sdi, unsigned int quant)
+{
+	return do_config_update(sdi, SR_CONF_MEASURED_2ND_QUANTITY,
+				g_variant_new_string(quantities2[quant]));
+}
+
+static int send_model_update(struct sr_dev_inst *sdi, unsigned int model)
+{
+	return do_config_update(sdi, SR_CONF_EQUIV_CIRCUIT_MODEL,
+				g_variant_new_string(models[model]));
 }
 
 static void handle_packet(struct sr_dev_inst *sdi, const uint8_t *pkt)
@@ -577,16 +667,40 @@ static void handle_packet(struct sr_dev_inst *sdi, const uint8_t *pkt)
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog analog;
 	struct dev_context *devc;
-	unsigned int freq;
+	unsigned int val;
 	float floatval;
 	int count;
 
 	devc = sdi->priv;
 
-	freq = parse_frequency(pkt);
-	if (freq != devc->freq) {
-		if (send_frequency_update(sdi, freq) == SR_OK)
-			devc->freq = freq;
+	val = parse_freq(pkt);
+	if (val != devc->freq) {
+		if (send_freq_update(sdi, val) == SR_OK)
+			devc->freq = val;
+		else
+			return;
+	}
+
+	val = parse_quant(pkt, 0);
+	if (val != devc->quant1) {
+		if (send_quant1_update(sdi, val) == SR_OK)
+			devc->quant1 = val;
+		else
+			return;
+	}
+
+	val = parse_quant(pkt, 1);
+	if (val != devc->quant2) {
+		if (send_quant2_update(sdi, val) == SR_OK)
+			devc->quant2 = val;
+		else
+			return;
+	}
+
+	val = parse_model(pkt);
+	if (val != devc->model) {
+		if (send_model_update(sdi, val) == SR_OK)
+			devc->model = val;
 		else
 			return;
 	}
@@ -740,8 +854,6 @@ SR_PRIV struct sr_dev_inst *es51919_serial_scan(GSList *options,
 	if (!(devc->buf = dev_buffer_new(PACKET_SIZE * 8)))
 		goto scan_cleanup;
 
-	devc->freq = -1;
-
 	sdi->inst_type = SR_INST_SERIAL;
 	sdi->conn = serial;
 
@@ -776,6 +888,15 @@ SR_PRIV int es51919_serial_config_get(uint32_t key, GVariant **data,
 	switch (key) {
 	case SR_CONF_OUTPUT_FREQUENCY:
 		*data = g_variant_new_uint64(frequencies[devc->freq]);
+		break;
+	case SR_CONF_MEASURED_QUANTITY:
+		*data = g_variant_new_string(quantities1[devc->quant1]);
+		break;
+	case SR_CONF_MEASURED_2ND_QUANTITY:
+		*data = g_variant_new_string(quantities2[devc->quant2]);
+		break;
+	case SR_CONF_EQUIV_CIRCUIT_MODEL:
+		*data = g_variant_new_string(models[devc->model]);
 		break;
 	default:
 		sr_spew("%s: Unsupported key %u", __func__, key);
@@ -827,6 +948,9 @@ static const uint32_t devopts[] = {
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_SET,
 	SR_CONF_LIMIT_MSEC | SR_CONF_SET,
 	SR_CONF_OUTPUT_FREQUENCY | SR_CONF_GET | SR_CONF_LIST,
+	SR_CONF_MEASURED_QUANTITY | SR_CONF_GET | SR_CONF_LIST,
+	SR_CONF_MEASURED_2ND_QUANTITY | SR_CONF_GET | SR_CONF_LIST,
+	SR_CONF_EQUIV_CIRCUIT_MODEL | SR_CONF_GET | SR_CONF_LIST,
 };
 
 static const struct std_opt_desc opts = {
@@ -848,6 +972,17 @@ SR_PRIV int es51919_serial_config_list(uint32_t key, GVariant **data,
 	case SR_CONF_OUTPUT_FREQUENCY:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT64,
 			frequencies, ARRAY_SIZE(frequencies), sizeof(uint64_t));
+		break;
+	case SR_CONF_MEASURED_QUANTITY:
+		*data = g_variant_new_strv(list_quantities1,
+					   ARRAY_SIZE(list_quantities1));
+		break;
+	case SR_CONF_MEASURED_2ND_QUANTITY:
+		*data = g_variant_new_strv(quantities2,
+					   ARRAY_SIZE(quantities2));
+		break;
+	case SR_CONF_EQUIV_CIRCUIT_MODEL:
+		*data = g_variant_new_strv(models, ARRAY_SIZE(models));
 		break;
 	default:
 		sr_spew("%s: Unsupported key %u", __func__, key);

@@ -221,10 +221,6 @@ static void fancyprint(int unit, int mqflags, float value, GString *out)
 		g_string_append_printf(out, " AVG");
 	if (mqflags & SR_MQFLAG_REFERENCE)
 		g_string_append_printf(out, " REF");
-	if (mqflags & SR_MQFLAG_AUTOMQ)
-		g_string_append_printf(out, " AUTOMQ");
-	if (mqflags & SR_MQFLAG_AUTOMODEL)
-		g_string_append_printf(out, " AUTOMODEL");
 	g_string_append_c(out, '\n');
 }
 
