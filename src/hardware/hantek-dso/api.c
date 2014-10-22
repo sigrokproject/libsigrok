@@ -669,6 +669,7 @@ static void send_chunk(struct sr_dev_inst *sdi, unsigned char *buf,
 	analog.num_samples = num_samples;
 	analog.mq = SR_MQ_VOLTAGE;
 	analog.unit = SR_UNIT_VOLT;
+	analog.mqflags = 0;
 	/* TODO: Check malloc return value. */
 	analog.data = g_try_malloc(analog.num_samples * sizeof(float) * num_channels);
 	data_offset = 0;
