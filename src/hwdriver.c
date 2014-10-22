@@ -178,20 +178,25 @@ SR_PRIV int sr_variant_type_check(uint32_t key, GVariant *value)
 {
 	const struct sr_config_info *info;
 	const GVariantType *type, *expected;
+	char *expected_string, *type_string;
+
 	info = sr_config_info_get(key);
 	if (!info)
 		return SR_OK;
+
 	expected = sr_variant_type_get(info->datatype);
 	type = g_variant_get_type(value);
-	if (!g_variant_type_equal(type, expected)) {
-		gchar *expected_string = g_variant_type_dup_string(expected);
-		gchar *type_string = g_variant_type_dup_string(type);
+	if (!g_variant_type_equal(type, expected)
+			&& !g_variant_type_is_subtype_of(type, expected)) {
+		expected_string = g_variant_type_dup_string(expected);
+		type_string = g_variant_type_dup_string(type);
 		sr_err("Wrong variant type for key '%s': expected '%s', got '%s'",
 			info->name, expected_string, type_string);
 		g_free(expected_string);
 		g_free(type_string);
 		return SR_ERR_ARG;
 	}
+
 	return SR_OK;
 }
 
