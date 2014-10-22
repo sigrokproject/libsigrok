@@ -554,6 +554,7 @@ SR_API const char *sr_dev_inst_sernum_get(struct sr_dev_inst *sdi)
 	return sdi->serial_num;
 }
 
+#ifdef HAVE_LIBUSB_1_0
 /**
  * Queries a device instances' connection identifier.
  *
@@ -621,5 +622,6 @@ SR_API const char *sr_dev_inst_connid_get(struct sr_dev_inst *sdi)
 
 	return sdi->connection_id;
 }
+#endif
 
 /** @} */
