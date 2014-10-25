@@ -912,6 +912,21 @@ SR_PRIV gboolean sr_brymen_bm25x_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_brymen_bm25x_parse(const uint8_t *buf, float *floatval,
 			     struct sr_datafeed_analog *analog, void *info);
 
+/*--- hardware/dmm/ut71x.c --------------------------------------------------*/
+
+#define UT71X_PACKET_SIZE 11
+
+struct ut71x_info {
+	gboolean is_voltage, is_resistance, is_capacitance, is_temperature;
+	gboolean is_celsius, is_fahrenheit, is_current, is_continuity;
+	gboolean is_diode, is_frequency, is_duty_cycle, is_dc, is_ac;
+	gboolean is_auto, is_manual, is_sign, is_power, is_loop_current;
+};
+
+SR_PRIV gboolean sr_ut71x_packet_valid(const uint8_t *buf);
+SR_PRIV int sr_ut71x_parse(const uint8_t *buf, float *floatval,
+		struct sr_datafeed_analog *analog, void *info);
+
 /*--- hardware/lcr/es51919.c ------------------------------------------------*/
 
 SR_PRIV void es51919_serial_clean(void *priv);
