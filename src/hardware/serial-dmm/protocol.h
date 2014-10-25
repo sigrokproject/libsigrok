@@ -46,6 +46,9 @@ enum {
 	VOLTCRAFT_VC820_SER,
 	VOLTCRAFT_VC830_SER,
 	VOLTCRAFT_VC840_SER,
+	VOLTCRAFT_VC920_SER,
+	VOLTCRAFT_VC940_SER,
+	VOLTCRAFT_VC960_SER,
 	UNI_T_UT60A_SER,
 	UNI_T_UT60E_SER,
 	UNI_T_UT60G_SER,
@@ -53,6 +56,11 @@ enum {
 	UNI_T_UT61C_SER,
 	UNI_T_UT61D_SER,
 	UNI_T_UT61E_SER,
+	UNI_T_UT71A_SER,
+	UNI_T_UT71B_SER,
+	UNI_T_UT71C_SER,
+	UNI_T_UT71D_SER,
+	UNI_T_UT71E_SER,
 	ISO_TECH_IDM103N,
 	TENMA_72_7745_SER,
 	TENMA_72_7750_SER,
@@ -146,6 +154,9 @@ SR_PRIV int receive_data_VOLTCRAFT_ME42(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_VOLTCRAFT_VC820_SER(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_VOLTCRAFT_VC830_SER(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_VOLTCRAFT_VC840_SER(int fd, int revents, void *cb_data);
+SR_PRIV int receive_data_VOLTCRAFT_VC920_SER(int fd, int revents, void *cb_data);
+SR_PRIV int receive_data_VOLTCRAFT_VC940_SER(int fd, int revents, void *cb_data);
+SR_PRIV int receive_data_VOLTCRAFT_VC960_SER(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_UNI_T_UT60A_SER(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_UNI_T_UT60E_SER(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_UNI_T_UT60G_SER(int fd, int revents, void *cb_data);
@@ -153,6 +164,11 @@ SR_PRIV int receive_data_UNI_T_UT61B_SER(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_UNI_T_UT61C_SER(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_UNI_T_UT61D_SER(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_UNI_T_UT61E_SER(int fd, int revents, void *cb_data);
+SR_PRIV int receive_data_UNI_T_UT71A_SER(int fd, int revents, void *cb_data);
+SR_PRIV int receive_data_UNI_T_UT71B_SER(int fd, int revents, void *cb_data);
+SR_PRIV int receive_data_UNI_T_UT71C_SER(int fd, int revents, void *cb_data);
+SR_PRIV int receive_data_UNI_T_UT71D_SER(int fd, int revents, void *cb_data);
+SR_PRIV int receive_data_UNI_T_UT71E_SER(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_ISO_TECH_IDM103N(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_TENMA_72_7745_SER(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_TENMA_72_7750_SER(int fd, int revents, void *cb_data);

@@ -226,19 +226,21 @@ static int get_and_handle_data(struct sr_dev_inst *sdi, int dmm, void *info)
 	 * Append the 1-7 data bytes of this chunk to pbuf.
 	 *
 	 * Special case:
-	 * DMMs with Cyrustek ES51922 chip need serial settings of
-	 * 19230/7o1. The WCH CH9325 UART to USB/HID chip used in (some
+	 * DMMs with Cyrustek ES51922 chip and UT71x DMMs need serial settings
+	 * of 7o1. The WCH CH9325 UART to USB/HID chip used in (some
 	 * versions of) the UNI-T UT-D04 cable however, will also send
 	 * the parity bit to the host in the 8-byte data chunks. This bit
 	 * is encoded in bit 7 of each of the 1-7 data bytes and must thus
-	 * be removed in order for the actual ES51922 protocol parser to
-	 * work properly.
+	 * be removed in order for the actual protocol parser to work properly.
 	 */
 	num_databytes_in_chunk = buf[0] & 0x0f;
 	for (i = 0; i < num_databytes_in_chunk; i++, devc->buflen++) {
 		pbuf[devc->buflen] = buf[1 + i];
-		if (udmms[dmm].packet_parse == sr_es519xx_19200_14b_parse)
+		if ((udmms[dmm].packet_parse == sr_es519xx_19200_14b_parse) ||
+		    (udmms[dmm].packet_parse == sr_ut71x_parse)) {
+			/* Mask off the parity bit. */
 			pbuf[devc->buflen] &= ~(1 << 7);
+		}
 	}
 
 	/* Now look for packets in that data. */
@@ -308,8 +310,16 @@ RECEIVE_DATA(UNI_T_UT61B, fs9922)
 RECEIVE_DATA(UNI_T_UT61C, fs9922)
 RECEIVE_DATA(UNI_T_UT61D, fs9922)
 RECEIVE_DATA(UNI_T_UT61E, es519xx)
+RECEIVE_DATA(UNI_T_UT71A, ut71x)
+RECEIVE_DATA(UNI_T_UT71B, ut71x)
+RECEIVE_DATA(UNI_T_UT71C, ut71x)
+RECEIVE_DATA(UNI_T_UT71D, ut71x)
+RECEIVE_DATA(UNI_T_UT71E, ut71x)
 RECEIVE_DATA(VOLTCRAFT_VC820, fs9721)
 RECEIVE_DATA(VOLTCRAFT_VC830, fs9922)
 RECEIVE_DATA(VOLTCRAFT_VC840, fs9721)
+RECEIVE_DATA(VOLTCRAFT_VC920, ut71x)
+RECEIVE_DATA(VOLTCRAFT_VC940, ut71x)
+RECEIVE_DATA(VOLTCRAFT_VC960, ut71x)
 RECEIVE_DATA(TENMA_72_7745, es519xx)
 RECEIVE_DATA(TENMA_72_7750, es519xx)

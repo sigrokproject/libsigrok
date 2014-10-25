@@ -319,6 +319,8 @@ a short list for convenience:
  - Tenma 72-7750: Briefly press the "RS232C" button.
  - UNI-T UT60G: Briefly press the "RS232C" button.
  - UNI-T UT61B/C/D: Press the "REL/RS232/USB" button for roughly 1 second.
+ - UNI-T UT71x: Press the "SEND/-/MAXMIN" button for roughly 1 second.
+   Briefly pressing the "EXIT" button leaves this mode again.
  - UNI-T UT325: Briefly press the "SEND" button (as per manual). However, it
    appears that in practice you don't have to press the button (at least on
    some versions of the device), simply connect the device via USB.
