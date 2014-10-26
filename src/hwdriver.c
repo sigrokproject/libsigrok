@@ -48,10 +48,36 @@ extern SR_PRIV struct sr_dev_driver *drivers_list[];
  */
 
 static struct sr_config_info sr_config_info_data[] = {
+	/* Device types */
+	{SR_CONF_LOGIC_ANALYZER, SR_T_STRING, NULL, "Logic Analyzer", NULL},
+	{SR_CONF_OSCILLOSCOPE, SR_T_STRING, NULL, "Oscilloscope", NULL},
+	{SR_CONF_MULTIMETER, SR_T_STRING, NULL, "Multimeter", NULL},
+	{SR_CONF_DEMO_DEV, SR_T_STRING, NULL, "Demo device", NULL},
+	{SR_CONF_SOUNDLEVELMETER, SR_T_STRING, NULL, "Sound level meter", NULL},
+	{SR_CONF_THERMOMETER, SR_T_STRING, NULL, "Thermometer", NULL},
+	{SR_CONF_HYGROMETER, SR_T_STRING, NULL, "Hygrometer", NULL},
+	{SR_CONF_ENERGYMETER, SR_T_STRING, NULL, "Energy meter", NULL},
+	{SR_CONF_DEMODULATOR, SR_T_STRING, NULL, "Demodulator", NULL},
+	{SR_CONF_POWER_SUPPLY, SR_T_STRING, NULL, "Power supply", NULL},
+	{SR_CONF_LCRMETER, SR_T_STRING, NULL, "LCR meter", NULL},
+
+	/* Sample limiting */
+	{SR_CONF_LIMIT_SAMPLES, SR_T_UINT64, "limit_samples",
+		"Sample limit", NULL},
+	{SR_CONF_LIMIT_MSEC, SR_T_UINT64, "limit_time",
+		"Time limit", NULL},
+	{SR_CONF_LIMIT_FRAMES, SR_T_UINT64, "limit_frames",
+		"Frame limit", NULL},
+	{SR_CONF_CONTINUOUS, SR_T_UINT64, "continuous",
+		"Continuous sampling", NULL},
+
+	/* Scan options */
 	{SR_CONF_CONN, SR_T_STRING, "conn",
 		"Connection", NULL},
 	{SR_CONF_SERIALCOMM, SR_T_STRING, "serialcomm",
 		"Serial communication", NULL},
+
+	/* Device/channel group options */
 	{SR_CONF_SAMPLERATE, SR_T_UINT64, "samplerate",
 		"Sample rate", NULL},
 	{SR_CONF_CAPTURE_RATIO, SR_T_UINT64, "captureratio",
@@ -128,8 +154,6 @@ static struct sr_config_info sr_config_info_data[] = {
 		"Over-current protection active", NULL},
 	{SR_CONF_OVER_CURRENT_PROTECTION_THRESHOLD, SR_T_FLOAT, "ocp_threshold",
 		"Over-current protection threshold", NULL},
-	{SR_CONF_LIMIT_SAMPLES, SR_T_UINT64, "limit_samples",
-		"Sample limit", NULL},
 	{SR_CONF_CLOCK_EDGE, SR_T_STRING, "clock_edge",
 		"Clock edge", NULL},
 	{SR_CONF_AMPLITUDE, SR_T_FLOAT, "amplitude",
