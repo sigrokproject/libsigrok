@@ -133,22 +133,24 @@ static const uint32_t scanopts[] = {
 	SR_CONF_NUM_ANALOG_CHANNELS,
 };
 
-static const int devopts[] = {
-	SR_CONF_LOGIC_ANALYZER,
-	SR_CONF_CONTINUOUS,
+static const uint32_t devopts[] = {
 	SR_CONF_DEMO_DEV,
-	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_LOGIC_ANALYZER,
+	SR_CONF_OSCILLOSCOPE,
+	SR_CONF_CONTINUOUS,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
-	SR_CONF_NUM_LOGIC_CHANNELS | SR_CONF_GET,
-	SR_CONF_NUM_ANALOG_CHANNELS | SR_CONF_GET,
 };
 
-static const int devopts_cg_logic[] = {
+static const uint32_t devopts_global[] = {
+	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+};
+
+static const uint32_t devopts_cg_logic[] = {
 	SR_CONF_PATTERN_MODE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
-static const int devopts_cg_analog[] = {
+static const uint32_t devopts_cg_analog[] = {
 	SR_CONF_PATTERN_MODE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_AMPLITUDE | SR_CONF_GET | SR_CONF_SET,
 };
@@ -437,12 +439,6 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		} else
 			return SR_ERR_BUG;
 		break;
-	case SR_CONF_NUM_LOGIC_CHANNELS:
-		*data = g_variant_new_int32(devc->num_logic_channels);
-		break;
-	case SR_CONF_NUM_ANALOG_CHANNELS:
-		*data = g_variant_new_int32(devc->num_analog_channels);
-		break;
 	case SR_CONF_AMPLITUDE:
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
@@ -568,6 +564,12 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		return SR_OK;
 	}
 
+	if (key == SR_CONF_DEVICE_OPTIONS && !sdi) {
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+				devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
+		return SR_OK;
+	}
+
 	if (!sdi)
 		return SR_ERR_ARG;
 
@@ -575,7 +577,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		switch (key) {
 		case SR_CONF_DEVICE_OPTIONS:
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-					devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
+					devopts_global, ARRAY_SIZE(devopts_global), sizeof(uint32_t));
 			break;
 		case SR_CONF_SAMPLERATE:
 			g_variant_builder_init(&gvb, G_VARIANT_TYPE("a{sv}"));
