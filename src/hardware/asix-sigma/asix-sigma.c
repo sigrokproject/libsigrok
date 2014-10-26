@@ -75,6 +75,9 @@ static const uint32_t devopts[] = {
 	SR_CONF_LOGIC_ANALYZER,
 	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_SET,
+};
+
+static const uint32_t devopts_global[] = {
 	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST,
 	SR_CONF_CAPTURE_RATIO | SR_CONF_GET | SR_CONF_SET,
@@ -897,8 +900,12 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
+		if (!sdi)
+			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+					devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
+		else
+			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+					devopts_global, ARRAY_SIZE(devopts_global), sizeof(uint32_t));
 		break;
 	case SR_CONF_SAMPLERATE:
 		g_variant_builder_init(&gvb, G_VARIANT_TYPE("a{sv}"));
