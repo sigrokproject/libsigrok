@@ -32,6 +32,9 @@ static const uint32_t devopts[] = {
 	SR_CONF_SOUNDLEVELMETER,
 	SR_CONF_CONTINUOUS,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
+};
+
+static const uint32_t devopts_global[] = {
 	SR_CONF_SPL_WEIGHT_FREQ | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_SPL_WEIGHT_TIME | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_SPL_MEASUREMENT_RANGE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
@@ -335,40 +338,49 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	unsigned int i;
 	int ret;
 
-	(void)sdi;
 	(void)cg;
 
 	ret = SR_OK;
-	switch (key) {
-	case SR_CONF_SCAN_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
-		break;
-	case SR_CONF_DEVICE_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
-		break;
-	case SR_CONF_SPL_WEIGHT_FREQ:
-		*data = g_variant_new_strv(weight_freq, ARRAY_SIZE(weight_freq));
-		break;
-	case SR_CONF_SPL_WEIGHT_TIME:
-		*data = g_variant_new_strv(weight_time, ARRAY_SIZE(weight_time));
-		break;
-	case SR_CONF_SPL_MEASUREMENT_RANGE:
-		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
-		for (i = 0; i < ARRAY_SIZE(meas_ranges); i++) {
-			range[0] = g_variant_new_uint64(meas_ranges[i][0]);
-			range[1] = g_variant_new_uint64(meas_ranges[i][1]);
-			tuple = g_variant_new_tuple(range, 2);
-			g_variant_builder_add_value(&gvb, tuple);
+	if (!sdi) {
+		switch (key) {
+		case SR_CONF_SCAN_OPTIONS:
+			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+					scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
+			break;
+		case SR_CONF_DEVICE_OPTIONS:
+			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+					devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
+			break;
+		default:
+			return SR_ERR_NA;
 		}
-		*data = g_variant_builder_end(&gvb);
-		break;
-	case SR_CONF_DATA_SOURCE:
-		*data = g_variant_new_strv(data_sources, ARRAY_SIZE(data_sources));
-		break;
-	default:
-		return SR_ERR_NA;
+	} else {
+		switch (key) {
+		case SR_CONF_DEVICE_OPTIONS:
+			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+					devopts_global, ARRAY_SIZE(devopts_global), sizeof(uint32_t));
+		case SR_CONF_SPL_WEIGHT_FREQ:
+			*data = g_variant_new_strv(weight_freq, ARRAY_SIZE(weight_freq));
+			break;
+		case SR_CONF_SPL_WEIGHT_TIME:
+			*data = g_variant_new_strv(weight_time, ARRAY_SIZE(weight_time));
+			break;
+		case SR_CONF_SPL_MEASUREMENT_RANGE:
+			g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
+			for (i = 0; i < ARRAY_SIZE(meas_ranges); i++) {
+				range[0] = g_variant_new_uint64(meas_ranges[i][0]);
+				range[1] = g_variant_new_uint64(meas_ranges[i][1]);
+				tuple = g_variant_new_tuple(range, 2);
+				g_variant_builder_add_value(&gvb, tuple);
+			}
+			*data = g_variant_builder_end(&gvb);
+			break;
+		case SR_CONF_DATA_SOURCE:
+			*data = g_variant_new_strv(data_sources, ARRAY_SIZE(data_sources));
+			break;
+		default:
+			return SR_ERR_NA;
+		}
 	}
 
 	return ret;
