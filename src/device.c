@@ -554,7 +554,6 @@ SR_API const char *sr_dev_inst_sernum_get(struct sr_dev_inst *sdi)
 	return sdi->serial_num;
 }
 
-#ifdef HAVE_LIBUSB_1_0
 /**
  * Queries a device instances' connection identifier.
  *
@@ -566,16 +565,19 @@ SR_API const char *sr_dev_inst_sernum_get(struct sr_dev_inst *sdi)
 SR_API const char *sr_dev_inst_connid_get(struct sr_dev_inst *sdi)
 {
 	struct drv_context *drvc;
+	int r, cnt, i, a, b;
+	char connection_id[64];
+
+#ifdef HAVE_LIBUSB_1_0
 	struct sr_usb_dev_inst *usb;
 	struct libusb_device **devlist;
 	struct libusb_device_descriptor des;
-	int r, cnt, i, a, b;
-	char connection_id[64];
+#endif
 
 	if (!sdi)
 		return NULL;
 
-	#ifdef HAVE_LIBSERIALPORT
+#ifdef HAVE_LIBSERIALPORT
 	struct sr_serial_dev_inst *serial;
 
 	if ((!sdi->connection_id) && (sdi->inst_type == SR_INST_SERIAL)) {
@@ -584,9 +586,10 @@ SR_API const char *sr_dev_inst_connid_get(struct sr_dev_inst *sdi)
 		serial = sdi->conn;
 		sdi->connection_id = g_strdup(serial->port);
 	}
-	#endif
+#endif
 
 
+#ifdef HAVE_LIBUSB_1_0
 	if ((!sdi->connection_id) && (sdi->inst_type == SR_INST_USB)) {
 		/* connection_id isn't populated, let's do that here. */
 
@@ -619,9 +622,9 @@ SR_API const char *sr_dev_inst_connid_get(struct sr_dev_inst *sdi)
 
 		libusb_free_device_list(devlist, 1);
 	}
+#endif
 
 	return sdi->connection_id;
 }
-#endif
 
 /** @} */
