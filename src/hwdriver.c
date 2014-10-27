@@ -562,6 +562,8 @@ SR_API const struct sr_config_info *sr_config_info_name_get(const char *optname)
 	int i;
 
 	for (i = 0; sr_config_info_data[i].key; i++) {
+		if (!sr_config_info_data[i].id)
+			continue;
 		if (!strcmp(sr_config_info_data[i].id, optname))
 			return &sr_config_info_data[i];
 	}
