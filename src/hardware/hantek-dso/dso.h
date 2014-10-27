@@ -180,19 +180,15 @@ struct dev_context {
 	int timebase;
 	gboolean ch1_enabled;
 	gboolean ch2_enabled;
-	int voltage_ch1;
-	int voltage_ch2;
-	int coupling_ch1;
-	int coupling_ch2;
+	int voltage[2];
+	int coupling[2];
 	// voltage offset (vertical position)
 	float voffset_ch1;
 	float voffset_ch2;
 	float voffset_trigger;
 	uint16_t channel_levels[2][9][2];
 	unsigned int framesize;
-	gboolean filter_ch1;
-	gboolean filter_ch2;
-	gboolean filter_trigger;
+	gboolean filter[2];
 	int triggerslope;
 	char *triggersource;
 	float triggerposition;

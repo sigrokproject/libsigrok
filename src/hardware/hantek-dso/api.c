@@ -47,18 +47,24 @@ static const uint32_t scanopts[] = {
 static const uint32_t devopts[] = {
 	SR_CONF_OSCILLOSCOPE,
 	SR_CONF_CONTINUOUS,
-	SR_CONF_CONN | SR_CONF_GET,
 	SR_CONF_LIMIT_FRAMES | SR_CONF_SET,
-	SR_CONF_TIMEBASE | SR_CONF_SET | SR_CONF_LIST,
-	SR_CONF_BUFFERSIZE | SR_CONF_SET | SR_CONF_LIST,
-	SR_CONF_TRIGGER_SOURCE | SR_CONF_SET | SR_CONF_LIST,
-	SR_CONF_TRIGGER_SLOPE | SR_CONF_SET,
-	SR_CONF_HORIZ_TRIGGERPOS | SR_CONF_SET,
-	SR_CONF_FILTER | SR_CONF_SET | SR_CONF_LIST,
-	SR_CONF_VDIV | SR_CONF_SET | SR_CONF_LIST,
-	SR_CONF_COUPLING | SR_CONF_SET | SR_CONF_LIST,
+};
+
+static const uint32_t devopts_global[] = {
+	SR_CONF_CONN | SR_CONF_GET,
+	SR_CONF_TIMEBASE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_BUFFERSIZE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_TRIGGER_SOURCE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_TRIGGER_SLOPE | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_HORIZ_TRIGGERPOS | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_NUM_TIMEBASE | SR_CONF_GET,
 	SR_CONF_NUM_VDIV | SR_CONF_GET,
+};
+
+static const uint32_t devopts_cg[] = {
+	SR_CONF_FILTER | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_VDIV | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_COUPLING | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
 static const char *channel_names[] = {
@@ -141,10 +147,9 @@ static const char *trigger_sources[] = {
 	/* TODO: forced */
 };
 
-static const char *filter_targets[] = {
-	"CH1",
-	"CH2",
-	/* TODO: "TRIGGER", */
+static const char *trigger_slopes[] = {
+	"r",
+	"f",
 };
 
 static const char *coupling[] = {
@@ -162,14 +167,12 @@ static struct sr_dev_inst *dso_dev_new(const struct dso_profile *prof)
 {
 	struct sr_dev_inst *sdi;
 	struct sr_channel *ch;
+	struct sr_channel_group *cg;
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	int i;
 
-	sdi = sr_dev_inst_new(SR_ST_INITIALIZING,
-		prof->vendor, prof->model, NULL);
-	if (!sdi)
-		return NULL;
+	sdi = sr_dev_inst_new(SR_ST_INITIALIZING, prof->vendor, prof->model, NULL);
 	sdi->driver = di;
 
 	/*
@@ -177,26 +180,24 @@ static struct sr_dev_inst *dso_dev_new(const struct dso_profile *prof)
 	 * a trigger source internal to the device.
 	 */
 	for (i = 0; channel_names[i]; i++) {
-		if (!(ch = sr_channel_new(i, SR_CHANNEL_ANALOG, TRUE,
-				channel_names[i])))
-			return NULL;
+		ch = sr_channel_new(i, SR_CHANNEL_ANALOG, TRUE, channel_names[i]);
 		sdi->channels = g_slist_append(sdi->channels, ch);
+		cg = g_malloc0(sizeof(struct sr_channel_group));
+		cg->name = g_strdup(channel_names[i]);
+		cg->channels = g_slist_append(cg->channels, ch);
+		sdi->channel_groups = g_slist_append(sdi->channel_groups, cg);
 	}
 
-	if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
-		sr_err("Device context malloc failed.");
-		return NULL;
-	}
-
+	devc = g_malloc0(sizeof(struct dev_context));
 	devc->profile = prof;
 	devc->dev_state = IDLE;
 	devc->timebase = DEFAULT_TIMEBASE;
 	devc->ch1_enabled = TRUE;
 	devc->ch2_enabled = TRUE;
-	devc->voltage_ch1 = DEFAULT_VOLTAGE;
-	devc->voltage_ch2 = DEFAULT_VOLTAGE;
-	devc->coupling_ch1 = DEFAULT_COUPLING;
-	devc->coupling_ch2 = DEFAULT_COUPLING;
+	devc->voltage[0] = DEFAULT_VOLTAGE;
+	devc->voltage[1] = DEFAULT_VOLTAGE;
+	devc->coupling[0] = DEFAULT_COUPLING;
+	devc->coupling[1] = DEFAULT_COUPLING;
 	devc->voffset_ch1 = DEFAULT_VERT_OFFSET;
 	devc->voffset_ch2 = DEFAULT_VERT_OFFSET;
 	devc->voffset_trigger = DEFAULT_VERT_TRIGGERPOS;
@@ -426,31 +427,82 @@ static int cleanup(void)
 static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
+	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
-	char str[128];
+	char str[128], *s;
+	const uint64_t *vdiv;
+	int ch_idx;
 
 	(void)cg;
 
 	switch (key) {
-	case SR_CONF_CONN:
-		if (!sdi || !sdi->conn)
-			return SR_ERR_ARG;
-		usb = sdi->conn;
-		if (usb->address == 255)
-			/* Device still needs to re-enumerate after firmware
-			 * upload, so we don't know its (future) address. */
-			return SR_ERR;
-		snprintf(str, 128, "%d.%d", usb->bus, usb->address);
-		*data = g_variant_new_string(str);
-		break;
 	case SR_CONF_NUM_TIMEBASE:
 		*data = g_variant_new_int32(NUM_TIMEBASE);
 		break;
 	case SR_CONF_NUM_VDIV:
 		*data = g_variant_new_int32(NUM_VDIV);
 		break;
-	default:
-		return SR_ERR_NA;
+	}
+
+	if (!sdi)
+		return SR_ERR_ARG;
+
+	devc = sdi->priv;
+	if (!cg) {
+		switch (key) {
+		case SR_CONF_CONN:
+			if (!sdi->conn)
+				return SR_ERR_ARG;
+			usb = sdi->conn;
+			if (usb->address == 255)
+				/* Device still needs to re-enumerate after firmware
+				 * upload, so we don't know its (future) address. */
+				return SR_ERR;
+			snprintf(str, 128, "%d.%d", usb->bus, usb->address);
+			*data = g_variant_new_string(str);
+			break;
+		case SR_CONF_TIMEBASE:
+			*data = g_variant_new("(tt)", timebases[devc->timebase][0],
+					timebases[devc->timebase][1]);
+			break;
+		case SR_CONF_BUFFERSIZE:
+			*data = g_variant_new_uint64(devc->framesize);
+			break;
+		case SR_CONF_TRIGGER_SOURCE:
+			*data = g_variant_new_string(devc->triggersource);
+			break;
+		case SR_CONF_TRIGGER_SLOPE:
+			if (devc->triggerslope == SLOPE_POSITIVE)
+				s = "r";
+			else
+				s = "f";
+			*data = g_variant_new_string(s);
+			break;
+		case SR_CONF_HORIZ_TRIGGERPOS:
+			*data = g_variant_new_double(devc->triggerposition);
+			break;
+		default:
+			return SR_ERR_NA;
+		}
+	} else {
+		if (sdi->channel_groups->data == cg)
+			ch_idx = 0;
+		else if (sdi->channel_groups->next->data == cg)
+			ch_idx = 1;
+		else
+			return SR_ERR_ARG;
+		switch(key) {
+		case SR_CONF_FILTER:
+			*data = g_variant_new_boolean(devc->filter[ch_idx]);
+			break;
+		case SR_CONF_VDIV:
+			vdiv = vdivs[devc->voltage[ch_idx]];
+			*data = g_variant_new("(tt)", vdiv[0], vdiv[1]);
+			break;
+		case SR_CONF_COUPLING:
+			*data = g_variant_new_string(coupling[devc->coupling[ch_idx]]);
+			break;
+		}
 	}
 
 	return SR_OK;
@@ -462,126 +514,115 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	struct dev_context *devc;
 	double tmp_double;
 	uint64_t tmp_u64, p, q;
-	int tmp_int, ret;
+	int tmp_int, ch_idx, ret;
 	unsigned int i;
 	const char *tmp_str;
-	char **targets;
-
-	(void)cg;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
 	ret = SR_OK;
 	devc = sdi->priv;
-	switch (key) {
-	case SR_CONF_LIMIT_FRAMES:
-		devc->limit_frames = g_variant_get_uint64(data);
-		break;
-	case SR_CONF_TRIGGER_SLOPE:
-		tmp_str = g_variant_get_string(data, NULL);
-		if (!tmp_str || !(tmp_str[0] == 'f' || tmp_str[0] == 'r'))
-			return SR_ERR_ARG;
-		devc->triggerslope = (tmp_str[0] == 'r')
-			? SLOPE_POSITIVE : SLOPE_NEGATIVE;
-		break;
-	case SR_CONF_HORIZ_TRIGGERPOS:
-		tmp_double = g_variant_get_double(data);
-		if (tmp_double < 0.0 || tmp_double > 1.0) {
-			sr_err("Trigger position should be between 0.0 and 1.0.");
-			ret = SR_ERR_ARG;
-		} else
-			devc->triggerposition = tmp_double;
-		break;
-	case SR_CONF_BUFFERSIZE:
-		tmp_u64 = g_variant_get_uint64(data);
-		for (i = 0; i < 2; i++) {
-			if (devc->profile->buffersizes[i] == tmp_u64) {
-				devc->framesize = tmp_u64;
-				break;
-			}
-		}
-		if (i == 2)
-			ret = SR_ERR_ARG;
-		break;
-	case SR_CONF_TIMEBASE:
-		g_variant_get(data, "(tt)", &p, &q);
-		tmp_int = -1;
-		for (i = 0; i < ARRAY_SIZE(timebases); i++) {
-			if (timebases[i][0] == p && timebases[i][1] == q) {
-				tmp_int = i;
-				break;
-			}
-		}
-		if (tmp_int >= 0)
-			devc->timebase = tmp_int;
-		else
-			ret = SR_ERR_ARG;
-		break;
-	case SR_CONF_TRIGGER_SOURCE:
-		tmp_str = g_variant_get_string(data, NULL);
-		for (i = 0; trigger_sources[i]; i++) {
-			if (!strcmp(tmp_str, trigger_sources[i])) {
-				devc->triggersource = g_strdup(tmp_str);
-				break;
-			}
-		}
-		if (trigger_sources[i] == 0)
-			ret = SR_ERR_ARG;
-		break;
-	case SR_CONF_FILTER:
-		tmp_str = g_variant_get_string(data, NULL);
-		devc->filter_ch1 = devc->filter_ch2 = devc->filter_trigger = 0;
-		targets = g_strsplit(tmp_str, ",", 0);
-		for (i = 0; targets[i]; i++) {
-			if (targets[i] == '\0')
-				/* Empty filter string can be used to clear them all. */
-				;
-			else if (!strcmp(targets[i], "CH1"))
-				devc->filter_ch1 = TRUE;
-			else if (!strcmp(targets[i], "CH2"))
-				devc->filter_ch2 = TRUE;
-			else if (!strcmp(targets[i], "TRIGGER"))
-				devc->filter_trigger = TRUE;
-			else {
-				sr_err("Invalid filter target %s.", targets[i]);
+	if (!cg) {
+		switch (key) {
+		case SR_CONF_LIMIT_FRAMES:
+			devc->limit_frames = g_variant_get_uint64(data);
+			break;
+		case SR_CONF_TRIGGER_SLOPE:
+			tmp_str = g_variant_get_string(data, NULL);
+			if (!tmp_str || !(tmp_str[0] == 'f' || tmp_str[0] == 'r'))
+				return SR_ERR_ARG;
+			devc->triggerslope = (tmp_str[0] == 'r')
+				? SLOPE_POSITIVE : SLOPE_NEGATIVE;
+			break;
+		case SR_CONF_HORIZ_TRIGGERPOS:
+			tmp_double = g_variant_get_double(data);
+			if (tmp_double < 0.0 || tmp_double > 1.0) {
+				sr_err("Trigger position should be between 0.0 and 1.0.");
 				ret = SR_ERR_ARG;
+			} else
+				devc->triggerposition = tmp_double;
+			break;
+		case SR_CONF_BUFFERSIZE:
+			tmp_u64 = g_variant_get_uint64(data);
+			for (i = 0; i < 2; i++) {
+				if (devc->profile->buffersizes[i] == tmp_u64) {
+					devc->framesize = tmp_u64;
+					break;
+				}
 			}
-		}
-		g_strfreev(targets);
-		break;
-	case SR_CONF_VDIV:
-		/* TODO: Not supporting vdiv per channel yet. */
-		g_variant_get(data, "(tt)", &p, &q);
-		tmp_int = -1;
-		for (i = 0; i < ARRAY_SIZE(vdivs); i++) {
-			if (vdivs[i][0] == p && vdivs[i][1] == q) {
-				tmp_int = i;
-				break;
+			if (i == 2)
+				ret = SR_ERR_ARG;
+			break;
+		case SR_CONF_TIMEBASE:
+			g_variant_get(data, "(tt)", &p, &q);
+			tmp_int = -1;
+			for (i = 0; i < ARRAY_SIZE(timebases); i++) {
+				if (timebases[i][0] == p && timebases[i][1] == q) {
+					tmp_int = i;
+					break;
+				}
 			}
-		}
-		if (tmp_int >= 0) {
-			devc->voltage_ch1 = tmp_int;
-			devc->voltage_ch2 = tmp_int;
-		} else
-			ret = SR_ERR_ARG;
-		break;
-	case SR_CONF_COUPLING:
-		tmp_str = g_variant_get_string(data, NULL);
-		/* TODO: Not supporting coupling per channel yet. */
-		for (i = 0; coupling[i]; i++) {
-			if (!strcmp(tmp_str, coupling[i])) {
-				devc->coupling_ch1 = i;
-				devc->coupling_ch2 = i;
-				break;
+			if (tmp_int >= 0)
+				devc->timebase = tmp_int;
+			else
+				ret = SR_ERR_ARG;
+			break;
+		case SR_CONF_TRIGGER_SOURCE:
+			tmp_str = g_variant_get_string(data, NULL);
+			for (i = 0; trigger_sources[i]; i++) {
+				if (!strcmp(tmp_str, trigger_sources[i])) {
+					devc->triggersource = g_strdup(tmp_str);
+					break;
+				}
 			}
+			if (trigger_sources[i] == 0)
+				ret = SR_ERR_ARG;
+			break;
+		default:
+			ret = SR_ERR_NA;
+			break;
 		}
-		if (coupling[i] == 0)
-			ret = SR_ERR_ARG;
-		break;
-	default:
-		ret = SR_ERR_NA;
-		break;
+	} else {
+		if (sdi->channel_groups->data == cg)
+			ch_idx = 0;
+		else if (sdi->channel_groups->next->data == cg)
+			ch_idx = 1;
+		else
+			return SR_ERR_ARG;
+		switch (key) {
+		case SR_CONF_FILTER:
+			devc->filter[ch_idx] = g_variant_get_boolean(data);
+			break;
+		case SR_CONF_VDIV:
+			g_variant_get(data, "(tt)", &p, &q);
+			tmp_int = -1;
+			for (i = 0; i < ARRAY_SIZE(vdivs); i++) {
+				if (vdivs[i][0] == p && vdivs[i][1] == q) {
+					tmp_int = i;
+					break;
+				}
+			}
+			if (tmp_int >= 0) {
+				devc->voltage[ch_idx] = tmp_int;
+			} else
+				ret = SR_ERR_ARG;
+			break;
+		case SR_CONF_COUPLING:
+			tmp_str = g_variant_get_string(data, NULL);
+			for (i = 0; coupling[i]; i++) {
+				if (!strcmp(tmp_str, coupling[i])) {
+					devc->coupling[ch_idx] = i;
+					break;
+				}
+			}
+			if (coupling[i] == 0)
+				ret = SR_ERR_ARG;
+			break;
+		default:
+			ret = SR_ERR_NA;
+			break;
+		}
 	}
 
 	return ret;
@@ -595,57 +636,75 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	GVariantBuilder gvb;
 	unsigned int i;
 
-	(void)cg;
-
-	switch (key) {
-	case SR_CONF_SCAN_OPTIONS:
+	if (key == SR_CONF_SCAN_OPTIONS) {
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
 				scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
-		break;
-	case SR_CONF_DEVICE_OPTIONS:
+		return SR_OK;
+	} else if (key == SR_CONF_DEVICE_OPTIONS && !sdi) {
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
 				devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
-		break;
-	case SR_CONF_BUFFERSIZE:
-		if (!sdi)
-			return SR_ERR_ARG;
-		devc = sdi->priv;
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT64,
-				devc->profile->buffersizes, 2, sizeof(uint64_t));
-		break;
-	case SR_CONF_COUPLING:
-		*data = g_variant_new_strv(coupling, ARRAY_SIZE(coupling));
-		break;
-	case SR_CONF_VDIV:
-		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
-		for (i = 0; i < ARRAY_SIZE(vdivs); i++) {
-			rational[0] = g_variant_new_uint64(vdivs[i][0]);
-			rational[1] = g_variant_new_uint64(vdivs[i][1]);
-			tuple = g_variant_new_tuple(rational, 2);
-			g_variant_builder_add_value(&gvb, tuple);
+		return SR_OK;
+	}
+
+	if (!sdi)
+		return SR_ERR_ARG;
+
+	if (!cg) {
+	switch (key) {
+		case SR_CONF_DEVICE_OPTIONS:
+			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+					devopts_global, ARRAY_SIZE(devopts_global), sizeof(uint32_t));
+			break;
+		case SR_CONF_BUFFERSIZE:
+			if (!sdi)
+				return SR_ERR_ARG;
+			devc = sdi->priv;
+			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT64,
+					devc->profile->buffersizes, 2, sizeof(uint64_t));
+			break;
+		case SR_CONF_TIMEBASE:
+			g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
+			for (i = 0; i < ARRAY_SIZE(timebases); i++) {
+				rational[0] = g_variant_new_uint64(timebases[i][0]);
+				rational[1] = g_variant_new_uint64(timebases[i][1]);
+				tuple = g_variant_new_tuple(rational, 2);
+				g_variant_builder_add_value(&gvb, tuple);
+			}
+			*data = g_variant_builder_end(&gvb);
+			break;
+		case SR_CONF_TRIGGER_SOURCE:
+			*data = g_variant_new_strv(trigger_sources,
+					ARRAY_SIZE(trigger_sources));
+			break;
+		case SR_CONF_TRIGGER_SLOPE:
+			*data = g_variant_new_strv(trigger_slopes,
+					ARRAY_SIZE(trigger_slopes));
+			break;
+		default:
+			return SR_ERR_NA;
 		}
-		*data = g_variant_builder_end(&gvb);
-		break;
-	case SR_CONF_FILTER:
-		*data = g_variant_new_strv(filter_targets,
-				ARRAY_SIZE(filter_targets));
-		break;
-	case SR_CONF_TIMEBASE:
-		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
-		for (i = 0; i < ARRAY_SIZE(timebases); i++) {
-			rational[0] = g_variant_new_uint64(timebases[i][0]);
-			rational[1] = g_variant_new_uint64(timebases[i][1]);
-			tuple = g_variant_new_tuple(rational, 2);
-			g_variant_builder_add_value(&gvb, tuple);
+	} else {
+	switch (key) {
+		case SR_CONF_DEVICE_OPTIONS:
+			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+					devopts_cg, ARRAY_SIZE(devopts_cg), sizeof(uint32_t));
+			break;
+		case SR_CONF_COUPLING:
+			*data = g_variant_new_strv(coupling, ARRAY_SIZE(coupling));
+			break;
+		case SR_CONF_VDIV:
+			g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
+			for (i = 0; i < ARRAY_SIZE(vdivs); i++) {
+				rational[0] = g_variant_new_uint64(vdivs[i][0]);
+				rational[1] = g_variant_new_uint64(vdivs[i][1]);
+				tuple = g_variant_new_tuple(rational, 2);
+				g_variant_builder_add_value(&gvb, tuple);
+			}
+			*data = g_variant_builder_end(&gvb);
+			break;
+		default:
+			return SR_ERR_NA;
 		}
-		*data = g_variant_builder_end(&gvb);
-		break;
-	case SR_CONF_TRIGGER_SOURCE:
-		*data = g_variant_new_strv(trigger_sources,
-				ARRAY_SIZE(trigger_sources));
-		break;
-	default:
-		return SR_ERR_NA;
 	}
 
 	return SR_OK;
@@ -688,14 +747,14 @@ static void send_chunk(struct sr_dev_inst *sdi, unsigned char *buf,
 		 */
 		/* TODO: Support for DSO-5xxx series 9-bit samples. */
 		if (devc->ch1_enabled) {
-			range = ((float)vdivs[devc->voltage_ch1][0] / vdivs[devc->voltage_ch1][1]) * 8;
+			range = ((float)vdivs[devc->voltage[0]][0] / vdivs[devc->voltage[0]][1]) * 8;
 			ch1 = range / 255 * *(buf + i * 2 + 1);
 			/* Value is centered around 0V. */
 			ch1 -= range / 2;
 			analog.data[data_offset++] = ch1;
 		}
 		if (devc->ch2_enabled) {
-			range = ((float)vdivs[devc->voltage_ch2][0] / vdivs[devc->voltage_ch2][1]) * 8;
+			range = ((float)vdivs[devc->voltage[1]][0] / vdivs[devc->voltage[1]][1]) * 8;
 			ch2 = range / 255 * *(buf + i * 2);
 			ch2 -= range / 2;
 			analog.data[data_offset++] = ch2;

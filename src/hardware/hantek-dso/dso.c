@@ -383,19 +383,18 @@ static int dso_set_filters(const struct sr_dev_inst *sdi)
 	memset(cmdstring, 0, sizeof(cmdstring));
 	cmdstring[0] = CMD_SET_FILTERS;
 	cmdstring[1] = 0x0f;
-	if (devc->filter_ch1) {
+	if (devc->filter[0]) {
 		sr_dbg("Turning on CH1 filter.");
 		cmdstring[2] |= 0x80;
 	}
-	if (devc->filter_ch2) {
+	if (devc->filter[1]) {
 		sr_dbg("Turning on CH2 filter.");
 		cmdstring[2] |= 0x40;
 	}
-	if (devc->filter_trigger) {
-		/* TODO: supported on the DSO-2090? */
-		sr_dbg("Turning on trigger filter.");
-		cmdstring[2] |= 0x20;
-	}
+	/*
+	 * Not supported: filtering on the trigger
+	 * cmdstring[2] |= 0x20;
+	 */
 
 	if (send_begin(sdi) != SR_OK)
 		return SR_ERR;
@@ -428,8 +427,8 @@ static int dso_set_voltage(const struct sr_dev_inst *sdi)
 	cmdstring[2] = 0x30;
 
 	/* CH1 volts/div is encoded in bits 0-1 */
-	sr_dbg("CH1 vdiv index: %d.", devc->voltage_ch1);
-	switch (devc->voltage_ch1) {
+	sr_dbg("CH1 vdiv index: %d.", devc->voltage[0]);
+	switch (devc->voltage[0]) {
 	case VDIV_1V:
 	case VDIV_100MV:
 	case VDIV_10MV:
@@ -448,8 +447,8 @@ static int dso_set_voltage(const struct sr_dev_inst *sdi)
 	}
 
 	/* CH2 volts/div is encoded in bits 2-3 */
-	sr_dbg("CH2 vdiv index: %d.", devc->voltage_ch2);
-	switch (devc->voltage_ch2) {
+	sr_dbg("CH2 vdiv index: %d.", devc->voltage[1]);
+	switch (devc->voltage[1]) {
 	case VDIV_1V:
 	case VDIV_100MV:
 	case VDIV_10MV:
@@ -494,24 +493,24 @@ static int dso_set_relays(const struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 	usb = sdi->conn;
 
-	if (devc->voltage_ch1 < VDIV_1V)
+	if (devc->voltage[0] < VDIV_1V)
 		relays[1] = ~relays[1];
 
-	if (devc->voltage_ch1 < VDIV_100MV)
+	if (devc->voltage[0] < VDIV_100MV)
 		relays[2] = ~relays[2];
 
-	sr_dbg("CH1 coupling: %d.", devc->coupling_ch1);
-	if (devc->coupling_ch1 != COUPLING_AC)
+	sr_dbg("CH1 coupling: %d.", devc->coupling[0]);
+	if (devc->coupling[0] != COUPLING_AC)
 		relays[3] = ~relays[3];
 
-	if (devc->voltage_ch2 < VDIV_1V)
+	if (devc->voltage[1] < VDIV_1V)
 		relays[4] = ~relays[4];
 
-	if (devc->voltage_ch2 < VDIV_100MV)
+	if (devc->voltage[1] < VDIV_100MV)
 		relays[5] = ~relays[5];
 
-	sr_dbg("CH2 coupling: %d.", devc->coupling_ch1);
-	if (devc->coupling_ch2 != COUPLING_AC)
+	sr_dbg("CH2 coupling: %d.", devc->coupling[1]);
+	if (devc->coupling[1] != COUPLING_AC)
 		relays[6] = ~relays[6];
 
 	if (!strcmp(devc->triggersource, "EXT"))
@@ -552,7 +551,7 @@ static int dso_set_voffsets(const struct sr_dev_inst *sdi)
 
 	memset(offsets, 0, sizeof(offsets));
 	/* Channel 1 */
-	ch_levels = devc->channel_levels[0][devc->voltage_ch1];
+	ch_levels = devc->channel_levels[0][devc->voltage[0]];
 	offset = (ch_levels[1] - ch_levels[0]) * devc->voffset_ch1 + ch_levels[0];
 	offsets[0] = (offset >> 8) | 0x20;
 	offsets[1] = offset & 0xff;
@@ -560,7 +559,7 @@ static int dso_set_voffsets(const struct sr_dev_inst *sdi)
 	       offsets[0], offsets[1]);
 
 	/* Channel 2 */
-	ch_levels = devc->channel_levels[1][devc->voltage_ch2];
+	ch_levels = devc->channel_levels[1][devc->voltage[1]];
 	offset = (ch_levels[1] - ch_levels[0]) * devc->voffset_ch2 + ch_levels[0];
 	offsets[2] = (offset >> 8) | 0x20;
 	offsets[3] = offset & 0xff;
