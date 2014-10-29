@@ -66,6 +66,7 @@ for compound in index.findall('compound'):
 
 header = open(os.path.join(outdirname, 'include/libsigrok/enums.hpp'), 'w')
 code = open(os.path.join(outdirname, 'enums.cpp'), 'w')
+swig = open(os.path.join(outdirname, '../swig/enums.i'), 'w')
 
 for file in (header, code):
     print >> file, "/* Generated file - edit enums.py instead! */"
@@ -144,3 +145,7 @@ for enum, (classname, classbrief) in classes.items():
     filename = os.path.join(dirname, "%s_methods.cpp" % classname)
     if os.path.exists(filename):
         print >> code, str.join('', open(filename).readlines())
+
+    # Instantiate EnumValue template for SWIG wrappers
+    print >> swig, '%%template(EnumValue%s) EnumValue<%s, enum %s>;' % (
+        classname, classname, enum_name)
