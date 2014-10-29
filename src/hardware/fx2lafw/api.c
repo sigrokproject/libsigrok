@@ -257,6 +257,7 @@ static GSList *scan(GSList *options)
 
 		devc = fx2lafw_dev_new();
 		devc->profile = prof;
+		devc->sample_wide = (prof->dev_caps & DEV_CAPS_16BIT) != 0;
 		sdi->priv = devc;
 		drvc->instances = g_slist_append(drvc->instances, sdi);
 		devices = g_slist_append(devices, sdi);
