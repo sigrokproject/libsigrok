@@ -377,7 +377,7 @@ std::map<std::string, Glib::VariantBase> dict_to_map_options(PyObject *dict,
         {
             if (!PyString_Check(py_key))
                 throw sigrok::Error(SR_ERR_ARG);
-            auto key = sigrok::ConfigKey::get(PyString_AsString(py_key));
+            auto key = sigrok::ConfigKey::get_by_identifier(PyString_AsString(py_key));
             auto value = python_to_variant_by_key(py_value, key);
             options[key] = value;
         }

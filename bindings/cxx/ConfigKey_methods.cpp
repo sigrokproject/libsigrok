@@ -22,7 +22,7 @@ string ConfigKey::description() const
 	return valid_string(info->name);
 }
 
-const ConfigKey *ConfigKey::get(string identifier)
+const ConfigKey *ConfigKey::get_by_identifier(string identifier)
 {
 	const struct sr_config_info *info = sr_config_info_name_get(identifier.c_str());
 	if (!info)
