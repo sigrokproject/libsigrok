@@ -287,7 +287,7 @@ std::map<std::string, std::string> dict_to_map_string(PyObject *dict)
 /* Convert from a Python type to Glib::Variant, according to config key data type. */
 Glib::VariantBase python_to_variant_by_key(PyObject *input, const sigrok::ConfigKey *key)
 {
-    enum sr_datatype type = key->data_type()->id();
+    enum sr_datatype type = (enum sr_datatype) key->data_type()->id();
 
     if (type == SR_T_UINT64 && PyInt_Check(input))
         return Glib::Variant<guint64>::create(PyInt_AsLong(input));

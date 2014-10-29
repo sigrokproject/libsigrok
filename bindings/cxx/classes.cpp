@@ -400,7 +400,7 @@ bool Configurable::config_check(const ConfigKey *key,
 
 	for (gsize i = 0; i < num_opts; i++)
 	{
-		if ((opts[i] & SR_CONF_MASK) == key->id())
+		if ((opts[i] & SR_CONF_MASK) == (uint32_t) key->id())
 		{
 			g_variant_unref(gvar_opts);
 			return true;

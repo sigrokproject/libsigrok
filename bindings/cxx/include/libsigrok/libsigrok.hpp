@@ -935,17 +935,44 @@ protected:
 };
 
 /** Base class for objects which wrap an enumeration value from libsigrok */
-template <typename T> class SR_API EnumValue
+template <class Class, typename Enum> class SR_API EnumValue
 {
 public:
-	/** The enum constant associated with this value. */
-	T id() const { return _id; }
+	/** The integer constant associated with this value. */
+	int id() const
+	{
+		return static_cast<int>(_id);
+	}
 	/** The name associated with this value. */
-	string name() const { return _name; }
+	string name() const
+	{
+		return _name;
+	}
+	/** Get value associated with a given integer constant. */
+	static const Class *get(int id)
+	{
+		auto key = static_cast<Enum>(id);
+		if (_values.find(key) == _values.end())
+			throw Error(SR_ERR_ARG);
+		return _values.at(key);
+	}
+	/** Get possible values. */
+	static std::vector<const Class *> values()
+	{
+		std::vector<const Class *> result;
+		for (auto entry : _values)
+			result.push_back(entry.second);
+		return result;
+	}
 protected:
-	EnumValue(T id, const char name[]) : _id(id), _name(name) {}
-	~EnumValue() {}
-	const T _id;
+	EnumValue(Enum id, const char name[]) : _id(id), _name(name)
+	{
+	}
+	~EnumValue()
+	{
+	}
+	static const std::map<const Enum, const Class * const> _values;
+	const Enum _id;
 	const string _name;
 };
 

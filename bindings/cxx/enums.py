@@ -73,33 +73,15 @@ for file in (header, code):
 # Template for beginning of class declaration and public members.
 header_public_template = """
 /** {brief} */
-class SR_API {classname} : public EnumValue<enum {enumname}>
+class SR_API {classname} : public EnumValue<{classname}, enum {enumname}>
 {{
 public:
-    static const {classname} *get(int id);
 """
 
 # Template for beginning of private members.
 header_private_template = """
-private:
-    static const std::map<enum {enumname}, const {classname} *> _values;
-    {classname}(enum {enumname} id, const char name[]);
-"""
-
-# Template for class method definitions.
-code_template = """
-{classname}::{classname}(enum {enumname} id, const char name[]) :
-    EnumValue<enum {enumname}>(id, name)
-{{
-}}
-
-const {classname} *{classname}::get(int id)
-{{
-    if (_values.find(static_cast<{enumname}>(id)) == _values.end())
-        throw Error(SR_ERR_ARG);
-
-    return {classname}::_values.at(static_cast<{enumname}>(id));
-}}
+protected:
+    {classname}(enum {enumname} id, const char name[]) : EnumValue(id, name) {{}}
 """
 
 def get_text(node):
@@ -141,10 +123,6 @@ for enum, (classname, classbrief) in classes.items():
     # End class declaration
     print >> header, '};'
 
-    # Begin class code
-    print >> code, code_template.format(
-        classname=classname, enumname=enum_name)
-
     # Define private constants for each enum value
     for name, trimmed_name in zip(member_names, trimmed_names):
         print >> code, 'const %s %s::_%s = %s(%s, "%s");' % (
@@ -156,8 +134,8 @@ for enum, (classname, classbrief) in classes.items():
             classname, classname, trimmed_name, classname, trimmed_name)
 
     # Define map of enum values to constants
-    print >> code, 'const std::map<enum %s, const %s *> %s::_values = {' % (
-        enum_name, classname, classname)
+    print >> code, 'template<> const std::map<const enum %s, const %s * const> EnumValue<%s, enum %s>::_values = {' % (
+        enum_name, classname, classname, enum_name)
     for name, trimmed_name in zip(member_names, trimmed_names):
         print >> code, '\t{%s, %s::%s},' % (name, classname, trimmed_name)
     print >> code, '};'
