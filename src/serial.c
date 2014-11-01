@@ -4,6 +4,7 @@
  * Copyright (C) 2010-2012 Bert Vermeulen <bert@biot.com>
  * Copyright (C) 2010-2012 Uwe Hermann <uwe@hermann-uwe.de>
  * Copyright (C) 2012 Alexandru Gagniuc <mr.nuke.me@gmail.com>
+ * Copyright (C) 2014 Uffe Jakobsen <uffe@uffe.org>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -161,6 +162,44 @@ SR_PRIV int serial_flush(struct sr_serial_dev_inst *serial)
 	case SP_ERR_FAIL:
 		error = sp_last_error_message();
 		sr_err("Error flushing port (%d): %s.",
+			sp_last_error_code(), error);
+		sp_free_error_message(error);
+		return SR_ERR;
+	}
+
+	return SR_OK;
+}
+
+/**
+ * Drain serial port buffers.
+ *
+ * @param serial Previously initialized serial port structure.
+ *
+ * @retval SR_OK Success.
+ * @retval SR_ERR Failure.
+ */
+SR_PRIV int serial_drain(struct sr_serial_dev_inst *serial)
+{
+	int ret;
+	char *error;
+
+	if (!serial) {
+		sr_dbg("Invalid serial port.");
+		return SR_ERR;
+	}
+
+	if (!serial->data) {
+		sr_dbg("Cannot drain unopened serial port %s.", serial->port);
+		return SR_ERR;
+	}
+
+	sr_spew("Draining serial port %s.", serial->port);
+
+	ret = sp_drain(serial->data);
+
+	if (ret == SP_ERR_FAIL) {
+		error = sp_last_error_message();
+		sr_err("Error draining port (%d): %s.",
 			sp_last_error_code(), error);
 		sp_free_error_message(error);
 		return SR_ERR;
