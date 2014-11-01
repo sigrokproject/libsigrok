@@ -242,7 +242,7 @@ SR_PRIV struct sr_dev_inst *sr_dev_inst_new(int status,
 
 /** @private
  *  Free device instance struct created by sr_dev_inst().
- *  @param sdi  struct* to free.
+ *  @param sdi device instance to free.
  */
 SR_PRIV void sr_dev_inst_free(struct sr_dev_inst *sdi)
 {
@@ -260,7 +260,10 @@ SR_PRIV void sr_dev_inst_free(struct sr_dev_inst *sdi)
 
 	for (l = sdi->channel_groups; l; l = l->next) {
 		cg = l->data;
+		g_free(cg->name);
+		g_slist_free(cg->channels);
 		g_free(cg->priv);
+		g_free(cg);
 	}
 	g_slist_free(sdi->channel_groups);
 

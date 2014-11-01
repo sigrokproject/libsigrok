@@ -249,8 +249,7 @@ SR_PRIV int std_dev_clear(const struct sr_dev_driver *driver,
 {
 	struct drv_context *drvc;
 	struct sr_dev_inst *sdi;
-	struct sr_channel_group *cg;
-	GSList *l, *lcg;
+	GSList *l;
 	int ret;
 
 	if (!(drvc = driver->priv))
@@ -285,13 +284,6 @@ SR_PRIV int std_dev_clear(const struct sr_dev_driver *driver,
 		else
 			g_free(sdi->priv);
 
-		/* Channel groups */
-		for (lcg = sdi->channel_groups; lcg; lcg = lcg->next) {
-			cg = lcg->data;
-			g_free(cg->name);
-			g_slist_free(cg->channels);
-			g_free(cg);
-		}
 		sr_dev_inst_free(sdi);
 	}
 
