@@ -499,8 +499,8 @@ SR_PRIV int logic16_setup_acquisition(const struct sr_dev_inst *sdi,
 		return ret;
 
 	if (devc->fpga_variant == FPGA_VARIANT_ORIGINAL && reg1 != 0x48) {
-		sr_dbg("Invalid state at acquisition setup: 0x%02x != 0x48.", reg1);
-		return SR_ERR;
+		sr_dbg("Invalid state at acquisition setup: 0x%02x != 0x48. "
+		       "Proceeding anyway.", reg1);
 	}
 
 	if ((ret = read_fpga_register(sdi, 10, &reg10)) != SR_OK)
