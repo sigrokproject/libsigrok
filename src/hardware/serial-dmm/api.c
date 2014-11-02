@@ -82,7 +82,7 @@ SR_PRIV struct sr_dev_driver uni_t_ut71e_ser_driver_info;
 SR_PRIV struct sr_dev_driver iso_tech_idm103n_driver_info;
 SR_PRIV struct sr_dev_driver tenma_72_7745_ser_driver_info;
 SR_PRIV struct sr_dev_driver tenma_72_7750_ser_driver_info;
-SR_PRIV struct sr_dev_driver brymen_bm25x_ser_driver_info;
+SR_PRIV struct sr_dev_driver brymen_bm25x_driver_info;
 
 SR_PRIV struct dmm_info dmms[] = {
 	{
@@ -379,11 +379,11 @@ SR_PRIV struct dmm_info dmms[] = {
 		&tenma_72_7750_ser_driver_info, receive_data_TENMA_72_7750_SER,
 	},
 	{
-		"Brymen", "BM25x (BC20X cable)", "9600/8n1/rts=1/dtr=1",
+		"Brymen", "BM25x", "9600/8n1/rts=1/dtr=1",
 		9600, BRYMEN_BM25X_PACKET_SIZE, 0, 0, NULL,
 		sr_brymen_bm25x_packet_valid, sr_brymen_bm25x_parse,
 		NULL,
-		&brymen_bm25x_ser_driver_info, receive_data_BRYMEN_BM25X_SER,
+		&brymen_bm25x_driver_info, receive_data_BRYMEN_BM25X,
 	},
 };
 
@@ -703,4 +703,4 @@ DRV(uni_t_ut71e_ser, UNI_T_UT71E_SER, "uni-t-ut71e-ser", "UNI-T UT71E (UT-D02 ca
 DRV(iso_tech_idm103n, ISO_TECH_IDM103N, "iso-tech-idm103n", "ISO-TECH IDM103N")
 DRV(tenma_72_7745_ser, TENMA_72_7745_SER, "tenma-72-7745-ser", "Tenma 72-7745 (UT-D02 cable)")
 DRV(tenma_72_7750_ser, TENMA_72_7750_SER, "tenma-72-7750-ser", "Tenma 72-7750 (UT-D02 cable)")
-DRV(brymen_bm25x_ser, BRYMEN_BM25X_SER, "brymen-bm25x-ser", "Brymen BM25x (BC20X cable)")
+DRV(brymen_bm25x, BRYMEN_BM25X, "brymen-bm25x", "Brymen BM25x")

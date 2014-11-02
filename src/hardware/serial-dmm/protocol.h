@@ -64,7 +64,7 @@ enum {
 	ISO_TECH_IDM103N,
 	TENMA_72_7745_SER,
 	TENMA_72_7750_SER,
-	BRYMEN_BM25X_SER,
+	BRYMEN_BM25X,
 };
 
 struct dmm_info {
@@ -172,6 +172,6 @@ SR_PRIV int receive_data_UNI_T_UT71E_SER(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_ISO_TECH_IDM103N(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_TENMA_72_7745_SER(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_TENMA_72_7750_SER(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_BRYMEN_BM25X_SER(int fd, int revents, void *cb_data);
+SR_PRIV int receive_data_BRYMEN_BM25X(int fd, int revents, void *cb_data);
 
 #endif
