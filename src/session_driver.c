@@ -216,13 +216,17 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 
 	(void)cg;
 
+	if (!sdi)
+		return SR_ERR;
+
+	vdev = sdi->priv;
+
 	switch (key) {
 	case SR_CONF_SAMPLERATE:
-		if (sdi) {
-			vdev = sdi->priv;
-			*data = g_variant_new_uint64(vdev->samplerate);
-		} else
-			return SR_ERR;
+		*data = g_variant_new_uint64(vdev->samplerate);
+		break;
+	case SR_CONF_CAPTURE_UNITSIZE:
+		*data = g_variant_new_uint64(vdev->unitsize);
 		break;
 	default:
 		return SR_ERR_NA;
