@@ -278,6 +278,9 @@ SR_PRIV int usb_get_port_path(libusb_device *dev, char *path, int path_len)
 
 	n = libusb_get_port_numbers(dev, port_numbers, sizeof(port_numbers));
 
+	if (n < 1)
+		return SR_ERR;
+
 	len = snprintf(path, path_len, "usb/%d-%d",
 	               libusb_get_bus_number(dev), port_numbers[0]);
 
