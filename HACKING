@@ -45,7 +45,7 @@ You can apply it like this:
  $ cd libsigrok
  $ git am 0001-tondaj-sl-814-Initial-driver-skeleton.patch
 
-You can now edit the files in the hardware/tondaj-sl-814 directory as needed
+You can now edit the files in src/hardware/tondaj-sl-814 as needed
 and implement your driver based on the skeleton files there. That means your
 patch submission later will consist of at least two patches: the initial one
 adding the skeleton driver, and one or more additional patches that actually
@@ -59,15 +59,10 @@ This is a rough overview of what you need to do in order to add a new driver
 (using the Tondaj SL-814 device as example). It's basically what the
 'new-driver' script (see above) does for you:
 
- - configure.ac:
-   - Add an --enable-tondaj-sl-814 option.
-   - Add "hardware/tondaj-sl-814/Makefile" to the AC_CONFIG_FILES list.
-   - Add and entry for the device in the "Enabled hardware drivers" list
-     at the bottom of the file.
- - hardware/Makefile.am: Add "tondaj-sl-814" to the SUBDIRS variable.
- - hwdriver.c: Add a tondaj_sl_814_driver_info entry in two places.
- - hardware/tondaj-sl-814/ directory: Add the following files:
-   Makefile.am, api.c, protocol.c, protocol.h
+ - Makefile.am: Add HW_TONDAJ_SL_814 and add to libsigrok_la_SOURCES.
+ - configure.ac: Add a DRIVER() and DRIVER2() call.
+ - src/drivers.c: Add a tondaj_sl_814_driver_info entry in two places.
+ - src/hardware/tondaj-sl-814/ directory: Add api.c, protocol.c, protocol.h.
 
 See existing drivers or the 'new-driver' output for the details.
 
@@ -105,7 +100,7 @@ Random notes
  - Consistently use the same naming convention for #include guards in headers:
    <PROJECTNAME>_<PATH_TO_FILE>_<FILE>
    This ensures that all #include guards are always unique and consistent.
-   Examples: LIBSIGROK_LIBSIGROK_H, LIBSIGROK_HARDWARE_MIC_985XX_PROTOCOL_H
+   Example: LIBSIGROK_HARDWARE_MIC_985XX_PROTOCOL_H
 
  - Consistently use the same naming convention for API functions:
    <libprefix>_<groupname>_<action>().
