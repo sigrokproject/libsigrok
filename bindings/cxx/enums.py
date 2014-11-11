@@ -146,6 +146,11 @@ for enum, (classname, classbrief) in classes.items():
     if os.path.exists(filename):
         print >> code, str.join('', open(filename).readlines())
 
-    # Instantiate EnumValue template for SWIG wrappers
-    print >> swig, '%%template(EnumValue%s) EnumValue<%s, enum %s>;' % (
+    # Map EnumValue::id() and EnumValue::name() as SWIG attributes.
+    print >> swig, '%%attribute(sigrok::%s, int, id, id);' % classname
+    print >> swig, '%%attributestring(sigrok::%s, std::string, name, name);' % classname
+
+    # Instantiate EnumValue template for SWIG
+    print >> swig, '%%template(EnumValue%s) sigrok::EnumValue<sigrok::%s, enum %s>;' % (
         classname, classname, enum_name)
+
