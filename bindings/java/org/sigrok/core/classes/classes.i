@@ -386,4 +386,7 @@ typedef jobject jsourcecallback;
 %attributeval(sigrok::Class, Type, Name, Get);
 %enddef
 
+%define %enumextras(Class)
+%enddef
+
 %include "bindings/swig/classes.i"

@@ -381,6 +381,9 @@ std::map<std::string, Glib::VariantBase> dict_to_map_options(PyObject *dict,
 }
 %enddef
 
+%define %enumextras(Class)
+%enddef
+
 %include "../../../swig/classes.i"
 
 /* Support Driver.scan() with keyword arguments. */
