@@ -360,11 +360,25 @@ std::map<std::string, Glib::VariantBase> dict_to_map_options(PyObject *dict,
 %include "doc.i"
 
 %define %attributevector(Class, Type, Name, Get)
-%attributeval(sigrok::Class, Type, Name, Get);
+%rename(_ ## Get) sigrok::Class::Get;
+%extend sigrok::Class
+{
+%pythoncode
+{
+  Name = property(_ ## Get)
+}
+}
 %enddef
 
 %define %attributemap(Class, Type, Name, Get)
-%attributeval(sigrok::Class, Type, Name, Get);
+%rename(_ ## Get) sigrok::Class::Get;
+%extend sigrok::Class
+{
+%pythoncode
+{
+  Name = property(fget = lambda x: x._ ## Get().asdict(), doc=_ ## Get.__doc__)
+}
+}
 %enddef
 
 %include "../../../swig/classes.i"
