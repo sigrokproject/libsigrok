@@ -37,6 +37,30 @@ START_TEST(test_user_new)
 }
 END_TEST
 
+START_TEST(test_channel_add)
+{
+	int ret;
+	struct sr_dev_inst *sdi;
+	GSList *channels;
+
+	sdi = sr_dev_inst_user_new("Vendor", "Model", "Version");
+	fail_unless(sdi != NULL, "sr_dev_inst_user_new() failed.");
+
+	channels = sr_dev_inst_channels_get(sdi);
+	fail_unless(g_slist_length(channels) == 0, "More than 0 channels.");
+
+	ret = sr_dev_inst_channel_add(sdi, 0, SR_CHANNEL_LOGIC, "D1");
+	channels = sr_dev_inst_channels_get(sdi);
+	fail_unless(ret == SR_OK);
+	fail_unless(g_slist_length(channels) == 1);
+
+	ret = sr_dev_inst_channel_add(sdi, 1, SR_CHANNEL_ANALOG, "A1");
+	channels = sr_dev_inst_channels_get(sdi);
+	fail_unless(ret == SR_OK);
+	fail_unless(g_slist_length(channels) == 2);
+}
+END_TEST
+
 Suite *suite_device(void)
 {
 	Suite *s;
@@ -46,6 +70,10 @@ Suite *suite_device(void)
 
 	tc = tcase_create("sr_dev_inst_user_new");
 	tcase_add_test(tc, test_user_new);
+
+	tc = tcase_create("sr_dev_inst_channel_add");
+	tcase_add_test(tc, test_channel_add);
+
 	suite_add_tcase(s, tc);
 
 	return s;
