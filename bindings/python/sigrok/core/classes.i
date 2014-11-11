@@ -173,14 +173,28 @@ typedef guint pyg_flags_type;
         Py_XDECREF(arglist);
         Py_XDECREF(revents_obj);
 
-        if (PyErr_Occurred() || !PyBool_Check(result))
-            throw sigrok::Error(SR_ERR);
+        bool completed = !PyErr_Occurred();
 
-        bool retval = (result == Py_True);
+        if (!completed)
+            PyErr_Print();
+
+        bool valid_result = (completed && PyBool_Check(result));
+
+        if (completed && !valid_result)
+        {
+            PyErr_SetString(PyExc_TypeError,
+                "EventSource callback did not return a boolean");
+            PyErr_Print();
+        }
+
+        bool retval = (valid_result && result == Py_True);
 
         Py_XDECREF(result);
 
         PyGILState_Release(gstate);
+
+        if (!valid_result)
+            throw sigrok::Error(SR_ERR);
 
         return retval;
     };
@@ -212,9 +226,27 @@ typedef guint pyg_flags_type;
         Py_XDECREF(arglist);
         Py_XDECREF(log_obj);
         Py_XDECREF(string_obj);
+
+        bool completed = !PyErr_Occurred();
+
+        if (!completed)
+            PyErr_Print();
+
+        bool valid_result = (completed && result == Py_None);
+
         Py_XDECREF(result);
 
+        if (completed && !valid_result)
+        {
+            PyErr_SetString(PyExc_TypeError,
+                "Log callback did not return None");
+            PyErr_Print();
+        }
+
         PyGILState_Release(gstate);
+
+        if (!valid_result)
+            throw sigrok::Error(SR_ERR);
     };
 
     Py_XINCREF($input);
@@ -248,9 +280,27 @@ typedef guint pyg_flags_type;
         Py_XDECREF(arglist);
         Py_XDECREF(device_obj);
         Py_XDECREF(packet_obj);
+
+        bool completed = !PyErr_Occurred();
+
+        if (!completed)
+            PyErr_Print();
+
+        bool valid_result = (completed && result == Py_None);
+
         Py_XDECREF(result);
 
+        if (completed && !valid_result)
+        {
+            PyErr_SetString(PyExc_TypeError,
+                "Datafeed callback did not return None");
+            PyErr_Print();
+        }
+
         PyGILState_Release(gstate);
+
+        if (!valid_result)
+            throw sigrok::Error(SR_ERR);
     };
 
     Py_XINCREF($input);
