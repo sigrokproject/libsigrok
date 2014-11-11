@@ -149,7 +149,7 @@ GArray *srtest_get_enabled_logic_channels(const struct sr_dev_inst *sdi)
 	GSList *l;
 
 	channels = g_array_new(FALSE, FALSE, sizeof(int));
-	for (l = sdi->channels; l; l = l->next) {
+	for (l = sr_dev_inst_channels_get(sdi); l; l = l->next) {
 		ch = l->data;
 		if (ch->type != SR_CHANNEL_LOGIC)
 			continue;
