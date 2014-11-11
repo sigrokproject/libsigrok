@@ -154,3 +154,7 @@ for enum, (classname, classbrief) in classes.items():
     print >> swig, '%%template(EnumValue%s) sigrok::EnumValue<sigrok::%s, enum %s>;' % (
         classname, classname, enum_name)
 
+    # Declare additional attributes if present
+    filename = os.path.join(dirname, "%s_methods.i" % classname)
+    if os.path.exists(filename):
+        print >> swig, str.join('', open(filename).readlines())
