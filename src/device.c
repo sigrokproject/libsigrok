@@ -489,7 +489,7 @@ SR_API int sr_dev_close(struct sr_dev_inst *sdi)
  *
  * @return The driver instance or NULL on error.
  */
-SR_API struct sr_dev_driver *sr_dev_inst_driver_get(struct sr_dev_inst *sdi)
+SR_API struct sr_dev_driver *sr_dev_inst_driver_get(const struct sr_dev_inst *sdi)
 {
 	if (!sdi || !sdi->driver)
 		return NULL;
@@ -504,7 +504,7 @@ SR_API struct sr_dev_driver *sr_dev_inst_driver_get(struct sr_dev_inst *sdi)
  *
  * @return The vendor string or NULL.
  */
-SR_API const char *sr_dev_inst_vendor_get(struct sr_dev_inst *sdi)
+SR_API const char *sr_dev_inst_vendor_get(const struct sr_dev_inst *sdi)
 {
 	if (!sdi)
 		return NULL;
@@ -519,7 +519,7 @@ SR_API const char *sr_dev_inst_vendor_get(struct sr_dev_inst *sdi)
  *
  * @return The model string or NULL.
  */
-SR_API const char *sr_dev_inst_model_get(struct sr_dev_inst *sdi)
+SR_API const char *sr_dev_inst_model_get(const struct sr_dev_inst *sdi)
 {
 	if (!sdi)
 		return NULL;
@@ -534,7 +534,7 @@ SR_API const char *sr_dev_inst_model_get(struct sr_dev_inst *sdi)
  *
  * @return The version string or NULL.
  */
-SR_API const char *sr_dev_inst_version_get(struct sr_dev_inst *sdi)
+SR_API const char *sr_dev_inst_version_get(const struct sr_dev_inst *sdi)
 {
 	if (!sdi)
 		return NULL;
@@ -549,7 +549,7 @@ SR_API const char *sr_dev_inst_version_get(struct sr_dev_inst *sdi)
  *
  * @return The serial number string or NULL.
  */
-SR_API const char *sr_dev_inst_sernum_get(struct sr_dev_inst *sdi)
+SR_API const char *sr_dev_inst_sernum_get(const struct sr_dev_inst *sdi)
 {
 	if (!sdi)
 		return NULL;
@@ -565,7 +565,7 @@ SR_API const char *sr_dev_inst_sernum_get(struct sr_dev_inst *sdi)
  * @return A copy of the connection id string or NULL. The caller is responsible
  *         for g_free()ing the string when it is no longer needed.
  */
-SR_API const char *sr_dev_inst_connid_get(struct sr_dev_inst *sdi)
+SR_API const char *sr_dev_inst_connid_get(const struct sr_dev_inst *sdi)
 {
 	struct drv_context *drvc;
 	int r, cnt, i, a, b;
@@ -587,7 +587,7 @@ SR_API const char *sr_dev_inst_connid_get(struct sr_dev_inst *sdi)
 		/* connection_id isn't populated, let's do that here. */
 
 		serial = sdi->conn;
-		sdi->connection_id = g_strdup(serial->port);
+		((struct sr_dev_inst *)sdi)->connection_id = g_strdup(serial->port);
 	}
 #endif
 
@@ -619,7 +619,7 @@ SR_API const char *sr_dev_inst_connid_get(struct sr_dev_inst *sdi)
 				continue;
 
 			usb_get_port_path(devlist[i], connection_id, sizeof(connection_id));
-			sdi->connection_id = g_strdup(connection_id);
+			((struct sr_dev_inst *)sdi)->connection_id = g_strdup(connection_id);
 			break;
 		}
 
@@ -637,7 +637,7 @@ SR_API const char *sr_dev_inst_connid_get(struct sr_dev_inst *sdi)
  *
  * @return The GSList of channels or NULL.
  */
-SR_API GSList *sr_dev_inst_channels_get(struct sr_dev_inst *sdi)
+SR_API GSList *sr_dev_inst_channels_get(const struct sr_dev_inst *sdi)
 {
 	if (!sdi)
 		return NULL;
@@ -652,7 +652,7 @@ SR_API GSList *sr_dev_inst_channels_get(struct sr_dev_inst *sdi)
  *
  * @return The GSList of channel groups or NULL.
  */
-SR_API GSList *sr_dev_inst_channel_groups_get(struct sr_dev_inst *sdi)
+SR_API GSList *sr_dev_inst_channel_groups_get(const struct sr_dev_inst *sdi)
 {
 	if (!sdi)
 		return NULL;

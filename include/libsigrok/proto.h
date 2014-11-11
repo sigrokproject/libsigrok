@@ -55,14 +55,14 @@ SR_API int sr_dev_clear(const struct sr_dev_driver *driver);
 SR_API int sr_dev_open(struct sr_dev_inst *sdi);
 SR_API int sr_dev_close(struct sr_dev_inst *sdi);
 
-SR_API struct sr_dev_driver *sr_dev_inst_driver_get(struct sr_dev_inst *sdi);
-SR_API const char *sr_dev_inst_vendor_get(struct sr_dev_inst *sdi);
-SR_API const char *sr_dev_inst_model_get(struct sr_dev_inst *sdi);
-SR_API const char *sr_dev_inst_version_get(struct sr_dev_inst *sdi);
-SR_API const char *sr_dev_inst_sernum_get(struct sr_dev_inst *sdi);
-SR_API const char *sr_dev_inst_connid_get(struct sr_dev_inst *sdi);
-SR_API GSList *sr_dev_inst_channels_get(struct sr_dev_inst *sdi);
-SR_API GSList *sr_dev_inst_channel_groups_get(struct sr_dev_inst *sdi);
+SR_API struct sr_dev_driver *sr_dev_inst_driver_get(const struct sr_dev_inst *sdi);
+SR_API const char *sr_dev_inst_vendor_get(const struct sr_dev_inst *sdi);
+SR_API const char *sr_dev_inst_model_get(const struct sr_dev_inst *sdi);
+SR_API const char *sr_dev_inst_version_get(const struct sr_dev_inst *sdi);
+SR_API const char *sr_dev_inst_sernum_get(const struct sr_dev_inst *sdi);
+SR_API const char *sr_dev_inst_connid_get(const struct sr_dev_inst *sdi);
+SR_API GSList *sr_dev_inst_channels_get(const struct sr_dev_inst *sdi);
+SR_API GSList *sr_dev_inst_channel_groups_get(const struct sr_dev_inst *sdi);
 
 /*--- hwdriver.c ------------------------------------------------------------*/
 
