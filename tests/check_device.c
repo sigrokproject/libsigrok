@@ -1,7 +1,7 @@
 /*
  * This file is part of the libsigrok project.
  *
- * Copyright (C) 2013 Uwe Hermann <uwe@hermann-uwe.de>
+ * Copyright (C) 2014 Uwe Hermann <uwe@hermann-uwe.de>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,34 +18,35 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-#include <stdlib.h>
+#include <string.h>
 #include <check.h>
 #include "../include/libsigrok/libsigrok.h"
 #include "lib.h"
 
-int main(void)
+START_TEST(test_user_new)
 {
-	int ret;
+	struct sr_dev_inst *sdi;
+
+	sdi = sr_dev_inst_user_new("Vendor", "Model", "Version");
+
+	fail_unless(sdi != NULL, "sr_dev_inst_user_new() failed.");
+
+	fail_unless(!strcmp("Vendor", sr_dev_inst_vendor_get(sdi)));
+	fail_unless(!strcmp("Model", sr_dev_inst_model_get(sdi)));
+	fail_unless(!strcmp("Version", sr_dev_inst_version_get(sdi)));
+}
+END_TEST
+
+Suite *suite_device(void)
+{
 	Suite *s;
-	SRunner *srunner;
+	TCase *tc;
 
-	s = suite_create("mastersuite");
-	srunner = srunner_create(s);
+	s = suite_create("device");
 
-	/* Add all testsuites to the master suite. */
-	srunner_add_suite(srunner, suite_core());
-	srunner_add_suite(srunner, suite_driver_all());
-	srunner_add_suite(srunner, suite_input_all());
-	srunner_add_suite(srunner, suite_input_binary());
-	srunner_add_suite(srunner, suite_output_all());
-	srunner_add_suite(srunner, suite_session());
-	srunner_add_suite(srunner, suite_strutil());
-	srunner_add_suite(srunner, suite_version());
-	srunner_add_suite(srunner, suite_device());
+	tc = tcase_create("sr_dev_inst_user_new");
+	tcase_add_test(tc, test_user_new);
+	suite_add_tcase(s, tc);
 
-	srunner_run_all(srunner, CK_VERBOSE);
-	ret = srunner_ntests_failed(srunner);
-	srunner_free(srunner);
-
-	return (ret == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
+	return s;
 }

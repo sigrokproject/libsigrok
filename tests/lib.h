@@ -48,5 +48,6 @@ Suite *suite_output_all(void);
 Suite *suite_session(void);
 Suite *suite_strutil(void);
 Suite *suite_version(void);
+Suite *suite_device(void);
 
 #endif
