@@ -61,6 +61,8 @@ SR_API const char *sr_dev_inst_model_get(struct sr_dev_inst *sdi);
 SR_API const char *sr_dev_inst_version_get(struct sr_dev_inst *sdi);
 SR_API const char *sr_dev_inst_sernum_get(struct sr_dev_inst *sdi);
 SR_API const char *sr_dev_inst_connid_get(struct sr_dev_inst *sdi);
+SR_API GSList *sr_dev_inst_channels_get(struct sr_dev_inst *sdi);
+SR_API GSList *sr_dev_inst_channel_groups_get(struct sr_dev_inst *sdi);
 
 /*--- hwdriver.c ------------------------------------------------------------*/
 

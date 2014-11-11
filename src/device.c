@@ -630,4 +630,34 @@ SR_API const char *sr_dev_inst_connid_get(struct sr_dev_inst *sdi)
 	return sdi->connection_id;
 }
 
+/**
+ * Queries a device instances' channel list.
+ *
+ * @param sdi Device instance to use. Must not be NULL.
+ *
+ * @return The GSList of channels or NULL.
+ */
+SR_API GSList *sr_dev_inst_channels_get(struct sr_dev_inst *sdi)
+{
+	if (!sdi)
+		return NULL;
+
+	return sdi->channels;
+}
+
+/**
+ * Queries a device instances' channel groups list.
+ *
+ * @param sdi Device instance to use. Must not be NULL.
+ *
+ * @return The GSList of channel groups or NULL.
+ */
+SR_API GSList *sr_dev_inst_channel_groups_get(struct sr_dev_inst *sdi)
+{
+	if (!sdi)
+		return NULL;
+
+	return sdi->channel_groups;
+}
+
 /** @} */
