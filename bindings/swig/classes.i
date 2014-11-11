@@ -260,8 +260,6 @@ typedef std::map<const sigrok::ConfigKey *, Glib::VariantBase>
 
 %attribute(sigrok::Packet,
     const sigrok::PacketType *, type, type);
-%attributestring(sigrok::Packet,
-    std::shared_ptr<sigrok::PacketPayload>, payload, payload);
 
 %attributemap(Meta, map_ConfigKey_Variant, config, config);
 

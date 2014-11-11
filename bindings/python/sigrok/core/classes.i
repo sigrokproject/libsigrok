@@ -306,6 +306,49 @@ typedef guint pyg_flags_type;
     Py_XINCREF($input);
 }
 
+/* Cast PacketPayload pointers to correct subclass type. */
+%ignore sigrok::Packet::payload;
+
+%extend sigrok::Packet
+{
+    std::shared_ptr<sigrok::Header> _payload_header()
+    {
+        return dynamic_pointer_cast<sigrok::Header>($self->payload());
+    }
+    std::shared_ptr<sigrok::Meta> _payload_meta()
+    {
+        return dynamic_pointer_cast<sigrok::Meta>($self->payload());
+    }
+    std::shared_ptr<sigrok::Analog> _payload_analog()
+    {
+        return dynamic_pointer_cast<sigrok::Analog>($self->payload());
+    }
+    std::shared_ptr<sigrok::Logic> _payload_logic()
+    {
+        return dynamic_pointer_cast<sigrok::Logic>($self->payload());
+    }
+}
+
+%extend sigrok::Packet
+{
+%pythoncode
+{
+    def _payload(self):
+        if self.type == PacketType.HEADER:
+            return self._payload_header()
+        elif self.type == PacketType.META:
+            return self._payload_meta()
+        elif self.type == PacketType.LOGIC:
+            return self._payload_logic()
+        elif self.type == PacketType.ANALOG:
+            return self._payload_analog()
+        else:
+            return None
+
+    payload = property(_payload)
+}
+}
+
 %{
 
 #include "libsigrok/libsigrok.hpp"
