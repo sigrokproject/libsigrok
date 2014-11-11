@@ -907,6 +907,8 @@ enum sr_dev_inst_type {
 	SR_INST_SERIAL,
 	/** Device instance type for SCPI devices. */
 	SR_INST_SCPI,
+	/** Device-instance type for user-created "devices". */
+	SR_INST_USER,
 };
 
 /** Device instance status, struct sr_dev_inst.status */

@@ -202,7 +202,7 @@ SR_API gboolean sr_dev_has_option(const struct sr_dev_inst *sdi, int key)
 }
 
 /** @private
- *  Allocate and init new device instance struct.
+ *  Allocate and init a new device instance struct.
  *  @param[in]  index   @copydoc sr_dev_inst::index
  *  @param[in]  status  @copydoc sr_dev_inst::status
  *  @param[in]  vendor  @copydoc sr_dev_inst::vendor
@@ -238,6 +238,42 @@ SR_PRIV struct sr_dev_inst *sr_dev_inst_new(int status,
 	sdi->priv = NULL;
 
 	return sdi;
+}
+
+/**
+ * Allocate and init a new user-generated device instance.
+ */
+SR_API struct sr_dev_inst *sr_dev_inst_user_new(const char *vendor,
+		const char *model, const char *version)
+{
+	struct sr_dev_inst *sdi;
+
+	sdi = sr_dev_inst_new(0, vendor, model, version);
+	if (!sdi)
+		return NULL;
+
+	sdi->inst_type = SR_INST_USER;
+
+	return sdi;
+}
+
+/**
+ * Add a new channel to the specified device instance.
+ */
+SR_API int sr_dev_inst_channel_add(struct sr_dev_inst *sdi, int index, int type, const char *name)
+{
+	struct sr_channel *ch;
+
+	if (!sdi || sdi->inst_type != SR_INST_USER || index < 0)
+		return SR_ERR_ARG;
+
+	ch = sr_channel_new(index, type, TRUE, name);
+	if (!ch)
+		return SR_ERR;
+
+	sdi->channels = g_slist_append(sdi->channels, ch);
+
+	return SR_OK;
 }
 
 /** @private
