@@ -263,6 +263,8 @@ typedef std::map<const sigrok::ConfigKey *, Glib::VariantBase>
 
 %attributemap(Meta, map_ConfigKey_Variant, config, config);
 
+%attributevector(Analog,
+    std::vector<std::shared_ptr<sigrok::Channel> >, channels, channels);
 %attribute(sigrok::Analog, int, num_samples, num_samples);
 %attribute(sigrok::Analog, const sigrok::Quantity *, mq, mq);
 %attribute(sigrok::Analog, const sigrok::Unit *, unit, unit);
