@@ -63,6 +63,7 @@ libsigrok_la_SOURCES += \
 	src/output/gnuplot.c \
 	src/output/hex.c \
 	src/output/ols.c \
+	src/output/srzip.c \
 	src/output/vcd.c
 
 # SCPI support
