@@ -359,6 +359,14 @@ std::map<std::string, Glib::VariantBase> dict_to_map_options(PyObject *dict,
 
 %include "doc.i"
 
+%define %attributevector(Class, Type, Name, Get)
+%attributeval(sigrok::Class, Type, Name, Get);
+%enddef
+
+%define %attributemap(Class, Type, Name, Get)
+%attributeval(sigrok::Class, Type, Name, Get);
+%enddef
+
 %include "../../../swig/classes.i"
 
 /* Support Driver.scan() with keyword arguments. */

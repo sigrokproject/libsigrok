@@ -377,4 +377,13 @@ typedef jobject jsourcecallback;
 }
 
 %include "doc.i"
+
+%define %attributevector(Class, Type, Name, Get)
+%attributeval(sigrok::Class, Type, Name, Get);
+%enddef
+
+%define %attributemap(Class, Type, Name, Get)
+%attributeval(sigrok::Class, Type, Name, Get);
+%enddef
+
 %include "bindings/swig/classes.i"
