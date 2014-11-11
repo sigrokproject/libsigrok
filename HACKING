@@ -76,18 +76,21 @@ Random notes
  - Generally avoid assigning values to variables at declaration time,
    especially so for complex and/or run-time dependent values.
 
- - Consistently use g_try_malloc() / g_try_malloc0(). Do not use standard
+ - Consistently use g_*malloc() / g_*malloc0(). Do not use standard
    malloc()/calloc() if it can be avoided (sometimes other libs such
    as libftdi can return malloc()'d memory, for example).
 
  - Always properly match allocations with the proper *free() functions. If
-   glib's g_try_malloc()/g_try_malloc0() was used, use g_free() to free the
+   glib's g_*malloc()/g_*malloc0() was used, use g_free() to free the
    memory. Otherwise use standard free(). Never use the wrong function!
 
- - Never use g_malloc() or g_malloc0(). These functions do not return NULL
-   if not enough memory is available but rather lead to an exit() or segfault
-   instead. This behaviour is not acceptable for libraries.
-   Use g_try_malloc()/g_try_malloc0() instead and check the return value.
+ - We assume that "small" memory allocations (< 1MB) will always succeed.
+   Thus, it's fine to use g_malloc() or g_malloc0() for allocations of
+   simple/small structs and such (instead of using g_try_malloc()), and
+   there's no need to check the return value.
+
+   Do use g_try_malloc() or g_try_malloc0() for large (>= 1MB) allocations
+   and check the return value.
 
  - You should never print any messages (neither to stdout nor stderr nor
    elsewhere) "manually" via e.g. printf() or g_log() or similar functions.
