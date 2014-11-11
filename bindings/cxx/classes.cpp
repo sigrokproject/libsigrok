@@ -413,16 +413,16 @@ bool Configurable::config_check(const ConfigKey *key,
 }
 
 Device::Device(struct sr_dev_inst *structure) :
-	Configurable(structure->driver, structure, NULL),
+	Configurable(sr_dev_inst_driver_get(structure), structure, NULL),
 	_structure(structure)
 {
-	for (GSList *entry = structure->channels; entry; entry = entry->next)
+	for (GSList *entry = sr_dev_inst_channels_get(structure); entry; entry = entry->next)
 	{
 		auto channel = (struct sr_channel *) entry->data;
 		_channels[channel] = new Channel(channel);
 	}
 
-	for (GSList *entry = structure->channel_groups; entry; entry = entry->next)
+	for (GSList *entry = sr_dev_inst_channel_groups_get(structure); entry; entry = entry->next)
 	{
 		auto group = (struct sr_channel_group *) entry->data;
 		_channel_groups[group->name] = new ChannelGroup(this, group);
@@ -439,33 +439,33 @@ Device::~Device()
 
 string Device::vendor()
 {
-	return valid_string(_structure->vendor);
+	return valid_string(sr_dev_inst_vendor_get(_structure));
 }
 
 string Device::model()
 {
-	return valid_string(_structure->model);
+	return valid_string(sr_dev_inst_model_get(_structure));
 }
 
 string Device::version()
 {
-	return valid_string(_structure->version);
+	return valid_string(sr_dev_inst_version_get(_structure));
 }
 
 string Device::serial_number()
 {
-	return valid_string(_structure->serial_num);
+	return valid_string(sr_dev_inst_sernum_get(_structure));
 }
 
 string Device::connection_id()
 {
-	return valid_string(_structure->connection_id);
+	return valid_string(sr_dev_inst_connid_get(_structure));
 }
 
 vector<shared_ptr<Channel>> Device::channels()
 {
 	vector<shared_ptr<Channel>> result;
-	for (auto channel = _structure->channels; channel; channel = channel->next)
+	for (auto channel = sr_dev_inst_channels_get(_structure); channel; channel = channel->next)
 		result.push_back(
 			_channels[(struct sr_channel *) channel->data]->get_shared_pointer(
 				get_shared_from_this()));
@@ -566,7 +566,7 @@ unsigned int Channel::index()
 ChannelGroup::ChannelGroup(Device *device,
 		struct sr_channel_group *structure) :
 	ParentOwned(structure),
-	Configurable(device->_structure->driver, device->_structure, structure)
+	Configurable(sr_dev_inst_driver_get(device->_structure), device->_structure, structure)
 {
 	for (GSList *entry = structure->channels; entry; entry = entry->next)
 		_channels.push_back(device->_channels[(struct sr_channel *)entry->data]);
@@ -897,7 +897,7 @@ void Session::append(shared_ptr<Packet> packet)
 			{
 				GVariant *samplerate;
 
-				check(sr_config_get(packet->_device->_structure->driver,
+				check(sr_config_get(sr_dev_inst_driver_get(packet->_device->_structure),
 					packet->_device->_structure, NULL, SR_CONF_SAMPLERATE,
 					&samplerate));
 
