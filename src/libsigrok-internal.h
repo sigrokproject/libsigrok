@@ -490,6 +490,36 @@ enum {
 SR_PRIV struct sr_channel *sr_channel_new(int index, int type,
 		gboolean enabled, const char *name);
 
+/** Device instance data */
+struct sr_dev_inst {
+	/** Device driver. */
+	struct sr_dev_driver *driver;
+	/** Device instance status. SR_ST_NOT_FOUND, etc. */
+	int status;
+	/** Device instance type. SR_INST_USB, etc. */
+	int inst_type;
+	/** Device vendor. */
+	char *vendor;
+	/** Device model. */
+	char *model;
+	/** Device version. */
+	char *version;
+	/** Serial number. */
+	char *serial_num;
+	/** Connection string to uniquely identify devices. */
+	char *connection_id;
+	/** List of channels. */
+	GSList *channels;
+	/** List of sr_channel_group structs */
+	GSList *channel_groups;
+	/** Device instance connection data (used?) */
+	void *conn;
+	/** Device instance private data (used?) */
+	void *priv;
+	/** Session to which this device is currently assigned. */
+	struct sr_session *session;
+};
+
 /* Generic device instances */
 SR_PRIV struct sr_dev_inst *sr_dev_inst_new(int status,
 		const char *vendor, const char *model, const char *version);

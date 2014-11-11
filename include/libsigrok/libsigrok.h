@@ -892,36 +892,12 @@ enum sr_configkey {
 	SR_CONF_TEST_MODE,
 };
 
-/** Device instance data
+/**
+ * Opaque structure representing a libsigrok device instance.
+ *
+ * None of the fields of this structure are meant to be accessed directly.
  */
-struct sr_dev_inst {
-	/** Device driver. */
-	struct sr_dev_driver *driver;
-	/** Device instance status. SR_ST_NOT_FOUND, etc. */
-	int status;
-	/** Device instance type. SR_INST_USB, etc. */
-	int inst_type;
-	/** Device vendor. */
-	char *vendor;
-	/** Device model. */
-	char *model;
-	/** Device version. */
-	char *version;
-	/** Serial number. */
-	char *serial_num;
-	/** Connection string to uniquely identify devices. */
-	char *connection_id;
-	/** List of channels. */
-	GSList *channels;
-	/** List of sr_channel_group structs */
-	GSList *channel_groups;
-	/** Device instance connection data (used?) */
-	void *conn;
-	/** Device instance private data (used?) */
-	void *priv;
-	/** Session to which this device is currently assigned. */
-	struct sr_session *session;
-};
+struct sr_dev_inst;
 
 /** Types of device instance, struct sr_dev_inst.type */
 enum sr_dev_inst_type {
