@@ -382,6 +382,22 @@ std::map<std::string, Glib::VariantBase> dict_to_map_options(PyObject *dict,
 %enddef
 
 %define %enumextras(Class)
+%extend sigrok::Class
+{
+  long __hash__()
+  {
+    return (long) $self;
+  }
+
+%pythoncode
+{
+  def __eq__(self, other):
+    return (type(self) is type(other) and hash(self) == hash(other))
+
+  def __ne__(self, other):
+    return (type(self) is not type(other) or hash(self) != hash(other))
+}
+}
 %enddef
 
 %include "../../../swig/classes.i"
