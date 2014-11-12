@@ -43,7 +43,10 @@ static uint8_t decode_digit(uint8_t in)
 static void decode_buf(struct sr_dev_inst *sdi, unsigned char *data)
 {
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog analog;
+	struct sr_datafeed_analog2 analog;
+	struct sr_analog_encoding encoding;
+	struct sr_analog_meaning meaning;
+	struct sr_analog_spec spec;
 	struct dev_context *devc;
 	long factor, ivalue;
 	uint8_t digits[4];
@@ -164,52 +167,56 @@ static void decode_buf(struct sr_dev_inst *sdi, unsigned char *data)
 	if (minus)
 		fvalue = -fvalue;
 
-	memset(&analog, 0, sizeof(struct sr_datafeed_analog));
+	memset(&analog, 0, sizeof(struct sr_datafeed_analog2));
+	memset(&encoding, 0, sizeof(struct sr_analog_encoding));
+	memset(&meaning, 0, sizeof(struct sr_analog_meaning));
+	memset(&spec, 0, sizeof(struct sr_analog_spec));
 
 	/* Measurement mode */
-	analog.mq = -1;
+	meaning.channels = sdi->channels;
+	meaning.mq = 0;
 	switch (data[3]) {
 	case 0x00:
 		if (is_duty) {
-			analog.mq = SR_MQ_DUTY_CYCLE;
-			analog.unit = SR_UNIT_PERCENTAGE;
+			meaning.mq = SR_MQ_DUTY_CYCLE;
+			meaning.unit = SR_UNIT_PERCENTAGE;
 		} else
 			sr_dbg("Unknown measurement mode: %.2x.", data[3]);
 		break;
 	case 0x01:
 		if (is_diode) {
-			analog.mq = SR_MQ_VOLTAGE;
-			analog.unit = SR_UNIT_VOLT;
-			analog.mqflags |= SR_MQFLAG_DIODE;
+			meaning.mq = SR_MQ_VOLTAGE;
+			meaning.unit = SR_UNIT_VOLT;
+			meaning.mqflags |= SR_MQFLAG_DIODE;
 			if (ivalue < 0)
 				fvalue = NAN;
 		} else {
 			if (ivalue < 0)
 				break;
-			analog.mq = SR_MQ_VOLTAGE;
-			analog.unit = SR_UNIT_VOLT;
+			meaning.mq = SR_MQ_VOLTAGE;
+			meaning.unit = SR_UNIT_VOLT;
 			if (is_ac)
-				analog.mqflags |= SR_MQFLAG_AC;
+				meaning.mqflags |= SR_MQFLAG_AC;
 			if (is_dc)
-				analog.mqflags |= SR_MQFLAG_DC;
+				meaning.mqflags |= SR_MQFLAG_DC;
 		}
 		break;
 	case 0x02:
-		analog.mq = SR_MQ_CURRENT;
-		analog.unit = SR_UNIT_AMPERE;
+		meaning.mq = SR_MQ_CURRENT;
+		meaning.unit = SR_UNIT_AMPERE;
 		if (is_ac)
-			analog.mqflags |= SR_MQFLAG_AC;
+			meaning.mqflags |= SR_MQFLAG_AC;
 		if (is_dc)
-			analog.mqflags |= SR_MQFLAG_DC;
+			meaning.mqflags |= SR_MQFLAG_DC;
 		break;
 	case 0x04:
 		if (is_continuity) {
-			analog.mq = SR_MQ_CONTINUITY;
-			analog.unit = SR_UNIT_BOOLEAN;
+			meaning.mq = SR_MQ_CONTINUITY;
+			meaning.unit = SR_UNIT_BOOLEAN;
 			fvalue = ivalue < 0 ? 0.0 : 1.0;
 		} else {
-			analog.mq = SR_MQ_RESISTANCE;
-			analog.unit = SR_UNIT_OHM;
+			meaning.mq = SR_MQ_RESISTANCE;
+			meaning.unit = SR_UNIT_OHM;
 			if (ivalue < 0)
 				fvalue = INFINITY;
 		}
@@ -219,43 +226,62 @@ static void decode_buf(struct sr_dev_inst *sdi, unsigned char *data)
 		sr_dbg("Unknown measurement mode: 0x%.2x.", data[3]);
 		break;
 	case 0x10:
-		analog.mq = SR_MQ_FREQUENCY;
-		analog.unit = SR_UNIT_HERTZ;
+		meaning.mq = SR_MQ_FREQUENCY;
+		meaning.unit = SR_UNIT_HERTZ;
 		break;
 	case 0x20:
-		analog.mq = SR_MQ_CAPACITANCE;
-		analog.unit = SR_UNIT_FARAD;
+		meaning.mq = SR_MQ_CAPACITANCE;
+		meaning.unit = SR_UNIT_FARAD;
 		break;
 	case 0x40:
-		analog.mq = SR_MQ_TEMPERATURE;
-		analog.unit = SR_UNIT_CELSIUS;
+		meaning.mq = SR_MQ_TEMPERATURE;
+		meaning.unit = SR_UNIT_CELSIUS;
 		break;
 	case 0x80:
-		analog.mq = SR_MQ_TEMPERATURE;
-		analog.unit = SR_UNIT_FAHRENHEIT;
+		meaning.mq = SR_MQ_TEMPERATURE;
+		meaning.unit = SR_UNIT_FAHRENHEIT;
 		break;
 	default:
 		sr_dbg("Unknown/invalid measurement mode: 0x%.2x.", data[3]);
 		break;
 	}
-	if (analog.mq == -1)
+	if (meaning.mq == 0)
 		return;
 
 	if (is_auto)
-		analog.mqflags |= SR_MQFLAG_AUTORANGE;
+		meaning.mqflags |= SR_MQFLAG_AUTORANGE;
 	if (is_hold)
-		analog.mqflags |= SR_MQFLAG_HOLD;
+		meaning.mqflags |= SR_MQFLAG_HOLD;
 	if (is_max)
-		analog.mqflags |= SR_MQFLAG_MAX;
+		meaning.mqflags |= SR_MQFLAG_MAX;
 	if (is_min)
-		analog.mqflags |= SR_MQFLAG_MIN;
+		meaning.mqflags |= SR_MQFLAG_MIN;
 	if (is_relative)
-		analog.mqflags |= SR_MQFLAG_RELATIVE;
+		meaning.mqflags |= SR_MQFLAG_RELATIVE;
 
-	analog.channels = sdi->channels;
-	analog.num_samples = 1;
+	encoding.unitsize = sizeof(float);
+	encoding.is_float = TRUE;
+#ifdef WORDS_BIGENDIAN
+	encoding.is_bigendian = TRUE;
+#else
+	encoding.is_bigendian = FALSE;
+#endif
+	encoding.digits = 4; /* Values are always 4-digit numbers. */
+	encoding.is_digits_decimal = TRUE;
+	encoding.scale.p = 1;
+	encoding.scale.q = 1;
+	encoding.offset.p = 0;
+	encoding.offset.q = 1;
+
+	spec.spec_digits = encoding.digits;
+
 	analog.data = &fvalue;
-	packet.type = SR_DF_ANALOG;
+	analog.num_samples = 1;
+	analog.encoding = &encoding;
+	analog.meaning = &meaning;
+	analog.spec = &spec;
+
+	packet.type = SR_DF_ANALOG2;
 	packet.payload = &analog;
 	sr_session_send(devc->cb_data, &packet);
 
