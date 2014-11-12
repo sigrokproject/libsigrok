@@ -11,3 +11,11 @@ vector<const QuantityFlag *>
     }
     return result;
 }
+
+unsigned int QuantityFlag::mask_from_flags(vector<const QuantityFlag *> flags)
+{
+    unsigned int result = 0;
+    for (auto flag : flags)
+        result |= flag->id();
+    return result;
+}
