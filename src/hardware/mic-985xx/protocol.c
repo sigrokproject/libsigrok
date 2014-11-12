@@ -93,7 +93,10 @@ static int handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi, int idx)
 {
 	float temperature, humidity;
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog analog;
+	struct sr_datafeed_analog2 analog;
+	struct sr_analog_encoding encoding;
+	struct sr_analog_meaning meaning;
+	struct sr_analog_spec spec;
 	struct dev_context *devc;
 	GSList *l;
 	int ret;
@@ -108,20 +111,39 @@ static int handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi, int idx)
 		return SR_ERR;
 	}
 
-	/* Clear 'analog', otherwise it'll contain random garbage. */
 	memset(&analog, 0, sizeof(struct sr_datafeed_analog));
+	memset(&encoding, 0, sizeof(struct sr_analog_encoding));
+	memset(&meaning, 0, sizeof(struct sr_analog_meaning));
+	memset(&spec, 0, sizeof(struct sr_analog_spec));
 
 	/* Common values for both channels. */
-	packet.type = SR_DF_ANALOG;
+	packet.type = SR_DF_ANALOG2;
 	packet.payload = &analog;
+	analog.encoding = &encoding;
+	analog.meaning = &meaning;
+	analog.spec = &spec;
 	analog.num_samples = 1;
+	encoding.unitsize = sizeof(float);
+	encoding.is_float = TRUE;
+#ifdef WORDS_BIGENDIAN
+	encoding.is_bigendian = TRUE;
+#else
+	encoding.is_bigendian = FALSE;
+#endif
+	encoding.digits = 3; /* Values are always 3-digit numbers. */
+	encoding.is_digits_decimal = TRUE;
+	encoding.scale.p = 1;
+	encoding.scale.q = 1;
+	encoding.offset.p = 0;
+	encoding.offset.q = 1;
+	spec.spec_digits = encoding.digits;
 
 	/* Temperature. */
 	l = g_slist_copy(sdi->channels);
 	l = g_slist_remove_link(l, g_slist_nth(l, 1));
-	analog.channels = l;
-	analog.mq = SR_MQ_TEMPERATURE;
-	analog.unit = SR_UNIT_CELSIUS; /* TODO: Use C/F correctly. */
+	meaning.channels = l;
+	meaning.mq = SR_MQ_TEMPERATURE;
+	meaning.unit = SR_UNIT_CELSIUS; /* TODO: Use C/F correctly. */
 	analog.data = &temperature;
 	sr_session_send(devc->cb_data, &packet);
 	g_slist_free(l);
@@ -130,9 +152,9 @@ static int handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi, int idx)
 	if (mic_devs[idx].has_humidity) {
 		l = g_slist_copy(sdi->channels);
 		l = g_slist_remove_link(l, g_slist_nth(l, 0));
-		analog.channels = l;
-		analog.mq = SR_MQ_RELATIVE_HUMIDITY;
-		analog.unit = SR_UNIT_PERCENTAGE;
+		meaning.channels = l;
+		meaning.mq = SR_MQ_RELATIVE_HUMIDITY;
+		meaning.unit = SR_UNIT_PERCENTAGE;
 		analog.data = &humidity;
 		sr_session_send(devc->cb_data, &packet);
 		g_slist_free(l);
