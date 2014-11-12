@@ -46,6 +46,7 @@ which provides access to the error code and description."
 
 %{
 #include <pygobject.h>
+#include <numpy/arrayobject.h>
 
 PyObject *GLib;
 PyTypeObject *IOChannel;
@@ -66,6 +67,7 @@ typedef guint pyg_flags_type;
     GLib = PyImport_ImportModule("gi.repository.GLib");
     IOChannel = (PyTypeObject *) PyObject_GetAttrString(GLib, "IOChannel");
     PollFD = (PyTypeObject *) PyObject_GetAttrString(GLib, "PollFD");
+    import_array();
 %}
 
 /* Map file objects to file descriptors. */
@@ -446,6 +448,7 @@ std::map<std::string, Glib::VariantBase> dict_to_map_options(PyObject *dict,
 %}
 
 /* Ignore these methods, we will override them below. */
+%ignore sigrok::Analog::data;
 %ignore sigrok::Driver::scan;
 %ignore sigrok::InputFormat::create_input;
 %ignore sigrok::OutputFormat::create_output;
@@ -572,4 +575,24 @@ std::map<std::string, Glib::VariantBase> dict_to_map_options(PyObject *dict,
     {
         $self->config_set(key, python_to_variant_by_key(input, key));
     }
+}
+
+/* Return NumPy array from Analog::data(). */
+%extend sigrok::Analog
+{
+    PyObject * _data()
+    {
+        int nd = 2;
+        npy_intp dims[2];
+        dims[0] = $self->channels().size();
+        dims[1] = $self->num_samples();
+        int typenum = NPY_FLOAT;
+        void *data = $self->data_pointer();
+        return PyArray_SimpleNewFromData(nd, dims, typenum, data);
+    }
+
+%pythoncode
+{
+    data = property(_data)
+}
 }
