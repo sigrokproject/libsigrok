@@ -168,6 +168,8 @@ enum sr_packettype {
 	SR_DF_FRAME_BEGIN,
 	/** End of frame. No payload. */
 	SR_DF_FRAME_END,
+	/** Payload is struct sr_datafeed_analog2. */
+	SR_DF_ANALOG2,
 };
 
 /** Measured quantity, sr_datafeed_analog.mq. */
@@ -415,6 +417,13 @@ struct sr_context;
  */
 struct sr_session;
 
+struct sr_rational {
+	/** Numerator of the rational number. */
+	uint64_t p;
+	/** Denominator of the rational number. */
+	uint64_t q;
+};
+
 /** Packet in a sigrok data feed. */
 struct sr_datafeed_packet {
 	uint16_t type;
@@ -455,6 +464,37 @@ struct sr_datafeed_analog {
 	/** The analog value(s). The data is interleaved according to
 	 * the channels list. */
 	float *data;
+};
+
+/** Analog datafeed payload for type SR_DF_ANALOG2. */
+struct sr_datafeed_analog2 {
+	void *data;
+	uint32_t num_samples;
+	struct sr_analog_encoding *encoding;
+	struct sr_analog_meaning *meaning;
+	struct sr_analog_spec *spec;
+};
+
+struct sr_analog_encoding {
+	uint8_t unitsize;
+	gboolean is_signed;
+	gboolean is_float;
+	gboolean is_bigendian;
+	uint8_t digits;
+	gboolean is_digits_decimal;
+	struct sr_rational scale;
+	struct sr_rational offset;
+};
+
+struct sr_analog_meaning {
+	enum sr_mq mq;
+	enum sr_unit unit;
+	enum sr_mqflag mqflags;
+	GSList *channels;
+};
+
+struct sr_analog_spec {
+	uint8_t spec_digits;
 };
 
 /** Generic option struct used by various subsystems. */
