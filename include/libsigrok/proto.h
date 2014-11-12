@@ -26,6 +26,11 @@
  * Header file containing API function prototypes.
  */
 
+/*--- analog.c --------------------------------------------------------------*/
+
+SR_API int sr_analog_to_float(const struct sr_datafeed_analog2 *analog,
+		float *buf);
+
 /*--- backend.c -------------------------------------------------------------*/
 
 SR_API int sr_init(struct sr_context **ctx);

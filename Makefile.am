@@ -35,6 +35,7 @@ libsigrok_la_SOURCES = \
 	src/hwdriver.c \
 	src/trigger.c \
 	src/soft-trigger.c \
+	src/analog.c \
 	src/strutil.c \
 	src/log.c \
 	src/version.c \
