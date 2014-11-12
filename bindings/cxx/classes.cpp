@@ -221,6 +221,70 @@ shared_ptr<UserDevice> Context::create_user_device(
 		new UserDevice(vendor, model, version), UserDevice::Deleter());
 }
 
+shared_ptr<Packet> Context::create_header_packet(Glib::TimeVal start_time)
+{
+	auto header = g_new(struct sr_datafeed_header, 1);
+	header->feed_version = 1;
+	header->starttime.tv_sec = start_time.tv_sec;
+	header->starttime.tv_usec = start_time.tv_usec;
+	auto packet = g_new(struct sr_datafeed_packet, 1);
+	packet->type = SR_DF_HEADER;
+	packet->payload = header;
+	return shared_ptr<Packet>(new Packet(nullptr, packet), Packet::Deleter());
+}
+
+shared_ptr<Packet> Context::create_meta_packet(
+	map<const ConfigKey *, Glib::VariantBase> config)
+{
+	auto meta = g_new0(struct sr_datafeed_meta, 1);
+	for (auto input : config)
+	{
+		auto key = input.first;
+		auto value = input.second;
+		auto output = g_new(struct sr_config, 1);
+		output->key = key->id();
+		output->data = value.gobj();
+		g_variant_ref(output->data);
+		meta->config = g_slist_append(meta->config, output);
+	}
+	auto packet = g_new(struct sr_datafeed_packet, 1);
+	packet->type = SR_DF_META;
+	packet->payload = meta;
+	return shared_ptr<Packet>(new Packet(nullptr, packet), Packet::Deleter());
+}
+
+shared_ptr<Packet> Context::create_logic_packet(
+	void *data_pointer, size_t data_length, unsigned int unit_size)
+{
+	auto logic = g_new(struct sr_datafeed_logic, 1);
+	logic->length = data_length;
+	logic->unitsize = unit_size;
+	logic->data = data_pointer;
+	auto packet = g_new(struct sr_datafeed_packet, 1);
+	packet->type = SR_DF_LOGIC;
+	packet->payload = logic;
+	return shared_ptr<Packet>(new Packet(nullptr, packet), Packet::Deleter());
+}
+
+shared_ptr<Packet> Context::create_analog_packet(
+	vector<shared_ptr<Channel> > channels,
+	float *data_pointer, unsigned int num_samples, const Quantity *mq,
+	const Unit *unit, vector<const QuantityFlag *> mqflags)
+{
+	auto analog = g_new0(struct sr_datafeed_analog, 1);
+	for (auto channel : channels)
+		analog->channels = g_slist_append(analog->channels, channel->_structure);
+	analog->num_samples = num_samples;
+	analog->mq = mq->id();
+	analog->unit = unit->id();
+	analog->mqflags = QuantityFlag::mask_from_flags(mqflags);
+	analog->data = data_pointer;
+	auto packet = g_new(struct sr_datafeed_packet, 1);
+	packet->type = SR_DF_ANALOG;
+	packet->payload = analog;
+	return shared_ptr<Packet>(new Packet(nullptr, packet), Packet::Deleter());
+}
+
 shared_ptr<Session> Context::load_session(string filename)
 {
 	return shared_ptr<Session>(

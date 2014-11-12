@@ -267,6 +267,19 @@ public:
 	/** Create a new user device. */
 	shared_ptr<UserDevice> create_user_device(
 		string vendor, string model, string version);
+	/** Create a header packet. */
+	shared_ptr<Packet> create_header_packet(Glib::TimeVal start_time);
+	/** Create a meta packet. */
+	shared_ptr<Packet> create_meta_packet(
+		map<const ConfigKey *, Glib::VariantBase> config);
+	/** Create a logic packet. */
+	shared_ptr<Packet> create_logic_packet(
+		void *data_pointer, size_t data_length, unsigned int unit_size);
+	/** Create an analog packet. */
+	shared_ptr<Packet> create_analog_packet(
+		vector<shared_ptr<Channel> > channels,
+		float *data_pointer, unsigned int num_samples, const Quantity *mq,
+		const Unit *unit, vector<const QuantityFlag *> mqflags);
 	/** Load a saved session.
 	 * @param filename File name string. */
 	shared_ptr<Session> load_session(string filename);
@@ -470,6 +483,7 @@ protected:
 	friend class ChannelGroup;
 	friend class Session;
 	friend class TriggerStage;
+	friend class Context;
 };
 
 /** A group of channels on a device, which share some configuration */
@@ -741,6 +755,7 @@ protected:
 	friend class Meta;
 	friend class Logic;
 	friend class Analog;
+	friend class Context;
 };
 
 /** Abstract base class for datafeed packet payloads */
