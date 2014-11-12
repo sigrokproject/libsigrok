@@ -75,16 +75,15 @@ static struct sr_dev_inst *hmo_probe_serial_device(struct sr_scpi_dev_inst *scpi
 	if (check_manufacturer(hw_info->manufacturer) != SR_OK)
 		goto fail;
 
-	if (!(sdi = sr_dev_inst_new(SR_ST_ACTIVE,
-				    hw_info->manufacturer, hw_info->model,
-				    hw_info->firmware_version))) {
-		goto fail;
-	}
-
+	sdi = sr_dev_inst_new();
+	sdi->status = SR_ST_ACTIVE;
+	sdi->vendor = g_strdup(hw_info->manufacturer);
+	sdi->model = g_strdup(hw_info->model);
+	sdi->version = g_strdup(hw_info->firmware_version);
+	sdi->serial_num = g_strdup(hw_info->serial_number);
 	sdi->driver = di;
 	sdi->inst_type = SR_INST_SCPI;
 	sdi->conn = scpi;
-	sdi->serial_num = g_strdup(hw_info->serial_number);
 
 	sr_scpi_hw_info_free(hw_info);
 	hw_info = NULL;

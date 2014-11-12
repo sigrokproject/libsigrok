@@ -238,10 +238,11 @@ static GSList *scan(GSList *options)
 		if (!prof)
 			continue;
 
-		sdi = sr_dev_inst_new(SR_ST_INITIALIZING,
-			prof->vendor, prof->model, prof->model_version);
-		if (!sdi)
-			return NULL;
+		sdi = sr_dev_inst_new();
+		sdi->status = SR_ST_INITIALIZING;
+		sdi->vendor = g_strdup(prof->vendor);
+		sdi->model = g_strdup(prof->model);
+		sdi->version = g_strdup(prof->model_version);
 		sdi->driver = di;
 		sdi->serial_num = g_strdup(serial_num);
 		sdi->connection_id = g_strdup(connection_id);

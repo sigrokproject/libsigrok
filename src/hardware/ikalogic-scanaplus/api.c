@@ -123,12 +123,10 @@ static GSList *scan(GSList *options)
 	}
 
 	/* Register the device with libsigrok. */
-	sdi = sr_dev_inst_new(SR_ST_INITIALIZING,
-			USB_VENDOR_NAME, USB_MODEL_NAME, NULL);
-	if (!sdi) {
-		sr_err("Failed to create device instance.");
-		goto err_close_ftdic;
-	}
+	sdi = sr_dev_inst_new();
+	sdi->status = SR_ST_INITIALIZING;
+	sdi->vendor = g_strdup(USB_VENDOR_NAME);
+	sdi->model = g_strdup(USB_MODEL_NAME);
 	sdi->driver = di;
 	sdi->priv = devc;
 
@@ -147,7 +145,6 @@ static GSList *scan(GSList *options)
 
 	return devices;
 
-err_close_ftdic:
 	scanaplus_close(devc);
 err_free_ftdic:
 	ftdi_free(devc->ftdic); /* NOT free() or g_free()! */

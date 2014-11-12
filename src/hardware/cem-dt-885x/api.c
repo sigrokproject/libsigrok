@@ -109,9 +109,10 @@ static GSList *scan(GSList *options)
 	while (g_get_monotonic_time() - start < MAX_SCAN_TIME) {
 		if (serial_read_nonblocking(serial, &c, 1) == 1 && c == 0xa5) {
 			/* Found one. */
-			if (!(sdi = sr_dev_inst_new(SR_ST_INACTIVE, "CEM",
-					"DT-885x", NULL)))
-				return NULL;
+			sdi = sr_dev_inst_new();
+			sdi->status = SR_ST_INACTIVE;
+			sdi->vendor = g_strdup("CEM");
+			sdi->model = g_strdup("DT-885x");
 
 			if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
 				sr_dbg("Device context malloc failed.");

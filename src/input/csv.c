@@ -393,7 +393,7 @@ static int init(struct sr_input *in, GHashTable *options)
 	struct context *inc;
 	const char *s;
 
-	in->sdi = sr_dev_inst_new(SR_ST_ACTIVE, NULL, NULL, NULL);
+	in->sdi = sr_dev_inst_new();
 	in->priv = inc = g_malloc0(sizeof(struct context));
 
 	inc->single_column = g_variant_get_int32(g_hash_table_lookup(options, "single-column"));

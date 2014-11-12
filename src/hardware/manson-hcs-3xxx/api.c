@@ -150,12 +150,10 @@ static GSList *scan(GSList *options)
 	}
 
 	/* Init device instance, etc. */
-	if (!(sdi = sr_dev_inst_new(SR_ST_INACTIVE, "Manson",
-				    models[model_id].name, NULL))) {
-		sr_err("Failed to create device instance.");
-		return NULL;
-	}
-
+	sdi = sr_dev_inst_new();
+	sdi->status = SR_ST_INACTIVE;
+	sdi->vendor = g_strdup("Manson");
+	sdi->model = g_strdup(models[model_id].name);
 	sdi->inst_type = SR_INST_SERIAL;
 	sdi->conn = serial;
 	sdi->driver = di;

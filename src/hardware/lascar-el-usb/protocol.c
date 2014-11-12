@@ -323,9 +323,11 @@ static struct sr_dev_inst *lascar_identify(unsigned char *config)
 			return NULL;
 		}
 
-		if (!(sdi = sr_dev_inst_new(SR_ST_INACTIVE, LASCAR_VENDOR,
-				profile->modelname, firmware)))
-			return NULL;
+		sdi = sr_dev_inst_new();
+		sdi->status = SR_ST_INACTIVE;
+		sdi->vendor = g_strdup(LASCAR_VENDOR);
+		sdi->model = g_strdup(profile->modelname);
+		sdi->version = g_strdup(firmware);
 		sdi->driver = di;
 
 		if (profile->logformat == LOG_TEMP_RH) {

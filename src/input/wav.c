@@ -150,7 +150,7 @@ static int init(struct sr_input *in, GHashTable *options)
 {
 	(void)options;
 
-	in->sdi = sr_dev_inst_new(SR_ST_ACTIVE, NULL, NULL, NULL);
+	in->sdi = sr_dev_inst_new();
 	in->priv = g_malloc0(sizeof(struct context));
 
 	return SR_OK;

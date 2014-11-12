@@ -380,11 +380,10 @@ static GSList *scan(GSList *options)
 	devc->use_triggers = 0;
 
 	/* Register SIGMA device. */
-	if (!(sdi = sr_dev_inst_new(SR_ST_INITIALIZING, USB_VENDOR_NAME,
-				    USB_MODEL_NAME, NULL))) {
-		sr_err("%s: sdi was NULL", __func__);
-		goto free;
-	}
+	sdi = sr_dev_inst_new();
+	sdi->status = SR_ST_INITIALIZING;
+	sdi->vendor = g_strdup(USB_VENDOR_NAME);
+	sdi->model = g_strdup(USB_MODEL_NAME);
 	sdi->driver = di;
 
 	for (i = 0; i < ARRAY_SIZE(channel_names); i++) {

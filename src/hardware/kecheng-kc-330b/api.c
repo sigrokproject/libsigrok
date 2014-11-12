@@ -129,10 +129,10 @@ static GSList *scan(GSList *options)
 		for (l = usb_devices; l; l = l->next) {
 			if (scan_kecheng(l->data, &model) != SR_OK)
 				continue;
-			if (!(sdi = sr_dev_inst_new(SR_ST_INACTIVE, VENDOR,
-					model, NULL)))
-				return NULL;
-			g_free(model);
+			sdi = sr_dev_inst_new();
+			sdi->status = SR_ST_INACTIVE;
+			sdi->vendor = g_strdup(VENDOR);
+			sdi->model = model; /* Already g_strndup()'d. */
 			sdi->driver = di;
 			sdi->inst_type = SR_INST_USB;
 			sdi->conn = l->data;

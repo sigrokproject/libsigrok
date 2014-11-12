@@ -170,8 +170,9 @@ SR_API int sr_session_load(const char *filename, struct sr_session **session)
 			for (j = 0; keys[j]; j++) {
 				val = g_key_file_get_string(kf, sections[i], keys[j], NULL);
 				if (!strcmp(keys[j], "capturefile")) {
-					sdi = sr_dev_inst_new(SR_ST_ACTIVE, NULL, NULL, NULL);
+					sdi = sr_dev_inst_new();
 					sdi->driver = &session_driver;
+					sdi->status = SR_ST_ACTIVE;
 					if (!session_driver_initialized) {
 						/* first device, init the driver */
 						session_driver_initialized = 1;

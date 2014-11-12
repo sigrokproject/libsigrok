@@ -73,11 +73,10 @@ static GSList *scan(GSList *options)
 	for (l = usb_devices; l; l = l->next) {
 		usb = l->data;
 
-		if (!(sdi = sr_dev_inst_new(SR_ST_INACTIVE,
-		                            "Brymen", "BM869", NULL))) {
-			sr_err("sr_dev_inst_new returned NULL.");
-			return NULL;
-		}
+		sdi = sr_dev_inst_new();
+		sdi->status = SR_ST_INACTIVE;
+		sdi->vendor = g_strdup("Brymen");
+		sdi->model = g_strdup("BM869");
 
 		if (!(devc = g_try_malloc0(sizeof(*devc)))) {
 			sr_err("Device context malloc failed.");

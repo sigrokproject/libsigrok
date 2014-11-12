@@ -291,14 +291,16 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 		}
 	}
 
-	if (!model || !(sdi = sr_dev_inst_new(SR_ST_ACTIVE,
-					      model->series->vendor->name,
-						  model->name,
-						  hw_info->firmware_version))) {
+	if (!model) {
 		sr_scpi_hw_info_free(hw_info);
 		return NULL;
 	}
 
+	sdi = sr_dev_inst_new();
+	sdi->status = SR_ST_ACTIVE;
+	sdi->vendor = g_strdup(model->series->vendor->name);
+	sdi->model = g_strdup(model->name);
+	sdi->version = g_strdup(hw_info->firmware_version);
 	sdi->conn = scpi;
 	sdi->driver = di;
 	sdi->inst_type = SR_INST_SCPI;

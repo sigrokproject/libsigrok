@@ -198,10 +198,10 @@ static GSList *scan(GSList *options)
 		if (des.idVendor != LOGIC16_VID || des.idProduct != LOGIC16_PID)
 			continue;
 
-		sdi = sr_dev_inst_new(SR_ST_INITIALIZING,
-				      "Saleae", "Logic16", NULL);
-		if (!sdi)
-			return NULL;
+		sdi = sr_dev_inst_new();
+		sdi->status = SR_ST_INITIALIZING;
+		sdi->vendor = g_strdup("Saleae");
+		sdi->model = g_strdup("Logic16");
 		sdi->driver = di;
 		sdi->connection_id = g_strdup(connection_id);
 

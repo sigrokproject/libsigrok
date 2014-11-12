@@ -203,32 +203,22 @@ SR_API gboolean sr_dev_has_option(const struct sr_dev_inst *sdi, int key)
 
 /** @private
  *  Allocate and init a new device instance struct.
- *  @param[in]  index   @copydoc sr_dev_inst::index
- *  @param[in]  status  @copydoc sr_dev_inst::status
- *  @param[in]  vendor  @copydoc sr_dev_inst::vendor
- *  @param[in]  model   @copydoc sr_dev_inst::model
- *  @param[in]  version @copydoc sr_dev_inst::version
  *
- *  @retval NULL Error
  *  @retval struct sr_dev_inst *. Dynamically allocated, free using
  *              sr_dev_inst_free().
  */
-SR_PRIV struct sr_dev_inst *sr_dev_inst_new(int status,
-		const char *vendor, const char *model, const char *version)
+SR_PRIV struct sr_dev_inst *sr_dev_inst_new(void)
 {
 	struct sr_dev_inst *sdi;
 
-	if (!(sdi = g_try_malloc(sizeof(struct sr_dev_inst)))) {
-		sr_err("Device instance malloc failed.");
-		return NULL;
-	}
+	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 
 	sdi->driver = NULL;
-	sdi->status = status;
+	sdi->status = -1;
 	sdi->inst_type = -1;
-	sdi->vendor = vendor ? g_strdup(vendor) : NULL;
-	sdi->model = model ? g_strdup(model) : NULL;
-	sdi->version = version ? g_strdup(version) : NULL;
+	sdi->vendor = NULL;
+	sdi->model = NULL;
+	sdi->version = NULL;
 	sdi->serial_num = NULL;
 	sdi->connection_id = NULL;
 	sdi->channels = NULL;
@@ -248,10 +238,10 @@ SR_API struct sr_dev_inst *sr_dev_inst_user_new(const char *vendor,
 {
 	struct sr_dev_inst *sdi;
 
-	sdi = sr_dev_inst_new(0, vendor, model, version);
-	if (!sdi)
-		return NULL;
-
+	sdi = sr_dev_inst_new();
+	sdi->vendor = g_strdup(vendor);
+	sdi->model = g_strdup(model);
+	sdi->version = g_strdup(version);
 	sdi->inst_type = SR_INST_USER;
 
 	return sdi;

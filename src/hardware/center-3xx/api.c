@@ -85,9 +85,10 @@ static GSList *center_scan(const char *conn, const char *serialcomm, int idx)
 
 	sr_info("Found device on port %s.", conn);
 
-	if (!(sdi = sr_dev_inst_new(SR_ST_INACTIVE, center_devs[idx].vendor,
-				    center_devs[idx].device, NULL)))
-		goto scan_cleanup;
+	sdi = sr_dev_inst_new();
+	sdi->status = SR_ST_INACTIVE;
+	sdi->vendor = g_strdup(center_devs[idx].vendor);
+	sdi->model = g_strdup(center_devs[idx].device);
 
 	if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
 		sr_err("Device context malloc failed.");

@@ -75,8 +75,10 @@ static GSList *brymen_scan(const char *conn, const char *serialcomm)
 
 	sr_info("Found device on port %s.", conn);
 
-	if (!(sdi = sr_dev_inst_new(SR_ST_INACTIVE, "Brymen", "BM85x", NULL)))
-		goto scan_cleanup;
+	sdi = sr_dev_inst_new();
+	sdi->status = SR_ST_INACTIVE;
+	sdi->vendor = g_strdup("Brymen");
+	sdi->model = g_strdup("BM85x");
 
 	if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
 		sr_err("Device context malloc failed.");

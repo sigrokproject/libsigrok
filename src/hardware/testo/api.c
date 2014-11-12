@@ -124,8 +124,10 @@ static GSList *scan(GSList *options)
 		if (strcmp(product, "testo 435/635/735"))
 			continue;
 
-		sdi = sr_dev_inst_new(SR_ST_INACTIVE, "Testo",
-				"435/635/735", NULL);
+		sdi = sr_dev_inst_new();
+		sdi->status = SR_ST_INACTIVE;
+		sdi->vendor = g_strdup("Testo");
+		sdi->model = g_strdup("435/635/735");
 		sdi->driver = di;
 		sdi->inst_type = SR_INST_USB;
 		sdi->conn = sr_usb_dev_inst_new(libusb_get_bus_number(devlist[i]),

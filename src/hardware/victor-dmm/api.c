@@ -82,9 +82,9 @@ static GSList *scan(GSList *options)
 
 		usb_get_port_path(devlist[i], connection_id, sizeof(connection_id));
 
-		if (!(sdi = sr_dev_inst_new(SR_ST_INACTIVE,
-				VICTOR_VENDOR, NULL, NULL)))
-			return NULL;
+		sdi = sr_dev_inst_new();
+		sdi->status = SR_ST_INACTIVE;
+		sdi->vendor = g_strdup(VICTOR_VENDOR);
 		sdi->driver = di;
 		sdi->connection_id = g_strdup(connection_id);
 

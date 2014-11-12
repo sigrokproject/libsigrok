@@ -144,9 +144,11 @@ static GSList *do_scan(struct sr_dev_driver* drv, GSList *options)
 			auxtype = xgittoint(buf[7]);
 			sr_spew("%s %s DMM %s detected!", get_brandstr(drv), get_typestr(auxtype, drv), buf + 9);
 
-			if (!(sdi = sr_dev_inst_new(SR_ST_INACTIVE,
-						get_brandstr(drv), get_typestr(auxtype, drv), buf + 9)))
-				return NULL;
+			sdi = sr_dev_inst_new();
+			sdi->status = SR_ST_INACTIVE;
+			sdi->vendor = g_strdup(get_brandstr(drv));
+			sdi->model = g_strdup(get_typestr(auxtype, drv));
+			sdi->version = g_strdup(buf + 9);
 			if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
 				sr_err("Device context malloc failed.");
 				return NULL;

@@ -84,11 +84,10 @@ static GSList *scan(GSList *options)
 	if (!serialcomm)
 		serialcomm = SERIALCOMM;
 
-	if (!(sdi = sr_dev_inst_new(SR_ST_INACTIVE, "Tondaj",
-				    "SL-814", NULL))) {
-		sr_err("Failed to create device instance.");
-		return NULL;
-	}
+	sdi = sr_dev_inst_new();
+	sdi->status = SR_ST_INACTIVE;
+	sdi->vendor = g_strdup("Tondaj");
+	sdi->model = g_strdup("SL-814");
 
 	if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
 		sr_err("Device context malloc failed.");

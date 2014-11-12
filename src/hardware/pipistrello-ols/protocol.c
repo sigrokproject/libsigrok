@@ -226,7 +226,8 @@ SR_PRIV struct sr_dev_inst *p_ols_get_metadata(uint8_t *buf, int bytes_read, str
 	guchar tmp_c;
 	int index, i;
 
-	sdi = sr_dev_inst_new(SR_ST_INACTIVE, NULL, NULL, NULL);
+	sdi = sr_dev_inst_new();
+	sdi->status = SR_ST_INACTIVE;
 	sdi->driver = di;
 	sdi->priv = devc;
 

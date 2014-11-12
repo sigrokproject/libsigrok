@@ -94,9 +94,10 @@ static GSList *scan(GSList *options)
 
 	sr_spew("Conrad DIGI 35 CPU assumed at %s.", conn);
 
-	if (!(sdi = sr_dev_inst_new(SR_ST_ACTIVE, "Conrad", "DIGI 35 CPU", NULL)))
-		return NULL;
-
+	sdi = sr_dev_inst_new();
+	sdi->status = SR_ST_ACTIVE;
+	sdi->vendor = g_strdup("Conrad");
+	sdi->model = g_strdup("DIGI 35 CPU");
 	sdi->conn = serial;
 	sdi->priv = NULL;
 	sdi->driver = di;

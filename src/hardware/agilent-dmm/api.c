@@ -136,9 +136,11 @@ static GSList *scan(GSList *options)
 		for (i = 0; supported_agdmm[i].model; i++) {
 			if (strcmp(supported_agdmm[i].modelname, tokens[1]))
 				continue;
-			if (!(sdi = sr_dev_inst_new(SR_ST_INACTIVE, "Agilent",
-					tokens[1], tokens[3])))
-				return NULL;
+			sdi = sr_dev_inst_new();
+			sdi->status = SR_ST_INACTIVE;
+			sdi->vendor = g_strdup("Agilent");
+			sdi->model = g_strdup(tokens[1]);
+			sdi->version = g_strdup(tokens[3]);
 			if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
 				sr_err("Device context malloc failed.");
 				return NULL;

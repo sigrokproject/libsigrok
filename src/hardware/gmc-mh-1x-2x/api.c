@@ -223,9 +223,10 @@ static GSList *scan_1x_2x_rs232(GSList *options)
 
 	if (model != METRAHIT_NONE) {
 		sr_spew("%s %s detected!", VENDOR_GMC, gmc_model_str(model));
-		if (!(sdi = sr_dev_inst_new(SR_ST_INACTIVE, VENDOR_GMC,
-				gmc_model_str(model), NULL)))
-			return NULL;
+		sdi = sr_dev_inst_new();
+		sdi->status = SR_ST_INACTIVE;
+		sdi->vendor = g_strdup(VENDOR_GMC);
+		sdi->model = g_strdup(gmc_model_str(model));
 		if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
 			sr_err("Device context malloc failed.");
 			return NULL;
@@ -303,9 +304,9 @@ static GSList *scan_2x_bd232(GSList *options)
 		goto exit_err;
 	}
 
-	if (!(sdi = sr_dev_inst_new(SR_ST_INACTIVE, VENDOR_GMC, NULL, NULL)))
-		goto exit_err;
-
+	sdi = sr_dev_inst_new();
+	sdi->status = SR_ST_INACTIVE;
+	sdi->vendor = g_strdup(VENDOR_GMC);
 	sdi->priv = devc;
 
 	/* Send message 03 "Query multimeter version and status" */
@@ -354,8 +355,9 @@ static GSList *scan_2x_bd232(GSList *options)
 				goto exit_err;
 			}
 
-			if (!(sdi = sr_dev_inst_new(SR_ST_INACTIVE, VENDOR_GMC, NULL, NULL)))
-				goto exit_err;
+			sdi = sr_dev_inst_new();
+			sdi->status = SR_ST_INACTIVE;
+			sdi->vendor = g_strdup(VENDOR_GMC);
 		}
 	};
 

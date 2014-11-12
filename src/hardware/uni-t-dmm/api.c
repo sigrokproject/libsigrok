@@ -260,11 +260,10 @@ static GSList *scan(GSList *options, int dmm)
 
 		devc->first_run = TRUE;
 
-		if (!(sdi = sr_dev_inst_new(SR_ST_INACTIVE,
-				udmms[dmm].vendor, udmms[dmm].device, NULL))) {
-			sr_err("sr_dev_inst_new returned NULL.");
-			return NULL;
-		}
+		sdi = sr_dev_inst_new();
+		sdi->status = SR_ST_INACTIVE;
+		sdi->vendor = g_strdup(udmms[dmm].vendor);
+		sdi->model = g_strdup(udmms[dmm].device);
 		sdi->priv = devc;
 		sdi->driver = udmms[dmm].di;
 		if (!(ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "P1")))

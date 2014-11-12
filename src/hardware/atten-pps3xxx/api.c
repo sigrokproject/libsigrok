@@ -164,7 +164,10 @@ static GSList *scan(GSList *options, int modelid)
 		return NULL;
 	}
 
-	sdi = sr_dev_inst_new(SR_ST_INACTIVE, "Atten", model->name, NULL);
+	sdi = sr_dev_inst_new();
+	sdi->status = SR_ST_INACTIVE;
+	sdi->vendor = g_strdup("Atten");
+	sdi->model = g_strdup(model->name);
 	sdi->driver = di;
 	sdi->inst_type = SR_INST_SERIAL;
 	sdi->conn = serial;

@@ -122,9 +122,11 @@ static GSList *fluke_scan(const char *conn, const char *serialcomm)
 					continue;
 				/* Skip leading spaces in version number. */
 				for (s = 0; tokens[1][s] == ' '; s++);
-				if (!(sdi = sr_dev_inst_new(SR_ST_INACTIVE, "Fluke",
-						tokens[0] + 6, tokens[1] + s)))
-					return NULL;
+				sdi = sr_dev_inst_new();
+				sdi->status = SR_ST_INACTIVE;
+				sdi->vendor = g_strdup("Fluke");
+				sdi->model = g_strdup(tokens[0] + 6);
+				sdi->version = g_strdup(tokens[1] + s);
 				if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
 					sr_err("Device context malloc failed.");
 					return NULL;

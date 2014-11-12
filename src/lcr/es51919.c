@@ -843,8 +843,10 @@ SR_PRIV struct sr_dev_inst *es51919_serial_scan(GSList *options,
 
 	sr_info("Found device on port %s.", serial->port);
 
-	if (!(sdi = sr_dev_inst_new(SR_ST_INACTIVE, vendor, model, NULL)))
-		goto scan_cleanup;
+	sdi = sr_dev_inst_new();
+	sdi->status = SR_ST_INACTIVE;
+	sdi->vendor = g_strdup(vendor);
+	sdi->model = g_strdup(model);
 
 	if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
 		sr_err("Device context malloc failed.");

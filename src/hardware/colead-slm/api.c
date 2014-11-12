@@ -82,9 +82,10 @@ static GSList *scan(GSList *options)
 	if (!serialcomm)
 		serialcomm = SERIALCOMM;
 
-	if (!(sdi = sr_dev_inst_new(SR_ST_INACTIVE, "Colead",
-			"SL-5868P", NULL)))
-		return NULL;
+	sdi = sr_dev_inst_new();
+	sdi->status = SR_ST_INACTIVE;
+	sdi->vendor = g_strdup("Colead");
+	sdi->model = g_strdup("SL-5868P");
 
 	if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
 		sr_dbg("Device context malloc failed.");

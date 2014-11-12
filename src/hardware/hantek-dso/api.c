@@ -172,7 +172,10 @@ static struct sr_dev_inst *dso_dev_new(const struct dso_profile *prof)
 	struct dev_context *devc;
 	int i;
 
-	sdi = sr_dev_inst_new(SR_ST_INITIALIZING, prof->vendor, prof->model, NULL);
+	sdi = sr_dev_inst_new();
+	sdi->status = SR_ST_INITIALIZING;
+	sdi->vendor = g_strdup(prof->vendor);
+	sdi->model = g_strdup(prof->model);
 	sdi->driver = di;
 
 	/*

@@ -99,7 +99,7 @@ static GSList *gen_channel_list(int num_channels)
 	return list;
 }
 
-static struct sr_dev_inst *dev_inst_new()
+static struct sr_dev_inst *dev_inst_new(void)
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
@@ -112,13 +112,10 @@ static struct sr_dev_inst *dev_inst_new()
 	}
 
 	/* Register the device with libsigrok. */
-	sdi = sr_dev_inst_new(SR_ST_INACTIVE,
-			      VENDOR_NAME, MODEL_NAME, NULL);
-	if (!sdi) {
-		sr_err("Failed to instantiate device.");
-		g_free(devc);
-		return NULL;
-	}
+	sdi = sr_dev_inst_new();
+	sdi->status = SR_ST_INACTIVE;
+	sdi->vendor = g_strdup(VENDOR_NAME);
+	sdi->model = g_strdup(MODEL_NAME);
 
 	/* Enable all channels to match the default channel configuration. */
 	devc->channel_mask = ALL_CHANNELS_MASK;
