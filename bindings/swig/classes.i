@@ -84,6 +84,7 @@ template< class T > class enable_shared_from_this;
 %shared_ptr(sigrok::Trigger);
 %shared_ptr(sigrok::TriggerStage);
 %shared_ptr(sigrok::TriggerMatch);
+%shared_ptr(sigrok::UserDevice);
 
 %template(StringMap) std::map<std::string, std::string>;
 

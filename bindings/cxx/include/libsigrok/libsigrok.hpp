@@ -114,6 +114,7 @@ class SR_API InputDevice;
 class SR_API Output;
 class SR_API DataType;
 class SR_API Option;
+class SR_API UserDevice;
 
 /** Exception thrown when an error code is returned by any libsigrok call. */
 class SR_API Error: public exception
@@ -263,6 +264,9 @@ public:
 	void set_log_callback_default();
 	/** Create a new session. */
 	shared_ptr<Session> create_session();
+	/** Create a new user device. */
+	shared_ptr<UserDevice> create_user_device(
+		string vendor, string model, string version);
 	/** Load a saved session.
 	 * @param filename File name string. */
 	shared_ptr<Session> load_session(string filename);
@@ -416,6 +420,28 @@ protected:
 	friend class ChannelGroup;
 };
 
+/** A virtual device, created by the user */
+class SR_API UserDevice :
+	public UserOwned<UserDevice, struct sr_dev_inst>,
+	public Device
+{
+public:
+	/** Add a new channel to this device. */
+	shared_ptr<Channel> add_channel(unsigned int index, const ChannelType *type, string name);
+protected:
+	UserDevice(string vendor, string model, string version);
+	~UserDevice();
+	shared_ptr<Device> get_shared_from_this();
+	/** Deleter needed to allow shared_ptr use with protected destructor. */
+	class Deleter
+	{
+	public:
+		void operator()(UserDevice *device) { delete device; }
+	};
+	friend class Context;
+	friend class Deleter;
+};
+
 /** A channel on a device */
 class SR_API Channel :
 	public ParentOwned<Channel, Device, struct sr_channel>
@@ -440,6 +466,7 @@ protected:
 	~Channel();
 	const ChannelType * const _type;
 	friend class Device;
+	friend class UserDevice;
 	friend class ChannelGroup;
 	friend class Session;
 	friend class TriggerStage;

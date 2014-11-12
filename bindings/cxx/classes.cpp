@@ -214,6 +214,13 @@ shared_ptr<Session> Context::create_session()
 		new Session(shared_from_this()), Session::Deleter());
 }
 
+shared_ptr<UserDevice> Context::create_user_device(
+		string vendor, string model, string version)
+{
+	return shared_ptr<UserDevice>(
+		new UserDevice(vendor, model, version), UserDevice::Deleter());
+}
+
 shared_ptr<Session> Context::load_session(string filename)
 {
 	return shared_ptr<Session>(
@@ -520,6 +527,34 @@ shared_ptr<Device> HardwareDevice::get_shared_from_this()
 shared_ptr<Driver> HardwareDevice::driver()
 {
 	return _driver;
+}
+
+UserDevice::UserDevice(string vendor, string model, string version) :
+	UserOwned(sr_dev_inst_user_new(
+		vendor.c_str(), model.c_str(), version.c_str())),
+	Device(UserOwned::_structure)
+{
+}
+
+UserDevice::~UserDevice()
+{
+}
+
+shared_ptr<Device> UserDevice::get_shared_from_this()
+{
+	return static_pointer_cast<Device>(shared_from_this());
+}
+
+shared_ptr<Channel> UserDevice::add_channel(unsigned int index,
+	const ChannelType *type, string name)
+{
+	check(sr_dev_inst_channel_add(Device::_structure,
+		index, type->id(), name.c_str()));
+	struct sr_channel *structure = (struct sr_channel *)
+			g_slist_last(sr_dev_inst_channels_get(Device::_structure))->data;
+	Channel *channel = new Channel(structure);
+	_channels[structure] = channel;
+	return get_channel(structure);
 }
 
 Channel::Channel(struct sr_channel *structure) :
