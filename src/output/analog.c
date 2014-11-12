@@ -228,10 +228,12 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 		GString **out)
 {
 	const struct sr_datafeed_analog *analog;
+	const struct sr_datafeed_analog2 *analog2;
 	struct sr_channel *ch;
 	GSList *l;
-	const float *fdata;
-	int num_channels, i, c;
+	float *fdata;
+	unsigned int i;
+	int num_channels, c, ret, si;
 
 	*out = NULL;
 	if (!o || !o->sdi)
@@ -246,14 +248,31 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 		break;
 	case SR_DF_ANALOG:
 		analog = packet->payload;
-		fdata = (const float *)analog->data;
+		fdata = (float *)analog->data;
 		*out = g_string_sized_new(512);
 		num_channels = g_slist_length(analog->channels);
-		for (i = 0; i < analog->num_samples; i++) {
+		for (si = 0; si < analog->num_samples; si++) {
 			for (l = analog->channels, c = 0; l; l = l->next, c++) {
 				ch = l->data;
 				g_string_append_printf(*out, "%s: ", ch->name);
 				fancyprint(analog->unit, analog->mqflags,
+						fdata[si * num_channels + c], *out);
+			}
+		}
+		break;
+	case SR_DF_ANALOG2:
+		analog2 = packet->payload;
+		if (!(fdata = g_try_malloc(analog2->num_samples * sizeof(float))))
+			return SR_ERR_MALLOC;
+		if ((ret = sr_analog_to_float(analog2, fdata)) != SR_OK)
+			return ret;
+		*out = g_string_sized_new(512);
+		num_channels = g_slist_length(analog2->meaning->channels);
+		for (i = 0; i < analog2->num_samples; i++) {
+			for (l = analog2->meaning->channels, c = 0; l; l = l->next, c++) {
+				ch = l->data;
+				g_string_append_printf(*out, "%s: ", ch->name);
+				fancyprint(analog2->meaning->unit, analog2->meaning->mqflags,
 						fdata[i * num_channels + c], *out);
 			}
 		}
