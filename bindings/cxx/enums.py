@@ -17,6 +17,7 @@
 ## along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##
 
+from __future__ import print_function
 from xml.etree import ElementTree
 from collections import OrderedDict
 import sys, os, re
@@ -69,7 +70,7 @@ code = open(os.path.join(outdirname, 'enums.cpp'), 'w')
 swig = open(os.path.join(outdirname, '../swig/enums.i'), 'w')
 
 for file in (header, code):
-    print >> file, "/* Generated file - edit enums.py instead! */"
+    print("/* Generated file - edit enums.py instead! */", file=file)
 
 # Template for beginning of class declaration and public members.
 header_public_template = """
@@ -98,66 +99,69 @@ for enum, (classname, classbrief) in classes.items():
     briefs = [get_text(m.find('briefdescription')) for m in members]
 
     # Begin class and public declarations
-    print >> header, header_public_template.format(
-        brief=classbrief, classname=classname, enumname=enum_name)
+    print(header_public_template.format(
+        brief=classbrief, classname=classname, enumname=enum_name), file=header)
 
     # Declare public pointers for each enum value
     for trimmed_name, brief in zip(trimmed_names, briefs):
         if brief:
-            print >> header, '\t/** %s */' % brief
-        print >> header, '\tstatic const %s * const %s;' % (
-            classname, trimmed_name)
+            print('\t/** %s */' % brief, file=header)
+        print('\tstatic const %s * const %s;' % (
+            classname, trimmed_name), file=header)
 
     # Declare additional methods if present
     filename = os.path.join(dirname, "%s_methods.hpp" % classname)
     if os.path.exists(filename):
-        print >> header, str.join('', open(filename).readlines())
+        print(str.join('', open(filename).readlines()), file=header)
 
     # Begin private declarations
-    print >> header, header_private_template.format(
-        classname=classname, enumname=enum_name)
+    print(header_private_template.format(
+        classname=classname, enumname=enum_name), file=header)
 
     # Declare private constants for each enum value
     for trimmed_name in trimmed_names:
-        print >> header, '\tstatic const %s _%s;' % (classname, trimmed_name)
+        print('\tstatic const %s _%s;' % (classname, trimmed_name), file=header)
 
     # End class declaration
-    print >> header, '};'
+    print('};', file=header)
 
     # Define private constants for each enum value
     for name, trimmed_name in zip(member_names, trimmed_names):
-        print >> code, 'const %s %s::_%s = %s(%s, "%s");' % (
-            classname, classname, trimmed_name, classname, name, trimmed_name)
+        print('const %s %s::_%s = %s(%s, "%s");' % (
+            classname, classname, trimmed_name, classname, name, trimmed_name),
+            file=code)
 
     # Define public pointers for each enum value
     for trimmed_name in trimmed_names:
-        print >> code, 'const %s * const %s::%s = &%s::_%s;' % (
-            classname, classname, trimmed_name, classname, trimmed_name)
+        print('const %s * const %s::%s = &%s::_%s;' % (
+            classname, classname, trimmed_name, classname, trimmed_name),
+            file=code)
 
     # Define map of enum values to constants
-    print >> code, 'template<> const std::map<const enum %s, const %s * const> EnumValue<%s, enum %s>::_values = {' % (
-        enum_name, classname, classname, enum_name)
+    print('template<> const std::map<const enum %s, const %s * const> EnumValue<%s, enum %s>::_values = {' % (
+        enum_name, classname, classname, enum_name), file=code)
     for name, trimmed_name in zip(member_names, trimmed_names):
-        print >> code, '\t{%s, %s::%s},' % (name, classname, trimmed_name)
-    print >> code, '};'
+        print('\t{%s, %s::%s},' % (name, classname, trimmed_name), file=code)
+    print('};', file=code)
 
     # Define additional methods if present
     filename = os.path.join(dirname, "%s_methods.cpp" % classname)
     if os.path.exists(filename):
-        print >> code, str.join('', open(filename).readlines())
+        print(str.join('', open(filename).readlines()), file=code)
 
     # Map EnumValue::id() and EnumValue::name() as SWIG attributes.
-    print >> swig, '%%attribute(sigrok::%s, int, id, id);' % classname
-    print >> swig, '%%attributestring(sigrok::%s, std::string, name, name);' % classname
+    print('%%attribute(sigrok::%s, int, id, id);' % classname, file=swig)
+    print('%%attributestring(sigrok::%s, std::string, name, name);' % classname,
+        file=swig)
 
     # Instantiate EnumValue template for SWIG
-    print >> swig, '%%template(EnumValue%s) sigrok::EnumValue<sigrok::%s, enum %s>;' % (
-        classname, classname, enum_name)
+    print('%%template(EnumValue%s) sigrok::EnumValue<sigrok::%s, enum %s>;' % (
+        classname, classname, enum_name), file=swig)
 
     # Apply any language-specific extras.
-    print >> swig, '%%enumextras(%s);' % classname
+    print('%%enumextras(%s);' % classname, file=swig)
 
     # Declare additional attributes if present
     filename = os.path.join(dirname, "%s_methods.i" % classname)
     if os.path.exists(filename):
-        print >> swig, str.join('', open(filename).readlines())
+        print(str.join('', open(filename).readlines()), file=swig)
