@@ -1147,6 +1147,11 @@ string Session::filename()
 	return _filename;
 }
 
+shared_ptr<Context> Session::context()
+{
+	return _context;
+}
+
 Packet::Packet(shared_ptr<Device> device,
 	const struct sr_datafeed_packet *structure) :
 	UserOwned(structure),

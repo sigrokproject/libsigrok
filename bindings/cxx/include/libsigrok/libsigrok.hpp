@@ -706,6 +706,8 @@ public:
 	void append(void *data, size_t length, unsigned int unit_size);
 	/** Get current trigger setting. */
 	shared_ptr<Trigger> trigger();
+	/** Get the context. */
+	shared_ptr<Context> context();
 	/** Set trigger setting.
 	 * @param trigger Trigger object to use. */
 	void set_trigger(shared_ptr<Trigger> trigger);
