@@ -603,6 +603,14 @@ SR_PRIV int sr_packet_copy(const struct sr_datafeed_packet *packet,
 		struct sr_datafeed_packet **copy);
 SR_PRIV void sr_packet_free(struct sr_datafeed_packet *packet);
 
+/*--- analog.c --------------------------------------------------------------*/
+
+SR_PRIV int sr_analog_init(struct sr_datafeed_analog2 *analog,
+                           struct sr_analog_encoding *encoding,
+                           struct sr_analog_meaning *meaning,
+                           struct sr_analog_spec *spec,
+                           int digits);
+
 /*--- std.c -----------------------------------------------------------------*/
 
 typedef int (*dev_close_callback)(struct sr_dev_inst *sdi);

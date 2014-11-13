@@ -167,10 +167,7 @@ static void decode_buf(struct sr_dev_inst *sdi, unsigned char *data)
 	if (minus)
 		fvalue = -fvalue;
 
-	memset(&analog, 0, sizeof(struct sr_datafeed_analog2));
-	memset(&encoding, 0, sizeof(struct sr_analog_encoding));
-	memset(&meaning, 0, sizeof(struct sr_analog_meaning));
-	memset(&spec, 0, sizeof(struct sr_analog_spec));
+	sr_analog_init(&analog, &encoding, &meaning, &spec, 4);
 
 	/* Measurement mode */
 	meaning.channels = sdi->channels;
@@ -259,27 +256,8 @@ static void decode_buf(struct sr_dev_inst *sdi, unsigned char *data)
 	if (is_relative)
 		meaning.mqflags |= SR_MQFLAG_RELATIVE;
 
-	encoding.unitsize = sizeof(float);
-	encoding.is_float = TRUE;
-#ifdef WORDS_BIGENDIAN
-	encoding.is_bigendian = TRUE;
-#else
-	encoding.is_bigendian = FALSE;
-#endif
-	encoding.digits = 4; /* Values are always 4-digit numbers. */
-	encoding.is_digits_decimal = TRUE;
-	encoding.scale.p = 1;
-	encoding.scale.q = 1;
-	encoding.offset.p = 0;
-	encoding.offset.q = 1;
-
-	spec.spec_digits = encoding.digits;
-
 	analog.data = &fvalue;
 	analog.num_samples = 1;
-	analog.encoding = &encoding;
-	analog.meaning = &meaning;
-	analog.spec = &spec;
 
 	packet.type = SR_DF_ANALOG2;
 	packet.payload = &analog;
