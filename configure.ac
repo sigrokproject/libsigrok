@@ -513,9 +513,6 @@ AM_CONDITIONAL(BINDINGS_CXX, test x$BINDINGS_CXX = xyes)
 
 AM_CONDITIONAL(BINDINGS_PYTHON, test x$BINDINGS_PYTHON = xyes)
 
-# Temporarily disable Java bindings, they need a bugfix.
-BINDINGS_JAVA="no"; java_msg="temporarily disabled, needs a bugfix"
-
 AM_CONDITIONAL(BINDINGS_JAVA, test x$BINDINGS_JAVA = xyes)
 
 # Checks for header files.

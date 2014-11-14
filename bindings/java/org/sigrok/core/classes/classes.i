@@ -389,4 +389,8 @@ typedef jobject jsourcecallback;
 %define %enumextras(Class)
 %enddef
 
+/* Ignore this for now, needs a fix. */
+%ignore sigrok::Context::create_analog_packet;
+
 %include "bindings/swig/classes.i"
+
