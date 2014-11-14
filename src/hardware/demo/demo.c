@@ -292,7 +292,7 @@ static GSList *scan(GSList *options)
 
 	sdi = sr_dev_inst_new();
 	sdi->status = SR_ST_ACTIVE;
-	sdi->model = "Demo device";
+	sdi->model = g_strdup("Demo device");
 	sdi->driver = di;
 
 	devc = g_malloc(sizeof(struct dev_context));
