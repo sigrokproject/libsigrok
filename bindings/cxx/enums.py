@@ -67,7 +67,7 @@ for compound in index.findall('compound'):
 
 header = open(os.path.join(outdirname, 'include/libsigrok/enums.hpp'), 'w')
 code = open(os.path.join(outdirname, 'enums.cpp'), 'w')
-swig = open(os.path.join(outdirname, '../swig/enums.i'), 'w')
+swig = open(os.path.join(dirname, '../swig/enums.i'), 'w')
 
 for file in (header, code):
     print("/* Generated file - edit enums.py instead! */", file=file)
