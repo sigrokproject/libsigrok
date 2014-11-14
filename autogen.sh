@@ -54,6 +54,18 @@ fi
 echo "Generating build system..."
 ${LIBTOOLIZE} --install --copy --quiet || exit 1
 aclocal ${ACLOCAL_DIR} || exit 1
+
+# check the version of a specific autoconf macro that tends to cause problems
+CXXMACROVERSION=$(
+	grep -B 5 'm4_define(\[_AX_CXX_COMPILE_STDCXX_11_testbody\]' aclocal.m4 |
+	sed -nr 's/.*serial[[:space:]]+([[:digit:]]+).*/\1/p'
+)
+if [ "$CXXMACROVERSION" -lt 4 ]; then
+	echo "error: the AX_CXX_COMPILE_STDCXX_11 macro on this system is too old."
+	echo "(found version $CXXMACROVERSION, at least 4 is required)"
+	exit 1
+fi
+
 autoheader || exit 1
 automake --add-missing --copy || exit 1
 autoconf || exit 1
