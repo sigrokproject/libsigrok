@@ -671,6 +671,7 @@ static int prepare_data(int fd, int revents, void *cb_data)
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
 	struct analog_gen *ag;
+	int ag_pattern_pos;
 	GHashTableIter iter;
 	void *value;
 	uint64_t logic_todo, analog_todo, expected_samplenum, analog_sent, sending_now;
@@ -722,13 +723,9 @@ static int prepare_data(int fd, int revents, void *cb_data)
 				ag = value;
 				packet.type = SR_DF_ANALOG;
 				packet.payload = &ag->packet;
-
-				/* FIXME we should make sure we output a whole
-				 * period of data before we send out again the
-				 * beginning of our buffer. A ring buffer would
-				 * help here as well */
-
-				sending_now = MIN(analog_todo, ag->num_samples);
+				ag_pattern_pos = devc->analog_counter % ag->num_samples;
+				sending_now = MIN(analog_todo, ag->num_samples-ag_pattern_pos);
+				ag->packet.data = ag->pattern_data + ag_pattern_pos;
 				ag->packet.num_samples = sending_now;
 				sr_session_send(sdi, &packet);
 
