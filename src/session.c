@@ -613,6 +613,7 @@ static void datafeed_dump(const struct sr_datafeed_packet *packet)
 {
 	const struct sr_datafeed_logic *logic;
 	const struct sr_datafeed_analog *analog;
+	const struct sr_datafeed_analog2 *analog2;
 
 	switch (packet->type) {
 	case SR_DF_HEADER:
@@ -633,6 +634,11 @@ static void datafeed_dump(const struct sr_datafeed_packet *packet)
 		analog = packet->payload;
 		sr_dbg("bus: Received SR_DF_ANALOG packet (%d samples).",
 		       analog->num_samples);
+		break;
+	case SR_DF_ANALOG2:
+		analog2 = packet->payload;
+		sr_dbg("bus: Received SR_DF_ANALOG2 packet (%d samples).",
+		       analog2->num_samples);
 		break;
 	case SR_DF_END:
 		sr_dbg("bus: Received SR_DF_END packet.");
