@@ -202,7 +202,7 @@ static void generate_analog_pattern(struct analog_gen *ag, uint64_t sample_rate)
 			if (i % 5 == 0)
 				value = -value;
 			if (i % 10 == 0)
-				last_end = i - 1;
+				last_end = i;
 			ag->pattern_data[i] = value;
 		}
 		ag->num_samples = last_end;
