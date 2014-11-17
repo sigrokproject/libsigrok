@@ -419,6 +419,57 @@ SR_PRIV void sr_config_free(struct sr_config *src)
 
 }
 
+static int check_key(const struct sr_dev_driver *driver,
+		const struct sr_dev_inst *sdi, const struct sr_channel_group *cg,
+		uint32_t key, int op)
+{
+	const struct sr_config_info *srci;
+	gsize num_opts, i;
+	GVariant *gvar_opts;
+	const uint32_t *opts;
+	uint32_t pub_opt;
+	char *suffix, *opstr;
+
+	if (sdi && cg)
+		suffix = " for this device and channel group";
+	else if (sdi)
+		suffix = " for this device";
+	else
+		suffix = "";
+
+	if (!(srci = sr_config_info_get(key))) {
+		sr_err("Invalid key %d.", key);
+		return SR_ERR_ARG;
+	}
+	opstr = op == SR_CONF_GET ? "get" : op == SR_CONF_SET ? "set" : "list";
+
+	if (sr_config_list(driver, sdi, cg, SR_CONF_DEVICE_OPTIONS, &gvar_opts) != SR_OK) {
+		/* Driver publishes no options. */
+		sr_err("No options available%s.", srci->id, suffix);
+		return SR_ERR_ARG;
+	}
+	opts = g_variant_get_fixed_array(gvar_opts, &num_opts, sizeof(uint32_t));
+	pub_opt = 0;
+	for (i = 0; i < num_opts; i++) {
+		if ((opts[i] & SR_CONF_MASK) == key) {
+			pub_opt = opts[i];
+			break;
+		}
+	}
+	g_variant_unref(gvar_opts);
+	if (!pub_opt) {
+		sr_err("Option '%s' not available%s.", srci->id, suffix);
+		return SR_ERR_ARG;
+	}
+
+	if (!(pub_opt & op)) {
+		sr_err("Option '%s' not available to %s%s.", srci->id, opstr, suffix);
+		return SR_ERR_ARG;
+	}
+
+	return SR_OK;
+}
+
 /**
  * Query value of a configuration key at the given driver or device instance.
  *
@@ -454,6 +505,9 @@ SR_API int sr_config_get(const struct sr_dev_driver *driver,
 		return SR_ERR;
 
 	if (!driver->config_get)
+		return SR_ERR_ARG;
+
+	if (check_key(driver, sdi, cg, key, SR_CONF_GET) != SR_OK)
 		return SR_ERR_ARG;
 
 	if ((ret = driver->config_get(key, data, sdi, cg)) == SR_OK) {
@@ -496,6 +550,8 @@ SR_API int sr_config_set(const struct sr_dev_inst *sdi,
 		ret = SR_ERR;
 	else if (!sdi->driver->config_set)
 		ret = SR_ERR_ARG;
+	else if (check_key(sdi->driver, sdi, cg, key, SR_CONF_SET) != SR_OK)
+		return SR_ERR_ARG;
 	else if ((ret = sr_variant_type_check(key, data)) == SR_OK)
 		ret = sdi->driver->config_set(key, data, sdi, cg);
 
@@ -561,6 +617,10 @@ SR_API int sr_config_list(const struct sr_dev_driver *driver,
 		ret = SR_ERR;
 	else if (!driver->config_list)
 		ret = SR_ERR_ARG;
+	else if (key != SR_CONF_SCAN_OPTIONS && key != SR_CONF_DEVICE_OPTIONS) {
+		if (check_key(driver, sdi, cg, key, SR_CONF_LIST) != SR_OK)
+			return SR_ERR_ARG;
+	}
 	else if ((ret = driver->config_list(key, data, sdi, cg)) == SR_OK)
 		g_variant_ref_sink(*data);
 
