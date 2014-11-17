@@ -58,7 +58,7 @@ SR_PRIV int sr_analog_init(struct sr_datafeed_analog2 *analog,
 }
 
 SR_API int sr_analog_to_float(const struct sr_datafeed_analog2 *analog,
-		float *buf)
+		float *outbuf)
 {
 	float offset;
 	unsigned int b, i;
@@ -71,28 +71,28 @@ SR_API int sr_analog_to_float(const struct sr_datafeed_analog2 *analog,
 #endif
 	if (!analog->encoding->is_float) {
 		/* TODO */
-		sr_err("Only floating-point analog data supported so far.");
+		sr_err("Only floating-point encoding supported so far.");
 		return SR_ERR;
 	}
 
 	if (analog->encoding->unitsize == sizeof(float)
 			&& analog->encoding->is_bigendian == bigendian
 			&& (analog->encoding->scale.p == analog->encoding->scale.q)
-			&& analog->encoding->scale.p / (float)analog->encoding->scale.q == 0) {
+			&& analog->encoding->offset.p / (float)analog->encoding->offset.q == 0) {
 		/* The data is already in the right format. */
-		memcpy(buf, analog->data, analog->num_samples * sizeof(float));
+		memcpy(outbuf, analog->data, analog->num_samples * sizeof(float));
 	} else {
 		for (i = 0; i < analog->num_samples; i += analog->encoding->unitsize) {
 			for (b = 0; b < analog->encoding->unitsize; b++) {
 				if (analog->encoding->is_bigendian == bigendian)
-					buf[i + b] = ((float *)analog->data)[i * analog->encoding->unitsize + b];
+					outbuf[i + b] = ((float *)analog->data)[i * analog->encoding->unitsize + b];
 				else
-					buf[i + (analog->encoding->unitsize - b)] = ((float *)analog->data)[i * analog->encoding->unitsize + b];
+					outbuf[i + (analog->encoding->unitsize - b)] = ((float *)analog->data)[i * analog->encoding->unitsize + b];
 			}
 			if (analog->encoding->scale.p != analog->encoding->scale.q)
-				buf[i] = (buf[i] * analog->encoding->scale.p) / analog->encoding->scale.q;
-			offset = ((float)analog->encoding->scale.p / (float)analog->encoding->scale.q);
-			buf[i] += offset;
+				outbuf[i] = (outbuf[i] * analog->encoding->scale.p) / analog->encoding->scale.q;
+			offset = ((float)analog->encoding->offset.p / (float)analog->encoding->offset.q);
+			outbuf[i] += offset;
 		}
 	}
 
