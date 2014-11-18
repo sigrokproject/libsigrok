@@ -29,6 +29,12 @@
 struct context {
 	int num_enabled_channels;
 	GPtrArray *channellist;
+	int digits;
+};
+
+enum {
+	DIGITS_ALL,
+	DIGITS_SPEC,
 };
 
 static int init(struct sr_output *o, GHashTable *options)
@@ -36,17 +42,17 @@ static int init(struct sr_output *o, GHashTable *options)
 	struct context *ctx;
 	struct sr_channel *ch;
 	GSList *l;
-
-	(void)options;
+	const char *s;
 
 	if (!o || !o->sdi)
 		return SR_ERR_ARG;
 
-	if (!(ctx = g_try_malloc0(sizeof(struct context)))) {
-		sr_err("Output module context malloc failed.");
-		return SR_ERR_MALLOC;
-	}
-	o->priv = ctx;
+	o->priv = ctx = g_try_malloc0(sizeof(struct context));
+	s = g_variant_get_string(g_hash_table_lookup(options, "digits"), NULL);
+	if (!strcmp(s, "all"))
+		ctx->digits = DIGITS_ALL;
+	else
+		ctx->digits = DIGITS_SPEC;
 
 	/* Get the number of channels and their names. */
 	ctx->channellist = g_ptr_array_new();
@@ -227,17 +233,20 @@ static void fancyprint(int unit, int mqflags, float value, GString *out)
 static int receive(const struct sr_output *o, const struct sr_datafeed_packet *packet,
 		GString **out)
 {
+	struct context *ctx;
 	const struct sr_datafeed_analog *analog;
 	const struct sr_datafeed_analog2 *analog2;
 	struct sr_channel *ch;
 	GSList *l;
 	float *fdata;
 	unsigned int i;
-	int num_channels, c, ret, si;
+	int num_channels, c, ret, si, digits;
+	char number[32], suffix[32];
 
 	*out = NULL;
 	if (!o || !o->sdi)
 		return SR_ERR_ARG;
+	ctx = o->priv;
 
 	switch (packet->type) {
 	case SR_DF_FRAME_BEGIN:
@@ -267,13 +276,27 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 		if ((ret = sr_analog_to_float(analog2, fdata)) != SR_OK)
 			return ret;
 		*out = g_string_sized_new(512);
+		if (analog2->encoding->is_digits_decimal) {
+			if (ctx->digits == DIGITS_ALL)
+				digits = analog2->encoding->digits;
+			else
+				digits = analog2->spec->spec_digits;
+		} else {
+			/* TODO we don't know how to print by number of bits yet. */
+			digits = 6;
+		}
+		sr_analog_unit_to_string(analog2, suffix, sizeof(suffix));
 		num_channels = g_slist_length(analog2->meaning->channels);
 		for (i = 0; i < analog2->num_samples; i++) {
 			for (l = analog2->meaning->channels, c = 0; l; l = l->next, c++) {
 				ch = l->data;
 				g_string_append_printf(*out, "%s: ", ch->name);
-				fancyprint(analog2->meaning->unit, analog2->meaning->mqflags,
-						fdata[i * num_channels + c], *out);
+				sr_analog_float_to_string(fdata[i * num_channels + c],
+						digits, number, sizeof(number));
+				g_string_append(*out, number);
+				g_string_append(*out, " ");
+				g_string_append(*out, suffix);
+				g_string_append(*out, "\n");
 			}
 		}
 		break;
@@ -297,11 +320,29 @@ static int cleanup(struct sr_output *o)
 	return SR_OK;
 }
 
+static struct sr_option options[] = {
+	{ "digits", "Digits", "Digits to show", NULL, NULL },
+	ALL_ZERO
+};
+
+static const struct sr_option *get_options(void)
+{
+	if (!options[0].def) {
+		options[0].def = g_variant_ref_sink(g_variant_new_string("all"));
+		options[0].values = g_slist_append(options[0].values,
+				g_variant_ref_sink(g_variant_new_string("all")));
+		options[0].values = g_slist_append(options[0].values,
+				g_variant_ref_sink(g_variant_new_string("spec")));
+	}
+
+	return options;
+}
+
 SR_PRIV struct sr_output_module output_analog = {
 	.id = "analog",
 	.name = "Analog",
 	.desc = "Analog data and types",
-	.options = NULL,
+	.options = get_options,
 	.init = init,
 	.receive = receive,
 	.cleanup = cleanup
