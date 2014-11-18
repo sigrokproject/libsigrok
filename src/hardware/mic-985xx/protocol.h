@@ -30,13 +30,10 @@
 
 #define LOG_PREFIX "mic-985xx"
 
-/* Note: When adding entries here, don't forget to update MIC_DEV_COUNT. */
 enum {
 	MIC_98581,
 	MIC_98583,
 };
-
-#define MIC_DEV_COUNT 2
 
 struct mic_dev_info {
 	char *vendor;
@@ -51,7 +48,7 @@ struct mic_dev_info {
 	int (*receive_data)(int, int, void *);
 };
 
-extern SR_PRIV const struct mic_dev_info mic_devs[MIC_DEV_COUNT];
+extern SR_PRIV const struct mic_dev_info mic_devs[];
 
 #define SERIAL_BUFSIZE 256
 
