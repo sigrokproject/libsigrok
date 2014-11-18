@@ -30,9 +30,8 @@ static const uint32_t scanopts[] = {
 	SR_CONF_SERIALCOMM,
 };
 
-static const uint32_t devopts_driver[] = {
+static const uint32_t drvopts[] = {
 	SR_CONF_POWER_SUPPLY,
-	SR_CONF_CONTINUOUS,
 };
 
 static struct pps_channel_instance pci[] = {
@@ -434,7 +433,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		return SR_OK;
 	} else if (key == SR_CONF_DEVICE_OPTIONS && !sdi) {
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				devopts_driver, ARRAY_SIZE(devopts_driver), sizeof(uint32_t));
+				drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
 		return SR_OK;
 	}
 

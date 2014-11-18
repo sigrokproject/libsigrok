@@ -44,6 +44,7 @@ static const uint32_t devopts_none[] = { };
 
 /* Rigol DP800 series */
 static const uint32_t rigol_dp800_devopts[] = {
+	SR_CONF_CONTINUOUS | SR_CONF_SET,
 	SR_CONF_OVER_TEMPERATURE_PROTECTION | SR_CONF_GET | SR_CONF_SET,
 };
 
@@ -117,6 +118,7 @@ struct scpi_command rigol_dp800_cmd[] = {
 
 /* HP 663xx series */
 static const uint32_t hp_6632b_devopts[] = {
+	SR_CONF_CONTINUOUS | SR_CONF_SET,
 	SR_CONF_OUTPUT_ENABLED | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_OUTPUT_VOLTAGE | SR_CONF_GET,
 	SR_CONF_OUTPUT_CURRENT | SR_CONF_GET,
@@ -145,6 +147,10 @@ struct scpi_command hp_6632b_cmd[] = {
 };
 
 /* Philips/Fluke PM2800 series */
+static const uint32_t philips_pm2800_devopts[] = {
+	SR_CONF_CONTINUOUS | SR_CONF_SET,
+};
+
 static const uint32_t philips_pm2800_devopts_cg[] = {
 	SR_CONF_OUTPUT_ENABLED | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_OUTPUT_VOLTAGE | SR_CONF_GET,
@@ -318,7 +324,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 
 	/* Philips/Fluke PM2800 series */
 	{ "Philips", "^PM28[13][123]/[01234]{1,2}$", 0,
-		ARRAY_AND_SIZE(devopts_none),
+		ARRAY_AND_SIZE(philips_pm2800_devopts),
 		ARRAY_AND_SIZE(philips_pm2800_devopts_cg),
 		NULL, 0,
 		NULL, 0,
