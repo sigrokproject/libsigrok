@@ -128,21 +128,21 @@ struct dev_context {
 	GHashTable *ch_ag;
 };
 
+static const uint32_t drvopts[] = {
+	SR_CONF_DEMO_DEV,
+	SR_CONF_LOGIC_ANALYZER,
+	SR_CONF_OSCILLOSCOPE,
+};
+
 static const uint32_t scanopts[] = {
 	SR_CONF_NUM_LOGIC_CHANNELS,
 	SR_CONF_NUM_ANALOG_CHANNELS,
 };
 
 static const uint32_t devopts[] = {
-	SR_CONF_DEMO_DEV,
-	SR_CONF_LOGIC_ANALYZER,
-	SR_CONF_OSCILLOSCOPE,
-	SR_CONF_CONTINUOUS,
+	SR_CONF_CONTINUOUS | SR_CONF_SET,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
-};
-
-static const uint32_t devopts_global[] = {
 	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
@@ -565,7 +565,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 
 	if (key == SR_CONF_DEVICE_OPTIONS && !sdi) {
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
+				drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
 		return SR_OK;
 	}
 
@@ -576,7 +576,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		switch (key) {
 		case SR_CONF_DEVICE_OPTIONS:
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-					devopts_global, ARRAY_SIZE(devopts_global), sizeof(uint32_t));
+					devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
 			break;
 		case SR_CONF_SAMPLERATE:
 			g_variant_builder_init(&gvb, G_VARIANT_TYPE("a{sv}"));
