@@ -31,13 +31,10 @@
 
 #define LOG_PREFIX "center-3xx"
 
-/* Note: When adding entries here, don't forget to update CENTER_DEV_COUNT. */
 enum {
 	CENTER_309,
 	VOLTCRAFT_K204,
 };
-
-#define CENTER_DEV_COUNT 2
 
 struct center_dev_info {
 	char *vendor;
@@ -51,7 +48,7 @@ struct center_dev_info {
 	int (*receive_data)(int, int, void *);
 };
 
-extern SR_PRIV const struct center_dev_info center_devs[CENTER_DEV_COUNT];
+extern SR_PRIV const struct center_dev_info center_devs[];
 
 #define SERIAL_BUFSIZE 256
 
