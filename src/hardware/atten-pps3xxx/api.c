@@ -36,12 +36,12 @@ static const uint32_t scanopts[] = {
 	SR_CONF_SERIALCOMM,
 };
 
-static const uint32_t devopts_drv[] = {
+static const uint32_t drvopts[] = {
 	SR_CONF_POWER_SUPPLY,
-	SR_CONF_CONTINUOUS,
 };
 
-static const uint32_t devopts_global[] = {
+static const uint32_t devopts[] = {
+	SR_CONF_CONTINUOUS | SR_CONF_SET,
 	SR_CONF_OUTPUT_CHANNEL_CONFIG | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_OVER_CURRENT_PROTECTION_ENABLED | SR_CONF_GET | SR_CONF_SET,
 };
@@ -383,7 +383,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 
 	if (key == SR_CONF_DEVICE_OPTIONS && !sdi) {
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				devopts_drv, ARRAY_SIZE(devopts_drv), sizeof(uint32_t));
+				drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
 		return SR_OK;
 	}
 
@@ -397,7 +397,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		switch (key) {
 		case SR_CONF_DEVICE_OPTIONS:
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-					devopts_global, ARRAY_SIZE(devopts_global), sizeof(uint32_t));
+					devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
 			break;
 		case SR_CONF_OUTPUT_CHANNEL_CONFIG:
 			if (devc->model->channel_modes == CHANMODE_INDEPENDENT) {
