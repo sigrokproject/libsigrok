@@ -35,16 +35,18 @@ SR_PRIV struct sr_dev_driver victor_dmm_driver_info;
 static struct sr_dev_driver *di = &victor_dmm_driver_info;
 static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);
 
+static const uint32_t drvopts[] = {
+	SR_CONF_MULTIMETER,
+};
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 };
 
 static const uint32_t devopts[] = {
-	SR_CONF_MULTIMETER,
 	SR_CONF_CONTINUOUS,
-	SR_CONF_CONN | SR_CONF_GET,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_SET,
 	SR_CONF_LIMIT_MSEC | SR_CONF_SET,
+	SR_CONF_CONN | SR_CONF_GET,
 };
 
 static int init(struct sr_context *sr_ctx)
@@ -280,8 +282,12 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 				scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
 		break;
 	case SR_CONF_DEVICE_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
+		if (!sdi)
+			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+					drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
+		else
+			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+					devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
 		break;
 	default:
 		return SR_ERR_NA;
