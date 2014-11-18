@@ -442,6 +442,8 @@ static int check_key(const struct sr_dev_driver *driver,
 		return SR_ERR_ARG;
 	}
 	opstr = op == SR_CONF_GET ? "get" : op == SR_CONF_SET ? "set" : "list";
+	sr_spew("sr_config_%s(): key %d (%s) sdi %p cg %s", opstr, key,
+			srci->id, sdi, cg ? cg->name : "NULL");
 
 	if (sr_config_list(driver, sdi, cg, SR_CONF_DEVICE_OPTIONS, &gvar_opts) != SR_OK) {
 		/* Driver publishes no options. */
