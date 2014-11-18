@@ -17,7 +17,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdio.h>
+#include <stdint.h>
 #include <string.h>
+#include <ctype.h>
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
@@ -98,3 +101,36 @@ SR_API int sr_analog_to_float(const struct sr_datafeed_analog2 *analog,
 
 	return SR_OK;
 }
+
+/*
+ * Convert a floating point value to a string, limited to the given
+ * number of decimal digits.
+ *
+ * @param value The value to convert.
+ * @param digits Number of digits after the decimal point to print.
+ * @param outbuf Buffer in which the resulting string will be placed.
+ * @param bufsize Size of the buffer in bytes.
+ *
+ * @retval SR_OK
+ *
+ * @since 0.4.0
+ */
+SR_API int sr_analog_float_to_string(float value, int digits, char *outbuf,
+		int bufsize)
+{
+	int cnt, i;
+
+	/* This produces at least one too many digits */
+	snprintf(outbuf, bufsize, "%.*f", digits, value);
+	for (i = 0, cnt = 0; outbuf[i] && i < bufsize; i++) {
+		if (isdigit(outbuf[i++]))
+			cnt++;
+		if (cnt == digits) {
+			outbuf[i] = 0;
+			break;
+		}
+	}
+
+	return SR_OK;
+}
+
