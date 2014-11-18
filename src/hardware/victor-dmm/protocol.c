@@ -168,7 +168,6 @@ static void decode_buf(struct sr_dev_inst *sdi, unsigned char *data)
 		fvalue = -fvalue;
 
 	sr_analog_init(&analog, &encoding, &meaning, &spec, 4);
-	spec.spec_digits = 3;
 
 	/* Measurement mode */
 	meaning.channels = sdi->channels;
