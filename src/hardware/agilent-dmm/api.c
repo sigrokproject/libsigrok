@@ -32,9 +32,12 @@ static const uint32_t scanopts[] = {
 	SR_CONF_SERIALCOMM,
 };
 
-static const uint32_t devopts[] = {
+static const uint32_t drvopts[] = {
 	SR_CONF_MULTIMETER,
-	SR_CONF_CONTINUOUS,
+};
+
+static const uint32_t devopts[] = {
+	SR_CONF_CONTINUOUS | SR_CONF_SET,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_SET,
 	SR_CONF_LIMIT_MSEC | SR_CONF_SET,
 };
@@ -231,10 +234,10 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	case SR_CONF_DEVICE_OPTIONS:
 		if (!sdi)
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-					devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
+					drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
 		else
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-					devopts, 0, sizeof(uint32_t));
+					devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
 		break;
 	default:
 		return SR_ERR_NA;
