@@ -25,7 +25,11 @@ static const uint32_t scanopts[] = {
 	SR_CONF_SERIALCOMM,
 };
 
-static const uint32_t drvopts[] = {
+static const uint32_t drvopts_temp[] = {
+	SR_CONF_THERMOMETER,
+};
+
+static const uint32_t drvopts_temp_hum[] = {
 	SR_CONF_THERMOMETER,
 	SR_CONF_HYGROMETER,
 };
@@ -195,7 +199,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 }
 
 static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+		const struct sr_channel_group *cg, int idx)
 {
 	(void)cg;
 
@@ -205,12 +209,18 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 				scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
 		break;
 	case SR_CONF_DEVICE_OPTIONS:
-		if (!sdi)
+		if (!sdi && !mic_devs[idx].has_humidity) {
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
-		else
+				drvopts_temp, ARRAY_SIZE(drvopts_temp),
+				sizeof(uint32_t));
+		} else if (!sdi && mic_devs[idx].has_humidity) {
+			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+				drvopts_temp_hum, ARRAY_SIZE(drvopts_temp_hum),
+				sizeof(uint32_t));
+		} else {
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
 				devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
+		}
 		break;
 	default:
 		return SR_ERR_NA;
@@ -261,6 +271,10 @@ static GSList *scan_##X(GSList *options) { return scan(options, X); }
 static GSList *dev_list_##X(void) { return dev_list(X); }
 #define HW_DEV_CLEAR(X) \
 static int dev_clear_##X(void) { return dev_clear(X); }
+#define HW_CONFIG_LIST(X) \
+static int config_list_##X(uint32_t key, GVariant **data, \
+const struct sr_dev_inst *sdi, const struct sr_channel_group *cg) { \
+return config_list(key, data, sdi, cg, X); }
 #define HW_DEV_ACQUISITION_START(X) \
 static int dev_acquisition_start_##X(const struct sr_dev_inst *sdi, \
 void *cb_data) { return dev_acquisition_start(sdi, cb_data, X); }
@@ -272,6 +286,7 @@ HW_CLEANUP(ID_UPPER) \
 HW_SCAN(ID_UPPER) \
 HW_DEV_LIST(ID_UPPER) \
 HW_DEV_CLEAR(ID_UPPER) \
+HW_CONFIG_LIST(ID_UPPER) \
 HW_DEV_ACQUISITION_START(ID_UPPER) \
 SR_PRIV struct sr_dev_driver ID##_driver_info = { \
 	.name = NAME, \
@@ -284,7 +299,7 @@ SR_PRIV struct sr_dev_driver ID##_driver_info = { \
 	.dev_clear = dev_clear_##ID_UPPER, \
 	.config_get = NULL, \
 	.config_set = config_set, \
-	.config_list = config_list, \
+	.config_list = config_list_##ID_UPPER, \
 	.dev_open = std_serial_dev_open, \
 	.dev_close = std_serial_dev_close, \
 	.dev_acquisition_start = dev_acquisition_start_##ID_UPPER, \
