@@ -44,13 +44,13 @@ static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 };
 
-static const uint32_t devopts[] = {
+static const uint32_t drvopts[] = {
 	SR_CONF_OSCILLOSCOPE,
-	SR_CONF_CONTINUOUS,
-	SR_CONF_LIMIT_FRAMES | SR_CONF_SET,
 };
 
-static const uint32_t devopts_global[] = {
+static const uint32_t devopts[] = {
+	SR_CONF_CONTINUOUS | SR_CONF_SET,
+	SR_CONF_LIMIT_FRAMES | SR_CONF_SET,
 	SR_CONF_CONN | SR_CONF_GET,
 	SR_CONF_TIMEBASE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_BUFFERSIZE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
@@ -645,7 +645,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		return SR_OK;
 	} else if (key == SR_CONF_DEVICE_OPTIONS && !sdi) {
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
+				drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
 		return SR_OK;
 	}
 
@@ -656,7 +656,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	switch (key) {
 		case SR_CONF_DEVICE_OPTIONS:
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-					devopts_global, ARRAY_SIZE(devopts_global), sizeof(uint32_t));
+					devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
 			break;
 		case SR_CONF_BUFFERSIZE:
 			if (!sdi)
