@@ -621,7 +621,7 @@ SR_API int sr_config_list(const struct sr_dev_driver *driver,
 		if (check_key(driver, sdi, cg, key, SR_CONF_LIST) != SR_OK)
 			return SR_ERR_ARG;
 	}
-	else if ((ret = driver->config_list(key, data, sdi, cg)) == SR_OK)
+	if ((ret = driver->config_list(key, data, sdi, cg)) == SR_OK)
 		g_variant_ref_sink(*data);
 
 	return ret;
