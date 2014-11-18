@@ -28,13 +28,13 @@ static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 };
 
-static const uint32_t devopts[] = {
+static const uint32_t drvopts[] = {
 	SR_CONF_SOUNDLEVELMETER,
-	SR_CONF_CONTINUOUS,
-	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 };
 
-static const uint32_t devopts_global[] = {
+static const uint32_t devopts[] = {
+	SR_CONF_CONTINUOUS | SR_CONF_SET,
+	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_SPL_WEIGHT_FREQ | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_SPL_WEIGHT_TIME | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_SPL_MEASUREMENT_RANGE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
@@ -350,7 +350,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 			break;
 		case SR_CONF_DEVICE_OPTIONS:
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-					devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
+					drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
 			break;
 		default:
 			return SR_ERR_NA;
@@ -359,7 +359,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		switch (key) {
 		case SR_CONF_DEVICE_OPTIONS:
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-					devopts_global, ARRAY_SIZE(devopts_global), sizeof(uint32_t));
+					devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
 		case SR_CONF_SPL_WEIGHT_FREQ:
 			*data = g_variant_new_strv(weight_freq, ARRAY_SIZE(weight_freq));
 			break;
