@@ -32,6 +32,8 @@ SR_API int sr_analog_to_float(const struct sr_datafeed_analog2 *analog,
 		float *buf);
 SR_API int sr_analog_float_to_string(float value, int digits, char *outbuf,
 		int bufsize);
+SR_API int sr_analog_unit_to_string(const struct sr_datafeed_analog2 *analog,
+		char *outbuf, int bufsize);
 
 /*--- backend.c -------------------------------------------------------------*/
 
