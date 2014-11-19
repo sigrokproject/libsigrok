@@ -241,7 +241,7 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 	float *fdata;
 	unsigned int i;
 	int num_channels, c, ret, si, digits;
-	char number[32], suffix[32];
+	char *number, *suffix;
 
 	*out = NULL;
 	if (!o || !o->sdi)
@@ -285,20 +285,22 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 			/* TODO we don't know how to print by number of bits yet. */
 			digits = 6;
 		}
-		sr_analog_unit_to_string(analog2, suffix, sizeof(suffix));
+		sr_analog_unit_to_string(analog2, &suffix);
 		num_channels = g_slist_length(analog2->meaning->channels);
 		for (i = 0; i < analog2->num_samples; i++) {
 			for (l = analog2->meaning->channels, c = 0; l; l = l->next, c++) {
 				ch = l->data;
 				g_string_append_printf(*out, "%s: ", ch->name);
 				sr_analog_float_to_string(fdata[i * num_channels + c],
-						digits, number, sizeof(number));
+						digits, &number);
 				g_string_append(*out, number);
+				g_free(number);
 				g_string_append(*out, " ");
 				g_string_append(*out, suffix);
 				g_string_append(*out, "\n");
 			}
 		}
+		g_free(suffix);
 		break;
 	}
 

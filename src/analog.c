@@ -165,25 +165,26 @@ SR_API int sr_analog_to_float(const struct sr_datafeed_analog2 *analog,
  *
  * @param value The value to convert.
  * @param digits Number of digits after the decimal point to print.
- * @param outbuf Buffer in which the resulting string will be placed.
- * @param bufsize Size of the buffer in bytes.
+ * @param result Pointer to store result.
+ *
+ * The string is allocated by the function and must be freed by the caller
+ * after use by calling g_free().
  *
  * @retval SR_OK
  *
  * @since 0.4.0
  */
-SR_API int sr_analog_float_to_string(float value, int digits, char *outbuf,
-		int bufsize)
+SR_API int sr_analog_float_to_string(float value, int digits, char **result)
 {
 	int cnt, i;
 
 	/* This produces at least one too many digits */
-	snprintf(outbuf, bufsize, "%.*f", digits, value);
-	for (i = 0, cnt = 0; outbuf[i] && i < bufsize; i++) {
-		if (isdigit(outbuf[i++]))
+	*result = g_strdup_printf("%.*f", digits, value);
+	for (i = 0, cnt = 0; *result[i]; i++) {
+		if (isdigit(*result[i++]))
 			cnt++;
 		if (cnt == digits) {
-			outbuf[i] = 0;
+			*result[i] = 0;
 			break;
 		}
 	}
@@ -195,33 +196,35 @@ SR_API int sr_analog_float_to_string(float value, int digits, char *outbuf,
  * Convert the unit/MQ/MQ flags in the analog struct to a string.
  *
  * @param analog Struct containing the unit, MQ and MQ flags.
- * @param outbuf Buffer in which the resulting string will be placed.
- * @param bufsize Size of the buffer in bytes.
+ * @param result Pointer to store result.
+ *
+ * The string is allocated by the function and must be freed by the caller
+ * after use by calling g_free().
  *
  * @retval SR_OK
  *
  * @since 0.4.0
  */
 SR_API int sr_analog_unit_to_string(const struct sr_datafeed_analog2 *analog,
-		char *outbuf, int bufsize)
+		char **result)
 {
-	int len, i;
+	int i;
+	GString *buf = g_string_new(NULL);
 
-	outbuf[0] = 0;
 	for (i = 0; unit_strings[i].value; i++) {
 		if (analog->meaning->unit == unit_strings[i].value) {
-			strncpy(outbuf, unit_strings[i].str, bufsize);
+			g_string_assign(buf, unit_strings[i].str);
 			break;
 		}
 	}
 
 	/* More than one MQ flag may apply. */
-	for (i = 0; mq_strings[i].value; i++) {
-		if (analog->meaning->mqflags & mq_strings[i].value) {
-			len = strlen(outbuf);
-			strncat(outbuf + len, mq_strings[i].str, bufsize - len);
-		}
-	}
+	for (i = 0; mq_strings[i].value; i++)
+		if (analog->meaning->mqflags & mq_strings[i].value)
+			g_string_append(buf, mq_strings[i].str);
+
+	*result = buf->str;
+	g_string_free(buf, FALSE);
 
 	return SR_OK;
 }
