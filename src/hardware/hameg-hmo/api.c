@@ -29,6 +29,10 @@ static const char *manufacturers[] = {
 	"HAMEG",
 };
 
+static const uint32_t drvopts[] = {
+	SR_CONF_OSCILLOSCOPE,
+};
+
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 	SR_CONF_SERIALCOMM,
@@ -497,17 +501,16 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 		       const struct sr_channel_group *cg)
 {
-	int cg_type;
-	struct dev_context *devc;
-	struct scope_config *model;
+	int cg_type = CG_NONE;
+	struct dev_context *devc = NULL;
+	struct scope_config *model = NULL;
 
-	if (!sdi || !(devc = sdi->priv))
-		return SR_ERR_ARG;
+	if (sdi && (devc = sdi->priv)) {
+		if ((cg_type = check_channel_group(devc, cg)) == CG_INVALID)
+			return SR_ERR;
 
-	if ((cg_type = check_channel_group(devc, cg)) == CG_INVALID)
-		return SR_ERR;
-
-	model = devc->model_config;
+		model = devc->model_config;
+	}
 
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
@@ -516,9 +519,12 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		break;
 	case SR_CONF_DEVICE_OPTIONS:
 		if (cg_type == CG_NONE) {
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				model->devopts, model->num_devopts,
-				sizeof(uint32_t));
+			if (model)
+				*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+					model->devopts, model->num_devopts, sizeof(uint32_t));
+			else
+				*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+					drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
 		} else if (cg_type == CG_ANALOG) {
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
 				model->analog_devopts, model->num_analog_devopts,
@@ -535,14 +541,20 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 			   g_strv_length((char **)*model->coupling_options));
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
+		if (!model)
+			return SR_ERR_ARG;
 		*data = g_variant_new_strv(*model->trigger_sources,
 			   g_strv_length((char **)*model->trigger_sources));
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
+		if (!model)
+			return SR_ERR_ARG;
 		*data = g_variant_new_strv(*model->trigger_slopes,
 			   g_strv_length((char **)*model->trigger_slopes));
 		break;
 	case SR_CONF_TIMEBASE:
+		if (!model)
+			return SR_ERR_ARG;
 		*data = build_tuples(model->timebases, model->num_timebases);
 		break;
 	case SR_CONF_VDIV:
