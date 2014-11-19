@@ -26,6 +26,11 @@
 
 #include "protocol.h"
 
+static const uint32_t drvopts[] = {
+	/* Device class */
+	SR_CONF_POWER_SUPPLY,
+};
+
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 	SR_CONF_SERIALCOMM,
@@ -328,6 +333,12 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	int idx;
 
 	(void)cg;
+
+	if (key == SR_CONF_DEVICE_OPTIONS && !sdi) {
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+				drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
+		return SR_OK;
+	}
 
 	if (!sdi)
 		return SR_ERR_ARG;
