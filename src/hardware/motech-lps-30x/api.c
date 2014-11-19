@@ -43,6 +43,12 @@ SR_PRIV int lps_query_status(struct sr_dev_inst* sdi);
 
 #define VENDOR_MOTECH "Motech"
 
+/** Driver capabilities generic. */
+static const uint32_t drvopts[] = {
+	/* Device class */
+	SR_CONF_POWER_SUPPLY,
+};
+
 /** Driver scanning options. */
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
@@ -737,6 +743,12 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	case SR_CONF_SCAN_OPTIONS:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
 						  scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
+		return SR_OK;
+	case SR_CONF_DEVICE_OPTIONS:
+		if (sdi != NULL)
+			break;
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+				drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
 		return SR_OK;
 	default:
 		if (sdi == NULL)
