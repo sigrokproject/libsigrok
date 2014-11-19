@@ -616,9 +616,9 @@ SR_API int sr_config_list(const struct sr_dev_driver *driver,
 	int ret;
 
 	if (!driver || !data)
-		ret = SR_ERR;
+		return SR_ERR;
 	else if (!driver->config_list)
-		ret = SR_ERR_ARG;
+		return SR_ERR_ARG;
 	else if (key != SR_CONF_SCAN_OPTIONS && key != SR_CONF_DEVICE_OPTIONS) {
 		if (check_key(driver, sdi, cg, key, SR_CONF_LIST) != SR_OK)
 			return SR_ERR_ARG;
