@@ -180,11 +180,11 @@ SR_API int sr_analog_float_to_string(float value, int digits, char **result)
 
 	/* This produces at least one too many digits */
 	*result = g_strdup_printf("%.*f", digits, value);
-	for (i = 0, cnt = 0; *result[i]; i++) {
-		if (isdigit(*result[i++]))
+	for (i = 0, cnt = 0; (*result)[i]; i++) {
+		if (isdigit((*result)[i++]))
 			cnt++;
 		if (cnt == digits) {
-			*result[i] = 0;
+			(*result)[i] = 0;
 			break;
 		}
 	}
