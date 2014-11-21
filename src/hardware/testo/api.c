@@ -124,7 +124,7 @@ static GSList *scan(GSList *options)
 		if (strcmp(product, "testo 435/635/735"))
 			continue;
 
-		sdi = sr_dev_inst_new();
+		sdi = g_malloc0(sizeof(struct sr_dev_inst));
 		sdi->status = SR_ST_INACTIVE;
 		sdi->vendor = g_strdup("Testo");
 		sdi->model = g_strdup("435/635/735");

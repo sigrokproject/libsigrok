@@ -521,7 +521,6 @@ struct sr_dev_inst {
 };
 
 /* Generic device instances */
-SR_PRIV struct sr_dev_inst *sr_dev_inst_new(void);
 SR_PRIV void sr_dev_inst_free(struct sr_dev_inst *sdi);
 
 #ifdef HAVE_LIBUSB_1_0

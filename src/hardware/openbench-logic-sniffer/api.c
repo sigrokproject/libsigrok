@@ -180,7 +180,7 @@ static GSList *scan(GSList *options)
 	} else {
 		/* Not an OLS -- some other board that uses the sump protocol. */
 		sr_info("Device does not support metadata.");
-		sdi = sr_dev_inst_new();
+		sdi = g_malloc0(sizeof(struct sr_dev_inst));
 		sdi->status = SR_ST_INACTIVE;
 		sdi->vendor = g_strdup("Sump");
 		sdi->model = g_strdup("Logic Analyzer");

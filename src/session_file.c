@@ -170,7 +170,7 @@ SR_API int sr_session_load(const char *filename, struct sr_session **session)
 			for (j = 0; keys[j]; j++) {
 				val = g_key_file_get_string(kf, sections[i], keys[j], NULL);
 				if (!strcmp(keys[j], "capturefile")) {
-					sdi = sr_dev_inst_new();
+					sdi = g_malloc0(sizeof(struct sr_dev_inst));
 					sdi->driver = &session_driver;
 					sdi->status = SR_ST_ACTIVE;
 					if (!session_driver_initialized) {

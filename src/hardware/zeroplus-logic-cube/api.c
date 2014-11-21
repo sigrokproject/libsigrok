@@ -222,7 +222,7 @@ static GSList *scan(GSList *options)
 		sr_info("Found ZEROPLUS %s.", prof->model_name);
 
 		/* Register the device with libsigrok. */
-		sdi = sr_dev_inst_new();
+		sdi = g_malloc0(sizeof(struct sr_dev_inst));
 		sdi->status = SR_ST_INACTIVE;
 		sdi->vendor = g_strdup(VENDOR_NAME);
 		sdi->model = g_strdup(prof->model_name);

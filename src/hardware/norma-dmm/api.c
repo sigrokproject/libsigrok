@@ -144,7 +144,7 @@ static GSList *do_scan(struct sr_dev_driver* drv, GSList *options)
 			auxtype = xgittoint(buf[7]);
 			sr_spew("%s %s DMM %s detected!", get_brandstr(drv), get_typestr(auxtype, drv), buf + 9);
 
-			sdi = sr_dev_inst_new();
+			sdi = g_malloc0(sizeof(struct sr_dev_inst));
 			sdi->status = SR_ST_INACTIVE;
 			sdi->vendor = g_strdup(get_brandstr(drv));
 			sdi->model = g_strdup(get_typestr(auxtype, drv));

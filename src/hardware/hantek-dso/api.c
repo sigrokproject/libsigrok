@@ -172,7 +172,7 @@ static struct sr_dev_inst *dso_dev_new(const struct dso_profile *prof)
 	struct dev_context *devc;
 	int i;
 
-	sdi = sr_dev_inst_new();
+	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->status = SR_ST_INITIALIZING;
 	sdi->vendor = g_strdup(prof->vendor);
 	sdi->model = g_strdup(prof->model);

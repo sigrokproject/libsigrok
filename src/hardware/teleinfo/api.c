@@ -92,7 +92,7 @@ static GSList *scan(GSList *options)
 
 	sr_info("Found device on port %s.", conn);
 
-	sdi = sr_dev_inst_new();
+	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->status = SR_ST_INACTIVE;
 	sdi->vendor = g_strdup("EDF");
 	sdi->model = g_strdup("Teleinfo");

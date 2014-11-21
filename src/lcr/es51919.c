@@ -843,7 +843,7 @@ SR_PRIV struct sr_dev_inst *es51919_serial_scan(GSList *options,
 
 	sr_info("Found device on port %s.", serial->port);
 
-	sdi = sr_dev_inst_new();
+	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->status = SR_ST_INACTIVE;
 	sdi->vendor = g_strdup(vendor);
 	sdi->model = g_strdup(model);

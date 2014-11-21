@@ -456,7 +456,7 @@ static GSList *sdmm_scan(const char *conn, const char *serialcomm, int dmm)
 
 	sr_info("Found device on port %s.", conn);
 
-	sdi = sr_dev_inst_new();
+	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->status = SR_ST_INACTIVE;
 	sdi->vendor = g_strdup(dmms[dmm].vendor);
 	sdi->model = g_strdup(dmms[dmm].device);

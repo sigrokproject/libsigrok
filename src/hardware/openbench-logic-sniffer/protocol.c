@@ -152,7 +152,7 @@ SR_PRIV struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
 	GString *tmp_str, *devname, *version;
 	guchar tmp_c;
 
-	sdi = sr_dev_inst_new();
+	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->status = SR_ST_INACTIVE;
 	sdi->driver = di;
 	devc = ols_dev_new();

@@ -109,7 +109,7 @@ static GSList *scan(GSList *options)
 	while (g_get_monotonic_time() - start < MAX_SCAN_TIME) {
 		if (serial_read_nonblocking(serial, &c, 1) == 1 && c == 0xa5) {
 			/* Found one. */
-			sdi = sr_dev_inst_new();
+			sdi = g_malloc0(sizeof(struct sr_dev_inst));
 			sdi->status = SR_ST_INACTIVE;
 			sdi->vendor = g_strdup("CEM");
 			sdi->model = g_strdup("DT-885x");

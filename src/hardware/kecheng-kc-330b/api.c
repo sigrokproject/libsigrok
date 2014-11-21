@@ -129,7 +129,7 @@ static GSList *scan(GSList *options)
 		for (l = usb_devices; l; l = l->next) {
 			if (scan_kecheng(l->data, &model) != SR_OK)
 				continue;
-			sdi = sr_dev_inst_new();
+			sdi = g_malloc0(sizeof(struct sr_dev_inst));
 			sdi->status = SR_ST_INACTIVE;
 			sdi->vendor = g_strdup(VENDOR);
 			sdi->model = model; /* Already g_strndup()'d. */

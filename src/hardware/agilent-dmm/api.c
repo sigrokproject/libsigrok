@@ -139,7 +139,7 @@ static GSList *scan(GSList *options)
 		for (i = 0; supported_agdmm[i].model; i++) {
 			if (strcmp(supported_agdmm[i].modelname, tokens[1]))
 				continue;
-			sdi = sr_dev_inst_new();
+			sdi = g_malloc0(sizeof(struct sr_dev_inst));
 			sdi->status = SR_ST_INACTIVE;
 			sdi->vendor = g_strdup("Agilent");
 			sdi->model = g_strdup(tokens[1]);

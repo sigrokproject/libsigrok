@@ -223,7 +223,7 @@ static GSList *scan_1x_2x_rs232(GSList *options)
 
 	if (model != METRAHIT_NONE) {
 		sr_spew("%s %s detected!", VENDOR_GMC, gmc_model_str(model));
-		sdi = sr_dev_inst_new();
+		sdi = g_malloc0(sizeof(struct sr_dev_inst));
 		sdi->status = SR_ST_INACTIVE;
 		sdi->vendor = g_strdup(VENDOR_GMC);
 		sdi->model = g_strdup(gmc_model_str(model));
@@ -304,7 +304,7 @@ static GSList *scan_2x_bd232(GSList *options)
 		goto exit_err;
 	}
 
-	sdi = sr_dev_inst_new();
+	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->status = SR_ST_INACTIVE;
 	sdi->vendor = g_strdup(VENDOR_GMC);
 	sdi->priv = devc;
@@ -355,7 +355,7 @@ static GSList *scan_2x_bd232(GSList *options)
 				goto exit_err;
 			}
 
-			sdi = sr_dev_inst_new();
+			sdi = g_malloc0(sizeof(struct sr_dev_inst));
 			sdi->status = SR_ST_INACTIVE;
 			sdi->vendor = g_strdup(VENDOR_GMC);
 		}

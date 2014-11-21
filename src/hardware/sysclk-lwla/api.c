@@ -112,7 +112,7 @@ static struct sr_dev_inst *dev_inst_new(void)
 	}
 
 	/* Register the device with libsigrok. */
-	sdi = sr_dev_inst_new();
+	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->status = SR_ST_INACTIVE;
 	sdi->vendor = g_strdup(VENDOR_NAME);
 	sdi->model = g_strdup(MODEL_NAME);

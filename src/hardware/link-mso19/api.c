@@ -203,8 +203,11 @@ static GSList *scan(GSList *options)
 			return devices;
 		}
 
-		struct sr_dev_inst *sdi = sr_dev_inst_new(SR_ST_INACTIVE,
-						manufacturer, product, hwrev);
+		struct sr_dev_inst *sdi = g_malloc0(sizeof(struct sr_dev_inst));
+		sdi->status = SR_ST_INACTIVE;
+		sdi->vendor = g_strdup(manufacturer);
+		sdi->model = g_strdup(product);
+		sdi->version = g_strdup(hwrev);
 
 		if (!sdi) {
 			sr_err("Unable to create device instance for %s",

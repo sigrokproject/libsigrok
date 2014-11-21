@@ -50,7 +50,7 @@ static int init(struct sr_input *in, GHashTable *options)
 		return SR_ERR_ARG;
 	}
 
-	in->sdi = sr_dev_inst_new();
+	in->sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	in->priv = inc = g_malloc0(sizeof(struct context));
 
 	inc->samplerate = g_variant_get_uint64(g_hash_table_lookup(options, "samplerate"));

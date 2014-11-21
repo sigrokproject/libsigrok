@@ -120,7 +120,7 @@ static int add_device(int idx, int model, GSList **devices)
 	devc->cur_samplerate = devc->prof->max_samplerate;
 
 	/* Register the device with libsigrok. */
-	sdi = sr_dev_inst_new();
+	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->status = SR_ST_INITIALIZING;
 	sdi->vendor = g_strdup("ChronoVu");
 	sdi->model = g_strdup(devc->prof->modelname);

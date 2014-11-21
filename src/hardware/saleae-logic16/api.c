@@ -198,7 +198,7 @@ static GSList *scan(GSList *options)
 		if (des.idVendor != LOGIC16_VID || des.idProduct != LOGIC16_PID)
 			continue;
 
-		sdi = sr_dev_inst_new();
+		sdi = g_malloc0(sizeof(struct sr_dev_inst));
 		sdi->status = SR_ST_INITIALIZING;
 		sdi->vendor = g_strdup("Saleae");
 		sdi->model = g_strdup("Logic16");

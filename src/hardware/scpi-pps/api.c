@@ -89,7 +89,7 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 		return NULL;
 	}
 
-	sdi = sr_dev_inst_new();
+	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->status = SR_ST_ACTIVE;
 	sdi->vendor = g_strdup(vendor);
 	sdi->model = g_strdup(hw_info->model);

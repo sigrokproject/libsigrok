@@ -450,7 +450,7 @@ static GSList *do_scan(lps_modelid modelid, struct sr_dev_driver *drv, GSList *o
 		Therefore just print an error message, but do not exit with error. */
 		sr_err("Failed to query for hardware version: %d %s", errno, strerror(errno));
 
-	sdi = sr_dev_inst_new();
+	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->status = SR_ST_INACTIVE;
 	sdi->vendor = g_strdup(VENDOR_MOTECH);
 	sdi->model = g_strdup(models[modelid].modelstr);

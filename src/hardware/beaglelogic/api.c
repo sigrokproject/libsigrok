@@ -97,7 +97,7 @@ static GSList *scan(GSList *options)
 	if (!g_file_test(BEAGLELOGIC_DEV_NODE, G_FILE_TEST_EXISTS))
 		return NULL;
 
-	sdi = sr_dev_inst_new();
+	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->status = SR_ST_INACTIVE;
 	sdi->model = g_strdup("BeagleLogic");
 	sdi->version = g_strdup("1.0");

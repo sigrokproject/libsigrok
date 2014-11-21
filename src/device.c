@@ -201,44 +201,23 @@ SR_API gboolean sr_dev_has_option(const struct sr_dev_inst *sdi, int key)
 	return ret;
 }
 
-/** @private
- *  Allocate and init a new device instance struct.
- *
- *  @retval struct sr_dev_inst *. Dynamically allocated, free using
- *              sr_dev_inst_free().
- */
-SR_PRIV struct sr_dev_inst *sr_dev_inst_new(void)
-{
-	struct sr_dev_inst *sdi;
-
-	sdi = g_malloc0(sizeof(struct sr_dev_inst));
-
-	sdi->driver = NULL;
-	sdi->status = -1;
-	sdi->inst_type = -1;
-	sdi->vendor = NULL;
-	sdi->model = NULL;
-	sdi->version = NULL;
-	sdi->serial_num = NULL;
-	sdi->connection_id = NULL;
-	sdi->channels = NULL;
-	sdi->channel_groups = NULL;
-	sdi->session = NULL;
-	sdi->conn = NULL;
-	sdi->priv = NULL;
-
-	return sdi;
-}
-
 /**
  * Allocate and init a new user-generated device instance.
+ *
+ * @param vendor Device vendor
+ * @param model Device model
+ * @param version Device version
+ *
+ * @retval struct sr_dev_inst *. Dynamically allocated, free using
+ *         sr_dev_inst_free().
  */
 SR_API struct sr_dev_inst *sr_dev_inst_user_new(const char *vendor,
 		const char *model, const char *version)
 {
 	struct sr_dev_inst *sdi;
 
-	sdi = sr_dev_inst_new();
+	sdi = g_malloc0(sizeof(struct sr_dev_inst));
+
 	sdi->vendor = g_strdup(vendor);
 	sdi->model = g_strdup(model);
 	sdi->version = g_strdup(version);

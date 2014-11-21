@@ -260,7 +260,7 @@ static GSList *scan(GSList *options, int dmm)
 
 		devc->first_run = TRUE;
 
-		sdi = sr_dev_inst_new();
+		sdi = g_malloc0(sizeof(struct sr_dev_inst));
 		sdi->status = SR_ST_INACTIVE;
 		sdi->vendor = g_strdup(udmms[dmm].vendor);
 		sdi->model = g_strdup(udmms[dmm].device);

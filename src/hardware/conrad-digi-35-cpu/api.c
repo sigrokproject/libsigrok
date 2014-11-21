@@ -94,7 +94,7 @@ static GSList *scan(GSList *options)
 
 	sr_spew("Conrad DIGI 35 CPU assumed at %s.", conn);
 
-	sdi = sr_dev_inst_new();
+	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->status = SR_ST_ACTIVE;
 	sdi->vendor = g_strdup("Conrad");
 	sdi->model = g_strdup("DIGI 35 CPU");

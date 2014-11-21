@@ -79,7 +79,7 @@ static GSList *scan(GSList *options)
 		/* We have a list of sr_usb_dev_inst matching the connection
 		 * string. Wrap them in sr_dev_inst and we're done. */
 		for (l = usb_devices; l; l = l->next) {
-			sdi = sr_dev_inst_new();
+			sdi = g_malloc0(sizeof(struct sr_dev_inst));
 			sdi->status = SR_ST_INACTIVE;
 			sdi->vendor = g_strdup(VENDOR);
 			sdi->model = g_strdup(MODEL);
