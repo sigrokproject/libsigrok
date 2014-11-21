@@ -341,10 +341,7 @@ static GSList *scan(GSList *options)
 
 	devices = NULL;
 
-	if (!(devc = g_try_malloc(sizeof(struct dev_context)))) {
-		sr_err("%s: devc malloc failed", __func__);
-		return NULL;
-	}
+	devc = g_malloc0(sizeof(struct dev_context));
 
 	ftdi_init(&devc->ftdic);
 

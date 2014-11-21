@@ -253,10 +253,7 @@ static GSList *scan(GSList *options, int dmm)
 	for (l = usb_devices; l; l = l->next) {
 		usb = l->data;
 
-		if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
-			sr_err("Device context malloc failed.");
-			return NULL;
-		}
+		devc = g_malloc0(sizeof(struct dev_context));
 
 		devc->first_run = TRUE;
 

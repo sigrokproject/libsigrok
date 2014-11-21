@@ -113,11 +113,7 @@ static GSList *scan(GSList *options)
 			sdi->status = SR_ST_INACTIVE;
 			sdi->vendor = g_strdup("CEM");
 			sdi->model = g_strdup("DT-885x");
-
-			if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
-				sr_dbg("Device context malloc failed.");
-				return NULL;
-			}
+			devc = g_malloc0(sizeof(struct dev_context));
 			devc->cur_mqflags = 0;
 			devc->recording = -1;
 			devc->cur_meas_range = 0;

@@ -299,11 +299,7 @@ SR_PRIV struct dev_context *fx2lafw_dev_new(void)
 {
 	struct dev_context *devc;
 
-	if (!(devc = g_try_malloc(sizeof(struct dev_context)))) {
-		sr_err("Device context malloc failed.");
-		return NULL;
-	}
-
+	devc = g_malloc0(sizeof(struct dev_context));
 	devc->profile = NULL;
 	devc->fw_updated = 0;
 	devc->cur_samplerate = 0;

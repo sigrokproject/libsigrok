@@ -94,11 +94,7 @@ static GSList *scan(GSList *options)
 				}
 				sdi->channels = g_slist_append(sdi->channels, ch);
 			}
-
-			if (!(devc = g_try_malloc(sizeof(struct dev_context)))) {
-				sr_dbg("Device context malloc failed.");
-				return NULL;
-			}
+			devc = g_malloc0(sizeof(struct dev_context));
 			sdi->priv = devc;
 			devc->limit_samples = 0;
 			devc->data_source = DEFAULT_DATA_SOURCE;

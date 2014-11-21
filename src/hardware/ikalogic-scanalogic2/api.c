@@ -91,11 +91,7 @@ static GSList *scan(GSList *options)
 			continue;
 		}
 
-		if (!(devc = g_try_malloc(sizeof(struct dev_context)))) {
-			sr_err("Device instance malloc failed.");
-			sr_usb_dev_inst_free(usb);
-			continue;
-		}
+		devc = g_malloc0(sizeof(struct dev_context));
 
 		if (!(devc->xfer_in = libusb_alloc_transfer(0))) {
 			sr_err("Transfer malloc failed.");

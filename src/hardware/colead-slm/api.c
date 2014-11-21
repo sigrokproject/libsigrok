@@ -86,15 +86,9 @@ static GSList *scan(GSList *options)
 	sdi->status = SR_ST_INACTIVE;
 	sdi->vendor = g_strdup("Colead");
 	sdi->model = g_strdup("SL-5868P");
-
-	if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
-		sr_dbg("Device context malloc failed.");
-		return NULL;
-	}
-
+	devc = g_malloc0(sizeof(struct dev_context));
 	if (!(sdi->conn = sr_serial_dev_inst_new(conn, serialcomm)))
 		return NULL;
-
 	sdi->inst_type = SR_INST_SERIAL;
 	sdi->priv = devc;
 	sdi->driver = di;

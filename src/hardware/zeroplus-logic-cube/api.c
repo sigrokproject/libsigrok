@@ -231,11 +231,7 @@ static GSList *scan(GSList *options)
 		sdi->connection_id = g_strdup(connection_id);
 
 		/* Allocate memory for our private driver context. */
-		if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
-			sr_err("Device context malloc failed.");
-			return NULL;
-		}
-
+		devc = g_malloc0(sizeof(struct dev_context));
 		sdi->priv = devc;
 		devc->prof = prof;
 		devc->num_channels = prof->channels;

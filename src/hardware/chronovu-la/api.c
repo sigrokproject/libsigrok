@@ -87,7 +87,7 @@ static int add_device(int idx, int model, GSList **devices)
 	drvc = di->priv;
 
 	/* Allocate memory for our private device context. */
-	devc = g_try_malloc(sizeof(struct dev_context));
+	devc = g_malloc0(sizeof(struct dev_context));
 
 	/* Set some sane defaults. */
 	devc->prof = &cv_profiles[model];

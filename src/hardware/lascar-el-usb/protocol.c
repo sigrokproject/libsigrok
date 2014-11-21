@@ -348,8 +348,7 @@ static struct sr_dev_inst *lascar_identify(unsigned char *config)
 			sdi->channels = g_slist_append(NULL, ch);
 		}
 
-		if (!(devc = g_try_malloc0(sizeof(struct dev_context))))
-			return NULL;
+		devc = g_malloc0(sizeof(struct dev_context));
 		sdi->priv = devc;
 		devc->profile = profile;
 	}

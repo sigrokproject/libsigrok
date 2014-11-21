@@ -65,12 +65,11 @@ static int init(struct sr_context *sr_ctx)
 	return std_init(sr_ctx, di, LOG_PREFIX);
 }
 
-static struct dev_context * beaglelogic_devc_alloc(void)
+static struct dev_context *beaglelogic_devc_alloc(void)
 {
 	struct dev_context *devc;
 
-	/* Allocate zeroed structure */
-	devc = g_try_malloc0(sizeof(*devc));
+	devc = g_malloc0(sizeof(struct dev_context));
 
 	/* Default non-zero values (if any) */
 	devc->fd = -1;

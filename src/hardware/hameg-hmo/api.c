@@ -92,8 +92,7 @@ static struct sr_dev_inst *hmo_probe_serial_device(struct sr_scpi_dev_inst *scpi
 	sr_scpi_hw_info_free(hw_info);
 	hw_info = NULL;
 
-	if (!(devc = g_try_malloc0(sizeof(struct dev_context))))
-		goto fail;
+	devc = g_malloc0(sizeof(struct dev_context));
 
 	sdi->priv = devc;
 

@@ -227,17 +227,13 @@ static GSList *scan_1x_2x_rs232(GSList *options)
 		sdi->status = SR_ST_INACTIVE;
 		sdi->vendor = g_strdup(VENDOR_GMC);
 		sdi->model = g_strdup(gmc_model_str(model));
-		if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
-			sr_err("Device context malloc failed.");
-			return NULL;
-		}
+		devc = g_malloc0(sizeof(struct dev_context));
 		devc->model = model;
 		devc->limit_samples = 0;
 		devc->limit_msec = 0;
 		devc->num_samples = 0;
 		devc->elapsed_msec = g_timer_new();
 		devc->settings_ok = FALSE;
-
 		sdi->conn = serial;
 		sdi->priv = devc;
 		sdi->driver = &gmc_mh_1x_2x_rs232_driver_info;
@@ -299,10 +295,7 @@ static GSList *scan_2x_bd232(GSList *options)
 	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
 		goto exit_err;
 
-	if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
-		sr_err("Device context malloc failed.");
-		goto exit_err;
-	}
+	devc = g_malloc0(sizeof(struct dev_context));
 
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->status = SR_ST_INACTIVE;
@@ -350,10 +343,7 @@ static GSList *scan_2x_bd232(GSList *options)
 			drvc->instances = g_slist_append(drvc->instances, sdi);
 			devices = g_slist_append(devices, sdi);
 
-			if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
-				sr_err("Device context malloc failed.");
-				goto exit_err;
-			}
+			devc = g_malloc0(sizeof(struct dev_context));
 
 			sdi = g_malloc0(sizeof(struct sr_dev_inst));
 			sdi->status = SR_ST_INACTIVE;

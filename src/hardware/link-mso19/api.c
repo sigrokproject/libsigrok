@@ -178,10 +178,7 @@ static GSList *scan(GSList *options)
 
 		//Create the device context and set its params
 		struct dev_context *devc;
-		if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
-			sr_err("Device context malloc failed.");
-			return devices;
-		}
+		devc = g_malloc0(sizeof(struct dev_context));
 
 		if (mso_parse_serial(iSerial, iProduct, devc) != SR_OK) {
 			sr_err("Invalid iSerial: %s.", iSerial);

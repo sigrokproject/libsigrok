@@ -89,9 +89,7 @@ static GSList *scan(GSList *options)
 		sdi->vendor = g_strdup(VICTOR_VENDOR);
 		sdi->driver = di;
 		sdi->connection_id = g_strdup(connection_id);
-
-		if (!(devc = g_try_malloc0(sizeof(struct dev_context))))
-			return NULL;
+		devc = g_malloc0(sizeof(struct dev_context));
 		sdi->priv = devc;
 
 		if (!(ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "P1")))

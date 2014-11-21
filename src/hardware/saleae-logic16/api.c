@@ -212,8 +212,7 @@ static GSList *scan(GSList *options)
 			sdi->channels = g_slist_append(sdi->channels, ch);
 		}
 
-		if (!(devc = g_try_malloc0(sizeof(struct dev_context))))
-			return NULL;
+		devc = g_malloc0(sizeof(struct dev_context));
 		devc->selected_voltage_range = VOLTAGE_RANGE_18_33_V;
 		sdi->priv = devc;
 		drvc->instances = g_slist_append(drvc->instances, sdi);

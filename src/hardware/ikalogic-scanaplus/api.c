@@ -88,10 +88,7 @@ static GSList *scan(GSList *options)
 	devices = NULL;
 
 	/* Allocate memory for our private device context. */
-	if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
-		sr_err("Device context malloc failed.");
-		goto err_free_nothing;
-	}
+	devc = g_malloc0(sizeof(struct dev_context));
 
 	/* Allocate memory for the incoming compressed samples. */
 	if (!(devc->compressed_buf = g_try_malloc0(COMPRESSED_BUF_SIZE))) {
@@ -154,7 +151,6 @@ err_free_compressed_buf:
 	g_free(devc->compressed_buf);
 err_free_devc:
 	g_free(devc);
-err_free_nothing:
 
 	return NULL;
 }

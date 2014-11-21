@@ -105,11 +105,7 @@ static struct sr_dev_inst *dev_inst_new(void)
 	struct dev_context *devc;
 
 	/* Allocate memory for our private driver context. */
-	devc = g_try_new0(struct dev_context, 1);
-	if (!devc) {
-		sr_err("Device context malloc failed.");
-		return NULL;
-	}
+	devc = g_malloc0(sizeof(struct dev_context));
 
 	/* Register the device with libsigrok. */
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));

@@ -127,10 +127,7 @@ static GSList *fluke_scan(const char *conn, const char *serialcomm)
 				sdi->vendor = g_strdup("Fluke");
 				sdi->model = g_strdup(tokens[0] + 6);
 				sdi->version = g_strdup(tokens[1] + s);
-				if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
-					sr_err("Device context malloc failed.");
-					return NULL;
-				}
+				devc = g_malloc0(sizeof(struct dev_context));
 				devc->profile = &supported_flukedmm[i];
 				sdi->inst_type = SR_INST_SERIAL;
 				sdi->conn = serial;

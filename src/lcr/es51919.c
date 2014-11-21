@@ -847,11 +847,7 @@ SR_PRIV struct sr_dev_inst *es51919_serial_scan(GSList *options,
 	sdi->status = SR_ST_INACTIVE;
 	sdi->vendor = g_strdup(vendor);
 	sdi->model = g_strdup(model);
-
-	if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
-		sr_err("Device context malloc failed.");
-		goto scan_cleanup;
-	}
+	devc = g_malloc0(sizeof(struct dev_context));
 
 	if (!(devc->buf = dev_buffer_new(PACKET_SIZE * 8)))
 		goto scan_cleanup;

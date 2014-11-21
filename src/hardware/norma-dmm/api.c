@@ -149,14 +149,10 @@ static GSList *do_scan(struct sr_dev_driver* drv, GSList *options)
 			sdi->vendor = g_strdup(get_brandstr(drv));
 			sdi->model = g_strdup(get_typestr(auxtype, drv));
 			sdi->version = g_strdup(buf + 9);
-			if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
-				sr_err("Device context malloc failed.");
-				return NULL;
-			}
+			devc = g_malloc0(sizeof(struct dev_context));
 			devc->type = auxtype;
 			devc->version = g_strdup(&buf[9]);
 			devc->elapsed_msec = g_timer_new();
-
 			sdi->conn = serial;
 			sdi->priv = devc;
 			sdi->driver = drv;

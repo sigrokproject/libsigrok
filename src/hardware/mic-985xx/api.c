@@ -95,15 +95,9 @@ static GSList *mic_scan(const char *conn, const char *serialcomm, int idx)
 	sdi->status = SR_ST_INACTIVE;
 	sdi->vendor = g_strdup(mic_devs[idx].vendor);
 	sdi->model = g_strdup(mic_devs[idx].device);
-
-	if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
-		sr_err("Device context malloc failed.");
-		goto scan_cleanup;
-	}
-
+	devc = g_malloc0(sizeof(struct dev_context));
 	sdi->inst_type = SR_INST_SERIAL;
 	sdi->conn = serial;
-
 	sdi->priv = devc;
 	sdi->driver = mic_devs[idx].di;
 

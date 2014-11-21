@@ -100,10 +100,7 @@ static GSList *scan(GSList *options)
 	devices = NULL;
 
 	/* Allocate memory for our private device context. */
-	if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
-		sr_err("Device context malloc failed.");
-		goto err_free_nothing;
-	}
+	devc = g_malloc0(sizeof(struct dev_context));
 
 	/* Device-specific settings */
 	devc->max_samplebytes = devc->max_samplerate = devc->protocol_version = 0;
@@ -204,7 +201,6 @@ err_free_ftdi_buf:
 	g_free(devc->ftdi_buf);
 err_free_devc:
 	g_free(devc);
-err_free_nothing:
 
 	return NULL;
 }

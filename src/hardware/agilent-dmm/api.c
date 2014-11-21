@@ -144,10 +144,7 @@ static GSList *scan(GSList *options)
 			sdi->vendor = g_strdup("Agilent");
 			sdi->model = g_strdup(tokens[1]);
 			sdi->version = g_strdup(tokens[3]);
-			if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
-				sr_err("Device context malloc failed.");
-				return NULL;
-			}
+			devc = g_malloc0(sizeof(struct dev_context));
 			devc->profile = &supported_agdmm[i];
 			devc->cur_mq = -1;
 			sdi->inst_type = SR_INST_SERIAL;

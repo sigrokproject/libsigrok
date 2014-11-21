@@ -96,14 +96,8 @@ static GSList *scan(GSList *options)
 	sdi->status = SR_ST_INACTIVE;
 	sdi->vendor = g_strdup("EDF");
 	sdi->model = g_strdup("Teleinfo");
-
-	if (!(devc = g_try_malloc0(sizeof(struct dev_context)))) {
-		sr_err("Device context malloc failed.");
-		goto scan_cleanup;
-	}
-
+	devc = g_malloc0(sizeof(struct dev_context));
 	devc->optarif = teleinfo_get_optarif(buf);
-
 	sdi->inst_type = SR_INST_SERIAL;
 	sdi->conn = serial;
 	sdi->priv = devc;

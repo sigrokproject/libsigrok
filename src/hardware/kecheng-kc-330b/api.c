@@ -139,11 +139,7 @@ static GSList *scan(GSList *options)
 			if (!(ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "SPL")))
 				return NULL;
 			sdi->channels = g_slist_append(sdi->channels, ch);
-
-			if (!(devc = g_try_malloc(sizeof(struct dev_context)))) {
-				sr_dbg("Device context malloc failed.");
-				return NULL;
-			}
+			devc = g_malloc0(sizeof(struct dev_context));
 			sdi->priv = devc;
 			devc->limit_samples = 0;
 			/* The protocol provides no way to read the current
