@@ -348,12 +348,7 @@ SR_API int sr_init(struct sr_context **ctx)
 	}
 
 	/* + 1 to handle when struct sr_context has no members. */
-	context = g_try_malloc0(sizeof(struct sr_context) + 1);
-
-	if (!context) {
-		ret = SR_ERR_MALLOC;
-		goto done;
-	}
+	context = g_malloc0(sizeof(struct sr_context) + 1);
 
 #ifdef HAVE_LIBUSB_1_0
 	ret = libusb_init(&context->libusb_ctx);

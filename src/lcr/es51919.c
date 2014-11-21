@@ -41,11 +41,7 @@ static struct dev_buffer *dev_buffer_new(size_t size)
 {
 	struct dev_buffer *dbuf;
 
-	if (!(dbuf = g_try_malloc(sizeof(struct dev_buffer) + size))) {
-		sr_err("Dev buffer malloc failed (size=%zu).", size);
-		return NULL;
-	}
-
+	dbuf = g_malloc0(sizeof(struct dev_buffer) + size);
 	dbuf->size = size;
 	dbuf->len = 0;
 	dbuf->offset = 0;
@@ -846,13 +842,9 @@ SR_PRIV struct sr_dev_inst *es51919_serial_scan(GSList *options,
 	sdi->vendor = g_strdup(vendor);
 	sdi->model = g_strdup(model);
 	devc = g_malloc0(sizeof(struct dev_context));
-
-	if (!(devc->buf = dev_buffer_new(PACKET_SIZE * 8)))
-		goto scan_cleanup;
-
+	devc->buf = dev_buffer_new(PACKET_SIZE * 8);
 	sdi->inst_type = SR_INST_SERIAL;
 	sdi->conn = serial;
-
 	sdi->priv = devc;
 
 	if (setup_channels(sdi) != SR_OK)

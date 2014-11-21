@@ -125,8 +125,7 @@ static GSList *scan(GSList *options)
 	if (!serialcomm)
 		serialcomm = "9600/8n1";
 
-	if (!(serial = sr_serial_dev_inst_new(conn, serialcomm)))
-		return NULL;
+	serial = sr_serial_dev_inst_new(conn, serialcomm);
 
 	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
 		return NULL;

@@ -47,7 +47,7 @@ static int init(struct sr_output *o, GHashTable *options)
 	if (!o || !o->sdi)
 		return SR_ERR_ARG;
 
-	o->priv = ctx = g_try_malloc0(sizeof(struct context));
+	o->priv = ctx = g_malloc0(sizeof(struct context));
 	s = g_variant_get_string(g_hash_table_lookup(options, "digits"), NULL);
 	if (!strcmp(s, "all"))
 		ctx->digits = DIGITS_ALL;

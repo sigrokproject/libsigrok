@@ -742,12 +742,7 @@ SR_PRIV int sr_scpi_get_hw_id(struct sr_scpi_dev_inst *scpi,
 	}
 	g_free(response);
 
-	hw_info = g_try_malloc(sizeof(struct sr_scpi_hw_info));
-	if (!hw_info) {
-		g_strfreev(tokens);
-		return SR_ERR_MALLOC;
-	}
-
+	hw_info = g_malloc0(sizeof(struct sr_scpi_hw_info));
 	hw_info->manufacturer = g_strdup(tokens[0]);
 	hw_info->model = g_strdup(tokens[1]);
 	hw_info->serial_number = g_strdup(tokens[2]);

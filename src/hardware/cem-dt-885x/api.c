@@ -97,8 +97,7 @@ static GSList *scan(GSList *options)
 	if (!conn)
 		return NULL;
 
-	if (!(serial = sr_serial_dev_inst_new(conn, SERIALCOMM)))
-		return NULL;
+	serial = sr_serial_dev_inst_new(conn, SERIALCOMM);
 
 	if (serial_open(serial, SERIAL_RDONLY) != SR_OK)
 		return NULL;
@@ -119,10 +118,7 @@ static GSList *scan(GSList *options)
 			devc->cur_meas_range = 0;
 			devc->cur_data_source = DATA_SOURCE_LIVE;
 			devc->enable_data_source_memory = FALSE;
-
-			if (!(sdi->conn = sr_serial_dev_inst_new(conn, SERIALCOMM)))
-				return NULL;
-
+			sdi->conn = sr_serial_dev_inst_new(conn, SERIALCOMM);
 			sdi->inst_type = SR_INST_SERIAL;
 			sdi->priv = devc;
 			sdi->driver = di;

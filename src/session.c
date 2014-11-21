@@ -306,9 +306,7 @@ SR_API int sr_session_datafeed_callback_add(struct sr_session *session,
 		return SR_ERR_ARG;
 	}
 
-	if (!(cb_struct = g_try_malloc0(sizeof(struct datafeed_callback))))
-		return SR_ERR_MALLOC;
-
+	cb_struct = g_malloc0(sizeof(struct datafeed_callback));
 	cb_struct->cb = cb;
 	cb_struct->cb_data = cb_data;
 
@@ -712,7 +710,6 @@ SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
  *
  * @retval SR_OK Success.
  * @retval SR_ERR_ARG Invalid argument.
- * @retval SR_ERR_MALLOC Memory allocation error.
  */
 static int _sr_session_source_add(struct sr_session *session, GPollFD *pollfd,
 		int timeout, sr_receive_data_callback cb, void *cb_data, gintptr poll_object)
@@ -727,19 +724,10 @@ static int _sr_session_source_add(struct sr_session *session, GPollFD *pollfd,
 
 	/* Note: cb_data can be NULL, that's not a bug. */
 
-	new_pollfds = g_try_realloc(session->pollfds,
+	new_pollfds = g_realloc(session->pollfds,
 			sizeof(GPollFD) * (session->num_sources + 1));
-	if (!new_pollfds) {
-		sr_err("%s: new_pollfds malloc failed", __func__);
-		return SR_ERR_MALLOC;
-	}
-
-	new_sources = g_try_realloc(session->sources, sizeof(struct source) *
+	new_sources = g_realloc(session->sources, sizeof(struct source) *
 			(session->num_sources + 1));
-	if (!new_sources) {
-		sr_err("%s: new_sources malloc failed", __func__);
-		return SR_ERR_MALLOC;
-	}
 
 	new_pollfds[session->num_sources] = *pollfd;
 	s = &new_sources[session->num_sources++];
@@ -769,7 +757,6 @@ static int _sr_session_source_add(struct sr_session *session, GPollFD *pollfd,
  *
  * @retval SR_OK Success.
  * @retval SR_ERR_ARG Invalid argument.
- * @retval SR_ERR_MALLOC Memory allocation error.
  *
  * @since 0.3.0
  */
@@ -795,7 +782,6 @@ SR_API int sr_session_source_add(struct sr_session *session, int fd,
  *
  * @retval SR_OK Success.
  * @retval SR_ERR_ARG Invalid argument.
- * @retval SR_ERR_MALLOC Memory allocation error.
  *
  * @since 0.3.0
  */
@@ -819,7 +805,6 @@ SR_API int sr_session_source_add_pollfd(struct sr_session *session,
  *
  * @retval SR_OK Success.
  * @retval SR_ERR_ARG Invalid argument.
- * @retval SR_ERR_MALLOC Memory allocation error.
  *
  * @since 0.3.0
  */
@@ -842,20 +827,15 @@ SR_API int sr_session_source_add_channel(struct sr_session *session,
 /**
  * Remove the source belonging to the specified channel.
  *
- * @todo Add more error checks and logging.
- *
  * @param session The session to use. Must not be NULL.
  * @param poll_object The channel for which the source should be removed.
  *
  * @retval SR_OK Success
  * @retval SR_ERR_ARG Invalid arguments
- * @retval SR_ERR_MALLOC Memory allocation error
  * @retval SR_ERR_BUG Internal error
  */
 static int _sr_session_source_remove(struct sr_session *session, gintptr poll_object)
 {
-	struct source *new_sources;
-	GPollFD *new_pollfds;
 	unsigned int old;
 
 	if (!session->sources || !session->num_sources) {
@@ -872,29 +852,17 @@ static int _sr_session_source_remove(struct sr_session *session, gintptr poll_ob
 	if (old == session->num_sources)
 		return SR_OK;
 
-	session->num_sources -= 1;
+	session->num_sources--;
 
 	if (old != session->num_sources) {
-		memmove(&session->pollfds[old], &session->pollfds[old+1],
+		memmove(&session->pollfds[old], &session->pollfds[old + 1],
 			(session->num_sources - old) * sizeof(GPollFD));
-		memmove(&session->sources[old], &session->sources[old+1],
+		memmove(&session->sources[old], &session->sources[old + 1],
 			(session->num_sources - old) * sizeof(struct source));
 	}
 
-	new_pollfds = g_try_realloc(session->pollfds, sizeof(GPollFD) * session->num_sources);
-	if (!new_pollfds && session->num_sources > 0) {
-		sr_err("%s: new_pollfds malloc failed", __func__);
-		return SR_ERR_MALLOC;
-	}
-
-	new_sources = g_try_realloc(session->sources, sizeof(struct source) * session->num_sources);
-	if (!new_sources && session->num_sources > 0) {
-		sr_err("%s: new_sources malloc failed", __func__);
-		return SR_ERR_MALLOC;
-	}
-
-	session->pollfds = new_pollfds;
-	session->sources = new_sources;
+	session->pollfds = g_realloc(session->pollfds, sizeof(GPollFD) * session->num_sources);
+	session->sources = g_realloc(session->sources, sizeof(struct source) * session->num_sources);
 
 	return SR_OK;
 }
@@ -907,7 +875,6 @@ static int _sr_session_source_remove(struct sr_session *session, gintptr poll_ob
  *
  * @retval SR_OK Success
  * @retval SR_ERR_ARG Invalid argument
- * @retval SR_ERR_MALLOC Memory allocation error.
  * @retval SR_ERR_BUG Internal error.
  *
  * @since 0.3.0
@@ -943,7 +910,6 @@ SR_API int sr_session_source_remove_pollfd(struct sr_session *session,
  *
  * @retval SR_OK Success.
  * @retval SR_ERR_ARG Invalid argument.
- * @retval SR_ERR_MALLOC Memory allocation error.
  * @return SR_ERR_BUG Internal error.
  *
  * @since 0.2.0

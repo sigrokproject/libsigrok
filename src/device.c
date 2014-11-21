@@ -281,7 +281,6 @@ SR_PRIV void sr_dev_inst_free(struct sr_dev_inst *sdi)
  *  @param[in]  address @copydoc sr_usb_dev_inst::address
  *  @param[in]  hdl @copydoc sr_usb_dev_inst::devhdl
  *
- *  @retval NULL Error
  *  @retval other struct sr_usb_dev_inst * for USB device instance.
  */
 SR_PRIV struct sr_usb_dev_inst *sr_usb_dev_inst_new(uint8_t bus,
@@ -289,11 +288,7 @@ SR_PRIV struct sr_usb_dev_inst *sr_usb_dev_inst_new(uint8_t bus,
 {
 	struct sr_usb_dev_inst *udi;
 
-	if (!(udi = g_try_malloc(sizeof(struct sr_usb_dev_inst)))) {
-		sr_err("USB device instance malloc failed.");
-		return NULL;
-	}
-
+	udi = g_malloc0(sizeof(struct sr_usb_dev_inst));
 	udi->bus = bus;
 	udi->address = address;
 	udi->devhdl = hdl;
@@ -322,10 +317,11 @@ SR_PRIV void sr_usb_dev_inst_free(struct sr_usb_dev_inst *usb)
  *
  * @param[in] port OS-specific serial port specification. Examples:
  *                 "/dev/ttyUSB0", "/dev/ttyACM1", "/dev/tty.Modem-0", "COM1".
+ *                 Must not be NULL.
  * @param[in] serialcomm A serial communication parameters string, in the form
  *              of \<speed\>/\<data bits\>\<parity\>\<stopbits\>, for example
  *              "9600/8n1" or "600/7o2". This is an optional parameter;
- *              it may be filled in later.
+ *              it may be filled in later. Can be NULL.
  *
  * @return A pointer to a newly initialized struct sr_serial_dev_inst,
  *         or NULL on error.
@@ -335,16 +331,7 @@ SR_PRIV struct sr_serial_dev_inst *sr_serial_dev_inst_new(const char *port,
 {
 	struct sr_serial_dev_inst *serial;
 
-	if (!port) {
-		sr_err("Serial port required.");
-		return NULL;
-	}
-
-	if (!(serial = g_try_malloc0(sizeof(struct sr_serial_dev_inst)))) {
-		sr_err("Serial device instance malloc failed.");
-		return NULL;
-	}
-
+	serial = g_malloc0(sizeof(struct sr_serial_dev_inst));
 	serial->port = g_strdup(port);
 	if (serialcomm)
 		serial->serialcomm = g_strdup(serialcomm);
@@ -369,16 +356,7 @@ SR_PRIV struct sr_usbtmc_dev_inst *sr_usbtmc_dev_inst_new(const char *device)
 {
 	struct sr_usbtmc_dev_inst *usbtmc;
 
-	if (!device) {
-		sr_err("Device name required.");
-		return NULL;
-	}
-
-	if (!(usbtmc = g_try_malloc0(sizeof(struct sr_usbtmc_dev_inst)))) {
-		sr_err("USBTMC device instance malloc failed.");
-		return NULL;
-	}
-
+	usbtmc = g_malloc0(sizeof(struct sr_usbtmc_dev_inst));
 	usbtmc->device = g_strdup(device);
 	usbtmc->fd = -1;
 

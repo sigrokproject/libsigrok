@@ -41,8 +41,7 @@
  * @param di The driver instance to use.
  * @param[in] prefix A driver-specific prefix string used for log messages.
  *
- * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or
- *         SR_ERR_MALLOC upon memory allocation errors.
+ * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments.
  */
 SR_PRIV int std_init(struct sr_context *sr_ctx, struct sr_dev_driver *di,
 		     const char *prefix)
@@ -54,11 +53,7 @@ SR_PRIV int std_init(struct sr_context *sr_ctx, struct sr_dev_driver *di,
 		return SR_ERR_ARG;
 	}
 
-	if (!(drvc = g_try_malloc(sizeof(struct drv_context)))) {
-		sr_err("%s: Driver context malloc failed.", prefix);
-		return SR_ERR_MALLOC;
-	}
-
+	drvc = g_malloc0(sizeof(struct drv_context));
 	drvc->sr_ctx = sr_ctx;
 	drvc->instances = NULL;
 	di->priv = drvc;

@@ -75,8 +75,7 @@ static GSList *fluke_scan(const char *conn, const char *serialcomm)
 	int retry, len, i, s;
 	char buf[128], *b, **tokens;
 
-	if (!(serial = sr_serial_dev_inst_new(conn, serialcomm)))
-		return NULL;
+	serial = sr_serial_dev_inst_new(conn, serialcomm);
 
 	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
 		return NULL;

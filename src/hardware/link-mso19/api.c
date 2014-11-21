@@ -195,10 +195,7 @@ static GSList *scan(GSList *options)
 			devc->protocol_trigger.mask[i] = 0xff;
 		}
 
-		if (!(devc->serial = sr_serial_dev_inst_new(conn, serialcomm))) {
-			g_free(devc);
-			return devices;
-		}
+		devc->serial = sr_serial_dev_inst_new(conn, serialcomm);
 
 		struct sr_dev_inst *sdi = g_malloc0(sizeof(struct sr_dev_inst));
 		sdi->status = SR_ST_INACTIVE;

@@ -79,8 +79,7 @@ static int scpi_serial_dev_inst_new(void *priv, struct drv_context *drvc,
 	(void)drvc;
 	(void)params;
 
-	if (!(sscpi->serial = sr_serial_dev_inst_new(resource, serialcomm)))
-		return SR_ERR;
+	sscpi->serial = sr_serial_dev_inst_new(resource, serialcomm);
 
 	return SR_OK;
 }

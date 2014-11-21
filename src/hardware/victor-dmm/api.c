@@ -95,9 +95,8 @@ static GSList *scan(GSList *options)
 		ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "P1");
 		sdi->channels = g_slist_append(NULL, ch);
 
-		if (!(sdi->conn = sr_usb_dev_inst_new(libusb_get_bus_number(devlist[i]),
-				libusb_get_device_address(devlist[i]), NULL)))
-			return NULL;
+		sdi->conn = sr_usb_dev_inst_new(libusb_get_bus_number(devlist[i]),
+				libusb_get_device_address(devlist[i]), NULL);
 		sdi->inst_type = SR_INST_USB;
 
 		drvc->instances = g_slist_append(drvc->instances, sdi);

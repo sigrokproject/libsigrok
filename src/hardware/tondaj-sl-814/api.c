@@ -90,8 +90,7 @@ static GSList *scan(GSList *options)
 	sdi->model = g_strdup("SL-814");
 	devc = g_malloc0(sizeof(struct dev_context));
 
-	if (!(serial = sr_serial_dev_inst_new(conn, serialcomm)))
-		return NULL;
+	serial = sr_serial_dev_inst_new(conn, serialcomm);
 
 	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
 		return NULL;

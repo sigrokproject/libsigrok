@@ -128,8 +128,7 @@ static GSList *scan(GSList *options)
 	if (serialcomm == NULL)
 		serialcomm = SERIALCOMM;
 
-	if (!(serial = sr_serial_dev_inst_new(conn, serialcomm)))
-		return NULL;
+	serial = sr_serial_dev_inst_new(conn, serialcomm);
 
 	/* The discovery procedure is like this: first send the Reset
 	 * command (0x00) 5 times, since the device could be anywhere

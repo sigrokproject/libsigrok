@@ -87,8 +87,7 @@ static GSList *scan(GSList *options)
 	sdi->vendor = g_strdup("Colead");
 	sdi->model = g_strdup("SL-5868P");
 	devc = g_malloc0(sizeof(struct dev_context));
-	if (!(sdi->conn = sr_serial_dev_inst_new(conn, serialcomm)))
-		return NULL;
+	sdi->conn = sr_serial_dev_inst_new(conn, serialcomm);
 	sdi->inst_type = SR_INST_SERIAL;
 	sdi->priv = devc;
 	sdi->driver = di;

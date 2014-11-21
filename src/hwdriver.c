@@ -395,8 +395,7 @@ SR_PRIV struct sr_config *sr_config_new(uint32_t key, GVariant *data)
 {
 	struct sr_config *src;
 
-	if (!(src = g_try_malloc(sizeof(struct sr_config))))
-		return NULL;
+	src = g_malloc0(sizeof(struct sr_config));
 	src->key = key;
 	src->data = g_variant_ref_sink(data);
 

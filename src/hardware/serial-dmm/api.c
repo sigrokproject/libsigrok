@@ -409,8 +409,7 @@ static GSList *sdmm_scan(const char *conn, const char *serialcomm, int dmm)
 	size_t len;
 	uint8_t buf[128];
 
-	if (!(serial = sr_serial_dev_inst_new(conn, serialcomm)))
-		return NULL;
+	serial = sr_serial_dev_inst_new(conn, serialcomm);
 
 	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
 		return NULL;

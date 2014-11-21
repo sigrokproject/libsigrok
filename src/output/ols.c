@@ -44,12 +44,8 @@ static int init(struct sr_output *o, GHashTable *options)
 
 	(void)options;
 
-	if (!(ctx = g_try_malloc(sizeof(struct context)))) {
-		sr_err("%s: ctx malloc failed", __func__);
-		return SR_ERR_MALLOC;
-	}
+	ctx = g_malloc0(sizeof(struct context));
 	o->priv = ctx;
-
 	ctx->samplerate = 0;
 	ctx->num_samples = 0;
 

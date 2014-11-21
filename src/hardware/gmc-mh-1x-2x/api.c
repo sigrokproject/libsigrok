@@ -195,8 +195,7 @@ static GSList *scan_1x_2x_rs232(GSList *options)
 	if (!serialcomm)
 		serialcomm = SERIALCOMM_2X_RS232;
 
-	if (!(serial = sr_serial_dev_inst_new(conn, serialcomm)))
-		return NULL;
+	serial = sr_serial_dev_inst_new(conn, serialcomm);
 
 	if (serial_open(serial, SERIAL_RDWR) != SR_OK) {
 		sr_serial_dev_inst_free(serial);
@@ -288,8 +287,7 @@ static GSList *scan_2x_bd232(GSList *options)
 	if (!serialcomm)
 		serialcomm = SERIALCOMM_2X;
 
-	if (!(serial = sr_serial_dev_inst_new(conn, serialcomm)))
-		return NULL;
+	serial = sr_serial_dev_inst_new(conn, serialcomm);
 
 	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
 		goto exit_err;

@@ -74,8 +74,8 @@ static GSList *scan(GSList *options)
 	if (!serialcomm)
 		serialcomm = "1200/7e1";
 
-	if (!(serial = sr_serial_dev_inst_new(conn, serialcomm)))
-		return NULL;
+	serial = sr_serial_dev_inst_new(conn, serialcomm);
+
 	if (serial_open(serial, SERIAL_RDONLY) != SR_OK)
 		return NULL;
 

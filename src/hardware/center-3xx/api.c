@@ -76,8 +76,7 @@ static GSList *center_scan(const char *conn, const char *serialcomm, int idx)
 	struct sr_serial_dev_inst *serial;
 	GSList *devices;
 
-	if (!(serial = sr_serial_dev_inst_new(conn, serialcomm)))
-		return NULL;
+	serial = sr_serial_dev_inst_new(conn, serialcomm);
 
 	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
 		return NULL;
