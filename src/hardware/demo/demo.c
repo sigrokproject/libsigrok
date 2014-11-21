@@ -311,8 +311,7 @@ static GSList *scan(GSList *options)
 	cg->name = g_strdup("Logic");
 	for (i = 0; i < num_logic_channels; i++) {
 		sprintf(channel_name, "D%d", i);
-		if (!(ch = sr_channel_new(i, SR_CHANNEL_LOGIC, TRUE, channel_name)))
-			return NULL;
+		ch = sr_channel_new(i, SR_CHANNEL_LOGIC, TRUE, channel_name);
 		sdi->channels = g_slist_append(sdi->channels, ch);
 		cg->channels = g_slist_append(cg->channels, ch);
 	}

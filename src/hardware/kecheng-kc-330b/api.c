@@ -136,8 +136,7 @@ static GSList *scan(GSList *options)
 			sdi->driver = di;
 			sdi->inst_type = SR_INST_USB;
 			sdi->conn = l->data;
-			if (!(ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "SPL")))
-				return NULL;
+			ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "SPL");
 			sdi->channels = g_slist_append(sdi->channels, ch);
 			devc = g_malloc0(sizeof(struct dev_context));
 			sdi->priv = devc;

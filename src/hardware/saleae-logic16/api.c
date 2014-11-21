@@ -206,9 +206,8 @@ static GSList *scan(GSList *options)
 		sdi->connection_id = g_strdup(connection_id);
 
 		for (j = 0; channel_names[j]; j++) {
-			if (!(ch = sr_channel_new(j, SR_CHANNEL_LOGIC, TRUE,
-						   channel_names[j])))
-				return NULL;
+			ch = sr_channel_new(j, SR_CHANNEL_LOGIC, TRUE,
+					    channel_names[j]);
 			sdi->channels = g_slist_append(sdi->channels, ch);
 		}
 

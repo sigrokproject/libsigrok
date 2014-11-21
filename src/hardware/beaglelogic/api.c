@@ -136,9 +136,8 @@ static GSList *scan(GSList *options)
 
 	/* Fill the channels */
 	for (i = 0; i < maxch; i++) {
-		if (!(ch = sr_channel_new(i, SR_CHANNEL_LOGIC, TRUE,
-				beaglelogic_channel_names[i])))
-			return NULL;
+		ch = sr_channel_new(i, SR_CHANNEL_LOGIC, TRUE,
+				beaglelogic_channel_names[i]);
 		sdi->channels = g_slist_append(sdi->channels, ch);
 	}
 

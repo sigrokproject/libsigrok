@@ -48,18 +48,14 @@
  *  @param[in]  enabled @copydoc sr_channel::enabled
  *  @param[in]  name @copydoc sr_channel::name
  *
- *  @return NULL (failure) or new struct sr_channel*.
+ *  @return A new struct sr_channel*.
  */
 SR_PRIV struct sr_channel *sr_channel_new(int index, int type,
 		gboolean enabled, const char *name)
 {
 	struct sr_channel *ch;
 
-	if (!(ch = g_try_malloc0(sizeof(struct sr_channel)))) {
-		sr_err("Channel malloc failed.");
-		return NULL;
-	}
-
+	ch = g_malloc0(sizeof(struct sr_channel));
 	ch->index = index;
 	ch->type = type;
 	ch->enabled = enabled;
@@ -237,9 +233,6 @@ SR_API int sr_dev_inst_channel_add(struct sr_dev_inst *sdi, int index, int type,
 		return SR_ERR_ARG;
 
 	ch = sr_channel_new(index, type, TRUE, name);
-	if (!ch)
-		return SR_ERR;
-
 	sdi->channels = g_slist_append(sdi->channels, ch);
 
 	return SR_OK;

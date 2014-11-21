@@ -289,9 +289,8 @@ SR_PRIV struct sr_dev_inst *p_ols_get_metadata(uint8_t *buf, int bytes_read, str
 			case 0x00:
 				/* Number of usable channels */
 				for (ui = 0; ui < tmp_int; ui++) {
-					if (!(ch = sr_channel_new(ui, SR_CHANNEL_LOGIC, TRUE,
-							p_ols_channel_names[ui])))
-						return 0;
+					ch = sr_channel_new(ui, SR_CHANNEL_LOGIC, TRUE,
+							p_ols_channel_names[ui]);
 					sdi->channels = g_slist_append(sdi->channels, ch);
 				}
 				break;
@@ -326,9 +325,8 @@ SR_PRIV struct sr_dev_inst *p_ols_get_metadata(uint8_t *buf, int bytes_read, str
 			case 0x00:
 				/* Number of usable channels */
 				for (ui = 0; ui < tmp_c; ui++) {
-					if (!(ch = sr_channel_new(ui, SR_CHANNEL_LOGIC, TRUE,
-							p_ols_channel_names[ui])))
-						return 0;
+					ch = sr_channel_new(ui, SR_CHANNEL_LOGIC, TRUE,
+							p_ols_channel_names[ui]);
 					sdi->channels = g_slist_append(sdi->channels, ch);
 				}
 				break;

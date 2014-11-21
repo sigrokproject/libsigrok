@@ -187,9 +187,8 @@ static GSList *scan(GSList *options)
 		sdi->version = g_strdup("v1.0");
 		sdi->driver = di;
 		for (i = 0; i < 32; i++) {
-			if (!(ch = sr_channel_new(i, SR_CHANNEL_LOGIC, TRUE,
-					ols_channel_names[i])))
-				return 0;
+			ch = sr_channel_new(i, SR_CHANNEL_LOGIC, TRUE,
+					ols_channel_names[i]);
 			sdi->channels = g_slist_append(sdi->channels, ch);
 		}
 		devc = ols_dev_new();

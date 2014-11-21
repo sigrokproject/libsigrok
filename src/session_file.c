@@ -213,9 +213,8 @@ SR_API int sr_session_load(const char *filename, struct sr_session **session)
 							g_variant_new_uint64(total_channels), sdi, NULL);
 					for (p = 0; p < total_channels; p++) {
 						snprintf(channelname, SR_MAX_CHANNELNAME_LEN, "%" PRIu64, p);
-						if (!(ch = sr_channel_new(p, SR_CHANNEL_LOGIC, TRUE,
-								channelname)))
-							return SR_ERR;
+						ch = sr_channel_new(p, SR_CHANNEL_LOGIC, TRUE,
+								channelname);
 						sdi->channels = g_slist_append(sdi->channels, ch);
 					}
 				} else if (!strncmp(keys[j], "probe", 5)) {

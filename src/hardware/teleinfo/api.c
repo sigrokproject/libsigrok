@@ -103,55 +103,41 @@ static GSList *scan(GSList *options)
 	sdi->priv = devc;
 	sdi->driver = di;
 
-	if (!(ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "P")))
-		goto scan_cleanup;
+	ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "P");
 	sdi->channels = g_slist_append(sdi->channels, ch);
 
 	if (devc->optarif == OPTARIF_BASE) {
-		if (!(ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "BASE")))
-			goto scan_cleanup;
+		ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "BASE");
 		sdi->channels = g_slist_append(sdi->channels, ch);
 	} else if (devc->optarif == OPTARIF_HC) {
-		if (!(ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "HP")))
-			goto scan_cleanup;
+		ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "HP");
 		sdi->channels = g_slist_append(sdi->channels, ch);
-		if (!(ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "HC")))
-			goto scan_cleanup;
+		ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "HC");
 		sdi->channels = g_slist_append(sdi->channels, ch);
 	} else if (devc->optarif == OPTARIF_EJP) {
-		if (!(ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "HN")))
-			goto scan_cleanup;
+		ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "HN");
 		sdi->channels = g_slist_append(sdi->channels, ch);
-		if (!(ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "HPM")))
-			goto scan_cleanup;
+		ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "HPM");
 		sdi->channels = g_slist_append(sdi->channels, ch);
 	} else if (devc->optarif == OPTARIF_BBR) {
-		if (!(ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "HPJB")))
-			goto scan_cleanup;
+		ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "HPJB");
 		sdi->channels = g_slist_append(sdi->channels, ch);
-		if (!(ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "HPJW")))
-			goto scan_cleanup;
+		ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "HPJW");
 		sdi->channels = g_slist_append(sdi->channels, ch);
-		if (!(ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "HPJR")))
-			goto scan_cleanup;
+		ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "HPJR");
 		sdi->channels = g_slist_append(sdi->channels, ch);
-		if (!(ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "HCJB")))
-			goto scan_cleanup;
+		ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "HCJB");
 		sdi->channels = g_slist_append(sdi->channels, ch);
-		if (!(ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "HCJW")))
-			goto scan_cleanup;
+		ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "HCJW");
 		sdi->channels = g_slist_append(sdi->channels, ch);
-		if (!(ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "HCJR")))
-			goto scan_cleanup;
+		ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "HCJR");
 		sdi->channels = g_slist_append(sdi->channels, ch);
 	}
 
-	if (!(ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "IINST")))
-		goto scan_cleanup;
+	ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "IINST");
 	sdi->channels = g_slist_append(sdi->channels, ch);
 
-	if (!(ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "PAPP")))
-		goto scan_cleanup;
+	ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "PAPP");
 	sdi->channels = g_slist_append(sdi->channels, ch);
 
 	drvc->instances = g_slist_append(drvc->instances, sdi);

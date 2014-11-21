@@ -386,8 +386,6 @@ static GSList *scan(GSList *options)
 	for (i = 0; i < ARRAY_SIZE(channel_names); i++) {
 		ch = sr_channel_new(i, SR_CHANNEL_LOGIC, TRUE,
 				    channel_names[i]);
-		if (!ch)
-			return NULL;
 		sdi->channels = g_slist_append(sdi->channels, ch);
 	}
 

@@ -465,8 +465,7 @@ static GSList *sdmm_scan(const char *conn, const char *serialcomm, int dmm)
 	sdi->conn = serial;
 	sdi->priv = devc;
 	sdi->driver = dmms[dmm].di;
-	if (!(ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "P1")))
-		goto scan_cleanup;
+	ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "P1");
 	sdi->channels = g_slist_append(sdi->channels, ch);
 	drvc->instances = g_slist_append(drvc->instances, sdi);
 	devices = g_slist_append(devices, sdi);

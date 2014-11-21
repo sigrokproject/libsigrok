@@ -361,8 +361,6 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 				return NULL;
 			ch = sr_channel_new(i, SR_CHANNEL_LOGIC, TRUE, channel_name);
 			g_free(channel_name);
-			if (!ch)
-				return NULL;
 			sdi->channels = g_slist_append(sdi->channels, ch);
 			devc->digital_group->channels = g_slist_append(
 					devc->digital_group->channels, ch);

@@ -783,9 +783,7 @@ static int add_channel(struct sr_dev_inst *sdi, const char *name)
 {
 	struct sr_channel *ch;
 
-	if (!(ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, name)))
-		return SR_ERR;
-
+	ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, name);
 	sdi->channels = g_slist_append(sdi->channels, ch);
 
 	return SR_OK;

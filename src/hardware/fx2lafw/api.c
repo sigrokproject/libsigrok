@@ -253,9 +253,8 @@ static GSList *scan(GSList *options)
 		/* Fill in channellist according to this device's profile. */
 		num_logic_channels = prof->dev_caps & DEV_CAPS_16BIT ? 16 : 8;
 		for (j = 0; j < num_logic_channels; j++) {
-			if (!(ch = sr_channel_new(j, SR_CHANNEL_LOGIC, TRUE,
-					channel_names[j])))
-				return NULL;
+			ch = sr_channel_new(j, SR_CHANNEL_LOGIC, TRUE,
+					channel_names[j]);
 			sdi->channels = g_slist_append(sdi->channels, ch);
 		}
 

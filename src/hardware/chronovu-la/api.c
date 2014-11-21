@@ -128,11 +128,8 @@ static int add_device(int idx, int model, GSList **devices)
 	sdi->priv = devc;
 
 	for (i = 0; i < devc->prof->num_channels; i++) {
-		if (!(ch = sr_channel_new(i, SR_CHANNEL_LOGIC, TRUE,
-					  cv_channel_names[i]))) {
-			ret = SR_ERR;
-			goto err_free_dev_inst;
-		}
+		ch = sr_channel_new(i, SR_CHANNEL_LOGIC, TRUE,
+				    cv_channel_names[i]);
 		sdi->channels = g_slist_append(sdi->channels, ch);
 	}
 
@@ -142,9 +139,6 @@ static int add_device(int idx, int model, GSList **devices)
 	if (ret == SR_OK)
 		return SR_OK;
 
-err_free_dev_inst:
-	sr_dev_inst_free(sdi);
-	g_free(devc->final_buf);
 err_free_devc:
 	g_free(devc);
 

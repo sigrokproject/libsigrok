@@ -163,10 +163,7 @@ static GSList *scan(GSList *options)
 	sdi->conn = serial;
 	sdi->driver = di;
 
-	if (!(ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "CH1"))) {
-		sr_err("Failed to create channel.");
-		goto exit_err;
-	}
+	ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "CH1");
 	sdi->channels = g_slist_append(sdi->channels, ch);
 
 	devc = g_malloc0(sizeof(struct dev_context));

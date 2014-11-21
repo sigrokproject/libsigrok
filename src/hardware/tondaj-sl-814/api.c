@@ -102,10 +102,6 @@ static GSList *scan(GSList *options)
 	sdi->priv = devc;
 	sdi->driver = di;
 	ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "P1");
-	if (!ch) {
-		sr_err("Failed to create channel.");
-		return NULL;
-	}
 	sdi->channels = g_slist_append(sdi->channels, ch);
 	drvc->instances = g_slist_append(drvc->instances, sdi);
 	devices = g_slist_append(devices, sdi);

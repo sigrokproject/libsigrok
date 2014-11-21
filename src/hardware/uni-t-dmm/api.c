@@ -252,24 +252,18 @@ static GSList *scan(GSList *options, int dmm)
 
 	for (l = usb_devices; l; l = l->next) {
 		usb = l->data;
-
 		devc = g_malloc0(sizeof(struct dev_context));
-
 		devc->first_run = TRUE;
-
 		sdi = g_malloc0(sizeof(struct sr_dev_inst));
 		sdi->status = SR_ST_INACTIVE;
 		sdi->vendor = g_strdup(udmms[dmm].vendor);
 		sdi->model = g_strdup(udmms[dmm].device);
 		sdi->priv = devc;
 		sdi->driver = udmms[dmm].di;
-		if (!(ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "P1")))
-			return NULL;
+		ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "P1");
 		sdi->channels = g_slist_append(sdi->channels, ch);
-
 		sdi->inst_type = SR_INST_USB;
 		sdi->conn = usb;
-
 		drvc->instances = g_slist_append(drvc->instances, sdi);
 		devices = g_slist_append(devices, sdi);
 	}

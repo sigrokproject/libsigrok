@@ -156,9 +156,7 @@ static GSList *do_scan(struct sr_dev_driver* drv, GSList *options)
 			sdi->conn = serial;
 			sdi->priv = devc;
 			sdi->driver = drv;
-			if (!(ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE,
-				"P1")))
-				return NULL;
+			ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "P1");
 			sdi->channels = g_slist_append(sdi->channels, ch);
 			drvc->instances = g_slist_append(drvc->instances, sdi);
 			devices = g_slist_append(devices, sdi);
