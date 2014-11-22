@@ -75,6 +75,9 @@ SR_API void sr_trigger_free(struct sr_trigger *trig)
 	struct sr_trigger_stage *stage;
 	GSList *l;
 
+	if (!trig)
+		return;
+
 	for (l = trig->stages; l; l = l->next) {
 		stage = l->data;
 		g_slist_free_full(stage->matches, g_free);
@@ -93,14 +96,18 @@ SR_API void sr_trigger_free(struct sr_trigger *trig)
  *
  * @param trig The trigger to add a stage to. Must not be NULL.
  *
- * @return A newly allocated trigger stage (which has also been added to the
- *         list of stages of the specified trigger).
+ * @retval NULL An invalid (NULL) trigger was passed into the function.
+ * @retval other A newly allocated trigger stage (which has also been added
+ * 		 to the list of stages of the specified trigger).
  *
  * @since 0.4.0
  */
 SR_API struct sr_trigger_stage *sr_trigger_stage_add(struct sr_trigger *trig)
 {
 	struct sr_trigger_stage *stage;
+
+	if (!trig)
+		return NULL;
 
 	stage = g_malloc0(sizeof(struct sr_trigger_stage));
 	stage->stage = g_slist_length(trig->stages);
@@ -133,6 +140,9 @@ SR_API int sr_trigger_match_add(struct sr_trigger_stage *stage,
 {
 	struct sr_trigger_match *match;
 
+	if (!stage || !ch)
+		return SR_ERR_ARG;
+
 	if (ch->type == SR_CHANNEL_LOGIC) {
 		if (trigger_match != SR_TRIGGER_ZERO &&
 				trigger_match != SR_TRIGGER_ONE &&
@@ -143,12 +153,17 @@ SR_API int sr_trigger_match_add(struct sr_trigger_stage *stage,
 			return SR_ERR_ARG;
 		}
 	} else if (ch->type == SR_CHANNEL_ANALOG) {
-		if (trigger_match != SR_TRIGGER_FALLING &&
+		if (trigger_match != SR_TRIGGER_RISING &&
+				trigger_match != SR_TRIGGER_FALLING &&
+				trigger_match != SR_TRIGGER_EDGE &&
 				trigger_match != SR_TRIGGER_OVER &&
 				trigger_match != SR_TRIGGER_UNDER) {
 			sr_err("Invalid trigger match for an analog channel.");
 			return SR_ERR_ARG;
 		}
+	} else {
+		sr_err("Unsupported channel type: %d.", ch->type);
+		return SR_ERR_ARG;
 	}
 
 	match = g_malloc0(sizeof(struct sr_trigger_match));
