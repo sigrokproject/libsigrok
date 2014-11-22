@@ -70,10 +70,10 @@ Suite *suite_device(void)
 
 	tc = tcase_create("sr_dev_inst_user_new");
 	tcase_add_test(tc, test_user_new);
+	suite_add_tcase(s, tc);
 
 	tc = tcase_create("sr_dev_inst_channel_add");
 	tcase_add_test(tc, test_channel_add);
-
 	suite_add_tcase(s, tc);
 
 	return s;
