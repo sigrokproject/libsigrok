@@ -20,6 +20,7 @@
 from setuptools import setup, find_packages, Extension
 from distutils.command.build_py import build_py as _build_py
 from distutils.command.build_ext import build_ext as _build_ext
+import numpy as np
 import subprocess
 import os
 
@@ -36,6 +37,7 @@ includes = ['../../include', '../cxx/include']
 includes += [os.path.join(srcdir, path) for path in includes]
 includes += ['../..', '../../include/libsigrok', '../cxx/include/libsigrok']
 includes += [i[2:] for i in sr_includes]
+includes += [np.get_include(), ]
 libdirs = ['../../.libs', '../cxx/.libs'] + [l[2:] for l in sr_lib_dirs]
 libs = [l[2:] for l in sr_libs] + ['sigrokxx']
 
