@@ -420,7 +420,8 @@ tests_check_main_SOURCES = \
 	tests/check_strutil.c \
 	tests/check_version.c \
 	tests/check_driver_all.c \
-	tests/check_device.c
+	tests/check_device.c \
+	tests/check_trigger.c
 
 tests_check_main_CFLAGS = @check_CFLAGS@
 
