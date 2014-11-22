@@ -576,7 +576,7 @@ struct sr_config_info {
 #define SR_CONF_LIST (1 << 29)
 #define SR_CONF_MASK 0x1fffffff
 
-/** Constants for device classes */
+/** Configuration keys */
 enum sr_configkey {
 	/*--- Device classes ------------------------------------------------*/
 
@@ -604,13 +604,13 @@ enum sr_configkey {
 	/** The device can measure energy consumption. */
 	SR_CONF_ENERGYMETER,
 
-	/** The device can demodulate signals. */
+	/** The device can act as a signal demodulator. */
 	SR_CONF_DEMODULATOR,
 
-	/** Programmable power supply. */
+	/** The device can act as a programmable power supply. */
 	SR_CONF_POWER_SUPPLY,
 
-	/** LCR meter. */
+	/** The device can act as an LCR meter. */
 	SR_CONF_LCRMETER,
 
 	/*--- Driver scan options -------------------------------------------*/
@@ -648,7 +648,7 @@ enum sr_configkey {
 	 */
 	SR_CONF_SERIALCOMM,
 
-	/*--- Device configuration ------------------------------------------*/
+	/*--- Device (or channel group) configuration -----------------------*/
 
 	/** The device supports setting its samplerate, in Hz. */
 	SR_CONF_SAMPLERATE = 30000,
@@ -659,7 +659,7 @@ enum sr_configkey {
 	/** The device supports setting a pattern (pattern generator mode). */
 	SR_CONF_PATTERN_MODE,
 
-	/** The device supports Run Length Encoding. */
+	/** The device supports run-length encoding (RLE). */
 	SR_CONF_RLE,
 
 	/** The device supports setting trigger slope. */
@@ -894,7 +894,7 @@ enum sr_configkey {
 	 */
 	SR_CONF_DATA_SOURCE,
 
-	/*--- Acquisition modes ---------------------------------------------*/
+	/*--- Acquisition modes, sample limiting ----------------------------*/
 
 	/**
 	 * The device supports setting a sample time limit (how long
