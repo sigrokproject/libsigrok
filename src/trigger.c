@@ -38,6 +38,18 @@
  * @{
  */
 
+/**
+ * Create a new trigger.
+ *
+ * The caller is responsible to free the trigger (including all stages and
+ * matches) using sr_trigger_free() once it is no longer needed.
+ *
+ * @param name The trigger name to use. Can be NULL.
+ *
+ * @return A newly allocated trigger.
+ *
+ * @since 0.4.0
+ */
 SR_API struct sr_trigger *sr_trigger_new(const char *name)
 {
 	struct sr_trigger *trig;
@@ -49,6 +61,15 @@ SR_API struct sr_trigger *sr_trigger_new(const char *name)
 	return trig;
 }
 
+/**
+ * Free a previously allocated trigger.
+ *
+ * This will also free any trigger stages/matches in this trigger.
+ *
+ * @param trig The trigger to free. Must not be NULL.
+ *
+ * @since 0.4.0
+ */
 SR_API void sr_trigger_free(struct sr_trigger *trig)
 {
 	struct sr_trigger_stage *stage;
@@ -64,6 +85,19 @@ SR_API void sr_trigger_free(struct sr_trigger *trig)
 	g_free(trig);
 }
 
+/**
+ * Allocate a new trigger stage and add it to the specified trigger.
+ *
+ * The caller is responsible to free the trigger (including all stages and
+ * matches) using sr_trigger_free() once it is no longer needed.
+ *
+ * @param trig The trigger to add a stage to. Must not be NULL.
+ *
+ * @return A newly allocated trigger stage (which has also been added to the
+ *         list of stages of the specified trigger).
+ *
+ * @since 0.4.0
+ */
 SR_API struct sr_trigger_stage *sr_trigger_stage_add(struct sr_trigger *trig)
 {
 	struct sr_trigger_stage *stage;
@@ -75,6 +109,25 @@ SR_API struct sr_trigger_stage *sr_trigger_stage_add(struct sr_trigger *trig)
 	return stage;
 }
 
+/**
+ * Allocate a new trigger match and add it to the specified trigger stage.
+ *
+ * The caller is responsible to free the trigger (including all stages and
+ * matches) using sr_trigger_free() once it is no longer needed.
+ *
+ * @param stage The trigger stage to add the match to. Must not be NULL.
+ * @param ch The channel for this trigger match. Must not be NULL. Must be
+ *           either of type SR_CHANNEL_LOGIC or SR_CHANNEL_ANALOG.
+ * @param trigger_match The type of trigger match. Must be a valid trigger
+ *                      type from enum sr_trigger_matches. The trigger type
+ *                      must be valid for the respective channel type as well.
+ * @param value Trigger value.
+ *
+ * @retval SR_OK Success.
+ * @retval SR_ERR_ARG Invalid argument(s) were passed to this functions.
+ *
+ * @since 0.4.0
+ */
 SR_API int sr_trigger_match_add(struct sr_trigger_stage *stage,
 		struct sr_channel *ch, int trigger_match, float value)
 {
@@ -89,8 +142,6 @@ SR_API int sr_trigger_match_add(struct sr_trigger_stage *stage,
 			sr_err("Invalid trigger match for a logic channel.");
 			return SR_ERR_ARG;
 		}
-
-
 	} else if (ch->type == SR_CHANNEL_ANALOG) {
 		if (trigger_match != SR_TRIGGER_FALLING &&
 				trigger_match != SR_TRIGGER_OVER &&
