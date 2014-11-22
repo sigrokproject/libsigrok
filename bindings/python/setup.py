@@ -77,7 +77,7 @@ setup(
             sources = [vpath('sigrok/core/classes.i')],
             swig_opts = ['-c++', '-threads', '-Isigrok/core'] + 
                 ['-I%s' % i for i in includes],
-            extra_compile_args = ['-std=c++11'],
+            extra_compile_args = ['-std=c++11', '-Wno-uninitialized'],
             include_dirs = includes,
             library_dirs = libdirs,
             libraries = libs)
