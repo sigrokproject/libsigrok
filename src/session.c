@@ -316,13 +316,40 @@ SR_API int sr_session_datafeed_callback_add(struct sr_session *session,
 	return SR_OK;
 }
 
+/**
+ * Get the trigger assigned to this session.
+ *
+ * @param session The session to use.
+ *
+ * @retval NULL Invalid (NULL) session was passed to the function.
+ * @retval other The trigger assigned to this session (can be NULL).
+ *
+ * @since 0.4.0
+ */
 SR_API struct sr_trigger *sr_session_trigger_get(struct sr_session *session)
 {
+	if (!session)
+		return NULL;
+
 	return session->trigger;
 }
 
+/**
+ * Set the trigger of this session.
+ *
+ * @param session The session to use. Must not be NULL.
+ * @param trig The trigger to assign to this session. Can be NULL.
+ *
+ * @retval SR_OK Success.
+ * @retval SR_ERR_ARG Invalid argument.
+ *
+ * @since 0.4.0
+ */
 SR_API int sr_session_trigger_set(struct sr_session *session, struct sr_trigger *trig)
 {
+	if (!session)
+		return SR_ERR_ARG;
+
 	session->trigger = trig;
 
 	return SR_OK;
@@ -384,7 +411,6 @@ static int sr_session_iteration(struct sr_session *session, gboolean block)
 
 	return SR_OK;
 }
-
 
 static int verify_trigger(struct sr_trigger *trigger)
 {
