@@ -434,7 +434,7 @@ CXXFLAGS="$CXXFLAGS -Iinclude/libsigrok -I${srcdir}/include -Ibindings/cxx -Ibin
 
 # Find Java compiler and JNI includes for Java bindings.
 AC_CHECK_PROG([HAVE_JAVAC], [javac], [yes], [no])
-if test "x$HAVE_JAVAC" = "xyes"; then
+if test "x$HAVE_JAVAC" = "xyes" && test "x$BINDINGS_JAVA" = "xyes"; then
 	AX_PROG_JAVAC
 	if test "x$JNI_INCLUDE_DIRS" = "xauto"; then
 		if test "x$cross_compiling" = "xyes"; then
