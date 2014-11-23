@@ -118,6 +118,73 @@ START_TEST(test_session_destroy_bogus)
 }
 END_TEST
 
+START_TEST(test_session_trigger_set_get)
+{
+	int ret;
+	struct sr_session *sess;
+	struct sr_trigger *t1, *t2;
+
+	sr_session_new(&sess);
+	t1 = sr_trigger_new("T1");
+
+	/* Set a trigger and see if getting it works OK. */
+	ret = sr_session_trigger_set(sess, t1);
+	fail_unless(ret == SR_OK);
+	t2 = sr_session_trigger_get(sess);
+	fail_unless(t2 != NULL);
+	fail_unless(t1 == t2);
+	fail_unless(g_slist_length(t1->stages) == g_slist_length(t2->stages));
+	fail_unless(!strcmp(t1->name, t2->name));
+
+	sr_session_destroy(sess);
+}
+END_TEST
+
+START_TEST(test_session_trigger_set_get_null)
+{
+	int ret;
+	struct sr_session *sess;
+	struct sr_trigger *t;
+
+	sr_session_new(&sess);
+
+	/* Adding a NULL trigger is allowed. */
+	ret = sr_session_trigger_set(sess, NULL);
+	fail_unless(ret == SR_OK);
+	t = sr_session_trigger_get(sess);
+	fail_unless(t == NULL);
+
+	sr_session_destroy(sess);
+}
+END_TEST
+
+START_TEST(test_session_trigger_set_null)
+{
+	int ret;
+	struct sr_trigger *t;
+
+	t = sr_trigger_new("T1");
+
+	/* NULL session, must not segfault. */
+	ret = sr_session_trigger_set(NULL, t);
+	fail_unless(ret == SR_ERR_ARG);
+
+	/* NULL session and NULL trigger, must not segfault. */
+	ret = sr_session_trigger_set(NULL, NULL);
+	fail_unless(ret == SR_ERR_ARG);
+}
+END_TEST
+
+START_TEST(test_session_trigger_get_null)
+{
+	struct sr_trigger *t;
+
+	/* NULL session, must not segfault. */
+	t = sr_session_trigger_get(NULL);
+	fail_unless(t == NULL);
+}
+END_TEST
+
 Suite *suite_session(void)
 {
 	Suite *s;
@@ -132,6 +199,14 @@ Suite *suite_session(void)
 	tcase_add_test(tc, test_session_new_multiple);
 	tcase_add_test(tc, test_session_destroy);
 	tcase_add_test(tc, test_session_destroy_bogus);
+	suite_add_tcase(s, tc);
+
+	tc = tcase_create("trigger");
+	tcase_add_checked_fixture(tc, srtest_setup, srtest_teardown);
+	tcase_add_test(tc, test_session_trigger_set_get);
+	tcase_add_test(tc, test_session_trigger_set_get_null);
+	tcase_add_test(tc, test_session_trigger_set_null);
+	tcase_add_test(tc, test_session_trigger_get_null);
 	suite_add_tcase(s, tc);
 
 	return s;
