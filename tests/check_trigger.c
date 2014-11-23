@@ -270,6 +270,7 @@ Suite *suite_trigger(void)
 	suite_add_tcase(s, tc);
 
 	tc = tcase_create("match");
+	tcase_set_timeout(tc, 0);
 	tcase_add_checked_fixture(tc, srtest_setup, srtest_teardown);
 	tcase_add_test(tc, test_trigger_match_add);
 	tcase_add_test(tc, test_trigger_match_add_bogus);
