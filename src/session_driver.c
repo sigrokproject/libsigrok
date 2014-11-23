@@ -50,9 +50,9 @@ struct session_vdev {
 };
 
 static const uint32_t devopts[] = {
-	SR_CONF_CAPTUREFILE,
-	SR_CONF_CAPTURE_UNITSIZE,
-	SR_CONF_SAMPLERATE,
+	SR_CONF_CAPTUREFILE | SR_CONF_SET,
+	SR_CONF_CAPTURE_UNITSIZE | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET,
 };
 
 static int receive_data(int fd, int revents, void *cb_data)
