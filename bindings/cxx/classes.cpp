@@ -1138,7 +1138,11 @@ shared_ptr<Trigger> Session::trigger()
 
 void Session::set_trigger(shared_ptr<Trigger> trigger)
 {
-	check(sr_session_trigger_set(_structure, trigger->_structure));
+	if (!trigger)
+		// Set NULL trigger, i.e. remove any trigger from the session.
+		check(sr_session_trigger_set(_structure, NULL));
+	else
+		check(sr_session_trigger_set(_structure, trigger->_structure));
 	_trigger = trigger;
 }
 
