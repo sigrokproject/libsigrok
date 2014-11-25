@@ -458,7 +458,7 @@ SR_PRIV void fx2lafw_receive_transfer(struct libusb_transfer *transfer)
 		}
 	} else {
 		trigger_offset = soft_trigger_logic_check(devc->stl,
-				transfer->buffer, transfer->actual_length);
+				transfer->buffer, transfer->actual_length, NULL);
 		if (trigger_offset > -1) {
 			packet.type = SR_DF_LOGIC;
 			packet.payload = &logic;

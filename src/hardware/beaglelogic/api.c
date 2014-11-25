@@ -361,7 +361,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 
 	/* Configure triggers & send header packet */
 	if ((trigger = sr_session_trigger_get(sdi->session))) {
-		devc->stl = soft_trigger_logic_new(sdi, trigger);
+		devc->stl = soft_trigger_logic_new(sdi, trigger, 0);
 		devc->trigger_fired = FALSE;
 	} else
 		devc->trigger_fired = TRUE;

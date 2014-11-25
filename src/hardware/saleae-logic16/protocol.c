@@ -785,7 +785,7 @@ SR_PRIV void logic16_receive_transfer(struct libusb_transfer *transfer)
 			devc->sent_samples += new_samples;
 		} else {
 			trigger_offset = soft_trigger_logic_check(devc->stl,
-					devc->convbuffer, new_samples * 2);
+					devc->convbuffer, new_samples * 2, NULL);
 			if (trigger_offset > -1) {
 				packet.type = SR_DF_LOGIC;
 				packet.payload = &logic;

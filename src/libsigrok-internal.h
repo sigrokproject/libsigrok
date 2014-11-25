@@ -646,13 +646,18 @@ struct soft_trigger_logic {
 	int unitsize;
 	int cur_stage;
 	uint8_t *prev_sample;
+	uint8_t *pre_trigger_buffer;
+	uint8_t *pre_trigger_head;
+	int pre_trigger_size;
+	int pre_trigger_fill;
 };
 
 SR_PRIV struct soft_trigger_logic *soft_trigger_logic_new(
-		const struct sr_dev_inst *sdi, struct sr_trigger *trigger);
+		const struct sr_dev_inst *sdi, struct sr_trigger *trigger,
+		int pre_trigger_samples);
 SR_PRIV void soft_trigger_logic_free(struct soft_trigger_logic *st);
 SR_PRIV int soft_trigger_logic_check(struct soft_trigger_logic *st, uint8_t *buf,
-		int len);
+		int len, int *pre_trigger_samples);
 
 /*--- hardware/serial.c -----------------------------------------------------*/
 

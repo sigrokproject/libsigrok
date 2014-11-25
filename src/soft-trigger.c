@@ -26,7 +26,8 @@
 /* @endcond */
 
 SR_PRIV struct soft_trigger_logic *soft_trigger_logic_new(
-		const struct sr_dev_inst *sdi, struct sr_trigger *trigger)
+		const struct sr_dev_inst *sdi, struct sr_trigger *trigger,
+		int pre_trigger_samples)
 {
 	struct soft_trigger_logic *stl;
 
@@ -35,14 +36,81 @@ SR_PRIV struct soft_trigger_logic *soft_trigger_logic_new(
 	stl->trigger = trigger;
 	stl->unitsize = (g_slist_length(sdi->channels) + 7) / 8;
 	stl->prev_sample = g_malloc0(stl->unitsize);
+	stl->pre_trigger_size = stl->unitsize * pre_trigger_samples;
+	stl->pre_trigger_buffer = g_malloc(stl->pre_trigger_size);
+	stl->pre_trigger_head = stl->pre_trigger_buffer;
+
+	if (stl->pre_trigger_size > 0 && stl->pre_trigger_buffer == NULL) {
+		soft_trigger_logic_free(stl);
+		return NULL;
+	}
 
 	return stl;
 }
 
 SR_PRIV void soft_trigger_logic_free(struct soft_trigger_logic *stl)
 {
+	g_free(stl->pre_trigger_buffer);
 	g_free(stl->prev_sample);
 	g_free(stl);
+}
+
+static void pre_trigger_append(struct soft_trigger_logic *stl,
+		uint8_t *buf, int len)
+{
+	/* Avoid uselessly copying more than the pre-trigger size. */
+	if (len > stl->pre_trigger_size) {
+		buf += len - stl->pre_trigger_size;
+		len = stl->pre_trigger_size;
+	}
+
+	/* Update the filling level of the pre-trigger circular buffer. */
+	stl->pre_trigger_fill = MIN(stl->pre_trigger_fill + len,
+	                            stl->pre_trigger_size);
+
+	/* Actually copy data to the pre-trigger circular buffer. */
+	while (len > 0) {
+		size_t size = MIN(stl->pre_trigger_buffer + stl->pre_trigger_size
+		                  - stl->pre_trigger_head, len);
+		memcpy(stl->pre_trigger_head, buf, size);
+		stl->pre_trigger_head += size;
+		if (stl->pre_trigger_head >= stl->pre_trigger_buffer
+		                             + stl->pre_trigger_size)
+			stl->pre_trigger_head = stl->pre_trigger_buffer;
+		buf += size;
+		len -= size;
+	}
+}
+
+static void pre_trigger_send(struct soft_trigger_logic *stl,
+		int *pre_trigger_samples)
+{
+	struct sr_datafeed_packet packet;
+	struct sr_datafeed_logic logic;
+
+	packet.type = SR_DF_LOGIC;
+	packet.payload = &logic;
+	logic.unitsize = stl->unitsize;
+
+	if (pre_trigger_samples)
+		*pre_trigger_samples = 0;
+
+	/* If pre-trigger buffer not full, rewind head to the first valid sample. */
+	if (stl->pre_trigger_fill < stl->pre_trigger_size)
+		stl->pre_trigger_head = stl->pre_trigger_buffer;
+
+	/* Send logic packets for the pre-trigger circular buffer content. */
+	while (stl->pre_trigger_fill > 0) {
+		size_t size = MIN(stl->pre_trigger_buffer + stl->pre_trigger_size
+		                  - stl->pre_trigger_head, stl->pre_trigger_fill);
+		logic.length = size;
+		logic.data = stl->pre_trigger_head;
+		sr_session_send(stl->sdi, &packet);
+		stl->pre_trigger_head = stl->pre_trigger_buffer;
+		stl->pre_trigger_fill -= size;
+		if (pre_trigger_samples)
+			*pre_trigger_samples += size / stl->unitsize;
+	}
 }
 
 static gboolean logic_check_match(struct soft_trigger_logic *stl,
@@ -80,7 +148,7 @@ static gboolean logic_check_match(struct soft_trigger_logic *stl,
 /* Returns the offset (in samples) within buf of where the trigger
  * occurred, or -1 if not triggered. */
 SR_PRIV int soft_trigger_logic_check(struct soft_trigger_logic *stl,
-		uint8_t *buf, int len)
+		uint8_t *buf, int len, int *pre_trigger_samples)
 {
 	struct sr_datafeed_packet packet;
 	struct sr_trigger_stage *stage;
@@ -116,7 +184,11 @@ SR_PRIV int soft_trigger_logic_check(struct soft_trigger_logic *stl,
 				/* Advance to next stage. */
 				stl->cur_stage++;
 			} else {
-				/* Matched on last stage, fire trigger. */
+				/* Matched on last stage, send pre-trigger data. */
+				pre_trigger_append(stl, buf, i);
+				pre_trigger_send(stl, pre_trigger_samples);
+
+				/* Fire trigger. */
 				offset = i / stl->unitsize;
 
 				packet.type = SR_DF_TRIGGER;
@@ -141,6 +213,9 @@ SR_PRIV int soft_trigger_logic_check(struct soft_trigger_logic *stl,
 			stl->cur_stage = 0;
 		}
 	}
+
+	if (offset == -1)
+		pre_trigger_append(stl, buf, len);
 
 	return offset;
 }
