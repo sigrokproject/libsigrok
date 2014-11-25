@@ -304,6 +304,7 @@ SR_PRIV struct dev_context *fx2lafw_dev_new(void)
 	devc->fw_updated = 0;
 	devc->cur_samplerate = 0;
 	devc->limit_samples = 0;
+	devc->capture_ratio = 0;
 	devc->sample_wide = FALSE;
 	devc->stl = NULL;
 
@@ -391,6 +392,7 @@ SR_PRIV void fx2lafw_receive_transfer(struct libusb_transfer *transfer)
 	struct sr_datafeed_logic logic;
 	unsigned int num_samples;
 	int trigger_offset, cur_sample_count, unitsize;
+	int pre_trigger_samples;
 
 	sdi = transfer->user_data;
 	devc = sdi->priv;
@@ -458,8 +460,9 @@ SR_PRIV void fx2lafw_receive_transfer(struct libusb_transfer *transfer)
 		}
 	} else {
 		trigger_offset = soft_trigger_logic_check(devc->stl,
-				transfer->buffer, transfer->actual_length, NULL);
+			transfer->buffer, transfer->actual_length, &pre_trigger_samples);
 		if (trigger_offset > -1) {
+			devc->sent_samples += pre_trigger_samples;
 			packet.type = SR_DF_LOGIC;
 			packet.payload = &logic;
 			num_samples = cur_sample_count - trigger_offset;

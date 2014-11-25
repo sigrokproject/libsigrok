@@ -80,6 +80,7 @@ struct dev_context {
 	/* Device/capture settings */
 	uint64_t cur_samplerate;
 	uint64_t limit_samples;
+	uint64_t capture_ratio;
 
 	/* Operational settings */
 	gboolean trigger_fired;
