@@ -102,6 +102,8 @@ static int zip_create(const struct sr_output *o)
 		ch = l->data;
 		if (ch->type != SR_CHANNEL_LOGIC)
 			continue;
+		if (!ch->enabled)
+			continue;
 		fprintf(meta, "probe%d = %s\n", ch->index + 1, ch->name);
 	}
 	fclose(meta);
