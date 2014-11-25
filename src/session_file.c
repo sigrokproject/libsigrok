@@ -124,7 +124,7 @@ SR_API int sr_session_load(const char *filename, struct sr_session **session)
 	struct sr_dev_inst *sdi;
 	struct sr_channel *ch;
 	int ret, i, j;
-	uint64_t tmp_u64, total_channels, enabled_channels, p;
+	uint64_t tmp_u64, total_channels, p;
 	char **sections, **keys, *metafile, *val;
 	char channelname[SR_MAX_CHANNELNAME_LEN + 1];
 
@@ -165,7 +165,6 @@ SR_API int sr_session_load(const char *filename, struct sr_session **session)
 		if (!strncmp(sections[i], "device ", 7)) {
 			/* device section */
 			sdi = NULL;
-			enabled_channels = total_channels = 0;
 			keys = g_key_file_get_keys(kf, sections[i], NULL, NULL);
 			for (j = 0; keys[j]; j++) {
 				val = g_key_file_get_string(kf, sections[i], keys[j], NULL);
@@ -213,7 +212,7 @@ SR_API int sr_session_load(const char *filename, struct sr_session **session)
 							g_variant_new_uint64(total_channels), sdi, NULL);
 					for (p = 0; p < total_channels; p++) {
 						snprintf(channelname, SR_MAX_CHANNELNAME_LEN, "%" PRIu64, p);
-						ch = sr_channel_new(p, SR_CHANNEL_LOGIC, TRUE,
+						ch = sr_channel_new(p, SR_CHANNEL_LOGIC, FALSE,
 								channelname);
 						sdi->channels = g_slist_append(sdi->channels, ch);
 					}
@@ -222,17 +221,13 @@ SR_API int sr_session_load(const char *filename, struct sr_session **session)
 						ret = SR_ERR_DATA;
 						break;
 					}
-					enabled_channels++;
 					tmp_u64 = strtoul(keys[j]+5, NULL, 10);
 					/* sr_session_save() */
 					sr_dev_channel_name_set(sdi, tmp_u64 - 1, val);
+					sr_dev_channel_enable(sdi, tmp_u64 - 1, TRUE);
 				}
 			}
 			g_strfreev(keys);
-			/* Disable channels not specifically listed. */
-			if (total_channels)
-				for (p = enabled_channels; p < total_channels; p++)
-					sr_dev_channel_enable(sdi, p, FALSE);
 		}
 	}
 	g_strfreev(sections);
