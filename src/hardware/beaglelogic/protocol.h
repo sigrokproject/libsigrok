@@ -43,6 +43,7 @@ struct dev_context {
 	uint64_t limit_samples;
 	uint32_t sampleunit;
 	uint32_t triggerflags;
+	uint64_t capture_ratio;
 
 	/* Buffers: size of each buffer block and the total buffer area */
 	uint32_t bufunitsize;

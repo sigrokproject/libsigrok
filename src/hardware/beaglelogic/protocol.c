@@ -40,6 +40,7 @@ SR_PRIV int beaglelogic_receive_data(int fd, int revents, void *cb_data)
 	struct sr_datafeed_logic logic;
 
 	int trigger_offset;
+	int pre_trigger_samples;
 	uint32_t packetsize;
 	uint64_t bytes_remaining;
 
@@ -67,8 +68,9 @@ SR_PRIV int beaglelogic_receive_data(int fd, int revents, void *cb_data)
 		} else {
 			/* Check for trigger */
 			trigger_offset = soft_trigger_logic_check(devc->stl,
-					logic.data, packetsize, NULL);
+					logic.data, packetsize, &pre_trigger_samples);
 			if (trigger_offset > -1) {
+				devc->bytes_read += pre_trigger_samples * logic.unitsize;
 				trigger_offset *= logic.unitsize;
 				logic.length = MIN(packetsize - trigger_offset,
 						bytes_remaining);
