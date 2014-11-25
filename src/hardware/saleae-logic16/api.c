@@ -53,6 +53,7 @@ static const uint32_t devopts[] = {
 	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_VOLTAGE_THRESHOLD | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST,
+	SR_CONF_CAPTURE_RATIO | SR_CONF_GET | SR_CONF_SET,
 };
 
 static const int32_t soft_trigger_matches[] = {
@@ -459,6 +460,12 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		devc = sdi->priv;
 		*data = g_variant_new_uint64(devc->cur_samplerate);
 		break;
+	case SR_CONF_CAPTURE_RATIO:
+		if (!sdi)
+			return SR_ERR;
+		devc = sdi->priv;
+		*data = g_variant_new_uint64(devc->capture_ratio);
+		break;
 	case SR_CONF_VOLTAGE_THRESHOLD:
 		if (!sdi)
 			return SR_ERR;
@@ -504,6 +511,14 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
 		devc->limit_samples = g_variant_get_uint64(data);
+		break;
+	case SR_CONF_CAPTURE_RATIO:
+		devc->capture_ratio = g_variant_get_uint64(data);
+		if (devc->capture_ratio > 100) {
+			devc->capture_ratio = 0;
+			ret = SR_ERR;
+		} else
+			ret = SR_OK;
 		break;
 	case SR_CONF_VOLTAGE_THRESHOLD:
 		g_variant_get(data, "(dd)", &low, &high);
@@ -719,7 +734,12 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	memset(devc->channel_data, 0, sizeof(devc->channel_data));
 
 	if ((trigger = sr_session_trigger_get(sdi->session))) {
-		devc->stl = soft_trigger_logic_new(sdi, trigger, 0);
+		int pre_trigger_samples = 0;
+		if (devc->limit_samples > 0)
+			pre_trigger_samples = devc->capture_ratio * devc->limit_samples/100;
+		devc->stl = soft_trigger_logic_new(sdi, trigger, pre_trigger_samples);
+		if (devc->stl == NULL)
+			return SR_ERR_MALLOC;
 		devc->trigger_fired = FALSE;
 	} else
 		devc->trigger_fired = TRUE;

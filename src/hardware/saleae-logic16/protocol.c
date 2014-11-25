@@ -713,6 +713,7 @@ SR_PRIV void logic16_receive_transfer(struct libusb_transfer *transfer)
 	struct dev_context *devc;
 	size_t new_samples, num_samples;
 	int trigger_offset;
+	int pre_trigger_samples;
 
 	sdi = transfer->user_data;
 	devc = sdi->priv;
@@ -785,8 +786,9 @@ SR_PRIV void logic16_receive_transfer(struct libusb_transfer *transfer)
 			devc->sent_samples += new_samples;
 		} else {
 			trigger_offset = soft_trigger_logic_check(devc->stl,
-					devc->convbuffer, new_samples * 2, NULL);
+					devc->convbuffer, new_samples * 2, &pre_trigger_samples);
 			if (trigger_offset > -1) {
+				devc->sent_samples += pre_trigger_samples;
 				packet.type = SR_DF_LOGIC;
 				packet.payload = &logic;
 				num_samples = new_samples - trigger_offset;
