@@ -726,8 +726,8 @@ SR_PRIV void logic16_receive_transfer(struct libusb_transfer *transfer)
 		return;
 	}
 
-	sr_info("receive_transfer(): status %d received %d bytes.",
-		transfer->status, transfer->actual_length);
+	sr_info("receive_transfer(): status %s received %d bytes.",
+		libusb_error_name(transfer->status), transfer->actual_length);
 
 	switch (transfer->status) {
 	case LIBUSB_TRANSFER_NO_DEVICE:
