@@ -470,8 +470,8 @@ SR_PRIV int logic16_setup_acquisition(const struct sr_dev_inst *sdi,
 	reg1 &= ~0x20;
 
 	if (devc->fpga_variant == FPGA_VARIANT_ORIGINAL && reg1 != 0x08) {
-		sr_dbg("Invalid state at acquisition setup register 1: 0x%02x != 0x08.", reg1);
-		return SR_ERR;
+		sr_dbg("Invalid state at acquisition setup register 1: 0x%02x != 0x08. "
+		       "Proceeding anyway.", reg1);
 	}
 
 	if ((ret = write_fpga_register(sdi, 1, 0x40)) != SR_OK)
@@ -507,9 +507,8 @@ SR_PRIV int logic16_setup_acquisition(const struct sr_dev_inst *sdi,
 		return ret;
 
 	if (devc->fpga_variant == FPGA_VARIANT_ORIGINAL && reg10 != clock_select) {
-		sr_dbg("Invalid state at acquisition setup register 10: 0x%02x != 0x%02x.",
-		       reg10, clock_select);
-		return SR_ERR;
+		sr_dbg("Invalid state at acquisition setup register 10: 0x%02x != 0x%02x. "
+		       "Proceeding anyway.", reg10, clock_select);
 	}
 
 	return SR_OK;
