@@ -36,6 +36,7 @@ libsigrok_la_SOURCES = \
 	src/trigger.c \
 	src/soft-trigger.c \
 	src/analog.c \
+	src/fallback.c \
 	src/strutil.c \
 	src/log.c \
 	src/version.c \

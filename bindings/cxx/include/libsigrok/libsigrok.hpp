@@ -292,6 +292,7 @@ public:
 	/** Open an input stream based on header data.
 	 * @param header Initial data from stream. */
 	shared_ptr<Input> open_stream(string header);
+	map<string, string> serials(shared_ptr<Driver> driver);
 protected:
 	map<string, Driver *> _drivers;
 	map<string, InputFormat *> _input_formats;

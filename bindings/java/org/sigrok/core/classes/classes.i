@@ -137,6 +137,11 @@ VECTOR(std::shared_ptr<sigrok::HardwareDevice>, HardwareDevice)
 
 MAP_COMMON(std::string, std::string, String, String)
 
+%typemap(jni) std::map<std::string, std::string>
+  "jobject"
+%typemap(jtype) std::map<std::string, std::string>
+  "java.util.Map<String,String>"
+
 %typemap(out) std::map<std::string, std::string> {
   jclass HashMap = jenv->FindClass("java/util/HashMap");
   jmethodID init = jenv->GetMethodID(HashMap, "<init>", "()V");

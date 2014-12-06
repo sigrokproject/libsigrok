@@ -808,6 +808,57 @@ SR_PRIV int serial_source_remove(struct sr_session *session,
 	return SR_OK;
 }
 
+static struct sr_serial_port *sr_serial_new(const char *name,
+		const char *description)
+{
+	struct sr_serial_port *serial;
+
+	if (!name)
+		return NULL;
+
+	serial = g_malloc(sizeof(*serial));
+	serial->name = g_strdup(name);
+	serial->description = g_strdup(description ? description : "");
+	return serial;
+}
+
+SR_API void sr_serial_free(struct sr_serial_port *serial)
+{
+	if (serial == NULL)
+		return;
+	g_free(serial->name);
+	g_free(serial->description);
+	g_free(serial);
+}
+
+/**
+ * List available serial devices.
+ *
+ * @return A GSList of strings containing the path of the serial devices or
+ *         NULL if no serial device is found. The returned list must be freed
+ *         by the caller.
+ */
+SR_API GSList *sr_serial_list(const struct sr_dev_driver *driver)
+{
+	GSList *tty_devs = NULL;
+	struct sp_port **ports;
+	int i;
+
+	(void)driver;
+
+	if (sp_list_ports(&ports) != SP_OK)
+		return NULL;
+
+	for (i=0; ports[i]; i++) {
+		struct sr_serial_port *port = sr_serial_new(sp_get_port_name(ports[i]),
+		                                     sp_get_port_description(ports[i]));
+		tty_devs = g_slist_append(tty_devs, port);
+	}
+
+	sp_free_port_list(ports);
+	return tty_devs;
+}
+
 /**
  * Find USB serial devices via the USB vendor ID and product ID.
  *

@@ -185,6 +185,11 @@ SR_API struct sr_trigger_stage *sr_trigger_stage_add(struct sr_trigger *trig);
 SR_API int sr_trigger_match_add(struct sr_trigger_stage *stage,
 		struct sr_channel *ch, int trigger_match, float value);
 
+/*--- serial.c --------------------------------------------------------------*/
+
+SR_API GSList *sr_serial_list(const struct sr_dev_driver *driver);
+SR_API void sr_serial_free(struct sr_serial_port *serial);
+
 /*--- strutil.c -------------------------------------------------------------*/
 
 SR_API char *sr_si_string_u64(uint64_t x, const char *unit);

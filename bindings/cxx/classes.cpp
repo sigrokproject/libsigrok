@@ -318,6 +318,20 @@ shared_ptr<Input> Context::open_stream(string header)
 		new Input(shared_from_this(), input), Input::Deleter());
 }
 
+map<string, string> Context::serials(shared_ptr<Driver> driver)
+{
+	GSList *serial_list = sr_serial_list(driver ? driver->_structure : NULL);
+	map<string, string> serials;
+
+	for (GSList *serial = serial_list; serial; serial = serial->next) {
+		struct sr_serial_port *port = (sr_serial_port *) serial->data;
+		serials[string(port->name)] = string(port->description);
+	}
+
+	g_slist_free_full(serial_list, (GDestroyNotify)sr_serial_free);
+	return serials;
+}
+
 Driver::Driver(struct sr_dev_driver *structure) :
 	ParentOwned(structure),
 	Configurable(structure, NULL, NULL),

@@ -1043,6 +1043,14 @@ struct sr_dev_driver {
  */
 struct sr_session;
 
+/** Serial port descriptor. */
+struct sr_serial_port {
+	/** The OS dependent name of the serial port. */
+	char *name;
+	/** An end user friendly description for the serial port. */
+	char *description;
+};
+
 #include "proto.h"
 #include "version.h"
 
