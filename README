@@ -66,7 +66,7 @@ Requirements for the Python bindings:
  - Python setuptools (for Python 2 or 3)
  - pygobject >= 3.0.0 (for Python 2 or 3), a.k.a python-gi
  - numpy (for Python 2 or 3)
- - SWIG
+ - SWIG >= 2.0.0
  - doxygen (optional, only needed for the Python API docs)
  - graphviz (optional, only needed for the Python API docs)
  - doxypy (optional, only needed for the Python API docs)
@@ -74,7 +74,7 @@ Requirements for the Python bindings:
 Requirements for the Java bindings:
 
  - libsigrokxx >= 0.3.0 (the libsigrok C++ bindings, see above)
- - SWIG
+ - SWIG >= 2.0.0
  - Java JDK (for JNI includes and the javac/jar binaries)
  - doxygen (optional, only needed for the Java API docs)
  - graphviz (optional, only needed for the Java API docs)
