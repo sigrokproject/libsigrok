@@ -775,11 +775,11 @@ static int receive_data(int fd, int revents, void *cb_data)
 	return TRUE;
 }
 
-static int add_channel(struct sr_dev_inst *sdi, const char *name)
+static int add_channel(struct sr_dev_inst *sdi, int idx, const char *name)
 {
 	struct sr_channel *ch;
 
-	ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, name);
+	ch = sr_channel_new(idx, SR_CHANNEL_ANALOG, TRUE, name);
 	sdi->channels = g_slist_append(sdi->channels, ch);
 
 	return SR_OK;
@@ -795,7 +795,7 @@ static int setup_channels(struct sr_dev_inst *sdi)
 	ret = SR_ERR_BUG;
 
 	for (i = 0; i < ARRAY_SIZE(channel_names); i++) {
-		ret = add_channel(sdi, channel_names[i]);
+		ret = add_channel(sdi, i, channel_names[i]);
 		if (ret != SR_OK)
 			break;
 	}
