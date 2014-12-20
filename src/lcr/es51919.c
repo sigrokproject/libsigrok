@@ -100,32 +100,33 @@ static uint8_t *dev_buffer_packet_find(struct dev_buffer *dbuf,
 	return NULL;
 }
 
-struct dev_sample_counter {
-	/** The current number of already received samples. */
+struct dev_limit_counter {
+	/** The current number of received samples/frames/etc. */
 	uint64_t count;
-	/** The current sampling limit (in number of samples). */
+	/** The limit (in number of samples/frames/etc.). */
 	uint64_t limit;
 };
 
-static void dev_sample_counter_start(struct dev_sample_counter *cnt)
+static void dev_limit_counter_start(struct dev_limit_counter *cnt)
 {
 	cnt->count = 0;
 }
 
-static void dev_sample_counter_inc(struct dev_sample_counter *cnt)
+static void dev_limit_counter_inc(struct dev_limit_counter *cnt)
 {
 	cnt->count++;
 }
 
-static void dev_sample_limit_set(struct dev_sample_counter *cnt, uint64_t limit)
+static void dev_limit_counter_limit_set(struct dev_limit_counter *cnt,
+					uint64_t limit)
 {
 	cnt->limit = limit;
 }
 
-static gboolean dev_sample_limit_reached(struct dev_sample_counter *cnt)
+static gboolean dev_limit_counter_limit_reached(struct dev_limit_counter *cnt)
 {
 	if (cnt->limit && cnt->count >= cnt->limit) {
-		sr_info("Requested sample limit reached.");
+		sr_info("Requested counter limit reached.");
 		return TRUE;
 	}
 
@@ -431,8 +432,8 @@ struct dev_context {
 	/** Opaque pointer passed in by the frontend. */
 	void *cb_data;
 
-	/** The number of samples. */
-	struct dev_sample_counter sample_count;
+	/** The number of frames. */
+	struct dev_limit_counter frame_count;
 
 	/** The time limit counter. */
 	struct dev_time_counter time_count;
@@ -743,7 +744,7 @@ static void handle_packet(struct sr_dev_inst *sdi, const uint8_t *pkt)
 	if (frame) {
 		packet.type = SR_DF_FRAME_END;
 		sr_session_send(devc->cb_data, &packet);
-		dev_sample_counter_inc(&devc->sample_count);
+		dev_limit_counter_inc(&devc->frame_count);
 	}
 }
 
@@ -784,7 +785,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 		handle_new_data(sdi);
 	}
 
-	if (dev_sample_limit_reached(&devc->sample_count) ||
+	if (dev_limit_counter_limit_reached(&devc->frame_count) ||
 	    dev_time_limit_reached(&devc->time_count))
 		sdi->driver->dev_acquisition_stop(sdi, cb_data);
 
@@ -928,10 +929,10 @@ SR_PRIV int es51919_serial_config_set(uint32_t key, GVariant *data,
 		dev_time_limit_set(&devc->time_count, val);
 		sr_dbg("Setting time limit to %" PRIu64 ".", val);
 		break;
-	case SR_CONF_LIMIT_SAMPLES:
+	case SR_CONF_LIMIT_FRAMES:
 		val = g_variant_get_uint64(data);
-		dev_sample_limit_set(&devc->sample_count, val);
-		sr_dbg("Setting sample limit to %" PRIu64 ".", val);
+		dev_limit_counter_limit_set(&devc->frame_count, val);
+		sr_dbg("Setting frame limit to %" PRIu64 ".", val);
 		break;
 	default:
 		sr_spew("%s: Unsupported key %u", __func__, key);
@@ -949,7 +950,7 @@ static const uint32_t scanopts[] = {
 static const uint32_t devopts[] = {
 	SR_CONF_LCRMETER,
 	SR_CONF_CONTINUOUS,
-	SR_CONF_LIMIT_SAMPLES | SR_CONF_SET,
+	SR_CONF_LIMIT_FRAMES | SR_CONF_SET,
 	SR_CONF_LIMIT_MSEC | SR_CONF_SET,
 	SR_CONF_OUTPUT_FREQUENCY | SR_CONF_GET | SR_CONF_LIST,
 	SR_CONF_MEASURED_QUANTITY | SR_CONF_GET | SR_CONF_LIST,
@@ -1010,7 +1011,7 @@ SR_PRIV int es51919_serial_acquisition_start(const struct sr_dev_inst *sdi,
 
 	devc->cb_data = cb_data;
 
-	dev_sample_counter_start(&devc->sample_count);
+	dev_limit_counter_start(&devc->frame_count);
 	dev_time_counter_start(&devc->time_count);
 
 	/* Send header packet to the session bus. */
