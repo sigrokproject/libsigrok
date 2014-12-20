@@ -665,7 +665,7 @@ static void handle_packet(struct sr_dev_inst *sdi, const uint8_t *pkt)
 	struct dev_context *devc;
 	unsigned int val;
 	float floatval;
-	int count;
+	gboolean frame;
 
 	devc = sdi->priv;
 
@@ -701,34 +701,50 @@ static void handle_packet(struct sr_dev_inst *sdi, const uint8_t *pkt)
 			return;
 	}
 
-	count = 0;
+	frame = FALSE;
 
 	memset(&analog, 0, sizeof(analog));
 
 	analog.num_samples = 1;
 	analog.data = &floatval;
 
-	packet.type = SR_DF_ANALOG;
-	packet.payload = &analog;
-
 	analog.channels = g_slist_append(NULL, sdi->channels->data);
 
 	parse_measurement(pkt, &floatval, &analog, 0);
 	if (analog.mq >= 0) {
-		if (sr_session_send(devc->cb_data, &packet) == SR_OK)
-			count++;
+		if (!frame) {
+			packet.type = SR_DF_FRAME_BEGIN;
+			sr_session_send(devc->cb_data, &packet);
+			frame = TRUE;
+		}
+
+		packet.type = SR_DF_ANALOG;
+		packet.payload = &analog;
+
+		sr_session_send(devc->cb_data, &packet);
 	}
 
 	analog.channels = g_slist_append(NULL, sdi->channels->next->data);
 
 	parse_measurement(pkt, &floatval, &analog, 1);
 	if (analog.mq >= 0) {
-		if (sr_session_send(devc->cb_data, &packet) == SR_OK)
-			count++;
+		if (!frame) {
+			packet.type = SR_DF_FRAME_BEGIN;
+			sr_session_send(devc->cb_data, &packet);
+			frame = TRUE;
+		}
+
+		packet.type = SR_DF_ANALOG;
+		packet.payload = &analog;
+
+		sr_session_send(devc->cb_data, &packet);
 	}
 
-	if (count > 0)
+	if (frame) {
+		packet.type = SR_DF_FRAME_END;
+		sr_session_send(devc->cb_data, &packet);
 		dev_sample_counter_inc(&devc->sample_count);
+	}
 }
 
 static int handle_new_data(struct sr_dev_inst *sdi)
