@@ -1072,6 +1072,27 @@ SR_PRIV gboolean sr_ut71x_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_ut71x_parse(const uint8_t *buf, float *floatval,
 		struct sr_datafeed_analog *analog, void *info);
 
+/*--- hardware/dmm/vc870.c --------------------------------------------------*/
+
+#define VC870_PACKET_SIZE 23
+
+struct vc870_info {
+	gboolean is_voltage, is_dc, is_ac, is_temperature, is_resistance;
+	gboolean is_continuity, is_capacitance, is_diode, is_loop_current;
+	gboolean is_current, is_micro, is_milli, is_power;
+	gboolean is_power_factor_freq, is_power_apparent_power, is_v_a_eff_value;
+	gboolean is_sign2, is_sign1, is_batt, is_ol1, is_max, is_min;
+	gboolean is_maxmin, is_rel, is_ol2, is_open, is_manu, is_hold;
+	gboolean is_light, is_usb, is_warning, is_auto_power, is_misplug_warn;
+	gboolean is_lo, is_hi, is_open2;
+
+	gboolean is_frequency, is_dual_display, is_auto, is_rms;
+};
+
+SR_PRIV gboolean sr_vc870_packet_valid(const uint8_t *buf);
+SR_PRIV int sr_vc870_parse(const uint8_t *buf, float *floatval,
+		struct sr_datafeed_analog *analog, void *info);
+
 /*--- hardware/lcr/es51919.c ------------------------------------------------*/
 
 SR_PRIV void es51919_serial_clean(void *priv);

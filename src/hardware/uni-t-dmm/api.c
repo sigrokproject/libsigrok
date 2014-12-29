@@ -54,6 +54,7 @@ SR_PRIV struct sr_dev_driver uni_t_ut71e_driver_info;
 SR_PRIV struct sr_dev_driver voltcraft_vc820_driver_info;
 SR_PRIV struct sr_dev_driver voltcraft_vc830_driver_info;
 SR_PRIV struct sr_dev_driver voltcraft_vc840_driver_info;
+SR_PRIV struct sr_dev_driver voltcraft_vc870_driver_info;
 SR_PRIV struct sr_dev_driver voltcraft_vc920_driver_info;
 SR_PRIV struct sr_dev_driver voltcraft_vc940_driver_info;
 SR_PRIV struct sr_dev_driver voltcraft_vc960_driver_info;
@@ -176,6 +177,11 @@ SR_PRIV struct dmm_info udmms[] = {
 		sr_fs9721_packet_valid, sr_fs9721_parse,
 		sr_fs9721_00_temp_c,
 		&voltcraft_vc840_driver_info, receive_data_VOLTCRAFT_VC840,
+	},
+	{
+		"Voltcraft", "VC-870", 9600, VC870_PACKET_SIZE,
+		sr_vc870_packet_valid, sr_vc870_parse, NULL,
+		&voltcraft_vc870_driver_info, receive_data_VOLTCRAFT_VC870,
 	},
 	{
 		"Voltcraft", "VC-920", 2400, UT71X_PACKET_SIZE,
@@ -468,6 +474,7 @@ DRV(uni_t_ut71e, UNI_T_UT71E, "uni-t-ut71e", "UNI-T UT71E")
 DRV(voltcraft_vc820, VOLTCRAFT_VC820, "voltcraft-vc820", "Voltcraft VC-820")
 DRV(voltcraft_vc830, VOLTCRAFT_VC830, "voltcraft-vc830", "Voltcraft VC-830")
 DRV(voltcraft_vc840, VOLTCRAFT_VC840, "voltcraft-vc840", "Voltcraft VC-840")
+DRV(voltcraft_vc870, VOLTCRAFT_VC870, "voltcraft-vc870", "Voltcraft VC-870")
 DRV(voltcraft_vc920, VOLTCRAFT_VC920, "voltcraft-vc920", "Voltcraft VC-920")
 DRV(voltcraft_vc940, VOLTCRAFT_VC940, "voltcraft-vc940", "Voltcraft VC-940")
 DRV(voltcraft_vc960, VOLTCRAFT_VC960, "voltcraft-vc960", "Voltcraft VC-960")

@@ -47,6 +47,7 @@ enum {
 	VOLTCRAFT_VC820,
 	VOLTCRAFT_VC830,
 	VOLTCRAFT_VC840,
+	VOLTCRAFT_VC870,
 	VOLTCRAFT_VC920,
 	VOLTCRAFT_VC940,
 	VOLTCRAFT_VC960,
@@ -111,6 +112,7 @@ SR_PRIV int receive_data_UNI_T_UT71E(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_VOLTCRAFT_VC820(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_VOLTCRAFT_VC830(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_VOLTCRAFT_VC840(int fd, int revents, void *cb_data);
+SR_PRIV int receive_data_VOLTCRAFT_VC870(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_VOLTCRAFT_VC920(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_VOLTCRAFT_VC940(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_VOLTCRAFT_VC960(int fd, int revents, void *cb_data);

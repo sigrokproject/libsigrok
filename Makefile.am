@@ -116,7 +116,8 @@ libsigrok_la_SOURCES += \
 	src/dmm/rs9lcd.c \
 	src/dmm/bm25x.c \
 	src/dmm/ut71x.c \
-	src/dmm/ut372.c
+	src/dmm/ut372.c \
+	src/dmm/vc870.c
 
 # Hardware (LCR chip parsers)
 if NEED_SERIAL

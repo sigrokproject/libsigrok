@@ -65,6 +65,7 @@ SR_PRIV struct sr_dev_driver voltcraft_me42_driver_info;
 SR_PRIV struct sr_dev_driver voltcraft_vc820_ser_driver_info;
 SR_PRIV struct sr_dev_driver voltcraft_vc830_ser_driver_info;
 SR_PRIV struct sr_dev_driver voltcraft_vc840_ser_driver_info;
+SR_PRIV struct sr_dev_driver voltcraft_vc870_ser_driver_info;
 SR_PRIV struct sr_dev_driver voltcraft_vc920_ser_driver_info;
 SR_PRIV struct sr_dev_driver voltcraft_vc940_ser_driver_info;
 SR_PRIV struct sr_dev_driver voltcraft_vc960_ser_driver_info;
@@ -262,6 +263,13 @@ SR_PRIV struct dmm_info dmms[] = {
 		sr_fs9721_00_temp_c,
 		&voltcraft_vc840_ser_driver_info,
 		receive_data_VOLTCRAFT_VC840_SER,
+	},
+	{
+		"Voltcraft", "VC-870 (UT-D02 cable)", "9600/8n1/rts=0/dtr=1",
+		9600, VC870_PACKET_SIZE, 0, 0, NULL,
+		sr_vc870_packet_valid, sr_vc870_parse,
+		NULL,
+		&voltcraft_vc870_ser_driver_info, receive_data_VOLTCRAFT_VC870_SER,
 	},
 	{
 		"Voltcraft", "VC-920 (UT-D02 cable)", "2400/7o1/rts=0/dtr=1",
@@ -685,6 +693,7 @@ DRV(voltcraft_me42, VOLTCRAFT_ME42, "voltcraft-me42", "Voltcraft ME-42")
 DRV(voltcraft_vc820_ser, VOLTCRAFT_VC820_SER, "voltcraft-vc820-ser", "Voltcraft VC-820 (UT-D02 cable)")
 DRV(voltcraft_vc830_ser, VOLTCRAFT_VC830_SER, "voltcraft-vc830-ser", "Voltcraft VC-830 (UT-D02 cable)")
 DRV(voltcraft_vc840_ser, VOLTCRAFT_VC840_SER, "voltcraft-vc840-ser", "Voltcraft VC-840 (UT-D02 cable)")
+DRV(voltcraft_vc870_ser, VOLTCRAFT_VC870_SER, "voltcraft-vc870-ser", "Voltcraft VC-870 (UT-D02 cable)")
 DRV(voltcraft_vc920_ser, VOLTCRAFT_VC920_SER, "voltcraft-vc920-ser", "Voltcraft VC-920 (UT-D02 cable)")
 DRV(voltcraft_vc940_ser, VOLTCRAFT_VC940_SER, "voltcraft-vc940-ser", "Voltcraft VC-940 (UT-D02 cable)")
 DRV(voltcraft_vc960_ser, VOLTCRAFT_VC960_SER, "voltcraft-vc960-ser", "Voltcraft VC-960 (UT-D02 cable)")

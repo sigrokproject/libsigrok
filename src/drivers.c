@@ -152,6 +152,7 @@ extern SR_PRIV struct sr_dev_driver voltcraft_me42_driver_info;
 extern SR_PRIV struct sr_dev_driver voltcraft_vc820_ser_driver_info;
 extern SR_PRIV struct sr_dev_driver voltcraft_vc830_ser_driver_info;
 extern SR_PRIV struct sr_dev_driver voltcraft_vc840_ser_driver_info;
+extern SR_PRIV struct sr_dev_driver voltcraft_vc870_ser_driver_info;
 extern SR_PRIV struct sr_dev_driver voltcraft_vc920_ser_driver_info;
 extern SR_PRIV struct sr_dev_driver voltcraft_vc940_ser_driver_info;
 extern SR_PRIV struct sr_dev_driver voltcraft_vc960_ser_driver_info;
@@ -202,6 +203,7 @@ extern SR_PRIV struct sr_dev_driver uni_t_ut71e_driver_info;
 extern SR_PRIV struct sr_dev_driver voltcraft_vc820_driver_info;
 extern SR_PRIV struct sr_dev_driver voltcraft_vc830_driver_info;
 extern SR_PRIV struct sr_dev_driver voltcraft_vc840_driver_info;
+extern SR_PRIV struct sr_dev_driver voltcraft_vc870_driver_info;
 extern SR_PRIV struct sr_dev_driver voltcraft_vc920_driver_info;
 extern SR_PRIV struct sr_dev_driver voltcraft_vc940_driver_info;
 extern SR_PRIV struct sr_dev_driver voltcraft_vc960_driver_info;
@@ -353,6 +355,7 @@ SR_PRIV struct sr_dev_driver *drivers_list[] = {
 	&voltcraft_vc820_ser_driver_info,
 	&voltcraft_vc830_ser_driver_info,
 	&voltcraft_vc840_ser_driver_info,
+	&voltcraft_vc870_ser_driver_info,
 	&voltcraft_vc920_ser_driver_info,
 	&voltcraft_vc940_ser_driver_info,
 	&voltcraft_vc960_ser_driver_info,
@@ -403,6 +406,7 @@ SR_PRIV struct sr_dev_driver *drivers_list[] = {
 	&voltcraft_vc820_driver_info,
 	&voltcraft_vc830_driver_info,
 	&voltcraft_vc840_driver_info,
+	&voltcraft_vc870_driver_info,
 	&voltcraft_vc920_driver_info,
 	&voltcraft_vc940_driver_info,
 	&voltcraft_vc960_driver_info,

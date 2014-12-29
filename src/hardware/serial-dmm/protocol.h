@@ -47,6 +47,7 @@ enum {
 	VOLTCRAFT_VC820_SER,
 	VOLTCRAFT_VC830_SER,
 	VOLTCRAFT_VC840_SER,
+	VOLTCRAFT_VC870_SER,
 	VOLTCRAFT_VC920_SER,
 	VOLTCRAFT_VC940_SER,
 	VOLTCRAFT_VC960_SER,
@@ -156,6 +157,7 @@ SR_PRIV int receive_data_VOLTCRAFT_ME42(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_VOLTCRAFT_VC820_SER(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_VOLTCRAFT_VC830_SER(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_VOLTCRAFT_VC840_SER(int fd, int revents, void *cb_data);
+SR_PRIV int receive_data_VOLTCRAFT_VC870_SER(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_VOLTCRAFT_VC920_SER(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_VOLTCRAFT_VC940_SER(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_VOLTCRAFT_VC960_SER(int fd, int revents, void *cb_data);

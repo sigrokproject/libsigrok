@@ -29,10 +29,13 @@
 
 static void log_dmm_packet(const uint8_t *buf)
 {
-	sr_dbg("DMM packet: %02x %02x %02x %02x %02x %02x %02x"
-	       " %02x %02x %02x %02x %02x %02x %02x",
+	sr_dbg("DMM packet: %02x %02x %02x %02x %02x %02x %02x "
+	       "%02x %02x %02x %02x %02x %02x %02x %02x %02x "
+	       "%02x %02x %02x %02x %02x %02x %02x",
 	       buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6],
-	       buf[7], buf[8], buf[9], buf[10], buf[11], buf[12], buf[13]);
+	       buf[7], buf[8], buf[9], buf[10], buf[11], buf[12], buf[13],
+	       buf[14], buf[15], buf[16], buf[17], buf[18], buf[19], buf[20],
+	       buf[21], buf[22]);
 }
 
 static void handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi,
@@ -214,6 +217,7 @@ RECEIVE_DATA(VOLTCRAFT_ME42, metex14)
 RECEIVE_DATA(VOLTCRAFT_VC820_SER, fs9721)
 RECEIVE_DATA(VOLTCRAFT_VC830_SER, fs9922)
 RECEIVE_DATA(VOLTCRAFT_VC840_SER, fs9721)
+RECEIVE_DATA(VOLTCRAFT_VC870_SER, vc870)
 RECEIVE_DATA(VOLTCRAFT_VC920_SER, ut71x)
 RECEIVE_DATA(VOLTCRAFT_VC940_SER, ut71x)
 RECEIVE_DATA(VOLTCRAFT_VC960_SER, ut71x)
