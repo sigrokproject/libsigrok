@@ -159,6 +159,7 @@
 /* Portability fixes for FreeBSD. */
 #ifdef __FreeBSD__
 #define LIBUSB_CLASS_APPLICATION 0xfe
+#define libusb_has_capability(x) 0
 #define libusb_handle_events_timeout_completed(ctx, tv, c) \
 	libusb_handle_events_timeout(ctx, tv)
 #endif
