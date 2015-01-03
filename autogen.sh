@@ -63,11 +63,13 @@ CXXMACROVERSION=$(
 if [ "x$CXXMACROVERSION" = "x" ]; then
 	echo "--- Warning: AX_CXX_COMPILE_STDCXX_11 macro not found."
 	echo "--- You won't be able to build the language bindings!"
+	echo "--- More info: http://sigrok.org/wiki/Building#FAQ"
 fi
 if [ "x$CXXMACROVERSION" != "x" ] && [ "$CXXMACROVERSION" -lt 4 ]; then
 	echo "--- Warning: AX_CXX_COMPILE_STDCXX_11 macro is too old."
 	echo "--- (found version $CXXMACROVERSION, at least 4 is required)"
 	echo "--- You won't be able to build the language bindings!"
+	echo "--- More info: http://sigrok.org/wiki/Building#FAQ"
 fi
 
 autoheader || exit 1
