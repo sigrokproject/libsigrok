@@ -721,18 +721,17 @@ SR_PRIV int sr_serial_extract_options(GSList *options, const char **serial_devic
 		switch (src->key) {
 		case SR_CONF_CONN:
 			*serial_device = g_variant_get_string(src->data, NULL);
-			sr_dbg("Parsed serial device: %s", *serial_device);
+			sr_dbg("Parsed serial device: %s.", *serial_device);
 			break;
-
 		case SR_CONF_SERIALCOMM:
 			*serial_options = g_variant_get_string(src->data, NULL);
-			sr_dbg("Parsed serial options: %s", *serial_options);
+			sr_dbg("Parsed serial options: %s.", *serial_options);
 			break;
 		}
 	}
 
 	if (!*serial_device) {
-		sr_dbg("No serial device specified");
+		sr_dbg("No serial device specified.");
 		return SR_ERR;
 	}
 
@@ -808,6 +807,16 @@ SR_PRIV int serial_source_remove(struct sr_session *session,
 	return SR_OK;
 }
 
+/**
+ * Create/allocate a new sr_serial_port structure.
+ *
+ * @param name The OS dependent name of the serial port. Must not be NULL.
+ * @param description An end user friendly description for the serial port.
+ *                    Can be NULL (in that case the empty string is used
+ *                    as description).
+ *
+ * @return The newly allocated sr_serial_port struct.
+ */
 static struct sr_serial_port *sr_serial_new(const char *name,
 		const char *description)
 {
@@ -816,15 +825,21 @@ static struct sr_serial_port *sr_serial_new(const char *name,
 	if (!name)
 		return NULL;
 
-	serial = g_malloc(sizeof(*serial));
+	serial = g_malloc(sizeof(struct sr_serial_port));
 	serial->name = g_strdup(name);
 	serial->description = g_strdup(description ? description : "");
+
 	return serial;
 }
 
+/**
+ * Free a previously allocated sr_serial_port structure.
+ *
+ * @param serial The sr_serial_port struct to free. Must not be NULL.
+ */
 SR_API void sr_serial_free(struct sr_serial_port *serial)
 {
-	if (serial == NULL)
+	if (!serial)
 		return;
 	g_free(serial->name);
 	g_free(serial->description);
@@ -842,20 +857,23 @@ SR_API GSList *sr_serial_list(const struct sr_dev_driver *driver)
 {
 	GSList *tty_devs = NULL;
 	struct sp_port **ports;
+	struct sr_serial_port *port;
 	int i;
 
+	/* Currently unused, but will be used by some drivers later on. */
 	(void)driver;
 
 	if (sp_list_ports(&ports) != SP_OK)
 		return NULL;
 
-	for (i=0; ports[i]; i++) {
-		struct sr_serial_port *port = sr_serial_new(sp_get_port_name(ports[i]),
-		                                     sp_get_port_description(ports[i]));
+	for (i = 0; ports[i]; i++) {
+		port = sr_serial_new(sp_get_port_name(ports[i]),
+				     sp_get_port_description(ports[i]));
 		tty_devs = g_slist_append(tty_devs, port);
 	}
 
 	sp_free_port_list(ports);
+
 	return tty_devs;
 }
 
@@ -878,14 +896,16 @@ SR_PRIV GSList *sr_serial_find_usb(uint16_t vendor_id, uint16_t product_id)
 	if (sp_list_ports(&ports) != SP_OK)
 		return NULL;
 
-	for (i=0; ports[i]; i++)
+	for (i = 0; ports[i]; i++)
 		if (sp_get_port_transport(ports[i]) == SP_TRANSPORT_USB &&
 		    sp_get_port_usb_vid_pid(ports[i], &vid, &pid) == SP_OK &&
-		    vid == vendor_id && pid == product_id)
+		    vid == vendor_id && pid == product_id) {
 			tty_devs = g_slist_prepend(tty_devs,
-			                           g_strdup(sp_get_port_name(ports[i])));
+					g_strdup(sp_get_port_name(ports[i])));
+		}
 
 	sp_free_port_list(ports);
+
 	return tty_devs;
 }
 
