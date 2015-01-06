@@ -58,7 +58,7 @@ aclocal ${ACLOCAL_DIR} || exit 1
 # Check the version of a specific autoconf macro that tends to cause problems.
 CXXMACROVERSION=$(
 	grep -B 5 'm4_define(\[_AX_CXX_COMPILE_STDCXX_11_testbody\]' aclocal.m4 |
-	sed -nr 's/.*serial[[:space:]]+([[:digit:]]+).*/\1/p'
+	sed -n 's/.*serial[ \t][ \t]*\([0-9][0-9]*\).*/\1/p'
 )
 if [ "x$CXXMACROVERSION" = "x" ]; then
 	echo "--- Warning: AX_CXX_COMPILE_STDCXX_11 macro not found."
