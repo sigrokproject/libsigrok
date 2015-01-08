@@ -504,8 +504,11 @@ $(PDIR)/timestamp: bindings/cxx/libsigrokxx.la $(PDIR)/sigrok/core/classes.i \
 		| grep -v "command line option.*Wstrict-prototypes"; true
 	$(AM_V_at)touch $(PDIR)/timestamp
 
-python-install:
-	cd $(PDIR) && $(PYTHON) $(abs_srcdir)/$(PDIR)/setup.py --quiet install --prefix $(prefix)
+$(DESTDIR)$(prefix):
+	$(MKDIR_P) $@
+
+python-install: $(DESTDIR)$(prefix)
+	cd $(PDIR) && $(PYTHON) $(abs_srcdir)/$(PDIR)/setup.py --quiet install --prefix $(prefix) `test "$(DESTDIR)" && echo --root=$(DESTDIR)`
 
 python-clean:
 	$(AM_V_at)$(MAKE) python-quietclean
