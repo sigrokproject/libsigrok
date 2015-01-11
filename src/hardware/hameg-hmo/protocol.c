@@ -672,6 +672,8 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 
 	(void)fd;
 
+	data = NULL;
+
 	if (!(sdi = cb_data))
 		return TRUE;
 
@@ -704,6 +706,7 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 			sr_session_send(cb_data, &packet);
 			g_slist_free(analog.channels);
 			g_array_free(data, TRUE);
+			data = NULL;
 			break;
 		case SR_CHANNEL_LOGIC:
 			if (sr_scpi_get_uint8v(sdi->conn, NULL, &data) != SR_OK) {
@@ -722,6 +725,7 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 			packet.payload = &logic;
 			sr_session_send(cb_data, &packet);
 			g_array_free(data, TRUE);
+			data = NULL;
 			break;
 		default:
 			sr_err("Invalid channel type.");
