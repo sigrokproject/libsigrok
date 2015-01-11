@@ -383,7 +383,7 @@ SR_PRIV int sr_scpi_get_string(struct sr_scpi_dev_inst *scpi,
 	char buf[256];
 	int len;
 	GString *response;
-	gint64 start;
+	gint64 laststart;
 	unsigned int elapsed_ms;
 
 	if (command)
@@ -393,7 +393,7 @@ SR_PRIV int sr_scpi_get_string(struct sr_scpi_dev_inst *scpi,
 	if (sr_scpi_read_begin(scpi) != SR_OK)
 		return SR_ERR;
 
-	start = g_get_monotonic_time();
+	laststart = g_get_monotonic_time();
 
 	response = g_string_new("");
 
@@ -402,13 +402,15 @@ SR_PRIV int sr_scpi_get_string(struct sr_scpi_dev_inst *scpi,
 	while (!sr_scpi_read_complete(scpi)) {
 		len = sr_scpi_read_data(scpi, buf, sizeof(buf));
 		if (len < 0) {
+			sr_err("Incompletely read SCPI response.");
 			g_string_free(response, TRUE);
 			return SR_ERR;
+		} else if (len > 0) {
+		        laststart = g_get_monotonic_time();
 		}
 		g_string_append_len(response, buf, len);
-		elapsed_ms = (g_get_monotonic_time() - start) / 1000;
-		if (elapsed_ms >= scpi->read_timeout_ms)
-		{
+		elapsed_ms = (g_get_monotonic_time() - laststart) / 1000;
+		if (elapsed_ms >= scpi->read_timeout_ms) {
 			sr_err("Timed out waiting for SCPI response.");
 			g_string_free(response, TRUE);
 			return SR_ERR;
@@ -426,7 +428,7 @@ SR_PRIV int sr_scpi_get_string(struct sr_scpi_dev_inst *scpi,
 	*scpi_response = response->str;
 	g_string_free(response, FALSE);
 
-	sr_spew("Got response: '%.70s'.", *scpi_response);
+	sr_spew("Got response: '%.70s', length %d.", *scpi_response, strlen(*scpi_response));
 
 	return SR_OK;
 }
