@@ -488,7 +488,7 @@ PDIR = bindings/python
 PDOC = bindings/python/sigrok/core/doc.i
 
 $(PDOC): bindings/swig/doc.py $(CPPXMLDOC)
-	$(AM_V_at)test -d $(PDIR)/sigrok/core || mkdir -p $(PDIR)/sigrok/core
+	$(AM_V_at)test -d $(PDIR)/sigrok/core || $(MKDIR_P) $(PDIR)/sigrok/core
 	$(AM_V_GEN)$(PYTHON) $< python $(CPPXMLDOC) > $@
 
 python-build: $(PDIR)/timestamp
@@ -540,7 +540,7 @@ JJAR = $(JDIR)/sigrok-core.jar
 java-build: $(JJAR) $(JLIB)
 
 $(JDOC): bindings/swig/doc.py $(CPPXMLDOC)
-	$(AM_V_at)test -d $(JCLS) || mkdir -p $(JCLS)
+	$(AM_V_at)test -d $(JCLS) || $(MKDIR_P) $(JCLS)
 	$(AM_V_GEN)python $< java $(CPPXMLDOC) > $@
 
 $(JCXX): $(JSWG) $(JDOC) bindings/swig/classes.i $(library_include_HEADERS)
