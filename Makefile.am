@@ -445,7 +445,7 @@ bindings_cxx_libsigrokcxx_la_LIBADD = libsigrok.la $(glibmm_LIBS)
 bindings_cxx_libsigrokcxx_la_LDFLAGS = $(SR_LIB_LDFLAGS)
 
 library_include_HEADERS += \
-	bindings/cxx/include/libsigrok/libsigrok.hpp \
+	bindings/cxx/include/libsigrok/libsigrokcxx.hpp \
 	bindings/cxx/include/libsigrok/enums.hpp
 
 pkgconfig_DATA += bindings/cxx/libsigrokcxx.pc
@@ -478,7 +478,7 @@ endif
 
 CPPXMLDOC = bindings/cxx/doxy/xml/index.xml
 
-$(CPPXMLDOC): bindings/cxx/include/libsigrok/libsigrok.hpp \
+$(CPPXMLDOC): bindings/cxx/include/libsigrok/libsigrokcxx.hpp \
 		bindings/cxx/enums.timestamp
 	$(AM_V_GEN)cd $(srcdir)/bindings/cxx && BUILDDIR=$(abs_builddir)/bindings/cxx/ doxygen Doxyfile 2>/dev/null
 

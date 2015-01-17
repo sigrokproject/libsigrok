@@ -353,7 +353,7 @@ typedef guint pyg_flags_type;
 
 %{
 
-#include "libsigrok/libsigrok.hpp"
+#include "libsigrok/libsigrokcxx.hpp"
 
 /* Convert from a Python dict to a std::map<std::string, std::string> */
 std::map<std::string, std::string> dict_to_map_string(PyObject *dict)

@@ -20,7 +20,7 @@
 #pragma SWIG nowarn=325,401
 
 %{
-#include "libsigrok/libsigrok.hpp"
+#include "libsigrok/libsigrokcxx.hpp"
 using namespace std;
 %}
 
@@ -271,7 +271,7 @@ typedef std::map<const sigrok::ConfigKey *, Glib::VariantBase>
 %attribute(sigrok::Analog, const sigrok::Unit *, unit, unit);
 %attributevector(Analog, std::vector<const sigrok::QuantityFlag *>, mq_flags, mq_flags);
 
-%include "libsigrok/libsigrok.hpp"
+%include "libsigrok/libsigrokcxx.hpp"
 
 %include "enums.i"
 
