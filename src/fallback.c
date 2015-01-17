@@ -25,11 +25,14 @@
 
 SR_API GSList *sr_serial_list(const struct sr_dev_driver *driver)
 {
-    return NULL;
+	(void)driver;
+
+	return NULL;
 }
 
 SR_API void sr_serial_free(struct sr_serial_port *serial)
 {
+	(void)serial;
 }
 
 #endif
