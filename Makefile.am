@@ -436,19 +436,19 @@ CLEAN_EXTRA =
 
 if BINDINGS_CXX
 
-lib_LTLIBRARIES += bindings/cxx/libsigrokxx.la
+lib_LTLIBRARIES += bindings/cxx/libsigrokcxx.la
 
-bindings_cxx_libsigrokxx_la_SOURCES = bindings/cxx/classes.cpp
+bindings_cxx_libsigrokcxx_la_SOURCES = bindings/cxx/classes.cpp
 
-bindings_cxx_libsigrokxx_la_LIBADD = libsigrok.la $(glibmm_LIBS)
+bindings_cxx_libsigrokcxx_la_LIBADD = libsigrok.la $(glibmm_LIBS)
 
-bindings_cxx_libsigrokxx_la_LDFLAGS = $(SR_LIB_LDFLAGS)
+bindings_cxx_libsigrokcxx_la_LDFLAGS = $(SR_LIB_LDFLAGS)
 
 library_include_HEADERS += \
 	bindings/cxx/include/libsigrok/libsigrok.hpp \
 	bindings/cxx/include/libsigrok/enums.hpp
 
-pkgconfig_DATA += bindings/cxx/libsigrokxx.pc
+pkgconfig_DATA += bindings/cxx/libsigrokcxx.pc
 
 doxy/xml/index.xml: include/libsigrok/libsigrok.h
 	$(AM_V_GEN)cd $(srcdir) && BUILDDIR=$(abs_builddir)/ doxygen Doxyfile 2>/dev/null
@@ -497,7 +497,7 @@ python-quietclean:
 	$(AM_V_at)cd $(PDIR) && $(PYTHON) $(abs_srcdir)/$(PDIR)/setup.py --quiet clean --all 3>&1 1>&2 2>&3 \
 		| grep -v "can.t clean it"; true
 
-$(PDIR)/timestamp: bindings/cxx/libsigrokxx.la $(PDIR)/sigrok/core/classes.i \
+$(PDIR)/timestamp: bindings/cxx/libsigrokcxx.la $(PDIR)/sigrok/core/classes.i \
 		bindings/swig/classes.i $(PDOC) $(library_include_HEADERS)
 	$(AM_V_at)$(MAKE) python-quietclean
 	$(AM_V_GEN)cd $(PDIR) && $(PYTHON) $(abs_srcdir)/$(PDIR)/setup.py --quiet build 3>&1 1>&2 2>&3 \
@@ -552,10 +552,10 @@ $(JJAR): $(JCXX)
 	$(AM_V_GEN)$(JAVAC) -sourcepath $(JDIR) -d $(JDIR) $(JSRC)
 	$(AM_V_at)jar cf $(JJAR) -C $(JDIR) $(JPKG)
 
-$(JLIB): $(JCXX) bindings/cxx/libsigrokxx.la $(library_include_HEADERS)
+$(JLIB): $(JCXX) bindings/cxx/libsigrokcxx.la $(library_include_HEADERS)
 	$(AM_V_GEN)$(CXXCOMPILE) -L.libs -Lbindings/cxx/.libs \
 		-fno-strict-aliasing -fPIC -shared $(JCLS)/classes_wrap.cxx \
-		-lsigrokxx -o $(JLIB)
+		-lsigrokcxx -o $(JLIB)
 
 java-install:
 	$(INSTALL) -d $(libdir)/jni

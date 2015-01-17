@@ -39,7 +39,7 @@ includes += ['../..', '../../include/libsigrok', '../cxx/include/libsigrok']
 includes += [i[2:] for i in sr_includes]
 includes += [np.get_include(), ]
 libdirs = ['../../.libs', '../cxx/.libs'] + [l[2:] for l in sr_lib_dirs]
-libs = [l[2:] for l in sr_libs] + ['sigrokxx']
+libs = [l[2:] for l in sr_libs] + ['sigrokcxx']
 
 def vpath(file):
     vfile = os.path.join(srcdir, file)

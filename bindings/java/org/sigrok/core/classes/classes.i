@@ -16,7 +16,7 @@
  * ------------
  * 
  * The sigrok-java API provides an object-oriented Java interface to the
- * functionality in libsigrok. It is built on top of the sigrok++ C++ API.
+ * functionality in libsigrok. It is built on top of the libsigrokcxx C++ API.
  * 
  * Getting started
  * ---------------

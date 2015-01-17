@@ -24,8 +24,8 @@
 Introduction
 ------------
 
-The sigrok++ API provides an object-oriented C++ interface to the functionality
-in libsigrok, including automatic memory and resource management.
+The libsigrokcxx API provides an object-oriented C++ interface to the
+functionality in libsigrok, including automatic memory and resource management.
 
 It is built on top of the public libsigrok C API, and is designed to be used as
 a standalone alternative API. Programs should not mix usage of the C and C++
@@ -45,10 +45,10 @@ use. The C++ interface code also keeps track of internal dependencies between
 libsigrok resources, and ensures that objects are not prematurely deleted when
 their resources are in use by other objects.
 
-This means that management of sigrok++ objects and their underlying libsigrok
-resources can be treated as fully automatic. As long as all shared pointers to
-objects are deleted or reassigned when no longer in use, all underlying
-resources will be released at the right time.
+This means that management of libsigrokcxx objects and their underlying
+libsigrok resources can be treated as fully automatic. As long as all shared
+pointers to objects are deleted or reassigned when no longer in use, all
+underlying resources will be released at the right time.
 
 Getting started
 ---------------

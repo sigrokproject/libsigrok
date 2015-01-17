@@ -24,7 +24,7 @@ Introduction
 ------------
 
 The pysigrok API provides an object-oriented Python interface to the
-functionality in libsigrok. It is built on top of the sigrok++ C++ API.
+functionality in libsigrok. It is built on top of the libsigrokcxx C++ API.
 
 Getting started
 ---------------

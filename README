@@ -61,7 +61,7 @@ Requirements for the C++ bindings:
 
 Requirements for the Python bindings:
 
- - libsigrokxx >= 0.3.0 (the libsigrok C++ bindings, see above)
+ - libsigrokcxx >= 0.3.0 (the libsigrok C++ bindings, see above)
  - Python >= 2.7 or Python >= 3 (including development files!)
  - Python setuptools (for Python 2 or 3)
  - pygobject >= 3.0.0 (for Python 2 or 3), a.k.a python-gi
@@ -73,7 +73,7 @@ Requirements for the Python bindings:
 
 Requirements for the Java bindings:
 
- - libsigrokxx >= 0.3.0 (the libsigrok C++ bindings, see above)
+ - libsigrokcxx >= 0.3.0 (the libsigrok C++ bindings, see above)
  - SWIG >= 2.0.0
  - Java JDK (for JNI includes and the javac/jar binaries)
  - doxygen (optional, only needed for the Java API docs)

@@ -537,7 +537,7 @@ AC_SUBST(SR_PACKAGE_VERSION_MICRO)
 AC_SUBST(SR_PACKAGE_VERSION)
 
 AC_CONFIG_FILES([Makefile include/libsigrok/version.h libsigrok.pc
-	bindings/cxx/libsigrokxx.pc])
+	bindings/cxx/libsigrokcxx.pc])
 
 AC_OUTPUT
 
