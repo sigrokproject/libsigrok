@@ -71,7 +71,7 @@ raised, which provides access to the error code and description.
 #define LIBSIGROK_HPP
 
 #include "libsigrok/libsigrok.h"
-#include <glibmm-2.4/glibmm.h>
+#include <glibmm.h>
 
 #include <stdexcept>
 #include <memory>
