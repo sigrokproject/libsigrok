@@ -445,8 +445,8 @@ bindings_cxx_libsigrokcxx_la_LIBADD = libsigrok.la $(glibmm_LIBS)
 bindings_cxx_libsigrokcxx_la_LDFLAGS = $(SR_LIB_LDFLAGS)
 
 library_include_HEADERS += \
-	bindings/cxx/include/libsigrok/libsigrokcxx.hpp \
-	bindings/cxx/include/libsigrok/enums.hpp
+	bindings/cxx/include/libsigrokcxx/libsigrokcxx.hpp \
+	bindings/cxx/include/libsigrokcxx/enums.hpp
 
 pkgconfig_DATA += bindings/cxx/libsigrokcxx.pc
 
@@ -455,7 +455,7 @@ doxy/xml/index.xml: include/libsigrok/libsigrok.h
 
 bindings/cxx/enums.cpp: bindings/cxx/enums.timestamp
 
-bindings/cxx/include/libsigrok/enums.hpp: bindings/cxx/enums.timestamp
+bindings/cxx/include/libsigrokcxx/enums.hpp: bindings/cxx/enums.timestamp
 
 bindings/cxx/enums.timestamp: bindings/cxx/enums.py doxy/xml/index.xml \
 		bindings/cxx/ConfigKey_methods.cpp bindings/cxx/QuantityFlag_methods.cpp
@@ -469,7 +469,7 @@ cxx-clean:
 	rm -rf doxy/
 	rm -rf bindings/cxx/doxy/
 	rm -f bindings/cxx/enums.cpp
-	rm -f bindings/cxx/include/libsigrok/enums.hpp
+	rm -f bindings/cxx/include/libsigrokcxx/enums.hpp
 	rm -f bindings/cxx/enums.timestamp
 
 CLEAN_EXTRA += cxx-clean
@@ -478,7 +478,7 @@ endif
 
 CPPXMLDOC = bindings/cxx/doxy/xml/index.xml
 
-$(CPPXMLDOC): bindings/cxx/include/libsigrok/libsigrokcxx.hpp \
+$(CPPXMLDOC): bindings/cxx/include/libsigrokcxx/libsigrokcxx.hpp \
 		bindings/cxx/enums.timestamp
 	$(AM_V_GEN)cd $(srcdir)/bindings/cxx && BUILDDIR=$(abs_builddir)/bindings/cxx/ doxygen Doxyfile 2>/dev/null
 

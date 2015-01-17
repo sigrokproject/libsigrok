@@ -17,7 +17,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "libsigrok/libsigrokcxx.hpp"
+#include "libsigrokcxx/libsigrokcxx.hpp"
 
 #include <sstream>
 #include <cmath>

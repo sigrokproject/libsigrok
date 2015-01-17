@@ -28,8 +28,8 @@ index_file = sys.argv[1]
 dirname = os.path.dirname(os.path.realpath(__file__))
 
 outdirname = "bindings/cxx"
-if not os.path.exists(os.path.join(outdirname, 'include/libsigrok')):
-    os.makedirs(os.path.join(outdirname, 'include/libsigrok'))
+if not os.path.exists(os.path.join(outdirname, 'include/libsigrokcxx')):
+    os.makedirs(os.path.join(outdirname, 'include/libsigrokcxx'))
 
 mapping = dict([
     ('sr_loglevel', ('LogLevel', 'Log verbosity level')),
@@ -65,7 +65,7 @@ for compound in index.findall('compound'):
             if name in mapping:
                 classes[member] = mapping[name]
 
-header = open(os.path.join(outdirname, 'include/libsigrok/enums.hpp'), 'w')
+header = open(os.path.join(outdirname, 'include/libsigrokcxx/enums.hpp'), 'w')
 code = open(os.path.join(outdirname, 'enums.cpp'), 'w')
 swig = open(os.path.join(dirname, '../swig/enums.i'), 'w')
 

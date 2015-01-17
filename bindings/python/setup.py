@@ -35,7 +35,7 @@ sr_includes, sr_lib_dirs, sr_libs, (sr_version,) = [
 
 includes = ['../../include', '../cxx/include']
 includes += [os.path.join(srcdir, path) for path in includes]
-includes += ['../..', '../../include/libsigrok', '../cxx/include/libsigrok']
+includes += ['../..', '../../include/libsigrok', '../cxx/include/libsigrokcxx']
 includes += [i[2:] for i in sr_includes]
 includes += [np.get_include(), ]
 libdirs = ['../../.libs', '../cxx/.libs'] + [l[2:] for l in sr_lib_dirs]
