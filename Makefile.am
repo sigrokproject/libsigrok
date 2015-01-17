@@ -444,7 +444,8 @@ bindings_cxx_libsigrokcxx_la_LIBADD = libsigrok.la $(glibmm_LIBS)
 
 bindings_cxx_libsigrokcxx_la_LDFLAGS = $(SR_LIB_LDFLAGS)
 
-library_include_HEADERS += \
+bindings_cxx_libsigrokcxx_la_includedir = $(includedir)/libsigrokcxx
+bindings_cxx_libsigrokcxx_la_include_HEADERS = \
 	bindings/cxx/include/libsigrokcxx/libsigrokcxx.hpp \
 	bindings/cxx/include/libsigrokcxx/enums.hpp
 
