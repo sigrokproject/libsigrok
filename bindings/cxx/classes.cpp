@@ -1388,12 +1388,15 @@ string InputFormat::description()
 map<string, shared_ptr<Option>> InputFormat::options()
 {
 	const struct sr_option **options = sr_input_options_get(_structure);
-	auto option_array = shared_ptr<const struct sr_option *>(
-		options, sr_input_options_free);
 	map<string, shared_ptr<Option>> result;
-	for (int i = 0; options[i]; i++)
-		result[options[i]->id] = shared_ptr<Option>(
-			new Option(options[i], option_array), Option::Deleter());
+	if (options)
+	{
+		auto option_array = shared_ptr<const struct sr_option *>(
+			options, sr_input_options_free);
+		for (int i = 0; options[i]; i++)
+			result[options[i]->id] = shared_ptr<Option>(
+				new Option(options[i], option_array), Option::Deleter());
+	}
 	return result;
 }
 
@@ -1525,12 +1528,15 @@ string OutputFormat::description()
 map<string, shared_ptr<Option>> OutputFormat::options()
 {
 	const struct sr_option **options = sr_output_options_get(_structure);
-	auto option_array = shared_ptr<const struct sr_option *>(
-		options, sr_output_options_free);
 	map<string, shared_ptr<Option>> result;
-	for (int i = 0; options[i]; i++)
-		result[options[i]->id] = shared_ptr<Option>(
-			new Option(options[i], option_array), Option::Deleter());
+	if (options)
+	{
+		auto option_array = shared_ptr<const struct sr_option *>(
+			options, sr_output_options_free);
+		for (int i = 0; options[i]; i++)
+			result[options[i]->id] = shared_ptr<Option>(
+				new Option(options[i], option_array), Option::Deleter());
+	}
 	return result;
 }
 
