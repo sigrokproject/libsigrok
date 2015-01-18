@@ -210,6 +210,7 @@ SR_API void sr_input_options_free(const struct sr_option **options)
  * This function is used when a client wants to use a specific input
  * module to parse a stream. No effort is made to identify the format.
  *
+ * @param imod The input module to use. Must not be NULL.
  * @param options GHashTable consisting of keys corresponding with
  * the module options \c id field. The values should be GVariant
  * pointers with sunk references, of the same GVariantType as the option's
