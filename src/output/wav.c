@@ -350,7 +350,7 @@ static const struct sr_option *get_options(void)
 SR_PRIV struct sr_output_module output_wav = {
 	.id = "wav",
 	.name = "WAV",
-	.desc = "WAVE file format",
+	.desc = "Microsoft WAV file format",
 	.exts = (const char*[]){"wav", NULL},
 	.options = get_options,
 	.init = init,
