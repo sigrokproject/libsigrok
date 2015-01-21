@@ -136,6 +136,25 @@ SR_API const char *sr_output_description_get(const struct sr_output_module *o)
 }
 
 /**
+ * Returns the specified output module's file extensions typical for the file
+ * format, as a NULL terminated array, or returns a NULL pointer if there is
+ * no preferred extension.
+ * @note these are a suggestions only.
+ *
+ * @since 0.4.0
+ */
+SR_API const char *const *sr_output_extensions_get(
+		const struct sr_output_module *o)
+{
+	if (!o) {
+		sr_err("Invalid output module NULL!");
+		return NULL;
+	}
+
+	return o->exts;
+}
+
+/**
  * Return the output module with the specified ID, or NULL if no module
  * with that id is found.
  *

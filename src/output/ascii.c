@@ -252,6 +252,7 @@ SR_PRIV struct sr_output_module output_ascii = {
 	.id = "ascii",
 	.name = "ASCII",
 	.desc = "ASCII art",
+	.exts = (const char*[]){"txt", NULL},
 	.options = get_options,
 	.init = init,
 	.receive = receive,

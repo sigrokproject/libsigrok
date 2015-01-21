@@ -252,6 +252,7 @@ SR_PRIV struct sr_output_module output_hex = {
 	.id = "hex",
 	.name = "Hexadecimal",
 	.desc = "Hexadecimal digits",
+	.exts = (const char*[]){"txt", NULL},
 	.options = get_options,
 	.init = init,
 	.receive = receive,

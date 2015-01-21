@@ -238,6 +238,7 @@ SR_PRIV struct sr_output_module output_bits = {
 	.id = "bits",
 	.name = "Bits",
 	.desc = "0/1 digits",
+	.exts = (const char*[]){"txt", NULL},
 	.options = get_options,
 	.init = init,
 	.receive = receive,

@@ -948,6 +948,9 @@ public:
 	string name();
 	/** Description of this output format. */
 	string description();
+	/** A list of preferred file name extensions for this file format.
+         * @note This list is a recommendation only. */
+	vector<string> extensions();
 	/** Options supported by this output format. */
 	map<string, shared_ptr<Option> > options();
 	/** Create an output using this format.

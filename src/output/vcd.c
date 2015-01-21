@@ -263,6 +263,7 @@ struct sr_output_module output_vcd = {
 	.id = "vcd",
 	.name = "VCD",
 	.desc = "Value Change Dump",
+	.exts = (const char*[]){"vcd", NULL},
 	.options = NULL,
 	.init = init,
 	.receive = receive,

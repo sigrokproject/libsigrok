@@ -372,6 +372,13 @@ struct sr_output_module {
 	char *desc;
 
 	/**
+	 * A NULL terminated array of strings containing a list of file name
+	 * extensions typical for the input file format, or NULL if there is
+	 * no typical extension for this file format.
+	 */
+	const char *const *exts;
+
+	/**
 	 * Returns a NULL-terminated list of options this module can take.
 	 * Can be NULL, if the module has no options.
 	 */

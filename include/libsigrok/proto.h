@@ -170,6 +170,8 @@ SR_API const struct sr_output_module **sr_output_list(void);
 SR_API const char *sr_output_id_get(const struct sr_output_module *o);
 SR_API const char *sr_output_name_get(const struct sr_output_module *o);
 SR_API const char *sr_output_description_get(const struct sr_output_module *o);
+SR_API const char *const *sr_output_extensions_get(
+		const struct sr_output_module *o);
 SR_API const struct sr_output_module *sr_output_find(char *id);
 SR_API const struct sr_option **sr_output_options_get(const struct sr_output_module *o);
 SR_API void sr_output_options_free(const struct sr_option **opts);

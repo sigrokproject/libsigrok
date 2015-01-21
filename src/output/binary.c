@@ -46,6 +46,7 @@ SR_PRIV struct sr_output_module output_binary = {
 	.id = "binary",
 	.name = "Binary",
 	.desc = "Raw binary",
+	.exts = NULL,
 	.options = NULL,
 	.receive = receive,
 };

@@ -1534,6 +1534,15 @@ string OutputFormat::description()
 	return valid_string(sr_output_description_get(_structure));
 }
 
+vector<string> OutputFormat::extensions()
+{
+	vector<string> exts;
+	for (const char *const *e = sr_output_extensions_get(_structure);
+		e && *e; e++)
+		exts.push_back(*e);
+	return exts;
+}
+
 map<string, shared_ptr<Option>> OutputFormat::options()
 {
 	const struct sr_option **options = sr_output_options_get(_structure);

@@ -187,6 +187,7 @@ SR_PRIV struct sr_output_module output_chronovu_la8 = {
 	.id = "chronovu-la8",
 	.name = "ChronoVu LA8",
 	.desc = "ChronoVu LA8 native file format",
+	.exts = (const char*[]){"kdt", NULL},
 	.options = NULL,
 	.init = init,
 	.receive = receive,
