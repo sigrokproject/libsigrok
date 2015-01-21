@@ -1385,6 +1385,15 @@ string InputFormat::description()
 	return valid_string(sr_input_description_get(_structure));
 }
 
+vector<string> InputFormat::extensions()
+{
+	vector<string> exts;
+	for (const char *const *e = sr_input_extensions_get(_structure);
+		e && *e; e++)
+		exts.push_back(*e);
+	return exts;
+}
+
 map<string, shared_ptr<Option>> InputFormat::options()
 {
 	const struct sr_option **options = sr_input_options_get(_structure);

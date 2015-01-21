@@ -239,6 +239,13 @@ struct sr_input_module {
 	const char *desc;
 
 	/**
+	 * A NULL terminated array of strings containing a list of file name
+	 * extensions typical for the input file format, or NULL if there is
+	 * no typical extension for this file format.
+	 */
+	const char *const *exts;
+
+	/**
 	 * Zero-terminated list of metadata items the module needs to be able
 	 * to identify an input stream. Can be all-zero, if the module cannot
 	 * identify streams at all, i.e. has to be forced into use.

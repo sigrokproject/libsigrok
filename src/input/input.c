@@ -130,6 +130,25 @@ SR_API const char *sr_input_description_get(const struct sr_input_module *o)
 }
 
 /**
+ * Returns the specified input module's file extensions typical for the file
+ * format, as a NULL terminated array, or returns a NULL pointer if there is
+ * no preferred extension.
+ * @note these are a suggestions only.
+ *
+ * @since 0.4.0
+ */
+SR_API const char *const *sr_input_extensions_get(
+		const struct sr_input_module *o)
+{
+	if (!o) {
+		sr_err("Invalid input module NULL!");
+		return NULL;
+	}
+
+	return o->exts;
+}
+
+/**
  * Return the input module with the specified ID, or NULL if no module
  * with that id is found.
  *

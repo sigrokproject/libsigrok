@@ -569,6 +569,7 @@ SR_PRIV struct sr_input_module input_vcd = {
 	.id = "vcd",
 	.name = "VCD",
 	.desc = "Value Change Dump",
+	.exts = (const char*[]){"vcd", NULL},
 	.metadata = { SR_INPUT_META_HEADER | SR_INPUT_META_REQUIRED },
 	.options = get_options,
 	.format_match = format_match,

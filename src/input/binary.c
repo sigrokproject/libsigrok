@@ -165,6 +165,7 @@ SR_PRIV struct sr_input_module input_binary = {
 	.id = "binary",
 	.name = "Binary",
 	.desc = "Raw binary",
+	.exts = NULL,
 	.options = get_options,
 	.init = init,
 	.receive = receive,

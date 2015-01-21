@@ -177,6 +177,7 @@ SR_PRIV struct sr_input_module input_chronovu_la8 = {
 	.id = "chronovu-la8",
 	.name = "Chronovu-LA8",
 	.desc = "ChronoVu LA8",
+	.exts = (const char*[]){"kdt", NULL},
 	.metadata = { SR_INPUT_META_FILESIZE | SR_INPUT_META_REQUIRED },
 	.options = get_options,
 	.format_match = format_match,

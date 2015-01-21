@@ -819,6 +819,7 @@ SR_PRIV struct sr_input_module input_csv = {
 	.id = "csv",
 	.name = "CSV",
 	.desc = "Comma-separated values",
+	.exts = (const char*[]){"csv", NULL},
 	.metadata = { SR_INPUT_META_MIMETYPE },
 	.options = get_options,
 	.format_match = format_match,

@@ -865,6 +865,9 @@ public:
 	string name();
 	/** Description of this input format. */
 	string description();
+	/** A list of preferred file name extensions for this file format.
+         * @note This list is a recommendation only. */
+	vector<string> extensions();
 	/** Options supported by this input format. */
 	map<string, shared_ptr<Option> > options();
 	/** Create an input using this input format.
