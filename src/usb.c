@@ -276,8 +276,27 @@ SR_PRIV int usb_get_port_path(libusb_device *dev, char *path, int path_len)
 	uint8_t port_numbers[8];
 	int i, n, len;
 
+/*
+ * FreeBSD requires that devices prior to calling libusb_get_port_numbers()
+ * have been opened with libusb_open().
+ */
+#ifdef __FreeBSD__
+	struct libusb_device_handle *devh;
+	if (libusb_open(dev, &devh) != 0)
+		return SR_ERR;
+#endif
 	n = libusb_get_port_numbers(dev, port_numbers, sizeof(port_numbers));
+#ifdef __FreeBSD__
+	libusb_close(devh);
+#endif
 
+/* Workaround FreeBSD libusb_get_port_numbers() returning 0. */
+#ifdef __FreeBSD__
+	if (n == 0) {
+		port_numbers[0] = libusb_get_device_address(dev);
+		n = 1;
+	}
+#endif
 	if (n < 1)
 		return SR_ERR;
 
