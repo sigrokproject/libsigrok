@@ -4,6 +4,7 @@
  * Copyright (C) 2010 Uwe Hermann <uwe@hermann-uwe.de>
  * Copyright (C) 2011 Olivier Fauchon <olivier@aixmarseille.com>
  * Copyright (C) 2012 Alexandru Gagniuc <mr.nuke.me@gmail.com>
+ * Copyright (C) 2015 Bartosz Golaszewski <bgolaszewski@baylibre.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -103,6 +104,8 @@ struct analog_gen {
 	float pattern_data[ANALOG_BUFSIZE];
 	unsigned int num_samples;
 	struct sr_datafeed_analog packet;
+	float avg_val; /* Average value */
+	unsigned num_avgs; /* Number of samples averaged */
 };
 
 /* Private, per-device-instance driver context. */
@@ -126,6 +129,8 @@ struct dev_context {
 	/* Analog */
 	int32_t num_analog_channels;
 	GHashTable *ch_ag;
+	gboolean avg; /* True if averaging is enabled */
+	uint64_t avg_samples;
 };
 
 static const uint32_t drvopts[] = {
@@ -144,6 +149,8 @@ static const uint32_t devopts[] = {
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_AVERAGING | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_AVG_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 };
 
 static const uint32_t devopts_cg_logic[] = {
@@ -305,6 +312,8 @@ static GSList *scan(GSList *options)
 	devc->logic_unitsize = (devc->num_logic_channels + 7) / 8;
 	devc->logic_pattern = PATTERN_SIGROK;
 	devc->num_analog_channels = num_analog_channels;
+	devc->avg = FALSE;
+	devc->avg_samples = 0;
 
 	/* Logic channels, all in one channel group. */
 	cg = g_malloc0(sizeof(struct sr_channel_group));
@@ -347,6 +356,8 @@ static GSList *scan(GSList *options)
 		ag->packet.unit = SR_UNIT_VOLT;
 		ag->packet.data = ag->pattern_data;
 		ag->pattern = pattern;
+		ag->avg_val = 0.0f;
+		ag->num_avgs = 0;
 		g_hash_table_insert(devc->ch_ag, ch, ag);
 
 		if (++pattern == ARRAY_SIZE(analog_pattern_str))
@@ -422,6 +433,12 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 	case SR_CONF_LIMIT_MSEC:
 		*data = g_variant_new_uint64(devc->limit_msec);
 		break;
+	case SR_CONF_AVERAGING:
+		*data = g_variant_new_boolean(devc->avg);
+		break;
+	case SR_CONF_AVG_SAMPLES:
+		*data = g_variant_new_uint64(devc->avg_samples);
+		break;
 	case SR_CONF_PATTERN_MODE:
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
@@ -485,6 +502,14 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		devc->limit_msec = g_variant_get_uint64(data);
 		devc->limit_samples = 0;
 		sr_dbg("Setting time limit to %" PRIu64"ms", devc->limit_msec);
+		break;
+	case SR_CONF_AVERAGING:
+		devc->avg = g_variant_get_boolean(data);
+		sr_dbg("%s averaging", devc->avg ? "Enabling" : "Disabling");
+		break;
+	case SR_CONF_AVG_SAMPLES:
+		devc->avg_samples = g_variant_get_uint64(data);
+		sr_dbg("Setting averaging rate to %" PRIu64, devc->avg_samples);
 		break;
 	case SR_CONF_PATTERN_MODE:
 		if (!cg)
@@ -662,6 +687,65 @@ static void logic_generator(struct sr_dev_inst *sdi, uint64_t size)
 	}
 }
 
+static void send_analog_packet(struct analog_gen *ag,
+			       struct sr_dev_inst *sdi,
+			       uint64_t *analog_sent,
+			       uint64_t analog_todo)
+{
+	struct sr_datafeed_packet packet;
+	struct dev_context *devc;
+	uint64_t sending_now, to_avg;
+	int ag_pattern_pos;
+	unsigned int i;
+
+	devc = sdi->priv;
+	packet.type = SR_DF_ANALOG;
+	packet.payload = &ag->packet;
+
+	if (!devc->avg) {
+		ag_pattern_pos = devc->analog_counter % ag->num_samples;
+		sending_now = MIN(analog_todo, ag->num_samples-ag_pattern_pos);
+		ag->packet.data = ag->pattern_data + ag_pattern_pos;
+		ag->packet.num_samples = sending_now;
+		sr_session_send(sdi, &packet);
+
+		/* Whichever channel group gets there first. */
+		*analog_sent = MAX(*analog_sent, sending_now);
+	} else {
+		ag_pattern_pos = devc->analog_counter % ag->num_samples;
+		to_avg = MIN(analog_todo, ag->num_samples-ag_pattern_pos);
+
+		for (i = 0; i < to_avg; i++) {
+			ag->avg_val = (ag->avg_val +
+					*(ag->pattern_data +
+					  ag_pattern_pos + i)) / 2;
+			ag->num_avgs++;
+			/* Time to send averaged data? */
+			if (devc->avg_samples > 0 &&
+			    ag->num_avgs >= devc->avg_samples)
+				goto do_send;
+		}
+
+		if (devc->avg_samples == 0) {
+			/* We're averaging all the samples, so wait with
+			 * sending until the very end.
+			 */
+			*analog_sent = ag->num_avgs;
+			return;
+		}
+
+do_send:
+		ag->packet.data = &ag->avg_val;
+		ag->packet.num_samples = 1;
+
+		sr_session_send(sdi, &packet);
+		*analog_sent = ag->num_avgs;
+
+		ag->num_avgs = 0;
+		ag->avg_val = 0.0f;
+	}
+}
+
 /* Callback handling data */
 static int prepare_data(int fd, int revents, void *cb_data)
 {
@@ -670,7 +754,6 @@ static int prepare_data(int fd, int revents, void *cb_data)
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
 	struct analog_gen *ag;
-	int ag_pattern_pos;
 	GHashTableIter iter;
 	void *value;
 	uint64_t logic_todo, analog_todo, expected_samplenum, analog_sent, sending_now;
@@ -719,17 +802,8 @@ static int prepare_data(int fd, int revents, void *cb_data)
 
 			g_hash_table_iter_init(&iter, devc->ch_ag);
 			while (g_hash_table_iter_next(&iter, NULL, &value)) {
-				ag = value;
-				packet.type = SR_DF_ANALOG;
-				packet.payload = &ag->packet;
-				ag_pattern_pos = devc->analog_counter % ag->num_samples;
-				sending_now = MIN(analog_todo, ag->num_samples-ag_pattern_pos);
-				ag->packet.data = ag->pattern_data + ag_pattern_pos;
-				ag->packet.num_samples = sending_now;
-				sr_session_send(sdi, &packet);
-
-				/* Whichever channel group gets there first. */
-				analog_sent = MAX(analog_sent, sending_now);
+				send_analog_packet(value, sdi,
+						   &analog_sent, analog_todo);
 			}
 			analog_todo -= analog_sent;
 			devc->analog_counter += analog_sent;
@@ -739,6 +813,19 @@ static int prepare_data(int fd, int revents, void *cb_data)
 	if (!devc->continuous
 			&& (!devc->num_logic_channels || devc->logic_counter >= devc->limit_samples)
 			&& (!devc->num_analog_channels || devc->analog_counter >= devc->limit_samples)) {
+		/* If we're averaging everything - now is the time to send data */
+		if (devc->avg_samples == 0) {
+			g_hash_table_iter_init(&iter, devc->ch_ag);
+			while (g_hash_table_iter_next(&iter, NULL, &value)) {
+				ag = value;
+				packet.type = SR_DF_ANALOG;
+				packet.payload = &ag->packet;
+				ag->packet.data = &ag->avg_val;
+				ag->packet.num_samples = 1;
+				sr_session_send(sdi, &packet);
+			}
+		}
+
 		sr_dbg("Requested number of samples reached.");
 		dev_acquisition_stop(sdi, cb_data);
 		return TRUE;
