@@ -665,6 +665,15 @@ enum sr_configkey {
 	/** The device supports setting trigger slope. */
 	SR_CONF_TRIGGER_SLOPE,
 
+	/** The device supports averaging. */
+	SR_CONF_AVERAGING,
+
+	/**
+	 * The device supports setting number of samples to be
+	 * averaged over.
+	 */
+	SR_CONF_AVG_SAMPLES,
+
 	/** Trigger source. */
 	SR_CONF_TRIGGER_SOURCE,
 
