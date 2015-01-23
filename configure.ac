@@ -302,7 +302,7 @@ fi
 AM_CONDITIONAL(NEED_SERIAL, test "x$have_libserialport" != xno)
 
 # The VISA SCPI backend is only compiled in if librevisa was found.
-PKG_CHECK_MODULES([librevisa], [librevisa >= 0.0.20130812],
+PKG_CHECK_MODULES([librevisa], [librevisa >= 0.0.20130412],
 	[have_librevisa="yes"; LIB_CFLAGS="$LIB_CFLAGS $librevisa_CFLAGS";
 	LIBS="$LIBS $librevisa_LIBS";
 	SR_PKGLIBS="$SR_PKGLIBS librevisa"],
@@ -555,7 +555,7 @@ echo
 
 # Note: This only works for libs with pkg-config integration.
 for lib in "glib-2.0 >= 2.34.0" "libzip >= 0.10" "libserialport >= 0.2.0" \
-	"librevisa >= 0.0.20130812" "libusb-1.0 >= 1.0.16" "libftdi >= 0.16" \
+	"librevisa >= 0.0.20130412" "libusb-1.0 >= 1.0.16" "libftdi >= 0.16" \
 	"libftdi1 >= 1.0" "libgpib" "glibmm-2.4 >= 2.32.0" \
 	"pygobject-3.0 >= 3.0.0" "check >= 0.9.4"
 do
