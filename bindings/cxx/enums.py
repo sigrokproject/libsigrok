@@ -138,7 +138,7 @@ for enum, (classname, classbrief) in classes.items():
             file=code)
 
     # Define map of enum values to constants
-    print('template<> const std::map<const enum %s, const %s * const> EnumValue<%s, enum %s>::_values = {' % (
+    print('template<> const SR_API std::map<const enum %s, const %s * const> EnumValue<%s, enum %s>::_values = {' % (
         enum_name, classname, classname, enum_name), file=code)
     for name, trimmed_name in zip(member_names, trimmed_names):
         print('\t{%s, %s::%s},' % (name, classname, trimmed_name), file=code)
