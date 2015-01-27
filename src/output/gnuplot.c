@@ -220,8 +220,8 @@ static int cleanup(struct sr_output *o)
 SR_PRIV struct sr_output_module output_gnuplot = {
 	.id = "gnuplot",
 	.name = "Gnuplot",
-	.desc = "Gnuplot file format",
-	.exts = (const char*[]){"pl", NULL},
+	.desc = "Gnuplot data file format",
+	.exts = (const char*[]){"dat", NULL},
 	.options = NULL,
 	.init = init,
 	.receive = receive,
