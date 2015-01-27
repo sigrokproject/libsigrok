@@ -147,13 +147,13 @@ SR_API int sr_session_source_remove_channel(struct sr_session *session,
 /*--- input/input.c ---------------------------------------------------------*/
 
 SR_API const struct sr_input_module **sr_input_list(void);
-SR_API const char *sr_input_id_get(const struct sr_input_module *in);
-SR_API const char *sr_input_name_get(const struct sr_input_module *in);
-SR_API const char *sr_input_description_get(const struct sr_input_module *in);
+SR_API const char *sr_input_id_get(const struct sr_input_module *imod);
+SR_API const char *sr_input_name_get(const struct sr_input_module *imod);
+SR_API const char *sr_input_description_get(const struct sr_input_module *imod);
 SR_API const char *const *sr_input_extensions_get(
-		const struct sr_input_module *o);
+		const struct sr_input_module *imod);
 SR_API const struct sr_input_module *sr_input_find(char *id);
-SR_API const struct sr_option **sr_input_options_get(const struct sr_input_module *in);
+SR_API const struct sr_option **sr_input_options_get(const struct sr_input_module *imod);
 SR_API void sr_input_options_free(const struct sr_option **options);
 SR_API struct sr_input *sr_input_new(const struct sr_input_module *imod,
 		GHashTable *options);
@@ -167,15 +167,15 @@ SR_API void sr_input_free(const struct sr_input *in);
 /*--- output/output.c -------------------------------------------------------*/
 
 SR_API const struct sr_output_module **sr_output_list(void);
-SR_API const char *sr_output_id_get(const struct sr_output_module *o);
-SR_API const char *sr_output_name_get(const struct sr_output_module *o);
-SR_API const char *sr_output_description_get(const struct sr_output_module *o);
+SR_API const char *sr_output_id_get(const struct sr_output_module *omod);
+SR_API const char *sr_output_name_get(const struct sr_output_module *omod);
+SR_API const char *sr_output_description_get(const struct sr_output_module *omod);
 SR_API const char *const *sr_output_extensions_get(
-		const struct sr_output_module *o);
+		const struct sr_output_module *omod);
 SR_API const struct sr_output_module *sr_output_find(char *id);
-SR_API const struct sr_option **sr_output_options_get(const struct sr_output_module *o);
+SR_API const struct sr_option **sr_output_options_get(const struct sr_output_module *omod);
 SR_API void sr_output_options_free(const struct sr_option **opts);
-SR_API const struct sr_output *sr_output_new(const struct sr_output_module *o,
+SR_API const struct sr_output *sr_output_new(const struct sr_output_module *omod,
 		GHashTable *params, const struct sr_dev_inst *sdi);
 SR_API int sr_output_send(const struct sr_output *o,
 		const struct sr_datafeed_packet *packet, GString **out);

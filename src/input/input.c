@@ -89,14 +89,14 @@ SR_API const struct sr_input_module **sr_input_list(void)
  *
  * @since 0.4.0
  */
-SR_API const char *sr_input_id_get(const struct sr_input_module *o)
+SR_API const char *sr_input_id_get(const struct sr_input_module *imod)
 {
-	if (!o) {
+	if (!imod) {
 		sr_err("Invalid input module NULL!");
 		return NULL;
 	}
 
-	return o->id;
+	return imod->id;
 }
 
 /**
@@ -104,14 +104,14 @@ SR_API const char *sr_input_id_get(const struct sr_input_module *o)
  *
  * @since 0.4.0
  */
-SR_API const char *sr_input_name_get(const struct sr_input_module *o)
+SR_API const char *sr_input_name_get(const struct sr_input_module *imod)
 {
-	if (!o) {
+	if (!imod) {
 		sr_err("Invalid input module NULL!");
 		return NULL;
 	}
 
-	return o->name;
+	return imod->name;
 }
 
 /**
@@ -119,14 +119,14 @@ SR_API const char *sr_input_name_get(const struct sr_input_module *o)
  *
  * @since 0.4.0
  */
-SR_API const char *sr_input_description_get(const struct sr_input_module *o)
+SR_API const char *sr_input_description_get(const struct sr_input_module *imod)
 {
-	if (!o) {
+	if (!imod) {
 		sr_err("Invalid input module NULL!");
 		return NULL;
 	}
 
-	return o->desc;
+	return imod->desc;
 }
 
 /**
@@ -138,14 +138,14 @@ SR_API const char *sr_input_description_get(const struct sr_input_module *o)
  * @since 0.4.0
  */
 SR_API const char *const *sr_input_extensions_get(
-		const struct sr_input_module *o)
+		const struct sr_input_module *imod)
 {
-	if (!o) {
+	if (!imod) {
 		sr_err("Invalid input module NULL!");
 		return NULL;
 	}
 
-	return o->exts;
+	return imod->exts;
 }
 
 /**

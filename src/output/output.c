@@ -95,14 +95,14 @@ SR_API const struct sr_output_module **sr_output_list(void)
  *
  * @since 0.4.0
  */
-SR_API const char *sr_output_id_get(const struct sr_output_module *o)
+SR_API const char *sr_output_id_get(const struct sr_output_module *omod)
 {
-	if (!o) {
+	if (!omod) {
 		sr_err("Invalid output module NULL!");
 		return NULL;
 	}
 
-	return o->id;
+	return omod->id;
 }
 
 /**
@@ -110,14 +110,14 @@ SR_API const char *sr_output_id_get(const struct sr_output_module *o)
  *
  * @since 0.4.0
  */
-SR_API const char *sr_output_name_get(const struct sr_output_module *o)
+SR_API const char *sr_output_name_get(const struct sr_output_module *omod)
 {
-	if (!o) {
+	if (!omod) {
 		sr_err("Invalid output module NULL!");
 		return NULL;
 	}
 
-	return o->name;
+	return omod->name;
 }
 
 /**
@@ -125,14 +125,14 @@ SR_API const char *sr_output_name_get(const struct sr_output_module *o)
  *
  * @since 0.4.0
  */
-SR_API const char *sr_output_description_get(const struct sr_output_module *o)
+SR_API const char *sr_output_description_get(const struct sr_output_module *omod)
 {
-	if (!o) {
+	if (!omod) {
 		sr_err("Invalid output module NULL!");
 		return NULL;
 	}
 
-	return o->desc;
+	return omod->desc;
 }
 
 /**
@@ -144,14 +144,14 @@ SR_API const char *sr_output_description_get(const struct sr_output_module *o)
  * @since 0.4.0
  */
 SR_API const char *const *sr_output_extensions_get(
-		const struct sr_output_module *o)
+		const struct sr_output_module *omod)
 {
-	if (!o) {
+	if (!omod) {
 		sr_err("Invalid output module NULL!");
 		return NULL;
 	}
 
-	return o->exts;
+	return omod->exts;
 }
 
 /**
@@ -181,15 +181,15 @@ SR_API const struct sr_output_module *sr_output_find(char *id)
  *
  * @since 0.4.0
  */
-SR_API const struct sr_option **sr_output_options_get(const struct sr_output_module *o)
+SR_API const struct sr_option **sr_output_options_get(const struct sr_output_module *omod)
 {
 	const struct sr_option *mod_opts, **opts;
 	int size, i;
 
-	if (!o || !o->options)
+	if (!omod || !omod->options)
 		return NULL;
 
-	mod_opts = o->options();
+	mod_opts = omod->options();
 
 	for (size = 0; mod_opts[size].id; size++)
 		;
@@ -242,7 +242,7 @@ SR_API void sr_output_options_free(const struct sr_option **options)
  *
  * @since 0.4.0
  */
-SR_API const struct sr_output *sr_output_new(const struct sr_output_module *o,
+SR_API const struct sr_output *sr_output_new(const struct sr_output_module *omod,
 		GHashTable *options, const struct sr_dev_inst *sdi)
 {
 	struct sr_output *op;
@@ -254,13 +254,13 @@ SR_API const struct sr_output *sr_output_new(const struct sr_output_module *o,
 	int i;
 
 	op = g_malloc(sizeof(struct sr_output));
-	op->module = o;
+	op->module = omod;
 	op->sdi = sdi;
 
 	new_opts = g_hash_table_new_full(g_str_hash, g_str_equal, g_free,
 			(GDestroyNotify)g_variant_unref);
-	if (o->options) {
-		mod_opts = o->options();
+	if (omod->options) {
+		mod_opts = omod->options();
 		for (i = 0; mod_opts[i].id; i++) {
 			if (options && g_hash_table_lookup_extended(options,
 					mod_opts[i].id, &key, &value)) {
@@ -285,7 +285,7 @@ SR_API const struct sr_output *sr_output_new(const struct sr_output_module *o,
 			g_hash_table_iter_init(&iter, options);
 			while (g_hash_table_iter_next(&iter, &key, &value)) {
 				if (!g_hash_table_lookup(new_opts, key)) {
-					sr_err("Output module '%s' has no option '%s'", o->id, key);
+					sr_err("Output module '%s' has no option '%s'", omod->id, key);
 					g_hash_table_destroy(new_opts);
 					g_free(op);
 					return NULL;
