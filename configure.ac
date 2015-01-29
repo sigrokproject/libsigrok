@@ -260,8 +260,8 @@ AM_CONDITIONAL(NEED_RPC, test "x$have_rpc" != "x0")
 
 # libglib-2.0 is always needed. Abort if it's not found.
 # Note: glib-2.0 is part of the libsigrok API (hard pkg-config requirement).
-# We require at least 2.34.0 due to e.g. g_slist_deep_copy().
-AM_PATH_GLIB_2_0([2.34.0],
+# We require at least 2.32.0 due to e.g. g_variant_new_fixed_array().
+AM_PATH_GLIB_2_0([2.32.0],
 	[LIB_CFLAGS="$LIB_CFLAGS $GLIB_CFLAGS"; LIBS="$LIBS $GLIB_LIBS"])
 
 # libzip is always needed. Abort if it's not found.
@@ -554,13 +554,13 @@ echo "Detected libraries:"
 echo
 
 # Note: This only works for libs with pkg-config integration.
-for lib in "glib-2.0 >= 2.34.0" "libzip >= 0.10" "libserialport >= 0.2.0" \
+for lib in "glib-2.0 >= 2.32.0" "libzip >= 0.10" "libserialport >= 0.2.0" \
 	"librevisa >= 0.0.20130412" "libusb-1.0 >= 1.0.16" "libftdi >= 0.16" \
 	"libftdi1 >= 1.0" "libgpib" "glibmm-2.4 >= 2.32.0" \
 	"pygobject-3.0 >= 3.0.0" "check >= 0.9.4"
 do
 	optional="OPTIONAL"
-	if test "x$lib" = "xglib-2.0 >= 2.34.0"; then optional="REQUIRED"; fi
+	if test "x$lib" = "xglib-2.0 >= 2.32.0"; then optional="REQUIRED"; fi
 	if test "x$lib" = "xlibzip >= 0.10"; then optional="REQUIRED"; fi
 	if `$PKG_CONFIG --exists $lib`; then
 		ver=`$PKG_CONFIG --modversion $lib`

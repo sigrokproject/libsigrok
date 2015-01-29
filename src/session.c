@@ -984,8 +984,8 @@ SR_PRIV int sr_packet_copy(const struct sr_datafeed_packet *packet,
 	case SR_DF_META:
 		meta = packet->payload;
 		meta_copy = g_malloc(sizeof(struct sr_datafeed_meta));
-		meta_copy->config = g_slist_copy_deep(meta->config,
-				(GCopyFunc)copy_src, NULL);
+		meta_copy->config = g_slist_copy(meta->config);
+		g_slist_foreach(meta_copy->config, (GCopyFunc)copy_src, NULL);
 		(*copy)->payload = meta_copy;
 		break;
 	case SR_DF_LOGIC:

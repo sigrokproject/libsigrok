@@ -36,7 +36,7 @@ Requirements for the C library:
  - automake >= 1.11 (only needed when building from git)
  - libtool (only needed when building from git)
  - pkg-config >= 0.22
- - libglib >= 2.34.0
+ - libglib >= 2.32.0
  - libzip >= 0.10
  - libserialport >= 0.1.0 (optional, used by some drivers)
  - librevisa >= 0.0.20130412 (optional, used by some drivers)
