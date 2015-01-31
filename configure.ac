@@ -396,7 +396,7 @@ PKG_CHECK_MODULES([glibmm], [glibmm-2.4 >= 2.32.0],
 	[BINDINGS_CXX="no"; cxx_msg="glibmm required"])
 
 # C++ bindings want stoi and stod.
-if test "x$BINDINGS_CXX" == "xyes"; then
+if test "x$BINDINGS_CXX" = "xyes"; then
 	AC_LANG_PUSH([C++])
 	AC_MSG_CHECKING([for stoi and stod])
 	AC_COMPILE_IFELSE([AC_LANG_PROGRAM([#include <string>],
