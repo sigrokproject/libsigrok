@@ -111,8 +111,10 @@ libsigrok_la_SOURCES += \
 	src/dmm/ut71x.c
 
 # Hardware (LCR chip parsers)
+if NEED_SERIAL
 libsigrok_la_SOURCES += \
 	src/lcr/es51919.c
+endif
 
 # Hardware drivers
 if HW_AGILENT_DMM
