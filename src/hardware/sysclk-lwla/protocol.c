@@ -279,7 +279,7 @@ static void issue_read_end(const struct sr_dev_inst *sdi)
 		devc->state = STATE_READ_END;
 }
 
-/* Decode an incoming reponse to a buffer fill level request and act on it
+/* Decode an incoming response to a buffer fill level request and act on it
  * as appropriate.  Note that this function changes the device context state.
  */
 static void process_capture_length(const struct sr_dev_inst *sdi)
@@ -768,7 +768,7 @@ SR_PRIV int lwla_convert_trigger(const struct sr_dev_inst *sdi)
 			if (!match->channel->enabled)
 				/* Ignore disabled channels with a trigger. */
 				continue;
-			channel_index = 1 << match->channel->index;
+			channel_index = (uint64_t)1 << match->channel->index;
 			devc->trigger_mask |= channel_index;
 			switch (match->match) {
 			case SR_TRIGGER_ONE:
