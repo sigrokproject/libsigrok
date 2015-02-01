@@ -285,6 +285,12 @@ libsigrok_la_SOURCES += \
 	src/hardware/manson-hcs-3xxx/protocol.c \
 	src/hardware/manson-hcs-3xxx/api.c
 endif
+if HW_MAYNUO_M97
+libsigrok_la_SOURCES += \
+	src/hardware/maynuo-m97/protocol.h \
+	src/hardware/maynuo-m97/protocol.c \
+	src/hardware/maynuo-m97/api.c
+endif
 if HW_MIC_985XX
 libsigrok_la_SOURCES += \
 	src/hardware/mic-985xx/protocol.h \

@@ -101,6 +101,9 @@ extern SR_PRIV struct sr_dev_driver link_mso19_driver_info;
 #ifdef HAVE_HW_MANSON_HCS_3XXX
 extern SR_PRIV struct sr_dev_driver manson_hcs_3xxx_driver_info;
 #endif
+#ifdef HAVE_HW_MAYNUO_M97
+extern SR_PRIV struct sr_dev_driver maynuo_m97_driver_info;
+#endif
 #ifdef HAVE_HW_MIC_985XX
 extern SR_PRIV struct sr_dev_driver mic_98581_driver_info;
 extern SR_PRIV struct sr_dev_driver mic_98583_driver_info;
@@ -246,6 +249,9 @@ SR_PRIV struct sr_dev_driver **drivers_lists[] = {
 #endif
 #ifdef HAVE_HW_MANSON_HCS_3XXX
 	(DRVS) {&manson_hcs_3xxx_driver_info, NULL},
+#endif
+#ifdef HAVE_HW_MAYNUO_M97
+	(DRVS) {&maynuo_m97_driver_info, NULL},
 #endif
 #ifdef HAVE_HW_MIC_985XX
 	(DRVS) {
