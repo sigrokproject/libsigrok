@@ -68,7 +68,7 @@
 #define LOG_PREFIX "input/vcd"
 
 #define DEFAULT_NUM_CHANNELS 8
-#define CHUNKSIZE 1024
+#define CHUNKSIZE (1024 * 1024)
 
 struct context {
 	gboolean started;
@@ -81,6 +81,10 @@ struct context {
 	int64_t skip;
 	gboolean skip_until_end;
 	GSList *channels;
+	size_t bytes_per_sample;
+	size_t samples_in_buffer;
+	uint8_t *buffer;
+	uint8_t *current_levels;
 };
 
 struct vcd_channel {
@@ -228,11 +232,21 @@ static gboolean parse_header(const struct sr_input *in, GString *buf)
 			g_strfreev(parts);
 		}
 
-		g_free(name); name = NULL;
-		g_free(contents); contents = NULL;
+		g_free(name);
+		name = NULL;
+		g_free(contents);
+		contents = NULL;
 	}
 	g_free(name);
 	g_free(contents);
+
+	/*
+	 * Compute how many bytes each sample will have and initialize the
+	 * current levels. The current levels will be updated whenever VCD
+	 * has changes.
+	 */
+	inc->bytes_per_sample = (inc->channelcount + 7) / 8;
+	inc->current_levels = g_malloc0(inc->bytes_per_sample);
 
 	inc->got_header = status;
 
@@ -260,34 +274,57 @@ static int format_match(GHashTable *metadata)
 	return status ? SR_OK : SR_ERR;
 }
 
-/* Send N samples of the given value. */
-static void send_samples(const struct sr_dev_inst *sdi, uint64_t sample, uint64_t count)
+/* Send all accumulated bytes from inc->buffer. */
+static void send_buffer(const struct sr_input *in)
 {
+	struct context *inc;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
-	uint64_t buffer[CHUNKSIZE];
-	uint64_t i;
-	unsigned chunksize = CHUNKSIZE;
 
-	if (count < chunksize)
-		chunksize = count;
+	inc = in->priv;
 
-	for (i = 0; i < chunksize; i++)
-		buffer[i] = sample;
+	if (inc->samples_in_buffer == 0)
+		return;
 
 	packet.type = SR_DF_LOGIC;
 	packet.payload = &logic;
-	logic.unitsize = sizeof(uint64_t);
-	logic.data = buffer;
+	logic.unitsize = inc->bytes_per_sample;
+	logic.data = inc->buffer;
+	logic.length = inc->bytes_per_sample * inc->samples_in_buffer;
+	sr_session_send(in->sdi, &packet);
+	inc->samples_in_buffer = 0;
+}
+
+/*
+ * Add N copies of the current sample to buffer.
+ * When the buffer fills up, automatically send it.
+ */
+static void add_samples(const struct sr_input *in, size_t count)
+{
+	struct context *inc;
+	size_t samples_per_chunk;
+	size_t space_left, i;
+	uint8_t *p;
+
+	inc = in->priv;
+	samples_per_chunk = CHUNKSIZE / inc->bytes_per_sample;
 
 	while (count) {
-		if (count < chunksize)
-			chunksize = count;
+		space_left = samples_per_chunk - inc->samples_in_buffer;
 
-		logic.length = sizeof(uint64_t) * chunksize;
+		if (space_left > count)
+			space_left = count;
 
-		sr_session_send(sdi, &packet);
-		count -= chunksize;
+		p = inc->buffer + inc->samples_in_buffer * inc->bytes_per_sample;
+		for (i = 0; i < space_left; i++) {
+			memcpy(p, inc->current_levels, inc->bytes_per_sample);
+			p += inc->bytes_per_sample;
+			inc->samples_in_buffer++;
+			count--;
+		}
+
+		if (inc->samples_in_buffer == samples_per_chunk)
+			send_buffer(in);
 	}
 }
 
@@ -297,12 +334,12 @@ static void parse_contents(const struct sr_input *in, char *data)
 	struct context *inc;
 	struct vcd_channel *vcd_ch;
 	GSList *l;
-	uint64_t timestamp, prev_timestamp, prev_values;
+	uint64_t timestamp, prev_timestamp;
 	unsigned int bit, i, j;
 	char **tokens;
 
 	inc = in->priv;
-	prev_timestamp = prev_values = 0;
+	prev_timestamp = 0;
 
 	/* Read one space-delimited token at a time. */
 	tokens = g_strsplit_set(data, " \t\r\n", 0);
@@ -343,7 +380,7 @@ static void parse_contents(const struct sr_input *in, char *data)
 				sr_dbg("New timestamp: %" PRIu64, timestamp);
 
 				/* Generate samples from prev_timestamp up to timestamp - 1. */
-				send_samples(in->sdi, prev_values, timestamp - prev_timestamp);
+				add_samples(in, timestamp - prev_timestamp);
 				prev_timestamp = timestamp;
 			}
 		} else if (tokens[i][0] == '$' && tokens[i][1] != '\0') {
@@ -386,10 +423,12 @@ static void parse_contents(const struct sr_input *in, char *data)
 				vcd_ch = l->data;
 				if (g_strcmp0(tokens[i], vcd_ch->identifier) == 0) {
 					/* Found our channel */
+					size_t byte_idx = (j / 8);
+					size_t bit_idx = j - 8 * byte_idx;
 					if (bit)
-						prev_values |= (uint64_t)1 << j;
+						inc->current_levels[byte_idx] |= (uint8_t)1 << bit_idx;
 					else
-						prev_values &= ~((uint64_t)1 << j);
+						inc->current_levels[byte_idx] &= ~((uint8_t)1 << bit_idx);
 					break;
 				}
 			}
@@ -413,10 +452,6 @@ static int init(struct sr_input *in, GHashTable *options)
 		sr_err("Invalid value for numchannels: must be at least 1.");
 		return SR_ERR_ARG;
 	}
-	if (num_channels > 64) {
-		sr_err("No more than 64 channels supported.");
-		return SR_ERR_ARG;
-	}
 	inc = in->priv = g_malloc0(sizeof(struct context));
 	inc->maxchannels = num_channels;
 
@@ -430,6 +465,8 @@ static int init(struct sr_input *in, GHashTable *options)
 
 	in->sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	in->priv = inc;
+
+	inc->buffer = g_malloc(CHUNKSIZE);
 
 	for (i = 0; i < num_channels; i++) {
 		snprintf(name, 16, "%d", i);
@@ -521,12 +558,16 @@ static int end(struct sr_input *in)
 	struct context *inc;
 	int ret;
 
+	inc = in->priv;
+
 	if (in->sdi_ready)
 		ret = process_buffer(in);
 	else
 		ret = SR_OK;
 
-	inc = in->priv;
+	/* Send any samples that haven't been sent yet. */
+	send_buffer(in);
+
 	if (inc->started) {
 		packet.type = SR_DF_END;
 		sr_session_send(in->sdi, &packet);
@@ -541,6 +582,10 @@ static void cleanup(struct sr_input *in)
 
 	inc = in->priv;
 	g_slist_free_full(inc->channels, free_channel);
+	g_free(inc->buffer);
+	inc->buffer = NULL;
+	g_free(inc->current_levels);
+	inc->current_levels = NULL;
 }
 
 static struct sr_option options[] = {
