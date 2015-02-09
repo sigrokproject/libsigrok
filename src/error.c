@@ -82,6 +82,8 @@ SR_API const char *sr_strerror(int error_code)
 		return "no channel group specified";
 	case SR_ERR_DATA:
 		return "data is invalid";
+	case SR_ERR_IO:
+		return "input/output error";
 	default:
 		return "unknown error";
 	}
