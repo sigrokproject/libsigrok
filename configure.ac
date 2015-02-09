@@ -33,6 +33,9 @@ AC_CONFIG_HEADER([config.h])
 AC_CONFIG_MACRO_DIR([autostuff])
 AC_CONFIG_AUX_DIR([autostuff])
 
+# We require this to know the target settings if we're cross-compiling.
+AC_CANONICAL_SYSTEM
+
 # We require at least automake 1.11 (needed for 'silent rules').
 AM_INIT_AUTOMAKE([1.11 -Wall -Werror subdir-objects check-news color-tests])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
