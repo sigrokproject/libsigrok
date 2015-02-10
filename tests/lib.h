@@ -45,6 +45,7 @@ Suite *suite_driver_all(void);
 Suite *suite_input_all(void);
 Suite *suite_input_binary(void);
 Suite *suite_output_all(void);
+Suite *suite_transform_all(void);
 Suite *suite_session(void);
 Suite *suite_strutil(void);
 Suite *suite_version(void);
