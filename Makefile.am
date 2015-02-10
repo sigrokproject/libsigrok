@@ -458,9 +458,9 @@ bindings/cxx/enums.cpp: bindings/cxx/enums.timestamp
 
 bindings/cxx/include/libsigrokcxx/enums.hpp: bindings/cxx/enums.timestamp
 
-bindings/cxx/enums.timestamp: bindings/cxx/enums.py doxy/xml/index.xml \
+bindings/cxx/enums.timestamp: $(srcdir)/bindings/cxx/enums.py doxy/xml/index.xml \
 		bindings/cxx/ConfigKey_methods.cpp bindings/cxx/QuantityFlag_methods.cpp
-	$(AM_V_GEN)$(PYTHON) $< doxy/xml/index.xml
+	$(AM_V_GEN)$(PYTHON) $(srcdir)/bindings/cxx/enums.py doxy/xml/index.xml
 	$(AM_V_at)touch $@
 
 bindings/cxx/classes.lo: bindings/cxx/classes.cpp bindings/cxx/enums.cpp \
