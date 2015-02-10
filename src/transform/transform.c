@@ -39,9 +39,11 @@
  */
 
 /** @cond PRIVATE */
+extern SR_PRIV struct sr_transform_module transform_nop;
 /* @endcond */
 
 static const struct sr_transform_module *transform_module_list[] = {
+	&transform_nop,
 	NULL,
 };
 

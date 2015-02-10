@@ -70,7 +70,8 @@ libsigrok_la_SOURCES += \
 
 # Transform modules
 libsigrok_la_SOURCES += \
-	src/transform/transform.c
+	src/transform/transform.c \
+	src/transform/nop.c
 
 # SCPI support
 libsigrok_la_SOURCES += \
