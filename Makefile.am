@@ -68,6 +68,10 @@ libsigrok_la_SOURCES += \
 	src/output/srzip.c \
 	src/output/vcd.c
 
+# Transform modules
+libsigrok_la_SOURCES += \
+	src/transform/transform.c
+
 # SCPI support
 libsigrok_la_SOURCES += \
 	src/scpi/scpi.c \

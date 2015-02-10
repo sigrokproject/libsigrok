@@ -181,6 +181,19 @@ SR_API int sr_output_send(const struct sr_output *o,
 		const struct sr_datafeed_packet *packet, GString **out);
 SR_API int sr_output_free(const struct sr_output *o);
 
+/*--- transform/transform.c -------------------------------------------------*/
+
+SR_API const struct sr_transform_module **sr_transform_list(void);
+SR_API const char *sr_transform_id_get(const struct sr_transform_module *tmod);
+SR_API const char *sr_transform_name_get(const struct sr_transform_module *tmod);
+SR_API const char *sr_transform_description_get(const struct sr_transform_module *tmod);
+SR_API const struct sr_transform_module *sr_transform_find(const char *id);
+SR_API const struct sr_option **sr_transform_options_get(const struct sr_transform_module *tmod);
+SR_API void sr_transform_options_free(const struct sr_option **opts);
+SR_API const struct sr_transform *sr_transform_new(const struct sr_transform_module *tmod,
+		GHashTable *params, const struct sr_dev_inst *sdi);
+SR_API int sr_transform_free(const struct sr_transform *t);
+
 /*--- trigger.c -------------------------------------------------------------*/
 
 SR_API struct sr_trigger *sr_trigger_new(const char *name);
