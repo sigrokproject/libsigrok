@@ -669,6 +669,7 @@ struct sr_session {
 	GSList *owned_devs;
 	/** List of struct datafeed_callback pointers. */
 	GSList *datafeed_callbacks;
+	GSList *transforms;
 	struct sr_trigger *trigger;
 	GTimeVal starttime;
 	gboolean running;

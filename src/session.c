@@ -697,6 +697,9 @@ SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
 {
 	GSList *l;
 	struct datafeed_callback *cb_struct;
+	struct sr_datafeed_packet *packet_in, *packet_out;
+	struct sr_transform *t;
+	int ret;
 
 	if (!sdi) {
 		sr_err("%s: sdi was NULL", __func__);
@@ -713,6 +716,40 @@ SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
 		return SR_ERR_BUG;
 	}
 
+	/*
+	 * Pass the packet to the first transform module. If that returns
+	 * another packet (instead of NULL), pass that packet to the next
+	 * transform module in the list, and so on.
+	 */
+	packet_in = (struct sr_datafeed_packet *)packet;
+	for (l = sdi->session->transforms; l; l = l->next) {
+		t = l->data;
+		sr_spew("Running transform module '%s'.", t->module->id);
+		ret = t->module->receive(t, packet_in, &packet_out);
+		if (ret < 0) {
+			sr_err("Error while running transform module: %d.", ret);
+			return SR_ERR;
+		}
+		if (!packet_out) {
+			/*
+			 * If any of the transforms don't return an output
+			 * packet, abort.
+			 */
+			sr_spew("Transform module didn't return a packet, aborting.");
+			return SR_OK;
+		} else {
+			/*
+			 * Use this transform module's output packet as input
+			 * for the next transform module.
+			 */
+			packet_in = packet_out;
+		}
+	}
+
+	/*
+	 * If the last transform did output a packet, pass it to all datafeed
+	 * callbacks.
+	 */
 	for (l = sdi->session->datafeed_callbacks; l; l = l->next) {
 		if (sr_log_loglevel_get() >= SR_LOG_DBG)
 			datafeed_dump(packet);

@@ -247,6 +247,9 @@ SR_API const struct sr_transform *sr_transform_new(const struct sr_transform_mod
 	if (new_opts)
 		g_hash_table_destroy(new_opts);
 
+	/* Add the transform to the session's list of transforms. */
+	sdi->session->transforms = g_slist_append(sdi->session->transforms, t);
+
 	return t;
 }
 
