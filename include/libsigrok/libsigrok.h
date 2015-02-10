@@ -515,6 +515,8 @@ struct sr_input;
 struct sr_input_module;
 struct sr_output;
 struct sr_output_module;
+struct sr_transform;
+struct sr_transform_module;
 
 /** Constants for channel type. */
 enum sr_channeltype {
