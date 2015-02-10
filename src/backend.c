@@ -307,6 +307,55 @@ static int sanity_check_all_output_modules(void)
 }
 
 /**
+ * Sanity-check all libsigrok transform modules.
+ *
+ * @retval SR_OK All modules are OK
+ * @retval SR_ERR One or more modules have issues.
+ */
+static int sanity_check_all_transform_modules(void)
+{
+	int i, errors, ret = SR_OK;
+	const struct sr_transform_module **transforms;
+	const char *d;
+
+	sr_spew("Sanity-checking all transform modules.");
+
+	transforms = sr_transform_list();
+	for (i = 0; transforms[i]; i++) {
+		errors = 0;
+
+		d = (transforms[i]->id) ? transforms[i]->id : "NULL";
+
+		if (!transforms[i]->id) {
+			sr_err("No ID in module %d ('%s').", i, d);
+			errors++;
+		}
+		if (!transforms[i]->name) {
+			sr_err("No name in module %d ('%s').", i, d);
+			errors++;
+		}
+		if (!transforms[i]->desc) {
+			sr_err("No description in module '%s'.", d);
+			errors++;
+		}
+		/* Note: options() is optional. */
+		/* Note: init() is optional. */
+		if (!transforms[i]->receive) {
+			sr_err("No receive in module '%s'.", d);
+			errors++;
+		}
+		/* Note: cleanup() is optional. */
+
+		if (errors == 0)
+			continue;
+
+		ret = SR_ERR;
+	}
+
+	return ret;
+}
+
+/**
  * Initialize libsigrok.
  *
  * This function must be called before any other libsigrok function.
@@ -344,6 +393,11 @@ SR_API int sr_init(struct sr_context **ctx)
 
 	if (sanity_check_all_output_modules() < 0) {
 		sr_err("Internal output module error(s), aborting.");
+		return ret;
+	}
+
+	if (sanity_check_all_transform_modules() < 0) {
+		sr_err("Internal transform module error(s), aborting.");
 		return ret;
 	}
 
