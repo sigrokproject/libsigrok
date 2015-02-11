@@ -139,6 +139,8 @@ SR_API const char *sr_strerror_name(int error_code)
 		return "SR_ERR_CHANNEL_GROUP";
 	case SR_ERR_DATA:
 		return "SR_ERR_DATA";
+	case SR_ERR_IO:
+		return "SR_ERR_IO";
 	default:
 		return "unknown error code";
 	}
