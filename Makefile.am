@@ -147,6 +147,12 @@ libsigrok_la_SOURCES += \
 	src/hardware/atten-pps3xxx/protocol.c \
 	src/hardware/atten-pps3xxx/api.c
 endif
+if HW_BAYLIBRE_ACME
+libsigrok_la_SOURCES += \
+	src/hardware/baylibre-acme/protocol.h \
+	src/hardware/baylibre-acme/protocol.c \
+	src/hardware/baylibre-acme/api.c
+endif
 if HW_BEAGLELOGIC
 libsigrok_la_SOURCES += \
 	src/hardware/beaglelogic/beaglelogic.h \
