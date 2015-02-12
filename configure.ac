@@ -431,6 +431,12 @@ AM_CONDITIONAL(HAVE_CHECK, test x"$have_check" = "xyes")
 # build it if these headers aren't available.
 AC_CHECK_HEADERS([sys/mman.h sys/ioctl.h], [], [HW_BEAGLELOGIC="no"])
 
+# The ACME driver can only be built for Linux.
+case "$target_os" in
+	linux*) ;;
+	*) HW_ACME="no" ;;
+esac
+
 AC_SUBST(SR_PKGLIBS)
 
 CFLAGS="$CFLAGS -Iinclude/libsigrok -I${srcdir}/include/libsigrok $LIB_CFLAGS"
