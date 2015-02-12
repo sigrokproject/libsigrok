@@ -21,10 +21,12 @@
 #include <stdlib.h> /* strtol() */
 #include <errno.h>
 #include <fcntl.h> /* open(), etc... */
+#include <glib/gstdio.h>
 #include "protocol.h"
 
 struct channel_group_priv {
 	int hwmon_num;
+	int probe_type;
 };
 
 struct channel_priv {
@@ -39,6 +41,9 @@ static const uint8_t enrg_i2c_addrs[] = {
 static const uint8_t temp_i2c_addrs[] = {
 	0x0, 0x0, 0x0, 0x0, 0x4c, 0x49, 0x4f, 0x4b,
 };
+
+#define MOHM_TO_UOHM(x) ((x) * 1000)
+#define UOHM_TO_MOHM(x) ((x) / 1000)
 
 SR_PRIV uint8_t bl_acme_get_enrg_addr(int index)
 {
@@ -212,6 +217,7 @@ SR_PRIV gboolean bl_acme_register_probe(struct sr_dev_inst *sdi, int type,
 	cg = g_malloc0(sizeof(struct sr_channel_group));
 	cgp = g_malloc0(sizeof(struct channel_group_priv));
 	cgp->hwmon_num = hwmon;
+	cgp->probe_type = type;
 	cg->name = g_strdup_printf("Probe_%d", prb_num);
 	cg->priv = cgp;
 
@@ -229,6 +235,108 @@ SR_PRIV gboolean bl_acme_register_probe(struct sr_dev_inst *sdi, int type,
 	sdi->channel_groups = g_slist_append(sdi->channel_groups, cg);
 
 	return TRUE;
+}
+
+/*
+ * Sets path to the hwmon attribute if this channel group
+ * supports shunt resistance setting. The caller has to supply
+ * a valid GString.
+ */
+static int get_shunt_path(const struct sr_channel_group *cg, GString *path)
+{
+	struct channel_group_priv *cgp;
+	int ret = SR_OK, status;
+
+	cgp = cg->priv;
+
+	if (cgp->probe_type != PROBE_ENRG) {
+		sr_err("Probe doesn't support shunt resistance setting");
+		return SR_ERR_ARG;
+	}
+
+	g_string_append_printf(path,
+			       "/sys/class/hwmon/hwmon%d/shunt_resistor",
+			       cgp->hwmon_num);
+
+	/*
+	 * The shunt_resistor sysfs attribute is available
+	 * in the Linux kernel since version 3.20. We have
+	 * to notify the user if this attribute is not
+	 * present.
+	 */
+	status = g_file_test(path->str, G_FILE_TEST_EXISTS);
+	if (!status) {
+		sr_err("shunt_resistance attribute not present please update "
+		       "your kernel to version >=3.20");
+		return SR_ERR_NA;
+	}
+
+	return ret;
+}
+
+SR_PRIV int bl_acme_get_shunt(const struct sr_channel_group *cg,
+			      uint64_t *shunt)
+{
+	GString *path = g_string_sized_new(64);
+	gchar *contents;
+	int status, ret = SR_OK;
+	GError *err = NULL;
+
+	status = get_shunt_path(cg, path);
+	if (status != SR_OK) {
+		ret = status;
+		goto out;
+	}
+
+	status = g_file_get_contents(path->str, &contents, NULL, &err);
+	if (!status) {
+		sr_err("Error reading shunt resistance: %s", err->message);
+		ret = SR_ERR_IO;
+		goto out;
+	}
+
+	*shunt = UOHM_TO_MOHM(strtol(contents, NULL, 10));
+
+out:
+	g_string_free(path, TRUE);
+	return ret;
+}
+
+SR_PRIV int bl_acme_set_shunt(const struct sr_channel_group *cg,
+			      uint64_t shunt)
+{
+	GString *path = g_string_sized_new(64);;
+	int status, ret = SR_OK;
+	FILE *fd;
+
+	status = get_shunt_path(cg, path);
+	if (status != SR_OK) {
+		ret = status;
+		goto out;
+	}
+
+	/*
+	 * Can't use g_file_set_contents() here, as it calls open() with
+	 * O_EXEC flag in a sysfs directory thus failing with EACCES.
+	 */
+	fd = g_fopen(path->str, "w");
+	if (!fd) {
+		sr_err("Error opening %s: %s", path->str, strerror(errno));
+		g_string_free(path, TRUE);
+		return SR_ERR_IO;
+	}
+
+	g_string_free(path, TRUE);
+	g_fprintf(fd, "%llu\n", MOHM_TO_UOHM(shunt));
+	/*
+	 * XXX There's no g_fclose() in GLib. This seems to work,
+	 * but is it safe?
+	 */
+	fclose(fd);
+
+out:
+	g_string_free(path, TRUE);
+	return ret;
 }
 
 static int channel_to_mq(struct sr_channel *ch)

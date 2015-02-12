@@ -27,6 +27,7 @@ static const uint32_t devopts[] = {
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_PROBE_FACTOR | SR_CONF_GET | SR_CONF_SET,
 };
 
 #define MAX_SAMPLE_RATE		500 /* In Hz */
@@ -168,8 +169,7 @@ static int config_get(uint32_t key, GVariant **data,
 {
 	struct dev_context *devc;
 	int ret;
-
-	(void)cg;
+	uint64_t shunt;
 
 	devc = sdi->priv;
 
@@ -183,6 +183,13 @@ static int config_get(uint32_t key, GVariant **data,
 		break;
 	case SR_CONF_SAMPLERATE:
 		*data = g_variant_new_uint64(devc->samplerate);
+		break;
+	case SR_CONF_PROBE_FACTOR:
+		if (!cg)
+			return SR_ERR_CHANNEL_GROUP;
+		ret = bl_acme_get_shunt(cg, &shunt);
+		if (ret == SR_OK)
+			*data = g_variant_new_uint64(shunt);
 		break;
 	default:
 		return SR_ERR_NA;
@@ -198,8 +205,6 @@ static int config_set(uint32_t key, GVariant *data,
 	struct dev_context *devc;
 	uint64_t samplerate;
 	int ret;
-
-	(void)cg;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
@@ -228,6 +233,11 @@ static int config_set(uint32_t key, GVariant *data,
 		}
 		devc->samplerate = samplerate;
 		sr_dbg("Setting samplerate to %" PRIu64, devc->samplerate);
+		break;
+	case SR_CONF_PROBE_FACTOR:
+		if (!cg)
+			return SR_ERR_CHANNEL_GROUP;
+		ret = bl_acme_set_shunt(cg, g_variant_get_uint64(data));
 		break;
 	default:
 		ret = SR_ERR_NA;

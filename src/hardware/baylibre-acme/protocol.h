@@ -81,6 +81,11 @@ SR_PRIV gboolean bl_acme_detect_probe(unsigned int addr,
 SR_PRIV gboolean bl_acme_register_probe(struct sr_dev_inst *sdi, int type,
 					unsigned int addr, int prb_num);
 
+SR_PRIV int bl_acme_get_shunt(const struct sr_channel_group *cg,
+			      uint64_t *shunt);
+SR_PRIV int bl_acme_set_shunt(const struct sr_channel_group *cg,
+			      uint64_t shunt);
+
 SR_PRIV int bl_acme_receive_data(int fd, int revents, void *cb_data);
 
 #endif
