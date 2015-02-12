@@ -28,6 +28,7 @@ static const uint32_t devopts[] = {
 	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_PROBE_FACTOR | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_POWER_OFF | SR_CONF_GET | SR_CONF_SET,
 };
 
 #define MAX_SAMPLE_RATE		500 /* In Hz */
@@ -170,6 +171,7 @@ static int config_get(uint32_t key, GVariant **data,
 	struct dev_context *devc;
 	int ret;
 	uint64_t shunt;
+	gboolean power_off;
 
 	devc = sdi->priv;
 
@@ -190,6 +192,13 @@ static int config_get(uint32_t key, GVariant **data,
 		ret = bl_acme_get_shunt(cg, &shunt);
 		if (ret == SR_OK)
 			*data = g_variant_new_uint64(shunt);
+		break;
+	case SR_CONF_POWER_OFF:
+		if (!cg)
+			return SR_ERR_CHANNEL_GROUP;
+		ret = bl_acme_read_power_state(cg, &power_off);
+		if (ret == SR_OK)
+			*data = g_variant_new_boolean(power_off);
 		break;
 	default:
 		return SR_ERR_NA;
@@ -238,6 +247,11 @@ static int config_set(uint32_t key, GVariant *data,
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
 		ret = bl_acme_set_shunt(cg, g_variant_get_uint64(data));
+		break;
+	case SR_CONF_POWER_OFF:
+		if (!cg)
+			return SR_ERR_CHANNEL_GROUP;
+		ret = bl_acme_set_power_off(cg, g_variant_get_boolean(data));
 		break;
 	default:
 		ret = SR_ERR_NA;

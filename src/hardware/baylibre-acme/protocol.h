@@ -85,6 +85,10 @@ SR_PRIV int bl_acme_get_shunt(const struct sr_channel_group *cg,
 			      uint64_t *shunt);
 SR_PRIV int bl_acme_set_shunt(const struct sr_channel_group *cg,
 			      uint64_t shunt);
+SR_PRIV int bl_acme_read_power_state(const struct sr_channel_group *cg,
+				     gboolean *off);
+SR_PRIV int bl_acme_set_power_off(const struct sr_channel_group *cg,
+				  gboolean off);
 
 SR_PRIV int bl_acme_receive_data(int fd, int revents, void *cb_data);
 

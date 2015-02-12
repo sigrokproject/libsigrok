@@ -23,10 +23,12 @@
 #include <fcntl.h> /* open(), etc... */
 #include <glib/gstdio.h>
 #include "protocol.h"
+#include "gpio.h"
 
 struct channel_group_priv {
 	int hwmon_num;
 	int probe_type;
+	int index;
 };
 
 struct channel_priv {
@@ -40,6 +42,14 @@ static const uint8_t enrg_i2c_addrs[] = {
 
 static const uint8_t temp_i2c_addrs[] = {
 	0x0, 0x0, 0x0, 0x0, 0x4c, 0x49, 0x4f, 0x4b,
+};
+
+static const uint32_t pws_gpios[] = {
+	486, 498, 502, 482, 478, 506, 510, 474
+};
+
+static const uint32_t pws_info_gpios[] = {
+	487, 499, 503, 483, 479, 507, 511, 475,
 };
 
 #define MOHM_TO_UOHM(x) ((x) * 1000)
@@ -218,6 +228,7 @@ SR_PRIV gboolean bl_acme_register_probe(struct sr_dev_inst *sdi, int type,
 	cgp = g_malloc0(sizeof(struct channel_group_priv));
 	cgp->hwmon_num = hwmon;
 	cgp->probe_type = type;
+	cgp->index = prb_num - 1;
 	cg->name = g_strdup_printf("Probe_%d", prb_num);
 	cg->priv = cgp;
 
@@ -337,6 +348,45 @@ SR_PRIV int bl_acme_set_shunt(const struct sr_channel_group *cg,
 out:
 	g_string_free(path, TRUE);
 	return ret;
+}
+
+SR_PRIV int bl_acme_read_power_state(const struct sr_channel_group *cg,
+				     gboolean *off)
+{
+	struct channel_group_priv *cgp;
+	int val;
+
+	cgp = cg->priv;
+
+	val = sr_gpio_getval_export(pws_info_gpios[cgp->index]);
+	if (val != 1) {
+		sr_err("Probe has no power-switch");
+		return SR_ERR_ARG;
+	}
+
+	val = sr_gpio_getval_export(pws_gpios[cgp->index]);
+	*off = val ? FALSE : TRUE;
+
+	return SR_OK;
+}
+
+SR_PRIV int bl_acme_set_power_off(const struct sr_channel_group *cg,
+				  gboolean off)
+{
+	struct channel_group_priv *cgp;
+	int val;
+
+	cgp = cg->priv;
+
+	val = sr_gpio_getval_export(pws_info_gpios[cgp->index]);
+	if (val != 1) {
+		sr_err("Probe has no power-switch");
+		return SR_ERR_ARG;
+	}
+
+	val = sr_gpio_setval_export(pws_gpios[cgp->index], off ? 0 : 1);
+
+	return SR_OK;
 }
 
 static int channel_to_mq(struct sr_channel *ch)
