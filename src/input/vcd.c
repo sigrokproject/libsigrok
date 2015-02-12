@@ -503,7 +503,7 @@ static int receive(struct sr_input *in, GString *buf)
 	if (!inc->got_header) {
 		if (!have_header(in->buf))
 			return SR_OK;
-		if (!parse_header(in, in->buf) != SR_OK)
+		if (!parse_header(in, in->buf))
 			/* There was a header in there, but it was malformed. */
 			return SR_ERR;
 
