@@ -983,15 +983,11 @@ SR_API int sr_session_source_remove_channel(struct sr_session *session,
 	return _sr_session_source_remove(session, (gintptr)channel);
 }
 
-static void *copy_src(struct sr_config *src)
+static void copy_src(struct sr_config *src, struct sr_datafeed_meta *meta_copy)
 {
-	struct sr_config *new_src;
-
-	new_src = g_malloc(sizeof(struct sr_config));
-	memcpy(new_src, src, sizeof(struct sr_config));
 	g_variant_ref(src->data);
-
-	return new_src;
+	meta_copy->config = g_slist_append(meta_copy->config,
+	                                   g_memdup(src, sizeof(struct sr_config)));
 }
 
 SR_PRIV int sr_packet_copy(const struct sr_datafeed_packet *packet,
@@ -1020,9 +1016,8 @@ SR_PRIV int sr_packet_copy(const struct sr_datafeed_packet *packet,
 		break;
 	case SR_DF_META:
 		meta = packet->payload;
-		meta_copy = g_malloc(sizeof(struct sr_datafeed_meta));
-		meta_copy->config = g_slist_copy(meta->config);
-		g_slist_foreach(meta_copy->config, (GCopyFunc)copy_src, NULL);
+		meta_copy = g_malloc0(sizeof(struct sr_datafeed_meta));
+		g_slist_foreach(meta->config, (GFunc)copy_src, meta_copy->config);
 		(*copy)->payload = meta_copy;
 		break;
 	case SR_DF_LOGIC:
