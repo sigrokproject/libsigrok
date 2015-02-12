@@ -151,7 +151,9 @@ if HW_BAYLIBRE_ACME
 libsigrok_la_SOURCES += \
 	src/hardware/baylibre-acme/protocol.h \
 	src/hardware/baylibre-acme/protocol.c \
-	src/hardware/baylibre-acme/api.c
+	src/hardware/baylibre-acme/api.c \
+	src/hardware/baylibre-acme/gpio.h \
+	src/hardware/baylibre-acme/gpio.c
 endif
 if HW_BEAGLELOGIC
 libsigrok_la_SOURCES += \
