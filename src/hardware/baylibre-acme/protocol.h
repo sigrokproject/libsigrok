@@ -22,23 +22,65 @@
 
 #include <stdint.h>
 #include <glib.h>
+#include <unistd.h> /* pipe() */
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
 #define LOG_PREFIX "baylibre-acme"
 
-/** Private, per-device-instance driver context. */
-struct dev_context {
-	/* Model-specific information */
+/* We support up to 8 energy/temperature probes. */
+#define MAX_PROBES		8
 
-	/* Acquisition settings */
+/*
+ * Temperature probes can be connected to the last four ports on the
+ * ACME cape. When scanning, first look for temperature probes starting
+ * from this index.
+ */
+#define TEMP_PRB_START_INDEX	4
 
-	/* Operational state */
+#define ENRG_PROBE_NAME		"ina226"
+#define TEMP_PROBE_NAME		"tmp435"
 
-	/* Temporary state across callbacks */
+/* For the user we number the probes starting from 1. */
+#define PROBE_NUM(n) ((n)+1)
 
+enum probe_type {
+	PROBE_ENRG = 1,
+	PROBE_TEMP,
 };
 
-SR_PRIV int baylibre_acme_receive_data(int fd, int revents, void *cb_data);
+enum channel_type {
+	ENRG_PWR = 1,
+	ENRG_CURR,
+	ENRG_VOL,
+	TEMP_IN,
+	TEMP_OUT,
+};
+
+/** Private, per-device-instance driver context. */
+struct dev_context {
+	uint64_t samplerate;
+	uint64_t limit_samples;
+	uint64_t limit_msec;
+
+	uint32_t num_channels;
+	uint64_t samples_read;
+	int64_t start_time;
+	int64_t last_sample_fin;
+	int pipe_fds[2];
+	GIOChannel *channel;
+};
+
+SR_PRIV uint8_t bl_acme_get_enrg_addr(int index);
+SR_PRIV uint8_t bl_acme_get_temp_addr(int index);
+
+SR_PRIV gboolean bl_acme_is_sane(void);
+
+SR_PRIV gboolean bl_acme_detect_probe(unsigned int addr,
+				      int prb_num, const char *prb_name);
+SR_PRIV gboolean bl_acme_register_probe(struct sr_dev_inst *sdi, int type,
+					unsigned int addr, int prb_num);
+
+SR_PRIV int bl_acme_receive_data(int fd, int revents, void *cb_data);
 
 #endif
