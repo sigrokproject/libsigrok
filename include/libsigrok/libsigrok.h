@@ -906,6 +906,9 @@ enum sr_configkey {
 	 */
 	SR_CONF_DATA_SOURCE,
 
+	/** The device supports setting a probe factor. */
+	SR_CONF_PROBE_FACTOR,
+
 	/*--- Acquisition modes, sample limiting ----------------------------*/
 
 	/**

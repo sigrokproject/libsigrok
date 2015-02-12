@@ -183,6 +183,8 @@ static struct sr_config_info sr_config_info_data[] = {
 		"Power off", NULL},
 	{SR_CONF_DATA_SOURCE, SR_T_STRING, "data_source",
 		"Data source", NULL},
+	{SR_CONF_PROBE_FACTOR, SR_T_UINT64, "probe_factor",
+		"Probe factor", NULL},
 
 	/* Acquisition modes, sample limiting */
 	{SR_CONF_LIMIT_MSEC, SR_T_UINT64, "limit_time",
