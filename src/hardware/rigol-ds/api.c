@@ -557,9 +557,9 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		*data = g_variant_new_string(tmp_str);
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
-		if (!strcmp(devc->trigger_slope, "POS"))
+		if (!strncmp(devc->trigger_slope, "POS", 3))
 			tmp_str = "r";
-		else if (!strcmp(devc->trigger_slope, "NEG"))
+		else if (!strncmp(devc->trigger_slope, "NEG", 3))
 			tmp_str = "f";
 		else
 			return SR_ERR_NA;
