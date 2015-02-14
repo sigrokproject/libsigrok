@@ -520,6 +520,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 			return TRUE;
 		default:
 			sr_err("BUG: Unknown event target encountered");
+			break;
 		}
 
 		ch = devc->channel_entry->data;

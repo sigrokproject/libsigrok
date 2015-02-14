@@ -532,6 +532,7 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		break;
 	case SR_CONF_NUM_VDIV:
 		*data = g_variant_new_int32(NUM_VDIV);
+		break;
 	case SR_CONF_DATA_SOURCE:
 		if (devc->data_source == DATA_SOURCE_LIVE)
 			*data = g_variant_new_string("Live");
