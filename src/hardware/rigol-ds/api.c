@@ -502,7 +502,7 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 	const char *tmp_str;
 	uint64_t samplerate;
 	int analog_channel = -1;
-	float smallest_diff = 0.0000000001;
+	float smallest_diff = INFINITY;
 	int idx = -1;
 	unsigned i;
 
