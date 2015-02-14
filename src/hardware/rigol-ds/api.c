@@ -381,8 +381,10 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	}
 
 	for (i = 0; i < NUM_VDIV; i++)
-		if (!memcmp(&devc->model->series->min_vdiv, &vdivs[i], sizeof(uint64_t[2])))
+		if (!memcmp(&devc->model->series->min_vdiv, &vdivs[i], sizeof(uint64_t[2]))) {
 			devc->vdivs = &vdivs[i];
+			devc->num_vdivs = NUM_VDIV - i;
+		}
 
 	if (!(devc->buffer = g_try_malloc(ACQ_BUFFER_SIZE)))
 		return NULL;
@@ -531,7 +533,7 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		*data = g_variant_new_int32(devc->model->series->num_horizontal_divs);
 		break;
 	case SR_CONF_NUM_VDIV:
-		*data = g_variant_new_int32(NUM_VDIV);
+		*data = g_variant_new_int32(devc->num_vdivs);
 		break;
 	case SR_CONF_DATA_SOURCE:
 		if (devc->data_source == DATA_SOURCE_LIVE)
@@ -866,7 +868,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 			return SR_ERR_CHANNEL_GROUP;
 		}
 		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
-		for (i = 0; i < NUM_VDIV; i++) {
+		for (i = 0; i < devc->num_vdivs; i++) {
 			rational[0] = g_variant_new_uint64(devc->vdivs[i][0]);
 			rational[1] = g_variant_new_uint64(devc->vdivs[i][1]);
 			tuple = g_variant_new_tuple(rational, 2);
