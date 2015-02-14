@@ -113,6 +113,9 @@ static const uint64_t vdivs[][2] = {
 	{ 2, 1 },
 	{ 5, 1 },
 	{ 10, 1 },
+	{ 20, 1 },
+	{ 50, 1 },
+	{ 100, 1 },
 };
 
 #define NUM_TIMEBASE  ARRAY_SIZE(timebases)
