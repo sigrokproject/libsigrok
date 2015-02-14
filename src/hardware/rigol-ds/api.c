@@ -405,13 +405,18 @@ static GSList *dev_list(void)
 
 static int dev_open(struct sr_dev_inst *sdi)
 {
+	int ret;
 	struct sr_scpi_dev_inst *scpi = sdi->conn;
 
-	if (sr_scpi_open(scpi) < 0)
+	if ((ret = sr_scpi_open(scpi)) < 0) {
+		sr_err("Failed to open SCPI device: %s.", sr_strerror(ret));
 		return SR_ERR;
+	}
 
-	if (rigol_ds_get_dev_cfg(sdi) != SR_OK)
+	if ((ret = rigol_ds_get_dev_cfg(sdi)) < 0) {
+		sr_err("Failed to get device config: %s.", sr_strerror(ret));
 		return SR_ERR;
+	}
 
 	sdi->status = SR_ST_ACTIVE;
 
@@ -538,6 +543,7 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 				(devc->timebase * devc->model->series->num_horizontal_divs);
 			*data = g_variant_new_uint64(samplerate);
 		} else {
+			sr_dbg("Unknown data source: %d.", devc->data_source);
 			return SR_ERR_NA;
 		}
 		break;
@@ -557,12 +563,14 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		*data = g_variant_new_string(tmp_str);
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
-		if (!strncmp(devc->trigger_slope, "POS", 3))
+		if (!strncmp(devc->trigger_slope, "POS", 3)) {
 			tmp_str = "r";
-		else if (!strncmp(devc->trigger_slope, "NEG", 3))
+		} else if (!strncmp(devc->trigger_slope, "NEG", 3)) {
 			tmp_str = "f";
-		else
+		} else {
+			sr_dbg("Unknown trigger slope: '%s'.", devc->trigger_slope);
 			return SR_ERR_NA;
+		}
 		*data = g_variant_new_string(tmp_str);
 		break;
 	case SR_CONF_TIMEBASE:
@@ -574,14 +582,18 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 				idx = i;
 			}
 		}
-		if (idx < 0)
+		if (idx < 0) {
+			sr_dbg("Negative timebase index: %d.", idx);
 			return SR_ERR_NA;
+		}
 		*data = g_variant_new("(tt)", devc->timebases[idx][0],
 		                              devc->timebases[idx][1]);
 		break;
 	case SR_CONF_VDIV:
-		if (analog_channel < 0)
+		if (analog_channel < 0) {
+			sr_dbg("Negative analog channel: %d.", analog_channel);
 			return SR_ERR_NA;
+		}
 		for (i = 0; i < ARRAY_SIZE(vdivs); i++) {
 			float vdiv = (float)vdivs[i][0] / vdivs[i][1];
 			float diff = fabs(devc->vdiv[analog_channel] - vdiv);
@@ -590,16 +602,21 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 				idx = i;
 			}
 		}
-		if (idx < 0)
+		if (idx < 0) {
+			sr_dbg("Negative vdiv index: %d.", idx);
 			return SR_ERR_NA;
+		}
 		*data = g_variant_new("(tt)", vdivs[idx][0], vdivs[idx][1]);
 		break;
 	case SR_CONF_COUPLING:
-		if (analog_channel < 0)
+		if (analog_channel < 0) {
+			sr_dbg("Negative analog channel: %d.", analog_channel);
 			return SR_ERR_NA;
+		}
 		*data = g_variant_new_string(devc->coupling[analog_channel]);
 		break;
 	default:
+		sr_dbg("Tried to get unknown config key: %d.", key);
 		return SR_ERR_NA;
 	}
 
@@ -637,8 +654,11 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	case SR_CONF_TRIGGER_SLOPE:
 		tmp_str = g_variant_get_string(data, NULL);
 
-		if (!tmp_str || !(tmp_str[0] == 'f' || tmp_str[0] == 'r'))
+		if (!tmp_str || !(tmp_str[0] == 'f' || tmp_str[0] == 'r')) {
+			sr_err("Unknown trigger slope: '%s'.",
+			       (tmp_str) ? tmp_str : "NULL");
 			return SR_ERR_ARG;
+		}
 
 		g_free(devc->trigger_slope);
 		devc->trigger_slope = g_strdup((tmp_str[0] == 'r') ? "POS" : "NEG");
@@ -646,8 +666,10 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		break;
 	case SR_CONF_HORIZ_TRIGGERPOS:
 		t_dbl = g_variant_get_double(data);
-		if (t_dbl < 0.0 || t_dbl > 1.0)
+		if (t_dbl < 0.0 || t_dbl > 1.0) {
+			sr_err("Invalid horiz. trigger position: %g.", t_dbl);
 			return SR_ERR;
+		}
 		devc->horiz_triggerpos = t_dbl;
 		/* We have the trigger offset as a percentage of the frame, but
 		 * need to express this in seconds. */
@@ -666,8 +688,10 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 				break;
 			}
 		}
-		if (i == devc->num_timebases)
+		if (i == devc->num_timebases) {
+			sr_err("Invalid timebase index: %d.", i);
 			ret = SR_ERR_ARG;
+		}
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
 		tmp_str = g_variant_get_string(data, NULL);
@@ -691,8 +715,10 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 				break;
 			}
 		}
-		if (i == ARRAY_SIZE(trigger_sources))
+		if (i == ARRAY_SIZE(trigger_sources)) {
+			sr_err("Invalid trigger source index: %d.", i);
 			ret = SR_ERR_ARG;
+		}
 		break;
 	case SR_CONF_VDIV:
 		if (!cg) {
@@ -711,9 +737,11 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 					return rigol_ds_config_set(sdi, ":CHAN%d:SCAL %s", i + 1,
 							buffer);
 				}
+				sr_err("Invalid vdiv index: %d.", j);
 				return SR_ERR_ARG;
 			}
 		}
+		sr_dbg("Didn't set vdiv, unknown channel(group).");
 		return SR_ERR_NA;
 	case SR_CONF_COUPLING:
 		if (!cg) {
@@ -731,9 +759,11 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 								devc->coupling[i]);
 					}
 				}
+				sr_err("Invalid coupling index: %d.", j);
 				return SR_ERR_ARG;
 			}
 		}
+		sr_dbg("Didn't set coupling, unknown channel(group).");
 		return SR_ERR_NA;
 	case SR_CONF_DATA_SOURCE:
 		tmp_str = g_variant_get_string(data, NULL);
@@ -745,10 +775,13 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		else if (devc->model->series->protocol >= PROTOCOL_V3
 			 && !strcmp(tmp_str, "Segmented"))
 			devc->data_source = DATA_SOURCE_SEGMENTED;
-		else
+		else {
+			sr_err("Unknown data source: '%s'.", tmp_str);
 			return SR_ERR;
+		}
 		break;
 	default:
+		sr_dbg("Tried to set unknown config key: %d.", key);
 		ret = SR_ERR_NA;
 		break;
 	}
@@ -879,6 +912,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		}
 		break;
 	default:
+		sr_dbg("Tried to list unknown config key: %d.", key);
 		return SR_ERR_NA;
 	}
 
