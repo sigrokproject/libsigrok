@@ -22,8 +22,8 @@
  * of this directory if any other driver would happen to want to use them.
  */
 
-#ifndef LIBSIGROK_GPIO_H
-#define LIBSIGROK_GPIO_H
+#ifndef LIBSIGROK_HARDWARE_BAYLIBRE_ACME_GPIO_H
+#define LIBSIGROK_HARDWARE_BAYLIBRE_ACME_GPIO_H
 
 enum {
 	GPIO_DIR_IN,
@@ -34,8 +34,8 @@ SR_PRIV int sr_gpio_export(unsigned gpio);
 SR_PRIV int sr_gpio_set_direction(unsigned gpio, unsigned direction);
 SR_PRIV int sr_gpio_set_value(unsigned gpio, unsigned value);
 SR_PRIV int sr_gpio_get_value(int gpio);
-/* These functions export given gpio if it's not already exported. */
+/* These functions export given GPIO if it's not already exported. */
 SR_PRIV int sr_gpio_setval_export(int gpio, int value);
 SR_PRIV int sr_gpio_getval_export(int gpio);
 
-#endif /* LIBSIGROK_GPIO_H */
+#endif

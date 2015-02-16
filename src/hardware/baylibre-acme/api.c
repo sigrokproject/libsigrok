@@ -31,7 +31,7 @@ static const uint32_t devopts[] = {
 	SR_CONF_POWER_OFF | SR_CONF_GET | SR_CONF_SET,
 };
 
-#define MAX_SAMPLE_RATE		500 /* In Hz */
+#define MAX_SAMPLE_RATE 500 /* In Hz */
 
 static const uint64_t samplerates[] = {
 	SR_HZ(1),
@@ -63,7 +63,7 @@ static GSList *scan(GSList *options)
 
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->status = SR_ST_INACTIVE;
-	sdi->model = g_strdup("Acme cape");
+	sdi->model = g_strdup("ACME cape");
 	sdi->driver = di;
 	sdi->priv = devc;
 
@@ -82,36 +82,29 @@ static GSList *scan(GSList *options)
 		 * detect a temperature probe.
 		 */
 		status = bl_acme_detect_probe(bl_acme_get_enrg_addr(i),
-					      PROBE_NUM(i),
-					      ENRG_PROBE_NAME);
+					      PROBE_NUM(i), ENRG_PROBE_NAME);
 		if (status) {
 			/* Energy probe detected. */
-			status = bl_acme_register_probe(sdi,
-						       PROBE_ENRG,
-						       bl_acme_get_enrg_addr(i),
-						       PROBE_NUM(i));
+			status = bl_acme_register_probe(sdi, PROBE_ENRG,
+					bl_acme_get_enrg_addr(i), PROBE_NUM(i));
 			if (!status) {
 				sr_err("Error registering power probe %d",
 				       PROBE_NUM(i));
 				continue;
 			}
-
 		} else if (i >= TEMP_PRB_START_INDEX) {
 			status = bl_acme_detect_probe(bl_acme_get_temp_addr(i),
-						      PROBE_NUM(i),
-						      TEMP_PROBE_NAME);
+					      PROBE_NUM(i), TEMP_PROBE_NAME);
 			if (status) {
 				/* Temperature probe detected. */
 				status = bl_acme_register_probe(sdi,PROBE_TEMP,
-						bl_acme_get_temp_addr(i),
-						PROBE_NUM(i));
+					bl_acme_get_temp_addr(i), PROBE_NUM(i));
 				if (!status) {
 					sr_err("Error registering temp "
 					       "probe %d", PROBE_NUM(i));
 					continue;
 				}
 			}
-
 		}
 	}
 
@@ -225,8 +218,7 @@ static int config_set(uint32_t key, GVariant *data,
 	case SR_CONF_LIMIT_SAMPLES:
 		devc->limit_samples = g_variant_get_uint64(data);
 		devc->limit_msec = 0;
-		sr_dbg("Setting sample limit to %" PRIu64,
-		       devc->limit_samples);
+		sr_dbg("Setting sample limit to %" PRIu64, devc->limit_samples);
 		break;
 	case SR_CONF_LIMIT_MSEC:
 		devc->limit_msec = g_variant_get_uint64(data) * 1000;
@@ -275,16 +267,12 @@ static int config_list(uint32_t key, GVariant **data,
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-						  devopts,
-						  ARRAY_SIZE(devopts),
-						  sizeof(uint32_t));
+			devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
 		break;
 	case SR_CONF_SAMPLERATE:
 		g_variant_builder_init(&gvb, G_VARIANT_TYPE("a{sv}"));
 		gvar = g_variant_new_fixed_array(G_VARIANT_TYPE("t"),
-						 samplerates,
-						 ARRAY_SIZE(samplerates),
-						 sizeof(uint64_t));
+			samplerates, ARRAY_SIZE(samplerates), sizeof(uint64_t));
 		g_variant_builder_add(&gvb, "{sv}", "samplerate-steps", gvar);
 		*data = g_variant_builder_end(&gvb);
 		break;
@@ -318,8 +306,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	g_io_channel_set_buffered(devc->channel, FALSE);
 
 	sr_session_source_add_channel(sdi->session, devc->channel,
-				      G_IO_IN | G_IO_ERR, 1,
-				      bl_acme_receive_data, (void *)sdi);
+		G_IO_IN | G_IO_ERR, 1, bl_acme_receive_data, (void *)sdi);
 
 	/* Send header packet to the session bus. */
 	std_session_send_df_header(sdi, LOG_PREFIX);

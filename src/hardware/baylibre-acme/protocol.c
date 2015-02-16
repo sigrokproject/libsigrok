@@ -18,9 +18,9 @@
  */
 
 #include <string.h>
-#include <stdlib.h> /* strtol() */
+#include <stdlib.h>
 #include <errno.h>
-#include <fcntl.h> /* open(), etc... */
+#include <fcntl.h>
 #include <glib/gstdio.h>
 #include "protocol.h"
 #include "gpio.h"
@@ -45,7 +45,7 @@ static const uint8_t temp_i2c_addrs[] = {
 };
 
 static const uint32_t pws_gpios[] = {
-	486, 498, 502, 482, 478, 506, 510, 474
+	486, 498, 502, 482, 478, 506, 510, 474,
 };
 
 static const uint32_t pws_info_gpios[] = {
@@ -114,10 +114,9 @@ SR_PRIV gboolean bl_acme_detect_probe(unsigned int addr,
 		       prb_num, err->message);
 		g_string_free(path, TRUE);
 		return ret;
-
 	}
 
-	if (strncmp(buf, prb_name, strlen(prb_name)) == 0) {
+	if (!strncmp(buf, prb_name, strlen(prb_name))) {
 		/*
 		 * Correct driver registered on this address - but is
 		 * there an actual probe connected?
@@ -145,7 +144,7 @@ static int get_hwmon_index(unsigned int addr)
 
 	probe_hwmon_path(addr, path);
 	dir = g_dir_open(path->str, 0, &err);
-	if (dir == NULL) {
+	if (!dir) {
 		sr_err("Error opening %s: %s", path->str, err->message);
 		g_string_free(path, TRUE);
 		return -1;
@@ -167,8 +166,7 @@ static int get_hwmon_index(unsigned int addr)
 	return hwmon;
 }
 
-static void append_channel(struct sr_dev_inst *sdi,
-			   struct sr_channel_group *cg,
+static void append_channel(struct sr_dev_inst *sdi, struct sr_channel_group *cg,
 			   int index, int type)
 {
 	struct channel_priv *cp;
@@ -195,7 +193,7 @@ static void append_channel(struct sr_dev_inst *sdi,
 		name = g_strdup_printf("P%d_TEMP_OUT", index);
 		break;
 	default:
-		sr_err("Bug in the code: invalid channel type!");
+		sr_err("Invalid channel type: %d.", type);
 		return;
 	}
 
@@ -240,7 +238,7 @@ SR_PRIV gboolean bl_acme_register_probe(struct sr_dev_inst *sdi, int type,
 		append_channel(sdi, cg, prb_num, TEMP_IN);
 		append_channel(sdi, cg, prb_num, TEMP_OUT);
 	} else {
-		sr_err("Bug in the code: invalid probe type!");
+		sr_err("Invalid probe type: %d.", type);
 	}
 
 	sdi->channel_groups = g_slist_append(sdi->channel_groups, cg);
@@ -272,12 +270,11 @@ static int get_shunt_path(const struct sr_channel_group *cg, GString *path)
 	/*
 	 * The shunt_resistor sysfs attribute is available
 	 * in the Linux kernel since version 3.20. We have
-	 * to notify the user if this attribute is not
-	 * present.
+	 * to notify the user if this attribute is not present.
 	 */
 	status = g_file_test(path->str, G_FILE_TEST_EXISTS);
 	if (!status) {
-		sr_err("shunt_resistance attribute not present please update "
+		sr_err("shunt_resistance attribute not present, please update "
 		       "your kernel to version >=3.20");
 		return SR_ERR_NA;
 	}
@@ -313,8 +310,7 @@ out:
 	return ret;
 }
 
-SR_PRIV int bl_acme_set_shunt(const struct sr_channel_group *cg,
-			      uint64_t shunt)
+SR_PRIV int bl_acme_set_shunt(const struct sr_channel_group *cg, uint64_t shunt)
 {
 	GString *path = g_string_sized_new(64);;
 	int status, ret = SR_OK;
@@ -402,7 +398,7 @@ static int channel_to_mq(struct sr_channel *ch)
 		return SR_MQ_CURRENT;
 	case ENRG_VOL:
 		return SR_MQ_VOLTAGE;
-	case TEMP_IN:
+	case TEMP_IN: /* Fallthrough */
 	case TEMP_OUT:
 		return SR_MQ_TEMPERATURE;
 	default:
@@ -423,7 +419,7 @@ static int channel_to_unit(struct sr_channel *ch)
 		return SR_UNIT_AMPERE;
 	case ENRG_VOL:
 		return SR_UNIT_VOLT;
-	case TEMP_IN:
+	case TEMP_IN: /* Fallthrough */
 	case TEMP_OUT:
 		return SR_UNIT_CELSIUS;
 	default:
@@ -437,9 +433,9 @@ static float adjust_data(int val, int type)
 	switch (type) {
 	case ENRG_PWR:
 		return ((float)val) / 1000000.0;
-	case ENRG_CURR:
-	case ENRG_VOL:
-	case TEMP_IN:
+	case ENRG_CURR: /* Fallthrough */
+	case ENRG_VOL: /* Fallthrough */
+	case TEMP_IN: /* Fallthrough */
 	case TEMP_OUT:
 		return ((float)val) / 1000.0;
 	default:
@@ -463,12 +459,11 @@ static float read_sample(struct sr_channel *ch)
 	case TEMP_IN:	file = "temp1_input";	break;
 	case TEMP_OUT:	file = "temp2_input";	break;
 	default:
-		sr_err("Bug in the code: invalid channel type!");
+		sr_err("Invalid channel type: %d.", chp->ch_type);
 		return -1.0;
 	}
 
-	snprintf(path, sizeof(path),
-		 "/sys/class/hwmon/hwmon%d/%s",
+	snprintf(path, sizeof(path), "/sys/class/hwmon/hwmon%d/%s",
 		 chp->probe->hwmon_num, file);
 	fd = open(path, O_RDONLY);
 	if (fd < 0) {
@@ -480,7 +475,7 @@ static float read_sample(struct sr_channel *ch)
 	len = read(fd, buf, sizeof(buf));
 	close(fd);
 	if (len < 0) {
-		sr_err("error reading from %s: %s", path, strerror(errno));
+		sr_err("Error reading from %s: %s", path, strerror(errno));
 		ch->enabled = FALSE;
 		return -1.0;
 	}
@@ -517,8 +512,7 @@ SR_PRIV int bl_acme_receive_data(int fd, int revents, void *cb_data)
 	analog.data = &valf;
 
 	/*
-	 * Reading from sysfs takes some time - try to
-	 * keep up with samplerate.
+	 * Reading from sysfs takes some time - try to keep up with samplerate.
 	 */
 	if (devc->samples_read) {
 		cur_time = g_get_monotonic_time();

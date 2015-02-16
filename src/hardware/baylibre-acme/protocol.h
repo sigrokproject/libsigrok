@@ -22,7 +22,7 @@
 
 #include <stdint.h>
 #include <glib.h>
-#include <unistd.h> /* pipe() */
+#include <unistd.h>
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
@@ -42,7 +42,7 @@
 #define TEMP_PROBE_NAME		"tmp435"
 
 /* For the user we number the probes starting from 1. */
-#define PROBE_NUM(n) ((n)+1)
+#define PROBE_NUM(n) ((n) + 1)
 
 enum probe_type {
 	PROBE_ENRG = 1,
