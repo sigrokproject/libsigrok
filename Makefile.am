@@ -419,30 +419,30 @@ EXTRA_DIST = \
 
 if HAVE_CHECK
 
-TESTS = tests/check_main
+TESTS = tests/main
 
 check_PROGRAMS = ${TESTS}
 
-tests_check_main_SOURCES = \
+tests_main_SOURCES = \
 	include/libsigrok/libsigrok.h \
 	tests/lib.c \
 	tests/lib.h \
-	tests/check_main.c \
-	tests/check_core.c \
-	tests/check_input_all.c \
-	tests/check_input_binary.c \
-	tests/check_output_all.c \
-	tests/check_transform_all.c \
-	tests/check_session.c \
-	tests/check_strutil.c \
-	tests/check_version.c \
-	tests/check_driver_all.c \
-	tests/check_device.c \
-	tests/check_trigger.c
+	tests/main.c \
+	tests/core.c \
+	tests/input_all.c \
+	tests/input_binary.c \
+	tests/output_all.c \
+	tests/transform_all.c \
+	tests/session.c \
+	tests/strutil.c \
+	tests/version.c \
+	tests/driver_all.c \
+	tests/device.c \
+	tests/trigger.c
 
-tests_check_main_CFLAGS = @check_CFLAGS@
+tests_main_CFLAGS = @check_CFLAGS@
 
-tests_check_main_LDADD = $(top_builddir)/libsigrok.la @check_LIBS@
+tests_main_LDADD = $(top_builddir)/libsigrok.la @check_LIBS@
 
 endif
 
