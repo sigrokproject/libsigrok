@@ -335,10 +335,6 @@ SR_PRIV int bl_acme_set_shunt(const struct sr_channel_group *cg, uint64_t shunt)
 
 	g_string_free(path, TRUE);
 	g_fprintf(fd, "%" PRIu64 "\n", MOHM_TO_UOHM(shunt));
-	/*
-	 * XXX There's no g_fclose() in GLib. This seems to work,
-	 * but is it safe?
-	 */
 	fclose(fd);
 
 out:
