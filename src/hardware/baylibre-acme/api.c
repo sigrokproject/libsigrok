@@ -109,6 +109,13 @@ static GSList *scan(GSList *options)
 		}
 	}
 
+	/*
+	 * Let's assume there's no ACME device present if no probe
+	 * has been registered.
+	 */
+	if (sdi->channel_groups == NULL)
+		goto err_out;
+
 	devices = g_slist_append(devices, sdi);
 	drvc->instances = g_slist_append(drvc->instances, sdi);
 
