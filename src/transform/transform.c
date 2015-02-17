@@ -22,7 +22,9 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
+/** @cond PRIVATE */
 #define LOG_PREFIX "transform"
+/** @endcond */
 
 /**
  * @file

@@ -28,7 +28,23 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
+/** @cond PRIVATE */
 #define LOG_PREFIX "serial"
+/** @endcond */
+
+/**
+ * @file
+ *
+ * Serial port handling.
+ */
+
+/**
+ * @defgroup grp_serial Serial port handling
+ *
+ * Serial port handling functions.
+ *
+ * @{
+ */
 
 /**
  * Open the specified serial port.
@@ -42,6 +58,8 @@
  *
  * @retval SR_OK Success.
  * @retval SR_ERR Failure.
+ *
+ * @private
  */
 SR_PRIV int serial_open(struct sr_serial_dev_inst *serial, int flags)
 {
@@ -90,6 +108,8 @@ SR_PRIV int serial_open(struct sr_serial_dev_inst *serial, int flags)
  *
  * @retval SR_OK Success.
  * @retval SR_ERR Failure.
+ *
+ * @private
  */
 SR_PRIV int serial_close(struct sr_serial_dev_inst *serial)
 {
@@ -135,6 +155,8 @@ SR_PRIV int serial_close(struct sr_serial_dev_inst *serial)
  *
  * @retval SR_OK Success.
  * @retval SR_ERR Failure.
+ *
+ * @private
  */
 SR_PRIV int serial_flush(struct sr_serial_dev_inst *serial)
 {
@@ -177,6 +199,8 @@ SR_PRIV int serial_flush(struct sr_serial_dev_inst *serial)
  *
  * @retval SR_OK Success.
  * @retval SR_ERR Failure.
+ *
+ * @private
  */
 SR_PRIV int serial_drain(struct sr_serial_dev_inst *serial)
 {
@@ -257,6 +281,8 @@ static int _serial_write(struct sr_serial_dev_inst *serial,
  * @retval SR_ERR Other error.
  * @retval other The number of bytes written. If this is less than the number
  * specified in the call, the timeout was reached.
+ *
+ * @private
  */
 SR_PRIV int serial_write_blocking(struct sr_serial_dev_inst *serial,
 		const void *buf, size_t count, unsigned int timeout_ms)
@@ -274,7 +300,9 @@ SR_PRIV int serial_write_blocking(struct sr_serial_dev_inst *serial,
  * @retval SR_ERR_ARG Invalid argument.
  * @retval SR_ERR Other error.
  * @retval other The number of bytes written.
-*/
+ *
+ * @private
+ */
 SR_PRIV int serial_write_nonblocking(struct sr_serial_dev_inst *serial,
 		const void *buf, size_t count)
 {
@@ -331,6 +359,8 @@ static int _serial_read(struct sr_serial_dev_inst *serial, void *buf,
  * @retval SR_ERR     Other error.
  * @retval other      The number of bytes read. If this is less than the number
  * requested, the timeout was reached.
+ *
+ * @private
  */
 SR_PRIV int serial_read_blocking(struct sr_serial_dev_inst *serial, void *buf,
 		size_t count, unsigned int timeout_ms)
@@ -349,6 +379,8 @@ SR_PRIV int serial_read_blocking(struct sr_serial_dev_inst *serial, void *buf,
  * @retval SR_ERR_ARG Invalid argument.
  * @retval SR_ERR     Other error.
  * @retval other      The number of bytes read.
+ *
+ * @private
  */
 SR_PRIV int serial_read_nonblocking(struct sr_serial_dev_inst *serial, void *buf,
 		size_t count)
@@ -371,6 +403,8 @@ SR_PRIV int serial_read_nonblocking(struct sr_serial_dev_inst *serial, void *buf
  *
  * @retval SR_OK Success.
  * @retval SR_ERR Failure.
+ *
+ * @private
  */
 SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
 			      int bits, int parity, int stopbits,
@@ -450,13 +484,18 @@ SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
  * rts=0|1 Set RTS off resp. on.\n
  * Please note that values and combinations of these parameters must be
  * supported by the concrete serial interface hardware and the drivers for it.
+ *
  * @retval SR_OK Success.
  * @retval SR_ERR Failure.
+ *
+ * @private
  */
 SR_PRIV int serial_set_paramstr(struct sr_serial_dev_inst *serial,
 		const char *paramstr)
 {
+/** @cond PRIVATE */
 #define SERIAL_COMM_SPEC "^(\\d+)/([5678])([neo])([12])(.*)$"
+/** @endcond */
 
 	GRegex *reg;
 	GMatchInfo *match;
@@ -561,6 +600,8 @@ SR_PRIV int serial_set_paramstr(struct sr_serial_dev_inst *serial,
  *
  * @retval SR_OK Success.
  * @retval SR_ERR Failure.
+ *
+ * @private
  */
 SR_PRIV int serial_readline(struct sr_serial_dev_inst *serial, char **buf,
 		int *buflen, gint64 timeout_ms)
@@ -628,6 +669,8 @@ SR_PRIV int serial_readline(struct sr_serial_dev_inst *serial, char **buf,
  *
  * @retval SR_OK Valid packet was found within the given timeout.
  * @retval SR_ERR Failure.
+ *
+ * @private
  */
 SR_PRIV int serial_stream_detect(struct sr_serial_dev_inst *serial,
 				 uint8_t *buf, size_t *buflen,
@@ -707,6 +750,8 @@ SR_PRIV int serial_stream_detect(struct sr_serial_dev_inst *serial,
  *
  * @return SR_OK if a serial_device is found, SR_ERR if no device is found. The
  * returned string should not be freed by the caller.
+ *
+ * @private
  */
 SR_PRIV int sr_serial_extract_options(GSList *options, const char **serial_device,
 				      const char **serial_options)
@@ -738,12 +783,15 @@ SR_PRIV int sr_serial_extract_options(GSList *options, const char **serial_devic
 	return SR_OK;
 }
 
+/** @cond PRIVATE */
 #ifdef _WIN32
 typedef HANDLE event_handle;
 #else
 typedef int event_handle;
 #endif
+/** @endcond */
 
+/** @private */
 SR_PRIV int serial_source_add(struct sr_session *session,
 		struct sr_serial_dev_inst *serial, int events, int timeout,
 		sr_receive_data_callback cb, void *cb_data)
@@ -789,6 +837,7 @@ SR_PRIV int serial_source_add(struct sr_session *session,
 	return SR_OK;
 }
 
+/** @private */
 SR_PRIV int serial_source_remove(struct sr_session *session,
 		struct sr_serial_dev_inst *serial)
 {
@@ -886,6 +935,8 @@ SR_API GSList *sr_serial_list(const struct sr_dev_driver *driver)
  * @return A GSList of strings containing the path of the serial device or
  *         NULL if no serial device is found. The returned list must be freed
  *         by the caller.
+ *
+ * @private
  */
 SR_PRIV GSList *sr_serial_find_usb(uint16_t vendor_id, uint16_t product_id)
 {
@@ -909,6 +960,7 @@ SR_PRIV GSList *sr_serial_find_usb(uint16_t vendor_id, uint16_t product_id)
 	return tty_devs;
 }
 
+/** @private */
 SR_PRIV int serial_timeout(struct sr_serial_dev_inst *port, int num_bytes)
 {
 	struct sp_port_config *config;
@@ -948,3 +1000,5 @@ SR_PRIV int serial_timeout(struct sr_serial_dev_inst *port, int num_bytes)
 
 	return timeout_ms;
 }
+
+/** @} */

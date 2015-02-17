@@ -24,7 +24,23 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
+/** @cond PRIVATE */
 #define LOG_PREFIX "analog"
+/** @endcond */
+
+/**
+ * @file
+ *
+ * Handling and converting analog data.
+ */
+
+/**
+ * @defgroup grp_analog Analog data handling
+ *
+ * Handling and converting analog data.
+ *
+ * @{
+ */
 
 struct unit_mq_string {
 	uint64_t value;
@@ -241,3 +257,4 @@ SR_API void sr_rational_set(struct sr_rational *r, uint64_t p, uint64_t q)
 	r->q = q;
 }
 
+/** @} */
