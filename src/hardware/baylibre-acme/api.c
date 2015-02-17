@@ -63,7 +63,8 @@ static GSList *scan(GSList *options)
 
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->status = SR_ST_INACTIVE;
-	sdi->model = g_strdup("ACME cape");
+	sdi->vendor = g_strdup("BayLibre");
+	sdi->model = g_strdup("ACME");
 	sdi->driver = di;
 	sdi->priv = devc;
 
