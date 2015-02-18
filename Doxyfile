@@ -818,9 +818,9 @@ EXCLUDE_SYMLINKS       = NO
 #  - bindings/*: Language bindings, no public API stuff in there.
 #  - doxy/*: Potentially already generated docs, should not be scanned.
 #
-EXCLUDE_PATTERNS       = */hardware/* */input/* */output/* */transform/*
-EXCLUDE_PATTERNS      += */scpi/* */dmm/* */lcr/*
-EXCLUDE_PATTERNS      += */tests/* */bindings/* */doxy/*
+EXCLUDE_PATTERNS       = */src/hardware/* */src/input/* */src/output/* */src/transform/*
+EXCLUDE_PATTERNS      += */src/scpi/* */src/dmm/* */src/lcr/*
+EXCLUDE_PATTERNS      += */src/tests/* */src/bindings/* */src/doxy/*
 INPUT                 += src/input/input.c src/output/output.c
 INPUT                 += src/transform/transform.c
 
