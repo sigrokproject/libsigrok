@@ -446,7 +446,7 @@ static int sigma_fpga_init_bitbang(struct dev_context *devc)
 		if (data & (1 << 5))
 			return 0;
 		/* The D6 was not asserted yet, wait a bit. */
-		usleep(10000);
+		g_usleep(10000);
 	}
 
 	return SR_ERR_TIMEOUT;
