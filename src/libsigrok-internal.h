@@ -958,6 +958,59 @@ SR_PRIV int sr_scpi_get_hw_id(struct sr_scpi_dev_inst *scpi,
 			struct sr_scpi_hw_info **scpi_response);
 SR_PRIV void sr_scpi_hw_info_free(struct sr_scpi_hw_info *hw_info);
 
+/*--- modbus/modbus.c -------------------------------------------------------*/
+
+struct sr_modbus_dev_inst {
+	const char *name;
+	const char *prefix;
+	int priv_size;
+	GSList *(*scan)(int modbusaddr);
+	int (*dev_inst_new)(void *priv, const char *resource,
+		char **params, const char *serialcomm, int modbusaddr);
+	int (*open)(void *priv);
+	int (*source_add)(struct sr_session *session, void *priv, int events,
+		int timeout, sr_receive_data_callback cb, void *cb_data);
+	int (*source_remove)(struct sr_session *session, void *priv);
+	int (*send)(void *priv, const uint8_t *buffer, int buffer_size);
+	int (*read_begin)(void *priv, uint8_t *function_code);
+	int (*read_data)(void *priv, uint8_t *buf, int maxlen);
+	int (*read_end)(void *priv);
+	int (*close)(void *priv);
+	void (*free)(void *priv);
+	unsigned int read_timeout_ms;
+	void *priv;
+};
+
+SR_PRIV GSList *sr_modbus_scan(struct drv_context *drvc, GSList *options,
+		struct sr_dev_inst *(*probe_device)(struct sr_modbus_dev_inst *modbus));
+SR_PRIV struct sr_modbus_dev_inst *modbus_dev_inst_new(const char *resource,
+		const char *serialcomm, int modbusaddr);
+SR_PRIV int sr_modbus_open(struct sr_modbus_dev_inst *modbus);
+SR_PRIV int sr_modbus_source_add(struct sr_session *session,
+		struct sr_modbus_dev_inst *modbus, int events, int timeout,
+		sr_receive_data_callback cb, void *cb_data);
+SR_PRIV int sr_modbus_source_remove(struct sr_session *session,
+		struct sr_modbus_dev_inst *modbus);
+SR_PRIV int sr_modbus_request(struct sr_modbus_dev_inst *modbus,
+                              uint8_t *request, int request_size);
+SR_PRIV int sr_modbus_reply(struct sr_modbus_dev_inst *modbus,
+                            uint8_t *reply, int reply_size);
+SR_PRIV int sr_modbus_request_reply(struct sr_modbus_dev_inst *modbus,
+                                    uint8_t *request, int request_size,
+                                    uint8_t *reply, int reply_size);
+SR_PRIV int sr_modbus_read_coils(struct sr_modbus_dev_inst *modbus,
+                                 int address, int nb_coils, uint8_t *coils);
+SR_PRIV int sr_modbus_read_holding_registers(struct sr_modbus_dev_inst *modbus,
+                                             int address, int nb_registers,
+                                             uint16_t *registers);
+SR_PRIV int sr_modbus_write_coil(struct sr_modbus_dev_inst *modbus,
+                                 int address, int value);
+SR_PRIV int sr_modbus_write_multiple_registers(struct sr_modbus_dev_inst*modbus,
+                                               int address, int nb_registers,
+                                               uint16_t *registers);
+SR_PRIV int sr_modbus_close(struct sr_modbus_dev_inst *modbus);
+SR_PRIV void sr_modbus_free(struct sr_modbus_dev_inst *modbus);
+
 /*--- hardware/dmm/es519xx.c ------------------------------------------------*/
 
 /**

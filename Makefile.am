@@ -106,6 +106,10 @@ libsigrok_la_SOURCES += \
 	src/scpi/scpi_libgpib.c
 endif
 
+# modbus support
+libsigrok_la_SOURCES += \
+	src/modbus/modbus.c
+
 # Hardware (DMM chip parsers)
 libsigrok_la_SOURCES += \
 	src/dmm/es519xx.c \

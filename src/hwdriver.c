@@ -65,6 +65,8 @@ static struct sr_config_info sr_config_info_data[] = {
 		"Connection", NULL},
 	{SR_CONF_SERIALCOMM, SR_T_STRING, "serialcomm",
 		"Serial communication", NULL},
+	{SR_CONF_MODBUSADDR, SR_T_UINT64, "modbusaddr",
+		"Modbus slave address", NULL},
 
 	/* Device (or channel group) configuration */
 	{SR_CONF_SAMPLERATE, SR_T_UINT64, "samplerate",

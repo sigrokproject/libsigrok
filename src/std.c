@@ -271,6 +271,8 @@ SR_PRIV int std_dev_clear(const struct sr_dev_driver *driver,
 #endif
 			if (sdi->inst_type == SR_INST_SCPI)
 				sr_scpi_free(sdi->conn);
+			if (sdi->inst_type == SR_INST_MODBUS)
+				sr_modbus_free(sdi->conn);
 		}
 		if (clear_private)
 			/* The helper function is responsible for freeing

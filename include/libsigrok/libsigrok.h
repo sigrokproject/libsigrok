@@ -659,6 +659,14 @@ enum sr_configkey {
 	 */
 	SR_CONF_SERIALCOMM,
 
+	/**
+	 * Modbus slave address specification.
+	 *
+	 * This is always an optional parameter, since a driver typically
+	 * knows the default slave address of the device.
+	 */
+	SR_CONF_MODBUSADDR,
+
 	/*--- Device (or channel group) configuration -----------------------*/
 
 	/** The device supports setting its samplerate, in Hz. */
@@ -975,6 +983,8 @@ enum sr_dev_inst_type {
 	SR_INST_SCPI,
 	/** Device-instance type for user-created "devices". */
 	SR_INST_USER,
+	/** Device instance type for modbus devices. */
+	SR_INST_MODBUS,
 };
 
 /** Device instance status, struct sr_dev_inst.status */
