@@ -624,6 +624,9 @@ enum sr_configkey {
 	/** The device can act as an LCR meter. */
 	SR_CONF_LCRMETER,
 
+	/** The device can act as an LCR meter. */
+	SR_CONF_ELECTRONIC_LOAD,
+
 	/*--- Driver scan options -------------------------------------------*/
 
 	/**
