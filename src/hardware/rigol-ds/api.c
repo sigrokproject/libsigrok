@@ -53,6 +53,7 @@ static const uint32_t analog_devopts[] = {
 	SR_CONF_NUM_VDIV | SR_CONF_GET,
 	SR_CONF_VDIV | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_COUPLING | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_PROBE_FACTOR | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
 static const uint64_t timebases[][2] = {
@@ -158,6 +159,19 @@ static const char *coupling[] = {
 	"AC",
 	"DC",
 	"GND",
+};
+
+static const uint64_t probe_factor[] = {
+	1,
+	2,
+	5,
+	10,
+	20,
+	50,
+	100,
+	200,
+	500,
+	1000,
 };
 
 /* Do not change the order of entries */
@@ -616,6 +630,13 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		}
 		*data = g_variant_new_string(devc->coupling[analog_channel]);
 		break;
+	case SR_CONF_PROBE_FACTOR:
+		if (analog_channel < 0) {
+			sr_dbg("Negative analog channel: %d.", analog_channel);
+			return SR_ERR_NA;
+		}
+		*data = g_variant_new_uint64(devc->attenuation[analog_channel]);
+		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -764,6 +785,30 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		}
 		sr_dbg("Didn't set coupling, unknown channel(group).");
 		return SR_ERR_NA;
+	case SR_CONF_PROBE_FACTOR:
+		if (!cg) {
+			sr_err("No channel group specified.");
+			return SR_ERR_CHANNEL_GROUP;
+		}
+		p = g_variant_get_uint64(data);
+		for (i = 0; i < devc->model->analog_channels; i++) {
+			if (cg == devc->analog_groups[i]) {
+				for (j = 0; j < ARRAY_SIZE(probe_factor); j++) {
+					if (p == probe_factor[j]) {
+						devc->attenuation[i] = p;
+						ret = rigol_ds_config_set(sdi, ":CHAN%d:PROB %"PRIu64,
+						                          i + 1, p);
+						if (ret == SR_OK)
+							rigol_ds_get_dev_cfg_vertical(sdi);
+						return ret;
+					}
+				}
+				sr_err("Invalid probe factor: %"PRIu64".", p);
+				return SR_ERR_ARG;
+			}
+		}
+		sr_dbg("Didn't set probe factor, unknown channel(group).");
+		return SR_ERR_NA;
 	case SR_CONF_DATA_SOURCE:
 		tmp_str = g_variant_get_string(data, NULL);
 		if (!strcmp(tmp_str, "Live"))
@@ -842,6 +887,14 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 			return SR_ERR_CHANNEL_GROUP;
 		}
 		*data = g_variant_new_strv(coupling, ARRAY_SIZE(coupling));
+		break;
+	case SR_CONF_PROBE_FACTOR:
+		if (!cg) {
+			sr_err("No channel group specified.");
+			return SR_ERR_CHANNEL_GROUP;
+		}
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT64,
+			probe_factor, ARRAY_SIZE(probe_factor), sizeof(uint64_t));
 		break;
 	case SR_CONF_VDIV:
 		if (!devc)

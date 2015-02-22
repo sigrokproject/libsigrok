@@ -813,6 +813,18 @@ SR_PRIV int rigol_ds_get_dev_cfg(const struct sr_dev_inst *sdi)
 		return SR_ERR;
 	sr_dbg("Current timebase %g", devc->timebase);
 
+	/* Probe attenuation. */
+	for (i = 0; i < devc->model->analog_channels; i++) {
+		cmd = g_strdup_printf(":CHAN%d:PROB?", i + 1);
+		res = sr_scpi_get_float(sdi->conn, cmd, &devc->attenuation[i]);
+		g_free(cmd);
+		if (res != SR_OK)
+			return SR_ERR;
+	}
+	sr_dbg("Current probe attenuation:");
+	for (i = 0; i < devc->model->analog_channels; i++)
+		sr_dbg("CH%d %g", i + 1, devc->attenuation[i]);
+
 	/* Vertical gain and offset. */
 	if (rigol_ds_get_dev_cfg_vertical(sdi) != SR_OK)
 		return SR_ERR;

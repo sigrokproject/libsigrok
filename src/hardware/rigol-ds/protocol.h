@@ -117,6 +117,7 @@ struct dev_context {
 	gboolean digital_channels[MAX_DIGITAL_CHANNELS];
 	gboolean la_enabled;
 	float timebase;
+	float attenuation[MAX_ANALOG_CHANNELS];
 	float vdiv[MAX_ANALOG_CHANNELS];
 	int vert_reference[MAX_ANALOG_CHANNELS];
 	float vert_offset[MAX_ANALOG_CHANNELS];
