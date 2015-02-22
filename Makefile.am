@@ -109,6 +109,10 @@ endif
 # modbus support
 libsigrok_la_SOURCES += \
 	src/modbus/modbus.c
+if NEED_SERIAL
+libsigrok_la_SOURCES += \
+	src/modbus/modbus_serial_rtu.c
+endif
 
 # Hardware (DMM chip parsers)
 libsigrok_la_SOURCES += \

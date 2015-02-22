@@ -25,7 +25,12 @@
 
 #define LOG_PREFIX "modbus"
 
+SR_PRIV extern const struct sr_modbus_dev_inst modbus_serial_rtu_dev;
+
 static const struct sr_modbus_dev_inst *modbus_devs[] = {
+#ifdef HAVE_LIBSERIALPORT
+	&modbus_serial_rtu_dev,  /* must be last as it matches any resource */
+#endif
 };
 
 static struct sr_dev_inst *sr_modbus_scan_resource(const char *resource,
