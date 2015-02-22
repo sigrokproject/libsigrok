@@ -114,6 +114,20 @@
                    (unsigned)((const uint8_t*)(x))[0]))
 
 /**
+ * Read a 32 bits big endian float out of memory.
+ * @param x a pointer to the input memory
+ * @return the corresponding float
+ */
+#define RBFL(x)  ((union { uint32_t u; float f; }) { .u = RB32(x) }.f)
+
+/**
+ * Read a 32 bits little endian float out of memory.
+ * @param x a pointer to the input memory
+ * @return the corresponding float
+ */
+#define RLFL(x)  ((union { uint32_t u; float f; }) { .u = RL32(x) }.f)
+
+/**
  * Write a 8 bits unsigned integer to memory.
  * @param p a pointer to the output memory
  * @param x the input unsigned integer
@@ -155,6 +169,20 @@
                          ((uint8_t*)(p))[1] = (uint8_t)((x)>>8);  \
                          ((uint8_t*)(p))[2] = (uint8_t)((x)>>16); \
                          ((uint8_t*)(p))[3] = (uint8_t)((x)>>24); } while (0)
+
+/**
+ * Write a 32 bits float to memory stored as big endian.
+ * @param p a pointer to the output memory
+ * @param x the input float
+ */
+#define WBFL(p, x)  WB32(p, (union { uint32_t u; float f; }) { .f = x }.u)
+
+/**
+ * Write a 32 bits float to memory stored as little endian.
+ * @param p a pointer to the output memory
+ * @param x the input float
+ */
+#define WLFL(p, x)  WL32(p, (union { uint32_t u; float f; }) { .f = x }.u)
 
 /* Portability fixes for FreeBSD. */
 #ifdef __FreeBSD__
