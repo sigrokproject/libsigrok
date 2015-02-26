@@ -432,7 +432,7 @@ AM_CONDITIONAL(HAVE_CHECK, test x"$have_check" = "xyes")
 AC_CHECK_HEADERS([sys/mman.h sys/ioctl.h], [], [HW_BEAGLELOGIC="no"])
 
 # The ACME driver can only be built for Linux.
-case "$target_os" in
+case "$host" in
 	linux*) ;;
 	*) HW_ACME="no" ;;
 esac
