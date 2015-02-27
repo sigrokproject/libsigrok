@@ -29,6 +29,7 @@ enum {
 	METEX_ME31,
 	PEAKTECH_3410,
 	MASTECH_MAS345,
+	MASTECH_MS8250B,
 	VA_VA18B,
 	VA_VA40B,
 	METEX_M3640D,
@@ -137,6 +138,7 @@ SR_PRIV int receive_data_TEKPOWER_TP4000ZC(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_METEX_ME31(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_PEAKTECH_3410(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_MASTECH_MAS345(int fd, int revents, void *cb_data);
+SR_PRIV int receive_data_MASTECH_MS8250B(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_VA_VA18B(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_VA_VA40B(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_METEX_M3640D(int fd, int revents, void *cb_data);

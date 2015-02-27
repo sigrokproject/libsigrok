@@ -47,6 +47,7 @@ SR_PRIV struct sr_dev_driver tekpower_tp4000zc_driver_info;
 SR_PRIV struct sr_dev_driver metex_me31_driver_info;
 SR_PRIV struct sr_dev_driver peaktech_3410_driver_info;
 SR_PRIV struct sr_dev_driver mastech_mas345_driver_info;
+SR_PRIV struct sr_dev_driver mastech_ms8250b_driver_info;
 SR_PRIV struct sr_dev_driver va_va18b_driver_info;
 SR_PRIV struct sr_dev_driver va_va40b_driver_info;
 SR_PRIV struct sr_dev_driver metex_m3640d_driver_info;
@@ -126,6 +127,13 @@ SR_PRIV struct dmm_info dmms[] = {
 		sr_metex14_packet_valid, sr_metex14_parse,
 		NULL,
 		&mastech_mas345_driver_info, receive_data_MASTECH_MAS345,
+	},
+	{
+		"MASTECH", "MS8250B", "2400/8n1/rts=0/dtr=1",
+		2400, FS9721_PACKET_SIZE, 0, 0, NULL,
+		sr_fs9721_packet_valid, sr_fs9721_parse,
+		NULL,
+		&mastech_ms8250b_driver_info, receive_data_MASTECH_MS8250B,
 	},
 	{
 		"V&A", "VA18B", "2400/8n1", 2400,
@@ -661,6 +669,7 @@ DRV(tekpower_tp4000zc, TEKPOWER_TP4000ZC, "tekpower-tp4000zc", "TekPower TP4000Z
 DRV(metex_me31, METEX_ME31, "metex-me31", "Metex ME-31")
 DRV(peaktech_3410, PEAKTECH_3410, "peaktech-3410", "PeakTech 3410")
 DRV(mastech_mas345, MASTECH_MAS345, "mastech-mas345", "MASTECH MAS345")
+DRV(mastech_ms8250b, MASTECH_MS8250B, "mastech-ms8250b", "MASTECH MS8250B")
 DRV(va_va18b, VA_VA18B, "va-va18b", "V&A VA18B")
 DRV(va_va40b, VA_VA40B, "va-va40b", "V&A VA40B")
 DRV(metex_m3640d, METEX_M3640D, "metex-m3640d", "Metex M-3640D")

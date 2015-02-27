@@ -134,6 +134,7 @@ extern SR_PRIV struct sr_dev_driver tekpower_tp4000zc_driver_info;
 extern SR_PRIV struct sr_dev_driver metex_me31_driver_info;
 extern SR_PRIV struct sr_dev_driver peaktech_3410_driver_info;
 extern SR_PRIV struct sr_dev_driver mastech_mas345_driver_info;
+extern SR_PRIV struct sr_dev_driver mastech_ms8250b_driver_info;
 extern SR_PRIV struct sr_dev_driver va_va18b_driver_info;
 extern SR_PRIV struct sr_dev_driver va_va40b_driver_info;
 extern SR_PRIV struct sr_dev_driver metex_m3640d_driver_info;
@@ -333,6 +334,7 @@ SR_PRIV struct sr_dev_driver *drivers_list[] = {
 	&metex_me31_driver_info,
 	&peaktech_3410_driver_info,
 	&mastech_mas345_driver_info,
+	&mastech_ms8250b_driver_info,
 	&va_va18b_driver_info,
 	&va_va40b_driver_info,
 	&metex_m3640d_driver_info,
