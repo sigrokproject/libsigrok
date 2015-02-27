@@ -27,6 +27,9 @@ static const uint32_t devopts[] = {
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+};
+
+static const uint32_t devopts_cg[] = {
 	SR_CONF_PROBE_FACTOR | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_POWER_OFF | SR_CONF_GET | SR_CONF_SET,
 };
@@ -272,20 +275,32 @@ static int config_list(uint32_t key, GVariant **data,
 	(void)cg;
 
 	ret = SR_OK;
-	switch (key) {
-	case SR_CONF_DEVICE_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-			devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
-		break;
-	case SR_CONF_SAMPLERATE:
-		g_variant_builder_init(&gvb, G_VARIANT_TYPE("a{sv}"));
-		gvar = g_variant_new_fixed_array(G_VARIANT_TYPE("t"),
-			samplerates, ARRAY_SIZE(samplerates), sizeof(uint64_t));
-		g_variant_builder_add(&gvb, "{sv}", "samplerate-steps", gvar);
-		*data = g_variant_builder_end(&gvb);
-		break;
-	default:
-		return SR_ERR_NA;
+	if (!cg) {
+		switch (key) {
+		case SR_CONF_DEVICE_OPTIONS:
+			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+				devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
+			break;
+		case SR_CONF_SAMPLERATE:
+			g_variant_builder_init(&gvb, G_VARIANT_TYPE("a{sv}"));
+			gvar = g_variant_new_fixed_array(G_VARIANT_TYPE("t"),
+				samplerates, ARRAY_SIZE(samplerates), sizeof(uint64_t));
+			g_variant_builder_add(&gvb, "{sv}",
+					      "samplerate-steps", gvar);
+			*data = g_variant_builder_end(&gvb);
+			break;
+		default:
+			return SR_ERR_NA;
+		}
+	} else {
+		switch (key) {
+		case SR_CONF_DEVICE_OPTIONS:
+			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+				devopts_cg, ARRAY_SIZE(devopts_cg), sizeof(uint32_t));
+			break;
+		default:
+			return SR_ERR_NA;
+		}
 	}
 
 	return ret;
