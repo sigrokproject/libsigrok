@@ -45,6 +45,13 @@ uint8_t lookup[] = {
 
 #define DECIMAL_POINT_MASK 0x80
 
+#define FLAGS1_HOLD_MASK (1 << 2)
+
+#define FLAGS2_RPM_MASK (1 << 0)
+#define FLAGS2_MAX_MASK (1 << 4)
+#define FLAGS2_MIN_MASK (1 << 5)
+#define FLAGS2_AVE_MASK (1 << 6)
+
 /* Decode a pair of characters into a byte. */
 static uint8_t decode_pair(const uint8_t *buf)
 {
@@ -71,9 +78,27 @@ SR_PRIV int sr_ut372_parse(const uint8_t *buf, float *floatval,
 		struct sr_datafeed_analog *analog, void *info)
 {
 	unsigned int i, j, value, divisor;
-	uint8_t segments;
+	uint8_t segments, flags1, flags2;
 
 	(void) info;
+
+	flags1 = decode_pair(buf + 21);
+	flags2 = decode_pair(buf + 23);
+
+	/* If not in RPM mode, ignore packet. */
+	if (!(flags2 & FLAGS2_RPM_MASK)) {
+		sr_dbg("Not in RPM mode. Count mode is unsupported.");
+		return SR_ERR_NA;
+	}
+
+	if (flags1 & FLAGS1_HOLD_MASK)
+		analog->mqflags |= SR_MQFLAG_HOLD;
+	if (flags2 & FLAGS2_MIN_MASK)
+		analog->mqflags |= SR_MQFLAG_MIN;
+	if (flags2 & FLAGS2_MAX_MASK)
+		analog->mqflags |= SR_MQFLAG_MAX;
+	if (flags2 & FLAGS2_AVE_MASK)
+		analog->mqflags |= SR_MQFLAG_AVG;
 
 	value = 0;
 	divisor = 1;
