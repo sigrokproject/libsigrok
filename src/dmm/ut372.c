@@ -48,6 +48,7 @@ uint8_t lookup[] = {
 #define FLAGS1_HOLD_MASK (1 << 2)
 
 #define FLAGS2_RPM_MASK (1 << 0)
+#define FLAGS2_COUNT_MASK (1 << 1)
 #define FLAGS2_MAX_MASK (1 << 4)
 #define FLAGS2_MIN_MASK (1 << 5)
 #define FLAGS2_AVE_MASK (1 << 6)
@@ -71,7 +72,18 @@ static uint8_t decode_pair(const uint8_t *buf)
 
 SR_PRIV gboolean sr_ut372_packet_valid(const uint8_t *buf)
 {
-	return (buf[25] == '\r' && buf[26] == '\n');
+	uint8_t flags2;
+
+	if (!(buf[25] == '\r' && buf[26] == '\n'))
+		return FALSE;
+
+	flags2 = decode_pair(buf + 23);
+
+	if (!(flags2 & (FLAGS2_RPM_MASK | FLAGS2_COUNT_MASK)))
+		/* Device is in the setup menu - no valid data shown. */
+		return FALSE;
+
+	return TRUE;
 }
 
 SR_PRIV int sr_ut372_parse(const uint8_t *buf, float *floatval,
@@ -85,10 +97,12 @@ SR_PRIV int sr_ut372_parse(const uint8_t *buf, float *floatval,
 	flags1 = decode_pair(buf + 21);
 	flags2 = decode_pair(buf + 23);
 
-	/* If not in RPM mode, ignore packet. */
-	if (!(flags2 & FLAGS2_RPM_MASK)) {
-		sr_dbg("Not in RPM mode. Count mode is unsupported.");
-		return SR_ERR_NA;
+	if (flags2 & FLAGS2_RPM_MASK) {
+		analog->mq = SR_MQ_FREQUENCY;
+		analog->unit = SR_UNIT_REVOLUTIONS_PER_MINUTE;
+	} else if (flags2 & FLAGS2_COUNT_MASK) {
+		analog->mq = SR_MQ_COUNT;
+		analog->unit = SR_UNIT_UNITLESS;
 	}
 
 	if (flags1 & FLAGS1_HOLD_MASK)
@@ -116,9 +130,6 @@ SR_PRIV int sr_ut372_parse(const uint8_t *buf, float *floatval,
 	}
 
 	*floatval = (float) value / divisor;
-
-	analog->mq = SR_MQ_FREQUENCY;
-	analog->unit = SR_UNIT_REVOLUTIONS_PER_MINUTE;
 
 	return SR_OK;
 }
