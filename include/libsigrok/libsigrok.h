@@ -706,8 +706,8 @@ enum sr_configkey {
 	/** The device supports setting its sample interval, in ms. */
 	SR_CONF_SAMPLE_INTERVAL,
 
-	/** Number of timebases, as related to SR_CONF_TIMEBASE.  */
-	SR_CONF_NUM_TIMEBASE,
+	/** Number of horizontal divisions, as related to SR_CONF_TIMEBASE. */
+	SR_CONF_NUM_HDIV,
 
 	/** Number of vertical divisions, as related to SR_CONF_VDIV.  */
 	SR_CONF_NUM_VDIV,

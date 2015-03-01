@@ -57,7 +57,7 @@ static const uint32_t devopts[] = {
 	SR_CONF_TRIGGER_SOURCE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_TRIGGER_SLOPE | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_HORIZ_TRIGGERPOS | SR_CONF_GET | SR_CONF_SET,
-	SR_CONF_NUM_TIMEBASE | SR_CONF_GET,
+	SR_CONF_NUM_HDIV | SR_CONF_GET,
 	SR_CONF_NUM_VDIV | SR_CONF_GET,
 };
 
@@ -439,7 +439,7 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 	(void)cg;
 
 	switch (key) {
-	case SR_CONF_NUM_TIMEBASE:
+	case SR_CONF_NUM_HDIV:
 		*data = g_variant_new_int32(NUM_TIMEBASE);
 		break;
 	case SR_CONF_NUM_VDIV:

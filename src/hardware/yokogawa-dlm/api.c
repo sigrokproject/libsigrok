@@ -218,7 +218,7 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 	state = devc->model_state;
 
 	switch (key) {
-	case SR_CONF_NUM_TIMEBASE:
+	case SR_CONF_NUM_HDIV:
 		*data = g_variant_new_int32(model->num_xdivs);
 		ret = SR_OK;
 		break;
