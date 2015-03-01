@@ -224,6 +224,8 @@ enum sr_mq {
 	SR_MQ_PHASE_ANGLE,
 	/** Difference from reference value. */
 	SR_MQ_DIFFERENCE,
+	/** Count. */
+	SR_MQ_COUNT,
 };
 
 /** Unit of measured quantity, sr_datafeed_analog.unit. */
