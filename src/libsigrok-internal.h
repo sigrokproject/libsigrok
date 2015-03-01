@@ -1092,4 +1092,16 @@ SR_PRIV int es51919_serial_acquisition_start(const struct sr_dev_inst *sdi,
 SR_PRIV int es51919_serial_acquisition_stop(struct sr_dev_inst *sdi,
 					    void *cb_data);
 
+/*--- hardware/dmm/ut372.c --------------------------------------------------*/
+
+#define UT372_PACKET_SIZE 27
+
+struct ut372_info {
+	int dummy;
+};
+
+SR_PRIV gboolean sr_ut372_packet_valid(const uint8_t *buf);
+SR_PRIV int sr_ut372_parse(const uint8_t *buf, float *floatval,
+		struct sr_datafeed_analog *analog, void *info);
+
 #endif

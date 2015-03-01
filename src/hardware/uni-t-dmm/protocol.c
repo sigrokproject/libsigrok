@@ -303,6 +303,7 @@ SR_PRIV int receive_data_##ID_UPPER(int fd, int revents, void *cb_data) { \
 
 /* Driver-specific receive_data() wrappers */
 RECEIVE_DATA(TECPEL_DMM_8061, fs9721)
+RECEIVE_DATA(UNI_T_UT372, ut372)
 RECEIVE_DATA(UNI_T_UT60A, fs9721)
 RECEIVE_DATA(UNI_T_UT60E, fs9721)
 RECEIVE_DATA(UNI_T_UT60G, es519xx)

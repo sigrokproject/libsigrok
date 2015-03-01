@@ -186,6 +186,7 @@ extern SR_PRIV struct sr_dev_driver tondaj_sl_814_driver_info;
 #endif
 #ifdef HAVE_HW_UNI_T_DMM
 extern SR_PRIV struct sr_dev_driver tecpel_dmm_8061_driver_info;
+extern SR_PRIV struct sr_dev_driver uni_t_ut372_driver_info;
 extern SR_PRIV struct sr_dev_driver uni_t_ut60a_driver_info;
 extern SR_PRIV struct sr_dev_driver uni_t_ut60e_driver_info;
 extern SR_PRIV struct sr_dev_driver uni_t_ut60g_driver_info;
@@ -386,6 +387,7 @@ SR_PRIV struct sr_dev_driver *drivers_list[] = {
 #endif
 #ifdef HAVE_HW_UNI_T_DMM
 	&tecpel_dmm_8061_driver_info,
+	&uni_t_ut372_driver_info,
 	&uni_t_ut60a_driver_info,
 	&uni_t_ut60e_driver_info,
 	&uni_t_ut60g_driver_info,
