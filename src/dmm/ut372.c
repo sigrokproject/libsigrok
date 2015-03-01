@@ -23,13 +23,14 @@
  */
 
 #include <stdlib.h>
+#include <stdint.h>
 #include <math.h>
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
 #define LOG_PREFIX "ut372"
 
-char lookup[] = {
+uint8_t lookup[] = {
 	0x7B,
 	0x60,
 	0x5E,
@@ -44,6 +45,23 @@ char lookup[] = {
 
 #define DECIMAL_POINT_MASK 0x80
 
+/* Decode a pair of characters into a byte. */
+static uint8_t decode_pair(const uint8_t *buf)
+{
+	unsigned int i;
+	char hex[3];
+
+	hex[2] = '\0';
+
+	for (i = 0; i < 2; i++) {
+		hex[i] = buf[i];
+		if (hex[i] > 0x39)
+			hex[i] += 7;
+	}
+
+	return strtol(hex, NULL, 16);
+}
+
 SR_PRIV gboolean sr_ut372_packet_valid(const uint8_t *buf)
 {
 	return (buf[25] == '\r' && buf[26] == '\n');
@@ -52,22 +70,16 @@ SR_PRIV gboolean sr_ut372_packet_valid(const uint8_t *buf)
 SR_PRIV int sr_ut372_parse(const uint8_t *buf, float *floatval,
 		struct sr_datafeed_analog *analog, void *info)
 {
-	unsigned int i, j, segments, value, divisor;
-	char hex[3];
+	unsigned int i, j, value, divisor;
+	uint8_t segments;
 
 	(void) info;
 
-	hex[2] = '\0';
 	value = 0;
 	divisor = 1;
 
 	for (i = 0; i < 5; i++) {
-		for (j = 0; j < 2; j++) {
-			hex[j] = buf[2*i + 1 + j];
-			if (hex[j] > 0x39)
-				hex[j] += 7;
-		}
-		segments = strtol(hex, NULL, 16);
+		segments = decode_pair(buf + 1 + 2*i);
 		for (j = 0; j < ARRAY_SIZE(lookup); j++) {
 			if (lookup[j] == (segments & ~DECIMAL_POINT_MASK)) {
 				value += j * pow(10, i);
