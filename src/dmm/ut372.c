@@ -30,7 +30,7 @@
 
 #define LOG_PREFIX "ut372"
 
-uint8_t lookup[] = {
+static const uint8_t lookup[] = {
 	0x7B,
 	0x60,
 	0x5E,
@@ -40,7 +40,7 @@ uint8_t lookup[] = {
 	0x3F,
 	0x70,
 	0x7F,
-	0x7D
+	0x7D,
 };
 
 #define DECIMAL_POINT_MASK 0x80
@@ -51,7 +51,7 @@ uint8_t lookup[] = {
 #define FLAGS2_COUNT_MASK (1 << 1)
 #define FLAGS2_MAX_MASK (1 << 4)
 #define FLAGS2_MIN_MASK (1 << 5)
-#define FLAGS2_AVE_MASK (1 << 6)
+#define FLAGS2_AVG_MASK (1 << 6)
 
 /* Decode a pair of characters into a byte. */
 static uint8_t decode_pair(const uint8_t *buf)
@@ -111,7 +111,7 @@ SR_PRIV int sr_ut372_parse(const uint8_t *buf, float *floatval,
 		analog->mqflags |= SR_MQFLAG_MIN;
 	if (flags2 & FLAGS2_MAX_MASK)
 		analog->mqflags |= SR_MQFLAG_MAX;
-	if (flags2 & FLAGS2_AVE_MASK)
+	if (flags2 & FLAGS2_AVG_MASK)
 		analog->mqflags |= SR_MQFLAG_AVG;
 
 	value = 0;
