@@ -884,7 +884,6 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	GVariant *gvar;
 	GVariantBuilder gvb;
 
-	(void)sdi;
 	(void)cg;
 
 	switch (key) {

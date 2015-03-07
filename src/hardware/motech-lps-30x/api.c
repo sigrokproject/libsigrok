@@ -623,24 +623,15 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		/* No channel group: global options. */
 		switch (key) {
 		case SR_CONF_LIMIT_MSEC:
-			if (g_variant_get_uint64(data) == 0) {
-				sr_err("LIMIT_MSEC can't be 0.");
-				return SR_ERR;
-			}
 			devc->limit_msec = g_variant_get_uint64(data);
-			sr_dbg("Setting time limit to %" PRIu64 "ms.",
-				devc->limit_msec);
 			break;
 		case SR_CONF_LIMIT_SAMPLES:
 			devc->limit_samples = g_variant_get_uint64(data);
-			sr_dbg("Setting sample limit to %" PRIu64 ".",
-				devc->limit_samples);
 			break;
 		case SR_CONF_OUTPUT_CHANNEL_CONFIG:
 			sval = g_variant_get_string(data, NULL);
 			found = FALSE;
-			for (idx = 0; idx < (int)ARRAY_SIZE(channel_modes); idx++)
-			{
+			for (idx = 0; idx < (int)ARRAY_SIZE(channel_modes); idx++) {
 				if (!strcmp(sval, channel_modes[idx])) {
 					found = TRUE;
 					if (devc->tracking_mode == idx)
@@ -652,9 +643,8 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 				if (devc->model->modelid <= LPS_303) /* Only first setting possible for smaller models. */
 					break;
 			}
-			if (!found) {
+			if (!found)
 				return SR_ERR_ARG;
-			}
 			break;
 		default:
 			return SR_ERR_NA;
@@ -728,25 +718,23 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	GVariant *gvar;
 	GVariantBuilder gvb;
 
-	(void)data;
-
 	/* Driver options, no device instance necessary. */
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-						  scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
+			scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
 		return SR_OK;
 	case SR_CONF_DEVICE_OPTIONS:
 		if (sdi != NULL)
 			break;
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
+			drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
 		return SR_OK;
 	default:
-		if (sdi == NULL)
+		if (!sdi)
 			return SR_ERR_ARG;
-
 		devc = sdi->priv;
+		break;
 	}
 
 	/* Device options, independent from channel groups. */
@@ -765,7 +753,6 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 				*data = g_variant_new_strv(channel_modes, ARRAY_SIZE(channel_modes));
 			}
 			return SR_OK;
-			break;
 		default:
 			return SR_ERR_NA;
 		}

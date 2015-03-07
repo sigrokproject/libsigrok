@@ -630,7 +630,6 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		*data = g_variant_new_string(devc->coupling[analog_channel]);
 		break;
 	default:
-		sr_dbg("Tried to get unknown config key: %d.", key);
 		return SR_ERR_NA;
 	}
 
@@ -795,9 +794,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		}
 		break;
 	default:
-		sr_dbg("Tried to set unknown config key: %d.", key);
-		ret = SR_ERR_NA;
-		break;
+		return SR_ERR_NA;
 	}
 
 	return ret;
@@ -921,7 +918,6 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		}
 		break;
 	default:
-		sr_dbg("Tried to list unknown config key: %d.", key);
 		return SR_ERR_NA;
 	}
 

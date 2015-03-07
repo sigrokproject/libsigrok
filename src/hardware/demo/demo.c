@@ -487,17 +487,14 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	switch (key) {
 	case SR_CONF_SAMPLERATE:
 		devc->cur_samplerate = g_variant_get_uint64(data);
-		sr_dbg("Setting samplerate to %" PRIu64, devc->cur_samplerate);
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
 		devc->limit_msec = 0;
 		devc->limit_samples = g_variant_get_uint64(data);
-		sr_dbg("Setting sample limit to %" PRIu64, devc->limit_samples);
 		break;
 	case SR_CONF_LIMIT_MSEC:
 		devc->limit_msec = g_variant_get_uint64(data);
 		devc->limit_samples = 0;
-		sr_dbg("Setting time limit to %" PRIu64"ms", devc->limit_msec);
 		break;
 	case SR_CONF_AVERAGING:
 		devc->avg = g_variant_get_boolean(data);
@@ -574,8 +571,6 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	struct sr_channel *ch;
 	GVariant *gvar;
 	GVariantBuilder gvb;
-
-	(void)sdi;
 
 	if (key == SR_CONF_SCAN_OPTIONS) {
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,

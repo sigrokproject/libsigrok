@@ -226,25 +226,22 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc = sdi->priv;
+
 	(void)cg;
 
 	switch (key) {
 	case SR_CONF_LIMIT_SAMPLES:
 		*data = g_variant_new_uint64(devc->limit_samples);
 		break;
-
 	case SR_CONF_SAMPLERATE:
 		*data = g_variant_new_uint64(devc->cur_samplerate);
 		break;
-
 	case SR_CONF_CAPTURE_RATIO:
 		*data = g_variant_new_uint64(devc->capture_ratio);
 		break;
-
 	case SR_CONF_NUM_LOGIC_CHANNELS:
 		*data = g_variant_new_uint32(g_slist_length(sdi->channels));
 		break;
-
 	default:
 		return SR_ERR_NA;
 	}
@@ -257,6 +254,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 {
 	struct dev_context *devc = sdi->priv;
 	uint64_t tmp_u64;
+
 	(void)cg;
 
 	if (sdi->status != SR_ST_ACTIVE)
@@ -266,7 +264,6 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	case SR_CONF_SAMPLERATE:
 		devc->cur_samplerate = g_variant_get_uint64(data);
 		return beaglelogic_set_samplerate(devc);
-
 	case SR_CONF_LIMIT_SAMPLES:
 		tmp_u64 = g_variant_get_uint64(data);
 		devc->limit_samples = tmp_u64;
@@ -284,7 +281,6 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 				(SAMPLEUNIT_TO_BYTES(devc->sampleunit) * 1000000));
 		}
 		return beaglelogic_set_triggerflags(devc);
-
 	case SR_CONF_CAPTURE_RATIO:
 		devc->capture_ratio = g_variant_get_uint64(data);
 		if (devc->capture_ratio > 100) {
@@ -292,7 +288,6 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 			return SR_ERR;
 		}
 		return SR_OK;
-
 	default:
 		return SR_ERR_NA;
 	}
@@ -308,7 +303,6 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	GVariantBuilder gvb;
 
 	(void)sdi;
-	(void)data;
 	(void)cg;
 
 	ret = SR_OK;

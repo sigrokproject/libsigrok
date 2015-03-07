@@ -217,7 +217,6 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 {
 	struct sr_dev_driver *di = sdi->driver;
 	struct dev_context *devc;
-	int ret;
 	const char *tmp_str;
 
 	(void)cg;
@@ -231,12 +230,10 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	}
 
 	devc = sdi->priv;
-	ret = SR_OK;
+
 	switch (key) {
 	case SR_CONF_LIMIT_SAMPLES:
 		devc->limit_samples = g_variant_get_uint64(data);
-		sr_dbg("Setting sample limit to %" PRIu64 ".",
-		       devc->limit_samples);
 		break;
 	case SR_CONF_DATA_SOURCE:
 		tmp_str = g_variant_get_string(data, NULL);
@@ -248,16 +245,15 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 			return SR_ERR;
 		break;
 	default:
-		ret = SR_ERR_NA;
+		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
-
 	(void)sdi;
 	(void)cg;
 

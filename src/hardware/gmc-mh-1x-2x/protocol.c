@@ -1496,8 +1496,7 @@ SR_PRIV const char *gmc_model_str(enum model mcode)
 	}
 }
 
-/** @copydoc sr_dev_driver.config_set
- */
+/** @copydoc sr_dev_driver.config_set */
 SR_PRIV int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
@@ -1533,18 +1532,10 @@ SR_PRIV int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *s
 			g_usleep(2000000); /* Wait to ensure transfer before interface switched off. */
 		break;
 	case SR_CONF_LIMIT_MSEC:
-		if (g_variant_get_uint64(data) == 0) {
-			sr_err("LIMIT_MSEC can't be 0.");
-			return SR_ERR;
-		}
 		devc->limit_msec = g_variant_get_uint64(data);
-		sr_dbg("Setting time limit to %" PRIu64 "ms.",
-			devc->limit_msec);
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
 		devc->limit_samples = g_variant_get_uint64(data);
-		sr_dbg("Setting sample limit to %" PRIu64 ".",
-			devc->limit_samples);
 		break;
 	default:
 		return SR_ERR_NA;

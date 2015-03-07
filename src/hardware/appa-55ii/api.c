@@ -174,11 +174,9 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	switch (key) {
 	case SR_CONF_LIMIT_SAMPLES:
 		devc->limit_samples = g_variant_get_uint64(data);
-		sr_dbg("Setting sample limit to %" PRIu64 ".", devc->limit_samples);
 		break;
 	case SR_CONF_LIMIT_MSEC:
 		devc->limit_msec = g_variant_get_uint64(data);
-		sr_dbg("Setting time limit to %" PRIu64 "ms.", devc->limit_msec);
 		break;
 	case SR_CONF_DATA_SOURCE: {
 		tmp_str = g_variant_get_string(data, NULL);
@@ -201,7 +199,6 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
-	(void)sdi;
 	(void)cg;
 
 	switch (key) {

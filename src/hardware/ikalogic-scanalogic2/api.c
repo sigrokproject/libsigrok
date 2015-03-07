@@ -67,7 +67,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
 	struct device_info dev_info;
-	int ret, i;
+	unsigned int i;
+	int ret;
 
 	(void)options;
 
@@ -354,7 +355,6 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	(void)cg;
 
 	ret = SR_OK;
-
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,

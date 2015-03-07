@@ -358,7 +358,6 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		}
 	}
 
-
 	return ret;
 }
 

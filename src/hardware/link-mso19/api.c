@@ -320,8 +320,6 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 			ret = SR_ERR_ARG;
 		} else {
 			devc->limit_samples = num_samples;
-			sr_dbg("setting limit_samples to %i\n",
-			       num_samples);
 			ret = SR_OK;
 		}
 		break;

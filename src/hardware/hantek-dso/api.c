@@ -169,7 +169,7 @@ static struct sr_dev_inst *dso_dev_new(const struct dso_profile *prof)
 	struct sr_channel_group *cg;
 	struct drv_context *drvc;
 	struct dev_context *devc;
-	int i;
+	unsigned int i;
 
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->status = SR_ST_INITIALIZING;
@@ -433,8 +433,6 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 	char str[128], *s;
 	const uint64_t *vdiv;
 	int ch_idx;
-
-	(void)cg;
 
 	switch (key) {
 	case SR_CONF_NUM_HDIV:

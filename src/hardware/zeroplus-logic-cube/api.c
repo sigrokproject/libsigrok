@@ -391,35 +391,26 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
+	GVariant *range[2];
 
 	(void)cg;
 
+	if (!sdi)
+		return SR_ERR_ARG;
+
+	devc = sdi->priv;
+
 	switch (key) {
 	case SR_CONF_SAMPLERATE:
-		if (sdi) {
-			devc = sdi->priv;
-			*data = g_variant_new_uint64(devc->cur_samplerate);
-			sr_spew("Returning samplerate: %" PRIu64 "Hz.",
-				devc->cur_samplerate);
-		} else
-			return SR_ERR_ARG;
+		*data = g_variant_new_uint64(devc->cur_samplerate);
 		break;
 	case SR_CONF_CAPTURE_RATIO:
-		if (sdi) {
-			devc = sdi->priv;
-			*data = g_variant_new_uint64(devc->capture_ratio);
-		} else
-			return SR_ERR_ARG;
+		*data = g_variant_new_uint64(devc->capture_ratio);
 		break;
 	case SR_CONF_VOLTAGE_THRESHOLD:
-		if (sdi) {
-			GVariant *range[2];
-			devc = sdi->priv;
-			range[0] = g_variant_new_double(devc->cur_threshold);
-			range[1] = g_variant_new_double(devc->cur_threshold);
-			*data = g_variant_new_tuple(range, 2);
-		} else
-			return SR_ERR_ARG;
+		range[0] = g_variant_new_double(devc->cur_threshold);
+		range[1] = g_variant_new_double(devc->cur_threshold);
+		*data = g_variant_new_tuple(range, 2);
 		break;
 	default:
 		return SR_ERR_NA;

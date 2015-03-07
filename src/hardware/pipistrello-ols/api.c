@@ -443,7 +443,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 	if (p_ols_open(devc) != SR_OK) {
 		return SR_ERR;
 	} else {
-	  sdi->status = SR_ST_ACTIVE;
+		sdi->status = SR_ST_ACTIVE;
 		return SR_OK;
 	}
 }

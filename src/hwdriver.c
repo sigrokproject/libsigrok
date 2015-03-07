@@ -464,9 +464,27 @@ SR_PRIV void sr_config_free(struct sr_config *src)
 
 }
 
+static void log_key(const struct sr_dev_inst *sdi,
+	const struct sr_channel_group *cg, uint32_t key, int op, GVariant *data)
+{
+	const char *opstr;
+	const struct sr_config_info *srci;
+
+	/* Don't log SR_CONF_DEVICE_OPTIONS, it's verbose and not too useful. */
+	if (key == SR_CONF_DEVICE_OPTIONS)
+		return;
+
+	opstr = op == SR_CONF_GET ? "get" : op == SR_CONF_SET ? "set" : "list";
+	srci = sr_config_info_get(key);
+
+	sr_spew("sr_config_%s(): key %d (%s) sdi %p cg %s -> %s", opstr, key,
+		srci ? srci->id : "NULL", sdi, cg ? cg->name : "NULL",
+		data ? g_variant_print(data, TRUE) : "NULL");
+}
+
 static int check_key(const struct sr_dev_driver *driver,
 		const struct sr_dev_inst *sdi, const struct sr_channel_group *cg,
-		uint32_t key, int op)
+		uint32_t key, int op, GVariant *data)
 {
 	const struct sr_config_info *srci;
 	gsize num_opts, i;
@@ -487,8 +505,20 @@ static int check_key(const struct sr_dev_driver *driver,
 		return SR_ERR_ARG;
 	}
 	opstr = op == SR_CONF_GET ? "get" : op == SR_CONF_SET ? "set" : "list";
-	sr_spew("sr_config_%s(): key %d (%s) sdi %p cg %s", opstr, key,
-			srci->id, sdi, cg ? cg->name : "NULL");
+
+	switch (key) {
+	case SR_CONF_LIMIT_MSEC:
+	case SR_CONF_LIMIT_SAMPLES:
+	case SR_CONF_SAMPLERATE:
+		/* Setting any of these to 0 is not useful. */
+		if (op != SR_CONF_SET || !data)
+			break;
+		if (g_variant_get_uint64(data) == 0) {
+			sr_err("Cannot set '%s' to 0.", srci->id);
+			return SR_ERR_ARG;
+		}
+		break;
+	}
 
 	if (sr_config_list(driver, sdi, cg, SR_CONF_DEVICE_OPTIONS, &gvar_opts) != SR_OK) {
 		/* Driver publishes no options. */
@@ -554,10 +584,11 @@ SR_API int sr_config_get(const struct sr_dev_driver *driver,
 	if (!driver->config_get)
 		return SR_ERR_ARG;
 
-	if (check_key(driver, sdi, cg, key, SR_CONF_GET) != SR_OK)
+	if (check_key(driver, sdi, cg, key, SR_CONF_GET, NULL) != SR_OK)
 		return SR_ERR_ARG;
 
 	if ((ret = driver->config_get(key, data, sdi, cg)) == SR_OK) {
+		log_key(sdi, cg, key, SR_CONF_GET, *data);
 		/* Got a floating reference from the driver. Sink it here,
 		 * caller will need to unref when done with it. */
 		g_variant_ref_sink(*data);
@@ -597,10 +628,12 @@ SR_API int sr_config_set(const struct sr_dev_inst *sdi,
 		ret = SR_ERR;
 	else if (!sdi->driver->config_set)
 		ret = SR_ERR_ARG;
-	else if (check_key(sdi->driver, sdi, cg, key, SR_CONF_SET) != SR_OK)
+	else if (check_key(sdi->driver, sdi, cg, key, SR_CONF_SET, data) != SR_OK)
 		return SR_ERR_ARG;
-	else if ((ret = sr_variant_type_check(key, data)) == SR_OK)
+	else if ((ret = sr_variant_type_check(key, data)) == SR_OK) {
+		log_key(sdi, cg, key, SR_CONF_SET, data);
 		ret = sdi->driver->config_set(key, data, sdi, cg);
+	}
 
 	g_variant_unref(data);
 
@@ -665,11 +698,13 @@ SR_API int sr_config_list(const struct sr_dev_driver *driver,
 	else if (!driver->config_list)
 		return SR_ERR_ARG;
 	else if (key != SR_CONF_SCAN_OPTIONS && key != SR_CONF_DEVICE_OPTIONS) {
-		if (check_key(driver, sdi, cg, key, SR_CONF_LIST) != SR_OK)
+		if (check_key(driver, sdi, cg, key, SR_CONF_LIST, NULL) != SR_OK)
 			return SR_ERR_ARG;
 	}
-	if ((ret = driver->config_list(key, data, sdi, cg)) == SR_OK)
+	if ((ret = driver->config_list(key, data, sdi, cg)) == SR_OK) {
+		log_key(sdi, cg, key, SR_CONF_LIST, *data);
 		g_variant_ref_sink(*data);
+	}
 
 	return ret;
 }

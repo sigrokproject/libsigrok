@@ -231,7 +231,6 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	struct sr_dev_driver *di = sdi->driver;
 	struct dev_context *devc;
 	gint64 now;
-	int ret;
 
 	(void)cg;
 
@@ -244,25 +243,21 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	}
 
 	devc = sdi->priv;
-	ret = SR_OK;
+
 	switch (key) {
 	case SR_CONF_LIMIT_MSEC:
 		devc->limit_msec = g_variant_get_uint64(data);
 		now = g_get_monotonic_time() / 1000;
 		devc->end_time = now + devc->limit_msec;
-		sr_dbg("Setting time limit to %" PRIu64 "ms.",
-		       devc->limit_msec);
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
 		devc->limit_samples = g_variant_get_uint64(data);
-		sr_dbg("Setting sample limit to %" PRIu64 ".",
-		       devc->limit_samples);
 		break;
 	default:
-		ret = SR_ERR_NA;
+		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,

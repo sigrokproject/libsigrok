@@ -148,7 +148,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	GSList *l, *devices, *conn_devices;
 	struct libusb_device_descriptor des;
 	libusb_device **devlist;
-	int ret, i, j;
+	int ret, j;
+	unsigned int i;
 	const char *conn;
 	char connection_id[64];
 

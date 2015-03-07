@@ -130,8 +130,6 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	switch (key) {
 	case SR_CONF_LIMIT_SAMPLES:
 		devc->limit_samples = g_variant_get_uint64(data);
-		sr_dbg("Setting sample limit to %" PRIu64 ".",
-		       devc->limit_samples);
 		break;
 	default:
 		return SR_ERR_NA;

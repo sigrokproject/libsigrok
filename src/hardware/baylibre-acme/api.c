@@ -228,12 +228,10 @@ static int config_set(uint32_t key, GVariant *data,
 	case SR_CONF_LIMIT_SAMPLES:
 		devc->limit_samples = g_variant_get_uint64(data);
 		devc->limit_msec = 0;
-		sr_dbg("Setting sample limit to %" PRIu64, devc->limit_samples);
 		break;
 	case SR_CONF_LIMIT_MSEC:
 		devc->limit_msec = g_variant_get_uint64(data) * 1000;
 		devc->limit_samples = 0;
-		sr_dbg("Setting time limit to %" PRIu64"ms", devc->limit_msec);
 		break;
 	case SR_CONF_SAMPLERATE:
 		samplerate = g_variant_get_uint64(data);
@@ -243,7 +241,6 @@ static int config_set(uint32_t key, GVariant *data,
 			break;
 		}
 		devc->samplerate = samplerate;
-		sr_dbg("Setting samplerate to %" PRIu64, devc->samplerate);
 		break;
 	case SR_CONF_PROBE_FACTOR:
 		if (!cg)
