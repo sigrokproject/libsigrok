@@ -196,8 +196,7 @@ SR_PRIV int motech_lps_30x_receive_data(int fd, int revents, void *cb_data)
 			}
 		}
 		if (devc->acq_req_pending == 0) {
-			switch(devc->acq_req)
-			{
+			switch (devc->acq_req) {
 			case AQ_NONE: /* Fall through */
 			case AQ_STATUS:
 				devc->acq_req = AQ_U1;

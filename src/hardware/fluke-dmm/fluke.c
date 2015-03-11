@@ -40,14 +40,14 @@ static struct sr_datafeed_analog *handle_qm_18x(const struct sr_dev_inst *sdi,
 	if ((e = strstr(tokens[1], "Out of range"))) {
 		is_oor = TRUE;
 		fvalue = -1;
-		while(*e && *e != '.')
+		while (*e && *e != '.')
 			e++;
 	} else {
 		is_oor = FALSE;
 		/* Delimit the float, since sr_atof_ascii() wants only
 		 * a valid float here. */
 		e = tokens[1];
-		while(*e && *e != ' ')
+		while (*e && *e != ' ')
 			e++;
 		*e++ = '\0';
 		if (sr_atof_ascii(tokens[1], &fvalue) != SR_OK || fvalue == 0.0) {
@@ -56,7 +56,7 @@ static struct sr_datafeed_analog *handle_qm_18x(const struct sr_dev_inst *sdi,
 			return NULL;
 		}
 	}
-	while(*e && *e == ' ')
+	while (*e && *e == ' ')
 		e++;
 
 	if (!(analog = g_try_malloc0(sizeof(struct sr_datafeed_analog))))
@@ -498,7 +498,7 @@ SR_PRIV int fluke_receive_data(int fd, int revents, void *cb_data)
 	serial = sdi->conn;
 	if (revents == G_IO_IN) {
 		/* Serial data arrived. */
-		while(FLUKEDMM_BUFSIZE - devc->buflen - 1 > 0) {
+		while (FLUKEDMM_BUFSIZE - devc->buflen - 1 > 0) {
 			len = serial_read_nonblocking(serial, devc->buf + devc->buflen, 1);
 			if (len < 1)
 				break;

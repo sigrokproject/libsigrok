@@ -206,7 +206,7 @@ SR_PRIV int brymen_stream_detect(struct sr_serial_dev_inst *serial,
 			/* How large of a packet are we expecting? */
 			packet_len = stream_len;
 			status = get_packet_size(&buf[i], &packet_len);
-			switch(status) {
+			switch (status) {
 			case PACKET_HEADER_OK:
 				/* We know how much data we need to wait for. */
 				break;

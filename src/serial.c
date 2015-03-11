@@ -624,7 +624,7 @@ SR_PRIV int serial_readline(struct sr_serial_dev_inst *serial, char **buf,
 
 	maxlen = *buflen;
 	*buflen = len = 0;
-	while(1) {
+	while (1) {
 		len = maxlen - *buflen - 1;
 		if (len < 1)
 			break;

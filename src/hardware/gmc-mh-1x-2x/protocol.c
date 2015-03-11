@@ -567,7 +567,7 @@ static void decode_rs_2x_TR2(uint8_t rs, struct dev_context *devc)
 	switch (devc->mq) {
 	case SR_MQ_CURRENT:
 		if (devc->scale1000 == -1) /* mA */
-			switch(range) {
+			switch (range) {
 			case 0: case 1:	/* 100, 300 µA */
 				devc->scale *= pow(10.0, -6);
 				break;
@@ -582,7 +582,7 @@ static void decode_rs_2x_TR2(uint8_t rs, struct dev_context *devc)
 				break;
 			}
 		else /* A */
-			switch(range) {
+			switch (range) {
 			case 0: case 1:	/* 1, 3 A */
 				devc->scale *= pow(10.0, -5);
 				break;
@@ -1370,7 +1370,7 @@ SR_PRIV int gmc_decode_model_sm(uint8_t mcode)
 		return METRAHIT_NONE;
 	}
 
-	switch(mcode) {
+	switch (mcode) {
 	case 0x04: /* 0100b */
 		return METRAHIT_12S;
 	case 0x08: /* 1000b */

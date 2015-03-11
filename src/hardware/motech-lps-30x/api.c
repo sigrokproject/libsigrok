@@ -738,7 +738,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	}
 
 	/* Device options, independent from channel groups. */
-	if (cg == NULL) {
+	if (!cg) {
 		switch (key) {
 		case SR_CONF_DEVICE_OPTIONS:
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,

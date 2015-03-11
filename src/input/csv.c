@@ -351,7 +351,7 @@ static int parse_single_column(const char *column, struct context *inc)
 
 	res = SR_ERR;
 
-	switch(inc->format) {
+	switch (inc->format) {
 	case FORMAT_BIN:
 		res = parse_binstr(column, inc);
 		break;

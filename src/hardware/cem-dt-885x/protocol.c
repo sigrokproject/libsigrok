@@ -84,7 +84,7 @@ static void process_mset(const struct sr_dev_inst *sdi)
 		g_string_free(dbg, TRUE);
 	}
 
-	switch(devc->token) {
+	switch (devc->token) {
 	case TOKEN_WEIGHT_TIME_FAST:
 		devc->cur_mqflags |= SR_MQFLAG_SPL_TIME_WEIGHT_F;
 		devc->cur_mqflags &= ~SR_MQFLAG_SPL_TIME_WEIGHT_S;

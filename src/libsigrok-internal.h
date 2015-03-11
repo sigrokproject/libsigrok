@@ -118,7 +118,7 @@
  * @param p a pointer to the output memory
  * @param x the input unsigned integer
  */
-#define W8(p, x)    do { ((uint8_t*)(p))[0] = (uint8_t) (x);      } while(0)
+#define W8(p, x)    do { ((uint8_t*)(p))[0] = (uint8_t) (x);      } while (0)
 
 /**
  * Write a 16 bits unsigned integer to memory stored as big endian.
@@ -126,7 +126,7 @@
  * @param x the input unsigned integer
  */
 #define WB16(p, x)  do { ((uint8_t*)(p))[1] = (uint8_t) (x);      \
-                         ((uint8_t*)(p))[0] = (uint8_t)((x)>>8);  } while(0)
+                         ((uint8_t*)(p))[0] = (uint8_t)((x)>>8);  } while (0)
 
 /**
  * Write a 16 bits unsigned integer to memory stored as little endian.
@@ -134,7 +134,7 @@
  * @param x the input unsigned integer
  */
 #define WL16(p, x)  do { ((uint8_t*)(p))[0] = (uint8_t) (x);      \
-                         ((uint8_t*)(p))[1] = (uint8_t)((x)>>8);  } while(0)
+                         ((uint8_t*)(p))[1] = (uint8_t)((x)>>8);  } while (0)
 
 /**
  * Write a 32 bits unsigned integer to memory stored as big endian.
@@ -144,7 +144,7 @@
 #define WB32(p, x)  do { ((uint8_t*)(p))[3] = (uint8_t) (x);      \
                          ((uint8_t*)(p))[2] = (uint8_t)((x)>>8);  \
                          ((uint8_t*)(p))[1] = (uint8_t)((x)>>16); \
-                         ((uint8_t*)(p))[0] = (uint8_t)((x)>>24); } while(0)
+                         ((uint8_t*)(p))[0] = (uint8_t)((x)>>24); } while (0)
 
 /**
  * Write a 32 bits unsigned integer to memory stored as little endian.
@@ -154,7 +154,7 @@
 #define WL32(p, x)  do { ((uint8_t*)(p))[0] = (uint8_t) (x);      \
                          ((uint8_t*)(p))[1] = (uint8_t)((x)>>8);  \
                          ((uint8_t*)(p))[2] = (uint8_t)((x)>>16); \
-                         ((uint8_t*)(p))[3] = (uint8_t)((x)>>24); } while(0)
+                         ((uint8_t*)(p))[3] = (uint8_t)((x)>>24); } while (0)
 
 /* Portability fixes for FreeBSD. */
 #ifdef __FreeBSD__

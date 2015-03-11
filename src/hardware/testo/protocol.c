@@ -81,7 +81,7 @@ SR_PRIV int testo_probe_channels(struct sr_dev_inst *sdi)
 		return SR_ERR;
 
 	packet_len = 0;
-	while(TRUE) {
+	while (TRUE) {
 		if (libusb_bulk_transfer(usb->devhdl, EP_IN, buf, MAX_REPLY_SIZE,
 				&len, 250) < 0)
 			return SR_ERR;

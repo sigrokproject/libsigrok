@@ -160,7 +160,7 @@ static int find_data_chunk(GString *buf, int initial_offset)
 	unsigned int offset, i;
 
 	offset = initial_offset;
-	while(offset < MIN(MAX_DATA_CHUNK_OFFSET, buf->len)) {
+	while (offset < MIN(MAX_DATA_CHUNK_OFFSET, buf->len)) {
 		if (!memcmp(buf->str + offset, "data", 4))
 			/* Skip into the samples. */
 			return offset + 8;

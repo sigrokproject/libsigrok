@@ -343,7 +343,7 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 				break;
 			sr_dbg("Found DS1000 firmware < 0.2.4, using raw data format.");
 			devc->format = FORMAT_RAW;
-		} while(0);
+		} while (0);
 		g_strfreev(version);
 	}
 
@@ -815,7 +815,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
 				scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
 		return SR_OK;
-	} else if (key == SR_CONF_DEVICE_OPTIONS && cg == NULL) {
+	} else if (key == SR_CONF_DEVICE_OPTIONS && !cg) {
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
 				devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
 		return SR_OK;

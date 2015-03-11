@@ -490,7 +490,7 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 			ch_idx = 1;
 		else
 			return SR_ERR_ARG;
-		switch(key) {
+		switch (key) {
 		case SR_CONF_FILTER:
 			*data = g_variant_new_boolean(devc->filter[ch_idx]);
 			break;

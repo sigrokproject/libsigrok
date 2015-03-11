@@ -105,7 +105,7 @@ SR_PRIV int agdmm_receive_data(int fd, int revents, void *cb_data)
 	serial = sdi->conn;
 	if (revents == G_IO_IN) {
 		/* Serial data arrived. */
-		while(AGDMM_BUFSIZE - devc->buflen - 1 > 0) {
+		while (AGDMM_BUFSIZE - devc->buflen - 1 > 0) {
 			len = serial_read_nonblocking(serial, devc->buf + devc->buflen, 1);
 			if (len < 1)
 				break;
@@ -330,7 +330,7 @@ static int recv_conf_u123x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 		devc->cur_unit = SR_UNIT_VOLT;
 		devc->cur_mqflags = 0;
 		devc->cur_divider = 0;
-	} else if(!strcmp(mstr, "MV")) {
+	} else if (!strcmp(mstr, "MV")) {
 		if (devc->mode_tempaux) {
 			devc->cur_mq = SR_MQ_TEMPERATURE;
 			/* No way to detect whether Fahrenheit or Celcius
@@ -344,22 +344,22 @@ static int recv_conf_u123x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 			devc->cur_mqflags = 0;
 			devc->cur_divider = 1000;
 		}
-	} else if(!strcmp(mstr, "A")) {
+	} else if (!strcmp(mstr, "A")) {
 		devc->cur_mq = SR_MQ_CURRENT;
 		devc->cur_unit = SR_UNIT_AMPERE;
 		devc->cur_mqflags = 0;
 		devc->cur_divider = 0;
-	} else if(!strcmp(mstr, "UA")) {
+	} else if (!strcmp(mstr, "UA")) {
 		devc->cur_mq = SR_MQ_CURRENT;
 		devc->cur_unit = SR_UNIT_AMPERE;
 		devc->cur_mqflags = 0;
 		devc->cur_divider = 1000000;
-	} else if(!strcmp(mstr, "FREQ")) {
+	} else if (!strcmp(mstr, "FREQ")) {
 		devc->cur_mq = SR_MQ_FREQUENCY;
 		devc->cur_unit = SR_UNIT_HERTZ;
 		devc->cur_mqflags = 0;
 		devc->cur_divider = 0;
-	} else if(!strcmp(mstr, "RES")) {
+	} else if (!strcmp(mstr, "RES")) {
 		if (devc->mode_continuity) {
 			devc->cur_mq = SR_MQ_CONTINUITY;
 			devc->cur_unit = SR_UNIT_BOOLEAN;
@@ -369,7 +369,7 @@ static int recv_conf_u123x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 		}
 		devc->cur_mqflags = 0;
 		devc->cur_divider = 0;
-	} else if(!strcmp(mstr, "CAP")) {
+	} else if (!strcmp(mstr, "CAP")) {
 		devc->cur_mq = SR_MQ_CAPACITANCE;
 		devc->cur_unit = SR_UNIT_FARAD;
 		devc->cur_mqflags = 0;
@@ -423,32 +423,32 @@ static int recv_conf_u124x_5x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 			}
 		} else
 			devc->cur_mqflags &= ~(SR_MQFLAG_AC | SR_MQFLAG_DC);
-	} else if(!strcmp(mstr, "CURR")) {
+	} else if (!strcmp(mstr, "CURR")) {
 		devc->cur_mq = SR_MQ_CURRENT;
 		devc->cur_unit = SR_UNIT_AMPERE;
 		devc->cur_mqflags = 0;
 		devc->cur_divider = 0;
-	} else if(!strcmp(mstr, "RES")) {
+	} else if (!strcmp(mstr, "RES")) {
 		devc->cur_mq = SR_MQ_RESISTANCE;
 		devc->cur_unit = SR_UNIT_OHM;
 		devc->cur_mqflags = 0;
 		devc->cur_divider = 0;
-	} else if(!strcmp(mstr, "CAP")) {
+	} else if (!strcmp(mstr, "CAP")) {
 		devc->cur_mq = SR_MQ_CAPACITANCE;
 		devc->cur_unit = SR_UNIT_FARAD;
 		devc->cur_mqflags = 0;
 		devc->cur_divider = 0;
-	} else if(!strcmp(mstr, "FREQ")) {
+	} else if (!strcmp(mstr, "FREQ")) {
 		devc->cur_mq = SR_MQ_FREQUENCY;
 		devc->cur_unit = SR_UNIT_HERTZ;
 		devc->cur_mqflags = 0;
 		devc->cur_divider = 0;
-	} else if(!strcmp(mstr, "CONT")) {
+	} else if (!strcmp(mstr, "CONT")) {
 		devc->cur_mq = SR_MQ_CONTINUITY;
 		devc->cur_unit = SR_UNIT_BOOLEAN;
 		devc->cur_mqflags = 0;
 		devc->cur_divider = 0;
-	} else if(!strncmp(mstr, "T1", 2) || !strncmp(mstr, "T2", 2)) {
+	} else if (!strncmp(mstr, "T1", 2) || !strncmp(mstr, "T2", 2)) {
 		devc->cur_mq = SR_MQ_TEMPERATURE;
 		m2 = g_match_info_fetch(match, 2);
 		if (!strcmp(m2, "FAR"))
@@ -458,13 +458,13 @@ static int recv_conf_u124x_5x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 		g_free(m2);
 		devc->cur_mqflags = 0;
 		devc->cur_divider = 0;
-	} else if(!strcmp(mstr, "SCOU")) {
+	} else if (!strcmp(mstr, "SCOU")) {
 		/*
 		 * Switch counter, not supported. Not sure what values
 		 * come from FETC in this mode, or how they would map
 		 * into libsigrok.
 		 */
-	} else if(!strncmp(mstr, "CPER:", 5)) {
+	} else if (!strncmp(mstr, "CPER:", 5)) {
 		devc->cur_mq = SR_MQ_CURRENT;
 		devc->cur_unit = SR_UNIT_PERCENTAGE;
 		devc->cur_mqflags = 0;
@@ -485,7 +485,7 @@ static int recv_conf(const struct sr_dev_inst *sdi, GMatchInfo *match)
 	sr_spew("CONF? response '%s'.", g_match_info_get_string(match));
 	devc = sdi->priv;
 	mstr = g_match_info_fetch(match, 1);
-	if(!strcmp(mstr, "DIOD")) {
+	if (!strcmp(mstr, "DIOD")) {
 		devc->cur_mq = SR_MQ_VOLTAGE;
 		devc->cur_unit = SR_UNIT_VOLT;
 		devc->cur_mqflags = SR_MQFLAG_DIODE;

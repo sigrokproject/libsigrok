@@ -556,7 +556,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 	scpi = sdi->conn;
 
 	if (revents == G_IO_IN || revents == 0) {
-		switch(devc->wait_event) {
+		switch (devc->wait_event) {
 		case WAIT_NONE:
 			break;
 		case WAIT_TRIGGER:
