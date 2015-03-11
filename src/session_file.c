@@ -180,10 +180,11 @@ SR_API int sr_session_load(const char *filename, struct sr_session **session)
 					sr_session_dev_add(*session, sdi);
 					(*session)->owned_devs = g_slist_append(
 							(*session)->owned_devs, sdi);
-					sdi->driver->config_set(SR_CONF_SESSIONFILE,
-							g_variant_new_string(filename), sdi, NULL);
-					sdi->driver->config_set(SR_CONF_CAPTUREFILE,
-							g_variant_new_string(val), sdi, NULL);
+
+					sr_config_set(sdi, NULL, SR_CONF_SESSIONFILE,
+							g_variant_new_string(filename));
+					sr_config_set(sdi, NULL, SR_CONF_CAPTUREFILE,
+							g_variant_new_string(val));
 					g_ptr_array_add(capturefiles, val);
 				} else if (!strcmp(keys[j], "samplerate")) {
 					if (!sdi) {
@@ -191,24 +192,24 @@ SR_API int sr_session_load(const char *filename, struct sr_session **session)
 						break;
 					}
 					sr_parse_sizestring(val, &tmp_u64);
-					sdi->driver->config_set(SR_CONF_SAMPLERATE,
-							g_variant_new_uint64(tmp_u64), sdi, NULL);
+					sr_config_set(sdi, NULL, SR_CONF_SAMPLERATE,
+							g_variant_new_uint64(tmp_u64));
 				} else if (!strcmp(keys[j], "unitsize")) {
 					if (!sdi) {
 						ret = SR_ERR_DATA;
 						break;
 					}
 					tmp_u64 = strtoull(val, NULL, 10);
-					sdi->driver->config_set(SR_CONF_CAPTURE_UNITSIZE,
-							g_variant_new_uint64(tmp_u64), sdi, NULL);
+					sr_config_set(sdi, NULL, SR_CONF_CAPTURE_UNITSIZE,
+							g_variant_new_uint64(tmp_u64));
 				} else if (!strcmp(keys[j], "total probes")) {
 					if (!sdi) {
 						ret = SR_ERR_DATA;
 						break;
 					}
 					total_channels = strtoull(val, NULL, 10);
-					sdi->driver->config_set(SR_CONF_NUM_LOGIC_CHANNELS,
-							g_variant_new_uint64(total_channels), sdi, NULL);
+					sr_config_set(sdi, NULL, SR_CONF_NUM_LOGIC_CHANNELS,
+							g_variant_new_uint64(total_channels));
 					for (p = 0; p < total_channels; p++) {
 						snprintf(channelname, SR_MAX_CHANNELNAME_LEN, "%" PRIu64, p);
 						sr_channel_new(sdi, p, SR_CHANNEL_LOGIC, FALSE,
