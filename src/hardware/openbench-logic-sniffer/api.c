@@ -100,7 +100,6 @@ static GSList *scan(GSList *options)
 	struct dev_context *devc;
 	struct sr_channel *ch;
 	struct sr_serial_dev_inst *serial;
-	GPollFD probefd;
 	GSList *l, *devices;
 	int ret, i;
 	const char *conn, *serialcomm;
