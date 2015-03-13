@@ -157,22 +157,32 @@ static GSList *scan(GSList *options)
 	/* Wait 10ms for a response. */
 	g_usleep(10000);
 
-	sp_get_port_handle(serial->data, &probefd.fd);
-	probefd.events = G_IO_IN;
-	g_poll(&probefd, 1, 1);
+	if (sp_input_waiting(serial->data) == 0) {
+		sr_dbg("Didn't get any reply.");
+		return NULL;
+	}
 
-	if (probefd.revents != G_IO_IN)
+	ret = serial_read_blocking(serial, buf, 4, serial_timeout(serial, 4));
+	if (ret != 4) {
+		sr_err("Invalid reply (expected 4 bytes, got %d).", ret);
 		return NULL;
-	if (serial_read_blocking(serial, buf, 4, serial_timeout(serial, 4)) != 4)
+	}
+
+	if (strncmp(buf, "1SLO", 4) && strncmp(buf, "1ALS", 4)) {
+		sr_err("Invalid reply (expected '1SLO' or '1ALS', got "
+		       "'%c%c%c%c').", buf[0], buf[1], buf[2], buf[3]);
 		return NULL;
-	if (strncmp(buf, "1SLO", 4) && strncmp(buf, "1ALS", 4))
-		return NULL;
+	}
 
 	/* Definitely using the OLS protocol, check if it supports
 	 * the metadata command.
 	 */
 	send_shortcommand(serial, CMD_METADATA);
-	if (g_poll(&probefd, 1, 10) > 0) {
+
+	/* Wait 10ms for a response. */
+	g_usleep(10000);
+
+	if (sp_input_waiting(serial->data) != 0) {
 		/* Got metadata. */
 		sdi = get_metadata(serial);
 		devc = sdi->priv;
