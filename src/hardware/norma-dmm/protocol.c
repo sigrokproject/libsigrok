@@ -116,7 +116,7 @@ static void nma_process_line(const struct sr_dev_inst *sdi)
 	/* Start decoding. */
 	value = 0.0;
 	scale = 1.0;
-	memset(&analog, 0, sizeof(analog));
+	memset(&analog, 0, sizeof(struct sr_datafeed_analog));
 
 	/*
 	 * The numbers are hex digits, starting from 0.
@@ -359,7 +359,7 @@ static void nma_process_line(const struct sr_dev_inst *sdi)
 	analog.num_samples = 1;
 	analog.data = &value;
 
-	memset(&packet, 0, sizeof(packet));
+	memset(&packet, 0, sizeof(struct sr_datafeed_packet));
 	packet.type = SR_DF_ANALOG;
 	packet.payload = &analog;
 	sr_session_send(devc->cb_data, &packet);

@@ -651,7 +651,7 @@ static void send_value(struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
-	memset(&analog, 0, sizeof(analog));
+	memset(&analog, 0, sizeof(struct sr_datafeed_analog));
 	analog.channels = sdi->channels;
 	analog.num_samples = 1;
 	analog.mq = devc->mq;
@@ -659,7 +659,7 @@ static void send_value(struct sr_dev_inst *sdi)
 	analog.mqflags = devc->mqflags;
 	analog.data = &devc->value;
 
-	memset(&packet, 0, sizeof(packet));
+	memset(&packet, 0, sizeof(struct sr_datafeed_packet));
 	packet.type = SR_DF_ANALOG;
 	packet.payload = &analog;
 	sr_session_send(devc->cb_data, &packet);

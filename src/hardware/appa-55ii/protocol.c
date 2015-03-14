@@ -102,7 +102,7 @@ static void appa_55ii_live_data(struct sr_dev_inst *sdi, const uint8_t *buf)
 		return;
 
 	val_ptr = values;
-	memset(&analog, 0, sizeof(analog));
+	memset(&analog, 0, sizeof(struct sr_datafeed_analog));
 	analog.num_samples = 1;
 	analog.mq = SR_MQ_TEMPERATURE;
 	analog.unit = SR_UNIT_CELSIUS;
@@ -154,7 +154,7 @@ static void appa_55ii_log_data_parse(struct sr_dev_inst *sdi)
 		/* FIXME: Timestamp should be sent in the packet. */
 		sr_dbg("Timestamp: %02d:%02d:%02d", buf[2], buf[3], buf[4]);
 
-		memset(&analog, 0, sizeof(analog));
+		memset(&analog, 0, sizeof(struct sr_datafeed_analog));
 		analog.num_samples = 1;
 		analog.mq = SR_MQ_TEMPERATURE;
 		analog.unit = SR_UNIT_CELSIUS;

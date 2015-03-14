@@ -502,7 +502,7 @@ SR_PRIV int bl_acme_receive_data(int fd, int revents, void *cb_data)
 
 	packet.type = SR_DF_ANALOG;
 	packet.payload = &analog;
-	memset(&analog, 0, sizeof(analog));
+	memset(&analog, 0, sizeof(struct sr_datafeed_analog));
 	analog.data = &valf;
 
 	/*
