@@ -758,51 +758,51 @@ enum sr_configkey {
 	SR_CONF_NUM_ANALOG_CHANNELS,
 
 	/**
-	 * Output voltage.
+	 * Current voltage.
 	 * @arg type: double
-	 * @arg get: get measured output voltage
+	 * @arg get: get measured voltage
 	 */
-	SR_CONF_OUTPUT_VOLTAGE,
+	SR_CONF_VOLTAGE,
 
 	/**
-	 * Maximum output voltage target.
+	 * Maximum target voltage.
 	 * @arg type: double
-	 * @arg get: get output voltage target
-	 * @arg set: change output voltage target
+	 * @arg get: get target voltage
+	 * @arg set: change target voltage
 	 */
-	SR_CONF_OUTPUT_VOLTAGE_TARGET,
+	SR_CONF_VOLTAGE_TARGET,
 
 	/**
-	 * Output current.
+	 * Current current.
 	 * @arg type: double
-	 * @arg get: get measured output current
+	 * @arg get: get measured current
 	 */
-	SR_CONF_OUTPUT_CURRENT,
+	SR_CONF_CURRENT,
 
 	/**
-	 * Output current limit.
+	 * Current limit.
 	 * @arg type: double
-	 * @arg get: get output current limit
-	 * @arg set: change output current limit
+	 * @arg get: get current limit
+	 * @arg set: change current limit
 	 */
-	SR_CONF_OUTPUT_CURRENT_LIMIT,
+	SR_CONF_CURRENT_LIMIT,
 
 	/**
-	 * Enabling/disabling output.
+	 * Enabling/disabling channel.
 	 * @arg type: boolean
 	 * @arg get: @b true if currently enabled
 	 * @arg set: enable/disable
 	 */
-	SR_CONF_OUTPUT_ENABLED,
+	SR_CONF_ENABLED,
 
 	/**
-	 * Output channel configuration.
+	 * Channel configuration.
 	 * @arg type: string
 	 * @arg get: get current setting
 	 * @arg set: change current setting
 	 * @arg list: array of possible values
 	 */
-	SR_CONF_OUTPUT_CHANNEL_CONFIG,
+	SR_CONF_CHANNEL_CONFIG,
 
 	/**
 	 * Over-voltage protection (OVP) feature
@@ -839,7 +839,7 @@ enum sr_configkey {
 	/**
 	 * Over-current protection (OCP) active
 	 * @arg type: boolean
-	 * @arg get: @b true if device has activated OCP, i.e. the output current
+	 * @arg get: @b true if device has activated OCP, i.e. the current current
 	 *      exceeds the over-current protection threshold.
 	 */
 	SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE,
@@ -859,11 +859,11 @@ enum sr_configkey {
 	SR_CONF_AMPLITUDE,
 
 	/**
-	 * Output channel regulation
+	 * Channel regulation
 	 * get: "CV", "CC" or "UR", denoting constant voltage, constant current
 	 *      or unregulated.
 	 */
-	SR_CONF_OUTPUT_REGULATION,
+	SR_CONF_REGULATION,
 
 	/** Over-temperature protection (OTP) */
 	SR_CONF_OVER_TEMPERATURE_PROTECTION,

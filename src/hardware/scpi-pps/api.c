@@ -287,15 +287,15 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 	gvtype = NULL;
 	cmd = -1;
 	switch (key) {
-	case SR_CONF_OUTPUT_ENABLED:
+	case SR_CONF_ENABLED:
 		gvtype = G_VARIANT_TYPE_BOOLEAN;
 		cmd = SCPI_CMD_GET_OUTPUT_ENABLED;
 		break;
-	case SR_CONF_OUTPUT_VOLTAGE:
+	case SR_CONF_VOLTAGE:
 		gvtype = G_VARIANT_TYPE_DOUBLE;
 		cmd = SCPI_CMD_GET_MEAS_VOLTAGE;
 		break;
-	case SR_CONF_OUTPUT_VOLTAGE_TARGET:
+	case SR_CONF_VOLTAGE_TARGET:
 		gvtype = G_VARIANT_TYPE_DOUBLE;
 		cmd = SCPI_CMD_GET_VOLTAGE_TARGET;
 		break;
@@ -307,11 +307,11 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		gvtype = G_VARIANT_TYPE_DOUBLE;
 		cmd = SCPI_CMD_GET_FREQUENCY_TARGET;
 		break;
-	case SR_CONF_OUTPUT_CURRENT:
+	case SR_CONF_CURRENT:
 		gvtype = G_VARIANT_TYPE_DOUBLE;
 		cmd = SCPI_CMD_GET_MEAS_CURRENT;
 		break;
-	case SR_CONF_OUTPUT_CURRENT_LIMIT:
+	case SR_CONF_CURRENT_LIMIT:
 		gvtype = G_VARIANT_TYPE_DOUBLE;
 		cmd = SCPI_CMD_GET_CURRENT_LIMIT;
 		break;
@@ -343,7 +343,7 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		gvtype = G_VARIANT_TYPE_BOOLEAN;
 		cmd = SCPI_CMD_GET_OVER_TEMPERATURE_PROTECTION;
 		break;
-	case SR_CONF_OUTPUT_REGULATION:
+	case SR_CONF_REGULATION:
 		gvtype = G_VARIANT_TYPE_STRING;
 		cmd = SCPI_CMD_GET_OUTPUT_REGULATION;
 	}
@@ -375,13 +375,13 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 
 	ret = SR_OK;
 	switch (key) {
-	case SR_CONF_OUTPUT_ENABLED:
+	case SR_CONF_ENABLED:
 		if (g_variant_get_boolean(data))
 			ret = scpi_cmd(sdi, SCPI_CMD_SET_OUTPUT_ENABLE);
 		else
 			ret = scpi_cmd(sdi, SCPI_CMD_SET_OUTPUT_DISABLE);
 		break;
-	case SR_CONF_OUTPUT_VOLTAGE_TARGET:
+	case SR_CONF_VOLTAGE_TARGET:
 		d = g_variant_get_double(data);
 		ret = scpi_cmd(sdi, SCPI_CMD_SET_VOLTAGE_TARGET, d);
 		break;
@@ -389,7 +389,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		d = g_variant_get_double(data);
 		ret = scpi_cmd(sdi, SCPI_CMD_SET_FREQUENCY_TARGET, d);
 		break;
-	case SR_CONF_OUTPUT_CURRENT_LIMIT:
+	case SR_CONF_CURRENT_LIMIT:
 		d = g_variant_get_double(data);
 		ret = scpi_cmd(sdi, SCPI_CMD_SET_CURRENT_LIMIT, d);
 		break;
@@ -461,7 +461,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 					devc->device->devopts, devc->device->num_devopts,
 					sizeof(uint32_t));
 			break;
-		case SR_CONF_OUTPUT_CHANNEL_CONFIG:
+		case SR_CONF_CHANNEL_CONFIG:
 			/* Not used. */
 			i = 0;
 			if (devc->device->features & PPS_INDEPENDENT)
@@ -498,7 +498,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 					devc->device->devopts_cg, devc->device->num_devopts_cg,
 					sizeof(uint32_t));
 			break;
-		case SR_CONF_OUTPUT_VOLTAGE_TARGET:
+		case SR_CONF_VOLTAGE_TARGET:
 			ch_spec = &(devc->device->channels[ch->index]);
 			g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
 			/* Min, max, write resolution. */
@@ -518,7 +518,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 			}
 			*data = g_variant_builder_end(&gvb);
 			break;
-		case SR_CONF_OUTPUT_CURRENT_LIMIT:
+		case SR_CONF_CURRENT_LIMIT:
 			g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
 			/* Min, max, step. */
 			for (i = 0; i < 3; i++) {

@@ -33,8 +33,8 @@ static const uint32_t scanopts[] = {
 
 static const uint32_t devopts[] = {
 	SR_CONF_POWER_SUPPLY,
-	SR_CONF_OUTPUT_VOLTAGE | SR_CONF_SET,
-	SR_CONF_OUTPUT_CURRENT | SR_CONF_SET,
+	SR_CONF_VOLTAGE | SR_CONF_SET,
+	SR_CONF_CURRENT | SR_CONF_SET,
 	SR_CONF_OVER_CURRENT_PROTECTION_ENABLED | SR_CONF_SET,
 };
 
@@ -128,7 +128,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 
 	ret = SR_OK;
 	switch (key) {
-	case SR_CONF_OUTPUT_VOLTAGE:
+	case SR_CONF_VOLTAGE:
 		dblval = g_variant_get_double(data);
 		if ((dblval < 0.0) || (dblval > 35.0)) {
 			sr_err("Voltage out of range (0 - 35.0)!");
@@ -136,7 +136,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		}
 		ret = send_msg1(sdi, 'V', (int) (dblval * 10 + 0.5));
 		break;
-	case SR_CONF_OUTPUT_CURRENT:
+	case SR_CONF_CURRENT:
 		dblval = g_variant_get_double(data);
 		if ((dblval < 0.01) || (dblval > 2.55)) {
 			sr_err("Current out of range (0 - 2.55)!");

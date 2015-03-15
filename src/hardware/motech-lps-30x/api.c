@@ -63,22 +63,22 @@ static const uint32_t devopts[] = {
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
 	/* Device configuration */
-	SR_CONF_OUTPUT_CHANNEL_CONFIG | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_CHANNEL_CONFIG | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
 /** Hardware capabilities channel 1, 2. */
 static const uint32_t devopts_ch12[] = {
-	SR_CONF_OUTPUT_VOLTAGE | SR_CONF_GET,
-	SR_CONF_OUTPUT_VOLTAGE_TARGET | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
-	SR_CONF_OUTPUT_CURRENT | SR_CONF_GET,
-	SR_CONF_OUTPUT_CURRENT_LIMIT | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
-	SR_CONF_OUTPUT_ENABLED | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_VOLTAGE | SR_CONF_GET,
+	SR_CONF_VOLTAGE_TARGET | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_CURRENT | SR_CONF_GET,
+	SR_CONF_CURRENT_LIMIT | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_ENABLED | SR_CONF_GET | SR_CONF_SET,
 };
 
 /** Hardware capabilities channel 3. (LPS-304/305 only). */
 static const uint32_t devopts_ch3[] = {
-	SR_CONF_OUTPUT_VOLTAGE | SR_CONF_GET,
-	SR_CONF_OUTPUT_ENABLED | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_VOLTAGE | SR_CONF_GET,
+	SR_CONF_ENABLED | SR_CONF_GET | SR_CONF_SET,
 };
 
 static const char *channel_modes[] = {
@@ -561,7 +561,7 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		case SR_CONF_LIMIT_MSEC:
 			*data = g_variant_new_uint64(devc->limit_msec);
 			break;
-		case SR_CONF_OUTPUT_CHANNEL_CONFIG:
+		case SR_CONF_CHANNEL_CONFIG:
 			*data = g_variant_new_string(channel_modes[devc->tracking_mode]);
 			break;
 		default:
@@ -572,19 +572,19 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		ch = cg->channels->data;
 		ch_idx = ch->index;
 		switch (key) {
-		case SR_CONF_OUTPUT_VOLTAGE:
+		case SR_CONF_VOLTAGE:
 			*data = g_variant_new_double(devc->channel_status[ch_idx].output_voltage_last);
 			break;
-		case SR_CONF_OUTPUT_VOLTAGE_TARGET:
+		case SR_CONF_VOLTAGE_TARGET:
 			*data = g_variant_new_double(devc->channel_status[ch_idx].output_voltage_max);
 			break;
-		case SR_CONF_OUTPUT_CURRENT:
+		case SR_CONF_CURRENT:
 			*data = g_variant_new_double(devc->channel_status[ch_idx].output_current_last);
 			break;
-		case SR_CONF_OUTPUT_CURRENT_LIMIT:
+		case SR_CONF_CURRENT_LIMIT:
 			*data = g_variant_new_double(devc->channel_status[ch_idx].output_current_max);
 			break;
-		case SR_CONF_OUTPUT_ENABLED:
+		case SR_CONF_ENABLED:
 			*data = g_variant_new_boolean(devc->channel_status[ch_idx].output_enabled);
 			break;
 		default:
@@ -626,7 +626,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		case SR_CONF_LIMIT_SAMPLES:
 			devc->limit_samples = g_variant_get_uint64(data);
 			break;
-		case SR_CONF_OUTPUT_CHANNEL_CONFIG:
+		case SR_CONF_CHANNEL_CONFIG:
 			sval = g_variant_get_string(data, NULL);
 			found = FALSE;
 			for (idx = 0; idx < (int)ARRAY_SIZE(channel_modes); idx++) {
@@ -654,7 +654,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		ch_idx = ch->index;
 
 		switch (key) {
-		case SR_CONF_OUTPUT_VOLTAGE_TARGET:
+		case SR_CONF_VOLTAGE_TARGET:
 			dval = g_variant_get_double(data);
 			if (dval < 0 || dval > devc->model->channels[ch_idx].voltage[1])
 				return SR_ERR_ARG;
@@ -675,7 +675,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 			else
 				return lps_cmd_ok(sdi->conn, "VSET%d %05.3f", ch_idx+1, dval);
 			break;
-		case SR_CONF_OUTPUT_CURRENT_LIMIT:
+		case SR_CONF_CURRENT_LIMIT:
 			dval = g_variant_get_double(data);
 			if (dval < 0 || dval > devc->model->channels[ch_idx].current[1])
 				return SR_ERR_ARG;
@@ -684,7 +684,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 			devc->channel_status[ch_idx].output_current_max = dval;
 			return lps_cmd_ok(sdi->conn, "ISET%d %05.4f", ch_idx+1, dval);
 			break;
-		case SR_CONF_OUTPUT_ENABLED:
+		case SR_CONF_ENABLED:
 			bval = g_variant_get_boolean(data);
 			if (bval == devc->channel_status[ch_idx].output_enabled) /* Nothing to do. */
 				break;
@@ -742,7 +742,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
 					devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
 			return SR_OK;
-		case SR_CONF_OUTPUT_CHANNEL_CONFIG:
+		case SR_CONF_CHANNEL_CONFIG:
 			if (devc->model->modelid <= LPS_303) {
 				/* The 1-channel models. */
 				*data = g_variant_new_strv(channel_modes, 1);
@@ -768,7 +768,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
 				  devopts_ch3, ARRAY_SIZE(devopts_ch3), sizeof(uint32_t));
 		break;
-	case SR_CONF_OUTPUT_VOLTAGE_TARGET:
+	case SR_CONF_VOLTAGE_TARGET:
 		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
 		/* Min, max, step. */
 		for (i = 0; i < 3; i++) {
@@ -777,7 +777,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		}
 		*data = g_variant_builder_end(&gvb);
 		break;
-	case SR_CONF_OUTPUT_CURRENT_LIMIT:
+	case SR_CONF_CURRENT_LIMIT:
 		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
 		/* Min, max, step. */
 		for (i = 0; i < 3; i++) {
