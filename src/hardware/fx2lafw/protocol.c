@@ -140,7 +140,7 @@ SR_PRIV int fx2lafw_command_start_acquisition(const struct sr_dev_inst *sdi)
  * Check the USB configuration to determine if this is an fx2lafw device.
  *
  * @return TRUE if the device's configuration profile matches fx2lafw
- * configuration, FALSE otherwise.
+ *         configuration, FALSE otherwise.
  */
 SR_PRIV gboolean match_manuf_prod(libusb_device *dev, const char *manufacturer,
 		const char *product)

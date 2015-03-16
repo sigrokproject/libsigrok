@@ -18,17 +18,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifndef LIBSIGROK_HARDWARE_FX2LAFW_DSLOGIC_H
+#define LIBSIGROK_HARDWARE_FX2LAFW_DSLOGIC_H
+
 /* Modified protocol commands & flags used by DSLogic */
 #define DS_CMD_GET_FW_VERSION		0xb0
 #define DS_CMD_GET_REVID_VERSION	0xb1
-#define DS_CMD_START				0xb2
-#define DS_CMD_FPGA_FW				0xb3
-#define DS_CMD_CONFIG				0xb4
+#define DS_CMD_START			0xb2
+#define DS_CMD_FPGA_FW			0xb3
+#define DS_CMD_CONFIG			0xb4
 
-#define DS_NUM_TRIGGER_STAGES	16
-#define DS_START_FLAGS_STOP        (1 << 7)
-#define DS_START_FLAGS_CLK_48MHZ   (1 << 6)
-#define DS_START_FLAGS_SAMPLE_WIDE (1 << 5)
+#define DS_NUM_TRIGGER_STAGES		16
+#define DS_START_FLAGS_STOP		(1 << 7)
+#define DS_START_FLAGS_CLK_48MHZ	(1 << 6)
+#define DS_START_FLAGS_SAMPLE_WIDE	(1 << 5)
 
 enum dslogic_operation_modes {
 	DS_OP_NORMAL,
@@ -62,7 +65,7 @@ struct dslogic_trigger_pos {
 #define _DS_CFG(variable, wordcnt) ((variable << 8) | wordcnt)
 #define _DS_CFG_PAD(variable, wordcnt) ((_DS_CFG(variable, wordcnt) << 16) | 0xffff)
 #define DS_CFG_START		0xffffffff
-#define DS_CFG_MODE			_DS_CFG(0, 1)
+#define DS_CFG_MODE		_DS_CFG(0, 1)
 #define DS_CFG_DIVIDER		_DS_CFG_PAD(1, 2)
 #define DS_CFG_COUNT		_DS_CFG_PAD(3, 2)
 #define DS_CFG_TRIG_POS		_DS_CFG_PAD(5, 2)
@@ -79,7 +82,7 @@ struct dslogic_trigger_pos {
 #define DS_CFG_TRIG_COUNT1	_DS_CFG_PAD(29, 16)
 #define DS_CFG_TRIG_LOGIC0	_DS_CFG_PAD(32, 16)
 #define DS_CFG_TRIG_LOGIC1	_DS_CFG_PAD(33, 16)
-#define DS_CFG_END			0x00000000
+#define DS_CFG_END		0x00000000
 
 struct dslogic_fpga_config {
 	uint32_t sync;
@@ -120,9 +123,10 @@ struct dslogic_fpga_config {
 	uint32_t end_sync;
 };
 
-
 int dslogic_fpga_firmware_upload(const struct sr_dev_inst *sdi,
 		const char *filename);
 int dslogic_start_acquisition(const struct sr_dev_inst *sdi);
 int dslogic_stop_acquisition(const struct sr_dev_inst *sdi);
 int dslogic_fpga_configure(const struct sr_dev_inst *sdi);
+
+#endif

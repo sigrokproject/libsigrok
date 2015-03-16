@@ -626,7 +626,6 @@ static int start_transfers(const struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 	usb = sdi->conn;
 
-	devc->cb_data = cb_data;
 	devc->sent_samples = 0;
 	devc->acq_aborted = FALSE;
 	devc->empty_transfer_count = 0;
@@ -679,9 +678,7 @@ static int start_transfers(const struct sr_dev_inst *sdi)
 	}
 
 	/* Send header packet to the session bus. */
-	std_session_send_df_header(devc->cb_data, LOG_PREFIX);
-
-	usb_source_add(sdi->session, devc->ctx, timeout, receive_data, NULL);
+	std_session_send_df_header(sdi, LOG_PREFIX);
 
 	return SR_OK;
 }
@@ -751,12 +748,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	drvc = di->priv;
 	devc = sdi->priv;
 
-	/* Configures devc->trigger_* and devc->sample_wide */
-	if (fx2lafw_configure_channels(sdi) != SR_OK) {
-		sr_err("Failed to configure channels.");
-		return SR_ERR;
-	}
-
 	devc->ctx = drvc->sr_ctx;
 	devc->cb_data = cb_data;
 	devc->sent_samples = 0;
@@ -764,7 +755,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	devc->acq_aborted = FALSE;
 
 	timeout = fx2lafw_get_timeout(devc);
-	usb_source_add(devc->ctx, timeout, receive_data, NULL);
+	usb_source_add(sdi->session, devc->ctx, timeout, receive_data, NULL);
 
 	if (devc->dslogic) {
 		dslogic_trigger_request(sdi);
