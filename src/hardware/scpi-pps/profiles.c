@@ -63,6 +63,11 @@ static const uint32_t rigol_dp800_devopts_cg[] = {
 	SR_CONF_OUTPUT_ENABLED | SR_CONF_GET | SR_CONF_SET,
 };
 
+struct channel_spec rigol_dp821a_ch[] = {
+	{ "1", { 0, 60, 0.001 }, { 0, 1, 0.0001 } },
+	{ "2", { 0, 8, 0.001 }, { 0, 10, 0.001 } },
+};
+
 struct channel_spec rigol_dp831_ch[] = {
 	{ "1", { 0, 8, 0.001 }, { 0, 5, 0.0003 } },
 	{ "2", { 0, 30, 0.001 }, { 0, 2, 0.0001 } },
@@ -75,7 +80,12 @@ struct channel_spec rigol_dp832_ch[] = {
 	{ "3", { 0, 5, 0.001 }, { 0, 3, 0.001 } },
 };
 
-struct channel_group_spec rigol_dp800_cg[] = {
+struct channel_group_spec rigol_dp820_cg[] = {
+	{ "1", CH_IDX(0), PPS_OVP | PPS_OCP },
+	{ "2", CH_IDX(1), PPS_OVP | PPS_OCP },
+};
+
+struct channel_group_spec rigol_dp830_cg[] = {
 	{ "1", CH_IDX(0), PPS_OVP | PPS_OCP },
 	{ "2", CH_IDX(1), PPS_OVP | PPS_OCP },
 	{ "3", CH_IDX(2), PPS_OVP | PPS_OCP },
@@ -305,11 +315,19 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 	},
 
 	/* Rigol DP800 series */
+	{ "Rigol", "^DP821A$", PPS_OTP,
+		ARRAY_AND_SIZE(rigol_dp800_devopts),
+		ARRAY_AND_SIZE(rigol_dp800_devopts_cg),
+		ARRAY_AND_SIZE(rigol_dp821a_ch),
+		ARRAY_AND_SIZE(rigol_dp820_cg),
+		ARRAY_AND_SIZE(rigol_dp800_cmd),
+		.probe_channels = NULL,
+	},
 	{ "Rigol", "^DP831A$", PPS_OTP,
 		ARRAY_AND_SIZE(rigol_dp800_devopts),
 		ARRAY_AND_SIZE(rigol_dp800_devopts_cg),
 		ARRAY_AND_SIZE(rigol_dp831_ch),
-		ARRAY_AND_SIZE(rigol_dp800_cg),
+		ARRAY_AND_SIZE(rigol_dp830_cg),
 		ARRAY_AND_SIZE(rigol_dp800_cmd),
 		.probe_channels = NULL,
 	},
@@ -317,7 +335,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(rigol_dp800_devopts),
 		ARRAY_AND_SIZE(rigol_dp800_devopts_cg),
 		ARRAY_AND_SIZE(rigol_dp832_ch),
-		ARRAY_AND_SIZE(rigol_dp800_cg),
+		ARRAY_AND_SIZE(rigol_dp830_cg),
 		ARRAY_AND_SIZE(rigol_dp800_cmd),
 		.probe_channels = NULL,
 	},
