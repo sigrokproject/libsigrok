@@ -703,7 +703,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 SR_PRIV int rigol_ds_get_dev_cfg(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	char *t_s, *cmd;
+	char *cmd;
 	unsigned int i;
 	int res;
 
@@ -712,11 +712,10 @@ SR_PRIV int rigol_ds_get_dev_cfg(const struct sr_dev_inst *sdi)
 	/* Analog channel state. */
 	for (i = 0; i < devc->model->analog_channels; i++) {
 		cmd = g_strdup_printf(":CHAN%d:DISP?", i + 1);
-		res = sr_scpi_get_string(sdi->conn, cmd, &t_s);
+		res = sr_scpi_get_bool(sdi->conn, cmd, &devc->analog_channels[i]);
 		g_free(cmd);
 		if (res != SR_OK)
 			return SR_ERR;
-		devc->analog_channels[i] = !strcmp(t_s, "ON") || !strcmp(t_s, "1");
 	}
 	sr_dbg("Current analog channel state:");
 	for (i = 0; i < devc->model->analog_channels; i++)
@@ -724,19 +723,17 @@ SR_PRIV int rigol_ds_get_dev_cfg(const struct sr_dev_inst *sdi)
 
 	/* Digital channel state. */
 	if (devc->model->has_digital) {
-		if (sr_scpi_get_string(sdi->conn, ":LA:DISP?", &t_s) != SR_OK)
+		if (sr_scpi_get_bool(sdi->conn, ":LA:DISP?",
+				&devc->la_enabled) != SR_OK)
 			return SR_ERR;
-		devc->la_enabled = !strcmp(t_s, "ON") ? TRUE : FALSE;
 		sr_dbg("Logic analyzer %s, current digital channel state:",
 				devc->la_enabled ? "enabled" : "disabled");
 		for (i = 0; i < ARRAY_SIZE(devc->digital_channels); i++) {
 			cmd = g_strdup_printf(":DIG%d:TURN?", i);
-			res = sr_scpi_get_string(sdi->conn, cmd, &t_s);
+			res = sr_scpi_get_bool(sdi->conn, cmd, &devc->digital_channels[i]);
 			g_free(cmd);
 			if (res != SR_OK)
 				return SR_ERR;
-			devc->digital_channels[i] = !strcmp(t_s, "ON") ? TRUE : FALSE;
-			g_free(t_s);
 			sr_dbg("D%d: %s", i, devc->digital_channels[i] ? "on" : "off");
 		}
 	}
