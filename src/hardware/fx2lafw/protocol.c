@@ -163,13 +163,13 @@ SR_PRIV gboolean match_manuf_prod(libusb_device *dev, const char *manufacturer,
 		if (libusb_get_string_descriptor_ascii(hdl,
 				des.iManufacturer, strdesc, sizeof(strdesc)) < 0)
 			break;
-		if (strncmp((const char *)strdesc, manufacturer, 6))
+		if (strcmp((const char *)strdesc, manufacturer))
 			break;
 
 		if (libusb_get_string_descriptor_ascii(hdl,
 				des.iProduct, strdesc, sizeof(strdesc)) < 0)
 			break;
-		if (strncmp((const char *)strdesc, product, 7))
+		if (strcmp((const char *)strdesc, product))
 			break;
 
 		ret = TRUE;
