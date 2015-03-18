@@ -90,7 +90,7 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	}
 
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
-	sdi->status = SR_ST_ACTIVE;
+	sdi->status = SR_ST_INACTIVE;
 	sdi->vendor = g_strdup(vendor);
 	sdi->model = g_strdup(hw_info->model);
 	sdi->version = g_strdup(hw_info->firmware_version);
@@ -193,7 +193,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 	struct sr_scpi_dev_inst *scpi;
 	GVariant *beeper;
 
-	if (sdi->status != SR_ST_ACTIVE)
+	if (sdi->status != SR_ST_INACTIVE)
 		return SR_ERR;
 
 	scpi = sdi->conn;
