@@ -250,7 +250,6 @@ static void clear_helper(void *priv)
 	g_free(devc->trigger_source);
 	g_free(devc->trigger_slope);
 	g_free(devc->analog_groups);
-	g_free(devc->digital_group);
 	g_free(devc);
 }
 
