@@ -356,7 +356,7 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	}
 
 	if (devc->model->has_digital) {
-		devc->digital_group = g_malloc0(sizeof(struct sr_channel_group*));
+		devc->digital_group = g_malloc0(sizeof(struct sr_channel_group));
 
 		for (i = 0; i < ARRAY_SIZE(devc->digital_channels); i++) {
 			if (!(channel_name = g_strdup_printf("D%d", i)))
