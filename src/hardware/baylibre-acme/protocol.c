@@ -328,11 +328,10 @@ SR_PRIV int bl_acme_set_shunt(const struct sr_channel_group *cg, uint64_t shunt)
 	fd = g_fopen(path->str, "w");
 	if (!fd) {
 		sr_err("Error opening %s: %s", path->str, strerror(errno));
-		g_string_free(path, TRUE);
-		return SR_ERR_IO;
+		ret = SR_ERR_IO;
+		goto out;
 	}
 
-	g_string_free(path, TRUE);
 	g_fprintf(fd, "%" PRIu64 "\n", MOHM_TO_UOHM(shunt));
 	fclose(fd);
 
