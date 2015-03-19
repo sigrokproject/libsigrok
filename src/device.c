@@ -57,6 +57,7 @@ SR_PRIV struct sr_channel *sr_channel_new(struct sr_dev_inst *sdi,
 	struct sr_channel *ch;
 
 	ch = g_malloc0(sizeof(struct sr_channel));
+	ch->sdi = sdi;
 	ch->index = index;
 	ch->type = type;
 	ch->enabled = enabled;

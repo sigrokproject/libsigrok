@@ -531,6 +531,8 @@ enum sr_channeltype {
 
 /** Information on single channel. */
 struct sr_channel {
+	/** The device this channel is attached to. */
+	struct sr_dev_inst *sdi;
 	/** The index of this channel, starting at 0. Logic channels will
 	 * be encoded according to this index in SR_DF_LOGIC packets. */
 	int index;
