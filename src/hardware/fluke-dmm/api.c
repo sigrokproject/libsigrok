@@ -69,7 +69,6 @@ static GSList *fluke_scan(const char *conn, const char *serialcomm)
 	struct sr_dev_inst *sdi;
 	struct drv_context *drvc;
 	struct dev_context *devc;
-	struct sr_channel *ch;
 	struct sr_serial_dev_inst *serial;
 	GSList *devices;
 	int retry, len, i, s;
@@ -132,8 +131,7 @@ static GSList *fluke_scan(const char *conn, const char *serialcomm)
 				sdi->conn = serial;
 				sdi->priv = devc;
 				sdi->driver = di;
-				ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "P1");
-				sdi->channels = g_slist_append(sdi->channels, ch);
+				sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "P1");
 				drvc->instances = g_slist_append(drvc->instances, sdi);
 				devices = g_slist_append(devices, sdi);
 				break;

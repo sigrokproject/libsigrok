@@ -72,7 +72,6 @@ static GSList *center_scan(const char *conn, const char *serialcomm, int idx)
 	struct sr_dev_inst *sdi;
 	struct drv_context *drvc;
 	struct dev_context *devc;
-	struct sr_channel *ch;
 	struct sr_serial_dev_inst *serial;
 	GSList *devices;
 
@@ -98,9 +97,8 @@ static GSList *center_scan(const char *conn, const char *serialcomm, int idx)
 	sdi->driver = center_devs[idx].di;
 
 	for (i = 0; i <  center_devs[idx].num_channels; i++) {
-		ch = sr_channel_new(i, SR_CHANNEL_ANALOG,
+		sr_channel_new(sdi, i, SR_CHANNEL_ANALOG,
 				    TRUE, channel_names[i]);
-		sdi->channels = g_slist_append(sdi->channels, ch);
 	}
 
 	drvc->instances = g_slist_append(drvc->instances, sdi);

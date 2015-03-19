@@ -215,11 +215,9 @@ static GSList *scan(GSList *options)
 		sdi->priv = devc;
 
 		for (i = 0; i < NUM_CHANNELS; i++) {
-			struct sr_channel *ch;
 			chtype = (i == 0) ? SR_CHANNEL_ANALOG : SR_CHANNEL_LOGIC;
-			ch = sr_channel_new(i, chtype, TRUE,
+			sr_channel_new(sdi, i, chtype, TRUE,
 					    mso19_channel_names[i]);
-			sdi->channels = g_slist_append(sdi->channels, ch);
 		}
 
 		//Add the driver

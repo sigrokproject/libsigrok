@@ -589,8 +589,8 @@ enum {
 	SR_CHANNEL_SET_ENABLED = 1 << 0,
 };
 
-SR_PRIV struct sr_channel *sr_channel_new(int index, int type,
-		gboolean enabled, const char *name);
+SR_PRIV struct sr_channel *sr_channel_new(struct sr_dev_inst *sdi,
+		int index, int type, gboolean enabled, const char *name);
 
 /** Device instance data */
 struct sr_dev_inst {

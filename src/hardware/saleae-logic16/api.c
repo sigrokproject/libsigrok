@@ -145,7 +145,6 @@ static GSList *scan(GSList *options)
 	struct dev_context *devc;
 	struct sr_dev_inst *sdi;
 	struct sr_usb_dev_inst *usb;
-	struct sr_channel *ch;
 	struct sr_config *src;
 	GSList *l, *devices, *conn_devices;
 	struct libusb_device_descriptor des;
@@ -206,11 +205,9 @@ static GSList *scan(GSList *options)
 		sdi->driver = di;
 		sdi->connection_id = g_strdup(connection_id);
 
-		for (j = 0; channel_names[j]; j++) {
-			ch = sr_channel_new(j, SR_CHANNEL_LOGIC, TRUE,
+		for (j = 0; channel_names[j]; j++)
+			sr_channel_new(sdi, j, SR_CHANNEL_LOGIC, TRUE,
 					    channel_names[j]);
-			sdi->channels = g_slist_append(sdi->channels, ch);
-		}
 
 		devc = g_malloc0(sizeof(struct dev_context));
 		devc->selected_voltage_range = VOLTAGE_RANGE_18_33_V;

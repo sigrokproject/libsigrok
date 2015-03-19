@@ -49,7 +49,6 @@ static GSList *scan(GSList *options)
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
 	struct sr_dev_inst *sdi;
-	struct sr_channel *ch;
 	GSList *devices = NULL, *l;
 	const char *conn = NULL, *serialcomm = NULL;
 	uint8_t buf[292];
@@ -103,42 +102,27 @@ static GSList *scan(GSList *options)
 	sdi->priv = devc;
 	sdi->driver = di;
 
-	ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "P");
-	sdi->channels = g_slist_append(sdi->channels, ch);
+	sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "P");
 
 	if (devc->optarif == OPTARIF_BASE) {
-		ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "BASE");
-		sdi->channels = g_slist_append(sdi->channels, ch);
+		sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "BASE");
 	} else if (devc->optarif == OPTARIF_HC) {
-		ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "HP");
-		sdi->channels = g_slist_append(sdi->channels, ch);
-		ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "HC");
-		sdi->channels = g_slist_append(sdi->channels, ch);
+		sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "HP");
+		sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "HC");
 	} else if (devc->optarif == OPTARIF_EJP) {
-		ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "HN");
-		sdi->channels = g_slist_append(sdi->channels, ch);
-		ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "HPM");
-		sdi->channels = g_slist_append(sdi->channels, ch);
+		sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "HN");
+		sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "HPM");
 	} else if (devc->optarif == OPTARIF_BBR) {
-		ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "HPJB");
-		sdi->channels = g_slist_append(sdi->channels, ch);
-		ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "HPJW");
-		sdi->channels = g_slist_append(sdi->channels, ch);
-		ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "HPJR");
-		sdi->channels = g_slist_append(sdi->channels, ch);
-		ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "HCJB");
-		sdi->channels = g_slist_append(sdi->channels, ch);
-		ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "HCJW");
-		sdi->channels = g_slist_append(sdi->channels, ch);
-		ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "HCJR");
-		sdi->channels = g_slist_append(sdi->channels, ch);
+		sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "HPJB");
+		sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "HPJW");
+		sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "HPJR");
+		sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "HCJB");
+		sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "HCJW");
+		sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "HCJR");
 	}
 
-	ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "IINST");
-	sdi->channels = g_slist_append(sdi->channels, ch);
-
-	ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "PAPP");
-	sdi->channels = g_slist_append(sdi->channels, ch);
+	sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "IINST");
+	sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "PAPP");
 
 	drvc->instances = g_slist_append(drvc->instances, sdi);
 	devices = g_slist_append(devices, sdi);

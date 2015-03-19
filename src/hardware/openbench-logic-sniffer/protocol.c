@@ -142,7 +142,6 @@ SR_PRIV struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
-	struct sr_channel *ch;
 	uint32_t tmp_int, ui;
 	uint8_t key, type, token;
 	int delay_ms;
@@ -215,11 +214,9 @@ SR_PRIV struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
 			switch (token) {
 			case 0x00:
 				/* Number of usable channels */
-				for (ui = 0; ui < tmp_int; ui++) {
-					ch = sr_channel_new(ui, SR_CHANNEL_LOGIC, TRUE,
+				for (ui = 0; ui < tmp_int; ui++)
+					sr_channel_new(sdi, ui, SR_CHANNEL_LOGIC, TRUE,
 							ols_channel_names[ui]);
-					sdi->channels = g_slist_append(sdi->channels, ch);
-				}
 				break;
 			case 0x01:
 				/* Amount of sample memory available (bytes) */
@@ -253,11 +250,9 @@ SR_PRIV struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
 			switch (token) {
 			case 0x00:
 				/* Number of usable channels */
-				for (ui = 0; ui < tmp_c; ui++) {
-					ch = sr_channel_new(ui, SR_CHANNEL_LOGIC, TRUE,
+				for (ui = 0; ui < tmp_c; ui++)
+					sr_channel_new(sdi, ui, SR_CHANNEL_LOGIC, TRUE,
 							ols_channel_names[ui]);
-					sdi->channels = g_slist_append(sdi->channels, ch);
-				}
 				break;
 			case 0x01:
 				/* protocol version */

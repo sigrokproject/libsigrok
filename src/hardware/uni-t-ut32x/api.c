@@ -53,7 +53,6 @@ static GSList *scan(GSList *options)
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct sr_dev_inst *sdi;
-	struct sr_channel *ch;
 	struct sr_config *src;
 	GSList *usb_devices, *devices, *l;
 	int i;
@@ -86,11 +85,8 @@ static GSList *scan(GSList *options)
 			sdi->driver = di;
 			sdi->inst_type = SR_INST_USB;
 			sdi->conn = l->data;
-			for (i = 0; i < 3; i++) {
-				ch = sr_channel_new(i, SR_CHANNEL_ANALOG, TRUE,
-						channels[i]);
-				sdi->channels = g_slist_append(sdi->channels, ch);
-			}
+			for (i = 0; i < 3; i++)
+				sr_channel_new(sdi, i, SR_CHANNEL_ANALOG, TRUE, channels[i]);
 			devc = g_malloc0(sizeof(struct dev_context));
 			sdi->priv = devc;
 			devc->limit_samples = 0;

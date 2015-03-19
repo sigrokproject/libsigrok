@@ -55,7 +55,6 @@ static GSList *scan(GSList *options)
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
 	struct sr_dev_inst *sdi;
-	struct sr_channel *ch;
 	struct sr_config *src;
 	GSList *devices, *l;
 	const char *conn, *serialcomm;
@@ -110,10 +109,8 @@ static GSList *scan(GSList *options)
 	sdi->priv = devc;
 	sdi->driver = di;
 
-	ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "T1");
-	sdi->channels = g_slist_append(sdi->channels, ch);
-	ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "T2");
-	sdi->channels = g_slist_append(sdi->channels, ch);
+	sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "T1");
+	sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "T2");
 
 	drvc->instances = g_slist_append(drvc->instances, sdi);
 	devices = g_slist_append(devices, sdi);

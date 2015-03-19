@@ -80,7 +80,6 @@ static int add_device(int idx, int model, GSList **devices)
 	struct sr_dev_inst *sdi;
 	struct drv_context *drvc;
 	struct dev_context *devc;
-	struct sr_channel *ch;
 
 	ret = SR_OK;
 
@@ -127,11 +126,9 @@ static int add_device(int idx, int model, GSList **devices)
 	sdi->driver = di;
 	sdi->priv = devc;
 
-	for (i = 0; i < devc->prof->num_channels; i++) {
-		ch = sr_channel_new(i, SR_CHANNEL_LOGIC, TRUE,
+	for (i = 0; i < devc->prof->num_channels; i++)
+		sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE,
 				    cv_channel_names[i]);
-		sdi->channels = g_slist_append(sdi->channels, ch);
-	}
 
 	*devices = g_slist_append(*devices, sdi);
 	drvc->instances = g_slist_append(drvc->instances, sdi);

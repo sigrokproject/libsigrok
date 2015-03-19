@@ -201,13 +201,12 @@ static void append_channel(struct sr_dev_inst *sdi, struct sr_channel_group *cg,
 	cp->ch_type = type;
 	cp->probe = cg->priv;
 
-	ch = sr_channel_new(devc->num_channels++,
+	ch = sr_channel_new(sdi, devc->num_channels++,
 			    SR_CHANNEL_ANALOG, TRUE, name);
 	g_free(name);
 
 	ch->priv = cp;
 	cg->channels = g_slist_append(cg->channels, ch);
-	sdi->channels = g_slist_append(sdi->channels, ch);
 }
 
 SR_PRIV gboolean bl_acme_register_probe(struct sr_dev_inst *sdi, int type,

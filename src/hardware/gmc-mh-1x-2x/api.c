@@ -162,7 +162,6 @@ static GSList *scan_1x_2x_rs232(GSList *options)
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct sr_config *src;
-	struct sr_channel *ch;
 	struct sr_serial_dev_inst *serial;
 	GSList *l, *devices;
 	const char *conn, *serialcomm;
@@ -236,8 +235,7 @@ static GSList *scan_1x_2x_rs232(GSList *options)
 		sdi->conn = serial;
 		sdi->priv = devc;
 		sdi->driver = &gmc_mh_1x_2x_rs232_driver_info;
-		ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "P1");
-		sdi->channels = g_slist_append(sdi->channels, ch);
+		sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "P1");
 		drvc->instances = g_slist_append(drvc->instances, sdi);
 		devices = g_slist_append(devices, sdi);
 	}
@@ -254,7 +252,6 @@ static GSList *scan_2x_bd232(GSList *options)
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct sr_config *src;
-	struct sr_channel *ch;
 	struct sr_serial_dev_inst *serial;
 	GSList *l, *devices;
 	const char *conn, *serialcomm;
@@ -332,8 +329,7 @@ static GSList *scan_2x_bd232(GSList *options)
 			sdi->conn = serial;
 			sdi->priv = devc;
 			sdi->driver = &gmc_mh_2x_bd232_driver_info;
-			ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "P1");
-			sdi->channels = g_slist_append(sdi->channels, ch);
+			sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "P1");
 			drvc->instances = g_slist_append(drvc->instances, sdi);
 			devices = g_slist_append(devices, sdi);
 			devc = g_malloc0(sizeof(struct dev_context));

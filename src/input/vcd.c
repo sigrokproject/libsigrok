@@ -404,7 +404,6 @@ static void parse_contents(const struct sr_input *in, char *data)
 
 static int init(struct sr_input *in, GHashTable *options)
 {
-	struct sr_channel *ch;
 	int num_channels, i;
 	char name[16];
 	struct context *inc;
@@ -434,8 +433,7 @@ static int init(struct sr_input *in, GHashTable *options)
 
 	for (i = 0; i < num_channels; i++) {
 		snprintf(name, 16, "%d", i);
-		ch = sr_channel_new(i, SR_CHANNEL_LOGIC, TRUE, name);
-		in->sdi->channels = g_slist_append(in->sdi->channels, ch);
+		sr_channel_new(in->sdi, i, SR_CHANNEL_LOGIC, TRUE, name);
 	}
 
 	return SR_OK;

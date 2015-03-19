@@ -470,8 +470,7 @@ static GSList *do_scan(lps_modelid modelid, struct sr_dev_driver *drv, GSList *o
 	/* Setup channels and channel groups. */
 	for (cnt = 0; cnt < models[modelid].num_channels; cnt++) {
 		snprintf(channel, sizeof(channel), "CH%d", cnt + 1);
-		ch = sr_channel_new(cnt, SR_CHANNEL_ANALOG, TRUE, channel);
-		sdi->channels = g_slist_append(sdi->channels, ch);
+		ch = sr_channel_new(sdi, cnt, SR_CHANNEL_ANALOG, TRUE, channel);
 
 		devc->channel_status[cnt].info = g_slist_append(NULL, ch);
 

@@ -86,7 +86,6 @@ static GSList *scan(GSList *options)
 	struct sr_config *src;
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
-	struct sr_channel *ch;
 	int i, maxch;
 
 	devices = NULL;
@@ -136,11 +135,9 @@ static GSList *scan(GSList *options)
 	sr_info("BeagleLogic device found at "BEAGLELOGIC_DEV_NODE);
 
 	/* Fill the channels */
-	for (i = 0; i < maxch; i++) {
-		ch = sr_channel_new(i, SR_CHANNEL_LOGIC, TRUE,
+	for (i = 0; i < maxch; i++)
+		sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE,
 				beaglelogic_channel_names[i]);
-		sdi->channels = g_slist_append(sdi->channels, ch);
-	}
 
 	sdi->priv = devc;
 	drvc->instances = g_slist_append(drvc->instances, sdi);

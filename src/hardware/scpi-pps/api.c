@@ -133,13 +133,13 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 				continue;
 			g_snprintf(ch_name, 16, "%s%s", pci[i].prefix,
 					channels[ch_num].name);
-			ch = sr_channel_new(ch_idx++, SR_CHANNEL_ANALOG, TRUE, ch_name);
+			ch = sr_channel_new(sdi, ch_idx++, SR_CHANNEL_ANALOG, TRUE,
+					ch_name);
 			pch = g_malloc0(sizeof(struct pps_channel));
 			pch->hw_output_idx = ch_num;
 			pch->hwname = channels[ch_num].name;
 			pch->mq = pci[i].mq;
 			ch->priv = pch;
-			sdi->channels = g_slist_append(sdi->channels, ch);
 		}
 	}
 

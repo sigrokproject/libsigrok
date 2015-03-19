@@ -183,8 +183,7 @@ static struct sr_dev_inst *dso_dev_new(const struct dso_profile *prof)
 	 * a trigger source internal to the device.
 	 */
 	for (i = 0; channel_names[i]; i++) {
-		ch = sr_channel_new(i, SR_CHANNEL_ANALOG, TRUE, channel_names[i]);
-		sdi->channels = g_slist_append(sdi->channels, ch);
+		ch = sr_channel_new(sdi, i, SR_CHANNEL_ANALOG, TRUE, channel_names[i]);
 		cg = g_malloc0(sizeof(struct sr_channel_group));
 		cg->name = g_strdup(channel_names[i]);
 		cg->channels = g_slist_append(cg->channels, ch);

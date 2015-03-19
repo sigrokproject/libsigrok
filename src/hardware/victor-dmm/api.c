@@ -59,7 +59,6 @@ static GSList *scan(GSList *options)
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct sr_dev_inst *sdi;
-	struct sr_channel *ch;
 	struct libusb_device_descriptor des;
 	libusb_device **devlist;
 	GSList *devices;
@@ -92,8 +91,7 @@ static GSList *scan(GSList *options)
 		devc = g_malloc0(sizeof(struct dev_context));
 		sdi->priv = devc;
 
-		ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "P1");
-		sdi->channels = g_slist_append(NULL, ch);
+		sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "P1");
 
 		sdi->conn = sr_usb_dev_inst_new(libusb_get_bus_number(devlist[i]),
 				libusb_get_device_address(devlist[i]), NULL);

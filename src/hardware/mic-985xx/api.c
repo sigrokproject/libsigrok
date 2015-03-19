@@ -71,7 +71,6 @@ static GSList *mic_scan(const char *conn, const char *serialcomm, int idx)
 	struct sr_dev_inst *sdi;
 	struct drv_context *drvc;
 	struct dev_context *devc;
-	struct sr_channel *ch;
 	struct sr_serial_dev_inst *serial;
 	GSList *devices;
 
@@ -100,13 +99,10 @@ static GSList *mic_scan(const char *conn, const char *serialcomm, int idx)
 	sdi->priv = devc;
 	sdi->driver = mic_devs[idx].di;
 
-	ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "Temperature");
-	sdi->channels = g_slist_append(sdi->channels, ch);
+	sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "Temperature");
 
-	if (mic_devs[idx].has_humidity) {
-		ch = sr_channel_new(1, SR_CHANNEL_ANALOG, TRUE, "Humidity");
-		sdi->channels = g_slist_append(sdi->channels, ch);
-	}
+	if (mic_devs[idx].has_humidity)
+		sr_channel_new(sdi, 1, SR_CHANNEL_ANALOG, TRUE, "Humidity");
 
 	drvc->instances = g_slist_append(drvc->instances, sdi);
 	devices = g_slist_append(devices, sdi);

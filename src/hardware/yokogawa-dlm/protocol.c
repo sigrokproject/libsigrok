@@ -669,9 +669,8 @@ SR_PRIV int dlm_device_init(struct sr_dev_inst *sdi, int model_index)
 
 	/* Add analog channels. */
 	for (i = 0; i < scope_models[model_index].analog_channels; i++) {
-		ch = sr_channel_new(i, SR_CHANNEL_ANALOG, TRUE,
+		ch = sr_channel_new(sdi, i, SR_CHANNEL_ANALOG, TRUE,
 				(*scope_models[model_index].analog_names)[i]);
-		sdi->channels = g_slist_append(sdi->channels, ch);
 
 		devc->analog_groups[i] = g_malloc0(sizeof(struct sr_channel_group));
 
@@ -698,9 +697,8 @@ SR_PRIV int dlm_device_init(struct sr_dev_inst *sdi, int model_index)
 
 	/* Add digital channels. */
 	for (i = 0; i < scope_models[model_index].digital_channels; i++) {
-		ch = sr_channel_new(i, SR_CHANNEL_LOGIC, TRUE,
+		ch = sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE,
 				(*scope_models[model_index].digital_names)[i]);
-		sdi->channels = g_slist_append(sdi->channels, ch);
 
 		devc->digital_groups[i / 8]->channels = g_slist_append(
 				devc->digital_groups[i / 8]->channels, ch);

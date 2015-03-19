@@ -472,7 +472,6 @@ static char *get_line_termination(GString *buf)
 static int initial_parse(const struct sr_input *in, GString *buf)
 {
 	struct context *inc;
-	struct sr_channel *ch;
 	GString *channel_name;
 	gsize num_columns, l, i;
 	unsigned int line_number;
@@ -558,8 +557,7 @@ static int initial_parse(const struct sr_input *in, GString *buf)
 			g_string_assign(channel_name, columns[i]);
 		else
 			g_string_printf(channel_name, "%zu", i);
-		ch = sr_channel_new(i, SR_CHANNEL_LOGIC, TRUE, channel_name->str);
-		in->sdi->channels = g_slist_append(in->sdi->channels, ch);
+		sr_channel_new(in->sdi, i, SR_CHANNEL_LOGIC, TRUE, channel_name->str);
 	}
 	g_string_free(channel_name, TRUE);
 

@@ -240,7 +240,6 @@ static int process_buffer(struct sr_input *in)
 	struct context *inc;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_meta meta;
-	struct sr_channel *ch;
 	struct sr_config *src;
 	int offset, chunk_samples, total_samples, processed, max_chunk_samples;
 	int num_samples, i;
@@ -250,8 +249,7 @@ static int process_buffer(struct sr_input *in)
 	if (!inc->started) {
 		for (i = 0; i < inc->num_channels; i++) {
 			snprintf(channelname, 8, "CH%d", i + 1);
-			ch = sr_channel_new(i, SR_CHANNEL_ANALOG, TRUE, channelname);
-			in->sdi->channels = g_slist_append(in->sdi->channels, ch);
+			sr_channel_new(in->sdi, i, SR_CHANNEL_ANALOG, TRUE, channelname);
 		}
 
 		std_session_send_df_header(in->sdi, LOG_PREFIX);

@@ -59,7 +59,6 @@ SR_PRIV int testo_probe_channels(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
-	struct sr_channel *ch;
 	int unit, packet_len, len, i;
 	unsigned char packet[MAX_REPLY_SIZE], buf[MAX_REPLY_SIZE];
 	char *probe_name;
@@ -136,8 +135,7 @@ SR_PRIV int testo_probe_channels(struct sr_dev_inst *sdi)
 			sr_dbg("Unsupported measurement unit %d", unit);
 			return SR_ERR;
 		}
-		ch = sr_channel_new(i, SR_CHANNEL_ANALOG, TRUE, probe_name);
-		sdi->channels = g_slist_append(sdi->channels, ch);
+		sr_channel_new(sdi, i, SR_CHANNEL_ANALOG, TRUE, probe_name);
 	}
 	devc->num_channels = packet[6];
 	sr_dbg("Found %d channel%s.", devc->num_channels,

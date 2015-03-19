@@ -171,7 +171,6 @@ static GSList *scan(GSList *options)
 	struct dev_context *devc;
 	struct sr_dev_inst *sdi;
 	struct sr_usb_dev_inst *usb;
-	struct sr_channel *ch;
 	struct sr_config *src;
 	const struct fx2lafw_profile *prof;
 	GSList *l, *devices, *conn_devices;
@@ -288,11 +287,9 @@ static GSList *scan(GSList *options)
 
 		/* Fill in channellist according to this device's profile. */
 		num_logic_channels = prof->dev_caps & DEV_CAPS_16BIT ? 16 : 8;
-		for (j = 0; j < num_logic_channels; j++) {
-			ch = sr_channel_new(j, SR_CHANNEL_LOGIC, TRUE,
+		for (j = 0; j < num_logic_channels; j++)
+			sr_channel_new(sdi, j, SR_CHANNEL_LOGIC, TRUE,
 					channel_names[j]);
-			sdi->channels = g_slist_append(sdi->channels, ch);
-		}
 
 		devc = fx2lafw_dev_new();
 		devc->profile = prof;

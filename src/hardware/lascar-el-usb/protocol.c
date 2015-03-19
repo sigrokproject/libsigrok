@@ -293,7 +293,6 @@ static struct sr_dev_inst *lascar_identify(unsigned char *config)
 	struct dev_context *devc;
 	const struct elusb_profile *profile;
 	struct sr_dev_inst *sdi;
-	struct sr_channel *ch;
 	int modelid, i;
 	char firmware[5];
 
@@ -332,16 +331,12 @@ static struct sr_dev_inst *lascar_identify(unsigned char *config)
 
 		if (profile->logformat == LOG_TEMP_RH) {
 			/* Model this as two channels: temperature and humidity. */
-			ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "Temp");
-			sdi->channels = g_slist_append(NULL, ch);
-			ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "Hum");
-			sdi->channels = g_slist_append(sdi->channels, ch);
+			sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "Temp");
+			sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "Hum");
 		} else if (profile->logformat == LOG_CO) {
-			ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "CO");
-			sdi->channels = g_slist_append(NULL, ch);
+			sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "CO");
 		} else {
-			ch = sr_channel_new(0, SR_CHANNEL_ANALOG, TRUE, "P1");
-			sdi->channels = g_slist_append(NULL, ch);
+			sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "P1");
 		}
 
 		devc = g_malloc0(sizeof(struct dev_context));

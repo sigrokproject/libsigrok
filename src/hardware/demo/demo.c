@@ -320,8 +320,7 @@ static GSList *scan(GSList *options)
 	cg->name = g_strdup("Logic");
 	for (i = 0; i < num_logic_channels; i++) {
 		sprintf(channel_name, "D%d", i);
-		ch = sr_channel_new(i, SR_CHANNEL_LOGIC, TRUE, channel_name);
-		sdi->channels = g_slist_append(sdi->channels, ch);
+		ch = sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE, channel_name);
 		cg->channels = g_slist_append(cg->channels, ch);
 	}
 	sdi->channel_groups = g_slist_append(NULL, cg);
@@ -336,9 +335,8 @@ static GSList *scan(GSList *options)
 	devc->ch_ag = g_hash_table_new(g_direct_hash, g_direct_equal);
 	for (i = 0; i < num_analog_channels; i++) {
 		snprintf(channel_name, 16, "A%d", i);
-		ch = sr_channel_new(i + num_logic_channels, SR_CHANNEL_ANALOG,
+		ch = sr_channel_new(sdi, i + num_logic_channels, SR_CHANNEL_ANALOG,
 				TRUE, channel_name);
-		sdi->channels = g_slist_append(sdi->channels, ch);
 		acg->channels = g_slist_append(acg->channels, ch);
 
 		/* Every analog channel gets its own channel group as well. */

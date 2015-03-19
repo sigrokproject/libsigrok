@@ -74,7 +74,6 @@ static int init(struct sr_context *sr_ctx)
 static GSList *scan(GSList *options)
 {
 	struct sr_dev_inst *sdi;
-	struct sr_channel *ch;
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	GSList *devices;
@@ -127,11 +126,9 @@ static GSList *scan(GSList *options)
 	sdi->driver = di;
 	sdi->priv = devc;
 
-	for (i = 0; channel_names[i]; i++) {
-		ch = sr_channel_new(i, SR_CHANNEL_LOGIC, TRUE,
+	for (i = 0; channel_names[i]; i++)
+		sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE,
 				    channel_names[i]);
-		sdi->channels = g_slist_append(sdi->channels, ch);
-	}
 
 	devices = g_slist_append(devices, sdi);
 	drvc->instances = g_slist_append(drvc->instances, sdi);

@@ -219,7 +219,6 @@ SR_PRIV int pols_convert_trigger(const struct sr_dev_inst *sdi)
 SR_PRIV struct sr_dev_inst *p_ols_get_metadata(uint8_t *buf, int bytes_read, struct dev_context *devc)
 {
 	struct sr_dev_inst *sdi;
-	struct sr_channel *ch;
 	uint32_t tmp_int, ui;
 	uint8_t key, type, token;
 	GString *tmp_str, *devname, *version;
@@ -288,11 +287,9 @@ SR_PRIV struct sr_dev_inst *p_ols_get_metadata(uint8_t *buf, int bytes_read, str
 			switch (token) {
 			case 0x00:
 				/* Number of usable channels */
-				for (ui = 0; ui < tmp_int; ui++) {
-					ch = sr_channel_new(ui, SR_CHANNEL_LOGIC, TRUE,
+				for (ui = 0; ui < tmp_int; ui++)
+					sr_channel_new(sdi, ui, SR_CHANNEL_LOGIC, TRUE,
 							p_ols_channel_names[ui]);
-					sdi->channels = g_slist_append(sdi->channels, ch);
-				}
 				break;
 			case 0x01:
 				/* Amount of sample memory available (bytes) */
@@ -324,11 +321,9 @@ SR_PRIV struct sr_dev_inst *p_ols_get_metadata(uint8_t *buf, int bytes_read, str
 			switch (token) {
 			case 0x00:
 				/* Number of usable channels */
-				for (ui = 0; ui < tmp_c; ui++) {
-					ch = sr_channel_new(ui, SR_CHANNEL_LOGIC, TRUE,
+				for (ui = 0; ui < tmp_c; ui++)
+					sr_channel_new(sdi, ui, SR_CHANNEL_LOGIC, TRUE,
 							p_ols_channel_names[ui]);
-					sdi->channels = g_slist_append(sdi->channels, ch);
-				}
 				break;
 			case 0x01:
 				/* protocol version */

@@ -79,30 +79,12 @@ static int init(struct sr_context *sr_ctx)
 	return std_init(sr_ctx, di, LOG_PREFIX);
 }
 
-static GSList *gen_channel_list(int num_channels)
-{
-	GSList *list;
-	struct sr_channel *ch;
-	int i;
-	char name[8];
-
-	list = NULL;
-
-	for (i = num_channels; i > 0; --i) {
-		/* The LWLA series simply number channels from CH1 to CHxx. */
-		g_snprintf(name, sizeof(name), "CH%d", i);
-
-		ch = sr_channel_new(i - 1, SR_CHANNEL_LOGIC, TRUE, name);
-		list = g_slist_prepend(list, ch);
-	}
-
-	return list;
-}
-
 static struct sr_dev_inst *dev_inst_new(void)
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
+	int i;
+	char name[8];
 
 	/* Allocate memory for our private driver context. */
 	devc = g_malloc0(sizeof(struct dev_context));
@@ -118,7 +100,11 @@ static struct sr_dev_inst *dev_inst_new(void)
 	devc->samplerate = DEFAULT_SAMPLERATE;
 
 	sdi->priv = devc;
-	sdi->channels = gen_channel_list(NUM_CHANNELS);
+	for (i = NUM_CHANNELS; i > 0; --i) {
+		/* The LWLA series simply number channels from CH1 to CHxx. */
+		g_snprintf(name, sizeof(name), "CH%d", i);
+		sr_channel_new(sdi, i - 1, SR_CHANNEL_LOGIC, TRUE, name);
+	}
 
 	return sdi;
 }

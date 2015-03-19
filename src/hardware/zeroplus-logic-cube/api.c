@@ -164,7 +164,6 @@ static int init(struct sr_context *sr_ctx)
 static GSList *scan(GSList *options)
 {
 	struct sr_dev_inst *sdi;
-	struct sr_channel *ch;
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	const struct zp_model *prof;
@@ -247,11 +246,9 @@ static GSList *scan(GSList *options)
 		// memset(devc->trigger_buffer, 0, NUM_TRIGGER_STAGES);
 
 		/* Fill in channellist according to this device's profile. */
-		for (j = 0; j < devc->num_channels; j++) {
-			ch = sr_channel_new(j, SR_CHANNEL_LOGIC, TRUE,
+		for (j = 0; j < devc->num_channels; j++)
+			sr_channel_new(sdi, j, SR_CHANNEL_LOGIC, TRUE,
 					channel_names[j]);
-			sdi->channels = g_slist_append(sdi->channels, ch);
-		}
 
 		devices = g_slist_append(devices, sdi);
 		drvc->instances = g_slist_append(drvc->instances, sdi);

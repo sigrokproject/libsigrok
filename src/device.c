@@ -42,7 +42,8 @@
  */
 
 /** @private
- *  Allocate and initialize new struct sr_channel
+ *  Allocate and initialize new struct sr_channel and add to sdi.
+ *  @param[in]  sdi The device instance the channel is connected to.
  *  @param[in]  index @copydoc sr_channel::index
  *  @param[in]  type @copydoc sr_channel::type
  *  @param[in]  enabled @copydoc sr_channel::enabled
@@ -50,8 +51,8 @@
  *
  *  @return A new struct sr_channel*.
  */
-SR_PRIV struct sr_channel *sr_channel_new(int index, int type,
-		gboolean enabled, const char *name)
+SR_PRIV struct sr_channel *sr_channel_new(struct sr_dev_inst *sdi,
+		int index, int type, gboolean enabled, const char *name)
 {
 	struct sr_channel *ch;
 
@@ -61,6 +62,8 @@ SR_PRIV struct sr_channel *sr_channel_new(int index, int type,
 	ch->enabled = enabled;
 	if (name)
 		ch->name = g_strdup(name);
+
+	sdi->channels = g_slist_append(sdi->channels, ch);
 
 	return ch;
 }
@@ -227,13 +230,10 @@ SR_API struct sr_dev_inst *sr_dev_inst_user_new(const char *vendor,
  */
 SR_API int sr_dev_inst_channel_add(struct sr_dev_inst *sdi, int index, int type, const char *name)
 {
-	struct sr_channel *ch;
-
 	if (!sdi || sdi->inst_type != SR_INST_USER || index < 0)
 		return SR_ERR_ARG;
 
-	ch = sr_channel_new(index, type, TRUE, name);
-	sdi->channels = g_slist_append(sdi->channels, ch);
+	sr_channel_new(sdi, index, type, TRUE, name);
 
 	return SR_OK;
 }
