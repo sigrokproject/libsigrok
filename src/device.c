@@ -70,53 +70,37 @@ SR_PRIV struct sr_channel *sr_channel_new(struct sr_dev_inst *sdi,
 }
 
 /**
- * Set the name of the specified channel in the specified device.
+ * Set the name of the specified channel.
  *
  * If the channel already has a different name assigned to it, it will be
  * removed, and the new name will be saved instead.
  *
- * @param sdi The device instance the channel is connected to.
- * @param[in] channelnum The number of the channel whose name to set.
- *                 Note that the channel numbers start at 0.
- * @param[in] name The new name that the specified channel should get. A copy
- *             of the string is made.
+ * @param[in] channel The channel whose name to set.
+ * @param[in] name    The new name that the specified channel should get. A
+ *                    copy of the string is made.
  *
  * @return SR_OK on success, or SR_ERR_ARG on invalid arguments.
  *
  * @since 0.3.0
  */
-SR_API int sr_dev_channel_name_set(const struct sr_dev_inst *sdi,
-		int channelnum, const char *name)
+SR_API int sr_dev_channel_name_set(struct sr_channel *channel,
+		const char *name)
 {
-	GSList *l;
-	struct sr_channel *ch;
-	int ret;
-
-	if (!sdi) {
-		sr_err("%s: sdi was NULL", __func__);
+	if (!channel) {
+		sr_err("%s: channel was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
-	ret = SR_ERR_ARG;
-	for (l = sdi->channels; l; l = l->next) {
-		ch = l->data;
-		if (ch->index == channelnum) {
-			g_free(ch->name);
-			ch->name = g_strdup(name);
-			ret = SR_OK;
-			break;
-		}
-	}
-
-	return ret;
+	g_free(channel->name);
+	channel->name = g_strdup(name);
+	return SR_OK;
 }
 
 /**
- * Enable or disable a channel on the specified device.
+ * Enable or disable a channel.
  *
- * @param sdi The device instance the channel is connected to.
- * @param channelnum The channel number, starting from 0.
- * @param state TRUE to enable the channel, FALSE to disable.
+ * @param[in] channel The channel to enable or disable.
+ * @param[in] state   TRUE to enable the channel, FALSE to disable.
  *
  * @return SR_OK on success or SR_ERR on failure.  In case of invalid
  *         arguments, SR_ERR_ARG is returned and the channel enabled state
@@ -124,37 +108,29 @@ SR_API int sr_dev_channel_name_set(const struct sr_dev_inst *sdi,
  *
  * @since 0.3.0
  */
-SR_API int sr_dev_channel_enable(const struct sr_dev_inst *sdi, int channelnum,
+SR_API int sr_dev_channel_enable(struct sr_channel *channel,
 		gboolean state)
 {
-	GSList *l;
-	struct sr_channel *ch;
 	int ret;
 	gboolean was_enabled;
+	struct sr_dev_inst *sdi;
 
-	if (!sdi)
+	if (!channel)
 		return SR_ERR_ARG;
 
-	ret = SR_ERR_ARG;
-	for (l = sdi->channels; l; l = l->next) {
-		ch = l->data;
-		if (ch->index == channelnum) {
-			was_enabled = ch->enabled;
-			ch->enabled = state;
-			ret = SR_OK;
-			if (!state != !was_enabled && sdi->driver
-					&& sdi->driver->config_channel_set) {
-				ret = sdi->driver->config_channel_set(
-					sdi, ch, SR_CHANNEL_SET_ENABLED);
-				/* Roll back change if it wasn't applicable. */
-				if (ret == SR_ERR_ARG)
-					ch->enabled = was_enabled;
-			}
-			break;
-		}
+	sdi = channel->sdi;
+	was_enabled = channel->enabled;
+	channel->enabled = state;
+	if (!state != !was_enabled && sdi->driver
+			&& sdi->driver->config_channel_set) {
+		ret = sdi->driver->config_channel_set(
+			sdi, channel, SR_CHANNEL_SET_ENABLED);
+		/* Roll back change if it wasn't applicable. */
+		if (ret != SR_OK)
+			return ret;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 /**

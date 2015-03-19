@@ -122,6 +122,7 @@ SR_API int sr_session_load(const char *filename, struct sr_session **session)
 	struct zip_file *zf;
 	struct zip_stat zs;
 	struct sr_dev_inst *sdi;
+	struct sr_channel *ch;
 	int ret, i, j;
 	uint64_t tmp_u64, total_channels, p;
 	char **sections, **keys, *metafile, *val;
@@ -219,10 +220,11 @@ SR_API int sr_session_load(const char *filename, struct sr_session **session)
 						ret = SR_ERR_DATA;
 						break;
 					}
-					tmp_u64 = strtoul(keys[j]+5, NULL, 10);
+					tmp_u64 = strtoul(keys[j]+5, NULL, 10) - 1;
+					ch = g_slist_nth_data(sdi->channels, tmp_u64);
 					/* sr_session_save() */
-					sr_dev_channel_name_set(sdi, tmp_u64 - 1, val);
-					sr_dev_channel_enable(sdi, tmp_u64 - 1, TRUE);
+					sr_dev_channel_name_set(ch, val);
+					sr_dev_channel_enable(ch, TRUE);
 				}
 			}
 			g_strfreev(keys);

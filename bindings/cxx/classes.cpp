@@ -652,8 +652,7 @@ string Channel::name()
 
 void Channel::set_name(string name)
 {
-	check(sr_dev_channel_name_set(_parent->_structure,
-		_structure->index, name.c_str()));
+	check(sr_dev_channel_name_set(_structure, name.c_str()));
 }
 
 const ChannelType *Channel::type()
@@ -668,7 +667,7 @@ bool Channel::enabled()
 
 void Channel::set_enabled(bool value)
 {
-	check(sr_dev_channel_enable(_parent->_structure, _structure->index, value));
+	check(sr_dev_channel_enable(_structure, value));
 }
 
 unsigned int Channel::index()
