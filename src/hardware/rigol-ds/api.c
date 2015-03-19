@@ -818,14 +818,9 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		return SR_ERR_ARG;
 
 	/* If a channel group is specified, it must be a valid one. */
-	if (cg) {
-		for (i = 0; i < devc->model->analog_channels; i++)
-			if (cg == devc->analog_groups[i])
-				break;
-		if (i >= devc->model->analog_channels) {
-			sr_err("Invalid channel group specified.");
-			return SR_ERR;
-		}
+	if (cg && !g_slist_find(sdi->channel_groups, cg)) {
+		sr_err("Invalid channel group specified.");
+		return SR_ERR;
 	}
 
 	switch (key) {
