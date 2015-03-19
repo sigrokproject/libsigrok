@@ -175,6 +175,7 @@ enum series {
 	DS2000,
 	DS2000A,
 	DSO1000,
+	DS1000Z,
 };
 
 /* short name, full name */
@@ -197,6 +198,8 @@ static const struct rigol_ds_series supported_series[] = {
 		{1000, 1}, {500, 1000000}, 14, 1400, 14000},
 	[DSO1000] = {VENDOR(AGILENT), "DSO1000", PROTOCOL_V3, FORMAT_IEEE488_2,
 		{50, 1}, {2, 1000}, 12, 600, 20480},
+	[DS1000Z] = {VENDOR(RIGOL), "DS1000Z", PROTOCOL_V4, FORMAT_IEEE488_2,
+		{50, 1}, {1, 1000}, 12, 1200, 12000000},
 };
 
 #define SERIES(x) &supported_series[x]
@@ -232,6 +235,15 @@ static const struct rigol_ds_model supported_models[] = {
 	{SERIES(DSO1000), "DSO1014A", {2, 1000000000}, 4, false},
 	{SERIES(DSO1000), "DSO1022A", {2, 1000000000}, 2, false},
 	{SERIES(DSO1000), "DSO1024A", {2, 1000000000}, 4, false},
+	{SERIES(DS1000Z), "DS1054Z", {5, 1000000000}, 4, false},
+	{SERIES(DS1000Z), "DS1074Z", {5, 1000000000}, 4, false},
+	{SERIES(DS1000Z), "DS1104Z", {5, 1000000000}, 4, false},
+	{SERIES(DS1000Z), "DS1074Z-S", {5, 1000000000}, 4, false},
+	{SERIES(DS1000Z), "DS1104Z-S", {5, 1000000000}, 4, false},
+	{SERIES(DS1000Z), "MSO1074Z", {5, 1000000000}, 4, true},
+	{SERIES(DS1000Z), "MSO1104Z", {5, 1000000000}, 4, true},
+	{SERIES(DS1000Z), "MSO1074Z-S", {5, 1000000000}, 4, true},
+	{SERIES(DS1000Z), "MSO1104Z-S", {5, 1000000000}, 4, true},
 };
 
 SR_PRIV struct sr_dev_driver rigol_ds_driver_info;
@@ -923,6 +935,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	struct dev_context *devc;
 	struct sr_channel *ch;
 	struct sr_datafeed_packet packet;
+	gboolean some_digital;
 	GSList *l;
 
 	if (sdi->status != SR_ST_ACTIVE)
@@ -933,13 +946,14 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 
 	devc->num_frames = 0;
 
+	some_digital = FALSE;
 	for (l = sdi->channels; l; l = l->next) {
 		ch = l->data;
 		sr_dbg("handling channel %s", ch->name);
 		if (ch->type == SR_CHANNEL_ANALOG) {
 			if (ch->enabled)
-				devc->enabled_analog_channels = g_slist_append(
-						devc->enabled_analog_channels, ch);
+				devc->enabled_channels = g_slist_append(
+						devc->enabled_channels, ch);
 			if (ch->enabled != devc->analog_channels[ch->index]) {
 				/* Enabled channel is currently disabled, or vice versa. */
 				if (rigol_ds_config_set(sdi, ":CHAN%d:DISP %s", ch->index + 1,
@@ -948,19 +962,29 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 				devc->analog_channels[ch->index] = ch->enabled;
 			}
 		} else if (ch->type == SR_CHANNEL_LOGIC) {
+			/* Only one list entry for DS1000D series. All channels are retrieved
+			 * together when this entry is processed. */
+			if (ch->enabled && (
+						devc->model->series->protocol > PROTOCOL_V2 ||
+						!some_digital))
+				devc->enabled_channels = g_slist_append(
+						devc->enabled_channels, ch);
 			if (ch->enabled) {
-				devc->enabled_digital_channels = g_slist_append(
-						devc->enabled_digital_channels, ch);
+				some_digital = TRUE;
 				/* Turn on LA module if currently off. */
 				if (!devc->la_enabled) {
-					if (rigol_ds_config_set(sdi, ":LA:DISP ON") != SR_OK)
+					if (rigol_ds_config_set(sdi,
+							devc->model->series->protocol >= PROTOCOL_V4 ?
+								":LA:STAT ON" : ":LA:DISP ON") != SR_OK)
 						return SR_ERR;
 					devc->la_enabled = TRUE;
 				}
 			}
 			if (ch->enabled != devc->digital_channels[ch->index]) {
 				/* Enabled channel is currently disabled, or vice versa. */
-				if (rigol_ds_config_set(sdi, ":DIG%d:TURN %s", ch->index,
+				if (rigol_ds_config_set(sdi,
+						devc->model->series->protocol >= PROTOCOL_V4 ?
+							":LA:DIG%d:DISP %s" : ":DIG%d:TURN %s", ch->index,
 						ch->enabled ? "ON" : "OFF") != SR_OK)
 					return SR_ERR;
 				devc->digital_channels[ch->index] = ch->enabled;
@@ -968,12 +992,14 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		}
 	}
 
-	if (!devc->enabled_analog_channels && !devc->enabled_digital_channels)
+	if (!devc->enabled_channels)
 		return SR_ERR;
 
 	/* Turn off LA module if on and no digital channels selected. */
-	if (devc->la_enabled && !devc->enabled_digital_channels)
-		if (rigol_ds_config_set(sdi, ":LA:DISP OFF") != SR_OK)
+	if (devc->la_enabled && !some_digital)
+		if (rigol_ds_config_set(sdi,
+				devc->model->series->protocol >= PROTOCOL_V4 ?
+					":LA:STAT OFF" : ":LA:DISP OFF") != SR_OK)
 			return SR_ERR;
 
 	/* Set memory mode. */
@@ -1016,10 +1042,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, LOG_PREFIX);
 
-	if (devc->enabled_analog_channels)
-		devc->channel_entry = devc->enabled_analog_channels;
-	else
-		devc->channel_entry = devc->enabled_digital_channels;
+	devc->channel_entry = devc->enabled_channels;
 
 	if (rigol_ds_capture_start(sdi) != SR_OK)
 		return SR_ERR;
@@ -1050,10 +1073,8 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 	packet.type = SR_DF_END;
 	sr_session_send(sdi, &packet);
 
-	g_slist_free(devc->enabled_analog_channels);
-	g_slist_free(devc->enabled_digital_channels);
-	devc->enabled_analog_channels = NULL;
-	devc->enabled_digital_channels = NULL;
+	g_slist_free(devc->enabled_channels);
+	devc->enabled_channels = NULL;
 	scpi = sdi->conn;
 	sr_scpi_source_remove(sdi->session, scpi);
 

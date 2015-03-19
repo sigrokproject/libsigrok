@@ -31,6 +31,9 @@
 /* Size of acquisition buffers */
 #define ACQ_BUFFER_SIZE 32768
 
+/* Maximum number of samples to retrieve at once. */
+#define ACQ_BLOCK_SIZE 30000
+
 #define MAX_ANALOG_CHANNELS 4
 #define MAX_DIGITAL_CHANNELS 16
 
@@ -38,6 +41,7 @@ enum protocol_version {
 	PROTOCOL_V1, /* VS5000 */
 	PROTOCOL_V2, /* DS1000 */
 	PROTOCOL_V3, /* DS2000, DSO1000 */
+	PROTOCOL_V4, /* DS1000Z */
 };
 
 enum data_format {
@@ -102,8 +106,7 @@ struct dev_context {
 	struct sr_channel_group *digital_group;
 
 	/* Acquisition settings */
-	GSList *enabled_analog_channels;
-	GSList *enabled_digital_channels;
+	GSList *enabled_channels;
 	uint64_t limit_frames;
 	void *cb_data;
 	enum data_source data_source;
