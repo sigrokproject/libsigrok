@@ -36,8 +36,9 @@ static const uint32_t devopts[] = {
 	SR_CONF_LIMIT_MSEC | SR_CONF_SET,
 };
 
-unsigned char TESTO_x35_REQUEST[] = { 0x12, 0, 0, 0, 1, 1, 0x55, 0xd1, 0xb7 };
-struct testo_model models[] = {
+static const uint8_t TESTO_x35_REQUEST[] = { 0x12, 0, 0, 0, 1, 1, 0x55, 0xd1, 0xb7 };
+
+static const struct testo_model models[] = {
 	{ "435", 9, TESTO_x35_REQUEST },
 };
 

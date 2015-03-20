@@ -21,7 +21,7 @@
 #include "protocol.h"
 
 /* Length of expected payload for each token. */
-static int token_payloads[][2] = {
+static const int token_payloads[][2] = {
 	{ TOKEN_WEIGHT_TIME_FAST, 0 },
 	{ TOKEN_WEIGHT_TIME_SLOW, 0 },
 	{ TOKEN_HOLD_MAX, 0 },

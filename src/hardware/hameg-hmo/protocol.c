@@ -194,7 +194,7 @@ static const char *scope_digital_channel_names[] = {
 	"D15",
 };
 
-static struct scope_config scope_models[] = {
+static const struct scope_config scope_models[] = {
 	{
 		.name = {"HMO722", "HMO1022", "HMO1522", "HMO2022", NULL},
 		.analog_channels = 2,
@@ -257,7 +257,7 @@ static struct scope_config scope_models[] = {
 	},
 };
 
-static void scope_state_dump(struct scope_config *config,
+static void scope_state_dump(const struct scope_config *config,
 			     struct scope_state *state)
 {
 	unsigned int i;
@@ -326,7 +326,7 @@ static int scope_state_get_array_option(struct sr_scpi_dev_inst *scpi,
 }
 
 static int analog_channel_state_get(struct sr_scpi_dev_inst *scpi,
-				    struct scope_config *config,
+				    const struct scope_config *config,
 				    struct scope_state *state)
 {
 	unsigned int i, j;
@@ -381,7 +381,7 @@ static int analog_channel_state_get(struct sr_scpi_dev_inst *scpi,
 }
 
 static int digital_channel_state_get(struct sr_scpi_dev_inst *scpi,
-				     struct scope_config *config,
+				     const struct scope_config *config,
 				     struct scope_state *state)
 {
 	unsigned int i;
@@ -414,7 +414,7 @@ SR_PRIV int hmo_update_sample_rate(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct scope_state *state;
-	struct scope_config *config;
+	const struct scope_config *config;
 
 	int tmp;
 	unsigned int i;
@@ -476,7 +476,7 @@ SR_PRIV int hmo_scope_state_get(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct scope_state *state;
-	struct scope_config *config;
+	const struct scope_config *config;
 	float tmp_float;
 	unsigned int i;
 
@@ -539,7 +539,7 @@ SR_PRIV int hmo_scope_state_get(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static struct scope_state *scope_state_new(struct scope_config *config)
+static struct scope_state *scope_state_new(const struct scope_config *config)
 {
 	struct scope_state *state;
 

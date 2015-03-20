@@ -74,7 +74,7 @@ struct per_channel_config {
 /** Private, per-device-instance driver context. */
 struct dev_context {
 	/* Model-specific information */
-	struct pps_model *model;
+	const struct pps_model *model;
 
 	/* Acquisition state */
 	gboolean acquisition_running;

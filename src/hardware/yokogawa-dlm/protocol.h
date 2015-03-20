@@ -105,7 +105,7 @@ struct scope_state {
 
 /** Private, per-device-instance driver context. */
 struct dev_context {
-	void *model_config;
+	const void *model_config;
 	void *model_state;
 
 	struct sr_channel_group **analog_groups;

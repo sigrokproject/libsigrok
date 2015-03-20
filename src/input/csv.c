@@ -454,9 +454,9 @@ static int init(struct sr_input *in, GHashTable *options)
 	return SR_OK;
 }
 
-static char *get_line_termination(GString *buf)
+static const char *get_line_termination(GString *buf)
 {
-	char *term;
+	const char *term;
 
 	term = NULL;
 	if (g_strstr_len(buf->str, buf->len, "\r\n"))
@@ -581,7 +581,8 @@ static int initial_receive(const struct sr_input *in)
 	struct context *inc;
 	GString *new_buf;
 	int len, ret;
-	char *termination, *p;
+	char *p;
+	const char *termination;
 
 	inc = in->priv;
 

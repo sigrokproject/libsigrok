@@ -61,7 +61,7 @@ SR_PRIV struct sr_dev_driver voltcraft_vc960_driver_info;
 SR_PRIV struct sr_dev_driver tenma_72_7745_driver_info;
 SR_PRIV struct sr_dev_driver tenma_72_7750_driver_info;
 
-SR_PRIV struct dmm_info udmms[] = {
+SR_PRIV const struct dmm_info udmms[] = {
 	{
 		"Tecpel", "DMM-8061", 2400,
 		FS9721_PACKET_SIZE,

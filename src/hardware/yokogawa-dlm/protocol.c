@@ -168,7 +168,7 @@ static const char *scope_digital_channel_names[] = {
 	"D7"
 };
 
-static struct scope_config scope_models[] = {
+static const struct scope_config scope_models[] = {
 	{
 		.model_id   = {"710105",  "710115",  "710125",  NULL},
 		.model_name = {"DLM2022", "DLM2032", "DLM2052", NULL},
@@ -235,7 +235,7 @@ static struct scope_config scope_models[] = {
  * @param config This is the scope configuration.
  * @param state The current scope state to print.
  */
-static void scope_state_dump(struct scope_config *config,
+static void scope_state_dump(const struct scope_config *config,
 		struct scope_state *state)
 {
 	unsigned int i;
@@ -376,7 +376,7 @@ static int array_float_get(gchar *value, const uint64_t array[][2],
  * @return SR_ERR on error, SR_OK otherwise.
  */
 static int analog_channel_state_get(struct sr_scpi_dev_inst *scpi,
-		struct scope_config *config,
+		const struct scope_config *config,
 		struct scope_state *state)
 {
 	int i, j;
@@ -439,7 +439,7 @@ static int analog_channel_state_get(struct sr_scpi_dev_inst *scpi,
  * @return SR_ERR on error, SR_OK otherwise.
  */
 static int digital_channel_state_get(struct sr_scpi_dev_inst *scpi,
-		struct scope_config *config,
+		const struct scope_config *config,
 		struct scope_state *state)
 {
 	unsigned int i;
@@ -514,7 +514,7 @@ SR_PRIV int dlm_scope_state_query(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct scope_state *state;
-	struct scope_config *config;
+	const struct scope_config *config;
 	float tmp_float;
 	gchar *response;
 	int i;
@@ -588,7 +588,7 @@ SR_PRIV int dlm_scope_state_query(struct sr_dev_inst *sdi)
  *
  * @return The newly allocated scope_state struct.
  */
-static struct scope_state *dlm_scope_state_new(struct scope_config *config)
+static struct scope_state *dlm_scope_state_new(const struct scope_config *config)
 {
 	struct scope_state *state;
 

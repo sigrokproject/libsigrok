@@ -48,13 +48,13 @@
 struct testo_model {
 	char *name;
 	int request_size;
-	unsigned char *request;
+	const uint8_t *request;
 };
 
 /** Private, per-device-instance driver context. */
 struct dev_context {
 	/* Model-specific information */
-	struct testo_model *model;
+	const struct testo_model *model;
 
 	/* Acquisition settings */
 	uint64_t limit_msec;
@@ -69,7 +69,7 @@ struct dev_context {
 
 	/* Temporary state across callbacks */
 	struct libusb_transfer *out_transfer;
-	unsigned char reply[MAX_REPLY_SIZE];
+	uint8_t reply[MAX_REPLY_SIZE];
 	int reply_size;
 };
 
@@ -77,7 +77,7 @@ SR_PRIV int testo_set_serial_params(struct sr_usb_dev_inst *usb);
 SR_PRIV int testo_probe_channels(struct sr_dev_inst *sdi);
 SR_PRIV void receive_transfer(struct libusb_transfer *transfer);
 SR_PRIV int testo_request_packet(const struct sr_dev_inst *sdi);
-SR_PRIV gboolean testo_check_packet_prefix(unsigned char *buf, int len);
+SR_PRIV gboolean testo_check_packet_prefix(uint8_t *buf, int len);
 SR_PRIV uint16_t crc16_mcrf4xx(uint16_t crc, uint8_t *data, size_t len);
 SR_PRIV void testo_receive_packet(const struct sr_dev_inst *sdi);
 

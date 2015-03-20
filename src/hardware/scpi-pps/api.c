@@ -33,7 +33,7 @@ static const uint32_t drvopts[] = {
 	SR_CONF_POWER_SUPPLY,
 };
 
-static struct pps_channel_instance pci[] = {
+static const struct pps_channel_instance pci[] = {
 	{ SR_MQ_VOLTAGE, SCPI_CMD_GET_MEAS_VOLTAGE, "V" },
 	{ SR_MQ_CURRENT, SCPI_CMD_GET_MEAS_CURRENT, "I" },
 	{ SR_MQ_POWER, SCPI_CMD_GET_MEAS_POWER, "P" },
@@ -104,9 +104,9 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 
 	if (device->num_channels) {
 		/* Static channels and groups. */
-		channels = device->channels;
+		channels = (struct channel_spec *)device->channels;
 		num_channels = device->num_channels;
-		channel_groups = device->channel_groups;
+		channel_groups = (struct channel_group_spec *)device->channel_groups;
 		num_channel_groups = device->num_channel_groups;
 	} else {
 		/* Channels and groups need to be probed. */
@@ -419,7 +419,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 {
 	struct dev_context *devc;
 	struct sr_channel *ch;
-	struct channel_spec *ch_spec;
+	const struct channel_spec *ch_spec;
 	GVariant *gvar;
 	GVariantBuilder gvb;
 	int ret, i;

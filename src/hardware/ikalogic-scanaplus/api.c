@@ -42,7 +42,7 @@ static const char *channel_names[] = {
 };
 
 /* Note: The IKALOGIC ScanaPLUS always samples at 100MHz. */
-static uint64_t samplerates[1] = { SR_MHZ(100) };
+static const uint64_t samplerates[1] = { SR_MHZ(100) };
 
 SR_PRIV struct sr_dev_driver ikalogic_scanaplus_driver_info;
 

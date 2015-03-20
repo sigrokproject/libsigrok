@@ -95,7 +95,7 @@ struct channel_status {
 /** Private, per-device-instance driver context. */
 struct dev_context {
 	/* Model-specific information */
-	struct lps_modelspec* model;
+	const struct lps_modelspec* model;
 
 	/* Acquisition status */
 	gboolean acq_running;		/**< Aquisition is running. */

@@ -52,7 +52,7 @@ static const uint32_t devopts[] = {
 };
 
 /* Note: All models have one power supply output only. */
-static struct hcs_model models[] = {
+static const struct hcs_model models[] = {
 	{ MANSON_HCS_3100, "HCS-3100",     "3100", { 1, 18, 0.1 }, { 0, 10,   0.10 } },
 	{ MANSON_HCS_3102, "HCS-3102",     "3102", { 1, 36, 0.1 }, { 0,  5,   0.01 } },
 	{ MANSON_HCS_3104, "HCS-3104",     "3104", { 1, 60, 0.1 }, { 0,  2.5, 0.01 } },

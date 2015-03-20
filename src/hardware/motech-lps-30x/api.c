@@ -88,7 +88,7 @@ static const char *channel_modes[] = {
 	"Track2",
 };
 
-static struct lps_modelspec models[] = {
+static const struct lps_modelspec models[] = {
 	{ LPS_UNKNOWN, "Dummy", 0,
 		{
 

@@ -23,7 +23,7 @@
 
 #define USB_TIMEOUT 500
 
-static char char_map[128] = {
+static const char char_map[128] = {
 	[0x20] = '-',
 	[0x5F] = '0',
 	[0x50] = '1',

@@ -63,35 +63,35 @@ static const uint32_t rigol_dp800_devopts_cg[] = {
 	SR_CONF_OUTPUT_ENABLED | SR_CONF_GET | SR_CONF_SET,
 };
 
-struct channel_spec rigol_dp821a_ch[] = {
+const struct channel_spec rigol_dp821a_ch[] = {
 	{ "1", { 0, 60, 0.001 }, { 0, 1, 0.0001 } },
 	{ "2", { 0, 8, 0.001 }, { 0, 10, 0.001 } },
 };
 
-struct channel_spec rigol_dp831_ch[] = {
+const struct channel_spec rigol_dp831_ch[] = {
 	{ "1", { 0, 8, 0.001 }, { 0, 5, 0.0003 } },
 	{ "2", { 0, 30, 0.001 }, { 0, 2, 0.0001 } },
 	{ "3", { 0, -30, 0.001 }, { 0, 2, 0.0001 } },
 };
 
-struct channel_spec rigol_dp832_ch[] = {
+const struct channel_spec rigol_dp832_ch[] = {
 	{ "1", { 0, 30, 0.001 }, { 0, 3, 0.001 } },
 	{ "2", { 0, 30, 0.001 }, { 0, 3, 0.001 } },
 	{ "3", { 0, 5, 0.001 }, { 0, 3, 0.001 } },
 };
 
-struct channel_group_spec rigol_dp820_cg[] = {
+const struct channel_group_spec rigol_dp820_cg[] = {
 	{ "1", CH_IDX(0), PPS_OVP | PPS_OCP },
 	{ "2", CH_IDX(1), PPS_OVP | PPS_OCP },
 };
 
-struct channel_group_spec rigol_dp830_cg[] = {
+const struct channel_group_spec rigol_dp830_cg[] = {
 	{ "1", CH_IDX(0), PPS_OVP | PPS_OCP },
 	{ "2", CH_IDX(1), PPS_OVP | PPS_OCP },
 	{ "3", CH_IDX(2), PPS_OVP | PPS_OCP },
 };
 
-struct scpi_command rigol_dp800_cmd[] = {
+const struct scpi_command rigol_dp800_cmd[] = {
 	{ SCPI_CMD_REMOTE, "SYST:REMOTE" },
 	{ SCPI_CMD_LOCAL, "SYST:LOCAL" },
 	{ SCPI_CMD_BEEPER, "SYST:BEEP:STAT?" },
@@ -136,15 +136,15 @@ static const uint32_t hp_6632b_devopts[] = {
 	SR_CONF_OUTPUT_CURRENT_LIMIT | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
-struct channel_spec hp_6632b_ch[] = {
+const struct channel_spec hp_6632b_ch[] = {
 	{ "1", { 0, 20.475, 0.005 }, { 0, 5.1188, 0.00132 } },
 };
 
-struct channel_group_spec hp_6632b_cg[] = {
+const struct channel_group_spec hp_6632b_cg[] = {
 	{ "1", CH_IDX(0), 0 },
 };
 
-struct scpi_command hp_6632b_cmd[] = {
+const struct scpi_command hp_6632b_cmd[] = {
 	{ SCPI_CMD_GET_OUTPUT_ENABLED, "OUTP:STAT?" },
 	{ SCPI_CMD_SET_OUTPUT_ENABLE, "OUTP:STAT ON" },
 	{ SCPI_CMD_SET_OUTPUT_DISABLE, "OUTP:STAT OFF" },
@@ -183,7 +183,7 @@ enum philips_pm2800_modules {
 	PM2800_MOD_120V_1A,
 };
 
-static struct philips_pm2800_module_spec {
+static const struct philips_pm2800_module_spec {
 	/* Min, max, programming resolution. */
 	float voltage[3];
 	float current[3];
@@ -198,7 +198,7 @@ static struct philips_pm2800_module_spec {
 	[PM2800_MOD_120V_1A] = { { 0, 120, 0.030 }, { -1, 1, 0.00025 } },
 };
 
-static struct philips_pm2800_model {
+static const struct philips_pm2800_model {
 	unsigned int chassis;
 	unsigned int num_modules;
 	unsigned int set;
@@ -226,15 +226,15 @@ static struct philips_pm2800_model {
 	{ 3, 2, 3, { PM2800_MOD_8V_15A, PM2800_MOD_8V_15A, 0 } },
 };
 
-static char *philips_pm2800_names[] = { "1", "2", "3" };
+static const char *philips_pm2800_names[] = { "1", "2", "3" };
 
 static int philips_pm2800_probe_channels(struct sr_dev_inst *sdi,
 		struct sr_scpi_hw_info *hw_info,
 		struct channel_spec **channels, unsigned int *num_channels,
 		struct channel_group_spec **channel_groups, unsigned int *num_channel_groups)
 {
-	struct philips_pm2800_model *model;
-	struct philips_pm2800_module_spec *spec;
+	const struct philips_pm2800_model *model;
+	const struct philips_pm2800_module_spec *spec;
 	unsigned int chassis, num_modules, set, module, m, i;
 
 	(void)sdi;
@@ -270,9 +270,9 @@ static int philips_pm2800_probe_channels(struct sr_dev_inst *sdi,
 		sr_dbg("output %d: %.0f - %.0fV, %.0f - %.0fA", i + 1,
 				spec->voltage[0], spec->voltage[1],
 				spec->current[0], spec->current[1]);
-		(*channels)[i].name = philips_pm2800_names[i];
+		(*channels)[i].name = (char *)philips_pm2800_names[i];
 		memcpy(&((*channels)[i].voltage), spec, sizeof(float) * 6);
-		(*channel_groups)[i].name = philips_pm2800_names[i];
+		(*channel_groups)[i].name = (char *)philips_pm2800_names[i];
 		(*channel_groups)[i].channel_index_mask = 1 << i;
 		(*channel_groups)[i].features = PPS_OTP | PPS_OVP | PPS_OCP;
 	}
@@ -281,7 +281,7 @@ static int philips_pm2800_probe_channels(struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-struct scpi_command philips_pm2800_cmd[] = {
+const struct scpi_command philips_pm2800_cmd[] = {
 	{ SCPI_CMD_SELECT_CHANNEL, ":INST:NSEL %s" },
 	{ SCPI_CMD_GET_MEAS_VOLTAGE, ":MEAS:VOLT?" },
 	{ SCPI_CMD_GET_MEAS_CURRENT, ":MEAS:CURR?" },

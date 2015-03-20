@@ -36,7 +36,7 @@ struct scpi_serial {
 	size_t read;
 };
 
-static struct {
+static const struct {
 	uint16_t vendor_id;
 	uint16_t product_id;
 	const char *serialcomm;

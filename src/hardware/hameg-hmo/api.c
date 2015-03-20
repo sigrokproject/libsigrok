@@ -180,7 +180,7 @@ static int check_channel_group(struct dev_context *devc,
 			     const struct sr_channel_group *cg)
 {
 	unsigned int i;
-	struct scope_config *model;
+	const struct scope_config *model;
 
 	model = devc->model_config;
 
@@ -206,7 +206,7 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 	int ret, cg_type;
 	unsigned int i;
 	struct dev_context *devc;
-	struct scope_config *model;
+	const struct scope_config *model;
 	struct scope_state *state;
 
 	if (!sdi || !(devc = sdi->priv))
@@ -331,7 +331,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	unsigned int i, j;
 	char command[MAX_COMMAND_SIZE], float_str[30];
 	struct dev_context *devc;
-	struct scope_config *model;
+	const struct scope_config *model;
 	struct scope_state *state;
 	const char *tmp;
 	uint64_t p, q;
@@ -501,7 +501,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 {
 	int cg_type = CG_NONE;
 	struct dev_context *devc = NULL;
-	struct scope_config *model = NULL;
+	const struct scope_config *model = NULL;
 
 	if (sdi && (devc = sdi->priv)) {
 		if ((cg_type = check_channel_group(devc, cg)) == CG_INVALID)
@@ -572,7 +572,7 @@ SR_PRIV int hmo_request_data(const struct sr_dev_inst *sdi)
 	char command[MAX_COMMAND_SIZE];
 	struct sr_channel *ch;
 	struct dev_context *devc;
-	struct scope_config *model;
+	const struct scope_config *model;
 
 	devc = sdi->priv;
 	model = devc->model_config;
@@ -640,7 +640,7 @@ static int hmo_setup_channels(const struct sr_dev_inst *sdi)
 	gboolean *pod_enabled, setup_changed;
 	char command[MAX_COMMAND_SIZE];
 	struct scope_state *state;
-	struct scope_config *model;
+	const struct scope_config *model;
 	struct sr_channel *ch;
 	struct dev_context *devc;
 	struct sr_scpi_dev_inst *scpi;

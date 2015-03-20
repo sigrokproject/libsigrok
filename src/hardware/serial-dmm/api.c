@@ -280,7 +280,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 		REQUEST, VALID, PARSE, DETAILS, sizeof(struct CHIPSET##_info) \
 	}
 
-SR_PRIV struct dmm_info *serial_dmm_drivers[] = {
+SR_PRIV const struct dmm_info *serial_dmm_drivers[] = {
 	DMM(
 		"bbcgm-2010", metex14,
 		"BBC Goertz Metrawatt", "M2110", "1200/7n2", 1200,

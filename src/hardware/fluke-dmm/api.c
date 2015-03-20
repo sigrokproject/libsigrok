@@ -41,7 +41,7 @@ static const uint32_t devopts[] = {
 
 SR_PRIV struct sr_dev_driver flukedmm_driver_info;
 
-static char *scan_conn[] = {
+static const char *scan_conn[] = {
 	/* 287/289 */
 	"115200/8n1",
 	/* 187/189 */

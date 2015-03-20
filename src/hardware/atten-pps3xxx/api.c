@@ -60,7 +60,7 @@ static const char *channel_modes[] = {
 	"Parallel",
 };
 
-static struct pps_model models[] = {
+static const struct pps_model models[] = {
 	{ PPS_3203T_3S, "PPS3203T-3S",
 		CHANMODE_INDEPENDENT | CHANMODE_SERIES | CHANMODE_PARALLEL,
 		3,
@@ -92,7 +92,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options, int modelid)
 	struct sr_channel_group *cg;
 	struct sr_serial_dev_inst *serial;
 	GSList *l, *devices;
-	struct pps_model *model;
+	const struct pps_model *model;
 	uint8_t packet[PACKET_SIZE];
 	unsigned int i;
 	int delay_ms, ret;

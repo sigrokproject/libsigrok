@@ -21,11 +21,11 @@
 #include <stdarg.h>
 #include "protocol.h"
 
-SR_PRIV char *scpi_cmd_get(const struct sr_dev_inst *sdi, int command)
+SR_PRIV const char *scpi_cmd_get(const struct sr_dev_inst *sdi, int command)
 {
 	struct dev_context *devc;
 	unsigned int i;
-	char *cmd;
+	const char *cmd;
 
 	devc = sdi->priv;
 	cmd = NULL;
@@ -44,7 +44,7 @@ SR_PRIV int scpi_cmd(const struct sr_dev_inst *sdi, int command, ...)
 	struct sr_scpi_dev_inst *scpi;
 	va_list args;
 	int ret;
-	char *cmd;
+	const char *cmd;
 
 	if (!(cmd = scpi_cmd_get(sdi, command))) {
 		/* Device does not implement this command, that's OK. */
@@ -66,7 +66,8 @@ SR_PRIV int scpi_cmd_resp(const struct sr_dev_inst *sdi, GVariant **gvar,
 	va_list args;
 	double d;
 	int ret;
-	char *cmd, *s;
+	char *s;
+	const char *cmd;
 
 	if (!(cmd = scpi_cmd_get(sdi, command))) {
 		/* Device does not implement this command, that's OK. */

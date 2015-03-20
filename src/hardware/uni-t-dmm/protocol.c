@@ -24,7 +24,7 @@
 #include "libsigrok-internal.h"
 #include "protocol.h"
 
-extern struct dmm_info udmms[];
+extern const struct dmm_info udmms[];
 
 /*
  * Driver for various UNI-T multimeters (and rebranded ones).

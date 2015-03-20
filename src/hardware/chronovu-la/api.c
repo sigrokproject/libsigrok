@@ -39,7 +39,7 @@ static const int32_t trigger_matches[] = {
 };
 
 /* The ChronoVu LA8/LA16 can have multiple VID/PID pairs. */
-static struct {
+static const struct {
 	uint16_t vid;
 	uint16_t pid;
 	int model;

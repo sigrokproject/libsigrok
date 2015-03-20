@@ -77,18 +77,18 @@ enum pps_features {
 };
 
 struct scpi_pps {
-	char *vendor;
-	char *model;
+	const char *vendor;
+	const char *model;
 	uint64_t features;
 	const uint32_t *devopts;
 	unsigned int num_devopts;
 	const uint32_t *devopts_cg;
 	unsigned int num_devopts_cg;
-	struct channel_spec *channels;
+	const struct channel_spec *channels;
 	unsigned int num_channels;
-	struct channel_group_spec *channel_groups;
+	const struct channel_group_spec *channel_groups;
 	unsigned int num_channel_groups;
-	struct scpi_command *commands;
+	const struct scpi_command *commands;
 	unsigned int num_commands;
 	int (*probe_channels) (struct sr_dev_inst *sdi, struct sr_scpi_hw_info *hwinfo,
 		struct channel_spec **channels, unsigned int *num_channels,
@@ -96,7 +96,7 @@ struct scpi_pps {
 };
 
 struct channel_spec {
-	char *name;
+	const char *name;
 	/* Min, max, programming resolution. */
 	float voltage[3];
 	float current[3];
@@ -104,11 +104,11 @@ struct channel_spec {
 
 struct scpi_command {
 	int command;
-	char *string;
+	const char *string;
 };
 
 struct channel_group_spec {
-	char *name;
+	const char *name;
 	uint64_t channel_index_mask;
 	uint64_t features;
 };
@@ -116,13 +116,13 @@ struct channel_group_spec {
 struct pps_channel {
 	int mq;
 	unsigned int hw_output_idx;
-	char *hwname;
+	const char *hwname;
 };
 
 struct pps_channel_instance {
 	int mq;
 	int command;
-	char *prefix;
+	const char *prefix;
 };
 
 struct pps_channel_group {
@@ -153,7 +153,7 @@ struct dev_context {
 };
 
 const char *get_vendor(const char *raw_vendor);
-SR_PRIV char *scpi_cmd_get(const struct sr_dev_inst *sdi, int command);
+SR_PRIV const char *scpi_cmd_get(const struct sr_dev_inst *sdi, int command);
 SR_PRIV int scpi_cmd(const struct sr_dev_inst *sdi, int command, ...);
 SR_PRIV int scpi_cmd_resp(const struct sr_dev_inst *sdi, GVariant **gvar,
 		const GVariantType *gvtype, int command, ...);

@@ -76,7 +76,7 @@ SR_PRIV int testo_probe_channels(struct sr_dev_inst *sdi)
 		libusb_bulk_transfer(usb->devhdl, EP_IN, buf, MAX_REPLY_SIZE, &len, 10);
 	} while (len > 2);
 
-	if (libusb_bulk_transfer(usb->devhdl, EP_OUT, devc->model->request,
+	if (libusb_bulk_transfer(usb->devhdl, EP_OUT, (unsigned char *)devc->model->request,
 			devc->model->request_size, &devc->reply_size, 10) < 0)
 		return SR_ERR;
 
@@ -153,7 +153,7 @@ SR_PRIV int testo_request_packet(const struct sr_dev_inst *sdi)
 	usb = sdi->conn;
 
 	libusb_fill_bulk_transfer(devc->out_transfer, usb->devhdl, EP_OUT,
-			devc->model->request, devc->model->request_size,
+			(unsigned char *)devc->model->request, devc->model->request_size,
 			receive_transfer, (void *)sdi, 100);
 	if ((ret = libusb_submit_transfer(devc->out_transfer) != 0)) {
 		sr_err("Failed to request packet: %s.", libusb_error_name(ret));
