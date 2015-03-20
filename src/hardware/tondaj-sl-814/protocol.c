@@ -108,7 +108,7 @@ static void decode_packet(struct sr_dev_inst *sdi)
 	devc->num_samples++;
 }
 
-int tondaj_sl_814_receive_data(int fd, int revents, void *cb_data)
+SR_PRIV int tondaj_sl_814_receive_data(int fd, int revents, void *cb_data)
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
