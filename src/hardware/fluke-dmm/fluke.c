@@ -386,7 +386,6 @@ static void handle_qm_19x_data(const struct sr_dev_inst *sdi, char **tokens)
 		/* Don't have valid metadata yet. */
 		return;
 
-
 	if (devc->mq == SR_MQ_RESISTANCE && isnan(fvalue))
 		fvalue = INFINITY;
 	else if (devc->mq == SR_MQ_CONTINUITY) {

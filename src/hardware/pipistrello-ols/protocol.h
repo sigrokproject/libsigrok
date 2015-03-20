@@ -36,7 +36,6 @@
 
 #define FTDI_BUF_SIZE          (16 * 1024)
 
-
 #define NUM_CHANNELS           32
 #define NUM_TRIGGER_STAGES     4
 #define CLOCK_RATE             SR_MHZ(100)
@@ -117,7 +116,6 @@ struct dev_context {
 	unsigned char tmp_sample2[4];
 	unsigned char *raw_sample_buf;
 };
-
 
 SR_PRIV extern const char *p_ols_channel_names[NUM_CHANNELS + 1];
 SR_PRIV int write_shortcommand(struct dev_context *devc, uint8_t command);

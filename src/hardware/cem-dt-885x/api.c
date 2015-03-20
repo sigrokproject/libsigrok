@@ -21,6 +21,7 @@
 #include "protocol.h"
 
 #define SERIALCOMM "9600/8n1"
+
 /* 23ms is the longest interval between tokens. */
 #define MAX_SCAN_TIME 25 * 1000
 
@@ -66,8 +67,8 @@ static const char *data_sources[] = {
 	"Live",
 	"Memory",
 };
-SR_PRIV struct sr_dev_driver cem_dt_885x_driver_info;
 
+SR_PRIV struct sr_dev_driver cem_dt_885x_driver_info;
 
 static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 {

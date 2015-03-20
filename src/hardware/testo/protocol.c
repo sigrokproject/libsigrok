@@ -51,7 +51,6 @@ SR_PRIV int testo_set_serial_params(struct sr_usb_dev_inst *usb)
 	return SR_OK;
 }
 
-
 /* Due to the modular nature of the Testo hardware, you can't assume
  * which measurements the device will supply. Fetch a single result
  * set synchronously to see which measurements it has. */
@@ -289,4 +288,3 @@ SR_PRIV void testo_receive_packet(const struct sr_dev_inst *sdi)
 		g_slist_free(analog.channels);
 	}
 }
-

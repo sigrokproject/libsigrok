@@ -37,6 +37,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);
 static const uint32_t drvopts[] = {
 	SR_CONF_MULTIMETER,
 };
+
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 };
@@ -194,7 +195,6 @@ static int cleanup(const struct sr_dev_driver *di)
 	if (!(drvc = di->priv))
 		/* Can get called on an unused driver, doesn't matter. */
 		return SR_OK;
-
 
 	ret = std_dev_clear(di, NULL);
 	g_free(drvc);

@@ -441,7 +441,6 @@ static GSList *do_scan(lps_modelid modelid, struct sr_dev_driver *drv, GSList *o
 			goto exit_err;
 		}
 
-
 		g_strstrip(buf);
 		verstr = buf + 4;
 	}

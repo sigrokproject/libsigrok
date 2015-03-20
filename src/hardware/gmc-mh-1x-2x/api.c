@@ -58,7 +58,6 @@ static const uint32_t devopts_bd[] = {
 	SR_CONF_POWER_OFF | SR_CONF_GET | SR_CONF_SET,
 };
 
-
 /* TODO:
  * - For the 29S SR_CONF_ENERGYMETER, too.
  * - SR_CONF_PATTERN_MODE for some 2x devices

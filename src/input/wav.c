@@ -73,7 +73,6 @@ static int parse_wav_header(GString *buf, struct context *inc)
 		return SR_ERR_DATA;
 	}
 
-
 	if (fmt_code == WAVE_FORMAT_PCM) {
 	} else if (fmt_code == WAVE_FORMAT_IEEE_FLOAT) {
 		if (unitsize != 4) {
@@ -370,4 +369,3 @@ SR_PRIV struct sr_input_module input_wav = {
 	.receive = receive,
 	.end = end,
 };
-

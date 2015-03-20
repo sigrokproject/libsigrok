@@ -229,7 +229,6 @@ static int cleanup(const struct sr_dev_driver *di)
 	return dev_clear(di);
 }
 
-
 static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
@@ -469,7 +468,6 @@ static int dev_close(struct sr_dev_inst *sdi)
 	return ret;
 }
 
-
 static int set_trigger(const struct sr_dev_inst *sdi, int stage)
 {
 	struct dev_context *devc;
@@ -705,8 +703,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 
 	return SR_OK;
 }
-
-
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {

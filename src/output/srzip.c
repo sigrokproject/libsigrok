@@ -318,4 +318,3 @@ SR_PRIV struct sr_output_module output_srzip = {
 	.receive = receive,
 	.cleanup = cleanup,
 };
-

@@ -544,7 +544,6 @@ SR_API const char *sr_dev_inst_connid_get(const struct sr_dev_inst *sdi)
 	}
 #endif
 
-
 #ifdef HAVE_LIBUSB_1_0
 	if ((!sdi->connection_id) && (sdi->inst_type == SR_INST_USB)) {
 		/* connection_id isn't populated, let's do that here. */

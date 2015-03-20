@@ -321,7 +321,6 @@ SR_PRIV struct sr_dev_driver norma_dmm_driver_info = {
 	.priv = NULL,
 };
 
-
 SR_PRIV struct sr_dev_driver siemens_b102x_driver_info = {
 	.name = "siemens-b102x",
 	.longname = "Siemens B102x DMMs",

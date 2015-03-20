@@ -164,4 +164,3 @@ SR_PRIV int atten_pps3xxx_receive_data(int fd, int revents, void *cb_data)
 
 	return TRUE;
 }
-

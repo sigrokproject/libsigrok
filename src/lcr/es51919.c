@@ -305,7 +305,6 @@ static int send_config_update_key(struct sr_dev_inst *sdi, uint32_t key,
 	sr_config_free(cfg);
 
 	return ret;
-
 }
 
 /*
@@ -467,7 +466,7 @@ static int parse_mq(const uint8_t *pkt, int is_secondary, int is_parallel)
 
 	switch (is_secondary << 8 | buf[0]) {
 	case 0x001:
-	        return is_parallel ?
+		return is_parallel ?
 			SR_MQ_PARALLEL_INDUCTANCE : SR_MQ_SERIES_INDUCTANCE;
 	case 0x002:
 		return is_parallel ?
@@ -607,7 +606,6 @@ static unsigned int parse_model(const uint8_t *pkt)
 		return MODEL_PAR;
 	else
 		return MODEL_SER;
-
 }
 
 static gboolean packet_valid(const uint8_t *pkt)

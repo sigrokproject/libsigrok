@@ -92,7 +92,6 @@ enum {
 #define EOM                0x01
 #define TERM_CHAR_ENABLED  0x02
 
-
 static GSList *scpi_usbtmc_libusb_scan(struct drv_context *drvc)
 {
 	struct libusb_device **devlist;

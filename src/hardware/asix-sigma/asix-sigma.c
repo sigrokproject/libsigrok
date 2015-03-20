@@ -783,7 +783,6 @@ static int convert_trigger(const struct sr_dev_inst *sdi)
 		}
 	}
 
-
 	return SR_OK;
 }
 
@@ -948,7 +947,6 @@ static int get_trigger_offset(uint8_t *samples, uint16_t last_sample,
 	/* If we did not match, return original trigger pos. */
 	return i & 0x7;
 }
-
 
 /*
  * Return the timestamp of "DRAM cluster".

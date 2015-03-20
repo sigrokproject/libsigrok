@@ -152,7 +152,6 @@ static int cleanup(const struct sr_dev_driver *di)
 		/* Can get called on an unused driver, doesn't matter. */
 		return SR_OK;
 
-
 	ret = std_dev_clear(di, NULL);
 	g_free(drvc);
 
@@ -389,7 +388,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 			0x02, 0x0002, 0x00, NULL, 0, 50);
 	libusb_control_transfer(usb->devhdl, LIBUSB_REQUEST_TYPE_VENDOR,
 			0x02, 0x0001, 0x00, NULL, 0, 50);
-
 
 	/* Flush input. The F321 requires this. */
 	while (libusb_bulk_transfer(usb->devhdl, LASCAR_EP_IN, resp,

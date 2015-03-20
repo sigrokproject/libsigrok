@@ -43,7 +43,6 @@ static const char *gnuplot_header2 = "\
 # -----------------------------------------------------------------------------\n\
 # 0\t\tSample counter (for internal gnuplot purposes)\n";
 
-
 static int init(struct sr_output *o, GHashTable *options)
 {
 	struct context *ctx;

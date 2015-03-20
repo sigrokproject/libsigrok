@@ -62,7 +62,6 @@ static const char *data_sources[] = {
 
 SR_PRIV struct sr_dev_driver kecheng_kc_330b_driver_info;
 
-
 static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 {
 	return std_init(sr_ctx, di, LOG_PREFIX);
@@ -235,7 +234,6 @@ static int cleanup(const struct sr_dev_driver *di)
 	if (!(drvc = di->priv))
 		/* Can get called on an unused driver, doesn't matter. */
 		return SR_OK;
-
 
 	ret = std_dev_clear(di, NULL);
 	g_free(drvc);

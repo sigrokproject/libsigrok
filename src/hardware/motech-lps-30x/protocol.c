@@ -131,7 +131,6 @@ static void process_line(struct sr_dev_inst *sdi)
 	devc->buflen = 0;
 }
 
-
 SR_PRIV int motech_lps_30x_receive_data(int fd, int revents, void *cb_data)
 {
 	struct sr_dev_inst *sdi;

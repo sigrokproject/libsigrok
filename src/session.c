@@ -447,6 +447,7 @@ static int verify_trigger(struct sr_trigger *trigger)
 
 	return SR_OK;
 }
+
 /**
  * Start a session.
  *

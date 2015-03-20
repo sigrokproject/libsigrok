@@ -49,7 +49,6 @@
 extern SR_PRIV struct sr_dev_driver session_driver;
 static int session_driver_initialized = 0;
 
-
 /** @private */
 SR_PRIV int sr_sessionfile_check(const char *filename)
 {

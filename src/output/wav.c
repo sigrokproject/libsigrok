@@ -357,4 +357,3 @@ SR_PRIV struct sr_output_module output_wav = {
 	.receive = receive,
 	.cleanup = cleanup,
 };
-

@@ -238,4 +238,3 @@ SR_PRIV int uni_t_ut32x_handle_events(int fd, int revents, void *cb_data)
 
 	return TRUE;
 }
-

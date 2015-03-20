@@ -87,7 +87,6 @@ struct vcd_channel {
 	gchar *identifier;
 };
 
-
 /*
  * Reads a single VCD section from input file and parses it to name/contents.
  * e.g. $timescale 1ps $end  => "timescale" "1ps"

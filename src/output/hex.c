@@ -258,4 +258,3 @@ SR_PRIV struct sr_output_module output_hex = {
 	.receive = receive,
 	.cleanup = cleanup,
 };
-

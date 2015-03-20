@@ -602,7 +602,6 @@ static void decode_rs_2x_TR2(uint8_t rs, struct dev_context *devc)
 		devc->scale *= -1.0;
 }
 
-
 /**
  * Decode special chars (Metrahit 2x).
  *
@@ -1496,7 +1495,6 @@ SR_PRIV const char *gmc_model_str(enum model mcode)
 		return "Unknown model code";
 	}
 }
-
 
 /** @copydoc sr_dev_driver.config_set
  */

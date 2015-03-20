@@ -54,7 +54,6 @@ static const struct elusb_profile profiles[] = {
 	{ 0, NULL, 0 }
 };
 
-
 static libusb_device_handle *lascar_open(struct libusb_device *dev)
 {
 	libusb_device_handle *dev_hdl;

@@ -253,7 +253,6 @@ int dlm_digital_pod_state_set(struct sr_scpi_dev_inst *scpi, int pod,
 		return sr_scpi_send(scpi, ":LOGIC:MODE OFF");
 }
 
-
 int dlm_response_headers_set(struct sr_scpi_dev_inst *scpi,
 		const gboolean value)
 {
@@ -267,7 +266,6 @@ int dlm_acquisition_stop(struct sr_scpi_dev_inst *scpi)
 {
 	return sr_scpi_send(scpi, ":STOP");
 }
-
 
 int dlm_acq_length_get(struct sr_scpi_dev_inst *scpi,
 		uint32_t *response)

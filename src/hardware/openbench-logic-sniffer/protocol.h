@@ -101,7 +101,6 @@ struct dev_context {
 	unsigned char *raw_sample_buf;
 };
 
-
 SR_PRIV extern const char *ols_channel_names[NUM_CHANNELS + 1];
 
 SR_PRIV int send_shortcommand(struct sr_serial_dev_inst *serial,

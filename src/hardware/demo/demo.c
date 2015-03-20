@@ -183,7 +183,6 @@ SR_PRIV struct sr_dev_driver demo_driver_info;
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);
 
-
 static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 {
 	return std_init(sr_ctx, di, LOG_PREFIX);

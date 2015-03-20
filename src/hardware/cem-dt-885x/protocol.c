@@ -404,7 +404,6 @@ SR_PRIV int cem_dt_885x_receive_data(int fd, int revents, void *cb_data)
 	return TRUE;
 }
 
-
 static int wait_for_token(const struct sr_dev_inst *sdi, int8_t *tokens, int timeout)
 {
 	struct dev_context *devc;

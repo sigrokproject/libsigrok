@@ -302,7 +302,6 @@ struct scpi_command philips_pm2800_cmd[] = {
 	{ SCPI_CMD_GET_OVER_CURRENT_PROTECTION_ACTIVE, ":SOUR:CURR:PROT:TRIP?" },
 };
 
-
 SR_PRIV const struct scpi_pps pps_profiles[] = {
 	/* HP 6632B */
 	{ "HP", "6632B", 0,
@@ -350,5 +349,5 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		philips_pm2800_probe_channels,
 	},
 };
-SR_PRIV unsigned int num_pps_profiles = ARRAY_SIZE(pps_profiles);
 
+SR_PRIV unsigned int num_pps_profiles = ARRAY_SIZE(pps_profiles);

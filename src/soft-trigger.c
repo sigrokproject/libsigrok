@@ -219,4 +219,3 @@ SR_PRIV int soft_trigger_logic_check(struct soft_trigger_logic *stl,
 
 	return offset;
 }
-

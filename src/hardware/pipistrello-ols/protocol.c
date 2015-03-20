@@ -384,7 +384,6 @@ SR_PRIV int p_ols_set_samplerate(const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-
 SR_PRIV int p_ols_receive_data(int fd, int revents, void *cb_data)
 {
 	struct dev_context *devc;

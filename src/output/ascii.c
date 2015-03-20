@@ -258,5 +258,3 @@ SR_PRIV struct sr_output_module output_ascii = {
 	.receive = receive,
 	.cleanup = cleanup,
 };
-
-

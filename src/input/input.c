@@ -590,5 +590,4 @@ SR_API void sr_input_free(const struct sr_input *in)
 	g_free((gpointer)in);
 }
 
-
 /** @} */
