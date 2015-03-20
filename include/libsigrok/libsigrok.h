@@ -226,6 +226,10 @@ enum sr_mq {
 	SR_MQ_DIFFERENCE,
 	/** Count. */
 	SR_MQ_COUNT,
+	/** Power factor. */
+	SR_MQ_POWER_FACTOR,
+	/** Apparent power */
+	SR_MQ_APPARENT_POWER,
 };
 
 /** Unit of measured quantity, sr_datafeed_analog.unit. */
