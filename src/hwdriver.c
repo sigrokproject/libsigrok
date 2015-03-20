@@ -31,7 +31,7 @@
 #define LOG_PREFIX "hwdriver"
 /** @endcond */
 
-extern SR_PRIV struct sr_dev_driver *drivers_list[];
+extern SR_PRIV struct sr_dev_driver **drivers_lists[];
 
 /**
  * @file
@@ -265,8 +265,20 @@ SR_PRIV int sr_variant_type_check(uint32_t key, GVariant *value)
  */
 SR_API struct sr_dev_driver **sr_driver_list(void)
 {
+	static struct sr_dev_driver **combined_list = NULL;
+	struct sr_dev_driver ***lists, **drivers;
+	GArray *array;
 
-	return drivers_list;
+	if (!combined_list) {
+		array = g_array_new(TRUE, FALSE, sizeof(struct sr_dev_driver *));
+		for (lists = drivers_lists; *lists; lists++)
+			for (drivers = *lists; *drivers; drivers++)
+				g_array_append_val(array, *drivers);
+		combined_list = (struct sr_dev_driver **) array->data;
+		g_array_free(array, FALSE);
+	}
+
+	return combined_list;
 }
 
 /**

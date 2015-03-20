@@ -223,207 +223,221 @@ extern SR_PRIV struct sr_dev_driver yokogawa_dlm_driver_info;
 extern SR_PRIV struct sr_dev_driver zeroplus_logic_cube_driver_info;
 #endif
 
-SR_PRIV struct sr_dev_driver *drivers_list[] = {
+#define DRVS struct sr_dev_driver *[]
+
+SR_PRIV struct sr_dev_driver **drivers_lists[] = {
 #ifdef HAVE_HW_AGILENT_DMM
-	&agdmm_driver_info,
+	(DRVS) {&agdmm_driver_info, NULL},
 #endif
 #ifdef HAVE_HW_APPA_55II
-	&appa_55ii_driver_info,
+	(DRVS) {&appa_55ii_driver_info, NULL},
 #endif
 #ifdef HAVE_HW_ASIX_SIGMA
-	&asix_sigma_driver_info,
+	(DRVS) {&asix_sigma_driver_info, NULL},
 #endif
 #ifdef HAVE_HW_ATTEN_PPS3XXX
-	&atten_pps3203_driver_info,
+	(DRVS) {&atten_pps3203_driver_info, NULL},
 #endif
 #ifdef HAVE_HW_BAYLIBRE_ACME
-	&baylibre_acme_driver_info,
+	(DRVS) {&baylibre_acme_driver_info, NULL},
 #endif
 #ifdef HAVE_HW_BEAGLELOGIC
-	&beaglelogic_driver_info,
+	(DRVS) {&beaglelogic_driver_info, NULL},
 #endif
 #ifdef HAVE_HW_BRYMEN_BM86X
-	&brymen_bm86x_driver_info,
+	(DRVS) {&brymen_bm86x_driver_info, NULL},
 #endif
 #ifdef HAVE_HW_BRYMEN_DMM
-	&brymen_bm857_driver_info,
+	(DRVS) {&brymen_bm857_driver_info, NULL},
 #endif
 #ifdef HAVE_HW_CEM_DT_885X
-	&cem_dt_885x_driver_info,
+	(DRVS) {&cem_dt_885x_driver_info, NULL},
 #endif
 #ifdef HAVE_HW_CENTER_3XX
-	&center_309_driver_info,
-	&voltcraft_k204_driver_info,
+	(DRVS) {
+		&center_309_driver_info,
+		&voltcraft_k204_driver_info,
+		NULL},
 #endif
 #ifdef HAVE_HW_CHRONOVU_LA
-	&chronovu_la_driver_info,
+	(DRVS) {&chronovu_la_driver_info, NULL},
 #endif
 #ifdef HAVE_HW_COLEAD_SLM
-	&colead_slm_driver_info,
+	(DRVS) {&colead_slm_driver_info, NULL},
 #endif
 #ifdef HAVE_HW_CONRAD_DIGI_35_CPU
-	&conrad_digi_35_cpu_driver_info,
+	(DRVS) {&conrad_digi_35_cpu_driver_info, NULL},
 #endif
 #ifdef HAVE_HW_DEMO
-	&demo_driver_info,
+	(DRVS) {&demo_driver_info, NULL},
 #endif
 #ifdef HAVE_HW_DEREE_DE5000
-	&deree_de5000_driver_info,
+	(DRVS) {&deree_de5000_driver_info, NULL},
 #endif
 #ifdef HAVE_HW_FLUKE_DMM
-	&flukedmm_driver_info,
+	(DRVS) {&flukedmm_driver_info, NULL},
 #endif
 #ifdef HAVE_HW_FX2LAFW
-	&fx2lafw_driver_info,
+	(DRVS) {&fx2lafw_driver_info, NULL},
 #endif
 #ifdef HAVE_HW_GMC_MH_1X_2X
-	&gmc_mh_1x_2x_rs232_driver_info,
-	&gmc_mh_2x_bd232_driver_info,
+	(DRVS) {
+		&gmc_mh_1x_2x_rs232_driver_info,
+		&gmc_mh_2x_bd232_driver_info,
+		NULL},
 #endif
 #ifdef HAVE_HW_HAMEG_HMO
-	&hameg_hmo_driver_info,
+	(DRVS) {&hameg_hmo_driver_info, NULL},
 #endif
 #ifdef HAVE_HW_HANTEK_DSO
-	&hantek_dso_driver_info,
+	(DRVS) {&hantek_dso_driver_info, NULL},
 #endif
 #ifdef HAVE_HW_IKALOGIC_SCANALOGIC2
-	&ikalogic_scanalogic2_driver_info,
+	(DRVS) {&ikalogic_scanalogic2_driver_info, NULL},
 #endif
 #ifdef HAVE_HW_IKALOGIC_SCANAPLUS
-	&ikalogic_scanaplus_driver_info,
+	(DRVS) {&ikalogic_scanaplus_driver_info, NULL},
 #endif
 #ifdef HAVE_HW_KECHENG_KC_330B
-	&kecheng_kc_330b_driver_info,
+	(DRVS) {&kecheng_kc_330b_driver_info, NULL},
 #endif
 #ifdef HAVE_HW_LASCAR_EL_USB
-	&lascar_el_usb_driver_info,
+	(DRVS) {&lascar_el_usb_driver_info, NULL},
 #endif
 #ifdef HAVE_HW_LINK_MSO19
-	&link_mso19_driver_info,
+	(DRVS) {&link_mso19_driver_info, NULL},
 #endif
 #ifdef HAVE_HW_MANSON_HCS_3XXX
-	&manson_hcs_3xxx_driver_info,
+	(DRVS) {&manson_hcs_3xxx_driver_info, NULL},
 #endif
 #ifdef HAVE_HW_MIC_985XX
-	&mic_98581_driver_info,
-	&mic_98583_driver_info,
+	(DRVS) {
+		&mic_98581_driver_info,
+		&mic_98583_driver_info,
+		NULL},
 #endif
 #ifdef HAVE_HW_MOTECH_LPS_30X
-	&motech_lps_301_driver_info,
+	(DRVS) {&motech_lps_301_driver_info, NULL},
 #endif
 #ifdef HAVE_HW_NORMA_DMM
-	&norma_dmm_driver_info,
-	&siemens_b102x_driver_info,
+	(DRVS) {
+		&norma_dmm_driver_info,
+		&siemens_b102x_driver_info,
+		NULL},
 #endif
 #ifdef HAVE_HW_OPENBENCH_LOGIC_SNIFFER
-	&ols_driver_info,
+	(DRVS) {&ols_driver_info, NULL},
 #endif
 #ifdef HAVE_HW_PIPISTRELLO_OLS
-	&p_ols_driver_info,
+	(DRVS) {&p_ols_driver_info, NULL},
 #endif
 #ifdef HAVE_HW_RIGOL_DS
-	&rigol_ds_driver_info,
+	(DRVS) {&rigol_ds_driver_info, NULL},
 #endif
 #ifdef HAVE_HW_SALEAE_LOGIC16
-	&saleae_logic16_driver_info,
+	(DRVS) {&saleae_logic16_driver_info, NULL},
 #endif
 #ifdef HAVE_HW_SCPI_PPS
-	&scpi_pps_driver_info,
+	(DRVS) {&scpi_pps_driver_info, NULL},
 #endif
 #ifdef HAVE_HW_SERIAL_DMM
-	&bbcgm_m2110_driver_info,
-	&digitek_dt4000zc_driver_info,
-	&tekpower_tp4000zc_driver_info,
-	&metex_me31_driver_info,
-	&peaktech_3410_driver_info,
-	&mastech_mas345_driver_info,
-	&mastech_ms8250b_driver_info,
-	&va_va18b_driver_info,
-	&va_va40b_driver_info,
-	&metex_m3640d_driver_info,
-	&metex_m4650cr_driver_info,
-	&peaktech_4370_driver_info,
-	&pce_pce_dm32_driver_info,
-	&radioshack_22_168_driver_info,
-	&radioshack_22_805_driver_info,
-	&radioshack_22_812_driver_info,
-	&tecpel_dmm_8061_ser_driver_info,
-	&voltcraft_m3650cr_driver_info,
-	&voltcraft_m3650d_driver_info,
-	&voltcraft_m4650cr_driver_info,
-	&voltcraft_me42_driver_info,
-	&voltcraft_vc820_ser_driver_info,
-	&voltcraft_vc830_ser_driver_info,
-	&voltcraft_vc840_ser_driver_info,
-	&voltcraft_vc870_ser_driver_info,
-	&voltcraft_vc920_ser_driver_info,
-	&voltcraft_vc940_ser_driver_info,
-	&voltcraft_vc960_ser_driver_info,
-	&uni_t_ut60a_ser_driver_info,
-	&uni_t_ut60e_ser_driver_info,
-	&uni_t_ut60g_ser_driver_info,
-	&uni_t_ut61b_ser_driver_info,
-	&uni_t_ut61c_ser_driver_info,
-	&uni_t_ut61d_ser_driver_info,
-	&uni_t_ut61e_ser_driver_info,
-	&uni_t_ut71a_ser_driver_info,
-	&uni_t_ut71b_ser_driver_info,
-	&uni_t_ut71c_ser_driver_info,
-	&uni_t_ut71d_ser_driver_info,
-	&uni_t_ut71e_ser_driver_info,
-	&iso_tech_idm103n_driver_info,
-	&tenma_72_7745_ser_driver_info,
-	&tenma_72_7750_ser_driver_info,
-	&brymen_bm25x_driver_info,
+	(DRVS) {
+		&bbcgm_m2110_driver_info,
+		&digitek_dt4000zc_driver_info,
+		&tekpower_tp4000zc_driver_info,
+		&metex_me31_driver_info,
+		&peaktech_3410_driver_info,
+		&mastech_mas345_driver_info,
+		&mastech_ms8250b_driver_info,
+		&va_va18b_driver_info,
+		&va_va40b_driver_info,
+		&metex_m3640d_driver_info,
+		&metex_m4650cr_driver_info,
+		&peaktech_4370_driver_info,
+		&pce_pce_dm32_driver_info,
+		&radioshack_22_168_driver_info,
+		&radioshack_22_805_driver_info,
+		&radioshack_22_812_driver_info,
+		&tecpel_dmm_8061_ser_driver_info,
+		&voltcraft_m3650cr_driver_info,
+		&voltcraft_m3650d_driver_info,
+		&voltcraft_m4650cr_driver_info,
+		&voltcraft_me42_driver_info,
+		&voltcraft_vc820_ser_driver_info,
+		&voltcraft_vc830_ser_driver_info,
+		&voltcraft_vc840_ser_driver_info,
+		&voltcraft_vc870_ser_driver_info,
+		&voltcraft_vc920_ser_driver_info,
+		&voltcraft_vc940_ser_driver_info,
+		&voltcraft_vc960_ser_driver_info,
+		&uni_t_ut60a_ser_driver_info,
+		&uni_t_ut60e_ser_driver_info,
+		&uni_t_ut60g_ser_driver_info,
+		&uni_t_ut61b_ser_driver_info,
+		&uni_t_ut61c_ser_driver_info,
+		&uni_t_ut61d_ser_driver_info,
+		&uni_t_ut61e_ser_driver_info,
+		&uni_t_ut71a_ser_driver_info,
+		&uni_t_ut71b_ser_driver_info,
+		&uni_t_ut71c_ser_driver_info,
+		&uni_t_ut71d_ser_driver_info,
+		&uni_t_ut71e_ser_driver_info,
+		&iso_tech_idm103n_driver_info,
+		&tenma_72_7745_ser_driver_info,
+		&tenma_72_7750_ser_driver_info,
+		&brymen_bm25x_driver_info,
+		NULL},
 #endif
 #ifdef HAVE_HW_SYSCLK_LWLA
-	&sysclk_lwla_driver_info,
+	(DRVS) {&sysclk_lwla_driver_info, NULL},
 #endif
 #ifdef HAVE_HW_TELEINFO
-	&teleinfo_driver_info,
+	(DRVS) {&teleinfo_driver_info, NULL},
 #endif
 #ifdef HAVE_HW_TESTO
-	&testo_driver_info,
+	(DRVS) {&testo_driver_info, NULL},
 #endif
 #ifdef HAVE_HW_TONDAJ_SL_814
-	&tondaj_sl_814_driver_info,
+	(DRVS) {&tondaj_sl_814_driver_info, NULL},
 #endif
 #ifdef HAVE_HW_UNI_T_DMM
-	&tecpel_dmm_8061_driver_info,
-	&uni_t_ut372_driver_info,
-	&uni_t_ut60a_driver_info,
-	&uni_t_ut60e_driver_info,
-	&uni_t_ut60g_driver_info,
-	&uni_t_ut61b_driver_info,
-	&uni_t_ut61c_driver_info,
-	&uni_t_ut61d_driver_info,
-	&uni_t_ut61e_driver_info,
-	&uni_t_ut71a_driver_info,
-	&uni_t_ut71b_driver_info,
-	&uni_t_ut71c_driver_info,
-	&uni_t_ut71d_driver_info,
-	&uni_t_ut71e_driver_info,
-	&voltcraft_vc820_driver_info,
-	&voltcraft_vc830_driver_info,
-	&voltcraft_vc840_driver_info,
-	&voltcraft_vc870_driver_info,
-	&voltcraft_vc920_driver_info,
-	&voltcraft_vc940_driver_info,
-	&voltcraft_vc960_driver_info,
-	&tenma_72_7745_driver_info,
-	&tenma_72_7750_driver_info,
+	(DRVS) {
+		&tecpel_dmm_8061_driver_info,
+		&uni_t_ut372_driver_info,
+		&uni_t_ut60a_driver_info,
+		&uni_t_ut60e_driver_info,
+		&uni_t_ut60g_driver_info,
+		&uni_t_ut61b_driver_info,
+		&uni_t_ut61c_driver_info,
+		&uni_t_ut61d_driver_info,
+		&uni_t_ut61e_driver_info,
+		&uni_t_ut71a_driver_info,
+		&uni_t_ut71b_driver_info,
+		&uni_t_ut71c_driver_info,
+		&uni_t_ut71d_driver_info,
+		&uni_t_ut71e_driver_info,
+		&voltcraft_vc820_driver_info,
+		&voltcraft_vc830_driver_info,
+		&voltcraft_vc840_driver_info,
+		&voltcraft_vc870_driver_info,
+		&voltcraft_vc920_driver_info,
+		&voltcraft_vc940_driver_info,
+		&voltcraft_vc960_driver_info,
+		&tenma_72_7745_driver_info,
+		&tenma_72_7750_driver_info,
+		NULL},
 #endif
 #ifdef HAVE_HW_UNI_T_UT32X
-	&uni_t_ut32x_driver_info,
+	(DRVS) {&uni_t_ut32x_driver_info, NULL},
 #endif
 #ifdef HAVE_HW_VICTOR_DMM
-	&victor_dmm_driver_info,
+	(DRVS) {&victor_dmm_driver_info, NULL},
 #endif
 #ifdef HAVE_HW_YOKOGAWA_DLM
-	&yokogawa_dlm_driver_info,
+	(DRVS) {&yokogawa_dlm_driver_info, NULL},
 #endif
 #ifdef HAVE_HW_ZEROPLUS_LOGIC_CUBE
-	&zeroplus_logic_cube_driver_info,
+	(DRVS) {&zeroplus_logic_cube_driver_info, NULL},
 #endif
 	NULL,
 };

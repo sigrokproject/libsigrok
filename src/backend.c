@@ -446,6 +446,7 @@ SR_API int sr_exit(struct sr_context *ctx)
 	libusb_exit(ctx->libusb_ctx);
 #endif
 
+	g_free(sr_driver_list());
 	g_free(ctx);
 
 	return SR_OK;
