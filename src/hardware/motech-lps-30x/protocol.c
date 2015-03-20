@@ -77,7 +77,10 @@ static void process_line(struct sr_dev_inst *sdi)
 	case 1: /* Waiting for data reply to request */
 		/* Convert numbers */
 		switch (devc->acq_req) {
-		case AQ_U1:  case AQ_U2:  case AQ_I1:  case AQ_I2:
+		case AQ_U1:
+		case AQ_U2:
+		case AQ_I1:
+		case AQ_I2:
 			if (sr_atod(devc->buf, &dbl) != SR_OK) {
 				sr_err("Failed to convert '%s' to double, errno=%d %s",
 					devc->buf, errno, strerror(errno));

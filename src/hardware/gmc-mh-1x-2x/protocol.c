@@ -568,22 +568,27 @@ static void decode_rs_2x_TR2(uint8_t rs, struct dev_context *devc)
 	case SR_MQ_CURRENT:
 		if (devc->scale1000 == -1) /* mA */
 			switch (range) {
-			case 0: case 1:	/* 100, 300 µA */
+			case 0:
+			case 1:	/* 100, 300 µA */
 				devc->scale *= pow(10.0, -6);
 				break;
-			case 2: case 3:	/* 1, 3 mA */
+			case 2:
+			case 3:	/* 1, 3 mA */
 				devc->scale *= pow(10.0, -5);
 				break;
-			case 4: case 5:	/* 10, 30 mA */
+			case 4:
+			case 5:	/* 10, 30 mA */
 				devc->scale *= pow(10.0, -4);
 				break;
-			case 6: case 7:	/* 100, 300 mA */
+			case 6:
+			case 7:	/* 100, 300 mA */
 				devc->scale *= pow(10.0, -3);
 				break;
 			}
 		else /* A */
 			switch (range) {
-			case 0: case 1:	/* 1, 3 A */
+			case 0:
+			case 1:	/* 1, 3 A */
 				devc->scale *= pow(10.0, -5);
 				break;
 			case 2: /* 10 A */

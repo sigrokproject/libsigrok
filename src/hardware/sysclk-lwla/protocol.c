@@ -107,8 +107,12 @@ static int capture_setup(const struct sr_dev_inst *sdi)
 	/* Set bits to select external TRG input edge. */
 	if (devc->cfg_trigger_source == TRIGGER_EXT_TRG)
 		switch (devc->cfg_trigger_slope) {
-		case EDGE_POSITIVE: trigger_mask |= (uint64_t)1 << 35; break; 
-		case EDGE_NEGATIVE: trigger_mask |= (uint64_t)1 << 34; break; 
+		case EDGE_POSITIVE:
+			trigger_mask |= (uint64_t)1 << 35;
+			break; 
+		case EDGE_NEGATIVE:
+			trigger_mask |= (uint64_t)1 << 34;
+			break; 
 		}
 
 	command[19] = LWLA_WORD_0(trigger_mask);

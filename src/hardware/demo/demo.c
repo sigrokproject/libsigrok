@@ -212,7 +212,6 @@ static void generate_analog_pattern(struct analog_gen *ag, uint64_t sample_rate)
 		}
 		ag->num_samples = last_end;
 		break;
-
 	case PATTERN_SINE:
 		frequency = (double) sample_rate / ANALOG_SAMPLES_PER_PERIOD;
 
@@ -231,7 +230,6 @@ static void generate_analog_pattern(struct analog_gen *ag, uint64_t sample_rate)
 
 		ag->num_samples = num_samples;
 		break;
-
 	case PATTERN_TRIANGLE:
 		frequency = (double) sample_rate / ANALOG_SAMPLES_PER_PERIOD;
 
@@ -246,7 +244,6 @@ static void generate_analog_pattern(struct analog_gen *ag, uint64_t sample_rate)
 
 		ag->num_samples = num_samples;
 		break;
-
 	case PATTERN_SAWTOOTH:
 		frequency = (double) sample_rate / ANALOG_SAMPLES_PER_PERIOD;
 

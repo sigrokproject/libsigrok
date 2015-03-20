@@ -518,30 +518,30 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	ret = SR_OK;
 
 	switch (key) {
-		case SR_CONF_SAMPLERATE:
-			arg = g_variant_get_uint64(data);
-			for (i = 0; i < ARRAY_SIZE(samplerates); i++) {
-				if (samplerates[i] == arg) {
-					devc->cur_samplerate = arg;
-					break;
-				}
+	case SR_CONF_SAMPLERATE:
+		arg = g_variant_get_uint64(data);
+		for (i = 0; i < ARRAY_SIZE(samplerates); i++) {
+			if (samplerates[i] == arg) {
+				devc->cur_samplerate = arg;
+				break;
 			}
-			if (i == ARRAY_SIZE(samplerates))
-				ret = SR_ERR_ARG;
-			break;
-		case SR_CONF_LIMIT_SAMPLES:
-			devc->limit_samples = g_variant_get_uint64(data);
-			break;
-		case SR_CONF_CAPTURE_RATIO:
-			devc->capture_ratio = g_variant_get_uint64(data);
-			if (devc->capture_ratio > 100) {
-				devc->capture_ratio = 0;
-				ret = SR_ERR;
-			} else
-				ret = SR_OK;
-			break;
-		default:
-			ret = SR_ERR_NA;
+		}
+		if (i == ARRAY_SIZE(samplerates))
+			ret = SR_ERR_ARG;
+		break;
+	case SR_CONF_LIMIT_SAMPLES:
+		devc->limit_samples = g_variant_get_uint64(data);
+		break;
+	case SR_CONF_CAPTURE_RATIO:
+		devc->capture_ratio = g_variant_get_uint64(data);
+		if (devc->capture_ratio > 100) {
+			devc->capture_ratio = 0;
+			ret = SR_ERR;
+		} else
+			ret = SR_OK;
+		break;
+	default:
+		ret = SR_ERR_NA;
 	}
 
 	return ret;

@@ -92,80 +92,79 @@ static void process_packet(const struct sr_dev_inst *sdi)
 	 * weighting. */
 	mode = devc->buf[2] & 0x0f;
 	switch (mode) {
-		case 0x0:
-			analog.mqflags |= SR_MQFLAG_SPL_FREQ_WEIGHT_A \
-					| SR_MQFLAG_SPL_TIME_WEIGHT_F;
-			break;
-		case 0x1:
-			analog.mqflags |= SR_MQFLAG_SPL_FREQ_WEIGHT_A \
-					| SR_MQFLAG_SPL_TIME_WEIGHT_S;
-			break;
-		case 0x2:
-			analog.mqflags |= SR_MQFLAG_SPL_FREQ_WEIGHT_C \
-					| SR_MQFLAG_SPL_TIME_WEIGHT_F;
-			break;
-		case 0x3:
-			analog.mqflags |= SR_MQFLAG_SPL_FREQ_WEIGHT_C \
-					| SR_MQFLAG_SPL_TIME_WEIGHT_S;
-			break;
-		case 0x4:
-			analog.mqflags |= SR_MQFLAG_SPL_FREQ_WEIGHT_FLAT \
-					| SR_MQFLAG_SPL_TIME_WEIGHT_F;
-			break;
-		case 0x5:
-			analog.mqflags |= SR_MQFLAG_SPL_FREQ_WEIGHT_FLAT \
-					| SR_MQFLAG_SPL_TIME_WEIGHT_S;
-			break;
-		case 0x6:
-			analog.mqflags |= SR_MQFLAG_SPL_PCT_OVER_ALARM \
-					| SR_MQFLAG_SPL_FREQ_WEIGHT_A \
-					| SR_MQFLAG_SPL_TIME_WEIGHT_F;
-			break;
-		case 0x7:
-			analog.mqflags |= SR_MQFLAG_SPL_PCT_OVER_ALARM \
-					| SR_MQFLAG_SPL_FREQ_WEIGHT_A \
-					| SR_MQFLAG_SPL_TIME_WEIGHT_S;
-			break;
-		case 0x8:
-			/* 10-second mean, but we don't have MQ flags to express it. */
-			analog.mqflags |= SR_MQFLAG_SPL_LAT \
-					| SR_MQFLAG_SPL_FREQ_WEIGHT_A \
-					| SR_MQFLAG_SPL_TIME_WEIGHT_F;
-			break;
-		case 0x9:
-			/* Mean over a time period between 11 seconds and 24 hours.
-			 * Which is so silly that there's no point in expressing
-			 * either this or the previous case.  */
-			analog.mqflags |= SR_MQFLAG_SPL_LAT \
-					| SR_MQFLAG_SPL_FREQ_WEIGHT_A \
-					| SR_MQFLAG_SPL_TIME_WEIGHT_F;
-			break;
-		case 0xa:
-			/* 10-second mean. */
-			analog.mqflags |= SR_MQFLAG_SPL_LAT \
-					| SR_MQFLAG_SPL_FREQ_WEIGHT_A \
-					| SR_MQFLAG_SPL_TIME_WEIGHT_S;
-			break;
-		case 0xb:
-			/* Mean over a time period between 11 seconds and 24 hours. */
-			analog.mqflags |= SR_MQFLAG_SPL_LAT \
-					| SR_MQFLAG_SPL_FREQ_WEIGHT_A \
-					| SR_MQFLAG_SPL_TIME_WEIGHT_S;
-			break;
-		case 0xc:
-			/* Internal calibration on 1kHz sine at 94dB, not useful
-			 * to anything but the device. */
-			analog.mqflags |= SR_MQFLAG_SPL_FREQ_WEIGHT_FLAT;
-			break;
-		case 0xd:
-			/* Internal calibration on 1kHz sine at 94dB, not useful
-			 * to anything but the device. */
-			analog.mqflags |= SR_MQFLAG_SPL_FREQ_WEIGHT_FLAT;
-			break;
-		default:
-			sr_dbg("unknown configuration 0x%.2x", mode);
-			return;
-			break;
+	case 0x0:
+		analog.mqflags |= SR_MQFLAG_SPL_FREQ_WEIGHT_A \
+				| SR_MQFLAG_SPL_TIME_WEIGHT_F;
+		break;
+	case 0x1:
+		analog.mqflags |= SR_MQFLAG_SPL_FREQ_WEIGHT_A \
+				| SR_MQFLAG_SPL_TIME_WEIGHT_S;
+		break;
+	case 0x2:
+		analog.mqflags |= SR_MQFLAG_SPL_FREQ_WEIGHT_C \
+				| SR_MQFLAG_SPL_TIME_WEIGHT_F;
+		break;
+	case 0x3:
+		analog.mqflags |= SR_MQFLAG_SPL_FREQ_WEIGHT_C \
+				| SR_MQFLAG_SPL_TIME_WEIGHT_S;
+		break;
+	case 0x4:
+		analog.mqflags |= SR_MQFLAG_SPL_FREQ_WEIGHT_FLAT \
+				| SR_MQFLAG_SPL_TIME_WEIGHT_F;
+		break;
+	case 0x5:
+		analog.mqflags |= SR_MQFLAG_SPL_FREQ_WEIGHT_FLAT \
+				| SR_MQFLAG_SPL_TIME_WEIGHT_S;
+		break;
+	case 0x6:
+		analog.mqflags |= SR_MQFLAG_SPL_PCT_OVER_ALARM \
+				| SR_MQFLAG_SPL_FREQ_WEIGHT_A \
+				| SR_MQFLAG_SPL_TIME_WEIGHT_F;
+		break;
+	case 0x7:
+		analog.mqflags |= SR_MQFLAG_SPL_PCT_OVER_ALARM \
+				| SR_MQFLAG_SPL_FREQ_WEIGHT_A \
+				| SR_MQFLAG_SPL_TIME_WEIGHT_S;
+		break;
+	case 0x8:
+		/* 10-second mean, but we don't have MQ flags to express it. */
+		analog.mqflags |= SR_MQFLAG_SPL_LAT \
+				| SR_MQFLAG_SPL_FREQ_WEIGHT_A \
+				| SR_MQFLAG_SPL_TIME_WEIGHT_F;
+		break;
+	case 0x9:
+		/* Mean over a time period between 11 seconds and 24 hours.
+		 * Which is so silly that there's no point in expressing
+		 * either this or the previous case.  */
+		analog.mqflags |= SR_MQFLAG_SPL_LAT \
+				| SR_MQFLAG_SPL_FREQ_WEIGHT_A \
+				| SR_MQFLAG_SPL_TIME_WEIGHT_F;
+		break;
+	case 0xa:
+		/* 10-second mean. */
+		analog.mqflags |= SR_MQFLAG_SPL_LAT \
+				| SR_MQFLAG_SPL_FREQ_WEIGHT_A \
+				| SR_MQFLAG_SPL_TIME_WEIGHT_S;
+		break;
+	case 0xb:
+		/* Mean over a time period between 11 seconds and 24 hours. */
+		analog.mqflags |= SR_MQFLAG_SPL_LAT \
+				| SR_MQFLAG_SPL_FREQ_WEIGHT_A \
+				| SR_MQFLAG_SPL_TIME_WEIGHT_S;
+		break;
+	case 0xc:
+		/* Internal calibration on 1kHz sine at 94dB, not useful
+		 * to anything but the device. */
+		analog.mqflags |= SR_MQFLAG_SPL_FREQ_WEIGHT_FLAT;
+		break;
+	case 0xd:
+		/* Internal calibration on 1kHz sine at 94dB, not useful
+		 * to anything but the device. */
+		analog.mqflags |= SR_MQFLAG_SPL_FREQ_WEIGHT_FLAT;
+		break;
+	default:
+		sr_dbg("unknown configuration 0x%.2x", mode);
+		return;
 	}
 
 	packet.type = SR_DF_ANALOG;
