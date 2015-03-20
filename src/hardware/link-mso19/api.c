@@ -38,7 +38,7 @@ static const uint32_t devopts[] = {
  *
  * See also: http://www.linkinstruments.com/images/mso19_1113.gif
  */
-SR_PRIV const char *mso19_channel_names[NUM_CHANNELS + 1] = {
+SR_PRIV const char *mso19_channel_names[] = {
 	/* Note: DSO needs to be first. */
 	"DSO", "0", "1", "2", "3", "4", "5", "6", "7", NULL,
 };

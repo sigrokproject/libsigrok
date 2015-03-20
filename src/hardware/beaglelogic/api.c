@@ -48,7 +48,7 @@ static const int32_t soft_trigger_matches[] = {
 };
 
 /* Channels are numbered 0-13 */
-SR_PRIV const char *beaglelogic_channel_names[NUM_CHANNELS + 1] = {
+SR_PRIV const char *beaglelogic_channel_names[] = {
 	"P8_45", "P8_46", "P8_43", "P8_44", "P8_41", "P8_42", "P8_39", "P8_40",
 	"P8_27", "P8_29", "P8_28", "P8_30", "P8_21", "P8_20", NULL,
 };

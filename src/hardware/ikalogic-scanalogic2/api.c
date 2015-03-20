@@ -47,7 +47,7 @@ SR_PRIV const uint64_t sl2_samplerates[NUM_SAMPLERATES] = {
 	SR_MHZ(20),
 };
 
-static const char *channel_names[NUM_CHANNELS + 1] = {
+static const char *channel_names[] = {
 	"0", "1", "2", "3",
 	NULL,
 };

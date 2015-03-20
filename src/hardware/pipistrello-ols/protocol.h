@@ -117,7 +117,7 @@ struct dev_context {
 	unsigned char *raw_sample_buf;
 };
 
-SR_PRIV extern const char *p_ols_channel_names[NUM_CHANNELS + 1];
+SR_PRIV extern const char *p_ols_channel_names[];
 SR_PRIV int write_shortcommand(struct dev_context *devc, uint8_t command);
 SR_PRIV int write_longcommand(struct dev_context *devc, uint8_t command, uint8_t *data);
 SR_PRIV int p_ols_open(struct dev_context *devc);
