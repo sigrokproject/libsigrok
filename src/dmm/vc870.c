@@ -379,6 +379,8 @@ static void handle_flags(struct sr_datafeed_analog *analog,
 
 static gboolean flags_valid(const struct vc870_info *info)
 {
+	(void)info;
+
 	/* TODO: Implement. */
 	return TRUE;
 }
