@@ -175,9 +175,9 @@ int receive_data(int fd, int revents, void *cb_data)
 
 	if (revents == G_IO_IN) {
 		/* Serial data arrived. */
-		info = malloc(dmm->info_size);
+		info = g_malloc(dmm->info_size);
 		handle_new_data(sdi, info);
-		free(info);
+		g_free(info);
 	} else {
 		/* Timeout; send another packet request if DMM needs it. */
 		if (dmm->packet_request && (req_packet(sdi) < 0))
