@@ -49,7 +49,6 @@ SR_PRIV const uint64_t sl2_samplerates[NUM_SAMPLERATES] = {
 
 static const char *channel_names[] = {
 	"0", "1", "2", "3",
-	NULL,
 };
 
 SR_PRIV struct sr_dev_driver ikalogic_scanalogic2_driver_info;
@@ -118,9 +117,9 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		sdi->inst_type = SR_INST_USB;
 		sdi->conn = usb;
 
-		for (i = 0; channel_names[i]; i++)
-			devc->channels[i] = sr_channel_new(sdi, i, SR_CHANNEL_LOGIC,
-				TRUE, channel_names[i]);
+		for (i = 0; i < ARRAY_SIZE(channel_names); i++)
+			devc->channels[i] = sr_channel_new(sdi, i,
+				SR_CHANNEL_LOGIC, TRUE, channel_names[i]);
 
 		devc->state = STATE_IDLE;
 		devc->next_state = STATE_IDLE;

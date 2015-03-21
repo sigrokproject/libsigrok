@@ -69,7 +69,6 @@ static const uint32_t devopts_cg[] = {
 
 static const char *channel_names[] = {
 	"CH1", "CH2",
-	NULL,
 };
 
 static const uint64_t buffersizes_32k[] = {
@@ -181,7 +180,7 @@ static struct sr_dev_inst *dso_dev_new(const struct dso_profile *prof)
 	 * Add only the real channels -- EXT isn't a source of data, only
 	 * a trigger source internal to the device.
 	 */
-	for (i = 0; channel_names[i]; i++) {
+	for (i = 0; i < ARRAY_SIZE(channel_names); i++) {
 		ch = sr_channel_new(sdi, i, SR_CHANNEL_ANALOG, TRUE, channel_names[i]);
 		cg = g_malloc0(sizeof(struct sr_channel_group));
 		cg->name = g_strdup(channel_names[i]);

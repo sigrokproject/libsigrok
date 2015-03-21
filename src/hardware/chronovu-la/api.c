@@ -128,7 +128,7 @@ static int add_device(int idx, int model, GSList **devices)
 
 	for (i = 0; i < devc->prof->num_channels; i++)
 		sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE,
-				    cv_channel_names[i]);
+				cv_channel_names[i]);
 
 	*devices = g_slist_append(*devices, sdi);
 	drvc->instances = g_slist_append(drvc->instances, sdi);

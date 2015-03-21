@@ -28,10 +28,8 @@ static const uint32_t devopts[] = {
 	SR_CONF_DATA_SOURCE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
-static char *channels[] = {
-	"T1",
-	"T2",
-	"T1-T2",
+static const char *channel_names[] = {
+	"T1", "T2", "T1-T2",
 };
 
 static const char *data_sources[] = {
@@ -84,7 +82,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			sdi->inst_type = SR_INST_USB;
 			sdi->conn = l->data;
 			for (i = 0; i < 3; i++)
-				sr_channel_new(sdi, i, SR_CHANNEL_ANALOG, TRUE, channels[i]);
+				sr_channel_new(sdi, i, SR_CHANNEL_ANALOG, TRUE,
+						channel_names[i]);
 			devc = g_malloc0(sizeof(struct dev_context));
 			sdi->priv = devc;
 			devc->limit_samples = 0;

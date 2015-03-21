@@ -66,7 +66,6 @@ static const int32_t soft_trigger_matches[] = {
 static const char *channel_names[] = {
 	"0", "1", "2", "3", "4", "5", "6", "7", "8",
 	"9", "10", "11", "12", "13", "14", "15",
-	NULL,
 };
 
 static const struct {
@@ -205,7 +204,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		sdi->driver = di;
 		sdi->connection_id = g_strdup(connection_id);
 
-		for (j = 0; channel_names[j]; j++)
+		for (j = 0; i < ARRAY_SIZE(channel_names); j++)
 			sr_channel_new(sdi, j, SR_CHANNEL_LOGIC, TRUE,
 					    channel_names[j]);
 

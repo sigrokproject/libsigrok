@@ -47,10 +47,9 @@ static const int32_t soft_trigger_matches[] = {
 	SR_TRIGGER_EDGE,
 };
 
-/* Channels are numbered 0-13 */
-SR_PRIV const char *beaglelogic_channel_names[] = {
-	"P8_45", "P8_46", "P8_43", "P8_44", "P8_41", "P8_42", "P8_39", "P8_40",
-	"P8_27", "P8_29", "P8_28", "P8_30", "P8_21", "P8_20", NULL,
+SR_PRIV const char *channel_names[] = {
+	"P8_45", "P8_46", "P8_43", "P8_44", "P8_41", "P8_42", "P8_39",
+	"P8_40", "P8_27", "P8_29", "P8_28", "P8_30", "P8_21", "P8_20",
 };
 
 /* Possible sample rates : 10 Hz to 100 MHz = (100 / x) MHz */
@@ -136,7 +135,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	/* Fill the channels */
 	for (i = 0; i < maxch; i++)
 		sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE,
-				beaglelogic_channel_names[i]);
+				channel_names[i]);
 
 	sdi->priv = devc;
 	drvc->instances = g_slist_append(drvc->instances, sdi);

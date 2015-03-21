@@ -38,9 +38,9 @@ static const uint32_t devopts[] = {
  *
  * See also: http://www.linkinstruments.com/images/mso19_1113.gif
  */
-SR_PRIV const char *mso19_channel_names[] = {
+static const char *channel_names[] = {
 	/* Note: DSO needs to be first. */
-	"DSO", "0", "1", "2", "3", "4", "5", "6", "7", NULL,
+	"DSO", "0", "1", "2", "3", "4", "5", "6", "7",
 };
 
 static const uint64_t samplerates[] = {
@@ -215,8 +215,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 		for (i = 0; i < NUM_CHANNELS; i++) {
 			chtype = (i == 0) ? SR_CHANNEL_ANALOG : SR_CHANNEL_LOGIC;
-			sr_channel_new(sdi, i, chtype, TRUE,
-					    mso19_channel_names[i]);
+			sr_channel_new(sdi, i, chtype, TRUE, channel_names[i]);
 		}
 
 		//Add the driver

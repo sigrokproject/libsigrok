@@ -382,8 +382,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sdi->driver = di;
 
 	for (i = 0; i < ARRAY_SIZE(channel_names); i++)
-		sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE,
-				    channel_names[i]);
+		sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE, channel_names[i]);
 
 	devices = g_slist_append(devices, sdi);
 	drvc->instances = g_slist_append(drvc->instances, sdi);

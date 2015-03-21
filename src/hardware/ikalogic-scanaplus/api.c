@@ -38,7 +38,6 @@ static const uint32_t devopts[] = {
 /* Channels are numbered 1-9. */
 static const char *channel_names[] = {
 	"1", "2", "3", "4", "5", "6", "7", "8", "9",
-	NULL,
 };
 
 /* Note: The IKALOGIC ScanaPLUS always samples at 100MHz. */
@@ -125,9 +124,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sdi->driver = di;
 	sdi->priv = devc;
 
-	for (i = 0; channel_names[i]; i++)
-		sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE,
-				    channel_names[i]);
+	for (i = 0; i < ARRAY_SIZE(channel_names); i++)
+		sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE, channel_names[i]);
 
 	devices = g_slist_append(devices, sdi);
 	drvc->instances = g_slist_append(drvc->instances, sdi);

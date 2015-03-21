@@ -37,7 +37,6 @@ static const uint32_t devopts[] = {
 
 static const char *channel_names[] = {
 	"T1", "T2", "T3", "T4",
-	NULL,
 };
 
 SR_PRIV struct sr_dev_driver center_309_driver_info;
@@ -96,10 +95,8 @@ static GSList *center_scan(const char *conn, const char *serialcomm, int idx)
 	sdi->priv = devc;
 	sdi->driver = center_devs[idx].di;
 
-	for (i = 0; i <  center_devs[idx].num_channels; i++) {
-		sr_channel_new(sdi, i, SR_CHANNEL_ANALOG,
-				    TRUE, channel_names[i]);
-	}
+	for (i = 0; i < center_devs[idx].num_channels; i++)
+		sr_channel_new(sdi, i, SR_CHANNEL_ANALOG, TRUE, channel_names[i]);
 
 	drvc->instances = g_slist_append(drvc->instances, sdi);
 	devices = g_slist_append(devices, sdi);
