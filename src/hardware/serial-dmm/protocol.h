@@ -22,54 +22,9 @@
 
 #define LOG_PREFIX "serial-dmm"
 
-enum {
-	BBCGM_M2110,
-	DIGITEK_DT4000ZC,
-	TEKPOWER_TP4000ZC,
-	METEX_ME31,
-	PEAKTECH_3410,
-	MASTECH_MAS345,
-	MASTECH_MS8250B,
-	VA_VA18B,
-	VA_VA40B,
-	METEX_M3640D,
-	METEX_M4650CR,
-	PEAKTECH_4370,
-	PCE_PCE_DM32,
-	RADIOSHACK_22_168,
-	RADIOSHACK_22_805,
-	RADIOSHACK_22_812,
-	TECPEL_DMM_8061_SER,
-	VOLTCRAFT_M3650CR,
-	VOLTCRAFT_M3650D,
-	VOLTCRAFT_M4650CR,
-	VOLTCRAFT_ME42,
-	VOLTCRAFT_VC820_SER,
-	VOLTCRAFT_VC830_SER,
-	VOLTCRAFT_VC840_SER,
-	VOLTCRAFT_VC870_SER,
-	VOLTCRAFT_VC920_SER,
-	VOLTCRAFT_VC940_SER,
-	VOLTCRAFT_VC960_SER,
-	UNI_T_UT60A_SER,
-	UNI_T_UT60E_SER,
-	UNI_T_UT60G_SER,
-	UNI_T_UT61B_SER,
-	UNI_T_UT61C_SER,
-	UNI_T_UT61D_SER,
-	UNI_T_UT61E_SER,
-	UNI_T_UT71A_SER,
-	UNI_T_UT71B_SER,
-	UNI_T_UT71C_SER,
-	UNI_T_UT71D_SER,
-	UNI_T_UT71E_SER,
-	ISO_TECH_IDM103N,
-	TENMA_72_7745_SER,
-	TENMA_72_7750_SER,
-	BRYMEN_BM25X,
-};
-
 struct dmm_info {
+	/** libsigrok driver info struct. */
+	struct sr_dev_driver di;
 	/** Manufacturer/brand. */
 	char *vendor;
 	/** Model. */
@@ -95,13 +50,11 @@ struct dmm_info {
 			    struct sr_datafeed_analog *, void *);
 	/** */
 	void (*dmm_details)(struct sr_datafeed_analog *, void *);
-	/** libsigrok driver info struct. */
-	struct sr_dev_driver *di;
-	/** Data reception function. */
-	int (*receive_data)(int, int, void *);
+	/** Size of chipset info struct. */
+	gsize info_size;
 };
 
-extern SR_PRIV struct dmm_info dmms[];
+extern SR_PRIV struct dmm_info *dmms[];
 
 #define DMM_BUFSIZE 256
 
@@ -131,51 +84,7 @@ struct dev_context {
 	int64_t req_next_at;
 };
 
-SR_PRIV int req_packet(struct sr_dev_inst *sdi, int dmm);
-
-SR_PRIV int receive_data_BBCGM_M2110(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_DIGITEK_DT4000ZC(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_TEKPOWER_TP4000ZC(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_METEX_ME31(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_PEAKTECH_3410(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_MASTECH_MAS345(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_MASTECH_MS8250B(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_VA_VA18B(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_VA_VA40B(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_METEX_M3640D(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_METEX_M4650CR(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_PEAKTECH_4370(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_PCE_PCE_DM32(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_RADIOSHACK_22_168(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_RADIOSHACK_22_805(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_RADIOSHACK_22_812(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_TECPEL_DMM_8061_SER(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_VOLTCRAFT_M3650CR(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_VOLTCRAFT_M3650D(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_VOLTCRAFT_M4650CR(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_VOLTCRAFT_ME42(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_VOLTCRAFT_VC820_SER(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_VOLTCRAFT_VC830_SER(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_VOLTCRAFT_VC840_SER(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_VOLTCRAFT_VC870_SER(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_VOLTCRAFT_VC920_SER(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_VOLTCRAFT_VC940_SER(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_VOLTCRAFT_VC960_SER(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_UNI_T_UT60A_SER(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_UNI_T_UT60E_SER(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_UNI_T_UT60G_SER(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_UNI_T_UT61B_SER(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_UNI_T_UT61C_SER(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_UNI_T_UT61D_SER(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_UNI_T_UT61E_SER(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_UNI_T_UT71A_SER(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_UNI_T_UT71B_SER(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_UNI_T_UT71C_SER(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_UNI_T_UT71D_SER(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_UNI_T_UT71E_SER(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_ISO_TECH_IDM103N(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_TENMA_72_7745_SER(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_TENMA_72_7750_SER(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_BRYMEN_BM25X(int fd, int revents, void *cb_data);
+SR_PRIV int req_packet(struct sr_dev_inst *sdi);
+SR_PRIV int receive_data(int fd, int revents, void *cb_data);
 
 #endif

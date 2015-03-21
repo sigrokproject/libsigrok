@@ -128,50 +128,7 @@ extern SR_PRIV struct sr_dev_driver saleae_logic16_driver_info;
 extern SR_PRIV struct sr_dev_driver scpi_pps_driver_info;
 #endif
 #ifdef HAVE_HW_SERIAL_DMM
-extern SR_PRIV struct sr_dev_driver bbcgm_m2110_driver_info;
-extern SR_PRIV struct sr_dev_driver digitek_dt4000zc_driver_info;
-extern SR_PRIV struct sr_dev_driver tekpower_tp4000zc_driver_info;
-extern SR_PRIV struct sr_dev_driver metex_me31_driver_info;
-extern SR_PRIV struct sr_dev_driver peaktech_3410_driver_info;
-extern SR_PRIV struct sr_dev_driver mastech_mas345_driver_info;
-extern SR_PRIV struct sr_dev_driver mastech_ms8250b_driver_info;
-extern SR_PRIV struct sr_dev_driver va_va18b_driver_info;
-extern SR_PRIV struct sr_dev_driver va_va40b_driver_info;
-extern SR_PRIV struct sr_dev_driver metex_m3640d_driver_info;
-extern SR_PRIV struct sr_dev_driver metex_m4650cr_driver_info;
-extern SR_PRIV struct sr_dev_driver peaktech_4370_driver_info;
-extern SR_PRIV struct sr_dev_driver pce_pce_dm32_driver_info;
-extern SR_PRIV struct sr_dev_driver radioshack_22_168_driver_info;
-extern SR_PRIV struct sr_dev_driver radioshack_22_805_driver_info;
-extern SR_PRIV struct sr_dev_driver radioshack_22_812_driver_info;
-extern SR_PRIV struct sr_dev_driver tecpel_dmm_8061_ser_driver_info;
-extern SR_PRIV struct sr_dev_driver voltcraft_m3650cr_driver_info;
-extern SR_PRIV struct sr_dev_driver voltcraft_m3650d_driver_info;
-extern SR_PRIV struct sr_dev_driver voltcraft_m4650cr_driver_info;
-extern SR_PRIV struct sr_dev_driver voltcraft_me42_driver_info;
-extern SR_PRIV struct sr_dev_driver voltcraft_vc820_ser_driver_info;
-extern SR_PRIV struct sr_dev_driver voltcraft_vc830_ser_driver_info;
-extern SR_PRIV struct sr_dev_driver voltcraft_vc840_ser_driver_info;
-extern SR_PRIV struct sr_dev_driver voltcraft_vc870_ser_driver_info;
-extern SR_PRIV struct sr_dev_driver voltcraft_vc920_ser_driver_info;
-extern SR_PRIV struct sr_dev_driver voltcraft_vc940_ser_driver_info;
-extern SR_PRIV struct sr_dev_driver voltcraft_vc960_ser_driver_info;
-extern SR_PRIV struct sr_dev_driver uni_t_ut60a_ser_driver_info;
-extern SR_PRIV struct sr_dev_driver uni_t_ut60e_ser_driver_info;
-extern SR_PRIV struct sr_dev_driver uni_t_ut60g_ser_driver_info;
-extern SR_PRIV struct sr_dev_driver uni_t_ut61b_ser_driver_info;
-extern SR_PRIV struct sr_dev_driver uni_t_ut61c_ser_driver_info;
-extern SR_PRIV struct sr_dev_driver uni_t_ut61d_ser_driver_info;
-extern SR_PRIV struct sr_dev_driver uni_t_ut61e_ser_driver_info;
-extern SR_PRIV struct sr_dev_driver uni_t_ut71a_ser_driver_info;
-extern SR_PRIV struct sr_dev_driver uni_t_ut71b_ser_driver_info;
-extern SR_PRIV struct sr_dev_driver uni_t_ut71c_ser_driver_info;
-extern SR_PRIV struct sr_dev_driver uni_t_ut71d_ser_driver_info;
-extern SR_PRIV struct sr_dev_driver uni_t_ut71e_ser_driver_info;
-extern SR_PRIV struct sr_dev_driver iso_tech_idm103n_driver_info;
-extern SR_PRIV struct sr_dev_driver tenma_72_7745_ser_driver_info;
-extern SR_PRIV struct sr_dev_driver tenma_72_7750_ser_driver_info;
-extern SR_PRIV struct sr_dev_driver brymen_bm25x_driver_info;
+extern SR_PRIV struct sr_dev_driver *serial_dmm_drivers[];
 #endif
 #ifdef HAVE_HW_SYSCLK_LWLA
 extern SR_PRIV struct sr_dev_driver sysclk_lwla_driver_info;
@@ -341,52 +298,7 @@ SR_PRIV struct sr_dev_driver **drivers_lists[] = {
 	(DRVS) {&scpi_pps_driver_info, NULL},
 #endif
 #ifdef HAVE_HW_SERIAL_DMM
-	(DRVS) {
-		&bbcgm_m2110_driver_info,
-		&digitek_dt4000zc_driver_info,
-		&tekpower_tp4000zc_driver_info,
-		&metex_me31_driver_info,
-		&peaktech_3410_driver_info,
-		&mastech_mas345_driver_info,
-		&mastech_ms8250b_driver_info,
-		&va_va18b_driver_info,
-		&va_va40b_driver_info,
-		&metex_m3640d_driver_info,
-		&metex_m4650cr_driver_info,
-		&peaktech_4370_driver_info,
-		&pce_pce_dm32_driver_info,
-		&radioshack_22_168_driver_info,
-		&radioshack_22_805_driver_info,
-		&radioshack_22_812_driver_info,
-		&tecpel_dmm_8061_ser_driver_info,
-		&voltcraft_m3650cr_driver_info,
-		&voltcraft_m3650d_driver_info,
-		&voltcraft_m4650cr_driver_info,
-		&voltcraft_me42_driver_info,
-		&voltcraft_vc820_ser_driver_info,
-		&voltcraft_vc830_ser_driver_info,
-		&voltcraft_vc840_ser_driver_info,
-		&voltcraft_vc870_ser_driver_info,
-		&voltcraft_vc920_ser_driver_info,
-		&voltcraft_vc940_ser_driver_info,
-		&voltcraft_vc960_ser_driver_info,
-		&uni_t_ut60a_ser_driver_info,
-		&uni_t_ut60e_ser_driver_info,
-		&uni_t_ut60g_ser_driver_info,
-		&uni_t_ut61b_ser_driver_info,
-		&uni_t_ut61c_ser_driver_info,
-		&uni_t_ut61d_ser_driver_info,
-		&uni_t_ut61e_ser_driver_info,
-		&uni_t_ut71a_ser_driver_info,
-		&uni_t_ut71b_ser_driver_info,
-		&uni_t_ut71c_ser_driver_info,
-		&uni_t_ut71d_ser_driver_info,
-		&uni_t_ut71e_ser_driver_info,
-		&iso_tech_idm103n_driver_info,
-		&tenma_72_7745_ser_driver_info,
-		&tenma_72_7750_ser_driver_info,
-		&brymen_bm25x_driver_info,
-		NULL},
+	serial_dmm_drivers,
 #endif
 #ifdef HAVE_HW_SYSCLK_LWLA
 	(DRVS) {&sysclk_lwla_driver_info, NULL},

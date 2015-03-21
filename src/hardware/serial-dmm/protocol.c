@@ -39,8 +39,9 @@ static void log_dmm_packet(const uint8_t *buf)
 }
 
 static void handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi,
-			  int dmm, void *info)
+			  void *info)
 {
+	struct dmm_info *dmm = (struct dmm_info *) sdi->driver;
 	float floatval;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog analog;
@@ -55,12 +56,12 @@ static void handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi,
 	analog.num_samples = 1;
 	analog.mq = -1;
 
-	dmms[dmm].packet_parse(buf, &floatval, &analog, info);
+	dmm->packet_parse(buf, &floatval, &analog, info);
 	analog.data = &floatval;
 
 	/* If this DMM needs additional handling, call the resp. function. */
-	if (dmms[dmm].dmm_details)
-		dmms[dmm].dmm_details(&analog, info);
+	if (dmm->dmm_details)
+		dmm->dmm_details(&analog, info);
 
 	if (analog.mq != -1) {
 		/* Got a measurement. */
@@ -72,13 +73,14 @@ static void handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi,
 }
 
 /** Request packet, if required. */
-SR_PRIV int req_packet(struct sr_dev_inst *sdi, int dmm)
+SR_PRIV int req_packet(struct sr_dev_inst *sdi)
 {
+	struct dmm_info *dmm = (struct dmm_info *) sdi->driver;
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
 	int ret;
 
-	if (!dmms[dmm].packet_request)
+	if (!dmm->packet_request)
 		return SR_OK;
 
 	devc = sdi->priv;
@@ -90,20 +92,21 @@ SR_PRIV int req_packet(struct sr_dev_inst *sdi, int dmm)
 		return SR_OK;
 	}
 
-	ret = dmms[dmm].packet_request(serial);
+	ret = dmm->packet_request(serial);
 	if (ret < 0) {
 		sr_err("Failed to request packet: %d.", ret);
 		return ret;
 	}
 
-	if (dmms[dmm].req_timeout_ms)
-		devc->req_next_at = g_get_monotonic_time() + (dmms[dmm].req_timeout_ms * 1000);
+	if (dmm->req_timeout_ms)
+		devc->req_next_at = g_get_monotonic_time() + (dmm->req_timeout_ms * 1000);
 
 	return SR_OK;
 }
 
-static void handle_new_data(struct sr_dev_inst *sdi, int dmm, void *info)
+static void handle_new_data(struct sr_dev_inst *sdi, void *info)
 {
+	struct dmm_info *dmm = (struct dmm_info *) sdi->driver;
 	struct dev_context *devc;
 	int len, i, offset = 0;
 	struct sr_serial_dev_inst *serial;
@@ -123,18 +126,18 @@ static void handle_new_data(struct sr_dev_inst *sdi, int dmm, void *info)
 	devc->buflen += len;
 
 	/* Now look for packets in that data. */
-	while ((devc->buflen - offset) >= dmms[dmm].packet_size) {
-		if (dmms[dmm].packet_valid(devc->buf + offset)) {
-			handle_packet(devc->buf + offset, sdi, dmm, info);
-			offset += dmms[dmm].packet_size;
+	while ((devc->buflen - offset) >= dmm->packet_size) {
+		if (dmm->packet_valid(devc->buf + offset)) {
+			handle_packet(devc->buf + offset, sdi, info);
+			offset += dmm->packet_size;
 
 			/* Request next packet, if required. */
-			if (!dmms[dmm].packet_request)
+			if (!dmm->packet_request)
 				break;
-			if (dmms[dmm].req_timeout_ms || dmms[dmm].req_delay_ms)
+			if (dmm->req_timeout_ms || dmm->req_delay_ms)
 				devc->req_next_at = g_get_monotonic_time() +
-					dmms[dmm].req_delay_ms * 1000;
-			req_packet(sdi, dmm);
+					dmm->req_delay_ms * 1000;
+			req_packet(sdi);
 		} else {
 			offset++;
 		}
@@ -146,11 +149,13 @@ static void handle_new_data(struct sr_dev_inst *sdi, int dmm, void *info)
 	devc->buflen -= offset;
 }
 
-static int receive_data(int fd, int revents, int dmm, void *info, void *cb_data)
+int receive_data(int fd, int revents, void *cb_data)
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
+	struct dmm_info *dmm;
 	int64_t time;
+	void *info;
 
 	(void)fd;
 
@@ -160,12 +165,16 @@ static int receive_data(int fd, int revents, int dmm, void *info, void *cb_data)
 	if (!(devc = sdi->priv))
 		return TRUE;
 
+	dmm = (struct dmm_info *) sdi->driver;
+
 	if (revents == G_IO_IN) {
 		/* Serial data arrived. */
-		handle_new_data(sdi, dmm, info);
+		info = malloc(dmm->info_size);
+		handle_new_data(sdi, info);
+		free(info);
 	} else {
 		/* Timeout; send another packet request if DMM needs it. */
-		if (dmms[dmm].packet_request && (req_packet(sdi, dmm) < 0))
+		if (dmm->packet_request && (req_packet(sdi) < 0))
 			return FALSE;
 	}
 
@@ -186,54 +195,3 @@ static int receive_data(int fd, int revents, int dmm, void *info, void *cb_data)
 
 	return TRUE;
 }
-
-#define RECEIVE_DATA(ID_UPPER, DMM_DRIVER) \
-SR_PRIV int receive_data_##ID_UPPER(int fd, int revents, void *cb_data) { \
-	struct DMM_DRIVER##_info info; \
-	return receive_data(fd, revents, ID_UPPER, &info, cb_data); }
-
-/* Driver-specific receive_data() wrappers */
-RECEIVE_DATA(BBCGM_M2110, metex14) /* metex14_info used as a dummy. */
-RECEIVE_DATA(DIGITEK_DT4000ZC, fs9721)
-RECEIVE_DATA(TEKPOWER_TP4000ZC, fs9721)
-RECEIVE_DATA(METEX_ME31, metex14)
-RECEIVE_DATA(PEAKTECH_3410, metex14)
-RECEIVE_DATA(MASTECH_MAS345, metex14)
-RECEIVE_DATA(MASTECH_MS8250B, fs9721)
-RECEIVE_DATA(VA_VA18B, fs9721)
-RECEIVE_DATA(VA_VA40B, fs9721)
-RECEIVE_DATA(METEX_M3640D, metex14)
-RECEIVE_DATA(METEX_M4650CR, metex14)
-RECEIVE_DATA(PEAKTECH_4370, metex14)
-RECEIVE_DATA(PCE_PCE_DM32, fs9721)
-RECEIVE_DATA(RADIOSHACK_22_168, metex14)
-RECEIVE_DATA(RADIOSHACK_22_805, metex14)
-RECEIVE_DATA(RADIOSHACK_22_812, rs9lcd)
-RECEIVE_DATA(TECPEL_DMM_8061_SER, fs9721)
-RECEIVE_DATA(VOLTCRAFT_M3650CR, metex14)
-RECEIVE_DATA(VOLTCRAFT_M3650D, metex14)
-RECEIVE_DATA(VOLTCRAFT_M4650CR, metex14)
-RECEIVE_DATA(VOLTCRAFT_ME42, metex14)
-RECEIVE_DATA(VOLTCRAFT_VC820_SER, fs9721)
-RECEIVE_DATA(VOLTCRAFT_VC830_SER, fs9922)
-RECEIVE_DATA(VOLTCRAFT_VC840_SER, fs9721)
-RECEIVE_DATA(VOLTCRAFT_VC870_SER, vc870)
-RECEIVE_DATA(VOLTCRAFT_VC920_SER, ut71x)
-RECEIVE_DATA(VOLTCRAFT_VC940_SER, ut71x)
-RECEIVE_DATA(VOLTCRAFT_VC960_SER, ut71x)
-RECEIVE_DATA(UNI_T_UT60A_SER, fs9721)
-RECEIVE_DATA(UNI_T_UT60E_SER, fs9721)
-RECEIVE_DATA(UNI_T_UT60G_SER, es519xx)
-RECEIVE_DATA(UNI_T_UT61B_SER, fs9922)
-RECEIVE_DATA(UNI_T_UT61C_SER, fs9922)
-RECEIVE_DATA(UNI_T_UT61D_SER, fs9922)
-RECEIVE_DATA(UNI_T_UT61E_SER, es519xx)
-RECEIVE_DATA(UNI_T_UT71A_SER, ut71x)
-RECEIVE_DATA(UNI_T_UT71B_SER, ut71x)
-RECEIVE_DATA(UNI_T_UT71C_SER, ut71x)
-RECEIVE_DATA(UNI_T_UT71D_SER, ut71x)
-RECEIVE_DATA(UNI_T_UT71E_SER, ut71x)
-RECEIVE_DATA(ISO_TECH_IDM103N, es519xx)
-RECEIVE_DATA(TENMA_72_7745_SER, fs9721)
-RECEIVE_DATA(TENMA_72_7750_SER, es519xx)
-RECEIVE_DATA(BRYMEN_BM25X, bm25x)
