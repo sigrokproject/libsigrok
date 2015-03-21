@@ -249,19 +249,19 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 /* Driver-specific API function wrappers */
 #define HW_INIT(X) \
 static int init_##X(struct sr_dev_driver *di, struct sr_context *sr_ctx) { \
-	(void) di; return init(sr_ctx, X); }
+	(void)di; return init(sr_ctx, X); }
 #define HW_CLEANUP(X) \
 static int cleanup_##X(const struct sr_dev_driver *di) { \
-	(void) di; return cleanup(X); }
+	(void)di; return cleanup(X); }
 #define HW_SCAN(X) \
 static GSList *scan_##X(struct sr_dev_driver *di, GSList *options) { \
-	(void) di; return scan(options, X); }
+	(void)di; return scan(options, X); }
 #define HW_DEV_LIST(X) \
 static GSList *dev_list_##X(const struct sr_dev_driver *di) { \
-	(void) di; return dev_list(X); }
+	(void)di; return dev_list(X); }
 #define HW_DEV_CLEAR(X) \
 static int dev_clear_##X(const struct sr_dev_driver *di) { \
-	(void) di; return dev_clear(X); }
+	(void)di; return dev_clear(X); }
 #define HW_CONFIG_LIST(X) \
 static int config_list_##X(uint32_t key, GVariant **data, \
 const struct sr_dev_inst *sdi, const struct sr_channel_group *cg) { \

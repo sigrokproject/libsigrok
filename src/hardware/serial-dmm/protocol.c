@@ -41,11 +41,13 @@ static void log_dmm_packet(const uint8_t *buf)
 static void handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi,
 			  void *info)
 {
-	struct dmm_info *dmm = (struct dmm_info *) sdi->driver;
+	struct dmm_info *dmm;
 	float floatval;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog analog;
 	struct dev_context *devc;
+
+	dmm = (struct dmm_info *)sdi->driver;
 
 	log_dmm_packet(buf);
 	devc = sdi->priv;
@@ -75,10 +77,12 @@ static void handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi,
 /** Request packet, if required. */
 SR_PRIV int req_packet(struct sr_dev_inst *sdi)
 {
-	struct dmm_info *dmm = (struct dmm_info *) sdi->driver;
+	struct dmm_info *dmm;
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
 	int ret;
+
+	dmm = (struct dmm_info *)sdi->driver;
 
 	if (!dmm->packet_request)
 		return SR_OK;
@@ -106,10 +110,12 @@ SR_PRIV int req_packet(struct sr_dev_inst *sdi)
 
 static void handle_new_data(struct sr_dev_inst *sdi, void *info)
 {
-	struct dmm_info *dmm = (struct dmm_info *) sdi->driver;
+	struct dmm_info *dmm;
 	struct dev_context *devc;
 	int len, i, offset = 0;
 	struct sr_serial_dev_inst *serial;
+
+	dmm = (struct dmm_info *)sdi->driver;
 
 	devc = sdi->priv;
 	serial = sdi->conn;
@@ -165,7 +171,7 @@ int receive_data(int fd, int revents, void *cb_data)
 	if (!(devc = sdi->priv))
 		return TRUE;
 
-	dmm = (struct dmm_info *) sdi->driver;
+	dmm = (struct dmm_info *)sdi->driver;
 
 	if (revents == G_IO_IN) {
 		/* Serial data arrived. */

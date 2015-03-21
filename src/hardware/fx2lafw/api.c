@@ -598,9 +598,8 @@ static int receive_data(int fd, int revents, void *cb_data)
 
 	(void)fd;
 	(void)revents;
-	(void)cb_data;
 
-	drvc = (struct drv_context *) cb_data;
+	drvc = (struct drv_context *)cb_data;
 
 	tv.tv_sec = tv.tv_usec = 0;
 	libusb_handle_events_timeout(drvc->sr_ctx->libusb_ctx, &tv);

@@ -66,7 +66,6 @@ static const uint32_t devopts_bd[] = {
  * Need to implement device-specific lists.
  */
 
-/** Init driver. */
 static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 {
 	return std_init(sr_ctx, di, LOG_PREFIX);
@@ -237,8 +236,9 @@ static GSList *scan_1x_2x_rs232(struct sr_dev_driver *di, GSList *options)
 	return devices;
 }
 
-/** Scan for Metrahit 2x in a bidirectional mode using Gossen Metrawatt 'BD 232' interface.
- *
+/**
+ * Scan for Metrahit 2x in a bidirectional mode using Gossen Metrawatt
+ * 'BD 232' interface.
  */
 static GSList *scan_2x_bd232(struct sr_dev_driver *di, GSList *options)
 {
@@ -354,7 +354,6 @@ exit_err:
 	return NULL;
 }
 
-/** Driver device list function */
 static GSList *dev_list(const struct sr_dev_driver *di)
 {
 	return ((struct drv_context *)(di->priv))->instances;
@@ -383,7 +382,6 @@ static int cleanup(const struct sr_dev_driver *di)
 	return std_dev_clear(di, NULL);
 }
 
-/** Get value of configuration item */
 static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
@@ -415,7 +413,7 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 	return ret;
 }
 
-/** Implementation of config_list, auxiliary function for common parts, */
+/** Implementation of config_list, auxiliary function for common parts. */
 static int config_list_common(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {

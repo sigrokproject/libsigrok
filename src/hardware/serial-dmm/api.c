@@ -53,7 +53,7 @@ static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
-	struct dmm_info *dmm = (struct dmm_info *) di;
+	struct dmm_info *dmm;
 	struct sr_config *src;
 	GSList *l, *devices;
 	const char *conn, *serialcomm;
@@ -64,6 +64,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	int dropped, ret;
 	size_t len;
 	uint8_t buf[128];
+
+	dmm = (struct dmm_info *)di;
 
 	conn = serialcomm = NULL;
 	for (l = options; l; l = l->next) {

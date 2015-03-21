@@ -214,7 +214,8 @@ SR_PRIV struct sr_dev_driver **drivers_lists[] = {
 	(DRVS) {
 		&center_309_driver_info,
 		&voltcraft_k204_driver_info,
-		NULL},
+		NULL
+	},
 #endif
 #ifdef HAVE_HW_CHRONOVU_LA
 	(DRVS) {&chronovu_la_driver_info, NULL},
@@ -241,7 +242,8 @@ SR_PRIV struct sr_dev_driver **drivers_lists[] = {
 	(DRVS) {
 		&gmc_mh_1x_2x_rs232_driver_info,
 		&gmc_mh_2x_bd232_driver_info,
-		NULL},
+		NULL
+	},
 #endif
 #ifdef HAVE_HW_HAMEG_HMO
 	(DRVS) {&hameg_hmo_driver_info, NULL},
@@ -271,7 +273,8 @@ SR_PRIV struct sr_dev_driver **drivers_lists[] = {
 	(DRVS) {
 		&mic_98581_driver_info,
 		&mic_98583_driver_info,
-		NULL},
+		NULL
+	},
 #endif
 #ifdef HAVE_HW_MOTECH_LPS_30X
 	(DRVS) {&motech_lps_301_driver_info, NULL},
@@ -280,7 +283,8 @@ SR_PRIV struct sr_dev_driver **drivers_lists[] = {
 	(DRVS) {
 		&norma_dmm_driver_info,
 		&siemens_b102x_driver_info,
-		NULL},
+		NULL
+	},
 #endif
 #ifdef HAVE_HW_OPENBENCH_LOGIC_SNIFFER
 	(DRVS) {&ols_driver_info, NULL},
@@ -337,7 +341,8 @@ SR_PRIV struct sr_dev_driver **drivers_lists[] = {
 		&voltcraft_vc960_driver_info,
 		&tenma_72_7745_driver_info,
 		&tenma_72_7750_driver_info,
-		NULL},
+		NULL
+	},
 #endif
 #ifdef HAVE_HW_UNI_T_UT32X
 	(DRVS) {&uni_t_ut32x_driver_info, NULL},
@@ -354,4 +359,3 @@ SR_PRIV struct sr_dev_driver **drivers_lists[] = {
 	NULL,
 };
 /** @endcond */
-
