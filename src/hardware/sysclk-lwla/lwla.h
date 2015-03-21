@@ -119,4 +119,4 @@ SR_PRIV int lwla_write_reg(const struct sr_usb_dev_inst *usb,
 SR_PRIV int lwla_write_regs(const struct sr_usb_dev_inst *usb,
 			    const struct regval_pair *regvals, int count);
 
-#endif /* !LIBSIGROK_HARDWARE_SYSCLK_LWLA_LWLA_H */
+#endif

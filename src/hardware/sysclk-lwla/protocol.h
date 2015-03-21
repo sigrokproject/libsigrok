@@ -260,4 +260,4 @@ SR_PRIV int lwla_abort_acquisition(const struct sr_dev_inst *sdi);
 
 SR_PRIV int lwla_receive_data(int fd, int revents, void *cb_data);
 
-#endif /* !LIBSIGROK_HARDWARE_SYSCLK_LWLA_PROTOCOL_H */
+#endif

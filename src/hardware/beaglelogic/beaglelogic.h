@@ -210,4 +210,4 @@ SR_PRIV int beaglelogic_munmap(struct dev_context *devc) {
 	return munmap(devc->sample_buf, devc->buffersize);
 }
 
-#endif /* BEAGLELOGIC_H_ */
+#endif
