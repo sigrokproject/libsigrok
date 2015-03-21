@@ -134,9 +134,9 @@ static struct lps_modelspec models[] = {
 	},
 };
 
-static int init_lps301(struct sr_context *sr_ctx)
+static int init_lps301(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 {
-	return std_init(sr_ctx, &motech_lps_301_driver_info, LOG_PREFIX);
+	return std_init(sr_ctx, di, LOG_PREFIX);
 }
 
 /** Send command to device with va_list.
@@ -512,19 +512,14 @@ exit_err:
 }
 
 /** Scan for LPS-301 device. */
-static GSList *scan_lps301(GSList *options)
+static GSList *scan_lps301(struct sr_dev_driver *di, GSList *options)
 {
-	return do_scan(LPS_301, &motech_lps_301_driver_info, options);
+	return do_scan(LPS_301, di, options);
 }
 
-static GSList *doDevList(struct sr_dev_driver *drv)
+static GSList *dev_list_lps301(const struct sr_dev_driver *di)
 {
-	return ((struct drv_context *)(drv->priv))->instances;
-}
-
-static GSList *dev_list_lps301(void)
-{
-	return doDevList(&motech_lps_301_driver_info);
+	return ((struct drv_context *)(di->priv))->instances;
 }
 
 static void dev_clear_private(struct dev_context* devc)
@@ -538,14 +533,14 @@ static void dev_clear_private(struct dev_context* devc)
 	g_timer_destroy(devc->elapsed_msec);
 }
 
-static int dev_clear_lps301(void)
+static int dev_clear_lps301(const struct sr_dev_driver *di)
 {
-	return std_dev_clear(&motech_lps_301_driver_info, (std_dev_clear_callback)dev_clear_private);
+	return std_dev_clear(di, (std_dev_clear_callback)dev_clear_private);
 }
 
-static int cleanup(void)
+static int cleanup(const struct sr_dev_driver *di)
 {
-	return dev_clear_lps301();
+	return dev_clear_lps301(di);
 }
 
 static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,

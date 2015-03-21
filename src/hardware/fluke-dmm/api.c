@@ -40,7 +40,6 @@ static const uint32_t devopts[] = {
 };
 
 SR_PRIV struct sr_dev_driver flukedmm_driver_info;
-static struct sr_dev_driver *di = &flukedmm_driver_info;
 
 static char *scan_conn[] = {
 	/* 287/289 */
@@ -59,12 +58,13 @@ static const struct flukedmm_profile supported_flukedmm[] = {
 	{ FLUKE_190, "199B", 1000, 3500 },
 };
 
-static int init(struct sr_context *sr_ctx)
+static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 {
 	return std_init(sr_ctx, di, LOG_PREFIX);
 }
 
-static GSList *fluke_scan(const char *conn, const char *serialcomm)
+static GSList *fluke_scan(struct sr_dev_driver *di, const char *conn,
+		const char *serialcomm)
 {
 	struct sr_dev_inst *sdi;
 	struct drv_context *drvc;
@@ -149,7 +149,7 @@ static GSList *fluke_scan(const char *conn, const char *serialcomm)
 	return devices;
 }
 
-static GSList *scan(GSList *options)
+static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct sr_config *src;
 	GSList *l, *devices;
@@ -174,10 +174,10 @@ static GSList *scan(GSList *options)
 	devices = NULL;
 	if (serialcomm) {
 		/* Use the provided comm specs. */
-		devices = fluke_scan(conn, serialcomm);
+		devices = fluke_scan(di, conn, serialcomm);
 	} else {
 		for (i = 0; scan_conn[i]; i++) {
-			if ((devices = fluke_scan(conn, scan_conn[i])))
+			if ((devices = fluke_scan(di, conn, scan_conn[i])))
 				break;
 			/* The Scopemeter 199B, at least, requires this
 			 * after all the 115k/9.6k confusion. */
@@ -188,12 +188,12 @@ static GSList *scan(GSList *options)
 	return devices;
 }
 
-static GSList *dev_list(void)
+static GSList *dev_list(const struct sr_dev_driver *di)
 {
 	return ((struct drv_context *)(di->priv))->instances;
 }
 
-static int cleanup(void)
+static int cleanup(const struct sr_dev_driver *di)
 {
 	return std_dev_clear(di, NULL);
 }

@@ -66,17 +66,12 @@ static const char* get_typestr(int type, struct sr_dev_driver* drv)
 	return nameref[type-1][(drv == &siemens_b102x_driver_info)];
 }
 
-static int init_norma_dmm(struct sr_context *sr_ctx)
+static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 {
-	return std_init(sr_ctx, &norma_dmm_driver_info, LOG_PREFIX);
+	return std_init(sr_ctx, di, LOG_PREFIX);
 }
 
-static int init_siemens_b102x(struct sr_context *sr_ctx)
-{
-	return std_init(sr_ctx, &siemens_b102x_driver_info, LOG_PREFIX);
-}
-
-static GSList *do_scan(struct sr_dev_driver* drv, GSList *options)
+static GSList *scan(struct sr_dev_driver* drv, GSList *options)
 {
 	struct sr_dev_inst *sdi;
 	struct drv_context *drvc;
@@ -181,24 +176,9 @@ static GSList *do_scan(struct sr_dev_driver* drv, GSList *options)
 	return devices;
 }
 
-static GSList *scan_norma_dmm(GSList *options)
+static GSList *dev_list(const struct sr_dev_driver *di)
 {
-	return do_scan(&norma_dmm_driver_info, options);
-}
-
-static GSList *scan_siemens_b102x(GSList *options)
-{
-	return do_scan(&siemens_b102x_driver_info, options);
-}
-
-static GSList *dev_list_norma_dmm(void)
-{
-	return ((struct drv_context *)(norma_dmm_driver_info.priv))->instances;
-}
-
-static GSList *dev_list_siemens_b102x(void)
-{
-	return ((struct drv_context *)(siemens_b102x_driver_info.priv))->instances;
+	return ((struct drv_context *)(di->priv))->instances;
 }
 
 static int dev_close(struct sr_dev_inst *sdi)
@@ -217,14 +197,9 @@ static int dev_close(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int cleanup_norma_dmm(void)
+static int cleanup(const struct sr_dev_driver *di)
 {
-	return std_dev_clear(&norma_dmm_driver_info, NULL);
-}
-
-static int cleanup_siemens_b102x(void)
-{
-	return std_dev_clear(&siemens_b102x_driver_info, NULL);
+	return std_dev_clear(di, NULL);
 }
 
 static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
@@ -331,10 +306,10 @@ SR_PRIV struct sr_dev_driver norma_dmm_driver_info = {
 	.name = "norma-dmm",
 	.longname = "Norma DM9x0 DMMs",
 	.api_version = 1,
-	.init = init_norma_dmm,
-	.cleanup = cleanup_norma_dmm,
-	.scan = scan_norma_dmm,
-	.dev_list = dev_list_norma_dmm,
+	.init = init,
+	.cleanup = cleanup,
+	.scan = scan,
+	.dev_list = dev_list,
 	.dev_clear = NULL,
 	.config_get = NULL,
 	.config_set = config_set,
@@ -351,10 +326,10 @@ SR_PRIV struct sr_dev_driver siemens_b102x_driver_info = {
 	.name = "siemens-b102x",
 	.longname = "Siemens B102x DMMs",
 	.api_version = 1,
-	.init = init_siemens_b102x,
-	.cleanup = cleanup_siemens_b102x,
-	.scan = scan_siemens_b102x,
-	.dev_list = dev_list_siemens_b102x,
+	.init = init,
+	.cleanup = cleanup,
+	.scan = scan,
+	.dev_list = dev_list,
 	.dev_clear = NULL,
 	.config_get = NULL,
 	.config_set = config_set,

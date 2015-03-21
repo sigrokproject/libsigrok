@@ -23,7 +23,6 @@
 #define SERIALCOMM "115200/8n1"
 
 SR_PRIV struct sr_dev_driver testo_driver_info;
-static struct sr_dev_driver *di = &testo_driver_info;
 static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);
 
 static const uint32_t scanopts[] = {
@@ -42,12 +41,12 @@ struct testo_model models[] = {
 	{ "435", 9, TESTO_x35_REQUEST },
 };
 
-static int init(struct sr_context *sr_ctx)
+static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 {
 	return std_init(sr_ctx, di, LOG_PREFIX);
 }
 
-static GSList *scan(GSList *options)
+static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct drv_context *drvc;
 	struct dev_context *devc;
@@ -149,18 +148,19 @@ static GSList *scan(GSList *options)
 	return devices;
 }
 
-static GSList *dev_list(void)
+static GSList *dev_list(const struct sr_dev_driver *di)
 {
 	return ((struct drv_context *)(di->priv))->instances;
 }
 
-static int dev_clear(void)
+static int dev_clear(const struct sr_dev_driver *di)
 {
 	return std_dev_clear(di, NULL);
 }
 
 static int dev_open(struct sr_dev_inst *sdi)
 {
+	struct sr_dev_driver *di = sdi->driver;
 	struct drv_context *drvc = di->priv;
 	struct sr_usb_dev_inst *usb;
 	libusb_device **devlist;
@@ -211,6 +211,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 static int dev_close(struct sr_dev_inst *sdi)
 {
+	struct sr_dev_driver *di = sdi->driver;
 	struct sr_usb_dev_inst *usb;
 
 	if (!di->priv) {
@@ -231,7 +232,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int cleanup(void)
+static int cleanup(const struct sr_dev_driver *di)
 {
 	int ret;
 	struct drv_context *drvc;
@@ -239,9 +240,8 @@ static int cleanup(void)
 	if (!(drvc = di->priv))
 		return SR_OK;
 
-	ret = dev_clear();
+	ret = dev_clear(di);
 	g_free(drvc);
-	di->priv = NULL;
 
 	return ret;
 }
@@ -272,6 +272,7 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
+	struct sr_dev_driver *di = sdi->driver;
 	struct dev_context *devc;
 	gint64 now;
 	int ret;
@@ -415,8 +416,9 @@ SR_PRIV void receive_transfer(struct libusb_transfer *transfer)
 
 static int handle_events(int fd, int revents, void *cb_data)
 {
+	struct sr_dev_driver *di;
 	struct dev_context *devc;
-	struct drv_context *drvc = di->priv;
+	struct drv_context *drvc;
 	struct sr_datafeed_packet packet;
 	struct sr_dev_inst *sdi;
 	struct timeval tv;
@@ -427,6 +429,8 @@ static int handle_events(int fd, int revents, void *cb_data)
 
 	sdi = cb_data;
 	devc = sdi->priv;
+	di = sdi->driver;
+	drvc = di->priv;
 
 	if (devc->limit_msec) {
 		now = g_get_monotonic_time() / 1000;
@@ -452,6 +456,7 @@ static int handle_events(int fd, int revents, void *cb_data)
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 {
+	struct sr_dev_driver *di = sdi->driver;
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
@@ -505,6 +510,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
+	struct sr_dev_driver *di = sdi->driver;
 	(void)cb_data;
 
 	if (!di->priv) {

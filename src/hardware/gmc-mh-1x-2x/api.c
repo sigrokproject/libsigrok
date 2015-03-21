@@ -66,16 +66,10 @@ static const uint32_t devopts_bd[] = {
  * Need to implement device-specific lists.
  */
 
-/** Init driver gmc_mh_1x_2x_rs232. */
-static int init_1x_2x_rs232(struct sr_context *sr_ctx)
+/** Init driver. */
+static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 {
-	return std_init(sr_ctx, &gmc_mh_1x_2x_rs232_driver_info, LOG_PREFIX);
-}
-
-/** Init driver gmc_mh_2x_bd232. */
-static int init_2x_bd232(struct sr_context *sr_ctx)
-{
-	return std_init(sr_ctx, &gmc_mh_2x_bd232_driver_info, LOG_PREFIX);
+	return std_init(sr_ctx, di, LOG_PREFIX);
 }
 
 /**
@@ -156,7 +150,7 @@ static enum model scan_model_sm(struct sr_serial_dev_inst *serial)
  * on configuration and measurement mode the intervals can be much larger and
  * then the detection might not work.
  */
-static GSList *scan_1x_2x_rs232(GSList *options)
+static GSList *scan_1x_2x_rs232(struct sr_dev_driver *di, GSList *options)
 {
 	struct sr_dev_inst *sdi;
 	struct drv_context *drvc;
@@ -169,7 +163,7 @@ static GSList *scan_1x_2x_rs232(GSList *options)
 	gboolean serialcomm_given;
 
 	devices = NULL;
-	drvc = (&gmc_mh_1x_2x_rs232_driver_info)->priv;
+	drvc = di->priv;
 	drvc->instances = NULL;
 	conn = serialcomm = NULL;
 	model = METRAHIT_NONE;
@@ -234,7 +228,7 @@ static GSList *scan_1x_2x_rs232(GSList *options)
 		devc->settings_ok = FALSE;
 		sdi->conn = serial;
 		sdi->priv = devc;
-		sdi->driver = &gmc_mh_1x_2x_rs232_driver_info;
+		sdi->driver = di;
 		sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "P1");
 		drvc->instances = g_slist_append(drvc->instances, sdi);
 		devices = g_slist_append(devices, sdi);
@@ -246,7 +240,7 @@ static GSList *scan_1x_2x_rs232(GSList *options)
 /** Scan for Metrahit 2x in a bidirectional mode using Gossen Metrawatt 'BD 232' interface.
  *
  */
-static GSList *scan_2x_bd232(GSList *options)
+static GSList *scan_2x_bd232(struct sr_dev_driver *di, GSList *options)
 {
 	struct sr_dev_inst *sdi;
 	struct drv_context *drvc;
@@ -263,7 +257,7 @@ static GSList *scan_2x_bd232(GSList *options)
 	conn = serialcomm = NULL;
 	devices = NULL;
 
-	drvc = (&gmc_mh_2x_bd232_driver_info)->priv;
+	drvc = di->priv;
 	drvc->instances = NULL;
 
 	sr_spew("scan_2x_bd232() called!");
@@ -328,7 +322,7 @@ static GSList *scan_2x_bd232(GSList *options)
 			sdi->version = g_strdup_printf("Firmware %d.%d", devc->fw_ver_maj, devc->fw_ver_min);
 			sdi->conn = serial;
 			sdi->priv = devc;
-			sdi->driver = &gmc_mh_2x_bd232_driver_info;
+			sdi->driver = di;
 			sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "P1");
 			drvc->instances = g_slist_append(drvc->instances, sdi);
 			devices = g_slist_append(devices, sdi);
@@ -361,16 +355,9 @@ exit_err:
 }
 
 /** Driver device list function */
-static GSList *dev_list_1x_2x_rs232(void)
+static GSList *dev_list(const struct sr_dev_driver *di)
 {
-	return ((struct drv_context *)(gmc_mh_1x_2x_rs232_driver_info.priv))->instances;
-}
-
-/** Driver device list function */
-static GSList *dev_list_2x_bd232(void)
-{
-	return ((struct drv_context *)(gmc_mh_2x_bd232_driver_info.priv))
-			->instances;
+	return ((struct drv_context *)(di->priv))->instances;
 }
 
 static int dev_close(struct sr_dev_inst *sdi)
@@ -391,14 +378,9 @@ static int dev_close(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int cleanup_sm_rs232(void)
+static int cleanup(const struct sr_dev_driver *di)
 {
-	return std_dev_clear(&gmc_mh_1x_2x_rs232_driver_info, NULL);
-}
-
-static int cleanup_2x_bd232(void)
-{
-	return std_dev_clear(&gmc_mh_2x_bd232_driver_info, NULL);
+	return std_dev_clear(di, NULL);
 }
 
 /** Get value of configuration item */
@@ -563,10 +545,10 @@ SR_PRIV struct sr_dev_driver gmc_mh_1x_2x_rs232_driver_info = {
 	.name = "gmc-mh-1x-2x-rs232",
 	.longname = "Gossen Metrawatt Metrahit 1x/2x, RS232 interface",
 	.api_version = 1,
-	.init = init_1x_2x_rs232,
-	.cleanup = cleanup_sm_rs232,
+	.init = init,
+	.cleanup = cleanup,
 	.scan = scan_1x_2x_rs232,
-	.dev_list = dev_list_1x_2x_rs232,
+	.dev_list = dev_list,
 	.dev_clear = NULL,
 	.config_get = config_get,
 	.config_set = config_set,
@@ -582,10 +564,10 @@ SR_PRIV struct sr_dev_driver gmc_mh_2x_bd232_driver_info = {
 	.name = "gmc-mh-2x-bd232",
 	.longname = "Gossen Metrawatt Metrahit 2x, BD232/SI232-II interface",
 	.api_version = 1,
-	.init = init_2x_bd232,
-	.cleanup = cleanup_2x_bd232,
+	.init = init,
+	.cleanup = cleanup,
 	.scan = scan_2x_bd232,
-	.dev_list = dev_list_2x_bd232,
+	.dev_list = dev_list,
 	.dev_clear = NULL,
 	.config_get = config_get,
 	.config_set = config_set,

@@ -24,7 +24,6 @@
 #include "protocol.h"
 
 SR_PRIV struct sr_dev_driver lascar_el_usb_driver_info;
-static struct sr_dev_driver *di = &lascar_el_usb_driver_info;
 
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
@@ -38,12 +37,12 @@ static const uint32_t devopts[] = {
 	SR_CONF_DATALOG | SR_CONF_GET | SR_CONF_SET,
 };
 
-static int init(struct sr_context *sr_ctx)
+static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 {
 	return std_init(sr_ctx, di, LOG_PREFIX);
 }
 
-static GSList *scan(GSList *options)
+static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct drv_context *drvc;
 	struct sr_dev_inst *sdi;
@@ -89,13 +88,14 @@ static GSList *scan(GSList *options)
 	return devices;
 }
 
-static GSList *dev_list(void)
+static GSList *dev_list(const struct sr_dev_driver *di)
 {
 	return ((struct drv_context *)(di->priv))->instances;
 }
 
 static int dev_open(struct sr_dev_inst *sdi)
 {
+	struct sr_dev_driver *di = sdi->driver;
 	struct drv_context *drvc;
 	struct sr_usb_dev_inst *usb;
 	int ret;
@@ -121,6 +121,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 static int dev_close(struct sr_dev_inst *sdi)
 {
+	struct sr_dev_driver *di = sdi->driver;
 	struct sr_usb_dev_inst *usb;
 
 	if (!di->priv) {
@@ -142,7 +143,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int cleanup(void)
+static int cleanup(const struct sr_dev_driver *di)
 {
 	int ret;
 	struct drv_context *drvc;
@@ -154,7 +155,6 @@ static int cleanup(void)
 
 	ret = std_dev_clear(di, NULL);
 	g_free(drvc);
-	di->priv = NULL;
 
 	return ret;
 }
@@ -198,6 +198,7 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
+	struct sr_dev_driver *di = sdi->driver;
 	struct dev_context *devc;
 	int ret;
 
@@ -329,6 +330,7 @@ static int lascar_proc_config(const struct sr_dev_inst *sdi)
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 {
+	struct sr_dev_driver *di = sdi->driver;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_meta meta;
 	struct sr_config *src;
@@ -453,6 +455,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 
 SR_PRIV int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
+	struct sr_dev_driver *di = sdi->driver;
 	(void)cb_data;
 
 	if (!di->priv) {

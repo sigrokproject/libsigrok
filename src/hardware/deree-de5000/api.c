@@ -34,7 +34,7 @@ static void std_dev_attach(struct sr_dev_driver *di, struct sr_dev_inst *sdi)
 	drvc->instances = g_slist_append(drvc->instances, sdi);
 }
 
-static GSList *std_dev_list(struct sr_dev_driver *di)
+static GSList *dev_list(const struct sr_dev_driver *di)
 {
 	return ((struct drv_context *)di->priv)->instances;
 }
@@ -43,31 +43,26 @@ static GSList *std_dev_list(struct sr_dev_driver *di)
 
 SR_PRIV struct sr_dev_driver deree_de5000_driver_info;
 
-static int init(struct sr_context *sr_ctx)
+static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 {
-	return std_init(sr_ctx, &deree_de5000_driver_info, LOG_PREFIX);
+	return std_init(sr_ctx, di, LOG_PREFIX);
 }
 
-static int cleanup(void)
+static int cleanup(const struct sr_dev_driver *di)
 {
-	return std_dev_clear(&deree_de5000_driver_info, es51919_serial_clean);
+	return std_dev_clear(di, es51919_serial_clean);
 }
 
-static GSList *scan(GSList *options)
+static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct sr_dev_inst *sdi;
 
 	if (!(sdi = es51919_serial_scan(options, "DER EE", "DE-5000")))
 		return NULL;
 
-	std_dev_attach(&deree_de5000_driver_info, sdi);
+	std_dev_attach(di, sdi);
 
 	return g_slist_append(NULL, sdi);
-}
-
-static GSList *dev_list(void)
-{
-	return std_dev_list(&deree_de5000_driver_info);
 }
 
 SR_PRIV struct sr_dev_driver deree_de5000_driver_info = {

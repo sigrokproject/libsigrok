@@ -21,11 +21,11 @@
 #include "protocol.h"
 
 extern struct sr_dev_driver kecheng_kc_330b_driver_info;
-static struct sr_dev_driver *di = &kecheng_kc_330b_driver_info;
 extern const uint64_t kecheng_kc_330b_sample_intervals[][2];
 
 SR_PRIV int kecheng_kc_330b_handle_events(int fd, int revents, void *cb_data)
 {
+	struct sr_dev_driver *di;
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
@@ -40,10 +40,11 @@ SR_PRIV int kecheng_kc_330b_handle_events(int fd, int revents, void *cb_data)
 	(void)fd;
 	(void)revents;
 
-	drvc = di->priv;
 	sdi = cb_data;
 	devc = sdi->priv;
 	usb = sdi->conn;
+	di = sdi->driver;
+	drvc = di->priv;
 
 	memset(&tv, 0, sizeof(struct timeval));
 	libusb_handle_events_timeout_completed(drvc->sr_ctx->libusb_ctx, &tv,

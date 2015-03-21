@@ -30,7 +30,6 @@ static const char mso_head[] = { 0x40, 0x4c, 0x44, 0x53, 0x7e };
 static const char mso_foot[] = { 0x7e };
 
 extern SR_PRIV struct sr_dev_driver link_mso19_driver_info;
-static struct sr_dev_driver *di = &link_mso19_driver_info;
 
 SR_PRIV int mso_send_control_message(struct sr_serial_dev_inst *serial,
 				     uint16_t payload[], int n)

@@ -73,19 +73,18 @@ static struct hcs_model models[] = {
 };
 
 SR_PRIV struct sr_dev_driver manson_hcs_3xxx_driver_info;
-static struct sr_dev_driver *di = &manson_hcs_3xxx_driver_info;
 
-static int dev_clear(void)
+static int dev_clear(const struct sr_dev_driver *di)
 {
 	return std_dev_clear(di, NULL);
 }
 
-static int init(struct sr_context *sr_ctx)
+static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 {
 	return std_init(sr_ctx, di, LOG_PREFIX);
 }
 
-static GSList *scan(GSList *options)
+static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	int i, model_id;
 	struct drv_context *drvc;
@@ -203,14 +202,14 @@ exit_err:
 	return NULL;
 }
 
-static GSList *dev_list(void)
+static GSList *dev_list(const struct sr_dev_driver *di)
 {
 	return ((struct drv_context *)(di->priv))->instances;
 }
 
-static int cleanup(void)
+static int cleanup(const struct sr_dev_driver *di)
 {
-	return dev_clear();
+	return dev_clear(di);
 }
 
 static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,

@@ -23,7 +23,6 @@
 #define SERIALCOMM "115200/8n1/flow=1"
 
 SR_PRIV struct sr_dev_driver hameg_hmo_driver_info;
-static struct sr_dev_driver *di = &hameg_hmo_driver_info;
 
 static const char *manufacturers[] = {
 	"HAMEG",
@@ -45,7 +44,7 @@ enum {
 	CG_DIGITAL,
 };
 
-static int init(struct sr_context *sr_ctx)
+static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 {
 	return std_init(sr_ctx, di, LOG_PREFIX);
 }
@@ -85,7 +84,7 @@ static struct sr_dev_inst *hmo_probe_serial_device(struct sr_scpi_dev_inst *scpi
 	sdi->model = g_strdup(hw_info->model);
 	sdi->version = g_strdup(hw_info->firmware_version);
 	sdi->serial_num = g_strdup(hw_info->serial_number);
-	sdi->driver = di;
+	sdi->driver = &hameg_hmo_driver_info;
 	sdi->inst_type = SR_INST_SCPI;
 	sdi->conn = scpi;
 
@@ -116,12 +115,12 @@ fail:
 	return NULL;
 }
 
-static GSList *scan(GSList *options)
+static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	return sr_scpi_scan(di->priv, options, hmo_probe_serial_device);
 }
 
-static GSList *dev_list(void)
+static GSList *dev_list(const struct sr_dev_driver *di)
 {
 	return ((struct drv_context *)(di->priv))->instances;
 }
@@ -140,7 +139,7 @@ static void clear_helper(void *priv)
 	g_free(devc);
 }
 
-static int dev_clear(void)
+static int dev_clear(const struct sr_dev_driver *di)
 {
 	return std_dev_clear(di, clear_helper);
 }
@@ -170,9 +169,9 @@ static int dev_close(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int cleanup(void)
+static int cleanup(const struct sr_dev_driver *di)
 {
-	dev_clear();
+	dev_clear(di);
 
 	return SR_OK;
 }

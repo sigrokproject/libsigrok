@@ -158,14 +158,13 @@ static const uint64_t dslogic_samplerates[] = {
 };
 
 SR_PRIV struct sr_dev_driver fx2lafw_driver_info;
-static struct sr_dev_driver *di = &fx2lafw_driver_info;
 
-static int init(struct sr_context *sr_ctx)
+static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 {
 	return std_init(sr_ctx, di, LOG_PREFIX);
 }
 
-static GSList *scan(GSList *options)
+static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct drv_context *drvc;
 	struct dev_context *devc;
@@ -340,13 +339,14 @@ static GSList *scan(GSList *options)
 	return devices;
 }
 
-static GSList *dev_list(void)
+static GSList *dev_list(const struct sr_dev_driver *di)
 {
 	return ((struct drv_context *)(di->priv))->instances;
 }
 
 static int dev_open(struct sr_dev_inst *sdi)
 {
+	struct sr_dev_driver *di = sdi->driver;
 	struct sr_usb_dev_inst *usb;
 	struct dev_context *devc;
 	int ret;
@@ -440,7 +440,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int cleanup(void)
+static int cleanup(const struct sr_dev_driver *di)
 {
 	int ret;
 	struct drv_context *drvc;
@@ -451,7 +451,6 @@ static int cleanup(void)
 	ret = std_dev_clear(di, NULL);
 
 	g_free(drvc);
-	di->priv = NULL;
 
 	return ret;
 }
@@ -601,7 +600,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 	(void)revents;
 	(void)cb_data;
 
-	drvc = di->priv;
+	drvc = (struct drv_context *) cb_data;
 
 	tv.tv_sec = tv.tv_usec = 0;
 	libusb_handle_events_timeout(drvc->sr_ctx->libusb_ctx, &tv);
@@ -735,6 +734,7 @@ static int dslogic_trigger_request(const struct sr_dev_inst *sdi)
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 {
+	struct sr_dev_driver *di;
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	int timeout, ret;
@@ -742,6 +742,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
+	di = sdi->driver;
 	drvc = di->priv;
 	devc = sdi->priv;
 
@@ -752,7 +753,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	devc->acq_aborted = FALSE;
 
 	timeout = fx2lafw_get_timeout(devc);
-	usb_source_add(sdi->session, devc->ctx, timeout, receive_data, NULL);
+	usb_source_add(sdi->session, devc->ctx, timeout, receive_data, drvc);
 
 	if (devc->dslogic) {
 		dslogic_trigger_request(sdi);

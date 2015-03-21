@@ -77,14 +77,13 @@ static struct pps_model models[] = {
 
 
 SR_PRIV struct sr_dev_driver atten_pps3203_driver_info;
-static struct sr_dev_driver *di = &atten_pps3203_driver_info;
 
-static int init(struct sr_context *sr_ctx)
+static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 {
 	return std_init(sr_ctx, di, LOG_PREFIX);
 }
 
-static GSList *scan(GSList *options, int modelid)
+static GSList *scan(struct sr_dev_driver *di, GSList *options, int modelid)
 {
 	struct sr_dev_inst *sdi;
 	struct drv_context *drvc;
@@ -196,17 +195,17 @@ static GSList *scan(GSList *options, int modelid)
 	return devices;
 }
 
-static GSList *scan_3203(GSList *options)
+static GSList *scan_3203(struct sr_dev_driver *di, GSList *options)
 {
-	return scan(options, PPS_3203T_3S);
+	return scan(di, options, PPS_3203T_3S);
 }
 
-static GSList *dev_list(void)
+static GSList *dev_list(const struct sr_dev_driver *di)
 {
 	return ((struct drv_context *)(di->priv))->instances;
 }
 
-static int cleanup(void)
+static int cleanup(const struct sr_dev_driver *di)
 {
 	return std_dev_clear(di, NULL);
 }

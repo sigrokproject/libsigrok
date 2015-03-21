@@ -76,14 +76,13 @@ static const uint64_t samplerates[] = {
 };
 
 SR_PRIV struct sr_dev_driver p_ols_driver_info;
-static struct sr_dev_driver *di = &p_ols_driver_info;
 
-static int init(struct sr_context *sr_ctx)
+static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 {
 	return std_init(sr_ctx, di, LOG_PREFIX);
 }
 
-static GSList *scan(GSList *options)
+static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct sr_dev_inst *sdi;
 	struct drv_context *drvc;
@@ -205,7 +204,7 @@ err_free_devc:
 	return NULL;
 }
 
-static GSList *dev_list(void)
+static GSList *dev_list(const struct sr_dev_driver *di)
 {
 	return ((struct drv_context *)(di->priv))->instances;
 }
@@ -220,14 +219,14 @@ static void clear_helper(void *priv)
 	g_free(devc->ftdi_buf);
 }
 
-static int dev_clear(void)
+static int dev_clear(const struct sr_dev_driver *di)
 {
 	return std_dev_clear(di, clear_helper);
 }
 
-static int cleanup(void)
+static int cleanup(const struct sr_dev_driver *di)
 {
-	return dev_clear();
+	return dev_clear(di);
 }
 
 

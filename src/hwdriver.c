@@ -315,7 +315,7 @@ SR_API int sr_driver_init(struct sr_context *ctx, struct sr_dev_driver *driver)
 	}
 
 	sr_spew("Initializing driver '%s'.", driver->name);
-	if ((ret = driver->init(ctx)) < 0)
+	if ((ret = driver->init(driver, ctx)) < 0)
 		sr_err("Failed to initialize the driver: %d.", ret);
 
 	return ret;
@@ -409,7 +409,7 @@ SR_API GSList *sr_driver_scan(struct sr_dev_driver *driver, GSList *options)
 			return NULL;
 	}
 
-	l = driver->scan(options);
+	l = driver->scan(driver, options);
 
 	sr_spew("Scan of '%s' found %d devices.", driver->name,
 		g_slist_length(l));
@@ -427,7 +427,8 @@ SR_PRIV void sr_hw_cleanup_all(void)
 	drivers = sr_driver_list();
 	for (i = 0; drivers[i]; i++) {
 		if (drivers[i]->cleanup)
-			drivers[i]->cleanup();
+			drivers[i]->cleanup(drivers[i]);
+		drivers[i]->priv = NULL;
 	}
 }
 

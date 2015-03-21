@@ -50,10 +50,9 @@ static const uint64_t samplerates[] = {
 };
 
 SR_PRIV struct sr_dev_driver link_mso19_driver_info;
-static struct sr_dev_driver *di = &link_mso19_driver_info;
 
 /* TODO: Use sr_dev_inst to store connection handle & use std_dev_clear(). */
-static int dev_clear(void)
+static int dev_clear(const struct sr_dev_driver *di)
 {
 	GSList *l;
 	struct sr_dev_inst *sdi;
@@ -88,12 +87,12 @@ static int dev_clear(void)
 	return ret;
 }
 
-static int init(struct sr_context *sr_ctx)
+static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 {
 	return std_init(sr_ctx, di, LOG_PREFIX);
 }
 
-static GSList *scan(GSList *options)
+static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	int i;
 	GSList *devices = NULL;
@@ -229,7 +228,7 @@ static GSList *scan(GSList *options)
 	return devices;
 }
 
-static GSList *dev_list(void)
+static GSList *dev_list(const struct sr_dev_driver *di)
 {
 	return ((struct drv_context *)(di->priv))->instances;
 }
@@ -265,7 +264,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int cleanup(void)
+static int cleanup(const struct sr_dev_driver *di)
 {
 	return dev_clear();
 }

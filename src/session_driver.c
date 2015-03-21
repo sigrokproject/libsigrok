@@ -34,7 +34,6 @@
 /** @endcond */
 
 SR_PRIV struct sr_dev_driver session_driver_info;
-static struct sr_dev_driver *di = &session_driver_info;
 
 struct session_vdev {
 	char *sessionfile;
@@ -165,12 +164,12 @@ static int receive_data(int fd, int revents, void *cb_data)
 
 /* driver callbacks */
 
-static int init(struct sr_context *sr_ctx)
+static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 {
 	return std_init(sr_ctx, di, LOG_PREFIX);
 }
 
-static int dev_clear(void)
+static int dev_clear(const struct sr_dev_driver *di)
 {
 	struct drv_context *drvc;
 	GSList *l;
@@ -186,9 +185,11 @@ static int dev_clear(void)
 
 static int dev_open(struct sr_dev_inst *sdi)
 {
+	struct sr_dev_driver *di;
 	struct drv_context *drvc;
 	struct session_vdev *vdev;
 
+	di = sdi->driver;
 	drvc = di->priv;
 	vdev = g_malloc0(sizeof(struct session_vdev));
 	sdi->priv = vdev;

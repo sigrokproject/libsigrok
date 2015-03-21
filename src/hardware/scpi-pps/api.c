@@ -21,7 +21,6 @@
 #include "protocol.h"
 
 SR_PRIV struct sr_dev_driver scpi_pps_driver_info;
-static struct sr_dev_driver *di = &scpi_pps_driver_info;
 extern unsigned int num_pps_profiles;
 extern const struct scpi_pps pps_profiles[];
 
@@ -40,7 +39,7 @@ static struct pps_channel_instance pci[] = {
 	{ SR_MQ_POWER, SCPI_CMD_GET_MEAS_POWER, "P" },
 };
 
-static int init(struct sr_context *sr_ctx)
+static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 {
 	return std_init(sr_ctx, di, LOG_PREFIX);
 }
@@ -95,7 +94,7 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	sdi->model = g_strdup(hw_info->model);
 	sdi->version = g_strdup(hw_info->firmware_version);
 	sdi->conn = scpi;
-	sdi->driver = di;
+	sdi->driver = &scpi_pps_driver_info;
 	sdi->inst_type = SR_INST_SCPI;
 	sdi->serial_num = g_strdup(hw_info->serial_number);
 
@@ -172,17 +171,17 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	return sdi;
 }
 
-static GSList *scan(GSList *options)
+static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	return sr_scpi_scan(di->priv, options, probe_device);
 }
 
-static GSList *dev_list(void)
+static GSList *dev_list(const struct sr_dev_driver *di)
 {
 	return ((struct drv_context *)(di->priv))->instances;
 }
 
-static int dev_clear(void)
+static int dev_clear(const struct sr_dev_driver *di)
 {
 	return std_dev_clear(di, NULL);
 }
@@ -247,7 +246,7 @@ static void clear_helper(void *priv)
 	g_free(devc);
 }
 
-static int cleanup(void)
+static int cleanup(const struct sr_dev_driver *di)
 {
 	return std_dev_clear(di, clear_helper);
 }

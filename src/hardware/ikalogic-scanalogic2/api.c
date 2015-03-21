@@ -53,14 +53,13 @@ static const char *channel_names[NUM_CHANNELS + 1] = {
 };
 
 SR_PRIV struct sr_dev_driver ikalogic_scanalogic2_driver_info;
-static struct sr_dev_driver *di = &ikalogic_scanalogic2_driver_info;
 
-static int init(struct sr_context *sr_ctx)
+static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 {
 	return std_init(sr_ctx, di, LOG_PREFIX);
 }
 
-static GSList *scan(GSList *options)
+static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	GSList *usb_devices, *devices, *l;
 	struct drv_context *drvc;
@@ -162,7 +161,7 @@ static GSList *scan(GSList *options)
 	return devices;
 }
 
-static GSList *dev_list(void)
+static GSList *dev_list(const struct sr_dev_driver *di)
 {
 	return ((struct drv_context *)(di->priv))->instances;
 }
@@ -180,13 +179,14 @@ static void clear_dev_context(void *priv)
 	g_free(devc);
 }
 
-static int dev_clear(void)
+static int dev_clear(const struct sr_dev_driver *di)
 {
 	return std_dev_clear(di, &clear_dev_context);
 }
 
 static int dev_open(struct sr_dev_inst *sdi)
 {
+	struct sr_dev_driver *di = sdi->driver;
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
@@ -258,6 +258,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 static int dev_close(struct sr_dev_inst *sdi)
 {
+	struct sr_dev_driver *di = sdi->driver;
 	struct sr_usb_dev_inst *usb;
 
 	if (!di->priv) {
@@ -279,9 +280,9 @@ static int dev_close(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int cleanup(void)
+static int cleanup(const struct sr_dev_driver *di)
 {
-	return dev_clear();
+	return dev_clear(di);
 }
 
 static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
@@ -386,6 +387,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 {
+	struct sr_dev_driver *di = sdi->driver;
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	uint16_t trigger_bytes, tmp;

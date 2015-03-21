@@ -20,7 +20,6 @@
 #include "protocol.h"
 
 SR_PRIV struct sr_dev_driver baylibre_acme_driver_info;
-static struct sr_dev_driver *di = &baylibre_acme_driver_info;
 
 static const uint32_t devopts[] = {
 	SR_CONF_CONTINUOUS | SR_CONF_SET,
@@ -42,12 +41,12 @@ static const uint64_t samplerates[] = {
 	SR_HZ(1),
 };
 
-static int init(struct sr_context *sr_ctx)
+static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 {
 	return std_init(sr_ctx, di, LOG_PREFIX);
 }
 
-static GSList *scan(GSList *options)
+static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct drv_context *drvc;
 	struct dev_context *devc;
@@ -131,12 +130,12 @@ err_out:
 	return NULL;
 }
 
-static GSList *dev_list(void)
+static GSList *dev_list(const struct sr_dev_driver *di)
 {
 	return ((struct drv_context *)(di->priv))->instances;
 }
 
-static int dev_clear(void)
+static int dev_clear(const struct sr_dev_driver *di)
 {
 	return std_dev_clear(di, NULL);
 }
@@ -161,9 +160,9 @@ static int dev_close(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int cleanup(void)
+static int cleanup(const struct sr_dev_driver *di)
 {
-	dev_clear();
+	dev_clear(di);
 
 	return SR_OK;
 }

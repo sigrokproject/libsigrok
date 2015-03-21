@@ -27,7 +27,7 @@
 #include "protocol.h"
 
 extern struct sr_dev_driver lascar_el_usb_driver_info;
-static struct sr_dev_driver *di = &lascar_el_usb_driver_info;
+struct sr_dev_driver *di = &lascar_el_usb_driver_info;
 
 static const struct elusb_profile profiles[] = {
 	{ 1, "EL-USB-1", LOG_UNSUPPORTED },

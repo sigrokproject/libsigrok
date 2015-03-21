@@ -247,7 +247,6 @@ static const struct rigol_ds_model supported_models[] = {
 };
 
 SR_PRIV struct sr_dev_driver rigol_ds_driver_info;
-static struct sr_dev_driver *di = &rigol_ds_driver_info;
 
 static void clear_helper(void *priv)
 {
@@ -265,12 +264,12 @@ static void clear_helper(void *priv)
 	g_free(devc);
 }
 
-static int dev_clear(void)
+static int dev_clear(const struct sr_dev_driver *di)
 {
 	return std_dev_clear(di, clear_helper);
 }
 
-static int init(struct sr_context *sr_ctx)
+static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 {
 	return std_init(sr_ctx, di, LOG_PREFIX);
 }
@@ -316,7 +315,7 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	sdi->model = g_strdup(model->name);
 	sdi->version = g_strdup(hw_info->firmware_version);
 	sdi->conn = scpi;
-	sdi->driver = di;
+	sdi->driver = &rigol_ds_driver_info;
 	sdi->inst_type = SR_INST_SCPI;
 	sdi->serial_num = g_strdup(hw_info->serial_number);
 	devc = g_malloc0(sizeof(struct dev_context));
@@ -407,12 +406,12 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	return sdi;
 }
 
-static GSList *scan(GSList *options)
+static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	return sr_scpi_scan(di->priv, options, probe_device);
 }
 
-static GSList *dev_list(void)
+static GSList *dev_list(const struct sr_dev_driver *di)
 {
 	return ((struct drv_context *)(di->priv))->instances;
 }
@@ -460,9 +459,9 @@ static int dev_close(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int cleanup(void)
+static int cleanup(const struct sr_dev_driver *di)
 {
-	return dev_clear();
+	return dev_clear(di);
 }
 
 static int analog_frame_size(const struct sr_dev_inst *sdi)

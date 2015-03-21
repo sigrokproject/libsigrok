@@ -175,7 +175,7 @@ SR_API int sr_session_load(const char *filename, struct sr_session **session)
 					if (!session_driver_initialized) {
 						/* first device, init the driver */
 						session_driver_initialized = 1;
-						sdi->driver->init(NULL);
+						sdi->driver->init(sdi->driver, NULL);
 					}
 					sr_dev_open(sdi);
 					sr_session_dev_add(*session, sdi);

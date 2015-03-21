@@ -21,7 +21,6 @@
 #include "beaglelogic.h"
 
 SR_PRIV struct sr_dev_driver beaglelogic_driver_info;
-static struct sr_dev_driver *di = &beaglelogic_driver_info;
 
 /* Scan options */
 static const uint32_t scanopts[] = {
@@ -61,7 +60,7 @@ static const uint64_t samplerates[] = {
 	SR_HZ(1),
 };
 
-static int init(struct sr_context *sr_ctx)
+static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 {
 	return std_init(sr_ctx, di, LOG_PREFIX);
 }
@@ -79,7 +78,7 @@ static struct dev_context *beaglelogic_devc_alloc(void)
 	return devc;
 }
 
-static GSList *scan(GSList *options)
+static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct drv_context *drvc;
 	GSList *devices, *l;
@@ -146,12 +145,12 @@ static GSList *scan(GSList *options)
 	return devices;
 }
 
-static GSList *dev_list(void)
+static GSList *dev_list(const struct sr_dev_driver *di)
 {
 	return ((struct drv_context *)(di->priv))->instances;
 }
 
-static int dev_clear(void)
+static int dev_clear(const struct sr_dev_driver *di)
 {
 	return std_dev_clear(di, NULL);
 }
@@ -200,7 +199,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int cleanup(void)
+static int cleanup(const struct sr_dev_driver *di)
 {
 	struct drv_context *drvc;
 	struct sr_dev_inst *sdi;
@@ -219,8 +218,6 @@ static int cleanup(void)
 	}
 	g_slist_free(drvc->instances);
 	drvc->instances = NULL;
-
-	di->priv = NULL;
 
 	return SR_OK;
 }

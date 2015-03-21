@@ -40,15 +40,14 @@ static const char *data_sources[] = {
 };
 
 SR_PRIV struct sr_dev_driver uni_t_ut32x_driver_info;
-static struct sr_dev_driver *di = &uni_t_ut32x_driver_info;
 
 
-static int init(struct sr_context *sr_ctx)
+static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 {
 	return std_init(sr_ctx, di, LOG_PREFIX);
 }
 
-static GSList *scan(GSList *options)
+static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct drv_context *drvc;
 	struct dev_context *devc;
@@ -101,13 +100,14 @@ static GSList *scan(GSList *options)
 	return devices;
 }
 
-static GSList *dev_list(void)
+static GSList *dev_list(const struct sr_dev_driver *di)
 {
 	return ((struct drv_context *)(di->priv))->instances;
 }
 
 static int dev_open(struct sr_dev_inst *sdi)
 {
+	struct sr_dev_driver *di = sdi->driver;
 	struct drv_context *drvc;
 	struct sr_usb_dev_inst *usb;
 	int ret;
@@ -152,6 +152,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 static int dev_close(struct sr_dev_inst *sdi)
 {
+	struct sr_dev_driver *di = sdi->driver;
 	struct sr_usb_dev_inst *usb;
 
 	if (!di->priv) {
@@ -172,7 +173,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int cleanup(void)
+static int cleanup(const struct sr_dev_driver *di)
 {
 	int ret;
 	struct drv_context *drvc;
@@ -184,7 +185,6 @@ static int cleanup(void)
 
 	ret = std_dev_clear(di, NULL);
 	g_free(drvc);
-	di->priv = NULL;
 
 	return ret;
 }
@@ -217,6 +217,7 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
+	struct sr_dev_driver *di = sdi->driver;
 	struct dev_context *devc;
 	int ret;
 	const char *tmp_str;
@@ -280,6 +281,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 				    void *cb_data)
 {
+	struct sr_dev_driver *di = sdi->driver;
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;

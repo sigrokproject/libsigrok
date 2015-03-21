@@ -629,15 +629,20 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 
 /* Driver-specific API function wrappers */
 #define HW_INIT(X) \
-static int init_##X(struct sr_context *sr_ctx) { return init(sr_ctx, X); }
+static int init_##X(struct sr_dev_driver *di, struct sr_context *sr_ctx) { \
+	(void) di; return init(sr_ctx, X); }
 #define HW_CLEANUP(X) \
-static int cleanup_##X(void) { return cleanup(X); }
+static int cleanup_##X(const struct sr_dev_driver *di) { \
+	(void) di; return cleanup(X); }
 #define HW_SCAN(X) \
-static GSList *scan_##X(GSList *options) { return scan(options, X); }
+static GSList *scan_##X(struct sr_dev_driver *di, GSList *options) { \
+	(void) di; return scan(options, X); }
 #define HW_DEV_LIST(X) \
-static GSList *dev_list_##X(void) { return dev_list(X); }
+static GSList *dev_list_##X(const struct sr_dev_driver *di) { \
+	(void) di; return dev_list(X); }
 #define HW_DEV_CLEAR(X) \
-static int dev_clear_##X(void) { return dev_clear(X); }
+static int dev_clear_##X(const struct sr_dev_driver *di) { \
+	(void) di; return dev_clear(X); }
 #define HW_DEV_ACQUISITION_START(X) \
 static int dev_acquisition_start_##X(const struct sr_dev_inst *sdi, \
 void *cb_data) { return dev_acquisition_start(sdi, cb_data, X); }

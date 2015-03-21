@@ -23,7 +23,6 @@
 #include <math.h>
 
 extern struct sr_dev_driver uni_t_ut32x_driver_info;
-static struct sr_dev_driver *di = &uni_t_ut32x_driver_info;
 
 static float parse_temperature(unsigned char *buf)
 {
@@ -194,6 +193,7 @@ SR_PRIV int uni_t_ut32x_handle_events(int fd, int revents, void *cb_data)
 {
 	struct drv_context *drvc;
 	struct dev_context *devc;
+	struct sr_dev_driver *di;
 	struct sr_dev_inst *sdi;
 	struct sr_datafeed_packet packet;
 	struct sr_usb_dev_inst *usb;
@@ -204,10 +204,11 @@ SR_PRIV int uni_t_ut32x_handle_events(int fd, int revents, void *cb_data)
 	(void)fd;
 	(void)revents;
 
-	drvc = di->priv;
-
 	if (!(sdi = cb_data))
 		return TRUE;
+
+	di = sdi->driver;
+	drvc = di->priv;
 
 	if (!(devc = sdi->priv))
 		return TRUE;

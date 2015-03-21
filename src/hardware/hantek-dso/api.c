@@ -159,7 +159,6 @@ static const char *coupling[] = {
 };
 
 SR_PRIV struct sr_dev_driver hantek_dso_driver_info;
-static struct sr_dev_driver *di = &hantek_dso_driver_info;
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);
 
@@ -176,7 +175,7 @@ static struct sr_dev_inst *dso_dev_new(const struct dso_profile *prof)
 	sdi->status = SR_ST_INITIALIZING;
 	sdi->vendor = g_strdup(prof->vendor);
 	sdi->model = g_strdup(prof->model);
-	sdi->driver = di;
+	sdi->driver = &hantek_dso_driver_info;
 
 	/*
 	 * Add only the real channels -- EXT isn't a source of data, only
@@ -208,7 +207,7 @@ static struct sr_dev_inst *dso_dev_new(const struct dso_profile *prof)
 	devc->triggersource = g_strdup(DEFAULT_TRIGGER_SOURCE);
 	devc->triggerposition = DEFAULT_HORIZ_TRIGGERPOS;
 	sdi->priv = devc;
-	drvc = di->priv;
+	drvc = hantek_dso_driver_info.priv;
 	drvc->instances = g_slist_append(drvc->instances, sdi);
 
 	return sdi;
@@ -248,17 +247,17 @@ static void clear_dev_context(void *priv)
 
 }
 
-static int dev_clear(void)
+static int dev_clear(const struct sr_dev_driver *di)
 {
 	return std_dev_clear(di, clear_dev_context);
 }
 
-static int init(struct sr_context *sr_ctx)
+static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 {
 	return std_init(sr_ctx, di, LOG_PREFIX);
 }
 
-static GSList *scan(GSList *options)
+static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct drv_context *drvc;
 	struct dev_context *devc;
@@ -361,7 +360,7 @@ static GSList *scan(GSList *options)
 	return devices;
 }
 
-static GSList *dev_list(void)
+static GSList *dev_list(const struct sr_dev_driver *di)
 {
 	return ((struct drv_context *)(di->priv))->instances;
 }
@@ -421,9 +420,9 @@ static int dev_close(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int cleanup(void)
+static int cleanup(const struct sr_dev_driver *di)
 {
-	return dev_clear();
+	return dev_clear(di);
 }
 
 static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
@@ -867,8 +866,9 @@ static int handle_event(int fd, int revents, void *cb_data)
 	const struct sr_dev_inst *sdi;
 	struct sr_datafeed_packet packet;
 	struct timeval tv;
+	struct sr_dev_driver *di;
 	struct dev_context *devc;
-	struct drv_context *drvc = di->priv;
+	struct drv_context *drvc;
 	int num_channels;
 	uint32_t trigger_offset;
 	uint8_t capturestate;
@@ -877,6 +877,8 @@ static int handle_event(int fd, int revents, void *cb_data)
 	(void)revents;
 
 	sdi = cb_data;
+	di = sdi->driver;
+	drvc = di->priv;
 	devc = sdi->priv;
 	if (devc->dev_state == STOPPING) {
 		/* We've been told to wind up the acquisition. */
@@ -976,6 +978,7 @@ static int handle_event(int fd, int revents, void *cb_data)
 static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 {
 	struct dev_context *devc;
+	struct sr_dev_driver *di = sdi->driver;
 	struct drv_context *drvc = di->priv;
 
 	if (sdi->status != SR_ST_ACTIVE)

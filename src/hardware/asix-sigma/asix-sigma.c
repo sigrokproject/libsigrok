@@ -39,7 +39,6 @@
 #define USB_MODEL_NAME			"SIGMA"
 
 SR_PRIV struct sr_dev_driver asix_sigma_driver_info;
-static struct sr_dev_driver *di = &asix_sigma_driver_info;
 static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);
 
 /*
@@ -312,17 +311,17 @@ static void clear_helper(void *priv)
 	ftdi_deinit(&devc->ftdic);
 }
 
-static int dev_clear(void)
+static int dev_clear(const struct sr_dev_driver *di)
 {
 	return std_dev_clear(di, clear_helper);
 }
 
-static int init(struct sr_context *sr_ctx)
+static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 {
 	return std_init(sr_ctx, di, LOG_PREFIX);
 }
 
-static GSList *scan(GSList *options)
+static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct sr_dev_inst *sdi;
 	struct drv_context *drvc;
@@ -401,7 +400,7 @@ free:
 	return NULL;
 }
 
-static GSList *dev_list(void)
+static GSList *dev_list(const struct sr_dev_driver *di)
 {
 	return ((struct drv_context *)(di->priv))->instances;
 }
@@ -803,9 +802,9 @@ static int dev_close(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int cleanup(void)
+static int cleanup(const struct sr_dev_driver *di)
 {
-	return dev_clear();
+	return dev_clear(di);
 }
 
 static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,

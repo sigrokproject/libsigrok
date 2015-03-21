@@ -61,15 +61,15 @@ static const char *data_sources[] = {
 };
 
 SR_PRIV struct sr_dev_driver kecheng_kc_330b_driver_info;
-static struct sr_dev_driver *di = &kecheng_kc_330b_driver_info;
 
 
-static int init(struct sr_context *sr_ctx)
+static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 {
 	return std_init(sr_ctx, di, LOG_PREFIX);
 }
 
-static int scan_kecheng(struct sr_usb_dev_inst *usb, char **model)
+static int scan_kecheng(struct sr_dev_driver *di,
+		struct sr_usb_dev_inst *usb, char **model)
 {
 	struct drv_context *drvc;
 	int len, ret;
@@ -108,7 +108,7 @@ static int scan_kecheng(struct sr_usb_dev_inst *usb, char **model)
 	return SR_OK;
 }
 
-static GSList *scan(GSList *options)
+static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct drv_context *drvc;
 	struct dev_context *devc;
@@ -126,7 +126,7 @@ static GSList *scan(GSList *options)
 		/* We have a list of sr_usb_dev_inst matching the connection
 		 * string. Wrap them in sr_dev_inst and we're done. */
 		for (l = usb_devices; l; l = l->next) {
-			if (scan_kecheng(l->data, &model) != SR_OK)
+			if (scan_kecheng(di, l->data, &model) != SR_OK)
 				continue;
 			sdi = g_malloc0(sizeof(struct sr_dev_inst));
 			sdi->status = SR_ST_INACTIVE;
@@ -160,13 +160,14 @@ static GSList *scan(GSList *options)
 	return devices;
 }
 
-static GSList *dev_list(void)
+static GSList *dev_list(const struct sr_dev_driver *di)
 {
 	return ((struct drv_context *)(di->priv))->instances;
 }
 
 static int dev_open(struct sr_dev_inst *sdi)
 {
+	struct sr_dev_driver *di = sdi->driver;
 	struct drv_context *drvc;
 	struct sr_usb_dev_inst *usb;
 	int ret;
@@ -197,6 +198,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 static int dev_close(struct sr_dev_inst *sdi)
 {
+	struct sr_dev_driver *di = sdi->driver;
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
 
@@ -225,7 +227,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int cleanup(void)
+static int cleanup(const struct sr_dev_driver *di)
 {
 	int ret;
 	struct drv_context *drvc;
@@ -237,7 +239,6 @@ static int cleanup(void)
 
 	ret = std_dev_clear(di, NULL);
 	g_free(drvc);
-	di->priv = NULL;
 
 	return ret;
 }
@@ -294,6 +295,7 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
+	struct sr_dev_driver *di = sdi->driver;
 	struct dev_context *devc;
 	uint64_t p, q;
 	unsigned int i;
@@ -415,6 +417,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 		void *cb_data)
 {
+	struct sr_dev_driver *di = sdi->driver;
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;

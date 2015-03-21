@@ -85,14 +85,13 @@ static const uint64_t samplerates[] = {
 };
 
 SR_PRIV struct sr_dev_driver ols_driver_info;
-static struct sr_dev_driver *di = &ols_driver_info;
 
-static int init(struct sr_context *sr_ctx)
+static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 {
 	return std_init(sr_ctx, di, LOG_PREFIX);
 }
 
-static GSList *scan(GSList *options)
+static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct sr_config *src;
 	struct sr_dev_inst *sdi;
@@ -214,12 +213,12 @@ static GSList *scan(GSList *options)
 	return devices;
 }
 
-static GSList *dev_list(void)
+static GSList *dev_list(const struct sr_dev_driver *di)
 {
 	return ((struct drv_context *)(di->priv))->instances;
 }
 
-static int cleanup(void)
+static int cleanup(const struct sr_dev_driver *di)
 {
 	return std_dev_clear(di, NULL);
 }

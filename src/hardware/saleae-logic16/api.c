@@ -39,7 +39,6 @@
 #define NUM_SIMUL_TRANSFERS	32
 
 SR_PRIV struct sr_dev_driver saleae_logic16_driver_info;
-static struct sr_dev_driver *di = &saleae_logic16_driver_info;
 
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
@@ -96,7 +95,7 @@ static const uint64_t samplerates[] = {
 	SR_MHZ(100),
 };
 
-static int init(struct sr_context *sr_ctx)
+static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 {
 	return std_init(sr_ctx, di, LOG_PREFIX);
 }
@@ -139,7 +138,7 @@ static gboolean check_conf_profile(libusb_device *dev)
 	return ret;
 }
 
-static GSList *scan(GSList *options)
+static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct drv_context *drvc;
 	struct dev_context *devc;
@@ -241,13 +240,14 @@ static GSList *scan(GSList *options)
 	return devices;
 }
 
-static GSList *dev_list(void)
+static GSList *dev_list(const struct sr_dev_driver *di)
 {
 	return ((struct drv_context *)(di->priv))->instances;
 }
 
 static int logic16_dev_open(struct sr_dev_inst *sdi)
 {
+	struct sr_dev_driver *di;
 	libusb_device **devlist;
 	struct sr_usb_dev_inst *usb;
 	struct libusb_device_descriptor des;
@@ -255,6 +255,7 @@ static int logic16_dev_open(struct sr_dev_inst *sdi)
 	int ret, i, device_count;
 	char connection_id[64];
 
+	di = sdi->driver;
 	drvc = di->priv;
 	usb = sdi->conn;
 
@@ -410,7 +411,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int cleanup(void)
+static int cleanup(const struct sr_dev_driver *di)
 {
 	int ret;
 	struct drv_context *drvc;
@@ -421,7 +422,6 @@ static int cleanup(void)
 
 	ret = std_dev_clear(di, NULL);
 	g_free(drvc);
-	di->priv = NULL;
 
 	return ret;
 }
@@ -680,11 +680,13 @@ static int receive_data(int fd, int revents, void *cb_data)
 	struct dev_context *devc;
 	struct drv_context *drvc;
 	const struct sr_dev_inst *sdi;
+	struct sr_dev_driver *di;
 
 	(void)fd;
 	(void)revents;
 
 	sdi = cb_data;
+	di = sdi->driver;
 	drvc = di->priv;
 	devc = sdi->priv;
 
@@ -701,6 +703,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 {
+	struct sr_dev_driver *di = sdi->driver;
 	struct dev_context *devc;
 	struct drv_context *drvc;
 	struct sr_usb_dev_inst *usb;

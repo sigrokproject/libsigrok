@@ -360,7 +360,7 @@ SR_PRIV void sr_usbtmc_dev_inst_free(struct sr_usbtmc_dev_inst *usbtmc)
 SR_API GSList *sr_dev_list(const struct sr_dev_driver *driver)
 {
 	if (driver && driver->dev_list)
-		return driver->dev_list();
+		return driver->dev_list(driver);
 	else
 		return NULL;
 }
@@ -386,7 +386,7 @@ SR_API int sr_dev_clear(const struct sr_dev_driver *driver)
 	}
 
 	if (driver->dev_clear)
-		ret = driver->dev_clear();
+		ret = driver->dev_clear(driver);
 	else
 		ret = std_dev_clear(driver, NULL);
 

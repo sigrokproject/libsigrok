@@ -20,7 +20,6 @@
 #include "protocol.h"
 
 extern struct sr_dev_driver ikalogic_scanalogic2_driver_info;
-static struct sr_dev_driver *di = &ikalogic_scanalogic2_driver_info;
 
 extern uint64_t sl2_samplerates[NUM_SAMPLERATES];
 
@@ -199,6 +198,7 @@ static void process_sample_data(const struct sr_dev_inst *sdi)
 SR_PRIV int ikalogic_scanalogic2_receive_data(int fd, int revents, void *cb_data)
 {
 	struct sr_dev_inst *sdi;
+	struct sr_dev_driver *di;
 	struct dev_context *devc;
 	struct drv_context *drvc;
 	struct timeval tv;
@@ -214,6 +214,7 @@ SR_PRIV int ikalogic_scanalogic2_receive_data(int fd, int revents, void *cb_data
 	if (!(devc = sdi->priv))
 		return TRUE;
 
+	di = sdi->driver;
 	drvc = di->priv;
 	current_time = g_get_monotonic_time();
 
@@ -642,7 +643,7 @@ SR_PRIV int sl2_get_device_info(struct sr_usb_dev_inst usb,
 	uint8_t buffer[PACKET_LENGTH];
 	int ret;
 
-	drvc = di->priv;
+	drvc = ikalogic_scanalogic2_driver_info.priv;
 
 	if (!dev_info)
 		return SR_ERR_ARG;

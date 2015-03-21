@@ -998,24 +998,24 @@ struct sr_dev_driver {
 	/** API version (currently 1).	*/
 	int api_version;
 	/** Called when driver is loaded, e.g. program startup. */
-	int (*init) (struct sr_context *sr_ctx);
+	int (*init) (struct sr_dev_driver *driver, struct sr_context *sr_ctx);
 	/** Called before driver is unloaded.
 	 *  Driver must free all resources held by it. */
-	int (*cleanup) (void);
+	int (*cleanup) (const struct sr_dev_driver *driver);
 	/** Scan for devices. Driver should do all initialisation required.
 	 *  Can be called several times, e.g. with different port options.
 	 *  \retval NULL Error or no devices found.
 	 *  \retval other GSList of a struct sr_dev_inst for each device.
 	 *                Must be freed by caller!
 	 */
-	GSList *(*scan) (GSList *options);
+	GSList *(*scan) (struct sr_dev_driver *driver, GSList *options);
 	/** Get list of device instances the driver knows about.
 	 *  \returns NULL or GSList of a struct sr_dev_inst for each device.
 	 *           Must not be freed by caller!
 	 */
-	GSList *(*dev_list) (void);
+	GSList *(*dev_list) (const struct sr_dev_driver *driver);
 	/** Clear list of devices the driver knows about. */
-	int (*dev_clear) (void);
+	int (*dev_clear) (const struct sr_dev_driver *driver);
 	/** Query value of a configuration key in driver or given device instance.
 	 *  @see sr_config_get().
 	 */
