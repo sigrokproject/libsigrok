@@ -54,8 +54,6 @@ struct dmm_info {
 	gsize info_size;
 };
 
-extern SR_PRIV struct dmm_info *dmms[];
-
 #define DMM_BUFSIZE 256
 
 /** Private, per-device-instance driver context. */
