@@ -606,11 +606,11 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		switch (key) {
 		case SR_CONF_DEVICE_OPTIONS:
 			if (ch->type == SR_CHANNEL_LOGIC)
-				*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+				*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
 						devopts_cg_logic, ARRAY_SIZE(devopts_cg_logic),
 						sizeof(uint32_t));
 			else if (ch->type == SR_CHANNEL_ANALOG)
-				*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+				*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
 						devopts_cg_analog, ARRAY_SIZE(devopts_cg_analog),
 						sizeof(uint32_t));
 			else
