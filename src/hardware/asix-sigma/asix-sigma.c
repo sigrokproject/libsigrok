@@ -419,7 +419,7 @@ static int sigma_fpga_init_bitbang(struct dev_context *devc)
 		0x01, 0x03, 0x03, 0x01, 0x01, 0x01, 0x01, 0x01,
 		0x01, 0x01,
 	};
-	int i, ret, timeout = 10000;
+	int i, ret, timeout = (10 * 1000);
 	uint8_t data;
 
 	/* Section 2. part 1), do the FPGA suicide. */
@@ -441,7 +441,7 @@ static int sigma_fpga_init_bitbang(struct dev_context *devc)
 		if (data & (1 << 5))
 			return 0;
 		/* The D6 was not asserted yet, wait a bit. */
-		g_usleep(10000);
+		g_usleep(10 * 1000);
 	}
 
 	return SR_ERR_TIMEOUT;
@@ -590,7 +590,7 @@ static int upload_firmware(int firmware_idx, struct dev_context *devc)
 	}
 
 	/* Four times the speed of sigmalogan - Works well. */
-	ret = ftdi_set_baudrate(ftdic, 750000);
+	ret = ftdi_set_baudrate(ftdic, 750 * 1000);
 	if (ret < 0) {
 		sr_err("ftdi_set_baudrate failed: %s",
 		       ftdi_get_error_string(ftdic));

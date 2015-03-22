@@ -23,7 +23,7 @@
 #define SERIALCOMM "9600/8n1"
 
 /* 23ms is the longest interval between tokens. */
-#define MAX_SCAN_TIME 25 * 1000
+#define MAX_SCAN_TIME_US (25 * 1000)
 
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
@@ -104,7 +104,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	devices = NULL;
 	drvc = di->priv;
 	start = g_get_monotonic_time();
-	while (g_get_monotonic_time() - start < MAX_SCAN_TIME) {
+	while (g_get_monotonic_time() - start < MAX_SCAN_TIME_US) {
 		if (serial_read_nonblocking(serial, &c, 1) == 1 && c == 0xa5) {
 			/* Found one. */
 			sdi = g_malloc0(sizeof(struct sr_dev_inst));

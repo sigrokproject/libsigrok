@@ -757,7 +757,7 @@ static int prepare_data(int fd, int revents, void *cb_data)
 	/* How many samples should we have sent by now? */
 	time = g_get_monotonic_time();
 	elapsed = time - devc->starttime;
-	expected_samplenum = elapsed * devc->cur_samplerate / 1000000;
+	expected_samplenum = elapsed * devc->cur_samplerate / (1000 * 1000);
 
 	/* But never more than the limit, if there is one. */
 	if (!devc->continuous)

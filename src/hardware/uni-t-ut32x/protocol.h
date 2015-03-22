@@ -34,7 +34,7 @@
 #define USB_INTERFACE 0
 #define USB_CONFIGURATION 1
 
-#define EP_IN 0x80 | 2
+#define EP_IN (0x80 | 2)
 #define EP_OUT 2
 
 enum {

@@ -173,7 +173,7 @@ static void fancyprint(int unit, int mqflags, float value, GString *out)
 			g_string_append(out, " %oA");
 		break;
 	case SR_UNIT_CONCENTRATION:
-		g_string_append_printf(out, "%f ppm", value * 1000000);
+		g_string_append_printf(out, "%f ppm", value * (1000 * 1000));
 		break;
 	case SR_UNIT_REVOLUTIONS_PER_MINUTE:
 		si_printf(value, out, "RPM");

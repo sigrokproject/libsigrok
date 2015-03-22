@@ -30,9 +30,14 @@
 #define LASCAR_INTERFACE 0
 #define LASCAR_EP_IN 0x82
 #define LASCAR_EP_OUT 2
-/* Max 100ms for a device to positively identify. */
-#define SCAN_TIMEOUT 100000
 #define MAX_CONFIGBLOCK_SIZE 256
+
+/* Max 100ms for a device to positively identify. */
+#define SCAN_TIMEOUT (100 * 1000)
+#define BULK_XFER_TIMEOUT (10 * 1000)
+#define EVENTS_TIMEOUT (10 * 1000)
+#define SLEEP_US_LONG (5 * 1000)
+#define SLEEP_US_SHORT (1 * 1000)
 
 /** Private, per-device-instance driver context. */
 struct dev_context {

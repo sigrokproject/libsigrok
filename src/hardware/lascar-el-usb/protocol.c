@@ -111,7 +111,7 @@ SR_PRIV int lascar_get_config(libusb_device_handle *dev_hdl,
 	/* Keep a read request waiting in the wings, ready to pounce
 	 * the moment the device sends something. */
 	libusb_fill_bulk_transfer(xfer_in, dev_hdl, LASCAR_EP_IN,
-			buf, 256, mark_xfer, 0, 10000);
+			buf, 256, mark_xfer, 0, BULK_XFER_TIMEOUT);
 	if (libusb_submit_transfer(xfer_in) != 0)
 		goto cleanup;
 
@@ -132,7 +132,7 @@ SR_PRIV int lascar_get_config(libusb_device_handle *dev_hdl,
 			start = 0;
 			break;
 		}
-		g_usleep(5000);
+		g_usleep(SLEEP_US_LONG);
 		libusb_handle_events_timeout(drvc->sr_ctx->libusb_ctx, &tv);
 	}
 	if (!start) {
@@ -165,7 +165,7 @@ SR_PRIV int lascar_get_config(libusb_device_handle *dev_hdl,
 			start = 0;
 			break;
 		}
-		g_usleep(5000);
+		g_usleep(SLEEP_US_LONG);
 		libusb_handle_events_timeout(drvc->sr_ctx->libusb_ctx, &tv);
 	}
 	if (!start) {
@@ -189,9 +189,9 @@ cleanup:
 			libusb_cancel_transfer(xfer_out);
 		start = g_get_monotonic_time();
 		while (!xfer_in->user_data || !xfer_out->user_data) {
-			if (g_get_monotonic_time() - start > 10000)
+			if (g_get_monotonic_time() - start > EVENTS_TIMEOUT)
 				break;
-			g_usleep(1000);
+			g_usleep(SLEEP_US_SHORT);
 			libusb_handle_events_timeout(drvc->sr_ctx->libusb_ctx, &tv);
 		}
 	}
@@ -228,7 +228,7 @@ static int lascar_save_config(libusb_device_handle *dev_hdl,
 	/* Keep a read request waiting in the wings, ready to pounce
 	 * the moment the device sends something. */
 	libusb_fill_bulk_transfer(xfer_in, dev_hdl, LASCAR_EP_IN,
-			buf, 256, mark_xfer, 0, 10000);
+			buf, 256, mark_xfer, 0, BULK_XFER_TIMEOUT);
 	if (libusb_submit_transfer(xfer_in) != 0) {
 		ret = SR_ERR;
 		goto cleanup;
@@ -247,7 +247,7 @@ static int lascar_save_config(libusb_device_handle *dev_hdl,
 	tv.tv_sec = 0;
 	tv.tv_usec = 0;
 	while (!xfer_out->user_data) {
-		g_usleep(5000);
+		g_usleep(SLEEP_US_LONG);
 		libusb_handle_events_timeout(drvc->sr_ctx->libusb_ctx, &tv);
 	}
 
@@ -258,7 +258,7 @@ static int lascar_save_config(libusb_device_handle *dev_hdl,
 		goto cleanup;
 	}
 	while (!xfer_in->user_data || !xfer_out->user_data) {
-		g_usleep(5000);
+		g_usleep(SLEEP_US_LONG);
 		libusb_handle_events_timeout(drvc->sr_ctx->libusb_ctx, &tv);
 	}
 
@@ -275,9 +275,9 @@ cleanup:
 			libusb_cancel_transfer(xfer_out);
 		start = g_get_monotonic_time();
 		while (!xfer_in->user_data || !xfer_out->user_data) {
-			if (g_get_monotonic_time() - start > 10000)
+			if (g_get_monotonic_time() - start > EVENTS_TIMEOUT)
 				break;
-			g_usleep(1000);
+			g_usleep(SLEEP_US_SHORT);
 			libusb_handle_events_timeout(drvc->sr_ctx->libusb_ctx, &tv);
 		}
 	}
@@ -462,7 +462,7 @@ static void lascar_el_usb_dispatch(struct sr_dev_inst *sdi, unsigned char *buf,
 			break;
 		for (i = 0; i < samples; i++) {
 			s = (buf[i * 2] << 8) | buf[i * 2 + 1];
-			analog.data[i] = (s * devc->co_high + devc->co_low) / 1000000;
+			analog.data[i] = (s * devc->co_high + devc->co_low) / (1000 * 1000);
 			if (analog.data[i] < 0.0)
 				analog.data[i] = 0.0;
 		}

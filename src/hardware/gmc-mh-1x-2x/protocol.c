@@ -1236,7 +1236,7 @@ SR_PRIV int gmc_mh_2x_receive_data(int fd, int revents, void *cb_data)
 	if (sdi->status == SR_ST_ACTIVE) {
 		if (devc->response_pending) {
 			gint64 elapsed_us = g_get_monotonic_time() - devc->req_sent_at;
-			if (elapsed_us > 1*1000*1000) /* Timeout! */
+			if (elapsed_us > (1 * 1000 * 1000)) /* Timeout! */
 				devc->response_pending = FALSE;
 		}
 		if (!devc->response_pending) {
@@ -1342,13 +1342,13 @@ int req_stat14(const struct sr_dev_inst *sdi, gboolean power_on)
 		sr_info("Write some data and wait 3s to turn on powered off device...");
 		if (serial_write_blocking(serial, msg, sizeof(msg), 0) < 0)
 			return SR_ERR;
-		g_usleep(1*1000*1000);
+		g_usleep(1 * 1000 * 1000);
 		if (serial_write_blocking(serial, msg, sizeof(msg), 0) < 0)
 			return SR_ERR;
-		g_usleep(1*1000*1000);
+		g_usleep(1 * 1000 * 1000);
 		if (serial_write_blocking(serial, msg, sizeof(msg), 0) < 0)
 			return SR_ERR;
-		g_usleep(1*1000*1000);
+		g_usleep(1 * 1000 * 1000);
 		serial_flush(serial);
 	}
 
@@ -1534,7 +1534,7 @@ SR_PRIV int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *s
 		if (serial_write_blocking(sdi->conn, msg, sizeof(msg), 0) < 0)
 			return SR_ERR;
 		else
-			g_usleep(2000000); /* Wait to ensure transfer before interface switched off. */
+			g_usleep(2 * 1000 * 1000); /* Wait to ensure transfer before interface switched off. */
 		break;
 	case SR_CONF_LIMIT_MSEC:
 		devc->limit_msec = g_variant_get_uint64(data);

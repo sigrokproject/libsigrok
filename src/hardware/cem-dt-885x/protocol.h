@@ -32,11 +32,11 @@
 #define SAMPLES_PER_PACKET 50
 
 /* Various temporary storage, at least 8 bytes. */
-#define BUF_SIZE SAMPLES_PER_PACKET * 2
+#define BUF_SIZE (SAMPLES_PER_PACKET * 2)
 
 /* When in hold mode, force the last measurement out at this interval.
  * We're using 50ms, which duplicates the non-hold 20Hz update rate. */
-#define HOLD_REPEAT_INTERVAL 50 * 1000
+#define HOLD_REPEAT_INTERVAL (50 * 1000)
 
 enum {
 	TOKEN_WEIGHT_TIME_FAST = 0x02,

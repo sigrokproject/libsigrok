@@ -23,7 +23,7 @@
 #include "../include/libsigrok/libsigrok.h"
 #include "lib.h"
 
-#define BUFSIZE 1000000
+#define BUFSIZE (1000 * 1000)
 
 enum {
 	CHECK_ALL_LOW,

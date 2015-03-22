@@ -28,9 +28,9 @@
 #define LOG_PREFIX "input/chronovu-la8"
 
 #define DEFAULT_NUM_CHANNELS    8
-#define DEFAULT_SAMPLERATE      100000000L
-#define MAX_CHUNK_SIZE          4096
-#define CHRONOVU_LA8_FILESIZE   8 * 1024 * 1024 + 5
+#define DEFAULT_SAMPLERATE      SR_MHZ(100)
+#define MAX_CHUNK_SIZE          (4 * 1024)
+#define CHRONOVU_LA8_FILESIZE   ((8 * 1024 * 1024) + 5)
 
 struct context {
 	gboolean started;

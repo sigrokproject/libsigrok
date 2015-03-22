@@ -108,7 +108,7 @@ static enum model scan_model_sm(struct sr_serial_dev_inst *serial)
 	gint64 timeout_us;
 
 	model = METRAHIT_NONE;
-	timeout_us = g_get_monotonic_time() + 1 * 1000 * 1000;
+	timeout_us = g_get_monotonic_time() + (1 * 1000 * 1000);
 
 	/*
 	 * Try to find message consisting of device code and several
@@ -296,7 +296,7 @@ static GSList *scan_2x_bd232(struct sr_dev_driver *di, GSList *options)
 		goto exit_err;
 
 	/* Wait for reply from device(s) for up to 2s. */
-	timeout_us = g_get_monotonic_time() + 2*1000*1000;
+	timeout_us = g_get_monotonic_time() + (2 * 1000 * 1000);
 
 	while (timeout_us > g_get_monotonic_time()) {
 		/* Receive reply (14 bytes) */

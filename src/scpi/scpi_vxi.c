@@ -28,7 +28,7 @@
 #include "libsigrok-internal.h"
 
 #define LOG_PREFIX "scpi_vxi"
-#define VXI_DEFAULT_TIMEOUT  2000  /* in ms */
+#define VXI_DEFAULT_TIMEOUT_MS 2000
 
 struct scpi_vxi {
 	char *address;
@@ -74,7 +74,7 @@ static int scpi_vxi_open(void *priv)
 	/* Set link parameters */
 	link_parms.clientId = (long) vxi->client;
 	link_parms.lockDevice = 0;
-	link_parms.lock_timeout = VXI_DEFAULT_TIMEOUT;
+	link_parms.lock_timeout = VXI_DEFAULT_TIMEOUT_MS;
 	link_parms.device = "inst0";
 
 	if (!(link_resp = create_link_1(&link_parms, vxi->client))) {
@@ -124,8 +124,8 @@ static int scpi_vxi_send(void *priv, const char *command)
 	len = strlen(terminated_command);
 
 	write_parms.lid           = vxi->link;
-	write_parms.io_timeout    = VXI_DEFAULT_TIMEOUT;
-	write_parms.lock_timeout  = VXI_DEFAULT_TIMEOUT;
+	write_parms.io_timeout    = VXI_DEFAULT_TIMEOUT_MS;
+	write_parms.lock_timeout  = VXI_DEFAULT_TIMEOUT_MS;
 	write_parms.flags         = DF_END;
 	write_parms.data.data_len = MIN(len, vxi->max_send_size);
 	write_parms.data.data_val = terminated_command;
@@ -169,8 +169,8 @@ static int scpi_vxi_read_data(void *priv, char *buf, int maxlen)
 	Device_ReadResp *read_resp;
 
 	read_parms.lid          = vxi->link;
-	read_parms.io_timeout   = VXI_DEFAULT_TIMEOUT;
-	read_parms.lock_timeout = VXI_DEFAULT_TIMEOUT;
+	read_parms.io_timeout   = VXI_DEFAULT_TIMEOUT_MS;
+	read_parms.lock_timeout = VXI_DEFAULT_TIMEOUT_MS;
 	read_parms.flags        = 0;
 	read_parms.termChar     = 0;
 	read_parms.requestSize  = maxlen;

@@ -30,7 +30,7 @@
 
 #define LOG_PREFIX "ikalogic-scanaplus"
 
-#define COMPRESSED_BUF_SIZE		(64 * 1024)
+#define COMPRESSED_BUF_SIZE (64 * 1024)
 
 /* Private, per-device-instance driver context. */
 struct dev_context {

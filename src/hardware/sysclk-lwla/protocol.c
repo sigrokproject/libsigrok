@@ -65,7 +65,7 @@ static int capture_setup(const struct sr_dev_inst *sdi)
 	uint64_t divider_count;
 	uint64_t trigger_mask;
 	uint64_t memory_limit;
-	uint16_t command[3 + 10*4];
+	uint16_t command[3 + (10 * 4)];
 
 	devc = sdi->priv;
 	acq  = devc->acquisition;
@@ -923,13 +923,13 @@ SR_PRIV int lwla_start_acquisition(const struct sr_dev_inst *sdi)
 	libusb_fill_bulk_transfer(acq->xfer_out, usb->devhdl, EP_COMMAND,
 				  (unsigned char *)acq->xfer_buf_out, 0,
 				  &receive_transfer_out,
-				  (struct sr_dev_inst *)sdi, USB_TIMEOUT);
+				  (struct sr_dev_inst *)sdi, USB_TIMEOUT_MS);
 
 	libusb_fill_bulk_transfer(acq->xfer_in, usb->devhdl, EP_REPLY,
 				  (unsigned char *)acq->xfer_buf_in,
 				  sizeof acq->xfer_buf_in,
 				  &receive_transfer_in,
-				  (struct sr_dev_inst *)sdi, USB_TIMEOUT);
+				  (struct sr_dev_inst *)sdi, USB_TIMEOUT_MS);
 
 	regvals = devc->reg_write_seq;
 

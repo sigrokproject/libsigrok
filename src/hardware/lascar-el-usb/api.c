@@ -390,7 +390,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		;
 
 	libusb_fill_bulk_transfer(xfer_in, usb->devhdl, LASCAR_EP_IN,
-			resp, sizeof(resp), mark_xfer, 0, 10000);
+			resp, sizeof(resp), mark_xfer, 0, BULK_XFER_TIMEOUT);
 	if (libusb_submit_transfer(xfer_in) != 0) {
 		libusb_free_transfer(xfer_in);
 		libusb_free_transfer(xfer_out);
@@ -411,7 +411,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	tv.tv_sec = 0;
 	tv.tv_usec = 0;
 	while (!xfer_in->user_data || !xfer_out->user_data) {
-		g_usleep(5000);
+		g_usleep(SLEEP_US_LONG);
 		libusb_handle_events_timeout(drvc->sr_ctx->libusb_ctx, &tv);
 	}
 	if (xfer_in->user_data != GINT_TO_POINTER(1) ||

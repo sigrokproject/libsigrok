@@ -187,7 +187,7 @@ SR_PRIV int brymen_stream_detect(struct sr_serial_dev_inst *serial,
 	       "ms, baudrate = %d).", serial->port, timeout_ms, baudrate);
 
 	/* Assume 8n1 transmission. That is 10 bits for every byte. */
-	byte_delay_us = 10 * (1000000 / baudrate);
+	byte_delay_us = 10 * ((1000 * 1000) / baudrate);
 	start = g_get_monotonic_time();
 
 	packet_len = i = ibuf = len = 0;

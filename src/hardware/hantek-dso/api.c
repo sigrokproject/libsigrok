@@ -72,13 +72,13 @@ static const char *channel_names[] = {
 };
 
 static const uint64_t buffersizes_32k[] = {
-	10240, 32768,
+	(10 * 1024), (32 * 1024),
 };
 static const uint64_t buffersizes_512k[] = {
-	10240, 524288,
+	(10 * 1024), (512 * 1024),
 };
 static const uint64_t buffersizes_14k[] = {
-	10240, 14336,
+	(10 * 1024), (14 * 1024),
 };
 
 static const struct dso_profile dev_profiles[] = {

@@ -29,10 +29,10 @@
 #define LOG_PREFIX "rigol-ds"
 
 /* Size of acquisition buffers */
-#define ACQ_BUFFER_SIZE 32768
+#define ACQ_BUFFER_SIZE (32 * 1024)
 
 /* Maximum number of samples to retrieve at once. */
-#define ACQ_BLOCK_SIZE 30000
+#define ACQ_BLOCK_SIZE (30 * 1000)
 
 #define MAX_ANALOG_CHANNELS 4
 #define MAX_DIGITAL_CHANNELS 16

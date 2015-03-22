@@ -35,7 +35,7 @@
 
 #define USB_VID_PID	"2961.6689"
 #define USB_INTERFACE	0
-#define USB_TIMEOUT	3000 /* ms */
+#define USB_TIMEOUT_MS	3000
 
 #define NUM_CHANNELS	34
 
@@ -46,7 +46,7 @@
 /** Unit and packet size for the sigrok logic datafeed.
  */
 #define UNIT_SIZE	((NUM_CHANNELS + 7) / 8)
-#define PACKET_LENGTH	10000	/* units */
+#define PACKET_LENGTH	(10 * 1000)	/* units */
 
 /** Size of the acquisition buffer in device memory units.
  */

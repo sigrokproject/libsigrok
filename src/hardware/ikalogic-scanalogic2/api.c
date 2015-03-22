@@ -225,11 +225,11 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 	libusb_fill_control_transfer(devc->xfer_in, usb->devhdl,
 		devc->xfer_buf_in, sl2_receive_transfer_in,
-		sdi, USB_TIMEOUT);
+		sdi, USB_TIMEOUT_MS);
 
 	libusb_fill_control_transfer(devc->xfer_out, usb->devhdl,
 		devc->xfer_buf_out, sl2_receive_transfer_out,
-		sdi, USB_TIMEOUT);
+		sdi, USB_TIMEOUT_MS);
 
 	memset(buffer, 0, sizeof(buffer));
 

@@ -29,7 +29,7 @@
 #define VICTOR_PID 0xd237
 #define VICTOR_VENDOR "Victor"
 #define VICTOR_INTERFACE 0
-#define VICTOR_ENDPOINT LIBUSB_ENDPOINT_IN | 1
+#define VICTOR_ENDPOINT (LIBUSB_ENDPOINT_IN | 1)
 
 SR_PRIV struct sr_dev_driver victor_dmm_driver_info;
 static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);

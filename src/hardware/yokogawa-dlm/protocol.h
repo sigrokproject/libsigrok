@@ -33,13 +33,13 @@
 #define LOG_PREFIX "yokogawa-dlm"
 #define MAX_INSTRUMENT_VERSIONS 4
 
-#define RECEIVE_BUFFER_SIZE (4096)
+#define RECEIVE_BUFFER_SIZE 4096
 
 /* See Communication Interface User's Manual on p. 268 (:WAVeform:ALL:SEND?). */
-#define DLM_MAX_FRAME_LENGTH (12500)
+#define DLM_MAX_FRAME_LENGTH 12500
 /* See Communication Interface User's Manual on p. 269 (:WAVeform:SEND?). */
-#define DLM_DIVISION_FOR_WORD_FORMAT (3200)
-#define DLM_DIVISION_FOR_BYTE_FORMAT (12.5)
+#define DLM_DIVISION_FOR_WORD_FORMAT 3200
+#define DLM_DIVISION_FOR_BYTE_FORMAT 12.5
 
 enum trigger_slopes {
 	SLOPE_POSITIVE,
@@ -121,18 +121,13 @@ struct dev_context {
 	gboolean data_pending;
 };
 
-/*--- api.c -----------------------------------------------------------------*/
 SR_PRIV int dlm_data_request(const struct sr_dev_inst *sdi);
-
-/*--- protocol.c ------------------------------------------------------------*/
 SR_PRIV int dlm_model_get(char *model_id, char **model_name, int *model_index);
 SR_PRIV int dlm_device_init(struct sr_dev_inst *sdi, int model_index);
 SR_PRIV int dlm_data_receive(int fd, int revents, void *cb_data);
-
 SR_PRIV void dlm_scope_state_destroy(struct scope_state *state);
 SR_PRIV int dlm_scope_state_query(struct sr_dev_inst *sdi);
 SR_PRIV int dlm_sample_rate_query(const struct sr_dev_inst *sdi);
-
 SR_PRIV int dlm_channel_data_request(const struct sr_dev_inst *sdi);
 
 #endif

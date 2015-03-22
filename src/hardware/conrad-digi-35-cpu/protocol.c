@@ -57,7 +57,7 @@ SR_PRIV int send_msg1(const struct sr_dev_inst *sdi, char cmd, int param)
 	 * Wait 50ms to ensure that the device does not swallow any of the
 	 * following commands.
 	 */
-	g_usleep(50000);
+	g_usleep(50 * 1000);
 
 	return SR_OK;
 }

@@ -181,7 +181,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 				break;
 			/* The Scopemeter 199B, at least, requires this
 			 * after all the 115k/9.6k confusion. */
-			g_usleep(5000);
+			g_usleep(5 * 1000);
 		}
 	}
 

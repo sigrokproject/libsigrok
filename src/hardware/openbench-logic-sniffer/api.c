@@ -83,6 +83,8 @@ static const uint64_t samplerates[] = {
 	SR_HZ(1),
 };
 
+#define RESPONSE_DELAY_US (10 * 1000)
+
 SR_PRIV struct sr_dev_driver ols_driver_info;
 
 static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
@@ -150,8 +152,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	}
 	send_shortcommand(serial, CMD_ID);
 
-	/* Wait 10ms for a response. */
-	g_usleep(10000);
+	g_usleep(RESPONSE_DELAY_US);
 
 	if (sp_input_waiting(serial->data) == 0) {
 		sr_dbg("Didn't get any reply.");
@@ -175,8 +176,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	 */
 	send_shortcommand(serial, CMD_METADATA);
 
-	/* Wait 10ms for a response. */
-	g_usleep(10000);
+	g_usleep(RESPONSE_DELAY_US);
 
 	if (sp_input_waiting(serial->data) != 0) {
 		/* Got metadata. */

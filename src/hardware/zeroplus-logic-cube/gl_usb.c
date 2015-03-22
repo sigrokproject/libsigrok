@@ -42,7 +42,7 @@
 			 LIBUSB_RECIPIENT_INTERFACE)
 #define EP1_BULK_IN	(LIBUSB_ENDPOINT_IN | 1)
 
-#define TIMEOUT		5000	/* Timeout in ms */
+#define TIMEOUT_MS	(5 * 1000)
 
 enum {
 	REQ_READBULK = 0x82,
@@ -57,7 +57,7 @@ static int gl_write_address(libusb_device_handle *devh, unsigned int address)
 	int ret;
 
 	ret = libusb_control_transfer(devh, CTRL_OUT, 0xc, REQ_WRITEADDR,
-					 0, packet, 1, TIMEOUT);
+					 0, packet, 1, TIMEOUT_MS);
 	if (ret != 1)
 		sr_err("%s: %s.", __func__, libusb_error_name(ret));
 	return ret;
@@ -69,7 +69,7 @@ static int gl_write_data(libusb_device_handle *devh, unsigned int val)
 	int ret;
 
 	ret = libusb_control_transfer(devh, CTRL_OUT, 0xc, REQ_WRITEDATA,
-				      0, packet, 1, TIMEOUT);
+				      0, packet, 1, TIMEOUT_MS);
 	if (ret != 1)
 		sr_err("%s: %s.", __func__, libusb_error_name(ret));
 	return ret;
@@ -81,7 +81,7 @@ static int gl_read_data(libusb_device_handle *devh)
 	int ret;
 
 	ret = libusb_control_transfer(devh, CTRL_IN, 0xc, REQ_READDATA,
-				      0, packet, 1, TIMEOUT);
+				      0, packet, 1, TIMEOUT_MS);
 	if (ret != 1)
 		sr_err("%s: %s, val=%hhx.", __func__,
 		       libusb_error_name(ret), packet[0]);
@@ -97,13 +97,13 @@ SR_PRIV int gl_read_bulk(libusb_device_handle *devh, void *buffer,
 	int ret, transferred = 0;
 
 	ret = libusb_control_transfer(devh, CTRL_OUT, 0x4, REQ_READBULK,
-				      0, packet, 8, TIMEOUT);
+				      0, packet, 8, TIMEOUT_MS);
 	if (ret != 8)
 		sr_err("%s: libusb_control_transfer: %s.", __func__,
 		       libusb_error_name(ret));
 
 	ret = libusb_bulk_transfer(devh, EP1_BULK_IN, buffer, size,
-				   &transferred, TIMEOUT);
+				   &transferred, TIMEOUT_MS);
 	if (ret < 0)
 		sr_err("%s: libusb_bulk_transfer: %s.", __func__,
 		       libusb_error_name(ret));

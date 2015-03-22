@@ -26,7 +26,7 @@
 #define LOG_PREFIX "scpi"
 
 #define SCPI_READ_RETRIES 100
-#define SCPI_READ_RETRY_TIMEOUT 10000
+#define SCPI_READ_RETRY_TIMEOUT_US (10 * 1000)
 
 /**
  * Parse a string representation of a boolean-like value into a gboolean.
@@ -578,7 +578,7 @@ SR_PRIV int sr_scpi_get_opc(struct sr_scpi_dev_inst *scpi)
 		sr_scpi_get_bool(scpi, SCPI_CMD_OPC, &opc);
 		if (opc)
 			return SR_OK;
-		g_usleep(SCPI_READ_RETRY_TIMEOUT);
+		g_usleep(SCPI_READ_RETRY_TIMEOUT_US);
 	}
 
 	return SR_ERR;

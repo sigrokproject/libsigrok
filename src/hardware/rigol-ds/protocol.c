@@ -241,7 +241,7 @@ static int rigol_ds_check_stop(const struct sr_dev_inst *sdi)
 	if (tmp & 0x10) {
 		sr_warn("Single shot acquisition failed, retrying...");
 		/* Sleep a bit, otherwise the single shot will often fail */
-		g_usleep(500000);
+		g_usleep(500 * 1000);
 		rigol_ds_config_set(sdi, ":SING");
 		rigol_ds_set_wait_event(devc, WAIT_STOP);
 		return SR_ERR;
@@ -277,7 +277,7 @@ static int rigol_ds_block_wait(const struct sr_dev_inst *sdi)
 			 * it too much with SCPI requests but don't wait too
 			 * long for short sample frame sizes.
 			 */
-			g_usleep(devc->analog_frame_size < 15000 ? 100000 : 1000000);
+			g_usleep(devc->analog_frame_size < (15 * 1000) ? (100 * 1000) : (1000 * 1000));
 
 			/* "READ,nnnn" (still working) or "IDLE,nnnn" (finished) */
 			if (sr_scpi_get_string(sdi->conn, ":WAV:STAT?", &buf) != SR_OK)
@@ -285,7 +285,7 @@ static int rigol_ds_block_wait(const struct sr_dev_inst *sdi)
 
 			if (parse_int(buf + 5, &len) != SR_OK)
 				return SR_ERR;
-		} while (buf[0] == 'R' && len < 1000000);
+		} while (buf[0] == 'R' && len < (1000 * 1000));
 	}
 
 	rigol_ds_set_wait_event(devc, WAIT_NONE);
@@ -310,7 +310,7 @@ SR_PRIV int rigol_ds_config_set(const struct sr_dev_inst *sdi, const char *forma
 	if (devc->model->series->protocol == PROTOCOL_V2) {
 		/* The DS1000 series needs this stupid delay, *OPC? doesn't work. */
 		sr_spew("delay %dms", 100);
-		g_usleep(100000);
+		g_usleep(100 * 1000);
 		return SR_OK;
 	} else {
 		return sr_scpi_get_opc(sdi->conn);

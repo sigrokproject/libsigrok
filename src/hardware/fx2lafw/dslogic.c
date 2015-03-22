@@ -28,7 +28,8 @@
 #include "protocol.h"
 #include "dslogic.h"
 
-#define FW_BUFSIZE 4096
+#define FW_BUFSIZE (4 * 1024)
+
 int dslogic_fpga_firmware_upload(const struct sr_dev_inst *sdi,
 		const char *filename)
 {

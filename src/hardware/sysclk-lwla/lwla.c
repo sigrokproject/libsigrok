@@ -23,8 +23,8 @@
 #include <errno.h>
 #include <glib/gstdio.h>
 
-#define BITSTREAM_MAX_SIZE	262144	/* bitstream size limit for safety */
-#define BITSTREAM_HEADER_SIZE	4	/* transfer header size in bytes */
+#define BITSTREAM_MAX_SIZE    (256 * 1024) /* bitstream size limit for safety */
+#define BITSTREAM_HEADER_SIZE 4            /* transfer header size in bytes */
 
 /* Load a bitstream file into memory.  Returns a newly allocated array
  * consisting of a 32-bit length field followed by the bitstream data.
@@ -110,7 +110,7 @@ SR_PRIV int lwla_send_bitstream(const struct sr_usb_dev_inst *usb,
 
 	/* Transfer the entire bitstream in one URB. */
 	ret = libusb_bulk_transfer(usb->devhdl, EP_BITSTREAM,
-				   stream, length, &xfer_len, USB_TIMEOUT);
+				   stream, length, &xfer_len, USB_TIMEOUT_MS);
 	g_free(stream);
 
 	if (ret != 0) {
@@ -126,7 +126,7 @@ SR_PRIV int lwla_send_bitstream(const struct sr_usb_dev_inst *usb,
 	sr_info("FPGA bitstream download of %d bytes done.", xfer_len);
 
 	/* This delay appears to be necessary for reliable operation. */
-	g_usleep(30000);
+	g_usleep(30 * 1000);
 
 	return SR_OK;
 }
@@ -143,7 +143,7 @@ SR_PRIV int lwla_send_command(const struct sr_usb_dev_inst *usb,
 	xfer_len = 0;
 	ret = libusb_bulk_transfer(usb->devhdl, EP_COMMAND,
 				   (unsigned char *)command, cmd_len * 2,
-				   &xfer_len, USB_TIMEOUT);
+				   &xfer_len, USB_TIMEOUT_MS);
 	if (ret != 0) {
 		sr_dbg("Failed to send command %d: %s.",
 		       LWLA_TO_UINT16(command[0]), libusb_error_name(ret));
@@ -169,7 +169,7 @@ SR_PRIV int lwla_receive_reply(const struct sr_usb_dev_inst *usb,
 	xfer_len = 0;
 	ret = libusb_bulk_transfer(usb->devhdl, EP_REPLY,
 				   (unsigned char *)reply, reply_len * 4,
-				   &xfer_len, USB_TIMEOUT);
+				   &xfer_len, USB_TIMEOUT_MS);
 	if (ret != 0) {
 		sr_dbg("Failed to receive reply: %s.", libusb_error_name(ret));
 		return SR_ERR;

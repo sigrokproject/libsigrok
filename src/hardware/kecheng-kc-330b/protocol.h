@@ -27,7 +27,7 @@
 
 #define LOG_PREFIX "kecheng-kc-330b"
 
-#define EP_IN 0x80 | 1
+#define EP_IN (0x80 | 1)
 #define EP_OUT 2
 
 /* 500ms */

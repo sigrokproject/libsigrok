@@ -49,7 +49,7 @@
 #define EEPROM_CHANNEL_OFFSETS  0x08
 
 /* All models have this for their "fast" mode. */
-#define FRAMESIZE_SMALL         10240
+#define FRAMESIZE_SMALL         (10 * 1024)
 
 enum control_requests {
 	CTRL_READ_EEPROM = 0xa2,

@@ -23,7 +23,7 @@
 SR_PRIV unsigned int get_memory_size(int type)
 {
 	if (type == MEMORY_SIZE_8K)
-		return 8 * 1024;
+		return (8 * 1024);
 	else if (type <= MEMORY_SIZE_8M)
 		return (32 * 1024) << type;
 	else
@@ -63,9 +63,9 @@ SR_PRIV int set_limit_samples(struct dev_context *devc, uint64_t samples)
 
 	devc->limit_samples = samples;
 
-	if (samples <= 2 * 1024)
+	if (samples <= (2 * 1024))
 		devc->memory_size = MEMORY_SIZE_8K;
-	else if (samples <= 16 * 1024)
+	else if (samples <= (16 * 1024))
 		devc->memory_size = MEMORY_SIZE_64K;
 	else
 		devc->memory_size = 19 - clz(samples - 1);
