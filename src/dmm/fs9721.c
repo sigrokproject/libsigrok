@@ -335,7 +335,7 @@ SR_PRIV gboolean sr_fs9721_packet_valid(const uint8_t *buf)
  *
  * @param buf Buffer containing the 14-byte protocol packet. Must not be NULL.
  * @param floatval Pointer to a float variable. That variable will contain the
- *                 result value upon parsing success. Mut not be NULL.
+ *                 result value upon parsing success. Must not be NULL.
  * @param analog Pointer to a struct sr_datafeed_analog. The struct will be
  *               filled with data according to the protocol packet.
  *               Must not be NULL.

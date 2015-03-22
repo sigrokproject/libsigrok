@@ -95,7 +95,7 @@ struct dev_context {
 	/* Operational state */
 	gboolean settings_ok;	/**< Settings msg received yet. */
 	int msg_type;       /**< Message type (MSGID_INF, ...). */
-	int msg_len;        /**< Message lengh (valid when msg, curr. type known).*/
+	int msg_len;        /**< Message length (valid when msg, curr. type known).*/
 	int mq;             /**< Measured quantity */
 	int unit;           /**< Measured unit */
 	uint64_t mqflags;	/**< Measured quantity flags */

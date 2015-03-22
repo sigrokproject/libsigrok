@@ -299,7 +299,7 @@ SR_PRIV struct sr_dev_inst *p_ols_get_metadata(uint8_t *buf, int bytes_read, str
 				/* what is this for? */
 				break;
 			case 0x03:
-				/* Maximum sample rate (hz) */
+				/* Maximum sample rate (Hz) */
 				devc->max_samplerate = tmp_int;
 				break;
 			case 0x04:

@@ -121,7 +121,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 		return SR_ERR;
 
 /*
- * The libusbx 1.0.9 darwin backend is broken: it can report a kernel
+ * The libusb 1.0.9 Darwin backend is broken: it can report a kernel
  * driver being active, but detaching it always returns an error.
  */
 #if !defined(__APPLE__)

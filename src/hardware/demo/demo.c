@@ -218,7 +218,7 @@ static void generate_analog_pattern(struct analog_gen *ag, uint64_t sample_rate)
 		/* Make sure the number of samples we put out is an integer
 		 * multiple of our period size */
 		/* FIXME we actually need only one period. A ringbuffer would be
-		 * usefull here.*/
+		 * useful here. */
 		while (num_samples % ANALOG_SAMPLES_PER_PERIOD != 0)
 			num_samples--;
 

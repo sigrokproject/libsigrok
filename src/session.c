@@ -371,7 +371,7 @@ SR_API int sr_session_trigger_set(struct sr_session *session, struct sr_trigger 
  *              of file descriptor or timeout status.
  *
  * @retval SR_OK Success.
- * @retval SR_ERR Error occured.
+ * @retval SR_ERR Error occurred.
  */
 static int sr_session_iteration(struct sr_session *session, gboolean block)
 {

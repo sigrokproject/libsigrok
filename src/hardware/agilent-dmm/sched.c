@@ -333,8 +333,8 @@ static int recv_conf_u123x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 	} else if (!strcmp(mstr, "MV")) {
 		if (devc->mode_tempaux) {
 			devc->cur_mq = SR_MQ_TEMPERATURE;
-			/* No way to detect whether Fahrenheit or Celcius
-			 * is used, so we'll just default to Celcius. */
+			/* No way to detect whether Fahrenheit or Celsius
+			 * is used, so we'll just default to Celsius. */
 			devc->cur_unit = SR_UNIT_CELSIUS;
 		devc->cur_mqflags = 0;
 		devc->cur_divider = 0;

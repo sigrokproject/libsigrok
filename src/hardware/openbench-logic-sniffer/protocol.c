@@ -226,7 +226,7 @@ SR_PRIV struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
 				/* what is this for? */
 				break;
 			case 0x03:
-				/* Maximum sample rate (hz) */
+				/* Maximum sample rate (Hz) */
 				devc->max_samplerate = tmp_int;
 				break;
 			case 0x04:

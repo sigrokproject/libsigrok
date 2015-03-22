@@ -166,7 +166,7 @@ static void process_mset(const struct sr_dev_inst *sdi)
 	case TOKEN_MEAS_RANGE_OK:
 	case TOKEN_MEAS_RANGE_OVER:
 	case TOKEN_MEAS_RANGE_UNDER:
-		/* Not useful, or not expressable in sigrok. */
+		/* Not useful, or not expressible in sigrok. */
 		break;
 	}
 

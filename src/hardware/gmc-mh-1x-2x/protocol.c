@@ -257,7 +257,7 @@ static void decode_ctmv_18(uint8_t ctmv, struct dev_context *devc)
 /**
  * Decode range/sign/acdc byte special chars, Metrahit 18.
  *
- * @param[in] rs Rance/sign byte.
+ * @param[in] rs Range/sign byte.
  */
 static void decode_rs_18(uint8_t rs, struct dev_context *devc)
 {

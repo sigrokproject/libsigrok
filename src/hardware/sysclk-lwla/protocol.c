@@ -350,7 +350,7 @@ static void issue_stop_capture(const struct sr_dev_inst *sdi)
 	}
 }
 
-/* Decode an incoming capture status reponse and act on it as appropriate.
+/* Decode an incoming capture status response and act on it as appropriate.
  * Note that this function changes the device state.
  */
 static void process_capture_status(const struct sr_dev_inst *sdi)

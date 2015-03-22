@@ -74,7 +74,7 @@ Note: This release DOES change the libsigrok API. That means it is NOT
      - All drivers that talk to serial ports now require libserialport.
      - If libserialport is not found, those drivers will not be built.
    - librevisa >= 0.0.20130812 (optional, only used by some drivers).
- * Dropped build dependecies:
+ * Dropped build dependencies:
    - libasound2 is no longer required (only the removed alsa driver used it).
    - libudev is no longer required (only the removed link-mso19 driver used it).
  * Serial port handling code:
@@ -119,7 +119,7 @@ Note: This release DOES change the libsigrok API. That means it is NOT
    - Temporarily disable the driver on Windows (needs portability fixes).
    - Fix an endianness issue in the protocol handling (bug #135).
    - Fix a sampling issue when (samples % 4) != 0 (bug #200).
-   - Fix an issue occuring when all channels were disabled (bugs #316, #347).
+   - Fix an issue occurring when all channels were disabled (bugs #316, #347).
    - Add an option to turn test patterns off again (bug #293).
  * rigol-ds:
    - Rename the 'rigol-ds1xx2' driver to 'rigol-ds'.
@@ -154,7 +154,7 @@ Note: This release DOES change the libsigrok API. That means it is NOT
    - Report max. possible number of samples (bugs #197, #258, #263).
  * Output modules:
    - Skip analog channels in logic-only output formats.
-   - Remove the obolete output module API, add wrapper calls for the new one.
+   - Remove the obsolete output module API, add wrapper calls for the new one.
    - Stop using the obsolete output API (bugs #288, #47, #48).
    - Properly receive and handle samplerate metadata (bug #46).
  * input/vcd: Abort with an error upon > 64 channels (bug #194).
@@ -197,7 +197,7 @@ Note: This release DOES change the libsigrok API. That means it is NOT
    - Change various function/macro names related to the probe->channel rename.
    - Change various functions due to the new channel group feature.
    - All enums in the public API now have names (e.g. 'enum sr_mqflag').
-   - The lib no longer defineѕ names with _t suffix (POSIX reserved).
+   - The lib no longer defines names with _t suffix (POSIX reserved).
    - New API calls:
       - sr_session_dev_list()
       - sr_session_save_init()

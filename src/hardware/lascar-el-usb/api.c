@@ -300,11 +300,11 @@ static int lascar_proc_config(const struct sr_dev_inst *sdi)
 		devc->temp_unit = devc->config[0x2e] | (devc->config[0x2f] << 8);
 		if (devc->temp_unit != 0 && devc->temp_unit != 1) {
 			sr_dbg("invalid temperature unit %d", devc->temp_unit);
-			/* Default to Celcius, we're all adults here. */
+			/* Default to Celsius, we're all adults here. */
 			devc->temp_unit = 0;
 		} else
 			sr_dbg("temperature unit is %s", devc->temp_unit
-					? "Fahrenheit" : "Celcius");
+					? "Fahrenheit" : "Celsius");
 		break;
 	case LOG_CO:
 		devc->sample_size = 2;

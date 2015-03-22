@@ -59,7 +59,7 @@ static const uint32_t scanopts[] = {
 static const uint32_t devopts[] = {
 	/* Device class */
 	SR_CONF_POWER_SUPPLY,
-	/* Aquisition modes. */
+	/* Acquisition modes. */
 	SR_CONF_CONTINUOUS,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
@@ -444,7 +444,7 @@ static GSList *do_scan(lps_modelid modelid, struct sr_dev_driver *drv, GSList *o
 		g_strstrip(buf);
 		verstr = buf + 4;
 	}
-	else  /* Bug in device FW 1.17: Quering version string fails while output is active.
+	else  /* Bug in device FW 1.17: Querying version string fails while output is active.
 		Therefore just print an error message, but do not exit with error. */
 		sr_err("Failed to query for hardware version: %d %s", errno, strerror(errno));
 

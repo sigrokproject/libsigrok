@@ -128,7 +128,7 @@ struct triggerlut {
 	uint16_t m0d[4], m1d[4], m2d[4];
 	uint16_t m3, m3s, m4;
 
-	/* Paramters should be sent as a single register write. */
+	/* Parameters should be sent as a single register write. */
 	struct {
 		uint8_t selc : 2;
 		uint8_t selpresc : 6;

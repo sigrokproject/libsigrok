@@ -45,7 +45,7 @@ struct dev_context {
 	void *session_cb_data;    /**< Opaque pointer passed in by the frontend. */
 
 	/* Operational state */
-	enum optarif optarif;     /**< The device mode (which mesures are reported) */
+	enum optarif optarif;     /**< The device mode (which measures are reported) */
 	uint64_t num_samples;     /**< The number of already received samples. */
 	int64_t start_time;       /**< The time at which sampling started. */
 

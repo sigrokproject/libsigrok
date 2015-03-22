@@ -1001,7 +1001,7 @@ SR_PRIV int dlm_data_receive(int fd, int revents, void *cb_data)
 		devc->current_channel = devc->current_channel->next;
 
 	if (dlm_channel_data_request(sdi) != SR_OK) {
-		sr_err("Failed to request aquisition data.");
+		sr_err("Failed to request acquisition data.");
 		goto fail;
 	}
 

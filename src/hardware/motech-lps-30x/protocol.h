@@ -98,7 +98,7 @@ struct dev_context {
 	const struct lps_modelspec* model;
 
 	/* Acquisition status */
-	gboolean acq_running;		/**< Aquisition is running. */
+	gboolean acq_running;		/**< Acquisition is running. */
 	uint64_t limit_samples;		/**< Target number of samples */
 	uint64_t limit_msec;		/**< Target sampling time */
 	acquisition_req acq_req;	/**< Current request. */

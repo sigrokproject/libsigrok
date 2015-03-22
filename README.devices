@@ -146,8 +146,8 @@ The following drivers/devices do not require a serial port specification:
  - zeroplus-logic-cube
 
 
-Specifiying serial port parameters
-----------------------------------
+Specifying serial port parameters
+---------------------------------
 
 Every serial device's driver has default serial port parameters like baud
 rate, number of data bits, stop bits and handshake status. If a device requires

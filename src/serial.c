@@ -744,7 +744,7 @@ SR_PRIV int serial_stream_detect(struct sr_serial_dev_inst *serial,
  * Extract the serial device and options from the options linked list.
  *
  * @param options List of options passed from the command line.
- * @param serial_device Pointer where to store the exctracted serial device.
+ * @param serial_device Pointer where to store the extracted serial device.
  * @param serial_options Pointer where to store the optional extracted serial
  * options.
  *

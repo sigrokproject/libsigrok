@@ -371,7 +371,7 @@ SR_PRIV int cv_read_block(struct dev_context *devc)
 		} while ((devc->done > now) && (bytes_read == 0));
 	}
 
-	/* Check if block read was successful or a timeout occured. */
+	/* Check if block read was successful or a timeout occurred. */
 	if (bytes_read != BS) {
 		sr_err("Trigger timed out. Bytes read: %d.", bytes_read);
 		(void) reset_device(devc); /* Ignore errors. */

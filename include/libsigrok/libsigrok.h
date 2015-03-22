@@ -291,7 +291,7 @@ enum sr_unit {
 	SR_UNIT_METER_SECOND,
 	/** Pressure in hectopascal */
 	SR_UNIT_HECTOPASCAL,
-	/** Relative humidity assuming air temperature of 293 kelvin (%rF). */
+	/** Relative humidity assuming air temperature of 293 Kelvin (%rF). */
 	SR_UNIT_HUMIDITY_293K,
 	/** Plane angle in 1/360th of a full circle. */
 	SR_UNIT_DEGREE,

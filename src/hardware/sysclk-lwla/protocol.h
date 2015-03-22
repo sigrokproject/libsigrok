@@ -207,10 +207,10 @@ struct dev_context {
 	/** The samplerate selected by the user. */
 	uint64_t samplerate;
 
-	/** The maximimum sampling duration, in milliseconds. */
+	/** The maximum sampling duration, in milliseconds. */
 	uint64_t limit_msec;
 
-	/** The maximimum number of samples to acquire. */
+	/** The maximum number of samples to acquire. */
 	uint64_t limit_samples;
 
 	/** Channels to use. */

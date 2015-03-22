@@ -81,9 +81,8 @@ static void teleinfo_send_value(struct sr_dev_inst *sdi, const char *channel_nam
 	g_slist_free(analog.channels);
 }
 
-static void teleinfo_handle_mesurement(struct sr_dev_inst *sdi,
-                                       const char *label, const char *data,
-                                       char *optarif)
+static void teleinfo_handle_measurement(struct sr_dev_inst *sdi,
+		const char *label, const char *data, char *optarif)
 {
 	struct dev_context *devc;
 	int v = atoi(data);
@@ -135,7 +134,7 @@ static gboolean teleinfo_parse_group(struct sr_dev_inst *sdi,
 		return FALSE;
 	if (!teleinfo_control_check(label, data, control))
 		return FALSE;
-	teleinfo_handle_mesurement(sdi, label, data, optarif);
+	teleinfo_handle_measurement(sdi, label, data, optarif);
 	return TRUE;
 }
 

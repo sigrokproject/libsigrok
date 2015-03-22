@@ -102,7 +102,7 @@ SR_PRIV int ezusb_upload_firmware(libusb_device *dev, int configuration,
 	}
 
 /*
- * The libusbx darwin backend is broken: it can report a kernel driver being
+ * The libusb Darwin backend is broken: it can report a kernel driver being
  * active, but detaching it always returns an error.
  */
 #if !defined(__APPLE__)

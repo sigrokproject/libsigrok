@@ -317,7 +317,7 @@ static void nma_process_line(const struct sr_dev_inst *sdi)
 		sr_warn("Low battery, measurement quality degraded!");
 	}
 	/* 0x08: SCALED */
-	/* 0x04: RATE (=lower resolution, allows higher rata rate up to 10/s. */
+	/* 0x04: RATE (=lower resolution, allows higher data rate up to 10/s. */
 	/* 0x02: Current clamp */
 	if (flags & 0x01) { /* dB */
 		/*

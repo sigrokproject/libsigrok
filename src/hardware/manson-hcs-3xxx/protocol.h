@@ -66,7 +66,7 @@ struct hcs_model {
 
 /** Private, per-device-instance driver context. */
 struct dev_context {
-	const struct hcs_model *model; /**< Model informaion. */
+	const struct hcs_model *model; /**< Model information. */
 
 	uint64_t limit_samples;
 	uint64_t limit_msec;

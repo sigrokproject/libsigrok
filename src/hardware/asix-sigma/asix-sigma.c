@@ -605,12 +605,12 @@ static int upload_firmware(int firmware_idx, struct dev_context *devc)
 	/* Prepare firmware. */
 	ret = sigma_fw_2_bitbang(firmware, &buf, &buf_size);
 	if (ret != SR_OK) {
-		sr_err("An error occured while reading the firmware: %s",
+		sr_err("An error occurred while reading the firmware: %s",
 		       firmware);
 		return ret;
 	}
 
-	/* Upload firmare. */
+	/* Upload firmware. */
 	sr_info("Uploading firmware file '%s'.", firmware);
 	sigma_write(buf, buf_size, devc);
 
@@ -1080,7 +1080,7 @@ static int decode_chunk_ts(struct sigma_dram_line *dram_line,
 					     trigger_event);
 		}
 
-		/* Find in which cluster the trigger occured. */
+		/* Find in which cluster the trigger occurred. */
 		trigger_cluster = trigger_event / EVENTS_PER_CLUSTER;
 	}
 
@@ -1365,7 +1365,7 @@ static int build_basic_trigger(struct triggerlut *lut, struct dev_context *devc)
 
 	memset(lut, 0, sizeof(struct triggerlut));
 
-	/* Contant for simple triggers. */
+	/* Constant for simple triggers. */
 	lut->m4 = 0xa000;
 
 	/* Value/mask trigger support. */

@@ -66,7 +66,7 @@ static libusb_device_handle *lascar_open(struct libusb_device *dev)
 	}
 
 	/* Some of these fail, but it needs doing -- some sort of mode
-	 * setup for the SILabs F32x. */
+	 * setup for the SiLabs F32x. */
 	libusb_control_transfer(dev_hdl, LIBUSB_REQUEST_TYPE_VENDOR,
 			0x00, 0xffff, 0x00, NULL, 0, 50);
 	libusb_control_transfer(dev_hdl, LIBUSB_REQUEST_TYPE_VENDOR,
@@ -410,9 +410,9 @@ static void lascar_el_usb_dispatch(struct sr_dev_inst *sdi, unsigned char *buf,
 		if (!(rh = g_try_malloc(sizeof(float) * samples)))
 			break;
 		for (i = 0, j = 0; i < samples; i++) {
-			/* Both Celcius and Fahrenheit stored at base -40. */
+			/* Both Celsius and Fahrenheit stored at base -40. */
 			if (devc->temp_unit == 0)
-				/* Celcius is stored in half-degree increments. */
+				/* Celsius is stored in half-degree increments. */
 				temp[j] = buf[i * 2] / 2 - 40;
 			else
 				temp[j] = buf[i * 2] - 40;
