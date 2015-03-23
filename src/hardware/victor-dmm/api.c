@@ -395,7 +395,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	usb_source_add(sdi->session, drvc->sr_ctx, 100,
 			handle_events, (void *)sdi);
 
-	buf = g_try_malloc(DMM_DATA_SIZE);
+	buf = g_malloc(DMM_DATA_SIZE);
 	transfer = libusb_alloc_transfer(0);
 	/* Each transfer request gets 100ms to arrive before it's restarted.
 	 * The device only sends 1 transfer/second no matter how many

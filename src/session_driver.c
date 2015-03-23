@@ -117,10 +117,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 			}
 		}
 
-		if (!(buf = g_try_malloc(CHUNKSIZE))) {
-			sr_err("%s: buf malloc failed", __func__);
-			return FALSE;
-		}
+		buf = g_malloc(CHUNKSIZE);
 
 		ret = zip_fread(vdev->capfile, buf,
 				CHUNKSIZE / vdev->unitsize * vdev->unitsize);

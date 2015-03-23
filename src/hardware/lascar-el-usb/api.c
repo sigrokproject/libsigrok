@@ -433,7 +433,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	usb_source_add(sdi->session, drvc->sr_ctx, 100,
 			lascar_el_usb_handle_events, (void *)sdi);
 
-	buf = g_try_malloc(4096);
+	buf = g_malloc(4096);
 	libusb_fill_bulk_transfer(xfer_in, usb->devhdl, LASCAR_EP_IN,
 			buf, 4096, lascar_el_usb_receive_transfer, cb_data, 100);
 	if ((ret = libusb_submit_transfer(xfer_in) != 0)) {

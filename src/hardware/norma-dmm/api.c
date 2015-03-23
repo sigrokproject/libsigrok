@@ -113,10 +113,7 @@ static GSList *scan(struct sr_dev_driver* drv, GSList *options)
 
 	serial_flush(serial);
 
-	if (!(buf = g_try_malloc(BUF_MAX))) {
-		sr_err("Serial buffer malloc failed.");
-		return NULL;
-	}
+	buf = g_malloc(BUF_MAX);
 
 	snprintf(req, sizeof(req), "%s\r\n",
 		 nmadmm_requests[NMADMM_REQ_IDN].req_str);

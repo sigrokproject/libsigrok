@@ -543,33 +543,15 @@ static struct scope_state *scope_state_new(const struct scope_config *config)
 {
 	struct scope_state *state;
 
-	if (!(state = g_try_malloc0(sizeof(struct scope_state))))
-		return NULL;
-
-	if (!(state->analog_channels = g_try_malloc0_n(config->analog_channels,
-				    sizeof(struct analog_channel_state))))
-	    goto fail;
-
-	if (!(state->digital_channels = g_try_malloc0_n(
-			config->digital_channels, sizeof(gboolean))))
-	    goto fail;
-
-	if (!(state->digital_pods = g_try_malloc0_n(config->digital_pods,
-						     sizeof(gboolean))))
-	    goto fail;
+	state = g_malloc0(sizeof(struct scope_state));
+	state->analog_channels = g_malloc0_n(config->analog_channels,
+			sizeof(struct analog_channel_state));
+	state->digital_channels = g_malloc0_n(
+			config->digital_channels, sizeof(gboolean));
+	state->digital_pods = g_malloc0_n(config->digital_pods,
+			sizeof(gboolean));
 
 	return state;
-
-fail:
-	if (state->analog_channels)
-		g_free(state->analog_channels);
-	if (state->digital_channels)
-		g_free(state->digital_channels);
-	if (state->digital_pods)
-		g_free(state->digital_pods);
-	g_free(state);
-
-	return NULL;
 }
 
 SR_PRIV void hmo_scope_state_free(struct scope_state *state)

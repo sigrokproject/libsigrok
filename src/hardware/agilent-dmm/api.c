@@ -122,10 +122,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	}
 
 	len = 128;
-	if (!(buf = g_try_malloc(len))) {
-		sr_err("Serial buffer malloc failed.");
-		return NULL;
-	}
+	buf = g_malloc(len);
 	serial_readline(serial, &buf, &len, 250);
 	if (!len)
 		return NULL;

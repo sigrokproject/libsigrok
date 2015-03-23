@@ -388,16 +388,16 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 			devc->num_timebases = &timebases[i] - devc->timebases + 1;
 	}
 
-	for (i = 0; i < NUM_VDIV; i++)
-		if (!memcmp(&devc->model->series->min_vdiv, &vdivs[i], sizeof(uint64_t[2]))) {
+	for (i = 0; i < NUM_VDIV; i++) {
+		if (!memcmp(&devc->model->series->min_vdiv,
+					&vdivs[i], sizeof(uint64_t[2]))) {
 			devc->vdivs = &vdivs[i];
 			devc->num_vdivs = NUM_VDIV - i;
 		}
+	}
 
-	if (!(devc->buffer = g_try_malloc(ACQ_BUFFER_SIZE)))
-		return NULL;
-	if (!(devc->data = g_try_malloc(ACQ_BUFFER_SIZE * sizeof(float))))
-		return NULL;
+	devc->buffer = g_malloc(ACQ_BUFFER_SIZE);
+	devc->data = g_malloc(ACQ_BUFFER_SIZE * sizeof(float));
 
 	devc->data_source = DATA_SOURCE_LIVE;
 

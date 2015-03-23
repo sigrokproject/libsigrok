@@ -110,10 +110,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	devc->flag_reg = 0;
 
 	/* Allocate memory for the incoming ftdi data. */
-	if (!(devc->ftdi_buf = g_try_malloc0(FTDI_BUF_SIZE))) {
-		sr_err("ftdi_buf malloc failed.");
-		goto err_free_devc;
-	}
+	devc->ftdi_buf = g_malloc0(FTDI_BUF_SIZE);
 
 	/* Allocate memory for the FTDI context (ftdic) and initialize it. */
 	if (!(devc->ftdic = ftdi_new())) {
@@ -197,7 +194,6 @@ err_free_ftdic:
 	ftdi_free(devc->ftdic); /* NOT free() or g_free()! */
 err_free_ftdi_buf:
 	g_free(devc->ftdi_buf);
-err_free_devc:
 	g_free(devc);
 
 	return NULL;

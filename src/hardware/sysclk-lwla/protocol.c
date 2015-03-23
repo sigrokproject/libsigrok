@@ -959,11 +959,7 @@ SR_PRIV struct acquisition_state *lwla_alloc_acquisition_state(void)
 {
 	struct acquisition_state *acq;
 
-	acq = g_try_new0(struct acquisition_state, 1);
-	if (!acq) {
-		sr_err("Acquisition state malloc failed.");
-		return NULL;
-	}
+	acq = g_malloc0(sizeof(struct acquisition_state));
 
 	acq->xfer_in = libusb_alloc_transfer(0);
 	if (!acq->xfer_in) {

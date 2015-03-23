@@ -827,8 +827,7 @@ static void receive_transfer(struct libusb_transfer *transfer)
 		}
 	} else {
 		/* Already past the trigger point, just send it all out. */
-		send_chunk(sdi, transfer->buffer,
-				num_samples);
+		send_chunk(sdi, transfer->buffer, num_samples);
 	}
 
 	devc->samp_received += num_samples;
@@ -939,8 +938,7 @@ static int handle_event(int fd, int revents, void *cb_data)
 		devc->trigger_offset = trigger_offset;
 
 		num_channels = (devc->ch1_enabled && devc->ch2_enabled) ? 2 : 1;
-		/* TODO: Check malloc return value. */
-		devc->framebuf = g_try_malloc(devc->framesize * num_channels * 2);
+		devc->framebuf = g_malloc(devc->framesize * num_channels * 2);
 		devc->samp_buffered = devc->samp_received = 0;
 
 		/* Tell the scope to send us the first frame. */

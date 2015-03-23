@@ -490,7 +490,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	if (testo_request_packet(sdi) != SR_OK)
 		return SR_ERR;
 
-	buf = g_try_malloc(MAX_REPLY_SIZE);
+	buf = g_malloc(MAX_REPLY_SIZE);
 	transfer = libusb_alloc_transfer(0);
 	libusb_fill_bulk_transfer(transfer, usb->devhdl, EP_IN, buf,
 			MAX_REPLY_SIZE, receive_transfer, (void *)sdi, 100);

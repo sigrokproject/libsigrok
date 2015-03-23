@@ -592,10 +592,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 		return SR_OK;
 	}
 
-	if (!(buf = g_try_malloc(PACKET_SIZE))) {
-		sr_err("Packet buffer malloc failed.");
-		return SR_ERR_MALLOC;
-	}
+	buf = g_malloc(PACKET_SIZE);
 
 	/* Check if the trigger is in the samples we are throwing away */
 	trigger_now = now_address == trigger_address ||

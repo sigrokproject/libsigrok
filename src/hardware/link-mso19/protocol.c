@@ -42,11 +42,7 @@ SR_PRIV int mso_send_control_message(struct sr_serial_dev_inst *serial,
 	if (serial->fd < 0)
 		goto ret;
 
-	if (!(buf = g_try_malloc(s))) {
-		sr_err("Failed to malloc message buffer.");
-		ret = SR_ERR_MALLOC;
-		goto ret;
-	}
+	buf = g_malloc(s);
 
 	p = buf;
 	memcpy(p, mso_head, sizeof(mso_head));
