@@ -27,7 +27,6 @@
 #include <errno.h>
 #include <math.h>
 #include <string.h>
-
 #include "protocol.h"
 
 /* Forward declarations */

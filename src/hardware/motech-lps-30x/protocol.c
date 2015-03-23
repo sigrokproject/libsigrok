@@ -25,7 +25,6 @@
 
 #include <errno.h>
 #include <string.h>
-
 #include "protocol.h"
 
 /** Send data packets for current measurements. */

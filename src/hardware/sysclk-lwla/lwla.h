@@ -20,10 +20,10 @@
 #ifndef LIBSIGROK_HARDWARE_SYSCLK_LWLA_LWLA_H
 #define LIBSIGROK_HARDWARE_SYSCLK_LWLA_LWLA_H
 
-#include "libsigrok.h"
 #include <stdint.h>
 #include <libusb.h>
 #include <glib.h>
+#include "libsigrok.h"
 
 struct sr_usb_dev_inst;
 

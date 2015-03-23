@@ -17,15 +17,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "libsigrok.h"
-#include "libsigrok-internal.h"
-#include "gpio.h"
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <string.h>
+#include "libsigrok.h"
+#include "libsigrok-internal.h"
+#include "gpio.h"
 
 #define LOG_PREFIX "gpio"
 

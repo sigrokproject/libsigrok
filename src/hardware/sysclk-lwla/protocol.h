@@ -22,11 +22,11 @@
 
 #define LOG_PREFIX "sysclk-lwla"
 
-#include "lwla.h"
-#include "libsigrok.h"
-#include "libsigrok-internal.h"
 #include <stdint.h>
 #include <glib.h>
+#include "libsigrok.h"
+#include "libsigrok-internal.h"
+#include "lwla.h"
 
 /* For now, only the LWLA1034 is supported.
  */

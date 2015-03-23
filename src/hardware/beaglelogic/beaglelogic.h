@@ -21,14 +21,11 @@
 #define BEAGLELOGIC_H_
 
 #include <fcntl.h>
-
 #include <sys/mman.h>
 #include <sys/types.h>
 #include <sys/errno.h>
 #include <sys/ioctl.h>
-
 #include <stdlib.h>
-
 #include <unistd.h>
 
 /* BeagleLogic device node name */

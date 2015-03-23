@@ -17,9 +17,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "protocol.h"
-
 #include <string.h>
+#include "protocol.h"
 
 static const uint32_t devopts[] = {
 	SR_CONF_THERMOMETER,

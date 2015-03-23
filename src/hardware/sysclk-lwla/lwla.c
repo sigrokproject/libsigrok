@@ -17,11 +17,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "lwla.h"
-#include "protocol.h"
-#include "libsigrok-internal.h"
 #include <errno.h>
 #include <glib/gstdio.h>
+#include "libsigrok.h"
+#include "libsigrok-internal.h"
+#include "protocol.h"
+#include "lwla.h"
 
 #define BITSTREAM_MAX_SIZE    (256 * 1024) /* bitstream size limit for safety */
 #define BITSTREAM_HEADER_SIZE 4            /* transfer header size in bytes */

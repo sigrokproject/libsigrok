@@ -18,14 +18,14 @@
  */
 
 #include <glib.h>
-#include "libsigrok.h"
-#include "libsigrok-internal.h"
-#include "protocol.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <string.h>
+#include "libsigrok.h"
+#include "libsigrok-internal.h"
+#include "protocol.h"
 
 /* The Colead SL-5868P uses this. */
 #define SERIALCOMM "2400/8n1"

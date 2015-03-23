@@ -22,10 +22,6 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #endif
-
-#include "libsigrok.h"
-#include "libsigrok-internal.h"
-
 #include <glib.h>
 #include <string.h>
 #include <unistd.h>
@@ -36,6 +32,8 @@
 #include <netdb.h>
 #endif
 #include <errno.h>
+#include "libsigrok.h"
+#include "libsigrok-internal.h"
 
 #define LOG_PREFIX "scpi_tcp"
 

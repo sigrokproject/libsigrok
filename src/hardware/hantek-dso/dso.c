@@ -19,12 +19,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "libsigrok.h"
-#include "libsigrok-internal.h"
-#include "dso.h"
 #include <string.h>
 #include <glib.h>
 #include <libusb.h>
+#include "libsigrok.h"
+#include "libsigrok-internal.h"
+#include "dso.h"
 
 extern struct sr_dev_driver hantek_dso_driver_info;
 

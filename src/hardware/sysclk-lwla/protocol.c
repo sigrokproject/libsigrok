@@ -17,8 +17,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "protocol.h"
 #include <string.h>
+#include "protocol.h"
 
 /* Bit mask for the RLE repeat-count-follows flag. */
 #define RLE_FLAG_LEN_FOLLOWS ((uint64_t)1 << 35)

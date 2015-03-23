@@ -18,13 +18,13 @@
  */
 
 #include <glib.h>
-#include "libsigrok.h"
-#include "libsigrok-internal.h"
-#include "agilent-dmm.h"
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
 #include <math.h>
+#include "libsigrok.h"
+#include "libsigrok-internal.h"
+#include "agilent-dmm.h"
 
 static void dispatch(const struct sr_dev_inst *sdi)
 {

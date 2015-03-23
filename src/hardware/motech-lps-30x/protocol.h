@@ -23,7 +23,6 @@
  *  @internal
  */
 
-
 #ifndef LIBSIGROK_HARDWARE_MOTECH_LPS_30X_PROTOCOL_H
 #define LIBSIGROK_HARDWARE_MOTECH_LPS_30X_PROTOCOL_H
 
@@ -31,7 +30,6 @@
 #include <glib.h>
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
-
 
 SR_PRIV int lps_process_status(struct sr_dev_inst* sdi, int stat);
 SR_PRIV int lps_send_req(struct sr_serial_dev_inst *serial, const char* fmt, ...);

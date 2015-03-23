@@ -17,11 +17,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "protocol.h"
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include "protocol.h"
 
 /* Define data packet size independent of packet (bufunitsize bytes) size
  * from the BeagleLogic kernel module */

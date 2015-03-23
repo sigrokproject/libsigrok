@@ -17,8 +17,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "protocol.h"
 #include <libserialport.h>
+#include "protocol.h"
 
 extern SR_PRIV struct sr_dev_driver ols_driver_info;
 

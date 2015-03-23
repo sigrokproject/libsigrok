@@ -19,11 +19,11 @@
 
 #include <stdlib.h>
 #include <glib.h>
+#include <errno.h>
+#include <string.h>
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 #include "protocol.h"
-#include <errno.h>
-#include <string.h>
 
 static void process_packet(const struct sr_dev_inst *sdi)
 {

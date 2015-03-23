@@ -17,10 +17,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "protocol.h"
-
 #include <string.h>
 #include <math.h>
+#include "protocol.h"
 
 extern struct sr_dev_driver uni_t_ut32x_driver_info;
 
