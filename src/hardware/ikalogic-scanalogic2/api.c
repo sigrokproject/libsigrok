@@ -77,7 +77,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	usb_devices = sr_usb_find(drvc->sr_ctx->libusb_ctx, USB_VID_PID);
 
-	if (usb_devices == NULL)
+	if (!usb_devices)
 		return NULL;
 
 	for (l = usb_devices; l; l = l->next) {

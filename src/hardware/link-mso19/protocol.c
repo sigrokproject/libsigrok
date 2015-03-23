@@ -336,7 +336,7 @@ SR_PRIV int mso_check_trigger(struct sr_serial_dev_inst *serial, uint8_t *info)
 
 	sr_dbg("Requesting trigger state.");
 	ret = mso_send_control_message(serial, ARRAY_AND_SIZE(ops));
-	if (info == NULL || ret != SR_OK)
+	if (!info || ret != SR_OK)
 		return ret;
 
 	uint8_t buf = 0;

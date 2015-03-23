@@ -54,8 +54,8 @@ static GSList *scpi_serial_scan(struct drv_context *drvc)
 	(void)drvc;
 
 	for (i = 0; i < ARRAY_SIZE(scpi_serial_usb_ids); i++) {
-		if ((l = sr_serial_find_usb(scpi_serial_usb_ids[i].vendor_id,
-		                            scpi_serial_usb_ids[i].product_id)) == NULL)
+		if (!(l = sr_serial_find_usb(scpi_serial_usb_ids[i].vendor_id,
+					scpi_serial_usb_ids[i].product_id)))
 			continue;
 		for (r = l; r; r = r->next) {
 			if (scpi_serial_usb_ids[i].serialcomm)

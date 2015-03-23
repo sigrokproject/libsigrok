@@ -116,7 +116,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	}
 	if (!conn)
 		conn = SERIALCONN;
-	if (serialcomm == NULL)
+	if (!serialcomm)
 		serialcomm = SERIALCOMM;
 
 	udev = udev_new();

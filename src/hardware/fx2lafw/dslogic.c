@@ -57,7 +57,7 @@ int dslogic_fpga_firmware_upload(const struct sr_dev_inst *sdi,
 	}
 	buf = g_malloc(FW_BUFSIZE);
 
-	if ((fw = g_fopen(filename, "rb")) == NULL) {
+	if (!(fw = g_fopen(filename, "rb"))) {
 		sr_err("Unable to open %s for reading: %s.", filename, strerror(errno));
 		return SR_ERR;
 	}

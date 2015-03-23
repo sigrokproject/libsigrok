@@ -66,7 +66,7 @@ static int scpi_vxi_open(void *priv)
 	Create_LinkResp *link_resp;
 
 	vxi->client = clnt_create(vxi->address, DEVICE_CORE, DEVICE_CORE_VERSION, "tcp");
-	if (vxi->client == NULL) {
+	if (!vxi->client) {
 		sr_err("Client creation failed for %s", vxi->address);
 		return SR_ERR;
 	}

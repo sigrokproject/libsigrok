@@ -115,7 +115,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	 * Let's assume there's no ACME device present if no probe
 	 * has been registered.
 	 */
-	if (sdi->channel_groups == NULL)
+	if (!sdi->channel_groups)
 		goto err_out;
 
 	devices = g_slist_append(devices, sdi);

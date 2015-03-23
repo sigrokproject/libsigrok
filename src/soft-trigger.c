@@ -40,7 +40,7 @@ SR_PRIV struct soft_trigger_logic *soft_trigger_logic_new(
 	stl->pre_trigger_buffer = g_malloc(stl->pre_trigger_size);
 	stl->pre_trigger_head = stl->pre_trigger_buffer;
 
-	if (stl->pre_trigger_size > 0 && stl->pre_trigger_buffer == NULL) {
+	if (stl->pre_trigger_size > 0 && !stl->pre_trigger_buffer) {
 		soft_trigger_logic_free(stl);
 		return NULL;
 	}

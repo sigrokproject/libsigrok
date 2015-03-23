@@ -107,7 +107,7 @@ static int do_ep1_command(const struct sr_dev_inst *sdi,
 	usb = sdi->conn;
 
 	if (cmd_len < 1 || cmd_len > 64 || reply_len > 64 ||
-	    command == NULL || (reply_len > 0 && reply == NULL))
+	    !command || (reply_len > 0 && !reply))
 		return SR_ERR_ARG;
 
 	encrypt(buf, command, cmd_len);
@@ -165,7 +165,7 @@ static int upload_led_table(const struct sr_dev_inst *sdi,
 	uint8_t chunk, command[64];
 	int ret;
 
-	if (cnt < 1 || cnt + offset > 64 || table == NULL)
+	if (cnt < 1 || cnt + offset > 64 || !table)
 		return SR_ERR_ARG;
 
 	while (cnt > 0) {
@@ -351,7 +351,7 @@ static int upload_fpga_bitstream(const struct sr_dev_inst *sdi,
 		}
 
 		sr_info("Uploading FPGA bitstream at %s.", filename);
-		if ((fw = g_fopen(filename, "rb")) == NULL) {
+		if (!(fw = g_fopen(filename, "rb"))) {
 			sr_err("Unable to open bitstream file %s for reading: %s.",
 			       filename, strerror(errno));
 			return SR_ERR;

@@ -426,7 +426,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 	struct sr_usb_dev_inst *usb;
 
 	usb = sdi->conn;
-	if (usb->devhdl == NULL)
+	if (!usb->devhdl)
 		return SR_ERR;
 
 	sr_info("fx2lafw: Closing device on %d.%d (logical) / %s (physical) interface %d.",
@@ -629,7 +629,7 @@ static int start_transfers(const struct sr_dev_inst *sdi)
 		if (devc->limit_samples > 0)
 			pre_trigger_samples = devc->capture_ratio * devc->limit_samples/100;
 		devc->stl = soft_trigger_logic_new(sdi, trigger, pre_trigger_samples);
-		if (devc->stl == NULL)
+		if (!devc->stl)
 			return SR_ERR_MALLOC;
 		devc->trigger_fired = FALSE;
 	} else

@@ -246,7 +246,7 @@ SR_API char *sr_si_string_u64(uint64_t x, const char *unit)
 	const char *p, prefix[] = "\0kMGTPE";
 	char fmt[16], fract[20] = "", *f;
 
-	if (unit == NULL)
+	if (!unit)
 		unit = "";
 
 	for (i = 0; (quot = x / divisor[i]) >= 1000; i++);

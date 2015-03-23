@@ -185,7 +185,7 @@ SR_PRIV void dso_close(struct sr_dev_inst *sdi)
 
 	usb = sdi->conn;
 
-	if (usb->devhdl == NULL)
+	if (!usb->devhdl)
 		return;
 
 	sr_info("Closing device on %d.%d (logical) / %s (physical) interface %d.",
