@@ -178,32 +178,48 @@ SR_PRIV int sr_usb_open(libusb_context *usb_ctx, struct sr_usb_dev_inst *usb)
 }
 
 #ifdef _WIN32
+/* Thread used to run libusb_wait_for_event() and set a pollable event. */
 static gpointer usb_thread(gpointer data)
 {
 	struct sr_context *ctx = data;
 
 	while (ctx->usb_thread_running) {
-		g_mutex_lock(&ctx->usb_mutex);
+		/* Acquire event waiters lock, needed for libusb_wait_for_event(). */
+		libusb_lock_event_waiters(ctx->libusb_ctx);
+		/* Wait for any libusb event. The main thread can interrupt this wait
+		 * by calling libusb_unlock_events(). */
 		libusb_wait_for_event(ctx->libusb_ctx, NULL);
-		SetEvent(ctx->usb_event);
-		g_mutex_unlock(&ctx->usb_mutex);
-		g_thread_yield();
+		/* Release event waiters lock. */
+		libusb_unlock_event_waiters(ctx->libusb_ctx);
+		/* Set event that the main loop will be polling on. */
+		SetEvent(ctx->usb_wait_complete_event);
+		/* Wait for the main thread to signal us to run again. */
+		WaitForSingleObject(ctx->usb_wait_request_event, INFINITE);
+		ResetEvent(ctx->usb_wait_request_event);
 	}
 
 	return NULL;
 }
 
+/* Callback wrapper run when main g_poll() gets a USB event or timeout. */
 static int usb_callback(int fd, int revents, void *cb_data)
 {
 	struct sr_context *ctx = cb_data;
 	int ret;
 
-	g_mutex_lock(&ctx->usb_mutex);
+	/* Run registered callback to handle libusb events. */
 	ret = ctx->usb_cb(fd, revents, ctx->usb_cb_data);
 
-	if (ctx->usb_thread_running) {
-		ResetEvent(ctx->usb_event);
-		g_mutex_unlock(&ctx->usb_mutex);
+	/* Were we triggered by an event from the wait thread, rather than by a
+	 * timeout? */
+	int triggered_by_event = (revents & G_IO_IN);
+
+	/* If so, and if the USB event source has not been removed from the
+	 * session, reset the event that woke us and tell the wait thread to start
+	 * waiting for events again. */
+	if (triggered_by_event && ctx->usb_thread_running) {
+		ResetEvent(ctx->usb_wait_complete_event);
+		SetEvent(ctx->usb_wait_request_event);
 	}
 
 	return ret;
@@ -219,11 +235,14 @@ SR_PRIV int usb_source_add(struct sr_session *session, struct sr_context *ctx,
 	}
 
 #ifdef _WIN32
-	ctx->usb_event = CreateEvent(NULL, TRUE, FALSE, NULL);
-	g_mutex_init(&ctx->usb_mutex);
+	/* Create events used to signal between main and USB wait threads. */
+	ctx->usb_wait_request_event = CreateEvent(NULL, TRUE, FALSE, NULL);
+	ctx->usb_wait_complete_event = CreateEvent(NULL, TRUE, FALSE, NULL);
+	/* Start USB wait thread. */
 	ctx->usb_thread_running = TRUE;
 	ctx->usb_thread = g_thread_new("usb", usb_thread, ctx);
-	ctx->usb_pollfd.fd = ctx->usb_event;
+	/* Add event, set by USB wait thread, to session poll set. */
+	ctx->usb_pollfd.fd = ctx->usb_wait_complete_event;
 	ctx->usb_pollfd.events = G_IO_IN;
 	ctx->usb_cb = cb;
 	ctx->usb_cb_data = cb_data;
@@ -250,13 +269,17 @@ SR_PRIV int usb_source_remove(struct sr_session *session, struct sr_context *ctx
 		return SR_OK;
 
 #ifdef _WIN32
+	/* Signal the USB wait thread to stop, then unblock it so it does. */
 	ctx->usb_thread_running = FALSE;
-	g_mutex_unlock(&ctx->usb_mutex);
+	SetEvent(ctx->usb_wait_request_event);
 	libusb_unlock_events(ctx->libusb_ctx);
+	/* Wait for USB wait thread to terminate. */
 	g_thread_join(ctx->usb_thread);
-	g_mutex_clear(&ctx->usb_mutex);
+	/* Remove USB event from session poll set. */
 	sr_session_source_remove_pollfd(session, &ctx->usb_pollfd);
-	CloseHandle(ctx->usb_event);
+	/* Close event handles that were used between threads. */
+	CloseHandle(ctx->usb_wait_request_event);
+	CloseHandle(ctx->usb_wait_complete_event);
 #else
 	const struct libusb_pollfd **lupfd;
 	unsigned int i;

@@ -180,8 +180,8 @@ struct sr_context {
 #ifdef _WIN32
 	GThread *usb_thread;
 	gboolean usb_thread_running;
-	GMutex usb_mutex;
-	HANDLE usb_event;
+	HANDLE usb_wait_request_event;
+	HANDLE usb_wait_complete_event;
 	GPollFD usb_pollfd;
 	sr_receive_data_callback usb_cb;
 	void *usb_cb_data;
