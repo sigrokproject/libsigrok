@@ -379,10 +379,27 @@ SR_API int sr_session_trigger_set(struct sr_session *session, struct sr_trigger 
 static int sr_session_iteration(struct sr_session *session, gboolean block)
 {
 	unsigned int i;
-	int ret;
+	int ret, timeout;
+#ifdef HAVE_LIBUSB_1_0
+	int usb_timeout;
+	struct timeval tv;
+#endif
 
-	ret = g_poll(session->pollfds, session->num_sources,
-			block ? session->source_timeout : 0);
+	timeout = block ? 0 : session->source_timeout;
+
+#ifdef HAVE_LIBUSB_1_0
+	ret = libusb_get_next_timeout(session->ctx->libusb_ctx, &tv);
+	if (ret < 0) {
+		sr_err("Error getting libusb timeout: %s",
+			libusb_error_name(ret));
+		return SR_ERR;
+	} else if (ret == 1) {
+		usb_timeout = tv.tv_sec * 1000 + tv.tv_usec / 1000;
+		timeout = MIN(timeout, usb_timeout);
+	}
+#endif
+
+	ret = g_poll(session->pollfds, session->num_sources, timeout);
 	for (i = 0; i < session->num_sources; i++) {
 		if (session->pollfds[i].revents > 0 || (ret == 0
 			&& session->source_timeout == session->sources[i].timeout)) {
