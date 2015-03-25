@@ -898,7 +898,7 @@ Session::Session(shared_ptr<Context> context, string filename) :
 	_filename(filename),
 	_saving(false)
 {
-	check(sr_session_load(filename.c_str(), &_structure));
+	check(sr_session_load(context->_structure, filename.c_str(), &_structure));
 	GSList *dev_list;
 	check(sr_session_dev_list(_structure, &dev_list));
 	for (GSList *dev = dev_list; dev; dev = dev->next)
