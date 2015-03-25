@@ -62,6 +62,7 @@ struct datafeed_callback {
 /**
  * Create a new session.
  *
+ * @param ctx         The context in which to create the new session.
  * @param new_session This will contain a pointer to the newly created
  *                    session if the return value is SR_OK, otherwise the value
  *                    is undefined and should not be used. Must not be NULL.
@@ -71,7 +72,8 @@ struct datafeed_callback {
  *
  * @since 0.4.0
  */
-SR_API int sr_session_new(struct sr_session **new_session)
+SR_API int sr_session_new(struct sr_context *ctx,
+		struct sr_session **new_session)
 {
 	struct sr_session *session;
 

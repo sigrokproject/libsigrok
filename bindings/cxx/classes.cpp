@@ -888,7 +888,7 @@ Session::Session(shared_ptr<Context> context) :
 	_context(context),
 	_saving(false)
 {
-	check(sr_session_new(&_structure));
+	check(sr_session_new(context->structure, &_structure));
 	_context->_session = this;
 }
 

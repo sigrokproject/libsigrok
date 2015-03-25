@@ -105,8 +105,9 @@ typedef void (*sr_datafeed_callback)(const struct sr_dev_inst *sdi,
 SR_API struct sr_trigger *sr_session_trigger_get(struct sr_session *session);
 
 /* Session setup */
-SR_API int sr_session_load(const char *filename, struct sr_session **session);
-SR_API int sr_session_new(struct sr_session **session);
+SR_API int sr_session_load(struct sr_context *ctx, const char *filename,
+	struct sr_session **session);
+SR_API int sr_session_new(struct sr_context *ctx, struct sr_session **session);
 SR_API int sr_session_destroy(struct sr_session *session);
 SR_API int sr_session_dev_remove_all(struct sr_session *session);
 SR_API int sr_session_dev_add(struct sr_session *session,

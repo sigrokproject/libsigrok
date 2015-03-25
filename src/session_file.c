@@ -105,6 +105,7 @@ SR_PRIV int sr_sessionfile_check(const char *filename)
 /**
  * Load the session from the specified filename.
  *
+ * @param ctx The context in which to load the session.
  * @param filename The name of the session file to load.
  * @param session The session to load the file into.
  *
@@ -113,7 +114,8 @@ SR_PRIV int sr_sessionfile_check(const char *filename)
  * @retval SR_ERR_DATA Malformed session file
  * @retval SR_ERR This is not a session file
  */
-SR_API int sr_session_load(const char *filename, struct sr_session **session)
+SR_API int sr_session_load(struct sr_context *ctx, const char *filename,
+		struct sr_session **session)
 {
 	GKeyFile *kf;
 	GPtrArray *capturefiles;
@@ -151,7 +153,7 @@ SR_API int sr_session_load(const char *filename, struct sr_session **session)
 		return SR_ERR;
 	}
 
-	if ((ret = sr_session_new(session)) != SR_OK)
+	if ((ret = sr_session_new(ctx, session)) != SR_OK)
 		return ret;
 
 	ret = SR_OK;
