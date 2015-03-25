@@ -663,6 +663,8 @@ SR_PRIV int sr_source_add_channel(GIOChannel *channel, int events, int timeout,
 /*--- session.c -------------------------------------------------------------*/
 
 struct sr_session {
+	/** Context this session exists in. */
+	struct sr_context *ctx;
 	/** List of struct sr_dev_inst pointers. */
 	GSList *devs;
 	/** List of struct sr_dev_inst pointers owned by this session. */

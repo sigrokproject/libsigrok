@@ -82,6 +82,7 @@ SR_API int sr_session_new(struct sr_context *ctx,
 
 	session = g_malloc0(sizeof(struct sr_session));
 
+	session->ctx = ctx;
 	session->source_timeout = -1;
 	session->running = FALSE;
 	session->abort_session = FALSE;
