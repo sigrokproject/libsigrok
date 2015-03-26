@@ -32,7 +32,7 @@ START_TEST(test_session_new)
 	int ret;
 	struct sr_session *sess;
 
-	ret = sr_session_new(&sess);
+	ret = sr_session_new(srtest_ctx, &sess);
 	fail_unless(ret == SR_OK, "sr_session_new() failed: %d.", ret);
 	sr_session_destroy(sess);
 }
@@ -46,7 +46,7 @@ START_TEST(test_session_new_bogus)
 {
 	int ret;
 
-	ret = sr_session_new(NULL);
+	ret = sr_session_new(srtest_ctx, NULL);
 	fail_unless(ret != SR_OK, "sr_session_new(NULL) worked.");
 }
 END_TEST
@@ -63,11 +63,11 @@ START_TEST(test_session_new_multiple)
 	sess1 = sess2 = sess3 = NULL;
 
 	/* Multiple sr_session_new() calls must work. */
-	ret = sr_session_new(&sess1);
+	ret = sr_session_new(srtest_ctx, &sess1);
 	fail_unless(ret == SR_OK, "sr_session_new() 1 failed: %d.", ret);
-	ret = sr_session_new(&sess2);
+	ret = sr_session_new(srtest_ctx, &sess2);
 	fail_unless(ret == SR_OK, "sr_session_new() 2 failed: %d.", ret);
-	ret = sr_session_new(&sess3);
+	ret = sr_session_new(srtest_ctx, &sess3);
 	fail_unless(ret == SR_OK, "sr_session_new() 3 failed: %d.", ret);
 
 	/* The returned session pointers must all be non-NULL. */
@@ -99,7 +99,7 @@ START_TEST(test_session_destroy)
 	int ret;
 	struct sr_session *sess;
 
-	sr_session_new(&sess);
+	sr_session_new(srtest_ctx, &sess);
 	ret = sr_session_destroy(sess);
 	fail_unless(ret == SR_OK, "sr_session_destroy() failed: %d.", ret);
 }
@@ -124,7 +124,7 @@ START_TEST(test_session_trigger_set_get)
 	struct sr_session *sess;
 	struct sr_trigger *t1, *t2;
 
-	sr_session_new(&sess);
+	sr_session_new(srtest_ctx, &sess);
 	t1 = sr_trigger_new("T1");
 
 	/* Set a trigger and see if getting it works OK. */
@@ -146,7 +146,7 @@ START_TEST(test_session_trigger_set_get_null)
 	struct sr_session *sess;
 	struct sr_trigger *t;
 
-	sr_session_new(&sess);
+	sr_session_new(srtest_ctx, &sess);
 
 	/* Adding a NULL trigger is allowed. */
 	ret = sr_session_trigger_set(sess, NULL);

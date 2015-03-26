@@ -208,7 +208,7 @@ static void check_buf(GHashTable *options, const uint8_t *buf, int check,
 
 	sdi = sr_input_dev_inst_get(in);
 
-	sr_session_new(&session);
+	sr_session_new(srtest_ctx, &session);
 	sr_session_datafeed_callback_add(session, datafeed_in, NULL);
 	sr_session_dev_add(session, sdi);
 
