@@ -143,29 +143,7 @@ extern SR_PRIV struct sr_dev_driver testo_driver_info;
 extern SR_PRIV struct sr_dev_driver tondaj_sl_814_driver_info;
 #endif
 #ifdef HAVE_HW_UNI_T_DMM
-extern SR_PRIV struct sr_dev_driver tecpel_dmm_8061_driver_info;
-extern SR_PRIV struct sr_dev_driver uni_t_ut372_driver_info;
-extern SR_PRIV struct sr_dev_driver uni_t_ut60a_driver_info;
-extern SR_PRIV struct sr_dev_driver uni_t_ut60e_driver_info;
-extern SR_PRIV struct sr_dev_driver uni_t_ut60g_driver_info;
-extern SR_PRIV struct sr_dev_driver uni_t_ut61b_driver_info;
-extern SR_PRIV struct sr_dev_driver uni_t_ut61c_driver_info;
-extern SR_PRIV struct sr_dev_driver uni_t_ut61d_driver_info;
-extern SR_PRIV struct sr_dev_driver uni_t_ut61e_driver_info;
-extern SR_PRIV struct sr_dev_driver uni_t_ut71a_driver_info;
-extern SR_PRIV struct sr_dev_driver uni_t_ut71b_driver_info;
-extern SR_PRIV struct sr_dev_driver uni_t_ut71c_driver_info;
-extern SR_PRIV struct sr_dev_driver uni_t_ut71d_driver_info;
-extern SR_PRIV struct sr_dev_driver uni_t_ut71e_driver_info;
-extern SR_PRIV struct sr_dev_driver voltcraft_vc820_driver_info;
-extern SR_PRIV struct sr_dev_driver voltcraft_vc830_driver_info;
-extern SR_PRIV struct sr_dev_driver voltcraft_vc840_driver_info;
-extern SR_PRIV struct sr_dev_driver voltcraft_vc870_driver_info;
-extern SR_PRIV struct sr_dev_driver voltcraft_vc920_driver_info;
-extern SR_PRIV struct sr_dev_driver voltcraft_vc940_driver_info;
-extern SR_PRIV struct sr_dev_driver voltcraft_vc960_driver_info;
-extern SR_PRIV struct sr_dev_driver tenma_72_7745_driver_info;
-extern SR_PRIV struct sr_dev_driver tenma_72_7750_driver_info;
+extern SR_PRIV struct sr_dev_driver *uni_t_dmm_drivers[];
 #endif
 #ifdef HAVE_HW_UNI_T_UT32X
 extern SR_PRIV struct sr_dev_driver uni_t_ut32x_driver_info;
@@ -317,32 +295,7 @@ SR_PRIV struct sr_dev_driver **drivers_lists[] = {
 	(DRVS) {&tondaj_sl_814_driver_info, NULL},
 #endif
 #ifdef HAVE_HW_UNI_T_DMM
-	(DRVS) {
-		&tecpel_dmm_8061_driver_info,
-		&uni_t_ut372_driver_info,
-		&uni_t_ut60a_driver_info,
-		&uni_t_ut60e_driver_info,
-		&uni_t_ut60g_driver_info,
-		&uni_t_ut61b_driver_info,
-		&uni_t_ut61c_driver_info,
-		&uni_t_ut61d_driver_info,
-		&uni_t_ut61e_driver_info,
-		&uni_t_ut71a_driver_info,
-		&uni_t_ut71b_driver_info,
-		&uni_t_ut71c_driver_info,
-		&uni_t_ut71d_driver_info,
-		&uni_t_ut71e_driver_info,
-		&voltcraft_vc820_driver_info,
-		&voltcraft_vc830_driver_info,
-		&voltcraft_vc840_driver_info,
-		&voltcraft_vc870_driver_info,
-		&voltcraft_vc920_driver_info,
-		&voltcraft_vc940_driver_info,
-		&voltcraft_vc960_driver_info,
-		&tenma_72_7745_driver_info,
-		&tenma_72_7750_driver_info,
-		NULL
-	},
+	uni_t_dmm_drivers,
 #endif
 #ifdef HAVE_HW_UNI_T_UT32X
 	(DRVS) {&uni_t_ut32x_driver_info, NULL},

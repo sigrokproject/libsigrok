@@ -24,8 +24,6 @@
 #include "libsigrok-internal.h"
 #include "protocol.h"
 
-extern const struct dmm_info udmms[];
-
 /*
  * Driver for various UNI-T multimeters (and rebranded ones).
  *
@@ -53,28 +51,34 @@ extern const struct dmm_info udmms[];
  *  f1 d1 00 00 00 00 00 00 (1 data byte, 0xd1)
  */
 
-static void decode_packet(struct sr_dev_inst *sdi, int dmm, const uint8_t *buf,
-			  void *info)
+static void decode_packet(struct sr_dev_inst *sdi, const uint8_t *buf)
 {
 	struct dev_context *devc;
+	struct dmm_info *dmm;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog analog;
 	float floatval;
+	void *info;
 	int ret;
 
 	devc = sdi->priv;
+	dmm = (struct dmm_info *)sdi->driver;
 	memset(&analog, 0, sizeof(struct sr_datafeed_analog));
+	info = g_malloc(dmm->info_size);
 
 	/* Parse the protocol packet. */
-	ret = udmms[dmm].packet_parse(buf, &floatval, &analog, info);
+	ret = dmm->packet_parse(buf, &floatval, &analog, info);
 	if (ret != SR_OK) {
 		sr_dbg("Invalid DMM packet, ignoring.");
+		g_free(info);
 		return;
 	}
 
 	/* If this DMM needs additional handling, call the resp. function. */
-	if (udmms[dmm].dmm_details)
-		udmms[dmm].dmm_details(&analog, info);
+	if (dmm->dmm_details)
+		dmm->dmm_details(&analog, info);
+
+	g_free(info);
 
 	/* Send a sample packet with one analog value. */
 	analog.channels = sdi->channels;
@@ -171,20 +175,22 @@ static void log_dmm_packet(const uint8_t *buf)
 	       buf[7], buf[8], buf[9], buf[10], buf[11], buf[12], buf[13]);
 }
 
-static int get_and_handle_data(struct sr_dev_inst *sdi, int dmm, void *info)
+static int get_and_handle_data(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
+	struct dmm_info *dmm;
 	uint8_t buf[CHUNK_SIZE], *pbuf;
 	int i, ret, len, num_databytes_in_chunk;
 	struct sr_usb_dev_inst *usb;
 
 	devc = sdi->priv;
+	dmm = (struct dmm_info *)sdi->driver;
 	usb = sdi->conn;
 	pbuf = devc->protocol_buf;
 
 	/* On the first run, we need to init the HID chip. */
 	if (devc->first_run) {
-		if ((ret = hid_chip_init(sdi, udmms[dmm].baudrate)) != SR_OK) {
+		if ((ret = hid_chip_init(sdi, dmm->baudrate)) != SR_OK) {
 			sr_err("HID chip init failed: %d.", ret);
 			return SR_ERR;
 		}
@@ -236,19 +242,19 @@ static int get_and_handle_data(struct sr_dev_inst *sdi, int dmm, void *info)
 	num_databytes_in_chunk = buf[0] & 0x0f;
 	for (i = 0; i < num_databytes_in_chunk; i++, devc->buflen++) {
 		pbuf[devc->buflen] = buf[1 + i];
-		if ((udmms[dmm].packet_parse == sr_es519xx_19200_14b_parse) ||
-		    (udmms[dmm].packet_parse == sr_ut71x_parse)) {
+		if ((dmm->packet_parse == sr_es519xx_19200_14b_parse) ||
+		    (dmm->packet_parse == sr_ut71x_parse)) {
 			/* Mask off the parity bit. */
 			pbuf[devc->buflen] &= ~(1 << 7);
 		}
 	}
 
 	/* Now look for packets in that data. */
-	while ((devc->buflen - devc->bufoffset) >= udmms[dmm].packet_size) {
-		if (udmms[dmm].packet_valid(pbuf + devc->bufoffset)) {
+	while ((devc->buflen - devc->bufoffset) >= dmm->packet_size) {
+		if (dmm->packet_valid(pbuf + devc->bufoffset)) {
 			log_dmm_packet(pbuf + devc->bufoffset);
-			decode_packet(sdi, dmm, pbuf + devc->bufoffset, info);
-			devc->bufoffset += udmms[dmm].packet_size;
+			decode_packet(sdi, pbuf + devc->bufoffset);
+			devc->bufoffset += dmm->packet_size;
 		} else {
 			devc->bufoffset++;
 		}
@@ -262,7 +268,7 @@ static int get_and_handle_data(struct sr_dev_inst *sdi, int dmm, void *info)
 	return SR_OK;
 }
 
-static int receive_data(int fd, int revents, int dmm, void *info, void *cb_data)
+SR_PRIV int uni_t_dmm_receive_data(int fd, int revents, void *cb_data)
 {
 	int ret;
 	struct sr_dev_inst *sdi;
@@ -275,7 +281,7 @@ static int receive_data(int fd, int revents, int dmm, void *info, void *cb_data)
 	sdi = cb_data;
 	devc = sdi->priv;
 
-	if ((ret = get_and_handle_data(sdi, dmm, info)) != SR_OK)
+	if ((ret = get_and_handle_data(sdi)) != SR_OK)
 		return FALSE;
 
 	/* Abort acquisition if we acquired enough samples. */
@@ -295,33 +301,3 @@ static int receive_data(int fd, int revents, int dmm, void *info, void *cb_data)
 
 	return TRUE;
 }
-
-#define RECEIVE_DATA(ID_UPPER, DMM_DRIVER) \
-SR_PRIV int receive_data_##ID_UPPER(int fd, int revents, void *cb_data) { \
-	struct DMM_DRIVER##_info info; \
-	return receive_data(fd, revents, ID_UPPER, &info, cb_data); }
-
-/* Driver-specific receive_data() wrappers */
-RECEIVE_DATA(TECPEL_DMM_8061, fs9721)
-RECEIVE_DATA(UNI_T_UT372, ut372)
-RECEIVE_DATA(UNI_T_UT60A, fs9721)
-RECEIVE_DATA(UNI_T_UT60E, fs9721)
-RECEIVE_DATA(UNI_T_UT60G, es519xx)
-RECEIVE_DATA(UNI_T_UT61B, fs9922)
-RECEIVE_DATA(UNI_T_UT61C, fs9922)
-RECEIVE_DATA(UNI_T_UT61D, fs9922)
-RECEIVE_DATA(UNI_T_UT61E, es519xx)
-RECEIVE_DATA(UNI_T_UT71A, ut71x)
-RECEIVE_DATA(UNI_T_UT71B, ut71x)
-RECEIVE_DATA(UNI_T_UT71C, ut71x)
-RECEIVE_DATA(UNI_T_UT71D, ut71x)
-RECEIVE_DATA(UNI_T_UT71E, ut71x)
-RECEIVE_DATA(VOLTCRAFT_VC820, fs9721)
-RECEIVE_DATA(VOLTCRAFT_VC830, fs9922)
-RECEIVE_DATA(VOLTCRAFT_VC840, fs9721)
-RECEIVE_DATA(VOLTCRAFT_VC870, vc870)
-RECEIVE_DATA(VOLTCRAFT_VC920, ut71x)
-RECEIVE_DATA(VOLTCRAFT_VC940, ut71x)
-RECEIVE_DATA(VOLTCRAFT_VC960, ut71x)
-RECEIVE_DATA(TENMA_72_7745, es519xx)
-RECEIVE_DATA(TENMA_72_7750, es519xx)

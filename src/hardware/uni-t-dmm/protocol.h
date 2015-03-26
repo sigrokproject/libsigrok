@@ -29,33 +29,8 @@
 
 #define LOG_PREFIX "uni-t-dmm"
 
-enum {
-	TECPEL_DMM_8061,
-	UNI_T_UT372,
-	UNI_T_UT60A,
-	UNI_T_UT60E,
-	UNI_T_UT60G,
-	UNI_T_UT61B,
-	UNI_T_UT61C,
-	UNI_T_UT61D,
-	UNI_T_UT61E,
-	UNI_T_UT71A,
-	UNI_T_UT71B,
-	UNI_T_UT71C,
-	UNI_T_UT71D,
-	UNI_T_UT71E,
-	VOLTCRAFT_VC820,
-	VOLTCRAFT_VC830,
-	VOLTCRAFT_VC840,
-	VOLTCRAFT_VC870,
-	VOLTCRAFT_VC920,
-	VOLTCRAFT_VC940,
-	VOLTCRAFT_VC960,
-	TENMA_72_7745,
-	TENMA_72_7750,
-};
-
 struct dmm_info {
+	struct sr_dev_driver di;
 	char *vendor;
 	char *device;
 	uint32_t baudrate;
@@ -64,8 +39,7 @@ struct dmm_info {
 	int (*packet_parse)(const uint8_t *, float *,
 			    struct sr_datafeed_analog *, void *);
 	void (*dmm_details)(struct sr_datafeed_analog *, void *);
-	struct sr_dev_driver *di;
-	int (*receive_data)(int, int, void *);
+	gsize info_size;
 };
 
 #define CHUNK_SIZE		8
@@ -95,28 +69,6 @@ struct dev_context {
 	uint8_t buflen;
 };
 
-SR_PRIV int receive_data_TECPEL_DMM_8061(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_UNI_T_UT372(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_UNI_T_UT60A(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_UNI_T_UT60E(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_UNI_T_UT60G(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_UNI_T_UT61B(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_UNI_T_UT61C(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_UNI_T_UT61D(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_UNI_T_UT61E(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_UNI_T_UT71A(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_UNI_T_UT71B(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_UNI_T_UT71C(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_UNI_T_UT71D(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_UNI_T_UT71E(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_VOLTCRAFT_VC820(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_VOLTCRAFT_VC830(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_VOLTCRAFT_VC840(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_VOLTCRAFT_VC870(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_VOLTCRAFT_VC920(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_VOLTCRAFT_VC940(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_VOLTCRAFT_VC960(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_TENMA_72_7745(int fd, int revents, void *cb_data);
-SR_PRIV int receive_data_TENMA_72_7750(int fd, int revents, void *cb_data);
+SR_PRIV int uni_t_dmm_receive_data(int fd, int revents, void *cb_data);
 
 #endif
