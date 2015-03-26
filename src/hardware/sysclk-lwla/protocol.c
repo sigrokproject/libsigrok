@@ -134,7 +134,7 @@ static int capture_setup(const struct sr_dev_inst *sdi)
 	/* Fill remaining 64-bit words with zeroes. */
 	memset(&command[27], 0, 16 * sizeof(uint16_t));
 
-	return lwla_send_command(sdi->conn, command, G_N_ELEMENTS(command));
+	return lwla_send_command(sdi->conn, command, ARRAY_SIZE(command));
 }
 
 /* Issue a register write command as an asynchronous USB transfer.
@@ -894,7 +894,7 @@ SR_PRIV int lwla_setup_acquisition(const struct sr_dev_inst *sdi)
 	regvals[6].reg = REG_DIV_BYPASS;
 	regvals[6].val = acq->bypass_clockdiv;
 
-	ret = lwla_write_regs(usb, regvals, G_N_ELEMENTS(regvals));
+	ret = lwla_write_regs(usb, regvals, ARRAY_SIZE(regvals));
 	if (ret != SR_OK)
 		return ret;
 

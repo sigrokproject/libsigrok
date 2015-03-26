@@ -193,12 +193,12 @@ SR_PRIV int lwla_read_reg(const struct sr_usb_dev_inst *usb,
 	command[0] = LWLA_WORD(CMD_READ_REG);
 	command[1] = LWLA_WORD(reg);
 
-	ret = lwla_send_command(usb, command, G_N_ELEMENTS(command));
+	ret = lwla_send_command(usb, command, ARRAY_SIZE(command));
 
 	if (ret != SR_OK)
 		return ret;
 
-	ret = lwla_receive_reply(usb, reply, G_N_ELEMENTS(reply), 1);
+	ret = lwla_receive_reply(usb, reply, ARRAY_SIZE(reply), 1);
 
 	if (ret == SR_OK)
 		*value = LWLA_TO_UINT32(reply[0]);
@@ -216,7 +216,7 @@ SR_PRIV int lwla_write_reg(const struct sr_usb_dev_inst *usb,
 	command[2] = LWLA_WORD_0(value);
 	command[3] = LWLA_WORD_1(value);
 
-	return lwla_send_command(usb, command, G_N_ELEMENTS(command));
+	return lwla_send_command(usb, command, ARRAY_SIZE(command));
 }
 
 SR_PRIV int lwla_write_regs(const struct sr_usb_dev_inst *usb,

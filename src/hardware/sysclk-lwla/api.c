@@ -277,19 +277,19 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		break;
 	case SR_CONF_CLOCK_EDGE:
 		idx = devc->cfg_clock_edge;
-		if (idx >= G_N_ELEMENTS(signal_edge_names))
+		if (idx >= ARRAY_SIZE(signal_edge_names))
 			return SR_ERR_BUG;
 		*data = g_variant_new_string(signal_edge_names[idx]);
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
 		idx = devc->cfg_trigger_source;
-		if (idx >= G_N_ELEMENTS(trigger_source_names))
+		if (idx >= ARRAY_SIZE(trigger_source_names))
 			return SR_ERR_BUG;
 		*data = g_variant_new_string(trigger_source_names[idx]);
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
 		idx = devc->cfg_trigger_slope;
-		if (idx >= G_N_ELEMENTS(signal_edge_names))
+		if (idx >= ARRAY_SIZE(signal_edge_names))
 			return SR_ERR_BUG;
 		*data = g_variant_new_string(signal_edge_names[idx]);
 		break;
@@ -336,7 +336,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	switch (key) {
 	case SR_CONF_SAMPLERATE:
 		value = g_variant_get_uint64(data);
-		if (value < samplerates[G_N_ELEMENTS(samplerates) - 1]
+		if (value < samplerates[ARRAY_SIZE(samplerates) - 1]
 				|| value > samplerates[0])
 			return SR_ERR_SAMPLERATE;
 		devc->samplerate = value;
@@ -359,21 +359,21 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		break;
 	case SR_CONF_CLOCK_EDGE:
 		idx = lookup_index(data, signal_edge_names,
-				   G_N_ELEMENTS(signal_edge_names));
+				   ARRAY_SIZE(signal_edge_names));
 		if (idx < 0)
 			return SR_ERR_ARG;
 		devc->cfg_clock_edge = idx;
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
 		idx = lookup_index(data, trigger_source_names,
-				   G_N_ELEMENTS(trigger_source_names));
+				   ARRAY_SIZE(trigger_source_names));
 		if (idx < 0)
 			return SR_ERR_ARG;
 		devc->cfg_trigger_source = idx;
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
 		idx = lookup_index(data, signal_edge_names,
-				   G_N_ELEMENTS(signal_edge_names));
+				   ARRAY_SIZE(signal_edge_names));
 		if (idx < 0)
 			return SR_ERR_ARG;
 		devc->cfg_trigger_slope = idx;
@@ -438,12 +438,12 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		break;
 	case SR_CONF_DEVICE_OPTIONS:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				devopts, G_N_ELEMENTS(devopts), sizeof(uint32_t));
+				devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
 		break;
 	case SR_CONF_SAMPLERATE:
 		g_variant_builder_init(&gvb, G_VARIANT_TYPE("a{sv}"));
 		gvar = g_variant_new_fixed_array(G_VARIANT_TYPE("t"),
-				samplerates, G_N_ELEMENTS(samplerates),
+				samplerates, ARRAY_SIZE(samplerates),
 				sizeof(uint64_t));
 		g_variant_builder_add(&gvb, "{sv}", "samplerates", gvar);
 		*data = g_variant_builder_end(&gvb);
@@ -455,12 +455,12 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
 		*data = g_variant_new_strv(trigger_source_names,
-					   G_N_ELEMENTS(trigger_source_names));
+					   ARRAY_SIZE(trigger_source_names));
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
 	case SR_CONF_CLOCK_EDGE:
 		*data = g_variant_new_strv(signal_edge_names,
-					   G_N_ELEMENTS(signal_edge_names));
+					   ARRAY_SIZE(signal_edge_names));
 		break;
 	default:
 		return SR_ERR_NA;
