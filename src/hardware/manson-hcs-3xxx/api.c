@@ -197,8 +197,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 exit_err:
 	sr_dev_inst_free(sdi);
-	if (devc)
-		g_free(devc);
+	g_free(devc);
+
 	return NULL;
 }
 

@@ -418,8 +418,7 @@ SR_API int sr_init(struct sr_context **ctx)
 	ret = SR_OK;
 
 done:
-	if (context)
-		g_free(context);
+	g_free(context);
 	return ret;
 }
 

@@ -345,8 +345,7 @@ exit_err:
 
 	if (serial)
 		sr_serial_dev_inst_free(serial);
-	if (devc)
-		g_free(devc);
+	g_free(devc);
 	if (sdi)
 		sr_dev_inst_free(sdi);
 

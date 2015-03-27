@@ -92,6 +92,7 @@ int dlm_trigger_slope_get(struct sr_scpi_dev_inst *scpi,
 	}
 
 	g_free(resp);
+
 	return result;
 }
 

@@ -97,8 +97,7 @@ fail:
 		sr_scpi_hw_info_free(hw_info);
 	if (sdi)
 		sr_dev_inst_free(sdi);
-	if (devc)
-		g_free(devc);
+	g_free(devc);
 
 	return NULL;
 }

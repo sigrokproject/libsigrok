@@ -777,11 +777,8 @@ static void cleanup(struct sr_input *in)
 	if (inc->comment)
 		g_string_free(inc->comment, TRUE);
 
-	if (inc->termination)
-		g_free(inc->termination);
-
-	if (inc->sample_buffer)
-		g_free(inc->sample_buffer);
+	g_free(inc->termination);
+	g_free(inc->sample_buffer);
 }
 
 static struct sr_option options[] = {

@@ -690,8 +690,7 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 			break;
 		case SR_CHANNEL_LOGIC:
 			if (sr_scpi_get_uint8v(sdi->conn, NULL, &data) != SR_OK) {
-				if (data)
-					g_free(data);
+				g_free(data);
 				return TRUE;
 			}
 
