@@ -268,14 +268,14 @@ static int cleanup(const struct sr_dev_driver *di)
 	return dev_clear();
 }
 
-static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
+static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 
 	(void)cg;
 
-	switch (id) {
+	switch (key) {
 	case SR_CONF_SAMPLERATE:
 		if (sdi) {
 			devc = sdi->priv;
@@ -290,7 +290,7 @@ static int config_get(int id, GVariant **data, const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
+static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
 	int ret;
@@ -306,7 +306,7 @@ static int config_set(int id, GVariant *data, const struct sr_dev_inst *sdi,
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
-	switch (id) {
+	switch (key) {
 	case SR_CONF_SAMPLERATE:
 		// FIXME
 		return mso_configure_rate(sdi, g_variant_get_uint64(data));

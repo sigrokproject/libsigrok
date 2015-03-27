@@ -415,8 +415,7 @@ SR_PRIV int rigol_ds_channel_start(const struct sr_dev_inst *sdi)
 
 	sr_dbg("Starting reading data from channel %d", ch->index + 1);
 
-	switch (devc->model->series->protocol)
-	{
+	switch (devc->model->series->protocol) {
 	case PROTOCOL_V1:
 	case PROTOCOL_V2:
 		if (ch->type == SR_CHANNEL_LOGIC) {
