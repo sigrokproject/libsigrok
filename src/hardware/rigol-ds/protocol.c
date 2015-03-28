@@ -554,204 +554,205 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 
 	scpi = sdi->conn;
 
-	if (revents == G_IO_IN || revents == 0) {
-		switch (devc->wait_event) {
-		case WAIT_NONE:
-			break;
-		case WAIT_TRIGGER:
-			if (rigol_ds_trigger_wait(sdi) != SR_OK)
-				return TRUE;
-			if (rigol_ds_channel_start(sdi) != SR_OK)
-				return TRUE;
+	if (!(revents == G_IO_IN || revents == 0))
+		return TRUE;
+
+	switch (devc->wait_event) {
+	case WAIT_NONE:
+		break;
+	case WAIT_TRIGGER:
+		if (rigol_ds_trigger_wait(sdi) != SR_OK)
 			return TRUE;
-		case WAIT_BLOCK:
-			if (rigol_ds_block_wait(sdi) != SR_OK)
-				return TRUE;
-			break;
-		case WAIT_STOP:
-			if (rigol_ds_stop_wait(sdi) != SR_OK)
-				return TRUE;
-			if (rigol_ds_check_stop(sdi) != SR_OK)
-				return TRUE;
-			if (rigol_ds_channel_start(sdi) != SR_OK)
-				return TRUE;
+		if (rigol_ds_channel_start(sdi) != SR_OK)
 			return TRUE;
-		default:
-			sr_err("BUG: Unknown event target encountered");
-			break;
+		return TRUE;
+	case WAIT_BLOCK:
+		if (rigol_ds_block_wait(sdi) != SR_OK)
+			return TRUE;
+		break;
+	case WAIT_STOP:
+		if (rigol_ds_stop_wait(sdi) != SR_OK)
+			return TRUE;
+		if (rigol_ds_check_stop(sdi) != SR_OK)
+			return TRUE;
+		if (rigol_ds_channel_start(sdi) != SR_OK)
+			return TRUE;
+		return TRUE;
+	default:
+		sr_err("BUG: Unknown event target encountered");
+		break;
+	}
+
+	ch = devc->channel_entry->data;
+
+	expected_data_bytes = ch->type == SR_CHANNEL_ANALOG ?
+			devc->analog_frame_size : devc->digital_frame_size;
+
+	if (devc->num_block_bytes == 0) {
+		if (devc->model->series->protocol >= PROTOCOL_V4) {
+			if (sr_scpi_send(sdi->conn, ":WAV:START %d",
+					devc->num_channel_bytes + 1) != SR_OK)
+				return TRUE;
+			if (sr_scpi_send(sdi->conn, ":WAV:STOP %d",
+					MIN(devc->num_channel_bytes + ACQ_BLOCK_SIZE,
+						devc->analog_frame_size)) != SR_OK)
+				return TRUE;
 		}
 
-		ch = devc->channel_entry->data;
-
-		expected_data_bytes = ch->type == SR_CHANNEL_ANALOG ?
-				devc->analog_frame_size : devc->digital_frame_size;
-
-		if (devc->num_block_bytes == 0) {
-			if (devc->model->series->protocol >= PROTOCOL_V4) {
-				if (sr_scpi_send(sdi->conn, ":WAV:START %d",
-						devc->num_channel_bytes + 1) != SR_OK)
-					return TRUE;
-				if (sr_scpi_send(sdi->conn, ":WAV:STOP %d",
-						MIN(devc->num_channel_bytes + ACQ_BLOCK_SIZE,
-							devc->analog_frame_size)) != SR_OK)
-					return TRUE;
-			}
-
-			if (devc->model->series->protocol >= PROTOCOL_V3)
-				if (sr_scpi_send(sdi->conn, ":WAV:DATA?") != SR_OK)
-					return TRUE;
-
-			if (sr_scpi_read_begin(scpi) != SR_OK)
+		if (devc->model->series->protocol >= PROTOCOL_V3)
+			if (sr_scpi_send(sdi->conn, ":WAV:DATA?") != SR_OK)
 				return TRUE;
 
-			if (devc->format == FORMAT_IEEE488_2) {
-				sr_dbg("New block header expected");
-				len = rigol_ds_read_header(sdi);
-				if (len == 0)
-					/* Still reading the header. */
-					return TRUE;
-				if (len == -1) {
-					sr_err("Read error, aborting capture.");
-					packet.type = SR_DF_FRAME_END;
-					sr_session_send(cb_data, &packet);
-					sdi->driver->dev_acquisition_stop(sdi, cb_data);
-					return TRUE;
-				}
-				/* At slow timebases in live capture the DS2072
-				 * sometimes returns "short" data blocks, with
-				 * apparently no way to get the rest of the data.
-				 * Discard these, the complete data block will
-				 * appear eventually.
-				 */
-				if (devc->data_source == DATA_SOURCE_LIVE
-						&& (unsigned)len < expected_data_bytes) {
-					sr_dbg("Discarding short data block");
-					sr_scpi_read_data(scpi, (char *)devc->buffer, len + 1);
-					return TRUE;
-				}
-				devc->num_block_bytes = len;
-			} else {
-				devc->num_block_bytes = expected_data_bytes;
-			}
-			devc->num_block_read = 0;
-		}
-
-		len = devc->num_block_bytes - devc->num_block_read;
-		if (len > ACQ_BUFFER_SIZE)
-			len = ACQ_BUFFER_SIZE;
-		sr_dbg("Requesting read of %d bytes", len);
-
-		len = sr_scpi_read_data(scpi, (char *)devc->buffer, len);
-
-		if (len == -1) {
-			sr_err("Read error, aborting capture.");
-			packet.type = SR_DF_FRAME_END;
-			sr_session_send(cb_data, &packet);
-			sdi->driver->dev_acquisition_stop(sdi, cb_data);
+		if (sr_scpi_read_begin(scpi) != SR_OK)
 			return TRUE;
-		}
 
-		sr_dbg("Received %d bytes.", len);
-
-		devc->num_block_read += len;
-
-		if (ch->type == SR_CHANNEL_ANALOG) {
-			vref = devc->vert_reference[ch->index];
-			vdiv = devc->vdiv[ch->index] / 25.6;
-			offset = devc->vert_offset[ch->index];
-			if (devc->model->series->protocol >= PROTOCOL_V3)
-				for (i = 0; i < len; i++)
-					devc->data[i] = ((int)devc->buffer[i] - vref) * vdiv - offset;
-			else
-				for (i = 0; i < len; i++)
-					devc->data[i] = (128 - devc->buffer[i]) * vdiv - offset;
-			analog.channels = g_slist_append(NULL, ch);
-			analog.num_samples = len;
-			analog.data = devc->data;
-			analog.mq = SR_MQ_VOLTAGE;
-			analog.unit = SR_UNIT_VOLT;
-			analog.mqflags = 0;
-			packet.type = SR_DF_ANALOG;
-			packet.payload = &analog;
-			sr_session_send(cb_data, &packet);
-			g_slist_free(analog.channels);
-		} else {
-			logic.length = len;
-			// TODO: For the MSO1000Z series, we need a way to express that
-			// this data is in fact just for a single channel, with the valid
-			// data for that channel in the LSB of each byte.
-			logic.unitsize = devc->model->series->protocol == PROTOCOL_V4 ? 1 : 2;
-			logic.data = devc->buffer;
-			packet.type = SR_DF_LOGIC;
-			packet.payload = &logic;
-			sr_session_send(cb_data, &packet);
-		}
-
-		if (devc->num_block_read == devc->num_block_bytes) {
-			sr_dbg("Block has been completed");
-			if (devc->model->series->protocol >= PROTOCOL_V3) {
-				/* Discard the terminating linefeed */
-				sr_scpi_read_data(scpi, (char *)devc->buffer, 1);
-			}
-			if (devc->format == FORMAT_IEEE488_2) {
-				/* Prepare for possible next block */
-				devc->num_header_bytes = 0;
-				devc->num_block_bytes = 0;
-				if (devc->data_source != DATA_SOURCE_LIVE)
-					rigol_ds_set_wait_event(devc, WAIT_BLOCK);
-			}
-			if (!sr_scpi_read_complete(scpi)) {
-				sr_err("Read should have been completed");
+		if (devc->format == FORMAT_IEEE488_2) {
+			sr_dbg("New block header expected");
+			len = rigol_ds_read_header(sdi);
+			if (len == 0)
+				/* Still reading the header. */
+				return TRUE;
+			if (len == -1) {
+				sr_err("Read error, aborting capture.");
 				packet.type = SR_DF_FRAME_END;
 				sr_session_send(cb_data, &packet);
 				sdi->driver->dev_acquisition_stop(sdi, cb_data);
 				return TRUE;
 			}
-			devc->num_block_read = 0;
+			/* At slow timebases in live capture the DS2072
+			 * sometimes returns "short" data blocks, with
+			 * apparently no way to get the rest of the data.
+			 * Discard these, the complete data block will
+			 * appear eventually.
+			 */
+			if (devc->data_source == DATA_SOURCE_LIVE
+					&& (unsigned)len < expected_data_bytes) {
+				sr_dbg("Discarding short data block");
+				sr_scpi_read_data(scpi, (char *)devc->buffer, len + 1);
+				return TRUE;
+			}
+			devc->num_block_bytes = len;
 		} else {
-			sr_dbg("%d of %d block bytes read", devc->num_block_read, devc->num_block_bytes);
+			devc->num_block_bytes = expected_data_bytes;
 		}
+		devc->num_block_read = 0;
+	}
 
-		devc->num_channel_bytes += len;
+	len = devc->num_block_bytes - devc->num_block_read;
+	if (len > ACQ_BUFFER_SIZE)
+		len = ACQ_BUFFER_SIZE;
+	sr_dbg("Requesting read of %d bytes", len);
 
-		if (devc->num_channel_bytes < expected_data_bytes)
-			/* Don't have the full data for this channel yet, re-run. */
-			return TRUE;
+	len = sr_scpi_read_data(scpi, (char *)devc->buffer, len);
 
-		/* End of data for this channel. */
-		if (devc->model->series->protocol == PROTOCOL_V3) {
-			/* Signal end of data download to scope */
+	if (len == -1) {
+		sr_err("Read error, aborting capture.");
+		packet.type = SR_DF_FRAME_END;
+		sr_session_send(cb_data, &packet);
+		sdi->driver->dev_acquisition_stop(sdi, cb_data);
+		return TRUE;
+	}
+
+	sr_dbg("Received %d bytes.", len);
+
+	devc->num_block_read += len;
+
+	if (ch->type == SR_CHANNEL_ANALOG) {
+		vref = devc->vert_reference[ch->index];
+		vdiv = devc->vdiv[ch->index] / 25.6;
+		offset = devc->vert_offset[ch->index];
+		if (devc->model->series->protocol >= PROTOCOL_V3)
+			for (i = 0; i < len; i++)
+				devc->data[i] = ((int)devc->buffer[i] - vref) * vdiv - offset;
+		else
+			for (i = 0; i < len; i++)
+				devc->data[i] = (128 - devc->buffer[i]) * vdiv - offset;
+		analog.channels = g_slist_append(NULL, ch);
+		analog.num_samples = len;
+		analog.data = devc->data;
+		analog.mq = SR_MQ_VOLTAGE;
+		analog.unit = SR_UNIT_VOLT;
+		analog.mqflags = 0;
+		packet.type = SR_DF_ANALOG;
+		packet.payload = &analog;
+		sr_session_send(cb_data, &packet);
+		g_slist_free(analog.channels);
+	} else {
+		logic.length = len;
+		// TODO: For the MSO1000Z series, we need a way to express that
+		// this data is in fact just for a single channel, with the valid
+		// data for that channel in the LSB of each byte.
+		logic.unitsize = devc->model->series->protocol == PROTOCOL_V4 ? 1 : 2;
+		logic.data = devc->buffer;
+		packet.type = SR_DF_LOGIC;
+		packet.payload = &logic;
+		sr_session_send(cb_data, &packet);
+	}
+
+	if (devc->num_block_read == devc->num_block_bytes) {
+		sr_dbg("Block has been completed");
+		if (devc->model->series->protocol >= PROTOCOL_V3) {
+			/* Discard the terminating linefeed */
+			sr_scpi_read_data(scpi, (char *)devc->buffer, 1);
+		}
+		if (devc->format == FORMAT_IEEE488_2) {
+			/* Prepare for possible next block */
+			devc->num_header_bytes = 0;
+			devc->num_block_bytes = 0;
 			if (devc->data_source != DATA_SOURCE_LIVE)
-				/*
-				 * This causes a query error, without it switching
-				 * to the next channel causes an error. Fun with
-				 * firmware...
-				 */
-				rigol_ds_config_set(sdi, ":WAV:END");
+				rigol_ds_set_wait_event(devc, WAIT_BLOCK);
 		}
-
-		if (devc->channel_entry->next) {
-			/* We got the frame for this channel, now get the next channel. */
-			devc->channel_entry = devc->channel_entry->next;
-			rigol_ds_channel_start(sdi);
-		} else {
-			/* Done with this frame. */
+		if (!sr_scpi_read_complete(scpi)) {
+			sr_err("Read should have been completed");
 			packet.type = SR_DF_FRAME_END;
 			sr_session_send(cb_data, &packet);
+			sdi->driver->dev_acquisition_stop(sdi, cb_data);
+			return TRUE;
+		}
+		devc->num_block_read = 0;
+	} else {
+		sr_dbg("%d of %d block bytes read", devc->num_block_read, devc->num_block_bytes);
+	}
 
-			if (++devc->num_frames == devc->limit_frames) {
-				/* Last frame, stop capture. */
-				sdi->driver->dev_acquisition_stop(sdi, cb_data);
-			} else {
-				/* Get the next frame, starting with the first channel. */
-				devc->channel_entry = devc->enabled_channels;
+	devc->num_channel_bytes += len;
 
-				rigol_ds_capture_start(sdi);
+	if (devc->num_channel_bytes < expected_data_bytes)
+		/* Don't have the full data for this channel yet, re-run. */
+		return TRUE;
 
-				/* Start of next frame. */
-				packet.type = SR_DF_FRAME_BEGIN;
-				sr_session_send(cb_data, &packet);
-			}
+	/* End of data for this channel. */
+	if (devc->model->series->protocol == PROTOCOL_V3) {
+		/* Signal end of data download to scope */
+		if (devc->data_source != DATA_SOURCE_LIVE)
+			/*
+			 * This causes a query error, without it switching
+			 * to the next channel causes an error. Fun with
+			 * firmware...
+			 */
+			rigol_ds_config_set(sdi, ":WAV:END");
+	}
+
+	if (devc->channel_entry->next) {
+		/* We got the frame for this channel, now get the next channel. */
+		devc->channel_entry = devc->channel_entry->next;
+		rigol_ds_channel_start(sdi);
+	} else {
+		/* Done with this frame. */
+		packet.type = SR_DF_FRAME_END;
+		sr_session_send(cb_data, &packet);
+
+		if (++devc->num_frames == devc->limit_frames) {
+			/* Last frame, stop capture. */
+			sdi->driver->dev_acquisition_stop(sdi, cb_data);
+		} else {
+			/* Get the next frame, starting with the first channel. */
+			devc->channel_entry = devc->enabled_channels;
+
+			rigol_ds_capture_start(sdi);
+
+			/* Start of next frame. */
+			packet.type = SR_DF_FRAME_BEGIN;
+			sr_session_send(cb_data, &packet);
 		}
 	}
 

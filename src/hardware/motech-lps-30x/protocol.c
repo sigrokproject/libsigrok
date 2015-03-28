@@ -188,50 +188,52 @@ SR_PRIV int motech_lps_30x_receive_data(int fd, int revents, void *cb_data)
 			sdi->driver->dev_acquisition_stop(sdi, cb_data);
 	}
 
-	/* Request next packet, if required. */
-	if ((sdi->status == SR_ST_ACTIVE) && (devc->acq_running)){
-		if (devc->acq_req_pending) {
-			gint64 elapsed_us = g_get_monotonic_time() - devc->req_sent_at;
-			if (elapsed_us > (REQ_TIMEOUT_MS * 1000)) {
-				sr_spew("Request timeout: req=%d t=%lldus", (int)devc->acq_req, elapsed_us);
-				devc->acq_req_pending = 0;
-			}
+	/* Only request the next packet if required. */
+	if (!((sdi->status == SR_ST_ACTIVE) && (devc->acq_running)))
+		return TRUE;
+
+	if (devc->acq_req_pending) {
+		gint64 elapsed_us = g_get_monotonic_time() - devc->req_sent_at;
+		if (elapsed_us > (REQ_TIMEOUT_MS * 1000)) {
+			sr_spew("Request timeout: req=%d t=%lldus", (int)devc->acq_req, elapsed_us);
+			devc->acq_req_pending = 0;
 		}
-		if (devc->acq_req_pending == 0) {
-			switch (devc->acq_req) {
-			case AQ_NONE: /* Fall through */
-			case AQ_STATUS:
-				devc->acq_req = AQ_U1;
-				lps_send_req(serial, "VOUT1");
-				break;
-			case AQ_U1:
-				devc->acq_req = AQ_I1;
-				lps_send_req(serial, "IOUT1");
-				break;
-			case AQ_I1:
-				if (devc->model->num_channels == 1) {
-					devc->acq_req = AQ_STATUS;
-					lps_send_req(serial, "STATUS");
-				} else {
-					devc->acq_req = AQ_U2;
-					lps_send_req(serial, "VOUT2");
-				}
-				break;
-			case AQ_U2:
-				devc->acq_req = AQ_I2;
-				lps_send_req(serial, "IOUT2");
-				break;
-			case AQ_I2:
+	}
+
+	if (devc->acq_req_pending == 0) {
+		switch (devc->acq_req) {
+		case AQ_NONE: /* Fall through */
+		case AQ_STATUS:
+			devc->acq_req = AQ_U1;
+			lps_send_req(serial, "VOUT1");
+			break;
+		case AQ_U1:
+			devc->acq_req = AQ_I1;
+			lps_send_req(serial, "IOUT1");
+			break;
+		case AQ_I1:
+			if (devc->model->num_channels == 1) {
 				devc->acq_req = AQ_STATUS;
 				lps_send_req(serial, "STATUS");
-				break;
-			default:
-				sr_err("Illegal devc->acq_req=%d", devc->acq_req);
-				return SR_ERR;
+			} else {
+				devc->acq_req = AQ_U2;
+				lps_send_req(serial, "VOUT2");
 			}
-			devc->req_sent_at = g_get_real_time();
-			devc->acq_req_pending = 1;
+			break;
+		case AQ_U2:
+			devc->acq_req = AQ_I2;
+			lps_send_req(serial, "IOUT2");
+			break;
+		case AQ_I2:
+			devc->acq_req = AQ_STATUS;
+			lps_send_req(serial, "STATUS");
+			break;
+		default:
+			sr_err("Illegal devc->acq_req=%d", devc->acq_req);
+			return SR_ERR;
 		}
+		devc->req_sent_at = g_get_real_time();
+		devc->acq_req_pending = 1;
 	}
 
 	return TRUE;

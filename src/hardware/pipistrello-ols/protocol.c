@@ -619,8 +619,9 @@ SR_PRIV int p_ols_receive_data(int fd, int revents, void *cb_data)
 		}
 		return TRUE;
 	} else {
-		do bytes_read = ftdi_read_data(devc->ftdic, devc->ftdi_buf, FTDI_BUF_SIZE);
-		while (bytes_read > 0);
+		do {
+			bytes_read = ftdi_read_data(devc->ftdic, devc->ftdi_buf, FTDI_BUF_SIZE);
+		} while (bytes_read > 0);
 
 		/*
 		 * We've acquired all the samples we asked for -- we're done.

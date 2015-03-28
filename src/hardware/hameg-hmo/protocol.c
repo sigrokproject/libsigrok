@@ -660,69 +660,70 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 	if (!(devc = sdi->priv))
 		return TRUE;
 
-	if (revents == G_IO_IN) {
-		ch = devc->current_channel->data;
+	if (revents != G_IO_IN)
+		return TRUE;
 
-		switch (ch->type) {
-		case SR_CHANNEL_ANALOG:
-			if (sr_scpi_get_floatv(sdi->conn, NULL, &data) != SR_OK) {
-				if (data)
-					g_array_free(data, TRUE);
+	ch = devc->current_channel->data;
 
-				return TRUE;
-			}
+	switch (ch->type) {
+	case SR_CHANNEL_ANALOG:
+		if (sr_scpi_get_floatv(sdi->conn, NULL, &data) != SR_OK) {
+			if (data)
+				g_array_free(data, TRUE);
 
-			packet.type = SR_DF_FRAME_BEGIN;
-			sr_session_send(sdi, &packet);
-
-			analog.channels = g_slist_append(NULL, ch);
-			analog.num_samples = data->len;
-			analog.data = (float *) data->data;
-			analog.mq = SR_MQ_VOLTAGE;
-			analog.unit = SR_UNIT_VOLT;
-			analog.mqflags = 0;
-			packet.type = SR_DF_ANALOG;
-			packet.payload = &analog;
-			sr_session_send(cb_data, &packet);
-			g_slist_free(analog.channels);
-			g_array_free(data, TRUE);
-			data = NULL;
-			break;
-		case SR_CHANNEL_LOGIC:
-			if (sr_scpi_get_uint8v(sdi->conn, NULL, &data) != SR_OK) {
-				g_free(data);
-				return TRUE;
-			}
-
-			packet.type = SR_DF_FRAME_BEGIN;
-			sr_session_send(sdi, &packet);
-
-			logic.length = data->len;
-			logic.unitsize = 1;
-			logic.data = data->data;
-			packet.type = SR_DF_LOGIC;
-			packet.payload = &logic;
-			sr_session_send(cb_data, &packet);
-			g_array_free(data, TRUE);
-			data = NULL;
-			break;
-		default:
-			sr_err("Invalid channel type.");
-			break;
+			return TRUE;
 		}
 
-		packet.type = SR_DF_FRAME_END;
+		packet.type = SR_DF_FRAME_BEGIN;
 		sr_session_send(sdi, &packet);
 
-		if (devc->current_channel->next) {
-			devc->current_channel = devc->current_channel->next;
-			hmo_request_data(sdi);
-		} else if (++devc->num_frames == devc->frame_limit) {
-			sdi->driver->dev_acquisition_stop(sdi, cb_data);
-		} else {
-			devc->current_channel = devc->enabled_channels;
-			hmo_request_data(sdi);
+		analog.channels = g_slist_append(NULL, ch);
+		analog.num_samples = data->len;
+		analog.data = (float *) data->data;
+		analog.mq = SR_MQ_VOLTAGE;
+		analog.unit = SR_UNIT_VOLT;
+		analog.mqflags = 0;
+		packet.type = SR_DF_ANALOG;
+		packet.payload = &analog;
+		sr_session_send(cb_data, &packet);
+		g_slist_free(analog.channels);
+		g_array_free(data, TRUE);
+		data = NULL;
+		break;
+	case SR_CHANNEL_LOGIC:
+		if (sr_scpi_get_uint8v(sdi->conn, NULL, &data) != SR_OK) {
+			g_free(data);
+			return TRUE;
 		}
+
+		packet.type = SR_DF_FRAME_BEGIN;
+		sr_session_send(sdi, &packet);
+
+		logic.length = data->len;
+		logic.unitsize = 1;
+		logic.data = data->data;
+		packet.type = SR_DF_LOGIC;
+		packet.payload = &logic;
+		sr_session_send(cb_data, &packet);
+		g_array_free(data, TRUE);
+		data = NULL;
+		break;
+	default:
+		sr_err("Invalid channel type.");
+		break;
+	}
+
+	packet.type = SR_DF_FRAME_END;
+	sr_session_send(sdi, &packet);
+
+	if (devc->current_channel->next) {
+		devc->current_channel = devc->current_channel->next;
+		hmo_request_data(sdi);
+	} else if (++devc->num_frames == devc->frame_limit) {
+		sdi->driver->dev_acquisition_stop(sdi, cb_data);
+	} else {
+		devc->current_channel = devc->enabled_channels;
+		hmo_request_data(sdi);
 	}
 
 	return TRUE;
