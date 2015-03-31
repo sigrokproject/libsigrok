@@ -147,8 +147,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	GSList *l, *devices, *conn_devices;
 	struct libusb_device_descriptor des;
 	libusb_device **devlist;
-	int ret, j;
-	unsigned int i;
+	int ret;
+	unsigned int i, j;
 	const char *conn;
 	char connection_id[64];
 
@@ -204,7 +204,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		sdi->driver = di;
 		sdi->connection_id = g_strdup(connection_id);
 
-		for (j = 0; i < ARRAY_SIZE(channel_names); j++)
+		for (j = 0; j < ARRAY_SIZE(channel_names); j++)
 			sr_channel_new(sdi, j, SR_CHANNEL_LOGIC, TRUE,
 					    channel_names[j]);
 
