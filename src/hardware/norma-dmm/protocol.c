@@ -24,6 +24,8 @@
 
 #include "protocol.h"
 
+#define LINE_LENGTH 20
+
 SR_PRIV const struct nmadmm_req nmadmm_requests[] = {
 	{ NMADMM_REQ_IDN, "IDN?" },
 	{ NMADMM_REQ_IDN, "STATUS?" },
@@ -92,19 +94,19 @@ static void nma_process_line(const struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
-	devc->buf[20] = '\0';
+	devc->buf[LINE_LENGTH] = '\0';
 
 	sr_spew("Received line '%s'.", devc->buf);
 
 	/* Check line. */
-	if (strlen((const char *)devc->buf) != 20) {
+	if (strlen((const char *)devc->buf) != LINE_LENGTH) {
 		sr_err("line: Invalid status '%s', must be 20 hex digits.",
 		       devc->buf);
 		devc->buflen = 0;
 		return;
 	}
 
-	for (pos = 0; pos < 20; pos++) {
+	for (pos = 0; pos < LINE_LENGTH; pos++) {
 		if (!isxdigit(devc->buf[pos])) {
 			sr_err("line: Expected hex digit in '%s' at pos %d!",
 				devc->buf, pos);

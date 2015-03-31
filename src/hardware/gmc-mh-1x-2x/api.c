@@ -301,13 +301,13 @@ static GSList *scan_2x_bd232(struct sr_dev_driver *di, GSList *options)
 	while (timeout_us > g_get_monotonic_time()) {
 		/* Receive reply (14 bytes) */
 		devc->buflen = 0;
-		for (cnt = 0; cnt < 14; cnt++) {
+		for (cnt = 0; cnt < GMC_REPLY_SIZE; cnt++) {
 			byte = read_byte(serial, timeout_us);
 			if (byte != -1)
 				devc->buf[devc->buflen++] = (byte & MASK_6BITS);
 		}
 
-		if (devc->buflen != 14)
+		if (devc->buflen != GMC_REPLY_SIZE)
 			continue;
 
 		devc->addr = devc->buf[0];

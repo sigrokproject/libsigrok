@@ -100,7 +100,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
 	GSList *l, *devices;
-	int ret, i;
+	int ret;
+	unsigned int i;
 	const char *conn, *serialcomm;
 	char buf[8];
 
@@ -191,7 +192,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		sdi->model = g_strdup("Logic Analyzer");
 		sdi->version = g_strdup("v1.0");
 		sdi->driver = di;
-		for (i = 0; i < 32; i++)
+		for (i = 0; i < ARRAY_SIZE(ols_channel_names); i++)
 			sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE,
 					ols_channel_names[i]);
 		devc = ols_dev_new();

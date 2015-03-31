@@ -26,6 +26,8 @@
 #include "libsigrok-internal.h"
 #include "dso.h"
 
+#define NUM_CHANNELS 2
+
 extern struct sr_dev_driver hantek_dso_driver_info;
 
 static int send_begin(const struct sr_dev_inst *sdi)
@@ -225,7 +227,7 @@ static int get_channel_offsets(const struct sr_dev_inst *sdi)
 	 * since that's how voltage offsets are submitted back to the DSO.
 	 * Convert to host order now, so we can use them natively.
 	 */
-	for (chan = 0; chan < 2; chan++) {
+	for (chan = 0; chan < NUM_CHANNELS; chan++) {
 		for (v = 0; v < 9; v++) {
 			devc->channel_levels[chan][v][0] =
 				g_ntohs(devc->channel_levels[chan][v][0]);
@@ -236,7 +238,7 @@ static int get_channel_offsets(const struct sr_dev_inst *sdi)
 
 	if (sr_log_loglevel_get() >= SR_LOG_DBG) {
 		gs = g_string_sized_new(128);
-		for (chan = 0; chan < 2; chan++) {
+		for (chan = 0; chan < NUM_CHANNELS; chan++) {
 			g_string_printf(gs, "CH%d:", chan + 1);
 			for (v = 0; v < 9; v++) {
 				g_string_append_printf(gs, " %.4x-%.4x",

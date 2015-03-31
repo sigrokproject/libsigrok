@@ -118,7 +118,7 @@ SR_PRIV int sr_ut372_parse(const uint8_t *buf, float *floatval,
 	divisor = 1;
 
 	for (i = 0; i < 5; i++) {
-		segments = decode_pair(buf + 1 + 2*i);
+		segments = decode_pair(buf + 1 + (2 * i));
 		for (j = 0; j < ARRAY_SIZE(lookup); j++) {
 			if (lookup[j] == (segments & ~DECIMAL_POINT_MASK)) {
 				value += j * pow(10, i);

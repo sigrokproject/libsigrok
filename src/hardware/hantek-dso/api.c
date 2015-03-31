@@ -40,6 +40,8 @@
 #define NUM_TIMEBASE  10
 #define NUM_VDIV      8
 
+#define NUM_BUFFER_SIZES 2
+
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 };
@@ -543,13 +545,13 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 			break;
 		case SR_CONF_BUFFERSIZE:
 			tmp_u64 = g_variant_get_uint64(data);
-			for (i = 0; i < 2; i++) {
+			for (i = 0; i < NUM_BUFFER_SIZES; i++) {
 				if (devc->profile->buffersizes[i] == tmp_u64) {
 					devc->framesize = tmp_u64;
 					break;
 				}
 			}
-			if (i == 2)
+			if (i == NUM_BUFFER_SIZES)
 				ret = SR_ERR_ARG;
 			break;
 		case SR_CONF_TIMEBASE:
@@ -658,7 +660,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 				return SR_ERR_ARG;
 			devc = sdi->priv;
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT64,
-					devc->profile->buffersizes, 2, sizeof(uint64_t));
+					devc->profile->buffersizes, NUM_BUFFER_SIZES, sizeof(uint64_t));
 			break;
 		case SR_CONF_TIMEBASE:
 			g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);

@@ -900,7 +900,7 @@ static guchar calc_chksum_14(guchar* dta)
 {
 	guchar cnt, chs;
 
-	for (chs = 0, cnt = 0; cnt < 13; cnt++)
+	for (chs = 0, cnt = 0; cnt < (GMC_REPLY_SIZE - 1); cnt++)
 		chs += dta[cnt];
 
 	return (64 - chs) & MASK_6BITS;
@@ -1263,7 +1263,7 @@ SR_PRIV int gmc_mh_2x_receive_data(int fd, int revents, void *cb_data)
  */
 void create_cmd_14(guchar addr, guchar func, guchar* params, guchar* buf)
 {
-	uint8_t dta[14];	/* Unencoded message */
+	uint8_t dta[GMC_REPLY_SIZE];	/* Unencoded message */
 	int cnt;
 
 	if (!params || !buf)
@@ -1279,17 +1279,17 @@ void create_cmd_14(guchar addr, guchar func, guchar* params, guchar* buf)
 
 	/* 4-12: Copy further parameters */
 	for (cnt = 0; cnt < 9; cnt++)
-		dta[cnt+4] = (params[cnt] & MASK_6BITS);
+		dta[cnt + 4] = (params[cnt] & MASK_6BITS);
 
 	/* 13: Checksum (b complement) */
 	dta[13] = calc_chksum_14(dta);
 
 	/* The whole message is packed into 3 bytes per byte now (lower 6 bits only) the most
 	 * peculiar way I have ever seen. Possibly to improve IR communication? */
-	for (cnt = 0; cnt < 14; cnt++) {
-		buf[3*cnt] = (dta[cnt] & 0x01 ? 0x0f : 0) | (dta[cnt] & 0x02 ? 0xf0 : 0);
-		buf[3*cnt + 1] = (dta[cnt] & 0x04 ? 0x0f : 0) | (dta[cnt] & 0x08 ? 0xf0 : 0);
-		buf[3*cnt + 2] = (dta[cnt] & 0x10 ? 0x0f : 0) | (dta[cnt] & 0x20 ? 0xf0 : 0);
+	for (cnt = 0; cnt < GMC_REPLY_SIZE; cnt++) {
+		buf[(3 * cnt) + 0] = (dta[cnt] & 0x01 ? 0x0f : 0) | (dta[cnt] & 0x02 ? 0xf0 : 0);
+		buf[(3 * cnt) + 1] = (dta[cnt] & 0x04 ? 0x0f : 0) | (dta[cnt] & 0x08 ? 0xf0 : 0);
+		buf[(3 * cnt) + 2] = (dta[cnt] & 0x10 ? 0x0f : 0) | (dta[cnt] & 0x20 ? 0xf0 : 0);
 	}
 }
 

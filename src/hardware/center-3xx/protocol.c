@@ -20,8 +20,10 @@
 
 #include "protocol.h"
 
+#define NUM_CHANNELS 4
+
 struct center_info {
-	float temp[4];
+	float temp[NUM_CHANNELS];
 	gboolean rec, std, max, min, maxmin, t1t2, rel, hold, lowbat, celsius;
 	gboolean memfull, autooff;
 	gboolean mode_std, mode_rel, mode_max, mode_min, mode_maxmin;
@@ -84,21 +86,21 @@ static int packet_parse(const uint8_t *buf, int idx, struct center_info *info)
 	info->autooff     = (buf[2] & (1 << 7)) != 0;
 
 	/* Byte 7+8/9+10/11+12/13+14: channel T1/T2/T3/T4 temperature. */
-	for (i = 0; i < 4; i++) {
+	for (i = 0; i < NUM_CHANNELS; i++) {
 		temp_u16 = buf[8 + (i * 2)];
 		temp_u16 |= ((uint16_t)buf[7 + (i * 2)] << 8);
 		info->temp[i] = (float)temp_u16;
 	}
 
 	/* Byte 43: Specifies whether we need to divide the value(s) by 10. */
-	for (i = 0; i < 4; i++) {
+	for (i = 0; i < NUM_CHANNELS; i++) {
 		/* Bit = 0: Divide by 10. Bit = 1: Don't divide by 10. */
 		if ((buf[43] & (1 << i)) == 0)
 			info->temp[i] /= 10;
 	}
 
 	/* Bytes 39-42: Overflow/overlimit bits, depending on mode. */
-	for (i = 0; i < 4; i++) {
+	for (i = 0; i < NUM_CHANNELS; i++) {
 		if (info->mode_std && ((buf[39] & (1 << i)) != 0))
 			info->temp[i] = INFINITY;
 		/* TODO: Rel. Not available on all models. */
@@ -144,7 +146,7 @@ static int handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi, int idx)
 	analog.num_samples = 1;
 
 	/* Send the values for T1 - T4. */
-	for (i = 0; i < 4; i++) {
+	for (i = 0; i < NUM_CHANNELS; i++) {
 		l = NULL;
 		l = g_slist_append(l, g_slist_nth_data(sdi->channels, i));
 		analog.channels = l;

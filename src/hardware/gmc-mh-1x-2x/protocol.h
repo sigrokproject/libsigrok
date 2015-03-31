@@ -32,7 +32,8 @@
 
 #define LOG_PREFIX "gmc-mh-1x-2x"
 
-#define GMC_BUFSIZE  266
+#define GMC_BUFSIZE 266
+#define GMC_REPLY_SIZE 14
 
 /** Message ID bits 4, 5 */
 #define MSGID_MASK  0x30 /**< Mask to get message ID bits */
