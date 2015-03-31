@@ -514,6 +514,7 @@ SR_PRIV int analyzer_add_triggers(const struct sr_dev_inst *sdi)
 			switch (match->match) {
 			case SR_TRIGGER_ZERO:
 				g_trigger_status[channel / 4] |= 2 << (channel % 4 * 2);
+				break;
 			case SR_TRIGGER_ONE:
 				g_trigger_status[channel / 4] |= 1 << (channel % 4 * 2);
 				break;
