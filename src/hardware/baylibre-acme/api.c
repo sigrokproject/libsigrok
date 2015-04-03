@@ -28,10 +28,19 @@ static const uint32_t devopts[] = {
 	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
-static const uint32_t devopts_cg[] = {
-	SR_CONF_PROBE_FACTOR | SR_CONF_GET | SR_CONF_SET,
-	SR_CONF_POWER_OFF | SR_CONF_GET | SR_CONF_SET,
-};
+/*
+ * Currently there are two channel-group/probe options for ACME:
+ *   - SR_CONF_PROBE_FACTOR - allows to modify current shunt resistance
+ *     calibration
+ *   - SR_CONF_POWER_OFF - allows to remotely cut-off/restore power to
+ *     measured devices
+ *
+ * They are not static - we have to check each probe's capabilities in
+ * config_list().
+ */
+#define MAX_DEVOPTS_CG		2
+#define HAS_PROBE_FACTOR	(SR_CONF_PROBE_FACTOR | SR_CONF_GET | SR_CONF_SET)
+#define HAS_POWER_OFF		(SR_CONF_POWER_OFF | SR_CONF_GET | SR_CONF_SET)
 
 #define MAX_SAMPLE_RATE 500 /* In Hz */
 
@@ -263,9 +272,10 @@ static int config_list(uint32_t key, GVariant **data,
 		       const struct sr_dev_inst *sdi,
 		       const struct sr_channel_group *cg)
 {
+	uint32_t devopts_cg[MAX_DEVOPTS_CG];
 	GVariant *gvar;
 	GVariantBuilder gvb;
-	int ret;
+	int ret, num_devopts_cg = 0;
 
 	(void)sdi;
 	(void)cg;
@@ -291,8 +301,13 @@ static int config_list(uint32_t key, GVariant **data,
 	} else {
 		switch (key) {
 		case SR_CONF_DEVICE_OPTIONS:
+			if (bl_acme_get_probe_type(cg) == PROBE_ENRG)
+				devopts_cg[num_devopts_cg++] = HAS_PROBE_FACTOR;
+			if (bl_acme_probe_has_pws(cg))
+				devopts_cg[num_devopts_cg++] = HAS_POWER_OFF;
+
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				devopts_cg, ARRAY_SIZE(devopts_cg), sizeof(uint32_t));
+				devopts_cg, num_devopts_cg, sizeof(uint32_t));
 			break;
 		default:
 			return SR_ERR_NA;

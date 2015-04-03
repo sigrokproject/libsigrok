@@ -245,6 +245,20 @@ SR_PRIV gboolean bl_acme_register_probe(struct sr_dev_inst *sdi, int type,
 	return TRUE;
 }
 
+SR_PRIV int bl_acme_get_probe_type(const struct sr_channel_group *cg)
+{
+	struct channel_group_priv *cgp = cg->priv;
+
+	return cgp->probe_type;
+}
+
+SR_PRIV int bl_acme_probe_has_pws(const struct sr_channel_group *cg)
+{
+	struct channel_group_priv *cgp = cg->priv;
+
+	return sr_gpio_getval_export(pws_info_gpios[cgp->index]);
+}
+
 /*
  * Sets path to the hwmon attribute if this channel group
  * supports shunt resistance setting. The caller has to supply
@@ -348,8 +362,7 @@ SR_PRIV int bl_acme_read_power_state(const struct sr_channel_group *cg,
 
 	cgp = cg->priv;
 
-	val = sr_gpio_getval_export(pws_info_gpios[cgp->index]);
-	if (val != 1) {
+	if (!bl_acme_probe_has_pws(cg)) {
 		sr_err("Probe has no power-switch");
 		return SR_ERR_ARG;
 	}
@@ -368,8 +381,7 @@ SR_PRIV int bl_acme_set_power_off(const struct sr_channel_group *cg,
 
 	cgp = cg->priv;
 
-	val = sr_gpio_getval_export(pws_info_gpios[cgp->index]);
-	if (val != 1) {
+	if (!bl_acme_probe_has_pws(cg)) {
 		sr_err("Probe has no power-switch");
 		return SR_ERR_ARG;
 	}
