@@ -396,8 +396,8 @@ SR_PRIV void fx2lafw_receive_transfer(struct libusb_transfer *transfer)
 		return;
 	}
 
-	sr_dbg("receive_transfer(): status %d received %d bytes.",
-		transfer->status, transfer->actual_length);
+	sr_dbg("receive_transfer(): status %s received %d bytes.",
+		libusb_error_name(transfer->status), transfer->actual_length);
 
 	/* Save incoming transfer before reusing the transfer struct. */
 	unitsize = devc->sample_wide ? 2 : 1;
