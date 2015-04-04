@@ -31,8 +31,6 @@
 #define LOG_PREFIX "hwdriver"
 /** @endcond */
 
-extern SR_PRIV struct sr_dev_driver **drivers_lists[];
-
 /**
  * @file
  *
@@ -259,27 +257,20 @@ SR_PRIV int sr_variant_type_check(uint32_t key, GVariant *value)
 /**
  * Return the list of supported hardware drivers.
  *
- * @return Pointer to the NULL-terminated list of hardware driver pointers.
+ * @param[in] ctx Pointer to a libsigrok context struct. Must not be NULL.
  *
- * @since 0.1.0
+ * @retval NULL The ctx argument was NULL, or there are no supported drivers.
+ * @retval Other Pointer to the NULL-terminated list of hardware drivers.
+ *               The user should NOT g_free() this list, sr_exit() will do that.
+ *
+ * @since 0.4.0
  */
-SR_API struct sr_dev_driver **sr_driver_list(void)
+SR_API struct sr_dev_driver **sr_driver_list(const struct sr_context *ctx)
 {
-	static struct sr_dev_driver **combined_list = NULL;
-	struct sr_dev_driver ***lists, **drivers;
-	GArray *array;
+	if (!ctx)
+		return NULL;
 
-	if (combined_list)
-		return combined_list;
-
-	array = g_array_new(TRUE, FALSE, sizeof(struct sr_dev_driver *));
-	for (lists = drivers_lists; *lists; lists++)
-		for (drivers = *lists; *drivers; drivers++)
-			g_array_append_val(array, *drivers);
-	combined_list = (struct sr_dev_driver **)array->data;
-	g_array_free(array, FALSE);
-
-	return combined_list;
+	return ctx->driver_list;
 }
 
 /**
@@ -418,14 +409,22 @@ SR_API GSList *sr_driver_scan(struct sr_dev_driver *driver, GSList *options)
 	return l;
 }
 
-/** Call driver cleanup function for all drivers.
- *  @private */
-SR_PRIV void sr_hw_cleanup_all(void)
+/**
+ * Call driver cleanup function for all drivers.
+ *
+ * @param[in] ctx Pointer to a libsigrok context struct. Must not be NULL.
+ *
+ * @private
+ */
+SR_PRIV void sr_hw_cleanup_all(const struct sr_context *ctx)
 {
 	int i;
 	struct sr_dev_driver **drivers;
 
-	drivers = sr_driver_list();
+	if (!ctx)
+		return;
+
+	drivers = sr_driver_list(ctx);
 	for (i = 0; drivers[i]; i++) {
 		if (drivers[i]->cleanup)
 			drivers[i]->cleanup(drivers[i]);

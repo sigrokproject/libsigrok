@@ -122,18 +122,24 @@
 /**
  * Sanity-check all libsigrok drivers.
  *
+ * @param[in] ctx Pointer to a libsigrok context struct. Must not be NULL.
+ *
  * @retval SR_OK All drivers are OK
  * @retval SR_ERR One or more drivers have issues.
+ * @retval SR_ERR_ARG Invalid argument.
  */
-static int sanity_check_all_drivers(void)
+static int sanity_check_all_drivers(const struct sr_context *ctx)
 {
 	int i, errors, ret = SR_OK;
 	struct sr_dev_driver **drivers;
 	const char *d;
 
+	if (!ctx)
+		return SR_ERR_ARG;
+
 	sr_spew("Sanity-checking all drivers.");
 
-	drivers = sr_driver_list();
+	drivers = sr_driver_list(ctx);
 	for (i = 0; drivers[i]; i++) {
 		errors = 0;
 
@@ -375,13 +381,25 @@ SR_API int sr_init(struct sr_context **ctx)
 {
 	int ret = SR_ERR;
 	struct sr_context *context;
+	struct sr_dev_driver ***lists, **drivers;
+	GArray *array;
 
 	if (!ctx) {
 		sr_err("%s(): libsigrok context was NULL.", __func__);
 		return SR_ERR;
 	}
 
-	if (sanity_check_all_drivers() < 0) {
+	context = g_malloc0(sizeof(struct sr_context));
+
+	/* Generate ctx->driver_list at runtime. */
+	array = g_array_new(TRUE, FALSE, sizeof(struct sr_dev_driver *));
+	for (lists = drivers_lists; *lists; lists++)
+		for (drivers = *lists; *drivers; drivers++)
+			g_array_append_val(array, *drivers);
+	context->driver_list = (struct sr_dev_driver **)array->data;
+	g_array_free(array, FALSE);
+
+	if (sanity_check_all_drivers(context) < 0) {
 		sr_err("Internal driver error(s), aborting.");
 		return ret;
 	}
@@ -400,9 +418,6 @@ SR_API int sr_init(struct sr_context **ctx)
 		sr_err("Internal transform module error(s), aborting.");
 		return ret;
 	}
-
-	/* + 1 to handle when struct sr_context has no members. */
-	context = g_malloc0(sizeof(struct sr_context) + 1);
 
 #ifdef HAVE_LIBUSB_1_0
 	ret = libusb_init(&context->libusb_ctx);
@@ -439,13 +454,13 @@ SR_API int sr_exit(struct sr_context *ctx)
 		return SR_ERR;
 	}
 
-	sr_hw_cleanup_all();
+	sr_hw_cleanup_all(ctx);
 
 #ifdef HAVE_LIBUSB_1_0
 	libusb_exit(ctx->libusb_ctx);
 #endif
 
-	g_free(sr_driver_list());
+	g_free(sr_driver_list(ctx));
 	g_free(ctx);
 
 	return SR_OK;

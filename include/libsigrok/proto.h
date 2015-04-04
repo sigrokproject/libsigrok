@@ -79,7 +79,7 @@ SR_API int sr_dev_inst_channel_add(struct sr_dev_inst *sdi, int index, int type,
 
 /*--- hwdriver.c ------------------------------------------------------------*/
 
-SR_API struct sr_dev_driver **sr_driver_list(void);
+SR_API struct sr_dev_driver **sr_driver_list(const struct sr_context *ctx);
 SR_API int sr_driver_init(struct sr_context *ctx,
 		struct sr_dev_driver *driver);
 SR_API GSList *sr_driver_scan(struct sr_dev_driver *driver, GSList *options);

@@ -174,6 +174,7 @@
 #endif
 
 struct sr_context {
+	struct sr_dev_driver **driver_list;
 #ifdef HAVE_LIBUSB_1_0
 	libusb_context *libusb_ctx;
 	gboolean usb_source_present;
@@ -645,9 +646,11 @@ SR_PRIV void sr_usbtmc_dev_inst_free(struct sr_usbtmc_dev_inst *usbtmc);
 
 /*--- hwdriver.c ------------------------------------------------------------*/
 
+extern SR_PRIV struct sr_dev_driver **drivers_lists[];
+
 SR_PRIV const GVariantType *sr_variant_type_get(int datatype);
 SR_PRIV int sr_variant_type_check(uint32_t key, GVariant *data);
-SR_PRIV void sr_hw_cleanup_all(void);
+SR_PRIV void sr_hw_cleanup_all(const struct sr_context *ctx);
 SR_PRIV struct sr_config *sr_config_new(uint32_t key, GVariant *data);
 SR_PRIV void sr_config_free(struct sr_config *src);
 SR_PRIV int sr_source_remove(int fd);

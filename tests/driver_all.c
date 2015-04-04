@@ -28,7 +28,7 @@ START_TEST(test_driver_available)
 {
 	struct sr_dev_driver **drivers;
 
-	drivers = sr_driver_list();
+	drivers = sr_driver_list(srtest_ctx);
 	fail_unless(drivers != NULL, "No drivers found.");
 }
 END_TEST

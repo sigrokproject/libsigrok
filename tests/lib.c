@@ -50,7 +50,7 @@ struct sr_dev_driver *srtest_driver_get(const char *drivername)
 	struct sr_dev_driver **drivers, *driver = NULL;
 	int i;
 
-	drivers = sr_driver_list();
+	drivers = sr_driver_list(srtest_ctx);
 	fail_unless(drivers != NULL, "No drivers found.");
 
 	for (i = 0; drivers[i]; i++) {
@@ -79,7 +79,7 @@ void srtest_driver_init_all(struct sr_context *sr_ctx)
 	struct sr_dev_driver **drivers, *driver;
 	int i, ret;
 
-	drivers = sr_driver_list();
+	drivers = sr_driver_list(srtest_ctx);
 	fail_unless(drivers != NULL, "No drivers found.");
 
 	for (i = 0; drivers[i]; i++) {

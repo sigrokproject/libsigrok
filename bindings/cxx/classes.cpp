@@ -77,7 +77,7 @@ Context::Context() :
 {
 	check(sr_init(&_structure));
 
-	struct sr_dev_driver **driver_list = sr_driver_list();
+	struct sr_dev_driver **driver_list = sr_driver_list(_structure);
 	if (driver_list)
 		for (int i = 0; driver_list[i]; i++)
 			_drivers[driver_list[i]->name] =
