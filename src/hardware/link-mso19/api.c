@@ -213,7 +213,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		sdi->driver = di;
 		sdi->priv = devc;
 
-		for (i = 0; i < NUM_CHANNELS; i++) {
+		for (i = 0; i < ARRAY_SIZE(channel_names); i++) {
 			chtype = (i == 0) ? SR_CHANNEL_ANALOG : SR_CHANNEL_LOGIC;
 			sr_channel_new(sdi, i, chtype, TRUE, channel_names[i]);
 		}
