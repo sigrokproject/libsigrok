@@ -466,6 +466,8 @@ bindings_cxx_libsigrokcxx_la_LIBADD = libsigrok.la $(glibmm_LIBS)
 
 bindings_cxx_libsigrokcxx_la_LDFLAGS = $(SR_LIB_LDFLAGS)
 
+bindings_cxx_libsigrokcxx_la_LDFLAGS += -no-undefined
+
 bindings_cxx_libsigrokcxx_la_includedir = $(includedir)/libsigrokcxx
 bindings_cxx_libsigrokcxx_la_include_HEADERS = \
 	bindings/cxx/include/libsigrokcxx/libsigrokcxx.hpp \
