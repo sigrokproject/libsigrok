@@ -84,6 +84,9 @@ SR_PRIV gboolean bl_acme_register_probe(struct sr_dev_inst *sdi, int type,
 SR_PRIV int bl_acme_get_probe_type(const struct sr_channel_group *cg);
 SR_PRIV int bl_acme_probe_has_pws(const struct sr_channel_group *cg);
 
+SR_PRIV void bl_acme_maybe_set_update_interval(const struct sr_dev_inst *sdi,
+					       uint64_t samplerate);
+
 SR_PRIV int bl_acme_get_shunt(const struct sr_channel_group *cg,
 			      uint64_t *shunt);
 SR_PRIV int bl_acme_set_shunt(const struct sr_channel_group *cg,

@@ -295,6 +295,43 @@ static int get_shunt_path(const struct sr_channel_group *cg, GString *path)
 	return ret;
 }
 
+/*
+ * Try setting the update_interval sysfs attribute for each probe according
+ * to samplerate.
+ */
+SR_PRIV void bl_acme_maybe_set_update_interval(const struct sr_dev_inst *sdi,
+					       uint64_t samplerate)
+{
+	struct sr_channel_group *cg;
+	struct channel_group_priv *cgp;
+	GString *hwmon;
+	GSList *l;
+	FILE *fd;
+
+	for (l = sdi->channel_groups; l != NULL; l = l->next) {
+		cg = l->data;
+		cgp = cg->priv;
+
+		hwmon = g_string_sized_new(64);
+		g_string_append_printf(hwmon,
+				"/sys/class/hwmon/hwmon%d/update_interval",
+				cgp->hwmon_num);
+
+		if (g_file_test(hwmon->str, G_FILE_TEST_EXISTS)) {
+			fd = g_fopen(hwmon->str, "w");
+			if (!fd) {
+				g_string_free(hwmon, TRUE);
+				continue;
+			}
+
+			g_fprintf(fd, "%" PRIu64 "\n", 1000 / samplerate);
+			fclose(fd);
+		}
+
+		g_string_free(hwmon, TRUE);
+	}
+}
+
 SR_PRIV int bl_acme_get_shunt(const struct sr_channel_group *cg,
 			      uint64_t *shunt)
 {

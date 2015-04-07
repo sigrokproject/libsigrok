@@ -250,6 +250,7 @@ static int config_set(uint32_t key, GVariant *data,
 			break;
 		}
 		devc->samplerate = samplerate;
+		bl_acme_maybe_set_update_interval(sdi, samplerate);
 		break;
 	case SR_CONF_PROBE_FACTOR:
 		if (!cg)
