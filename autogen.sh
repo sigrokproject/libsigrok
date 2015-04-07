@@ -21,11 +21,9 @@
 OS=`uname`
 
 LIBTOOLIZE=libtoolize
-ACLOCAL_DIR=
 
 if [ "x$OS" = "xDarwin" ]; then
 	LIBTOOLIZE=glibtoolize
-
 	if [ -d /sw/share/aclocal ]; then
 		# fink installs aclocal macros here
 		ACLOCAL_DIR="-I /sw/share/aclocal"
@@ -39,16 +37,6 @@ if [ "x$OS" = "xDarwin" ]; then
 		# Xcode installs aclocal macros here
 		ACLOCAL_DIR="-I /usr/share/aclocal"
 	fi
-
-elif [ "x$OS" = "xMINGW32_NT-5.1" ]; then
-	# Windows XP
-	ACLOCAL_DIR="-I /usr/local/share/aclocal"
-elif [ "x$OS" = "xMINGW32_NT-6.0" ]; then
-	# Windows Vista
-	ACLOCAL_DIR="-I /usr/local/share/aclocal"
-elif [ "x$OS" = "xMINGW32_NT-6.1" ]; then
-	# Windows 7
-	ACLOCAL_DIR="-I /usr/local/share/aclocal"
 fi
 
 echo "Generating build system..."
