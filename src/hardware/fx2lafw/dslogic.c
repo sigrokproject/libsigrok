@@ -30,6 +30,10 @@
 
 #define FW_BUFSIZE (4 * 1024)
 
+#define FPGA_UPLOAD_DELAY (10 * 1000)
+
+#define USB_TIMEOUT (3 * 1000)
+
 int dslogic_fpga_firmware_upload(const struct sr_dev_inst *sdi,
 		const char *filename)
 {
@@ -51,7 +55,7 @@ int dslogic_fpga_firmware_upload(const struct sr_dev_inst *sdi,
 	/* Tell the device firmware is coming. */
 	if ((ret = libusb_control_transfer(usb->devhdl, LIBUSB_REQUEST_TYPE_VENDOR |
 			LIBUSB_ENDPOINT_OUT, DS_CMD_FPGA_FW, 0x0000, 0x0000,
-			NULL, 0, 3000)) < 0) {
+			NULL, 0, USB_TIMEOUT)) < 0) {
 		sr_err("Failed to upload FPGA firmware: %s.", libusb_error_name(ret));
 		return SR_ERR;
 	}
@@ -63,7 +67,7 @@ int dslogic_fpga_firmware_upload(const struct sr_dev_inst *sdi,
 	}
 
 	/* Give the FX2 time to get ready for FPGA firmware upload. */
-	g_usleep(10 * 1000);
+	g_usleep(FPGA_UPLOAD_DELAY);
 
 	sum = 0;
 	result = SR_OK;
@@ -72,7 +76,7 @@ int dslogic_fpga_firmware_upload(const struct sr_dev_inst *sdi,
 			break;
 
 		if ((ret = libusb_bulk_transfer(usb->devhdl, 2 | LIBUSB_ENDPOINT_OUT,
-				buf, chunksize, &transferred, 1000)) < 0) {
+				buf, chunksize, &transferred, USB_TIMEOUT)) < 0) {
 			sr_err("Unable to configure FPGA firmware: %s.",
 					libusb_error_name(ret));
 			result = SR_ERR;
@@ -111,7 +115,7 @@ int dslogic_start_acquisition(const struct sr_dev_inst *sdi)
 	usb = sdi->conn;
 	ret = libusb_control_transfer(usb->devhdl, LIBUSB_REQUEST_TYPE_VENDOR |
 			LIBUSB_ENDPOINT_OUT, DS_CMD_START, 0x0000, 0x0000,
-			(unsigned char *)&mode, sizeof(mode), 3000);
+			(unsigned char *)&mode, sizeof(mode), USB_TIMEOUT);
 	if (ret < 0) {
 		sr_err("Failed to send start command: %s.", libusb_error_name(ret));
 		return SR_ERR;
@@ -132,7 +136,7 @@ int dslogic_stop_acquisition(const struct sr_dev_inst *sdi)
 	usb = sdi->conn;
 	ret = libusb_control_transfer(usb->devhdl, LIBUSB_REQUEST_TYPE_VENDOR |
 			LIBUSB_ENDPOINT_OUT, DS_CMD_START, 0x0000, 0x0000,
-			(unsigned char *)&mode, sizeof(struct dslogic_mode), 3000);
+			(unsigned char *)&mode, sizeof(struct dslogic_mode), USB_TIMEOUT);
 	if (ret < 0) {
 		sr_err("Failed to send stop command: %s.", libusb_error_name(ret));
 		return SR_ERR;
@@ -183,7 +187,7 @@ int dslogic_fpga_configure(const struct sr_dev_inst *sdi)
 
 	ret = libusb_control_transfer(usb->devhdl, LIBUSB_REQUEST_TYPE_VENDOR |
 			LIBUSB_ENDPOINT_OUT, DS_CMD_CONFIG, 0x0000, 0x0000,
-			c, 3, 100);
+			c, 3, USB_TIMEOUT);
 	if (ret < 0) {
 		sr_err("Failed to send FPGA configure command: %s.", libusb_error_name(ret));
 		return SR_ERR;
@@ -219,8 +223,7 @@ int dslogic_fpga_configure(const struct sr_dev_inst *sdi)
 
 	len = sizeof(struct dslogic_fpga_config);
 	ret = libusb_bulk_transfer(usb->devhdl, 2 | LIBUSB_ENDPOINT_OUT,
-			(unsigned char *)&cfg, len,
-			&transferred, 100);
+			(unsigned char *)&cfg, len, &transferred, USB_TIMEOUT);
 	if (ret < 0 || transferred != len) {
 		sr_err("Failed to send FPGA configuration: %s.", libusb_error_name(ret));
 		return SR_ERR;

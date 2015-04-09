@@ -38,6 +38,8 @@ struct cmd_start_acquisition {
 
 #pragma pack(pop)
 
+#define USB_TIMEOUT 100
+
 static int command_get_fw_version(libusb_device_handle *devhdl,
 				  struct version_info *vi)
 {
@@ -45,7 +47,7 @@ static int command_get_fw_version(libusb_device_handle *devhdl,
 
 	ret = libusb_control_transfer(devhdl, LIBUSB_REQUEST_TYPE_VENDOR |
 		LIBUSB_ENDPOINT_IN, CMD_GET_FW_VERSION, 0x0000, 0x0000,
-		(unsigned char *)vi, sizeof(struct version_info), 100);
+		(unsigned char *)vi, sizeof(struct version_info), USB_TIMEOUT);
 
 	if (ret < 0) {
 		sr_err("Unable to get version info: %s.",
@@ -65,7 +67,7 @@ static int command_get_revid_version(struct sr_dev_inst *sdi, uint8_t *revid)
 
 	cmd = devc->dslogic ? DS_CMD_GET_REVID_VERSION : CMD_GET_REVID_VERSION;
 	ret = libusb_control_transfer(devhdl, LIBUSB_REQUEST_TYPE_VENDOR |
-		LIBUSB_ENDPOINT_IN, cmd, 0x0000, 0x0000, revid, 1, 100);
+		LIBUSB_ENDPOINT_IN, cmd, 0x0000, 0x0000, revid, 1, USB_TIMEOUT);
 
 	if (ret < 0) {
 		sr_err("Unable to get REVID: %s.", libusb_error_name(ret));
@@ -126,7 +128,7 @@ SR_PRIV int fx2lafw_command_start_acquisition(const struct sr_dev_inst *sdi)
 	/* Send the control message. */
 	ret = libusb_control_transfer(usb->devhdl, LIBUSB_REQUEST_TYPE_VENDOR |
 			LIBUSB_ENDPOINT_OUT, CMD_START, 0x0000, 0x0000,
-			(unsigned char *)&cmd, sizeof(cmd), 100);
+			(unsigned char *)&cmd, sizeof(cmd), USB_TIMEOUT);
 	if (ret < 0) {
 		sr_err("Unable to send start command: %s.",
 		       libusb_error_name(ret));
