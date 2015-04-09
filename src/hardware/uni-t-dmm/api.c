@@ -402,4 +402,5 @@ SR_PRIV const struct dmm_info *uni_t_dmm_drivers[] = {
 		sr_es519xx_19200_11b_packet_valid, sr_es519xx_19200_11b_parse,
 		NULL
 	),
+	NULL
 };
