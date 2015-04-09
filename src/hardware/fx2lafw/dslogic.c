@@ -43,6 +43,7 @@ int dslogic_fpga_firmware_upload(const struct sr_dev_inst *sdi,
 	int chunksize, result, ret;
 	unsigned char *buf;
 	int sum, transferred;
+	uint8_t cmd[3];
 
 	sr_dbg("Uploading FPGA firmware at %s.", filename);
 
@@ -53,9 +54,10 @@ int dslogic_fpga_firmware_upload(const struct sr_dev_inst *sdi,
 	}
 
 	/* Tell the device firmware is coming. */
+	memset(cmd, 0, sizeof(cmd));
 	if ((ret = libusb_control_transfer(usb->devhdl, LIBUSB_REQUEST_TYPE_VENDOR |
 			LIBUSB_ENDPOINT_OUT, DS_CMD_FPGA_FW, 0x0000, 0x0000,
-			NULL, 0, USB_TIMEOUT)) < 0) {
+			(unsigned char *)&cmd, sizeof(cmd), USB_TIMEOUT)) < 0) {
 		sr_err("Failed to upload FPGA firmware: %s.", libusb_error_name(ret));
 		return SR_ERR;
 	}
