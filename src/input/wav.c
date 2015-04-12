@@ -38,9 +38,9 @@
 /* Expect to find the "data" chunk within this offset from the start. */
 #define MAX_DATA_CHUNK_OFFSET    256
 
-#define WAVE_FORMAT_PCM          0x0001
-#define WAVE_FORMAT_IEEE_FLOAT   0x0003
-#define WAVE_FORMAT_EXTENSIBLE   0xfffe
+#define WAVE_FORMAT_PCM_         0x0001
+#define WAVE_FORMAT_IEEE_FLOAT_  0x0003
+#define WAVE_FORMAT_EXTENSIBLE_  0xfffe
 
 struct context {
 	gboolean started;
@@ -73,13 +73,13 @@ static int parse_wav_header(GString *buf, struct context *inc)
 		return SR_ERR_DATA;
 	}
 
-	if (fmt_code == WAVE_FORMAT_PCM) {
-	} else if (fmt_code == WAVE_FORMAT_IEEE_FLOAT) {
+	if (fmt_code == WAVE_FORMAT_PCM_) {
+	} else if (fmt_code == WAVE_FORMAT_IEEE_FLOAT_) {
 		if (unitsize != 4) {
 			sr_err("only 32-bit floats supported.");
 			return SR_ERR_DATA;
 		}
-	} else if (fmt_code == WAVE_FORMAT_EXTENSIBLE) {
+	} else if (fmt_code == WAVE_FORMAT_EXTENSIBLE_) {
 		if (buf->len < 70)
 			/* Not enough for extensible header and next chunk. */
 			return SR_ERR_NA;
@@ -98,11 +98,11 @@ static int parse_wav_header(GString *buf, struct context *inc)
 		}
 		/* Real format code is the first two bytes of the GUID. */
 		fmt_code = RL16(buf->str + 44);
-		if (fmt_code != WAVE_FORMAT_PCM && fmt_code != WAVE_FORMAT_IEEE_FLOAT) {
+		if (fmt_code != WAVE_FORMAT_PCM_ && fmt_code != WAVE_FORMAT_IEEE_FLOAT_) {
 			sr_err("Only PCM and floating point samples are supported.");
 			return SR_ERR_DATA;
 		}
-		if (fmt_code == WAVE_FORMAT_IEEE_FLOAT && unitsize != 4) {
+		if (fmt_code == WAVE_FORMAT_IEEE_FLOAT_ && unitsize != 4) {
 			sr_err("only 32-bit floats supported.");
 			return SR_ERR_DATA;
 		}
@@ -195,7 +195,7 @@ static void send_chunk(const struct sr_input *in, int offset, int num_samples)
 	memset(fdata, 0, CHUNK_SIZE);
 	total_samples = num_samples * inc->num_channels;
 	for (samplenum = 0; samplenum < total_samples; samplenum++) {
-		if (inc->fmt_code == WAVE_FORMAT_PCM) {
+		if (inc->fmt_code == WAVE_FORMAT_PCM_) {
 			sample = 0;
 			memcpy(&sample, s, inc->unitsize);
 			switch (inc->samplesize) {
