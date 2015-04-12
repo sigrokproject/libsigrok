@@ -769,7 +769,7 @@ static void send_chunk(struct sr_dev_inst *sdi, unsigned char *buf,
  * queued up beforehand, so this just needs to chuck the incoming data onto
  * the libsigrok session bus.
  */
-static void receive_transfer(struct libusb_transfer *transfer)
+static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 {
 	struct sr_datafeed_packet packet;
 	struct sr_dev_inst *sdi;

@@ -375,7 +375,7 @@ static void resubmit_transfer(struct libusb_transfer *transfer)
 
 }
 
-SR_PRIV void fx2lafw_receive_transfer(struct libusb_transfer *transfer)
+SR_PRIV void LIBUSB_CALL fx2lafw_receive_transfer(struct libusb_transfer *transfer)
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;

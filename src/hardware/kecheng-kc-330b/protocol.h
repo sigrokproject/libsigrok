@@ -91,7 +91,7 @@ struct dev_context {
 };
 
 SR_PRIV int kecheng_kc_330b_handle_events(int fd, int revents, void *cb_data);
-SR_PRIV void kecheng_kc_330b_receive_transfer(struct libusb_transfer *transfer);
+SR_PRIV void LIBUSB_CALL kecheng_kc_330b_receive_transfer(struct libusb_transfer *transfer);
 SR_PRIV int kecheng_kc_330b_configure(const struct sr_dev_inst *sdi);
 SR_PRIV int kecheng_kc_330b_set_date_time(struct sr_dev_inst *sdi);
 SR_PRIV int kecheng_kc_330b_recording_get(const struct sr_dev_inst *sdi,

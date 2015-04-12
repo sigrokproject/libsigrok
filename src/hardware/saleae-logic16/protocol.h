@@ -97,6 +97,6 @@ SR_PRIV int logic16_setup_acquisition(const struct sr_dev_inst *sdi,
 SR_PRIV int logic16_start_acquisition(const struct sr_dev_inst *sdi);
 SR_PRIV int logic16_abort_acquisition(const struct sr_dev_inst *sdi);
 SR_PRIV int logic16_init_device(const struct sr_dev_inst *sdi);
-SR_PRIV void logic16_receive_transfer(struct libusb_transfer *transfer);
+SR_PRIV void LIBUSB_CALL logic16_receive_transfer(struct libusb_transfer *transfer);
 
 #endif

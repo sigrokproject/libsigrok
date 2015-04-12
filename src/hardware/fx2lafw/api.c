@@ -677,7 +677,7 @@ static int start_transfers(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static void dslogic_trigger_receive(struct libusb_transfer *transfer)
+static void LIBUSB_CALL dslogic_trigger_receive(struct libusb_transfer *transfer)
 {
 	const struct sr_dev_inst *sdi;
 	struct dslogic_trigger_pos *tpos;

@@ -217,8 +217,8 @@ struct dev_context {
 };
 
 SR_PRIV int ikalogic_scanalogic2_receive_data(int fd, int revents, void *cb_data);
-SR_PRIV void sl2_receive_transfer_in(struct libusb_transfer *transfer);
-SR_PRIV void sl2_receive_transfer_out(struct libusb_transfer *transfer);
+SR_PRIV void LIBUSB_CALL sl2_receive_transfer_in(struct libusb_transfer *transfer);
+SR_PRIV void LIBUSB_CALL sl2_receive_transfer_out(struct libusb_transfer *transfer);
 SR_PRIV int sl2_set_samplerate(const struct sr_dev_inst *sdi,
 		uint64_t samplerate);
 SR_PRIV int sl2_set_limit_samples(const struct sr_dev_inst *sdi,

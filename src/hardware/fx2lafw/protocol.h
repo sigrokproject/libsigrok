@@ -129,7 +129,7 @@ SR_PRIV gboolean match_manuf_prod(libusb_device *dev, const char *manufacturer,
 SR_PRIV int fx2lafw_dev_open(struct sr_dev_inst *sdi, struct sr_dev_driver *di);
 SR_PRIV struct dev_context *fx2lafw_dev_new(void);
 SR_PRIV void fx2lafw_abort_acquisition(struct dev_context *devc);
-SR_PRIV void fx2lafw_receive_transfer(struct libusb_transfer *transfer);
+SR_PRIV void LIBUSB_CALL fx2lafw_receive_transfer(struct libusb_transfer *transfer);
 SR_PRIV size_t fx2lafw_get_buffer_size(struct dev_context *devc);
 SR_PRIV unsigned int fx2lafw_get_number_of_transfers(struct dev_context *devc);
 SR_PRIV unsigned int fx2lafw_get_timeout(struct dev_context *devc);

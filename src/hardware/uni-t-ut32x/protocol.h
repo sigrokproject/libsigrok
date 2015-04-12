@@ -66,6 +66,6 @@ struct dev_context {
 };
 
 SR_PRIV int uni_t_ut32x_handle_events(int fd, int revents, void *cb_data);
-SR_PRIV void uni_t_ut32x_receive_transfer(struct libusb_transfer *transfer);
+SR_PRIV void LIBUSB_CALL uni_t_ut32x_receive_transfer(struct libusb_transfer *transfer);
 
 #endif

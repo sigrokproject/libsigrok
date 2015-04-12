@@ -77,7 +77,7 @@ static libusb_device_handle *lascar_open(struct libusb_device *dev)
 	return dev_hdl;
 }
 
-static void mark_xfer(struct libusb_transfer *xfer)
+static void LIBUSB_CALL mark_xfer(struct libusb_transfer *xfer)
 {
 
 	xfer->user_data = GINT_TO_POINTER(1);
@@ -503,7 +503,7 @@ SR_PRIV int lascar_el_usb_handle_events(int fd, int revents, void *cb_data)
 	return TRUE;
 }
 
-SR_PRIV void lascar_el_usb_receive_transfer(struct libusb_transfer *transfer)
+SR_PRIV void LIBUSB_CALL lascar_el_usb_receive_transfer(struct libusb_transfer *transfer)
 {
 	struct dev_context *devc;
 	struct sr_dev_inst *sdi;

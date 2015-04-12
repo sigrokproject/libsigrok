@@ -604,7 +604,7 @@ static void end_acquisition(struct sr_dev_inst *sdi)
 
 /* USB output transfer completion callback.
  */
-static void receive_transfer_out(struct libusb_transfer *transfer)
+static void LIBUSB_CALL receive_transfer_out(struct libusb_transfer *transfer)
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
@@ -658,7 +658,7 @@ static void receive_transfer_out(struct libusb_transfer *transfer)
 
 /* USB input transfer completion callback.
  */
-static void receive_transfer_in(struct libusb_transfer *transfer)
+static void LIBUSB_CALL receive_transfer_in(struct libusb_transfer *transfer)
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;

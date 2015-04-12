@@ -124,7 +124,7 @@ static void send_data(const struct sr_dev_inst *sdi, void *buf, unsigned int buf
 
 }
 
-SR_PRIV void kecheng_kc_330b_receive_transfer(struct libusb_transfer *transfer)
+SR_PRIV void LIBUSB_CALL kecheng_kc_330b_receive_transfer(struct libusb_transfer *transfer)
 {
 	struct dev_context *devc;
 	struct sr_dev_inst *sdi;

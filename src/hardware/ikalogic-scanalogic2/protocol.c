@@ -258,7 +258,7 @@ SR_PRIV int ikalogic_scanalogic2_receive_data(int fd, int revents, void *cb_data
 	return TRUE;
 }
 
-SR_PRIV void sl2_receive_transfer_in( struct libusb_transfer *transfer)
+SR_PRIV void LIBUSB_CALL sl2_receive_transfer_in( struct libusb_transfer *transfer)
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
@@ -389,7 +389,7 @@ SR_PRIV void sl2_receive_transfer_in( struct libusb_transfer *transfer)
 	}
 }
 
-SR_PRIV void sl2_receive_transfer_out( struct libusb_transfer *transfer)
+SR_PRIV void LIBUSB_CALL sl2_receive_transfer_out( struct libusb_transfer *transfer)
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;

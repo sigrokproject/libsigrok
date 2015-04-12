@@ -372,7 +372,7 @@ static void receive_data(struct sr_dev_inst *sdi, unsigned char *data, int len)
 
 }
 
-SR_PRIV void receive_transfer(struct libusb_transfer *transfer)
+SR_PRIV void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 {
 	struct dev_context *devc;
 	struct sr_dev_inst *sdi;

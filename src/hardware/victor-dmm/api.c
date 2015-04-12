@@ -286,7 +286,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	return SR_OK;
 }
 
-static void receive_transfer(struct libusb_transfer *transfer)
+static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 {
 	struct dev_context *devc;
 	struct sr_dev_inst *sdi;

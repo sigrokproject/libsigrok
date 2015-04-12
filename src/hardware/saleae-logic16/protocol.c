@@ -702,7 +702,7 @@ static size_t convert_sample_data(struct dev_context *devc,
 	return ret;
 }
 
-SR_PRIV void logic16_receive_transfer(struct libusb_transfer *transfer)
+SR_PRIV void LIBUSB_CALL logic16_receive_transfer(struct libusb_transfer *transfer)
 {
 	gboolean packet_has_error = FALSE;
 	struct sr_datafeed_packet packet;

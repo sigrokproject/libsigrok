@@ -145,7 +145,7 @@ static void process_packet(struct sr_dev_inst *sdi)
 
 }
 
-SR_PRIV void uni_t_ut32x_receive_transfer(struct libusb_transfer *transfer)
+SR_PRIV void LIBUSB_CALL uni_t_ut32x_receive_transfer(struct libusb_transfer *transfer)
 {
 	struct dev_context *devc;
 	struct sr_dev_inst *sdi;

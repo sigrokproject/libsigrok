@@ -252,7 +252,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	return SR_OK;
 }
 
-static void mark_xfer(struct libusb_transfer *xfer)
+static void LIBUSB_CALL mark_xfer(struct libusb_transfer *xfer)
 {
 
 	if (xfer->status == LIBUSB_TRANSFER_COMPLETED)
