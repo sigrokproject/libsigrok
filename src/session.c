@@ -385,17 +385,20 @@ static int sr_session_iteration(struct sr_session *session, gboolean block)
 	struct timeval tv;
 #endif
 
-	timeout = block ? 0 : session->source_timeout;
+	timeout = block ? session->source_timeout : 0;
 
 #ifdef HAVE_LIBUSB_1_0
-	ret = libusb_get_next_timeout(session->ctx->libusb_ctx, &tv);
-	if (ret < 0) {
-		sr_err("Error getting libusb timeout: %s",
-			libusb_error_name(ret));
-		return SR_ERR;
-	} else if (ret == 1) {
-		usb_timeout = tv.tv_sec * 1000 + tv.tv_usec / 1000;
-		timeout = MIN(timeout, usb_timeout);
+	if (session->ctx->usb_source_present) {
+		timeout = block ? 0 : session->source_timeout;
+		ret = libusb_get_next_timeout(session->ctx->libusb_ctx, &tv);
+		if (ret < 0) {
+			sr_err("Error getting libusb timeout: %s",
+				libusb_error_name(ret));
+			return SR_ERR;
+		} else if (ret == 1) {
+			usb_timeout = tv.tv_sec * 1000 + tv.tv_usec / 1000;
+			timeout = MIN(timeout, usb_timeout);
+		}
 	}
 #endif
 
