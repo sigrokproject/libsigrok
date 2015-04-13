@@ -424,6 +424,11 @@ SR_PRIV int bl_acme_set_power_off(const struct sr_channel_group *cg,
 	}
 
 	val = sr_gpio_setval_export(pws_gpios[cgp->index], off ? 0 : 1);
+	if (val < 0) {
+		sr_err("Error setting power-off state: gpio: %d",
+		       pws_gpios[cgp->index]);
+		return SR_ERR_IO;
+	}
 
 	return SR_OK;
 }
