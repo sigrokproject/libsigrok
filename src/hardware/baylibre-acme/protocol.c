@@ -414,6 +414,7 @@ SR_PRIV int bl_acme_set_power_off(const struct sr_channel_group *cg,
 				  gboolean off)
 {
 	struct channel_group_priv *cgp;
+	int val;
 
 	cgp = cg->priv;
 
@@ -422,7 +423,7 @@ SR_PRIV int bl_acme_set_power_off(const struct sr_channel_group *cg,
 		return SR_ERR_ARG;
 	}
 
-	sr_gpio_setval_export(pws_gpios[cgp->index], off ? 0 : 1);
+	val = sr_gpio_setval_export(pws_gpios[cgp->index], off ? 0 : 1);
 
 	return SR_OK;
 }
