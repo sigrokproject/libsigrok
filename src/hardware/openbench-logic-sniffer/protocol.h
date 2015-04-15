@@ -28,12 +28,12 @@
 
 #define LOG_PREFIX "ols"
 
-#define NUM_CHANNELS             32
-#define NUM_TRIGGER_STAGES     4
-#define SERIAL_SPEED           B115200
-#define CLOCK_RATE             SR_MHZ(100)
-#define MIN_NUM_SAMPLES        4
-#define DEFAULT_SAMPLERATE     SR_KHZ(200)
+#define NUM_CHANNELS               32
+#define NUM_TRIGGER_STAGES         4
+#define SERIAL_SPEED               B115200
+#define CLOCK_RATE                 SR_MHZ(100)
+#define MIN_NUM_SAMPLES            4
+#define DEFAULT_SAMPLERATE         SR_KHZ(200)
 
 /* Command opcodes */
 #define CMD_RESET                  0x00
@@ -55,7 +55,7 @@
 /* 12-13 unused, 14-15 RLE mode (we hardcode mode 0). */
 #define FLAG_INTERNAL_TEST_MODE    (1 << 11)
 #define FLAG_EXTERNAL_TEST_MODE    (1 << 10)
-#define FLAG_SWAP_CHANNELS           (1 << 9)
+#define FLAG_SWAP_CHANNELS         (1 << 9)
 #define FLAG_RLE                   (1 << 8)
 #define FLAG_SLOPE_FALLING         (1 << 7)
 #define FLAG_CLOCK_EXTERNAL        (1 << 6)
