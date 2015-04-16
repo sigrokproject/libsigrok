@@ -432,7 +432,9 @@ SR_API int sr_init(struct sr_context **ctx)
 	context = NULL;
 	ret = SR_OK;
 
+#ifdef HAVE_LIBUSB_1_0
 done:
+#endif
 	g_free(context);
 	return ret;
 }

@@ -520,11 +520,10 @@ SR_API const char *sr_dev_inst_sernum_get(const struct sr_dev_inst *sdi)
  */
 SR_API const char *sr_dev_inst_connid_get(const struct sr_dev_inst *sdi)
 {
+#ifdef HAVE_LIBUSB_1_0
 	struct drv_context *drvc;
 	int r, cnt, i, a, b;
 	char connection_id[64];
-
-#ifdef HAVE_LIBUSB_1_0
 	struct sr_usb_dev_inst *usb;
 	struct libusb_device **devlist;
 	struct libusb_device_descriptor des;
