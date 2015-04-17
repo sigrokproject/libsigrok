@@ -80,4 +80,5 @@ bindings/java/sigrok-core.jar
 test-suite.log
 tests/*.log
 tests/*.trs
+tests/main
 
