@@ -38,7 +38,7 @@ Requirements for the C library:
  - pkg-config >= 0.22
  - libglib >= 2.32.0
  - libzip >= 0.10
- - libserialport >= 0.1.0 (optional, used by some drivers)
+ - libserialport >= 0.1.1 (optional, used by some drivers)
  - librevisa >= 0.0.20130412 (optional, used by some drivers)
  - libusb-1.0 >= 1.0.16 (optional, used by some drivers)
  - libftdi >= 0.16 or libftdi1 >= 1.0 (optional, used by some drivers)
