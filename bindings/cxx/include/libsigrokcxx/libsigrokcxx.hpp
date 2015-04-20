@@ -888,8 +888,9 @@ public:
 	/** Virtual device associated with this input. */
 	shared_ptr<InputDevice> device();
 	/** Send next stream data.
-	 * @param data Next stream data. */
-	void send(string data);
+	 * @param data Next stream data.
+	 * @param length Length of data. */
+	void send(void *data, size_t length);
 	/** Signal end of input data. */
 	void end();
 protected:

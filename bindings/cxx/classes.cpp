@@ -1438,9 +1438,9 @@ shared_ptr<InputDevice> Input::device()
 	return _device->get_shared_pointer(shared_from_this());
 }
 
-void Input::send(string data)
+void Input::send(void *data, size_t length)
 {
-	auto gstr = g_string_new(data.c_str());
+	auto gstr = g_string_new_len((gchar *)data, length);
 	auto ret = sr_input_send(_structure, gstr);
 	g_string_free(gstr, false);
 	check(ret);
