@@ -2,6 +2,8 @@
  * This file is part of the libsigrok project.
  *
  * Copyright (C) 2014 Bert Vermeulen <bert@biot.com>
+ * Copyright (C) 2015 Google, Inc.
+ * (Written by Alexandru Gagniuc <mrnuke@google.com> for Google, Inc.)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,6 +29,7 @@ const char *pps_vendors[][2] = {
 	{ "RIGOL TECHNOLOGIES", "Rigol" },
 	{ "HEWLETT-PACKARD", "HP" },
 	{ "PHILIPS", "Philips" },
+	{ "Chroma ATE", "Chroma" },
 };
 
 const char *get_vendor(const char *raw_vendor)
@@ -42,6 +45,46 @@ const char *get_vendor(const char *raw_vendor)
 }
 
 static const uint32_t devopts_none[] = { };
+
+/* Chroma 61600 series AC source */
+static const uint32_t chroma_61604_devopts[] = {
+	SR_CONF_CONTINUOUS | SR_CONF_SET,
+};
+
+static const uint32_t chroma_61604_devopts_cg[] = {
+	SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_OVER_CURRENT_PROTECTION_THRESHOLD | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_OUTPUT_VOLTAGE | SR_CONF_GET,
+	SR_CONF_OUTPUT_VOLTAGE_TARGET | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_OUTPUT_CURRENT | SR_CONF_GET,
+	SR_CONF_OUTPUT_ENABLED | SR_CONF_GET | SR_CONF_SET,
+};
+
+const struct channel_spec chroma_61604_ch[] = {
+	{ "1", { 0, 300, 0.1 }, { 0, 16, 0.1 } },
+};
+
+const struct channel_group_spec chroma_61604_cg[] = {
+	{ "1", CH_IDX(0), PPS_OVP | PPS_OCP },
+};
+
+const struct scpi_command chroma_61604_cmd[] = {
+	{ SCPI_CMD_REMOTE, "SYST:REM" },
+	{ SCPI_CMD_LOCAL, "SYST:LOC" },
+	{ SCPI_CMD_GET_MEAS_VOLTAGE, ":FETC:VOLT:ACDC?" },
+	{ SCPI_CMD_GET_MEAS_CURRENT, ":FETC:CURR:AC?" },
+	{ SCPI_CMD_GET_MEAS_POWER, ":FETC:POW:AC?" },
+	{ SCPI_CMD_GET_VOLTAGE_TARGET, ":SOUR:VOLT:AC?" },
+	{ SCPI_CMD_SET_VOLTAGE_TARGET, ":SOUR:VOLT:AC %.1f" },
+	{ SCPI_CMD_GET_OUTPUT_ENABLED, ":OUTP?" },
+	{ SCPI_CMD_SET_OUTPUT_ENABLE, ":OUTP ON" },
+	{ SCPI_CMD_SET_OUTPUT_DISABLE, ":OUTP OFF" },
+	{ SCPI_CMD_GET_OVER_VOLTAGE_PROTECTION_THRESHOLD, ":SOUR:VOLT:LIM:AC?" },
+	{ SCPI_CMD_SET_OVER_VOLTAGE_PROTECTION_THRESHOLD, ":SOUR:VOLT:LIM:AC %.1f" },
+	/* This is not a current limit mode. It is overcurrent protection */
+	{ SCPI_CMD_GET_OVER_CURRENT_PROTECTION_THRESHOLD, ":SOUR:CURR:LIM?" },
+	{ SCPI_CMD_SET_OVER_CURRENT_PROTECTION_THRESHOLD, ":SOUR:CURR:LIM %.2f" },
+};
 
 /* Rigol DP800 series */
 static const uint32_t rigol_dp800_devopts[] = {
@@ -304,6 +347,15 @@ const struct scpi_command philips_pm2800_cmd[] = {
 };
 
 SR_PRIV const struct scpi_pps pps_profiles[] = {
+	/* Chroma 61604 */
+	{ "Chroma", "61604", 0,
+		ARRAY_AND_SIZE(chroma_61604_devopts),
+		ARRAY_AND_SIZE(chroma_61604_devopts_cg),
+		ARRAY_AND_SIZE(chroma_61604_ch),
+		ARRAY_AND_SIZE(chroma_61604_cg),
+		ARRAY_AND_SIZE(chroma_61604_cmd),
+		.probe_channels = NULL,
+	},
 	/* HP 6632B */
 	{ "HP", "6632B", 0,
 		ARRAY_AND_SIZE(hp_6632b_devopts),
