@@ -31,6 +31,7 @@ const char *pps_vendors[][2] = {
 	{ "HEWLETT-PACKARD", "HP" },
 	{ "PHILIPS", "Philips" },
 	{ "Chroma ATE", "Chroma" },
+	{ "Agilent Technologies", "Agilent" },
 };
 
 const char *get_vendor(const char *raw_vendor)
@@ -46,6 +47,55 @@ const char *get_vendor(const char *raw_vendor)
 }
 
 static const uint32_t devopts_none[] = { };
+
+/* Agilent/Keysight N5700A series */
+static const uint32_t agilent_n5700a_devopts[] = {
+	SR_CONF_CONTINUOUS | SR_CONF_SET,
+};
+
+static const uint32_t agilent_n5700a_devopts_cg[] = {
+	SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_OVER_CURRENT_PROTECTION_ENABLED | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_OVER_CURRENT_PROTECTION_THRESHOLD | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_OUTPUT_VOLTAGE | SR_CONF_GET,
+	SR_CONF_OUTPUT_VOLTAGE_TARGET | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_OUTPUT_CURRENT | SR_CONF_GET,
+	SR_CONF_OUTPUT_ENABLED | SR_CONF_GET | SR_CONF_SET,
+};
+
+const struct channel_spec agilent_n5767a_ch[] = {
+	{ "1", { 0, 60, 0.0001 }, { 0, 25, 0.1 } },
+};
+
+const struct channel_group_spec agilent_n5767a_cg[] = {
+	{ "1", CH_IDX(0), PPS_OVP | PPS_OCP },
+};
+
+/*
+ * TODO: OVER_CURRENT_PROTECTION_ACTIVE status can be determined by the OC bit
+ * in STAT:QUES:EVEN?, but this is not implemented
+ */
+const struct scpi_command agilent_n5700a_cmd[] = {
+	{ SCPI_CMD_REMOTE, "SYST:COMM:RLST REM" },
+	{ SCPI_CMD_LOCAL, "SYST:COMM:RLST LOC" },
+	{ SCPI_CMD_GET_MEAS_VOLTAGE, ":MEAS:VOLT?" },
+	{ SCPI_CMD_GET_MEAS_CURRENT, "MEAS:CURR?" },
+	{ SCPI_CMD_GET_VOLTAGE_TARGET, ":SOUR:VOLT?" },
+	{ SCPI_CMD_SET_VOLTAGE_TARGET, ":SOUR:VOLT %.6f" },
+	{ SCPI_CMD_GET_CURRENT_LIMIT, ":SOUR:CURR?" },
+	{ SCPI_CMD_SET_CURRENT_LIMIT, ":SOUR:CURR %.6f" },
+	{ SCPI_CMD_GET_OUTPUT_ENABLED, ":OUTP:STAT?" },
+	{ SCPI_CMD_SET_OUTPUT_ENABLE, ":OUTP ON" },
+	{ SCPI_CMD_SET_OUTPUT_DISABLE, ":OUTP OFF" },
+	{ SCPI_CMD_GET_OVER_VOLTAGE_PROTECTION_THRESHOLD, ":VOLT:PROT?" },
+	{ SCPI_CMD_SET_OVER_VOLTAGE_PROTECTION_THRESHOLD, ":VOLT:PROT %.6f" },
+	{ SCPI_CMD_GET_OVER_CURRENT_PROTECTION_ENABLED, ":CURR:PROT:STAT?" },
+	{ SCPI_CMD_SET_OVER_CURRENT_PROTECTION_ENABLE, ":CURR:PROT:STAT ON?"},
+	{ SCPI_CMD_SET_OVER_CURRENT_PROTECTION_DISABLE, ":CURR:PROT:STAT OFF?"},
+	/* Current limit (CC mode) and OCP are set using the same cmd. sad */
+	{ SCPI_CMD_GET_OVER_CURRENT_PROTECTION_THRESHOLD, ":SOUR:CURR?" },
+	{ SCPI_CMD_SET_OVER_CURRENT_PROTECTION_THRESHOLD, ":SOUR:CURR %.6f" },
+};
 
 /* Chroma 61600 series AC source */
 static const uint32_t chroma_61604_devopts[] = {
@@ -353,6 +403,15 @@ const struct scpi_command philips_pm2800_cmd[] = {
 };
 
 SR_PRIV const struct scpi_pps pps_profiles[] = {
+	/* Agilent N5767A */
+	{ "Agilent", "N5767A", 0,
+		ARRAY_AND_SIZE(agilent_n5700a_devopts),
+		ARRAY_AND_SIZE(agilent_n5700a_devopts_cg),
+		ARRAY_AND_SIZE(agilent_n5767a_ch),
+		ARRAY_AND_SIZE(agilent_n5767a_cg),
+		ARRAY_AND_SIZE(agilent_n5700a_cmd),
+		.probe_channels = NULL,
+	},
 	/* Chroma 61604 */
 	{ "Chroma", "61604", 0,
 		ARRAY_AND_SIZE(chroma_61604_devopts),
