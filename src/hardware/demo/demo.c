@@ -225,7 +225,7 @@ static void generate_analog_pattern(struct analog_gen *ag, uint64_t sample_rate)
 		for (i = 0; i < num_samples; i++) {
 			t = (double) i / (double) sample_rate;
 			ag->pattern_data[i] = ag->amplitude *
-						sin(2 * M_PI * frequency * t);
+						sin(2 * PI * frequency * t);
 		}
 
 		ag->num_samples = num_samples;
@@ -238,8 +238,8 @@ static void generate_analog_pattern(struct analog_gen *ag, uint64_t sample_rate)
 
 		for (i = 0; i < num_samples; i++) {
 			t = (double) i / (double) sample_rate;
-			ag->pattern_data[i] = (2 * ag->amplitude / M_PI) *
-						asin(sin(2 * M_PI * frequency * t));
+			ag->pattern_data[i] = (2 * ag->amplitude / PI) *
+						asin(sin(2 * PI * frequency * t));
 		}
 
 		ag->num_samples = num_samples;

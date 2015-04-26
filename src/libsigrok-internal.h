@@ -156,6 +156,8 @@
                          ((uint8_t*)(p))[2] = (uint8_t)((x)>>16); \
                          ((uint8_t*)(p))[3] = (uint8_t)((x)>>24); } while (0)
 
+#define PI 3.1415926535897932384626433832795
+
 /* Portability fixes for FreeBSD. */
 #ifdef __FreeBSD__
 #define LIBUSB_CLASS_APPLICATION 0xfe
