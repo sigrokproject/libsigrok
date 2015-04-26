@@ -18,6 +18,7 @@
  */
 
 #include <string.h>
+#include <strings.h>
 #include "protocol.h"
 
 SR_PRIV struct sr_dev_driver scpi_pps_driver_info;

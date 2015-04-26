@@ -23,6 +23,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <math.h>
 #include <glib.h>
 #include "libsigrok.h"

@@ -18,6 +18,7 @@
  */
 
 #include <string.h>
+#include <strings.h>
 #include "protocol.h"
 
 #define CH_IDX(x) (1 << x)
