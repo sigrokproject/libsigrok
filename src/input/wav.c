@@ -165,8 +165,7 @@ static int find_data_chunk(GString *buf, int initial_offset)
 			/* Skip into the samples. */
 			return offset + 8;
 		for (i = 0; i < 4; i++) {
-			if (!isalpha(buf->str[offset + i])
-					&& !isascii(buf->str[offset + i])
+			if (!isalnum(buf->str[offset + i])
 					&& !isblank(buf->str[offset + i]))
 				/* Doesn't look like a chunk ID. */
 				return -1;
