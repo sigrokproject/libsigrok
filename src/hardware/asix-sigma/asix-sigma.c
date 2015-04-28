@@ -130,12 +130,22 @@ static int sigma_write(void *buf, size_t size, struct dev_context *devc)
 	return ret;
 }
 
+/*
+ * NOTE: We chose the buffer size to be large enough to hold any write to the
+ * device. We still print a message just in case.
+ */
 static int sigma_write_register(uint8_t reg, uint8_t *data, size_t len,
 				struct dev_context *devc)
 {
 	size_t i;
-	uint8_t buf[len + 2];
+	uint8_t buf[80];
 	int idx = 0;
+
+	if ((len + 2) > sizeof(buf)) {
+		sr_err("Attempted to write %zu bytes, but buffer is too small.",
+		       len + 2);
+		return SR_ERR_BUG;
+	}
 
 	buf[idx++] = REG_ADDR_LOW | (reg & 0xf);
 	buf[idx++] = REG_ADDR_HIGH | (reg >> 4);
