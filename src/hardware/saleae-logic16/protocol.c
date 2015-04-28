@@ -307,7 +307,7 @@ static void make_heartbeat(uint8_t *table, int len)
 	len >>= 3;
 	for (i = 0; i < 2; i++)
 		for (j = 0; j < len; j++)
-			*table++ = sin(j * PI / len) * 255;
+			*table++ = sin(j * G_PI / len) * 255;
 }
 
 static int configure_led(const struct sr_dev_inst *sdi)
