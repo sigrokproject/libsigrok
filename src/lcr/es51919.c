@@ -402,7 +402,7 @@ static int send_config_update_key(struct sr_dev_inst *sdi, uint32_t key,
 
 #define PACKET_SIZE 17
 
-static const uint64_t frequencies[] = {
+static const double frequencies[] = {
 	100, 120, 1000, 10000, 100000, 0,
 };
 
@@ -636,7 +636,7 @@ static int do_config_update(struct sr_dev_inst *sdi, uint32_t key,
 static int send_freq_update(struct sr_dev_inst *sdi, unsigned int freq)
 {
 	return do_config_update(sdi, SR_CONF_OUTPUT_FREQUENCY,
-				g_variant_new_uint64(frequencies[freq]));
+				g_variant_new_double(frequencies[freq]));
 }
 
 static int send_quant1_update(struct sr_dev_inst *sdi, unsigned int quant)
@@ -877,7 +877,7 @@ SR_PRIV int es51919_serial_config_get(uint32_t key, GVariant **data,
 
 	switch (key) {
 	case SR_CONF_OUTPUT_FREQUENCY:
-		*data = g_variant_new_uint64(frequencies[devc->freq]);
+		*data = g_variant_new_double(frequencies[devc->freq]);
 		break;
 	case SR_CONF_MEASURED_QUANTITY:
 		*data = g_variant_new_string(quantities1[devc->quant1]);
@@ -960,8 +960,8 @@ SR_PRIV int es51919_serial_config_list(uint32_t key, GVariant **data,
 
 	switch (key) {
 	case SR_CONF_OUTPUT_FREQUENCY:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT64,
-			frequencies, ARRAY_SIZE(frequencies), sizeof(uint64_t));
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_DOUBLE,
+			frequencies, ARRAY_SIZE(frequencies), sizeof(double));
 		break;
 	case SR_CONF_MEASURED_QUANTITY:
 		*data = g_variant_new_strv(list_quantities1,

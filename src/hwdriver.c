@@ -157,7 +157,7 @@ static struct sr_config_info sr_config_info_data[] = {
 		"Output channel regulation", NULL},
 	{SR_CONF_OVER_TEMPERATURE_PROTECTION, SR_T_BOOL, "otp",
 		"Over-temperature protection", NULL},
-	{SR_CONF_OUTPUT_FREQUENCY, SR_T_UINT64, "output_frequency",
+	{SR_CONF_OUTPUT_FREQUENCY, SR_T_FLOAT, "output_frequency",
 		"Output frequency", NULL},
 	{SR_CONF_MEASURED_QUANTITY, SR_T_STRING, "measured_quantity",
 		"Measured quantity", NULL},
