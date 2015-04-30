@@ -227,6 +227,8 @@ SR_PRIV int scpi_pps_receive_data(int fd, int revents, void *cb_data)
 	pch = devc->cur_channel->priv;
 	if (pch->mq == SR_MQ_VOLTAGE)
 		cmd = SCPI_CMD_GET_MEAS_VOLTAGE;
+	else if (pch->mq == SR_MQ_FREQUENCY)
+		cmd = SCPI_CMD_GET_MEAS_FREQUENCY;
 	else if (pch->mq == SR_MQ_CURRENT)
 		cmd = SCPI_CMD_GET_MEAS_CURRENT;
 	else if (pch->mq == SR_MQ_POWER)

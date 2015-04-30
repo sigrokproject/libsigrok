@@ -37,8 +37,11 @@ enum pps_scpi_cmds {
 	SCPI_CMD_GET_MEAS_VOLTAGE,
 	SCPI_CMD_GET_MEAS_CURRENT,
 	SCPI_CMD_GET_MEAS_POWER,
+	SCPI_CMD_GET_MEAS_FREQUENCY,
 	SCPI_CMD_GET_VOLTAGE_TARGET,
 	SCPI_CMD_SET_VOLTAGE_TARGET,
+	SCPI_CMD_GET_FREQUENCY_TARGET,
+	SCPI_CMD_SET_FREQUENCY_TARGET,
 	SCPI_CMD_GET_CURRENT_LIMIT,
 	SCPI_CMD_SET_CURRENT_LIMIT,
 	SCPI_CMD_GET_OUTPUT_ENABLED,
@@ -100,6 +103,7 @@ struct channel_spec {
 	/* Min, max, programming resolution. */
 	float voltage[3];
 	float current[3];
+	float frequency[3];
 };
 
 struct scpi_command {

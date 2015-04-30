@@ -38,6 +38,7 @@ static const struct pps_channel_instance pci[] = {
 	{ SR_MQ_VOLTAGE, SCPI_CMD_GET_MEAS_VOLTAGE, "V" },
 	{ SR_MQ_CURRENT, SCPI_CMD_GET_MEAS_CURRENT, "I" },
 	{ SR_MQ_POWER, SCPI_CMD_GET_MEAS_POWER, "P" },
+	{ SR_MQ_FREQUENCY, SCPI_CMD_GET_MEAS_FREQUENCY, "F" },
 };
 
 static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
@@ -300,6 +301,14 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		gvtype = G_VARIANT_TYPE_DOUBLE;
 		cmd = SCPI_CMD_GET_VOLTAGE_TARGET;
 		break;
+	case SR_CONF_OUTPUT_FREQUENCY:
+		gvtype = G_VARIANT_TYPE_DOUBLE;
+		cmd = SCPI_CMD_GET_MEAS_FREQUENCY;
+		break;
+	case SR_CONF_OUTPUT_FREQUENCY_TARGET:
+		gvtype = G_VARIANT_TYPE_DOUBLE;
+		cmd = SCPI_CMD_GET_FREQUENCY_TARGET;
+		break;
 	case SR_CONF_OUTPUT_CURRENT:
 		gvtype = G_VARIANT_TYPE_DOUBLE;
 		cmd = SCPI_CMD_GET_MEAS_CURRENT;
@@ -377,6 +386,10 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	case SR_CONF_OUTPUT_VOLTAGE_TARGET:
 		d = g_variant_get_double(data);
 		ret = scpi_cmd(sdi, SCPI_CMD_SET_VOLTAGE_TARGET, d);
+		break;
+	case SR_CONF_OUTPUT_FREQUENCY_TARGET:
+		d = g_variant_get_double(data);
+		ret = scpi_cmd(sdi, SCPI_CMD_SET_FREQUENCY_TARGET, d);
 		break;
 	case SR_CONF_OUTPUT_CURRENT_LIMIT:
 		d = g_variant_get_double(data);
@@ -497,6 +510,16 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 			}
 			*data = g_variant_builder_end(&gvb);
 			break;
+		case SR_CONF_OUTPUT_FREQUENCY_TARGET:
+			ch_spec = &(devc->device->channels[ch->index]);
+			g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
+			/* Min, max, write resolution. */
+			for (i = 0; i < 3; i++) {
+				gvar = g_variant_new_double(ch_spec->frequency[i]);
+				g_variant_builder_add_value(&gvb, gvar);
+			}
+			*data = g_variant_builder_end(&gvb);
+			break;
 		case SR_CONF_OUTPUT_CURRENT_LIMIT:
 			g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
 			/* Min, max, step. */
@@ -543,6 +566,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 		return ret;
 	if (pch->mq == SR_MQ_VOLTAGE)
 		cmd = SCPI_CMD_GET_MEAS_VOLTAGE;
+	else if (pch->mq == SR_MQ_FREQUENCY)
+		cmd = SCPI_CMD_GET_MEAS_FREQUENCY;
 	else if (pch->mq == SR_MQ_CURRENT)
 		cmd = SCPI_CMD_GET_MEAS_CURRENT;
 	else if (pch->mq == SR_MQ_POWER)

@@ -24,6 +24,7 @@
 #include "protocol.h"
 
 #define CH_IDX(x) (1 << x)
+#define FREQ_DC_ONLY {0, 0, 0}
 
 const char *pps_vendors[][2] = {
 	{ "RIGOL TECHNOLOGIES", "Rigol" },
@@ -61,7 +62,7 @@ static const uint32_t chroma_61604_devopts_cg[] = {
 };
 
 const struct channel_spec chroma_61604_ch[] = {
-	{ "1", { 0, 300, 0.1 }, { 0, 16, 0.1 } },
+	{ "1", { 0, 300, 0.1 }, { 0, 16, 0.1 }, FREQ_DC_ONLY },
 };
 
 const struct channel_group_spec chroma_61604_cg[] = {
@@ -108,20 +109,20 @@ static const uint32_t rigol_dp800_devopts_cg[] = {
 };
 
 const struct channel_spec rigol_dp821a_ch[] = {
-	{ "1", { 0, 60, 0.001 }, { 0, 1, 0.0001 } },
-	{ "2", { 0, 8, 0.001 }, { 0, 10, 0.001 } },
+	{ "1", { 0, 60, 0.001 }, { 0, 1, 0.0001 }, FREQ_DC_ONLY },
+	{ "2", { 0, 8, 0.001 }, { 0, 10, 0.001 }, FREQ_DC_ONLY },
 };
 
 const struct channel_spec rigol_dp831_ch[] = {
-	{ "1", { 0, 8, 0.001 }, { 0, 5, 0.0003 } },
-	{ "2", { 0, 30, 0.001 }, { 0, 2, 0.0001 } },
-	{ "3", { 0, -30, 0.001 }, { 0, 2, 0.0001 } },
+	{ "1", { 0, 8, 0.001 }, { 0, 5, 0.0003 }, FREQ_DC_ONLY },
+	{ "2", { 0, 30, 0.001 }, { 0, 2, 0.0001 }, FREQ_DC_ONLY },
+	{ "3", { 0, -30, 0.001 }, { 0, 2, 0.0001 }, FREQ_DC_ONLY },
 };
 
 const struct channel_spec rigol_dp832_ch[] = {
-	{ "1", { 0, 30, 0.001 }, { 0, 3, 0.001 } },
-	{ "2", { 0, 30, 0.001 }, { 0, 3, 0.001 } },
-	{ "3", { 0, 5, 0.001 }, { 0, 3, 0.001 } },
+	{ "1", { 0, 30, 0.001 }, { 0, 3, 0.001 }, FREQ_DC_ONLY },
+	{ "2", { 0, 30, 0.001 }, { 0, 3, 0.001 }, FREQ_DC_ONLY },
+	{ "3", { 0, 5, 0.001 }, { 0, 3, 0.001 }, FREQ_DC_ONLY },
 };
 
 const struct channel_group_spec rigol_dp820_cg[] = {
@@ -181,7 +182,7 @@ static const uint32_t hp_6632b_devopts[] = {
 };
 
 const struct channel_spec hp_6632b_ch[] = {
-	{ "1", { 0, 20.475, 0.005 }, { 0, 5.1188, 0.00132 } },
+	{ "1", { 0, 20.475, 0.005 }, { 0, 5.1188, 0.00132 }, FREQ_DC_ONLY },
 };
 
 const struct channel_group_spec hp_6632b_cg[] = {
