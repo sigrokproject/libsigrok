@@ -159,6 +159,8 @@ static struct sr_config_info sr_config_info_data[] = {
 		"Over-temperature protection", NULL},
 	{SR_CONF_OUTPUT_FREQUENCY, SR_T_FLOAT, "output_frequency",
 		"Output frequency", NULL},
+	{SR_CONF_OUTPUT_FREQUENCY_TARGET, SR_T_FLOAT, "output_frequency_target",
+		"Output frequency target", NULL},
 	{SR_CONF_MEASURED_QUANTITY, SR_T_STRING, "measured_quantity",
 		"Measured quantity", NULL},
 	{SR_CONF_MEASURED_2ND_QUANTITY, SR_T_STRING, "measured_2nd_quantity",

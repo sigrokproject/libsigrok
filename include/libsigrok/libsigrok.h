@@ -880,6 +880,9 @@ enum sr_configkey {
 	/** Equivalent circuit model. */
 	SR_CONF_EQUIV_CIRCUIT_MODEL,
 
+	/* Output frequency target in Hz. */
+	SR_CONF_OUTPUT_FREQUENCY_TARGET,
+
 	/*--- Special stuff -------------------------------------------------*/
 
 	/** Scan options supported by the driver. */
