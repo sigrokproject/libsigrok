@@ -213,7 +213,7 @@ typedef guint pyg_flags_type;
     if (!PyCallable_Check($input))
         SWIG_exception(SWIG_TypeError, "Expected a callable Python object");
 
-    $1 = [=] (const sigrok::LogLevel *loglevel, string message) {
+    $1 = [=] (const sigrok::LogLevel *loglevel, std::string message) {
         auto gstate = PyGILState_Ensure();
 
         auto log_obj = SWIG_NewPointerObj(
