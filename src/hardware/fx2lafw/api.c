@@ -45,18 +45,31 @@ static const struct fx2lafw_profile supported_fx2[] = {
 		FIRMWARE_DIR "/fx2lafw-cwav-usbeesx.fw",
 		0, NULL, NULL},
 
-	/*
-	 * DreamSourceLab DSLogic (before FW upload)
-	 */
+	/* DreamSourceLab DSLogic (before FW upload) */
 	{ 0x2a0e, 0x0001, "DreamSourceLab", "DSLogic", NULL,
 		FIRMWARE_DIR "/dreamsourcelab-dslogic-fx2.fw",
 		DEV_CAPS_16BIT, NULL, NULL},
-
-	/*
-	 * DreamSourceLab DSLogic (after FW upload)
-	 */
+	/* DreamSourceLab DSLogic (after FW upload) */
 	{ 0x2a0e, 0x0001, "DreamSourceLab", "DSLogic", NULL,
 		FIRMWARE_DIR "/dreamsourcelab-dslogic-fx2.fw",
+		DEV_CAPS_16BIT, "DreamSourceLab", "DSLogic"},
+
+	/* DreamSourceLab DSCope (before FW upload) */
+	{ 0x2a0e, 0x0002, "DreamSourceLab", "DSCope", NULL,
+		FIRMWARE_DIR "/dreamsourcelab-dscope-fx2.fw",
+		DEV_CAPS_16BIT, NULL, NULL},
+	/* DreamSourceLab DSCope (after FW upload) */
+	{ 0x2a0e, 0x0002, "DreamSourceLab", "DSCope", NULL,
+		FIRMWARE_DIR "/dreamsourcelab-dscope-fx2.fw",
+		DEV_CAPS_16BIT, "DreamSourceLab", "DSCope"},
+
+	/* DreamSourceLab DSLogic Pro (before FW upload) */
+	{ 0x2a0e, 0x0003, "DreamSourceLab", "DSLogic Pro", NULL,
+		FIRMWARE_DIR "/dreamsourcelab-dslogic-pro-fx2.fw",
+		DEV_CAPS_16BIT, NULL, NULL},
+	/* DreamSourceLab DSLogic Pro (after FW upload) */
+	{ 0x2a0e, 0x0003, "DreamSourceLab", "DSLogic Pro", NULL,
+		FIRMWARE_DIR "/dreamsourcelab-dslogic-pro-fx2.fw",
 		DEV_CAPS_16BIT, "DreamSourceLab", "DSLogic"},
 
 	/*
@@ -296,18 +309,20 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		drvc->instances = g_slist_append(drvc->instances, sdi);
 		devices = g_slist_append(devices, sdi);
 
-		if (strcmp(prof->model, "DSLogic")) {
+		if (!strcmp(prof->model, "DSLogic")
+				|| !strcmp(prof->model, "DSLogic Pro")
+				|| !strcmp(prof->model, "DSCope")) {
+			devc->dslogic = TRUE;
+			devc->samplerates = dslogic_samplerates;
+			devc->num_samplerates = ARRAY_SIZE(dslogic_samplerates);
+			has_firmware = match_manuf_prod(devlist[i], "DreamSourceLab", "DSLogic")
+					|| match_manuf_prod(devlist[i], "DreamSourceLab", "DSCope");
+		} else {
 			devc->dslogic = FALSE;
 			devc->samplerates = samplerates;
 			devc->num_samplerates = ARRAY_SIZE(samplerates);
 			has_firmware = match_manuf_prod(devlist[i],
 					"sigrok", "fx2lafw");
-		} else {
-			devc->dslogic = TRUE;
-			devc->samplerates = dslogic_samplerates;
-			devc->num_samplerates = ARRAY_SIZE(dslogic_samplerates);
-			has_firmware = match_manuf_prod(devlist[i],
-					"DreamSourceLab", "DSLogic");
 		}
 
 		if (has_firmware) {
@@ -348,6 +363,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 	struct sr_dev_driver *di = sdi->driver;
 	struct sr_usb_dev_inst *usb;
 	struct dev_context *devc;
+	char *fpga_firmware = NULL;
 	int ret;
 	int64_t timediff_us, timediff_ms;
 
@@ -408,8 +424,16 @@ static int dev_open(struct sr_dev_inst *sdi)
 	}
 
 	if (devc->dslogic) {
+		if (!strcmp(devc->profile->model, "DSLogic")) {
+			fpga_firmware = DSLOGIC_FPGA_FIRMWARE;
+		} else if (!strcmp(devc->profile->model, "DSLogic Pro")) {
+			fpga_firmware = DSLOGIC_PRO_FPGA_FIRMWARE;
+		} else if (!strcmp(devc->profile->model, "DSCope")) {
+			fpga_firmware = DSCOPE_FPGA_FIRMWARE;
+		}
+
 		if ((ret = dslogic_fpga_firmware_upload(sdi,
-				DSLOGIC_FPGA_FIRMWARE)) != SR_OK)
+				fpga_firmware)) != SR_OK)
 			return ret;
 	}
 

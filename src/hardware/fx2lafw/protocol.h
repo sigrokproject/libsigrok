@@ -52,6 +52,8 @@
 #define DEV_CAPS_16BIT		(1 << DEV_CAPS_16BIT_POS)
 
 #define DSLOGIC_FPGA_FIRMWARE FIRMWARE_DIR "/dreamsourcelab-dslogic-fpga.fw"
+#define DSCOPE_FPGA_FIRMWARE FIRMWARE_DIR "/dreamsourcelab-dscope-fpga.fw"
+#define DSLOGIC_PRO_FPGA_FIRMWARE FIRMWARE_DIR "/dreamsourcelab-dslogic-pro-fpga.fw"
 
 /* Protocol commands */
 #define CMD_GET_FW_VERSION		0xb0
