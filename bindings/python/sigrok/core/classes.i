@@ -45,9 +45,11 @@ which provides access to the error code and description."
 %module(docstring=DOCSTRING) classes
 
 %{
+#include <stdio.h>
 #include <pygobject.h>
 #include <numpy/arrayobject.h>
 
+PyObject *PyGObject_lib;
 PyObject *GLib;
 PyTypeObject *IOChannel;
 PyTypeObject *PollFD;
@@ -63,8 +65,18 @@ typedef guint pyg_flags_type;
 %}
 
 %init %{
-    pygobject_init(-1, -1, -1);
+    PyGObject_lib = pygobject_init(-1, -1, -1);
+    if (!PyGObject_lib)
+        fprintf(stderr, "pygobject initialization failed.\n");
     GLib = PyImport_ImportModule("gi.repository.GLib");
+    /*
+     * This check can't save us if the import fails, but at least it gives us
+     * a starting point to trace the issue versus straight out crashing.
+     */
+    if (!GLib) {
+        fprintf(stderr, "Import of gi.repository.GLib failed.\n");
+        return;
+    }
     IOChannel = (PyTypeObject *) PyObject_GetAttrString(GLib, "IOChannel");
     PollFD = (PyTypeObject *) PyObject_GetAttrString(GLib, "PollFD");
     import_array();
