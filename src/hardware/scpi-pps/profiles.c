@@ -26,7 +26,7 @@
 #define CH_IDX(x) (1 << x)
 #define FREQ_DC_ONLY {0, 0, 0}
 
-const char *pps_vendors[][2] = {
+static const char *pps_vendors[][2] = {
 	{ "RIGOL TECHNOLOGIES", "Rigol" },
 	{ "HEWLETT-PACKARD", "HP" },
 	{ "PHILIPS", "Philips" },
@@ -63,11 +63,11 @@ static const uint32_t agilent_n5700a_devopts_cg[] = {
 	SR_CONF_OUTPUT_ENABLED | SR_CONF_GET | SR_CONF_SET,
 };
 
-const struct channel_spec agilent_n5767a_ch[] = {
+static const struct channel_spec agilent_n5767a_ch[] = {
 	{ "1", { 0, 60, 0.0001 }, { 0, 25, 0.1 } },
 };
 
-const struct channel_group_spec agilent_n5767a_cg[] = {
+static const struct channel_group_spec agilent_n5767a_cg[] = {
 	{ "1", CH_IDX(0), PPS_OVP | PPS_OCP },
 };
 
@@ -75,7 +75,7 @@ const struct channel_group_spec agilent_n5767a_cg[] = {
  * TODO: OVER_CURRENT_PROTECTION_ACTIVE status can be determined by the OC bit
  * in STAT:QUES:EVEN?, but this is not implemented
  */
-const struct scpi_command agilent_n5700a_cmd[] = {
+static const struct scpi_command agilent_n5700a_cmd[] = {
 	{ SCPI_CMD_REMOTE, "SYST:COMM:RLST REM" },
 	{ SCPI_CMD_LOCAL, "SYST:COMM:RLST LOC" },
 	{ SCPI_CMD_GET_MEAS_VOLTAGE, ":MEAS:VOLT?" },
@@ -113,15 +113,15 @@ static const uint32_t chroma_61604_devopts_cg[] = {
 	SR_CONF_OUTPUT_ENABLED | SR_CONF_GET | SR_CONF_SET,
 };
 
-const struct channel_spec chroma_61604_ch[] = {
+static const struct channel_spec chroma_61604_ch[] = {
 	{ "1", { 0, 300, 0.1 }, { 0, 16, 0.1 }, { 1.0, 1000.0, 0.01 } },
 };
 
-const struct channel_group_spec chroma_61604_cg[] = {
+static const struct channel_group_spec chroma_61604_cg[] = {
 	{ "1", CH_IDX(0), PPS_OVP | PPS_OCP },
 };
 
-const struct scpi_command chroma_61604_cmd[] = {
+static const struct scpi_command chroma_61604_cmd[] = {
 	{ SCPI_CMD_REMOTE, "SYST:REM" },
 	{ SCPI_CMD_LOCAL, "SYST:LOC" },
 	{ SCPI_CMD_GET_MEAS_VOLTAGE, ":FETC:VOLT:ACDC?" },
@@ -163,35 +163,35 @@ static const uint32_t rigol_dp800_devopts_cg[] = {
 	SR_CONF_OUTPUT_ENABLED | SR_CONF_GET | SR_CONF_SET,
 };
 
-const struct channel_spec rigol_dp821a_ch[] = {
+static const struct channel_spec rigol_dp821a_ch[] = {
 	{ "1", { 0, 60, 0.001 }, { 0, 1, 0.0001 }, FREQ_DC_ONLY },
 	{ "2", { 0, 8, 0.001 }, { 0, 10, 0.001 }, FREQ_DC_ONLY },
 };
 
-const struct channel_spec rigol_dp831_ch[] = {
+static const struct channel_spec rigol_dp831_ch[] = {
 	{ "1", { 0, 8, 0.001 }, { 0, 5, 0.0003 }, FREQ_DC_ONLY },
 	{ "2", { 0, 30, 0.001 }, { 0, 2, 0.0001 }, FREQ_DC_ONLY },
 	{ "3", { 0, -30, 0.001 }, { 0, 2, 0.0001 }, FREQ_DC_ONLY },
 };
 
-const struct channel_spec rigol_dp832_ch[] = {
+static const struct channel_spec rigol_dp832_ch[] = {
 	{ "1", { 0, 30, 0.001 }, { 0, 3, 0.001 }, FREQ_DC_ONLY },
 	{ "2", { 0, 30, 0.001 }, { 0, 3, 0.001 }, FREQ_DC_ONLY },
 	{ "3", { 0, 5, 0.001 }, { 0, 3, 0.001 }, FREQ_DC_ONLY },
 };
 
-const struct channel_group_spec rigol_dp820_cg[] = {
+static const struct channel_group_spec rigol_dp820_cg[] = {
 	{ "1", CH_IDX(0), PPS_OVP | PPS_OCP },
 	{ "2", CH_IDX(1), PPS_OVP | PPS_OCP },
 };
 
-const struct channel_group_spec rigol_dp830_cg[] = {
+static const struct channel_group_spec rigol_dp830_cg[] = {
 	{ "1", CH_IDX(0), PPS_OVP | PPS_OCP },
 	{ "2", CH_IDX(1), PPS_OVP | PPS_OCP },
 	{ "3", CH_IDX(2), PPS_OVP | PPS_OCP },
 };
 
-const struct scpi_command rigol_dp800_cmd[] = {
+static const struct scpi_command rigol_dp800_cmd[] = {
 	{ SCPI_CMD_REMOTE, "SYST:REMOTE" },
 	{ SCPI_CMD_LOCAL, "SYST:LOCAL" },
 	{ SCPI_CMD_BEEPER, "SYST:BEEP:STAT?" },
@@ -236,15 +236,15 @@ static const uint32_t hp_6632b_devopts[] = {
 	SR_CONF_OUTPUT_CURRENT_LIMIT | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
-const struct channel_spec hp_6632b_ch[] = {
+static const struct channel_spec hp_6632b_ch[] = {
 	{ "1", { 0, 20.475, 0.005 }, { 0, 5.1188, 0.00132 }, FREQ_DC_ONLY },
 };
 
-const struct channel_group_spec hp_6632b_cg[] = {
+static const struct channel_group_spec hp_6632b_cg[] = {
 	{ "1", CH_IDX(0), 0 },
 };
 
-const struct scpi_command hp_6632b_cmd[] = {
+static const struct scpi_command hp_6632b_cmd[] = {
 	{ SCPI_CMD_GET_OUTPUT_ENABLED, "OUTP:STAT?" },
 	{ SCPI_CMD_SET_OUTPUT_ENABLE, "OUTP:STAT ON" },
 	{ SCPI_CMD_SET_OUTPUT_DISABLE, "OUTP:STAT OFF" },
@@ -381,7 +381,7 @@ static int philips_pm2800_probe_channels(struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-const struct scpi_command philips_pm2800_cmd[] = {
+static const struct scpi_command philips_pm2800_cmd[] = {
 	{ SCPI_CMD_SELECT_CHANNEL, ":INST:NSEL %s" },
 	{ SCPI_CMD_GET_MEAS_VOLTAGE, ":MEAS:VOLT?" },
 	{ SCPI_CMD_GET_MEAS_CURRENT, ":MEAS:CURR?" },
