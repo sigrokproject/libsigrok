@@ -64,7 +64,7 @@ static const uint32_t agilent_n5700a_devopts_cg[] = {
 };
 
 static const struct channel_spec agilent_n5767a_ch[] = {
-	{ "1", { 0, 60, 0.0001 }, { 0, 25, 0.1 } },
+	{ "1", { 0, 60, 0.0001 }, { 0, 25, 0.1 }, FREQ_DC_ONLY },
 };
 
 static const struct channel_group_spec agilent_n5767a_cg[] = {
