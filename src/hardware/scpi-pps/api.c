@@ -22,8 +22,6 @@
 #include "protocol.h"
 
 SR_PRIV struct sr_dev_driver scpi_pps_driver_info;
-extern unsigned int num_pps_profiles;
-extern const struct scpi_pps pps_profiles[];
 
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,

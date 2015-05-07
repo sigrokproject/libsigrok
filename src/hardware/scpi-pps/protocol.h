@@ -156,7 +156,10 @@ struct dev_context {
 	struct sr_channel *cur_channel;
 };
 
-const char *get_vendor(const char *raw_vendor);
+SR_PRIV extern unsigned int num_pps_profiles;
+SR_PRIV extern const struct scpi_pps pps_profiles[];
+
+SR_PRIV const char *get_vendor(const char *raw_vendor);
 SR_PRIV const char *scpi_cmd_get(const struct sr_dev_inst *sdi, int command);
 SR_PRIV int scpi_cmd(const struct sr_dev_inst *sdi, int command, ...);
 SR_PRIV int scpi_cmd_resp(const struct sr_dev_inst *sdi, GVariant **gvar,

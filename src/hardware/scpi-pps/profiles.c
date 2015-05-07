@@ -34,7 +34,7 @@ static const char *pps_vendors[][2] = {
 	{ "Agilent Technologies", "Agilent" },
 };
 
-const char *get_vendor(const char *raw_vendor)
+SR_PRIV const char *get_vendor(const char *raw_vendor)
 {
 	unsigned int i;
 
@@ -73,7 +73,7 @@ static const struct channel_group_spec agilent_n5767a_cg[] = {
 
 /*
  * TODO: OVER_CURRENT_PROTECTION_ACTIVE status can be determined by the OC bit
- * in STAT:QUES:EVEN?, but this is not implemented
+ * in STAT:QUES:EVEN?, but this is not implemented.
  */
 static const struct scpi_command agilent_n5700a_cmd[] = {
 	{ SCPI_CMD_REMOTE, "SYST:COMM:RLST REM" },
@@ -92,7 +92,7 @@ static const struct scpi_command agilent_n5700a_cmd[] = {
 	{ SCPI_CMD_GET_OVER_CURRENT_PROTECTION_ENABLED, ":CURR:PROT:STAT?" },
 	{ SCPI_CMD_SET_OVER_CURRENT_PROTECTION_ENABLE, ":CURR:PROT:STAT ON?"},
 	{ SCPI_CMD_SET_OVER_CURRENT_PROTECTION_DISABLE, ":CURR:PROT:STAT OFF?"},
-	/* Current limit (CC mode) and OCP are set using the same cmd. sad */
+	/* Current limit (CC mode) and OCP are set using the same command. */
 	{ SCPI_CMD_GET_OVER_CURRENT_PROTECTION_THRESHOLD, ":SOUR:CURR?" },
 	{ SCPI_CMD_SET_OVER_CURRENT_PROTECTION_THRESHOLD, ":SOUR:CURR %.6f" },
 };
@@ -137,7 +137,7 @@ static const struct scpi_command chroma_61604_cmd[] = {
 	{ SCPI_CMD_SET_OUTPUT_DISABLE, ":OUTP OFF" },
 	{ SCPI_CMD_GET_OVER_VOLTAGE_PROTECTION_THRESHOLD, ":SOUR:VOLT:LIM:AC?" },
 	{ SCPI_CMD_SET_OVER_VOLTAGE_PROTECTION_THRESHOLD, ":SOUR:VOLT:LIM:AC %.1f" },
-	/* This is not a current limit mode. It is overcurrent protection */
+	/* This is not a current limit mode. It is overcurrent protection. */
 	{ SCPI_CMD_GET_OVER_CURRENT_PROTECTION_THRESHOLD, ":SOUR:CURR:LIM?" },
 	{ SCPI_CMD_SET_OVER_CURRENT_PROTECTION_THRESHOLD, ":SOUR:CURR:LIM %.2f" },
 };
