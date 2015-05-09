@@ -30,6 +30,7 @@ static const char *pps_vendors[][2] = {
 	{ "RIGOL TECHNOLOGIES", "Rigol" },
 	{ "HEWLETT-PACKARD", "HP" },
 	{ "PHILIPS", "Philips" },
+	{ "CHROMA", "Chroma" },
 	{ "Chroma ATE", "Chroma" },
 	{ "Agilent Technologies", "Agilent" },
 };
@@ -140,6 +141,52 @@ static const struct scpi_command chroma_61604_cmd[] = {
 	/* This is not a current limit mode. It is overcurrent protection. */
 	{ SCPI_CMD_GET_OVER_CURRENT_PROTECTION_THRESHOLD, ":SOUR:CURR:LIM?" },
 	{ SCPI_CMD_SET_OVER_CURRENT_PROTECTION_THRESHOLD, ":SOUR:CURR:LIM %.2f" },
+};
+
+/* Chroma 62000 series DC source */
+
+static const uint32_t chroma_62000_devopts[] = {
+	SR_CONF_CONTINUOUS | SR_CONF_SET,
+};
+
+static const uint32_t chroma_62000_devopts_cg[] = {
+	SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_OVER_CURRENT_PROTECTION_THRESHOLD | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_VOLTAGE | SR_CONF_GET,
+	SR_CONF_VOLTAGE_TARGET | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_CURRENT | SR_CONF_GET,
+	SR_CONF_CURRENT_LIMIT | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_ENABLED | SR_CONF_GET | SR_CONF_SET,
+};
+
+static const struct channel_spec chroma_62024p_80_60_ch[] = {
+	{ "1", { 0, 80, 0.01 }, { 0, 60, 0.01 }, FREQ_DC_ONLY },
+};
+
+static const struct channel_group_spec chroma_62000_cg[] = {
+	{ "1", CH_IDX(0), PPS_OVP | PPS_OCP },
+};
+
+static const struct scpi_command chroma_62000_cmd[] = {
+	{ SCPI_CMD_REMOTE, ":CONF:REM ON" },
+	{ SCPI_CMD_LOCAL, ":CONF:REM OFF" },
+	{ SCPI_CMD_BEEPER, ":CONF:BEEP?" },
+	{ SCPI_CMD_BEEPER_ENABLE, ":CONF:BEEP ON" },
+	{ SCPI_CMD_BEEPER_DISABLE, ":CONF:BEEP OFF" },
+	{ SCPI_CMD_GET_MEAS_VOLTAGE, ":MEAS:VOLT?" },
+	{ SCPI_CMD_GET_MEAS_CURRENT, ":MEAS:CURR?" },
+	{ SCPI_CMD_GET_MEAS_POWER, ":MEAS:POW?" },
+	{ SCPI_CMD_GET_VOLTAGE_TARGET, ":SOUR:VOLT?" },
+	{ SCPI_CMD_SET_VOLTAGE_TARGET, ":SOUR:VOLT %.2f" },
+	{ SCPI_CMD_GET_CURRENT_LIMIT, ":SOUR:CURR?" },
+	{ SCPI_CMD_SET_CURRENT_LIMIT, ":SOUR:CURR %.6f" },
+	{ SCPI_CMD_GET_OUTPUT_ENABLED, ":CONF:OUTP?" },
+	{ SCPI_CMD_SET_OUTPUT_ENABLE, ":CONF:OUTP ON" },
+	{ SCPI_CMD_SET_OUTPUT_DISABLE, ":CONF:OUTP OFF" },
+	{ SCPI_CMD_GET_OVER_VOLTAGE_PROTECTION_THRESHOLD, ":SOUR:VOLT:PROT:HIGH?" },
+	{ SCPI_CMD_SET_OVER_VOLTAGE_PROTECTION_THRESHOLD, ":SOUR:VOLT:PROT:HIGH %.6f" },
+	{ SCPI_CMD_GET_OVER_CURRENT_PROTECTION_THRESHOLD, ":SOUR:CURR:PROT:HIGH?" },
+	{ SCPI_CMD_SET_OVER_CURRENT_PROTECTION_THRESHOLD, ":SOUR:CURR:PROT:HIGH %.6f" },
 };
 
 /* Rigol DP800 series */
@@ -419,6 +466,15 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(chroma_61604_ch),
 		ARRAY_AND_SIZE(chroma_61604_cg),
 		ARRAY_AND_SIZE(chroma_61604_cmd),
+		.probe_channels = NULL,
+	},
+	/* Chroma 62000 series */
+	{ "Chroma", "62024P-80-60", 0,
+		ARRAY_AND_SIZE(chroma_62000_devopts),
+		ARRAY_AND_SIZE(chroma_62000_devopts_cg),
+		ARRAY_AND_SIZE(chroma_62024p_80_60_ch),
+		ARRAY_AND_SIZE(chroma_62000_cg),
+		ARRAY_AND_SIZE(chroma_62000_cmd),
 		.probe_channels = NULL,
 	},
 	/* HP 6632B */
