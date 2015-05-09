@@ -149,7 +149,7 @@ SR_PRIV int select_channel(const struct sr_dev_inst *sdi, struct sr_channel *ch)
 		}
 	}
 
-	if ((ret = scpi_cmd(sdi, SCPI_CMD_SELECT_CHANNEL, new_pch->hwname)) == SR_OK)
+	if ((ret = scpi_cmd(sdi, SCPI_CMD_SELECT_CHANNEL, new_pch->hwname)) >= 0)
 		devc->cur_channel = ch;
 
 	return ret;
