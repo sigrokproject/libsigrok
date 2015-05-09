@@ -65,6 +65,101 @@
 
 #define MAX_EMPTY_TRANSFERS		64
 
+/* Register mappings for old and new bitstream versions */
+
+enum fpga_register_id {
+	FPGA_REGISTER_VERSION,
+	FPGA_REGISTER_STATUS_CONTROL,
+	FPGA_REGISTER_CHANNEL_SELECT_LOW,
+	FPGA_REGISTER_CHANNEL_SELECT_HIGH,
+	FPGA_REGISTER_SAMPLE_RATE_DIVISOR,
+	FPGA_REGISTER_LED_BRIGHTNESS,
+	FPGA_REGISTER_PRIMER_DATA1,
+	FPGA_REGISTER_PRIMER_CONTROL,
+	FPGA_REGISTER_MODE,
+	FPGA_REGISTER_PRIMER_DATA2,
+	FPGA_REGISTER_MAX = FPGA_REGISTER_PRIMER_DATA2
+};
+
+enum fpga_status_control_bit {
+	FPGA_STATUS_CONTROL_BIT_RUNNING,
+	FPGA_STATUS_CONTROL_BIT_UPDATE,
+	FPGA_STATUS_CONTROL_BIT_UNKNOWN1,
+	FPGA_STATUS_CONTROL_BIT_OVERFLOW,
+	FPGA_STATUS_CONTROL_BIT_UNKNOWN2,
+	FPGA_STATUS_CONTROL_BIT_MAX = FPGA_STATUS_CONTROL_BIT_UNKNOWN2
+};
+
+enum fpga_mode_bit {
+	FPGA_MODE_BIT_CLOCK,
+	FPGA_MODE_BIT_UNKNOWN1,
+	FPGA_MODE_BIT_UNKNOWN2,
+	FPGA_MODE_BIT_MAX = FPGA_MODE_BIT_UNKNOWN2
+};
+
+static const uint8_t fpga_register_map_old[FPGA_REGISTER_MAX + 1] = {
+	[FPGA_REGISTER_VERSION]			= 0,
+	[FPGA_REGISTER_STATUS_CONTROL]		= 1,
+	[FPGA_REGISTER_CHANNEL_SELECT_LOW]	= 2,
+	[FPGA_REGISTER_CHANNEL_SELECT_HIGH]	= 3,
+	[FPGA_REGISTER_SAMPLE_RATE_DIVISOR]	= 4,
+	[FPGA_REGISTER_LED_BRIGHTNESS]		= 5,
+	[FPGA_REGISTER_PRIMER_DATA1]		= 6,
+	[FPGA_REGISTER_PRIMER_CONTROL]		= 7,
+	[FPGA_REGISTER_MODE]			= 10,
+	[FPGA_REGISTER_PRIMER_DATA2]		= 12,
+};
+
+static const uint8_t fpga_register_map_new[FPGA_REGISTER_MAX + 1] = {
+	[FPGA_REGISTER_VERSION]			= 7,
+	[FPGA_REGISTER_STATUS_CONTROL]		= 15,
+	[FPGA_REGISTER_CHANNEL_SELECT_LOW]	= 1,
+	[FPGA_REGISTER_CHANNEL_SELECT_HIGH]	= 6,
+	[FPGA_REGISTER_SAMPLE_RATE_DIVISOR]	= 11,
+	[FPGA_REGISTER_LED_BRIGHTNESS]		= 5,
+	[FPGA_REGISTER_PRIMER_DATA1]		= 14,
+	[FPGA_REGISTER_PRIMER_CONTROL]		= 2,
+	[FPGA_REGISTER_MODE]			= 4,
+	[FPGA_REGISTER_PRIMER_DATA2]		= 3,
+};
+
+static const uint8_t fpga_status_control_bit_map_old[FPGA_STATUS_CONTROL_BIT_MAX + 1] = {
+	[FPGA_STATUS_CONTROL_BIT_RUNNING]	= 0x01,
+	[FPGA_STATUS_CONTROL_BIT_UPDATE]	= 0x02,
+	[FPGA_STATUS_CONTROL_BIT_UNKNOWN1]	= 0x08,
+	[FPGA_STATUS_CONTROL_BIT_OVERFLOW]	= 0x20,
+	[FPGA_STATUS_CONTROL_BIT_UNKNOWN2]	= 0x40,
+};
+
+static const uint8_t fpga_status_control_bit_map_new[FPGA_STATUS_CONTROL_BIT_MAX + 1] = {
+	[FPGA_STATUS_CONTROL_BIT_RUNNING]	= 0x20,
+	[FPGA_STATUS_CONTROL_BIT_UPDATE]	= 0x08,
+	[FPGA_STATUS_CONTROL_BIT_UNKNOWN1]	= 0x10,
+	[FPGA_STATUS_CONTROL_BIT_OVERFLOW]	= 0x01,
+	[FPGA_STATUS_CONTROL_BIT_UNKNOWN2]	= 0x04,
+};
+
+static const uint8_t fpga_mode_bit_map_old[FPGA_MODE_BIT_MAX + 1] = {
+	[FPGA_MODE_BIT_CLOCK]		= 0x01,
+	[FPGA_MODE_BIT_UNKNOWN1]	= 0x40,
+	[FPGA_MODE_BIT_UNKNOWN2]	= 0x80,
+};
+
+static const uint8_t fpga_mode_bit_map_new[FPGA_MODE_BIT_MAX + 1] = {
+	[FPGA_MODE_BIT_CLOCK]		= 0x04,
+	[FPGA_MODE_BIT_UNKNOWN1]	= 0x80,
+	[FPGA_MODE_BIT_UNKNOWN2]	= 0x01,
+};
+
+#define FPGA_REG(x) \
+	(devc->fpga_register_map[FPGA_REGISTER_ ## x])
+
+#define FPGA_STATUS_CONTROL(x) \
+	(devc->fpga_status_control_bit_map[FPGA_STATUS_CONTROL_BIT_ ## x])
+
+#define FPGA_MODE(x) \
+	(devc->fpga_mode_bit_map[FPGA_MODE_BIT_ ## x])
+
 static void encrypt(uint8_t *dest, const uint8_t *src, uint8_t cnt)
 {
 	uint8_t state1 = 0x9b, state2 = 0x54;
@@ -247,32 +342,73 @@ static uint8_t map_eeprom_data(uint8_t v)
 	return (((v ^ 0x80) + 0x44) ^ 0xd5) + 0x69;
 }
 
+static int setup_register_mapping(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	int ret;
+
+	devc = sdi->priv;
+
+	if (devc->fpga_variant != FPGA_VARIANT_MCUPRO) {
+		uint8_t reg0, reg7;
+
+		/*
+		 * Check for newer bitstream version by polling the
+		 * version register at the old and new location.
+		 */
+
+		if ((ret = read_fpga_register(sdi, 0 /* No mapping */, &reg0)) != SR_OK)
+			return ret;
+
+		if ((ret = read_fpga_register(sdi, 7 /* No mapping */, &reg7)) != SR_OK)
+			return ret;
+
+		if (reg0 == 0 && reg7 > 0x10)
+			devc->fpga_variant = FPGA_VARIANT_ORIGINAL_NEW_BITSTREAM;
+		else
+			devc->fpga_variant = FPGA_VARIANT_ORIGINAL;
+	}
+
+	if (devc->fpga_variant == FPGA_VARIANT_ORIGINAL_NEW_BITSTREAM) {
+		devc->fpga_register_map = fpga_register_map_new;
+		devc->fpga_status_control_bit_map = fpga_status_control_bit_map_new;
+		devc->fpga_mode_bit_map = fpga_mode_bit_map_new;
+	} else {
+		devc->fpga_register_map = fpga_register_map_old;
+		devc->fpga_status_control_bit_map = fpga_status_control_bit_map_old;
+		devc->fpga_mode_bit_map = fpga_mode_bit_map_old;
+	}
+
+	return SR_OK;
+}
+
 static int prime_fpga(const struct sr_dev_inst *sdi)
 {
+	struct dev_context *devc = sdi->priv;
 	uint8_t eeprom_data[16];
-	uint8_t old_reg_10, version;
+	uint8_t old_mode_reg, version;
 	uint8_t regs[8][2] = {
-		{10, 0x00},
-		{10, 0x40},
-		{12, 0},
-		{10, 0xc0},
-		{10, 0x40},
-		{6, 0},
-		{7, 1},
-		{7, 0}
+		{FPGA_REG(MODE), 0x00},
+		{FPGA_REG(MODE), FPGA_MODE(UNKNOWN1)},
+		{FPGA_REG(PRIMER_DATA2), 0},
+		{FPGA_REG(MODE), FPGA_MODE(UNKNOWN1) | FPGA_MODE(UNKNOWN2)},
+		{FPGA_REG(MODE), FPGA_MODE(UNKNOWN1)},
+		{FPGA_REG(PRIMER_DATA1), 0},
+		{FPGA_REG(PRIMER_CONTROL), 1},
+		{FPGA_REG(PRIMER_CONTROL), 0}
 	};
 	int i, ret;
 
 	if ((ret = read_eeprom(sdi, 16, 16, eeprom_data)) != SR_OK)
 		return ret;
 
-	if ((ret = read_fpga_register(sdi, 10, &old_reg_10)) != SR_OK)
+	if ((ret = read_fpga_register(sdi, FPGA_REG(MODE), &old_mode_reg)) != SR_OK)
 		return ret;
 
-	regs[0][1] = (old_reg_10 &= 0x7f);
-	regs[1][1] |= old_reg_10;
-	regs[3][1] |= old_reg_10;
-	regs[4][1] |= old_reg_10;
+	regs[0][1] = (old_mode_reg &= ~FPGA_MODE(UNKNOWN2));
+	regs[1][1] |= old_mode_reg;
+	regs[3][1] |= old_mode_reg;
+	regs[4][1] |= old_mode_reg;
 
 	for (i = 0; i < 16; i++) {
 		regs[2][1] = eeprom_data[i];
@@ -285,13 +421,13 @@ static int prime_fpga(const struct sr_dev_inst *sdi)
 			return ret;
 	}
 
-	if ((ret = write_fpga_register(sdi, 10, old_reg_10)) != SR_OK)
+	if ((ret = write_fpga_register(sdi, FPGA_REG(MODE), old_mode_reg)) != SR_OK)
 		return ret;
 
-	if ((ret = read_fpga_register(sdi, 0, &version)) != SR_OK)
+	if ((ret = read_fpga_register(sdi, FPGA_REG(VERSION), &version)) != SR_OK)
 		return ret;
 
-	if (version != 0x10 && version != 0x40 && version != 0x41) {
+	if (version != 0x10 && version != 0x13 && version != 0x40 && version != 0x41) {
 		sr_err("Unsupported FPGA version: 0x%02x.", version);
 		return SR_ERR;
 	}
@@ -336,7 +472,7 @@ static int upload_fpga_bitstream(const struct sr_dev_inst *sdi,
 	if (devc->cur_voltage_range == vrange)
 		return SR_OK;
 
-	if (devc->fpga_variant == FPGA_VARIANT_ORIGINAL) {
+	if (devc->fpga_variant != FPGA_VARIANT_MCUPRO) {
 		switch (vrange) {
 		case VOLTAGE_RANGE_18_33_V:
 			filename = FPGA_FIRMWARE_18;
@@ -386,6 +522,10 @@ static int upload_fpga_bitstream(const struct sr_dev_inst *sdi,
 		sr_info("FPGA bitstream upload done.");
 	}
 
+	/* This needs to be called before accessing any FPGA registers. */
+	if ((ret = setup_register_mapping(sdi)) != SR_OK)
+		return ret;
+
 	if ((ret = prime_fpga(sdi)) != SR_OK)
 		return ret;
 
@@ -421,7 +561,7 @@ static int abort_acquisition_sync(const struct sr_dev_inst *sdi)
 SR_PRIV int logic16_setup_acquisition(const struct sr_dev_inst *sdi,
 			     uint64_t samplerate, uint16_t channels)
 {
-	uint8_t clock_select, reg1, reg10;
+	uint8_t clock_select, sta_con_reg, mode_reg;
 	uint64_t div;
 	int i, ret, nchan = 0;
 	struct dev_context *devc;
@@ -462,52 +602,52 @@ SR_PRIV int logic16_setup_acquisition(const struct sr_dev_inst *sdi,
 	if (ret != SR_OK)
 		return ret;
 
-	if ((ret = read_fpga_register(sdi, 1, &reg1)) != SR_OK)
+	if ((ret = read_fpga_register(sdi, FPGA_REG(STATUS_CONTROL), &sta_con_reg)) != SR_OK)
 		return ret;
 
 	/* Ignore FIFO overflow on previous capture */
-	reg1 &= ~0x20;
+	sta_con_reg &= ~FPGA_STATUS_CONTROL(OVERFLOW);
 
-	if (devc->fpga_variant == FPGA_VARIANT_ORIGINAL && reg1 != 0x08) {
-		sr_dbg("Invalid state at acquisition setup register 1: 0x%02x != 0x08. "
-		       "Proceeding anyway.", reg1);
+	if (devc->fpga_variant != FPGA_VARIANT_MCUPRO && sta_con_reg != FPGA_STATUS_CONTROL(UNKNOWN1)) {
+		sr_dbg("Invalid state at acquisition setup register 1: 0x%02x != 0x%02x. "
+		       "Proceeding anyway.", sta_con_reg, FPGA_STATUS_CONTROL(UNKNOWN1));
 	}
 
-	if ((ret = write_fpga_register(sdi, 1, 0x40)) != SR_OK)
+	if ((ret = write_fpga_register(sdi, FPGA_REG(STATUS_CONTROL), FPGA_STATUS_CONTROL(UNKNOWN2))) != SR_OK)
 		return ret;
 
-	if ((ret = write_fpga_register(sdi, 10, clock_select)) != SR_OK)
+	if ((ret = write_fpga_register(sdi, FPGA_REG(MODE), (clock_select? FPGA_MODE(CLOCK) : 0))) != SR_OK)
 		return ret;
 
-	if ((ret = write_fpga_register(sdi, 4, (uint8_t)(div - 1))) != SR_OK)
+	if ((ret = write_fpga_register(sdi, FPGA_REG(SAMPLE_RATE_DIVISOR), (uint8_t)(div - 1))) != SR_OK)
 		return ret;
 
-	if ((ret = write_fpga_register(sdi, 2, (uint8_t)(channels & 0xff))) != SR_OK)
+	if ((ret = write_fpga_register(sdi, FPGA_REG(CHANNEL_SELECT_LOW), (uint8_t)(channels & 0xff))) != SR_OK)
 		return ret;
 
-	if ((ret = write_fpga_register(sdi, 3, (uint8_t)(channels >> 8))) != SR_OK)
+	if ((ret = write_fpga_register(sdi, FPGA_REG(CHANNEL_SELECT_HIGH), (uint8_t)(channels >> 8))) != SR_OK)
 		return ret;
 
-	if ((ret = write_fpga_register(sdi, 1, 0x42)) != SR_OK)
+	if ((ret = write_fpga_register(sdi, FPGA_REG(STATUS_CONTROL), FPGA_STATUS_CONTROL(UNKNOWN2) | FPGA_STATUS_CONTROL(UPDATE))) != SR_OK)
 		return ret;
 
-	if ((ret = write_fpga_register(sdi, 1, 0x40)) != SR_OK)
+	if ((ret = write_fpga_register(sdi, FPGA_REG(STATUS_CONTROL), FPGA_STATUS_CONTROL(UNKNOWN2))) != SR_OK)
 		return ret;
 
-	if ((ret = read_fpga_register(sdi, 1, &reg1)) != SR_OK)
+	if ((ret = read_fpga_register(sdi, FPGA_REG(STATUS_CONTROL), &sta_con_reg)) != SR_OK)
 		return ret;
 
-	if (devc->fpga_variant == FPGA_VARIANT_ORIGINAL && reg1 != 0x48) {
-		sr_dbg("Invalid state at acquisition setup register 1: 0x%02x != 0x48. "
-		       "Proceeding anyway.", reg1);
+	if (devc->fpga_variant != FPGA_VARIANT_MCUPRO && sta_con_reg != (FPGA_STATUS_CONTROL(UNKNOWN2) | FPGA_STATUS_CONTROL(UNKNOWN1))) {
+		sr_dbg("Invalid state at acquisition setup register 1: 0x%02x != 0x%02x. "
+		       "Proceeding anyway.", sta_con_reg, FPGA_STATUS_CONTROL(UNKNOWN2) | FPGA_STATUS_CONTROL(UNKNOWN1));
 	}
 
-	if ((ret = read_fpga_register(sdi, 10, &reg10)) != SR_OK)
+	if ((ret = read_fpga_register(sdi, FPGA_REG(MODE), &mode_reg)) != SR_OK)
 		return ret;
 
-	if (devc->fpga_variant == FPGA_VARIANT_ORIGINAL && reg10 != clock_select) {
+	if (devc->fpga_variant != FPGA_VARIANT_MCUPRO && mode_reg != (clock_select? FPGA_MODE(CLOCK) : 0)) {
 		sr_dbg("Invalid state at acquisition setup register 10: 0x%02x != 0x%02x. "
-		       "Proceeding anyway.", reg10, clock_select);
+		       "Proceeding anyway.", mode_reg, (clock_select? FPGA_MODE(CLOCK) : 0));
 	}
 
 	return SR_OK;
@@ -519,11 +659,14 @@ SR_PRIV int logic16_start_acquisition(const struct sr_dev_inst *sdi)
 		COMMAND_START_ACQUISITION,
 	};
 	int ret;
+	struct dev_context *devc;
+
+	devc = sdi->priv;
 
 	if ((ret = do_ep1_command(sdi, command, 1, NULL, 0)) != SR_OK)
 		return ret;
 
-	return write_fpga_register(sdi, 1, 0x41);
+	return write_fpga_register(sdi, FPGA_REG(STATUS_CONTROL), FPGA_STATUS_CONTROL(UNKNOWN2) | FPGA_STATUS_CONTROL(RUNNING));
 }
 
 SR_PRIV int logic16_abort_acquisition(const struct sr_dev_inst *sdi)
@@ -532,7 +675,7 @@ SR_PRIV int logic16_abort_acquisition(const struct sr_dev_inst *sdi)
 		COMMAND_ABORT_ACQUISITION_ASYNC,
 	};
 	int ret;
-	uint8_t reg1, reg8, reg9;
+	uint8_t sta_con_reg;
 	struct dev_context *devc;
 
 	devc = sdi->priv;
@@ -540,24 +683,29 @@ SR_PRIV int logic16_abort_acquisition(const struct sr_dev_inst *sdi)
 	if ((ret = do_ep1_command(sdi, command, 1, NULL, 0)) != SR_OK)
 		return ret;
 
-	if ((ret = write_fpga_register(sdi, 1, 0x00)) != SR_OK)
+	if ((ret = write_fpga_register(sdi, FPGA_REG(STATUS_CONTROL), 0x00)) != SR_OK)
 		return ret;
 
-	if ((ret = read_fpga_register(sdi, 1, &reg1)) != SR_OK)
+	if ((ret = read_fpga_register(sdi, FPGA_REG(STATUS_CONTROL), &sta_con_reg)) != SR_OK)
 		return ret;
 
-	if (devc->fpga_variant == FPGA_VARIANT_ORIGINAL && (reg1 & ~0x20) != 0x08) {
-		sr_dbg("Invalid state at acquisition stop: 0x%02x != 0x08.", reg1 & ~0x20);
+	if (devc->fpga_variant != FPGA_VARIANT_MCUPRO && (sta_con_reg & ~FPGA_STATUS_CONTROL(OVERFLOW)) != FPGA_STATUS_CONTROL(UNKNOWN1)) {
+		sr_dbg("Invalid state at acquisition stop: 0x%02x != 0x%02x.", sta_con_reg & ~0x20, FPGA_STATUS_CONTROL(UNKNOWN1));
 		return SR_ERR;
 	}
 
-	if ((ret = read_fpga_register(sdi, 8, &reg8)) != SR_OK)
-		return ret;
 
-	if ((ret = read_fpga_register(sdi, 9, &reg9)) != SR_OK)
-		return ret;
+	if (devc->fpga_variant == FPGA_VARIANT_ORIGINAL) {
+		uint8_t reg8, reg9;
 
-	if (devc->fpga_variant == FPGA_VARIANT_ORIGINAL && reg1 & 0x20) {
+		if ((ret = read_fpga_register(sdi, 8, &reg8)) != SR_OK)
+			return ret;
+
+		if ((ret = read_fpga_register(sdi, 9, &reg9)) != SR_OK)
+			return ret;
+	}
+
+	if (devc->fpga_variant != FPGA_VARIANT_MCUPRO && sta_con_reg & FPGA_STATUS_CONTROL(OVERFLOW)) {
 		sr_warn("FIFO overflow, capture data may be truncated.");
 		return SR_ERR;
 	}
@@ -583,7 +731,7 @@ SR_PRIV int logic16_init_device(const struct sr_dev_inst *sdi)
 
 	/* mcupro Saleae16 has firmware pre-stored in FPGA.
 	   So, we can query it right away. */
-	if (read_fpga_register(sdi, 0, &version) == SR_OK &&
+	if (read_fpga_register(sdi, 0 /* No mapping */, &version) == SR_OK &&
 	    (version == 0x40 || version == 0x41)) {
 		sr_info("mcupro Saleae16 detected.");
 		devc->fpga_variant = FPGA_VARIANT_MCUPRO;

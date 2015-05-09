@@ -37,6 +37,7 @@ enum voltage_range {
 
 enum fpga_variant {
 	FPGA_VARIANT_ORIGINAL,
+	FPGA_VARIANT_ORIGINAL_NEW_BITSTREAM,
 	FPGA_VARIANT_MCUPRO    /* mcupro clone v4.6 with Actel FPGA */
 };
 
@@ -90,6 +91,10 @@ struct dev_context {
 	unsigned int num_transfers;
 	struct libusb_transfer **transfers;
 	struct sr_context *ctx;
+
+	const uint8_t *fpga_register_map;
+	const uint8_t *fpga_status_control_bit_map;
+	const uint8_t *fpga_mode_bit_map;
 };
 
 SR_PRIV int logic16_setup_acquisition(const struct sr_dev_inst *sdi,
