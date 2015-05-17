@@ -159,10 +159,6 @@ static const uint32_t chroma_62000_devopts_cg[] = {
 	SR_CONF_ENABLED | SR_CONF_GET | SR_CONF_SET,
 };
 
-static const struct channel_spec chroma_62024p_80_60_ch[] = {
-	{ "1", { 0, 80, 0.01 }, { 0, 60, 0.01 }, FREQ_DC_ONLY },
-};
-
 static const struct channel_group_spec chroma_62000_cg[] = {
 	{ "1", CH_IDX(0), PPS_OVP | PPS_OCP },
 };
@@ -188,6 +184,46 @@ static const struct scpi_command chroma_62000_cmd[] = {
 	{ SCPI_CMD_GET_OVER_CURRENT_PROTECTION_THRESHOLD, ":SOUR:CURR:PROT:HIGH?" },
 	{ SCPI_CMD_SET_OVER_CURRENT_PROTECTION_THRESHOLD, ":SOUR:CURR:PROT:HIGH %.6f" },
 };
+
+static int chroma_62000p_probe_channels(struct sr_dev_inst *sdi,
+		struct sr_scpi_hw_info *hw_info,
+		struct channel_spec **channels, unsigned int *num_channels,
+		struct channel_group_spec **channel_groups,
+		unsigned int *num_channel_groups)
+{
+	unsigned int volts, amps;
+	struct channel_spec *channel;
+
+	(void)sdi;
+
+	sscanf(hw_info->model, "%*[^P]P-%u-%u", &volts, &amps);
+	sr_dbg("Found device rated for %d V and %d A", volts, amps);
+
+	if (volts > 600) {
+		sr_err("Probed max voltage of %u V is out of spec.", volts);
+		return SR_ERR_BUG;
+	}
+
+	if (volts > 120) {
+		sr_err("Probed max current of %u A is out of spec.", amps);
+		return SR_ERR_BUG;
+	}
+
+	channel = g_malloc0(sizeof(struct channel_spec));
+	channel->name = "1";
+	channel->voltage[0] = channel->current[0] = 0.0;
+	channel->voltage[1] = (float)volts;
+	channel->current[1] = (float)amps;
+	channel->voltage[2] = channel->current[2] = 0.01;
+	*channels = channel;
+	*num_channels = 1;
+
+	*channel_groups = g_malloc(sizeof(struct channel_group_spec));
+	**channel_groups = chroma_62000_cg[0];
+	*num_channel_groups = 1;
+
+	return SR_OK;
+}
 
 /* Rigol DP800 series */
 static const uint32_t rigol_dp800_devopts[] = {
@@ -469,13 +505,13 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		.probe_channels = NULL,
 	},
 	/* Chroma 62000 series */
-	{ "Chroma", "62024P-80-60", 0,
+	{ "Chroma", "620[0-9]{2}P-[0-9]{2,3}-[0-9]{1,3}", 0,
 		ARRAY_AND_SIZE(chroma_62000_devopts),
 		ARRAY_AND_SIZE(chroma_62000_devopts_cg),
-		ARRAY_AND_SIZE(chroma_62024p_80_60_ch),
-		ARRAY_AND_SIZE(chroma_62000_cg),
+		NULL, 0,
+		NULL, 0,
 		ARRAY_AND_SIZE(chroma_62000_cmd),
-		.probe_channels = NULL,
+		.probe_channels = chroma_62000p_probe_channels,
 	},
 	/* HP 6632B */
 	{ "HP", "6632B", 0,
