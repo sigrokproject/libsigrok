@@ -98,4 +98,7 @@ SR_PRIV int bl_acme_set_power_off(const struct sr_channel_group *cg,
 
 SR_PRIV int bl_acme_receive_data(int fd, int revents, void *cb_data);
 
+SR_PRIV int bl_acme_open_channel(struct sr_channel *ch);
+
+SR_PRIV void bl_acme_close_channel(struct sr_channel *ch);
 #endif

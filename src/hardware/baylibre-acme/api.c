@@ -318,6 +318,34 @@ static int config_list(uint32_t key, GVariant **data,
 	return ret;
 }
 
+static void dev_acquisition_close(const struct sr_dev_inst *sdi)
+{
+	GSList *chl;
+	struct sr_channel *ch;
+
+	for (chl = sdi->channels; chl; chl = chl->next) {
+		ch = chl->data;
+		bl_acme_close_channel(ch);
+	}
+}
+
+static int dev_acquisition_open(const struct sr_dev_inst *sdi)
+{
+	GSList *chl;
+	struct sr_channel *ch;
+
+	for (chl = sdi->channels; chl; chl = chl->next) {
+		ch = chl->data;
+		if (bl_acme_open_channel(ch)) {
+			sr_err("Error opening channel %s", ch->name);
+			dev_acquisition_close(sdi);
+			return SR_ERR;
+		}
+	}
+
+	return 0;
+}
+
 static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 {
 	struct dev_context *devc;
@@ -326,6 +354,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
+
+	if (dev_acquisition_open(sdi))
+		return SR_ERR;
 
 	devc = sdi->priv;
 	devc->samples_read = 0;

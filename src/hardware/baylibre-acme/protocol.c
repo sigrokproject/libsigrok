@@ -33,6 +33,7 @@ struct channel_group_priv {
 
 struct channel_priv {
 	int ch_type;
+	int fd;
 	struct channel_group_priv *probe;
 };
 
@@ -494,8 +495,30 @@ static float adjust_data(int val, int type)
 static float read_sample(struct sr_channel *ch)
 {
 	struct channel_priv *chp;
-	char path[64], *file, buf[16];
+	char buf[16];
 	ssize_t len;
+	int fd;
+
+	chp = ch->priv;
+	fd = chp->fd;
+
+	lseek(fd, 0, SEEK_SET);
+
+	len = read(fd, buf, sizeof(buf));
+	if (len < 0) {
+		sr_err("Error reading from channel %s (hwmon: %s): %s",
+			ch->name, chp->probe->hwmon_num, strerror(errno));
+		ch->enabled = FALSE;
+		return -1.0;
+	}
+
+	return adjust_data(strtol(buf, NULL, 10), chp->ch_type);
+}
+
+SR_PRIV int bl_acme_open_channel(struct sr_channel *ch)
+{
+	struct channel_priv *chp;
+	char path[64], *file;
 	int fd;
 
 	chp = ch->priv;
@@ -508,27 +531,31 @@ static float read_sample(struct sr_channel *ch)
 	case TEMP_OUT:	file = "temp2_input";	break;
 	default:
 		sr_err("Invalid channel type: %d.", chp->ch_type);
-		return -1.0;
+		return SR_ERR;
 	}
 
 	snprintf(path, sizeof(path), "/sys/class/hwmon/hwmon%d/%s",
 		 chp->probe->hwmon_num, file);
+
 	fd = open(path, O_RDONLY);
 	if (fd < 0) {
 		sr_err("Error opening %s: %s", path, strerror(errno));
 		ch->enabled = FALSE;
-		return -1.0;
+		return SR_ERR;
 	}
 
-	len = read(fd, buf, sizeof(buf));
-	close(fd);
-	if (len < 0) {
-		sr_err("Error reading from %s: %s", path, strerror(errno));
-		ch->enabled = FALSE;
-		return -1.0;
-	}
+	chp->fd = fd;
 
-	return adjust_data(strtol(buf, NULL, 10), chp->ch_type);
+	return 0;
+}
+
+SR_PRIV void bl_acme_close_channel(struct sr_channel *ch)
+{
+	struct channel_priv *chp;
+
+	chp = ch->priv;
+	close(chp->fd);
+	chp->fd = -1;
 }
 
 SR_PRIV int bl_acme_receive_data(int fd, int revents, void *cb_data)
