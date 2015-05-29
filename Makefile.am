@@ -597,10 +597,10 @@ $(JLIB): $(JCXX) bindings/cxx/libsigrokcxx.la $(library_include_HEADERS)
 		-lsigrokcxx -o $(JLIB)
 
 java-install:
-	$(INSTALL) -d $(libdir)/jni
-	$(INSTALL) $(JLIB) -t $(libdir)/jni
-	$(INSTALL) -d $(datadir)/java
-	$(INSTALL) $(JJAR) -t $(datadir)/java
+	$(INSTALL) -d $(DESTDIR)$(libdir)/jni
+	$(INSTALL) $(JLIB) -t $(DESTDIR)$(libdir)/jni
+	$(INSTALL) -d $(DESTDIR)$(datadir)/java
+	$(INSTALL) $(JJAR) -t $(DESTDIR)$(datadir)/java
 
 java-clean:
 	$(AM_V_at)rm -f $(JCXX)
