@@ -18,6 +18,8 @@
  */
 
 #include "protocol.h"
+#include <time.h>
+#include <sys/timerfd.h>
 
 SR_PRIV struct sr_dev_driver baylibre_acme_driver_info;
 
@@ -349,6 +351,10 @@ static int dev_acquisition_open(const struct sr_dev_inst *sdi)
 static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 {
 	struct dev_context *devc;
+	struct itimerspec tspec = {
+		.it_interval = { 0, 0 },
+		.it_value = { 0, 0 }
+	};
 
 	(void)cb_data;
 
@@ -360,19 +366,30 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 
 	devc = sdi->priv;
 	devc->samples_read = 0;
-
-	if (pipe(devc->pipe_fds)) {
-		sr_err("Error setting up pipe");
+	devc->samples_missed = 0;
+	devc->timer_fd = timerfd_create(CLOCK_MONOTONIC, 0);
+	if (devc->timer_fd < 0) {
+		sr_err("Error creating timer fd");
 		return SR_ERR;
 	}
 
-	devc->channel = g_io_channel_unix_new(devc->pipe_fds[0]);
+	tspec.it_interval.tv_sec = 0;
+	tspec.it_interval.tv_nsec = (1000000000L / devc->samplerate);
+	tspec.it_value = tspec.it_interval;
+
+	if (timerfd_settime(devc->timer_fd, 0, &tspec, NULL)) {
+		sr_err("Failed to set timer");
+		close(devc->timer_fd);
+		return SR_ERR;
+	}
+
+	devc->channel = g_io_channel_unix_new(devc->timer_fd);
 	g_io_channel_set_flags(devc->channel, G_IO_FLAG_NONBLOCK, NULL);
 	g_io_channel_set_encoding(devc->channel, NULL, NULL);
 	g_io_channel_set_buffered(devc->channel, FALSE);
 
 	sr_session_source_add_channel(sdi->session, devc->channel,
-		G_IO_IN | G_IO_ERR, 1, bl_acme_receive_data, (void *)sdi);
+		G_IO_IN | G_IO_ERR, 1000, bl_acme_receive_data, (void *)sdi);
 
 	/* Send header packet to the session bus. */
 	std_session_send_df_header(sdi, LOG_PREFIX);
@@ -398,10 +415,14 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 	g_io_channel_shutdown(devc->channel, FALSE, NULL);
 	g_io_channel_unref(devc->channel);
 	devc->channel = NULL;
+	close(devc->timer_fd);
 
 	/* Send last packet. */
 	packet.type = SR_DF_END;
 	sr_session_send(sdi, &packet);
+
+	if (devc->samples_missed > 0)
+		sr_warn("%d samples missed", devc->samples_missed);
 
 	return SR_OK;
 }

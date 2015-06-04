@@ -560,8 +560,8 @@ SR_PRIV void bl_acme_close_channel(struct sr_channel *ch)
 
 SR_PRIV int bl_acme_receive_data(int fd, int revents, void *cb_data)
 {
-	uint32_t cur_time, elapsed_time, diff_time;
-	int64_t time_to_sleep;
+	uint32_t cur_time, elapsed_time;
+	uint64_t nrexpiration;
 	struct sr_datafeed_packet packet, framep;
 	struct sr_datafeed_analog analog;
 	struct sr_dev_inst *sdi;
@@ -586,16 +586,17 @@ SR_PRIV int bl_acme_receive_data(int fd, int revents, void *cb_data)
 	memset(&analog, 0, sizeof(struct sr_datafeed_analog));
 	analog.data = &valf;
 
-	/*
-	 * Reading from sysfs takes some time - try to keep up with samplerate.
-	 */
-	if (devc->samples_read) {
-		cur_time = g_get_monotonic_time();
-		diff_time = cur_time - devc->last_sample_fin;
-		time_to_sleep = G_USEC_PER_SEC / devc->samplerate - diff_time;
-		if (time_to_sleep > 0)
-			g_usleep(time_to_sleep);
+	if (read(devc->timer_fd, &nrexpiration, sizeof(nrexpiration)) < 0) {
+		sr_warn("Failed to read timer information");
+		return TRUE;
 	}
+
+	/*
+	 * We were not able to process the previous timer expiration, we are
+	 * overloaded.
+	 */
+	if (nrexpiration > 1)
+		devc->samples_missed += nrexpiration - 1;
 
 	framep.type = SR_DF_FRAME_BEGIN;
 	sr_session_send(cb_data, &framep);

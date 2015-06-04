@@ -65,9 +65,10 @@ struct dev_context {
 
 	uint32_t num_channels;
 	uint64_t samples_read;
+	uint64_t samples_missed;
 	int64_t start_time;
 	int64_t last_sample_fin;
-	int pipe_fds[2];
+	int timer_fd;
 	GIOChannel *channel;
 };
 
