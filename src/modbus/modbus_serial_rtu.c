@@ -17,12 +17,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "libsigrok.h"
-#include "libsigrok-internal.h"
-
 #include <glib.h>
 #include <stdlib.h>
 #include <string.h>
+#include "libsigrok.h"
+#include "libsigrok-internal.h"
 
 #define LOG_PREFIX "modbus_serial"
 
@@ -39,7 +38,7 @@ static int modbus_serial_rtu_dev_inst_new(void *priv, const char *resource,
 {
 	struct modbus_serial_rtu *modbus = priv;
 
-	(void) params;
+	(void)params;
 
 	modbus->serial = sr_serial_dev_inst_new(resource, serialcomm);
 	modbus->slave_addr = modbusaddr;
@@ -96,6 +95,7 @@ static uint16_t modbus_serial_rtu_crc(uint16_t crc,
 				crc ^= 0xA001;
 		}
 	}
+
 	return crc;
 }
 

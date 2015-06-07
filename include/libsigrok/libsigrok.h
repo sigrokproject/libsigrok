@@ -624,7 +624,7 @@ enum sr_configkey {
 	/** The device can act as an LCR meter. */
 	SR_CONF_LCRMETER,
 
-	/** The device can act as an LCR meter. */
+	/** The device can act as an electronic load. */
 	SR_CONF_ELECTRONIC_LOAD,
 
 	/*--- Driver scan options -------------------------------------------*/
@@ -989,7 +989,7 @@ enum sr_dev_inst_type {
 	SR_INST_SCPI,
 	/** Device-instance type for user-created "devices". */
 	SR_INST_USER,
-	/** Device instance type for modbus devices. */
+	/** Device instance type for Modbus devices. */
 	SR_INST_MODBUS,
 };
 

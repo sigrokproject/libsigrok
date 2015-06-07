@@ -106,7 +106,7 @@ libsigrok_la_SOURCES += \
 	src/scpi/scpi_libgpib.c
 endif
 
-# modbus support
+# Modbus support
 libsigrok_la_SOURCES += \
 	src/modbus/modbus.c
 if NEED_SERIAL

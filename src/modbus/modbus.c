@@ -17,11 +17,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "libsigrok.h"
-#include "libsigrok-internal.h"
-
 #include <glib.h>
 #include <string.h>
+#include "libsigrok.h"
+#include "libsigrok-internal.h"
 
 #define LOG_PREFIX "modbus"
 
@@ -29,13 +28,13 @@ SR_PRIV extern const struct sr_modbus_dev_inst modbus_serial_rtu_dev;
 
 static const struct sr_modbus_dev_inst *modbus_devs[] = {
 #ifdef HAVE_LIBSERIALPORT
-	&modbus_serial_rtu_dev,  /* must be last as it matches any resource */
+	&modbus_serial_rtu_dev,  /* Must be last as it matches any resource. */
 #endif
 };
 
 static struct sr_dev_inst *sr_modbus_scan_resource(const char *resource,
-		const char *serialcomm, int modbusaddr,
-		struct sr_dev_inst *(*probe_device)(struct sr_modbus_dev_inst *modbus))
+	const char *serialcomm, int modbusaddr,
+	struct sr_dev_inst *(*probe_device)(struct sr_modbus_dev_inst *modbus))
 {
 	struct sr_modbus_dev_inst *modbus;
 	struct sr_dev_inst *sdi;
@@ -54,22 +53,23 @@ static struct sr_dev_inst *sr_modbus_scan_resource(const char *resource,
 
 	sr_modbus_close(modbus);
 	sr_modbus_free(modbus);
+
 	return NULL;
 }
 
 /**
- *  Scan for MODBUS devices which match a probing function.
+ * Scan for MODBUS devices which match a probing function.
  *
- *  @param drvc the driver context doing the scan.
- *  @param options the scan options to find devies.
- *  @param probe_device the callback function that will be called for each
- *                      found devices to validate wheter this device matches
- *                      what we are scanning for.
+ * @param drvc The driver context doing the scan.
+ * @param options The scan options to find devies.
+ * @param probe_device The callback function that will be called for each
+ *                     found device to validate whether this device matches
+ *                     what we are scanning for.
  *
- *  @return a list of the devices found or NULL if no device found.
+ * @return A list of the devices found or NULL if no devices were found.
  */
 SR_PRIV GSList *sr_modbus_scan(struct drv_context *drvc, GSList *options,
-		struct sr_dev_inst *(*probe_device)(struct sr_modbus_dev_inst *modbus))
+	struct sr_dev_inst *(*probe_device)(struct sr_modbus_dev_inst *modbus))
 {
 	GSList *resources, *l, *devices;
 	struct sr_dev_inst *sdi;
@@ -77,7 +77,7 @@ SR_PRIV GSList *sr_modbus_scan(struct drv_context *drvc, GSList *options,
 	const char *serialcomm = NULL;
 	int modbusaddr = 1;
 	gchar **res;
-	unsigned i;
+	unsigned int i;
 
 	for (l = options; l; l = l->next) {
 		struct sr_config *src = l->data;
@@ -103,8 +103,8 @@ SR_PRIV GSList *sr_modbus_scan(struct drv_context *drvc, GSList *options,
 		for (l = resources; l; l = l->next) {
 			res = g_strsplit(l->data, ":", 2);
 			if (res[0] && (sdi = sr_modbus_scan_resource(res[0],
-			                                 serialcomm ? serialcomm : res[1],
-			                                 modbusaddr, probe_device))) {
+					serialcomm ? serialcomm : res[1],
+					modbusaddr, probe_device))) {
 				devices = g_slist_append(devices, sdi);
 				sdi->connection_id = g_strdup(l->data);
 			}
@@ -128,12 +128,12 @@ SR_PRIV GSList *sr_modbus_scan(struct drv_context *drvc, GSList *options,
 }
 
 /**
- *  Allocate and initialize struct for a MODBUS device instance.
+ * Allocate and initialize a struct for a MODBUS device instance.
  *
- *  @param resource the resource description string.
- *  @param serialcomm additionnal parameters for serial port resources.
+ * @param resource The resource description string.
+ * @param serialcomm Additionnal parameters for serial port resources.
  *
- *  @return the allocated sr_modbus_dev_inst structure or NULL on failure.
+ * @return The allocated sr_modbus_dev_inst structure or NULL on failure.
  */
 SR_PRIV struct sr_modbus_dev_inst *modbus_dev_inst_new(const char *resource,
 		const char *serialcomm, int modbusaddr)
@@ -141,7 +141,7 @@ SR_PRIV struct sr_modbus_dev_inst *modbus_dev_inst_new(const char *resource,
 	struct sr_modbus_dev_inst *modbus = NULL;
 	const struct sr_modbus_dev_inst *modbus_dev;
 	gchar **params;
-	unsigned i;
+	unsigned int i;
 
 	for (i = 0; i < ARRAY_SIZE(modbus_devs); i++) {
 		modbus_dev = modbus_devs[i];
@@ -166,7 +166,7 @@ SR_PRIV struct sr_modbus_dev_inst *modbus_dev_inst_new(const char *resource,
 }
 
 /**
- * Open MODBUS device.
+ * Open the specified MODBUS device.
  *
  * @param modbus Previously initialized MODBUS device structure.
  *
@@ -178,7 +178,7 @@ SR_PRIV int sr_modbus_open(struct sr_modbus_dev_inst *modbus)
 }
 
 /**
- * Add an event source for an MODBUS device.
+ * Add an event source for a MODBUS device.
  *
  * @param session The session to add the event source to.
  * @param modbus Previously initialized MODBUS device structure.
@@ -198,7 +198,7 @@ SR_PRIV int sr_modbus_source_add(struct sr_session *session,
 }
 
 /**
- * Remove event source for an MODBUS device.
+ * Remove event source for a MODBUS device.
  *
  * @param session The session to remove the event source from.
  * @param modbus Previously initialized MODBUS device structure.
@@ -217,8 +217,8 @@ SR_PRIV int sr_modbus_source_remove(struct sr_session *session,
  * Send a MODBUS command.
  *
  * @param modbus Previously initialized MODBUS device structure.
- * @param request buffer containing the MODBUS command to send.
- * @param request_size the size of the request buffer.
+ * @param request Buffer containing the MODBUS command to send.
+ * @param request_size The size of the request buffer.
  *
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or
  *         SR_ERR on failure.
@@ -236,8 +236,8 @@ SR_PRIV int sr_modbus_request(struct sr_modbus_dev_inst *modbus,
  * Receive a MODBUS reply.
  *
  * @param modbus Previously initialized MODBUS device structure.
- * @param reply buffer to store the received MODBUS reply.
- * @param reply_size the size of the reply buffer.
+ * @param reply Buffer to store the received MODBUS reply.
+ * @param reply_size The size of the reply buffer.
  *
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or
  *         SR_ERR on failure.
@@ -291,10 +291,10 @@ SR_PRIV int sr_modbus_reply(struct sr_modbus_dev_inst *modbus,
  * Send a MODBUS command and receive the corresponding reply.
  *
  * @param modbus Previously initialized MODBUS device structure.
- * @param request buffer containing the MODBUS command to send.
- * @param request_size the size of the request buffer.
- * @param reply buffer to store the received MODBUS reply.
- * @param reply_size the size of the reply buffer.
+ * @param request Buffer containing the MODBUS command to send.
+ * @param request_size The size of the request buffer.
+ * @param reply Buffer to store the received MODBUS reply.
+ * @param reply_size The size of the reply buffer.
  *
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or
  *         SR_ERR on failure.
@@ -310,9 +310,9 @@ SR_PRIV int sr_modbus_request_reply(struct sr_modbus_dev_inst *modbus,
 }
 
 enum {
-	MODBUS_READ_COILS               = 0x01,
-	MODBUS_READ_HOLDING_REGISTERS   = 0x03,
-	MODBUS_WRITE_COIL               = 0x05,
+	MODBUS_READ_COILS = 0x01,
+	MODBUS_READ_HOLDING_REGISTERS = 0x03,
+	MODBUS_WRITE_COIL = 0x05,
 	MODBUS_WRITE_MULTIPLE_REGISTERS = 0x10,
 };
 
@@ -327,34 +327,47 @@ static int sr_modbus_error_check(const uint8_t *reply)
 
 	switch (reply[0] & ~0x80) {
 	case MODBUS_READ_COILS:
-		function = "MODBUS_READ_COILS";  break;
+		function = "MODBUS_READ_COILS";
+		break;
 	case MODBUS_READ_HOLDING_REGISTERS:
-		function = "READ_HOLDING_REGISTERS";  break;
+		function = "READ_HOLDING_REGISTERS";
+		break;
 	case MODBUS_WRITE_COIL:
-		function = "WRITE_COIL"; break;
+		function = "WRITE_COIL";
+		break;
 	case MODBUS_WRITE_MULTIPLE_REGISTERS:
-		function = "WRITE_MULTIPLE_REGISTERS"; break;
+		function = "WRITE_MULTIPLE_REGISTERS";
+		break;
 	}
 
 	switch (reply[1]) {
 	case 0x01:
-		error = "ILLEGAL FUNCTION";  break;
+		error = "ILLEGAL FUNCTION";
+		break;
 	case 0x02:
-		error = "ILLEGAL DATA ADDRESS";  break;
+		error = "ILLEGAL DATA ADDRESS";
+		break;
 	case 0x03:
-		error = "ILLEGAL DATA VALUE"; break;
+		error = "ILLEGAL DATA VALUE";
+		break;
 	case 0x04:
-		error = "SLAVE DEVICE FAILURE"; break;
+		error = "SLAVE DEVICE FAILURE";
+		break;
 	case 0x05:
-		error = "ACKNOWLEDGE"; break;
+		error = "ACKNOWLEDGE";
+		break;
 	case 0x06:
-		error = "SLAVE DEVICE BUSY"; break;
+		error = "SLAVE DEVICE BUSY";
+		break;
 	case 0x08:
-		error = "MEMORY PARITY ERROR"; break;
+		error = "MEMORY PARITY ERROR";
+		break;
 	case 0x0A:
-		error = "GATEWAY PATH UNAVAILABLE"; break;
+		error = "GATEWAY PATH UNAVAILABLE";
+		break;
 	case 0x0B:
-		error = "GATEWAY TARGET DEVICE FAILED TO RESPOND"; break;
+		error = "GATEWAY TARGET DEVICE FAILED TO RESPOND";
+		break;
 	}
 	if (!error) {
 		snprintf(buf, sizeof(buf), "0x%X", reply[1]);
@@ -362,6 +375,7 @@ static int sr_modbus_error_check(const uint8_t *reply)
 	}
 
 	sr_err("%s error executing %s function.", error, function);
+
 	return TRUE;
 }
 
@@ -369,11 +383,10 @@ static int sr_modbus_error_check(const uint8_t *reply)
  * Send a MODBUS read coils command and receive the corresponding coils values.
  *
  * @param modbus Previously initialized MODBUS device structure.
- * @param address the MODBUS address of the first coil to read,
- *                or -1 to read the reply of a previouly sent
- *                read coils command.
- * @param nb_coils the number of coils to read.
- * @param coils buffer to store all the received coils values (1 bit per coil),
+ * @param address The MODBUS address of the first coil to read, or -1 to read
+ *                the reply of a previouly sent read coils command.
+ * @param nb_coils The number of coils to read.
+ * @param coils Buffer to store all the received coils values (1 bit per coil),
  *              or NULL to send the read coil command without reading the reply.
  *
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments,
@@ -388,9 +401,9 @@ SR_PRIV int sr_modbus_read_coils(struct sr_modbus_dev_inst *modbus,
 	if (address < -1 || address > 0xFFFF || nb_coils < 1 || nb_coils > 2000)
 		return SR_ERR_ARG;
 
-	W8  (request+0, MODBUS_READ_COILS);
-	WB16(request+1, address);
-	WB16(request+3, nb_coils);
+	W8(request + 0, MODBUS_READ_COILS);
+	WB16(request + 1, address);
+	WB16(request + 3, nb_coils);
 
 	if (address >= 0) {
 		ret = sr_modbus_request(modbus, request, sizeof(request));
@@ -404,9 +417,9 @@ SR_PRIV int sr_modbus_read_coils(struct sr_modbus_dev_inst *modbus,
 			return ret;
 		if (sr_modbus_error_check(reply))
 			return SR_ERR_DATA;
-		if (reply[0] != request[0] || R8(reply+1) != (uint8_t)((nb_coils+7)/8))
+		if (reply[0] != request[0] || R8(reply + 1) != (uint8_t)((nb_coils + 7) / 8))
 			return SR_ERR_DATA;
-		memcpy(coils, reply+2, (nb_coils+7)/8);
+		memcpy(coils, reply + 2, (nb_coils + 7) / 8);
 	}
 
 	return SR_OK;
@@ -417,11 +430,10 @@ SR_PRIV int sr_modbus_read_coils(struct sr_modbus_dev_inst *modbus,
  * registers values.
  *
  * @param modbus Previously initialized MODBUS device structure.
- * @param address the MODBUS address of the first register to read,
- *                or -1 to read the reply of a previouly sent
- *                read registers command.
- * @param nb_registers the number of registers to read.
- * @param registers buffer to store all the received registers values,
+ * @param address The MODBUS address of the first register to read, or -1 to
+ *                read the reply of a previouly sent read registers command.
+ * @param nb_registers The number of registers to read.
+ * @param registers Buffer to store all the received registers values,
  *                  or NULL to send the read holding registers command
  *                  without reading the reply.
  *
@@ -431,16 +443,16 @@ SR_PRIV int sr_modbus_read_coils(struct sr_modbus_dev_inst *modbus,
 SR_PRIV int sr_modbus_read_holding_registers(struct sr_modbus_dev_inst *modbus,
 		int address, int nb_registers, uint16_t *registers)
 {
-	uint8_t request[5], reply[2 + 2*nb_registers];
+	uint8_t request[5], reply[2 + (2 * nb_registers)];
 	int ret;
 
 	if (address < -1 || address > 0xFFFF
 	    || nb_registers < 1 || nb_registers > 125)
 		return SR_ERR_ARG;
 
-	W8  (request+0, MODBUS_READ_HOLDING_REGISTERS);
-	WB16(request+1, address);
-	WB16(request+3, nb_registers);
+	W8(request + 0, MODBUS_READ_HOLDING_REGISTERS);
+	WB16(request + 1, address);
+	WB16(request + 3, nb_registers);
 
 	if (address >= 0) {
 		ret = sr_modbus_request(modbus, request, sizeof(request));
@@ -454,9 +466,9 @@ SR_PRIV int sr_modbus_read_holding_registers(struct sr_modbus_dev_inst *modbus,
 			return ret;
 		if (sr_modbus_error_check(reply))
 			return SR_ERR_DATA;
-		if (reply[0] != request[0] || R8(reply+1) != (uint8_t)(2*nb_registers))
+		if (reply[0] != request[0] || R8(reply + 1) != (uint8_t)(2 * nb_registers))
 			return SR_ERR_DATA;
-		memcpy(registers, reply+2, 2*nb_registers);
+		memcpy(registers, reply + 2, 2 * nb_registers);
 	}
 
 	return SR_OK;
@@ -466,8 +478,8 @@ SR_PRIV int sr_modbus_read_holding_registers(struct sr_modbus_dev_inst *modbus,
  * Send a MODBUS write coil command.
  *
  * @param modbus Previously initialized MODBUS device structure.
- * @param address the MODBUS address of the coil to write.
- * @param value the new value to assign to this coil.
+ * @param address The MODBUS address of the coil to write.
+ * @param value The new value to assign to this coil.
  *
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments,
  *         SR_ERR_DATA upon invalid data, or SR_ERR on failure.
@@ -481,18 +493,19 @@ SR_PRIV int sr_modbus_write_coil(struct sr_modbus_dev_inst *modbus,
 	if (address < 0 || address > 0xFFFF)
 		return SR_ERR_ARG;
 
-	W8  (request+0, MODBUS_WRITE_COIL);
-	WB16(request+1, address);
-	WB16(request+3, value ? 0xFF00 : 0);
+	W8(request + 0, MODBUS_WRITE_COIL);
+	WB16(request + 1, address);
+	WB16(request + 3, value ? 0xFF00 : 0);
 
 	ret = sr_modbus_request_reply(modbus, request, sizeof(request),
-	                                      reply  , sizeof(reply));
+				      reply, sizeof(reply));
 	if (ret != SR_OK)
 		return ret;
 	if (sr_modbus_error_check(reply))
 		return SR_ERR_DATA;
 	if (memcmp(request, reply, sizeof(reply)))
 		return SR_ERR_DATA;
+
 	return SR_OK;
 }
 
@@ -500,9 +513,9 @@ SR_PRIV int sr_modbus_write_coil(struct sr_modbus_dev_inst *modbus,
  * Send a MODBUS write multiple registers command.
  *
  * @param modbus Previously initialized MODBUS device structure.
- * @param address the MODBUS address of the first register to write.
- * @param nb_registers the number of registers to write.
- * @param registers buffer holding all the registers values to write.
+ * @param address The MODBUS address of the first register to write.
+ * @param nb_registers The number of registers to write.
+ * @param registers Buffer holding all the registers values to write.
  *
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments,
  *         SR_ERR_DATA upon invalid data, or SR_ERR on failure.
@@ -510,27 +523,28 @@ SR_PRIV int sr_modbus_write_coil(struct sr_modbus_dev_inst *modbus,
 SR_PRIV int sr_modbus_write_multiple_registers(struct sr_modbus_dev_inst*modbus,
 		int address, int nb_registers, uint16_t *registers)
 {
-	uint8_t request[6+2*nb_registers], reply[5];
+	uint8_t request[6 + (2 * nb_registers)], reply[5];
 	int ret;
 
 	if (address < 0 || address > 0xFFFF
 	    || nb_registers < 1 || nb_registers > 123 || !registers)
 		return SR_ERR_ARG;
 
-	W8  (request+0, MODBUS_WRITE_MULTIPLE_REGISTERS);
-	WB16(request+1, address);
-	WB16(request+3, nb_registers);
-	W8  (request+5, 2*nb_registers);
-	memcpy(request+6, registers, 2*nb_registers);
+	W8(request + 0, MODBUS_WRITE_MULTIPLE_REGISTERS);
+	WB16(request + 1, address);
+	WB16(request + 3, nb_registers);
+	W8(request + 5, 2 * nb_registers);
+	memcpy(request + 6, registers, 2 * nb_registers);
 
 	ret = sr_modbus_request_reply(modbus, request, sizeof(request),
-	                                      reply  , sizeof(reply));
+				      reply, sizeof(reply));
 	if (ret != SR_OK)
 		return ret;
 	if (sr_modbus_error_check(reply))
 		return SR_ERR_DATA;
 	if (memcmp(request, reply, sizeof(reply)))
 		return SR_ERR_DATA;
+
 	return SR_OK;
 }
 
