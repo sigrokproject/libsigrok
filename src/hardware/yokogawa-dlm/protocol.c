@@ -157,7 +157,7 @@ static const char *scope_analog_channel_names[] = {
 	"4"
 };
 
-static const char *scope_digital_channel_names[] = {
+static const char *scope_digital_channel_names_8[] = {
 	"D0",
 	"D1",
 	"D2",
@@ -166,6 +166,41 @@ static const char *scope_digital_channel_names[] = {
 	"D5",
 	"D6",
 	"D7"
+};
+
+static const char *scope_digital_channel_names_32[] = {
+	"A0",
+	"A1",
+	"A2",
+	"A3",
+	"A4",
+	"A5",
+	"A6",
+	"A7",
+	"B0",
+	"B1",
+	"B2",
+	"B3",
+	"B4",
+	"B5",
+	"B6",
+	"B7",
+	"C0",
+	"C1",
+	"C2",
+	"C3",
+	"C4",
+	"C5",
+	"C6",
+	"C7",
+	"D0",
+	"D1",
+	"D2",
+	"D3",
+	"D4",
+	"D5",
+	"D6",
+	"D7",
 };
 
 static const struct scope_config scope_models[] = {
@@ -177,7 +212,7 @@ static const struct scope_config scope_models[] = {
 		.pods = 0,
 
 		.analog_names = &scope_analog_channel_names,
-		.digital_names = &scope_digital_channel_names,
+		.digital_names = &scope_digital_channel_names_8,
 
 		.devopts = &dlm_devopts,
 		.num_devopts = ARRAY_SIZE(dlm_devopts),
@@ -206,7 +241,96 @@ static const struct scope_config scope_models[] = {
 		.pods = 1,
 
 		.analog_names = &scope_analog_channel_names,
-		.digital_names = &scope_digital_channel_names,
+		.digital_names = &scope_digital_channel_names_8,
+
+		.devopts = &dlm_devopts,
+		.num_devopts = ARRAY_SIZE(dlm_devopts),
+
+		.analog_devopts = &dlm_analog_devopts,
+		.num_analog_devopts = ARRAY_SIZE(dlm_analog_devopts),
+
+		.coupling_options = &dlm_coupling_options,
+		.trigger_sources = &dlm_4ch_trigger_sources,
+		.trigger_slopes = &dlm_trigger_slopes,
+
+		.timebases = &dlm_timebases,
+		.num_timebases = ARRAY_SIZE(dlm_timebases),
+
+		.vdivs = &dlm_vdivs,
+		.num_vdivs = ARRAY_SIZE(dlm_vdivs),
+
+		.num_xdivs = 10,
+		.num_ydivs = 8,
+	},
+	{
+		.model_id   = {"701307", "701308",  "701310", "701311",
+				"701312", "701313",  NULL},
+		.model_name = {"DL9040", "DL9040L", "DL9140", "DL9140L",
+				"DL9240", "DL9240L", NULL},
+		.analog_channels = 4,
+		.digital_channels = 0,
+		.pods = 0,
+
+		.analog_names = &scope_analog_channel_names,
+		.digital_names = NULL,
+
+		.devopts = &dlm_devopts,
+		.num_devopts = ARRAY_SIZE(dlm_devopts),
+
+		.analog_devopts = &dlm_analog_devopts,
+		.num_analog_devopts = ARRAY_SIZE(dlm_analog_devopts),
+
+		.coupling_options = &dlm_coupling_options,
+		.trigger_sources = &dlm_4ch_trigger_sources,
+		.trigger_slopes = &dlm_trigger_slopes,
+
+		.timebases = &dlm_timebases,
+		.num_timebases = ARRAY_SIZE(dlm_timebases),
+
+		.vdivs = &dlm_vdivs,
+		.num_vdivs = ARRAY_SIZE(dlm_vdivs),
+
+		.num_xdivs = 10,
+		.num_ydivs = 8,
+	},
+	{
+		.model_id   = {"701320",  "701321",  NULL},
+		.model_name = {"DL9505L", "DL9510L", NULL},
+		.analog_channels = 4,
+		.digital_channels = 16,
+		.pods = 4,
+
+		.analog_names = &scope_analog_channel_names,
+		.digital_names = &scope_digital_channel_names_32,
+
+		.devopts = &dlm_devopts,
+		.num_devopts = ARRAY_SIZE(dlm_devopts),
+
+		.analog_devopts = &dlm_analog_devopts,
+		.num_analog_devopts = ARRAY_SIZE(dlm_analog_devopts),
+
+		.coupling_options = &dlm_coupling_options,
+		.trigger_sources = &dlm_4ch_trigger_sources,
+		.trigger_slopes = &dlm_trigger_slopes,
+
+		.timebases = &dlm_timebases,
+		.num_timebases = ARRAY_SIZE(dlm_timebases),
+
+		.vdivs = &dlm_vdivs,
+		.num_vdivs = ARRAY_SIZE(dlm_vdivs),
+
+		.num_xdivs = 10,
+		.num_ydivs = 8,
+	},
+	{
+		.model_id   = {"701330",  "701331",  NULL},
+		.model_name = {"DL9705L", "DL9710L", NULL},
+		.analog_channels = 4,
+		.digital_channels = 32,
+		.pods = 4,
+
+		.analog_names = &scope_analog_channel_names,
+		.digital_names = &scope_digital_channel_names_32,
 
 		.devopts = &dlm_devopts,
 		.num_devopts = ARRAY_SIZE(dlm_devopts),
