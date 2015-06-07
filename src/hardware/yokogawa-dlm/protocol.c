@@ -789,7 +789,7 @@ SR_PRIV int dlm_device_init(struct sr_dev_inst *sdi, int model_index)
 			scope_models[model_index].analog_channels);
 
 	devc->digital_groups = g_malloc0(sizeof(struct sr_channel_group*) *
-			scope_models[model_index].digital_channels);
+			scope_models[model_index].pods);
 
 	/* Add analog channels, each in its own group. */
 	for (i = 0; i < scope_models[model_index].analog_channels; i++) {
