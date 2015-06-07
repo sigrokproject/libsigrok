@@ -491,6 +491,16 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	return ret;
 }
 
+static int config_channel_set(const struct sr_dev_inst *sdi,
+			struct sr_channel *ch, unsigned int changes)
+{
+	/* Curretly we only handle SR_CHANNEL_SET_ENABLED. */
+	if (changes != SR_CHANNEL_SET_ENABLED)
+		return SR_ERR_NA;
+
+	return dlm_channel_state_set(sdi, ch->index, ch->enabled);
+}
+
 static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
@@ -778,6 +788,7 @@ SR_PRIV struct sr_dev_driver yokogawa_dlm_driver_info = {
 	.dev_clear = dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
+	.config_channel_set = config_channel_set,
 	.config_list = config_list,
 	.dev_open = dev_open,
 	.dev_close = dev_close,

@@ -113,6 +113,8 @@ struct dev_context {
 	gboolean data_pending;
 };
 
+SR_PRIV int dlm_channel_state_set(const struct sr_dev_inst *sdi,
+		const int ch_index, gboolean state);
 SR_PRIV int dlm_data_request(const struct sr_dev_inst *sdi);
 SR_PRIV int dlm_model_get(char *model_id, char **model_name, int *model_index);
 SR_PRIV int dlm_device_init(struct sr_dev_inst *sdi, int model_index);

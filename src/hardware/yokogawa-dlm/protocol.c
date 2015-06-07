@@ -410,24 +410,37 @@ static int array_float_get(gchar *value, const uint64_t array[][2],
  * Obtains information about all analog channels from the oscilloscope.
  * The internal state information is updated accordingly.
  *
- * @param scpi An open SCPI connection.
+ * @param sdi The device instance.
  * @param config The device's device configuration.
  * @param state The device's state information.
  *
  * @return SR_ERR on error, SR_OK otherwise.
  */
-static int analog_channel_state_get(struct sr_scpi_dev_inst *scpi,
+static int analog_channel_state_get(const struct sr_dev_inst *sdi,
 		const struct scope_config *config,
 		struct scope_state *state)
 {
+	struct sr_scpi_dev_inst *scpi;
 	int i, j;
+	GSList *l;
+	struct sr_channel *ch;
 	gchar *response;
+
+	scpi = sdi->conn;
 
 	for (i = 0; i < config->analog_channels; ++i) {
 
 		if (dlm_analog_chan_state_get(scpi, i + 1,
 				&state->analog_states[i].state) != SR_OK)
 			return SR_ERR;
+
+		for (l = sdi->channels; l; l = l->next) {
+			ch = l->data;
+			if (ch->index == i) {
+				ch->enabled = state->analog_states[i].state;
+				break;
+			}
+		}
 
 		if (dlm_analog_chan_vdiv_get(scpi, i + 1, &response) != SR_OK)
 			return SR_ERR;
@@ -473,17 +486,22 @@ static int analog_channel_state_get(struct sr_scpi_dev_inst *scpi,
  * Obtains information about all digital channels from the oscilloscope.
  * The internal state information is updated accordingly.
  *
- * @param scpi An open SCPI connection.
+ * @param sdi The device instance.
  * @param config The device's device configuration.
  * @param state The device's state information.
  *
  * @return SR_ERR on error, SR_OK otherwise.
  */
-static int digital_channel_state_get(struct sr_scpi_dev_inst *scpi,
+static int digital_channel_state_get(const struct sr_dev_inst *sdi,
 		const struct scope_config *config,
 		struct scope_state *state)
 {
-	unsigned int i;
+	struct sr_scpi_dev_inst *scpi;
+	int i;
+	GSList *l;
+	struct sr_channel *ch;
+
+	scpi = sdi->conn;
 
 	if (!config->digital_channels)
 		{
@@ -496,6 +514,14 @@ static int digital_channel_state_get(struct sr_scpi_dev_inst *scpi,
 		if (dlm_digital_chan_state_get(scpi, i + 1,
 				&state->digital_states[i]) != SR_OK) {
 			return SR_ERR;
+		}
+
+		for (l = sdi->channels; l; l = l->next) {
+			ch = l->data;
+			if (ch->index == i + DLM_DIG_CHAN_INDEX_OFFS) {
+				ch->enabled = state->digital_states[i];
+				break;
+			}
 		}
 	}
 
@@ -512,6 +538,93 @@ static int digital_channel_state_get(struct sr_scpi_dev_inst *scpi,
 	}
 
 	return SR_OK;
+}
+
+/**
+ *
+ */
+SR_PRIV int dlm_channel_state_set(const struct sr_dev_inst *sdi,
+		const int ch_index, gboolean ch_state)
+{
+	GSList *l;
+	struct sr_channel *ch;
+	struct dev_context *devc = NULL;
+	struct scope_state *state;
+	const struct scope_config *model = NULL;
+	struct sr_scpi_dev_inst *scpi;
+	gboolean chan_found;
+	gboolean *pod_enabled;
+	int i, result;
+
+	result = SR_OK;
+
+	scpi = sdi->conn;
+	devc = sdi->priv;
+	state = devc->model_state;
+	model = devc->model_config;
+	chan_found = FALSE;
+
+	pod_enabled = g_malloc0(sizeof(gboolean) * model->pods);
+
+	for (l = sdi->channels; l; l = l->next) {
+		ch = l->data;
+
+		switch (ch->type) {
+		case SR_CHANNEL_ANALOG:
+			if (ch->index == ch_index) {
+				if (dlm_analog_chan_state_set(scpi, ch->index + 1, ch_state) != SR_OK) {
+					result = SR_ERR;
+					break;
+				}
+
+				ch->enabled = ch_state;
+				state->analog_states[ch->index].state = ch_state;
+				chan_found = TRUE;
+				break;
+			}
+			break;
+		case SR_CHANNEL_LOGIC:
+			i = ch->index - DLM_DIG_CHAN_INDEX_OFFS;
+
+			if (ch->index == ch_index) {
+				if (dlm_digital_chan_state_set(scpi, i + 1, ch_state) != SR_OK) {
+					result = SR_ERR;
+					break;
+				}
+
+			ch->enabled = ch_state;
+			state->digital_states[i] = ch_state;
+			chan_found = TRUE;
+
+			/* The corresponding pod has to be enabled also. */
+			pod_enabled[i / 8] |= ch->enabled;
+			} else
+				/* Also check all other channels. Maybe we can disable a pod. */
+				pod_enabled[i / 8] |= ch->enabled;
+			break;
+		default:
+			result = SR_ERR_NA;
+		}
+	}
+
+	for (i = 0; i < model->pods; ++i) {
+		if (state->pod_states[i] == pod_enabled[i])
+			continue;
+
+		if (dlm_digital_pod_state_set(scpi, i + 1, pod_enabled[i]) != SR_OK) {
+			result = SR_ERR;
+			break;
+		}
+
+		state->pod_states[i] = pod_enabled[i];
+	}
+
+	g_free(pod_enabled);
+
+	if ((result == SR_OK) && !chan_found)
+		result = SR_ERR_BUG;
+
+	return result;
 }
 
 /**
@@ -564,10 +677,10 @@ SR_PRIV int dlm_scope_state_query(struct sr_dev_inst *sdi)
 	config = devc->model_config;
 	state = devc->model_state;
 
-	if (analog_channel_state_get(sdi->conn, config, state) != SR_OK)
+	if (analog_channel_state_get(sdi, config, state) != SR_OK)
 		return SR_ERR;
 
-	if (digital_channel_state_get(sdi->conn, config, state) != SR_OK)
+	if (digital_channel_state_get(sdi, config, state) != SR_OK)
 		return SR_ERR;
 
 	if (dlm_timebase_get(sdi->conn, &response) != SR_OK)
