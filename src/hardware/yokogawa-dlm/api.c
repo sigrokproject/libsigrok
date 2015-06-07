@@ -26,9 +26,32 @@ SR_PRIV struct sr_dev_driver yokogawa_dlm_driver_info;
 static const char *MANUFACTURER_ID = "YOKOGAWA";
 static const char *MANUFACTURER_NAME = "Yokogawa";
 
-static const uint32_t drvopts[] = {
+static const uint32_t dlm_scanopts[] = {
+	SR_CONF_CONN,
+};
+
+static const uint32_t dlm_drvopts[] = {
 	SR_CONF_LOGIC_ANALYZER,
 	SR_CONF_OSCILLOSCOPE,
+};
+
+static const uint32_t dlm_devopts[] = {
+	SR_CONF_LIMIT_FRAMES | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_SAMPLERATE | SR_CONF_GET,
+	SR_CONF_TIMEBASE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_NUM_HDIV | SR_CONF_GET,
+	SR_CONF_HORIZ_TRIGGERPOS | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_TRIGGER_SLOPE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_TRIGGER_SOURCE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+};
+
+static const uint32_t dlm_analog_devopts[] = {
+	SR_CONF_COUPLING | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_VDIV | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_NUM_VDIV | SR_CONF_GET,
+};
+
+static const uint32_t dlm_digital_devopts[] = {
 };
 
 enum {
@@ -222,8 +245,8 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		break;
 	case SR_CONF_TIMEBASE:
 		*data = g_variant_new("(tt)",
-				(*model->timebases)[state->timebase][0],
-				(*model->timebases)[state->timebase][1]);
+				dlm_timebases[state->timebase][0],
+				dlm_timebases[state->timebase][1]);
 		ret = SR_OK;
 		break;
 	case SR_CONF_NUM_VDIV:
@@ -250,8 +273,8 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 			if (cg != devc->analog_groups[i])
 				continue;
 			*data = g_variant_new("(tt)",
-					(*model->vdivs)[state->analog_states[i].vdiv][0],
-					(*model->vdivs)[state->analog_states[i].vdiv][1]);
+					dlm_vdivs[state->analog_states[i].vdiv][0],
+					dlm_vdivs[state->analog_states[i].vdiv][1]);
 			ret = SR_OK;
 			break;
 		}
@@ -261,7 +284,7 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		ret = SR_OK;
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
-		*data = g_variant_new_string((*model->trigger_slopes)[state->trigger_slope]);
+		*data = g_variant_new_string(dlm_trigger_slopes[state->trigger_slope]);
 		ret = SR_OK;
 		break;
 	case SR_CONF_HORIZ_TRIGGERPOS:
@@ -364,9 +387,9 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 
 		g_variant_get(data, "(tt)", &p, &q);
 
-		for (i = 0; i < model->num_vdivs; i++) {
-			if (p != (*model->vdivs)[i][0] ||
-					q != (*model->vdivs)[i][1])
+		for (i = 0; i < ARRAY_SIZE(dlm_vdivs); i++) {
+			if (p != dlm_vdivs[i][0] ||
+					q != dlm_vdivs[i][1])
 				continue;
 			for (j = 1; j <= model->analog_channels; ++j) {
 				if (cg != devc->analog_groups[j - 1])
@@ -388,9 +411,9 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	case SR_CONF_TIMEBASE:
 		g_variant_get(data, "(tt)", &p, &q);
 
-		for (i = 0; i < model->num_timebases; i++) {
-			if (p != (*model->timebases)[i][0] ||
-					q != (*model->timebases)[i][1])
+		for (i = 0; i < ARRAY_SIZE(dlm_timebases); i++) {
+			if (p != dlm_timebases[i][0] ||
+					q != dlm_timebases[i][1])
 				continue;
 			state->timebase = i;
 			g_ascii_formatd(float_str, sizeof(float_str),
@@ -409,8 +432,8 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 
 		state->horiz_triggerpos = tmp_d;
 		tmp_d = -(tmp_d - 0.5) *
-				((double) (*model->timebases)[state->timebase][0] /
-				(*model->timebases)[state->timebase][1])
+				((double) dlm_timebases[state->timebase][0] /
+				dlm_timebases[state->timebase][1])
 				* model->num_xdivs;
 
 		g_ascii_formatd(float_str, sizeof(float_str), "%E", tmp_d);
@@ -475,25 +498,66 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	struct dev_context *devc = NULL;
 	const struct scope_config *model = NULL;
 
-	if (sdi && (devc = sdi->priv)) {
-		if ((cg_type = check_channel_group(devc, cg)) == CG_INVALID)
-			return SR_ERR;
-
-		model = devc->model_config;
+	/* SR_CONF_SCAN_OPTIONS is always valid, regardless of sdi or probe group. */
+	if (key == SR_CONF_SCAN_OPTIONS) {
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+				dlm_scanopts, ARRAY_SIZE(dlm_scanopts), sizeof(uint32_t));
+		return SR_OK;
 	}
+
+	/* If sdi is NULL, nothing except SR_CONF_DEVICE_OPTIONS can be provided. */
+	if (key == SR_CONF_DEVICE_OPTIONS && !sdi) {
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+				dlm_drvopts, ARRAY_SIZE(dlm_drvopts), sizeof(uint32_t));
+		return SR_OK;
+	}
+
+	if (!sdi)
+		return SR_ERR_ARG;
+
+	devc = sdi->priv;
+	model = devc->model_config;
+
+	/* If cg is NULL, only the SR_CONF_DEVICE_OPTIONS that are not
+	 * specific to a probe group must be returned. */
+	if (!cg) {
+		switch (key) {
+		case SR_CONF_DEVICE_OPTIONS:
+			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+					dlm_devopts, ARRAY_SIZE(dlm_devopts), sizeof(uint32_t));
+			return SR_OK;
+		case SR_CONF_TIMEBASE:
+			*data = build_tuples(&dlm_timebases, ARRAY_SIZE(dlm_timebases));
+			return SR_OK;
+		case SR_CONF_TRIGGER_SOURCE:
+			if (!model)
+				return SR_ERR_ARG;
+			*data = g_variant_new_strv(*model->trigger_sources,
+					g_strv_length((char **)*model->trigger_sources));
+			return SR_OK;
+		case SR_CONF_TRIGGER_SLOPE:
+			*data = g_variant_new_strv(dlm_trigger_slopes,
+					g_strv_length((char **)dlm_trigger_slopes));
+			return SR_OK;
+		case SR_CONF_NUM_HDIV:
+			*data = g_variant_new_uint32(ARRAY_SIZE(dlm_timebases));
+			return SR_OK;
+		default:
+			return SR_ERR_NA;
+		}
+	}
+
+	if ((cg_type = check_channel_group(devc, cg)) == CG_INVALID)
+		return SR_ERR;
 
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
-		if (cg_type == CG_NONE) {
-			if (model)
-				*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-					model->devopts, model->num_devopts, sizeof(uint32_t));
-			else
-				*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-					drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
-		} else if (cg_type == CG_ANALOG) {
+		if (cg_type == CG_ANALOG) {
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				model->analog_devopts, model->num_analog_devopts, sizeof(uint32_t));
+				dlm_analog_devopts, ARRAY_SIZE(dlm_analog_devopts), sizeof(uint32_t));
+		} else if (cg_type == CG_DIGITAL) {
+			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+				dlm_digital_devopts, ARRAY_SIZE(dlm_digital_devopts), sizeof(uint32_t));
 		} else {
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
 				NULL, 0, sizeof(uint32_t));
@@ -505,27 +569,10 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		*data = g_variant_new_strv(*model->coupling_options,
 				g_strv_length((char **)*model->coupling_options));
 		break;
-	case SR_CONF_TRIGGER_SOURCE:
-		if (!model)
-			return SR_ERR_ARG;
-		*data = g_variant_new_strv(*model->trigger_sources,
-				g_strv_length((char **)*model->trigger_sources));
-		break;
-	case SR_CONF_TRIGGER_SLOPE:
-		if (!model)
-			return SR_ERR_ARG;
-		*data = g_variant_new_strv(*model->trigger_slopes,
-				g_strv_length((char **)*model->trigger_slopes));
-		break;
-	case SR_CONF_TIMEBASE:
-		if (!model)
-			return SR_ERR_ARG;
-		*data = build_tuples(model->timebases, model->num_timebases);
-		break;
 	case SR_CONF_VDIV:
 		if (cg_type == CG_NONE)
 			return SR_ERR_CHANNEL_GROUP;
-		*data = build_tuples(model->vdivs, model->num_vdivs);
+		*data = build_tuples(&dlm_vdivs, ARRAY_SIZE(dlm_vdivs));
 		break;
 	default:
 		return SR_ERR_NA;

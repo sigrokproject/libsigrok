@@ -48,6 +48,10 @@ enum trigger_slopes {
 	SLOPE_NEGATIVE
 };
 
+extern const char *dlm_trigger_slopes[3];
+extern const uint64_t dlm_timebases[36][2];
+extern const uint64_t dlm_vdivs[17][2];
+
 struct scope_config {
 	const char *model_id[MAX_INSTRUMENT_VERSIONS];
 	const char *model_name[MAX_INSTRUMENT_VERSIONS];
@@ -58,25 +62,11 @@ struct scope_config {
 	const char *(*analog_names)[];
 	const char *(*digital_names)[];
 
-	const uint32_t (*devopts)[];
-	const uint8_t num_devopts;
-
-	const uint32_t (*analog_devopts)[];
-	const uint8_t num_analog_devopts;
-
 	const char *(*coupling_options)[];
 	const uint8_t num_coupling_options;
 
 	const char *(*trigger_sources)[];
 	const uint8_t num_trigger_sources;
-
-	const char *(*trigger_slopes)[];
-
-	const uint64_t (*timebases)[][2];
-	const uint8_t num_timebases;
-
-	const uint64_t (*vdivs)[][2];
-	const uint8_t num_vdivs;
 
 	const uint8_t num_xdivs;
 	const uint8_t num_ydivs;

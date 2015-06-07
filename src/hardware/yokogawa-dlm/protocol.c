@@ -25,36 +25,11 @@
 
 #include "protocol.h"
 
-static const uint32_t dlm_devopts[] = {
-	SR_CONF_LOGIC_ANALYZER,
-	SR_CONF_OSCILLOSCOPE,
-	SR_CONF_LIMIT_FRAMES | SR_CONF_SET,
-	SR_CONF_SAMPLERATE | SR_CONF_GET,
-	SR_CONF_TRIGGER_SLOPE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
-	SR_CONF_TRIGGER_SOURCE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
-	SR_CONF_TIMEBASE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
-	SR_CONF_NUM_HDIV | SR_CONF_GET,
-	SR_CONF_HORIZ_TRIGGERPOS | SR_CONF_GET | SR_CONF_SET,
-};
-
-static const uint32_t dlm_analog_devopts[] = {
-	SR_CONF_VDIV | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
-	SR_CONF_COUPLING | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
-	SR_CONF_NUM_VDIV | SR_CONF_GET,
-};
-
 static const char *dlm_coupling_options[] = {
 	"AC",
 	"DC",
 	"DC50",
 	"GND",
-	NULL,
-};
-
-/* Note: Values must correlate to the trigger_slopes values */
-static const char *dlm_trigger_slopes[] = {
-	"r",
-	"f",
 	NULL,
 };
 
@@ -85,7 +60,14 @@ static const char *dlm_4ch_trigger_sources[] = {
 	NULL,
 };
 
-static const uint64_t dlm_timebases[][2] = {
+/* Note: Values must correlate to the trigger_slopes values */
+const char *dlm_trigger_slopes[3] = {
+	"r",
+	"f",
+	NULL,
+};
+
+const uint64_t dlm_timebases[36][2] = {
 	/* nanoseconds */
 	{ 1, 1000000000 },
 	{ 2, 1000000000 },
@@ -128,7 +110,7 @@ static const uint64_t dlm_timebases[][2] = {
 	{ 500, 1 },
 };
 
-static const uint64_t dlm_vdivs[][2] = {
+const uint64_t dlm_vdivs[17][2] = {
 	/* millivolts */
 	{ 2, 1000 },
 	{ 5, 1000 },
@@ -214,21 +196,8 @@ static const struct scope_config scope_models[] = {
 		.analog_names = &scope_analog_channel_names,
 		.digital_names = &scope_digital_channel_names_8,
 
-		.devopts = &dlm_devopts,
-		.num_devopts = ARRAY_SIZE(dlm_devopts),
-
-		.analog_devopts = &dlm_analog_devopts,
-		.num_analog_devopts = ARRAY_SIZE(dlm_analog_devopts),
-
 		.coupling_options = &dlm_coupling_options,
 		.trigger_sources = &dlm_2ch_trigger_sources,
-		.trigger_slopes = &dlm_trigger_slopes,
-
-		.timebases = &dlm_timebases,
-		.num_timebases = ARRAY_SIZE(dlm_timebases),
-
-		.vdivs = &dlm_vdivs,
-		.num_vdivs = ARRAY_SIZE(dlm_vdivs),
 
 		.num_xdivs = 10,
 		.num_ydivs = 8,
@@ -243,21 +212,8 @@ static const struct scope_config scope_models[] = {
 		.analog_names = &scope_analog_channel_names,
 		.digital_names = &scope_digital_channel_names_8,
 
-		.devopts = &dlm_devopts,
-		.num_devopts = ARRAY_SIZE(dlm_devopts),
-
-		.analog_devopts = &dlm_analog_devopts,
-		.num_analog_devopts = ARRAY_SIZE(dlm_analog_devopts),
-
 		.coupling_options = &dlm_coupling_options,
 		.trigger_sources = &dlm_4ch_trigger_sources,
-		.trigger_slopes = &dlm_trigger_slopes,
-
-		.timebases = &dlm_timebases,
-		.num_timebases = ARRAY_SIZE(dlm_timebases),
-
-		.vdivs = &dlm_vdivs,
-		.num_vdivs = ARRAY_SIZE(dlm_vdivs),
 
 		.num_xdivs = 10,
 		.num_ydivs = 8,
@@ -274,21 +230,8 @@ static const struct scope_config scope_models[] = {
 		.analog_names = &scope_analog_channel_names,
 		.digital_names = NULL,
 
-		.devopts = &dlm_devopts,
-		.num_devopts = ARRAY_SIZE(dlm_devopts),
-
-		.analog_devopts = &dlm_analog_devopts,
-		.num_analog_devopts = ARRAY_SIZE(dlm_analog_devopts),
-
 		.coupling_options = &dlm_coupling_options,
 		.trigger_sources = &dlm_4ch_trigger_sources,
-		.trigger_slopes = &dlm_trigger_slopes,
-
-		.timebases = &dlm_timebases,
-		.num_timebases = ARRAY_SIZE(dlm_timebases),
-
-		.vdivs = &dlm_vdivs,
-		.num_vdivs = ARRAY_SIZE(dlm_vdivs),
 
 		.num_xdivs = 10,
 		.num_ydivs = 8,
@@ -303,21 +246,8 @@ static const struct scope_config scope_models[] = {
 		.analog_names = &scope_analog_channel_names,
 		.digital_names = &scope_digital_channel_names_32,
 
-		.devopts = &dlm_devopts,
-		.num_devopts = ARRAY_SIZE(dlm_devopts),
-
-		.analog_devopts = &dlm_analog_devopts,
-		.num_analog_devopts = ARRAY_SIZE(dlm_analog_devopts),
-
 		.coupling_options = &dlm_coupling_options,
 		.trigger_sources = &dlm_4ch_trigger_sources,
-		.trigger_slopes = &dlm_trigger_slopes,
-
-		.timebases = &dlm_timebases,
-		.num_timebases = ARRAY_SIZE(dlm_timebases),
-
-		.vdivs = &dlm_vdivs,
-		.num_vdivs = ARRAY_SIZE(dlm_vdivs),
 
 		.num_xdivs = 10,
 		.num_ydivs = 8,
@@ -332,21 +262,8 @@ static const struct scope_config scope_models[] = {
 		.analog_names = &scope_analog_channel_names,
 		.digital_names = &scope_digital_channel_names_32,
 
-		.devopts = &dlm_devopts,
-		.num_devopts = ARRAY_SIZE(dlm_devopts),
-
-		.analog_devopts = &dlm_analog_devopts,
-		.num_analog_devopts = ARRAY_SIZE(dlm_analog_devopts),
-
 		.coupling_options = &dlm_coupling_options,
 		.trigger_sources = &dlm_4ch_trigger_sources,
-		.trigger_slopes = &dlm_trigger_slopes,
-
-		.timebases = &dlm_timebases,
-		.num_timebases = ARRAY_SIZE(dlm_timebases),
-
-		.vdivs = &dlm_vdivs,
-		.num_vdivs = ARRAY_SIZE(dlm_vdivs),
 
 		.num_xdivs = 10,
 		.num_ydivs = 8,
@@ -366,8 +283,8 @@ static void scope_state_dump(const struct scope_config *config,
 	char *tmp;
 
 	for (i = 0; i < config->analog_channels; ++i) {
-		tmp = sr_voltage_string((*config->vdivs)[state->analog_states[i].vdiv][0],
-				(*config->vdivs)[state->analog_states[i].vdiv][1]);
+		tmp = sr_voltage_string(dlm_vdivs[state->analog_states[i].vdiv][0],
+				dlm_vdivs[state->analog_states[i].vdiv][1]);
 		sr_info("State of analog channel  %d -> %s : %s (coupling) %s (vdiv) %2.2e (offset)",
 				i + 1, state->analog_states[i].state ? "On" : "Off",
 				(*config->coupling_options)[state->analog_states[i].coupling],
@@ -384,8 +301,8 @@ static void scope_state_dump(const struct scope_config *config,
 				state->pod_states[i] ? "On" : "Off");
 	}
 
-	tmp = sr_period_string((*config->timebases)[state->timebase][0] *
-			(*config->timebases)[state->timebase][1]);
+	tmp = sr_period_string(dlm_timebases[state->timebase][0] *
+			dlm_timebases[state->timebase][1]);
 	sr_info("Current timebase: %s", tmp);
 	g_free(tmp);
 
@@ -398,7 +315,7 @@ static void scope_state_dump(const struct scope_config *config,
 
 	sr_info("Current trigger: %s (source), %s (slope) %.2f (offset)",
 			(*config->trigger_sources)[state->trigger_source],
-			(*config->trigger_slopes)[state->trigger_slope],
+			dlm_trigger_slopes[state->trigger_slope],
 			state->horiz_triggerpos);
 }
 
@@ -515,7 +432,7 @@ static int analog_channel_state_get(struct sr_scpi_dev_inst *scpi,
 		if (dlm_analog_chan_vdiv_get(scpi, i + 1, &response) != SR_OK)
 			return SR_ERR;
 
-		if (array_float_get(response, *config->vdivs, config->num_vdivs,
+		if (array_float_get(response, dlm_vdivs, ARRAY_SIZE(dlm_vdivs),
 				&j) != SR_OK) {
 			g_free(response);
 			return SR_ERR;
@@ -656,8 +573,8 @@ SR_PRIV int dlm_scope_state_query(struct sr_dev_inst *sdi)
 	if (dlm_timebase_get(sdi->conn, &response) != SR_OK)
 		return SR_ERR;
 
-	if (array_float_get(response, *config->timebases,
-			config->num_timebases, &i) != SR_OK) {
+	if (array_float_get(response, dlm_timebases,
+			ARRAY_SIZE(dlm_timebases), &i) != SR_OK) {
 		g_free(response);
 		return SR_ERR;
 	}
@@ -670,8 +587,8 @@ SR_PRIV int dlm_scope_state_query(struct sr_dev_inst *sdi)
 
 	/* TODO: Check if the calculation makes sense for the DLM. */
 	state->horiz_triggerpos = tmp_float /
-			(((double)(*config->timebases)[state->timebase][0] /
-			(*config->timebases)[state->timebase][1]) * config->num_xdivs);
+			(((double)dlm_timebases[state->timebase][0] /
+			dlm_timebases[state->timebase][1]) * config->num_xdivs);
 	state->horiz_triggerpos -= 0.5;
 	state->horiz_triggerpos *= -1;
 
