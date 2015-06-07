@@ -550,7 +550,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 					g_strv_length((char **)dlm_trigger_slopes));
 			return SR_OK;
 		case SR_CONF_NUM_HDIV:
-			*data = g_variant_new_uint32(ARRAY_SIZE(dlm_timebases));
+			*data = g_variant_new_uint32(model->num_xdivs);
 			return SR_OK;
 		default:
 			return SR_ERR_NA;
