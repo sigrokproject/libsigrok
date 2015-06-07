@@ -599,17 +599,18 @@ static int dlm_setup_channels(const struct sr_dev_inst *sdi)
 			setup_changed = TRUE;
 			break;
 		case SR_CHANNEL_LOGIC:
+			i = ch->index - DLM_DIG_CHAN_INDEX_OFFS;
 			if (ch->enabled)
-				pod_enabled[ch->index / 8] = TRUE;
+				pod_enabled[i / 8] = TRUE;
 
-			if (ch->enabled == state->digital_states[ch->index])
+			if (ch->enabled == state->digital_states[i])
 				break;
 
-			if (dlm_digital_chan_state_set(scpi, ch->index + 1,
+			if (dlm_digital_chan_state_set(scpi, i + 1,
 					ch->enabled) != SR_OK)
 				return SR_ERR;
 
-			state->digital_states[ch->index] = ch->enabled;
+			state->digital_states[i] = ch->enabled;
 			setup_changed = TRUE;
 			break;
 		default:
