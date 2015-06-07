@@ -43,7 +43,7 @@ static struct sr_dev_inst *sr_modbus_scan_resource(const char *resource,
 		return NULL;
 
 	if (sr_modbus_open(modbus) != SR_OK) {
-		sr_info("Couldn't open MODBUS device.");
+		sr_info("Couldn't open Modbus device.");
 		sr_modbus_free(modbus);
 		return NULL;
 	};
@@ -58,7 +58,7 @@ static struct sr_dev_inst *sr_modbus_scan_resource(const char *resource,
 }
 
 /**
- * Scan for MODBUS devices which match a probing function.
+ * Scan for Modbus devices which match a probing function.
  *
  * @param drvc The driver context doing the scan.
  * @param options The scan options to find devies.
@@ -128,7 +128,7 @@ SR_PRIV GSList *sr_modbus_scan(struct drv_context *drvc, GSList *options,
 }
 
 /**
- * Allocate and initialize a struct for a MODBUS device instance.
+ * Allocate and initialize a struct for a Modbus device instance.
  *
  * @param resource The resource description string.
  * @param serialcomm Additionnal parameters for serial port resources.
@@ -166,9 +166,9 @@ SR_PRIV struct sr_modbus_dev_inst *modbus_dev_inst_new(const char *resource,
 }
 
 /**
- * Open the specified MODBUS device.
+ * Open the specified Modbus device.
  *
- * @param modbus Previously initialized MODBUS device structure.
+ * @param modbus Previously initialized Modbus device structure.
  *
  * @return SR_OK on success, SR_ERR on failure.
  */
@@ -178,10 +178,10 @@ SR_PRIV int sr_modbus_open(struct sr_modbus_dev_inst *modbus)
 }
 
 /**
- * Add an event source for a MODBUS device.
+ * Add an event source for a Modbus device.
  *
  * @param session The session to add the event source to.
- * @param modbus Previously initialized MODBUS device structure.
+ * @param modbus Previously initialized Modbus device structure.
  * @param events Events to check for.
  * @param timeout Max time to wait before the callback is called, ignored if 0.
  * @param cb Callback function to add. Must not be NULL.
@@ -198,10 +198,10 @@ SR_PRIV int sr_modbus_source_add(struct sr_session *session,
 }
 
 /**
- * Remove event source for a MODBUS device.
+ * Remove event source for a Modbus device.
  *
  * @param session The session to remove the event source from.
- * @param modbus Previously initialized MODBUS device structure.
+ * @param modbus Previously initialized Modbus device structure.
  *
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or
  *         SR_ERR_MALLOC upon memory allocation errors, SR_ERR_BUG upon
@@ -214,10 +214,10 @@ SR_PRIV int sr_modbus_source_remove(struct sr_session *session,
 }
 
 /**
- * Send a MODBUS command.
+ * Send a Modbus command.
  *
- * @param modbus Previously initialized MODBUS device structure.
- * @param request Buffer containing the MODBUS command to send.
+ * @param modbus Previously initialized Modbus device structure.
+ * @param request Buffer containing the Modbus command to send.
  * @param request_size The size of the request buffer.
  *
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or
@@ -233,10 +233,10 @@ SR_PRIV int sr_modbus_request(struct sr_modbus_dev_inst *modbus,
 }
 
 /**
- * Receive a MODBUS reply.
+ * Receive a Modbus reply.
  *
- * @param modbus Previously initialized MODBUS device structure.
- * @param reply Buffer to store the received MODBUS reply.
+ * @param modbus Previously initialized Modbus device structure.
+ * @param reply Buffer to store the received Modbus reply.
  * @param reply_size The size of the reply buffer.
  *
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or
@@ -266,7 +266,7 @@ SR_PRIV int sr_modbus_reply(struct sr_modbus_dev_inst *modbus,
 	while (reply_size > 0) {
 		len = modbus->read_data(modbus->priv, reply, reply_size);
 		if (len < 0) {
-			sr_err("Incompletely read MODBUS response.");
+			sr_err("Incompletely read Modbus response.");
 			return SR_ERR;
 		} else if (len > 0) {
 			laststart = g_get_monotonic_time();
@@ -275,7 +275,7 @@ SR_PRIV int sr_modbus_reply(struct sr_modbus_dev_inst *modbus,
 		reply_size -= len;
 		elapsed_ms = (g_get_monotonic_time() - laststart) / 1000;
 		if (elapsed_ms >= modbus->read_timeout_ms) {
-			sr_err("Timed out waiting for MODBUS response.");
+			sr_err("Timed out waiting for Modbus response.");
 			return SR_ERR;
 		}
 	}
@@ -288,12 +288,12 @@ SR_PRIV int sr_modbus_reply(struct sr_modbus_dev_inst *modbus,
 }
 
 /**
- * Send a MODBUS command and receive the corresponding reply.
+ * Send a Modbus command and receive the corresponding reply.
  *
- * @param modbus Previously initialized MODBUS device structure.
- * @param request Buffer containing the MODBUS command to send.
+ * @param modbus Previously initialized Modbus device structure.
+ * @param request Buffer containing the Modbus command to send.
  * @param request_size The size of the request buffer.
- * @param reply Buffer to store the received MODBUS reply.
+ * @param reply Buffer to store the received Modbus reply.
  * @param reply_size The size of the reply buffer.
  *
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or
@@ -380,10 +380,10 @@ static int sr_modbus_error_check(const uint8_t *reply)
 }
 
 /**
- * Send a MODBUS read coils command and receive the corresponding coils values.
+ * Send a Modbus read coils command and receive the corresponding coils values.
  *
- * @param modbus Previously initialized MODBUS device structure.
- * @param address The MODBUS address of the first coil to read, or -1 to read
+ * @param modbus Previously initialized Modbus device structure.
+ * @param address The Modbus address of the first coil to read, or -1 to read
  *                the reply of a previouly sent read coils command.
  * @param nb_coils The number of coils to read.
  * @param coils Buffer to store all the received coils values (1 bit per coil),
@@ -426,11 +426,11 @@ SR_PRIV int sr_modbus_read_coils(struct sr_modbus_dev_inst *modbus,
 }
 
 /**
- * Send a MODBUS read holding registers command and receive the corresponding
+ * Send a Modbus read holding registers command and receive the corresponding
  * registers values.
  *
- * @param modbus Previously initialized MODBUS device structure.
- * @param address The MODBUS address of the first register to read, or -1 to
+ * @param modbus Previously initialized Modbus device structure.
+ * @param address The Modbus address of the first register to read, or -1 to
  *                read the reply of a previouly sent read registers command.
  * @param nb_registers The number of registers to read.
  * @param registers Buffer to store all the received registers values,
@@ -475,10 +475,10 @@ SR_PRIV int sr_modbus_read_holding_registers(struct sr_modbus_dev_inst *modbus,
 }
 
 /**
- * Send a MODBUS write coil command.
+ * Send a Modbus write coil command.
  *
- * @param modbus Previously initialized MODBUS device structure.
- * @param address The MODBUS address of the coil to write.
+ * @param modbus Previously initialized Modbus device structure.
+ * @param address The Modbus address of the coil to write.
  * @param value The new value to assign to this coil.
  *
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments,
@@ -510,10 +510,10 @@ SR_PRIV int sr_modbus_write_coil(struct sr_modbus_dev_inst *modbus,
 }
 
 /**
- * Send a MODBUS write multiple registers command.
+ * Send a Modbus write multiple registers command.
  *
- * @param modbus Previously initialized MODBUS device structure.
- * @param address The MODBUS address of the first register to write.
+ * @param modbus Previously initialized Modbus device structure.
+ * @param address The Modbus address of the first register to write.
  * @param nb_registers The number of registers to write.
  * @param registers Buffer holding all the registers values to write.
  *
@@ -549,9 +549,9 @@ SR_PRIV int sr_modbus_write_multiple_registers(struct sr_modbus_dev_inst*modbus,
 }
 
 /**
- * Close MODBUS device.
+ * Close Modbus device.
  *
- * @param modbus Previously initialized MODBUS device structure.
+ * @param modbus Previously initialized Modbus device structure.
  *
  * @return SR_OK on success, SR_ERR on failure.
  */
@@ -561,9 +561,9 @@ SR_PRIV int sr_modbus_close(struct sr_modbus_dev_inst *modbus)
 }
 
 /**
- * Free MODBUS device.
+ * Free Modbus device.
  *
- * @param modbus Previously initialized MODBUS device structure.
+ * @param modbus Previously initialized Modbus device structure.
  *
  * @return SR_OK on success, SR_ERR on failure.
  */
