@@ -622,79 +622,6 @@ static int dlm_check_channels(GSList *channels)
 	return SR_OK;
 }
 
-static int dlm_setup_channels(const struct sr_dev_inst *sdi)
-{
-	GSList *l;
-	unsigned int i;
-	gboolean *pod_enabled, setup_changed;
-	struct scope_state *state;
-	const struct scope_config *model;
-	struct sr_channel *ch;
-	struct dev_context *devc;
-	struct sr_scpi_dev_inst *scpi;
-
-	devc = sdi->priv;
-	scpi = sdi->conn;
-	state = devc->model_state;
-	model = devc->model_config;
-	setup_changed = FALSE;
-
-	pod_enabled = g_malloc0(sizeof(gboolean) * model->pods);
-
-	for (l = sdi->channels; l; l = l->next) {
-		ch = l->data;
-		switch (ch->type) {
-		case SR_CHANNEL_ANALOG:
-			if (ch->enabled == state->analog_states[ch->index].state)
-				break;
-
-			if (dlm_analog_chan_state_set(scpi, ch->index + 1,
-					ch->enabled) != SR_OK)
-				return SR_ERR;
-
-			state->analog_states[ch->index].state = ch->enabled;
-			setup_changed = TRUE;
-			break;
-		case SR_CHANNEL_LOGIC:
-			i = ch->index - DLM_DIG_CHAN_INDEX_OFFS;
-			if (ch->enabled)
-				pod_enabled[i / 8] = TRUE;
-
-			if (ch->enabled == state->digital_states[i])
-				break;
-
-			if (dlm_digital_chan_state_set(scpi, i + 1,
-					ch->enabled) != SR_OK)
-				return SR_ERR;
-
-			state->digital_states[i] = ch->enabled;
-			setup_changed = TRUE;
-			break;
-		default:
-			return SR_ERR;
-		}
-	}
-
-	for (i = 1; i <= model->pods; ++i) {
-		if (state->pod_states[i - 1] == pod_enabled[i - 1])
-			continue;
-
-		if (dlm_digital_pod_state_set(scpi, i,
-				pod_enabled[i - 1]) != SR_OK)
-			return SR_ERR;
-
-		state->pod_states[i - 1] = pod_enabled[i - 1];
-		setup_changed = TRUE;
-	}
-
-	g_free(pod_enabled);
-
-	if (setup_changed && dlm_sample_rate_query(sdi) != SR_OK)
-		return SR_ERR;
-
-	return SR_OK;
-}
-
 static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 {
 	GSList *l;
@@ -734,11 +661,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	if (dlm_check_channels(devc->enabled_channels) != SR_OK) {
 		sr_err("Invalid channel configuration specified!");
 		return SR_ERR_NA;
-	}
-
-	if (dlm_setup_channels(sdi) != SR_OK) {
-		sr_err("Failed to setup channel configuration!");
-		return SR_ERR;
 	}
 
 	/* Request data for the first enabled channel. */
