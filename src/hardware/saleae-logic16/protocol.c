@@ -363,10 +363,13 @@ static int setup_register_mapping(const struct sr_dev_inst *sdi)
 		if ((ret = read_fpga_register(sdi, 7 /* No mapping */, &reg7)) != SR_OK)
 			return ret;
 
-		if (reg0 == 0 && reg7 > 0x10)
+		if (reg0 == 0 && reg7 > 0x10) {
+			sr_info("Original Saleae Logic16 using new bitstream.");
 			devc->fpga_variant = FPGA_VARIANT_ORIGINAL_NEW_BITSTREAM;
-		else
+		} else {
+			sr_info("Original Saleae Logic16 using old bitstream.");
 			devc->fpga_variant = FPGA_VARIANT_ORIGINAL;
+		}
 	}
 
 	if (devc->fpga_variant == FPGA_VARIANT_ORIGINAL_NEW_BITSTREAM) {
