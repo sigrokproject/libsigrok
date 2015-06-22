@@ -501,8 +501,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 {
 	struct dev_context *devc;
 	uint64_t arg;
-	unsigned int i;
-	int ret;
+	int i, ret;
 
 	(void)cg;
 
@@ -519,13 +518,13 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	switch (key) {
 	case SR_CONF_SAMPLERATE:
 		arg = g_variant_get_uint64(data);
-		for (i = 0; i < ARRAY_SIZE(samplerates); i++) {
-			if (samplerates[i] == arg) {
+		for (i = 0; i < devc->num_samplerates; i++) {
+			if (devc->samplerates[i] == arg) {
 				devc->cur_samplerate = arg;
 				break;
 			}
 		}
-		if (i == ARRAY_SIZE(samplerates))
+		if (i == devc->num_samplerates)
 			ret = SR_ERR_ARG;
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
