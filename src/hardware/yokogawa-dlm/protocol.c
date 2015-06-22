@@ -18,7 +18,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/** @file
+/**
+ * @file
+ *
  * <em>Yokogawa DL/DLM series</em> oscilloscope driver
  * @internal
  */
@@ -60,7 +62,7 @@ static const char *dlm_4ch_trigger_sources[] = {
 	NULL,
 };
 
-/* Note: Values must correlate to the trigger_slopes values */
+/* Note: Values must correlate to the trigger_slopes values. */
 const char *dlm_trigger_slopes[3] = {
 	"r",
 	"f",
@@ -136,7 +138,7 @@ static const char *scope_analog_channel_names[] = {
 	"1",
 	"2",
 	"3",
-	"4"
+	"4",
 };
 
 static const char *scope_digital_channel_names_8[] = {
@@ -147,7 +149,7 @@ static const char *scope_digital_channel_names_8[] = {
 	"D4",
 	"D5",
 	"D6",
-	"D7"
+	"D7",
 };
 
 static const char *scope_digital_channel_names_32[] = {
@@ -282,21 +284,21 @@ static void scope_state_dump(const struct scope_config *config,
 	unsigned int i;
 	char *tmp;
 
-	for (i = 0; i < config->analog_channels; ++i) {
+	for (i = 0; i < config->analog_channels; i++) {
 		tmp = sr_voltage_string(dlm_vdivs[state->analog_states[i].vdiv][0],
 				dlm_vdivs[state->analog_states[i].vdiv][1]);
-		sr_info("State of analog channel  %d -> %s : %s (coupling) %s (vdiv) %2.2e (offset)",
+		sr_info("State of analog channel %d -> %s : %s (coupling) %s (vdiv) %2.2e (offset)",
 				i + 1, state->analog_states[i].state ? "On" : "Off",
 				(*config->coupling_options)[state->analog_states[i].coupling],
 				tmp, state->analog_states[i].vertical_offset);
 	}
 
-	for (i = 0; i < config->digital_channels; ++i) {
+	for (i = 0; i < config->digital_channels; i++) {
 		sr_info("State of digital channel %d -> %s", i,
 				state->digital_states[i] ? "On" : "Off");
 	}
 
-	for (i = 0; i < config->pods; ++i) {
+	for (i = 0; i < config->pods; i++) {
 		sr_info("State of digital POD %d -> %s", i,
 				state->pod_states[i] ? "On" : "Off");
 	}
@@ -336,7 +338,7 @@ static int array_option_get(char *value, const char *(*array)[],
 
 	*result = -1;
 
-	for (i = 0; (*array)[i]; ++i)
+	for (i = 0; (*array)[i]; i++)
 		if (!g_strcmp0(value, (*array)[i])) {
 			*result = i;
 			break;
@@ -388,7 +390,8 @@ static int array_float_get(gchar *value, const uint64_t array[][2],
 	/* Transform e.g. 10^-03 to 1000 as the array stores the inverse. */
 	f = pow(10, abs(i));
 
-	/* Adjust the significand/factor pair to make sure
+	/*
+	 * Adjust the significand/factor pair to make sure
 	 * that f is a multiple of 1000.
 	 */
 	while ((int)fmod(log10(f), 3) > 0) { s *= 10; f *= 10; }
@@ -428,7 +431,7 @@ static int analog_channel_state_get(const struct sr_dev_inst *sdi,
 
 	scpi = sdi->conn;
 
-	for (i = 0; i < config->analog_channels; ++i) {
+	for (i = 0; i < config->analog_channels; i++) {
 
 		if (dlm_analog_chan_state_get(scpi, i + 1,
 				&state->analog_states[i].state) != SR_OK)
@@ -503,14 +506,13 @@ static int digital_channel_state_get(const struct sr_dev_inst *sdi,
 
 	scpi = sdi->conn;
 
-	if (!config->digital_channels)
-		{
-			sr_warn("Tried obtaining digital channel states on a " \
-					"model without digital inputs.");
-			return SR_OK;
-		}
+	if (!config->digital_channels) {
+		sr_warn("Tried obtaining digital channel states on a " \
+				"model without digital inputs.");
+		return SR_OK;
+	}
 
-	for (i = 0; i < config->digital_channels; ++i) {
+	for (i = 0; i < config->digital_channels; i++) {
 		if (dlm_digital_chan_state_get(scpi, i + 1,
 				&state->digital_states[i]) != SR_OK) {
 			return SR_ERR;
@@ -525,13 +527,12 @@ static int digital_channel_state_get(const struct sr_dev_inst *sdi,
 		}
 	}
 
-	if (!config->pods)
-	{
+	if (!config->pods) {
 		sr_warn("Tried obtaining pod states on a model without pods.");
 		return SR_OK;
 	}
 
-	for (i = 0; i < config->pods; ++i) {
+	for (i = 0; i < config->pods; i++) {
 		if (dlm_digital_pod_state_get(scpi, i + 'A',
 				&state->pod_states[i]) != SR_OK)
 			return SR_ERR;
@@ -540,9 +541,6 @@ static int digital_channel_state_get(const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-/**
- *
- */
 SR_PRIV int dlm_channel_state_set(const struct sr_dev_inst *sdi,
 		const int ch_index, gboolean ch_state)
 {
@@ -592,22 +590,23 @@ SR_PRIV int dlm_channel_state_set(const struct sr_dev_inst *sdi,
 					break;
 				}
 
-			ch->enabled = ch_state;
-			state->digital_states[i] = ch_state;
-			chan_found = TRUE;
+				ch->enabled = ch_state;
+				state->digital_states[i] = ch_state;
+				chan_found = TRUE;
 
-			/* The corresponding pod has to be enabled also. */
-			pod_enabled[i / 8] |= ch->enabled;
-			} else
+				/* The corresponding pod has to be enabled also. */
+				pod_enabled[i / 8] |= ch->enabled;
+			} else {
 				/* Also check all other channels. Maybe we can disable a pod. */
 				pod_enabled[i / 8] |= ch->enabled;
+			}
 			break;
 		default:
 			result = SR_ERR_NA;
 		}
 	}
 
-	for (i = 0; i < model->pods; ++i) {
+	for (i = 0; i < model->pods; i++) {
 		if (state->pod_states[i] == pod_enabled[i])
 			continue;
 
@@ -644,7 +643,8 @@ SR_PRIV int dlm_sample_rate_query(const struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 	state = devc->model_state;
 
-	/* No need to find an active channel to query the sample rate:
+	/*
+	 * No need to find an active channel to query the sample rate:
 	 * querying any channel will do, so we use channel 1 all the time.
 	 */
 	if (dlm_analog_chan_srate_get(sdi->conn, 1, &tmp_float) != SR_OK)
@@ -837,7 +837,7 @@ SR_PRIV int dlm_device_init(struct sr_dev_inst *sdi, int model_index)
 	}
 
 	/* Add digital channel groups. */
-	for (i = 0; i < scope_models[model_index].pods; ++i) {
+	for (i = 0; i < scope_models[model_index].pods; i++) {
 		g_snprintf(tmp, sizeof(tmp), "POD%d", i);
 
 		devc->digital_groups[i] = g_malloc0(sizeof(struct sr_channel_group));
@@ -964,10 +964,11 @@ static int dlm_analog_samples_send(GArray *data,
 		return SR_ERR;
 	}
 
-	range  = ch_state->waveform_range;
+	range = ch_state->waveform_range;
 	offset = ch_state->waveform_offset;
 
-	/* Convert byte sample to voltage according to
+	/*
+	 * Convert byte sample to voltage according to
 	 * page 269 of the Communication Interface User's Manual.
 	 */
 	float_data = g_array_new(FALSE, FALSE, sizeof(float));
@@ -1043,7 +1044,7 @@ static int dlm_digital_samples_send(GArray *data,
  * @param cb_data Callback data, in this case our device instance.
  *
  * @return TRUE in case of success or a recoverable error,
- *  FALSE when a fatal error was encountered.
+ *         FALSE when a fatal error was encountered.
  */
 SR_PRIV int dlm_data_receive(int fd, int revents, void *cb_data)
 {
@@ -1139,7 +1140,8 @@ SR_PRIV int dlm_data_receive(int fd, int revents, void *cb_data)
 	g_array_free(data, TRUE);
 	data = NULL;
 
-	/* Signal the end of this frame if this was the last enabled channel
+	/*
+	 * Signal the end of this frame if this was the last enabled channel
 	 * and set the next enabled channel. Then, request its data.
 	 */
 	if (!devc->current_channel->next) {
@@ -1147,7 +1149,8 @@ SR_PRIV int dlm_data_receive(int fd, int revents, void *cb_data)
 		sr_session_send(sdi, &packet);
 		devc->current_channel = devc->enabled_channels;
 
-		/* As of now we only support importing the current acquisition
+		/*
+		 * As of now we only support importing the current acquisition
 		 * data so we're going to stop at this point.
 		 */
 		sdi->driver->dev_acquisition_stop(sdi, cb_data);

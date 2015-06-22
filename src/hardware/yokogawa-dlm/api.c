@@ -189,10 +189,10 @@ static int cleanup(const struct sr_dev_driver *di)
  * Check which category a given channel group belongs to.
  *
  * @param devc Our internal device context.
- * @param cg   The channel group to check.
+ * @param cg The channel group to check.
  *
- * @retval CG_NONE    cg is NULL
- * @retval CG_ANALOG  cg is an analog group
+ * @retval CG_NONE cg is NULL
+ * @retval CG_ANALOG cg is an analog group
  * @retval CG_DIGITAL cg is a digital group
  * @retval CG_INVALID cg is something else
  */
@@ -207,11 +207,11 @@ static int check_channel_group(struct dev_context *devc,
 	if (!cg)
 		return CG_NONE;
 
-	for (i = 0; i < model->analog_channels; ++i)
+	for (i = 0; i < model->analog_channels; i++)
 		if (cg == devc->analog_groups[i])
 			return CG_ANALOG;
 
-	for (i = 0; i < model->pods; ++i)
+	for (i = 0; i < model->pods; i++)
 		if (cg == devc->digital_groups[i])
 			return CG_DIGITAL;
 
@@ -269,7 +269,7 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		} else if (cg_type != CG_ANALOG)
 			break;
 
-		for (i = 0; i < model->analog_channels; ++i) {
+		for (i = 0; i < model->analog_channels; i++) {
 			if (cg != devc->analog_groups[i])
 				continue;
 			*data = g_variant_new("(tt)",
@@ -299,7 +299,7 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		} else if (cg_type != CG_ANALOG)
 			break;
 
-		for (i = 0; i < model->analog_channels; ++i) {
+		for (i = 0; i < model->analog_channels; i++) {
 			if (cg != devc->analog_groups[i])
 				continue;
 			*data = g_variant_new_string((*model->coupling_options)[state->analog_states[i].coupling]);
@@ -391,7 +391,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 			if (p != dlm_vdivs[i][0] ||
 					q != dlm_vdivs[i][1])
 				continue;
-			for (j = 1; j <= model->analog_channels; ++j) {
+			for (j = 1; j <= model->analog_channels; j++) {
 				if (cg != devc->analog_groups[j - 1])
 					continue;
 				state->analog_states[j - 1].vdiv = i;
@@ -462,7 +462,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		for (i = 0; (*model->coupling_options)[i]; i++) {
 			if (strcmp(tmp, (*model->coupling_options)[i]) != 0)
 				continue;
-			for (j = 1; j <= model->analog_channels; ++j) {
+			for (j = 1; j <= model->analog_channels; j++) {
 				if (cg != devc->analog_groups[j - 1])
 					continue;
 				state->analog_states[j-1].coupling = i;
@@ -494,7 +494,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 static int config_channel_set(const struct sr_dev_inst *sdi,
 			struct sr_channel *ch, unsigned int changes)
 {
-	/* Curretly we only handle SR_CHANNEL_SET_ENABLED. */
+	/* Currently we only handle SR_CHANNEL_SET_ENABLED. */
 	if (changes != SR_CHANNEL_SET_ENABLED)
 		return SR_ERR_NA;
 
@@ -528,8 +528,10 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	devc = sdi->priv;
 	model = devc->model_config;
 
-	/* If cg is NULL, only the SR_CONF_DEVICE_OPTIONS that are not
-	 * specific to a probe group must be returned. */
+	/*
+	 * If cg is NULL, only the SR_CONF_DEVICE_OPTIONS that are not
+	 * specific to a probe group must be returned.
+	 */
 	if (!cg) {
 		switch (key) {
 		case SR_CONF_DEVICE_OPTIONS:

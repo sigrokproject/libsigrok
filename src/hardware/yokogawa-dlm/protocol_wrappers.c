@@ -192,7 +192,7 @@ int dlm_analog_chan_wrange_get(struct sr_scpi_dev_inst *scpi, int channel,
 	int result;
 
 	g_snprintf(cmd, sizeof(cmd), ":WAVEFORM:TRACE %d", channel);
-	result  = sr_scpi_send(scpi, cmd);
+	result = sr_scpi_send(scpi, cmd);
 	result &= sr_scpi_get_float(scpi, ":WAVEFORM:RANGE?", response);
 	return result;
 }
@@ -204,7 +204,7 @@ int dlm_analog_chan_woffs_get(struct sr_scpi_dev_inst *scpi, int channel,
 	int result;
 
 	g_snprintf(cmd, sizeof(cmd), ":WAVEFORM:TRACE %d", channel);
-	result  = sr_scpi_send(scpi, cmd);
+	result = sr_scpi_send(scpi, cmd);
 	result &= sr_scpi_get_float(scpi, ":WAVEFORM:OFFSET?", response);
 	return result;
 }
@@ -294,7 +294,8 @@ int dlm_chunks_per_acq_get(struct sr_scpi_dev_inst *scpi, int *response)
 {
 	int result, acq_len;
 
-	/* Data retrieval queries such as :WAVEFORM:SEND? will only return
+	/*
+	 * Data retrieval queries such as :WAVEFORM:SEND? will only return
 	 * up to 12500 samples at a time. If the oscilloscope operates in a
 	 * mode where more than 12500 samples fit on screen (i.e. in one
 	 * acquisition), data needs to be retrieved multiple times.
