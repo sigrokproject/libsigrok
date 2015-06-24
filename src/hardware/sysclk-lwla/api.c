@@ -100,10 +100,10 @@ static struct sr_dev_inst *dev_inst_new(void)
 	devc->samplerate = DEFAULT_SAMPLERATE;
 
 	sdi->priv = devc;
-	for (i = NUM_CHANNELS; i > 0; --i) {
+	for (i = 0; i < NUM_CHANNELS; ++i) {
 		/* The LWLA series simply number channels from CH1 to CHxx. */
-		g_snprintf(name, sizeof(name), "CH%d", i);
-		sr_channel_new(sdi, i - 1, SR_CHANNEL_LOGIC, TRUE, name);
+		g_snprintf(name, sizeof(name), "CH%d", i + 1);
+		sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE, name);
 	}
 
 	return sdi;
