@@ -34,6 +34,7 @@ struct channel_group_priv {
 struct channel_priv {
 	int ch_type;
 	int fd;
+	float val;
 	struct channel_group_priv *probe;
 };
 
@@ -566,9 +567,10 @@ SR_PRIV int bl_acme_receive_data(int fd, int revents, void *cb_data)
 	struct sr_datafeed_analog analog;
 	struct sr_dev_inst *sdi;
 	struct sr_channel *ch;
+	struct channel_priv *chp;
 	struct dev_context *devc;
 	GSList *chl, chonly;
-	float valf;
+	unsigned i;
 
 	(void)fd;
 	(void)revents;
@@ -584,7 +586,6 @@ SR_PRIV int bl_acme_receive_data(int fd, int revents, void *cb_data)
 	packet.type = SR_DF_ANALOG;
 	packet.payload = &analog;
 	memset(&analog, 0, sizeof(struct sr_datafeed_analog));
-	analog.data = &valf;
 
 	if (read(devc->timer_fd, &nrexpiration, sizeof(nrexpiration)) < 0) {
 		sr_warn("Failed to read timer information");
@@ -598,31 +599,53 @@ SR_PRIV int bl_acme_receive_data(int fd, int revents, void *cb_data)
 	if (nrexpiration > 1)
 		devc->samples_missed += nrexpiration - 1;
 
-	framep.type = SR_DF_FRAME_BEGIN;
-	sr_session_send(cb_data, &framep);
-
 	/*
-	 * Due to different units used in each channel we're sending
-	 * samples one-by-one.
+	 * XXX This is a nasty workaround...
+	 *
+	 * At high sampling rates and maximum channels we are not able to
+	 * acquire samples fast enough, even though frontends still think
+	 * that samples arrive on time. This causes shifts in frontend
+	 * plots.
+	 *
+	 * To compensate for the delay we check if any clock events were
+	 * missed and - if so - don't really read the next value, but send
+	 * the same sample as fast as possible. We do it until we are back
+	 * on schedule.
+	 *
+	 * At high sampling rate this doesn't seem to visibly reduce the
+	 * accuracy.
 	 */
-	for (chl = sdi->channels; chl; chl = chl->next) {
-		ch = chl->data;
-		if (!ch->enabled)
-			continue;
-		chonly.next = NULL;
-		chonly.data = ch;
-		analog.channels = &chonly;
-		analog.num_samples = 1;
-		analog.mq = channel_to_mq(chl->data);
-		analog.unit = channel_to_unit(ch);
+	for (i = 0; i < nrexpiration; i++) {
+		framep.type = SR_DF_FRAME_BEGIN;
+		sr_session_send(cb_data, &framep);
 
-		valf = read_sample(ch);
+		/*
+		 * Due to different units used in each channel we're sending
+		 * samples one-by-one.
+		 */
+		for (chl = sdi->channels; chl; chl = chl->next) {
+			ch = chl->data;
+			chp = ch->priv;
 
-		sr_session_send(cb_data, &packet);
+			if (!ch->enabled)
+				continue;
+			chonly.next = NULL;
+			chonly.data = ch;
+			analog.channels = &chonly;
+			analog.num_samples = 1;
+			analog.mq = channel_to_mq(chl->data);
+			analog.unit = channel_to_unit(ch);
+
+			if (i < 1)
+				chp->val = read_sample(ch);
+
+			analog.data = &chp->val;
+			sr_session_send(cb_data, &packet);
+		}
+
+		framep.type = SR_DF_FRAME_END;
+		sr_session_send(cb_data, &framep);
 	}
-
-	framep.type = SR_DF_FRAME_END;
-	sr_session_send(cb_data, &framep);
 
 	devc->samples_read++;
 	if (devc->limit_samples > 0 &&
