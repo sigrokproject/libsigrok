@@ -374,7 +374,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	}
 
 	tspec.it_interval.tv_sec = 0;
-	tspec.it_interval.tv_nsec = (1000000000L / devc->samplerate);
+	tspec.it_interval.tv_nsec = SR_HZ_TO_NS(devc->samplerate);
 	tspec.it_value = tspec.it_interval;
 
 	if (timerfd_settime(devc->timer_fd, 0, &tspec, NULL)) {
