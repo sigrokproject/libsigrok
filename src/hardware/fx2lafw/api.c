@@ -780,9 +780,11 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		dslogic_trigger_request(sdi);
 	}
 	else {
-		if ((ret = fx2lafw_command_start_acquisition(sdi)) != SR_OK)
-			return ret;
 		start_transfers(sdi);
+		if ((ret = fx2lafw_command_start_acquisition(sdi)) != SR_OK) {
+			fx2lafw_abort_acquisition(devc);
+			return ret;
+		}
 	}
 
 	return SR_OK;
