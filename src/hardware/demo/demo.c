@@ -157,7 +157,11 @@ static const uint32_t devopts_cg_logic[] = {
 	SR_CONF_PATTERN_MODE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
-static const uint32_t devopts_cg_analog[] = {
+static const uint32_t devopts_cg_analog_group[] = {
+	SR_CONF_AMPLITUDE | SR_CONF_GET | SR_CONF_SET,
+};
+
+static const uint32_t devopts_cg_analog_channel[] = {
 	SR_CONF_PATTERN_MODE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_AMPLITUDE | SR_CONF_GET | SR_CONF_SET,
 };
@@ -601,7 +605,6 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 			return SR_ERR_NA;
 		}
 	} else {
-		/* Any channel in the group will do. */
 		ch = cg->channels->data;
 		switch (key) {
 		case SR_CONF_DEVICE_OPTIONS:
@@ -609,14 +612,24 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 				*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
 						devopts_cg_logic, ARRAY_SIZE(devopts_cg_logic),
 						sizeof(uint32_t));
-			else if (ch->type == SR_CHANNEL_ANALOG)
-				*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-						devopts_cg_analog, ARRAY_SIZE(devopts_cg_analog),
-						sizeof(uint32_t));
+			else if (ch->type == SR_CHANNEL_ANALOG) {
+				if (strcmp(cg->name, "Analog") == 0)
+					*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+							devopts_cg_analog_group, ARRAY_SIZE(devopts_cg_analog_group),
+							sizeof(uint32_t));
+				else
+					*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+							devopts_cg_analog_channel, ARRAY_SIZE(devopts_cg_analog_channel),
+							sizeof(uint32_t));
+			}
 			else
 				return SR_ERR_BUG;
 			break;
 		case SR_CONF_PATTERN_MODE:
+			/* The analog group (with all 4 channels) shall not have a pattern property. */
+			if (strcmp(cg->name, "Analog") == 0)
+				return SR_ERR_NA;
+
 			if (ch->type == SR_CHANNEL_LOGIC)
 				*data = g_variant_new_strv(logic_pattern_str,
 						ARRAY_SIZE(logic_pattern_str));
