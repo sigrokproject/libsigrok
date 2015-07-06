@@ -777,9 +777,9 @@ static int prepare_data(int fd, int revents, void *cb_data)
 		expected_samplenum = MIN(expected_samplenum, devc->limit_samples);
 
 	/* Of those, how many do we still have to send? */
-	if (devc->num_logic_channels)
+	if (devc->num_logic_channels && (devc->logic_counter < devc->limit_samples))
 		logic_todo = expected_samplenum - devc->logic_counter;
-	if (devc->num_analog_channels)
+	if (devc->num_analog_channels && (devc->analog_counter < devc->limit_samples))
 		analog_todo = expected_samplenum - devc->analog_counter;
 
 	while (logic_todo || analog_todo) {
