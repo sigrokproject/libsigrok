@@ -55,7 +55,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	const char *conn, *serialcomm;
 
 	devices = NULL;
-	drvc = di->priv;
+	drvc = di->context;
 	drvc->instances = NULL;
 	conn = serialcomm = NULL;
 
@@ -107,7 +107,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 static GSList *dev_list(const struct sr_dev_driver *di)
 {
-	return ((struct drv_context *)(di->priv))->instances;
+	return ((struct drv_context *)(di->context))->instances;
 }
 
 static int cleanup(const struct sr_dev_driver *di)
@@ -218,5 +218,5 @@ SR_PRIV struct sr_dev_driver conrad_digi_35_cpu_driver_info = {
 	.dev_close = std_serial_dev_close,
 	.dev_acquisition_start = dev_acquisition_start,
 	.dev_acquisition_stop = dev_acquisition_stop,
-	.priv = NULL,
+	.context = NULL,
 };

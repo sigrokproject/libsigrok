@@ -118,7 +118,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	struct sr_config *src;
 	const char *conn;
 
-	drvc = di->priv;
+	drvc = di->context;
 	conn = USB_VID_PID;
 
 	for (node = options; node != NULL; node = node->next) {
@@ -158,7 +158,7 @@ static GSList *dev_list(const struct sr_dev_driver *di)
 {
 	struct drv_context *drvc;
 
-	drvc = di->priv;
+	drvc = di->context;
 
 	return drvc->instances;
 }
@@ -186,7 +186,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 	struct sr_usb_dev_inst *usb;
 	int ret;
 
-	drvc = di->priv;
+	drvc = di->context;
 
 	if (!drvc) {
 		sr_err("Driver was not initialized.");
@@ -220,7 +220,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 {
 	struct sr_usb_dev_inst *usb;
 
-	if (!di->priv) {
+	if (!di->context) {
 		sr_err("Driver was not initialized.");
 		return SR_ERR;
 	}
@@ -482,7 +482,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		return SR_ERR_DEV_CLOSED;
 
 	devc = sdi->priv;
-	drvc = di->priv;
+	drvc = di->context;
 
 	if (devc->acquisition) {
 		sr_err("Acquisition still in progress?");
@@ -557,5 +557,5 @@ SR_PRIV struct sr_dev_driver sysclk_lwla_driver_info = {
 	.dev_close = dev_close,
 	.dev_acquisition_start = dev_acquisition_start,
 	.dev_acquisition_stop = dev_acquisition_stop,
-	.priv = NULL,
+	.context = NULL,
 };

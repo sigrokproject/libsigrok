@@ -49,7 +49,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	struct sr_config *src;
 	const char *conn;
 
-	drvc = di->priv;
+	drvc = di->context;
 	drvc->instances = NULL;
 
 	conn = BRYMEN_BC86X;
@@ -93,13 +93,13 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 static GSList *dev_list(const struct sr_dev_driver *di)
 {
-	return ((struct drv_context *)(di->priv))->instances;
+	return ((struct drv_context *)(di->context))->instances;
 }
 
 static int dev_open(struct sr_dev_inst *sdi)
 {
 	struct sr_dev_driver *di = sdi->driver;
-	struct drv_context *drvc = di->priv;
+	struct drv_context *drvc = di->context;
 	struct sr_usb_dev_inst *usb;
 	struct dev_context *devc;
 	int ret;
@@ -299,5 +299,5 @@ SR_PRIV struct sr_dev_driver brymen_bm86x_driver_info = {
 	.dev_close = dev_close,
 	.dev_acquisition_start = dev_acquisition_start,
 	.dev_acquisition_stop = dev_acquisition_stop,
-	.priv = NULL,
+	.context = NULL,
 };

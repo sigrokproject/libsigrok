@@ -111,7 +111,7 @@ err:
 SR_PRIV int dso_open(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	struct drv_context *drvc = hantek_dso_driver_info.priv;
+	struct drv_context *drvc = hantek_dso_driver_info.context;
 	struct sr_usb_dev_inst *usb;
 	struct libusb_device_descriptor des;
 	libusb_device **devlist;

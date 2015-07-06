@@ -56,7 +56,7 @@ SR_PRIV int std_init(struct sr_context *sr_ctx, struct sr_dev_driver *di,
 	drvc = g_malloc0(sizeof(struct drv_context));
 	drvc->sr_ctx = sr_ctx;
 	drvc->instances = NULL;
-	di->priv = drvc;
+	di->context = drvc;
 
 	return SR_OK;
 }
@@ -247,7 +247,7 @@ SR_PRIV int std_dev_clear(const struct sr_dev_driver *driver,
 	GSList *l;
 	int ret;
 
-	if (!(drvc = driver->priv))
+	if (!(drvc = driver->context))
 		/* Driver was never initialized, nothing to do. */
 		return SR_OK;
 

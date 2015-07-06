@@ -79,7 +79,7 @@ static GSList *mic_scan(const char *conn, const char *serialcomm, int idx)
 	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
 		return NULL;
 
-	drvc = mic_devs[idx].di->priv;
+	drvc = mic_devs[idx].di->context;
 	devices = NULL;
 	serial_flush(serial);
 
@@ -146,7 +146,7 @@ static GSList *scan(GSList *options, int idx)
 
 static GSList *dev_list(int idx)
 {
-	return ((struct drv_context *)(mic_devs[idx].di->priv))->instances;
+	return ((struct drv_context *)(mic_devs[idx].di->context))->instances;
 }
 
 static int cleanup(int idx)
@@ -291,7 +291,7 @@ SR_PRIV struct sr_dev_driver ID##_driver_info = { \
 	.dev_close = std_serial_dev_close, \
 	.dev_acquisition_start = dev_acquisition_start_##ID_UPPER, \
 	.dev_acquisition_stop = dev_acquisition_stop, \
-	.priv = NULL, \
+	.context = NULL, \
 };
 
 DRV(mic_98581, MIC_98581, "mic-98581", "MIC 98581")

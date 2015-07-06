@@ -74,7 +74,7 @@ static int scan_kecheng(struct sr_dev_driver *di,
 	int len, ret;
 	unsigned char cmd, buf[32];
 
-	drvc = di->priv;
+	drvc = di->context;
 	if (sr_usb_open(drvc->sr_ctx->libusb_ctx, usb) != SR_OK)
 		return SR_ERR;
 
@@ -117,7 +117,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	(void)options;
 
-	drvc = di->priv;
+	drvc = di->context;
 	drvc->instances = NULL;
 
 	devices = NULL;
@@ -161,7 +161,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 static GSList *dev_list(const struct sr_dev_driver *di)
 {
-	return ((struct drv_context *)(di->priv))->instances;
+	return ((struct drv_context *)(di->context))->instances;
 }
 
 static int dev_open(struct sr_dev_inst *sdi)
@@ -171,7 +171,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 	struct sr_usb_dev_inst *usb;
 	int ret;
 
-	if (!(drvc = di->priv)) {
+	if (!(drvc = di->context)) {
 		sr_err("Driver was not initialized.");
 		return SR_ERR;
 	}
@@ -201,7 +201,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
 
-	if (!di->priv) {
+	if (!di->context) {
 		sr_err("Driver was not initialized.");
 		return SR_ERR;
 	}
@@ -231,7 +231,7 @@ static int cleanup(const struct sr_dev_driver *di)
 	int ret;
 	struct drv_context *drvc;
 
-	if (!(drvc = di->priv))
+	if (!(drvc = di->context))
 		/* Can get called on an unused driver, doesn't matter. */
 		return SR_OK;
 
@@ -305,7 +305,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
-	if (!di->priv) {
+	if (!di->context) {
 		sr_err("Driver was not initialized.");
 		return SR_ERR;
 	}
@@ -430,7 +430,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
-	drvc = di->priv;
+	drvc = di->context;
 	devc = sdi->priv;
 	usb = sdi->conn;
 
@@ -566,5 +566,5 @@ SR_PRIV struct sr_dev_driver kecheng_kc_330b_driver_info = {
 	.dev_close = dev_close,
 	.dev_acquisition_start = dev_acquisition_start,
 	.dev_acquisition_stop = dev_acquisition_stop,
-	.priv = NULL,
+	.context = NULL,
 };

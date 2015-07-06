@@ -278,7 +278,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	int num_logic_channels, num_analog_channels, pattern, i;
 	char channel_name[16];
 
-	drvc = di->priv;
+	drvc = di->context;
 
 	num_logic_channels = DEFAULT_NUM_LOGIC_CHANNELS;
 	num_analog_channels = DEFAULT_NUM_ANALOG_CHANNELS;
@@ -370,7 +370,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 static GSList *dev_list(const struct sr_dev_driver *di)
 {
-	return ((struct drv_context *)(di->priv))->instances;
+	return ((struct drv_context *)(di->context))->instances;
 }
 
 static int dev_open(struct sr_dev_inst *sdi)
@@ -925,5 +925,5 @@ SR_PRIV struct sr_dev_driver demo_driver_info = {
 	.dev_close = dev_close,
 	.dev_acquisition_start = dev_acquisition_start,
 	.dev_acquisition_stop = dev_acquisition_stop,
-	.priv = NULL,
+	.context = NULL,
 };

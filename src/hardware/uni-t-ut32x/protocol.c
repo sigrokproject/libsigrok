@@ -207,7 +207,7 @@ SR_PRIV int uni_t_ut32x_handle_events(int fd, int revents, void *cb_data)
 		return TRUE;
 
 	di = sdi->driver;
-	drvc = di->priv;
+	drvc = di->context;
 
 	if (!(devc = sdi->priv))
 		return TRUE;

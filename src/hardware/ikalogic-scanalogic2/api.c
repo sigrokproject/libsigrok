@@ -72,7 +72,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	(void)options;
 
 	devices = NULL;
-	drvc = di->priv;
+	drvc = di->context;
 	drvc->instances = NULL;
 
 	usb_devices = sr_usb_find(drvc->sr_ctx->libusb_ctx, USB_VID_PID);
@@ -163,7 +163,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 static GSList *dev_list(const struct sr_dev_driver *di)
 {
-	return ((struct drv_context *)(di->priv))->instances;
+	return ((struct drv_context *)(di->context))->instances;
 }
 
 static void clear_dev_context(void *priv)
@@ -193,7 +193,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 	uint8_t buffer[PACKET_LENGTH];
 	int ret;
 
-	if (!(drvc = di->priv)) {
+	if (!(drvc = di->context)) {
 		sr_err("Driver was not initialized.");
 		return SR_ERR;
 	}
@@ -261,7 +261,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 	struct sr_dev_driver *di = sdi->driver;
 	struct sr_usb_dev_inst *usb;
 
-	if (!di->priv) {
+	if (!di->context) {
 		sr_err("Driver was not initialized.");
 		return SR_ERR;
 	}
@@ -397,7 +397,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		return SR_ERR_DEV_CLOSED;
 
 	devc = sdi->priv;
-	drvc = di->priv;
+	drvc = di->context;
 
 	devc->cb_data = cb_data;
 	devc->wait_data_ready_locked = TRUE;
@@ -505,5 +505,5 @@ SR_PRIV struct sr_dev_driver ikalogic_scanalogic2_driver_info = {
 	.dev_close = dev_close,
 	.dev_acquisition_start = dev_acquisition_start,
 	.dev_acquisition_stop = dev_acquisition_stop,
-	.priv = NULL,
+	.context = NULL,
 };

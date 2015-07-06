@@ -96,7 +96,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	struct sr_serial_dev_inst *serial;
 	char reply[50], **tokens, *dummy;
 
-	drvc = di->priv;
+	drvc = di->context;
 	drvc->instances = NULL;
 	devices = NULL;
 	conn = NULL;
@@ -204,7 +204,7 @@ exit_err:
 
 static GSList *dev_list(const struct sr_dev_driver *di)
 {
-	return ((struct drv_context *)(di->priv))->instances;
+	return ((struct drv_context *)(di->context))->instances;
 }
 
 static int cleanup(const struct sr_dev_driver *di)
@@ -433,5 +433,5 @@ SR_PRIV struct sr_dev_driver manson_hcs_3xxx_driver_info = {
 	.dev_close = std_serial_dev_close,
 	.dev_acquisition_start = dev_acquisition_start,
 	.dev_acquisition_stop = dev_acquisition_stop,
-	.priv = NULL,
+	.context = NULL,
 };

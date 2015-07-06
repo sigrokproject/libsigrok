@@ -193,7 +193,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	const char *conn;
 	char manufacturer[64], product[64], serial_num[64], connection_id[64];
 
-	drvc = di->priv;
+	drvc = di->context;
 
 	conn = NULL;
 	for (l = options; l; l = l->next) {
@@ -355,7 +355,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 static GSList *dev_list(const struct sr_dev_driver *di)
 {
-	return ((struct drv_context *)(di->priv))->instances;
+	return ((struct drv_context *)(di->context))->instances;
 }
 
 static int dev_open(struct sr_dev_inst *sdi)
@@ -468,7 +468,7 @@ static int cleanup(const struct sr_dev_driver *di)
 	int ret;
 	struct drv_context *drvc;
 
-	if (!(drvc = di->priv))
+	if (!(drvc = di->context))
 		return SR_OK;
 
 	ret = std_dev_clear(di, NULL);
@@ -764,7 +764,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		return SR_ERR_DEV_CLOSED;
 
 	di = sdi->driver;
-	drvc = di->priv;
+	drvc = di->context;
 	devc = sdi->priv;
 
 	devc->ctx = drvc->sr_ctx;
@@ -815,5 +815,5 @@ SR_PRIV struct sr_dev_driver fx2lafw_driver_info = {
 	.dev_close = dev_close,
 	.dev_acquisition_start = dev_acquisition_start,
 	.dev_acquisition_stop = dev_acquisition_stop,
-	.priv = NULL,
+	.context = NULL,
 };

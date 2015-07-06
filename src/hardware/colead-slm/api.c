@@ -58,7 +58,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	GSList *devices, *l;
 	const char *conn, *serialcomm;
 
-	drvc = di->priv;
+	drvc = di->context;
 	drvc->instances = NULL;
 
 	devices = NULL;
@@ -98,7 +98,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 static GSList *dev_list(const struct sr_dev_driver *di)
 {
-	return ((struct drv_context *)(di->priv))->instances;
+	return ((struct drv_context *)(di->context))->instances;
 }
 
 static int dev_open(struct sr_dev_inst *sdi)
@@ -219,5 +219,5 @@ SR_PRIV struct sr_dev_driver colead_slm_driver_info = {
 	.dev_close = std_serial_dev_close,
 	.dev_acquisition_start = dev_acquisition_start,
 	.dev_acquisition_stop = dev_acquisition_stop,
-	.priv = NULL,
+	.context = NULL,
 };

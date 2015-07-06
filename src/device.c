@@ -547,7 +547,7 @@ SR_API const char *sr_dev_inst_connid_get(const struct sr_dev_inst *sdi)
 	if ((!sdi->connection_id) && (sdi->inst_type == SR_INST_USB)) {
 		/* connection_id isn't populated, let's do that here. */
 
-		drvc = sdi->driver->priv;
+		drvc = sdi->driver->context;
 		usb = sdi->conn;
 
 		if ((cnt = libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &devlist)) < 0) {

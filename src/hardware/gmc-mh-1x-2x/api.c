@@ -161,7 +161,7 @@ static GSList *scan_1x_2x_rs232(struct sr_dev_driver *di, GSList *options)
 	gboolean serialcomm_given;
 
 	devices = NULL;
-	drvc = di->priv;
+	drvc = di->context;
 	drvc->instances = NULL;
 	conn = serialcomm = NULL;
 	model = METRAHIT_NONE;
@@ -256,7 +256,7 @@ static GSList *scan_2x_bd232(struct sr_dev_driver *di, GSList *options)
 	conn = serialcomm = NULL;
 	devices = NULL;
 
-	drvc = di->priv;
+	drvc = di->context;
 	drvc->instances = NULL;
 
 	sr_spew("scan_2x_bd232() called!");
@@ -354,7 +354,7 @@ exit_err:
 
 static GSList *dev_list(const struct sr_dev_driver *di)
 {
-	return ((struct drv_context *)(di->priv))->instances;
+	return ((struct drv_context *)(di->context))->instances;
 }
 
 static int dev_close(struct sr_dev_inst *sdi)
@@ -551,7 +551,7 @@ SR_PRIV struct sr_dev_driver gmc_mh_1x_2x_rs232_driver_info = {
 	.dev_close = dev_close,
 	.dev_acquisition_start = dev_acquisition_start_1x_2x_rs232,
 	.dev_acquisition_stop = dev_acquisition_stop,
-	.priv = NULL,
+	.context = NULL,
 };
 
 SR_PRIV struct sr_dev_driver gmc_mh_2x_bd232_driver_info = {
@@ -570,5 +570,5 @@ SR_PRIV struct sr_dev_driver gmc_mh_2x_bd232_driver_info = {
 	.dev_close = dev_close,
 	.dev_acquisition_start = dev_acquisition_start_2x_bd232,
 	.dev_acquisition_stop = dev_acquisition_stop,
-	.priv = NULL,
+	.context = NULL,
 };

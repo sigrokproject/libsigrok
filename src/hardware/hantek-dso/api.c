@@ -208,7 +208,7 @@ static struct sr_dev_inst *dso_dev_new(const struct dso_profile *prof)
 	devc->triggersource = g_strdup(DEFAULT_TRIGGER_SOURCE);
 	devc->triggerposition = DEFAULT_HORIZ_TRIGGERPOS;
 	sdi->priv = devc;
-	drvc = hantek_dso_driver_info.priv;
+	drvc = hantek_dso_driver_info.context;
 	drvc->instances = g_slist_append(drvc->instances, sdi);
 
 	return sdi;
@@ -273,7 +273,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	const char *conn;
 	char connection_id[64];
 
-	drvc = di->priv;
+	drvc = di->context;
 
 	devices = 0;
 
@@ -363,7 +363,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 static GSList *dev_list(const struct sr_dev_driver *di)
 {
-	return ((struct drv_context *)(di->priv))->instances;
+	return ((struct drv_context *)(di->context))->instances;
 }
 
 static int dev_open(struct sr_dev_inst *sdi)
@@ -876,7 +876,7 @@ static int handle_event(int fd, int revents, void *cb_data)
 
 	sdi = cb_data;
 	di = sdi->driver;
-	drvc = di->priv;
+	drvc = di->context;
 	devc = sdi->priv;
 	if (devc->dev_state == STOPPING) {
 		/* We've been told to wind up the acquisition. */
@@ -976,7 +976,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 {
 	struct dev_context *devc;
 	struct sr_dev_driver *di = sdi->driver;
-	struct drv_context *drvc = di->priv;
+	struct drv_context *drvc = di->context;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
@@ -1035,5 +1035,5 @@ SR_PRIV struct sr_dev_driver hantek_dso_driver_info = {
 	.dev_close = dev_close,
 	.dev_acquisition_start = dev_acquisition_start,
 	.dev_acquisition_stop = dev_acquisition_stop,
-	.priv = NULL,
+	.context = NULL,
 };

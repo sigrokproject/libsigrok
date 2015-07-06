@@ -44,7 +44,7 @@ SR_PRIV int kecheng_kc_330b_handle_events(int fd, int revents, void *cb_data)
 	devc = sdi->priv;
 	usb = sdi->conn;
 	di = sdi->driver;
-	drvc = di->priv;
+	drvc = di->context;
 
 	memset(&tv, 0, sizeof(struct timeval));
 	libusb_handle_events_timeout_completed(drvc->sr_ctx->libusb_ctx, &tv,

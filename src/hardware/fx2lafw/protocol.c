@@ -194,7 +194,7 @@ SR_PRIV int fx2lafw_dev_open(struct sr_dev_inst *sdi, struct sr_dev_driver *di)
 	uint8_t revid;
 	char connection_id[64];
 
-	drvc = di->priv;
+	drvc = di->context;
 	devc = sdi->priv;
 	usb = sdi->conn;
 

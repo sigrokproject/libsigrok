@@ -102,7 +102,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		return NULL;
 
 	devices = NULL;
-	drvc = di->priv;
+	drvc = di->context;
 	start = g_get_monotonic_time();
 	while (g_get_monotonic_time() - start < MAX_SCAN_TIME_US) {
 		if (serial_read_nonblocking(serial, &c, 1) == 1 && c == 0xa5) {
@@ -137,7 +137,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 static GSList *dev_list(const struct sr_dev_driver *di)
 {
-	return ((struct drv_context *)(di->priv))->instances;
+	return ((struct drv_context *)(di->context))->instances;
 }
 
 static int dev_open(struct sr_dev_inst *sdi)
@@ -431,5 +431,5 @@ SR_PRIV struct sr_dev_driver cem_dt_885x_driver_info = {
 	.dev_close = std_serial_dev_close,
 	.dev_acquisition_start = dev_acquisition_start,
 	.dev_acquisition_stop = dev_acquisition_stop,
-	.priv = NULL,
+	.context = NULL,
 };

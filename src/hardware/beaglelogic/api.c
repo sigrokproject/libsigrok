@@ -87,7 +87,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	int i, maxch;
 
 	devices = NULL;
-	drvc = di->priv;
+	drvc = di->context;
 	drvc->instances = NULL;
 
 	/* Probe for /dev/beaglelogic */
@@ -146,7 +146,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 static GSList *dev_list(const struct sr_dev_driver *di)
 {
-	return ((struct drv_context *)(di->priv))->instances;
+	return ((struct drv_context *)(di->context))->instances;
 }
 
 static int dev_clear(const struct sr_dev_driver *di)
@@ -205,7 +205,7 @@ static int cleanup(const struct sr_dev_driver *di)
 	GSList *l;
 
 	/* unused driver */
-	if (!(drvc = di->priv))
+	if (!(drvc = di->context))
 		return SR_OK;
 
 	/* Clean up the instances */
@@ -422,5 +422,5 @@ SR_PRIV struct sr_dev_driver beaglelogic_driver_info = {
 	.dev_close = dev_close,
 	.dev_acquisition_start = dev_acquisition_start,
 	.dev_acquisition_stop = dev_acquisition_stop,
-	.priv = NULL,
+	.context = NULL,
 };

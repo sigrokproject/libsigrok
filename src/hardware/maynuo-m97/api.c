@@ -188,7 +188,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	if (!g_slist_find_custom(options, &default_modbusaddr, config_compare))
 		opts = g_slist_prepend(opts, &default_modbusaddr);
 
-	devices = sr_modbus_scan(di->priv, opts, probe_device);
+	devices = sr_modbus_scan(di->context, opts, probe_device);
 
 	while (opts != options)
 		opts = g_slist_delete_link(opts, opts);
@@ -200,7 +200,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 static GSList *dev_list(const struct sr_dev_driver *di)
 {
-	return ((struct drv_context *)(di->priv))->instances;
+	return ((struct drv_context *)(di->context))->instances;
 }
 
 static int dev_clear(const struct sr_dev_driver *di)
@@ -516,5 +516,5 @@ SR_PRIV struct sr_dev_driver maynuo_m97_driver_info = {
 	.dev_close = dev_close,
 	.dev_acquisition_start = dev_acquisition_start,
 	.dev_acquisition_stop = dev_acquisition_stop,
-	.priv = NULL,
+	.context = NULL,
 };

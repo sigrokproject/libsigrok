@@ -152,7 +152,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	const char *conn;
 	char connection_id[64];
 
-	drvc = di->priv;
+	drvc = di->context;
 
 	conn = NULL;
 	for (l = options; l; l = l->next) {
@@ -242,7 +242,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 static GSList *dev_list(const struct sr_dev_driver *di)
 {
-	return ((struct drv_context *)(di->priv))->instances;
+	return ((struct drv_context *)(di->context))->instances;
 }
 
 static int logic16_dev_open(struct sr_dev_inst *sdi)
@@ -256,7 +256,7 @@ static int logic16_dev_open(struct sr_dev_inst *sdi)
 	char connection_id[64];
 
 	di = sdi->driver;
-	drvc = di->priv;
+	drvc = di->context;
 	usb = sdi->conn;
 
 	if (sdi->status == SR_ST_ACTIVE)
@@ -416,7 +416,7 @@ static int cleanup(const struct sr_dev_driver *di)
 	int ret;
 	struct drv_context *drvc;
 
-	if (!(drvc = di->priv))
+	if (!(drvc = di->context))
 		/* Can get called on an unused driver, doesn't matter. */
 		return SR_OK;
 
@@ -687,7 +687,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 
 	sdi = cb_data;
 	di = sdi->driver;
-	drvc = di->priv;
+	drvc = di->context;
 	devc = sdi->priv;
 
 	tv.tv_sec = tv.tv_usec = 0;
@@ -717,7 +717,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
-	drvc = di->priv;
+	drvc = di->context;
 	devc = sdi->priv;
 	usb = sdi->conn;
 
@@ -845,5 +845,5 @@ SR_PRIV struct sr_dev_driver saleae_logic16_driver_info = {
 	.dev_close = dev_close,
 	.dev_acquisition_start = dev_acquisition_start,
 	.dev_acquisition_stop = dev_acquisition_stop,
-	.priv = NULL,
+	.context = NULL,
 };

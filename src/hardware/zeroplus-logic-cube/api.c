@@ -174,7 +174,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	(void)options;
 
-	drvc = di->priv;
+	drvc = di->context;
 
 	devices = NULL;
 
@@ -262,7 +262,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 static GSList *dev_list(const struct sr_dev_driver *di)
 {
-	return ((struct drv_context *)(di->priv))->instances;
+	return ((struct drv_context *)(di->context))->instances;
 }
 
 static int dev_open(struct sr_dev_inst *sdi)
@@ -275,7 +275,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 	int device_count, ret, i;
 	char connection_id[64];
 
-	drvc = di->priv;
+	drvc = di->context;
 	usb = sdi->conn;
 
 	if (!(devc = sdi->priv)) {
@@ -740,5 +740,5 @@ SR_PRIV struct sr_dev_driver zeroplus_logic_cube_driver_info = {
 	.dev_close = dev_close,
 	.dev_acquisition_start = dev_acquisition_start,
 	.dev_acquisition_stop = dev_acquisition_stop,
-	.priv = NULL,
+	.context = NULL,
 };

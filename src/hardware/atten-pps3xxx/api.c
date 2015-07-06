@@ -100,7 +100,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options, int modelid)
 	char channel[10];
 
 	devices = NULL;
-	drvc = di->priv;
+	drvc = di->context;
 	drvc->instances = NULL;
 
 	conn = serialcomm = NULL;
@@ -201,7 +201,7 @@ static GSList *scan_3203(struct sr_dev_driver *di, GSList *options)
 
 static GSList *dev_list(const struct sr_dev_driver *di)
 {
-	return ((struct drv_context *)(di->priv))->instances;
+	return ((struct drv_context *)(di->context))->instances;
 }
 
 static int cleanup(const struct sr_dev_driver *di)
@@ -523,5 +523,5 @@ SR_PRIV struct sr_dev_driver atten_pps3203_driver_info = {
 	.dev_close = dev_close,
 	.dev_acquisition_start = dev_acquisition_start,
 	.dev_acquisition_stop = dev_acquisition_stop,
-	.priv = NULL,
+	.context = NULL,
 };

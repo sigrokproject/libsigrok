@@ -171,7 +171,7 @@ static int dev_clear(const struct sr_dev_driver *di)
 	struct drv_context *drvc;
 	GSList *l;
 
-	drvc = di->priv;
+	drvc = di->context;
 	for (l = drvc->instances; l; l = l->next)
 		sr_dev_inst_free(l->data);
 	g_slist_free(drvc->instances);
@@ -187,7 +187,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 	struct session_vdev *vdev;
 
 	di = sdi->driver;
-	drvc = di->priv;
+	drvc = di->context;
 	vdev = g_malloc0(sizeof(struct session_vdev));
 	sdi->priv = vdev;
 	drvc->instances = g_slist_append(drvc->instances, sdi);
@@ -335,5 +335,5 @@ SR_PRIV struct sr_dev_driver session_driver = {
 	.dev_close = dev_close,
 	.dev_acquisition_start = dev_acquisition_start,
 	.dev_acquisition_stop = NULL,
-	.priv = NULL,
+	.context = NULL,
 };

@@ -66,7 +66,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	struct sr_config *src;
 	const char *conn;
 
-	drvc = di->priv;
+	drvc = di->context;
 	dmm = (struct dmm_info *)di;
 
 	conn = NULL;
@@ -109,7 +109,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 static GSList *dev_list(const struct sr_dev_driver *di)
 {
-	return ((struct drv_context *)(di->priv))->instances;
+	return ((struct drv_context *)(di->context))->instances;
 }
 
 static int dev_open(struct sr_dev_inst *sdi)
@@ -120,7 +120,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 	int ret;
 
 	di = sdi->driver;
-	drvc = di->priv;
+	drvc = di->context;
 	usb = sdi->conn;
 
 	if ((ret = sr_usb_open(drvc->sr_ctx->libusb_ctx, usb)) == SR_OK)
@@ -244,7 +244,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 			.dev_close = dev_close, \
 			.dev_acquisition_start = dev_acquisition_start, \
 			.dev_acquisition_stop = dev_acquisition_stop, \
-			.priv = NULL, \
+			.context = NULL, \
 		}, \
 		VENDOR, MODEL, BAUDRATE, PACKETSIZE, \
 		VALID, PARSE, DETAILS, sizeof(struct CHIPSET##_info) \

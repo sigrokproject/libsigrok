@@ -96,7 +96,7 @@ SR_PRIV int lascar_get_config(libusb_device_handle *dev_hdl,
 
 	sr_spew("Reading config block.");
 
-	drvc = di->priv;
+	drvc = di->context;
 	*configlen = 0;
 
 	if (!(xfer_in = libusb_alloc_transfer(0)) ||
@@ -213,7 +213,7 @@ static int lascar_save_config(libusb_device_handle *dev_hdl,
 
 	sr_spew("Writing config block.");
 
-	drvc = di->priv;
+	drvc = di->context;
 
 	if (!(xfer_in = libusb_alloc_transfer(0)) ||
 			!(xfer_out = libusb_alloc_transfer(0)))
@@ -356,7 +356,7 @@ SR_PRIV struct sr_dev_inst *lascar_scan(int bus, int address)
 	int dummy, ret, i;
 	unsigned char config[MAX_CONFIGBLOCK_SIZE];
 
-	drvc = di->priv;
+	drvc = di->context;
 	sdi = NULL;
 
 	libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &devlist);
@@ -479,7 +479,7 @@ static void lascar_el_usb_dispatch(struct sr_dev_inst *sdi, unsigned char *buf,
 
 SR_PRIV int lascar_el_usb_handle_events(int fd, int revents, void *cb_data)
 {
-	struct drv_context *drvc = di->priv;
+	struct drv_context *drvc = di->context;
 	struct sr_datafeed_packet packet;
 	struct sr_dev_inst *sdi;
 	struct timeval tv;

@@ -1073,8 +1073,8 @@ struct sr_dev_driver {
 			void *cb_data);
 
 	/* Dynamic */
-	/** Device driver private data. Initialized by init(). */
-	void *priv;
+	/** Device driver context, considered private. Initialized by init(). */
+	void *context;
 };
 
 /**

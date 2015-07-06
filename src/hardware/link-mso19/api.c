@@ -60,7 +60,7 @@ static int dev_clear(const struct sr_dev_driver *di)
 	struct dev_context *devc;
 	int ret = SR_OK;
 
-	if (!(drvc = di->priv))
+	if (!(drvc = di->context))
 		return SR_OK;
 
 	/* Properly close and free all devices. */
@@ -219,7 +219,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		}
 
 		//Add the driver
-		struct drv_context *drvc = di->priv;
+		struct drv_context *drvc = di->context;
 		drvc->instances = g_slist_append(drvc->instances, sdi);
 		devices = g_slist_append(devices, sdi);
 	}
@@ -229,7 +229,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 static GSList *dev_list(const struct sr_dev_driver *di)
 {
-	return ((struct drv_context *)(di->priv))->instances;
+	return ((struct drv_context *)(di->context))->instances;
 }
 
 static int dev_open(struct sr_dev_inst *sdi)
@@ -483,5 +483,5 @@ SR_PRIV struct sr_dev_driver link_mso19_driver_info = {
 	.dev_close = std_serial_dev_close,
 	.dev_acquisition_start = dev_acquisition_start,
 	.dev_acquisition_stop = dev_acquisition_stop,
-	.priv = NULL,
+	.context = NULL,
 };

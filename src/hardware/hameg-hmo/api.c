@@ -116,12 +116,12 @@ fail:
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
-	return sr_scpi_scan(di->priv, options, hmo_probe_serial_device);
+	return sr_scpi_scan(di->context, options, hmo_probe_serial_device);
 }
 
 static GSList *dev_list(const struct sr_dev_driver *di)
 {
-	return ((struct drv_context *)(di->priv))->instances;
+	return ((struct drv_context *)(di->context))->instances;
 }
 
 static void clear_helper(void *priv)
@@ -809,5 +809,5 @@ SR_PRIV struct sr_dev_driver hameg_hmo_driver_info = {
 	.dev_close = dev_close,
 	.dev_acquisition_start = dev_acquisition_start,
 	.dev_acquisition_stop = dev_acquisition_stop,
-	.priv = NULL,
+	.context = NULL,
 };

@@ -516,7 +516,7 @@ static GSList *scan_lps301(struct sr_dev_driver *di, GSList *options)
 
 static GSList *dev_list_lps301(const struct sr_dev_driver *di)
 {
-	return ((struct drv_context *)(di->priv))->instances;
+	return ((struct drv_context *)(di->context))->instances;
 }
 
 static void dev_clear_private(struct dev_context* devc)
@@ -849,5 +849,5 @@ SR_PRIV struct sr_dev_driver motech_lps_301_driver_info = {
 	.dev_close = std_serial_dev_close,
 	.dev_acquisition_start = dev_acquisition_start,
 	.dev_acquisition_stop = dev_acquisition_stop,
-	.priv = NULL,
+	.context = NULL,
 };

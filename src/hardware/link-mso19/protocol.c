@@ -357,7 +357,7 @@ SR_PRIV int mso_receive_data(int fd, int revents, void *cb_data)
 	GSList *l;
 	int i;
 
-	struct drv_context *drvc = di->priv;
+	struct drv_context *drvc = di->context;
 
 	/* Find this device's devc struct by its fd. */
 	struct dev_context *devc = NULL;

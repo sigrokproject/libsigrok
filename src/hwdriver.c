@@ -397,7 +397,7 @@ SR_API GSList *sr_driver_scan(struct sr_dev_driver *driver, GSList *options)
 		return NULL;
 	}
 
-	if (!driver->priv) {
+	if (!driver->context) {
 		sr_err("Driver not initialized, can't scan for devices.");
 		return NULL;
 	}
@@ -434,7 +434,7 @@ SR_PRIV void sr_hw_cleanup_all(const struct sr_context *ctx)
 	for (i = 0; drivers[i]; i++) {
 		if (drivers[i]->cleanup)
 			drivers[i]->cleanup(drivers[i]);
-		drivers[i]->priv = NULL;
+		drivers[i]->context = NULL;
 	}
 }
 

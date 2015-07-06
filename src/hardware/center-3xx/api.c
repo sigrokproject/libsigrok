@@ -79,7 +79,7 @@ static GSList *center_scan(const char *conn, const char *serialcomm, int idx)
 	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
 		return NULL;
 
-	drvc = center_devs[idx].di->priv;
+	drvc = center_devs[idx].di->context;
 	devices = NULL;
 	serial_flush(serial);
 
@@ -140,7 +140,7 @@ static GSList *scan(GSList *options, int idx)
 
 static GSList *dev_list(int idx)
 {
-	return ((struct drv_context *)(center_devs[idx].di->priv))->instances;
+	return ((struct drv_context *)(center_devs[idx].di->context))->instances;
 }
 
 static int cleanup(int idx)
@@ -278,7 +278,7 @@ SR_PRIV struct sr_dev_driver ID##_driver_info = { \
 	.dev_close = std_serial_dev_close, \
 	.dev_acquisition_start = dev_acquisition_start_##ID_UPPER, \
 	.dev_acquisition_stop = dev_acquisition_stop, \
-	.priv = NULL, \
+	.context = NULL, \
 };
 
 DRV(center_309, CENTER_309, "center-309", "Center 309")

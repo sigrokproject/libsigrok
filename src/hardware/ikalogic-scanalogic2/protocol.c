@@ -215,7 +215,7 @@ SR_PRIV int ikalogic_scanalogic2_receive_data(int fd, int revents, void *cb_data
 		return TRUE;
 
 	di = sdi->driver;
-	drvc = di->priv;
+	drvc = di->context;
 	current_time = g_get_monotonic_time();
 
 	if (devc->state == STATE_WAIT_DATA_READY &&
@@ -643,7 +643,7 @@ SR_PRIV int sl2_get_device_info(struct sr_usb_dev_inst usb,
 	uint8_t buffer[PACKET_LENGTH];
 	int ret;
 
-	drvc = ikalogic_scanalogic2_driver_info.priv;
+	drvc = ikalogic_scanalogic2_driver_info.context;
 
 	if (!dev_info)
 		return SR_ERR_ARG;

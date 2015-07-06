@@ -86,7 +86,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	sr_info("Probing serial port %s.", conn);
 
-	drvc = di->priv;
+	drvc = di->context;
 	drvc->instances = NULL;
 	serial_flush(serial);
 
@@ -122,7 +122,7 @@ scan_cleanup:
 
 static GSList *dev_list(const struct sr_dev_driver *di)
 {
-	return ((struct drv_context *)(di->priv))->instances;
+	return ((struct drv_context *)(di->context))->instances;
 }
 
 static int cleanup(const struct sr_dev_driver *di)
@@ -281,5 +281,5 @@ SR_PRIV struct sr_dev_driver appa_55ii_driver_info = {
 	.dev_close = std_serial_dev_close,
 	.dev_acquisition_start = dev_acquisition_start,
 	.dev_acquisition_stop = dev_acquisition_stop,
-	.priv = NULL,
+	.context = NULL,
 };
