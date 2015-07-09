@@ -370,16 +370,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 	usb = sdi->conn;
 
-	if (libusb_has_capability(LIBUSB_CAP_SUPPORTS_DETACH_KERNEL_DRIVER)) {
-		if (libusb_kernel_driver_active(usb->devhdl, 0) == 1) {
-			if ((ret = libusb_detach_kernel_driver(usb->devhdl, 0)) < 0) {
-				sr_err("Failed to detach kernel driver: %s.",
-					libusb_error_name(ret));
-				return SR_ERR;
-			}
-		}
-	}
-
 	/*
 	 * If the firmware was recently uploaded, wait up to MAX_RENUM_DELAY_MS
 	 * milliseconds for the FX2 to renumerate.

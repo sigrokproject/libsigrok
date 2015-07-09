@@ -244,6 +244,16 @@ SR_PRIV int fx2lafw_dev_open(struct sr_dev_inst *sdi, struct sr_dev_driver *di)
 			break;
 		}
 
+		if (libusb_has_capability(LIBUSB_CAP_SUPPORTS_DETACH_KERNEL_DRIVER)) {
+			if (libusb_kernel_driver_active(usb->devhdl, 0) == 1) {
+				if ((ret = libusb_detach_kernel_driver(usb->devhdl, 0)) < 0) {
+					sr_err("Failed to detach kernel driver: %s.",
+						libusb_error_name(ret));
+					return SR_ERR;
+				}
+			}
+		}
+
 		ret = command_get_fw_version(usb->devhdl, &vi);
 		if (ret != SR_OK) {
 			sr_err("Failed to get firmware version.");
