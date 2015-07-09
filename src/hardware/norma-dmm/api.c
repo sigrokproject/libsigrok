@@ -86,7 +86,7 @@ static GSList *scan(struct sr_dev_driver* drv, GSList *options)
 	int auxtype;
 
 	devices = NULL;
-	drvc = drv->priv;
+	drvc = drv->context;
 	drvc->instances = NULL;
 	conn = serialcomm = NULL;
 

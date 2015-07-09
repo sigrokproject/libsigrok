@@ -389,7 +389,7 @@ static GSList *do_scan(lps_modelid modelid, struct sr_dev_driver *drv, GSList *o
 	conn = serialcomm = NULL;
 	devices = NULL;
 
-	drvc = drv->priv;
+	drvc = drv->context;
 	drvc->instances = NULL;
 
 	sr_spew("scan() called!");

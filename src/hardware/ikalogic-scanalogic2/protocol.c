@@ -25,7 +25,7 @@ extern uint64_t sl2_samplerates[NUM_SAMPLERATES];
 
 static void stop_acquisition(struct sr_dev_inst *sdi)
 {
-	struct drv_context *drvc = sdi->driver->priv;
+	struct drv_context *drvc = sdi->driver->context;
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
 
@@ -42,7 +42,7 @@ static void stop_acquisition(struct sr_dev_inst *sdi)
 
 static void abort_acquisition(struct sr_dev_inst *sdi)
 {
-	struct drv_context *drvc = sdi->driver->priv;
+	struct drv_context *drvc = sdi->driver->context;
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
 

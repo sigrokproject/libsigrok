@@ -582,7 +582,7 @@ static void end_acquisition(struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
 
-	drvc = sdi->driver->priv;
+	drvc = sdi->driver->context;
 	devc = sdi->priv;
 
 	if (devc->state == STATE_IDLE)
@@ -1004,7 +1004,7 @@ SR_PRIV int lwla_receive_data(int fd, int revents, void *cb_data)
 
 	sdi  = cb_data;
 	devc = sdi->priv;
-	drvc = sdi->driver->priv;
+	drvc = sdi->driver->context;
 
 	if (!devc || !drvc)
 		return FALSE;
