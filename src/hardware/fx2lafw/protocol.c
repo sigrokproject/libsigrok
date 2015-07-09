@@ -245,8 +245,8 @@ SR_PRIV int fx2lafw_dev_open(struct sr_dev_inst *sdi, struct sr_dev_driver *di)
 		}
 
 		if (libusb_has_capability(LIBUSB_CAP_SUPPORTS_DETACH_KERNEL_DRIVER)) {
-			if (libusb_kernel_driver_active(usb->devhdl, 0) == 1) {
-				if ((ret = libusb_detach_kernel_driver(usb->devhdl, 0)) < 0) {
+			if (libusb_kernel_driver_active(usb->devhdl, USB_INTERFACE) == 1) {
+				if ((ret = libusb_detach_kernel_driver(usb->devhdl, USB_INTERFACE)) < 0) {
 					sr_err("Failed to detach kernel driver: %s.",
 						libusb_error_name(ret));
 					return SR_ERR;
