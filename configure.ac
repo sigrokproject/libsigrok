@@ -430,6 +430,10 @@ AM_CONDITIONAL(HAVE_CHECK, test x"$have_check" = "xyes")
 # build it if these headers aren't available.
 AC_CHECK_HEADERS([sys/mman.h sys/ioctl.h], [], [HW_BEAGLELOGIC="no"])
 
+# The BayLibre ACME driver needs sys/timerfd.h. Don't try to build it if
+# this header isn't available.
+AC_CHECK_HEADERS([sys/timerfd.h], [], [HW_BAYLIBRE_ACME="no"])
+
 # The ACME driver can only be built for Linux.
 case "$host" in
 	*linux*) ;;
