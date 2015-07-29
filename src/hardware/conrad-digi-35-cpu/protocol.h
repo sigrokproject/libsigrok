@@ -27,7 +27,6 @@
 #define LIBSIGROK_HARDWARE_CONRAD_DIGI_35_CPU_PROTOCOL_H
 
 #include <stdint.h>
-#include <errno.h>
 #include <string.h>
 #include <glib.h>
 #include "libsigrok.h"

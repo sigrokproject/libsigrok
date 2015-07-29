@@ -19,7 +19,6 @@
 
 #include <stdlib.h>
 #include <glib.h>
-#include <errno.h>
 #include <string.h>
 #include "libsigrok.h"
 #include "libsigrok-internal.h"

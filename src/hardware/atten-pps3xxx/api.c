@@ -18,7 +18,6 @@
  */
 
 #include <string.h>
-#include <errno.h>
 #include "protocol.h"
 
 /*
@@ -142,7 +141,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options, int modelid)
 	memset(packet, 0, PACKET_SIZE);
 	if ((ret = serial_read_nonblocking(serial, packet, PACKET_SIZE)) < 0) {
 		sr_err("Unable to read while probing for hardware: %s",
-				strerror(errno));
+				sr_strerror(ret));
 		return NULL;
 	}
 	if (ret != PACKET_SIZE || packet[0] != 0xaa || packet[1] != 0xaa) {

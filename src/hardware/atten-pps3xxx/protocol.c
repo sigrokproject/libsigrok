@@ -18,7 +18,6 @@
  */
 
 #include <string.h>
-#include <errno.h>
 #include "protocol.h"
 
 static void dump_packet(char *msg, uint8_t *packet)

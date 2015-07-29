@@ -24,7 +24,6 @@
  */
 
 #include <ctype.h>
-#include <errno.h>
 #include <math.h>
 #include <string.h>
 #include "protocol.h"
@@ -285,15 +284,16 @@ SR_PRIV int lps_process_status(struct sr_dev_inst* sdi, int stat)
 SR_PRIV int lps_query_status(struct sr_dev_inst* sdi)
 {
 	char buf[LINELEN_MAX];
-	int stat;
+	int stat, ret;
 	struct dev_context* devc;
 
 	devc = (struct dev_context*)sdi->priv;
 
 	devc->req_sent_at = g_get_real_time();
 
-	if (lps_cmd_reply(buf, sdi->conn, "STATUS") < 0) {
-		sr_err("%s: Failed to read status: %d %s", __func__, errno, strerror(errno));
+	if ((ret = lps_cmd_reply(buf, sdi->conn, "STATUS")) < 0) {
+		sr_err("%s: Failed to read status: %s.", __func__,
+			sr_strerror(ret));
 		return SR_ERR;
 	}
 
@@ -379,7 +379,7 @@ static GSList *do_scan(lps_modelid modelid, struct sr_dev_driver *drv, GSList *o
 	struct sr_channel_group *cg;
 	GSList *devices;
 	const char *conn, *serialcomm;
-	int cnt;
+	int cnt, ret;
 	gchar buf[LINELEN_MAX];
 	gchar channel[10];
 	char *verstr;
@@ -434,7 +434,7 @@ static GSList *do_scan(lps_modelid modelid, struct sr_dev_driver *drv, GSList *o
 
 	/* Query version */
 	verstr = NULL;
-	if (lps_cmd_reply(buf, serial, "VERSION") == SR_OK) {
+	if ((ret = lps_cmd_reply(buf, serial, "VERSION")) == SR_OK) {
 		if (strncmp(buf, "Ver-", 4)) {
 			sr_spew("Version string %s not recognized.", buf);
 			goto exit_err;
@@ -445,7 +445,8 @@ static GSList *do_scan(lps_modelid modelid, struct sr_dev_driver *drv, GSList *o
 	}
 	else  /* Bug in device FW 1.17: Querying version string fails while output is active.
 		Therefore just print an error message, but do not exit with error. */
-		sr_err("Failed to query for hardware version: %d %s", errno, strerror(errno));
+		sr_err("Failed to query for hardware version: %s.",
+			sr_strerror(ret));
 
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->status = SR_ST_INACTIVE;

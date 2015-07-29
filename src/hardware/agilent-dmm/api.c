@@ -22,7 +22,6 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <string.h>
-#include <errno.h>
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 #include "agilent-dmm.h"
