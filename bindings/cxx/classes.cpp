@@ -1565,10 +1565,28 @@ shared_ptr<Output> OutputFormat::create_output(
 		Output::Deleter());
 }
 
+shared_ptr<Output> OutputFormat::create_output(string filename,
+	shared_ptr<Device> device, map<string, Glib::VariantBase> options)
+{
+	return shared_ptr<Output>(
+		new Output(filename, shared_from_this(), device, options),
+		Output::Deleter());
+}
+
 Output::Output(shared_ptr<OutputFormat> format,
 		shared_ptr<Device> device, map<string, Glib::VariantBase> options) :
 	UserOwned(sr_output_new(format->_structure,
-		map_to_hash_variant(options), device->_structure)),
+		map_to_hash_variant(options), device->_structure, NULL)),
+	_format(format),
+	_device(device),
+	_options(options)
+{
+}
+
+Output::Output(string filename, shared_ptr<OutputFormat> format,
+		shared_ptr<Device> device, map<string, Glib::VariantBase> options) :
+	UserOwned(sr_output_new(format->_structure,
+		map_to_hash_variant(options), device->_structure, filename.c_str())),
 	_format(format),
 	_device(device),
 	_options(options)

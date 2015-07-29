@@ -369,6 +369,11 @@ struct sr_output {
 	const struct sr_dev_inst *sdi;
 
 	/**
+	 * The name of the file that the data should be written to.
+	 */
+	const char *filename;
+
+	/**
 	 * A generic pointer which can be used by the module to keep internal
 	 * state between calls into its callback functions.
 	 *

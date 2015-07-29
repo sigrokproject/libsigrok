@@ -957,7 +957,16 @@ public:
 	/** Create an output using this format.
 	 * @param device Device to output for.
 	 * @param options Mapping of (option name, value) pairs. */
-	shared_ptr<Output> create_output(shared_ptr<Device> device,
+	shared_ptr<Output> create_output(
+		shared_ptr<Device> device,
+		map<string, Glib::VariantBase> options =
+			map<string, Glib::VariantBase>());
+	/** Create an output using this format.
+	 * @param filename Name of destination file.
+	 * @param device Device to output for.
+	 * @param options Mapping of (option name, value) pairs. */
+	shared_ptr<Output> create_output(string filename,
+		shared_ptr<Device> device,
 		map<string, Glib::VariantBase> options =
 			map<string, Glib::VariantBase>());
 protected:
@@ -977,6 +986,8 @@ public:
 protected:
 	Output(shared_ptr<OutputFormat> format, shared_ptr<Device> device);
 	Output(shared_ptr<OutputFormat> format,
+		shared_ptr<Device> device, map<string, Glib::VariantBase> options);
+	Output(string filename, shared_ptr<OutputFormat> format,
 		shared_ptr<Device> device, map<string, Glib::VariantBase> options);
 	~Output();
 	const shared_ptr<OutputFormat> _format;

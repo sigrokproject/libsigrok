@@ -245,7 +245,8 @@ SR_API void sr_output_options_free(const struct sr_option **options)
  * @since 0.4.0
  */
 SR_API const struct sr_output *sr_output_new(const struct sr_output_module *omod,
-		GHashTable *options, const struct sr_dev_inst *sdi)
+		GHashTable *options, const struct sr_dev_inst *sdi,
+		const char *filename)
 {
 	struct sr_output *op;
 	const struct sr_option *mod_opts;
@@ -258,6 +259,7 @@ SR_API const struct sr_output *sr_output_new(const struct sr_output_module *omod
 	op = g_malloc(sizeof(struct sr_output));
 	op->module = omod;
 	op->sdi = sdi;
+	op->filename = g_strdup(filename);
 
 	new_opts = g_hash_table_new_full(g_str_hash, g_str_equal, g_free,
 			(GDestroyNotify)g_variant_unref);
@@ -335,6 +337,7 @@ SR_API int sr_output_free(const struct sr_output *o)
 	ret = SR_OK;
 	if (o->module->cleanup)
 		ret = o->module->cleanup((struct sr_output *)o);
+	g_free((char *)o->filename);
 	g_free((gpointer)o);
 
 	return ret;
