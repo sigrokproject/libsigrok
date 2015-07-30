@@ -39,11 +39,16 @@ static int init(struct sr_output *o, GHashTable *options)
 {
 	struct out_context *outc;
 
+	(void)options;
+
 	outc = g_malloc0(sizeof(struct out_context));
 	o->priv = outc;
-	outc->filename = g_strdup(g_variant_get_string(g_hash_table_lookup(options, "filename"), NULL));
-	if (strlen(outc->filename) == 0)
+
+	if (strlen(o->filename) == 0) {
+		sr_info("srzip output module requires a file name, cannot save.");
 		return SR_ERR_ARG;
+	}
+	outc->filename = g_strdup(o->filename);
 
 	return SR_OK;
 }
@@ -296,7 +301,6 @@ static int cleanup(struct sr_output *o)
 }
 
 static struct sr_option options[] = {
-	{ "filename", "Filename", "File to write", NULL, NULL },
 	ALL_ZERO
 };
 
