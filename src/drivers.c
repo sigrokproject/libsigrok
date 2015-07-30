@@ -74,6 +74,9 @@ extern SR_PRIV struct sr_dev_driver deree_de5000_driver_info;
 #ifdef HAVE_HW_FLUKE_DMM
 extern SR_PRIV struct sr_dev_driver flukedmm_driver_info;
 #endif
+#ifdef HAVE_HW_FT2232H
+extern SR_PRIV struct sr_dev_driver ft2232h_driver_info;
+#endif
 #ifdef HAVE_HW_FX2LAFW
 extern SR_PRIV struct sr_dev_driver fx2lafw_driver_info;
 #endif
@@ -243,6 +246,9 @@ SR_PRIV struct sr_dev_driver **drivers_lists[] = {
 #endif
 #ifdef HAVE_HW_FLUKE_DMM
 	(DRVS) {&flukedmm_driver_info, NULL},
+#endif
+#ifdef HAVE_HW_FT2232H
+	(DRVS) {&ft2232h_driver_info, NULL},
 #endif
 #ifdef HAVE_HW_FX2LAFW
 	(DRVS) {&fx2lafw_driver_info, NULL},
