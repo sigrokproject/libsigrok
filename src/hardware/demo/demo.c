@@ -901,6 +901,8 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 	g_io_channel_shutdown(devc->channel, FALSE, NULL);
 	g_io_channel_unref(devc->channel);
 	devc->channel = NULL;
+	close(devc->pipe_fds[0]);
+	close(devc->pipe_fds[1]);
 
 	/* Send last packet. */
 	packet.type = SR_DF_END;
