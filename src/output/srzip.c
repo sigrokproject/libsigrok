@@ -41,14 +41,14 @@ static int init(struct sr_output *o, GHashTable *options)
 
 	(void)options;
 
-	outc = g_malloc0(sizeof(struct out_context));
-	o->priv = outc;
-
 	if (strlen(o->filename) == 0) {
 		sr_info("srzip output module requires a file name, cannot save.");
 		return SR_ERR_ARG;
 	}
+
+	outc = g_malloc0(sizeof(struct out_context));
 	outc->filename = g_strdup(o->filename);
+	o->priv = outc;
 
 	return SR_OK;
 }
