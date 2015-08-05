@@ -1023,13 +1023,13 @@ struct sr_dev_driver {
 	int (*cleanup) (const struct sr_dev_driver *driver);
 	/** Scan for devices. Driver should do all initialisation required.
 	 *  Can be called several times, e.g. with different port options.
-	 *  \retval NULL Error or no devices found.
-	 *  \retval other GSList of a struct sr_dev_inst for each device.
+	 *  @retval NULL Error or no devices found.
+	 *  @retval other GSList of a struct sr_dev_inst for each device.
 	 *                Must be freed by caller!
 	 */
 	GSList *(*scan) (struct sr_dev_driver *driver, GSList *options);
 	/** Get list of device instances the driver knows about.
-	 *  \returns NULL or GSList of a struct sr_dev_inst for each device.
+	 *  @returns NULL or GSList of a struct sr_dev_inst for each device.
 	 *           Must not be freed by caller!
 	 */
 	GSList *(*dev_list) (const struct sr_dev_driver *driver);

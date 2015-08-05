@@ -201,7 +201,7 @@ SR_PRIV int lps_cmd_ok(struct sr_serial_dev_inst *serial, const char* fmt, ...)
 }
 
 /** Send command and read reply string.
- *  \param reply Pointer to buffer of size LINELEN_MAX. Will be NUL-terminated.
+ *  @param reply Pointer to buffer of size LINELEN_MAX. Will be NUL-terminated.
  */
 SR_PRIV int lps_cmd_reply(char* reply, struct sr_serial_dev_inst *serial, const char* fmt, ...)
 {
@@ -314,8 +314,8 @@ static gint64 calc_timeout_ms(gint64 start_us)
 }
 
 /** Read message into buf until "OK" received.
- *  \retval SR_OK Msg received; buf and buflen contain result, if any except OK.
- *  \retval SR_ERR Error, including timeout.
+ *  @retval SR_OK Msg received; buf and buflen contain result, if any except OK.
+ *  @retval SR_ERR Error, including timeout.
 */
 SR_PRIV int lps_read_reply(struct sr_serial_dev_inst *serial, char **buf, int *buflen)
 {
