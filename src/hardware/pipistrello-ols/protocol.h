@@ -24,7 +24,7 @@
 #include <string.h>
 #include <glib.h>
 #include <ftdi.h>
-#include "libsigrok.h"
+#include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
 #define LOG_PREFIX "p-ols"

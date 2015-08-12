@@ -26,7 +26,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <libusb.h>
-#include "libsigrok.h"
+#include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
 #define LOG_PREFIX "fx2lafw"

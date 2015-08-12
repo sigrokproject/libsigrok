@@ -22,7 +22,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <string.h>
-#include "libsigrok.h"
+#include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 #include "protocol.h"
 

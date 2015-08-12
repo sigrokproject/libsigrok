@@ -28,7 +28,7 @@
 
 #include <stdint.h>
 #include <glib.h>
-#include "libsigrok.h"
+#include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
 SR_PRIV int lps_process_status(struct sr_dev_inst *sdi, int stat);

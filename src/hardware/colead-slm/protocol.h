@@ -21,7 +21,7 @@
 #define LIBSIGROK_HARDWARE_COLEAD_SLM_PROTOCOL_H
 
 #include <stdint.h>
-#include "libsigrok.h"
+#include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
 #define LOG_PREFIX "colead-slm"

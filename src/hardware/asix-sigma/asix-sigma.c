@@ -28,7 +28,7 @@
 #include <ftdi.h>
 #include <string.h>
 #include <unistd.h>
-#include "libsigrok.h"
+#include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 #include "asix-sigma.h"
 

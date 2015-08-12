@@ -22,7 +22,7 @@
 #define LIBSIGROK_HARDWARE_TONDAJ_SL_814_PROTOCOL_H
 
 #include <stdint.h>
-#include "libsigrok.h"
+#include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
 #define LOG_PREFIX "tondaj-sl-814"

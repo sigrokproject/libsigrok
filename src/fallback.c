@@ -19,7 +19,7 @@
 
 #include <glib.h>
 #include "config.h"
-#include "libsigrok.h"
+#include <libsigrok/libsigrok.h>
 
 #ifndef HAVE_LIBSERIALPORT
 

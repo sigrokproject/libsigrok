@@ -23,7 +23,7 @@
 #include <memory.h>
 #include <glib.h>
 #include <libusb.h>
-#include "libsigrok.h"
+#include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
 /* SR_CONF_CONN takes one of these: */

@@ -23,7 +23,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/time.h>
-#include "libsigrok.h"
+#include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
 #define LOG_PREFIX "input/binary"

@@ -19,7 +19,7 @@
  */
 
 #include <string.h>
-#include "libsigrok.h"
+#include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
 /** @cond PRIVATE */

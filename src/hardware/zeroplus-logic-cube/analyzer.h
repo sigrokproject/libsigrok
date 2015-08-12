@@ -33,7 +33,7 @@
 #define LIBSIGROK_HARDWARE_ZEROPLUS_LOGIC_CUBE_ANALYZER_H
 
 #include <libusb.h>
-#include "libsigrok.h"
+#include <libsigrok/libsigrok.h>
 
 #define STATUS_FLAG_NONE	0x00
 #define STATUS_FLAG_RESET	0x01

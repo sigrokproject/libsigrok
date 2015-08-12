@@ -27,7 +27,7 @@
 #include <glib.h>
 #include <glib/gstdio.h>
 #include "config.h" /* Needed for PACKAGE_VERSION and others. */
-#include "libsigrok.h"
+#include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
 /** @cond PRIVATE */

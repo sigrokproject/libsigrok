@@ -25,7 +25,7 @@
 #include <ftdi.h>
 #include <stdint.h>
 #include <string.h>
-#include "libsigrok.h"
+#include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
 #define LOG_PREFIX "la8/la16"

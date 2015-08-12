@@ -1099,8 +1099,8 @@ struct sr_serial_port {
 	char *description;
 };
 
-#include "proto.h"
-#include "version.h"
+#include <libsigrok/proto.h>
+#include <libsigrok/version.h>
 
 #ifdef __cplusplus
 }

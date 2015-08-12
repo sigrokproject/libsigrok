@@ -20,7 +20,7 @@
 
 #include <stdarg.h>
 #include <stdio.h>
-#include "libsigrok.h"
+#include <libsigrok/libsigrok.h>
 /** @cond PRIVATE */
 #define NO_LOG_WRAPPERS
 /** @endcond */

@@ -20,7 +20,10 @@
 
 ACLOCAL_AMFLAGS = -I autostuff
 
-AM_CPPFLAGS = -I$(srcdir)/src -DFIRMWARE_DIR='"$(FIRMWARE_DIR)"'
+local_includes = -Iinclude -I$(srcdir)/include -I$(srcdir)/src
+local_includes += -Ibindings/cxx/include -I${srcdir}/bindings/cxx/include -Ibindings/cxx
+
+AM_CPPFLAGS = $(local_includes) -DFIRMWARE_DIR='"$(FIRMWARE_DIR)"'
 
 lib_LTLIBRARIES = libsigrok.la
 
@@ -585,7 +588,7 @@ $(JDOC): bindings/swig/doc.py $(CPPXMLDOC)
 $(JCXX): $(JSWG) $(JDOC) bindings/swig/classes.i $(library_include_HEADERS)
 	$(AM_V_at)make java-clean
 	$(AM_V_GEN)swig -c++ -java -package org.sigrok.core.classes \
-		-I$(srcdir)/include -I$(srcdir)/bindings/cxx/include -I$(srcdir) -I$(JCLS) -Ibindings/cxx/include -outdir $(JCLS) -o $@ $<
+		$(local_includes) -I$(JCLS) -I. -I$(srcdir) -outdir $(JCLS) -o $@ $<
 
 $(JJAR): $(JCXX)
 	$(AM_V_GEN)$(JAVAC) -sourcepath $(JDIR) -d $(JDIR) $(JSRC)

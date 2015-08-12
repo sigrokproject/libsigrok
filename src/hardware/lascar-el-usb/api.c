@@ -19,7 +19,7 @@
 
 #include <glib.h>
 #include <libusb.h>
-#include "libsigrok.h"
+#include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 #include "protocol.h"
 

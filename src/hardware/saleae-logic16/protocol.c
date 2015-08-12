@@ -26,7 +26,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <math.h>
-#include "libsigrok.h"
+#include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 #include "protocol.h"
 

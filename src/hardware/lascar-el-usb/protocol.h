@@ -21,7 +21,7 @@
 #define LIBSIGROK_HARDWARE_LASCAR_EL_USB_PROTOCOL_H
 
 #include <stdint.h>
-#include "libsigrok.h"
+#include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
 #define LOG_PREFIX "lascar-el-usb"

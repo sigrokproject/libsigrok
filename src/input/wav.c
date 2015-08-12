@@ -24,7 +24,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <stdint.h>
-#include "libsigrok.h"
+#include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
 #define LOG_PREFIX "input/wav"

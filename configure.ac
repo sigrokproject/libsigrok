@@ -456,8 +456,8 @@ esac
 
 AC_SUBST(SR_PKGLIBS)
 
-CFLAGS="$CFLAGS -Iinclude/libsigrok -I${srcdir}/include/libsigrok $LIB_CFLAGS"
-CXXFLAGS="$CXXFLAGS -Iinclude/libsigrok -I${srcdir}/include -Ibindings/cxx -Ibindings/cxx/include/libsigrokcxx -I${srcdir}/bindings/cxx/include $LIB_CFLAGS"
+CFLAGS="$CFLAGS $LIB_CFLAGS"
+CXXFLAGS="$CXXFLAGS $LIB_CFLAGS"
 
 # Find Java compiler and JNI includes for Java bindings.
 AC_CHECK_PROG([HAVE_JAVAC], [javac], [yes], [no])

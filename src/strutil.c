@@ -23,7 +23,7 @@
 #include <string.h>
 #include <strings.h>
 #include <errno.h>
-#include "libsigrok.h"
+#include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
 /** @cond PRIVATE */

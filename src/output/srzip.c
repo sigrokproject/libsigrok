@@ -24,7 +24,7 @@
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <zip.h>
-#include "libsigrok.h"
+#include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
 #define LOG_PREFIX "output/srzip"

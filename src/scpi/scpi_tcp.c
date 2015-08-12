@@ -32,7 +32,7 @@
 #include <netdb.h>
 #endif
 #include <errno.h>
-#include "libsigrok.h"
+#include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
 #define LOG_PREFIX "scpi_tcp"

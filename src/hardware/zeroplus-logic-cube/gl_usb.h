@@ -33,7 +33,7 @@
 #define LIBSIGROK_HARDWARE_ZEROPLUS_LOGIC_CUBE_GL_USB_H
 
 #include <libusb.h>
-#include "libsigrok.h"
+#include <libsigrok/libsigrok.h>
 
 SR_PRIV int gl_read_bulk(libusb_device_handle *devh, void *buffer,
 			 unsigned int size);

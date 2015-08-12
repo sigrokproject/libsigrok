@@ -31,7 +31,7 @@
 
 #include <stdio.h>
 #include <libusb.h>
-#include "libsigrok.h"
+#include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 #include "gl_usb.h"
 #include "protocol.h"

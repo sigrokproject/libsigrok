@@ -19,7 +19,7 @@
 
 #include <errno.h>
 #include <glib/gstdio.h>
-#include "libsigrok.h"
+#include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 #include "protocol.h"
 #include "lwla.h"

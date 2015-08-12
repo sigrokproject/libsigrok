@@ -21,7 +21,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <ctype.h>
-#include "libsigrok.h"
+#include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
 /** @cond PRIVATE */

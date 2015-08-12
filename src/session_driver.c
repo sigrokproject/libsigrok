@@ -23,7 +23,7 @@
 #include <unistd.h>
 #include <sys/time.h>
 #include <zip.h>
-#include "libsigrok.h"
+#include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
 #define LOG_PREFIX "virtual-session"

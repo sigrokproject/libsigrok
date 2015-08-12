@@ -30,7 +30,7 @@
  */
 
 #include <assert.h>
-#include "libsigrok.h"
+#include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 #include "analyzer.h"
 #include "gl_usb.h"

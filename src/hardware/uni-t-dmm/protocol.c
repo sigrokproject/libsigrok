@@ -20,7 +20,7 @@
 
 #include <string.h>
 #include <glib.h>
-#include "libsigrok.h"
+#include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 #include "protocol.h"
 

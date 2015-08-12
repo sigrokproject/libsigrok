@@ -23,7 +23,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <string.h>
-#include "libsigrok.h"
+#include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 #include "gpio.h"
 

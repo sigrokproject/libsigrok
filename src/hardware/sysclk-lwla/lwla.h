@@ -23,7 +23,7 @@
 #include <stdint.h>
 #include <libusb.h>
 #include <glib.h>
-#include "libsigrok.h"
+#include <libsigrok/libsigrok.h>
 
 struct sr_usb_dev_inst;
 

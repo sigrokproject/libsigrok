@@ -26,7 +26,7 @@
 #include <string.h>
 #include <glib.h>
 #include <libudev.h>
-#include "libsigrok.h"
+#include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
 #define LOG_PREFIX "link-mso19"

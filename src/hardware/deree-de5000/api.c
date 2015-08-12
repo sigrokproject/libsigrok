@@ -21,7 +21,7 @@
 #include <string.h>
 #include <math.h>
 #include <glib.h>
-#include "libsigrok.h"
+#include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
 static void std_dev_attach(struct sr_dev_driver *di, struct sr_dev_inst *sdi)
