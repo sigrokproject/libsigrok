@@ -96,7 +96,7 @@ static int zip_create(const struct sr_output *o)
 	close(tmpfile);
 	meta = g_fopen(metafile, "wb");
 	fprintf(meta, "[global]\n");
-	fprintf(meta, "sigrok version = %s\n", PACKAGE_VERSION);
+	fprintf(meta, "sigrok version = %s\n", SR_PACKAGE_VERSION_STRING);
 	fprintf(meta, "[device 1]\ncapturefile = logic-1\n");
 	fprintf(meta, "total probes = %d\n", g_slist_length(o->sdi->channels));
 	s = sr_samplerate_string(outc->samplerate);

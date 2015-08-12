@@ -22,7 +22,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <glib.h>
-#include "config.h" /* Needed for PACKAGE and others. */
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
@@ -104,7 +103,7 @@ static GString *gen_header(const struct sr_output *o)
 
 	/* generator */
 	g_string_append_printf(header, "$version %s %s $end\n",
-			PACKAGE, PACKAGE_VERSION);
+			PACKAGE_NAME, SR_PACKAGE_VERSION_STRING);
 	g_string_append_printf(header, "$comment\n  Acquisition with "
 			"%d/%d channels", ctx->num_enabled_channels, num_channels);
 
@@ -135,7 +134,7 @@ static GString *gen_header(const struct sr_output *o)
 	g_free(frequency_s);
 
 	/* scope */
-	g_string_append_printf(header, "$scope module %s $end\n", PACKAGE);
+	g_string_append_printf(header, "$scope module %s $end\n", PACKAGE_NAME);
 
 	/* Wires / channels */
 	for (i = 0, l = o->sdi->channels; l; l = l->next, i++) {

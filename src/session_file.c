@@ -26,7 +26,6 @@
 #include <errno.h>
 #include <glib.h>
 #include <glib/gstdio.h>
-#include "config.h" /* Needed for PACKAGE_VERSION and others. */
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
@@ -351,7 +350,7 @@ SR_API int sr_session_save_init(struct sr_session *session,
 	close(tmpfile);
 	meta = g_fopen(metafile, "wb");
 	fprintf(meta, "[global]\n");
-	fprintf(meta, "sigrok version = %s\n", PACKAGE_VERSION);
+	fprintf(meta, "sigrok version = %s\n", SR_PACKAGE_VERSION_STRING);
 
 	/* metadata */
 	fprintf(meta, "[device 1]\n");

@@ -8,8 +8,7 @@ Description: Backend library of the sigrok logic analyzer software
 URL: http://www.sigrok.org
 Requires: glib-2.0
 Requires.private: @SR_PKGLIBS@
-Version: @VERSION@
+Version: @SR_PACKAGE_VERSION@
 Libs: -L${libdir} -lsigrok
 Libs.private: -lm
 Cflags: -I${includedir}
-
