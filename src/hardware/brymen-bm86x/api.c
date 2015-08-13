@@ -109,6 +109,8 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 	if ((ret = sr_usb_open(drvc->sr_ctx->libusb_ctx, usb)) == SR_OK)
 		sdi->status = SR_ST_ACTIVE;
+	else
+		return SR_ERR;
 
 	/* Detach kernel drivers which grabbed this device (if any). */
 	if (libusb_kernel_driver_active(usb->devhdl, 0) == 1) {
@@ -140,6 +142,9 @@ static int dev_close(struct sr_dev_inst *sdi)
 	struct sr_usb_dev_inst *usb;
 	struct dev_context *devc;
 	int ret;
+
+	if (sdi->status != SR_ST_ACTIVE)
+		return SR_ERR_DEV_CLOSED;
 
 	usb = sdi->conn;
 	devc = sdi->priv;
