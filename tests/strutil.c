@@ -19,7 +19,7 @@
  */
 
 #include <check.h>
-#include "../include/libsigrok/libsigrok.h"
+#include <libsigrok/libsigrok.h>
 #include "lib.h"
 
 static void test_samplerate(uint64_t samplerate, const char *expected)

@@ -20,7 +20,7 @@
 
 #include <stdlib.h>
 #include <check.h>
-#include "../include/libsigrok/libsigrok.h"
+#include <libsigrok/libsigrok.h>
 #include "lib.h"
 
 /* Check whether at least one output module is available. */

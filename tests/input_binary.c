@@ -20,7 +20,7 @@
 
 #include <check.h>
 #include <glib/gstdio.h>
-#include "../include/libsigrok/libsigrok.h"
+#include <libsigrok/libsigrok.h>
 #include "lib.h"
 
 #define BUFSIZE (1000 * 1000)

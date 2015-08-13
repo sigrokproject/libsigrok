@@ -21,7 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <check.h>
-#include "../include/libsigrok/libsigrok.h"
+#include <libsigrok/libsigrok.h>
 #include "lib.h"
 
 /* Test lots of triggers/stages/matches/channels */

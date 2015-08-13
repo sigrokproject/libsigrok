@@ -21,7 +21,7 @@
 #ifndef LIBSIGROK_TESTS_LIB_H
 #define LIBSIGROK_TESTS_LIB_H
 
-#include "../include/libsigrok/libsigrok.h"
+#include <libsigrok/libsigrok.h>
 
 extern struct sr_context *srtest_ctx;
 
