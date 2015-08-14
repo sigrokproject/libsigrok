@@ -30,7 +30,7 @@ m4_define([sr_package_version], [sr_package_version_major.sr_package_version_min
 
 AC_INIT([libsigrok], [sr_package_version], [sigrok-devel@lists.sourceforge.net],
 	[libsigrok], [http://www.sigrok.org])
-AC_CONFIG_HEADER([config.h])
+AC_CONFIG_HEADERS([config.h include/libsigrok/version.h])
 AC_CONFIG_MACRO_DIR([autostuff])
 AC_CONFIG_AUX_DIR([autostuff])
 
@@ -66,6 +66,13 @@ LT_INIT
 # We require at least 0.22, as "Requires.private" behaviour changed there.
 PKG_PROG_PKG_CONFIG([0.22])
 
+AC_SUBST([SR_PACKAGE_VERSION], [sr_package_version])
+
+AC_DEFINE([SR_PACKAGE_VERSION_MAJOR], [sr_package_version_major], [.])
+AC_DEFINE([SR_PACKAGE_VERSION_MINOR], [sr_package_version_minor], [.])
+AC_DEFINE([SR_PACKAGE_VERSION_MICRO], [sr_package_version_micro], [.])
+AC_DEFINE_UNQUOTED([SR_PACKAGE_VERSION_STRING], ["$SR_PACKAGE_VERSION"], [.])
+
 # Library version for libsigrok (NOT the same as the package version).
 # Carefully read the libtool docs before updating these numbers!
 # The algorithm for determining which number to change (and how) is nontrivial!
@@ -73,13 +80,14 @@ PKG_PROG_PKG_CONFIG([0.22])
 SR_LIB_VERSION_CURRENT=2
 SR_LIB_VERSION_REVISION=0
 SR_LIB_VERSION_AGE=0
-SR_LIB_VERSION="$SR_LIB_VERSION_CURRENT:$SR_LIB_VERSION_REVISION:$SR_LIB_VERSION_AGE"
-SR_LIB_LDFLAGS="-version-info $SR_LIB_VERSION"
-AC_SUBST(SR_LIB_VERSION_CURRENT)
-AC_SUBST(SR_LIB_VERSION_REVISION)
-AC_SUBST(SR_LIB_VERSION_AGE)
-AC_SUBST(SR_LIB_VERSION)
-AC_SUBST(SR_LIB_LDFLAGS)
+
+AC_SUBST([SR_LIB_VERSION], ["$SR_LIB_VERSION_CURRENT:$SR_LIB_VERSION_REVISION:$SR_LIB_VERSION_AGE"])
+AC_SUBST([SR_LIB_LDFLAGS], ["-version-info $SR_LIB_VERSION"])
+
+AC_DEFINE_UNQUOTED([SR_LIB_VERSION_CURRENT], [$SR_LIB_VERSION_CURRENT], [.])
+AC_DEFINE_UNQUOTED([SR_LIB_VERSION_REVISION], [$SR_LIB_VERSION_REVISION], [.])
+AC_DEFINE_UNQUOTED([SR_LIB_VERSION_AGE], [$SR_LIB_VERSION_AGE], [.])
+AC_DEFINE_UNQUOTED([SR_LIB_VERSION_STRING], ["$SR_LIB_VERSION"], [.])
 
 AC_ARG_ENABLE(all-drivers, AC_HELP_STRING([--enable-all-drivers],
 	[enable all drivers by default [default=yes]]),
@@ -555,18 +563,7 @@ AC_SUBST(FIRMWARE_DIR, "$datadir/sigrok-firmware")
 AC_SUBST(MAKEFLAGS, '--no-print-directory')
 AC_SUBST(AM_LIBTOOLFLAGS, '--silent')
 
-SR_PACKAGE_VERSION_MAJOR=sr_package_version_major
-SR_PACKAGE_VERSION_MINOR=sr_package_version_minor
-SR_PACKAGE_VERSION_MICRO=sr_package_version_micro
-SR_PACKAGE_VERSION=sr_package_version
-
-AC_SUBST(SR_PACKAGE_VERSION_MAJOR)
-AC_SUBST(SR_PACKAGE_VERSION_MINOR)
-AC_SUBST(SR_PACKAGE_VERSION_MICRO)
-AC_SUBST(SR_PACKAGE_VERSION)
-
-AC_CONFIG_FILES([Makefile include/libsigrok/version.h libsigrok.pc
-	bindings/cxx/libsigrokcxx.pc])
+AC_CONFIG_FILES([Makefile libsigrok.pc bindings/cxx/libsigrokcxx.pc])
 
 AC_OUTPUT
 
