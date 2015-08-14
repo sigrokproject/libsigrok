@@ -559,7 +559,7 @@ AM_CONDITIONAL(BINDINGS_JAVA, test x$BINDINGS_JAVA = xyes)
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_BIGENDIAN
 
-AC_SUBST(FIRMWARE_DIR, "$datadir/sigrok-firmware")
+AC_SUBST([FIRMWARE_DIR], ['$(datadir)/sigrok-firmware'])
 AC_SUBST(MAKEFLAGS, '--no-print-directory')
 AC_SUBST(AM_LIBTOOLFLAGS, '--silent')
 
