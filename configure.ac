@@ -25,10 +25,9 @@ AC_PREREQ([2.63])
 m4_define([sr_package_version_major], [0])
 m4_define([sr_package_version_minor], [4])
 m4_define([sr_package_version_micro], [0])
-m4_define([sr_package_version_suffix], [-git])
-m4_define([sr_package_version], [sr_package_version_major.sr_package_version_minor.sr_package_version_micro[]sr_package_version_suffix])
 
-AC_INIT([libsigrok], [sr_package_version], [sigrok-devel@lists.sourceforge.net],
+AC_INIT([libsigrok], [sr_package_version_major.sr_package_version_minor.sr_package_version_micro],
+	[sigrok-devel@lists.sourceforge.net],
 	[libsigrok], [http://www.sigrok.org])
 AC_CONFIG_HEADERS([config.h include/libsigrok/version.h])
 AC_CONFIG_MACRO_DIR([autostuff])
@@ -66,7 +65,25 @@ LT_INIT
 # We require at least 0.22, as "Requires.private" behaviour changed there.
 PKG_PROG_PKG_CONFIG([0.22])
 
-AC_SUBST([SR_PACKAGE_VERSION], [sr_package_version])
+CONFIG_STATUS_DEPENDENCIES=
+SR_PACKAGE_VERSION="AC_PACKAGE_VERSION"
+
+# Check if we can get revision information from git.
+sr_head=`git -C "$srcdir" rev-parse --verify --short HEAD 2>&AS_MESSAGE_LOG_FD`
+
+AS_IF([test "$?" -eq 0 && test -n "$sr_head"], [
+	CONFIG_STATUS_DEPENDENCIES='$(top_srcdir)/.git/HEAD'
+	sr_head_name=`git -C "$srcdir" rev-parse --symbolic-full-name HEAD 2>&AS_MESSAGE_LOG_FD`
+	AS_IF([test "$?" -eq 0 && test -f "$srcdir/.git/$sr_head_name"],
+		[CONFIG_STATUS_DEPENDENCIES="$CONFIG_STATUS_DEPENDENCIES \$(top_srcdir)/.git/$sr_head_name"])
+
+	# Append the revision hash unless we are exactly on a tagged release.
+	git -C "$srcdir" describe --match 'AC_PACKAGE_NAME-AC_PACKAGE_VERSION' \
+		--exact-match >&AS_MESSAGE_LOG_FD 2>&AS_MESSAGE_LOG_FD \
+	|| SR_PACKAGE_VERSION="$SR_PACKAGE_VERSION-git-$sr_head"
+])
+AC_SUBST([CONFIG_STATUS_DEPENDENCIES])
+AC_SUBST([SR_PACKAGE_VERSION])
 
 AC_DEFINE([SR_PACKAGE_VERSION_MAJOR], [sr_package_version_major], [.])
 AC_DEFINE([SR_PACKAGE_VERSION_MINOR], [sr_package_version_minor], [.])
