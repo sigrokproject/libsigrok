@@ -119,6 +119,83 @@
  * @{
  */
 
+static void print_versions(void)
+{
+	GString *s;
+#ifdef HAVE_LIBUSB_1_0
+	const struct libusb_version *lv;
+#endif
+
+	s = g_string_sized_new(200);
+
+	sr_dbg("libsigrok %s/%s (rt: %s/%s).",
+		SR_PACKAGE_VERSION_STRING, SR_LIB_VERSION_STRING,
+		sr_package_version_string_get(), sr_lib_version_string_get());
+
+	g_string_append(s, "Libs: ");
+	g_string_append_printf(s, "glib %d.%d.%d (rt: %d.%d.%d/%d:%d), ",
+		GLIB_MAJOR_VERSION, GLIB_MINOR_VERSION, GLIB_MICRO_VERSION,
+		glib_major_version, glib_minor_version, glib_micro_version,
+		glib_binary_age, glib_interface_age);
+	g_string_append_printf(s, "libzip %s, ", HAVE_LIBZIP_VER);
+#ifdef HAVE_LIBSERIALPORT
+	g_string_append_printf(s, "libserialport %s/%s (rt: %s/%s), ",
+		SP_PACKAGE_VERSION_STRING, SP_LIB_VERSION_STRING,
+		sp_get_package_version_string(), sp_get_lib_version_string());
+#endif
+#ifdef HAVE_LIBUSB_1_0
+	lv = libusb_get_version();
+	g_string_append_printf(s, "libusb-1.0 %d.%d.%d.%d%s, ",
+		lv->major, lv->minor, lv->micro, lv->nano, lv->rc);
+#endif
+#ifdef HAVE_LIBFTDI
+	g_string_append_printf(s, "libftdi %s, ", HAVE_LIBFTDI_VER);
+#endif
+#ifdef HAVE_LIBGPIB
+	g_string_append_printf(s, "libgpib %s, ", HAVE_LIBGPIB_VER);
+#endif
+#ifdef HAVE_LIBREVISA
+	g_string_append_printf(s, "librevisa %s, ", HAVE_LIBREVISA_VER);
+#endif
+	s->str[s->len - 2] = '.';
+	s->str[s->len - 1] = '\0';
+	sr_dbg("%s", s->str);
+
+	s = g_string_truncate(s, 0);
+	g_string_append_printf(s, "Host: %s, ", HOST);
+#ifdef WORDS_BIGENDIAN
+	g_string_append_printf(s, "big-endian.");
+#else
+	g_string_append_printf(s, "little-endian.");
+#endif
+	sr_dbg("%s", s->str);
+
+	s = g_string_truncate(s, 0);
+	g_string_append_printf(s, "SCPI backends: ");
+
+	g_string_append_printf(s, "TCP, ");
+#if HAVE_RPC
+	g_string_append_printf(s, "RPC, ");
+#endif
+#ifdef HAVE_LIBSERIALPORT
+	g_string_append_printf(s, "serial, ");
+#endif
+#ifdef HAVE_LIBREVISA
+	g_string_append_printf(s, "VISA, ");
+#endif
+#ifdef HAVE_LIBGPIB
+	g_string_append_printf(s, "GPIB, ");
+#endif
+#ifdef HAVE_LIBUSB_1_0
+	g_string_append_printf(s, "USBTMC, ");
+#endif
+	s->str[s->len - 2] = '.';
+	s->str[s->len - 1] = '\0';
+	sr_dbg("%s", s->str);
+
+	g_string_free(s, TRUE);
+}
+
 /**
  * Sanity-check all libsigrok drivers.
  *
@@ -383,6 +460,8 @@ SR_API int sr_init(struct sr_context **ctx)
 	struct sr_context *context;
 	struct sr_dev_driver ***lists, **drivers;
 	GArray *array;
+
+	print_versions();
 
 	if (!ctx) {
 		sr_err("%s(): libsigrok context was NULL.", __func__);

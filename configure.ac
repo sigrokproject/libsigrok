@@ -261,6 +261,8 @@ AC_DEFINE_UNQUOTED(HAVE_RPC, [$have_rpc], [Specifies whether we have RPC support
 # VXI support is only compiled if RPC support was found.
 AM_CONDITIONAL(NEED_RPC, test "x$have_rpc" != "x0")
 
+AC_DEFINE_UNQUOTED(HOST, ["$host"], [.])
+
 # libglib-2.0 is always needed. Abort if it's not found.
 # Note: glib-2.0 is part of the libsigrok API (hard pkg-config requirement).
 # We require at least 2.32.0 due to e.g. g_variant_new_fixed_array().
@@ -271,6 +273,8 @@ AM_PATH_GLIB_2_0([2.32.0],
 PKG_CHECK_MODULES([libzip], [libzip >= 0.10],
 	[LIB_CFLAGS="$LIB_CFLAGS $libzip_CFLAGS"; LIBS="$LIBS $libzip_LIBS";
 	SR_PKGLIBS="$SR_PKGLIBS libzip"])
+libzip_ver=`$PKG_CONFIG --modversion libzip`
+AC_DEFINE_UNQUOTED(HAVE_LIBZIP_VER, ["$libzip_ver"], [.])
 
 # libserialport is only needed for some hardware drivers. Disable the
 # respective drivers if it is not found.
@@ -315,6 +319,8 @@ if test "x$have_librevisa" != "xno"; then
 	# Define HAVE_LIBREVISA in config.h if we found librevisa.
 	AC_DEFINE_UNQUOTED(HAVE_LIBREVISA, [1],
 		[Specifies whether we have librevisa.])
+	librevisa_ver=`$PKG_CONFIG --modversion librevisa`
+	AC_DEFINE_UNQUOTED(HAVE_LIBREVISA_VER, ["$librevisa_ver"], [.])
 fi
 
 # The GPIB SCPI backend is only compiled in if libgpib is found.
@@ -328,6 +334,8 @@ if test "x$have_libgpib" != "xno"; then
 	# Define HAVE_LIBGPIB in config.h if we found libgpib.
 	AC_DEFINE_UNQUOTED(HAVE_LIBGPIB, [1],
 		[Specifies whether we have libgpib.])
+	libgpib_ver=`$PKG_CONFIG --modversion libgpib`
+	AC_DEFINE_UNQUOTED(HAVE_LIBGPIB_VER, ["$libgpib_ver"], [.])
 fi
 
 # libusb-1.0 is only needed for some hardware drivers. Disable the respective
@@ -374,12 +382,13 @@ AM_CONDITIONAL(NEED_USB, test "x$have_libusb1_0" != xno)
 if test "x$enable_libftdi" != "xno"; then
 	PKG_CHECK_MODULES([libftdi], [libftdi >= 0.16],
 		[have_libftdi="yes"; LIB_CFLAGS="$LIB_CFLAGS $libftdi_CFLAGS";
-		LIBS="$LIBS $libftdi_LIBS";
-		SR_PKGLIBS="$SR_PKGLIBS libftdi"],
+		LIBS="$LIBS $libftdi_LIBS"; SR_PKGLIBS="$SR_PKGLIBS libftdi";
+		libftdi_ver=`$PKG_CONFIG --modversion libftdi`],
 		[PKG_CHECK_MODULES([libftdi1], [libftdi1 >= 1.0],
 			[LIB_CFLAGS="$LIB_CFLAGS $libftdi1_CFLAGS";
 			LIBS="$LIBS $libftdi1_LIBS";
-			SR_PKGLIBS="$SR_PKGLIBS libftdi1"],
+			SR_PKGLIBS="$SR_PKGLIBS libftdi1";
+			libftdi_ver=`$PKG_CONFIG --modversion libftdi1`],
 			[have_libftdi="no"])])
 	if test "x$enable_libftdi$have_libftdi" = "xyesno"; then
 		AC_MSG_ERROR([libftdi support requested, but it was not found.])
@@ -390,6 +399,11 @@ fi
 if test "x$have_libftdi" = "xno"; then
 	HW_ASIX_SIGMA="no"; HW_CHRONOVU_LA="no"; HW_IKALOGIC_SCANAPLUS="no";
 	HW_PIPISTRELLO_OLS="no";
+else
+	# Define HAVE_LIBFTDI in config.h if we found libftdi.
+	AC_DEFINE_UNQUOTED(HAVE_LIBFTDI, [1],
+		[Specifies whether we have libftdi.])
+	AC_DEFINE_UNQUOTED(HAVE_LIBFTDI_VER, ["$libftdi_ver"], [.])
 fi
 
 # glibmm-2.4 is needed for the C++ bindings.
