@@ -25,6 +25,7 @@
 #include "vxi.h"
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
+#include "scpi.h"
 
 #define LOG_PREFIX "scpi_vxi"
 #define VXI_DEFAULT_TIMEOUT_MS 2000

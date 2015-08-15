@@ -26,6 +26,7 @@
 #include <glib.h>
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
+#include "scpi.h"
 
 #define LOG_PREFIX "std"
 

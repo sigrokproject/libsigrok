@@ -19,6 +19,7 @@
  */
 
 #include <stdlib.h>
+#include "scpi.h"
 #include "protocol.h"
 
 SR_PRIV struct sr_dev_driver yokogawa_dlm_driver_info;

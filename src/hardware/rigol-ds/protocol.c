@@ -30,6 +30,7 @@
 #include <glib.h>
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
+#include "scpi.h"
 #include "protocol.h"
 
 /*

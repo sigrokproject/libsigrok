@@ -18,6 +18,7 @@
  */
 
 #include <stdlib.h>
+#include "scpi.h"
 #include "protocol.h"
 
 #define SERIALCOMM "115200/8n1/flow=1"

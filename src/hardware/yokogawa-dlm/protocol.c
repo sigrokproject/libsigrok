@@ -25,6 +25,7 @@
  * @internal
  */
 
+#include "scpi.h"
 #include "protocol.h"
 
 static const char *dlm_coupling_options[] = {

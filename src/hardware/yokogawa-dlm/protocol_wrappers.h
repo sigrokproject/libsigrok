@@ -25,6 +25,7 @@
 #include <string.h>
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
+#include "scpi.h"
 #include "protocol.h"
 
 extern int dlm_timebase_get(struct sr_scpi_dev_inst *scpi,

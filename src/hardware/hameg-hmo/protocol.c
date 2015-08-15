@@ -17,6 +17,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "scpi.h"
 #include "protocol.h"
 
 static const char *hameg_scpi_dialect[] = {

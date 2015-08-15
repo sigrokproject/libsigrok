@@ -23,6 +23,7 @@
 #include <string.h>
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
+#include "scpi.h"
 
 #define LOG_PREFIX "scpi_serial"
 
