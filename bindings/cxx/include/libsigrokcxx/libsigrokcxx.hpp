@@ -96,6 +96,7 @@ class SR_API Session;
 class SR_API ConfigKey;
 class SR_API InputFormat;
 class SR_API OutputFormat;
+class SR_API OutputFlag;
 class SR_API LogLevel;
 class SR_API ChannelGroup;
 class SR_API Trigger;
@@ -969,6 +970,13 @@ public:
 		shared_ptr<Device> device,
 		map<string, Glib::VariantBase> options =
 			map<string, Glib::VariantBase>());
+	/**
+	 * Checks whether a given flag is set.
+	 * @param flag Flag to check
+	 * @return true if flag is set for this module
+	 * @see sr_output_flags
+	 */
+	bool test_flag(const OutputFlag *flag);
 protected:
 	OutputFormat(const struct sr_output_module *structure);
 	~OutputFormat();

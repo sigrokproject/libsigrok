@@ -151,6 +151,7 @@ SR_PRIV struct sr_output_module output_ols = {
 	.name = "OLS",
 	.desc = "OpenBench Logic Sniffer",
 	.exts = (const char*[]){"ols", NULL},
+	.flags = 0,
 	.options = NULL,
 	.init = init,
 	.receive = receive,

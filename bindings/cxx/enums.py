@@ -40,7 +40,8 @@ mapping = dict([
     ('sr_configkey', ('ConfigKey', 'Configuration key')),
     ('sr_datatype', ('DataType', 'Configuration data type')),
     ('sr_channeltype', ('ChannelType', 'Channel type')),
-    ('sr_trigger_matches', ('TriggerMatchType', 'Trigger match type'))])
+    ('sr_trigger_matches', ('TriggerMatchType', 'Trigger match type')),
+    ('sr_output_flag', ('OutputFlag', 'Flag applied to output modules'))])
 
 index = ElementTree.parse(index_file)
 

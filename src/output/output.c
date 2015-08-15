@@ -156,6 +156,18 @@ SR_API const char *const *sr_output_extensions_get(
 	return omod->exts;
 }
 
+/*
+ * Checks whether a given flag is set.
+ *
+ * @see sr_output_flag
+ * @since 0.4.0
+ */
+SR_API gboolean sr_output_test_flag(const struct sr_output_module *omod,
+		uint64_t flag)
+{
+	return (flag & omod->flags);
+}
+
 /**
  * Return the output module with the specified ID, or NULL if no module
  * with that id is found.

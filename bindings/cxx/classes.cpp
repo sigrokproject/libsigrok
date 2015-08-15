@@ -1573,6 +1573,11 @@ shared_ptr<Output> OutputFormat::create_output(string filename,
 		Output::Deleter());
 }
 
+bool OutputFormat::test_flag(const OutputFlag *flag)
+{
+	return sr_output_test_flag(_structure, flag->id());
+}
+
 Output::Output(shared_ptr<OutputFormat> format,
 		shared_ptr<Device> device, map<string, Glib::VariantBase> options) :
 	UserOwned(sr_output_new(format->_structure,

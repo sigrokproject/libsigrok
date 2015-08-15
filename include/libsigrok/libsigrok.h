@@ -518,6 +518,12 @@ struct sr_option {
 	GSList *values;
 };
 
+/** Output module flags. */
+enum sr_output_flag {
+	/** If set, this output module writes the output itself. */
+	SR_OUTPUT_INTERNAL_IO_HANDLING = 0x01,
+};
+
 struct sr_input;
 struct sr_input_module;
 struct sr_output;

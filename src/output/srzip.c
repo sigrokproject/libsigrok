@@ -317,6 +317,7 @@ SR_PRIV struct sr_output_module output_srzip = {
 	.name = "srzip",
 	.desc = "srzip session file",
 	.exts = (const char*[]){"sr", NULL},
+	.flags = SR_OUTPUT_INTERNAL_IO_HANDLING,
 	.options = get_options,
 	.init = init,
 	.receive = receive,

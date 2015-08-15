@@ -345,6 +345,7 @@ SR_PRIV struct sr_output_module output_analog = {
 	.name = "Analog",
 	.desc = "Analog data and types",
 	.exts = NULL,
+	.flags = 0,
 	.options = get_options,
 	.init = init,
 	.receive = receive,

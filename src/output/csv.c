@@ -333,6 +333,7 @@ SR_PRIV struct sr_output_module output_csv = {
 	.name = "CSV",
 	.desc = "Comma-separated values",
 	.exts = (const char*[]){"csv", NULL},
+	.flags = 0,
 	.options = NULL,
 	.init = init,
 	.receive = receive,

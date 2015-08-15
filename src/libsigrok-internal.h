@@ -413,6 +413,13 @@ struct sr_output_module {
 	const char *const *exts;
 
 	/**
+	 * Bitfield containing flags that describe certain properties
+	 * this output module may or may not have.
+	 * @see sr_output_flags
+	 */
+	const uint64_t flags;
+
+	/**
 	 * Returns a NULL-terminated list of options this module can take.
 	 * Can be NULL, if the module has no options.
 	 */

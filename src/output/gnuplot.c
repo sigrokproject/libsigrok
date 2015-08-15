@@ -221,6 +221,7 @@ SR_PRIV struct sr_output_module output_gnuplot = {
 	.name = "Gnuplot",
 	.desc = "Gnuplot data file format",
 	.exts = (const char*[]){"dat", NULL},
+	.flags = 0,
 	.options = NULL,
 	.init = init,
 	.receive = receive,
