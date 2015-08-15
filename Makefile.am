@@ -421,7 +421,8 @@ libsigrok_la_LDFLAGS += -no-undefined
 library_includedir = $(includedir)/libsigrok
 library_include_HEADERS = \
 	include/libsigrok/libsigrok.h \
-	include/libsigrok/proto.h \
+	include/libsigrok/proto.h
+nodist_library_include_HEADERS = \
 	include/libsigrok/version.h
 noinst_HEADERS = src/libsigrok-internal.h
 
@@ -506,7 +507,8 @@ bindings_cxx_libsigrokcxx_la_LDFLAGS += -no-undefined
 
 bindings_cxx_libsigrokcxx_la_includedir = $(includedir)/libsigrokcxx
 bindings_cxx_libsigrokcxx_la_include_HEADERS = \
-	bindings/cxx/include/libsigrokcxx/libsigrokcxx.hpp \
+	bindings/cxx/include/libsigrokcxx/libsigrokcxx.hpp
+nodist_bindings_cxx_libsigrokcxx_la_include_HEADERS = \
 	bindings/cxx/include/libsigrokcxx/enums.hpp
 
 pkgconfig_DATA += bindings/cxx/libsigrokcxx.pc
