@@ -611,7 +611,7 @@ $(JCXX): $(JSWG) $(JDOC) bindings/swig/classes.i bindings/swig/enums.i \
 		$(library_include_HEADERS) $(nodist_library_include_HEADERS)
 	$(AM_V_at)make java-clean
 	$(AM_V_GEN)swig -c++ -java -package org.sigrok.core.classes \
-		$(local_includes) -I$(JCLS) -I. -I$(srcdir) -outdir $(JCLS) -o $@ $<
+		-Ibindings -I$(JCLS) $(local_includes) -I$(srcdir) -outdir $(JCLS) -o $@ $<
 
 $(JJAR): $(JCXX)
 	$(AM_V_GEN)$(JAVAC) -sourcepath $(JDIR) -d $(JDIR) $(JSRC)

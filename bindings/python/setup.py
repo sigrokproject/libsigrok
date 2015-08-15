@@ -35,7 +35,7 @@ sr_includes, sr_lib_dirs, sr_libs, (sr_version,) = [
 
 includes = ['../../include', '../cxx/include']
 includes += [os.path.join(srcdir, path) for path in includes]
-includes += ['../..', '../../include/libsigrok', '../cxx/include/libsigrokcxx']
+includes += ['../..']
 includes += [i[2:] for i in sr_includes]
 includes += [np.get_include(), ]
 libdirs = ['../../.libs', '../cxx/.libs'] + [l[2:] for l in sr_lib_dirs]
@@ -77,7 +77,8 @@ setup(
     ext_modules = [
         Extension('sigrok.core._classes',
             sources = [vpath('sigrok/core/classes.i')],
-            swig_opts = ['-c++', '-threads', '-Isigrok/core'] + 
+            swig_opts = ['-c++', '-threads', '-Isigrok/core',
+                         '-I..', '-I%s' % os.path.join(srcdir, '..')] +
                 ['-I%s' % i for i in includes],
             extra_compile_args = ['-std=c++11', '-Wno-uninitialized'],
             include_dirs = includes,
