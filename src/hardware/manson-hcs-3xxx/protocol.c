@@ -62,7 +62,7 @@ SR_PRIV int hcs_send_cmd(struct sr_serial_dev_inst *serial, const char *cmd, ...
  * @retval SR_ERR Error.
  * @retval SR_ERR_ARG Invalid argument.
  */
-SR_PRIV int hcs_read_reply(struct sr_serial_dev_inst *serial, int lines, char* buf, int buflen)
+SR_PRIV int hcs_read_reply(struct sr_serial_dev_inst *serial, int lines, char *buf, int buflen)
 {
 	int l_recv = 0;
 	int bufpos = 0;

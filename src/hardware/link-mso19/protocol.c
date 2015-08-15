@@ -198,7 +198,7 @@ SR_PRIV int mso_dac_out(const struct sr_dev_inst *sdi, uint16_t val)
 	return mso_send_control_message(devc->serial, ARRAY_AND_SIZE(ops));
 }
 
-SR_PRIV inline uint16_t mso_calc_raw_from_mv(struct dev_context * devc)
+SR_PRIV uint16_t mso_calc_raw_from_mv(struct dev_context *devc)
 {
 	return (uint16_t) (0x200 -
 			   ((devc->dso_trigger_voltage / devc->dso_probe_attn) /

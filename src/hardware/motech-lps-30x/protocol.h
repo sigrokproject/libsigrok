@@ -31,8 +31,8 @@
 #include "libsigrok.h"
 #include "libsigrok-internal.h"
 
-SR_PRIV int lps_process_status(struct sr_dev_inst* sdi, int stat);
-SR_PRIV int lps_send_req(struct sr_serial_dev_inst *serial, const char* fmt, ...);
+SR_PRIV int lps_process_status(struct sr_dev_inst *sdi, int stat);
+SR_PRIV int lps_send_req(struct sr_serial_dev_inst *serial, const char *fmt, ...);
 
 #define LOG_PREFIX "motech-lps-30x"
 
@@ -61,7 +61,7 @@ struct channel_spec {
 /** Model properties specification */
 struct lps_modelspec {
 	lps_modelid modelid;
-	const char* modelstr;
+	const char *modelstr;
 	uint8_t num_channels;
 	struct channel_spec channels[3];
 };
@@ -79,7 +79,7 @@ typedef enum {
 /** Status of a single channel. */
 struct channel_status {
 	/* Channel information (struct channel_info*). data (struct) owned by sdi, just a reference to address a single channel. */
-	GSList* info;
+	GSList *info;
 	/* Received from device. */
 	gdouble output_voltage_last;
 	gdouble output_current_last;
@@ -93,7 +93,7 @@ struct channel_status {
 /** Private, per-device-instance driver context. */
 struct dev_context {
 	/* Model-specific information */
-	const struct lps_modelspec* model;
+	const struct lps_modelspec *model;
 
 	/* Acquisition status */
 	gboolean acq_running;		/**< Acquisition is running. */

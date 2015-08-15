@@ -128,7 +128,7 @@ static struct sr_dev_inst *probe_device(struct sr_modbus_dev_inst *modbus)
 	int ret = maynuo_m97_get_model_version(modbus, &id, &version);
 	if (ret != SR_OK)
 		return NULL;
-	for (i=0; i<ARRAY_SIZE(supported_models); i++)
+	for (i = 0; i < ARRAY_SIZE(supported_models); i++)
 		if (id == supported_models[i].id) {
 			model = &supported_models[i];
 			break;

@@ -43,7 +43,7 @@ static const uint32_t devopts[] = {
 SR_PRIV struct sr_dev_driver norma_dmm_driver_info;
 SR_PRIV struct sr_dev_driver siemens_b102x_driver_info;
 
-static const char* get_brandstr(struct sr_dev_driver* drv)
+static const char *get_brandstr(struct sr_dev_driver *drv)
 {
 	if (drv == &norma_dmm_driver_info)
 		return "Norma";
@@ -51,9 +51,9 @@ static const char* get_brandstr(struct sr_dev_driver* drv)
 		return "Siemens";
 }
 
-static const char* get_typestr(int type, struct sr_dev_driver* drv)
+static const char *get_typestr(int type, struct sr_dev_driver *drv)
 {
-	static const char* nameref[5][2] = {
+	static const char *nameref[5][2] = {
 		{"DM910", "B1024"},
 		{"DM920", "B1025"},
 		{"DM930", "B1026"},
@@ -71,7 +71,7 @@ static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 	return std_init(sr_ctx, di, LOG_PREFIX);
 }
 
-static GSList *scan(struct sr_dev_driver* drv, GSList *options)
+static GSList *scan(struct sr_dev_driver *drv, GSList *options)
 {
 	struct sr_dev_inst *sdi;
 	struct drv_context *drvc;
@@ -250,8 +250,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	return SR_OK;
 }
 
-static int dev_acquisition_start(const struct sr_dev_inst *sdi,
-				    void *cb_data)
+static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 {
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;

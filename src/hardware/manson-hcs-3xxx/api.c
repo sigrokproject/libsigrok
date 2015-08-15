@@ -20,7 +20,7 @@
  */
 
 /** @file
-  *  <em>Manson HCS-3xxx Series</em> power supply driver
+  *  <em>Manson HCS-3xxx series</em> power supply driver
   *  @internal
   */
 

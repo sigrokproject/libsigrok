@@ -472,10 +472,7 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 			*data = g_variant_new_string(devc->triggersource);
 			break;
 		case SR_CONF_TRIGGER_SLOPE:
-			if (devc->triggerslope == SLOPE_POSITIVE)
-				s = "r";
-			else
-				s = "f";
+			s = (devc->triggerslope == SLOPE_POSITIVE) ? "r" : "f";
 			*data = g_variant_new_string(s);
 			break;
 		case SR_CONF_HORIZ_TRIGGERPOS:

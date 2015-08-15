@@ -31,10 +31,10 @@
 /* Forward declarations */
 SR_PRIV struct sr_dev_driver motech_lps_301_driver_info;
 SR_PRIV int lps_read_reply(struct sr_serial_dev_inst *serial, char **buf, int *buflen);
-SR_PRIV int lps_send_va(struct sr_serial_dev_inst *serial, const char* fmt, va_list args);
-SR_PRIV int lps_cmd_ok(struct sr_serial_dev_inst *serial, const char* fmt, ...);
-SR_PRIV int lps_cmd_reply(char* reply, struct sr_serial_dev_inst *serial, const char* fmt, ...);
-SR_PRIV int lps_query_status(struct sr_dev_inst* sdi);
+SR_PRIV int lps_send_va(struct sr_serial_dev_inst *serial, const char *fmt, va_list args);
+SR_PRIV int lps_cmd_ok(struct sr_serial_dev_inst *serial, const char *fmt, ...);
+SR_PRIV int lps_cmd_reply(char *reply, struct sr_serial_dev_inst *serial, const char *fmt, ...);
+SR_PRIV int lps_query_status(struct sr_dev_inst *sdi);
 
 /* Serial communication parameters */
 #define SERIALCOMM "2400/8n1/dtr=1/rts=1/flow=0"
@@ -139,7 +139,7 @@ static int init_lps301(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 
 /** Send command to device with va_list.
  */
-SR_PRIV int lps_send_va(struct sr_serial_dev_inst *serial, const char* fmt, va_list args)
+SR_PRIV int lps_send_va(struct sr_serial_dev_inst *serial, const char *fmt, va_list args)
 {
 	int retc;
 	char auxfmt[LINELEN_MAX];
@@ -160,7 +160,7 @@ SR_PRIV int lps_send_va(struct sr_serial_dev_inst *serial, const char* fmt, va_l
 
 /** Send command to device.
  */
-SR_PRIV int lps_send_req(struct sr_serial_dev_inst *serial, const char* fmt, ...)
+SR_PRIV int lps_send_req(struct sr_serial_dev_inst *serial, const char *fmt, ...)
 {
 	int retc;
 	va_list args;
@@ -173,12 +173,12 @@ SR_PRIV int lps_send_req(struct sr_serial_dev_inst *serial, const char* fmt, ...
 }
 
 /** Send command and consume simple OK reply. */
-SR_PRIV int lps_cmd_ok(struct sr_serial_dev_inst *serial, const char* fmt, ...)
+SR_PRIV int lps_cmd_ok(struct sr_serial_dev_inst *serial, const char *fmt, ...)
 {
 	int retc;
 	va_list args;
 	char buf[LINELEN_MAX];
-	char* bufptr;
+	char *bufptr;
 	int  buflen;
 
 	/* Send command */
@@ -203,12 +203,12 @@ SR_PRIV int lps_cmd_ok(struct sr_serial_dev_inst *serial, const char* fmt, ...)
 /** Send command and read reply string.
  *  @param reply Pointer to buffer of size LINELEN_MAX. Will be NUL-terminated.
  */
-SR_PRIV int lps_cmd_reply(char* reply, struct sr_serial_dev_inst *serial, const char* fmt, ...)
+SR_PRIV int lps_cmd_reply(char *reply, struct sr_serial_dev_inst *serial, const char *fmt, ...)
 {
 	int retc;
 	va_list args;
 	char buf[LINELEN_MAX];
-	char* bufptr;
+	char *bufptr;
 	int  buflen;
 
 	reply[0] = '\0';
@@ -235,12 +235,12 @@ SR_PRIV int lps_cmd_reply(char* reply, struct sr_serial_dev_inst *serial, const 
 }
 
 /** Process integer value returned by STATUS command. */
-SR_PRIV int lps_process_status(struct sr_dev_inst* sdi, int stat)
+SR_PRIV int lps_process_status(struct sr_dev_inst *sdi, int stat)
 {
-	struct dev_context* devc;
+	struct dev_context *devc;
 	int tracking_mode;
 
-	devc = (struct dev_context*)sdi->priv;
+	devc = (struct dev_context *)sdi->priv;
 
 	sr_spew("Status: %d", stat);
 	devc->channel_status[0].cc_mode = (stat & 0x01) != 0;
@@ -281,13 +281,13 @@ SR_PRIV int lps_process_status(struct sr_dev_inst* sdi, int stat)
 }
 
 /** Send STATUS commend and process status string. */
-SR_PRIV int lps_query_status(struct sr_dev_inst* sdi)
+SR_PRIV int lps_query_status(struct sr_dev_inst *sdi)
 {
 	char buf[LINELEN_MAX];
 	int stat, ret;
-	struct dev_context* devc;
+	struct dev_context *devc;
 
-	devc = (struct dev_context*)sdi->priv;
+	devc = (struct dev_context *)sdi->priv;
 
 	devc->req_sent_at = g_get_real_time();
 
@@ -520,7 +520,7 @@ static GSList *dev_list_lps301(const struct sr_dev_driver *di)
 	return ((struct drv_context *)(di->context))->instances;
 }
 
-static void dev_clear_private(struct dev_context* devc)
+static void dev_clear_private(struct dev_context *devc)
 {
 	int ch_idx;
 
@@ -794,8 +794,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	return SR_OK;
 }
 
-static int dev_acquisition_start(const struct sr_dev_inst *sdi,
-				    void *cb_data)
+static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 {
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;

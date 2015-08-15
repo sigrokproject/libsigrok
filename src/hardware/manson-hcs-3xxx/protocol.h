@@ -92,7 +92,7 @@ struct dev_context {
 };
 
 SR_PRIV int hcs_parse_volt_curr_mode(struct sr_dev_inst *sdi, char **tokens);
-SR_PRIV int hcs_read_reply(struct sr_serial_dev_inst *serial, int lines, char* buf, int buflen);
+SR_PRIV int hcs_read_reply(struct sr_serial_dev_inst *serial, int lines, char *buf, int buflen);
 SR_PRIV int hcs_send_cmd(struct sr_serial_dev_inst *serial, const char *cmd, ...);
 SR_PRIV int hcs_receive_data(int fd, int revents, void *cb_data);
 
