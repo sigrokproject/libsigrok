@@ -20,7 +20,7 @@
 
 ACLOCAL_AMFLAGS = -I autostuff
 
-local_includes = -Iinclude -I$(srcdir)/include -I$(srcdir)/src
+local_includes = -Iinclude -I$(srcdir)/include -I$(srcdir)/src -I.
 local_includes += -Ibindings/cxx/include -I${srcdir}/bindings/cxx/include -Ibindings/cxx
 
 AM_CPPFLAGS = $(local_includes) -DFIRMWARE_DIR='"$(FIRMWARE_DIR)"'
