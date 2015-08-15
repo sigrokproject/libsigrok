@@ -432,6 +432,25 @@ EXTRA_DIST = \
 	Doxyfile \
 	HACKING \
 	README.devices \
+	bindings/cxx/ConfigKey_methods.cpp \
+	bindings/cxx/ConfigKey_methods.hpp \
+	bindings/cxx/ConfigKey_methods.i \
+	bindings/cxx/Doxyfile \
+	bindings/cxx/QuantityFlag_methods.cpp \
+	bindings/cxx/QuantityFlag_methods.hpp \
+	bindings/cxx/enums.py \
+	bindings/python/Doxyfile \
+	bindings/python/setup.py \
+	bindings/python/sigrok/__init__.py \
+	bindings/python/sigrok/core/__init__.py \
+	bindings/python/sigrok/core/classes.i \
+	bindings/java/Doxyfile \
+	bindings/java/org/sigrok/core/classes/classes.i \
+	bindings/java/org/sigrok/core/interfaces/DatafeedCallback.java \
+	bindings/java/org/sigrok/core/interfaces/LogCallback.java \
+	bindings/java/org/sigrok/core/interfaces/SourceCallback.java \
+	bindings/swig/classes.i \
+	bindings/swig/doc.py \
 	contrib/gnuplot_chronovu_la8.gpi \
 	contrib/gnuplot_rigol_ds1xx2.gpi \
 	contrib/gnuplot_usbeesx.gpi \
