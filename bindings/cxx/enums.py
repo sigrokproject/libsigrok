@@ -27,9 +27,11 @@ index_file = sys.argv[1]
 # Get directory this script is in.
 dirname = os.path.dirname(os.path.realpath(__file__))
 
-outdirname = "bindings/cxx"
-if not os.path.exists(os.path.join(outdirname, 'include/libsigrokcxx')):
-    os.makedirs(os.path.join(outdirname, 'include/libsigrokcxx'))
+outdirname = "bindings"
+if not os.path.exists(os.path.join(outdirname, 'cxx/include/libsigrokcxx')):
+    os.makedirs(os.path.join(outdirname, 'cxx/include/libsigrokcxx'))
+if not os.path.exists(os.path.join(outdirname, 'swig')):
+    os.makedirs(os.path.join(outdirname, 'swig'))
 
 mapping = dict([
     ('sr_loglevel', ('LogLevel', 'Log verbosity level')),
@@ -66,9 +68,9 @@ for compound in index.findall('compound'):
             if name in mapping:
                 classes[member] = mapping[name]
 
-header = open(os.path.join(outdirname, 'include/libsigrokcxx/enums.hpp'), 'w')
-code = open(os.path.join(outdirname, 'enums.cpp'), 'w')
-swig = open(os.path.join(dirname, '../swig/enums.i'), 'w')
+header = open(os.path.join(outdirname, 'cxx/include/libsigrokcxx/enums.hpp'), 'w')
+code = open(os.path.join(outdirname, 'cxx/enums.cpp'), 'w')
+swig = open(os.path.join(outdirname, 'swig/enums.i'), 'w')
 
 for file in (header, code):
     print("/* Generated file - edit enums.py instead! */", file=file)
