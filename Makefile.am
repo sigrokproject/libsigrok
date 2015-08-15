@@ -516,8 +516,8 @@ pkgconfig_DATA += bindings/cxx/libsigrokcxx.pc
 doxy/xml/index.xml: include/libsigrok/libsigrok.h
 	$(AM_V_GEN)cd $(srcdir) && BUILDDIR=$(abs_builddir)/ doxygen Doxyfile 2>/dev/null
 
+bindings/swig/enums.i: bindings/cxx/enums.timestamp
 bindings/cxx/enums.cpp: bindings/cxx/enums.timestamp
-
 bindings/cxx/include/libsigrokcxx/enums.hpp: bindings/cxx/enums.timestamp
 
 bindings/cxx/enums.timestamp: $(srcdir)/bindings/cxx/enums.py doxy/xml/index.xml \
@@ -526,7 +526,7 @@ bindings/cxx/enums.timestamp: $(srcdir)/bindings/cxx/enums.py doxy/xml/index.xml
 	$(AM_V_at)touch $@
 
 bindings/cxx/classes.lo: bindings/cxx/classes.cpp bindings/cxx/enums.cpp \
-		$(library_include_HEADERS)
+		$(library_include_HEADERS) $(nodist_library_include_HEADERS)
 
 cxx-clean:
 	rm -rf doxy/
@@ -561,7 +561,8 @@ python-quietclean:
 		| grep -v "can.t clean it"; true
 
 $(PDIR)/timestamp: bindings/cxx/libsigrokcxx.la $(PDIR)/sigrok/core/classes.i \
-		bindings/swig/classes.i $(PDOC) $(library_include_HEADERS)
+		bindings/swig/classes.i bindings/swig/enums.i $(PDOC) \
+		$(library_include_HEADERS) $(nodist_library_include_HEADERS)
 	$(AM_V_at)$(MAKE) python-quietclean
 	$(AM_V_GEN)cd $(PDIR) && $(PYTHON) $(abs_srcdir)/$(PDIR)/setup.py --quiet build 3>&1 1>&2 2>&3 \
 		| grep -v "command line option.*Wstrict-prototypes"; true
@@ -606,7 +607,8 @@ $(JDOC): bindings/swig/doc.py $(CPPXMLDOC)
 	$(AM_V_at)test -d $(JCLS) || $(MKDIR_P) $(JCLS)
 	$(AM_V_GEN)python $< java $(CPPXMLDOC) > $@
 
-$(JCXX): $(JSWG) $(JDOC) bindings/swig/classes.i $(library_include_HEADERS)
+$(JCXX): $(JSWG) $(JDOC) bindings/swig/classes.i bindings/swig/enums.i \
+		$(library_include_HEADERS) $(nodist_library_include_HEADERS)
 	$(AM_V_at)make java-clean
 	$(AM_V_GEN)swig -c++ -java -package org.sigrok.core.classes \
 		$(local_includes) -I$(JCLS) -I. -I$(srcdir) -outdir $(JCLS) -o $@ $<
@@ -615,7 +617,7 @@ $(JJAR): $(JCXX)
 	$(AM_V_GEN)$(JAVAC) -sourcepath $(JDIR) -d $(JDIR) $(JSRC)
 	$(AM_V_at)jar cf $(JJAR) -C $(JDIR) $(JPKG)
 
-$(JLIB): $(JCXX) bindings/cxx/libsigrokcxx.la $(library_include_HEADERS)
+$(JLIB): $(JCXX) bindings/cxx/libsigrokcxx.la $(library_include_HEADERS) $(nodist_library_include_HEADERS)
 	$(AM_V_GEN)$(CXXCOMPILE) -L.libs -Lbindings/cxx/.libs \
 		-fno-strict-aliasing -fPIC -shared $(JCLS)/classes_wrap.cxx \
 		-lsigrokcxx -o $(JLIB)
