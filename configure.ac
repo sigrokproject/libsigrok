@@ -106,72 +106,75 @@ AC_DEFINE_UNQUOTED([SR_LIB_VERSION_REVISION], [$SR_LIB_VERSION_REVISION], [.])
 AC_DEFINE_UNQUOTED([SR_LIB_VERSION_AGE], [$SR_LIB_VERSION_AGE], [.])
 AC_DEFINE_UNQUOTED([SR_LIB_VERSION_STRING], ["$SR_LIB_VERSION"], [.])
 
-AC_ARG_ENABLE(all-drivers, AC_HELP_STRING([--enable-all-drivers],
-	[enable all drivers by default [default=yes]]),
+AC_ARG_ENABLE([all-drivers],
+	[AS_HELP_STRING([--enable-all-drivers],
+			[enable all drivers by default [[default=yes]]])],
 	[HW_ENABLED_DEFAULT="$enableval"],
 	[HW_ENABLED_DEFAULT="yes"])
 
-# Usage: DRIVER([Device name], [driver-name])
-# An optional third argument [no] disables that driver.
-m4_define([driverize], [m4_tolower(m4_bpatsubst([$1], [[^0-9a-zA-Z-]+], [-]))])
-m4_define([upperize], [m4_toupper(m4_bpatsubst([$1], [[^0-9a-zA-Z_]+], [_]))])
-AC_DEFUN([DRIVER], [
-	if test -z "$3"; then
-		default=$HW_ENABLED_DEFAULT
-	else
-		default="$3"
-	fi
-	AC_ARG_ENABLE($2, AC_HELP_STRING([--enable-$2], [enable $1 support]),
-		[m4_join([], [HW_], upperize([$2]))="$enableval"],
-		[m4_join([], [HW_], upperize([$2]))=$default])
-	dots=$(echo -n ".............................." | cut -c 1-$(expr 32 - $(echo -n $2|wc -c)))
-	driver_summary="${driver_summary}  - $2${dots} \${m4_join([], [HW_], upperize([$2]))}@"
+## _SR_DRIVER(Device name, driver-name, enable, var-name)
+m4_define([_SR_DRIVER], [
+	AC_ARG_ENABLE([$4],
+		[AS_HELP_STRING([--enable-$2], [enable $1 support])],
+		[$4=$enableval], [$4=$3])
+	m4_append([SR_DRIVER_SUMMARY],
+		[ - m4_translit(m4_format([%-32s], [$2]), [ ], [.]) [$]$4],
+		m4_newline)
+	AC_CONFIG_COMMANDS_PRE([dnl
+		AM_CONDITIONAL([$4], [test "x[$]$4" = xyes])
+		AM_COND_IF([$4], [AC_DEFINE([HAVE_$4], [1], [Whether to support $1 device.])])
+	])
 ])
+## SR_DRIVER(Device name, driver-name, [no])
+m4_define([SR_DRIVER],
+	[_SR_DRIVER([$1], [$2],
+		m4_default_quoted([$3], [$HW_ENABLED_DEFAULT]),
+		m4_expand([AS_TR_CPP([HW_$2])]))])
 
-DRIVER([Agilent DMM], [agilent-dmm])
-DRIVER([Appa 55II], [appa-55ii])
-DRIVER([ASIX SIGMA/SIGMA2], [asix-sigma])
-DRIVER([Atten PPS3xxx], [atten-pps3xxx])
-DRIVER([BayLibre ACME], [baylibre-acme])
-DRIVER([BeagleLogic], [beaglelogic])
-DRIVER([Brymen BM86x], [brymen-bm86x])
-DRIVER([Brymen DMM], [brymen-dmm])
-DRIVER([CEM DT-885x], [cem-dt-885x])
-DRIVER([Center 3xx], [center-3xx])
-DRIVER([ChronoVu LA], [chronovu-la])
-DRIVER([Colead SLM], [colead-slm])
-DRIVER([Conrad DIGI 35 CPU], [conrad-digi-35-cpu])
-DRIVER([DER EE DE-5000], [deree-de5000])
-DRIVER([demo], [demo])
-DRIVER([Fluke DMM], [fluke-dmm])
-DRIVER([fx2lafw], [fx2lafw])
-DRIVER([GMC MH 1x/2x], [gmc-mh-1x-2x])
-DRIVER([Hameg HMO], [hameg-hmo])
-DRIVER([Hantek DSO], [hantek-dso])
-DRIVER([Ikalogic Scanalogic-2], [ikalogic-scanalogic2])
-DRIVER([Ikalogic Scanaplus], [ikalogic-scanaplus])
-DRIVER([Kecheng KC-330B], [kecheng-kc-330b])
-DRIVER([Lascar EL-USB], [lascar-el-usb])
-DRIVER([Manson HCS-3xxx], [manson-hcs-3xxx])
-DRIVER([maynuo-m97], [maynuo-m97])
-DRIVER([MIC 985xx], [mic-985xx])
-DRIVER([Motech LPS 30x], [motech-lps-30x])
-DRIVER([Norma DMM], [norma-dmm])
-DRIVER([OpenBench Logic Sniffer], [openbench-logic-sniffer])
-DRIVER([Pipistrello-OLS], [pipistrello-ols])
-DRIVER([Rigol DS], [rigol-ds])
-DRIVER([Saleae Logic16], [saleae-logic16])
-DRIVER([SCPI PPS], [scpi-pps])
-DRIVER([serial DMM], [serial-dmm])
-DRIVER([Sysclk LWLA], [sysclk-lwla])
-DRIVER([Teleinfo], [teleinfo])
-DRIVER([Testo], [testo])
-DRIVER([Tondaj SL-814], [tondaj-sl-814])
-DRIVER([UNI-T DMM], [uni-t-dmm])
-DRIVER([UNI-T UT32x], [uni-t-ut32x])
-DRIVER([Victor DMM], [victor-dmm])
-DRIVER([Yokogawa DL/DLM], [yokogawa-dlm])
-DRIVER([ZEROPLUS Logic Cube], [zeroplus-logic-cube])
+SR_DRIVER([Agilent DMM], [agilent-dmm])
+SR_DRIVER([Appa 55II], [appa-55ii])
+SR_DRIVER([ASIX SIGMA/SIGMA2], [asix-sigma])
+SR_DRIVER([Atten PPS3xxx], [atten-pps3xxx])
+SR_DRIVER([BayLibre ACME], [baylibre-acme])
+SR_DRIVER([BeagleLogic], [beaglelogic])
+SR_DRIVER([Brymen BM86x], [brymen-bm86x])
+SR_DRIVER([Brymen DMM], [brymen-dmm])
+SR_DRIVER([CEM DT-885x], [cem-dt-885x])
+SR_DRIVER([Center 3xx], [center-3xx])
+SR_DRIVER([ChronoVu LA], [chronovu-la])
+SR_DRIVER([Colead SLM], [colead-slm])
+SR_DRIVER([Conrad DIGI 35 CPU], [conrad-digi-35-cpu])
+SR_DRIVER([DER EE DE-5000], [deree-de5000])
+SR_DRIVER([demo], [demo])
+SR_DRIVER([Fluke DMM], [fluke-dmm])
+SR_DRIVER([fx2lafw], [fx2lafw])
+SR_DRIVER([GMC MH 1x/2x], [gmc-mh-1x-2x])
+SR_DRIVER([Hameg HMO], [hameg-hmo])
+SR_DRIVER([Hantek DSO], [hantek-dso])
+SR_DRIVER([Ikalogic Scanalogic-2], [ikalogic-scanalogic2])
+SR_DRIVER([Ikalogic Scanaplus], [ikalogic-scanaplus])
+SR_DRIVER([Kecheng KC-330B], [kecheng-kc-330b])
+SR_DRIVER([Lascar EL-USB], [lascar-el-usb])
+SR_DRIVER([Manson HCS-3xxx], [manson-hcs-3xxx])
+SR_DRIVER([maynuo-m97], [maynuo-m97])
+SR_DRIVER([MIC 985xx], [mic-985xx])
+SR_DRIVER([Motech LPS 30x], [motech-lps-30x])
+SR_DRIVER([Norma DMM], [norma-dmm])
+SR_DRIVER([OpenBench Logic Sniffer], [openbench-logic-sniffer])
+SR_DRIVER([Pipistrello-OLS], [pipistrello-ols])
+SR_DRIVER([Rigol DS], [rigol-ds])
+SR_DRIVER([Saleae Logic16], [saleae-logic16])
+SR_DRIVER([SCPI PPS], [scpi-pps])
+SR_DRIVER([serial DMM], [serial-dmm])
+SR_DRIVER([Sysclk LWLA], [sysclk-lwla])
+SR_DRIVER([Teleinfo], [teleinfo])
+SR_DRIVER([Testo], [testo])
+SR_DRIVER([Tondaj SL-814], [tondaj-sl-814])
+SR_DRIVER([UNI-T DMM], [uni-t-dmm])
+SR_DRIVER([UNI-T UT32x], [uni-t-ut32x])
+SR_DRIVER([Victor DMM], [victor-dmm])
+SR_DRIVER([Yokogawa DL/DLM], [yokogawa-dlm])
+SR_DRIVER([ZEROPLUS Logic Cube], [zeroplus-logic-cube])
 
 AC_ARG_ENABLE(libserialport,
 	AC_HELP_STRING([--disable-libserialport],
@@ -511,58 +514,6 @@ if test "x$BINDINGS_CXX" != "xyes"; then
 	BINDINGS_JAVA="no"; java_msg="C++ bindings required"
 fi
 
-# Now set AM_CONDITIONALs and AC_DEFINEs for the enabled/disabled drivers.
-
-AC_DEFUN([DRIVER2], [
-	AM_CONDITIONAL($1, test "x$2" = "xyes")
-	if test "x$2" = "xyes"; then AC_DEFINE($3, 1, [.]) fi
-])
-
-DRIVER2([HW_AGILENT_DMM], [$HW_AGILENT_DMM], [HAVE_HW_AGILENT_DMM])
-DRIVER2([HW_APPA_55II], [$HW_APPA_55II], [HAVE_HW_APPA_55II])
-DRIVER2([HW_ASIX_SIGMA], [$HW_ASIX_SIGMA], [HAVE_HW_ASIX_SIGMA])
-DRIVER2([HW_ATTEN_PPS3XXX], [$HW_ATTEN_PPS3XXX], [HAVE_HW_ATTEN_PPS3XXX])
-DRIVER2([HW_BAYLIBRE_ACME], [$HW_BAYLIBRE_ACME], [HAVE_HW_BAYLIBRE_ACME])
-DRIVER2([HW_BEAGLELOGIC], [$HW_BEAGLELOGIC], [HAVE_HW_BEAGLELOGIC])
-DRIVER2([HW_BRYMEN_BM86X], [$HW_BRYMEN_BM86X], [HAVE_HW_BRYMEN_BM86X])
-DRIVER2([HW_BRYMEN_DMM], [$HW_BRYMEN_DMM], [HAVE_HW_BRYMEN_DMM])
-DRIVER2([HW_CEM_DT_885X], [$HW_CEM_DT_885X], [HAVE_HW_CEM_DT_885X])
-DRIVER2([HW_CENTER_3XX], [$HW_CENTER_3XX], [HAVE_HW_CENTER_3XX])
-DRIVER2([HW_CHRONOVU_LA], [$HW_CHRONOVU_LA], [HAVE_HW_CHRONOVU_LA])
-DRIVER2([HW_COLEAD_SLM], [$HW_COLEAD_SLM], [HAVE_HW_COLEAD_SLM])
-DRIVER2([HW_CONRAD_DIGI_35_CPU], [$HW_CONRAD_DIGI_35_CPU], [HAVE_HW_CONRAD_DIGI_35_CPU])
-DRIVER2([HW_DEMO], [$HW_DEMO], [HAVE_HW_DEMO])
-DRIVER2([HW_DEREE_DE5000], [$HW_DEREE_DE5000], [HAVE_HW_DEREE_DE5000])
-DRIVER2([HW_FLUKE_DMM], [$HW_FLUKE_DMM], [HAVE_HW_FLUKE_DMM])
-DRIVER2([HW_FX2LAFW], [$HW_FX2LAFW], [HAVE_HW_FX2LAFW])
-DRIVER2([HW_GMC_MH_1X_2X], [$HW_GMC_MH_1X_2X], [HAVE_HW_GMC_MH_1X_2X])
-DRIVER2([HW_HAMEG_HMO], [$HW_HAMEG_HMO], [HAVE_HW_HAMEG_HMO])
-DRIVER2([HW_HANTEK_DSO], [$HW_HANTEK_DSO], [HAVE_HW_HANTEK_DSO])
-DRIVER2([HW_IKALOGIC_SCANALOGIC2], [$HW_IKALOGIC_SCANALOGIC2], [HAVE_HW_IKALOGIC_SCANALOGIC2])
-DRIVER2([HW_IKALOGIC_SCANAPLUS], [$HW_IKALOGIC_SCANAPLUS], [HAVE_HW_IKALOGIC_SCANAPLUS])
-DRIVER2([HW_KECHENG_KC_330B], [$HW_KECHENG_KC_330B], [HAVE_HW_KECHENG_KC_330B])
-DRIVER2([HW_LASCAR_EL_USB], [$HW_LASCAR_EL_USB], [HAVE_HW_LASCAR_EL_USB])
-DRIVER2([HW_MANSON_HCS_3XXX], [$HW_MANSON_HCS_3XXX], [HAVE_HW_MANSON_HCS_3XXX])
-DRIVER2([HW_MAYNUO_M97], [$HW_MAYNUO_M97], [HAVE_HW_MAYNUO_M97])
-DRIVER2([HW_MIC_985XX], [$HW_MIC_985XX], [HAVE_HW_MIC_985XX])
-DRIVER2([HW_MOTECH_LPS_30X], [$HW_MOTECH_LPS_30X], [HAVE_HW_MOTECH_LPS_30X])
-DRIVER2([HW_NORMA_DMM], [$HW_NORMA_DMM], [HAVE_HW_NORMA_DMM])
-DRIVER2([HW_OPENBENCH_LOGIC_SNIFFER], [$HW_OPENBENCH_LOGIC_SNIFFER], [HAVE_HW_OPENBENCH_LOGIC_SNIFFER])
-DRIVER2([HW_PIPISTRELLO_OLS], [$HW_PIPISTRELLO_OLS], [HAVE_HW_PIPISTRELLO_OLS])
-DRIVER2([HW_RIGOL_DS], [$HW_RIGOL_DS], [HAVE_HW_RIGOL_DS])
-DRIVER2([HW_SALEAE_LOGIC16], [$HW_SALEAE_LOGIC16], [HAVE_HW_SALEAE_LOGIC16])
-DRIVER2([HW_SCPI_PPS], [$HW_SCPI_PPS], [HAVE_HW_SCPI_PPS])
-DRIVER2([HW_SERIAL_DMM], [$HW_SERIAL_DMM], [HAVE_HW_SERIAL_DMM])
-DRIVER2([HW_SYSCLK_LWLA], [$HW_SYSCLK_LWLA], [HAVE_HW_SYSCLK_LWLA])
-DRIVER2([HW_TELEINFO], [$HW_TELEINFO], [HAVE_HW_TELEINFO])
-DRIVER2([HW_TESTO], [$HW_TESTO], [HAVE_HW_TESTO])
-DRIVER2([HW_TONDAJ_SL_814], [$HW_TONDAJ_SL_814], [HAVE_HW_TONDAJ_SL_814])
-DRIVER2([HW_UNI_T_DMM], [$HW_UNI_T_DMM], [HAVE_HW_UNI_T_DMM])
-DRIVER2([HW_UNI_T_UT32X], [$HW_UNI_T_UT32X], [HAVE_HW_UNI_T_UT32X])
-DRIVER2([HW_VICTOR_DMM], [$HW_VICTOR_DMM], [HAVE_HW_VICTOR_DMM])
-DRIVER2([HW_YOKOGAWA_DLM], [$HW_YOKOGAWA_DLM], [HAVE_HW_YOKOGAWA_DLM])
-DRIVER2([HW_ZEROPLUS_LOGIC_CUBE], [$HW_ZEROPLUS_LOGIC_CUBE], [HAVE_HW_ZEROPLUS_LOGIC_CUBE])
-
 AM_CONDITIONAL(BINDINGS_CXX, test x$BINDINGS_CXX = xyes)
 
 AM_CONDITIONAL(BINDINGS_PYTHON, test x$BINDINGS_PYTHON = xyes)
@@ -614,7 +565,12 @@ do
 	echo "  - ($optional) $lib: $answer"
 done
 
-eval echo -e "@Enabled hardware drivers:@@${driver_summary}" | tr @ \\n
+cat <<_EOF
+
+Enabled hardware drivers:
+SR_DRIVER_SUMMARY
+
+_EOF
 
 # Prepare final bindings report messages.
 final_cxx=""
