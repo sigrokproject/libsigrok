@@ -21,9 +21,16 @@
 ACLOCAL_AMFLAGS = -I autostuff
 
 local_includes = -Iinclude -I$(srcdir)/include -I$(srcdir)/src -I.
+if BINDINGS_CXX
 local_includes += -Ibindings/cxx/include -I${srcdir}/bindings/cxx/include -Ibindings/cxx
-
+endif
+# Ensure that local include directories are always searched first.
 AM_CPPFLAGS = $(local_includes) -DFIRMWARE_DIR='"$(FIRMWARE_DIR)"'
+
+# The check CFLAGS are a superset of the libsigrok CFLAGS, and the
+# python bindings CFLAGS are a superset of the C++ bindings CFLAGS.
+AM_CFLAGS = $(CHECK_CFLAGS)
+AM_CXXFLAGS = $(PYSIGROK_CFLAGS)
 
 lib_LTLIBRARIES = libsigrok.la
 
@@ -412,11 +419,8 @@ libsigrok_la_SOURCES += \
 	src/hardware/zeroplus-logic-cube/api.c
 endif
 
-libsigrok_la_LIBADD = $(LIBOBJS)
-
-libsigrok_la_LDFLAGS = $(SR_LIB_LDFLAGS)
-
-libsigrok_la_LDFLAGS += -no-undefined
+libsigrok_la_LIBADD = $(LIBSIGROK_LIBS)
+libsigrok_la_LDFLAGS = -version-info $(SR_LIB_VERSION) -no-undefined
 
 library_includedir = $(includedir)/libsigrok
 library_include_HEADERS = \
@@ -483,9 +487,7 @@ tests_main_SOURCES = \
 	tests/device.c \
 	tests/trigger.c
 
-tests_main_CFLAGS = @check_CFLAGS@
-
-tests_main_LDADD = $(top_builddir)/libsigrok.la @check_LIBS@
+tests_main_LDADD = libsigrok.la $(CHECK_LIBS)
 
 endif
 
@@ -499,11 +501,8 @@ lib_LTLIBRARIES += bindings/cxx/libsigrokcxx.la
 
 bindings_cxx_libsigrokcxx_la_SOURCES = bindings/cxx/classes.cpp
 
-bindings_cxx_libsigrokcxx_la_LIBADD = libsigrok.la $(glibmm_LIBS)
-
-bindings_cxx_libsigrokcxx_la_LDFLAGS = $(SR_LIB_LDFLAGS)
-
-bindings_cxx_libsigrokcxx_la_LDFLAGS += -no-undefined
+bindings_cxx_libsigrokcxx_la_LIBADD = libsigrok.la $(LIBSIGROKCXX_LIBS)
+bindings_cxx_libsigrokcxx_la_LDFLAGS = -version-info $(SR_LIB_VERSION) -no-undefined
 
 bindings_cxx_libsigrokcxx_la_includedir = $(includedir)/libsigrokcxx
 bindings_cxx_libsigrokcxx_la_include_HEADERS = \
@@ -611,16 +610,16 @@ $(JCXX): $(JSWG) $(JDOC) bindings/swig/classes.i bindings/swig/enums.i \
 		$(library_include_HEADERS) $(nodist_library_include_HEADERS)
 	$(AM_V_at)make java-clean
 	$(AM_V_GEN)swig -c++ -java -package org.sigrok.core.classes \
-		-Ibindings -I$(JCLS) $(local_includes) -I$(srcdir) -outdir $(JCLS) -o $@ $<
+		-Ibindings -I$(JCLS) $(local_includes) -I$(srcdir) $(JNI_CPPFLAGS) -outdir $(JCLS) -o $@ $<
 
 $(JJAR): $(JCXX)
-	$(AM_V_GEN)$(JAVAC) -sourcepath $(JDIR) -d $(JDIR) $(JSRC)
+	$(AM_V_GEN)$(JAVAC) -d $(JDIR) $(JSRC)
 	$(AM_V_at)jar cf $(JJAR) -C $(JDIR) $(JPKG)
 
 $(JLIB): $(JCXX) bindings/cxx/libsigrokcxx.la $(library_include_HEADERS) $(nodist_library_include_HEADERS)
-	$(AM_V_GEN)$(CXXCOMPILE) -L.libs -Lbindings/cxx/.libs \
+	$(AM_V_GEN)$(CXXCOMPILE) $(JNI_CPPFLAGS) -L.libs -Lbindings/cxx/.libs \
 		-fno-strict-aliasing -fPIC -shared $(JCLS)/classes_wrap.cxx \
-		-lsigrokcxx -o $(JLIB)
+		-lsigrokcxx $(LIBSIGROKCXX_LIBS) -o $(JLIB)
 
 java-install:
 	$(INSTALL) -d $(DESTDIR)$(libdir)/jni
