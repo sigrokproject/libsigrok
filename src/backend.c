@@ -79,10 +79,10 @@
  *
  * Initializing and shutting down libsigrok.
  *
- * Before using any of the libsigrok functionality (except
- * sr_log_loglevel_set() and sr_log_opts_set()), sr_init() must
- * be called to initialize the library, which will return a struct sr_context
- * when the initialization was successful.
+ * Before using any of the libsigrok functionality (except for
+ * sr_log_loglevel_set()), sr_init() must be called to initialize the
+ * library, which will return a struct sr_context when the initialization
+ * was successful.
  *
  * When libsigrok functionality is no longer needed, sr_exit() should be
  * called, which will (among other things) free the struct sr_context.
