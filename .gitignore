@@ -23,6 +23,7 @@ autostuff/
 ChangeLog
 INSTALL
 tests/check_main
+/libsigrok-*.tar.*
 
 # recursive autoconf leftovers
 .deps
