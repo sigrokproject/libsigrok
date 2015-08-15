@@ -70,7 +70,7 @@ raised, which provides access to the error code and description.
 #ifndef LIBSIGROKCXX_HPP
 #define LIBSIGROKCXX_HPP
 
-#include "libsigrok/libsigrok.h"
+#include <libsigrok/libsigrok.h>
 #include <glibmm.h>
 
 #include <stdexcept>
@@ -1047,7 +1047,7 @@ protected:
 	const string _name;
 };
 
-#include "enums.hpp"
+#include <libsigrokcxx/enums.hpp>
 
 }
 
