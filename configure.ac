@@ -237,7 +237,7 @@ AS_IF([test "x$sr_have_libserialport" != xyes], [
 ])
 
 SR_ARG_OPT_PKG([libftdi], [LIBFTDI],,
-	[libftdi >= 0.16], [libftdi >= 1.0])
+	[libftdi >= 0.16], [libftdi1 >= 1.0])
 AS_IF([test "x$sr_have_libftdi" != xyes], [
 	HW_ASIX_SIGMA="no"; HW_CHRONOVU_LA="no"; HW_IKALOGIC_SCANAPLUS="no";
 	HW_PIPISTRELLO_OLS="no";
