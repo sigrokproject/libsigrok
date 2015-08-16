@@ -375,7 +375,7 @@ SR_PRIV void sr_scpi_free(struct sr_scpi_dev_inst *scpi)
  * @param command The SCPI command to send to the device (can be NULL).
  * @param scpi_response Pointer where to store the SCPI response.
  *
- * @return SR_OK on success, SR_ERR on failure.
+ * @return SR_OK on success, SR_ERR* on failure.
  */
 SR_PRIV int sr_scpi_get_string(struct sr_scpi_dev_inst *scpi,
 			       const char *command, char **scpi_response)
@@ -441,7 +441,7 @@ SR_PRIV int sr_scpi_get_string(struct sr_scpi_dev_inst *scpi,
  * @param command The SCPI command to send to the device (can be NULL).
  * @param scpi_response Pointer where to store the parsed result.
  *
- * @return SR_OK on success, SR_ERR on failure.
+ * @return SR_OK on success, SR_ERR* on failure.
  */
 SR_PRIV int sr_scpi_get_bool(struct sr_scpi_dev_inst *scpi,
 			     const char *command, gboolean *scpi_response)
@@ -451,14 +451,14 @@ SR_PRIV int sr_scpi_get_bool(struct sr_scpi_dev_inst *scpi,
 
 	response = NULL;
 
-	if (sr_scpi_get_string(scpi, command, &response) != SR_OK)
-		if (!response)
-			return SR_ERR;
+	ret = sr_scpi_get_string(scpi, command, &response);
+	if (ret != SR_OK && !response)
+		return ret;
 
 	if (parse_strict_bool(response, scpi_response) == SR_OK)
 		ret = SR_OK;
 	else
-		ret = SR_ERR;
+		ret = SR_ERR_DATA;
 
 	g_free(response);
 
@@ -473,7 +473,7 @@ SR_PRIV int sr_scpi_get_bool(struct sr_scpi_dev_inst *scpi,
  * @param command The SCPI command to send to the device (can be NULL).
  * @param scpi_response Pointer where to store the parsed result.
  *
- * @return SR_OK on success, SR_ERR on failure.
+ * @return SR_OK on success, SR_ERR* on failure.
  */
 SR_PRIV int sr_scpi_get_int(struct sr_scpi_dev_inst *scpi,
 			    const char *command, int *scpi_response)
@@ -483,14 +483,14 @@ SR_PRIV int sr_scpi_get_int(struct sr_scpi_dev_inst *scpi,
 
 	response = NULL;
 
-	if (sr_scpi_get_string(scpi, command, &response) != SR_OK)
-		if (!response)
-			return SR_ERR;
+	ret = sr_scpi_get_string(scpi, command, &response);
+	if (ret != SR_OK && !response)
+		return ret;
 
 	if (sr_atoi(response, scpi_response) == SR_OK)
 		ret = SR_OK;
 	else
-		ret = SR_ERR;
+		ret = SR_ERR_DATA;
 
 	g_free(response);
 
@@ -505,7 +505,7 @@ SR_PRIV int sr_scpi_get_int(struct sr_scpi_dev_inst *scpi,
  * @param command The SCPI command to send to the device (can be NULL).
  * @param scpi_response Pointer where to store the parsed result.
  *
- * @return SR_OK on success, SR_ERR on failure.
+ * @return SR_OK on success, SR_ERR* on failure.
  */
 SR_PRIV int sr_scpi_get_float(struct sr_scpi_dev_inst *scpi,
 			      const char *command, float *scpi_response)
@@ -515,14 +515,14 @@ SR_PRIV int sr_scpi_get_float(struct sr_scpi_dev_inst *scpi,
 
 	response = NULL;
 
-	if (sr_scpi_get_string(scpi, command, &response) != SR_OK)
-		if (!response)
-			return SR_ERR;
+	ret = sr_scpi_get_string(scpi, command, &response);
+	if (ret != SR_OK && !response)
+		return ret;
 
 	if (sr_atof_ascii(response, scpi_response) == SR_OK)
 		ret = SR_OK;
 	else
-		ret = SR_ERR;
+		ret = SR_ERR_DATA;
 
 	g_free(response);
 
@@ -537,7 +537,7 @@ SR_PRIV int sr_scpi_get_float(struct sr_scpi_dev_inst *scpi,
  * @param command The SCPI command to send to the device (can be NULL).
  * @param scpi_response Pointer where to store the parsed result.
  *
- * @return SR_OK on success, SR_ERR on failure.
+ * @return SR_OK on success, SR_ERR* on failure.
  */
 SR_PRIV int sr_scpi_get_double(struct sr_scpi_dev_inst *scpi,
 			       const char *command, double *scpi_response)
@@ -547,14 +547,14 @@ SR_PRIV int sr_scpi_get_double(struct sr_scpi_dev_inst *scpi,
 
 	response = NULL;
 
-	if (sr_scpi_get_string(scpi, command, &response) != SR_OK)
-		if (!response)
-			return SR_ERR;
+	ret = sr_scpi_get_string(scpi, command, &response);
+	if (ret != SR_OK && !response)
+		return ret;
 
 	if (sr_atod(response, scpi_response) == SR_OK)
 		ret = SR_OK;
 	else
-		ret = SR_ERR;
+		ret = SR_ERR_DATA;
 
 	g_free(response);
 
@@ -567,7 +567,7 @@ SR_PRIV int sr_scpi_get_double(struct sr_scpi_dev_inst *scpi,
  *
  * @param scpi Previously initialised SCPI device structure.
  *
- * @return SR_OK on success, SR_ERR on failure.
+ * @return SR_OK on success, SR_ERR* on failure.
  */
 SR_PRIV int sr_scpi_get_opc(struct sr_scpi_dev_inst *scpi)
 {
@@ -592,7 +592,7 @@ SR_PRIV int sr_scpi_get_opc(struct sr_scpi_dev_inst *scpi)
  * @param command The SCPI command to send to the device (can be NULL).
  * @param scpi_response Pointer where to store the parsed result.
  *
- * @return SR_OK upon successfully parsing all values, SR_ERR upon a parsing
+ * @return SR_OK upon successfully parsing all values, SR_ERR* upon a parsing
  *         error or upon no response. The allocated response must be freed by
  *         the caller in the case of an SR_OK as well as in the case of
  *         parsing error.
@@ -610,9 +610,9 @@ SR_PRIV int sr_scpi_get_floatv(struct sr_scpi_dev_inst *scpi,
 	response = NULL;
 	tokens = NULL;
 
-	if (sr_scpi_get_string(scpi, command, &response) != SR_OK)
-		if (!response)
-			return SR_ERR;
+	ret = sr_scpi_get_string(scpi, command, &response);
+	if (ret != SR_OK && !response)
+		return ret;
 
 	tokens = g_strsplit(response, ",", 0);
 	ptr = tokens;
@@ -624,17 +624,17 @@ SR_PRIV int sr_scpi_get_floatv(struct sr_scpi_dev_inst *scpi,
 			response_array = g_array_append_val(response_array,
 							    tmp);
 		else
-			ret = SR_ERR;
+			ret = SR_ERR_DATA;
 
 		ptr++;
 	}
 	g_strfreev(tokens);
 	g_free(response);
 
-	if (ret == SR_ERR && response_array->len == 0) {
+	if (ret != SR_OK && response_array->len == 0) {
 		g_array_free(response_array, TRUE);
 		*scpi_response = NULL;
-		return SR_ERR;
+		return SR_ERR_DATA;
 	}
 
 	*scpi_response = response_array;
@@ -650,7 +650,7 @@ SR_PRIV int sr_scpi_get_floatv(struct sr_scpi_dev_inst *scpi,
  * @param command The SCPI command to send to the device (can be NULL).
  * @param scpi_response Pointer where to store the parsed result.
  *
- * @return SR_OK upon successfully parsing all values, SR_ERR upon a parsing
+ * @return SR_OK upon successfully parsing all values, SR_ERR* upon a parsing
  *         error or upon no response. The allocated response must be freed by
  *         the caller in the case of an SR_OK as well as in the case of
  *         parsing error.
@@ -667,9 +667,9 @@ SR_PRIV int sr_scpi_get_uint8v(struct sr_scpi_dev_inst *scpi,
 	response = NULL;
 	tokens = NULL;
 
-	if (sr_scpi_get_string(scpi, command, &response) != SR_OK)
-		if (!response)
-			return SR_ERR;
+	ret = sr_scpi_get_string(scpi, command, &response);
+	if (ret != SR_OK && !response)
+		return ret;
 
 	tokens = g_strsplit(response, ",", 0);
 	ptr = tokens;
@@ -681,7 +681,7 @@ SR_PRIV int sr_scpi_get_uint8v(struct sr_scpi_dev_inst *scpi,
 			response_array = g_array_append_val(response_array,
 							    tmp);
 		else
-			ret = SR_ERR;
+			ret = SR_ERR_DATA;
 
 		ptr++;
 	}
@@ -691,7 +691,7 @@ SR_PRIV int sr_scpi_get_uint8v(struct sr_scpi_dev_inst *scpi,
 	if (response_array->len == 0) {
 		g_array_free(response_array, TRUE);
 		*scpi_response = NULL;
-		return SR_ERR;
+		return SR_ERR_DATA;
 	}
 
 	*scpi_response = response_array;
@@ -708,12 +708,12 @@ SR_PRIV int sr_scpi_get_uint8v(struct sr_scpi_dev_inst *scpi,
  * @param scpi Previously initialised SCPI device structure.
  * @param scpi_response Pointer where to store the hw_info structure.
  *
- * @return SR_OK upon success, SR_ERR on failure.
+ * @return SR_OK upon success, SR_ERR* on failure.
  */
 SR_PRIV int sr_scpi_get_hw_id(struct sr_scpi_dev_inst *scpi,
 			      struct sr_scpi_hw_info **scpi_response)
 {
-	int num_tokens;
+	int num_tokens, ret;
 	char *response;
 	gchar **tokens;
 	struct sr_scpi_hw_info *hw_info;
@@ -721,9 +721,9 @@ SR_PRIV int sr_scpi_get_hw_id(struct sr_scpi_dev_inst *scpi,
 	response = NULL;
 	tokens = NULL;
 
-	if (sr_scpi_get_string(scpi, SCPI_CMD_IDN, &response) != SR_OK)
-		if (!response)
-			return SR_ERR;
+	ret = sr_scpi_get_string(scpi, SCPI_CMD_IDN, &response);
+	if (ret != SR_OK && !response)
+		return ret;
 
 	sr_info("Got IDN string: '%s'", response);
 
@@ -740,7 +740,7 @@ SR_PRIV int sr_scpi_get_hw_id(struct sr_scpi_dev_inst *scpi,
 		sr_dbg("IDN response not according to spec: %80.s.", response);
 		g_strfreev(tokens);
 		g_free(response);
-		return SR_ERR;
+		return SR_ERR_DATA;
 	}
 	g_free(response);
 
