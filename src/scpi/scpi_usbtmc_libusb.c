@@ -554,8 +554,7 @@ static int scpi_usbtmc_libusb_close(void *priv)
 
 		uscpi->detached_kernel_driver = 0;
 	}
-	libusb_close(usb->devhdl);
-	usb->devhdl = NULL;
+	sr_usb_close(usb);
 
 	return SR_OK;
 }
