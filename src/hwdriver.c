@@ -295,6 +295,8 @@ SR_PRIV const GVariantType *sr_variant_type_get(int datatype)
 		return G_VARIANT_TYPE_TUPLE;
 	case SR_T_KEYVALUE:
 		return G_VARIANT_TYPE_DICTIONARY;
+	case SR_T_MQLIST:
+		return G_VARIANT_TYPE_ARRAY;
 	default:
 		return NULL;
 	}

@@ -149,6 +149,7 @@ enum sr_datatype {
 	SR_T_UINT64_RANGE,
 	SR_T_DOUBLE_RANGE,
 	SR_T_INT32,
+	SR_T_MQLIST,
 };
 
 /** Value for sr_datafeed_packet.type. */
