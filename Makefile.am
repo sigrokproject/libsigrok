@@ -262,6 +262,12 @@ libsigrok_la_SOURCES += \
 	src/hardware/gmc-mh-1x-2x/protocol.c \
 	src/hardware/gmc-mh-1x-2x/api.c
 endif
+if HW_GWINSTEK_GDS_800
+libsigrok_la_SOURCES += \
+	src/hardware/gwinstek-gds-800/protocol.h \
+	src/hardware/gwinstek-gds-800/protocol.c \
+	src/hardware/gwinstek-gds-800/api.c
+endif
 if HW_HAMEG_HMO
 libsigrok_la_SOURCES += \
 	src/hardware/hameg-hmo/protocol.h \
