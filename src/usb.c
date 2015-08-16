@@ -177,6 +177,13 @@ SR_PRIV int sr_usb_open(libusb_context *usb_ctx, struct sr_usb_dev_inst *usb)
 	return ret;
 }
 
+SR_PRIV void sr_usb_close(struct sr_usb_dev_inst *usb)
+{
+	libusb_close(usb->devhdl);
+	usb->devhdl = NULL;
+	sr_dbg("Closed USB device %d.%d.", usb->bus, usb->address);
+}
+
 #ifdef _WIN32
 /* Thread used to run libusb_wait_for_event() and set a pollable event. */
 static gpointer usb_thread(gpointer data)

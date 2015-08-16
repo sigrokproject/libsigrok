@@ -868,6 +868,7 @@ SR_PRIV int ezusb_upload_firmware(libusb_device *dev, int configuration,
 #ifdef HAVE_LIBUSB_1_0
 SR_PRIV GSList *sr_usb_find(libusb_context *usb_ctx, const char *conn);
 SR_PRIV int sr_usb_open(libusb_context *usb_ctx, struct sr_usb_dev_inst *usb);
+SR_PRIV void sr_usb_close(struct sr_usb_dev_inst *usb);
 SR_PRIV int usb_source_add(struct sr_session *session, struct sr_context *ctx,
 		int timeout, sr_receive_data_callback cb, void *cb_data);
 SR_PRIV int usb_source_remove(struct sr_session *session, struct sr_context *ctx);
