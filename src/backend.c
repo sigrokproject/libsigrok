@@ -137,7 +137,7 @@ static void print_versions(void)
 		GLIB_MAJOR_VERSION, GLIB_MINOR_VERSION, GLIB_MICRO_VERSION,
 		glib_major_version, glib_minor_version, glib_micro_version,
 		glib_binary_age, glib_interface_age);
-	g_string_append_printf(s, "libzip %s, ", HAVE_LIBZIP_VER);
+	g_string_append_printf(s, "libzip %s, ", CONF_LIBZIP_VERSION);
 #ifdef HAVE_LIBSERIALPORT
 	g_string_append_printf(s, "libserialport %s/%s (rt: %s/%s), ",
 		SP_PACKAGE_VERSION_STRING, SP_LIB_VERSION_STRING,
@@ -149,20 +149,20 @@ static void print_versions(void)
 		lv->major, lv->minor, lv->micro, lv->nano, lv->rc);
 #endif
 #ifdef HAVE_LIBFTDI
-	g_string_append_printf(s, "libftdi %s, ", HAVE_LIBFTDI_VER);
+	g_string_append_printf(s, "libftdi %s, ", CONF_LIBFTDI_VERSION);
 #endif
 #ifdef HAVE_LIBGPIB
-	g_string_append_printf(s, "libgpib %s, ", HAVE_LIBGPIB_VER);
+	g_string_append_printf(s, "libgpib %s, ", CONF_LIBGPIB_VERSION);
 #endif
 #ifdef HAVE_LIBREVISA
-	g_string_append_printf(s, "librevisa %s, ", HAVE_LIBREVISA_VER);
+	g_string_append_printf(s, "librevisa %s, ", CONF_LIBREVISA_VERSION);
 #endif
 	s->str[s->len - 2] = '.';
 	s->str[s->len - 1] = '\0';
 	sr_dbg("%s", s->str);
 
 	s = g_string_truncate(s, 0);
-	g_string_append_printf(s, "Host: %s, ", HOST);
+	g_string_append_printf(s, "Host: %s, ", CONF_HOST);
 #ifdef WORDS_BIGENDIAN
 	g_string_append_printf(s, "big-endian.");
 #else

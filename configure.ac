@@ -217,13 +217,13 @@ m4_define([SR_ARG_OPT_PKG], [
 	AS_IF([test "x$with_$1$sr_have_$1" = xyesno],
 		[AC_MSG_ERROR([$1 support requested, but it was not found.])])
 	m4_ifval([$2], [AS_IF([test "x$sr_have_$1" = xyes], [
-		AC_DEFINE([$2], [1], [Whether $1 is available.])
-		AC_DEFINE_UNQUOTED([$2_VER], ["$sr_$1_version"], [Build-time version of $1.])
+		AC_DEFINE([HAVE_$2], [1], [Whether $1 is available.])
+		AC_DEFINE_UNQUOTED([CONF_$2_VERSION], ["$sr_$1_version"], [Build-time version of $1.])
 	])])
 	m4_ifval([$3], [AM_CONDITIONAL([$3], [test "x$sr_have_$1" = xyes])])
 ])
 
-SR_ARG_OPT_PKG([libserialport], [HAVE_LIBSERIALPORT], [NEED_SERIAL],
+SR_ARG_OPT_PKG([libserialport], [LIBSERIALPORT], [NEED_SERIAL],
 	[libserialport >= 0.1.1])
 AS_IF([test "x$sr_have_libserialport" != xyes], [
 	HW_AGILENT_DMM="no"; HW_APPA_55II="no";
@@ -236,7 +236,7 @@ AS_IF([test "x$sr_have_libserialport" != xyes], [
 	HW_TELEINFO="no"; HW_TONDAJ_SL_814="no";
 ])
 
-SR_ARG_OPT_PKG([libftdi], [HAVE_LIBFTDI],,
+SR_ARG_OPT_PKG([libftdi], [LIBFTDI],,
 	[libftdi >= 0.16], [libftdi >= 1.0])
 AS_IF([test "x$sr_have_libftdi" != xyes], [
 	HW_ASIX_SIGMA="no"; HW_CHRONOVU_LA="no"; HW_IKALOGIC_SCANAPLUS="no";
@@ -247,7 +247,7 @@ AS_IF([test "x$sr_have_libftdi" != xyes], [
 # This means libusb-1.0 is always available; no need to check for it.
 AS_CASE([$host], [*freebsd*], [sr_have_libusb=yes])
 
-SR_ARG_OPT_PKG([libusb], [HAVE_LIBUSB_1_0], [NEED_USB],
+SR_ARG_OPT_PKG([libusb], [LIBUSB_1_0], [NEED_USB],
 	[libusb-1.0 >= 1.0.16])
 AS_IF([test "x$sr_have_libusb" != xyes], [
 	HW_BRYMEN_BM86X="no"; HW_FX2LAFW="no";
@@ -258,10 +258,10 @@ AS_IF([test "x$sr_have_libusb" != xyes], [
 	HW_ZEROPLUS_LOGIC_CUBE="no"; HW_SALEAE_LOGIC16="no";
 ])
 
-SR_ARG_OPT_PKG([librevisa], [HAVE_LIBREVISA], [NEED_VISA],
+SR_ARG_OPT_PKG([librevisa], [LIBREVISA], [NEED_VISA],
 	[librevisa >= 0.0.20130412])
 
-SR_ARG_OPT_PKG([libgpib], [HAVE_LIBGPIB], [NEED_GPIB],
+SR_ARG_OPT_PKG([libgpib], [LIBGPIB], [NEED_GPIB],
 	[libgpib])
 
 ######################
@@ -462,8 +462,10 @@ PKG_CHECK_MODULES([CHECK], [$SR_PKGLIBS_CHECK glib-2.0 $SR_PKGLIBS])
 sr_glib_version=`$PKG_CONFIG --modversion glib-2.0 2>&AS_MESSAGE_LOG_FD`
 sr_libzip_version=`$PKG_CONFIG --modversion libzip 2>&AS_MESSAGE_LOG_FD`
 
-AC_DEFINE_UNQUOTED([HAVE_LIBZIP_VER], ["$sr_libzip_version"], [.])
-AC_DEFINE_UNQUOTED([HOST], ["$host"], [.])
+AC_DEFINE_UNQUOTED([CONF_LIBZIP_VERSION], ["$sr_libzip_version"],
+	[Build-time version of libzip.])
+AC_DEFINE_UNQUOTED([CONF_HOST], ["$host"],
+	[The canonical host libsigrok will run on.])
 
 AC_LANG([C])
 
