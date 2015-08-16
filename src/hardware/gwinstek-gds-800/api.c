@@ -17,7 +17,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <string.h>
 #include "protocol.h"
+
+static const uint32_t scanopts[] = {
+	SR_CONF_CONN,
+	SR_CONF_SERIALCOMM,
+};
+
+static const uint32_t devopts[] = {
+	SR_CONF_OSCILLOSCOPE,
+	SR_CONF_LIMIT_FRAMES | SR_CONF_SET,
+	SR_CONF_SAMPLERATE | SR_CONF_GET,
+};
 
 SR_PRIV struct sr_dev_driver gwinstek_gds_800_driver_info;
 
@@ -26,21 +38,60 @@ static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 	return std_init(sr_ctx, di, LOG_PREFIX);
 }
 
+static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
+{
+	struct dev_context *devc;
+	struct sr_dev_inst *sdi;
+	struct sr_scpi_hw_info *hw_info;
+	struct sr_channel_group *cg;
+
+	if (sr_scpi_get_hw_id(scpi, &hw_info) != SR_OK) {
+		sr_info("Couldn't get IDN response.");
+		return NULL;
+	}
+
+	if (strcmp(hw_info->manufacturer, "GW") != 0 ||
+	    strncmp(hw_info->model, "GDS-8", 5) != 0) {
+		sr_scpi_hw_info_free(hw_info);
+		return NULL;
+	}
+
+	sdi = g_malloc0(sizeof(struct sr_dev_inst));
+	sdi->status = SR_ST_ACTIVE;
+	sdi->vendor = g_strdup(hw_info->manufacturer);
+	sdi->model = g_strdup(hw_info->model);
+	sdi->version = g_strdup(hw_info->firmware_version);
+	sdi->conn = scpi;
+	sdi->driver = &gwinstek_gds_800_driver_info;
+	sdi->inst_type = SR_INST_SCPI;
+	sdi->serial_num = g_strdup(hw_info->serial_number);
+	sdi->channels = NULL;
+	sdi->channel_groups = NULL;
+
+	sr_scpi_hw_info_free(hw_info);
+
+	devc = g_malloc0(sizeof(struct dev_context));
+	devc->frame_limit = 1;
+	devc->sample_rate = 0.;
+	devc->df_started  = FALSE;
+	sdi->priv = devc;
+
+	sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "CH1");
+	sr_channel_new(sdi, 1, SR_CHANNEL_ANALOG, TRUE, "CH2");
+
+	cg = g_malloc0(sizeof(struct sr_channel_group));
+	cg->name = g_strdup("");
+	cg->channels = g_slist_append(cg->channels, g_slist_nth_data(sdi->channels, 0));
+	cg->channels = g_slist_append(cg->channels, g_slist_nth_data(sdi->channels, 1));
+	cg->priv = NULL;
+	sdi->channel_groups = g_slist_append(NULL, cg);
+
+	return sdi;
+}
+
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
-	struct drv_context *drvc;
-	GSList *devices;
-
-	(void)options;
-
-	devices = NULL;
-	drvc = di->context;
-	drvc->instances = NULL;
-
-	/* TODO: scan for devices, either based on a SR_CONF_CONN option
-	 * or on a USB scan. */
-
-	return devices;
+	return sr_scpi_scan(di->context, options, probe_device);
 }
 
 static GSList *dev_list(const struct sr_dev_driver *di)
@@ -55,9 +106,13 @@ static int dev_clear(const struct sr_dev_driver *di)
 
 static int dev_open(struct sr_dev_inst *sdi)
 {
-	(void)sdi;
+	int ret;
+	struct sr_scpi_dev_inst *scpi = sdi->conn;
 
-	/* TODO: get handle from sdi->conn and open it. */
+	if ((ret = sr_scpi_open(scpi)) < 0) {
+		sr_err("Failed to open SCPI device: %s.", sr_strerror(ret));
+		return SR_ERR;
+	}
 
 	sdi->status = SR_ST_ACTIVE;
 
@@ -66,11 +121,17 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 static int dev_close(struct sr_dev_inst *sdi)
 {
-	(void)sdi;
+	struct sr_scpi_dev_inst *scpi;
 
-	/* TODO: get handle from sdi->conn and close it. */
+	if (sdi->status != SR_ST_ACTIVE)
+		return SR_ERR_DEV_CLOSED;
 
-	sdi->status = SR_ST_INACTIVE;
+	scpi = sdi->conn;
+	if (scpi) {
+		if (sr_scpi_close(scpi) < 0)
+			return SR_ERR;
+		sdi->status = SR_ST_INACTIVE;
+	}
 
 	return SR_OK;
 }
@@ -79,100 +140,132 @@ static int cleanup(const struct sr_dev_driver *di)
 {
 	dev_clear(di);
 
-	/* TODO: free other driver resources, if any. */
-
 	return SR_OK;
 }
 
 static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
-	int ret;
+	struct dev_context *devc;
 
-	(void)sdi;
-	(void)data;
 	(void)cg;
 
-	ret = SR_OK;
+	if (!sdi || !(devc = sdi->priv))
+		return SR_ERR_ARG;
+
 	switch (key) {
-	/* TODO */
+	case SR_CONF_SAMPLERATE:
+		*data = g_variant_new_uint64(devc->sample_rate);
+		break;
 	default:
 		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
-	int ret;
+	struct dev_context *devc;
 
-	(void)data;
 	(void)cg;
+
+	if (!sdi || !(devc = sdi->priv))
+		return SR_ERR_ARG;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
-	ret = SR_OK;
 	switch (key) {
-	/* TODO */
+	case SR_CONF_LIMIT_FRAMES:
+		devc->frame_limit = g_variant_get_uint64(data);
+		break;
 	default:
-		ret = SR_ERR_NA;
+		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
-	int ret;
-
 	(void)sdi;
-	(void)data;
 	(void)cg;
 
-	ret = SR_OK;
 	switch (key) {
-	/* TODO */
+	case SR_CONF_SCAN_OPTIONS:
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+			scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
+		return SR_OK;
+	case SR_CONF_DEVICE_OPTIONS:
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+			devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
+		return SR_OK;
 	default:
 		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
-static int dev_acquisition_start(const struct sr_dev_inst *sdi,
-		void *cb_data)
+static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 {
-	(void)sdi;
+	struct sr_scpi_dev_inst *scpi;
+	struct dev_context *devc;
+
 	(void)cb_data;
+
+	scpi = sdi->conn;
+	devc = sdi->priv;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
-	/* TODO: configure hardware, reset acquisition state, set up
-	 * callbacks and send header packet. */
+	devc->state = START_ACQUISITION;
+	devc->cur_acq_frame = 0;
+
+	sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 50,
+			gwinstek_gds_800_receive_data, (void *)sdi);
 
 	return SR_OK;
 }
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
+	struct sr_scpi_dev_inst *scpi;
+	struct dev_context *devc;
+	struct sr_datafeed_packet packet;
+
 	(void)cb_data;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
+	scpi = sdi->conn;
+	devc = sdi->priv;
 
-	/* TODO: stop acquisition. */
+	if (sdi->status != SR_ST_ACTIVE) {
+		sr_err("Device inactive, can't stop acquisition.");
+		return SR_ERR;
+	}
+
+	if (devc->df_started) {
+		packet.type = SR_DF_FRAME_END;
+		sr_session_send(sdi, &packet);
+
+		packet.type = SR_DF_END;
+		sr_session_send(sdi, &packet);
+
+		devc->df_started = FALSE;
+	}
+
+	sr_scpi_source_remove(sdi->session, scpi);
 
 	return SR_OK;
 }
 
 SR_PRIV struct sr_dev_driver gwinstek_gds_800_driver_info = {
 	.name = "gwinstek-gds-800",
-	.longname = "gwinstek gds-800",
+	.longname = "GW Instek GDS-800 series",
 	.api_version = 1,
 	.init = init,
 	.cleanup = cleanup,

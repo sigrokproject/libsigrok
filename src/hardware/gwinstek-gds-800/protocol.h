@@ -22,21 +22,40 @@
 
 #include <stdint.h>
 #include <glib.h>
-#include "libsigrok.h"
+#include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
+#include "scpi.h"
 
 #define LOG_PREFIX "gwinstek-gds-800"
 
+#define MAX_SAMPLES 125000
+#define MAX_RCV_BUFFER_SIZE (MAX_SAMPLES * 2)
+
+enum gds_state
+{
+	START_ACQUISITION,
+	START_TRANSFER_OF_CHANNEL_DATA,
+	WAIT_FOR_TRANSFER_OF_BEGIN_TRANSMISSION_COMPLETE,
+	WAIT_FOR_TRANSFER_OF_DATA_SIZE_DIGIT_COMPLETE,
+	WAIT_FOR_TRANSFER_OF_DATA_SIZE_COMPLETE,
+	WAIT_FOR_TRANSFER_OF_SAMPLE_RATE_COMPLETE,
+	WAIT_FOR_TRANSFER_OF_CHANNEL_INDICATOR_COMPLETE,
+	WAIT_FOR_TRANSFER_OF_RESERVED_DATA_COMPLETE,
+	WAIT_FOR_TRANSFER_OF_CHANNEL_DATA_COMPLETE,
+};
+
 /** Private, per-device-instance driver context. */
 struct dev_context {
-	/* Model-specific information */
-
-	/* Acquisition settings */
-
-	/* Operational state */
-
-	/* Temporary state across callbacks */
-
+	enum gds_state state;
+	uint64_t cur_acq_frame;
+	uint64_t frame_limit;
+	int cur_acq_channel;
+	int cur_rcv_buffer_position;
+	char rcv_buffer[MAX_RCV_BUFFER_SIZE];
+	int data_size_digits;
+	int data_size;
+	float sample_rate;
+	gboolean df_started;
 };
 
 SR_PRIV int gwinstek_gds_800_receive_data(int fd, int revents, void *cb_data);
