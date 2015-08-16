@@ -46,7 +46,7 @@
  */
 
 /* Same key order/grouping as in enum sr_configkey (libsigrok.h). */
-static struct sr_config_info sr_config_info_data[] = {
+static struct sr_key_info sr_key_info_config[] = {
 	/* Device classes */
 	{SR_CONF_LOGIC_ANALYZER, SR_T_STRING, NULL, "Logic analyzer", NULL},
 	{SR_CONF_OSCILLOSCOPE, SR_T_STRING, NULL, "Oscilloscope", NULL},
@@ -236,11 +236,11 @@ SR_PRIV const GVariantType *sr_variant_type_get(int datatype)
 
 SR_PRIV int sr_variant_type_check(uint32_t key, GVariant *value)
 {
-	const struct sr_config_info *info;
+	const struct sr_key_info *info;
 	const GVariantType *type, *expected;
 	char *expected_string, *type_string;
 
-	info = sr_config_info_get(key);
+	info = sr_key_info_get(SR_KEY_CONFIG, key);
 	if (!info)
 		return SR_OK;
 
@@ -324,7 +324,7 @@ static int check_options(struct sr_dev_driver *driver, GSList *options,
 		struct sr_channel_group *cg)
 {
 	struct sr_config *src;
-	const struct sr_config_info *srci;
+	const struct sr_key_info *srci;
 	GVariant *gvar_opts;
 	GSList *l;
 	const uint32_t *opts;
@@ -345,7 +345,7 @@ static int check_options(struct sr_dev_driver *driver, GSList *options,
 				break;
 		}
 		if (i == num_opts) {
-			if (!(srci = sr_config_info_get(src->key)))
+			if (!(srci = sr_key_info_get(SR_KEY_CONFIG, src->key)))
 				/* Shouldn't happen. */
 				sr_err("Invalid option %d.", src->key);
 			else
@@ -473,14 +473,14 @@ static void log_key(const struct sr_dev_inst *sdi,
 	const struct sr_channel_group *cg, uint32_t key, int op, GVariant *data)
 {
 	const char *opstr;
-	const struct sr_config_info *srci;
+	const struct sr_key_info *srci;
 
 	/* Don't log SR_CONF_DEVICE_OPTIONS, it's verbose and not too useful. */
 	if (key == SR_CONF_DEVICE_OPTIONS)
 		return;
 
 	opstr = op == SR_CONF_GET ? "get" : op == SR_CONF_SET ? "set" : "list";
-	srci = sr_config_info_get(key);
+	srci = sr_key_info_get(SR_KEY_CONFIG, key);
 
 	sr_spew("sr_config_%s(): key %d (%s) sdi %p cg %s -> %s", opstr, key,
 		srci ? srci->id : "NULL", sdi, cg ? cg->name : "NULL",
@@ -491,7 +491,7 @@ static int check_key(const struct sr_dev_driver *driver,
 		const struct sr_dev_inst *sdi, const struct sr_channel_group *cg,
 		uint32_t key, int op, GVariant *data)
 {
-	const struct sr_config_info *srci;
+	const struct sr_key_info *srci;
 	gsize num_opts, i;
 	GVariant *gvar_opts;
 	const uint32_t *opts;
@@ -505,7 +505,7 @@ static int check_key(const struct sr_dev_driver *driver,
 	else
 		suffix = "";
 
-	if (!(srci = sr_config_info_get(key))) {
+	if (!(srci = sr_key_info_get(SR_KEY_CONFIG, key))) {
 		sr_err("Invalid key %d.", key);
 		return SR_ERR_ARG;
 	}
@@ -714,47 +714,73 @@ SR_API int sr_config_list(const struct sr_dev_driver *driver,
 	return ret;
 }
 
+static struct sr_key_info *get_keytable(int keytype)
+{
+	struct sr_key_info *table;
+
+	switch (keytype) {
+	case SR_KEY_CONFIG:
+		table = sr_key_info_config;
+		break;
+	default:
+		sr_err("Invalid keytype %d", keytype);
+		return NULL;
+	}
+
+	return table;
+}
+
 /**
- * Get information about a configuration key, by key.
+ * Get information about a key, by key.
  *
- * @param[in] key The configuration key.
+ * @param[in] keytype The namespace the key is in.
+ * @param[in] key The key to find.
  *
- * @return A pointer to a struct sr_config_info, or NULL if the key
+ * @return A pointer to a struct sr_key_info, or NULL if the key
  *         was not found.
  *
- * @since 0.2.0
+ * @since 0.3.0
  */
-SR_API const struct sr_config_info *sr_config_info_get(uint32_t key)
+SR_API const struct sr_key_info *sr_key_info_get(int keytype, uint32_t key)
 {
+	struct sr_key_info *table;
 	int i;
 
-	for (i = 0; sr_config_info_data[i].key; i++) {
-		if (sr_config_info_data[i].key == key)
-			return &sr_config_info_data[i];
+	if (!(table = get_keytable(keytype)))
+		return NULL;
+
+	for (i = 0; table[i].key; i++) {
+		if (table[i].key == key)
+			return &table[i];
 	}
 
 	return NULL;
 }
 
 /**
- * Get information about a configuration key, by name.
+ * Get information about a key, by name.
  *
- * @param[in] optname The configuration key.
+ * @param[in] keytype The namespace the key is in.
+ * @param[in] keyid The key id string.
  *
- * @return A pointer to a struct sr_config_info, or NULL if the key
+ * @return A pointer to a struct sr_key_info, or NULL if the key
  *         was not found.
  *
  * @since 0.2.0
  */
-SR_API const struct sr_config_info *sr_config_info_name_get(const char *optname)
+SR_API const struct sr_key_info *sr_key_info_name_get(int keytype, const char *keyid)
 {
+	struct sr_key_info *table;
 	int i;
 
-	for (i = 0; sr_config_info_data[i].key; i++) {
-		if (!sr_config_info_data[i].id)
+	if (!(table = get_keytable(keytype)))
+		return NULL;
+
+	for (i = 0; table[i].key; i++) {
+		if (!table[i].id)
 			continue;
-		if (!strcmp(sr_config_info_data[i].id, optname))
-			return &sr_config_info_data[i];
+		if (!strcmp(table[i].id, keyid))
+			return &table[i];
 	}
 
 	return NULL;

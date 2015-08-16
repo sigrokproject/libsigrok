@@ -574,15 +574,19 @@ struct sr_config {
 	GVariant *data;
 };
 
-/** Information about a config key. */
-struct sr_config_info {
-	/** Config key like SR_CONF_CONN, etc. */
+enum sr_keytype {
+	SR_KEY_CONFIG,
+};
+
+/** Information about a key. */
+struct sr_key_info {
+	/** Config key like SR_CONF_CONN, MQ value like SR_MQ_VOLTAGE, etc. */
 	uint32_t key;
-	/** Data type like SR_T_STRING, etc. */
+	/** Data type like SR_T_STRING, etc if applicable. */
 	int datatype;
-	/** Id string, e.g. "serialcomm". */
+	/** Short, lowercase ID string, e.g. "serialcomm", "voltage". */
 	char *id;
-	/** Name, e.g. "Serial communication". */
+	/** Full capitalized name, e.g. "Serial communication". */
 	char *name;
 	/** Verbose description (unused currently). */
 	char *description;

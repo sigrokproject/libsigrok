@@ -95,8 +95,8 @@ SR_API int sr_config_list(const struct sr_dev_driver *driver,
 		const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg,
 		uint32_t key, GVariant **data);
-SR_API const struct sr_config_info *sr_config_info_get(uint32_t key);
-SR_API const struct sr_config_info *sr_config_info_name_get(const char *optname);
+SR_API const struct sr_key_info *sr_key_info_get(int keytype, uint32_t key);
+SR_API const struct sr_key_info *sr_key_info_name_get(int keytype, const char *keyid);
 
 /*--- session.c -------------------------------------------------------------*/
 

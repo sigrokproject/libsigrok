@@ -1,6 +1,6 @@
 const DataType *ConfigKey::data_type() const
 {
-	const struct sr_config_info *info = sr_config_info_get(_id);
+	const struct sr_key_info *info = sr_key_info_get(SR_KEY_CONFIG, _id);
 	if (!info)
 		throw Error(SR_ERR_NA);
 	return DataType::get(info->datatype);
@@ -8,7 +8,7 @@ const DataType *ConfigKey::data_type() const
 
 string ConfigKey::identifier() const
 {
-	const struct sr_config_info *info = sr_config_info_get(_id);
+	const struct sr_key_info *info = sr_key_info_get(SR_KEY_CONFIG, _id);
 	if (!info)
 		throw Error(SR_ERR_NA);
 	return valid_string(info->id);
@@ -16,7 +16,7 @@ string ConfigKey::identifier() const
 
 string ConfigKey::description() const
 {
-	const struct sr_config_info *info = sr_config_info_get(_id);
+	const struct sr_key_info *info = sr_key_info_get(SR_KEY_CONFIG, _id);
 	if (!info)
 		throw Error(SR_ERR_NA);
 	return valid_string(info->name);
@@ -24,7 +24,7 @@ string ConfigKey::description() const
 
 const ConfigKey *ConfigKey::get_by_identifier(string identifier)
 {
-	const struct sr_config_info *info = sr_config_info_name_get(identifier.c_str());
+	const struct sr_key_info *info = sr_key_info_name_get(SR_KEY_CONFIG, identifier.c_str());
 	if (!info)
 		throw Error(SR_ERR_ARG);
 	return get(info->key);
