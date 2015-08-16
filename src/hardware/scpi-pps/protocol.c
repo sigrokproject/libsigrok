@@ -20,111 +20,8 @@
 #include <string.h>
 #include <strings.h>
 #include <stdarg.h>
+#include "scpi.h"
 #include "protocol.h"
-
-SR_PRIV const char *scpi_cmd_get(const struct sr_dev_inst *sdi, int command)
-{
-	struct dev_context *devc;
-	unsigned int i;
-	const char *cmd;
-
-	devc = sdi->priv;
-	cmd = NULL;
-	for (i = 0; i < devc->device->num_commands; i++) {
-		if (devc->device->commands[i].command == command) {
-			cmd = devc->device->commands[i].string;
-			break;
-		}
-	}
-
-	return cmd;
-}
-
-SR_PRIV int scpi_cmd(const struct sr_dev_inst *sdi, int command, ...)
-{
-	struct sr_scpi_dev_inst *scpi;
-	va_list args;
-	int ret;
-	const char *cmd;
-
-	if (!(cmd = scpi_cmd_get(sdi, command))) {
-		/* Device does not implement this command, that's OK. */
-		return SR_OK_CONTINUE;
-	}
-
-	scpi = sdi->conn;
-	va_start(args, command);
-	ret = sr_scpi_send_variadic(scpi, cmd, args);
-	va_end(args);
-
-	return ret;
-}
-
-SR_PRIV int scpi_cmd_resp(const struct sr_dev_inst *sdi, GVariant **gvar,
-		const GVariantType *gvtype, int command, ...)
-{
-	struct sr_scpi_dev_inst *scpi;
-	va_list args;
-	double d;
-	int ret;
-	char *s;
-	const char *cmd;
-
-	if (!(cmd = scpi_cmd_get(sdi, command))) {
-		/* Device does not implement this command, that's OK. */
-		return SR_OK_CONTINUE;
-	}
-
-	scpi = sdi->conn;
-	va_start(args, command);
-	ret = sr_scpi_send_variadic(scpi, cmd, args);
-	va_end(args);
-	if (ret != SR_OK)
-		return ret;
-
-	/* Non-standard data type responses. */
-	if (command == SCPI_CMD_GET_OUTPUT_REGULATION) {
-		/*
-		 * The Rigol DP800 series return CV/CC/UR, Philips PM2800
-		 * return VOLT/CURR. We always return a GVariant string in
-		 * the Rigol notation.
-		 */
-		if ((ret = sr_scpi_get_string(scpi, NULL, &s)) != SR_OK)
-			return ret;
-		if (!strcmp(s, "CV") || !strcmp(s, "VOLT")) {
-			*gvar = g_variant_new_string("CV");
-		} else if (!strcmp(s, "CC") || !strcmp(s, "CURR")) {
-			*gvar = g_variant_new_string("CC");
-		} else if (!strcmp(s, "UR")) {
-			*gvar = g_variant_new_string("UR");
-		} else {
-			sr_dbg("Unknown response to SCPI_CMD_GET_OUTPUT_REGULATION: %s", s);
-			ret = SR_ERR_DATA;
-		}
-		g_free(s);
-	} else {
-		/* Straight SCPI getters to GVariant types. */
-		if (g_variant_type_equal(gvtype, G_VARIANT_TYPE_BOOLEAN)) {
-			if ((ret = sr_scpi_get_string(scpi, NULL, &s)) != SR_OK)
-				return ret;
-			if (!strcasecmp(s, "ON") || !strcasecmp(s, "1") || !strcasecmp(s, "YES"))
-				*gvar = g_variant_new_boolean(TRUE);
-			else if (!strcasecmp(s, "OFF") || !strcasecmp(s, "0") || !strcasecmp(s, "NO"))
-				*gvar = g_variant_new_boolean(FALSE);
-			else
-				ret = SR_ERR;
-			g_free(s);
-		} if (g_variant_type_equal(gvtype, G_VARIANT_TYPE_DOUBLE)) {
-			if ((ret = sr_scpi_get_double(scpi, NULL, &d)) == SR_OK)
-				*gvar = g_variant_new_double(d);
-		} if (g_variant_type_equal(gvtype, G_VARIANT_TYPE_STRING)) {
-			if ((ret = sr_scpi_get_string(scpi, NULL, &s)) == SR_OK)
-				*gvar = g_variant_new_string(s);
-		}
-	}
-
-	return ret;
-}
 
 SR_PRIV int select_channel(const struct sr_dev_inst *sdi, struct sr_channel *ch)
 {
@@ -149,7 +46,8 @@ SR_PRIV int select_channel(const struct sr_dev_inst *sdi, struct sr_channel *ch)
 		}
 	}
 
-	if ((ret = scpi_cmd(sdi, SCPI_CMD_SELECT_CHANNEL, new_pch->hwname)) >= 0)
+	if ((ret = scpi_cmd(sdi, devc->device->commands, SCPI_CMD_SELECT_CHANNEL,
+			new_pch->hwname)) >= 0)
 		devc->cur_channel = ch;
 
 	return ret;
@@ -235,7 +133,7 @@ SR_PRIV int scpi_pps_receive_data(int fd, int revents, void *cb_data)
 		cmd = SCPI_CMD_GET_MEAS_POWER;
 	else
 		return SR_ERR;
-	scpi_cmd(sdi, cmd);
+	scpi_cmd(sdi, devc->device->commands, cmd);
 
 	return TRUE;
 }

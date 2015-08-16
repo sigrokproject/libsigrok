@@ -26,27 +26,6 @@
 #define CH_IDX(x) (1 << x)
 #define FREQ_DC_ONLY {0, 0, 0}
 
-static const char *pps_vendors[][2] = {
-	{ "RIGOL TECHNOLOGIES", "Rigol" },
-	{ "HEWLETT-PACKARD", "HP" },
-	{ "PHILIPS", "Philips" },
-	{ "CHROMA", "Chroma" },
-	{ "Chroma ATE", "Chroma" },
-	{ "Agilent Technologies", "Agilent" },
-};
-
-SR_PRIV const char *get_vendor(const char *raw_vendor)
-{
-	unsigned int i;
-
-	for (i = 0; i < ARRAY_SIZE(pps_vendors); i++) {
-		if (!strcasecmp(raw_vendor, pps_vendors[i][0]))
-			return pps_vendors[i][1];
-	}
-
-	return raw_vendor;
-}
-
 static const uint32_t devopts_none[] = { };
 
 /* Agilent/Keysight N5700A series */
@@ -96,6 +75,7 @@ static const struct scpi_command agilent_n5700a_cmd[] = {
 	/* Current limit (CC mode) and OCP are set using the same command. */
 	{ SCPI_CMD_GET_OVER_CURRENT_PROTECTION_THRESHOLD, ":SOUR:CURR?" },
 	{ SCPI_CMD_SET_OVER_CURRENT_PROTECTION_THRESHOLD, ":SOUR:CURR %.6f" },
+	ALL_ZERO
 };
 
 /* Chroma 61600 series AC source */
@@ -141,6 +121,7 @@ static const struct scpi_command chroma_61604_cmd[] = {
 	/* This is not a current limit mode. It is overcurrent protection. */
 	{ SCPI_CMD_GET_OVER_CURRENT_PROTECTION_THRESHOLD, ":SOUR:CURR:LIM?" },
 	{ SCPI_CMD_SET_OVER_CURRENT_PROTECTION_THRESHOLD, ":SOUR:CURR:LIM %.2f" },
+	ALL_ZERO
 };
 
 /* Chroma 62000 series DC source */
@@ -183,6 +164,7 @@ static const struct scpi_command chroma_62000_cmd[] = {
 	{ SCPI_CMD_SET_OVER_VOLTAGE_PROTECTION_THRESHOLD, ":SOUR:VOLT:PROT:HIGH %.6f" },
 	{ SCPI_CMD_GET_OVER_CURRENT_PROTECTION_THRESHOLD, ":SOUR:CURR:PROT:HIGH?" },
 	{ SCPI_CMD_SET_OVER_CURRENT_PROTECTION_THRESHOLD, ":SOUR:CURR:PROT:HIGH %.6f" },
+	ALL_ZERO
 };
 
 static int chroma_62000p_probe_channels(struct sr_dev_inst *sdi,
@@ -307,6 +289,7 @@ static const struct scpi_command rigol_dp800_cmd[] = {
 	{ SCPI_CMD_GET_OVER_CURRENT_PROTECTION_ACTIVE, ":OUTP:OCP:QUES?" },
 	{ SCPI_CMD_GET_OVER_CURRENT_PROTECTION_THRESHOLD, ":OUTP:OCP:VAL?" },
 	{ SCPI_CMD_SET_OVER_CURRENT_PROTECTION_THRESHOLD, ":OUTP:OCP:VAL %.6f" },
+	ALL_ZERO
 };
 
 /* HP 663xx series */
@@ -337,6 +320,7 @@ static const struct scpi_command hp_6632b_cmd[] = {
 	{ SCPI_CMD_SET_VOLTAGE_TARGET, ":SOUR:VOLT %.6f" },
 	{ SCPI_CMD_GET_CURRENT_LIMIT, ":SOUR:CURR?" },
 	{ SCPI_CMD_SET_CURRENT_LIMIT, ":SOUR:CURR %.6f" },
+	ALL_ZERO
 };
 
 /* Philips/Fluke PM2800 series */
@@ -483,6 +467,7 @@ static const struct scpi_command philips_pm2800_cmd[] = {
 	{ SCPI_CMD_SET_OVER_CURRENT_PROTECTION_ENABLE, ":SOUR:CURR:PROT:STAT ON" },
 	{ SCPI_CMD_SET_OVER_CURRENT_PROTECTION_DISABLE, ":SOUR:CURR:PROT:STAT OFF" },
 	{ SCPI_CMD_GET_OVER_CURRENT_PROTECTION_ACTIVE, ":SOUR:CURR:PROT:TRIP?" },
+	ALL_ZERO
 };
 
 SR_PRIV const struct scpi_pps pps_profiles[] = {
@@ -492,7 +477,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(agilent_n5700a_devopts_cg),
 		ARRAY_AND_SIZE(agilent_n5767a_ch),
 		ARRAY_AND_SIZE(agilent_n5767a_cg),
-		ARRAY_AND_SIZE(agilent_n5700a_cmd),
+		agilent_n5700a_cmd,
 		.probe_channels = NULL,
 	},
 	/* Chroma 61604 */
@@ -501,7 +486,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(chroma_61604_devopts_cg),
 		ARRAY_AND_SIZE(chroma_61604_ch),
 		ARRAY_AND_SIZE(chroma_61604_cg),
-		ARRAY_AND_SIZE(chroma_61604_cmd),
+		chroma_61604_cmd,
 		.probe_channels = NULL,
 	},
 	/* Chroma 62000 series */
@@ -510,7 +495,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(chroma_62000_devopts_cg),
 		NULL, 0,
 		NULL, 0,
-		ARRAY_AND_SIZE(chroma_62000_cmd),
+		chroma_62000_cmd,
 		.probe_channels = chroma_62000p_probe_channels,
 	},
 	/* HP 6632B */
@@ -519,7 +504,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(devopts_none),
 		ARRAY_AND_SIZE(hp_6632b_ch),
 		ARRAY_AND_SIZE(hp_6632b_cg),
-		ARRAY_AND_SIZE(hp_6632b_cmd),
+		hp_6632b_cmd,
 		.probe_channels = NULL,
 	},
 
@@ -529,7 +514,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(rigol_dp800_devopts_cg),
 		ARRAY_AND_SIZE(rigol_dp821a_ch),
 		ARRAY_AND_SIZE(rigol_dp820_cg),
-		ARRAY_AND_SIZE(rigol_dp800_cmd),
+		rigol_dp800_cmd,
 		.probe_channels = NULL,
 	},
 	{ "Rigol", "^DP831A$", PPS_OTP,
@@ -537,7 +522,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(rigol_dp800_devopts_cg),
 		ARRAY_AND_SIZE(rigol_dp831_ch),
 		ARRAY_AND_SIZE(rigol_dp830_cg),
-		ARRAY_AND_SIZE(rigol_dp800_cmd),
+		rigol_dp800_cmd,
 		.probe_channels = NULL,
 	},
 	{ "Rigol", "^(DP832|DP832A)$", PPS_OTP,
@@ -545,7 +530,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(rigol_dp800_devopts_cg),
 		ARRAY_AND_SIZE(rigol_dp832_ch),
 		ARRAY_AND_SIZE(rigol_dp830_cg),
-		ARRAY_AND_SIZE(rigol_dp800_cmd),
+		rigol_dp800_cmd,
 		.probe_channels = NULL,
 	},
 
@@ -555,7 +540,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(philips_pm2800_devopts_cg),
 		NULL, 0,
 		NULL, 0,
-		ARRAY_AND_SIZE(philips_pm2800_cmd),
+		philips_pm2800_cmd,
 		philips_pm2800_probe_channels,
 	},
 };

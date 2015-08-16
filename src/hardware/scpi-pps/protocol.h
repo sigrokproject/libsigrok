@@ -24,6 +24,7 @@
 #include <glib.h>
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
+#include "scpi.h"
 
 #define LOG_PREFIX "scpi-pps"
 
@@ -92,7 +93,6 @@ struct scpi_pps {
 	const struct channel_group_spec *channel_groups;
 	unsigned int num_channel_groups;
 	const struct scpi_command *commands;
-	unsigned int num_commands;
 	int (*probe_channels) (struct sr_dev_inst *sdi, struct sr_scpi_hw_info *hwinfo,
 		struct channel_spec **channels, unsigned int *num_channels,
 		struct channel_group_spec **channel_groups, unsigned int *num_channel_groups);
@@ -104,11 +104,6 @@ struct channel_spec {
 	float voltage[3];
 	float current[3];
 	float frequency[3];
-};
-
-struct scpi_command {
-	int command;
-	const char *string;
 };
 
 struct channel_group_spec {
@@ -160,10 +155,6 @@ SR_PRIV extern unsigned int num_pps_profiles;
 SR_PRIV extern const struct scpi_pps pps_profiles[];
 
 SR_PRIV const char *get_vendor(const char *raw_vendor);
-SR_PRIV const char *scpi_cmd_get(const struct sr_dev_inst *sdi, int command);
-SR_PRIV int scpi_cmd(const struct sr_dev_inst *sdi, int command, ...);
-SR_PRIV int scpi_cmd_resp(const struct sr_dev_inst *sdi, GVariant **gvar,
-		const GVariantType *gvtype, int command, ...);
 SR_PRIV int select_channel(const struct sr_dev_inst *sdi, struct sr_channel *ch);
 SR_PRIV struct sr_channel *next_enabled_channel(const struct sr_dev_inst *sdi,
 		struct sr_channel *cur_channel);

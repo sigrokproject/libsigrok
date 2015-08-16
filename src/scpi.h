@@ -58,6 +58,11 @@ enum {
 	SCPI_CMD_GET_SAMPLE_RATE_LIVE,
 };
 
+struct scpi_command {
+	int command;
+	const char *string;
+};
+
 struct sr_scpi_hw_info {
 	char *manufacturer;
 	char *model;
@@ -124,5 +129,13 @@ SR_PRIV int sr_scpi_get_uint8v(struct sr_scpi_dev_inst *scpi,
 SR_PRIV int sr_scpi_get_hw_id(struct sr_scpi_dev_inst *scpi,
 			struct sr_scpi_hw_info **scpi_response);
 SR_PRIV void sr_scpi_hw_info_free(struct sr_scpi_hw_info *hw_info);
+
+SR_PRIV const char *sr_vendor_alias(const char *raw_vendor);
+SR_PRIV const char *scpi_cmd_get(const struct scpi_command *cmdtable, int command);
+SR_PRIV int scpi_cmd(const struct sr_dev_inst *sdi,
+		const struct scpi_command *cmdtable, int command, ...);
+SR_PRIV int scpi_cmd_resp(const struct sr_dev_inst *sdi,
+		const struct scpi_command *cmdtable,
+		GVariant **gvar, const GVariantType *gvtype, int command, ...);
 
 #endif

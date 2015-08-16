@@ -92,6 +92,7 @@ libsigrok_la_SOURCES += \
 # SCPI support
 libsigrok_la_SOURCES += \
 	src/scpi/scpi.c \
+	src/scpi/helpers.c \
 	src/scpi/scpi_tcp.c
 if NEED_RPC
 libsigrok_la_SOURCES += \
