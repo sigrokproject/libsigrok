@@ -1,3 +1,325 @@
+0.4.0 (2016-01-29)
+------------------
+
+Note: This release DOES change the libsigrok API. That means it is NOT
+      backwards-compatible and frontends will need updates.
+
+ * New supported hardware:
+   - Logic analyzers:
+     - AKIP-9101
+     - BeagleLogic
+     - LeCroy LogicStudio
+     - mcupro Logic16 clone
+     - Pipistrello OLS
+     - SysClk LWLA1016
+   - Oscilloscopes:
+     - Rigol/Agilent DS1000Z series
+     - Yokogawa DLM2000 series
+     - Yokogawa DL9000 series
+     - Hung-Chang DSO-2100
+     - GW Instek GDS-800
+   - Multimeters:
+     - Agilent U1241A/B
+     - Agilent U1242A/B
+     - Brymen BM25x series
+     - MASTECH MS8250B
+     - Metrahit 16T/16U/KMM2002
+     - PeakTech 3415
+     - Tenma 72-7730
+     - Tenma 72-7732
+     - Tenma 72-9380A
+     - Testo 435-4
+     - UNI-T UT372
+     - UNI-T UT71x series (UT71A/B/C/D/E)
+     - Velleman DVM4100
+     - Voltcraft VC-870
+     - Voltcraft VC-920
+     - Voltcraft VC-940
+     - Voltcraft VC-960
+   - Programmable power supplies:
+     - Fluke/Philips PM2800 series
+     - HP 663xx series
+     - Manson HCS-3xxx series
+     - Motech LPS-30x series
+     - Rigol DP800 series
+     - Korad KAxxxxP series (a.k.a Velleman LABPS3005D and others)
+   - AC/DC sources:
+     - Agilent N5700A series (DC sources)
+     - Chroma 61600 series (AC sources)
+     - Chroma 62000 series (DC sources)
+   - Electronic loads:
+     - Maynuo M97 (and compatibles)
+   - LCR meters:
+     - DER EE DE-5000
+   - Scales:
+     - KERN EW 6200-2NM
+   - BeagleBone Black capes:
+     - BayLibre ACME (revA and revB)
+ * New input modules:
+   - raw_analog: Raw analog signals in various formats
+   - trace32_ad: Lauterbach Trace32 logic analyzer data
+ * New output modules:
+   - wav: Waveform audio file format
+   - srzip: Native ZIP-based sigrok file format
+ * Add libsigrok language bindings based on SWIG + doxygen:
+   - C++ language bindings
+   - Python language bindings
+   - Ruby language bindings
+   - Java language bindings
+ * Add a Modbus framework in order to be able to support Modbus based devices.
+   - Add a Modbus RTU backend.
+ * Add a new, more flexible trigger framework.
+ * Add a generic software-trigger framework usable by any driver, currently
+   used by fx2lafw and saleae-logic16.
+ * Add a (Linux-only) GPIB SCPI backend using linux-gpib and libgpib.
+ * Add a generic scpi-pps driver which supports various power supplies.
+ * Add an experimental framework for "transforms" which can perform operations
+   on libsigrok session packets. This will be changed and improved upon in
+   later releases. Currently implemented tranforms:
+   - nop: Do nothing, pass on packets unmodified.
+   - scale: Scale all analog values by a specified factor.
+   - invert: Invert all the data values.
+     - An analog value of x becomes 1/x.
+     - A digital value of 0 becomes 1 (and vice versa).
+ * input:
+   - Introduce a new input module API.
+   - Rename "input format" to "input module" everywhere.
+   - Add a preferred file extension field (bug #541).
+ * output:
+   - Fix output option enumeration.
+   - Fix a double-free issue.
+   - Add a preferred file extension field (bug #541).
+ * input/csv:
+   - Avoid a segfault related to the obsolete mimetype format match (bug #681).
+ * input/vcd:
+   - Chunk up samples in 1MB blocks for better performance (bug #551).
+   - Allow optional index items (bug #322).
+   - Add support for 1 bit vectors (bug #723).
+ * input/wav:
+   - Fix an offset calculation error.
+   - Properly initialize the channel list early enough (bug #387).
+ * output/analog:
+   - Fix channel deinterleaving.
+ * output/csv:
+   - Match format based on .csv extention in the filename.
+   - Add support for analog data/packets.
+ * New or updated build dependencies:
+   - New build dependencies (libsigrok C library):
+     - libgpib (optional)
+     - libieee1284 (optional)
+   - Updated build dependencies (libsigrok C library):
+     - libserialport >= 0.1.1 (optional)
+     - librevisa >= 0.0.20130412 (optional)
+     - libftdi >= 0.16 or libftdi1 >= 1.0 (optional)
+   - New build dependencies (libsigrokcxx C++ library):
+     - libsigrok >= 0.4.0 (the libsigrok C library, see above)
+     - A C++ compiler with C++11 support (g++ >= 4.7 or clang++ >= 3.1)
+     - doxygen (required for building the C++ library!)
+     - graphviz (optional, only needed for C++ API docs)
+     - Python (2 or 3) executable (development files are not needed)
+     - glibmm-2.4 (>= 2.32.0)
+   - New build dependencies (libsigrok Python bindings):
+     - libsigrokcxx >= 0.4.0 (the libsigrok C++ bindings, see above)
+     - Python >= 2.7 or Python >= 3 (including development files!)
+     - Python setuptools (for Python 2 or 3)
+     - pygobject >= 3.0.0 (for Python 2 or 3), a.k.a python-gi
+     - numpy (for Python 2 or 3)
+     - SWIG >= 2.0.0
+     - doxygen (optional, only needed for the Python API docs)
+     - graphviz (optional, only needed for the Python API docs)
+     - doxypy (optional, only needed for the Python API docs)
+   - New build dependencies (libsigrok Ruby bindings):
+     - libsigrokcxx >= 0.4.0 (the libsigrok C++ bindings, see above)
+     - Ruby >= 1.9.3 (including development files!)
+     - SWIG >= 3.0.8
+     - YARD (optional, only needed for the Ruby API docs)
+   - New build dependencies (libsigrok Java bindings):
+     - libsigrokcxx >= 0.4.0 (the libsigrok C++ bindings, see above)
+     - SWIG >= 2.0.0
+     - Java JDK (for JNI includes and the javac/jar binaries)
+     - doxygen (optional, only needed for the Java API docs)
+     - graphviz (optional, only needed for the Java API docs)
+ * Build system:
+   - Modernize the whole autotools setup.
+   - Add --with-libserialport, --with-libftdi, --with-libusb,
+     --with-librevisa, --with-libgpib, --with-libieee1284.
+   - Add --enable-bindings, --enable-cxx, --enable-python, --enable-ruby,
+     and --enable-java.
+   - Support both libftdi >= 0.16 and libftdi1 >= 1.0.
+   - configure: Show SCPI backends that'll be compiled.
+   - Unconditionally build src/lcr/es51919.c (bug #545).
+   - Compile with -std=c99 and _POSIX_C_SOURCE=200112L by default.
+   - Only link the 'check' library against the unit tests.
+   - Fix various out-of-tree build issues (e.g. bug #473).
+   - Don't set CFLAGS, LDFLAGS, etc. in configure.ac or Makefile.am (bug #578).
+   - Check for the numpy Python module (bug #533).
+   - Check for zip_discard(), provide alternative if not available (bug #674).
+ * Portability:
+   - Android: Add fallbacks for missing stoi()/stod(). 
+   - FreeBSD: Fix a libusb related compiler error.
+   - FreeBSD: Fix an issue with libusb_get_port_numbers().
+   - FreeBSD: Fix an issue with BSD Make (bug #556).
+   - FreeBSD: Fix an issue with SWIG detection (bug #557).
+   - FreeBSD: Fix a build issue related to isascii() (bug #649).
+   - Mac OS X: Fix 'sed' invocation in autogen.sh (bug #516).
+   - Mac OS X: Fix a usb_get_port_path() related issue (bug #673).
+   - Windows: Fix some thread-related issues causing hangs (bugs #343, #328).
+   - Windows: Fix a USB/thread related issue (bug #343).
+   - Windows: Fix shared (non-static) build.
+   - Windows: Fix various warnings related to a missing LIBUSB_CALL item.
+   - Windows: Add a missing WSAStartup() call to fix scpi/tcp (bug #692).
+   - Fix an issue with non-GNU Make (bug #628).
+   - Avoid std::map::emplace() for GCC 4.7 compatibility (bug #720).
+   - Avoid g_close() to not unnecessarily require glib >= 2.36 (bug #724).
+ * Language bindings:
+   - Support new output API.
+   - Add Doxygen docs for all language bindings.
+   - C++: Fix a C++ bindings linking issue (bug #534).
+   - Python: Fix mapping of vector & map attributes to Python types (bug #382).
+   - Python: Implement equality checks for EnumValue derived classes (bug #443).
+   - Python: Handle import failures without crashing.
+   - Python: Fix an installation issue (bug #644).
+   - Python: Prevent a numpy deprecation warning (bug #417).
+   - Python: Fix a ConfigKey.parse_string() crash (bug #483).
+   - Python: Fix the build for Python 3 (bug #645).
+   - Python: Fix some string conversion issues for Python 3 (bug #478).
+   - Python: Fix a SWIG related memory leak (bug #479).
+   - Python: Make device.config_keys() act like a Python dict (bug #480).
+   - Python: Provide sensible __str__() and __repr__() for enums (bug #688).
+   - Java: Install files into DESTDIR (bug #537).
+   - Java: Fix some SWIG warnings due to %extend redefinitions (bug #417).
+   - Java: Fix an issue related to C/C++ style casts (bug #688).
+   - Java: Fix a reference leak (bug #690).
+   - Session::set_trigger(): Fix segfault conditions (bugs #491, #496).
+ * Various API changes, additions and removals (see API docs for details).
+ * Add various new config keys, config info types, measurement quantity keys,
+   measurement quantity flags, units, device instance types, and error codes.
+ * udev rules file: Add entries for newly supported hardware.
+ * Add/use a new resource access API, defaults to XDG data dirs.
+ * Switch to a new SR_DF_ANALOG format (bug #640).
+ * All drivers:
+   - Publish config key capabilities.
+   - Gather connection info and serial number, if any.
+   - Cleanups of serial port based drivers wrt (non-)blocking reads/writes.
+ * Various drivers:
+   - Use physical USB connection instead of sdi->index.
+   - Fix blocking serial write timeout (bugs #436, #437, #433, #428, #427,
+     #430, #432, #434, #438).
+ * agilent-dmm:
+   - Fix value parser to consider 0.0 to be a valid result.
+   - Correctly parse negative overload.
+   - Add RMS flag to AC voltage modes.
+   - Add provisional support for the U124xx.
+   - U124xx/U125xx: Support 5 more modes (resistance, capacitance, frequency,
+     continuity, and temperature).
+   - Add current loop sensor support.
+   - Fix frequency support.
+ * beaglelogic:
+   - Add SR_CONF_CAPTURE_RATIO support.
+ * brymen-bm86x:
+   - Add current loop sensor support.
+ * chronovu-la:
+   - Properly handle multiple ChronoVu devices being attached (bug #504).
+ * colead-slm:
+   - Properly check acquisition sample limit.
+ * demo:
+   - Add support for continuous acquisition.
+   - Fix a memory leak related to channel groups.
+   - Support changing the amplitude of analog channels.
+   - Adds a new channel group "Analog", which has all analog channels in it.
+   - Attach analog generator to channel, not channel group.
+   - Provide a separate property list for the analog group (bug #505).
+   - Fix an issue by always honoring sample limit changes (bug #314).
+   - Fix square pattern output being shorter than other patterns.
+   - Fix analog output at low samplerates.
+   - Fix SR_CONF_DEVICE_OPTIONS variant type.
+   - Fix an infinite loop when 0 channels of one type were used.
+ * fx2lafw:
+   - Fix continuous mode usage with output modules (bug #380).
+   - Check for a valid samplerate before trying to set it (bug #386).
+   - Fix wide (16bit) sampling case (bug #373).
+   - Add SR_CONF_CAPTURE_RATIO support.
+   - Set up the transfer first, then start the acquisition (bug #574).
+   - Avoid the need to run "rmmod usbtest" on Linux for devices
+     with the standard Cypress FX2 USB VID/PID of 04b4:8613 (bug #445).
+   - Add support for the official fx2lafw sigrok VID/PID pairs and firmware
+     (this requires sigrok-firmware-fx2lafw >= 0.1.3):
+     - 1D50:608C: fx2lafw-sigrok-fx2-8ch.fw
+     - 1D50:608D: fx2lafw-sigrok-fx2-16ch.fw
+ * gmc-mh-1x-2x:
+   - Add support for the Metrahit Metrahit 16T, 16U, and KMM2002.
+   - Complete energy measurement ranges (V, A, W) for Metrahit 29S.
+ * hameg-hmo:
+   - Implement SR_CONF_SCAN_OPTIONS.
+   - Make sure the enabled_channels list is empty before populating it.
+   - Fix reading of analog data from an HMO1024 (Firmware 04.527).
+   - Fix a double-free issue.
+   - Fix a floating point comparison issue (bug #731).
+ * hantek-dso:
+   - Properly zero out MQ flags.
+   - Fix driver/global/channel group config keys.
+ * ikalogic-scanalogic2:
+   - Fix a segfault condition (bug #440).
+ * ikalogic-scanaplus:
+   - Fix a memory leak and a memory allocation issue.
+ * kecheng-kc-330b:
+   - Fix missing time/frequency weighting.
+ * lascar-el-usb:
+   - Fix issues caused by copy-paste errors.
+ * ols:
+   - Fix a serial port related issue on FreeBSD (bug #414).
+   - Fix detection and acquisition on Windows (bug #562).
+   - Fix an event source related acquisition issue (bug #678).
+   - Fix a portability issue due to direct use of FDs (bug #205).
+ * rigol-ds:
+   - Fix duplicated vendor string for Agilent devices.
+   - Replace magic numbers by appropriate constant or variable (bug #406).
+   - Handle POSITIVE/NEGATIVE (instead of POS/NEG) correctly (bug #558).
+   - Add missing 20/50/100V vdiv entries.
+   - Fix an issue related to the search for the closest vdiv.
+   - Return the actual hardware num_vdiv and vdiv list.
+   - Fix the smallest supported vdiv for the DS2000 series.
+   - Fix a double-free issue.
+   - SR_CONF_DATA_SOURCE is a device option, not per channel group.
+ * saleae-logic16:
+   - Recognize the FPGA FIFO overflow status.
+   - Downgrade error during capture to a message (bug #466).
+   - Add SR_CONF_CAPTURE_RATIO support.
+   - Support new bitstream version 1.3 with renumbered registers.
+   - Publish samplerates according to selected channels (bug #646).
+ * serial-dmm:
+   - Fix RadioShack 22-812 DMM incorrect readings (bug #657).
+   - Implement request timeout feature (bug #345).
+ * sysclk-lwla:
+   - Do not create channels in reverse order.
+   - Fix an issue related to sdi->connection_id (bug #441).
+   - Various robustness improvements.
+   - Fix a compile issue (bug #714).
+   - Work around some vendor FX2 firmware issues.
+ * zeroplus-logic-cube:
+   - Fix an issue when trying to trigger on a channel being 0/low.
+ * README: Drop obsolete sigrok-commits mailing list.
+ * Fix a Doxyfile issue which caused build failures e.g. on buildroot.
+ * Fix a USB timeout related sr_session_iteration() issue (bug #571).
+ * Fix various gcc/clang compiler errors/warnings (e.g. bugs #637, #721).
+ * Fix an issue related to multiple sr_init()/sr_exit() calls (bug #565).
+ * Fix an issue with transform packet passing (bug #631).
+ * Rename sr_dev_driver.priv to .context (bug #442).
+ * serial: Re-implement sr_serial_find_usb() using new libserialport APIs.
+ * Unit tests: Add some checks for session handling.
+ * scpi and scpi/usbtmc:
+   - Accept *IDN responses with more than 4 tokens (some devices need this).
+   - Fix incomplete data issue for e.g. Hameg HMO1024.
+   - Support the RL1 feature.
+   - Implement Rigol DS1000 workaround on any firmware version (bug #354).
+ * Various session related changes and improvements.
+ * The code now uses the Glib main loop as backend.
+ * Logging: Add a timestamp (at DBG/SPEW loglevel) to all log messages.
+ * Fix a trigger related segfault (bug #550).
+ * Don't check the libusb_get_device_descriptor() return code (bug #658).
+ * Fix various memory leaks in the code (e.g. bugs #629, #630, #632).
+ * session_file: Enable only probes listed in metadata (bugs #410, #495).
+
 0.3.0 (2014-05-06)
 ------------------
 
