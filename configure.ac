@@ -501,8 +501,8 @@ libsigrok configuration summary:
  - Building for.................... $host
 
 Detected libraries (required):
- - glib-2.0........................ $sr_glib_version
- - libzip.......................... $sr_libzip_version
+ - glib-2.0 >= 2.32.0.............. $sr_glib_version
+ - libzip >= 0.10.................. $sr_libzip_version
 
 Detected libraries (optional):
 $sr_pkglibs_summary
