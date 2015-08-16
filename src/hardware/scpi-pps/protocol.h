@@ -156,8 +156,6 @@ SR_PRIV extern const struct scpi_pps pps_profiles[];
 
 SR_PRIV const char *get_vendor(const char *raw_vendor);
 SR_PRIV int select_channel(const struct sr_dev_inst *sdi, struct sr_channel *ch);
-SR_PRIV struct sr_channel *next_enabled_channel(const struct sr_dev_inst *sdi,
-		struct sr_channel *cur_channel);
 SR_PRIV int scpi_pps_receive_data(int fd, int revents, void *cb_data);
 
 #endif

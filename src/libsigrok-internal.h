@@ -632,6 +632,8 @@ enum {
 
 SR_PRIV struct sr_channel *sr_channel_new(struct sr_dev_inst *sdi,
 		int index, int type, gboolean enabled, const char *name);
+SR_PRIV struct sr_channel *sr_next_enabled_channel(const struct sr_dev_inst *sdi,
+		struct sr_channel *cur_channel);
 
 /** Device instance data */
 struct sr_dev_inst {

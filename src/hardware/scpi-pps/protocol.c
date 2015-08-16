@@ -53,24 +53,6 @@ SR_PRIV int select_channel(const struct sr_dev_inst *sdi, struct sr_channel *ch)
 	return ret;
 }
 
-SR_PRIV struct sr_channel *next_enabled_channel(const struct sr_dev_inst *sdi,
-		struct sr_channel *cur_channel)
-{
-	struct sr_channel *next_channel;
-	GSList *l;
-
-	next_channel = cur_channel;
-	do {
-		l = g_slist_find(sdi->channels, next_channel);
-		if (l && l->next)
-			next_channel = l->next->data;
-		else
-			next_channel = sdi->channels->data;
-	} while (!next_channel->enabled);
-
-	return next_channel;
-}
-
 SR_PRIV int scpi_pps_receive_data(int fd, int revents, void *cb_data)
 {
 	struct dev_context *devc;
@@ -115,7 +97,7 @@ SR_PRIV int scpi_pps_receive_data(int fd, int revents, void *cb_data)
 	}
 
 	if (g_slist_length(sdi->channels) > 1) {
-		next_channel = next_enabled_channel(sdi, devc->cur_channel);
+		next_channel = sr_next_enabled_channel(sdi, devc->cur_channel);
 		if (select_channel(sdi, next_channel) != SR_OK) {
 			sr_err("Failed to select channel %s", next_channel->name);
 			return FALSE;

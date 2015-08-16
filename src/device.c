@@ -133,6 +133,25 @@ SR_API int sr_dev_channel_enable(struct sr_channel *channel,
 	return SR_OK;
 }
 
+/* Returns the next enabled channel, wrapping around if necessary. */
+SR_PRIV struct sr_channel *sr_next_enabled_channel(const struct sr_dev_inst *sdi,
+		struct sr_channel *cur_channel)
+{
+	struct sr_channel *next_channel;
+	GSList *l;
+
+	next_channel = cur_channel;
+	do {
+		l = g_slist_find(sdi->channels, next_channel);
+		if (l && l->next)
+			next_channel = l->next->data;
+		else
+			next_channel = sdi->channels->data;
+	} while (!next_channel->enabled);
+
+	return next_channel;
+}
+
 /**
  * Determine whether the specified device instance has the specified
  * capability.

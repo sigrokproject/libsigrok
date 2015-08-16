@@ -597,7 +597,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	std_session_send_df_header(sdi, LOG_PREFIX);
 
 	/* Prime the pipe with the first channel's fetch. */
-	ch = next_enabled_channel(sdi, NULL);
+	ch = sr_next_enabled_channel(sdi, NULL);
 	pch = ch->priv;
 	if ((ret = select_channel(sdi, ch)) < 0)
 		return ret;
