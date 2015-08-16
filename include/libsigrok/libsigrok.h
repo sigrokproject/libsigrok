@@ -576,6 +576,8 @@ struct sr_config {
 
 enum sr_keytype {
 	SR_KEY_CONFIG,
+	SR_KEY_MQ,
+	SR_KEY_MQFLAGS,
 };
 
 /** Information about a key. */

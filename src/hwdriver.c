@@ -209,6 +209,72 @@ static struct sr_key_info sr_key_info_config[] = {
 	{0, 0, NULL, NULL, NULL},
 };
 
+static struct sr_key_info sr_key_info_mq[] = {
+	{SR_MQ_VOLTAGE, 0, "voltage", "Voltage", NULL},
+	{SR_MQ_CURRENT, 0, "current", "Current", NULL},
+	{SR_MQ_RESISTANCE, 0, "resistance", "Resistance", NULL},
+	{SR_MQ_CAPACITANCE, 0, "capacitance", "Capacitance", NULL},
+	{SR_MQ_TEMPERATURE, 0, "temperature", "Temperature", NULL},
+	{SR_MQ_FREQUENCY, 0, "frequency", "Frequency", NULL},
+	{SR_MQ_DUTY_CYCLE, 0, "duty_cycle", "Duty cycle", NULL},
+	{SR_MQ_CONTINUITY, 0, "continuity", "Continuity", NULL},
+	{SR_MQ_PULSE_WIDTH, 0, "pulse_width", "Pulse width", NULL},
+	{SR_MQ_CONDUCTANCE, 0, "conductance", "Conductance", NULL},
+	{SR_MQ_POWER, 0, "power", "Power", NULL},
+	{SR_MQ_GAIN, 0, "gain", "Gain", NULL},
+	{SR_MQ_SOUND_PRESSURE_LEVEL, 0, "spl", "Sound pressure level", NULL},
+	{SR_MQ_CARBON_MONOXIDE, 0, "co", "Carbon monoxide", NULL},
+	{SR_MQ_RELATIVE_HUMIDITY, 0, "rh", "Relative humidity", NULL},
+	{SR_MQ_TIME, 0, "time", "Time", NULL},
+	{SR_MQ_WIND_SPEED, 0, "wind_speed", "Wind speed", NULL},
+	{SR_MQ_PRESSURE, 0, "pressure", "Pressure", NULL},
+	{SR_MQ_PARALLEL_INDUCTANCE, 0, "parallel_inductance", "Parallel inductance", NULL},
+	{SR_MQ_PARALLEL_CAPACITANCE, 0, "parallel_capacitance", "Parallel capacitance", NULL},
+	{SR_MQ_PARALLEL_RESISTANCE, 0, "parallel_resistance", "Parallel resistance", NULL},
+	{SR_MQ_SERIES_INDUCTANCE, 0, "series_inductance", "Series inductance", NULL},
+	{SR_MQ_SERIES_CAPACITANCE, 0, "series_capacitance", "Series capacitance", NULL},
+	{SR_MQ_SERIES_RESISTANCE, 0, "series_resistance", "Series resistance", NULL},
+	{SR_MQ_DISSIPATION_FACTOR, 0, "dissipation_factor", "Dissipation factor", NULL},
+	{SR_MQ_QUALITY_FACTOR, 0, "quality_factor", "Quality factor", NULL},
+	{SR_MQ_PHASE_ANGLE, 0, "phase_angle", "Phase angle", NULL},
+	{SR_MQ_DIFFERENCE, 0, "difference", "Difference", NULL},
+	{SR_MQ_COUNT, 0, "count", "Count", NULL},
+	{SR_MQ_POWER_FACTOR, 0, "power_factor", "Power factor", NULL},
+	{SR_MQ_APPARENT_POWER, 0, "apparent_power", "Apparent power", NULL},
+	ALL_ZERO
+};
+
+static struct sr_key_info sr_key_info_mqflag[] = {
+	{SR_MQFLAG_AC, 0, "ac", "AC", NULL},
+	{SR_MQFLAG_DC, 0, "dc", "DC", NULL},
+	{SR_MQFLAG_RMS, 0, "rms", "RMS", NULL},
+	{SR_MQFLAG_DIODE, 0, "diode", "Diode", NULL},
+	{SR_MQFLAG_HOLD, 0, "hold", "Hold", NULL},
+	{SR_MQFLAG_MAX, 0, "max", "Max", NULL},
+	{SR_MQFLAG_MIN, 0, "min", "Min", NULL},
+	{SR_MQFLAG_AUTORANGE, 0, "auto_range", "Auto range", NULL},
+	{SR_MQFLAG_RELATIVE, 0, "relative", "Relative", NULL},
+	{SR_MQFLAG_SPL_FREQ_WEIGHT_A, 0, "spl_freq_weight_a",
+		"Frequency weighted (A)", NULL},
+	{SR_MQFLAG_SPL_FREQ_WEIGHT_C, 0, "spl_freq_weight_c",
+		"Frequency weighted (C)", NULL},
+	{SR_MQFLAG_SPL_FREQ_WEIGHT_Z, 0, "spl_freq_weight_z",
+		"Frequency weighted (Z)", NULL},
+	{SR_MQFLAG_SPL_FREQ_WEIGHT_FLAT, 0, "spl_freq_weight_flat",
+		"Frequency weighted (flat)", NULL},
+	{SR_MQFLAG_SPL_TIME_WEIGHT_S, 0, "spl_time_weight_s",
+		"Time weighted (S)", NULL},
+	{SR_MQFLAG_SPL_TIME_WEIGHT_F, 0, "spl_time_weight_f",
+		"Time weighted (F)", NULL},
+	{SR_MQFLAG_SPL_LAT, 0, "spl_time_average", "Time-averaged (LEQ)", NULL},
+	{SR_MQFLAG_SPL_PCT_OVER_ALARM, 0, "spl_pct_over_alarm",
+		"Percentage over alarm", NULL},
+	{SR_MQFLAG_DURATION, 0, "duration", "Duration", NULL},
+	{SR_MQFLAG_AVG, 0, "average", "Average", NULL},
+	{SR_MQFLAG_REFERENCE, 0, "reference", "Reference", NULL},
+	ALL_ZERO
+};
+
 SR_PRIV const GVariantType *sr_variant_type_get(int datatype)
 {
 	switch (datatype) {
@@ -721,6 +787,12 @@ static struct sr_key_info *get_keytable(int keytype)
 	switch (keytype) {
 	case SR_KEY_CONFIG:
 		table = sr_key_info_config;
+		break;
+	case SR_KEY_MQ:
+		table = sr_key_info_mq;
+		break;
+	case SR_KEY_MQFLAGS:
+		table = sr_key_info_mqflag;
 		break;
 	default:
 		sr_err("Invalid keytype %d", keytype);
