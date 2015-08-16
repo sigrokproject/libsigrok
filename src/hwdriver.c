@@ -165,7 +165,7 @@ static struct sr_key_info sr_key_info_config[] = {
 		"Output frequency", NULL},
 	{SR_CONF_OUTPUT_FREQUENCY_TARGET, SR_T_FLOAT, "output_frequency_target",
 		"Output frequency target", NULL},
-	{SR_CONF_MEASURED_QUANTITY, SR_T_STRING, "measured_quantity",
+	{SR_CONF_MEASURED_QUANTITY, SR_T_MQ, "measured_quantity",
 		"Measured quantity", NULL},
 	{SR_CONF_MEASURED_2ND_QUANTITY, SR_T_STRING, "measured_2nd_quantity",
 		"Measured secondary quantity", NULL},
