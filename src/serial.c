@@ -843,6 +843,9 @@ SR_PRIV int serial_source_remove(struct sr_session *session,
 {
 	unsigned int i;
 
+	if (!serial->event_set)
+		return SR_OK;
+
 	for (i = 0; i < serial->event_set->count; i++)
 		if (sr_session_source_remove_pollfd(session, &serial->pollfds[i]) != SR_OK)
 			return SR_ERR;
