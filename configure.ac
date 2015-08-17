@@ -108,76 +108,6 @@ AC_DEFINE_UNQUOTED([SR_LIB_VERSION_REVISION], [$SR_LIB_VERSION_REVISION], [.])
 AC_DEFINE_UNQUOTED([SR_LIB_VERSION_AGE], [$SR_LIB_VERSION_AGE], [.])
 AC_DEFINE_UNQUOTED([SR_LIB_VERSION_STRING], ["$SR_LIB_VERSION"], [.])
 
-AC_ARG_ENABLE([all-drivers],
-	[AS_HELP_STRING([--enable-all-drivers],
-			[enable all drivers by default [default=yes]])],
-	[HW_ENABLED_DEFAULT=$enableval],
-	[HW_ENABLED_DEFAULT=yes])
-
-## _SR_DRIVER(Device name, driver-name, enable, var-name)
-m4_define([_SR_DRIVER], [
-	AC_ARG_ENABLE([$4],
-		[AS_HELP_STRING([--enable-$2], [enable $1 support])],
-		[$4=$enableval], [$4=$3])
-	m4_append([SR_DRIVER_SUMMARY],
-		[ - m4_translit(m4_format([%-32s], [$2]), [ ], [.]) [$]$4],
-		m4_newline)
-	AC_CONFIG_COMMANDS_PRE([dnl
-		AM_CONDITIONAL([$4], [test "x[$]$4" = xyes])
-		AM_COND_IF([$4], [AC_DEFINE([HAVE_$4], [1], [Whether to support $1 device.])])
-	])
-])
-## SR_DRIVER(Device name, driver-name, [no])
-m4_define([SR_DRIVER],
-	[_SR_DRIVER([$1], [$2],
-		m4_default_quoted([$3], [$HW_ENABLED_DEFAULT]),
-		m4_expand([AS_TR_CPP([HW_$2])]))])
-
-SR_DRIVER([Agilent DMM], [agilent-dmm])
-SR_DRIVER([Appa 55II], [appa-55ii])
-SR_DRIVER([ASIX SIGMA/SIGMA2], [asix-sigma])
-SR_DRIVER([Atten PPS3xxx], [atten-pps3xxx])
-SR_DRIVER([BayLibre ACME], [baylibre-acme])
-SR_DRIVER([BeagleLogic], [beaglelogic])
-SR_DRIVER([Brymen BM86x], [brymen-bm86x])
-SR_DRIVER([Brymen DMM], [brymen-dmm])
-SR_DRIVER([CEM DT-885x], [cem-dt-885x])
-SR_DRIVER([Center 3xx], [center-3xx])
-SR_DRIVER([ChronoVu LA], [chronovu-la])
-SR_DRIVER([Colead SLM], [colead-slm])
-SR_DRIVER([Conrad DIGI 35 CPU], [conrad-digi-35-cpu])
-SR_DRIVER([DER EE DE-5000], [deree-de5000])
-SR_DRIVER([demo], [demo])
-SR_DRIVER([Fluke DMM], [fluke-dmm])
-SR_DRIVER([fx2lafw], [fx2lafw])
-SR_DRIVER([GMC MH 1x/2x], [gmc-mh-1x-2x])
-SR_DRIVER([Hameg HMO], [hameg-hmo])
-SR_DRIVER([Hantek DSO], [hantek-dso])
-SR_DRIVER([Ikalogic Scanalogic-2], [ikalogic-scanalogic2])
-SR_DRIVER([Ikalogic Scanaplus], [ikalogic-scanaplus])
-SR_DRIVER([Kecheng KC-330B], [kecheng-kc-330b])
-SR_DRIVER([Lascar EL-USB], [lascar-el-usb])
-SR_DRIVER([Manson HCS-3xxx], [manson-hcs-3xxx])
-SR_DRIVER([maynuo-m97], [maynuo-m97])
-SR_DRIVER([MIC 985xx], [mic-985xx])
-SR_DRIVER([Motech LPS 30x], [motech-lps-30x])
-SR_DRIVER([Norma DMM], [norma-dmm])
-SR_DRIVER([OpenBench Logic Sniffer], [openbench-logic-sniffer])
-SR_DRIVER([Pipistrello-OLS], [pipistrello-ols])
-SR_DRIVER([Rigol DS], [rigol-ds])
-SR_DRIVER([Saleae Logic16], [saleae-logic16])
-SR_DRIVER([SCPI PPS], [scpi-pps])
-SR_DRIVER([serial DMM], [serial-dmm])
-SR_DRIVER([Sysclk LWLA], [sysclk-lwla])
-SR_DRIVER([Teleinfo], [teleinfo])
-SR_DRIVER([Testo], [testo])
-SR_DRIVER([Tondaj SL-814], [tondaj-sl-814])
-SR_DRIVER([UNI-T DMM], [uni-t-dmm])
-SR_DRIVER([UNI-T UT32x], [uni-t-ut32x])
-SR_DRIVER([Victor DMM], [victor-dmm])
-SR_DRIVER([Yokogawa DL/DLM], [yokogawa-dlm])
-SR_DRIVER([ZEROPLUS Logic Cube], [zeroplus-logic-cube])
-
 #############################
 ##  Optional dependencies  ##
 #############################
@@ -207,11 +137,15 @@ m4_define([SR_PKG_CHECK], [
 		sr_$1_version=`$PKG_CONFIG --modversion "$3" 2>&AS_MESSAGE_LOG_FD`
 		AS_VAR_APPEND([sr_pkglibs_summary], [" - $sr_mod_leader $sr_$1_version$sr_nl"])
 	], [
-		sr_$1_version=
 		AS_VAR_APPEND([sr_pkglibs_summary], [" - $sr_mod_leader no$sr_nl"])
-		m4_ifval([$4], [SR_PKG_CHECK([$1], [$2], m4_shift3($@))], [sr_have_$1=no])
+		m4_ifval([$4],
+			[SR_PKG_CHECK([$1], [$2], m4_shift3($@))],
+			[sr_have_$1=no sr_$1_version=])
 	])
 ])
+
+# List of detected features.
+sr_deps_avail=
 
 ## SR_ARG_OPT_PKG(opt-name, [cpp-name], [cond-name], module...)
 m4_define([SR_ARG_OPT_PKG], [
@@ -222,7 +156,8 @@ m4_define([SR_ARG_OPT_PKG], [
 			[SR_PKG_CHECK([$1], [SR_PKGLIBS], m4_shift3($@))])
 	AS_IF([test "x$with_$1$sr_have_$1" = xyesno],
 		[AC_MSG_ERROR([$1 support requested, but it was not found.])])
-	m4_ifval([$2], [AS_IF([test "x$sr_have_$1" = xyes], [
+	AS_IF([test "x$sr_have_$1" = xyes],
+		[sr_deps_avail="$sr_deps_avail $1"[]m4_ifval([$2], [
 		AC_DEFINE([HAVE_$2], [1], [Whether $1 is available.])
 		AC_DEFINE_UNQUOTED([CONF_$2_VERSION], ["$sr_$1_version"], [Build-time version of $1.])
 	])])
@@ -231,23 +166,9 @@ m4_define([SR_ARG_OPT_PKG], [
 
 SR_ARG_OPT_PKG([libserialport], [LIBSERIALPORT], [NEED_SERIAL],
 	[libserialport >= 0.1.1])
-AS_IF([test "x$sr_have_libserialport" != xyes], [
-	HW_AGILENT_DMM="no"; HW_APPA_55II="no";
-	HW_ATTEN_PPS3XXX="no"; HW_BRYMEN_DMM="no"; HW_CEM_DT_885X="no";
-	HW_CENTER_3XX="no"; HW_COLEAD_SLM="no"; HW_CONRAD_DIGI_35_CPU="no";
-	HW_DEREE_DE5000="no"; HW_FLUKE_DMM="no"; HW_GMC_MH_1X_2X="no";
-	HW_HAMEG_HMO="no"; HW_MANSON_HCS_3XXX="no"; HW_MIC_985XX="no";
-	HW_MOTECH_LPS_30X="no"; HW_NORMA_DMM="no";
-	HW_OPENBENCH_LOGIC_SNIFFER="no"; HW_SERIAL_DMM="no";
-	HW_TELEINFO="no"; HW_TONDAJ_SL_814="no";
-])
 
 SR_ARG_OPT_PKG([libftdi], [LIBFTDI],,
 	[libftdi >= 0.16], [libftdi1 >= 1.0])
-AS_IF([test "x$sr_have_libftdi" != xyes], [
-	HW_ASIX_SIGMA="no"; HW_CHRONOVU_LA="no"; HW_IKALOGIC_SCANAPLUS="no";
-	HW_PIPISTRELLO_OLS="no";
-])
 
 # FreeBSD comes with an "integrated" libusb-1.0-style USB API.
 # This means libusb-1.0 is always available; no need to check for it.
@@ -255,14 +176,6 @@ AS_CASE([$host], [*freebsd*], [sr_have_libusb=yes])
 
 SR_ARG_OPT_PKG([libusb], [LIBUSB_1_0], [NEED_USB],
 	[libusb-1.0 >= 1.0.16])
-AS_IF([test "x$sr_have_libusb" != xyes], [
-	HW_BRYMEN_BM86X="no"; HW_FX2LAFW="no";
-	HW_HANTEK_DSO="no"; HW_IKALOGIC_SCANALOGIC2="no";
-	HW_KECHENG_KC_330B="no"; HW_LASCAR_EL_USB="no";
-	HW_SYSCLK_LWLA="no"; HW_TESTO="no"; HW_UNI_T_DMM="no";
-	HW_UNI_T_UT32X="no"; HW_VICTOR_DMM="no";
-	HW_ZEROPLUS_LOGIC_CUBE="no"; HW_SALEAE_LOGIC16="no";
-])
 
 SR_ARG_OPT_PKG([librevisa], [LIBREVISA], [NEED_VISA],
 	[librevisa >= 0.0.20130412])
@@ -283,13 +196,9 @@ AC_LANG([C])
 # Check host characteristics.
 AC_C_BIGENDIAN
 
-# The BeagleLogic driver needs sys/mman.h and sys/ioctl.h. Don't try to
-# build it if these headers aren't available.
-AC_CHECK_HEADERS([sys/mman.h sys/ioctl.h],, [HW_BEAGLELOGIC=no])
-
-# The BayLibre ACME driver needs sys/timerfd.h. Don't try to build it if
-# this header isn't available.
-AC_CHECK_HEADERS([sys/timerfd.h],, [HW_BAYLIBRE_ACME=no])
+AC_CHECK_HEADERS([sys/mman.h], [sr_deps_avail="$sr_deps_avail sys_mman_h"])
+AC_CHECK_HEADERS([sys/ioctl.h], [sr_deps_avail="$sr_deps_avail sys_ioctl_h"])
+AC_CHECK_HEADERS([sys/timerfd.h], [sr_deps_avail="$sr_deps_avail sys_timerfd_h"])
 
 # RPC is only needed for VXI support.
 AC_CACHE_CHECK([for RPC support], [sr_cv_have_rpc],
@@ -302,11 +211,101 @@ AS_IF([test "x$sr_cv_have_rpc" = xyes],
 # VXI support is only compiled if RPC support was found.
 AM_CONDITIONAL([NEED_RPC], [test "x$sr_cv_have_rpc" = xyes])
 
-AC_LANG([C++])
+########################
+##  Hardware drivers  ##
+########################
+
+# Keep track of all drivers so we can list them at the end.
+sr_driver_summary=
+
+# Check whether the sr_deps_avail list contains all of the arguments.
+# Unavailable dependencies are collected in sr_deps_missing.
+sr_check_driver_deps() {
+	sr_deps_missing=
+	for sr_dep
+	do
+		AS_CASE([" $sr_deps_avail "], [*" $sr_dep "*],,
+			[sr_deps_missing="$sr_deps_missing $sr_dep"])
+	done
+}
+
+AC_ARG_ENABLE([all-drivers],
+	[AS_HELP_STRING([--enable-all-drivers],
+			[enable all drivers by default [default=yes]])],
+	[], [enable_all_drivers=yes])
+
+## _SR_DRIVER(Device name, driver-name, var-name, [dependencies...])
+m4_define([_SR_DRIVER], [
+	AC_ARG_ENABLE([$3],
+		[AS_HELP_STRING([--enable-$2], [enable $1 support])],
+		[$3=$enableval], [$3=$enable_all_drivers])
+
+	AS_IF([test "x[$]$3" = xyes], [sr_hw_info=yes[]m4_ifval([$4], [
+		sr_check_driver_deps $4
+		AS_IF([test -n "$sr_deps_missing"],
+			[$3=no sr_hw_info="no (missing:$sr_deps_missing)"])
+	])], [sr_hw_info='no (disabled)'])
+	sr_hw_leader=`printf '%.32s' "$2................................"`
+	AS_VAR_APPEND([sr_driver_summary], [" - $sr_hw_leader $sr_hw_info$sr_nl"])
+
+	AM_CONDITIONAL([$3], [test "x[$]$3" = xyes])
+	AM_COND_IF([$3], [AC_DEFINE([HAVE_$3], [1], [Whether to support $1 device.])])
+])
+
+## SR_DRIVER(Device name, driver-name, [dependencies...])
+m4_define([SR_DRIVER],
+	[_SR_DRIVER([$1], [$2], m4_expand([AS_TR_CPP([HW_$2])]), [$3])])
+
+SR_DRIVER([Agilent DMM], [agilent-dmm], [libserialport])
+SR_DRIVER([Appa 55II], [appa-55ii], [libserialport])
+SR_DRIVER([ASIX SIGMA/SIGMA2], [asix-sigma], [libftdi])
+SR_DRIVER([Atten PPS3xxx], [atten-pps3xxx], [libserialport])
+SR_DRIVER([BayLibre ACME], [baylibre-acme], [sys_timerfd_h])
+SR_DRIVER([BeagleLogic], [beaglelogic], [sys_mman_h sys_ioctl_h])
+SR_DRIVER([Brymen BM86x], [brymen-bm86x], [libusb])
+SR_DRIVER([Brymen DMM], [brymen-dmm], [libserialport])
+SR_DRIVER([CEM DT-885x], [cem-dt-885x], [libserialport])
+SR_DRIVER([Center 3xx], [center-3xx], [libserialport])
+SR_DRIVER([ChronoVu LA], [chronovu-la], [libftdi])
+SR_DRIVER([Colead SLM], [colead-slm], [libserialport])
+SR_DRIVER([Conrad DIGI 35 CPU], [conrad-digi-35-cpu], [libserialport])
+SR_DRIVER([DER EE DE-5000], [deree-de5000], [libserialport])
+SR_DRIVER([demo], [demo])
+SR_DRIVER([Fluke DMM], [fluke-dmm], [libserialport])
+SR_DRIVER([fx2lafw], [fx2lafw], [libusb])
+SR_DRIVER([GMC MH 1x/2x], [gmc-mh-1x-2x], [libserialport])
+SR_DRIVER([Hameg HMO], [hameg-hmo], [libserialport])
+SR_DRIVER([Hantek DSO], [hantek-dso], [libusb])
+SR_DRIVER([Ikalogic Scanalogic-2], [ikalogic-scanalogic2], [libusb])
+SR_DRIVER([Ikalogic Scanaplus], [ikalogic-scanaplus], [libftdi])
+SR_DRIVER([Kecheng KC-330B], [kecheng-kc-330b], [libusb])
+SR_DRIVER([Lascar EL-USB], [lascar-el-usb], [libusb])
+SR_DRIVER([Manson HCS-3xxx], [manson-hcs-3xxx], [libserialport])
+SR_DRIVER([maynuo-m97], [maynuo-m97])
+SR_DRIVER([MIC 985xx], [mic-985xx], [libserialport])
+SR_DRIVER([Motech LPS 30x], [motech-lps-30x], [libserialport])
+SR_DRIVER([Norma DMM], [norma-dmm], [libserialport])
+SR_DRIVER([OpenBench Logic Sniffer], [openbench-logic-sniffer], [libserialport])
+SR_DRIVER([Pipistrello-OLS], [pipistrello-ols], [libftdi])
+SR_DRIVER([Rigol DS], [rigol-ds])
+SR_DRIVER([Saleae Logic16], [saleae-logic16], [libusb])
+SR_DRIVER([SCPI PPS], [scpi-pps])
+SR_DRIVER([serial DMM], [serial-dmm], [libserialport])
+SR_DRIVER([Sysclk LWLA], [sysclk-lwla], [libusb])
+SR_DRIVER([Teleinfo], [teleinfo], [libserialport])
+SR_DRIVER([Testo], [testo], [libusb])
+SR_DRIVER([Tondaj SL-814], [tondaj-sl-814], [libserialport])
+SR_DRIVER([UNI-T DMM], [uni-t-dmm], [libusb])
+SR_DRIVER([UNI-T UT32x], [uni-t-ut32x], [libusb])
+SR_DRIVER([Victor DMM], [victor-dmm], [libusb])
+SR_DRIVER([Yokogawa DL/DLM], [yokogawa-dlm])
+SR_DRIVER([ZEROPLUS Logic Cube], [zeroplus-logic-cube], [libusb])
 
 ###############################
 ##  Language bindings setup  ##
 ###############################
+
+AC_LANG([C++])
 
 AC_ARG_ENABLE([bindings],
 	[AS_HELP_STRING([--enable-bindings], [build language bindings [default=yes]])],
@@ -490,12 +489,12 @@ AC_CONFIG_FILES([Makefile libsigrok.pc bindings/cxx/libsigrokcxx.pc])
 AC_OUTPUT
 
 # Prepare bindings report messages.
-m4_define([sr_prepare_binding_report], [
-	AS_IF([test "x$enable_$1" = xyes],
-		[sr_report_$1=$sr_$1_missing],
-		[sr_report_$1=' (disabled)'])
+m4_define([SR_PREPARE_BINDING_REPORT], [
+	sr_report_$1=
+	test -z "$sr_$1_missing" || sr_report_$1=" (missing:$sr_$1_missing)"
+	test "x$enable_$1" = xyes || sr_report_$1=' (disabled)'
 ])
-m4_map_args([sr_prepare_binding_report], [cxx], [python], [java])
+m4_map_args([SR_PREPARE_BINDING_REPORT], [cxx], [python], [java])
 
 cat >&AS_MESSAGE_FD <<_EOF
 
@@ -514,7 +513,7 @@ Detected libraries (optional):
 $sr_pkglibs_summary
 
 Enabled hardware drivers:
-SR_DRIVER_SUMMARY
+$sr_driver_summary
 
 Enabled SCPI backends:
  - TCP............................. yes
