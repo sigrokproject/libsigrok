@@ -69,10 +69,16 @@ SR_PACKAGE_VERSION="AC_PACKAGE_VERSION"
 sr_head=`git -C "$srcdir" rev-parse --verify --short HEAD 2>&AS_MESSAGE_LOG_FD`
 
 AS_IF([test "$?" -eq 0 && test -n "$sr_head"], [
-	CONFIG_STATUS_DEPENDENCIES='$(top_srcdir)/.git/HEAD'
+	sr_git_deps=
+	test ! -f "$srcdir/.git/HEAD" || sr_git_deps=' $(top_srcdir)/.git/HEAD'
+
 	sr_head_name=`git -C "$srcdir" rev-parse --symbolic-full-name HEAD 2>&AS_MESSAGE_LOG_FD`
 	AS_IF([test "$?" -eq 0 && test -f "$srcdir/.git/$sr_head_name"],
-		[CONFIG_STATUS_DEPENDENCIES="$CONFIG_STATUS_DEPENDENCIES \$(top_srcdir)/.git/$sr_head_name"])
+		[sr_git_deps="$sr_git_deps \$(top_srcdir)/.git/$sr_head_name"])
+
+	# Use $(wildcard) so that things do not break if for whatever
+	# reason these files do not exist anymore at make time.
+	test -z "$sr_git_deps" || CONFIG_STATUS_DEPENDENCIES="\$(wildcard$sr_git_deps)"
 
 	# Append the revision hash unless we are exactly on a tagged release.
 	git -C "$srcdir" describe --match 'AC_PACKAGE_NAME-AC_PACKAGE_VERSION' \
