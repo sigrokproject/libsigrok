@@ -745,10 +745,10 @@ SR_PRIV int sr_scpi_get_hw_id(struct sr_scpi_dev_inst *scpi,
 	g_free(response);
 
 	hw_info = g_malloc0(sizeof(struct sr_scpi_hw_info));
-	hw_info->manufacturer = g_strdup(tokens[0]);
-	hw_info->model = g_strdup(tokens[1]);
-	hw_info->serial_number = g_strdup(tokens[2]);
-	hw_info->firmware_version = g_strdup(tokens[3]);
+	hw_info->manufacturer = g_strstrip(g_strdup(tokens[0]));
+	hw_info->model = g_strstrip(g_strdup(tokens[1]));
+	hw_info->serial_number = g_strstrip(g_strdup(tokens[2]));
+	hw_info->firmware_version = g_strstrip(g_strdup(tokens[3]));
 
 	g_strfreev(tokens);
 
