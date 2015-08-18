@@ -236,7 +236,7 @@ AC_ARG_ENABLE([all-drivers],
 
 ## _SR_DRIVER(Device name, driver-name, var-name, [dependencies...])
 m4_define([_SR_DRIVER], [
-	AC_ARG_ENABLE([$3],
+	AC_ARG_ENABLE([$2],
 		[AS_HELP_STRING([--enable-$2], [enable $1 support])],
 		[$3=$enableval], [$3=$enable_all_drivers])
 
