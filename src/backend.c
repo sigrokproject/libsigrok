@@ -122,7 +122,7 @@
 static void print_versions(void)
 {
 	GString *s;
-#ifdef HAVE_LIBUSB_1_0
+#if defined(HAVE_LIBUSB_1_0) && !defined(__FreeBSD__)
 	const struct libusb_version *lv;
 #endif
 
@@ -144,9 +144,13 @@ static void print_versions(void)
 		sp_get_package_version_string(), sp_get_lib_version_string());
 #endif
 #ifdef HAVE_LIBUSB_1_0
+#ifdef __FreeBSD__
+	g_string_append_printf(s, "libusb-1.0 %s, ", CONF_LIBUSB_1_0_VERSION);
+#else
 	lv = libusb_get_version();
 	g_string_append_printf(s, "libusb-1.0 %d.%d.%d.%d%s, ",
 		lv->major, lv->minor, lv->micro, lv->nano, lv->rc);
+#endif
 #endif
 #ifdef HAVE_LIBFTDI
 	g_string_append_printf(s, "libftdi %s, ", CONF_LIBFTDI_VERSION);
