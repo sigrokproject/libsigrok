@@ -549,38 +549,32 @@ if BINDINGS_PYTHON
 PDIR = bindings/python
 PDOC = bindings/python/sigrok/core/doc.i
 
+setup_py = cd $(PDIR) && $(PYTHON) "$(abs_srcdir)/$(PDIR)/setup.py" --quiet
+
 $(PDOC): $(srcdir)/bindings/swig/doc.py $(CPPXMLDOC)
 	$(AM_V_at)test -d $(PDIR)/sigrok/core || $(MKDIR_P) $(PDIR)/sigrok/core
 	$(AM_V_GEN)$(PYTHON) $(srcdir)/bindings/swig/doc.py python $(CPPXMLDOC) > $@
 
 python-build: $(PDIR)/timestamp
 
-python-quietclean:
-	$(AM_V_at)cd $(PDIR) && $(PYTHON) $(abs_srcdir)/$(PDIR)/setup.py --quiet clean --all 3>&1 1>&2 2>&3 \
-		| grep -v "can.t clean it"; true
-
 $(PDIR)/timestamp: bindings/cxx/libsigrokcxx.la $(PDIR)/sigrok/core/classes.i \
 		bindings/swig/classes.i bindings/swig/enums.i $(PDOC) \
 		$(library_include_HEADERS) $(nodist_library_include_HEADERS)
-	$(AM_V_at)$(MAKE) python-quietclean
-	$(AM_V_GEN)cd $(PDIR) && $(PYTHON) $(abs_srcdir)/$(PDIR)/setup.py \
-		--quiet build_ext --swig "$(SWIG)" build_py build 3>&1 1>&2 2>&3 \
-		| grep -v "command line option.*Wstrict-prototypes"; true
-	$(AM_V_at)touch $(PDIR)/timestamp
+	$(AM_V_at)$(setup_py) clean --all 2>/dev/null
+	$(AM_V_GEN)$(setup_py) build_ext --swig "$(SWIG)" build_py
+	$(AM_V_at): >$@
 
-$(DESTDIR)$(prefix):
-	$(MKDIR_P) $@
-
-python-install: $(DESTDIR)$(prefix)
-	cd $(PDIR) && $(PYTHON) $(abs_srcdir)/$(PDIR)/setup.py --quiet install --prefix $(prefix) `test "$(DESTDIR)" && echo --root=$(DESTDIR)`
+python-install:
+	$(AM_V_at)$(MKDIR_P) "$(DESTDIR)$(prefix)" "$(DESTDIR)$(exec_prefix)"
+	$(setup_py) install --root "$(DESTDIR)/" --prefix "$(prefix)" --exec-prefix "$(exec_prefix)"
 
 python-clean:
-	$(AM_V_at)$(MAKE) python-quietclean
-	$(AM_V_at)rm -f $(PDIR)/timestamp
-	$(AM_V_at)rm -rf $(PDIR)/doxy/
+	-$(AM_V_at)$(setup_py) clean --all 2>/dev/null
+	-$(AM_V_at)rm -f $(PDIR)/timestamp
+	-$(AM_V_at)rm -fr $(PDIR)/doxy
 
 python-doc:
-	$(AM_V_at)cd $(srcdir)/$(PDIR) && BUILDDIR=$(abs_builddir)/$(PDIR)/ doxygen Doxyfile 2>/dev/null
+	$(AM_V_at)cd $(srcdir)/$(PDIR) && BUILDDIR="$(abs_builddir)/$(PDIR)/" doxygen Doxyfile 2>/dev/null
 
 BUILD_EXTRA += python-build
 INSTALL_EXTRA += python-install
@@ -601,6 +595,8 @@ JCXX = $(JCLS)/classes_wrap.cxx
 JLIB = $(JDIR)/libsigrok_java_core_classes.so
 JJAR = $(JDIR)/sigrok-core.jar
 
+java_cleanfiles = $(JCXX) $(JCLS)/*.java $(JCLS)/*.class $(JINT)/*.class $(JJAR) $(JLIB)
+
 java-build: $(JJAR) $(JLIB)
 
 $(JDOC): $(srcdir)/bindings/swig/doc.py $(CPPXMLDOC)
@@ -609,7 +605,7 @@ $(JDOC): $(srcdir)/bindings/swig/doc.py $(CPPXMLDOC)
 
 $(JCXX): $(srcdir)/$(JSWG) $(JDOC) bindings/swig/classes.i bindings/swig/enums.i \
 		$(library_include_HEADERS) $(nodist_library_include_HEADERS)
-	$(AM_V_at)make java-clean
+	-$(AM_V_at)rm -f $(java_cleanfiles)
 	$(AM_V_GEN)$(SWIG) -c++ -java -package org.sigrok.core.classes \
 		-Ibindings -I$(JCLS) $(local_includes) -I$(srcdir) $(JNI_CPPFLAGS) \
 		-outdir $(JCLS) -o $@ $(srcdir)/$(JSWG)
@@ -630,16 +626,11 @@ java-install:
 	$(INSTALL) $(JJAR) -t $(DESTDIR)$(datadir)/java
 
 java-clean:
-	$(AM_V_at)rm -f $(JCXX)
-	$(AM_V_at)rm -f $(JCLS)/*.java
-	$(AM_V_at)rm -f $(JCLS)/*.class
-	$(AM_V_at)rm -f $(JINT)/*.class
-	$(AM_V_at)rm -f $(JJAR)
-	$(AM_V_at)rm -f $(JLIB)
-	$(AM_V_at)rm -rf $(JDIR)/doxy/
+	-$(AM_V_at)rm -f $(java_cleanfiles)
+	-$(AM_V_at)rm -fr $(JDIR)/doxy
 
 java-doc:
-	$(AM_V_at)cd $(srcdir)/$(JDIR) && BUILDDIR=$(abs_builddir)/$(JDIR)/ doxygen Doxyfile 2>/dev/null
+	$(AM_V_at)cd $(srcdir)/$(JDIR) && BUILDDIR="$(abs_builddir)/$(JDIR)/" doxygen Doxyfile
 
 BUILD_EXTRA += java-build
 INSTALL_EXTRA += java-install
