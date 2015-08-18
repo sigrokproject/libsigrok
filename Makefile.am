@@ -563,7 +563,8 @@ $(PDIR)/timestamp: bindings/cxx/libsigrokcxx.la $(PDIR)/sigrok/core/classes.i \
 		bindings/swig/classes.i bindings/swig/enums.i $(PDOC) \
 		$(library_include_HEADERS) $(nodist_library_include_HEADERS)
 	$(AM_V_at)$(MAKE) python-quietclean
-	$(AM_V_GEN)cd $(PDIR) && $(PYTHON) $(abs_srcdir)/$(PDIR)/setup.py --quiet build 3>&1 1>&2 2>&3 \
+	$(AM_V_GEN)cd $(PDIR) && $(PYTHON) $(abs_srcdir)/$(PDIR)/setup.py \
+		--quiet build_ext --swig "$(SWIG)" build_py build 3>&1 1>&2 2>&3 \
 		| grep -v "command line option.*Wstrict-prototypes"; true
 	$(AM_V_at)touch $(PDIR)/timestamp
 
