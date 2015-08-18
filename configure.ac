@@ -396,8 +396,8 @@ test "x$HAVE_PYMOD_SETUPTOOLS" = xyes \
 	|| sr_python_missing="$sr_python_missing Setuptools"
 
 # The Python bindings use SWIG to generate code.
-AC_CHECK_PROG([HAVE_SWIG], [swig], [yes], [no])
-test "x$HAVE_SWIG" = xyes || sr_python_missing="$sr_python_missing SWIG"
+AC_CHECK_PROGS([SWIG], [swig swig2.0], [no])
+test "x$SWIG" != xno || sr_python_missing="$sr_python_missing SWIG"
 
 AS_IF([test -z "$sr_python_missing"],
 	[BINDINGS_PYTHON=$enable_python], [BINDINGS_PYTHON=no])
@@ -411,7 +411,7 @@ sr_java_missing=
 test "x$BINDINGS_CXX" = xyes || sr_java_missing=" C++ bindings"
 
 # The Java bindings use SWIG to generate code.
-test "x$HAVE_SWIG" = xyes || sr_java_missing="$sr_java_missing SWIG"
+test "x$SWIG" != xno || sr_java_missing="$sr_java_missing SWIG"
 
 # Find Java compiler and JNI includes for Java bindings.
 AC_CHECK_PROG([HAVE_JAVAC], [javac], [yes], [no])
