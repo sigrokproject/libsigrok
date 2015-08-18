@@ -549,9 +549,9 @@ if BINDINGS_PYTHON
 PDIR = bindings/python
 PDOC = bindings/python/sigrok/core/doc.i
 
-$(PDOC): bindings/swig/doc.py $(CPPXMLDOC)
+$(PDOC): $(srcdir)/bindings/swig/doc.py $(CPPXMLDOC)
 	$(AM_V_at)test -d $(PDIR)/sigrok/core || $(MKDIR_P) $(PDIR)/sigrok/core
-	$(AM_V_GEN)$(PYTHON) $< python $(CPPXMLDOC) > $@
+	$(AM_V_GEN)$(PYTHON) $(srcdir)/bindings/swig/doc.py python $(CPPXMLDOC) > $@
 
 python-build: $(PDIR)/timestamp
 
@@ -602,15 +602,16 @@ JJAR = $(JDIR)/sigrok-core.jar
 
 java-build: $(JJAR) $(JLIB)
 
-$(JDOC): bindings/swig/doc.py $(CPPXMLDOC)
+$(JDOC): $(srcdir)/bindings/swig/doc.py $(CPPXMLDOC)
 	$(AM_V_at)test -d $(JCLS) || $(MKDIR_P) $(JCLS)
-	$(AM_V_GEN)python $< java $(CPPXMLDOC) > $@
+	$(AM_V_GEN)$(PYTHON) $(srcdir)/bindings/swig/doc.py java $(CPPXMLDOC) > $@
 
-$(JCXX): $(JSWG) $(JDOC) bindings/swig/classes.i bindings/swig/enums.i \
+$(JCXX): $(srcdir)/$(JSWG) $(JDOC) bindings/swig/classes.i bindings/swig/enums.i \
 		$(library_include_HEADERS) $(nodist_library_include_HEADERS)
 	$(AM_V_at)make java-clean
 	$(AM_V_GEN)swig -c++ -java -package org.sigrok.core.classes \
-		-Ibindings -I$(JCLS) $(local_includes) -I$(srcdir) $(JNI_CPPFLAGS) -outdir $(JCLS) -o $@ $<
+		-Ibindings -I$(JCLS) $(local_includes) -I$(srcdir) $(JNI_CPPFLAGS) \
+		-outdir $(JCLS) -o $@ $(srcdir)/$(JSWG)
 
 $(JJAR): $(JCXX)
 	$(AM_V_GEN)$(JAVAC) -d $(JDIR) $(JSRC)
