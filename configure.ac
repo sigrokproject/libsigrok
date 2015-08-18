@@ -460,10 +460,14 @@ AC_SUBST([SR_PKGLIBS])
 # Retrieve the compile and link flags for all modules combined.
 # Also, bail out at this point if any module dependency is not met.
 PKG_CHECK_MODULES([LIBSIGROK], [glib-2.0 >= 2.32.0 $SR_PKGLIBS])
-PKG_CHECK_MODULES([LIBSIGROKCXX], [$SR_PKGLIBS_CXX])
-PKG_CHECK_MODULES([PYSIGROK], [$SR_PKGLIBS_PYTHON $SR_PKGLIBS_CXX])
 PKG_CHECK_MODULES([CHECK], [$SR_PKGLIBS_CHECK glib-2.0 $SR_PKGLIBS])
 
+# SR_PKGLIBS_CXX may be empty, so only invoke these checks when
+# the C++ bindings are enabled.
+AM_COND_IF([BINDINGS_CXX], [
+	PKG_CHECK_MODULES([LIBSIGROKCXX], [$SR_PKGLIBS_CXX])
+	PKG_CHECK_MODULES([PYSIGROK], [$SR_PKGLIBS_PYTHON $SR_PKGLIBS_CXX])
+])
 sr_glib_version=`$PKG_CONFIG --modversion glib-2.0 2>&AS_MESSAGE_LOG_FD`
 sr_libzip_version=`$PKG_CONFIG --modversion libzip 2>&AS_MESSAGE_LOG_FD`
 
