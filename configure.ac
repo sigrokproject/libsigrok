@@ -396,7 +396,7 @@ test "x$HAVE_PYMOD_SETUPTOOLS" = xyes \
 	|| sr_python_missing="$sr_python_missing Setuptools"
 
 # The Python bindings use SWIG to generate code.
-AC_CHECK_PROGS([SWIG], [swig swig2.0], [no])
+AC_CHECK_PROGS([SWIG], [swig swig2.0 swig3.0], [no])
 test "x$SWIG" != xno || sr_python_missing="$sr_python_missing SWIG"
 
 AS_IF([test -z "$sr_python_missing"],
