@@ -332,7 +332,7 @@ sr_cxx_missing=
 # Check if the C++ compiler supports the C++11 standard.
 m4_ifdef([AX_CXX_COMPILE_STDCXX_11],
 	[AX_CXX_COMPILE_STDCXX_11(, [optional])],
-	[m4_warn(, [[Missing macro AX_CXX_COMPILE_STDCXX_11: no C++11 check possible]])])
+	[m4_warn([unsupported], [Missing macro AX_CXX_COMPILE_STDCXX_11: no C++11 check possible])])
 test "x$HAVE_CXX11" = x1 || sr_cxx_missing="$sr_cxx_missing C++11"
 
 # The C++ bindings need glibmm.
@@ -391,7 +391,7 @@ PKG_CHECK_EXISTS([pygobject-3.0 < 3.7.91],
 HAVE_PYMOD_SETUPTOOLS=yes
 m4_ifdef([AX_PYTHON_MODULE],
 	[AX_PYTHON_MODULE([setuptools])],
-	[m4_warn(, [[Missing macro AX_PYTHON_MODULE: no setuptools check]])])
+	[m4_warn([unsupported], [Missing macro AX_PYTHON_MODULE: no setuptools check])])
 test "x$HAVE_PYMOD_SETUPTOOLS" = xyes \
 	|| sr_python_missing="$sr_python_missing Setuptools"
 
