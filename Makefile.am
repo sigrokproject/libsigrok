@@ -18,7 +18,7 @@
 ## along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##
 
-ACLOCAL_AMFLAGS = -I autostuff
+ACLOCAL_AMFLAGS = -I m4
 
 local_includes = -Iinclude -I$(srcdir)/include -I$(srcdir)/src -I.
 if BINDINGS_CXX

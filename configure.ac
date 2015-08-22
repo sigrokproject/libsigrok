@@ -30,7 +30,7 @@ AC_INIT([libsigrok], [sr_package_version_major.sr_package_version_minor.sr_packa
 	[sigrok-devel@lists.sourceforge.net],
 	[libsigrok], [http://www.sigrok.org])
 AC_CONFIG_HEADERS([config.h include/libsigrok/version.h])
-AC_CONFIG_MACRO_DIR([autostuff])
+AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_AUX_DIR([autostuff])
 
 # We require at least automake 1.11 (needed for 'silent rules').
