@@ -758,6 +758,7 @@ static void send_chunk(struct sr_dev_inst *sdi, unsigned char *buf,
 		}
 	}
 	sr_session_send(devc->cb_data, &packet);
+	g_free(analog.data);
 }
 
 /*
