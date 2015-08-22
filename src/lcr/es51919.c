@@ -723,6 +723,7 @@ static void handle_packet(struct sr_dev_inst *sdi, const uint8_t *pkt)
 		sr_session_send(devc->cb_data, &packet);
 	}
 
+	g_slist_free(analog.channels);
 	analog.channels = g_slist_append(NULL, sdi->channels->next->data);
 
 	parse_measurement(pkt, &floatval, &analog, 1);
@@ -738,6 +739,8 @@ static void handle_packet(struct sr_dev_inst *sdi, const uint8_t *pkt)
 
 		sr_session_send(devc->cb_data, &packet);
 	}
+
+	g_slist_free(analog.channels);
 
 	if (frame) {
 		packet.type = SR_DF_FRAME_END;
