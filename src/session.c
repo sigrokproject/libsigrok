@@ -770,6 +770,7 @@ SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
 			packet_in = packet_out;
 		}
 	}
+	packet = packet_in;
 
 	/*
 	 * If the last transform did output a packet, pass it to all datafeed
