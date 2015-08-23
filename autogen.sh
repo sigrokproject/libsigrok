@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh -e
 ##
 ## This file is part of the libsigrok project.
 ##
@@ -18,49 +18,7 @@
 ## along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##
 
-OS=`uname`
+test -n "$srcdir" || srcdir=`dirname "$0"`
+test -n "$srcdir" || srcdir=.
 
-LIBTOOLIZE=libtoolize
-
-if [ "x$OS" = "xDarwin" ]; then
-	LIBTOOLIZE=glibtoolize
-	if [ -d /sw/share/aclocal ]; then
-		# fink installs aclocal macros here
-		ACLOCAL_DIR="-I /sw/share/aclocal"
-	elif [ -d /opt/local/share/aclocal ]; then
-		# Macports installs aclocal macros here
-		ACLOCAL_DIR="-I /opt/local/share/aclocal"
-	elif [ -d /usr/local/share/aclocal ]; then
-		# Homebrew installs aclocal macros here
-		ACLOCAL_DIR="-I /usr/local/share/aclocal"
-	elif [ -d /usr/share/aclocal ]; then
-		# Xcode installs aclocal macros here
-		ACLOCAL_DIR="-I /usr/share/aclocal"
-	fi
-fi
-
-echo "Generating build system..."
-${LIBTOOLIZE} --install --copy --quiet || exit 1
-aclocal ${ACLOCAL_DIR} || exit 1
-
-# Check the version of a specific autoconf macro that tends to cause problems.
-CXXMACROVERSION=$(
-	grep -B 5 'm4_define(\[_AX_CXX_COMPILE_STDCXX_11_testbody\]' aclocal.m4 |
-	sed -n 's/.*serial[ \t][ \t]*\([0-9][0-9]*\).*/\1/p'
-)
-if [ "x$CXXMACROVERSION" = "x" ]; then
-	echo "--- Warning: AX_CXX_COMPILE_STDCXX_11 macro not found."
-	echo "--- You won't be able to build the language bindings!"
-	echo "--- More info: http://sigrok.org/wiki/Building#FAQ"
-fi
-if [ "x$CXXMACROVERSION" != "x" ] && [ "$CXXMACROVERSION" -lt 4 ]; then
-	echo "--- Warning: AX_CXX_COMPILE_STDCXX_11 macro is too old."
-	echo "--- (found version $CXXMACROVERSION, at least 4 is required)"
-	echo "--- You won't be able to build the language bindings!"
-	echo "--- More info: http://sigrok.org/wiki/Building#FAQ"
-fi
-
-autoheader || exit 1
-automake --add-missing --copy || exit 1
-autoconf || exit 1
-
+autoreconf --force --install --verbose "$srcdir"
