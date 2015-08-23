@@ -21,17 +21,12 @@
 # We require at least autoconf 2.63 (AC_INIT format changed there).
 AC_PREREQ([2.63])
 
-# libsigrok package version number (NOT the same as shared lib version!).
-m4_define([sr_package_version_major], [0])
-m4_define([sr_package_version_minor], [4])
-m4_define([sr_package_version_micro], [0])
-
-AC_INIT([libsigrok], [sr_package_version_major.sr_package_version_minor.sr_package_version_micro],
+AC_INIT([libsigrok], [0.4.0],
 	[sigrok-devel@lists.sourceforge.net],
 	[libsigrok], [http://www.sigrok.org])
-AC_CONFIG_HEADERS([config.h include/libsigrok/version.h])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_AUX_DIR([autostuff])
+AC_CONFIG_HEADERS([config.h include/libsigrok/version.h])
 
 # We require at least automake 1.11 (needed for 'silent rules').
 AM_INIT_AUTOMAKE([1.11 -Wall -Werror no-define nostdinc subdir-objects check-news color-tests])
@@ -62,51 +57,14 @@ AM_PROG_CC_C_O
 # Initialize libtool.
 LT_INIT
 
-CONFIG_STATUS_DEPENDENCIES=
-SR_PACKAGE_VERSION="AC_PACKAGE_VERSION"
-
-# Check if we can get revision information from git.
-sr_head=`git -C "$srcdir" rev-parse --verify --short HEAD 2>&AS_MESSAGE_LOG_FD`
-
-AS_IF([test "$?" -eq 0 && test -n "$sr_head"], [
-	sr_git_deps=
-	test ! -f "$srcdir/.git/HEAD" || sr_git_deps=' $(top_srcdir)/.git/HEAD'
-
-	sr_head_name=`git -C "$srcdir" rev-parse --symbolic-full-name HEAD 2>&AS_MESSAGE_LOG_FD`
-	AS_IF([test "$?" -eq 0 && test -f "$srcdir/.git/$sr_head_name"],
-		[sr_git_deps="$sr_git_deps \$(top_srcdir)/.git/$sr_head_name"])
-
-	# Use $(wildcard) so that things do not break if for whatever
-	# reason these files do not exist anymore at make time.
-	test -z "$sr_git_deps" || CONFIG_STATUS_DEPENDENCIES="\$(wildcard$sr_git_deps)"
-
-	# Append the revision hash unless we are exactly on a tagged release.
-	git -C "$srcdir" describe --match 'AC_PACKAGE_NAME-AC_PACKAGE_VERSION' \
-		--exact-match >&AS_MESSAGE_LOG_FD 2>&AS_MESSAGE_LOG_FD \
-	|| SR_PACKAGE_VERSION="$SR_PACKAGE_VERSION-git-$sr_head"
-])
-AC_SUBST([CONFIG_STATUS_DEPENDENCIES])
-AC_SUBST([SR_PACKAGE_VERSION])
-
-AC_DEFINE([SR_PACKAGE_VERSION_MAJOR], [sr_package_version_major], [.])
-AC_DEFINE([SR_PACKAGE_VERSION_MINOR], [sr_package_version_minor], [.])
-AC_DEFINE([SR_PACKAGE_VERSION_MICRO], [sr_package_version_micro], [.])
-AC_DEFINE_UNQUOTED([SR_PACKAGE_VERSION_STRING], ["$SR_PACKAGE_VERSION"], [.])
+# Set up the libsigrok version defines.
+SR_PKG_VERSION_SET([SR_PACKAGE_VERSION], [AC_PACKAGE_VERSION])
 
 # Library version for libsigrok (NOT the same as the package version).
 # Carefully read the libtool docs before updating these numbers!
 # The algorithm for determining which number to change (and how) is nontrivial!
 # http://www.gnu.org/software/libtool/manual/libtool.html#Updating-version-info
-SR_LIB_VERSION_CURRENT=2
-SR_LIB_VERSION_REVISION=0
-SR_LIB_VERSION_AGE=0
-AC_SUBST([SR_LIB_VERSION],
-	["$SR_LIB_VERSION_CURRENT:$SR_LIB_VERSION_REVISION:$SR_LIB_VERSION_AGE"])
-
-AC_DEFINE_UNQUOTED([SR_LIB_VERSION_CURRENT], [$SR_LIB_VERSION_CURRENT], [.])
-AC_DEFINE_UNQUOTED([SR_LIB_VERSION_REVISION], [$SR_LIB_VERSION_REVISION], [.])
-AC_DEFINE_UNQUOTED([SR_LIB_VERSION_AGE], [$SR_LIB_VERSION_AGE], [.])
-AC_DEFINE_UNQUOTED([SR_LIB_VERSION_STRING], ["$SR_LIB_VERSION"], [.])
+SR_LIB_VERSION_SET([SR_LIB_VERSION], [2:0:0])
 
 #############################
 ##  Optional dependencies  ##
