@@ -37,12 +37,6 @@ AH_TOP([#ifndef SR_CONFIG_H
 #define SR_CONFIG_H    /* To stop multiple inclusions. */])
 AH_BOTTOM([#endif /* SR_CONFIG_H */])
 
-# Enable more compiler warnings via -Wall and -Wextra. Add -fvisibility=hidden
-# and enforce use of SR_API to explicitly mark all public API functions.
-CFLAGS="$CFLAGS -std=c11"
-CFLAGS="$CFLAGS -fvisibility=hidden"
-CFLAGS="$CFLAGS -D_POSIX_C_SOURCE=200112L"
-
 # Checks for programs.
 AC_PROG_CC
 AC_PROG_CPP
@@ -112,6 +106,13 @@ SR_PKG_CHECK([check], [SR_PKGLIBS_CHECK], [check >= 0.9.4])
 AM_CONDITIONAL([HAVE_CHECK], [test "x$sr_have_check" = xyes])
 
 AC_LANG([C])
+
+# Enable the C11 standard if possible, and enforce the use
+# of SR_API to explicitly mark all public API functions.
+SR_EXTRA_CFLAGS=
+SR_CHECK_COMPILE_FLAGS([SR_EXTRA_CFLAGS], [C11], [-std=gnu11 -std=c11])
+SR_CHECK_COMPILE_FLAGS([SR_EXTRA_CFLAGS], [visibility], [-fvisibility=hidden])
+
 SR_ARG_ENABLE_WARNINGS([SR_WFLAGS], [-Wall], [-Wall -Wextra -Wmissing-prototypes])
 
 # Check host characteristics.
@@ -429,6 +430,7 @@ libsigrok configuration summary:
  - Prefix.......................... $prefix
  - Building on..................... $build
  - Building for.................... $host
+ - Additional C compiler flags..... $SR_EXTRA_CFLAGS
  - C compiler warnings............. $SR_WFLAGS
  - C++ compiler warnings........... $SR_WXXFLAGS
 

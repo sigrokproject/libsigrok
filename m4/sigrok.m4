@@ -237,6 +237,31 @@ _SR_ARG_OPT_PKG(m4_expand([AS_TR_SH([$1])]),
 	$@)[]dnl
 ])
 
+## SR_CHECK_COMPILE_FLAGS(flags-var, description, flags)
+##
+## Find a compiler flag for <description>. For each flag in <flags>, check
+## if the compiler for the current language accepts it. On success, stop the
+## search and append the last tested flag to <flags-var>. Calls AC_SUBST
+## on <flags-var>.
+##
+AC_DEFUN([SR_CHECK_COMPILE_FLAGS],
+[dnl
+m4_assert([$# >= 3])[]dnl
+AC_MSG_CHECKING([compiler flag for $2])
+sr_ccf_result=no
+sr_ccf_save_CPPFLAGS=$CPPFLAGS
+for sr_flag in $3
+do
+	CPPFLAGS="$sr_ccf_save_CPPFLAGS $sr_flag"
+	AC_COMPILE_IFELSE([AC_LANG_PROGRAM([], [])], [sr_ccf_result=$sr_flag])
+	test "x$sr_ccf_result" = xno || break
+done
+CPPFLAGS=$sr_ccf_save_CPPFLAGS
+SR_APPEND([$1], [$sr_ccf_result])
+AC_MSG_RESULT([$sr_ccf_result])
+AC_SUBST([$1])
+])
+
 ## _SR_ARG_ENABLE_WARNINGS_ONCE
 ##
 ## Implementation helper macro of SR_ARG_ENABLE_WARNINGS. Pulled in

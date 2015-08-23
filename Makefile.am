@@ -29,7 +29,7 @@ AM_CPPFLAGS = $(local_includes) -DFIRMWARE_DIR='"$(FIRMWARE_DIR)"'
 
 # The check CFLAGS are a superset of the libsigrok CFLAGS, and the
 # python bindings CFLAGS are a superset of the C++ bindings CFLAGS.
-AM_CFLAGS = $(SR_WFLAGS) $(CHECK_CFLAGS)
+AM_CFLAGS = $(SR_EXTRA_CFLAGS) $(SR_WFLAGS) $(CHECK_CFLAGS)
 AM_CXXFLAGS = $(SR_WXXFLAGS) $(PYSIGROK_CFLAGS)
 
 lib_LTLIBRARIES = libsigrok.la
