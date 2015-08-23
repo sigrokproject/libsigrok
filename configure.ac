@@ -40,7 +40,6 @@ AH_BOTTOM([#endif /* SR_CONFIG_H */])
 # Enable more compiler warnings via -Wall and -Wextra. Add -fvisibility=hidden
 # and enforce use of SR_API to explicitly mark all public API functions.
 CFLAGS="$CFLAGS -std=c11"
-CFLAGS="$CFLAGS -Wall -Wextra -Wmissing-prototypes"
 CFLAGS="$CFLAGS -fvisibility=hidden"
 CFLAGS="$CFLAGS -D_POSIX_C_SOURCE=200112L"
 
@@ -150,6 +149,7 @@ SR_PKG_CHECK([check], [SR_PKGLIBS_CHECK], [check >= 0.9.4])
 AM_CONDITIONAL([HAVE_CHECK], [test "x$sr_have_check" = xyes])
 
 AC_LANG([C])
+SR_ARG_ENABLE_WARNINGS([SR_WFLAGS], [-Wall], [-Wall -Wextra -Wmissing-prototypes])
 
 # Check host characteristics.
 AC_C_BIGENDIAN
@@ -264,6 +264,7 @@ SR_DRIVER([ZEROPLUS Logic Cube], [zeroplus-logic-cube], [libusb])
 ###############################
 
 AC_LANG([C++])
+SR_ARG_ENABLE_WARNINGS([SR_WXXFLAGS], [-Wall], [-Wall -Wextra])
 
 AC_ARG_ENABLE([bindings],
 	[AS_HELP_STRING([--enable-bindings], [build language bindings [default=yes]])],
@@ -466,6 +467,8 @@ libsigrok configuration summary:
  - Prefix.......................... $prefix
  - Building on..................... $build
  - Building for.................... $host
+ - C compiler warnings............. $SR_WFLAGS
+ - C++ compiler warnings........... $SR_WXXFLAGS
 
 Detected libraries (required):
  - glib-2.0 >= 2.32.0.............. $sr_glib_version

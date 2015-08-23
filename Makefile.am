@@ -22,15 +22,15 @@ ACLOCAL_AMFLAGS = -I m4
 
 local_includes = -Iinclude -I$(srcdir)/include -I$(srcdir)/src -I.
 if BINDINGS_CXX
-local_includes += -Ibindings/cxx/include -I${srcdir}/bindings/cxx/include -Ibindings/cxx
+local_includes += -Ibindings/cxx/include -I$(srcdir)/bindings/cxx/include -Ibindings/cxx
 endif
 # Ensure that local include directories are always searched first.
 AM_CPPFLAGS = $(local_includes) -DFIRMWARE_DIR='"$(FIRMWARE_DIR)"'
 
 # The check CFLAGS are a superset of the libsigrok CFLAGS, and the
 # python bindings CFLAGS are a superset of the C++ bindings CFLAGS.
-AM_CFLAGS = $(CHECK_CFLAGS)
-AM_CXXFLAGS = $(PYSIGROK_CFLAGS)
+AM_CFLAGS = $(SR_WFLAGS) $(CHECK_CFLAGS)
+AM_CXXFLAGS = $(SR_WXXFLAGS) $(PYSIGROK_CFLAGS)
 
 lib_LTLIBRARIES = libsigrok.la
 

@@ -16,7 +16,7 @@
 ## You should have received a copy of the GNU General Public License
 ## along with sigrok. If not, see <http://www.gnu.org/licenses/>.
 
-#serial 20150821
+#serial 20150823
 
 ## SR_APPEND(var-name, [list-sep,] element)
 ##
@@ -125,9 +125,9 @@ m4_define([_SR_ARG_ENABLE_WARNINGS_ONCE],
 AC_PROVIDE([$0])[]dnl
 AC_ARG_ENABLE([warnings],
 		[AS_HELP_STRING([[--enable-warnings[=min|max|fatal|no]]],
-				[set compile pedantry level [default=min]])],
+				[set compile pedantry level [default=max]])],
 		[sr_enable_warnings=$enableval],
-		[sr_enable_warnings=min])[]dnl
+		[sr_enable_warnings=max])[]dnl
 dnl
 # Test whether the compiler accepts each flag.  Look at standard output,
 # since GCC only shows a warning message if an option is not supported.
@@ -173,9 +173,9 @@ int main(int argc, char** argv) { return (argv != 0) ? argc : 0; }
 ]])])
 AS_CASE([$sr_enable_warnings],
 	[no], [],
-	[max], [sr_check_compile_warning_flags $3],
+	[min], [sr_check_compile_warning_flags $2],
 	[fatal], [sr_check_compile_warning_flags $3 -Werror],
-	[sr_check_compile_warning_flags $2])
+	[sr_check_compile_warning_flags $3])
 rm -f "$sr_conftest"
 AC_SUBST([$1], [$sr_warning_flags])
 AC_MSG_RESULT([[$]{sr_warning_flags:-none}])[]dnl
