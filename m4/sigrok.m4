@@ -115,6 +115,128 @@ _SR_LIB_VERSION_SET([$1],
 	[$2], m4_unquote(m4_split([$2], [:])))
 ])
 
+## _SR_VAR_SUMMARY(tag, var-name, line-leader, align-columns, align-char)
+##
+m4_define([_SR_VAR_SUMMARY], [dnl
+$2=
+$1_append() {
+	sr_aligned=`printf '%.$4s' "[$][1]m4_for([i], [1], [$4],, [$5])"`
+	$2="[$]{$2}$3$sr_aligned [$]2"'
+'
+}
+])
+
+## SR_VAR_SUMMARY(tag, [var-name = <tag>],
+##                [line-leader = [ - ]], [align-columns = 32], [align-char = .])
+##
+## Define a shell function <tag>_append() to be used for aggregating
+## a summary of test results in the shell variable <var-name>.
+##
+AC_DEFUN([SR_VAR_SUMMARY],
+[dnl
+m4_assert([$# >= 1])[]dnl
+_SR_VAR_SUMMARY([$1],
+	m4_default_quoted([$2], [$1]),
+	m4_default_quoted([$3], [ - ]),
+	m4_default_quoted([$4], [32]),
+	m4_default_quoted([$5], [.]))[]dnl
+])
+
+## SR_PKG_CHECK_SUMMARY([var-name = sr_pkg_check_summary],
+##                      [line-leader = [ - ]], [align-columns = 32], [align-char = .])
+##
+## Prepare for the aggregation of package check results
+## in the shell variable <var-name>.
+##
+AC_DEFUN([SR_PKG_CHECK_SUMMARY],
+	[SR_VAR_SUMMARY([sr_pkg_check_summary], $@)])
+
+## SR_PKG_CHECK(tag, [collect-var], module...)
+##
+## Check for each pkg-config <module> in the argument list. <module> may
+## include a version constraint.
+##
+## Output variables: sr_have_<tag>, sr_<tag>_version
+##
+AC_DEFUN([SR_PKG_CHECK],
+[dnl
+m4_assert([$# >= 3])[]dnl
+AC_REQUIRE([PKG_PROG_PKG_CONFIG])[]dnl
+AC_REQUIRE([SR_PKG_CHECK_SUMMARY])[]dnl
+dnl
+PKG_CHECK_EXISTS([$3], [dnl
+	sr_have_$1=yes
+	m4_ifval([$2], [SR_APPEND([$2], ["$3"])
+	])sr_$1_version=`$PKG_CONFIG --modversion "$3" 2>&AS_MESSAGE_LOG_FD`
+	sr_pkg_check_summary_append "$3" "$sr_$1_version"[]dnl
+], [dnl
+	sr_pkg_check_summary_append "$3" no
+	m4_ifval([$4],
+		[SR_PKG_CHECK([$1], [$2], m4_shift3($@))],
+		[sr_have_$1=no sr_$1_version=])[]dnl
+])
+])
+
+## SR_VAR_OPT_PKG([modules-var], [features-var])
+##
+## Enable the collection of SR_ARG_OPT_PKG results into the shell variables
+## <modules-var> and <features-var>.
+##
+AC_DEFUN([SR_VAR_OPT_PKG],
+[dnl
+m4_define([_SR_VAR_OPT_PKG_MODULES], [$1])[]dnl
+m4_define([_SR_VAR_OPT_PKG_FEATURES], [$2])[]dnl
+m4_ifvaln([$1], [$1=])[]dnl
+m4_ifvaln([$2], [$2=])[]dnl
+])
+
+## _SR_ARG_OPT_PKG(sh-name, [modules-var], [features-var],
+##                 opt-name, [cpp-name], [cond-name], module...)
+##
+m4_define([_SR_ARG_OPT_PKG],
+[dnl
+AC_ARG_WITH([$4], [AS_HELP_STRING([--without-$4],
+			[disable $4 support [default=detect]])])
+AS_IF([test "x$with_$1" = xno], [sr_have_$1=no],
+	[test "x$sr_have_$1" != xyes],
+		[SR_PKG_CHECK([$1], [$2], m4_shiftn([6], $@))])
+AS_IF([test "x$with_$1$sr_have_$1" = xyesno],
+	[AC_MSG_ERROR([$4 support requested, but it was not found.])])
+AS_IF([test "x$sr_have_$1" = xyes], [m4_ifval([$3], [
+	SR_APPEND([$3], ["$4"])])[]m4_ifval([$5], [
+	AC_DEFINE([HAVE_$5], [1], [Whether $4 is available.])
+	AC_DEFINE_UNQUOTED([CONF_$5_VERSION], ["$sr_$1_version"],
+		[Build-time version of $4.])])[]dnl
+])
+m4_ifvaln([$6], [AM_CONDITIONAL([$6], [test "x$sr_have_$1" = xyes])])[]dnl
+])
+
+## SR_ARG_OPT_PKG(opt-name, [cpp-name], [cond-name], module...)
+##
+## Provide a --without-<opt-name> configure option for explicit disabling
+## of an optional dependency. If not disabled, the availability of the
+## optional dependency is auto-detected.
+##
+## Each pkg-config <module> argument is checked in turn, and the first one
+## found is selected. On success, the shell variable sr_have_<opt-name>
+## is set to "yes", otherwise to "no". Optionally, a preprocessor macro
+## HAVE_<cpp-name> and an Automake conditional <cond-name> are generated.
+##
+## Use SR_VAR_OPT_PKG to generate lists of available modules and features.
+##
+AC_DEFUN([SR_ARG_OPT_PKG],
+[dnl
+m4_assert([$# >= 4])[]dnl
+AC_REQUIRE([PKG_PROG_PKG_CONFIG])[]dnl
+AC_REQUIRE([SR_PKG_CHECK_SUMMARY])[]dnl
+AC_REQUIRE([SR_VAR_OPT_PKG])[]dnl
+dnl
+_SR_ARG_OPT_PKG(m4_expand([AS_TR_SH([$1])]),
+	m4_defn([_SR_VAR_OPT_PKG_MODULES]),
+	m4_defn([_SR_VAR_OPT_PKG_FEATURES]),
+	$@)[]dnl
+])
+
 ## _SR_ARG_ENABLE_WARNINGS_ONCE
 ##
 ## Implementation helper macro of SR_ARG_ENABLE_WARNINGS. Pulled in

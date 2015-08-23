@@ -73,53 +73,16 @@ SR_LIB_VERSION_SET([SR_LIB_VERSION], [2:0:0])
 # We require at least 0.22, as "Requires.private" behaviour changed there.
 PKG_PROG_PKG_CONFIG([0.22])
 
-# This variable collects the pkg-config module names of all dependencies.
+# Keep track of all checked modules so we can list them at the end.
+SR_PKG_CHECK_SUMMARY([sr_pkglibs_summary])
+
+# Collect the pkg-config module names of all dependencies in SR_PKGLIBS.
 # These are used to derive the compiler flags and for the "Requires.private"
 # field in the generated libsigrok.pc file.
-SR_PKGLIBS=
+SR_VAR_OPT_PKG([SR_PKGLIBS], [sr_deps_avail])
 SR_PKGLIBS_CHECK=
 SR_PKGLIBS_CXX=
 SR_PKGLIBS_PYTHON=
-
-# Keep track of all checked modules so we can list them at the end.
-sr_pkglibs_summary=
-sr_nl='
-'
-## SR_PKG_CHECK(tag, [collect-var], module...)
-m4_define([SR_PKG_CHECK], [
-	sr_mod_leader=`printf '%.32s' "$3................................"`
-	PKG_CHECK_EXISTS([$3], [
-		sr_have_$1=yes
-		m4_ifval([$2], [$2="[$]$2[$]{$2:+ }$3"])
-		sr_$1_version=`$PKG_CONFIG --modversion "$3" 2>&AS_MESSAGE_LOG_FD`
-		AS_VAR_APPEND([sr_pkglibs_summary], [" - $sr_mod_leader $sr_$1_version$sr_nl"])
-	], [
-		AS_VAR_APPEND([sr_pkglibs_summary], [" - $sr_mod_leader no$sr_nl"])
-		m4_ifval([$4],
-			[SR_PKG_CHECK([$1], [$2], m4_shift3($@))],
-			[sr_have_$1=no sr_$1_version=])
-	])
-])
-
-# List of detected features.
-sr_deps_avail=
-
-## SR_ARG_OPT_PKG(opt-name, [cpp-name], [cond-name], module...)
-m4_define([SR_ARG_OPT_PKG], [
-	AC_ARG_WITH([$1], [AS_HELP_STRING([--without-$1],
-			[disable $1 support [default=detect]])])
-	AS_IF([test "x$with_$1" = xno], [sr_have_$1=no],
-		[test "x$sr_have_$1" != xyes],
-			[SR_PKG_CHECK([$1], [SR_PKGLIBS], m4_shift3($@))])
-	AS_IF([test "x$with_$1$sr_have_$1" = xyesno],
-		[AC_MSG_ERROR([$1 support requested, but it was not found.])])
-	AS_IF([test "x$sr_have_$1" = xyes],
-		[sr_deps_avail="$sr_deps_avail $1"[]m4_ifval([$2], [
-		AC_DEFINE([HAVE_$2], [1], [Whether $1 is available.])
-		AC_DEFINE_UNQUOTED([CONF_$2_VERSION], ["$sr_$1_version"], [Build-time version of $1.])
-	])])
-	m4_ifval([$3], [AM_CONDITIONAL([$3], [test "x$sr_have_$1" = xyes])])
-])
 
 SR_ARG_OPT_PKG([libserialport], [LIBSERIALPORT], [NEED_SERIAL],
 	[libserialport >= 0.1.1])
@@ -154,9 +117,9 @@ SR_ARG_ENABLE_WARNINGS([SR_WFLAGS], [-Wall], [-Wall -Wextra -Wmissing-prototypes
 # Check host characteristics.
 AC_C_BIGENDIAN
 
-AC_CHECK_HEADERS([sys/mman.h], [sr_deps_avail="$sr_deps_avail sys_mman_h"])
-AC_CHECK_HEADERS([sys/ioctl.h], [sr_deps_avail="$sr_deps_avail sys_ioctl_h"])
-AC_CHECK_HEADERS([sys/timerfd.h], [sr_deps_avail="$sr_deps_avail sys_timerfd_h"])
+AC_CHECK_HEADERS([sys/mman.h], [SR_APPEND([sr_deps_avail], [sys_mman_h])])
+AC_CHECK_HEADERS([sys/ioctl.h], [SR_APPEND([sr_deps_avail], [sys_ioctl_h])])
+AC_CHECK_HEADERS([sys/timerfd.h], [SR_APPEND([sr_deps_avail], [sys_timerfd_h])])
 
 # RPC is only needed for VXI support.
 AC_CACHE_CHECK([for RPC support], [sr_cv_have_rpc],
@@ -174,7 +137,7 @@ AM_CONDITIONAL([NEED_RPC], [test "x$sr_cv_have_rpc" = xyes])
 ########################
 
 # Keep track of all drivers so we can list them at the end.
-sr_driver_summary=
+SR_VAR_SUMMARY([sr_driver_summary])
 
 # Check whether the sr_deps_avail list contains all of the arguments.
 # Unavailable dependencies are collected in sr_deps_missing.
@@ -203,8 +166,7 @@ m4_define([_SR_DRIVER], [
 		AS_IF([test -n "$sr_deps_missing"],
 			[$3=no sr_hw_info="no (missing:$sr_deps_missing)"])
 	])], [sr_hw_info='no (disabled)'])
-	sr_hw_leader=`printf '%.32s' "$2................................"`
-	AS_VAR_APPEND([sr_driver_summary], [" - $sr_hw_leader $sr_hw_info$sr_nl"])
+	sr_driver_summary_append "$2" "$sr_hw_info"
 
 	AM_CONDITIONAL([$3], [test "x[$]$3" = xyes])
 	AM_COND_IF([$3], [AC_DEFINE([HAVE_$3], [1], [Whether to support $1 device.])])
@@ -476,10 +438,8 @@ Detected libraries (required):
 
 Detected libraries (optional):
 $sr_pkglibs_summary
-
 Enabled hardware drivers:
 $sr_driver_summary
-
 Enabled SCPI backends:
  - TCP............................. yes
  - RPC............................. $sr_cv_have_rpc
