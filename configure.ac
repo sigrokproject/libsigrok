@@ -82,7 +82,7 @@ SR_ARG_OPT_PKG([libserialport], [LIBSERIALPORT], [NEED_SERIAL],
 	[libserialport >= 0.1.1])
 
 SR_ARG_OPT_PKG([libftdi], [LIBFTDI],,
-	[libftdi >= 0.16], [libftdi1 >= 1.0])
+	[libftdi1 >= 1.0], [libftdi >= 0.16])
 
 # FreeBSD comes with an "integrated" libusb-1.0-style USB API.
 # This means libusb-1.0 is always available; no need to check for it.
@@ -323,7 +323,7 @@ AS_IF([test "x$HAVE_PYMOD_SETUPTOOLS" != xyes],
 	[SR_APPEND([sr_python_missing], [', '], [setuptools])])
 
 # The Python bindings use SWIG to generate code.
-AC_CHECK_PROGS([SWIG], [swig swig2.0 swig3.0])
+AC_CHECK_PROGS([SWIG], [swig swig3.0 swig2.0])
 AS_IF([test "x$SWIG" = x],
 	[SR_APPEND([sr_python_missing], [', '], [SWIG])])
 
