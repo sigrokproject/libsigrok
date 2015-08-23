@@ -147,7 +147,7 @@ sr_check_driver_deps() {
 	for sr_dep
 	do
 		AS_CASE([" $sr_deps_avail "], [*" $sr_dep "*],,
-			[sr_deps_missing="$sr_deps_missing $sr_dep"])
+			[SR_APPEND([sr_deps_missing], [', '], [$sr_dep])])
 	done
 }
 
@@ -165,7 +165,7 @@ m4_define([_SR_DRIVER], [
 	AS_IF([test "x[$]$3" = xyes], [sr_hw_info=yes[]m4_ifval([$4], [
 		sr_check_driver_deps $4
 		AS_IF([test -n "$sr_deps_missing"],
-			[$3=no sr_hw_info="no (missing:$sr_deps_missing)"])
+			[$3=no sr_hw_info="no (missing: $sr_deps_missing)"])
 	])], [sr_hw_info='no (disabled)'])
 	sr_driver_summary_append "$2" "$sr_hw_info"
 
@@ -255,20 +255,24 @@ sr_cxx_missing=
 m4_ifdef([AX_CXX_COMPILE_STDCXX_11],
 	[AX_CXX_COMPILE_STDCXX_11(, [optional])],
 	[m4_warn([unsupported], [Missing macro AX_CXX_COMPILE_STDCXX_11: no C++11 check possible])])
-test "x$HAVE_CXX11" = x1 || sr_cxx_missing="$sr_cxx_missing C++11"
+AS_IF([test "x$HAVE_CXX11" != x1],
+	[SR_APPEND([sr_cxx_missing], [', '], ['C++11'])])
 
 # The C++ bindings need glibmm.
 SR_PKG_CHECK([glibmm], [SR_PKGLIBS_CXX], [glibmm-2.4 >= 2.32.0])
-test "x$sr_have_glibmm" = xyes || sr_cxx_missing="$sr_cxx_missing glibmm"
+AS_IF([test "x$sr_have_glibmm" != xyes],
+	[SR_APPEND([sr_cxx_missing], [', '], [glibmm])])
 
 # The C++ bindings use Doxygen to parse libsigrok symbols.
 AC_CHECK_PROG([HAVE_DOXYGEN], [doxygen], [yes], [no])
-test "x$HAVE_DOXYGEN" = xyes || sr_cxx_missing="$sr_cxx_missing Doxygen"
+AS_IF([test "x$HAVE_DOXYGEN" != xyes],
+	[SR_APPEND([sr_cxx_missing], [', '], [Doxygen])])
 
 # Python is needed for the C++ bindings.
 AM_PATH_PYTHON([2.7],
 	[HAVE_PYTHON=yes],
-	[HAVE_PYTHON=no sr_cxx_missing="$sr_cxx_missing Python"])
+	[HAVE_PYTHON=no
+	SR_APPEND([sr_cxx_missing], [', '], [Python])])
 
 AS_IF([test -z "$sr_cxx_missing"],
 	[BINDINGS_CXX=$enable_cxx], [BINDINGS_CXX=no])
@@ -289,19 +293,20 @@ AM_COND_IF([BINDINGS_CXX], [
 ##  Python bindings  ##
 #######################
 
-sr_python_missing=
-test "x$BINDINGS_CXX" = xyes || sr_python_missing=" C++ bindings"
+AS_IF([test "x$BINDINGS_CXX" = xyes],
+	[sr_python_missing=],
+	[sr_python_missing='C++ bindings'])
 
 # The Python bindings need Python development files.
 SR_PKG_CHECK([python_dev], [SR_PKGLIBS_PYTHON],
 	[python >= 2.7], [python2 >= 2.7], [python27 >= 2.7])
-test "x$sr_have_python_dev" = xyes \
-	|| sr_python_missing="$sr_python_missing Headers"
+AS_IF([test "x$sr_have_python_dev" != xyes],
+	[SR_APPEND([sr_python_missing], [', '], [Headers])])
 
 # PyGObject is needed for the Python bindings.
 SR_PKG_CHECK([pygobject], [SR_PKGLIBS_PYTHON], [pygobject-3.0 >= 3.0.0])
-test "x$sr_have_python_dev" = xyes \
-	|| sr_python_missing="$sr_python_missing PyGObject"
+AS_IF([test "x$sr_have_pygobject" != xyes],
+	[SR_APPEND([sr_python_missing], [', '], [PyGObject])])
 
 PKG_CHECK_EXISTS([pygobject-3.0 < 3.7.91],
 	[AC_DEFINE([PYGOBJECT_FLAGS_SIGNED], [1],
@@ -314,12 +319,13 @@ HAVE_PYMOD_SETUPTOOLS=yes
 m4_ifdef([AX_PYTHON_MODULE],
 	[AX_PYTHON_MODULE([setuptools])],
 	[m4_warn([unsupported], [Missing macro AX_PYTHON_MODULE: no setuptools check])])
-test "x$HAVE_PYMOD_SETUPTOOLS" = xyes \
-	|| sr_python_missing="$sr_python_missing Setuptools"
+AS_IF([test "x$HAVE_PYMOD_SETUPTOOLS" != xyes],
+	[SR_APPEND([sr_python_missing], [', '], [setuptools])])
 
 # The Python bindings use SWIG to generate code.
-AC_CHECK_PROGS([SWIG], [swig swig2.0 swig3.0], [no])
-test "x$SWIG" != xno || sr_python_missing="$sr_python_missing SWIG"
+AC_CHECK_PROGS([SWIG], [swig swig2.0 swig3.0])
+AS_IF([test "x$SWIG" = x],
+	[SR_APPEND([sr_python_missing], [', '], [SWIG])])
 
 AS_IF([test -z "$sr_python_missing"],
 	[BINDINGS_PYTHON=$enable_python], [BINDINGS_PYTHON=no])
@@ -329,15 +335,18 @@ AM_CONDITIONAL([BINDINGS_PYTHON], [test "x$BINDINGS_PYTHON" = xyes])
 ##  Java bindings ##
 ####################
 
-sr_java_missing=
-test "x$BINDINGS_CXX" = xyes || sr_java_missing=" C++ bindings"
+AS_IF([test "x$BINDINGS_CXX" = xyes],
+	[sr_java_missing=],
+	[sr_java_missing='C++ bindings'])
 
 # The Java bindings use SWIG to generate code.
-test "x$SWIG" != xno || sr_java_missing="$sr_java_missing SWIG"
+AS_IF([test "x$SWIG" = x],
+	[SR_APPEND([sr_java_missing], [', '], [SWIG])])
 
 # Find Java compiler and JNI includes for Java bindings.
 AC_CHECK_PROG([HAVE_JAVAC], [javac], [yes], [no])
-test "x$HAVE_JAVAC" = xyes || sr_java_missing="$sr_java_missing JavaC"
+AS_IF([test "x$HAVE_JAVAC" = xno],
+	[SR_APPEND([sr_java_missing], [', '], [JavaC])])
 
 AC_ARG_WITH([jni-include-path],
 	[AS_HELP_STRING([[--with-jni-include-path=DIR-LIST (space-separated)]],
@@ -358,13 +367,14 @@ AS_IF([test "x$enable_java$HAVE_JAVAC" = xyesyes], [
 ])
 for sr_dir in $JNI_INCLUDE_DIRS
 do
-	JNI_CPPFLAGS="$JNI_CPPFLAGS -I$sr_dir"
+	SR_APPEND([JNI_CPPFLAGS], ["-I$sr_dir"])
 done
 AC_SUBST([JNI_CPPFLAGS])
 
 sr_save_cppflags=$CPPFLAGS
-CPPFLAGS=$CPPFLAGS$JNI_CPPFLAGS
-AC_CHECK_HEADER([jni.h],, [sr_java_missing="$sr_java_missing JNI headers"])
+SR_APPEND([CPPFLAGS], [$JNI_CPPFLAGS])
+AC_CHECK_HEADER([jni.h],,
+	[SR_APPEND([sr_java_missing], [', '], ['JNI headers'])])
 CPPFLAGS=$sr_save_cppflags
 
 AS_IF([test -z "$sr_java_missing"],
@@ -376,7 +386,7 @@ AM_CONDITIONAL([BINDINGS_JAVA], [test "x$BINDINGS_JAVA" = xyes])
 ##############################
 
 # Add mandatory dependencies to module list.
-SR_PKGLIBS="$SR_PKGLIBS${SR_PKGLIBS:+ }libzip >= 0.10"
+SR_APPEND([SR_PKGLIBS], ['libzip >= 0.10'])
 AC_SUBST([SR_PKGLIBS])
 
 # Retrieve the compile and link flags for all modules combined.
@@ -417,7 +427,7 @@ AC_OUTPUT
 # Prepare bindings report messages.
 m4_define([SR_PREPARE_BINDING_REPORT], [
 	sr_report_$1=
-	test -z "$sr_$1_missing" || sr_report_$1=" (missing:$sr_$1_missing)"
+	test -z "$sr_$1_missing" || sr_report_$1=" (missing: $sr_$1_missing)"
 	test "x$enable_$1" = xyes || sr_report_$1=' (disabled)'
 ])
 m4_map_args([SR_PREPARE_BINDING_REPORT], [cxx], [python], [java])
