@@ -412,10 +412,6 @@ AC_DEFINE_UNQUOTED([CONF_LIBZIP_VERSION], ["$sr_libzip_version"],
 AC_DEFINE_UNQUOTED([CONF_HOST], ["$host"],
 	[The canonical host libsigrok will run on.])
 
-AC_SUBST([FIRMWARE_DIR], ['$(datadir)/sigrok-firmware'])
-AC_SUBST([MAKEFLAGS], ['--no-print-directory'])
-AC_SUBST([AM_LIBTOOLFLAGS], ['--silent'])
-
 AC_CONFIG_FILES([Makefile libsigrok.pc bindings/cxx/libsigrokcxx.pc])
 
 AC_OUTPUT

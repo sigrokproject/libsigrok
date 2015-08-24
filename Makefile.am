@@ -19,6 +19,10 @@
 ##
 
 ACLOCAL_AMFLAGS = -I m4
+AM_LIBTOOLFLAGS = --silent
+MAKEFLAGS = --no-print-directory
+
+FIRMWARE_DIR = $(datadir)/sigrok-firmware
 
 local_includes = -Iinclude -I$(srcdir)/include -I$(srcdir)/src -I.
 if BINDINGS_CXX
