@@ -16,7 +16,7 @@
 ## You should have received a copy of the GNU General Public License
 ## along with sigrok. If not, see <http://www.gnu.org/licenses/>.
 
-#serial 20150823
+#serial 20150824
 
 ## SR_APPEND(var-name, [list-sep,] element)
 ##
@@ -29,6 +29,19 @@ AC_DEFUN([SR_APPEND],
 [dnl
 m4_assert([$# >= 2])[]dnl
 $1=[$]{$1[}]m4_if([$#], [2], [[$]{$1:+' '}$2], [[$]{$1:+$2}$3])[]dnl
+])
+
+## SR_PREPEND(var-name, [list-sep,] element)
+##
+## Prepend the shell word <element> to the shell variable named <var-name>,
+## suffixed by <list-sep> unless the list was empty before prepending. If
+## only two arguments are supplied, <list-sep> defaults to a single space
+## character.
+##
+AC_DEFUN([SR_PREPEND],
+[dnl
+m4_assert([$# >= 2])[]dnl
+$1=m4_if([$#], [2], [$2[$]{$1:+' '}], [$3[$]{$1:+$2}])[$]$1[]dnl
 ])
 
 ## _SR_PKG_VERSION_SET(var-prefix, pkg-name, tag-prefix, base-version, major, minor, [micro])
@@ -113,6 +126,24 @@ m4_assert([$# >= 1])[]dnl
 _SR_LIB_VERSION_SET([$1],
 	m4_defn([AC_PACKAGE_NAME]),
 	[$2], m4_unquote(m4_split([$2], [:])))
+])
+
+## SR_SEARCH_LIBS(libs-var, function, search-libs,
+##                [action-if-found], [action-if-not-found], [other-libs])
+##
+## Same as AC_SEARCH_LIBS, except that the result is prepended
+## to <libs-var> instead of LIBS. Calls AC_SUBST on <libs-var>.
+##
+AC_DEFUN([SR_SEARCH_LIBS],
+[dnl
+m4_assert([$# >= 3])[]dnl
+sr_sl_save_LIBS=$LIBS
+AC_SEARCH_LIBS([$2], [$3],,, m4_join([$6], [[$]$1]))
+LIBS=$sr_sl_save_LIBS
+AS_CASE([$ac_cv_search_$2], [no*],,
+	[SR_PREPEND([$1], [$ac_cv_search_$2])])
+m4_ifvaln([$4$5], [AS_IF([test "x$ac_cv_search_$2" = xno], [$5], [$4])])[]dnl
+AC_SUBST([$1])[]dnl
 ])
 
 ## _SR_VAR_SUMMARY(tag, var-name, line-leader, align-columns, align-char)

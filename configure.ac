@@ -122,6 +122,12 @@ AC_CHECK_HEADERS([sys/mman.h], [SR_APPEND([sr_deps_avail], [sys_mman_h])])
 AC_CHECK_HEADERS([sys/ioctl.h], [SR_APPEND([sr_deps_avail], [sys_ioctl_h])])
 AC_CHECK_HEADERS([sys/timerfd.h], [SR_APPEND([sr_deps_avail], [sys_timerfd_h])])
 
+# We need to link against the Winsock2 library for SCPI over TCP.
+AS_CASE([$host], [*-mingw*], [SR_EXTRA_LIBS='-lws2_32'], [SR_EXTRA_LIBS=])
+
+# libm (the standard math library) is always needed.
+SR_SEARCH_LIBS([SR_EXTRA_LIBS], [pow], [m])
+
 # RPC is only needed for VXI support.
 AC_CACHE_CHECK([for RPC support], [sr_cv_have_rpc],
 	[AC_LINK_IFELSE([AC_LANG_PROGRAM(
@@ -405,14 +411,6 @@ AC_DEFINE_UNQUOTED([CONF_LIBZIP_VERSION], ["$sr_libzip_version"],
 	[Build-time version of libzip.])
 AC_DEFINE_UNQUOTED([CONF_HOST], ["$host"],
 	[The canonical host libsigrok will run on.])
-
-AC_LANG([C])
-
-# libm (the standard math library) is always needed.
-AC_SEARCH_LIBS([pow], [m])
-
-# We need to link against the Winsock2 library for SCPI over TCP.
-AS_CASE([$host], [*mingw*], [LIBS="$LIBS -lws2_32"])
 
 AC_SUBST([FIRMWARE_DIR], ['$(datadir)/sigrok-firmware'])
 AC_SUBST([MAKEFLAGS], ['--no-print-directory'])

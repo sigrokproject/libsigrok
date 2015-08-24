@@ -10,5 +10,5 @@ Requires: glib-2.0
 Requires.private: @SR_PKGLIBS@
 Version: @SR_PACKAGE_VERSION@
 Libs: -L${libdir} -lsigrok
-Libs.private: -lm
+Libs.private: @SR_EXTRA_LIBS@
 Cflags: -I${includedir}

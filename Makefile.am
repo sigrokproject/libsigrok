@@ -419,7 +419,7 @@ libsigrok_la_SOURCES += \
 	src/hardware/zeroplus-logic-cube/api.c
 endif
 
-libsigrok_la_LIBADD = $(LIBSIGROK_LIBS)
+libsigrok_la_LIBADD = $(SR_EXTRA_LIBS) $(LIBSIGROK_LIBS)
 libsigrok_la_LDFLAGS = -version-info $(SR_LIB_VERSION) -no-undefined
 
 library_includedir = $(includedir)/libsigrok
@@ -487,7 +487,7 @@ tests_main_SOURCES = \
 	tests/device.c \
 	tests/trigger.c
 
-tests_main_LDADD = libsigrok.la $(CHECK_LIBS)
+tests_main_LDADD = libsigrok.la $(SR_EXTRA_LIBS) $(CHECK_LIBS)
 
 endif
 
@@ -501,7 +501,7 @@ lib_LTLIBRARIES += bindings/cxx/libsigrokcxx.la
 
 bindings_cxx_libsigrokcxx_la_SOURCES = bindings/cxx/classes.cpp
 
-bindings_cxx_libsigrokcxx_la_LIBADD = libsigrok.la $(LIBSIGROKCXX_LIBS)
+bindings_cxx_libsigrokcxx_la_LIBADD = libsigrok.la $(SR_EXTRA_LIBS) $(LIBSIGROKCXX_LIBS)
 bindings_cxx_libsigrokcxx_la_LDFLAGS = -version-info $(SR_LIB_VERSION) -no-undefined
 
 bindings_cxx_libsigrokcxx_la_includedir = $(includedir)/libsigrokcxx
