@@ -149,6 +149,7 @@ sr_check_driver_deps() {
 		AS_CASE([" $sr_deps_avail "], [*" $sr_dep "*],,
 			[SR_APPEND([sr_deps_missing], [', '], [$sr_dep])])
 	done
+	test -z "$sr_deps_missing" || return 1
 }
 
 AC_ARG_ENABLE([all-drivers],
@@ -163,9 +164,8 @@ m4_define([_SR_DRIVER], [
 		[$3=$enableval], [$3=$enable_all_drivers])
 
 	AS_IF([test "x[$]$3" = xyes], [sr_hw_info=yes[]m4_ifval([$4], [
-		sr_check_driver_deps $4
-		AS_IF([test -n "$sr_deps_missing"],
-			[$3=no sr_hw_info="no (missing: $sr_deps_missing)"])
+		sr_check_driver_deps $4 \
+			|| $3=no sr_hw_info="no (missing: $sr_deps_missing)"
 	])], [sr_hw_info='no (disabled)'])
 	sr_driver_summary_append "$2" "$sr_hw_info"
 
