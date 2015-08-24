@@ -252,9 +252,7 @@ AC_ARG_ENABLE([java],
 sr_cxx_missing=
 
 # Check if the C++ compiler supports the C++11 standard.
-m4_ifdef([AX_CXX_COMPILE_STDCXX_11],
-	[AX_CXX_COMPILE_STDCXX_11(, [optional])],
-	[m4_warn([unsupported], [Missing macro AX_CXX_COMPILE_STDCXX_11: no C++11 check possible])])
+AX_CXX_COMPILE_STDCXX_11(, [optional])
 AS_IF([test "x$HAVE_CXX11" != x1],
 	[SR_APPEND([sr_cxx_missing], [', '], ['C++11'])])
 
