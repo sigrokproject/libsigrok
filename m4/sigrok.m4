@@ -288,7 +288,8 @@ do
 	test "x$sr_ccf_result" = xno || break
 done
 CPPFLAGS=$sr_ccf_save_CPPFLAGS
-SR_APPEND([$1], [$sr_ccf_result])
+AS_IF([test "x$sr_ccf_result" != xno],
+	[SR_APPEND([$1], [$sr_ccf_result])])
 AC_MSG_RESULT([$sr_ccf_result])
 AC_SUBST([$1])
 ])
