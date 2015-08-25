@@ -39,7 +39,6 @@ AH_BOTTOM([#endif /* SR_CONFIG_H */])
 
 # Checks for programs.
 AC_PROG_CC
-AC_PROG_CPP
 AC_PROG_CXX
 AC_PROG_INSTALL
 AC_PROG_LN_S
@@ -107,10 +106,10 @@ AM_CONDITIONAL([HAVE_CHECK], [test "x$sr_have_check" = xyes])
 
 AC_LANG([C])
 
-# Enable the C11 standard if possible, and enforce the use
+# Enable the C99 standard if possible, and enforce the use
 # of SR_API to explicitly mark all public API functions.
 SR_EXTRA_CFLAGS=
-SR_CHECK_COMPILE_FLAGS([SR_EXTRA_CFLAGS], [C11], [-std=gnu11 -std=c11])
+SR_CHECK_COMPILE_FLAGS([SR_EXTRA_CFLAGS], [C99], [-std=c99 -c99 -AC99 -qlanglvl=extc99])
 SR_CHECK_COMPILE_FLAGS([SR_EXTRA_CFLAGS], [visibility], [-fvisibility=hidden])
 
 SR_ARG_ENABLE_WARNINGS([SR_WFLAGS], [-Wall], [-Wall -Wextra -Wmissing-prototypes])
@@ -258,7 +257,7 @@ AC_ARG_ENABLE([java],
 sr_cxx_missing=
 
 # Check if the C++ compiler supports the C++11 standard.
-AX_CXX_COMPILE_STDCXX_11(, [optional])
+AX_CXX_COMPILE_STDCXX_11([noext], [optional])
 AS_IF([test "x$HAVE_CXX11" != x1],
 	[SR_APPEND([sr_cxx_missing], [', '], ['C++11'])])
 
