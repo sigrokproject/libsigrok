@@ -31,9 +31,9 @@ endif
 # Ensure that local include directories are always searched first.
 AM_CPPFLAGS = $(local_includes) -D_POSIX_C_SOURCE=200112L -DFIRMWARE_DIR='"$(FIRMWARE_DIR)"'
 
-# The check CFLAGS are a superset of the libsigrok CFLAGS, and the
+# The tests CFLAGS are a superset of the libsigrok CFLAGS, and the
 # python bindings CFLAGS are a superset of the C++ bindings CFLAGS.
-AM_CFLAGS = $(SR_EXTRA_CFLAGS) $(SR_WFLAGS) $(CHECK_CFLAGS)
+AM_CFLAGS = $(SR_EXTRA_CFLAGS) $(SR_WFLAGS) $(TESTS_CFLAGS)
 AM_CXXFLAGS = $(SR_WXXFLAGS) $(PYSIGROK_CFLAGS)
 
 lib_LTLIBRARIES = libsigrok.la
@@ -470,10 +470,9 @@ EXTRA_DIST = \
 	contrib/z60_libsigrok.rules
 
 if HAVE_CHECK
-
 TESTS = tests/main
-
 check_PROGRAMS = ${TESTS}
+endif
 
 tests_main_SOURCES = \
 	include/libsigrok/libsigrok.h \
@@ -492,9 +491,7 @@ tests_main_SOURCES = \
 	tests/device.c \
 	tests/trigger.c
 
-tests_main_LDADD = libsigrok.la $(SR_EXTRA_LIBS) $(CHECK_LIBS)
-
-endif
+tests_main_LDADD = libsigrok.la $(SR_EXTRA_LIBS) $(TESTS_LIBS)
 
 BUILD_EXTRA =
 INSTALL_EXTRA =

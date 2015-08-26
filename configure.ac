@@ -73,7 +73,7 @@ SR_PKG_CHECK_SUMMARY([sr_pkglibs_summary])
 # These are used to derive the compiler flags and for the "Requires.private"
 # field in the generated libsigrok.pc file.
 SR_VAR_OPT_PKG([SR_PKGLIBS], [sr_deps_avail])
-SR_PKGLIBS_CHECK=
+SR_PKGLIBS_TESTS=
 SR_PKGLIBS_CXX=
 SR_PKGLIBS_PYTHON=
 
@@ -101,7 +101,7 @@ SR_ARG_OPT_PKG([libgpib], [LIBGPIB], [NEED_GPIB],
 ######################
 
 # The Check unit testing framework is optional. Disable if not found.
-SR_PKG_CHECK([check], [SR_PKGLIBS_CHECK], [check >= 0.9.4])
+SR_PKG_CHECK([check], [SR_PKGLIBS_TESTS], [check >= 0.9.4])
 AM_CONDITIONAL([HAVE_CHECK], [test "x$sr_have_check" = xyes])
 
 AC_LANG([C])
@@ -395,7 +395,7 @@ AC_SUBST([SR_PKGLIBS])
 # Retrieve the compile and link flags for all modules combined.
 # Also, bail out at this point if any module dependency is not met.
 PKG_CHECK_MODULES([LIBSIGROK], [glib-2.0 >= 2.32.0 $SR_PKGLIBS])
-PKG_CHECK_MODULES([CHECK], [$SR_PKGLIBS_CHECK glib-2.0 $SR_PKGLIBS])
+PKG_CHECK_MODULES([TESTS], [$SR_PKGLIBS_TESTS glib-2.0 $SR_PKGLIBS])
 
 # SR_PKGLIBS_CXX may be empty, so only invoke these checks when
 # the C++ bindings are enabled.
