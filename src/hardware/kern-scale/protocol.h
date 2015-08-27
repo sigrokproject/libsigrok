@@ -21,15 +21,52 @@
 #ifndef LIBSIGROK_HARDWARE_KERN_SCALE_PROTOCOL_H
 #define LIBSIGROK_HARDWARE_KERN_SCALE_PROTOCOL_H
 
-#include <stdint.h>
-#include <glib.h>
-#include <libsigrok/libsigrok.h>
-#include "libsigrok-internal.h"
-
 #define LOG_PREFIX "kern-scale"
+
+struct scale_info {
+	/** libsigrok driver info struct. */
+	struct sr_dev_driver di;
+	/** Manufacturer/brand. */
+	char *vendor;
+	/** Model. */
+	char *device;
+	/** serialconn string. */
+	char *conn;
+	/** Baud rate. */
+	uint32_t baudrate;
+	/** Packet size in bytes. */
+	int packet_size;
+	/** Packet validation function. */
+	gboolean (*packet_valid)(const uint8_t *);
+	/** Packet parsing function. */
+	int (*packet_parse)(const uint8_t *, float *,
+			    struct sr_datafeed_analog *, void *);
+	/** Size of chipset info struct. */
+	gsize info_size;
+};
+
+#define SCALE_BUFSIZE 256
 
 /** Private, per-device-instance driver context. */
 struct dev_context {
+	/** The current sampling limit (in number of samples). */
+	uint64_t limit_samples;
+
+	/** The time limit (in milliseconds). */
+	uint64_t limit_msec;
+
+	/** Opaque pointer passed in by the frontend. */
+	void *cb_data;
+
+	/** The current number of already received samples. */
+	uint64_t num_samples;
+
+	/** The starting time of current sampling run. */
+	int64_t starttime;
+
+	uint8_t buf[SCALE_BUFSIZE];
+	int bufoffset;
+	int buflen;
 };
 
 SR_PRIV int kern_scale_receive_data(int fd, int revents, void *cb_data);
