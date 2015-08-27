@@ -128,6 +128,25 @@ AS_CASE([$host], [*-mingw*], [SR_EXTRA_LIBS='-lws2_32'], [SR_EXTRA_LIBS=])
 # libm (the standard math library) is always needed.
 SR_SEARCH_LIBS([SR_EXTRA_LIBS], [pow], [m])
 
+AC_ARG_WITH([libieee1284], [AS_HELP_STRING([--without-libieee1284],
+				[disable libieee1284 support [default=detect]])])
+sr_have_libieee1284=no
+AS_IF([test "x$with_libieee1284" != xno], [
+	AC_CHECK_HEADER([ieee1284.h], [
+		SR_SEARCH_LIBS([SR_EXTRA_LIBS], [ieee1284_open], [ieee1284], [
+			sr_have_libieee1284=yes
+			SR_APPEND([sr_deps_avail], [libieee1284])
+			sr_pkg_check_summary_append "libieee1284" yes
+		])
+	])
+	AS_IF([test "$sr_have_libieee1284" = no], [
+		AS_IF([test "x$with_libieee1284" = xyes], [
+			AC_MSG_ERROR([libieee1284 support requested, but it was not found.])
+		])
+		sr_pkg_check_summary_append "libieee1284" no
+	])
+])
+
 # RPC is only needed for VXI support.
 AC_CACHE_CHECK([for RPC support], [sr_cv_have_rpc],
 	[AC_LINK_IFELSE([AC_LANG_PROGRAM(
