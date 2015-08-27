@@ -148,6 +148,10 @@ libsigrok_la_SOURCES += \
 	src/lcr/es51919.c
 endif
 
+# Hardware (Scale protocol parsers)
+libsigrok_la_SOURCES += \
+	src/scale/kern.c
+
 # Hardware drivers
 if HW_AGILENT_DMM
 libsigrok_la_SOURCES += \

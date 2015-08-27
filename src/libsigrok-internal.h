@@ -1129,4 +1129,17 @@ SR_PRIV gboolean sr_ut372_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_ut372_parse(const uint8_t *buf, float *floatval,
 		struct sr_datafeed_analog *analog, void *info);
 
+/*--- hardware/scale/kern.c -------------------------------------------------*/
+
+struct kern_info {
+	gboolean is_gram, is_carat, is_ounce, is_pound, is_troy_ounce;
+	gboolean is_pennyweight, is_grain, is_tael, is_momme, is_tola;
+	gboolean is_percentage, is_piece, is_unstable, is_stable, is_error;
+	int buflen;
+};
+
+SR_PRIV gboolean sr_kern_packet_valid(const uint8_t *buf);
+SR_PRIV int sr_kern_parse(const uint8_t *buf, float *floatval,
+		struct sr_datafeed_analog *analog, void *info);
+
 #endif
