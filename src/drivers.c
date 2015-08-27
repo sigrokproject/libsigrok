@@ -92,6 +92,9 @@ extern SR_PRIV struct sr_dev_driver ikalogic_scanaplus_driver_info;
 #ifdef HAVE_HW_KECHENG_KC_330B
 extern SR_PRIV struct sr_dev_driver kecheng_kc_330b_driver_info;
 #endif
+#ifdef HAVE_HW_KERN_SCALE
+extern SR_PRIV struct sr_dev_driver kern_scale_driver_info;
+#endif
 #ifdef HAVE_HW_LASCAR_EL_USB
 extern SR_PRIV struct sr_dev_driver lascar_el_usb_driver_info;
 #endif
@@ -240,6 +243,9 @@ SR_PRIV struct sr_dev_driver **drivers_lists[] = {
 #endif
 #ifdef HAVE_HW_KECHENG_KC_330B
 	(DRVS) {&kecheng_kc_330b_driver_info, NULL},
+#endif
+#ifdef HAVE_HW_KERN_SCALE
+	(DRVS) {&kern_scale_driver_info, NULL},
 #endif
 #ifdef HAVE_HW_LASCAR_EL_USB
 	(DRVS) {&lascar_el_usb_driver_info, NULL},

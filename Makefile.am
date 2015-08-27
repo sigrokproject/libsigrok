@@ -292,6 +292,12 @@ libsigrok_la_SOURCES += \
 	src/hardware/kecheng-kc-330b/protocol.c \
 	src/hardware/kecheng-kc-330b/api.c
 endif
+if HW_KERN_SCALE
+libsigrok_la_SOURCES += \
+	src/hardware/kern-scale/protocol.h \
+	src/hardware/kern-scale/protocol.c \
+	src/hardware/kern-scale/api.c
+endif
 if HW_LASCAR_EL_USB
 libsigrok_la_SOURCES += \
 	src/hardware/lascar-el-usb/protocol.h \
