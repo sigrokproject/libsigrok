@@ -200,6 +200,39 @@ static void fancyprint(int unit, int mqflags, float value, GString *out)
 		si_printf(value, out, "");
 		g_string_append_unichar(out, 0x00b0);
 		break;
+	case SR_UNIT_GRAM:
+		si_printf(value, out, "g");
+		break;
+	case SR_UNIT_CARAT:
+		si_printf(value, out, "ct");
+		break;
+	case SR_UNIT_OUNCE:
+		si_printf(value, out, "oz");
+		break;
+	case SR_UNIT_TROY_OUNCE:
+		si_printf(value, out, "oz t");
+		break;
+	case SR_UNIT_POUND:
+		si_printf(value, out, "lb");
+		break;
+	case SR_UNIT_PENNYWEIGHT:
+		si_printf(value, out, "dwt");
+		break;
+	case SR_UNIT_GRAIN:
+		si_printf(value, out, "gr");
+		break;
+	case SR_UNIT_TAEL:
+		si_printf(value, out, "tael");
+		break;
+	case SR_UNIT_MOMME:
+		si_printf(value, out, "momme");
+		break;
+	case SR_UNIT_TOLA:
+		si_printf(value, out, "tola");
+		break;
+	case SR_UNIT_PIECE:
+		si_printf(value, out, "pcs");
+		break;
 	default:
 		si_printf(value, out, "");
 		break;
@@ -227,6 +260,8 @@ static void fancyprint(int unit, int mqflags, float value, GString *out)
 		g_string_append_printf(out, " AVG");
 	if (mqflags & SR_MQFLAG_REFERENCE)
 		g_string_append_printf(out, " REF");
+	if (mqflags & SR_MQFLAG_UNSTABLE)
+		g_string_append_printf(out, " UNSTABLE");
 	g_string_append_c(out, '\n');
 }
 
