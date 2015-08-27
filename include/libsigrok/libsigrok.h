@@ -231,6 +231,8 @@ enum sr_mq {
 	SR_MQ_POWER_FACTOR,
 	/** Apparent power */
 	SR_MQ_APPARENT_POWER,
+	/** Mass */
+	SR_MQ_MASS,
 };
 
 /** Unit of measured quantity, sr_datafeed_analog.unit. */
@@ -298,6 +300,28 @@ enum sr_unit {
 	SR_UNIT_DEGREE,
 	/** Henry (inductance). */
 	SR_UNIT_HENRY,
+	/** Mass in gram [g]. */
+	SR_UNIT_GRAM,
+	/** Mass in carat [ct]. */
+	SR_UNIT_CARAT,
+	/** Mass in ounce [oz]. */
+	SR_UNIT_OUNCE,
+	/** Mass in troy ounce [oz t]. */
+	SR_UNIT_TROY_OUNCE,
+	/** Mass in pound [lb]. */
+	SR_UNIT_POUND,
+	/** Mass in pennyweight [dwt]. */
+	SR_UNIT_PENNYWEIGHT,
+	/** Mass in grain [gr]. */
+	SR_UNIT_GRAIN,
+	/** Mass in tael (variants: Hong Kong, Singapore/Malaysia, Taiwan) */
+	SR_UNIT_TAEL,
+	/** Mass in momme. */
+	SR_UNIT_MOMME,
+	/** Mass in tola. */
+	SR_UNIT_TOLA,
+	/** Pieces (number of items). */
+	SR_UNIT_PIECE,
 };
 
 /** Values for sr_datafeed_analog.flags. */
@@ -350,6 +374,8 @@ enum sr_mqflag {
 	SR_MQFLAG_AVG = 0x40000,
 	/** Reference value shown. */
 	SR_MQFLAG_REFERENCE = 0x80000,
+	/** Unstable value (hasn't settled yet). */
+	SR_MQFLAG_UNSTABLE = 0x100000,
 };
 
 enum sr_trigger_matches {
@@ -639,6 +665,9 @@ enum sr_configkey {
 
 	/** The device can act as an electronic load. */
 	SR_CONF_ELECTRONIC_LOAD,
+
+	/** The device can act as a scale. */
+	SR_CONF_SCALE,
 
 	/*--- Driver scan options -------------------------------------------*/
 
