@@ -21,25 +21,36 @@ from setuptools import setup, find_packages, Extension
 from distutils.command.build_py import build_py as _build_py
 from distutils.command.build_ext import build_ext as _build_ext
 import numpy as np
-import subprocess
 import os
+import sys
+import re
+import shlex
 
-srcdir = os.path.split(__file__)[0]
+srcdir = os.path.dirname(os.path.abspath(__file__))
+os.chdir('bindings/python')
+srcdir = os.path.relpath(srcdir)
+srcdir_parent = os.path.normpath(os.path.join(srcdir, '..'))
 
-sr_includes, sr_lib_dirs, sr_libs, (sr_version,) = [
-    subprocess.check_output(
-            ["pkg-config", option, "glib-2.0", "glibmm-2.4", "pygobject-3.0"]
-        ).decode().rstrip().split(' ')
-    for option in
-        ("--cflags-only-I", "--libs-only-L", "--libs-only-l", "--modversion")]
+# Override the default compile flags used by distutils.
+os.environ['OPT'] = ''
+
+# Parse the command line arguments for VAR=value assignments,
+# and apply them as environment variables.
+while len(sys.argv) > 1:
+    match = re.match(r'([A-Z]+)=(.*)', sys.argv[1])
+    if match is None:
+        break
+    os.environ[match.group(1)] = match.group(2)
+    del sys.argv[1]
 
 includes = ['../../include', '../cxx/include']
-includes += [os.path.join(srcdir, path) for path in includes]
-includes += ['../..']
-includes += [i[2:] for i in sr_includes]
-includes += [np.get_include(), ]
-libdirs = ['../../.libs', '../cxx/.libs'] + [l[2:] for l in sr_lib_dirs]
-libs = [l[2:] for l in sr_libs] + ['sigrokcxx']
+includes += [os.path.normpath(os.path.join(srcdir, path)) for path in includes]
+includes += ['../..', np.get_include()]
+
+ldadd = shlex.split(os.environ.get('LDADD', ''))
+libdirs = ['../../.libs', '../cxx/.libs'] + \
+    [l[2:] for l in ldadd if l.startswith('-L')]
+libs = [l[2:] for l in ldadd if l.startswith('-l')] + ['sigrokcxx']
 
 def vpath(file):
     vfile = os.path.join(srcdir, file)
@@ -70,17 +81,15 @@ setup(
     name = 'libsigrok',
     namespace_packages = ['sigrok'],
     packages = find_packages(srcdir),
-    version = sr_version,
+    version = os.environ.get('VERSION'),
     description = "libsigrok API wrapper",
     zip_safe = False,
-    script_name = __file__,
     ext_modules = [
         Extension('sigrok.core._classes',
             sources = [vpath('sigrok/core/classes.i')],
-            swig_opts = ['-c++', '-threads', '-Isigrok/core',
-                         '-I..', '-I%s' % os.path.join(srcdir, '..')] +
+            swig_opts = ['-c++', '-threads', '-Isigrok/core', '-I..', '-I' + srcdir_parent] +
                 ['-I%s' % i for i in includes],
-            extra_compile_args = ['-std=c++11', '-Wno-uninitialized'],
+            extra_compile_args = ['-Wno-uninitialized'],
             include_dirs = includes,
             library_dirs = libdirs,
             libraries = libs)

@@ -561,7 +561,9 @@ if BINDINGS_PYTHON
 PDIR = bindings/python
 PDOC = bindings/python/sigrok/core/doc.i
 
-setup_py = cd $(PDIR) && $(PYTHON) "$(abs_srcdir)/$(PDIR)/setup.py" --quiet
+setup_vars = VERSION='$(PACKAGE_VERSION)' CC='$(CXX)' CFLAGS='$(AM_CXXFLAGS) $(CXXFLAGS)' LDADD='$(PYSIGROK_LIBS)'
+setup_quiet = --quiet
+setup_py = $(PYTHON) $(srcdir)/$(PDIR)/setup.py $(setup_vars) $(setup_quiet)
 
 $(PDOC): $(srcdir)/bindings/swig/doc.py $(CPPXMLDOC)
 	$(AM_V_at)test -d $(PDIR)/sigrok/core || $(MKDIR_P) $(PDIR)/sigrok/core
@@ -581,9 +583,9 @@ python-install:
 	$(setup_py) install --root "$(DESTDIR)/" --prefix "$(prefix)" --exec-prefix "$(exec_prefix)"
 
 python-clean:
-	-$(AM_V_at)$(setup_py) clean --all 2>/dev/null
 	-$(AM_V_at)rm -f $(PDIR)/timestamp
 	-$(AM_V_at)rm -fr $(PDIR)/doxy
+	-$(AM_V_at)$(setup_py) clean --all 2>/dev/null
 
 python-doc:
 	$(AM_V_at)cd $(srcdir)/$(PDIR) && BUILDDIR="$(abs_builddir)/$(PDIR)/" doxygen Doxyfile 2>/dev/null
