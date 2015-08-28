@@ -111,9 +111,6 @@ static void fancyprint(int unit, int mqflags, float value, GString *out)
 	case SR_UNIT_FARAD:
 		si_printf(value, out, "F");
 		break;
-	case SR_UNIT_HENRY:
-		si_printf(value, out, "H");
-		break;
 	case SR_UNIT_KELVIN:
 		si_printf(value, out, "K");
 		break;
@@ -150,6 +147,9 @@ static void fancyprint(int unit, int mqflags, float value, GString *out)
 		break;
 	case SR_UNIT_DECIBEL_VOLT:
 		si_printf(value, out, "dBV");
+		break;
+	case SR_UNIT_UNITLESS:
+		si_printf(value, out, "");
 		break;
 	case SR_UNIT_DECIBEL_SPL:
 		if (mqflags & SR_MQFLAG_SPL_FREQ_WEIGHT_A)
@@ -199,6 +199,9 @@ static void fancyprint(int unit, int mqflags, float value, GString *out)
 	case SR_UNIT_DEGREE:
 		si_printf(value, out, "");
 		g_string_append_unichar(out, 0x00b0);
+		break;
+	case SR_UNIT_HENRY:
+		si_printf(value, out, "H");
 		break;
 	case SR_UNIT_GRAM:
 		si_printf(value, out, "g");
@@ -256,6 +259,9 @@ static void fancyprint(int unit, int mqflags, float value, GString *out)
 		g_string_append_printf(out, " AUTO");
 	if (mqflags & SR_MQFLAG_RELATIVE)
 		g_string_append_printf(out, " REL");
+	/* Note: SR_MQFLAG_SPL_* is handled above. */
+	if (mqflags & SR_MQFLAG_DURATION)
+		g_string_append_printf(out, " DURATION");
 	if (mqflags & SR_MQFLAG_AVG)
 		g_string_append_printf(out, " AVG");
 	if (mqflags & SR_MQFLAG_REFERENCE)
