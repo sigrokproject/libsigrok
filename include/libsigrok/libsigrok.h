@@ -924,6 +924,9 @@ enum sr_configkey {
 	/** Output frequency in Hz. */
 	SR_CONF_OUTPUT_FREQUENCY,
 
+	/** Output frequency target in Hz. */
+	SR_CONF_OUTPUT_FREQUENCY_TARGET,
+
 	/** Measured quantity. */
 	SR_CONF_MEASURED_QUANTITY,
 
@@ -932,9 +935,6 @@ enum sr_configkey {
 
 	/** Equivalent circuit model. */
 	SR_CONF_EQUIV_CIRCUIT_MODEL,
-
-	/* Output frequency target in Hz. */
-	SR_CONF_OUTPUT_FREQUENCY_TARGET,
 
 	/** Over-temperature protection (OTP) active. */
 	SR_CONF_OVER_TEMPERATURE_PROTECTION_ACTIVE,

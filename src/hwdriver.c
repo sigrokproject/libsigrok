@@ -59,6 +59,8 @@ static struct sr_key_info sr_key_info_config[] = {
 	{SR_CONF_DEMODULATOR, SR_T_STRING, NULL, "Demodulator", NULL},
 	{SR_CONF_POWER_SUPPLY, SR_T_STRING, NULL, "Power supply", NULL},
 	{SR_CONF_LCRMETER, SR_T_STRING, NULL, "LCR meter", NULL},
+	{SR_CONF_ELECTRONIC_LOAD, SR_T_STRING, NULL, "Electronic load", NULL},
+	{SR_CONF_SCALE, SR_T_STRING, NULL, "Scale", NULL},
 
 	/* Driver scan options */
 	{SR_CONF_CONN, SR_T_STRING, "conn",
@@ -241,6 +243,7 @@ static struct sr_key_info sr_key_info_mq[] = {
 	{SR_MQ_COUNT, 0, "count", "Count", NULL},
 	{SR_MQ_POWER_FACTOR, 0, "power_factor", "Power factor", NULL},
 	{SR_MQ_APPARENT_POWER, 0, "apparent_power", "Apparent power", NULL},
+	{SR_MQ_MASS, 0, "mass", "Mass", NULL},
 	ALL_ZERO
 };
 
@@ -272,6 +275,7 @@ static struct sr_key_info sr_key_info_mqflag[] = {
 	{SR_MQFLAG_DURATION, 0, "duration", "Duration", NULL},
 	{SR_MQFLAG_AVG, 0, "average", "Average", NULL},
 	{SR_MQFLAG_REFERENCE, 0, "reference", "Reference", NULL},
+	{SR_MQFLAG_UNSTABLE, 0, "unstable", "Unstable", NULL},
 	ALL_ZERO
 };
 
