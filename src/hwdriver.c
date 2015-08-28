@@ -45,7 +45,7 @@
  * @{
  */
 
-/* Same key order/grouping as in enum sr_configkey (libsigrok.h). */
+/* Please use the same order/grouping as in enum sr_configkey (libsigrok.h). */
 static struct sr_key_info sr_key_info_config[] = {
 	/* Device classes */
 	{SR_CONF_LOGIC_ANALYZER, SR_T_STRING, NULL, "Logic analyzer", NULL},
@@ -211,6 +211,7 @@ static struct sr_key_info sr_key_info_config[] = {
 	{0, 0, NULL, NULL, NULL},
 };
 
+/* Please use the same order as in enum sr_mq (libsigrok.h). */
 static struct sr_key_info sr_key_info_mq[] = {
 	{SR_MQ_VOLTAGE, 0, "voltage", "Voltage", NULL},
 	{SR_MQ_CURRENT, 0, "current", "Current", NULL},
@@ -247,6 +248,7 @@ static struct sr_key_info sr_key_info_mq[] = {
 	ALL_ZERO
 };
 
+/* Please use the same order as in enum sr_mqflag (libsigrok.h). */
 static struct sr_key_info sr_key_info_mqflag[] = {
 	{SR_MQFLAG_AC, 0, "ac", "AC", NULL},
 	{SR_MQFLAG_DC, 0, "dc", "DC", NULL},
@@ -279,6 +281,7 @@ static struct sr_key_info sr_key_info_mqflag[] = {
 	ALL_ZERO
 };
 
+/* This must handle all the keys from enum sr_datatype (libsigrok.h). */
 SR_PRIV const GVariantType *sr_variant_type_get(int datatype)
 {
 	switch (datatype) {

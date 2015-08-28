@@ -663,6 +663,7 @@ static void datafeed_dump(const struct sr_datafeed_packet *packet)
 	const struct sr_datafeed_analog *analog;
 	const struct sr_datafeed_analog2 *analog2;
 
+	/* Please use the same order as in libsigrok.h. */
 	switch (packet->type) {
 	case SR_DF_HEADER:
 		sr_dbg("bus: Received SR_DF_HEADER packet.");

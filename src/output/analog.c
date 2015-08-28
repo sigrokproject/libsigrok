@@ -95,6 +95,7 @@ static void si_printf(float value, GString *out, char *unitstr)
 
 }
 
+/* Please use the same order as in enum sr_unit (libsigrok.h). */
 static void fancyprint(int unit, int mqflags, float value, GString *out)
 {
 	switch (unit) {
@@ -241,6 +242,7 @@ static void fancyprint(int unit, int mqflags, float value, GString *out)
 		break;
 	}
 
+	/* Please use the same order as in enum sr_mqflag (libsigrok.h). */
 	if (mqflags & SR_MQFLAG_AC)
 		g_string_append_printf(out, " AC");
 	if (mqflags & SR_MQFLAG_DC)

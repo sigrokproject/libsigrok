@@ -47,6 +47,7 @@ struct unit_mq_string {
 	char *str;
 };
 
+/* Please use the same order as in enum sr_unit (libsigrok.h). */
 static struct unit_mq_string unit_strings[] = {
 	{ SR_UNIT_VOLT, "V" },
 	{ SR_UNIT_AMPERE, "A" },
@@ -88,6 +89,7 @@ static struct unit_mq_string unit_strings[] = {
 	ALL_ZERO
 };
 
+/* Please use the same order as in enum sr_mqflag (libsigrok.h). */
 static struct unit_mq_string mq_strings[] = {
 	{ SR_MQFLAG_AC, " AC" },
 	{ SR_MQFLAG_DC, " DC" },

@@ -78,10 +78,7 @@ enum sr_error_code {
 	SR_ERR_DATA          =-10, /**< Data is invalid.  */
 	SR_ERR_IO            =-11, /**< Input/output error. */
 
-	/*
-	 * Note: When adding entries here, don't forget to also update the
-	 * sr_strerror() and sr_strerror_name() functions in error.c.
-	 */
+	/* Update sr_strerror()/sr_strerror_name() (error.c) upon changes! */
 };
 
 #define SR_MAX_CHANNELNAME_LEN 32
@@ -150,6 +147,8 @@ enum sr_datatype {
 	SR_T_DOUBLE_RANGE,
 	SR_T_INT32,
 	SR_T_MQLIST,
+
+	/* Update sr_variant_type_get() (hwdriver.c) upon changes! */
 };
 
 /** Value for sr_datafeed_packet.type. */
@@ -172,6 +171,8 @@ enum sr_packettype {
 	SR_DF_FRAME_END,
 	/** Payload is struct sr_datafeed_analog2. */
 	SR_DF_ANALOG2,
+
+	/* Update datafeed_dump() (session.c) upon changes! */
 };
 
 /** Measured quantity, sr_datafeed_analog.mq. */
@@ -233,6 +234,8 @@ enum sr_mq {
 	SR_MQ_APPARENT_POWER,
 	/** Mass */
 	SR_MQ_MASS,
+
+	/* Update sr_key_info_mq[] (hwdriver.c) upon changes! */
 };
 
 /** Unit of measured quantity, sr_datafeed_analog.unit. */
@@ -322,6 +325,11 @@ enum sr_unit {
 	SR_UNIT_TOLA,
 	/** Pieces (number of items). */
 	SR_UNIT_PIECE,
+
+	/*
+	 * Update unit_strings[] (analog.c) and fancyprint() (output/analog.c)
+	 * upon changes!
+	 */
 };
 
 /** Values for sr_datafeed_analog.flags. */
@@ -376,6 +384,11 @@ enum sr_mqflag {
 	SR_MQFLAG_REFERENCE = 0x80000,
 	/** Unstable value (hasn't settled yet). */
 	SR_MQFLAG_UNSTABLE = 0x100000,
+
+	/*
+	 * Update mq_strings[] (analog.c) and fancyprint() (output/analog.c)
+	 * upon changes!
+	 */
 };
 
 enum sr_trigger_matches {
@@ -669,6 +682,8 @@ enum sr_configkey {
 	/** The device can act as a scale. */
 	SR_CONF_SCALE,
 
+	/* Update sr_key_info_config[] (hwdriver.c) upon changes! */
+
 	/*--- Driver scan options -------------------------------------------*/
 
 	/**
@@ -711,6 +726,8 @@ enum sr_configkey {
 	 * knows the default slave address of the device.
 	 */
 	SR_CONF_MODBUSADDR,
+
+	/* Update sr_key_info_config[] (hwdriver.c) upon changes! */
 
 	/*--- Device (or channel group) configuration -----------------------*/
 
@@ -939,6 +956,8 @@ enum sr_configkey {
 	/** Over-temperature protection (OTP) active. */
 	SR_CONF_OVER_TEMPERATURE_PROTECTION_ACTIVE,
 
+	/* Update sr_key_info_config[] (hwdriver.c) upon changes! */
+
 	/*--- Special stuff -------------------------------------------------*/
 
 	/** Scan options supported by the driver. */
@@ -976,6 +995,8 @@ enum sr_configkey {
 	/** The device supports setting a probe factor. */
 	SR_CONF_PROBE_FACTOR,
 
+	/* Update sr_key_info_config[] (hwdriver.c) upon changes! */
+
 	/*--- Acquisition modes, sample limiting ----------------------------*/
 
 	/**
@@ -1012,6 +1033,8 @@ enum sr_configkey {
 
 	/** Self test mode. */
 	SR_CONF_TEST_MODE,
+
+	/* Update sr_key_info_config[] (hwdriver.c) upon changes! */
 };
 
 /**
