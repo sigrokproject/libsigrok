@@ -667,11 +667,14 @@ static void datafeed_dump(const struct sr_datafeed_packet *packet)
 	case SR_DF_HEADER:
 		sr_dbg("bus: Received SR_DF_HEADER packet.");
 		break;
-	case SR_DF_TRIGGER:
-		sr_dbg("bus: Received SR_DF_TRIGGER packet.");
+	case SR_DF_END:
+		sr_dbg("bus: Received SR_DF_END packet.");
 		break;
 	case SR_DF_META:
 		sr_dbg("bus: Received SR_DF_META packet.");
+		break;
+	case SR_DF_TRIGGER:
+		sr_dbg("bus: Received SR_DF_TRIGGER packet.");
 		break;
 	case SR_DF_LOGIC:
 		logic = packet->payload;
@@ -683,19 +686,16 @@ static void datafeed_dump(const struct sr_datafeed_packet *packet)
 		sr_dbg("bus: Received SR_DF_ANALOG packet (%d samples).",
 		       analog->num_samples);
 		break;
-	case SR_DF_ANALOG2:
-		analog2 = packet->payload;
-		sr_dbg("bus: Received SR_DF_ANALOG2 packet (%d samples).",
-		       analog2->num_samples);
-		break;
-	case SR_DF_END:
-		sr_dbg("bus: Received SR_DF_END packet.");
-		break;
 	case SR_DF_FRAME_BEGIN:
 		sr_dbg("bus: Received SR_DF_FRAME_BEGIN packet.");
 		break;
 	case SR_DF_FRAME_END:
 		sr_dbg("bus: Received SR_DF_FRAME_END packet.");
+		break;
+	case SR_DF_ANALOG2:
+		analog2 = packet->payload;
+		sr_dbg("bus: Received SR_DF_ANALOG2 packet (%d samples).",
+		       analog2->num_samples);
 		break;
 	default:
 		sr_dbg("bus: Received unknown packet type: %d.", packet->type);
