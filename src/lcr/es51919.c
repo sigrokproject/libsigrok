@@ -406,20 +406,6 @@ static const double frequencies[] = {
 	100, 120, 1000, 10000, 100000, 0,
 };
 
-enum { QUANT_AUTO = 5, };
-
-static const char *const quantities1[] = {
-	"NONE", "INDUCTANCE", "CAPACITANCE", "RESISTANCE", "RESISTANCE", "AUTO",
-};
-
-static const char *const list_quantities1[] = {
-	"NONE", "INDUCTANCE", "CAPACITANCE", "RESISTANCE", "AUTO",
-};
-
-static const char *const quantities2[] = {
-	"NONE", "DISSIPATION", "QUALITY", "RESISTANCE", "ANGLE", "AUTO",
-};
-
 enum { MODEL_NONE, MODEL_PAR, MODEL_SER, MODEL_AUTO, };
 
 static const char *const models[] = {
@@ -442,12 +428,6 @@ struct dev_context {
 
 	/** The frequency of the test signal (index to frequencies[]). */
 	unsigned int freq;
-
-	/** Measured primary quantity (index to quantities1[]). */
-	unsigned int quant1;
-
-	/** Measured secondary quantity (index to quantities2[]). */
-	unsigned int quant2;
 
 	/** Equivalent circuit model (index to models[]). */
 	unsigned int model;
@@ -584,18 +564,6 @@ static unsigned int parse_freq(const uint8_t *pkt)
 	return freq;
 }
 
-static unsigned int parse_quant(const uint8_t *pkt, int is_secondary)
-{
-	const uint8_t *buf;
-
-	if (pkt[2] & 0x20)
-		return QUANT_AUTO;
-
-	buf = pkt_to_buf(pkt, is_secondary);
-
-	return buf[0];
-}
-
 static unsigned int parse_model(const uint8_t *pkt)
 {
 	if (pkt[2] & 0x40)
@@ -639,18 +607,6 @@ static int send_freq_update(struct sr_dev_inst *sdi, unsigned int freq)
 				g_variant_new_double(frequencies[freq]));
 }
 
-static int send_quant1_update(struct sr_dev_inst *sdi, unsigned int quant)
-{
-	return do_config_update(sdi, SR_CONF_MEASURED_QUANTITY,
-				g_variant_new_string(quantities1[quant]));
-}
-
-static int send_quant2_update(struct sr_dev_inst *sdi, unsigned int quant)
-{
-	return do_config_update(sdi, SR_CONF_MEASURED_2ND_QUANTITY,
-				g_variant_new_string(quantities2[quant]));
-}
-
 static int send_model_update(struct sr_dev_inst *sdi, unsigned int model)
 {
 	return do_config_update(sdi, SR_CONF_EQUIV_CIRCUIT_MODEL,
@@ -672,22 +628,6 @@ static void handle_packet(struct sr_dev_inst *sdi, const uint8_t *pkt)
 	if (val != devc->freq) {
 		if (send_freq_update(sdi, val) == SR_OK)
 			devc->freq = val;
-		else
-			return;
-	}
-
-	val = parse_quant(pkt, 0);
-	if (val != devc->quant1) {
-		if (send_quant1_update(sdi, val) == SR_OK)
-			devc->quant1 = val;
-		else
-			return;
-	}
-
-	val = parse_quant(pkt, 1);
-	if (val != devc->quant2) {
-		if (send_quant2_update(sdi, val) == SR_OK)
-			devc->quant2 = val;
 		else
 			return;
 	}
@@ -882,12 +822,6 @@ SR_PRIV int es51919_serial_config_get(uint32_t key, GVariant **data,
 	case SR_CONF_OUTPUT_FREQUENCY:
 		*data = g_variant_new_double(frequencies[devc->freq]);
 		break;
-	case SR_CONF_MEASURED_QUANTITY:
-		*data = g_variant_new_string(quantities1[devc->quant1]);
-		break;
-	case SR_CONF_MEASURED_2ND_QUANTITY:
-		*data = g_variant_new_string(quantities2[devc->quant2]);
-		break;
 	case SR_CONF_EQUIV_CIRCUIT_MODEL:
 		*data = g_variant_new_string(models[devc->model]);
 		break;
@@ -941,8 +875,6 @@ static const uint32_t devopts[] = {
 	SR_CONF_LIMIT_FRAMES | SR_CONF_SET,
 	SR_CONF_LIMIT_MSEC | SR_CONF_SET,
 	SR_CONF_OUTPUT_FREQUENCY | SR_CONF_GET | SR_CONF_LIST,
-	SR_CONF_MEASURED_QUANTITY | SR_CONF_GET | SR_CONF_LIST,
-	SR_CONF_MEASURED_2ND_QUANTITY | SR_CONF_GET | SR_CONF_LIST,
 	SR_CONF_EQUIV_CIRCUIT_MODEL | SR_CONF_GET | SR_CONF_LIST,
 };
 
@@ -965,14 +897,6 @@ SR_PRIV int es51919_serial_config_list(uint32_t key, GVariant **data,
 	case SR_CONF_OUTPUT_FREQUENCY:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_DOUBLE,
 			frequencies, ARRAY_SIZE(frequencies), sizeof(double));
-		break;
-	case SR_CONF_MEASURED_QUANTITY:
-		*data = g_variant_new_strv(list_quantities1,
-					   ARRAY_SIZE(list_quantities1));
-		break;
-	case SR_CONF_MEASURED_2ND_QUANTITY:
-		*data = g_variant_new_strv(quantities2,
-					   ARRAY_SIZE(quantities2));
 		break;
 	case SR_CONF_EQUIV_CIRCUIT_MODEL:
 		*data = g_variant_new_strv(models, ARRAY_SIZE(models));
