@@ -3,8 +3,8 @@
  * It was generated using rpcgen.
  */
 
-#include <memory.h> /* for memset */
 #include "vxi.h"
+#include <memory.h> /* for memset */
 
 /* Default timeout can be changed using clnt_control() */
 static struct timeval TIMEOUT = { 25, 0 };

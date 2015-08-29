@@ -20,9 +20,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "vxi.h"
 #include <rpc/rpc.h>
 #include <string.h>
-#include "vxi.h"
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 #include "scpi.h"

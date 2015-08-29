@@ -3,6 +3,8 @@
  * It was generated using rpcgen.
  */
 
+#undef _POSIX_C_SOURCE
+
 #ifndef _VXI_H_RPCGEN
 #define _VXI_H_RPCGEN
 
