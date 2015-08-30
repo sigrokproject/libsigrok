@@ -396,8 +396,11 @@ static int sr_session_iteration(struct sr_session *session, gboolean block)
 {
 	unsigned int i;
 	int ret, timeout;
+	int revents;
 	gboolean stop_checked;
 	gboolean stopped;
+	struct source *source;
+	GPollFD *pollfd;
 #ifdef HAVE_LIBUSB_1_0
 	int usb_timeout;
 	struct timeval tv;
@@ -420,26 +423,35 @@ static int sr_session_iteration(struct sr_session *session, gboolean block)
 #endif
 
 	ret = g_poll(session->pollfds, session->num_sources, timeout);
+#ifdef G_OS_UNIX
 	if (ret < 0 && errno != EINTR) {
 		sr_err("Error in poll: %s", g_strerror(errno));
 		return SR_ERR;
 	}
+#else
+	if (ret < 0) {
+		sr_err("Error in poll: %d", ret);
+		return SR_ERR;
+	}
+#endif
 	stop_checked = FALSE;
 	stopped = FALSE;
 
 	for (i = 0; i < session->num_sources; i++) {
-		if ((ret > 0 && session->pollfds[i].revents > 0) || (ret == 0
-			&& session->source_timeout == session->sources[i].timeout)) {
+		source = &session->sources[i];
+		pollfd = &session->pollfds[i];
+		revents = (ret > 0) ? pollfd->revents : 0;
+
+		if (revents > 0 || (ret == 0
+			&& session->source_timeout == source->timeout)) {
 			/*
 			 * Invoke the source's callback on an event,
 			 * or if the poll timed out and this source
 			 * asked for that timeout.
 			 */
-			if (!session->sources[i].cb(session->pollfds[i].fd,
-					session->pollfds[i].revents,
-					session->sources[i].cb_data))
+			if (!source->cb(pollfd->fd, revents, source->cb_data))
 				sr_session_source_remove(session,
-						session->sources[i].poll_object);
+						source->poll_object);
 			/*
 			 * We want to take as little time as possible to stop
 			 * the session if we have been told to do so. Therefore,
