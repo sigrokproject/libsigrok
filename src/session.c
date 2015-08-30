@@ -17,6 +17,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -358,6 +359,22 @@ SR_API int sr_session_trigger_set(struct sr_session *session, struct sr_trigger 
 	return SR_OK;
 }
 
+static gboolean sr_session_check_aborted(struct sr_session *session)
+{
+	gboolean stop;
+
+	g_mutex_lock(&session->stop_mutex);
+	stop = session->abort_session;
+	if (stop) {
+		sr_session_stop_sync(session);
+		/* But once is enough. */
+		session->abort_session = FALSE;
+	}
+	g_mutex_unlock(&session->stop_mutex);
+
+	return stop;
+}
+
 /**
  * Call every device in the current session's callback.
  *
@@ -370,9 +387,8 @@ SR_API int sr_session_trigger_set(struct sr_session *session, struct sr_trigger 
  *              sources to fire an event on the file descriptors, or
  *              any of their timeouts to activate. In other words, this
  *              can be used as a select loop.
- *              If FALSE, all sources have their callback run, regardless
- *              of file descriptor or timeout status.
- *
+ *              If FALSE, return immediately if none of the sources has
+ *              events pending.
  * @retval SR_OK Success.
  * @retval SR_ERR Error occurred.
  */
@@ -380,6 +396,8 @@ static int sr_session_iteration(struct sr_session *session, gboolean block)
 {
 	unsigned int i;
 	int ret, timeout;
+	gboolean stop_checked;
+	gboolean stopped;
 #ifdef HAVE_LIBUSB_1_0
 	int usb_timeout;
 	struct timeval tv;
@@ -402,8 +420,15 @@ static int sr_session_iteration(struct sr_session *session, gboolean block)
 #endif
 
 	ret = g_poll(session->pollfds, session->num_sources, timeout);
+	if (ret < 0 && errno != EINTR) {
+		sr_err("Error in poll: %s", g_strerror(errno));
+		return SR_ERR;
+	}
+	stop_checked = FALSE;
+	stopped = FALSE;
+
 	for (i = 0; i < session->num_sources; i++) {
-		if (session->pollfds[i].revents > 0 || (ret == 0
+		if ((ret > 0 && session->pollfds[i].revents > 0) || (ret == 0
 			&& session->source_timeout == session->sources[i].timeout)) {
 			/*
 			 * Invoke the source's callback on an event,
@@ -415,21 +440,20 @@ static int sr_session_iteration(struct sr_session *session, gboolean block)
 					session->sources[i].cb_data))
 				sr_session_source_remove(session,
 						session->sources[i].poll_object);
+			/*
+			 * We want to take as little time as possible to stop
+			 * the session if we have been told to do so. Therefore,
+			 * we check the flag after processing every source, not
+			 * just once per main event loop.
+			 */
+			if (!stopped) {
+				stopped = sr_session_check_aborted(session);
+				stop_checked = TRUE;
+			}
 		}
-		/*
-		 * We want to take as little time as possible to stop
-		 * the session if we have been told to do so. Therefore,
-		 * we check the flag after processing every source, not
-		 * just once per main event loop.
-		 */
-		g_mutex_lock(&session->stop_mutex);
-		if (session->abort_session) {
-			sr_session_stop_sync(session);
-			/* But once is enough. */
-			session->abort_session = FALSE;
-		}
-		g_mutex_unlock(&session->stop_mutex);
 	}
+	if (!stop_checked)
+		sr_session_check_aborted(session);
 
 	return SR_OK;
 }
