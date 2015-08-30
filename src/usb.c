@@ -254,16 +254,23 @@ SR_PRIV int usb_source_add(struct sr_session *session, struct sr_context *ctx,
 	ctx->usb_pollfd.revents = 0;
 	ctx->usb_cb = cb;
 	ctx->usb_cb_data = cb_data;
-	sr_session_source_add_pollfd(session, &ctx->usb_pollfd, timeout,
-			usb_callback, ctx);
+	sr_session_source_add_internal(session, &ctx->usb_pollfd, timeout,
+			usb_callback, ctx, (gintptr)&ctx->usb_pollfd, TRUE);
 #else
 	const struct libusb_pollfd **lupfd;
 	unsigned int i;
 
 	lupfd = libusb_get_pollfds(ctx->libusb_ctx);
-	for (i = 0; lupfd[i]; i++)
-		sr_session_source_add(session, lupfd[i]->fd, lupfd[i]->events,
-				timeout, cb, cb_data);
+	for (i = 0; lupfd[i]; i++) {
+		GPollFD p;
+
+		p.fd = lupfd[i]->fd;
+		p.events = lupfd[i]->events;
+		p.revents = 0;
+
+		sr_session_source_add_internal(session, &p, timeout,
+				cb, cb_data, p.fd, TRUE);
+	}
 	free(lupfd);
 #endif
 	ctx->usb_source_present = TRUE;

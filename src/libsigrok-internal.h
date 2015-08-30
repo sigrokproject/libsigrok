@@ -718,7 +718,7 @@ struct sr_session {
 	GSList *datafeed_callbacks;
 	GSList *transforms;
 	struct sr_trigger *trigger;
-	GTimeVal starttime;
+
 	gboolean running;
 
 	unsigned int num_sources;
@@ -731,7 +731,6 @@ struct sr_session {
 	 */
 	struct source *sources;
 	GPollFD *pollfds;
-	int source_timeout;
 
 	/*
 	 * These are our synchronization primitives for stopping the session in
@@ -744,6 +743,9 @@ struct sr_session {
 	gboolean abort_session;
 };
 
+SR_PRIV int sr_session_source_add_internal(struct sr_session *session,
+		GPollFD *pollfd, int timeout, sr_receive_data_callback cb,
+		void *cb_data, gintptr poll_object, gboolean is_usb);
 SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
 		const struct sr_datafeed_packet *packet);
 SR_PRIV int sr_session_stop_sync(struct sr_session *session);
