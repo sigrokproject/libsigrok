@@ -223,7 +223,7 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 		 */
 		memset(ctx->analog_vals, 0, sizeof(float) * ctx->num_analog_channels);
 		ctx->inframe = TRUE;
-		ret = SR_OK_CONTINUE;
+		ret = SR_OK;
 		break;
 	case SR_DF_FRAME_END:
 		/*
@@ -269,7 +269,6 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 
 		if (ctx->inframe) {
 			handle_analog_frame(ctx, analog);
-			ret = SR_OK_CONTINUE;
 			break;
 		}
 
