@@ -389,7 +389,6 @@ static int sr_session_iteration(struct sr_session *session, gboolean block)
 
 #ifdef HAVE_LIBUSB_1_0
 	if (session->ctx->usb_source_present) {
-		timeout = block ? 0 : session->source_timeout;
 		ret = libusb_get_next_timeout(session->ctx->libusb_ctx, &tv);
 		if (ret < 0) {
 			sr_err("Error getting libusb timeout: %s",
@@ -856,6 +855,7 @@ SR_API int sr_session_source_add(struct sr_session *session, int fd,
 
 	p.fd = fd;
 	p.events = events;
+	p.revents = 0;
 
 	return _sr_session_source_add(session, &p, timeout, cb, cb_data, (gintptr)fd);
 }
@@ -908,6 +908,7 @@ SR_API int sr_session_source_add_channel(struct sr_session *session,
 #else
 	p.fd = g_io_channel_unix_get_fd(channel);
 	p.events = events;
+	p.revents = 0;
 #endif
 
 	return _sr_session_source_add(session, &p, timeout, cb, cb_data, (gintptr)channel);

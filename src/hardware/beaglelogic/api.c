@@ -165,6 +165,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 	/* Set fd and local attributes */
 	devc->pollfd.fd = devc->fd;
 	devc->pollfd.events = G_IO_IN;
+	devc->pollfd.revents = 0;
 
 	/* Get the default attributes */
 	beaglelogic_get_samplerate(devc);

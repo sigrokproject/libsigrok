@@ -251,6 +251,7 @@ SR_PRIV int usb_source_add(struct sr_session *session, struct sr_context *ctx,
 	/* Add event, set by USB wait thread, to session poll set. */
 	ctx->usb_pollfd.fd = ctx->usb_wait_complete_event;
 	ctx->usb_pollfd.events = G_IO_IN;
+	ctx->usb_pollfd.revents = 0;
 	ctx->usb_cb = cb;
 	ctx->usb_cb_data = cb_data;
 	sr_session_source_add_pollfd(session, &ctx->usb_pollfd, timeout,
