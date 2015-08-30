@@ -64,7 +64,6 @@ extern "C" {
 
 /** Status/error codes returned by libsigrok functions. */
 enum sr_error_code {
-	SR_OK_CONTINUE       =  1, /**< Keep going. */
 	SR_OK                =  0, /**< No error. */
 	SR_ERR               = -1, /**< Generic/unspecified error. */
 	SR_ERR_MALLOC        = -2, /**< Malloc/calloc/realloc error. */
