@@ -74,8 +74,7 @@ SR_PRIV int scpi_cmd(const struct sr_dev_inst *sdi, const struct scpi_command *c
 
 	if (!(cmd = scpi_cmd_get(cmdtable, command))) {
 		/* Device does not implement this command, that's OK. */
-		/* TODO: deprecate SR_OK_CONTINUE */
-		return SR_OK_CONTINUE;
+		return SR_OK;
 	}
 
 	scpi = sdi->conn;
@@ -98,7 +97,7 @@ SR_PRIV int scpi_cmd_resp(const struct sr_dev_inst *sdi, const struct scpi_comma
 
 	if (!(cmd = scpi_cmd_get(cmdtable, command))) {
 		/* Device does not implement this command, that's OK. */
-		return SR_OK_CONTINUE;
+		return SR_OK;
 	}
 
 	scpi = sdi->conn;
