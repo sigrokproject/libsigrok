@@ -110,10 +110,10 @@ static int capture_setup(const struct sr_dev_inst *sdi)
 		switch (devc->cfg_trigger_slope) {
 		case EDGE_POSITIVE:
 			trigger_mask |= (uint64_t)1 << 35;
-			break; 
+			break;
 		case EDGE_NEGATIVE:
 			trigger_mask |= (uint64_t)1 << 34;
-			break; 
+			break;
 		}
 
 	command[19] = LWLA_WORD_0(trigger_mask);
@@ -132,8 +132,8 @@ static int capture_setup(const struct sr_dev_inst *sdi)
 	command[25] = LWLA_WORD_2(memory_limit);
 	command[26] = LWLA_WORD_3(memory_limit);
 
-	/* Fill remaining 64-bit words with zeroes. */
-	memset(&command[27], 0, 16 * sizeof(uint16_t));
+	/* Fill remaining words with zeroes. */
+	memset(&command[27], 0, sizeof(command) - 27 * sizeof(command[0]));
 
 	return lwla_send_command(sdi->conn, command, ARRAY_SIZE(command));
 }
@@ -741,55 +741,6 @@ SR_PRIV int lwla_init_device(const struct sr_dev_inst *sdi)
 		return SR_ERR;
 
 	return ret;
-}
-
-SR_PRIV int lwla_convert_trigger(const struct sr_dev_inst *sdi)
-{
-	struct dev_context *devc;
-	struct sr_trigger *trigger;
-	struct sr_trigger_stage *stage;
-	struct sr_trigger_match *match;
-	const GSList *l, *m;
-	uint64_t channel_index;
-
-	devc = sdi->priv;
-
-	devc->trigger_mask = 0;
-	devc->trigger_values = 0;
-	devc->trigger_edge_mask = 0;
-
-	if (!(trigger = sr_session_trigger_get(sdi->session)))
-		return SR_OK;
-
-	if (g_slist_length(trigger->stages) > 1) {
-		sr_err("This device only supports 1 trigger stage.");
-		return SR_ERR;
-	}
-
-	for (l = trigger->stages; l; l = l->next) {
-		stage = l->data;
-		for (m = stage->matches; m; m = m->next) {
-			match = m->data;
-			if (!match->channel->enabled)
-				/* Ignore disabled channels with a trigger. */
-				continue;
-			channel_index = (uint64_t)1 << match->channel->index;
-			devc->trigger_mask |= channel_index;
-			switch (match->match) {
-			case SR_TRIGGER_ONE:
-				devc->trigger_values |= channel_index;
-				break;
-			case SR_TRIGGER_RISING:
-				devc->trigger_values |= channel_index;
-				/* Fall through for edge mask. */
-			case SR_TRIGGER_FALLING:
-				devc->trigger_edge_mask |= channel_index;
-				break;
-			}
-		}
-	}
-
-	return SR_OK;
 }
 
 /* Select the LWLA clock configuration.  If the clock source changed from

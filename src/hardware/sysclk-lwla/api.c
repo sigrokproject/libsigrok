@@ -413,12 +413,84 @@ static int config_channel_set(const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
+static int prepare_trigger_masks(const struct sr_dev_inst *sdi)
+{
+	uint64_t trigger_mask;
+	uint64_t trigger_values;
+	uint64_t trigger_edge_mask;
+	uint64_t channel_bit;
+	struct dev_context *devc;
+	struct sr_trigger *trigger;
+	struct sr_trigger_stage *stage;
+	struct sr_trigger_match *match;
+	const GSList *node;
+
+	devc = sdi->priv;
+
+	trigger = sr_session_trigger_get(sdi->session);
+	if (!trigger || !trigger->stages)
+		return SR_OK;
+
+	if (trigger->stages->next) {
+		sr_err("This device only supports 1 trigger stage.");
+		return SR_ERR_ARG;
+	}
+	stage = trigger->stages->data;
+
+	trigger_mask = 0;
+	trigger_values = 0;
+	trigger_edge_mask = 0;
+
+	for (node = stage->matches; node; node = node->next) {
+		match = node->data;
+
+		if (!match->channel->enabled)
+			continue; /* ignore disabled channel */
+
+		channel_bit = (uint64_t)1 << match->channel->index;
+		trigger_mask |= channel_bit;
+
+		switch (match->match) {
+		case SR_TRIGGER_ZERO:
+			break;
+		case SR_TRIGGER_ONE:
+			trigger_values |= channel_bit;
+			break;
+		case SR_TRIGGER_RISING:
+			trigger_values |= channel_bit;
+			/* Fall through for edge mask. */
+		case SR_TRIGGER_FALLING:
+			trigger_edge_mask |= channel_bit;
+			break;
+		default:
+			sr_err("Unsupported trigger match for CH%d.",
+				match->channel->index + 1);
+			return SR_ERR_ARG;
+		}
+	}
+	devc->trigger_mask = trigger_mask;
+	devc->trigger_values = trigger_values;
+	devc->trigger_edge_mask = trigger_edge_mask;
+
+	return SR_OK;
+}
+
 static int config_commit(const struct sr_dev_inst *sdi)
 {
-	if (sdi->status != SR_ST_ACTIVE) {
-		sr_err("Device not ready (status %d).", (int)sdi->status);
+	struct dev_context *devc;
+	int rc;
+
+	if (sdi->status != SR_ST_ACTIVE)
+		return SR_ERR_DEV_CLOSED;
+
+	devc = sdi->priv;
+	if (devc->acquisition) {
+		sr_err("Acquisition still in progress?");
 		return SR_ERR;
 	}
+	rc = prepare_trigger_masks(sdi);
+	if (rc != SR_OK)
+		return rc;
 
 	return lwla_set_clock_config(sdi);
 }
@@ -499,7 +571,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	sr_info("Starting acquisition.");
 
 	devc->acquisition = acq;
-	lwla_convert_trigger(sdi);
 	ret = lwla_setup_acquisition(sdi);
 	if (ret != SR_OK) {
 		sr_err("Failed to set up acquisition.");

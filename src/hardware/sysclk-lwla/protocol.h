@@ -252,7 +252,6 @@ SR_PRIV struct acquisition_state *lwla_alloc_acquisition_state(void);
 SR_PRIV void lwla_free_acquisition_state(struct acquisition_state *acq);
 
 SR_PRIV int lwla_init_device(const struct sr_dev_inst *sdi);
-SR_PRIV int lwla_convert_trigger(const struct sr_dev_inst *sdi);
 SR_PRIV int lwla_set_clock_config(const struct sr_dev_inst *sdi);
 SR_PRIV int lwla_setup_acquisition(const struct sr_dev_inst *sdi);
 SR_PRIV int lwla_start_acquisition(const struct sr_dev_inst *sdi);
