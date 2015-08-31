@@ -721,16 +721,15 @@ struct sr_session {
 
 	gboolean running;
 
-	unsigned int num_sources;
-
 	/*
-	 * Both "sources" and "pollfds" are of the same size and contain pairs
-	 * of descriptor and callback function. We can not embed the GPollFD
-	 * into the source struct since we want to be able to pass the array
-	 * of all poll descriptors to g_poll().
+	 * Each I/O source has an entry with the same index in both "sources"
+	 * and "pollfds". The "sources" array may be larger than "pollfds",
+	 * in which case the excess sources are pure timer sources.
+	 * We can not embed the GPollFD into the source struct since we want
+	 * to be able to pass the array of all poll descriptors to g_poll().
 	 */
-	struct source *sources;
-	GPollFD *pollfds;
+	GArray *sources;
+	GArray *pollfds;
 
 	/*
 	 * These are our synchronization primitives for stopping the session in
