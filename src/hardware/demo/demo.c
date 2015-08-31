@@ -22,14 +22,8 @@
  */
 
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
 #include <math.h>
-#ifdef _WIN32
-#include <io.h>
-#include <fcntl.h>
-#define pipe(fds) _pipe(fds, 4096, _O_BINARY)
-#endif
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
@@ -110,8 +104,6 @@ struct analog_gen {
 
 /* Private, per-device-instance driver context. */
 struct dev_context {
-	int pipe_fds[2];
-	GIOChannel *channel;
 	uint64_t cur_samplerate;
 	gboolean continuous;
 	uint64_t limit_samples;
@@ -850,33 +842,11 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	devc->continuous = !devc->limit_samples;
 	devc->logic_counter = devc->analog_counter = 0;
 
-	/*
-	 * Setting two channels connected by a pipe is a remnant from when the
-	 * demo driver generated data in a thread, and collected and sent the
-	 * data in the main program loop.
-	 * They are kept here because it provides a convenient way of setting
-	 * up a timeout-based polling mechanism.
-	 */
-	if (pipe(devc->pipe_fds)) {
-		sr_err("%s: pipe() failed", __func__);
-		return SR_ERR;
-	}
-
 	g_hash_table_iter_init(&iter, devc->ch_ag);
 	while (g_hash_table_iter_next(&iter, NULL, &value))
 		generate_analog_pattern(value, devc->cur_samplerate);
 
-	devc->channel = g_io_channel_unix_new(devc->pipe_fds[0]);
-	g_io_channel_set_flags(devc->channel, G_IO_FLAG_NONBLOCK, NULL);
-
-	/* Set channel encoding to binary (default is UTF-8). */
-	g_io_channel_set_encoding(devc->channel, NULL, NULL);
-
-	/* Make channels unbuffered. */
-	g_io_channel_set_buffered(devc->channel, FALSE);
-
-	sr_session_source_add_channel(sdi->session, devc->channel,
-			G_IO_IN | G_IO_ERR, 40, prepare_data, (void *)sdi);
+	sr_session_source_add(sdi->session, -1, 0, 40, prepare_data, (void *)sdi);
 
 	/* Send header packet to the session bus. */
 	std_session_send_df_header(sdi, LOG_PREFIX);
@@ -889,20 +859,13 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
-	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
 
 	(void)cb_data;
 
-	devc = sdi->priv;
 	sr_dbg("Stopping acquisition.");
 
-	sr_session_source_remove_channel(sdi->session, devc->channel);
-	g_io_channel_shutdown(devc->channel, FALSE, NULL);
-	g_io_channel_unref(devc->channel);
-	devc->channel = NULL;
-	close(devc->pipe_fds[0]);
-	close(devc->pipe_fds[1]);
+	sr_session_source_remove(sdi->session, -1);
 
 	/* Send last packet. */
 	packet.type = SR_DF_END;
