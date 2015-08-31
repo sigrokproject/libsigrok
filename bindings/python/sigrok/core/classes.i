@@ -75,7 +75,11 @@ typedef guint pyg_flags_type;
      */
     if (!GLib) {
         fprintf(stderr, "Import of gi.repository.GLib failed.\n");
+#if PY_VERSION_HEX >= 0x03000000
+        return NULL;
+#else
         return;
+#endif
     }
     IOChannel = (PyTypeObject *) PyObject_GetAttrString(GLib, "IOChannel");
     PollFD = (PyTypeObject *) PyObject_GetAttrString(GLib, "PollFD");
