@@ -405,6 +405,7 @@ static int sr_session_iteration(struct sr_session *session)
 	GPollFD *pollfd;
 	gintptr poll_object;
 #ifdef HAVE_LIBUSB_1_0
+	int64_t usb_timeout;
 	int64_t usb_due;
 	struct timeval tv;
 #endif
@@ -430,10 +431,14 @@ static int sr_session_iteration(struct sr_session *session)
 				libusb_error_name(ret));
 			return SR_ERR;
 		} else if (ret == 1) {
-			usb_due = start_time + tv.tv_usec
-				+ (int64_t)tv.tv_sec * G_USEC_PER_SEC;
+			usb_timeout = (int64_t)tv.tv_sec * G_USEC_PER_SEC
+					+ tv.tv_usec;
+			usb_due = start_time + usb_timeout;
 			if (usb_due < min_due)
 				min_due = usb_due;
+
+			sr_spew("poll: next USB timeout %g ms",
+				1e-3 * usb_timeout);
 		}
 	}
 #endif
@@ -443,6 +448,9 @@ static int sr_session_iteration(struct sr_session *session)
 		timeout_ms = MIN((min_due - start_time + 999) / 1000, INT_MAX);
 	else
 		timeout_ms = 0;
+
+	sr_spew("poll enter: %u sources, %u fds, %d ms timeout",
+		session->sources->len, session->pollfds->len, timeout_ms);
 
 	ret = g_poll((GPollFD *)session->pollfds->data,
 			session->pollfds->len, timeout_ms);
@@ -459,8 +467,8 @@ static int sr_session_iteration(struct sr_session *session)
 #endif
 	stop_time = g_get_monotonic_time();
 
-	sr_spew("%s: poll %d ms timeout, %g ms elapsed, %d events",
-		__func__, timeout_ms, 0.001 * (stop_time - start_time), ret);
+	sr_spew("poll leave: %g ms elapsed, %d events",
+		1e-3 * (stop_time - start_time), ret);
 
 	triggered = FALSE;
 	stopped = FALSE;
