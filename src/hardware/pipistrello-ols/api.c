@@ -693,7 +693,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	std_session_send_df_header(cb_data, LOG_PREFIX);
 
 	/* Hook up a dummy handler to receive data from the device. */
-	sr_session_source_add(sdi->session, 0, G_IO_IN, 10, p_ols_receive_data,
+	sr_session_source_add(sdi->session, -1, 0, 10, p_ols_receive_data,
 			cb_data);
 
 	return SR_OK;

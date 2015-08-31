@@ -504,7 +504,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	devc->trigger_found = 0;
 
 	/* Hook up a dummy handler to receive data from the device. */
-	sr_session_source_add(sdi->session, -1, G_IO_IN, 0, receive_data, (void *)sdi);
+	sr_session_source_add(sdi->session, -1, 0, 0, receive_data, (void *)sdi);
 
 	return SR_OK;
 }

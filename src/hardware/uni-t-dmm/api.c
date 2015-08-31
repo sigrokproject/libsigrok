@@ -201,7 +201,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	/* Send header packet to the session bus. */
 	std_session_send_df_header(sdi, LOG_PREFIX);
 
-	sr_session_source_add(sdi->session, 0, 0, 10 /* poll_timeout */,
+	sr_session_source_add(sdi->session, -1, 0, 10 /* poll_timeout */,
 		      uni_t_dmm_receive_data, (void *)sdi);
 
 	return SR_OK;

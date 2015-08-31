@@ -1517,7 +1517,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	std_session_send_df_header(sdi, LOG_PREFIX);
 
 	/* Add capture source. */
-	sr_session_source_add(sdi->session, 0, G_IO_IN, 10, receive_data, (void *)sdi);
+	sr_session_source_add(sdi->session, -1, 0, 10, receive_data, (void *)sdi);
 
 	devc->state.state = SIGMA_CAPTURE;
 
