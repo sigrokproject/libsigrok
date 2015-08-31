@@ -458,6 +458,10 @@ static int sr_session_iteration(struct sr_session *session)
 	}
 #endif
 	stop_time = g_get_monotonic_time();
+
+	sr_spew("%s: poll %d ms timeout, %g ms elapsed, %d events",
+		__func__, timeout_ms, 0.001 * (stop_time - start_time), ret);
+
 	triggered = FALSE;
 	stopped = FALSE;
 
