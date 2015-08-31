@@ -63,6 +63,8 @@ static void *sr_log_cb_data = NULL;
 /** @endcond */
 static char sr_log_domain[LOGDOMAIN_MAXLEN + 1] = LOGDOMAIN_DEFAULT;
 
+static int64_t sr_log_start_time = 0;
+
 /**
  * Set the libsigrok loglevel.
  *
@@ -86,6 +88,9 @@ SR_API int sr_log_loglevel_set(int loglevel)
 		sr_err("Invalid loglevel %d.", loglevel);
 		return SR_ERR_ARG;
 	}
+	/* Output time stamps relative to time at startup */
+	if (loglevel >= SR_LOG_SPEW && sr_log_start_time == 0)
+		sr_log_start_time = g_get_monotonic_time();
 
 	cur_loglevel = loglevel;
 
@@ -130,9 +135,9 @@ SR_API int sr_log_logdomain_set(const char *logdomain)
 	}
 
 	/* TODO: Error handling. */
-	snprintf((char *)&sr_log_domain, LOGDOMAIN_MAXLEN, "%s", logdomain);
+	snprintf(sr_log_domain, LOGDOMAIN_MAXLEN, "%s", logdomain);
 
-	sr_dbg("Log domain set to '%s'.", (const char *)&sr_log_domain);
+	sr_dbg("Log domain set to '%s'.", sr_log_domain);
 
 	return SR_OK;
 }
@@ -148,7 +153,7 @@ SR_API int sr_log_logdomain_set(const char *logdomain)
  */
 SR_API char *sr_log_logdomain_get(void)
 {
-	return g_strdup((const char *)&sr_log_domain);
+	return g_strdup(sr_log_domain);
 }
 
 /**
@@ -204,21 +209,35 @@ SR_API int sr_log_callback_set_default(void)
 
 static int sr_logv(void *cb_data, int loglevel, const char *format, va_list args)
 {
-	int ret;
+	int64_t elapsed;
+	int64_t min;
+	int sec;
+	int usec;
 
 	/* This specific log callback doesn't need the void pointer data. */
 	(void)cb_data;
 
 	/* Only output messages of at least the selected loglevel(s). */
 	if (loglevel > cur_loglevel)
-		return SR_OK; /* TODO? */
+		return SR_OK;
 
-	if (sr_log_domain[0] != '\0')
-		fprintf(stderr, "%s", sr_log_domain);
-	ret = vfprintf(stderr, format, args);
-	fprintf(stderr, "\n");
+	if (cur_loglevel >= SR_LOG_SPEW) {
+		elapsed = g_get_monotonic_time() - sr_log_start_time;
+		min = elapsed / G_TIME_SPAN_MINUTE;
+		sec = (elapsed % G_TIME_SPAN_MINUTE) / G_TIME_SPAN_SECOND;
+		usec = elapsed % G_TIME_SPAN_SECOND;
 
-	return ret;
+		if (fprintf(stderr, "[%.2" PRIi64 ":%.2d.%.6d] ", min, sec, usec) < 0)
+			return SR_ERR;
+	}
+	if (sr_log_domain[0] != '\0' && fputs(sr_log_domain, stderr) < 0)
+		return SR_ERR;
+	if (vfprintf(stderr, format, args) < 0)
+		return SR_ERR;
+	if (putc('\n', stderr) < 0)
+		return SR_ERR;
+
+	return SR_OK;
 }
 
 /** @private */
