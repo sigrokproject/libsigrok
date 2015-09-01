@@ -236,6 +236,8 @@ static int usb_callback(int fd, int revents, void *cb_data)
 SR_PRIV int usb_source_add(struct sr_session *session, struct sr_context *ctx,
 		int timeout, sr_receive_data_callback cb, void *cb_data)
 {
+	int ret;
+
 	if (ctx->usb_source_present) {
 		sr_err("A USB event source is already present.");
 		return SR_ERR;
@@ -254,32 +256,43 @@ SR_PRIV int usb_source_add(struct sr_session *session, struct sr_context *ctx,
 	ctx->usb_pollfd.revents = 0;
 	ctx->usb_cb = cb;
 	ctx->usb_cb_data = cb_data;
-	sr_session_source_add_internal(session, &ctx->usb_pollfd, timeout,
-			usb_callback, ctx, (gintptr)&ctx->usb_pollfd, TRUE);
+	ret = sr_session_source_add_pollfd(session, &ctx->usb_pollfd,
+			timeout, usb_callback, ctx);
 #else
 	const struct libusb_pollfd **lupfd;
-	unsigned int i;
+	GPollFD *pollfds;
+	int i;
+	int num_fds = 0;
 
 	lupfd = libusb_get_pollfds(ctx->libusb_ctx);
-	for (i = 0; lupfd[i]; i++) {
-		GPollFD p;
+	if (!lupfd || !lupfd[0]) {
+		free(lupfd);
+		sr_err("Failed to get libusb file descriptors.");
+		return SR_ERR;
+	}
+	while (lupfd[num_fds])
+		++num_fds;
+	pollfds = g_new(GPollFD, num_fds);
 
-		p.fd = lupfd[i]->fd;
-		p.events = lupfd[i]->events;
-		p.revents = 0;
-
-		sr_session_source_add_internal(session, &p, timeout,
-				cb, cb_data, p.fd, TRUE);
+	for (i = 0; i < num_fds; ++i) {
+		pollfds[i].fd = lupfd[i]->fd;
+		pollfds[i].events = lupfd[i]->events;
+		pollfds[i].revents = 0;
 	}
 	free(lupfd);
+	ret = sr_session_source_add_internal(session, pollfds, num_fds,
+			timeout, cb, cb_data, (gintptr)ctx->libusb_ctx);
+	g_free(pollfds);
 #endif
-	ctx->usb_source_present = TRUE;
+	ctx->usb_source_present = (ret == SR_OK);
 
-	return SR_OK;
+	return ret;
 }
 
 SR_PRIV int usb_source_remove(struct sr_session *session, struct sr_context *ctx)
 {
+	int ret;
+
 	if (!ctx->usb_source_present)
 		return SR_OK;
 
@@ -291,22 +304,17 @@ SR_PRIV int usb_source_remove(struct sr_session *session, struct sr_context *ctx
 	/* Wait for USB wait thread to terminate. */
 	g_thread_join(ctx->usb_thread);
 	/* Remove USB event from session poll set. */
-	sr_session_source_remove_pollfd(session, &ctx->usb_pollfd);
+	ret = sr_session_source_remove_pollfd(session, &ctx->usb_pollfd);
 	/* Close event handles that were used between threads. */
 	CloseHandle(ctx->usb_wait_request_event);
 	CloseHandle(ctx->usb_wait_complete_event);
 #else
-	const struct libusb_pollfd **lupfd;
-	unsigned int i;
-
-	lupfd = libusb_get_pollfds(ctx->libusb_ctx);
-	for (i = 0; lupfd[i]; i++)
-		sr_session_source_remove(session, lupfd[i]->fd);
-	free(lupfd);
+	ret = sr_session_source_remove_internal(session,
+			(gintptr)ctx->libusb_ctx);
 #endif
 	ctx->usb_source_present = FALSE;
 
-	return SR_OK;
+	return ret;
 }
 
 SR_PRIV int usb_get_port_path(libusb_device *dev, char *path, int path_len)

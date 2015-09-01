@@ -722,10 +722,11 @@ struct sr_session {
 	gboolean running;
 
 	/*
-	 * Each I/O source has an entry with the same index in both "sources"
-	 * and "pollfds". The "sources" array may be larger than "pollfds",
-	 * in which case the excess sources are pure timer sources.
-	 * We can not embed the GPollFD into the source struct since we want
+	 * Event sources and poll FDs are stored in the same order in the
+	 * the sources and pollfds arrays. However, each source may cover
+	 * any number of associated poll FDs, so the indices do not match.
+	 *
+	 * We cannot embed the GPollFD into the source struct since we want
 	 * to be able to pass the array of all poll descriptors to g_poll().
 	 */
 	GArray *sources;
@@ -743,8 +744,11 @@ struct sr_session {
 };
 
 SR_PRIV int sr_session_source_add_internal(struct sr_session *session,
-		GPollFD *pollfd, int timeout, sr_receive_data_callback cb,
-		void *cb_data, gintptr poll_object, gboolean is_usb);
+		const GPollFD *pollfds, int num_fds, int timeout,
+		sr_receive_data_callback cb, void *cb_data,
+		gintptr poll_object);
+SR_PRIV int sr_session_source_remove_internal(struct sr_session *session,
+		gintptr poll_object);
 SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
 		const struct sr_datafeed_packet *packet);
 SR_PRIV int sr_session_stop_sync(struct sr_session *session);
