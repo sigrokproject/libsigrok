@@ -580,7 +580,8 @@ $(PDIR)/timestamp: bindings/cxx/libsigrokcxx.la $(PDIR)/sigrok/core/classes.i \
 
 python-install:
 	$(AM_V_at)$(MKDIR_P) "$(DESTDIR)$(prefix)" "$(DESTDIR)$(exec_prefix)"
-	$(setup_py) install --root "$(DESTDIR)/" --prefix "$(prefix)" --exec-prefix "$(exec_prefix)"
+	destdir='$(DESTDIR)'; $(setup_py) install $${destdir:+"--root=$$destdir"} \
+		--prefix "$(prefix)" --exec-prefix "$(exec_prefix)"
 
 python-clean:
 	-$(AM_V_at)rm -f $(PDIR)/timestamp
