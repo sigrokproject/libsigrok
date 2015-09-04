@@ -206,15 +206,12 @@ struct sr_context {
 #ifdef HAVE_LIBUSB_1_0
 	libusb_context *libusb_ctx;
 	gboolean usb_source_present;
-#ifdef _WIN32
-	GThread *usb_thread;
-	gboolean usb_thread_running;
-	HANDLE usb_wait_request_event;
-	HANDLE usb_wait_complete_event;
-	GPollFD usb_pollfd;
+# ifdef G_OS_WIN32
+	int64_t usb_timeout;
+	int64_t usb_due;
 	sr_receive_data_callback usb_cb;
 	void *usb_cb_data;
-#endif
+# endif
 #endif
 };
 

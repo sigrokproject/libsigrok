@@ -184,52 +184,52 @@ SR_PRIV void sr_usb_close(struct sr_usb_dev_inst *usb)
 	sr_dbg("Closed USB device %d.%d.", usb->bus, usb->address);
 }
 
-#ifdef _WIN32
-/* Thread used to run libusb_wait_for_event() and set a pollable event. */
-static gpointer usb_thread(gpointer data)
-{
-	struct sr_context *ctx = data;
-
-	while (ctx->usb_thread_running) {
-		/* Acquire event waiters lock, needed for libusb_wait_for_event(). */
-		libusb_lock_event_waiters(ctx->libusb_ctx);
-		/* Wait for any libusb event. The main thread can interrupt this wait
-		 * by calling libusb_unlock_events(). */
-		libusb_wait_for_event(ctx->libusb_ctx, NULL);
-		/* Release event waiters lock. */
-		libusb_unlock_event_waiters(ctx->libusb_ctx);
-		/* Set event that the main loop will be polling on. */
-		SetEvent(ctx->usb_wait_complete_event);
-		/* Wait for the main thread to signal us to run again. */
-		WaitForSingleObject(ctx->usb_wait_request_event, INFINITE);
-		ResetEvent(ctx->usb_wait_request_event);
-	}
-
-	return NULL;
-}
-
-/* Callback wrapper run when main g_poll() gets a USB event or timeout. */
+#ifdef G_OS_WIN32
+/*
+ * USB callback wrapper run when the main loop is idle.
+ */
 static int usb_callback(int fd, int revents, void *cb_data)
 {
-	struct sr_context *ctx = cb_data;
+	int64_t start_time, stop_time, due, timeout;
+	struct timeval tv;
+	struct sr_context *ctx;
 	int ret;
 
-	/* Run registered callback to handle libusb events. */
-	ret = ctx->usb_cb(fd, revents, ctx->usb_cb_data);
+	(void)fd;
+	(void)revents;
+	ctx = cb_data;
 
-	/* Were we triggered by an event from the wait thread, rather than by a
-	 * timeout? */
-	int triggered_by_event = (revents & G_IO_IN);
+	start_time = g_get_monotonic_time();
 
-	/* If so, and if the USB event source has not been removed from the
-	 * session, reset the event that woke us and tell the wait thread to start
-	 * waiting for events again. */
-	if (triggered_by_event && ctx->usb_thread_running) {
-		ResetEvent(ctx->usb_wait_complete_event);
-		SetEvent(ctx->usb_wait_request_event);
+	due = ctx->usb_due;
+	timeout = MAX(due - start_time, 0);
+	tv.tv_sec  = timeout / G_USEC_PER_SEC;
+	tv.tv_usec = timeout % G_USEC_PER_SEC;
+
+	sr_spew("libusb_handle_events enter, timeout %g ms", 1e-3 * timeout);
+
+	ret = libusb_handle_events_timeout_completed(ctx->libusb_ctx,
+			(ctx->usb_timeout < 0) ? NULL : &tv, NULL);
+	if (ret != 0) {
+		/* Warn but still invoke the callback, to give the driver
+		 * a chance to deal with the problem.
+		 */
+		sr_warn("Error handling libusb event (%s)",
+			libusb_error_name(ret));
 	}
+	stop_time = g_get_monotonic_time();
 
-	return ret;
+	sr_spew("libusb_handle_events leave, %g ms elapsed",
+		1e-3 * (stop_time - start_time));
+
+	if (ctx->usb_timeout >= 0)
+		ctx->usb_due = stop_time + ctx->usb_timeout;
+	/*
+	 * Run registered callback to execute any follow-up activity
+	 * to libusb event handling.
+	 */
+	return ctx->usb_cb(-1, (stop_time < due) ? G_IO_IN : 0,
+			ctx->usb_cb_data);
 }
 #endif
 
@@ -243,21 +243,23 @@ SR_PRIV int usb_source_add(struct sr_session *session, struct sr_context *ctx,
 		return SR_ERR;
 	}
 
-#ifdef _WIN32
-	/* Create events used to signal between main and USB wait threads. */
-	ctx->usb_wait_request_event = CreateEvent(NULL, TRUE, FALSE, NULL);
-	ctx->usb_wait_complete_event = CreateEvent(NULL, TRUE, FALSE, NULL);
-	/* Start USB wait thread. */
-	ctx->usb_thread_running = TRUE;
-	ctx->usb_thread = g_thread_new("usb", usb_thread, ctx);
-	/* Add event, set by USB wait thread, to session poll set. */
-	ctx->usb_pollfd.fd = ctx->usb_wait_complete_event;
-	ctx->usb_pollfd.events = G_IO_IN;
-	ctx->usb_pollfd.revents = 0;
+#ifdef G_OS_WIN32
+	if (timeout >= 0) {
+		ctx->usb_timeout = INT64_C(1000) * timeout;
+		ctx->usb_due = g_get_monotonic_time() + ctx->usb_timeout;
+	} else {
+		ctx->usb_timeout = -1;
+		ctx->usb_due = INT64_MAX;
+	}
 	ctx->usb_cb = cb;
 	ctx->usb_cb_data = cb_data;
-	ret = sr_session_source_add_pollfd(session, &ctx->usb_pollfd,
-			timeout, usb_callback, ctx);
+	/*
+	 * TODO: Install an idle source which will fire permanently, and block
+	 * in a wrapper callback until any libusb events have been processed.
+	 * This will have to do for now, until we implement a proper way to
+	 * deal with libusb events on Windows.
+	 */
+	ret = sr_session_source_add(session, -2, 0, 0, &usb_callback, ctx);
 #else
 	const struct libusb_pollfd **lupfd;
 	GPollFD *pollfds;
@@ -296,18 +298,9 @@ SR_PRIV int usb_source_remove(struct sr_session *session, struct sr_context *ctx
 	if (!ctx->usb_source_present)
 		return SR_OK;
 
-#ifdef _WIN32
-	/* Signal the USB wait thread to stop, then unblock it so it does. */
-	ctx->usb_thread_running = FALSE;
-	SetEvent(ctx->usb_wait_request_event);
-	libusb_unlock_events(ctx->libusb_ctx);
-	/* Wait for USB wait thread to terminate. */
-	g_thread_join(ctx->usb_thread);
-	/* Remove USB event from session poll set. */
-	ret = sr_session_source_remove_pollfd(session, &ctx->usb_pollfd);
-	/* Close event handles that were used between threads. */
-	CloseHandle(ctx->usb_wait_request_event);
-	CloseHandle(ctx->usb_wait_complete_event);
+#ifdef G_OS_WIN32
+	/* Remove our idle source */
+	sr_session_source_remove(session, -2);
 #else
 	ret = sr_session_source_remove_internal(session,
 			(gintptr)ctx->libusb_ctx);
