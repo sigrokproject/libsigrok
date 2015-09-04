@@ -409,7 +409,7 @@ static int sr_session_iteration(struct sr_session *session)
 	struct source *source;
 	GPollFD *pollfd;
 	gintptr poll_object;
-#if HAVE_LIBUSB_1_0 && !defined(G_OS_WIN32)
+#if HAVE_LIBUSB_1_0
 	int64_t usb_timeout;
 	int64_t usb_due;
 	struct timeval tv;
@@ -427,7 +427,7 @@ static int sr_session_iteration(struct sr_session *session)
 			min_due = source->due;
 		source->triggered = FALSE;
 	}
-#if HAVE_LIBUSB_1_0 && !defined(G_OS_WIN32)
+#if HAVE_LIBUSB_1_0
 	usb_due = INT64_MAX;
 	if (session->ctx->usb_source_present) {
 		ret = libusb_get_next_timeout(session->ctx->libusb_ctx, &tv);
@@ -506,7 +506,7 @@ static int sr_session_iteration(struct sr_session *session)
 			revents = 0;
 
 		due = source->due;
-#if HAVE_LIBUSB_1_0 && !defined(G_OS_WIN32)
+#if HAVE_LIBUSB_1_0
 		if (usb_due < due && poll_object
 				== (gintptr)session->ctx->libusb_ctx)
 			due = usb_due;

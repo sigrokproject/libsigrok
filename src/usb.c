@@ -184,104 +184,19 @@ SR_PRIV void sr_usb_close(struct sr_usb_dev_inst *usb)
 	sr_dbg("Closed USB device %d.%d.", usb->bus, usb->address);
 }
 
-#ifdef G_OS_WIN32
-/*
- * USB callback wrapper run when the main loop is idle.
- */
-static int usb_callback(int fd, int revents, void *cb_data)
-{
-	int64_t start_time, stop_time, due, timeout;
-	struct timeval tv;
-	struct sr_context *ctx;
-	int ret;
-
-	(void)fd;
-	(void)revents;
-	ctx = cb_data;
-
-	start_time = g_get_monotonic_time();
-	due = ctx->usb_due;
-
-	if (due > start_time) {
-		timeout = due - start_time;
-		tv.tv_sec  = timeout / G_USEC_PER_SEC;
-		tv.tv_usec = timeout % G_USEC_PER_SEC;
-
-		sr_spew("libusb_handle_events enter: %g ms timeout",
-			1e-3 * timeout);
-
-		ret = libusb_handle_events_timeout_completed(ctx->libusb_ctx,
-				(ctx->usb_timeout < 0) ? NULL : &tv, NULL);
-		if (ret != 0) {
-			/* Warn but still invoke the callback, to give
-			 * the driver a chance to deal with the problem.
-			 */
-			sr_warn("Error handling libusb event (%s)",
-				libusb_error_name(ret));
-		}
-		stop_time = g_get_monotonic_time();
-
-		sr_spew("libusb_handle_events leave: %g ms elapsed",
-			1e-3 * (stop_time - start_time));
-		/*
-		 * The event source may have been removed by the driver's
-		 * libusb transfer callback. Skip the callback in that case.
-		 */
-		if (!ctx->usb_source_present)
-			return TRUE;
-	} else {
-		/* Timeout already expired on entry.
-		 */
-		stop_time = start_time;
-
-		sr_spew("libusb_handle_events skipped");
-	}
-
-	if (ctx->usb_timeout >= 0)
-		ctx->usb_due = stop_time + ctx->usb_timeout;
-	/*
-	 * Run the registered callback to execute any follow-up activity
-	 * to libusb's event handling.
-	 */
-	return ctx->usb_cb(-1, (stop_time < due) ? G_IO_IN : 0,
-			ctx->usb_cb_data);
-}
-#endif
-
 SR_PRIV int usb_source_add(struct sr_session *session, struct sr_context *ctx,
 		int timeout, sr_receive_data_callback cb, void *cb_data)
 {
+	const struct libusb_pollfd **lupfd;
+	GPollFD *pollfds;
+	int i;
+	int num_fds = 0;
 	int ret;
 
 	if (ctx->usb_source_present) {
 		sr_err("A USB event source is already present.");
 		return SR_ERR;
 	}
-
-#ifdef G_OS_WIN32
-	if (timeout >= 0) {
-		ctx->usb_timeout = INT64_C(1000) * timeout;
-		ctx->usb_due = g_get_monotonic_time() + ctx->usb_timeout;
-	} else {
-		ctx->usb_timeout = -1;
-		ctx->usb_due = INT64_MAX;
-	}
-	ctx->usb_cb = cb;
-	ctx->usb_cb_data = cb_data;
-	/*
-	 * TODO: Install an idle source which will fire permanently, and block
-	 * in a wrapper callback until any libusb events have been processed.
-	 * This will have to do for now, until we implement a proper way to
-	 * deal with libusb events on Windows.
-	 */
-	ret = sr_session_source_add_internal(session, NULL, 0,
-			0, &usb_callback, ctx, (gintptr)ctx->libusb_ctx);
-#else
-	const struct libusb_pollfd **lupfd;
-	GPollFD *pollfds;
-	int i;
-	int num_fds = 0;
-
 	lupfd = libusb_get_pollfds(ctx->libusb_ctx);
 	if (!lupfd || !lupfd[0]) {
 		free(lupfd);
@@ -293,7 +208,12 @@ SR_PRIV int usb_source_add(struct sr_session *session, struct sr_context *ctx,
 	pollfds = g_new(GPollFD, num_fds);
 
 	for (i = 0; i < num_fds; ++i) {
+#if defined(G_OS_WIN32) && (GLIB_SIZEOF_VOID_P == 4)
+		/* Avoid a warning on 32-bit Windows. */
+		pollfds[i].fd = (gintptr)lupfd[i]->fd;
+#else
 		pollfds[i].fd = lupfd[i]->fd;
+#endif
 		pollfds[i].events = lupfd[i]->events;
 		pollfds[i].revents = 0;
 	}
@@ -301,7 +221,7 @@ SR_PRIV int usb_source_add(struct sr_session *session, struct sr_context *ctx,
 	ret = sr_session_source_add_internal(session, pollfds, num_fds,
 			timeout, cb, cb_data, (gintptr)ctx->libusb_ctx);
 	g_free(pollfds);
-#endif
+
 	ctx->usb_source_present = (ret == SR_OK);
 
 	return ret;
