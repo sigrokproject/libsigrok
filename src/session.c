@@ -1323,6 +1323,7 @@ void sr_packet_free(struct sr_datafeed_packet *packet)
 	const struct sr_datafeed_meta *meta;
 	const struct sr_datafeed_logic *logic;
 	const struct sr_datafeed_analog *analog;
+	const struct sr_datafeed_analog2 *analog2;
 	struct sr_config *src;
 	GSList *l;
 
@@ -1354,6 +1355,15 @@ void sr_packet_free(struct sr_datafeed_packet *packet)
 		analog = packet->payload;
 		g_slist_free(analog->channels);
 		g_free(analog->data);
+		g_free((void *)packet->payload);
+		break;
+	case SR_DF_ANALOG2:
+		analog2 = packet->payload;
+		g_free(analog2->data);
+		g_free(analog2->encoding);
+		g_slist_free(analog2->meaning->channels);
+		g_free(analog2->meaning);
+		g_free(analog2->spec);
 		g_free((void *)packet->payload);
 		break;
 	default:
