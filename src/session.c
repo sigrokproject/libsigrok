@@ -1248,6 +1248,8 @@ SR_PRIV int sr_packet_copy(const struct sr_datafeed_packet *packet,
 	struct sr_datafeed_logic *logic_copy;
 	const struct sr_datafeed_analog *analog;
 	struct sr_datafeed_analog *analog_copy;
+	const struct sr_datafeed_analog2 *analog2;
+	struct sr_datafeed_analog2 *analog2_copy;
 	uint8_t *payload;
 
 	*copy = g_malloc0(sizeof(struct sr_datafeed_packet));
@@ -1289,6 +1291,24 @@ SR_PRIV int sr_packet_copy(const struct sr_datafeed_packet *packet,
 		memcpy(analog_copy->data, analog->data,
 				analog->num_samples * sizeof(float));
 		(*copy)->payload = analog_copy;
+		break;
+	case SR_DF_ANALOG2:
+		analog2 = packet->payload;
+		analog2_copy = g_malloc(sizeof(analog2));
+		analog2_copy->data = g_malloc(
+				analog2->encoding->unitsize * analog2->num_samples);
+		memcpy(analog2_copy->data, analog2->data,
+				analog2->encoding->unitsize * analog2->num_samples);
+		analog2_copy->num_samples = analog2->num_samples;
+		analog2_copy->encoding = g_memdup(analog2->encoding,
+				sizeof(struct sr_analog_encoding));
+		analog2_copy->meaning = g_memdup(analog2->meaning,
+				sizeof(struct sr_analog_meaning));
+		analog2_copy->meaning->channels = g_slist_copy(
+				analog2->meaning->channels);
+		analog2_copy->spec = g_memdup(analog2->spec,
+				sizeof(struct sr_analog_spec));
+		(*copy)->payload = analog2_copy;
 		break;
 	default:
 		sr_err("Unknown packet type %d", packet->type);
