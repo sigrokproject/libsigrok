@@ -1285,6 +1285,7 @@ SR_PRIV int sr_packet_copy(const struct sr_datafeed_packet *packet,
 		analog_copy->mq = analog->mq;
 		analog_copy->unit = analog->unit;
 		analog_copy->mqflags = analog->mqflags;
+		analog_copy->data = g_malloc(analog->num_samples * sizeof(float));
 		memcpy(analog_copy->data, analog->data,
 				analog->num_samples * sizeof(float));
 		(*copy)->payload = analog_copy;
