@@ -507,7 +507,7 @@ static int sr_session_iteration(struct sr_session *session)
 
 		due = source->due;
 #if HAVE_LIBUSB_1_0 && !defined(G_OS_WIN32)
-		if (usb_due < due && source->poll_object
+		if (usb_due < due && poll_object
 				== (gintptr)session->ctx->libusb_ctx)
 			due = usb_due;
 #endif
@@ -1077,6 +1077,12 @@ SR_PRIV int sr_session_source_remove_internal(struct sr_session *session,
 				g_array_remove_range(session->pollfds,
 						fd_index, source->num_fds);
 			g_array_remove_index(session->sources, i);
+			/*
+			 * This is a bit of a hack. To be removed when
+			 * porting over to the GLib main loop.
+			 */
+			if (poll_object == (gintptr)session->ctx->libusb_ctx)
+				session->ctx->usb_source_present = FALSE;
 			return SR_OK;
 		}
 		fd_index += source->num_fds;
