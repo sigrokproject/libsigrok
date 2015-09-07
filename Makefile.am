@@ -570,9 +570,12 @@ $(PDOC): $(srcdir)/bindings/swig/doc.py $(CPPXMLDOC)
 
 python-build: $(PDIR)/timestamp
 
-$(PDIR)/timestamp: bindings/cxx/libsigrokcxx.la $(PDIR)/sigrok/core/classes.i \
+$(PDIR)/timestamp: $(PDIR)/sigrok/core/classes.i \
 		bindings/swig/classes.i bindings/swig/enums.i $(PDOC) \
-		$(library_include_HEADERS) $(nodist_library_include_HEADERS)
+		$(library_include_HEADERS) $(nodist_library_include_HEADERS) \
+		$(bindings_cxx_libsigrokcxx_la_include_HEADERS) \
+		$(nodist_bindings_cxx_libsigrokcxx_la_include_HEADERS) \
+		| bindings/cxx/libsigrokcxx.la
 	$(AM_V_at)$(setup_py) clean --all 2>/dev/null
 	$(AM_V_GEN)$(setup_py) build_ext --swig "$(SWIG)" build_py
 	$(AM_V_at): >$@
@@ -618,7 +621,8 @@ $(JDOC): $(srcdir)/bindings/swig/doc.py $(CPPXMLDOC)
 	$(AM_V_GEN)$(PYTHON) $(srcdir)/bindings/swig/doc.py java $(CPPXMLDOC) > $@
 
 $(JCXX): $(srcdir)/$(JSWG) $(JDOC) bindings/swig/classes.i bindings/swig/enums.i \
-		$(library_include_HEADERS) $(nodist_library_include_HEADERS)
+		$(bindings_cxx_libsigrokcxx_la_include_HEADERS) \
+		$(nodist_bindings_cxx_libsigrokcxx_la_include_HEADERS)
 	-$(AM_V_at)rm -f $(java_cleanfiles)
 	$(AM_V_GEN)$(SWIG) -c++ -java -package org.sigrok.core.classes \
 		-Ibindings -I$(JCLS) $(local_includes) -I$(srcdir) $(JNI_CPPFLAGS) \
@@ -628,7 +632,11 @@ $(JJAR): $(JCXX)
 	$(AM_V_GEN)$(JAVAC) -d $(JDIR) $(JSRC)
 	$(AM_V_at)jar cf $(JJAR) -C $(JDIR) $(JPKG)
 
-$(JLIB): $(JCXX) bindings/cxx/libsigrokcxx.la $(library_include_HEADERS) $(nodist_library_include_HEADERS)
+$(JLIB): $(JCXX) \
+		$(library_include_HEADERS) $(nodist_library_include_HEADERS) \
+		$(bindings_cxx_libsigrokcxx_la_include_HEADERS) \
+		$(nodist_bindings_cxx_libsigrokcxx_la_include_HEADERS) \
+		| bindings/cxx/libsigrokcxx.la
 	$(AM_V_GEN)$(CXXCOMPILE) $(JNI_CPPFLAGS) -L.libs -Lbindings/cxx/.libs \
 		-fno-strict-aliasing -fPIC -shared $(JCLS)/classes_wrap.cxx \
 		-lsigrokcxx $(LIBSIGROKCXX_LIBS) -o $(JLIB)
