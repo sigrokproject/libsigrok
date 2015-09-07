@@ -273,6 +273,12 @@ libsigrok_la_SOURCES += \
 	src/hardware/hantek-dso/dso.c \
 	src/hardware/hantek-dso/api.c
 endif
+if HW_HUNG_CHANG_DSO_2100
+libsigrok_la_SOURCES += \
+	src/hardware/hung-chang-dso-2100/protocol.h \
+	src/hardware/hung-chang-dso-2100/protocol.c \
+	src/hardware/hung-chang-dso-2100/api.c
+endif
 if HW_IKALOGIC_SCANALOGIC2
 libsigrok_la_SOURCES += \
 	src/hardware/ikalogic-scanalogic2/protocol.h \

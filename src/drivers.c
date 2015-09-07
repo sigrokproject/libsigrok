@@ -83,6 +83,9 @@ extern SR_PRIV struct sr_dev_driver hameg_hmo_driver_info;
 #ifdef HAVE_HW_HANTEK_DSO
 extern SR_PRIV struct sr_dev_driver hantek_dso_driver_info;
 #endif
+#ifdef HAVE_HW_HUNG_CHANG_DSO_2100
+extern SR_PRIV struct sr_dev_driver hung_chang_dso_2100_driver_info;
+#endif
 #ifdef HAVE_HW_IKALOGIC_SCANALOGIC2
 extern SR_PRIV struct sr_dev_driver ikalogic_scanalogic2_driver_info;
 #endif
@@ -234,6 +237,9 @@ SR_PRIV struct sr_dev_driver **drivers_lists[] = {
 #endif
 #ifdef HAVE_HW_HANTEK_DSO
 	(DRVS) {&hantek_dso_driver_info, NULL},
+#endif
+#ifdef HAVE_HW_HUNG_CHANG_DSO_2100
+	(DRVS) {&hung_chang_dso_2100_driver_info, NULL},
 #endif
 #ifdef HAVE_HW_IKALOGIC_SCANALOGIC2
 	(DRVS) {&ikalogic_scanalogic2_driver_info, NULL},
