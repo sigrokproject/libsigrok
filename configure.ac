@@ -448,8 +448,12 @@ libsigrok configuration summary:
  - Prefix.......................... $prefix
  - Building on..................... $build
  - Building for.................... $host
+ - C compiler...................... $CC
+ - C compiler flags................ $CFLAGS
  - Additional C compiler flags..... $SR_EXTRA_CFLAGS
  - C compiler warnings............. $SR_WFLAGS
+ - C++ compiler.................... $CXX
+ - C++ compiler flags.............. $CXXFLAGS
  - C++ compiler warnings........... $SR_WXXFLAGS
 
 Detected libraries (required):
