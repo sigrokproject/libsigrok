@@ -524,6 +524,8 @@ static int sr_session_iteration(struct sr_session *session)
 		/*
 		 * Invoke the source's callback on an event or timeout.
 		 */
+		sr_spew("callback for event source %" G_GINTPTR_FORMAT " with"
+			" event mask 0x%.2X", poll_object, (unsigned)revents);
 		if (!source->cb(fd, revents, source->cb_data))
 			sr_session_source_remove_internal(session, poll_object);
 		/*
@@ -919,6 +921,7 @@ SR_PRIV int sr_session_source_add_internal(struct sr_session *session,
 {
 	struct source src;
 	unsigned int i;
+	int k;
 
 	/* Note: cb_data can be NULL, that's not a bug. */
 	if (!cb) {
@@ -934,11 +937,13 @@ SR_PRIV int sr_session_source_add_internal(struct sr_session *session,
 	for (i = 0; i < session->sources->len; ++i) {
 		if (g_array_index(session->sources, struct source, i)
 				.poll_object == poll_object) {
-			sr_err("Event source for object %" G_GINTPTR_FORMAT
+			sr_err("Event source %" G_GINTPTR_FORMAT
 				" already installed.", poll_object);
 			return SR_ERR;
 		}
 	}
+	sr_dbg("Installing event source %" G_GINTPTR_FORMAT " with %d FDs"
+		" and %d ms timeout.", poll_object, num_fds, timeout);
 	src.cb = cb;
 	src.cb_data = cb_data;
 	src.poll_object = poll_object;
@@ -954,8 +959,12 @@ SR_PRIV int sr_session_source_add_internal(struct sr_session *session,
 	}
 	g_array_append_val(session->sources, src);
 
-	if (num_fds > 0)
-		g_array_append_vals(session->pollfds, pollfds, num_fds);
+	for (k = 0; k < num_fds; ++k) {
+		sr_dbg("Registering poll FD %" G_GINTPTR_FORMAT
+			" with event mask 0x%.2X.",
+			(gintptr)pollfds[k].fd, (unsigned)pollfds[k].events);
+	}
+	g_array_append_vals(session->pollfds, pollfds, num_fds);
 
 	return SR_OK;
 }
@@ -1083,6 +1092,9 @@ SR_PRIV int sr_session_source_remove_internal(struct sr_session *session,
 			 */
 			if (poll_object == (gintptr)session->ctx->libusb_ctx)
 				session->ctx->usb_source_present = FALSE;
+
+			sr_dbg("Removed event source %" G_GINTPTR_FORMAT ".",
+				poll_object);
 			return SR_OK;
 		}
 		fd_index += source->num_fds;
@@ -1090,7 +1102,7 @@ SR_PRIV int sr_session_source_remove_internal(struct sr_session *session,
 	/* Trying to remove an already removed event source is problematic
 	 * since the poll_object handle may have been reused in the meantime.
 	 */
-	sr_warn("Cannot remove non-existing event source for object %"
+	sr_warn("Cannot remove non-existing event source %"
 		G_GINTPTR_FORMAT ".", poll_object);
 
 	return SR_ERR_BUG;
