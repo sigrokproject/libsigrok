@@ -18,7 +18,7 @@
 ## along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##
 
-#serial 20150825
+#serial 20150907
 
 ## SR_APPEND(var-name, [list-sep,] element)
 ##
