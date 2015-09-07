@@ -162,7 +162,7 @@ static int scpi_serial_read_data(void *priv, char *buf, int maxlen)
 
 	/* Try to read new data into the buffer if there is space. */
 	if (len > 0) {
-		ret = serial_read_nonblocking(sscpi->serial, sscpi->buffer + sscpi->read,
+		ret = serial_read_nonblocking(sscpi->serial, sscpi->buffer + sscpi->count,
 				BUFFER_SIZE - sscpi->count);
 
 		if (ret < 0)
