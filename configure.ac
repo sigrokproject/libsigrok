@@ -92,10 +92,15 @@ SR_ARG_OPT_PKG([libftdi], [LIBFTDI],,
 
 # FreeBSD comes with an "integrated" libusb-1.0-style USB API.
 # This means libusb-1.0 is always available; no need to check for it.
-AS_CASE([$host], [*freebsd*], [sr_have_libusb=yes])
+# On Windows, require the latest version we can get our hands on,
+# until the new generic event handling has seen an official release.
+AS_CASE([$host_os],
+	[freebsd*], [sr_libusb_req='libusb-1.0' sr_have_libusb=yes],
+	[mingw*], [sr_libusb_req='libusb-1.0 >= 1.0.20'],
+	[sr_libusb_req='libusb-1.0 >= 1.0.16'])
 
 SR_ARG_OPT_PKG([libusb], [LIBUSB_1_0], [NEED_USB],
-	[libusb-1.0 >= 1.0.16])
+	[$sr_libusb_req])
 
 SR_ARG_OPT_PKG([librevisa], [LIBREVISA], [NEED_VISA],
 	[librevisa >= 0.0.20130412])
@@ -421,6 +426,18 @@ AM_COND_IF([BINDINGS_CXX], [
 	PKG_CHECK_MODULES([LIBSIGROKCXX], [$SR_PKGLIBS_CXX])
 	PKG_CHECK_MODULES([PYSIGROK], [$SR_PKGLIBS_PYTHON $SR_PKGLIBS_CXX])
 ])
+
+# Check for specific libusb features, now that we know the CFLAGS.
+AC_LANG([C])
+sr_save_cflags=$CFLAGS
+CFLAGS="$LIBSIGROK_CFLAGS $CFLAGS"
+AC_CHECK_TYPES([libusb_os_handle],
+	[sr_have_libusb_os_handle=yes], [sr_have_libusb_os_handle=no],
+	[[#include <libusb.h>]])
+CFLAGS=$sr_save_cflags
+AM_COND_IF([NEED_USB], [AS_CASE([$sr_have_libusb_os_handle:$host_os], [no:mingw*],
+	[AC_MSG_ERROR([Windows builds require the event-abstraction branch of libusb])])])
+
 sr_glib_version=`$PKG_CONFIG --modversion glib-2.0 2>&AS_MESSAGE_LOG_FD`
 sr_libzip_version=`$PKG_CONFIG --modversion libzip 2>&AS_MESSAGE_LOG_FD`
 

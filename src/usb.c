@@ -32,6 +32,10 @@
 
 #define LOG_PREFIX "usb"
 
+#if !HAVE_LIBUSB_OS_HANDLE
+typedef int libusb_os_handle;
+#endif
+
 /**
  * Find USB devices according to a connection string.
  *
@@ -183,10 +187,6 @@ SR_PRIV void sr_usb_close(struct sr_usb_dev_inst *usb)
 	usb->devhdl = NULL;
 	sr_dbg("Closed USB device %d.%d.", usb->bus, usb->address);
 }
-
-#if (LIBUSB_API_VERSION < 0x01000104)
-typedef int libusb_os_handle;
-#endif
 
 static LIBUSB_CALL void usb_pollfd_added(libusb_os_handle fd,
 		short events, void *user_data)
