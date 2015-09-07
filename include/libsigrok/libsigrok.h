@@ -465,7 +465,7 @@ struct sr_session;
 
 struct sr_rational {
 	/** Numerator of the rational number. */
-	uint64_t p;
+	int64_t p;
 	/** Denominator of the rational number. */
 	uint64_t q;
 };
