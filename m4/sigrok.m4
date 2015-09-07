@@ -223,25 +223,73 @@ m4_ifvaln([$1], [$1=])[]dnl
 m4_ifvaln([$2], [$2=])[]dnl
 ])
 
-## _SR_ARG_OPT_PKG(sh-name, [modules-var], [features-var],
-##                 opt-name, [cpp-name], [cond-name], module...)
+## _SR_ARG_OPT_IMPL(sh-name, [features-var], opt-name,
+##                  [cpp-name], [cond-name], check-commands)
+##
+m4_define([_SR_ARG_OPT_IMPL],
+[dnl
+AC_ARG_WITH([$3], [AS_HELP_STRING([--without-$3],
+			[disable $3 support [default=detect]])])
+AS_IF([test "x$with_$1" = xno], [sr_have_$1=no],
+	[test "x$sr_have_$1" != xyes], [dnl
+AC_MSG_CHECKING([for $3])
+$6
+AC_MSG_RESULT([$sr_have_$1])[]dnl
+])
+AS_IF([test "x$with_$1$sr_have_$1" = xyesno],
+	[AC_MSG_ERROR([$3 support requested, but it was not found.])])
+AS_IF([test "x$sr_have_$1" = xyes], [m4_ifval([$2], [
+	SR_APPEND([$2], ["$3"])])[]m4_ifval([$4], [
+	AC_DEFINE([HAVE_$4], [1], [Whether $3 is available.])])[]dnl
+])
+m4_ifvaln([$5], [AM_CONDITIONAL([$5], [test "x$sr_have_$1" = xyes])])[]dnl
+])
+
+## _SR_ARG_OPT_CHECK(sh-name, [features-var], opt-name, [cpp-name],
+##                   [cond-name], check-commands, [summary-result])
+##
+m4_define([_SR_ARG_OPT_CHECK],
+[dnl
+_SR_ARG_OPT_IMPL($@)
+sr_pkg_check_summary_append "$3" m4_default([$7], ["$sr_have_$1"])
+])
+
+## SR_ARG_OPT_CHECK(opt-name, [cpp-name], [cond-name], check-commands,
+##                  [summary-result = $sr_have_<opt-name>])
+##
+## Provide a --without-<opt-name> configure option for explicit disabling
+## of an optional dependency. If not disabled, the availability of the
+## optional dependency is auto-detected by running <check-commands>.
+##
+## The <check-commands> should set the shell variable sr_have_<opt-name>
+## to "yes" if the dependency is available, otherwise to "no". Optionally,
+## the <summary-result> argument may be used to generate a line in the
+## configuration summary. If supplied, it should be a shell word which
+## expands to the result to be displayed for the <opt-name> dependency.
+##
+## Use SR_VAR_OPT_PKG to generate lists of available modules and features.
+##
+AC_DEFUN([SR_ARG_OPT_CHECK],
+[dnl
+m4_assert([$# >= 4])[]dnl
+AC_REQUIRE([SR_PKG_CHECK_SUMMARY])[]dnl
+AC_REQUIRE([SR_VAR_OPT_PKG])[]dnl
+dnl
+_SR_ARG_OPT_CHECK(m4_expand([AS_TR_SH([$1])]),
+	m4_defn([_SR_VAR_OPT_PKG_FEATURES]),
+	$@)[]dnl
+])
+
+## _SR_ARG_OPT_PKG([features-var], [cond-name], opt-name,
+##                 [cpp-name], sh-name, [modules-var], module...)
 ##
 m4_define([_SR_ARG_OPT_PKG],
 [dnl
-AC_ARG_WITH([$4], [AS_HELP_STRING([--without-$4],
-			[disable $4 support [default=detect]])])
-AS_IF([test "x$with_$1" = xno], [sr_have_$1=no],
-	[test "x$sr_have_$1" != xyes],
-		[SR_PKG_CHECK([$1], [$2], m4_shiftn([6], $@))])
-AS_IF([test "x$with_$1$sr_have_$1" = xyesno],
-	[AC_MSG_ERROR([$4 support requested, but it was not found.])])
-AS_IF([test "x$sr_have_$1" = xyes], [m4_ifval([$3], [
-	SR_APPEND([$3], ["$4"])])[]m4_ifval([$5], [
-	AC_DEFINE([HAVE_$5], [1], [Whether $4 is available.])
-	AC_DEFINE_UNQUOTED([CONF_$5_VERSION], ["$sr_$1_version"],
-		[Build-time version of $4.])])[]dnl
-])
-m4_ifvaln([$6], [AM_CONDITIONAL([$6], [test "x$sr_have_$1" = xyes])])[]dnl
+_SR_ARG_OPT_IMPL([$5], [$1], [$3], [$4], [$2],
+	[SR_PKG_CHECK(m4_shiftn([4], $@))])
+m4_ifvaln([$4], [AS_IF([test "x$sr_have_$5" = xyes],
+	[AC_DEFINE_UNQUOTED([CONF_$4_VERSION], ["$sr_$5_version"],
+		[Build-time version of $3.])])])[]dnl
 ])
 
 ## SR_ARG_OPT_PKG(opt-name, [cpp-name], [cond-name], module...)
@@ -264,10 +312,11 @@ AC_REQUIRE([PKG_PROG_PKG_CONFIG])[]dnl
 AC_REQUIRE([SR_PKG_CHECK_SUMMARY])[]dnl
 AC_REQUIRE([SR_VAR_OPT_PKG])[]dnl
 dnl
-_SR_ARG_OPT_PKG(m4_expand([AS_TR_SH([$1])]),
+_SR_ARG_OPT_PKG(m4_defn([_SR_VAR_OPT_PKG_FEATURES]),
+	[$3], [$1], [$2],
+	m4_expand([AS_TR_SH([$1])]),
 	m4_defn([_SR_VAR_OPT_PKG_MODULES]),
-	m4_defn([_SR_VAR_OPT_PKG_FEATURES]),
-	$@)[]dnl
+	m4_shift3($@))[]dnl
 ])
 
 ## SR_CHECK_COMPILE_FLAGS(flags-var, description, flags)
