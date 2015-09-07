@@ -62,6 +62,8 @@ SR_LIB_VERSION_SET([SR_LIB_VERSION], [2:0:0])
 ##  Optional dependencies  ##
 #############################
 
+AC_LANG([C])
+
 # Initialize pkg-config.
 # We require at least 0.22, as "Requires.private" behaviour changed there.
 PKG_PROG_PKG_CONFIG([0.22])
@@ -76,6 +78,7 @@ SR_VAR_OPT_PKG([SR_PKGLIBS], [sr_deps_avail])
 SR_PKGLIBS_TESTS=
 SR_PKGLIBS_CXX=
 SR_PKGLIBS_PYTHON=
+SR_EXTRA_LIBS=
 
 SR_ARG_OPT_PKG([libserialport], [LIBSERIALPORT], [NEED_SERIAL],
 	[libserialport >= 0.1.1])
@@ -96,6 +99,17 @@ SR_ARG_OPT_PKG([librevisa], [LIBREVISA], [NEED_VISA],
 SR_ARG_OPT_PKG([libgpib], [LIBGPIB], [NEED_GPIB],
 	[libgpib])
 
+SR_ARG_OPT_CHECK([libieee1284], [LIBIEEE1284],, [
+	sr_save_LIBS=$LIBS
+	LIBS="-lieee1284 $LIBS"
+	AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <ieee1284.h>]],
+				[[(void) ieee1284_open(0, 0, 0);]])],
+		[sr_have_libieee1284=yes], [sr_have_libieee1284=no])
+	sr_save_LIBS=$LIBS
+])
+AS_IF([test "x$sr_have_libieee1284" = xyes],
+	[SR_PREPEND([SR_EXTRA_LIBS], [-lieee1284])])
+
 ######################
 ##  Feature checks  ##
 ######################
@@ -103,8 +117,6 @@ SR_ARG_OPT_PKG([libgpib], [LIBGPIB], [NEED_GPIB],
 # The Check unit testing framework is optional. Disable if not found.
 SR_PKG_CHECK([check], [SR_PKGLIBS_TESTS], [check >= 0.9.4])
 AM_CONDITIONAL([HAVE_CHECK], [test "x$sr_have_check" = xyes])
-
-AC_LANG([C])
 
 # Enable the C99 standard if possible, and enforce the use
 # of SR_API to explicitly mark all public API functions.
@@ -123,29 +135,10 @@ AC_CHECK_HEADERS([sys/ioctl.h], [SR_APPEND([sr_deps_avail], [sys_ioctl_h])])
 AC_CHECK_HEADERS([sys/timerfd.h], [SR_APPEND([sr_deps_avail], [sys_timerfd_h])])
 
 # We need to link against the Winsock2 library for SCPI over TCP.
-AS_CASE([$host], [*-mingw*], [SR_EXTRA_LIBS='-lws2_32'], [SR_EXTRA_LIBS=])
+AS_CASE([$host_os], [mingw*], [SR_PREPEND([SR_EXTRA_LIBS], [-lws2_32])])
 
 # libm (the standard math library) is always needed.
 SR_SEARCH_LIBS([SR_EXTRA_LIBS], [pow], [m])
-
-AC_ARG_WITH([libieee1284], [AS_HELP_STRING([--without-libieee1284],
-				[disable libieee1284 support [default=detect]])])
-sr_have_libieee1284=no
-AS_IF([test "x$with_libieee1284" != xno], [
-	AC_CHECK_HEADER([ieee1284.h], [
-		SR_SEARCH_LIBS([SR_EXTRA_LIBS], [ieee1284_open], [ieee1284], [
-			sr_have_libieee1284=yes
-			SR_APPEND([sr_deps_avail], [libieee1284])
-			sr_pkg_check_summary_append "libieee1284" yes
-		])
-	])
-	AS_IF([test "$sr_have_libieee1284" = no], [
-		AS_IF([test "x$with_libieee1284" = xyes], [
-			AC_MSG_ERROR([libieee1284 support requested, but it was not found.])
-		])
-		sr_pkg_check_summary_append "libieee1284" no
-	])
-])
 
 # RPC is only needed for VXI support.
 AC_CACHE_CHECK([for RPC support], [sr_cv_have_rpc],
