@@ -173,7 +173,8 @@ SR_API int sr_analog_to_float(const struct sr_datafeed_analog2 *analog,
 
 	if (analog->encoding->unitsize == sizeof(float)
 			&& analog->encoding->is_bigendian == bigendian
-			&& (analog->encoding->scale.p == analog->encoding->scale.q)
+			&& analog->encoding->scale.p == 1
+			&& analog->encoding->scale.q == 1
 			&& analog->encoding->offset.p / (float)analog->encoding->offset.q == 0) {
 		/* The data is already in the right format. */
 		memcpy(outbuf, analog->data, count * sizeof(float));
@@ -187,7 +188,8 @@ SR_API int sr_analog_to_float(const struct sr_datafeed_analog2 *analog,
 					((uint8_t *)outbuf)[i + (analog->encoding->unitsize - b)] =
 						((uint8_t *)analog->data)[i * analog->encoding->unitsize + b];
 			}
-			if (analog->encoding->scale.p != analog->encoding->scale.q)
+			if (analog->encoding->scale.p != 1
+					|| analog->encoding->scale.q != 1)
 				outbuf[i] = (outbuf[i] * analog->encoding->scale.p) / analog->encoding->scale.q;
 			offset = ((float)analog->encoding->offset.p / (float)analog->encoding->offset.q);
 			outbuf[i] += offset;
