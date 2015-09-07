@@ -46,6 +46,9 @@ AC_PROG_LN_S
 # Required for per-target flags or subdir-objects with C sources.
 AM_PROG_CC_C_O
 
+# Check if order-only dependencies are supported.
+SR_PROG_MAKE_ORDER_ONLY
+
 # Initialize libtool.
 LT_INIT
 
