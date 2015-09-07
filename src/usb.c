@@ -214,7 +214,11 @@ SR_PRIV int usb_source_add(struct sr_session *session, struct sr_context *ctx,
 #else
 		pollfds[i].fd = lupfd[i]->fd;
 #endif
+#ifdef G_OS_WIN32
+		pollfds[i].events = G_IO_IN;
+#else
 		pollfds[i].events = lupfd[i]->events;
+#endif
 		pollfds[i].revents = 0;
 	}
 	free(lupfd);
