@@ -526,8 +526,16 @@ static int sr_session_iteration(struct sr_session *session)
 		 */
 		sr_spew("callback for event source %" G_GINTPTR_FORMAT " with"
 			" event mask 0x%.2X", poll_object, (unsigned)revents);
-		if (!source->cb(fd, revents, source->cb_data))
-			sr_session_source_remove_internal(session, poll_object);
+		if (!source->cb(fd, revents, source->cb_data)) {
+			/* Hackish, to be cleaned up when porting to
+			 * the GLib main loop.
+			 */
+			if (poll_object == (gintptr)session->ctx->libusb_ctx)
+				usb_source_remove(session, session->ctx);
+			else
+				sr_session_source_remove_internal(session,
+						poll_object);
+		}
 		/*
 		 * We want to take as little time as possible to stop
 		 * the session if we have been told to do so. Therefore,
@@ -902,8 +910,6 @@ SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
  * Add an event source for a file descriptor.
  *
  * @param session The session to use. Must not be NULL.
- * @param[in] pollfds The FDs to poll, or NULL if @a num_fds is 0.
- * @param[in] num_fds Number of FDs in the array.
  * @param[in] timeout Max time in ms to wait before the callback is called,
  *                    or -1 to wait indefinitely.
  * @param cb Callback function to add. Must not be NULL.
@@ -915,21 +921,15 @@ SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
  * @retval SR_ERR An event source for @a poll_object is already installed.
  */
 SR_PRIV int sr_session_source_add_internal(struct sr_session *session,
-		const GPollFD *pollfds, int num_fds, int timeout,
-		sr_receive_data_callback cb, void *cb_data,
+		int timeout, sr_receive_data_callback cb, void *cb_data,
 		gintptr poll_object)
 {
 	struct source src;
 	unsigned int i;
-	int k;
 
 	/* Note: cb_data can be NULL, that's not a bug. */
 	if (!cb) {
 		sr_err("%s: cb was NULL", __func__);
-		return SR_ERR_ARG;
-	}
-	if (!pollfds && num_fds != 0) {
-		sr_err("%s: pollfds was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 	/* Make sure that poll_object is unique.
@@ -942,12 +942,12 @@ SR_PRIV int sr_session_source_add_internal(struct sr_session *session,
 			return SR_ERR;
 		}
 	}
-	sr_dbg("Installing event source %" G_GINTPTR_FORMAT " with %d FDs"
-		" and %d ms timeout.", poll_object, num_fds, timeout);
+	sr_dbg("Installing event source %" G_GINTPTR_FORMAT
+		" with %d ms timeout.", poll_object, timeout);
 	src.cb = cb;
 	src.cb_data = cb_data;
 	src.poll_object = poll_object;
-	src.num_fds = num_fds;
+	src.num_fds = 0;
 	src.triggered = FALSE;
 
 	if (timeout >= 0) {
@@ -959,12 +959,56 @@ SR_PRIV int sr_session_source_add_internal(struct sr_session *session,
 	}
 	g_array_append_val(session->sources, src);
 
-	for (k = 0; k < num_fds; ++k) {
-		sr_dbg("Registering poll FD %" G_GINTPTR_FORMAT
-			" with event mask 0x%.2X.",
-			(gintptr)pollfds[k].fd, (unsigned)pollfds[k].events);
+	return SR_OK;
+}
+
+SR_PRIV int sr_session_source_poll_add(struct sr_session *session,
+		gintptr poll_object, gintptr fd, int events)
+{
+	struct source *source;
+	GPollFD pollfd;
+	unsigned int i;
+	int fd_index, k;
+
+	source = NULL;
+	fd_index = 0;
+
+	/* Look up existing event source.
+	 */
+	for (i = 0; i < session->sources->len; ++i) {
+		source = &g_array_index(session->sources, struct source, i);
+		if (source->poll_object == poll_object)
+			break;
+		fd_index += source->num_fds;
 	}
-	g_array_append_vals(session->pollfds, pollfds, num_fds);
+	if (!source) {
+		sr_err("Cannot add poll FD %" G_GINTPTR_FORMAT
+			" to non-existing event source %" G_GINTPTR_FORMAT
+			".",  fd, poll_object);
+		return SR_ERR;
+	}
+	/* Make sure the FD is unique.
+	 */
+	for (k = 0; k < source->num_fds; ++k)
+		if (g_array_index(session->pollfds, GPollFD, fd_index + k)
+				.fd == fd) {
+			sr_err("Cannot add poll FD %" G_GINTPTR_FORMAT
+				" twice to event source %" G_GINTPTR_FORMAT
+				".", fd, poll_object);
+			return SR_ERR;
+		}
+
+	pollfd.fd = fd;
+	pollfd.events = events;
+	pollfd.revents = 0;
+
+	g_array_insert_val(session->pollfds,
+		fd_index + source->num_fds, pollfd);
+	++source->num_fds;
+
+	sr_dbg("Added poll FD %" G_GINTPTR_FORMAT " with event mask 0x%.2X"
+		" to event source %" G_GINTPTR_FORMAT ".",
+		fd, (unsigned)events, poll_object);
 
 	return SR_OK;
 }
@@ -973,7 +1017,7 @@ SR_PRIV int sr_session_source_add_internal(struct sr_session *session,
  * Add an event source for a file descriptor.
  *
  * @param session The session to use. Must not be NULL.
- * @param fd The file descriptor.
+ * @param fd The file descriptor, or a negative value to create a timer source.
  * @param events Events to check for.
  * @param timeout Max time in ms to wait before the callback is called,
  *                or -1 to wait indefinitely.
@@ -988,18 +1032,17 @@ SR_PRIV int sr_session_source_add_internal(struct sr_session *session,
 SR_API int sr_session_source_add(struct sr_session *session, int fd,
 		int events, int timeout, sr_receive_data_callback cb, void *cb_data)
 {
-	GPollFD p;
+	int ret;
 
 	if (fd < 0 && timeout < 0) {
 		sr_err("Timer source without timeout would block indefinitely");
 		return SR_ERR_ARG;
 	}
-	p.fd = fd;
-	p.events = events;
-	p.revents = 0;
+	ret = sr_session_source_add_internal(session, timeout, cb, cb_data, fd);
+	if (ret != SR_OK || fd < 0)
+		return ret;
 
-	return sr_session_source_add_internal(session,
-		&p, (fd < 0) ? 0 : 1, timeout, cb, cb_data, fd);
+	return sr_session_source_poll_add(session, fd, fd, events);
 }
 
 /**
@@ -1021,12 +1064,19 @@ SR_API int sr_session_source_add_pollfd(struct sr_session *session,
 		GPollFD *pollfd, int timeout, sr_receive_data_callback cb,
 		void *cb_data)
 {
+	int ret;
+
 	if (!pollfd) {
 		sr_err("%s: pollfd was NULL", __func__);
 		return SR_ERR_ARG;
 	}
-	return sr_session_source_add_internal(session, pollfd, 1,
+	ret = sr_session_source_add_internal(session,
 			timeout, cb, cb_data, (gintptr)pollfd);
+	if (ret != SR_OK)
+		return ret;
+
+	return sr_session_source_poll_add(session,
+			(gintptr)pollfd, pollfd->fd, pollfd->events);
 }
 
 /**
@@ -1049,17 +1099,22 @@ SR_API int sr_session_source_add_channel(struct sr_session *session,
 		GIOChannel *channel, int events, int timeout,
 		sr_receive_data_callback cb, void *cb_data)
 {
-	GPollFD p;
+	int ret;
 
-#ifdef G_OS_WIN32
-	g_io_channel_win32_make_pollfd(channel, events, &p);
-#else
-	p.fd = g_io_channel_unix_get_fd(channel);
-	p.events = events;
-	p.revents = 0;
-#endif
-	return sr_session_source_add_internal(session, &p, 1,
+	ret = sr_session_source_add_internal(session,
 			timeout, cb, cb_data, (gintptr)channel);
+	if (ret != SR_OK)
+		return ret;
+#ifdef G_OS_WIN32
+	GPollFD p;
+	g_io_channel_win32_make_pollfd(channel, events, &p);
+
+	return sr_session_source_poll_add(session,
+			(gintptr)channel, p.fd, p.events);
+#else
+	return sr_session_source_poll_add(session, (gintptr)channel,
+			g_io_channel_unix_get_fd(channel), events);
+#endif
 }
 
 /**
@@ -1106,6 +1161,52 @@ SR_PRIV int sr_session_source_remove_internal(struct sr_session *session,
 		G_GINTPTR_FORMAT ".", poll_object);
 
 	return SR_ERR_BUG;
+}
+
+SR_PRIV int sr_session_source_poll_remove(struct sr_session *session,
+		gintptr poll_object, gintptr fd)
+{
+	struct source *source;
+	unsigned int i;
+	int fd_index, k;
+
+	source = NULL;
+	fd_index = 0;
+
+	/* Look up existing event source.
+	 */
+	for (i = 0; i < session->sources->len; ++i) {
+		source = &g_array_index(session->sources, struct source, i);
+		if (source->poll_object == poll_object)
+			break;
+		fd_index += source->num_fds;
+	}
+	if (!source) {
+		sr_err("Cannot remove poll FD %" G_GINTPTR_FORMAT
+			" from non-existing event source %" G_GINTPTR_FORMAT
+			".", fd, poll_object);
+		return SR_ERR;
+	}
+	/* Look up the FD in the poll set.
+	 */
+	for (k = 0; k < source->num_fds; ++k)
+		if (g_array_index(session->pollfds, GPollFD, fd_index + k)
+				.fd == fd) {
+
+			g_array_remove_index(session->pollfds, fd_index + k);
+			--source->num_fds;
+
+			sr_dbg("Removed poll FD %" G_GINTPTR_FORMAT
+				" from event source %" G_GINTPTR_FORMAT ".",
+				fd, poll_object);
+			return SR_OK;
+		}
+
+	sr_err("Cannot remove non-existing poll FD %" G_GINTPTR_FORMAT
+		" from event source %" G_GINTPTR_FORMAT ".",
+		fd, poll_object);
+
+	return SR_ERR;
 }
 
 /**

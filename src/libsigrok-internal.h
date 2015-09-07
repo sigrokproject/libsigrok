@@ -735,11 +735,14 @@ struct sr_session {
 };
 
 SR_PRIV int sr_session_source_add_internal(struct sr_session *session,
-		const GPollFD *pollfds, int num_fds, int timeout,
-		sr_receive_data_callback cb, void *cb_data,
+		int timeout, sr_receive_data_callback cb, void *cb_data,
 		gintptr poll_object);
+SR_PRIV int sr_session_source_poll_add(struct sr_session *session,
+		gintptr poll_object, gintptr fd, int events);
 SR_PRIV int sr_session_source_remove_internal(struct sr_session *session,
 		gintptr poll_object);
+SR_PRIV int sr_session_source_poll_remove(struct sr_session *session,
+		gintptr poll_object, gintptr fd);
 SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
 		const struct sr_datafeed_packet *packet);
 SR_PRIV int sr_session_stop_sync(struct sr_session *session);

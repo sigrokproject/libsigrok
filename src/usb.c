@@ -184,55 +184,88 @@ SR_PRIV void sr_usb_close(struct sr_usb_dev_inst *usb)
 	sr_dbg("Closed USB device %d.%d.", usb->bus, usb->address);
 }
 
+#if (LIBUSB_API_VERSION < 0x01000104)
+typedef int libusb_os_handle;
+#endif
+
+static LIBUSB_CALL void usb_pollfd_added(libusb_os_handle fd,
+		short events, void *user_data)
+{
+	struct sr_session *session;
+	gintptr tag;
+
+	session = user_data;
+	tag = (gintptr)session->ctx->libusb_ctx;
+#ifdef G_OS_WIN32
+	events = G_IO_IN;
+#endif
+	sr_session_source_poll_add(session, tag, (gintptr)fd, events);
+}
+
+static LIBUSB_CALL void usb_pollfd_removed(libusb_os_handle fd, void *user_data)
+{
+	struct sr_session *session;
+	gintptr tag;
+
+	session = user_data;
+	tag = (gintptr)session->ctx->libusb_ctx;
+
+	sr_session_source_poll_remove(session, tag, (gintptr)fd);
+}
+
 SR_PRIV int usb_source_add(struct sr_session *session, struct sr_context *ctx,
 		int timeout, sr_receive_data_callback cb, void *cb_data)
 {
-	const struct libusb_pollfd **lupfd;
-	GPollFD *pollfds;
+	const struct libusb_pollfd **pollfds;
+	gintptr tag;
 	int i;
-	int num_fds = 0;
 	int ret;
+	int events;
 
 	if (ctx->usb_source_present) {
 		sr_err("A USB event source is already present.");
 		return SR_ERR;
 	}
-	lupfd = libusb_get_pollfds(ctx->libusb_ctx);
-	if (!lupfd || !lupfd[0]) {
-		free(lupfd);
+	pollfds = libusb_get_pollfds(ctx->libusb_ctx);
+	if (!pollfds) {
 		sr_err("Failed to get libusb file descriptors.");
 		return SR_ERR;
 	}
-	while (lupfd[num_fds])
-		++num_fds;
-	pollfds = g_new(GPollFD, num_fds);
-
-	for (i = 0; i < num_fds; ++i) {
-#if defined(G_OS_WIN32) && (GLIB_SIZEOF_VOID_P == 4)
-		/* Avoid a warning on 32-bit Windows. */
-		pollfds[i].fd = (gintptr)lupfd[i]->fd;
-#else
-		pollfds[i].fd = lupfd[i]->fd;
-#endif
-#ifdef G_OS_WIN32
-		pollfds[i].events = G_IO_IN;
-#else
-		pollfds[i].events = lupfd[i]->events;
-#endif
-		pollfds[i].revents = 0;
-	}
-	free(lupfd);
-	ret = sr_session_source_add_internal(session, pollfds, num_fds,
-			timeout, cb, cb_data, (gintptr)ctx->libusb_ctx);
-	g_free(pollfds);
+	tag = (gintptr)ctx->libusb_ctx;
+	ret = sr_session_source_add_internal(session,
+			timeout, cb, cb_data, tag);
 
 	ctx->usb_source_present = (ret == SR_OK);
 
-	return ret;
+	for (i = 0; ret == SR_OK && pollfds[i]; ++i) {
+#ifdef G_OS_WIN32
+		events = G_IO_IN;
+#else
+		events = pollfds[i]->events;
+#endif
+		ret = sr_session_source_poll_add(session, tag,
+				(gintptr)pollfds[i]->fd, events);
+	}
+#if (LIBUSB_API_VERSION >= 0x01000104)
+	libusb_free_pollfds(pollfds);
+#else
+	free(pollfds);
+#endif
+	if (ret != SR_OK)
+		return ret;
+
+	libusb_set_pollfd_notifiers(ctx->libusb_ctx,
+		&usb_pollfd_added, &usb_pollfd_removed, session);
+
+	return SR_OK;
 }
 
 SR_PRIV int usb_source_remove(struct sr_session *session, struct sr_context *ctx)
 {
+	ctx->usb_source_present = FALSE;
+
+	libusb_set_pollfd_notifiers(ctx->libusb_ctx, NULL, NULL, NULL);
+
 	return sr_session_source_remove_internal(session,
 			(gintptr)ctx->libusb_ctx);
 }
