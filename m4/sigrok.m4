@@ -319,6 +319,28 @@ _SR_ARG_OPT_PKG(m4_defn([_SR_VAR_OPT_PKG_FEATURES]),
 	m4_shift3($@))[]dnl
 ])
 
+## SR_PROG_MAKE_NO_PRINT_DIRECTORY
+##
+## Check whether the make program supports the --no-print-directory flag.
+## If so, add it to AM_MAKEFLAGS.
+##
+AC_DEFUN([SR_PROG_MAKE_NO_PRINT_DIRECTORY],
+[dnl
+AC_CACHE_CHECK([whether [$]{MAKE:-make} supports --no-print-directory],
+	[sr_cv_prog_make_no_print_dir], [
+cat >conftest.mk <<'_SREOF'
+all: ; @:
+.PHONY: all
+_SREOF
+AS_IF([[$]{MAKE:-make} -f conftest.mk --no-print-directory >&AS_MESSAGE_LOG_FD 2>&AS_MESSAGE_LOG_FD],
+	[sr_cv_prog_make_no_print_dir=yes], [sr_cv_prog_make_no_print_dir=no])
+rm -f conftest.mk
+])
+AS_IF([test "x$sr_cv_prog_make_no_print_dir" = xyes],
+	[SR_APPEND([AM_MAKEFLAGS], [--no-print-directory])])
+AC_SUBST([AM_MAKEFLAGS])
+])
+
 ## SR_PROG_MAKE_ORDER_ONLY
 ##
 ## Check whether the make program supports order-only prerequisites.
@@ -327,7 +349,6 @@ _SR_ARG_OPT_PKG(m4_defn([_SR_VAR_OPT_PKG_FEATURES]),
 ##
 AC_DEFUN([SR_PROG_MAKE_ORDER_ONLY],
 [dnl
-AC_PROVIDE([$0])[]dnl
 AC_CACHE_CHECK([whether [$]{MAKE:-make} supports order-only prerequisites],
 	[sr_cv_prog_make_order_only], [
 cat >conftest.mk <<'_SREOF'
