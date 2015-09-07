@@ -527,12 +527,14 @@ static int sr_session_iteration(struct sr_session *session)
 		sr_spew("callback for event source %" G_GINTPTR_FORMAT " with"
 			" event mask 0x%.2X", poll_object, (unsigned)revents);
 		if (!source->cb(fd, revents, source->cb_data)) {
+#if HAVE_LIBUSB_1_0
 			/* Hackish, to be cleaned up when porting to
 			 * the GLib main loop.
 			 */
 			if (poll_object == (gintptr)session->ctx->libusb_ctx)
 				usb_source_remove(session, session->ctx);
 			else
+#endif
 				sr_session_source_remove_internal(session,
 						poll_object);
 		}
@@ -1141,12 +1143,6 @@ SR_PRIV int sr_session_source_remove_internal(struct sr_session *session,
 				g_array_remove_range(session->pollfds,
 						fd_index, source->num_fds);
 			g_array_remove_index(session->sources, i);
-			/*
-			 * This is a bit of a hack. To be removed when
-			 * porting over to the GLib main loop.
-			 */
-			if (poll_object == (gintptr)session->ctx->libusb_ctx)
-				session->ctx->usb_source_present = FALSE;
 
 			sr_dbg("Removed event source %" G_GINTPTR_FORMAT ".",
 				poll_object);
