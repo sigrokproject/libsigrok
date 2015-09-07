@@ -319,6 +319,30 @@ _SR_ARG_OPT_PKG(m4_defn([_SR_VAR_OPT_PKG_FEATURES]),
 	m4_shift3($@))[]dnl
 ])
 
+## SR_PROG_MAKE_ORDER_ONLY
+##
+## Check whether the make program supports order-only prerequisites.
+## If so, set the substitution variable ORDER to '|', or to the empty
+## string otherwise.
+##
+AC_DEFUN([SR_PROG_MAKE_ORDER_ONLY],
+[dnl
+AC_PROVIDE([$0])[]dnl
+AC_CACHE_CHECK([whether [$]{MAKE:-make} supports order-only prerequisites],
+	[sr_cv_prog_make_order_only], [
+cat >conftest.mk <<'_SREOF'
+a: b | c
+a b c: ; @:
+.PHONY: a b c
+_SREOF
+AS_IF([[$]{MAKE:-make} -f conftest.mk >&AS_MESSAGE_LOG_FD 2>&AS_MESSAGE_LOG_FD],
+	[sr_cv_prog_make_order_only=yes], [sr_cv_prog_make_order_only=no])
+rm -f conftest.mk
+])
+AS_IF([test "x$sr_cv_prog_make_order_only" = xyes], [ORDER='|'], [ORDER=])
+AC_SUBST([ORDER])
+])
+
 ## SR_CHECK_COMPILE_FLAGS(flags-var, description, flags)
 ##
 ## Find a compiler flag for <description>. For each flag in <flags>, check
