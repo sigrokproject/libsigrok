@@ -713,7 +713,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 	write_shortcommand(devc, CMD_RESET);
 	write_shortcommand(devc, CMD_RESET);
 
-	sr_session_source_remove(sdi->session, 0);
+	sr_session_source_remove(sdi->session, -1);
 
 	/* Send end packet to the session bus. */
 	sr_dbg("Sending SR_DF_END.");

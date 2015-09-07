@@ -220,7 +220,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 	packet.type = SR_DF_END;
 	sr_session_send(sdi, &packet);
 
-	sr_session_source_remove(sdi->session, 0);
+	sr_session_source_remove(sdi->session, -1);
 
 	return SR_OK;
 }
