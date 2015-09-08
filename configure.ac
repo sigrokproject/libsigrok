@@ -46,6 +46,10 @@ AC_PROG_LN_S
 # Required for per-target flags or subdir-objects with C sources.
 AM_PROG_CC_C_O
 
+# Get compiler versions.
+SR_PROG_VERSION([$CC], [sr_cc_version])
+SR_PROG_VERSION([$CXX], [sr_cxx_version])
+
 # Check for optional make features.
 SR_PROG_MAKE_NO_PRINT_DIRECTORY
 SR_PROG_MAKE_ORDER_ONLY
@@ -466,11 +470,15 @@ libsigrok configuration summary:
  - Prefix.......................... $prefix
  - Building on..................... $build
  - Building for.................... $host
+
+Compile configuration:
  - C compiler...................... $CC
+ - C compiler version.............. $sr_cc_version
  - C compiler flags................ $CFLAGS
  - Additional C compiler flags..... $SR_EXTRA_CFLAGS
  - C compiler warnings............. $SR_WFLAGS
  - C++ compiler.................... $CXX
+ - C++ compiler version............ $sr_cxx_version
  - C++ compiler flags.............. $CXXFLAGS
  - C++ compiler warnings........... $SR_WXXFLAGS
 
