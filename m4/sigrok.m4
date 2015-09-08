@@ -319,6 +319,19 @@ _SR_ARG_OPT_PKG(m4_defn([_SR_VAR_OPT_PKG_FEATURES]),
 	m4_shift3($@))[]dnl
 ])
 
+## SR_PROG_VERSION(program, sh-var)
+##
+## Obtain the version of <program> and store it in <sh-var>.
+##
+AC_DEFUN([SR_PROG_VERSION],
+[dnl
+m4_assert([$# >= 2])[]dnl
+sr_prog_ver=`$1 --version 2>&AS_MESSAGE_LOG_FD | sed 1q 2>&AS_MESSAGE_LOG_FD`
+AS_CASE([[$]?:$sr_prog_ver],
+	[[0:*[0-9].[0-9]*]], [$2=$sr_prog_ver],
+	[$2=unknown])[]dnl
+])
+
 ## SR_PROG_MAKE_NO_PRINT_DIRECTORY
 ##
 ## Check whether the make program supports the --no-print-directory flag.
