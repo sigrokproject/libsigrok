@@ -80,7 +80,9 @@ SR_API void sr_trigger_free(struct sr_trigger *trig)
 
 	for (l = trig->stages; l; l = l->next) {
 		stage = l->data;
-		g_slist_free_full(stage->matches, g_free);
+
+		if (stage->matches)
+			g_slist_free_full(stage->matches, g_free);
 	}
 	g_slist_free_full(trig->stages, g_free);
 
