@@ -114,7 +114,7 @@ SR_ARG_OPT_CHECK([libieee1284], [LIBIEEE1284],, [
 	AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <ieee1284.h>]],
 				[[(void) ieee1284_open(0, 0, 0);]])],
 		[sr_have_libieee1284=yes], [sr_have_libieee1284=no])
-	sr_save_LIBS=$LIBS
+	LIBS=$sr_save_LIBS
 ])
 AS_IF([test "x$sr_have_libieee1284" = xyes],
 	[SR_PREPEND([SR_EXTRA_LIBS], [-lieee1284])])
