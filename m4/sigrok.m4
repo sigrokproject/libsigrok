@@ -18,7 +18,7 @@
 ## along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##
 
-#serial 20150907
+#serial 20150908
 
 ## SR_APPEND(var-name, [list-sep,] element)
 ##
@@ -362,6 +362,7 @@ rm -f conftest.mk
 ])
 AS_IF([test "x$sr_cv_prog_make_order_only" = xyes], [ORDER='|'], [ORDER=])
 AC_SUBST([ORDER])
+AM_SUBST_NOTMAKE([ORDER])[]dnl
 ])
 
 ## SR_CHECK_COMPILE_FLAGS(flags-var, description, flags)
