@@ -1081,6 +1081,43 @@ SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
 		return SR_ERR_BUG;
 	}
 
+	if (packet->type == SR_DF_ANALOG) {
+		/* Convert to SR_DF_ANALOG2. */
+		const struct sr_datafeed_analog *analog = packet->payload;
+		struct sr_analog_encoding encoding;
+		struct sr_analog_meaning meaning;
+		struct sr_analog_spec spec;
+		struct sr_datafeed_analog2 analog2;
+		struct sr_datafeed_packet a2_packet;
+		a2_packet.type = SR_DF_ANALOG2;
+		a2_packet.payload = &analog2;
+		analog2.data = analog->data;
+		analog2.num_samples = analog->num_samples;
+		analog2.encoding = &encoding;
+		analog2.meaning = &meaning;
+		analog2.spec = &spec;
+		encoding.unitsize = sizeof(float);
+		encoding.is_signed = TRUE;
+		encoding.is_float = TRUE;
+#ifdef WORDS_BIGENDIAN
+		encoding.is_bigendian = TRUE;
+#else
+		encoding.is_bigendian = FALSE;
+#endif
+		encoding.digits = 0;
+		encoding.is_digits_decimal = FALSE;
+		encoding.scale.p = 1;
+		encoding.scale.q = 1;
+		encoding.offset.p = 0;
+		encoding.offset.q = 1;
+		meaning.mq = analog->mq;
+		meaning.unit = analog->unit;
+		meaning.mqflags = analog->mqflags;
+		meaning.channels = analog->channels;
+		spec.spec_digits = 0;
+		return sr_session_send(sdi, &a2_packet);
+	}
+
 	/*
 	 * Pass the packet to the first transform module. If that returns
 	 * another packet (instead of NULL), pass that packet to the next
