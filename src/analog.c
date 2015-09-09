@@ -273,7 +273,7 @@ SR_API int sr_analog_unit_to_string(const struct sr_datafeed_analog2 *analog,
  * @param p Numerator
  * @param q Denominator
  */
-SR_API void sr_rational_set(struct sr_rational *r, uint64_t p, uint64_t q)
+SR_API void sr_rational_set(struct sr_rational *r, int64_t p, uint64_t q)
 {
 	r->p = p;
 	r->q = q;
