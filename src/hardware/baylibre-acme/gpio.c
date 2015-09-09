@@ -36,14 +36,14 @@ static int open_and_write(const gchar *path, const gchar *buf)
 
 	fd = g_fopen(path, "w");
 	if (!fd) {
-		sr_err("Error opening %s: %s", path, strerror(errno));
+		sr_err("Error opening %s: %s", path, g_strerror(errno));
 		return -1;
 	}
 
 	wr = g_fprintf(fd, "%s", buf);
 	fclose(fd);
 	if (wr < 0) {
-		sr_err("Error writing to %s: %s", path, strerror(errno));
+		sr_err("Error writing to %s: %s", path, g_strerror(errno));
 		return -1;
 	}
 
@@ -117,7 +117,7 @@ SR_PRIV int sr_gpio_get_value(int gpio)
 	g_string_printf(path, "/sys/class/gpio/gpio%d/value", gpio);
 	fd = g_fopen(path->str, "r");
 	if (!fd) {
-		sr_err("Error opening %s: %s", path->str, strerror(errno));
+		sr_err("Error opening %s: %s", path->str, g_strerror(errno));
 		g_string_free(path, TRUE);
 		return -1;
 	}
@@ -125,7 +125,7 @@ SR_PRIV int sr_gpio_get_value(int gpio)
 	status = fscanf(fd, "%d", &ret);
 	fclose(fd);
 	if (status != 1) {
-		sr_err("Error reading from %s: %s", path, strerror(errno));
+		sr_err("Error reading from %s: %s", path, g_strerror(errno));
 		g_string_free(path, TRUE);
 		return -1;
 	}

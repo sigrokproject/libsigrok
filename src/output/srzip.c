@@ -186,7 +186,7 @@ static int zip_append(const struct sr_output *o, unsigned char *buf,
 		if ((tmpfile = g_mkstemp(tmpname)) == -1)
 			return SR_ERR;
 		if (write(tmpfile, metafile, len) < 0) {
-			sr_dbg("Failed to create new metadata: %s", strerror(errno));
+			sr_dbg("Failed to create new metadata: %s", g_strerror(errno));
 			g_free(metafile);
 			unlink(tmpname);
 			return SR_ERR;

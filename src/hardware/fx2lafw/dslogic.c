@@ -49,7 +49,7 @@ int dslogic_fpga_firmware_upload(const struct sr_dev_inst *sdi,
 
 	usb = sdi->conn;
 	if (stat(filename, &st) < 0) {
-		sr_err("Unable to upload FPGA firmware: %s", strerror(errno));
+		sr_err("Unable to upload FPGA firmware: %s", g_strerror(errno));
 		return SR_ERR;
 	}
 
@@ -64,7 +64,7 @@ int dslogic_fpga_firmware_upload(const struct sr_dev_inst *sdi,
 	buf = g_malloc(FW_BUFSIZE);
 
 	if (!(fw = g_fopen(filename, "rb"))) {
-		sr_err("Unable to open %s for reading: %s.", filename, strerror(errno));
+		sr_err("Unable to open %s for reading: %s.", filename, g_strerror(errno));
 		return SR_ERR;
 	}
 

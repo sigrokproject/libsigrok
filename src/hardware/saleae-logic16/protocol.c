@@ -491,7 +491,7 @@ static int upload_fpga_bitstream(const struct sr_dev_inst *sdi,
 		sr_info("Uploading FPGA bitstream at %s.", filename);
 		if (!(fw = g_fopen(filename, "rb"))) {
 			sr_err("Unable to open bitstream file %s for reading: %s.",
-			       filename, strerror(errno));
+			       filename, g_strerror(errno));
 			return SR_ERR;
 		}
 

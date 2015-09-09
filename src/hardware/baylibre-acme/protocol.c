@@ -380,7 +380,7 @@ SR_PRIV int bl_acme_set_shunt(const struct sr_channel_group *cg, uint64_t shunt)
 	 */
 	fd = g_fopen(path->str, "w");
 	if (!fd) {
-		sr_err("Error opening %s: %s", path->str, strerror(errno));
+		sr_err("Error opening %s: %s", path->str, g_strerror(errno));
 		ret = SR_ERR_IO;
 		goto out;
 	}
@@ -508,7 +508,7 @@ static float read_sample(struct sr_channel *ch)
 	len = read(fd, buf, sizeof(buf));
 	if (len < 0) {
 		sr_err("Error reading from channel %s (hwmon: %s): %s",
-			ch->name, chp->probe->hwmon_num, strerror(errno));
+			ch->name, chp->probe->hwmon_num, g_strerror(errno));
 		ch->enabled = FALSE;
 		return -1.0;
 	}
@@ -540,7 +540,7 @@ SR_PRIV int bl_acme_open_channel(struct sr_channel *ch)
 
 	fd = open(path, O_RDONLY);
 	if (fd < 0) {
-		sr_err("Error opening %s: %s", path, strerror(errno));
+		sr_err("Error opening %s: %s", path, g_strerror(errno));
 		ch->enabled = FALSE;
 		return SR_ERR;
 	}

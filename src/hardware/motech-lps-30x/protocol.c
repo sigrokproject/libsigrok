@@ -82,14 +82,14 @@ static void process_line(struct sr_dev_inst *sdi)
 		case AQ_I2:
 			if (sr_atod(devc->buf, &dbl) != SR_OK) {
 				sr_err("Failed to convert '%s' to double, errno=%d %s",
-					devc->buf, errno, strerror(errno));
+					devc->buf, errno, g_strerror(errno));
 				dbl = 0.0;
 			}
 			break;
 		case AQ_STATUS:
 			if (sr_atoi(devc->buf, &auxint) != SR_OK) {
 				sr_err("Failed to convert '%s' to int, errno=%d %s",
-					devc->buf, errno, strerror(errno));
+					devc->buf, errno, g_strerror(errno));
 				auxint = 0;
 			}
 			break;

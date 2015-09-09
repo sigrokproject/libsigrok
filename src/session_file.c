@@ -62,7 +62,7 @@ SR_PRIV int sr_sessionfile_check(const char *filename)
 		return SR_ERR_ARG;
 
 	if (stat(filename, &st) == -1) {
-		sr_err("Couldn't stat %s: %s", filename, strerror(errno));
+		sr_err("Couldn't stat %s: %s", filename, g_strerror(errno));
 		return SR_ERR;
 	}
 
@@ -464,7 +464,7 @@ SR_API int sr_session_append(struct sr_session *session, const char *filename,
 		if ((tmpfile = g_mkstemp(tmpname)) == -1)
 			return SR_ERR;
 		if (write(tmpfile, metafile, len) < 0) {
-			sr_dbg("Failed to create new metadata: %s", strerror(errno));
+			sr_dbg("Failed to create new metadata: %s", g_strerror(errno));
 			g_free(metafile);
 			unlink(tmpname);
 			return SR_ERR;

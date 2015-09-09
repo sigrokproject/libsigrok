@@ -107,7 +107,7 @@ static int scpi_tcp_open(void *priv)
 
 	if (tcp->socket < 0) {
 		sr_err("Failed to connect to %s:%s: %s", tcp->address, tcp->port,
-				strerror(errno));
+				g_strerror(errno));
 		return SR_ERR;
 	}
 
@@ -142,7 +142,7 @@ static int scpi_tcp_send(void *priv, const char *command)
 	g_free(terminated_command);
 
 	if (out < 0) {
-		sr_err("Send error: %s", strerror(errno));
+		sr_err("Send error: %s", g_strerror(errno));
 		return SR_ERR;
 	}
 
@@ -174,7 +174,7 @@ static int scpi_tcp_raw_read_data(void *priv, char *buf, int maxlen)
 	len = recv(tcp->socket, buf, maxlen, 0);
 
 	if (len < 0) {
-		sr_err("Receive error: %s", strerror(errno));
+		sr_err("Receive error: %s", g_strerror(errno));
 		return SR_ERR;
 	}
 
@@ -194,7 +194,7 @@ static int scpi_tcp_rigol_read_data(void *priv, char *buf, int maxlen)
 		len = recv(tcp->socket, tcp->length_buf + tcp->length_bytes_read,
 				LENGTH_BYTES - tcp->length_bytes_read, 0);
 		if (len < 0) {
-			sr_err("Receive error: %s", strerror(errno));
+			sr_err("Receive error: %s", g_strerror(errno));
 			return SR_ERR;
 		}
 
@@ -212,7 +212,7 @@ static int scpi_tcp_rigol_read_data(void *priv, char *buf, int maxlen)
 	len = recv(tcp->socket, buf, maxlen, 0);
 
 	if (len < 0) {
-		sr_err("Receive error: %s", strerror(errno));
+		sr_err("Receive error: %s", g_strerror(errno));
 		return SR_ERR;
 	}
 

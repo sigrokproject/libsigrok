@@ -431,7 +431,7 @@ SR_API int sr_input_scan_file(const char *filename, const struct sr_input **in)
 	}
 
 	if (stat(filename, &st) < 0) {
-		sr_err("%s", strerror(errno));
+		sr_err("%s", g_strerror(errno));
 		return SR_ERR_ARG;
 	}
 
@@ -471,7 +471,7 @@ SR_API int sr_input_scan_file(const char *filename, const struct sr_input **in)
 						GINT_TO_POINTER(st.st_size));
 			} else if (mitem == SR_INPUT_META_HEADER) {
 				if ((fd = open(filename, O_RDONLY)) < 0) {
-					sr_err("%s", strerror(errno));
+					sr_err("%s", g_strerror(errno));
 					return SR_ERR;
 				}
 				size = read(fd, header_buf->str, 128);
@@ -479,7 +479,7 @@ SR_API int sr_input_scan_file(const char *filename, const struct sr_input **in)
 				close(fd);
 				if (size <= 0) {
 					g_string_free(header_buf, TRUE);
-					sr_err("%s", strerror(errno));
+					sr_err("%s", g_strerror(errno));
 					return SR_ERR;
 				}
 				g_hash_table_insert(meta, GINT_TO_POINTER(mitem), header_buf);
