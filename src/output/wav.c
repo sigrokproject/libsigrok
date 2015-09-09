@@ -237,11 +237,14 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 	struct out_context *outc;
 	const struct sr_datafeed_meta *meta;
 	const struct sr_datafeed_analog *analog;
+	const struct sr_datafeed_analog2 *analog2;
 	const struct sr_config *src;
 	struct sr_channel *ch;
 	GSList *l;
+	const GSList *channels;
 	float f;
-	int num_channels, size, *chan_idx, idx, i, j;
+	int num_channels, num_samples, size, *chan_idx, idx, i, j, ret;
+	float *data;
 	uint8_t *buf;
 
 	*out = NULL;
@@ -259,6 +262,7 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 		}
 		break;
 	case SR_DF_ANALOG:
+	case SR_DF_ANALOG2:
 		if (!outc->header_done) {
 			*out = gen_header(o);
 			outc->header_done = TRUE;
@@ -266,17 +270,33 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 			*out = g_string_sized_new(512);
 
 		analog = packet->payload;
-		if (analog->num_samples == 0)
+		analog2 = packet->payload;
+
+		if (packet->type == SR_DF_ANALOG) {
+			num_samples = analog->num_samples;
+			channels = analog->channels;
+			num_channels = g_slist_length(analog->channels);
+			data = analog->data;
+		} else {
+			num_samples = analog2->num_samples;
+			channels = analog2->meaning->channels;
+			num_channels = g_slist_length(analog2->meaning->channels);
+			data = g_malloc(sizeof(float) * num_samples * num_channels);
+			ret = sr_analog_to_float(analog2, data);
+			if (ret != SR_OK)
+				return ret;
+		}
+
+		if (num_samples == 0)
 			return SR_OK;
 
-		num_channels = g_slist_length(analog->channels);
 		if (num_channels > outc->num_channels) {
 			sr_err("Packet has %d channels, but only %d were enabled.",
 					num_channels, outc->num_channels);
 			return SR_ERR;
 		}
 
-		if (analog->num_samples > outc->chanbuf_size) {
+		if (num_samples > outc->chanbuf_size) {
 			if (realloc_chanbufs(o, analog->num_samples) != SR_OK)
 				return SR_ERR_MALLOC;
 		}
@@ -284,11 +304,11 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 		/* Index the channels in this packet, so we can interleave quicker. */
 		chan_idx = g_malloc(sizeof(int) * outc->num_channels);
 		for (i = 0; i < num_channels; i++) {
-			ch = g_slist_nth_data(analog->channels, i);
+			ch = g_slist_nth_data((GSList *) channels, i);
 			chan_idx[i] = g_slist_index(outc->channels, ch);
 		}
 
-		for (i = 0; i < analog->num_samples; i++) {
+		for (i = 0; i < num_samples; i++) {
 			for (j = 0; j < num_channels; j++) {
 				idx = chan_idx[j];
 				buf = outc->chanbuf[idx] + outc->chanbuf_used[idx]++ * 4;
