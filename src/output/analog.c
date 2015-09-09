@@ -315,7 +315,9 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 		break;
 	case SR_DF_ANALOG2:
 		analog2 = packet->payload;
-		if (!(fdata = g_try_malloc(analog2->num_samples * sizeof(float))))
+		num_channels = g_slist_length(analog2->meaning->channels);
+		if (!(fdata = g_try_malloc(
+						analog2->num_samples * num_channels * sizeof(float))))
 			return SR_ERR_MALLOC;
 		if ((ret = sr_analog_to_float(analog2, fdata)) != SR_OK)
 			return ret;
@@ -330,7 +332,6 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 			digits = 6;
 		}
 		sr_analog_unit_to_string(analog2, &suffix);
-		num_channels = g_slist_length(analog2->meaning->channels);
 		for (i = 0; i < analog2->num_samples; i++) {
 			for (l = analog2->meaning->channels, c = 0; l; l = l->next, c++) {
 				ch = l->data;
