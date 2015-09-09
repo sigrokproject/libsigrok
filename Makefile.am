@@ -575,7 +575,7 @@ $(PDIR)/timestamp: $(PDIR)/sigrok/core/classes.i \
 		$(library_include_HEADERS) $(nodist_library_include_HEADERS) \
 		$(bindings_cxx_libsigrokcxx_la_include_HEADERS) \
 		$(nodist_bindings_cxx_libsigrokcxx_la_include_HEADERS) \
-		| bindings/cxx/libsigrokcxx.la
+		@ORDER@ bindings/cxx/libsigrokcxx.la
 	$(AM_V_at)$(setup_py) clean --all 2>/dev/null
 	$(AM_V_GEN)$(setup_py) build_ext --swig "$(SWIG)" build_py
 	$(AM_V_at): >$@
@@ -636,7 +636,7 @@ $(JLIB): $(JCXX) \
 		$(library_include_HEADERS) $(nodist_library_include_HEADERS) \
 		$(bindings_cxx_libsigrokcxx_la_include_HEADERS) \
 		$(nodist_bindings_cxx_libsigrokcxx_la_include_HEADERS) \
-		| bindings/cxx/libsigrokcxx.la
+		@ORDER@ bindings/cxx/libsigrokcxx.la
 	$(AM_V_GEN)$(CXXCOMPILE) $(JNI_CPPFLAGS) -L.libs -Lbindings/cxx/.libs \
 		-fno-strict-aliasing -fPIC -shared $(JCLS)/classes_wrap.cxx \
 		-lsigrokcxx $(LIBSIGROKCXX_LIBS) -o $(JLIB)
