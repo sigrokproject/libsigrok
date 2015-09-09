@@ -38,7 +38,7 @@ SR_PRIV const char *sr_vendor_alias(const char *raw_vendor)
 	unsigned int i;
 
 	for (i = 0; i < ARRAY_SIZE(scpi_vendors); i++) {
-		if (!strcasecmp(raw_vendor, scpi_vendors[i][0]))
+		if (!g_ascii_strcasecmp(raw_vendor, scpi_vendors[i][0]))
 			return scpi_vendors[i][1];
 	}
 
@@ -111,11 +111,11 @@ SR_PRIV int scpi_cmd_resp(const struct sr_dev_inst *sdi, const struct scpi_comma
 	if (g_variant_type_equal(gvtype, G_VARIANT_TYPE_BOOLEAN)) {
 		if ((ret = sr_scpi_get_string(scpi, NULL, &s)) != SR_OK)
 			return ret;
-		if (!strcasecmp(s, "ON") || !strcasecmp(s, "1")
-				|| !strcasecmp(s, "YES"))
+		if (!g_ascii_strcasecmp(s, "ON") || !g_ascii_strcasecmp(s, "1")
+				|| !g_ascii_strcasecmp(s, "YES"))
 			*gvar = g_variant_new_boolean(TRUE);
-		else if (!strcasecmp(s, "OFF") || !strcasecmp(s, "0")
-				|| !strcasecmp(s, "NO"))
+		else if (!g_ascii_strcasecmp(s, "OFF") || !g_ascii_strcasecmp(s, "0")
+				|| !g_ascii_strcasecmp(s, "NO"))
 			*gvar = g_variant_new_boolean(FALSE);
 		else
 			ret = SR_ERR;

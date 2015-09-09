@@ -56,14 +56,14 @@ static int parse_value(const uint8_t *buf, struct metex14_info *info,
 
 	/* Bytes 5-7: Over limit (various forms) */
 	is_ol = 0;
-	is_ol += (!strcasecmp((const char *)&valstr, ".OL")) ? 1 : 0;
-	is_ol += (!strcasecmp((const char *)&valstr, "O.L")) ? 1 : 0;
-	is_ol += (!strcasecmp((const char *)&valstr, "OL.")) ? 1 : 0;
-	is_ol += (!strcasecmp((const char *)&valstr, "OL")) ? 1 : 0;
-	is_ol += (!strcasecmp((const char *)&valstr, "-.OL")) ? 1 : 0;
-	is_ol += (!strcasecmp((const char *)&valstr, "-O.L")) ? 1 : 0;
-	is_ol += (!strcasecmp((const char *)&valstr, "-OL.")) ? 1 : 0;
-	is_ol += (!strcasecmp((const char *)&valstr, "-OL")) ? 1 : 0;
+	is_ol += (!g_ascii_strcasecmp((const char *)&valstr, ".OL")) ? 1 : 0;
+	is_ol += (!g_ascii_strcasecmp((const char *)&valstr, "O.L")) ? 1 : 0;
+	is_ol += (!g_ascii_strcasecmp((const char *)&valstr, "OL.")) ? 1 : 0;
+	is_ol += (!g_ascii_strcasecmp((const char *)&valstr, "OL")) ? 1 : 0;
+	is_ol += (!g_ascii_strcasecmp((const char *)&valstr, "-.OL")) ? 1 : 0;
+	is_ol += (!g_ascii_strcasecmp((const char *)&valstr, "-O.L")) ? 1 : 0;
+	is_ol += (!g_ascii_strcasecmp((const char *)&valstr, "-OL.")) ? 1 : 0;
+	is_ol += (!g_ascii_strcasecmp((const char *)&valstr, "-OL")) ? 1 : 0;
 	if (is_ol != 0) {
 		sr_spew("Over limit.");
 		*result = INFINITY;
@@ -114,35 +114,35 @@ static void parse_flags(const char *buf, struct metex14_info *info)
 
 	/* Bytes 9-12: Unit */
 	u = (const char *)&unit;
-	if (!strcasecmp(u, "A"))
+	if (!g_ascii_strcasecmp(u, "A"))
 		info->is_ampere = TRUE;
-	else if (!strcasecmp(u, "mA"))
+	else if (!g_ascii_strcasecmp(u, "mA"))
 		info->is_milli = info->is_ampere = TRUE;
-	else if (!strcasecmp(u, "uA"))
+	else if (!g_ascii_strcasecmp(u, "uA"))
 		info->is_micro = info->is_ampere = TRUE;
-	else if (!strcasecmp(u, "V"))
+	else if (!g_ascii_strcasecmp(u, "V"))
 		info->is_volt = TRUE;
-	else if (!strcasecmp(u, "mV"))
+	else if (!g_ascii_strcasecmp(u, "mV"))
 		info->is_milli = info->is_volt = TRUE;
-	else if (!strcasecmp(u, "Ohm"))
+	else if (!g_ascii_strcasecmp(u, "Ohm"))
 		info->is_ohm = TRUE;
-	else if (!strcasecmp(u, "KOhm"))
+	else if (!g_ascii_strcasecmp(u, "KOhm"))
 		info->is_kilo = info->is_ohm = TRUE;
-	else if (!strcasecmp(u, "MOhm"))
+	else if (!g_ascii_strcasecmp(u, "MOhm"))
 		info->is_mega = info->is_ohm = TRUE;
-	else if (!strcasecmp(u, "pF"))
+	else if (!g_ascii_strcasecmp(u, "pF"))
 		info->is_pico = info->is_farad = TRUE;
-	else if (!strcasecmp(u, "nF"))
+	else if (!g_ascii_strcasecmp(u, "nF"))
 		info->is_nano = info->is_farad = TRUE;
-	else if (!strcasecmp(u, "uF"))
+	else if (!g_ascii_strcasecmp(u, "uF"))
 		info->is_micro = info->is_farad = TRUE;
-	else if (!strcasecmp(u, "KHz"))
+	else if (!g_ascii_strcasecmp(u, "KHz"))
 		info->is_kilo = info->is_hertz = TRUE;
-	else if (!strcasecmp(u, "C"))
+	else if (!g_ascii_strcasecmp(u, "C"))
 		info->is_celsius = TRUE;
-	else if (!strcasecmp(u, "DB"))
+	else if (!g_ascii_strcasecmp(u, "DB"))
 		info->is_decibel = TRUE;
-	else if (!strcasecmp(u, ""))
+	else if (!g_ascii_strcasecmp(u, ""))
 		info->is_unitless = TRUE;
 
 	/* Bytes 0-1: Measurement mode, except AC/DC */

@@ -74,7 +74,7 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	device = NULL;
 	for (i = 0; i < num_pps_profiles; i++) {
 		vendor = sr_vendor_alias(hw_info->manufacturer);
-		if (strcasecmp(vendor, pps_profiles[i].vendor))
+		if (g_ascii_strcasecmp(vendor, pps_profiles[i].vendor))
 			continue;
 		model_re = g_regex_new(pps_profiles[i].model, 0, 0, NULL);
 		if (g_regex_match(model_re, hw_info->model, 0, &model_mi))
