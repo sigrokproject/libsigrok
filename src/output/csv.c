@@ -164,24 +164,24 @@ static void init_output(GString **out, struct context *ctx,
 	}
 }
 
-static void handle_analog_frame(struct context *ctx,
-				const struct sr_datafeed_analog *analog)
+static void handle_analog_frame(struct context *ctx, GSList *channels,
+		unsigned int num_samples, float *data)
 {
 	unsigned int numch, nums, i, j, s;
 	GSList *l;
 
-	numch = g_slist_length(analog->channels);
-	if ((unsigned int)analog->num_samples > numch)
-		nums = analog->num_samples / numch;
+	numch = g_slist_length(channels);
+	if (num_samples > numch)
+		nums = num_samples / numch;
 	else
 		nums = 1;
 
 	s = 0;
-	l = analog->channels;
+	l = channels;
 	for (i = 0; i < nums; i++) {
 		for (j = 0; j < ctx->num_analog_channels; j++) {
 			if (ctx->analog_channels[j] == l->data)
-				ctx->analog_vals[j] = analog->data[s++];
+				ctx->analog_vals[j] = data[s++];
 		}
 		l = l->next;
 	}
@@ -193,8 +193,11 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 	const struct sr_datafeed_meta *meta;
 	const struct sr_datafeed_logic *logic;
 	const struct sr_datafeed_analog *analog;
+	const struct sr_datafeed_analog2 *analog2;
 	const struct sr_config *src;
-	GSList *l;
+	unsigned int num_samples;
+	float *data;
+	GSList *l, *channels;
 	struct context *ctx;
 	int idx;
 	uint64_t i, j, k, nums, numch;
@@ -266,10 +269,27 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 		}
 		break;
 	case SR_DF_ANALOG:
+	case SR_DF_ANALOG2:
 		analog = packet->payload;
+		analog2 = packet->payload;
+
+		if (packet->type == SR_DF_ANALOG) {
+			channels = analog->channels;
+			numch = g_slist_length(channels);
+			num_samples = analog->num_samples;
+			data = analog->data;
+		} else {
+			channels = analog2->meaning->channels;
+			numch = g_slist_length(channels);
+			num_samples = analog2->num_samples;
+			data = g_malloc(sizeof(float) * num_samples * numch);
+			ret = sr_analog_to_float(analog2, data);
+			if (ret != SR_OK)
+				return ret;
+		}
 
 		if (ctx->inframe) {
-			handle_analog_frame(ctx, analog);
+			handle_analog_frame(ctx, channels, num_samples, data);
 			break;
 		}
 
@@ -277,9 +297,8 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 		k = 0;
 		l = NULL;
 
-		numch = g_slist_length(analog->channels);
-		if ((unsigned int)analog->num_samples > numch)
-			nums = analog->num_samples / numch;
+		if (num_samples > numch)
+			nums = num_samples / numch;
 		else
 			nums = 1;
 
@@ -287,11 +306,11 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 			for (j = 0; j < ctx->num_enabled_channels; j++) {
 				if (ctx->channels[j]->type == SR_CHANNEL_ANALOG) {
 					if (!l)
-						l = analog->channels;
+						l = channels;
 
 					if (ctx->channels[j] == l->data) {
 						g_string_append_printf(*out,
-							"%f", analog->data[k++]);
+							"%f", data[k++]);
 					}
 
 					l = l->next;
@@ -302,7 +321,6 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 			g_string_append_printf(*out, "\n");
 		}
 		break;
-	/* TODO case SR_DF_ANALOG2: */
 	}
 
 	return ret;
