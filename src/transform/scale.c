@@ -26,7 +26,7 @@
 #define LOG_PREFIX "transform/scale"
 
 struct context {
-	double factor;
+	struct sr_rational factor;
 };
 
 static int init(struct sr_transform *t, GHashTable *options)
@@ -38,7 +38,8 @@ static int init(struct sr_transform *t, GHashTable *options)
 
 	t->priv = ctx = g_malloc0(sizeof(struct context));
 
-	ctx->factor = g_variant_get_double(g_hash_table_lookup(options, "factor"));
+	g_variant_get(g_hash_table_lookup(options, "factor"), "(xt)",
+			&ctx->factor.p, &ctx->factor.q);
 
 	return SR_OK;
 }
@@ -52,6 +53,7 @@ static int receive(const struct sr_transform *t,
 	struct sr_channel *ch;
 	GSList *l;
 	float *fdata;
+	float factor;
 	int i, num_channels, c;
 
 	if (!t || !t->sdi || !packet_in || !packet_out)
@@ -63,12 +65,13 @@ static int receive(const struct sr_transform *t,
 		analog = packet_in->payload;
 		fdata = (float *)analog->data;
 		num_channels = g_slist_length(analog->channels);
+		factor = (float) ctx->factor.p / ctx->factor.q;
 		for (i = 0; i < analog->num_samples; i++) {
 			/* For now scale all values in all channels. */
 			for (l = analog->channels, c = 0; l; l = l->next, c++) {
 				ch = l->data;
 				(void)ch;
-				fdata[i * num_channels + c] *= ctx->factor;
+				fdata[i * num_channels + c] *= factor;
 			}
 		}
 		break;
@@ -104,9 +107,12 @@ static struct sr_option options[] = {
 
 static const struct sr_option *get_options(void)
 {
+	int64_t p = 1;
+	uint64_t q = 1;
+
 	/* Default to a scaling factor of 1.0. */
 	if (!options[0].def)
-		options[0].def = g_variant_ref_sink(g_variant_new_double(1.0));
+		options[0].def = g_variant_ref_sink(g_variant_new(("(xt"), &p, &q));
 
 	return options;
 }
