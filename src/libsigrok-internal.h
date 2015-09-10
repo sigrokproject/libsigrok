@@ -205,7 +205,6 @@ struct sr_context {
 	struct sr_dev_driver **driver_list;
 #ifdef HAVE_LIBUSB_1_0
 	libusb_context *libusb_ctx;
-	gboolean usb_source_present;
 #endif
 };
 
@@ -710,42 +709,30 @@ struct sr_session {
 	GSList *transforms;
 	struct sr_trigger *trigger;
 
+	/** Mutex protecting the main context pointer and ownership flag. */
+	GMutex main_mutex;
+	/** Context of the session main loop. */
+	GMainContext *main_context;
+	/** Whether we are using the thread's default context. */
+	gboolean main_context_is_default;
+
+	/** Whether the session has been started. */
 	gboolean running;
 
-	/*
-	 * Event sources and poll FDs are stored in the same order in the
-	 * the sources and pollfds arrays. However, each source may cover
-	 * any number of associated poll FDs, so the indices do not match.
-	 *
-	 * We cannot embed the GPollFD into the source struct since we want
-	 * to be able to pass the array of all poll descriptors to g_poll().
-	 */
-	GArray *sources;
-	GArray *pollfds;
-
-	/*
-	 * These are our synchronization primitives for stopping the session in
-	 * an async fashion. We need to make sure the session is stopped from
-	 * within the session thread itself.
-	 */
-	/** Mutex protecting access to abort_session. */
-	GMutex stop_mutex;
-	/** Abort current session. See sr_session_stop(). */
-	gboolean abort_session;
+	/** Registered event sources for this session. */
+	GHashTable *event_sources;
+	/** Session main loop. */
+	GMainLoop *main_loop;
 };
 
 SR_PRIV int sr_session_source_add_internal(struct sr_session *session,
-		int timeout, sr_receive_data_callback cb, void *cb_data,
-		gintptr poll_object);
-SR_PRIV int sr_session_source_poll_add(struct sr_session *session,
-		gintptr poll_object, gintptr fd, int events);
+		void *key, GSource *source);
 SR_PRIV int sr_session_source_remove_internal(struct sr_session *session,
-		gintptr poll_object);
-SR_PRIV int sr_session_source_poll_remove(struct sr_session *session,
-		gintptr poll_object, gintptr fd);
+		void *key);
+SR_PRIV int sr_session_source_destroyed(struct sr_session *session,
+		void *key, GSource *source);
 SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
 		const struct sr_datafeed_packet *packet);
-SR_PRIV int sr_session_stop_sync(struct sr_session *session);
 SR_PRIV int sr_sessionfile_check(const char *filename);
 SR_PRIV int sr_packet_copy(const struct sr_datafeed_packet *packet,
 		struct sr_datafeed_packet **copy);

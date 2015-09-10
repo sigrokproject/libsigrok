@@ -2,6 +2,7 @@
  * This file is part of the libsigrok project.
  *
  * Copyright (C) 2010-2012 Bert Vermeulen <bert@biot.com>
+ * Copyright (C) 2015 Daniel Elstner <daniel.kitta@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,31 +45,162 @@
  * @{
  */
 
-struct source {
-	int64_t timeout;	/* microseconds */
-	int64_t due;		/* microseconds */
-
-	sr_receive_data_callback cb;
-	void *cb_data;
-
-	/* This is used to keep track of the object (fd, pollfd or channel) which is
-	 * being polled and will be used to match the source when removing it again.
-	 */
-	gintptr poll_object;
-
-	/* Number of fds to poll for this source. This will be 0 for timer
-	 * sources, 1 for normal I/O sources, and 1 or more for libusb I/O
-	 * sources on Unix platforms.
-	 */
-	int num_fds;
-
-	gboolean triggered;
-};
-
 struct datafeed_callback {
 	sr_datafeed_callback cb;
 	void *cb_data;
 };
+
+/** Custom GLib event source for generic descriptor I/O.
+ * @internal
+ */
+struct fd_source {
+	GSource base;
+
+	int64_t timeout_us;
+	int64_t due_us;
+
+	/* Meta-data needed to keep track of installed sources */
+	struct sr_session *session;
+	void *key;
+
+	GPollFD pollfd;
+};
+
+/** FD event source prepare() method.
+ */
+static gboolean fd_source_prepare(GSource *source, int *timeout)
+{
+	int64_t now_us;
+	struct fd_source *fsource;
+	int remaining_ms;
+
+	fsource = (struct fd_source *)source;
+
+	if (fsource->timeout_us >= 0) {
+		now_us = g_source_get_time(source);
+
+		if (fsource->due_us == 0) {
+			/* First-time initialization of the expiration time */
+			fsource->due_us = now_us + fsource->timeout_us;
+		}
+		remaining_ms = (MAX(0, fsource->due_us - now_us) + 999) / 1000;
+	} else {
+		remaining_ms = -1;
+	}
+	*timeout = remaining_ms;
+
+	return (remaining_ms == 0);
+}
+
+/** FD event source check() method.
+ */
+static gboolean fd_source_check(GSource *source)
+{
+	struct fd_source *fsource;
+	unsigned int revents;
+
+	fsource = (struct fd_source *)source;
+	revents = fsource->pollfd.revents;
+
+	return (revents != 0 || (fsource->timeout_us >= 0
+			&& fsource->due_us <= g_source_get_time(source)));
+}
+
+/** FD event source dispatch() method.
+ */
+static gboolean fd_source_dispatch(GSource *source,
+		GSourceFunc callback, void *user_data)
+{
+	struct fd_source *fsource;
+	const char *name;
+	unsigned int revents;
+	gboolean keep;
+
+	fsource = (struct fd_source *)source;
+	name = g_source_get_name(source);
+	revents = fsource->pollfd.revents;
+
+	if (revents != 0) {
+		sr_spew("%s: %s " G_POLLFD_FORMAT ", revents 0x%.2X",
+			__func__, name, fsource->pollfd.fd, revents);
+	} else {
+		sr_spew("%s: %s " G_POLLFD_FORMAT ", timed out",
+			__func__, name, fsource->pollfd.fd);
+	}
+	if (!callback) {
+		sr_err("Callback not set, cannot dispatch event.");
+		return G_SOURCE_REMOVE;
+	}
+	keep = (*(sr_receive_data_callback)callback)
+			(fsource->pollfd.fd, revents, user_data);
+
+	if (fsource->timeout_us >= 0 && G_LIKELY(keep)
+			&& G_LIKELY(!g_source_is_destroyed(source)))
+		fsource->due_us = g_source_get_time(source)
+				+ fsource->timeout_us;
+	return keep;
+}
+
+/** FD event source finalize() method.
+ */
+static void fd_source_finalize(GSource *source)
+{
+	struct fd_source *fsource;
+
+	fsource = (struct fd_source *)source;
+
+	sr_dbg("%s: key %p", __func__, fsource->key);
+
+	sr_session_source_destroyed(fsource->session, fsource->key, source);
+}
+
+/** Create an event source for I/O on a file descriptor.
+ *
+ * In order to maintain API compatibility, this event source also doubles
+ * as a timer event source.
+ *
+ * @param session The session the event source belongs to.
+ * @param key The key used to identify this source.
+ * @param fd The file descriptor or HANDLE.
+ * @param timeout_ms The timeout interval in ms, or -1 to wait indefinitely.
+ * @return A new event source object, or NULL on failure.
+ */
+static GSource *fd_source_new(struct sr_session *session, void *key,
+		gintptr fd, int events, int timeout_ms)
+{
+	static GSourceFuncs fd_source_funcs = {
+		.prepare  = &fd_source_prepare,
+		.check    = &fd_source_check,
+		.dispatch = &fd_source_dispatch,
+		.finalize = &fd_source_finalize
+	};
+	GSource *source;
+	struct fd_source *fsource;
+
+	source = g_source_new(&fd_source_funcs, sizeof(struct fd_source));
+	fsource = (struct fd_source *)source;
+
+	g_source_set_name(source, (fd < 0) ? "timer" : "fd");
+
+	if (timeout_ms >= 0) {
+		fsource->timeout_us = 1000 * (int64_t)timeout_ms;
+		fsource->due_us = 0;
+	} else {
+		fsource->timeout_us = -1;
+		fsource->due_us = INT64_MAX;
+	}
+	fsource->session = session;
+	fsource->key = key;
+
+	fsource->pollfd.fd = fd;
+	fsource->pollfd.events = events;
+	fsource->pollfd.revents = 0;
+
+	if (fd >= 0)
+		g_source_add_poll(source, &fsource->pollfd);
+
+	return source;
+}
 
 /**
  * Create a new session.
@@ -95,10 +227,12 @@ SR_API int sr_session_new(struct sr_context *ctx,
 
 	session->ctx = ctx;
 
-	session->sources = g_array_new(FALSE, FALSE, sizeof(struct source));
-	session->pollfds = g_array_new(FALSE, FALSE, sizeof(GPollFD));
+	g_mutex_init(&session->main_mutex);
 
-	g_mutex_init(&session->stop_mutex);
+	/* To maintain API compatibility, we need a lookup table
+	 * which maps poll_object IDs to GSource* pointers.
+	 */
+	session->event_sources = g_hash_table_new(NULL, NULL);
 
 	*new_session = session;
 
@@ -124,12 +258,11 @@ SR_API int sr_session_destroy(struct sr_session *session)
 	}
 
 	sr_session_dev_remove_all(session);
-	g_mutex_clear(&session->stop_mutex);
-
 	g_slist_free_full(session->owned_devs, (GDestroyNotify)sr_dev_inst_free);
 
-	g_array_unref(session->pollfds);
-	g_array_unref(session->sources);
+	g_hash_table_unref(session->event_sources);
+
+	g_mutex_clear(&session->main_mutex);
 
 	g_free(session);
 
@@ -371,192 +504,6 @@ SR_API int sr_session_trigger_set(struct sr_session *session, struct sr_trigger 
 	return SR_OK;
 }
 
-static gboolean sr_session_check_aborted(struct sr_session *session)
-{
-	gboolean stop;
-
-	g_mutex_lock(&session->stop_mutex);
-	stop = session->abort_session;
-	if (stop) {
-		sr_session_stop_sync(session);
-		/* But once is enough. */
-		session->abort_session = FALSE;
-	}
-	g_mutex_unlock(&session->stop_mutex);
-
-	return stop;
-}
-
-/**
- * Poll the session's event sources.
- *
- * @param session The session to use. Must not be NULL.
- * @retval SR_OK Success.
- * @retval SR_ERR Error occurred.
- */
-static int sr_session_iteration(struct sr_session *session)
-{
-	int64_t start_time, stop_time, min_due, due;
-	int timeout_ms;
-	unsigned int i;
-	int k, fd_index;
-	int ret;
-	int fd;
-	int revents;
-	gboolean triggered, stopped;
-	struct source *source;
-	GPollFD *pollfd;
-	gintptr poll_object;
-#if HAVE_LIBUSB_1_0
-	int64_t usb_timeout;
-	int64_t usb_due;
-	struct timeval tv;
-#endif
-	if (session->sources->len == 0) {
-		sr_session_check_aborted(session);
-		return SR_OK;
-	}
-	start_time = g_get_monotonic_time();
-	min_due = INT64_MAX;
-
-	for (i = 0; i < session->sources->len; ++i) {
-		source = &g_array_index(session->sources, struct source, i);
-		if (source->due < min_due)
-			min_due = source->due;
-		source->triggered = FALSE;
-	}
-#if HAVE_LIBUSB_1_0
-	usb_due = INT64_MAX;
-	if (session->ctx->usb_source_present) {
-		ret = libusb_get_next_timeout(session->ctx->libusb_ctx, &tv);
-		if (ret < 0) {
-			sr_err("Error getting libusb timeout: %s",
-				libusb_error_name(ret));
-			return SR_ERR;
-		} else if (ret == 1) {
-			usb_timeout = (int64_t)tv.tv_sec * G_USEC_PER_SEC
-					+ tv.tv_usec;
-			usb_due = start_time + usb_timeout;
-			if (usb_due < min_due)
-				min_due = usb_due;
-
-			sr_spew("poll: next USB timeout %g ms",
-				1e-3 * usb_timeout);
-		}
-	}
-#endif
-	if (min_due == INT64_MAX)
-		timeout_ms = -1;
-	else if (min_due > start_time)
-		timeout_ms = MIN((min_due - start_time + 999) / 1000, INT_MAX);
-	else
-		timeout_ms = 0;
-
-	sr_spew("poll enter: %u sources, %u fds, %d ms timeout",
-		session->sources->len, session->pollfds->len, timeout_ms);
-
-	ret = g_poll((GPollFD *)session->pollfds->data,
-			session->pollfds->len, timeout_ms);
-#ifdef G_OS_UNIX
-	if (ret < 0 && errno != EINTR) {
-		sr_err("Error in poll: %s", g_strerror(errno));
-		return SR_ERR;
-	}
-#else
-	if (ret < 0) {
-		sr_err("Error in poll: %d", ret);
-		return SR_ERR;
-	}
-#endif
-	stop_time = g_get_monotonic_time();
-
-	sr_spew("poll leave: %g ms elapsed, %d events",
-		1e-3 * (stop_time - start_time), ret);
-
-	triggered = FALSE;
-	stopped = FALSE;
-	fd_index = 0;
-
-	for (i = 0; i < session->sources->len; ++i) {
-		source = &g_array_index(session->sources, struct source, i);
-
-		poll_object = source->poll_object;
-		fd = (int)poll_object;
-		revents = 0;
-
-		for (k = 0; k < source->num_fds; ++k) {
-			pollfd = &g_array_index(session->pollfds,
-					GPollFD, fd_index + k);
-			fd = pollfd->fd;
-			revents |= pollfd->revents;
-		}
-		fd_index += source->num_fds;
-
-		if (source->triggered)
-			continue; /* already handled */
-		if (ret > 0 && revents == 0)
-			continue; /* skip timeouts if any I/O event occurred */
-
-		/* Make invalid to avoid confusion in case of multiple FDs. */
-		if (source->num_fds > 1)
-			fd = -1;
-		if (ret <= 0)
-			revents = 0;
-
-		due = source->due;
-#if HAVE_LIBUSB_1_0
-		if (usb_due < due && poll_object
-				== (gintptr)session->ctx->libusb_ctx)
-			due = usb_due;
-#endif
-		if (revents == 0 && stop_time < due)
-			continue;
-		/*
-		 * The source may be gone after the callback returns,
-		 * so access any data now that needs accessing.
-		 */
-		if (source->timeout >= 0)
-			source->due = stop_time + source->timeout;
-		source->triggered = TRUE;
-		triggered = TRUE;
-		/*
-		 * Invoke the source's callback on an event or timeout.
-		 */
-		sr_spew("callback for event source %" G_GINTPTR_FORMAT " with"
-			" event mask 0x%.2X", poll_object, (unsigned)revents);
-		if (!source->cb(fd, revents, source->cb_data)) {
-#if HAVE_LIBUSB_1_0
-			/* Hackish, to be cleaned up when porting to
-			 * the GLib main loop.
-			 */
-			if (poll_object == (gintptr)session->ctx->libusb_ctx)
-				usb_source_remove(session, session->ctx);
-			else
-#endif
-				sr_session_source_remove_internal(session,
-						poll_object);
-		}
-		/*
-		 * We want to take as little time as possible to stop
-		 * the session if we have been told to do so. Therefore,
-		 * we check the flag after processing every source, not
-		 * just once per main event loop.
-		 */
-		if (!stopped)
-			stopped = sr_session_check_aborted(session);
-
-		/* Restart loop as the sources list may have changed. */
-		fd_index = 0;
-		i = 0;
-	}
-
-	/* Check for abort at least once per iteration. */
-	if (!triggered)
-		sr_session_check_aborted(session);
-
-	return SR_OK;
-}
-
 static int verify_trigger(struct sr_trigger *trigger)
 {
 	struct sr_trigger_stage *stage;
@@ -593,6 +540,85 @@ static int verify_trigger(struct sr_trigger *trigger)
 	return SR_OK;
 }
 
+/** Set up the main context the session will be executing in.
+ *
+ * Must be called just before the session starts, by the thread which
+ * will execute the session main loop. Once acquired, the main context
+ * pointer is immutable for the duration of the session run.
+ */
+static int set_main_context(struct sr_session *session)
+{
+	GMainContext *def_context;
+
+	/* May happen if sr_session_start() is called again after
+	 * sr_session_run(), but the session hasn't been stopped yet.
+	 */
+	if (session->main_loop) {
+		sr_err("Cannot set main context; main loop already created.");
+		return SR_ERR;
+	}
+
+	g_mutex_lock(&session->main_mutex);
+
+	def_context = g_main_context_get_thread_default();
+
+	if (!def_context)
+		def_context = g_main_context_default();
+	/*
+	 * Try to use an existing main context if possible, but only if we
+	 * can make it owned by the current thread. Otherwise, create our
+	 * own main context so that event source callbacks can execute in
+	 * the session thread.
+	 */
+	if (g_main_context_acquire(def_context)) {
+		g_main_context_release(def_context);
+
+		sr_dbg("Using thread-default main context.");
+
+		session->main_context = def_context;
+		session->main_context_is_default = TRUE;
+	} else {
+		sr_dbg("Creating our own main context.");
+
+		session->main_context = g_main_context_new();
+		session->main_context_is_default = FALSE;
+	}
+	g_mutex_unlock(&session->main_mutex);
+
+	return SR_OK;
+}
+
+/** Unset the main context used for the current session run.
+ *
+ * Must be called right after stopping the session. Note that if the
+ * session is stopped asynchronously, the main loop may still be running
+ * after the main context has been unset. This is OK as long as no new
+ * event sources are created -- the main loop holds its own reference
+ * to the main context.
+ */
+static int unset_main_context(struct sr_session *session)
+{
+	int ret;
+
+	g_mutex_lock(&session->main_mutex);
+
+	if (session->main_context) {
+		if (!session->main_context_is_default)
+			g_main_context_unref(session->main_context);
+
+		session->main_context = NULL;
+		ret = SR_OK;
+	} else {
+		/* May happen if the set/unset calls are not matched.
+		 */
+		sr_err("No main context to unset.");
+		ret = SR_ERR;
+	}
+	g_mutex_unlock(&session->main_mutex);
+
+	return ret;
+}
+
 /**
  * Start a session.
  *
@@ -624,9 +650,14 @@ SR_API int sr_session_start(struct sr_session *session)
 	if (session->trigger && verify_trigger(session->trigger) != SR_OK)
 		return SR_ERR;
 
+	ret = set_main_context(session);
+	if (ret != SR_OK)
+		return ret;
+
+	session->running = TRUE;
+
 	sr_info("Starting.");
 
-	ret = SR_OK;
 	for (l = session->devs; l; l = l->next) {
 		sdi = l->data;
 		enabled_channels = 0;
@@ -656,6 +687,10 @@ SR_API int sr_session_start(struct sr_session *session)
 		}
 	}
 
+	if (ret != SR_OK) {
+		unset_main_context(session);
+		session->running = FALSE;
+	}
 	/* TODO: What if there are multiple devices? Which return code? */
 
 	return ret;
@@ -674,70 +709,65 @@ SR_API int sr_session_start(struct sr_session *session)
  */
 SR_API int sr_session_run(struct sr_session *session)
 {
-	int ret;
-
 	if (!session) {
 		sr_err("%s: session was NULL", __func__);
 		return SR_ERR_ARG;
 	}
-
 	if (!session->devs) {
 		/* TODO: Actually the case? */
 		sr_err("%s: session->devs was NULL; a session "
 		       "cannot be run without devices.", __func__);
 		return SR_ERR_ARG;
 	}
-	session->running = TRUE;
+	if (session->main_loop) {
+		sr_err("Main loop already created.");
+		return SR_ERR;
+	}
+	if (g_hash_table_size(session->event_sources) == 0) {
+		sr_err("Refusing to run without any event sources.");
+		return SR_ERR;
+	}
 
+	g_mutex_lock(&session->main_mutex);
+	if (!session->main_context) {
+		sr_err("Cannot run without main context.");
+		g_mutex_unlock(&session->main_mutex);
+		return SR_ERR;
+	}
 	sr_info("Running.");
 
-	/* Poll event sources until none are left. */
-	while (session->sources->len > 0) {
-		ret = sr_session_iteration(session);
-		if (ret != SR_OK)
-			return ret;
-	}
+	session->main_loop = g_main_loop_new(session->main_context, FALSE);
+	g_mutex_unlock(&session->main_mutex);
+
+	g_main_loop_run(session->main_loop);
+
+	g_main_loop_unref(session->main_loop);
+	session->main_loop = NULL;
+
 	return SR_OK;
 }
 
-/**
- * Stop a session.
- *
- * The session is stopped immediately, with all acquisition sessions stopped
- * and hardware drivers cleaned up.
- *
- * This must be called from within the session thread, to prevent freeing
- * resources that the session thread will try to use.
- *
- * @param session The session to use. Must not be NULL.
- *
- * @retval SR_OK Success.
- * @retval SR_ERR_ARG Invalid session passed.
- *
- * @private
- */
-SR_PRIV int sr_session_stop_sync(struct sr_session *session)
+static gboolean session_stop_sync(void *user_data)
 {
+	struct sr_session *session;
 	struct sr_dev_inst *sdi;
-	GSList *l;
+	GSList *node;
 
-	if (!session) {
-		sr_err("%s: session was NULL", __func__);
-		return SR_ERR_ARG;
-	}
+	session = user_data;
+
+	if (!session->running)
+		return G_SOURCE_REMOVE;
 
 	sr_info("Stopping.");
 
-	for (l = session->devs; l; l = l->next) {
-		sdi = l->data;
-		if (sdi->driver) {
-			if (sdi->driver->dev_acquisition_stop)
-				sdi->driver->dev_acquisition_stop(sdi, sdi);
-		}
+	for (node = session->devs; node; node = node->next) {
+		sdi = node->data;
+		if (sdi->driver && sdi->driver->dev_acquisition_stop)
+			sdi->driver->dev_acquisition_stop(sdi, sdi);
 	}
 	session->running = FALSE;
 
-	return SR_OK;
+	return G_SOURCE_REMOVE;
 }
 
 /**
@@ -755,6 +785,7 @@ SR_PRIV int sr_session_stop_sync(struct sr_session *session)
  *
  * @retval SR_OK Success.
  * @retval SR_ERR_ARG Invalid session passed.
+ * @retval SR_ERR Other error.
  *
  * @since 0.4.0
  */
@@ -762,14 +793,19 @@ SR_API int sr_session_stop(struct sr_session *session)
 {
 	if (!session) {
 		sr_err("%s: session was NULL", __func__);
-		return SR_ERR_BUG;
+		return SR_ERR_ARG;
 	}
+	g_mutex_lock(&session->main_mutex);
 
-	g_mutex_lock(&session->stop_mutex);
-	session->abort_session = TRUE;
-	g_mutex_unlock(&session->stop_mutex);
+	if (session->main_context) {
+		g_main_context_invoke(session->main_context,
+				&session_stop_sync, session);
+	} else {
+		sr_err("No main context set; already stopped?");
+	}
+	g_mutex_unlock(&session->main_mutex);
 
-	return SR_OK;
+	return unset_main_context(session);
 }
 
 /**
@@ -910,107 +946,62 @@ SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
  * Add an event source for a file descriptor.
  *
  * @param session The session to use. Must not be NULL.
- * @param[in] timeout Max time in ms to wait before the callback is called,
- *                    or -1 to wait indefinitely.
- * @param cb Callback function to add. Must not be NULL.
- * @param cb_data Data for the callback function. Can be NULL.
- * @param poll_object Handle by which the source is identified
- *
+ * @param key The key which identifies the event source.
+ * @param source An event source object. Must not be NULL.
  * @retval SR_OK Success.
  * @retval SR_ERR_ARG Invalid argument.
- * @retval SR_ERR An event source for @a poll_object is already installed.
+ * @retval SR_ERR_BUG Event source with @a key already installed.
+ * @retval SR_ERR Other error.
  */
 SR_PRIV int sr_session_source_add_internal(struct sr_session *session,
-		int timeout, sr_receive_data_callback cb, void *cb_data,
-		gintptr poll_object)
+		void *key, GSource *source)
 {
-	struct source src;
-	unsigned int i;
-
-	/* Note: cb_data can be NULL, that's not a bug. */
-	if (!cb) {
-		sr_err("%s: cb was NULL", __func__);
-		return SR_ERR_ARG;
-	}
-	/* Make sure that poll_object is unique.
+	int ret;
+	/*
+	 * This must not ever happen, since the source has already been
+	 * created and its finalize() method will remove the key for the
+	 * already installed source. (Well it would, if we did not have
+	 * another sanity check there.)
 	 */
-	for (i = 0; i < session->sources->len; ++i) {
-		if (g_array_index(session->sources, struct source, i)
-				.poll_object == poll_object) {
-			sr_err("Event source %" G_GINTPTR_FORMAT
-				" already installed.", poll_object);
-			return SR_ERR;
-		}
+	if (g_hash_table_contains(session->event_sources, key)) {
+		sr_err("Event source with key %p already exists.", key);
+		return SR_ERR_BUG;
 	}
-	sr_dbg("Installing event source %" G_GINTPTR_FORMAT
-		" with %d ms timeout.", poll_object, timeout);
-	src.cb = cb;
-	src.cb_data = cb_data;
-	src.poll_object = poll_object;
-	src.num_fds = 0;
-	src.triggered = FALSE;
+	g_hash_table_insert(session->event_sources, key, source);
 
-	if (timeout >= 0) {
-		src.timeout = INT64_C(1000) * timeout;
-		src.due = g_get_monotonic_time() + src.timeout;
+	g_mutex_lock(&session->main_mutex);
+
+	if (session->main_context) {
+		if (g_source_attach(source, session->main_context) > 0)
+			ret = SR_OK;
+		else
+			ret = SR_ERR;
 	} else {
-		src.timeout = -1;
-		src.due = INT64_MAX;
+		sr_err("Cannot add event source without main context.");
+		ret = SR_ERR;
 	}
-	g_array_append_val(session->sources, src);
+	g_mutex_unlock(&session->main_mutex);
 
-	return SR_OK;
+	return ret;
 }
 
-SR_PRIV int sr_session_source_poll_add(struct sr_session *session,
-		gintptr poll_object, gintptr fd, int events)
+static int attach_fd_source(struct sr_session *session,
+		void *key, int fd, int events, int timeout,
+		sr_receive_data_callback cb, void *cb_data)
 {
-	struct source *source;
-	GPollFD pollfd;
-	unsigned int i;
-	int fd_index, k;
+	GSource *source;
+	int ret;
 
-	source = NULL;
-	fd_index = 0;
-
-	/* Look up existing event source.
-	 */
-	for (i = 0; i < session->sources->len; ++i) {
-		source = &g_array_index(session->sources, struct source, i);
-		if (source->poll_object == poll_object)
-			break;
-		fd_index += source->num_fds;
-	}
-	if (!source) {
-		sr_err("Cannot add poll FD %" G_GINTPTR_FORMAT
-			" to non-existing event source %" G_GINTPTR_FORMAT
-			".",  fd, poll_object);
+	source = fd_source_new(session, key, fd, events, timeout);
+	if (!source)
 		return SR_ERR;
-	}
-	/* Make sure the FD is unique.
-	 */
-	for (k = 0; k < source->num_fds; ++k)
-		if (g_array_index(session->pollfds, GPollFD, fd_index + k)
-				.fd == fd) {
-			sr_err("Cannot add poll FD %" G_GINTPTR_FORMAT
-				" twice to event source %" G_GINTPTR_FORMAT
-				".", fd, poll_object);
-			return SR_ERR;
-		}
 
-	pollfd.fd = fd;
-	pollfd.events = events;
-	pollfd.revents = 0;
+	g_source_set_callback(source, (GSourceFunc)cb, cb_data, NULL);
 
-	g_array_insert_val(session->pollfds,
-		fd_index + source->num_fds, pollfd);
-	++source->num_fds;
+	ret = sr_session_source_add_internal(session, key, source);
+	g_source_unref(source);
 
-	sr_dbg("Added poll FD %" G_GINTPTR_FORMAT " with event mask 0x%.2X"
-		" to event source %" G_GINTPTR_FORMAT ".",
-		fd, (unsigned)events, poll_object);
-
-	return SR_OK;
+	return ret;
 }
 
 /**
@@ -1032,17 +1023,12 @@ SR_PRIV int sr_session_source_poll_add(struct sr_session *session,
 SR_API int sr_session_source_add(struct sr_session *session, int fd,
 		int events, int timeout, sr_receive_data_callback cb, void *cb_data)
 {
-	int ret;
-
 	if (fd < 0 && timeout < 0) {
-		sr_err("Timer source without timeout would block indefinitely");
+		sr_err("Cannot create timer source without timeout.");
 		return SR_ERR_ARG;
 	}
-	ret = sr_session_source_add_internal(session, timeout, cb, cb_data, fd);
-	if (ret != SR_OK || fd < 0)
-		return ret;
-
-	return sr_session_source_poll_add(session, fd, fd, events);
+	return attach_fd_source(session, GINT_TO_POINTER(fd),
+			fd, events, timeout, cb, cb_data);
 }
 
 /**
@@ -1064,19 +1050,12 @@ SR_API int sr_session_source_add_pollfd(struct sr_session *session,
 		GPollFD *pollfd, int timeout, sr_receive_data_callback cb,
 		void *cb_data)
 {
-	int ret;
-
 	if (!pollfd) {
 		sr_err("%s: pollfd was NULL", __func__);
 		return SR_ERR_ARG;
 	}
-	ret = sr_session_source_add_internal(session,
-			timeout, cb, cb_data, (gintptr)pollfd);
-	if (ret != SR_OK)
-		return ret;
-
-	return sr_session_source_poll_add(session,
-			(gintptr)pollfd, pollfd->fd, pollfd->events);
+	return attach_fd_source(session, pollfd, pollfd->fd,
+			pollfd->events, timeout, cb, cb_data);
 }
 
 /**
@@ -1099,108 +1078,51 @@ SR_API int sr_session_source_add_channel(struct sr_session *session,
 		GIOChannel *channel, int events, int timeout,
 		sr_receive_data_callback cb, void *cb_data)
 {
-	int ret;
+	GPollFD pollfd;
 
-	ret = sr_session_source_add_internal(session,
-			timeout, cb, cb_data, (gintptr)channel);
-	if (ret != SR_OK)
-		return ret;
+	if (!channel) {
+		sr_err("%s: channel was NULL", __func__);
+		return SR_ERR_ARG;
+	}
+	/* We should be using g_io_create_watch(), but can't without
+	 * changing the driver API, as the callback signature is different.
+	 */
 #ifdef G_OS_WIN32
-	GPollFD p;
-	g_io_channel_win32_make_pollfd(channel, events, &p);
-
-	return sr_session_source_poll_add(session,
-			(gintptr)channel, p.fd, p.events);
+	g_io_channel_win32_make_pollfd(channel, events, &pollfd);
 #else
-	return sr_session_source_poll_add(session, (gintptr)channel,
-			g_io_channel_unix_get_fd(channel), events);
+	pollfd.fd = g_io_channel_unix_get_fd(channel);
+	pollfd.events = events;
 #endif
+	return attach_fd_source(session, channel, pollfd.fd,
+			pollfd.events, timeout, cb, cb_data);
 }
 
 /**
  * Remove the source identified by the specified poll object.
  *
  * @param session The session to use. Must not be NULL.
- * @param poll_object The channel for which the source should be removed.
+ * @param key The key by which the source is identified.
  *
  * @retval SR_OK Success
  * @retval SR_ERR_BUG No event source for poll_object found.
  */
 SR_PRIV int sr_session_source_remove_internal(struct sr_session *session,
-		gintptr poll_object)
+		void *key)
 {
-	struct source *source;
-	unsigned int i;
-	int fd_index = 0;
+	GSource *source;
 
-	for (i = 0; i < session->sources->len; ++i) {
-		source = &g_array_index(session->sources, struct source, i);
-
-		if (source->poll_object == poll_object) {
-			if (source->num_fds > 0)
-				g_array_remove_range(session->pollfds,
-						fd_index, source->num_fds);
-			g_array_remove_index(session->sources, i);
-
-			sr_dbg("Removed event source %" G_GINTPTR_FORMAT ".",
-				poll_object);
-			return SR_OK;
-		}
-		fd_index += source->num_fds;
-	}
-	/* Trying to remove an already removed event source is problematic
+	source = g_hash_table_lookup(session->event_sources, key);
+	/*
+	 * Trying to remove an already removed event source is problematic
 	 * since the poll_object handle may have been reused in the meantime.
 	 */
-	sr_warn("Cannot remove non-existing event source %"
-		G_GINTPTR_FORMAT ".", poll_object);
-
-	return SR_ERR_BUG;
-}
-
-SR_PRIV int sr_session_source_poll_remove(struct sr_session *session,
-		gintptr poll_object, gintptr fd)
-{
-	struct source *source;
-	unsigned int i;
-	int fd_index, k;
-
-	source = NULL;
-	fd_index = 0;
-
-	/* Look up existing event source.
-	 */
-	for (i = 0; i < session->sources->len; ++i) {
-		source = &g_array_index(session->sources, struct source, i);
-		if (source->poll_object == poll_object)
-			break;
-		fd_index += source->num_fds;
-	}
 	if (!source) {
-		sr_err("Cannot remove poll FD %" G_GINTPTR_FORMAT
-			" from non-existing event source %" G_GINTPTR_FORMAT
-			".", fd, poll_object);
-		return SR_ERR;
+		sr_warn("Cannot remove non-existing event source %p.", key);
+		return SR_ERR_BUG;
 	}
-	/* Look up the FD in the poll set.
-	 */
-	for (k = 0; k < source->num_fds; ++k)
-		if (g_array_index(session->pollfds, GPollFD, fd_index + k)
-				.fd == fd) {
+	g_source_destroy(source);
 
-			g_array_remove_index(session->pollfds, fd_index + k);
-			--source->num_fds;
-
-			sr_dbg("Removed poll FD %" G_GINTPTR_FORMAT
-				" from event source %" G_GINTPTR_FORMAT ".",
-				fd, poll_object);
-			return SR_OK;
-		}
-
-	sr_err("Cannot remove non-existing poll FD %" G_GINTPTR_FORMAT
-		" from event source %" G_GINTPTR_FORMAT ".",
-		fd, poll_object);
-
-	return SR_ERR;
+	return SR_OK;
 }
 
 /**
@@ -1217,7 +1139,7 @@ SR_PRIV int sr_session_source_poll_remove(struct sr_session *session,
  */
 SR_API int sr_session_source_remove(struct sr_session *session, int fd)
 {
-	return sr_session_source_remove_internal(session, fd);
+	return sr_session_source_remove_internal(session, GINT_TO_POINTER(fd));
 }
 
 /**
@@ -1239,7 +1161,7 @@ SR_API int sr_session_source_remove_pollfd(struct sr_session *session,
 		sr_err("%s: pollfd was NULL", __func__);
 		return SR_ERR_ARG;
 	}
-	return sr_session_source_remove_internal(session, (gintptr)pollfd);
+	return sr_session_source_remove_internal(session, pollfd);
 }
 
 /**
@@ -1261,7 +1183,52 @@ SR_API int sr_session_source_remove_channel(struct sr_session *session,
 		sr_err("%s: channel was NULL", __func__);
 		return SR_ERR_ARG;
 	}
-	return sr_session_source_remove_internal(session, (gintptr)channel);
+	return sr_session_source_remove_internal(session, channel);
+}
+
+/** Unregister an event source that has been destroyed.
+ *
+ * This is intended to be called from a source's finalize() method.
+ *
+ * @param session The session to use. Must not be NULL.
+ * @param key The key used to identify @a source.
+ * @param source The source object that was destroyed.
+ *
+ * @retval SR_OK Success.
+ * @retval SR_ERR_BUG Event source for @a key does not match @a source.
+ */
+SR_PRIV int sr_session_source_destroyed(struct sr_session *session,
+		void *key, GSource *source)
+{
+	GSource *registered_source;
+
+	registered_source = g_hash_table_lookup(session->event_sources, key);
+	/*
+	 * Trying to remove an already removed event source is problematic
+	 * since the poll_object handle may have been reused in the meantime.
+	 */
+	if (!registered_source) {
+		sr_err("No event source for key %p found.", key);
+		return SR_ERR_BUG;
+	}
+	if (registered_source != source) {
+		sr_err("Event source for key %p does not match"
+			" destroyed source.", key);
+		return SR_ERR_BUG;
+	}
+	g_hash_table_remove(session->event_sources, key);
+	/*
+	 * Quit the main loop if we just removed the last event source.
+	 * TODO: This may need an idle callback depending on when event
+	 * sources are finalized. (The issue is remove followed by add
+	 * within the same main loop iteration.)
+	 */
+	if (session->main_loop
+			&& g_hash_table_size(session->event_sources) == 0) {
+		sr_dbg("Stopping main loop...");
+		g_main_loop_quit(session->main_loop);
+	}
+	return SR_OK;
 }
 
 static void copy_src(struct sr_config *src, struct sr_datafeed_meta *meta_copy)

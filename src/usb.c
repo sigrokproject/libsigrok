@@ -3,10 +3,11 @@
  *
  * Copyright (C) 2012 Uwe Hermann <uwe@hermann-uwe.de>
  * Copyright (C) 2012 Bert Vermeulen <bert@biot.com>
+ * Copyright (C) 2015 Daniel Elstner <daniel.kitta@gmail.com>
  *
- * This program is free software; you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -15,8 +16,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <stdlib.h>
@@ -35,6 +35,264 @@
 #if !HAVE_LIBUSB_OS_HANDLE
 typedef int libusb_os_handle;
 #endif
+
+/** Custom GLib event source for libusb I/O.
+ * @internal
+ */
+struct usb_source {
+	GSource base;
+
+	int64_t timeout_us;
+	int64_t due_us;
+
+	/* Needed to keep track of installed sources */
+	struct sr_session *session;
+
+	struct libusb_context *usb_ctx;
+	GPtrArray *pollfds;
+};
+
+/** USB event source prepare() method.
+ */
+static gboolean usb_source_prepare(GSource *source, int *timeout)
+{
+	int64_t now_us, usb_due_us;
+	struct usb_source *usource;
+	struct timeval usb_timeout;
+	int remaining_ms;
+	int ret;
+
+	usource = (struct usb_source *)source;
+
+	ret = libusb_get_next_timeout(usource->usb_ctx, &usb_timeout);
+	if (G_UNLIKELY(ret < 0)) {
+		sr_err("Failed to get libusb timeout: %s",
+			libusb_error_name(ret));
+	}
+	now_us = g_source_get_time(source);
+
+	if (usource->due_us == 0) {
+		/* First-time initialization of the expiration time */
+		usource->due_us = now_us + usource->timeout_us;
+	}
+	if (ret == 1) {
+		usb_due_us = (int64_t)usb_timeout.tv_sec * G_USEC_PER_SEC
+				+ usb_timeout.tv_usec + now_us;
+		if (usb_due_us < usource->due_us)
+			usource->due_us = usb_due_us;
+	}
+	if (usource->due_us != INT64_MAX)
+		remaining_ms = (MAX(0, usource->due_us - now_us) + 999) / 1000;
+	else
+		remaining_ms = -1;
+
+	*timeout = remaining_ms;
+
+	return (remaining_ms == 0);
+}
+
+/** USB event source check() method.
+ */
+static gboolean usb_source_check(GSource *source)
+{
+	struct usb_source *usource;
+	GPollFD *pollfd;
+	unsigned int revents;
+	unsigned int i;
+
+	usource = (struct usb_source *)source;
+	revents = 0;
+
+	for (i = 0; i < usource->pollfds->len; i++) {
+		pollfd = g_ptr_array_index(usource->pollfds, i);
+		revents |= pollfd->revents;
+	}
+	return (revents != 0 || (usource->due_us != INT64_MAX
+			&& usource->due_us <= g_source_get_time(source)));
+}
+
+/** USB event source dispatch() method.
+ */
+static gboolean usb_source_dispatch(GSource *source,
+		GSourceFunc callback, void *user_data)
+{
+	struct usb_source *usource;
+	GPollFD *pollfd;
+	unsigned int revents;
+	unsigned int i;
+	gboolean keep;
+
+	usource = (struct usb_source *)source;
+	revents = 0;
+	/*
+	 * This is somewhat arbitrary, but drivers use revents to distinguish
+	 * actual I/O from timeouts. When we remove the user timeout from the
+	 * driver API, this will no longer be needed.
+	 */
+	for (i = 0; i < usource->pollfds->len; i++) {
+		pollfd = g_ptr_array_index(usource->pollfds, i);
+		revents |= pollfd->revents;
+	}
+	if (revents != 0)
+		sr_spew("%s: revents 0x%.2X", __func__, revents);
+	else
+		sr_spew("%s: timed out", __func__);
+
+	if (!callback) {
+		sr_err("Callback not set, cannot dispatch event.");
+		return G_SOURCE_REMOVE;
+	}
+	keep = (*(sr_receive_data_callback)callback)(-1, revents, user_data);
+
+	if (G_LIKELY(keep) && G_LIKELY(!g_source_is_destroyed(source))) {
+		if (usource->timeout_us >= 0)
+			usource->due_us = g_source_get_time(source)
+					+ usource->timeout_us;
+		else
+			usource->due_us = INT64_MAX;
+	}
+	return keep;
+}
+
+/** USB event source finalize() method.
+ */
+static void usb_source_finalize(GSource *source)
+{
+	struct usb_source *usource;
+
+	usource = (struct usb_source *)source;
+
+	sr_spew("%s", __func__);
+
+	libusb_set_pollfd_notifiers(usource->usb_ctx, NULL, NULL, NULL);
+
+	g_ptr_array_unref(usource->pollfds);
+	usource->pollfds = NULL;
+
+	sr_session_source_destroyed(usource->session,
+			usource->usb_ctx, source);
+}
+
+/** Callback invoked when a new libusb FD should be added to the poll set.
+ */
+static LIBUSB_CALL void usb_pollfd_added(libusb_os_handle fd,
+		short events, void *user_data)
+{
+	struct usb_source *usource;
+	GPollFD *pollfd;
+
+	usource = user_data;
+
+	pollfd = g_slice_new(GPollFD);
+#ifdef G_OS_WIN32
+	events = G_IO_IN;
+#endif
+	pollfd->fd = (gintptr)fd;
+	pollfd->events = events;
+	pollfd->revents = 0;
+
+	g_ptr_array_add(usource->pollfds, pollfd);
+	g_source_add_poll((GSource *)usource, pollfd);
+}
+
+/** Callback invoked when a libusb FD should be removed from the poll set.
+ */
+static LIBUSB_CALL void usb_pollfd_removed(libusb_os_handle fd, void *user_data)
+{
+	struct usb_source *usource;
+	GPollFD *pollfd;
+	unsigned int i;
+
+	usource = user_data;
+
+	/* It's likely that the removed poll FD is at the end.
+	 */
+	for (i = usource->pollfds->len; G_LIKELY(i > 0); i--) {
+		pollfd = g_ptr_array_index(usource->pollfds, i - 1);
+
+		if ((libusb_os_handle)pollfd->fd == fd) {
+			g_source_remove_poll((GSource *)usource, pollfd);
+			g_ptr_array_remove_index_fast(usource->pollfds, i - 1);
+			return;
+		}
+	}
+	sr_err("FD to be removed (%" G_GINTPTR_FORMAT
+		") not found in event source poll set.", (gintptr)fd);
+}
+
+/** Destroy notify callback for FDs maintained by the USB event source.
+ */
+static void usb_source_free_pollfd(void *data)
+{
+	g_slice_free(GPollFD, data);
+}
+
+/** Create an event source for libusb I/O.
+ *
+ * TODO: The combination of the USB I/O source with a user timeout is
+ * conceptually broken. The user timeout supplied here is completely
+ * unrelated to I/O -- the actual I/O timeout is set when submitting
+ * a USB transfer.
+ * The sigrok drivers generally use the timeout to poll device state.
+ * Usually, this polling can be sensibly done only when there is no
+ * active USB transfer -- i.e. it's actually mutually exclusive with
+ * waiting for transfer completion.
+ * Thus, the user timeout should be removed from the USB event source
+ * API at some point. Instead, drivers should install separate timer
+ * event sources for their polling needs.
+ *
+ * @param session The session the event source belongs to.
+ * @param usb_ctx The libusb context for which to handle events.
+ * @param timeout_ms The timeout interval in ms, or -1 to wait indefinitely.
+ * @return A new event source object, or NULL on failure.
+ */
+static GSource *usb_source_new(struct sr_session *session,
+		struct libusb_context *usb_ctx, int timeout_ms)
+{
+	static GSourceFuncs usb_source_funcs = {
+		.prepare  = &usb_source_prepare,
+		.check    = &usb_source_check,
+		.dispatch = &usb_source_dispatch,
+		.finalize = &usb_source_finalize
+	};
+	GSource *source;
+	struct usb_source *usource;
+	const struct libusb_pollfd **upollfds, **upfd;
+
+	upollfds = libusb_get_pollfds(usb_ctx);
+	if (!upollfds) {
+		sr_err("Failed to get libusb file descriptors.");
+		return NULL;
+	}
+	source = g_source_new(&usb_source_funcs, sizeof(struct usb_source));
+	usource = (struct usb_source *)source;
+
+	g_source_set_name(source, "usb");
+
+	if (timeout_ms >= 0) {
+		usource->timeout_us = 1000 * (int64_t)timeout_ms;
+		usource->due_us = 0;
+	} else {
+		usource->timeout_us = -1;
+		usource->due_us = INT64_MAX;
+	}
+	usource->session = session;
+	usource->usb_ctx = usb_ctx;
+	usource->pollfds = g_ptr_array_new_full(8, &usb_source_free_pollfd);
+
+	for (upfd = upollfds; *upfd != NULL; upfd++)
+		usb_pollfd_added((*upfd)->fd, (*upfd)->events, usource);
+
+#if (LIBUSB_API_VERSION >= 0x01000104)
+	libusb_free_pollfds(upollfds);
+#else
+	free(upollfds);
+#endif
+	libusb_set_pollfd_notifiers(usb_ctx,
+		&usb_pollfd_added, &usb_pollfd_removed, usource);
+
+	return source;
+}
 
 /**
  * Find USB devices according to a connection string.
@@ -188,86 +446,27 @@ SR_PRIV void sr_usb_close(struct sr_usb_dev_inst *usb)
 	sr_dbg("Closed USB device %d.%d.", usb->bus, usb->address);
 }
 
-static LIBUSB_CALL void usb_pollfd_added(libusb_os_handle fd,
-		short events, void *user_data)
-{
-	struct sr_session *session;
-	gintptr tag;
-
-	session = user_data;
-	tag = (gintptr)session->ctx->libusb_ctx;
-#ifdef G_OS_WIN32
-	events = G_IO_IN;
-#endif
-	sr_session_source_poll_add(session, tag, (gintptr)fd, events);
-}
-
-static LIBUSB_CALL void usb_pollfd_removed(libusb_os_handle fd, void *user_data)
-{
-	struct sr_session *session;
-	gintptr tag;
-
-	session = user_data;
-	tag = (gintptr)session->ctx->libusb_ctx;
-
-	sr_session_source_poll_remove(session, tag, (gintptr)fd);
-}
-
 SR_PRIV int usb_source_add(struct sr_session *session, struct sr_context *ctx,
 		int timeout, sr_receive_data_callback cb, void *cb_data)
 {
-	const struct libusb_pollfd **pollfds;
-	gintptr tag;
-	int i;
+	GSource *source;
 	int ret;
-	int events;
 
-	if (ctx->usb_source_present) {
-		sr_err("A USB event source is already present.");
+	source = usb_source_new(session, ctx->libusb_ctx, timeout);
+	if (!source)
 		return SR_ERR;
-	}
-	pollfds = libusb_get_pollfds(ctx->libusb_ctx);
-	if (!pollfds) {
-		sr_err("Failed to get libusb file descriptors.");
-		return SR_ERR;
-	}
-	tag = (gintptr)ctx->libusb_ctx;
-	ret = sr_session_source_add_internal(session,
-			timeout, cb, cb_data, tag);
 
-	ctx->usb_source_present = (ret == SR_OK);
+	g_source_set_callback(source, (GSourceFunc)cb, cb_data, NULL);
 
-	for (i = 0; ret == SR_OK && pollfds[i]; ++i) {
-#ifdef G_OS_WIN32
-		events = G_IO_IN;
-#else
-		events = pollfds[i]->events;
-#endif
-		ret = sr_session_source_poll_add(session, tag,
-				(gintptr)pollfds[i]->fd, events);
-	}
-#if (LIBUSB_API_VERSION >= 0x01000104)
-	libusb_free_pollfds(pollfds);
-#else
-	free(pollfds);
-#endif
-	if (ret != SR_OK)
-		return ret;
+	ret = sr_session_source_add_internal(session, ctx->libusb_ctx, source);
+	g_source_unref(source);
 
-	libusb_set_pollfd_notifiers(ctx->libusb_ctx,
-		&usb_pollfd_added, &usb_pollfd_removed, session);
-
-	return SR_OK;
+	return ret;
 }
 
 SR_PRIV int usb_source_remove(struct sr_session *session, struct sr_context *ctx)
 {
-	ctx->usb_source_present = FALSE;
-
-	libusb_set_pollfd_notifiers(ctx->libusb_ctx, NULL, NULL, NULL);
-
-	return sr_session_source_remove_internal(session,
-			(gintptr)ctx->libusb_ctx);
+	return sr_session_source_remove_internal(session, ctx->libusb_ctx);
 }
 
 SR_PRIV int usb_get_port_path(libusb_device *dev, char *path, int path_len)
