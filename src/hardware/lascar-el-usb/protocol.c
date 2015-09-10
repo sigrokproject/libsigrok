@@ -183,7 +183,7 @@ SR_PRIV int lascar_get_config(libusb_device_handle *dev_hdl,
 	*configlen = buflen;
 
 cleanup:
-	if (!xfer_in->user_data || !xfer_in->user_data) {
+	if (!xfer_in->user_data || !xfer_out->user_data) {
 		if (!xfer_in->user_data)
 			libusb_cancel_transfer(xfer_in);
 		if (!xfer_out->user_data)
@@ -269,7 +269,7 @@ static int lascar_save_config(libusb_device_handle *dev_hdl,
 	}
 
 cleanup:
-	if (!xfer_in->user_data || !xfer_in->user_data) {
+	if (!xfer_in->user_data || !xfer_out->user_data) {
 		if (!xfer_in->user_data)
 			libusb_cancel_transfer(xfer_in);
 		if (!xfer_out->user_data)

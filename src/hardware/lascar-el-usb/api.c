@@ -416,7 +416,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		libusb_handle_events_timeout(drvc->sr_ctx->libusb_ctx, &tv);
 	}
 	if (xfer_in->user_data != GINT_TO_POINTER(1) ||
-			xfer_in->user_data != GINT_TO_POINTER(1)) {
+			xfer_out->user_data != GINT_TO_POINTER(1)) {
 		sr_dbg("no response to log transfer request");
 		libusb_free_transfer(xfer_in);
 		libusb_free_transfer(xfer_out);
