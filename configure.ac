@@ -37,6 +37,8 @@ AH_TOP([#ifndef SR_CONFIG_H
 #define SR_CONFIG_H    /* To stop multiple inclusions. */])
 AH_BOTTOM([#endif /* SR_CONFIG_H */])
 
+AC_CANONICAL_HOST
+
 # Checks for programs.
 AC_PROG_CC
 AC_PROG_CXX
@@ -51,7 +53,6 @@ SR_PROG_VERSION([$CC], [sr_cc_version])
 SR_PROG_VERSION([$CXX], [sr_cxx_version])
 
 # Check for optional make features.
-SR_PROG_MAKE_NO_PRINT_DIRECTORY
 SR_PROG_MAKE_ORDER_ONLY
 
 # Initialize libtool.

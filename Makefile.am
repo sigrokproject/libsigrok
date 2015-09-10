@@ -20,6 +20,7 @@
 
 ACLOCAL_AMFLAGS = -I m4
 AM_LIBTOOLFLAGS = --silent
+GNUMAKEFLAGS = --no-print-directory
 
 FIRMWARE_DIR = $(datadir)/sigrok-firmware
 
