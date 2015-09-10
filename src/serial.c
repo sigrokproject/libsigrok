@@ -27,6 +27,9 @@
 #include <libserialport.h>
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
+#ifdef G_OS_WIN32
+#include <windows.h> /* for HANDLE */
+#endif
 
 /** @cond PRIVATE */
 #define LOG_PREFIX "serial"
@@ -784,7 +787,7 @@ SR_PRIV int sr_serial_extract_options(GSList *options, const char **serial_devic
 }
 
 /** @cond PRIVATE */
-#ifdef _WIN32
+#ifdef G_OS_WIN32
 typedef HANDLE event_handle;
 #else
 typedef int event_handle;
@@ -814,12 +817,12 @@ SR_PRIV int serial_source_add(struct sr_session *session,
 		return SR_ERR;
 	}
 
-	serial->pollfds = (GPollFD *) g_malloc0(sizeof(GPollFD) * serial->event_set->count);
+	serial->pollfds = g_new0(GPollFD, serial->event_set->count);
 
 	for (i = 0; i < serial->event_set->count; i++) {
 
-		serial->pollfds[i].fd = ((event_handle *) serial->event_set->handles)[i];
-
+		serial->pollfds[i].fd = (gintptr)
+			((event_handle *)serial->event_set->handles)[i];
 		mask = serial->event_set->masks[i];
 
 		if (mask & SP_EVENT_RX_READY)
