@@ -724,8 +724,8 @@ SR_API int sr_session_run(struct sr_session *session)
 		return SR_ERR;
 	}
 	if (g_hash_table_size(session->event_sources) == 0) {
-		sr_err("Refusing to run without any event sources.");
-		return SR_ERR;
+		sr_warn("No event sources, returning immediately.");
+		return SR_OK;
 	}
 
 	g_mutex_lock(&session->main_mutex);
