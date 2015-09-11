@@ -564,9 +564,6 @@ struct sr_usb_dev_inst {
 #endif
 
 #ifdef HAVE_LIBSERIALPORT
-#define SERIAL_PARITY_NONE SP_PARITY_NONE
-#define SERIAL_PARITY_EVEN SP_PARITY_EVEN
-#define SERIAL_PARITY_ODD  SP_PARITY_ODD
 struct sr_serial_dev_inst {
 	/** Port name, e.g. '/dev/tty42'. */
 	char *port;
@@ -682,15 +679,6 @@ SR_PRIV int sr_variant_type_check(uint32_t key, GVariant *data);
 SR_PRIV void sr_hw_cleanup_all(const struct sr_context *ctx);
 SR_PRIV struct sr_config *sr_config_new(uint32_t key, GVariant *data);
 SR_PRIV void sr_config_free(struct sr_config *src);
-SR_PRIV int sr_source_remove(int fd);
-SR_PRIV int sr_source_remove_pollfd(GPollFD *pollfd);
-SR_PRIV int sr_source_remove_channel(GIOChannel *channel);
-SR_PRIV int sr_source_add(int fd, int events, int timeout,
-		sr_receive_data_callback cb, void *cb_data);
-SR_PRIV int sr_source_add_pollfd(GPollFD *pollfd, int timeout,
-		sr_receive_data_callback cb, void *cb_data);
-SR_PRIV int sr_source_add_channel(GIOChannel *channel, int events, int timeout,
-		sr_receive_data_callback cb, void *cb_data);
 
 /*--- session.c -------------------------------------------------------------*/
 

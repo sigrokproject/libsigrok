@@ -519,13 +519,13 @@ SR_PRIV int serial_set_paramstr(struct sr_serial_dev_inst *serial,
 		if ((mstr = g_match_info_fetch(match, 3))) {
 			switch (mstr[0]) {
 			case 'n':
-				parity = SERIAL_PARITY_NONE;
+				parity = SP_PARITY_NONE;
 				break;
 			case 'e':
-				parity = SERIAL_PARITY_EVEN;
+				parity = SP_PARITY_EVEN;
 				break;
 			case 'o':
-				parity = SERIAL_PARITY_ODD;
+				parity = SP_PARITY_ODD;
 				break;
 			}
 		}
