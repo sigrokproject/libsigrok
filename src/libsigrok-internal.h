@@ -574,10 +574,6 @@ struct sr_serial_dev_inst {
 	char *serialcomm;
 	/** libserialport port handle */
 	struct sp_port *data;
-	/** libserialport event set */
-	struct sp_event_set *event_set;
-	/** GPollFDs for event polling */
-	GPollFD *pollfds;
 };
 #endif
 
@@ -732,6 +728,9 @@ SR_PRIV int sr_session_source_remove_internal(struct sr_session *session,
 		void *key);
 SR_PRIV int sr_session_source_destroyed(struct sr_session *session,
 		void *key, GSource *source);
+SR_PRIV int sr_session_fd_source_add(struct sr_session *session,
+		void *key, gintptr fd, int events, int timeout,
+		sr_receive_data_callback cb, void *cb_data);
 SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
 		const struct sr_datafeed_packet *packet);
 SR_PRIV int sr_sessionfile_check(const char *filename);

@@ -799,10 +799,17 @@ SR_PRIV int serial_source_add(struct sr_session *session,
 		struct sr_serial_dev_inst *serial, int events, int timeout,
 		sr_receive_data_callback cb, void *cb_data)
 {
+	struct sp_event_set *event_set;
+	gintptr poll_fd;
+	unsigned int poll_events;
 	enum sp_event mask = 0;
-	unsigned int i;
 
-	if (sp_new_event_set(&serial->event_set) != SP_OK)
+	if ((events & (G_IO_IN|G_IO_ERR)) && (events & G_IO_OUT)) {
+		sr_err("Cannot poll input/error and output simultaneously.");
+		return SR_ERR_ARG;
+	}
+
+	if (sp_new_event_set(&event_set) != SP_OK)
 		return SR_ERR;
 
 	if (events & G_IO_IN)
@@ -812,54 +819,44 @@ SR_PRIV int serial_source_add(struct sr_session *session,
 	if (events & G_IO_ERR)
 		mask |= SP_EVENT_ERROR;
 
-	if (sp_add_port_events(serial->event_set, serial->data, mask) != SP_OK) {
-		sp_free_event_set(serial->event_set);
+	if (sp_add_port_events(event_set, serial->data, mask) != SP_OK) {
+		sp_free_event_set(event_set);
+		return SR_ERR;
+	}
+	if (event_set->count != 1) {
+		sr_err("Unexpected number (%u) of event handles to poll.",
+			event_set->count);
+		sp_free_event_set(event_set);
 		return SR_ERR;
 	}
 
-	serial->pollfds = g_new0(GPollFD, serial->event_set->count);
+	poll_fd = (gintptr) ((event_handle *)event_set->handles)[0];
+	mask = event_set->masks[0];
 
-	for (i = 0; i < serial->event_set->count; i++) {
+	sp_free_event_set(event_set);
 
-		serial->pollfds[i].fd = (gintptr)
-			((event_handle *)serial->event_set->handles)[i];
-		mask = serial->event_set->masks[i];
-
-		if (mask & SP_EVENT_RX_READY)
-			serial->pollfds[i].events |= G_IO_IN;
-		if (mask & SP_EVENT_TX_READY)
-			serial->pollfds[i].events |= G_IO_OUT;
-		if (mask & SP_EVENT_ERROR)
-			serial->pollfds[i].events |= G_IO_ERR;
-
-		if (sr_session_source_add_pollfd(session, &serial->pollfds[i],
-					timeout, cb, cb_data) != SR_OK)
-			return SR_ERR;
-	}
-
-	return SR_OK;
+	poll_events = 0;
+	if (mask & SP_EVENT_RX_READY)
+		poll_events |= G_IO_IN;
+	if (mask & SP_EVENT_TX_READY)
+		poll_events |= G_IO_OUT;
+	if (mask & SP_EVENT_ERROR)
+		poll_events |= G_IO_ERR;
+	/*
+	 * Using serial->data as the key for the event source is not quite
+	 * proper, as it makes it impossible to create another event source
+	 * for the same serial port. However, these fixed keys will soon be
+	 * removed from the API anyway, so this is OK for now.
+	 */
+	return sr_session_fd_source_add(session, serial->data,
+			poll_fd, poll_events, timeout, cb, cb_data);
 }
 
 /** @private */
 SR_PRIV int serial_source_remove(struct sr_session *session,
 		struct sr_serial_dev_inst *serial)
 {
-	unsigned int i;
-
-	if (!serial->event_set)
-		return SR_OK;
-
-	for (i = 0; i < serial->event_set->count; i++)
-		if (sr_session_source_remove_pollfd(session, &serial->pollfds[i]) != SR_OK)
-			return SR_ERR;
-
-	g_free(serial->pollfds);
-	sp_free_event_set(serial->event_set);
-
-	serial->pollfds = NULL;
-	serial->event_set = NULL;
-
-	return SR_OK;
+	return sr_session_source_remove_internal(session, serial->data);
 }
 
 /**

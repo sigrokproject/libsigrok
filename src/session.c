@@ -985,8 +985,8 @@ SR_PRIV int sr_session_source_add_internal(struct sr_session *session,
 	return ret;
 }
 
-static int attach_fd_source(struct sr_session *session,
-		void *key, int fd, int events, int timeout,
+SR_PRIV int sr_session_fd_source_add(struct sr_session *session,
+		void *key, gintptr fd, int events, int timeout,
 		sr_receive_data_callback cb, void *cb_data)
 {
 	GSource *source;
@@ -1027,7 +1027,7 @@ SR_API int sr_session_source_add(struct sr_session *session, int fd,
 		sr_err("Cannot create timer source without timeout.");
 		return SR_ERR_ARG;
 	}
-	return attach_fd_source(session, GINT_TO_POINTER(fd),
+	return sr_session_fd_source_add(session, GINT_TO_POINTER(fd),
 			fd, events, timeout, cb, cb_data);
 }
 
@@ -1054,7 +1054,7 @@ SR_API int sr_session_source_add_pollfd(struct sr_session *session,
 		sr_err("%s: pollfd was NULL", __func__);
 		return SR_ERR_ARG;
 	}
-	return attach_fd_source(session, pollfd, pollfd->fd,
+	return sr_session_fd_source_add(session, pollfd, pollfd->fd,
 			pollfd->events, timeout, cb, cb_data);
 }
 
@@ -1093,7 +1093,7 @@ SR_API int sr_session_source_add_channel(struct sr_session *session,
 	pollfd.fd = g_io_channel_unix_get_fd(channel);
 	pollfd.events = events;
 #endif
-	return attach_fd_source(session, channel, pollfd.fd,
+	return sr_session_fd_source_add(session, channel, pollfd.fd,
 			pollfd.events, timeout, cb, cb_data);
 }
 
