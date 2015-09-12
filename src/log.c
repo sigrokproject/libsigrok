@@ -21,10 +21,9 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <libsigrok/libsigrok.h>
-/** @cond PRIVATE */
-#define NO_LOG_WRAPPERS
-/** @endcond */
 #include "libsigrok-internal.h"
+
+#define LOG_PREFIX "log"
 
 /**
  * @file
@@ -118,28 +117,31 @@ SR_API int sr_log_loglevel_get(void)
  *                  messages from now on. Must not be NULL. The maximum
  *                  length of the string is 30 characters (this does not
  *                  include the trailing NUL-byte). Longer strings are
- *                  silently truncated.
+ *                  truncated.
  *                  In order to not use a logdomain, pass an empty string.
  *                  The function makes its own copy of the input string, i.e.
  *                  the caller does not need to keep it around.
  *
- * @return SR_OK upon success, SR_ERR_ARG upon invalid logdomain.
+ * @retval SR_OK upon success.
+ * @retval SR_ERR_ARG @a logdomain was NULL.
+ * @retval SR_ERR @a logdomain was truncated.
  *
  * @since 0.1.0
  */
 SR_API int sr_log_logdomain_set(const char *logdomain)
 {
+	size_t len;
+
 	if (!logdomain) {
-		sr_err("log: %s: logdomain was NULL", __func__);
+		sr_err("%s: logdomain was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
-	/* TODO: Error handling. */
-	snprintf(sr_log_domain, LOGDOMAIN_MAXLEN, "%s", logdomain);
+	len = g_strlcpy(sr_log_domain, logdomain, sizeof sr_log_domain);
 
 	sr_dbg("Log domain set to '%s'.", sr_log_domain);
 
-	return SR_OK;
+	return (len < sizeof sr_log_domain) ? SR_OK : SR_ERR;
 }
 
 /**
@@ -174,7 +176,7 @@ SR_API char *sr_log_logdomain_get(void)
 SR_API int sr_log_callback_set(sr_log_callback cb, void *cb_data)
 {
 	if (!cb) {
-		sr_err("log: %s: cb was NULL", __func__);
+		sr_err("%s: cb was NULL", __func__);
 		return SR_ERR_ARG;
 	}
 
@@ -248,71 +250,6 @@ SR_PRIV int sr_log(int loglevel, const char *format, ...)
 
 	va_start(args, format);
 	ret = sr_log_cb(sr_log_cb_data, loglevel, format, args);
-	va_end(args);
-
-	return ret;
-}
-
-/** @private */
-SR_PRIV int sr_spew(const char *format, ...)
-{
-	int ret;
-	va_list args;
-
-	va_start(args, format);
-	ret = sr_log_cb(sr_log_cb_data, SR_LOG_SPEW, format, args);
-	va_end(args);
-
-	return ret;
-}
-
-/** @private */
-SR_PRIV int sr_dbg(const char *format, ...)
-{
-	int ret;
-	va_list args;
-
-	va_start(args, format);
-	ret = sr_log_cb(sr_log_cb_data, SR_LOG_DBG, format, args);
-	va_end(args);
-
-	return ret;
-}
-
-/** @private */
-SR_PRIV int sr_info(const char *format, ...)
-{
-	int ret;
-	va_list args;
-
-	va_start(args, format);
-	ret = sr_log_cb(sr_log_cb_data, SR_LOG_INFO, format, args);
-	va_end(args);
-
-	return ret;
-}
-
-/** @private */
-SR_PRIV int sr_warn(const char *format, ...)
-{
-	int ret;
-	va_list args;
-
-	va_start(args, format);
-	ret = sr_log_cb(sr_log_cb_data, SR_LOG_WARN, format, args);
-	va_end(args);
-
-	return ret;
-}
-
-/** @private */
-SR_PRIV int sr_err(const char *format, ...)
-{
-	int ret;
-	va_list args;
-
-	va_start(args, format);
-	ret = sr_log_cb(sr_log_cb_data, SR_LOG_ERR, format, args);
 	va_end(args);
 
 	return ret;
