@@ -62,6 +62,9 @@ static void *sr_log_cb_data = NULL;
 /** @endcond */
 static char sr_log_domain[LOGDOMAIN_MAXLEN + 1] = LOGDOMAIN_DEFAULT;
 
+/** @cond PRIVATE */
+#define LOGLEVEL_TIMESTAMP SR_LOG_DBG
+/** @endcond */
 static int64_t sr_log_start_time = 0;
 
 /**
@@ -88,7 +91,7 @@ SR_API int sr_log_loglevel_set(int loglevel)
 		return SR_ERR_ARG;
 	}
 	/* Output time stamps relative to time at startup */
-	if (loglevel >= SR_LOG_SPEW && sr_log_start_time == 0)
+	if (loglevel >= LOGLEVEL_TIMESTAMP && sr_log_start_time == 0)
 		sr_log_start_time = g_get_monotonic_time();
 
 	cur_loglevel = loglevel;
@@ -211,10 +214,8 @@ SR_API int sr_log_callback_set_default(void)
 
 static int sr_logv(void *cb_data, int loglevel, const char *format, va_list args)
 {
-	int64_t elapsed;
-	int64_t min;
-	int sec;
-	int usec;
+	uint64_t elapsed_us, minutes;
+	unsigned int rest_us, seconds, microseconds;
 
 	/* This specific log callback doesn't need the void pointer data. */
 	(void)cb_data;
@@ -223,13 +224,16 @@ static int sr_logv(void *cb_data, int loglevel, const char *format, va_list args
 	if (loglevel > cur_loglevel)
 		return SR_OK;
 
-	if (cur_loglevel >= SR_LOG_SPEW) {
-		elapsed = g_get_monotonic_time() - sr_log_start_time;
-		min = elapsed / G_TIME_SPAN_MINUTE;
-		sec = (elapsed % G_TIME_SPAN_MINUTE) / G_TIME_SPAN_SECOND;
-		usec = elapsed % G_TIME_SPAN_SECOND;
+	if (cur_loglevel >= LOGLEVEL_TIMESTAMP) {
+		elapsed_us = g_get_monotonic_time() - sr_log_start_time;
 
-		if (fprintf(stderr, "[%.2" PRIi64 ":%.2d.%.6d] ", min, sec, usec) < 0)
+		minutes = elapsed_us / G_TIME_SPAN_MINUTE;
+		rest_us = elapsed_us % G_TIME_SPAN_MINUTE;
+		seconds = rest_us / G_TIME_SPAN_SECOND;
+		microseconds = rest_us % G_TIME_SPAN_SECOND;
+
+		if (fprintf(stderr, "[%.2" PRIu64 ":%.2u.%.6u] ",
+				minutes, seconds, microseconds) < 0)
 			return SR_ERR;
 	}
 	if (sr_log_domain[0] != '\0' && fputs(sr_log_domain, stderr) < 0)
