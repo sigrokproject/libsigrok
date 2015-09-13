@@ -712,7 +712,8 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 		}
 		devc->num_block_read = 0;
 	} else {
-		sr_dbg("%d of %d block bytes read", devc->num_block_read, devc->num_block_bytes);
+		sr_dbg("%" PRIu64 " of %" PRIu64 " block bytes read",
+			devc->num_block_read, devc->num_block_bytes);
 	}
 
 	devc->num_channel_bytes += len;

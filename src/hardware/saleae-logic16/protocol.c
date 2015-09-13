@@ -214,7 +214,7 @@ static int do_ep1_command(const struct sr_dev_inst *sdi,
 	}
 	if (xfer != cmd_len) {
 		sr_dbg("Failed to send EP1 command 0x%02x: incorrect length "
-		       "%d != %d.", xfer, cmd_len);
+		       "%d != %d.", command[0], xfer, cmd_len);
 		return SR_ERR;
 	}
 
@@ -230,7 +230,7 @@ static int do_ep1_command(const struct sr_dev_inst *sdi,
 	}
 	if (xfer != reply_len) {
 		sr_dbg("Failed to receive reply to EP1 command 0x%02x: "
-		       "incorrect length %d != %d.", xfer, reply_len);
+		       "incorrect length %d != %d.", command[0], xfer, reply_len);
 		return SR_ERR;
 	}
 

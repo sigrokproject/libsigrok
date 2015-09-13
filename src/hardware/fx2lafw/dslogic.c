@@ -38,7 +38,7 @@ int dslogic_fpga_firmware_upload(const struct sr_dev_inst *sdi,
 		const char *filename)
 {
 	FILE *fw;
-	struct stat st;
+	GStatBuf st;
 	struct sr_usb_dev_inst *usb;
 	int chunksize, result, ret;
 	unsigned char *buf;
@@ -48,7 +48,7 @@ int dslogic_fpga_firmware_upload(const struct sr_dev_inst *sdi,
 	sr_dbg("Uploading FPGA firmware at %s.", filename);
 
 	usb = sdi->conn;
-	if (stat(filename, &st) < 0) {
+	if (g_stat(filename, &st) < 0) {
 		sr_err("Unable to upload FPGA firmware: %s", g_strerror(errno));
 		return SR_ERR;
 	}
@@ -85,7 +85,8 @@ int dslogic_fpga_firmware_upload(const struct sr_dev_inst *sdi,
 			break;
 		}
 		sum += transferred;
-		sr_spew("Uploaded %d/%d bytes.", sum, st.st_size);
+		sr_spew("Uploaded %d/%" PRIu64 " bytes.",
+			sum, (uint64_t)st.st_size);
 
 		if (transferred != chunksize) {
 			sr_err("Short transfer while uploading FPGA firmware.");

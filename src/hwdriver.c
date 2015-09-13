@@ -602,7 +602,7 @@ static int check_key(const struct sr_dev_driver *driver,
 
 	if (sr_config_list(driver, sdi, cg, SR_CONF_DEVICE_OPTIONS, &gvar_opts) != SR_OK) {
 		/* Driver publishes no options. */
-		sr_err("No options available%s.", srci->id, suffix);
+		sr_err("No options available%s.", suffix);
 		return SR_ERR_ARG;
 	}
 	opts = g_variant_get_fixed_array(gvar_opts, &num_opts, sizeof(uint32_t));

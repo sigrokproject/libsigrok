@@ -193,9 +193,10 @@ SR_PRIV int motech_lps_30x_receive_data(int fd, int revents, void *cb_data)
 		return TRUE;
 
 	if (devc->acq_req_pending) {
-		gint64 elapsed_us = g_get_monotonic_time() - devc->req_sent_at;
+		int64_t elapsed_us = g_get_monotonic_time() - devc->req_sent_at;
 		if (elapsed_us > (REQ_TIMEOUT_MS * 1000)) {
-			sr_spew("Request timeout: req=%d t=%lldus", (int)devc->acq_req, elapsed_us);
+			sr_spew("Request timeout: req=%d t=%" PRIi64 "us",
+				(int)devc->acq_req, elapsed_us);
 			devc->acq_req_pending = 0;
 		}
 	}

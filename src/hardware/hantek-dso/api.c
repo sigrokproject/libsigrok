@@ -394,7 +394,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 			timediff_ms = timediff_us / 1000;
 			sr_spew("Waited %" PRIi64 " ms.", timediff_ms);
 		}
-		sr_info("Device came back after %d ms.", timediff_ms);
+		sr_info("Device came back after %" PRIi64 " ms.", timediff_ms);
 	} else {
 		err = dso_open(sdi);
 	}

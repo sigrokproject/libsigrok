@@ -507,7 +507,7 @@ static float read_sample(struct sr_channel *ch)
 
 	len = read(fd, buf, sizeof(buf));
 	if (len < 0) {
-		sr_err("Error reading from channel %s (hwmon: %s): %s",
+		sr_err("Error reading from channel %s (hwmon: %d): %s",
 			ch->name, chp->probe->hwmon_num, g_strerror(errno));
 		ch->enabled = FALSE;
 		return -1.0;

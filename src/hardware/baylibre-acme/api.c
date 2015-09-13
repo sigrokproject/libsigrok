@@ -421,7 +421,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 	sr_session_send(sdi, &packet);
 
 	if (devc->samples_missed > 0)
-		sr_warn("%d samples missed", devc->samples_missed);
+		sr_warn("%" PRIu64 " samples missed", devc->samples_missed);
 
 	return SR_OK;
 }

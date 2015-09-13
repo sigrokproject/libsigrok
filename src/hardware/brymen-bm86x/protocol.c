@@ -293,7 +293,7 @@ static int brymen_bm86x_read_interrupt(const struct sr_dev_inst *sdi)
 	}
 
 	if (transferred != sizeof(buf)) {
-		sr_err("Short packet: received %d/%d bytes.", transferred, sizeof(buf));
+		sr_err("Short packet: received %d/%zu bytes.", transferred, sizeof(buf));
 		return SR_ERR;
 	}
 

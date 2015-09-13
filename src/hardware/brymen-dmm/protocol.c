@@ -179,7 +179,9 @@ SR_PRIV int brymen_stream_detect(struct sr_serial_dev_inst *serial,
 {
 	int64_t start, time, byte_delay_us;
 	size_t ibuf, i, maxlen;
-	int status, len, packet_len, stream_len;
+	ssize_t len, stream_len;
+	int packet_len;
+	int status;
 
 	maxlen = *buflen;
 
@@ -195,7 +197,7 @@ SR_PRIV int brymen_stream_detect(struct sr_serial_dev_inst *serial,
 		len = serial_read_nonblocking(serial, &buf[ibuf], maxlen - ibuf);
 		if (len > 0) {
 			ibuf += len;
-			sr_spew("Read %d bytes.", len);
+			sr_spew("Read %zd bytes.", len);
 		}
 
 		time = g_get_monotonic_time() - start;
@@ -247,14 +249,14 @@ SR_PRIV int brymen_stream_detect(struct sr_serial_dev_inst *serial,
 
 		if (time >= (int64_t)timeout_ms) {
 			/* Timeout */
-			sr_dbg("Detection timed out after %dms.", time);
+			sr_dbg("Detection timed out after %" PRIi64 "ms.", time);
 			break;
 		}
 		g_usleep(byte_delay_us);
 	}
 
 	*buflen = ibuf;
-	sr_err("Didn't find a valid packet (read %d bytes).", ibuf);
+	sr_err("Didn't find a valid packet (read %zu bytes).", ibuf);
 
 	return SR_ERR;
 }

@@ -112,7 +112,9 @@ static int parse_value(const uint8_t *buf, float *result)
 	} else if (!isdigit(buf[1]) || !isdigit(buf[2]) ||
 		   !isdigit(buf[3]) || !isdigit(buf[4])) {
 		sr_dbg("Value contained invalid digits: %02x %02x %02x %02x ("
-		       "%c %c %c %c).", buf[1], buf[2], buf[3], buf[4]);
+			"%c %c %c %c).",
+			buf[1], buf[2], buf[3], buf[4],
+			buf[1], buf[2], buf[3], buf[4]);
 		return SR_ERR;
 	}
 	intval = 0;

@@ -434,7 +434,7 @@ SR_PRIV int hung_chang_dso_2100_poll(int fd, int revents, void *cb_data)
 		return TRUE;
 
 	if (state != 0x03) {
-		sr_err("Unexpected state 0x%X while checking for trigger");
+		sr_err("Unexpected state 0x%X while checking for trigger", state);
 		return FALSE;
 	}
 

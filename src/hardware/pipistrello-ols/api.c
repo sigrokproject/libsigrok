@@ -576,7 +576,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	 * buffer.
 	 */
 	sr_dbg("max_samples = %d", devc->max_samples);
-	sr_dbg("limit_samples = %d", devc->limit_samples);
+	sr_dbg("limit_samples = %" PRIu64, devc->limit_samples);
 	samplecount = MIN(devc->max_samples, devc->limit_samples);
 	sr_dbg("Samplecount = %d", samplecount);
 

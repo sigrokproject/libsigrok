@@ -267,7 +267,7 @@ static int _serial_write(struct sr_serial_dev_inst *serial,
 		return SR_ERR;
 	}
 
-	sr_spew("Wrote %d/%d bytes.", ret, count);
+	sr_spew("Wrote %zd/%zu bytes.", ret, count);
 
 	return ret;
 }
@@ -345,7 +345,7 @@ static int _serial_read(struct sr_serial_dev_inst *serial, void *buf,
 	}
 
 	if (ret > 0)
-		sr_spew("Read %d/%d bytes.", ret, count);
+		sr_spew("Read %zd/%zu bytes.", ret, count);
 
 	return ret;
 }
@@ -683,7 +683,7 @@ SR_PRIV int serial_stream_detect(struct sr_serial_dev_inst *serial,
 {
 	uint64_t start, time, byte_delay_us;
 	size_t ibuf, i, maxlen;
-	int len;
+	ssize_t len;
 
 	maxlen = *buflen;
 
@@ -716,12 +716,12 @@ SR_PRIV int serial_stream_detect(struct sr_serial_dev_inst *serial,
 		if ((ibuf - i) >= packet_size) {
 			/* We have at least a packet's worth of data. */
 			if (is_valid(&buf[i])) {
-				sr_spew("Found valid %d-byte packet after "
+				sr_spew("Found valid %zu-byte packet after "
 					"%" PRIu64 "ms.", (ibuf - i), time);
 				*buflen = ibuf;
 				return SR_OK;
 			} else {
-				sr_spew("Got %d bytes, but not a valid "
+				sr_spew("Got %zu bytes, but not a valid "
 					"packet.", (ibuf - i));
 			}
 			/* Not a valid packet. Continue searching. */
@@ -729,7 +729,7 @@ SR_PRIV int serial_stream_detect(struct sr_serial_dev_inst *serial,
 		}
 		if (time >= timeout_ms) {
 			/* Timeout */
-			sr_dbg("Detection timed out after %dms.", time);
+			sr_dbg("Detection timed out after %" PRIu64 "ms.", time);
 			break;
 		}
 		if (len < 1)
@@ -738,7 +738,7 @@ SR_PRIV int serial_stream_detect(struct sr_serial_dev_inst *serial,
 
 	*buflen = ibuf;
 
-	sr_err("Didn't find a valid packet (read %d bytes).", *buflen);
+	sr_err("Didn't find a valid packet (read %zu bytes).", *buflen);
 
 	return SR_ERR;
 }

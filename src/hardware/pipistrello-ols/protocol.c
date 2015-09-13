@@ -505,7 +505,9 @@ SR_PRIV int p_ols_receive_data(int fd, int revents, void *cb_data)
 					}
 					/* Clear out the most significant bit of the sample */
 					devc->tmp_sample[devc->num_bytes - 1] &= 0x7f;
-					sr_spew("Expanded sample 1: 0x%.8x.", devc->tmp_sample);
+					sr_spew("Expanded sample 1: 0x%.2x%.2x%.2x%.2x.",
+						devc->tmp_sample[3], devc->tmp_sample[2],
+						devc->tmp_sample[1], devc->tmp_sample[0]);
 
 					/* expand second sample */
 					memset(devc->tmp_sample2, 0, 4);
@@ -521,7 +523,9 @@ SR_PRIV int p_ols_receive_data(int fd, int revents, void *cb_data)
 					}
 					/* Clear out the most significant bit of the sample */
 					devc->tmp_sample2[devc->num_bytes - 1] &= 0x7f;
-					sr_spew("Expanded sample 2: 0x%.8x.", devc->tmp_sample2);
+					sr_spew("Expanded sample 2: 0x%.2x%.2x%.2x%.2x.",
+						devc->tmp_sample2[3], devc->tmp_sample2[2],
+						devc->tmp_sample2[1], devc->tmp_sample2[0]);
 
 					/*
 					 * OLS sends its sample buffer backwards.

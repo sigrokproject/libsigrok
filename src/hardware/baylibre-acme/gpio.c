@@ -125,7 +125,7 @@ SR_PRIV int sr_gpio_get_value(int gpio)
 	status = fscanf(fd, "%d", &ret);
 	fclose(fd);
 	if (status != 1) {
-		sr_err("Error reading from %s: %s", path, g_strerror(errno));
+		sr_err("Error reading from %s: %s", path->str, g_strerror(errno));
 		g_string_free(path, TRUE);
 		return -1;
 	}

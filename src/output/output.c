@@ -283,7 +283,8 @@ SR_API const struct sr_output *sr_output_new(const struct sr_output_module *omod
 				/* Pass option along. */
 				gvt = g_variant_get_type(mod_opts[i].def);
 				if (!g_variant_is_of_type(value, gvt)) {
-					sr_err("Invalid type for '%s' option.", key);
+					sr_err("Invalid type for '%s' option.",
+						(char *)key);
 					g_free(op);
 					return NULL;
 				}
@@ -301,7 +302,8 @@ SR_API const struct sr_output *sr_output_new(const struct sr_output_module *omod
 			g_hash_table_iter_init(&iter, options);
 			while (g_hash_table_iter_next(&iter, &key, &value)) {
 				if (!g_hash_table_lookup(new_opts, key)) {
-					sr_err("Output module '%s' has no option '%s'", omod->id, key);
+					sr_err("Output module '%s' has no option '%s'",
+						omod->id, (char *)key);
 					g_hash_table_destroy(new_opts);
 					g_free(op);
 					return NULL;

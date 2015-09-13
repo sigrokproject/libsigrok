@@ -856,7 +856,7 @@ static void process_msg_inf_13(struct sr_dev_inst *sdi)
 		devc->value += pow(10.0, cnt) * dgt;
 	}
 	sr_spew("process_msg_inf_13() value=%f scale=%f scale1000=%d mq=%d "
-		"unit=%d mqflags=0x%02llx", devc->value, devc->scale,
+		"unit=%d mqflags=0x%02" PRIx64, devc->value, devc->scale,
 		devc->scale1000, devc->mq, devc->unit, devc->mqflags);
 	if (devc->value != NAN)
 		devc->value *= devc->scale * pow(1000.0, devc->scale1000);
@@ -1002,7 +1002,7 @@ SR_PRIV int process_msg14(struct sr_dev_inst *sdi)
 		sr_spew("Cmd %d unimplemented!", devc->buf[3]);
 		break;
 	case 3: /* Read firmware version and status */
-		sr_spew("Cmd 3, Read firmware and status", devc->buf[3]);
+		sr_spew("Cmd 3, Read firmware and status");
 		switch (devc->cmd_idx) {
 		case 0:
 			devc->fw_ver_maj = devc->buf[5];
@@ -1073,7 +1073,7 @@ SR_PRIV int process_msg14(struct sr_dev_inst *sdi)
 			devc->value += pow(10.0, cnt) * dgt;
 		}
 		sr_spew("process_msg14() value=%f scale=%f scale1000=%d mq=%d "
-			"unit=%d mqflags=0x%02llx", devc->value, devc->scale,
+			"unit=%d mqflags=0x%02" PRIx64, devc->value, devc->scale,
 			devc->scale1000, devc->mq, devc->unit, devc->mqflags);
 		if (devc->value != NAN)
 			devc->value *= devc->scale * pow(1000.0, devc->scale1000);

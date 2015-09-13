@@ -425,10 +425,10 @@ SR_PRIV int sr_scpi_get_string(struct sr_scpi_dev_inst *scpi,
 	if (response->len >= 1 && response->str[response->len - 1] == '\r')
 		g_string_truncate(response, response->len - 1);
 
-	*scpi_response = response->str;
-	g_string_free(response, FALSE);
+	sr_spew("Got response: '%.70s', length %" G_GSIZE_FORMAT ".",
+		response->str, response->len);
 
-	sr_spew("Got response: '%.70s', length %d.", *scpi_response, strlen(*scpi_response));
+	*scpi_response = g_string_free(response, FALSE);
 
 	return SR_OK;
 }

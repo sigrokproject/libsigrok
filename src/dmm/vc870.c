@@ -70,8 +70,9 @@ static int parse_value(const uint8_t *buf, struct vc870_info *info,
 	} else if (!isdigit(buf[3]) || !isdigit(buf[4]) ||
 	           !isdigit(buf[5]) || !isdigit(buf[6]) || !isdigit(buf[7])) {
 		sr_dbg("Invalid digits: %02x %02x %02x %02x %02X "
-		       "(%c %c %c %c %c).", buf[3], buf[4], buf[5], buf[6],
-		       buf[7]);
+			"(%c %c %c %c %c).",
+			buf[3], buf[4], buf[5], buf[6], buf[7],
+			buf[3], buf[4], buf[5], buf[6], buf[7]);
 		return SR_ERR;
 	}
 

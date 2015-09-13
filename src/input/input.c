@@ -263,7 +263,8 @@ SR_API struct sr_input *sr_input_new(const struct sr_input_module *imod,
 				/* Option not given: insert the default value. */
 				gvt = g_variant_get_type(mod_opts[i].def);
 				if (!g_variant_is_of_type(value, gvt)) {
-					sr_err("Invalid type for '%s' option.", key);
+					sr_err("Invalid type for '%s' option.",
+						(char *)key);
 					g_free(in);
 					return NULL;
 				}
@@ -281,7 +282,8 @@ SR_API struct sr_input *sr_input_new(const struct sr_input_module *imod,
 			g_hash_table_iter_init(&iter, options);
 			while (g_hash_table_iter_next(&iter, &key, &value)) {
 				if (!g_hash_table_lookup(new_opts, key)) {
-					sr_err("Input module '%s' has no option '%s'", imod->id, key);
+					sr_err("Input module '%s' has no option '%s'",
+						imod->id, (char *)key);
 					g_hash_table_destroy(new_opts);
 					g_free(in);
 					return NULL;
@@ -549,7 +551,8 @@ SR_API struct sr_dev_inst *sr_input_dev_inst_get(const struct sr_input *in)
  */
 SR_API int sr_input_send(const struct sr_input *in, GString *buf)
 {
-	sr_spew("Sending %d bytes to %s module.", buf->len, in->module->id);
+	sr_spew("Sending %" G_GSIZE_FORMAT " bytes to %s module.",
+		buf->len, in->module->id);
 	return in->module->receive((struct sr_input *)in, buf);
 }
 
@@ -583,7 +586,8 @@ SR_API void sr_input_free(const struct sr_input *in)
 		sr_dev_inst_free(in->sdi);
 	if (in->buf->len > 64) {
 		/* That seems more than just some sub-unitsize leftover... */
-		sr_warn("Found %d unprocessed bytes at free time.", in->buf->len);
+		sr_warn("Found %" G_GSIZE_FORMAT
+			" unprocessed bytes at free time.", in->buf->len);
 	}
 	g_string_free(in->buf, TRUE);
 	g_free(in->priv);

@@ -86,7 +86,7 @@ static int scpi_tcp_open(void *priv)
 	err = getaddrinfo(tcp->address, tcp->port, &hints, &results);
 
 	if (err) {
-		sr_err("Address lookup failed: %s:%d: %s", tcp->address, tcp->port,
+		sr_err("Address lookup failed: %s:%s: %s", tcp->address, tcp->port,
 			gai_strerror(err));
 		return SR_ERR;
 	}

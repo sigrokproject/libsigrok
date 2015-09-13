@@ -118,7 +118,7 @@ static int scpi_vxi_send(void *priv, const char *command)
 	Device_WriteResp *write_resp;
 	Device_WriteParms write_parms;
 	char *terminated_command;
-	unsigned int len;
+	unsigned long len;
 
 	terminated_command = g_strdup_printf("%s\r\n", command);
 	len = strlen(terminated_command);
@@ -132,7 +132,7 @@ static int scpi_vxi_send(void *priv, const char *command)
 
 	if (!(write_resp = device_write_1(&write_parms, vxi->client))
 	    || write_resp->error) {
-		sr_err("Device write failed for %s with error %d",
+		sr_err("Device write failed for %s with error %ld",
 		       vxi->address, write_resp ? write_resp->error : 0);
 		return SR_ERR;
 	}
@@ -140,7 +140,7 @@ static int scpi_vxi_send(void *priv, const char *command)
 	g_free(terminated_command);
 
 	if (write_resp->size < len)
-		sr_dbg("Only sent %d/%d bytes of SCPI command: '%s'.",
+		sr_dbg("Only sent %lu/%lu bytes of SCPI command: '%s'.",
 		       write_resp->size, len, command);
 	else
 		sr_spew("Successfully sent SCPI command: '%s'.", command);
@@ -177,7 +177,7 @@ static int scpi_vxi_read_data(void *priv, char *buf, int maxlen)
 
 	if (!(read_resp = device_read_1(&read_parms, vxi->client))
 	    || read_resp->error) {
-		sr_err("Device read failed for %s with error %d",
+		sr_err("Device read failed for %s with error %ld",
 		       vxi->address, read_resp ? read_resp->error : 0);
 		return SR_ERR;
 	}
