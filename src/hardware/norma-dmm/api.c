@@ -120,7 +120,8 @@ static GSList *scan(struct sr_dev_driver *drv, GSList *options)
 		 nmadmm_requests[NMADMM_REQ_IDN].req_str);
 	g_usleep(150 * 1000); /* Wait a little to allow serial port to settle. */
 	for (cnt = 0; cnt < 7; cnt++) {
-		if (serial_write_blocking(serial, req, strlen(req), 0) < 0) {
+		if (serial_write_blocking(serial, req, strlen(req),
+				serial_timeout(serial, strlen(req))) < 0) {
 			sr_err("Unable to send identification request.");
 			return NULL;
 		}
