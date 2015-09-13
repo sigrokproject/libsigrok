@@ -20,6 +20,7 @@
 
 #include <stdarg.h>
 #include <stdio.h>
+#include <glib/gprintf.h>
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
@@ -178,13 +179,13 @@ static int sr_logv(void *cb_data, int loglevel, const char *format, va_list args
 		seconds = rest_us / G_TIME_SPAN_SECOND;
 		microseconds = rest_us % G_TIME_SPAN_SECOND;
 
-		ret = fprintf(stderr, "sr: [%.2" PRIu64 ":%.2u.%.6u] ",
+		ret = g_fprintf(stderr, "sr: [%.2" PRIu64 ":%.2u.%.6u] ",
 				minutes, seconds, microseconds);
 	} else {
 		ret = fputs("sr: ", stderr);
 	}
 
-	if (ret < 0 || vfprintf(stderr, format, args) < 0
+	if (ret < 0 || g_vfprintf(stderr, format, args) < 0
 			|| putc('\n', stderr) < 0)
 		return SR_ERR;
 
