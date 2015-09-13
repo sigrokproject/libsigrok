@@ -151,7 +151,8 @@ SR_PRIV int lps_send_va(struct sr_serial_dev_inst *serial, const char *fmt, va_l
 
 	sr_spew("lps_send_va: \"%s\"", buf);
 
-	retc = serial_write_blocking(serial, buf, strlen(buf), 0);
+	retc = serial_write_blocking(serial, buf, strlen(buf),
+			serial_timeout(serial, strlen(buf)));
 
 	if (retc < 0)
 		return SR_ERR;
