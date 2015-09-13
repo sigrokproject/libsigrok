@@ -49,8 +49,6 @@ SR_API int sr_log_loglevel_set(int loglevel);
 SR_API int sr_log_loglevel_get(void);
 SR_API int sr_log_callback_set(sr_log_callback cb, void *cb_data);
 SR_API int sr_log_callback_set_default(void);
-SR_API int sr_log_logdomain_set(const char *logdomain);
-SR_API char *sr_log_logdomain_get(void);
 
 /*--- device.c --------------------------------------------------------------*/
 

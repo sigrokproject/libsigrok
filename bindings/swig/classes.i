@@ -176,9 +176,6 @@ typedef std::map<const sigrok::ConfigKey *, Glib::VariantBase>
 %attribute(sigrok::Context,
     const sigrok::LogLevel *, log_level, log_level, set_log_level);
 
-%attributestring(sigrok::Context,
-    std::string, log_domain, log_domain, set_log_domain);
-
 %attributestring(sigrok::Driver, std::string, name, name);
 %attributestring(sigrok::Driver, std::string, long_name, long_name);
 

@@ -55,13 +55,6 @@ static sr_log_callback sr_log_cb = sr_logv;
  */
 static void *sr_log_cb_data = NULL;
 
-/* Log domain (a short string that is used as prefix for all messages). */
-/** @cond PRIVATE */
-#define LOGDOMAIN_MAXLEN 30
-#define LOGDOMAIN_DEFAULT "sr: "
-/** @endcond */
-static char sr_log_domain[LOGDOMAIN_MAXLEN + 1] = LOGDOMAIN_DEFAULT;
-
 /** @cond PRIVATE */
 #define LOGLEVEL_TIMESTAMP SR_LOG_DBG
 /** @endcond */
@@ -111,54 +104,6 @@ SR_API int sr_log_loglevel_set(int loglevel)
 SR_API int sr_log_loglevel_get(void)
 {
 	return cur_loglevel;
-}
-
-/**
- * Set the libsigrok logdomain string.
- *
- * @param logdomain The string to use as logdomain for libsigrok log
- *                  messages from now on. Must not be NULL. The maximum
- *                  length of the string is 30 characters (this does not
- *                  include the trailing NUL-byte). Longer strings are
- *                  truncated.
- *                  In order to not use a logdomain, pass an empty string.
- *                  The function makes its own copy of the input string, i.e.
- *                  the caller does not need to keep it around.
- *
- * @retval SR_OK upon success.
- * @retval SR_ERR_ARG @a logdomain was NULL.
- * @retval SR_ERR @a logdomain was truncated.
- *
- * @since 0.1.0
- */
-SR_API int sr_log_logdomain_set(const char *logdomain)
-{
-	size_t len;
-
-	if (!logdomain) {
-		sr_err("%s: logdomain was NULL", __func__);
-		return SR_ERR_ARG;
-	}
-
-	len = g_strlcpy(sr_log_domain, logdomain, sizeof sr_log_domain);
-
-	sr_dbg("Log domain set to '%s'.", sr_log_domain);
-
-	return (len < sizeof sr_log_domain) ? SR_OK : SR_ERR;
-}
-
-/**
- * Get the currently configured libsigrok logdomain.
- *
- * @return A copy of the currently configured libsigrok logdomain
- *         string. The caller is responsible for g_free()ing the string when
- *         it is no longer needed.
- *
- * @since 0.1.0
- */
-SR_API char *sr_log_logdomain_get(void)
-{
-	return g_strdup(sr_log_domain);
 }
 
 /**
@@ -236,8 +181,6 @@ static int sr_logv(void *cb_data, int loglevel, const char *format, va_list args
 				minutes, seconds, microseconds) < 0)
 			return SR_ERR;
 	}
-	if (sr_log_domain[0] != '\0' && fputs(sr_log_domain, stderr) < 0)
-		return SR_ERR;
 	if (vfprintf(stderr, format, args) < 0)
 		return SR_ERR;
 	if (putc('\n', stderr) < 0)

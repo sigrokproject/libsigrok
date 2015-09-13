@@ -253,11 +253,6 @@ public:
 	/** Set the log level.
 	 * @param level LogLevel to use. */
 	void set_log_level(const LogLevel *level);
-	/** Current log domain. */
-	string log_domain();
-	/** Set the log domain.
-	 * @param value Log domain prefix string. */
-	void set_log_domain(string value);
 	/** Set the log callback.
 	 * @param callback Callback of the form callback(LogLevel, string). */
 	void set_log_callback(LogCallbackFunction callback);

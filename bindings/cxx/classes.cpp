@@ -161,16 +161,6 @@ void Context::set_log_level(const LogLevel *level)
 	check(sr_log_loglevel_set(level->id()));
 }
 
-string Context::log_domain()
-{
-	return valid_string(sr_log_logdomain_get());
-}
-
-void Context::set_log_domain(string value)
-{
-	check(sr_log_logdomain_set(value.c_str()));
-}
-
 static int call_log_callback(void *cb_data, int loglevel, const char *format, va_list args)
 {
 	va_list args_copy;
