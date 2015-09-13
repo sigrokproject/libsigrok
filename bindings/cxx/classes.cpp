@@ -17,6 +17,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/* Needed for isascii(), as used in the GNU libstdc++ headers */
+#ifndef _XOPEN_SOURCE
+#define _XOPEN_SOURCE 600
+#endif
+
 #include <config.h>
 #include <libsigrokcxx/libsigrokcxx.hpp>
 
