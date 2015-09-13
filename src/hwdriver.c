@@ -167,8 +167,6 @@ static struct sr_key_info sr_key_info_config[] = {
 		"Output frequency target", NULL},
 	{SR_CONF_MEASURED_QUANTITY, SR_T_MQ, "measured_quantity",
 		"Measured quantity", NULL},
-	{SR_CONF_MEASURED_2ND_QUANTITY, SR_T_STRING, "measured_2nd_quantity",
-		"Measured secondary quantity", NULL},
 	{SR_CONF_EQUIV_CIRCUIT_MODEL, SR_T_STRING, "equiv_circuit_model",
 		"Equivalent circuit model", NULL},
 	{SR_CONF_OVER_TEMPERATURE_PROTECTION_ACTIVE, SR_T_BOOL, "otp_active",

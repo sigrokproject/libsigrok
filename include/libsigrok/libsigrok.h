@@ -946,9 +946,6 @@ enum sr_configkey {
 	/** Measured quantity. */
 	SR_CONF_MEASURED_QUANTITY,
 
-	/** Measured secondary quantity. */
-	SR_CONF_MEASURED_2ND_QUANTITY,
-
 	/** Equivalent circuit model. */
 	SR_CONF_EQUIV_CIRCUIT_MODEL,
 
