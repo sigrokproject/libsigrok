@@ -161,6 +161,7 @@ static int sr_logv(void *cb_data, int loglevel, const char *format, va_list args
 {
 	uint64_t elapsed_us, minutes;
 	unsigned int rest_us, seconds, microseconds;
+	int ret;
 
 	/* This specific log callback doesn't need the void pointer data. */
 	(void)cb_data;
@@ -177,13 +178,14 @@ static int sr_logv(void *cb_data, int loglevel, const char *format, va_list args
 		seconds = rest_us / G_TIME_SPAN_SECOND;
 		microseconds = rest_us % G_TIME_SPAN_SECOND;
 
-		if (fprintf(stderr, "[%.2" PRIu64 ":%.2u.%.6u] ",
-				minutes, seconds, microseconds) < 0)
-			return SR_ERR;
+		ret = fprintf(stderr, "sr: [%.2" PRIu64 ":%.2u.%.6u] ",
+				minutes, seconds, microseconds);
+	} else {
+		ret = fputs("sr: ", stderr);
 	}
-	if (vfprintf(stderr, format, args) < 0)
-		return SR_ERR;
-	if (putc('\n', stderr) < 0)
+
+	if (ret < 0 || vfprintf(stderr, format, args) < 0
+			|| putc('\n', stderr) < 0)
 		return SR_ERR;
 
 	return SR_OK;
