@@ -1312,7 +1312,8 @@ int req_meas14(const struct sr_dev_inst *sdi)
 	devc->cmd_idx = 0;
 	create_cmd_14(devc->addr, 8, params, msg);
 	devc->req_sent_at = g_get_monotonic_time();
-	if (serial_write_blocking(serial, msg, sizeof(msg), 0) < (int)sizeof(msg)) {
+	if (serial_write_blocking(serial, msg, sizeof(msg),
+			serial_timeout(serial, sizeof(msg))) < (int)sizeof(msg)) {
 		return SR_ERR;
 	}
 
@@ -1341,13 +1342,16 @@ int req_stat14(const struct sr_dev_inst *sdi, gboolean power_on)
 
 	if (power_on) {
 		sr_info("Write some data and wait 3s to turn on powered off device...");
-		if (serial_write_blocking(serial, msg, sizeof(msg), 0) < 0)
+		if (serial_write_blocking(serial, msg, sizeof(msg),
+				serial_timeout(serial, sizeof(msg))) < 0)
 			return SR_ERR;
 		g_usleep(1 * 1000 * 1000);
-		if (serial_write_blocking(serial, msg, sizeof(msg), 0) < 0)
+		if (serial_write_blocking(serial, msg, sizeof(msg),
+				serial_timeout(serial, sizeof(msg))) < 0)
 			return SR_ERR;
 		g_usleep(1 * 1000 * 1000);
-		if (serial_write_blocking(serial, msg, sizeof(msg), 0) < 0)
+		if (serial_write_blocking(serial, msg, sizeof(msg),
+				serial_timeout(serial, sizeof(msg))) < 0)
 			return SR_ERR;
 		g_usleep(1 * 1000 * 1000);
 		serial_flush(serial);
@@ -1355,7 +1359,8 @@ int req_stat14(const struct sr_dev_inst *sdi, gboolean power_on)
 
 	/* Write message and wait for reply */
 	devc->req_sent_at = g_get_monotonic_time();
-	if (serial_write_blocking(serial, msg, sizeof(msg), 0) < (int)sizeof(msg)) {
+	if (serial_write_blocking(serial, msg, sizeof(msg),
+			serial_timeout(serial, sizeof(msg))) < (int)sizeof(msg)) {
 		return SR_ERR;
 	}
 
@@ -1532,7 +1537,8 @@ SR_PRIV int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *s
 		params[0] = 5;
 		params[1] = 5;
 		create_cmd_14(devc->addr, 6, params, msg);
-		if (serial_write_blocking(sdi->conn, msg, sizeof(msg), 0) < 0)
+		if (serial_write_blocking(sdi->conn, msg, sizeof(msg),
+				serial_timeout(sdi->conn, sizeof(msg))) < 0)
 			return SR_ERR;
 		else
 			g_usleep(2 * 1000 * 1000); /* Wait to ensure transfer before interface switched off. */
