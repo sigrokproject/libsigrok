@@ -44,7 +44,8 @@ SR_PRIV int hcs_send_cmd(struct sr_serial_dev_inst *serial, const char *cmd, ...
 	sr_dbg("Sending '%s'.", cmd_esc);
 	g_free(cmd_esc);
 
-	if ((ret = serial_write_blocking(serial, cmdbuf, strlen(cmdbuf), 0)) < 0) {
+	if ((ret = serial_write_blocking(serial, cmdbuf, strlen(cmdbuf),
+			serial_timeout(serial, strlen(cmdbuf)))) < 0) {
 		sr_err("Error sending command: %d.", ret);
 		return ret;
 	}
