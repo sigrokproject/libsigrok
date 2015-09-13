@@ -134,7 +134,8 @@ SR_PRIV int tondaj_sl_814_receive_data(int fd, int revents, void *cb_data)
 		buf[2] = 0x0d;
 		sr_spew("Sending init command: %02x %02x %02x.",
 			buf[0], buf[1], buf[2]);
-		if ((ret = serial_write_blocking(serial, buf, 3, 0)) < 0) {
+		if ((ret = serial_write_blocking(serial, buf, 3,
+				serial_timeout(serial, 3))) < 0) {
 			sr_err("Error sending init command: %d.", ret);
 			return FALSE;
 		}
@@ -160,7 +161,8 @@ SR_PRIV int tondaj_sl_814_receive_data(int fd, int revents, void *cb_data)
 		buf[2] = 0x0d;
 		sr_spew("Sending data request command: %02x %02x %02x.",
 			buf[0], buf[1], buf[2]);
-		if ((ret = serial_write_blocking(serial, buf, 3, 0)) < 0) {
+		if ((ret = serial_write_blocking(serial, buf, 3,
+				serial_timeout(serial, 3))) < 0) {
 			sr_err("Error sending request command: %d.", ret);
 			return FALSE;
 		}
