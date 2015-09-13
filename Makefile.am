@@ -29,7 +29,7 @@ if BINDINGS_CXX
 local_includes += -Ibindings/cxx/include -I$(srcdir)/bindings/cxx/include -Ibindings/cxx
 endif
 # Ensure that local include directories are always searched first.
-AM_CPPFLAGS = $(local_includes) -D_POSIX_C_SOURCE=200112L -DFIRMWARE_DIR='"$(FIRMWARE_DIR)"'
+AM_CPPFLAGS = $(local_includes) -DFIRMWARE_DIR='"$(FIRMWARE_DIR)"'
 
 # The tests CFLAGS are a superset of the libsigrok CFLAGS, and the
 # python bindings CFLAGS are a superset of the C++ bindings CFLAGS.

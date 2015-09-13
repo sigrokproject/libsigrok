@@ -44,6 +44,12 @@ AC_PROG_LN_S
 # Required for per-target flags or subdir-objects with C sources.
 AM_PROG_CC_C_O
 
+# Set the standard the C library headers should conform to.
+AH_VERBATIM([_POSIX_C_SOURCE], [/* The targeted POSIX standard. */
+#ifndef _POSIX_C_SOURCE
+# define _POSIX_C_SOURCE 200112L
+#endif])
+
 # Get compiler versions.
 SR_PROG_VERSION([$CC], [sr_cc_version])
 SR_PROG_VERSION([$CXX], [sr_cxx_version])
