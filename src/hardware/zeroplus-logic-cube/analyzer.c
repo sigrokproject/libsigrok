@@ -29,6 +29,7 @@
  *  THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <config.h>
 #include <assert.h>
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"

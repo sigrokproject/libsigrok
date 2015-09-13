@@ -23,6 +23,7 @@
  * Brymen BM25x serial protocol parser.
  */
 
+#include <config.h>
 #include <math.h>
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"

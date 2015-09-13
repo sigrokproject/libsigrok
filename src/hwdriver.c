@@ -17,13 +17,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <config.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/types.h>
 #include <dirent.h>
 #include <string.h>
 #include <glib.h>
-#include "config.h" /* Needed for HAVE_LIBUSB_1_0 and others. */
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 

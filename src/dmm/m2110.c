@@ -25,6 +25,7 @@
  * Most probably the simplest multimeter protocol ever ;-) .
  */
 
+#include <config.h>
 #include <string.h>
 #include <math.h>
 #include <glib.h>

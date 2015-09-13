@@ -21,6 +21,7 @@
  * Helper functions for the Cypress EZ-USB / FX2 series chips.
  */
 
+#include <config.h>
 #include <libusb.h>
 #include <glib.h>
 #include <glib/gstdio.h>

@@ -30,7 +30,7 @@ const ConfigKey *ConfigKey::get_by_identifier(string identifier)
 	return get(info->key);
 }
 
-#include "config.h"
+#include <config.h>
 
 #ifndef HAVE_STOI_STOD
 

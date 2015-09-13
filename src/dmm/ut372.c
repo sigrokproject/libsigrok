@@ -22,6 +22,7 @@
  * UNI-T UT372 protocol parser.
  */
 
+#include <config.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <math.h>

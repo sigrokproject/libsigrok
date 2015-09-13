@@ -23,6 +23,7 @@
  * @internal
  */
 
+#include <config.h>
 #include "protocol.h"
 
 /**

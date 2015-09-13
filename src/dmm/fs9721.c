@@ -31,6 +31,7 @@
  *  - The protocol seems to be exactly the same.
  */
 
+#include <config.h>
 #include <string.h>
 #include <ctype.h>
 #include <math.h>

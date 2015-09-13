@@ -22,6 +22,7 @@
  *  @internal
  */
 
+#include <config.h>
 #include "protocol.h"
 
 #define SERIALCOMM "9600/8n1"

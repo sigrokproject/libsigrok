@@ -33,10 +33,6 @@ AM_INIT_AUTOMAKE([1.11 -Wall -Werror no-define nostdinc subdir-objects check-new
 AM_SILENT_RULES([yes])
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 
-AH_TOP([#ifndef SR_CONFIG_H
-#define SR_CONFIG_H    /* To stop multiple inclusions. */])
-AH_BOTTOM([#endif /* SR_CONFIG_H */])
-
 AC_CANONICAL_HOST
 
 # Checks for programs.

@@ -17,6 +17,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <config.h>
 #include "protocol.h"
 
 extern struct sr_dev_driver ikalogic_scanalogic2_driver_info;

@@ -22,6 +22,7 @@
  * Fortune Semiconductor FS9922-DMM3/FS9922-DMM4 protocol parser.
  */
 
+#include <config.h>
 #include <string.h>
 #include <ctype.h>
 #include <math.h>

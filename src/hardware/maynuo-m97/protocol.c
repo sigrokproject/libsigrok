@@ -17,6 +17,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <config.h>
 #include "protocol.h"
 
 SR_PRIV int maynuo_m97_get_bit(struct sr_modbus_dev_inst *modbus,

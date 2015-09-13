@@ -25,6 +25,7 @@
  * @internal
  */
 
+#include <config.h>
 #include "scpi.h"
 #include "protocol.h"
 

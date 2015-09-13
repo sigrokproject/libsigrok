@@ -18,6 +18,7 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
+#include <config.h>
 #include "protocol.h"
 
 static int mic_send(struct sr_serial_dev_inst *serial, const char *cmd)

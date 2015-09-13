@@ -24,6 +24,7 @@
   *  @internal
   */
 
+#include <config.h>
 #include "protocol.h"
 
 static const uint32_t drvopts[] = {

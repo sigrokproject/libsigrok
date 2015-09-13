@@ -3,6 +3,7 @@
  * It was generated using rpcgen.
  */
 
+#include <config.h>
 #include "vxi.h"
 
 bool_t

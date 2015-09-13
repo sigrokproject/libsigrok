@@ -24,6 +24,7 @@
   *  @internal
   */
 
+#include <config.h>
 #include "protocol.h"
 
 #define REQ_TIMEOUT_MS 500

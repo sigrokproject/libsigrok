@@ -17,6 +17,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <config.h>
 #include "protocol.h"
 
 extern SR_PRIV struct sr_dev_driver p_ols_driver_info;

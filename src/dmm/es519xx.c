@@ -25,6 +25,7 @@
  * Communication parameters: Unidirectional, 2400/7o1 or 19230/7o1
  */
 
+#include <config.h>
 #include <string.h>
 #include <ctype.h>
 #include <math.h>

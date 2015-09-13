@@ -17,6 +17,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <config.h>
 #include "protocol.h"
 
 static void handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi)

@@ -23,6 +23,7 @@
  * ASIX SIGMA/SIGMA2 logic analyzer driver
  */
 
+#include <config.h>
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <ftdi.h>

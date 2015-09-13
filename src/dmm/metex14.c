@@ -30,6 +30,7 @@
  * It does _not_ work for all Metex DMMs, some use a quite different protocol.
  */
 
+#include <config.h>
 #include <string.h>
 #include <strings.h>
 #include <ctype.h>

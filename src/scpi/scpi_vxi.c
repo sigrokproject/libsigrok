@@ -20,6 +20,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <config.h>
 #include "vxi.h"
 #include <rpc/rpc.h>
 #include <string.h>

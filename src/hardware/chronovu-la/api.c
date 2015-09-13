@@ -18,6 +18,7 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
+#include <config.h>
 #include "protocol.h"
 
 SR_PRIV struct sr_dev_driver chronovu_la_driver_info;

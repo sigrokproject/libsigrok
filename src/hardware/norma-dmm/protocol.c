@@ -22,6 +22,7 @@
  *  @internal
  */
 
+#include <config.h>
 #include "protocol.h"
 
 #define LINE_LENGTH 20
