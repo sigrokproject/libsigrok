@@ -79,7 +79,8 @@ static int bm_send_command(uint8_t command, uint8_t arg1, uint8_t arg2,
 	/* TODO: How to compute the checksum? Hardware seems to ignore it. */
 
 	/* Request reading. */
-	written = serial_write_blocking(serial, &cmdout, sizeof(cmdout), 0);
+	written = serial_write_blocking(serial, &cmdout, sizeof(cmdout),
+			serial_timeout(serial, sizeof(cmdout)));
 	if (written != sizeof(cmdout))
 		return SR_ERR;
 
