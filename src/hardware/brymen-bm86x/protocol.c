@@ -257,7 +257,7 @@ static int brymen_bm86x_send_command(const struct sr_dev_inst *sdi)
 	}
 
 	if (ret != sizeof(buf)) {
-		sr_err("Short packet: sent %d/%ld bytes.", ret, sizeof(buf));
+		sr_err("Short packet: sent %d/%zu bytes.", ret, sizeof(buf));
 		return SR_ERR;
 	}
 
