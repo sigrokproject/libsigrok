@@ -346,15 +346,22 @@ PKG_CHECK_EXISTS([pygobject-3.0 < 3.7.91],
 	[AC_DEFINE([PYGOBJECT_FLAGS_SIGNED], [1],
 		[Whether last argument to pyg_flags_get_value() is signed.])])
 
-# The Python bindings need the setuptools Python module.
-# We'll let it go through even if the AX macro wasn't found,
-# as the Python module may still be there.
-HAVE_PYMOD_SETUPTOOLS=yes
-m4_ifdef([AX_PYTHON_MODULE],
-	[AX_PYTHON_MODULE([setuptools])],
-	[m4_warn([unsupported], [Missing macro AX_PYTHON_MODULE: no setuptools check])])
+# The Python bindings need the setuptools and numpy Python modules.
+# We'll let it go through even if the AX macro wasn't found, as the
+# Python modules may still be there.
+m4_ifdef([AX_PYTHON_MODULE], [
+	AX_PYTHON_MODULE([setuptools])
+	AX_PYTHON_MODULE([numpy])
+], [
+	HAVE_PYMOD_SETUPTOOLS=yes
+	HAVE_PYMOD_NUMPY=yes
+	m4_warn([unsupported],
+		[Missing macro AX_PYTHON_MODULE: no check for setuptools and numpy])
+])
 AS_IF([test "x$HAVE_PYMOD_SETUPTOOLS" != xyes],
 	[SR_APPEND([sr_python_missing], [', '], [setuptools])])
+AS_IF([test "x$HAVE_PYMOD_NUMPY" != xyes],
+	[SR_APPEND([sr_python_missing], [', '], [numpy])])
 
 # The Python bindings use SWIG to generate code.
 AC_CHECK_PROGS([SWIG], [swig swig3.0 swig2.0])
