@@ -34,6 +34,7 @@
 #define MODEL_NAME	"LWLA1034"
 
 #define USB_VID_PID	"2961.6689"
+#define USB_CONFIG	1
 #define USB_INTERFACE	0
 #define USB_TIMEOUT_MS	3000
 
