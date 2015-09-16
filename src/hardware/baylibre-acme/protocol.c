@@ -22,9 +22,13 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <arpa/inet.h>
 #include <glib/gstdio.h>
 #include "protocol.h"
 #include "gpio.h"
+
+#define ACME_REV_A		1
+#define ACME_REV_B		2
 
 enum channel_type {
 	ENRG_PWR = 1,
@@ -35,10 +39,12 @@ enum channel_type {
 };
 
 struct channel_group_priv {
+	uint8_t rev;
 	int hwmon_num;
 	int probe_type;
 	int index;
 	int has_pws;
+	uint32_t pws_gpio;
 };
 
 struct channel_priv {
@@ -48,6 +54,22 @@ struct channel_priv {
 	struct channel_group_priv *probe;
 };
 
+#define EEPROM_SERIAL_SIZE		16
+#define EEPROM_TAG_SIZE			32
+
+#define EEPROM_PROBE_TYPE_USB		1
+#define EEPROM_PROBE_TYPE_JACK		2
+#define EEPROM_PROBE_TYPE_HE10		3
+
+struct probe_eeprom {
+	int type;
+	int rev;
+	unsigned long shunt;
+	uint8_t pwr_sw;
+	uint8_t serial[EEPROM_SERIAL_SIZE];
+	char tag[EEPROM_TAG_SIZE];
+} __attribute__((packed));
+
 static const uint8_t enrg_i2c_addrs[] = {
 	0x40, 0x41, 0x44, 0x45, 0x42, 0x43, 0x46, 0x47,
 };
@@ -56,12 +78,16 @@ static const uint8_t temp_i2c_addrs[] = {
 	0x0, 0x0, 0x0, 0x0, 0x4c, 0x49, 0x4f, 0x4b,
 };
 
-static const uint32_t pws_gpios[] = {
+static const uint32_t revA_pws_gpios[] = {
 	486, 498, 502, 482, 478, 506, 510, 474,
 };
 
-static const uint32_t pws_info_gpios[] = {
+static const uint32_t revA_pws_info_gpios[] = {
 	487, 499, 503, 483, 479, 507, 511, 475,
+};
+
+static const uint32_t revB_pws_gpios[] = {
+	489, 491, 493, 495, 497, 499, 501, 503,
 };
 
 #define MOHM_TO_UOHM(x) ((x) * 1000)
@@ -108,6 +134,13 @@ static void probe_hwmon_path(unsigned int addr, GString *path)
 {
 	g_string_printf(path,
 			"/sys/class/i2c-adapter/i2c-1/1-00%02x/hwmon", addr);
+}
+
+static void probe_eeprom_path(unsigned int addr, GString *path)
+{
+	g_string_printf(path,
+			"/sys/class/i2c-dev/i2c-1/device/1-00%02x/eeprom",
+			addr + 0x10);
 }
 
 SR_PRIV gboolean bl_acme_detect_probe(unsigned int addr,
@@ -221,12 +254,66 @@ static void append_channel(struct sr_dev_inst *sdi, struct sr_channel_group *cg,
 	cg->channels = g_slist_append(cg->channels, ch);
 }
 
+static int read_probe_eeprom(unsigned int addr, struct probe_eeprom *eeprom)
+{
+	static const ssize_t len = sizeof(struct probe_eeprom);
+
+	GString *path = g_string_sized_new(64);
+	ssize_t rd;
+	int fd;
+
+	probe_eeprom_path(addr, path);
+	fd = g_open(path->str, O_RDONLY);
+	g_string_free(path, TRUE);
+	if (fd < 0)
+		return -1;
+
+	rd = read(fd, eeprom, len);
+	g_close(fd, NULL);
+	if (rd != len)
+		return -1;
+
+	/*
+	 * All integer types are in network byte order. Convert them to
+	 * host order before proceeding.
+	 */
+	eeprom->type = ntohl(eeprom->type);
+	eeprom->rev = ntohl(eeprom->rev);
+	eeprom->shunt = ntohl(eeprom->shunt);
+
+	/* Check if we have some sensible values. */
+	if (eeprom->rev != 'B')
+		/* 'B' is the only supported revision with EEPROM for now. */
+		return -1;
+
+	if (eeprom->type != EEPROM_PROBE_TYPE_USB &&
+	    eeprom->type != EEPROM_PROBE_TYPE_JACK &&
+	    eeprom->type != EEPROM_PROBE_TYPE_HE10)
+		return -1;
+
+	return 0;
+}
+
+/* Some i2c slave addresses on revision B probes differ from revision A. */
+static int revB_addr_to_num(unsigned int addr)
+{
+	switch (addr) {
+	case 0x44:	return 5;
+	case 0x45:	return 6;
+	case 0x42:	return 3;
+	case 0x43:	return 4;
+	default:	return addr - 0x3f;
+	}
+}
+
 SR_PRIV gboolean bl_acme_register_probe(struct sr_dev_inst *sdi, int type,
 					unsigned int addr, int prb_num)
 {
 	struct sr_channel_group *cg;
 	struct channel_group_priv *cgp;
-	int hwmon;
+	struct probe_eeprom eeprom;
+	int hwmon, status;
+	uint32_t gpio;
 
 	/* Obtain the hwmon index. */
 	hwmon = get_hwmon_index(addr);
@@ -235,12 +322,39 @@ SR_PRIV gboolean bl_acme_register_probe(struct sr_dev_inst *sdi, int type,
 
 	cg = g_malloc0(sizeof(struct sr_channel_group));
 	cgp = g_malloc0(sizeof(struct channel_group_priv));
+	cg->priv = cgp;
+
+	/*
+	 * See if we can read the EEPROM contents. If not, assume it's
+	 * a revision A probe.
+	 */
+	status = read_probe_eeprom(addr, &eeprom);
+	cgp->rev = status < 0 ? ACME_REV_A : ACME_REV_B;
+
+	prb_num = cgp->rev == ACME_REV_A ? prb_num : revB_addr_to_num(addr);
+
 	cgp->hwmon_num = hwmon;
 	cgp->probe_type = type;
 	cgp->index = prb_num - 1;
-	cgp->has_pws = sr_gpio_getval_export(pws_info_gpios[cgp->index]);
 	cg->name = g_strdup_printf("Probe_%d", prb_num);
-	cg->priv = cgp;
+
+	if (cgp->rev == ACME_REV_A) {
+		gpio = revA_pws_info_gpios[cgp->index];
+		cgp->has_pws = sr_gpio_getval_export(gpio);
+		cgp->pws_gpio = revA_pws_gpios[cgp->index];
+	} else {
+		cgp->has_pws = eeprom.pwr_sw;
+		cgp->pws_gpio = revB_pws_gpios[cgp->index];
+
+		/*
+		 * For revision B we can already try to set the shunt
+		 * resistance according to the EEPROM contents.
+		 *
+		 * Keep the default value if shunt in EEPROM == 0.
+		 */
+		if (eeprom.shunt > 0)
+			bl_acme_set_shunt(cg, UOHM_TO_MOHM(eeprom.shunt));
+	}
 
 	if (type == PROBE_ENRG) {
 		append_channel(sdi, cg, prb_num, ENRG_PWR);
@@ -417,7 +531,7 @@ SR_PRIV int bl_acme_read_power_state(const struct sr_channel_group *cg,
 		return SR_ERR_ARG;
 	}
 
-	val = sr_gpio_getval_export(pws_gpios[cgp->index]);
+	val = sr_gpio_getval_export(cgp->pws_gpio);
 	*off = val ? FALSE : TRUE;
 
 	return SR_OK;
@@ -436,10 +550,10 @@ SR_PRIV int bl_acme_set_power_off(const struct sr_channel_group *cg,
 		return SR_ERR_ARG;
 	}
 
-	val = sr_gpio_setval_export(pws_gpios[cgp->index], off ? 0 : 1);
+	val = sr_gpio_setval_export(cgp->pws_gpio, off ? 0 : 1);
 	if (val < 0) {
 		sr_err("Error setting power-off state: gpio: %d",
-		       pws_gpios[cgp->index]);
+		       cgp->pws_gpio);
 		return SR_ERR_IO;
 	}
 
