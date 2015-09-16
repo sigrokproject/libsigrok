@@ -38,6 +38,7 @@ struct channel_group_priv {
 	int hwmon_num;
 	int probe_type;
 	int index;
+	int has_pws;
 };
 
 struct channel_priv {
@@ -237,6 +238,7 @@ SR_PRIV gboolean bl_acme_register_probe(struct sr_dev_inst *sdi, int type,
 	cgp->hwmon_num = hwmon;
 	cgp->probe_type = type;
 	cgp->index = prb_num - 1;
+	cgp->has_pws = sr_gpio_getval_export(pws_info_gpios[cgp->index]);
 	cg->name = g_strdup_printf("Probe_%d", prb_num);
 	cg->priv = cgp;
 
@@ -267,7 +269,7 @@ SR_PRIV int bl_acme_probe_has_pws(const struct sr_channel_group *cg)
 {
 	struct channel_group_priv *cgp = cg->priv;
 
-	return sr_gpio_getval_export(pws_info_gpios[cgp->index]);
+	return cgp->has_pws;
 }
 
 /*
