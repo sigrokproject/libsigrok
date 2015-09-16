@@ -193,7 +193,10 @@ static int dev_open(struct sr_dev_inst *sdi)
 		sr_err("Driver was not initialized.");
 		return SR_ERR;
 	}
-
+	if (sdi->status != SR_ST_INACTIVE) {
+		sr_err("Device already open.");
+		return SR_ERR;
+	}
 	usb = sdi->conn;
 
 	ret = sr_usb_open(drvc->sr_ctx->libusb_ctx, usb);
@@ -204,44 +207,50 @@ static int dev_open(struct sr_dev_inst *sdi)
 	if (ret < 0) {
 		sr_err("Failed to claim interface: %s.",
 			libusb_error_name(ret));
+		sr_usb_close(usb);
 		return SR_ERR;
 	}
-
-	sdi->status = SR_ST_INITIALIZING;
+	sdi->status = SR_ST_ACTIVE;
 
 	ret = lwla_init_device(sdi);
-
-	if (ret == SR_OK)
-		sdi->status = SR_ST_ACTIVE;
-
+	if (ret != SR_OK) {
+		sr_usb_close(usb);
+		sdi->status = SR_ST_INACTIVE;
+	}
 	return ret;
 }
 
 static int dev_close(struct sr_dev_inst *sdi)
 {
 	struct sr_usb_dev_inst *usb;
+	struct dev_context *devc;
+	int ret;
 
 	if (!di->context) {
 		sr_err("Driver was not initialized.");
 		return SR_ERR;
 	}
-
 	usb = sdi->conn;
-	if (!usb->devhdl)
+	devc = sdi->priv;
+
+	if (sdi->status == SR_ST_INACTIVE)
 		return SR_OK;
 
+	if (devc && devc->acquisition) {
+		sr_err("Attempt to close device during acquisition.");
+		return SR_ERR;
+	}
 	sdi->status = SR_ST_INACTIVE;
 
 	/* Trigger download of the shutdown bitstream. */
-	if (lwla_set_clock_config(sdi) != SR_OK)
+	ret = lwla_set_clock_config(sdi);
+	if (ret != SR_OK)
 		sr_err("Unable to shut down device.");
 
 	libusb_release_interface(usb->devhdl, USB_INTERFACE);
-	libusb_close(usb->devhdl);
+	sr_usb_close(usb);
 
-	usb->devhdl = NULL;
-
-	return SR_OK;
+	return ret;
 }
 
 static int cleanup(const struct sr_dev_driver *di)
@@ -565,6 +574,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	if (!acq)
 		return SR_ERR_MALLOC;
 
+	devc->cancel_requested = FALSE;
 	devc->stopping_in_progress = FALSE;
 	devc->transfer_error = FALSE;
 
@@ -599,15 +609,18 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
+	struct dev_context *devc;
+
 	(void)cb_data;
+	devc = sdi->priv;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
-	sr_dbg("Stopping acquisition.");
-
-	sdi->status = SR_ST_STOPPING;
-
+	if (devc->acquisition && !devc->cancel_requested) {
+		devc->cancel_requested = TRUE;
+		sr_dbg("Stopping acquisition.");
+	}
 	return SR_OK;
 }
 

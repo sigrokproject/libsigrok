@@ -305,7 +305,7 @@ static void process_capture_length(const struct sr_dev_inst *sdi)
 
 	sr_dbg("%zu words in capture buffer.", acq->mem_addr_fill);
 
-	if (acq->mem_addr_fill > 0 && sdi->status == SR_ST_ACTIVE)
+	if (acq->mem_addr_fill > 0 && !devc->cancel_requested)
 		issue_read_start(sdi);
 	else
 		issue_read_end(sdi);
@@ -599,8 +599,7 @@ static void end_acquisition(struct sr_dev_inst *sdi)
 
 	lwla_free_acquisition_state(devc->acquisition);
 	devc->acquisition = NULL;
-
-	sdi->status = SR_ST_ACTIVE;
+	devc->cancel_requested = FALSE;
 }
 
 /* USB output transfer completion callback.
@@ -631,7 +630,7 @@ static void LIBUSB_CALL receive_transfer_out(struct libusb_transfer *transfer)
 			submit_transfer(devc, devc->acquisition->xfer_in);
 			break;
 		case STATE_STOP_CAPTURE:
-			if (sdi->status == SR_ST_ACTIVE)
+			if (!devc->cancel_requested)
 				request_capture_length(sdi);
 			else
 				end_acquisition(sdi);
@@ -972,7 +971,7 @@ SR_PRIV int lwla_receive_data(int fd, int revents, void *cb_data)
 
 	/* If no event flags are set the timeout must have expired. */
 	if (revents == 0 && devc->state == STATE_STATUS_WAIT) {
-		if (sdi->status == SR_ST_STOPPING)
+		if (devc->cancel_requested)
 			issue_stop_capture(sdi);
 		else
 			request_capture_status(sdi);

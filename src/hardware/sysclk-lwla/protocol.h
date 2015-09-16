@@ -241,6 +241,9 @@ struct dev_context {
 	/** Trigger slope configuration setting. */
 	enum signal_edge cfg_trigger_slope;
 
+	/** Whether a running acquisition should be canceled. */
+	gboolean cancel_requested;
+
 	/* Indicates that stopping the acquisition is currently in progress. */
 	gboolean stopping_in_progress;
 
