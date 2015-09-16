@@ -39,7 +39,7 @@ int dslogic_fpga_firmware_upload(const struct sr_dev_inst *sdi,
 		const char *filename)
 {
 	FILE *fw;
-	GStatBuf st;
+	struct stat st;
 	struct sr_usb_dev_inst *usb;
 	int chunksize, result, ret;
 	unsigned char *buf;
@@ -49,7 +49,7 @@ int dslogic_fpga_firmware_upload(const struct sr_dev_inst *sdi,
 	sr_dbg("Uploading FPGA firmware at %s.", filename);
 
 	usb = sdi->conn;
-	if (g_stat(filename, &st) < 0) {
+	if (stat(filename, &st) < 0) {
 		sr_err("Unable to upload FPGA firmware: %s", g_strerror(errno));
 		return SR_ERR;
 	}

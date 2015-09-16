@@ -19,6 +19,7 @@
 
 #include <config.h>
 #include <errno.h>
+#include <sys/stat.h>
 #include <glib/gstdio.h>
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
@@ -33,13 +34,13 @@
  */
 static unsigned char *load_bitstream_file(const char *filename, int *length_p)
 {
-	GStatBuf statbuf;
+	struct stat statbuf;
 	FILE *file;
 	unsigned char *stream;
 	size_t length, count;
 
 	/* Retrieve and validate the file size. */
-	if (g_stat(filename, &statbuf) < 0) {
+	if (stat(filename, &statbuf) < 0) {
 		sr_err("Failed to access bitstream file: %s.",
 		       g_strerror(errno));
 		return NULL;
