@@ -295,6 +295,12 @@ libsigrok_la_SOURCES += \
 	src/hardware/hameg-hmo/protocol.c \
 	src/hardware/hameg-hmo/api.c
 endif
+if HW_HANTEK_6XXX
+libsigrok_la_SOURCES += \
+	src/hardware/hantek-6xxx/protocol.h \
+	src/hardware/hantek-6xxx/protocol.c \
+	src/hardware/hantek-6xxx/api.c
+endif
 if HW_HANTEK_DSO
 libsigrok_la_SOURCES += \
 	src/hardware/hantek-dso/dso.h \
