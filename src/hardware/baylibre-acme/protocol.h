@@ -49,14 +49,6 @@ enum probe_type {
 	PROBE_TEMP,
 };
 
-enum channel_type {
-	ENRG_PWR = 1,
-	ENRG_CURR,
-	ENRG_VOL,
-	TEMP_IN,
-	TEMP_OUT,
-};
-
 /** Private, per-device-instance driver context. */
 struct dev_context {
 	uint64_t samplerate;

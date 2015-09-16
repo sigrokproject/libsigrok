@@ -26,6 +26,14 @@
 #include "protocol.h"
 #include "gpio.h"
 
+enum channel_type {
+	ENRG_PWR = 1,
+	ENRG_CURR,
+	ENRG_VOL,
+	TEMP_IN,
+	TEMP_OUT,
+};
+
 struct channel_group_priv {
 	int hwmon_num;
 	int probe_type;
