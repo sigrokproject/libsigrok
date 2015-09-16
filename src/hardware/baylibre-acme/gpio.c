@@ -64,6 +64,10 @@ SR_PRIV int sr_gpio_export(unsigned gpio)
 	if (exported)
 		return 0; /* Already exported. */
 
+	status = sr_gpio_set_direction(gpio, GPIO_DIR_OUT);
+	if (status < 0)
+		return status;
+
 	buf = g_string_sized_new(16);
 	g_string_printf(buf, "%u\n", gpio);
 	status = open_and_write("/sys/class/gpio/export", buf->str);
@@ -143,10 +147,6 @@ SR_PRIV int sr_gpio_setval_export(int gpio, int value)
 	if (status < 0)
 		return status;
 
-	status = sr_gpio_set_direction(gpio, GPIO_DIR_OUT);
-	if (status < 0)
-		return status;
-
 	status = sr_gpio_set_value(gpio, value);
 	if (status < 0)
 		return status;
@@ -159,10 +159,6 @@ SR_PRIV int sr_gpio_getval_export(int gpio)
 	int status;
 
 	status = sr_gpio_export(gpio);
-	if (status < 0)
-		return status;
-
-	status = sr_gpio_set_direction(gpio, GPIO_DIR_IN);
 	if (status < 0)
 		return status;
 
