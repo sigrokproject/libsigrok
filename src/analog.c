@@ -179,9 +179,11 @@ SR_API int sr_analog_to_float(const struct sr_datafeed_analog2 *analog,
 		for (i = 0; i < analog->num_samples; i += analog->encoding->unitsize) {
 			for (b = 0; b < analog->encoding->unitsize; b++) {
 				if (analog->encoding->is_bigendian == bigendian)
-					outbuf[i + b] = ((float *)analog->data)[i * analog->encoding->unitsize + b];
+					((uint8_t *)outbuf)[i + b] =
+						((uint8_t *)analog->data)[i * analog->encoding->unitsize + b];
 				else
-					outbuf[i + (analog->encoding->unitsize - b)] = ((float *)analog->data)[i * analog->encoding->unitsize + b];
+					((uint8_t *)outbuf)[i + (analog->encoding->unitsize - b)] =
+						((uint8_t *)analog->data)[i * analog->encoding->unitsize + b];
 			}
 			if (analog->encoding->scale.p != analog->encoding->scale.q)
 				outbuf[i] = (outbuf[i] * analog->encoding->scale.p) / analog->encoding->scale.q;
