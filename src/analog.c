@@ -157,6 +157,8 @@ SR_API int sr_analog_to_float(const struct sr_datafeed_analog2 *analog,
 	float offset;
 	unsigned int b, i;
 	gboolean bigendian;
+	unsigned int count = (analog->num_samples
+			* g_slist_length(analog->meaning->channels));
 
 #ifdef WORDS_BIGENDIAN
 	bigendian = TRUE;
@@ -174,9 +176,9 @@ SR_API int sr_analog_to_float(const struct sr_datafeed_analog2 *analog,
 			&& (analog->encoding->scale.p == analog->encoding->scale.q)
 			&& analog->encoding->offset.p / (float)analog->encoding->offset.q == 0) {
 		/* The data is already in the right format. */
-		memcpy(outbuf, analog->data, analog->num_samples * sizeof(float));
+		memcpy(outbuf, analog->data, count * sizeof(float));
 	} else {
-		for (i = 0; i < analog->num_samples; i += analog->encoding->unitsize) {
+		for (i = 0; i < count; i += analog->encoding->unitsize) {
 			for (b = 0; b < analog->encoding->unitsize; b++) {
 				if (analog->encoding->is_bigendian == bigendian)
 					((uint8_t *)outbuf)[i + b] =
