@@ -24,6 +24,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <glib.h>
+#include <glib/gstdio.h>
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
@@ -414,14 +416,17 @@ SR_API int sr_input_scan_buffer(GString *buf, const struct sr_input **in)
  */
 SR_API int sr_input_scan_file(const char *filename, const struct sr_input **in)
 {
+	FILE *stream;
 	const struct sr_input_module *imod;
 	GHashTable *meta;
-	GString *header_buf;
+	GString *header;
 	struct stat st;
-	unsigned int midx, m, i;
-	int fd, ret;
-	ssize_t size;
-	uint8_t mitem, avail_metadata[8];
+	size_t count;
+	unsigned int midx, i;
+	int ret;
+	uint8_t avail_metadata[8];
+
+	*in = NULL;
 
 	if (!filename || !filename[0]) {
 		sr_err("Invalid filename.");
@@ -438,18 +443,41 @@ SR_API int sr_input_scan_file(const char *filename, const struct sr_input **in)
 		return SR_ERR_ARG;
 	}
 
+	stream = g_fopen(filename, "rb");
+	if (!stream) {
+		sr_err("Failed to open %s: %s", filename, g_strerror(errno));
+		return SR_ERR;
+	}
+	/* This actually allocates 256 bytes to allow for NUL termination. */
+	header = g_string_sized_new(255);
+	count = fread(header->str, 1, header->allocated_len - 1, stream);
+
+	if (count != header->allocated_len - 1 && ferror(stream)) {
+		sr_err("Failed to read %s: %s", filename, g_strerror(errno));
+		fclose(stream);
+		g_string_free(header, TRUE);
+		return SR_ERR;
+	}
+	fclose(stream);
+	g_string_set_size(header, count);
+
+	meta = g_hash_table_new(NULL, NULL);
+	g_hash_table_insert(meta, GINT_TO_POINTER(SR_INPUT_META_FILENAME),
+			(char *)filename);
+	g_hash_table_insert(meta, GINT_TO_POINTER(SR_INPUT_META_FILESIZE),
+			GSIZE_TO_POINTER(st.st_size));
+	g_hash_table_insert(meta, GINT_TO_POINTER(SR_INPUT_META_HEADER),
+			header);
 	midx = 0;
 	avail_metadata[midx++] = SR_INPUT_META_FILENAME;
 	avail_metadata[midx++] = SR_INPUT_META_FILESIZE;
 	avail_metadata[midx++] = SR_INPUT_META_HEADER;
+	avail_metadata[midx] = 0;
 	/* TODO: MIME type */
 
-	*in = NULL;
 	ret = SR_ERR;
-	header_buf = g_string_sized_new(128);
-	for (i = 0; input_module_list[i]; i++) {
-		g_string_truncate(header_buf, 0);
 
+	for (i = 0; input_module_list[i]; i++) {
 		imod = input_module_list[i];
 		if (!imod->metadata[0]) {
 			/* Module has no metadata for matching so will take
@@ -460,60 +488,24 @@ SR_API int sr_input_scan_file(const char *filename, const struct sr_input **in)
 			/* Cannot satisfy this module's requirements. */
 			continue;
 
-		meta = g_hash_table_new(NULL, NULL);
-		for (m = 0; m < sizeof(imod->metadata); m++) {
-			mitem = imod->metadata[m] & ~SR_INPUT_META_REQUIRED;
-			if (!mitem)
-				/* Metadata list is 0-terminated. */
-				break;
-			if (mitem == SR_INPUT_META_FILENAME) {
-				g_hash_table_insert(meta, GINT_TO_POINTER(mitem),
-						(gpointer)filename);
-			} else if (mitem == SR_INPUT_META_FILESIZE) {
-				g_hash_table_insert(meta, GINT_TO_POINTER(mitem),
-						GINT_TO_POINTER(st.st_size));
-			} else if (mitem == SR_INPUT_META_HEADER) {
-				if ((fd = open(filename, O_RDONLY)) < 0) {
-					sr_err("%s", g_strerror(errno));
-					return SR_ERR;
-				}
-				size = read(fd, header_buf->str, 128);
-				header_buf->len = size;
-				close(fd);
-				if (size <= 0) {
-					g_string_free(header_buf, TRUE);
-					sr_err("%s", g_strerror(errno));
-					return SR_ERR;
-				}
-				g_hash_table_insert(meta, GINT_TO_POINTER(mitem), header_buf);
-			}
-		}
-		if (g_hash_table_size(meta) == 0) {
-			/* No metadata for this module, so there's no way it
-			 * can match. */
-			g_hash_table_destroy(meta);
-			continue;
-		}
-		sr_spew("Trying module %s.", imod->id);
+		sr_dbg("Trying module %s.", imod->id);
+
 		ret = imod->format_match(meta);
-		g_hash_table_destroy(meta);
-		if (ret == SR_ERR_DATA) {
-			/* Module recognized this buffer, but cannot handle it. */
-			break;
-		} else if (ret == SR_ERR) {
+		if (ret == SR_ERR) {
 			/* Module didn't recognize this buffer. */
 			continue;
 		} else if (ret != SR_OK) {
-			/* Can be SR_ERR_NA. */
-			return ret;
+			/* Module recognized this buffer, but cannot handle it. */
+			break;
 		}
-
 		/* Found a matching module. */
-		sr_spew("Module %s matched.", imod->id);
+		sr_dbg("Module %s matched.", imod->id);
+
 		*in = sr_input_new(imod, NULL);
 		break;
 	}
-	g_string_free(header_buf, TRUE);
+	g_hash_table_destroy(meta);
+	g_string_free(header, TRUE);
 
 	return ret;
 }
