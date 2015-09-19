@@ -62,12 +62,12 @@ struct channel_priv {
 #define EEPROM_PROBE_TYPE_HE10		3
 
 struct probe_eeprom {
-	int type;
-	int rev;
-	unsigned long shunt;
+	uint32_t type;
+	uint32_t rev;
+	uint32_t shunt;
 	uint8_t pwr_sw;
 	uint8_t serial[EEPROM_SERIAL_SIZE];
-	char tag[EEPROM_TAG_SIZE];
+	int8_t tag[EEPROM_TAG_SIZE];
 } __attribute__((packed));
 
 static const uint8_t enrg_i2c_addrs[] = {
