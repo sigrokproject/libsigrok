@@ -183,12 +183,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &devlist); /* TODO: Errors. */
 
 	for (i = 0; devlist[i]; i++) {
-		ret = libusb_get_device_descriptor(devlist[i], &des);
-		if (ret != 0) {
-			sr_err("Failed to get device descriptor: %s.",
-			       libusb_error_name(ret));
-			continue;
-		}
+		libusb_get_device_descriptor(devlist[i], &des);
 
 		if ((ret = libusb_open(devlist[i], &hdl)) < 0)
 			continue;

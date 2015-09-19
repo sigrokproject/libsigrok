@@ -111,8 +111,7 @@ static gboolean check_conf_profile(libusb_device *dev)
 	ret = FALSE;
 	while (!ret) {
 		/* Assume the FW has not been loaded, unless proven wrong. */
-		if (libusb_get_device_descriptor(dev, &des) != 0)
-			break;
+		libusb_get_device_descriptor(dev, &des);
 
 		if (libusb_open(dev, &hdl) != 0)
 			break;
@@ -148,7 +147,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	GSList *l, *devices, *conn_devices;
 	struct libusb_device_descriptor des;
 	libusb_device **devlist;
-	int ret;
 	unsigned int i, j;
 	const char *conn;
 	char connection_id[64];
@@ -187,11 +185,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 				continue;
 		}
 
-		if ((ret = libusb_get_device_descriptor(devlist[i], &des)) != 0) {
-			sr_warn("Failed to get device descriptor: %s.",
-				libusb_error_name(ret));
-			continue;
-		}
+		libusb_get_device_descriptor(devlist[i], &des);
 
 		usb_get_port_path(devlist[i], connection_id, sizeof(connection_id));
 
@@ -272,11 +266,7 @@ static int logic16_dev_open(struct sr_dev_inst *sdi)
 	}
 
 	for (i = 0; i < device_count; i++) {
-		if ((ret = libusb_get_device_descriptor(devlist[i], &des))) {
-			sr_err("Failed to get device descriptor: %s.",
-			       libusb_error_name(ret));
-			continue;
-		}
+		libusb_get_device_descriptor(devlist[i], &des);
 
 		if (des.idVendor != LOGIC16_VID || des.idProduct != LOGIC16_PID)
 			continue;

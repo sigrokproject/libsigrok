@@ -270,7 +270,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	GSList *l, *devices, *conn_devices;
 	struct libusb_device_descriptor des;
 	libusb_device **devlist;
-	int ret, i, j;
+	int i, j;
 	const char *conn;
 	char connection_id[64];
 
@@ -308,11 +308,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 				continue;
 		}
 
-		if ((ret = libusb_get_device_descriptor(devlist[i], &des))) {
-			sr_err("Failed to get device descriptor: %s.",
-					libusb_error_name(ret));
-			continue;
-		}
+		libusb_get_device_descriptor(devlist[i], &des);
 
 		usb_get_port_path(devlist[i], connection_id, sizeof(connection_id));
 

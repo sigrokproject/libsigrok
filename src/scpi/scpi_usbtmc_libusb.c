@@ -114,11 +114,7 @@ static GSList *scpi_usbtmc_libusb_scan(struct drv_context *drvc)
 		return NULL;
 	}
 	for (i = 0; devlist[i]; i++) {
-		if ((ret = libusb_get_device_descriptor(devlist[i], &des)) < 0) {
-			sr_err("Failed to get device descriptor: %s.",
-			       libusb_error_name(ret));
-			continue;
-		}
+		libusb_get_device_descriptor(devlist[i], &des);
 
 		for (confidx = 0; confidx < des.bNumConfigurations; confidx++) {
 			if ((ret = libusb_get_config_descriptor(devlist[i], confidx, &confdes)) < 0) {
@@ -198,11 +194,7 @@ static int scpi_usbtmc_libusb_open(void *priv)
 		return SR_ERR;
 
 	dev = libusb_get_device(usb->devhdl);
-	if ((ret = libusb_get_device_descriptor(dev, &des)) < 0) {
-		sr_err("Failed to get device descriptor: %s.",
-		       libusb_error_name(ret));
-		return SR_ERR;
-	}
+	libusb_get_device_descriptor(dev, &des);
 
 	for (confidx = 0; confidx < des.bNumConfigurations; confidx++) {
 		if ((ret = libusb_get_config_descriptor(dev, confidx, &confdes)) < 0) {

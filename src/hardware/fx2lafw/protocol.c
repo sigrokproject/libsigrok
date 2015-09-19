@@ -157,8 +157,7 @@ SR_PRIV gboolean match_manuf_prod(libusb_device *dev, const char *manufacturer,
 	ret = FALSE;
 	while (!ret) {
 		/* Assume the FW has not been loaded, unless proven wrong. */
-		if (libusb_get_device_descriptor(dev, &des) != 0)
-			break;
+		libusb_get_device_descriptor(dev, &des);
 
 		if (libusb_open(dev, &hdl) != 0)
 			break;
@@ -211,11 +210,7 @@ SR_PRIV int fx2lafw_dev_open(struct sr_dev_inst *sdi, struct sr_dev_driver *di)
 	}
 
 	for (i = 0; i < device_count; i++) {
-		if ((ret = libusb_get_device_descriptor(devlist[i], &des))) {
-			sr_err("Failed to get device descriptor: %s.",
-			       libusb_error_name(ret));
-			continue;
-		}
+		libusb_get_device_descriptor(devlist[i], &des);
 
 		if (des.idVendor != devc->profile->vid
 		    || des.idProduct != devc->profile->pid)

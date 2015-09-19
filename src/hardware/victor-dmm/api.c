@@ -63,7 +63,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	struct libusb_device_descriptor des;
 	libusb_device **devlist;
 	GSList *devices;
-	int ret, i;
+	int i;
 	char connection_id[64];
 
 	(void)options;
@@ -73,11 +73,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	devices = NULL;
 	libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &devlist);
 	for (i = 0; devlist[i]; i++) {
-		if ((ret = libusb_get_device_descriptor(devlist[i], &des)) != 0) {
-			sr_warn("Failed to get device descriptor: %s",
-					libusb_error_name(ret));
-			continue;
-		}
+		libusb_get_device_descriptor(devlist[i], &des);
 
 		if (des.idVendor != VICTOR_VID || des.idProduct != VICTOR_PID)
 			continue;
