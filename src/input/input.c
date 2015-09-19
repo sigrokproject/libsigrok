@@ -19,10 +19,6 @@
 
 #include <config.h>
 #include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <fcntl.h>
 #include <errno.h>
 #include <glib.h>
 #include <glib/gstdio.h>
@@ -407,6 +403,43 @@ SR_API int sr_input_scan_buffer(GString *buf, const struct sr_input **in)
 	return ret;
 }
 
+/** Retrieve the size of the open stream @a file.
+ * This function only works on seekable streams. However, the set of seekable
+ * streams is generally congruent with the set of streams that have a size.
+ * Code that needs to work with any type of stream (including pipes) should
+ * require neither seekability nor advance knowledge of the size.
+ * On failure, the return value is negative and errno is set.
+ * @param file An I/O stream opened in binary mode.
+ * @return The size of @a file in bytes, or a negative value on failure.
+ */
+SR_PRIV int64_t sr_file_get_size(FILE *file)
+{
+	off_t filepos, filesize;
+
+	/* ftello() and fseeko() are not standard C, but part of POSIX.1-2001.
+	 * Thus, if these functions are available at all, they can reasonably
+	 * be expected to also conform to POSIX semantics. In particular, this
+	 * means that ftello() after fseeko(..., SEEK_END) has a defined result
+	 * and can be used to get the size of a seekable stream.
+	 * On Windows, the result is fully defined only for binary streams.
+	 */
+	filepos = ftello(file);
+	if (filepos < 0)
+		return -1;
+
+	if (fseeko(file, 0, SEEK_END) < 0)
+		return -1;
+
+	filesize = ftello(file);
+	if (filesize < 0)
+		return -1;
+
+	if (fseeko(file, filepos, SEEK_SET) < 0)
+		return -1;
+
+	return filesize;
+}
+
 /**
  * Try to find an input module that can parse the given file.
  *
@@ -416,11 +449,11 @@ SR_API int sr_input_scan_buffer(GString *buf, const struct sr_input **in)
  */
 SR_API int sr_input_scan_file(const char *filename, const struct sr_input **in)
 {
+	int64_t filesize;
 	FILE *stream;
 	const struct sr_input_module *imod;
 	GHashTable *meta;
 	GString *header;
-	struct stat st;
 	size_t count;
 	unsigned int midx, i;
 	int ret;
@@ -432,20 +465,16 @@ SR_API int sr_input_scan_file(const char *filename, const struct sr_input **in)
 		sr_err("Invalid filename.");
 		return SR_ERR_ARG;
 	}
-
-	if (!g_file_test(filename, G_FILE_TEST_EXISTS)) {
-		sr_err("No such file.");
-		return SR_ERR_ARG;
-	}
-
-	if (stat(filename, &st) < 0) {
-		sr_err("%s", g_strerror(errno));
-		return SR_ERR_ARG;
-	}
-
 	stream = g_fopen(filename, "rb");
 	if (!stream) {
 		sr_err("Failed to open %s: %s", filename, g_strerror(errno));
+		return SR_ERR;
+	}
+	filesize = sr_file_get_size(stream);
+	if (filesize < 0) {
+		sr_err("Failed to get size of %s: %s",
+			filename, g_strerror(errno));
+		fclose(stream);
 		return SR_ERR;
 	}
 	/* This actually allocates 256 bytes to allow for NUL termination. */
@@ -465,7 +494,7 @@ SR_API int sr_input_scan_file(const char *filename, const struct sr_input **in)
 	g_hash_table_insert(meta, GINT_TO_POINTER(SR_INPUT_META_FILENAME),
 			(char *)filename);
 	g_hash_table_insert(meta, GINT_TO_POINTER(SR_INPUT_META_FILESIZE),
-			GSIZE_TO_POINTER(st.st_size));
+			GSIZE_TO_POINTER(MIN(filesize, G_MAXSSIZE)));
 	g_hash_table_insert(meta, GINT_TO_POINTER(SR_INPUT_META_HEADER),
 			header);
 	midx = 0;

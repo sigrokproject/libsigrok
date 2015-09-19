@@ -25,6 +25,7 @@
 #define LIBSIGROK_LIBSIGROK_INTERNAL_H
 
 #include <stdarg.h>
+#include <stdio.h>
 #include <glib.h>
 #ifdef HAVE_LIBUSB_1_0
 #include <libusb.h>
@@ -584,6 +585,10 @@ struct drv_context {
 	struct sr_context *sr_ctx;
 	GSList *instances;
 };
+
+/*--- input/input.c ---------------------------------------------------------*/
+
+SR_PRIV int64_t sr_file_get_size(FILE *file);
 
 /*--- log.c -----------------------------------------------------------------*/
 
