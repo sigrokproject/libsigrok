@@ -287,7 +287,7 @@ static double lcd_to_double(const struct rs9lcd_packet *rs_packet, int type)
 		rawval *= -1;
 
 	/* See if we need to multiply our raw value by anything. */
-	if (rs_packet->indicatrix1 & IND2_NANO)
+	if (rs_packet->indicatrix2 & IND2_NANO)
 		rawval *= 1E-9;
 	else if (rs_packet->indicatrix2 & IND2_MICRO)
 		rawval *= 1E-6;
