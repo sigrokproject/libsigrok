@@ -352,9 +352,8 @@ SR_PRIV struct sr_dev_inst *lascar_scan(int bus, int address)
 	struct drv_context *drvc;
 	struct sr_dev_inst *sdi;
 	struct libusb_device **devlist;
-	struct libusb_device_descriptor des;
 	libusb_device_handle *dev_hdl;
-	int dummy, ret, i;
+	int dummy, i;
 	unsigned char config[MAX_CONFIGBLOCK_SIZE];
 
 	drvc = di->context;
@@ -362,11 +361,6 @@ SR_PRIV struct sr_dev_inst *lascar_scan(int bus, int address)
 
 	libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &devlist);
 	for (i = 0; devlist[i]; i++) {
-		if ((ret = libusb_get_device_descriptor(devlist[i], &des))) {
-			sr_err("Failed to get device descriptor: %d.", ret);
-			continue;
-		}
-
 		if (libusb_get_bus_number(devlist[i]) != bus ||
 				libusb_get_device_address(devlist[i]) != address)
 			continue;

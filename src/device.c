@@ -541,11 +541,10 @@ SR_API const char *sr_dev_inst_connid_get(const struct sr_dev_inst *sdi)
 {
 #ifdef HAVE_LIBUSB_1_0
 	struct drv_context *drvc;
-	int r, cnt, i, a, b;
+	int cnt, i, a, b;
 	char connection_id[64];
 	struct sr_usb_dev_inst *usb;
 	struct libusb_device **devlist;
-	struct libusb_device_descriptor des;
 #endif
 
 	if (!sdi)
@@ -576,12 +575,6 @@ SR_API const char *sr_dev_inst_connid_get(const struct sr_dev_inst *sdi)
 		}
 
 		for (i = 0; i < cnt; i++) {
-			if ((r = libusb_get_device_descriptor(devlist[i], &des)) < 0) {
-				sr_err("Failed to get device descriptor: %s.",
-				       libusb_error_name(r));
-				continue;
-			}
-
 			/* Find the USB device by the logical address we know. */
 			b = libusb_get_bus_number(devlist[i]);
 			a = libusb_get_device_address(devlist[i]);
