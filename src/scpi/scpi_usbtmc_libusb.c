@@ -97,6 +97,17 @@ enum {
 #define EOM                0x01
 #define TERM_CHAR_ENABLED  0x02
 
+struct usbtmc_blacklist {
+	uint16_t vid;
+	uint16_t pid;
+};
+
+static struct usbtmc_blacklist blacklist_remote[] = {
+	/* Rigol DS1000 series publishes RL1 support, but doesn't support it. */
+	{ 0x1ab1, 0x0588 },
+	ALL_ZERO
+};
+
 static GSList *scpi_usbtmc_libusb_scan(struct drv_context *drvc)
 {
 	struct libusb_device **devlist;
@@ -174,6 +185,110 @@ static int scpi_usbtmc_libusb_dev_inst_new(void *priv, struct drv_context *drvc,
 	return SR_OK;
 }
 
+static int check_usbtmc_blacklist(struct usbtmc_blacklist *blacklist,
+		uint16_t vid, uint16_t pid)
+{
+	int i;
+
+	for (i = 0; blacklist[i].vid; i++) {
+		if (blacklist[i].vid == vid && blacklist[i].pid == pid)
+			return TRUE;
+	}
+
+	return FALSE;
+}
+
+static int scpi_usbtmc_remote(struct scpi_usbtmc_libusb *uscpi)
+{
+	struct sr_usb_dev_inst *usb = uscpi->usb;
+	struct libusb_device *dev;
+	struct libusb_device_descriptor des;
+	int ret;
+	uint8_t status;
+
+	if (!(uscpi->usb488_dev_cap & USB488_DEV_CAP_RL1))
+		return SR_OK;
+
+	dev = libusb_get_device(usb->devhdl);
+	libusb_get_device_descriptor(dev, &des);
+	if (check_usbtmc_blacklist(blacklist_remote, des.idVendor, des.idProduct))
+		return SR_OK;
+
+	sr_dbg("Locking out local control.");
+	ret = libusb_control_transfer(usb->devhdl,
+			LIBUSB_ENDPOINT_IN         |
+			LIBUSB_REQUEST_TYPE_CLASS  |
+			LIBUSB_RECIPIENT_INTERFACE,
+			REN_CONTROL, 1,
+			uscpi->interface,
+			&status, 1,
+			TRANSFER_TIMEOUT);
+	if (ret < 0 || status != USBTMC_STATUS_SUCCESS) {
+		if (ret < 0)
+			sr_dbg("Failed to enter REN state: %s.", libusb_error_name(ret));
+		else
+			sr_dbg("Failed to enter REN state: USBTMC status %d.", status);
+		return SR_ERR;
+	}
+
+	ret = libusb_control_transfer(usb->devhdl,
+			LIBUSB_ENDPOINT_IN         |
+			LIBUSB_REQUEST_TYPE_CLASS  |
+			LIBUSB_RECIPIENT_INTERFACE,
+			LOCAL_LOCKOUT, 1,
+			uscpi->interface,
+			&status, 1,
+			TRANSFER_TIMEOUT);
+	if (ret < 0 || status != USBTMC_STATUS_SUCCESS) {
+		if (ret < 0)
+			sr_dbg("Failed to enter local lockout state: %s.",
+					libusb_error_name(ret));
+		else
+			sr_dbg("Failed to enter local lockout state: USBTMC "
+					"status %d.", status);
+		return SR_ERR;
+	}
+
+	return SR_OK;
+}
+
+static void scpi_usbtmc_local(struct scpi_usbtmc_libusb *uscpi)
+{
+	struct sr_usb_dev_inst *usb = uscpi->usb;
+	struct libusb_device *dev;
+	struct libusb_device_descriptor des;
+	int ret;
+	uint8_t status;
+
+	if (!(uscpi->usb488_dev_cap & USB488_DEV_CAP_RL1))
+		return;
+
+	dev = libusb_get_device(usb->devhdl);
+	libusb_get_device_descriptor(dev, &des);
+	if (check_usbtmc_blacklist(blacklist_remote, des.idVendor, des.idProduct))
+		return;
+
+	sr_dbg("Returning local control.");
+	ret = libusb_control_transfer(usb->devhdl,
+			LIBUSB_ENDPOINT_IN         |
+			LIBUSB_REQUEST_TYPE_CLASS  |
+			LIBUSB_RECIPIENT_INTERFACE,
+			GO_TO_LOCAL, 1,
+			uscpi->interface,
+			&status, 1,
+			TRANSFER_TIMEOUT);
+	if (ret < 0 || status != USBTMC_STATUS_SUCCESS) {
+		if (ret < 0)
+			sr_dbg("Failed to clear local lockout state: %s.",
+					libusb_error_name(ret));
+		else
+			sr_dbg("Failed to clear local lockout state: USBTMC "
+					"status %d.", status);
+	}
+
+	return;
+}
+
 static int scpi_usbtmc_libusb_open(void *priv)
 {
 	struct scpi_usbtmc_libusb *uscpi = priv;
@@ -184,7 +299,7 @@ static int scpi_usbtmc_libusb_open(void *priv)
 	const struct libusb_interface_descriptor *intfdes;
 	const struct libusb_endpoint_descriptor *ep;
 	int confidx, intfidx, epidx, config = 0;
-	uint8_t capabilities[24], status;
+	uint8_t capabilities[24];
 	int ret, found = 0;
 
 	if (usb->devhdl)
@@ -308,31 +423,7 @@ static int scpi_usbtmc_libusb_open(void *priv)
 	       uscpi->usb488_dev_cap & USB488_DEV_CAP_RL1        ? "RL1"  : "RL0",
 	       uscpi->usb488_dev_cap & USB488_DEV_CAP_DT1        ? "DT1"  : "DT0");
 
-	if (uscpi->usb488_dev_cap & USB488_DEV_CAP_RL1) {
-		sr_dbg("Locking out local control.");
-		ret = libusb_control_transfer(usb->devhdl,
-				LIBUSB_ENDPOINT_IN         |
-				LIBUSB_REQUEST_TYPE_CLASS  |
-				LIBUSB_RECIPIENT_INTERFACE,
-				REN_CONTROL, 1,
-				uscpi->interface,
-				&status, 1,
-				TRANSFER_TIMEOUT);
-		if (ret < 0 || status != USBTMC_STATUS_SUCCESS) {
-			sr_dbg("Failed to enter REN state.");
-			return SR_OK;
-		}
-		ret = libusb_control_transfer(usb->devhdl,
-				LIBUSB_ENDPOINT_IN         |
-				LIBUSB_REQUEST_TYPE_CLASS  |
-				LIBUSB_RECIPIENT_INTERFACE,
-				LOCAL_LOCKOUT, 1,
-				uscpi->interface,
-				&status, 1,
-				TRANSFER_TIMEOUT);
-		if (ret < 0 || status != USBTMC_STATUS_SUCCESS)
-			sr_dbg("Failed to enter local lockout state.");
-	}
+	scpi_usbtmc_remote(uscpi);
 
 	return SR_OK;
 }
@@ -548,7 +639,6 @@ static int scpi_usbtmc_libusb_close(void *priv)
 	int ret;
 	struct scpi_usbtmc_libusb *uscpi = priv;
 	struct sr_usb_dev_inst *usb = uscpi->usb;
-	uint8_t status;
 
 	if (!usb->devhdl)
 		return SR_ERR;
@@ -565,19 +655,7 @@ static int scpi_usbtmc_libusb_close(void *priv)
 		       uscpi->interrupt_ep, libusb_error_name(ret));
 	}
 
-	if (uscpi->usb488_dev_cap & USB488_DEV_CAP_RL1) {
-		sr_dbg("Returning local control.");
-		ret = libusb_control_transfer(usb->devhdl,
-				LIBUSB_ENDPOINT_IN         |
-				LIBUSB_REQUEST_TYPE_CLASS  |
-				LIBUSB_RECIPIENT_INTERFACE,
-				GO_TO_LOCAL, 1,
-				uscpi->interface,
-				&status, 1,
-				TRANSFER_TIMEOUT);
-		if (ret < 0 || status != USBTMC_STATUS_SUCCESS)
-			sr_dbg("Failed to clear local lockout state.");
-	}
+	scpi_usbtmc_local(uscpi);
 
 	if ((ret = libusb_release_interface(usb->devhdl, uscpi->interface)) < 0)
 		sr_err("Failed to release interface: %s.",
