@@ -34,6 +34,9 @@
 #include <libserialport.h>
 #endif
 
+struct zip;
+struct zip_stat;
+
 /**
  * @file
  *
@@ -729,6 +732,11 @@ SR_PRIV int sr_sessionfile_check(const char *filename);
 SR_PRIV int sr_packet_copy(const struct sr_datafeed_packet *packet,
 		struct sr_datafeed_packet **copy);
 SR_PRIV void sr_packet_free(struct sr_datafeed_packet *packet);
+
+/*--- session_file.c --------------------------------------------------------*/
+
+SR_PRIV GKeyFile *sr_sessionfile_read_metadata(struct zip *archive,
+			const struct zip_stat *entry);
 
 /*--- analog.c --------------------------------------------------------------*/
 
