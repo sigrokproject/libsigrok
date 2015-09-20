@@ -97,8 +97,8 @@ SR_PRIV int scpi_cmd_resp(const struct sr_dev_inst *sdi, const struct scpi_comma
 	const char *cmd;
 
 	if (!(cmd = scpi_cmd_get(cmdtable, command))) {
-		/* Device does not implement this command, that's OK. */
-		return SR_OK;
+		/* Device does not implement this command. */
+		return SR_ERR_NA;
 	}
 
 	scpi = sdi->conn;
