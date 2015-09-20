@@ -57,9 +57,8 @@ static const uint32_t devopts[] = {
 	SR_CONF_SESSIONFILE | SR_CONF_SET,
 };
 
-static int receive_data(int fd, int revents, void *cb_data)
+static gboolean stream_session_data(struct sr_dev_inst *sdi)
 {
-	struct sr_dev_inst *sdi;
 	struct session_vdev *vdev;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
@@ -68,98 +67,113 @@ static int receive_data(int fd, int revents, void *cb_data)
 	char capturefile[16];
 	void *buf;
 
-	(void)fd;
-	(void)revents;
-
-	sdi = cb_data;
 	got_data = FALSE;
 	vdev = sdi->priv;
-	if (!vdev->finished) {
-		if (!vdev->capfile) {
-			/* No capture file opened yet, or finished with the last
-			 * chunked one. */
-			if (vdev->cur_chunk == 0) {
-				/* capturefile is always the unchunked base name. */
-				if (zip_stat(vdev->archive, vdev->capturefile, 0, &zs) != -1) {
-					/* No chunks, just a single capture file. */
-					vdev->cur_chunk = 0;
-					if (!(vdev->capfile = zip_fopen(vdev->archive,
-							vdev->capturefile, 0)))
-						return FALSE;
-						sr_dbg("Opened %s.", vdev->capturefile);
-				} else {
-					/* Try as first chunk filename. */
-					snprintf(capturefile, 15, "%s-1", vdev->capturefile);
-					if (zip_stat(vdev->archive, capturefile, 0, &zs) != -1) {
-						vdev->cur_chunk = 1;
-						if (!(vdev->capfile = zip_fopen(vdev->archive,
-								capturefile, 0)))
-							return FALSE;
-						sr_dbg("Opened %s.", capturefile);
-					} else {
-						sr_err("No capture file '%s' in " "session file '%s'.",
-								vdev->capturefile, vdev->sessionfile);
-						return FALSE;
-					}
-				}
+	if (!vdev->capfile) {
+		/* No capture file opened yet, or finished with the last
+		 * chunked one. */
+		if (vdev->cur_chunk == 0) {
+			/* capturefile is always the unchunked base name. */
+			if (zip_stat(vdev->archive, vdev->capturefile, 0, &zs) != -1) {
+				/* No chunks, just a single capture file. */
+				vdev->cur_chunk = 0;
+				if (!(vdev->capfile = zip_fopen(vdev->archive,
+						vdev->capturefile, 0)))
+					return FALSE;
+				sr_dbg("Opened %s.", vdev->capturefile);
 			} else {
-				/* Capture data is chunked, advance to the next chunk. */
-				vdev->cur_chunk++;
-				snprintf(capturefile, 15, "%s-%d", vdev->capturefile,
-						vdev->cur_chunk);
+				/* Try as first chunk filename. */
+				snprintf(capturefile, 15, "%s-1", vdev->capturefile);
 				if (zip_stat(vdev->archive, capturefile, 0, &zs) != -1) {
+					vdev->cur_chunk = 1;
 					if (!(vdev->capfile = zip_fopen(vdev->archive,
 							capturefile, 0)))
 						return FALSE;
 					sr_dbg("Opened %s.", capturefile);
 				} else {
-					/* We got all the chunks, finish up. */
-					vdev->finished = TRUE;
-					return TRUE;
+					sr_err("No capture file '%s' in " "session file '%s'.",
+							vdev->capturefile, vdev->sessionfile);
+					return FALSE;
 				}
 			}
-		}
-
-		buf = g_malloc(CHUNKSIZE);
-
-		ret = zip_fread(vdev->capfile, buf,
-				CHUNKSIZE / vdev->unitsize * vdev->unitsize);
-		if (ret > 0) {
-			if (ret % vdev->unitsize != 0)
-				sr_warn("Read size %d not a multiple of the"
-					" unit size %d.", ret, vdev->unitsize);
-			got_data = TRUE;
-			packet.type = SR_DF_LOGIC;
-			packet.payload = &logic;
-			logic.length = ret;
-			logic.unitsize = vdev->unitsize;
-			logic.data = buf;
-			vdev->bytes_read += ret;
-			sr_session_send(sdi, &packet);
 		} else {
-			/* done with this capture file */
-			zip_fclose(vdev->capfile);
-			vdev->capfile = NULL;
-			if (vdev->cur_chunk == 0) {
-				/* It was the only file. */
-				vdev->finished = TRUE;
+			/* Capture data is chunked, advance to the next chunk. */
+			vdev->cur_chunk++;
+			snprintf(capturefile, 15, "%s-%d", vdev->capturefile,
+					vdev->cur_chunk);
+			if (zip_stat(vdev->archive, capturefile, 0, &zs) != -1) {
+				if (!(vdev->capfile = zip_fopen(vdev->archive,
+						capturefile, 0)))
+					return FALSE;
+				sr_dbg("Opened %s.", capturefile);
 			} else {
-				/* There might be more chunks, so don't fall through
-				 * to the SR_DF_END here. */
-				g_free(buf);
-				return TRUE;
+				/* We got all the chunks, finish up. */
+				return FALSE;
 			}
 		}
-		g_free(buf);
 	}
 
-	if (!got_data) {
-		packet.type = SR_DF_END;
+	buf = g_malloc(CHUNKSIZE);
+
+	ret = zip_fread(vdev->capfile, buf,
+			CHUNKSIZE / vdev->unitsize * vdev->unitsize);
+	if (ret > 0) {
+		if (ret % vdev->unitsize != 0)
+			sr_warn("Read size %d not a multiple of the"
+				" unit size %d.", ret, vdev->unitsize);
+		got_data = TRUE;
+		packet.type = SR_DF_LOGIC;
+		packet.payload = &logic;
+		logic.length = ret;
+		logic.unitsize = vdev->unitsize;
+		logic.data = buf;
+		vdev->bytes_read += ret;
 		sr_session_send(sdi, &packet);
-		sr_session_source_remove(sdi->session, -1);
+	} else {
+		/* done with this capture file */
+		zip_fclose(vdev->capfile);
+		vdev->capfile = NULL;
+		if (vdev->cur_chunk != 0) {
+			/* There might be more chunks, so don't fall through
+			 * to the SR_DF_END here. */
+			got_data = TRUE;
+		}
 	}
+	g_free(buf);
 
-	return TRUE;
+	return got_data;
+}
+
+static int receive_data(int fd, int revents, void *cb_data)
+{
+	struct sr_dev_inst *sdi;
+	struct session_vdev *vdev;
+	struct sr_datafeed_packet packet;
+
+	(void)fd;
+	(void)revents;
+
+	sdi = cb_data;
+	vdev = sdi->priv;
+
+	if (!vdev->finished && !stream_session_data(sdi))
+		vdev->finished = TRUE;
+	if (!vdev->finished)
+		return G_SOURCE_CONTINUE;
+
+	if (vdev->capfile) {
+		zip_fclose(vdev->capfile);
+		vdev->capfile = NULL;
+	}
+	if (vdev->archive) {
+		zip_discard(vdev->archive);
+		vdev->archive = NULL;
+	}
+	packet.type = SR_DF_END;
+	packet.payload = NULL;
+	sr_session_send(sdi, &packet);
+
+	return G_SOURCE_REMOVE;
 }
 
 /* driver callbacks */
@@ -321,6 +335,18 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	return SR_OK;
 }
 
+static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
+{
+	struct session_vdev *vdev;
+
+	(void)cb_data;
+	vdev = sdi->priv;
+
+	vdev->finished = TRUE;
+
+	return SR_OK;
+}
+
 /** @private */
 SR_PRIV struct sr_dev_driver session_driver = {
 	.name = "virtual-session",
@@ -337,6 +363,6 @@ SR_PRIV struct sr_dev_driver session_driver = {
 	.dev_open = dev_open,
 	.dev_close = dev_close,
 	.dev_acquisition_start = dev_acquisition_start,
-	.dev_acquisition_stop = NULL,
+	.dev_acquisition_stop = dev_acquisition_stop,
 	.context = NULL,
 };
