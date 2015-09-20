@@ -262,7 +262,7 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 	const GVariantType *gvtype;
 	unsigned int i;
 	int cmd, ret;
-	char *s;
+	const char *s;
 
 	if (!sdi)
 		return SR_ERR_ARG;
@@ -366,17 +366,19 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		 * the Rigol notation.
 		 */
 		s = g_variant_get_string(*data, NULL);
-		if (!strcmp(s, "CV") || !strcmp(s, "VOLT")) {
+		if (!strcmp(s, "VOLT")) {
+			g_variant_unref(*data);
 			*data = g_variant_new_string("CV");
-		} else if (!strcmp(s, "CC") || !strcmp(s, "CURR")) {
+		} else if (!strcmp(s, "CURR")) {
+			g_variant_unref(*data);
 			*data = g_variant_new_string("CC");
-		} else if (!strcmp(s, "UR")) {
-			*data = g_variant_new_string("UR");
-		} else {
+		}
+
+		s = g_variant_get_string(*data, NULL);
+		if (strcmp(s, "CV") && strcmp(s, "CC") && strcmp(s, "UR")) {
 			sr_dbg("Unknown response to SCPI_CMD_GET_OUTPUT_REGULATION: %s", s);
 			ret = SR_ERR_DATA;
 		}
-		g_free(s);
 	}
 
 	return ret;
