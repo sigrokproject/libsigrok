@@ -365,8 +365,7 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		 * return VOLT/CURR. We always return a GVariant string in
 		 * the Rigol notation.
 		 */
-		if ((ret = sr_scpi_get_string(sdi->conn, NULL, &s)) != SR_OK)
-			return ret;
+		s = g_variant_get_string(*data, NULL);
 		if (!strcmp(s, "CV") || !strcmp(s, "VOLT")) {
 			*data = g_variant_new_string("CV");
 		} else if (!strcmp(s, "CC") || !strcmp(s, "CURR")) {
