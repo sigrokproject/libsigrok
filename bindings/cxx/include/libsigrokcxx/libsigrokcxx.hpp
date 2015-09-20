@@ -696,11 +696,6 @@ public:
 	/** Begin saving session to a file.
 	 * @param filename File name string. */
 	void begin_save(string filename);
-	/** Append a packet to the session file being saved.
-	 * @param packet Packet to append. */
-	void append(shared_ptr<Packet> packet);
-	/** Append raw logic data to the session file being saved. */
-	void append(void *data, size_t length, unsigned int unit_size);
 	/** Get current trigger setting. */
 	shared_ptr<Trigger> trigger();
 	/** Get the context. */
@@ -721,10 +716,6 @@ protected:
 	vector<DatafeedCallbackData *> _datafeed_callbacks;
 	map<shared_ptr<EventSource>, SourceCallbackData *> _source_callbacks;
 	string _filename;
-	bool _saving;
-	bool _save_initialized;
-	string _save_filename;
-	uint64_t _save_samplerate;
 	shared_ptr<Trigger> _trigger;
 	friend class Deleter;
 	friend class Context;

@@ -122,13 +122,6 @@ SR_API int sr_session_datafeed_callback_add(struct sr_session *session,
 SR_API int sr_session_start(struct sr_session *session);
 SR_API int sr_session_run(struct sr_session *session);
 SR_API int sr_session_stop(struct sr_session *session);
-SR_API int sr_session_save(struct sr_session *session, const char *filename,
-		const struct sr_dev_inst *sdi, unsigned char *buf, int unitsize,
-		int units);
-SR_API int sr_session_save_init(struct sr_session *session,
-		const char *filename, uint64_t samplerate, char **channels);
-SR_API int sr_session_append(struct sr_session *session,
-		const char *filename, unsigned char *buf, int unitsize, int units);
 SR_API int sr_session_source_add(struct sr_session *session, int fd,
 		int events, int timeout, sr_receive_data_callback cb, void *cb_data);
 SR_API int sr_session_source_add_pollfd(struct sr_session *session,

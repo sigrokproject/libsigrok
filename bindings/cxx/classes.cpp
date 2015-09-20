@@ -881,8 +881,7 @@ shared_ptr<Device> SessionDevice::get_shared_from_this()
 
 Session::Session(shared_ptr<Context> context) :
 	UserOwned(_structure),
-	_context(context),
-	_saving(false)
+	_context(context)
 {
 	check(sr_session_new(context->_structure, &_structure));
 	_context->_session = this;
@@ -891,8 +890,7 @@ Session::Session(shared_ptr<Context> context) :
 Session::Session(shared_ptr<Context> context, string filename) :
 	UserOwned(_structure),
 	_context(context),
-	_filename(filename),
-	_saving(false)
+	_filename(filename)
 {
 	check(sr_session_load(context->_structure, filename.c_str(), &_structure));
 	GSList *dev_list;
@@ -968,93 +966,6 @@ void Session::run()
 void Session::stop()
 {
 	check(sr_session_stop(_structure));
-}
-
-void Session::begin_save(string filename)
-{
-	_saving = true;
-	_save_initialized = false;
-	_save_filename = filename;
-	_save_samplerate = 0;
-}
-
-void Session::append(shared_ptr<Packet> packet)
-{
-	if (!_saving)
-		throw Error(SR_ERR);
-
-	switch (packet->_structure->type)
-	{
-		case SR_DF_META:
-		{
-			auto meta = (const struct sr_datafeed_meta *)
-				packet->_structure->payload;
-
-			for (auto l = meta->config; l; l = l->next)
-			{
-				auto config = (struct sr_config *) l->data;
-				if (config->key == SR_CONF_SAMPLERATE)
-					_save_samplerate = g_variant_get_uint64(config->data);
-			}
-
-			break;
-		}
-		case SR_DF_LOGIC:
-		{
-			if (_save_samplerate == 0)
-			{
-				GVariant *samplerate;
-
-				check(sr_config_get(sr_dev_inst_driver_get(packet->_device->_structure),
-					packet->_device->_structure, NULL, SR_CONF_SAMPLERATE,
-					&samplerate));
-
-				_save_samplerate = g_variant_get_uint64(samplerate);
-
-				g_variant_unref(samplerate);
-			}
-
-			if (!_save_initialized)
-			{
-				vector<shared_ptr<Channel>> save_channels;
-
-				for (auto channel : packet->_device->channels())
-					if (channel->_structure->enabled &&
-							channel->_structure->type == SR_CHANNEL_LOGIC)
-						save_channels.push_back(channel);
-
-				auto channels = g_new(char *, save_channels.size());
-
-				int i = 0;
-				for (auto channel : save_channels)
-						channels[i++] = channel->_structure->name;
-				channels[i] = NULL;
-
-				int ret = sr_session_save_init(_structure, _save_filename.c_str(),
-						_save_samplerate, channels);
-
-				g_free(channels);
-
-				if (ret != SR_OK)
-					throw Error(ret);
-
-				_save_initialized = true;
-			}
-
-			auto logic = (const struct sr_datafeed_logic *)
-				packet->_structure->payload;
-
-			check(sr_session_append(_structure, _save_filename.c_str(),
-				(uint8_t *) logic->data, logic->unitsize,
-				logic->length / logic->unitsize));
-		}
-	}
-}
-
-void Session::append(void *data, size_t length, unsigned int unit_size)
-{
-	check(sr_session_append(_structure, _save_filename.c_str(),
-		(uint8_t *) data, unit_size, length));
 }
 
 static void datafeed_callback(const struct sr_dev_inst *sdi,
