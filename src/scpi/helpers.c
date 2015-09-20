@@ -55,7 +55,7 @@ SR_PRIV const char *scpi_cmd_get(const struct scpi_command *cmdtable, int comman
 		return NULL;
 
 	cmd = NULL;
-	for (i = 0; cmdtable[i].command; i++) {
+	for (i = 0; cmdtable[i].string; i++) {
 		if (cmdtable[i].command == command) {
 			cmd = cmdtable[i].string;
 			break;
