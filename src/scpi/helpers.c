@@ -121,10 +121,10 @@ SR_PRIV int scpi_cmd_resp(const struct sr_dev_inst *sdi, const struct scpi_comma
 		else
 			ret = SR_ERR;
 		g_free(s);
-	} if (g_variant_type_equal(gvtype, G_VARIANT_TYPE_DOUBLE)) {
+	} else if (g_variant_type_equal(gvtype, G_VARIANT_TYPE_DOUBLE)) {
 		if ((ret = sr_scpi_get_double(scpi, NULL, &d)) == SR_OK)
 			*gvar = g_variant_new_double(d);
-	} if (g_variant_type_equal(gvtype, G_VARIANT_TYPE_STRING)) {
+	} else if (g_variant_type_equal(gvtype, G_VARIANT_TYPE_STRING)) {
 		if ((ret = sr_scpi_get_string(scpi, NULL, &s)) == SR_OK)
 			*gvar = g_variant_new_string(s);
 	} else {
