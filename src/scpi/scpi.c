@@ -210,7 +210,7 @@ SR_PRIV struct sr_scpi_dev_inst *scpi_dev_inst_new(struct drv_context *drvc,
  */
 SR_PRIV int sr_scpi_open(struct sr_scpi_dev_inst *scpi)
 {
-	return scpi->open(scpi->priv);
+	return scpi->open(scpi);
 }
 
 /**
@@ -352,7 +352,7 @@ SR_PRIV int sr_scpi_read_complete(struct sr_scpi_dev_inst *scpi)
  */
 SR_PRIV int sr_scpi_close(struct sr_scpi_dev_inst *scpi)
 {
-	return scpi->close(scpi->priv);
+	return scpi->close(scpi);
 }
 
 /**

@@ -72,9 +72,9 @@ static int scpi_tcp_dev_inst_new(void *priv, struct drv_context *drvc,
 	return SR_OK;
 }
 
-static int scpi_tcp_open(void *priv)
+static int scpi_tcp_open(struct sr_scpi_dev_inst *scpi)
 {
-	struct scpi_tcp *tcp = priv;
+	struct scpi_tcp *tcp = scpi->priv;
 	struct addrinfo hints;
 	struct addrinfo *results, *res;
 	int err;
@@ -230,9 +230,9 @@ static int scpi_tcp_read_complete(void *priv)
 			tcp->response_bytes_read >= tcp->response_length);
 }
 
-static int scpi_tcp_close(void *priv)
+static int scpi_tcp_close(struct sr_scpi_dev_inst *scpi)
 {
-	struct scpi_tcp *tcp = priv;
+	struct scpi_tcp *tcp = scpi->priv;
 
 	if (close(tcp->socket) < 0)
 		return SR_ERR;

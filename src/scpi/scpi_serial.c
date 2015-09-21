@@ -85,9 +85,9 @@ static int scpi_serial_dev_inst_new(void *priv, struct drv_context *drvc,
 	return SR_OK;
 }
 
-static int scpi_serial_open(void *priv)
+static int scpi_serial_open(struct sr_scpi_dev_inst *scpi)
 {
-	struct scpi_serial *sscpi = priv;
+	struct scpi_serial *sscpi = scpi->priv;
 	struct sr_serial_dev_inst *serial = sscpi->serial;
 
 	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
@@ -209,9 +209,9 @@ static int scpi_serial_read_complete(void *priv)
 	}
 }
 
-static int scpi_serial_close(void *priv)
+static int scpi_serial_close(struct sr_scpi_dev_inst *scpi)
 {
-	struct scpi_serial *sscpi = priv;
+	struct scpi_serial *sscpi = scpi->priv;
 
 	return serial_close(sscpi->serial);
 }

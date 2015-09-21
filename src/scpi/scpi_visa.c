@@ -51,9 +51,9 @@ static int scpi_visa_dev_inst_new(void *priv, struct drv_context *drvc,
 	return SR_OK;
 }
 
-static int scpi_visa_open(void *priv)
+static int scpi_visa_open(struct sr_scpi_dev_inst *scpi)
 {
-	struct scpi_visa *vscpi = priv;
+	struct scpi_visa *vscpi = scpi->priv;
 
 	if (viOpenDefaultRM(&vscpi->rmgr) != VI_SUCCESS) {
 		sr_err("Cannot open default resource manager.");
@@ -140,9 +140,9 @@ static int scpi_visa_read_complete(void *priv)
 	return !(status & 16);
 }
 
-static int scpi_visa_close(void *priv)
+static int scpi_visa_close(struct sr_scpi_dev_inst *scpi)
 {
-	struct scpi_visa *vscpi = priv;
+	struct scpi_visa *vscpi = scpi->priv;
 
 	viClose(vscpi->vi);
 	viClose(vscpi->rmgr);

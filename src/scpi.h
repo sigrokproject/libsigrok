@@ -77,7 +77,7 @@ struct sr_scpi_dev_inst {
 	GSList *(*scan)(struct drv_context *drvc);
 	int (*dev_inst_new)(void *priv, struct drv_context *drvc,
 		const char *resource, char **params, const char *serialcomm);
-	int (*open)(void *priv);
+	int (*open)(struct sr_scpi_dev_inst *scpi);
 	int (*source_add)(struct sr_session *session, void *priv, int events,
 		int timeout, sr_receive_data_callback cb, void *cb_data);
 	int (*source_remove)(struct sr_session *session, void *priv);
@@ -85,7 +85,7 @@ struct sr_scpi_dev_inst {
 	int (*read_begin)(void *priv);
 	int (*read_data)(void *priv, char *buf, int maxlen);
 	int (*read_complete)(void *priv);
-	int (*close)(void *priv);
+	int (*close)(struct sr_scpi_dev_inst *scpi);
 	void (*free)(void *priv);
 	unsigned int read_timeout_ms;
 	void *priv;

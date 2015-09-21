@@ -289,9 +289,9 @@ static void scpi_usbtmc_local(struct scpi_usbtmc_libusb *uscpi)
 	return;
 }
 
-static int scpi_usbtmc_libusb_open(void *priv)
+static int scpi_usbtmc_libusb_open(struct sr_scpi_dev_inst *scpi)
 {
-	struct scpi_usbtmc_libusb *uscpi = priv;
+	struct scpi_usbtmc_libusb *uscpi = scpi->priv;
 	struct sr_usb_dev_inst *usb = uscpi->usb;
 	struct libusb_device *dev;
 	struct libusb_device_descriptor des;
@@ -634,11 +634,11 @@ static int scpi_usbtmc_libusb_read_complete(void *priv)
 	       uscpi->bulkin_attributes & EOM;
 }
 
-static int scpi_usbtmc_libusb_close(void *priv)
+static int scpi_usbtmc_libusb_close(struct sr_scpi_dev_inst *scpi)
 {
-	int ret;
-	struct scpi_usbtmc_libusb *uscpi = priv;
+	struct scpi_usbtmc_libusb *uscpi = scpi->priv;
 	struct sr_usb_dev_inst *usb = uscpi->usb;
+	int ret;
 
 	if (!usb->devhdl)
 		return SR_ERR;

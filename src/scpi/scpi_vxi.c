@@ -60,9 +60,9 @@ static int scpi_vxi_dev_inst_new(void *priv, struct drv_context *drvc,
 	return SR_OK;
 }
 
-static int scpi_vxi_open(void *priv)
+static int scpi_vxi_open(struct sr_scpi_dev_inst *scpi)
 {
-	struct scpi_vxi *vxi = priv;
+	struct scpi_vxi *vxi = scpi->priv;
 	Create_LinkParms link_parms;
 	Create_LinkResp *link_resp;
 
@@ -195,9 +195,9 @@ static int scpi_vxi_read_complete(void *priv)
 	return vxi->read_complete;
 }
 
-static int scpi_vxi_close(void *priv)
+static int scpi_vxi_close(struct sr_scpi_dev_inst *scpi)
 {
-	struct scpi_vxi *vxi = priv;
+	struct scpi_vxi *vxi = scpi->priv;
 	Device_Error *dev_error;
 
 	if (!vxi->client)

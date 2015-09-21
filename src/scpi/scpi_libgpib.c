@@ -49,9 +49,9 @@ static int scpi_gpib_dev_inst_new(void *priv, struct drv_context *drvc,
 	return SR_OK;
 }
 
-static int scpi_gpib_open(void *priv)
+static int scpi_gpib_open(struct sr_scpi_dev_inst *scpi)
 {
-	struct scpi_gpib *gscpi = priv;
+	struct scpi_gpib *gscpi = scpi->priv;
 
 	if ((gscpi->descriptor = ibfind(gscpi->name)) < 0)
 		return SR_ERR;
@@ -134,9 +134,9 @@ static int scpi_gpib_read_complete(void *priv)
 	return gscpi->read_started && (ibsta & END);
 }
 
-static int scpi_gpib_close(void *priv)
+static int scpi_gpib_close(struct sr_scpi_dev_inst *scpi)
 {
-	struct scpi_gpib *gscpi = priv;
+	struct scpi_gpib *gscpi = scpi->priv;
 
 	ibonl(gscpi->descriptor, 0);
 
