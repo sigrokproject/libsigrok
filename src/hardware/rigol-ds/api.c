@@ -340,12 +340,12 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 			}
 			if (i != 3)
 				break;
-			if (n[0] != 0 || n[1] > 2)
-				break;
-			if (n[1] == 2 && n[2] > 3)
-				break;
-			sr_dbg("Found DS1000 firmware < 0.2.4, using raw data format.");
-			devc->format = FORMAT_RAW;
+			scpi->firmware_version = n[0] * 100 + n[1] * 10 + n[2];
+			if (scpi->firmware_version < 24) {
+				sr_dbg("Found DS1000 firmware < 0.2.4, using raw data format.");
+				devc->format = FORMAT_RAW;
+			}
+			break;
 		} while (0);
 		g_strfreev(version);
 	}

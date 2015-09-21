@@ -89,6 +89,8 @@ struct sr_scpi_dev_inst {
 	void (*free)(void *priv);
 	unsigned int read_timeout_ms;
 	void *priv;
+	/* Only used for quirk workarounds, notably the Rigol DS1000 series. */
+	uint64_t firmware_version;
 };
 
 SR_PRIV GSList *sr_scpi_scan(struct drv_context *drvc, GSList *options,

@@ -45,7 +45,6 @@ struct scpi_usbtmc_libusb {
 	int response_length;
 	int response_bytes_read;
 	int remaining_length;
-	int rigol_ds1000;
 };
 
 /* Some USBTMC-specific enums, as defined in the USBTMC standard. */
@@ -345,8 +344,6 @@ static int scpi_usbtmc_libusb_open(struct sr_scpi_dev_inst *scpi)
 				}
 			}
 			found = 1;
-			uscpi->rigol_ds1000 = des.idVendor  == 0x1ab1 &&
-			                      des.idProduct == 0x0588;
 		}
 		libusb_free_config_descriptor(confdes);
 		if (found)
@@ -378,24 +375,6 @@ static int scpi_usbtmc_libusb_open(struct sr_scpi_dev_inst *scpi)
 		sr_err("Failed to claim interface: %s.",
 		       libusb_error_name(ret));
 		return SR_ERR;
-	}
-
-	if (!uscpi->rigol_ds1000) {
-	if ((ret = libusb_clear_halt(usb->devhdl, uscpi->bulk_in_ep)) < 0) {
-		sr_err("Failed to clear halt/stall condition for EP %d: %s.",
-		       uscpi->bulk_in_ep, libusb_error_name(ret));
-		return SR_ERR;
-	}
-	if ((ret = libusb_clear_halt(usb->devhdl, uscpi->bulk_out_ep)) < 0) {
-		sr_err("Failed to clear halt/stall condition for EP %d: %s.",
-		       uscpi->bulk_out_ep, libusb_error_name(ret));
-		return SR_ERR;
-	}
-	if ((ret = libusb_clear_halt(usb->devhdl, uscpi->interrupt_ep)) < 0) {
-		sr_err("Failed to clear halt/stall condition for EP %d: %s.",
-		       uscpi->interrupt_ep, libusb_error_name(ret));
-		return SR_ERR;
-	}
 	}
 
 	/* Get capabilities. */
@@ -638,21 +617,24 @@ static int scpi_usbtmc_libusb_close(struct sr_scpi_dev_inst *scpi)
 {
 	struct scpi_usbtmc_libusb *uscpi = scpi->priv;
 	struct sr_usb_dev_inst *usb = uscpi->usb;
+	struct libusb_device *dev;
+	struct libusb_device_descriptor des;
 	int ret;
 
 	if (!usb->devhdl)
 		return SR_ERR;
 
-	if (!uscpi->rigol_ds1000) {
-	if ((ret = libusb_clear_halt(usb->devhdl, uscpi->bulk_in_ep)) < 0)
-		sr_err("Failed to clear halt/stall condition for EP %d: %s.",
-		       uscpi->bulk_in_ep, libusb_error_name(ret));
-	if ((ret = libusb_clear_halt(usb->devhdl, uscpi->bulk_out_ep)) < 0)
-		sr_err("Failed to clear halt/stall condition for EP %d: %s.",
-		       uscpi->bulk_out_ep, libusb_error_name(ret));
-	if ((ret = libusb_clear_halt(usb->devhdl, uscpi->interrupt_ep)) < 0)
-		sr_err("Failed to clear halt/stall condition for EP %d: %s.",
-		       uscpi->interrupt_ep, libusb_error_name(ret));
+	dev = libusb_get_device(usb->devhdl);
+	libusb_get_device_descriptor(dev, &des);
+	if (des.idVendor == 0x1ab1 && des.idProduct == 0x0588
+			&& scpi->firmware_version >= 24) {
+		/* Rigol DS1000 with firmware > 0.2.4 needs this. */
+		if ((ret = libusb_clear_halt(usb->devhdl, uscpi->bulk_in_ep)) < 0)
+			sr_err("Failed to clear halt/stall condition for EP %d: %s.",
+			       uscpi->bulk_out_ep, libusb_error_name(ret));
+		if ((ret = libusb_clear_halt(usb->devhdl, uscpi->bulk_out_ep)) < 0)
+			sr_err("Failed to clear halt/stall condition for EP %d: %s.",
+			       uscpi->bulk_out_ep, libusb_error_name(ret));
 	}
 
 	scpi_usbtmc_local(uscpi);
