@@ -92,7 +92,7 @@ static int scpi_gpib_send(void *priv, const char *command)
 	if (ibcnt < len)
 	{
 		sr_err("Failed to send all of SCPI command: '%s': "
-				"len = %d, ibcnt = .", command, len, ibcnt);
+				"len = %d, ibcnt = %d.", command, len, ibcnt);
 		return SR_ERR;
 	}
 
