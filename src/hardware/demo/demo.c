@@ -770,7 +770,7 @@ static int prepare_data(int fd, int revents, void *cb_data)
 		todo_us = MAX(0, elapsed_us - devc->spent_us);
 
 	/* How many samples are outstanding since the last round? */
-	samples_todo = (todo_us * devc->cur_samplerate + G_USEC_PER_SEC / 2)
+	samples_todo = (todo_us * devc->cur_samplerate + G_USEC_PER_SEC - 1)
 			/ G_USEC_PER_SEC;
 	if (devc->limit_samples > 0) {
 		if (devc->limit_samples < devc->sent_samples)
