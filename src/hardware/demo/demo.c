@@ -106,12 +106,11 @@ struct analog_gen {
 /* Private, per-device-instance driver context. */
 struct dev_context {
 	uint64_t cur_samplerate;
-	gboolean continuous;
 	uint64_t limit_samples;
 	uint64_t limit_msec;
-	uint64_t logic_counter;
-	uint64_t analog_counter;
-	int64_t starttime;
+	uint64_t sent_samples;
+	int64_t start_us;
+	int64_t spent_us;
 	uint64_t step;
 	/* Logic */
 	int32_t num_logic_channels;
@@ -294,18 +293,12 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sdi->model = g_strdup("Demo device");
 	sdi->driver = di;
 
-	devc = g_malloc(sizeof(struct dev_context));
+	devc = g_malloc0(sizeof(struct dev_context));
 	devc->cur_samplerate = SR_KHZ(200);
-	devc->limit_samples = 0;
-	devc->limit_msec = 0;
-	devc->step = 0;
-	devc->continuous = FALSE;
 	devc->num_logic_channels = num_logic_channels;
 	devc->logic_unitsize = (devc->num_logic_channels + 7) / 8;
 	devc->logic_pattern = PATTERN_SIGROK;
 	devc->num_analog_channels = num_analog_channels;
-	devc->avg = FALSE;
-	devc->avg_samples = 0;
 
 	/* Logic channels, all in one channel group. */
 	cg = g_malloc0(sizeof(struct sr_channel_group));
@@ -684,6 +677,7 @@ static void logic_generator(struct sr_dev_inst *sdi, uint64_t size)
 static void send_analog_packet(struct analog_gen *ag,
 			       struct sr_dev_inst *sdi,
 			       uint64_t *analog_sent,
+			       uint64_t analog_pos,
 			       uint64_t analog_todo)
 {
 	struct sr_datafeed_packet packet;
@@ -697,7 +691,7 @@ static void send_analog_packet(struct analog_gen *ag,
 	packet.payload = &ag->packet;
 
 	if (!devc->avg) {
-		ag_pattern_pos = devc->analog_counter % ag->num_samples;
+		ag_pattern_pos = analog_pos % ag->num_samples;
 		sending_now = MIN(analog_todo, ag->num_samples-ag_pattern_pos);
 		ag->packet.data = ag->pattern_data + ag_pattern_pos;
 		ag->packet.num_samples = sending_now;
@@ -706,7 +700,7 @@ static void send_analog_packet(struct analog_gen *ag,
 		/* Whichever channel group gets there first. */
 		*analog_sent = MAX(*analog_sent, sending_now);
 	} else {
-		ag_pattern_pos = devc->analog_counter % ag->num_samples;
+		ag_pattern_pos = analog_pos % ag->num_samples;
 		to_avg = MIN(analog_todo, ag->num_samples-ag_pattern_pos);
 
 		for (i = 0; i < to_avg; i++) {
@@ -750,35 +744,54 @@ static int prepare_data(int fd, int revents, void *cb_data)
 	struct analog_gen *ag;
 	GHashTableIter iter;
 	void *value;
-	uint64_t logic_todo, analog_todo, expected_samplenum, analog_sent, sending_now;
-	int64_t time, elapsed;
+	uint64_t samples_todo, logic_done, analog_done, analog_sent, sending_now;
+	int64_t elapsed_us, limit_us, todo_us;
 
 	(void)fd;
 	(void)revents;
 
 	sdi = cb_data;
 	devc = sdi->priv;
-	logic_todo = analog_todo = 0;
 
-	/* How many samples should we have sent by now? */
-	time = g_get_monotonic_time();
-	elapsed = time - devc->starttime;
-	expected_samplenum = elapsed * devc->cur_samplerate / (1000 * 1000);
+	/* Just in case. */
+	if (devc->cur_samplerate <= 0 || devc->logic_unitsize <= 0
+			|| (devc->num_logic_channels <= 0
+			&& devc->num_analog_channels <= 0)) {
+		dev_acquisition_stop(sdi, sdi);
+		return G_SOURCE_CONTINUE;
+	}
 
-	/* But never more than the limit, if there is one. */
-	if (!devc->continuous)
-		expected_samplenum = MIN(expected_samplenum, devc->limit_samples);
+	/* What time span should we send samples for? */
+	elapsed_us = g_get_monotonic_time() - devc->start_us;
+	limit_us = 1000 * devc->limit_msec;
+	if (limit_us > 0 && limit_us < elapsed_us)
+		todo_us = MAX(0, limit_us - devc->spent_us);
+	else
+		todo_us = MAX(0, elapsed_us - devc->spent_us);
 
-	/* Of those, how many do we still have to send? */
-	if (devc->num_logic_channels && (devc->logic_counter < devc->limit_samples))
-		logic_todo = expected_samplenum - devc->logic_counter;
-	if (devc->num_analog_channels && (devc->analog_counter < devc->limit_samples))
-		analog_todo = expected_samplenum - devc->analog_counter;
+	/* How many samples are outstanding since the last round? */
+	samples_todo = (todo_us * devc->cur_samplerate + G_USEC_PER_SEC / 2)
+			/ G_USEC_PER_SEC;
+	if (devc->limit_samples > 0) {
+		if (devc->limit_samples < devc->sent_samples)
+			samples_todo = 0;
+		else if (devc->limit_samples - devc->sent_samples < samples_todo)
+			samples_todo = devc->limit_samples - devc->sent_samples;
+	}
+	/* Calculate the actual time covered by this run back from the sample
+	 * count, rounded towards zero. This avoids getting stuck on a too-low
+	 * time delta with no samples being sent due to round-off.
+	 */
+	todo_us = samples_todo * G_USEC_PER_SEC / devc->cur_samplerate;
 
-	while (logic_todo || analog_todo) {
+	logic_done = 0;
+	analog_done = 0;
+
+	while (logic_done < samples_todo || analog_done < samples_todo) {
 		/* Logic */
-		if (logic_todo > 0) {
-			sending_now = MIN(logic_todo, LOGIC_BUFSIZE / devc->logic_unitsize);
+		if (logic_done < samples_todo) {
+			sending_now = MIN(samples_todo - logic_done,
+					LOGIC_BUFSIZE / devc->logic_unitsize);
 			logic_generator(sdi, sending_now * devc->logic_unitsize);
 			packet.type = SR_DF_LOGIC;
 			packet.payload = &logic;
@@ -786,27 +799,35 @@ static int prepare_data(int fd, int revents, void *cb_data)
 			logic.unitsize = devc->logic_unitsize;
 			logic.data = devc->logic_data;
 			sr_session_send(sdi, &packet);
-			logic_todo -= sending_now;
-			devc->logic_counter += sending_now;
+			logic_done += sending_now;
 		}
 
 		/* Analog, one channel at a time */
-		if (analog_todo > 0) {
+		if (analog_done < samples_todo) {
 			analog_sent = 0;
 
 			g_hash_table_iter_init(&iter, devc->ch_ag);
 			while (g_hash_table_iter_next(&iter, NULL, &value)) {
-				send_analog_packet(value, sdi,
-						   &analog_sent, analog_todo);
+				send_analog_packet(value, sdi, &analog_sent,
+						devc->sent_samples + analog_done,
+						samples_todo - analog_done);
 			}
-			analog_todo -= analog_sent;
-			devc->analog_counter += analog_sent;
+			analog_done += analog_sent;
 		}
 	}
+	/* At this point, both logic_done and analog_done should be
+	 * exactly equal to samples_todo, or else.
+	 */
+	if (logic_done != samples_todo || analog_done != samples_todo) {
+		sr_err("BUG: Sample count mismatch.");
+		return G_SOURCE_REMOVE;
+	}
+	devc->sent_samples += samples_todo;
+	devc->spent_us += todo_us;
 
-	if (!devc->continuous
-			&& (!devc->num_logic_channels || devc->logic_counter >= devc->limit_samples)
-			&& (!devc->num_analog_channels || devc->analog_counter >= devc->limit_samples)) {
+	if ((devc->limit_samples > 0 && devc->sent_samples >= devc->limit_samples)
+			|| (limit_us > 0 && devc->spent_us >= limit_us)) {
+
 		/* If we're averaging everything - now is the time to send data */
 		if (devc->avg_samples == 0) {
 			g_hash_table_iter_init(&iter, devc->ch_ag);
@@ -819,13 +840,11 @@ static int prepare_data(int fd, int revents, void *cb_data)
 				sr_session_send(sdi, &packet);
 			}
 		}
-
 		sr_dbg("Requested number of samples reached.");
-		dev_acquisition_stop(sdi, cb_data);
-		return TRUE;
+		dev_acquisition_stop(sdi, sdi);
 	}
 
-	return TRUE;
+	return G_SOURCE_CONTINUE;
 }
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
@@ -840,8 +859,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		return SR_ERR_DEV_CLOSED;
 
 	devc = sdi->priv;
-	devc->continuous = !devc->limit_samples;
-	devc->logic_counter = devc->analog_counter = 0;
+	devc->sent_samples = 0;
 
 	g_hash_table_iter_init(&iter, devc->ch_ag);
 	while (g_hash_table_iter_next(&iter, NULL, &value))
@@ -853,7 +871,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	std_session_send_df_header(sdi, LOG_PREFIX);
 
 	/* We use this timestamp to decide how many more samples to send. */
-	devc->starttime = g_get_monotonic_time();
+	devc->start_us = g_get_monotonic_time();
+	devc->spent_us = 0;
 
 	return SR_OK;
 }
