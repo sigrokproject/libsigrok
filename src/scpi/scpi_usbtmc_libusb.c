@@ -101,11 +101,11 @@ struct usbtmc_blacklist {
 	uint16_t pid;
 };
 
+/* Devices that publish RL1 support, but don't support it. */
 static struct usbtmc_blacklist blacklist_remote[] = {
-	/* Rigol DS1000 series publishes RL1 support, but doesn't support it. */
-	{ 0x1ab1, 0x0588 },
-	/* Agilent DSO1000 series are rebadged versions of the Rigol DS1000. */
-	{ 0x0957, 0x0588 },
+	{ 0x1ab1, 0x0588 },  /* Rigol DS1000 series */
+	{ 0x1ab1, 0x04b0 },  /* Rigol DS2000 series */
+	{ 0x0957, 0x0588 },  /* Agilent DSO1000 series (rebadged Rigol DS1000) */
 	ALL_ZERO
 };
 
