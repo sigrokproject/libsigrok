@@ -865,7 +865,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	while (g_hash_table_iter_next(&iter, NULL, &value))
 		generate_analog_pattern(value, devc->cur_samplerate);
 
-	sr_session_source_add(sdi->session, -1, 0, 40, prepare_data, (void *)sdi);
+	sr_session_source_add(sdi->session, -1, 0, 100,
+			prepare_data, (struct sr_dev_inst *)sdi);
 
 	/* Send header packet to the session bus. */
 	std_session_send_df_header(sdi, LOG_PREFIX);
