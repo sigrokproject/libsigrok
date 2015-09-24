@@ -299,7 +299,7 @@ static int scpi_usbtmc_libusb_open(struct sr_scpi_dev_inst *scpi)
 	struct libusb_config_descriptor *confdes;
 	const struct libusb_interface_descriptor *intfdes;
 	const struct libusb_endpoint_descriptor *ep;
-	int confidx, intfidx, epidx, config = 0;
+	int confidx, intfidx, epidx, config = 0, current_config;
 	uint8_t capabilities[24];
 	int ret, found = 0;
 
@@ -367,10 +367,13 @@ static int scpi_usbtmc_libusb_open(struct sr_scpi_dev_inst *scpi)
 		uscpi->detached_kernel_driver = 1;
 	}
 
-	if ((ret = libusb_set_configuration(usb->devhdl, config)) < 0) {
-		sr_err("Failed to set configuration: %s.",
-		       libusb_error_name(ret));
-		return SR_ERR;
+	if (libusb_get_configuration(usb->devhdl, &current_config) == 0
+	    && current_config != config) {
+		if ((ret = libusb_set_configuration(usb->devhdl, config)) < 0) {
+			sr_err("Failed to set configuration: %s.",
+			       libusb_error_name(ret));
+			return SR_ERR;
+		}
 	}
 
 	if ((ret = libusb_claim_interface(usb->devhdl, uscpi->interface)) < 0) {
