@@ -68,7 +68,16 @@ struct probe_eeprom {
 	uint8_t pwr_sw;
 	uint8_t serial[EEPROM_SERIAL_SIZE];
 	int8_t tag[EEPROM_TAG_SIZE];
-} __attribute__((packed));
+};
+
+#define EEPROM_SIZE (3 * sizeof(uint32_t) + 1 + EEPROM_SERIAL_SIZE + EEPROM_TAG_SIZE)
+
+#define EEPROM_OFF_TYPE		0
+#define EEPROM_OFF_REV		sizeof(uint32_t)
+#define EEPROM_OFF_SHUNT	(2 * sizeof(uint32_t))
+#define EEPROM_OFF_PWR_SW	(3 * sizeof(uint32_t))
+#define EEPROM_OFF_SERIAL	(3 * sizeof(uint32_t) + 1)
+#define EEPROM_OFF_TAG		(EEPROM_OFF_SERIAL + EEPROM_SERIAL_SIZE)
 
 static const uint8_t enrg_i2c_addrs[] = {
 	0x40, 0x41, 0x44, 0x45, 0x42, 0x43, 0x46, 0x47,
@@ -256,9 +265,8 @@ static void append_channel(struct sr_dev_inst *sdi, struct sr_channel_group *cg,
 
 static int read_probe_eeprom(unsigned int addr, struct probe_eeprom *eeprom)
 {
-	static const ssize_t len = sizeof(struct probe_eeprom);
-
 	GString *path = g_string_sized_new(64);
+	char eeprom_buf[EEPROM_SIZE];
 	ssize_t rd;
 	int fd;
 
@@ -268,18 +276,16 @@ static int read_probe_eeprom(unsigned int addr, struct probe_eeprom *eeprom)
 	if (fd < 0)
 		return -1;
 
-	rd = read(fd, eeprom, len);
+	rd = read(fd, eeprom_buf, EEPROM_SIZE);
 	g_close(fd, NULL);
-	if (rd != len)
+	if (rd != EEPROM_SIZE)
 		return -1;
 
-	/*
-	 * All integer types are in network byte order. Convert them to
-	 * host order before proceeding.
-	 */
-	eeprom->type = ntohl(eeprom->type);
-	eeprom->rev = ntohl(eeprom->rev);
-	eeprom->shunt = ntohl(eeprom->shunt);
+	eeprom->type = RL32(eeprom_buf + EEPROM_OFF_TYPE);
+	eeprom->rev = RL32(eeprom_buf + EEPROM_OFF_REV);
+	eeprom->shunt = RL32(eeprom_buf + EEPROM_OFF_SHUNT);
+	eeprom->pwr_sw = R8(eeprom_buf + EEPROM_OFF_PWR_SW);
+	/* Don't care about the serial number and tag for now. */
 
 	/* Check if we have some sensible values. */
 	if (eeprom->rev != 'B')
@@ -328,6 +334,7 @@ SR_PRIV gboolean bl_acme_register_probe(struct sr_dev_inst *sdi, int type,
 	 * See if we can read the EEPROM contents. If not, assume it's
 	 * a revision A probe.
 	 */
+	memset(&eeprom, 0, sizeof(struct probe_eeprom));
 	status = read_probe_eeprom(addr, &eeprom);
 	cgp->rev = status < 0 ? ACME_REV_A : ACME_REV_B;
 
