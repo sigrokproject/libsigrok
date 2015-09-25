@@ -402,7 +402,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		select_channel(sdi, cg->channels->data);
 
 	devc = sdi->priv;
-	ret = SR_OK;
+
 	switch (key) {
 	case SR_CONF_ENABLED:
 		if (g_variant_get_boolean(data))

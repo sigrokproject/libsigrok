@@ -938,7 +938,6 @@ static int chk_msg14(struct sr_dev_inst *sdi)
 	}
 
 	if (devc->buf[1] == 0) { /* Error msg from device! */
-		retc = SR_ERR_ARG;
 		switch (devc->buf[2]) {
 		case 1: /* Not used */
 			sr_err("Device: Illegal error code!");

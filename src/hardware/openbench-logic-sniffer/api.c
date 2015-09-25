@@ -97,7 +97,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	struct sr_config *src;
 	struct sr_dev_inst *sdi;
 	struct drv_context *drvc;
-	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
 	GSList *l, *devices;
 	int ret;
@@ -182,7 +181,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	if (sp_input_waiting(serial->data) != 0) {
 		/* Got metadata. */
 		sdi = get_metadata(serial);
-		devc = sdi->priv;
 	} else {
 		/* Not an OLS -- some other board that uses the sump protocol. */
 		sr_info("Device does not support metadata.");
@@ -195,8 +193,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		for (i = 0; i < ARRAY_SIZE(ols_channel_names); i++)
 			sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE,
 					ols_channel_names[i]);
-		devc = ols_dev_new();
-		sdi->priv = devc;
+		sdi->priv = ols_dev_new();
 	}
 	/* Configure samplerate and divider. */
 	if (ols_set_samplerate(sdi, DEFAULT_SAMPLERATE) != SR_OK)

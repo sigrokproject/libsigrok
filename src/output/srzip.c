@@ -283,6 +283,8 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 		}
 		logic = packet->payload;
 		ret = zip_append(o, logic->data, logic->unitsize, logic->length);
+		if (ret != SR_OK)
+			return ret;
 		break;
 	}
 

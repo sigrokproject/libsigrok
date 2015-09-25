@@ -165,7 +165,6 @@ static GSList *scan_1x_2x_rs232(struct sr_dev_driver *di, GSList *options)
 	drvc = di->context;
 	drvc->instances = NULL;
 	conn = serialcomm = NULL;
-	model = METRAHIT_NONE;
 	serialcomm_given = FALSE;
 
 	sr_spew("scan_1x_2x_rs232() called!");

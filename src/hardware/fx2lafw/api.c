@@ -655,8 +655,6 @@ static int start_transfers(const struct sr_dev_inst *sdi)
 	} else
 		devc->trigger_fired = TRUE;
 
-	timeout = fx2lafw_get_timeout(devc);
-
 	num_transfers = fx2lafw_get_number_of_transfers(devc);
 	size = fx2lafw_get_buffer_size(devc);
 	devc->submitted_transfers = 0;

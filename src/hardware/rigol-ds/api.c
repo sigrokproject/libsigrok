@@ -809,9 +809,6 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	unsigned int i;
 	struct dev_context *devc = NULL;
 
-	if (sdi)
-		devc = sdi->priv;
-
 	if (key == SR_CONF_SCAN_OPTIONS) {
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
 				scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));

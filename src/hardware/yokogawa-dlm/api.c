@@ -236,7 +236,6 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 	if ((cg_type = check_channel_group(devc, cg)) == CG_INVALID)
 		return SR_ERR;
 
-	ret = SR_ERR_NA;
 	model = devc->model_config;
 	state = devc->model_state;
 

@@ -607,7 +607,6 @@ SR_PRIV int sr_scpi_get_floatv(struct sr_scpi_dev_inst *scpi,
 	gchar **ptr, **tokens;
 	GArray *response_array;
 
-	ret = SR_OK;
 	response = NULL;
 	tokens = NULL;
 
@@ -664,7 +663,6 @@ SR_PRIV int sr_scpi_get_uint8v(struct sr_scpi_dev_inst *scpi,
 	gchar **ptr, **tokens;
 	GArray *response_array;
 
-	ret = SR_OK;
 	response = NULL;
 	tokens = NULL;
 
