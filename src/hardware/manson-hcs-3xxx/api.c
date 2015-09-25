@@ -145,12 +145,12 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		if (!strcmp(models[i].id, tokens[0]))
 			model_id = i;
 	}
-	g_strfreev(tokens);
-
 	if (model_id < 0) {
-		sr_err("Unknown model id '%s' detected, aborting.", tokens[0]);
+		sr_err("Unknown model ID '%s' detected, aborting.", tokens[0]);
+		g_strfreev(tokens);
 		return NULL;
 	}
+	g_strfreev(tokens);
 
 	/* Init device instance, etc. */
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
@@ -173,8 +173,10 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	    (hcs_read_reply(serial, 2, reply, sizeof(reply)) < 0))
 		goto exit_err;
 	tokens = g_strsplit((const gchar *)&reply, "\r", 2);
-	if (hcs_parse_volt_curr_mode(sdi, tokens) < 0)
+	if (hcs_parse_volt_curr_mode(sdi, tokens) < 0) {
+		g_strfreev(tokens);
 		goto exit_err;
+	}
 	g_strfreev(tokens);
 
 	/* Get max. voltage and current. */
