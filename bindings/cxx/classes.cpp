@@ -72,6 +72,50 @@ Error::~Error() throw()
 {
 }
 
+ResourceReader::~ResourceReader()
+{
+}
+
+SR_PRIV int ResourceReader::open_callback(struct sr_resource *res,
+		const char *name, void *cb_data)
+{
+	try {
+		auto *const reader = static_cast<ResourceReader*>(cb_data);
+		reader->open(res, name);
+	} catch (const Error &err) {
+		return err.result;
+	} catch (...) {
+		return SR_ERR;
+	}
+	return SR_OK;
+}
+
+SR_PRIV int ResourceReader::close_callback(struct sr_resource *res, void *cb_data)
+{
+	try {
+		auto *const reader = static_cast<ResourceReader*>(cb_data);
+		reader->close(res);
+	} catch (const Error &err) {
+		return err.result;
+	} catch (...) {
+		return SR_ERR;
+	}
+	return SR_OK;
+}
+
+SR_PRIV ssize_t ResourceReader::read_callback(const struct sr_resource *res,
+		void *buf, size_t count, void *cb_data)
+{
+	try {
+		auto *const reader = static_cast<ResourceReader*>(cb_data);
+		return reader->read(res, buf, count);
+	} catch (const Error &err) {
+		return err.result;
+	} catch (...) {
+		return SR_ERR;
+	}
+}
+
 shared_ptr<Context> Context::create()
 {
 	return shared_ptr<Context>(new Context(), Context::Deleter());
@@ -196,13 +240,26 @@ void Context::set_log_callback(LogCallbackFunction callback)
 {
 	_log_callback = callback;
 	check(sr_log_callback_set(call_log_callback, &_log_callback));
-} 
+}
 
 void Context::set_log_callback_default()
 {
 	check(sr_log_callback_set_default());
 	_log_callback = nullptr;
-} 
+}
+
+void Context::set_resource_reader(ResourceReader *reader)
+{
+	if (reader) {
+		check(sr_resource_set_hooks(_structure,
+				&ResourceReader::open_callback,
+				&ResourceReader::close_callback,
+				&ResourceReader::read_callback, reader));
+	} else {
+		check(sr_resource_set_hooks(_structure,
+				nullptr, nullptr, nullptr, nullptr));
+	}
+}
 
 shared_ptr<Session> Context::create_session()
 {

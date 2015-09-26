@@ -232,6 +232,29 @@ protected:
 /** Type of log callback */
 typedef function<void(const LogLevel *, string message)> LogCallbackFunction;
 
+/** Resource reader delegate. */
+class SR_API ResourceReader
+{
+public:
+	ResourceReader() {}
+	virtual ~ResourceReader();
+private:
+	/** Resource open hook. */
+	virtual void open(struct sr_resource *res, string name) = 0;
+	/** Resource close hook. */
+	virtual void close(struct sr_resource *res) = 0;
+	/** Resource read hook. */
+	virtual size_t read(const struct sr_resource *res, void *buf, size_t count) = 0;
+
+	static SR_PRIV int open_callback(struct sr_resource *res,
+			const char *name, void *cb_data);
+	static SR_PRIV int close_callback(struct sr_resource *res,
+			void *cb_data);
+	static SR_PRIV ssize_t read_callback(const struct sr_resource *res,
+			void *buf, size_t count, void *cb_data);
+	friend class Context;
+};
+
 /** The global libsigrok context */
 class SR_API Context : public UserOwned<Context, struct sr_context>
 {
@@ -258,6 +281,9 @@ public:
 	void set_log_callback(LogCallbackFunction callback);
 	/** Set the log callback to the default handler. */
 	void set_log_callback_default();
+	/** Install a delegate for reading resource files.
+	 * @param reader The resource reader delegate, or nullptr to unset. */
+	void set_resource_reader(ResourceReader *reader);
 	/** Create a new session. */
 	shared_ptr<Session> create_session();
 	/** Create a new user device. */
