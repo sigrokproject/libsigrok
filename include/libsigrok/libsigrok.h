@@ -557,6 +557,25 @@ struct sr_option {
 	GSList *values;
 };
 
+/** Resource type.
+ * @since 0.4.0
+ */
+enum sr_resource_type {
+	SR_RESOURCE_FIRMWARE = 1,
+};
+
+/** Resource descriptor.
+ * @since 0.4.0
+ */
+struct sr_resource {
+	/** Size of resource in bytes; set by resource open callback. */
+	uint64_t size;
+	/** File handle or equivalent; set by resource open callback. */
+	void *handle;
+	/** Resource type (SR_RESOURCE_FIRMWARE, ...) */
+	int type;
+};
+
 /** Output module flags. */
 enum sr_output_flag {
 	/** If set, this output module writes the output itself. */

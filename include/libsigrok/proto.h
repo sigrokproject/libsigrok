@@ -202,6 +202,20 @@ SR_API int sr_trigger_match_add(struct sr_trigger_stage *stage,
 SR_API GSList *sr_serial_list(const struct sr_dev_driver *driver);
 SR_API void sr_serial_free(struct sr_serial_port *serial);
 
+/*--- resource.c ------------------------------------------------------------*/
+
+typedef int (*sr_resource_open_callback)(struct sr_resource *res,
+		const char *name, void *cb_data);
+typedef int (*sr_resource_close_callback)(struct sr_resource *res,
+		void *cb_data);
+typedef ssize_t (*sr_resource_read_callback)(const struct sr_resource *res,
+		void *buf, size_t count, void *cb_data);
+
+SR_API int sr_resource_set_hooks(struct sr_context *ctx,
+		sr_resource_open_callback open_cb,
+		sr_resource_close_callback close_cb,
+		sr_resource_read_callback read_cb, void *cb_data);
+
 /*--- strutil.c -------------------------------------------------------------*/
 
 SR_API char *sr_si_string_u64(uint64_t x, const char *unit);

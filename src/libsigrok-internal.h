@@ -209,6 +209,10 @@ struct sr_context {
 #ifdef HAVE_LIBUSB_1_0
 	libusb_context *libusb_ctx;
 #endif
+	sr_resource_open_callback resource_open_cb;
+	sr_resource_close_callback resource_close_cb;
+	sr_resource_read_callback resource_read_cb;
+	void *resource_cb_data;
 };
 
 /** Input module metadata keys. */
@@ -764,6 +768,20 @@ SR_PRIV int std_session_send_df_header(const struct sr_dev_inst *sdi,
 SR_PRIV int std_dev_clear(const struct sr_dev_driver *driver,
 		std_dev_clear_callback clear_private);
 SR_PRIV int std_serial_dev_close(struct sr_dev_inst *sdi);
+
+/*--- resource.c ------------------------------------------------------------*/
+
+SR_PRIV int sr_resource_open(struct sr_context *ctx,
+		struct sr_resource *res, int type, const char *name)
+		G_GNUC_WARN_UNUSED_RESULT;
+SR_PRIV int sr_resource_close(struct sr_context *ctx,
+		struct sr_resource *res);
+SR_PRIV ssize_t sr_resource_read(struct sr_context *ctx,
+		const struct sr_resource *res, void *buf, size_t count)
+		G_GNUC_WARN_UNUSED_RESULT;
+SR_PRIV void *sr_resource_load(struct sr_context *ctx, int type,
+		const char *name, size_t *size, size_t max_size)
+		G_GNUC_MALLOC G_GNUC_WARN_UNUSED_RESULT;
 
 /*--- strutil.c -------------------------------------------------------------*/
 

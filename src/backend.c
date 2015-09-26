@@ -510,6 +510,7 @@ SR_API int sr_init(struct sr_context **ctx)
 		goto done;
 	}
 #endif
+	sr_resource_set_hooks(context, NULL, NULL, NULL, NULL);
 
 	*ctx = context;
 	context = NULL;
