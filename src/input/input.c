@@ -403,43 +403,6 @@ SR_API int sr_input_scan_buffer(GString *buf, const struct sr_input **in)
 	return ret;
 }
 
-/** Retrieve the size of the open stream @a file.
- * This function only works on seekable streams. However, the set of seekable
- * streams is generally congruent with the set of streams that have a size.
- * Code that needs to work with any type of stream (including pipes) should
- * require neither seekability nor advance knowledge of the size.
- * On failure, the return value is negative and errno is set.
- * @param file An I/O stream opened in binary mode.
- * @return The size of @a file in bytes, or a negative value on failure.
- */
-SR_PRIV int64_t sr_file_get_size(FILE *file)
-{
-	off_t filepos, filesize;
-
-	/* ftello() and fseeko() are not standard C, but part of POSIX.1-2001.
-	 * Thus, if these functions are available at all, they can reasonably
-	 * be expected to also conform to POSIX semantics. In particular, this
-	 * means that ftello() after fseeko(..., SEEK_END) has a defined result
-	 * and can be used to get the size of a seekable stream.
-	 * On Windows, the result is fully defined only for binary streams.
-	 */
-	filepos = ftello(file);
-	if (filepos < 0)
-		return -1;
-
-	if (fseeko(file, 0, SEEK_END) < 0)
-		return -1;
-
-	filesize = ftello(file);
-	if (filesize < 0)
-		return -1;
-
-	if (fseeko(file, filepos, SEEK_SET) < 0)
-		return -1;
-
-	return filesize;
-}
-
 /**
  * Try to find an input module that can parse the given file.
  *

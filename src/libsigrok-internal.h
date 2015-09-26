@@ -593,10 +593,6 @@ struct drv_context {
 	GSList *instances;
 };
 
-/*--- input/input.c ---------------------------------------------------------*/
-
-SR_PRIV int64_t sr_file_get_size(FILE *file);
-
 /*--- log.c -----------------------------------------------------------------*/
 
 #if defined(G_OS_WIN32) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 4))
@@ -770,6 +766,8 @@ SR_PRIV int std_dev_clear(const struct sr_dev_driver *driver,
 SR_PRIV int std_serial_dev_close(struct sr_dev_inst *sdi);
 
 /*--- resource.c ------------------------------------------------------------*/
+
+SR_PRIV int64_t sr_file_get_size(FILE *file);
 
 SR_PRIV int sr_resource_open(struct sr_context *ctx,
 		struct sr_resource *res, int type, const char *name)
