@@ -19,10 +19,6 @@
  */
 
 #include <config.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <errno.h>
 #include <math.h>
 #include <glib.h>
 #include <glib/gstdio.h>
@@ -35,24 +31,28 @@
 
 #define USB_TIMEOUT (3 * 1000)
 
-int dslogic_fpga_firmware_upload(const struct sr_dev_inst *sdi,
-		const char *filename)
+SR_PRIV int dslogic_fpga_firmware_upload(const struct sr_dev_inst *sdi,
+		const char *name)
 {
-	FILE *fw;
-	struct stat st;
+	uint64_t sum;
+	struct sr_resource bitstream;
+	struct drv_context *drvc;
 	struct sr_usb_dev_inst *usb;
-	int chunksize, result, ret;
 	unsigned char *buf;
-	int sum, transferred;
+	ssize_t chunksize;
+	int transferred;
+	int result, ret;
 	uint8_t cmd[3];
 
-	sr_dbg("Uploading FPGA firmware at %s.", filename);
-
+	drvc = sdi->driver->context;
 	usb = sdi->conn;
-	if (stat(filename, &st) < 0) {
-		sr_err("Unable to upload FPGA firmware: %s", g_strerror(errno));
-		return SR_ERR;
-	}
+
+	sr_dbg("Uploading FPGA firmware '%s'.", name);
+
+	result = sr_resource_open(drvc->sr_ctx, &bitstream,
+			SR_RESOURCE_FIRMWARE, name);
+	if (result != SR_OK)
+		return result;
 
 	/* Tell the device firmware is coming. */
 	memset(cmd, 0, sizeof(cmd));
@@ -60,22 +60,22 @@ int dslogic_fpga_firmware_upload(const struct sr_dev_inst *sdi,
 			LIBUSB_ENDPOINT_OUT, DS_CMD_FPGA_FW, 0x0000, 0x0000,
 			(unsigned char *)&cmd, sizeof(cmd), USB_TIMEOUT)) < 0) {
 		sr_err("Failed to upload FPGA firmware: %s.", libusb_error_name(ret));
-		return SR_ERR;
-	}
-	buf = g_malloc(FW_BUFSIZE);
-
-	if (!(fw = g_fopen(filename, "rb"))) {
-		sr_err("Unable to open %s for reading: %s.", filename, g_strerror(errno));
+		sr_resource_close(drvc->sr_ctx, &bitstream);
 		return SR_ERR;
 	}
 
 	/* Give the FX2 time to get ready for FPGA firmware upload. */
 	g_usleep(FPGA_UPLOAD_DELAY);
 
+	buf = g_malloc(FW_BUFSIZE);
 	sum = 0;
 	result = SR_OK;
 	while (1) {
-		if ((chunksize = fread(buf, 1, FW_BUFSIZE, fw)) == 0)
+		chunksize = sr_resource_read(drvc->sr_ctx, &bitstream,
+				buf, FW_BUFSIZE);
+		if (chunksize < 0)
+			result = SR_ERR;
+		if (chunksize <= 0)
 			break;
 
 		if ((ret = libusb_bulk_transfer(usb->devhdl, 2 | LIBUSB_ENDPOINT_OUT,
@@ -86,8 +86,8 @@ int dslogic_fpga_firmware_upload(const struct sr_dev_inst *sdi,
 			break;
 		}
 		sum += transferred;
-		sr_spew("Uploaded %d/%" PRIu64 " bytes.",
-			sum, (uint64_t)st.st_size);
+		sr_spew("Uploaded %" PRIu64 "/%" PRIu64 " bytes.",
+			sum, bitstream.size);
 
 		if (transferred != chunksize) {
 			sr_err("Short transfer while uploading FPGA firmware.");
@@ -95,15 +95,16 @@ int dslogic_fpga_firmware_upload(const struct sr_dev_inst *sdi,
 			break;
 		}
 	}
-	fclose(fw);
 	g_free(buf);
+	sr_resource_close(drvc->sr_ctx, &bitstream);
+
 	if (result == SR_OK)
 		sr_dbg("FPGA firmware upload done.");
 
 	return result;
 }
 
-int dslogic_start_acquisition(const struct sr_dev_inst *sdi)
+SR_PRIV int dslogic_start_acquisition(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
@@ -128,7 +129,7 @@ int dslogic_start_acquisition(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-int dslogic_stop_acquisition(const struct sr_dev_inst *sdi)
+SR_PRIV int dslogic_stop_acquisition(const struct sr_dev_inst *sdi)
 {
 	struct sr_usb_dev_inst *usb;
 	struct dslogic_mode mode;
@@ -149,7 +150,7 @@ int dslogic_stop_acquisition(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-int dslogic_fpga_configure(const struct sr_dev_inst *sdi)
+SR_PRIV int dslogic_fpga_configure(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;

@@ -123,10 +123,10 @@ struct dslogic_fpga_config {
 	uint32_t end_sync;
 };
 
-int dslogic_fpga_firmware_upload(const struct sr_dev_inst *sdi,
-		const char *filename);
-int dslogic_start_acquisition(const struct sr_dev_inst *sdi);
-int dslogic_stop_acquisition(const struct sr_dev_inst *sdi);
-int dslogic_fpga_configure(const struct sr_dev_inst *sdi);
+SR_PRIV int dslogic_fpga_firmware_upload(const struct sr_dev_inst *sdi,
+		const char *name);
+SR_PRIV int dslogic_start_acquisition(const struct sr_dev_inst *sdi);
+SR_PRIV int dslogic_stop_acquisition(const struct sr_dev_inst *sdi);
+SR_PRIV int dslogic_fpga_configure(const struct sr_dev_inst *sdi);
 
 #endif

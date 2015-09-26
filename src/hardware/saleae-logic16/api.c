@@ -34,7 +34,7 @@
 
 #define USB_INTERFACE		0
 #define USB_CONFIGURATION	1
-#define FX2_FIRMWARE		FIRMWARE_DIR "/saleae-logic16-fx2.fw"
+#define FX2_FIRMWARE		"saleae-logic16-fx2.fw"
 
 #define MAX_RENUM_DELAY_MS	3000
 #define NUM_SIMUL_TRANSFERS	32
@@ -218,8 +218,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 				libusb_get_bus_number(devlist[i]),
 				libusb_get_device_address(devlist[i]), NULL);
 		} else {
-			if (ezusb_upload_firmware(devlist[i], USB_CONFIGURATION,
-						  FX2_FIRMWARE) == SR_OK)
+			if (ezusb_upload_firmware(drvc->sr_ctx, devlist[i],
+					USB_CONFIGURATION, FX2_FIRMWARE) == SR_OK)
 				/* Store when this device's FW was updated. */
 				devc->fw_updated = g_get_monotonic_time();
 			else

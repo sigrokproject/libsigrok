@@ -88,23 +88,23 @@ static const struct dso_profile dev_profiles[] = {
 	{	0x04b4, 0x2090, 0x04b5, 0x2090,
 		"Hantek", "DSO-2090",
 		buffersizes_32k,
-		FIRMWARE_DIR "/hantek-dso-2090.fw" },
+		"hantek-dso-2090.fw" },
 	{	0x04b4, 0x2150, 0x04b5, 0x2150,
 		"Hantek", "DSO-2150",
 		buffersizes_32k,
-		FIRMWARE_DIR "/hantek-dso-2150.fw" },
+		"hantek-dso-2150.fw" },
 	{	0x04b4, 0x2250, 0x04b5, 0x2250,
 		"Hantek", "DSO-2250",
 		buffersizes_512k,
-		FIRMWARE_DIR "/hantek-dso-2250.fw" },
+		"hantek-dso-2250.fw" },
 	{	0x04b4, 0x5200, 0x04b5, 0x5200,
 		"Hantek", "DSO-5200",
 		buffersizes_14k,
-		FIRMWARE_DIR "/hantek-dso-5200.fw" },
+		"hantek-dso-5200.fw" },
 	{	0x04b4, 0x520a, 0x04b5, 0x520a,
 		"Hantek", "DSO-5200A",
 		buffersizes_512k,
-		FIRMWARE_DIR "/hantek-dso-5200A.fw" },
+		"hantek-dso-5200A.fw" },
 	{ 0, 0, 0, 0, 0, 0, 0, 0 },
 };
 
@@ -323,8 +323,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 				sdi->connection_id = g_strdup(connection_id);
 				devices = g_slist_append(devices, sdi);
 				devc = sdi->priv;
-				if (ezusb_upload_firmware(devlist[i], USB_CONFIGURATION,
-						prof->firmware) == SR_OK)
+				if (ezusb_upload_firmware(drvc->sr_ctx, devlist[i],
+						USB_CONFIGURATION, prof->firmware) == SR_OK)
 					/* Remember when the firmware on this device was updated */
 					devc->fw_updated = g_get_monotonic_time();
 				else

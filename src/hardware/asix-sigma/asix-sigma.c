@@ -90,17 +90,17 @@ static const int32_t trigger_matches[] = {
 	SR_TRIGGER_FALLING,
 };
 
-static const char *sigma_firmware_files[] = {
+static const char sigma_firmware_files[][24] = {
 	/* 50 MHz, supports 8 bit fractions */
-	FIRMWARE_DIR "/asix-sigma-50.fw",
+	"asix-sigma-50.fw",
 	/* 100 MHz */
-	FIRMWARE_DIR "/asix-sigma-100.fw",
+	"asix-sigma-100.fw",
 	/* 200 MHz */
-	FIRMWARE_DIR "/asix-sigma-200.fw",
+	"asix-sigma-200.fw",
 	/* Synchronous clock from pin */
-	FIRMWARE_DIR "/asix-sigma-50sync.fw",
+	"asix-sigma-50sync.fw",
 	/* Frequency counter */
-	FIRMWARE_DIR "/asix-sigma-phasor.fw",
+	"asix-sigma-phasor.fw",
 };
 
 static int sigma_read(void *buf, size_t size, struct dev_context *devc)
@@ -508,31 +508,20 @@ err:
  * pulses used to program the FPGA. Note that the *bb_cmd must be free()'d
  * by the caller of this function.
  */
-static int sigma_fw_2_bitbang(const char *filename,
+static int sigma_fw_2_bitbang(struct sr_context *ctx, const char *name,
 			      uint8_t **bb_cmd, gsize *bb_cmd_size)
 {
-	GMappedFile *file;
-	GError *error;
-	gsize i, file_size, bb_size;
-	gchar *firmware;
+	size_t i, file_size, bb_size;
+	char *firmware;
 	uint8_t *bb_stream, *bbs;
 	uint32_t imm;
 	int bit, v;
 	int ret = SR_OK;
 
-	/*
-	 * Map the file and make the mapped buffer writable.
-	 * NOTE: Using writable=TRUE does _NOT_ mean that file that is mapped
-	 *       will be modified. It will not be modified until someone uses
-	 *       g_file_set_contents() on it.
-	 */
-	error = NULL;
-	file = g_mapped_file_new(filename, TRUE, &error);
-	g_assert_no_error(error);
-
-	file_size = g_mapped_file_get_length(file);
-	firmware = g_mapped_file_get_contents(file);
-	g_assert(firmware);
+	firmware = sr_resource_load(ctx, SR_RESOURCE_FIRMWARE,
+			name, &file_size, 256 * 1024);
+	if (!firmware)
+		return SR_ERR;
 
 	/* Weird magic transformation below, I have no idea what it does. */
 	imm = 0x3f6df2ab;
@@ -571,11 +560,12 @@ static int sigma_fw_2_bitbang(const char *filename,
 	*bb_cmd_size = bb_size;
 
 exit:
-	g_mapped_file_unref(file);
+	g_free(firmware);
 	return ret;
 }
 
-static int upload_firmware(int firmware_idx, struct dev_context *devc)
+static int upload_firmware(struct sr_context *ctx,
+		int firmware_idx, struct dev_context *devc)
 {
 	int ret;
 	unsigned char *buf;
@@ -614,7 +604,7 @@ static int upload_firmware(int firmware_idx, struct dev_context *devc)
 		return ret;
 
 	/* Prepare firmware. */
-	ret = sigma_fw_2_bitbang(firmware, &buf, &buf_size);
+	ret = sigma_fw_2_bitbang(ctx, firmware, &buf, &buf_size);
 	if (ret != SR_OK) {
 		sr_err("An error occurred while reading the firmware: %s",
 		       firmware);
@@ -677,10 +667,12 @@ static int dev_open(struct sr_dev_inst *sdi)
 static int set_samplerate(const struct sr_dev_inst *sdi, uint64_t samplerate)
 {
 	struct dev_context *devc;
+	struct drv_context *drvc;
 	unsigned int i;
 	int ret;
 
 	devc = sdi->priv;
+	drvc = sdi->driver->context;
 	ret = SR_OK;
 
 	for (i = 0; i < ARRAY_SIZE(samplerates); i++) {
@@ -691,13 +683,13 @@ static int set_samplerate(const struct sr_dev_inst *sdi, uint64_t samplerate)
 		return SR_ERR_SAMPLERATE;
 
 	if (samplerate <= SR_MHZ(50)) {
-		ret = upload_firmware(0, devc);
+		ret = upload_firmware(drvc->sr_ctx, 0, devc);
 		devc->num_channels = 16;
 	} else if (samplerate == SR_MHZ(100)) {
-		ret = upload_firmware(1, devc);
+		ret = upload_firmware(drvc->sr_ctx, 1, devc);
 		devc->num_channels = 8;
 	} else if (samplerate == SR_MHZ(200)) {
-		ret = upload_firmware(2, devc);
+		ret = upload_firmware(drvc->sr_ctx, 2, devc);
 		devc->num_channels = 4;
 	}
 

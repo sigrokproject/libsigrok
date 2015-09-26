@@ -18,8 +18,6 @@
  */
 
 #include <config.h>
-#include <errno.h>
-#include <sys/stat.h>
 #include <glib/gstdio.h>
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
@@ -29,59 +27,47 @@
 #define BITSTREAM_MAX_SIZE    (256 * 1024) /* bitstream size limit for safety */
 #define BITSTREAM_HEADER_SIZE 4            /* transfer header size in bytes */
 
-/* Load a bitstream file into memory.  Returns a newly allocated array
+/* Load a bitstream file into memory. Returns a newly allocated array
  * consisting of a 32-bit length field followed by the bitstream data.
  */
-static unsigned char *load_bitstream_file(const char *filename, int *length_p)
+static unsigned char *load_bitstream(struct sr_context *ctx,
+				     const char *name, int *length_p)
 {
-	struct stat statbuf;
-	FILE *file;
+	struct sr_resource rbf;
 	unsigned char *stream;
-	size_t length, count;
+	ssize_t length, count;
 
-	/* Retrieve and validate the file size. */
-	if (stat(filename, &statbuf) < 0) {
-		sr_err("Failed to access bitstream file: %s.",
-		       g_strerror(errno));
+	if (sr_resource_open(ctx, &rbf, SR_RESOURCE_FIRMWARE, name) != SR_OK)
 		return NULL;
-	}
-	if (!S_ISREG(statbuf.st_mode)) {
-		sr_err("Bitstream is not a regular file.");
-		return NULL;
-	}
-	if (statbuf.st_size <= 0 || statbuf.st_size > BITSTREAM_MAX_SIZE) {
+
+	if (rbf.size == 0 || rbf.size > BITSTREAM_MAX_SIZE) {
 		sr_err("Refusing to load bitstream of unreasonable size "
-		       "(%" PRIu64 " bytes).", (uint64_t)statbuf.st_size);
+		       "(%" PRIu64 " bytes).", rbf.size);
+		sr_resource_close(ctx, &rbf);
 		return NULL;
 	}
 
 	/* The message length includes the 4-byte header. */
-	length = BITSTREAM_HEADER_SIZE + statbuf.st_size;
+	length = BITSTREAM_HEADER_SIZE + rbf.size;
 	stream = g_try_malloc(length);
 	if (!stream) {
 		sr_err("Failed to allocate bitstream buffer.");
-		return NULL;
-	}
-
-	file = g_fopen(filename, "rb");
-	if (!file) {
-		sr_err("Failed to open bitstream file: %s.", g_strerror(errno));
-		g_free(stream);
+		sr_resource_close(ctx, &rbf);
 		return NULL;
 	}
 
 	/* Write the message length header. */
 	*(uint32_t *)stream = GUINT32_TO_BE(length);
 
-	count = fread(stream + BITSTREAM_HEADER_SIZE,
-		      length - BITSTREAM_HEADER_SIZE, 1, file);
-	if (count != 1) {
-		sr_err("Failed to read bitstream file: %s.", g_strerror(errno));
-		fclose(file);
+	count = sr_resource_read(ctx, &rbf, stream + BITSTREAM_HEADER_SIZE,
+				 length - BITSTREAM_HEADER_SIZE);
+	sr_resource_close(ctx, &rbf);
+
+	if (count != length - BITSTREAM_HEADER_SIZE) {
+		sr_err("Failed to read bitstream '%s'.", name);
 		g_free(stream);
 		return NULL;
 	}
-	fclose(file);
 
 	*length_p = length;
 	return stream;
@@ -90,26 +76,23 @@ static unsigned char *load_bitstream_file(const char *filename, int *length_p)
 /* Load a Raw Binary File (.rbf) from the firmware directory and transfer
  * it to the device.
  */
-SR_PRIV int lwla_send_bitstream(const struct sr_usb_dev_inst *usb,
-				const char *basename)
+SR_PRIV int lwla_send_bitstream(struct sr_context *ctx,
+				const struct sr_usb_dev_inst *usb,
+				const char *name)
 {
-	char *filename;
 	unsigned char *stream;
 	int ret;
 	int length;
 	int xfer_len;
 
-	if (!usb || !basename)
+	if (!ctx || !usb || !name)
 		return SR_ERR_BUG;
 
-	filename = g_build_filename(FIRMWARE_DIR, basename, NULL);
-	sr_info("Downloading FPGA bitstream at '%s'.", filename);
-
-	stream = load_bitstream_file(filename, &length);
-	g_free(filename);
-
+	stream = load_bitstream(ctx, name, &length);
 	if (!stream)
 		return SR_ERR;
+
+	sr_info("Downloading FPGA bitstream '%s'.", name);
 
 	/* Transfer the entire bitstream in one URB. */
 	ret = libusb_bulk_transfer(usb->devhdl, EP_BITSTREAM,

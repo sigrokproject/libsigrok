@@ -33,6 +33,8 @@
 
 #define LOG_PREFIX "ezusb"
 
+#define FW_CHUNKSIZE (4 * 1024)
+
 SR_PRIV int ezusb_reset(struct libusb_device_handle *hdl, int set_clear)
 {
 	int ret;
@@ -50,46 +52,51 @@ SR_PRIV int ezusb_reset(struct libusb_device_handle *hdl, int set_clear)
 	return ret;
 }
 
-SR_PRIV int ezusb_install_firmware(libusb_device_handle *hdl,
-				   const char *filename)
+SR_PRIV int ezusb_install_firmware(struct sr_context *ctx,
+				   libusb_device_handle *hdl,
+				   const char *name)
 {
-	FILE *fw;
-	int offset, chunksize, ret, result;
-	unsigned char buf[4096];
+	unsigned char *firmware;
+	size_t length, offset, chunksize;
+	int ret, result;
 
-	sr_info("Uploading firmware at %s", filename);
-	if (!(fw = g_fopen(filename, "rb"))) {
-		sr_err("Unable to open firmware file %s for reading: %s",
-		       filename, g_strerror(errno));
+	/* Max size is 64 kiB since the value field of the setup packet,
+	 * which holds the firmware offset, is only 16 bit wide.
+	 */
+	firmware = sr_resource_load(ctx, SR_RESOURCE_FIRMWARE,
+			name, &length, 1 << 16);
+	if (!firmware)
 		return SR_ERR;
-	}
+
+	sr_info("Uploading firmware '%s'.", name);
 
 	result = SR_OK;
 	offset = 0;
-	while (1) {
-		chunksize = fread(buf, 1, 4096, fw);
-		if (chunksize == 0)
-			break;
+	while (offset < length) {
+		chunksize = MIN(length - offset, FW_CHUNKSIZE);
+
 		ret = libusb_control_transfer(hdl, LIBUSB_REQUEST_TYPE_VENDOR |
 					      LIBUSB_ENDPOINT_OUT, 0xa0, offset,
-					      0x0000, buf, chunksize, 100);
+					      0x0000, firmware + offset,
+					      chunksize, 100);
 		if (ret < 0) {
 			sr_err("Unable to send firmware to device: %s.",
 					libusb_error_name(ret));
-			result = SR_ERR;
-			break;
+			g_free(firmware);
+			return SR_ERR;
 		}
-		sr_info("Uploaded %d bytes", chunksize);
+		sr_info("Uploaded %zu bytes.", chunksize);
 		offset += chunksize;
 	}
-	fclose(fw);
-	sr_info("Firmware upload done");
+	g_free(firmware);
+
+	sr_info("Firmware upload done.");
 
 	return result;
 }
 
-SR_PRIV int ezusb_upload_firmware(libusb_device *dev, int configuration,
-				  const char *filename)
+SR_PRIV int ezusb_upload_firmware(struct sr_context *ctx, libusb_device *dev,
+				  int configuration, const char *name)
 {
 	struct libusb_device_handle *hdl;
 	int ret;
@@ -125,7 +132,7 @@ SR_PRIV int ezusb_upload_firmware(libusb_device *dev, int configuration,
 	if ((ezusb_reset(hdl, 1)) < 0)
 		return SR_ERR;
 
-	if (ezusb_install_firmware(hdl, filename) < 0)
+	if (ezusb_install_firmware(ctx, hdl, name) < 0)
 		return SR_ERR;
 
 	if ((ezusb_reset(hdl, 0)) < 0)

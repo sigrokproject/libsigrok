@@ -31,8 +31,8 @@
 #include "libsigrok-internal.h"
 #include "protocol.h"
 
-#define FPGA_FIRMWARE_18	FIRMWARE_DIR"/saleae-logic16-fpga-18.bitstream"
-#define FPGA_FIRMWARE_33	FIRMWARE_DIR"/saleae-logic16-fpga-33.bitstream"
+#define FPGA_FIRMWARE_18	"saleae-logic16-fpga-18.bitstream"
+#define FPGA_FIRMWARE_33	"saleae-logic16-fpga-33.bitstream"
 
 #define MAX_SAMPLE_RATE		SR_MHZ(100)
 #define MAX_4CH_SAMPLE_RATE	SR_MHZ(50)
@@ -465,13 +465,17 @@ static int configure_led(const struct sr_dev_inst *sdi)
 static int upload_fpga_bitstream(const struct sr_dev_inst *sdi,
 				 enum voltage_range vrange)
 {
+	uint64_t sum;
+	struct sr_resource bitstream;
 	struct dev_context *devc;
-	int offset, chunksize, ret;
-	const char *filename;
-	uint8_t len, buf[256 * 62], command[64];
-	FILE *fw;
+	struct drv_context *drvc;
+	const char *name;
+	ssize_t chunksize;
+	int ret;
+	uint8_t command[64];
 
 	devc = sdi->priv;
+	drvc = sdi->driver->context;
 
 	if (devc->cur_voltage_range == vrange)
 		return SR_OK;
@@ -479,51 +483,51 @@ static int upload_fpga_bitstream(const struct sr_dev_inst *sdi,
 	if (devc->fpga_variant != FPGA_VARIANT_MCUPRO) {
 		switch (vrange) {
 		case VOLTAGE_RANGE_18_33_V:
-			filename = FPGA_FIRMWARE_18;
+			name = FPGA_FIRMWARE_18;
 			break;
 		case VOLTAGE_RANGE_5_V:
-			filename = FPGA_FIRMWARE_33;
+			name = FPGA_FIRMWARE_33;
 			break;
 		default:
 			sr_err("Unsupported voltage range.");
 			return SR_ERR;
 		}
 
-		sr_info("Uploading FPGA bitstream at %s.", filename);
-		if (!(fw = g_fopen(filename, "rb"))) {
-			sr_err("Unable to open bitstream file %s for reading: %s.",
-			       filename, g_strerror(errno));
-			return SR_ERR;
-		}
+		sr_info("Uploading FPGA bitstream '%s'.", name);
+		ret = sr_resource_open(drvc->sr_ctx, &bitstream,
+				SR_RESOURCE_FIRMWARE, name);
+		if (ret != SR_OK)
+			return ret;
 
-		buf[0] = COMMAND_FPGA_UPLOAD_INIT;
-		if ((ret = do_ep1_command(sdi, buf, 1, NULL, 0)) != SR_OK) {
-			fclose(fw);
+		command[0] = COMMAND_FPGA_UPLOAD_INIT;
+		if ((ret = do_ep1_command(sdi, command, 1, NULL, 0)) != SR_OK) {
+			sr_resource_close(drvc->sr_ctx, &bitstream);
 			return ret;
 		}
 
+		sum = 0;
 		while (1) {
-			chunksize = fread(buf, 1, sizeof(buf), fw);
+			chunksize = sr_resource_read(drvc->sr_ctx, &bitstream,
+					&command[2], sizeof(command) - 2);
+			if (chunksize < 0) {
+				sr_resource_close(drvc->sr_ctx, &bitstream);
+				return SR_ERR;
+			}
 			if (chunksize == 0)
 				break;
+			command[0] = COMMAND_FPGA_UPLOAD_SEND_DATA;
+			command[1] = chunksize;
 
-			for (offset = 0; offset < chunksize; offset += 62) {
-				len = (offset + 62 > chunksize ?
-					chunksize - offset : 62);
-				command[0] = COMMAND_FPGA_UPLOAD_SEND_DATA;
-				command[1] = len;
-				memcpy(command + 2, buf + offset, len);
-				ret = do_ep1_command(sdi, command, len + 2, NULL, 0);
-				if (ret != SR_OK) {
-					fclose(fw);
-					return ret;
-				}
+			ret = do_ep1_command(sdi, command, chunksize + 2,
+					NULL, 0);
+			if (ret != SR_OK) {
+				sr_resource_close(drvc->sr_ctx, &bitstream);
+				return ret;
 			}
-
-			sr_info("Uploaded %d bytes.", chunksize);
+			sum += chunksize;
 		}
-		fclose(fw);
-		sr_info("FPGA bitstream upload done.");
+		sr_resource_close(drvc->sr_ctx, &bitstream);
+		sr_info("FPGA bitstream upload (%" PRIu64 " bytes) done.", sum);
 	}
 
 	/* This needs to be called before accessing any FPGA registers. */

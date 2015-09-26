@@ -101,8 +101,9 @@ struct regval_pair {
 	unsigned int val;
 };
 
-SR_PRIV int lwla_send_bitstream(const struct sr_usb_dev_inst *usb,
-				const char *basename);
+SR_PRIV int lwla_send_bitstream(struct sr_context *ctx,
+				const struct sr_usb_dev_inst *usb,
+				const char *name);
 
 SR_PRIV int lwla_send_command(const struct sr_usb_dev_inst *usb,
 			      const uint16_t *command, int cmd_len);

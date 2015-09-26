@@ -29,48 +29,48 @@ static const struct fx2lafw_profile supported_fx2[] = {
 	 * ARMFLY AX-Pro
 	 */
 	{ 0x08a9, 0x0014, "CWAV", "USBee AX", NULL,
-		FIRMWARE_DIR "/fx2lafw-cwav-usbeeax.fw",
+		"fx2lafw-cwav-usbeeax.fw",
 		0, NULL, NULL},
 	/*
 	 * CWAV USBee DX
 	 * XZL-Studio DX
 	 */
 	{ 0x08a9, 0x0015, "CWAV", "USBee DX", NULL,
-		FIRMWARE_DIR "/fx2lafw-cwav-usbeedx.fw",
+		"fx2lafw-cwav-usbeedx.fw",
 		DEV_CAPS_16BIT, NULL, NULL },
 
 	/*
 	 * CWAV USBee SX
 	 */
 	{ 0x08a9, 0x0009, "CWAV", "USBee SX", NULL,
-		FIRMWARE_DIR "/fx2lafw-cwav-usbeesx.fw",
+		"fx2lafw-cwav-usbeesx.fw",
 		0, NULL, NULL},
 
 	/* DreamSourceLab DSLogic (before FW upload) */
 	{ 0x2a0e, 0x0001, "DreamSourceLab", "DSLogic", NULL,
-		FIRMWARE_DIR "/dreamsourcelab-dslogic-fx2.fw",
+		"dreamsourcelab-dslogic-fx2.fw",
 		DEV_CAPS_16BIT, NULL, NULL},
 	/* DreamSourceLab DSLogic (after FW upload) */
 	{ 0x2a0e, 0x0001, "DreamSourceLab", "DSLogic", NULL,
-		FIRMWARE_DIR "/dreamsourcelab-dslogic-fx2.fw",
+		"dreamsourcelab-dslogic-fx2.fw",
 		DEV_CAPS_16BIT, "DreamSourceLab", "DSLogic"},
 
 	/* DreamSourceLab DSCope (before FW upload) */
 	{ 0x2a0e, 0x0002, "DreamSourceLab", "DSCope", NULL,
-		FIRMWARE_DIR "/dreamsourcelab-dscope-fx2.fw",
+		"dreamsourcelab-dscope-fx2.fw",
 		DEV_CAPS_16BIT, NULL, NULL},
 	/* DreamSourceLab DSCope (after FW upload) */
 	{ 0x2a0e, 0x0002, "DreamSourceLab", "DSCope", NULL,
-		FIRMWARE_DIR "/dreamsourcelab-dscope-fx2.fw",
+		"dreamsourcelab-dscope-fx2.fw",
 		DEV_CAPS_16BIT, "DreamSourceLab", "DSCope"},
 
 	/* DreamSourceLab DSLogic Pro (before FW upload) */
 	{ 0x2a0e, 0x0003, "DreamSourceLab", "DSLogic Pro", NULL,
-		FIRMWARE_DIR "/dreamsourcelab-dslogic-pro-fx2.fw",
+		"dreamsourcelab-dslogic-pro-fx2.fw",
 		DEV_CAPS_16BIT, NULL, NULL},
 	/* DreamSourceLab DSLogic Pro (after FW upload) */
 	{ 0x2a0e, 0x0003, "DreamSourceLab", "DSLogic Pro", NULL,
-		FIRMWARE_DIR "/dreamsourcelab-dslogic-pro-fx2.fw",
+		"dreamsourcelab-dslogic-pro-fx2.fw",
 		DEV_CAPS_16BIT, "DreamSourceLab", "DSLogic"},
 
 	/*
@@ -80,7 +80,7 @@ static const struct fx2lafw_profile supported_fx2[] = {
 	 * Robomotic BugLogic 3
 	 */
 	{ 0x0925, 0x3881, "Saleae", "Logic", NULL,
-		FIRMWARE_DIR "/fx2lafw-saleae-logic.fw",
+		"fx2lafw-saleae-logic.fw",
 		0, NULL, NULL},
 
 	/*
@@ -89,14 +89,14 @@ static const struct fx2lafw_profile supported_fx2[] = {
 	 * Braintechnology USB Interface V2.x
 	 */
 	{ 0x04B4, 0x8613, "Cypress", "FX2", NULL,
-		FIRMWARE_DIR "/fx2lafw-cypress-fx2.fw",
+		"fx2lafw-cypress-fx2.fw",
 		DEV_CAPS_16BIT, NULL, NULL },
 
 	/*
 	 * Braintechnology USB-LPS
 	 */
 	{ 0x16d0, 0x0498, "Braintechnology", "USB-LPS", NULL,
-		FIRMWARE_DIR "/fx2lafw-braintechnology-usb-lps.fw",
+		"fx2lafw-braintechnology-usb-lps.fw",
 		DEV_CAPS_16BIT, NULL, NULL },
 
 	{ 0, 0, 0, 0, 0, 0, 0, 0, 0 }
@@ -330,8 +330,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			sdi->conn = sr_usb_dev_inst_new(libusb_get_bus_number(devlist[i]),
 					libusb_get_device_address(devlist[i]), NULL);
 		} else {
-			if (ezusb_upload_firmware(devlist[i], USB_CONFIGURATION,
-				prof->firmware) == SR_OK)
+			if (ezusb_upload_firmware(drvc->sr_ctx, devlist[i],
+					USB_CONFIGURATION, prof->firmware) == SR_OK)
 				/* Store when this device's FW was updated. */
 				devc->fw_updated = g_get_monotonic_time();
 			else

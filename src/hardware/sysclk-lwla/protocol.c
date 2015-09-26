@@ -748,10 +748,12 @@ SR_PRIV int lwla_init_device(const struct sr_dev_inst *sdi)
 SR_PRIV int lwla_set_clock_config(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
+	struct drv_context *drvc;
 	int ret;
 	enum clock_config choice;
 
 	devc = sdi->priv;
+	drvc = sdi->driver->context;
 
 	if (sdi->status == SR_ST_INACTIVE)
 		choice = CONF_CLOCK_NONE;
@@ -764,7 +766,8 @@ SR_PRIV int lwla_set_clock_config(const struct sr_dev_inst *sdi)
 
 	if (choice != devc->cur_clock_config) {
 		devc->cur_clock_config = CONF_CLOCK_NONE;
-		ret = lwla_send_bitstream(sdi->conn, bitstream_map[choice]);
+		ret = lwla_send_bitstream(drvc->sr_ctx, sdi->conn,
+					  bitstream_map[choice]);
 		if (ret == SR_OK)
 			devc->cur_clock_config = choice;
 		return ret;
