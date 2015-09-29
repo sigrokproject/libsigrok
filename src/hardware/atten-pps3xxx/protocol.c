@@ -37,13 +37,13 @@ static void handle_packet(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog analog;
+	struct sr_datafeed_analog_old analog;
 	float value, data[MAX_CHANNELS];
 	int offset, i;
 
 	devc = sdi->priv;
 	dump_packet("received", devc->packet);
-	packet.type = SR_DF_ANALOG;
+	packet.type = SR_DF_ANALOG_OLD;
 	packet.payload = &analog;
 	analog.channels = sdi->channels;
 	analog.num_samples = 1;

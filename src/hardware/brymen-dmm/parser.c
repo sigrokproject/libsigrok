@@ -192,7 +192,7 @@ static void parse_flags(const uint8_t *buf, struct brymen_flags *info)
 }
 
 SR_PRIV int brymen_parse(const uint8_t *buf, float *floatval,
-		struct sr_datafeed_analog *analog, void *info)
+		struct sr_datafeed_analog_old *analog, void *info)
 {
 	struct brymen_flags flags;
 	struct brymen_header *hdr;

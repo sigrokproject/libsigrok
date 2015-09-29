@@ -91,7 +91,7 @@ static void nma_process_line(const struct sr_dev_inst *sdi)
 	int mmode, devstat;	/* Measuring mode, device status */
 	float value;	/* Measured value */
 	float scale;	/* Scaling factor depending on range and function */
-	struct sr_datafeed_analog analog;
+	struct sr_datafeed_analog_old analog;
 	struct sr_datafeed_packet packet;
 
 	devc = sdi->priv;
@@ -120,7 +120,7 @@ static void nma_process_line(const struct sr_dev_inst *sdi)
 	/* Start decoding. */
 	value = 0.0;
 	scale = 1.0;
-	memset(&analog, 0, sizeof(struct sr_datafeed_analog));
+	memset(&analog, 0, sizeof(struct sr_datafeed_analog_old));
 
 	/*
 	 * The numbers are hex digits, starting from 0.
@@ -364,7 +364,7 @@ static void nma_process_line(const struct sr_dev_inst *sdi)
 	analog.data = &value;
 
 	memset(&packet, 0, sizeof(struct sr_datafeed_packet));
-	packet.type = SR_DF_ANALOG;
+	packet.type = SR_DF_ANALOG_OLD;
 	packet.payload = &analog;
 	sr_session_send(devc->cb_data, &packet);
 

@@ -30,7 +30,7 @@ static int receive(const struct sr_transform *t,
 		struct sr_datafeed_packet **packet_out)
 {
 	const struct sr_datafeed_logic *logic;
-	const struct sr_datafeed_analog *analog;
+	const struct sr_datafeed_analog_old *analog_old;
 	const struct sr_datafeed_analog2 *analog2;
 	struct sr_channel *ch;
 	GSList *l;
@@ -54,13 +54,13 @@ static int receive(const struct sr_transform *t,
 			}
 		}
 		break;
-	case SR_DF_ANALOG:
-		analog = packet_in->payload;
-		fdata = (float *)analog->data;
-		num_channels = g_slist_length(analog->channels);
-		for (si = 0; si < analog->num_samples; si++) {
+	case SR_DF_ANALOG_OLD:
+		analog_old = packet_in->payload;
+		fdata = (float *)analog_old->data;
+		num_channels = g_slist_length(analog_old->channels);
+		for (si = 0; si < analog_old->num_samples; si++) {
 			/* For now invert all values in all channels. */
-			for (l = analog->channels, c = 0; l; l = l->next, c++) {
+			for (l = analog_old->channels, c = 0; l; l = l->next, c++) {
 				ch = l->data;
 				(void)ch;
 				f = &fdata[si * num_channels + c];

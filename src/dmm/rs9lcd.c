@@ -318,7 +318,7 @@ static gboolean is_logic_high(const struct rs9lcd_packet *rs_packet)
 }
 
 SR_PRIV int sr_rs9lcd_parse(const uint8_t *buf, float *floatval,
-			    struct sr_datafeed_analog *analog, void *info)
+			    struct sr_datafeed_analog_old *analog, void *info)
 {
 	const struct rs9lcd_packet *rs_packet = (void *)buf;
 	double rawval;

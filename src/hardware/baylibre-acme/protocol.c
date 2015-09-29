@@ -696,7 +696,7 @@ SR_PRIV int bl_acme_receive_data(int fd, int revents, void *cb_data)
 	uint32_t cur_time, elapsed_time;
 	uint64_t nrexpiration;
 	struct sr_datafeed_packet packet, framep;
-	struct sr_datafeed_analog analog;
+	struct sr_datafeed_analog_old analog;
 	struct sr_dev_inst *sdi;
 	struct sr_channel *ch;
 	struct channel_priv *chp;
@@ -715,9 +715,9 @@ SR_PRIV int bl_acme_receive_data(int fd, int revents, void *cb_data)
 	if (!devc)
 		return TRUE;
 
-	packet.type = SR_DF_ANALOG;
+	packet.type = SR_DF_ANALOG_OLD;
 	packet.payload = &analog;
-	memset(&analog, 0, sizeof(struct sr_datafeed_analog));
+	memset(&analog, 0, sizeof(struct sr_datafeed_analog_old));
 
 	if (read(devc->timer_fd, &nrexpiration, sizeof(nrexpiration)) < 0) {
 		sr_warn("Failed to read timer information");

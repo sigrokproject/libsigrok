@@ -264,7 +264,7 @@ static int recv_fetc(const struct sr_dev_inst *sdi, GMatchInfo *match)
 {
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog analog;
+	struct sr_datafeed_analog_old analog;
 	float fvalue;
 	const char *s;
 	char *mstr;
@@ -296,14 +296,14 @@ static int recv_fetc(const struct sr_dev_inst *sdi, GMatchInfo *match)
 			fvalue /= devc->cur_divider;
 	}
 
-	memset(&analog, 0, sizeof(struct sr_datafeed_analog));
+	memset(&analog, 0, sizeof(struct sr_datafeed_analog_old));
 	analog.mq = devc->cur_mq;
 	analog.unit = devc->cur_unit;
 	analog.mqflags = devc->cur_mqflags;
 	analog.channels = sdi->channels;
 	analog.num_samples = 1;
 	analog.data = &fvalue;
-	packet.type = SR_DF_ANALOG;
+	packet.type = SR_DF_ANALOG_OLD;
 	packet.payload = &analog;
 	sr_session_send(devc->cb_data, &packet);
 

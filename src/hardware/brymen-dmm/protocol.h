@@ -77,7 +77,7 @@ SR_PRIV int brymen_packet_length(const uint8_t *buf, int *len);
 SR_PRIV gboolean brymen_packet_is_valid(const uint8_t *buf);
 
 SR_PRIV int brymen_parse(const uint8_t *buf, float *floatval,
-		struct sr_datafeed_analog *analog, void *info);
+		struct sr_datafeed_analog_old *analog, void *info);
 
 SR_PRIV int brymen_stream_detect(struct sr_serial_dev_inst *serial,
 				 uint8_t *buf, size_t *buflen,

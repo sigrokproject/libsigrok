@@ -649,7 +649,7 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
 	GArray *data;
-	struct sr_datafeed_analog analog;
+	struct sr_datafeed_analog_old analog;
 	struct sr_datafeed_logic logic;
 
 	(void)fd;
@@ -685,7 +685,7 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 		analog.mq = SR_MQ_VOLTAGE;
 		analog.unit = SR_UNIT_VOLT;
 		analog.mqflags = 0;
-		packet.type = SR_DF_ANALOG;
+		packet.type = SR_DF_ANALOG_OLD;
 		packet.payload = &analog;
 		sr_session_send(cb_data, &packet);
 		g_slist_free(analog.channels);

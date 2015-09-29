@@ -110,7 +110,7 @@ static void parse_flags(const uint8_t *buf, struct kern_info *info)
 	/* Byte LF: Always '\n' (newline, 0x0a, 10) */
 }
 
-static void handle_flags(struct sr_datafeed_analog *analog, float *floatval,
+static void handle_flags(struct sr_datafeed_analog_old *analog, float *floatval,
 			 const struct kern_info *info)
 {
 	(void)floatval;
@@ -187,7 +187,7 @@ SR_PRIV gboolean sr_kern_packet_valid(const uint8_t *buf)
  * @param buf Buffer containing the protocol packet. Must not be NULL.
  * @param floatval Pointer to a float variable. That variable will contain the
  *                 result value upon parsing success. Must not be NULL.
- * @param analog Pointer to a struct sr_datafeed_analog. The struct will be
+ * @param analog Pointer to a struct sr_datafeed_analog_old. The struct will be
  *               filled with data according to the protocol packet.
  *               Must not be NULL.
  * @param info Pointer to a struct kern_info. The struct will be filled
@@ -197,7 +197,7 @@ SR_PRIV gboolean sr_kern_packet_valid(const uint8_t *buf)
  *         'analog' variable contents are undefined and should not be used.
  */
 SR_PRIV int sr_kern_parse(const uint8_t *buf, float *floatval,
-			  struct sr_datafeed_analog *analog, void *info)
+			  struct sr_datafeed_analog_old *analog, void *info)
 {
 	int ret;
 	struct kern_info *info_local;

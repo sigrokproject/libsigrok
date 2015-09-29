@@ -485,7 +485,7 @@ static float parse_value(const uint8_t *buf)
 }
 
 static void parse_measurement(const uint8_t *pkt, float *floatval,
-			      struct sr_datafeed_analog *analog,
+			      struct sr_datafeed_analog_old *analog,
 			      int is_secondary)
 {
 	static const struct {
@@ -617,7 +617,7 @@ static int send_model_update(struct sr_dev_inst *sdi, unsigned int model)
 static void handle_packet(struct sr_dev_inst *sdi, const uint8_t *pkt)
 {
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog analog;
+	struct sr_datafeed_analog_old analog;
 	struct dev_context *devc;
 	unsigned int val;
 	float floatval;
@@ -658,7 +658,7 @@ static void handle_packet(struct sr_dev_inst *sdi, const uint8_t *pkt)
 			frame = TRUE;
 		}
 
-		packet.type = SR_DF_ANALOG;
+		packet.type = SR_DF_ANALOG_OLD;
 		packet.payload = &analog;
 
 		sr_session_send(devc->cb_data, &packet);
@@ -675,7 +675,7 @@ static void handle_packet(struct sr_dev_inst *sdi, const uint8_t *pkt)
 			frame = TRUE;
 		}
 
-		packet.type = SR_DF_ANALOG;
+		packet.type = SR_DF_ANALOG_OLD;
 		packet.payload = &analog;
 
 		sr_session_send(devc->cb_data, &packet);

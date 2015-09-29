@@ -49,7 +49,7 @@ static int receive(const struct sr_transform *t,
 		struct sr_datafeed_packet **packet_out)
 {
 	struct context *ctx;
-	const struct sr_datafeed_analog *analog;
+	const struct sr_datafeed_analog_old *analog_old;
 	const struct sr_datafeed_analog2 *analog2;
 	struct sr_channel *ch;
 	GSList *l;
@@ -62,14 +62,14 @@ static int receive(const struct sr_transform *t,
 	ctx = t->priv;
 
 	switch (packet_in->type) {
-	case SR_DF_ANALOG:
-		analog = packet_in->payload;
-		fdata = (float *)analog->data;
-		num_channels = g_slist_length(analog->channels);
+	case SR_DF_ANALOG_OLD:
+		analog_old = packet_in->payload;
+		fdata = (float *)analog_old->data;
+		num_channels = g_slist_length(analog_old->channels);
 		factor = (float) ctx->factor.p / ctx->factor.q;
-		for (i = 0; i < analog->num_samples; i++) {
+		for (i = 0; i < analog_old->num_samples; i++) {
 			/* For now scale all values in all channels. */
-			for (l = analog->channels, c = 0; l; l = l->next, c++) {
+			for (l = analog_old->channels, c = 0; l; l = l->next, c++) {
 				ch = l->data;
 				(void)ch;
 				fdata[i * num_channels + c] *= factor;

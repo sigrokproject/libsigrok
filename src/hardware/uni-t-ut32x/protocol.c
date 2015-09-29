@@ -62,7 +62,7 @@ static void process_packet(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog analog;
+	struct sr_datafeed_analog_old analog;
 	GString *spew;
 	float temp;
 	int i;
@@ -89,7 +89,7 @@ static void process_packet(struct sr_dev_inst *sdi)
 		is_valid = FALSE;
 
 	if (is_valid) {
-		memset(&analog, 0, sizeof(struct sr_datafeed_analog));
+		memset(&analog, 0, sizeof(struct sr_datafeed_analog_old));
 		analog.mq = SR_MQ_TEMPERATURE;
 		analog.mqflags = 0;
 		switch (devc->packet[5] - 0x30) {
@@ -128,7 +128,7 @@ static void process_packet(struct sr_dev_inst *sdi)
 		if (is_valid) {
 			analog.num_samples = 1;
 			analog.data = &temp;
-			packet.type = SR_DF_ANALOG;
+			packet.type = SR_DF_ANALOG_OLD;
 			packet.payload = &analog;
 			sr_session_send(devc->cb_data, &packet);
 			g_slist_free(analog.channels);

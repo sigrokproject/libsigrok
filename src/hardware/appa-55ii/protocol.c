@@ -92,7 +92,7 @@ static void appa_55ii_live_data(struct sr_dev_inst *sdi, const uint8_t *buf)
 {
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog analog;
+	struct sr_datafeed_analog_old analog;
 	struct sr_channel *ch;
 	float values[APPA_55II_NUM_CHANNELS], *val_ptr;
 	int i;
@@ -103,7 +103,7 @@ static void appa_55ii_live_data(struct sr_dev_inst *sdi, const uint8_t *buf)
 		return;
 
 	val_ptr = values;
-	memset(&analog, 0, sizeof(struct sr_datafeed_analog));
+	memset(&analog, 0, sizeof(struct sr_datafeed_analog_old));
 	analog.num_samples = 1;
 	analog.mq = SR_MQ_TEMPERATURE;
 	analog.unit = SR_UNIT_CELSIUS;
@@ -118,7 +118,7 @@ static void appa_55ii_live_data(struct sr_dev_inst *sdi, const uint8_t *buf)
 		*val_ptr++ = appa_55ii_temp(buf, i);
 	}
 
-	packet.type = SR_DF_ANALOG;
+	packet.type = SR_DF_ANALOG_OLD;
 	packet.payload = &analog;
 	sr_session_send(devc->session_cb_data, &packet);
 	g_slist_free(analog.channels);
@@ -138,7 +138,7 @@ static void appa_55ii_log_data_parse(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog analog;
+	struct sr_datafeed_analog_old analog;
 	struct sr_channel *ch;
 	float values[APPA_55II_NUM_CHANNELS], *val_ptr;
 	const uint8_t *buf;
@@ -155,7 +155,7 @@ static void appa_55ii_log_data_parse(struct sr_dev_inst *sdi)
 		/* FIXME: Timestamp should be sent in the packet. */
 		sr_dbg("Timestamp: %02d:%02d:%02d", buf[2], buf[3], buf[4]);
 
-		memset(&analog, 0, sizeof(struct sr_datafeed_analog));
+		memset(&analog, 0, sizeof(struct sr_datafeed_analog_old));
 		analog.num_samples = 1;
 		analog.mq = SR_MQ_TEMPERATURE;
 		analog.unit = SR_UNIT_CELSIUS;
@@ -170,7 +170,7 @@ static void appa_55ii_log_data_parse(struct sr_dev_inst *sdi)
 			*val_ptr++ = temp == 0x7FFF ? INFINITY : (float)temp / 10;
 		}
 
-		packet.type = SR_DF_ANALOG;
+		packet.type = SR_DF_ANALOG_OLD;
 		packet.payload = &analog;
 		sr_session_send(devc->session_cb_data, &packet);
 		g_slist_free(analog.channels);

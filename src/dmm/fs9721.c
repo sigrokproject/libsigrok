@@ -243,7 +243,7 @@ static void parse_flags(const uint8_t *buf, struct fs9721_info *info)
 	info->is_c2c1_00    = (buf[13] & (1 << 0)) != 0;
 }
 
-static void handle_flags(struct sr_datafeed_analog *analog, float *floatval,
+static void handle_flags(struct sr_datafeed_analog_old *analog, float *floatval,
 			 const struct fs9721_info *info)
 {
 	/* Factors */
@@ -337,7 +337,7 @@ SR_PRIV gboolean sr_fs9721_packet_valid(const uint8_t *buf)
  * @param buf Buffer containing the 14-byte protocol packet. Must not be NULL.
  * @param floatval Pointer to a float variable. That variable will contain the
  *                 result value upon parsing success. Must not be NULL.
- * @param analog Pointer to a struct sr_datafeed_analog. The struct will be
+ * @param analog Pointer to a struct sr_datafeed_analog_old. The struct will be
  *               filled with data according to the protocol packet.
  *               Must not be NULL.
  * @param info Pointer to a struct fs9721_info. The struct will be filled
@@ -347,7 +347,7 @@ SR_PRIV gboolean sr_fs9721_packet_valid(const uint8_t *buf)
  *         'analog' variable contents are undefined and should not be used.
  */
 SR_PRIV int sr_fs9721_parse(const uint8_t *buf, float *floatval,
-			    struct sr_datafeed_analog *analog, void *info)
+			    struct sr_datafeed_analog_old *analog, void *info)
 {
 	int ret;
 	struct fs9721_info *info_local;
@@ -365,7 +365,7 @@ SR_PRIV int sr_fs9721_parse(const uint8_t *buf, float *floatval,
 	return SR_OK;
 }
 
-SR_PRIV void sr_fs9721_00_temp_c(struct sr_datafeed_analog *analog, void *info)
+SR_PRIV void sr_fs9721_00_temp_c(struct sr_datafeed_analog_old *analog, void *info)
 {
 	struct fs9721_info *info_local;
 
@@ -378,7 +378,7 @@ SR_PRIV void sr_fs9721_00_temp_c(struct sr_datafeed_analog *analog, void *info)
 	}
 }
 
-SR_PRIV void sr_fs9721_01_temp_c(struct sr_datafeed_analog *analog, void *info)
+SR_PRIV void sr_fs9721_01_temp_c(struct sr_datafeed_analog_old *analog, void *info)
 {
 	struct fs9721_info *info_local;
 
@@ -391,7 +391,7 @@ SR_PRIV void sr_fs9721_01_temp_c(struct sr_datafeed_analog *analog, void *info)
 	}
 }
 
-SR_PRIV void sr_fs9721_10_temp_c(struct sr_datafeed_analog *analog, void *info)
+SR_PRIV void sr_fs9721_10_temp_c(struct sr_datafeed_analog_old *analog, void *info)
 {
 	struct fs9721_info *info_local;
 
@@ -404,7 +404,7 @@ SR_PRIV void sr_fs9721_10_temp_c(struct sr_datafeed_analog *analog, void *info)
 	}
 }
 
-SR_PRIV void sr_fs9721_01_10_temp_f_c(struct sr_datafeed_analog *analog, void *info)
+SR_PRIV void sr_fs9721_01_10_temp_f_c(struct sr_datafeed_analog_old *analog, void *info)
 {
 	struct fs9721_info *info_local;
 
@@ -423,7 +423,7 @@ SR_PRIV void sr_fs9721_01_10_temp_f_c(struct sr_datafeed_analog *analog, void *i
 	}
 }
 
-SR_PRIV void sr_fs9721_max_c_min(struct sr_datafeed_analog *analog, void *info)
+SR_PRIV void sr_fs9721_max_c_min(struct sr_datafeed_analog_old *analog, void *info)
 {
 	struct fs9721_info *info_local;
 

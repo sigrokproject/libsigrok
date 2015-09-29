@@ -33,14 +33,14 @@ static void handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi,
 	struct scale_info *scale;
 	float floatval;
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog analog;
+	struct sr_datafeed_analog_old analog;
 	struct dev_context *devc;
 
 	scale = (struct scale_info *)sdi->driver;
 
 	devc = sdi->priv;
 
-	memset(&analog, 0, sizeof(struct sr_datafeed_analog));
+	memset(&analog, 0, sizeof(struct sr_datafeed_analog_old));
 
 	analog.channels = sdi->channels;
 	analog.num_samples = 1;
@@ -51,7 +51,7 @@ static void handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi,
 
 	if (analog.mq != -1) {
 		/* Got a measurement. */
-		packet.type = SR_DF_ANALOG;
+		packet.type = SR_DF_ANALOG_OLD;
 		packet.payload = &analog;
 		sr_session_send(devc->cb_data, &packet);
 		devc->num_samples++;

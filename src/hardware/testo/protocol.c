@@ -223,7 +223,7 @@ SR_PRIV void testo_receive_packet(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog analog;
+	struct sr_datafeed_analog_old analog;
 	struct sr_channel *ch;
 	GString *dbg;
 	float value;
@@ -242,7 +242,7 @@ SR_PRIV void testo_receive_packet(const struct sr_dev_inst *sdi)
 		g_string_free(dbg, TRUE);
 	}
 
-	packet.type = SR_DF_ANALOG;
+	packet.type = SR_DF_ANALOG_OLD;
 	packet.payload = &analog;
 	analog.num_samples = 1;
 	analog.mqflags = 0;

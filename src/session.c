@@ -1000,7 +1000,7 @@ SR_API int sr_session_stopped_callback_set(struct sr_session *session,
 static void datafeed_dump(const struct sr_datafeed_packet *packet)
 {
 	const struct sr_datafeed_logic *logic;
-	const struct sr_datafeed_analog *analog;
+	const struct sr_datafeed_analog_old *analog_old;
 	const struct sr_datafeed_analog2 *analog2;
 
 	/* Please use the same order as in libsigrok.h. */
@@ -1022,10 +1022,10 @@ static void datafeed_dump(const struct sr_datafeed_packet *packet)
 		sr_dbg("bus: Received SR_DF_LOGIC packet (%" PRIu64 " bytes, "
 		       "unitsize = %d).", logic->length, logic->unitsize);
 		break;
-	case SR_DF_ANALOG:
-		analog = packet->payload;
-		sr_dbg("bus: Received SR_DF_ANALOG packet (%d samples).",
-		       analog->num_samples);
+	case SR_DF_ANALOG_OLD:
+		analog_old = packet->payload;
+		sr_dbg("bus: Received SR_DF_ANALOG_OLD packet (%d samples).",
+		       analog_old->num_samples);
 		break;
 	case SR_DF_FRAME_BEGIN:
 		sr_dbg("bus: Received SR_DF_FRAME_BEGIN packet.");
@@ -1081,9 +1081,9 @@ SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
 		return SR_ERR_BUG;
 	}
 
-	if (packet->type == SR_DF_ANALOG) {
+	if (packet->type == SR_DF_ANALOG_OLD) {
 		/* Convert to SR_DF_ANALOG2. */
-		const struct sr_datafeed_analog *analog = packet->payload;
+		const struct sr_datafeed_analog_old *analog_old = packet->payload;
 		struct sr_analog_encoding encoding;
 		struct sr_analog_meaning meaning;
 		struct sr_analog_spec spec;
@@ -1091,8 +1091,8 @@ SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
 		struct sr_datafeed_packet a2_packet;
 		a2_packet.type = SR_DF_ANALOG2;
 		a2_packet.payload = &analog2;
-		analog2.data = analog->data;
-		analog2.num_samples = analog->num_samples;
+		analog2.data = analog_old->data;
+		analog2.num_samples = analog_old->num_samples;
 		analog2.encoding = &encoding;
 		analog2.meaning = &meaning;
 		analog2.spec = &spec;
@@ -1110,10 +1110,10 @@ SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
 		encoding.scale.q = 1;
 		encoding.offset.p = 0;
 		encoding.offset.q = 1;
-		meaning.mq = analog->mq;
-		meaning.unit = analog->unit;
-		meaning.mqflags = analog->mqflags;
-		meaning.channels = analog->channels;
+		meaning.mq = analog_old->mq;
+		meaning.unit = analog_old->unit;
+		meaning.mqflags = analog_old->mqflags;
+		meaning.channels = analog_old->channels;
 		spec.spec_digits = 0;
 		return sr_session_send(sdi, &a2_packet);
 	}
@@ -1466,8 +1466,8 @@ SR_PRIV int sr_packet_copy(const struct sr_datafeed_packet *packet,
 	struct sr_datafeed_meta *meta_copy;
 	const struct sr_datafeed_logic *logic;
 	struct sr_datafeed_logic *logic_copy;
-	const struct sr_datafeed_analog *analog;
-	struct sr_datafeed_analog *analog_copy;
+	const struct sr_datafeed_analog_old *analog_old;
+	struct sr_datafeed_analog_old *analog_old_copy;
 	const struct sr_datafeed_analog2 *analog2;
 	struct sr_datafeed_analog2 *analog2_copy;
 	uint8_t *payload;
@@ -1499,18 +1499,18 @@ SR_PRIV int sr_packet_copy(const struct sr_datafeed_packet *packet,
 		memcpy(logic_copy->data, logic->data, logic->length * logic->unitsize);
 		(*copy)->payload = logic_copy;
 		break;
-	case SR_DF_ANALOG:
-		analog = packet->payload;
-		analog_copy = g_malloc(sizeof(analog));
-		analog_copy->channels = g_slist_copy(analog->channels);
-		analog_copy->num_samples = analog->num_samples;
-		analog_copy->mq = analog->mq;
-		analog_copy->unit = analog->unit;
-		analog_copy->mqflags = analog->mqflags;
-		analog_copy->data = g_malloc(analog->num_samples * sizeof(float));
-		memcpy(analog_copy->data, analog->data,
-				analog->num_samples * sizeof(float));
-		(*copy)->payload = analog_copy;
+	case SR_DF_ANALOG_OLD:
+		analog_old = packet->payload;
+		analog_old_copy = g_malloc(sizeof(analog_old));
+		analog_old_copy->channels = g_slist_copy(analog_old->channels);
+		analog_old_copy->num_samples = analog_old->num_samples;
+		analog_old_copy->mq = analog_old->mq;
+		analog_old_copy->unit = analog_old->unit;
+		analog_old_copy->mqflags = analog_old->mqflags;
+		analog_old_copy->data = g_malloc(analog_old->num_samples * sizeof(float));
+		memcpy(analog_old_copy->data, analog_old->data,
+				analog_old->num_samples * sizeof(float));
+		(*copy)->payload = analog_old_copy;
 		break;
 	case SR_DF_ANALOG2:
 		analog2 = packet->payload;
@@ -1542,7 +1542,7 @@ void sr_packet_free(struct sr_datafeed_packet *packet)
 {
 	const struct sr_datafeed_meta *meta;
 	const struct sr_datafeed_logic *logic;
-	const struct sr_datafeed_analog *analog;
+	const struct sr_datafeed_analog_old *analog_old;
 	const struct sr_datafeed_analog2 *analog2;
 	struct sr_config *src;
 	GSList *l;
@@ -1571,10 +1571,10 @@ void sr_packet_free(struct sr_datafeed_packet *packet)
 		g_free(logic->data);
 		g_free((void *)packet->payload);
 		break;
-	case SR_DF_ANALOG:
-		analog = packet->payload;
-		g_slist_free(analog->channels);
-		g_free(analog->data);
+	case SR_DF_ANALOG_OLD:
+		analog_old = packet->payload;
+		g_slist_free(analog_old->channels);
+		g_free(analog_old->data);
 		g_free((void *)packet->payload);
 		break;
 	case SR_DF_ANALOG2:

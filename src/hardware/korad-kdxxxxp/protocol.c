@@ -307,7 +307,7 @@ SR_PRIV int korad_kdxxxxp_receive_data(int fd, int revents, void *cb_data)
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog analog;
+	struct sr_datafeed_analog_old analog;
 	int64_t t, elapsed_us;
 
 	(void)fd;
@@ -325,7 +325,7 @@ SR_PRIV int korad_kdxxxxp_receive_data(int fd, int revents, void *cb_data)
 		korad_kdxxxxp_get_reply(serial, devc);
 
 		/* Send the value forward. */
-		packet.type = SR_DF_ANALOG;
+		packet.type = SR_DF_ANALOG_OLD;
 		packet.payload = &analog;
 		analog.channels = sdi->channels;
 		analog.num_samples = 1;

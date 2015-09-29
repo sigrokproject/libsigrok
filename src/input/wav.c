@@ -181,7 +181,7 @@ static int find_data_chunk(GString *buf, int initial_offset)
 static void send_chunk(const struct sr_input *in, int offset, int num_samples)
 {
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog analog;
+	struct sr_datafeed_analog_old analog;
 	struct context *inc;
 	float fdata[CHUNK_SIZE];
 	uint64_t sample;
@@ -223,7 +223,7 @@ static void send_chunk(const struct sr_input *in, int offset, int num_samples)
 		s += inc->unitsize;
 		d += inc->unitsize;
 	}
-	packet.type = SR_DF_ANALOG;
+	packet.type = SR_DF_ANALOG_OLD;
 	packet.payload = &analog;
 	analog.channels = in->sdi->channels;
 	analog.num_samples = num_samples;

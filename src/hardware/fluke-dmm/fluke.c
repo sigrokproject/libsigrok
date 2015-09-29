@@ -26,10 +26,10 @@
 #include "libsigrok-internal.h"
 #include "fluke-dmm.h"
 
-static struct sr_datafeed_analog *handle_qm_18x(const struct sr_dev_inst *sdi,
+static struct sr_datafeed_analog_old *handle_qm_18x(const struct sr_dev_inst *sdi,
 		char **tokens)
 {
-	struct sr_datafeed_analog *analog;
+	struct sr_datafeed_analog_old *analog;
 	float fvalue;
 	char *e, *u;
 	gboolean is_oor;
@@ -59,7 +59,7 @@ static struct sr_datafeed_analog *handle_qm_18x(const struct sr_dev_inst *sdi,
 	while (*e && *e == ' ')
 		e++;
 
-	analog = g_malloc0(sizeof(struct sr_datafeed_analog));
+	analog = g_malloc0(sizeof(struct sr_datafeed_analog_old));
 	analog->data = g_malloc(sizeof(float));
 	analog->channels = sdi->channels;
 	analog->num_samples = 1;
@@ -154,10 +154,10 @@ static struct sr_datafeed_analog *handle_qm_18x(const struct sr_dev_inst *sdi,
 	return analog;
 }
 
-static struct sr_datafeed_analog *handle_qm_28x(const struct sr_dev_inst *sdi,
+static struct sr_datafeed_analog_old *handle_qm_28x(const struct sr_dev_inst *sdi,
 		char **tokens)
 {
-	struct sr_datafeed_analog *analog;
+	struct sr_datafeed_analog_old *analog;
 	float fvalue;
 
 	if (!tokens[1])
@@ -168,7 +168,7 @@ static struct sr_datafeed_analog *handle_qm_28x(const struct sr_dev_inst *sdi,
 		return NULL;
 	}
 
-	analog = g_malloc0(sizeof(struct sr_datafeed_analog));
+	analog = g_malloc0(sizeof(struct sr_datafeed_analog_old));
 	analog->data = g_malloc(sizeof(float));
 	analog->channels = sdi->channels;
 	analog->num_samples = 1;
@@ -362,7 +362,7 @@ static void handle_qm_19x_data(const struct sr_dev_inst *sdi, char **tokens)
 {
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog analog;
+	struct sr_datafeed_analog_old analog;
 	float fvalue;
 
 	if (!strcmp(tokens[0], "9.9E+37")) {
@@ -397,7 +397,7 @@ static void handle_qm_19x_data(const struct sr_dev_inst *sdi, char **tokens)
 	analog.mq = devc->mq;
 	analog.unit = devc->unit;
 	analog.mqflags = 0;
-	packet.type = SR_DF_ANALOG;
+	packet.type = SR_DF_ANALOG_OLD;
 	packet.payload = &analog;
 	sr_session_send(devc->cb_data, &packet);
 	devc->num_samples++;
@@ -409,7 +409,7 @@ static void handle_line(const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog *analog;
+	struct sr_datafeed_analog_old *analog;
 	int num_tokens, n, i;
 	char cmd[16], **tokens;
 
@@ -465,7 +465,7 @@ static void handle_line(const struct sr_dev_inst *sdi)
 
 	if (analog) {
 		/* Got a measurement. */
-		packet.type = SR_DF_ANALOG;
+		packet.type = SR_DF_ANALOG_OLD;
 		packet.payload = analog;
 		sr_session_send(devc->cb_data, &packet);
 		devc->num_samples++;

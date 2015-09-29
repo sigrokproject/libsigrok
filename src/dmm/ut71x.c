@@ -212,7 +212,7 @@ static void parse_flags(const uint8_t *buf, struct ut71x_info *info)
 	}
 }
 
-static void handle_flags(struct sr_datafeed_analog *analog,
+static void handle_flags(struct sr_datafeed_analog_old *analog,
 		float *floatval, const struct ut71x_info *info)
 {
 	/* Measurement modes */
@@ -325,7 +325,7 @@ SR_PRIV gboolean sr_ut71x_packet_valid(const uint8_t *buf)
 }
 
 SR_PRIV int sr_ut71x_parse(const uint8_t *buf, float *floatval,
-		struct sr_datafeed_analog *analog, void *info)
+		struct sr_datafeed_analog_old *analog, void *info)
 {
 	int ret;
 	struct ut71x_info *info_local;

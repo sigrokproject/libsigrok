@@ -331,7 +331,7 @@ static void push_samples(const struct sr_dev_inst *sdi, uint8_t *buf, size_t num
 {
 	struct dev_context *devc = sdi->priv;
 	float *data = devc->samples;
-	struct sr_datafeed_analog analog = {
+	struct sr_datafeed_analog_old analog = {
 		.channels = devc->enabled_channel,
 		.num_samples = num,
 		.mq = SR_MQ_VOLTAGE,
@@ -340,7 +340,7 @@ static void push_samples(const struct sr_dev_inst *sdi, uint8_t *buf, size_t num
 		.data = data,
 	};
 	struct sr_datafeed_packet packet = {
-		.type = SR_DF_ANALOG,
+		.type = SR_DF_ANALOG_OLD,
 		.payload = &analog,
 	};
 	float factor = devc->factor;

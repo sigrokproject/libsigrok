@@ -236,7 +236,7 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 {
 	struct out_context *outc;
 	const struct sr_datafeed_meta *meta;
-	const struct sr_datafeed_analog *analog;
+	const struct sr_datafeed_analog_old *analog_old;
 	const struct sr_datafeed_analog2 *analog2;
 	const struct sr_config *src;
 	struct sr_channel *ch;
@@ -261,7 +261,7 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 			outc->samplerate = g_variant_get_uint64(src->data);
 		}
 		break;
-	case SR_DF_ANALOG:
+	case SR_DF_ANALOG_OLD:
 	case SR_DF_ANALOG2:
 		if (!outc->header_done) {
 			*out = gen_header(o);
@@ -269,14 +269,14 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 		} else
 			*out = g_string_sized_new(512);
 
-		analog = packet->payload;
+		analog_old = packet->payload;
 		analog2 = packet->payload;
 
-		if (packet->type == SR_DF_ANALOG) {
-			num_samples = analog->num_samples;
-			channels = analog->channels;
-			num_channels = g_slist_length(analog->channels);
-			data = analog->data;
+		if (packet->type == SR_DF_ANALOG_OLD) {
+			num_samples = analog_old->num_samples;
+			channels = analog_old->channels;
+			num_channels = g_slist_length(analog_old->channels);
+			data = analog_old->data;
 		} else {
 			num_samples = analog2->num_samples;
 			channels = analog2->meaning->channels;
@@ -297,7 +297,7 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 		}
 
 		if (num_samples > outc->chanbuf_size) {
-			if (realloc_chanbufs(o, analog->num_samples) != SR_OK)
+			if (realloc_chanbufs(o, analog_old->num_samples) != SR_OK)
 				return SR_ERR_MALLOC;
 		}
 
@@ -312,7 +312,7 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 			for (j = 0; j < num_channels; j++) {
 				idx = chan_idx[j];
 				buf = outc->chanbuf[idx] + outc->chanbuf_used[idx]++ * 4;
-				f = analog->data[i * num_channels + j];
+				f = analog_old->data[i * num_channels + j];
 				if (outc->scale != 0.0)
 					f /= outc->scale;
 				float_to_le(buf, f);

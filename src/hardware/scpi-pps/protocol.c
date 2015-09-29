@@ -58,7 +58,7 @@ SR_PRIV int scpi_pps_receive_data(int fd, int revents, void *cb_data)
 {
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog analog;
+	struct sr_datafeed_analog_old analog;
 	const struct sr_dev_inst *sdi;
 	struct sr_channel *next_channel;
 	struct sr_scpi_dev_inst *scpi;
@@ -80,7 +80,7 @@ SR_PRIV int scpi_pps_receive_data(int fd, int revents, void *cb_data)
 	/* Retrieve requested value for this state. */
 	if (sr_scpi_get_float(scpi, NULL, &f) == SR_OK) {
 		pch = devc->cur_channel->priv;
-		packet.type = SR_DF_ANALOG;
+		packet.type = SR_DF_ANALOG_OLD;
 		packet.payload = &analog;
 		analog.channels = g_slist_append(NULL, devc->cur_channel);
 		analog.num_samples = 1;

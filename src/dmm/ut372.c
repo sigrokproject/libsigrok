@@ -88,7 +88,7 @@ SR_PRIV gboolean sr_ut372_packet_valid(const uint8_t *buf)
 }
 
 SR_PRIV int sr_ut372_parse(const uint8_t *buf, float *floatval,
-		struct sr_datafeed_analog *analog, void *info)
+		struct sr_datafeed_analog_old *analog, void *info)
 {
 	unsigned int i, j, value, divisor;
 	uint8_t segments, flags1, flags2;

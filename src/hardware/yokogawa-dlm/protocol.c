@@ -953,7 +953,7 @@ static int dlm_analog_samples_send(GArray *data,
 	struct dev_context *devc;
 	struct scope_state *model_state;
 	struct sr_channel *ch;
-	struct sr_datafeed_analog analog;
+	struct sr_datafeed_analog_old analog;
 	struct sr_datafeed_packet packet;
 
 	devc = sdi->priv;
@@ -987,7 +987,7 @@ static int dlm_analog_samples_send(GArray *data,
 	analog.mq = SR_MQ_VOLTAGE;
 	analog.unit = SR_UNIT_VOLT;
 	analog.mqflags = 0;
-	packet.type = SR_DF_ANALOG;
+	packet.type = SR_DF_ANALOG_OLD;
 	packet.payload = &analog;
 	sr_session_send(sdi, &packet);
 	g_slist_free(analog.channels);

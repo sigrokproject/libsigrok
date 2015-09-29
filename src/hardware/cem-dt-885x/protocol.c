@@ -66,7 +66,7 @@ static void process_mset(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog analog;
+	struct sr_datafeed_analog_old analog;
 	GString *dbg;
 	float fvalue;
 	int i;
@@ -131,14 +131,14 @@ static void process_mset(const struct sr_dev_inst *sdi)
 				break;
 			}
 		}
-		memset(&analog, 0, sizeof(struct sr_datafeed_analog));
+		memset(&analog, 0, sizeof(struct sr_datafeed_analog_old));
 		analog.mq = SR_MQ_SOUND_PRESSURE_LEVEL;
 		analog.mqflags = devc->cur_mqflags;
 		analog.unit = SR_UNIT_DECIBEL_SPL;
 		analog.channels = sdi->channels;
 		analog.num_samples = 1;
 		analog.data = &devc->last_spl;
-		packet.type = SR_DF_ANALOG;
+		packet.type = SR_DF_ANALOG_OLD;
 		packet.payload = &analog;
 		sr_session_send(devc->cb_data, &packet);
 
@@ -178,7 +178,7 @@ static void send_data(const struct sr_dev_inst *sdi, unsigned char *data,
 {
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog analog;
+	struct sr_datafeed_analog_old analog;
 	float fbuf[SAMPLES_PER_PACKET];
 	unsigned int i;
 
@@ -190,14 +190,14 @@ static void send_data(const struct sr_dev_inst *sdi, unsigned char *data,
 		fbuf[i] += ((data[i * 2 + 1] & 0xf0) >> 4);
 		fbuf[i] += (data[i * 2 + 1] & 0x0f) / 10.0;
 	}
-	memset(&analog, 0, sizeof(struct sr_datafeed_analog));
+	memset(&analog, 0, sizeof(struct sr_datafeed_analog_old));
 	analog.mq = SR_MQ_SOUND_PRESSURE_LEVEL;
 	analog.mqflags = devc->cur_mqflags;
 	analog.unit = SR_UNIT_DECIBEL_SPL;
 	analog.channels = sdi->channels;
 	analog.num_samples = num_samples;
 	analog.data = fbuf;
-	packet.type = SR_DF_ANALOG;
+	packet.type = SR_DF_ANALOG_OLD;
 	packet.payload = &analog;
 	sr_session_send(devc->cb_data, &packet);
 

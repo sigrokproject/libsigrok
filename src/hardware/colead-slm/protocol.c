@@ -29,7 +29,7 @@ static void process_packet(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog analog;
+	struct sr_datafeed_analog_old analog;
 	GString *dbg;
 	float fvalue;
 	int checksum, mode, i;
@@ -71,7 +71,7 @@ static void process_packet(const struct sr_dev_inst *sdi)
 	}
 	fvalue /= 10;
 
-	memset(&analog, 0, sizeof(struct sr_datafeed_analog));
+	memset(&analog, 0, sizeof(struct sr_datafeed_analog_old));
 	analog.mq = SR_MQ_SOUND_PRESSURE_LEVEL;
 	analog.unit = SR_UNIT_DECIBEL_SPL;
 	analog.channels = sdi->channels;
@@ -167,7 +167,7 @@ static void process_packet(const struct sr_dev_inst *sdi)
 		return;
 	}
 
-	packet.type = SR_DF_ANALOG;
+	packet.type = SR_DF_ANALOG_OLD;
 	packet.payload = &analog;
 	sr_session_send(devc->cb_data, &packet);
 

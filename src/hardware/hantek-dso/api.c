@@ -708,14 +708,14 @@ static void send_chunk(struct sr_dev_inst *sdi, unsigned char *buf,
 		int num_samples)
 {
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog analog;
+	struct sr_datafeed_analog_old analog;
 	struct dev_context *devc;
 	float ch1, ch2, range;
 	int num_channels, data_offset, i;
 
 	devc = sdi->priv;
 	num_channels = (devc->ch1_enabled && devc->ch2_enabled) ? 2 : 1;
-	packet.type = SR_DF_ANALOG;
+	packet.type = SR_DF_ANALOG_OLD;
 	packet.payload = &analog;
 	/* TODO: support for 5xxx series 9-bit samples */
 	analog.channels = devc->enabled_channels;

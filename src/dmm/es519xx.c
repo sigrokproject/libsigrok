@@ -444,7 +444,7 @@ static void parse_flags(const uint8_t *buf, struct es519xx_info *info)
 	}
 }
 
-static void handle_flags(struct sr_datafeed_analog *analog,
+static void handle_flags(struct sr_datafeed_analog_old *analog,
 			 float *floatval, const struct es519xx_info *info)
 {
 	/*
@@ -604,7 +604,7 @@ static gboolean sr_es519xx_packet_valid(const uint8_t *buf,
 }
 
 static int sr_es519xx_parse(const uint8_t *buf, float *floatval,
-                            struct sr_datafeed_analog *analog,
+                            struct sr_datafeed_analog_old *analog,
                             struct es519xx_info *info)
 {
 	int ret;
@@ -640,7 +640,7 @@ SR_PRIV gboolean sr_es519xx_2400_11b_packet_valid(const uint8_t *buf)
 }
 
 SR_PRIV int sr_es519xx_2400_11b_parse(const uint8_t *buf, float *floatval,
-				struct sr_datafeed_analog *analog, void *info)
+				struct sr_datafeed_analog_old *analog, void *info)
 {
 	struct es519xx_info *info_local;
 
@@ -669,7 +669,7 @@ SR_PRIV gboolean sr_es519xx_2400_11b_altfn_packet_valid(const uint8_t *buf)
 }
 
 SR_PRIV int sr_es519xx_2400_11b_altfn_parse(const uint8_t *buf,
-		float *floatval, struct sr_datafeed_analog *analog, void *info)
+		float *floatval, struct sr_datafeed_analog_old *analog, void *info)
 {
 	struct es519xx_info *info_local;
 
@@ -699,7 +699,7 @@ SR_PRIV gboolean sr_es519xx_19200_11b_5digits_packet_valid(const uint8_t *buf)
 }
 
 SR_PRIV int sr_es519xx_19200_11b_5digits_parse(const uint8_t *buf,
-		float *floatval, struct sr_datafeed_analog *analog, void *info)
+		float *floatval, struct sr_datafeed_analog_old *analog, void *info)
 {
 	struct es519xx_info *info_local;
 
@@ -729,7 +729,7 @@ SR_PRIV gboolean sr_es519xx_19200_11b_clamp_packet_valid(const uint8_t *buf)
 }
 
 SR_PRIV int sr_es519xx_19200_11b_clamp_parse(const uint8_t *buf,
-		float *floatval, struct sr_datafeed_analog *analog, void *info)
+		float *floatval, struct sr_datafeed_analog_old *analog, void *info)
 {
 	struct es519xx_info *info_local;
 
@@ -758,7 +758,7 @@ SR_PRIV gboolean sr_es519xx_19200_11b_packet_valid(const uint8_t *buf)
 }
 
 SR_PRIV int sr_es519xx_19200_11b_parse(const uint8_t *buf, float *floatval,
-			struct sr_datafeed_analog *analog, void *info)
+			struct sr_datafeed_analog_old *analog, void *info)
 {
 	struct es519xx_info *info_local;
 
@@ -786,7 +786,7 @@ SR_PRIV gboolean sr_es519xx_19200_14b_packet_valid(const uint8_t *buf)
 }
 
 SR_PRIV int sr_es519xx_19200_14b_parse(const uint8_t *buf, float *floatval,
-			struct sr_datafeed_analog *analog, void *info)
+			struct sr_datafeed_analog_old *analog, void *info)
 {
 	struct es519xx_info *info_local;
 
@@ -815,7 +815,7 @@ SR_PRIV gboolean sr_es519xx_19200_14b_sel_lpf_packet_valid(const uint8_t *buf)
 }
 
 SR_PRIV int sr_es519xx_19200_14b_sel_lpf_parse(const uint8_t *buf,
-		float *floatval, struct sr_datafeed_analog *analog, void *info)
+		float *floatval, struct sr_datafeed_analog_old *analog, void *info)
 {
 	struct es519xx_info *info_local;
 

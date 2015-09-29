@@ -57,14 +57,14 @@ static void decode_packet(struct sr_dev_inst *sdi, const uint8_t *buf)
 	struct dev_context *devc;
 	struct dmm_info *dmm;
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog analog;
+	struct sr_datafeed_analog_old analog;
 	float floatval;
 	void *info;
 	int ret;
 
 	devc = sdi->priv;
 	dmm = (struct dmm_info *)sdi->driver;
-	memset(&analog, 0, sizeof(struct sr_datafeed_analog));
+	memset(&analog, 0, sizeof(struct sr_datafeed_analog_old));
 	info = g_malloc(dmm->info_size);
 
 	/* Parse the protocol packet. */
@@ -85,7 +85,7 @@ static void decode_packet(struct sr_dev_inst *sdi, const uint8_t *buf)
 	analog.channels = sdi->channels;
 	analog.num_samples = 1;
 	analog.data = &floatval;
-	packet.type = SR_DF_ANALOG;
+	packet.type = SR_DF_ANALOG_OLD;
 	packet.payload = &analog;
 	sr_session_send(devc->cb_data, &packet);
 

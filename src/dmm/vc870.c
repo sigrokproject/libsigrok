@@ -280,7 +280,7 @@ static void parse_flags(const uint8_t *buf, struct vc870_info *info)
 	info->is_rms = TRUE;
 }
 
-static void handle_flags(struct sr_datafeed_analog *analog,
+static void handle_flags(struct sr_datafeed_analog_old *analog,
 			 float *floatval, const struct vc870_info *info)
 {
 	/*
@@ -402,7 +402,7 @@ SR_PRIV gboolean sr_vc870_packet_valid(const uint8_t *buf)
 }
 
 SR_PRIV int sr_vc870_parse(const uint8_t *buf, float *floatval,
-			   struct sr_datafeed_analog *analog, void *info)
+			   struct sr_datafeed_analog_old *analog, void *info)
 {
 	int ret;
 	struct vc870_info *info_local;

@@ -25,7 +25,7 @@ static void handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi)
 	float floatval;
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog analog;
+	struct sr_datafeed_analog_old analog;
 
 	devc = sdi->priv;
 
@@ -40,7 +40,7 @@ static void handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi)
 
 	if (analog.mq != -1) {
 		/* Got a measurement. */
-		packet.type = SR_DF_ANALOG;
+		packet.type = SR_DF_ANALOG_OLD;
 		packet.payload = &analog;
 		sr_session_send(devc->cb_data, &packet);
 		devc->num_samples++;

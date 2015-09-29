@@ -34,7 +34,7 @@ enum {
 };
 
 static void parse_packet(const uint8_t *buf, float *floatval,
-			 struct sr_datafeed_analog *analog)
+			 struct sr_datafeed_analog_old *analog)
 {
 	gboolean is_a, is_fast;
 	uint16_t intval;
@@ -89,12 +89,12 @@ static void parse_packet(const uint8_t *buf, float *floatval,
 static void decode_packet(struct sr_dev_inst *sdi)
 {
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog analog;
+	struct sr_datafeed_analog_old analog;
 	struct dev_context *devc;
 	float floatval;
 
 	devc = sdi->priv;
-	memset(&analog, 0, sizeof(struct sr_datafeed_analog));
+	memset(&analog, 0, sizeof(struct sr_datafeed_analog_old));
 
 	parse_packet(devc->buf, &floatval, &analog);
 
@@ -102,7 +102,7 @@ static void decode_packet(struct sr_dev_inst *sdi)
 	analog.channels = sdi->channels;
 	analog.num_samples = 1;
 	analog.data = &floatval;
-	packet.type = SR_DF_ANALOG;
+	packet.type = SR_DF_ANALOG_OLD;
 	packet.payload = &analog;
 	sr_session_send(devc->cb_data, &packet);
 

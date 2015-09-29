@@ -319,12 +319,12 @@ shared_ptr<Packet> Context::create_logic_packet(
 	return shared_ptr<Packet>(new Packet(nullptr, packet), Packet::Deleter());
 }
 
-shared_ptr<Packet> Context::create_analog_packet(
+shared_ptr<Packet> Context::create_analog_old_packet(
 	vector<shared_ptr<Channel> > channels,
 	float *data_pointer, unsigned int num_samples, const Quantity *mq,
 	const Unit *unit, vector<const QuantityFlag *> mqflags)
 {
-	auto analog = g_new0(struct sr_datafeed_analog, 1);
+	auto analog = g_new0(struct sr_datafeed_analog_old, 1);
 	for (auto channel : channels)
 		analog->channels = g_slist_append(analog->channels, channel->_structure);
 	analog->num_samples = num_samples;
@@ -333,7 +333,7 @@ shared_ptr<Packet> Context::create_analog_packet(
 	analog->mqflags = QuantityFlag::mask_from_flags(mqflags);
 	analog->data = data_pointer;
 	auto packet = g_new(struct sr_datafeed_packet, 1);
-	packet->type = SR_DF_ANALOG;
+	packet->type = SR_DF_ANALOG_OLD;
 	packet->payload = analog;
 	return shared_ptr<Packet>(new Packet(nullptr, packet), Packet::Deleter());
 }
@@ -1068,9 +1068,9 @@ Packet::Packet(shared_ptr<Device> device,
 				static_cast<const struct sr_datafeed_logic *>(
 					structure->payload));
 			break;
-		case SR_DF_ANALOG:
-			_payload = new Analog(
-				static_cast<const struct sr_datafeed_analog *>(
+		case SR_DF_ANALOG_OLD:
+			_payload = new AnalogOld(
+				static_cast<const struct sr_datafeed_analog_old *>(
 					structure->payload));
 			break;
 		default:
@@ -1192,33 +1192,33 @@ unsigned int Logic::unit_size()
 	return _structure->unitsize;
 }
 
-Analog::Analog(const struct sr_datafeed_analog *structure) :
+AnalogOld::AnalogOld(const struct sr_datafeed_analog_old *structure) :
 	ParentOwned(structure),
 	PacketPayload()
 {
 }
 
-Analog::~Analog()
+AnalogOld::~AnalogOld()
 {
 }
 
-shared_ptr<PacketPayload> Analog::get_shared_pointer(Packet *_parent)
+shared_ptr<PacketPayload> AnalogOld::get_shared_pointer(Packet *_parent)
 {
 	return static_pointer_cast<PacketPayload>(
 		ParentOwned::get_shared_pointer(_parent));
 }
 
-float *Analog::data_pointer()
+float *AnalogOld::data_pointer()
 {
 	return _structure->data;
 }
 
-unsigned int Analog::num_samples()
+unsigned int AnalogOld::num_samples()
 {
 	return _structure->num_samples;
 }
 
-vector<shared_ptr<Channel>> Analog::channels()
+vector<shared_ptr<Channel>> AnalogOld::channels()
 {
 	vector<shared_ptr<Channel>> result;
 	for (auto l = _structure->channels; l; l = l->next)
@@ -1227,17 +1227,17 @@ vector<shared_ptr<Channel>> Analog::channels()
 	return result;
 }
 
-const Quantity *Analog::mq()
+const Quantity *AnalogOld::mq()
 {
 	return Quantity::get(_structure->mq);
 }
 
-const Unit *Analog::unit()
+const Unit *AnalogOld::unit()
 {
 	return Unit::get(_structure->unit);
 }
 
-vector<const QuantityFlag *> Analog::mq_flags()
+vector<const QuantityFlag *> AnalogOld::mq_flags()
 {
 	return QuantityFlag::flags_from_mask(_structure->mqflags);
 }

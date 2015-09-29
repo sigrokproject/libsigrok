@@ -170,7 +170,7 @@ static void parse_flags(const char *buf, struct metex14_info *info)
 	/* Byte 13: Always '\r' (carriage return, 0x0d, 13) */
 }
 
-static void handle_flags(struct sr_datafeed_analog *analog, float *floatval,
+static void handle_flags(struct sr_datafeed_analog_old *analog, float *floatval,
 			 const struct metex14_info *info)
 {
 	/* Factors */
@@ -311,7 +311,7 @@ SR_PRIV gboolean sr_metex14_packet_valid(const uint8_t *buf)
  * @param buf Buffer containing the protocol packet. Must not be NULL.
  * @param floatval Pointer to a float variable. That variable will be modified
  *                 in-place depending on the protocol packet. Must not be NULL.
- * @param analog Pointer to a struct sr_datafeed_analog. The struct will be
+ * @param analog Pointer to a struct sr_datafeed_analog_old. The struct will be
  *               filled with data according to the protocol packet.
  *               Must not be NULL.
  * @param info Pointer to a struct metex14_info. The struct will be filled
@@ -321,7 +321,7 @@ SR_PRIV gboolean sr_metex14_packet_valid(const uint8_t *buf)
  *         'analog' variable contents are undefined and should not be used.
  */
 SR_PRIV int sr_metex14_parse(const uint8_t *buf, float *floatval,
-			     struct sr_datafeed_analog *analog, void *info)
+			     struct sr_datafeed_analog_old *analog, void *info)
 {
 	int ret;
 	struct metex14_info *info_local;

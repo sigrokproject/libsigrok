@@ -128,7 +128,7 @@ SR_PRIV const char *maynuo_m97_mode_to_str(enum maynuo_m97_mode mode)
 static void maynuo_m97_session_send_value(const struct sr_dev_inst *sdi, struct sr_channel *ch, float value, enum sr_mq mq, enum sr_unit unit)
 {
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog analog;
+	struct sr_datafeed_analog_old analog;
 
 	analog.channels = g_slist_append(NULL, ch);
 	analog.num_samples = 1;
@@ -137,7 +137,7 @@ static void maynuo_m97_session_send_value(const struct sr_dev_inst *sdi, struct 
 	analog.unit = unit;
 	analog.mqflags = SR_MQFLAG_DC;
 
-	packet.type = SR_DF_ANALOG;
+	packet.type = SR_DF_ANALOG_OLD;
 	packet.payload = &analog;
 	sr_session_send(sdi, &packet);
 	g_slist_free(analog.channels);

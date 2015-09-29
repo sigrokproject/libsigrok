@@ -123,7 +123,7 @@ static int packet_parse(const uint8_t *buf, int idx, struct center_info *info)
 static int handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi, int idx)
 {
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog analog;
+	struct sr_datafeed_analog_old analog;
 	struct dev_context *devc;
 	struct center_info info;
 	GSList *l;
@@ -131,7 +131,7 @@ static int handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi, int idx)
 
 	devc = sdi->priv;
 
-	memset(&analog, 0, sizeof(struct sr_datafeed_analog));
+	memset(&analog, 0, sizeof(struct sr_datafeed_analog_old));
 	memset(&info, 0, sizeof(struct center_info));
 
 	ret = packet_parse(buf, idx, &info);
@@ -141,7 +141,7 @@ static int handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi, int idx)
 	}
 
 	/* Common values for all 4 channels. */
-	packet.type = SR_DF_ANALOG;
+	packet.type = SR_DF_ANALOG_OLD;
 	packet.payload = &analog;
 	analog.mq = SR_MQ_TEMPERATURE;
 	analog.unit = (info.celsius) ? SR_UNIT_CELSIUS : SR_UNIT_FAHRENHEIT;

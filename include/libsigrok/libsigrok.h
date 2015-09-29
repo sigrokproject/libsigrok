@@ -162,8 +162,8 @@ enum sr_packettype {
 	SR_DF_TRIGGER,
 	/** Payload is struct sr_datafeed_logic. */
 	SR_DF_LOGIC,
-	/** Payload is struct sr_datafeed_analog. */
-	SR_DF_ANALOG,
+	/** Payload is struct sr_datafeed_analog_old. */
+	SR_DF_ANALOG_OLD,
 	/** Beginning of frame. No payload. */
 	SR_DF_FRAME_BEGIN,
 	/** End of frame. No payload. */
@@ -494,8 +494,8 @@ struct sr_datafeed_logic {
 	void *data;
 };
 
-/** Analog datafeed payload for type SR_DF_ANALOG. */
-struct sr_datafeed_analog {
+/** Analog datafeed payload for type SR_DF_ANALOG_OLD. */
+struct sr_datafeed_analog_old {
 	/** The channels for which data is included in this packet. */
 	GSList *channels;
 	/** Number of samples in data */

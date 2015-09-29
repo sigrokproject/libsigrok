@@ -250,9 +250,9 @@ typedef guint pyg_flags_type;
     {
         return dynamic_pointer_cast<sigrok::Meta>($self->payload());
     }
-    std::shared_ptr<sigrok::Analog> _payload_analog()
+    std::shared_ptr<sigrok::AnalogOld> _payload_analog_old()
     {
-        return dynamic_pointer_cast<sigrok::Analog>($self->payload());
+        return dynamic_pointer_cast<sigrok::AnalogOld>($self->payload());
     }
     std::shared_ptr<sigrok::Logic> _payload_logic()
     {
@@ -271,8 +271,8 @@ typedef guint pyg_flags_type;
             return self._payload_meta()
         elif self.type == PacketType.LOGIC:
             return self._payload_logic()
-        elif self.type == PacketType.ANALOG:
-            return self._payload_analog()
+        elif self.type == PacketType.ANALOG_OLD:
+            return self._payload_analog_old()
         else:
             return None
 
@@ -377,7 +377,7 @@ std::map<std::string, Glib::VariantBase> dict_to_map_options(PyObject *dict,
 %}
 
 /* Ignore these methods, we will override them below. */
-%ignore sigrok::Analog::data;
+%ignore sigrok::AnalogOld::data;
 %ignore sigrok::Driver::scan;
 %ignore sigrok::InputFormat::create_input;
 %ignore sigrok::OutputFormat::create_output;
@@ -506,8 +506,8 @@ std::map<std::string, Glib::VariantBase> dict_to_map_options(PyObject *dict,
     }
 }
 
-/* Return NumPy array from Analog::data(). */
-%extend sigrok::Analog
+/* Return NumPy array from AnalogOld::data(). */
+%extend sigrok::AnalogOld
 {
     PyObject * _data()
     {

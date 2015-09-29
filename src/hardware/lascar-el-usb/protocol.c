@@ -383,7 +383,7 @@ static void lascar_el_usb_dispatch(struct sr_dev_inst *sdi, unsigned char *buf,
 {
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog analog;
+	struct sr_datafeed_analog_old analog;
 	struct sr_channel *ch;
 	float *temp, *rh;
 	uint16_t s;
@@ -397,7 +397,7 @@ static void lascar_el_usb_dispatch(struct sr_dev_inst *sdi, unsigned char *buf,
 		samples = samples_left;
 	switch (devc->profile->logformat) {
 	case LOG_TEMP_RH:
-		packet.type = SR_DF_ANALOG;
+		packet.type = SR_DF_ANALOG_OLD;
 		packet.payload = &analog;
 		analog.mqflags = 0;
 		if (!(temp = g_try_malloc(sizeof(float) * samples)))
@@ -448,7 +448,7 @@ static void lascar_el_usb_dispatch(struct sr_dev_inst *sdi, unsigned char *buf,
 		g_free(rh);
 		break;
 	case LOG_CO:
-		packet.type = SR_DF_ANALOG;
+		packet.type = SR_DF_ANALOG_OLD;
 		packet.payload = &analog;
 		analog.channels = sdi->channels;
 		analog.num_samples = samples;

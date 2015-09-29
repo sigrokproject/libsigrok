@@ -33,12 +33,12 @@ static void send_data(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog analog;
+	struct sr_datafeed_analog_old analog;
 	int i;
 	float data[MAX_CHANNELS];
 
 	devc = sdi->priv;
-	packet.type = SR_DF_ANALOG;
+	packet.type = SR_DF_ANALOG_OLD;
 	packet.payload = &analog;
 	analog.channels = sdi->channels;
 	analog.num_samples = 1;

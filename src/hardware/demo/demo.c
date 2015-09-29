@@ -98,7 +98,7 @@ struct analog_gen {
 	float amplitude;
 	float pattern_data[ANALOG_BUFSIZE];
 	unsigned int num_samples;
-	struct sr_datafeed_analog packet;
+	struct sr_datafeed_analog_old packet;
 	float avg_val; /* Average value */
 	unsigned num_avgs; /* Number of samples averaged */
 };
@@ -687,7 +687,7 @@ static void send_analog_packet(struct analog_gen *ag,
 	unsigned int i;
 
 	devc = sdi->priv;
-	packet.type = SR_DF_ANALOG;
+	packet.type = SR_DF_ANALOG_OLD;
 	packet.payload = &ag->packet;
 
 	if (!devc->avg) {
@@ -833,7 +833,7 @@ static int prepare_data(int fd, int revents, void *cb_data)
 			g_hash_table_iter_init(&iter, devc->ch_ag);
 			while (g_hash_table_iter_next(&iter, NULL, &value)) {
 				ag = value;
-				packet.type = SR_DF_ANALOG;
+				packet.type = SR_DF_ANALOG_OLD;
 				packet.payload = &ag->packet;
 				ag->packet.data = &ag->avg_val;
 				ag->packet.num_samples = 1;

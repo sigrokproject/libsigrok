@@ -73,7 +73,7 @@ static int brymen_bm86x_parse_digits(const unsigned char *buf, int length,
 }
 
 static void brymen_bm86x_parse(unsigned char *buf, float *floatval,
-                               struct sr_datafeed_analog *analog)
+                               struct sr_datafeed_analog_old *analog)
 {
 	char str[16], temp_unit;
 	int ret1, ret2, over_limit;
@@ -195,7 +195,7 @@ static void brymen_bm86x_handle_packet(const struct sr_dev_inst *sdi,
 {
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog analog[2];
+	struct sr_datafeed_analog_old analog[2];
 	float floatval[2];
 
 	devc = sdi->priv;
@@ -213,7 +213,7 @@ static void brymen_bm86x_handle_packet(const struct sr_dev_inst *sdi,
 		analog[0].num_samples = 1;
 		analog[0].data = &floatval[0];
 		analog[0].channels = g_slist_append(NULL, sdi->channels->data);
-		packet.type = SR_DF_ANALOG;
+		packet.type = SR_DF_ANALOG_OLD;
 		packet.payload = &analog[0];
 		sr_session_send(sdi, &packet);
 		g_slist_free(analog[0].channels);
@@ -224,7 +224,7 @@ static void brymen_bm86x_handle_packet(const struct sr_dev_inst *sdi,
 		analog[1].num_samples = 1;
 		analog[1].data = &floatval[1];
 		analog[1].channels = g_slist_append(NULL, sdi->channels->next->data);
-		packet.type = SR_DF_ANALOG;
+		packet.type = SR_DF_ANALOG_OLD;
 		packet.payload = &analog[1];
 		sr_session_send(sdi, &packet);
 		g_slist_free(analog[1].channels);

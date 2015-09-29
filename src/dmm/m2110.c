@@ -51,7 +51,7 @@ SR_PRIV gboolean sr_m2110_packet_valid(const uint8_t *buf)
 }
 
 SR_PRIV int sr_m2110_parse(const uint8_t *buf, float *floatval,
-				struct sr_datafeed_analog *analog, void *info)
+				struct sr_datafeed_analog_old *analog, void *info)
 {
 	float val;
 

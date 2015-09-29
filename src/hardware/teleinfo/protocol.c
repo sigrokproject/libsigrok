@@ -60,7 +60,7 @@ static void teleinfo_send_value(struct sr_dev_inst *sdi, const char *channel_nam
 {
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog analog;
+	struct sr_datafeed_analog_old analog;
 	struct sr_channel *ch;
 
 	devc = sdi->priv;
@@ -69,14 +69,14 @@ static void teleinfo_send_value(struct sr_dev_inst *sdi, const char *channel_nam
 	if (!ch || !ch->enabled)
 		return;
 
-	memset(&analog, 0, sizeof(struct sr_datafeed_analog));
+	memset(&analog, 0, sizeof(struct sr_datafeed_analog_old));
 	analog.channels = g_slist_append(analog.channels, ch);
 	analog.num_samples = 1;
 	analog.mq = mq;
 	analog.unit = unit;
 	analog.data = &value;
 
-	packet.type = SR_DF_ANALOG;
+	packet.type = SR_DF_ANALOG_OLD;
 	packet.payload = &analog;
 	sr_session_send(devc->session_cb_data, &packet);
 	g_slist_free(analog.channels);
