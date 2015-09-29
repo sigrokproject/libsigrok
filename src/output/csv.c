@@ -193,7 +193,7 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 	const struct sr_datafeed_meta *meta;
 	const struct sr_datafeed_logic *logic;
 	const struct sr_datafeed_analog_old *analog_old;
-	const struct sr_datafeed_analog2 *analog2;
+	const struct sr_datafeed_analog *analog;
 	const struct sr_config *src;
 	unsigned int num_samples;
 	float *data;
@@ -269,9 +269,9 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 		}
 		break;
 	case SR_DF_ANALOG_OLD:
-	case SR_DF_ANALOG2:
+	case SR_DF_ANALOG:
 		analog_old = packet->payload;
-		analog2 = packet->payload;
+		analog = packet->payload;
 
 		if (packet->type == SR_DF_ANALOG_OLD) {
 			channels = analog_old->channels;
@@ -279,11 +279,11 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 			num_samples = analog_old->num_samples;
 			data = analog_old->data;
 		} else {
-			channels = analog2->meaning->channels;
+			channels = analog->meaning->channels;
 			numch = g_slist_length(channels);
-			num_samples = analog2->num_samples;
+			num_samples = analog->num_samples;
 			data = g_malloc(sizeof(float) * num_samples * numch);
-			ret = sr_analog_to_float(analog2, data);
+			ret = sr_analog_to_float(analog, data);
 			if (ret != SR_OK)
 				return ret;
 		}

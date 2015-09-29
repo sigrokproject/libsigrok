@@ -117,7 +117,7 @@ static struct unit_mq_string mq_strings[] = {
 	ALL_ZERO
 };
 
-SR_PRIV int sr_analog_init(struct sr_datafeed_analog2 *analog,
+SR_PRIV int sr_analog_init(struct sr_datafeed_analog *analog,
 		struct sr_analog_encoding *encoding,
 		struct sr_analog_meaning *meaning,
 		struct sr_analog_spec *spec,
@@ -151,7 +151,7 @@ SR_PRIV int sr_analog_init(struct sr_datafeed_analog2 *analog,
 	return SR_OK;
 }
 
-SR_API int sr_analog_to_float(const struct sr_datafeed_analog2 *analog,
+SR_API int sr_analog_to_float(const struct sr_datafeed_analog *analog,
 		float *outbuf)
 {
 	float offset;
@@ -245,7 +245,7 @@ SR_API int sr_analog_float_to_string(float value, int digits, char **result)
  *
  * @since 0.4.0
  */
-SR_API int sr_analog_unit_to_string(const struct sr_datafeed_analog2 *analog,
+SR_API int sr_analog_unit_to_string(const struct sr_datafeed_analog *analog,
 		char **result)
 {
 	int i;

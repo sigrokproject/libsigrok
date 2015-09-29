@@ -759,7 +759,7 @@ SR_PRIV GKeyFile *sr_sessionfile_read_metadata(struct zip *archive,
 
 /*--- analog.c --------------------------------------------------------------*/
 
-SR_PRIV int sr_analog_init(struct sr_datafeed_analog2 *analog,
+SR_PRIV int sr_analog_init(struct sr_datafeed_analog *analog,
                            struct sr_analog_encoding *encoding,
                            struct sr_analog_meaning *meaning,
                            struct sr_analog_spec *spec,

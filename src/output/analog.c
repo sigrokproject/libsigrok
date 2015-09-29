@@ -279,7 +279,7 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 {
 	struct context *ctx;
 	const struct sr_datafeed_analog_old *analog_old;
-	const struct sr_datafeed_analog2 *analog2;
+	const struct sr_datafeed_analog *analog;
 	struct sr_channel *ch;
 	GSList *l;
 	float *fdata;
@@ -313,27 +313,27 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 			}
 		}
 		break;
-	case SR_DF_ANALOG2:
-		analog2 = packet->payload;
-		num_channels = g_slist_length(analog2->meaning->channels);
+	case SR_DF_ANALOG:
+		analog = packet->payload;
+		num_channels = g_slist_length(analog->meaning->channels);
 		if (!(fdata = g_try_malloc(
-						analog2->num_samples * num_channels * sizeof(float))))
+						analog->num_samples * num_channels * sizeof(float))))
 			return SR_ERR_MALLOC;
-		if ((ret = sr_analog_to_float(analog2, fdata)) != SR_OK)
+		if ((ret = sr_analog_to_float(analog, fdata)) != SR_OK)
 			return ret;
 		*out = g_string_sized_new(512);
-		if (analog2->encoding->is_digits_decimal) {
+		if (analog->encoding->is_digits_decimal) {
 			if (ctx->digits == DIGITS_ALL)
-				digits = analog2->encoding->digits;
+				digits = analog->encoding->digits;
 			else
-				digits = analog2->spec->spec_digits;
+				digits = analog->spec->spec_digits;
 		} else {
 			/* TODO we don't know how to print by number of bits yet. */
 			digits = 6;
 		}
-		sr_analog_unit_to_string(analog2, &suffix);
-		for (i = 0; i < analog2->num_samples; i++) {
-			for (l = analog2->meaning->channels, c = 0; l; l = l->next, c++) {
+		sr_analog_unit_to_string(analog, &suffix);
+		for (i = 0; i < analog->num_samples; i++) {
+			for (l = analog->meaning->channels, c = 0; l; l = l->next, c++) {
 				ch = l->data;
 				g_string_append_printf(*out, "%s: ", ch->name);
 				sr_analog_float_to_string(fdata[i * num_channels + c],

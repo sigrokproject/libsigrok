@@ -95,7 +95,7 @@ static int handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi, int idx)
 {
 	float temperature, humidity;
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog2 analog;
+	struct sr_datafeed_analog analog;
 	struct sr_analog_encoding encoding;
 	struct sr_analog_meaning meaning;
 	struct sr_analog_spec spec;
@@ -116,7 +116,7 @@ static int handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi, int idx)
 	sr_analog_init(&analog, &encoding, &meaning, &spec, 3);
 
 	/* Common values for both channels. */
-	packet.type = SR_DF_ANALOG2;
+	packet.type = SR_DF_ANALOG;
 	packet.payload = &analog;
 	analog.num_samples = 1;
 

@@ -31,7 +31,7 @@ static int receive(const struct sr_transform *t,
 {
 	const struct sr_datafeed_logic *logic;
 	const struct sr_datafeed_analog_old *analog_old;
-	const struct sr_datafeed_analog2 *analog2;
+	const struct sr_datafeed_analog *analog;
 	struct sr_channel *ch;
 	GSList *l;
 	float *fdata, *f;
@@ -68,14 +68,14 @@ static int receive(const struct sr_transform *t,
 			}
 		}
 		break;
-	case SR_DF_ANALOG2:
-		analog2 = packet_in->payload;
-		p = analog2->encoding->scale.p;
-		q = analog2->encoding->scale.q;
+	case SR_DF_ANALOG:
+		analog = packet_in->payload;
+		p = analog->encoding->scale.p;
+		q = analog->encoding->scale.q;
 		if (q > INT64_MAX)
 			return SR_ERR;
-		analog2->encoding->scale.p = (p < 0) ? -q : q;
-		analog2->encoding->scale.q = (p < 0) ? -p : p;
+		analog->encoding->scale.p = (p < 0) ? -q : q;
+		analog->encoding->scale.q = (p < 0) ? -p : p;
 		break;
 	default:
 		sr_spew("Unsupported packet type %d, ignoring.", packet_in->type);

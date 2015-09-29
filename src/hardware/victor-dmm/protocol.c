@@ -44,7 +44,7 @@ static uint8_t decode_digit(uint8_t in)
 static void decode_buf(struct sr_dev_inst *sdi, unsigned char *data)
 {
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog2 analog;
+	struct sr_datafeed_analog analog;
 	struct sr_analog_encoding encoding;
 	struct sr_analog_meaning meaning;
 	struct sr_analog_spec spec;
@@ -260,7 +260,7 @@ static void decode_buf(struct sr_dev_inst *sdi, unsigned char *data)
 	analog.data = &fvalue;
 	analog.num_samples = 1;
 
-	packet.type = SR_DF_ANALOG2;
+	packet.type = SR_DF_ANALOG;
 	packet.payload = &analog;
 	sr_session_send(devc->cb_data, &packet);
 

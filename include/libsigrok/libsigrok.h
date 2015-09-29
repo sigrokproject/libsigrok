@@ -168,13 +168,13 @@ enum sr_packettype {
 	SR_DF_FRAME_BEGIN,
 	/** End of frame. No payload. */
 	SR_DF_FRAME_END,
-	/** Payload is struct sr_datafeed_analog2. */
-	SR_DF_ANALOG2,
+	/** Payload is struct sr_datafeed_analog. */
+	SR_DF_ANALOG,
 
 	/* Update datafeed_dump() (session.c) upon changes! */
 };
 
-/** Measured quantity, sr_datafeed_analog.mq. */
+/** Measured quantity, sr_analog_meaning.mq. */
 enum sr_mq {
 	SR_MQ_VOLTAGE = 10000,
 	SR_MQ_CURRENT,
@@ -237,7 +237,7 @@ enum sr_mq {
 	/* Update sr_key_info_mq[] (hwdriver.c) upon changes! */
 };
 
-/** Unit of measured quantity, sr_datafeed_analog.unit. */
+/** Unit of measured quantity, sr_analog_meaning.unit. */
 enum sr_unit {
 	/** Volt */
 	SR_UNIT_VOLT = 10000,
@@ -331,7 +331,7 @@ enum sr_unit {
 	 */
 };
 
-/** Values for sr_datafeed_analog.flags. */
+/** Values for sr_analog_meaning.mqflags. */
 enum sr_mqflag {
 	/** Voltage measurement is alternating current (AC). */
 	SR_MQFLAG_AC = 0x01,
@@ -512,8 +512,8 @@ struct sr_datafeed_analog_old {
 	float *data;
 };
 
-/** Analog datafeed payload for type SR_DF_ANALOG2. */
-struct sr_datafeed_analog2 {
+/** Analog datafeed payload for type SR_DF_ANALOG. */
+struct sr_datafeed_analog {
 	void *data;
 	uint32_t num_samples;
 	struct sr_analog_encoding *encoding;
