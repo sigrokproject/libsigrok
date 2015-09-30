@@ -175,9 +175,6 @@ extern SR_PRIV struct sr_dev_driver zeroplus_logic_cube_driver_info;
 
 SR_PRIV struct sr_dev_driver **drivers_lists[] = {
 #ifdef HAVE_HW_AGILENT_DMM
-#ifdef HAVE_HW_GWINSTEK_GDS_800
-	(DRVS) {&gwinstek_gds_800_driver_info, NULL},
-#endif
 	(DRVS) {&agdmm_driver_info, NULL},
 #endif
 #ifdef HAVE_HW_APPA_55II
@@ -238,6 +235,9 @@ SR_PRIV struct sr_dev_driver **drivers_lists[] = {
 		&gmc_mh_2x_bd232_driver_info,
 		NULL
 	},
+#endif
+#ifdef HAVE_HW_GWINSTEK_GDS_800
+	(DRVS) {&gwinstek_gds_800_driver_info, NULL},
 #endif
 #ifdef HAVE_HW_HAMEG_HMO
 	(DRVS) {&hameg_hmo_driver_info, NULL},
