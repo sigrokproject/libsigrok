@@ -184,6 +184,9 @@ static LIBUSB_CALL void usb_pollfd_added(libusb_os_handle fd,
 
 	usource = user_data;
 
+	if (G_UNLIKELY(g_source_is_destroyed(&usource->base)))
+		return;
+
 	pollfd = g_slice_new(GPollFD);
 #ifdef G_OS_WIN32
 	events = G_IO_IN;
@@ -193,7 +196,7 @@ static LIBUSB_CALL void usb_pollfd_added(libusb_os_handle fd,
 	pollfd->revents = 0;
 
 	g_ptr_array_add(usource->pollfds, pollfd);
-	g_source_add_poll((GSource *)usource, pollfd);
+	g_source_add_poll(&usource->base, pollfd);
 }
 
 /** Callback invoked when a libusb FD should be removed from the poll set.
@@ -206,13 +209,16 @@ static LIBUSB_CALL void usb_pollfd_removed(libusb_os_handle fd, void *user_data)
 
 	usource = user_data;
 
+	if (G_UNLIKELY(g_source_is_destroyed(&usource->base)))
+		return;
+
 	/* It's likely that the removed poll FD is at the end.
 	 */
 	for (i = usource->pollfds->len; G_LIKELY(i > 0); i--) {
 		pollfd = g_ptr_array_index(usource->pollfds, i - 1);
 
 		if ((libusb_os_handle)pollfd->fd == fd) {
-			g_source_remove_poll((GSource *)usource, pollfd);
+			g_source_remove_poll(&usource->base, pollfd);
 			g_ptr_array_remove_index_fast(usource->pollfds, i - 1);
 			return;
 		}
