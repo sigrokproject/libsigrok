@@ -385,7 +385,7 @@ typedef jobject jdatafeedcallback;
 %enddef
 
 /* Ignore this for now, needs a fix. */
-%ignore sigrok::Context::create_analog_old_packet;
+%ignore sigrok::Context::create_analog_packet;
 
 %include "bindings/swig/classes.i"
 

@@ -72,7 +72,7 @@ template< class T > class enable_shared_from_this;
 %shared_ptr(sigrok::PacketPayload);
 %shared_ptr(sigrok::Header);
 %shared_ptr(sigrok::Meta);
-%shared_ptr(sigrok::AnalogOld);
+%shared_ptr(sigrok::Analog);
 %shared_ptr(sigrok::Logic);
 %shared_ptr(sigrok::InputFormat);
 %shared_ptr(sigrok::Input);
@@ -259,12 +259,12 @@ typedef std::map<const sigrok::ConfigKey *, Glib::VariantBase>
 
 %attributemap(Meta, map_ConfigKey_Variant, config, config);
 
-%attributevector(AnalogOld,
+%attributevector(Analog,
     std::vector<std::shared_ptr<sigrok::Channel> >, channels, channels);
-%attribute(sigrok::AnalogOld, int, num_samples, num_samples);
-%attribute(sigrok::AnalogOld, const sigrok::Quantity *, mq, mq);
-%attribute(sigrok::AnalogOld, const sigrok::Unit *, unit, unit);
-%attributevector(AnalogOld, std::vector<const sigrok::QuantityFlag *>, mq_flags, mq_flags);
+%attribute(sigrok::Analog, int, num_samples, num_samples);
+%attribute(sigrok::Analog, const sigrok::Quantity *, mq, mq);
+%attribute(sigrok::Analog, const sigrok::Unit *, unit, unit);
+%attributevector(Analog, std::vector<const sigrok::QuantityFlag *>, mq_flags, mq_flags);
 
 %include <libsigrokcxx/libsigrokcxx.hpp>
 

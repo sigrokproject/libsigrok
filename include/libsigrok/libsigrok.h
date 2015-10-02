@@ -162,7 +162,7 @@ enum sr_packettype {
 	SR_DF_TRIGGER,
 	/** Payload is struct sr_datafeed_logic. */
 	SR_DF_LOGIC,
-	/** Payload is struct sr_datafeed_analog_old. */
+	/** DEPRECATED! Use SR_DF_ANALOG instead. */
 	SR_DF_ANALOG_OLD,
 	/** Beginning of frame. No payload. */
 	SR_DF_FRAME_BEGIN,

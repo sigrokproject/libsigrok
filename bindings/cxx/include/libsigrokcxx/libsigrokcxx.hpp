@@ -297,7 +297,7 @@ public:
 	shared_ptr<Packet> create_logic_packet(
 		void *data_pointer, size_t data_length, unsigned int unit_size);
 	/** Create an analog packet. */
-	shared_ptr<Packet> create_analog_old_packet(
+	shared_ptr<Packet> create_analog_packet(
 		vector<shared_ptr<Channel> > channels,
 		float *data_pointer, unsigned int num_samples, const Quantity *mq,
 		const Unit *unit, vector<const QuantityFlag *> mqflags);
@@ -428,7 +428,7 @@ protected:
 	friend class Channel;
 	friend class ChannelGroup;
 	friend class Output;
-	friend class AnalogOld;
+	friend class Analog;
 };
 
 /** A real hardware device, connected via a driver */
@@ -702,7 +702,7 @@ protected:
 	friend class Header;
 	friend class Meta;
 	friend class Logic;
-	friend class AnalogOld;
+	friend class Analog;
 	friend class Context;
 };
 
@@ -777,15 +777,15 @@ protected:
 };
 
 /** Payload of a datafeed packet with analog data */
-class SR_API AnalogOld :
-	public ParentOwned<AnalogOld, Packet, const struct sr_datafeed_analog_old>,
+class SR_API Analog :
+	public ParentOwned<Analog, Packet, const struct sr_datafeed_analog>,
 	public PacketPayload
 {
 public:
 	/** Pointer to data. */
-	float *data_pointer();
+	void *data_pointer();
 	/** Number of samples in this packet. */
-	unsigned int num_samples();
+	uint32_t num_samples();
 	/** Channels for which this packet contains data. */
 	vector<shared_ptr<Channel> > channels();
 	/** Measured quantity of the samples in this packet. */
@@ -795,8 +795,8 @@ public:
 	/** Measurement flags associated with the samples in this packet. */
 	vector<const QuantityFlag *> mq_flags();
 protected:
-	AnalogOld(const struct sr_datafeed_analog_old *structure);
-	~AnalogOld();
+	Analog(const struct sr_datafeed_analog *structure);
+	~Analog();
 	shared_ptr<PacketPayload> get_shared_pointer(Packet *parent);
 	friend class Packet;
 };
