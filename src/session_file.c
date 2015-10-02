@@ -266,7 +266,7 @@ SR_API int sr_session_load(struct sr_context *ctx, const char *filename,
 						break;
 					}
 					sr_config_set(sdi, NULL, SR_CONF_NUM_LOGIC_CHANNELS,
-							g_variant_new_uint64(total_channels));
+							g_variant_new_int32(total_channels));
 					for (k = 0; k < total_channels; k++) {
 						g_snprintf(channelname, sizeof channelname,
 								"%d", k);

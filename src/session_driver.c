@@ -278,7 +278,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		vdev->unitsize = g_variant_get_uint64(data);
 		break;
 	case SR_CONF_NUM_LOGIC_CHANNELS:
-		vdev->num_channels = g_variant_get_uint64(data);
+		vdev->num_channels = g_variant_get_int32(data);
 		break;
 	default:
 		return SR_ERR_NA;
