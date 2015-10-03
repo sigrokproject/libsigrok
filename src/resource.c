@@ -99,7 +99,10 @@ static int resource_open_default(struct sr_resource *res,
 		const char *name, void *cb_data)
 {
 	int64_t filesize;
-	const char *builtindir, *subdir;
+#ifdef FIRMWARE_DIR
+	const char *builtindir;
+#endif
+	const char *subdir;
 	const char *const *datadirs;
 	FILE *file;
 
@@ -107,7 +110,9 @@ static int resource_open_default(struct sr_resource *res,
 
 	switch (res->type) {
 	case SR_RESOURCE_FIRMWARE:
+#ifdef FIRMWARE_DIR
 		builtindir = FIRMWARE_DIR;
+#endif
 		subdir = "sigrok-firmware";
 		break;
 	default:
@@ -120,9 +125,10 @@ static int resource_open_default(struct sr_resource *res,
 	 * Scan the hard-coded directory before the system directories to
 	 * avoid picking up possibly outdated files from a system install.
 	 */
+#ifdef FIRMWARE_DIR
 	if (!file)
 		file = try_open_file(builtindir, "", name);
-
+#endif
 	if (!file) {
 		datadirs = g_get_system_data_dirs();
 		while (*datadirs && !file)
