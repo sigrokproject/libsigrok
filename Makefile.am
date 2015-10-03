@@ -28,8 +28,14 @@ local_includes = -Iinclude -I$(srcdir)/include -I$(srcdir)/src -I.
 if BINDINGS_CXX
 local_includes += -Ibindings/cxx/include -I$(srcdir)/bindings/cxx/include -Ibindings/cxx
 endif
+# Do not hard-code the firmware location on Windows.
+if WIN32
+global_defs =
+else
+global_defs = -DFIRMWARE_DIR='"$(FIRMWARE_DIR)"'
+endif
 # Ensure that local include directories are always searched first.
-AM_CPPFLAGS = $(local_includes) -DFIRMWARE_DIR='"$(FIRMWARE_DIR)"'
+AM_CPPFLAGS = $(local_includes) $(global_defs)
 
 # The tests CFLAGS are a superset of the libsigrok CFLAGS, and the
 # python bindings CFLAGS are a superset of the C++ bindings CFLAGS.

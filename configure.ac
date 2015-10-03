@@ -69,6 +69,8 @@ SR_PKG_VERSION_SET([SR_PACKAGE_VERSION], [AC_PACKAGE_VERSION])
 # http://www.gnu.org/software/libtool/manual/libtool.html#Updating-version-info
 SR_LIB_VERSION_SET([SR_LIB_VERSION], [2:0:0])
 
+AM_CONDITIONAL([WIN32], [test -z "${host_os##mingw*}" || test -z "${host_os##cygwin*}"])
+
 #############################
 ##  Optional dependencies  ##
 #############################
