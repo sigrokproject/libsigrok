@@ -719,9 +719,6 @@ public:
 	void run();
 	/** Stop the session. */
 	void stop();
-	/** Begin saving session to a file.
-	 * @param filename File name string. */
-	void begin_save(string filename);
 	/** Get current trigger setting. */
 	shared_ptr<Trigger> trigger();
 	/** Get the context. */
