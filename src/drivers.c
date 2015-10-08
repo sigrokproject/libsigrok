@@ -108,6 +108,9 @@ extern SR_PRIV struct sr_dev_driver korad_kaxxxxp_driver_info;
 #ifdef HAVE_HW_LASCAR_EL_USB
 extern SR_PRIV struct sr_dev_driver lascar_el_usb_driver_info;
 #endif
+#ifdef HAVE_HW_LECROY_LOGICSTUDIO
+extern SR_PRIV struct sr_dev_driver lecroy_logicstudio_driver_info;
+#endif
 #ifdef HAVE_HW_LINK_MSO19
 extern SR_PRIV struct sr_dev_driver link_mso19_driver_info;
 #endif
@@ -268,6 +271,9 @@ SR_PRIV struct sr_dev_driver **drivers_lists[] = {
 #endif
 #ifdef HAVE_HW_LASCAR_EL_USB
 	(DRVS) {&lascar_el_usb_driver_info, NULL},
+#endif
+#ifdef HAVE_HW_LECROY_LOGICSTUDIO
+	(DRVS) {&lecroy_logicstudio_driver_info, NULL},
 #endif
 #ifdef HAVE_HW_LINK_MSO19
 	(DRVS) {&link_mso19_driver_info, NULL},

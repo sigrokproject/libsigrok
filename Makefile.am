@@ -335,6 +335,12 @@ libsigrok_la_SOURCES += \
 	src/hardware/lascar-el-usb/protocol.c \
 	src/hardware/lascar-el-usb/api.c
 endif
+if HW_LECROY_LOGICSTUDIO
+libsigrok_la_SOURCES += \
+	src/hardware/lecroy-logicstudio/protocol.h \
+	src/hardware/lecroy-logicstudio/protocol.c \
+	src/hardware/lecroy-logicstudio/api.c
+endif
 if HW_MANSON_HCS_3XXX
 libsigrok_la_SOURCES += \
 	src/hardware/manson-hcs-3xxx/protocol.h \
