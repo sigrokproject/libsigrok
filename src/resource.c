@@ -341,6 +341,7 @@ SR_PRIV void *sr_resource_load(struct sr_context *ctx,
 {
 	struct sr_resource res;
 	void *buf;
+	size_t res_size;
 	ssize_t n_read;
 
 	if (sr_resource_open(ctx, &res, type, name) != SR_OK)
@@ -352,17 +353,19 @@ SR_PRIV void *sr_resource_load(struct sr_context *ctx,
 		sr_resource_close(ctx, &res);
 		return NULL;
 	}
-	buf = g_try_malloc(res.size);
+	res_size = res.size;
+
+	buf = g_try_malloc(res_size);
 	if (!buf) {
 		sr_err("Failed to allocate buffer for '%s'.", name);
 		sr_resource_close(ctx, &res);
 		return NULL;
 	}
 
-	n_read = sr_resource_read(ctx, &res, buf, res.size);
+	n_read = sr_resource_read(ctx, &res, buf, res_size);
 	sr_resource_close(ctx, &res);
 
-	if (n_read < 0 || (size_t)n_read != res.size) {
+	if (n_read < 0 || (size_t)n_read != res_size) {
 		if (n_read >= 0)
 			sr_err("Failed to read '%s': premature end of file.",
 				name);
@@ -370,7 +373,7 @@ SR_PRIV void *sr_resource_load(struct sr_context *ctx,
 		return NULL;
 	}
 
-	*size = res.size;
+	*size = res_size;
 	return buf;
 }
 
