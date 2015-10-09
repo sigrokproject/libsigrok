@@ -706,15 +706,10 @@ struct sr_session {
 	/** User data to be passed to the session stop callback. */
 	void *stopped_cb_data;
 
-	/** Mutex protecting the main context pointer and ownership flag. */
+	/** Mutex protecting the main context pointer. */
 	GMutex main_mutex;
 	/** Context of the session main loop. */
 	GMainContext *main_context;
-	/** Whether we are using the thread's default context. */
-	gboolean main_context_is_default;
-
-	/** Whether the session has been started. */
-	gboolean running;
 
 	/** Registered event sources for this session. */
 	GHashTable *event_sources;
@@ -722,6 +717,8 @@ struct sr_session {
 	GMainLoop *main_loop;
 	/** ID of idle source for dispatching the session stop notification. */
 	unsigned int stop_check_id;
+	/** Whether the session has been started. */
+	gboolean running;
 };
 
 SR_PRIV int sr_session_source_add_internal(struct sr_session *session,

@@ -556,41 +556,38 @@ static int verify_trigger(struct sr_trigger *trigger)
  */
 static int set_main_context(struct sr_session *session)
 {
-	GMainContext *def_context;
+	GMainContext *main_context;
+
+	g_mutex_lock(&session->main_mutex);
 
 	/* May happen if sr_session_start() is called a second time
 	 * while the session is still running.
 	 */
 	if (session->main_context) {
 		sr_err("Main context already set.");
+
+		g_mutex_unlock(&session->main_mutex);
 		return SR_ERR;
 	}
-
-	g_mutex_lock(&session->main_mutex);
-
-	def_context = g_main_context_get_thread_default();
-
-	if (!def_context)
-		def_context = g_main_context_default();
+	main_context = g_main_context_ref_thread_default();
 	/*
 	 * Try to use an existing main context if possible, but only if we
 	 * can make it owned by the current thread. Otherwise, create our
 	 * own main context so that event source callbacks can execute in
 	 * the session thread.
 	 */
-	if (g_main_context_acquire(def_context)) {
-		g_main_context_release(def_context);
+	if (g_main_context_acquire(main_context)) {
+		g_main_context_release(main_context);
 
 		sr_dbg("Using thread-default main context.");
-
-		session->main_context = def_context;
-		session->main_context_is_default = TRUE;
 	} else {
-		sr_dbg("Creating our own main context.");
+		g_main_context_unref(main_context);
 
-		session->main_context = g_main_context_new();
-		session->main_context_is_default = FALSE;
+		sr_dbg("Creating our own main context.");
+		main_context = g_main_context_new();
 	}
+	session->main_context = main_context;
+
 	g_mutex_unlock(&session->main_mutex);
 
 	return SR_OK;
@@ -611,9 +608,7 @@ static int unset_main_context(struct sr_session *session)
 	g_mutex_lock(&session->main_mutex);
 
 	if (session->main_context) {
-		if (!session->main_context_is_default)
-			g_main_context_unref(session->main_context);
-
+		g_main_context_unref(session->main_context);
 		session->main_context = NULL;
 		ret = SR_OK;
 	} else {
