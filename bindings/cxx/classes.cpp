@@ -1025,6 +1025,31 @@ void Session::stop()
 	check(sr_session_stop(_structure));
 }
 
+bool Session::is_running() const
+{
+	const int ret = sr_session_is_running(_structure);
+	if (ret < 0)
+		throw Error{ret};
+	return (ret != 0);
+}
+
+static void session_stopped_callback(void *data)
+{
+	auto *const callback = static_cast<SessionStoppedCallback*>(data);
+	(*callback)();
+}
+
+void Session::set_stopped_callback(SessionStoppedCallback callback)
+{
+	_stopped_callback = move(callback);
+	if (_stopped_callback)
+		check(sr_session_stopped_callback_set(_structure,
+				&session_stopped_callback, &_stopped_callback));
+	else
+		check(sr_session_stopped_callback_set(_structure,
+				nullptr, nullptr));
+}
+
 static void datafeed_callback(const struct sr_dev_inst *sdi,
 	const struct sr_datafeed_packet *pkt, void *cb_data)
 {

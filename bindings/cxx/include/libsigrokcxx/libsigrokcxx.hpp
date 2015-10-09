@@ -589,6 +589,9 @@ protected:
 	friend class TriggerStage;
 };
 
+/** Type of session stopped callback */
+typedef function<void()> SessionStoppedCallback;
+
 /** Type of datafeed callback */
 typedef function<void(shared_ptr<Device>, shared_ptr<Packet>)>
 	DatafeedCallbackFunction;
@@ -719,6 +722,10 @@ public:
 	void run();
 	/** Stop the session. */
 	void stop();
+	/** Return whether the session is running. */
+	bool is_running() const;
+	/** Set callback to be invoked on session stop. */
+	void set_stopped_callback(SessionStoppedCallback callback);
 	/** Get current trigger setting. */
 	shared_ptr<Trigger> trigger();
 	/** Get the context. */
@@ -737,6 +744,7 @@ protected:
 	map<const struct sr_dev_inst *, SessionDevice *> _owned_devices;
 	map<const struct sr_dev_inst *, shared_ptr<Device> > _other_devices;
 	vector<DatafeedCallbackData *> _datafeed_callbacks;
+	SessionStoppedCallback _stopped_callback;
 	map<shared_ptr<EventSource>, SourceCallbackData *> _source_callbacks;
 	string _filename;
 	shared_ptr<Trigger> _trigger;
