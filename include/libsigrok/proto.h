@@ -98,8 +98,10 @@ SR_API const struct sr_key_info *sr_key_info_name_get(int keytype, const char *k
 
 /*--- session.c -------------------------------------------------------------*/
 
+typedef void (*sr_session_stopped_callback)(void *data);
 typedef void (*sr_datafeed_callback)(const struct sr_dev_inst *sdi,
 		const struct sr_datafeed_packet *packet, void *cb_data);
+
 SR_API struct sr_trigger *sr_session_trigger_get(struct sr_session *session);
 
 /* Session setup */
@@ -122,6 +124,10 @@ SR_API int sr_session_datafeed_callback_add(struct sr_session *session,
 SR_API int sr_session_start(struct sr_session *session);
 SR_API int sr_session_run(struct sr_session *session);
 SR_API int sr_session_stop(struct sr_session *session);
+SR_API int sr_session_is_running(struct sr_session *session);
+SR_API int sr_session_stopped_callback_set(struct sr_session *session,
+		sr_session_stopped_callback cb, void *cb_data);
+
 SR_API int sr_session_source_add(struct sr_session *session, int fd,
 		int events, int timeout, sr_receive_data_callback cb, void *cb_data);
 SR_API int sr_session_source_add_pollfd(struct sr_session *session,

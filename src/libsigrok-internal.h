@@ -701,6 +701,11 @@ struct sr_session {
 	GSList *transforms;
 	struct sr_trigger *trigger;
 
+	/** Callback to invoke on session stop. */
+	sr_session_stopped_callback stopped_callback;
+	/** User data to be passed to the session stop callback. */
+	void *stopped_cb_data;
+
 	/** Mutex protecting the main context pointer and ownership flag. */
 	GMutex main_mutex;
 	/** Context of the session main loop. */
@@ -715,6 +720,8 @@ struct sr_session {
 	GHashTable *event_sources;
 	/** Session main loop. */
 	GMainLoop *main_loop;
+	/** ID of idle source for dispatching the session stop notification. */
+	unsigned int stop_check_id;
 };
 
 SR_PRIV int sr_session_source_add_internal(struct sr_session *session,

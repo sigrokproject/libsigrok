@@ -1157,14 +1157,6 @@ struct sr_dev_driver {
 	void *context;
 };
 
-/**
- * @struct sr_session
- *
- * Opaque data structure representing a libsigrok session. None of the fields
- * of this structure are meant to be accessed directly.
- */
-struct sr_session;
-
 /** Serial port descriptor. */
 struct sr_serial_port {
 	/** The OS dependent name of the serial port. */
