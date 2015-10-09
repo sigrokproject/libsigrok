@@ -66,7 +66,6 @@ template< class T > class enable_shared_from_this;
 %shared_ptr(sigrok::HardwareDevice);
 %shared_ptr(sigrok::Channel);
 %shared_ptr(sigrok::ChannelGroup);
-%shared_ptr(sigrok::EventSource);
 %shared_ptr(sigrok::Session);
 %shared_ptr(sigrok::SessionDevice);
 %shared_ptr(sigrok::Packet);
@@ -138,7 +137,6 @@ template< class T > class enable_shared_from_this;
 #define SR_PRIV
 
 %ignore sigrok::DatafeedCallbackData;
-%ignore sigrok::SourceCallbackData;
 
 #define SWIG_ATTRIBUTE_TEMPLATE
 

@@ -36,20 +36,7 @@
 
 import org.sigrok.core.interfaces.LogCallback;
 import org.sigrok.core.interfaces.DatafeedCallback;
-import org.sigrok.core.interfaces.SourceCallback;
 %}
-
-/* Map Java FileDescriptor objects to int fds */
-%typemap(jni) int fd "jobject"
-%typemap(jtype) int fd "java.io.FileDescriptor"
-%typemap(jstype) int fd "java.io.FileDescriptor"
-%typemap(javain) int fd "$javainput"
-
-%typemap(in) int fd {
-  jclass FileDescriptor = jenv->FindClass("java/io/FileDescriptor");
-  jfieldID fd = jenv->GetFieldID(FileDescriptor, "fd", "I");
-  $1 = jenv->GetIntField($input, fd);
-}
 
 /* Map Glib::VariantBase to a Variant class in Java */
 %rename(Variant) VariantBase;
@@ -342,41 +329,6 @@ typedef jobject jdatafeedcallback;
       env->CallVoidMethod(obj_ref, method, device_obj, packet_obj);
       if (env->ExceptionCheck())
         throw sigrok::Error(SR_ERR);
-    });
-  }
-}
-
-/* Support Java event source callbacks. */
-
-%typemap(javaimports) sigrok::EventSource
-  "import org.sigrok.core.interfaces.SourceCallback;"
-
-%inline {
-typedef jobject jsourcecallback;
-}
-
-%typemap(jni) jsourcecallback "jsourcecallback"
-%typemap(jtype) jsourcecallback "SourceCallback"
-%typemap(jstype) jsourcecallback "SourceCallback"
-%typemap(javain) jsourcecallback "$javainput"
-
-%extend sigrok::EventSource
-{
-  std::shared_ptr<sigrok::EventSource> create(
-    int fd, Glib::IOCondition events, int timeout,
-    JNIEnv *env, jsourcecallback obj)
-  {
-    (void) $self;
-    jclass obj_class = env->GetObjectClass(obj);
-    jmethodID method = env->GetMethodID(obj_class, "run", "(I)V");
-    jobject obj_ref = env->NewGlobalRef(obj);
-
-    return sigrok::EventSource::create(fd, events, timeout, [=] (int revents)
-    {
-      bool result = env->CallBooleanMethod(obj_ref, method, revents);
-      if (env->ExceptionCheck())
-        throw sigrok::Error(SR_ERR);
-      return result;
     });
   }
 }

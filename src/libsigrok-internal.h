@@ -730,6 +730,21 @@ SR_PRIV int sr_session_source_destroyed(struct sr_session *session,
 SR_PRIV int sr_session_fd_source_add(struct sr_session *session,
 		void *key, gintptr fd, int events, int timeout,
 		sr_receive_data_callback cb, void *cb_data);
+
+SR_PRIV int sr_session_source_add(struct sr_session *session, int fd,
+		int events, int timeout, sr_receive_data_callback cb, void *cb_data);
+SR_PRIV int sr_session_source_add_pollfd(struct sr_session *session,
+		GPollFD *pollfd, int timeout, sr_receive_data_callback cb,
+		void *cb_data);
+SR_PRIV int sr_session_source_add_channel(struct sr_session *session,
+		GIOChannel *channel, int events, int timeout,
+		sr_receive_data_callback cb, void *cb_data);
+SR_PRIV int sr_session_source_remove(struct sr_session *session, int fd);
+SR_PRIV int sr_session_source_remove_pollfd(struct sr_session *session,
+		GPollFD *pollfd);
+SR_PRIV int sr_session_source_remove_channel(struct sr_session *session,
+		GIOChannel *channel);
+
 SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
 		const struct sr_datafeed_packet *packet);
 SR_PRIV int sr_sessionfile_check(const char *filename);

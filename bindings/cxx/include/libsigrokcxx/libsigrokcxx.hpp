@@ -91,7 +91,6 @@ class SR_API Driver;
 class SR_API Device;
 class SR_API HardwareDevice;
 class SR_API Channel;
-class SR_API EventSource;
 class SR_API Session;
 class SR_API ConfigKey;
 class SR_API InputFormat;
@@ -610,71 +609,6 @@ protected:
 	friend class Session;
 };
 
-/** Type of source callback */
-typedef function<bool(Glib::IOCondition)>
-	SourceCallbackFunction;
-
-/* Data required for C callback function to call a C++ source callback */
-class SR_PRIV SourceCallbackData
-{
-public:
-	bool run(int revents);
-protected:
-	SourceCallbackData(shared_ptr<EventSource> source);
-	shared_ptr<EventSource> _source;
-	friend class Session;
-};
-
-/** An I/O event source */
-class SR_API EventSource
-{
-public:
-	/** Create an event source from a file descriptor.
-	 * @param fd File descriptor.
-	 * @param events GLib IOCondition event mask.
-	 * @param timeout Timeout in milliseconds.
-	 * @param callback Callback of the form callback(events) */
-	static shared_ptr<EventSource> create(int fd, Glib::IOCondition events,
-		int timeout, SourceCallbackFunction callback);
-	/** Create an event source from a GLib PollFD
-	 * @param pollfd GLib PollFD
-	 * @param timeout Timeout in milliseconds.
-	 * @param callback Callback of the form callback(events) */
-	static shared_ptr<EventSource> create(Glib::PollFD pollfd, int timeout,
-		SourceCallbackFunction callback);
-	/** Create an event source from a GLib IOChannel
-	 * @param channel GLib IOChannel.
-	 * @param events GLib IOCondition event mask.
-	 * @param timeout Timeout in milliseconds.
-	 * @param callback Callback of the form callback(events) */
-	static shared_ptr<EventSource> create(
-		Glib::RefPtr<Glib::IOChannel> channel, Glib::IOCondition events,
-		int timeout, SourceCallbackFunction callback);
-protected:
-	EventSource(int timeout, SourceCallbackFunction callback);
-	~EventSource();
-	enum source_type {
-		SOURCE_FD,
-		SOURCE_POLLFD,
-		SOURCE_IOCHANNEL
-	} _type;
-	int _fd;
-	Glib::PollFD _pollfd;
-	Glib::RefPtr<Glib::IOChannel> _channel;
-	Glib::IOCondition _events;
-	int _timeout;
-	SourceCallbackFunction _callback;
-	/** Deleter needed to allow shared_ptr use with protected destructor. */
-	class Deleter
-	{
-	public:
-		void operator()(EventSource *source) { delete source; }
-	};
-	friend class Deleter;
-	friend class Session;
-	friend class SourceCallbackData;
-};
-
 /** A virtual device associated with a stored session */
 class SR_API SessionDevice :
 	public ParentOwned<SessionDevice, Session, struct sr_dev_inst>,
@@ -710,12 +644,6 @@ public:
 	void add_datafeed_callback(DatafeedCallbackFunction callback);
 	/** Remove all datafeed callbacks from this session. */
 	void remove_datafeed_callbacks();
-	/** Add an I/O event source.
-	 * @param source EventSource to add. */
-	void add_source(shared_ptr<EventSource> source);
-	/** Remove an event source.
-	 * @param source EventSource to remove. */
-	void remove_source(shared_ptr<EventSource> source);
 	/** Start the session. */
 	void start();
 	/** Run the session event loop. */
@@ -745,7 +673,6 @@ protected:
 	map<const struct sr_dev_inst *, shared_ptr<Device> > _other_devices;
 	vector<DatafeedCallbackData *> _datafeed_callbacks;
 	SessionStoppedCallback _stopped_callback;
-	map<shared_ptr<EventSource>, SourceCallbackData *> _source_callbacks;
 	string _filename;
 	shared_ptr<Trigger> _trigger;
 	friend class Deleter;

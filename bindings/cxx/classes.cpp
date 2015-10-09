@@ -872,55 +872,6 @@ void DatafeedCallbackData::run(const struct sr_dev_inst *sdi,
 	_callback(device, packet);
 }
 
-SourceCallbackData::SourceCallbackData(shared_ptr<EventSource> source) :
-	_source(source)
-{
-}
-
-bool SourceCallbackData::run(int revents)
-{
-	return _source->_callback((Glib::IOCondition) revents);
-}
-
-shared_ptr<EventSource> EventSource::create(int fd, Glib::IOCondition events,
-	int timeout, SourceCallbackFunction callback)
-{
-	auto result = new EventSource(timeout, callback);
-	result->_type = EventSource::SOURCE_FD;
-	result->_fd = fd;
-	result->_events = events;
-	return shared_ptr<EventSource>(result, EventSource::Deleter());
-}
-
-shared_ptr<EventSource> EventSource::create(Glib::PollFD pollfd, int timeout,
-	SourceCallbackFunction callback)
-{
-	auto result = new EventSource(timeout, callback);
-	result->_type = EventSource::SOURCE_POLLFD;
-	result->_pollfd = pollfd;
-	return shared_ptr<EventSource>(result, EventSource::Deleter());
-}
-
-shared_ptr<EventSource> EventSource::create(Glib::RefPtr<Glib::IOChannel> channel,
-	Glib::IOCondition events, int timeout, SourceCallbackFunction callback)
-{
-	auto result = new EventSource(timeout, callback);
-	result->_type = EventSource::SOURCE_IOCHANNEL;
-	result->_channel = channel;
-	result->_events = events;
-	return shared_ptr<EventSource>(result, EventSource::Deleter());
-}
-
-EventSource::EventSource(int timeout, SourceCallbackFunction callback) :
-	_timeout(timeout),
-	_callback(callback)
-{
-}
-
-EventSource::~EventSource()
-{
-}
-
 SessionDevice::SessionDevice(struct sr_dev_inst *structure) :
 	ParentOwned(structure),
 	Device(structure)
@@ -966,9 +917,6 @@ Session::~Session()
 
 	for (auto callback : _datafeed_callbacks)
 		delete callback;
-
-	for (auto entry : _source_callbacks)
-		delete entry.second;
 
 	for (auto entry : _owned_devices)
 		delete entry.second;
@@ -1071,66 +1019,6 @@ void Session::remove_datafeed_callbacks(void)
 	for (auto callback : _datafeed_callbacks)
 		delete callback;
 	_datafeed_callbacks.clear();
-}
-
-static int source_callback(int fd, int revents, void *cb_data)
-{
-	(void) fd;
-	auto callback = (SourceCallbackData *) cb_data;
-	return callback->run(revents);
-}
-
-void Session::add_source(shared_ptr<EventSource> source)
-{
-	if (_source_callbacks.count(source) == 1)
-		throw Error(SR_ERR_ARG);
-
-	auto cb_data = new SourceCallbackData(source);
-
-	switch (source->_type)
-	{
-		case EventSource::SOURCE_FD:
-			check(sr_session_source_add(_structure, source->_fd, source->_events,
-				source->_timeout, source_callback, cb_data));
-			break;
-		case EventSource::SOURCE_POLLFD:
-			check(sr_session_source_add_pollfd(_structure,
-				source->_pollfd.gobj(), source->_timeout, source_callback,
-				cb_data));
-			break;
-		case EventSource::SOURCE_IOCHANNEL:
-			check(sr_session_source_add_channel(_structure,
-				source->_channel->gobj(), source->_events, source->_timeout,
-				source_callback, cb_data));
-			break;
-	}
-
-	_source_callbacks[source] = cb_data;
-}
-
-void Session::remove_source(shared_ptr<EventSource> source)
-{
-	if (_source_callbacks.count(source) == 0)
-		throw Error(SR_ERR_ARG);
-
-	switch (source->_type)
-	{
-		case EventSource::SOURCE_FD:
-			check(sr_session_source_remove(_structure, source->_fd));
-			break;
-		case EventSource::SOURCE_POLLFD:
-			check(sr_session_source_remove_pollfd(_structure,
-				source->_pollfd.gobj()));
-			break;
-		case EventSource::SOURCE_IOCHANNEL:
-			check(sr_session_source_remove_channel(_structure,
-				source->_channel->gobj()));
-			break;
-	}
-
-	delete _source_callbacks[source];
-
-	_source_callbacks.erase(source);
 }
 
 shared_ptr<Trigger> Session::trigger()

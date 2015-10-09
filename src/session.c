@@ -1132,10 +1132,13 @@ SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
  * @param session The session to use. Must not be NULL.
  * @param key The key which identifies the event source.
  * @param source An event source object. Must not be NULL.
+ *
  * @retval SR_OK Success.
  * @retval SR_ERR_ARG Invalid argument.
  * @retval SR_ERR_BUG Event source with @a key already installed.
  * @retval SR_ERR Other error.
+ *
+ * @private
  */
 SR_PRIV int sr_session_source_add_internal(struct sr_session *session,
 		void *key, GSource *source)
@@ -1192,8 +1195,9 @@ SR_PRIV int sr_session_fd_source_add(struct sr_session *session,
  * @retval SR_ERR_ARG Invalid argument.
  *
  * @since 0.3.0
+ * @private
  */
-SR_API int sr_session_source_add(struct sr_session *session, int fd,
+SR_PRIV int sr_session_source_add(struct sr_session *session, int fd,
 		int events, int timeout, sr_receive_data_callback cb, void *cb_data)
 {
 	if (fd < 0 && timeout < 0) {
@@ -1218,8 +1222,9 @@ SR_API int sr_session_source_add(struct sr_session *session, int fd,
  * @retval SR_ERR_ARG Invalid argument.
  *
  * @since 0.3.0
+ * @private
  */
-SR_API int sr_session_source_add_pollfd(struct sr_session *session,
+SR_PRIV int sr_session_source_add_pollfd(struct sr_session *session,
 		GPollFD *pollfd, int timeout, sr_receive_data_callback cb,
 		void *cb_data)
 {
@@ -1246,8 +1251,9 @@ SR_API int sr_session_source_add_pollfd(struct sr_session *session,
  * @retval SR_ERR_ARG Invalid argument.
  *
  * @since 0.3.0
+ * @private
  */
-SR_API int sr_session_source_add_channel(struct sr_session *session,
+SR_PRIV int sr_session_source_add_channel(struct sr_session *session,
 		GIOChannel *channel, int events, int timeout,
 		sr_receive_data_callback cb, void *cb_data)
 {
@@ -1278,6 +1284,8 @@ SR_API int sr_session_source_add_channel(struct sr_session *session,
  *
  * @retval SR_OK Success
  * @retval SR_ERR_BUG No event source for poll_object found.
+ *
+ * @private
  */
 SR_PRIV int sr_session_source_remove_internal(struct sr_session *session,
 		void *key)
@@ -1309,8 +1317,9 @@ SR_PRIV int sr_session_source_remove_internal(struct sr_session *session,
  * @retval SR_ERR_BUG Internal error.
  *
  * @since 0.3.0
+ * @private
  */
-SR_API int sr_session_source_remove(struct sr_session *session, int fd)
+SR_PRIV int sr_session_source_remove(struct sr_session *session, int fd)
 {
 	return sr_session_source_remove_internal(session, GINT_TO_POINTER(fd));
 }
@@ -1326,8 +1335,9 @@ SR_API int sr_session_source_remove(struct sr_session *session, int fd)
  *         internal errors.
  *
  * @since 0.2.0
+ * @private
  */
-SR_API int sr_session_source_remove_pollfd(struct sr_session *session,
+SR_PRIV int sr_session_source_remove_pollfd(struct sr_session *session,
 		GPollFD *pollfd)
 {
 	if (!pollfd) {
@@ -1348,8 +1358,9 @@ SR_API int sr_session_source_remove_pollfd(struct sr_session *session,
  * @return SR_ERR_BUG Internal error.
  *
  * @since 0.2.0
+ * @private
  */
-SR_API int sr_session_source_remove_channel(struct sr_session *session,
+SR_PRIV int sr_session_source_remove_channel(struct sr_session *session,
 		GIOChannel *channel)
 {
 	if (!channel) {
@@ -1370,6 +1381,8 @@ SR_API int sr_session_source_remove_channel(struct sr_session *session,
  * @retval SR_OK Success.
  * @retval SR_ERR_BUG Event source for @a key does not match @a source.
  * @retval SR_ERR Other error.
+ *
+ * @private
  */
 SR_PRIV int sr_session_source_destroyed(struct sr_session *session,
 		void *key, GSource *source)

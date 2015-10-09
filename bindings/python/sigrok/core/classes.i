@@ -51,8 +51,6 @@ which provides access to the error code and description."
 
 PyObject *PyGObject_lib;
 PyObject *GLib;
-PyTypeObject *IOChannel;
-PyTypeObject *PollFD;
 
 #include "config.h"
 
@@ -81,23 +79,12 @@ typedef guint pyg_flags_type;
         return;
 #endif
     }
-    IOChannel = (PyTypeObject *) PyObject_GetAttrString(GLib, "IOChannel");
-    PollFD = (PyTypeObject *) PyObject_GetAttrString(GLib, "PollFD");
     import_array();
 %}
 
 /* Map file objects to file descriptors. */
 %typecheck(SWIG_TYPECHECK_POINTER) int fd {
     $1 = (PyObject_AsFileDescriptor($input) != -1);
-}
-
-%typemap(in) int fd {
-    int fd = PyObject_AsFileDescriptor($input);
-    if (fd == -1)
-        SWIG_exception(SWIG_TypeError,
-            "Expected file object or integer file descriptor");
-    else
-      $1 = fd;
 }
 
 /* Map from Glib::Variant to native Python types. */
@@ -111,113 +98,6 @@ typedef guint pyg_flags_type;
         const_cast<char *>(""), NULL);
     Py_XDECREF(variant);
     g_free(value);
-}
-
-/* Map from Glib::IOCondition to GLib.IOCondition. */
-%typecheck(SWIG_TYPECHECK_POINTER) Glib::IOCondition {
-    pyg_flags_type flags;
-    $1 = pygobject_check($input, &PyGFlags_Type) &&
-         (pyg_flags_get_value(G_TYPE_IO_CONDITION, $input, &flags) != -1);
-}
-
-%typemap(in) Glib::IOCondition {
-    if (!pygobject_check($input, &PyGFlags_Type))
-        SWIG_exception(SWIG_TypeError, "Expected GLib.IOCondition value");
-    pyg_flags_type flags;
-    if (pyg_flags_get_value(G_TYPE_IO_CONDITION, $input, &flags) == -1)
-        SWIG_exception(SWIG_TypeError, "Not a valid Glib.IOCondition value");
-    $1 = (Glib::IOCondition) flags;
-}
-
-/* And back */
-%typemap(out) Glib::IOCondition {
-    GValue *value = g_new0(GValue, 1);
-    g_value_init(value, G_TYPE_IO_CONDITION);
-    g_value_set_flags(value, &$1);
-    $result = pyg_value_as_pyobject(value, true);
-    g_free(value);
-}
-
-/* Map from GLib.PollFD to Glib::PollFD *. */
-%typecheck(SWIG_TYPECHECK_POINTER) Glib::PollFD {
-    $1 = pygobject_check($input, PollFD);
-}
-
-%typemap(in) Glib::PollFD {
-    if (!pygobject_check($input, PollFD))
-        SWIG_exception(SWIG_TypeError, "Expected GLib.PollFD");
-    PyObject *fd_obj = PyObject_GetAttrString($input, "fd");
-    PyObject *events_obj = PyObject_GetAttrString($input, "events");
-    pyg_flags_type flags;
-    pyg_flags_get_value(G_TYPE_IO_CONDITION, events_obj, &flags);
-    int fd = PyInt_AsLong(fd_obj);
-    Glib::IOCondition events = (Glib::IOCondition) flags;
-    $1 = Glib::PollFD(fd, events);
-}
-
-/* Map from GLib.IOChannel to Glib::IOChannel *. */
-%typecheck(SWIG_TYPECHECK_POINTER) Glib::RefPtr<Glib::IOChannel> {
-    $1 = pygobject_check($input, IOChannel);
-}
-
-%typemap(in) Glib::RefPtr<Glib::IOChannel> {
-    if (!pygobject_check($input, IOChannel))
-        SWIG_exception(SWIG_TypeError, "Expected GLib.IOChannel");
-    $1 = Glib::wrap((GIOChannel *) PyObject_Hash($input), true);
-}
-
-/* Map from callable PyObject to SourceCallbackFunction. */
-%typecheck(SWIG_TYPECHECK_POINTER) sigrok::SourceCallbackFunction {
-    $1 = PyCallable_Check($input);
-}
-
-%typemap(in) sigrok::SourceCallbackFunction {
-    if (!PyCallable_Check($input))
-        SWIG_exception(SWIG_TypeError, "Expected a callable Python object");
-
-    $1 = [=] (Glib::IOCondition revents) {
-        auto gstate = PyGILState_Ensure();
-
-        GValue *value = g_new0(GValue, 1);
-        g_value_init(value, G_TYPE_IO_CONDITION);
-        g_value_set_flags(value, revents);
-        auto revents_obj = pyg_value_as_pyobject(value, true);
-        g_free(value);
-
-        auto arglist = Py_BuildValue("(O)", revents_obj);
-
-        auto result = PyEval_CallObject($input, arglist);
-
-        Py_XDECREF(arglist);
-        Py_XDECREF(revents_obj);
-
-        bool completed = !PyErr_Occurred();
-
-        if (!completed)
-            PyErr_Print();
-
-        bool valid_result = (completed && PyBool_Check(result));
-
-        if (completed && !valid_result)
-        {
-            PyErr_SetString(PyExc_TypeError,
-                "EventSource callback did not return a boolean");
-            PyErr_Print();
-        }
-
-        bool retval = (valid_result && result == Py_True);
-
-        Py_XDECREF(result);
-
-        PyGILState_Release(gstate);
-
-        if (!valid_result)
-            throw sigrok::Error(SR_ERR);
-
-        return retval;
-    };
-
-    Py_XINCREF($input);
 }
 
 /* Map from callable PyObject to LogCallbackFunction */

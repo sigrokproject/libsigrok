@@ -128,20 +128,6 @@ SR_API int sr_session_is_running(struct sr_session *session);
 SR_API int sr_session_stopped_callback_set(struct sr_session *session,
 		sr_session_stopped_callback cb, void *cb_data);
 
-SR_API int sr_session_source_add(struct sr_session *session, int fd,
-		int events, int timeout, sr_receive_data_callback cb, void *cb_data);
-SR_API int sr_session_source_add_pollfd(struct sr_session *session,
-		GPollFD *pollfd, int timeout, sr_receive_data_callback cb,
-		void *cb_data);
-SR_API int sr_session_source_add_channel(struct sr_session *session,
-		GIOChannel *channel, int events, int timeout,
-		sr_receive_data_callback cb, void *cb_data);
-SR_API int sr_session_source_remove(struct sr_session *session, int fd);
-SR_API int sr_session_source_remove_pollfd(struct sr_session *session,
-		GPollFD *pollfd);
-SR_API int sr_session_source_remove_channel(struct sr_session *session,
-		GIOChannel *channel);
-
 /*--- input/input.c ---------------------------------------------------------*/
 
 SR_API const struct sr_input_module **sr_input_list(void);
