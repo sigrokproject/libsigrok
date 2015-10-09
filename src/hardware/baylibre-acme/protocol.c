@@ -281,9 +281,9 @@ static int read_probe_eeprom(unsigned int addr, struct probe_eeprom *eeprom)
 	if (rd != EEPROM_SIZE)
 		return -1;
 
-	eeprom->type = RL32(eeprom_buf + EEPROM_OFF_TYPE);
-	eeprom->rev = RL32(eeprom_buf + EEPROM_OFF_REV);
-	eeprom->shunt = RL32(eeprom_buf + EEPROM_OFF_SHUNT);
+	eeprom->type = RB32(eeprom_buf + EEPROM_OFF_TYPE);
+	eeprom->rev = RB32(eeprom_buf + EEPROM_OFF_REV);
+	eeprom->shunt = RB32(eeprom_buf + EEPROM_OFF_SHUNT);
 	eeprom->pwr_sw = R8(eeprom_buf + EEPROM_OFF_PWR_SW);
 	/* Don't care about the serial number and tag for now. */
 
