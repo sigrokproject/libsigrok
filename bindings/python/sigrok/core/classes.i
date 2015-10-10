@@ -74,7 +74,7 @@ typedef guint pyg_flags_type;
     if (!GLib) {
         fprintf(stderr, "Import of gi.repository.GLib failed.\n");
 #if PY_VERSION_HEX >= 0x03000000
-        return NULL;
+        return nullptr;
 #else
         return;
 #endif
@@ -94,8 +94,7 @@ typedef guint pyg_flags_type;
     g_value_set_variant(value, $1.gobj());
     PyObject *variant = pyg_value_as_pyobject(value, true);
     $result = PyObject_CallMethod(variant,
-        const_cast<char *>("unpack"),
-        const_cast<char *>(""), NULL);
+        const_cast<char *>("unpack"), nullptr);
     Py_XDECREF(variant);
     g_free(value);
 }
