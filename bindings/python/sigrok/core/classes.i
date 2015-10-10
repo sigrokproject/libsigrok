@@ -150,6 +150,39 @@ typedef guint pyg_flags_type;
     Py_XINCREF($input);
 }
 
+/* Map from callable PyObject to SessionStoppedCallback */
+%typecheck(SWIG_TYPECHECK_POINTER) sigrok::SessionStoppedCallback {
+    $1 = PyCallable_Check($input);
+}
+
+%typemap(in) sigrok::SessionStoppedCallback {
+    if (!PyCallable_Check($input))
+        SWIG_exception(SWIG_TypeError, "Expected a callable Python object");
+
+    $1 = [=] () {
+        const auto gstate = PyGILState_Ensure();
+
+        const auto result = PyEval_CallObject($input, nullptr);
+        const bool completed = !PyErr_Occurred();
+        const bool valid_result = (completed && result == Py_None);
+
+        if (completed && !valid_result) {
+            PyErr_SetString(PyExc_TypeError,
+                "Session stop callback did not return None");
+        }
+        if (!valid_result)
+            PyErr_Print();
+
+        Py_XDECREF(result);
+        PyGILState_Release(gstate);
+
+        if (!valid_result)
+            throw sigrok::Error(SR_ERR);
+    };
+
+    Py_XINCREF($input);
+}
+
 /* Map from callable PyObject to DatafeedCallbackFunction */
 %typecheck(SWIG_TYPECHECK_POINTER) sigrok::DatafeedCallbackFunction {
     $1 = PyCallable_Check($input);
