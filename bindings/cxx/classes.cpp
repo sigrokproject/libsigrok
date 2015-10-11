@@ -60,12 +60,12 @@ Error::Error(int result) : result(result)
 {
 }
 
-const char *Error::what() const throw()
+const char *Error::what() const noexcept
 {
 	return sr_strerror(result);
 }
 
-Error::~Error() throw()
+Error::~Error() noexcept
 {
 }
 

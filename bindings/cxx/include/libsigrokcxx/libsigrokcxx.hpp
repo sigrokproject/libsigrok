@@ -121,9 +121,9 @@ class SR_API Error: public exception
 {
 public:
 	explicit Error(int result);
-	~Error() throw();
+	~Error() noexcept;
 	const int result;
-	const char *what() const throw();
+	const char *what() const noexcept;
 };
 
 /* Base template for classes whose resources are owned by a parent object. */
