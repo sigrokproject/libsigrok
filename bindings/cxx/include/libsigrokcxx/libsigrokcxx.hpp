@@ -178,7 +178,7 @@ protected:
 		return shared;
 	}
 
-	shared_ptr<Class> get_shared_pointer(shared_ptr<Parent> parent)
+	shared_ptr<Class> share_owned_by(shared_ptr<Parent> parent)
 	{
 		if (!parent)
 			throw Error(SR_ERR_BUG);
@@ -708,7 +708,7 @@ protected:
 	PacketPayload();
 	virtual ~PacketPayload() = 0;
 private:
-	virtual shared_ptr<PacketPayload> get_shared_pointer(shared_ptr<Packet> parent) = 0;
+	virtual shared_ptr<PacketPayload> share_owned_by(shared_ptr<Packet> parent) = 0;
 
 	/** Deleter needed to allow shared_ptr use with protected destructor. */
 	class Deleter
@@ -734,7 +734,7 @@ public:
 private:
 	explicit Header(const struct sr_datafeed_header *structure);
 	~Header();
-	shared_ptr<PacketPayload> get_shared_pointer(shared_ptr<Packet> parent);
+	shared_ptr<PacketPayload> share_owned_by(shared_ptr<Packet> parent);
 	friend class Packet;
 };
 
@@ -749,7 +749,7 @@ public:
 private:
 	explicit Meta(const struct sr_datafeed_meta *structure);
 	~Meta();
-	shared_ptr<PacketPayload> get_shared_pointer(shared_ptr<Packet> parent);
+	shared_ptr<PacketPayload> share_owned_by(shared_ptr<Packet> parent);
 	map<const ConfigKey *, Glib::VariantBase> _config;
 	friend class Packet;
 };
@@ -769,7 +769,7 @@ public:
 private:
 	explicit Logic(const struct sr_datafeed_logic *structure);
 	~Logic();
-	shared_ptr<PacketPayload> get_shared_pointer(shared_ptr<Packet> parent);
+	shared_ptr<PacketPayload> share_owned_by(shared_ptr<Packet> parent);
 	friend class Packet;
 };
 
@@ -794,7 +794,7 @@ public:
 private:
 	explicit Analog(const struct sr_datafeed_analog *structure);
 	~Analog();
-	shared_ptr<PacketPayload> get_shared_pointer(shared_ptr<Packet> parent);
+	shared_ptr<PacketPayload> share_owned_by(shared_ptr<Packet> parent);
 	friend class Packet;
 };
 
