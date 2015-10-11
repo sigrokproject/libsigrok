@@ -39,12 +39,9 @@ static void check(int result)
 }
 
 /** Helper function to obtain valid strings from possibly null input. */
-static const char *valid_string(const char *input)
+static inline const char *valid_string(const char *input)
 {
-	if (input != NULL)
-		return input;
-	else
-		return "";
+	return (input) ? input : "";
 }
 
 /** Helper function to convert between map<string, VariantBase> and GHashTable */
@@ -123,7 +120,7 @@ shared_ptr<Context> Context::create()
 
 Context::Context() :
 	UserOwned(_structure),
-	_session(NULL)
+	_session(nullptr)
 {
 	check(sr_init(&_structure));
 
@@ -213,20 +210,14 @@ void Context::set_log_level(const LogLevel *level)
 
 static int call_log_callback(void *cb_data, int loglevel, const char *format, va_list args)
 {
-	va_list args_copy;
-	va_copy(args_copy, args);
-	int length = vsnprintf(NULL, 0, format, args_copy);
-	va_end(args_copy);
-	char *buf = (char *) g_malloc(length + 1);
-	vsprintf(buf, format, args);
-	string message(buf, length);
-	g_free(buf);
+	const unique_ptr<char, decltype(&g_free)>
+		message {g_strdup_vprintf(format, args), &g_free};
 
 	LogCallbackFunction callback = *((LogCallbackFunction *) cb_data);
 
 	try
 	{
-		callback(LogLevel::get(loglevel), message);
+		callback(LogLevel::get(loglevel), message.get());
 	}
 	catch (Error e)
 	{
@@ -377,7 +368,7 @@ shared_ptr<Input> Context::open_stream(string header)
 
 map<string, string> Context::serials(shared_ptr<Driver> driver)
 {
-	GSList *serial_list = sr_serial_list(driver ? driver->_structure : NULL);
+	GSList *serial_list = sr_serial_list(driver ? driver->_structure : nullptr);
 	map<string, string> serials;
 
 	for (GSList *serial = serial_list; serial; serial = serial->next) {
@@ -391,7 +382,7 @@ map<string, string> Context::serials(shared_ptr<Driver> driver)
 
 Driver::Driver(struct sr_dev_driver *structure) :
 	ParentOwned(structure),
-	Configurable(structure, NULL, NULL),
+	Configurable(structure, nullptr, nullptr),
 	_initialized(false)
 {
 }
@@ -421,7 +412,7 @@ vector<shared_ptr<HardwareDevice>> Driver::scan(
 	}
 
 	/* Translate scan options to GSList of struct sr_config pointers. */
-	GSList *option_list = NULL;
+	GSList *option_list = nullptr;
 	for (auto entry : options)
 	{
 		auto key = entry.first;
@@ -555,7 +546,7 @@ bool Configurable::config_check(const ConfigKey *key,
 }
 
 Device::Device(struct sr_dev_inst *structure) :
-	Configurable(sr_dev_inst_driver_get(structure), structure, NULL),
+	Configurable(sr_dev_inst_driver_get(structure), structure, nullptr),
 	_structure(structure)
 {
 	for (GSList *entry = sr_dev_inst_channels_get(structure); entry; entry = entry->next)
@@ -1035,7 +1026,7 @@ void Session::set_trigger(shared_ptr<Trigger> trigger)
 {
 	if (!trigger)
 		// Set NULL trigger, i.e. remove any trigger from the session.
-		check(sr_session_trigger_set(_structure, NULL));
+		check(sr_session_trigger_set(_structure, nullptr));
 	else
 		check(sr_session_trigger_set(_structure, trigger->_structure));
 	_trigger = move(trigger);
@@ -1463,7 +1454,7 @@ bool OutputFormat::test_flag(const OutputFlag *flag)
 Output::Output(shared_ptr<OutputFormat> format,
 		shared_ptr<Device> device, const map<string, Glib::VariantBase> &options) :
 	UserOwned(sr_output_new(format->_structure,
-		map_to_hash_variant(options), device->_structure, NULL)),
+		map_to_hash_variant(options), device->_structure, nullptr)),
 	_format(move(format)),
 	_device(move(device)),
 	_options(options)
