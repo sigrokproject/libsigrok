@@ -48,7 +48,7 @@ static const char *valid_string(const char *input)
 }
 
 /** Helper function to convert between map<string, VariantBase> and GHashTable */
-static GHashTable *map_to_hash_variant(map<string, Glib::VariantBase> input)
+static GHashTable *map_to_hash_variant(const map<string, Glib::VariantBase> &input)
 {
 	auto output = g_hash_table_new_full(
 		g_str_hash, g_str_equal, g_free, (GDestroyNotify) g_variant_unref);
@@ -56,7 +56,7 @@ static GHashTable *map_to_hash_variant(map<string, Glib::VariantBase> input)
 		g_hash_table_insert(output,
 			g_strdup(entry.first.c_str()),
 			entry.second.gobj_copy());
-    return output;
+	return output;
 }
 
 Error::Error(int result) : result(result)
@@ -238,7 +238,7 @@ static int call_log_callback(void *cb_data, int loglevel, const char *format, va
 
 void Context::set_log_callback(LogCallbackFunction callback)
 {
-	_log_callback = callback;
+	_log_callback = move(callback);
 	check(sr_log_callback_set(call_log_callback, &_log_callback));
 }
 
@@ -287,7 +287,7 @@ shared_ptr<Packet> Context::create_header_packet(Glib::TimeVal start_time)
 }
 
 shared_ptr<Packet> Context::create_meta_packet(
-	map<const ConfigKey *, Glib::VariantBase> config)
+	const map<const ConfigKey *, Glib::VariantBase> &config)
 {
 	auto meta = g_new0(struct sr_datafeed_meta, 1);
 	for (auto input : config)
@@ -320,9 +320,9 @@ shared_ptr<Packet> Context::create_logic_packet(
 }
 
 shared_ptr<Packet> Context::create_analog_packet(
-	vector<shared_ptr<Channel> > channels,
+	const vector<shared_ptr<Channel> > &channels,
 	float *data_pointer, unsigned int num_samples, const Quantity *mq,
-	const Unit *unit, vector<const QuantityFlag *> mqflags)
+	const Unit *unit, const vector<const QuantityFlag *> &mqflags)
 {
 	auto analog = g_new0(struct sr_datafeed_analog, 1);
 	auto meaning = g_new0(struct sr_analog_meaning, 1);
@@ -345,13 +345,13 @@ shared_ptr<Packet> Context::create_analog_packet(
 shared_ptr<Session> Context::load_session(string filename)
 {
 	return shared_ptr<Session>(
-		new Session(shared_from_this(), filename), Session::Deleter());
+		new Session(shared_from_this(), move(filename)), Session::Deleter());
 }
 
 shared_ptr<Trigger> Context::create_trigger(string name)
 {
 	return shared_ptr<Trigger>(
-		new Trigger(shared_from_this(), name), Trigger::Deleter());
+		new Trigger(shared_from_this(), move(name)), Trigger::Deleter());
 }
 
 shared_ptr<Input> Context::open_file(string filename)
@@ -411,7 +411,7 @@ string Driver::long_name()
 }
 
 vector<shared_ptr<HardwareDevice>> Driver::scan(
-	map<const ConfigKey *, Glib::VariantBase> options)
+	const map<const ConfigKey *, Glib::VariantBase> &options)
 {
 	/* Initialise the driver if not yet done. */
 	if (!_initialized)
@@ -478,11 +478,11 @@ Glib::VariantBase Configurable::config_get(const ConfigKey *key)
 	return Glib::VariantBase(data);
 }
 
-void Configurable::config_set(const ConfigKey *key, Glib::VariantBase value)
+void Configurable::config_set(const ConfigKey *key, const Glib::VariantBase &value)
 {
 	check(sr_config_set(
 		config_sdi, config_channel_group,
-		key->id(), value.gobj()));
+		key->id(), const_cast<GVariant*>(value.gobj())));
 }
 
 Glib::VariantContainerBase Configurable::config_list(const ConfigKey *key)
@@ -646,7 +646,7 @@ HardwareDevice::HardwareDevice(shared_ptr<Driver> driver,
 		struct sr_dev_inst *structure) :
 	UserOwned(structure),
 	Device(structure),
-	_driver(driver)
+	_driver(move(driver))
 {
 }
 
@@ -760,7 +760,7 @@ vector<shared_ptr<Channel>> ChannelGroup::channels()
 
 Trigger::Trigger(shared_ptr<Context> context, string name) : 
 	UserOwned(sr_trigger_new(name.c_str())),
-	_context(context)
+	_context(move(context))
 {
 	for (auto stage = _structure->stages; stage; stage = stage->next)
 		_stages.push_back(
@@ -826,19 +826,19 @@ void TriggerStage::add_match(shared_ptr<Channel> channel,
 		channel->_structure, type->id(), value));
 	_matches.push_back(new TriggerMatch(
 		(struct sr_trigger_match *) g_slist_last(
-			_structure->matches)->data, channel));
+			_structure->matches)->data, move(channel)));
 }
 
 void TriggerStage::add_match(shared_ptr<Channel> channel,
 	const TriggerMatchType *type)
 {
-	add_match(channel, type, NAN);
+	add_match(move(channel), type, NAN);
 }
 
 TriggerMatch::TriggerMatch(struct sr_trigger_match *structure,
 		shared_ptr<Channel> channel) :
 	ParentOwned(structure),
-	_channel(channel)
+	_channel(move(channel))
 {
 }
 
@@ -863,7 +863,7 @@ float TriggerMatch::value()
 
 DatafeedCallbackData::DatafeedCallbackData(Session *session,
 		DatafeedCallbackFunction callback) :
-	_callback(callback),
+	_callback(move(callback)),
 	_session(session)
 {
 }
@@ -873,7 +873,7 @@ void DatafeedCallbackData::run(const struct sr_dev_inst *sdi,
 {
 	auto device = _session->get_device(sdi);
 	auto packet = shared_ptr<Packet>(new Packet(device, pkt), Packet::Deleter());
-	_callback(device, packet);
+	_callback(move(device), move(packet));
 }
 
 SessionDevice::SessionDevice(struct sr_dev_inst *structure) :
@@ -893,18 +893,18 @@ shared_ptr<Device> SessionDevice::get_shared_from_this()
 
 Session::Session(shared_ptr<Context> context) :
 	UserOwned(_structure),
-	_context(context)
+	_context(move(context))
 {
-	check(sr_session_new(context->_structure, &_structure));
+	check(sr_session_new(_context->_structure, &_structure));
 	_context->_session = this;
 }
 
 Session::Session(shared_ptr<Context> context, string filename) :
 	UserOwned(_structure),
-	_context(context),
-	_filename(filename)
+	_context(move(context)),
+	_filename(move(filename))
 {
-	check(sr_session_load(context->_structure, filename.c_str(), &_structure));
+	check(sr_session_load(_context->_structure, _filename.c_str(), &_structure));
 	GSList *dev_list;
 	check(sr_session_dev_list(_structure, &dev_list));
 	for (GSList *dev = dev_list; dev; dev = dev->next)
@@ -939,8 +939,9 @@ shared_ptr<Device> Session::get_device(const struct sr_dev_inst *sdi)
 
 void Session::add_device(shared_ptr<Device> device)
 {
-	check(sr_session_dev_add(_structure, device->_structure));
-	_other_devices[device->_structure] = device;
+	const auto dev_struct = device->_structure;
+	check(sr_session_dev_add(_structure, dev_struct));
+	_other_devices[dev_struct] = move(device);
 }
 
 vector<shared_ptr<Device>> Session::devices()
@@ -1011,13 +1012,13 @@ static void datafeed_callback(const struct sr_dev_inst *sdi,
 	
 void Session::add_datafeed_callback(DatafeedCallbackFunction callback)
 {
-	auto cb_data = new DatafeedCallbackData(this, callback);
+	auto cb_data = new DatafeedCallbackData(this, move(callback));
 	check(sr_session_datafeed_callback_add(_structure,
 		datafeed_callback, cb_data));
 	_datafeed_callbacks.push_back(cb_data);
 }
 
-void Session::remove_datafeed_callbacks(void)
+void Session::remove_datafeed_callbacks()
 {
 	check(sr_session_datafeed_callback_remove_all(_structure));
 	for (auto callback : _datafeed_callbacks)
@@ -1037,7 +1038,7 @@ void Session::set_trigger(shared_ptr<Trigger> trigger)
 		check(sr_session_trigger_set(_structure, NULL));
 	else
 		check(sr_session_trigger_set(_structure, trigger->_structure));
-	_trigger = trigger;
+	_trigger = move(trigger);
 }
 
 string Session::filename()
@@ -1053,7 +1054,7 @@ shared_ptr<Context> Session::context()
 Packet::Packet(shared_ptr<Device> device,
 	const struct sr_datafeed_packet *structure) :
 	UserOwned(structure),
-	_device(device)
+	_device(move(device))
 {
 	switch (structure->type)
 	{
@@ -1290,7 +1291,7 @@ map<string, shared_ptr<Option>> InputFormat::options()
 }
 
 shared_ptr<Input> InputFormat::create_input(
-	map<string, Glib::VariantBase> options)
+	const map<string, Glib::VariantBase> &options)
 {
 	auto input = sr_input_new(_structure, map_to_hash_variant(options));
 	if (!input)
@@ -1301,7 +1302,7 @@ shared_ptr<Input> InputFormat::create_input(
 
 Input::Input(shared_ptr<Context> context, const struct sr_input *structure) :
 	UserOwned(structure),
-	_context(context),
+	_context(move(context)),
 	_device(nullptr)
 {
 }
@@ -1343,7 +1344,7 @@ InputDevice::InputDevice(shared_ptr<Input> input,
 		struct sr_dev_inst *structure) :
 	ParentOwned(structure),
 	Device(structure),
-	_input(input)
+	_input(move(input))
 {
 }
 
@@ -1359,7 +1360,7 @@ shared_ptr<Device> InputDevice::get_shared_from_this()
 Option::Option(const struct sr_option *structure,
 		shared_ptr<const struct sr_option *> structure_array) :
 	UserOwned(structure),
-	_structure_array(structure_array)
+	_structure_array(move(structure_array))
 {
 }
 
@@ -1439,18 +1440,18 @@ map<string, shared_ptr<Option>> OutputFormat::options()
 }
 
 shared_ptr<Output> OutputFormat::create_output(
-	shared_ptr<Device> device, map<string, Glib::VariantBase> options)
+	shared_ptr<Device> device, const map<string, Glib::VariantBase> &options)
 {
 	return shared_ptr<Output>(
-		new Output(shared_from_this(), device, options),
+		new Output(shared_from_this(), move(device), options),
 		Output::Deleter());
 }
 
 shared_ptr<Output> OutputFormat::create_output(string filename,
-	shared_ptr<Device> device, map<string, Glib::VariantBase> options)
+	shared_ptr<Device> device, const map<string, Glib::VariantBase> &options)
 {
 	return shared_ptr<Output>(
-		new Output(filename, shared_from_this(), device, options),
+		new Output(move(filename), shared_from_this(), move(device), options),
 		Output::Deleter());
 }
 
@@ -1460,21 +1461,21 @@ bool OutputFormat::test_flag(const OutputFlag *flag)
 }
 
 Output::Output(shared_ptr<OutputFormat> format,
-		shared_ptr<Device> device, map<string, Glib::VariantBase> options) :
+		shared_ptr<Device> device, const map<string, Glib::VariantBase> &options) :
 	UserOwned(sr_output_new(format->_structure,
 		map_to_hash_variant(options), device->_structure, NULL)),
-	_format(format),
-	_device(device),
+	_format(move(format)),
+	_device(move(device)),
 	_options(options)
 {
 }
 
 Output::Output(string filename, shared_ptr<OutputFormat> format,
-		shared_ptr<Device> device, map<string, Glib::VariantBase> options) :
+		shared_ptr<Device> device, const map<string, Glib::VariantBase> &options) :
 	UserOwned(sr_output_new(format->_structure,
 		map_to_hash_variant(options), device->_structure, filename.c_str())),
-	_format(format),
-	_device(device),
+	_format(move(format)),
+	_device(move(device)),
 	_options(options)
 {
 }
