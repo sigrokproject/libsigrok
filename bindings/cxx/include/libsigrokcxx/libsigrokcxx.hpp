@@ -164,21 +164,14 @@ protected:
 	{
 	}
 
-public:
-	/* Get parent object that owns this object. */
-	shared_ptr<Parent> parent()
-	{
-		return _parent;
-	}
-
 	/* Note, this implementation will create a new smart_ptr if none exists. */
 	shared_ptr<Class> shared_from_this()
 	{
-		shared_ptr<Class> shared;
+		shared_ptr<Class> shared = _weak_this.lock();
 
-		if (!(shared = _weak_this.lock()))
+		if (!shared)
 		{
-			shared = shared_ptr<Class>(static_cast<Class *>(this), reset_parent);
+			shared.reset(static_cast<Class *>(this), &reset_parent);
 			_weak_this = shared;
 		}
 
@@ -193,11 +186,11 @@ public:
 		return shared_from_this();
 	}
 
-	shared_ptr<Class> get_shared_pointer(Parent *parent)
+public:
+	/* Get parent object that owns this object. */
+	shared_ptr<Parent> parent()
 	{
-		if (!parent)
-			throw Error(SR_ERR_BUG);
-		return get_shared_pointer(parent->shared_from_this());
+		return _parent;
 	}
 };
 
@@ -205,20 +198,20 @@ public:
 template <class Class, typename Struct>
 class SR_API UserOwned : public enable_shared_from_this<Class>
 {
-public:
-	shared_ptr<Class> shared_from_this()
-	{
-		auto shared = enable_shared_from_this<Class>::shared_from_this();
-		if (!shared)
-			throw Error(SR_ERR_BUG);
-		return shared;
-	}
 protected:
 	Struct *_structure;
 
 	explicit UserOwned(Struct *structure) :
 		_structure(structure)
 	{
+	}
+
+	shared_ptr<Class> shared_from_this()
+	{
+		auto shared = enable_shared_from_this<Class>::shared_from_this();
+		if (!shared)
+			throw Error(SR_ERR_BUG);
+		return shared;
 	}
 
 	/* Deleter needed to allow shared_ptr use with protected destructor. */
@@ -714,8 +707,15 @@ class SR_API PacketPayload
 protected:
 	PacketPayload();
 	virtual ~PacketPayload() = 0;
-	virtual shared_ptr<PacketPayload> get_shared_pointer(Packet *parent) = 0;
+private:
+	virtual shared_ptr<PacketPayload> get_shared_pointer(shared_ptr<Packet> parent) = 0;
 
+	/** Deleter needed to allow shared_ptr use with protected destructor. */
+	class Deleter
+	{
+	public:
+		void operator()(PacketPayload *payload) { delete payload; }
+	};
 	friend class Deleter;
 	friend class Packet;
 	friend class Output;
@@ -734,7 +734,7 @@ public:
 private:
 	explicit Header(const struct sr_datafeed_header *structure);
 	~Header();
-	shared_ptr<PacketPayload> get_shared_pointer(Packet *parent);
+	shared_ptr<PacketPayload> get_shared_pointer(shared_ptr<Packet> parent);
 	friend class Packet;
 };
 
@@ -749,7 +749,7 @@ public:
 private:
 	explicit Meta(const struct sr_datafeed_meta *structure);
 	~Meta();
-	shared_ptr<PacketPayload> get_shared_pointer(Packet *parent);
+	shared_ptr<PacketPayload> get_shared_pointer(shared_ptr<Packet> parent);
 	map<const ConfigKey *, Glib::VariantBase> _config;
 	friend class Packet;
 };
@@ -769,7 +769,7 @@ public:
 private:
 	explicit Logic(const struct sr_datafeed_logic *structure);
 	~Logic();
-	shared_ptr<PacketPayload> get_shared_pointer(Packet *parent);
+	shared_ptr<PacketPayload> get_shared_pointer(shared_ptr<Packet> parent);
 	friend class Packet;
 };
 
@@ -794,7 +794,7 @@ public:
 private:
 	explicit Analog(const struct sr_datafeed_analog *structure);
 	~Analog();
-	shared_ptr<PacketPayload> get_shared_pointer(Packet *parent);
+	shared_ptr<PacketPayload> get_shared_pointer(shared_ptr<Packet> parent);
 	friend class Packet;
 };
 

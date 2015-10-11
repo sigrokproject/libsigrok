@@ -159,7 +159,7 @@ map<string, shared_ptr<Driver>> Context::drivers()
 	{
 		auto name = entry.first;
 		auto driver = entry.second;
-		result[name] = driver->get_shared_pointer(this);
+		result[name] = driver->get_shared_pointer(shared_from_this());
 	}
 	return result;
 }
@@ -171,7 +171,7 @@ map<string, shared_ptr<InputFormat>> Context::input_formats()
 	{
 		auto name = entry.first;
 		auto input_format = entry.second;
-		result[name] = input_format->get_shared_pointer(this);
+		result[name] = input_format->get_shared_pointer(shared_from_this());
 	}
 	return result;
 }
@@ -183,7 +183,7 @@ map<string, shared_ptr<OutputFormat>> Context::output_formats()
 	{
 		auto name = entry.first;
 		auto output_format = entry.second;
-		result[name] = output_format->get_shared_pointer(this);
+		result[name] = output_format->get_shared_pointer(shared_from_this());
 	}
 	return result;
 }
@@ -779,7 +779,7 @@ vector<shared_ptr<TriggerStage>> Trigger::stages()
 {
 	vector<shared_ptr<TriggerStage>> result;
 	for (auto stage : _stages)
-		result.push_back(stage->get_shared_pointer(this));
+		result.push_back(stage->get_shared_pointer(shared_from_this()));
 	return result;
 }
 
@@ -787,7 +787,7 @@ shared_ptr<TriggerStage> Trigger::add_stage()
 {
 	auto stage = new TriggerStage(sr_trigger_stage_add(_structure));
 	_stages.push_back(stage);
-	return stage->get_shared_pointer(this);
+	return stage->get_shared_pointer(shared_from_this());
 }
 
 TriggerStage::TriggerStage(struct sr_trigger_stage *structure) : 
@@ -810,7 +810,7 @@ vector<shared_ptr<TriggerMatch>> TriggerStage::matches()
 {
 	vector<shared_ptr<TriggerMatch>> result;
 	for (auto match : _matches)
-		result.push_back(match->get_shared_pointer(this));
+		result.push_back(match->get_shared_pointer(shared_from_this()));
 	return result;
 }
 
@@ -925,7 +925,7 @@ shared_ptr<Device> Session::get_device(const struct sr_dev_inst *sdi)
 {
 	if (_owned_devices.count(sdi))
 		return static_pointer_cast<Device>(
-			_owned_devices[sdi]->get_shared_pointer(this));
+			_owned_devices[sdi]->get_shared_pointer(shared_from_this()));
 	else if (_other_devices.count(sdi))
 		return _other_devices[sdi];
 	else
@@ -1092,7 +1092,7 @@ const PacketType *Packet::type() const
 shared_ptr<PacketPayload> Packet::payload()
 {
 	if (_payload)
-		return _payload->get_shared_pointer(this);
+		return _payload->get_shared_pointer(shared_from_this());
 	else
 		throw Error(SR_ERR_NA);
 }
@@ -1115,7 +1115,7 @@ Header::~Header()
 {
 }
 
-shared_ptr<PacketPayload> Header::get_shared_pointer(Packet *_parent)
+shared_ptr<PacketPayload> Header::get_shared_pointer(shared_ptr<Packet> _parent)
 {
 	return static_pointer_cast<PacketPayload>(
 		ParentOwned::get_shared_pointer(_parent));
@@ -1143,7 +1143,7 @@ Meta::~Meta()
 {
 }
 
-shared_ptr<PacketPayload> Meta::get_shared_pointer(Packet *_parent)
+shared_ptr<PacketPayload> Meta::get_shared_pointer(shared_ptr<Packet> _parent)
 {
 	return static_pointer_cast<PacketPayload>(
 		ParentOwned::get_shared_pointer(_parent));
@@ -1169,7 +1169,7 @@ Logic::~Logic()
 {
 }
 
-shared_ptr<PacketPayload> Logic::get_shared_pointer(Packet *_parent)
+shared_ptr<PacketPayload> Logic::get_shared_pointer(shared_ptr<Packet> _parent)
 {
 	return static_pointer_cast<PacketPayload>(
 		ParentOwned::get_shared_pointer(_parent));
@@ -1200,7 +1200,7 @@ Analog::~Analog()
 {
 }
 
-shared_ptr<PacketPayload> Analog::get_shared_pointer(Packet *_parent)
+shared_ptr<PacketPayload> Analog::get_shared_pointer(shared_ptr<Packet> _parent)
 {
 	return static_pointer_cast<PacketPayload>(
 		ParentOwned::get_shared_pointer(_parent));
@@ -1290,8 +1290,7 @@ shared_ptr<Input> InputFormat::create_input(
 	auto input = sr_input_new(_structure, map_to_hash_variant(options));
 	if (!input)
 		throw Error(SR_ERR_ARG);
-	return shared_ptr<Input>(
-		new Input(_parent->shared_from_this(), input), Input::Deleter());
+	return shared_ptr<Input>(new Input(_parent, input), Input::Deleter());
 }
 
 Input::Input(shared_ptr<Context> context, const struct sr_input *structure) :
