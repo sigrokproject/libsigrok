@@ -651,7 +651,8 @@ $(JCXX): $(srcdir)/$(JSWG) $(JDOC) bindings/swig/classes.i bindings/swig/enums.i
 		$(bindings_cxx_libsigrokcxx_la_include_HEADERS) \
 		$(nodist_bindings_cxx_libsigrokcxx_la_include_HEADERS)
 	-$(AM_V_at)rm -f $(java_cleanfiles)
-	$(AM_V_GEN)$(SWIG) -c++ -Dnoexcept= -java -package org.sigrok.core.classes \
+	$(AM_V_GEN)$(SWIG) -c++ -Dnoexcept= -Dprivate=protected \
+		-java -package org.sigrok.core.classes \
 		-Ibindings -I$(JCLS) $(local_includes) -I$(srcdir) $(JNI_CPPFLAGS) \
 		-outdir $(JCLS) -o $@ $(srcdir)/$(JSWG)
 
