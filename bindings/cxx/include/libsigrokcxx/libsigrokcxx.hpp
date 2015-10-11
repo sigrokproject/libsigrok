@@ -130,6 +130,17 @@ public:
 template <class Class, class Parent, typename Struct>
 class SR_API ParentOwned
 {
+private:
+	/* Weak pointer for shared_from_this() implementation. */
+	weak_ptr<Class> _weak_this;
+
+	static void reset_parent(Class *object)
+	{
+		if (!object->_parent)
+			throw Error(SR_ERR_BUG);
+		object->_parent.reset();
+	}
+
 protected:
 	/*  Parent object which owns this child object's underlying structure.
 
@@ -146,8 +157,12 @@ protected:
 		references to both the parent and all its children are gone. */
 	shared_ptr<Parent> _parent;
 
-	/* Weak pointer for shared_from_this() implementation. */
-	weak_ptr<Class> _weak_this;
+	Struct *_structure;
+
+	explicit ParentOwned(Struct *structure) :
+		_structure(structure)
+	{
+	}
 
 public:
 	/* Get parent object that owns this object. */
@@ -183,20 +198,6 @@ public:
 		if (!parent)
 			throw Error(SR_ERR_BUG);
 		return get_shared_pointer(parent->shared_from_this());
-	}
-protected:
-	static void reset_parent(Class *object)
-	{
-		if (!object->_parent)
-			throw Error(SR_ERR_BUG);
-		object->_parent.reset();
-	}
-
-	Struct *_structure;
-
-	explicit ParentOwned(Struct *structure) :
-		_structure(structure)
-	{
 	}
 };
 
@@ -314,7 +315,7 @@ public:
 	 * @param header Initial data from stream. */
 	shared_ptr<Input> open_stream(string header);
 	map<string, string> serials(shared_ptr<Driver> driver) const;
-protected:
+private:
 	map<string, Driver *> _drivers;
 	map<string, InputFormat *> _input_formats;
 	map<string, OutputFormat *> _output_formats;
@@ -376,7 +377,7 @@ public:
 	 * @param options Mapping of (ConfigKey, value) pairs. */
 	vector<shared_ptr<HardwareDevice> > scan(
 		const map<const ConfigKey *, Glib::VariantBase> &options = {});
-protected:
+private:
 	bool _initialized;
 	vector<HardwareDevice *> _devices;
 	explicit Driver(struct sr_dev_driver *structure);
@@ -413,8 +414,10 @@ protected:
 	~Device();
 	virtual shared_ptr<Device> get_shared_from_this() = 0;
 	shared_ptr<Channel> get_channel(struct sr_channel *ptr);
+
 	struct sr_dev_inst *_structure;
 	map<struct sr_channel *, Channel *> _channels;
+private:
 	map<string, ChannelGroup *> _channel_groups;
 	/** Deleter needed to allow shared_ptr use with protected destructor. */
 	class Deleter
@@ -438,7 +441,7 @@ class SR_API HardwareDevice :
 public:
 	/** Driver providing this device. */
 	shared_ptr<Driver> driver();
-protected:
+private:
 	HardwareDevice(shared_ptr<Driver> driver, struct sr_dev_inst *structure);
 	~HardwareDevice();
 	shared_ptr<Device> get_shared_from_this();
@@ -462,7 +465,7 @@ class SR_API UserDevice :
 public:
 	/** Add a new channel to this device. */
 	shared_ptr<Channel> add_channel(unsigned int index, const ChannelType *type, string name);
-protected:
+private:
 	UserDevice(string vendor, string model, string version);
 	~UserDevice();
 	shared_ptr<Device> get_shared_from_this();
@@ -495,7 +498,7 @@ public:
 	void set_enabled(bool value);
 	/** Get the index number of this channel. */
 	unsigned int index() const;
-protected:
+private:
 	explicit Channel(struct sr_channel *structure);
 	~Channel();
 	const ChannelType * const _type;
@@ -517,7 +520,7 @@ public:
 	string name() const;
 	/** List of the channels in this group. */
 	vector<shared_ptr<Channel> > channels();
-protected:
+private:
 	ChannelGroup(Device *device, struct sr_channel_group *structure);
 	~ChannelGroup();
 	vector<Channel *> _channels;
@@ -534,7 +537,7 @@ public:
 	vector<shared_ptr<TriggerStage> > stages();
 	/** Add a new stage to this trigger. */
 	shared_ptr<TriggerStage> add_stage();
-protected:
+private:
 	Trigger(shared_ptr<Context> context, string name);
 	~Trigger();
 	shared_ptr<Context> _context;
@@ -562,7 +565,7 @@ public:
 	 * @param type TriggerMatchType to apply.
 	 * @param value Threshold value. */
 	void add_match(shared_ptr<Channel> channel, const TriggerMatchType *type, float value);
-protected:
+private:
 	vector<TriggerMatch *> _matches;
 	explicit TriggerStage(struct sr_trigger_stage *structure);
 	~TriggerStage();
@@ -580,7 +583,7 @@ public:
 	const TriggerMatchType *type() const;
 	/** Threshold value. */
 	float value() const;
-protected:
+private:
 	TriggerMatch(struct sr_trigger_match *structure, shared_ptr<Channel> channel);
 	~TriggerMatch();
 	shared_ptr<Channel> _channel;
@@ -600,7 +603,7 @@ class SR_PRIV DatafeedCallbackData
 public:
 	void run(const struct sr_dev_inst *sdi,
 		const struct sr_datafeed_packet *pkt);
-protected:
+private:
 	DatafeedCallbackFunction _callback;
 	DatafeedCallbackData(Session *session,
 		DatafeedCallbackFunction callback);
@@ -613,7 +616,7 @@ class SR_API SessionDevice :
 	public ParentOwned<SessionDevice, Session, struct sr_dev_inst>,
 	public Device
 {
-protected:
+private:
 	explicit SessionDevice(struct sr_dev_inst *sdi);
 	~SessionDevice();
 	shared_ptr<Device> get_shared_from_this();
@@ -662,7 +665,7 @@ public:
 	void set_trigger(shared_ptr<Trigger> trigger);
 	/** Get filename this session was loaded from. */
 	string filename() const;
-protected:
+private:
 	explicit Session(shared_ptr<Context> context);
 	Session(shared_ptr<Context> context, string filename);
 	~Session();
@@ -688,7 +691,7 @@ public:
 	const PacketType *type() const;
 	/** Payload of this packet. */
 	shared_ptr<PacketPayload> payload();
-protected:
+private:
 	Packet(shared_ptr<Device> device,
 		const struct sr_datafeed_packet *structure);
 	~Packet();
@@ -712,12 +715,7 @@ protected:
 	PacketPayload();
 	virtual ~PacketPayload() = 0;
 	virtual shared_ptr<PacketPayload> get_shared_pointer(Packet *parent) = 0;
-	/** Deleter needed to allow shared_ptr use with protected destructor. */
-	class Deleter
-	{
-	public:
-		void operator()(PacketPayload *payload) { delete payload; }
-	};
+
 	friend class Deleter;
 	friend class Packet;
 	friend class Output;
@@ -733,7 +731,7 @@ public:
 	int feed_version() const;
 	/* Start time of this session. */
 	Glib::TimeVal start_time() const;
-protected:
+private:
 	explicit Header(const struct sr_datafeed_header *structure);
 	~Header();
 	shared_ptr<PacketPayload> get_shared_pointer(Packet *parent);
@@ -748,7 +746,7 @@ class SR_API Meta :
 public:
 	/* Mapping of (ConfigKey, value) pairs. */
 	map<const ConfigKey *, Glib::VariantBase> config() const;
-protected:
+private:
 	explicit Meta(const struct sr_datafeed_meta *structure);
 	~Meta();
 	shared_ptr<PacketPayload> get_shared_pointer(Packet *parent);
@@ -768,7 +766,7 @@ public:
 	size_t data_length() const;
 	/* Size of each sample in bytes. */
 	unsigned int unit_size() const;
-protected:
+private:
 	explicit Logic(const struct sr_datafeed_logic *structure);
 	~Logic();
 	shared_ptr<PacketPayload> get_shared_pointer(Packet *parent);
@@ -793,7 +791,7 @@ public:
 	const Unit *unit() const;
 	/** Measurement flags associated with the samples in this packet. */
 	vector<const QuantityFlag *> mq_flags() const;
-protected:
+private:
 	explicit Analog(const struct sr_datafeed_analog *structure);
 	~Analog();
 	shared_ptr<PacketPayload> get_shared_pointer(Packet *parent);
@@ -817,7 +815,7 @@ public:
 	/** Create an input using this input format.
 	 * @param options Mapping of (option name, value) pairs. */
 	shared_ptr<Input> create_input(const map<string, Glib::VariantBase> &options = {});
-protected:
+private:
 	explicit InputFormat(const struct sr_input_module *structure);
 	~InputFormat();
 	friend class Context;
@@ -836,7 +834,7 @@ public:
 	void send(void *data, size_t length);
 	/** Signal end of input data. */
 	void end();
-protected:
+private:
 	Input(shared_ptr<Context> context, const struct sr_input *structure);
 	~Input();
 	shared_ptr<Context> _context;
@@ -851,7 +849,7 @@ class SR_API InputDevice :
 	public ParentOwned<InputDevice, Input, struct sr_dev_inst>,
 	public Device
 {
-protected:
+private:
 	InputDevice(shared_ptr<Input> input, struct sr_dev_inst *sdi);
 	~InputDevice();
 	shared_ptr<Device> get_shared_from_this();
@@ -873,7 +871,7 @@ public:
 	Glib::VariantBase default_value() const;
 	/** Possible values for this option, if a limited set. */
 	vector<Glib::VariantBase> values() const;
-protected:
+private:
 	Option(const struct sr_option *structure,
 		shared_ptr<const struct sr_option *> structure_array);
 	~Option();
@@ -917,7 +915,7 @@ public:
 	 * @see sr_output_flags
 	 */
 	bool test_flag(const OutputFlag *flag) const;
-protected:
+private:
 	explicit OutputFormat(const struct sr_output_module *structure);
 	~OutputFormat();
 	friend class Context;
@@ -931,7 +929,7 @@ public:
 	/** Update output with data from the given packet.
 	 * @param packet Packet to handle. */
 	string receive(shared_ptr<Packet> packet);
-protected:
+private:
 	Output(shared_ptr<OutputFormat> format, shared_ptr<Device> device);
 	Output(shared_ptr<OutputFormat> format,
 		shared_ptr<Device> device, const map<string, Glib::VariantBase> &options);
@@ -982,6 +980,7 @@ protected:
 	~EnumValue()
 	{
 	}
+private:
 	static const std::map<const Enum, const Class * const> _values;
 	const Enum _id;
 	const string _name;
