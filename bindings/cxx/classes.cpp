@@ -47,8 +47,8 @@ static inline const char *valid_string(const char *input)
 /** Helper function to convert between map<string, VariantBase> and GHashTable */
 static GHashTable *map_to_hash_variant(const map<string, Glib::VariantBase> &input)
 {
-	auto output = g_hash_table_new_full(
-		g_str_hash, g_str_equal, g_free, (GDestroyNotify) g_variant_unref);
+	auto output = g_hash_table_new_full(g_str_hash, g_str_equal, g_free,
+			reinterpret_cast<GDestroyNotify>(&g_variant_unref));
 	for (auto entry : input)
 		g_hash_table_insert(output,
 			g_strdup(entry.first.c_str()),
@@ -213,11 +213,11 @@ static int call_log_callback(void *cb_data, int loglevel, const char *format, va
 	const unique_ptr<char, decltype(&g_free)>
 		message {g_strdup_vprintf(format, args), &g_free};
 
-	LogCallbackFunction callback = *((LogCallbackFunction *) cb_data);
+	auto *const callback = static_cast<LogCallbackFunction *>(cb_data);
 
 	try
 	{
-		callback(LogLevel::get(loglevel), message.get());
+		(*callback)(LogLevel::get(loglevel), message.get());
 	}
 	catch (Error e)
 	{
@@ -323,9 +323,9 @@ shared_ptr<Packet> Context::create_analog_packet(
 	for (auto channel : channels)
 		meaning->channels = g_slist_append(meaning->channels, channel->_structure);
 	analog->num_samples = num_samples;
-	meaning->mq = (sr_mq)mq->id();
-	meaning->unit = (sr_unit)unit->id();
-	meaning->mqflags = (sr_mqflag)QuantityFlag::mask_from_flags(mqflags);
+	meaning->mq = static_cast<sr_mq>(mq->id());
+	meaning->unit = static_cast<sr_unit>(unit->id());
+	meaning->mqflags = static_cast<sr_mqflag>(QuantityFlag::mask_from_flags(mqflags));
 	analog->data = data_pointer;
 	auto packet = g_new(struct sr_datafeed_packet, 1);
 	packet->type = SR_DF_ANALOG;
@@ -372,11 +372,12 @@ map<string, string> Context::serials(shared_ptr<Driver> driver)
 	map<string, string> serials;
 
 	for (GSList *serial = serial_list; serial; serial = serial->next) {
-		struct sr_serial_port *port = (sr_serial_port *) serial->data;
+		auto *const port = static_cast<sr_serial_port *>(serial->data);
 		serials[string(port->name)] = string(port->description);
 	}
 
-	g_slist_free_full(serial_list, (GDestroyNotify)sr_serial_free);
+	g_slist_free_full(serial_list,
+		reinterpret_cast<GDestroyNotify>(&sr_serial_free));
 	return serials;
 }
 
@@ -434,7 +435,7 @@ vector<shared_ptr<HardwareDevice>> Driver::scan(
 	vector<shared_ptr<HardwareDevice>> result;
 	for (GSList *device = device_list; device; device = device->next)
 	{
-		auto sdi = (struct sr_dev_inst *) device->data;
+		auto *const sdi = static_cast<struct sr_dev_inst *>(device->data);
 		result.push_back(shared_ptr<HardwareDevice>(
 			new HardwareDevice(shared_from_this(), sdi),
 			HardwareDevice::Deleter()));
@@ -496,8 +497,8 @@ map<const ConfigKey *, set<Capability>> Configurable::config_keys(const ConfigKe
 		config_driver, config_sdi, config_channel_group,
 		key->id(), &gvar_opts));
 
-	opts = (const uint32_t *) g_variant_get_fixed_array(
-		gvar_opts, &num_opts, sizeof(uint32_t));
+	opts = static_cast<const uint32_t *>(g_variant_get_fixed_array(
+		gvar_opts, &num_opts, sizeof(uint32_t)));
 
 	for (gsize i = 0; i < num_opts; i++)
 	{
@@ -528,12 +529,12 @@ bool Configurable::config_check(const ConfigKey *key,
 			index_key->id(), &gvar_opts) != SR_OK)
 		return false;
 
-	opts = (const uint32_t *) g_variant_get_fixed_array(
-		gvar_opts, &num_opts, sizeof(uint32_t));
+	opts = static_cast<const uint32_t *>(g_variant_get_fixed_array(
+		gvar_opts, &num_opts, sizeof(uint32_t)));
 
 	for (gsize i = 0; i < num_opts; i++)
 	{
-		if ((opts[i] & SR_CONF_MASK) == (uint32_t) key->id())
+		if ((opts[i] & SR_CONF_MASK) == unsigned(key->id()))
 		{
 			g_variant_unref(gvar_opts);
 			return true;
@@ -551,13 +552,13 @@ Device::Device(struct sr_dev_inst *structure) :
 {
 	for (GSList *entry = sr_dev_inst_channels_get(structure); entry; entry = entry->next)
 	{
-		auto channel = (struct sr_channel *) entry->data;
+		auto *const channel = static_cast<struct sr_channel *>(entry->data);
 		_channels[channel] = new Channel(channel);
 	}
 
 	for (GSList *entry = sr_dev_inst_channel_groups_get(structure); entry; entry = entry->next)
 	{
-		auto group = (struct sr_channel_group *) entry->data;
+		auto *const group = static_cast<struct sr_channel_group *>(entry->data);
 		_channel_groups[group->name] = new ChannelGroup(this, group);
 	}
 }
@@ -598,10 +599,10 @@ string Device::connection_id()
 vector<shared_ptr<Channel>> Device::channels()
 {
 	vector<shared_ptr<Channel>> result;
-	for (auto channel = sr_dev_inst_channels_get(_structure); channel; channel = channel->next)
-		result.push_back(
-			_channels[(struct sr_channel *) channel->data]->get_shared_pointer(
-				get_shared_from_this()));
+	for (auto channel = sr_dev_inst_channels_get(_structure); channel; channel = channel->next) {
+		auto *const ch = static_cast<struct sr_channel *>(channel->data);
+		result.push_back(_channels[ch]->get_shared_pointer(get_shared_from_this()));
+	}
 	return result;
 }
 
@@ -676,11 +677,10 @@ shared_ptr<Channel> UserDevice::add_channel(unsigned int index,
 {
 	check(sr_dev_inst_channel_add(Device::_structure,
 		index, type->id(), name.c_str()));
-	struct sr_channel *structure = (struct sr_channel *)
-			g_slist_last(sr_dev_inst_channels_get(Device::_structure))->data;
-	Channel *channel = new Channel(structure);
-	_channels[structure] = channel;
-	return get_channel(structure);
+	GSList *const last = g_slist_last(sr_dev_inst_channels_get(Device::_structure));
+	auto *const ch = static_cast<struct sr_channel *>(last->data);
+	_channels[ch] = new Channel(ch);
+	return get_channel(ch);
 }
 
 Channel::Channel(struct sr_channel *structure) :
@@ -728,8 +728,10 @@ ChannelGroup::ChannelGroup(Device *device,
 	ParentOwned(structure),
 	Configurable(sr_dev_inst_driver_get(device->_structure), device->_structure, structure)
 {
-	for (GSList *entry = structure->channels; entry; entry = entry->next)
-		_channels.push_back(device->_channels[(struct sr_channel *)entry->data]);
+	for (GSList *entry = structure->channels; entry; entry = entry->next) {
+		auto *const ch = static_cast<struct sr_channel *>(entry->data);
+		_channels.push_back(device->_channels[ch]);
+	}
 }
 
 ChannelGroup::~ChannelGroup()
@@ -755,7 +757,7 @@ Trigger::Trigger(shared_ptr<Context> context, string name) :
 {
 	for (auto stage = _structure->stages; stage; stage = stage->next)
 		_stages.push_back(
-			new TriggerStage((struct sr_trigger_stage *) stage->data));
+			new TriggerStage(static_cast<struct sr_trigger_stage *>(stage->data)));
 }
 
 Trigger::~Trigger()
@@ -815,9 +817,10 @@ void TriggerStage::add_match(shared_ptr<Channel> channel,
 {
 	check(sr_trigger_match_add(_structure,
 		channel->_structure, type->id(), value));
+	GSList *const last = g_slist_last(_structure->matches);
 	_matches.push_back(new TriggerMatch(
-		(struct sr_trigger_match *) g_slist_last(
-			_structure->matches)->data, move(channel)));
+		static_cast<struct sr_trigger_match *>(last->data),
+		move(channel)));
 }
 
 void TriggerStage::add_match(shared_ptr<Channel> channel,
@@ -898,9 +901,8 @@ Session::Session(shared_ptr<Context> context, string filename) :
 	check(sr_session_load(_context->_structure, _filename.c_str(), &_structure));
 	GSList *dev_list;
 	check(sr_session_dev_list(_structure, &dev_list));
-	for (GSList *dev = dev_list; dev; dev = dev->next)
-	{
-		auto sdi = (struct sr_dev_inst *) dev->data;
+	for (GSList *dev = dev_list; dev; dev = dev->next) {
+		auto *const sdi = static_cast<struct sr_dev_inst *>(dev->data);
 		_owned_devices[sdi] = new SessionDevice(sdi);
 	}
 	_context->_session = this;
@@ -940,9 +942,8 @@ vector<shared_ptr<Device>> Session::devices()
 	GSList *dev_list;
 	check(sr_session_dev_list(_structure, &dev_list));
 	vector<shared_ptr<Device>> result;
-	for (GSList *dev = dev_list; dev; dev = dev->next)
-	{
-		auto sdi = (struct sr_dev_inst *) dev->data;
+	for (GSList *dev = dev_list; dev; dev = dev->next) {
+		auto *const sdi = static_cast<struct sr_dev_inst *>(dev->data);
 		result.push_back(get_device(sdi));
 	}
 	return result;
@@ -1000,7 +1001,7 @@ static void datafeed_callback(const struct sr_dev_inst *sdi,
 	auto callback = static_cast<DatafeedCallbackData *>(cb_data);
 	callback->run(sdi, pkt);
 }
-	
+
 void Session::add_datafeed_callback(DatafeedCallbackFunction callback)
 {
 	auto cb_data = new DatafeedCallbackData(this, move(callback));
@@ -1149,9 +1150,8 @@ shared_ptr<PacketPayload> Meta::get_shared_pointer(Packet *_parent)
 map<const ConfigKey *, Glib::VariantBase> Meta::config()
 {
 	map<const ConfigKey *, Glib::VariantBase> result;
-	for (auto l = _structure->config; l; l = l->next)
-	{
-		auto config = (struct sr_config *) l->data;
+	for (auto l = _structure->config; l; l = l->next) {
+		auto *const config = static_cast<struct sr_config *>(l->data);
 		result[ConfigKey::get(config->key)] = Glib::VariantBase(config->data);
 	}
 	return result;
@@ -1217,9 +1217,10 @@ unsigned int Analog::num_samples()
 vector<shared_ptr<Channel>> Analog::channels()
 {
 	vector<shared_ptr<Channel>> result;
-	for (auto l = _structure->meaning->channels; l; l = l->next)
-		result.push_back(_parent->_device->get_channel(
-			(struct sr_channel *)l->data));
+	for (auto l = _structure->meaning->channels; l; l = l->next) {
+		auto *const ch = static_cast<struct sr_channel *>(l->data);
+		result.push_back(_parent->_device->get_channel(ch));
+	}
 	return result;
 }
 
@@ -1313,7 +1314,7 @@ shared_ptr<InputDevice> Input::device()
 
 void Input::send(void *data, size_t length)
 {
-	auto gstr = g_string_new_len((gchar *)data, length);
+	auto gstr = g_string_new_len(static_cast<char *>(data), length);
 	auto ret = sr_input_send(_structure, gstr);
 	g_string_free(gstr, false);
 	check(ret);
@@ -1382,8 +1383,10 @@ Glib::VariantBase Option::default_value()
 vector<Glib::VariantBase> Option::values()
 {
 	vector<Glib::VariantBase> result;
-	for (auto l = _structure->values; l; l = l->next)
-		result.push_back(Glib::VariantBase((GVariant *) l->data, true));
+	for (auto l = _structure->values; l; l = l->next) {
+		auto *const var = static_cast<GVariant *>(l->data);
+		result.push_back(Glib::VariantBase(var, true));
+	}
 	return result;
 }
 

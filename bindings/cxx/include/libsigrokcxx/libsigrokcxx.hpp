@@ -163,7 +163,7 @@ public:
 
 		if (!(shared = _weak_this.lock()))
 		{
-			shared = shared_ptr<Class>((Class *) this, reset_parent);
+			shared = shared_ptr<Class>(static_cast<Class *>(this), reset_parent);
 			_weak_this = shared;
 		}
 
