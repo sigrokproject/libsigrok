@@ -120,7 +120,7 @@ shared_ptr<Context> Context::create()
 }
 
 Context::Context() :
-	UserOwned(_structure),
+	_structure(nullptr),
 	_session(nullptr)
 {
 	check(sr_init(&_structure));
@@ -384,8 +384,8 @@ map<string, string> Context::serials(shared_ptr<Driver> driver) const
 }
 
 Driver::Driver(struct sr_dev_driver *structure) :
-	ParentOwned(structure),
 	Configurable(structure, nullptr, nullptr),
+	_structure(structure),
 	_initialized(false)
 {
 }
@@ -638,7 +638,6 @@ void Device::close()
 
 HardwareDevice::HardwareDevice(shared_ptr<Driver> driver,
 		struct sr_dev_inst *structure) :
-	UserOwned(structure),
 	Device(structure),
 	_driver(move(driver))
 {
@@ -659,9 +658,8 @@ shared_ptr<Driver> HardwareDevice::driver()
 }
 
 UserDevice::UserDevice(string vendor, string model, string version) :
-	UserOwned(sr_dev_inst_user_new(
-		vendor.c_str(), model.c_str(), version.c_str())),
-	Device(UserOwned::_structure)
+	Device(sr_dev_inst_user_new(
+		vendor.c_str(), model.c_str(), version.c_str()))
 {
 }
 
@@ -686,7 +684,7 @@ shared_ptr<Channel> UserDevice::add_channel(unsigned int index,
 }
 
 Channel::Channel(struct sr_channel *structure) :
-	ParentOwned(structure),
+	_structure(structure),
 	_type(ChannelType::get(_structure->type))
 {
 }
@@ -727,10 +725,9 @@ unsigned int Channel::index() const
 
 ChannelGroup::ChannelGroup(Device *device,
 		struct sr_channel_group *structure) :
-	ParentOwned(structure),
 	Configurable(sr_dev_inst_driver_get(device->_structure), device->_structure, structure)
 {
-	for (GSList *entry = structure->channels; entry; entry = entry->next) {
+	for (GSList *entry = config_channel_group->channels; entry; entry = entry->next) {
 		auto *const ch = static_cast<struct sr_channel *>(entry->data);
 		_channels.push_back(device->_channels[ch]);
 	}
@@ -742,7 +739,7 @@ ChannelGroup::~ChannelGroup()
 
 string ChannelGroup::name() const
 {
-	return valid_string(_structure->name);
+	return valid_string(config_channel_group->name);
 }
 
 vector<shared_ptr<Channel>> ChannelGroup::channels()
@@ -754,7 +751,7 @@ vector<shared_ptr<Channel>> ChannelGroup::channels()
 }
 
 Trigger::Trigger(shared_ptr<Context> context, string name) : 
-	UserOwned(sr_trigger_new(name.c_str())),
+	_structure(sr_trigger_new(name.c_str())),
 	_context(move(context))
 {
 	for (auto stage = _structure->stages; stage; stage = stage->next)
@@ -790,8 +787,8 @@ shared_ptr<TriggerStage> Trigger::add_stage()
 	return stage->share_owned_by(shared_from_this());
 }
 
-TriggerStage::TriggerStage(struct sr_trigger_stage *structure) : 
-	ParentOwned(structure)
+TriggerStage::TriggerStage(struct sr_trigger_stage *structure) :
+	_structure(structure)
 {
 }
 
@@ -833,7 +830,7 @@ void TriggerStage::add_match(shared_ptr<Channel> channel,
 
 TriggerMatch::TriggerMatch(struct sr_trigger_match *structure,
 		shared_ptr<Channel> channel) :
-	ParentOwned(structure),
+	_structure(structure),
 	_channel(move(channel))
 {
 }
@@ -873,7 +870,6 @@ void DatafeedCallbackData::run(const struct sr_dev_inst *sdi,
 }
 
 SessionDevice::SessionDevice(struct sr_dev_inst *structure) :
-	ParentOwned(structure),
 	Device(structure)
 {
 }
@@ -888,7 +884,7 @@ shared_ptr<Device> SessionDevice::get_shared_from_this()
 }
 
 Session::Session(shared_ptr<Context> context) :
-	UserOwned(_structure),
+	_structure(nullptr),
 	_context(move(context))
 {
 	check(sr_session_new(_context->_structure, &_structure));
@@ -896,7 +892,7 @@ Session::Session(shared_ptr<Context> context) :
 }
 
 Session::Session(shared_ptr<Context> context, string filename) :
-	UserOwned(_structure),
+	_structure(nullptr),
 	_context(move(context)),
 	_filename(move(filename))
 {
@@ -1047,7 +1043,7 @@ shared_ptr<Context> Session::context()
 
 Packet::Packet(shared_ptr<Device> device,
 	const struct sr_datafeed_packet *structure) :
-	UserOwned(structure),
+	_structure(structure),
 	_device(move(device))
 {
 	switch (structure->type)
@@ -1106,8 +1102,8 @@ PacketPayload::~PacketPayload()
 }
 
 Header::Header(const struct sr_datafeed_header *structure) :
-	ParentOwned(structure),
-	PacketPayload()
+	PacketPayload(),
+	_structure(structure)
 {
 }
 
@@ -1134,8 +1130,8 @@ Glib::TimeVal Header::start_time() const
 }
 
 Meta::Meta(const struct sr_datafeed_meta *structure) :
-	ParentOwned(structure),
-	PacketPayload()
+	PacketPayload(),
+	_structure(structure)
 {
 }
 
@@ -1160,8 +1156,8 @@ map<const ConfigKey *, Glib::VariantBase> Meta::config() const
 }
 
 Logic::Logic(const struct sr_datafeed_logic *structure) :
-	ParentOwned(structure),
-	PacketPayload()
+	PacketPayload(),
+	_structure(structure)
 {
 }
 
@@ -1191,8 +1187,8 @@ unsigned int Logic::unit_size() const
 }
 
 Analog::Analog(const struct sr_datafeed_analog *structure) :
-	ParentOwned(structure),
-	PacketPayload()
+	PacketPayload(),
+	_structure(structure)
 {
 }
 
@@ -1242,7 +1238,7 @@ vector<const QuantityFlag *> Analog::mq_flags() const
 }
 
 InputFormat::InputFormat(const struct sr_input_module *structure) :
-	ParentOwned(structure)
+	_structure(structure)
 {
 }
 
@@ -1294,7 +1290,7 @@ shared_ptr<Input> InputFormat::create_input(
 }
 
 Input::Input(shared_ptr<Context> context, const struct sr_input *structure) :
-	UserOwned(structure),
+	_structure(structure),
 	_context(move(context)),
 	_device(nullptr)
 {
@@ -1335,7 +1331,6 @@ Input::~Input()
 
 InputDevice::InputDevice(shared_ptr<Input> input,
 		struct sr_dev_inst *structure) :
-	ParentOwned(structure),
 	Device(structure),
 	_input(move(input))
 {
@@ -1352,7 +1347,7 @@ shared_ptr<Device> InputDevice::get_shared_from_this()
 
 Option::Option(const struct sr_option *structure,
 		shared_ptr<const struct sr_option *> structure_array) :
-	UserOwned(structure),
+	_structure(structure),
 	_structure_array(move(structure_array))
 {
 }
@@ -1392,7 +1387,7 @@ vector<Glib::VariantBase> Option::values() const
 }
 
 OutputFormat::OutputFormat(const struct sr_output_module *structure) :
-	ParentOwned(structure)
+	_structure(structure)
 {
 }
 
@@ -1457,7 +1452,7 @@ bool OutputFormat::test_flag(const OutputFlag *flag) const
 
 Output::Output(shared_ptr<OutputFormat> format,
 		shared_ptr<Device> device, const map<string, Glib::VariantBase> &options) :
-	UserOwned(sr_output_new(format->_structure,
+	_structure(sr_output_new(format->_structure,
 		map_to_hash_variant(options), device->_structure, nullptr)),
 	_format(move(format)),
 	_device(move(device)),
@@ -1467,7 +1462,7 @@ Output::Output(shared_ptr<OutputFormat> format,
 
 Output::Output(string filename, shared_ptr<OutputFormat> format,
 		shared_ptr<Device> device, const map<string, Glib::VariantBase> &options) :
-	UserOwned(sr_output_new(format->_structure,
+	_structure(sr_output_new(format->_structure,
 		map_to_hash_variant(options), device->_structure, filename.c_str())),
 	_format(move(format)),
 	_device(move(device)),

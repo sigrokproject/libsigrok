@@ -127,7 +127,7 @@ public:
 };
 
 /* Base template for classes whose resources are owned by a parent object. */
-template <class Class, class Parent, typename Struct>
+template <class Class, class Parent>
 class SR_API ParentOwned
 {
 private:
@@ -157,12 +157,7 @@ protected:
 		references to both the parent and all its children are gone. */
 	shared_ptr<Parent> _parent;
 
-	Struct *_structure;
-
-	explicit ParentOwned(Struct *structure) :
-		_structure(structure)
-	{
-	}
+	ParentOwned() {}
 
 	/* Note, this implementation will create a new smart_ptr if none exists. */
 	shared_ptr<Class> shared_from_this()
@@ -195,16 +190,11 @@ public:
 };
 
 /* Base template for classes whose resources are owned by the user. */
-template <class Class, typename Struct>
+template <class Class>
 class SR_API UserOwned : public enable_shared_from_this<Class>
 {
 protected:
-	Struct *_structure;
-
-	explicit UserOwned(Struct *structure) :
-		_structure(structure)
-	{
-	}
+	UserOwned() {}
 
 	shared_ptr<Class> shared_from_this()
 	{
@@ -249,7 +239,7 @@ private:
 };
 
 /** The global libsigrok context */
-class SR_API Context : public UserOwned<Context, struct sr_context>
+class SR_API Context : public UserOwned<Context>
 {
 public:
 	/** Create new context */
@@ -309,6 +299,7 @@ public:
 	shared_ptr<Input> open_stream(string header);
 	map<string, string> serials(shared_ptr<Driver> driver) const;
 private:
+	struct sr_context *_structure;
 	map<string, Driver *> _drivers;
 	map<string, InputFormat *> _input_formats;
 	map<string, OutputFormat *> _output_formats;
@@ -358,7 +349,7 @@ protected:
 
 /** A hardware driver provided by the library */
 class SR_API Driver :
-	public ParentOwned<Driver, Context, struct sr_dev_driver>,
+	public ParentOwned<Driver, Context>,
 	public Configurable
 {
 public:
@@ -371,6 +362,7 @@ public:
 	vector<shared_ptr<HardwareDevice> > scan(
 		const map<const ConfigKey *, Glib::VariantBase> &options = {});
 private:
+	struct sr_dev_driver *_structure;
 	bool _initialized;
 	vector<HardwareDevice *> _devices;
 	explicit Driver(struct sr_dev_driver *structure);
@@ -428,7 +420,7 @@ private:
 
 /** A real hardware device, connected via a driver */
 class SR_API HardwareDevice :
-	public UserOwned<HardwareDevice, struct sr_dev_inst>,
+	public UserOwned<HardwareDevice>,
 	public Device
 {
 public:
@@ -452,7 +444,7 @@ private:
 
 /** A virtual device, created by the user */
 class SR_API UserDevice :
-	public UserOwned<UserDevice, struct sr_dev_inst>,
+	public UserOwned<UserDevice>,
 	public Device
 {
 public:
@@ -474,7 +466,7 @@ private:
 
 /** A channel on a device */
 class SR_API Channel :
-	public ParentOwned<Channel, Device, struct sr_channel>
+	public ParentOwned<Channel, Device>
 {
 public:
 	/** Current name of this channel. */
@@ -494,6 +486,7 @@ public:
 private:
 	explicit Channel(struct sr_channel *structure);
 	~Channel();
+	struct sr_channel *_structure;
 	const ChannelType * const _type;
 	friend class Device;
 	friend class UserDevice;
@@ -505,7 +498,7 @@ private:
 
 /** A group of channels on a device, which share some configuration */
 class SR_API ChannelGroup :
-	public ParentOwned<ChannelGroup, Device, struct sr_channel_group>,
+	public ParentOwned<ChannelGroup, Device>,
 	public Configurable
 {
 public:
@@ -521,7 +514,7 @@ private:
 };
 
 /** A trigger configuration */
-class SR_API Trigger : public UserOwned<Trigger, struct sr_trigger>
+class SR_API Trigger : public UserOwned<Trigger>
 {
 public:
 	/** Name of this trigger configuration. */
@@ -533,6 +526,7 @@ public:
 private:
 	Trigger(shared_ptr<Context> context, string name);
 	~Trigger();
+	struct sr_trigger *_structure;
 	shared_ptr<Context> _context;
 	vector<TriggerStage *> _stages;
 	friend class Deleter;
@@ -542,7 +536,7 @@ private:
 
 /** A stage in a trigger configuration */
 class SR_API TriggerStage :
-	public ParentOwned<TriggerStage, Trigger, struct sr_trigger_stage>
+	public ParentOwned<TriggerStage, Trigger>
 {
 public:
 	/** Index number of this stage. */
@@ -559,6 +553,7 @@ public:
 	 * @param value Threshold value. */
 	void add_match(shared_ptr<Channel> channel, const TriggerMatchType *type, float value);
 private:
+	struct sr_trigger_stage *_structure;
 	vector<TriggerMatch *> _matches;
 	explicit TriggerStage(struct sr_trigger_stage *structure);
 	~TriggerStage();
@@ -567,7 +562,7 @@ private:
 
 /** A match condition in a trigger configuration  */
 class SR_API TriggerMatch :
-	public ParentOwned<TriggerMatch, TriggerStage, struct sr_trigger_match>
+	public ParentOwned<TriggerMatch, TriggerStage>
 {
 public:
 	/** Channel this condition matches on. */
@@ -579,6 +574,7 @@ public:
 private:
 	TriggerMatch(struct sr_trigger_match *structure, shared_ptr<Channel> channel);
 	~TriggerMatch();
+	struct sr_trigger_match *_structure;
 	shared_ptr<Channel> _channel;
 	friend class TriggerStage;
 };
@@ -606,7 +602,7 @@ private:
 
 /** A virtual device associated with a stored session */
 class SR_API SessionDevice :
-	public ParentOwned<SessionDevice, Session, struct sr_dev_inst>,
+	public ParentOwned<SessionDevice, Session>,
 	public Device
 {
 private:
@@ -624,7 +620,7 @@ private:
 };
 
 /** A sigrok session */
-class SR_API Session : public UserOwned<Session, struct sr_session>
+class SR_API Session : public UserOwned<Session>
 {
 public:
 	/** Add a device to this session.
@@ -663,6 +659,7 @@ private:
 	Session(shared_ptr<Context> context, string filename);
 	~Session();
 	shared_ptr<Device> get_device(const struct sr_dev_inst *sdi);
+	struct sr_session *_structure;
 	const shared_ptr<Context> _context;
 	map<const struct sr_dev_inst *, SessionDevice *> _owned_devices;
 	map<const struct sr_dev_inst *, shared_ptr<Device> > _other_devices;
@@ -677,7 +674,7 @@ private:
 };
 
 /** A packet on the session datafeed */
-class SR_API Packet : public UserOwned<Packet, const struct sr_datafeed_packet>
+class SR_API Packet : public UserOwned<Packet>
 {
 public:
 	/** Type of this packet. */
@@ -688,6 +685,7 @@ private:
 	Packet(shared_ptr<Device> device,
 		const struct sr_datafeed_packet *structure);
 	~Packet();
+	const struct sr_datafeed_packet *_structure;
 	shared_ptr<Device> _device;
 	PacketPayload *_payload;
 	friend class Deleter;
@@ -723,7 +721,7 @@ private:
 
 /** Payload of a datafeed header packet */
 class SR_API Header :
-	public ParentOwned<Header, Packet, const struct sr_datafeed_header>,
+	public ParentOwned<Header, Packet>,
 	public PacketPayload
 {
 public:
@@ -735,12 +733,15 @@ private:
 	explicit Header(const struct sr_datafeed_header *structure);
 	~Header();
 	shared_ptr<PacketPayload> share_owned_by(shared_ptr<Packet> parent);
+
+	const struct sr_datafeed_header *_structure;
+
 	friend class Packet;
 };
 
 /** Payload of a datafeed metadata packet */
 class SR_API Meta :
-	public ParentOwned<Meta, Packet, const struct sr_datafeed_meta>,
+	public ParentOwned<Meta, Packet>,
 	public PacketPayload
 {
 public:
@@ -750,13 +751,16 @@ private:
 	explicit Meta(const struct sr_datafeed_meta *structure);
 	~Meta();
 	shared_ptr<PacketPayload> share_owned_by(shared_ptr<Packet> parent);
+
+	const struct sr_datafeed_meta *_structure;
 	map<const ConfigKey *, Glib::VariantBase> _config;
+
 	friend class Packet;
 };
 
 /** Payload of a datafeed packet with logic data */
 class SR_API Logic :
-	public ParentOwned<Logic, Packet, const struct sr_datafeed_logic>,
+	public ParentOwned<Logic, Packet>,
 	public PacketPayload
 {
 public:
@@ -770,12 +774,15 @@ private:
 	explicit Logic(const struct sr_datafeed_logic *structure);
 	~Logic();
 	shared_ptr<PacketPayload> share_owned_by(shared_ptr<Packet> parent);
+
+	const struct sr_datafeed_logic *_structure;
+
 	friend class Packet;
 };
 
 /** Payload of a datafeed packet with analog data */
 class SR_API Analog :
-	public ParentOwned<Analog, Packet, const struct sr_datafeed_analog>,
+	public ParentOwned<Analog, Packet>,
 	public PacketPayload
 {
 public:
@@ -795,12 +802,15 @@ private:
 	explicit Analog(const struct sr_datafeed_analog *structure);
 	~Analog();
 	shared_ptr<PacketPayload> share_owned_by(shared_ptr<Packet> parent);
+
+	const struct sr_datafeed_analog *_structure;
+
 	friend class Packet;
 };
 
 /** An input format supported by the library */
 class SR_API InputFormat :
-	public ParentOwned<InputFormat, Context, const struct sr_input_module>
+	public ParentOwned<InputFormat, Context>
 {
 public:
 	/** Name of this input format. */
@@ -818,12 +828,15 @@ public:
 private:
 	explicit InputFormat(const struct sr_input_module *structure);
 	~InputFormat();
+
+	const struct sr_input_module *_structure;
+
 	friend class Context;
 	friend class InputDevice;
 };
 
 /** An input instance (an input format applied to a file or stream) */
-class SR_API Input : public UserOwned<Input, const struct sr_input>
+class SR_API Input : public UserOwned<Input>
 {
 public:
 	/** Virtual device associated with this input. */
@@ -837,6 +850,7 @@ public:
 private:
 	Input(shared_ptr<Context> context, const struct sr_input *structure);
 	~Input();
+	const struct sr_input *_structure;
 	shared_ptr<Context> _context;
 	InputDevice *_device;
 	friend class Deleter;
@@ -846,7 +860,7 @@ private:
 
 /** A virtual device associated with an input */
 class SR_API InputDevice :
-	public ParentOwned<InputDevice, Input, struct sr_dev_inst>,
+	public ParentOwned<InputDevice, Input>,
 	public Device
 {
 private:
@@ -858,7 +872,7 @@ private:
 };
 
 /** An option used by an output format */
-class SR_API Option : public UserOwned<Option, const struct sr_option>
+class SR_API Option : public UserOwned<Option>
 {
 public:
 	/** Short name of this option suitable for command line usage. */
@@ -875,6 +889,7 @@ private:
 	Option(const struct sr_option *structure,
 		shared_ptr<const struct sr_option *> structure_array);
 	~Option();
+	const struct sr_option *_structure;
 	shared_ptr<const struct sr_option *> _structure_array;
 	friend class Deleter;
 	friend class InputFormat;
@@ -883,7 +898,7 @@ private:
 
 /** An output format supported by the library */
 class SR_API OutputFormat :
-	public ParentOwned<OutputFormat, Context, const struct sr_output_module>
+	public ParentOwned<OutputFormat, Context>
 {
 public:
 	/** Name of this output format. */
@@ -918,12 +933,15 @@ public:
 private:
 	explicit OutputFormat(const struct sr_output_module *structure);
 	~OutputFormat();
+
+	const struct sr_output_module *_structure;
+
 	friend class Context;
 	friend class Output;
 };
 
 /** An output instance (an output format applied to a device) */
-class SR_API Output : public UserOwned<Output, const struct sr_output>
+class SR_API Output : public UserOwned<Output>
 {
 public:
 	/** Update output with data from the given packet.
@@ -936,9 +954,12 @@ private:
 	Output(string filename, shared_ptr<OutputFormat> format,
 		shared_ptr<Device> device, const map<string, Glib::VariantBase> &options);
 	~Output();
+
+	const struct sr_output *_structure;
 	const shared_ptr<OutputFormat> _format;
 	const shared_ptr<Device> _device;
 	const map<string, Glib::VariantBase> _options;
+
 	friend class Deleter;
 	friend class OutputFormat;
 };
