@@ -87,8 +87,8 @@ setup(
     ext_modules = [
         Extension('sigrok.core._classes',
             sources = [vpath('sigrok/core/classes.i')],
-            swig_opts = ['-c++', '-threads', '-Isigrok/core', '-I..', '-I' + srcdir_parent] +
-                ['-I%s' % i for i in includes],
+            swig_opts = ['-c++', '-threads', '-Dnoexcept=', '-Isigrok/core',
+                '-I..', '-I' + srcdir_parent] + ['-I%s' % i for i in includes],
             extra_compile_args = ['-Wno-uninitialized'],
             include_dirs = includes,
             library_dirs = libdirs,
