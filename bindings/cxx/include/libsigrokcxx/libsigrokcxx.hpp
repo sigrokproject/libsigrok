@@ -261,9 +261,9 @@ public:
 	/** Create new context */
 	static shared_ptr<Context> create();
 	/** libsigrok package version. */
-	string package_version();
+	static string package_version();
 	/** libsigrok library version. */
-	string lib_version();
+	static string lib_version();
 	/** Available hardware drivers, indexed by name. */
 	map<string, shared_ptr<Driver> > drivers();
 	/** Available input formats, indexed by name. */
