@@ -120,7 +120,7 @@ class SR_API UserDevice;
 class SR_API Error: public exception
 {
 public:
-	Error(int result);
+	explicit Error(int result);
 	~Error() throw();
 	const int result;
 	const char *what() const throw();
@@ -194,7 +194,7 @@ protected:
 
 	Struct *_structure;
 
-	ParentOwned<Class, Parent, Struct>(Struct *structure) :
+	explicit ParentOwned(Struct *structure) :
 		_structure(structure)
 	{
 	}
@@ -215,7 +215,7 @@ public:
 protected:
 	Struct *_structure;
 
-	UserOwned<Class, Struct>(Struct *structure) :
+	explicit UserOwned(Struct *structure) :
 		_structure(structure)
 	{
 	}
@@ -379,7 +379,7 @@ public:
 protected:
 	bool _initialized;
 	vector<HardwareDevice *> _devices;
-	Driver(struct sr_dev_driver *structure);
+	explicit Driver(struct sr_dev_driver *structure);
 	~Driver();
 	friend class Context;
 	friend class HardwareDevice;
@@ -409,7 +409,7 @@ public:
 	/** Close device. */
 	void close();
 protected:
-	Device(struct sr_dev_inst *structure);
+	explicit Device(struct sr_dev_inst *structure);
 	~Device();
 	virtual shared_ptr<Device> get_shared_from_this() = 0;
 	shared_ptr<Channel> get_channel(struct sr_channel *ptr);
@@ -496,7 +496,7 @@ public:
 	/** Get the index number of this channel. */
 	unsigned int index();
 protected:
-	Channel(struct sr_channel *structure);
+	explicit Channel(struct sr_channel *structure);
 	~Channel();
 	const ChannelType * const _type;
 	friend class Device;
@@ -564,7 +564,7 @@ public:
 	void add_match(shared_ptr<Channel> channel, const TriggerMatchType *type, float value);
 protected:
 	vector<TriggerMatch *> _matches;
-	TriggerStage(struct sr_trigger_stage *structure);
+	explicit TriggerStage(struct sr_trigger_stage *structure);
 	~TriggerStage();
 	friend class Trigger;
 };
@@ -614,7 +614,7 @@ class SR_API SessionDevice :
 	public Device
 {
 protected:
-	SessionDevice(struct sr_dev_inst *sdi);
+	explicit SessionDevice(struct sr_dev_inst *sdi);
 	~SessionDevice();
 	shared_ptr<Device> get_shared_from_this();
 	/** Deleter needed to allow shared_ptr use with protected destructor. */
@@ -663,7 +663,7 @@ public:
 	/** Get filename this session was loaded from. */
 	string filename();
 protected:
-	Session(shared_ptr<Context> context);
+	explicit Session(shared_ptr<Context> context);
 	Session(shared_ptr<Context> context, string filename);
 	~Session();
 	shared_ptr<Device> get_device(const struct sr_dev_inst *sdi);
@@ -734,7 +734,7 @@ public:
 	/* Start time of this session. */
 	Glib::TimeVal start_time();
 protected:
-	Header(const struct sr_datafeed_header *structure);
+	explicit Header(const struct sr_datafeed_header *structure);
 	~Header();
 	shared_ptr<PacketPayload> get_shared_pointer(Packet *parent);
 	friend class Packet;
@@ -749,7 +749,7 @@ public:
 	/* Mapping of (ConfigKey, value) pairs. */
 	map<const ConfigKey *, Glib::VariantBase> config();
 protected:
-	Meta(const struct sr_datafeed_meta *structure);
+	explicit Meta(const struct sr_datafeed_meta *structure);
 	~Meta();
 	shared_ptr<PacketPayload> get_shared_pointer(Packet *parent);
 	map<const ConfigKey *, Glib::VariantBase> _config;
@@ -769,7 +769,7 @@ public:
 	/* Size of each sample in bytes. */
 	unsigned int unit_size();
 protected:
-	Logic(const struct sr_datafeed_logic *structure);
+	explicit Logic(const struct sr_datafeed_logic *structure);
 	~Logic();
 	shared_ptr<PacketPayload> get_shared_pointer(Packet *parent);
 	friend class Packet;
@@ -794,7 +794,7 @@ public:
 	/** Measurement flags associated with the samples in this packet. */
 	vector<const QuantityFlag *> mq_flags();
 protected:
-	Analog(const struct sr_datafeed_analog *structure);
+	explicit Analog(const struct sr_datafeed_analog *structure);
 	~Analog();
 	shared_ptr<PacketPayload> get_shared_pointer(Packet *parent);
 	friend class Packet;
@@ -818,7 +818,7 @@ public:
 	 * @param options Mapping of (option name, value) pairs. */
 	shared_ptr<Input> create_input(const map<string, Glib::VariantBase> &options = {});
 protected:
-	InputFormat(const struct sr_input_module *structure);
+	explicit InputFormat(const struct sr_input_module *structure);
 	~InputFormat();
 	friend class Context;
 	friend class InputDevice;
@@ -918,7 +918,7 @@ public:
 	 */
 	bool test_flag(const OutputFlag *flag);
 protected:
-	OutputFormat(const struct sr_output_module *structure);
+	explicit OutputFormat(const struct sr_output_module *structure);
 	~OutputFormat();
 	friend class Context;
 	friend class Output;
