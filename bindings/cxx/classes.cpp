@@ -199,7 +199,7 @@ Context::~Context()
 	check(sr_exit(_structure));
 }
 
-const LogLevel *Context::log_level()
+const LogLevel *Context::log_level() const
 {
 	return LogLevel::get(sr_log_loglevel_get());
 }
@@ -368,7 +368,7 @@ shared_ptr<Input> Context::open_stream(string header)
 		new Input(shared_from_this(), input), Input::Deleter());
 }
 
-map<string, string> Context::serials(shared_ptr<Driver> driver)
+map<string, string> Context::serials(shared_ptr<Driver> driver) const
 {
 	GSList *serial_list = sr_serial_list(driver ? driver->_structure : nullptr);
 	map<string, string> serials;
@@ -394,12 +394,12 @@ Driver::~Driver()
 {
 }
 
-string Driver::name()
+string Driver::name() const
 {
 	return valid_string(_structure->name);
 }
 
-string Driver::long_name()
+string Driver::long_name() const
 {
 	return valid_string(_structure->longname);
 }
@@ -463,7 +463,7 @@ Configurable::~Configurable()
 {
 }
 
-Glib::VariantBase Configurable::config_get(const ConfigKey *key)
+Glib::VariantBase Configurable::config_get(const ConfigKey *key) const
 {
 	GVariant *data;
 	check(sr_config_get(
@@ -479,7 +479,7 @@ void Configurable::config_set(const ConfigKey *key, const Glib::VariantBase &val
 		key->id(), const_cast<GVariant*>(value.gobj())));
 }
 
-Glib::VariantContainerBase Configurable::config_list(const ConfigKey *key)
+Glib::VariantContainerBase Configurable::config_list(const ConfigKey *key) const
 {
 	GVariant *data;
 	check(sr_config_list(
@@ -521,7 +521,7 @@ map<const ConfigKey *, set<Capability>> Configurable::config_keys(const ConfigKe
 }
 
 bool Configurable::config_check(const ConfigKey *key,
-	const ConfigKey *index_key)
+	const ConfigKey *index_key) const
 {
 	GVariant *gvar_opts;
 	gsize num_opts;
@@ -573,27 +573,27 @@ Device::~Device()
 		delete entry.second;
 }
 
-string Device::vendor()
+string Device::vendor() const
 {
 	return valid_string(sr_dev_inst_vendor_get(_structure));
 }
 
-string Device::model()
+string Device::model() const
 {
 	return valid_string(sr_dev_inst_model_get(_structure));
 }
 
-string Device::version()
+string Device::version() const
 {
 	return valid_string(sr_dev_inst_version_get(_structure));
 }
 
-string Device::serial_number()
+string Device::serial_number() const
 {
 	return valid_string(sr_dev_inst_sernum_get(_structure));
 }
 
-string Device::connection_id()
+string Device::connection_id() const
 {
 	return valid_string(sr_dev_inst_connid_get(_structure));
 }
@@ -695,7 +695,7 @@ Channel::~Channel()
 {
 }
 
-string Channel::name()
+string Channel::name() const
 {
 	return valid_string(_structure->name);
 }
@@ -705,12 +705,12 @@ void Channel::set_name(string name)
 	check(sr_dev_channel_name_set(_structure, name.c_str()));
 }
 
-const ChannelType *Channel::type()
+const ChannelType *Channel::type() const
 {
 	return ChannelType::get(_structure->type);
 }
 
-bool Channel::enabled()
+bool Channel::enabled() const
 {
 	return _structure->enabled;
 }
@@ -720,7 +720,7 @@ void Channel::set_enabled(bool value)
 	check(sr_dev_channel_enable(_structure, value));
 }
 
-unsigned int Channel::index()
+unsigned int Channel::index() const
 {
 	return _structure->index;
 }
@@ -740,7 +740,7 @@ ChannelGroup::~ChannelGroup()
 {
 }
 
-string ChannelGroup::name()
+string ChannelGroup::name() const
 {
 	return valid_string(_structure->name);
 }
@@ -770,7 +770,7 @@ Trigger::~Trigger()
 	sr_trigger_free(_structure);
 }
 
-string Trigger::name()
+string Trigger::name() const
 {
 	return _structure->name;
 }
@@ -801,7 +801,7 @@ TriggerStage::~TriggerStage()
 		delete match;
 }
 	
-int TriggerStage::number()
+int TriggerStage::number() const
 {
 	return _structure->stage;
 }
@@ -847,12 +847,12 @@ shared_ptr<Channel> TriggerMatch::channel()
 	return _channel;
 }
 
-const TriggerMatchType *TriggerMatch::type()
+const TriggerMatchType *TriggerMatch::type() const
 {
 	return TriggerMatchType::get(_structure->match);
 }
 
-float TriggerMatch::value()
+float TriggerMatch::value() const
 {
 	return _structure->value;
 }
@@ -1035,7 +1035,7 @@ void Session::set_trigger(shared_ptr<Trigger> trigger)
 	_trigger = move(trigger);
 }
 
-string Session::filename()
+string Session::filename() const
 {
 	return _filename;
 }
@@ -1084,7 +1084,7 @@ Packet::~Packet()
 		delete _payload;
 }
 
-const PacketType *Packet::type()
+const PacketType *Packet::type() const
 {
 	return PacketType::get(_structure->type);
 }
@@ -1121,12 +1121,12 @@ shared_ptr<PacketPayload> Header::get_shared_pointer(Packet *_parent)
 		ParentOwned::get_shared_pointer(_parent));
 }
 
-int Header::feed_version()
+int Header::feed_version() const
 {
 	return _structure->feed_version;
 }
 
-Glib::TimeVal Header::start_time()
+Glib::TimeVal Header::start_time() const
 {
 	return Glib::TimeVal(
 		_structure->starttime.tv_sec,
@@ -1149,7 +1149,7 @@ shared_ptr<PacketPayload> Meta::get_shared_pointer(Packet *_parent)
 		ParentOwned::get_shared_pointer(_parent));
 }
 
-map<const ConfigKey *, Glib::VariantBase> Meta::config()
+map<const ConfigKey *, Glib::VariantBase> Meta::config() const
 {
 	map<const ConfigKey *, Glib::VariantBase> result;
 	for (auto l = _structure->config; l; l = l->next) {
@@ -1180,12 +1180,12 @@ void *Logic::data_pointer()
 	return _structure->data;
 }
 
-size_t Logic::data_length()
+size_t Logic::data_length() const
 {
 	return _structure->length;
 }
 
-unsigned int Logic::unit_size()
+unsigned int Logic::unit_size() const
 {
 	return _structure->unitsize;
 }
@@ -1211,7 +1211,7 @@ void *Analog::data_pointer()
 	return _structure->data;
 }
 
-unsigned int Analog::num_samples()
+unsigned int Analog::num_samples() const
 {
 	return _structure->num_samples;
 }
@@ -1226,17 +1226,17 @@ vector<shared_ptr<Channel>> Analog::channels()
 	return result;
 }
 
-const Quantity *Analog::mq()
+const Quantity *Analog::mq() const
 {
 	return Quantity::get(_structure->meaning->mq);
 }
 
-const Unit *Analog::unit()
+const Unit *Analog::unit() const
 {
 	return Unit::get(_structure->meaning->unit);
 }
 
-vector<const QuantityFlag *> Analog::mq_flags()
+vector<const QuantityFlag *> Analog::mq_flags() const
 {
 	return QuantityFlag::flags_from_mask(_structure->meaning->mqflags);
 }
@@ -1250,17 +1250,17 @@ InputFormat::~InputFormat()
 {
 }
 
-string InputFormat::name()
+string InputFormat::name() const
 {
 	return valid_string(sr_input_id_get(_structure));
 }
 
-string InputFormat::description()
+string InputFormat::description() const
 {
 	return valid_string(sr_input_description_get(_structure));
 }
 
-vector<string> InputFormat::extensions()
+vector<string> InputFormat::extensions() const
 {
 	vector<string> exts;
 	for (const char *const *e = sr_input_extensions_get(_structure);
@@ -1362,27 +1362,27 @@ Option::~Option()
 {
 }
 
-string Option::id()
+string Option::id() const
 {
 	return valid_string(_structure->id);
 }
 
-string Option::name()
+string Option::name() const
 {
 	return valid_string(_structure->name);
 }
 
-string Option::description()
+string Option::description() const
 {
 	return valid_string(_structure->desc);
 }
 
-Glib::VariantBase Option::default_value()
+Glib::VariantBase Option::default_value() const
 {
 	return Glib::VariantBase(_structure->def, true);
 }
 
-vector<Glib::VariantBase> Option::values()
+vector<Glib::VariantBase> Option::values() const
 {
 	vector<Glib::VariantBase> result;
 	for (auto l = _structure->values; l; l = l->next) {
@@ -1401,17 +1401,17 @@ OutputFormat::~OutputFormat()
 {
 }
 
-string OutputFormat::name()
+string OutputFormat::name() const
 {
 	return valid_string(sr_output_id_get(_structure));
 }
 
-string OutputFormat::description()
+string OutputFormat::description() const
 {
 	return valid_string(sr_output_description_get(_structure));
 }
 
-vector<string> OutputFormat::extensions()
+vector<string> OutputFormat::extensions() const
 {
 	vector<string> exts;
 	for (const char *const *e = sr_output_extensions_get(_structure);
@@ -1451,7 +1451,7 @@ shared_ptr<Output> OutputFormat::create_output(string filename,
 		Output::Deleter());
 }
 
-bool OutputFormat::test_flag(const OutputFlag *flag)
+bool OutputFormat::test_flag(const OutputFlag *flag) const
 {
 	return sr_output_test_flag(_structure, flag->id());
 }

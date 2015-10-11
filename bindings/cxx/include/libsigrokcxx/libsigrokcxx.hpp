@@ -271,7 +271,7 @@ public:
 	/** Available output formats, indexed by name. */
 	map<string, shared_ptr<OutputFormat> > output_formats();
 	/** Current log level. */
-	const LogLevel *log_level();
+	const LogLevel *log_level() const;
 	/** Set the log level.
 	 * @param level LogLevel to use. */
 	void set_log_level(const LogLevel *level);
@@ -313,7 +313,7 @@ public:
 	/** Open an input stream based on header data.
 	 * @param header Initial data from stream. */
 	shared_ptr<Input> open_stream(string header);
-	map<string, string> serials(shared_ptr<Driver> driver);
+	map<string, string> serials(shared_ptr<Driver> driver) const;
 protected:
 	map<string, Driver *> _drivers;
 	map<string, InputFormat *> _input_formats;
@@ -339,18 +339,18 @@ class SR_API Configurable
 public:
 	/** Read configuration for the given key.
 	 * @param key ConfigKey to read. */
-	Glib::VariantBase config_get(const ConfigKey *key);
+	Glib::VariantBase config_get(const ConfigKey *key) const;
 	/** Set configuration for the given key to a specified value.
 	 * @param key ConfigKey to set.
 	 * @param value Value to set. */
 	void config_set(const ConfigKey *key, const Glib::VariantBase &value);
 	/** Enumerate available values for the given configuration key.
 	 * @param key ConfigKey to enumerate values for. */
-	Glib::VariantContainerBase config_list(const ConfigKey *key);
+	Glib::VariantContainerBase config_list(const ConfigKey *key) const;
 	/** Enumerate available keys, according to a given index key. */
 	map<const ConfigKey *, set<Capability> > config_keys(const ConfigKey *key);
 	/** Check for a key in the list from a given index key. */
-	bool config_check(const ConfigKey *key, const ConfigKey *index_key);
+	bool config_check(const ConfigKey *key, const ConfigKey *index_key) const;
 protected:
 	Configurable(
 		struct sr_dev_driver *driver,
@@ -369,9 +369,9 @@ class SR_API Driver :
 {
 public:
 	/** Name of this driver. */
-	string name();
+	string name() const;
 	/** Long name for this driver. */
-	string long_name();
+	string long_name() const;
 	/** Scan for devices and return a list of devices found.
 	 * @param options Mapping of (ConfigKey, value) pairs. */
 	vector<shared_ptr<HardwareDevice> > scan(
@@ -391,15 +391,15 @@ class SR_API Device : public Configurable
 {
 public:
 	/** Vendor name for this device. */
-	string vendor();
+	string vendor() const;
 	/** Model name for this device. */
-	string model();
+	string model() const;
 	/** Version string for this device. */
-	string version();
+	string version() const;
 	/** Serial number for this device. */
-	string serial_number();
+	string serial_number() const;
 	/** Connection ID for this device. */
-	string connection_id();
+	string connection_id() const;
 	/** List of the channels available on this device. */
 	vector<shared_ptr<Channel> > channels();
 	/** Channel groups available on this device, indexed by name. */
@@ -482,19 +482,19 @@ class SR_API Channel :
 {
 public:
 	/** Current name of this channel. */
-	string name();
+	string name() const;
 	/** Set the name of this channel. *
 	 * @param name Name string to set. */
 	void set_name(string name);
 	/** Type of this channel. */
-	const ChannelType *type();
+	const ChannelType *type() const;
 	/** Enabled status of this channel. */
-	bool enabled();
+	bool enabled() const;
 	/** Set the enabled status of this channel.
 	 * @param value Boolean value to set. */
 	void set_enabled(bool value);
 	/** Get the index number of this channel. */
-	unsigned int index();
+	unsigned int index() const;
 protected:
 	explicit Channel(struct sr_channel *structure);
 	~Channel();
@@ -514,7 +514,7 @@ class SR_API ChannelGroup :
 {
 public:
 	/** Name of this channel group. */
-	string name();
+	string name() const;
 	/** List of the channels in this group. */
 	vector<shared_ptr<Channel> > channels();
 protected:
@@ -529,7 +529,7 @@ class SR_API Trigger : public UserOwned<Trigger, struct sr_trigger>
 {
 public:
 	/** Name of this trigger configuration. */
-	string name();
+	string name() const;
 	/** List of the stages in this trigger. */
 	vector<shared_ptr<TriggerStage> > stages();
 	/** Add a new stage to this trigger. */
@@ -550,7 +550,7 @@ class SR_API TriggerStage :
 {
 public:
 	/** Index number of this stage. */
-	int number();
+	int number() const;
 	/** List of match conditions on this stage. */
 	vector<shared_ptr<TriggerMatch> > matches();
 	/** Add a new match condition to this stage.
@@ -577,9 +577,9 @@ public:
 	/** Channel this condition matches on. */
 	shared_ptr<Channel> channel();
 	/** Type of match. */
-	const TriggerMatchType *type();
+	const TriggerMatchType *type() const;
 	/** Threshold value. */
-	float value();
+	float value() const;
 protected:
 	TriggerMatch(struct sr_trigger_match *structure, shared_ptr<Channel> channel);
 	~TriggerMatch();
@@ -661,7 +661,7 @@ public:
 	 * @param trigger Trigger object to use. */
 	void set_trigger(shared_ptr<Trigger> trigger);
 	/** Get filename this session was loaded from. */
-	string filename();
+	string filename() const;
 protected:
 	explicit Session(shared_ptr<Context> context);
 	Session(shared_ptr<Context> context, string filename);
@@ -685,7 +685,7 @@ class SR_API Packet : public UserOwned<Packet, const struct sr_datafeed_packet>
 {
 public:
 	/** Type of this packet. */
-	const PacketType *type();
+	const PacketType *type() const;
 	/** Payload of this packet. */
 	shared_ptr<PacketPayload> payload();
 protected:
@@ -730,9 +730,9 @@ class SR_API Header :
 {
 public:
 	/* Feed version number. */
-	int feed_version();
+	int feed_version() const;
 	/* Start time of this session. */
-	Glib::TimeVal start_time();
+	Glib::TimeVal start_time() const;
 protected:
 	explicit Header(const struct sr_datafeed_header *structure);
 	~Header();
@@ -747,7 +747,7 @@ class SR_API Meta :
 {
 public:
 	/* Mapping of (ConfigKey, value) pairs. */
-	map<const ConfigKey *, Glib::VariantBase> config();
+	map<const ConfigKey *, Glib::VariantBase> config() const;
 protected:
 	explicit Meta(const struct sr_datafeed_meta *structure);
 	~Meta();
@@ -765,9 +765,9 @@ public:
 	/* Pointer to data. */
 	void *data_pointer();
 	/* Data length in bytes. */
-	size_t data_length();
+	size_t data_length() const;
 	/* Size of each sample in bytes. */
-	unsigned int unit_size();
+	unsigned int unit_size() const;
 protected:
 	explicit Logic(const struct sr_datafeed_logic *structure);
 	~Logic();
@@ -784,15 +784,15 @@ public:
 	/** Pointer to data. */
 	void *data_pointer();
 	/** Number of samples in this packet. */
-	uint32_t num_samples();
+	unsigned int num_samples() const;
 	/** Channels for which this packet contains data. */
 	vector<shared_ptr<Channel> > channels();
 	/** Measured quantity of the samples in this packet. */
-	const Quantity *mq();
+	const Quantity *mq() const;
 	/** Unit of the samples in this packet. */
-	const Unit *unit();
+	const Unit *unit() const;
 	/** Measurement flags associated with the samples in this packet. */
-	vector<const QuantityFlag *> mq_flags();
+	vector<const QuantityFlag *> mq_flags() const;
 protected:
 	explicit Analog(const struct sr_datafeed_analog *structure);
 	~Analog();
@@ -806,12 +806,12 @@ class SR_API InputFormat :
 {
 public:
 	/** Name of this input format. */
-	string name();
+	string name() const;
 	/** Description of this input format. */
-	string description();
+	string description() const;
 	/** A list of preferred file name extensions for this file format.
          * @note This list is a recommendation only. */
-	vector<string> extensions();
+	vector<string> extensions() const;
 	/** Options supported by this input format. */
 	map<string, shared_ptr<Option> > options();
 	/** Create an input using this input format.
@@ -864,15 +864,15 @@ class SR_API Option : public UserOwned<Option, const struct sr_option>
 {
 public:
 	/** Short name of this option suitable for command line usage. */
-	string id();
+	string id() const;
 	/** Short name of this option suitable for GUI usage. */
-	string name();
+	string name() const;
 	/** Description of this option in a sentence. */
-	string description();
+	string description() const;
 	/** Default value for this option. */
-	Glib::VariantBase default_value();
+	Glib::VariantBase default_value() const;
 	/** Possible values for this option, if a limited set. */
-	vector<Glib::VariantBase> values();
+	vector<Glib::VariantBase> values() const;
 protected:
 	Option(const struct sr_option *structure,
 		shared_ptr<const struct sr_option *> structure_array);
@@ -889,12 +889,12 @@ class SR_API OutputFormat :
 {
 public:
 	/** Name of this output format. */
-	string name();
+	string name() const;
 	/** Description of this output format. */
-	string description();
+	string description() const;
 	/** A list of preferred file name extensions for this file format.
          * @note This list is a recommendation only. */
-	vector<string> extensions();
+	vector<string> extensions() const;
 	/** Options supported by this output format. */
 	map<string, shared_ptr<Option> > options();
 	/** Create an output using this format.
@@ -916,7 +916,7 @@ public:
 	 * @return true if flag is set for this module
 	 * @see sr_output_flags
 	 */
-	bool test_flag(const OutputFlag *flag);
+	bool test_flag(const OutputFlag *flag) const;
 protected:
 	explicit OutputFormat(const struct sr_output_module *structure);
 	~OutputFormat();
@@ -962,10 +962,10 @@ public:
 	/** Get value associated with a given integer constant. */
 	static const Class *get(int id)
 	{
-		auto key = static_cast<Enum>(id);
-		if (_values.find(key) == _values.end())
+		const auto pos = _values.find(static_cast<Enum>(id));
+		if (pos == _values.end())
 			throw Error(SR_ERR_ARG);
-		return _values.at(key);
+		return pos->second;
 	}
 	/** Get possible values. */
 	static std::vector<const Class *> values()
