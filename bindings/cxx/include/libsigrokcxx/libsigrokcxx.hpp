@@ -246,11 +246,11 @@ private:
 	virtual size_t read(const struct sr_resource *res, void *buf, size_t count) = 0;
 
 	static SR_PRIV int open_callback(struct sr_resource *res,
-			const char *name, void *cb_data);
+			const char *name, void *cb_data) noexcept;
 	static SR_PRIV int close_callback(struct sr_resource *res,
-			void *cb_data);
+			void *cb_data) noexcept;
 	static SR_PRIV ssize_t read_callback(const struct sr_resource *res,
-			void *buf, size_t count, void *cb_data);
+			void *buf, size_t count, void *cb_data) noexcept;
 	friend class Context;
 };
 

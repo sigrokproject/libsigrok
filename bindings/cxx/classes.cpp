@@ -74,7 +74,7 @@ ResourceReader::~ResourceReader()
 }
 
 SR_PRIV int ResourceReader::open_callback(struct sr_resource *res,
-		const char *name, void *cb_data)
+		const char *name, void *cb_data) noexcept
 {
 	try {
 		auto *const reader = static_cast<ResourceReader*>(cb_data);
@@ -87,7 +87,8 @@ SR_PRIV int ResourceReader::open_callback(struct sr_resource *res,
 	return SR_OK;
 }
 
-SR_PRIV int ResourceReader::close_callback(struct sr_resource *res, void *cb_data)
+SR_PRIV int ResourceReader::close_callback(struct sr_resource *res,
+		void *cb_data) noexcept
 {
 	try {
 		auto *const reader = static_cast<ResourceReader*>(cb_data);
@@ -101,7 +102,7 @@ SR_PRIV int ResourceReader::close_callback(struct sr_resource *res, void *cb_dat
 }
 
 SR_PRIV ssize_t ResourceReader::read_callback(const struct sr_resource *res,
-		void *buf, size_t count, void *cb_data)
+		void *buf, size_t count, void *cb_data) noexcept
 {
 	try {
 		auto *const reader = static_cast<ResourceReader*>(cb_data);
@@ -208,7 +209,8 @@ void Context::set_log_level(const LogLevel *level)
 	check(sr_log_loglevel_set(level->id()));
 }
 
-static int call_log_callback(void *cb_data, int loglevel, const char *format, va_list args)
+static int call_log_callback(void *cb_data, int loglevel,
+		const char *format, va_list args) noexcept
 {
 	const unique_ptr<char, decltype(&g_free)>
 		message {g_strdup_vprintf(format, args), &g_free};
@@ -978,7 +980,7 @@ bool Session::is_running() const
 	return (ret != 0);
 }
 
-static void session_stopped_callback(void *data)
+static void session_stopped_callback(void *data) noexcept
 {
 	auto *const callback = static_cast<SessionStoppedCallback*>(data);
 	(*callback)();
@@ -996,7 +998,7 @@ void Session::set_stopped_callback(SessionStoppedCallback callback)
 }
 
 static void datafeed_callback(const struct sr_dev_inst *sdi,
-	const struct sr_datafeed_packet *pkt, void *cb_data)
+	const struct sr_datafeed_packet *pkt, void *cb_data) noexcept
 {
 	auto callback = static_cast<DatafeedCallbackData *>(cb_data);
 	callback->run(sdi, pkt);
