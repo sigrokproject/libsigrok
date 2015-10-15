@@ -214,9 +214,9 @@ SR_API int sr_analog_to_float(const struct sr_datafeed_analog *analog,
  *
  * @since 0.4.0
  */
-SR_API int sr_analog_float_to_string(float value, int digits, char **result)
+SR_API int sr_analog_float_to_string(float value, unsigned int digits, char **result)
 {
-	int cnt, i;
+	unsigned int cnt, i;
 
 	/* This produces at least one too many digits */
 	*result = g_strdup_printf("%.*f", digits, value);
