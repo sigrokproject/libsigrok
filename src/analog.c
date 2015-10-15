@@ -155,10 +155,14 @@ SR_API int sr_analog_to_float(const struct sr_datafeed_analog *analog,
 		float *outbuf)
 {
 	float offset;
-	unsigned int b, i;
+	unsigned int b, i, count;
 	gboolean bigendian;
-	unsigned int count = (analog->num_samples
-			* g_slist_length(analog->meaning->channels));
+
+	if (!analog || !(analog->data) || !(analog->meaning)
+			|| !(analog->encoding) || !outbuf)
+		return SR_ERR_ARG;
+
+	count = analog->num_samples * g_slist_length(analog->meaning->channels);
 
 #ifdef WORDS_BIGENDIAN
 	bigendian = TRUE;
@@ -218,6 +222,9 @@ SR_API int sr_analog_float_to_string(float value, unsigned int digits, char **re
 {
 	unsigned int cnt, i;
 
+	if (!result)
+		return SR_ERR_ARG;
+
 	/* This produces at least one too many digits */
 	*result = g_strdup_printf("%.*f", digits, value);
 	for (i = 0, cnt = 0; (*result)[i]; i++) {
@@ -249,7 +256,12 @@ SR_API int sr_analog_unit_to_string(const struct sr_datafeed_analog *analog,
 		char **result)
 {
 	int i;
-	GString *buf = g_string_new(NULL);
+	GString *buf;
+
+	if (!analog || !(analog->meaning) || !result)
+		return SR_ERR_ARG;
+
+	buf = g_string_new(NULL);
 
 	for (i = 0; unit_strings[i].value; i++) {
 		if (analog->meaning->unit == unit_strings[i].value) {
@@ -277,6 +289,9 @@ SR_API int sr_analog_unit_to_string(const struct sr_datafeed_analog *analog,
  */
 SR_API void sr_rational_set(struct sr_rational *r, int64_t p, uint64_t q)
 {
+	if (!r)
+		return;
+
 	r->p = p;
 	r->q = q;
 }
