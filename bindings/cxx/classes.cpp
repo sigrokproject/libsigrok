@@ -116,7 +116,7 @@ SR_PRIV ssize_t ResourceReader::read_callback(const struct sr_resource *res,
 
 shared_ptr<Context> Context::create()
 {
-	return shared_ptr<Context>(new Context(), Context::Deleter());
+	return shared_ptr<Context>{new Context{}, default_delete<Context>{}};
 }
 
 Context::Context() :
@@ -252,15 +252,16 @@ void Context::set_resource_reader(ResourceReader *reader)
 
 shared_ptr<Session> Context::create_session()
 {
-	return shared_ptr<Session>(
-		new Session(shared_from_this()), Session::Deleter());
+	return shared_ptr<Session>{new Session{shared_from_this()},
+		default_delete<Session>{}};
 }
 
 shared_ptr<UserDevice> Context::create_user_device(
 		string vendor, string model, string version)
 {
-	return shared_ptr<UserDevice>(
-		new UserDevice(vendor, model, version), UserDevice::Deleter());
+	return shared_ptr<UserDevice>{
+		new UserDevice{move(vendor), move(model), move(version)},
+		default_delete<UserDevice>{}};
 }
 
 shared_ptr<Packet> Context::create_header_packet(Glib::TimeVal start_time)
@@ -272,7 +273,8 @@ shared_ptr<Packet> Context::create_header_packet(Glib::TimeVal start_time)
 	auto packet = g_new(struct sr_datafeed_packet, 1);
 	packet->type = SR_DF_HEADER;
 	packet->payload = header;
-	return shared_ptr<Packet>(new Packet(nullptr, packet), Packet::Deleter());
+	return shared_ptr<Packet>{new Packet{nullptr, packet},
+		default_delete<Packet>{}};
 }
 
 shared_ptr<Packet> Context::create_meta_packet(
@@ -291,7 +293,8 @@ shared_ptr<Packet> Context::create_meta_packet(
 	auto packet = g_new(struct sr_datafeed_packet, 1);
 	packet->type = SR_DF_META;
 	packet->payload = meta;
-	return shared_ptr<Packet>(new Packet(nullptr, packet), Packet::Deleter());
+	return shared_ptr<Packet>{new Packet{nullptr, packet},
+		default_delete<Packet>{}};
 }
 
 shared_ptr<Packet> Context::create_logic_packet(
@@ -304,7 +307,7 @@ shared_ptr<Packet> Context::create_logic_packet(
 	auto packet = g_new(struct sr_datafeed_packet, 1);
 	packet->type = SR_DF_LOGIC;
 	packet->payload = logic;
-	return shared_ptr<Packet>(new Packet(nullptr, packet), Packet::Deleter());
+	return shared_ptr<Packet>{new Packet{nullptr, packet}, default_delete<Packet>{}};
 }
 
 shared_ptr<Packet> Context::create_analog_packet(
@@ -327,19 +330,21 @@ shared_ptr<Packet> Context::create_analog_packet(
 	auto packet = g_new(struct sr_datafeed_packet, 1);
 	packet->type = SR_DF_ANALOG;
 	packet->payload = analog;
-	return shared_ptr<Packet>(new Packet(nullptr, packet), Packet::Deleter());
+	return shared_ptr<Packet>{new Packet{nullptr, packet}, default_delete<Packet>{}};
 }
 
 shared_ptr<Session> Context::load_session(string filename)
 {
-	return shared_ptr<Session>(
-		new Session(shared_from_this(), move(filename)), Session::Deleter());
+	return shared_ptr<Session>{
+		new Session{shared_from_this(), move(filename)},
+		default_delete<Session>{}};
 }
 
 shared_ptr<Trigger> Context::create_trigger(string name)
 {
-	return shared_ptr<Trigger>(
-		new Trigger(shared_from_this(), move(name)), Trigger::Deleter());
+	return shared_ptr<Trigger>{
+		new Trigger{shared_from_this(), move(name)},
+		default_delete<Trigger>{}};
 }
 
 shared_ptr<Input> Context::open_file(string filename)
@@ -347,8 +352,9 @@ shared_ptr<Input> Context::open_file(string filename)
 	const struct sr_input *input;
 
 	check(sr_input_scan_file(filename.c_str(), &input));
-	return shared_ptr<Input>(
-		new Input(shared_from_this(), input), Input::Deleter());
+	return shared_ptr<Input>{
+		new Input{shared_from_this(), input},
+		default_delete<Input>{}};
 }
 
 shared_ptr<Input> Context::open_stream(string header)
@@ -359,8 +365,9 @@ shared_ptr<Input> Context::open_stream(string header)
 	auto ret = sr_input_scan_buffer(gstr, &input);
 	g_string_free(gstr, true);
 	check(ret);
-	return shared_ptr<Input>(
-		new Input(shared_from_this(), input), Input::Deleter());
+	return shared_ptr<Input>{
+		new Input{shared_from_this(), input},
+		default_delete<Input>{}};
 }
 
 map<string, string> Context::serials(shared_ptr<Driver> driver) const
@@ -433,9 +440,10 @@ vector<shared_ptr<HardwareDevice>> Driver::scan(
 	for (GSList *device = device_list; device; device = device->next)
 	{
 		auto *const sdi = static_cast<struct sr_dev_inst *>(device->data);
-		result.push_back(shared_ptr<HardwareDevice>(
-			new HardwareDevice(shared_from_this(), sdi),
-			HardwareDevice::Deleter()));
+		shared_ptr<HardwareDevice> hwdev {
+			new HardwareDevice{shared_from_this(), sdi},
+			default_delete<HardwareDevice>{}};
+		result.push_back(move(hwdev));
 	}
 
 	/* Free GSList returned from scan. */
@@ -858,7 +866,7 @@ void DatafeedCallbackData::run(const struct sr_dev_inst *sdi,
 	const struct sr_datafeed_packet *pkt)
 {
 	auto device = _session->get_device(sdi);
-	auto packet = shared_ptr<Packet>(new Packet(device, pkt), Packet::Deleter());
+	shared_ptr<Packet> packet {new Packet{device, pkt}, default_delete<Packet>{}};
 	_callback(move(device), move(packet));
 }
 
@@ -1249,15 +1257,18 @@ vector<string> InputFormat::extensions() const
 
 map<string, shared_ptr<Option>> InputFormat::options()
 {
-	const struct sr_option **options = sr_input_options_get(_structure);
 	map<string, shared_ptr<Option>> result;
-	if (options)
+
+	if (const struct sr_option **options = sr_input_options_get(_structure))
 	{
-		auto option_array = shared_ptr<const struct sr_option *>(
-			options, sr_input_options_free);
-		for (int i = 0; options[i]; i++)
-			result[options[i]->id] = shared_ptr<Option>(
-				new Option(options[i], option_array), Option::Deleter());
+		shared_ptr<const struct sr_option *> option_array
+			{options, &sr_input_options_free};
+		for (int i = 0; options[i]; i++) {
+			shared_ptr<Option> opt {
+				new Option{options[i], option_array},
+				default_delete<Option>{}};
+			result.emplace(opt->id(), move(opt));
+		}
 	}
 	return result;
 }
@@ -1268,7 +1279,7 @@ shared_ptr<Input> InputFormat::create_input(
 	auto input = sr_input_new(_structure, map_to_hash_variant(options));
 	if (!input)
 		throw Error(SR_ERR_ARG);
-	return shared_ptr<Input>(new Input(_parent, input), Input::Deleter());
+	return shared_ptr<Input>{new Input{_parent, input}, default_delete<Input>{}};
 }
 
 Input::Input(shared_ptr<Context> context, const struct sr_input *structure) :
@@ -1395,15 +1406,18 @@ vector<string> OutputFormat::extensions() const
 
 map<string, shared_ptr<Option>> OutputFormat::options()
 {
-	const struct sr_option **options = sr_output_options_get(_structure);
 	map<string, shared_ptr<Option>> result;
-	if (options)
+
+	if (const struct sr_option **options = sr_output_options_get(_structure))
 	{
-		auto option_array = shared_ptr<const struct sr_option *>(
-			options, sr_output_options_free);
-		for (int i = 0; options[i]; i++)
-			result[options[i]->id] = shared_ptr<Option>(
-				new Option(options[i], option_array), Option::Deleter());
+		shared_ptr<const struct sr_option *> option_array
+			{options, &sr_output_options_free};
+		for (int i = 0; options[i]; i++) {
+			shared_ptr<Option> opt {
+				new Option{options[i], option_array},
+				default_delete<Option>{}};
+			result.emplace(opt->id(), move(opt));
+		}
 	}
 	return result;
 }
@@ -1411,17 +1425,17 @@ map<string, shared_ptr<Option>> OutputFormat::options()
 shared_ptr<Output> OutputFormat::create_output(
 	shared_ptr<Device> device, const map<string, Glib::VariantBase> &options)
 {
-	return shared_ptr<Output>(
-		new Output(shared_from_this(), move(device), options),
-		Output::Deleter());
+	return shared_ptr<Output>{
+		new Output{shared_from_this(), move(device), options},
+		default_delete<Output>{}};
 }
 
 shared_ptr<Output> OutputFormat::create_output(string filename,
 	shared_ptr<Device> device, const map<string, Glib::VariantBase> &options)
 {
-	return shared_ptr<Output>(
-		new Output(move(filename), shared_from_this(), move(device), options),
-		Output::Deleter());
+	return shared_ptr<Output>{
+		new Output{move(filename), shared_from_this(), move(device), options},
+		default_delete<Output>{}};
 }
 
 bool OutputFormat::test_flag(const OutputFlag *flag) const

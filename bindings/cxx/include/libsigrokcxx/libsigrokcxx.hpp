@@ -203,13 +203,6 @@ protected:
 			throw Error(SR_ERR_BUG);
 		return shared;
 	}
-
-	/* Deleter needed to allow shared_ptr use with protected destructor. */
-	class Deleter
-	{
-	public:
-		void operator()(Class *object) { delete object; }
-	};
 };
 
 /** Type of log callback */
@@ -307,9 +300,9 @@ private:
 	LogCallbackFunction _log_callback;
 	Context();
 	~Context();
-	friend class Deleter;
 	friend class Session;
 	friend class Driver;
+	friend class std::default_delete<Context>;
 };
 
 enum Capability {
@@ -405,18 +398,13 @@ protected:
 	map<struct sr_channel *, unique_ptr<Channel> > _channels;
 private:
 	map<string, unique_ptr<ChannelGroup> > _channel_groups;
-	/** Deleter needed to allow shared_ptr use with protected destructor. */
-	class Deleter
-	{
-	public:
-		void operator()(Device *device) { delete device; }
-	};
-	friend class Deleter;
+
 	friend class Session;
 	friend class Channel;
 	friend class ChannelGroup;
 	friend class Output;
 	friend class Analog;
+	friend class std::default_delete<Device>;
 };
 
 /** A real hardware device, connected via a driver */
@@ -432,15 +420,10 @@ private:
 	~HardwareDevice();
 	shared_ptr<Device> get_shared_from_this();
 	shared_ptr<Driver> _driver;
-	/** Deleter needed to allow shared_ptr use with protected destructor. */
-	class Deleter
-	{
-	public:
-		void operator()(HardwareDevice *device) { delete device; }
-	};
-	friend class Deleter;
+
 	friend class Driver;
 	friend class ChannelGroup;
+	friend class std::default_delete<HardwareDevice>;
 };
 
 /** A virtual device, created by the user */
@@ -455,14 +438,9 @@ private:
 	UserDevice(string vendor, string model, string version);
 	~UserDevice();
 	shared_ptr<Device> get_shared_from_this();
-	/** Deleter needed to allow shared_ptr use with protected destructor. */
-	class Deleter
-	{
-	public:
-		void operator()(UserDevice *device) { delete device; }
-	};
+
 	friend class Context;
-	friend class Deleter;
+	friend class std::default_delete<UserDevice>;
 };
 
 /** A channel on a device */
@@ -532,9 +510,9 @@ private:
 	struct sr_trigger *_structure;
 	shared_ptr<Context> _context;
 	vector<unique_ptr<TriggerStage> > _stages;
-	friend class Deleter;
 	friend class Context;
 	friend class Session;
+	friend class std::default_delete<Trigger>;
 };
 
 /** A stage in a trigger configuration */
@@ -614,13 +592,7 @@ private:
 	explicit SessionDevice(struct sr_dev_inst *sdi);
 	~SessionDevice();
 	shared_ptr<Device> get_shared_from_this();
-	/** Deleter needed to allow shared_ptr use with protected destructor. */
-	class Deleter
-	{
-	public:
-		void operator()(SessionDevice *device) { delete device; }
-	};
-	friend class Deleter;
+
 	friend class Session;
 	friend class std::default_delete<SessionDevice>;
 };
@@ -673,10 +645,11 @@ private:
 	SessionStoppedCallback _stopped_callback;
 	string _filename;
 	shared_ptr<Trigger> _trigger;
-	friend class Deleter;
+
 	friend class Context;
 	friend class DatafeedCallbackData;
 	friend class SessionDevice;
+	friend class std::default_delete<Session>;
 };
 
 /** A packet on the session datafeed */
@@ -694,7 +667,7 @@ private:
 	const struct sr_datafeed_packet *_structure;
 	shared_ptr<Device> _device;
 	unique_ptr<PacketPayload> _payload;
-	friend class Deleter;
+
 	friend class Session;
 	friend class Output;
 	friend class DatafeedCallbackData;
@@ -703,6 +676,7 @@ private:
 	friend class Logic;
 	friend class Analog;
 	friend class Context;
+	friend class std::default_delete<Packet>;
 };
 
 /** Abstract base class for datafeed packet payloads */
@@ -714,13 +688,6 @@ protected:
 private:
 	virtual shared_ptr<PacketPayload> share_owned_by(shared_ptr<Packet> parent) = 0;
 
-	/** Deleter needed to allow shared_ptr use with protected destructor. */
-	class Deleter
-	{
-	public:
-		void operator()(PacketPayload *payload) { delete payload; }
-	};
-	friend class Deleter;
 	friend class Packet;
 	friend class Output;
 	friend class std::default_delete<PacketPayload>;
@@ -861,9 +828,10 @@ private:
 	const struct sr_input *_structure;
 	shared_ptr<Context> _context;
 	unique_ptr<InputDevice> _device;
-	friend class Deleter;
+
 	friend class Context;
 	friend class InputFormat;
+	friend class std::default_delete<Input>;
 };
 
 /** A virtual device associated with an input */
@@ -900,9 +868,10 @@ private:
 	~Option();
 	const struct sr_option *_structure;
 	shared_ptr<const struct sr_option *> _structure_array;
-	friend class Deleter;
+
 	friend class InputFormat;
 	friend class OutputFormat;
+	friend class std::default_delete<Option>;
 };
 
 /** An output format supported by the library */
@@ -970,8 +939,8 @@ private:
 	const shared_ptr<Device> _device;
 	const map<string, Glib::VariantBase> _options;
 
-	friend class Deleter;
 	friend class OutputFormat;
+	friend class std::default_delete<Output>;
 };
 
 /** Base class for objects which wrap an enumeration value from libsigrok */
