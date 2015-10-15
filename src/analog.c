@@ -151,6 +151,23 @@ SR_PRIV int sr_analog_init(struct sr_datafeed_analog *analog,
 	return SR_OK;
 }
 
+/**
+ * Convert an analog datafeed payload to an array of floats.
+ *
+ * @param[in] analog The analog payload to convert. Must not be NULL.
+ *                   analog->data, analog->meaning, and analog->encoding
+ *                   must not be NULL.
+ * @param[out] outbuf Memory where to store the result. Must not be NULL.
+ *
+ * Sufficient memory for outbuf must have been pre-allocated by the caller,
+ * who is also responsible for freeing it when no longer needed.
+ *
+ * @retval SR_OK Success.
+ * @retval SR_ERR Unsupported encoding.
+ * @retval SR_ERR_ARG Invalid argument.
+ *
+ * @since 0.4.0
+ */
 SR_API int sr_analog_to_float(const struct sr_datafeed_analog *analog,
 		float *outbuf)
 {
@@ -203,18 +220,20 @@ SR_API int sr_analog_to_float(const struct sr_datafeed_analog *analog,
 	return SR_OK;
 }
 
-/*
+/**
  * Convert a floating point value to a string, limited to the given
  * number of decimal digits.
  *
- * @param value The value to convert.
- * @param digits Number of digits after the decimal point to print.
- * @param result Pointer to store result.
+ * @param[in] value The value to convert.
+ * @param[in] digits Number of digits after the decimal point to print.
+ *                   Must be >= 0.
+ * @param[out] result Pointer to store result. Must not be NULL.
  *
  * The string is allocated by the function and must be freed by the caller
  * after use by calling g_free().
  *
- * @retval SR_OK
+ * @retval SR_OK Success.
+ * @retval SR_ERR_ARG Invalid argument.
  *
  * @since 0.4.0
  */
@@ -225,7 +244,7 @@ SR_API int sr_analog_float_to_string(float value, unsigned int digits, char **re
 	if (!result)
 		return SR_ERR_ARG;
 
-	/* This produces at least one too many digits */
+	/* This produces at least one too many digits. */
 	*result = g_strdup_printf("%.*f", digits, value);
 	for (i = 0, cnt = 0; (*result)[i]; i++) {
 		if (isdigit((*result)[i++]))
@@ -239,16 +258,18 @@ SR_API int sr_analog_float_to_string(float value, unsigned int digits, char **re
 	return SR_OK;
 }
 
-/*
+/**
  * Convert the unit/MQ/MQ flags in the analog struct to a string.
  *
- * @param analog Struct containing the unit, MQ and MQ flags.
- * @param result Pointer to store result.
+ * @param[in] analog Struct containing the unit, MQ and MQ flags.
+ *                   Must not be NULL. analog->meaning must not be NULL.
+ * @param[out] result Pointer to store result. Must not be NULL.
  *
  * The string is allocated by the function and must be freed by the caller
  * after use by calling g_free().
  *
- * @retval SR_OK
+ * @retval SR_OK Success.
+ * @retval SR_ERR_ARG Invalid argument.
  *
  * @since 0.4.0
  */
@@ -281,11 +302,14 @@ SR_API int sr_analog_unit_to_string(const struct sr_datafeed_analog *analog,
 	return SR_OK;
 }
 
-/*
+/**
  * Set sr_rational r to the given value.
  *
- * @param p Numerator
- * @param q Denominator
+ * @param[out] r Rational number struct to set. Must not be NULL.
+ * @param[in] p Numerator.
+ * @param[in] q Denominator.
+ *
+ * @since 0.4.0
  */
 SR_API void sr_rational_set(struct sr_rational *r, int64_t p, uint64_t q)
 {
