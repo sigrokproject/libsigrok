@@ -284,10 +284,8 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		return beaglelogic_set_triggerflags(devc);
 	case SR_CONF_CAPTURE_RATIO:
 		devc->capture_ratio = g_variant_get_uint64(data);
-		if (devc->capture_ratio > 100) {
-			devc->capture_ratio = 0;
+		if (devc->capture_ratio > 100)
 			return SR_ERR;
-		}
 		return SR_OK;
 	default:
 		return SR_ERR_NA;

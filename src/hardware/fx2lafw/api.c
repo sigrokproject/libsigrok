@@ -567,11 +567,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		break;
 	case SR_CONF_CAPTURE_RATIO:
 		devc->capture_ratio = g_variant_get_uint64(data);
-		if (devc->capture_ratio > 100) {
-			devc->capture_ratio = 0;
-			ret = SR_ERR;
-		} else
-			ret = SR_OK;
+		ret = (devc->capture_ratio > 100) ? SR_ERR : SR_OK;
 		break;
 	default:
 		ret = SR_ERR_NA;
