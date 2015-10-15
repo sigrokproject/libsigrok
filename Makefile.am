@@ -524,7 +524,8 @@ tests_main_SOURCES = \
 	tests/version.c \
 	tests/driver_all.c \
 	tests/device.c \
-	tests/trigger.c
+	tests/trigger.c \
+	tests/analog.c
 
 tests_main_LDADD = libsigrok.la $(SR_EXTRA_LIBS) $(TESTS_LIBS)
 

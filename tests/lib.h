@@ -23,6 +23,8 @@
 
 #include <libsigrok/libsigrok.h>
 
+#define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
+
 extern struct sr_context *srtest_ctx;
 
 void srtest_setup(void);
@@ -51,5 +53,6 @@ Suite *suite_strutil(void);
 Suite *suite_version(void);
 Suite *suite_device(void);
 Suite *suite_trigger(void);
+Suite *suite_analog(void);
 
 #endif
