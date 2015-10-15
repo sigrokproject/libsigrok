@@ -300,9 +300,9 @@ public:
 	map<string, string> serials(shared_ptr<Driver> driver) const;
 private:
 	struct sr_context *_structure;
-	map<string, Driver *> _drivers;
-	map<string, InputFormat *> _input_formats;
-	map<string, OutputFormat *> _output_formats;
+	map<string, unique_ptr<Driver> > _drivers;
+	map<string, unique_ptr<InputFormat> > _input_formats;
+	map<string, unique_ptr<OutputFormat> > _output_formats;
 	Session *_session;
 	LogCallbackFunction _log_callback;
 	Context();
@@ -370,6 +370,7 @@ private:
 	friend class Context;
 	friend class HardwareDevice;
 	friend class ChannelGroup;
+	friend class std::default_delete<Driver>;
 };
 
 /** A generic device, either hardware or virtual */
@@ -401,9 +402,9 @@ protected:
 	shared_ptr<Channel> get_channel(struct sr_channel *ptr);
 
 	struct sr_dev_inst *_structure;
-	map<struct sr_channel *, Channel *> _channels;
+	map<struct sr_channel *, unique_ptr<Channel> > _channels;
 private:
-	map<string, ChannelGroup *> _channel_groups;
+	map<string, unique_ptr<ChannelGroup> > _channel_groups;
 	/** Deleter needed to allow shared_ptr use with protected destructor. */
 	class Deleter
 	{
@@ -494,6 +495,7 @@ private:
 	friend class Session;
 	friend class TriggerStage;
 	friend class Context;
+	friend class std::default_delete<Channel>;
 };
 
 /** A group of channels on a device, which share some configuration */
@@ -507,10 +509,11 @@ public:
 	/** List of the channels in this group. */
 	vector<shared_ptr<Channel> > channels();
 private:
-	ChannelGroup(Device *device, struct sr_channel_group *structure);
+	ChannelGroup(const Device *device, struct sr_channel_group *structure);
 	~ChannelGroup();
 	vector<Channel *> _channels;
 	friend class Device;
+	friend class std::default_delete<ChannelGroup>;
 };
 
 /** A trigger configuration */
@@ -528,7 +531,7 @@ private:
 	~Trigger();
 	struct sr_trigger *_structure;
 	shared_ptr<Context> _context;
-	vector<TriggerStage *> _stages;
+	vector<unique_ptr<TriggerStage> > _stages;
 	friend class Deleter;
 	friend class Context;
 	friend class Session;
@@ -554,10 +557,11 @@ public:
 	void add_match(shared_ptr<Channel> channel, const TriggerMatchType *type, float value);
 private:
 	struct sr_trigger_stage *_structure;
-	vector<TriggerMatch *> _matches;
+	vector<unique_ptr<TriggerMatch> > _matches;
 	explicit TriggerStage(struct sr_trigger_stage *structure);
 	~TriggerStage();
 	friend class Trigger;
+	friend class std::default_delete<TriggerStage>;
 };
 
 /** A match condition in a trigger configuration  */
@@ -577,6 +581,7 @@ private:
 	struct sr_trigger_match *_structure;
 	shared_ptr<Channel> _channel;
 	friend class TriggerStage;
+	friend class std::default_delete<TriggerMatch>;
 };
 
 /** Type of session stopped callback */
@@ -617,6 +622,7 @@ private:
 	};
 	friend class Deleter;
 	friend class Session;
+	friend class std::default_delete<SessionDevice>;
 };
 
 /** A sigrok session */
@@ -661,9 +667,9 @@ private:
 	shared_ptr<Device> get_device(const struct sr_dev_inst *sdi);
 	struct sr_session *_structure;
 	const shared_ptr<Context> _context;
-	map<const struct sr_dev_inst *, SessionDevice *> _owned_devices;
+	map<const struct sr_dev_inst *, unique_ptr<SessionDevice> > _owned_devices;
 	map<const struct sr_dev_inst *, shared_ptr<Device> > _other_devices;
-	vector<DatafeedCallbackData *> _datafeed_callbacks;
+	vector<unique_ptr<DatafeedCallbackData> > _datafeed_callbacks;
 	SessionStoppedCallback _stopped_callback;
 	string _filename;
 	shared_ptr<Trigger> _trigger;
@@ -687,7 +693,7 @@ private:
 	~Packet();
 	const struct sr_datafeed_packet *_structure;
 	shared_ptr<Device> _device;
-	PacketPayload *_payload;
+	unique_ptr<PacketPayload> _payload;
 	friend class Deleter;
 	friend class Session;
 	friend class Output;
@@ -717,6 +723,7 @@ private:
 	friend class Deleter;
 	friend class Packet;
 	friend class Output;
+	friend class std::default_delete<PacketPayload>;
 };
 
 /** Payload of a datafeed header packet */
@@ -833,6 +840,7 @@ private:
 
 	friend class Context;
 	friend class InputDevice;
+	friend class std::default_delete<InputFormat>;
 };
 
 /** An input instance (an input format applied to a file or stream) */
@@ -852,7 +860,7 @@ private:
 	~Input();
 	const struct sr_input *_structure;
 	shared_ptr<Context> _context;
-	InputDevice *_device;
+	unique_ptr<InputDevice> _device;
 	friend class Deleter;
 	friend class Context;
 	friend class InputFormat;
@@ -869,6 +877,7 @@ private:
 	shared_ptr<Device> get_shared_from_this();
 	shared_ptr<Input> _input;
 	friend class Input;
+	friend class std::default_delete<InputDevice>;
 };
 
 /** An option used by an output format */
@@ -938,6 +947,7 @@ private:
 
 	friend class Context;
 	friend class Output;
+	friend class std::default_delete<OutputFormat>;
 };
 
 /** An output instance (an output format applied to a device) */
