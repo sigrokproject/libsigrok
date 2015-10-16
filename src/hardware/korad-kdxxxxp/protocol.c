@@ -73,7 +73,7 @@ static void give_device_time_to_process(struct dev_context *devc)
 
 	if (sleeping_time > 0) {
 		g_usleep(sleeping_time);
-		sr_spew("Sleeping for processing %ld usec", sleeping_time);
+		sr_spew("Sleeping for processing %" PRIi64 " usec", sleeping_time);
 	}
 }
 
