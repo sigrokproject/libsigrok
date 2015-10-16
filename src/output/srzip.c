@@ -82,7 +82,7 @@ static int zip_create(const struct sr_output *o)
 
 	/* "version" */
 	versrc = zip_source_buffer(zipfile, "2", 1, FALSE);
-	if (zip_file_add(zipfile, "version", versrc, 0) < 0) {
+	if (zip_add(zipfile, "version", versrc) < 0) {
 		sr_err("Error saving version into zipfile: %s",
 			zip_strerror(zipfile));
 		zip_source_free(versrc);
@@ -118,7 +118,7 @@ static int zip_create(const struct sr_output *o)
 	g_key_file_free(meta);
 
 	metasrc = zip_source_buffer(zipfile, metabuf, metalen, FALSE);
-	if (zip_file_add(zipfile, "metadata", metasrc, 0) < 0) {
+	if (zip_add(zipfile, "metadata", metasrc) < 0) {
 		sr_err("Error saving metadata into zipfile: %s",
 			zip_strerror(zipfile));
 		zip_source_free(metasrc);
