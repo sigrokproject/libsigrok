@@ -566,6 +566,12 @@ SR_PRIV const struct dmm_info *serial_dmm_drivers[] = {
 		sr_ut71x_packet_valid, sr_ut71x_parse, NULL
 	),
 	DMM(
+		"tenma-72-7732-ser", ut71x,
+		"Tenma", "72-7732 (UT-D02 cable)", "2400/7o1/rts=0/dtr=1",
+		2400, UT71X_PACKET_SIZE, 0, 0, NULL,
+		sr_ut71x_packet_valid, sr_ut71x_parse, NULL
+	),
+	DMM(
 		"tenma-72-9380a-ser", ut71x,
 		"Tenma", "72-9380A (UT-D02 cable)", "2400/7o1/rts=0/dtr=1",
 		2400, UT71X_PACKET_SIZE, 0, 0, NULL,
