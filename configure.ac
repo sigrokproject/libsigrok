@@ -431,7 +431,7 @@ AM_CONDITIONAL([BINDINGS_JAVA], [test "x$BINDINGS_JAVA" = xyes])
 ##############################
 
 # Add mandatory dependencies to module list.
-SR_APPEND([SR_PKGLIBS], ['libzip >= 0.10'])
+SR_APPEND([SR_PKGLIBS], ['libzip >= 0.11'])
 AC_SUBST([SR_PKGLIBS])
 
 # Retrieve the compile and link flags for all modules combined.
@@ -499,7 +499,7 @@ Compile configuration:
 
 Detected libraries (required):
  - glib-2.0 >= 2.32.0.............. $sr_glib_version
- - libzip >= 0.10.................. $sr_libzip_version
+ - libzip >= 0.11.................. $sr_libzip_version
 
 Detected libraries (optional):
 $sr_pkglibs_summary
