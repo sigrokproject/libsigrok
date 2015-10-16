@@ -395,6 +395,12 @@ SR_PRIV const struct dmm_info *uni_t_dmm_drivers[] = {
 		sr_ut71x_packet_valid, sr_ut71x_parse, NULL
 	),
 	DMM(
+		"tenma-72-9380a", ut71x,
+		"Tenma", "72-9380A", 2400,
+		UT71X_PACKET_SIZE,
+		sr_ut71x_packet_valid, sr_ut71x_parse, NULL
+	),
+	DMM(
 		"tenma-72-7745", es519xx,
 		"Tenma", "72-7745", 2400,
 		FS9721_PACKET_SIZE,
