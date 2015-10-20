@@ -54,19 +54,11 @@ namespace Glib {
 %typemap(jstype) std::vector< CValue > "java.util.Vector<JValue>"
 
 %typemap(javain,
-    pre="  $javaclassname temp$javainput = $javaclassname.convertVector($javainput);",
+    pre="  $javaclassname temp$javainput = new $javaclassname();
+  for (JValue value : $javainput)
+    temp$javainput.add(value);",
     pgcppname="temp$javainput")
   std::vector< CValue > "$javaclassname.getCPtr(temp$javainput)"
-
-%typemap(javacode) std::vector< CValue > %{
-  static $javaclassname convertVector(java.util.Vector<JValue> in)
-  {
-    $javaclassname out = new $javaclassname();
-    for (JValue value : in)
-      out.add(value);
-    return out;
-  }
-%}
 
 %typemap(javaout) std::vector< CValue > {
   return (java.util.Vector<JValue>)$jnicall;
@@ -102,19 +94,11 @@ VECTOR(std::shared_ptr<sigrok::HardwareDevice>, HardwareDevice)
   "java.util.Map<JKey, JValue>"
 
 %typemap(javain,
-    pre="  $javaclassname temp$javainput = $javaclassname.convertMap($javainput);",
+    pre="  $javaclassname temp$javainput = new $javaclassname();
+    for (java.util.Map.Entry<JKey, JValue> entry : $javainput.entrySet())
+      temp$javainput.set(entry.getKey(), entry.getValue());",
     pgcppname="temp$javainput")
   std::map< CKey, CValue > "$javaclassname.getCPtr(temp$javainput)"
-
-%typemap(javacode) std::map< CKey, CValue > %{
-  static $javaclassname convertMap(java.util.Map<JKey,JValue> in)
-  {
-    $javaclassname out = new $javaclassname();
-    for (java.util.Map.Entry<JKey, JValue> entry : in.entrySet())
-      out.set(entry.getKey(), entry.getValue());
-    return out;
-  }
-%}
 
 %typemap(javaout) std::map< CKey, CValue > {
   return (java.util.Map<JKey, JValue>)$jnicall;
