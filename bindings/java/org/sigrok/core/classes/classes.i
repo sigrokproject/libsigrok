@@ -44,6 +44,8 @@ namespace Glib {
   class VariantBase {};
 }
 
+%include "bindings/swig/templates.i"
+
 /* Map between std::vector and java.util.Vector */
 %define VECTOR(CValue, JValue)
 
@@ -384,8 +386,9 @@ typedef jobject jdatafeedcallback;
 %define %enumextras(Class)
 %enddef
 
-/* Ignore this for now, needs a fix. */
+/* Ignore these for now, need fixes. */
 %ignore sigrok::Context::create_analog_packet;
+%ignore sigrok::Context::create_meta_packet;
 
 %include "bindings/swig/classes.i"
 

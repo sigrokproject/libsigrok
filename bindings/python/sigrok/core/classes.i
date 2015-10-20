@@ -83,6 +83,8 @@ typedef guint pyg_flags_type;
     import_array();
 %}
 
+%include "../../../swig/templates.i"
+
 /* Map file objects to file descriptors. */
 %typecheck(SWIG_TYPECHECK_POINTER) int fd {
     $1 = (PyObject_AsFileDescriptor($input) != -1);
