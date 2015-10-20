@@ -47,6 +47,7 @@ which provides access to the error code and description."
 %{
 #include <stdio.h>
 #include <pygobject.h>
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include <numpy/arrayobject.h>
 
 PyObject *PyGObject_lib;
